@@ -6,14 +6,14 @@
 void WindowManager::attachWindow(std::unique_ptr<Window> window)
 {
 	std::lock_guard<std::mutex> guard(mWindowQueue.mutex);
-	printf("Enqueing window attachment.\n");
+	DebugReport("Enqueing window attachment.\n");
 	mWindowQueue.queue.push(WindowQueueCommand(WindowQueueCommand::Action::AttachWindow, std::move(window)));
 }
 
 void WindowManager::detachWindow(u32 windowId)
 {
 	std::lock_guard<std::mutex> guard(mWindowQueue.mutex);
-	printf("Enqueing window detachment.\n");
+	DebugReport("Enqueing window detachment.\n");
 	mWindowQueue.queue.push(WindowQueueCommand(WindowQueueCommand::Action::DetachWindow, windowId));
 }
 
@@ -27,13 +27,13 @@ void WindowManager::processWindowQueue()
 		switch (mWindowQueue.queue.front().getAction())
 		{
 		case WindowQueueCommand::Action::AttachWindow:
-			printf("Attaching window\n");
+			DebugReport("Attaching window\n");
 			// Assign it an ID
 			mWindowQueue.queue.front().target_a->mId = mWindowIdCounter++;
 			mWindows.append(std::move(mWindowQueue.queue.front().target_a));
 			break;
 		case WindowQueueCommand::Action::DetachWindow:
-			printf("Detaching window.\n");
+			DebugReport("Detaching window.\n");
 			mWindows.remove(mWindowQueue.queue.front().getDetachmentTarget());
 			break;
 		}
