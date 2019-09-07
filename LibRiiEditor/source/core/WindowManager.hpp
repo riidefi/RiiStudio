@@ -51,17 +51,18 @@ private:
 		}
 	};
 
-	struct WindowQueue
+	class WindowQueue
 	{
+	public:
+		enum class Action
+		{
+			AttachWindow,
+			DetachWindow
+		};
+	private:
 		class Command
 		{
 		public:
-			enum class Action
-			{
-				AttachWindow,
-				DetachWindow
-			};
-
 			Command(Action a, std::unique_ptr<Window> t)
 				: action(a), target(std::move(t))
 			{}
@@ -93,6 +94,7 @@ private:
 			std::variant<std::unique_ptr<Window>, u32> target;
 		};
 
+	public:
 		std::mutex mutex;
 		std::queue<Command> queue;
 	} mWindowQueue;
