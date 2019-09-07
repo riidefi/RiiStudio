@@ -7,14 +7,14 @@ void WindowManager::attachWindow(std::unique_ptr<Window> window)
 {
 	std::lock_guard<std::mutex> guard(mWindowQueue.mutex);
 	DebugReport("Enqueing window attachment.\n");
-	mWindowQueue.queue.push(WindowQueueCommand(WindowQueueCommand::Action::AttachWindow, std::move(window)));
+	mWindowQueue.queue.emplace(WindowQueue::Command::Action::AttachWindow, std::move(window));
 }
 
 void WindowManager::detachWindow(u32 windowId)
 {
 	std::lock_guard<std::mutex> guard(mWindowQueue.mutex);
 	DebugReport("Enqueing window detachment.\n");
-	mWindowQueue.queue.push(WindowQueueCommand(WindowQueueCommand::Action::DetachWindow, windowId));
+	mWindowQueue.queue.emplace(WindowQueue::Command::Action::DetachWindow, windowId);
 }
 
 void WindowManager::processWindowQueue()
@@ -26,7 +26,7 @@ void WindowManager::processWindowQueue()
 	{
 		switch (mWindowQueue.queue.front().getAction())
 		{
-		case WindowQueueCommand::Action::AttachWindow: {
+		case WindowQueue::Command::Action::AttachWindow: {
 			DebugReport("Attaching window\n");
 
 			auto target = mWindowQueue.queue.front().getAttachmentTarget();
@@ -36,7 +36,7 @@ void WindowManager::processWindowQueue()
 			mWindows.append(std::move(target));
 			break;
 		}
-		case WindowQueueCommand::Action::DetachWindow:
+		case WindowQueue::Command::Action::DetachWindow:
 			DebugReport("Detaching window.\n");
 
 			mWindows.remove(mWindowQueue.queue.front().getDetachmentTarget());

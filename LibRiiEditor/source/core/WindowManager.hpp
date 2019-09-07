@@ -29,46 +29,6 @@ public:
 private:
 	SelectionManager mSelectionManager;
 
-	class WindowQueueCommand
-	{
-	public:
-		enum class Action
-		{
-			AttachWindow,
-			DetachWindow
-		};
-		
-		WindowQueueCommand(Action a, std::unique_ptr<Window> t)
-			: action(a), target(std::move(t))
-		{}
-		WindowQueueCommand(Action a, u32 windowId_)
-			: action(a), target(windowId_)
-		{}
-
-		Action getAction() const noexcept
-		{
-			return action;
-		}
-
-		std::unique_ptr<Window> getAttachmentTarget()
-		{
-			assert(action == Action::AttachWindow);
-			
-			return std::move(std::get<std::unique_ptr<Window>>(target));
-		}
-
-		u32 getDetachmentTarget()
-		{
-			assert(action == Action::DetachWindow);
-
-			return std::get<u32>(target);
-		}
-	
-	private:
-		Action action;
-		std::variant<std::unique_ptr<Window>, u32> target;
-	};
-
 	struct WindowVector
 	{
 		// Actions themselves not atomic, lock the mutex before using
@@ -93,8 +53,48 @@ private:
 
 	struct WindowQueue
 	{
+		class Command
+		{
+		public:
+			enum class Action
+			{
+				AttachWindow,
+				DetachWindow
+			};
+
+			Command(Action a, std::unique_ptr<Window> t)
+				: action(a), target(std::move(t))
+			{}
+			Command(Action a, u32 windowId_)
+				: action(a), target(windowId_)
+			{}
+
+			Action getAction() const noexcept
+			{
+				return action;
+			}
+
+			std::unique_ptr<Window> getAttachmentTarget()
+			{
+				assert(action == Action::AttachWindow);
+
+				return std::move(std::get<std::unique_ptr<Window>>(target));
+			}
+
+			u32 getDetachmentTarget()
+			{
+				assert(action == Action::DetachWindow);
+
+				return std::get<u32>(target);
+			}
+
+		private:
+			Action action;
+			std::variant<std::unique_ptr<Window>, u32> target;
+		};
+
 		std::mutex mutex;
-		std::queue<WindowQueueCommand> queue;
+		std::queue<Command> queue;
 	} mWindowQueue;
 
 	// Must only be accessed from processWindowQueue
