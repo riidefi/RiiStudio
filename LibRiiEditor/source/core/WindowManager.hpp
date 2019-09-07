@@ -29,8 +29,9 @@ public:
 private:
 	SelectionManager mSelectionManager;
 
-	struct WindowQueueCommand
+	class WindowQueueCommand
 	{
+	public:
 		enum class Action
 		{
 			AttachWindow,
@@ -38,10 +39,10 @@ private:
 		};
 		
 		WindowQueueCommand(Action a, std::unique_ptr<Window> t)
-			: action(a), target_a(std::move(t))
+			: action(a), target(std::move(t))
 		{}
 		WindowQueueCommand(Action a, u32 windowId_)
-			: action(a), target_d(windowId_)
+			: action(a), target(windowId_)
 		{}
 
 		Action getAction() const noexcept
@@ -53,23 +54,19 @@ private:
 		{
 			assert(action == Action::AttachWindow);
 			
-			return std::move(target_a);
-			//return std::move(std::get<std::unique_ptr<Window>>(target));
+			return std::move(std::get<std::unique_ptr<Window>>(target));
 		}
 
 		u32 getDetachmentTarget()
 		{
 			assert(action == Action::DetachWindow);
 
-			return target_d;
-			//return std::get<u32>(target);
+			return std::get<u32>(target);
 		}
-
-	public:
+	
+	private:
 		Action action;
-		//	std::variant<std::unique_ptr<Window>, u32> target;
-		std::unique_ptr<Window> target_a;
-		u32 target_d;
+		std::variant<std::unique_ptr<Window>, u32> target;
 	};
 
 	struct WindowVector

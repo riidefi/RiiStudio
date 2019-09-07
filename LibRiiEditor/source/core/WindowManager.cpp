@@ -26,14 +26,19 @@ void WindowManager::processWindowQueue()
 	{
 		switch (mWindowQueue.queue.front().getAction())
 		{
-		case WindowQueueCommand::Action::AttachWindow:
+		case WindowQueueCommand::Action::AttachWindow: {
 			DebugReport("Attaching window\n");
+
+			auto target = mWindowQueue.queue.front().getAttachmentTarget();
+
 			// Assign it an ID
-			mWindowQueue.queue.front().target_a->mId = mWindowIdCounter++;
-			mWindows.append(std::move(mWindowQueue.queue.front().target_a));
+			target->mId = mWindowIdCounter++;
+			mWindows.append(std::move(target));
 			break;
+		}
 		case WindowQueueCommand::Action::DetachWindow:
 			DebugReport("Detaching window.\n");
+
 			mWindows.remove(mWindowQueue.queue.front().getDetachmentTarget());
 			break;
 		}
