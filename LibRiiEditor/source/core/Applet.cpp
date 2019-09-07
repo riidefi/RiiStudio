@@ -21,7 +21,7 @@ static bool loadFonts()
 	fontcfg.OversampleH = 8;
 	fontcfg.OversampleV = 8;
 
-	io.Fonts->AddFontFromFileTTF("./fonts/Roboto-Medium.ttf", 14.0f, &fontcfg);
+	io.Fonts->AddFontFromFileTTF("../fonts/Roboto-Medium.ttf", 14.0f, &fontcfg);
 
 	// Taken from example
 	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };

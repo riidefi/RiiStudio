@@ -7,7 +7,7 @@ void WindowManager::attachWindow(std::unique_ptr<Window> window)
 {
 	std::lock_guard<std::mutex> guard(mWindowQueue.mutex);
 	DebugReport("Enqueing window attachment.\n");
-	mWindowQueue.queue.emplace(WindowQueue::Command::Action::AttachWindow, std::move(window));
+	mWindowQueue.queue.emplace(WindowQueue::Action::AttachWindow, std::move(window));
 }
 
 void WindowManager::detachWindow(u32 windowId)
