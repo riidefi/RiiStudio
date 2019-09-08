@@ -20,7 +20,7 @@ public:
 
 private:
 	std::mutex						   mMutex;		//!< When performing write operations (registering a plugin)
-	std::vector<PluginInstance>		   mPlugins;	//!< Other data here references by index -- be careful to maintain that.
+	std::vector<PluginRegistration>	   mPlugins;	//!< Other data here references by index -- be careful to maintain that.
 	std::map<std::string, std::size_t> mExtensions; //!< Maps extension string to mPlugins index.
 	std::map<u32, std::size_t>		   mMagics;		//!< Maps file magic identifiers to mPlugins index.
 };
