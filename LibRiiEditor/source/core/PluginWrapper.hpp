@@ -15,24 +15,21 @@ struct PluginWrapper : private Plugin
 
 // T must implement draw and static intrusiveCheck
 template<typename T>
-struct PluginWrapperInterface : public Plugin
+struct PluginWrapperInterface
 {
 	static void pl_draw(Plugin* pl, PluginContext* ctx)
 	{
-		static_cast<PluginWrapperInterface*>(pl)->wrapped_plugin.draw(*ctx);
-	}
-	PluginWrapperInterface()
-	{
-		plugin_draw = pl_draw;
+		static_cast<T*>(pl)->draw(*ctx);
 	}
 
 	static Plugin* interface_construct()
 	{
-		return new PluginWrapperInterface();
+		Plugin* constructed = static_cast<Plugin*>(new T());
+		constructed->plugin_draw = pl_draw;
 	}
 	static void interface_destruct(Plugin* plugin)
 	{
-		delete (PluginWrapperInterface*)plugin;
+		delete static_cast<T*>(plugin);
 	}
 
 	static PluginRegistration createRegistration(
@@ -61,6 +58,4 @@ struct PluginWrapperInterface : public Plugin
 	{
 		return createRegistration(&extensions[0], extensions.size(), &magics[0], magics.size(), name.c_str(), ver.c_str(), domain.c_str());
 	}
-
-	T wrapped_plugin;
 };
