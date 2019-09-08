@@ -24,7 +24,7 @@ struct Plugin
 	//!
 	PluginFactory* mpPluginFactory;
 
-	typedef void(*PluginDraw)(PluginContext*);
+	typedef void(*PluginDraw)(Plugin*, PluginContext*);
 
 	PluginDraw plugin_draw;
 };
@@ -68,8 +68,8 @@ struct PluginRegistration
 	const char* plugin_domain; //!< (where does this plugin apply?)
 
 	// Plugin instancing
-	typedef Plugin*(*pluginFactory)();
-	pluginFactory construct;
+	typedef Plugin*(*pluginConstruct)();
+	pluginConstruct construct;
 
 	typedef void(*pluginDestructor)(Plugin*);
 	pluginDestructor destruct;
@@ -125,7 +125,7 @@ struct PluginWindow : public PluginInstance, public WindowManager, public Window
 			return;
 
 		PluginContext pl_ctx{ *ctx, *static_cast<WindowManager*>(this) };
-		getPlugin().plugin_draw(&pl_ctx);
+		getPlugin().plugin_draw(&getPlugin(), &pl_ctx);
 	}
 
 };

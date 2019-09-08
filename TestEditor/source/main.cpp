@@ -2,6 +2,34 @@
 #include <ui/widgets/Dockspace.hpp>
 #include <ui/ThemeManager.hpp>
 
+#include <core/Plugin.hpp>
+#include <core/PluginFactory.hpp>
+#include <core/PluginWrapper.hpp>
+
+
+struct TestPlugin : public PluginWrapper
+{
+	void draw(const PluginContext& ctx)
+	{
+
+	}
+	static PluginRegistration::CheckResult intrusiveCheck()
+	{
+		return PluginRegistration::CheckResult::Maybe;
+	}
+};
+
+struct TestPluginInterface : PluginWrapperInterface<TestPlugin>
+{
+	static PluginRegistration getRegistration()
+	{
+		const std::vector<const char*> extensions = { ".test" };
+		const std::vector<u32> magics = { 'TST0' };
+
+		return createRegistration(extensions, magics, "Test Plugin", "1.0", "Test files");
+	}
+};
+
 static inline int toIntComp(float src)
 {
 	return static_cast<int>(round(src * 255.0f));
