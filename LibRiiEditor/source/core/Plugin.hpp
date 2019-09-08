@@ -6,22 +6,25 @@
 #include <string>
 #include <memory>
 
+struct PluginManager;
+
 //! @brief	A single applet may have multiple plugins. A plugin editor is a window of the root.
 //!			An applet's core resource will reflect the state of the program; a plugin core resource will reflect the data being edited.
 //!
 struct Plugin : public WindowManager, public Window
 {
+	//! Set by manager after plugin is constructed.
+	//!	Ensured to be valid for the lifetime of the plugin.
+	//!
+	PluginManager* mpPluginManager;
 };
 
 struct PluginRegistration;
 
 //! @brief A plugin factory must also destroy what it creates -- not necessarily same heap in main program.
 //!
-struct PluginInstance
-{
-	Plugin *const mpPlugin;
-	const PluginRegistration& registration;
-
+class PluginInstance
+{	
 	PluginInstance(const PluginRegistration& regist)
 		: mpPlugin(regist.construct()), registration(regist)
 	{
@@ -32,6 +35,25 @@ struct PluginInstance
 		assert(mpPlugin);
 		registration.destruct(mpPlugin);
 	}
+
+	Plugin& getPlugin() noexcept
+	{
+		assert(mpPlugin);
+		return *mpPlugin;
+	}
+	const Plugin& getPlugin() const noexcept
+	{
+		assert(mpPlugin);
+		return *mpPlugin;
+	}
+	const PluginRegistration& getRegistration() const noexcept
+	{
+		return registration;
+	}
+
+private:
+	Plugin *const mpPlugin;
+	const PluginRegistration& registration;
 };
 
 //! @brief Kept C-like for easier support across ABIs and languages.
