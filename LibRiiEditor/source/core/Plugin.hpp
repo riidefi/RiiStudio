@@ -1,60 +1,36 @@
 #pragma once
 
 #include "common.hpp"
+
+#ifdef __cplusplus
 #include "WindowManager.hpp"
 
 #include <string>
 #include <memory>
 
-struct PluginManager;
-
+struct PluginFactory;
+struct PluginContext
+{
+	WindowContext window;
+	WindowManager& window_manager;
+};
 //! @brief	A single applet may have multiple plugins. A plugin editor is a window of the root.
 //!			An applet's core resource will reflect the state of the program; a plugin core resource will reflect the data being edited.
 //!
-struct Plugin : public WindowManager, public Window
+struct Plugin
 {
 	//! Set by manager after plugin is constructed.
 	//!	Ensured to be valid for the lifetime of the plugin.
 	//!
-	PluginManager* mpPluginManager;
+	PluginFactory* mpPluginFactory;
+
+	typedef void(*PluginDraw)(PluginContext*);
+
+	PluginDraw plugin_draw;
 };
 
-struct PluginRegistration;
 
-//! @brief A plugin factory must also destroy what it creates -- not necessarily same heap in main program.
-//!
-class PluginInstance
-{	
-	PluginInstance(const PluginRegistration& regist)
-		: mpPlugin(regist.construct()), registration(regist)
-	{
-		assert(mpPlugin);
-	}
-	~PluginInstance()
-	{
-		assert(mpPlugin);
-		registration.destruct(mpPlugin);
-	}
 
-	Plugin& getPlugin() noexcept
-	{
-		assert(mpPlugin);
-		return *mpPlugin;
-	}
-	const Plugin& getPlugin() const noexcept
-	{
-		assert(mpPlugin);
-		return *mpPlugin;
-	}
-	const PluginRegistration& getRegistration() const noexcept
-	{
-		return registration;
-	}
-
-private:
-	Plugin *const mpPlugin;
-	const PluginRegistration& registration;
-};
 
 //! @brief Kept C-like for easier support across ABIs and languages.
 //!
@@ -63,8 +39,8 @@ struct PluginRegistration
 	template<typename T>
 	struct PluginSpan
 	{
-		T*	data;
-		u32 size;
+		const T* data;
+		u32		 size;
 	};
 
 	const PluginSpan<const char*>	supported_extensions;
@@ -99,34 +75,107 @@ struct PluginRegistration
 	pluginDestructor destruct;
 };
 
-extern "C" {
-	typedef struct C_PluginRegistration
+//! @brief A plugin factory must also destroy what it creates -- not necessarily same heap in main program.
+//!
+class PluginInstance
+{
+public:
+	PluginInstance(const PluginRegistration& regist)
+		: mpPlugin(regist.construct()), registration(regist)
 	{
-		const char** supported_extensions;
-		const u32    num_supported_extensions;
+		assert(mpPlugin);
+	}
+	~PluginInstance()
+	{
+		assert(mpPlugin);
+		registration.destruct(mpPlugin);
+	}
 
-		const u32*	 supported_magics;
-		const u32    num_supported_magics;
+	Plugin& getPlugin() noexcept
+	{
+		assert(mpPlugin);
+		return *mpPlugin;
+	}
+	const Plugin& getPlugin() const noexcept
+	{
+		assert(mpPlugin);
+		return *mpPlugin;
+	}
+	const PluginRegistration& getRegistration() const noexcept
+	{
+		return registration;
+	}
 
-		enum CheckResult_
-		{
-			Certain, Maybe, Unsupported, Corrupt, No
-		};
+private:
+	Plugin *const mpPlugin;
+	const PluginRegistration& registration;
+};
 
-		typedef u32 CheckResult;
-		typedef CheckResult(*instrusiveCheckingFunction)();
 
-		instrusiveCheckingFunction intrusive_check;
+struct PluginWindow : public PluginInstance, public WindowManager, public Window
+{
+	~PluginWindow() override = default;
+	PluginWindow(const PluginRegistration& registration)
+		: PluginInstance(registration)
+	{}
 
-		const char* plugin_name;
-		const char* plugin_version;
-		const char* plugin_domain;
+	void draw(WindowContext* ctx) noexcept override final
+	{
+		if (!ctx)
+			return;
 
-		// Plugin itself is not C compatible -- WindowManager component may be separated later to enable full compatibility.
-		typedef void*(*pluginFactory)();
-		pluginFactory construct;
+		PluginContext pl_ctx{ *ctx, *static_cast<WindowManager*>(this) };
+		getPlugin().plugin_draw(&pl_ctx);
+	}
 
-		typedef void(*pluginDestructor)(void*);
-		pluginDestructor destruct;
-	} C_PluginRegistration;
+};
+
+#endif // __cplusplus
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct C_PluginContext
+{
+	void* selectionManager;
+	void* coreResource;
+	void* windowManager;
+} C_PluginContext;
+
+typedef u32 C_PluginRegistration_CheckResult;
+typedef u32(*C_PluginRegistration_instrusiveCheckingFunction)();
+typedef void*(*C_PluginRegistration_pluginConstructor)();
+typedef void(*C_PluginRegistration_pluginDestructor)(void*);
+
+enum
+{
+	C_PluginRegistration_Certain, C_PluginRegistration_Maybe, C_PluginRegistration_Unsupported, C_PluginRegistration_Corrupt, C_PluginRegistration_No
+};
+typedef struct C_PluginRegistration_
+{
+	const char** supported_extensions;
+	const u32    num_supported_extensions;
+
+	const u32*	 supported_magics;
+	const u32    num_supported_magics;
+
+	C_PluginRegistration_instrusiveCheckingFunction intrusive_check;
+
+	const char* plugin_name;
+	const char* plugin_version;
+	const char* plugin_domain;
+
+	// Plugin itself is not C compatible -- WindowManager component may be separated later to enable full compatibility.
+	C_PluginRegistration_pluginConstructor construct;
+	C_PluginRegistration_pluginDestructor destruct;
+} C_PluginRegistration;
+
+typedef struct
+{
+	void* factory;
+	void* drawFunc;
+} C_Plugin;
+#ifdef __cplusplus
 }
+#endif

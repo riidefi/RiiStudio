@@ -6,11 +6,11 @@
 
 //! @brief Manages all applet plugins.
 //!
-class PluginManager
+class PluginFactory
 {
 public:
-	PluginManager() = default;
-	~PluginManager() = default;
+	PluginFactory() = default;
+	~PluginFactory() = default;
 
 	//! @brief	Attempt to register a plugin based on its registration details.
 	//!
@@ -18,16 +18,11 @@ public:
 	//!
 	bool registerPlugin(const PluginRegistration& registration);
 
-	void instancePlugin(const PluginRegistration& registration)
-	{
-		mActivePlugins.emplace_back(registration);
-	}
+	std::unique_ptr<PluginWindow> create(const std::string& extension, u32 magic);
 
 private:
 	std::mutex						   mMutex;		//!< When performing write operations (registering a plugin)
 	std::vector<PluginRegistration>	   mPlugins;	//!< Other data here references by index -- be careful to maintain that.
-	std::map<std::string, std::size_t> mExtensions; //!< Maps extension string to mPlugins index.
+	std::vector<std::pair<std::string, std::size_t>> mExtensions; //!< Maps extension string to mPlugins index.
 	std::map<u32, std::size_t>		   mMagics;		//!< Maps file magic identifiers to mPlugins index.
-
-	std::vector<PluginInstance>		   mActivePlugins;
 };
