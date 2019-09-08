@@ -13,6 +13,26 @@ struct Plugin : public WindowManager
 {
 };
 
+struct PluginRegistration;
+
+//! @brief A plugin factory must also destroy what it creates -- not necessarily same heap in main program.
+//!
+struct PluginInstance
+{
+	Plugin* mpPlugin;
+	const PluginRegistration& registration;
+
+	PluginInstance(const PluginRegistration& regist)
+		: mpPlugin(regist.construct()), registration(regist)
+	{
+		assert(mpPlugin);
+	}
+	~PluginInstance()
+	{
+		registration.destruct(mpPlugin);
+	}
+};
+
 //! @brief Kept C-like for easier support across ABIs and languages.
 //!
 struct PluginRegistration
@@ -48,9 +68,12 @@ struct PluginRegistration
 	const char* plugin_version;
 	const char* plugin_domain; //!< (where does this plugin apply?)
 
-	// Plugin instancing -- ownership passed (wrapped in unique_ptr)
+	// Plugin instancing
 	typedef Plugin*(*pluginFactory)();
 	pluginFactory construct;
+
+	typedef void(*pluginDestructor)(Plugin*);
+	pluginDestructor destruct;
 };
 
 extern "C" {
@@ -79,5 +102,8 @@ extern "C" {
 		// Plugin itself is not C compatible -- WindowManager component may be separated later to enable full compatibility.
 		typedef void*(*pluginFactory)();
 		pluginFactory construct;
+
+		typedef void(*pluginDestructor)(void*);
+		pluginDestructor destruct;
 	} C_PluginRegistration;
 }
