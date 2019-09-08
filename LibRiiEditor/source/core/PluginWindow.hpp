@@ -26,18 +26,18 @@ struct PluginInstanceWrapper : private PluginInstance
 	inline ~PluginInstanceWrapper() noexcept = default;
 };
 
-//! @brief Interoperability between an applet window and a plugin instance.
-//!
-class PluginWindow : public Window, private PluginInstanceWrapper
-{
-	~PluginWindow() override = default;
-	PluginWindow(const PluginRegistration& regist)
-		: PluginInstanceWrapper(regist)
-	{}
-
-	//	void draw(WindowContext* ctx) noexcept override final
-	//	{
-	//		if (!ctx)
-	//			return;
-	//	}
-};
+//	//! @brief Interoperability between an applet window and a plugin instance.
+//	//!
+//	class PluginWindow : public Window, private PluginInstanceWrapper
+//	{
+//		~PluginWindow() override = default;
+//		PluginWindow(const PluginRegistration& regist)
+//			: PluginInstanceWrapper(regist)
+//		{}
+//	
+//		//	void draw(WindowContext* ctx) noexcept override final
+//		//	{
+//		//		if (!ctx)
+//		//			return;
+//		//	}
+//	};

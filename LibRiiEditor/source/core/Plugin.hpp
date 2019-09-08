@@ -9,7 +9,7 @@
 //! @brief	A single applet may have multiple plugins. A plugin editor is a window of the root.
 //!			An applet's core resource will reflect the state of the program; a plugin core resource will reflect the data being edited.
 //!
-struct Plugin : public WindowManager
+struct Plugin : public WindowManager, public Window
 {
 };
 
