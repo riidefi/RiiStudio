@@ -19,7 +19,7 @@ struct PluginRegistration;
 //!
 struct PluginInstance
 {
-	Plugin* mpPlugin;
+	Plugin *const mpPlugin;
 	const PluginRegistration& registration;
 
 	PluginInstance(const PluginRegistration& regist)
@@ -29,6 +29,7 @@ struct PluginInstance
 	}
 	~PluginInstance()
 	{
+		assert(mpPlugin);
 		registration.destruct(mpPlugin);
 	}
 };
