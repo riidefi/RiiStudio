@@ -392,3 +392,4 @@ MigrationBackup/
 .ionide/
 
 *.ini
+imgui.ini
