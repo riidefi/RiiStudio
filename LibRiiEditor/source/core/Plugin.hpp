@@ -11,7 +11,8 @@
 struct PluginFactory;
 struct PluginContext
 {
-	WindowContext window;
+	WindowContext window_context;
+	Window&	window_data;
 	WindowManager& window_manager;
 };
 //! @brief	A single applet may have multiple plugins. A plugin editor is a window of the root.
@@ -124,7 +125,7 @@ struct PluginWindow : public PluginInstance, public WindowManager, public Window
 		if (!ctx)
 			return;
 
-		PluginContext pl_ctx{ *ctx, *static_cast<WindowManager*>(this) };
+		PluginContext pl_ctx{ *ctx, *static_cast<Window*>(this), *static_cast<WindowManager*>(this) };
 		getPlugin().plugin_draw(&getPlugin(), &pl_ctx);
 	}
 
@@ -140,6 +141,7 @@ typedef struct C_PluginContext
 {
 	void* selectionManager;
 	void* coreResource;
+	void* windowContext;
 	void* windowManager;
 } C_PluginContext;
 

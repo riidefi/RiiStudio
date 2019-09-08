@@ -3,7 +3,7 @@
 template<typename T>
 inline bool validatePluginSpan(const PluginRegistration::PluginSpan<T>& span)
 {
-	return span.data == 0 || span.data;
+	return span.size == 0 || span.data;
 }
 
 bool PluginFactory::registerPlugin(const PluginRegistration& registration)
@@ -13,7 +13,7 @@ bool PluginFactory::registerPlugin(const PluginRegistration& registration)
 		DebugReport("Warning: Plugin's domain is purely intensively determined.");
 	}
 
-	if (!validatePluginSpan(registration.supported_extensions) || validatePluginSpan(registration.supported_magics))
+	if (!validatePluginSpan(registration.supported_extensions) || !validatePluginSpan(registration.supported_magics))
 	{
 		DebugReport("Invalid extension or magic arrays.");
 		return false;

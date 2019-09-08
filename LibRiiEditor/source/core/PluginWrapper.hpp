@@ -7,7 +7,7 @@
 
 #include "Plugin.hpp"
 
-struct PluginWrapper : private Plugin
+struct PluginWrapper : public Plugin
 {
 	PluginFactory& getFactory() { assert(mpPluginFactory); return *mpPluginFactory; }
 };
@@ -26,6 +26,7 @@ struct PluginWrapperInterface
 	{
 		Plugin* constructed = static_cast<Plugin*>(new T());
 		constructed->plugin_draw = pl_draw;
+		return constructed;
 	}
 	static void interface_destruct(Plugin* plugin)
 	{

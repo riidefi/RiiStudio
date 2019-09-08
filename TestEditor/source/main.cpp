@@ -9,9 +9,17 @@
 
 struct TestPlugin : public PluginWrapper
 {
+	~TestPlugin()
+	{
+		DebugReport("Goodbye from test plugin!");
+	}
 	void draw(const PluginContext& ctx)
 	{
-
+		if (ImGui::Begin(("Test Plugin (Window ID: " + std::to_string(ctx.window_data.mId) + ")").c_str(), &ctx.window_data.bOpen))
+		{
+			ImGui::Text("Hello from test plugin!");
+		}
+		ImGui::End();
 	}
 	static PluginRegistration::CheckResult intrusiveCheck()
 	{
@@ -19,16 +27,23 @@ struct TestPlugin : public PluginWrapper
 	}
 };
 
-struct TestPluginInterface : PluginWrapperInterface<TestPlugin>
+struct TestPluginInterface : private PluginWrapperInterface<TestPlugin>
 {
+	static const std::string name, version, domain;
+	static const std::vector<const char*> extensions;
+	static const std::vector<u32> magics;
+
 	static PluginRegistration getRegistration()
 	{
-		const std::vector<const char*> extensions = { ".test" };
-		const std::vector<u32> magics = { 'TST0' };
-
-		return createRegistration(extensions, magics, "Test Plugin", "1.0", "Test files");
+		return createRegistration(extensions, magics, name, version, domain);
 	}
 };
+
+const std::string TestPluginInterface::name = "Test Plugin";
+const std::string TestPluginInterface::version = "1.0";
+const std::string TestPluginInterface::domain = "Test Files";
+const std::vector<const char*> TestPluginInterface::extensions = { ".test" };
+const std::vector<u32> TestPluginInterface::magics = { 'TST0' };
 
 static inline int toIntComp(float src)
 {
@@ -37,13 +52,21 @@ static inline int toIntComp(float src)
 static inline int toIntColor(const ImVec4& src)
 {
 	return	(toIntComp(src.x) << 24) |
-			(toIntComp(src.y) << 16) |
-			(toIntComp(src.z) <<  8) |
-			(toIntComp(src.w)	   ) ;
+		(toIntComp(src.y) << 16) |
+		(toIntComp(src.z) << 8) |
+		(toIntComp(src.w));
 }
 
 class TestEditor : public Applet
 {
+public:
+	TestEditor()
+	{
+		const auto regist = TestPluginInterface::getRegistration();
+		mPluginFactory.registerPlugin(regist);
+		attachWindow(mPluginFactory.create("", 'TST0'));
+	}
+
 	WindowContext makeWindowContext() override
 	{
 		return WindowContext(getSelectionManager(), mCoreRes);
@@ -80,10 +103,10 @@ class TestEditor : public Applet
 				ImGui::ColorEdit3("Highlight Color", &highlightColor.x);
 
 				mThemeManager.SetColors(toIntColor(bgColor),
-										toIntColor(txtColor),
-										toIntColor(mainColor),
-										toIntColor(accentColor),
-										toIntColor(highlightColor));
+					toIntColor(txtColor),
+					toIntColor(mainColor),
+					toIntColor(accentColor),
+					toIntColor(highlightColor));
 			}
 			mThemeManager.setThemeEx(mThemeSelection);
 		}
@@ -97,9 +120,10 @@ private:
 	CoreResource mCoreRes;
 	ThemeManager::BasicTheme mThemeSelection = ThemeManager::BasicTheme::Default;
 	ThemeManager mThemeManager;
+	PluginFactory mPluginFactory;
 };
 
-void WinMain()
+void main()
 {
 	auto editor = std::make_unique<TestEditor>();
 
