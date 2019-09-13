@@ -1,6 +1,5 @@
-#if 0
 #include "core/Plugin.hpp"
-
+#include <malloc.h>
 // Demo for the C plugin interface.
 
 const char* demo_supportedExtensions[1] = { ".rtest" };
@@ -58,5 +57,3 @@ u32 demo_intrusiveCheck()
 {
 	return C_PluginRegistration_Maybe;
 }
-
-#endif
