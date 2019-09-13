@@ -35,8 +35,6 @@
 #include <limits>
 #include <type_traits>
 
-namespace dolemu {
-
 /*
  * Abstract bitfield class
  *
@@ -187,5 +185,3 @@ private:
 	static_assert(bits > 0, "Invalid number of bits");
 };
 #pragma pack()
-
-} // namespace dolemu
