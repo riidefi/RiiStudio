@@ -1,39 +1,120 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "common.hpp"
 
-#pragma region Misc
-enum
-{
-	C_PluginRegistration_Certain, C_PluginRegistration_Maybe, C_PluginRegistration_Unsupported, C_PluginRegistration_Corrupt, C_PluginRegistration_No
-};
-
-typedef u32(*C_Plugin_FileInstrusiveCheckingFunction)();
-#pragma endregion
-
-//! @brief Constructs a plugin component.
-//!
-typedef void*(*C_Plugin_Constructor)();
-
-//! @brief Destructs a plugin component.
-//!
-typedef void(*C_Plugin_Destructor)(void*);
 
 
-//! @brief The domain of a plugin endpoint. (a certain file)
-//!
+/*
+
+Package (Plugin):
+	- File formats (detection)
+	- File handlers (implement interfaces)
+
+BRRES: Holders -- Model, Texture (Outliner)
+
+*/
+
+// C Api name: RX
+
+#pragma region Helpers
+//#define RX_ARRAY_EX(TName, TEntry, TCount) \
+//	struct \
+//	{ \
+//		const TEntry* mpEntries; \
+//		const TCount  nEntries;  \
+//	}
+//#define RX_ARRAY(TEntry) \
+//	RX_ARRAY_EX(RK_ARRAY_##TEntry, void*, u32)
 typedef struct
 {
-	const char* file_type_name;
+	const void** mpEntries;
+	const u32 nEntries;
+} RXArray;
+#define RX_ARRAY(T) RXArray
+typedef const char* zstring;
 
-	const char** supported_extensions;
-	const u32    num_supported_extensions;
+//	typedef struct {
+//		void (*destroy)(RXDestructable* self);
+//	} RXDestructable;
 
-	const u32*	 supported_magics;
-	const u32    num_supported_magics;
+typedef struct {
+	zstring mName; // human name, "Decode Model"
+	zstring mId; // namespaced name "decode_mdl_xform" (implied "package::...")
+	zstring mCommandName; // for cli, "decode"
+} RXRichName;
+#pragma endregion
 
-	// !
-	C_Plugin_FileInstrusiveCheckingFunction intrusive_check;
 
-	
-} C_Plugin_File;
+/*! A file editor handles a file.
+	Interfaces:
+		- "core::transform_stack": Transformation stack acts as CLI and GUI generator.
+			- Implemented here: RXITransformStack
+			- getTransforms -> const static array of transforms
+*/
+
+typedef struct
+{
+	zstring mId; // Id of interface, say "core::transform_stack"
+	void*	body; // Interface definition, matched by type mId
+} RXInterface;
+
+typedef struct
+{
+	RX_ARRAY(zstring)		mExtensions;
+	RX_ARRAY(u32)			mMagics;
+	RX_ARRAY(RXInterface)	mInterfaces;
+} RXFileEditor;
+/*! A package bundles multiple file editors.
+*/
+typedef struct
+{
+	RX_ARRAY(RXFileEditor)	mFileEditorRegistrations;
+	zstring					mPackageName;		// Human readable name displayed to user
+	zstring					mPackageNamespace;	// For internal use
+} RXPackage;
+
+#pragma region Transform Stack Interface
+
+enum RXITransformParamType
+{
+	RXITransformParamType_Flag, // A flag (no argument)
+	RXITransformParamType_String, // A simple string
+	RXITransformParamType_Enum, // An enumeration of values, object must be of type RXITransformParamEnumOptions
+
+};
+typedef struct
+{
+	RX_ARRAY(RXRichName) mOptions;
+	const RXRichName* mDefaultOption; // nullptr if none
+} RXITransformParamEnumOptions;
+
+typedef struct
+{
+	RXRichName mName;
+	u32 mType; // of RXITransformParamType
+	void* object;
+} RXITransformParam;
+
+typedef struct RXITransform
+{
+	RXRichName mName;
+	// Arguments
+	RX_ARRAY(RXITransformParam) mParams;
+
+	void (*mPerform)(void* self);
+} RXITransform;
+
+typedef struct
+{
+	RX_ARRAY(RXITransform) mTransforms;
+} RXITransformStack;
+
+#pragma endregion
+
+#ifdef __cplusplus
+}
+#endif

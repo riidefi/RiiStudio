@@ -1,66 +1,57 @@
 #include "PluginFactory.hpp"
 
 template<typename T>
-inline bool validatePluginSpan(const PluginRegistration::PluginSpan<T>& span)
+bool validatePluginSpan(const pl::Span<T>& sp)
 {
-	return span.size == 0 || span.data;
+	return sp.getNum() == 0 || sp.mpEntries;
 }
 
-bool PluginFactory::registerPlugin(const PluginRegistration& registration)
+bool PluginFactory::registerPlugin(const pl::Package& package)
 {
-	if (registration.supported_extensions.size == 0 && registration.supported_magics.size == 0)
+	if (package.getEditors().getNum() == 0)
 	{
-		DebugReport("Warning: Plugin's domain is purely intensively determined.");
-	}
-
-	if (!validatePluginSpan(registration.supported_extensions) || !validatePluginSpan(registration.supported_magics))
-	{
-		DebugReport("Invalid extension or magic arrays.");
+		DebugReport("Plugin has no editors");
 		return false;
 	}
 
-	if (!registration.instrusive_check)
+	for(int i = 0; i < package.getEditors().getNum(); ++i)
 	{
-		DebugReport("Extension has no intrusive check. This isn't optional.");
-		return false;
-	}
+		const pl::FileEditor& ed = package.getEditors()[i];
 
-	if (!registration.plugin_name || !registration.plugin_version || !registration.plugin_domain)
-	{
-		DebugReport("Plugin is missing information (name/version/domain).");
-		return false;
-	}
 
-	if (!registration.construct || !registration.destruct)
-	{
-		DebugReport("Plugin does not have complete constructor/destructor.");
-		return false;
-	}
-
-	{
-		std::lock_guard<std::mutex> guard(mMutex);
-
-		const auto cur_idx = mPlugins.size();
-
-		mPlugins.emplace_back(registration);
-
-		if (registration.supported_extensions.size && registration.supported_extensions.data)
+		if (ed.getExtensions().getNum() == 0 && ed.getMagics().getNum() == 0)
 		{
-			for (int i = 0; i < registration.supported_extensions.size; ++i)
-				mExtensions.emplace_back(std::make_pair(std::string(registration.supported_extensions.data[i]), cur_idx));
+			DebugReport("Warning: Plugin's domain is purely intensively determined.");
+			DebugReport("Intensive checking not yet supported, exiting...");
+			return false;
 		}
 
-		if (registration.supported_magics.size && registration.supported_magics.data)
+		if (!validatePluginSpan(ed.getExtensions()) || !validatePluginSpan(ed.getMagics()))
 		{
-			for (int i = 0; i < registration.supported_magics.size; ++i)
-				mMagics.emplace(registration.supported_magics.data[i], cur_idx);
+			DebugReport("Invalid extension or magic arrays.");
+			return false;
+		}
+
+		// TODO: More validation
+
+		{
+			std::lock_guard<std::mutex> guard(mMutex);
+
+			const auto cur_idx = mPlugins.size();
+
+			mPlugins.emplace_back(ed);
+
+			for (int j = 0; j < ed.getExtensions().getNum(); ++j)
+				mExtensions.emplace_back(std::make_pair(std::string(ed.getExtensions()[j]), cur_idx));
+
+			for (int j = 0; j < ed.getMagics().getNum(); ++j)
+				mMagics.emplace(ed.getMagics()[j], cur_idx);
 		}
 	}
-
 	return true;
 }
 
-std::unique_ptr<PluginWindow> PluginFactory::create(const std::string& extension, u32 magic)
+std::unique_ptr<pl::EditorWindow> PluginFactory::create(const std::string& extension, u32 magic)
 {
 	// TODO: Check extension
 	
@@ -69,7 +60,7 @@ std::unique_ptr<PluginWindow> PluginFactory::create(const std::string& extension
 	if (it != mMagics.end())
 	{
 		// TODO: Proceed to intensive check to verify match
-		return std::make_unique<PluginWindow>(mPlugins[it->second]);
+		return std::make_unique<pl::EditorWindow>(mPlugins[it->second]);
 	}
 
 	// TODO: Perform intensive checking on all resources, pick most likely candidate

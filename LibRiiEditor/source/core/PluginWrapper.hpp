@@ -5,12 +5,9 @@
 
 #pragma once
 
+#if 0
 #include "Plugin.hpp"
 
-struct PluginWrapper : public Plugin
-{
-	PluginFactory& getFactory() { assert(mpPluginFactory); return *mpPluginFactory; }
-};
 
 
 // T must implement draw and static intrusiveCheck
@@ -60,3 +57,4 @@ struct PluginWrapperInterface
 		return createRegistration(&extensions[0], extensions.size(), &magics[0], magics.size(), name.c_str(), ver.c_str(), domain.c_str());
 	}
 };
+#endif

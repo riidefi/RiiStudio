@@ -7,43 +7,43 @@
 #include <core/PluginWrapper.hpp>
 
 
-struct TestPlugin : public PluginWrapper
-{
-	~TestPlugin()
-	{
-		DebugReport("Goodbye from test plugin!");
-	}
-	void draw(const PluginContext& ctx)
-	{
-		if (ImGui::Begin(("Test Plugin (Window ID: " + std::to_string(ctx.window_data.mId) + ")").c_str(), &ctx.window_data.bOpen))
-		{
-			ImGui::Text("Hello from test plugin!");
-		}
-		ImGui::End();
-	}
-	static PluginRegistration::CheckResult intrusiveCheck()
-	{
-		return PluginRegistration::CheckResult::Maybe;
-	}
-};
-
-struct TestPluginInterface : private PluginWrapperInterface<TestPlugin>
-{
-	static const std::string name, version, domain;
-	static const std::vector<const char*> extensions;
-	static const std::vector<u32> magics;
-
-	static PluginRegistration getRegistration()
-	{
-		return createRegistration(extensions, magics, name, version, domain);
-	}
-};
-
-const std::string TestPluginInterface::name = "Test Plugin";
-const std::string TestPluginInterface::version = "1.0";
-const std::string TestPluginInterface::domain = "Test Files";
-const std::vector<const char*> TestPluginInterface::extensions = { ".test" };
-const std::vector<u32> TestPluginInterface::magics = { 'TST0' };
+//	struct TestPlugin : public PluginWrapper
+//	{
+//		~TestPlugin()
+//		{
+//			DebugReport("Goodbye from test plugin!");
+//		}
+//		//	void draw(const PluginContext& ctx)
+//		//	{
+//		//		if (ImGui::Begin(("Test Plugin (Window ID: " + std::to_string(ctx.window_data.mId) + ")").c_str/	(), //   /&ctx.window_data.bOpen))
+//		//		{
+//		//			ImGui::Text("Hello from test plugin!");
+//		//		}
+//		//		ImGui::End();
+//		//	}
+//		//	static PluginRegistration::CheckResult intrusiveCheck()
+//		//	{
+//		//		return PluginRegistration::CheckResult::Maybe;
+//		//	}
+//	};
+//	
+//	struct TestPluginInterface : private PluginWrapperInterface<TestPlugin>
+//	{
+//		static const std::string name, version, domain;
+//		static const std::vector<const char*> extensions;
+//		static const std::vector<u32> magics;
+//	
+//		static PluginRegistration getRegistration()
+//		{
+//			return createRegistration(extensions, magics, name, version, domain);
+//		}
+//	};
+//	
+//	const std::string TestPluginInterface::name = "Test Plugin";
+//	const std::string TestPluginInterface::version = "1.0";
+//	const std::string TestPluginInterface::domain = "Test Files";
+//	const std::vector<const char*> TestPluginInterface::extensions = { ".test" };
+//	const std::vector<u32> TestPluginInterface::magics = { 'TST0' };
 
 static inline int toIntComp(float src)
 {
@@ -114,7 +114,7 @@ private:
 	ThemeManager::BasicTheme mThemeSelection = ThemeManager::BasicTheme::Default;
 	ThemeManager mThemeManager;
 };
-
+extern "C" const RXPackage CDemoPluginPackage;
 void main()
 {
 	auto plugin_factory = std::make_unique<PluginFactory>();
@@ -122,9 +122,11 @@ void main()
 	{
 		auto editor = std::make_unique<TestEditor>();
 
-		const auto regist = TestPluginInterface::getRegistration();
-		plugin_factory->registerPlugin(regist);
-		editor->attachWindow(plugin_factory->create("", 'TST0'));
+		plugin_factory->registerPlugin((const pl::Package&)CDemoPluginPackage);
+
+		//	const auto regist = TestPluginInterface::getRegistration();
+		//	plugin_factory->registerPlugin(regist);
+		//	editor->attachWindow(plugin_factory->create("", 'TST0'));
 
 		editor->frameLoop();
 	}
