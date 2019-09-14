@@ -60,13 +60,6 @@ static inline int toIntColor(const ImVec4& src)
 class TestEditor : public Applet
 {
 public:
-	TestEditor()
-	{
-		const auto regist = TestPluginInterface::getRegistration();
-		mPluginFactory.registerPlugin(regist);
-		attachWindow(mPluginFactory.create("", 'TST0'));
-	}
-
 	WindowContext makeWindowContext() override
 	{
 		return WindowContext(getSelectionManager(), mCoreRes);
@@ -120,12 +113,19 @@ private:
 	CoreResource mCoreRes;
 	ThemeManager::BasicTheme mThemeSelection = ThemeManager::BasicTheme::Default;
 	ThemeManager mThemeManager;
-	PluginFactory mPluginFactory;
 };
 
 void main()
 {
-	auto editor = std::make_unique<TestEditor>();
+	auto plugin_factory = std::make_unique<PluginFactory>();
 
-	editor->frameLoop();
+	{
+		auto editor = std::make_unique<TestEditor>();
+
+		const auto regist = TestPluginInterface::getRegistration();
+		plugin_factory->registerPlugin(regist);
+		editor->attachWindow(plugin_factory->create("", 'TST0'));
+
+		editor->frameLoop();
+	}
 }
