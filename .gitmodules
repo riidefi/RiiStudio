@@ -1,0 +1,3 @@
+[submodule "oishii/oishii"]
+	path = oishii/oishii
+	url = https://github.com/riidefi/oishii.git
