@@ -168,7 +168,6 @@ typedef struct C_PluginRegistration_
 	const char* plugin_version;
 	const char* plugin_domain;
 
-	// Plugin itself is not C compatible -- WindowManager component may be separated later to enable full compatibility.
 	C_PluginRegistration_pluginConstructor construct;
 	C_PluginRegistration_pluginDestructor destruct;
 } C_PluginRegistration;
