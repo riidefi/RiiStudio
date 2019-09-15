@@ -32,7 +32,7 @@ BRRES: Holders -- Model, Texture (Outliner)
 typedef struct
 {
 	const void** mpEntries;
-	const u32 nEntries;
+	u32 nEntries;
 } RXArray;
 #define RX_ARRAY(T) RXArray
 typedef const char* zstring;
@@ -99,7 +99,7 @@ typedef struct
 	void* object;
 } RXITransformParam;
 
-typedef struct RXITransform
+typedef struct  RXITransform
 {
 	RXRichName mName;
 	// Arguments
