@@ -9,69 +9,81 @@
 
 namespace pl {
 
+struct RichName
+{
+	const std::string exposedName;
+	const std::string namespacedId;
+	const std::string commandName;
+};
+
+
+
 struct Package;
 struct FileEditor;
 struct Interface;
 
-template<typename T>
-struct Span : public RXArray
-{
-	u32 getNum() const
-	{
-		return nEntries;
-	}
-	const T& at(u32 idx) const
-	{
-		assert(idx < getNum());
 
-		return *(T*)(&mpEntries[idx]);
-	}
-	const T& operator[](u32 idx) const
-	{
-		return at(idx);
-	}
-};
-
-struct Package : RXPackage
+struct Package
 {
-	std::string getExposedName()
-	{
-		return mPackageName;
-	}
-	std::string getNamespace()
-	{
-		return mPackageNamespace;
-	}
-	const Span<FileEditor>& getEditors() const
-	{
-		return *(Span<FileEditor>*)&mFileEditorRegistrations;
-	}
+	RichName mPackageName; // Command name unused
+	
+	std::vector<FileEditor> mEditors;
 };
 
 struct FileEditor : public RXFileEditor
 {
-	const Span<const char*>& getExtensions() const
-	{
-		return *(Span<const char*>*)&mExtensions;
-	}
+	std::vector<std::string> mExtensions;
+	std::vector<u32> mMagics;
+	std::vector<std::unique_ptr<AbstractInterface>> mInterfaces;
+};
+enum class InterfaceID
+{
+	None,
 
-	const Span<u32>& getMagics() const
-	{
-		return *(Span<u32>*)&mMagics;
-	}
+	//! Acts as CLI (and GUI) generator.
+	TransformStack
+};
+struct AbstractInterface
+{
+	AbstractInterface() : mInterfaceId(InterfaceID::None){}
+	virtual ~AbstractInterface() = default;
 
-	const Span<Interface>& getInterfaces() const
-	{
-		return *(Span<Interface>*)&mInterfaces;
-	}
+	InterfaceID mInterfaceId;
 };
 
-struct Interface : RXInterface
+// Transform stack
+struct TransformStack : public AbstractInterface
 {
-	std::string getId()
+	enum class ParamType
 	{
-		return mId;
-	}
+		Flag, // No arguments
+		String, // Simple string
+		Enum, // Enumeration of values
+	};
+
+	struct EnumOptions
+	{
+		std::vector<RichName> enumeration;
+		int mDefaultOptionIndex;
+	};
+
+	struct Param
+	{
+		RichName name;
+		ParamType type;
+
+		// Only for enum
+		EnumOptions enum_opts;
+	};
+
+	struct XForm
+	{
+		RichName name;
+		std::vector<Param> mParams;
+		virtual void perform() {}
+	};
+
+	std::vector<std::unique_ptr<XForm>> mStack; 
 };
 
 struct EditorWindow : public WindowManager, public Window
@@ -99,7 +111,5 @@ struct EditorWindow : public WindowManager, public Window
 
 	const FileEditor& mEditor;
 };
-
-// Above all for reading, TODO: Introduce wrapper for writing
 
 }
