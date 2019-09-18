@@ -114,7 +114,7 @@ private:
 	ThemeManager::BasicTheme mThemeSelection = ThemeManager::BasicTheme::Default;
 	ThemeManager mThemeManager;
 };
-extern "C" const RXPackage CDemoPluginPackage;
+
 void main()
 {
 	auto plugin_factory = std::make_unique<PluginFactory>();
@@ -122,7 +122,7 @@ void main()
 	{
 		auto editor = std::make_unique<TestEditor>();
 
-		plugin_factory->registerPlugin((const pl::Package&)CDemoPluginPackage);
+		//	plugin_factory->registerPlugin((const pl::Package&)CDemoPluginPackage);
 
 		//	const auto regist = TestPluginInterface::getRegistration();
 		//	plugin_factory->registerPlugin(regist);

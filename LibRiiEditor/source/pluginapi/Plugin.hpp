@@ -1,7 +1,8 @@
 #pragma once
 
-#include "C_Plugin.h"
 #include <string>
+#include <memory>
+#include <memory>
 
 #include "ui/Window.hpp"
 #include "core/WindowManager.hpp"
@@ -27,14 +28,7 @@ struct Package
 {
 	RichName mPackageName; // Command name unused
 	
-	std::vector<FileEditor> mEditors;
-};
-
-struct FileEditor : public RXFileEditor
-{
-	std::vector<std::string> mExtensions;
-	std::vector<u32> mMagics;
-	std::vector<std::unique_ptr<AbstractInterface>> mInterfaces;
+	std::vector<std::unique_ptr<FileEditor>> mEditors;
 };
 enum class InterfaceID
 {
@@ -45,15 +39,35 @@ enum class InterfaceID
 };
 struct AbstractInterface
 {
-	AbstractInterface() : mInterfaceId(InterfaceID::None){}
+	AbstractInterface(InterfaceID ID = InterfaceID::None) : mInterfaceId(ID) {}
 	virtual ~AbstractInterface() = default;
 
 	InterfaceID mInterfaceId;
 };
+struct FileEditor
+{
+	// FileEditor(FileEditor&&) = delete;
+	FileEditor(const FileEditor& other)
+	{
+		mExtensions = other.mExtensions;
+		mMagics = other.mMagics;
+		mInterfaces.resize(other.mInterfaces.size());
+		for (const auto& it : other.mInterfaces)
+			mInterfaces.push_back(std::make_unique<AbstractInterface>(*it));
+	}
+
+	std::vector<std::string> mExtensions;
+	std::vector<u32> mMagics;
+	std::vector<std::unique_ptr<AbstractInterface>> mInterfaces;
+};
+
 
 // Transform stack
 struct TransformStack : public AbstractInterface
 {
+	TransformStack() : AbstractInterface(InterfaceID::TransformStack) {}
+	~TransformStack() override = default;
+
 	enum class ParamType
 	{
 		Flag, // No arguments

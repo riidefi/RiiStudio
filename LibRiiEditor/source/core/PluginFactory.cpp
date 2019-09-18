@@ -1,34 +1,23 @@
 #include "PluginFactory.hpp"
 
-template<typename T>
-bool validatePluginSpan(const pl::Span<T>& sp)
-{
-	return sp.getNum() == 0 || sp.mpEntries;
-}
 
 bool PluginFactory::registerPlugin(const pl::Package& package)
 {
-	if (package.getEditors().getNum() == 0)
+	if (package.mEditors.empty())
 	{
 		DebugReport("Plugin has no editors");
 		return false;
 	}
 
-	for(int i = 0; i < package.getEditors().getNum(); ++i)
+	for(int i = 0; i < package.mEditors.size(); ++i)
 	{
-		const pl::FileEditor& ed = package.getEditors()[i];
+		const pl::FileEditor& ed = *package.mEditors[i].get();
 
 
-		if (ed.getExtensions().getNum() == 0 && ed.getMagics().getNum() == 0)
+		if (ed.mExtensions.empty() == 0 && ed.mMagics.empty())
 		{
 			DebugReport("Warning: Plugin's domain is purely intensively determined.");
 			DebugReport("Intensive checking not yet supported, exiting...");
-			return false;
-		}
-
-		if (!validatePluginSpan(ed.getExtensions()) || !validatePluginSpan(ed.getMagics()))
-		{
-			DebugReport("Invalid extension or magic arrays.");
 			return false;
 		}
 
@@ -39,13 +28,13 @@ bool PluginFactory::registerPlugin(const pl::Package& package)
 
 			const auto cur_idx = mPlugins.size();
 
-			mPlugins.emplace_back(ed);
+			mPlugins.push_back(std::make_unique<pl::FileEditor>(ed));
 
-			for (int j = 0; j < ed.getExtensions().getNum(); ++j)
-				mExtensions.emplace_back(std::make_pair(std::string(ed.getExtensions()[j]), cur_idx));
+			for (int j = 0; j < ed.mExtensions.size(); ++j)
+				mExtensions.emplace_back(std::make_pair(std::string(ed.mExtensions[j]), cur_idx));
 
-			for (int j = 0; j < ed.getMagics().getNum(); ++j)
-				mMagics.emplace(ed.getMagics()[j], cur_idx);
+			for (int j = 0; j < ed.mMagics.size(); ++j)
+				mMagics.emplace(ed.mMagics[j], cur_idx);
 		}
 	}
 	return true;
@@ -60,7 +49,7 @@ std::unique_ptr<pl::EditorWindow> PluginFactory::create(const std::string& exten
 	if (it != mMagics.end())
 	{
 		// TODO: Proceed to intensive check to verify match
-		return std::make_unique<pl::EditorWindow>(mPlugins[it->second]);
+		return std::make_unique<pl::EditorWindow>(*mPlugins[it->second].get());
 	}
 
 	// TODO: Perform intensive checking on all resources, pick most likely candidate
