@@ -71,27 +71,26 @@ end
 
 project "LibRiiEditor"
 	location "LibRiiEditor"
-	setupStaticLib()
-	setupCppC()
-
 	includedirs {
 		"LibRiiEditor/source",
 		"ThirdParty/source",
 		"oishii"
 	}
 
+	setupStaticLib()
+	setupCppC()
+
+
+
 	setupSystem()
 	setupPreprocessor()
 
 project "TestEditor"
 	location "TestEditor"
-	setupConsoleApp()
-
-	setupCppC()
-
 	includedirs {
 		"LibRiiEditor/source",
 		"ThirdParty/source",
+		"LibCube/source",
 		"oishii"
 	}
 
@@ -103,6 +102,12 @@ project "TestEditor"
 		"ThirdParty/glfw/lib-vc2017/glfw3dll.lib",
 		"opengl32.lib"
 	}
+
+	setupConsoleApp()
+
+	setupCppC()
+
+	
 	setupSystem()
 
 	postbuildcommands {
@@ -114,30 +119,34 @@ project "TestEditor"
 
 project "ThirdParty"
 	location "ThirdParty"
-	setupStaticLib()
-
-	setupCppC()
 
 	includedirs
 	{
 		"oishii",
 		"ThirdParty/source/"
 	}
+	setupStaticLib()
+
+	setupCppC()
+
+
 
 	setupSystem()
 	setupPreprocessor()
 
 project "LibCube"
 	location "LibCube"
-	setupStaticLib()
-	setupCppC()
-
 	includedirs
 	{
 		"LibRiiEditor/source",
 		"ThirdParty/source",
+		"LibCube/source",
 		"oishii"
 	}
+
+	setupStaticLib()
+	setupCppC()
+
 
 	setupSystem()
 	setupPreprocessor()

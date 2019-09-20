@@ -7,14 +7,16 @@
 #include "ui/Window.hpp"
 #include "core/WindowManager.hpp"
 
+#include <oishii/reader/binary_reader.hxx>
+#include "imgui/imgui.h"
 
 namespace pl {
 
 struct RichName
 {
-	const std::string exposedName;
-	const std::string namespacedId;
-	const std::string commandName;
+	std::string exposedName;
+	std::string namespacedId;
+	std::string commandName;
 };
 
 
@@ -27,7 +29,7 @@ struct Interface;
 struct Package
 {
 	RichName mPackageName; // Command name unused
-	
+
 	std::vector<std::unique_ptr<FileEditor>> mEditors;
 };
 enum class InterfaceID
@@ -35,8 +37,14 @@ enum class InterfaceID
 	None,
 
 	//! Acts as CLI (and GUI) generator.
-	TransformStack
+	TransformStack,
+
+	//! Files that can be opened (endpoints)
+	Readable
 };
+
+
+
 struct AbstractInterface
 {
 	AbstractInterface(InterfaceID ID = InterfaceID::None) : mInterfaceId(ID) {}
@@ -44,23 +52,35 @@ struct AbstractInterface
 
 	InterfaceID mInterfaceId;
 };
+
+
+
 struct FileEditor
 {
+	FileEditor() = default;
 	// FileEditor(FileEditor&&) = delete;
 	FileEditor(const FileEditor& other)
 	{
 		mExtensions = other.mExtensions;
 		mMagics = other.mMagics;
-		mInterfaces.resize(other.mInterfaces.size());
-		for (const auto& it : other.mInterfaces)
-			mInterfaces.push_back(std::make_unique<AbstractInterface>(*it));
+		mInterfaces.reserve(other.mInterfaces.size());
+		for (const auto it : other.mInterfaces)
+			mInterfaces.push_back(it);
 	}
 
 	std::vector<std::string> mExtensions;
 	std::vector<u32> mMagics;
-	std::vector<std::unique_ptr<AbstractInterface>> mInterfaces;
+	// TODO: These must be part of the child class itself!
+	std::vector<AbstractInterface*> mInterfaces;
 };
 
+struct Readable : public AbstractInterface
+{
+	Readable() : AbstractInterface(InterfaceID::Readable) {}
+	~Readable() override = default;
+
+	virtual bool tryRead(oishii::BinaryReader& reader, FileEditor& ctx) = 0;
+};
 
 // Transform stack
 struct TransformStack : public AbstractInterface
@@ -95,9 +115,11 @@ struct TransformStack : public AbstractInterface
 		RichName name;
 		std::vector<Param> mParams;
 		virtual void perform() {}
+		virtual ~XForm() = default;
 	};
 
-	std::vector<std::unique_ptr<XForm>> mStack; 
+	// Must exist inside this object -- never freed!
+	std::vector<XForm*> mStack;
 };
 
 struct EditorWindow : public WindowManager, public Window
@@ -112,8 +134,22 @@ struct EditorWindow : public WindowManager, public Window
 		if (!ctx)
 			return;
 
-		//	PluginContext pl_ctx{ *ctx, *static_cast<Window*>(this), *static_cast<WindowManager*>(this) };
-		//	getPlugin().plugin_draw(&getPlugin(), &pl_ctx);
+		if (ImGui::Begin("EditorWindow", &bOpen))
+		{
+			ImGui::Text("Extensions");
+			for (const auto& str : mEditor.mExtensions)
+				ImGui::Text(str.c_str());
+			ImGui::Text("Magics");
+			for (const auto m : mEditor.mMagics)
+				ImGui::Text("%c%c%c%c", m & 0xff000000, (m & 0x00ff0000) >> 8, (m & 0x0000ff00) >> 16, (m & 0xff) >> 24);
+			ImGui::Text("Interfaces");
+			for (const auto& str : mEditor.mInterfaces)
+				ImGui::Text(std::to_string(static_cast<u32>(str->mInterfaceId)).c_str());
+			ImGui::End();
+
+			// TODO: Interface handling
+
+		}
 
 		// Check for IRenderable
 

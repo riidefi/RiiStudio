@@ -97,7 +97,7 @@ void WindowManager::attachWindow(std::unique_ptr<Window> window)
 
 void WindowManager::detachWindow(u32 windowId)
 {
-	std::lock_guard<std::mutex> guard(intern->mVect.mutex);
+	std::lock_guard<std::mutex> guard(intern->mQueue.mutex);
 	DebugReport("Enqueing window detachment.\n");
 	intern->mQueue.queue.emplace(WindowQueue::Action::DetachWindow, windowId);
 }

@@ -41,7 +41,7 @@ enum class ZTextureFormat
 	Z16L = 0xC | _ZTF | _CTF,
 
 };
-inline u32 GetTexBufferSize(u16 wd, u16 ht, u32 fmt, u8 mipmap, u8 maxlod)
+u32 GetTexBufferSize(u16 wd, u16 ht, u32 fmt, u8 mipmap, u8 maxlod)
 {
 	u32 xshift, yshift, xtiles, ytiles, bitsize, size;
 

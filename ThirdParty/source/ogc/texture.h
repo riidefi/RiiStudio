@@ -2,4 +2,4 @@
 
 #include <oishii/types.hxx>
 
-inline u32 GetTexBufferSize(u16 wd, u16 ht, u32 fmt, u8 mipmap, u8 maxlod);
+u32 GetTexBufferSize(u16 wd, u16 ht, u32 fmt, u8 mipmap, u8 maxlod);
