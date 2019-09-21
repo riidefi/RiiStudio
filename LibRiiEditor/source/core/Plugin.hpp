@@ -1,30 +1,12 @@
 #pragma once
 
-#include "common.hpp"
+#include "pluginapi/Plugin.hpp"
 
-#if 0
-#include "WindowManager.hpp"
-
-#include <string>
-#include <memory>
-
-struct PluginFactory;
-struct PluginContext
+struct EditorWindow : public WindowManager, public Window
 {
-	WindowContext window_context;
-	Window&	window_data;
-	WindowManager& window_manager;
-};
-
-// New API: Plugin doesn't have a draw -- only if interface freely provides it\
-
-
-
-struct PluginWindow : public PluginInstance, public WindowManager, public Window
-{
-	~PluginWindow() override = default;
-	PluginWindow(const PluginRegistration& registration)
-		: PluginInstance(registration)
+	~EditorWindow() override = default;
+	EditorWindow(const pl::FileEditor& registration)
+		: mEditor(registration)
 	{}
 
 	void draw(WindowContext* ctx) noexcept override final
@@ -32,10 +14,30 @@ struct PluginWindow : public PluginInstance, public WindowManager, public Window
 		if (!ctx)
 			return;
 
-		PluginContext pl_ctx{ *ctx, *static_cast<Window*>(this), *static_cast<WindowManager*>(this) };
-		getPlugin().plugin_draw(&getPlugin(), &pl_ctx);
+		if (ImGui::Begin("EditorWindow", &bOpen))
+		{
+			ImGui::Text("Extensions");
+			for (const auto& str : mEditor.mExtensions)
+				ImGui::Text(str.c_str());
+			ImGui::Text("Magics");
+			for (const auto m : mEditor.mMagics)
+				ImGui::Text("%c%c%c%c", m & 0xff000000, (m & 0x00ff0000) >> 8, (m & 0x0000ff00) >> 16, (m & 0xff) >> 24);
+			ImGui::Text("Interfaces");
+			for (const auto& str : mEditor.mInterfaces)
+				ImGui::Text(std::to_string(static_cast<u32>(str->mInterfaceId)).c_str());
+			ImGui::End();
+
+			// TODO: Interface handling
+
+		}
+
+		// Check for IRenderable
+
+		// Fill in top bar, check for IExtendedBar
+
+		// Draw childen
+		drawWindows();
 	}
 
+	const pl::FileEditor& mEditor;
 };
-
-#endif
