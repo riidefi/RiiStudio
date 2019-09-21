@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pluginapi/Plugin.hpp"
+#include "ui/widgets/Outliner.hpp"
 
 struct EditorWindow : public WindowManager, public Window
 {
@@ -29,6 +30,24 @@ struct EditorWindow : public WindowManager, public Window
 
 			// TODO: Interface handling
 
+		}
+
+		for (const auto it : mEditor.mInterfaces)
+		{
+			switch (it->mInterfaceId)
+			{
+			case pl::InterfaceID::TextureList:
+				if (ImGui::Begin("TextureList"))
+				{
+					pl::ITextureList* pTexList = static_cast<pl::ITextureList*>(it);
+
+					for (int i = 0; i < pTexList->getNumTex(mEditor); ++i)
+					{
+						ImGui::Text(pTexList->getNameAt(mEditor, i).c_str());
+					}
+					ImGui::End();
+				}
+			}
 		}
 
 		// Check for IRenderable

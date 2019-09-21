@@ -40,7 +40,9 @@ enum class InterfaceID
 	TransformStack,
 
 	//! Files that can be opened (endpoints)
-	Readable
+	Readable,
+
+	TextureList
 };
 
 
@@ -122,6 +124,14 @@ struct TransformStack : public AbstractInterface
 	std::vector<XForm*> mStack;
 };
 
+struct ITextureList : public AbstractInterface
+{
+	ITextureList() : AbstractInterface(InterfaceID::TextureList) {}
+	~ITextureList() override = default;
 
+	virtual u32 getNumTex(const FileEditor& ctx) const = 0;
+	virtual std::string getNameAt(const FileEditor& ctx, int idx) const = 0;
+	
+};
 
 }

@@ -2,6 +2,7 @@
 
 #include "Exports.hpp"
 #include "TPL/TPL.hpp"
+#include <string>
 
 namespace libcube {
 
@@ -48,21 +49,30 @@ struct TPLEditor : public pl::FileEditor
 		}
 
 	} readTpl;
-	/*
-	ITextureList:
-		getNum()
-		getNameAt()
-		getCommonGCTexureParamAt()
-			-> Decoding
 
-	*/
+	struct TextureList : public pl::ITextureList
+	{
+		u32 getNumTex(const pl::FileEditor& ctx) const override
+		{
+			const TPLEditor& editor = static_cast<const TPLEditor&>(ctx);
+
+			return editor.coreRes.mTextures.size();
+		}
+		std::string getNameAt(const FileEditor& ctx, int idx) const override
+		{
+			const TPLEditor& editor = static_cast<const TPLEditor&>(ctx);
+
+			return std::string("Texture #") + std::to_string(idx);
+		}
+	} texList;
 
 	TPLEditor()
 	{
 		mMagics.push_back(0x0020AF30);
 		mExtensions.push_back(".tpl");
 		mInterfaces.push_back(&xFormStack);
-		mInterfaces.push_back(&readTpl);	
+		mInterfaces.push_back(&readTpl);
+		mInterfaces.push_back(&texList);
 	}
 
 private:
