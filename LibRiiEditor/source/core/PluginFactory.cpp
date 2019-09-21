@@ -40,7 +40,7 @@ bool PluginFactory::registerPlugin(const pl::Package& package)
 	return true;
 }
 
-std::unique_ptr<pl::EditorWindow> PluginFactory::create(const std::string& extension, u32 magic)
+std::unique_ptr<EditorWindow> PluginFactory::create(const std::string& extension, u32 magic)
 {
 	// TODO: Check extension
 	
@@ -49,7 +49,7 @@ std::unique_ptr<pl::EditorWindow> PluginFactory::create(const std::string& exten
 	if (it != mMagics.end())
 	{
 		// TODO: Proceed to intensive check to verify match
-		return std::make_unique<pl::EditorWindow>(*mPlugins[it->second].get());
+		return std::make_unique<EditorWindow>(*mPlugins[it->second].get());
 	}
 
 	// TODO: Perform intensive checking on all resources, pick most likely candidate

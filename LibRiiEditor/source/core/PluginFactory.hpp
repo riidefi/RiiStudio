@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pluginapi/Plugin.hpp"
+#include "Plugin.hpp"
 #include <map>
 #include <mutex>
 
@@ -18,7 +19,7 @@ public:
 	//!
 	bool registerPlugin(const pl::Package& package);
 
-	std::unique_ptr<pl::EditorWindow> create(const std::string& extension, u32 magic);
+	std::unique_ptr<EditorWindow> create(const std::string& extension, u32 magic);
 
 private:
 	std::mutex mMutex;		//!< When performing write operations (registering a plugin)
