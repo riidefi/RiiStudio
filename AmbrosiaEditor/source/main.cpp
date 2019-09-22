@@ -5,7 +5,10 @@
 #include <core/Plugin.hpp>
 #include <core/PluginFactory.hpp>
 
+#include "MOD/MOD.hpp"
 #include "Export/Exports.hpp"
+
+#include <fstream>
 
 static inline int toIntComp(float src)
 {
@@ -40,6 +43,29 @@ static inline std::string getOpenFileDialog(oishii::LPCSTR filter)
 
 	return std::string(szFile, sizeof(szFile));
 }
+static bool openModelFile()
+{
+	std::string fileName = getOpenFileDialog("Pikmin 1 Model File (*.mod)\0*.mod\0");
+	std::printf("Opening file %s", fileName.c_str());
+
+	std::ifstream fStream;
+	fStream.open(fileName, std::ios::binary | std::ios::ate);
+
+	if (!fStream.is_open())
+		return EXIT_FAILURE;
+
+	std::streamsize size = fStream.tellg();
+	fStream.seekg(0, std::ios::beg);
+
+	auto data = std::unique_ptr<char>(new char[static_cast<u32>(size)]);
+	if (fStream.read(std::move(data.get()), size))
+	{
+		oishii::BinaryReader reader(std::move(data), static_cast<u32>(size), fileName);
+	}
+
+	fStream.close();
+	return EXIT_SUCCESS;
+}
 
 class AmbrosiaEditor : public Applet
 {
@@ -53,15 +79,15 @@ public:
 	{
 		mDockSpace.draw();
 
-		/*if (ImGui::BeginMenuBar())
+		if (ImGui::BeginMenuBar())
 		{
 			if (ImGui::BeginMenu("File"))
 			{
-				if (ImGui::MenuItem("Open..", "Ctrl+O")) { openTPLFile(); }
+				if (ImGui::MenuItem("Open..", "Ctrl+O")) { openModelFile(); }
 				ImGui::EndMenu();
 			}
 			ImGui::EndMenuBar();
-		}*/
+		}
 		ImGui::End();
 
 		if (ImGui::Begin("Style Editor"))
