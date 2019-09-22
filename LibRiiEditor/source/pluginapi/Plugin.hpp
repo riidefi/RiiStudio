@@ -30,7 +30,7 @@ struct Package
 {
 	RichName mPackageName; // Command name unused
 
-	std::vector<std::unique_ptr<FileEditor>> mEditors;
+	std::vector<const FileEditor*> mEditors; // static pointer
 };
 enum class InterfaceID
 {
@@ -59,21 +59,22 @@ struct AbstractInterface
 
 struct FileEditor
 {
+	virtual ~FileEditor() = default;
 	FileEditor() = default;
-	// FileEditor(FileEditor&&) = delete;
-	FileEditor(const FileEditor& other)
-	{
-		mExtensions = other.mExtensions;
-		mMagics = other.mMagics;
-		mInterfaces.reserve(other.mInterfaces.size());
-		for (const auto it : other.mInterfaces)
-			mInterfaces.push_back(it);
-	}
-
+	//	FileEditor(const FileEditor& other)
+	//	{
+	//		mExtensions = other.mExtensions;
+	//		mMagics = other.mMagics;
+	//		mInterfaces.reserve(other.mInterfaces.size());
+	//		for (const auto it : other.mInterfaces)
+	//			mInterfaces.push_back(it);
+	//	}
 	std::vector<std::string> mExtensions;
 	std::vector<u32> mMagics;
 	// TODO: These must be part of the child class itself!
 	std::vector<AbstractInterface*> mInterfaces;
+
+	// virtual std::unique_ptr<FileEditor> cloneFileEditor() = 0;
 };
 
 struct Readable : public AbstractInterface
@@ -81,7 +82,7 @@ struct Readable : public AbstractInterface
 	Readable() : AbstractInterface(InterfaceID::Readable) {}
 	~Readable() override = default;
 
-	virtual bool tryRead(oishii::BinaryReader& reader, FileEditor& ctx) = 0;
+	virtual bool tryRead(oishii::BinaryReader& reader) = 0;
 };
 
 // Transform stack
@@ -129,8 +130,8 @@ struct ITextureList : public AbstractInterface
 	ITextureList() : AbstractInterface(InterfaceID::TextureList) {}
 	~ITextureList() override = default;
 
-	virtual u32 getNumTex(const FileEditor& ctx) const = 0;
-	virtual std::string getNameAt(const FileEditor& ctx, int idx) const = 0;
+	virtual u32 getNumTex() const = 0;
+	virtual std::string getNameAt(int idx) const = 0;
 	
 };
 

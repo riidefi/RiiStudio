@@ -4,9 +4,8 @@
 #include <algorithm>
 
 // Held by application
-class SelectionManager
+struct SelectionManager
 {
-public:
 	enum Type
 	{
 		None = 0, // Nothing is selected
@@ -25,8 +24,8 @@ public:
 
 	int getIdxOfSelect(Type type, void* obj)
 	{
-		return std::find_if(mSelections.begin(), mSelections.end(),
-			[type, obj](const Selection& s) { return s.type == type && s.object == obj; }) - mSelections.begin();
+		return static_cast<int>(std::find_if(mSelections.begin(), mSelections.end(),
+			[type, obj](const Selection& s) { return s.type == type && s.object == obj; }) - mSelections.begin());
 	}
 
 	bool isSelected(Type type, void* obj)

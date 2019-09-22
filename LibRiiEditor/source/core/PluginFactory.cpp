@@ -9,12 +9,9 @@ bool PluginFactory::registerPlugin(const pl::Package& package)
 		return false;
 	}
 
-	for(int i = 0; i < package.mEditors.size(); ++i)
+	for (int i = 0; i < package.mEditors.size(); ++i)
 	{
-		const pl::FileEditor& ed = *package.mEditors[i].get();
-
-
-		if (ed.mExtensions.empty() == 0 && ed.mMagics.empty())
+		if (package.mEditors[i]->mExtensions.empty() == 0 && package.mEditors[i]->mMagics.empty())
 		{
 			DebugReport("Warning: Plugin's domain is purely intensively determined.");
 			DebugReport("Intensive checking not yet supported, exiting...");
@@ -28,7 +25,9 @@ bool PluginFactory::registerPlugin(const pl::Package& package)
 
 			const auto cur_idx = mPlugins.size();
 
-			mPlugins.push_back(std::make_unique<pl::FileEditor>(ed));
+			mPlugins.push_back(package.mEditors[i]);
+
+			const auto& ed = *package.mEditors[i];
 
 			for (int j = 0; j < ed.mExtensions.size(); ++j)
 				mExtensions.emplace_back(std::make_pair(std::string(ed.mExtensions[j]), cur_idx));
@@ -49,7 +48,7 @@ std::unique_ptr<EditorWindow> PluginFactory::create(const std::string& extension
 	if (it != mMagics.end())
 	{
 		// TODO: Proceed to intensive check to verify match
-		return std::make_unique<EditorWindow>(*mPlugins[it->second].get());
+		return std::make_unique<EditorWindow>(*mPlugins[it->second]);
 	}
 
 	// TODO: Perform intensive checking on all resources, pick most likely candidate
