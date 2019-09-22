@@ -15,7 +15,7 @@ const char* glsl_version = "#version 130";
 
 static bool loadFonts()
 {
-	ImGuiIO& io = ImGui::GetIO();
+	/*ImGuiIO& io = ImGui::GetIO();
 
 	ImFontConfig fontcfg;
 	fontcfg.OversampleH = 8;
@@ -28,7 +28,7 @@ static bool loadFonts()
 	ImFontConfig icons_config;
 	icons_config.MergeMode = true;
 	icons_config.PixelSnapH = true;
-	io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 14.0f, &icons_config, icons_ranges);
+	io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 14.0f, &icons_config, icons_ranges);*/
 
 	return true;
 }

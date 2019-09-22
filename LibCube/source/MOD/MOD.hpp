@@ -2,6 +2,7 @@
 
 #include <oishii/reader/binary_reader.hxx>
 #include <vector>
+#include <glm/glm.hpp>
 
 
 namespace libcube {
@@ -46,11 +47,26 @@ private:
 		u8 m_PADDING1[0x18];	// 56 bytes
 	} m_header; // header will always be 56 bytes
 
+	struct Colour
+	{
+		u8 m_R, m_G, m_B, m_A;
+		Colour() { m_R = m_G = m_B = m_A = 0; }
+		Colour(u8 _r, u8 _g, u8 _b, u8 _a) : m_R(_r), m_G(_g), m_B(_b), m_A(_a) {}
+
+		void read(oishii::BinaryReader& bReader)
+		{
+			m_R = bReader.read<u8>();
+			m_G = bReader.read<u8>();
+			m_B = bReader.read<u8>();
+			m_A = bReader.read<u8>();
+		}
+	};
+
 	u32 m_vertexCount;
-	std::vector<Vector3f> m_vertices;
+	std::vector<glm::vec3> m_vertices;
 
 	u32 m_vNormalCount;
-	std::vector<Vector3f> m_vnorms;
+	std::vector<glm::vec3> m_vnorms;
 
 	u32 m_colourCount;
 	std::vector<Colour> m_colours;
@@ -60,8 +76,13 @@ private:
 	inline void read_vertices(oishii::BinaryReader&);
 	inline void read_vnormals(oishii::BinaryReader&);
 	inline void read_colours(oishii::BinaryReader&);
+
+	inline void skipPadding(oishii::BinaryReader&);
+	inline void skipChunk(oishii::BinaryReader&, u32);
 public:
 	MOD() = default;
 	~MOD() = default;
+
+	void read(oishii::BinaryReader&);
 };
 }

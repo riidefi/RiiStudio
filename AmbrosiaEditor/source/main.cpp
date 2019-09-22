@@ -46,7 +46,7 @@ static inline std::string getOpenFileDialog(oishii::LPCSTR filter)
 static bool openModelFile()
 {
 	std::string fileName = getOpenFileDialog("Pikmin 1 Model File (*.mod)\0*.mod\0");
-	std::printf("Opening file %s", fileName.c_str());
+	std::printf("Opening file %s\n", fileName.c_str());
 
 	std::ifstream fStream;
 	fStream.open(fileName, std::ios::binary | std::ios::ate);
@@ -58,9 +58,11 @@ static bool openModelFile()
 	fStream.seekg(0, std::ios::beg);
 
 	auto data = std::unique_ptr<char>(new char[static_cast<u32>(size)]);
-	if (fStream.read(std::move(data.get()), size))
+	if (fStream.read(data.get(), size))
 	{
-		oishii::BinaryReader reader(std::move(data), static_cast<u32>(size), fileName);
+		oishii::BinaryReader reader(std::move(data), static_cast<u32>(size), fileName.c_str());
+		libcube::MOD modelFile;
+		modelFile.read(reader);
 	}
 
 	fStream.close();
