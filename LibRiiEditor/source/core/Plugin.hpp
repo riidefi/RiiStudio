@@ -41,9 +41,9 @@ struct EditorWindow : public WindowManager, public Window
 				{
 					pl::ITextureList* pTexList = static_cast<pl::ITextureList*>(it);
 
-					for (int i = 0; i < pTexList->getNumTex(mEditor); ++i)
+					for (int i = 0; i < pTexList->getNumTex(); ++i)
 					{
-						ImGui::Text(pTexList->getNameAt(mEditor, i).c_str());
+						ImGui::Text(pTexList->getNameAt(i).c_str());
 					}
 					ImGui::End();
 				}
