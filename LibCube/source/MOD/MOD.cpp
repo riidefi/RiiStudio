@@ -1,3 +1,4 @@
+#define OISHII_ALIGNMENT_CHECK 0
 #include "MOD.hpp"
 #include <common.hpp>
 
@@ -10,6 +11,12 @@ inline void MOD_readVec3(oishii::BinaryReader& bReader, glm::vec3& vector3)
 	vector3.x = bReader.read<float>();
 	vector3.y = bReader.read<float>();
 	vector3.z = bReader.read<float>();
+}
+
+inline void MOD_readVec2(oishii::BinaryReader& bReader, glm::vec2& vector2)
+{
+	vector2.x = bReader.read<float>();
+	vector2.y = bReader.read<float>();
 }
 
 inline void MOD::read_header(oishii::BinaryReader& bReader)
@@ -76,7 +83,34 @@ inline void MOD::read_faces(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
-inline void MOD::read_jointnames(oishii::BinaryReader & bReader)
+inline void MOD::read_textures(oishii::BinaryReader& bReader)
+{
+	DebugReport("Reading textures\n");
+	m_textures.resize(bReader.read<u32>());
+
+	skipPadding(bReader);
+	for (auto& texture : m_textures)
+	{
+		texture.readModFile(bReader);
+	}
+	skipPadding(bReader);
+}
+
+inline void MOD::read_texcoords(oishii::BinaryReader& bReader, u32 opcode)
+{
+	DebugReport("Reading texture co-ordinates\n");
+	const u32 newIndex = opcode - 0x18;
+	m_texcoords[newIndex].resize(bReader.read<u32>());
+
+	skipPadding(bReader);
+	for (auto& coords : m_texcoords[newIndex])
+	{
+		MOD_readVec2(bReader, coords);
+	}
+	skipPadding(bReader);
+}
+
+inline void MOD::read_jointnames(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading joint names\n");
 	m_jointNames.resize(bReader.read<u32>());
@@ -90,7 +124,7 @@ inline void MOD::read_jointnames(oishii::BinaryReader & bReader)
 	skipPadding(bReader);
 }
 
-void MOD::read(oishii::BinaryReader & bReader)
+void MOD::read(oishii::BinaryReader& bReader)
 {
 	u32 cDescriptor = 0;
 	bReader.setEndian(true);	// big endian
@@ -127,6 +161,19 @@ void MOD::read(oishii::BinaryReader & bReader)
 			break;
 		case MODCHUNKS::MESH:
 			read_faces(bReader);
+			break;
+		case MODCHUNKS::TEXCOORD0:
+		case MODCHUNKS::TEXCOORD1:
+		case MODCHUNKS::TEXCOORD2:
+		case MODCHUNKS::TEXCOORD3:
+		case MODCHUNKS::TEXCOORD4:
+		case MODCHUNKS::TEXCOORD5:
+		case MODCHUNKS::TEXCOORD6:
+		case MODCHUNKS::TEXCOORD7:
+			read_texcoords(bReader, cDescriptor);
+			break;
+		case MODCHUNKS::TEXTURES:
+			read_textures(bReader);
 			break;
 		default:
 			DebugReport("Got chunk %04x, not implemented yet!\n", cDescriptor);

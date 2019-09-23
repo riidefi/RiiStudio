@@ -46,7 +46,7 @@ static inline std::string getOpenFileDialog(oishii::LPCSTR filter)
 static bool openModelFile()
 {
 	std::string fileName = getOpenFileDialog("Pikmin 1 Model File (*.mod)\0*.mod\0");
-	std::printf("Opening file %s\n", fileName.c_str());
+	DebugReport("Opening file %s\n", fileName.c_str());
 
 	std::ifstream fStream;
 	fStream.open(fileName, std::ios::binary | std::ios::ate);

@@ -3,6 +3,7 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <vector>
 #include <glm/glm.hpp>
+#include "TXE/TXE.hpp"
 
 static inline void skipChunk(oishii::BinaryReader& bReader, u32 offset)
 {
@@ -125,7 +126,7 @@ struct MtxGroup
 	}
 };
 
-//! @brief Batch, contains MtxGroup
+//! @brief Batch, contains Matrix Group
 struct Batch
 {
 	constexpr static const char name[] = "Mesh Batch";
@@ -134,7 +135,7 @@ struct Batch
 	u32 m_vcd = 0;	//	Vertex Descriptor
 
 	std::vector<MtxGroup> m_mtxGroups;
-	
+
 	static void onRead(oishii::BinaryReader& bReader, Batch& context)
 	{
 		// Read the batch variables
@@ -164,14 +165,12 @@ private:
 	} m_header; // header will always be 56 bytes
 
 	std::vector<glm::vec3> m_vertices;
-
 	std::vector<glm::vec3> m_vnorms;
-
 	std::vector<Colour> m_colours;
-
 	std::vector<String> m_jointNames;
-
-	std::vector<Batch> m_batches; // meshs
+	std::vector<Batch> m_batches; // meshes
+	std::vector<TXE> m_textures;
+	std::vector<glm::vec2> m_texcoords[8];
 
 	// Reading
 	inline void read_header(oishii::BinaryReader&);
@@ -179,6 +178,8 @@ private:
 	inline void read_vnormals(oishii::BinaryReader&);
 	inline void read_colours(oishii::BinaryReader&);
 	inline void read_faces(oishii::BinaryReader&);
+	inline void read_textures(oishii::BinaryReader&);
+	inline void read_texcoords(oishii::BinaryReader&, u32);
 
 	inline void read_jointnames(oishii::BinaryReader&);
 public:
