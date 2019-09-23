@@ -18,81 +18,7 @@ static inline void skipPadding(oishii::BinaryReader& bReader)
 
 namespace libcube {
 
-namespace pikmin1mesh
-{
-
-struct DispList
-{
-	u32 m_dword14;
-	u32 m_dispListSize;
-	std::vector<s8> m_dispListData;
-	u32 m_dword20;
-	u32 m_dword24;
-	u32 m_dword28;
-
-	void read(oishii::BinaryReader& bReader)
-	{
-		m_dword14 = bReader.read<u32>();
-		m_dword28 = bReader.read<u32>();
-
-		m_dispListSize = bReader.read<u32>();
-		skipPadding(bReader);
-		m_dispListData.resize(m_dispListSize);
-		for (u32 i = 0; i < m_dispListSize; i++)
-			m_dispListData[i] = bReader.read<s8>();
-	}
-};
-
-struct MtxGroup
-{
-	u32 m_unkCount;
-	s32 m_dispListCount;
-	DispList* m_dispLists;
-
-	void read(oishii::BinaryReader& bReader)
-	{
-		m_unkCount = bReader.read<u32>();
-		for (int i = 0; i < m_unkCount; i++)
-			bReader.read<short>();
-		m_dispListCount = bReader.read<s32>();
-		if (m_dispListCount)
-		{
-			m_dispLists = new DispList[m_dispListCount];
-			for (int i = 0; i < m_unkCount; i++)
-				m_dispLists[i].read(bReader);
-		}
-	}
-};
-
-struct Mesh
-{
-	u32 m_dword14;
-	u32 m_unk1;
-	u32 m_dword1C;
-	u32 m_mtxGroupCount;
-	MtxGroup* m_mtxGroups;
-	u32 m_dword28;
-	u32 m_vcd;
-
-	Mesh() = default;
-	~Mesh() { delete[] m_mtxGroups; }
-
-	void read(oishii::BinaryReader& bReader)
-	{
-		m_unk1 = bReader.read<u32>();
-		m_vcd = bReader.read<u32>();
-		m_mtxGroupCount = bReader.read<u32>();
-		if (m_mtxGroupCount)
-		{
-			m_mtxGroups = new MtxGroup[m_mtxGroupCount];
-			for (u32 i = 0; i < m_mtxGroupCount; i++)
-				m_mtxGroups[i].read(bReader);
-		}
-	}
-};
-
-}
-
+namespace pikmin1 {
 enum MODCHUNKS
 {
 	HEADER = 0x0000,
@@ -120,48 +46,119 @@ enum MODCHUNKS
 	BOUNDINGBOX = 0x0110,
 };
 
+struct Colour
+{
+	u8 m_R, m_G, m_B, m_A;
+	Colour() { m_R = m_G = m_B = m_A = 0; }
+	Colour(u8 _r, u8 _g, u8 _b, u8 _a) : m_R(_r), m_G(_g), m_B(_b), m_A(_a) {}
+
+	void read(oishii::BinaryReader& bReader)
+	{
+		m_R = bReader.read<u8>();
+		m_G = bReader.read<u8>();
+		m_B = bReader.read<u8>();
+		m_A = bReader.read<u8>();
+	}
+};
+
+//! @brief DispList, contains u8 vector full of face data
+struct DispList
+{
+	constexpr static const char name[] = "Display List";
+
+	u32 m_unk1 = 0;
+	u32 m_unk2 = 0;
+
+	std::vector<u8> m_dispData;
+
+	static void onRead(oishii::BinaryReader& bReader, DispList& context)
+	{
+		context.m_unk1 = bReader.read<u32>();
+		context.m_unk2 = bReader.read<u32>();
+		context.m_dispData.resize(bReader.read<u32>());
+
+		skipPadding(bReader);
+		// Read the displist data
+		for (auto& dispData : context.m_dispData)
+			dispData = bReader.read<u8>();
+	}
+};
+
+//! @brief Matrix Group, contains DispList
+struct MtxGroup
+{
+	constexpr static const char name[] = "Matrix Group";
+
+	std::vector<u16> m_unk1Array;
+	std::vector<DispList> m_dispLists;
+
+	static void onRead(oishii::BinaryReader& bReader, MtxGroup& context)
+	{
+		// Unknown purpose of the array, store it anyways
+		context.m_unk1Array.resize(bReader.read<u32>());
+		for (auto& unkArr : context.m_unk1Array)
+			unkArr = bReader.read<u16>();
+
+		context.m_dispLists.resize(bReader.read<u32>());
+
+		for (auto& dLists : context.m_dispLists)
+		{
+			bReader.dispatch<DispList, oishii::Direct, false>(dLists);
+		}
+	}
+};
+
+//! @brief Batch, contains MtxGroup
+struct Batch
+{
+	constexpr static const char name[] = "Mesh Batch";
+
+	u32 m_unk1 = 0;
+	u32 m_vcd = 0;	//	Vertex Descriptor
+
+	std::vector<MtxGroup> m_mtxGroups;
+	
+	static void onRead(oishii::BinaryReader& bReader, Batch& context)
+	{
+		// Read the batch variables
+		context.m_unk1 = bReader.read<u32>();
+		context.m_vcd = bReader.read<u32>(); // Vertex descriptor
+
+		context.m_mtxGroups.resize(bReader.read<u32>());
+		for (auto& mGroup : context.m_mtxGroups)
+		{
+			// Calls MtxGroup::onRead
+			bReader.dispatch<MtxGroup, oishii::Direct, false>(mGroup);
+		}
+	}
+};
+
 class MOD final
 {
 private:
 	struct
 	{
 		u8 m_PADDING0[0x18];	// 24 bytes
-		u16 m_year;	// 26 bytes
-		u8 m_month;	// 27 bytes
-		u8 m_day;	// 28 bytes
-		int m_unk;	// 32 bytes
+		u16 m_year = 0;	// 26 bytes
+		u8 m_month = 0;	// 27 bytes
+		u8 m_day = 0;	// 28 bytes
+		int m_unk = 0;	// 32 bytes
 		u8 m_PADDING1[0x18];	// 56 bytes
 	} m_header; // header will always be 56 bytes
 
-
-	u32 m_vertexCount;
+	u32 m_vertexCount = 0;
 	std::vector<glm::vec3> m_vertices;
 
-	u32 m_vNormalCount;
+	u32 m_vNormalCount = 0;
 	std::vector<glm::vec3> m_vnorms;
 
-	struct Colour
-	{
-		u8 m_R, m_G, m_B, m_A;
-		Colour() { m_R = m_G = m_B = m_A = 0; }
-		Colour(u8 _r, u8 _g, u8 _b, u8 _a) : m_R(_r), m_G(_g), m_B(_b), m_A(_a) {}
-
-		void read(oishii::BinaryReader& bReader)
-		{
-			m_R = bReader.read<u8>();
-			m_G = bReader.read<u8>();
-			m_B = bReader.read<u8>();
-			m_A = bReader.read<u8>();
-		}
-	};
-	u32 m_colourCount;
+	u32 m_colourCount = 0;
 	std::vector<Colour> m_colours;
 
-	u32 m_jointNameCount;
+	u32 m_jointNameCount = 0;
 	std::vector<std::string> m_jointNames;
 
-	u32 m_batchCount;
-	std::vector<pikmin1mesh::Mesh> m_batches;
+	std::vector<Batch> m_batches; // meshs
 
 	// Reading
 	inline void read_header(oishii::BinaryReader&);
@@ -177,6 +174,8 @@ public:
 
 	void read(oishii::BinaryReader&);
 };
+
+}
 
 }
 

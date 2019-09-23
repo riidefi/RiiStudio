@@ -1,6 +1,9 @@
 #include "MOD.hpp"
+#include <common.hpp>
 
 namespace libcube {
+
+namespace pikmin1 {
 
 inline void MOD_readVec3(oishii::BinaryReader& bReader, glm::vec3& vector3)
 {
@@ -16,13 +19,13 @@ inline void MOD::read_header(oishii::BinaryReader& bReader)
 	m_header.m_month = bReader.read<u8>();
 	m_header.m_day = bReader.read<u8>();
 	m_header.m_unk = bReader.read<u32>();
-	std::printf("Creation date of model file (YYYY/MM/DD): %u/%u/%u\n", m_header.m_year, m_header.m_month, m_header.m_day);
+	DebugReport("Creation date of model file (YYYY/MM/DD): %u/%u/%u\n", m_header.m_year, m_header.m_month, m_header.m_day);
 	skipPadding(bReader);
 }
 
 inline void MOD::read_vertices(oishii::BinaryReader& bReader)
 {
-	std::printf("Reading vertices\n");
+	DebugReport("Reading vertices\n");
 	m_vertexCount = bReader.read<u32>();
 	skipPadding(bReader);
 	m_vertices.resize(m_vertexCount);
@@ -30,14 +33,14 @@ inline void MOD::read_vertices(oishii::BinaryReader& bReader)
 	{
 		const auto verticesPtr = m_vertices.data();
 		MOD_readVec3(bReader, verticesPtr[i]);
-		std::printf("X %f Y %f Z %f\n", verticesPtr[i].x, verticesPtr[i].y, verticesPtr[i].z);
+		//DebugReport("X %f Y %f Z %f\n", verticesPtr[i].x, verticesPtr[i].y, verticesPtr[i].z);
 	}
 	skipPadding(bReader);
 }
 
 inline void MOD::read_vnormals(oishii::BinaryReader& bReader)
 {
-	std::printf("Reading vertex normals\n");
+	DebugReport("Reading vertex normals\n");
 	m_vNormalCount = bReader.read<u32>();
 	skipPadding(bReader);
 	m_vnorms.resize(m_vNormalCount);
@@ -45,14 +48,14 @@ inline void MOD::read_vnormals(oishii::BinaryReader& bReader)
 	{
 		const auto vnormsPtr = m_vnorms.data();
 		MOD_readVec3(bReader, vnormsPtr[i]);
-		std::printf("X %f Y %f Z %f\n", vnormsPtr[i].x, vnormsPtr[i].y, vnormsPtr[i].z);
+		//DebugReport("X %f Y %f Z %f\n", vnormsPtr[i].x, vnormsPtr[i].y, vnormsPtr[i].z);
 	}
 	skipPadding(bReader);
 }
 
 inline void MOD::read_colours(oishii::BinaryReader& bReader)
 {
-	std::printf("Reading mesh colours\n");
+	DebugReport("Reading mesh colours\n");
 	m_colourCount = bReader.read<u32>();
 	skipPadding(bReader);
 	m_colours.resize(m_colourCount);
@@ -60,29 +63,28 @@ inline void MOD::read_colours(oishii::BinaryReader& bReader)
 	{
 		auto coloursPtr = m_colours.data();
 		coloursPtr[i].read(bReader);
-		std::printf("Colour %u, R%u G%u B%u A%u\n", i, coloursPtr[i].m_R, coloursPtr[i].m_G, coloursPtr[i].m_B, coloursPtr[i].m_A);
+		DebugReport("Colour %u, R%u G%u B%u A%u\n", i, coloursPtr[i].m_R, coloursPtr[i].m_G, coloursPtr[i].m_B, coloursPtr[i].m_A);
 	}
 	skipPadding(bReader);
 }
 
 inline void MOD::read_faces(oishii::BinaryReader& bReader)
 {
-	std::printf("Reading faces\n");
-	m_batchCount = bReader.read<u32>();
+	DebugReport("Reading faces\n");
+	m_batches.resize(bReader.read<u32>());
+
 	skipPadding(bReader);
-	m_batches.resize(m_batchCount);
-	for (u32 i = 0; i < m_batchCount; i++)
+	for (auto& cBatch : m_batches)
 	{
-		auto batchesPtr = m_batches.data();
-		batchesPtr[i].read(bReader);
-		std::printf("MtxGroupCount %u, DispListCount %u\n", batchesPtr[i].m_mtxGroupCount, batchesPtr[i].m_mtxGroups[i].m_dispListCount);
+		// calls Batch::onRead
+		bReader.dispatch<Batch, oishii::Direct, false>(cBatch);
 	}
 	skipPadding(bReader);
 }
 
-inline void MOD::read_jointnames(oishii::BinaryReader& bReader)
+inline void MOD::read_jointnames(oishii::BinaryReader & bReader)
 {
-	std::printf("Reading joint names\n");
+	DebugReport("Reading joint names\n");
 	m_jointNameCount = bReader.read<u32>();
 	skipPadding(bReader);
 	m_jointNames.resize(m_jointNameCount);
@@ -91,20 +93,17 @@ inline void MOD::read_jointnames(oishii::BinaryReader& bReader)
 		auto jointNamesPtr = m_jointNames.data();
 		const u32 nameLength = bReader.read<u32>();
 
-		auto nString = std::unique_ptr<char>(new char[nameLength]);
-		for (u32 j = 0; j < nameLength; j++)
-			nString.get()[j] = bReader.read<s8>();
-		nString.get()[nameLength-1] = '\0';
-
-		std::string nameString(nString.get());
+		std::string nameString(nameLength, 0);
+		for (u32 j = 0; j < nameLength; ++j)
+			nameString[j] = bReader.read<s8>();
 		jointNamesPtr[i] = nameString;
 
-		std::printf("Got joint name %s, string length %u\n", jointNamesPtr[i].c_str(), jointNamesPtr[i].length());
+		DebugReport("Got joint name %s, string length %u\n", jointNamesPtr[i].c_str(), jointNamesPtr[i].length());
 	}
 	skipPadding(bReader);
 }
 
-void MOD::read(oishii::BinaryReader& bReader)
+void MOD::read(oishii::BinaryReader & bReader)
 {
 	u32 cDescriptor = 0;
 	bReader.setEndian(true);	// big endian
@@ -137,11 +136,13 @@ void MOD::read(oishii::BinaryReader& bReader)
 			read_faces(bReader);
 			break;
 		default:
-			std::printf("Got chunk %04x, not implemented yet!\n", cDescriptor);
+			DebugReport("Got chunk %04x, not implemented yet!\n", cDescriptor);
 			skipChunk(bReader, cLength);
 			break;
 		}
 	} while (cDescriptor != 0xFFFF);
 }
 
-}
+} // pikmin1
+
+} // libcube

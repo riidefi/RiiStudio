@@ -60,8 +60,9 @@ static bool openModelFile()
 	auto data = std::unique_ptr<char>(new char[static_cast<u32>(size)]);
 	if (fStream.read(data.get(), size))
 	{
+		using namespace libcube::pikmin1;
 		oishii::BinaryReader reader(std::move(data), static_cast<u32>(size), fileName.c_str());
-		libcube::MOD modelFile;
+		MOD modelFile;
 		modelFile.read(reader);
 	}
 
