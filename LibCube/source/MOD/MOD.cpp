@@ -50,16 +50,58 @@ inline void MOD::read_vnormals(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
-inline void MOD::skipPadding(oishii::BinaryReader& bReader)
+inline void MOD::read_colours(oishii::BinaryReader& bReader)
 {
-	const u32 currentPos = bReader.tell();
-	const u32 toRead = (~(0x20 - 1) & (currentPos + 0x20 - 1)) - currentPos;
-	skipChunk(bReader, toRead);
+	std::printf("Reading mesh colours\n");
+	m_colourCount = bReader.read<u32>();
+	skipPadding(bReader);
+	m_colours.resize(m_colourCount);
+	for (u32 i = 0; i < m_colourCount; i++)
+	{
+		auto coloursPtr = m_colours.data();
+		coloursPtr[i].read(bReader);
+		std::printf("Colour %u, R%u G%u B%u A%u\n", i, coloursPtr[i].m_R, coloursPtr[i].m_G, coloursPtr[i].m_B, coloursPtr[i].m_A);
+	}
+	skipPadding(bReader);
 }
 
-inline void MOD::skipChunk(oishii::BinaryReader& bReader, u32 offset)
+inline void MOD::read_faces(oishii::BinaryReader& bReader)
 {
-	bReader.seek<oishii::Whence::Current>(offset);
+	std::printf("Reading faces\n");
+	m_batchCount = bReader.read<u32>();
+	skipPadding(bReader);
+	m_batches.resize(m_batchCount);
+	for (u32 i = 0; i < m_batchCount; i++)
+	{
+		auto batchesPtr = m_batches.data();
+		batchesPtr[i].read(bReader);
+		std::printf("MtxGroupCount %u, DispListCount %u\n", batchesPtr[i].m_mtxGroupCount, batchesPtr[i].m_mtxGroups[i].m_dispListCount);
+	}
+	skipPadding(bReader);
+}
+
+inline void MOD::read_jointnames(oishii::BinaryReader& bReader)
+{
+	std::printf("Reading joint names\n");
+	m_jointNameCount = bReader.read<u32>();
+	skipPadding(bReader);
+	m_jointNames.resize(m_jointNameCount);
+	for (u32 i = 0; i < m_jointNameCount; i++)
+	{
+		auto jointNamesPtr = m_jointNames.data();
+		const u32 nameLength = bReader.read<u32>();
+
+		auto nString = std::unique_ptr<char>(new char[nameLength]);
+		for (u32 j = 0; j < nameLength; j++)
+			nString.get()[j] = bReader.read<s8>();
+		nString.get()[nameLength-1] = '\0';
+
+		std::string nameString(nString.get());
+		jointNamesPtr[i] = nameString;
+
+		std::printf("Got joint name %s, string length %u\n", jointNamesPtr[i].c_str(), jointNamesPtr[i].length());
+	}
+	skipPadding(bReader);
 }
 
 void MOD::read(oishii::BinaryReader& bReader)
@@ -84,6 +126,15 @@ void MOD::read(oishii::BinaryReader& bReader)
 			break;
 		case MODCHUNKS::VNORMALS:
 			read_vnormals(bReader);
+			break;
+		case MODCHUNKS::MESHCOLOURS:
+			read_colours(bReader);
+			break;
+		case MODCHUNKS::JOINT_NAMES:
+			read_jointnames(bReader);
+			break;
+		case MODCHUNKS::MESH:
+			read_faces(bReader);
 			break;
 		default:
 			std::printf("Got chunk %04x, not implemented yet!\n", cDescriptor);
