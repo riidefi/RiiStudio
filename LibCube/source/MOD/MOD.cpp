@@ -26,14 +26,12 @@ inline void MOD::read_header(oishii::BinaryReader& bReader)
 inline void MOD::read_vertices(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading vertices\n");
-	m_vertexCount = bReader.read<u32>();
+	m_vertices.resize(bReader.read<u32>());
+
 	skipPadding(bReader);
-	m_vertices.resize(m_vertexCount);
-	for (u32 i = 0; i < m_vertexCount; i++)
+	for (auto& vertex : m_vertices)
 	{
-		const auto verticesPtr = m_vertices.data();
-		MOD_readVec3(bReader, verticesPtr[i]);
-		//DebugReport("X %f Y %f Z %f\n", verticesPtr[i].x, verticesPtr[i].y, verticesPtr[i].z);
+		MOD_readVec3(bReader, vertex);
 	}
 	skipPadding(bReader);
 }
@@ -41,14 +39,12 @@ inline void MOD::read_vertices(oishii::BinaryReader& bReader)
 inline void MOD::read_vnormals(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading vertex normals\n");
-	m_vNormalCount = bReader.read<u32>();
+	m_vnorms.resize(bReader.read<u32>());
+
 	skipPadding(bReader);
-	m_vnorms.resize(m_vNormalCount);
-	for (u32 i = 0; i < m_vNormalCount; i++)
+	for (auto& vnorm : m_vnorms)
 	{
-		const auto vnormsPtr = m_vnorms.data();
-		MOD_readVec3(bReader, vnormsPtr[i]);
-		//DebugReport("X %f Y %f Z %f\n", vnormsPtr[i].x, vnormsPtr[i].y, vnormsPtr[i].z);
+		MOD_readVec3(bReader, vnorm);
 	}
 	skipPadding(bReader);
 }
@@ -56,14 +52,12 @@ inline void MOD::read_vnormals(oishii::BinaryReader& bReader)
 inline void MOD::read_colours(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading mesh colours\n");
-	m_colourCount = bReader.read<u32>();
+	m_colours.resize(bReader.read<u32>());
+
 	skipPadding(bReader);
-	m_colours.resize(m_colourCount);
-	for (u32 i = 0; i < m_colourCount; i++)
+	for (auto& colour : m_colours)
 	{
-		auto coloursPtr = m_colours.data();
-		coloursPtr[i].read(bReader);
-		DebugReport("Colour %u, R%u G%u B%u A%u\n", i, coloursPtr[i].m_R, coloursPtr[i].m_G, coloursPtr[i].m_B, coloursPtr[i].m_A);
+		colour.read(bReader);
 	}
 	skipPadding(bReader);
 }
@@ -85,20 +79,13 @@ inline void MOD::read_faces(oishii::BinaryReader& bReader)
 inline void MOD::read_jointnames(oishii::BinaryReader & bReader)
 {
 	DebugReport("Reading joint names\n");
-	m_jointNameCount = bReader.read<u32>();
+	m_jointNames.resize(bReader.read<u32>());
+
 	skipPadding(bReader);
-	m_jointNames.resize(m_jointNameCount);
-	for (u32 i = 0; i < m_jointNameCount; i++)
+	for (auto& str : m_jointNames)
 	{
-		auto jointNamesPtr = m_jointNames.data();
-		const u32 nameLength = bReader.read<u32>();
-
-		std::string nameString(nameLength, 0);
-		for (u32 j = 0; j < nameLength; ++j)
-			nameString[j] = bReader.read<s8>();
-		jointNamesPtr[i] = nameString;
-
-		DebugReport("Got joint name %s, string length %u\n", jointNamesPtr[i].c_str(), jointNamesPtr[i].length());
+		// calls String::onRead
+		bReader.dispatch<String, oishii::Direct, false>(str);
 	}
 	skipPadding(bReader);
 }
@@ -114,6 +101,12 @@ void MOD::read(oishii::BinaryReader & bReader)
 		const u32 cPosition = bReader.tell();
 		cDescriptor = bReader.read<u32>();
 		const u32 cLength = bReader.read<u32>();
+
+		if (cPosition & 0x1f)
+		{
+			DebugReport("bReader.tell() isn't aligned with 0x20! ERROR!\n");
+			return;
+		}
 
 		switch (cDescriptor)
 		{
@@ -141,6 +134,30 @@ void MOD::read(oishii::BinaryReader & bReader)
 			break;
 		}
 	} while (cDescriptor != 0xFFFF);
+}
+
+///		
+/// GETTER FUNCTIONS
+///
+
+inline const std::vector<glm::vec3> MOD::vertices() const noexcept
+{
+	return m_vertices;
+}
+
+inline const std::vector<glm::vec3> MOD::vertexNormals() const noexcept
+{
+	return m_vnorms;
+}
+
+inline const std::vector<Colour> MOD::colours() const noexcept
+{
+	return m_colours;
+}
+
+inline const std::vector<Batch> MOD::batches() const noexcept
+{
+	return m_batches;
 }
 
 } // pikmin1

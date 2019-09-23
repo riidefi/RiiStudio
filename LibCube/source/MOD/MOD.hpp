@@ -46,6 +46,23 @@ enum MODCHUNKS
 	BOUNDINGBOX = 0x0110,
 };
 
+struct String {
+	constexpr static const char name[] = "Pikmin 1 String";
+
+	std::string m_str;
+
+	static void onRead(oishii::BinaryReader& bReader, String& context)
+	{
+		const u32 nameLength = bReader.read<u32>();
+		std::string nameString(nameLength, 0);
+
+		for (u32 j = 0; j < nameLength; ++j)
+			nameString[j] = bReader.read<s8>();
+
+		context.m_str = nameString;
+	}
+};
+
 struct Colour
 {
 	u8 m_R, m_G, m_B, m_A;
@@ -146,17 +163,13 @@ private:
 		u8 m_PADDING1[0x18];	// 56 bytes
 	} m_header; // header will always be 56 bytes
 
-	u32 m_vertexCount = 0;
 	std::vector<glm::vec3> m_vertices;
 
-	u32 m_vNormalCount = 0;
 	std::vector<glm::vec3> m_vnorms;
 
-	u32 m_colourCount = 0;
 	std::vector<Colour> m_colours;
 
-	u32 m_jointNameCount = 0;
-	std::vector<std::string> m_jointNames;
+	std::vector<String> m_jointNames;
 
 	std::vector<Batch> m_batches; // meshs
 
@@ -173,6 +186,11 @@ public:
 	~MOD() = default;
 
 	void read(oishii::BinaryReader&);
+
+	inline const std::vector <glm::vec3> vertices() const noexcept;
+	inline const std::vector <glm::vec3> vertexNormals() const noexcept;
+	inline const std::vector <Colour> colours() const noexcept;
+	inline const std::vector<Batch> batches() const noexcept;
 };
 
 }
