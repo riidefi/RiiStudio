@@ -326,7 +326,7 @@ struct MOD
 	struct
 	{
 		u16 m_year = 0;
-		u8 m_month = 0;	
+		u8 m_month = 0;
 		u8 m_day = 0;
 		int m_unk = 0;
 	} m_header;

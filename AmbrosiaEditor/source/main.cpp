@@ -95,7 +95,7 @@ public:
 
 		if (ImGui::Begin("Style Editor"))
 		{
-			ImGui::Combo("Theme", (int*)&mThemeSelection, mThemeManager.ThemeNames);
+			ImGui::Combo("Theme", (int*)& mThemeSelection, mThemeManager.ThemeNames);
 
 			if (mThemeSelection == ThemeManager::BasicTheme::Adaptive)
 			{

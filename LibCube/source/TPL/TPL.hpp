@@ -15,7 +15,7 @@ public:
 	~DolphinTPL() = default;
 
 	static constexpr char name[] = "Dolphin TPL";
-	
+
 	u32 mRevision;
 
 	struct Texture

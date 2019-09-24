@@ -27,7 +27,7 @@ private:
 	TXEFormats m_format;
 	u32 m_dataSize = 0;
 	std::vector<u8> m_imageData;
-	
+
 
 public:
 	TXE() = default;
@@ -37,7 +37,7 @@ public:
 
 	void read(oishii::BinaryReader&);
 	void readModFile(oishii::BinaryReader&);
-	
+
 };
 
 }

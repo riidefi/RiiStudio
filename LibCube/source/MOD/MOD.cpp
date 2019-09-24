@@ -131,10 +131,6 @@ void MOD::read_basecolltriinfo(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 	for (auto& collTri : m_baseCollTriInfo)
 	{
-<<<<<<< Updated upstream
-		// calls BaseCollTriInfo::onRead
-=======
->>>>>>> Stashed changes
 		bReader.dispatch<BaseCollTriInfo, oishii::Direct, false>(collTri);
 	}
 

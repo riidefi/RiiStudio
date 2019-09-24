@@ -67,7 +67,7 @@ void DolphinTPL::read(oishii::BinaryReader& reader)
 		reader.dispatch<
 			DescriptorReader,
 			oishii::Indirection<0, u32, oishii::Whence::Current>
-		>(DescriptorReader::Context{start, *this, i});
+		>(DescriptorReader::Context{ start, *this, i });
 	}
 }
 
