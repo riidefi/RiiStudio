@@ -20,6 +20,7 @@ static inline void skipPadding(oishii::BinaryReader& bReader)
 namespace libcube {
 
 namespace pikmin1 {
+
 enum MODCHUNKS
 {
 	HEADER = 0x0000,
@@ -76,6 +77,33 @@ struct Colour
 		m_G = bReader.read<u8>();
 		m_B = bReader.read<u8>();
 		m_A = bReader.read<u8>();
+	}
+};
+
+//! @brief Material
+struct Material
+{
+	u32 m_hasPE; // pixel engine
+	u32 m_unk2;
+	Colour m_unkColour1;
+
+	// if (hasPE & 1)
+	u32 m_unk3;
+
+	void read(oishii::BinaryReader& bReader)
+	{
+		m_hasPE = bReader.read<u32>();
+		m_unk2 = bReader.read<u32>();
+		m_unkColour1.read(bReader);
+
+		if (m_hasPE & 1)
+		{
+			m_unk3 = bReader.read<u32>();
+			// PVWPolygonColourInfo
+			// PVWLightingInfo
+			// PVWPeInfo
+			// PVWTextureInfo
+		}
 	}
 };
 
