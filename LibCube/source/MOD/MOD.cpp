@@ -114,7 +114,7 @@ void MOD::read_basecolltriinfo(oishii::BinaryReader& bReader)
 
 	for (auto& collTri : m_baseCollTriInfo)
 	{
-		// calls BaseRoomInfo::onRead
+		// calls BaseCollTriInfo::onRead
 		bReader.dispatch<BaseCollTriInfo, oishii::Direct, false>(collTri);
 	}
 	skipPadding(bReader);
