@@ -21,6 +21,19 @@ namespace libcube {
 
 namespace pikmin1 {
 
+inline static void MOD_readVec3(oishii::BinaryReader& bReader, glm::vec3& vector3)
+{
+	vector3.x = bReader.read<float>();
+	vector3.y = bReader.read<float>();
+	vector3.z = bReader.read<float>();
+}
+
+inline static void MOD_readVec2(oishii::BinaryReader& bReader, glm::vec2& vector2)
+{
+	vector2.x = bReader.read<float>();
+	vector2.y = bReader.read<float>();
+}
+
 enum MODCHUNKS
 {
 	HEADER = 0x0000,
@@ -46,6 +59,64 @@ enum MODCHUNKS
 	JOINT_NAMES = 0x0061,
 	COLLISION_TRIANGLES = 0x0100,
 	BOUNDINGBOX = 0x0110,
+};
+
+//! @brief Unsure of purpose, used in BaseCollTriInfo
+struct Plane
+{
+	constexpr static const char name[] = "Plane";
+	glm::vec3 m_unk1;
+	f32 m_unk2;
+
+	static void onRead(oishii::BinaryReader& bReader, Plane& context)
+	{
+		MOD_readVec3(bReader, context.m_unk1);
+		context.m_unk2 = bReader.read<f32>();
+	}
+};
+
+//! @brief Base Collision Triangle Information
+struct BaseCollTriInfo
+{
+	constexpr static const char name[] = "Base Collision Triangle Information";
+	u32 m_unk1;
+	u32 m_unk2;
+	u32 m_unk3;
+	u32 m_unk4;
+
+	u16 m_unk5;
+	u16 m_unk6;
+	u16 m_unk7;
+	u16 m_unk8;
+
+	Plane m_unk9;
+
+	static void onRead(oishii::BinaryReader& bReader, BaseCollTriInfo& context)
+	{
+		context.m_unk1 = bReader.read<u32>();
+		context.m_unk2 = bReader.read<u32>();
+		context.m_unk3 = bReader.read<u32>();
+		context.m_unk4 = bReader.read<u32>();
+
+		context.m_unk5 = bReader.read<u16>();
+		context.m_unk6 = bReader.read<u16>();
+		context.m_unk7 = bReader.read<u16>();
+		context.m_unk8 = bReader.read<u16>();
+
+		context.m_unk9.onRead(bReader, context.m_unk9);
+	}
+};
+
+//! @brief Unsure of purpose, used in BCTI chunk (0x)
+struct BaseRoomInfo
+{
+	constexpr static const char name[] = "Base Room Information";
+	u32 m_unk1;
+
+	static void onRead(oishii::BinaryReader& bReader, BaseRoomInfo& context)
+	{
+		context.m_unk1 = bReader.read<u32>();
+	}
 };
 
 struct String {
@@ -179,9 +250,8 @@ struct Batch
 	}
 };
 
-class MOD final
+struct MOD
 {
-private:
 	struct
 	{
 		u8 m_PADDING0[0x18];	// 24 bytes
@@ -200,29 +270,27 @@ private:
 	std::vector<TXE> m_textures;
 	std::vector<glm::vec2> m_texcoords[8];
 
-	// Reading
-	inline void read_header(oishii::BinaryReader&);
-	inline void read_vertices(oishii::BinaryReader&);
-	inline void read_vnormals(oishii::BinaryReader&);
-	inline void read_colours(oishii::BinaryReader&);
-	inline void read_faces(oishii::BinaryReader&);
-	inline void read_textures(oishii::BinaryReader&);
-	inline void read_texcoords(oishii::BinaryReader&, u32);
+	std::vector<BaseCollTriInfo> m_baseCollTriInfo;
+	std::vector<BaseRoomInfo> m_baseRoomInfo;
 
-	inline void read_jointnames(oishii::BinaryReader&);
-public:
+	// Reading
+	void read_header(oishii::BinaryReader&);
+	void read_vertices(oishii::BinaryReader&);
+	void read_vnormals(oishii::BinaryReader&);
+	void read_colours(oishii::BinaryReader&);
+	void read_faces(oishii::BinaryReader&);
+	void read_textures(oishii::BinaryReader&);
+	void read_texcoords(oishii::BinaryReader&, u32);
+	void read_basecolltriinfo(oishii::BinaryReader&);
+
+	void read_jointnames(oishii::BinaryReader&);
+
 	MOD() = default;
 	~MOD() = default;
 
 	void read(oishii::BinaryReader&);
-
-	inline const std::vector <glm::vec3> vertices() const noexcept;
-	inline const std::vector <glm::vec3> vertexNormals() const noexcept;
-	inline const std::vector <Colour> colours() const noexcept;
-	inline const std::vector<Batch> batches() const noexcept;
 };
 
 }
 
 }
-

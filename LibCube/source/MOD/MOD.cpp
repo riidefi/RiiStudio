@@ -6,20 +6,7 @@ namespace libcube {
 
 namespace pikmin1 {
 
-inline void MOD_readVec3(oishii::BinaryReader& bReader, glm::vec3& vector3)
-{
-	vector3.x = bReader.read<float>();
-	vector3.y = bReader.read<float>();
-	vector3.z = bReader.read<float>();
-}
-
-inline void MOD_readVec2(oishii::BinaryReader& bReader, glm::vec2& vector2)
-{
-	vector2.x = bReader.read<float>();
-	vector2.y = bReader.read<float>();
-}
-
-inline void MOD::read_header(oishii::BinaryReader& bReader)
+void MOD::read_header(oishii::BinaryReader& bReader)
 {
 	skipPadding(bReader);
 	m_header.m_year = bReader.read<u16>();
@@ -30,7 +17,7 @@ inline void MOD::read_header(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
-inline void MOD::read_vertices(oishii::BinaryReader& bReader)
+void MOD::read_vertices(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading vertices\n");
 	m_vertices.resize(bReader.read<u32>());
@@ -43,7 +30,7 @@ inline void MOD::read_vertices(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
-inline void MOD::read_vnormals(oishii::BinaryReader& bReader)
+void MOD::read_vnormals(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading vertex normals\n");
 	m_vnorms.resize(bReader.read<u32>());
@@ -56,7 +43,7 @@ inline void MOD::read_vnormals(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
-inline void MOD::read_colours(oishii::BinaryReader& bReader)
+void MOD::read_colours(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading mesh colours\n");
 	m_colours.resize(bReader.read<u32>());
@@ -69,7 +56,7 @@ inline void MOD::read_colours(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
-inline void MOD::read_faces(oishii::BinaryReader& bReader)
+void MOD::read_faces(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading faces\n");
 	m_batches.resize(bReader.read<u32>());
@@ -83,7 +70,7 @@ inline void MOD::read_faces(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
-inline void MOD::read_textures(oishii::BinaryReader& bReader)
+void MOD::read_textures(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading textures\n");
 	m_textures.resize(bReader.read<u32>());
@@ -96,7 +83,7 @@ inline void MOD::read_textures(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
-inline void MOD::read_texcoords(oishii::BinaryReader& bReader, u32 opcode)
+void MOD::read_texcoords(oishii::BinaryReader& bReader, u32 opcode)
 {
 	DebugReport("Reading texture co-ordinates\n");
 	const u32 newIndex = opcode - 0x18;
@@ -110,7 +97,30 @@ inline void MOD::read_texcoords(oishii::BinaryReader& bReader, u32 opcode)
 	skipPadding(bReader);
 }
 
-inline void MOD::read_jointnames(oishii::BinaryReader& bReader)
+void MOD::read_basecolltriinfo(oishii::BinaryReader& bReader)
+{
+	DebugReport("Reading collision triangle information\n");
+	m_baseCollTriInfo.resize(bReader.read<u32>());
+	m_baseRoomInfo.resize(bReader.read<u32>());
+
+	skipPadding(bReader);
+	for (auto& info : m_baseRoomInfo)
+	{
+		// calls BaseRoomInfo::onRead
+		bReader.dispatch<BaseRoomInfo, oishii::Direct, false>(info);
+	}
+
+	skipPadding(bReader);
+
+	for (auto& collTri : m_baseCollTriInfo)
+	{
+		// calls BaseRoomInfo::onRead
+		bReader.dispatch<BaseCollTriInfo, oishii::Direct, false>(collTri);
+	}
+	skipPadding(bReader);
+}
+
+void MOD::read_jointnames(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading joint names\n");
 	m_jointNames.resize(bReader.read<u32>());
@@ -175,6 +185,9 @@ void MOD::read(oishii::BinaryReader& bReader)
 		case MODCHUNKS::TEXTURES:
 			read_textures(bReader);
 			break;
+		case MODCHUNKS::COLLISION_TRIANGLES:
+			read_basecolltriinfo(bReader);
+			break;
 		default:
 			DebugReport("Got chunk %04x, not implemented yet!\n", cDescriptor);
 			skipChunk(bReader, cLength);
@@ -183,29 +196,6 @@ void MOD::read(oishii::BinaryReader& bReader)
 	} while (cDescriptor != 0xFFFF);
 }
 
-///		
-/// GETTER FUNCTIONS
-///
-
-inline const std::vector<glm::vec3> MOD::vertices() const noexcept
-{
-	return m_vertices;
-}
-
-inline const std::vector<glm::vec3> MOD::vertexNormals() const noexcept
-{
-	return m_vnorms;
-}
-
-inline const std::vector<Colour> MOD::colours() const noexcept
-{
-	return m_colours;
-}
-
-inline const std::vector<Batch> MOD::batches() const noexcept
-{
-	return m_batches;
-}
 
 } // pikmin1
 
