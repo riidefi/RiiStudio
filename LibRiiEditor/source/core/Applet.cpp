@@ -2,7 +2,7 @@
 #include <imgui/imgui.h>
 #include <imgui/impl/imgui_impl_glfw.h>
 #include <imgui/impl/imgui_impl_opengl3.h>
-#include <lib/IconsFontAwesome5.h>
+#include <fa5/IconsFontAwesome5.h>
 
 // Parts taken from ImGui impl example.
 
