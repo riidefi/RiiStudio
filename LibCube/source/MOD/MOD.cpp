@@ -27,7 +27,7 @@ void MOD::read_vertices(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 	for (auto& vertex : m_vertices)
 	{
-		MOD_readVec3(bReader, vertex);
+		bReader.dispatch<Vector3, oishii::Direct, false>(vertex);
 	}
 	skipPadding(bReader);
 }
@@ -40,22 +40,22 @@ void MOD::read_vertexnormals(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 	for (auto& vnorm : m_vnorms)
 	{
-		MOD_readVec3(bReader, vnorm);
+		bReader.dispatch<Vector3, oishii::Direct, false>(vnorm);
 	}
 	skipPadding(bReader);
 }
 
-void MOD::read_unknownvector(oishii::BinaryReader& bReader)
+void MOD::read_nbts(oishii::BinaryReader& bReader)
 {
-	DebugReport("Reading unknown set of 3 vector3s\n");
-	m_unkvert.resize(bReader.read<u32>());
+	DebugReport("Reading NBTs\n");
+	m_nbt.resize(bReader.read<u32>());
 
 	skipPadding(bReader);
-	for (auto& vert : m_unkvert)
+	for (auto& vert : m_nbt)
 	{
-		MOD_readVec3(bReader, vert.m_1);
-		MOD_readVec3(bReader, vert.m_2);
-		MOD_readVec3(bReader, vert.m_3);
+		bReader.dispatch<Vector3, oishii::Direct, false>(vert.m_normals);
+		bReader.dispatch<Vector3, oishii::Direct, false>(vert.m_binormals);
+		bReader.dispatch<Vector3, oishii::Direct, false>(vert.m_tangents);
 		/*std::printf("NEW SET %f %f %f\n %f %f %f\n %f %f %f\n", vert.m_1.x, vert.m_1.y, vert.m_1.z,
 																									vert.m_2.x, vert.m_2.y, vert.m_2.z,
 																									vert.m_3.x, vert.m_3.y, vert.m_3.z);*/
@@ -111,7 +111,7 @@ void MOD::read_texcoords(oishii::BinaryReader& bReader, u32 opcode)
 	skipPadding(bReader);
 	for (auto& coords : m_texcoords[newIndex])
 	{
-		MOD_readVec2(bReader, coords);
+		bReader.dispatch<Vector2, oishii::Direct, false>(coords);
 	}
 	skipPadding(bReader);
 }
@@ -134,6 +134,14 @@ void MOD::read_basecolltriinfo(oishii::BinaryReader& bReader)
 		bReader.dispatch<BaseCollTriInfo, oishii::Direct, false>(collTri);
 	}
 
+	skipPadding(bReader);
+}
+
+void MOD::read_collisiongrid(oishii::BinaryReader& bReader)
+{
+	DebugReport("Reading collision grid\n");
+	skipPadding(bReader);
+	bReader.dispatch<CollGroup, oishii::Direct, false>(m_collisionGrid);
 	skipPadding(bReader);
 }
 
@@ -205,13 +213,12 @@ void MOD::read(oishii::BinaryReader& bReader)
 		case MODCHUNKS::MOD_VERTEXNORMAL:
 			read_vertexnormals(bReader);
 			break;
-		case MODCHUNKS::MOD_UNKVEC3F:
-			read_unknownvector(bReader);
+		case MODCHUNKS::MOD_NBT:
+			read_nbts(bReader);
 			break;
 		case MODCHUNKS::MOD_VERTEXCOLOUR:
 			read_vertexcolours(bReader);
 			break;
-
 		case MODCHUNKS::MOD_TEXCOORD0:
 		case MODCHUNKS::MOD_TEXCOORD1:
 		case MODCHUNKS::MOD_TEXCOORD2:
@@ -238,16 +245,23 @@ void MOD::read(oishii::BinaryReader& bReader)
 		case MODCHUNKS::MOD_JOINT_NAME:
 			read_jointnames(bReader);
 			break;
-
 		case MODCHUNKS::MOD_COLLISION_TRIANGLE:
 			read_basecolltriinfo(bReader);
 			break;
+		case MODCHUNKS::MOD_COLLISION_GRID:
+			read_collisiongrid(bReader);
+			break;
 		default:
-			DebugReport("Got chunk %04x, not implemented yet!\n", cDescriptor);
+			if (cDescriptor != 0xFFFF)
+				DebugReport("Got chunk %04x, not implemented yet!\n", cDescriptor);
 			skipChunk(bReader, cLength);
 			break;
 		}
 	} while (cDescriptor != 0xFFFF);
+	if (bReader.tell() != bReader.endpos())
+	{
+		DebugReport("INI file found at end of file\n");
+	}
 }
 
 } // pikmin1

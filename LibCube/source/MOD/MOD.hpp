@@ -13,7 +13,7 @@ enum MODCHUNKS
 
 	MOD_VERTEX = 0x0010,
 	MOD_VERTEXNORMAL = 0x0011,
-	MOD_UNKVEC3F = 0x0012, // probably a vertex thing
+	MOD_NBT = 0x0012,
 	MOD_VERTEXCOLOUR = 0x0013,
 
 	MOD_TEXCOORD0 = 0x0018,
@@ -48,26 +48,27 @@ struct MOD
 		int m_unk = 0;
 	} m_header;
 
-	std::vector<glm::vec3> m_vertices; // vertices
-	std::vector<glm::vec3> m_vnorms; // vertex normals
-	std::vector<UnkVec3s> m_unkvert; // unknown, to do with vertices
+	std::vector<Vector3> m_vertices; // vertices
+	std::vector<Vector3> m_vnorms; // vertex normals
+	std::vector<NBT> m_nbt; // unknown, to do with vertices
 	std::vector<Colour> m_colours; // vertex colours
 	std::vector<VtxMatrix> m_vtxmatrices; // vertex matrices
 	std::vector<Batch> m_batches; // meshes
 	std::vector<Joint> m_joints; // joints
 	std::vector<String> m_jointNames; // joint names
 	std::vector<TXE> m_textures; // textures
-	std::vector<glm::vec2> m_texcoords[8]; // texture coordinates 0 - 7
+	std::vector<Vector2> m_texcoords[8]; // texture coordinates 0 - 7
 
 	std::vector<BaseCollTriInfo> m_baseCollTriInfo;
 	std::vector<BaseRoomInfo> m_baseRoomInfo;
+	CollGroup m_collisionGrid;
 
 	// Reading
 	void read_header(oishii::BinaryReader&);
 
 	void read_vertices(oishii::BinaryReader&); // opcode 0x10
 	void read_vertexnormals(oishii::BinaryReader&); // opcode 0x11
-	void read_unknownvector(oishii::BinaryReader&); // opcode 0x12
+	void read_nbts(oishii::BinaryReader&); // opcode 0x12
 	void read_vertexcolours(oishii::BinaryReader&); // opcode 0x13
 
 	void read_texcoords(oishii::BinaryReader&, u32); // opcode 0x18 - 0x1F
@@ -81,8 +82,7 @@ struct MOD
 	void read_joints(oishii::BinaryReader&); // opcode 0x60
 	void read_jointnames(oishii::BinaryReader&); // opcode 0x61
 	void read_basecolltriinfo(oishii::BinaryReader&); // opcode 0x100
-	// collision grid opcode 0x110
-
+	void read_collisiongrid(oishii::BinaryReader&); // opcode 0x110
 
 	MOD() = default;
 	~MOD() = default;

@@ -3,15 +3,16 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <vector>
 #include <glm/glm.hpp>
+#include <common.hpp>
 
 namespace libcube {
-
-namespace pikmin1 {
 
 static inline void skipChunk(oishii::BinaryReader& bReader, u32 offset)
 {
 	bReader.seek<oishii::Whence::Current>(offset);
 }
+
+namespace pikmin1 {
 
 static inline void skipPadding(oishii::BinaryReader& bReader)
 {
@@ -20,29 +21,56 @@ static inline void skipPadding(oishii::BinaryReader& bReader)
 	skipChunk(bReader, toRead);
 }
 
-inline static void MOD_readVec3(oishii::BinaryReader & bReader, glm::vec3 & vector3)
+//! @brief  Vector3, contains x, y & z
+struct Vector3
 {
-	vector3.x = bReader.read<float>();
-	vector3.y = bReader.read<float>();
-	vector3.z = bReader.read<float>();
-}
+	constexpr static const char name[] = "Vector3";
+	glm::vec3 m_vec;
 
-inline static void MOD_readVec2(oishii::BinaryReader & bReader, glm::vec2 & vector2)
+	static void onRead(oishii::BinaryReader& bReader, Vector3& context)
+	{
+		context.m_vec.x = bReader.read<float>();
+		context.m_vec.y = bReader.read<float>();
+		context.m_vec.z = bReader.read<float>();
+	}
+};
+
+//! @brief Vector2, contains x & y
+struct Vector2
 {
-	vector2.x = bReader.read<float>();
-	vector2.y = bReader.read<float>();
-}
+	constexpr static const char name[] = "Vector2";
+	glm::vec2 m_vec;
+
+	static void onRead(oishii::BinaryReader& bReader, Vector2& context)
+	{
+		context.m_vec.x = bReader.read<float>();
+		context.m_vec.y = bReader.read<float>();
+	}
+};
+
+struct BoundBox
+{
+	constexpr static const char name[] = "Bounding Box";
+	Vector3 m_minBounds;
+	Vector3 m_maxBounds;
+
+	static void onRead(oishii::BinaryReader& bReader, BoundBox& context)
+	{
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_minBounds);
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_maxBounds);
+	}
+};
 
 //! @brief Unsure of purpose, used in BaseCollTriInfo
 struct Plane
 {
 	constexpr static const char name[] = "Plane";
-	glm::vec3 m_unk1;
+	Vector3 m_unk1;
 	f32 m_unk2;
 
 	static void onRead(oishii::BinaryReader& bReader, Plane& context)
 	{
-		MOD_readVec3(bReader, context.m_unk1);
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_unk1);
 		context.m_unk2 = bReader.read<f32>();
 	}
 };
@@ -75,7 +103,7 @@ struct BaseCollTriInfo
 		context.m_unk7 = bReader.read<u16>();
 		context.m_unk8 = bReader.read<u16>();
 
-		context.m_unk9.onRead(bReader, context.m_unk9);
+		bReader.dispatch<Plane, oishii::Direct, false>(context.m_unk9);
 	}
 };
 
@@ -216,7 +244,6 @@ struct Batch
 		context.m_mtxGroups.resize(bReader.read<u32>());
 		for (auto& mGroup : context.m_mtxGroups)
 		{
-			// Calls MtxGroup::onRead
 			bReader.dispatch<MtxGroup, oishii::Direct, false>(mGroup);
 		}
 	}
@@ -230,15 +257,15 @@ struct Joint
 	u32 m_unk1;
 	bool m_unk2;
 	bool m_unk3;
-	glm::vec3 m_unk4;
-	glm::vec3 m_unk5;
+	Vector3 m_boundsMin;
+	Vector3 m_boundsMax;
 	f32 m_unk6;
-	glm::vec3 m_unk7;
-	glm::vec3 m_unk8;
-	glm::vec3 m_unk9;
+	Vector3 m_scale;
+	Vector3 m_rotation;
+	Vector3 m_translation;
 	struct MatPoly
 	{
-		u16 m_unk1;
+		u16 m_index; // I think this is an index of sorts, not sure what though. :/
 		u16 m_unk2;
 	};
 	std::vector<MatPoly> m_matpolys;
@@ -252,17 +279,17 @@ struct Joint
 		context.m_unk2 = (unk1 & 1) != 0;
 		context.m_unk3 = (unk1 & 0x4000) != 0;
 
-		MOD_readVec3(bReader, context.m_unk4);
-		MOD_readVec3(bReader, context.m_unk5);
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_boundsMin);
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_boundsMax);
 		context.m_unk6 = bReader.read<f32>();
-		MOD_readVec3(bReader, context.m_unk7);
-		MOD_readVec3(bReader, context.m_unk8);
-		MOD_readVec3(bReader, context.m_unk9);
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_scale);
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_rotation);
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_translation);
 
 		context.m_matpolys.resize(bReader.read<u32>());
 		for (auto& matpoly : context.m_matpolys)
 		{
-			matpoly.m_unk1 = bReader.read<u16>();
+			matpoly.m_index = bReader.read<u16>();
 			matpoly.m_unk2 = bReader.read<u16>();
 		}
 	}
@@ -270,23 +297,71 @@ struct Joint
 
 struct VtxMatrix
 {
-	constexpr static const char name[] = "Mesh VtxMatrix";
+	constexpr static const char name[] = "VtxMatrix";
 
-	bool m_unk1;
-	u16 m_unk2;
+	bool m_weighted;
+	u16 m_index;
 
 	static void onRead(oishii::BinaryReader& bReader, VtxMatrix& context)
 	{
-		const s16 unk1 = bReader.read<s16>();
-		context.m_unk2 = (context.m_unk1 = unk1 >= 0) ? unk1 : -unk1 - 1;
+		const s16 idx = bReader.read<s16>();
+		context.m_index = (context.m_weighted = idx >= 0) ? idx : -idx - 1;
 	}
 };
 
-struct UnkVec3s
+struct NBT
 {
-	glm::vec3 m_1;
-	glm::vec3 m_2;
-	glm::vec3 m_3;
+	Vector3 m_normals;
+	Vector3 m_binormals;
+	Vector3 m_tangents;
+};
+
+struct CollGroup
+{
+	constexpr static const char name[] = "Collision Group";
+
+	BoundBox m_collBounds;
+
+	float m_unk1;
+	u32 m_unkCount1;
+	u32 m_unkCount2;
+	u32 m_blockSize;
+
+	static void onRead(oishii::BinaryReader& bReader, CollGroup& context)
+	{
+		bReader.dispatch<BoundBox, oishii::Direct, false>(context.m_collBounds);
+		context.m_unk1 = bReader.read<f32>();
+		context.m_unkCount1 = bReader.read<u32>();
+		context.m_unkCount2 = bReader.read<u32>();
+		context.m_blockSize = bReader.read<u32>();
+
+		u32 maxCollTris = 0;
+		for (u32 i = 0; i < context.m_blockSize; i++)
+		{
+			const u16 unkCount1 = bReader.read<u16>();
+			const u16 collTriCount = bReader.read<u16>();
+
+			if (collTriCount > maxCollTris)
+				maxCollTris = collTriCount;
+
+			for (u32 j = 0; j < collTriCount; j++)
+				bReader.read<u32>();
+
+			if (unkCount1)
+				for (u32 k = 0; k < unkCount1; k++)
+					bReader.read<u8>();
+		}
+
+		DebugReport("Max collision triangles within a block %u\n", maxCollTris);
+
+		for (u32 i = 0; i < context.m_unkCount2; i++)
+		{
+			for (u32 j = 0; j < context.m_unkCount1; j++)
+			{
+				const u32 unk1 = bReader.read<u32>();
+			}
+		}
+	}
 };
 
 }
