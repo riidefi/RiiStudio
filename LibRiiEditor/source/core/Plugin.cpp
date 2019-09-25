@@ -1,5 +1,5 @@
 #include "Plugin.hpp"
-#include "lib/IconsFontAwesome5.h"
+#include <fa5/IconsFontAwesome5.h>
 
 struct TextureOutlinerConfig
 {
