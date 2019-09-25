@@ -58,6 +58,8 @@ struct MOD
 	std::vector<String> m_jointNames; // joint names
 	std::vector<TXE> m_textures; // textures
 	std::vector<Vector2> m_texcoords[8]; // texture coordinates 0 - 7
+	std::vector<Envelope> m_envelopes;
+	std::vector<Material> m_materials;
 
 	std::vector<BaseCollTriInfo> m_baseCollTriInfo;
 	std::vector<BaseRoomInfo> m_baseRoomInfo;
@@ -74,10 +76,10 @@ struct MOD
 	void read_texcoords(oishii::BinaryReader&, u32); // opcode 0x18 - 0x1F
 	void read_textures(oishii::BinaryReader&); // opcode 0x20
 	// texattr opcode 0x22
-	// material opcode 0x30
+	void read_materials(oishii::BinaryReader&); // opcode 0x30
 
 	void read_vtxmatrix(oishii::BinaryReader&); // opcode 0x40
-	// envelope opcode 0x41
+	void read_envelope(oishii::BinaryReader&); // opcode 0x41
 	void read_faces(oishii::BinaryReader&); // opcode 0x50
 	void read_joints(oishii::BinaryReader&); // opcode 0x60
 	void read_jointnames(oishii::BinaryReader&); // opcode 0x61

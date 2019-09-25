@@ -102,6 +102,17 @@ void MOD::read_textures(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
+void MOD::read_materials(oishii::BinaryReader& bReader)
+{
+	DebugReport("Reading materials!\n");
+	m_materials.resize(bReader.read<u32>());
+
+	skipPadding(bReader);
+	for (auto& material : m_materials)
+		material.read(bReader);
+	skipPadding(bReader);
+}
+
 void MOD::read_texcoords(oishii::BinaryReader& bReader, u32 opcode)
 {
 	const u32 newIndex = opcode - 0x18;
@@ -158,6 +169,19 @@ void MOD::read_vtxmatrix(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
+void MOD::read_envelope(oishii::BinaryReader& bReader)
+{
+	DebugReport("Reading skinning envelope\n");
+	m_envelopes.resize(bReader.read<u32>());
+
+	skipPadding(bReader);
+	for (auto& evp : m_envelopes)
+	{
+		bReader.dispatch<Envelope, oishii::Direct, false>(evp);
+	}
+	skipPadding(bReader);
+}
+
 void MOD::read_joints(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading joints\n");
@@ -204,6 +228,10 @@ void MOD::read(oishii::BinaryReader& bReader)
 
 		switch (cDescriptor)
 		{
+		//case MODCHUNKS::MOD_MATERIAL:
+			//read_materials(bReader);
+			//break;
+
 		case MODCHUNKS::MOD_HEADER:
 			read_header(bReader);
 			break;
@@ -232,9 +260,11 @@ void MOD::read(oishii::BinaryReader& bReader)
 		case MODCHUNKS::MOD_TEXTURE:
 			read_textures(bReader);
 			break;
-
 		case MODCHUNKS::MOD_VTXMATRIX:
 			read_vtxmatrix(bReader);
+			break;
+		case MODCHUNKS::MOD_ENVELOPE:
+			read_envelope(bReader);
 			break;
 		case MODCHUNKS::MOD_MESH:
 			read_faces(bReader);

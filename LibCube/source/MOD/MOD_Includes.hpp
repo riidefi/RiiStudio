@@ -259,7 +259,7 @@ struct Joint
 	bool m_unk3;
 	Vector3 m_boundsMin;
 	Vector3 m_boundsMax;
-	f32 m_unk6;
+	f32 m_boundsSphereRadius;
 	Vector3 m_scale;
 	Vector3 m_rotation;
 	Vector3 m_translation;
@@ -281,7 +281,7 @@ struct Joint
 
 		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_boundsMin);
 		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_boundsMax);
-		context.m_unk6 = bReader.read<f32>();
+		context.m_boundsSphereRadius = bReader.read<f32>();
 		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_scale);
 		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_rotation);
 		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_translation);
@@ -299,13 +299,13 @@ struct VtxMatrix
 {
 	constexpr static const char name[] = "VtxMatrix";
 
-	bool m_weighted;
+	bool m_partiallyWeighted;
 	u16 m_index;
 
 	static void onRead(oishii::BinaryReader& bReader, VtxMatrix& context)
 	{
 		const s16 idx = bReader.read<s16>();
-		context.m_index = (context.m_weighted = idx >= 0) ? idx : -idx - 1;
+		context.m_index = (context.m_partiallyWeighted = idx >= 0) ? idx : -idx - 1;
 	}
 };
 
@@ -352,7 +352,7 @@ struct CollGroup
 					bReader.read<u8>();
 		}
 
-		DebugReport("Max collision triangles within a block %u\n", maxCollTris);
+		DebugReport("Max collision triangles within a block: %u\n", maxCollTris);
 
 		for (u32 i = 0; i < context.m_unkCount2; i++)
 		{
@@ -360,6 +360,26 @@ struct CollGroup
 			{
 				const u32 unk1 = bReader.read<u32>();
 			}
+		}
+	}
+};
+
+struct Envelope
+{
+	constexpr static const char name[] = "Collision Group";
+
+	std::vector<u16> m_indexes;
+	std::vector<f32> m_weights;
+
+	static void onRead(oishii::BinaryReader& bReader, Envelope& context)
+	{
+		context.m_indexes.resize(bReader.read<u16>());
+		context.m_weights.resize(context.m_indexes.size());
+
+		for (u32 i = 0; i < context.m_indexes.size(); i++)
+		{
+			context.m_indexes[i] = bReader.read<u16>();
+			context.m_weights[i] = bReader.read<f32>();
 		}
 	}
 };
