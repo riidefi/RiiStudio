@@ -7,6 +7,7 @@
 
 namespace libcube {
 
+// This can be used in other filetypes, its not just useful for Pikmin 1
 static inline void skipChunk(oishii::BinaryReader& bReader, u32 offset)
 {
 	bReader.seek<oishii::Whence::Current>(offset);
@@ -17,6 +18,7 @@ namespace pikmin1 {
 static inline void skipPadding(oishii::BinaryReader& bReader)
 {
 	const u32 currentPos = bReader.tell();
+	// Pikmin 1s padded files are all aligned to 0x20
 	const u32 toRead = (~(0x20 - 1) & (currentPos + 0x20 - 1)) - currentPos;
 	skipChunk(bReader, toRead);
 }
@@ -48,6 +50,7 @@ struct Vector2
 	}
 };
 
+//! @brief Bounding Box, contains minimum bounds and maximum bounds
 struct BoundBox
 {
 	constexpr static const char name[] = "Bounding Box";
@@ -119,6 +122,7 @@ struct BaseRoomInfo
 	}
 };
 
+//! @brief Wrapper for std::string, reads int and then reads string from oishii::BinaryReader
 struct String {
 	constexpr static const char name[] = "Pikmin 1 String";
 
@@ -136,6 +140,7 @@ struct String {
 	}
 };
 
+//! @brief 4 unsigned byte sized variables representing R_G_B_A
 struct Colour
 {
 	u8 m_R, m_G, m_B, m_A;
@@ -151,7 +156,7 @@ struct Colour
 	}
 };
 
-//! @brief Material
+//! @brief Material, wrapper for TEV and PE stuff.
 struct Material
 {
 	u32 m_hasPE; // pixel engine
@@ -228,7 +233,7 @@ struct MtxGroup
 //! @brief Batch, contains Matrix Group
 struct Batch
 {
-	constexpr static const char name[] = "Mesh Batch";
+	constexpr static const char name[] = "Batch";
 
 	u32 m_unk1 = 0;
 	u32 m_vcd = 0;	//	Vertex Descriptor
@@ -249,10 +254,10 @@ struct Batch
 	}
 };
 
-//! @brief Joint, contains MatPoly
+//! @brief Joint of a mod file, contains MatPoly
 struct Joint
 {
-	constexpr static const char name[] = "Mesh Joint";
+	constexpr static const char name[] = "Joint";
 
 	u32 m_unk1;
 	bool m_unk2;
@@ -295,6 +300,7 @@ struct Joint
 	}
 };
 
+//! @brief Used to identify the index of weighted (vertices?)
 struct VtxMatrix
 {
 	constexpr static const char name[] = "VtxMatrix";
@@ -309,13 +315,24 @@ struct VtxMatrix
 	}
 };
 
+//! @brief Normal Binormal Tangent
 struct NBT
 {
-	Vector3 m_normals;
-	Vector3 m_binormals;
-	Vector3 m_tangents;
+	constexpr static const char name[] = "NBT";
+
+	Vector3 m_normals; //N
+	Vector3 m_binormals; //B
+	Vector3 m_tangents; //T
+
+	static void onRead(oishii::BinaryReader& bReader, NBT& context)
+	{
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_normals);
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_binormals);
+		bReader.dispatch<Vector3, oishii::Direct, false>(context.m_tangents);
+	}
 };
 
+//! @brief Collision Triangle information
 struct CollGroup
 {
 	constexpr static const char name[] = "Collision Group";
@@ -364,9 +381,10 @@ struct CollGroup
 	}
 };
 
+//! @brief Skinning envelope
 struct Envelope
 {
-	constexpr static const char name[] = "Collision Group";
+	constexpr static const char name[] = "Envelope";
 
 	std::vector<u16> m_indexes;
 	std::vector<f32> m_weights;

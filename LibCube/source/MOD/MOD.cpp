@@ -13,6 +13,7 @@ void MOD::read_header(oishii::BinaryReader& bReader)
 	m_header.m_year = bReader.read<u16>();
 	m_header.m_month = bReader.read<u8>();
 	m_header.m_day = bReader.read<u8>();
+	// unsure as to what m_unk is, changes from file to file
 	m_header.m_unk = bReader.read<u32>();
 	DebugReport("Creation date of model file (YYYY/MM/DD): %u/%u/%u\n", m_header.m_year, m_header.m_month, m_header.m_day);
 
@@ -51,14 +52,9 @@ void MOD::read_nbts(oishii::BinaryReader& bReader)
 	m_nbt.resize(bReader.read<u32>());
 
 	skipPadding(bReader);
-	for (auto& vert : m_nbt)
+	for (auto& currNBT : m_nbt)
 	{
-		bReader.dispatch<Vector3, oishii::Direct, false>(vert.m_normals);
-		bReader.dispatch<Vector3, oishii::Direct, false>(vert.m_binormals);
-		bReader.dispatch<Vector3, oishii::Direct, false>(vert.m_tangents);
-		/*std::printf("NEW SET %f %f %f\n %f %f %f\n %f %f %f\n", vert.m_1.x, vert.m_1.y, vert.m_1.z,
-																									vert.m_2.x, vert.m_2.y, vert.m_2.z,
-																									vert.m_3.x, vert.m_3.y, vert.m_3.z);*/
+		bReader.dispatch<NBT, oishii::Direct, false>(currNBT);
 	}
 	skipPadding(bReader);
 }
@@ -109,18 +105,20 @@ void MOD::read_materials(oishii::BinaryReader& bReader)
 
 	skipPadding(bReader);
 	for (auto& material : m_materials)
+	{
 		material.read(bReader);
+	}
 	skipPadding(bReader);
 }
 
 void MOD::read_texcoords(oishii::BinaryReader& bReader, u32 opcode)
 {
-	const u32 newIndex = opcode - 0x18;
-	DebugReport("Reading texcoord%d\n", newIndex);
-	m_texcoords[newIndex].resize(bReader.read<u32>());
+	const u32 texIndex = opcode - 0x18;
+	DebugReport("Reading texcoord%d\n", texIndex);
+	m_texcoords[texIndex].resize(bReader.read<u32>());
 
 	skipPadding(bReader);
-	for (auto& coords : m_texcoords[newIndex])
+	for (auto& coords : m_texcoords[texIndex])
 	{
 		bReader.dispatch<Vector2, oishii::Direct, false>(coords);
 	}
@@ -152,6 +150,7 @@ void MOD::read_collisiongrid(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading collision grid\n");
 	skipPadding(bReader);
+	// TODO: find a way to implement a std::vector so it fits in with every other chunk
 	bReader.dispatch<CollGroup, oishii::Direct, false>(m_collisionGrid);
 	skipPadding(bReader);
 }
@@ -201,9 +200,9 @@ void MOD::read_jointnames(oishii::BinaryReader& bReader)
 	m_jointNames.resize(bReader.read<u32>());
 
 	skipPadding(bReader);
-	for (auto& str : m_jointNames)
+	for (auto& name : m_jointNames)
 	{
-		bReader.dispatch<String, oishii::Direct, false>(str);
+		bReader.dispatch<String, oishii::Direct, false>(name);
 	}
 	skipPadding(bReader);
 }
@@ -228,10 +227,6 @@ void MOD::read(oishii::BinaryReader& bReader)
 
 		switch (cDescriptor)
 		{
-		//case MODCHUNKS::MOD_MATERIAL:
-			//read_materials(bReader);
-			//break;
-
 		case MODCHUNKS::MOD_HEADER:
 			read_header(bReader);
 			break;
@@ -282,12 +277,13 @@ void MOD::read(oishii::BinaryReader& bReader)
 			read_collisiongrid(bReader);
 			break;
 		default:
-			if (cDescriptor != 0xFFFF)
+			if (cDescriptor != 0xFFFF) // 0xFFFF is in every mod file, don't bother
 				DebugReport("Got chunk %04x, not implemented yet!\n", cDescriptor);
 			skipChunk(bReader, cLength);
 			break;
 		}
 	} while (cDescriptor != 0xFFFF);
+
 	if (bReader.tell() != bReader.endpos())
 	{
 		DebugReport("INI file found at end of file\n");
