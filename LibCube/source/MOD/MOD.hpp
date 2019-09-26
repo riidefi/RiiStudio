@@ -57,9 +57,9 @@ struct MOD
 	std::vector<Joint> m_joints; // joints
 	std::vector<String> m_jointNames; // joint names
 	std::vector<TXE> m_textures; // textures
-	std::vector<Vector2> m_texcoords[8]; // texture coordinates 0 - 7
-	std::vector<Envelope> m_envelopes;
-	std::vector<Material> m_materials;
+	std::vector<Vector2> m_texcoords[8]; // texture coordinates 0 - 7, x = s, y  = t
+	std::vector<Envelope> m_envelopes; // skinning envelopes
+	std::vector<Material> m_materials; // texture environments
 
 	std::vector<BaseCollTriInfo> m_baseCollTriInfo;
 	std::vector<BaseRoomInfo> m_baseRoomInfo;

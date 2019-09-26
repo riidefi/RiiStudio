@@ -211,15 +211,15 @@ struct MtxGroup
 {
 	constexpr static const char name[] = "Matrix Group";
 
-	std::vector<u16> m_unk1Array;
+	std::vector<u16> m_dependant;
 	std::vector<DispList> m_dispLists;
 
 	static void onRead(oishii::BinaryReader& bReader, MtxGroup& context)
 	{
 		// Unknown purpose of the array, store it anyways
-		context.m_unk1Array.resize(bReader.read<u32>());
-		for (auto& unkArr : context.m_unk1Array)
-			unkArr = bReader.read<u16>();
+		context.m_dependant.resize(bReader.read<u32>());
+		for (auto& isDependant : context.m_dependant)
+			isDependant = bReader.read<u16>();
 
 		context.m_dispLists.resize(bReader.read<u32>());
 
@@ -230,13 +230,24 @@ struct MtxGroup
 	}
 };
 
+struct VtxDescriptor
+{
+	u32 m_originalVCD;
+
+	void read(oishii::BinaryReader& bReader, u32 vcd)
+	{
+		m_originalVCD = vcd;
+	}
+};
+
 //! @brief Batch, contains Matrix Group
 struct Batch
 {
 	constexpr static const char name[] = "Batch";
 
 	u32 m_unk1 = 0;
-	u32 m_vcd = 0;	//	Vertex Descriptor
+	u32 m_depMTXGroups;
+	VtxDescriptor m_vcd;
 
 	std::vector<MtxGroup> m_mtxGroups;
 
@@ -244,12 +255,15 @@ struct Batch
 	{
 		// Read the batch variables
 		context.m_unk1 = bReader.read<u32>();
-		context.m_vcd = bReader.read<u32>(); // Vertex descriptor
+		context.m_vcd.read(bReader, bReader.read<u32>());
 
 		context.m_mtxGroups.resize(bReader.read<u32>());
+		context.m_depMTXGroups = 0;
 		for (auto& mGroup : context.m_mtxGroups)
 		{
 			bReader.dispatch<MtxGroup, oishii::Direct, false>(mGroup);
+			if (mGroup.m_dependant.size() > context.m_depMTXGroups)
+				context.m_depMTXGroups = mGroup.m_dependant.size();
 		}
 	}
 };
