@@ -16,6 +16,7 @@
 *.dylib
 *.dll
 
+
 # Fortran module files
 *.mod
 *.smod
@@ -25,6 +26,11 @@
 *.la
 *.a
 *.lib
+
+# Third Party exceptions
+!glfw3.dll
+!glfw3dll.lib
+
 
 # Executables
 *.exe
