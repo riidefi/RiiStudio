@@ -98,6 +98,19 @@ void MOD::read_textures(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
+void MOD::read_texattr(oishii::BinaryReader& bReader)
+{
+	DebugReport("Reading texture attributes!\n");
+	m_texattrs.resize(bReader.read<u32>());
+
+	skipPadding(bReader);
+	for (auto& texattr : m_texattrs)
+	{
+		bReader.dispatch<TexAttr, oishii::Direct, false>(texattr);
+	}
+	skipPadding(bReader);
+}
+
 void MOD::read_materials(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading materials!\n");
@@ -255,6 +268,9 @@ void MOD::read(oishii::BinaryReader& bReader)
 		case MODCHUNKS::MOD_TEXTURE:
 			read_textures(bReader);
 			break;
+		case MODCHUNKS::MOD_TEXTURE_ATTRIBUTE:
+			read_texattr(bReader);
+			break;
 		case MODCHUNKS::MOD_VTXMATRIX:
 			read_vtxmatrix(bReader);
 			break;
@@ -288,6 +304,7 @@ void MOD::read(oishii::BinaryReader& bReader)
 	{
 		DebugReport("INI file found at end of file\n");
 	}
+	DebugReport("Done reading file\n");
 }
 
 } // pikmin1
