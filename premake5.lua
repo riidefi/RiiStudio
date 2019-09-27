@@ -126,9 +126,7 @@ project "ThirdParty"
 		"ThirdParty/source/"
 	}
 	setupStaticLib()
-
 	setupCppC()
-
 
 
 	setupSystem()

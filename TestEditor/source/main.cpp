@@ -1,3 +1,19 @@
+/// Must include to properly build (tested in windows, vs2019)
+//////////////////////////////////////////////////////////////////////
+#if _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#   define WIN32_LEAN_AND_MEAN 1
+#endif
+#include <windows.h>
+#include <commdlg.h>
+#include <shlobj.h>
+#include <future>
+#endif
+//////////////////////////////////////////////////////////////////////
+
+#include <pfd/portable-file-dialogs.h>
+#include <fstream>
+
 #include <core/Applet.hpp>
 #include <ui/widgets/Dockspace.hpp>
 #include <ui/ThemeManager.hpp>
@@ -5,8 +21,39 @@
 #include <core/Plugin.hpp>
 #include <core/PluginFactory.hpp>
 
+#include "MOD/MOD.hpp"
 #include "Export/Exports.hpp"
 
+namespace pk1 = libcube::pikmin1;
+static bool openModelFile()
+{
+	auto selection = pfd::open_file("Select a file", ".", { "Pikmin 1 Model Files (*.mod)", "*.mod" }, false).result();
+	if (selection.empty()) // user has pressed cancel or did not properly enter a file
+		return EXIT_FAILURE;
+
+	std::string fileName = selection[0];
+	DebugReport("Opening file %s\n", fileName.c_str());
+
+	std::ifstream fStream;
+	fStream.open(fileName, std::ios::binary | std::ios::ate);
+
+	if (!fStream.is_open())
+		return EXIT_FAILURE;
+
+	std::streamsize size = fStream.tellg();
+	fStream.seekg(0, std::ios::beg);
+
+	auto data = std::unique_ptr<char>(new char[static_cast<u32>(size)]);
+	if (fStream.read(data.get(), size))
+	{
+		oishii::BinaryReader reader(std::move(data), static_cast<u32>(size), fileName.c_str());
+		pk1::MOD modelFile;
+		modelFile.read(reader);
+	}
+
+	fStream.close();
+	return EXIT_SUCCESS;
+}
 
 static inline int toIntComp(float src)
 {
@@ -19,7 +66,6 @@ static inline int toIntColor(const ImVec4& src)
 		(toIntComp(src.z) << 8) |
 		(toIntComp(src.w));
 }
-
 class TestEditor : public Applet
 {
 public:
@@ -32,17 +78,20 @@ public:
 	{
 		mDockSpace.draw();
 
-		ImGui::BeginMainMenuBar();
-
-		if (ImGui::BeginMenu("Test"))
-			ImGui::EndMenu();
-
-		ImGui::EndMainMenuBar();
+		if (ImGui::BeginMenuBar())
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("Open..", "Ctrl+O")) { openModelFile(); }
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenuBar();
+		}
 		ImGui::End();
 
 		if (ImGui::Begin("Style Editor"))
 		{
-			ImGui::Combo("Theme", (int*)&mThemeSelection, mThemeManager.ThemeNames);
+			ImGui::Combo("Theme", (int*)& mThemeSelection, mThemeManager.ThemeNames);
 
 			if (mThemeSelection == ThemeManager::BasicTheme::Adaptive)
 			{
@@ -67,14 +116,12 @@ public:
 			mThemeManager.setThemeEx(mThemeSelection);
 		}
 		ImGui::End();
-
-		ImGui::ShowDemoWindow();
 	}
 
 private:
 	DockSpace mDockSpace;
 	CoreResource mCoreRes;
-	ThemeManager::BasicTheme mThemeSelection = ThemeManager::BasicTheme::Default;
+	ThemeManager::BasicTheme mThemeSelection = ThemeManager::BasicTheme::ImDark;
 	ThemeManager mThemeManager;
 };
 
@@ -86,7 +133,7 @@ void main()
 		auto editor = std::make_unique<TestEditor>();
 
 		plugin_factory->registerPlugin(libcube::PluginPackage);
-		
+
 		editor->attachWindow(plugin_factory->create(".tpl", 0x0020AF30));
 
 		editor->frameLoop();

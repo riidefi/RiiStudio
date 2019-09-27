@@ -1,6 +1,5 @@
 #define OISHII_ALIGNMENT_CHECK 0
 #include "MOD.hpp"
-#include <common.hpp>
 
 namespace libcube {
 
