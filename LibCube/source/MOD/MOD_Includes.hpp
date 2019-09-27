@@ -419,11 +419,11 @@ struct Envelope
 struct TexAttr
 {
 	constexpr static const char name[] = "Texture Attribute";
-	short m_imageNum;	//2
-	short m_tilingMode;	//4
+	u16 m_imageNum;	//2
+	u16 m_tilingMode;	//4
 	enum TEXATTRMODE { DEFAULT = 0, UNK, EDG, UNK2, XLU  } m_mode;	//6
-	short m_mode2;
-	float m_unk2;	//10
+	u16 m_unk1;
+	f32 m_unk2;	//10
 
 	char padding[2];	//12
 
@@ -431,7 +431,8 @@ struct TexAttr
 	{
 		context.m_imageNum = bReader.read<u16>();
 		context.m_tilingMode = bReader.read<u16>();
-		context.m_mode2 = bReader.read<u16>();
+		context.m_mode = (TEXATTRMODE)bReader.read<u16>();
+		bReader.read<u16>();
 		context.m_unk2 = bReader.read<f32>();
 	}
 };
