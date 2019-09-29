@@ -17,7 +17,7 @@ struct TexAttr
 		Translucent //!< XLU
 	};
 
-	u16 m_imageNum;	//2
+	u16 m_index;	//2
 	u16 m_tilingMode;	//4
 	Mode m_mode;	//6
 	u16 m_unk1;
@@ -27,10 +27,10 @@ struct TexAttr
 
 	static void onRead(oishii::BinaryReader& bReader, TexAttr& context)
 	{
-		context.m_imageNum = bReader.read<u16>();
+		context.m_index = bReader.read<u16>();
 		context.m_tilingMode = bReader.read<u16>();
 		context.m_mode = static_cast<Mode>(bReader.read<u16>());
-		bReader.read<u16>();
+		context.m_unk1 = bReader.read<u16>();
 		context.m_unk2 = bReader.read<f32>();
 	}
 };

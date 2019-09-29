@@ -9,11 +9,11 @@ struct Joint
 	constexpr static const char name[] = "Joint";
 
 	u32 m_unk1;
-	bool m_unk2;
+	bool m_usingBillBoards;
 	bool m_unk3;
 	glm::vec3 m_boundsMin;
 	glm::vec3 m_boundsMax;
-	f32 m_boundsSphereRadius;
+	f32 m_volumeRadius;
 	glm::vec3 m_scale;
 	glm::vec3 m_rotation;
 	glm::vec3 m_translation;
@@ -30,12 +30,12 @@ struct Joint
 		context.m_unk1 = bReader.read<u32>();
 
 		const u16 unk1 = static_cast<u16>(bReader.read<u32>());
-		context.m_unk2 = (unk1 & 1) != 0;
+		context.m_usingBillBoards = unk1 != 0;
 		context.m_unk3 = (unk1 & 0x4000) != 0;
 
 		read(bReader, context.m_boundsMin);
 		read(bReader, context.m_boundsMax);
-		context.m_boundsSphereRadius = bReader.read<f32>();
+		context.m_volumeRadius = bReader.read<f32>();
 		read(bReader, context.m_scale);
 		read(bReader, context.m_rotation);
 		read(bReader, context.m_translation);

@@ -5,6 +5,8 @@
 #include "includes/Colour.hpp"
 #include "includes/String.hpp"
 
+#include "includes/DataChunk.hpp"
+
 /*
  *	The following includes are to do with the MOD file (not exclusively).
  */

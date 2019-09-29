@@ -134,6 +134,19 @@ void MOD::parse(oishii::BinaryReader& bReader)
 	}
 
 	DebugReport("Done reading file\n");
+	removeMtxDependancy();
+}
+
+void MOD::removeMtxDependancy()
+{
+	for (auto& batch : m_batches)
+	{
+		batch.m_depMTXGroups = 0;
+		for (auto& mtx_group : batch.m_mtxGroups)
+		{
+			mtx_group.m_dependant.clear();
+		}
+	}
 }
 
 } } // libcube::pikmin1
