@@ -20,6 +20,9 @@ struct BaseCollTriInfo
 
 	Plane m_unk9;
 
+	BaseCollTriInfo() = default;
+	~BaseCollTriInfo() = default;
+
 	static void onRead(oishii::BinaryReader& bReader, BaseCollTriInfo& context)
 	{
 		context.m_unk1 = bReader.read<u32>();
@@ -32,10 +35,14 @@ struct BaseCollTriInfo
 		context.m_unk7 = bReader.read<u16>();
 		context.m_unk8 = bReader.read<u16>();
 
-		bReader.dispatch<Plane, oishii::Direct, false>(context.m_unk9);
+		context.m_unk9 << bReader;
 	}
 };
 
+inline void operator<<(BaseCollTriInfo& context, oishii::BinaryReader& bReader)
+{
+	bReader.dispatch<BaseCollTriInfo, oishii::Direct, false>(context);
+}
 
 }
 

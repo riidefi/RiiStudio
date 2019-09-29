@@ -5,30 +5,63 @@
 
 namespace libcube { namespace pikmin1 {
 
+/* TODO: PVWCombiner
+ * Contains:
+ * 12 u8's
+ */
+
+/* TODO: PVWTevStage
+ * Contains:
+ * 8 u8's
+ * 2 PVWCombiner's
+ */
+
+ /* TODO: PVWTevColReg
+  * Contains:
+  * 1 ShortColour (#include "Colour.hpp")
+  * 1 u32
+  * 1 f32
+  * 1 un-named class
+  * 1 un-named class (seperate from the one before)
+  */
+struct PVWTevInfo
+{
+	// TODO: PVWTevColReg
+	Colour m_CPREV;
+	Colour m_CREG0;
+	Colour m_CREG1;
+	Colour m_CREG2;
+
+	u32 m_tevStageCount = 0;
+	// TODO: PVWTevStage
+
+	PVWTevInfo() = default;
+	~PVWTevInfo() = default;
+
+	static void onRead(oishii::BinaryReader& bReader, PVWTevInfo& context)
+	{
+		// read 3 PVWTevColReg's
+		context.m_CPREV << bReader;
+		context.m_CREG0 << bReader;
+		context.m_CREG1 << bReader;
+		context.m_CREG2 << bReader;
+
+		context.m_tevStageCount = bReader.read<u32>();
+	}
+};
+
+
+
 struct Material
 {
-	u32 m_hasPE; // pixel engine
-	u32 m_unk2;
-	Colour m_unkColour1;
-
-	// if (hasPE & 1)
-	u32 m_unk3;
-
-	void read(oishii::BinaryReader& bReader)
-	{
-		m_hasPE = bReader.read<u32>();
-		m_unk2 = bReader.read<u32>();
-		readChunk(bReader, m_unkColour1);
-
-		if (m_hasPE & 1)
-		{
-			m_unk3 = bReader.read<u32>();
-			// PVWPolygonColourInfo
-			// PVWLightingInfo
-			// PVWPeInfo
-			// PVWTextureInfo
-		}
-	}
+	// TODO: Material::Colour
+	// TODO: PVWPolygonColourInfo
+	// TODO: PVWLightingInfo
+	// TODO: PVWPeInfo
+	// TODO: PVWTextureInfo
+	
+	Material() = default;
+	~Material() = default;
 };
 
 }

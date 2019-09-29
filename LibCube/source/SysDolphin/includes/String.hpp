@@ -21,7 +21,7 @@ struct String {
 		context.m_str = nameString;
 	}
 };
-inline void read(oishii::BinaryReader& bReader, String& context)
+inline void operator<<(String& context, oishii::BinaryReader& bReader)
 {
 	bReader.dispatch<String, oishii::Direct, false>(context);
 }

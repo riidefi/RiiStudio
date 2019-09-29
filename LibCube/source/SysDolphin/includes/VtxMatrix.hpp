@@ -11,6 +11,9 @@ struct VtxMatrix
 	bool m_partiallyWeighted;
 	u16 m_index;
 
+	VtxMatrix() = default;
+	~VtxMatrix() = default;
+
 	static void onRead(oishii::BinaryReader& bReader, VtxMatrix& context)
 	{
 		const s16 idx = bReader.read<s16>();
@@ -18,7 +21,7 @@ struct VtxMatrix
 	}
 };
 
-inline void read(oishii::BinaryReader& reader, VtxMatrix& context)
+inline void operator<<(VtxMatrix& context, oishii::BinaryReader& reader)
 {
 	reader.dispatch<VtxMatrix, oishii::Direct, false>(context);
 }

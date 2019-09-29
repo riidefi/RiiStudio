@@ -13,6 +13,9 @@ struct DispList
 
 	std::vector<u8> m_dispData;
 
+	DispList() = default;
+	~DispList() = default;
+
 	static void onRead(oishii::BinaryReader& bReader, DispList& context)
 	{
 		context.m_unk1 = bReader.read<u32>();
@@ -24,6 +27,12 @@ struct DispList
 			dispData = bReader.read<u8>();
 	}
 };
+
+inline void operator<<(DispList& context, oishii::BinaryReader& bReader)
+{
+	bReader.dispatch<DispList, oishii::Direct, false>(context);
+}
+
 
 }
 

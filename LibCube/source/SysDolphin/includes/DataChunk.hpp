@@ -24,12 +24,13 @@ struct DataChunk
 
 	static void write(oishii::Writer& bWriter, DataChunk& context)
 	{
-		bWriter.write<u32>(context.m_data.size());
+		bWriter.write<u32>(static_cast<u32>(context.m_data.size()));
 		for (auto& data : context.m_data)
 			bWriter.write<f32>(data);
 	}
 };
-inline void read(oishii::BinaryReader& bReader, DataChunk& context)
+
+inline void operator<<(DataChunk& context, oishii::BinaryReader& bReader)
 {
 	bReader.dispatch<DataChunk, oishii::Direct, false>(context);
 }

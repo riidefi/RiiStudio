@@ -2,6 +2,7 @@
 
 #include <oishii/reader/binary_reader.hxx>
 #include <SysDolphin/includes/essential_functions.hpp>
+#include <TextureDecoding.hpp>
 
 #include <vector>
 
@@ -19,6 +20,18 @@ enum class TXEFormats : u16
 	Rgba8 //7
 };
 
+enum class DecodingTextureFormat : u32
+{
+	I4 = 0x0,
+	I8 = 0x1,
+	Ia4 = 0x2,
+	Ia8 = 0x3,
+	Rgb565 = 0x4,
+	Rgb5a3 = 0x5,
+	Rgba8 = 0x6,
+	Cmpr = 0xE,
+};
+
 struct TXE
 {
 	u16 m_width = 0;
@@ -28,7 +41,8 @@ struct TXE
 	TXEFormats m_format;
 	u32 m_unk2 = 0;
 
-	std::vector<u8> m_imageData;
+	std::vector<u8> m_txeImageData;
+	std::vector<u8> m_convImageData; // expands to converted image data
 
 	TXE() = default;
 	~TXE() = default;
@@ -39,10 +53,14 @@ struct TXE
 
 	void importTXE(oishii::BinaryReader&);
 	void importMODTXE(oishii::BinaryReader&);
+
+	inline DecodingTextureFormat getDTF() const;
+	void decode();
 };
-inline void read(oishii::BinaryReader& reader, TXE& clr)
+
+inline void operator<<(TXE& context, oishii::BinaryReader& bReader)
 {
-	reader.dispatch<TXE, oishii::Direct, false>(clr);
+	bReader.dispatch<TXE, oishii::Direct, false>(context);
 }
 
 }

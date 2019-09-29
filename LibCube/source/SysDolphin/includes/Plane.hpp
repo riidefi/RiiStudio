@@ -10,12 +10,19 @@ struct Plane
 	glm::vec3 m_unk1;
 	f32 m_unk2;
 
+	Plane() = default;
+	~Plane() = default;
+
 	static void onRead(oishii::BinaryReader& bReader, Plane& context)
 	{
 		read(bReader, context.m_unk1);
 		context.m_unk2 = bReader.read<f32>();
 	}
 };
+inline void operator<<(Plane& context, oishii::BinaryReader& bReader)
+{
+	bReader.dispatch<Plane, oishii::Direct, false>(context);
+}
 
 }
 

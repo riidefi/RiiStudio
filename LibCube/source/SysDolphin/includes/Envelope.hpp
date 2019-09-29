@@ -11,6 +11,9 @@ struct Envelope
 	std::vector<u16> m_indexes;
 	std::vector<f32> m_weights;
 
+	Envelope() = default;
+	~Envelope() = default;
+
 	static void onRead(oishii::BinaryReader& bReader, Envelope& context)
 	{
 		context.m_indexes.resize(bReader.read<u16>());
@@ -24,9 +27,9 @@ struct Envelope
 	}
 };
 
-inline void read(oishii::BinaryReader& reader, Envelope& evp)
+inline void operator<<(Envelope& context, oishii::BinaryReader& bReader)
 {
-	reader.dispatch<Envelope, oishii::Direct, false>(evp);
+	bReader.dispatch<Envelope, oishii::Direct, false>(context);
 }
 
 }

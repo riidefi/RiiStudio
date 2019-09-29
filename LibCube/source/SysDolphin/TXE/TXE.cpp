@@ -28,12 +28,14 @@ void TXE::importTXE(oishii::BinaryReader& bReader)
 	m_unk1 = bReader.read<u16>();
 
 	// Read data size (multiple of 32)
-	m_imageData.resize(bReader.read<u32>());
+	m_txeImageData.resize(bReader.read<u32>());
 
 	skipPadding(bReader);
 
-	for (auto& pixelData : m_imageData)
+	for (auto& pixelData : m_txeImageData)
 		pixelData = bReader.read<u8>();
+
+	decode();
 }
 
 void TXE::importMODTXE(oishii::BinaryReader& bReader)
@@ -54,10 +56,47 @@ void TXE::importMODTXE(oishii::BinaryReader& bReader)
 		bReader.read<u32>(); // padding
 
 	// Read data size (multiple of 32)
-	m_imageData.resize(bReader.read<u32>());
+	m_txeImageData.resize(bReader.read<u32>());
 
-	for (auto& pixelData : m_imageData)
+	for (auto& pixelData : m_txeImageData)
 		pixelData = bReader.read<u8>();
+}
+
+inline DecodingTextureFormat TXE::getDTF() const
+{
+	switch (m_format)
+	{
+	case TXEFormats::Rgb565:
+		return DecodingTextureFormat::Rgb565;
+	case TXEFormats::Cmpr:
+		return DecodingTextureFormat::Cmpr;
+	case TXEFormats::Rgb5a3:
+		return DecodingTextureFormat::Rgb5a3;
+	case TXEFormats::I4:
+		return DecodingTextureFormat::I4;
+	case TXEFormats::I8:
+		return DecodingTextureFormat::I8;
+	case TXEFormats::Ia4:
+		return DecodingTextureFormat::Ia4;
+	case TXEFormats::Ia8:
+		return DecodingTextureFormat::Ia8;
+	case TXEFormats::Rgba8:
+		return DecodingTextureFormat::Rgba8;
+	default:
+		DebugReport("TXE Texture format given is not able to be converted! Format %u", m_formatShort);
+		return DecodingTextureFormat::I4;
+	}
+}
+
+void TXE::decode()
+{
+	DecodingTextureFormat fmt = getDTF();
+
+	m_convImageData = TextureDecoding::decodeVec(m_txeImageData.data(),
+		m_width, m_height, static_cast<u32>(fmt),
+		0, nullptr, 0);
+
+
 }
 
 }

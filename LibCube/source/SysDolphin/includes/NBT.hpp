@@ -12,6 +12,9 @@ struct NBT
 	glm::vec3 m_binormals; //B
 	glm::vec3 m_tangents; //T
 
+	NBT() = default;
+	~NBT() = default;
+
 	static void onRead(oishii::BinaryReader& bReader, NBT& context)
 	{
 		read(bReader, context.m_normals);
@@ -20,9 +23,11 @@ struct NBT
 	}
 };
 
-inline void read(oishii::BinaryReader& reader, NBT& nbt)
+inline void operator<<(NBT& context, oishii::BinaryReader& bReader)
 {
-	reader.dispatch<NBT, oishii::Direct, false>(nbt);
+	bReader.dispatch<NBT, oishii::Direct, false>(context);
 }
 
-} }
+}
+
+}

@@ -1,4 +1,4 @@
-#include <FileDialogues.hpp>
+#include "OpenFileFormats.hpp"
 
 #include <core/Applet.hpp>
 #include <ui/widgets/Dockspace.hpp>
@@ -8,135 +8,6 @@
 #include <core/PluginFactory.hpp>
 
 #include "Export/Exports.hpp"
-#include "SysDolphin/BTI/BTI.hpp"
-#include "SysDolphin/MOD/MOD.hpp"
-#include "SysDolphin/DCA/DCA.hpp"
-
-#include <fstream>
-
-namespace pk1 = libcube::pikmin1;
-
-static bool openMODFile()
-{
-	auto selection = pfd::open_file("Select a file", ".", { "Pikmin 1 Model Files (*.mod)", "*.mod" }, false).result();
-	if (selection.empty()) // user has pressed cancel
-		return false;
-
-	std::string fileName(selection[0]);
-	DebugReport("Opening file %s\n", fileName.c_str());
-
-	std::ifstream fStream(fileName, std::ios::binary | std::ios::ate);
-
-	if (!fStream.is_open())
-		return false;
-
-	std::streamsize size = fStream.tellg();
-	fStream.seekg(0, std::ios::beg);
-
-	auto data = std::unique_ptr<char>(new char[size]);
-	if (fStream.read(data.get(), size))
-	{
-		oishii::BinaryReader reader(std::move(data), size, fileName.c_str());
-		reader.seekSet(0); // reset offset inside file for reading (isn't inside bundle so this is OK)
-
-		pk1::MOD modelFile;
-		modelFile.parse(reader);
-	}
-
-	fStream.close();
-	return true;
-}
-static bool openBTIFile()
-{
-	auto selection = pfd::open_file("Select a file", ".", { "J3D Texture Files (*.bti)", "*.bti" }, false).result();
-	if (selection.empty()) // user has pressed cancel
-		return false;
-
-	std::string fileName(selection[0]);
-	DebugReport("Opening file %s\n", fileName.c_str());
-
-	std::ifstream fStream(fileName, std::ios::binary | std::ios::ate);
-
-	if (!fStream.is_open())
-		return false;
-
-	std::streamsize size = fStream.tellg();
-	fStream.seekg(0, std::ios::beg);
-
-	auto data = std::unique_ptr<char>(new char[size]);
-	if (fStream.read(data.get(), size))
-	{
-		oishii::BinaryReader reader(std::move(data), size, fileName.c_str());
-		reader.seekSet(0);
-
-		pk1::BTI bti;
-		reader.dispatch<pk1::BTI, oishii::Direct, false>(bti);
-	}
-
-	fStream.close();
-	return true;
-}
-static bool openTXEFile()
-{
-	auto selection = pfd::open_file("Select a file", ".", { "Pikmin 1 Texture Files (*.txe)", "*.txe" }, false).result();
-	if (selection.empty()) // user has pressed cancel
-		return false;
-
-	std::string fileName(selection[0]);
-	DebugReport("Opening file %s\n", fileName.c_str());
-
-	std::ifstream fStream(fileName, std::ios::binary | std::ios::ate);
-
-	if (!fStream.is_open())
-		return false;
-
-	std::streamsize size = fStream.tellg();
-	fStream.seekg(0, std::ios::beg);
-
-	auto data = std::unique_ptr<char>(new char[size]);
-	if (fStream.read(data.get(), size))
-	{
-		oishii::BinaryReader reader(std::move(data), size, fileName.c_str());
-		reader.seekSet(0);
-
-		pk1::TXE txe;
-		reader.dispatch<pk1::TXE, oishii::Direct, false>(txe);
-	}
-
-	fStream.close();
-	return true;
-}
-static bool openDCAFile()
-{
-	auto selection = pfd::open_file("Select a file", ".", { "Pikmin 1 Animation Files (*.dca)", "*.dca" }, false).result();
-	if (selection.empty()) // user has pressed cancel
-		return false;
-
-	std::string fileName(selection[0]);
-	DebugReport("Opening file %s\n", fileName.c_str());
-
-	std::ifstream fStream(fileName, std::ios::binary | std::ios::ate);
-
-	if (!fStream.is_open())
-		return false;
-
-	std::streamsize size = fStream.tellg();
-	fStream.seekg(0, std::ios::beg);
-
-	auto data = std::unique_ptr<char>(new char[size]);
-	if (fStream.read(data.get(), size))
-	{
-		oishii::BinaryReader reader(std::move(data), size, fileName.c_str());
-		reader.seekSet(0);
-		reader.setEndian(true);
-
-		pk1::DCA dca;
-		reader.dispatch<pk1::DCA, oishii::Direct, false>(dca);
-	}
-
-	fStream.close();
-	return true;
-}
 
 static inline int toIntComp(float src)
 {
@@ -165,10 +36,11 @@ public:
 		{
 			if (ImGui::BeginMenu("File"))
 			{
-				if (ImGui::MenuItem("Open MOD file", "Ctrl+O")) { openMODFile(); }
-				if (ImGui::MenuItem("Open BTI file", "Ctrl+O")) { openBTIFile(); }
-				if (ImGui::MenuItem("Open TXE file", "Ctrl+O")) { openTXEFile(); }
-				if (ImGui::MenuItem("Open DCA file", "Ctrl+O")) { openDCAFile(); }
+				if (ImGui::MenuItem("Open MOD file", "")) { libcube::openMODFile(); }
+				else if (ImGui::MenuItem("Open BTI file", "")) { libcube::openBTIFile(); }
+				else if (ImGui::MenuItem("Open TXE file", "")) { libcube::openTXEFile(); }
+				else if (ImGui::MenuItem("Open DCA file", "")) { libcube::openDCAFile(); }
+				else if (ImGui::MenuItem("Open DCK file", "")) { libcube::openDCKFile(); }
 				ImGui::EndMenu();
 			}
 			ImGui::EndMenuBar();
@@ -211,7 +83,7 @@ private:
 	ThemeManager mThemeManager;
 };
 
-void main()
+int main(int argc, char* const* argv)
 {
 	auto plugin_factory = std::make_unique<PluginFactory>();
 
@@ -226,5 +98,7 @@ void main()
 		editor->attachWindow(plugin_factory->create(".bti", 0x00000002));
 
 		editor->frameLoop();
+
 	}
+	return EXIT_SUCCESS;
 }

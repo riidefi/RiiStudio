@@ -9,9 +9,9 @@ struct DCAAnimJoint
 	u32 index = 0;
 	u32 parent = 0;
 
-	std::pair<u32, u32> sx_param[3], sy_param[3];
-	std::pair<u32, u32> rx_param[3], ry_param[3];
-	std::pair<u32, u32> tx_param[3], ty_param[3];
+	std::array<u32, 3> sx_param, sy_param;
+	std::array<u32, 3> rx_param, ry_param;
+	std::array<u32, 3> tx_param, ty_param;
 
 	DCAAnimJoint() = default;
 	~DCAAnimJoint() = default;
@@ -19,7 +19,7 @@ struct DCAAnimJoint
 
 struct DCA
 {
-	constexpr static int bundleType = 2;
+	constexpr static u32 bundleType = 2;
 	constexpr static const char name[] = "Demo Cutscene Animation (DCA)";
 	u32 m_numJoints = 0;
 	u32 m_numFrames = 0;

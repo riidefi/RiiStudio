@@ -18,6 +18,7 @@ struct MODEditor : public pl::FileEditor, public pl::Readable, public pl::Transf
 		{
 			return coreRes.m_textures.size();
 		}
+		return 0;
 	}
 	// public pl::ITextureList
 	std::string getNameAt(int idx) const

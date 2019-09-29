@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Exports.hpp"
-#include "SysDolphin/BTI/BTI.hpp"
+#include "JSystem/J3D/BTI/BTI.hpp"
 #include <string>
 
 namespace libcube {

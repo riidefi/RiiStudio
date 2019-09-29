@@ -22,33 +22,33 @@ enum class BTIFormats : u8
 
 struct BTI
 {
-	BTIFormats m_format; // GXTexFmt
-	u8 m_transparent;
+	BTIFormats m_format = BTIFormats::I4; // GXTexFmt
+	u8 m_transparent = 0;
 
-	u16 m_width;
-	u16 m_height;
+	u16 m_width = 0;
+	u16 m_height = 0;
 
-	u8 m_wrapS; // GXTexWrapMode
-	u8 m_wrapT; // GXTexWrapMode
+	u8 m_wrapS = 0; // GXTexWrapMode
+	u8 m_wrapT = 0; // GXTexWrapMode
 
-	u8 m_fPalette;
-	u8 m_paletteFormat; // GXTlutFormat
-	u16 m_nPalette;
-	u32 m_toPalette;
+	u8 m_fPalette = 0;
+	u8 m_paletteFormat = 0; // GXTlutFormat
+	u16 m_nPalette = 0;
+	u32 m_toPalette = 0;
 
-	u8 m_mipmap;
-	u8 m_edgeLOD;
-	u8 m_biasClamp;
-	u8 m_maxAniso; // GXAnisotropy
-	u8 m_minFilter; // GXTexFilter
-	u8 m_magFilter; // GXTexFilter
+	u8 m_mipmap = 0;
+	u8 m_edgeLOD = 0;
+	u8 m_biasClamp = 0;
+	u8 m_maxAniso = 0; // GXAnisotropy
+	u8 m_minFilter = 0; // GXTexFilter
+	u8 m_magFilter = 0; // GXTexFilter
 
-	s8 m_minLOD;
-	s8 m_maxLOD;
+	s8 m_minLOD = 0;
+	s8 m_maxLOD = 0;
 
-	u8 m_nImage;
-	s16 m_lodBias;
-	u32 m_toImage;
+	u8 m_nImage = 0;
+	s16 m_lodBias = 0;
+	u32 m_toImage = 0;
 
 	std::vector<u8> m_imageData;
 	std::vector<u8> m_paletteData;

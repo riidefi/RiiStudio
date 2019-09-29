@@ -12,6 +12,9 @@ struct MtxGroup
 	std::vector<u16> m_dependant;
 	std::vector<DispList> m_dispLists;
 
+	MtxGroup() = default;
+	~MtxGroup() = default;
+
 	static void onRead(oishii::BinaryReader& bReader, MtxGroup& context)
 	{
 		// Unknown purpose of the array, store it anyways
@@ -27,6 +30,10 @@ struct MtxGroup
 		}
 	}
 };
+inline void operator<<(MtxGroup& context, oishii::BinaryReader& bReader)
+{
+	bReader.dispatch<MtxGroup, oishii::Direct, false>(context);
+}
 
 }
 

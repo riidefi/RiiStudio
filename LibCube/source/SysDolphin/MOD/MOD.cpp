@@ -39,15 +39,6 @@ void MOD::read_basecolltriinfo(oishii::BinaryReader& bReader)
 	skipPadding(bReader);
 }
 
-void MOD::read_collisiongrid(oishii::BinaryReader& bReader)
-{
-	DebugReport("Reading collision grid\n");
-	skipPadding(bReader);
-	// TODO: find a way to implement a std::vector so it fits in with every other chunk
-	bReader.dispatch<CollGroup, oishii::Direct, false>(m_collisionGrid);
-	skipPadding(bReader);
-}
-
 void MOD::parse(oishii::BinaryReader& bReader)
 {	
 	bReader.setEndian(true); // big endian
@@ -117,7 +108,7 @@ void MOD::parse(oishii::BinaryReader& bReader)
 			read_basecolltriinfo(bReader);
 			break;
 		case MODCHUNKS::MOD_COLLISION_GRID:
-			read_collisiongrid(bReader);
+			m_collisionGrid << bReader;
 			break;
 		case MODCHUNKS::MOD_EOF: // caught because it's not a valid chunk to read, so don't even bother warning user and just break
 			break;
