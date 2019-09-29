@@ -1,3 +1,11 @@
+-- FBX SDK linkage based on fbxc
+FBX_SDK_ROOT = os.getenv("FBX_SDK_ROOT")
+if not FBX_SDK_ROOT then
+	printf("ERROR: Environment variable FBX_SDK_ROOT is not set.")
+	printf("Set it to something like: C:\\Program Files\\Autodesk\\FBX\\FBX SDK\\2019.5\\lib\\vs2017")
+	os.exit()
+end
+
 workspace "RiiStudio"
 	architecture "x64"
 
@@ -91,7 +99,8 @@ project "TestEditor"
 		"LibRiiEditor/source",
 		"ThirdParty/source",
 		"LibCube/source",
-		"oishii"
+		"oishii",
+		(FBX_SDK_ROOT .. "../../../include")
 	}
 
 	links
@@ -100,7 +109,8 @@ project "TestEditor"
 		"ThirdParty",
 		"LibCube",
 		"ThirdParty/glfw/lib-vc2017/glfw3dll.lib",
-		"opengl32.lib"
+		"opengl32.lib",
+		"libfbxsdk-md"
 	}
 
 	setupConsoleApp()
@@ -116,6 +126,17 @@ project "TestEditor"
 
 	
 	setupPreprocessor()
+
+	configuration { "vs*", "Debug" }
+		libdirs {
+			(FBX_SDK_ROOT .. "/x64/debug")
+		}
+		
+	configuration { "vs*", "Release" }
+		libdirs {
+			(FBX_SDK_ROOT .. "/x64/release")			
+		}
+
 
 project "ThirdParty"
 	location "ThirdParty"
@@ -139,7 +160,8 @@ project "LibCube"
 		"LibRiiEditor/source",
 		"ThirdParty/source",
 		"LibCube/source",
-		"oishii"
+		"oishii",
+		(FBX_SDK_ROOT .. "../../../include")
 	}
 
 	setupStaticLib()
