@@ -116,6 +116,10 @@ function setupMainApp()
 		libdirs {
 			(FBX_SDK_ROOT .. "/x64/release")			
 		}
+	configuration { "vs*", "Dist" }
+		libdirs {
+			(FBX_SDK_ROOT .. "/x64/release")			
+		}
 end
 
 
