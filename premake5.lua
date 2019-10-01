@@ -55,10 +55,10 @@ function setupCppC()
 	
 	files
 	{
-		"%{prj.name}/source/**.h",
-		"%{prj.name}/source/**.hpp",
-		"%{prj.name}/source/**.cpp",
-		"%{prj.name}/source/**.c"
+		"%{prj.name}/**.h",
+		"%{prj.name}/**.hpp",
+		"%{prj.name}/**.cpp",
+		"%{prj.name}/**.c"
 	}
 
 	filter "files:*.cpp"
@@ -78,18 +78,17 @@ end
 function setupMainApp()
 	includedirs
 	{
-		"LibRiiEditor/source",
-		"ThirdParty/source",
-		"LibCube/source",
+		"./",
 		"oishii",
+		"ThirdParty",
 		(FBX_SDK_ROOT .. "../../../include")
 	}
 
 	links
 	{
 		"LibRiiEditor",
-		"ThirdParty",
 		"LibCube",
+		"ThirdParty",
 		"ThirdParty/glfw/lib-vc2017/glfw3dll.lib",
 		"opengl32.lib",
 		"libfbxsdk-md"
@@ -126,9 +125,10 @@ end
 project "LibRiiEditor"
 	location "LibRiiEditor"
 	includedirs {
-		"LibRiiEditor/source",
-		"ThirdParty/source",
-		"oishii"
+		"oishii",
+		"./",
+		"ThirdParty",
+		"LibRiiEditor"
 	}
 
 	setupStaticLib()
@@ -156,7 +156,7 @@ project "ThirdParty"
 	includedirs
 	{
 		"oishii",
-		"ThirdParty/source/"
+		"ThirdParty"
 	}
 	setupStaticLib()
 	setupCppC()
@@ -169,10 +169,9 @@ project "LibCube"
 	location "LibCube"
 	includedirs
 	{
-		"LibRiiEditor/source",
-		"ThirdParty/source",
-		"LibCube/source",
+		"LibCube",
 		"oishii",
+		"./",
 		(FBX_SDK_ROOT .. "../../../include")
 	}
 
