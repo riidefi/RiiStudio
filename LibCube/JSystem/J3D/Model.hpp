@@ -28,6 +28,8 @@ struct J3DModel
 
 		ScalingRule mScalingRule;
 		// nPacket, nVtx
+
+		// Hierarchy data is included in joints.
 	};
 
 	struct VertexBuffer
@@ -65,6 +67,8 @@ struct J3DModel
 			BillboardY
 		};
 
+		std::string id;
+
 		u16 flag; // Unused four bits, default value in galaxy is 1
 		MatrixType bbMtxType;
 		bool mayaSSC; // 0xFF acts as false -- likely compat
@@ -73,6 +77,16 @@ struct J3DModel
 
 		f32 boundingSphereRadius;
 		AABB boudingBox;
+
+		// From INF1
+		std::string parent;
+		std::vector<std::string> children;
+
+		struct Display
+		{
+			std::string material, shape;
+		};
+		std::vector<Display> displays;
 	};
 
 	std::vector<Joint> mJoints;
