@@ -194,17 +194,17 @@ struct Material
 	// TODO: PVWLightingInfo
 	// TODO: PVWPeInfo
 	// TODO: PVWTextureInfo
-	u32 m_unk1;
+	u32 m_flag;
 	u32 m_unk2;
 	Colour m_unk3;
 	u32 m_unk4;
 
 	void read(oishii::BinaryReader& bReader)
 	{
-		m_unk1 = bReader.read<u32>();
+		m_flag = bReader.read<u32>();
 		m_unk2 = bReader.read<u32>();
 		m_unk3 << bReader;
-		if (m_unk1 & 1)
+		if (m_flag & 1)
 		{
 			m_unk4 = bReader.read<u32>();
 		}
