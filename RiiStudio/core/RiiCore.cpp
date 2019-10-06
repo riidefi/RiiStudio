@@ -23,9 +23,7 @@ void RiiCore::drawMenuBar()
 		{
 			if (ImGui::MenuItem("Open"))
 			{
-				auto toOpen = fileDialogueOpen();
-				for (const auto& str : toOpen)
-					DebugReport("%s\n", str.c_str());
+				openFile();
 			}
 			ImGui::EndMenu();
 		}
@@ -67,7 +65,13 @@ void RiiCore::openFile(OpenFilePolicy policy)
 	{
 		auto reader = std::make_unique<oishii::BinaryReader>(std::move(data), size, file.c_str());
 
-		// TODO: Implement IReadable in plugins and call.
+		auto importer = mPluginFactory.spawnImporter(file, *reader.get());
+
+		if (!importer.has_value())
+			return;
+
+		// TODO -- Check filestate id against current
+		// TODO -- Invoke spawned importer
 	}
 }
 

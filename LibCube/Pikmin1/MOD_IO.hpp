@@ -11,7 +11,13 @@
 
 namespace libcube { namespace pikmin1 {
 
-class MODImporter;
+class MODImporter : public pl::Importer
+{
+	bool tryRead(oishii::BinaryReader& reader, pl::FileState& state) override;
+	void readHeader(oishii::BinaryReader& bReader, Model& mdl);
+	void readCollisionPrism(oishii::BinaryReader& bReader, Model& mdl);
+
+};
 
 class MODImporterSpawner : public pl::ImporterSpawner
 {
@@ -29,25 +35,13 @@ class MODImporterSpawner : public pl::ImporterSpawner
 	}
 	std::unique_ptr<pl::Importer> spawn() const override
 	{
-		return std::make_unique<MODImporter>();
+		return std::unique_ptr<pl::Importer>(new MODImporter());
 	}
 	std::unique_ptr<ImporterSpawner> clone() const override
 	{
 		return std::make_unique<MODImporterSpawner>();
 	}
 
-};
-
-class MODImporter : public pl::Importer
-{
-	bool tryRead(oishii::BinaryReader& reader, pl::FileState& state) override
-	{
-		Model& mdl = static_cast<Model&>(state);
-
-		
-
-		return true;
-	}
 };
 
 } } // namespace libcube::pikmin1

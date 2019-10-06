@@ -15,11 +15,10 @@ static inline void skipChunk(oishii::BinaryReader& bReader, u32 offset)
 
 namespace pikmin1 {
 
-// Pikmin 1 pads to the nearest multiple of 32 bytes (0x20)
-static inline void skipPadding(oishii::BinaryReader& bReader)
+static inline void skipPadding(oishii::BinaryReader& bReader, u32 alignTo = 0x20)
 {
 	const u32 currentPos = bReader.tell();
-	const u32 toRead = (~(0x20 - 1) & (currentPos + 0x20 - 1)) - currentPos;
+	const u32 toRead = (~(alignTo - 1) & (currentPos + alignTo - 1)) - currentPos;
 	skipChunk(bReader, toRead);
 }
 
