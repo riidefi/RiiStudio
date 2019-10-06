@@ -57,8 +57,17 @@ struct J3DModel
 
 	struct Joint
 	{
-		u16 billboard;
-		u16 scaleSegmentCompensation;
+		// Four LSBs of flag; left is matrix type
+		enum class MatrixType : u16
+		{
+			Standard = 0,
+			Billboard,
+			BillboardY
+		};
+
+		u16 flag; // Unused four bits, default value in galaxy is 1
+		MatrixType bbMtxType;
+		bool mayaSSC; // 0xFF acts as false -- likely compat
 
 		glm::vec3 scale, rotate, translate;
 
