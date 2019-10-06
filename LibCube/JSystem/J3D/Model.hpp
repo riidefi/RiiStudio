@@ -4,6 +4,8 @@
 #include <LibRiiEditor/pluginapi/Interfaces/TextureList.hpp>
 #include <LibCube/GX/VertexTypes.hpp>
 #include <map>
+#include <string>
+#include <vector>
 
 namespace libcube { namespace jsystem {
 
@@ -37,23 +39,20 @@ struct J3DModel
 		};
 	};
 
-	// TODO -- Is there any reason to keep split in parsed model?
-	struct Envelope
-	{
-		struct Weight
-		{
-			u8 index;
-			f32 weight;
-		};
-		std::vector<Weight> mWeights;
-	};
-	std::vector<Envelope> mEnvelopes;
-
+	//! Encapsulates low level envelopes and draw matrices
 	struct DrawMatrix
 	{
-		bool multipleInfluences;
-		int idx; // if mult, envelope; else, bone
+		struct MatrixWeight
+		{
+			std::string boneId;
+			f32 weight;
+		};
+
+		std::vector<MatrixWeight> mWeights; // 1 weight -> singlebound, no envelope
 	};
+
+	std::vector<DrawMatrix> mDrawMatrices;
+
 };
 
 } } // namespace libcube::jsystem
