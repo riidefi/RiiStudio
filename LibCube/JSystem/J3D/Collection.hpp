@@ -4,6 +4,7 @@
 #include <LibRiiEditor/pluginapi/Interfaces/TextureList.hpp>
 
 #include <LibRiiEditor/pluginapi/FileStateSpawner.hpp>
+#include "Model.hpp"
 
 namespace libcube { namespace jsystem {
 
@@ -12,7 +13,7 @@ namespace libcube { namespace jsystem {
 //!
 struct J3DCollection : public pl::FileState, public pl::ITextureList
 {
-
+	std::vector<std::unique_ptr<J3DModel>> mModels;
 
 	//
 	// Interfaces

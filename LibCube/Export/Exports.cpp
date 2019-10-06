@@ -22,7 +22,7 @@ Package::Package()
 
 	// Importers
 	mImporters = {
-
+		&mBMDImporterSpawner
 	};
 }
 

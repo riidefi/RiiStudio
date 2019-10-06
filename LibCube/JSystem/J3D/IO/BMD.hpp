@@ -13,14 +13,7 @@ namespace libcube { namespace jsystem {
 
 class BMDImporter : public pl::Importer
 {
-	bool tryRead(oishii::BinaryReader& reader, pl::FileState& state) override
-	{
-		J3DCollection& mdl = static_cast<J3DCollection&>(state);
-
-
-
-		return true;
-	}
+	bool tryRead(oishii::BinaryReader& reader, pl::FileState& state) override;
 };
 
 class BMDImporterSpawner : public pl::ImporterSpawner
