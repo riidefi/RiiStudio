@@ -74,7 +74,7 @@ void RiiCore::openFile(OpenFilePolicy policy)
 
 RiiCore::RiiCore()
 {
-	mPluginFactory.registerPlugin(libcube::PluginPackage);
+	mPluginFactory.registerPlugin(libcube::package());
 }
 RiiCore::~RiiCore()
 {}

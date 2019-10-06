@@ -6,6 +6,6 @@
 
 namespace libcube {
 
-extern pl::Package PluginPackage;
+pl::Package package();
 
 } // namespace libcube

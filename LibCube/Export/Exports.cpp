@@ -8,22 +8,26 @@
 
 namespace libcube {
 
-pl::Package PluginPackage
+pl::Package package()
 {
-	// Package name
+	return pl::Package
 	{
-		"LibCube",
-		"libcube",
-		"gc"
-	},
-	// States
-	{
-		
-	},
-	// Importers
-	{
+		// Package name
+		{
+			"LibCube",
+			"libcube",
+			"gc"
+		},
+		// States
+		{
 
-	}
-};
+		},
+		// Importers
+		{
+
+		}
+	};
+}
+
 
 } // namespace libcube
