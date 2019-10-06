@@ -37,16 +37,23 @@ struct J3DModel
 		};
 	};
 
+	// TODO -- Is there any reason to keep split in parsed model?
 	struct Envelope
 	{
-		struct Matrix
+		struct Weight
 		{
 			u8 index;
 			f32 weight;
 		};
-		std::vector<Matrix> mMatrices;
+		std::vector<Weight> mWeights;
 	};
+	std::vector<Envelope> mEnvelopes;
 
+	struct DrawMatrix
+	{
+		bool multipleInfluences;
+		int idx; // if mult, envelope; else, bone
+	};
 };
 
 } } // namespace libcube::jsystem
