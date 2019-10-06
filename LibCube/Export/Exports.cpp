@@ -17,7 +17,7 @@ Package::Package()
 	};
 	// States
 	mEditors = {
-
+		&mJ3DCollectionSpawner
 	};
 
 	// Importers

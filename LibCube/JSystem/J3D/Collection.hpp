@@ -3,6 +3,8 @@
 #include <LibRiiEditor/pluginapi/FileState.hpp>
 #include <LibRiiEditor/pluginapi/Interfaces/TextureList.hpp>
 
+#include <LibRiiEditor/pluginapi/FileStateSpawner.hpp>
+
 namespace libcube { namespace jsystem {
 
 //! Represents the state of a J3D model and textures (BMD, BDL) as well as animations.
@@ -36,6 +38,24 @@ struct J3DCollection : public pl::FileState, public pl::ITextureList
 	{
 		// Register interfaces
 		mInterfaces.push_back(static_cast<pl::ITextureList*>(this));
+	}
+};
+
+struct J3DCollectionSpawner : public pl::FileStateSpawner
+{
+	~J3DCollectionSpawner() override = default;
+	J3DCollectionSpawner()
+	{
+		mId = { "J3D Collection", "j3dcollection", "j3d_collection" };
+	}
+
+	std::unique_ptr<pl::FileState> spawn() const override
+	{
+		return std::make_unique<J3DCollection>();
+	}
+	std::unique_ptr<FileStateSpawner> clone() const override
+	{
+		return std::make_unique<J3DCollectionSpawner>(*this);
 	}
 };
 
