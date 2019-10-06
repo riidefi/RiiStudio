@@ -2,10 +2,11 @@
 
 #include "../allincludes.hpp"
 #include <LibCube/Pikmin1/TXE/TXE.hpp>
+#include <LibCube/Common/glm_serialization.hpp>
 
 namespace libcube { namespace pikmin1 {
 
-
+using libcube::operator<<;
 
 struct MOD
 {

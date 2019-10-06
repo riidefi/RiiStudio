@@ -5,6 +5,7 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <vector>
 
 //! @brief Manages all applet plugins.
 //!

@@ -4,9 +4,8 @@
 #include <LibRiiEditor/ui/Window.hpp>
 #include "CoreContext.hpp"
 
-class Theme
+struct Theme
 {
-public:
 	struct Editor
 	{
 		Editor() = default;
@@ -14,7 +13,7 @@ public:
 
 		const char* mTitle = "Theme Editor";
 
-		void windowDraw(CoreContext& ctx);
+		void windowDraw(CoreContext& ctx) noexcept;
 	};
 
 	ThemeManager::BasicTheme mThemeSelection = ThemeManager::BasicTheme::ImDark;

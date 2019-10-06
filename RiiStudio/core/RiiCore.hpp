@@ -6,13 +6,17 @@
 #include "Theme.hpp"
 #include <vector>
 #include <string>
+#include <LibRiiEditor/core/PluginFactory.hpp>
 
 class RiiCore : public Applet
 {
 public:
-
-// TODO
-
+	enum class OpenFilePolicy
+	{
+		NewEditor,
+		ReplaceEditorIfMatching,
+		ReplaceEditor
+	};
 
 	WindowContext makeWindowContext() override
 	{
@@ -20,21 +24,16 @@ public:
 	}
 
 	void drawRoot() override;
-
 	void drawMenuBar();
-
 	std::vector<std::string> fileDialogueOpen();
-
-	enum class OpenFilePolicy
-	{
-		NewEditor,
-		ReplaceEditorIfMatching,
-		ReplaceEditor
-	};
 	void openFile(OpenFilePolicy policy = OpenFilePolicy::NewEditor);
+
+	RiiCore();
+	~RiiCore();
 
 private:
 	DockSpace mDockSpace;
 	Theme mTheme;
 	EditorCoreRes mCoreRes = EditorCoreRes(mTheme);
+	PluginFactory mPluginFactory;
 };

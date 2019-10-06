@@ -1,8 +1,8 @@
 #pragma once
 
 #include "essential_functions.hpp"
-#include "BoundBox.hpp"
 #include <LibRiiEditor/common.hpp>
+#include <LibCube/Common/BoundBox.hpp>
 
 namespace libcube { namespace pikmin1 {
 
@@ -23,7 +23,7 @@ struct CollGroup
 {
 	constexpr static const char name[] = "Collision Group";
 
-	BoundBox m_collBounds;
+	AABB m_collBounds;
 	CollGroupVariables m_vars;
 
 	f32 m_gridSizeRadius;

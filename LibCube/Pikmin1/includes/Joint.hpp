@@ -1,7 +1,7 @@
 #pragma once
 
 #include "essential_functions.hpp"
-#include "BoundBox.hpp"
+#include <LibCube/Common/BoundBox.hpp>
 
 namespace libcube { namespace pikmin1 {
 
@@ -12,7 +12,7 @@ struct Joint
 	u32 m_index;
 	bool m_useVolume;
 	bool m_foundLightGroup;
-	BoundBox m_boundingBox;
+	AABB m_boundingBox;
 	f32 m_volumeRadius;
 	glm::vec3 m_scale;
 	glm::vec3 m_rotation;

@@ -1,9 +1,10 @@
 #include "DCK.hpp"
 
 #include <LibRiiEditor/common.hpp>
+#include <LibCube/Common/glm_serialization.hpp>
 
 namespace libcube { namespace pikmin1 {
-
+using libcube::operator<<;
 void DCK::onRead(oishii::BinaryReader& bReader, DCK& context)
 {
 	context.m_numJoints = bReader.read<u32>();

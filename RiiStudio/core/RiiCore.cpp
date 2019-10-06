@@ -1,7 +1,10 @@
+// TODO Must be included first
+#include <ThirdParty/FileDialogues.hpp>
+
 #include "RiiCore.hpp"
-#include <FileDialogues.hpp>
 #include <fstream>
 #include <oishii/reader/binary_reader.hxx>
+#include <LibCube/Export/Exports.hpp>
 
 void RiiCore::drawRoot()
 {
@@ -67,3 +70,11 @@ void RiiCore::openFile(OpenFilePolicy policy)
 		// TODO: Implement IReadable in plugins and call.
 	}
 }
+
+
+RiiCore::RiiCore()
+{
+	mPluginFactory.registerPlugin(libcube::PluginPackage);
+}
+RiiCore::~RiiCore()
+{}
