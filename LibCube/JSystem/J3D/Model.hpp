@@ -55,6 +55,18 @@ struct J3DModel
 
 	std::vector<DrawMatrix> mDrawMatrices;
 
+	struct Joint
+	{
+		u16 billboard;
+		u16 scaleSegmentCompensation;
+
+		glm::vec3 scale, rotate, translate;
+
+		f32 boundingSphereRadius;
+		AABB boudingBox;
+	};
+
+	std::vector<Joint> mJoints;
 };
 
 } } // namespace libcube::jsystem
