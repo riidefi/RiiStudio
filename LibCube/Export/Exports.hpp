@@ -6,6 +6,11 @@
 
 namespace libcube {
 
-pl::Package package();
+struct Package : public pl::Package
+{
+	Package();
+
+
+};
 
 } // namespace libcube
