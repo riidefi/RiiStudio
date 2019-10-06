@@ -13,7 +13,7 @@
 #include "includes/CollGroup.hpp"
 #include "includes/BaseCollTriInfo.hpp"
 #include "includes/BaseRoomInfo.hpp"
-#include "includes/BoundBox.hpp"
+#include <LibCube/Common/BoundBox.hpp>
 #include "includes/Plane.hpp"
 #include "includes/Material.hpp"
 
