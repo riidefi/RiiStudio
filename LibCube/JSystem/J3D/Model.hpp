@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <LibCube/Common/BoundBox.hpp>
+
 namespace libcube { namespace jsystem {
 
 // Not a FileState for now -- always accessed through a J3DCollection.

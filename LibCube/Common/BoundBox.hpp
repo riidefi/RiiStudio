@@ -1,27 +1,29 @@
 #pragma once
 
-#include "essential_functions.hpp"
+#include <ThirdParty/glm/vec3.hpp>
+#include <LibCube/Common/glm_serialization.hpp>
 
-namespace libcube { namespace pikmin1 {
+namespace libcube {
 
-// Used to store minimum and maximum boundary values, denoted by 2 vec3s
-struct BoundBox
+//! Axis-aligned bounding box
+//!
+struct AABB
 {
 	constexpr static const char name[] = "Bounding Box";
 
 	glm::vec3 m_minBounds;
 	glm::vec3 m_maxBounds;
 
-	BoundBox() = default;
-	~BoundBox() = default;
+	AABB() = default;
+	~AABB() = default;
 
-	static void onRead(oishii::BinaryReader& bReader, BoundBox& context)
+	static void onRead(oishii::BinaryReader& reader, AABB& context)
 	{
-		read(bReader, context.m_minBounds);
-		read(bReader, context.m_maxBounds);
+		context.m_minBounds << reader;
+		context.m_maxBounds << reader;
 	}
 
-	void expandBound(BoundBox& expandBy)
+	void expandBound(AABB& expandBy)
 	{
 		if (expandBy.m_minBounds.x < m_minBounds.x)
 			m_minBounds.x = expandBy.m_minBounds.x;
@@ -38,11 +40,9 @@ struct BoundBox
 	}
 };
 
-inline void operator<<(BoundBox& context, oishii::BinaryReader& bReader)
+inline void operator<<(AABB& context, oishii::BinaryReader& bReader)
 {
-	bReader.dispatch<BoundBox, oishii::Direct, false>(context);
+	bReader.dispatch<AABB, oishii::Direct, false>(context);
 }
 
-}
-
-}
+} // namespace libcube
