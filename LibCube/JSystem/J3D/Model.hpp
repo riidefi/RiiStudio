@@ -35,8 +35,18 @@ struct J3DModel
 			u8 divisor;
 			// TODO: Doesn't appear to store stride
 		};
-
 	};
+
+	struct Envelope
+	{
+		struct Matrix
+		{
+			u8 index;
+			f32 weight;
+		};
+		std::vector<Matrix> mMatrices;
+	};
+
 };
 
 } } // namespace libcube::jsystem
