@@ -18,48 +18,31 @@
 
 namespace libcube { namespace pikmin1 {
 
-enum class Chunks : u16
-{
-	Header = 0x0000,
-
-	VertexPosition = 0x0010,
-	VertexNormal = 0x0011,
-	VertexNBT = 0x0012,
-	VertexColor = 0x0013,
-
-	VertexUV0 = 0x0018,
-	VertexUV1 = 0x0019,
-	VertexUV2 = 0x001A,
-	VertexUV3 = 0x001B,
-	VertexUV4 = 0x001C,
-	VertexUV5 = 0x001D,
-	VertexUV6 = 0x001E,
-	VertexUV7 = 0x001F,
-
-	Texture = 0x0020,
-	TextureAttribute = 0x0022,
-	Material = 0x0030,
-
-	VertexMatrix = 0x0040,
-
-	Envelope = 0x0041,
-
-	Mesh = 0x0050,
-
-	Joint = 0x0060,
-	JointName = 0x0061,
-
-	CollisionPrism = 0x0100,
-	CollisionGrid = 0x0110,
-
-	EoF = 0xFFFF
-};
+using libcube::operator<<;
 
 //! FIXME: Document
 //!
 class Model : public pl::FileState, pl::ITextureList
 {
 public:
+	template<typename T, const char N[]>
+	struct Holder : public std::vector<T>
+	{
+		static constexpr const char* name = N;
+
+		static void onRead(oishii::BinaryReader& reader, Holder& out)
+		{
+			out.resize(reader.read<u32>());
+
+			skipPadding(reader);
+
+			for (auto& it : out)
+				it << reader;
+
+			skipPadding(reader);
+		}
+	};
+
 	//! FIXME: Document
 	//
 	struct Header
@@ -72,26 +55,43 @@ public:
 	};
 
 	Header mHeader;
-
+	struct Names
+	{
+		static constexpr char positions[] = "Positions";
+		static constexpr char normals[] = "Normals";
+		static constexpr char nbt[] = "NBT";
+		static constexpr char colours[] = "Colors";
+		static constexpr char vtxmatrices[] = "Vertex Matrices";
+		static constexpr char batches[] = "Batches";
+		static constexpr char joints[] = "Joints";
+		static constexpr char jointnames[] = "Joint Names";
+		static constexpr char textures[] = "Textures";
+		static constexpr char texcoords[] = "Texture Coordinates";
+		static constexpr char texattribs[] = "Texture Attributes";
+		static constexpr char materials[] = "Materials";
+		static constexpr char tevinfos[] = "Texture Environments";
+		static constexpr char envelope[] = "Skinning Envelope";
+	};
 	struct VertexAttributeBuffers
 	{
-		std::vector<glm::vec3> mPosition;
-		std::vector<glm::vec3> mNormal;
-		std::vector<NBT>	   mNBT;
-		std::vector<Colour>	   mColor;
-		std::array<std::vector<glm::vec2>, 8> mTexCoords;
+		Holder<glm::vec3,	Names::positions>	mPosition;
+		Holder<glm::vec3,	Names::normals>		mNormal;
+		Holder<NBT,			Names::nbt>			mNBT;
+		Holder<Colour,		Names::colours>		mColor;
+		std::array<Holder<glm::vec2, Names::texcoords>, 8> mTexCoords;
 	};
 
 	VertexAttributeBuffers	mVertexBuffers;
-	std::vector<VtxMatrix>	mVertexMatrices;
-	std::vector<Batch>		mMeshes;
-	std::vector<Joint>		mJoints;
-	std::vector<String>		mJointNames;
-	std::vector<TXE>		mTextures;
-	std::vector<TexAttr>	mTexAttrs;
-	std::vector<Material>	mMaterials;
-	std::vector<PVWTevInfo> mShaders;
-	std::vector<Envelope>	mEnvelopes;
+
+	Holder<VtxMatrix,	Names::vtxmatrices>	mVertexMatrices;
+	Holder<Batch,		Names::batches>		mMeshes;
+	Holder<Joint,		Names::joints>		mJoints;
+	Holder<String,		Names::jointnames>	mJointNames;
+	Holder<TXE,			Names::textures>	mTextures;
+	Holder<TexAttr,		Names::texattribs>	mTexAttrs;
+	Holder<Material,	Names::materials>	mMaterials;
+	Holder<PVWTevInfo,	Names::tevinfos>	mShaders;
+	Holder<Envelope,	Names::envelope>	mEnvelopes;
 
 	struct CollisionModel
 	{
