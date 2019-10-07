@@ -29,10 +29,11 @@ std::optional<PluginFactory::SpawnedImporter> PluginFactory::spawnImporter(const
 	std::map<std::size_t, std::pair<MatchResult, std::string>> matched;
 
 	// Unfortunate linear time search
-	std::size_t i;
+	std::size_t i = 0;
 	for (const auto& plugin : mImporters)
 	{
-		ScopedInc g(i);
+		ScopedInc incrementor(i);
+		oishii::JumpOut reader_guard(reader, reader.tell());
 
 		const auto match = plugin->match(fileName, reader);
 
@@ -60,4 +61,15 @@ std::optional<PluginFactory::SpawnedImporter> PluginFactory::spawnImporter(const
 			}
 		};
 	}
+}
+
+std::unique_ptr<pl::FileState> PluginFactory::spawnFileState(const std::string& fileStateId)
+{
+	for (const auto& it : mPlugins)
+	{
+		if (it->mId.namespacedId == fileStateId)
+			return it->spawn();
+	}
+
+	return nullptr;
 }

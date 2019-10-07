@@ -12,6 +12,10 @@ struct EditorCoreRes : public CoreResource
 {
 	Theme& theme;
 
+	// FIXME: Not the best scheme
+	int currentPluginWindowIndex = -1;
+	int numPluginWindow = 0;
+
 	EditorCoreRes(Theme& t)
 		: theme(t)
 	{}

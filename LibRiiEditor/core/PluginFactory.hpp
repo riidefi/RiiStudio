@@ -28,6 +28,7 @@ public:
 	};
 
 	std::optional<SpawnedImporter> spawnImporter(const std::string& filename, oishii::BinaryReader& reader);
+	std::unique_ptr<pl::FileState> spawnFileState(const std::string& fileStateId);
 
 private:
 	std::mutex mMutex; //!< When performing write operations (registering a plugin)

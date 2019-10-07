@@ -70,6 +70,26 @@ void RiiCore::openFile(OpenFilePolicy policy)
 		if (!importer.has_value())
 			return;
 
+		if (policy == OpenFilePolicy::NewEditor)
+		{
+			auto fileState = mPluginFactory.spawnFileState(importer->fileStateId);
+			if (fileState.get() == nullptr)
+				return;
+
+			// FIXME: encapsulate this functionality
+			mCoreRes.currentPluginWindowIndex = mCoreRes.numPluginWindow;
+			mCoreRes.numPluginWindow++;
+
+
+			importer->importer->tryRead(*reader.get(), *fileState.get());
+
+			auto edWindow = std::make_unique<EditorWindow>(std::move(fileState));
+
+			attachWindow(std::move(edWindow));
+
+			
+		}
+
 		// TODO -- Check filestate id against current
 		// TODO -- Invoke spawned importer
 	}

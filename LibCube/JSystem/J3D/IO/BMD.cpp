@@ -24,7 +24,7 @@ struct BMDHandler
 	{
 		reader.expectMagic<'J3D2'>();
 		u32 bmdVer = reader.read<u32>();
-		if (bmdVer != 'bmd3' || bmdVer != 'bdl4')
+		if (bmdVer != 'bmd3' && bmdVer != 'bdl4')
 		{
 			reader.signalInvalidityLast<u32, oishii::MagicInvalidity<'bmd3'>>();
 			ctx.error = true;

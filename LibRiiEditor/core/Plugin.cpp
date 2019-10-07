@@ -50,8 +50,8 @@ struct TextureOutliner final : public Window
 };
 
 
-EditorWindow::EditorWindow(const pl::FileStateSpawner& registration)
-	: mState(registration.spawn())
+EditorWindow::EditorWindow(std::unique_ptr<pl::FileState> state)
+	: mState(std::move(state))
 {
 
 	for (const auto it : mState->mInterfaces)
