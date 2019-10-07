@@ -32,6 +32,8 @@ struct J3DModel
 		// Hierarchy data is included in joints.
 	};
 
+	Information info;
+
 	struct VertexBuffer
 	{
 		struct Quantization
