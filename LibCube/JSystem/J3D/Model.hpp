@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <ThirdParty/glm/mat4x4.hpp>
 
 #include <LibCube/Common/BoundBox.hpp>
 
@@ -16,6 +17,13 @@ namespace libcube { namespace jsystem {
 // No compatibility with old BMD files yet.
 struct J3DModel
 {
+	template<typename T>
+	using ID = std::string;
+
+	// TODO
+	struct Material;
+	struct Shape;
+
 	struct Information
 	{
 		// For texmatrix calculations
@@ -50,7 +58,8 @@ struct J3DModel
 	{
 		struct MatrixWeight
 		{
-			std::string boneId;
+			// TODO: Proper reference system
+			/* std::string */ u32 boneId;
 			f32 weight;
 		};
 
@@ -69,26 +78,30 @@ struct J3DModel
 			BillboardY
 		};
 
-		std::string id;
+		ID<Joint> id;
 
-		u16 flag; // Unused four bits, default value in galaxy is 1
+		u16 flag; // Unused four bits; default value in galaxy is 1
 		MatrixType bbMtxType;
-		bool mayaSSC; // 0xFF acts as false -- likely compat
+		bool mayaSSC; // 0xFF acts as false -- likely for compatibility
 
 		glm::vec3 scale, rotate, translate;
 
 		f32 boundingSphereRadius;
-		AABB boudingBox;
+		AABB boundingBox;
 
 		// From INF1
-		std::string parent;
-		std::vector<std::string> children;
+		ID<Joint> parent;
+		std::vector<ID<Joint>> children;
 
 		struct Display
 		{
-			std::string material, shape;
+			ID<Material> material;
+			ID<Shape> shape;
 		};
 		std::vector<Display> displays;
+
+		// From EVP1
+		glm::mat4x4 inverseBindPoseMtx;
 	};
 
 	std::vector<Joint> mJoints;

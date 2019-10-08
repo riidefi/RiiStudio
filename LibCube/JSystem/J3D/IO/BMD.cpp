@@ -7,6 +7,7 @@
 
 #include "BMD.hpp"
 #include "../Model.hpp"
+#include <map>
 
 namespace libcube { namespace jsystem {
 
@@ -14,6 +15,120 @@ struct J3DModelLoadingContext
 {
 	J3DModel& mdl;
 	bool error = false;
+
+	
+	// Associate section magics with file positions and size
+	struct SectionEntry
+	{
+		std::size_t streamPos;
+		u32 size;
+	};
+	std::map<u32, SectionEntry> mSections;
+
+	void lex(oishii::BinaryReader& reader, u32 sec_count) noexcept
+	{
+		mSections.clear();
+		for (u32 i = 0; i < sec_count; ++i)
+		{
+			const u32 secType = reader.read<u32>();
+			const u32 secSize = reader.read<u32>();
+
+			oishii::JumpOut g(reader, secSize - 8);
+			{
+				switch (secType)
+				{
+				default:
+				//case 'INF1':
+
+					mSections[secType] = { reader.tell(), secSize };
+					break;
+
+				//	default:
+				//		reader.warnAt("Unexpected section type.", reader.tell() - 8, reader.tell() - 4);
+				//		break;
+				}
+			}
+		}
+	}
+
+	void readDrawMatrices(oishii::BinaryReader& reader) noexcept
+	{
+
+		// We infer DRW1 -- one bone -> singlebound, else create envelope
+		std::vector<J3DModel::DrawMatrix> envelopes;
+
+		// First read our envelope data
+		const auto evp1 = mSections.find('EVP1');
+		if (evp1 != mSections.end())
+		{
+			const auto start = evp1->second.streamPos - 8;
+			reader.seekSet(start + 8);
+
+			u16 size = reader.read<u16>();
+			envelopes.resize(size);
+			reader.read<u16>();
+
+			// TODO: clean this up
+			const auto ofsMatrixSize = start + reader.read<s32>();
+			const auto ofsMatrixIndex = start + reader.read<s32>();
+			const auto ofsMatrixWeight = start + reader.read<s32>();
+			const auto ofsMatrixInvBind = start + reader.read<s32>();
+
+			int mtxId = 0;
+			int maxJointIndex = -1;
+
+			for (int i = 0; i < size; ++i)
+			{
+				// TODO: clean this up
+				const auto num = reader.peekAt<u8>(-reader.tell() + ofsMatrixSize + i);
+
+				for (int j = 0; j < num; ++j)
+				{
+					const auto index = reader.peekAt<u16>(-reader.tell() + ofsMatrixIndex + mtxId * 2);
+					const auto influence = reader.peekAt<f32>(-reader.tell() + ofsMatrixWeight + mtxId *4);
+
+					envelopes[i].mWeights.push_back(J3DModel::DrawMatrix::MatrixWeight{index, influence});
+
+					if (index > maxJointIndex)
+						maxJointIndex = index;
+
+					++mtxId;
+				}
+			}
+
+			for (int i = 0; i < maxJointIndex + 1; ++i)
+			{
+				// TODO: Read inverse bind matrices
+			}
+		}
+
+		// Now construct vertex draw matrices.
+		const auto drw1 = mSections.find('DRW1');
+		if (drw1 != mSections.end())
+		{
+			const auto start = evp1->second.streamPos - 8;
+			reader.seekSet(start + 8);
+
+			u16 size = reader.read<u16>();
+			mdl.mDrawMatrices.clear();
+			mdl.mDrawMatrices.reserve(size);
+			reader.read<u16>();
+
+			const auto ofsPartialWeighting = start + reader.read<s32>();
+			const auto ofsIndex = start + reader.read<s32>();
+
+			for (int i = 0; i < size; ++i)
+			{
+				bool multipleInfluences = reader.peekAt<bool>(-reader.tell() + ofsPartialWeighting + i);
+				u16 index = reader.peekAt<u16>(-reader.tell() + ofsIndex + i * 2);
+
+				if (!multipleInfluences)
+					mdl.mDrawMatrices.push_back(J3DModel::DrawMatrix{std::vector<J3DModel::DrawMatrix::MatrixWeight>{index}});
+				else
+					mdl.mDrawMatrices.push_back(envelopes[index]);
+			}
+		}
+	}
 };
 
 struct INF1Handler
@@ -71,6 +186,7 @@ struct INF1Handler
 
 	static constexpr const char name[] = "Hierarchy/Display Information (INF1)";
 
+	// Call after joints, materials, and shapes have been loaded
 	static void onRead(oishii::BinaryReader& reader, J3DModelLoadingContext& ctx)
 	{
 		u32 flag = reader.read<u32>();
@@ -93,6 +209,8 @@ struct BMDHandler
 	static void onRead(oishii::BinaryReader& reader, J3DModelLoadingContext& ctx)
 	{
 		reader.expectMagic<'J3D2'>();
+
+
 		u32 bmdVer = reader.read<u32>();
 		if (bmdVer != 'bmd3' && bmdVer != 'bdl4')
 		{
@@ -101,32 +219,29 @@ struct BMDHandler
 			return;
 		}
 
-		const u32 fileSize = reader.read<u32>();
-		const u32 sec_count = reader.read<u32>();
-		// Skip SVR3 section
+		// TODO: Validate file size.
+		const auto fileSize= reader.read<u32>();
+		const auto sec_count = reader.read<u32>();
+
+		// Skip SVR3 header
 		reader.seek<oishii::Whence::Current>(16);
 
+		// Skim through sections
+		ctx.lex(reader, sec_count);
 
-		for (u32 i = 0; i < sec_count; ++i)
-		{
-			const u32 secType = reader.read<u32>();
-			const u32 secSize = reader.read<u32>();
+		// Read VTX1
+		// Read EVP1 and DRW1
+		ctx.readDrawMatrices(reader);
+		// Read JNT1
+		
+		// Read SHP1
 
-			oishii::JumpOut g(reader, secSize - 8);
-			{
-				switch (secType)
-				{
-				case 'INF1':
-					reader.dispatch<INF1Handler, oishii::Direct, false>(ctx);
-					break;
+		// Read TEX1
+		// Read MAT3
 
-				default:
-					reader.warnAt("Unexpected section type.", reader.tell() - 8, reader.tell() - 4);
-					break;
-				}
-			}
-		}
+		// Read INF1
 
+		// FIXME: MDL3
 	}
 };
 
@@ -134,10 +249,10 @@ struct BMDHandler
 bool BMDImporter::tryRead(oishii::BinaryReader& reader, pl::FileState& state)
 {
 	J3DCollection& collection = static_cast<J3DCollection&>(state);
-	collection.mModels.emplace_back();
+	collection.mModels.emplace_back(new J3DModel());
 
 	J3DModelLoadingContext BMDLoad = {
-		*collection.mModels.back().get(),
+		*(collection.mModels[collection.mModels.size()-1].get()),
 		false
 	};
 
