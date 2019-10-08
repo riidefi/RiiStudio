@@ -68,26 +68,23 @@ struct J3DModelLoadingContext
 			envelopes.resize(size);
 			reader.read<u16>();
 
-			// TODO: clean this up
-			const auto ofsMatrixSize = start + reader.read<s32>();
-			const auto ofsMatrixIndex = start + reader.read<s32>();
-			const auto ofsMatrixWeight = start + reader.read<s32>();
-			const auto ofsMatrixInvBind = start + reader.read<s32>();
+			const auto[ofsMatrixSize, ofsMatrixIndex, ofsMatrixWeight, ofsMatrixInvBind] = reader.readX<s32, 4>();
 
 			int mtxId = 0;
 			int maxJointIndex = -1;
 
+			reader.seekSet(start);
+
 			for (int i = 0; i < size; ++i)
 			{
-				// TODO: clean this up
-				const auto num = reader.peekAt<u8>(-reader.tell() + ofsMatrixSize + i);
+				const auto num = reader.peekAt<u8>(ofsMatrixSize + i);
 
 				for (int j = 0; j < num; ++j)
 				{
-					const auto index = reader.peekAt<u16>(-reader.tell() + ofsMatrixIndex + mtxId * 2);
-					const auto influence = reader.peekAt<f32>(-reader.tell() + ofsMatrixWeight + mtxId *4);
+					const auto index = reader.peekAt<u16>(ofsMatrixIndex + mtxId * 2);
+					const auto influence = reader.peekAt<f32>(ofsMatrixWeight + mtxId * 4);
 
-					envelopes[i].mWeights.push_back(J3DModel::DrawMatrix::MatrixWeight{index, influence});
+					envelopes[i].mWeights.emplace_back(index, influence);
 
 					if (index > maxJointIndex)
 						maxJointIndex = index;
@@ -114,13 +111,14 @@ struct J3DModelLoadingContext
 			mdl.mDrawMatrices.reserve(size);
 			reader.read<u16>();
 
-			const auto ofsPartialWeighting = start + reader.read<s32>();
-			const auto ofsIndex = start + reader.read<s32>();
+			const auto[ofsPartialWeighting, ofsIndex] = reader.readX<s32, 2>();
+
+			reader.seekSet(start);
 
 			for (int i = 0; i < size; ++i)
 			{
-				bool multipleInfluences = reader.peekAt<bool>(-reader.tell() + ofsPartialWeighting + i);
-				u16 index = reader.peekAt<u16>(-reader.tell() + ofsIndex + i * 2);
+				bool multipleInfluences = reader.peekAt<bool>(ofsPartialWeighting + i);
+				u16 index = reader.peekAt<u16>(ofsIndex + i * 2);
 
 				if (!multipleInfluences)
 					mdl.mDrawMatrices.push_back(J3DModel::DrawMatrix{std::vector<J3DModel::DrawMatrix::MatrixWeight>{index}});
