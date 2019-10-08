@@ -16,7 +16,7 @@ struct J3DModelLoadingContext
 	J3DModel& mdl;
 	bool error = false;
 
-	
+
 	// Associate section magics with file positions and size
 	struct SectionEntry
 	{
@@ -121,7 +121,7 @@ struct J3DModelLoadingContext
 				u16 index = reader.peekAt<u16>(ofsIndex + i * 2);
 
 				if (!multipleInfluences)
-					mdl.mDrawMatrices.push_back(J3DModel::DrawMatrix{std::vector<J3DModel::DrawMatrix::MatrixWeight>{index}});
+					mdl.mDrawMatrices.push_back(J3DModel::DrawMatrix{ std::vector<J3DModel::DrawMatrix::MatrixWeight>{index} });
 				else
 					mdl.mDrawMatrices.push_back(envelopes[index]);
 			}
@@ -169,7 +169,7 @@ struct INF1Handler
 				stream.transfer<ByteCodeOp>(op);
 				stream.transfer<s16>(idx);
 			}
-			
+
 		};
 
 		static void onRead(oishii::BinaryReader& reader, J3DModelLoadingContext& ctx)
@@ -218,7 +218,7 @@ struct BMDHandler
 		}
 
 		// TODO: Validate file size.
-		const auto fileSize= reader.read<u32>();
+		const auto fileSize = reader.read<u32>();
 		const auto sec_count = reader.read<u32>();
 
 		// Skip SVR3 header
@@ -231,7 +231,7 @@ struct BMDHandler
 		// Read EVP1 and DRW1
 		ctx.readDrawMatrices(reader);
 		// Read JNT1
-		
+
 		// Read SHP1
 
 		// Read TEX1
@@ -250,12 +250,12 @@ bool BMDImporter::tryRead(oishii::BinaryReader& reader, pl::FileState& state)
 	collection.mModels.emplace_back(new J3DModel());
 
 	J3DModelLoadingContext BMDLoad = {
-		*(collection.mModels[collection.mModels.size()-1].get()),
+		*(collection.mModels[collection.mModels.size() - 1].get()),
 		false
 	};
 
 	reader.dispatch<BMDHandler, oishii::Direct, false>(BMDLoad);
-	
+
 	return !BMDLoad.error;
 }
 
