@@ -13,7 +13,7 @@ namespace libcube { namespace jsystem {
 //!
 struct J3DCollection : public pl::FileState, public pl::ITextureList
 {
-	std::vector<std::unique_ptr<J3DModel>> mModels;
+	/*std::vector<std::unique_ptr<*/J3DModel/*>>*/ mModel/*s*/;
 
 	//
 	// Interfaces
