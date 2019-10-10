@@ -5,9 +5,13 @@
 
 #pragma once
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include "BMD.hpp"
 #include "../Model.hpp"
 #include <map>
+
 
 namespace libcube { namespace jsystem {
 
@@ -171,6 +175,51 @@ void BMDImporter::readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContex
 	}
 }
 
+void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept
+{
+	if (enterSection(reader, 'JNT1'))
+	{
+		ScopedSection g(reader, "Joints");
+
+		u16 size = reader.read<u16>();
+		ctx.mdl.mJoints.resize(size);
+		reader.read<u16>();
+
+		const auto[ofsJointData, ofsRemapTable, ofsStringTable] = reader.readX<s32, 3>();
+		reader.seekSet(g.start);
+
+		// Compressible resources in J3D have a relocation table (necessary for interop with other animations that access by index)
+		// FIXME: Note and support saving identically
+		reader.seekSet(g.start + ofsRemapTable);
+		u16* remaps = static_cast<u16*>(alloca(2 * size));
+		for (int i = 0; i < size; ++i)
+			remaps[i] = reader.read<u16>();
+
+		// FIXME: Support reading names
+		for (int i = 0; i < size; ++i)
+		{
+			auto& joint = ctx.mdl.mJoints[i];
+			reader.seekSet(g.start + ofsJointData + remaps[i] * 0x40);
+			// TODO -- encapsulate this
+			joint.id.clear();
+			const u16 flag = reader.read<u16>();
+			joint.flag = flag & 0xf;
+			joint.bbMtxType = static_cast<J3DModel::Joint::MatrixType>(flag >> 4);
+			const u8 mayaSSC = reader.read<u8>();
+			joint.mayaSSC = mayaSSC == 0xff ? false : mayaSSC;
+			reader.read<u8>();
+			joint.scale << reader;
+			joint.rotate.x = reader.read<s16>() / 0x7ff * M_PI;
+			joint.rotate.y = reader.read<s16>() / 0x7ff * M_PI;
+			joint.rotate.z = reader.read<s16>() / 0x7ff * M_PI;
+			reader.read<u16>();
+			joint.translate << reader;
+			joint.boundingSphereRadius = reader.read<f32>();
+			joint.boundingBox << reader;
+		}
+	}
+}
+
 void BMDImporter::lex(oishii::BinaryReader& reader, u32 sec_count) noexcept
 {
 	mSections.clear();
@@ -228,6 +277,7 @@ void BMDImporter::readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 	// Read EVP1 and DRW1
 	readDrawMatrices(reader, ctx);
 	// Read JNT1
+	readJoints(reader, ctx);
 
 	// Read SHP1
 
