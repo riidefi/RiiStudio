@@ -43,6 +43,7 @@ private:
 	void readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
 	void readInformation(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
 	void readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
+	void readMaterials(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
 	bool enterSection(oishii::BinaryReader& reader, u32 id);
 };
 

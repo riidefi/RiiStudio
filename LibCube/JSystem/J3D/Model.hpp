@@ -117,6 +117,69 @@ struct J3DModel
 	};
 
 	std::vector<Joint> mJoints;
+
+	using todo = int;
+
+	// Assumption: all elements are contiguous--no holes
+	// Much faster than a vector for the many static sized arrays in materials
+	template<typename T, size_t N>
+	struct array_vector : public std::array<T, N>
+	{
+		size_t size() const
+		{
+			return nElements;
+		}
+		size_t nElements = 0;
+
+		void push_back(T elem)
+		{
+			at(nElements) = elem;
+		}
+		void pop_back()
+		{
+			--nElements;
+		}
+	};
+
+	struct Material
+	{
+		ID<Material> id;
+
+		u8 flag;
+		todo cullMode;
+		// num color channel, texgen, tevstage
+		todo zcomploc;
+		todo zmode;
+		todo dither;
+
+		array_vector<todo, 2> matColors;
+		array_vector<todo, 4> colorChanControls;
+		array_vector<todo, 2> ambColors;
+		array_vector<todo, 8> lightColors;
+
+		array_vector<todo, 8> texGenInfos;
+		array_vector<todo, 8> postTexGenInfos;
+
+		array_vector<todo, 10> texMatrices;
+		array_vector<todo, 20> postTexMatrices;
+
+		array_vector<todo, 8> textures;
+
+		array_vector<todo, 4> tevKonstColors;
+		array_vector<todo, 16> tevKonstColorSels;
+		array_vector<todo, 16> tevKonstAlphaSels;
+		array_vector<todo, 16> tevOrderInfos;
+		array_vector<todo, 4> tevColors;
+		array_vector<todo, 16> tevStageInfos;
+		array_vector<todo, 16> tevSwapModesInfos;
+		array_vector<todo, 4> tevSwapModeTabless;
+		array_vector<todo, 12> unk;
+		todo fogInfo;
+		todo alphaCompare;
+		todo blendMode;
+		todo unk2;
+	};
+	std::vector<Material> mMaterials;
 };
 
 } } // namespace libcube::jsystem

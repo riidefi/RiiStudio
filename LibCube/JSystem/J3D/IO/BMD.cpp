@@ -11,7 +11,7 @@
 #include "BMD.hpp"
 #include "../Model.hpp"
 #include <map>
-
+#include <type_traits>
 
 namespace libcube { namespace jsystem {
 
@@ -73,7 +73,7 @@ struct SceneGraph
 				return;
 			case ByteCodeOp::Open:
 				if (lastType == ByteCodeOp::Joint)
-					joint_stack.push_back(ctx.jointIdLut[joint]);
+					joint_stack.push_back(joint);
 				hierarchy_stack.emplace_back(lastType);
 				break;
 			case ByteCodeOp::Close:
@@ -82,12 +82,12 @@ struct SceneGraph
 				hierarchy_stack.pop_back();
 				break;
 			case ByteCodeOp::Joint: {
-				const auto newId = ctx.jointIdLut[cmd.idx];
+				const auto newId = cmd.idx;
 
 				if (!joint_stack.empty())
 				{
-					ctx.mdl.mJoints[joint_stack.back()].children.emplace_back(ctx.mdl.mJoints[newId].id);
-					ctx.mdl.mJoints[newId].parent = ctx.mdl.mJoints[joint_stack.back()].id;
+					ctx.mdl.mJoints[ctx.jointIdLut[joint_stack.back()]].children.emplace_back(ctx.mdl.mJoints[ctx.jointIdLut[newId]].id);
+					ctx.mdl.mJoints[ctx.jointIdLut[newId]].parent = ctx.mdl.mJoints[ctx.jointIdLut[joint_stack.back()]].id;
 				}
 				joint = newId;
 				break;
@@ -96,7 +96,7 @@ struct SceneGraph
 				mat = cmd.idx;
 				break;
 			case ByteCodeOp::Shape:
-				ctx.mdl.mJoints[joint].displays.emplace_back("Material TODO", "Shapes TODO");
+				ctx.mdl.mJoints[ctx.jointIdLut[joint]].displays.emplace_back(ctx.mdl.mMaterials[mat].id, "Shapes TODO");
 				break;
 			}
 
@@ -294,6 +294,90 @@ void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx
 	}
 }
 
+enum class MaterialSectionType
+{
+	IndirectTexturingInfo,
+	CullModeInfo,
+	MaterialColors,
+	NumColorChannels,
+	ColorChannelInfo,
+	AmbientColors,
+	LightInfo,
+	NumTexGens,
+	TexGenInfo,
+	PostTexGenInfo,
+	TexMatrixInfo,
+	PostTexMatrixInfo,
+	TextureRemapTable,
+	TevOrderInfo,
+	TevColors,
+	TevKonstColors,
+	NumTevStages,
+	TevStageInfo,
+	TevSwapModeInfo,
+	TevSwapModeTableInfo,
+	FogInfo,
+	AlphaCompareInfo,
+	BlendModeInfo,
+	ZModeInfo,
+	ZCompareInfo,
+	DitherInfo,
+	NBTScaleInfo,
+
+	Max,
+	Min = 0
+};
+MaterialSectionType operator++(MaterialSectionType t)
+{
+	return static_cast<MaterialSectionType>(static_cast<std::underlying_type_t<MaterialSectionType>>(t) + 1);
+}
+
+void BMDImporter::readMaterials(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept
+{
+	if (enterSection(reader, 'MAT3'))
+	{
+		ScopedSection g(reader, "Materials");
+
+		u16 size = reader.read<u16>();
+		ctx.mdl.mMaterials.resize(size);
+		ctx.materialIdLut.resize(size);
+		reader.read<u16>();
+
+		const auto[ofsMatData, ofsRemapTable, ofsStringTable] = reader.readX<s32, 3>();
+
+		std::array<s32, static_cast<u32>(MaterialSectionType::Max)> mSections = reader.readX<s32, static_cast<u32>(MaterialSectionType::Max)>();
+
+		reader.seekSet(g.start);
+
+		// FIXME: Generalize this code
+		reader.seekSet(g.start + ofsRemapTable);
+
+		bool sorted = true;
+		for (int i = 0; i < size; ++i)
+		{
+			ctx.materialIdLut[i] = reader.read<u16>();
+
+			if (ctx.materialIdLut[i] != i)
+				sorted = false;
+		}
+
+		if (!sorted)
+			DebugReport("Material IDS will be remapped on save and incompatible with animations.\n");
+
+		reader.seekSet(ofsStringTable + g.start);
+		const auto nameTable = readNameTable(reader);
+
+		for (int i = 0; i < size; ++i)
+		{
+			auto& mat = ctx.mdl.mMaterials[i];
+			reader.seekSet(g.start + ofsMatData + ctx.materialIdLut[i] * 0x14c);
+			mat.id = nameTable[i];
+
+
+		}
+	}
+}
+
 void BMDImporter::lex(oishii::BinaryReader& reader, u32 sec_count) noexcept
 {
 	mSections.clear();
@@ -357,6 +441,9 @@ void BMDImporter::readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 
 	// Read TEX1
 	// Read MAT3
+
+	// TODO: Compatibility with older versions?
+	readMaterials(reader, ctx);
 
 	// Read INF1
 	readInformation(reader, ctx);
