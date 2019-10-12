@@ -21,7 +21,7 @@ struct SceneGraph
 
 	enum class ByteCodeOp : u16
 	{
-		End,
+		Terminate,
 		Open,
 		Close,
 
@@ -53,14 +53,55 @@ struct SceneGraph
 			stream.transfer<ByteCodeOp>(op);
 			stream.transfer<s16>(idx);
 		}
-
 	};
 
 	static void onRead(oishii::BinaryReader& reader, BMDImporter::BMDOutputContext& ctx)
 	{
-		for (ByteCodeCmd cmd(reader); cmd.op != ByteCodeOp::End; cmd.transfer(reader))
+		// FIXME: Algorithm can be significantly improved
+
+		u16 mat, joint = 0;
+		auto lastType = ByteCodeOp::Unitialized;
+
+		std::vector<ByteCodeOp> hierarchy_stack;
+		std::vector<u16> joint_stack;
+
+		for (ByteCodeCmd cmd(reader); cmd.op != ByteCodeOp::Terminate; cmd.transfer(reader))
 		{
-			// TODO
+			switch (cmd.op)
+			{
+			case ByteCodeOp::Terminate:
+				return;
+			case ByteCodeOp::Open:
+				if (lastType == ByteCodeOp::Joint)
+					joint_stack.push_back(ctx.jointIdLut[joint]);
+				hierarchy_stack.emplace_back(lastType);
+				break;
+			case ByteCodeOp::Close:
+				if (hierarchy_stack.back() == ByteCodeOp::Joint)
+					joint_stack.pop_back();
+				hierarchy_stack.pop_back();
+				break;
+			case ByteCodeOp::Joint: {
+				const auto newId = ctx.jointIdLut[cmd.idx];
+
+				if (!joint_stack.empty())
+				{
+					ctx.mdl.mJoints[joint_stack.back()].children.emplace_back(ctx.mdl.mJoints[newId].id);
+					ctx.mdl.mJoints[newId].parent = ctx.mdl.mJoints[joint_stack.back()].id;
+				}
+				joint = newId;
+				break;
+			}
+			case ByteCodeOp::Material:
+				mat = cmd.idx;
+				break;
+			case ByteCodeOp::Shape:
+				ctx.mdl.mJoints[joint].displays.emplace_back("Material TODO", "Shapes TODO");
+				break;
+			}
+
+			if (cmd.op != ByteCodeOp::Open && cmd.op != ByteCodeOp::Close)
+				lastType = cmd.op;
 		}
 	}
 };
@@ -100,7 +141,7 @@ void BMDImporter::readInformation(oishii::BinaryReader& reader, BMDOutputContext
 
 		ctx.mdl.info.mScalingRule = static_cast<J3DModel::Information::ScalingRule>(flag & 0xf);
 
-		reader.dispatch<SceneGraph, oishii::Indirection<-8, s32>>(ctx);
+		reader.dispatch<SceneGraph, oishii::Indirection<0, s32, oishii::Whence::At>>(ctx, g.start);
 	}
 }
 void BMDImporter::readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept
@@ -203,6 +244,7 @@ void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx
 
 		u16 size = reader.read<u16>();
 		ctx.mdl.mJoints.resize(size);
+		ctx.jointIdLut.resize(size);
 		reader.read<u16>();
 
 		const auto[ofsJointData, ofsRemapTable, ofsStringTable] = reader.readX<s32, 3>();
@@ -211,9 +253,19 @@ void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx
 		// Compressible resources in J3D have a relocation table (necessary for interop with other animations that access by index)
 		// FIXME: Note and support saving identically
 		reader.seekSet(g.start + ofsRemapTable);
-		u16* remaps = static_cast<u16*>(alloca(2 * size));
+
+		bool sorted = true;
 		for (int i = 0; i < size; ++i)
-			remaps[i] = reader.read<u16>();
+		{
+			ctx.jointIdLut[i] = reader.read<u16>();
+
+			if (ctx.jointIdLut[i] != i)
+				sorted = false;
+		}
+
+		if (!sorted)
+			DebugReport("Joint IDS will be remapped on save and incompatible with animations.\n");
+
 
 		// FIXME: unnecessary allocation of a vector.
 		reader.seekSet(ofsStringTable + g.start);
@@ -222,7 +274,7 @@ void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx
 		for (int i = 0; i < size; ++i)
 		{
 			auto& joint = ctx.mdl.mJoints[i];
-			reader.seekSet(g.start + ofsJointData + remaps[i] * 0x40);
+			reader.seekSet(g.start + ofsJointData + ctx.jointIdLut[i] * 0x40);
 			joint.id = nameTable[i];
 			const u16 flag = reader.read<u16>();
 			joint.flag = flag & 0xf;

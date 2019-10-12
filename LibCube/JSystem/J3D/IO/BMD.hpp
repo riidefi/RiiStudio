@@ -19,6 +19,10 @@ public:
 	struct BMDOutputContext
 	{
 		J3DModel& mdl;
+
+		// Compression ID LUT (remap table)
+		std::vector<u16> jointIdLut;
+		std::vector<u16> materialIdLut;
 	};
 
 	// Associate section magics with file positions and size

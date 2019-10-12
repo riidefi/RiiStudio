@@ -104,6 +104,11 @@ struct J3DModel
 		{
 			ID<Material> material;
 			ID<Shape> shape;
+
+			Display() = default;
+			Display(ID<Material> mat, ID<Shape> shp)
+				: material(mat), shape(shp)
+			{}
 		};
 		std::vector<Display> displays;
 
