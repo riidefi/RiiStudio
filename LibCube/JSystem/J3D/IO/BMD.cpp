@@ -175,6 +175,26 @@ void BMDImporter::readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContex
 	}
 }
 
+std::vector<std::string> readNameTable(oishii::BinaryReader& reader)
+{
+	const auto start = reader.tell();
+	std::vector<std::string> collected(reader.read<u16>());
+	reader.read<u16>();
+
+	for (auto& e : collected)
+	{
+		const auto[hash, ofs] = reader.readX<u16, 2>();
+		{
+			oishii::Jump<oishii::Whence::Set> g(reader, start + ofs);
+
+			for (char c = reader.read<s8>(); c; c = reader.read<s8>())
+				e.push_back(c);
+		}
+	}
+
+	return collected;
+}
+
 void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept
 {
 	if (enterSection(reader, 'JNT1'))
@@ -195,13 +215,15 @@ void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx
 		for (int i = 0; i < size; ++i)
 			remaps[i] = reader.read<u16>();
 
-		// FIXME: Support reading names
+		// FIXME: unnecessary allocation of a vector.
+		reader.seekSet(ofsStringTable + g.start);
+		const auto nameTable = readNameTable(reader);
+
 		for (int i = 0; i < size; ++i)
 		{
 			auto& joint = ctx.mdl.mJoints[i];
 			reader.seekSet(g.start + ofsJointData + remaps[i] * 0x40);
-			// TODO -- encapsulate this
-			joint.id.clear();
+			joint.id = nameTable[i];
 			const u16 flag = reader.read<u16>();
 			joint.flag = flag & 0xf;
 			joint.bbMtxType = static_cast<J3DModel::Joint::MatrixType>(flag >> 4);
