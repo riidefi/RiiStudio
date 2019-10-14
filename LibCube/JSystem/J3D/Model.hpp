@@ -10,6 +10,9 @@
 
 #include <LibCube/Common/BoundBox.hpp>
 
+#include <LibCube/GX/Material.hpp>
+
+
 namespace libcube { namespace jsystem {
 
 // Not a FileState for now -- always accessed through a J3DCollection.
@@ -20,7 +23,6 @@ struct J3DModel
 	template<typename T>
 	using ID = std::string;
 
-	// TODO
 	struct Material;
 	struct Shape;
 
@@ -143,41 +145,68 @@ struct J3DModel
 
 	struct Material
 	{
+		struct GenInfo
+		{
+			u8 nColorChannel, nTexGen, nTevStage;
+			bool indirect;
+			u8 nInd;
+		};
+		struct TexMatrix
+		{
+			gx::TexGenType projection; // Only 3x4 and 2x4 valid
+
+			bool		maya;
+			u8			mappingMethod;
+
+			glm::vec3	origin;
+
+			glm::vec2	scale;
+			f32			rotate;
+			glm::vec2	translate;
+
+			glm::vec4	effectMatrix;
+		};
+		struct NBTScale
+		{
+			bool enable;
+			glm::vec3 scale;
+		};
+		
 		ID<Material> id;
 
 		u8 flag;
-		todo cullMode;
-		// num color channel, texgen, tevstage
-		todo zcomploc;
-		todo zmode;
-		todo dither;
 
-		array_vector<todo, 2> matColors;
-		array_vector<todo, 4> colorChanControls;
-		array_vector<todo, 2> ambColors;
-		array_vector<todo, 8> lightColors;
+		GenInfo info;
+		gx::CullMode cullMode;
 
-		array_vector<todo, 8> texGenInfos;
-		array_vector<todo, 8> postTexGenInfos;
+		bool earlyZComparison;
+		gx::ZMode ZMode;
 
-		array_vector<todo, 10> texMatrices;
-		array_vector<todo, 20> postTexMatrices;
+		array_vector<gx::Color, 2> matColors;
+		array_vector<gx::ChannelControl, 4> colorChanControls;
+		array_vector<gx::Color, 2> ambColors;
+		array_vector<gx::Color, 8> lightColors;
 
+		array_vector<gx::TexCoordGen, 8> texGenInfos;
+
+		array_vector<TexMatrix, 10> texMatrices;
+		array_vector<TexMatrix, 20> postTexMatrices;
+
+		// FIXME: Sampler data will be moved here from TEX1
 		array_vector<todo, 8> textures;
 
-		array_vector<todo, 4> tevKonstColors;
-		array_vector<todo, 16> tevKonstColorSels;
-		array_vector<todo, 16> tevKonstAlphaSels;
-		array_vector<todo, 16> tevOrderInfos;
-		array_vector<todo, 4> tevColors;
-		array_vector<todo, 16> tevStageInfos;
-		array_vector<todo, 16> tevSwapModesInfos;
-		array_vector<todo, 4> tevSwapModeTabless;
-		array_vector<todo, 12> unk;
+		array_vector<gx::Color, 4> tevKonstColors;
+		array_vector<gx::Color, 4> tevColors;
+
+		gx::Shader shader;
+
+		// FIXME: This will exist in our scene and be referenced.
 		todo fogInfo;
-		todo alphaCompare;
-		todo blendMode;
-		todo unk2;
+
+		gx::AlphaComparison alphaCompare;
+		gx::BlendMode blendMode;
+		bool dither;
+		NBTScale nbtScale;
 	};
 	std::vector<Material> mMaterials;
 };
