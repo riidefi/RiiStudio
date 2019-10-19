@@ -11,7 +11,7 @@ struct SelectionManager
 		None = 0, // Nothing is selected
 		Effect = (1 << 0), // Particle Effect System
 		Texture = (1 << 1), // Texture Image
-		// Material = (1 << 2) // Of a model
+		Material = (1 << 2) // Of a model
 	};
 	struct Selection
 	{

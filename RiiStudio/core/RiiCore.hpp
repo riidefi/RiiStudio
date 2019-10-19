@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <LibRiiEditor/core/PluginFactory.hpp>
+#include "WindowAdaptor.hpp"
 
 class RiiCore : public Applet
 {
@@ -36,4 +37,6 @@ private:
 	Theme mTheme;
 	EditorCoreRes mCoreRes = EditorCoreRes(mTheme);
 	PluginFactory mPluginFactory;
+	WindowAdaptor<Theme::Editor> mThemeEd;
+	
 };

@@ -9,7 +9,9 @@ enum class InterfaceID
 	//! Acts as CLI (and GUI) generator.
 	TransformStack,
 
-	TextureList
+	TextureList,
+
+	LibCube_GCCollection
 };
 
 

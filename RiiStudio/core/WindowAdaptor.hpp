@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ui/Window.hpp>
+#include <LibRiiEditor/ui/Window.hpp>
 #include <string>
 
 
@@ -25,7 +25,7 @@ struct WindowAdaptor : public Window
 		if (ImGui::Begin((std::string(mWrapped.mTitle) + std::string("###") + std::to_string(mId)).c_str(), &bOpen))
 		{
 			if (ctx)
-				mWrapped.windowDraw(*ctx);
+				mWrapped.windowDraw((CoreContext&)*ctx);
 #ifdef DEBUG
 			else
 				ImGui::Text("DEBUG: Invalid context.");

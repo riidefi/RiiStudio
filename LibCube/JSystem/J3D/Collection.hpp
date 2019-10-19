@@ -6,12 +6,14 @@
 #include <LibRiiEditor/pluginapi/FileStateSpawner.hpp>
 #include "Model.hpp"
 
+#include <LibCube/Export/GCCollection.hpp>
+
 namespace libcube { namespace jsystem {
 
 //! Represents the state of a J3D model and textures (BMD, BDL) as well as animations.
 //! Unlike the binary equivalents, per-material texture settings have been moved to samplers in materials.
 //!
-struct J3DCollection : public pl::FileState, public pl::ITextureList
+struct J3DCollection : public pl::FileState, public pl::ITextureList, public GCCollection
 {
 	/*std::vector<std::unique_ptr<*/J3DModel/*>>*/ mModel/*s*/;
 
@@ -29,16 +31,26 @@ struct J3DCollection : public pl::FileState, public pl::ITextureList
 		return "TODO";
 	}
 
+	// GCCollection
+	u32 getNumMaterials() const override { return mModel.mMaterials.size(); }
+	std::unique_ptr<GCCollection::IMaterialDelegate> getMaterialDelegate(u32 idx) override;
+
 
 	//
 	// Construction/Destruction
 	//
 
+	template<typename T>
+	void registerInterface()
+	{
+		mInterfaces.push_back(static_cast<T*>(this));
+	}
+
 	~J3DCollection() override = default;
 	J3DCollection()
 	{
-		// Register interfaces
-		mInterfaces.push_back(static_cast<pl::ITextureList*>(this));
+		registerInterface<pl::ITextureList>();
+		registerInterface<GCCollection>();
 	}
 };
 

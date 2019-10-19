@@ -13,6 +13,8 @@ void RiiCore::drawRoot()
 		drawMenuBar();
 	}
 	ImGui::End();
+	auto ctx = makeWindowContext();
+	mThemeEd.draw(&ctx);
 }
 
 void RiiCore::drawMenuBar()
