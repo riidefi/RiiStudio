@@ -126,4 +126,8 @@ struct Color
 {
 	u32 r, g, b, a;
 };
+struct ColorS10
+{
+	s32 r, g, b, a;
+};
 } } // namespace libcube::gx

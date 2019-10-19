@@ -167,7 +167,7 @@ enum class TevKAlphaSel
 	k3_a
 };
 
-enum ColorSelChan
+enum class ColorSelChanLow
 {
 	color0a0,
 	color1a1,
@@ -175,6 +175,20 @@ enum ColorSelChan
 	ind_alpha = 5,
 	normalized_ind_alpha, // ind_alpha in range [0, 255]
 	null // zero
+};
+enum class ColorSelChanApi
+{
+	color0,
+	color1,
+	alpha0,
+	alpha1,
+	color0a0,
+	color1a1,
+	zero,
+
+	ind_alpha,
+	normalized_ind_alpha,
+	null = 0xFF
 };
 
 enum class IndTexFormat
@@ -233,7 +247,7 @@ enum class IndTexWrap
 struct TevStage
 {
 	// RAS1_TREF
-	ColorSelChan rasOrder = ColorSelChan::null;
+	ColorSelChanApi rasOrder = ColorSelChanApi::null;
 	u8 texMap, texCoord = 0;
 	u8 rasSwap, texMapSwap = 0;
 	

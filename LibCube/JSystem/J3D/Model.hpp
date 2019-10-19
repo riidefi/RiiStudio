@@ -196,7 +196,7 @@ struct J3DModel
 		array_vector<todo, 8> textures;
 
 		array_vector<gx::Color, 4> tevKonstColors;
-		array_vector<gx::Color, 4> tevColors;
+		array_vector<gx::ColorS10, 4> tevColors;
 
 		gx::Shader shader;
 

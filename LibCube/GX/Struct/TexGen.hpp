@@ -67,11 +67,27 @@ enum class PostTexMatrix
 	Matrix19 = 121,
 	Identity = 125
 };
+enum class TexMatrix
+{
+	Identity = 60,
+	TexMatrix0 = 30,
+	TexMatrix1 = 33,
+	TexMatrix2 = 36,
+	TexMatrix3 = 39,
+	TexMatrix4 = 42,
+	TexMatrix5 = 45,
+	TexMatrix6 = 48,
+	TexMatrix7 = 51,
+	TexMatrix8 = 54,
+	TexMatrix9 = 57
+};
 struct TexCoordGen // XF TEX/DUALTEX
 {
 	//	u8			id;
 	TexGenType		func;
 	TexGenSrc		sourceParam;
+	TexMatrix		matrix; // FIXME: for BMD
+	
 	bool			normalize;
 	PostTexMatrix	postMatrix;
 };

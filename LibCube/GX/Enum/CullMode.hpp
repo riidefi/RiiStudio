@@ -19,7 +19,7 @@ enum class DisplaySurface
 	Neither
 };
 
-DisplaySurface cullModeToDisplaySurfacee(CullMode c)
+inline DisplaySurface cullModeToDisplaySurfacee(CullMode c)
 {
 	return static_cast<DisplaySurface>(4 - static_cast<int>(c));
 }
