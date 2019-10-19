@@ -4,6 +4,7 @@ namespace libcube { namespace gx {
 
 union VertexComponentCount
 {
+	
 	enum class Position
 	{
 		xy,
@@ -28,6 +29,20 @@ union VertexComponentCount
 		u = s,
 		uv = st
 	} texcoord;
+
+	explicit VertexComponentCount(Position p)
+		: position(p)
+	{}
+	explicit VertexComponentCount(Normal n)
+		: normal(n)
+	{}
+	explicit VertexComponentCount(Color c)
+		: color(c)
+	{}
+	explicit VertexComponentCount(TextureCoordinate u)
+		: texcoord(u)
+	{}
+	VertexComponentCount() {}
 };
 
 union VertexBufferType
@@ -40,7 +55,7 @@ union VertexBufferType
 		s16,
 		f32
 	} generic;
-	enum Color
+	enum class Color
 	{
 		rgb565, //!< R5G6B5
 		rgb8, //!< 8 bit, no alpha
@@ -56,10 +71,18 @@ union VertexBufferType
 		FORMAT_24B_6666 = 4,
 		FORMAT_32B_8888 = 5,
 	} color;
+
+	explicit VertexBufferType(Generic g)
+		: generic(g)
+	{}
+	explicit VertexBufferType(Color c)
+		: color(c)
+	{}
+	VertexBufferType() {}
 };
 
 // Subset of vertex attributes valid for a buffer.
-enum class VertexBufferAttribute
+enum class VertexBufferAttribute : u32
 {
 	Position = 9,
 	Normal,
@@ -74,7 +97,10 @@ enum class VertexBufferAttribute
 	TexCoord6,
 	TexCoord7,
 
-	NormalBinormalTangent = 25
+	NormalBinormalTangent = 25,
+
+	Undefined = 0xff-1,
+	Terminate = 0xff
 };
 
 } } // namespace libcube::gx

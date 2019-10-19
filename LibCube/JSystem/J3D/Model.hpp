@@ -13,16 +13,39 @@
 #include <LibCube/GX/Material.hpp>
 
 
-namespace libcube { namespace jsystem {
+namespace libcube::jsystem {
 
 // Not a FileState for now -- always accessed through a J3DCollection.
 // This is subject to change
 // No compatibility with old BMD files yet.
 struct J3DModel
 {
+	J3DModel() = default;
+	~J3DModel() = default;
+
 	template<typename T>
 	using ID = std::string;
 
+	// Assumption: all elements are contiguous--no holes
+	// Much faster than a vector for the many static sized arrays in materials
+	template<typename T, size_t N>
+	struct array_vector : public std::array<T, N>
+	{
+		size_t size() const
+		{
+			return nElements;
+		}
+		size_t nElements = 0;
+
+		void push_back(T elem)
+		{
+			at(nElements) = elem;
+		}
+		void pop_back()
+		{
+			--nElements;
+		}
+	};
 	struct Material;
 	struct Shape;
 
@@ -44,16 +67,152 @@ struct J3DModel
 
 	Information info;
 
+	struct VQuantization
+	{
+		gx::VertexComponentCount comp = gx::VertexComponentCount(gx::VertexComponentCount::Position::xyz);
+		gx::VertexBufferType type = gx::VertexBufferType(gx::VertexBufferType::Generic::f32);
+		u8 divisor = 0;
+		u8 stride = 12;
+
+		VQuantization(gx::VertexComponentCount c, gx::VertexBufferType t, u8 d, u8 s)
+			: comp(c), type(t), divisor(d), stride(s)
+		{}
+		VQuantization(const VQuantization& other)
+			: comp(other.comp), type(other.type), divisor(other.divisor), stride(other.stride)
+		{}
+		VQuantization() = default;
+	};
+	enum class VBufferKind
+	{
+		position,
+		normal,
+		color,
+		textureCoordinate,
+
+		undefined = -1
+	};
+
+	template<typename T, VBufferKind kind>
 	struct VertexBuffer
 	{
-		struct Quantization
+		VQuantization mQuant;
+		std::vector<T> mData;
+
+		int ComputeComponentCount() const
 		{
-			gx::VertexComponentCount mComp;
-			gx::VertexBufferType mType;
-			u8 divisor;
-			// TODO: Doesn't appear to store stride
-		};
+			switch (kind)
+			{
+			case VBufferKind::position:
+				if (mQuant.comp.position == gx::VertexComponentCount::Position::xy)
+					throw "Buffer: XY Pos Component count.";
+				return static_cast<int>(mQuant.comp.position) + 2; // xy -> 2; xyz -> 3
+			case VBufferKind::normal:
+				return 3;
+			case VBufferKind::color:
+				return static_cast<int>(mQuant.comp.color) + 3; // rgb -> 3; rgba -> 4
+			case VBufferKind::textureCoordinate:
+				return static_cast<int>(mQuant.comp.texcoord) + 1; // s -> 1, st -> 2
+			default: // never reached
+				return 0;
+			}
+		}
+
+		template<int n, typename T, glm::qualifier q>
+		void readBufferEntryGeneric(oishii::BinaryReader& reader, glm::vec<n, T, q>& result)
+		{
+			for (int i = 0; i < ComputeComponentCount(); ++i)
+			{
+				switch (mQuant.type.generic)
+				{
+				case gx::VertexBufferType::Generic::u8:
+					result[i] = reader.read<u8>() >> mQuant.divisor;
+					break;
+				case gx::VertexBufferType::Generic::s8:
+					result[i] = reader.read<s8>() >> mQuant.divisor;
+					break;
+				case gx::VertexBufferType::Generic::u16:
+					result[i] = reader.read<u16>() >> mQuant.divisor;
+					break;
+				case gx::VertexBufferType::Generic::s16:
+					result[i] = result[i] = reader.read<s16>() >> mQuant.divisor;
+					break;
+				case gx::VertexBufferType::Generic::f32:
+					result[i] = reader.read<f32>();
+					break;
+				default:
+					throw "Invalid buffer type!";
+				}
+			}
+		}
+		void readBufferEntryColor(oishii::BinaryReader& reader, gx::Color& result)
+		{
+			switch (mQuant.type.color)
+			{
+			case gx::VertexBufferType::Color::rgb565:
+			{
+				const u16 c = reader.read<u16>();
+				result.r = (c & 0xF800) >> 11;
+				result.g = (c & 0x07E0) >> 5;
+				result.b = (c & 0x001F);
+				break;
+			}
+			case gx::VertexBufferType::Color::rgb8:
+				result.r = reader.read<u8>();
+				result.g = reader.read<u8>();
+				result.b = reader.read<u8>();
+				break;
+			case gx::VertexBufferType::Color::rgbx8:
+				result.r = reader.read<u8>();
+				result.g = reader.read<u8>();
+				result.b = reader.read<u8>();
+				reader.seek(1);
+				break;
+			case gx::VertexBufferType::Color::rgba4:
+			{
+				const u16 c = reader.read<u16>();
+				result.r = (c & 0xF000) >> 12;
+				result.g = (c & 0x0F00) >> 8;
+				result.b = (c & 0x00F0) >> 4;
+				result.a = (c & 0x000F);
+				break;
+			}
+			case gx::VertexBufferType::Color::rgba6:
+			{
+				const u32 c = reader.read<u32>();
+				result.r = (c & 0xFC0000) >> 18;
+				result.g = (c & 0x03F000) >> 12;
+				result.b = (c & 0x000FC0) >> 6;
+				result.a = (c & 0x00003F);
+				break;
+			}
+			case gx::VertexBufferType::Color::rgba8:
+				result.r = reader.read<u8>();
+				result.g = reader.read<u8>();
+				result.b = reader.read<u8>();
+				result.a = reader.read<u8>();
+				break;
+			default:
+				throw "Invalid buffer type!";
+			};
+		}
+
+		VertexBuffer() {}
+		VertexBuffer(VQuantization q)
+			: mQuant(q)
+		{}
+
 	};
+
+	struct Bufs
+	{
+		// FIXME: Good default values
+		VertexBuffer<glm::vec3, VBufferKind::position> pos { VQuantization() };
+		VertexBuffer<glm::vec3, VBufferKind::normal> norm { VQuantization() };
+		std::array<VertexBuffer<gx::Color, VBufferKind::color>, 2> color;
+		std::array<VertexBuffer<glm::vec2, VBufferKind::textureCoordinate>, 8> uv;
+
+		Bufs() {}
+	} mBufs = Bufs();
 
 	//! Encapsulates low level envelopes and draw matrices
 	struct DrawMatrix
@@ -122,26 +281,7 @@ struct J3DModel
 
 	using todo = int;
 
-	// Assumption: all elements are contiguous--no holes
-	// Much faster than a vector for the many static sized arrays in materials
-	template<typename T, size_t N>
-	struct array_vector : public std::array<T, N>
-	{
-		size_t size() const
-		{
-			return nElements;
-		}
-		size_t nElements = 0;
-
-		void push_back(T elem)
-		{
-			at(nElements) = elem;
-		}
-		void pop_back()
-		{
-			--nElements;
-		}
-	};
+	
 
 	struct Material
 	{
@@ -211,4 +351,4 @@ struct J3DModel
 	std::vector<Material> mMaterials;
 };
 
-} } // namespace libcube::jsystem
+} // namespace libcube::jsystem

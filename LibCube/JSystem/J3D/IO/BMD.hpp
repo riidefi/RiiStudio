@@ -9,7 +9,7 @@
 #include <LibCube/JSystem/J3D/Collection.hpp>
 #include <LibRiiEditor/pluginapi/IO/Importer.hpp>
 
-namespace libcube { namespace jsystem {
+namespace libcube::jsystem {
 
 class BMDImporter : public pl::Importer
 {
@@ -44,6 +44,7 @@ private:
 	void readInformation(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
 	void readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
 	void readMaterials(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
+	void readVertexBuffers(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
 	bool enterSection(oishii::BinaryReader& reader, u32 id);
 };
 
@@ -73,4 +74,4 @@ class BMDImporterSpawner : public pl::ImporterSpawner
 
 
 
-} } // namespace libcube::jsystem
+} // namespace libcube::jsystem

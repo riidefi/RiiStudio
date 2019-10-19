@@ -1,6 +1,6 @@
 #pragma once
 
-#include "includes/essential_functions.hpp" // also contains Vector reading functions
+#include <LibCube/Pikmin1/includes/essential_functions.hpp> // also contains Vector reading functions
 #include <LibCube/Common/glm_serialization.hpp>
 
 #include "includes/Colour.hpp"

@@ -1,5 +1,7 @@
 #pragma once
 
+#define OISHII_ALIGNMENT_CHECK 0
+
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
 #include <vector>
