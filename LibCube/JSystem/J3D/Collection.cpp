@@ -7,27 +7,31 @@ namespace libcube::jsystem {
 using gcdel = GCCollection::IMaterialDelegate;
 
 
-struct J3DMaterialDelegate
-	: public GCCollection::IMaterialDelegate,
-	public gcdel::Property<gcdel::GenInfoCounts>
+struct J3DMaterialDelegate : public GCCollection::IMaterialDelegate
 {
 	~J3DMaterialDelegate() override = default;
 	J3DMaterialDelegate(J3DModel::Material& mat)
-		: mMat(mat), cullMode(mMat.cullMode), zCompLoc(mat.earlyZComparison)
+		: mMat(mat)
 	{}
 
-	gcdel::RefProperty<gx::CullMode> cullMode;
-	gcdel::Property<gx::CullMode>* getCullMode() override
+	gx::CullMode getCullMode() const override
 	{
-		return &cullMode;
+		return mMat.cullMode;
 	}
-	gcdel::RefProperty<bool> zCompLoc;
-	gcdel::Property<bool>* getZCompLoc() override
+	void setCullMode(gx::CullMode c) override
 	{
-		return &zCompLoc;
+		mMat.cullMode = c;
+	}
+	bool getZCompLoc() const override
+	{
+		return mMat.earlyZComparison;
+	}
+	void setZCompLoc(bool b) override
+	{
+		mMat.earlyZComparison = b;
 	}
 
-	GenInfoCounts get() override
+	GenInfoCounts getGenInfo() const override
 	{
 		return {
 			mMat.info.nColorChannel,
@@ -36,16 +40,13 @@ struct J3DMaterialDelegate
 			mMat.info.indirect ? mMat.info.nInd : u8(0)
 		};
 	}
-	void set(GenInfoCounts c)
+	void setGenInfo(const GenInfoCounts& c)
 	{
 		mMat.info.nColorChannel = c.colorChan;
 		mMat.info.nTexGen = c.texGen;
 		mMat.info.nTevStage = c.tevStage;
 		mMat.info.indirect = c.indStage;
 		mMat.info.nInd = c.indStage;
-	}
-	gcdel::Property<GenInfoCounts>* getGenInfo() override {
-		return static_cast<gcdel::Property<GenInfoCounts>*>(this);
 	}
 
 	SupportRegistration getRegistration() const override

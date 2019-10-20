@@ -33,7 +33,7 @@ struct GCCollection : public pl::AbstractInterface
 			PropSupport zComp;
 			PropSupport genInfo;
 		};
-
+		/*
 		template<typename T>
 		struct Property
 		{
@@ -55,14 +55,18 @@ struct GCCollection : public pl::AbstractInterface
 
 			T& mRef;	
 		};
+		*/
 
 		// Properties must be allocated in the delegate instance.
-		virtual Property<gx::CullMode>* getCullMode() = 0;
-		// For now, unable to edit inactive elements
-		struct GenInfoCounts { u8 colorChan, texGen, tevStage, indStage; };
-		virtual Property<GenInfoCounts>* getGenInfo() = 0;
+		virtual gx::CullMode getCullMode() const = 0;
+		virtual void setCullMode(gx::CullMode) = 0;
 
-		virtual Property<bool>* getZCompLoc() = 0;
+		struct GenInfoCounts { u8 colorChan, texGen, tevStage, indStage; };
+		virtual GenInfoCounts getGenInfo() const = 0;
+		virtual void setGenInfo(const GenInfoCounts&) = 0;
+
+		virtual bool getZCompLoc() const = 0;
+		virtual void setZCompLoc(bool) = 0;
 
 		virtual SupportRegistration getRegistration() const = 0;
 	};
