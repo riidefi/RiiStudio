@@ -12,17 +12,18 @@ enum class MatTab
 	Max
 };
 static const std::array<const char*, static_cast<size_t>(MatTab::Max)> MatTabNames = {
-	"Culling"
+	"Surface Visibility"
 };
 
-struct ImGuiBeginPredicate
+template<void(*PredFunc)(void)>
+struct Predicate
 {
-	~ImGuiBeginPredicate() { ImGui::End(); }
+	~Predicate() { PredFunc(); }
 };
 
 void MaterialEditor::draw(WindowContext* ctx) noexcept
 {
-	ImGuiBeginPredicate g;
+	Predicate<ImGui::End> g;
 
 	if (!ImGui::Begin("MatEditor", &bOpen) || !ctx)
 		return;
@@ -41,53 +42,54 @@ void MaterialEditor::draw(WindowContext* ctx) noexcept
 	//	}
 
 	if (drawLeft(*ctx) && selected != -1 && selected < (int)MatTab::Max)
-		drawRight(*ctx);	
+	{
+		ImGui::SameLine();
+		ImGui::BeginGroup();
+		drawRight(*ctx);
+		ImGui::EndGroup();
+	}
 }
 
 bool MaterialEditor::drawLeft(WindowContext& ctx)
 {
-	if (ImGui::BeginChild("left pane", ImVec2(150, 0), true))
-	{
-		for (int i = 0; i < (int)MatTab::Max; i++)
-		{
-			if (ImGui::Selectable(MatTabNames[i], selected == i))
-				selected = i;
-		}
-		ImGui::EndChild();
-		return true;
-	}
-	else {
-		ImGui::EndChild();
+	Predicate<ImGui::EndChild> g;
+
+	if (!ImGui::BeginChild("left pane", ImVec2(150, 0), true))
 		return false;
+	
+	for (int i = 0; i < (int)MatTab::Max; i++)
+	{
+		if (ImGui::Selectable(MatTabNames[i], selected == i))
+			selected = i;
 	}
+	return true;
 }
 
 bool MaterialEditor::drawRight(WindowContext& ctx)
 {
-	ImGui::SameLine();
-	ImGui::BeginGroup();
-	if (ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()))) // Leave room for 1 line below us
+	Predicate<ImGui::EndChild> g;
+
+	if (!ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())))
+		return false;
+	
+	ImGui::Text(MatTabNames[selected]);
+	ImGui::Separator();
+	switch ((MatTab)selected)
 	{
-		ImGui::Text(MatTabNames[selected]);
-		ImGui::Separator();
-		switch ((MatTab)selected)
+	case MatTab::DisplaySurface:
+		ImGui::Text("Show sides of faces:");
 		{
-		case MatTab::DisplaySurface:
-			ImGui::Text("Show sides of faces:");
-			{
-				ed::CullMode d;
-				d.set(libcube::gx::CullMode::None);
-				ImGui::Checkbox("Front", &d.front);
-				ImGui::Checkbox("Back", &d.back);
-			}
-			break;
-		default:
-			ImGui::Text("?");
-			break;
+			ed::CullMode d;
+			d.set(libcube::gx::CullMode::None);
+			ImGui::Checkbox("Front", &d.front);
+			ImGui::Checkbox("Back", &d.back);
 		}
-		ImGui::EndChild();
+		break;
+	default:
+		ImGui::Text("?");
+		break;
 	}
-	ImGui::EndGroup();
+	return true;
 }
 
 }
