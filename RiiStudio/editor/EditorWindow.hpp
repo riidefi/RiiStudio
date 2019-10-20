@@ -1,8 +1,8 @@
 #pragma once
 
-#include "LibRiiEditor/pluginapi/Plugin.hpp"
-#include "LibRiiEditor/ui/widgets/Outliner.hpp"
-#include "WindowManager.hpp"
+#include <LibRiiEditor/pluginapi/Plugin.hpp>
+#include <LibRiiEditor/ui/widgets/Outliner.hpp>
+#include <LibRiiEditor/core/WindowManager.hpp>
 
 struct EditorWindow : public WindowManager, public Window
 {

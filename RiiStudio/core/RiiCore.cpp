@@ -5,6 +5,7 @@
 #include <fstream>
 #include <oishii/reader/binary_reader.hxx>
 #include <LibCube/Export/Exports.hpp>
+#include <RiiStudio/editor/EditorWindow.hpp>
 
 void RiiCore::drawRoot()
 {

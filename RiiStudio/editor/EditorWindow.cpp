@@ -1,6 +1,6 @@
-#include "Plugin.hpp"
+#include "EditorWindow.hpp"
 #include <fa5/IconsFontAwesome5.h>
-#include "ui/Window.hpp"
+#include <LibRiiEditor/ui/Window.hpp>
 
 #include <LibCube/GX/Material.hpp>
 struct TextureOutlinerConfig
