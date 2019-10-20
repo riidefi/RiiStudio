@@ -75,19 +75,16 @@ void EditorWindow::draw(WindowContext* ctx) noexcept
 	if (!ctx)
 		return;
 
+#ifdef DEBUG
 	if (ImGui::Begin("EditorWindow", &bOpen))
 	{
 		ImGui::Text("Interfaces");
 		for (const auto& str : mState->mInterfaces)
 			ImGui::Text(std::to_string(static_cast<u32>(str->mInterfaceId)).c_str());
-		ImGui::End();
-
 		// TODO: Interface handling
-
 	}
-
-	
-
+	ImGui::End();
+#endif
 	// Check for IRenderable
 
 	// Fill in top bar, check for IExtendedBar
