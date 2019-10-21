@@ -59,19 +59,25 @@ struct GCCollection : public pl::AbstractInterface
 
 		// Properties must be allocated in the delegate instance.
 		virtual gx::CullMode getCullMode() const = 0;
-		virtual void setCullMode(gx::CullMode) = 0;
+		virtual void setCullMode(gx::CullMode value) = 0;
 
 		struct GenInfoCounts { u8 colorChan, texGen, tevStage, indStage; };
 		virtual GenInfoCounts getGenInfo() const = 0;
-		virtual void setGenInfo(const GenInfoCounts&) = 0;
+		virtual void setGenInfo(const GenInfoCounts& value) = 0;
 
 		virtual bool getZCompLoc() const = 0;
-		virtual void setZCompLoc(bool) = 0;
+		virtual void setZCompLoc(bool value) = 0;
 
 		virtual SupportRegistration getRegistration() const = 0;
+
+		virtual const char* getNameCStr() { return "Unsupported"; }
+		virtual void* getRaw() = 0; // For selection
 	};
 
-	virtual std::unique_ptr<IMaterialDelegate> getMaterialDelegate(u32 idx) = 0;
+	// Non-owning reference
+	virtual IMaterialDelegate& getMaterialDelegate(u32 idx) = 0;
+	// For material delegates, if size of materials is altered
+	virtual void update() = 0;
 };
 
 } // namespace libcube

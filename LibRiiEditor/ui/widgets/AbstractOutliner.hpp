@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/SelectionManager.hpp"
+#include "LibRiiEditor/core/SelectionManager.hpp"
 #include <imgui/imgui.h>
 #include <oishii/types.hxx>
 #include <algorithm>

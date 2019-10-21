@@ -17,6 +17,7 @@ void RiiCore::drawRoot()
 #ifdef DEBUG
 	auto ctx = makeWindowContext();
 	mThemeEd.draw(&ctx);
+	ImGui::ShowDemoWindow();
 #endif
 }
 

@@ -11,12 +11,14 @@ struct SelectionManager
 		None = 0, // Nothing is selected
 		Effect = (1 << 0), // Particle Effect System
 		Texture = (1 << 1), // Texture Image
-		Material = (1 << 2) // Of a model
+		Material = (1 << 2) // Of a model, material vector
 	};
 	struct Selection
 	{
 		Type type;
 		void* object;
+
+		std::vector<int> mIndices;
 
 		Selection(Type t, void* o) : type(t), object(o) {}
 	};

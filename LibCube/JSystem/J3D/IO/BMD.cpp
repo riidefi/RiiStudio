@@ -367,17 +367,18 @@ struct MatLoader
 		oishii::BinaryReader& reader;
 		u32 ofs;
 
-		TRaw raw()
+		template<typename TGet = TRaw>
+		TGet raw()
 		{
 			if (!ofs)
 				throw "Invalid read.";
 
-			return reader.getAt<TRaw>(ofs);
+			return reader.getAt<TGet>(ofs);
 		}
 		template<typename T>
 		T as()
 		{
-			return static_cast<T>(raw());
+			return static_cast<T>(raw<T>());
 		}
 	};
 private:
@@ -558,7 +559,8 @@ struct io_wrapper<J3DModel::Material::TexMatrix>
 	static void onRead(oishii::BinaryReader& reader, J3DModel::Material::TexMatrix& c)
 	{
 		c.projection = static_cast<gx::TexGenType>(reader.read<u8>());
-		assert(c.projection == gx::TexGenType::Matrix2x4 || c.projection == gx::TexGenType::Matrix3x4);
+		// FIXME:
+		//	assert(c.projection == gx::TexGenType::Matrix2x4 || c.projection == gx::TexGenType::Matrix3x4);
 
 		c.mappingMethod = reader.read<u8>();
 		c.maya = c.mappingMethod & 0x80;
@@ -1058,7 +1060,9 @@ void BMDImporter::readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 bool BMDImporter::tryRead(oishii::BinaryReader& reader, pl::FileState& state)
 {
 	//oishii::BinaryReader::ScopedRegion g(reader, "J3D Binary Model Data (.bmd)");
-	readBMD(reader, BMDOutputContext{ static_cast<J3DCollection&>(state).mModel });
+	auto& j3dc = static_cast<J3DCollection&>(state);
+	readBMD(reader, BMDOutputContext{ j3dc.mModel });
+	j3dc.update();
 	return !error;
 }
 

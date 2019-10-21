@@ -1,6 +1,7 @@
 #pragma once
 
 #include <LibRiiEditor/ui/Window.hpp>
+#include <LibCube/JSystem/J3D/Collection.hpp>
 
 namespace ed {
 
@@ -11,8 +12,10 @@ struct MaterialEditor final : public Window
 	void draw(WindowContext* ctx) noexcept override;
 
 private:
-	bool drawLeft(WindowContext& ctx);
-	bool drawRight(WindowContext& ctx);
+	bool drawLeft(std::vector<libcube::GCCollection::IMaterialDelegate*>& ctx);
+	bool drawRight(std::vector<libcube::GCCollection::IMaterialDelegate*>& ctx);
+
+	bool drawGenInfoTab(std::vector<libcube::GCCollection::IMaterialDelegate*>& ctx);
 };
 
 }

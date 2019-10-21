@@ -6,66 +6,110 @@
 
 #include "MaterialEditor/Components/CullMode.hpp"
 #include "MaterialEditor/MatEditor.hpp"
-struct TextureOutlinerConfig
+
+#include <LibRiiEditor/ui/widgets/AbstractOutliner.hpp>
+
+
+//	struct TextureOutlinerConfig
+//	{
+//		static std::string res_name_plural()
+//		{
+//			return "Textures";
+//		}
+//		static std::string res_name_singular()
+//		{
+//			return "Texture";
+//		}
+//		static std::string res_icon_plural()
+//		{
+//			return ICON_FA_IMAGE;
+//		}
+//		static std::string res_icon_singular()
+//		{
+//			return ICON_FA_IMAGES;
+//		}
+//	};
+struct MaterialOutlinerConfig
 {
 	static std::string res_name_plural()
 	{
-		return "Textures";
+		return "Materials";
 	}
 	static std::string res_name_singular()
 	{
-		return "Texture";
+		return "Material";
 	}
 	static std::string res_icon_plural()
 	{
-		return ICON_FA_IMAGE;
+		return ICON_FA_PAINT_BRUSH;
 	}
 	static std::string res_icon_singular()
 	{
-		return ICON_FA_IMAGES;
+		return ICON_FA_PAINT_BRUSH;
 	}
 };
-class TextureDataSource : public OutlinerFolder<int, SelectionManager::Texture, TextureOutlinerConfig>
+
+struct MaterialDelegateSampler
 {
-public:
-	TextureDataSource() = default;
-	~TextureDataSource() = default;
+	bool empty() const noexcept
+	{
+		return c.getNumMaterials() == 0;
+	}
+	u32 size() const noexcept
+	{
+		return c.getNumMaterials();
+	}
+	const char* nameAt(u32 idx) const noexcept
+	{
+		return c.getMaterialDelegate(idx).getNameCStr();
+	}
+	void* rawAt(u32 idx) const noexcept
+	{
+		return &c.getMaterialDelegate(idx);
+	}
+	libcube::GCCollection& c;
 };
-struct TextureOutliner final : public Window
+struct MaterialDataSource :	
+	public AbstractOutlinerFolder<MaterialDelegateSampler, SelectionManager::Material, MaterialOutlinerConfig>
+{};
+struct MaterialOutliner final : public Window
 {
-	TextureOutliner() = default;
-	~TextureOutliner() override = default;
+	MaterialOutliner(libcube::GCCollection& c)
+		: samp{ c }
+	{}
+	~MaterialOutliner() override = default;
 
 	void draw(WindowContext* ctx) noexcept override
 	{
 
-		if (ImGui::Begin((std::string("Texture Outliner #") + std::to_string(mId)).c_str(), &bOpen))
+		if (ImGui::Begin((std::string("Material Outliner #") + std::to_string(mId)).c_str(), &bOpen))
 		{
 			mFilter.Draw();
 
-			//if (ctx)
-				// outliner.draw(ctx->core_resource, ctx->selectionManager, &mFilter);
+			if (ctx)
+				outliner.draw(samp, ctx->selectionManager, &mFilter);
 
 			ImGui::End();
 		}
-
 	}
-	ImGuiTextFilter mFilter;
+
+	MaterialDelegateSampler samp;
+	MaterialDataSource outliner;
+	ImTFilter mFilter;
 };
-
-
 EditorWindow::EditorWindow(std::unique_ptr<pl::FileState> state)
 	: mState(std::move(state))
 {
-	for (const auto it : mState->mInterfaces)
+	for (pl::AbstractInterface* it : mState->mInterfaces)
 	{
 		switch (it->mInterfaceId)
 		{
 		case pl::InterfaceID::TextureList:
-			attachWindow(std::move(std::make_unique<TextureOutliner>()));
+			// attachWindow(std::move(std::make_unique<TextureOutliner>()));
 			break;
 		case pl::InterfaceID::LibCube_GCCollection:
 			attachWindow(std::move(std::make_unique<ed::MaterialEditor>()));
+			attachWindow(std::move(std::make_unique<MaterialOutliner>(*static_cast<libcube::GCCollection*>(it))));
 			break;
 		}
 	}

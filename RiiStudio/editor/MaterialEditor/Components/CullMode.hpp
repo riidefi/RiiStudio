@@ -1,12 +1,24 @@
 #pragma once
 
 #include <LibCube/GX/Material.hpp>
+#include <ThirdParty/imgui/imgui.h>
 
 namespace ed {
 
 struct CullMode
 {
-	bool front, back = true;
+	bool front, back;
+
+	CullMode()
+		: front(true), back(false)
+	{}
+	CullMode(bool f, bool b)
+		: front(f), back(b)
+	{}
+	CullMode(libcube::gx::CullMode c)
+	{
+		set(c);
+	}
 
 	void set(libcube::gx::CullMode c) noexcept
 	{
@@ -37,6 +49,13 @@ struct CullMode
 			return libcube::gx::CullMode::All;
 
 		return front ? libcube::gx::CullMode::Back : libcube::gx::CullMode::Front;
+	}
+
+	void draw()
+	{
+		ImGui::Text("Show sides of faces:");
+		ImGui::Checkbox("Front", &front);
+		ImGui::Checkbox("Back", &back);
 	}
 };
 
