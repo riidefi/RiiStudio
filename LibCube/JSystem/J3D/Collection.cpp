@@ -11,7 +11,7 @@ struct J3DMaterialDelegate : public GCCollection::IMaterialDelegate
 {
 	~J3DMaterialDelegate() override = default;
 	J3DMaterialDelegate(J3DModel::Material& mat, u32 i)
-		: mMat(mat), idx(idx)
+		: mMat(mat), idx(i)
 	{}
 
 	gx::CullMode getCullMode() const override
@@ -77,7 +77,7 @@ struct J3DCollection::Internal
 
 J3DCollection::J3DCollection()
 {
-	internal = new Internal();
+	internal = std::make_unique<Internal>();
 
 	registerInterface<pl::ITextureList>();
 	registerInterface<GCCollection>();
@@ -86,7 +86,6 @@ J3DCollection::J3DCollection()
 }
 J3DCollection::~J3DCollection()
 {
-	delete internal;
 }
 void J3DCollection::update()
 {

@@ -17,8 +17,6 @@ struct J3DCollection : public pl::FileState, public pl::ITextureList, public GCC
 {
 	/*std::vector<std::unique_ptr<*/J3DModel/*>>*/ mModel/*s*/;
 
-	struct Internal;
-
 	J3DCollection();
 	~J3DCollection();
 
@@ -38,7 +36,6 @@ struct J3DCollection : public pl::FileState, public pl::ITextureList, public GCC
 
 	// GCCollection
 	u32 getNumMaterials() const override { return mModel.mMaterials.size(); }
-	Internal* internal;
 	
 	GCCollection::IMaterialDelegate& getMaterialDelegate(u32 idx) override;
 
@@ -53,6 +50,9 @@ struct J3DCollection : public pl::FileState, public pl::ITextureList, public GCC
 	{
 		mInterfaces.push_back(static_cast<T*>(this));
 	}
+private:
+	struct Internal;
+	std::unique_ptr<Internal> internal;
 };
 
 struct J3DCollectionSpawner : public pl::FileStateSpawner
