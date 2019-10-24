@@ -13,7 +13,7 @@ struct Package : public pl::Package
 
 	jsystem::J3DCollectionSpawner mJ3DCollectionSpawner;
 
-	jsystem::BMDImporterSpawner mBMDImporterSpawner;
+	std::pair<jsystem::BMDImporterSpawner, jsystem::BMDExporterSpawner> mBMD;
 };
 
 } // namespace libcube

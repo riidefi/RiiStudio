@@ -15,6 +15,9 @@
 #include <algorithm>
 #include <tuple>
 
+#include <oishii/writer/node.hxx>
+#include <oishii/writer/linker.hxx>
+
 namespace libcube::jsystem {
 
 std::vector<std::string> readNameTable(oishii::BinaryReader& reader)
@@ -1066,6 +1069,100 @@ bool BMDImporter::tryRead(oishii::BinaryReader& reader, pl::FileState& state)
 	readBMD(reader, BMDOutputContext{ j3dc.mModel });
 	j3dc.update();
 	return !error;
+}
+
+
+template<typename T>
+union linker_ptr
+{
+	const T* get() const { return data; }
+	T* get() { return data; }
+
+	T* operator->() { return get(); }
+	const T* operator->() const { return get(); }
+
+
+	linker_ptr(T* ptr)
+		: data(ptr)
+	{}
+
+private:
+	T* data;
+};
+
+template<typename T>
+auto make_tempnode = []()
+{
+	// Deleted by linker
+	return linker_ptr<T>(new LinkNode<T>(true));
+};
+
+struct BMDFile
+{
+	static const char* getNameId() { return "Binary Model Data"; }
+
+	virtual const oishii::Node& getSelf() const = 0;
+
+	void write(oishii::Writer& writer) const
+	{
+		writer.write<u32, oishii::EndianSelect::Big>('J3D2');
+		writer.write<u32, oishii::EndianSelect::Big>('bmd3');
+
+		// Filesize
+		writer.writeLink<s32>(oishii::Link {
+			oishii::Hook(getSelf()),
+			oishii::Hook(getSelf(), oishii::Hook::EndOfChildren)});
+	}
+	std::vector<linker_ptr<oishii::Node>> gatherChildren() const
+	{
+		return {};
+	}
+};
+
+template<typename T>
+struct LinkNode final : public oishii::Node, T
+{
+	LinkNode(bool linkerOwned=true)
+		: Node(T::getNameId())
+	{
+		transferOwnershipToLinker(linkerOwned);
+	}
+
+	eResult write(oishii::Writer& writer) const noexcept
+	{
+		T::write(writer);
+		return eResult::Success;
+	}
+
+	eResult gatherChildren(std::vector<const oishii::Node*>& out) const noexcept override
+	{
+		for (auto ptr : T::gatherChildren())
+			out.push_back(ptr.get());
+
+		return eResult::Success;
+	}
+	const oishii::Node& getSelf() const override
+	{
+		return *this;
+	}
+};
+
+
+void exportBMD(oishii::Writer& writer, J3DCollection& collection)
+{
+	oishii::Linker linker;
+
+	LinkNode<BMDFile> bmd(false);
+
+	linker.gather(bmd, "");
+	linker.write(writer);
+}
+
+bool BMDExporter::write(oishii::Writer& writer, pl::FileState& state)
+{
+	exportBMD(writer, static_cast<J3DCollection&>(state));
+
+	return true;
 }
 
 } // namespace libcube::jsystem

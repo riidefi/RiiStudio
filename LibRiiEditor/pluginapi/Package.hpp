@@ -6,6 +6,7 @@
 
 #include "FileStateSpawner.hpp"
 #include "io/Importer.hpp"
+#include "IO/Exporter.hpp"
 
 namespace pl {
 
@@ -15,6 +16,7 @@ struct Package
 
 	std::vector<const FileStateSpawner*> mEditors; // point to member of class
 	std::vector<const ImporterSpawner*> mImporters;
+	std::vector<const ExporterSpawner*> mExporters;
 };
 
 } // namespace pl

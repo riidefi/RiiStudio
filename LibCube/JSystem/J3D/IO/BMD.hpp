@@ -8,6 +8,7 @@
 #include <LibRiiEditor/common.hpp>
 #include <LibCube/JSystem/J3D/Collection.hpp>
 #include <LibRiiEditor/pluginapi/IO/Importer.hpp>
+#include <LibRiiEditor/pluginapi/IO/Exporter.hpp>
 
 namespace libcube::jsystem {
 
@@ -48,6 +49,28 @@ private:
 	bool enterSection(oishii::BinaryReader& reader, u32 id);
 };
 
+class BMDExporter : public pl::Exporter
+{
+public:
+	~BMDExporter() = default;
+
+	bool write(oishii::Writer& writer, pl::FileState& state) override;
+};
+class BMDExporterSpawner : public pl::ExporterSpawner
+{
+	bool match(const std::string& id) override
+	{
+		return id == "j3dcollection";
+	}
+	std::unique_ptr<pl::Exporter> spawn() const override
+	{
+		return std::make_unique<BMDExporter>();
+	}
+	std::unique_ptr<pl::ExporterSpawner> clone() const override
+	{
+		return std::make_unique<BMDExporterSpawner>(*this);
+	}
+};
 class BMDImporterSpawner : public pl::ImporterSpawner
 {
 	std::pair<MatchResult, std::string> match(const std::string& fileName, oishii::BinaryReader& reader) const override

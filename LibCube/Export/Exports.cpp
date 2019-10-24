@@ -22,7 +22,12 @@ Package::Package()
 
 	// Importers
 	mImporters = {
-		&mBMDImporterSpawner
+		&mBMD.first
+	};
+
+	// Exporters
+	mExporters = {
+		&mBMD.second
 	};
 }
 
