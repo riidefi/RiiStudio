@@ -375,10 +375,10 @@ struct MatLoader
 
 			return reader.getAt<TGet>(ofs);
 		}
-		template<typename T>
+		template<typename T, typename TRaw>
 		T as()
 		{
-			return static_cast<T>(raw<T>());
+			return static_cast<T>(raw<TRaw>());
 		}
 	};
 private:
@@ -660,13 +660,13 @@ void readMatEntry(J3DModel::Material& mat, MatLoader& loader, oishii::BinaryRead
 
 	assert(reader.tell() % 4 == 0);
 	mat.flag				= reader.read<u8>();
-	mat.cullMode			= loader.indexed<u8>(MatSec::CullModeInfo).as<gx::CullMode>();
+	mat.cullMode			= loader.indexed<u8>(MatSec::CullModeInfo).as<gx::CullMode, u32>();
 	mat.info.nColorChannel	= loader.indexed<u8>(MatSec::NumTexGens).raw();
 	mat.info.nTexGen		= loader.indexed<u8>(MatSec::NumTexGens).raw();
 	mat.info.nTevStage		= loader.indexed<u8>(MatSec::NumTevStages).raw();
-	mat.earlyZComparison	= loader.indexed<u8>(MatSec::ZCompareInfo).as<bool>();
+	mat.earlyZComparison	= loader.indexed<u8>(MatSec::ZCompareInfo).as<bool, u8>();
 	loader.indexedContained<u8>(mat.ZMode, MatSec::ZModeInfo, 4);
-	mat.dither				= loader.indexed<u8>(MatSec::DitherInfo).as<bool>();
+	mat.dither				= loader.indexed<u8>(MatSec::DitherInfo).as<bool, u8>();
 
 	dbg.assertSince(8);
 	loader.indexedContainer<u16>(mat.matColors, MatSec::MaterialColors, 4);
@@ -735,7 +735,7 @@ void readMatEntry(J3DModel::Material& mat, MatLoader& loader, oishii::BinaryRead
 		// FIXME
 		J3DModel::array_vector<gx::Shader::SwapTableEntry, 16> swapTables;
 		loader.indexedContainer<u16>(swapTables, MatSec::TevSwapModeTableInfo, 4);
-		assert(swapTables.size() == 4);
+		//	assert(swapTables.size() == 4);
 		for (int i = 0; i < 4; ++i)
 			mat.shader.mSwapTable[i] = swapTables[i];
 	}
@@ -944,6 +944,8 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 
 				assert(size > 0);
 				const auto ensize = (size + estride) / estride;
+
+				assert(ensize < u16(-1));
 
 				switch (bufkind)
 				{

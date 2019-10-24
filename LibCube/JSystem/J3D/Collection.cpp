@@ -12,7 +12,13 @@ struct J3DMaterialDelegate : public GCCollection::IMaterialDelegate
 	~J3DMaterialDelegate() override = default;
 	J3DMaterialDelegate(J3DModel::Material& mat, u32 i)
 		: mMat(mat), idx(i)
-	{}
+	{
+		using P = PropertySupport;
+		support.setSupport(P::Feature::CullMode, P::Coverage::ReadWrite);
+		support.setSupport(P::Feature::ZCompareLoc, P::Coverage::ReadWrite);
+		support.setSupport(P::Feature::ZCompare, P::Coverage::ReadWrite);
+		support.setSupport(P::Feature::GenInfo, P::Coverage::ReadWrite);
+	}
 
 	gx::CullMode getCullMode() const override
 	{
@@ -49,15 +55,6 @@ struct J3DMaterialDelegate : public GCCollection::IMaterialDelegate
 		mMat.info.nInd = c.indStage;
 	}
 
-	SupportRegistration getRegistration() const override
-	{
-		return SupportRegistration {
-			PropSupport::ReadWrite,
-			PropSupport::ReadWrite,
-			PropSupport::Unsupported,
-			PropSupport::ReadWrite
-		};
-	}
 	const char* getNameCStr() override
 	{
 		return mMat.id.c_str();

@@ -18,21 +18,60 @@ struct GCCollection : public pl::AbstractInterface
 	{
 		virtual ~IMaterialDelegate() = default;
 
-		enum class PropSupport
-		{
-			Unsupported,
-			Read,
-			ReadWrite
-		};
 
-		struct SupportRegistration
+		struct PropertySupport
 		{
-			// FIXME: bitfield
-			PropSupport cullMode;
-			PropSupport zCompLoc;
-			PropSupport zComp;
-			PropSupport genInfo;
+			enum class Coverage
+			{
+				Unsupported,
+				Read,
+				ReadWrite
+			};
+
+			enum class Feature
+			{
+				CullMode,
+				ZCompareLoc,
+				ZCompare,
+				GenInfo,
+
+				Max
+			};
+
+			Coverage supports(Coverage f) const noexcept
+			{
+				assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
+
+				if (static_cast<u32>(f) >= static_cast<u32>(Feature::Max))
+					return Coverage::Unsupported;
+
+				return registration[static_cast<u32>(f)];
+			}
+			void setSupport(Feature f, Coverage s)
+			{
+				assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
+
+				if (static_cast<u32>(f) < static_cast<u32>(Feature::Max))
+					registration[static_cast<f32>(f)] = s;
+			}
+
+			Coverage& operator[](Feature f) noexcept
+			{
+				assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
+
+				return registration[static_cast<f32>(f)];
+			}
+			Coverage operator[](Feature f) const noexcept
+			{
+				assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
+
+				return registration[static_cast<f32>(f)];
+			}
+		private:
+			std::array<Coverage, static_cast<u32>(Feature::Max)> registration;
 		};
+		
+		PropertySupport support;
 		/*
 		template<typename T>
 		struct Property
@@ -67,8 +106,6 @@ struct GCCollection : public pl::AbstractInterface
 
 		virtual bool getZCompLoc() const = 0;
 		virtual void setZCompLoc(bool value) = 0;
-
-		virtual SupportRegistration getRegistration() const = 0;
 
 		virtual const char* getNameCStr() { return "Unsupported"; }
 		virtual void* getRaw() = 0; // For selection

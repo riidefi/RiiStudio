@@ -79,24 +79,39 @@ bool MaterialEditor::drawLeft(std::vector<libcube::GCCollection::IMaterialDelega
 	return true;
 }
 using m = libcube::GCCollection::IMaterialDelegate;
+using p = m::PropertySupport;
 
 bool MaterialEditor::drawGenInfoTab(std::vector<libcube::GCCollection::IMaterialDelegate*>& mats)
 {
 	auto& active_selection = *mats.back();
 
-	const auto reg = active_selection.getRegistration();
+	const auto feature_support = [&](p::Feature f) {
+		return active_selection.support[f];
+	};
+	const auto can_read = [&](p::Feature c) {
+		return feature_support(c) != p::Coverage::Unsupported;
+	};
+	const auto can_write = [&](p::Feature c) {
+		return feature_support(c) == p::Coverage::ReadWrite;
+	};
 
-	if (reg.cullMode != m::PropSupport::Unsupported)
-	{
+	auto drawCullMode = [&]() {
+		if (!can_read(p::Feature::CullMode))
+			return;
+
 		ed::CullMode d(active_selection.getCullMode());
 		d.draw();
 
-		if (reg.cullMode == m::PropSupport::ReadWrite && d.get() != active_selection.getCullMode())
-			for (auto p : mats)
-				p->setCullMode(d.get());
-	}
+		if (!can_write(p::Feature::CullMode) || d.get() == active_selection.getCullMode())
+			return;
+
+		for (auto p : mats)
+			p->setCullMode(d.get());
+	};
 	
-	if (reg.genInfo != m::PropSupport::Unsupported)
+	drawCullMode();
+
+	if (can_read(p::Feature::GenInfo));
 	{
 		const auto gen = active_selection.getGenInfo();
 
@@ -143,16 +158,15 @@ bool MaterialEditor::drawRight(std::vector<libcube::GCCollection::IMaterialDeleg
 #ifdef DEBUG
 	case MatTab::Debug: {
 		ImGui::Text("Material Delegate Registration");
-		const auto reg = active_selection.getRegistration();
 		
-		const auto toStr = [](m::PropSupport p) -> const char* {
+		const auto toStr = [](p::Coverage p) -> const char* {
 			switch (p)
 			{
-			case m::PropSupport::Unsupported:
+			case p::Coverage::Unsupported:
 				return "Unsupported";
-			case m::PropSupport::Read:
+			case p::Coverage::Read:
 				return "Read";
-			case m::PropSupport::ReadWrite:
+			case p::Coverage::ReadWrite:
 				return "ReadWrite";
 			default:
 				return "?";
@@ -165,27 +179,14 @@ bool MaterialEditor::drawRight(std::vector<libcube::GCCollection::IMaterialDeleg
 			ImGui::Text("Support"); ImGui::NextColumn();
 		ImGui::Separator();
 
-		const std::array<const char*, 4> features = { "cullMode", "zCompLoc", "zComp", "genInfo" };
+		const std::array<const char*, (u32)p::Feature::Max> features = { "cullMode", "zCompLoc", "zComp", "genInfo" };
 		static int selected = -1; // FIXME
-		int i = 0;
-		for (const auto p : features)
+		for (u32 i = 0; i < (u32)p::Feature::Max; ++i)
 		{
-			ImGui::Selectable(p, selected == i, ImGuiSelectableFlags_SpanAllColumns);
+			ImGui::Selectable(features[i], selected == i, ImGuiSelectableFlags_SpanAllColumns);
 			ImGui::NextColumn();
-			ImGui::Text(toStr([](auto m, int i) {
-				switch (i) {
-				case 0:
-					return m.cullMode;
-				case 1:
-					return m.zCompLoc;
-				case 2:
-					return m.zComp;
-				case 3:
-					return m.genInfo;
-				}
-				}(reg, i)));
+			ImGui::Text(toStr(active_selection.support[static_cast<p::Feature>(i)]));
 			ImGui::NextColumn();
-			++i;
 		}
 		
 		ImGui::Columns(1);
