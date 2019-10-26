@@ -15,6 +15,10 @@ public:
 
 	void attachWindow(std::unique_ptr<Window> window);
 	void detachWindow(u32 windowId);
+
+	// TODO: No lifetime guarantee
+	Window& getWindowIndexed(u32 idx);
+
 	void processWindowQueue();
 	void drawWindows(WindowContext* ctx = nullptr);
 

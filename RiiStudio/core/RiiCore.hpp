@@ -38,5 +38,5 @@ private:
 	EditorCoreRes mCoreRes = EditorCoreRes(mTheme);
 	PluginFactory mPluginFactory;
 	WindowAdaptor<Theme::Editor> mThemeEd;
-	
+	void DEBUGwriteBmd(const std::string& path);
 };

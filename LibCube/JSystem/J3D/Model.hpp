@@ -12,6 +12,7 @@
 
 #include <LibCube/GX/Material.hpp>
 
+#include <oishii/writer/binary_writer.hxx>
 
 namespace libcube::jsystem {
 
@@ -125,16 +126,16 @@ struct J3DModel
 				switch (mQuant.type.generic)
 				{
 				case gx::VertexBufferType::Generic::u8:
-					result[i] = reader.read<u8>() >> mQuant.divisor;
+					result[i] = reader.read<u8>() / f32(1 << mQuant.divisor);
 					break;
 				case gx::VertexBufferType::Generic::s8:
-					result[i] = reader.read<s8>() >> mQuant.divisor;
+					result[i] = reader.read<s8>() / f32(1 << mQuant.divisor);
 					break;
 				case gx::VertexBufferType::Generic::u16:
-					result[i] = reader.read<u16>() >> mQuant.divisor;
+					result[i] = reader.read<u16>() / f32(1 << mQuant.divisor);
 					break;
 				case gx::VertexBufferType::Generic::s16:
-					result[i] = result[i] = reader.read<s16>() >> mQuant.divisor;
+					result[i] = reader.read<s16>() / f32(1 << mQuant.divisor);
 					break;
 				case gx::VertexBufferType::Generic::f32:
 					result[i] = reader.read<f32>();
@@ -196,6 +197,118 @@ struct J3DModel
 			};
 		}
 
+		template<int n, typename T, glm::qualifier q>
+		void writeBufferEntryGeneric(oishii::Writer& writer, const glm::vec<n, T, q>& v) const
+		{
+			const auto cnt = ComputeComponentCount();
+			for (int i = 0; i < cnt; ++i)
+			{
+				switch (mQuant.type.generic)
+				{
+				case gx::VertexBufferType::Generic::u8:
+					writer.write<u8>(roundf(v[i] * (1 << mQuant.divisor)));
+					break;
+				case gx::VertexBufferType::Generic::s8:
+					writer.write<s8>(roundf(v[i] * (1 << mQuant.divisor)));
+					break;
+				case gx::VertexBufferType::Generic::u16:
+					writer.write<u16>(roundf(v[i] * (1 << mQuant.divisor)));
+					break;
+				case gx::VertexBufferType::Generic::s16:
+					writer.write<s16>(roundf(v[i] * (1 << mQuant.divisor)));
+					break;
+				case gx::VertexBufferType::Generic::f32:
+					writer.write<f32>(v[i]);
+					break;
+				default:
+					throw "Invalid buffer type!";
+				}
+			}
+		}
+		void writeBufferEntryColor(oishii::Writer& writer, const gx::Color& c) const
+		{
+			switch (mQuant.type.color)
+			{
+			case gx::VertexBufferType::Color::rgb565:
+				writer.write<u16>(((c.r & 0xf8) << 8) | ((c.g & 0xfc) << 3) | ((c.b & 0xf8) >> 3));
+				break;
+			case gx::VertexBufferType::Color::rgb8:
+				writer.write<u8>(c.r);
+				writer.write<u8>(c.g);
+				writer.write<u8>(c.b);
+				break;
+			case gx::VertexBufferType::Color::rgbx8:
+				writer.write<u8>(c.r);
+				writer.write<u8>(c.g);
+				writer.write<u8>(c.b);
+				writer.write<u8>(0);
+				break;
+			case gx::VertexBufferType::Color::rgba4:
+				writer.write<u16>( ((c.r & 0xf0) << 8) | ((c.g & 0xf0) << 4) | (c.b & 0xf0) | ((c.a & 0xf0) >> 4) );
+				break;
+			case gx::VertexBufferType::Color::rgba6:
+			{
+				// TODO: Verify
+				u32 v = ((c.r & 0x3f) << 18) | ((c.g & 0x3f) << 12) | (c.b & 0x3f << 6) | (c.a & 0x3f);
+				writer.write<u8>((v & 0x00ff0000) >> 16);
+				writer.write<u8>((v & 0x0000ff00) >> 8);
+				writer.write<u8>((v & 0x000000ff));
+				break;
+			}
+			case gx::VertexBufferType::Color::rgba8:
+				writer.write<u8>(c.r);
+				writer.write<u8>(c.g);
+				writer.write<u8>(c.b);
+				writer.write<u8>(c.a);
+				break;
+			default:
+				throw "Invalid buffer type!";
+			};
+		}
+
+		// For dead cases
+		template<int n, typename T, glm::qualifier q>
+		void writeBufferEntryColor(oishii::Writer& writer, const glm::vec<n, T, q>& v) const
+		{
+			assert(!"Invalid kind/type template match!");
+		}
+		void writeBufferEntryGeneric(oishii::Writer& writer, const gx::Color& c) const
+		{
+			assert(!"Invalid kind/type template match!");
+		}
+
+		void writeData(oishii::Writer& writer) const
+		{
+			switch (kind)
+			{
+			case VBufferKind::position:
+				if (mQuant.comp.position == gx::VertexComponentCount::Position::xy)
+					throw "Buffer: XY Pos Component count.";
+
+				for (const auto& d : mData)
+					writeBufferEntryGeneric(writer, d);
+				break;
+			case VBufferKind::normal:
+				if (mQuant.comp.normal != gx::VertexComponentCount::Normal::xyz)
+					throw "Buffer: NBT Vectors.";
+
+				for (const auto& d : mData)
+					writeBufferEntryGeneric(writer, d);
+				break;
+			case VBufferKind::color:
+				for (const auto& d : mData)
+					writeBufferEntryColor(writer, d);
+				break;
+			case VBufferKind::textureCoordinate:
+				if (mQuant.comp.texcoord == gx::VertexComponentCount::TextureCoordinate::s)
+					throw "Buffer: Single component texcoord vectors.";
+
+				for (const auto& d : mData)
+					writeBufferEntryGeneric(writer, d);
+				break;
+			}
+		}
+		
 		VertexBuffer() {}
 		VertexBuffer(VQuantization q)
 			: mQuant(q)
@@ -264,10 +377,10 @@ struct J3DModel
 		struct Display
 		{
 			ID<Material> material;
-			ID<Shape> shape;
+			u32/*ID<Shape>*/ shape;
 
 			Display() = default;
-			Display(ID<Material> mat, ID<Shape> shp)
+			Display(ID<Material> mat, u32/*ID<Shape>*/ shp)
 				: material(mat), shape(shp)
 			{}
 		};

@@ -18,7 +18,18 @@
 #include <oishii/writer/node.hxx>
 #include <oishii/writer/linker.hxx>
 
+#include "SceneGraph.hpp"
+
+
 namespace libcube::jsystem {
+
+template<typename T, u32 r, u32 c, typename TM, glm::qualifier qM>
+void transferMatrix(glm::mat<r, c, TM, qM>& mat, T& stream)
+{
+	for (int i = 0; i < r; ++i)
+		for (int j = 0; j < c; ++j)
+			stream.transfer(mat[i][j]);
+}
 
 std::vector<std::string> readNameTable(oishii::BinaryReader& reader)
 {
@@ -39,99 +50,6 @@ std::vector<std::string> readNameTable(oishii::BinaryReader& reader)
 
 	return collected;
 }
-
-#pragma region INF1
-struct SceneGraph
-{
-	static constexpr const char name[] = "Scenegraph";
-
-	enum class ByteCodeOp : s16
-	{
-		Terminate,
-		Open,
-		Close,
-
-		Joint = 0x10,
-		Material,
-		Shape,
-
-		Unitialized = -1
-	};
-
-	static_assert(sizeof(ByteCodeOp) == 2, "Invalid enum size.");
-
-	struct ByteCodeCmd
-	{
-		ByteCodeOp op;
-		s16 idx;
-
-		ByteCodeCmd(oishii::BinaryReader& reader)
-		{
-			transfer(reader);
-		}
-		ByteCodeCmd()
-			: op(ByteCodeOp::Unitialized), idx(-1)
-		{}
-
-		template<typename T>
-		void transfer(T& stream)
-		{
-			stream.transfer<ByteCodeOp>(op);
-			stream.transfer<s16>(idx);
-		}
-	};
-
-	static void onRead(oishii::BinaryReader& reader, BMDImporter::BMDOutputContext& ctx)
-	{
-		// FIXME: Algorithm can be significantly improved
-
-		u16 mat, joint = 0;
-		auto lastType = ByteCodeOp::Unitialized;
-
-		std::vector<ByteCodeOp> hierarchy_stack;
-		std::vector<u16> joint_stack;
-
-		for (ByteCodeCmd cmd(reader); cmd.op != ByteCodeOp::Terminate; cmd.transfer(reader))
-		{
-			switch (cmd.op)
-			{
-			case ByteCodeOp::Terminate:
-				return;
-			case ByteCodeOp::Open:
-				if (lastType == ByteCodeOp::Joint)
-					joint_stack.push_back(joint);
-				hierarchy_stack.emplace_back(lastType);
-				break;
-			case ByteCodeOp::Close:
-				if (hierarchy_stack.back() == ByteCodeOp::Joint)
-					joint_stack.pop_back();
-				hierarchy_stack.pop_back();
-				break;
-			case ByteCodeOp::Joint: {
-				const auto newId = cmd.idx;
-
-				if (!joint_stack.empty())
-				{
-					ctx.mdl.mJoints[ctx.jointIdLut[joint_stack.back()]].children.emplace_back(ctx.mdl.mJoints[ctx.jointIdLut[newId]].id);
-					ctx.mdl.mJoints[ctx.jointIdLut[newId]].parent = ctx.mdl.mJoints[ctx.jointIdLut[joint_stack.back()]].id;
-				}
-				joint = newId;
-				break;
-			}
-			case ByteCodeOp::Material:
-				mat = cmd.idx;
-				break;
-			case ByteCodeOp::Shape:
-				ctx.mdl.mJoints[ctx.jointIdLut[joint]].displays.emplace_back(ctx.mdl.mMaterials[mat].id, "Shapes TODO");
-				break;
-			}
-
-			if (cmd.op != ByteCodeOp::Open && cmd.op != ByteCodeOp::Close)
-				lastType = cmd.op;
-		}
-	}
-};
-#pragma endregion
 
 #pragma region Sectioning
 bool BMDImporter::enterSection(oishii::BinaryReader& reader, u32 id)
@@ -165,13 +83,16 @@ void BMDImporter::readInformation(oishii::BinaryReader& reader, BMDOutputContext
 	{
 		ScopedSection g(reader, "Information");
 
-		u32 flag = reader.read<u32>();
+		u16 flag = reader.read<u16>();
+		reader.read<u16>();
 
 		// TODO -- Use these for validation
 		u32 nPacket = reader.read<u32>();
 		u32 nVertex = reader.read<u32>();
 
 		ctx.mdl.info.mScalingRule = static_cast<J3DModel::Information::ScalingRule>(flag & 0xf);
+		// FIXME
+		//assert((flag & ~0xf) == 0);
 
 		reader.dispatch<SceneGraph, oishii::Indirection<0, s32, oishii::Whence::At>>(ctx, g.start);
 	}
@@ -194,7 +115,7 @@ void BMDImporter::readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContex
 		envelopes.resize(size);
 		reader.read<u16>();
 
-		const auto[ofsMatrixSize, ofsMatrixIndex, ofsMatrixWeight, ofsMatrixInvBind] = reader.readX<s32, 4>();
+		const auto [ofsMatrixSize, ofsMatrixIndex, ofsMatrixWeight, ofsMatrixInvBind] = reader.readX<s32, 4>();
 
 		int mtxId = 0;
 		int maxJointIndex = -1;
@@ -219,9 +140,15 @@ void BMDImporter::readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContex
 			}
 		}
 
+		// TODO: Assert in JNT1 this matches
+		ctx.mdl.mJoints.resize(maxJointIndex + 1);
+
 		for (int i = 0; i < maxJointIndex + 1; ++i)
 		{
-			// TODO: Read inverse bind matrices
+			// TODO: Fix
+			oishii::Jump<oishii::Whence::Set> gInv(reader, g.start + ofsMatrixInvBind + i * 4 * 4 * sizeof(f32));
+
+			transferMatrix(ctx.mdl.mJoints[i].inverseBindPoseMtx, reader);
 		}
 	}
 
@@ -234,7 +161,7 @@ void BMDImporter::readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContex
 		ctx.mdl.mDrawMatrices.resize(reader.read<u16>());
 		reader.read<u16>();
 
-		const auto[ofsPartialWeighting, ofsIndex] = reader.readX<s32, 2>();
+		const auto [ofsPartialWeighting, ofsIndex] = reader.readX<s32, 2>();
 
 		reader.seekSet(g.start);
 
@@ -260,11 +187,12 @@ void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx
 		ScopedSection g(reader, "Joints");
 
 		u16 size = reader.read<u16>();
-		ctx.mdl.mJoints.resize(size);
+		assert(size == ctx.mdl.mJoints.size()); // From EVP1/DRW1
+		// ctx.mdl.mJoints.resize(size);
 		ctx.jointIdLut.resize(size);
 		reader.read<u16>();
 
-		const auto[ofsJointData, ofsRemapTable, ofsStringTable] = reader.readX<s32, 3>();
+		const auto [ofsJointData, ofsRemapTable, ofsStringTable] = reader.readX<s32, 3>();
 		reader.seekSet(g.start);
 
 		// Compressible resources in J3D have a relocation table (necessary for interop with other animations that access by index)
@@ -315,7 +243,7 @@ void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx
 #pragma region MAT3
 enum class MatSec
 {
-// Material entries, lut, and name table handled separately
+	// Material entries, lut, and name table handled separately
 	IndirectTexturingInfo,
 	CullModeInfo,
 	MaterialColors,
@@ -432,7 +360,7 @@ public:
 		// Big assumption: Entries are contiguous
 
 		oishii::JumpOut g(reader, out.max_size() * sizeof(TIdx));
-	
+
 		for (auto& it : out)
 		{
 			if (const auto ofs = indexed<TIdx>(sec, stride).ofs)
@@ -466,7 +394,7 @@ struct io_wrapper<gx::AlphaComparison>
 		c.compLeft = static_cast<gx::Comparison>(reader.read<u8>());
 		c.refLeft = reader.read<u8>();
 		c.op = static_cast<gx::AlphaOp>(reader.read<u8>());
-		c.compRight= static_cast<gx::Comparison>(reader.read<u8>());
+		c.compRight = static_cast<gx::Comparison>(reader.read<u8>());
 		c.refRight = reader.read<u8>();
 		reader.seek(3);
 	}
@@ -505,11 +433,11 @@ struct io_wrapper<gx::ChannelControl>
 		out.Material = static_cast<gx::ColorSource>(reader.read<u8>());
 		out.lightMask = static_cast<gx::LightID>(reader.read<u8>());
 		out.diffuseFn = static_cast<gx::DiffuseFunction>(reader.read<u8>());
-        constexpr const std::array<gx::AttenuationFunction, 4> cvt = {
-            gx::AttenuationFunction::None,
-            gx::AttenuationFunction::Specular,
-            gx::AttenuationFunction::None,
-            gx::AttenuationFunction::Spotlight};
+		constexpr const std::array<gx::AttenuationFunction, 4> cvt = {
+			gx::AttenuationFunction::None,
+			gx::AttenuationFunction::Specular,
+			gx::AttenuationFunction::None,
+			gx::AttenuationFunction::Spotlight };
 		out.attenuationFn = cvt[reader.read<u8>()];
 		out.Ambient = static_cast<gx::ColorSource>(reader.read<u8>());
 
@@ -662,14 +590,14 @@ void readMatEntry(J3DModel::Material& mat, MatLoader& loader, oishii::BinaryRead
 	oishii::BinaryReader::ScopedRegion g(reader, "Material");
 
 	assert(reader.tell() % 4 == 0);
-	mat.flag				= reader.read<u8>();
-	mat.cullMode			= loader.indexed<u8>(MatSec::CullModeInfo).as<gx::CullMode, u32>();
-	mat.info.nColorChannel	= loader.indexed<u8>(MatSec::NumTexGens).raw();
-	mat.info.nTexGen		= loader.indexed<u8>(MatSec::NumTexGens).raw();
-	mat.info.nTevStage		= loader.indexed<u8>(MatSec::NumTevStages).raw();
-	mat.earlyZComparison	= loader.indexed<u8>(MatSec::ZCompareInfo).as<bool, u8>();
+	mat.flag = reader.read<u8>();
+	mat.cullMode = loader.indexed<u8>(MatSec::CullModeInfo).as<gx::CullMode, u32>();
+	mat.info.nColorChannel = loader.indexed<u8>(MatSec::NumTexGens).raw();
+	mat.info.nTexGen = loader.indexed<u8>(MatSec::NumTexGens).raw();
+	mat.info.nTevStage = loader.indexed<u8>(MatSec::NumTevStages).raw();
+	mat.earlyZComparison = loader.indexed<u8>(MatSec::ZCompareInfo).as<bool, u8>();
 	loader.indexedContained<u8>(mat.ZMode, MatSec::ZModeInfo, 4);
-	mat.dither				= loader.indexed<u8>(MatSec::DitherInfo).as<bool, u8>();
+	mat.dither = loader.indexed<u8>(MatSec::DitherInfo).as<bool, u8>();
 
 	dbg.assertSince(8);
 	loader.indexedContainer<u16>(mat.matColors, MatSec::MaterialColors, 4);
@@ -725,7 +653,7 @@ void readMatEntry(J3DModel::Material& mat, MatLoader& loader, oishii::BinaryRead
 			mat.shader.mStages[i].colorStage.constantSelection = get_kc(i);
 			mat.shader.mStages[i].alphaStage.constantSelection = get_ka(i);
 		}
-		
+
 		dbg.assertSince(0x104);
 		J3DModel::array_vector<SwapSel, 16> swapSels;
 		loader.indexedContainer<u16>(swapSels, MatSec::TevSwapModeInfo, 4);
@@ -760,8 +688,8 @@ void BMDImporter::readMaterials(oishii::BinaryReader& reader, BMDOutputContext& 
 		ctx.materialIdLut.resize(size);
 		reader.read<u16>();
 
-		const auto[ofsMatData, ofsRemapTable, ofsStringTable] = reader.readX<s32, 3>();
-		MatLoader loader { reader.readX<s32, static_cast<u32>(MatSec::Max)>(), g.start, reader };
+		const auto [ofsMatData, ofsRemapTable, ofsStringTable] = reader.readX<s32, 3>();
+		MatLoader loader{ reader.readX<s32, static_cast<u32>(MatSec::Max)>(), g.start, reader };
 
 		reader.seekSet(g.start);
 
@@ -799,192 +727,202 @@ void BMDImporter::readMaterials(oishii::BinaryReader& reader, BMDOutputContext& 
 #pragma region VTX1
 void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept
 {
-	if (enterSection(reader, 'VTX1'))
+	if (!enterSection(reader, 'VTX1'))
+		return;
+
+	ScopedSection g(reader, "Vertex Buffers");
+
+	const auto ofsFmt = reader.read<s32>();
+	const auto ofsData = reader.readX<s32, 13>();
+
+	reader.seekSet(g.start + ofsFmt);
+	for (gx::VertexBufferAttribute type = reader.read<gx::VertexBufferAttribute>();
+		type != gx::VertexBufferAttribute::Terminate;
+		type = reader.read<gx::VertexBufferAttribute>())
 	{
-		ScopedSection g(reader, "Vertex Buffers");
+		const auto comp = reader.read<u32>();
+		const auto data = reader.read<u32>();
+		const auto gen_data = static_cast<gx::VertexBufferType::Generic>(data);
+		const auto gen_comp_size = (gen_data == gx::VertexBufferType::Generic::f32) ? 4 :
+			(gen_data == gx::VertexBufferType::Generic::u16 || gen_data == gx::VertexBufferType::Generic::s16) ? 2 :
+			1;
+		const auto shift = reader.read<u8>();
+		reader.seek(3);
 
-		const auto ofsFmt = reader.read<s32>();
-		const auto ofsData = reader.readX<s32, 13>();
+		assert(0 <= shift && shift <= 31);
 
-		reader.seekSet(g.start + ofsFmt);
-		for (gx::VertexBufferAttribute type = reader.read<gx::VertexBufferAttribute>();
-			type != gx::VertexBufferAttribute::Terminate;
-			type = reader.read<gx::VertexBufferAttribute>())
+		auto estride = 0;
+		// FIXME: type punning
+		void* buf = nullptr;
+
+		J3DModel::VBufferKind bufkind = J3DModel::VBufferKind::undefined;
+
+		switch (type)
 		{
-			const auto comp = reader.read<u32>();
-			const auto data = reader.read<u32>();
-			const auto gen_data = static_cast<gx::VertexBufferType::Generic>(data);
-			const auto gen_comp_size = (gen_data == gx::VertexBufferType::Generic::f32) ? 4 :
-				(gen_data == gx::VertexBufferType::Generic::u16 || gen_data == gx::VertexBufferType::Generic::u16) ? 2 :
-				1;
-			const auto shift = reader.read<u8>();
-			reader.seek(3);
-
-			assert(0 <= shift && shift <= 31);
-
-			auto estride = 0;
-			// FIXME: type punning
-			void* buf = nullptr;
-
-			J3DModel::VBufferKind bufkind = J3DModel::VBufferKind::undefined;
-
-			switch (type)
-			{
-			case gx::VertexBufferAttribute::Position:
-				buf = &ctx.mdl.mBufs.pos;
-				bufkind = J3DModel::VBufferKind::position;
-				ctx.mdl.mBufs.pos.mQuant = J3DModel::VQuantization(
-					gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Position>(comp)),
-					gx::VertexBufferType(gen_data),
-					gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0,
-					(comp + 2) * gen_comp_size);
-				estride = ctx.mdl.mBufs.pos.mQuant.stride;
-				break;
-			case gx::VertexBufferAttribute::Normal:
-				buf = &ctx.mdl.mBufs.norm;
-				bufkind = J3DModel::VBufferKind::normal;
-				ctx.mdl.mBufs.norm.mQuant = J3DModel::VQuantization(
-					gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Normal>(comp)),
-					gx::VertexBufferType(gen_data),
-					gen_data == gx::VertexBufferType::Generic::s8 ? 6 :
-					gen_data == gx::VertexBufferType::Generic::s16 ? 14 : 0,
-					3 * gen_comp_size
-				);
-				estride = ctx.mdl.mBufs.norm.mQuant.stride;
-				break;
-			case gx::VertexBufferAttribute::Color0:
-			case gx::VertexBufferAttribute::Color1:
-			{
-				auto& clr = ctx.mdl.mBufs.color[static_cast<size_t>(type) - static_cast<size_t>(gx::VertexBufferAttribute::Color0)];
-				buf = &clr;
-				bufkind = J3DModel::VBufferKind::color;
-				clr.mQuant = J3DModel::VQuantization(
-					gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Color>(comp)),
-					gx::VertexBufferType(static_cast<gx::VertexBufferType::Color>(data)),
-					0,
-					(comp + 3)* [](gx::VertexBufferType::Color c) {
-						using ct = gx::VertexBufferType::Color;
-						switch (c)
-						{
-						case ct::FORMAT_16B_4444:
-						case ct::FORMAT_16B_565:
-							return 2;
-						case ct::FORMAT_24B_6666:
-						case ct::FORMAT_24B_888:
-							return 3;
-						case ct::FORMAT_32B_8888:
-						case ct::FORMAT_32B_888x:
-							return 4;
-						default:
-							throw "Invalid color data type.";
-						}
-					}(static_cast<gx::VertexBufferType::Color>(data))
-				);
-				estride = clr.mQuant.stride;
-				break;
-			}
-			case gx::VertexBufferAttribute::TexCoord0:
-			case gx::VertexBufferAttribute::TexCoord1:
-			case gx::VertexBufferAttribute::TexCoord2:
-			case gx::VertexBufferAttribute::TexCoord3:
-			case gx::VertexBufferAttribute::TexCoord4:
-			case gx::VertexBufferAttribute::TexCoord5:
-			case gx::VertexBufferAttribute::TexCoord6:
-			case gx::VertexBufferAttribute::TexCoord7: {
-				auto& uv = ctx.mdl.mBufs.uv[static_cast<size_t>(type) - static_cast<size_t>(gx::VertexBufferAttribute::TexCoord0)];
-				buf = &uv;
-				bufkind = J3DModel::VBufferKind::textureCoordinate;
-				uv.mQuant = J3DModel::VQuantization(
-					gx::VertexComponentCount(static_cast<gx::VertexComponentCount::TextureCoordinate>(comp)),
-					gx::VertexBufferType(gen_data),
-					gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0,
-					(comp + 1) * gen_comp_size
-				);
-				estride = ctx.mdl.mBufs.pos.mQuant.stride;
-				break;
-			}
-			default:
-				assert(false);
-			}
-
-			assert(estride);
-			assert(bufkind != J3DModel::VBufferKind::undefined);
-
-			const auto getDataIndex = [&](gx::VertexBufferAttribute attr)
-			{
-				static const constexpr std::array<s8, static_cast<size_t>(gx::VertexBufferAttribute::NormalBinormalTangent) + 1> lut = {
-					-1, -1, -1, -1, -1, -1, -1, -1, -1,
-					0, // Position
-					1, // Normal
-					3, 4, // Color
-					5, 6, 7, 8, // UV
-					9, 10, 11, 12,
-					-1, -1, -1, -1, 2
-				};
-
-				static_assert(lut[static_cast<size_t>(gx::VertexBufferAttribute::NormalBinormalTangent)] == 2, "NBT");
-
-				const auto attr_i = static_cast<size_t>(attr);
-
-				assert(attr_i < lut.size());
-
-				return attr_i < lut.size() ? lut[attr_i] : -1;
-			};
-
-			const auto idx = getDataIndex(type);
-			const auto ofs = g.start + ofsData[idx];
-			{
-				oishii::Jump g_bufdata(reader, ofs);
-				size_t size = 0;
-				
-				bool found = false;
-				for (int i = idx + 1; !size && i < ofsData.size(); ++i)
-					if (ofsData[i])
-						size = static_cast<size_t>(ofsData[i]) - ofs;
-				
-				if (!size)
-					size = g.size - ofs;
-
-				assert(size > 0);
-				const auto ensize = (size + estride) / estride;
-
-				assert(ensize < u16(-1));
-
-				switch (bufkind)
-				{
-				case J3DModel::VBufferKind::position: {
-					auto pos = reinterpret_cast<decltype(ctx.mdl.mBufs.pos)*>(buf);
-
-					pos->mData.resize(ensize);
-					for (int i = 0; reader.tell() < size; ++i)
-						pos->readBufferEntryGeneric(reader, pos->mData[i]);
-				}
-				case J3DModel::VBufferKind::normal: {
-					auto nrm = reinterpret_cast<decltype(ctx.mdl.mBufs.norm)*>(buf);
-
-					nrm->mData.resize(ensize);
-					for (int i = 0; reader.tell() < size; ++i)
-						nrm->readBufferEntryGeneric(reader, nrm->mData[i]);
-				}
-				case J3DModel::VBufferKind::color: {
-					auto clr = reinterpret_cast<decltype(ctx.mdl.mBufs.color)::value_type*>(buf);
-
-					clr->mData.resize(ensize);
-					for (int i = 0; reader.tell() < size; ++i)
-						clr->readBufferEntryColor(reader, clr->mData[i]);
-				}
-				case J3DModel::VBufferKind::textureCoordinate: {
-					auto uv = reinterpret_cast<decltype(ctx.mdl.mBufs.uv)::value_type*>(buf);
-
-					uv->mData.resize(ensize);
-					for (int i = 0; reader.tell() < size; ++i)
-						uv->readBufferEntryGeneric(reader, uv->mData[i]);
-				}
-				}
-				
-			}
+		case gx::VertexBufferAttribute::Position:
+			buf = &ctx.mdl.mBufs.pos;
+			bufkind = J3DModel::VBufferKind::position;
+			ctx.mdl.mBufs.pos.mQuant = J3DModel::VQuantization(
+				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Position>(comp)),
+				gx::VertexBufferType(gen_data),
+				gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0,
+				(comp + 2) * gen_comp_size);
+			estride = ctx.mdl.mBufs.pos.mQuant.stride;
+			break;
+		case gx::VertexBufferAttribute::Normal:
+			buf = &ctx.mdl.mBufs.norm;
+			bufkind = J3DModel::VBufferKind::normal;
+			ctx.mdl.mBufs.norm.mQuant = J3DModel::VQuantization(
+				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Normal>(comp)),
+				gx::VertexBufferType(gen_data),
+				gen_data == gx::VertexBufferType::Generic::s8 ? 6 :
+				gen_data == gx::VertexBufferType::Generic::s16 ? 14 : 0,
+				3 * gen_comp_size
+			);
+			estride = ctx.mdl.mBufs.norm.mQuant.stride;
+			break;
+		case gx::VertexBufferAttribute::Color0:
+		case gx::VertexBufferAttribute::Color1:
+		{
+			auto& clr = ctx.mdl.mBufs.color[static_cast<size_t>(type) - static_cast<size_t>(gx::VertexBufferAttribute::Color0)];
+			buf = &clr;
+			bufkind = J3DModel::VBufferKind::color;
+			clr.mQuant = J3DModel::VQuantization(
+				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Color>(comp)),
+				gx::VertexBufferType(static_cast<gx::VertexBufferType::Color>(data)),
+				0,
+				(comp + 3)* [](gx::VertexBufferType::Color c) {
+					using ct = gx::VertexBufferType::Color;
+					switch (c)
+					{
+					case ct::FORMAT_16B_4444:
+					case ct::FORMAT_16B_565:
+						return 2;
+					case ct::FORMAT_24B_6666:
+					case ct::FORMAT_24B_888:
+						return 3;
+					case ct::FORMAT_32B_8888:
+					case ct::FORMAT_32B_888x:
+						return 4;
+					default:
+						throw "Invalid color data type.";
+					}
+				}(static_cast<gx::VertexBufferType::Color>(data)));
+			estride = clr.mQuant.stride;
+			break;
+		}
+		case gx::VertexBufferAttribute::TexCoord0:
+		case gx::VertexBufferAttribute::TexCoord1:
+		case gx::VertexBufferAttribute::TexCoord2:
+		case gx::VertexBufferAttribute::TexCoord3:
+		case gx::VertexBufferAttribute::TexCoord4:
+		case gx::VertexBufferAttribute::TexCoord5:
+		case gx::VertexBufferAttribute::TexCoord6:
+		case gx::VertexBufferAttribute::TexCoord7: {
+			auto& uv = ctx.mdl.mBufs.uv[static_cast<size_t>(type) - static_cast<size_t>(gx::VertexBufferAttribute::TexCoord0)];
+			buf = &uv;
+			bufkind = J3DModel::VBufferKind::textureCoordinate;
+			uv.mQuant = J3DModel::VQuantization(
+				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::TextureCoordinate>(comp)),
+				gx::VertexBufferType(gen_data),
+				gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0,
+				(comp + 1)* gen_comp_size
+			);
+			estride = ctx.mdl.mBufs.pos.mQuant.stride;
+			break;
+		}
+		default:
+			assert(false);
 		}
 
+		assert(estride);
+		assert(bufkind != J3DModel::VBufferKind::undefined);
+
+		const auto getDataIndex = [&](gx::VertexBufferAttribute attr)
+		{
+			static const constexpr std::array<s8, static_cast<size_t>(gx::VertexBufferAttribute::NormalBinormalTangent) + 1> lut = {
+				-1, -1, -1, -1, -1, -1, -1, -1, -1,
+				0, // Position
+				1, // Normal
+				3, 4, // Color
+				5, 6, 7, 8, // UV
+				9, 10, 11, 12,
+				-1, -1, -1, -1, 2
+			};
+
+			static_assert(lut[static_cast<size_t>(gx::VertexBufferAttribute::NormalBinormalTangent)] == 2, "NBT");
+
+			const auto attr_i = static_cast<size_t>(attr);
+
+			assert(attr_i < lut.size());
+
+			return attr_i < lut.size() ? lut[attr_i] : -1;
+		};
+
+		const auto idx = getDataIndex(type);
+		const auto ofs = g.start + ofsData[idx];
+		{
+			oishii::Jump<oishii::Whence::Set> g_bufdata(reader, ofs);
+			s32 size = 0;
+
+			for (int i = idx + 1; i < ofsData.size(); ++i)
+			{
+				if (ofsData[i])
+				{
+					size = static_cast<s32>(ofsData[i]) - ofsData[idx];
+					break;
+				}
+			}
+
+			if (!size)
+				size = g.size - ofsData[idx];
+
+			assert(size > 0);
+
+
+			// Desirable to round down
+			const auto ensize = (size /*+ estride*/) / estride;
+			//	assert(size % estride == 0);
+			assert(ensize < u32(u16(-1)) * 3);
+
+			// FIXME: Alignment padding trim
+
+			switch (bufkind)
+			{
+			case J3DModel::VBufferKind::position: {
+				auto pos = reinterpret_cast<decltype(ctx.mdl.mBufs.pos)*>(buf);
+					
+				pos->mData.resize(ensize);
+				for (int i = 0; i < ensize; ++i)
+					pos->readBufferEntryGeneric(reader, pos->mData[i]);
+				break;
+			}
+			case J3DModel::VBufferKind::normal: {
+				auto nrm = reinterpret_cast<decltype(ctx.mdl.mBufs.norm)*>(buf);
+
+				nrm->mData.resize(ensize);
+				for (int i = 0; i < ensize; ++i)
+					nrm->readBufferEntryGeneric(reader, nrm->mData[i]);
+				break;
+			}
+			case J3DModel::VBufferKind::color: {
+				auto clr = reinterpret_cast<decltype(ctx.mdl.mBufs.color)::value_type*>(buf);
+
+				clr->mData.resize(ensize);
+				for (int i = 0; i < ensize; ++i)
+					clr->readBufferEntryColor(reader, clr->mData[i]);
+				break;
+			}
+			case J3DModel::VBufferKind::textureCoordinate: {
+				auto uv = reinterpret_cast<decltype(ctx.mdl.mBufs.uv)::value_type*>(buf);
+
+				uv->mData.resize(ensize);
+				for (int i = 0; i < ensize; ++i)
+					uv->readBufferEntryGeneric(reader, uv->mData[i]);
+				break;
+			}
+			}
+		}
 	}
 }
 #pragma endregion
@@ -1073,56 +1011,9 @@ bool BMDImporter::tryRead(oishii::BinaryReader& reader, pl::FileState& state)
 
 
 template<typename T>
-union linker_ptr
-{
-	const T* get() const { return data; }
-	T* get() { return data; }
-
-	T* operator->() { return get(); }
-	const T* operator->() const { return get(); }
-
-
-	linker_ptr(T* ptr)
-		: data(ptr)
-	{}
-
-private:
-	T* data;
-};
-
-template<typename T>
-auto make_tempnode = []()
-{
-	// Deleted by linker
-	return linker_ptr<T>(new LinkNode<T>(true));
-};
-
-struct BMDFile
-{
-	static const char* getNameId() { return "Binary Model Data"; }
-
-	virtual const oishii::Node& getSelf() const = 0;
-
-	void write(oishii::Writer& writer) const
-	{
-		writer.write<u32, oishii::EndianSelect::Big>('J3D2');
-		writer.write<u32, oishii::EndianSelect::Big>('bmd3');
-
-		// Filesize
-		writer.writeLink<s32>(oishii::Link {
-			oishii::Hook(getSelf()),
-			oishii::Hook(getSelf(), oishii::Hook::EndOfChildren)});
-	}
-	std::vector<linker_ptr<oishii::Node>> gatherChildren() const
-	{
-		return {};
-	}
-};
-
-template<typename T>
 struct LinkNode final : public oishii::Node, T
 {
-	LinkNode(bool linkerOwned=true)
+	LinkNode(bool linkerOwned = true)
 		: Node(T::getNameId())
 	{
 		transferOwnershipToLinker(linkerOwned);
@@ -1146,13 +1037,335 @@ struct LinkNode final : public oishii::Node, T
 		return *this;
 	}
 };
+template<typename T>
+union linker_ptr
+{
+	const T* get() const { return data; }
+	T* get() { return data; }
 
+	T* operator->() { return get(); }
+	const T* operator->() const { return get(); }
+
+
+	linker_ptr(T* ptr)
+		: data(ptr)
+	{}
+	linker_ptr(const linker_ptr& other)
+	{
+		this->data = other.data;
+	}
+
+private:
+	T* data;
+};
+
+template<typename T>
+auto make_tempnode = []()
+{
+	// Deleted by linker
+	return linker_ptr<LinkNode<T>>(new LinkNode<T>(true));
+};
+
+struct INF1Node
+{
+	static const char* getNameId() { return "INF1 InFormation"; }
+	virtual const oishii::Node& getSelf() const = 0;
+
+	void write(oishii::Writer& writer) const
+	{
+		if (!mdl) return;
+
+		writer.write<u32, oishii::EndianSelect::Big>('INF1');
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("VTX1"/*getSelf(), oishii::Hook::EndOfChildren*/) });
+
+		writer.write<u16>(static_cast<u16>(mdl->info.mScalingRule) & 0xf);
+		writer.write<u16>(-1);
+		// Packet count
+		writer.write<u32>(-1); // TODO
+		// Vertex position count
+		writer.write<u32>(mdl->mBufs.pos.mData.size());
+
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("SceneGraph")
+			});
+	}
+
+
+	std::vector<linker_ptr<oishii::Node>> gatherChildren() const
+	{
+		return { SceneGraph::getLinkerNode(*mdl, true) };
+	}
+
+	J3DModel* mdl = nullptr;
+};
+
+struct VTX1Node
+{
+	static const char* getNameId() { return "VTX1"; }
+	virtual const oishii::Node& getSelf() const = 0;
+
+	int computeNumOfs() const
+	{
+		int numOfs = 0;
+		if (mdl)
+		{
+			if (!mdl->mBufs.pos.mData.empty()) ++numOfs;
+			if (!mdl->mBufs.norm.mData.empty()) ++numOfs;
+			for (int i = 0; i < 2; ++i)
+				if (!mdl->mBufs.color[i].mData.empty()) ++numOfs;
+			for (int i = 0; i < 8; ++i)
+				if (!mdl->mBufs.uv[i].mData.empty()) ++numOfs;
+		}
+		return numOfs;
+	}
+
+	void write(oishii::Writer& writer) const
+	{
+		if (!mdl) return;
+
+		writer.write<u32, oishii::EndianSelect::Big>('VTX1');
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook(getSelf(), oishii::Hook::EndOfChildren) });
+
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("Format") });
+
+		const auto numOfs = computeNumOfs();
+		int i = 0;
+		auto writeBufLink = [&]()
+		{
+			writer.writeLink<s32>(oishii::Link{
+				oishii::Hook(getSelf()),
+				oishii::Hook("Buf" + std::to_string(i++)) });
+		};
+		auto writeOptBufLink = [&](const auto& b) {
+			if (b.mData.empty())
+				writer.write<s32>(0);
+			else
+				writeBufLink();
+		};
+
+		writeOptBufLink(mdl->mBufs.pos);
+		writeOptBufLink(mdl->mBufs.norm);
+		writer.write<s32>(0); // NBT
+
+		for (const auto& c : mdl->mBufs.color)
+			writeOptBufLink(c);
+
+		for (const auto& u : mdl->mBufs.uv)
+			writeOptBufLink(u);
+	}
+
+	struct FormatDecl
+	{
+		static const char* getNameId() { return "Format"; }
+		virtual const oishii::Node& getSelf() const = 0;
+
+		struct Entry
+		{
+			gx::VertexBufferAttribute attrib;
+			u32 cnt = 1;
+			u32 data = 0;
+			u8 shift = 0;
+
+			void write(oishii::Writer& writer)
+			{
+				writer.write<u32>(static_cast<u32>(attrib));
+				writer.write<u32>(static_cast<u32>(cnt));
+				writer.write<u32>(static_cast<u32>(data));
+				writer.write<u8>(static_cast<u8>(shift));
+				for (int i = 0; i < 3; ++i)
+					writer.write<u8>(-1);
+			}
+		};
+
+		void write(oishii::Writer& writer) const
+		{
+			// Positions
+			if (!mdl->mBufs.pos.mData.empty())
+			{
+				const auto& q = mdl->mBufs.pos.mQuant;
+				Entry{
+					gx::VertexBufferAttribute::Position,
+					static_cast<u32>(q.comp.position),
+					static_cast<u32>(q.type.generic),
+					q.divisor
+				}.write(writer);
+			}
+			// Normals
+			if (!mdl->mBufs.norm.mData.empty())
+			{
+				const auto& q = mdl->mBufs.norm.mQuant;
+				Entry{
+					gx::VertexBufferAttribute::Normal,
+					static_cast<u32>(q.comp.normal),
+					static_cast<u32>(q.type.generic),
+					q.divisor
+				}.write(writer);
+			}
+			// Colors
+			{
+				int i = 0;
+				for (const auto& buf : mdl->mBufs.color)
+				{
+					if (!buf.mData.empty())
+					{
+						const auto& q = buf.mQuant;
+						Entry{
+							gx::VertexBufferAttribute((int)gx::VertexBufferAttribute::Color0 + i),
+							static_cast<u32>(q.comp.color),
+							static_cast<u32>(q.type.color),
+							q.divisor
+						}.write(writer);
+					}
+					++i;
+				}
+			}
+			// UVs
+			{
+				int i = 0;
+				for (const auto& buf : mdl->mBufs.uv)
+				{
+					if (!buf.mData.empty())
+					{
+						const auto& q = buf.mQuant;
+						Entry{
+							gx::VertexBufferAttribute((int)gx::VertexBufferAttribute::TexCoord0 + i),
+							static_cast<u32>(q.comp.texcoord),
+							static_cast<u32>(q.type.generic),
+							q.divisor
+						}.write(writer);
+					}
+					++i;
+				}
+			}
+			Entry{ gx::VertexBufferAttribute::Terminate }.write(writer);
+		}
+		std::vector<linker_ptr<oishii::Node>> gatherChildren() const
+		{
+			return {};
+		}
+
+		J3DModel* mdl;
+	};
+
+	template<typename T>
+	struct VertexAttribBuf : public oishii::Node
+	{
+		VertexAttribBuf(const J3DModel& m, const std::string& id, const T& data, bool linkerOwned = true)
+			: Node(id), mdl(m), mData(data)
+		{
+			transferOwnershipToLinker(linkerOwned);
+			getLinkingRestriction().options |= oishii::LinkingRestriction::Leaf;
+		}
+
+		eResult write(oishii::Writer& writer) const noexcept
+		{
+			mData.writeData(writer);
+			return eResult::Success;
+		}
+
+		const J3DModel& mdl;
+		const T& mData;
+	};
+
+	std::vector<linker_ptr<oishii::Node>> gatherChildren() const
+	{
+		std::vector<linker_ptr<oishii::Node>> tmp;
+
+		if (!mdl)
+			return tmp;
+
+		auto fmt = new LinkNode<FormatDecl>();
+		fmt->mdl = mdl;
+		tmp.emplace_back(fmt);
+
+		int i = 0;
+
+		auto push_buf = [&](auto& buf) {
+			auto b = new VertexAttribBuf(*mdl, "Buf" + std::to_string(i++), buf);
+			b->getLinkingRestriction().alignment = 32;
+			tmp.emplace_back(b);
+		};
+
+		// Positions
+		if (!mdl->mBufs.pos.mData.empty())
+		{
+			push_buf(mdl->mBufs.pos);
+			// tmp.emplace_back(new VertexAttribBuf(*mdl, "Buf" + std::to_string(i++), mdl->mBufs.pos));
+		}
+		// Normals
+		if (!mdl->mBufs.norm.mData.empty())
+			push_buf(mdl->mBufs.norm);
+		// Colors
+		for (auto& c : mdl->mBufs.color)
+			if (!c.mData.empty())
+				push_buf(c);
+		// UV
+		for (auto& c : mdl->mBufs.uv)
+			if (!c.mData.empty())
+				push_buf(c);
+
+
+		return tmp;
+	}
+
+	J3DModel* mdl = nullptr;
+};
+
+struct BMDFile
+{
+	static const char* getNameId() { return "JSystem Binary Model Data"; }
+
+	virtual const oishii::Node& getSelf() const = 0;
+
+	void write(oishii::Writer& writer) const
+	{
+		writer.write<u32, oishii::EndianSelect::Big>('J3D2');
+		writer.write<u32, oishii::EndianSelect::Big>(bBDL ? 'bdl4' : 'bmd3');
+
+		// Filesize
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook(getSelf(), oishii::Hook::EndOfChildren) });
+
+		// 8 sections
+		writer.write<u32>(bBDL ? 9 : 8);
+
+		// SubVeRsion
+		writer.write<u32, oishii::EndianSelect::Big>('SVR3');
+		for (int i = 0; i < 3; ++i)
+			writer.write<u32>(-1);
+	}
+	std::vector<linker_ptr<oishii::Node>> gatherChildren() const
+	{
+		auto inf1 = new LinkNode<INF1Node>();
+		inf1->getLinkingRestriction().alignment = 32;
+		inf1->mdl = &mCollection->mModel;
+
+		auto vtx1 = new LinkNode<VTX1Node>();
+		vtx1->getLinkingRestriction().alignment = 32;
+		vtx1->mdl = &mCollection->mModel;
+
+		return { inf1, vtx1 };
+	}
+
+	J3DCollection* mCollection;
+	bool bBDL = true;
+	bool bMimic = true;
+};
 
 void exportBMD(oishii::Writer& writer, J3DCollection& collection)
 {
 	oishii::Linker linker;
 
 	LinkNode<BMDFile> bmd(false);
+	bmd.mCollection = &collection;
 
 	linker.gather(bmd, "");
 	linker.write(writer);

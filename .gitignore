@@ -401,3 +401,7 @@ MigrationBackup/
 *.bat
 bin-int/
 bin/
+
+*.bmd
+*.bdl
+*.bak

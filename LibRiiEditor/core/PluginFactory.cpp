@@ -10,14 +10,14 @@ bool PluginFactory::registerPlugin(const pl::Package& package)
 	}
 
 	for (const auto ptr : package.mEditors)
-	{
 		mPlugins.emplace_back(ptr->clone());
-	}
 
 	for (const auto ptr : package.mImporters)
-	{
 		mImporters.emplace_back(ptr->clone());
-	}
+
+	for (const auto ptr : package.mExporters)
+		mExporters.emplace_back(ptr->clone());
+
 	
 	return true;
 }

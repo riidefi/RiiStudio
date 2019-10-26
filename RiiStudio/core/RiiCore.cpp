@@ -21,6 +21,27 @@ void RiiCore::drawRoot()
 #endif
 }
 
+// DEBUG
+void RiiCore::DEBUGwriteBmd(const std::string& results)
+{
+	std::ofstream stream(results, std::ios::binary | std::ios::out);
+
+	if (stream)
+	{
+		auto buf = std::make_unique<std::vector<u8>>();
+		buf->reserve(1024 * 1024);
+		oishii::Writer writer(std::move(buf), 0);
+
+		// FIXME: UB
+		EditorWindow& ed = (EditorWindow&)getWindowIndexed(mCoreRes.currentPluginWindowIndex);
+
+		auto ex = mPluginFactory.spawnExporter("j3dcollection");
+		ex->write(writer, *ed.mState.get());
+
+		stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
+	}
+}
+
 void RiiCore::drawMenuBar()
 {
 	if (ImGui::BeginMenuBar())
@@ -30,6 +51,18 @@ void RiiCore::drawMenuBar()
 			if (ImGui::MenuItem("Open"))
 			{
 				openFile();
+			}
+			// TODO -- Just for debugging
+			if (ImGui::MenuItem("Save BMD"))
+			{
+#if 0
+				auto results = pfd::save_file("Save File", "", { "All Files", "*", "J3D Binary Model Data", "*.bmd", "J3D Binary Display List", "*.bdl" }).result();
+				if (!results.empty())
+				{
+					DEBUGwriteBmd(results);
+				}
+#endif
+				DEBUGwriteBmd("debug_out.bmd");
 			}
 			ImGui::EndMenu();
 		}
@@ -41,6 +74,7 @@ std::vector<std::string> RiiCore::fileDialogueOpen()
 {
 	return pfd::open_file("Open File").result();	
 }
+
 void RiiCore::openFile(OpenFilePolicy policy)
 {
 	// TODO: Support other policies

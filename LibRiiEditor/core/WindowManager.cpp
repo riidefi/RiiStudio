@@ -146,3 +146,10 @@ void WindowManager::drawWindows(WindowContext* ctx)
 			detachWindow(window->mId);
 	}
 }
+
+Window& WindowManager::getWindowIndexed(u32 idx)
+{
+	std::lock_guard<std::mutex> g(intern->mVect.mutex);
+
+	return *intern->mVect.vector[idx].get();
+}
