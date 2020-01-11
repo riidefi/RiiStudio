@@ -18,6 +18,7 @@ struct J3DMaterialDelegate : public GCCollection::IMaterialDelegate
 		support.setSupport(P::Feature::ZCompareLoc, P::Coverage::ReadWrite);
 		support.setSupport(P::Feature::ZCompare, P::Coverage::ReadWrite);
 		support.setSupport(P::Feature::GenInfo, P::Coverage::ReadWrite);
+		support.setSupport(P::Feature::MatAmbColor, P::Coverage::ReadWrite);
 	}
 
 	gx::CullMode getCullMode() const override
@@ -53,6 +54,32 @@ struct J3DMaterialDelegate : public GCCollection::IMaterialDelegate
 		mMat.info.nTevStage = c.tevStage;
 		mMat.info.indirect = c.indStage;
 		mMat.info.nInd = c.indStage;
+	}
+
+
+	gx::Color getMatColor(u32 idx) const override
+	{
+		if (idx < 2)
+			return mMat.matColors[idx];
+
+		return {};
+	}
+	virtual gx::Color getAmbColor(u32 idx) const override
+	{
+		if (idx < 2)
+			return mMat.ambColors[idx];
+
+		return {};
+	}
+	void setMatColor(u32 idx, gx::Color v) override
+	{
+		if (idx < 2)
+			mMat.matColors[idx] = v;
+	}
+	void setAmbColor(u32 idx, gx::Color v) override
+	{
+		if (idx < 2)
+			mMat.ambColors[idx] = v;
 	}
 
 	const char* getNameCStr() override

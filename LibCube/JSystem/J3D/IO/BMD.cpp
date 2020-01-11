@@ -84,6 +84,7 @@ void BMDImporter::readInformation(oishii::BinaryReader& reader, BMDOutputContext
 		ScopedSection g(reader, "Information");
 
 		u16 flag = reader.read<u16>();
+		reader.signalInvalidityLast<u16, oishii::UncommonInvalidity>("Flag");
 		reader.read<u16>();
 
 		// TODO -- Use these for validation
@@ -140,13 +141,10 @@ void BMDImporter::readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContex
 			}
 		}
 
-		// TODO: Assert in JNT1 this matches
-		ctx.mdl.mJoints.resize(maxJointIndex + 1);
-
 		for (int i = 0; i < maxJointIndex + 1; ++i)
 		{
 			// TODO: Fix
-			oishii::Jump<oishii::Whence::Set> gInv(reader, g.start + ofsMatrixInvBind + i * 4 * 4 * sizeof(f32));
+			oishii::Jump<oishii::Whence::Set> gInv(reader, g.start + ofsMatrixInvBind + i * 0x30);
 
 			transferMatrix(ctx.mdl.mJoints[i].inverseBindPoseMtx, reader);
 		}
@@ -187,8 +185,7 @@ void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx
 		ScopedSection g(reader, "Joints");
 
 		u16 size = reader.read<u16>();
-		assert(size == ctx.mdl.mJoints.size()); // From EVP1/DRW1
-		// ctx.mdl.mJoints.resize(size);
+		ctx.mdl.mJoints.resize(size);
 		ctx.jointIdLut.resize(size);
 		reader.read<u16>();
 
@@ -983,11 +980,13 @@ void BMDImporter::readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 	// Read VTX1
 	readVertexBuffers(reader, ctx);
 
+	// Read JNT1
+	readJoints(reader, ctx);
+
 	// Read EVP1 and DRW1
 	readDrawMatrices(reader, ctx);
 
-	// Read JNT1
-	readJoints(reader, ctx);
+	
 
 	// Read SHP1
 

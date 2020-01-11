@@ -122,10 +122,50 @@ struct BlendMode
 	BlendModeFactor source, dest;
 	LogicOp logic;
 };
+struct Color;
+struct ColorF32
+{
+	f32 r, g, b, a;
+
+	inline operator float*()
+	{
+		return &r;
+	}
+
+	operator Color();
+	inline bool operator==(const ColorF32& rhs) const
+	{
+		return (r == rhs.r) && (g == rhs.g) && (b == rhs.b) && (a == rhs.a);
+	}
+	inline bool operator!=(const ColorF32& rhs) const
+	{
+		return !operator==(rhs);
+	}
+};
 struct Color
 {
 	u32 r, g, b, a;
+
+	inline operator ColorF32()
+	{
+		return {
+			static_cast<float>(r) / static_cast<float>(0xff),
+			static_cast<float>(g) / static_cast<float>(0xff),
+			static_cast<float>(b) / static_cast<float>(0xff),
+			static_cast<float>(a) / static_cast<float>(0xff)
+		};
+	}
 };
+
+inline ColorF32::operator Color()
+{
+	return {
+		(u32)roundf(r * 255.0f),
+		(u32)roundf(g * 255.0f),
+		(u32)roundf(b * 255.0f),
+		(u32)roundf(a * 255.0f)
+	};
+}
 struct ColorS10
 {
 	s32 r, g, b, a;

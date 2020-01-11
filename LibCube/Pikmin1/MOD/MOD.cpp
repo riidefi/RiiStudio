@@ -1,4 +1,5 @@
 #include "MOD.hpp"
+#include <fstream>
 
 namespace libcube {
 namespace pikmin1 {
@@ -52,6 +53,162 @@ void MOD::read_materials(oishii::BinaryReader& bReader)
 {
 	DebugReport("Reading materials\n");
 
+}
+
+static std::vector<glm::ivec3> ToTris(std::vector<u32>& polys, u32 opcode)
+{
+	std::vector<glm::ivec3> returnVal;
+
+	if (polys.size() == 3)
+	{
+		returnVal.push_back(glm::ivec3(polys[0], polys[1], polys[2]));
+
+		return returnVal;
+	}
+
+	if (opcode == 0x98)
+	{
+		u32 n = 2;
+		for (u32 i = 0; i < polys.size() - 2; i++)
+		{
+			u32 tri[3];
+			const bool isEven = (n % 2) == 0;
+			tri[0] = polys[n - 2];
+			tri[1] = isEven ? polys[n] : polys[n - 1];
+			tri[2] = isEven ? polys[n - 1] : polys[n];
+
+			if (tri[0] != tri[1] && tri[1] != tri[2] && tri[2] != tri[0])
+			{
+				returnVal.push_back(glm::ivec3(tri[0], tri[1], tri[2]));
+			}
+
+			n++;
+		}
+	}
+	if (opcode == 0x98)
+	{
+		for (u32 n = 1; n < polys.size() - 1; n++)
+		{
+			u32 tri[3];
+			tri[0] = polys[n];
+			tri[1] = polys[n + 1];
+			tri[2] = polys[0];
+
+			if (tri[0] != tri[1] && tri[1] != tri[2] && tri[2] != tri[0])
+			{
+				returnVal.push_back(glm::ivec3(tri[0], tri[1], tri[2]));
+			}
+		}
+	}
+
+	return returnVal;
+}
+
+static void OutputFaces(std::ofstream& objFile, MOD& toPrint)
+{
+	for (u32 i = 0; i < toPrint.m_batches.size(); i++)
+	{
+		objFile << "o Mesh" << i << '\n';
+		const u32 vcd = toPrint.m_batches[i].m_vcd.m_originalVCD;
+		for (const auto& mtxGroup : toPrint.m_batches[i].m_mtxGroups)
+		{
+			for (const auto& dispList : mtxGroup.m_dispLists)
+			{
+				oishii::BinaryReader bReader(dispList.m_dispData, dispList.m_dispData.size());
+				bReader.setEndian(true);
+				bReader.seekSet(0);
+
+				const u8 faceOpcode = bReader.read<u8>();
+				if (faceOpcode == 0x98 || faceOpcode == 0xA0)
+				{
+					const u16 vCount = bReader.read<u16>();
+
+					std::vector<u32> polys(vCount);
+					u32 currentPolys = 0;
+					for (u32 vC = 0; vC < vCount; vC++)
+					{
+						if ((vcd & 0x1) == 0x1)
+							bReader.read<u8>(); // position matrix
+						if ((vcd & 0x2) == 0x2)
+							bReader.read<u8>(); // tex1 matrix
+						bReader.read<u16>(); // vertex position index
+
+						if (toPrint.m_vnorms.size() > 0)
+							bReader.read<u16>(); // vertex normal index
+						if ((vcd & 0x4) == 0x4)
+							bReader.read<u16>(); // vertex colour index
+
+						int tmpvar = vcd >> 3;
+						for (u32 j = 0; j < 8; j++)
+						{
+							if ((tmpvar & 0x1) == 0x1)
+								if (j == 0) bReader.read<u16>();
+							tmpvar >>= 1;
+						}
+
+						polys[vC] = currentPolys;
+						currentPolys++;
+					}
+
+					std::vector<glm::ivec3> toOutput = ToTris(polys, faceOpcode);
+					for (const auto& elem : toOutput)
+					{
+						objFile << "f " << elem.x << ' ' << elem.y << ' ' << elem.z << '\n';
+					}
+				}
+			}
+		}
+	}
+}
+
+static void PrintMODStats(MOD& toPrint)
+{
+	DebugReport("There are %zu %s\n", toPrint.m_vertices.size(), toPrint.m_vertices.name);
+	DebugReport("There are %zu %s\n", toPrint.m_vnorms.size(), toPrint.m_vnorms.name);
+	DebugReport("There are %zu %s\n", toPrint.m_nbt.size(), toPrint.m_nbt.name);
+	DebugReport("There are %zu %s\n", toPrint.m_colours.size(), toPrint.m_colours.name);
+	for (u32 i = 0; i < 8; i++)
+		DebugReport("There are %zu Texture Coordinates in TEXCOORD%d\n", toPrint.m_texcoords[i].size(), i);
+	DebugReport("There are %zu %s\n", toPrint.m_textures.size(), toPrint.m_textures.name);
+	DebugReport("There are %zu %s\n", toPrint.m_texattrs.size(), toPrint.m_texattrs.name);
+	DebugReport("There are %zu %s\n", toPrint.m_vtxmatrices.size(), toPrint.m_vtxmatrices.name);
+	DebugReport("There are %zu %s\n", toPrint.m_envelopes.size(), toPrint.m_envelopes.name);
+	DebugReport("There are %zu %s\n", toPrint.m_batches.size(), toPrint.m_batches.name);
+	DebugReport("There are %zu %s\n", toPrint.m_joints.size(), toPrint.m_joints.name);
+	DebugReport("There are %zu %s\n", toPrint.m_jointNames.size(), toPrint.m_jointNames.name);
+	DebugReport("There are %zu groups of basic collision triangle information\n", toPrint.m_baseCollTriInfo.size());
+	DebugReport("There are %zu groups of basic room information\n", toPrint.m_baseRoomInfo.size());
+
+	std::ofstream objFile("test.obj");
+	objFile << "# Made with RiiStudio, by Riidefi & Ambrosia\n";
+
+	for (const auto& vertex : toPrint.m_vertices)
+		objFile << "v " << vertex.x << ' ' << vertex.y << ' ' << vertex.z << '\n';
+
+	for (u32 i = 0; i < 8; i++)
+	{
+		for (const auto& UV : toPrint.m_texcoords[i])
+			objFile << "vt " << UV.x << ' ' << UV.y << '\n';
+	}
+
+	for (const auto& vertex : toPrint.m_vnorms)
+		objFile << "vn " << vertex.x << ' ' << vertex.y << ' ' << vertex.z << '\n';
+
+	if (toPrint.m_baseCollTriInfo.size() != 0)
+	{
+		objFile << "o CollisionMesh\n";
+		for (u32 i = 0; i < toPrint.m_baseCollTriInfo.size(); i++)
+		{
+			objFile << "f " << toPrint.m_baseCollTriInfo[i].m_faceA+1 << ' ' << toPrint.m_baseCollTriInfo[i].m_faceC+1 << ' ' << toPrint.m_baseCollTriInfo[i].m_faceB+1 << '\n';
+		}
+	}
+	else
+	{
+		if (toPrint.m_batches.size())
+			OutputFaces(objFile, toPrint);
+	}
+
+	objFile.close();
 }
 
 void MOD::onRead(oishii::BinaryReader& bReader, MOD& context)
@@ -151,6 +308,8 @@ void MOD::onRead(oishii::BinaryReader& bReader, MOD& context)
 		DebugReport("INI file found at end of file\n");
 	}
 	DebugReport("Done reading file\n");
+
+	PrintMODStats(context);
 }
 
 void MOD::removeMtxDependancy()

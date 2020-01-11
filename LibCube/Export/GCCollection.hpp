@@ -35,10 +35,19 @@ struct GCCollection : public pl::AbstractInterface
 				ZCompare,
 				GenInfo,
 
+				MatAmbColor,
+
 				Max
 			};
+			static constexpr std::array<const char*, (u32)Feature::Max> featureStrings = {
+				"Culling Mode",
+				"Early Z Comparison",
+				"Z Comparison",
+				"GenInfo",
+				"Material/Ambient Colors"
+			};
 
-			Coverage supports(Coverage f) const noexcept
+			Coverage supports(Feature f) const noexcept
 			{
 				assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
 
@@ -47,25 +56,33 @@ struct GCCollection : public pl::AbstractInterface
 
 				return registration[static_cast<u32>(f)];
 			}
+			bool canRead(Feature f) const noexcept
+			{
+				return supports(f) == Coverage::Read || supports(f) == Coverage::ReadWrite;
+			}
+			bool canWrite(Feature f) const noexcept
+			{
+				return supports(f) == Coverage::ReadWrite;
+			}
 			void setSupport(Feature f, Coverage s)
 			{
 				assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
 
 				if (static_cast<u32>(f) < static_cast<u32>(Feature::Max))
-					registration[static_cast<f32>(f)] = s;
+					registration[static_cast<u32>(f)] = s;
 			}
 
 			Coverage& operator[](Feature f) noexcept
 			{
 				assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
 
-				return registration[static_cast<f32>(f)];
+				return registration[static_cast<u32>(f)];
 			}
 			Coverage operator[](Feature f) const noexcept
 			{
 				assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
 
-				return registration[static_cast<f32>(f)];
+				return registration[static_cast<u32>(f)];
 			}
 		private:
 			std::array<Coverage, static_cast<u32>(Feature::Max)> registration;
@@ -106,6 +123,11 @@ struct GCCollection : public pl::AbstractInterface
 
 		virtual bool getZCompLoc() const = 0;
 		virtual void setZCompLoc(bool value) = 0;
+		// Always assumed out of 2
+		virtual gx::Color getMatColor(u32 idx) const = 0;
+		virtual gx::Color getAmbColor(u32 idx) const = 0;
+		virtual void setMatColor(u32 idx, gx::Color v) = 0;
+		virtual void setAmbColor(u32 idx, gx::Color v) = 0;
 
 		virtual const char* getNameCStr() { return "Unsupported"; }
 		virtual void* getRaw() = 0; // For selection

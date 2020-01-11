@@ -4,6 +4,11 @@
 #include <LibRiiEditor/ui/widgets/Outliner.hpp>
 #include <LibRiiEditor/core/WindowManager.hpp>
 
+#include <map>
+#include <vector>
+
+//struct ISelectionListener {};
+
 struct EditorWindow : public WindowManager, public Window
 {
 	~EditorWindow() override = default;
@@ -12,4 +17,6 @@ struct EditorWindow : public WindowManager, public Window
 	void draw(WindowContext* ctx) noexcept override final;
 
 	std::unique_ptr<pl::FileState> mState;
+
+	// std::map<int, std::vector<ISelectionListener*>> mAttachedSelectionListeners;
 };

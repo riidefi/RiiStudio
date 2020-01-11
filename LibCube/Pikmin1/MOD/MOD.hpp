@@ -77,10 +77,10 @@ struct MOD
 	{
 		static constexpr char vertices[] = "Vertices";
 		static constexpr char normals[] = "Normals";
-		static constexpr char nbt[] = "NBT";
+		static constexpr char nbt[] = "NBTs";
 		static constexpr char colours[] = "Colors";
 		static constexpr char vtxmatrices[] = "Vertex Matrices";
-		static constexpr char batches[] = "Batches";
+		static constexpr char batches[] = "Meshes";
 		static constexpr char joints[] = "Joints";
 		static constexpr char jointnames[] = "Joint Names";
 		static constexpr char textures[] = "Textures";

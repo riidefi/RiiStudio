@@ -18,7 +18,6 @@ enum class MatTab
 static const std::array<const char*, static_cast<size_t>(MatTab::Max)> MatTabNames = {
 	"Surface Visibility",
 	"Color",
-
 #ifdef DEBUG
 	"DEBUG"
 #endif
@@ -52,14 +51,14 @@ void MaterialEditor::draw(WindowContext* ctx) noexcept
 		ImGui::Text("No material has been loaded.");
 		return;
 	}
-
+	// Note: Active changed from back->front
 	ImGui::Text("%s %s (%u)", mats.front()->getNameCStr(), mats.size() > 1 ? "..." : "", mats.size());
 
 	if (drawLeft(mats) && selected != -1 && selected < (int)MatTab::Max)
 	{
 		ImGui::SameLine();
 		ImGui::BeginGroup();
-		drawRight(mats);
+		drawRight(mats, *mats.front());
 		ImGui::EndGroup();
 	}
 }
@@ -81,28 +80,16 @@ bool MaterialEditor::drawLeft(std::vector<libcube::GCCollection::IMaterialDelega
 using m = libcube::GCCollection::IMaterialDelegate;
 using p = m::PropertySupport;
 
-bool MaterialEditor::drawGenInfoTab(std::vector<libcube::GCCollection::IMaterialDelegate*>& mats)
+bool MaterialEditor::drawGenInfoTab(std::vector<MatDelegate*>& mats, MatDelegate& active_selection)
 {
-	auto& active_selection = *mats.back();
-
-	const auto feature_support = [&](p::Feature f) {
-		return active_selection.support[f];
-	};
-	const auto can_read = [&](p::Feature c) {
-		return feature_support(c) != p::Coverage::Unsupported;
-	};
-	const auto can_write = [&](p::Feature c) {
-		return feature_support(c) == p::Coverage::ReadWrite;
-	};
-
 	auto drawCullMode = [&]() {
-		if (!can_read(p::Feature::CullMode))
+		if (!active_selection.support.canRead(p::Feature::CullMode))
 			return;
 
 		ed::CullMode d(active_selection.getCullMode());
 		d.draw();
 
-		if (!can_write(p::Feature::CullMode) || d.get() == active_selection.getCullMode())
+		if (!active_selection.support.canWrite(p::Feature::CullMode) || d.get() == active_selection.getCullMode())
 			return;
 
 		for (auto p : mats)
@@ -111,7 +98,7 @@ bool MaterialEditor::drawGenInfoTab(std::vector<libcube::GCCollection::IMaterial
 	
 	drawCullMode();
 
-	if (can_read(p::Feature::GenInfo));
+	if (active_selection.support.canRead(p::Feature::GenInfo));
 	{
 		const auto gen = active_selection.getGenInfo();
 
@@ -125,17 +112,64 @@ bool MaterialEditor::drawGenInfoTab(std::vector<libcube::GCCollection::IMaterial
 
 	return true;
 }
+bool MaterialEditor::drawColorTab(std::vector<libcube::GCCollection::IMaterialDelegate*>& mats, MatDelegate& active_selection)
+{
+	auto drawColors = [&]() {
+		if (!active_selection.support.canRead(p::Feature::MatAmbColor))
+			return;
 
-bool MaterialEditor::drawRight(std::vector<libcube::GCCollection::IMaterialDelegate*>& mats)
+		libcube::gx::ColorF32 mat_a = active_selection.getMatColor(0);
+		libcube::gx::ColorF32 mat_b = active_selection.getMatColor(1);
+		libcube::gx::ColorF32 amb_a = active_selection.getAmbColor(0);
+		libcube::gx::ColorF32 amb_b = active_selection.getAmbColor(1);
+
+		ImGui::PushID(0);
+		ImGui::BeginGroup();
+			ImGui::Text("Material Colors");
+			ImGui::ColorEdit4("A", mat_a);
+			ImGui::ColorEdit4("B", mat_b);
+		ImGui::EndGroup();
+		ImGui::PopID();
+		ImGui::PushID(1);
+		ImGui::BeginGroup();
+			ImGui::Text("Ambient Colors");
+			ImGui::ColorEdit4("A", amb_a);
+			ImGui::ColorEdit4("B", amb_b);
+		ImGui::EndGroup();
+		ImGui::PopID();
+
+		if (!active_selection.support.canWrite(p::Feature::MatAmbColor) ||
+			(
+				mat_a == active_selection.getMatColor(0) &&
+				mat_b == active_selection.getMatColor(1) &&
+				amb_a == active_selection.getAmbColor(0) &&
+				amb_b == active_selection.getAmbColor(1)
+			)
+		)
+			return;
+		
+		for (auto p : mats)
+		{
+			p->setMatColor(0, mat_a);
+			p->setMatColor(1, mat_b);
+			p->setAmbColor(0, amb_a);
+			p->setAmbColor(1, amb_b);
+		}
+	};
+
+
+	drawColors();
+
+
+	return true;
+}
+
+bool MaterialEditor::drawRight(std::vector<MatDelegate*>& mats, MatDelegate& active)
 {
 	Predicate<ImGui::EndChild> g;
 
 	if (!ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())))
 		return false;
-	
-	ImGui::Text(MatTabNames[selected]);
-	ImGui::Separator();
-	
 
 	if (mats.empty())
 	{
@@ -143,20 +177,18 @@ bool MaterialEditor::drawRight(std::vector<libcube::GCCollection::IMaterialDeleg
 		return false;
 	}
 
-	auto& active_selection = *mats.back();
-
 	switch ((MatTab)selected)
 	{
 	case MatTab::DisplaySurface:
-		drawGenInfoTab(mats);
+		drawGenInfoTab(mats, active);
 		break;
 	case MatTab::Color: {
-		float t[4]{};
-		ImGui::ColorEdit4("Material Color", &t[0]);
+		drawColorTab(mats, active);
 		break;
 	}
 #ifdef DEBUG
 	case MatTab::Debug: {
+
 		ImGui::Text("Material Delegate Registration");
 		
 		const auto toStr = [](p::Coverage p) -> const char* {
@@ -179,13 +211,12 @@ bool MaterialEditor::drawRight(std::vector<libcube::GCCollection::IMaterialDeleg
 			ImGui::Text("Support"); ImGui::NextColumn();
 		ImGui::Separator();
 
-		const std::array<const char*, (u32)p::Feature::Max> features = { "cullMode", "zCompLoc", "zComp", "genInfo" };
 		static int selected = -1; // FIXME
 		for (u32 i = 0; i < (u32)p::Feature::Max; ++i)
 		{
-			ImGui::Selectable(features[i], selected == i, ImGuiSelectableFlags_SpanAllColumns);
+			ImGui::Selectable(p::featureStrings[i], selected == i, ImGuiSelectableFlags_SpanAllColumns);
 			ImGui::NextColumn();
-			ImGui::Text(toStr(active_selection.support[static_cast<p::Feature>(i)]));
+			ImGui::Text(toStr(active.support[static_cast<p::Feature>(i)]));
 			ImGui::NextColumn();
 		}
 		
