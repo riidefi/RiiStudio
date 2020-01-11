@@ -349,6 +349,7 @@ struct J3DModel
 
 	std::vector<DrawMatrix> mDrawMatrices;
 
+
 	struct Joint
 	{
 		// Four LSBs of flag; left is matrix type

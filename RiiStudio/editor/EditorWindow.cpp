@@ -7,6 +7,7 @@
 #include "MaterialEditor/Components/CullMode.hpp"
 #include "MaterialEditor/MatEditor.hpp"
 
+#include "BoneEditor.hpp"
 #include <LibRiiEditor/ui/widgets/AbstractOutliner.hpp>
 
 
@@ -110,6 +111,7 @@ EditorWindow::EditorWindow(std::unique_ptr<pl::FileState> state)
 		case pl::InterfaceID::LibCube_GCCollection:
 			attachWindow(std::move(std::make_unique<ed::MaterialEditor>()));
 			attachWindow(std::move(std::make_unique<MaterialOutliner>(*static_cast<libcube::GCCollection*>(it))));
+			attachWindow(std::move(std::make_unique<ed::BoneEditor>(*static_cast<libcube::GCCollection*>(it))));
 			break;
 		}
 	}
