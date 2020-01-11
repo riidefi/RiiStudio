@@ -13,6 +13,8 @@ struct J3DBoneDelegate final : public GCCollection::IBoneDelegate
 		: mJoint(joint)
 	{
 		using b = GCCollection::BoneFeatures;
+		setSupport(b::SRT, Coverage::ReadWrite);
+		setSupport(b::Hierarchy, Coverage::Read);
 		setSupport(b::StandardBillboards, Coverage::ReadWrite);
 		setSupport(b::ExtendedBillboards, Coverage::Unsupported);
 		setSupport(b::AABB, Coverage::ReadWrite);
