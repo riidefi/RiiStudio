@@ -54,6 +54,7 @@ std::optional<PluginFactory::SpawnedImporter> PluginFactory::spawnImporter(const
 	}
 	else
 	{
+		DebugReport("Success spawning importer\n");
 		return std::optional<PluginFactory::SpawnedImporter> {
 			SpawnedImporter {
 				matched.begin()->second.second,

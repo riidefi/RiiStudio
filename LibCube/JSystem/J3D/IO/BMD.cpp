@@ -956,6 +956,7 @@ void BMDImporter::lex(oishii::BinaryReader& reader, u32 sec_count) noexcept
 }
 void BMDImporter::readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 {
+	reader.setEndian(true);
 	reader.expectMagic<'J3D2'>();
 
 

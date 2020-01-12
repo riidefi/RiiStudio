@@ -8,6 +8,8 @@
 #include <string>
 #include <LibRiiEditor/core/PluginFactory.hpp>
 #include "WindowAdaptor.hpp"
+#include <queue>
+#include <RiiStudio/editor/EditorWindow.hpp>
 
 class RiiCore : public Applet
 {
@@ -39,5 +41,9 @@ private:
 	EditorCoreRes mCoreRes = EditorCoreRes(mTheme);
 	PluginFactory mPluginFactory;
 	WindowAdaptor<Theme::Editor> mThemeEd;
+#if 0
 	void DEBUGwriteBmd(const std::string& path);
+#endif
+	std::queue<pl::TransformStack::XFormContext> mTransformActions;
+
 };

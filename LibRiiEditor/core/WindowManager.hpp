@@ -16,9 +16,6 @@ public:
 	void attachWindow(std::unique_ptr<Window> window);
 	void detachWindow(u32 windowId);
 
-	// TODO: No lifetime guarantee
-	Window& getWindowIndexed(u32 idx);
-
 	void processWindowQueue();
 	void drawWindows(WindowContext* ctx = nullptr);
 
@@ -30,11 +27,36 @@ public:
 	{
 		return mSelectionManager;
 	}
-
+protected:
+	u32 getMaxWindowIdCurrent() const { return mWindowIdCounter; }
+	u32 getWindowIndexById(u32 id) const;
+	// TODO: No lifetime guarantee
+	Window& getWindowIndexed(u32 idx);
 private:
 	SelectionManager mSelectionManager;
 	WindowManagerInternal* intern; // Unfortunate hack required for C++/CLR (C# wrapper) to include this file -- no mutex support
 
 	// Must only be accessed from processWindowQueue
 	u32 mWindowIdCounter = 0; // Don't decrement
+
+	int mActive = -1;
+public:
+	Window* getActiveEditor()
+	{
+		if (mActive < 0 || mActive >= getMaxWindowIdCurrent())
+			return nullptr;
+		auto idx = getWindowIndexById(mActive);
+		if (idx == -1) return nullptr;
+		return &getWindowIndexed(idx);
+	}
+	void setActiveEditor(Window& win)
+	{
+		mActive = win.mId;
+	}
+};
+
+template <typename T>
+struct TWindowManager : public WindowManager
+{
+	T* TGetActiveEditor(u32 id) { return (T*)getActiveEditor(); }
 };

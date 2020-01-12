@@ -4,6 +4,7 @@
 #include <LibRiiEditor/pluginapi/Interfaces/TextureList.hpp>
 
 #include <LibRiiEditor/pluginapi/FileStateSpawner.hpp>
+#include <LibRiiEditor/pluginapi/Interfaces/XFormStack.hpp>
 #include "Model.hpp"
 
 #include <LibCube/Export/GCCollection.hpp>
@@ -13,7 +14,7 @@ namespace libcube { namespace jsystem {
 //! Represents the state of a J3D model and textures (BMD, BDL) as well as animations.
 //! Unlike the binary equivalents, per-material texture settings have been moved to samplers in materials.
 //!
-struct J3DCollection : public pl::FileState, public pl::ITextureList, public GCCollection
+struct J3DCollection : public pl::FileState, public pl::ITextureList, public GCCollection, public pl::TransformStack
 {
 	/*std::vector<std::unique_ptr<*/J3DModel/*>>*/ mModel/*s*/;
 

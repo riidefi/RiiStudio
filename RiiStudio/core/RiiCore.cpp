@@ -13,6 +13,73 @@ void RiiCore::drawRoot()
 	{
 		drawMenuBar();
 	}
+	if (!mTransformActions.empty())
+	{
+		auto& front = mTransformActions.front();
+		ImGui::OpenPopup(front.mCfg.name.exposedName.c_str());
+		if (ImGui::BeginPopupModal(front.mCfg.name.exposedName.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			for (const auto& prop : front.mCfg.mParams)
+			{
+				switch (prop.type)
+				{
+				case pl::TransformStack::ParamType::String:
+				{
+					const auto str = front.getString(prop.name.namespacedId);
+					char tmp_buf[128]{};
+					memcpy_s(tmp_buf, 128, str.c_str(), str.length());
+					ImGui::InputText(prop.name.exposedName.c_str(), tmp_buf, 128);
+					if (std::string(tmp_buf) != str)
+						front.setString(prop.name.namespacedId, tmp_buf);
+					break;
+				}
+				case pl::TransformStack::ParamType::Flag:
+				{
+					bool v = front.getFlag(prop.name.namespacedId);
+					bool v2 = v;
+					ImGui::Checkbox(prop.name.exposedName.c_str(), &v);
+					if (v != v2)
+						front.setFlag(prop.name.namespacedId, v);
+					break;
+				}
+				case pl::TransformStack::ParamType::Enum:
+				{
+					int e = front.getEnum(prop.name.namespacedId);
+					int e2 = e;
+					if (ImGui::BeginCombo(prop.name.exposedName.c_str(), prop.enumeration[e].exposedName.c_str()))
+					{
+						for (int i = 0; i < prop.enumeration.size(); ++i)
+						{
+							if (ImGui::Selectable(prop.enumeration[i].exposedName.c_str()))
+							{
+								e = i;
+								break;
+							}
+						}
+						ImGui::EndCombo();
+					}
+					if (e != e2)
+						front.setEnum(prop.name.namespacedId, e);
+					break;
+				}
+				default:
+					break;
+				}
+			}
+
+			if (ImGui::Button("OK"))
+			{
+				front.mCfg.perform(front);
+				mTransformActions.pop();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+			{
+				mTransformActions.pop();
+			}
+			ImGui::EndPopup();
+		}
+	}
 
 	ImGui::End();
 #ifdef DEBUG
@@ -21,7 +88,7 @@ void RiiCore::drawRoot()
 	ImGui::ShowDemoWindow();
 #endif
 }
-
+#if 0
 // DEBUG
 void RiiCore::DEBUGwriteBmd(const std::string& results)
 {
@@ -33,15 +100,15 @@ void RiiCore::DEBUGwriteBmd(const std::string& results)
 		buf->reserve(1024 * 1024);
 		oishii::Writer writer(std::move(buf), 0);
 
-		// FIXME: UB
-		EditorWindow& ed = (EditorWindow&)getWindowIndexed(mCoreRes.currentPluginWindowIndex);
-
+		EditorWindow* ed = getActiveEditor();
+		if (!ed) return;
 		auto ex = mPluginFactory.spawnExporter("j3dcollection");
-		ex->write(writer, *ed.mState.get());
+		ex->write(writer, *ed->mState.get());
 
 		stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
 	}
 }
+#endif
 void RiiCore::save(const std::string& path)
 {
 	std::ofstream stream(path + "_TEST.bmd", std::ios::binary | std::ios::out);
@@ -50,11 +117,11 @@ void RiiCore::save(const std::string& path)
 	buf->reserve(1024 * 1024);
 	oishii::Writer writer(std::move(buf), 0);
 
-	// FIXME: UB
-	EditorWindow& ed = (EditorWindow&)getWindowIndexed(mCoreRes.currentPluginWindowIndex);
+	EditorWindow* ed = (EditorWindow*)getActiveEditor();
+	if (!ed) return;
 
-	auto ex = mPluginFactory.spawnExporter(ed.mState->mName.namespacedId);
-	ex->write(writer, *ed.mState.get());
+	auto ex = mPluginFactory.spawnExporter(ed->mState->mName.namespacedId);
+	ex->write(writer, *ed->mState.get());
 
 	stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
 }
@@ -69,6 +136,7 @@ void RiiCore::saveAs()
 
 void RiiCore::drawMenuBar()
 {
+	EditorWindow* ed = (EditorWindow*)getActiveEditor();
 	if (ImGui::BeginMenuBar())
 	{
 		if (ImGui::BeginMenu("File"))
@@ -79,18 +147,26 @@ void RiiCore::drawMenuBar()
 			}
 			if (ImGui::MenuItem("Save"))
 			{
-				// FIXME: UB
-				EditorWindow& ed = (EditorWindow&)getWindowIndexed(mCoreRes.currentPluginWindowIndex);
-				DebugReport("Attempting to save to %s\n", ed.mFilePath.c_str());
-				if (!ed.mFilePath.empty())
-					save(ed.mFilePath);
+				if (ed)
+				{
+					DebugReport("Attempting to save to %s\n", ed->mFilePath.c_str());
+					if (!ed->mFilePath.empty())
+						save(ed->mFilePath);
+					else
+						saveAs();
+				}
 				else
-					saveAs();
+				{
+					printf("Cannot save.. nothing has been opened.\n");
+				}
 			}
 			if (ImGui::MenuItem("Save As"))
 			{
-				saveAs();
+				if (ed)
+					saveAs();
+				else printf("Cannot save.. nothing has been opened.\n");
 			}
+#if 0
 			// TODO -- Just for debugging
 			if (ImGui::MenuItem("Save BMD"))
 			{
@@ -102,6 +178,29 @@ void RiiCore::drawMenuBar()
 				}
 #endif
 				DEBUGwriteBmd("debug_out.bmd");
+			}
+#endif
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Transform"))
+		{
+			if (ed)
+			{
+				for (pl::AbstractInterface* it : ed->mState->mInterfaces)
+				{
+					if (it->mInterfaceId == pl::InterfaceID::TransformStack)
+					{
+						pl::TransformStack* xform_collection = reinterpret_cast<pl::TransformStack*>(it);
+
+						for (auto& xf : xform_collection->mStack)
+						{
+							if (ImGui::MenuItem(xf->name.exposedName.c_str()))
+							{
+								mTransformActions.push(*xf);
+							}
+						}
+					}
+				}
 			}
 			ImGui::EndMenu();
 		}
@@ -155,17 +254,13 @@ void RiiCore::openFile(OpenFilePolicy policy)
 			if (fileState.get() == nullptr)
 				return;
 
-			// FIXME: encapsulate this functionality
-			mCoreRes.currentPluginWindowIndex = mCoreRes.numPluginWindow;
 			mCoreRes.numPluginWindow++;
-
 
 			importer->importer->tryRead(*reader.get(), *fileState.get());
 
 			auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), file);
-
+			
 			attachWindow(std::move(edWindow));
-
 			
 		}
 

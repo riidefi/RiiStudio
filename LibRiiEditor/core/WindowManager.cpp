@@ -101,7 +101,17 @@ void WindowManager::detachWindow(u32 windowId)
 	DebugReport("Enqueing window detachment.\n");
 	intern->mQueue.queue.emplace(WindowQueue::Action::DetachWindow, windowId);
 }
+u32 WindowManager::getWindowIndexById(u32 id) const
+{
+	std::lock_guard<std::mutex> guard(intern->mVect.mutex);
 
+	auto end = std::find_if(intern->mVect.vector.begin(), intern->mVect.vector.end(), [&](auto& x) {
+		return x->mId == id;
+		});
+	if (end == intern->mVect.vector.end())
+		return -1;
+	return end - intern->mVect.vector.begin();
+}
 void WindowManager::processWindowQueue()
 {
 	std::lock_guard<std::mutex> queue_guard(intern->mQueue.mutex);
@@ -118,6 +128,7 @@ void WindowManager::processWindowQueue()
 
 			// Assign it an ID
 			target->mId = mWindowIdCounter++;
+			mActive = target->mId;
 			intern->mVect.append(std::move(target));
 			break;
 		}

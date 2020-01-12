@@ -75,7 +75,7 @@ end
 function setupConsoleApp()
 	kind "ConsoleApp"
 end
-function setupMainApp()
+function setupMainAppCli(set_links)
 	includedirs
 	{
 		"./",
@@ -83,27 +83,21 @@ function setupMainApp()
 		"ThirdParty",
 		(FBX_SDK_ROOT .. "../../../include")
 	}
-
+	if set_links then
 	links
 	{
 		"LibRiiEditor",
 		"LibCube",
 		"ThirdParty",
-		"ThirdParty/glfw/lib-vc2017/glfw3dll.lib",
-		"opengl32.lib",
 		"libfbxsdk-md"
 	}
+	end
 
 
 	setupConsoleApp()
 	setupCppC()
 	setupSystem()
 	
-	postbuildcommands {
-		"{COPY} ../ThirdParty/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}"
-	}
-
-
 	setupPreprocessor()
 
 	configuration { "vs*", "Debug" }
@@ -121,6 +115,23 @@ function setupMainApp()
 		}
 end
 
+function setupMainApp()
+	links
+	{
+		"LibRiiEditor",
+		"LibCube",
+		"ThirdParty",
+		"ThirdParty/glfw/lib-vc2017/glfw3dll.lib",
+		"opengl32.lib",
+		"libfbxsdk-md"
+	}
+	setupMainAppCli(false)
+	
+
+	postbuildcommands {
+		"{COPY} ../ThirdParty/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}"
+	}
+end
 
 project "LibRiiEditor"
 	location "LibRiiEditor"
@@ -146,6 +157,10 @@ project "TestEditor"
 project "RiiStudio"
 	location "RiiStudio"
 	setupMainApp()
+
+project "RiiStudioCLI"
+	location "RiiStudioCLI"
+	setupMainAppCli(true)
 
 
 

@@ -75,8 +75,8 @@ class BMDImporterSpawner : public pl::ImporterSpawner
 {
 	std::pair<MatchResult, std::string> match(const std::string& fileName, oishii::BinaryReader& reader) const override
 	{
-		u32 j3dMagic = reader.read<u32>();
-		u32 bmdMagic = reader.read<u32>();
+		u32 j3dMagic = reader.read<u32, oishii::EndianSelect::Big>();
+		u32 bmdMagic = reader.read<u32, oishii::EndianSelect::Big>();
 		reader.seek<oishii::Whence::Current>(-8);
 		if (j3dMagic == 'J3D2' && (bmdMagic == 'bmd3' || bmdMagic == 'bdl4'))
 		{
