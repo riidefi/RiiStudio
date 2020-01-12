@@ -7,7 +7,7 @@
 class DockSpace
 {
 public:
-	void draw();
+	bool draw();
 
 	bool bOpen = true;
 	bool bFullscreenPersistant = true;

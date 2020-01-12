@@ -13108,6 +13108,9 @@ void ImGui::DockNodeTreeMerge(ImGuiContext* ctx, ImGuiDockNode* parent_node, ImG
 // Update Pos/Size for a node hierarchy (don't affect child Windows yet)
 void ImGui::DockNodeTreeUpdatePosSize(ImGuiDockNode* node, ImVec2 pos, ImVec2 size, bool only_write_to_marked_nodes)
 {
+	// Hack:
+	if (size.x == 0.0f) size.x = 0.1f;
+	if (size.y == 0.0f) size.y = 0.1f;
     // During the regular dock node update we write to all nodes.
     // 'only_write_to_marked_nodes' is only set when turning a node visible mid-frame and we need its size right-away.
     IM_ASSERT(size.x > 0.0f && size.y > 0.0f);

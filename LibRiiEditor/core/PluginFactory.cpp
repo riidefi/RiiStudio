@@ -68,7 +68,11 @@ std::unique_ptr<pl::FileState> PluginFactory::spawnFileState(const std::string& 
 	for (const auto& it : mPlugins)
 	{
 		if (it->mId.namespacedId == fileStateId)
-			return it->spawn();
+		{
+			auto spawned = it->spawn();
+			spawned->mName = it->mId;
+			return spawned;
+		}
 	}
 
 	return nullptr;

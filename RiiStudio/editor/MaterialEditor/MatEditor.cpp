@@ -98,7 +98,7 @@ bool MaterialEditor::drawGenInfoTab(std::vector<MatDelegate*>& mats, MatDelegate
 	
 	drawCullMode();
 
-	if (active_selection.support.canRead(p::Feature::GenInfo));
+	if (active_selection.support.canRead(p::Feature::GenInfo))
 	{
 		const auto gen = active_selection.getGenInfo();
 

@@ -90,16 +90,16 @@ struct MaterialOutliner final : public Window
 			if (ctx)
 				outliner.draw(samp, ctx->selectionManager, &mFilter);
 
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 
 	MaterialDelegateSampler samp;
 	MaterialDataSource outliner;
 	ImTFilter mFilter;
 };
-EditorWindow::EditorWindow(std::unique_ptr<pl::FileState> state)
-	: mState(std::move(state))
+EditorWindow::EditorWindow(std::unique_ptr<pl::FileState> state, const std::string& path)
+	: mState(std::move(state)), mFilePath(path)
 {
 	for (pl::AbstractInterface* it : mState->mInterfaces)
 	{

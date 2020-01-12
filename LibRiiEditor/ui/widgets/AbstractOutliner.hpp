@@ -96,7 +96,7 @@ struct AbstractOutlinerFolder
 
 		u32 nPass = 0;
 
-		for (int i = 0; i < sampler.size(); ++i)
+		for (u32 i = 0; i < sampler.size(); ++i)
 			if (filter->test(sampler.nameAt(i)))
 				++nPass;
 

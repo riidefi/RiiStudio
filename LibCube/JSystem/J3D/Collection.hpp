@@ -35,8 +35,8 @@ struct J3DCollection : public pl::FileState, public pl::ITextureList, public GCC
 	}
 
 	// GCCollection
-	u32 getNumMaterials() const override { return mModel.mMaterials.size(); }
-	u32 getNumBones() const override { return mModel.mJoints.size(); }
+	u32 getNumMaterials() const override { return static_cast<u32>(mModel.mMaterials.size()); }
+	u32 getNumBones() const override { return static_cast<u32>(mModel.mJoints.size()); }
 	
 	GCCollection::IMaterialDelegate& getMaterialDelegate(u32 idx) override;
 	GCCollection::IBoneDelegate& getBoneDelegate(u32 idx) override;
@@ -47,7 +47,7 @@ struct J3DCollection : public pl::FileState, public pl::ITextureList, public GCC
 		auto f = std::find_if(
 			mModel.mJoints.begin(), mModel.mJoints.end(), [name](J3DModel::Joint j) { return j.id == name; });
 		if (f == mModel.mJoints.end()) return -1;
-		return f - mModel.mJoints.begin();
+		return static_cast<int>(f - mModel.mJoints.begin());
 	}
 
 	//

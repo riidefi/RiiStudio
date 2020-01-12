@@ -1,6 +1,6 @@
 #include "Dockspace.hpp"
 
-void DockSpace::draw()
+bool DockSpace::draw()
 {
 	// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
 	// because it would be confusing to have two docking targets within each others.
@@ -34,10 +34,13 @@ void DockSpace::draw()
 	if (bFullscreenPersistant)
 		ImGui::PopStyleVar(2);
 
+	bool d = false;
 	// DockSpace
 	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
 	{
 		ImGuiID dockspace_id = ImGui::GetID("DockSpaceWidget");
 		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), flags);
+		d = true;
 	}
+	return d;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <LibRiiEditor/pluginapi/RichName.hpp>
 
 namespace pl {
 
@@ -17,6 +18,7 @@ struct FileState
 
 	// TODO: These must be part of the child class itself!
 	std::vector<AbstractInterface*> mInterfaces;
+	RichName mName;
 };
 
 } // namespace pl

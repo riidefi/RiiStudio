@@ -9,10 +9,11 @@
 
 void RiiCore::drawRoot()
 {
-	mDockSpace.draw();
+	if (mDockSpace.draw())
 	{
 		drawMenuBar();
 	}
+
 	ImGui::End();
 #ifdef DEBUG
 	auto ctx = makeWindowContext();
@@ -41,6 +42,30 @@ void RiiCore::DEBUGwriteBmd(const std::string& results)
 		stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
 	}
 }
+void RiiCore::save(const std::string& path)
+{
+	std::ofstream stream(path + "_TEST.bmd", std::ios::binary | std::ios::out);
+
+	auto buf = std::make_unique<std::vector<u8>>();
+	buf->reserve(1024 * 1024);
+	oishii::Writer writer(std::move(buf), 0);
+
+	// FIXME: UB
+	EditorWindow& ed = (EditorWindow&)getWindowIndexed(mCoreRes.currentPluginWindowIndex);
+
+	auto ex = mPluginFactory.spawnExporter(ed.mState->mName.namespacedId);
+	ex->write(writer, *ed.mState.get());
+
+	stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
+}
+void RiiCore::saveAs()
+{
+	auto results = pfd::save_file("Save File", "", { "All Files", "*" }).result();
+	if (results.empty())
+		return;
+
+	save(results);
+}
 
 void RiiCore::drawMenuBar()
 {
@@ -51,6 +76,20 @@ void RiiCore::drawMenuBar()
 			if (ImGui::MenuItem("Open"))
 			{
 				openFile();
+			}
+			if (ImGui::MenuItem("Save"))
+			{
+				// FIXME: UB
+				EditorWindow& ed = (EditorWindow&)getWindowIndexed(mCoreRes.currentPluginWindowIndex);
+				DebugReport("Attempting to save to %s\n", ed.mFilePath.c_str());
+				if (!ed.mFilePath.empty())
+					save(ed.mFilePath);
+				else
+					saveAs();
+			}
+			if (ImGui::MenuItem("Save As"))
+			{
+				saveAs();
 			}
 			// TODO -- Just for debugging
 			if (ImGui::MenuItem("Save BMD"))
@@ -123,7 +162,7 @@ void RiiCore::openFile(OpenFilePolicy policy)
 
 			importer->importer->tryRead(*reader.get(), *fileState.get());
 
-			auto edWindow = std::make_unique<EditorWindow>(std::move(fileState));
+			auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), file);
 
 			attachWindow(std::move(edWindow));
 

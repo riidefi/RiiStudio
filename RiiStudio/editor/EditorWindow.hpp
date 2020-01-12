@@ -12,11 +12,13 @@
 struct EditorWindow : public WindowManager, public Window
 {
 	~EditorWindow() override = default;
-	EditorWindow(std::unique_ptr<pl::FileState> state);
+	EditorWindow(std::unique_ptr<pl::FileState> state, const std::string& path);
 
 	void draw(WindowContext* ctx) noexcept override final;
 
 	std::unique_ptr<pl::FileState> mState;
+
+	std::string mFilePath; // For saving
 
 	// std::map<int, std::vector<ISelectionListener*>> mAttachedSelectionListeners;
 };
