@@ -405,3 +405,5 @@ bin/
 *.bmd
 *.bdl
 *.bak
+
+dist/

@@ -113,6 +113,12 @@ function setupMainAppCli(set_links)
 		libdirs {
 			(FBX_SDK_ROOT .. "/x64/release")			
 		}
+	filter "configurations:Dist"
+		postbuildcommands {
+			"{COPY} %{cfg.targetdir}/*.exe ../dist/",
+			"{COPY} %{cfg.targetdir}/*.dll ../dist/",
+			"{COPY} %{cfg.targetdir}/*.ttf ../dist/"
+		}
 end
 
 function setupMainApp()
@@ -129,8 +135,10 @@ function setupMainApp()
 	
 
 	postbuildcommands {
-		"{COPY} ../ThirdParty/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}"
+		"{COPY} ../ThirdParty/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}",
+		"{COPY} ../fonts/* %{cfg.targetdir}"
 	}
+	
 end
 
 project "LibRiiEditor"

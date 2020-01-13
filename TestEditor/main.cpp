@@ -6,7 +6,6 @@
 #include <LibRiiEditor/ui/Window.hpp>
 
 
-#include <LibRiiEditor/core/Plugin.hpp>
 #include <LibRiiEditor/core/PluginFactory.hpp>
 
 #include <LibCube/Export/Exports.hpp>

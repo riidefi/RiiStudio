@@ -273,6 +273,7 @@ void RiiCore::openFile(OpenFilePolicy policy)
 RiiCore::RiiCore()
 {
 	mPluginFactory.registerPlugin(libcube::Package());
+	mPluginFactory.installModule("nw.dll");
 }
 RiiCore::~RiiCore()
 {}

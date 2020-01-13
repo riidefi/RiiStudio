@@ -3,9 +3,9 @@
 
 bool PluginFactory::registerPlugin(const pl::Package& package)
 {
-	if (package.mEditors.empty() && package.mImporters.empty())
+	if (package.mEditors.empty() && package.mImporters.empty() && package.mExporters.empty())
 	{
-		DebugReport("Plugin is empty.");
+		DebugReport("Plugin is empty.\n");
 		return true;
 	}
 

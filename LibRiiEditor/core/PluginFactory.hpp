@@ -40,6 +40,9 @@ public:
 	}
 	std::unique_ptr<pl::FileState> spawnFileState(const std::string& fileStateId);
 
+	// Install a DLL
+	bool installModule(const std::string& path);
+
 private:
 	std::mutex mMutex; //!< When performing write operations (registering a plugin)
 

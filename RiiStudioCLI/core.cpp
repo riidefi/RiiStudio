@@ -8,6 +8,7 @@ namespace rs_cli {
 System::System(int argc, char* const* argv)
 {
 	mPluginFactory.registerPlugin(libcube::Package());
+	mPluginFactory.installModule("nw.dll");
 
 	std::vector<std::string_view> args(argc);
 	for (int i = 0; i < argc; ++i)

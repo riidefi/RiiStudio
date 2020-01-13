@@ -3,6 +3,8 @@
 #include <LibRiiEditor/pluginapi/Interface.hpp>
 #include <LibCube/GX/Material.hpp>
 #include <optional>
+#include <ThirdParty/glm/vec3.hpp>
+#include <LibCube/Common/BoundBox.hpp>
 
 namespace libcube {
 
