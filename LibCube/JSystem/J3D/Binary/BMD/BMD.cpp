@@ -9,7 +9,7 @@
 #include <cmath>
 
 #include "BMD.hpp"
-#include "../Model.hpp"
+#include <LibCube/JSystem/J3D/Model.hpp>
 #include <map>
 #include <type_traits>
 #include <algorithm>

@@ -4,7 +4,7 @@
 
 #include <LibRiiEditor/pluginapi/Package.hpp>
 #include <LibCube/JSystem/J3D/Collection.hpp>
-#include <LibCube/JSystem/J3D/IO/BMD.hpp>
+#include <LibCube/JSystem/J3D/Binary/BMD/BMD.hpp>
 
 namespace libcube {
 
