@@ -84,14 +84,20 @@ struct RefProperty : public Property<T>
 	T& mRef;
 };
 */
-struct GCCollection : public pl::AbstractInterface
+struct GCCollection
 {
-	GCCollection() : pl::AbstractInterface(pl::InterfaceID::LibCube_GCCollection)
-	{}
-	~GCCollection() override = default;
+	GCCollection()
+	{
+		mGcXfs.mStack.push_back(std::make_unique<pl::TransformStack::XForm>(
+			pl::RichName{"This is a test", "test", "test"}
+		));
+	}
+	virtual ~GCCollection() = default;
 
 	virtual u32 getNumMaterials() const = 0;
 	virtual u32 getNumBones() const = 0;
+
+	pl::TransformStack mGcXfs;
 
 	struct IMaterialDelegate
 	{

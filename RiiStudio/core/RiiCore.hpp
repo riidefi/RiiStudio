@@ -46,4 +46,7 @@ private:
 #endif
 	std::queue<pl::TransformStack::XFormContext> mTransformActions;
 
+	void drawTransformsMenu(EditorWindow& window);
+	void recursiveTransformsMenuItem(const std::string& type, EditorWindow& window);
+
 };

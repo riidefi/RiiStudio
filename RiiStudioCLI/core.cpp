@@ -9,6 +9,7 @@ System::System(int argc, char* const* argv)
 {
 	mPluginFactory.registerPlugin(libcube::Package());
 	mPluginFactory.installModule("nw.dll");
+	mPluginFactory.computeDataMesh();
 
 	std::vector<std::string_view> args(argc);
 	for (int i = 0; i < argc; ++i)
@@ -54,6 +55,12 @@ std::optional<System::SpawnedImporter> System::spawnImporter(const std::string& 
 std::unique_ptr<pl::FileState> System::spawnFileState(const std::string& id)
 {
 	return mPluginFactory.spawnFileState(id);
+}
+std::vector<void*> System::findParentOfType(void* in, const std::string& src, const std::string& dst)
+{
+	std::vector<void*> out;
+	mPluginFactory.findParentOfType(out, in, src, dst);
+	return out;
 }
 
 } // namespace rs_cli

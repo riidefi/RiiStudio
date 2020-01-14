@@ -153,9 +153,9 @@ void Session::execute(System& sys)
 
 	// Print help
 	printf("Info: %s\n", fileState->mName.exposedName.c_str());
-	for (const pl::AbstractInterface* it : fileState->mInterfaces)
-		if (it->mInterfaceId == pl::InterfaceID::TransformStack)
-			printHelp(reinterpret_cast<const pl::TransformStack*>(it));
+	auto xfs = sys.findParentOfType(*fileState, "transform_stack");
+	for (const void* xf : xfs)
+		printHelp(reinterpret_cast<const pl::TransformStack*>(xf));
 
 	
 	// Parse options: Action -> settings
@@ -170,9 +170,9 @@ void Session::execute(System& sys)
 		auto xform_name = s.substr(2);
 		i++;
 		
-		for (const pl::AbstractInterface* it : fileState->mInterfaces) if (it->mInterfaceId == pl::InterfaceID::TransformStack)
+		for (const void* xf : xfs)
 		{
-			const auto& stack = reinterpret_cast<const pl::TransformStack*>(it)->mStack;
+			const auto& stack = reinterpret_cast<const pl::TransformStack*>(xf)->mStack;
 			const auto xf = std::find_if(stack.begin(), stack.end(), [xform_name](auto& x) {
 				return x->name.commandName == xform_name;
 			});

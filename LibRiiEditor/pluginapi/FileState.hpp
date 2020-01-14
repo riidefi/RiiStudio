@@ -16,8 +16,6 @@ struct FileState
 	virtual ~FileState() = default;
 	FileState() = default;
 
-	// TODO: These must be part of the child class itself!
-	std::vector<AbstractInterface*> mInterfaces;
 	RichName mName;
 };
 

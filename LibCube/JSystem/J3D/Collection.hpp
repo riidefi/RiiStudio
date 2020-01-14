@@ -14,8 +14,10 @@ namespace libcube { namespace jsystem {
 //! Represents the state of a J3D model and textures (BMD, BDL) as well as animations.
 //! Unlike the binary equivalents, per-material texture settings have been moved to samplers in materials.
 //!
-struct J3DCollection : public pl::FileState, public pl::ITextureList, public GCCollection, public pl::TransformStack
+class J3DCollection : public pl::FileState, public pl::ITextureList, public GCCollection
 {
+	friend class J3DCollectionSpawner;
+public:
 	/*std::vector<std::unique_ptr<*/J3DModel/*>>*/ mModel/*s*/;
 
 	J3DCollection();
@@ -51,18 +53,11 @@ struct J3DCollection : public pl::FileState, public pl::ITextureList, public GCC
 		return static_cast<int>(f - mModel.mJoints.begin());
 	}
 
-	//
-	// Construction/Destruction
-	//
-
-	template<typename T>
-	void registerInterface()
-	{
-		mInterfaces.push_back(static_cast<T*>(this));
-	}
 private:
 	struct Internal;
 	std::unique_ptr<Internal> internal;
+
+	pl::TransformStack mXfStack;
 };
 
 struct J3DCollectionSpawner : public pl::FileStateSpawner
@@ -71,6 +66,9 @@ struct J3DCollectionSpawner : public pl::FileStateSpawner
 	J3DCollectionSpawner()
 	{
 		mId = { "J3D Collection", "j3dcollection", "j3d_collection" };
+		addMirror("j3dcollection", "gc_collection", pl::computeTranslation<J3DCollection, GCCollection>());
+		// We don't actually need to inherit the class. A parent will implement this.
+		addMirror("j3dcollection", "transform_stack", offsetof(J3DCollection, mXfStack));
 	}
 
 	std::unique_ptr<pl::FileState> spawn() const override

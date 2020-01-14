@@ -251,10 +251,10 @@ J3DCollection::J3DCollection()
 {
 	internal = std::make_unique<Internal>();
 
-	registerInterface<pl::ITextureList>();
-	registerInterface<GCCollection>();
-	registerInterface<pl::TransformStack>();
-	mStack.push_back(std::make_unique<ExampleXF>());
+	//	registerInterface<pl::ITextureList>();
+	//	registerInterface<GCCollection>();
+	//	registerInterface<pl::TransformStack>();
+	mXfStack.mStack.push_back(std::make_unique<ExampleXF>());
 	update();
 }
 J3DCollection::~J3DCollection()

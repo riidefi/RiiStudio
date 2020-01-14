@@ -125,7 +125,7 @@ public:
 	Model()
 	{
 		// Register interfaces
-		mInterfaces.push_back(static_cast<pl::ITextureList*>(this));
+		// mInterfaces.push_back(static_cast<pl::ITextureList*>(this));
 	}
 };
 

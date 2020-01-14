@@ -8,10 +8,10 @@
 
 namespace pl {
 
-struct TransformStack : public AbstractInterface
+struct TransformStack
 {
-	TransformStack() : AbstractInterface(InterfaceID::TransformStack) {}
-	~TransformStack() override = default;
+	TransformStack() = default;
+	virtual ~TransformStack() = default;
 
 	enum class ParamType
 	{
@@ -65,6 +65,14 @@ struct TransformStack : public AbstractInterface
 
 		RichName name;
 		std::vector<Param> mParams;
+
+		XForm() {}
+		XForm(RichName n)
+			: name(n)
+		{}
+		XForm(RichName n, std::vector<Param> p)
+			: name(n), mParams(p)
+		{}
 
 		template<typename... T>
 		void addParam(T... p)

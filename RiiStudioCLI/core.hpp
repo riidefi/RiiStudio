@@ -72,6 +72,15 @@ public:
 	std::unique_ptr<pl::Exporter> spawnExporter(const std::string& id);
 	std::unique_ptr<pl::FileState> spawnFileState(const std::string& id);
 
+	//! Custom RTTI wrapper.
+	std::vector<void*> findParentOfType(void* in, const std::string& src, const std::string& dst);
+
+	template<typename TSrc>
+	std::vector<void*> findParentOfType(TSrc& in, const std::string& dst)
+	{
+		return findParentOfType(&in, in.mName.namespacedId, dst);
+	}
+
 private:
 	Session mSession;
 	PluginFactory mPluginFactory;

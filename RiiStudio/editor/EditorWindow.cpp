@@ -98,21 +98,24 @@ struct MaterialOutliner final : public Window
 	MaterialDataSource outliner;
 	ImTFilter mFilter;
 };
-EditorWindow::EditorWindow(std::unique_ptr<pl::FileState> state, const std::string& path)
+EditorWindow::EditorWindow(std::unique_ptr<pl::FileState> state, PluginFactory& factory, const std::string& path)
 	: mState(std::move(state)), mFilePath(path)
 {
-	for (pl::AbstractInterface* it : mState->mInterfaces)
+	// TODO: Recursive
+	const auto hnd = factory.lookupInfo(mState->mName.namespacedId);
+	assert(hnd);
+	for (int i = 0; i < hnd.getNumParents(); ++i)
 	{
-		switch (it->mInterfaceId)
+		
+		if (hnd.getParent(i).getName() == "gc_collection")
 		{
-		case pl::InterfaceID::TextureList:
-			// attachWindow(std::move(std::make_unique<TextureOutliner>()));
-			break;
-		case pl::InterfaceID::LibCube_GCCollection:
+			libcube::GCCollection* gc = hnd.caseToImmediateParent<libcube::GCCollection>(mState.get(), "gc_collection");
+			assert(gc);
+			if (!gc) return;
+
 			attachWindow(std::move(std::make_unique<ed::MaterialEditor>()));
-			attachWindow(std::move(std::make_unique<MaterialOutliner>(*static_cast<libcube::GCCollection*>(it))));
-			attachWindow(std::move(std::make_unique<ed::BoneEditor>(*static_cast<libcube::GCCollection*>(it))));
-			break;
+			attachWindow(std::move(std::make_unique<MaterialOutliner>(*gc)));
+			attachWindow(std::move(std::make_unique<ed::BoneEditor>(*gc)));
 		}
 	}
 }
@@ -125,8 +128,8 @@ void EditorWindow::draw(WindowContext* ctx) noexcept
 	if (ImGui::Begin("EditorWindow", &bOpen))
 	{
 		ImGui::Text("Interfaces");
-		for (const auto& str : mState->mInterfaces)
-			ImGui::Text(std::to_string(static_cast<u32>(str->mInterfaceId)).c_str());
+		//	for (const auto& str : mState->mInterfaces)
+		//		ImGui::Text(std::to_string(static_cast<u32>(str->mInterfaceId)).c_str());
 		// TODO: Interface handling
 	}
 	ImGui::End();

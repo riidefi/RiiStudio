@@ -6,10 +6,10 @@
 
 namespace pl {
 
-struct ITextureList : public AbstractInterface
+struct ITextureList
 {
-	ITextureList() : AbstractInterface(InterfaceID::TextureList) {}
-	~ITextureList() override = default;
+	ITextureList() = default;
+	virtual ~ITextureList() = default;
 
 	virtual u32 getNumTex() const = 0;
 	virtual std::string getNameAt(int idx) const = 0;

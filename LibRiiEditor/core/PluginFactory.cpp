@@ -3,22 +3,34 @@
 
 bool PluginFactory::registerPlugin(const pl::Package& package)
 {
-	if (package.mEditors.empty() && package.mImporters.empty() && package.mExporters.empty())
+	if (package.mEditors.empty() && package.mImporters.empty() && package.mExporters.empty() && package.mInterfaces.empty())
 	{
 		DebugReport("Plugin is empty.\n");
 		return true;
 	}
 
+	// TODO: Map the ids
+
 	for (const auto ptr : package.mEditors)
+	{
 		mPlugins.emplace_back(ptr->clone());
-
+		mDataMesh.declare(ptr->mId.namespacedId, NodeType::FileState, ptr->mId);
+		for (const auto& m : ptr->mMirror)
+			mDataMesh.enqueueHierarchy(m);
+	}
 	for (const auto ptr : package.mImporters)
+	{
 		mImporters.emplace_back(ptr->clone());
-
+	}
 	for (const auto ptr : package.mExporters)
 		mExporters.emplace_back(ptr->clone());
 
-	
+	for (const auto ptr : package.mInterfaces)
+	{
+		mDataMesh.declare(ptr->mName.namespacedId, NodeType::FileState, ptr->mName, ptr->mFlag);
+		for (const auto& m : ptr->mMirror)
+			mDataMesh.enqueueHierarchy(m);
+	}
 	return true;
 }
 
@@ -77,4 +89,44 @@ std::unique_ptr<pl::FileState> PluginFactory::spawnFileState(const std::string& 
 	}
 
 	return nullptr;
+}
+
+void PluginFactory::DataMesh::compute()
+{
+	while (!mToInsert.empty())
+	{
+		const auto& cmd = mToInsert.front();
+
+		// Always ensure the data mesh is in sync with the rest
+		if (mClasses.find(std::string(cmd.base)) == mClasses.end())
+		{
+			printf("Warning: Type %s references undefined parent %s.\n", cmd.derived.data(), cmd.base.data());
+		}
+		else
+		{
+			mClasses[std::string(cmd.base)].derived = cmd.base;
+			mClasses[std::string(cmd.base)].mChildren.push_back(std::string(cmd.derived));
+		}
+		// TODO
+		mClasses[std::string(cmd.derived)].derived = cmd.derived;
+
+		mClasses[std::string(cmd.derived)].mParents.push_back({ std::string(cmd.base), cmd.translation });
+		mToInsert.pop();
+	}
+}
+
+void PluginFactory::computeDataMesh()
+{
+	mDataMesh.compute();
+}
+static pl::RichName xf_name = {
+	
+};
+PluginFactory::PluginFactory()
+{
+	mDataMesh.declare("transform_stack", NodeType::Interface, {
+		"Transform Stack",
+		"transform_stack",
+		"transform"
+	});
 }

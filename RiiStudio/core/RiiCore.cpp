@@ -182,29 +182,35 @@ void RiiCore::drawMenuBar()
 #endif
 			ImGui::EndMenu();
 		}
-		if (ImGui::BeginMenu("Transform"))
-		{
-			if (ed)
-			{
-				for (pl::AbstractInterface* it : ed->mState->mInterfaces)
-				{
-					if (it->mInterfaceId == pl::InterfaceID::TransformStack)
-					{
-						pl::TransformStack* xform_collection = reinterpret_cast<pl::TransformStack*>(it);
-
-						for (auto& xf : xform_collection->mStack)
-						{
-							if (ImGui::MenuItem(xf->name.exposedName.c_str()))
-							{
-								mTransformActions.push(*xf);
-							}
-						}
-					}
-				}
-			}
-			ImGui::EndMenu();
-		}
+		if (ed)
+			drawTransformsMenu(*ed);
 		ImGui::EndMenuBar(); // Placement?
+	}
+}
+
+void RiiCore::recursiveTransformsMenuItem(const std::string& type, EditorWindow& window)
+{
+	std::vector<void*> out;
+	mPluginFactory.findParentOfType(out, window.mState.get(), window.mState->mName.namespacedId, "transform_stack");
+
+	for (void* it_raw : out)
+	{
+		pl::TransformStack* it = reinterpret_cast<pl::TransformStack*>(it_raw);
+		assert(it);
+		if (!it)
+			return;
+		for (auto& xf : it->mStack)
+			if (ImGui::MenuItem(xf->name.exposedName.c_str()))
+				mTransformActions.push(*xf);
+	}
+}
+
+void RiiCore::drawTransformsMenu(EditorWindow& window)
+{
+	if (ImGui::BeginMenu("Transform"))
+	{
+		recursiveTransformsMenuItem(window.mState->mName.namespacedId, window);
+		ImGui::EndMenu();
 	}
 }
 
@@ -258,7 +264,7 @@ void RiiCore::openFile(OpenFilePolicy policy)
 
 			importer->importer->tryRead(*reader.get(), *fileState.get());
 
-			auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), file);
+			auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), mPluginFactory, file);
 			
 			attachWindow(std::move(edWindow));
 			
@@ -274,6 +280,7 @@ RiiCore::RiiCore()
 {
 	mPluginFactory.registerPlugin(libcube::Package());
 	mPluginFactory.installModule("nw.dll");
+	mPluginFactory.computeDataMesh();
 }
 RiiCore::~RiiCore()
 {}

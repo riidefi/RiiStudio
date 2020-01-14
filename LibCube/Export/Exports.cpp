@@ -29,6 +29,11 @@ Package::Package()
 	mExporters = {
 		&mBMD.second
 	};
+
+	// Interfaces
+	mInterfaces = {
+		&mGCCollection
+	};
 }
 
 
