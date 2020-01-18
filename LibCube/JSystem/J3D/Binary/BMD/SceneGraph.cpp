@@ -1,7 +1,6 @@
 #pragma once
 
 #include "SceneGraph.hpp"
-#include "LinkNode.hpp"
 #include <oishii/writer/node.hxx>
 namespace libcube::jsystem {
 
@@ -62,7 +61,7 @@ struct ByteCodeCmd
 	}
 };
 
-void SceneGraph::onRead(oishii::BinaryReader& reader, BMDImporter::BMDOutputContext& ctx)
+void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 {
 	// FIXME: Algorithm can be significantly improved
 

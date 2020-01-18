@@ -12,7 +12,7 @@ struct SceneGraph
 {
 	static constexpr const char name[] = "SceneGraph";
 
-	static void onRead(oishii::BinaryReader& reader, BMDImporter::BMDOutputContext& ctx);
+	static void onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx);
 	static oishii::Node* getLinkerNode(const J3DModel& mdl, bool linkerOwned=true);
 };
 

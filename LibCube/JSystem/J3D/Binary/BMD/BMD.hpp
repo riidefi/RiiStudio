@@ -9,6 +9,7 @@
 #include <LibCube/JSystem/J3D/Collection.hpp>
 #include <LibRiiEditor/pluginapi/IO/Importer.hpp>
 #include <LibRiiEditor/pluginapi/IO/Exporter.hpp>
+#include <LibCube/JSystem/J3D/Binary/BMD/OutputCtx.hpp>
 
 namespace libcube::jsystem {
 
@@ -16,39 +17,11 @@ class BMDImporter : public pl::Importer
 {
 public:
 	bool error = false;
-
-	struct BMDOutputContext
-	{
-		J3DModel& mdl;
-
-		// Compression ID LUT (remap table)
-		std::vector<u16> jointIdLut;
-		std::vector<u16> materialIdLut;
-		std::vector<u16> shapeIdLut;
-	};
-
-	// Associate section magics with file positions and size
-	struct SectionEntry
-	{
-		std::size_t streamPos;
-		u32 size;
-	};
-	std::map<u32, SectionEntry> mSections;
-
-	void lex(oishii::BinaryReader& reader, u32 sec_count) noexcept;
+	void lex(BMDOutputContext& ctx, u32 sec_count) noexcept;
 
 
 	void readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx);
 	bool tryRead(oishii::BinaryReader& reader, pl::FileState& state) override;
-
-private:
-	void readShapes(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
-	void readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
-	void readInformation(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
-	void readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
-	void readMaterials(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
-	void readVertexBuffers(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
-	bool enterSection(oishii::BinaryReader& reader, u32 id);
 };
 
 class BMDExporter : public pl::Exporter
