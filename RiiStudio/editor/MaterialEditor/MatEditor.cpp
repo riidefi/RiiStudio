@@ -52,7 +52,7 @@ void MaterialEditor::draw(WindowContext* ctx) noexcept
 		return;
 	}
 	// Note: Active changed from back->front
-	ImGui::Text("%s %s (%u)", mats.front()->getNameCStr(), mats.size() > 1 ? "..." : "", mats.size());
+	ImGui::Text("%s %s (%u)", mats.front()->getName().c_str(), mats.size() > 1 ? "..." : "", mats.size());
 
 	if (drawLeft(mats) && selected != -1 && selected < (int)MatTab::Max)
 	{

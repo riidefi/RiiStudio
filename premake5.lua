@@ -133,9 +133,17 @@ function setupMainApp()
 	}
 	setupMainAppCli(false)
 	
+	fbx_dir = ""
+	configuration { "vs*", "Debug" }
+		fbx_dir = FBX_SDK_ROOT .. "/x64/debug"
+	configuration { "vs*", "Release" }
+		fbx_dir = FBX_SDK_ROOT .. "/x64/release"
+	configuration { "vs*", "Dist" }
+		fbx_dir = FBX_SDK_ROOT .. "/x64/release"
 
 	postbuildcommands {
 		"{COPY} ../ThirdParty/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}",
+		-- "{COPY} " .. fbx_dir .. "libfbxsdk.dll %{cfg.targetdir}",
 		"{COPY} ../fonts/* %{cfg.targetdir}"
 	}
 	
@@ -194,7 +202,23 @@ project "LibCube"
 	{
 		"LibCube",
 		"oishii",
+		"./"
+	}
+
+	setupStaticLib()
+	setupCppC()
+
+
+	setupSystem()
+	setupPreprocessor()
+
+
+project "Lib3D"
+	location "Lib3D"
+	includedirs
+	{
 		"./",
+		"oishii",
 		(FBX_SDK_ROOT .. "../../../include")
 	}
 

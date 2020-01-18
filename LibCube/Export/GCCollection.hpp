@@ -5,7 +5,8 @@
 #include <optional>
 #include <ThirdParty/glm/vec3.hpp>
 #include <LibCube/Common/BoundBox.hpp>
-
+#include <Lib3D/interface/i3dmodel.hpp>
+#include <map>
 namespace libcube {
 
 
@@ -84,7 +85,214 @@ struct RefProperty : public Property<T>
 	T& mRef;
 };
 */
-struct GCCollection
+struct IndexedVertex
+{
+	inline const u16& operator[] (gx::VertexAttribute attr) const
+	{
+		assert((u32)attr < (u32)gx::VertexAttribute::Max);
+		return indices[(u32)attr];
+	}
+	inline u16& operator[] (gx::VertexAttribute attr)
+	{
+		assert((u32)attr < (u32)gx::VertexAttribute::Max);
+		return indices[(u32)attr];
+	}
+
+private:
+	std::array<u16, (u32)gx::VertexAttribute::Max> indices;
+};
+struct IndexedPrimitive
+{
+	gx::PrimitiveType mType;
+	std::vector<IndexedVertex> mVertices;
+
+	IndexedPrimitive() = default;
+	IndexedPrimitive(gx::PrimitiveType type, u32 size)
+		: mType(type), mVertices(size)
+	{
+	}
+};
+struct VertexDescriptor
+{
+	std::map<gx::VertexAttribute, gx::VertexAttributeType> mAttributes;
+	u32 mBitfield; // values of VertexDescriptor
+
+	u32 getVcdSize() const
+	{
+		u32 vcd_size = 0;
+		for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i)
+			if (mBitfield & (1 << 1))
+				++vcd_size;
+		return vcd_size;
+	}
+	void calcVertexDescriptorFromAttributeList()
+	{
+		mBitfield = 0;
+		for (gx::VertexAttribute i = gx::VertexAttribute::PositionNormalMatrixIndex;
+			static_cast<u32>(i) < static_cast<u32>(gx::VertexAttribute::Max);
+			i = static_cast<gx::VertexAttribute>(static_cast<u32>(i) + 1))
+		{
+			auto found = mAttributes.find(i);
+			if (found != mAttributes.end() && found->second != gx::VertexAttributeType::None)
+				mBitfield |= (1 << static_cast<u32>(i));
+		}
+	}
+	bool operator[] (gx::VertexAttribute attr) const
+	{
+		return mBitfield & (1 << static_cast<u32>(attr));
+	}
+};
+inline gx::VertexAttribute operator+(gx::VertexAttribute attr, u32 i)
+{
+	u32 out = static_cast<u32>(attr) + i;
+	assert(out < static_cast<u32>(gx::VertexAttribute::Max));
+	return static_cast<gx::VertexAttribute>(out);
+}
+struct IndexedPolygon : public lib3d::Polygon
+{
+	// In wii/gc, absolute indices across mprims
+	u32 getNumPrimitives() const override
+	{
+		u32 total = 0;
+
+		for (u32 i = 0; i < getNumMatrixPrimitives(); ++i)
+			total += getMatrixPrimitiveNumIndexedPrimitive(i);
+
+		return total;
+	}
+	// Triangles
+	// We add this to the last mprim. May need to be split up later.
+	int addPrimitive() override
+	{
+		if (getNumMatrixPrimitives() == 0)
+			addMatrixPrimitive();
+
+		const int idx = getNumMatrixPrimitives();
+		assert(idx > 0);
+		if (idx <= 0)
+			return -1;
+
+		//	const int iprim_idx = addMatrixPrimitiveIndexedPrimitive();
+		//	assert(iprim_idx >= 0);
+		//	if (iprim_idx < 0)
+		//		return;
+		//	
+		//	auto& iprim = getMatrixPrimitiveIndexedPrimitive(idx, iprim_idx);
+		//	
+		//	// TODO
+	}
+	bool hasAttrib(SimpleAttrib attrib) const override
+	{
+		switch (attrib)
+		{
+		case SimpleAttrib::EnvelopeIndex:
+			return getVcd()[gx::VertexAttribute::PositionNormalMatrixIndex];
+		case SimpleAttrib::Position:
+			return getVcd()[gx::VertexAttribute::Position];
+		case SimpleAttrib::Normal:
+			return getVcd()[gx::VertexAttribute::Position];
+		case SimpleAttrib::Color0:
+		case SimpleAttrib::Color1:
+			return getVcd()[gx::VertexAttribute::Color0 + ((u32)attrib - (u32)SimpleAttrib::Color0)];
+		case SimpleAttrib::TexCoord0:
+		case SimpleAttrib::TexCoord1:
+		case SimpleAttrib::TexCoord2:
+		case SimpleAttrib::TexCoord3:
+		case SimpleAttrib::TexCoord4:
+		case SimpleAttrib::TexCoord5:
+		case SimpleAttrib::TexCoord6:
+		case SimpleAttrib::TexCoord7:
+			return getVcd()[gx::VertexAttribute::TexCoord0 + ((u32)attrib - (u32)SimpleAttrib::TexCoord0)];
+		default:
+			return false;
+		}
+	}
+	void setAttrib(SimpleAttrib attrib, bool v) override
+	{
+		// We usually recompute the index (no direct support*)
+		switch (attrib)
+		{
+		case SimpleAttrib::EnvelopeIndex:
+			getVcd().mAttributes[gx::VertexAttribute::PositionNormalMatrixIndex] = gx::VertexAttributeType::Direct;
+			break;
+		case SimpleAttrib::Position:
+			getVcd().mAttributes[gx::VertexAttribute::Position] = gx::VertexAttributeType::Short;
+			break;
+		case SimpleAttrib::Normal:
+			getVcd().mAttributes[gx::VertexAttribute::Position] = gx::VertexAttributeType::Short;
+			break;
+		case SimpleAttrib::Color0:
+		case SimpleAttrib::Color1:
+			getVcd().mAttributes[gx::VertexAttribute::Color0 + ((u32)attrib - (u32)SimpleAttrib::Color0)] = gx::VertexAttributeType::Short;
+			break;
+		case SimpleAttrib::TexCoord0:
+		case SimpleAttrib::TexCoord1:
+		case SimpleAttrib::TexCoord2:
+		case SimpleAttrib::TexCoord3:
+		case SimpleAttrib::TexCoord4:
+		case SimpleAttrib::TexCoord5:
+		case SimpleAttrib::TexCoord6:
+		case SimpleAttrib::TexCoord7:
+			getVcd().mAttributes[gx::VertexAttribute::TexCoord0 + ((u32)attrib - (u32)SimpleAttrib::TexCoord0)] = gx::VertexAttributeType::Short;
+			break;
+		default:
+			assert(!"Invalid simple vertex attrib");
+			break;
+		}
+	}
+	IndexedPrimitive& getIndexedPrimitiveFromSuperIndex(u32 idx)
+	{
+		return *(IndexedPrimitive*)nullptr;
+	}
+	const IndexedPrimitive& getIndexedPrimitiveFromSuperIndex(u32 idx) const
+	{
+		return *(IndexedPrimitive*)nullptr;
+	}
+	u32 getPrimitiveVertexCount(u32 index) const override
+	{
+		return getIndexedPrimitiveFromSuperIndex(index).mVertices.size();
+	}
+	void resizePrimitiveVertexArray(u32 index, u32 size) override
+	{
+		getIndexedPrimitiveFromSuperIndex(index).mVertices.resize(size);
+	}
+	SimpleVertex getPrimitiveVertex(u32 prim_idx, u32 vtx_idx) override
+	{
+		const auto& iprim = getIndexedPrimitiveFromSuperIndex(prim_idx);
+		assert(vtx_idx < iprim.mVertices.size());
+		const auto& vtx = iprim.mVertices[vtx_idx];
+
+		//return {
+		//	vtx[gx::VertexAttribute::PositionNormalMatrixIndex],
+		//	vtx[gx::VertexAttribute::Position]
+		//};
+		return {};
+	}
+	// We add on to the attached buffer
+	void setPrimitiveVertex(u32 prim_idx, u32 vtx_idx, const SimpleVertex& vtx) override
+	{
+
+	}
+	void update() override
+	{
+		// Split up added primitives if necessary
+	}
+
+
+	virtual u32 getNumMatrixPrimitives() const = 0;
+	virtual s32 addMatrixPrimitive() = 0;
+	virtual s16 getMatrixPrimitiveCurrentMatrix(u32 idx) const = 0;
+	virtual void setMatrixPrimitiveCurrentMatrix(u32 idx, s16 mtx) = 0;
+	// Matrix list access
+	virtual u32 getMatrixPrimitiveNumIndexedPrimitive(u32 idx) const = 0;
+	virtual const IndexedPrimitive& getMatrixPrimitiveIndexedPrimitive(u32 idx, u32 prim_idx) const = 0;
+	virtual IndexedPrimitive& getMatrixPrimitiveIndexedPrimitive(u32 idx, u32 prim_idx) = 0;
+
+	virtual VertexDescriptor& getVcd() = 0;
+	virtual const VertexDescriptor& getVcd() const = 0;
+
+};
+struct GCCollection : public lib3d::I3DModel
 {
 	GCCollection()
 	{
@@ -94,12 +302,9 @@ struct GCCollection
 	}
 	virtual ~GCCollection() = default;
 
-	virtual u32 getNumMaterials() const = 0;
-	virtual u32 getNumBones() const = 0;
-
 	pl::TransformStack mGcXfs;
 
-	struct IMaterialDelegate
+	struct IMaterialDelegate : public lib3d::Material
 	{
 		virtual ~IMaterialDelegate() = default;
 
@@ -146,29 +351,11 @@ struct GCCollection
 		virtual void setMatColor(u32 idx, gx::Color v) = 0;
 		virtual void setAmbColor(u32 idx, gx::Color v) = 0;
 
-		virtual const char* getNameCStr() { return "Unsupported"; }
+		virtual std::string getName() const = 0;
 		virtual void* getRaw() = 0; // For selection
 	};
-
-	enum class BoneFeatures
+	struct IBoneDelegate : public lib3d::Bone
 	{
-		// -- Standard features: XForm, Hierarchy. Here for read-only access
-		SRT,
-		Hierarchy,
-		// -- Optional features
-		StandardBillboards, // J3D
-		ExtendedBillboards, // G3D
-		AABB,
-		BoundingSphere,
-		SegmentScaleCompensation, // Maya
-		// Not exposed currently:
-		//	ModelMatrix,
-		//	InvModelMatrix
-		Max
-	};
-	struct IBoneDelegate : public TPropertySupport<BoneFeatures>
-	{
-		virtual ~IBoneDelegate() = default;
 		enum class Billboard
 		{
 			None,
@@ -185,50 +372,33 @@ struct GCCollection
 			J3D_XY,
 			J3D_Y
 		};
-
-		virtual const char* getNameCStr() { return "-"; }
-		// flags not here
-		struct SRT3
-		{
-			glm::vec3 scale;
-			glm::vec3 rotation;
-			glm::vec3 translation;
-
-			bool operator==(const SRT3& rhs) const
-			{
-				return scale == rhs.scale && rotation == rhs.rotation && translation == rhs.translation;
-			}
-			bool operator!=(const SRT3& rhs) const
-			{
-				return !operator==(rhs);
-			}
-		};
-		virtual SRT3 getSRT() const = 0;
-		virtual void setSRT(const SRT3& srt) = 0;
-
-		virtual std::string getParent() const = 0;
-		virtual std::vector<std::string> getChildren() const = 0;
-
 		virtual Billboard getBillboard() const = 0;
 		virtual void setBillboard(Billboard b) = 0;
-		// TODO -- extended requires a reference ancestor bone
+		// For extendeds
+		virtual int getBillboardAncestor() { return -1; }
+		virtual void setBillboardAncestor(int ancestor_id) {}
 
-		virtual AABB getAABB() const = 0;
-		virtual void setAABB(const AABB& v) = 0;
-
-		virtual float getBoundingRadius() const = 0;
-		virtual void setBoundingRadius(float v) = 0;
-
-		virtual bool getSSC() const = 0;
-		virtual void setSSC(bool b) = 0;
+		void copy(lib3d::Bone& to) override
+		{
+			lib3d::Bone::copy(to);
+			IBoneDelegate* bone = reinterpret_cast<IBoneDelegate*>(&to);
+			if (bone)
+			{
+				if (bone->supportsBoneFeature(lib3d::BoneFeatures::StandardBillboards) == lib3d::Coverage::ReadWrite)
+					bone->setBillboard(getBillboard());
+				if (bone->supportsBoneFeature(lib3d::BoneFeatures::ExtendedBillboards) == lib3d::Coverage::ReadWrite)
+					bone->setBillboardAncestor(getBillboardAncestor());
+			}
+		}
+		inline bool canWrite(lib3d::BoneFeatures f)
+		{
+			return supportsBoneFeature(f) == lib3d::Coverage::ReadWrite;
+		}
 	};
-	virtual IBoneDelegate& getBoneDelegate(u32 idx) = 0;
-	// Non-owning reference
-	virtual IMaterialDelegate& getMaterialDelegate(u32 idx) = 0;
-	// For material delegates, if size of materials is altered
-	virtual void update() = 0;
-
-	virtual int boneNameToIdx(std::string name) const = 0;
+	virtual IBoneDelegate& getBone(u32 idx) override = 0;
+	virtual IMaterialDelegate& getMaterial(u32 idx) override = 0;
 };
+
+
 
 } // namespace libcube

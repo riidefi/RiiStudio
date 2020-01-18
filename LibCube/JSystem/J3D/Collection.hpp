@@ -40,24 +40,16 @@ public:
 	// GCCollection
 	u32 getNumMaterials() const override { return static_cast<u32>(mModel.mMaterials.size()); }
 	u32 getNumBones() const override { return static_cast<u32>(mModel.mJoints.size()); }
+	int addBone() override { auto out = mModel.mJoints.size(); mModel.mJoints.emplace_back(); return out; }
+	int addMaterial() override { auto out = mModel.mMaterials.size(); mModel.mMaterials.emplace_back(); return out; }
 	
-	GCCollection::IMaterialDelegate& getMaterialDelegate(u32 idx) override;
-	GCCollection::IBoneDelegate& getBoneDelegate(u32 idx) override;
-	void update() override;
-
-	virtual int boneNameToIdx(std::string name) const override
-	{
-		auto f = std::find_if(
-			mModel.mJoints.begin(), mModel.mJoints.end(), [name](J3DModel::Joint j) { return j.id == name; });
-		if (f == mModel.mJoints.end()) return -1;
-		return static_cast<int>(f - mModel.mJoints.begin());
-	}
+	GCCollection::IMaterialDelegate& getMaterial(u32 idx) override;
+	GCCollection::IBoneDelegate& getBone(u32 idx) override;
 
 private:
-	struct Internal;
-	std::unique_ptr<Internal> internal;
-
 	pl::TransformStack mXfStack;
+public:
+	bool bdl = false;
 };
 
 struct J3DCollectionSpawner : public pl::FileStateSpawner

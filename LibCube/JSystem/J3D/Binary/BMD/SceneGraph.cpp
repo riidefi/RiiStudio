@@ -130,7 +130,7 @@ struct SceneGraphNode : public oishii::Node
 		return eResult::Success;
 	}
 	
-	void writeBone(oishii::Writer& writer, const J3DModel::Joint& joint, const J3DModel& mdl, u32& depth) const
+	void writeBone(oishii::Writer& writer, const Joint& joint, const J3DModel& mdl, u32& depth) const
 	{
 		u32 startDepth = depth;
 
@@ -145,45 +145,40 @@ struct SceneGraphNode : public oishii::Node
 		ByteCodeCmd(ByteCodeOp::Open).transfer(writer);
 		++depth;
 
-
-		J3DModel::Joint::Display last;
-		for (const auto& d : joint.displays)
+		if (!joint.displays.empty())
 		{
-			if (d.material != last.material)
+			Joint::Display last = { -1, -1 };
+			for (const auto& d : joint.displays)
 			{
-				s16 mid = -1;
-				for (int i = 0; i < mdl.mMaterials.size(); ++i)
+				if (d.material != last.material)
 				{
-					if (mdl.mMaterials[i].id == d.material)
-						mid = i;
-				}
-				assert(mid != -1);
+					s16 mid = -1;
+					for (int i = 0; i < mdl.mMaterials.size(); ++i)
+					{
+						if (mdl.mMaterials[i].id == d.material)
+							mid = i;
+					}
+					assert(mid != -1);
 
-				ByteCodeCmd(ByteCodeOp::Material, mid).transfer(writer);
-				ByteCodeCmd(ByteCodeOp::Open).transfer(writer);
-				++depth;
+					ByteCodeCmd(ByteCodeOp::Material, mid).transfer(writer);
+					ByteCodeCmd(ByteCodeOp::Open).transfer(writer);
+					++depth;
+				}
+				if (d.shape != last.shape)
+				{
+					// TODO
+					ByteCodeCmd(ByteCodeOp::Shape, d.shape).transfer(writer);
+					ByteCodeCmd(ByteCodeOp::Open).transfer(writer);
+					++depth;
+				}
+				last = d;
 			}
-			if (d.shape != last.shape)
-			{
-				// TODO
-				ByteCodeCmd(ByteCodeOp::Shape, d.shape).transfer(writer);
-				ByteCodeCmd(ByteCodeOp::Open).transfer(writer);
-				++depth;
-			}
-			last = d;
 		}
 
 
-		for (const auto& d : joint.children)
+		for (const auto d : joint.children)
 		{
-			for (const auto& j : mdl.mJoints)
-			{
-				if (j.id == d)
-				{
-					writeBone(writer, j, mdl, depth);
-					break;
-				}
-			}
+			writeBone(writer, mdl.mJoints[d], mdl, depth);
 		}
 		if (depth != startDepth)
 		{

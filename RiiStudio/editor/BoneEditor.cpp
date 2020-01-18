@@ -13,8 +13,8 @@ struct Predicate
 };
 void BoneEditor::drawBone(libcube::GCCollection::IBoneDelegate& d, bool leaf)
 {
-	using features = libcube::GCCollection::BoneFeatures;
-	bool o = ImGui::TreeNodeEx((void*)&d, ImGuiTreeNodeFlags_DefaultOpen | (d.getChildren().empty() ? ImGuiTreeNodeFlags_Leaf : 0), d.getNameCStr());
+	using features = lib3d::BoneFeatures;
+	bool o = ImGui::TreeNodeEx((void*)&d, ImGuiTreeNodeFlags_DefaultOpen | (!d.getNumChildren() ? ImGuiTreeNodeFlags_Leaf : 0), d.getName().c_str());
 	ImGui::NextColumn();
 	{
 #define BONE_PROP(ID, D) \
@@ -45,17 +45,11 @@ void BoneEditor::drawBone(libcube::GCCollection::IBoneDelegate& d, bool leaf)
 #undef BONE_PROP
 	}
 	if (o)
-	{
-		for (const auto& s : d.getChildren())
+	{	
+		for (u32 i = 0; i < d.getNumChildren(); ++i)
 		{
-			int i = samp.boneNameToIdx(s);
-			assert(i >= 0 && i < samp.getNumBones());
-			if (i >= 0 && i < samp.getNumBones())
-			{
-				assert(samp.getBoneDelegate(i).getParent() == d.getNameCStr());
-				drawBone(samp.getBoneDelegate(i));
-			}
-
+			assert(samp.getBone(d.getChild(i)).getParent() == d.getId());
+			drawBone(samp.getBone(d.getChild(i)));
 		}
 		ImGui::TreePop();
 	}
@@ -84,7 +78,7 @@ void BoneEditor::draw(WindowContext* ctx) noexcept
 		ImGui::Text("Segment Scale Compensation");
 		ImGui::NextColumn();
 
-		drawBone(samp.getBoneDelegate(0));
+		drawBone(samp.getBone(0));
 		
 		ImGui::Columns(1);
 		ImGui::TreePop();

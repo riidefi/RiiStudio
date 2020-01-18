@@ -2,6 +2,7 @@
 
 #include <map>
 #include <vector>
+#include <memory>
 #include "LibRiiEditor/pluginapi/RichName.hpp"
 #include "LibRiiEditor/pluginapi/Interface.hpp"
 #include "LibRiiEditor/common.hpp"

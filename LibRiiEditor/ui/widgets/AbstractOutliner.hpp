@@ -64,7 +64,7 @@ struct VectorSampler
 	{
 		return data.size();
 	}
-	const char* nameAt(u32 idx) const noexcept
+	std::string nameAt(u32 idx) const noexcept
 	{
 		return data[idx].getName();
 	}
@@ -97,7 +97,7 @@ struct AbstractOutlinerFolder
 		u32 nPass = 0;
 
 		for (u32 i = 0; i < sampler.size(); ++i)
-			if (filter->test(sampler.nameAt(i)))
+			if (filter->test(sampler.nameAt(i).c_str()))
 				++nPass;
 
 		return nPass;
@@ -130,7 +130,8 @@ struct AbstractOutlinerFolder
 		// Draw the tree
 		for (int i = 0; i < sampler.size(); ++i)
 		{
-			const char* name = sampler.nameAt(i);
+			auto n = sampler.nameAt(i);
+			const char* name = n.c_str();
 			if (filter && !filter->test(name))
 				continue;
 

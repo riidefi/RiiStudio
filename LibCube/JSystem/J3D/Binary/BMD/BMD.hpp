@@ -24,6 +24,7 @@ public:
 		// Compression ID LUT (remap table)
 		std::vector<u16> jointIdLut;
 		std::vector<u16> materialIdLut;
+		std::vector<u16> shapeIdLut;
 	};
 
 	// Associate section magics with file positions and size
@@ -41,6 +42,7 @@ public:
 	bool tryRead(oishii::BinaryReader& reader, pl::FileState& state) override;
 
 private:
+	void readShapes(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
 	void readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
 	void readInformation(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;
 	void readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept;

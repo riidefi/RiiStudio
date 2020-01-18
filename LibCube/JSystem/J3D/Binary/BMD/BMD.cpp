@@ -105,7 +105,7 @@ void BMDImporter::readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContex
 {
 
 	// We infer DRW1 -- one bone -> singlebound, else create envelope
-	std::vector<J3DModel::DrawMatrix> envelopes;
+	std::vector<DrawMatrix> envelopes;
 
 	// First read our envelope data
 	if (enterSection(reader, 'EVP1'))
@@ -166,12 +166,14 @@ void BMDImporter::readDrawMatrices(oishii::BinaryReader& reader, BMDOutputContex
 		int i = 0;
 		for (auto& mtx : ctx.mdl.mDrawMatrices)
 		{
-			ScopedInc inc(i);
 
 			const auto multipleInfluences = reader.peekAt<u8>(ofsPartialWeighting + i);
 			const auto index = reader.peekAt<u16>(ofsIndex + i * 2);
+			if (multipleInfluences)
+				printf("multiple influences: %u\n", index);
 
-			mtx = multipleInfluences ? envelopes[index] : J3DModel::DrawMatrix{ std::vector<J3DModel::DrawMatrix::MatrixWeight>{index} };
+			mtx = multipleInfluences ? envelopes[index] : DrawMatrix{ std::vector<DrawMatrix::MatrixWeight>{DrawMatrix::MatrixWeight(index, 1.0f)} };
+			i++;
 		}
 	}
 }
@@ -206,7 +208,7 @@ void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx
 		}
 
 		if (!sorted)
-			DebugReport("Joint IDS will be remapped on save and incompatible with animations.\n");
+			DebugReport("Joint IDS are remapped.\n");
 
 
 		// FIXME: unnecessary allocation of a vector.
@@ -217,10 +219,11 @@ void BMDImporter::readJoints(oishii::BinaryReader& reader, BMDOutputContext& ctx
 		{
 			auto& joint = ctx.mdl.mJoints[i];
 			reader.seekSet(g.start + ofsJointData + ctx.jointIdLut[i] * 0x40);
-			joint.id = nameTable[i];
+			joint.id = ctx.jointIdLut[i]; // TODO
+			joint.name = nameTable[i];
 			const u16 flag = reader.read<u16>();
 			joint.flag = flag & 0xf;
-			joint.bbMtxType = static_cast<J3DModel::Joint::MatrixType>(flag >> 4);
+			joint.bbMtxType = static_cast<Joint::MatrixType>(flag >> 4);
 			const u8 mayaSSC = reader.read<u8>();
 			joint.mayaSSC = mayaSSC == 0xff ? false : mayaSSC;
 			reader.read<u8>();
@@ -454,9 +457,9 @@ struct io_wrapper<gx::ColorS10>
 };
 
 template<>
-struct io_wrapper<J3DModel::Material::NBTScale>
+struct io_wrapper<Material::NBTScale>
 {
-	static void onRead(oishii::BinaryReader& reader, J3DModel::Material::NBTScale& c)
+	static void onRead(oishii::BinaryReader& reader, Material::NBTScale& c)
 	{
 		c.enable = static_cast<bool>(reader.read<u8>());
 		reader.seek(3);
@@ -482,9 +485,9 @@ struct io_wrapper<gx::TexCoordGen>
 };
 
 template<>
-struct io_wrapper<J3DModel::Material::TexMatrix>
+struct io_wrapper<Material::TexMatrix>
 {
-	static void onRead(oishii::BinaryReader& reader, J3DModel::Material::TexMatrix& c)
+	static void onRead(oishii::BinaryReader& reader, Material::TexMatrix& c)
 	{
 		c.projection = static_cast<gx::TexGenType>(reader.read<u8>());
 		// FIXME:
@@ -581,7 +584,23 @@ struct io_wrapper<gx::TevStage>
 	}
 };
 
-void readMatEntry(J3DModel::Material& mat, MatLoader& loader, oishii::BinaryReader& reader)
+template<>
+struct io_wrapper<MaterialData::Fog>
+{
+	static void onRead(oishii::BinaryReader& reader, MaterialData::Fog& f)
+	{
+		f.type = static_cast<MaterialData::Fog::Type>(reader.read<u8>());
+		f.enabled = reader.read<u8>();
+		f.center = reader.read<u16>();
+		f.startZ = reader.read<f32>();
+		f.endZ = reader.read<f32>();
+		f.nearZ = reader.read<f32>();
+		f.farZ = reader.read<f32>();
+		io_wrapper<gx::Color>::onRead(reader, f.color);
+		f.rangeAdjTable = reader.readX<u16, 10>();
+	}
+};
+void readMatEntry(Material& mat, MatLoader& loader, oishii::BinaryReader& reader)
 {
 	oishii::DebugExpectSized dbg(reader, 332);
 	oishii::BinaryReader::ScopedRegion g(reader, "Material");
@@ -632,14 +651,14 @@ void readMatEntry(J3DModel::Material& mat, MatLoader& loader, oishii::BinaryRead
 		const auto get_ka = [&](size_t i) { return static_cast<gx::TevKAlphaSel>(ka_sels[i]); };
 
 		dbg.assertSince(0x0BC);
-		J3DModel::array_vector<TevOrder, 16> tevOrderInfos;
+		array_vector<TevOrder, 16> tevOrderInfos;
 		loader.indexedContainer<u16>(tevOrderInfos, MatSec::TevOrderInfo, 4);
 
 
 		loader.indexedContainer<u16>(mat.tevColors, MatSec::TevColors, 4);
 
 		// FIXME: Directly read into material
-		J3DModel::array_vector<gx::TevStage, 16> tevStageInfos;
+		array_vector<gx::TevStage, 16> tevStageInfos;
 		loader.indexedContainer<u16>(tevStageInfos, MatSec::TevStageInfo, 20);
 		for (int i = 0; i < tevStageInfos.size(); ++i)
 		{
@@ -652,7 +671,7 @@ void readMatEntry(J3DModel::Material& mat, MatLoader& loader, oishii::BinaryRead
 		}
 
 		dbg.assertSince(0x104);
-		J3DModel::array_vector<SwapSel, 16> swapSels;
+		array_vector<SwapSel, 16> swapSels;
 		loader.indexedContainer<u16>(swapSels, MatSec::TevSwapModeInfo, 4);
 		for (int i = 0; i < mat.shader.mStages.size(); ++i)
 		{
@@ -661,7 +680,7 @@ void readMatEntry(J3DModel::Material& mat, MatLoader& loader, oishii::BinaryRead
 		}
 
 		// FIXME
-		J3DModel::array_vector<gx::Shader::SwapTableEntry, 16> swapTables;
+		array_vector<gx::Shader::SwapTableEntry, 16> swapTables;
 		loader.indexedContainer<u16>(swapTables, MatSec::TevSwapModeTableInfo, 4);
 		//	assert(swapTables.size() == 4);
 		for (int i = 0; i < 4; ++i)
@@ -712,7 +731,8 @@ void BMDImporter::readMaterials(oishii::BinaryReader& reader, BMDOutputContext& 
 		{
 			auto& mat = ctx.mdl.mMaterials[i];
 			reader.seekSet(g.start + ofsMatData + ctx.materialIdLut[i] * 0x14c);
-			mat.id = nameTable[i];
+			mat.id = ctx.materialIdLut[i];
+			mat.name = nameTable[i];
 
 			readMatEntry(mat, loader, reader);
 		}
@@ -752,14 +772,14 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 		// FIXME: type punning
 		void* buf = nullptr;
 
-		J3DModel::VBufferKind bufkind = J3DModel::VBufferKind::undefined;
+		VBufferKind bufkind = VBufferKind::undefined;
 
 		switch (type)
 		{
 		case gx::VertexBufferAttribute::Position:
 			buf = &ctx.mdl.mBufs.pos;
-			bufkind = J3DModel::VBufferKind::position;
-			ctx.mdl.mBufs.pos.mQuant = J3DModel::VQuantization(
+			bufkind = VBufferKind::position;
+			ctx.mdl.mBufs.pos.mQuant = VQuantization(
 				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Position>(comp)),
 				gx::VertexBufferType(gen_data),
 				gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0,
@@ -768,8 +788,8 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 			break;
 		case gx::VertexBufferAttribute::Normal:
 			buf = &ctx.mdl.mBufs.norm;
-			bufkind = J3DModel::VBufferKind::normal;
-			ctx.mdl.mBufs.norm.mQuant = J3DModel::VQuantization(
+			bufkind = VBufferKind::normal;
+			ctx.mdl.mBufs.norm.mQuant = VQuantization(
 				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Normal>(comp)),
 				gx::VertexBufferType(gen_data),
 				gen_data == gx::VertexBufferType::Generic::s8 ? 6 :
@@ -783,8 +803,8 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 		{
 			auto& clr = ctx.mdl.mBufs.color[static_cast<size_t>(type) - static_cast<size_t>(gx::VertexBufferAttribute::Color0)];
 			buf = &clr;
-			bufkind = J3DModel::VBufferKind::color;
-			clr.mQuant = J3DModel::VQuantization(
+			bufkind = VBufferKind::color;
+			clr.mQuant = VQuantization(
 				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Color>(comp)),
 				gx::VertexBufferType(static_cast<gx::VertexBufferType::Color>(data)),
 				0,
@@ -818,8 +838,8 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 		case gx::VertexBufferAttribute::TexCoord7: {
 			auto& uv = ctx.mdl.mBufs.uv[static_cast<size_t>(type) - static_cast<size_t>(gx::VertexBufferAttribute::TexCoord0)];
 			buf = &uv;
-			bufkind = J3DModel::VBufferKind::textureCoordinate;
-			uv.mQuant = J3DModel::VQuantization(
+			bufkind = VBufferKind::textureCoordinate;
+			uv.mQuant = VQuantization(
 				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::TextureCoordinate>(comp)),
 				gx::VertexBufferType(gen_data),
 				gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0,
@@ -833,7 +853,7 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 		}
 
 		assert(estride);
-		assert(bufkind != J3DModel::VBufferKind::undefined);
+		assert(bufkind != VBufferKind::undefined);
 
 		const auto getDataIndex = [&](gx::VertexBufferAttribute attr)
 		{
@@ -886,7 +906,7 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 
 			switch (bufkind)
 			{
-			case J3DModel::VBufferKind::position: {
+			case VBufferKind::position: {
 				auto pos = reinterpret_cast<decltype(ctx.mdl.mBufs.pos)*>(buf);
 					
 				pos->mData.resize(ensize);
@@ -894,7 +914,7 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 					pos->readBufferEntryGeneric(reader, pos->mData[i]);
 				break;
 			}
-			case J3DModel::VBufferKind::normal: {
+			case VBufferKind::normal: {
 				auto nrm = reinterpret_cast<decltype(ctx.mdl.mBufs.norm)*>(buf);
 
 				nrm->mData.resize(ensize);
@@ -902,7 +922,7 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 					nrm->readBufferEntryGeneric(reader, nrm->mData[i]);
 				break;
 			}
-			case J3DModel::VBufferKind::color: {
+			case VBufferKind::color: {
 				auto clr = reinterpret_cast<decltype(ctx.mdl.mBufs.color)::value_type*>(buf);
 
 				clr->mData.resize(ensize);
@@ -910,7 +930,7 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 					clr->readBufferEntryColor(reader, clr->mData[i]);
 				break;
 			}
-			case J3DModel::VBufferKind::textureCoordinate: {
+			case VBufferKind::textureCoordinate: {
 				auto uv = reinterpret_cast<decltype(ctx.mdl.mBufs.uv)::value_type*>(buf);
 
 				uv->mData.resize(ensize);
@@ -924,6 +944,184 @@ void BMDImporter::readVertexBuffers(oishii::BinaryReader& reader, BMDOutputConte
 }
 #pragma endregion
 
+#pragma region SHP1
+
+void BMDImporter::readShapes(oishii::BinaryReader& reader, BMDOutputContext& ctx) noexcept
+{
+	if (enterSection(reader, 'SHP1'))
+	{
+		ScopedSection g(reader, "Shapes");
+
+		u16 size = reader.read<u16>();
+		ctx.mdl.mShapes.resize(size);
+		ctx.shapeIdLut.resize(size);
+		reader.read<u16>();
+
+		const auto [ofsShapeData, ofsShapeLut, ofsStringTable,
+			// Describes the vertex buffers: GX_VA_POS, GX_INDEX16
+			// (We can get this from VTX1)
+			ofsVcdList, // "attr table"
+
+			// DRW indices
+			ofsDrwIndices,
+
+			// Just a display list
+			ofsDL, // "prim data"
+
+			// struct MtxData {
+			// s16 current_matrix; // -1 for singlebound
+			// u16 matrix_list_size; // Vector of matrix indices; limited by hardware
+			// int matrix_list_start;
+			// }
+			// Each sampled by matrix primitives
+			ofsMtxData, // "mtx data"
+
+			// size + offset?
+			// matrix primitive splits
+			ofsMtxPrimAccessor // "mtx grp"
+		] = reader.readX<s32, 8>();
+		reader.seekSet(g.start);
+
+		// Compressible resources in J3D have a relocation table (necessary for interop with other animations that access by index)
+		reader.seekSet(g.start + ofsShapeLut);
+
+		bool sorted = true;
+		for (int i = 0; i < size; ++i)
+		{
+			ctx.shapeIdLut[i] = reader.read<u16>();
+
+			if (ctx.shapeIdLut[i] != i)
+				sorted = false;
+		}
+
+		if (!sorted)
+			DebugReport("Shape IDS are remapped.\n");
+
+
+		// Unused
+		// reader.seekSet(ofsStringTable + g.start);
+		// const auto nameTable = readNameTable(reader);
+
+		for (int si = 0; si < size; ++si)
+		{
+			auto& shape = ctx.mdl.mShapes[si];
+			reader.seekSet(g.start + ofsShapeData + ctx.shapeIdLut[si] * 0x28);
+			shape.id = ctx.shapeIdLut[si];
+			// shape.name = nameTable[si];
+			shape.mode = static_cast<ShapeData::Mode>(reader.read<u8>());
+			assert(shape.mode < ShapeData::Mode::Max);
+			reader.read<u8>();
+			// Number of matrix primitives (mtxGrpCnt)
+			auto num_matrix_prims = reader.read<u16>();
+			auto ofs_vcd_list = reader.read<u16>();
+			// current mtx/mtx list
+			auto first_matrix_list = reader.read<u16>();
+			// "Packet" or mtx prim summary (accessor) idx
+			auto first_mtx_prim_idx = reader.read<u16>();
+			reader.read<u16>();
+			shape.bsphere = reader.read<f32>();
+			shape.bbox << reader;
+
+			// Read VCD attributes
+			reader.seekSet(g.start + ofsVcdList + ofs_vcd_list);
+			gx::VertexAttribute attr = gx::VertexAttribute::Undefined;
+			while ((attr = reader.read<gx::VertexAttribute>()) != gx::VertexAttribute::Terminate)
+				shape.mVertexDescriptor.mAttributes[attr] = reader.read<gx::VertexAttributeType>();
+
+			// Calculate the VCD bitfield
+			shape.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
+			const u32 vcd_size = shape.mVertexDescriptor.getVcdSize();
+
+			// Read the two-layer primitives
+
+			
+			for (u16 i = 0; i < num_matrix_prims; ++i)
+			{
+				const u32 prim_idx = first_mtx_prim_idx + i;
+				reader.seekSet(g.start + ofsMtxPrimAccessor + prim_idx * 8);
+				const auto [dlSz, dlOfs] = reader.readX<u32, 2>();
+
+				struct MatrixData
+				{
+					s16 current_matrix;
+					std::vector<s16> matrixList; // DRW1
+				};
+				auto readMatrixData = [&]()
+				{
+					oishii::Jump<oishii::Whence::At> j(reader, g.start + ofsMtxData + first_matrix_list * 8);
+					MatrixData out;
+					out.current_matrix = reader.read<s16>();
+					u16 list_size = reader.read<u16>();
+					s32 list_start = reader.read<s32>();
+					out.matrixList.resize(list_size);
+					{
+						oishii::Jump<oishii::Whence::At> d(reader, g.start + ofsDrwIndices + list_start * 2);
+						for (u16 i = 0; i < list_size; ++i)
+						{
+							out.matrixList[i] = reader.read<s16>();
+						}
+					}
+					return out;
+				};
+
+				// Mtx Prim Data
+				MatrixData mtxPrimHdr = readMatrixData();
+				MatrixPrimitive& mprim = shape.mMatrixPrimitives.emplace_back(mtxPrimHdr.current_matrix, mtxPrimHdr.matrixList);
+				
+				// Now read prim data..
+				// (Stripped down display list interpreter function)
+				
+				reader.seekSet(g.start + ofsDL + dlOfs);
+				while (reader.tell() < g.start + ofsDL + dlOfs + dlSz)
+				{
+					const u8 tag = reader.read<u8, oishii::EndianSelect::Current, true>();
+					if (tag == 0) break;
+					assert(tag & 0x80 && "Unexpected GPU command in display list.");
+					const gx::PrimitiveType type = gx::DecodeDrawPrimitiveCommand(tag);
+					u16 nVerts = reader.read<u16, oishii::EndianSelect::Current, true>();
+					IndexedPrimitive& prim = mprim.mPrimitives.emplace_back(type, nVerts);
+
+					for (u16 vi = 0; vi < nVerts; ++vi)
+					{
+						for (int a = 0; a < (int)gx::VertexAttribute::Max; ++a)
+						{
+							if (shape.mVertexDescriptor[(gx::VertexAttribute)a])
+							{
+								u16 val = 0;
+
+								switch (shape.mVertexDescriptor.mAttributes[(gx::VertexAttribute)a])
+								{
+								case gx::VertexAttributeType::None:
+									break;
+								case gx::VertexAttributeType::Byte:
+									val = reader.read<u8, oishii::EndianSelect::Current, true>();
+									break;
+								case gx::VertexAttributeType::Short:
+									val = reader.read<u16, oishii::EndianSelect::Current, true>();
+									break;
+								case gx::VertexAttributeType::Direct:
+									if (((gx::VertexAttribute)a) != gx::VertexAttribute::PositionNormalMatrixIndex)
+									{
+										assert(!"Direct vertex data is unsupported.");
+										throw "";
+									}
+									val = reader.read<u8, oishii::EndianSelect::Current, true>(); // As PNM indices are always direct, we still use them in an all-indexed vertex
+									break;
+								default:
+									assert("!Unknown vertex attribute format.");
+									throw "";
+								}
+
+								prim.mVertices[vi][(gx::VertexAttribute)a] = val;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+#pragma endregion
 void BMDImporter::lex(oishii::BinaryReader& reader, u32 sec_count) noexcept
 {
 	mSections.clear();
@@ -990,7 +1188,7 @@ void BMDImporter::readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 	
 
 	// Read SHP1
-
+	readShapes(reader, ctx);
 	// Read TEX1
 	// Read MAT3
 	readMaterials(reader, ctx);
@@ -1005,7 +1203,6 @@ bool BMDImporter::tryRead(oishii::BinaryReader& reader, pl::FileState& state)
 	//oishii::BinaryReader::ScopedRegion g(reader, "J3D Binary Model Data (.bmd)");
 	auto& j3dc = static_cast<J3DCollection&>(state);
 	readBMD(reader, BMDOutputContext{ j3dc.mModel });
-	j3dc.update();
 	return !error;
 }
 
@@ -1013,12 +1210,22 @@ bool BMDImporter::tryRead(oishii::BinaryReader& reader, pl::FileState& state)
 template<typename T>
 struct LinkNode final : public oishii::Node, T
 {
-	LinkNode(bool linkerOwned = true)
-		: Node(T::getNameId())
+	LinkNode(bool b=false)
+		: T(), Node(T::getNameId())
 	{
-		transferOwnershipToLinker(linkerOwned);
+		transferOwnershipToLinker(b);
 	}
-
+	template<typename S>
+	LinkNode(S& arg)
+		: T(arg), Node(T::getNameId())
+	{
+		transferOwnershipToLinker(true);
+	}
+	LinkNode* asLeaf()
+	{
+		getLinkingRestriction().options |= oishii::LinkingRestriction::Leaf;
+		return this;
+	}
 	eResult write(oishii::Writer& writer) const noexcept
 	{
 		T::write(writer);
@@ -1318,6 +1525,136 @@ struct VTX1Node
 	J3DModel* mdl = nullptr;
 };
 
+struct EVP1Node
+{
+	static const char* getNameId() { return "EVP1 EnVeloPe"; }
+	virtual const oishii::Node& getSelf() const = 0;
+
+	void write(oishii::Writer& writer) const
+	{
+		writer.write<u32, oishii::EndianSelect::Big>('EVP1');
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("VTX1"/*getSelf(), oishii::Hook::EndOfChildren*/) });
+
+		writer.write<u16>(envelopesToWrite.size());
+		writer.write<u16>(-1);
+		// ofsMatrixSize, ofsMatrixIndex, ofsMatrixWeight, ofsMatrixInvBind
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("MatrixSizeTable")
+		});
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("MatrixIndexTable")
+		});
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("MatrixWeightTable")
+		});
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("MatrixInvBindTable")
+		});
+	}
+	struct SimpleEvpNode
+	{
+		virtual const oishii::Node& getSelf() const = 0;
+		std::vector<linker_ptr<oishii::Node>> gatherChildren() const { return{}; }
+
+		SimpleEvpNode(const std::vector<DrawMatrix>& from, const std::vector<int>& toWrite, const std::vector<float>& weightPool)
+			: mFrom(from), mToWrite(toWrite), mWeightPool(weightPool)
+		{}
+		const std::vector<DrawMatrix>& mFrom;
+		const std::vector<int>& mToWrite;
+		const std::vector<float>& mWeightPool;
+	};
+	struct MatrixSizeTable : public SimpleEvpNode
+	{
+		static const char* getNameId() { return "MatrixSizeTable"; }
+		MatrixSizeTable(const EVP1Node& node)
+			: SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite, node.weightPool)
+		{}
+		void write(oishii::Writer& writer) const
+		{
+			for (int i : mToWrite)
+				writer.write<u8>(mFrom[i].mWeights.size());
+		}
+	};
+	struct MatrixIndexTable : public SimpleEvpNode
+	{
+		static const char* getNameId() { return "MatrixIndexTable"; }
+		MatrixIndexTable(const EVP1Node& node)
+			: SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite, node.weightPool)
+		{}
+		void write(oishii::Writer& writer) const
+		{
+			for (int i : mToWrite)
+				writer.write<u8>(i);
+		}
+	};
+	struct MatrixWeightTable : public SimpleEvpNode
+	{
+		static const char* getNameId() { return "MatrixWeightTable"; }
+		MatrixWeightTable(const EVP1Node& node)
+			: SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite, node.weightPool)
+		{}
+		void write(oishii::Writer& writer) const
+		{
+			for (f32 f: mWeightPool)
+				writer.write<f32>(f);
+		}
+	};
+	struct MatrixInvBindTable : public SimpleEvpNode
+	{
+		static const char* getNameId() { return "MatrixInvBindTable"; }
+		MatrixInvBindTable(const EVP1Node& node)
+			: SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite, node.weightPool)
+		{}
+		void write(oishii::Writer& writer) const
+		{
+			// TODO
+		}
+	};
+	std::vector<linker_ptr<oishii::Node>> gatherChildren() const
+	{
+
+		return {
+			// Matrix size table
+			(new LinkNode<MatrixSizeTable>(*this))->asLeaf(),
+			// Matrix index table
+			(new LinkNode<MatrixIndexTable>(*this))->asLeaf(),
+			// matrix weight table
+			(new LinkNode<MatrixWeightTable>(*this))->asLeaf(),
+			// matrix inv bind table
+			(new LinkNode<MatrixInvBindTable>(*this))->asLeaf()
+		};
+	}
+
+	EVP1Node(J3DModel& jmdl)
+		: mdl(jmdl)
+	{
+		for (int i = 0; i < mdl.mDrawMatrices.size(); ++i)
+		{
+			if (mdl.mDrawMatrices[i].mWeights.size() <= 1)
+			{
+				assert(mdl.mDrawMatrices[i].mWeights[0].weight == 1.0f);
+			}
+			else
+			{
+				envelopesToWrite.push_back(i);
+				for (const auto& it : mdl.mDrawMatrices[i].mWeights)
+				{
+					if (std::find(weightPool.begin(), weightPool.end(), it.weight) == weightPool.end())
+						weightPool.push_back(it.weight);
+				}
+			}
+		}
+	}
+	std::vector<f32> weightPool;
+	std::vector<int> envelopesToWrite;
+	J3DModel& mdl;
+};
 struct BMDFile
 {
 	static const char* getNameId() { return "JSystem Binary Model Data"; }
@@ -1326,6 +1663,7 @@ struct BMDFile
 
 	void write(oishii::Writer& writer) const
 	{
+		// Hack
 		writer.write<u32, oishii::EndianSelect::Big>('J3D2');
 		writer.write<u32, oishii::EndianSelect::Big>(bBDL ? 'bdl4' : 'bmd3');
 
@@ -1344,15 +1682,24 @@ struct BMDFile
 	}
 	std::vector<linker_ptr<oishii::Node>> gatherChildren() const
 	{
-		auto inf1 = new LinkNode<INF1Node>();
+		auto* inf1 = new LinkNode<INF1Node>();
 		inf1->getLinkingRestriction().alignment = 32;
 		inf1->mdl = &mCollection->mModel;
 
-		auto vtx1 = new LinkNode<VTX1Node>();
+		auto* vtx1 = new LinkNode<VTX1Node>();
 		vtx1->getLinkingRestriction().alignment = 32;
 		vtx1->mdl = &mCollection->mModel;
 
-		return { inf1, vtx1 };
+		// evp1
+		auto* evp1 = new LinkNode<EVP1Node>(mCollection->mModel);
+		evp1->getLinkingRestriction().alignment = 32;
+		// drw1
+		// jnt1
+		// shp1
+		// mat3
+		// tex1
+
+		return { inf1, vtx1, evp1 };
 	}
 
 	J3DCollection* mCollection;
@@ -1365,6 +1712,8 @@ void exportBMD(oishii::Writer& writer, J3DCollection& collection)
 	oishii::Linker linker;
 
 	LinkNode<BMDFile> bmd(false);
+	bmd.bBDL = collection.bdl;
+	bmd.bMimic = true;
 	bmd.mCollection = &collection;
 
 	linker.gather(bmd, "");

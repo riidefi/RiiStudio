@@ -60,13 +60,13 @@ struct MaterialDelegateSampler
 	{
 		return c.getNumMaterials();
 	}
-	const char* nameAt(u32 idx) const noexcept
+	std::string nameAt(u32 idx) const noexcept
 	{
-		return c.getMaterialDelegate(idx).getNameCStr();
+		return c.getMaterial(idx).getName();
 	}
 	void* rawAt(u32 idx) const noexcept
 	{
-		return &c.getMaterialDelegate(idx);
+		return &c.getMaterial(idx);
 	}
 	libcube::GCCollection& c;
 };
