@@ -12,10 +12,11 @@ struct VQuantization
 	gx::VertexComponentCount comp = gx::VertexComponentCount(gx::VertexComponentCount::Position::xyz);
 	gx::VertexBufferType type = gx::VertexBufferType(gx::VertexBufferType::Generic::f32);
 	u8 divisor = 0;
+	u8 bad_divisor = 0; //!< Accommodation for a bug on N's part
 	u8 stride = 12;
 
-	VQuantization(gx::VertexComponentCount c, gx::VertexBufferType t, u8 d, u8 s)
-		: comp(c), type(t), divisor(d), stride(s)
+	VQuantization(gx::VertexComponentCount c, gx::VertexBufferType t, u8 d, u8 bad_d, u8 s)
+		: comp(c), type(t), divisor(d), bad_divisor(bad_d), stride(s)
 	{}
 	VQuantization(const VQuantization& other)
 		: comp(other.comp), type(other.type), divisor(other.divisor), stride(other.stride)

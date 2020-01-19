@@ -41,8 +41,11 @@ struct INF1Node
 
 		writer.write<u16>(static_cast<u16>(mdl->info.mScalingRule) & 0xf);
 		writer.write<u16>(-1);
-		// Packet count
-		writer.write<u32>(-1); // TODO
+		// Matrix primitive count
+		u32 num_mprim = 0;
+		for (const auto& it : mdl->mShapes)
+			num_mprim += it.getNumMatrixPrimitives();
+		writer.write<u32>(num_mprim);
 		// Vertex position count
 		writer.write<u32>(mdl->mBufs.pos.mData.size());
 
@@ -55,7 +58,7 @@ struct INF1Node
 
 	void gatherChildren(oishii::v2::Node::NodeDelegate& out) const
 	{
-		//out.addNode({ SceneGraph::getLinkerNode(*mdl, true) });
+		out.addNode(SceneGraph::getLinkerNode(*mdl));
 	}
 	INF1Node(BMDExportContext& ctx) : mdl(&ctx.mdl)
 	{}

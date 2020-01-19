@@ -107,7 +107,8 @@ void readSHP1(BMDOutputContext& ctx)
             };
             auto readMatrixData = [&, ofsDrwIndices=ofsDrwIndices, ofsMtxData=ofsMtxData]()
             {
-                oishii::Jump<oishii::Whence::At> j(reader, g.start + ofsMtxData + first_matrix_list * 8);
+				// Assumption: Indexed by raw index *not* potentially remapped ID
+                oishii::Jump<oishii::Whence::At> j(reader, g.start + ofsMtxData + (first_matrix_list + i)* 8);
                 MatrixData out;
                 out.current_matrix = reader.read<s16>();
                 u16 list_size = reader.read<u16>();

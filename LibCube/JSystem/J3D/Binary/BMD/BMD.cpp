@@ -103,6 +103,10 @@ bool BMDImporter::tryRead(oishii::BinaryReader& reader, pl::FileState& state)
 	//oishii::BinaryReader::ScopedRegion g(reader, "J3D Binary Model Data (.bmd)");
 	auto& j3dc = static_cast<J3DCollection&>(state);
 	BMDOutputContext ctx{ j3dc.mModel, reader };
+
+	// reader.add_bp<u32>(8);
+	// reader.add_bp(0x19c, 1);
+
 	readBMD(reader, ctx);
 	return !error;
 }
@@ -145,7 +149,7 @@ struct BMDFile : public oishii::v2::Node
 
 		addNode(makeINF1Node(exp));
 		addNode(makeVTX1Node(exp));
-		//	addNode(makeEVP1Node(exp));
+		addNode(makeEVP1Node(exp));
 		//	addNode(makeDRW1Node(exp));
 		//	addNode(makeSHP1Node(exp));
 		//	addNode(makeMAT3Node(exp));
@@ -157,7 +161,11 @@ struct BMDFile : public oishii::v2::Node
 	bool bBDL = true;
 	bool bMimic = true;
 };
-
+void BMD_Pad(char* dst, u32 len)
+{
+	assert(len < 30);
+	memcpy(dst, "This is padding data to align.....", len);
+}
 void exportBMD(oishii::v2::Writer& writer, J3DCollection& collection)
 {
 	oishii::v2::Linker linker;
@@ -166,6 +174,8 @@ void exportBMD(oishii::v2::Writer& writer, J3DCollection& collection)
 	bmd->bBDL = collection.bdl;
 	bmd->bMimic = true;
 	bmd->mCollection = &collection;
+
+	linker.mUserPad = &BMD_Pad;
 
 	linker.gather(std::move(bmd), "");
 	linker.write(writer);

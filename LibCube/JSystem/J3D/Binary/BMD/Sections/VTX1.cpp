@@ -44,6 +44,7 @@ void readVTX1(BMDOutputContext& ctx)
 				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Position>(comp)),
 				gx::VertexBufferType(gen_data),
 				gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0,
+				shift,
 				(comp + 2) * gen_comp_size);
 			estride = ctx.mdl.mBufs.pos.mQuant.stride;
 			break;
@@ -55,6 +56,7 @@ void readVTX1(BMDOutputContext& ctx)
 				gx::VertexBufferType(gen_data),
 				gen_data == gx::VertexBufferType::Generic::s8 ? 6 :
 				gen_data == gx::VertexBufferType::Generic::s16 ? 14 : 0,
+				shift,
 				3 * gen_comp_size
 			);
 			estride = ctx.mdl.mBufs.norm.mQuant.stride;
@@ -68,8 +70,8 @@ void readVTX1(BMDOutputContext& ctx)
 			clr.mQuant = VQuantization(
 				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::Color>(comp)),
 				gx::VertexBufferType(static_cast<gx::VertexBufferType::Color>(data)),
-				0,
-				(comp + 3)* [](gx::VertexBufferType::Color c) {
+				0,shift,
+				[](gx::VertexBufferType::Color c) {
 					using ct = gx::VertexBufferType::Color;
 					switch (c)
 					{
@@ -103,7 +105,7 @@ void readVTX1(BMDOutputContext& ctx)
 			uv.mQuant = VQuantization(
 				gx::VertexComponentCount(static_cast<gx::VertexComponentCount::TextureCoordinate>(comp)),
 				gx::VertexBufferType(gen_data),
-				gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0,
+				gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0, shift,
 				(comp + 1)* gen_comp_size
 			);
 			estride = ctx.mdl.mBufs.pos.mQuant.stride;
@@ -205,8 +207,10 @@ void readVTX1(BMDOutputContext& ctx)
 }
 struct FormatDecl : public oishii::v2::Node
 {
-	static const char* getNameId() { return "Format"; }
-
+	FormatDecl(J3DModel* m) : mdl(m)
+	{
+		mId = "Format";
+	}
 	struct Entry
 	{
 		gx::VertexBufferAttribute attrib;
@@ -235,7 +239,7 @@ struct FormatDecl : public oishii::v2::Node
 				gx::VertexBufferAttribute::Position,
 				static_cast<u32>(q.comp.position),
 				static_cast<u32>(q.type.generic),
-				q.divisor
+				q.bad_divisor
 			}.write(writer);
 		}
 		// Normals
@@ -246,7 +250,7 @@ struct FormatDecl : public oishii::v2::Node
 				gx::VertexBufferAttribute::Normal,
 				static_cast<u32>(q.comp.normal),
 				static_cast<u32>(q.type.generic),
-				q.divisor
+				q.bad_divisor
 			}.write(writer);
 		}
 		// Colors
@@ -261,7 +265,7 @@ struct FormatDecl : public oishii::v2::Node
 						gx::VertexBufferAttribute((int)gx::VertexBufferAttribute::Color0 + i),
 						static_cast<u32>(q.comp.color),
 						static_cast<u32>(q.type.color),
-						q.divisor
+						q.bad_divisor
 					}.write(writer);
 				}
 				++i;
@@ -279,7 +283,7 @@ struct FormatDecl : public oishii::v2::Node
 						gx::VertexBufferAttribute((int)gx::VertexBufferAttribute::TexCoord0 + i),
 						static_cast<u32>(q.comp.texcoord),
 						static_cast<u32>(q.type.generic),
-						q.divisor
+						q.bad_divisor
 					}.write(writer);
 				}
 				++i;
@@ -288,8 +292,6 @@ struct FormatDecl : public oishii::v2::Node
 		Entry{ gx::VertexBufferAttribute::Terminate }.write(writer);
 		return {};
 	}
-	FormatDecl(J3DModel* m) : mdl(m)
-	{}
 	J3DModel* mdl;
 };
 
