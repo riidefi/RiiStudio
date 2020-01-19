@@ -3,7 +3,9 @@
 #include <vector>
 #include <map>
 #include <LibCube/JSystem/J3D/Model.hpp>
-
+#include <oishii/v2/writer/binary_writer.hxx>
+#include <oishii/v2/writer/node.hxx>
+#include <LibRiiEditor/common.hpp>
 namespace libcube::jsystem {
 
 struct BMDOutputContext
@@ -76,6 +78,39 @@ struct ScopedSection : private oishii::BinaryReader::ScopedRegion
 	}
 	u32 start;
 	u32 size;
+};
+
+template<typename T, bool leaf=false>
+struct LinkNode final : public oishii::v2::Node, public T
+{
+
+	template<typename... S>
+	LinkNode(S... arg)
+		: T(arg...), Node(T::getNameId())
+	{
+		if (leaf) mLinkingRestriction.setFlag(oishii::v2::LinkingRestriction::Leaf);
+	}
+	oishii::v2::Node::Result write(oishii::v2::Writer& writer) const noexcept override
+	{
+		T::write(writer);
+		return eResult::Success;
+	}
+
+	oishii::v2::Node::Result gatherChildren(oishii::v2::Node::NodeDelegate& out) const noexcept override
+	{
+		T::gatherChildren(out);
+
+		return {};
+	}
+	const oishii::v2::Node& getSelf() const override
+	{
+		return *this;
+	}
+};
+
+struct BMDExportContext
+{
+	J3DModel& mdl;
 };
 
 }

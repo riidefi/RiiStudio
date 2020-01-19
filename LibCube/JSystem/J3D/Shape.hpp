@@ -74,6 +74,7 @@ struct Shape final : public ShapeData, public IndexedPolygon
 		assert(idx < mMatrixPrimitives.size());
 		if (idx < mMatrixPrimitives.size())
 			return mMatrixPrimitives[idx].mPrimitives.size();
+		return 0;
 	}
 	const IndexedPrimitive& getMatrixPrimitiveIndexedPrimitive(u32 idx, u32 prim_idx) const override
 	{
@@ -91,7 +92,7 @@ struct Shape final : public ShapeData, public IndexedPolygon
 	{
 		return mVertexDescriptor;
 	}
-	virtual const VertexDescriptor& getVcd() const
+	virtual const VertexDescriptor& getVcd() const override
 	{
 		return mVertexDescriptor;
 	}

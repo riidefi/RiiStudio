@@ -177,7 +177,7 @@ struct Material final : public MaterialData, public GCCollection::IMaterialDeleg
 			info.indirect ? info.nInd : u8(0)
 		};
 	}
-	void setGenInfo(const GenInfoCounts& c)
+	void setGenInfo(const GenInfoCounts& c) override
 	{
 		info.nColorChannel = c.colorChan;
 		info.nTexGen = c.texGen;

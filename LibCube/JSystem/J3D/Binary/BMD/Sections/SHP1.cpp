@@ -105,7 +105,7 @@ void readSHP1(BMDOutputContext& ctx)
                 s16 current_matrix;
                 std::vector<s16> matrixList; // DRW1
             };
-            auto readMatrixData = [&]()
+            auto readMatrixData = [&, ofsDrwIndices=ofsDrwIndices, ofsMtxData=ofsMtxData]()
             {
                 oishii::Jump<oishii::Whence::At> j(reader, g.start + ofsMtxData + first_matrix_list * 8);
                 MatrixData out;

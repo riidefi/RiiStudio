@@ -61,10 +61,10 @@ struct ChannelControl
 
 enum class AlphaOp
 {
-	and,
-	or,
-	xor,
-	xnor
+	_and,
+	_or,
+	_xor,
+	_xnor
 };
 
 struct AlphaComparison
@@ -98,22 +98,22 @@ enum class BlendModeFactor
 };
 enum class LogicOp
 {
-	clear,
-	and,
-	rev_and,
-	copy,
-	inv_and,
-	no_op,
-	xor,
-	or,
-	nor,
-	equiv,
-	inv,
-	revor,
-	inv_copy,
-	inv_or,
-	nand,
-	set
+	_clear,
+	_and,
+	_rev_and,
+	_copy,
+	_inv_and,
+	_no_op,
+	_xor,
+	_or,
+	_nor,
+	_equiv,
+	_inv,
+	_revor,
+	_inv_copy,
+	_inv_or,
+	_nand,
+	_set
 };
 // CMODE0
 struct BlendMode

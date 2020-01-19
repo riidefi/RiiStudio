@@ -17,6 +17,10 @@ struct AABB
 	AABB() = default;
 	~AABB() = default;
 
+	AABB(const glm::vec3& m, const glm::vec3& M)
+		: m_minBounds(m), m_maxBounds(M)
+	{}
+
 	static void onRead(oishii::BinaryReader& reader, AABB& context)
 	{
 		context.m_minBounds << reader;

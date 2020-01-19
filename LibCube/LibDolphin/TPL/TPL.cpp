@@ -64,10 +64,11 @@ void DolphinTPL::read(oishii::BinaryReader& reader)
 
 	for (u32 i = 0; i < nDesc; ++i)
 	{
-		reader.dispatch<
-			DescriptorReader,
-			oishii::Indirection<0, u32, oishii::Whence::Current>
-		>(DescriptorReader::Context{ start, *this, i });
+		// TODO
+		//	reader.dispatch<
+		//		DescriptorReader,
+		//		oishii::Indirection<0, u32, oishii::Whence::Current>
+		//	>(DescriptorReader::Context{ start, *this, i });
 	}
 }
 

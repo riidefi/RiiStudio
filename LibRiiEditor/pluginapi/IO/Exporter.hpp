@@ -1,6 +1,6 @@
 #pragma once
 
-#include <oishii/writer/binary_writer.hxx>
+#include <oishii/v2/writer/binary_writer.hxx>
 
 namespace pl {
 
@@ -8,7 +8,7 @@ struct Exporter
 {
 	virtual ~Exporter() = default;
 
-	virtual bool write(oishii::Writer& reader, FileState& state) = 0;
+	virtual bool write(oishii::v2::Writer& reader, FileState& state) = 0;
 };
 
 struct ExporterSpawner

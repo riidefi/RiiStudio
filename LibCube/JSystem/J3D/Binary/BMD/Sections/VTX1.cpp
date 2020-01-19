@@ -203,5 +203,216 @@ void readVTX1(BMDOutputContext& ctx)
 		}
 	}
 }
+struct FormatDecl : public oishii::v2::Node
+{
+	static const char* getNameId() { return "Format"; }
+
+	struct Entry
+	{
+		gx::VertexBufferAttribute attrib;
+		u32 cnt = 1;
+		u32 data = 0;
+		u8 shift = 0;
+
+		void write(oishii::v2::Writer& writer)
+		{
+			writer.write<u32>(static_cast<u32>(attrib));
+			writer.write<u32>(static_cast<u32>(cnt));
+			writer.write<u32>(static_cast<u32>(data));
+			writer.write<u8>(static_cast<u8>(shift));
+			for (int i = 0; i < 3; ++i)
+				writer.write<u8>(-1);
+		}
+	};
+
+	Result write(oishii::v2::Writer& writer) const noexcept
+	{
+		// Positions
+		if (!mdl->mBufs.pos.mData.empty())
+		{
+			const auto& q = mdl->mBufs.pos.mQuant;
+			Entry{
+				gx::VertexBufferAttribute::Position,
+				static_cast<u32>(q.comp.position),
+				static_cast<u32>(q.type.generic),
+				q.divisor
+			}.write(writer);
+		}
+		// Normals
+		if (!mdl->mBufs.norm.mData.empty())
+		{
+			const auto& q = mdl->mBufs.norm.mQuant;
+			Entry{
+				gx::VertexBufferAttribute::Normal,
+				static_cast<u32>(q.comp.normal),
+				static_cast<u32>(q.type.generic),
+				q.divisor
+			}.write(writer);
+		}
+		// Colors
+		{
+			int i = 0;
+			for (const auto& buf : mdl->mBufs.color)
+			{
+				if (!buf.mData.empty())
+				{
+					const auto& q = buf.mQuant;
+					Entry{
+						gx::VertexBufferAttribute((int)gx::VertexBufferAttribute::Color0 + i),
+						static_cast<u32>(q.comp.color),
+						static_cast<u32>(q.type.color),
+						q.divisor
+					}.write(writer);
+				}
+				++i;
+			}
+		}
+		// UVs
+		{
+			int i = 0;
+			for (const auto& buf : mdl->mBufs.uv)
+			{
+				if (!buf.mData.empty())
+				{
+					const auto& q = buf.mQuant;
+					Entry{
+						gx::VertexBufferAttribute((int)gx::VertexBufferAttribute::TexCoord0 + i),
+						static_cast<u32>(q.comp.texcoord),
+						static_cast<u32>(q.type.generic),
+						q.divisor
+					}.write(writer);
+				}
+				++i;
+			}
+		}
+		Entry{ gx::VertexBufferAttribute::Terminate }.write(writer);
+		return {};
+	}
+	FormatDecl(J3DModel* m) : mdl(m)
+	{}
+	J3DModel* mdl;
+};
+
+struct VTX1Node
+{
+	static const char* getNameId() { return "VTX1"; }
+	virtual const oishii::v2::Node& getSelf() const = 0;
+
+	int computeNumOfs() const
+	{
+		int numOfs = 0;
+		if (mdl)
+		{
+			if (!mdl->mBufs.pos.mData.empty()) ++numOfs;
+			if (!mdl->mBufs.norm.mData.empty()) ++numOfs;
+			for (int i = 0; i < 2; ++i)
+				if (!mdl->mBufs.color[i].mData.empty()) ++numOfs;
+			for (int i = 0; i < 8; ++i)
+				if (!mdl->mBufs.uv[i].mData.empty()) ++numOfs;
+		}
+		return numOfs;
+	}
+
+	void write(oishii::v2::Writer& writer) const
+	{
+		if (!mdl) return;
+
+		writer.write<u32, oishii::EndianSelect::Big>('VTX1');
+		writer.writeLink<s32>(oishii::v2::Link{
+			oishii::v2::Hook(getSelf()),
+			oishii::v2::Hook(getSelf(), oishii::v2::Hook::EndOfChildren) });
+
+		writer.writeLink<s32>(oishii::v2::Link{
+			oishii::v2::Hook(getSelf()),
+			oishii::v2::Hook("Format") });
+
+		const auto numOfs = computeNumOfs();
+		int i = 0;
+		auto writeBufLink = [&]()
+		{
+			writer.writeLink<s32>(oishii::v2::Link{
+				oishii::v2::Hook(getSelf()),
+				oishii::v2::Hook("Buf" + std::to_string(i++)) });
+		};
+		auto writeOptBufLink = [&](const auto& b) {
+			if (b.mData.empty())
+				writer.write<s32>(0);
+			else
+				writeBufLink();
+		};
+
+		writeOptBufLink(mdl->mBufs.pos);
+		writeOptBufLink(mdl->mBufs.norm);
+		writer.write<s32>(0); // NBT
+
+		for (const auto& c : mdl->mBufs.color)
+			writeOptBufLink(c);
+
+		for (const auto& u : mdl->mBufs.uv)
+			writeOptBufLink(u);
+	}
+
+
+
+	template<typename T>
+	struct VertexAttribBuf : public oishii::v2::Node
+	{
+		VertexAttribBuf(const J3DModel& m, const std::string& id, const T& data)
+			: Node(id), mdl(m), mData(data)
+		{
+			getLinkingRestriction().setLeaf();
+			getLinkingRestriction().alignment = 32;
+		}
+
+		Result write(oishii::v2::Writer& writer) const noexcept
+		{
+			mData.writeData(writer);
+			return eResult::Success;
+		}
+
+		const J3DModel& mdl;
+		const T& mData;
+	};
+
+	void gatherChildren(oishii::v2::Node::NodeDelegate& ctx) const
+	{
+
+		ctx.addNode(std::make_unique<FormatDecl>(mdl));
+
+		int i = 0;
+
+		auto push_buf = [&](auto& buf) {
+			ctx.addNode(std::make_unique<VertexAttribBuf<decltype(buf)>>(*mdl, "Buf" + std::to_string(i++), buf));
+		};
+
+		// Positions
+		if (!mdl->mBufs.pos.mData.empty())
+			push_buf(mdl->mBufs.pos);
+		
+		// Normals
+		if (!mdl->mBufs.norm.mData.empty())
+			push_buf(mdl->mBufs.norm);
+
+		// Colors
+		for (auto& c : mdl->mBufs.color)
+			if (!c.mData.empty())
+				push_buf(c);
+
+		// UV
+		for (auto& c : mdl->mBufs.uv)
+			if (!c.mData.empty())
+				push_buf(c);
+	}
+
+	VTX1Node(BMDExportContext& ctx) : mdl(&ctx.mdl)
+	{}
+	J3DModel* mdl = nullptr;
+};
+
+
+std::unique_ptr<oishii::v2::Node> makeVTX1Node(BMDExportContext& ctx)
+{
+	return std::make_unique<LinkNode<VTX1Node>>(ctx);
+}
 
 }

@@ -1,4 +1,5 @@
 #include <LibCube/JSystem/J3D/Binary/BMD/Sections.hpp>
+#include <LibCube/JSystem/J3D/Binary/BMD/OutputCtx.hpp>
 
 namespace libcube::jsystem {
 
@@ -47,7 +48,8 @@ void readEVP1DRW1(BMDOutputContext& ctx)
 			// TODO: Fix
 			oishii::Jump<oishii::Whence::Set> gInv(reader, g.start + ofsMatrixInvBind + i * 0x30);
 
-			transferMatrix(ctx.mdl.mJoints[i].inverseBindPoseMtx, reader);
+			// TODO
+			// transferMatrix<oishii::BinaryReader>(ctx.mdl.mJoints[i].inverseBindPoseMtx, reader);
 		}
 	}
 
@@ -79,4 +81,133 @@ void readEVP1DRW1(BMDOutputContext& ctx)
 	}
 }
 
+
+struct EVP1Node
+{
+	static const char* getNameId() { return "EVP1 EnVeloPe"; }
+	virtual const oishii::Node& getSelf() const = 0;
+
+	void write(oishii::Writer& writer) const
+	{
+		writer.write<u32, oishii::EndianSelect::Big>('EVP1');
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("VTX1"/*getSelf(), oishii::Hook::EndOfChildren*/) });
+
+		writer.write<u16>(envelopesToWrite.size());
+		writer.write<u16>(-1);
+		// ofsMatrixSize, ofsMatrixIndex, ofsMatrixWeight, ofsMatrixInvBind
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("MatrixSizeTable")
+			});
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("MatrixIndexTable")
+			});
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("MatrixWeightTable")
+			});
+		writer.writeLink<s32>(oishii::Link{
+			oishii::Hook(getSelf()),
+			oishii::Hook("MatrixInvBindTable")
+			});
+	}
+	struct SimpleEvpNode : public oishii::v2::Node
+	{
+		
+		SimpleEvpNode(const std::vector<DrawMatrix>& from, const std::vector<int>& toWrite, const std::vector<float>& weightPool)
+			: mFrom(from), mToWrite(toWrite), mWeightPool(weightPool)
+		{
+			getLinkingRestriction().setFlag(oishii::v2::LinkingRestriction::Leaf);
+		}
+		Result gatherChildren(NodeDelegate&) const noexcept {}
+		const std::vector<DrawMatrix>& mFrom;
+		const std::vector<int>& mToWrite;
+		const std::vector<float>& mWeightPool;
+	};
+	struct MatrixSizeTable : public SimpleEvpNode
+	{
+		static const char* getNameId() { return "MatrixSizeTable"; }
+		MatrixSizeTable(const EVP1Node& node)
+			: SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite, node.weightPool)
+		{}
+		Result write(oishii::v2::Writer& writer) const noexcept
+		{
+			for (int i : mToWrite)
+				writer.write<u8>(mFrom[i].mWeights.size());
+			return {};
+		}
+	};
+	struct MatrixIndexTable : public SimpleEvpNode
+	{
+		static const char* getNameId() { return "MatrixIndexTable"; }
+		MatrixIndexTable(const EVP1Node& node)
+			: SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite, node.weightPool)
+		{}
+		Result write(oishii::v2::Writer& writer) const noexcept
+		{
+			for (int i : mToWrite)
+				writer.write<u8>(i);
+			return {};
+		}
+	};
+	struct MatrixWeightTable : public SimpleEvpNode
+	{
+		static const char* getNameId() { return "MatrixWeightTable"; }
+		MatrixWeightTable(const EVP1Node& node)
+			: SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite, node.weightPool)
+		{}
+		Result write(oishii::v2::Writer& writer) const noexcept
+		{
+			for (f32 f : mWeightPool)
+				writer.write<f32>(f);
+			return {};
+		}
+	};
+	struct MatrixInvBindTable : public SimpleEvpNode
+	{
+		static const char* getNameId() { return "MatrixInvBindTable"; }
+		MatrixInvBindTable(const EVP1Node& node)
+			: SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite, node.weightPool)
+		{}
+		Result write(oishii::v2::Writer& writer) const noexcept
+		{
+			// TODO
+			return {};
+		}
+	};
+	void gatherChildren(oishii::v2::Node::NodeDelegate& ctx) const
+	{
+		ctx.addNode(std::make_unique<MatrixSizeTable>(*this));
+		ctx.addNode(std::make_unique<MatrixIndexTable>(*this));
+		ctx.addNode(std::make_unique<MatrixWeightTable>(*this));
+		ctx.addNode(std::make_unique<MatrixInvBindTable>(*this));
+	}
+
+	EVP1Node(J3DModel& jmdl)
+		: mdl(jmdl)
+	{
+		for (int i = 0; i < mdl.mDrawMatrices.size(); ++i)
+		{
+			if (mdl.mDrawMatrices[i].mWeights.size() <= 1)
+			{
+				assert(mdl.mDrawMatrices[i].mWeights[0].weight == 1.0f);
+			}
+			else
+			{
+				envelopesToWrite.push_back(i);
+				for (const auto& it : mdl.mDrawMatrices[i].mWeights)
+				{
+					if (std::find(weightPool.begin(), weightPool.end(), it.weight) == weightPool.end())
+						weightPool.push_back(it.weight);
+				}
+			}
+		}
+	}
+	std::vector<f32> weightPool;
+	std::vector<int> envelopesToWrite;
+	J3DModel& mdl;
+};
 }

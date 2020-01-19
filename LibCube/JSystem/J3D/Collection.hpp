@@ -52,8 +52,9 @@ public:
 	bool bdl = false;
 };
 
-struct J3DCollectionSpawner : public pl::FileStateSpawner
+class J3DCollectionSpawner : public pl::FileStateSpawner
 {
+public:
 	~J3DCollectionSpawner() override = default;
 	J3DCollectionSpawner()
 	{

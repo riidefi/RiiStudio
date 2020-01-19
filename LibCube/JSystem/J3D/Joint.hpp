@@ -73,7 +73,7 @@ struct Joint final : public GCCollection::IBoneDelegate, public JointData
 		}
 
 	}
-	lib3d::Coverage supportsBoneFeature(lib3d::BoneFeatures f)
+	lib3d::Coverage supportsBoneFeature(lib3d::BoneFeatures f) override
 	{
 		switch (f)
 		{

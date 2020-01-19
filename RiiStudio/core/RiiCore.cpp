@@ -113,9 +113,7 @@ void RiiCore::save(const std::string& path)
 {
 	std::ofstream stream(path + "_TEST.bmd", std::ios::binary | std::ios::out);
 
-	auto buf = std::make_unique<std::vector<u8>>();
-	buf->reserve(1024 * 1024);
-	oishii::Writer writer(std::move(buf), 0);
+	oishii::v2::Writer writer(1024);
 
 	EditorWindow* ed = (EditorWindow*)getActiveEditor();
 	if (!ed) return;

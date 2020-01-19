@@ -10,8 +10,6 @@ bool PluginFactory::installModule(const std::string& path)
 
 	if (!hnd)
 		return false;
-
-	typedef HRESULT(CALLBACK* LPFNDLLFUNC1)(DWORD, UINT*);
 	
 	auto fn = reinterpret_cast<riimain_fn_t>(GetProcAddress(hnd, "__riimain"));
 	if (!fn)

@@ -25,4 +25,45 @@ void readINF1(BMDOutputContext& ctx)
 	}
 }
 
+struct INF1Node
+{
+	static const char* getNameId() { return "INF1 InFormation"; }
+	virtual const oishii::v2::Node& getSelf() const = 0;
+
+	void write(oishii::v2::Writer& writer) const
+	{
+		if (!mdl) return;
+
+		writer.write<u32, oishii::EndianSelect::Big>('INF1');
+		writer.writeLink<s32>(oishii::v2::Link{
+			oishii::v2::Hook(getSelf()),
+			oishii::v2::Hook("VTX1"/*getSelf(), oishii::Hook::EndOfChildren*/) });
+
+		writer.write<u16>(static_cast<u16>(mdl->info.mScalingRule) & 0xf);
+		writer.write<u16>(-1);
+		// Packet count
+		writer.write<u32>(-1); // TODO
+		// Vertex position count
+		writer.write<u32>(mdl->mBufs.pos.mData.size());
+
+		writer.writeLink<s32>(oishii::v2::Link{
+			oishii::v2::Hook(getSelf()),
+			oishii::v2::Hook("SceneGraph")
+			});
+	}
+
+
+	void gatherChildren(oishii::v2::Node::NodeDelegate& out) const
+	{
+		//out.addNode({ SceneGraph::getLinkerNode(*mdl, true) });
+	}
+	INF1Node(BMDExportContext& ctx) : mdl(&ctx.mdl)
+	{}
+	J3DModel* mdl = nullptr;
+};
+std::unique_ptr<oishii::v2::Node> makeINF1Node(BMDExportContext& ctx)
+{
+	return std::make_unique<LinkNode<INF1Node>>(ctx);
+}
+
 }

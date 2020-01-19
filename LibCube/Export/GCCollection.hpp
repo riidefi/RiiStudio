@@ -180,6 +180,7 @@ struct IndexedPolygon : public lib3d::Polygon
 		//	auto& iprim = getMatrixPrimitiveIndexedPrimitive(idx, iprim_idx);
 		//	
 		//	// TODO
+		return -1;
 	}
 	bool hasAttrib(SimpleAttrib attrib) const override
 	{

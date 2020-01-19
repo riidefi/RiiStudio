@@ -1,7 +1,6 @@
-#pragma once
-
 #include "SceneGraph.hpp"
 #include <oishii/writer/node.hxx>
+
 namespace libcube::jsystem {
 
 enum class ByteCodeOp : s16
@@ -110,16 +109,15 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 			lastType = cmd.op;
 	}
 }
-struct SceneGraphNode : public oishii::Node
+struct SceneGraphNode : public oishii::v2::Node
 {
-	SceneGraphNode(const J3DModel& mdl, bool linkerOwned = true)
+	SceneGraphNode(const J3DModel& mdl)
 		: Node("SceneGraph"), mdl(mdl)
 	{
-		transferOwnershipToLinker(linkerOwned);
-		getLinkingRestriction().options |= oishii::LinkingRestriction::Leaf;
+		getLinkingRestriction().setFlag(oishii::v2::LinkingRestriction::Leaf);
 	}
 
-	eResult write(oishii::Writer& writer) const noexcept
+	Result write(oishii::v2::Writer& writer) const noexcept
 	{
 		u32 depth = 0;
 
@@ -129,7 +127,7 @@ struct SceneGraphNode : public oishii::Node
 		return eResult::Success;
 	}
 	
-	void writeBone(oishii::Writer& writer, const Joint& joint, const J3DModel& mdl, u32& depth) const
+	void writeBone(oishii::v2::Writer& writer, const Joint& joint, const J3DModel& mdl, u32& depth) const
 	{
 		u32 startDepth = depth;
 
@@ -197,8 +195,8 @@ struct SceneGraphNode : public oishii::Node
 
 	const J3DModel& mdl;
 };
-oishii::Node* SceneGraph::getLinkerNode(const J3DModel& mdl, bool linkerOwned)
+std::unique_ptr<oishii::v2::Node> SceneGraph::getLinkerNode(const J3DModel& mdl)
 {
-	return new SceneGraphNode(mdl, linkerOwned);
+	return std::make_unique<SceneGraphNode>(mdl);
 }
 } // namespace libcube::jsystem

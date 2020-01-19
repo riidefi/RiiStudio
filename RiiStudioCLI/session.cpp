@@ -170,9 +170,9 @@ void Session::execute(System& sys)
 		auto xform_name = s.substr(2);
 		i++;
 		
-		for (const void* xf : xfs)
+		for (const void* xf_it : xfs)
 		{
-			const auto& stack = reinterpret_cast<const pl::TransformStack*>(xf)->mStack;
+			const auto& stack = reinterpret_cast<const pl::TransformStack*>(xf_it)->mStack;
 			const auto xf = std::find_if(stack.begin(), stack.end(), [xform_name](auto& x) {
 				return x->name.commandName == xform_name;
 			});

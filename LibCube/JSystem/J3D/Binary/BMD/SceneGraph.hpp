@@ -13,7 +13,7 @@ struct SceneGraph
 	static constexpr const char name[] = "SceneGraph";
 
 	static void onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx);
-	static oishii::Node* getLinkerNode(const J3DModel& mdl, bool linkerOwned=true);
+	std::unique_ptr<oishii::v2::Node> getLinkerNode(const J3DModel& mdl);
 };
 
 } // namespace libcube::jsystem

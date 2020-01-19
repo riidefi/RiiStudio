@@ -3,6 +3,7 @@
 #include <LibRiiEditor/common.hpp>
 #include <vector>
 #include <LibCube/GX/VertexTypes.hpp>
+#include <oishii/v2/writer/binary_writer.hxx>
 
 namespace libcube::jsystem {
 
@@ -138,7 +139,7 @@ struct VertexBuffer
 	}
 
 	template<int n, typename T, glm::qualifier q>
-	void writeBufferEntryGeneric(oishii::Writer& writer, const glm::vec<n, T, q>& v) const
+	void writeBufferEntryGeneric(oishii::v2::Writer& writer, const glm::vec<n, T, q>& v) const
 	{
 		const auto cnt = ComputeComponentCount();
 		for (int i = 0; i < cnt; ++i)
@@ -165,7 +166,7 @@ struct VertexBuffer
 			}
 		}
 	}
-	void writeBufferEntryColor(oishii::Writer& writer, const gx::Color& c) const
+	void writeBufferEntryColor(oishii::v2::Writer& writer, const gx::Color& c) const
 	{
 		switch (mQuant.type.color)
 		{
@@ -208,16 +209,16 @@ struct VertexBuffer
 
 	// For dead cases
 	template<int n, typename T, glm::qualifier q>
-	void writeBufferEntryColor(oishii::Writer& writer, const glm::vec<n, T, q>& v) const
+	void writeBufferEntryColor(oishii::v2::Writer& writer, const glm::vec<n, T, q>& v) const
 	{
 		assert(!"Invalid kind/type template match!");
 	}
-	void writeBufferEntryGeneric(oishii::Writer& writer, const gx::Color& c) const
+	void writeBufferEntryGeneric(oishii::v2::Writer& writer, const gx::Color& c) const
 	{
 		assert(!"Invalid kind/type template match!");
 	}
 
-	void writeData(oishii::Writer& writer) const
+	void writeData(oishii::v2::Writer& writer) const
 	{
 		switch (kind)
 		{

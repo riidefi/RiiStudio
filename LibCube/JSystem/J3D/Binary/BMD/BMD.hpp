@@ -29,7 +29,7 @@ class BMDExporter : public pl::Exporter
 public:
 	~BMDExporter() = default;
 
-	bool write(oishii::Writer& writer, pl::FileState& state) override;
+	bool write(oishii::v2::Writer& writer, pl::FileState& state) override;
 };
 class BMDExporterSpawner : public pl::ExporterSpawner
 {
