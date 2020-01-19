@@ -20,6 +20,6 @@ void readSHP1(BMDOutputContext& ctx);
 std::unique_ptr<oishii::v2::Node> makeINF1Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::v2::Node> makeVTX1Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::v2::Node> makeEVP1Node(BMDExportContext& ctx);
-// EVP1/DRW1
+std::unique_ptr<oishii::v2::Node> makeDRW1Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::v2::Node> makeJNT1Node(BMDExportContext& ctx);
 }

@@ -105,7 +105,7 @@ bool BMDImporter::tryRead(oishii::BinaryReader& reader, pl::FileState& state)
 	BMDOutputContext ctx{ j3dc.mModel, reader };
 
 	// reader.add_bp<u32>(8);
-	// reader.add_bp(0x19c, 1);
+	//reader.add_bp(0x2cc0, 16);
 
 	readBMD(reader, ctx);
 	return !error;
@@ -150,7 +150,8 @@ struct BMDFile : public oishii::v2::Node
 		addNode(makeINF1Node(exp));
 		addNode(makeVTX1Node(exp));
 		addNode(makeEVP1Node(exp));
-		//	addNode(makeDRW1Node(exp));
+		addNode(makeDRW1Node(exp));
+		addNode(makeJNT1Node(exp));
 		//	addNode(makeSHP1Node(exp));
 		//	addNode(makeMAT3Node(exp));
 		//	addNode(makeTEX1Node(exp));

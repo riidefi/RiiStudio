@@ -55,7 +55,9 @@ struct JointData
 	std::vector<Display> displays;
 
 	// From EVP1
-	glm::mat4x4 inverseBindPoseMtx;
+	//glm::mat4x4
+	std::array<float, 12>
+	inverseBindPoseMtx;
 };
 
 struct Joint final : public GCCollection::IBoneDelegate, public JointData

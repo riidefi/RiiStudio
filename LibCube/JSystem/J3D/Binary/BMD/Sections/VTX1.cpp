@@ -108,7 +108,7 @@ void readVTX1(BMDOutputContext& ctx)
 				gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0, shift,
 				(comp + 1)* gen_comp_size
 			);
-			estride = ctx.mdl.mBufs.pos.mQuant.stride;
+			estride = uv.mQuant.stride;
 			break;
 		}
 		default:

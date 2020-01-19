@@ -33,7 +33,14 @@ inline void transferMatrix(glm::mat<r, c, TM, qM>& mat, T& stream)
 {
 	for (int i = 0; i < r; ++i)
 		for (int j = 0; j < c; ++j)
-			stream.transfer(mat[i][j]);
+			stream.transfer(mat[j][i]);
+}
+template<typename T, u32 r, u32 c, typename TM, glm::qualifier qM>
+inline void writeMatrix(const glm::mat<r, c, TM, qM>& mat, T& stream)
+{
+	for (int i = 0; i < r; ++i)
+		for (int j = 0; j < c; ++j)
+			stream.write(mat[j][i]);
 }
 
 inline std::vector<std::string> readNameTable(oishii::BinaryReader& reader)
