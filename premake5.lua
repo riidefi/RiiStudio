@@ -5,6 +5,7 @@ if not FBX_SDK_ROOT then
 	printf("Set it to something like: C:\\Program Files\\Autodesk\\FBX\\FBX SDK\\2019.5\\lib\\vs2017")
 	os.exit()
 end
+PYTHON_ROOT = "C:\\Python36"
 
 workspace "RiiStudio"
 	architecture "x64"
@@ -60,6 +61,10 @@ function setupCppC()
 		"%{prj.name}/**.cpp",
 		"%{prj.name}/**.c"
 	}
+	excludes
+	{
+		"%{prj.name}/pybind11/**.cpp"
+	}
 
 	filter "files:*.cpp"
 		language "C++"
@@ -81,7 +86,9 @@ function setupMainAppCli(set_links)
 		"./",
 		"oishii",
 		"ThirdParty",
-		(FBX_SDK_ROOT .. "../../../include")
+		(FBX_SDK_ROOT .. "../../../include"),
+		PYTHON_ROOT .. "./include",
+		"ThirdParty/pybind11/include"
 	}
 	if set_links then
 	links
@@ -102,16 +109,19 @@ function setupMainAppCli(set_links)
 
 	configuration { "vs*", "Debug" }
 		libdirs {
-			(FBX_SDK_ROOT .. "/x64/debug")
+			(FBX_SDK_ROOT .. "/x64/debug"),
+			PYTHON_ROOT .. "/libs/"
 		}
 		
 	configuration { "vs*", "Release" }
 		libdirs {
-			(FBX_SDK_ROOT .. "/x64/release")			
+			(FBX_SDK_ROOT .. "/x64/release"),
+			PYTHON_ROOT .. "/libs/"			
 		}
 	configuration { "vs*", "Dist" }
 		libdirs {
-			(FBX_SDK_ROOT .. "/x64/release")			
+			(FBX_SDK_ROOT .. "/x64/release"),
+			PYTHON_ROOT .. "/libs/"			
 		}
 	filter "configurations:Dist"
 		postbuildcommands {
@@ -195,6 +205,7 @@ project "ThirdParty"
 
 	setupSystem()
 	setupPreprocessor()
+
 
 project "LibCube"
 	location "LibCube"

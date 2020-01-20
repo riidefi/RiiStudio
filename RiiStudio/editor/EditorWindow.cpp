@@ -9,6 +9,7 @@
 
 #include "BoneEditor.hpp"
 #include <LibRiiEditor/ui/widgets/AbstractOutliner.hpp>
+#include <RiiStudio/editor/Console.hpp>
 
 
 //	struct TextureOutlinerConfig

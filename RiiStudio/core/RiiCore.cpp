@@ -6,7 +6,8 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <LibCube/Export/Exports.hpp>
 #include <RiiStudio/editor/EditorWindow.hpp>
-
+#include <RiiStudio/editor/Console.hpp>
+#include <RiiStudio/api/riiapi.hpp>
 void RiiCore::handleTransformAction()
 {
 	if (mTransformActions.empty()) return;
@@ -106,33 +107,13 @@ void RiiCore::drawRoot()
 	}
 	ImGui::End();
 
+	mConsole->draw(0);
 #ifdef DEBUG
 	auto ctx = makeWindowContext();
 	mThemeEd.draw(&ctx);
 	ImGui::ShowDemoWindow();
 #endif
 }
-#if 0
-// DEBUG
-void RiiCore::DEBUGwriteBmd(const std::string& results)
-{
-	std::ofstream stream(results, std::ios::binary | std::ios::out);
-
-	if (stream)
-	{
-		auto buf = std::make_unique<std::vector<u8>>();
-		buf->reserve(1024 * 1024);
-		oishii::Writer writer(std::move(buf), 0);
-
-		EditorWindow* ed = getActiveEditor();
-		if (!ed) return;
-		auto ex = mPluginFactory.spawnExporter("j3dcollection");
-		ex->write(writer, *ed->mState.get());
-
-		stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
-	}
-}
-#endif
 void RiiCore::save(const std::string& path)
 {
 	std::ofstream stream(path + "_TEST.bmd", std::ios::binary | std::ios::out);
@@ -343,7 +324,11 @@ RiiCore::RiiCore()
 
 	mTheme.mThemeSelection = ThemeManager::BasicTheme::Raikiri;
 	mTheme.mThemeManager.setThemeEx(mTheme.mThemeSelection);
+
+	mConsole = std::make_unique<Console>(*this);
+	ConsoleHandle::sCH = new ConsoleHandle(*(mConsole.get()));
 }
 RiiCore::~RiiCore()
 {
+	delete ConsoleHandle::sCH;
 }

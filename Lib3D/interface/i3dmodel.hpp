@@ -1,6 +1,8 @@
 #pragma once
 
 #include <LibRiiEditor/pluginapi/Plugin.hpp>
+#include <ThirdParty/glm/vec2.hpp>
+#include <ThirdParty/glm/vec3.hpp>
 
 namespace lib3d {
 enum class Coverage

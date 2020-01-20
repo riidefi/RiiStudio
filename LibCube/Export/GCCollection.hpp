@@ -7,6 +7,7 @@
 #include <LibCube/Common/BoundBox.hpp>
 #include <Lib3D/interface/i3dmodel.hpp>
 #include <map>
+#include <LibCube/GX/VertexTypes.hpp>
 namespace libcube {
 
 

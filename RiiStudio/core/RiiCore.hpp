@@ -10,7 +10,9 @@
 #include "WindowAdaptor.hpp"
 #include <queue>
 #include <RiiStudio/editor/EditorWindow.hpp>
+#include <RiiStudio/api/Interpreter.hpp>
 
+struct Console;
 class RiiCore : public Applet
 {
 public:
@@ -36,6 +38,12 @@ public:
 	RiiCore();
 	~RiiCore();
 
+	void execute_python(const std::string& code)
+	{
+		mInterpreter.exec(code);
+	}
+
+	PluginFactory& getPluginFactory() { return mPluginFactory; }
 
 private:
 	DockSpace mDockSpace;
@@ -52,4 +60,7 @@ private:
 	void recursiveTransformsMenuItem(const std::string& type, EditorWindow& window);
 
 	void handleTransformAction();
+
+	Interpreter mInterpreter;
+	std::unique_ptr<Console> mConsole;
 };
