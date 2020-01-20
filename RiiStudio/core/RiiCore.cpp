@@ -216,24 +216,11 @@ std::vector<std::string> RiiCore::fileDialogueOpen()
 {
 	return pfd::open_file("Open File").result();	
 }
-
-void RiiCore::openFile(OpenFilePolicy policy)
+void RiiCore::openFile(const std::string& file, OpenFilePolicy policy)
 {
 	// TODO: Support other policies
 	if (policy != OpenFilePolicy::NewEditor)
 		return;
-
-	auto results = fileDialogueOpen();
-
-	if (results.empty())
-		return;
-
-	assert(results.size() == 1);
-	if (results.size() != 1)
-		return;
-
-	auto file = results[0];
-
 	std::ifstream stream(file, std::ios::binary | std::ios::ate);
 
 	if (!stream)
@@ -263,22 +250,56 @@ void RiiCore::openFile(OpenFilePolicy policy)
 			importer->importer->tryRead(*reader.get(), *fileState.get());
 
 			auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), mPluginFactory, file);
-			
+
 			attachWindow(std::move(edWindow));
-			
+
 		}
 
 		// TODO -- Check filestate id against current
 		// TODO -- Invoke spawned importer
 	}
 }
+void RiiCore::openFile(OpenFilePolicy policy)
+{
+	auto results = fileDialogueOpen();
 
+	if (results.empty())
+		return;
+
+	assert(results.size() == 1);
+	if (results.size() != 1)
+		return;
+
+	auto file = results[0];
+	openFile(file, policy);
+}
+
+static RiiCore* spCore = nullptr;
+
+static void core_drop_file(const char* path)
+{
+	printf("Dropping file: %s\n", path);
+
+	if (spCore)
+		spCore->openFile(path, RiiCore::OpenFilePolicy::NewEditor);
+}
+
+static void core_drop(GLFWwindow* window, int count, const char** paths)
+{
+	for (int i = 0; i < count; ++i)
+		core_drop_file(paths[i]);
+}
 
 RiiCore::RiiCore()
 {
 	mPluginFactory.registerPlugin(libcube::Package());
 	mPluginFactory.installModule("nw.dll");
 	mPluginFactory.computeDataMesh();
+
+	assert(!spCore);
+	spCore = this;
+	setDropCallback(core_drop);
 }
 RiiCore::~RiiCore()
-{}
+{
+}

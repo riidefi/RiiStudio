@@ -26,6 +26,10 @@ static bool initWindow(GLFWwindow** pWin, int width = 1280, int height = 720, co
 	glfwSwapInterval(1); // vsync
 }
 
+void GL_Window::setDropCallback(void(*callback)(GLFWwindow* window, int count, const char** paths))
+{
+	glfwSetDropCallback(mpGlfwWindow, callback);
+}
 
 GL_Window::GL_Window()
 {
@@ -37,7 +41,6 @@ GL_Window::GL_Window()
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
 		initWindow(&mpGlfwWindow);
-
 
 		if (!gl3wInit())
 			return;

@@ -30,6 +30,7 @@ public:
 	void drawMenuBar();
 	std::vector<std::string> fileDialogueOpen();
 	void openFile(OpenFilePolicy policy = OpenFilePolicy::NewEditor);
+	void openFile(const std::string& path, OpenFilePolicy policy = OpenFilePolicy::NewEditor);
 	void save(const std::string& path);
 	void saveAs();
 	RiiCore();
