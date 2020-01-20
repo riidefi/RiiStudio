@@ -44,13 +44,13 @@ std::optional<PluginFactory::SpawnedImporter> PluginFactory::spawnImporter(const
 	std::size_t i = 0;
 	for (const auto& plugin : mImporters)
 	{
-		ScopedInc incrementor(i);
 		oishii::JumpOut reader_guard(reader, reader.tell());
 
 		const auto match = plugin->match(fileName, reader);
 
 		if (match.first != MatchResult::Mismatch)
 			matched[i] = match;
+		++i;
 	}
 
 	if (matched.size() == 0)

@@ -18,13 +18,13 @@ struct DispList
 
 	static void onRead(oishii::BinaryReader& bReader, DispList& context)
 	{
-		context.m_unk1 = bReader.read<u32>();
-		context.m_unk2 = bReader.read<u32>();
-		context.m_dispData.resize(bReader.read<u32>());
+		context.m_unk1 = bReader.readUnaligned<u32>();
+		context.m_unk2 = bReader.readUnaligned<u32>();
+		context.m_dispData.resize(bReader.readUnaligned<u32>());
 
 		skipPadding(bReader);
 		for (auto& dispData : context.m_dispData)
-			dispData = bReader.read<u8>();
+			dispData = bReader.readUnaligned<u8>();
 	}
 };
 

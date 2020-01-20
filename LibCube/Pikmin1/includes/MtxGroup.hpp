@@ -22,7 +22,7 @@ struct MtxGroup
 		for (auto& isDependant : context.m_dependant)
 			isDependant = bReader.read<u16>();
 
-		context.m_dispLists.resize(bReader.read<u32>());
+		context.m_dispLists.resize(bReader.readUnaligned<u32>());
 		for (auto& dLists : context.m_dispLists)
 		{
 			// Read DispLists

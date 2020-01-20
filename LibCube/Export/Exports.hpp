@@ -6,6 +6,8 @@
 #include <LibCube/JSystem/J3D/Collection.hpp>
 #include <LibCube/JSystem/J3D/Binary/BMD/BMD.hpp>
 
+#include <libcube/Pikmin1/MOD_IO.hpp>
+
 namespace libcube {
 
 struct GCCollectionRegistration : public pl::InterfaceRegistration
@@ -21,6 +23,9 @@ struct GCCollectionRegistration : public pl::InterfaceRegistration
 struct Package : public pl::Package
 {
 	Package();
+
+	pikmin1::MODSpawner mMODSpawner;
+	pikmin1::MODImporterSpawner mMOD;
 
 	jsystem::J3DCollectionSpawner mJ3DCollectionSpawner;
 

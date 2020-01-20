@@ -39,6 +39,7 @@ void TXE::importTXE(oishii::BinaryReader& bReader)
 	decode();
 }
 
+// FIXME: This is wrong?
 void TXE::importMODTXE(oishii::BinaryReader& bReader)
 {
 	// Read image properties
@@ -51,13 +52,13 @@ void TXE::importMODTXE(oishii::BinaryReader& bReader)
 		m_format = static_cast<TXEFormats>(m_formatShort);
 
 	// TODO: figure out what this variable means
-	m_unk2 = bReader.read<u32>();
+	m_unk2 = bReader.readUnaligned<u32>();
 
 	for (u32 i = 0; i < 4; i++)
-		bReader.read<u32>(); // padding
+		bReader.readUnaligned<u32>(); // padding
 
 	// Read data size (multiple of 32)
-	m_txeImageData.resize(bReader.read<u32>());
+	m_txeImageData.resize(bReader.readUnaligned<u32>());
 
 	for (auto& pixelData : m_txeImageData)
 		pixelData = bReader.read<u8>();

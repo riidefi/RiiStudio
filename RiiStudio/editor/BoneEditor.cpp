@@ -38,10 +38,13 @@ void BoneEditor::drawBone(libcube::GCCollection::IBoneDelegate& d, bool leaf)
 		if ((d.canWrite(features::StandardBillboards) || d.canWrite(features::ExtendedBillboards)) && sel != static_cast<int>(d.getBillboard()))
 			d.setBillboard(static_cast<libcube::GCCollection::IBoneDelegate::Billboard>(sel));
 
-		bool b = d.getSSC();
-		BONE_PROP("Segment Scale Compensation", ImGui::Checkbox("", &b));
-		if (d.canWrite(features::SegmentScaleCompensation) && d.getSSC() != b)
-			d.setSSC(b);
+		if (samp.getNumBones() > 0 && samp.getBone(0).supportsBoneFeature(lib3d::BoneFeatures::SegmentScaleCompensation) != lib3d::Coverage::Unsupported)
+		{
+			bool b = d.getSSC();
+			BONE_PROP("Segment Scale Compensation", ImGui::Checkbox("", &b));
+			if (d.canWrite(features::SegmentScaleCompensation) && d.getSSC() != b)
+				d.setSSC(b);
+		}
 #undef BONE_PROP
 	}
 	if (o)
@@ -61,10 +64,12 @@ void BoneEditor::draw(WindowContext* ctx) noexcept
 	if (!ImGui::Begin("BoneEditor", &bOpen) || !ctx)
 		return;
 
+	bool use_ssc = samp.getNumBones() > 0 && samp.getBone(0).supportsBoneFeature(lib3d::BoneFeatures::SegmentScaleCompensation) != lib3d::Coverage::Unsupported;
+
 	if (ImGui::TreeNodeEx("(root)", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::NextColumn();
-		ImGui::Columns(6, "tree", true);
+		ImGui::Columns(5 + (use_ssc ? 1 : 0), "tree", true);
 		ImGui::Text("Name");
 		ImGui::NextColumn();
 		ImGui::Text("Scale");
@@ -75,10 +80,13 @@ void BoneEditor::draw(WindowContext* ctx) noexcept
 		ImGui::NextColumn();
 		ImGui::Text("Billboard");
 		ImGui::NextColumn();
-		ImGui::Text("Segment Scale Compensation");
-		ImGui::NextColumn();
-
-		drawBone(samp.getBone(0));
+		if (use_ssc)
+		{
+			ImGui::Text("Segment Scale Compensation");
+			ImGui::NextColumn();
+		}
+		if (samp.getNumBones() > 0)
+			drawBone(samp.getBone(0));
 		
 		ImGui::Columns(1);
 		ImGui::TreePop();

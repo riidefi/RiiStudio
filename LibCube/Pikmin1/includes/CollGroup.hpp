@@ -50,21 +50,21 @@ struct CollGroup
 		u32 maxCollTris = 0;
 		for (u32 i = 0; i < context.m_blockSize; i++)
 		{
-			context.m_vars.m_unk1Count = bReader.read<u16>();
-			context.m_vars.m_collTriCount = bReader.read<u16>();
+			context.m_vars.m_unk1Count = bReader.readUnaligned<u16>();
+			context.m_vars.m_collTriCount = bReader.readUnaligned<u16>();
 
 			if (context.m_vars.m_collTriCount > maxCollTris)
 				maxCollTris = context.m_vars.m_collTriCount;
 
 			context.m_vars.m_vecUnk2.resize(context.m_vars.m_collTriCount);
 			for (auto& var : context.m_vars.m_vecUnk2)
-				var = bReader.read<u32>();
+				var = bReader.readUnaligned<u32>();
 
 			if (context.m_vars.m_unk1Count)
 			{
 				context.m_vars.m_vecUnk2.resize(context.m_vars.m_unk1Count);
 				for (auto& byte : context.m_vars.m_vecUnk2)
-					byte = bReader.read<u8>();
+					byte = bReader.readUnaligned<u8>();
 			}
 		}
 		DebugReport("Max collision triangles within a block: %u\n", maxCollTris);
@@ -75,7 +75,7 @@ struct CollGroup
 		{
 			for (u32 j = 0; j < context.m_gridSizeX; j++)
 			{
-				const u32 unk1 = bReader.read<u32>();
+				const u32 unk1 = bReader.readUnaligned<u32>();
 			}
 		}
 

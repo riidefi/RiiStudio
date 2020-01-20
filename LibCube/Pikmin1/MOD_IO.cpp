@@ -9,7 +9,7 @@ bool MODImporter::tryRead(oishii::BinaryReader& bReader, pl::FileState& state)
 	// Chunk descriptor
 	u32 cDescriptor = 0;
 	// 0xFFFF means EoF for this file, aka (u16)-1
-	while ((cDescriptor = bReader.read<u32>()) != (u16)-1)
+	while (/* bReader.tell() < bReader.endpos() && */(cDescriptor = bReader.read<u32>()) != (u16)-1)
 	{
 		// Chunk start
 		const u32 cStart = bReader.tell() - 4;
@@ -98,7 +98,35 @@ bool MODImporter::tryRead(oishii::BinaryReader& bReader, pl::FileState& state)
 			skipChunk(bReader, cLength);
 			break;
 		}
+
+		if (bReader.tell() > bReader.endpos())
+		{
+			printf("Fatal error.. attempted to read beyond end of the stream\n");
+			throw "Read beyond stream";
+		}
 	}
+
+	// Construct joint relationships
+	for (int i = 0; i < mdl.mJoints.size(); ++i)
+	{
+		auto& j = mdl.mJoints[i];
+
+		j.mID = i;
+		if (j.m_parentIndex != -1)
+			mdl.mJoints[j.m_parentIndex].mChildren.push_back(j.mID);
+		if (mdl.mJointNames.empty())
+			j.mName = std::string("Joint #") + std::to_string(i);
+	}
+
+	// Usually, after the EoF chunk, it would be the end of the file
+	// But! If there are still bytes after EoF it is assumed there is an INI
+	if (bReader.tell() != bReader.endpos())
+	{
+		DebugReport("INI file found at end of file\n");
+	}
+	DebugReport("Done reading file\n");
+
+	// PrintMODStats(context);
 
 	return true;
 }
@@ -141,6 +169,18 @@ void MODImporter::readCollisionPrism(oishii::BinaryReader& bReader, Model& mdl)
 		collTri << bReader;
 
 	skipPadding(bReader);
+}
+
+void Model::removeMtxDependancy()
+{
+	for (auto& batch : mMeshes)
+	{
+		batch.m_depMTXGroups = 0;
+		for (auto& mtx_group : batch.m_mtxGroups)
+		{
+			mtx_group.m_dependant.clear();
+		}
+	}
 }
 
 } } // namespace libcube::pikmin1

@@ -2,14 +2,20 @@
 
 #include "essential_functions.hpp"
 #include <LibCube/Common/BoundBox.hpp>
+#include <LibCube/Export/GCCollection.hpp>
 
 namespace libcube { namespace pikmin1 {
 
-struct Joint
+struct Joint : public GCCollection::IBoneDelegate
 {
 	constexpr static const char name[] = "Joint";
 
-	u32 m_index;
+	u32 mID; // Set by loader
+	std::vector<int> mChildren;
+	std::string mName;
+
+	// Real fields
+	u32 m_parentIndex;
 	bool m_useVolume;
 	bool m_foundLightGroup;
 	AABB m_boundingBox;
@@ -30,7 +36,7 @@ struct Joint
 	static void onRead(oishii::BinaryReader& bReader, Joint& context)
 	{
 		// Known to be -1 on first iteration (null)
-		context.m_index = bReader.read<u32>();
+		context.m_parentIndex = bReader.read<u32>();
 
 		const u16 usingIdentifier = static_cast<u16>(bReader.read<u32>());
 		// Oddly, only assigned in plugTexConv when volume_min or volume_max has been found
@@ -52,6 +58,72 @@ struct Joint
 			matpoly.m_unk2 = bReader.read<u16>();
 		}
 	}
+
+	Billboard getBillboard() const override
+	{
+		return Billboard::None;
+	}
+	void setBillboard(Billboard) override {}
+
+	std::string getName() override { return mName; }
+	int getId() override { return mID; }
+	
+	virtual lib3d::Coverage supportsBoneFeature(lib3d::BoneFeatures f)
+	{
+		switch (f)
+		{
+		case lib3d::BoneFeatures::SRT:
+		case lib3d::BoneFeatures::Hierarchy:
+		case lib3d::BoneFeatures::AABB:
+		case lib3d::BoneFeatures::BoundingSphere:
+			return lib3d::Coverage::ReadWrite;
+		case lib3d::BoneFeatures::SegmentScaleCompensation:
+		case lib3d::BoneFeatures::StandardBillboards:
+		default:
+			return lib3d::Coverage::Unsupported;
+
+		}
+	}
+
+	lib3d::SRT3 getSRT() const override
+	{
+		return { m_scale, m_rotation, m_translation };
+	}
+	void setSRT(const lib3d::SRT3& srt) override
+	{
+		m_scale = srt.scale;
+		m_rotation = srt.rotation;
+		m_translation = srt.translation;
+	}
+
+	int getParent() const override { return m_parentIndex; }
+	void setParent(int id) override { m_parentIndex = id; }
+	u32 getNumChildren() const override { return mChildren.size(); }
+	int getChild(u32 idx) const override { return mChildren[idx]; }
+	int addChild(int child) override { mChildren.push_back(child);  return mChildren.size() - 1; }
+	int setChild(u32 idx, int id) override { int old = mChildren[idx]; mChildren[idx] = id; return old; }
+	
+	lib3d::AABB getAABB() const override
+	{
+		return { m_boundingBox.m_minBounds, m_boundingBox.m_maxBounds };
+	}
+	void setAABB(const lib3d::AABB& v) override
+	{
+		m_boundingBox.m_minBounds = v.min;
+		m_boundingBox.m_maxBounds = v.max;
+	}
+
+	virtual float getBoundingRadius() const
+	{
+		return m_volumeRadius;
+	}
+	virtual void setBoundingRadius(float v)
+	{
+		m_volumeRadius = v;
+	}
+
+	virtual bool getSSC() const override { return false; }
+	virtual void setSSC(bool) {}
 };
 
 inline void operator<<(Joint& context, oishii::BinaryReader& bReader)

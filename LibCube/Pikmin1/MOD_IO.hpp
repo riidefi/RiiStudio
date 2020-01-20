@@ -52,7 +52,6 @@ class MODImporter : public pl::Importer
 	bool tryRead(oishii::BinaryReader& reader, pl::FileState& state) override;
 	void readHeader(oishii::BinaryReader& bReader, Model& mdl);
 	void readCollisionPrism(oishii::BinaryReader& bReader, Model& mdl);
-
 };
 
 class MODImporterSpawner : public pl::ImporterSpawner
@@ -65,7 +64,7 @@ class MODImporterSpawner : public pl::ImporterSpawner
 
 		if (fileName.size() > 4 && std::equal(ending.rbegin(), ending.rend(), fileName.rbegin()))
 		{
-			return { MatchResult::Contents, "MOD" };
+			return { MatchResult::Contents, "pikmin1mod" };
 		}
 		return { MatchResult::Mismatch, "" };
 	}

@@ -15,6 +15,9 @@
 
 #include <LibRiiEditor/pluginapi/FileState.hpp>
 #include <LibRiiEditor/pluginapi/Interfaces/TextureList.hpp>
+#include <LibRiiEditor/pluginapi/FileStateSpawner.hpp>
+
+#include <LibCube/Export/GCCollection.hpp>
 
 namespace libcube { namespace pikmin1 {
 
@@ -22,7 +25,9 @@ using libcube::operator<<;
 
 //! FIXME: Document
 //!
-class Model : public pl::FileState, pl::ITextureList
+class Model : public pl::FileState,
+	public GCCollection,
+	pl::ITextureList
 {
 public:
 	template<typename T, const char N[]>
@@ -117,15 +122,65 @@ public:
 		return "TODO";
 	}
 
+	// GC Collection
+	IBoneDelegate& getBone(u32 idx) override
+	{
+		assert(idx < mJoints.size());
+
+		return mJoints[idx];
+	}
+	IMaterialDelegate& getMaterial(u32 idx) override
+	{
+		return *(IMaterialDelegate*)0;
+	}
+	// GCCollection -> I3DModel
+	u32 getNumBones() const
+	{
+		return mJoints.size();
+	}
+	int addBone()
+	{
+		return -1;
+	}
+
+	u32 getNumMaterials() const
+	{
+		return 0;
+	}
+	int addMaterial()
+	{
+		return -1;
+	}
 	//
 	// Construction/Destruction
 	//
 
 	~Model() override = default;
-	Model()
+	Model() = default;
+
+
+	void removeMtxDependancy();
+
+};
+
+
+class MODSpawner : public pl::FileStateSpawner
+{
+public:
+	~MODSpawner() override = default;
+	MODSpawner()
 	{
-		// Register interfaces
-		// mInterfaces.push_back(static_cast<pl::ITextureList*>(this));
+		mId = { "Pikmin 1 Model", "pikmin1mod", "pikmin1mod" };
+		addMirror("pikmin1mod", "gc_collection", pl::computeTranslation<Model, GCCollection>());
+	}
+
+	std::unique_ptr<pl::FileState> spawn() const override
+	{
+		return std::make_unique<Model>();
+	}
+	std::unique_ptr<FileStateSpawner> clone() const override
+	{
+		return std::make_unique<MODSpawner>(*this);
 	}
 };
 

@@ -15,12 +15,14 @@ Package::Package()
 	};
 	// States
 	mEditors = {
-		&mJ3DCollectionSpawner
+		&mJ3DCollectionSpawner,
+		&mMODSpawner
 	};
 
 	// Importers
 	mImporters = {
-		&mBMD.first
+		&mBMD.first,
+		&mMOD
 	};
 
 	// Exporters

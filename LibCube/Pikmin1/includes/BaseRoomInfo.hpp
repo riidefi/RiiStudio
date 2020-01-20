@@ -16,7 +16,7 @@ struct BaseRoomInfo
 
 	static void onRead(oishii::BinaryReader& bReader, BaseRoomInfo& context)
 	{
-		context.m_unk1 = bReader.read<u32>();
+		context.m_unk1 = bReader.readUnaligned<u32>();
 	}
 };
 
