@@ -32,6 +32,8 @@ protected:
 	u32 getWindowIndexById(u32 id) const;
 	// TODO: No lifetime guarantee
 	Window& getWindowIndexed(u32 idx);
+	u32 getNumWindows() const;
+	bool bOnlyDrawActive = false;
 private:
 	SelectionManager mSelectionManager;
 	WindowManagerInternal* intern; // Unfortunate hack required for C++/CLR (C# wrapper) to include this file -- no mutex support

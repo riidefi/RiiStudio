@@ -9,7 +9,14 @@
 
 #include <LibRiiEditor/core/PluginFactory.hpp>
 
-//struct ISelectionListener {};
+struct IWindowsCollection
+{
+	virtual ~IWindowsCollection() = default;
+
+	virtual u32 getNum() = 0;
+	virtual const char* getName(u32 id) = 0;
+	virtual std::unique_ptr<Window> spawn(u32 id) = 0;
+};
 
 struct EditorWindow : public WindowManager, public Window
 {
@@ -22,5 +29,8 @@ struct EditorWindow : public WindowManager, public Window
 
 	std::string mFilePath; // For saving
 
-	// std::map<int, std::vector<ISelectionListener*>> mAttachedSelectionListeners;
+	//! What windows can we spawn?
+	//! This won't be enough when we support multi interface editors.
+	//!
+	std::unique_ptr<IWindowsCollection> mWindowCollection;
 };

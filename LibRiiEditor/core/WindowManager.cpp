@@ -152,7 +152,9 @@ void WindowManager::drawWindows(WindowContext* ctx)
 		if (!window.get())
 			continue;
 
-		window->draw(ctx);
+		if (!bOnlyDrawActive || window->mId == mActive)
+			window->draw(ctx);
+
 		if (!window->bOpen)
 			detachWindow(window->mId);
 	}
@@ -163,4 +165,11 @@ Window& WindowManager::getWindowIndexed(u32 idx)
 	std::lock_guard<std::mutex> g(intern->mVect.mutex);
 
 	return *intern->mVect.vector[idx].get();
+}
+
+u32 WindowManager::getNumWindows() const
+{
+	std::lock_guard<std::mutex> g(intern->mVect.mutex);
+
+	return intern->mVect.vector.size();
 }

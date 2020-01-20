@@ -36,6 +36,7 @@ public:
 	RiiCore();
 	~RiiCore();
 
+
 private:
 	DockSpace mDockSpace;
 	Theme mTheme;
@@ -50,4 +51,5 @@ private:
 	void drawTransformsMenu(EditorWindow& window);
 	void recursiveTransformsMenuItem(const std::string& type, EditorWindow& window);
 
+	void handleTransformAction();
 };

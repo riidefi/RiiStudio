@@ -7,81 +7,105 @@
 #include <LibCube/Export/Exports.hpp>
 #include <RiiStudio/editor/EditorWindow.hpp>
 
+void RiiCore::handleTransformAction()
+{
+	if (mTransformActions.empty()) return;
+
+	auto& front = mTransformActions.front();
+	ImGui::OpenPopup(front.mCfg.name.exposedName.c_str());
+	if (ImGui::BeginPopupModal(front.mCfg.name.exposedName.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		for (const auto& prop : front.mCfg.mParams)
+		{
+			switch (prop.type)
+			{
+			case pl::TransformStack::ParamType::String:
+			{
+				const auto str = front.getString(prop.name.namespacedId);
+				char tmp_buf[128]{};
+				memcpy_s(tmp_buf, 128, str.c_str(), str.length());
+				ImGui::InputText(prop.name.exposedName.c_str(), tmp_buf, 128);
+				if (std::string(tmp_buf) != str)
+					front.setString(prop.name.namespacedId, tmp_buf);
+				break;
+			}
+			case pl::TransformStack::ParamType::Flag:
+			{
+				bool v = front.getFlag(prop.name.namespacedId);
+				bool v2 = v;
+				ImGui::Checkbox(prop.name.exposedName.c_str(), &v);
+				if (v != v2)
+					front.setFlag(prop.name.namespacedId, v);
+				break;
+			}
+			case pl::TransformStack::ParamType::Enum:
+			{
+				int e = front.getEnum(prop.name.namespacedId);
+				int e2 = e;
+				if (ImGui::BeginCombo(prop.name.exposedName.c_str(), prop.enumeration[e].exposedName.c_str()))
+				{
+					for (int i = 0; i < prop.enumeration.size(); ++i)
+					{
+						if (ImGui::Selectable(prop.enumeration[i].exposedName.c_str()))
+						{
+							e = i;
+							break;
+						}
+					}
+					ImGui::EndCombo();
+				}
+				if (e != e2)
+					front.setEnum(prop.name.namespacedId, e);
+				break;
+			}
+			default:
+				break;
+			}
+		}
+
+		if (ImGui::Button("OK"))
+		{
+			front.mCfg.perform(front);
+			mTransformActions.pop();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel"))
+		{
+			mTransformActions.pop();
+		}
+		ImGui::EndPopup();
+	}
+}
+
+
 void RiiCore::drawRoot()
 {
 	if (mDockSpace.draw())
 	{
 		drawMenuBar();
 	}
-	if (!mTransformActions.empty())
-	{
-		auto& front = mTransformActions.front();
-		ImGui::OpenPopup(front.mCfg.name.exposedName.c_str());
-		if (ImGui::BeginPopupModal(front.mCfg.name.exposedName.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-		{
-			for (const auto& prop : front.mCfg.mParams)
-			{
-				switch (prop.type)
-				{
-				case pl::TransformStack::ParamType::String:
-				{
-					const auto str = front.getString(prop.name.namespacedId);
-					char tmp_buf[128]{};
-					memcpy_s(tmp_buf, 128, str.c_str(), str.length());
-					ImGui::InputText(prop.name.exposedName.c_str(), tmp_buf, 128);
-					if (std::string(tmp_buf) != str)
-						front.setString(prop.name.namespacedId, tmp_buf);
-					break;
-				}
-				case pl::TransformStack::ParamType::Flag:
-				{
-					bool v = front.getFlag(prop.name.namespacedId);
-					bool v2 = v;
-					ImGui::Checkbox(prop.name.exposedName.c_str(), &v);
-					if (v != v2)
-						front.setFlag(prop.name.namespacedId, v);
-					break;
-				}
-				case pl::TransformStack::ParamType::Enum:
-				{
-					int e = front.getEnum(prop.name.namespacedId);
-					int e2 = e;
-					if (ImGui::BeginCombo(prop.name.exposedName.c_str(), prop.enumeration[e].exposedName.c_str()))
-					{
-						for (int i = 0; i < prop.enumeration.size(); ++i)
-						{
-							if (ImGui::Selectable(prop.enumeration[i].exposedName.c_str()))
-							{
-								e = i;
-								break;
-							}
-						}
-						ImGui::EndCombo();
-					}
-					if (e != e2)
-						front.setEnum(prop.name.namespacedId, e);
-					break;
-				}
-				default:
-					break;
-				}
-			}
 
-			if (ImGui::Button("OK"))
-			{
-				front.mCfg.perform(front);
-				mTransformActions.pop();
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Cancel"))
-			{
-				mTransformActions.pop();
-			}
-			ImGui::EndPopup();
-		}
-	}
+	handleTransformAction();
 
 	ImGui::End();
+
+	ImGui::Begin("WindowBar");
+	if (ImGui::BeginTabBar("WindowBarWidget", 0))
+	{
+		for (int i = 0; i < getNumWindows(); ++i)
+		{
+			auto* wnd = (EditorWindow*)&getWindowIndexed(i);
+
+			if (ImGui::BeginTabItem(&wnd->mFilePath.c_str()[wnd->mFilePath.rfind("\\")], &wnd->bOpen))
+			{
+				setActiveEditor(*wnd);
+				ImGui::EndTabItem();
+			}
+		}
+		ImGui::EndTabBar();
+	}
+	ImGui::End();
+
 #ifdef DEBUG
 	auto ctx = makeWindowContext();
 	mThemeEd.draw(&ctx);
@@ -164,22 +188,23 @@ void RiiCore::drawMenuBar()
 					saveAs();
 				else printf("Cannot save.. nothing has been opened.\n");
 			}
-#if 0
-			// TODO -- Just for debugging
-			if (ImGui::MenuItem("Save BMD"))
-			{
-#if 0
-				auto results = pfd::save_file("Save File", "", { "All Files", "*", "J3D Binary Model Data", "*.bmd", "J3D Binary Display List", "*.bdl" }).result();
-				if (!results.empty())
-				{
-					DEBUGwriteBmd(results);
-				}
-#endif
-				DEBUGwriteBmd("debug_out.bmd");
-			}
-#endif
 			ImGui::EndMenu();
 		}
+		if (ImGui::BeginMenu("Windows"))
+		{
+			if (ed && ed->mWindowCollection)
+			{
+				for (int i = 0; i < ed->mWindowCollection->getNum(); ++i)
+				{
+					if (ImGui::MenuItem(ed->mWindowCollection->getName(i)))
+					{
+						ed->attachWindow(ed->mWindowCollection->spawn(i));
+					}
+				}
+			}
+			ImGui::End();
+		}
+
 		if (ed)
 			drawTransformsMenu(*ed);
 		ImGui::EndMenuBar(); // Placement?
@@ -294,7 +319,7 @@ static void core_drop_file(const char* path)
 	printf("Dropping file: %s\n", path);
 
 	if (spCore)
-		spCore->openFile(path, RiiCore::OpenFilePolicy::ReplaceEditor);
+		spCore->openFile(path, RiiCore::OpenFilePolicy::NewEditor);
 }
 
 static void core_drop(GLFWwindow* window, int count, const char** paths)
@@ -304,6 +329,7 @@ static void core_drop(GLFWwindow* window, int count, const char** paths)
 }
 
 RiiCore::RiiCore()
+	: Applet("RiiStudio")
 {
 	mPluginFactory.registerPlugin(libcube::Package());
 	mPluginFactory.installModule("nw.dll");
@@ -312,6 +338,11 @@ RiiCore::RiiCore()
 	assert(!spCore);
 	spCore = this;
 	setDropCallback(core_drop);
+
+	bOnlyDrawActive = true;
+
+	mTheme.mThemeSelection = ThemeManager::BasicTheme::Raikiri;
+	mTheme.mThemeManager.setThemeEx(mTheme.mThemeSelection);
 }
 RiiCore::~RiiCore()
 {

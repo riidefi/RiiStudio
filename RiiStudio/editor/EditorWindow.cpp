@@ -98,6 +98,60 @@ struct MaterialOutliner final : public Window
 	MaterialDataSource outliner;
 	ImTFilter mFilter;
 };
+
+
+
+struct GC_Collection_Windows : public IWindowsCollection
+{
+	enum class ID
+	{
+		MaterialEditor,
+		MaterialOutliner,
+		BoneEditor,
+
+		Max
+	};
+
+	u32 getNum() override { return static_cast<u32>(ID::Max); }
+	const char* getName(u32 id) override
+	{
+		switch (static_cast<ID>(id))
+		{
+		case ID::MaterialEditor:
+			return "Material Editor";
+		case ID::MaterialOutliner:
+			return "Material Outliner";
+		case ID::BoneEditor:
+			return "Bone Editor";
+		default:
+			return "?";
+		}
+	}
+	std::unique_ptr<Window> spawn(u32 id) override
+	{
+		assert(gc);
+		if (!gc) return nullptr;
+
+		switch (static_cast<ID>(id))
+		{
+		case ID::MaterialEditor:
+			return std::make_unique<ed::MaterialEditor>();
+		case ID::MaterialOutliner:
+			return std::make_unique<MaterialOutliner>(*gc);
+		case ID::BoneEditor:
+			return std::make_unique<ed::BoneEditor>(*gc);
+		default:
+			return nullptr;
+		}
+	}
+
+	libcube::GCCollection* gc = nullptr;
+
+	GC_Collection_Windows(libcube::GCCollection& _gc)
+		: gc(&_gc)
+	{}
+};
+
 EditorWindow::EditorWindow(std::unique_ptr<pl::FileState> state, PluginFactory& factory, const std::string& path)
 	: mState(std::move(state)), mFilePath(path)
 {
@@ -106,16 +160,16 @@ EditorWindow::EditorWindow(std::unique_ptr<pl::FileState> state, PluginFactory& 
 	assert(hnd);
 	for (int i = 0; i < hnd.getNumParents(); ++i)
 	{
-		
 		if (hnd.getParent(i).getName() == "gc_collection")
 		{
 			libcube::GCCollection* gc = hnd.caseToImmediateParent<libcube::GCCollection>(mState.get(), "gc_collection");
 			assert(gc);
 			if (!gc) return;
 
-			attachWindow(std::move(std::make_unique<ed::MaterialEditor>()));
-			attachWindow(std::move(std::make_unique<MaterialOutliner>(*gc)));
-			attachWindow(std::move(std::make_unique<ed::BoneEditor>(*gc)));
+			mWindowCollection = std::move(std::make_unique<GC_Collection_Windows>(*gc));
+
+			for (u32 i = 0; i < mWindowCollection->getNum(); ++i)
+				attachWindow(std::move(mWindowCollection->spawn(i)));
 		}
 	}
 }

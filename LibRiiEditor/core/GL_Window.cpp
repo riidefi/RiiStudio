@@ -31,7 +31,7 @@ void GL_Window::setDropCallback(void(*callback)(GLFWwindow* window, int count, c
 	glfwSetDropCallback(mpGlfwWindow, callback);
 }
 
-GL_Window::GL_Window()
+GL_Window::GL_Window(int width, int height, const char* pName)
 {
 	glfwSetErrorCallback(handleGlfwError);
 	
@@ -40,7 +40,7 @@ GL_Window::GL_Window()
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-		initWindow(&mpGlfwWindow);
+		initWindow(&mpGlfwWindow, width, height, pName);
 
 		if (!gl3wInit())
 			return;

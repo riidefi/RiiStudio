@@ -33,7 +33,8 @@ static bool loadFonts()
 	return true;
 }
 
-Applet::Applet()
+Applet::Applet(const char* name)
+	: GL_Window(1920, 1080, name)
 {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();

@@ -6,7 +6,7 @@
 class Applet : public WindowManager, public GL_Window
 {
 public:
-	Applet();
+	Applet(const char* name);
 	~Applet();
 
 	void frameProcess() override;

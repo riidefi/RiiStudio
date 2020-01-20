@@ -16,6 +16,6 @@ struct Theme
 		void windowDraw(CoreContext& ctx) noexcept;
 	};
 
-	ThemeManager::BasicTheme mThemeSelection = ThemeManager::BasicTheme::ImDark;
+	ThemeManager::BasicTheme mThemeSelection = ThemeManager::BasicTheme::Raikiri;
 	ThemeManager mThemeManager;
 };
