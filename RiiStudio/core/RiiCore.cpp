@@ -218,9 +218,6 @@ std::vector<std::string> RiiCore::fileDialogueOpen()
 }
 void RiiCore::openFile(const std::string& file, OpenFilePolicy policy)
 {
-	// TODO: Support other policies
-	if (policy != OpenFilePolicy::NewEditor)
-		return;
 	std::ifstream stream(file, std::ios::binary | std::ios::ate);
 
 	if (!stream)
@@ -239,24 +236,40 @@ void RiiCore::openFile(const std::string& file, OpenFilePolicy policy)
 		if (!importer.has_value())
 			return;
 
+
+		auto fileState = mPluginFactory.spawnFileState(importer->fileStateId);
+		if (fileState.get() == nullptr)
+			return;
+
+		mCoreRes.numPluginWindow++;
+
+		importer->importer->tryRead(*reader.get(), *fileState.get());
+
+		auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), mPluginFactory, file);
+
 		if (policy == OpenFilePolicy::NewEditor)
 		{
-			auto fileState = mPluginFactory.spawnFileState(importer->fileStateId);
-			if (fileState.get() == nullptr)
-				return;
-
-			mCoreRes.numPluginWindow++;
-
-			importer->importer->tryRead(*reader.get(), *fileState.get());
-
-			auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), mPluginFactory, file);
+			attachWindow(std::move(edWindow));
+		}
+		else if (policy == OpenFilePolicy::ReplaceEditor)
+		{
+			if (getActiveEditor())
+				detachWindow(getActiveEditor()->mId);
+			attachWindow(std::move(edWindow));
+		}
+		else if (policy == OpenFilePolicy::ReplaceEditorIfMatching)
+		{
+			if (getActiveEditor() && ((EditorWindow*)getActiveEditor())->mState->mName.namespacedId == fileState->mName.namespacedId)
+			{
+				detachWindow(getActiveEditor()->mId);	
+			}
 
 			attachWindow(std::move(edWindow));
-
 		}
-
-		// TODO -- Check filestate id against current
-		// TODO -- Invoke spawned importer
+		else
+		{
+			throw "Invalid open file policy";
+		}
 	}
 }
 void RiiCore::openFile(OpenFilePolicy policy)
@@ -281,7 +294,7 @@ static void core_drop_file(const char* path)
 	printf("Dropping file: %s\n", path);
 
 	if (spCore)
-		spCore->openFile(path, RiiCore::OpenFilePolicy::NewEditor);
+		spCore->openFile(path, RiiCore::OpenFilePolicy::ReplaceEditor);
 }
 
 static void core_drop(GLFWwindow* window, int count, const char** paths)

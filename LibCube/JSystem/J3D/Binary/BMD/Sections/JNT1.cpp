@@ -33,9 +33,11 @@ void readJNT1(BMDOutputContext& ctx)
             sorted = false;
     }
 
-    if (!sorted)
-        DebugReport("Joint IDS are remapped.\n");
-
+	if (!sorted)
+	{
+		DebugReport("Joint IDS are remapped.\n");
+		throw "";
+	}
 
     // FIXME: unnecessary allocation of a vector.
     reader.seekSet(ofsStringTable + g.start);

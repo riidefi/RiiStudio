@@ -9,7 +9,7 @@
 #include <LibCube/Pikmin1/TXE/TXE.hpp> // P1 Texture format
 
 // J3D formats
-#include <LibCube/JSystem/J3D/BTI/BTI.hpp> // J3D Texture format
+#include <LibCube/JSystem/J3D/Binary/BTI/BTI.hpp> // J3D Texture format
 
 #include <fstream>
 
