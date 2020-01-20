@@ -21,15 +21,22 @@ static bool loadFonts()
 	fontcfg.OversampleH = 8;
 	fontcfg.OversampleV = 8;
 
-	io.Fonts->AddFontFromFileTTF("../fonts/Roboto-Medium.ttf", 14.0f, &fontcfg);
+#ifdef BUILD_DIST
+#define FONT_DIR "./fonts/"
+#else
+#define FONT_DIR "../fonts/"
+#endif
+
+	io.Fonts->AddFontFromFileTTF(FONT_DIR "Roboto-Medium.ttf", 14.0f, &fontcfg);
 
 	// Taken from example
 	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
 	ImFontConfig icons_config;
 	icons_config.MergeMode = true;
 	icons_config.PixelSnapH = true;
-	io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 14.0f, &icons_config, icons_ranges);
+	io.Fonts->AddFontFromFileTTF(FONT_DIR FONT_ICON_FILE_NAME_FAS, 14.0f, &icons_config, icons_ranges);
 
+#undef FONT_DIR
 	return true;
 }
 

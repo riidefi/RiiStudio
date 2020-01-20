@@ -25,7 +25,7 @@ Console::Console(RiiCore& core)
 	AddLog("RIISTUDIO INTERACTIVE CONSOLE");
 	AddLog("");
 
-	mCore.execute_python("import new_console");
+	mCore.execute_python("import scripts.new_console as new_console");
 }
 
 

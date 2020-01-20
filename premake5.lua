@@ -24,15 +24,15 @@ workspace "RiiStudio"
 
 function setupPreprocessor()
 	filter "configurations:Debug"
-		defines "DEBUG"
+		defines { "DEBUG", "BUILD_DEBUG" }
 		symbols "On"
 	
 	filter "configurations:Release"
-		defines "NDEBUG"
+		defines { "NDEBUG", "BUILD_RELEASE" }
 		optimize "On"
 	
 	filter "configurations:Dist"
-		defines "NDEBUG"
+		defines { "NDEBUG", "BUILD_DIST" }
 		optimize "On"
 end
 
@@ -127,7 +127,8 @@ function setupMainAppCli(set_links)
 		postbuildcommands {
 			"{COPY} %{cfg.targetdir}/*.exe ../dist/",
 			"{COPY} %{cfg.targetdir}/*.dll ../dist/",
-			"{COPY} %{cfg.targetdir}/*.ttf ../dist/"
+			"{COPY} %{cfg.targetdir}/*.ttf ../dist/fonts/",
+			"{COPY} %{cfg.targetdir}/scripts  ../dist/scripts/"
 		}
 end
 
@@ -154,7 +155,8 @@ function setupMainApp()
 	postbuildcommands {
 		"{COPY} ../ThirdParty/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}",
 		-- "{COPY} " .. fbx_dir .. "libfbxsdk.dll %{cfg.targetdir}",
-		"{COPY} ../fonts/* %{cfg.targetdir}"
+		"{COPY} ../fonts/* %{cfg.targetdir}",
+		"{COPY} ./scripts/* %{cfg.targetdir}/scripts"
 	}
 	
 end
