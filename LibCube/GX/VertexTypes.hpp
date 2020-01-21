@@ -80,7 +80,7 @@ union VertexBufferType
 	{}
 	VertexBufferType() {}
 };
-enum class VertexAttribute
+enum class VertexAttribute : u32
 {
 	PositionNormalMatrixIndex = 0,
 	Texture0MatrixIndex,

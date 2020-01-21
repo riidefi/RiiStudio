@@ -50,8 +50,6 @@ class MODImporter : public pl::Importer
 		EoF = 0xFFFF
 	};
 	bool tryRead(oishii::BinaryReader& reader, pl::FileState& state) override;
-	void readHeader(oishii::BinaryReader& bReader, Model& mdl);
-	void readCollisionPrism(oishii::BinaryReader& bReader, Model& mdl);
 };
 
 class MODImporterSpawner : public pl::ImporterSpawner

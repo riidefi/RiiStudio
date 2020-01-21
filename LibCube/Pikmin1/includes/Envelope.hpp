@@ -21,8 +21,8 @@ struct Envelope
 
 		for (u32 i = 0; i < context.m_indices.size(); i++)
 		{
-			context.m_indices[i] = bReader.read<u16>();
-			context.m_weights[i] = bReader.read<f32>();
+			context.m_indices[i] = bReader.readUnaligned<u16>();
+			context.m_weights[i] = bReader.readUnaligned<f32>();
 		}
 	}
 };

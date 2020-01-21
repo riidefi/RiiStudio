@@ -38,11 +38,11 @@ struct TXE
 	u16 m_height = 0;
 	u16 m_unk1 = 0;
 	u16 m_formatShort = 0;
-	TXEFormats m_format;
+	TXEFormats m_format = (TXEFormats)0;
 	u32 m_unk2 = 0;
 
 	std::vector<u8> m_txeImageData;
-	std::vector<u8> m_convImageData; // expands to converted image data
+	std::vector<u8> m_convImageData;
 
 	TXE() = default;
 	~TXE() = default;
@@ -54,6 +54,7 @@ struct TXE
 	void importTXE(oishii::BinaryReader&);
 	void importMODTXE(oishii::BinaryReader&);
 
+private:
 	inline DecodingTextureFormat getDTF() const;
 	void decode();
 };

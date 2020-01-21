@@ -3,7 +3,7 @@
 
 namespace libcube { namespace gx {
 
-enum class CullMode
+enum class CullMode : u32
 {
 	None,
 	Front,

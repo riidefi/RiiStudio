@@ -31,12 +31,12 @@ struct TransformStack
 		RichName name;
 		ParamType type;
 		// Only for bool
-		bool defaultBool;
+		bool defaultBool = false;
 		// Only for string
-		std::string defaultString;
+		std::string defaultString = "";
 		// Only for enum
 		std::vector<RichName> enumeration;
-		int defaultEnum;
+		int defaultEnum = -1;
 
 		explicit Param(const RichName& n, bool b)
 			: name(n), type(ParamType::Flag), defaultBool(b)

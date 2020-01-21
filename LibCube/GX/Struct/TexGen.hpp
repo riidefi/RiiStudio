@@ -90,6 +90,13 @@ struct TexCoordGen // XF TEX/DUALTEX
 	
 	bool			normalize;
 	PostTexMatrix	postMatrix;
+
+	const bool operator==(const TexCoordGen& rhs) const noexcept
+	{
+		return func == rhs.func && sourceParam == rhs.sourceParam &&
+			matrix == rhs.matrix &&
+			normalize == rhs.normalize && postMatrix == rhs.postMatrix;
+	}
 };
 
 } } // namespace libcube::gx

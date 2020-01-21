@@ -21,7 +21,7 @@ struct MirrorEntry
 template<typename D, typename B>
 constexpr int computeTranslation()
 {
-	return reinterpret_cast<char*>(static_cast<B*>(reinterpret_cast<D*>(0x10000000))) - reinterpret_cast<char*>(0x10000000);
+	return static_cast<int>(reinterpret_cast<char*>(static_cast<B*>(reinterpret_cast<D*>(0x10000000))) - reinterpret_cast<char*>(0x10000000));
 }
 
 } // namespace pl

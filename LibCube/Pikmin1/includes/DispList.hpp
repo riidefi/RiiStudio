@@ -8,7 +8,7 @@ struct DispList
 {
 	constexpr static const char name[] = "Display List";
 
-	u32 m_unk1 = 0;
+	u32 m_flags = 0;
 	u32 m_unk2 = 0;
 
 	std::vector<u8> m_dispData;
@@ -18,7 +18,7 @@ struct DispList
 
 	static void onRead(oishii::BinaryReader& bReader, DispList& context)
 	{
-		context.m_unk1 = bReader.readUnaligned<u32>();
+		context.m_flags = bReader.readUnaligned<u32>();
 		context.m_unk2 = bReader.readUnaligned<u32>();
 		context.m_dispData.resize(bReader.readUnaligned<u32>());
 

@@ -1,13 +1,19 @@
 #pragma once
 
-#include <LibRiiEditor/pluginapi/Interface.hpp>
-#include <LibCube/GX/Material.hpp>
-#include <optional>
 #include <ThirdParty/glm/vec3.hpp>
-#include <LibCube/Common/BoundBox.hpp>
+
+#include <LibRiiEditor/pluginapi/Interface.hpp>
 #include <Lib3D/interface/i3dmodel.hpp>
-#include <map>
+
 #include <LibCube/GX/VertexTypes.hpp>
+#include <LibCube/GX/Material.hpp>
+#include <LibCube/Common/BoundBox.hpp>
+
+#include <optional>
+#include <map>
+#include <algorithm>
+
+
 namespace libcube {
 
 
@@ -141,6 +147,12 @@ struct VertexDescriptor
 	bool operator[] (gx::VertexAttribute attr) const
 	{
 		return mBitfield & (1 << static_cast<u32>(attr));
+	}
+	bool operator==(const VertexDescriptor& rhs) const
+	{
+		// FIXME: remove NULL attribs before comparing
+		return mAttributes.size() == rhs.mAttributes.size() &&
+			std::equal(mAttributes.begin(), mAttributes.end(), rhs.mAttributes.begin());
 	}
 };
 inline gx::VertexAttribute operator+(gx::VertexAttribute attr, u32 i)

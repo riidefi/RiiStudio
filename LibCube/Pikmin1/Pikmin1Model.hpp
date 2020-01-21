@@ -134,20 +134,20 @@ public:
 		return *(IMaterialDelegate*)0;
 	}
 	// GCCollection -> I3DModel
-	u32 getNumBones() const
+	u32 getNumBones() const override
 	{
 		return mJoints.size();
 	}
-	int addBone()
+	int addBone() override
 	{
 		return -1;
 	}
 
-	u32 getNumMaterials() const
+	u32 getNumMaterials() const override
 	{
 		return 0;
 	}
-	int addMaterial()
+	int addMaterial() override
 	{
 		return -1;
 	}

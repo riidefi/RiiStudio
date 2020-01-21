@@ -8,6 +8,14 @@
 
 namespace libcube { namespace gx {
 
+enum class TextureWrapMode
+{
+	Clamp,
+	Repeat,
+	Mirror,
+	MAX
+};
+
 enum class ColorSource
 {
 	Register,
@@ -36,7 +44,10 @@ enum class AttenuationFunction
 {
 	Specular,
 	Spotlight,
-	None
+	None,
+	// Necessary for J3D compatibility at the moment.
+	// Really we're looking at SpecDisabled/SpotDisabled there (2 adjacent bits in HW field)
+	None2
 };
 
 struct ChannelControl
@@ -76,6 +87,13 @@ struct AlphaComparison
 
 	Comparison compRight;
 	u8 refRight;
+
+	const bool operator==(const AlphaComparison& rhs) const noexcept
+	{
+		return compLeft == rhs.compLeft && refLeft == rhs.refLeft &&
+			op == rhs.op &&
+			compRight == rhs.compRight && refRight == rhs.refRight;
+	}
 };
 
 enum class BlendModeType
@@ -121,6 +139,11 @@ struct BlendMode
 	BlendModeType type;
 	BlendModeFactor source, dest;
 	LogicOp logic;
+
+	const bool operator==(const BlendMode& rhs) const noexcept
+	{
+		return type == rhs.type && source == rhs.source && dest == rhs.dest && logic == rhs.logic;
+	}
 };
 struct Color;
 struct ColorF32
@@ -146,6 +169,11 @@ struct Color
 {
 	u32 r, g, b, a;
 
+	inline bool operator==(const Color& rhs) const noexcept
+	{
+		return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
+	}
+
 	inline operator ColorF32()
 	{
 		return {
@@ -155,19 +183,35 @@ struct Color
 			static_cast<float>(a) / static_cast<float>(0xff)
 		};
 	}
+	inline Color() {}
+	inline Color(u32 hex)
+	{
+		r = (hex & 0xff000000) << 24;
+		g = (hex & 0x00ff0000) << 16;
+		b = (hex & 0x0000ff00) << 8;
+		a = (hex & 0x000000ff);
+	}
+	inline Color(u8 _r, u8 _g, u8 _b, u8 _a)
+		: r(_r), g(_g), b(_b), a(_a)
+	{}
 };
 
 inline ColorF32::operator Color()
 {
 	return {
-		(u32)roundf(r * 255.0f),
-		(u32)roundf(g * 255.0f),
-		(u32)roundf(b * 255.0f),
-		(u32)roundf(a * 255.0f)
+		(u8)roundf(r * 255.0f),
+		(u8)roundf(g * 255.0f),
+		(u8)roundf(b * 255.0f),
+		(u8)roundf(a * 255.0f)
 	};
 }
 struct ColorS10
 {
 	s32 r, g, b, a;
+
+	bool operator==(const ColorS10& rhs) const noexcept
+	{
+		return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
+	}
 };
 } } // namespace libcube::gx

@@ -32,10 +32,8 @@ struct TexAttr
 
 	static void onRead(oishii::BinaryReader& bReader, TexAttr& context)
 	{
-		context.m_image = bReader.read<u16>();
+		context.m_image = bReader.read<u32>();
 		context.m_tilingMode = bReader.read<u16>();
-
-		context.m_unk1 = bReader.read<u16>();
 		context.m_unk2 = bReader.read<u16>();
 		context.m_unk3 = bReader.read<f32>();
 	}

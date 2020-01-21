@@ -4,6 +4,8 @@
 #include <vector>
 #include <array>
 
+#include "Indirect.hpp"
+
 namespace libcube { namespace gx {
 
 enum class TevColorArg
@@ -191,58 +193,6 @@ enum class ColorSelChanApi
 	null = 0xFF
 };
 
-enum class IndTexFormat
-{
-	_8bit,
-	_5bit,
-	_4bit,
-	_3bit,
-};
-
-enum class IndTexBiasSel
-{
-	none,
-	s,
-	t,
-	st,
-	u,
-	su,
-	tu,
-	stu
-};
-enum class IndTexAlphaSel
-{
-	off,
-	s,
-	t,
-	u
-};
-enum class IndTexMtxID
-{
-	off,
-	_0,
-	_1,
-	_2,
-
-	s0 = 5,
-	s1,
-	s2,
-
-	t0 = 9,
-	t1,
-	t2
-};
-enum class IndTexWrap
-{
-	off,
-	_256,
-	_128,
-	_64,
-	_32,
-	_16,
-	_0
-};
-
 
 struct TevStage
 {
@@ -265,6 +215,14 @@ struct TevStage
 		TevScale scale = TevScale::scale_1;
 		bool clamp = true;
 		TevReg out = TevReg::prev;
+
+		bool operator==(const ColorStage& rhs) const noexcept
+		{
+			return constantSelection == rhs.constantSelection &&
+				a == rhs.a && b == rhs.b && c == rhs.c && d == rhs.d &&
+				formula == rhs.formula && bias == rhs.bias && scale == rhs.scale &&
+				clamp == rhs.clamp && out == rhs.out;
+		}
 	} colorStage;
 	struct AlphaStage
 	{
@@ -276,39 +234,69 @@ struct TevStage
 		TevScale scale;
 		bool clamp;
 		TevReg out;
+
+		bool operator==(const AlphaStage& rhs) const noexcept
+		{
+			return constantSelection == rhs.constantSelection &&
+				a == rhs.a && b == rhs.b && c == rhs.c && d == rhs.d &&
+				formula == rhs.formula && bias == rhs.bias && scale == rhs.scale &&
+				clamp == rhs.clamp && out == rhs.out;
+		}
 	} alphaStage;
 	struct IndirectStage
 	{
-		u8 indStageSel;
-		IndTexFormat format;
-		IndTexBiasSel bias;
-		IndTexMtxID matrix;
-		IndTexWrap wrapU, wrapV;
-		bool addPrev;
-		bool utcLod;
-		IndTexAlphaSel alpha;
+		u8 indStageSel			{ 0 };
+		IndTexFormat format		{ IndTexFormat::_8bit };
+		IndTexBiasSel bias		{ IndTexBiasSel::none };
+		IndTexMtxID matrix		{ IndTexMtxID::off };
+		IndTexWrap wrapU		{ IndTexWrap::off };
+		IndTexWrap wrapV		{ IndTexWrap::off };
+
+		bool addPrev			{ false };
+		bool utcLod				{ false };
+		IndTexAlphaSel alpha	{ IndTexAlphaSel::off };
+
+		bool operator==(const IndirectStage& stage) const noexcept
+		{
+			return indStageSel == stage.indStageSel && format == stage.format &&
+				bias == stage.bias && matrix == stage.matrix && wrapU == stage.wrapU &&
+				wrapV == stage.wrapV && addPrev == stage.addPrev && utcLod == stage.utcLod &&
+				alpha == stage.alpha;
+		}
 	} indirectStage;
+
+	bool operator==(const TevStage& rhs) const noexcept
+	{
+		return colorStage == rhs.colorStage && alphaStage == rhs.alphaStage && indirectStage == rhs.indirectStage;
+	}
 };
 
+// SWAP table
+struct SwapTableEntry
+{
+	ColorComponent r, g, b, a;
+
+	bool operator==(const SwapTableEntry& rhs) const noexcept
+	{
+		return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
+	}
+};
 
 struct Shader
 {
-// Fixed-size DL
-	// SWAP table
-	struct SwapTableEntry
-	{
-		ColorComponent r, g, b, a;
-	};
+// Fixed-size DL	
 	std::array<SwapTableEntry, 4> mSwapTable;
-
-	struct IndOrder
-	{
-		u8 refMap, refCoord;
-	};
 	std::array<IndOrder, 4> mIndirectOrders;
 
 // Variable-sized DL	
 	std::vector<TevStage> mStages;
+
+	bool operator==(const Shader& rhs) const noexcept
+	{
+		return mSwapTable == rhs.mSwapTable &&
+			mIndirectOrders == rhs.mIndirectOrders &&
+			mStages == rhs.mStages;
+	}
 };
 
 } } // namespace libcube::gx

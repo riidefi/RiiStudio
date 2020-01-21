@@ -15,12 +15,39 @@ struct PVWKeyInfoS10
 
 	void read(oishii::BinaryReader& bReader)
 	{
-		m_unk1 = bReader.read<u16>();
-		m_unk2 = bReader.read<u16>();
-		m_unk3 = bReader.read<f32>();
-		m_unk4 = bReader.read<f32>();
+		m_unk1 = bReader.readUnaligned<u16>();
+		m_unk2 = bReader.readUnaligned<u16>();
+		m_unk3 = bReader.readUnaligned<f32>();
+		m_unk4 = bReader.readUnaligned<f32>();
 	}
 };
+
+struct PVWKeyInfoU8
+{
+	// 12 bytes big
+	char m_unk1;
+	float m_unk2;
+	float m_unk3;
+
+	void read(oishii::BinaryReader& bReader)
+	{
+		m_unk1 = bReader.readUnaligned<u8>();
+		bReader.readUnaligned<u8>();
+		bReader.readUnaligned<u8>();
+		bReader.readUnaligned<u8>();
+
+		m_unk2 = bReader.readUnaligned<f32>();
+		m_unk3 = bReader.readUnaligned<f32>();
+	}
+};
+
+struct PVWKeyInfoF32
+{
+	float m_keyframeA;
+	float m_keyframeB;
+	float m_keyframeC;
+};
+
 
 // USED FOR THE PVWTEVINFO STRUCT
 struct PVWCombiner
@@ -149,6 +176,7 @@ struct PVWTevColReg
 		m_unk4.read(bReader);
 	}
 };
+
 struct PVWTevInfo
 {
 	PVWTevColReg m_unk1;
@@ -185,29 +213,21 @@ struct PVWTevInfo
 	}
 };
 
-
-
 struct Material
 {
-	// TODO: Material::Colour
-	// TODO: PVWPolygonColourInfo
-	// TODO: PVWLightingInfo
-	// TODO: PVWPeInfo
-	// TODO: PVWTextureInfo
-	u32 m_flag;
-	u32 m_unk2;
-	Colour m_unk3;
-	u32 m_unk4;
+	u32 m_flag = 0;
+	u32 m_textureIndex = 0;
 
 	void read(oishii::BinaryReader& bReader)
 	{
 		m_flag = bReader.read<u32>();
-		m_unk2 = bReader.read<u32>();
-		m_unk3 << bReader;
-		if (m_flag & 1)
+		m_textureIndex = bReader.read<u32>();
+		/* m_pCI.m_diffuseColour << bReader;
+		if (this->m_flag & 1)
 		{
-			m_unk4 = bReader.read<u32>();
+
 		}
+		*/
 	}
 	
 	Material() = default;

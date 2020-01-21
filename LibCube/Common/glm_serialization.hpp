@@ -1,6 +1,7 @@
 #pragma once
 
 #include <oishii/reader/binary_reader.hxx>
+#include <oishii/v2/writer/binary_writer.hxx>
 #include <ThirdParty/glm/vec3.hpp>
 #include <ThirdParty/glm/vec2.hpp>
 
@@ -39,6 +40,18 @@ inline void operator<< <f32, 2>(glm::vec2& out, oishii::BinaryReader& reader)
 {
 	out.x = reader.read<f32>();
 	out.y = reader.read<f32>();
+}
+
+inline void operator>>(const glm::vec3& vec, oishii::v2::Writer& writer)
+{
+	writer.write(vec.x);
+	writer.write(vec.y);
+	writer.write(vec.z);
+}
+inline void operator>>(const glm::vec2& vec, oishii::v2::Writer& writer)
+{
+	writer.write(vec.x);
+	writer.write(vec.y);
 }
 
 } // namespace libcube

@@ -15,6 +15,7 @@
 #include <LibCube/JSystem/J3D/Material.hpp>
 #include <LibCube/JSystem/J3D/VertexBuffer.hpp>
 #include <LibCube/JSystem/J3D/Shape.hpp>
+#include "Texture.hpp"
 
 
 
@@ -67,6 +68,7 @@ struct J3DModel
 	std::vector<Joint> mJoints;
 	std::vector<Material> mMaterials;
 	std::vector<Shape> mShapes;
+	std::vector<Texture> mTextures;
 };
 
 } // namespace libcube::jsystem

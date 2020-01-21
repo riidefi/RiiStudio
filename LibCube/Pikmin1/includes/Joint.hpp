@@ -68,7 +68,7 @@ struct Joint : public GCCollection::IBoneDelegate
 	std::string getName() override { return mName; }
 	int getId() override { return mID; }
 	
-	virtual lib3d::Coverage supportsBoneFeature(lib3d::BoneFeatures f)
+	virtual lib3d::Coverage supportsBoneFeature(lib3d::BoneFeatures f) override
 	{
 		switch (f)
 		{
@@ -113,17 +113,17 @@ struct Joint : public GCCollection::IBoneDelegate
 		m_boundingBox.m_maxBounds = v.max;
 	}
 
-	virtual float getBoundingRadius() const
+	virtual float getBoundingRadius() const override
 	{
 		return m_volumeRadius;
 	}
-	virtual void setBoundingRadius(float v)
+	virtual void setBoundingRadius(float v) override
 	{
 		m_volumeRadius = v;
 	}
 
 	virtual bool getSSC() const override { return false; }
-	virtual void setSSC(bool) {}
+	virtual void setSSC(bool) override {}
 };
 
 inline void operator<<(Joint& context, oishii::BinaryReader& bReader)

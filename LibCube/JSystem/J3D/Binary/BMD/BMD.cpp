@@ -88,6 +88,59 @@ void BMDImporter::readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 	// Read shapes
 	readSHP1(ctx);
 
+	for (const auto& e : ctx.mVertexBufferMaxIndices)
+	{
+		switch (e.first)
+		{
+		case gx::VertexBufferAttribute::Position:
+			if (ctx.mdl.mBufs.pos.mData.size() != e.second + 1)
+			{
+				printf("The position vertex buffer currently has %u greedily-claimed entries due to 32B padding; %u are used.\n", ctx.mdl.mBufs.pos.mData.size(), e.second + 1);
+				ctx.mdl.mBufs.pos.mData.resize(e.second + 1);
+			}
+			break;
+		case gx::VertexBufferAttribute::Color0:
+		case gx::VertexBufferAttribute::Color1:
+		{
+			auto& buf = ctx.mdl.mBufs.color[(int)e.first - (int)gx::VertexBufferAttribute::Color0];
+			if (buf.mData.size() != e.second + 1)
+			{
+				printf("The color buffer currently has %u greedily-claimed entries due to 32B padding; %u are used.\n", buf.mData.size(), e.second + 1);
+				buf.mData.resize(e.second + 1);
+			}
+			break;
+		}
+		case gx::VertexBufferAttribute::Normal:
+		{
+			auto& buf = ctx.mdl.mBufs.norm;
+			if (buf.mData.size() != e.second + 1)
+			{
+				printf("The normal buffer currently has %u greedily-claimed entries due to 32B padding; %u are used.\n", buf.mData.size(), e.second + 1);
+				buf.mData.resize(e.second + 1);
+			}
+			break;
+		}
+		case gx::VertexBufferAttribute::TexCoord0:
+		case gx::VertexBufferAttribute::TexCoord1:
+		case gx::VertexBufferAttribute::TexCoord2:
+		case gx::VertexBufferAttribute::TexCoord3:
+		case gx::VertexBufferAttribute::TexCoord4:
+		case gx::VertexBufferAttribute::TexCoord5:
+		case gx::VertexBufferAttribute::TexCoord6:
+		case gx::VertexBufferAttribute::TexCoord7:
+		{
+			auto& buf = ctx.mdl.mBufs.uv[(int)e.first - (int)gx::VertexBufferAttribute::TexCoord0];
+			if (buf.mData.size() != e.second + 1)
+			{
+				printf("The UV buffer currently has %u greedily-claimed entries due to 32B padding; %u are used.\n", buf.mData.size(), e.second + 1);
+				buf.mData.resize(e.second + 1);
+			}
+		}
+		default:
+			break; // TODO
+		}
+	}
+
 	// Read TEX1
 
 	// Read materials
@@ -98,14 +151,28 @@ void BMDImporter::readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 
 	// Read MDL3
 }
+
+#ifndef NDEBUG
+std::vector<u8> __lastReadDataForWriteDebug;
+#endif
+
 bool BMDImporter::tryRead(oishii::BinaryReader& reader, pl::FileState& state)
 {
+#ifndef NDEBUG
+	__lastReadDataForWriteDebug.resize(reader.endpos());
+	memcpy(__lastReadDataForWriteDebug.data(), reader.getStreamStart(), __lastReadDataForWriteDebug.size());
+	_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
+#endif
+
+	// reader.add_bp(0x37ee0, 16);
+
 	//oishii::BinaryReader::ScopedRegion g(reader, "J3D Binary Model Data (.bmd)");
 	auto& j3dc = static_cast<J3DCollection&>(state);
 	BMDOutputContext ctx{ j3dc.mModel, reader };
 
 	// reader.add_bp<u32>(8);
-	//reader.add_bp(0x2cc0, 16);
+	// reader.add_bp(0x6970, 16);
+	// reader.add_bp(0x1d480, 16);
 
 	readBMD(reader, ctx);
 	return !error;
@@ -152,8 +219,8 @@ struct BMDFile : public oishii::v2::Node
 		addNode(makeEVP1Node(exp));
 		addNode(makeDRW1Node(exp));
 		addNode(makeJNT1Node(exp));
-		//	addNode(makeSHP1Node(exp));
-		//	addNode(makeMAT3Node(exp));
+		addNode(makeSHP1Node(exp));
+		addNode(makeMAT3Node(exp));
 		//	addNode(makeTEX1Node(exp));
 		return {};
 	}
@@ -164,11 +231,14 @@ struct BMDFile : public oishii::v2::Node
 };
 void BMD_Pad(char* dst, u32 len)
 {
-	assert(len < 30);
-	memcpy(dst, "This is padding data to align.....", len);
+	//assert(len < 30);
+	memcpy(dst, "This is padding data to alignment.....", len);
 }
 void exportBMD(oishii::v2::Writer& writer, J3DCollection& collection)
 {
+	// writer.attachDataForMatchingOutput(__lastReadDataForWriteDebug);
+	writer.add_bp(0x47cc0, 4);
+
 	oishii::v2::Linker linker;
 
 	auto bmd = std::make_unique<BMDFile>();
@@ -177,6 +247,7 @@ void exportBMD(oishii::v2::Writer& writer, J3DCollection& collection)
 	bmd->mCollection = &collection;
 
 	linker.mUserPad = &BMD_Pad;
+	writer.mUserPad = &BMD_Pad;
 
 	linker.gather(std::move(bmd), "");
 	linker.write(writer);

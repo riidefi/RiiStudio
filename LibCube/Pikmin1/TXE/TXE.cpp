@@ -1,5 +1,6 @@
 #include "TXE.hpp"
 #include <LibRiiEditor/common.hpp>
+#include <algorithm>
 
 namespace libcube { namespace pikmin1 {
 
@@ -39,19 +40,18 @@ void TXE::importTXE(oishii::BinaryReader& bReader)
 	decode();
 }
 
-// FIXME: This is wrong?
 void TXE::importMODTXE(oishii::BinaryReader& bReader)
 {
 	// Read image properties
 	m_width = bReader.read<u16>();
 	m_height = bReader.read<u16>();
-	// TODO: figure out what this variable means
+
 	m_unk1 = bReader.read<u16>();
+
 	m_formatShort = bReader.read<u16>();
 	if (m_formatShort <= 7)
 		m_format = static_cast<TXEFormats>(m_formatShort);
 
-	// TODO: figure out what this variable means
 	m_unk2 = bReader.readUnaligned<u32>();
 
 	for (u32 i = 0; i < 4; i++)
@@ -62,6 +62,8 @@ void TXE::importMODTXE(oishii::BinaryReader& bReader)
 
 	for (auto& pixelData : m_txeImageData)
 		pixelData = bReader.read<u8>();
+
+	decode();
 }
 
 inline DecodingTextureFormat TXE::getDTF() const
@@ -97,8 +99,6 @@ void TXE::decode()
 	m_convImageData = TextureDecoding::decodeVec(m_txeImageData.data(),
 		m_width, m_height, static_cast<u32>(fmt),
 		0, nullptr, 0);
-
-
 }
 
 }
