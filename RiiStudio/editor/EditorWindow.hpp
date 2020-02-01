@@ -1,13 +1,10 @@
 #pragma once
 
-#include <LibRiiEditor/pluginapi/Plugin.hpp>
-#include <LibRiiEditor/ui/widgets/Outliner.hpp>
-#include <LibRiiEditor/core/WindowManager.hpp>
+#include <memory>
+#include <LibCore/common.h>
+#include <RiiStudio/IStudioWindow.hpp>
 
-#include <map>
-#include <vector>
-
-#include <LibRiiEditor/core/PluginFactory.hpp>
+#include <LibCore/api/Node.hpp>
 
 struct IWindowsCollection
 {
@@ -15,22 +12,17 @@ struct IWindowsCollection
 
 	virtual u32 getNum() = 0;
 	virtual const char* getName(u32 id) = 0;
-	virtual std::unique_ptr<Window> spawn(u32 id) = 0;
+	virtual std::unique_ptr<IStudioWindow> spawn(u32 id) = 0;
 };
 
-struct EditorWindow : public WindowManager, public Window
+class EditorWindow : public IStudioWindow
 {
-	~EditorWindow() override = default;
-	EditorWindow(std::unique_ptr<pl::FileState> state, PluginFactory& factory, const std::string& path);
+public:
+	EditorWindow(px::Dynamic state, const std::string& path);
 
-	void draw(WindowContext* ctx) noexcept override final;
+	void draw() noexcept override;
 
-	std::unique_ptr<pl::FileState> mState;
-
-	std::string mFilePath; // For saving
-
-	//! What windows can we spawn?
-	//! This won't be enough when we support multi interface editors.
-	//!
-	std::unique_ptr<IWindowsCollection> mWindowCollection;
+private:
+	px::Dynamic mState;
+	std::string mFilePath;
 };

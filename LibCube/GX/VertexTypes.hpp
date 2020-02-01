@@ -1,5 +1,7 @@
 #pragma once
 
+#include <LibCore/common.h>
+
 namespace libcube { namespace gx {
 
 union VertexComponentCount
@@ -182,4 +184,10 @@ static_assert(
 	"Primitive Command conversion failed");
 
 
+inline gx::VertexAttribute operator+(gx::VertexAttribute attr, u64 i)
+{
+	u64 out = static_cast<u64>(attr) + i;
+	assert(out < static_cast<u64>(gx::VertexAttribute::Max));
+	return static_cast<gx::VertexAttribute>(out);
+}
 } } // namespace libcube::gx

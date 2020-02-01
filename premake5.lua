@@ -93,7 +93,7 @@ function setupMainAppCli(set_links)
 	if set_links then
 	links
 	{
-		"LibRiiEditor",
+		"LibCore",
 		"LibCube",
 		"ThirdParty",
 		"libfbxsdk-md"
@@ -135,8 +135,9 @@ end
 function setupMainApp()
 	links
 	{
-		"LibRiiEditor",
+		"LibCore",
 		"LibCube",
+		"LibJ",
 		"ThirdParty",
 		"ThirdParty/glfw/lib-vc2017/glfw3dll.lib",
 		"opengl32.lib",
@@ -160,28 +161,6 @@ function setupMainApp()
 	}
 	
 end
-
-project "LibRiiEditor"
-	location "LibRiiEditor"
-	includedirs {
-		"oishii",
-		"./",
-		"ThirdParty",
-		"LibRiiEditor"
-	}
-
-	setupStaticLib()
-	setupCppC()
-
-
-
-	setupSystem()
-	setupPreprocessor()
-
-project "TestEditor"
-	location "TestEditor"
-	setupMainApp()
-
 project "RiiStudio"
 	location "RiiStudio"
 	setupMainApp()
@@ -222,6 +201,38 @@ project "LibCube"
 	setupCppC()
 
 
+	setupSystem()
+	setupPreprocessor()
+
+project "LibJ"
+	location "LibJ"
+	includedirs
+	{
+		"LibJ",
+		"oishii",
+		"./"
+	}
+
+	setupStaticLib()
+	setupCppC()
+
+
+	setupSystem()
+	setupPreprocessor()
+
+project "LibCore"
+	location "LibCore"
+	includedirs {
+		"oishii",
+		"./",
+		"ThirdParty",
+		"LibCore",
+		PYTHON_ROOT .. "./include",
+		"ThirdParty/pybind11/include"
+	}
+
+	setupStaticLib()
+	setupCppC()
 	setupSystem()
 	setupPreprocessor()
 

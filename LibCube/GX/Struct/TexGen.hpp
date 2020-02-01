@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Enum/Comparison.hpp"
-#include <LibRiiEditor/common.hpp>
+#include <LibCore/common.h>
 
 namespace libcube { namespace gx {
 

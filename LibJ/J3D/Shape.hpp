@@ -1,0 +1,101 @@
+#pragma once
+
+#include <LibCore/common.h>
+#include <LibCube/Util/BoundBox.hpp>
+#include <vector>
+#include <LibCube/GX/VertexTypes.hpp>
+#include <LibCube/Export/IndexedPolygon.hpp>
+
+
+namespace libcube::jsystem {
+
+struct MatrixPrimitive
+{
+	s16 mCurrentMatrix = -1; // Part of the polygon in G3D
+
+	std::vector<s16> mDrawMatrixIndices;
+
+	std::vector<IndexedPrimitive> mPrimitives;
+
+	MatrixPrimitive() = default;
+	MatrixPrimitive(s16 current_matrix, std::vector<s16> drawMatrixIndices)
+		: mCurrentMatrix(current_matrix), mDrawMatrixIndices(drawMatrixIndices)
+	{}
+};
+struct ShapeData
+{
+	u32 id;
+	enum class Mode
+	{
+		Normal,
+		Billboard_XY,
+		Billboard_Y,
+		Skinned,
+
+		Max
+	};
+	Mode mode;
+	float bsphere;
+	AABB bbox;
+
+	
+
+	std::vector<MatrixPrimitive> mMatrixPrimitives;
+	VertexDescriptor mVertexDescriptor;
+};
+struct Shape final : public ShapeData, public IndexedPolygon
+{
+	u64 getNumMatrixPrimitives() const override
+	{
+		return mMatrixPrimitives.size();
+	}
+	s32 addMatrixPrimitive() override
+	{
+		mMatrixPrimitives.emplace_back();
+		return (s32)mMatrixPrimitives.size() - 1;
+	}
+	s16 getMatrixPrimitiveCurrentMatrix(u64 idx) const override
+	{
+		assert(idx < mMatrixPrimitives.size());
+		if (idx < mMatrixPrimitives.size())
+			return mMatrixPrimitives[idx].mCurrentMatrix;
+		else
+			return -1;
+	}
+	void setMatrixPrimitiveCurrentMatrix(u64 idx, s16 mtx) override
+	{
+		assert(idx < mMatrixPrimitives.size());
+		if (idx < mMatrixPrimitives.size())
+			mMatrixPrimitives[idx].mCurrentMatrix = mtx;
+	}
+	// Matrix list access
+	u64 getMatrixPrimitiveNumIndexedPrimitive(u64 idx) const override
+	{
+		assert(idx < mMatrixPrimitives.size());
+		if (idx < mMatrixPrimitives.size())
+			return mMatrixPrimitives[idx].mPrimitives.size();
+		return 0;
+	}
+	const IndexedPrimitive& getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) const override
+	{
+		assert(idx < mMatrixPrimitives.size());
+		assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());
+		return mMatrixPrimitives[idx].mPrimitives[prim_idx];
+	}
+	IndexedPrimitive& getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) override
+	{
+		assert(idx < mMatrixPrimitives.size());
+		assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());
+		return mMatrixPrimitives[idx].mPrimitives[prim_idx];
+	}
+	virtual VertexDescriptor& getVcd() override
+	{
+		return mVertexDescriptor;
+	}
+	virtual const VertexDescriptor& getVcd() const override
+	{
+		return mVertexDescriptor;
+	}
+};
+
+}

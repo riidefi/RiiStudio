@@ -1,10 +1,10 @@
-#include "core/RiiCore.hpp"
+#include <RiiStudio/root/RootWindow.hpp>
 
 int main(int argc, char* const* argv)
 {
-	auto core = std::make_unique<RiiCore>();
+	auto core = std::make_unique<RootWindow>();
 
-	core->frameLoop();
+	core->loop();
 
 	return 0;
 }

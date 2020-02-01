@@ -1,6 +1,6 @@
 #pragma once
 
-#include <LibRiiEditor/common.hpp>
+#include <LibCore/common.h>
 #include <ThirdParty/glm/vec2.hpp>
 
 namespace libcube { namespace gx {

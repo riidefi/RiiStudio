@@ -1,8 +1,11 @@
 #pragma once
 
-#include <LibRiiEditor/pluginapi/Plugin.hpp>
+#include <LibCore/api/Node.hpp>
 #include <ThirdParty/glm/vec2.hpp>
 #include <ThirdParty/glm/vec3.hpp>
+
+#include <array>
+#include <LibCore/common.h>
 
 namespace lib3d {
 enum class Coverage
@@ -20,12 +23,12 @@ struct TPropertySupport
 
 	Coverage supports(Feature f) const noexcept
 	{
-		assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
+		assert(static_cast<u64>(f) < static_cast<u64>(Feature::Max));
 
-		if (static_cast<u32>(f) >= static_cast<u32>(Feature::Max))
+		if (static_cast<u64>(f) >= static_cast<u64>(Feature::Max))
 			return Coverage::Unsupported;
 
-		return registration[static_cast<u32>(f)];
+		return registration[static_cast<u64>(f)];
 	}
 	bool canRead(Feature f) const noexcept
 	{
@@ -37,26 +40,26 @@ struct TPropertySupport
 	}
 	void setSupport(Feature f, Coverage s)
 	{
-		assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
+		assert(static_cast<u64>(f) < static_cast<u64>(Feature::Max));
 
-		if (static_cast<u32>(f) < static_cast<u32>(Feature::Max))
-			registration[static_cast<u32>(f)] = s;
+		if (static_cast<u64>(f) < static_cast<u64>(Feature::Max))
+			registration[static_cast<u64>(f)] = s;
 	}
 
 	Coverage& operator[](Feature f) noexcept
 	{
-		assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
+		assert(static_cast<u64>(f) < static_cast<u64>(Feature::Max));
 
-		return registration[static_cast<u32>(f)];
+		return registration[static_cast<u64>(f)];
 	}
 	Coverage operator[](Feature f) const noexcept
 	{
-		assert(static_cast<u32>(f) < static_cast<u32>(Feature::Max));
+		assert(static_cast<u64>(f) < static_cast<u64>(Feature::Max));
 
-		return registration[static_cast<u32>(f)];
+		return registration[static_cast<u64>(f)];
 	}
 private:
-	std::array<Coverage, static_cast<u32>(Feature::Max)> registration;
+	std::array<Coverage, static_cast<u64>(Feature::Max)> registration;
 };
 
 enum class I3DFeature
@@ -101,12 +104,12 @@ struct SRT3
 };
 
 
-struct Bone
+struct Bone : public px::IDestructable
 {
-	virtual ~Bone() = default;
+	PX_TYPE_INFO("3D Bone", "3d_bone", "3D::Bone");
 	
 	virtual std::string getName() { return "Untitled Bone"; }
-	virtual int getId() { return -1; }
+	virtual s64 getId() { return -1; }
 	virtual void copy(lib3d::Bone& to) {}
 
 	virtual Coverage supportsBoneFeature(BoneFeatures f) { return Coverage::Unsupported; }
@@ -114,13 +117,13 @@ struct Bone
 	virtual SRT3 getSRT() const = 0;
 	virtual void setSRT(const SRT3& srt) = 0;
 
-	virtual int getParent() const = 0;
-	virtual void setParent(int id) = 0;
-	virtual u32 getNumChildren() const = 0;
-	virtual int getChild(u32 idx) const = 0;
-	virtual int addChild(int child) = 0;
-	virtual int setChild(u32 idx, int id) = 0;
-	inline int removeChild(u32 idx)
+	virtual s64 getParent() const = 0;
+	virtual void setParent(s64 id) = 0;
+	virtual u64 getNumChildren() const = 0;
+	virtual s64 getChild(u64 idx) const = 0;
+	virtual s64 addChild(s64 child) = 0;
+	virtual s64 setChild(u64 idx, s64 id) = 0;
+	inline s64 removeChild(u64 idx)
 	{
 		return setChild(idx, -1);
 	}
@@ -136,24 +139,26 @@ struct Bone
 
 
 };
-struct Material
+struct Material : public px::IDestructable
 {
-	virtual ~Material() = default;
+	PX_TYPE_INFO("3D Material", "3d_material", "3D::Material");
+
 
 	virtual std::string getName() const { return "Untitled Material"; }
-	virtual int getId() const { return -1; }
+	virtual s64 getId() const { return -1; }
 };
 
-struct Polygon
+struct Polygon : public px::IDestructable
 {
+	static constexpr const char TypeName[] = "3dpolygon";
 	virtual ~Polygon() = default;
 
 	// Bounding volumes...
 
 	// In wii/gc, absolute indices across mprims
-	virtual u32 getNumPrimitives() const = 0;
+	virtual u64 getNumPrimitives() const = 0;
 	// Assume triangles
-	virtual int addPrimitive() = 0;
+	virtual s64 addPrimitive() = 0;
 
 	enum class SimpleAttrib
 	{
@@ -175,8 +180,8 @@ struct Polygon
 	virtual bool hasAttrib(SimpleAttrib attrib) const = 0;
 	virtual void setAttrib(SimpleAttrib attrib, bool v) = 0;
 
-	virtual u32 getPrimitiveVertexCount(u32 index) const = 0;
-	virtual void resizePrimitiveVertexArray(u32 index, u32 size) = 0;
+	virtual u64 getPrimitiveVertexCount(u64 index) const = 0;
+	virtual void resizePrimitiveVertexArray(u64 index, u64 size) = 0;
 
 	struct SimpleVertex
 	{
@@ -184,29 +189,15 @@ struct Polygon
 		u8 evpIdx; // If read from a GC model, not local to mprim
 		glm::vec3 position;
 		glm::vec3 normal;
-		std::array<u32, 2> colors;
+		std::array<u64, 2> colors;
 		std::array<glm::vec2, 8> uvs;
 	};
 
-	virtual SimpleVertex getPrimitiveVertex(u32 prim_idx, u32 vtx_idx) = 0;
-	virtual void setPrimitiveVertex(u32 prim_idx, u32 vtx_idx, const SimpleVertex& vtx) = 0;
+	virtual SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx) = 0;
+	virtual void setPrimitiveVertex(u64 prim_idx, u64 vtx_idx, const SimpleVertex& vtx) = 0;
 
 	// Call after any change
 	virtual void update() {}
-};
-
-// For now, model + texture
-struct I3DModel
-{
-	virtual ~I3DModel() = default;
-
-	virtual u32 getNumBones() const = 0;
-	virtual Bone& getBone(u32 idx) = 0;
-	virtual int addBone() = 0;
-
-	virtual u32 getNumMaterials() const = 0;
-	virtual Material& getMaterial(u32 idx) = 0;
-	virtual int addMaterial() = 0;
 };
 
 } // namespace lib3d

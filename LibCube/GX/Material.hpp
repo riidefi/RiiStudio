@@ -183,7 +183,7 @@ struct Color
 			static_cast<float>(a) / static_cast<float>(0xff)
 		};
 	}
-	inline Color() {}
+	inline Color() : r(0), g(0), b(0), a(0) {}
 	inline Color(u32 hex)
 	{
 		r = (hex & 0xff000000) << 24;
