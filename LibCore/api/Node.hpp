@@ -21,12 +21,19 @@ Now:
     * Old spawners replaced by generic factories.
 */
 
+#define PX_TYPE_INFO_EX(gui, cli, internal, icon_pl, icon_sg) \
+    constexpr static px::RichName TypeInfo = { gui, internal, cli, {icon_pl, icon_sg } }
 #define PX_TYPE_INFO(gui, cli, internal) \
     constexpr static px::RichName TypeInfo = { gui, internal, cli }
 
+// More like IObject
 struct IDestructable
 {
     virtual ~IDestructable() = default;
+
+	virtual std::string getName() const { return "Untitled"; }
+
+	PX_TYPE_INFO_EX("Object", "obj", "IDestructable", "(?)", "(?)");
 };
 
 //! Our solution to cross-language interop.
@@ -78,6 +85,7 @@ struct PackageInstaller
     // DLLs implement their own global instance
     static PackageInstaller* spInstance;
 
+	virtual void registerObject(const RichName& details) = 0;
     virtual void registerFactory(std::unique_ptr<IFactory> factory) = 0;
     virtual void registerSerializer(std::unique_ptr<IBinarySerializer> ser) = 0;
     virtual void registerMirror(const MirrorEntry& entry) = 0;

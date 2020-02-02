@@ -63,9 +63,9 @@ struct JointData
 
 struct Joint final : public IBoneDelegate, public JointData
 {
-	static constexpr const char TypeName[] = "j3djoint";
+	PX_TYPE_INFO_EX("J3D Joint", "j3d_joint", "J::Joint", ICON_FA_BONE, ICON_FA_BONE);
 
-	std::string getName() override { return name; }
+	std::string getName() const override { return name; }
 	s64 getId() override { return id; }
 	void copy(lib3d::Bone& to) override
 	{

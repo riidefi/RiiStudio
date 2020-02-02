@@ -2,10 +2,12 @@
 
 #include <LibCore/windows/Window.hpp>
 #include <LibCore/windows/WindowManager.hpp>
+#include <LibCore/windows/SelectionManager.hpp>
 
 #include <ThirdParty/imgui/imgui.h>
 #include <string>
 #include <imgui/imgui_internal.h>
+
 class IStudioWindow : public WindowManager
 {
 protected:

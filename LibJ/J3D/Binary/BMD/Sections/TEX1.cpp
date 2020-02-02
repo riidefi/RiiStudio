@@ -95,8 +95,8 @@ void readTEX1(BMDOutputContext& ctx)
 				}
 			}
 		}
-
-		auto& data = ctx.mdl.mTextures.emplace_back();
+		ctx.col.getTextures().push(std::make_unique<Texture>());
+		auto& data = ctx.col.getTexture(ctx.col.getTextures().size());
 		data.mName = nameTable[i];
 		data.mFormat = tex.mFormat;
 		data.mWidth = tex.mWidth;
@@ -119,8 +119,8 @@ void readTEX1(BMDOutputContext& ctx)
 
 struct TEX1Node final : public oishii::v2::Node
 {
-	TEX1Node(const J3DModel& model)
-		: mModel(model)
+	TEX1Node(const J3DModel& model, const J3DCollection& col)
+		: mModel(model), mCol(col)
 	{
 		mId = "TEX1";
 		mLinkingRestriction.alignment = 32;
@@ -128,8 +128,8 @@ struct TEX1Node final : public oishii::v2::Node
 
 	struct TexNames : public oishii::v2::Node
 	{
-		TexNames(const J3DModel& mdl)
-			: mMdl(mdl)
+		TexNames(const J3DModel& mdl, const J3DCollection& col)
+			: mMdl(mdl), mCol(col)
 		{
 			mId = "TexNames";
 			getLinkingRestriction().setLeaf();
@@ -140,14 +140,15 @@ struct TEX1Node final : public oishii::v2::Node
 		{
 			std::vector<std::string> names;
 			
-			for (const auto& mat : mMdl.mTextures)
-				names.push_back(mat.mName);
+			for (int i = 0; i < mCol.getTextures().size(); ++i)
+				names.push_back(mCol.getTextures()[i].getName());
 			writeNameTable(writer, names);
 
 			return {};
 		}
 
 		const J3DModel& mMdl;
+		const J3DCollection& mCol;
 	};
 	Result write(oishii::v2::Writer& writer) const noexcept override
 	{
@@ -169,18 +170,19 @@ struct TEX1Node final : public oishii::v2::Node
 
 	Result gatherChildren(NodeDelegate& d) const noexcept override
 	{
-		d.addNode(std::make_unique<TexNames>(mModel));
+		d.addNode(std::make_unique<TexNames>(mModel, mCol));
 
 		return {};
 	}
 
 private:
 	const J3DModel& mModel;
+	const J3DCollection& mCol;
 };
 
 std::unique_ptr<oishii::v2::Node> makeTEX1Node(BMDExportContext& ctx)
 {
-	return std::make_unique<TEX1Node>(ctx.mdl);
+	return std::make_unique<TEX1Node>(ctx.mdl, ctx.col);
 }
 
 

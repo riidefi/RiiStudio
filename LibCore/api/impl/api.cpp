@@ -25,6 +25,11 @@ struct CorePackageInstaller : px::PackageInstaller
         mSerializers.push_back(std::move(ser));
     }
 
+	void registerObject(const px::RichName& details) override
+	{
+		px::ReflectionMesh::getInstance()->getDataMesh().declare(std::string(details.namespacedId), details);
+	}
+
 	px::Dynamic spawnState(const std::string& type)
 	{
 		for (const auto& it : mFactories)
@@ -35,7 +40,7 @@ struct CorePackageInstaller : px::PackageInstaller
 
 		assert(!"Failed to spawn state..");
 		throw "Cannot spawn";
-		return std::move(px::Dynamic(std::move(std::make_unique<px::IDestructable>()), 0, ""));
+		return px::Dynamic(std::move(std::make_unique<px::IDestructable>()), 0, "");
 	}
 
 	std::vector<std::unique_ptr<px::IFactory>> mFactories;
@@ -47,6 +52,10 @@ CorePackageInstaller* spCorePackageInstaller;
 px::Dynamic SpawnState(const std::string& type)
 {
 	return std::move(spCorePackageInstaller->spawnState(type));
+}
+px::RichName GetRich(const std::string& type)
+{
+	return px::ReflectionMesh::getInstance()->getDataMesh().get(type)->mName;
 }
 std::pair<std::string, std::unique_ptr<px::IBinarySerializer>> SpawnImporter(const std::string& fileName, oishii::BinaryReader& reader)
 {
@@ -88,9 +97,10 @@ struct DataMesh : public px::DataMesh
 {
     px::InternalClassMirror* get(const std::string& id) override
     {
-        if (mClasses.find(id) == mClasses.end())
+		const auto found = mClasses.find(id);
+        if (found == mClasses.end())
             return nullptr;
-        return &mClasses[id];
+        return &found->second;
     }
     void declare(const std::string& id, px::RichName name) override
     {
@@ -98,6 +108,7 @@ struct DataMesh : public px::DataMesh
     }
     void enqueueHierarchy(px::MirrorEntry entry) override
     {
+		assert(entry.derived != entry.base);
         mToInsert.push(entry);
     }
     void compute() override
@@ -118,6 +129,8 @@ struct DataMesh : public px::DataMesh
             }
             // TODO
             mClasses[std::string(cmd.derived)].derived = cmd.derived;
+
+			assert(cmd.derived != cmd.base);
 
             mClasses[std::string(cmd.derived)].mParents.push_back({ std::string(cmd.base), cmd.translation });
             mToInsert.pop();
@@ -146,6 +159,7 @@ struct ReflectionMesh : public px::ReflectionMesh
 		for (int i = 0; i < hnd.getNumParents(); ++i)
 		{
 			auto parent = hnd.getParent(i);
+			assert(hnd.getName() != parent.getName());
 			if (parent.getName() == key)
 				out.push_back(reinterpret_cast<char*>(in) + hnd.getTranslationForParent(i));
 			else

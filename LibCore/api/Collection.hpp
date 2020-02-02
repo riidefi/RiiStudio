@@ -12,10 +12,12 @@
 #include "Node.hpp"
 #include "RichName.hpp"
 
+#include <LibCore/windows/SelectionManager.hpp>
 
 namespace px {
 
-class CollectionHost : public IDestructable
+class CollectionHost : public IDestructable,
+	public SelectionManager // Perhaps an odd choice of placement
 {
 protected:
 	struct Collection
@@ -26,13 +28,14 @@ protected:
 public:
 	PX_TYPE_INFO("Collection Host", "collection_host", "CollectionHost");
 
-	CollectionHost(std::vector<std::string> folders)
+	CollectionHost(const std::vector<std::string>& folders)
 	{
 		for (const auto& folder : folders)
 		{
 			mEntries.emplace(folder, Collection{ folder, {} });
 			mLut.emplace_back(folder);
 		}
+		prepareKeys(folders);
 	}
 
 	class CollectionHandle
@@ -41,6 +44,13 @@ public:
 		std::string getType() const { return mCollection.mNodeType; }
 		u64 size() const { return mCollection.mNodes.size(); }
 		Dynamic& atDynamic(u64 idx) { return mCollection.mNodes[idx]; }
+		std::string nameAt(u64 idx) const
+		{
+			if (idx >= mCollection.mNodes.size())
+				return "Out of bounds";
+
+			return mCollection.mNodes[idx].mOwner->getName();
+		}
 		void* atAs(u64 idx, const std::string& type)
 		{
 			if (idx >= mCollection.mNodes.size())
@@ -100,6 +110,19 @@ public:
 	private:
 		Collection& mCollection;
 	};
+
+	template<typename T>
+	struct ConcreteCollectionHandle : public CollectionHandle
+	{
+		ConcreteCollectionHandle(CollectionHandle&& c)
+			: CollectionHandle(c.getCollection())
+		{
+		}
+
+		T& operator[] (std::size_t idx) { return *at<T>(idx); }
+		const T& operator[] (std::size_t idx) const { return *at<T>(idx); }
+	};
+
 	std::optional<CollectionHandle> getFolder(const std::string& type)
 	{
 		auto found = mEntries.find(type);

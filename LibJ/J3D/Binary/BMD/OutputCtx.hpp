@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <LibJ/J3D/Model.hpp>
+#include <LibJ/J3D/Collection.hpp>
 #include <oishii/v2/writer/binary_writer.hxx>
 #include <oishii/v2/writer/node.hxx>
 #include <LibCore/common.h>
@@ -13,6 +14,8 @@ namespace libcube::jsystem {
 struct BMDOutputContext
 {
     J3DModel& mdl;
+	J3DCollection& col;
+	
     oishii::BinaryReader& reader;
 
     // Compression ID LUT (remap table)
@@ -158,7 +161,7 @@ struct LinkNode final : public T, public oishii::v2::Node
 struct BMDExportContext
 {
 	J3DModel& mdl;
-
+	J3DCollection& col;
 	/*
 	We need to associate Samplers and TexData
 	*/

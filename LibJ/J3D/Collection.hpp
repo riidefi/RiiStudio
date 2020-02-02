@@ -1,9 +1,11 @@
 #pragma once
 
 #include "Model.hpp"
+#include "Texture.hpp"
 
 #include <LibCore/api/Node.hpp>
 #include <LibCore/api/Collection.hpp>
+
 
 namespace libcube { namespace jsystem {
 
@@ -19,7 +21,8 @@ public:
 	
 	J3DCollection()
 		: px::CollectionHost({
-			std::string(J3DModel::TypeInfo.namespacedId)
+			std::string(J3DModel::TypeInfo.namespacedId),
+			std::string(Texture::TypeInfo.namespacedId)
 		})
 	{
 
@@ -29,6 +32,14 @@ public:
 	{
 		return getFolder<J3DModel>().value().at<J3DModel>(0);
 	}
+	Texture& getTexture(u32 idx)
+	{
+		return *getFolder<Texture>().value().at<Texture>(idx);
+	}
+
+	px::CollectionHost::ConcreteCollectionHandle<Texture> getTextures() { return px::CollectionHost::ConcreteCollectionHandle<Texture>(getFolder<Texture>().value()); }
+	px::CollectionHost::ConcreteCollectionHandle<Texture> getTextures() const { return px::CollectionHost::ConcreteCollectionHandle<Texture>(getFolder<Texture>().value()); }
+
 
 	bool bdl = false;
 };

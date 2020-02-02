@@ -16,9 +16,17 @@ void Install()
     px::PackageInstaller& installer = *px::PackageInstaller::spInstance;
 
     installer.registerParent<J3DCollection, px::CollectionHost>();
-			
+
+	installer.registerObject(J3DCollection::TypeInfo);
+	installer.registerObject(J3DModel::TypeInfo);
+	installer.registerObject(Material::TypeInfo);
+	installer.registerObject(Joint::TypeInfo);
+	installer.registerObject(Texture::TypeInfo);
+
+
     installer.registerParent<Joint, IBoneDelegate>();
     installer.registerParent<Material, IMaterialDelegate>();
+	installer.registerParent<Texture, libcube::Texture>();
 
     // TODO: Move to proper system
     installer.registerParent<IBoneDelegate, lib3d::Bone>();

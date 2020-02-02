@@ -28,7 +28,7 @@ struct J3DModel : public px::CollectionHost
 {
 	~J3DModel() = default;
 
-	PX_TYPE_INFO("J3D Model", "j3d_model", "J::J3DModel");
+	PX_TYPE_INFO_EX("J3D Model", "j3d_model", "J::J3DModel", ICON_FA_CUBES, ICON_FA_CUBE);
 
 	template<typename T>
 	using ID = int;
@@ -62,29 +62,20 @@ struct J3DModel : public px::CollectionHost
 		Bufs() {}
 	} mBufs = Bufs();
 
-	J3DModel() : px::CollectionHost({ std::string(Material::TypeInfo.namespacedId), std::string(Joint::TypeInfo.namespacedId) }) {}
+	J3DModel() : px::CollectionHost({
+		std::string(Material::TypeInfo.namespacedId),
+		std::string(Joint::TypeInfo.namespacedId) }) {}
 
-	template<typename T>
-	struct ConcreteCollectionHandle : public CollectionHandle
-	{
-		ConcreteCollectionHandle(CollectionHandle&& c)
-			: CollectionHandle(c.getCollection())
-		{
-		}
+	
 
-		T& operator[] (std::size_t idx) { return *at<T>(idx); }
-		const T& operator[] (std::size_t idx) const { return *at<T>(idx); }
-	};
-
-	ConcreteCollectionHandle<Material> getMaterials() { return ConcreteCollectionHandle<Material>(getFolder<Material>().value()); }
-	ConcreteCollectionHandle<Material> getMaterials() const { return ConcreteCollectionHandle<Material>(getFolder<Material>().value()); }
-	ConcreteCollectionHandle<Joint> getBones() { return ConcreteCollectionHandle<Joint>(getFolder<Joint>().value()); }
-	ConcreteCollectionHandle<Joint> getBones() const { return ConcreteCollectionHandle<Joint>(getFolder<Joint>().value()); }
+	px::CollectionHost::ConcreteCollectionHandle<Material> getMaterials() { return px::CollectionHost::ConcreteCollectionHandle<Material>(getFolder<Material>().value()); }
+	px::CollectionHost::ConcreteCollectionHandle<Material> getMaterials() const { return px::CollectionHost::ConcreteCollectionHandle<Material>(getFolder<Material>().value()); }
+	px::CollectionHost::ConcreteCollectionHandle<Joint> getBones() { return px::CollectionHost::ConcreteCollectionHandle<Joint>(getFolder<Joint>().value()); }
+	px::CollectionHost::ConcreteCollectionHandle<Joint> getBones() const { return px::CollectionHost::ConcreteCollectionHandle<Joint>(getFolder<Joint>().value()); }
 
 
 	std::vector<DrawMatrix> mDrawMatrices;
 	std::vector<Shape> mShapes;
-	std::vector<Texture> mTextures;
 };
 
 } // namespace libcube::jsystem

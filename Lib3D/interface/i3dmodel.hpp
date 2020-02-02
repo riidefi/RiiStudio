@@ -7,6 +7,8 @@
 #include <array>
 #include <LibCore/common.h>
 
+#include <ThirdParty/fa5/IconsFontAwesome5.h>
+
 namespace lib3d {
 enum class Coverage
 {
@@ -106,9 +108,7 @@ struct SRT3
 
 struct Bone : public px::IDestructable
 {
-	PX_TYPE_INFO("3D Bone", "3d_bone", "3D::Bone");
-	
-	virtual std::string getName() { return "Untitled Bone"; }
+	PX_TYPE_INFO_EX("3D Bone", "3d_bone", "3D::Bone", ICON_FA_BONE, ICON_FA_BONE);
 	virtual s64 getId() { return -1; }
 	virtual void copy(lib3d::Bone& to) {}
 
@@ -146,6 +146,24 @@ struct Material : public px::IDestructable
 
 	virtual std::string getName() const { return "Untitled Material"; }
 	virtual s64 getId() const { return -1; }
+
+};
+
+struct Texture : public px::IDestructable
+{
+	PX_TYPE_INFO("Texture", "tex", "3D::Texture");
+
+	virtual std::string getName() const { return "Untitled Texture"; }
+	virtual s64 getId() const { return -1; }
+	
+	virtual u32 getDecodedSize(bool mip) const = 0;
+	virtual void decode(std::vector<u8>& out, bool mip) const = 0;
+
+	
+	virtual u16 getWidth() const = 0;
+	virtual void setWidth(u16 width) = 0;
+	virtual u16 getHeight() const = 0;
+	virtual void setHeight(u16 height) = 0;
 };
 
 struct Polygon : public px::IDestructable

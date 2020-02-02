@@ -1,41 +1,58 @@
 #pragma once
 
-#include <vector>
 #include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
 
-// Held by application
-struct SelectionManager
+class SelectionManager
 {
-	enum Type
+public:
+	void prepareKeys(const std::vector<std::string>& entries)
 	{
-		None = 0, // Nothing is selected
-		Effect = (1 << 0), // Particle Effect System
-		Texture = (1 << 1), // Texture Image
-		Material = (1 << 2) // Of a model, material vector
-	};
-	struct Selection
-	{
-		Type type;
-		void* object;
-
-		std::vector<int> mIndices;
-
-		Selection(Type t, void* o) : type(t), object(o) {}
-	};
-	std::vector<Selection> mSelections;
-
-	int getIdxOfSelect(Type type, void* obj)
-	{
-		return static_cast<int>(std::find_if(mSelections.begin(), mSelections.end(),
-			[type, obj](const Selection& s) { return s.type == type && s.object == obj; }) - mSelections.begin());
+		for (const auto& e : entries)
+			mMap[e] = {};
 	}
-
-	bool isSelected(Type type, void* obj)
+	SelectionManager(const std::vector<std::string>& entries = {})
 	{
-		for (const auto& sel : mSelections)
-			if (sel.object == obj && sel.type == type)
-				return true;
-	
+		prepareKeys(entries);
+	}
+	bool isSelected(const std::string& key, std::size_t index) const
+	{
+		const auto& vec = mMap.at(key);
+		return std::find(vec.begin(), vec.end(), index) != vec.end();
+	}
+	bool select(const std::string& key, std::size_t index)
+	{
+		if (isSelected(key, index)) return true;
+
+		mMap[key].push_back(index);
 		return false;
 	}
+	bool deselect(const std::string& key, std::size_t index)
+	{
+		auto it = std::find(mMap[key].begin(), mMap[key].end(), index);
+
+		if (it == mMap[key].end()) return false;
+		mMap[key].erase(it);
+		return true;
+	}
+	std::size_t clearSelection(const std::string& key)
+	{
+		std::size_t before = mMap.at(key).size();
+		mMap.at(key).clear();
+		return before;
+	}
+
+private:
+
+	std::size_t getIndexOfSelect(const std::string& key, std::size_t index) const
+	{
+		const auto& vec = mMap.at(key);
+		return std::find(vec.begin(), vec.end(),
+			index) - vec.begin();
+	}
+
+	// New selection is per-folder of collection
+	std::map<std::string, std::vector<std::size_t>> mMap;
 };

@@ -9,6 +9,8 @@
 
 #include <LibCube/Export/Material.hpp>
 
+#include <ThirdParty/fa5/IconsFontAwesome5.h>
+
 namespace libcube::jsystem {
 
 template<typename T>
@@ -238,8 +240,7 @@ struct MaterialData
 
 struct Material final : public MaterialData, public IMaterialDelegate
 {
-
-	static constexpr const char TypeName[] = "j3dmat";
+	PX_TYPE_INFO_EX("J3D Material", "j3d_material", "J::Material", ICON_FA_PAINT_BRUSH, ICON_FA_PAINT_BRUSH);
 
 	~Material() override = default;
 	Material()
