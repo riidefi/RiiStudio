@@ -10,10 +10,10 @@ struct Texture : public lib3d::Texture
 {
 	PX_TYPE_INFO("GameCube Texture", "gc_tex", "GC::Texture");
 	
-	inline u32 getDecodedSize(bool mip) const override
+	inline u32 getEncodedSize(bool mip) const override
     {
-        return GetTexBufferSize(getWidth(), getHeight(), getTextureFormat(),
-            mip && getMipmapCount() > 1, mip ? getMipmapCount() + 1 : 0);
+		return GetTexBufferSize(getWidth(), getHeight(), getTextureFormat(),
+			mip && getMipmapCount() > 1, mip ? getMipmapCount() + 1 : 0);
     }
 	inline void decode(std::vector<u8>& out, bool mip) const override
     {

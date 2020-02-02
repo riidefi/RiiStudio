@@ -33,7 +33,10 @@ struct TextureData
 struct Texture : public TextureData, public libcube::Texture
 {
 	PX_TYPE_INFO_EX("J3D Texture", "j3d_tex", "J::Texture", ICON_FA_IMAGES, ICON_FA_IMAGE);
-	
+
+
+	std::string getName() const override { return mName; }
+
     u32 getTextureFormat() const override
 	{
 		return mFormat;

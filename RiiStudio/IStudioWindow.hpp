@@ -25,7 +25,10 @@ public:
 		mWindowClass.DockingAllowUnclassed = false;
 		mWindowClass.ClassId = mId;
 	}
-    
+    void setWindowFlag(u32 flag)
+	{
+		mFlags |= flag;
+	}
 private:
 	std::string idIfy(std::string in)
 	{
@@ -36,7 +39,7 @@ private:
         mParent = reinterpret_cast<IStudioWindow*>(pWin);
 		
 		ImGui::SetNextWindowClass(mParent->getWindowClass());
-		if (ImGui::Begin(idIfy(mName).c_str(), &bOpen))
+		if (ImGui::Begin(idIfy(mName).c_str(), &bOpen, mFlags))
 		{
 			ImGui::PushID(mId);
 
@@ -72,5 +75,6 @@ private:
 	std::string mName;
 	ImGuiID mId;
 	bool mbDrawDockspace = true;
+	u32 mFlags = 0;
     // TODO: Selection
 };

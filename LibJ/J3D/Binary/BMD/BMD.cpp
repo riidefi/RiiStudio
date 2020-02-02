@@ -143,6 +143,7 @@ void BmdIo::readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 	}
 
 	// Read TEX1
+	readTEX1(ctx);
 
 	// Read materials
 	readMAT3(ctx);

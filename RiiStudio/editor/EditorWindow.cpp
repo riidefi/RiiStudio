@@ -5,6 +5,8 @@
 
 #include <regex>
 #include <ThirdParty/fa5/IconsFontAwesome5.h>
+#include <RiiStudio/editor/kit/Image.hpp>
+#include <LibCore/windows/SelectionManager.hpp>
 
 struct GenericCollectionOutliner : public IStudioWindow
 {
@@ -129,7 +131,7 @@ struct GenericCollectionOutliner : public IStudioWindow
 
 			// Whether or not this node is already selected.
 			// Selections from other windows will carry over.
-			bool curNodeSelected = host.isSelected(key, i);
+			bool curNodeSelected = sampler.isSelected(i);
 
 			bool bSelected = ImGui::Selectable(std::to_string(i).c_str(), curNodeSelected);
 			ImGui::SameLine();
@@ -178,7 +180,7 @@ struct GenericCollectionOutliner : public IStudioWindow
 			int lastSelectedFilteredIdx = -1;
 			for (int i = 0; i < filtered.size(); ++i)
 			{
-				if (filtered[i] == mLastSelectedIdx)
+				if (filtered[i] == sampler.getActiveSelection())
 					lastSelectedFilteredIdx = i;
 			}
 			if (lastSelectedFilteredIdx == -1)
@@ -196,7 +198,7 @@ struct GenericCollectionOutliner : public IStudioWindow
 				const int b = std::max(justSelectedFilteredIdx, lastSelectedFilteredIdx);
 
 				for (int i = a; i <= b; ++i)
-					host.select(key, filtered[i]);
+					sampler.select(filtered[i]);
 			}
 		}
 
@@ -205,19 +207,19 @@ struct GenericCollectionOutliner : public IStudioWindow
 		{
 			// If already selected, no action necessary - just for id update.
 			if (!justSelectedAlreadySelected)
-				host.select(key, justSelectedId);
+				sampler.select(justSelectedId);
 			else if (thereWasAClick)
-				host.deselect(key, justSelectedId);
+				sampler.deselect(justSelectedId);
 		}
-		else if (!ctrlPressed && !shiftPressed && (thereWasAClick || justSelectedId != mLastSelectedIdx))
+		else if (!ctrlPressed && !shiftPressed && (thereWasAClick || justSelectedId != sampler.getActiveSelection()))
 		{
 			// Replace selection
-			host.clearSelection(key);
-			host.select(key, justSelectedId);
+			sampler.clearSelection();
+			sampler.select(justSelectedId);
 		}
 
 		// Set our last selection index, for shift clicks.
-		mLastSelectedIdx = justSelectedId;
+		sampler.setActiveSelection(justSelectedId);
 	}
 
 	void drawRecursive(px::CollectionHost& host) noexcept
@@ -237,15 +239,44 @@ struct GenericCollectionOutliner : public IStudioWindow
 private:
 	px::CollectionHost& mHost;
 	TFilter mFilter;
-
-
-	int mLastSelectedIdx; // TODO -- leaks across containers
 };
 
 struct WIdek : public IStudioWindow
 {
 	WIdek() : IStudioWindow("Idek", false)
 	{}
+};
+
+struct TexImgPreview : public IStudioWindow
+{
+	TexImgPreview(const px::CollectionHost& host)
+		: IStudioWindow("Texture Preview"), mHost(host)
+	{
+		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize);
+	}
+	void draw() noexcept override
+	{
+		auto osamp = mHost.getFolder<lib3d::Texture>();
+
+		assert(osamp.has_value());
+		auto samp = osamp.value();
+
+		if (lastTexId != samp.getActiveSelection())
+		{
+			const auto* at = samp.at<lib3d::Texture>(samp.getActiveSelection());
+			if (at)
+				setFromImage(*at);
+		}
+		mImg.draw();
+	}
+	void setFromImage(const lib3d::Texture& tex)
+	{
+		mImg.setFromImage(tex);
+	}
+
+	const px::CollectionHost& mHost;
+	int lastTexId = -1;
+	ImagePreview mImg;
 };
 
 EditorWindow::EditorWindow(px::Dynamic state, const std::string& path)
@@ -287,6 +318,7 @@ EditorWindow::EditorWindow(px::Dynamic state, const std::string& path)
 
 		attachWindow(std::make_unique<GenericCollectionOutliner>(host));
 		attachWindow(std::make_unique<WIdek>());
+		attachWindow(std::make_unique<TexImgPreview>(host));
 	}
 }
 void EditorWindow::draw() noexcept

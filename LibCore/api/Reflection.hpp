@@ -107,6 +107,17 @@ public:
 				return {};
 			return ReflectionInfoHandle(mMesh, mMirror->mParents[index].parent);
 		}
+		int getNumChildren() const
+		{
+			if (!valid()) return 0;
+			return static_cast<int>(mMirror->mChildren.size());
+		}
+		ReflectionInfoHandle getChild(int index) const
+		{
+			if (!valid() || index > mMirror->mChildren.size())
+				return {};
+			return ReflectionInfoHandle(mMesh, mMirror->mChildren[index]);
+		}
 		int getTranslationForParent(int index) const
 		{
 			// TODO

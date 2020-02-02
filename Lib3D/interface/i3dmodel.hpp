@@ -155,8 +155,12 @@ struct Texture : public px::IDestructable
 
 	virtual std::string getName() const { return "Untitled Texture"; }
 	virtual s64 getId() const { return -1; }
-	
-	virtual u32 getDecodedSize(bool mip) const = 0;
+
+	virtual u32 getDecodedSize(bool mip) const
+	{
+		return getWidth() * getHeight() * 4;
+	}
+	virtual u32 getEncodedSize(bool mip) const = 0;
 	virtual void decode(std::vector<u8>& out, bool mip) const = 0;
 
 	

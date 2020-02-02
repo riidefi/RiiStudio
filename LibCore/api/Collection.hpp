@@ -16,14 +16,16 @@
 
 namespace px {
 
-class CollectionHost : public IDestructable,
-	public SelectionManager // Perhaps an odd choice of placement
+class CollectionHost : public IDestructable
 {
 protected:
 	struct Collection
 	{
 		std::string mNodeType; // Folder type restriction
 		std::vector<Dynamic> mNodes;
+
+		std::vector<std::size_t> mSelected;
+		std::size_t mActiveSelect = 0;
 	};
 public:
 	PX_TYPE_INFO("Collection Host", "collection_host", "CollectionHost");
@@ -35,7 +37,6 @@ public:
 			mEntries.emplace(folder, Collection{ folder, {} });
 			mLut.emplace_back(folder);
 		}
-		prepareKeys(folders);
 	}
 
 	class CollectionHandle
@@ -103,6 +104,44 @@ public:
 		{
 			return reinterpret_cast<const T*>(atAs(idx, std::string(T::TypeInfo.namespacedId)));
 		}
+
+		bool isSelected(std::size_t index) const
+		{
+			const auto& vec = mCollection.mSelected;
+			return std::find(vec.begin(), vec.end(), index) != vec.end();
+		}
+		bool select(std::size_t index)
+		{
+			if (isSelected(index)) return true;
+
+			mCollection.mSelected.push_back(index);
+			return false;
+		}
+		bool deselect(std::size_t index)
+		{
+			auto it = std::find(mCollection.mSelected.begin(), mCollection.mSelected.end(), index);
+
+			if (it == mCollection.mSelected.end()) return false;
+			mCollection.mSelected.erase(it);
+			return true;
+		}
+		std::size_t clearSelection()
+		{
+			std::size_t before = mCollection.mSelected.size();
+			mCollection.mSelected.clear();
+			return before;
+		}
+		std::size_t getActiveSelection() const
+		{
+			return mCollection.mActiveSelect;
+		}
+		std::size_t setActiveSelection(std::size_t value)
+		{
+			const std::size_t old = mCollection.mActiveSelect;
+			mCollection.mActiveSelect = value;
+			return old;
+		}
+
 		CollectionHandle(Collection& c) : mCollection(c) {}
 	public:
 		Collection& getCollection() { return mCollection; }
@@ -141,20 +180,37 @@ public:
 
 		return {};
 	}
-	std::optional<CollectionHandle> getFolder(const std::string& type) const
+	std::optional<CollectionHandle> getFolder(const std::string& type, bool fromParent=false, bool fromChild=false) const
 	{
 		const auto found = mEntries.find(type);
 		if (found != mEntries.end())
 			return CollectionHandle(const_cast<Collection&>((*found).second));
 
 		auto info = ReflectionMesh::getInstance()->lookupInfo(type);
-		if (info.getNumParents() == 0)
-			return {};
 
-		for (int i = 0; i < info.getNumParents(); ++i)
+		if (!fromChild)
 		{
-			auto opt = getFolder(info.getParent(i).getName());
-			if (opt.has_value()) return opt;
+			for (int i = 0; i < info.getNumParents(); ++i)
+			{
+				assert(info.getParent(i).getName() != info.getName());
+
+				auto opt = getFolder(info.getParent(i).getName(), true, false);
+				if (opt.has_value()) return opt;
+			}
+		}
+
+		if (!fromParent)
+		{
+			// If the folder is of a more specialized type
+			for (int i = 0; i < info.getNumChildren(); ++i)
+			{
+				const std::string childName = info.getChild(i).getName();
+				const std::string infName = info.getName();
+				assert(childName != infName);
+
+				auto opt = getFolder(childName, false, true);
+				if (opt.has_value()) return opt;
+			}
 		}
 
 		return {};
