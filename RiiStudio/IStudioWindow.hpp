@@ -15,7 +15,7 @@ protected:
 	virtual void draw() noexcept {}
 
 public:
-    IStudioWindow* getParent() { return mParent; }
+    IStudioWindow* getParent() { return dynamic_cast<IStudioWindow*>(mParent); }
 	const ImGuiWindowClass* getWindowClass() { return &mWindowClass; }
 
 	IStudioWindow(const std::string& name, bool dockspace=false)
@@ -36,9 +36,10 @@ private:
 	}
     void draw(Window* pWin) noexcept override
     {
-        mParent = reinterpret_cast<IStudioWindow*>(pWin);
-		
-		ImGui::SetNextWindowClass(mParent->getWindowClass());
+        mParent = pWin;
+
+		if (getParent())
+			ImGui::SetNextWindowClass(getParent()->getWindowClass());
 		if (ImGui::Begin(idIfy(mName).c_str(), &bOpen, mFlags))
 		{
 			ImGui::PushID(mId);
@@ -65,12 +66,13 @@ private:
 			processWindowQueue();
 			drawChildren(this);
 
+			if (ImGui::IsItemActive())
+				pWin->setActiveWindow(this);
+
 			ImGui::PopID();
 		}
 		ImGui::End();
     }
-
-    IStudioWindow* mParent = nullptr;
 	ImGuiWindowClass mWindowClass;
 	std::string mName;
 	ImGuiID mId;

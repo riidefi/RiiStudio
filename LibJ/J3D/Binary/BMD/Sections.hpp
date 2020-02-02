@@ -25,5 +25,6 @@ std::unique_ptr<oishii::v2::Node> makeDRW1Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::v2::Node> makeJNT1Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::v2::Node> makeSHP1Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::v2::Node> makeMAT3Node(BMDExportContext& ctx);
+std::unique_ptr<oishii::v2::Node> makeTEX1Node(BMDExportContext& ctx);
 
 }

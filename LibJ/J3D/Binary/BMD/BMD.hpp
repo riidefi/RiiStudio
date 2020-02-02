@@ -32,6 +32,11 @@ class BmdIo : public px::IBinarySerializer
 	void lex(BMDOutputContext& ctx, u32 sec_count) noexcept;
 	void readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx);
 
+
+	bool matchForWrite(const std::string& id) override
+	{
+		return id == J3DCollection::TypeInfo.namespacedId;
+	}
 };
 
 

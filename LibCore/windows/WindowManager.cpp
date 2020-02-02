@@ -153,6 +153,7 @@ void WindowManager::processWindowQueue()
 void WindowManager::drawChildren(Window* ctx) noexcept
 {
 	std::lock_guard<std::mutex> guard(mInternal->mVect.mutex);
+	mParent = ctx;
 
 	for (auto& window : mInternal->mVect.vector)
 	{

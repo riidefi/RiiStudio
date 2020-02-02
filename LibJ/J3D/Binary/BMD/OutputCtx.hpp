@@ -91,7 +91,10 @@ inline void writeNameTable(oishii::v2::Writer& writer, const std::vector<std::st
 	{
 		const u32 strStart = writer.tell();
 		for (const char c : str)
-			writer.write<u8>(c);
+			if (c == 0)
+				printf("???\n");
+			else
+				writer.write<u8>(c);
 		writer.write<u8>(0);
 		// const u32 end = writer.tell();
 

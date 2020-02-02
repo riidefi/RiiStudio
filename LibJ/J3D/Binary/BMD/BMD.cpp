@@ -142,11 +142,14 @@ void BmdIo::readBMD(oishii::BinaryReader& reader, BMDOutputContext& ctx)
 		}
 	}
 
-	// Read TEX1
-	readTEX1(ctx);
+
 
 	// Read materials
 	readMAT3(ctx);
+
+	// Read TEX1
+	readTEX1(ctx);
+
 
 	// Read INF1
 	readINF1(ctx);
@@ -166,7 +169,7 @@ void BmdIo::read(px::Dynamic& state, oishii::BinaryReader& reader)
 	_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
 #endif
 
-	// reader.add_bp(0x37ee0, 16);
+	// reader.add_bp(0xd860, 16);
 	//oishii::BinaryReader::ScopedRegion g(reader, "J3D Binary Model Data (.bmd)");
 
 	J3DCollection* pCol = dynamic_cast<J3DCollection*>(state.mOwner.get());
@@ -225,7 +228,7 @@ struct BMDFile : public oishii::v2::Node
 		addNode(makeJNT1Node(exp));
 		addNode(makeSHP1Node(exp));
 		addNode(makeMAT3Node(exp));
-		//	addNode(makeTEX1Node(exp));
+		addNode(makeTEX1Node(exp));
 		return {};
 	}
 
@@ -241,7 +244,7 @@ void BMD_Pad(char* dst, u32 len)
 void exportBMD(oishii::v2::Writer& writer, J3DCollection& collection)
 {
 	// writer.attachDataForMatchingOutput(__lastReadDataForWriteDebug);
-	writer.add_bp(0x4bb0, 4);
+	// writer.add_bp(0x4bb0, 4);
 
 	oishii::v2::Linker linker;
 

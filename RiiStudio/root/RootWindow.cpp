@@ -39,6 +39,8 @@ void RootWindow::draw(Window* ctx) noexcept
 	ImGuiID dockspace_id = ImGui::GetID("DockSpaceWidget");
 	ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), 0);
 
+	EditorWindow* ed = dynamic_cast<EditorWindow*>(getActiveWindow());
+
 	if (ImGui::BeginMenuBar())
 	{
 		if (ImGui::BeginMenu("File"))
@@ -49,24 +51,25 @@ void RootWindow::draw(Window* ctx) noexcept
 			}
 			if (ImGui::MenuItem("Save"))
 			{
-				//	if (ed)
-				//	{
-				//		DebugReport("Attempting to save to %s\n", ed->mFilePath.c_str());
-				//		if (!ed->mFilePath.empty())
-				//			save(ed->mFilePath);
-				//		else
-				//			saveAs();
-				//	}
-				//	else
-				//	{
-				//		printf("Cannot save.. nothing has been opened.\n");
-				//	}
+				
+				if (ed)
+				{
+					DebugReport("Attempting to save to %s\n", ed->getFilePath().c_str());
+					if (!ed->getFilePath().empty())
+						save(ed->getFilePath());
+					else
+						saveAs();
+				}
+				else
+				{
+					printf("Cannot save.. nothing has been opened.\n");
+				}
 			}
 			if (ImGui::MenuItem("Save As"))
 			{
-				//	if (ed)
-				//		saveAs();
-				//	else printf("Cannot save.. nothing has been opened.\n");
+				if (ed)
+					saveAs();
+				else printf("Cannot save.. nothing has been opened.\n");
 			}
 			ImGui::EndMenu();
 		}
@@ -99,6 +102,32 @@ void RootWindow::draw(Window* ctx) noexcept
 	ImGui::End();
 	ImGui::PopID();
 }
+
+void RootWindow::save(const std::string& path)
+{
+	std::ofstream stream(path + "_TEST.bmd", std::ios::binary | std::ios::out);
+
+	oishii::v2::Writer writer(1024);
+
+	EditorWindow* ed = dynamic_cast<EditorWindow*>(getActiveWindow());
+	if (!ed) return;
+
+	auto ex = SpawnExporter(ed->getState().mType);
+	if (!ex) DebugReport("Failed to spawn importer.\n");
+	if (!ex) return;
+	ex->write(ed->getState(), writer);
+
+	stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
+}
+void RootWindow::saveAs()
+{
+	auto results = pfd::save_file("Save File", "", { "All Files", "*" }).result();
+	if (results.empty())
+		return;
+
+	save(results);
+}
+
 std::vector<std::string> RootWindow::fileDialogueOpen()
 {
 	return pfd::open_file("Open File").result();	

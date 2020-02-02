@@ -92,6 +92,18 @@ std::pair<std::string, std::unique_ptr<px::IBinarySerializer>> SpawnImporter(con
 		};
 	}
 }
+std::unique_ptr<px::IBinarySerializer> SpawnExporter(const std::string& type)
+{
+	for (const auto& plugin : spCorePackageInstaller->mSerializers)
+	{
+		if (plugin->matchForWrite(type) && plugin->canWrite())
+		{
+			return plugin->clone();
+		}
+	}
+
+	return nullptr;
+}
 	
 struct DataMesh : public px::DataMesh
 {

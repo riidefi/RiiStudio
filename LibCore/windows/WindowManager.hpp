@@ -22,7 +22,8 @@ public:
 	// TODO: No lifetime guarantee
 	Window& getWindowIndexed(u32 idx);
 	u32 getNumWindows() const;
-	
+
 private:
     std::unique_ptr<WindowManagerInternal> mInternal;
+	
 };

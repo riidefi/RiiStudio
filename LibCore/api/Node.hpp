@@ -71,6 +71,8 @@ struct IBinarySerializer : public IDestructable
 	virtual void write(Dynamic& state, oishii::v2::Writer& writer) {}
 
 	virtual std::string matchFile(const std::string& file, oishii::BinaryReader& reader) { return ""; }
+	// TODO: Might merge this with canRead/canWrite
+	virtual bool matchForWrite(const std::string& id) { return false; }
 };
 
 struct IFactory : public IDestructable

@@ -16,4 +16,12 @@ struct Window
 	bool bOpen = true; //!< If the window is opened, for ImGui. When false, window manager will destroy the window itself.
 	u32 mId; //!< ID, assigned by window manager, do not modify
 	u32 parentId = 0;
+
+
+	void setActiveWindow(Window* win) { mActive = win; /* Propogate */ if (mParent && mParent != this) mParent->setActiveWindow(this); }
+	Window* getActiveWindow() { return mActive; }
+private:
+	Window* mActive = nullptr;
+protected:
+	Window* mParent = nullptr;
 };

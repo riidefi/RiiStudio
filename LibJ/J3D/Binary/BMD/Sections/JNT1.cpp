@@ -153,7 +153,7 @@ struct JNT1Node final : public oishii::v2::Node
 			std::vector<std::string> names(bones.size());
 			
 			for (int i = 0; i < bones.size(); ++i)
-				names[i++] = bones[i].name;
+				names[i] = bones[i].name;
 			writeNameTable(writer, names);
 
 			return {};

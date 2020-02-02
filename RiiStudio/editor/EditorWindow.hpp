@@ -22,6 +22,9 @@ public:
 
 	void draw() noexcept override;
 
+	std::string getFilePath() { return mFilePath; }
+	px::Dynamic& getState() { return mState; }
+
 private:
 	px::Dynamic mState;
 	std::string mFilePath;
