@@ -1,9 +1,41 @@
+
+#ifdef _WIN32
+
+#include <Windows.h>
+#include <LibCore/api/Node.hpp>
+
+using riimain_fn_t = void (CALLBACK*) (px::PackageInstaller*);
+
+bool installModuleNative(const std::string& path, px::PackageInstaller* pInstaller)
+{
+	auto hnd = LoadLibraryA(path.c_str());
+
+	if (!hnd)
+		return false;
+
+	auto fn = reinterpret_cast<riimain_fn_t>(GetProcAddress(hnd, "__riimain"));
+	if (!fn)
+		return false;
+
+	fn(pInstaller);
+	return true;
+}
+
+#endif
+
+
+
 #include "api/Node.hpp"
 #include "common.h"
 #include <vector>
 #include <memory>
 
 px::PackageInstaller* px::PackageInstaller::spInstance;
+
+static bool ends_with(const std::string& value, const std::string& ending)
+{
+	return ending.size() <= value.size() && std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
 
 struct CorePackageInstaller : px::PackageInstaller
 {
@@ -17,7 +49,8 @@ struct CorePackageInstaller : px::PackageInstaller
     }
     void installModule(const std::string& path) override
     {
-
+		if (ends_with(path, ".dll"))
+			installModuleNative(path, this);
     }
 
     void registerSerializer(std::unique_ptr<px::IBinarySerializer> ser) override

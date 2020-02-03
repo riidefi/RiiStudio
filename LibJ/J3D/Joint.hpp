@@ -10,6 +10,9 @@
 
 #include <LibCube/Export/Bone.hpp>
 
+#include <ThirdParty/glm/vec3.hpp>
+#include <LibCube/Util/BoundBox.hpp>
+
 namespace libcube::jsystem {
 
 template<typename T>
@@ -58,9 +61,8 @@ struct JointData
 	// From EVP1
 	//glm::mat4x4
 	std::array<float, 12>
-	inverseBindPoseMtx;
+		inverseBindPoseMtx;
 };
-
 struct Joint final : public IBoneDelegate, public JointData
 {
 	PX_TYPE_INFO_EX("J3D Joint", "j3d_joint", "J::Joint", ICON_FA_BONE, ICON_FA_BONE);
@@ -70,7 +72,7 @@ struct Joint final : public IBoneDelegate, public JointData
 	void copy(lib3d::Bone& to) override
 	{
 		IBoneDelegate::copy(to);
-		Joint* pJoint = reinterpret_cast<Joint*>(&to);
+		Joint* pJoint = dynamic_cast<Joint*>(&to);
 		if (pJoint)
 		{
 			name = pJoint->name;

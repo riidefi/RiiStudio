@@ -157,6 +157,8 @@ void RootWindow::openFile(const std::string& file, OpenFilePolicy policy)
 		auto fileState = SpawnState(importer.first);
 		if (fileState.mBase == nullptr)
 			return;
+		if (fileState.mType.empty())
+			return;
 
 		importer.second->read(fileState, *reader.get());
 
@@ -219,6 +221,8 @@ RootWindow::RootWindow()
     // Register plugins
 	libcube::Install();
 	libcube::jsystem::Install();
+
+	px::PackageInstaller::spInstance->installModule("nw.dll");
 
 	px::ReflectionMesh::getInstance()->getDataMesh().compute();
 	

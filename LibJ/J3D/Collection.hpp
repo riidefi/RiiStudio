@@ -24,9 +24,7 @@ public:
 			std::string(J3DModel::TypeInfo.namespacedId),
 			std::string(Texture::TypeInfo.namespacedId)
 		})
-	{
-
-	}
+	{}
 
 	J3DModel* getModel()
 	{

@@ -214,4 +214,32 @@ struct ColorS10
 		return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
 	}
 };
+
+
+enum class AnisotropyLevel
+{
+	x1,
+	x2,
+	x4
+};
+enum class TextureFilter
+{
+	Near, // Nearest-neighbor interpolation of texels
+	Linear, // Bi?Linear-neighbor interpolation of texels
+	NearMipNear, // Nearest-neighbor interpolation of texels and mipmap levels
+	LinearMipNear, // Bi?Linear interpolation of texels and nearest neighbor of mipmap levels
+	NearMipLinear,
+	LinearMipLinear, // Bi?Linear interpolation of texels and mipmap levels
+	Max
+};
+
+struct ConstantAlpha
+{
+	bool enable = false;
+	u8 value = 0;
+
+	// void operator=(const GPU::CMODE1& reg);
+};
+
+
 } } // namespace libcube::gx
