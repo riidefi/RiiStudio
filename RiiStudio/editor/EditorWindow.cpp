@@ -8,6 +8,9 @@
 #include <RiiStudio/editor/kit/Image.hpp>
 #include <LibCore/windows/SelectionManager.hpp>
 
+#include "Renderer.hpp"
+#include <RiiStudio/editor/kit/Viewport.hpp>
+
 struct GenericCollectionOutliner : public IStudioWindow
 {
 	GenericCollectionOutliner(px::CollectionHost& host) : IStudioWindow("Outliner"), mHost(host)
@@ -278,7 +281,34 @@ struct TexImgPreview : public IStudioWindow
 	int lastTexId = -1;
 	ImagePreview mImg;
 };
+struct RenderTest : public IStudioWindow
+{
+	RenderTest(const px::CollectionHost& host)
+		: IStudioWindow("Render test"), mHost(host)
+	{
+		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize);
+	}
+	void draw() noexcept override
+	{
+		const auto& io = ImGui::GetIO();
+		ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate, io.Framerate ? 1000.0f / io.Framerate : 0.0f);
 
+		auto bounds = ImGui::GetWindowSize();
+
+		bounds.x = 320;
+		bounds.y = 320;
+
+		if (mViewport.begin(bounds.x, bounds.y))
+		{
+			mRenderer.render();
+			mViewport.end();
+		}
+	}
+
+	Viewport mViewport;
+	Renderer mRenderer;
+	const px::CollectionHost& mHost;
+};
 EditorWindow::EditorWindow(px::Dynamic state, const std::string& path)
 	: mState({ std::move(state.mOwner), state.mBase, state.mType }), IStudioWindow(path.substr(path.rfind("\\")+1), true), mFilePath(path)
 {
@@ -319,6 +349,9 @@ EditorWindow::EditorWindow(px::Dynamic state, const std::string& path)
 		attachWindow(std::make_unique<GenericCollectionOutliner>(host));
 		attachWindow(std::make_unique<WIdek>());
 		attachWindow(std::make_unique<TexImgPreview>(host));
+		attachWindow(std::make_unique<RenderTest>(host));
+
+		
 	}
 }
 void EditorWindow::draw() noexcept
