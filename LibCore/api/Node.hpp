@@ -26,6 +26,9 @@ Now:
 #define PX_TYPE_INFO(gui, cli, internal) \
     constexpr static px::RichName TypeInfo = { gui, internal, cli }
 
+#define PX_GET_TID(type) \
+	std::string(type::TypeInfo.namespacedId)
+
 // More like IObject
 struct IDestructable
 {

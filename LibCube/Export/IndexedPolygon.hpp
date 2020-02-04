@@ -13,6 +13,7 @@ namespace libcube {
 
 struct IndexedPolygon : public lib3d::Polygon
 {
+	PX_TYPE_INFO("GameCube Polygon", "gc_indexedpoly", "GC::IndexedPolygon");
 	// In wii/gc, absolute indices across mprims
 	u64 getNumPrimitives() const override
 	{

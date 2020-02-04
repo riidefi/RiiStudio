@@ -16,6 +16,9 @@
 
 namespace px {
 
+template<typename T>
+struct ConcreteCollectionHandle;
+
 class CollectionHost : public IDestructable
 {
 protected:
@@ -38,6 +41,12 @@ public:
 			mLut.emplace_back(folder);
 		}
 	}
+
+#define PX_COLLECTION_FOLDER_GETTER(name, type) \
+	px::ConcreteCollectionHandle<type> name() { assert(getFolder<type>().has_value()); \
+		return px::ConcreteCollectionHandle<type>(getFolder<type>().value()); } \
+	const px::ConcreteCollectionHandle<type> name() const { assert(getFolder<type>().has_value()); \
+		return px::ConcreteCollectionHandle<type>(getFolder<type>().value()); }
 
 	class CollectionHandle
 	{
@@ -150,17 +159,6 @@ public:
 		Collection& mCollection;
 	};
 
-	template<typename T>
-	struct ConcreteCollectionHandle : public CollectionHandle
-	{
-		ConcreteCollectionHandle(CollectionHandle&& c)
-			: CollectionHandle(c.getCollection())
-		{
-		}
-
-		T& operator[] (std::size_t idx) { return *at<T>(idx); }
-		const T& operator[] (std::size_t idx) const { return *at<T>(idx); }
-	};
 
 	std::optional<CollectionHandle> getFolder(const std::string& type)
 	{
@@ -239,6 +237,17 @@ private:
 	// Collection type : Entries
 	std::map<std::string, Collection> mEntries;
 	std::vector<std::string> mLut;
+};
+template<typename T>
+struct ConcreteCollectionHandle : public CollectionHost::CollectionHandle
+{
+	ConcreteCollectionHandle(CollectionHandle&& c)
+		: CollectionHandle(c.getCollection())
+	{
+	}
+
+	T& operator[] (std::size_t idx) { return *at<T>(idx); }
+	const T& operator[] (std::size_t idx) const { return *at<T>(idx); }
 };
 
 }

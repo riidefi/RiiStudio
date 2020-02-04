@@ -176,7 +176,7 @@ void BmdIo::read(px::Dynamic& state, oishii::BinaryReader& reader)
 	assert(pCol);
 	if (!pCol) return;
 	pCol->getFolder<J3DModel>()->push(std::make_unique<J3DModel>());
-	BMDOutputContext ctx{ *pCol->getModel(), *pCol, reader };
+	BMDOutputContext ctx{ pCol->getModels()[0], *pCol, reader };
 
 	// reader.add_bp<u32>(8);
 	// reader.add_bp(0x6970, 16);
@@ -213,7 +213,7 @@ struct BMDFile : public oishii::v2::Node
 	}
 	Result gatherChildren(oishii::v2::Node::NodeDelegate& ctx) const
 	{
-		BMDExportContext exp{ *mCollection->getModel(), *mCollection };
+		BMDExportContext exp{ mCollection->getModels()[0], *mCollection };
 
 		auto addNode = [&](std::unique_ptr<oishii::v2::Node> node)
 		{

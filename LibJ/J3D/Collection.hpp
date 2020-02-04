@@ -21,23 +21,13 @@ public:
 	
 	J3DCollection()
 		: px::CollectionHost({
-			std::string(J3DModel::TypeInfo.namespacedId),
-			std::string(Texture::TypeInfo.namespacedId)
+			PX_GET_TID(J3DModel),
+			PX_GET_TID(Texture)
 		})
 	{}
 
-	J3DModel* getModel()
-	{
-		return getFolder<J3DModel>().value().at<J3DModel>(0);
-	}
-	Texture& getTexture(u32 idx)
-	{
-		return *getFolder<Texture>().value().at<Texture>(idx);
-	}
-
-	px::CollectionHost::ConcreteCollectionHandle<Texture> getTextures() { return px::CollectionHost::ConcreteCollectionHandle<Texture>(getFolder<Texture>().value()); }
-	px::CollectionHost::ConcreteCollectionHandle<Texture> getTextures() const { return px::CollectionHost::ConcreteCollectionHandle<Texture>(getFolder<Texture>().value()); }
-
+	PX_COLLECTION_FOLDER_GETTER(getModels, J3DModel);
+	PX_COLLECTION_FOLDER_GETTER(getTextures, Texture);
 
 	bool bdl = false;
 };

@@ -22,16 +22,18 @@ void Install()
 	installer.registerObject(Material::TypeInfo);
 	installer.registerObject(Joint::TypeInfo);
 	installer.registerObject(Texture::TypeInfo);
+	installer.registerObject(Shape::TypeInfo);
 
 
     installer.registerParent<Joint, IBoneDelegate>();
     installer.registerParent<Material, IMaterialDelegate>();
 	installer.registerParent<Texture, libcube::Texture>();
+	installer.registerParent<Shape, libcube::IndexedPolygon>();
+
 
     // TODO: Move to proper system
     installer.registerParent<IBoneDelegate, lib3d::Bone>();
     installer.registerParent<Material, lib3d::Material>();
-
 	installer.registerParent<J3DModel, px::CollectionHost>();
 
 	installer.registerSerializer(std::make_unique<BmdIo>());

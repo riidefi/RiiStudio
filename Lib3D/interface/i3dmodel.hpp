@@ -172,7 +172,7 @@ struct Texture : public px::IDestructable
 
 struct Polygon : public px::IDestructable
 {
-	static constexpr const char TypeName[] = "3dpolygon";
+	PX_TYPE_INFO("Polygon", "poly", "3D::Polygon");
 	virtual ~Polygon() = default;
 
 	// Bounding volumes...

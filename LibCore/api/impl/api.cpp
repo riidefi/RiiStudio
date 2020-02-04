@@ -88,7 +88,9 @@ px::Dynamic SpawnState(const std::string& type)
 }
 px::RichName GetRich(const std::string& type)
 {
-	return px::ReflectionMesh::getInstance()->getDataMesh().get(type)->mName;
+	const auto* got = px::ReflectionMesh::getInstance()->getDataMesh().get(type);
+	assert(got);
+	return got->mName;
 }
 std::pair<std::string, std::unique_ptr<px::IBinarySerializer>> SpawnImporter(const std::string& fileName, oishii::BinaryReader& reader)
 {

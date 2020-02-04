@@ -45,8 +45,8 @@ struct INF1Node
 		writer.write<u16>(-1);
 		// Matrix primitive count
 		u64 num_mprim = 0;
-		for (const auto& it : mdl->mShapes)
-			num_mprim += it.getNumMatrixPrimitives();
+		for (int i = 0; i < mdl->getShapes().size(); ++i)
+			num_mprim += mdl->getShapes()[i].getNumMatrixPrimitives();
 		writer.write<u32>(num_mprim);
 		// Vertex position count
 		writer.write<u32>((u32)mdl->mBufs.pos.mData.size());

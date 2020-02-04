@@ -43,7 +43,7 @@ struct J3DModel : public px::CollectionHost
 			Maya
 		};
 
-		ScalingRule mScalingRule;
+		ScalingRule mScalingRule = ScalingRule::Basic;
 		// nPacket, nVtx
 
 		// Hierarchy data is included in joints.
@@ -64,18 +64,16 @@ struct J3DModel : public px::CollectionHost
 
 	J3DModel() : px::CollectionHost({
 		std::string(Material::TypeInfo.namespacedId),
-		std::string(Joint::TypeInfo.namespacedId) }) {}
+		std::string(Joint::TypeInfo.namespacedId),
+		std::string(Shape::TypeInfo.namespacedId)
+	}) {}
 
 	
-
-	px::CollectionHost::ConcreteCollectionHandle<Material> getMaterials() { return px::CollectionHost::ConcreteCollectionHandle<Material>(getFolder<Material>().value()); }
-	px::CollectionHost::ConcreteCollectionHandle<Material> getMaterials() const { return px::CollectionHost::ConcreteCollectionHandle<Material>(getFolder<Material>().value()); }
-	px::CollectionHost::ConcreteCollectionHandle<Joint> getBones() { return px::CollectionHost::ConcreteCollectionHandle<Joint>(getFolder<Joint>().value()); }
-	px::CollectionHost::ConcreteCollectionHandle<Joint> getBones() const { return px::CollectionHost::ConcreteCollectionHandle<Joint>(getFolder<Joint>().value()); }
-
+	PX_COLLECTION_FOLDER_GETTER(getMaterials, Material);
+	PX_COLLECTION_FOLDER_GETTER(getBones, Joint);
+	PX_COLLECTION_FOLDER_GETTER(getShapes, Shape);
 
 	std::vector<DrawMatrix> mDrawMatrices;
-	std::vector<Shape> mShapes;
 };
 
 } // namespace libcube::jsystem
