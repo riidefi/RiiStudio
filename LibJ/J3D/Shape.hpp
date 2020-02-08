@@ -103,6 +103,7 @@ struct Shape final : public ShapeData, public IndexedPolygon
 		return mVertexDescriptor;
 	}
 
+	glm::vec2 getUv(u64 chan, u64 id) const override;
 	glm::vec3 getClr(u64 id) const override;
 	glm::vec3 getPos(u64 id) const override;
 

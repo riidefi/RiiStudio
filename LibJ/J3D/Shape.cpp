@@ -2,6 +2,10 @@
 
 namespace libcube::jsystem {
 
+glm::vec2 Shape::getUv(u64 chan, u64 idx) const
+{
+	return mMdl.mBufs.uv[chan].mData[idx];
+}
 glm::vec3 Shape::getPos(u64 idx) const
 {
 	return mMdl.mBufs.pos.mData[idx];

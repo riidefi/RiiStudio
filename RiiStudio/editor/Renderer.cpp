@@ -217,10 +217,55 @@ private:
 	std::vector<glm::mat4> mMatrices;
 };
 
+struct VBOBuilder
+{
+	VBOBuilder()
+	{
+		glGenBuffers(1, &mPositionBuf);
+		glGenBuffers(1, &mIndexBuf);
+
+		mAttribStack.push_back(0);
+	}
+	~VBOBuilder()
+	{
+		glDeleteBuffers(1, &mPositionBuf);
+		glDeleteBuffers(1, &mIndexBuf);
+	}
+
+	std::vector<u8> mData;
+	std::vector<u32> mIndices;
+
+	void next() { mAttribStack.push_back(mData.size()); }
+
+	template<typename T>
+	void push(const T& data)
+	{
+		const std::size_t begin = mData.size();
+		mData.resize(mData.size() + sizeof(T));
+		*reinterpret_cast<T*>(mData.data() + begin) = data;
+	}
+
+	void build()
+	{
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuf);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndices.size() * 4, mIndices.data(), GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, mPositionBuf);
+
+		glBufferData(GL_ARRAY_BUFFER, mData.size(), mData.data(), GL_STATIC_DRAW);
+		for (std::size_t i = 0; i < mAttribStack.size(); ++i)
+			glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, 3 * 4, (void*)mAttribStack[i]);
+	}
+	u32 mPositionBuf, mIndexBuf;
+
+	std::vector<u32> mAttribStack;
+};
+
 struct SceneState
 {
 	std::vector<glm::vec3> mPositions;
 	std::vector<glm::vec3> mColors;
+	std::vector<glm::vec2> mUvs;
 
 
 	std::vector<u32> mIndices;
@@ -235,6 +280,7 @@ struct SceneState
 	{
 		mPositions.clear();
 		mColors.clear();
+		mUvs.clear();
 		mIndices.clear();
 
 		for (const auto& node : mTree.opaque)
@@ -247,31 +293,31 @@ struct SceneState
 			{
 				mPositions.push_back(v.position);
 				mColors.push_back(v.colors[0]);
+				mUvs.push_back(v.uvs[0]);
 				mIndices.push_back(i);
 				++i;
 			}
 			node.idx_size = vtxScratch.size();
 		}
 
+		for (const auto& pos : mPositions)
+			mVbo.push(pos);
+		mVbo.next();
+		for (const auto& clr : mColors)
+			mVbo.push(clr);
+		mVbo.next();
+		for (const auto& uv : mUvs)
+			mVbo.push(uv);
+
+		mVbo.mIndices = mIndices;
 
 		glBindVertexArray(VAO);
-		glEnableVertexAttribArray(0);
-		glEnableVertexAttribArray(1);
+		glEnableVertexAttribArray(0); // pos
+		glEnableVertexAttribArray(1); // clr
+		glEnableVertexAttribArray(2); // uv0
 
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuf);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndices.size() * 4, mIndices.data(), GL_STATIC_DRAW);
-
-		glBindBuffer(GL_ARRAY_BUFFER, mPositionBuf);
-		glBufferData(GL_ARRAY_BUFFER, mPositions.size() * 3 * 4, mPositions.data(), GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * 4, (void*)0);
-
-
-		glBindBuffer(GL_ARRAY_BUFFER, mColorBuf);
-		glBufferData(GL_ARRAY_BUFFER, mColors.size() * 3 * 4, mColors.data(), GL_STATIC_DRAW);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * 4, (void*)0);
+		mVbo.build();
 	}
-
 	void gather(const px::CollectionHost& root)
 	{
 		mTree.gather(root);
@@ -312,10 +358,6 @@ struct SceneState
 
 	SceneState()
 	{	
-		glGenBuffers(1, &mPositionBuf);
-		glGenBuffers(1, &mColorBuf);
-		glGenBuffers(1, &mIndexBuf);
-
 		glGenVertexArrays(1, &VAO);
 
 		vtxScratch.resize(250);
@@ -323,14 +365,11 @@ struct SceneState
 	~SceneState()
 	{
 		glDeleteVertexArrays(1, &VAO);
-		glDeleteBuffers(1, &mPositionBuf);
-		glDeleteBuffers(1, &mColorBuf);
-		glDeleteBuffers(1, &mIndexBuf);
 	}
 
-	u32 mPositionBuf, mColorBuf, mIndexBuf;
 	u32 VAO;
 
+	VBOBuilder mVbo;
 };
 
 void Renderer::prepare(const px::CollectionHost& root)
