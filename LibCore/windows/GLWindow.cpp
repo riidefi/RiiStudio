@@ -44,8 +44,10 @@ GLWindow::GLWindow(int width, int height, const char* pName)
 	
 	if (glfwInit())
 	{
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+	
+		glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, true );
 
 		initWindow(mGlfwWindow, width, height, pName, this);
 

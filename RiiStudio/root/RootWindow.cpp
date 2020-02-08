@@ -39,6 +39,7 @@ void RootWindow::draw(Window* ctx) noexcept
 	ImGuiID dockspace_id = ImGui::GetID("DockSpaceWidget");
 	ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), 0);
 
+	Window* active = getActiveWindow();
 	EditorWindow* ed = dynamic_cast<EditorWindow*>(getActiveWindow());
 
 	if (ImGui::BeginMenuBar())

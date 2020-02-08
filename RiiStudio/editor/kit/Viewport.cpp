@@ -61,5 +61,8 @@ void Viewport::end()
 	mbInRender = false;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	ImGui::Image((void*)mTexColorBufId, { static_cast<float>(mLastWidth), static_cast<float>(mLastHeight) });
+	ImGui::Image((void*)mTexColorBufId,
+		{ static_cast<float>(mLastWidth), static_cast<float>(mLastHeight) },
+		{0.0f, 1.0f},
+		{1.0f, .0f});
 }

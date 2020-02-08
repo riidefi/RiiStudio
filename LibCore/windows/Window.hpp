@@ -6,7 +6,10 @@ struct Window
 {
 	//! @brief The destructor.
 	//!
-	virtual ~Window() {}
+	virtual ~Window() {
+		/* Propogate */ if (mParent && mParent != this && mParent->getActiveWindow() == this)
+			mParent->setActiveWindow(nullptr);
+	}
 	
 	//! @brief Draw the window.
 	//!

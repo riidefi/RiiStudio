@@ -235,6 +235,9 @@ struct GenericCollectionOutliner : public IStudioWindow
 	}
 	void draw() noexcept override
 	{
+
+		const auto& io = ImGui::GetIO();
+		ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate, io.Framerate ? 1000.0f / io.Framerate : 0.0f);
 		mFilter.Draw();
 		drawRecursive(mHost);
 	}
@@ -287,20 +290,17 @@ struct RenderTest : public IStudioWindow
 		: IStudioWindow("Render test"), mHost(host)
 	{
 		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize);
+
+		mRenderer.prepare(*host.getFolder<px::CollectionHost>()->at<px::CollectionHost>(0));
 	}
 	void draw() noexcept override
 	{
-		const auto& io = ImGui::GetIO();
-		ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate, io.Framerate ? 1000.0f / io.Framerate : 0.0f);
 
 		auto bounds = ImGui::GetWindowSize();
 
-		bounds.x = 320;
-		bounds.y = 320;
-
 		if (mViewport.begin(bounds.x, bounds.y))
 		{
-			mRenderer.render();
+			mRenderer.render(bounds.x, bounds.y);
 			mViewport.end();
 		}
 	}

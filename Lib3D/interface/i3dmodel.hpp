@@ -137,7 +137,9 @@ struct Bone : public px::IDestructable
 	virtual bool getSSC() const = 0;
 	virtual void setSSC(bool b) = 0;
 
-
+	struct Display { u32 matId = 0; u32 polyId = 0; u8 prio = 0; };
+	virtual u64 getNumDisplays() const = 0;
+	virtual Display getDisplay(u64 idx) const = 0;
 };
 struct Material : public px::IDestructable
 {
@@ -147,6 +149,7 @@ struct Material : public px::IDestructable
 	virtual std::string getName() const { return "Untitled Material"; }
 	virtual s64 getId() const { return -1; }
 
+	virtual bool isXluPass() const { return false; }
 };
 
 struct Texture : public px::IDestructable
@@ -174,14 +177,7 @@ struct Polygon : public px::IDestructable
 {
 	PX_TYPE_INFO("Polygon", "poly", "3D::Polygon");
 	virtual ~Polygon() = default;
-
-	// Bounding volumes...
-
-	// In wii/gc, absolute indices across mprims
-	virtual u64 getNumPrimitives() const = 0;
-	// Assume triangles
-	virtual s64 addPrimitive() = 0;
-
+	
 	enum class SimpleAttrib
 	{
 		EnvelopeIndex, // u8
@@ -202,21 +198,22 @@ struct Polygon : public px::IDestructable
 	virtual bool hasAttrib(SimpleAttrib attrib) const = 0;
 	virtual void setAttrib(SimpleAttrib attrib, bool v) = 0;
 
-	virtual u64 getPrimitiveVertexCount(u64 index) const = 0;
-	virtual void resizePrimitiveVertexArray(u64 index, u64 size) = 0;
-
 	struct SimpleVertex
 	{
 		// Not all are real. Use hasAttrib()
 		u8 evpIdx; // If read from a GC model, not local to mprim
 		glm::vec3 position;
 		glm::vec3 normal;
-		std::array<u64, 2> colors;
+		std::array<glm::vec3, 2> colors;
 		std::array<glm::vec2, 8> uvs;
 	};
 
-	virtual SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx) = 0;
-	virtual void setPrimitiveVertex(u64 prim_idx, u64 vtx_idx, const SimpleVertex& vtx) = 0;
+	// For now... (slow api)
+	virtual void propogate(std::vector<SimpleVertex>& out) const = 0;
+
+
+	//	virtual SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx) = 0;
+	//	virtual void setPrimitiveVertex(u64 prim_idx, u64 vtx_idx, const SimpleVertex& vtx) = 0;
 
 	// Call after any change
 	virtual void update() {}

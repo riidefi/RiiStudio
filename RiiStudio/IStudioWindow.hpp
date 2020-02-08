@@ -63,8 +63,8 @@ private:
 				ImGui::DockSpace(dockspaceId, {}, ImGuiDockNodeFlags_CentralNode, getWindowClass());
 			}
 			draw();
-			processWindowQueue();
 			drawChildren(this);
+			processWindowQueue();
 
 			if (ImGui::IsItemActive())
 				pWin->setActiveWindow(this);

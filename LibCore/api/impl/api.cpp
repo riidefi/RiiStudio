@@ -208,7 +208,11 @@ struct ReflectionMesh : public px::ReflectionMesh
 			auto parent = hnd.getParent(i);
 			assert(hnd.getName() != parent.getName());
 			if (parent.getName() == key)
-				out.push_back(reinterpret_cast<char*>(in) + hnd.getTranslationForParent(i));
+			{
+				char* new_ = reinterpret_cast<char*>(in) + hnd.getTranslationForParent(i);
+				if (std::find(out.begin(), out.end(), (void*)new_) == out.end())
+					out.push_back(new_);
+			}
 			else
 				findParentOfType(out, reinterpret_cast<char*>(in) + hnd.getTranslationForParent(i), parent.getName(), key);
 		}

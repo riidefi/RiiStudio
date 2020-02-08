@@ -160,24 +160,6 @@ public:
 	};
 
 
-	std::optional<CollectionHandle> getFolder(const std::string& type)
-	{
-		auto found = mEntries.find(type);
-		if (found != mEntries.end())
-			return CollectionHandle{ (*found).second };
-
-		auto info = ReflectionMesh::getInstance()->lookupInfo(type);
-		if (info.getNumParents() == 0)
-			return {};
-
-		for (int i = 0; i < info.getNumParents(); ++i)
-		{
-			auto opt = getFolder(info.getParent(i).getName());
-			if (opt.has_value()) return opt;
-		}
-
-		return {};
-	}
 	std::optional<CollectionHandle> getFolder(const std::string& type, bool fromParent=false, bool fromChild=false) const
 	{
 		const auto found = mEntries.find(type);

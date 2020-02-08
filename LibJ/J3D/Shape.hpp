@@ -9,6 +9,8 @@
 
 namespace libcube::jsystem {
 
+struct J3DModel;
+
 struct MatrixPrimitive
 {
 	s16 mCurrentMatrix = -1; // Part of the polygon in G3D
@@ -100,6 +102,15 @@ struct Shape final : public ShapeData, public IndexedPolygon
 	{
 		return mVertexDescriptor;
 	}
+
+	glm::vec3 getClr(u64 id) const override;
+	glm::vec3 getPos(u64 id) const override;
+
+	Shape(J3DModel& m)
+		: mMdl(m)
+	{}
+
+	J3DModel& mMdl;
 };
 
 }

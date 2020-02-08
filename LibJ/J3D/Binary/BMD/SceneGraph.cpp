@@ -149,7 +149,7 @@ struct SceneGraphNode : public oishii::v2::Node
 
 		if (!joint.displays.empty())
 		{
-			Joint::Display last = { -1, -1 };
+			JointData::Display last = { -1, -1 };
 			for (const auto& d : joint.displays)
 			{
 				if (d.material != last.material)

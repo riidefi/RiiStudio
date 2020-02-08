@@ -15,7 +15,7 @@ struct IndexedPolygon : public lib3d::Polygon
 {
 	PX_TYPE_INFO("GameCube Polygon", "gc_indexedpoly", "GC::IndexedPolygon");
 	// In wii/gc, absolute indices across mprims
-	u64 getNumPrimitives() const override
+	u64 getNumPrimitives() const
 	{
 		u64 total = 0;
 
@@ -26,7 +26,7 @@ struct IndexedPolygon : public lib3d::Polygon
 	}
 	// Triangles
 	// We add this to the last mprim. May need to be split up later.
-	s64 addPrimitive() override
+	s64 addPrimitive()
 	{
 		if (getNumMatrixPrimitives() == 0)
 			addMatrixPrimitive();
@@ -129,32 +129,85 @@ struct IndexedPolygon : public lib3d::Polygon
 		}
 		return nullptr;
 	}
-	u64 getPrimitiveVertexCount(u64 index) const override
+	u64 getPrimitiveVertexCount(u64 index) const
 	{
 		const IndexedPrimitive* prim = getIndexedPrimitiveFromSuperIndex(index);
 		assert(prim);
 		return prim->mVertices.size();
 	}
-	void resizePrimitiveVertexArray(u64 index, u64 size) override
+	void resizePrimitiveVertexArray(u64 index, u64 size)
 	{
 		IndexedPrimitive* prim = getIndexedPrimitiveFromSuperIndex(index);
 		assert(prim);
 		prim->mVertices.resize(size);
 	}
-	SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx) override
+	SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx)
 	{
-		// const auto& iprim = getIndexedPrimitiveFromSuperIndex(prim_idx);
-		// assert(vtx_idx < iprim.mVertices.size());
-		// const auto& vtx = iprim.mVertices[vtx_idx];
+		const auto& iprim = *getIndexedPrimitiveFromSuperIndex(prim_idx);
+		assert(vtx_idx < iprim.mVertices.size());
+		const auto& vtx = iprim.mVertices[vtx_idx];
 
-		//return {
-		//	vtx[gx::VertexAttribute::PositionNormalMatrixIndex],
-		//	vtx[gx::VertexAttribute::Position]
-		//};
+		return {
+			(u8)vtx[gx::VertexAttribute::PositionNormalMatrixIndex],
+			getPos(vtx[gx::VertexAttribute::Position])
+		};
 		return {};
 	}
+	void propogate(std::vector<SimpleVertex>& out) const override
+	{
+		for (int i = 0; i < getNumMatrixPrimitives(); ++i)
+		{
+			for (int j = 0; j < getMatrixPrimitiveNumIndexedPrimitive(i); ++j)
+			{
+				const auto& idx = getMatrixPrimitiveIndexedPrimitive(i, j);
+				switch (idx.mType)
+				{
+				case gx::PrimitiveType::TriangleStrip:
+					for (int v = 2; v < idx.mVertices.size(); ++v)
+					{
+						std::array<IndexedVertex, 3> tri;
+						bool isEven = v % 2;
+						tri[0] = idx.mVertices[v - 2];
+						tri[1] = isEven ? idx.mVertices[v] : idx.mVertices[v - 1];
+						tri[2] = isEven ? idx.mVertices[v - 1] : idx.mVertices[v];
+
+						for (const auto& vtx : tri)
+						{
+							SimpleVertex s{};
+							s.evpIdx = vtx[gx::VertexAttribute::PositionNormalMatrixIndex];
+							u16 pIdx = vtx[gx::VertexAttribute::Position];
+							s.position = getPos(pIdx) * .001f;
+
+							s.colors[0] = getClr(vtx[gx::VertexAttribute::Color0]);
+
+							out.push_back(s);
+						}
+					}
+					break;
+				case gx::PrimitiveType::Triangles:
+					for (const auto& vtx : idx.mVertices)
+					{
+						SimpleVertex s{};
+						s.evpIdx = vtx[gx::VertexAttribute::PositionNormalMatrixIndex];
+						u16 pIdx = vtx[gx::VertexAttribute::Position];
+						s.position = getPos(pIdx) * .001f;
+
+						s.colors[0] = getClr(vtx[gx::VertexAttribute::Color0]);
+
+						out.push_back(s);
+					}
+					break;
+				default:
+					assert(!"TODO");
+					break;
+				}
+			}
+		}
+	}
+	virtual glm::vec3 getPos(u64 id) const = 0;
+	virtual glm::vec3 getClr(u64 id) const = 0;
 	// We add on to the attached buffer
-	void setPrimitiveVertex(u64 prim_idx, u64 vtx_idx, const SimpleVertex& vtx) override
+	void setPrimitiveVertex(u64 prim_idx, u64 vtx_idx, const SimpleVertex& vtx)
 	{
 
 	}

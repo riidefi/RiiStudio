@@ -154,6 +154,14 @@ struct Joint final : public IBoneDelegate, public JointData
 			break;
 		}
 	}
+	u64 getNumDisplays() const override
+	{
+		return displays.size();
+	}
+	lib3d::Bone::Display getDisplay(u64 idx) const override
+	{
+		return { (u32)displays[idx].material, (u32)displays[idx].shape };
+	}
 
 };
 

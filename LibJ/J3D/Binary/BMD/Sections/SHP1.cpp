@@ -14,7 +14,7 @@ void readSHP1(BMDOutputContext& ctx)
 
     u16 size = reader.read<u16>();
 	for (int i = 0; i < size; ++i)
-		ctx.mdl.getShapes().push(std::make_unique<Shape>());
+		ctx.mdl.getShapes().push(std::make_unique<Shape>(ctx.mdl));
 
     ctx.shapeIdLut.resize(size);
     reader.read<u16>();
