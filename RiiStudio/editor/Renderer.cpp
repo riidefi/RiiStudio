@@ -239,14 +239,6 @@ struct SceneState
 
 		for (const auto& node : mTree.opaque)
 		{
-			lib3d::SRT3 srt = node.bone.getSRT();
-			glm::mat4 mdl(1.0f);
-
-			mdl = glm::scale(mdl, srt.scale);
-			// mdl = glm::rotate(mdl, (glm::mat4)srt.rotation);
-			mdl = glm::translate(mdl, srt.translation);
-
-
 			vtxScratch.clear();
 			node.poly.propogate(vtxScratch);
 			node.idx_ofs = mIndices.size();

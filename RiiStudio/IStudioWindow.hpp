@@ -29,6 +29,9 @@ public:
 	{
 		mFlags |= flag;
 	}
+
+	std::string getName() const { return mName; }
+
 private:
 	std::string idIfy(std::string in)
 	{
@@ -47,19 +50,21 @@ private:
 			if (mbDrawDockspace)
 			{
 				const ImGuiID dockspaceId = ImGui::GetID("###DockSpace");
-				//	if (!ImGui::DockBuilderGetNode(dockspaceId)) {
-				//		ImGui::DockBuilderRemoveNode(dockspaceId);
-				//		ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_None);
-				//	
-				//		ImGuiID next = dockspaceId;
-				//		ImGuiID dock_right_id = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Right, 0.2f, nullptr, &next);
-				//	
-				//		ImGui::DockBuilderDockWindow(idIfy("Outliner").c_str(), dock_right_id);
-				//		ImGui::DockBuilderDockWindow(idIfy("Idek").c_str(), next);
-				//	
-				//	
-				//		ImGui::DockBuilderFinish(dockspaceId);
-				//	}
+				if (!ImGui::DockBuilderGetNode(dockspaceId)) {
+					ImGui::DockBuilderRemoveNode(dockspaceId);
+					ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_None);
+				
+					ImGuiID next = dockspaceId;
+					ImGuiID dock_right_id = ImGui::DockBuilderSplitNode(next, ImGuiDir_Right, 0.2f, nullptr, &next);
+					ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(next, ImGuiDir_Left, 0.2f, nullptr, &next);
+
+					ImGui::DockBuilderDockWindow(idIfy("Outliner").c_str(), dock_right_id);
+					ImGui::DockBuilderDockWindow(idIfy("Texture Preview").c_str(), dock_left_id);
+					ImGui::DockBuilderDockWindow(idIfy("Render test").c_str(), next);
+				
+				
+					ImGui::DockBuilderFinish(dockspaceId);
+				}
 				ImGui::DockSpace(dockspaceId, {}, ImGuiDockNodeFlags_CentralNode, getWindowClass());
 			}
 			draw();

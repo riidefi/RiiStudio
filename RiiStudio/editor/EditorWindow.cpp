@@ -347,7 +347,6 @@ EditorWindow::EditorWindow(px::Dynamic state, const std::string& path)
 
 
 		attachWindow(std::make_unique<GenericCollectionOutliner>(host));
-		attachWindow(std::make_unique<WIdek>());
 		attachWindow(std::make_unique<TexImgPreview>(host));
 		attachWindow(std::make_unique<RenderTest>(host));
 

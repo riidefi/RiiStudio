@@ -36,7 +36,25 @@ void RootWindow::draw(Window* ctx) noexcept
 	ImGui::Begin("DockSpace##", &bOpen, window_flags);
 	ImGui::PopStyleVar(3);
 
-	ImGuiID dockspace_id = ImGui::GetID("DockSpaceWidget");
+	dockspace_id = ImGui::GetID("DockSpaceWidget");
+
+	ImGuiID dock_main_id = dockspace_id;
+	while (mAttachEditorsQueue.size())
+	{
+		const std::string& ed_id = mAttachEditorsQueue.front();
+
+		ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
+		ImGui::DockBuilderAddNode(dockspace_id); // Add empty node
+		
+		
+		ImGuiID dock_up_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Up, 0.05f, nullptr, &dock_main_id);
+		ImGui::DockBuilderDockWindow(ed_id.c_str(), dock_up_id);
+		
+
+		ImGui::DockBuilderFinish(dockspace_id);
+		mAttachEditorsQueue.pop();
+	}
+
 	ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), 0);
 
 	Window* active = getActiveWindow();
@@ -167,13 +185,13 @@ void RootWindow::openFile(const std::string& file, OpenFilePolicy policy)
 
 		if (policy == OpenFilePolicy::NewEditor)
 		{
-			attachWindow(std::move(edWindow));
+			attachEditorWindow(std::move(edWindow));
 		}
 		else if (policy == OpenFilePolicy::ReplaceEditor)
 		{
 			//	if (getActiveEditor())
 			//		detachWindow(getActiveEditor()->mId);
-			attachWindow(std::move(edWindow));
+			attachEditorWindow(std::move(edWindow));
 		}
 		else if (policy == OpenFilePolicy::ReplaceEditorIfMatching)
 		{
@@ -182,7 +200,7 @@ void RootWindow::openFile(const std::string& file, OpenFilePolicy policy)
 			//		detachWindow(getActiveEditor()->mId);	
 			//	}
 
-			attachWindow(std::move(edWindow));
+			attachEditorWindow(std::move(edWindow));
 		}
 		else
 		{
@@ -234,4 +252,10 @@ RootWindow::RootWindow()
 RootWindow::~RootWindow()
 {
 	DeinitAPI();
+}
+void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor)
+{
+	mAttachEditorsQueue.push(editor->getName());
+
+	attachWindow(std::move(editor));
 }

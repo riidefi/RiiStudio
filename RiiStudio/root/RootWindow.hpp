@@ -7,6 +7,8 @@
 
 #include <queue>
 
+struct EditorWindow;
+
 class RootWindow final : public Applet
 {
 public:
@@ -34,4 +36,11 @@ private:
     DockSpace mDockSpace;
 	ThemeManager mTheme;
 	std::queue<std::string> mDropQueue;
+
+	void attachEditorWindow(std::unique_ptr<EditorWindow> editor);
+
+	std::queue<std::string> mAttachEditorsQueue;
+
+
+	u32 dockspace_id;
 };
