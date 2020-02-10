@@ -150,6 +150,8 @@ struct Material : public px::IDestructable
 	virtual s64 getId() const { return -1; }
 
 	virtual bool isXluPass() const { return false; }
+
+	virtual std::pair<std::string, std::string> generateShaders() const = 0;
 };
 
 struct Texture : public px::IDestructable

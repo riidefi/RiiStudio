@@ -10,39 +10,10 @@
 #include <imgui/imgui.h>
 #include <array>
 
-const char* vertexShaderSource = "#version 420\n"
-"layout (location = 0) in vec3 aPos;\n"
-"layout(location = 1) in vec3 vertexColor;\n"
-"out vec3 vcolor;\n"
-"layout(std140, binding=0) uniform Matrices {\n"
-"mat4 proj, view, mdl;\n"
-"};\n"
-"void main()\n"
-"{\n"
-"   gl_Position = proj * view * mdl * vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-"   vcolor = vertexColor;\n"
-"}\0";
-const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"in vec3 vcolor;"
-"void main()\n"
-"{\n"
-"   FragColor = vec4(vcolor.x, vcolor.y, vcolor.z, 1.0f);\n"
-"}\n\0";
+#include <LibCube/GX/Shader/GXMaterial.hpp>
 
-void checkShaderErrors(u32 id)
-{
-	return;
-	int success;
-	char infoLog[512];
-	glGetShaderiv(id, GL_COMPILE_STATUS, &success);
-
-	if (!success)
-	{
-		glGetShaderInfoLog(id, 512, NULL, infoLog);
-		std::cout << "Shader compilation failed: " << infoLog << std::endl;
-	}
-}
+#include "renderer/ShaderProgram.hpp"
+#include "renderer/ShaderCache.hpp"
 
 u32 roundDown(u32 in, u32 align) {
 	return align ? in & ~(align - 1) : in;
@@ -50,37 +21,6 @@ u32 roundDown(u32 in, u32 align) {
 u32 roundUp(u32 in, u32 align) {
 	return align ? roundDown(in + (align - 1), align) : in;
 };
-
-void Renderer::createShaderProgram()
-{
-	u32 vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-	glCompileShader(vertexShader);
-	checkShaderErrors(vertexShader);
-
-	u32 fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fragmentShader);
-	checkShaderErrors(fragmentShader);
-
-	mShaderProgram = glCreateProgram();
-	glAttachShader(mShaderProgram, vertexShader);
-	glAttachShader(mShaderProgram, fragmentShader);
-	glLinkProgram(mShaderProgram);
-	checkShaderErrors(mShaderProgram);
-
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-	bShadersLoaded = true;
-}
-void Renderer::destroyShaders()
-{
-	if (!bShadersLoaded) return;
-
-	glDeleteProgram(mShaderProgram);
-	bShadersLoaded = false;
-}
-
 
 struct SceneTree
 {
@@ -90,6 +30,8 @@ struct SceneTree
 		const lib3d::Polygon& poly;
 		const lib3d::Bone& bone;
 		u8 priority;
+
+		ShaderProgram& shader;
 
 		// Only used later
 		mutable u32 idx_ofs = 0;
@@ -117,8 +59,10 @@ struct SceneTree
 		for (u64 i = 0; i < nDisplay; ++i)
 		{
 			const auto display = pBone->getDisplay(i);
+			const auto shader_sources = mats.at<lib3d::Material>(display.matId)->generateShaders();
+			ShaderProgram& shader = ShaderCache::compile(shader_sources.first, shader_sources.second);
 			const Node node{ *mats.at<lib3d::Material>(display.matId),
-				*polys.at<lib3d::Polygon>(display.polyId), *pBone, display.prio };
+				*polys.at<lib3d::Polygon>(display.polyId), *pBone, display.prio, shader };
 
 			if (node.isTranslucent())
 				translucent.push_back(node);
@@ -215,6 +159,12 @@ struct MVPBuilder : public UBOBuilder
 
 private:
 	std::vector<glm::mat4> mMatrices;
+};
+
+struct UniformSceneParams
+{
+	glm::vec4 projection;
+	glm::vec4 Misc0;
 };
 
 struct VBOBuilder
@@ -322,6 +272,10 @@ struct SceneState
 	{
 		mTree.gather(root);
 		buildBuffers();
+
+		//	const auto mats = root.getFolder<lib3d::Material>();
+		//	const auto mat = mats->at<lib3d::Material>(0);
+		//	const auto compiled = mat->generateShaders();
 	}
 	void build(const glm::mat4& view, const glm::mat4& proj)
 	{
@@ -352,6 +306,7 @@ struct SceneState
 		for (const auto& node : mTree.opaque)
 		{
 			mMvpBuilder.use(node.mtx_id);
+			glUseProgram(node.shader.getId());
 			glDrawElements(GL_TRIANGLES, node.idx_size, GL_UNSIGNED_INT, (void*)(node.idx_ofs * 4));
 		}
 	}
@@ -455,8 +410,6 @@ void Renderer::render(u32 width, u32 height)
 		eye + direction,
 		up
 	);
-
-	glUseProgram(mShaderProgram);
 
 	mState->build(projMtx, viewMtx);
 	mState->draw();

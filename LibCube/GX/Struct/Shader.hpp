@@ -245,7 +245,7 @@ struct TevStage
 	} alphaStage;
 	struct IndirectStage
 	{
-		u8 indStageSel			{ 0 };
+		u8 indStageSel			{ 0 }; // TODO: Ind tex stage sel
 		IndTexFormat format		{ IndTexFormat::_8bit };
 		IndTexBiasSel bias		{ IndTexBiasSel::none };
 		IndTexMtxID matrix		{ IndTexMtxID::off };
@@ -279,6 +279,21 @@ struct SwapTableEntry
 	bool operator==(const SwapTableEntry& rhs) const noexcept
 	{
 		return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
+	}
+
+	ColorComponent lookup(ColorComponent other) const
+	{
+		switch (other)
+		{
+		case ColorComponent::r:
+			return r;
+		case ColorComponent::g:
+			return g;
+		case ColorComponent::b:
+			return b;
+		case ColorComponent::a:
+			return a;
+		}
 	}
 };
 

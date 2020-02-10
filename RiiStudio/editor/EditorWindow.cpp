@@ -82,9 +82,9 @@ struct GenericCollectionOutliner : public IStudioWindow
 
 		u32 nPass = 0;
 
-		for (u32 i = 0; i < sampler.size(); ++i)
-			if (filter->test(sampler.nameAt(i).c_str()))
-				++nPass;
+		//for (u32 i = 0; i < sampler.size(); ++i)
+		//	if (filter->test(sampler.nameAt(i).c_str()))
+		//		++nPass;
 
 		return nPass;
 	}
@@ -119,8 +119,7 @@ struct GenericCollectionOutliner : public IStudioWindow
 		// Draw the tree
 		for (int i = 0; i < sampler.size(); ++i)
 		{
-			auto n = sampler.nameAt(i);
-			const char* name = n.c_str();
+			std::string name = "wtf";// sampler.nameAt(i);
 
 			auto subHnds = px::ReflectionMesh::getInstance()->findParentOfType<px::CollectionHost>(sampler.atDynamic(i));
 
@@ -142,7 +141,9 @@ struct GenericCollectionOutliner : public IStudioWindow
 			thereWasAClick = ImGui::IsItemClicked();
 			bool focused = ImGui::IsItemFocused();
 
-			const std::string cur_name = std::string(GetRich(sampler.getType()).icon.icon_singular) + " " + std::string(name);
+			std::string cur_name =
+				//std::string(GetRich(sampler.getType()).icon.icon_singular) + " " +
+				name;
 			
 			if (ImGui::TreeNodeEx(std::to_string(i).c_str(), ImGuiTreeNodeFlags_DefaultOpen | (subHnds.empty() ? ImGuiTreeNodeFlags_Leaf : 0), cur_name.c_str()))
 			{
@@ -291,7 +292,15 @@ struct RenderTest : public IStudioWindow
 	{
 		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize);
 
-		mRenderer.prepare(*host.getFolder<px::CollectionHost>()->at<px::CollectionHost>(0));
+		const auto models = host.getFolder<px::CollectionHost>();
+
+		if (!models.has_value())
+			return;
+
+		if (models->size() == 0)
+			return;
+
+		mRenderer.prepare(*models->at<px::CollectionHost>(0));
 	}
 	void draw() noexcept override
 	{

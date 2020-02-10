@@ -83,7 +83,7 @@ enum class TexMatrix
 };
 struct TexCoordGen // XF TEX/DUALTEX
 {
-	//	u8			id;
+	// u8			id = -1; // TODO
 	TexGenType		func;
 	TexGenSrc		sourceParam;
 	TexMatrix		matrix; // FIXME: for BMD

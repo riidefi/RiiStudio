@@ -17,8 +17,8 @@ public:
 	Renderer();
 	~Renderer();
 	void render(u32 width, u32 height);
-	void createShaderProgram();
-	void destroyShaders();
+	void createShaderProgram() { bShadersLoaded = true; }
+	void destroyShaders() { bShadersLoaded = false; }
 
 	void prepare(const px::CollectionHost& root);
 

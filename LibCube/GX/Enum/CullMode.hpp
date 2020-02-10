@@ -1,5 +1,6 @@
 #pragma once
 
+#include <LibCore/common.h>
 
 namespace libcube { namespace gx {
 

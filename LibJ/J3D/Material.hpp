@@ -17,38 +17,6 @@ template<typename T>
 using ID = int;
 
 
-// Assumption: all elements are contiguous--no holes
-// Much faster than a vector for the many static sized arrays in materials
-template<typename T, size_t N>
-struct array_vector : public std::array<T, N>
-{
-	size_t size() const
-	{
-		return nElements;
-	}
-	size_t nElements = 0;
-
-	void push_back(T elem)
-	{
-		at(nElements) = elem;
-	}
-	void pop_back()
-	{
-		--nElements;
-	}
-	bool operator==(const array_vector& rhs) const noexcept
-	{
-		if (rhs.nElements != nElements) return false;
-		for (int i = 0; i < nElements; ++i)
-		{
-			const T& l = this->at(i);
-			const T& r = rhs.at(i);
-			if (!(l == r))
-				return false;
-		}
-		return true;
-	}
-};
 struct MaterialData
 {
 	struct GenInfo
@@ -104,7 +72,8 @@ struct MaterialData
 	};
 
 	std::string name = "";
-	ID<Material> id;
+	u32 //ID<Material>
+		id;
 
 	u8 flag = 0;
 
@@ -118,8 +87,6 @@ struct MaterialData
 	array_vector<gx::ChannelControl, 4> colorChanControls;
 	array_vector<gx::Color, 2> ambColors;
 	array_vector<gx::Color, 8> lightColors;
-
-	array_vector<gx::TexCoordGen, 8> texGenInfos;
 
 	array_vector<TexMatrix, 10> texMatrices;
 	array_vector<TexMatrix, 20> postTexMatrices;
@@ -157,7 +124,9 @@ struct MaterialData
 	array_vector<gx::Color, 4> tevKonstColors;
 	array_vector<gx::ColorS10, 4> tevColors;
 
-	gx::Shader shader = gx::Shader();
+	gx::Shader shader;
+	array_vector<gx::TexCoordGen, 8> texGenInfos;
+
 	// Split up -- only 3 indmtx
 	std::vector<gx::IndirectTextureScalePair> mIndScales;
 	std::vector<gx::IndirectMatrix> mIndMatrices;
@@ -324,7 +293,26 @@ struct Material final : public MaterialData, public IMaterialDelegate
 		if (idx < 2)
 			ambColors[idx] = v;
 	}
+	gx::Shader& getShader() override
+	{
+		return shader;
+	}
+	array_vector<gx::TexCoordGen, 8>& getTexGens()
+	{
+		return texGenInfos;
+	}
 
+	gx::AlphaComparison getAlphaComparison()
+	{
+		return alphaCompare;
+	}
+	gx::IndirectTextureScalePair getIndScale(u64 idx)
+	{
+		return mIndScales[idx];
+	}
+
+	
+	gx::BlendMode getBlendMode() { return blendMode; }
 };
 
 }

@@ -193,6 +193,7 @@ project "LibCube"
 	includedirs
 	{
 		"LibCube",
+		"ThirdParty",
 		"oishii",
 		"./"
 	}

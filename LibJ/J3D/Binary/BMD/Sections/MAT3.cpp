@@ -1155,7 +1155,8 @@ struct MAT3Node : public oishii::v2::Node
 
 	gx::TexCoordGen postTexGen(const gx::TexCoordGen& gen) const noexcept
 	{
-		return { gen.func, gen.sourceParam, static_cast<gx::TexMatrix>(gen.postMatrix),
+		return gx::TexCoordGen{ // gen.id,
+			gen.func, gen.sourceParam, static_cast<gx::TexMatrix>(gen.postMatrix),
 					false, gen.postMatrix };
 	}
 

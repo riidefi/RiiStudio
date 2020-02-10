@@ -402,7 +402,7 @@ MigrationBackup/
 *.bat
 bin-int/
 bin/
-
+UnitTest/
 *.bmd
 *.bdl
 *.bak
