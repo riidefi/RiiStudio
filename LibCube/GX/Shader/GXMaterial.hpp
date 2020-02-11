@@ -112,19 +112,30 @@ int getVertexAttribLocation(gx::VertexAttribute vtxAttrib);
 std::string generateBindingsDefinition(bool postTexMtxBlock = false, bool lightsBlock = false);
 
 extern const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs;
+
+struct Mat42
+{
+	glm::vec4 a, b;
+};
+struct Mat43
+{
+	glm::vec4 a, b, c;
+};
+// ROW-MAJOR
 struct UniformMaterialParams
 {
 	std::array<glm::vec4, 2> ColorMatRegs;
 	std::array<glm::vec4, 2> ColorAmbRegs;
-	std::array<glm::vec4, 2> KonstColor;
+	std::array<glm::vec4, 4> KonstColor;
 	std::array<glm::vec4, 4> Color;
-	std::array<glm::mat4x3, 10> TexMtx;
+	std::array<glm::mat3x4, 10> TexMtx; // 4x3
 	// sizex, sizey, 0, bias
 	std::array<glm::vec4, 8> TexParams;
-	std::array<glm::mat2x3, 3> IndTexMtx;
+	std::array<glm::mat2x4, 3> IndTexMtx; // 2x3
 	// Optional: Not optional for now.
-	Light u_LightParams[8];
+	// Light u_LightParams[8];
 };
 
-
+static_assert(sizeof(UniformMaterialParams) == 896);
+constexpr u32 ub = sizeof(UniformMaterialParams);
 } // namespace libcube

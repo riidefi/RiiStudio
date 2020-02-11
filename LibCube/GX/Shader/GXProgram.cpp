@@ -721,12 +721,12 @@ std::string GXProgram::generateAlphaTestCompare(gx::Comparison compare, u8 refer
 	const auto ref = std::to_string(static_cast<f32>(reference));
 	switch (compare) {
 	case gx::Comparison::NEVER:   return "false";
-	case gx::Comparison::LESS:    return "t_PixelOut.a <  " + ref + "}";
-	case gx::Comparison::EQUAL:   return "t_PixelOut.a == " + ref + "}";
-	case gx::Comparison::LEQUAL:  return "t_PixelOut.a <= " + ref + "}";
-	case gx::Comparison::GREATER: return "t_PixelOut.a >  " + ref + "}";
-	case gx::Comparison::NEQUAL:  return "t_PixelOut.a != " + ref + "}";
-	case gx::Comparison::GEQUAL:  return "t_PixelOut.a >= " + ref + "}";
+	case gx::Comparison::LESS:    return "t_PixelOut.a <  " + ref;
+	case gx::Comparison::EQUAL:   return "t_PixelOut.a == " + ref;
+	case gx::Comparison::LEQUAL:  return "t_PixelOut.a <= " + ref;
+	case gx::Comparison::GREATER: return "t_PixelOut.a >  " + ref;
+	case gx::Comparison::NEQUAL:  return "t_PixelOut.a != " + ref;
+	case gx::Comparison::GEQUAL:  return "t_PixelOut.a >= " + ref;
 	case gx::Comparison::ALWAYS:  return "true";
 	}
 }
@@ -747,7 +747,7 @@ std::string GXProgram::generateAlphaTest()
 		"	bool t_AlphaTestA = " + generateAlphaTestCompare(alphaTest.compLeft, alphaTest.refLeft) + ";\n"
 		"	bool t_AlphaTestB = " + generateAlphaTestCompare(alphaTest.compRight, alphaTest.refRight) + ";\n"
 		"	if (!(" + generateAlphaTestOp(alphaTest.op) + "))\n"
-		"		discard; \n";
+		"		//discard; \n";
 }
 std::string GXProgram::generateFogZCoord() {
 	return "";
@@ -824,25 +824,39 @@ std::pair<std::string, std::string> GXProgram::generateShaders()
 {
 	const auto bindingsDefinition = generateBindingsDefinition(mMaterial.hasPostTexMtxBlock, mMaterial.hasLightsBlock);
 		
-	const auto both = R"(#version 410
+	const auto both = R"(#version 440
 // )" + mMaterial.mat.getName() + R"(
 precision mediump float;
-)" + 
-bindingsDefinition +
-R"(varying vec3 v_Position;
-varying vec4 v_Color0;
-varying vec4 v_Color1;
-varying vec3 v_TexCoord0;
-varying vec3 v_TexCoord1;
-varying vec3 v_TexCoord2;
-varying vec3 v_TexCoord3;
-varying vec3 v_TexCoord4;
-varying vec3 v_TexCoord5;
-varying vec3 v_TexCoord6;
-varying vec3 v_TexCoord7;
+)" +
+bindingsDefinition;
+const std::string varying_vert = 
+R"(out vec3 v_Position;
+out vec4 v_Color0;
+out vec4 v_Color1;
+out vec3 v_TexCoord0;
+out vec3 v_TexCoord1;
+out vec3 v_TexCoord2;
+out vec3 v_TexCoord3;
+out vec3 v_TexCoord4;
+out vec3 v_TexCoord5;
+out vec3 v_TexCoord6;
+out vec3 v_TexCoord7;
+)";
+const std::string varying_frag =
+R"(in vec3 v_Position;
+in vec4 v_Color0;
+in vec4 v_Color1;
+in vec3 v_TexCoord0;
+in vec3 v_TexCoord1;
+in vec3 v_TexCoord2;
+in vec3 v_TexCoord3;
+in vec3 v_TexCoord4;
+in vec3 v_TexCoord5;
+in vec3 v_TexCoord6;
+in vec3 v_TexCoord7;
 )";
 
-	const auto vert = std::string(both) + generateVertAttributeDefs() +
+	const auto vert = std::string(both) + varying_vert + generateVertAttributeDefs() +
 		"mat4x3 GetPosTexMatrix(uint t_MtxIdx) {\n"
 		"    if (t_MtxIdx == " + std::to_string((int)gx::TexMatrix::Identity) + "u)\n"
 		"        return mat4x3(1.0);\n"
@@ -866,9 +880,9 @@ float ApplyAttenuation(vec3 t_Coeff, float t_Value) {
 "    vec4 t_ColorChanTemp;\n"
 + generateLightChannels() + generateTexGens() +
 "gl_Position = (u_Projection * vec4(t_Position, 1.0));\n"
-"}";
+"}\n";
 
-	const auto frag = both + generateTexCoordGetters() + R"(
+	const auto frag = both + varying_frag + generateTexCoordGetters() + R"(
 float TextureLODBias(int index) { return u_SceneTextureLODBias + u_TextureParams[index].w; }
 vec2 TextureInvScale(int index) { return 1.0 / u_TextureParams[index].xy; }
 vec2 TextureScale(int index) { return u_TextureParams[index].xy; }
@@ -902,9 +916,8 @@ void main() {
 	"    vec4 t_PixelOut = TevOverflow(t_TevOutput);\n" +
 		generateAlphaTest() +
 		generateFog() +
-		"    gl_FragColor = t_PixelOut;\n"
+		"    gl_FragColor = vec4(v_Color0.xyz, .5);//t_PixelOut;\n"
 		"}\n";
-
 	return { vert, frag };
 }
 u32 translateCullMode(gx::CullMode cullMode)

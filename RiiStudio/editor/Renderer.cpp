@@ -14,13 +14,7 @@
 
 #include "renderer/ShaderProgram.hpp"
 #include "renderer/ShaderCache.hpp"
-
-u32 roundDown(u32 in, u32 align) {
-	return align ? in & ~(align - 1) : in;
-};
-u32 roundUp(u32 in, u32 align) {
-	return align ? roundDown(in + (align - 1), align) : in;
-};
+#include "renderer/UBOBuilder.hpp"
 
 struct SceneTree
 {
@@ -98,75 +92,6 @@ struct SceneTree
 };
 
 
-struct UBOBuilder
-{
-	UBOBuilder()
-	{
-		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformStride);
-
-
-		glGenBuffers(1, &UBO);
-	}
-
-	~UBOBuilder()
-	{
-		glDeleteBuffers(1, &UBO);
-	}
-
-	u32 roundUniformUp(u32 ofs) { return roundUp(ofs, uniformStride); }
-	u32 roundUniformDown(u32 ofs) { return roundDown(ofs, uniformStride); }
-
-	int getUniformAlignment() const { return uniformStride; }
-
-private:
-	int uniformStride = 0;
-protected:
-	u32 UBO;
-};
-
-struct MVPBuilder : public UBOBuilder
-{
-	// Layout in memory:
-	// Contiguous M, V, P (concat these?)
-
-	void clear() { mMatrices.clear(); }
-	u32 push(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj)
-	{
-		mMatrices.push_back(model);
-		mMatrices.push_back(view);
-		mMatrices.push_back(proj);
-		return (mMatrices.size() - 3) / 3;
-	}
-	void submit()
-	{
-		const u32 matrixStride = roundUniformUp(sizeof(glm::mat4));
-		const u32 blocksize = matrixStride * mMatrices.size();
-		void* block = alloca(blocksize);
-		assert(block);
-
-		for (int i = 0; i < mMatrices.size(); ++i)
-			*reinterpret_cast<glm::mat4*>(reinterpret_cast<char*>(block) + matrixStride * i) = mMatrices[i];
-
-		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-		glBufferData(GL_UNIFORM_BUFFER, blocksize, NULL, GL_STATIC_DRAW);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, blocksize, block);
-	}
-	void use(u32 idx)
-	{
-		const u32 matrixstride = roundUniformUp(sizeof(glm::mat4)) * 3;
-		glBindBufferRange(GL_UNIFORM_BUFFER, 0, UBO, matrixstride * idx, matrixstride * 3);
-	}
-
-private:
-	std::vector<glm::mat4> mMatrices;
-};
-
-struct UniformSceneParams
-{
-	glm::vec4 projection;
-	glm::vec4 Misc0;
-};
-
 struct VBOBuilder
 {
 	VBOBuilder()
@@ -197,6 +122,8 @@ struct VBOBuilder
 
 	void build()
 	{
+		std::vector<int> mIds{ 0, 5, 7 }; // Hack
+
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuf);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndices.size() * 4, mIndices.data(), GL_STATIC_DRAW);
 
@@ -204,7 +131,7 @@ struct VBOBuilder
 
 		glBufferData(GL_ARRAY_BUFFER, mData.size(), mData.data(), GL_STATIC_DRAW);
 		for (std::size_t i = 0; i < mAttribStack.size(); ++i)
-			glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, 3 * 4, (void*)mAttribStack[i]);
+			glVertexAttribPointer(mIds[i], 3, GL_FLOAT, GL_FALSE, 3 * 4, (void*)mAttribStack[i]);
 	}
 	u32 mPositionBuf, mIndexBuf;
 
@@ -219,8 +146,7 @@ struct SceneState
 
 
 	std::vector<u32> mIndices;
-
-	MVPBuilder mMvpBuilder;
+	DelegatedUBOBuilder mUboBuilder;
 	SceneTree mTree;
 
 	std::vector<lib3d::Polygon::SimpleVertex> vtxScratch;
@@ -243,7 +169,7 @@ struct SceneState
 			{
 				mPositions.push_back(v.position);
 				mColors.push_back(v.colors[0]);
-				mUvs.push_back(v.uvs[0]);
+				mUvs.push_back(glm::vec3(v.uvs[0].x, v.uvs[1].y, 0));
 				mIndices.push_back(i);
 				++i;
 			}
@@ -263,10 +189,12 @@ struct SceneState
 
 		glBindVertexArray(VAO);
 		glEnableVertexAttribArray(0); // pos
-		glEnableVertexAttribArray(1); // clr
-		glEnableVertexAttribArray(2); // uv0
-
+		glEnableVertexAttribArray(5); // clr
+		glEnableVertexAttribArray(7); // uv0
+		
 		mVbo.build();
+		glBindVertexArray(0);
+
 	}
 	void gather(const px::CollectionHost& root)
 	{
@@ -279,7 +207,8 @@ struct SceneState
 	}
 	void build(const glm::mat4& view, const glm::mat4& proj)
 	{
-		mMvpBuilder.clear();
+		mUboBuilder.clear();
+		u32 i = 0;
 		for (const auto& node : mTree.opaque)
 		{
 			lib3d::SRT3 srt = node.bone.getSRT();
@@ -289,11 +218,13 @@ struct SceneState
 			// mdl = glm::rotate(mdl, (glm::mat4)srt.rotation);
 			mdl = glm::translate(mdl, srt.translation);
 
-			node.mtx_id = mMvpBuilder.push(mdl, view, proj);
+			node.mat.generateUniforms(mUboBuilder, mdl, view, proj);
+			node.mtx_id = i;
+			++i;
 		}
 
 
-		mMvpBuilder.submit();
+		mUboBuilder.submit();
 	}
 
 	void draw()
@@ -303,12 +234,16 @@ struct SceneState
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 
+		glBindVertexArray(VAO);
+
 		for (const auto& node : mTree.opaque)
 		{
-			mMvpBuilder.use(node.mtx_id);
+		
 			glUseProgram(node.shader.getId());
+			mUboBuilder.use(node.mtx_id);
 			glDrawElements(GL_TRIANGLES, node.idx_size, GL_UNSIGNED_INT, (void*)(node.idx_ofs * 4));
 		}
+		glBindVertexArray(0);
 	}
 
 	SceneState()
@@ -335,15 +270,12 @@ void Renderer::prepare(const px::CollectionHost& root)
 static void cb(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)
 {
 	printf(message);
+	printf("\n");
 }
 Renderer::Renderer()
 {
 
 	glDebugMessageCallback(cb, 0);
-
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-	// glBindBufferRange(GL_UNIFORM_BUFFER, 0, UBO, 0, 3 * sizeof(glm::mat4));
 
 	mState = std::make_unique<SceneState>();
 }

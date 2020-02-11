@@ -2,6 +2,7 @@
     "files.associations": {
         "apuc": "c",
         "*.es": "cpp",
+        "*.glsl": "glsl",
         "array": "cpp",
         "deque": "cpp",
         "initializer_list": "cpp",
@@ -76,6 +77,8 @@
         "xloctime": "cpp",
         "xmemory": "cpp",
         "xstddef": "cpp",
-        "xtr1common": "cpp"
+        "xtr1common": "cpp",
+        "clocale": "cpp",
+        "iomanip": "cpp"
     }
 }

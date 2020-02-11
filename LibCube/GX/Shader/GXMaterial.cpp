@@ -63,22 +63,22 @@ struct Light {
     vec4 CosAtten;
 };
 // Expected to change with each material.
-layout(std140, binding=1) uniform ub_MaterialParams {
+layout(std140, row_major, binding=1) uniform ub_MaterialParams {
     vec4 u_ColorMatReg[2];
     vec4 u_ColorAmbReg[2];
     vec4 u_KonstColor[4];
     vec4 u_Color[4];
-    mat4x3 u_TexMtx[10];
+    mat4x3 u_TexMtx[10]; //4x3
     // SizeX, SizeY, 0, Bias
     vec4 u_TextureParams[8];
-    mat4x2 u_IndTexMtx[3];
+    mat4x2 u_IndTexMtx[3]; // 4x2
     // Optional parameters.)") + "\n" +
-(postTexMtxBlock ? "Mat4x3 u_PostTexMtx[20];\n" : "") +
+(postTexMtxBlock ? "Mat4x3 u_PostTexMtx[20];\n" : "") + // 4x3
 (lightsBlock ? "Light u_LightParams[8];\n" : "") +
 std::string("};\n") +
 "// Expected to change with each shape packet.\n"
-"layout(std140, binding=2) uniform ub_PacketParams {\n"
-"    mat4x3 u_PosMtx[10];\n"
+"layout(std140, row_major, binding=2) uniform ub_PacketParams {\n"
+"    mat4x3 u_PosMtx[10];\n" // 4x3
 "};\n"
 "uniform sampler2D u_Texture[8];\n";
 }

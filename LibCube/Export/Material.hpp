@@ -95,7 +95,10 @@ struct IMaterialDelegate : public lib3d::Material
 
 	virtual gx::AlphaComparison getAlphaComparison() = 0;
 	virtual gx::IndirectTextureScalePair getIndScale(u64 idx) = 0;
+
 	std::pair<std::string, std::string> generateShaders() const override;
+	void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P) const override;
+
 	virtual gx::BlendMode getBlendMode() = 0;
 
 protected:

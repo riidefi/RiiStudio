@@ -26,11 +26,13 @@ ShaderProgram::ShaderProgram(const char* vtx, const char* frag)
     glShaderSource(vertexShader, 1, &vtx, NULL);
     glCompileShader(vertexShader);
     checkShaderErrors(vertexShader);
+	// printf(vtx);
 
     u32 fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &frag, NULL);
     glCompileShader(fragmentShader);
     checkShaderErrors(fragmentShader);
+	// printf(frag);
 
     mShaderProgram = glCreateProgram();
     glAttachShader(mShaderProgram, vertexShader);

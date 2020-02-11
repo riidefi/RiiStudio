@@ -3,11 +3,15 @@
 #include <LibCore/api/Node.hpp>
 #include <ThirdParty/glm/vec2.hpp>
 #include <ThirdParty/glm/vec3.hpp>
+#include <ThirdParty/glm/mat4x4.hpp>
 
 #include <array>
 #include <LibCore/common.h>
 
 #include <ThirdParty/fa5/IconsFontAwesome5.h>
+
+// TODO: Interdependency
+#include <RiiStudio/editor/renderer/UBOBuilder.hpp>
 
 namespace lib3d {
 enum class Coverage
@@ -152,6 +156,8 @@ struct Material : public px::IDestructable
 	virtual bool isXluPass() const { return false; }
 
 	virtual std::pair<std::string, std::string> generateShaders() const = 0;
+	// TODO: Interdependency
+	virtual void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P) const = 0;
 };
 
 struct Texture : public px::IDestructable

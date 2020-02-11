@@ -21,3 +21,14 @@
 #else
 #define DebugReport(...)
 #endif
+
+
+constexpr u32 roundDown(u32 in, u32 align) {
+	return align ? in & ~(align - 1) : in;
+};
+constexpr u32 roundUp(u32 in, u32 align) {
+	return align ? roundDown(in + (align - 1), align) : in;
+};
+
+#define MODULE_PRIVATE public
+#define MODULE_PUBLIC public
