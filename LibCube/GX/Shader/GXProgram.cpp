@@ -878,6 +878,7 @@ float ApplyAttenuation(vec3 t_Coeff, float t_Value) {
 "    vec3 t_LightDelta, t_LightDeltaDir;\n"
 "    float t_LightDeltaDist2, t_LightDeltaDist, t_Attenuation;\n"
 "    vec4 t_ColorChanTemp;\n"
+"    v_Color0 = a_Color0;"
 + generateLightChannels() + generateTexGens() +
 "gl_Position = (u_Projection * vec4(t_Position, 1.0));\n"
 "}\n";
@@ -916,7 +917,8 @@ void main() {
 	"    vec4 t_PixelOut = TevOverflow(t_TevOutput);\n" +
 		generateAlphaTest() +
 		generateFog() +
-		"    gl_FragColor = vec4(v_Color0.xyz, .5);//t_PixelOut;\n"
+		"    gl_FragColor = vec4(v_Color0.xyz, 0.5);"
+		// "    gl_FragColor = t_PixelOut;\n"
 		"}\n";
 	return { vert, frag };
 }

@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <tuple>
+#include <map>
 
 struct UBOBuilder
 {
@@ -54,4 +55,51 @@ private:
     // Recomputed each submit
     std::vector<u8> mCoalesced;
     std::vector<std::pair<u32, u32>> mCoalescedOffsets; // Offset : Stride
+};
+
+//----------------------------------
+// Vertex attribute generation
+struct VAOEntry
+{
+	u32 binding_point;
+	const char* name;
+
+	u32 format; // (gl)
+	u32 size; // (of element / stride)
+};
+
+
+// WIP..
+struct VBOBuilder
+{
+	VBOBuilder();
+	~VBOBuilder();
+
+	std::vector<u8> mData;
+	std::vector<u32> mIndices;
+
+	std::map<u32, std::pair<VAOEntry, std::vector<u8>>> mPropogating; // binding_point : data
+
+	void build();
+
+	template<typename T>
+	void pushData(u32 binding_point, const T& data)
+	{
+		const std::size_t begin = mPropogating[binding_point].second.size();
+		mPropogating[binding_point].second.resize(mPropogating[binding_point].second.size() + sizeof(T));
+		*reinterpret_cast<T*>(mPropogating[binding_point].second.data() + begin) = data;
+	}
+	u32 VAO;
+	u32 mPositionBuf, mIndexBuf;
+
+
+private:
+
+	template<typename T>
+	void push(const T& data)
+	{
+		const std::size_t begin = mData.size();
+		mData.resize(mData.size() + sizeof(T));
+		*reinterpret_cast<T*>(mData.data() + begin) = data;
+	}
 };

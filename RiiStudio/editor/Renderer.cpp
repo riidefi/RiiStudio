@@ -92,105 +92,20 @@ struct SceneTree
 };
 
 
-struct VBOBuilder
-{
-	VBOBuilder()
-	{
-		glGenBuffers(1, &mPositionBuf);
-		glGenBuffers(1, &mIndexBuf);
-
-		mAttribStack.push_back(0);
-	}
-	~VBOBuilder()
-	{
-		glDeleteBuffers(1, &mPositionBuf);
-		glDeleteBuffers(1, &mIndexBuf);
-	}
-
-	std::vector<u8> mData;
-	std::vector<u32> mIndices;
-
-	void next() { mAttribStack.push_back(mData.size()); }
-
-	template<typename T>
-	void push(const T& data)
-	{
-		const std::size_t begin = mData.size();
-		mData.resize(mData.size() + sizeof(T));
-		*reinterpret_cast<T*>(mData.data() + begin) = data;
-	}
-
-	void build()
-	{
-		std::vector<int> mIds{ 0, 5, 7 }; // Hack
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuf);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndices.size() * 4, mIndices.data(), GL_STATIC_DRAW);
-
-		glBindBuffer(GL_ARRAY_BUFFER, mPositionBuf);
-
-		glBufferData(GL_ARRAY_BUFFER, mData.size(), mData.data(), GL_STATIC_DRAW);
-		for (std::size_t i = 0; i < mAttribStack.size(); ++i)
-			glVertexAttribPointer(mIds[i], 3, GL_FLOAT, GL_FALSE, 3 * 4, (void*)mAttribStack[i]);
-	}
-	u32 mPositionBuf, mIndexBuf;
-
-	std::vector<u32> mAttribStack;
-};
-
 struct SceneState
 {
-	std::vector<glm::vec3> mPositions;
-	std::vector<glm::vec3> mColors;
-	std::vector<glm::vec2> mUvs;
-
-
-	std::vector<u32> mIndices;
 	DelegatedUBOBuilder mUboBuilder;
 	SceneTree mTree;
-
-	std::vector<lib3d::Polygon::SimpleVertex> vtxScratch;
-
 	
 	void buildBuffers()
 	{
-		mPositions.clear();
-		mColors.clear();
-		mUvs.clear();
-		mIndices.clear();
-
+		// TODO -- nodes may be of incompatible type..
 		for (const auto& node : mTree.opaque)
 		{
-			vtxScratch.clear();
-			node.poly.propogate(vtxScratch);
-			node.idx_ofs = mIndices.size();
-			u32 i = mIndices.size();
-			for (const auto& v : vtxScratch)
-			{
-				mPositions.push_back(v.position);
-				mColors.push_back(v.colors[0]);
-				mUvs.push_back(glm::vec3(v.uvs[0].x, v.uvs[1].y, 0));
-				mIndices.push_back(i);
-				++i;
-			}
-			node.idx_size = vtxScratch.size();
+			node.idx_ofs = mVbo.mIndices.size();
+			node.poly.propogate(mVbo);
+			node.idx_size = mVbo.mIndices.size();
 		}
-
-		for (const auto& pos : mPositions)
-			mVbo.push(pos);
-		mVbo.next();
-		for (const auto& clr : mColors)
-			mVbo.push(clr);
-		mVbo.next();
-		for (const auto& uv : mUvs)
-			mVbo.push(uv);
-
-		mVbo.mIndices = mIndices;
-
-		glBindVertexArray(VAO);
-		glEnableVertexAttribArray(0); // pos
-		glEnableVertexAttribArray(5); // clr
-		glEnableVertexAttribArray(7); // uv0
 		
 		mVbo.build();
 		glBindVertexArray(0);
@@ -233,31 +148,15 @@ struct SceneState
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
-
-		glBindVertexArray(VAO);
-
+		glBindVertexArray(mVbo.VAO);
 		for (const auto& node : mTree.opaque)
 		{
-		
+			
 			glUseProgram(node.shader.getId());
 			mUboBuilder.use(node.mtx_id);
 			glDrawElements(GL_TRIANGLES, node.idx_size, GL_UNSIGNED_INT, (void*)(node.idx_ofs * 4));
 		}
-		glBindVertexArray(0);
 	}
-
-	SceneState()
-	{	
-		glGenVertexArrays(1, &VAO);
-
-		vtxScratch.resize(250);
-	}
-	~SceneState()
-	{
-		glDeleteVertexArrays(1, &VAO);
-	}
-
-	u32 VAO;
 
 	VBOBuilder mVbo;
 };

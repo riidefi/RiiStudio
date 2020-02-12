@@ -9,6 +9,7 @@
 #include <string>
 #include <array>
 #include <iterator>
+#include <tuple>
 
 #include <ThirdParty/glm/vec3.hpp>
 #include <ThirdParty/glm/vec4.hpp>
@@ -102,11 +103,11 @@ struct VertexAttributeGenDef
     const char* name;
     
     u32 format;
-    int size;
-    
+    u32 size;  
 };
+static_assert(sizeof(VertexAttributeGenDef) == sizeof(VAOEntry));
 
-const VertexAttributeGenDef& getVertexAttribGenDef(gx::VertexAttribute vtxAttrib);
+std::pair<const VertexAttributeGenDef&, std::size_t> getVertexAttribGenDef(gx::VertexAttribute vtxAttrib);
 int getVertexAttribLocation(gx::VertexAttribute vtxAttrib);
 
 std::string generateBindingsDefinition(bool postTexMtxBlock = false, bool lightsBlock = false);

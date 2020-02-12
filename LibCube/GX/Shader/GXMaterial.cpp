@@ -8,9 +8,9 @@ using namespace gx;
 
 const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs {
     VertexAttributeGenDef { VertexAttribute::Position,						"Position",      GL_FLOAT,          3 },
-    VertexAttributeGenDef { VertexAttribute::PositionNormalMatrixIndex,		"PnMtxIdx",      GL_FLOAT,  1 },
-    VertexAttributeGenDef { VertexAttribute::Texture0MatrixIndex,			"TexMtx0123Idx", GL_FLOAT,  4 },
-    VertexAttributeGenDef { VertexAttribute::Texture4MatrixIndex,			"TexMtx4567Idx", GL_FLOAT,  4 },
+    VertexAttributeGenDef { VertexAttribute::PositionNormalMatrixIndex,		"PnMtxIdx",      GL_FLOAT,			1 },
+    VertexAttributeGenDef { VertexAttribute::Texture0MatrixIndex,			"TexMtx0123Idx", GL_FLOAT,			4 },
+    VertexAttributeGenDef { VertexAttribute::Texture4MatrixIndex,			"TexMtx4567Idx", GL_FLOAT,			4 },
     VertexAttributeGenDef { VertexAttribute::Normal,						"Normal",        GL_FLOAT,          3 },
     VertexAttributeGenDef { VertexAttribute::Color0,						"Color0",        GL_FLOAT,          4 },
     VertexAttributeGenDef { VertexAttribute::Color1,						"Color1",        GL_FLOAT,          4 },
@@ -24,7 +24,7 @@ const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs {
     VertexAttributeGenDef { VertexAttribute::TexCoord7,						"Tex7",          GL_FLOAT,          2 }
 };
 
-const VertexAttributeGenDef& getVertexAttribGenDef(VertexAttribute vtxAttrib)
+std::pair<const VertexAttributeGenDef&, std::size_t> getVertexAttribGenDef(VertexAttribute vtxAttrib)
 {
     const auto it = std::find_if(vtxAttributeGenDefs.begin(), vtxAttributeGenDefs.end(), [vtxAttrib](const VertexAttributeGenDef& def) {
         return def.attrib == vtxAttrib;
@@ -32,7 +32,7 @@ const VertexAttributeGenDef& getVertexAttribGenDef(VertexAttribute vtxAttrib)
 
     assert(it != vtxAttributeGenDefs.end());
 
-    return *it;
+	return { *it, it - vtxAttributeGenDefs.begin() };
 }
 // TODO: Unify?
 int getVertexAttribLocation(VertexAttribute vtxAttrib)

@@ -217,7 +217,7 @@ struct Polygon : public px::IDestructable
 	};
 
 	// For now... (slow api)
-	virtual void propogate(std::vector<SimpleVertex>& out) const = 0;
+	virtual void propogate(VBOBuilder& out) const = 0;
 
 
 	//	virtual SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx) = 0;

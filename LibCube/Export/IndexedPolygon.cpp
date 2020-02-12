@@ -1,5 +1,7 @@
 #include "IndexedPolygon.hpp"
 
+#include <LibCUbe/GX/Shader/GXMaterial.hpp>
+
 namespace libcube {
 
 u64 IndexedPolygon::getNumPrimitives() const
@@ -140,8 +142,10 @@ IndexedPolygon::SimpleVertex IndexedPolygon::getPrimitiveVertex(u64 prim_idx, u6
 	};
 	return {};
 }
-void IndexedPolygon::propogate(std::vector<SimpleVertex>& out) const
+void IndexedPolygon::propogate(VBOBuilder& out) const
 {
+	u32 final_bitfield = 0;
+
 	for (int i = 0; i < getNumMatrixPrimitives(); ++i)
 	{
 		for (int j = 0; j < getMatrixPrimitiveNumIndexedPrimitive(i); ++j)
@@ -158,37 +162,69 @@ void IndexedPolygon::propogate(std::vector<SimpleVertex>& out) const
 					tri[1] = isEven ? idx.mVertices[v] : idx.mVertices[v - 1];
 					tri[2] = isEven ? idx.mVertices[v - 1] : idx.mVertices[v];
 
+					const auto& vcd = getVcd();
 					for (const auto& vtx : tri)
 					{
-						SimpleVertex s{};
-						s.evpIdx = vtx[gx::VertexAttribute::PositionNormalMatrixIndex];
-						u16 pIdx = vtx[gx::VertexAttribute::Position];
-						s.position = getPos(pIdx) * .001f;
-						s.colors[0] = getClr(vtx[gx::VertexAttribute::Color0]);
-						if (hasAttrib(SimpleAttrib::TexCoord0))
-							s.uvs[0] = getUv(0, vtx[gx::VertexAttribute::TexCoord0]);
-						out.push_back(s);
+						out.mIndices.push_back(out.mIndices.size());
+						final_bitfield |= vcd.mBitfield;
+						for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i)
+						{
+							if (!(vcd.mBitfield & ( 1 << i))) continue;
+
+							switch (static_cast<gx::VertexAttribute>(i))
+							{
+							case gx::VertexAttribute::PositionNormalMatrixIndex:
+							case gx::VertexAttribute::Texture0MatrixIndex:
+							case gx::VertexAttribute::Texture1MatrixIndex:
+							case gx::VertexAttribute::Texture2MatrixIndex:
+							case gx::VertexAttribute::Texture3MatrixIndex:
+							case gx::VertexAttribute::Texture4MatrixIndex:
+							case gx::VertexAttribute::Texture5MatrixIndex:
+							case gx::VertexAttribute::Texture6MatrixIndex:
+							case gx::VertexAttribute::Texture7MatrixIndex:
+								break;
+							case gx::VertexAttribute::Position:
+								out.pushData(0, getPos(vtx[gx::VertexAttribute::Position]) * 0.001f);
+								break;
+							case gx::VertexAttribute::Color0:
+								out.pushData(5, getClr(vtx[gx::VertexAttribute::Color0]));
+								break;
+							case gx::VertexAttribute::TexCoord0:
+								out.pushData(7, getUv(0, vtx[gx::VertexAttribute::TexCoord0]));
+								break;
+							default:
+								break;
+							}
+						}
 					}
 				}
 				break;
 			case gx::PrimitiveType::Triangles:
-				for (const auto& vtx : idx.mVertices)
-				{
-					SimpleVertex s{};
-					s.evpIdx = vtx[gx::VertexAttribute::PositionNormalMatrixIndex];
-					u16 pIdx = vtx[gx::VertexAttribute::Position];
-					s.position = getPos(pIdx) * .001f;
-
-					s.colors[0] = getClr(vtx[gx::VertexAttribute::Color0]);
-
-					out.push_back(s);
-				}
+				//	for (const auto& vtx : idx.mVertices)
+				//	{
+				//		SimpleVertex s{};
+				//		s.evpIdx = vtx[gx::VertexAttribute::PositionNormalMatrixIndex];
+				//		u16 pIdx = vtx[gx::VertexAttribute::Position];
+				//		s.position = getPos(pIdx) * .001f;
+				//	
+				//		s.colors[0] = getClr(vtx[gx::VertexAttribute::Color0]);
+				//	
+				//		out.push_back(s);
+				//	}
 				break;
 			default:
 				assert(!"TODO");
 				break;
 			}
 		}
+	}
+
+	for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i)
+	{
+		if (!(final_bitfield & (1 << i))) continue;
+
+		const auto& def = getVertexAttribGenDef((gx::VertexAttribute)i);
+		out.mPropogating[def.second].first = VAOEntry{ (u32)def.second, def.first.name, def.first.format, def.first.size * 4 };
 	}
 }
 }
