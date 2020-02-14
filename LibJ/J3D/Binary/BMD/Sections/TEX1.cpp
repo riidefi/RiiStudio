@@ -113,9 +113,9 @@ void readTEX1(BMDOutputContext& ctx)
 		for (int j = 0; j < ctx.mdl.getMaterials().size(); ++j)
 		{
 			auto& mat = ctx.mdl.getMaterials()[j];
-			for (int k = 0; k < mat.textures.size(); ++k)
+			for (int k = 0; k < mat.samplers.size(); ++k)
 			{
-				auto& samp = mat.textures[k];
+				auto& samp = (Material::J3DSamplerData&)*mat.samplers[k].get();
 				if (samp.btiId == i)
 				{
 					samp.mTexture = nameTable[i];
@@ -180,13 +180,13 @@ void readTEX1(BMDOutputContext& ctx)
 	for (int j = 0; j < ctx.mdl.getMaterials().size(); ++j)
 	{
 		auto& mat = ctx.mdl.getMaterials()[j];
-		for (int k = 0; k < mat.textures.size(); ++k)
+		for (int k = 0; k < mat.samplers.size(); ++k)
 		{
-			auto& samp = mat.textures[k];
-			if (samp.mTexture.empty())
+			auto& samp = mat.samplers[k];
+			if (samp->mTexture.empty())
 			{
 				printf("Material %s: Sampler %u is invalid.\n", mat.getName().c_str(), (u32)i);
-				assert(!samp.mTexture.empty());
+				assert(!samp->mTexture.empty());
 			}
 		}
 	}
@@ -243,9 +243,9 @@ struct TEX1Node final : public oishii::v2::Node
 			{
 				const auto& mat = mMdl.getMaterials()[i];
 
-				for (int j = 0; j < mat.textures.size(); ++j)
+				for (int j = 0; j < mat.samplers.size(); ++j)
 				{
-					const auto& sampl = mat.textures[j];
+					const auto& sampl = *mat.samplers[j].get();
 					assert(!sampl.mTexture.empty());
 
 					if (std::find(unique_samplers.begin(), unique_samplers.end(), sampl) == unique_samplers.end())

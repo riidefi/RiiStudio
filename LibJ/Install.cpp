@@ -26,7 +26,7 @@ void Install()
 
 
     installer.registerParent<Joint, IBoneDelegate>();
-    installer.registerParent<Material, IMaterialDelegate>();
+    installer.registerParent<Material, IGCMaterial>();
 	installer.registerParent<Texture, libcube::Texture>();
 	installer.registerParent<Shape, libcube::IndexedPolygon>();
 

@@ -259,7 +259,7 @@ std::string GXProgram::generateTexGen(const gx::TexCoordGen& texCoordGen, int id
 
 std::string GXProgram::generateTexGens() {
 	std::string out;
-	const auto& tgs = mMaterial.mat.getTexGens();
+	const auto& tgs = mMaterial.mat.getMaterialData().texGens;
 	for (int i = 0; i < tgs.size(); ++i)
 		out += generateTexGen(tgs[i], i);
 	return out;
@@ -268,7 +268,7 @@ std::string GXProgram::generateTexGens() {
 std::string GXProgram::generateTexCoordGetters()
 {
 	std::string out;
-	for (int i = 0; i < mMaterial.mat.getTexGens().size(); ++i)
+	for (int i = 0; i < mMaterial.mat.getMaterialData().texGens.size(); ++i)
 	{
 		const std::string is = std::to_string(i);
 		out += "vec2 ReadTexCoord" + is + "() { return v_TexCoord" + is + ".xy / v_TexCoord" + is + ".z; }\n";
@@ -312,19 +312,19 @@ std::string GXProgram::generateTextureSample(u32 index, const std::string& coord
 
 std::string GXProgram::generateIndTexStage(u32 indTexStageIndex)
 {
-    const auto& stage = mMaterial.mat.getShader().mStages[indTexStageIndex].indirectStage;
+    const auto& stage = mMaterial.mat.getMaterialData().shader.mStages[indTexStageIndex].indirectStage;
     return "vec3 t_IndTexCoord" + std::to_string(indTexStageIndex) + " = 255.0 * " +
-		generateTextureSample(mMaterial.mat.getShader().mIndirectOrders[indTexStageIndex].refMap,
-			generateIndTexStageScale(stage, mMaterial.mat.getIndScale(indTexStageIndex), mMaterial.mat.getShader().mIndirectOrders[indTexStageIndex])) + ".abg;\n";
+		generateTextureSample(mMaterial.mat.getMaterialData().shader.mIndirectOrders[indTexStageIndex].refMap,
+			generateIndTexStageScale(stage, mMaterial.mat.getMaterialData().mIndScales[indTexStageIndex], mMaterial.mat.getMaterialData().shader.mIndirectOrders[indTexStageIndex])) + ".abg;\n";
 }
 
 std::string GXProgram::generateIndTexStages()
 {
 	std::string out;
 
-	for (int i = 0; i < mMaterial.mat.getShader().mStages.size(); ++i)
+	for (int i = 0; i < mMaterial.mat.getMaterialData().shader.mStages.size(); ++i)
 	{
-		if (mMaterial.mat.getShader().mIndirectOrders[i].refCoord >= mMaterial.mat.getTexGens().size())
+		if (mMaterial.mat.getMaterialData().shader.mIndirectOrders[i].refCoord >= mMaterial.mat.getMaterialData().texGens.size())
 			continue;
 		out += generateIndTexStage(i);
 	}
@@ -458,13 +458,13 @@ std::string GXProgram::generateColorIn(const gx::TevStage& stage, gx::TevColorAr
 	case gx::TevColorArg::c2:    return "t_Color2.rgb";
 	case gx::TevColorArg::a2:    return "t_Color2.aaa";
 	case gx::TevColorArg::texc:
-		return generateTexAccess(stage) + "." + generateColorSwizzle(&mMaterial.mat.getShader().mSwapTable[stage.texMapSwap], colorIn);
+		return generateTexAccess(stage) + "." + generateColorSwizzle(&mMaterial.mat.getMaterialData().shader.mSwapTable[stage.texMapSwap], colorIn);
 	case gx::TevColorArg::texa:
-		return generateTexAccess(stage) + "." + generateColorSwizzle(&mMaterial.mat.getShader().mSwapTable[stage.texMapSwap], colorIn);
+		return generateTexAccess(stage) + "." + generateColorSwizzle(&mMaterial.mat.getMaterialData().shader.mSwapTable[stage.texMapSwap], colorIn);
 	case gx::TevColorArg::rasc:
-		return "TevSaturate(" + generateRas(stage) + "." + generateColorSwizzle(&mMaterial.mat.getShader().mSwapTable[stage.rasSwap], colorIn) + ")";
+		return "TevSaturate(" + generateRas(stage) + "." + generateColorSwizzle(&mMaterial.mat.getMaterialData().shader.mSwapTable[stage.rasSwap], colorIn) + ")";
 	case gx::TevColorArg::rasa:
-		return "TevSaturate(" + generateRas(stage) + "." + generateColorSwizzle(&mMaterial.mat.getShader().mSwapTable[stage.rasSwap], colorIn) + ")";
+		return "TevSaturate(" + generateRas(stage) + "." + generateColorSwizzle(&mMaterial.mat.getMaterialData().shader.mSwapTable[stage.rasSwap], colorIn) + ")";
 	case gx::TevColorArg::one:   return "vec3(1)";
 	case gx::TevColorArg::half:  return "vec3(1.0/2.0)";
 	case gx::TevColorArg::konst:
@@ -482,9 +482,9 @@ std::string GXProgram::generateAlphaIn(const gx::TevStage& stage, gx::TevAlphaAr
 	case gx::TevAlphaArg::a1:    return "t_Color1.a";
 	case gx::TevAlphaArg::a2:    return "t_Color2.a";
 	case gx::TevAlphaArg::texa:
-		return generateTexAccess(stage) + "." + generateComponentSwizzle(&mMaterial.mat.getShader().mSwapTable[stage.texMapSwap], gx::ColorComponent::a);
+		return generateTexAccess(stage) + "." + generateComponentSwizzle(&mMaterial.mat.getMaterialData().shader.mSwapTable[stage.texMapSwap], gx::ColorComponent::a);
 	case gx::TevAlphaArg::rasa:
-		return "TevSaturate(" + generateRas(stage) + "." + generateComponentSwizzle(&mMaterial.mat.getShader().mSwapTable[stage.rasSwap], gx::ColorComponent::a) + ")";
+		return "TevSaturate(" + generateRas(stage) + "." + generateComponentSwizzle(&mMaterial.mat.getMaterialData().shader.mSwapTable[stage.rasSwap], gx::ColorComponent::a) + ")";
 	case gx::TevAlphaArg::konst:
 		return generateKonstAlphaSel(stage.alphaStage.constantSelection);
 	case gx::TevAlphaArg::zero:  return "0.0";
@@ -599,7 +599,7 @@ std::string GXProgram::generateTevTexCoordWrapN(const std::string& texCoord, gx:
 
 std::string GXProgram::generateTevTexCoordWrap(const gx::TevStage& stage)
 {
-	const int lastTexGenId = mMaterial.mat.getTexGens().size() - 1;
+	const int lastTexGenId = mMaterial.mat.getMaterialData().texGens.size() - 1;
 	int texGenId = stage.texCoord;
 
 	if (texGenId >= lastTexGenId)
@@ -663,7 +663,7 @@ std::string GXProgram::generateTevTexCoordIndirect(const gx::TevStage& stage)
 	const auto baseCoord = generateTevTexCoordWrap(stage);
 
 	if (stage.indirectStage.matrix != gx::IndTexMtxID::off &&
-		stage.indirectStage.indStageSel < mMaterial.mat.getShader().mStages.size())
+		stage.indirectStage.indStageSel < mMaterial.mat.getMaterialData().shader.mStages.size())
 		return baseCoord + " + " + generateTevTexCoordIndirectTranslation(stage);
 	else
 		return baseCoord;
@@ -685,7 +685,7 @@ std::string GXProgram::generateTevTexCoord(const gx::TevStage& stage)
 
 std::string GXProgram::generateTevStage(u32 tevStageIndex)
 {
-	const auto& stage = mMaterial.mat.getShader().mStages[tevStageIndex];
+	const auto& stage = mMaterial.mat.getMaterialData().shader.mStages[tevStageIndex];
 
 	return 
 		"// TEV Stage " + std::to_string(tevStageIndex) + "\n" +
@@ -697,13 +697,13 @@ std::string GXProgram::generateTevStage(u32 tevStageIndex)
 
 std::string GXProgram::generateTevStages() {
 	std::string out;
-	for (int i = 0; i < mMaterial.mat.getShader().mStages.size(); ++i)
+	for (int i = 0; i < mMaterial.mat.getMaterialData().shader.mStages.size(); ++i)
 		out += generateTevStage(i);
 	return out;
 }
 
 std::string GXProgram::generateTevStagesLastMinuteFixup() {
-	const auto& tevStages = mMaterial.mat.getShader().mStages;
+	const auto& tevStages = mMaterial.mat.getMaterialData().shader.mStages;
 
 	const auto& lastTevStage = tevStages[tevStages.size() - 1];
 	const auto colorReg = generateTevRegister(lastTevStage.colorStage.out);
@@ -742,7 +742,7 @@ std::string GXProgram::generateAlphaTestOp(gx::AlphaOp op)
 }
 std::string GXProgram::generateAlphaTest()
 {
-	const auto alphaTest = mMaterial.mat.getAlphaComparison();
+	const auto alphaTest = mMaterial.mat.getMaterialData().alphaCompare;
 	return
 		"	bool t_AlphaTestA = " + generateAlphaTestCompare(alphaTest.compLeft, alphaTest.refLeft) + ";\n"
 		"	bool t_AlphaTestB = " + generateAlphaTestCompare(alphaTest.compRight, alphaTest.refRight) + ";\n"
@@ -1005,12 +1005,12 @@ u32 translateCompareType(gx::Comparison compareType)
 
 void translateGfxMegaState(MegaState& megaState, GXMaterial& material)
 {
-	megaState.cullMode = translateCullMode(material.mat.getCullMode());
+	megaState.cullMode = translateCullMode(material.mat.getMaterialData().cullMode);
 	// megaState.depthWrite = material.ropInfo.depthWrite;
 	// megaState.depthCompare = material.ropInfo.depthTest ? reverseDepthForCompareMode(translateCompareType(material.ropInfo.depthFunc)) : GfxCompareMode.ALWAYS;
 	megaState.frontFace = FrontFace::CW;
 
-	const auto blendMode = material.mat.getBlendMode();
+	const auto blendMode = material.mat.getMaterialData().blendMode;
 	if (blendMode.type == gx::BlendModeType::none) {
 		// megaState.blendMode = GL_FUNC_ADD;
 		megaState.blendSrcFactor = GL_ONE;

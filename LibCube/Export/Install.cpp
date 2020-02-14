@@ -16,7 +16,7 @@ void Install()
     px::PackageInstaller& installer = *px::PackageInstaller::spInstance;
 
     installer.registerParent<IBoneDelegate, lib3d::Bone>();
-    installer.registerParent<IMaterialDelegate, lib3d::Material>();
+    installer.registerParent<IGCMaterial, lib3d::Material>();
 	installer.registerParent<Texture, lib3d::Texture>();
 	installer.registerParent<IndexedPolygon, lib3d::Polygon>();
 }

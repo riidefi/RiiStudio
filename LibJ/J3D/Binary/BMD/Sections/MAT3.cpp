@@ -233,15 +233,15 @@ struct io_wrapper<gx::ColorS10>
 };
 
 template<>
-struct io_wrapper<Material::NBTScale>
+struct io_wrapper<NBTScale>
 {
-	static void onRead(oishii::BinaryReader& reader, Material::NBTScale& c)
+	static void onRead(oishii::BinaryReader& reader, NBTScale& c)
 	{
 		c.enable = static_cast<bool>(reader.read<u8>());
 		reader.seek(3);
 		c.scale << reader;
 	}
-	static void onWrite(oishii::v2::Writer& writer, const Material::NBTScale& in)
+	static void onWrite(oishii::v2::Writer& writer, const NBTScale& in)
 	{
 		writer.write<u8>(in.enable);
 		for (int i = 0; i < 3; ++i)
@@ -275,6 +275,35 @@ struct io_wrapper<gx::TexCoordGen>
 		writer.write<u8>(-1);
 	}
 };
+struct J3DMappingMethodDecl
+{
+	using Method = Material::TexMatrix::CommonMappingMethod;
+	enum class Class { Standard, Basic, Old };
+
+	Method _method;
+	Class _class;
+
+	bool operator==(const J3DMappingMethodDecl& rhs) const
+	{
+		return _method == rhs._method && _class == rhs._class;
+	}
+};
+
+static std::array<J3DMappingMethodDecl, 12> J3DMappingMethods 
+{
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::Standard, J3DMappingMethodDecl::Class::Standard }, // 0
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::EnvironmentMapping, J3DMappingMethodDecl::Class::Basic }, // 1
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::ProjectionMapping, J3DMappingMethodDecl::Class::Basic }, // 2
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::ViewProjectionMapping, J3DMappingMethodDecl::Class::Basic }, // 3
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::Standard, J3DMappingMethodDecl::Class::Standard }, // 4 Not supported
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::Standard, J3DMappingMethodDecl::Class::Standard }, // 5 Not supported
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::EnvironmentMapping, J3DMappingMethodDecl::Class::Old }, // 6
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::EnvironmentMapping, J3DMappingMethodDecl::Class::Standard }, // 7
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::ProjectionMapping, J3DMappingMethodDecl::Class::Standard }, // 8
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::ViewProjectionMapping, J3DMappingMethodDecl::Class::Standard }, // 9
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::ManualEnvironmentMapping, J3DMappingMethodDecl::Class::Old }, // a
+	J3DMappingMethodDecl{ J3DMappingMethodDecl::Method::ManualEnvironmentMapping, J3DMappingMethodDecl::Class::Standard }  // b
+};
 
 template<>
 struct io_wrapper<Material::TexMatrix>
@@ -285,13 +314,42 @@ struct io_wrapper<Material::TexMatrix>
 		// FIXME:
 		//	assert(c.projection == gx::TexGenType::Matrix2x4 || c.projection == gx::TexGenType::Matrix3x4);
 
-		c.mappingMethod = reader.read<u8>();
-		c.maya = c.mappingMethod & 0x80;
-		c.mappingMethod &= ~0x80;
+		u8 mappingMethod = reader.read<u8>();
+		bool maya = mappingMethod & 0x80;
+		mappingMethod &= ~0x80;
+
+		c.transformModel = maya ? Material::TexMatrix::CommonTransformModel::Maya : Material::TexMatrix::CommonTransformModel::Default;
+
+		if (mappingMethod > J3DMappingMethods.size())
+		{
+			reader.warnAt("Invalid mapping method: Enumeration ends at 0xB.", reader.tell() - 1, reader.tell());
+			mappingMethod = 0;
+		}
+		else if (mappingMethod == 4 || mappingMethod == 5)
+		{
+			reader.warnAt("This mapping method has yet to be seen in the wild: Enumeration ends at 0xB.", reader.tell() - 1, reader.tell());
+		}
+
+		const auto& method_decl = J3DMappingMethods[mappingMethod];
+		switch (method_decl._class)
+		{
+		case J3DMappingMethodDecl::Class::Basic:
+			c.option = Material::TexMatrix::CommonMappingOption::DontRemapTextureSpace;
+			break;
+		case J3DMappingMethodDecl::Class::Old:
+			c.option = Material::TexMatrix::CommonMappingOption::KeepTranslation;
+			break;
+		default:
+			break;
+		}
 
 		reader.read<u16>();
 
-		c.origin << reader;
+		glm::vec3 origin;
+		origin << reader;
+
+		// TODO -- Assert
+
 		c.scale << reader;
 		c.rotate = static_cast<f32>(reader.read<s16>()) * 180.f / (f32)0x7FFF;
 		reader.read<u16>();
@@ -302,11 +360,37 @@ struct io_wrapper<Material::TexMatrix>
 	static void onWrite(oishii::v2::Writer& writer, const Material::TexMatrix& in)
 	{
 		writer.write<u8>(static_cast<u8>(in.projection));
-		writer.write<u8>(static_cast<u8>(in.mappingMethod) | (in.maya ? 0x80 : 0));
+
+		u8 mappingMethod = 0;
+		bool maya = in.transformModel == Material::TexMatrix::CommonTransformModel::Maya;
+
+		J3DMappingMethodDecl::Class _class;
+
+		switch (in.option)
+		{
+		case Material::TexMatrix::CommonMappingOption::DontRemapTextureSpace:
+			_class = J3DMappingMethodDecl::Class::Basic;
+			break;
+		case Material::TexMatrix::CommonMappingOption::KeepTranslation:
+			_class = J3DMappingMethodDecl::Class::Old;
+			break;
+		default:
+			break;
+		}
+
+		const auto mapIdx = std::find(J3DMappingMethods.begin(), J3DMappingMethods.end(), J3DMappingMethodDecl{
+			in.method,
+			_class
+			});
+
+		if (mapIdx != J3DMappingMethods.end())
+			mappingMethod = mapIdx - J3DMappingMethods.begin();
+
+		writer.write<u8>(static_cast<u8>(mappingMethod) | (maya ? 0x80 : 0));
 		writer.write<u16>(-1);
-		writer.write<f32>(in.origin.x);
-		writer.write<f32>(in.origin.y);
-		writer.write<f32>(in.origin.z);
+		writer.write<f32>(0.5f); // TODO
+		writer.write<f32>(0.5f);
+		writer.write<f32>(0.5f);
 		writer.write<f32>(in.scale.x);
 		writer.write<f32>(in.scale.y);
 		writer.write<u16>((u16)roundf(static_cast<f32>(in.rotate * (f32)0x7FFF / 180.0f)));
@@ -453,11 +537,11 @@ struct io_wrapper<gx::TevStage>
 };
 
 template<>
-struct io_wrapper<MaterialData::Fog>
+struct io_wrapper<Fog>
 {
-	static void onRead(oishii::BinaryReader& reader, MaterialData::Fog& f)
+	static void onRead(oishii::BinaryReader& reader, Fog& f)
 	{
-		f.type = static_cast<MaterialData::Fog::Type>(reader.read<u8>());
+		f.type = static_cast<Fog::Type>(reader.read<u8>());
 		f.enabled = reader.read<u8>();
 		f.center = reader.read<u16>();
 		f.startZ = reader.read<f32>();
@@ -467,7 +551,7 @@ struct io_wrapper<MaterialData::Fog>
 		io_wrapper<gx::Color>::onRead(reader, f.color);
 		f.rangeAdjTable = reader.readX<u16, 10>();
 	}
-	static void onWrite(oishii::v2::Writer& writer, const MaterialData::Fog& in)
+	static void onWrite(oishii::v2::Writer& writer, const Fog& in)
 	{
 		writer.write<u8>(static_cast<u8>(in.type));
 		writer.write<u8>(in.enabled);
@@ -601,13 +685,13 @@ public:
 	}
 };
 template<>
-struct io_wrapper<Material::SamplerData>
+struct io_wrapper<Material::J3DSamplerData>
 {
-	static void onRead(oishii::BinaryReader& reader, Material::SamplerData& sampler)
+	static void onRead(oishii::BinaryReader& reader, GCMaterialData::SamplerData& sampler)
 	{
-		sampler.btiId = reader.read<u16>();
+		reinterpret_cast<Material::J3DSamplerData&>(sampler).btiId = reader.read<u16>();
 	}
-	static void onWrite(oishii::v2::Writer& writer, const Material::SamplerData& sampler)
+	static void onWrite(oishii::v2::Writer& writer, const Material::J3DSamplerData& sampler)
 	{
 		writer.write<u16>(sampler.btiId);
 	}
@@ -625,8 +709,8 @@ struct Indirect
 	Indirect() = default;
 	Indirect(const MaterialData& mat)
 	{
-		enabled = mat.info.indirect;
-		nIndStage = mat.info.nInd;
+		enabled = mat.indEnabled;
+		nIndStage = mat.info.nIndStage;
 
 		tevOrder = mat.shader.mIndirectOrders;
 		for (int i = 0; i < nIndStage; ++i)
@@ -785,33 +869,45 @@ void readMatEntry(Material& mat, MatLoader& loader, oishii::BinaryReader& reader
 	assert(reader.tell() % 4 == 0);
 	mat.flag = reader.read<u8>();
 	mat.cullMode = loader.indexed<u8>(MatSec::CullModeInfo).as<gx::CullMode, u32>();
-	mat.info.nColorChannel = loader.indexed<u8>(MatSec::NumTexGens).raw();
+	mat.info.nColorChan = loader.indexed<u8>(MatSec::NumTexGens).raw();
 	mat.info.nTexGen = loader.indexed<u8>(MatSec::NumTexGens).raw();
 	mat.info.nTevStage = loader.indexed<u8>(MatSec::NumTevStages).raw();
 	mat.earlyZComparison = loader.indexed<u8>(MatSec::ZCompareInfo).as<bool, u8>();
-	loader.indexedContained<u8>(mat.ZMode, MatSec::ZModeInfo, 4);
+	loader.indexedContained<u8>(mat.zMode, MatSec::ZModeInfo, 4);
 	mat.dither = loader.indexed<u8>(MatSec::DitherInfo).as<bool, u8>();
 
 	dbg.assertSince(8);
-	loader.indexedContainer<u16>(mat.matColors, MatSec::MaterialColors, 4);
+	array_vector<gx::Color, 2> matColors;
+	loader.indexedContainer<u16>(matColors, MatSec::MaterialColors, 4);
 	dbg.assertSince(0xc);
 
 	loader.indexedContainer<u16>(mat.colorChanControls, MatSec::ColorChannelInfo, 8);
-	loader.indexedContainer<u16>(mat.ambColors, MatSec::AmbientColors, 4);
+	array_vector<gx::Color, 2> ambColors;
+
+	loader.indexedContainer<u16>(ambColors, MatSec::AmbientColors, 4);
+	for (int i = 0; i < matColors.size(); ++i)
+		mat.chanData.push_back({ matColors[i], ambColors[i] });
+
 	loader.indexedContainer<u16>(mat.lightColors, MatSec::LightInfo, 4);
 
 	dbg.assertSince(0x28);
-	loader.indexedContainer<u16>(mat.texGenInfos, MatSec::TexGenInfo, 4);
+	loader.indexedContainer<u16>(mat.texGens, MatSec::TexGenInfo, 4);
 	const auto post_tg = reader.readX<u16, 8>();
 	// TODO: Validate assumptions here
 
 	dbg.assertSince(0x48);
-	loader.indexedContainer<u16>(mat.texMatrices, MatSec::TexMatrixInfo, 100);
+	array_vector<Material::TexMatrix, 10> texMatrices;
+	loader.indexedContainer<u16>(texMatrices, MatSec::TexMatrixInfo, 100);
 	loader.indexedContainer<u16>(mat.postTexMatrices, MatSec::PostTexMatrixInfo, 100);
 
+	for (int i = 0; i < 10; ++i)
+		mat.texMatrices.push_back(std::make_unique<Material::TexMatrix>(texMatrices[i]));
 	dbg.assertSince(0x84);
 
-	loader.indexedContainer<u16>(mat.textures, MatSec::TextureRemapTable, 2);
+	array_vector<Material::J3DSamplerData, 8> samplers;
+	loader.indexedContainer<u16>(samplers, MatSec::TextureRemapTable, 2);
+	for (int i = 0; i < samplers.size(); ++i)
+		mat.samplers.push_back(std::move(std::make_unique<Material::J3DSamplerData>(samplers[i])));
 
 	{
 		dbg.assertSince(0x094);
@@ -875,8 +971,8 @@ void readMatEntry(Material& mat, MatLoader& loader, oishii::BinaryReader& reader
 		Indirect ind{};
 		loader.indexedContained<Indirect>(ind, MatSec::IndirectTexturingInfo, 0x138, idx);
 
-		mat.info.indirect = ind.enabled;
-		mat.info.nInd = ind.nIndStage;
+		mat.indEnabled = ind.enabled;
+		mat.info.nIndStage = ind.nIndStage;
 
 		for (int i = 0; i < ind.nIndStage; ++i)
 			mat.mIndScales.emplace_back(ind.texScale[i]);
@@ -1135,7 +1231,7 @@ struct MAT3Node : public oishii::v2::Node
 	Section<gx::TexCoordGen, MatSec::PostTexGenInfo> mPostTexGens; // TODO...
 	Section<Material::TexMatrix, MatSec::TexMatrixInfo> mTexMatrices;
 	Section<Material::TexMatrix, MatSec::PostTexMatrixInfo> mPostTexMatrices;
-	Section<Material::SamplerData, MatSec::TextureRemapTable> mTextureTable;
+	Section<Material::J3DSamplerData, MatSec::TextureRemapTable> mTextureTable;
 	Section<TevOrder, MatSec::TevOrderInfo> mOrders;
 	Section<gx::ColorS10, MatSec::TevColors> mTevColors;
 	Section<gx::Color, MatSec::TevKonstColors> mKonstColors;
@@ -1144,14 +1240,14 @@ struct MAT3Node : public oishii::v2::Node
 	Section<gx::TevStage, MatSec::TevStageInfo> mTevStages;
 	Section<SwapSel, MatSec::TevSwapModeInfo> mSwapModes;
 	Section<gx::SwapTableEntry, MatSec::TevSwapModeTableInfo> mSwapTables;
-	Section<Material::Fog, MatSec::FogInfo> mFogs;
+	Section<Fog, MatSec::FogInfo> mFogs;
 
 	Section<gx::AlphaComparison, MatSec::AlphaCompareInfo> mAlphaComparisons;
 	Section<gx::BlendMode, MatSec::BlendModeInfo> mBlendModes;
 	Section<gx::ZMode, MatSec::ZModeInfo> mZModes;
 	Section<u8, MatSec::ZCompareInfo> mZCompLocs;
 	Section<u8, MatSec::DitherInfo> mDithers;
-	Section<Material::NBTScale, MatSec::NBTScaleInfo> mNBTScales;
+	Section<NBTScale, MatSec::NBTScaleInfo> mNBTScales;
 
 	gx::TexCoordGen postTexGen(const gx::TexCoordGen& gen) const noexcept
 	{
@@ -1168,30 +1264,30 @@ struct MAT3Node : public oishii::v2::Node
 
 		for (int i = 0; i < ctx.mdl.getMaterials().size(); ++i)
 		{
-			const auto mat = ctx.mdl.getMaterials()[i];
-			if (mat.info.indirect)
+			const auto& mat = ctx.mdl.getMaterials()[i];
+			if (mat.indEnabled)
 				hasIndirect = true;
 
 			// mCullModes.append(mat.cullMode);
-			for (int i = 0; i < mat.matColors.size(); ++i)
-				mMaterialColors.append(mat.matColors[i]);
-			mNumColorChannels.append(mat.info.nColorChannel);
+			for (int i = 0; i < mat.chanData.size(); ++i)
+				mMaterialColors.append(mat.chanData[i].matColor);
+			mNumColorChannels.append(mat.info.nColorChan);
 			for (int i = 0; i < mat.colorChanControls.size(); ++i)
 				mChannelControls.append(mat.colorChanControls[i]);
-			for (int i = 0; i < mat.ambColors.size(); ++i)
-				mAmbColors.append(mat.ambColors[i]);
+			for (int i = 0; i < mat.chanData.size(); ++i)
+				mAmbColors.append(mat.chanData[i].ambColor);
 			for (int i = 0; i < mat.lightColors.size(); ++i)
 				mLightColors.append(mat.lightColors[i]);
 			mNumTexGens.append(mat.info.nTexGen);
-			for (int i = 0; i < mat.texGenInfos.size(); ++i)
-				mTexGens.append(mat.texGenInfos[i]);
+			for (int i = 0; i < mat.texGens.size(); ++i)
+				mTexGens.append(mat.texGens[i]);
 
-			for (int i = 0; i < mat.texGenInfos.size(); ++i)
-				if (mat.texGenInfos[i].postMatrix != gx::PostTexMatrix::Identity)
-					mTexGens.append(postTexGen(mat.texGenInfos[i]));
+			for (int i = 0; i < mat.texGens.size(); ++i)
+				if (mat.texGens[i].postMatrix != gx::PostTexMatrix::Identity)
+					mPostTexGens.append(postTexGen(mat.texGens[i]));
 
 			for (int i = 0; i < mat.texMatrices.size(); ++i)
-				mTexMatrices.append(mat.texMatrices[i]);
+				mTexMatrices.append(*mat.texMatrices[i].get());
 			for (int i = 0; i < mat.postTexMatrices.size(); ++i)
 				mPostTexMatrices.append(mat.postTexMatrices[i]);
 			//	for (int i = 0; i < mat.textures.size(); ++i)
@@ -1213,7 +1309,7 @@ struct MAT3Node : public oishii::v2::Node
 			mFogs.append(mat.fogInfo);
 			mAlphaComparisons.append(mat.alphaCompare);
 			mBlendModes.append(mat.blendMode);
-			mZModes.append(mat.ZMode);
+			mZModes.append(mat.zMode);
 			// mZCompLocs.append(mat.earlyZComparison);
 			// mDithers.append(mat.dither);
 			mNBTScales.append(mat.nbtScale);
@@ -1378,35 +1474,48 @@ struct io_wrapper<SerializableMaterial>
 
 		writer.write<u8>(m.flag);
 		writer.write<u8>(smat.mMAT3.mCullModes.find(m.cullMode));
-		writer.write<u8>(smat.mMAT3.mNumColorChannels.find(m.info.nColorChannel));
+		writer.write<u8>(smat.mMAT3.mNumColorChannels.find(m.info.nColorChan));
 		writer.write<u8>(smat.mMAT3.mNumTexGens.find(m.info.nTexGen));
 		writer.write<u8>(smat.mMAT3.mNumTevStages.find(m.info.nTevStage));
 		writer.write<u8>(smat.mMAT3.mZCompLocs.find(m.earlyZComparison));
-		writer.write<u8>(smat.mMAT3.mZModes.find(m.ZMode));
+		writer.write<u8>(smat.mMAT3.mZModes.find(m.zMode));
 		writer.write<u8>(smat.mMAT3.mDithers.find(m.dither));
 
 		dbg.assertSince(0x008);
 		const auto& m3 = smat.mMAT3;
-		write_array_vec<u16>(writer, m.matColors, m3.mMaterialColors);
+
+		array_vector<gx::Color, 2> matColors, ambColors;
+		for (int i = 0; i < m.chanData.size(); ++i)
+		{
+			matColors.push_back(m.chanData[i].matColor);
+			ambColors.push_back(m.chanData[i].ambColor);
+		}
+		write_array_vec<u16>(writer, matColors, m3.mMaterialColors);
 		write_array_vec<u16>(writer, m.colorChanControls, m3.mChannelControls);
-		write_array_vec<u16>(writer, m.ambColors, m3.mAmbColors);
+		write_array_vec<u16>(writer, ambColors, m3.mAmbColors);
 		write_array_vec<u16>(writer, m.lightColors, m3.mLightColors);
 		
-		for (int i = 0; i < m.texGenInfos.size(); ++i)
-			writer.write<u16>(m3.mTexGens.find(m.texGenInfos[i]));
-		for (int i = m.texGenInfos.size(); i < m.texGenInfos.max_size(); ++i)
+		for (int i = 0; i < m.texGens.size(); ++i)
+			writer.write<u16>(m3.mTexGens.find(m.texGens[i]));
+		for (int i = m.texGens.size(); i < m.texGens.max_size(); ++i)
 			writer.write<u16>(-1);
 
-		for (int i = 0; i < m.texGenInfos.size(); ++i)
-			writer.write<u16>(m.texGenInfos[i].postMatrix == gx::PostTexMatrix::Identity ?
-				-1 : m3.mPostTexGens.find(m3.postTexGen(m.texGenInfos[i])));
-		for (int i = m.texGenInfos.size(); i < m.texGenInfos.max_size(); ++i)
+		for (int i = 0; i < m.texGens.size(); ++i)
+			writer.write<u16>(m.texGens[i].postMatrix == gx::PostTexMatrix::Identity ?
+				-1 : m3.mPostTexGens.find(m3.postTexGen(m.texGens[i])));
+		for (int i = m.texGens.size(); i < m.texGens.max_size(); ++i)
 			writer.write<u16>(-1);
 
 		dbg.assertSince(0x048);
-		write_array_vec<u16>(writer, m.texMatrices, m3.mTexMatrices);
+		array_vector<Material::TexMatrix, 10> texMatrices;
+		for (int i = 0; i < m.texMatrices.size(); ++i)
+			texMatrices.push_back(*m.texMatrices[i].get());
+		write_array_vec<u16>(writer, texMatrices, m3.mTexMatrices);
 		write_array_vec<u16>(writer, m.postTexMatrices, m3.mPostTexMatrices);
-		write_array_vec<u16>(writer, m.textures, m3.mTextureTable);
+		array_vector<Material::J3DSamplerData, 10> samplers;
+		for (int i = 0; i < m.samplers.size(); ++i)
+			samplers[i] = (Material::J3DSamplerData&)*m.samplers[i].get();
+		write_array_vec<u16>(writer, samplers, m3.mTextureTable);
 		write_array_vec<u16>(writer, m.tevKonstColors, m3.mKonstColors);
 
 		// TODO -- comparison logic might need to account for ksels being here

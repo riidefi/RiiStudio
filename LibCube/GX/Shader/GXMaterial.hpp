@@ -40,7 +40,7 @@ struct GXMaterial
     int index = -1; //!<
     std::string name; //!< For debugging.
 
-	IMaterialDelegate& mat;
+	IGCMaterial& mat;
 
     bool usePnMtxIdx = false;
     bool useTexMtxIdx[16] {false};

@@ -2,6 +2,7 @@
 
 #include <LibCore/common.h>
 #include <ThirdParty/glm/vec2.hpp>
+#include <ThirdParty/glm/mat2x3.hpp>
 
 namespace libcube { namespace gx {
 
@@ -92,6 +93,8 @@ struct IndirectMatrix
 	{
 		return scale == rhs.scale && rotate == rhs.rotate && trans == rhs.trans && quant == rhs.quant;
 	}
+
+	glm::mat2x3 compute() const { return glm::mat2x3{1.0f}; }
 };
 // The material part
 struct IndirectSetting

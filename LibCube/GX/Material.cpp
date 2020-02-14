@@ -7,9 +7,9 @@
 
 namespace libcube {
 
-std::pair<std::string, std::string> IMaterialDelegate::generateShaders() const
+std::pair<std::string, std::string> IGCMaterial::generateShaders() const
 {
-	GXProgram program(GXMaterial{ 0, getName(), *const_cast<IMaterialDelegate*>(this) });
+	GXProgram program(GXMaterial{ 0, getName(), *const_cast<IGCMaterial*>(this) });
 	return program.generateShaders();
 }
 
@@ -43,7 +43,13 @@ struct PacketParams
 {
 	glm::mat3x4	posMtx[10];
 };
-void IMaterialDelegate::generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P) const
+template<typename T>
+inline glm::vec4 colorConvert(T clr)
+{
+	const auto f32c = (gx::ColorF32)clr;
+	return { f32c.r, f32c.g, f32c.b, f32c.a };
+}
+void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P) const
 {
 	UniformSceneParams scene;
 	scene.projection = M * V * P;
@@ -51,6 +57,32 @@ void IMaterialDelegate::generateUniforms(DelegatedUBOBuilder& builder, const glm
 
 	UniformMaterialParams tmp{};
 
+	const auto& data = getMaterialData();
+
+	for (int i = 0; i < 2; ++i)
+	{
+		tmp.ColorMatRegs[i] = colorConvert(data.chanData[i].matColor);
+		tmp.ColorAmbRegs[i] = colorConvert(data.chanData[i].ambColor);
+	}
+	for (int i = 0; i < 4; ++i)
+	{
+		tmp.KonstColor[i] = colorConvert(data.tevKonstColors[i]);
+		tmp.Color[i] = colorConvert(data.tevColors[i]);
+	}
+	for (int i = 0; i < data.texMatrices.size(); ++i)
+	{
+		tmp.TexMtx[i] = data.texMatrices[i]->compute();
+	}
+	for (int i = 0; i < data.samplers.size(); ++i)
+	{
+		const auto& texData = data.samplers[i]->mTexture;
+		
+		// tmp.TexParams[i] = glm::vec4{ texData.getWidth(), texData.getHeight(), 0, 0 };
+	}
+	for (int i = 0; i < data.mIndMatrices.size(); ++i)
+	{
+		tmp.IndTexMtx[i] = data.mIndMatrices[i].compute();
+	}
 	PacketParams pack{};
 	for (auto& p : pack.posMtx)
 		p = glm::transpose(glm::mat4{ 1.0f });

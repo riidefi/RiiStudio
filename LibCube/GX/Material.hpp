@@ -213,6 +213,15 @@ struct ColorS10
 	{
 		return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
 	}
+	inline operator ColorF32()
+	{
+		return {
+			static_cast<float>(r) / static_cast<float>(0xff),
+			static_cast<float>(g) / static_cast<float>(0xff),
+			static_cast<float>(b) / static_cast<float>(0xff),
+			static_cast<float>(a) / static_cast<float>(0xff)
+		};
+	}
 };
 
 

@@ -22,7 +22,7 @@ struct array_vector : public std::array<T, N>
 
 	void push_back(T elem)
 	{
-		at(nElements) = elem;
+		at(nElements) = std::move(elem);
 	}
 	void pop_back()
 	{
@@ -41,7 +41,160 @@ struct array_vector : public std::array<T, N>
 		return true;
 	}
 };
-struct IMaterialDelegate : public lib3d::Material
+
+
+struct GCMaterialData
+{
+	std::string name;
+
+	gx::CullMode cullMode;
+
+	// Gen Info counts
+	struct GenInfo
+	{
+		u8 nColorChan = 0;
+		u8 nTexGen = 0;
+		u8 nTevStage = 1;
+		u8 nIndStage = 0;
+
+		bool operator==(const GenInfo& rhs) const
+		{
+			return nColorChan == rhs.nColorChan &&
+				nTexGen == rhs.nTexGen &&
+				nTevStage == rhs.nTevStage &&
+				nIndStage == rhs.nIndStage;
+		}
+	};
+	GenInfo info;
+
+	struct ChannelData
+	{
+		gx::Color matColor;
+		gx::Color ambColor;
+
+		bool operator==(const ChannelData& rhs) const
+		{
+			return matColor == rhs.matColor && ambColor == rhs.ambColor;
+		}
+	};
+	array_vector<ChannelData, 2> chanData;
+
+	array_vector<gx::ChannelControl, 4> colorChanControls;
+
+
+	gx::Shader shader;
+
+	array_vector<gx::TexCoordGen, 8> texGens;
+
+	array_vector<gx::Color, 4> tevKonstColors;
+	array_vector<gx::ColorS10, 4> tevColors;
+
+	bool earlyZComparison;
+	gx::ZMode zMode;
+
+	// Split up -- only 3 indmtx
+	std::vector<gx::IndirectTextureScalePair> mIndScales;
+	std::vector<gx::IndirectMatrix> mIndMatrices;
+
+	gx::AlphaComparison alphaCompare;
+	gx::BlendMode blendMode;
+	bool dither;
+
+	struct TexMatrix
+	{
+		gx::TexGenType projection; // Only 3x4 and 2x4 valid
+
+		glm::vec2	scale;
+		f32			rotate;
+		glm::vec2	translate;
+
+		std::array<f32, 16>	effectMatrix;
+
+		enum CommonTransformModel
+		{
+			Default,
+			Maya,
+			Max,
+			XSI
+		};
+		CommonTransformModel transformModel;
+		enum CommonMappingMethod
+		{
+			// Shared
+				Standard,
+
+				EnvironmentMapping,
+				ProjectionMapping,
+
+			// G3D
+				EnvironmentLightMapping,
+				EnvironmentSpecularMapping,
+				// J3D 4/5?
+
+			// EGG G3D
+				ManualProjectionMapping,
+
+			// J3D
+				ViewProjectionMapping,
+				ManualEnvironmentMapping // Specify effect matrix maunally
+
+		};
+		CommonMappingMethod method;
+		enum CommonMappingOption
+		{
+			DontRemapTextureSpace, // -1 -> 1 (J3D "basic")
+			KeepTranslation // Don't reset translation column
+		};
+		CommonMappingOption option;
+
+		virtual glm::mat3x4 compute()
+		{
+			return glm::mat3x4(1);
+		}
+		// TODO: Support / restriction
+
+		virtual bool operator==(const TexMatrix& rhs) const
+		{
+			return projection == rhs.projection && scale == rhs.scale && rotate == rhs.rotate && translate == rhs.translate &&
+				effectMatrix == rhs.effectMatrix && transformModel == rhs.transformModel && method == rhs.method &&
+				option == rhs.option;
+		}
+
+		virtual ~TexMatrix() = default;
+	};
+
+	array_vector<std::unique_ptr<TexMatrix>, 10> texMatrices;
+
+	struct SamplerData
+	{
+		std::string mTexture;
+		std::string mPalette;
+
+		gx::TextureWrapMode mWrapU = gx::TextureWrapMode::Repeat;
+		gx::TextureWrapMode mWrapV = gx::TextureWrapMode::Repeat;
+
+		bool bMipMap = false;
+		bool bEdgeLod;
+		bool bBiasClamp;
+
+		u8 mMaxAniso;
+		u8 mMinFilter;
+		u8 mMagFilter;
+		s16 mLodBias;
+
+		bool operator==(const SamplerData& rhs) const noexcept
+		{
+			return mTexture == rhs.mTexture && mWrapU == rhs.mWrapU && mWrapV == rhs.mWrapV &&
+				bMipMap == rhs.bMipMap && bEdgeLod == rhs.bEdgeLod && bBiasClamp == rhs.bBiasClamp &&
+				mMaxAniso == rhs.mMaxAniso && mMinFilter == rhs.mMinFilter && mMagFilter == rhs.mMagFilter &&
+				mLodBias == rhs.mLodBias;
+		}
+	};
+
+	array_vector<std::unique_ptr<SamplerData>, 8> samplers;
+};
+
+struct IGCMaterial : public lib3d::Material
 {
     PX_TYPE_INFO("GC Material", "gc_mat", "GC::IMaterialDelegate");
     
@@ -71,37 +224,12 @@ struct IMaterialDelegate : public lib3d::Material
     
     PropertySupport support;
 
-    // Properties must be allocated in the delegate instance.
-    virtual gx::CullMode getCullMode() const = 0;
-    virtual void setCullMode(gx::CullMode value) = 0;
+	virtual GCMaterialData& getMaterialData() = 0;
+	virtual const GCMaterialData& getMaterialData() const = 0;
 
-    struct GenInfoCounts { u8 colorChan, texGen, tevStage, indStage; };
-    virtual GenInfoCounts getGenInfo() const = 0;
-    virtual void setGenInfo(const GenInfoCounts& value) = 0;
-
-    virtual bool getZCompLoc() const = 0;
-    virtual void setZCompLoc(bool value) = 0;
-    // Always assumed out of 2
-    virtual gx::Color getMatColor(u64 idx) const = 0;
-    virtual gx::Color getAmbColor(u64 idx) const = 0;
-    virtual void setMatColor(u64 idx, gx::Color v) = 0;
-    virtual void setAmbColor(u64 idx, gx::Color v) = 0;
-
-    virtual std::string getName() const = 0;
-    virtual void* getRaw() = 0; // For selection
-
-	virtual gx::Shader& getShader() = 0;
-	virtual array_vector<gx::TexCoordGen, 8>& getTexGens() = 0;
-
-	virtual gx::AlphaComparison getAlphaComparison() = 0;
-	virtual gx::IndirectTextureScalePair getIndScale(u64 idx) = 0;
-
+	
 	std::pair<std::string, std::string> generateShaders() const override;
 	void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P) const override;
-
-	virtual gx::BlendMode getBlendMode() = 0;
-
-protected:
 };
 
 }
