@@ -86,6 +86,13 @@ px::Dynamic SpawnState(const std::string& type)
 {
 	return std::move(spCorePackageInstaller->spawnState(type));
 }
+bool IsConstructable(const std::string& type)
+{
+	const auto& factories = spCorePackageInstaller->mFactories;
+	return std::find_if(factories.begin(), factories.end(), [&](const auto& it) {
+		return it->id == type;
+	}) != factories.end();
+}
 px::RichName GetRich(const std::string& type)
 {
 	const auto* got = px::ReflectionMesh::getInstance()->getDataMesh().get(type);
@@ -231,3 +238,5 @@ void DeinitAPI()
     delete px::PackageInstaller::spInstance;
     delete px::ReflectionMesh::getInstance();
 }
+
+

@@ -11,3 +11,5 @@ std::pair<std::string, std::unique_ptr<px::IBinarySerializer>> SpawnImporter(con
 std::unique_ptr<px::IBinarySerializer> SpawnExporter(const std::string& type);
 px::Dynamic SpawnState(const std::string& type);
 px::RichName GetRich(const std::string& type);
+
+bool IsConstructable(const std::string& type);

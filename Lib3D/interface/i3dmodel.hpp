@@ -13,6 +13,8 @@
 // TODO: Interdependency
 #include <RiiStudio/editor/renderer/UBOBuilder.hpp>
 
+#include <LibCore/api/Collection.hpp>
+
 namespace lib3d {
 enum class Coverage
 {
@@ -226,6 +228,14 @@ struct Polygon : public px::IDestructable
 
 	// Call after any change
 	virtual void update() {}
+};
+// TODO: This should all be runtime
+struct Scene : public px::CollectionHost
+{
+	PX_TYPE_INFO("Scene", "scene", "3D::Scene");
+	virtual ~Scene() = default;
+
+	using px::CollectionHost::CollectionHost;
 };
 
 } // namespace lib3d

@@ -26,14 +26,15 @@ function setupPreprocessor()
 	filter "configurations:Debug"
 		defines { "DEBUG", "BUILD_DEBUG" }
 		symbols "On"
-	
+		buildoptions "/MDd"
 	filter "configurations:Release"
 		defines { "NDEBUG", "BUILD_RELEASE" }
 		optimize "On"
-	
+		buildoptions "/MD"
 	filter "configurations:Dist"
 		defines { "NDEBUG", "BUILD_DIST" }
 		optimize "On"
+		buildoptions "/MD"
 end
 
 function setupSystem()
@@ -44,13 +45,16 @@ function setupSystem()
 
 		defines
 		{
-			"RII_PLATFORM_WINDOWS"
+			"RII_PLATFORM_WINDOWS",
+			"FBXSDK_SHARED"
 		}
 end
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 function setupCppC()
+	staticruntime "Off"
+	
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 	
@@ -136,13 +140,15 @@ function setupMainApp()
 	links
 	{
 		"LibCore",
+		"Lib3D",
 		"LibCube",
 		"LibJ",
 		"ThirdParty",
 		"ThirdParty/glfw/lib-vc2017/glfw3dll.lib",
 		"opengl32.lib",
-		"libfbxsdk-md"
+		"libfbxsdk.lib"
 	}
+
 	setupMainAppCli(false)
 	
 	fbx_dir = ""
@@ -159,7 +165,6 @@ function setupMainApp()
 		"{COPY} ../fonts/* %{cfg.targetdir}",
 		"{COPY} ./scripts/* %{cfg.targetdir}/scripts"
 	}
-	
 end
 project "RiiStudio"
 	location "RiiStudio"

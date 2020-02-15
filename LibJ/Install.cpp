@@ -11,11 +11,10 @@ namespace libcube::jsystem {
 
 void Install()
 {
-    
     assert(px::PackageInstaller::spInstance);
     px::PackageInstaller& installer = *px::PackageInstaller::spInstance;
 
-    installer.registerParent<J3DCollection, px::CollectionHost>();
+    installer.registerParent<J3DCollection, lib3d::Scene>();
 
 	installer.registerObject(J3DCollection::TypeInfo);
 	installer.registerObject(J3DModel::TypeInfo);
@@ -29,7 +28,6 @@ void Install()
     installer.registerParent<Material, IGCMaterial>();
 	installer.registerParent<Texture, libcube::Texture>();
 	installer.registerParent<Shape, libcube::IndexedPolygon>();
-
 
     // TODO: Move to proper system
     installer.registerParent<IBoneDelegate, lib3d::Bone>();

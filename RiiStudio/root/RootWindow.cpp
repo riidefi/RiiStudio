@@ -12,6 +12,7 @@
 #include <LibCore/api/Node.hpp>
 
 #include <RiiStudio/editor/EditorWindow.hpp>
+#include <Lib3d/export/export.hpp>
 
 void RootWindow::draw(Window* ctx) noexcept
 {
@@ -151,7 +152,19 @@ std::vector<std::string> RootWindow::fileDialogueOpen()
 {
 	return pfd::open_file("Open File").result();	
 }
+std::vector<std::string> GetChildrenOfType(const std::string& type)
+{
+	std::vector<std::string> out;
+	const auto hnd = px::ReflectionMesh::getInstance()->lookupInfo(type);
 
+	for (int i = 0; i < hnd.getNumChildren(); ++i)
+	{
+		out.push_back(hnd.getChild(i).getName());
+		for (const auto& str : GetChildrenOfType(hnd.getChild(i).getName()))
+			out.push_back(str);
+	}
+	return out;
+}
 void RootWindow::openFile(const std::string& file, OpenFilePolicy policy)
 {
 	std::ifstream stream(file, std::ios::binary | std::ios::ate);
@@ -172,6 +185,19 @@ void RootWindow::openFile(const std::string& file, OpenFilePolicy policy)
 		if (!importer.second)
 			return;
 
+		if (!IsConstructable(importer.first))
+		{
+			printf("Non constructable state.. find parents\n");
+
+			const auto children = GetChildrenOfType(importer.first);
+			if (children.empty())
+			{
+				printf("No children. Cannot construct.\n");
+				return;
+			}
+			assert(children.size() == 1 && IsConstructable(children[0])); // TODO
+			importer.first = children[0];
+		}
 
 		auto fileState = SpawnState(importer.first);
 		if (fileState.mBase == nullptr)
@@ -238,6 +264,7 @@ RootWindow::RootWindow()
 	InitAPI();
 
     // Register plugins
+	lib3d::install();
 	libcube::Install();
 	libcube::jsystem::Install();
 
