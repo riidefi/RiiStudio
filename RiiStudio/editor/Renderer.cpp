@@ -197,7 +197,8 @@ struct SceneState
 		glBindVertexArray(mVbo.VAO);
 
 		for (const auto& node : mTree.opaque)
-		{	
+		{
+			assert(mVbo.VAO && node.idx_size >= 0 && node.idx_size % 3 == 0);
 			glUseProgram(node.shader.getId());
 			mUboBuilder.use(node.mtx_id);
 			node.mat.genSamplUniforms(node.shader.getId(), texIdMap);

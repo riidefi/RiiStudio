@@ -106,6 +106,7 @@ struct Shape final : public ShapeData, public IndexedPolygon
 	glm::vec2 getUv(u64 chan, u64 id) const override;
 	glm::vec4 getClr(u64 id) const override;
 	glm::vec3 getPos(u64 id) const override;
+	glm::vec3 getNrm(u64 id) const override;
 
 	Shape(J3DModel& m)
 		: mMdl(m)

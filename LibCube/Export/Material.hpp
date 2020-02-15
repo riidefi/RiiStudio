@@ -236,6 +236,9 @@ struct IGCMaterial : public lib3d::Material
 
 	virtual const Texture& getTexture(const std::string& id) const = 0;
 	void genSamplUniforms(u32 shaderId, const std::map<std::string, u32>& texIdMap) const override;
+
+
+	virtual std::string getName() const { return getMaterialData().name; }
 };
 
 }

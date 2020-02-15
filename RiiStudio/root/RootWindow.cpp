@@ -112,7 +112,7 @@ void RootWindow::draw(Window* ctx) noexcept
 	}
 
 
-    // ImGui::ShowDemoWindow();
+    ImGui::ShowDemoWindow();
 
 	drawChildren();
 

@@ -69,7 +69,7 @@ void DelegatedUBOBuilder::use(u32 idx)
     {
         const auto& ofs = mCoalescedOffsets[i];
 		assert(ofs.first + ofs.second * idx < mCoalesced.size());
-        glBindBufferRange(GL_UNIFORM_BUFFER, i, getUboId(), ofs.first + ofs.second * idx, ofs.second * mData[i].size());
+        glBindBufferRange(GL_UNIFORM_BUFFER, i, getUboId(), ofs.first + ofs.second * idx, ofs.second * (mData[i].size() - idx));
     }
 }
 

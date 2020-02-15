@@ -900,8 +900,9 @@ void readMatEntry(Material& mat, MatLoader& loader, oishii::BinaryReader& reader
 	loader.indexedContainer<u16>(texMatrices, MatSec::TexMatrixInfo, 100);
 	loader.indexedContainer<u16>(mat.postTexMatrices, MatSec::PostTexMatrixInfo, 100);
 
-	for (int i = 0; i < 10; ++i)
-		mat.texMatrices.push_back(std::make_unique<Material::TexMatrix>(texMatrices[i]));
+	mat.texMatrices.nElements = texMatrices.size();
+	for (int i = 0; i < mat.texMatrices.nElements; ++i)
+		mat.texMatrices[i] = std::make_unique<Material::TexMatrix>(texMatrices[i]);
 	dbg.assertSince(0x84);
 
 	array_vector<Material::J3DSamplerData, 8> samplers;

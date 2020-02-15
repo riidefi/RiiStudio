@@ -28,6 +28,7 @@ struct IndexedPolygon : public lib3d::Polygon
 	SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx);
 	void propogate(VBOBuilder& out) const override;
 	virtual glm::vec3 getPos(u64 id) const = 0;
+	virtual glm::vec3 getNrm(u64 id) const = 0;
 	virtual glm::vec4 getClr(u64 id) const = 0;
 	virtual glm::vec2 getUv(u64 chan, u64 id) const = 0;
 	// We add on to the attached buffer

@@ -400,7 +400,7 @@ std::string GXProgram::generateRas(const gx::TevStage& stage) {
 	switch (stage.rasOrder) {
 	case gx::ColorSelChanApi::color0a0:   return "v_Color0";
 	case gx::ColorSelChanApi::color1a1:   return "v_Color1";
-	case gx::ColorSelChanApi::color0: return "vec4(0, 0, 0, 0)";
+	case gx::ColorSelChanApi::null: return "vec4(0, 0, 0, 0)";
 	default:
 		throw "";
 	}
@@ -878,7 +878,7 @@ float ApplyAttenuation(vec3 t_Coeff, float t_Value) {
 "    vec3 t_LightDelta, t_LightDeltaDir;\n"
 "    float t_LightDeltaDist2, t_LightDeltaDist, t_Attenuation;\n"
 "    vec4 t_ColorChanTemp;\n"
-"    v_Color0 = a_Color0;"
+"    v_Color0 = a_Color0;\n"
 + generateLightChannels() + generateTexGens() +
 "gl_Position = (u_Projection * vec4(t_Position, 1.0));\n"
 "}\n";

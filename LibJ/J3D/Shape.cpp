@@ -4,11 +4,17 @@ namespace libcube::jsystem {
 
 glm::vec2 Shape::getUv(u64 chan, u64 idx) const
 {
+	if (idx > mMdl.mBufs.uv[chan].mData.size())
+		return {};
 	return mMdl.mBufs.uv[chan].mData[idx];
 }
 glm::vec3 Shape::getPos(u64 idx) const
 {
 	return mMdl.mBufs.pos.mData[idx];
+}
+glm::vec3 Shape::getNrm(u64 idx) const
+{
+	return mMdl.mBufs.norm.mData[idx];
 }
 glm::vec4 Shape::getClr(u64 idx) const
 {
