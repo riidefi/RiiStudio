@@ -96,25 +96,71 @@ struct SceneState
 {
 	DelegatedUBOBuilder mUboBuilder;
 	SceneTree mTree;
+
+	~SceneState()
+	{
+		for (const auto tex : mTextures)
+			glDeleteTextures(1, &tex.id);
+		mTextures.clear();
+	}
 	
 	void buildBuffers()
 	{
+
 		// TODO -- nodes may be of incompatible type..
 		for (const auto& node : mTree.opaque)
 		{
 			node.idx_ofs = mVbo.mIndices.size();
 			node.poly.propogate(mVbo);
-			node.idx_size = mVbo.mIndices.size();
+			node.idx_size = mVbo.mIndices.size() - node.idx_ofs;
 		}
 		
 		mVbo.build();
 		glBindVertexArray(0);
 
 	}
-	void gather(const px::CollectionHost& root)
+
+	std::map<std::string, u32> texIdMap;
+
+	void buildTextures(const px::CollectionHost& root)
 	{
-		mTree.gather(root);
+		for (const auto tex : mTextures)
+			glDeleteTextures(1, &tex.id);
+		mTextures.clear();
+		texIdMap.clear();
+
+		const auto textures = root.getFolder<lib3d::Texture>();
+
+		mTextures.resize(textures->size());
+		for (int i = 0; i < textures->size(); ++i)
+		{
+			const auto& tex = *textures->at<lib3d::Texture>(i);
+
+			// TODO: Wrapping mode, filtering, mipmaps
+			glGenTextures(1, &mTextures[i].id);
+			const auto texId = mTextures[i].id;
+
+			texIdMap[tex.getName()] = texId;
+			glBindTexture(GL_TEXTURE_2D, texId);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+			tex.decode(mTextures[i].data, false);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex.getWidth(), tex.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, mTextures[i].data.data());
+
+			// TODO
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+	}
+
+	void gather(const px::CollectionHost& model, const px::CollectionHost& texture)
+	{
+		mTree.gather(model);
 		buildBuffers();
+		buildTextures(texture);
 
 		//	const auto mats = root.getFolder<lib3d::Material>();
 		//	const auto mat = mats->at<lib3d::Material>(0);
@@ -133,7 +179,7 @@ struct SceneState
 			// mdl = glm::rotate(mdl, (glm::mat4)srt.rotation);
 			mdl = glm::translate(mdl, srt.translation);
 
-			node.mat.generateUniforms(mUboBuilder, mdl, view, proj);
+			node.mat.generateUniforms(mUboBuilder, mdl, view, proj, node.shader.getId(), texIdMap);
 			node.mtx_id = i;
 			++i;
 		}
@@ -149,21 +195,30 @@ struct SceneState
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glBindVertexArray(mVbo.VAO);
+
 		for (const auto& node : mTree.opaque)
-		{
-			
+		{	
 			glUseProgram(node.shader.getId());
 			mUboBuilder.use(node.mtx_id);
+			node.mat.genSamplUniforms(node.shader.getId(), texIdMap);
 			glDrawElements(GL_TRIANGLES, node.idx_size, GL_UNSIGNED_INT, (void*)(node.idx_ofs * 4));
 		}
 	}
 
 	VBOBuilder mVbo;
+	struct Texture
+	{
+		u32 id;
+		std::vector<u8> data;
+		//	u32 width;
+		//	u32 height;
+	};
+	std::vector<Texture> mTextures;
 };
 
-void Renderer::prepare(const px::CollectionHost& root)
+void Renderer::prepare(const px::CollectionHost& model, const px::CollectionHost& texture)
 {
-	mState->gather(root);
+	mState->gather(model, texture);
 }
 
 static void cb(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)

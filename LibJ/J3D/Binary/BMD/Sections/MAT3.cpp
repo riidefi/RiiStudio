@@ -906,8 +906,9 @@ void readMatEntry(Material& mat, MatLoader& loader, oishii::BinaryReader& reader
 
 	array_vector<Material::J3DSamplerData, 8> samplers;
 	loader.indexedContainer<u16>(samplers, MatSec::TextureRemapTable, 2);
+	mat.samplers.nElements = samplers.size();
 	for (int i = 0; i < samplers.size(); ++i)
-		mat.samplers.push_back(std::move(std::make_unique<Material::J3DSamplerData>(samplers[i])));
+		mat.samplers[i] = std::move(std::make_unique<Material::J3DSamplerData>(samplers[i]));
 
 	{
 		dbg.assertSince(0x094);
@@ -997,7 +998,7 @@ void readMAT3(BMDOutputContext& ctx)
 	u16 size = reader.read<u16>();
 
 	for (u32 i = 0; i < size; ++i)
-		ctx.mdl.getMaterials().push(std::make_unique<Material>());
+		ctx.mdl.getMaterials().push(std::make_unique<Material>(ctx.col.getFolder<Texture>().value()));
 	ctx.materialIdLut.resize(size);
 	reader.read<u16>();
 

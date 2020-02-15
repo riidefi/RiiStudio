@@ -744,10 +744,10 @@ std::string GXProgram::generateAlphaTest()
 {
 	const auto alphaTest = mMaterial.mat.getMaterialData().alphaCompare;
 	return
-		"	bool t_AlphaTestA = " + generateAlphaTestCompare(alphaTest.compLeft, alphaTest.refLeft) + ";\n"
-		"	bool t_AlphaTestB = " + generateAlphaTestCompare(alphaTest.compRight, alphaTest.refRight) + ";\n"
+		"	bool t_AlphaTestA = " + generateAlphaTestCompare(alphaTest.compLeft, alphaTest.refLeft / 255.0f) + ";\n"
+		"	bool t_AlphaTestB = " + generateAlphaTestCompare(alphaTest.compRight, alphaTest.refRight / 255.0f) + ";\n"
 		"	if (!(" + generateAlphaTestOp(alphaTest.op) + "))\n"
-		"		//discard; \n";
+		"		discard; \n";
 }
 std::string GXProgram::generateFogZCoord() {
 	return "";
@@ -917,8 +917,8 @@ void main() {
 	"    vec4 t_PixelOut = TevOverflow(t_TevOutput);\n" +
 		generateAlphaTest() +
 		generateFog() +
-		"    gl_FragColor = vec4(v_Color0.xyz, 0.5);"
-		// "    gl_FragColor = t_PixelOut;\n"
+		//"    ;gl_FragColor = vec4(texture(u_Texture[0], v_TexCoord0.xy / v_TexCoord0.z).rgb, 0.5);"
+		"    gl_FragColor = t_PixelOut;\n"
 		"}\n";
 	return { vert, frag };
 }

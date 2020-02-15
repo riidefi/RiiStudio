@@ -119,7 +119,7 @@ struct GenericCollectionOutliner : public IStudioWindow
 		// Draw the tree
 		for (int i = 0; i < sampler.size(); ++i)
 		{
-			std::string name = "wtf";// sampler.nameAt(i);
+			std::string name = sampler.nameAt(i);
 
 			auto subHnds = px::ReflectionMesh::getInstance()->findParentOfType<px::CollectionHost>(sampler.atDynamic(i));
 
@@ -142,7 +142,7 @@ struct GenericCollectionOutliner : public IStudioWindow
 			bool focused = ImGui::IsItemFocused();
 
 			std::string cur_name =
-				//std::string(GetRich(sampler.getType()).icon.icon_singular) + " " +
+				std::string(GetRich(sampler.getType()).icon.icon_singular) + " " +
 				name;
 			
 			if (ImGui::TreeNodeEx(std::to_string(i).c_str(), ImGuiTreeNodeFlags_DefaultOpen | (subHnds.empty() ? ImGuiTreeNodeFlags_Leaf : 0), cur_name.c_str()))
@@ -300,7 +300,7 @@ struct RenderTest : public IStudioWindow
 		if (models->size() == 0)
 			return;
 
-		mRenderer.prepare(*models->at<px::CollectionHost>(0));
+		mRenderer.prepare(*models->at<px::CollectionHost>(0), host);
 	}
 	void draw() noexcept override
 	{

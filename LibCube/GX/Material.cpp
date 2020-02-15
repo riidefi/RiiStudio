@@ -1,5 +1,5 @@
-#include <ThirdParty/glfw/glfw3.h>
-
+#include <GL/gl3w.h>
+#include "GLFW/glfw3.h"
 
 #include "Material.hpp"
 
@@ -49,7 +49,8 @@ inline glm::vec4 colorConvert(T clr)
 	const auto f32c = (gx::ColorF32)clr;
 	return { f32c.r, f32c.g, f32c.b, f32c.a };
 }
-void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P) const
+void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
+	const glm::mat4& M, const glm::mat4& V, const glm::mat4& P, u32 shaderId, const std::map<std::string, u32>& texIdMap) const
 {
 	UniformSceneParams scene;
 	scene.projection = M * V * P;
@@ -75,9 +76,9 @@ void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4
 	}
 	for (int i = 0; i < data.samplers.size(); ++i)
 	{
-		const auto& texData = data.samplers[i]->mTexture;
+		const auto& texData = getTexture(data.samplers[i]->mTexture);
 		
-		// tmp.TexParams[i] = glm::vec4{ texData.getWidth(), texData.getHeight(), 0, 0 };
+		tmp.TexParams[i] = glm::vec4{ texData.getWidth(), texData.getHeight(), 0, 0 };
 	}
 	for (int i = 0; i < data.mIndMatrices.size(); ++i)
 	{
@@ -90,6 +91,25 @@ void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4
 	builder.tpush(0, scene);
 	builder.tpush(1, tmp);
 	builder.tpush(2, pack);
+
+	const s32 samplerIds[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+	glUseProgram(shaderId);
+	u32 uTexLoc = glGetUniformLocation(shaderId, "u_Texture");
+	glUniform1iv(uTexLoc, 8, samplerIds);
+}
+
+void IGCMaterial::genSamplUniforms(u32 shaderId, const std::map<std::string, u32>& texIdMap) const
+{
+	const auto& data = getMaterialData();
+	for (int i = 0; i < data.samplers.size(); ++i)
+	{
+		glActiveTexture(GL_TEXTURE0 + i);
+		if (texIdMap.find(data.samplers[i]->mTexture) == texIdMap.end())
+			printf("Invalid texture link.\n");
+		// else printf("Tex id: %u\n", texIdMap.at(data.samplers[i]->mTexture));
+		glBindTexture(GL_TEXTURE_2D, texIdMap.at(data.samplers[i]->mTexture));
+	}
 }
 
 }

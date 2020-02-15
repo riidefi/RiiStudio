@@ -20,7 +20,7 @@ public:
 	void createShaderProgram() { bShadersLoaded = true; }
 	void destroyShaders() { bShadersLoaded = false; }
 
-	void prepare(const px::CollectionHost& root);
+	void prepare(const px::CollectionHost& model, const px::CollectionHost& texture);
 
 private:
 	u32 mShaderProgram = 0;

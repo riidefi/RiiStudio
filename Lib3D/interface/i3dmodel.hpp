@@ -157,7 +157,8 @@ struct Material : public px::IDestructable
 
 	virtual std::pair<std::string, std::string> generateShaders() const = 0;
 	// TODO: Interdependency
-	virtual void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P) const = 0;
+	virtual void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P, u32 shaderId, const std::map<std::string, u32>& texIdMap) const = 0;
+	virtual void genSamplUniforms(u32 shaderId, const std::map<std::string, u32>& texIdMap) const = 0;
 };
 
 struct Texture : public px::IDestructable

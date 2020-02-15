@@ -7,6 +7,8 @@
 
 #include <LibCore/api/Node.hpp>
 
+#include "Texture.hpp"
+
 namespace libcube {
 
 // Assumption: all elements are contiguous--no holes
@@ -229,7 +231,11 @@ struct IGCMaterial : public lib3d::Material
 
 	
 	std::pair<std::string, std::string> generateShaders() const override;
-	void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P) const override;
+	void generateUniforms(DelegatedUBOBuilder& builder,
+		const glm::mat4& M, const glm::mat4& V, const glm::mat4& P, u32 shaderId, const std::map<std::string, u32>& texIdMap) const override;
+
+	virtual const Texture& getTexture(const std::string& id) const = 0;
+	void genSamplUniforms(u32 shaderId, const std::map<std::string, u32>& texIdMap) const override;
 };
 
 }
