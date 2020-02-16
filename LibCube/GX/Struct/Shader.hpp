@@ -198,8 +198,10 @@ struct TevStage
 {
 	// RAS1_TREF
 	ColorSelChanApi rasOrder = ColorSelChanApi::null;
-	u8 texMap, texCoord = 0;
-	u8 rasSwap, texMapSwap = 0;
+	u8 texMap = 0;
+	u8 texCoord = 0;
+	u8 rasSwap = 0;
+	u8 texMapSwap = 0;
 	
 	struct ColorStage
 	{
@@ -226,7 +228,10 @@ struct TevStage
 	} colorStage;
 	struct AlphaStage
 	{
-		TevAlphaArg a, b, c, d;
+		TevAlphaArg a = TevAlphaArg::zero;
+		TevAlphaArg b = TevAlphaArg::zero;
+		TevAlphaArg c = TevAlphaArg::zero;
+		TevAlphaArg d = TevAlphaArg::aprev;
 		TevAlphaOp formula;
 		// KSEL
 		TevKAlphaSel constantSelection;
@@ -311,6 +316,19 @@ struct Shader
 		return mSwapTable == rhs.mSwapTable &&
 			mIndirectOrders == rhs.mIndirectOrders &&
 			mStages == rhs.mStages;
+	}
+
+	Shader()
+	{
+		mSwapTable = {
+			SwapTableEntry { ColorComponent::r, ColorComponent::g, ColorComponent::b, ColorComponent::a },
+			SwapTableEntry { ColorComponent::r, ColorComponent::r, ColorComponent::r, ColorComponent::a },
+			SwapTableEntry { ColorComponent::g, ColorComponent::g, ColorComponent::g, ColorComponent::a },
+			SwapTableEntry { ColorComponent::b, ColorComponent::b, ColorComponent::b, ColorComponent::a },
+		};
+		mStages.push_back(TevStage{
+
+			});
 	}
 };
 

@@ -9,6 +9,13 @@
 
 namespace libcube::jsystem {
 
+PX_FACTORY(J3DCollection);
+PX_FACTORY(J3DModel);
+PX_FACTORY(Joint);
+PX_FACTORY(Material);
+PX_FACTORY(Shape);
+PX_FACTORY(Texture);
+
 void Install()
 {
     assert(px::PackageInstaller::spInstance);
@@ -35,7 +42,12 @@ void Install()
 	installer.registerParent<J3DModel, px::CollectionHost>();
 
 	installer.registerSerializer(std::make_unique<BmdIo>());
-	installer.registerFactory(std::make_unique<J3DCollectionSpawner>());
+	installer.registerFactory(std::make_unique<PX_FACTORY_NAME(J3DCollection)>());
+	installer.registerFactory(std::make_unique<PX_FACTORY_NAME(J3DModel)>());
+	installer.registerFactory(std::make_unique<PX_FACTORY_NAME(Joint)>());
+	installer.registerFactory(std::make_unique<PX_FACTORY_NAME(Material)>());
+	installer.registerFactory(std::make_unique<PX_FACTORY_NAME(Shape)>());
+	installer.registerFactory(std::make_unique<PX_FACTORY_NAME(Texture)>());
 }
     
 }

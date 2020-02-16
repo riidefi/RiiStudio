@@ -80,13 +80,13 @@ enum class AlphaOp
 
 struct AlphaComparison
 {
-	Comparison compLeft;
-	u8 refLeft;
+	Comparison compLeft = Comparison::ALWAYS;
+	u8 refLeft = 0;
 
-	AlphaOp op;
+	AlphaOp op = AlphaOp::_and;
 
-	Comparison compRight;
-	u8 refRight;
+	Comparison compRight = Comparison::ALWAYS;
+	u8 refRight = 0;
 
 	const bool operator==(const AlphaComparison& rhs) const noexcept
 	{

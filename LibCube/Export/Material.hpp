@@ -91,7 +91,7 @@ struct GCMaterialData
 	array_vector<gx::Color, 4> tevKonstColors;
 	array_vector<gx::ColorS10, 4> tevColors;
 
-	bool earlyZComparison;
+	bool earlyZComparison = true;
 	gx::ZMode zMode;
 
 	// Split up -- only 3 indmtx
@@ -144,6 +144,7 @@ struct GCMaterialData
 		CommonMappingMethod method;
 		enum CommonMappingOption
 		{
+			NoSelection,
 			DontRemapTextureSpace, // -1 -> 1 (J3D "basic")
 			KeepTranslation // Don't reset translation column
 		};
@@ -238,7 +239,45 @@ struct IGCMaterial : public lib3d::Material
 	void genSamplUniforms(u32 shaderId, const std::map<std::string, u32>& texIdMap) const override;
 
 
-	virtual std::string getName() const { return getMaterialData().name; }
+	std::string getName() const override { return getMaterialData().name; }
+	void setName(const std::string& name) override { getMaterialData().name = name; }
+
+	void configure(lib3d::PixelOcclusion occlusion, std::vector<std::string>& textures) override
+	{
+		// TODO
+		if (textures.empty()) return;
+
+		const auto tex = textures[0];
+
+		auto& mat = getMaterialData();
+
+		auto sampler = std::make_unique<GCMaterialData::SamplerData>();
+		sampler->mTexture = tex;
+		// TODO: EdgeLod/BiasClamp
+		// TODO: MaxAniso, filter, bias
+		mat.samplers.push_back(std::move(sampler));
+		mat.samplers.nElements = 1;
+
+		mat.texGens.push_back(gx::TexCoordGen{ gx::TexGenType::Matrix3x4, gx::TexGenSrc::UV0, gx::TexMatrix::TexMatrix0, false, gx::PostTexMatrix::Identity });
+		mat.texGens.nElements = 1;
+		auto mtx = std::make_unique<GCMaterialData::TexMatrix>();
+		mtx->projection = gx::TexGenType::Matrix3x4;
+		mtx->scale = { 1, 1 };
+		mtx->rotate = 0;
+		mtx->translate = { 0, 0 };
+		mtx->effectMatrix = { 0 };
+		mtx->transformModel = GCMaterialData::TexMatrix::CommonTransformModel::Maya;
+		mtx->method = GCMaterialData::TexMatrix::CommonMappingMethod::Standard;
+		mtx->option = GCMaterialData::TexMatrix::CommonMappingOption::NoSelection;
+
+		mat.texMatrices.push_back(std::move(mtx));
+		mat.texMatrices.nElements = 1;
+
+		mat.shader.mStages[0].texMap = 0;
+		mat.shader.mStages[0].texCoord = 0;
+		mat.shader.mStages[0].colorStage.d = gx::TevColorArg::texc;
+		mat.shader.mStages[0].alphaStage.d = gx::TevAlphaArg::texa;
+	}
 };
 
 }

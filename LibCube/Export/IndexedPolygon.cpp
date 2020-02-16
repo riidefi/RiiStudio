@@ -68,16 +68,20 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v)
 	{
 	case SimpleAttrib::EnvelopeIndex:
 		getVcd().mAttributes[gx::VertexAttribute::PositionNormalMatrixIndex] = gx::VertexAttributeType::Direct;
+		getVcd().mBitfield |= (1 << (int)gx::VertexAttribute::PositionNormalMatrixIndex);
 		break;
 	case SimpleAttrib::Position:
 		getVcd().mAttributes[gx::VertexAttribute::Position] = gx::VertexAttributeType::Short;
+		getVcd().mBitfield |= (1 << (int)gx::VertexAttribute::Position);
 		break;
 	case SimpleAttrib::Normal:
-		getVcd().mAttributes[gx::VertexAttribute::Position] = gx::VertexAttributeType::Short;
+		getVcd().mAttributes[gx::VertexAttribute::Normal] = gx::VertexAttributeType::Short;
+		getVcd().mBitfield |= (1 << (int)gx::VertexAttribute::Normal);
 		break;
 	case SimpleAttrib::Color0:
 	case SimpleAttrib::Color1:
 		getVcd().mAttributes[gx::VertexAttribute::Color0 + ((u64)attrib - (u64)SimpleAttrib::Color0)] = gx::VertexAttributeType::Short;
+		getVcd().mBitfield |= (1 << ((int)gx::VertexAttribute::Color0 + ((u64)attrib - (u64)SimpleAttrib::Color0)));
 		break;
 	case SimpleAttrib::TexCoord0:
 	case SimpleAttrib::TexCoord1:
@@ -88,6 +92,7 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v)
 	case SimpleAttrib::TexCoord6:
 	case SimpleAttrib::TexCoord7:
 		getVcd().mAttributes[gx::VertexAttribute::TexCoord0 + ((u64)attrib - (u64)SimpleAttrib::TexCoord0)] = gx::VertexAttributeType::Short;
+		getVcd().mBitfield |= (1 << ((int)gx::VertexAttribute::TexCoord0 + ((u64)attrib - (u64)SimpleAttrib::TexCoord0)));
 		break;
 	default:
 		assert(!"Invalid simple vertex attrib");
@@ -170,7 +175,7 @@ void IndexedPolygon::propogate(VBOBuilder& out) const
 				case gx::VertexAttribute::Texture7MatrixIndex:
 					break;
 				case gx::VertexAttribute::Position:
-					out.pushData(0, getPos(vtx[gx::VertexAttribute::Position]) * 0.001f);
+					out.pushData(0, getPos(vtx[gx::VertexAttribute::Position]) * 10.f);
 					break;
 				case gx::VertexAttribute::Color0:
 					out.pushData(5, getClr(vtx[gx::VertexAttribute::Color0]));

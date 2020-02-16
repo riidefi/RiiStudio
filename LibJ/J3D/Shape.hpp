@@ -50,7 +50,7 @@ struct Shape final : public ShapeData, public IndexedPolygon
 	PX_TYPE_INFO_EX("J3D Shape", "shape", "J::Shape", ICON_FA_VECTOR_SQUARE, ICON_FA_VECTOR_SQUARE);
 
 	std::string getName() const override { return "Shape " + std::to_string(id); }
-
+	void setName(const std::string& name) override { }
 	u64 getNumMatrixPrimitives() const override
 	{
 		return mMatrixPrimitives.size();
@@ -107,12 +107,13 @@ struct Shape final : public ShapeData, public IndexedPolygon
 	glm::vec4 getClr(u64 id) const override;
 	glm::vec3 getPos(u64 id) const override;
 	glm::vec3 getNrm(u64 id) const override;
+	u64 addPos(const glm::vec3& v) override;
+	u64 addNrm(const glm::vec3& v) override;
+	u64 addClr(u64 chan, const glm::vec4& v) override;
+	u64 addUv(u64 chan, const glm::vec2& v) override;
 
-	Shape(J3DModel& m)
-		: mMdl(m)
-	{}
+	void addTriangle(std::array<SimpleVertex, 3> tri) override;
 
-	J3DModel& mMdl;
 };
 
 }

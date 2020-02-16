@@ -75,7 +75,12 @@ struct CorePackageInstaller : px::PackageInstaller
 		throw "Cannot spawn";
 		return px::Dynamic(std::move(std::make_unique<px::IDestructable>()), 0, "");
 	}
-
+	px::Dynamic constructObject(const std::string& type, px::IDestructable* scene) override
+	{
+		auto spawned = spawnState(type);
+		spawned.mOwner->mpScene = scene;
+		return spawned;
+	}
 	std::vector<std::unique_ptr<px::IFactory>> mFactories;
     std::vector<std::unique_ptr<px::IBinarySerializer>> mSerializers;
 };
@@ -86,7 +91,7 @@ px::Dynamic SpawnState(const std::string& type)
 {
 	return std::move(spCorePackageInstaller->spawnState(type));
 }
-bool IsConstructable(const std::string& type)
+bool IsConstructible(const std::string& type)
 {
 	const auto& factories = spCorePackageInstaller->mFactories;
 	return std::find_if(factories.begin(), factories.end(), [&](const auto& it) {

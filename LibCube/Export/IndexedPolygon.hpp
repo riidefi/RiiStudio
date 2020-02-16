@@ -31,6 +31,11 @@ struct IndexedPolygon : public lib3d::Polygon
 	virtual glm::vec3 getNrm(u64 id) const = 0;
 	virtual glm::vec4 getClr(u64 id) const = 0;
 	virtual glm::vec2 getUv(u64 chan, u64 id) const = 0;
+
+	virtual u64 addPos(const glm::vec3& v) = 0;
+	virtual u64 addNrm(const glm::vec3& v) = 0;
+	virtual u64 addClr(u64 chan, const glm::vec4& v) = 0;
+	virtual u64 addUv(u64 chan, const glm::vec2& v) = 0;
 	// We add on to the attached buffer
 	void setPrimitiveVertex(u64 prim_idx, u64 vtx_idx, const SimpleVertex& vtx)
 	{
@@ -53,6 +58,7 @@ struct IndexedPolygon : public lib3d::Polygon
 
 	virtual VertexDescriptor& getVcd() = 0;
 	virtual const VertexDescriptor& getVcd() const = 0;
+
 
 };
 

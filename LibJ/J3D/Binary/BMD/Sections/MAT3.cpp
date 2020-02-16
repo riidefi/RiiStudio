@@ -999,7 +999,7 @@ void readMAT3(BMDOutputContext& ctx)
 	u16 size = reader.read<u16>();
 
 	for (u32 i = 0; i < size; ++i)
-		ctx.mdl.getMaterials().push(std::make_unique<Material>(ctx.col.getFolder<Texture>().value()));
+		ctx.mdl.getMaterials().push(std::make_unique<Material>());
 	ctx.materialIdLut.resize(size);
 	reader.read<u16>();
 

@@ -185,7 +185,7 @@ void RootWindow::openFile(const std::string& file, OpenFilePolicy policy)
 		if (!importer.second)
 			return;
 
-		if (!IsConstructable(importer.first))
+		if (!IsConstructible(importer.first))
 		{
 			printf("Non constructable state.. find parents\n");
 
@@ -195,7 +195,7 @@ void RootWindow::openFile(const std::string& file, OpenFilePolicy policy)
 				printf("No children. Cannot construct.\n");
 				return;
 			}
-			assert(children.size() == 1 && IsConstructable(children[0])); // TODO
+			assert(children.size() == 1 && IsConstructible(children[0])); // TODO
 			importer.first = children[0];
 		}
 

@@ -116,6 +116,7 @@ struct Bone : public px::IDestructable
 {
 	PX_TYPE_INFO_EX("3D Bone", "3d_bone", "3D::Bone", ICON_FA_BONE, ICON_FA_BONE);
 	virtual s64 getId() { return -1; }
+	virtual void setName(const std::string& name) = 0;
 	virtual void copy(lib3d::Bone& to) {}
 
 	virtual Coverage supportsBoneFeature(BoneFeatures f) { return Coverage::Unsupported; }
@@ -146,6 +147,21 @@ struct Bone : public px::IDestructable
 	struct Display { u32 matId = 0; u32 polyId = 0; u8 prio = 0; };
 	virtual u64 getNumDisplays() const = 0;
 	virtual Display getDisplay(u64 idx) const = 0;
+	virtual void addDisplay(const Display& d) = 0;
+};
+enum class PixelOcclusion
+{
+	//! The texture does not use alpha.
+	//!
+	Opaque,
+
+	//! The texture's alpha is binary: a pixel is either fully opaque or discarded.
+	//!
+	Stencil,
+
+	//! Pixels may express a range of alpha values for nuanced, translucent expression.
+	//!
+	Translucent
 };
 struct Material : public px::IDestructable
 {
@@ -153,6 +169,7 @@ struct Material : public px::IDestructable
 
 
 	virtual std::string getName() const { return "Untitled Material"; }
+	virtual void setName(const std::string& name) { }
 	virtual s64 getId() const { return -1; }
 
 	virtual bool isXluPass() const { return false; }
@@ -161,6 +178,18 @@ struct Material : public px::IDestructable
 	// TODO: Interdependency
 	virtual void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P, u32 shaderId, const std::map<std::string, u32>& texIdMap) const = 0;
 	virtual void genSamplUniforms(u32 shaderId, const std::map<std::string, u32>& texIdMap) const = 0;
+
+	virtual void configure(PixelOcclusion occlusion, std::vector<std::string>& textures) = 0;
+};
+
+struct TextureCodec
+{
+	virtual ~TextureCodec() = default;
+
+	virtual u32 getBpp() const = 0;
+	virtual u32 getBlockWidth() const = 0;
+	virtual u32 getBlockHeight() const = 0;
+	virtual void encodeBlock(const u32* rgbaPixels, void* block, int width) = 0;
 };
 
 struct Texture : public px::IDestructable
@@ -168,6 +197,7 @@ struct Texture : public px::IDestructable
 	PX_TYPE_INFO("Texture", "tex", "3D::Texture");
 
 	virtual std::string getName() const { return "Untitled Texture"; }
+	virtual void setName(const std::string& name) = 0;
 	virtual s64 getId() const { return -1; }
 
 	virtual u32 getDecodedSize(bool mip) const
@@ -182,12 +212,33 @@ struct Texture : public px::IDestructable
 	virtual void setWidth(u16 width) = 0;
 	virtual u16 getHeight() const = 0;
 	virtual void setHeight(u16 height) = 0;
+
+	using Occlusion = PixelOcclusion;
+
+	//! @brief Set the image encoder based on the expression profile. Pixels are not recomputed immediately.
+	//!
+	//! @param[in] optimizeForSize	If the texture should prefer filesize over quality when deciding an encoder.
+	//! @param[in] color			If the texture is not grayscale.
+	//! @param[in] occlusion		The pixel occlusion selection.
+	//!
+	virtual void setEncoder(bool optimizeForSize, bool color, Occlusion occlusion) = 0;
+
+	//! @brief Encode the texture based on the current encoder, width, height, etc. and supplied raw data. 
+	//!
+	//! @param[in] rawRGBA
+	//!				- Raw pointer to a RGBA32 pixel array.
+	//!				- Must be sized width * height * 4.
+	//!				- If mipmaps are configured, this must also include all additional mip levels.
+	//!
+	virtual void encode(const u8* rawRGBA) = 0;
 };
 
 struct Polygon : public px::IDestructable
 {
 	PX_TYPE_INFO("Polygon", "poly", "3D::Polygon");
 	virtual ~Polygon() = default;
+
+	virtual void setName(const std::string& name) = 0;
 	
 	enum class SimpleAttrib
 	{
@@ -215,14 +266,14 @@ struct Polygon : public px::IDestructable
 		u8 evpIdx; // If read from a GC model, not local to mprim
 		glm::vec3 position;
 		glm::vec3 normal;
-		std::array<glm::vec3, 2> colors;
+		std::array<glm::vec4, 2> colors;
 		std::array<glm::vec2, 8> uvs;
 	};
 
 	// For now... (slow api)
 	virtual void propogate(VBOBuilder& out) const = 0;
 
-
+	virtual void addTriangle(std::array<SimpleVertex, 3> tri) = 0;
 	//	virtual SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx) = 0;
 	//	virtual void setPrimitiveVertex(u64 prim_idx, u64 vtx_idx, const SimpleVertex& vtx) = 0;
 

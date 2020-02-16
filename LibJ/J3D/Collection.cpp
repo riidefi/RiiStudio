@@ -46,5 +46,18 @@ struct ExampleXF : public pl::TransformStack::XForm
 	}
 };
 #endif
+const libcube::Texture& Material::getTexture(const std::string& id) const
+{
+	assert(mpScene);
+	J3DCollection* j3dscene = dynamic_cast<J3DCollection*>(mpScene);
+	assert(j3dscene);
 
+	const auto textures = j3dscene->getTextures();
+
+	for (int i = 0; i < textures.size(); ++i)
+		if (textures[i].getName() == id)
+			return textures[i];
+
+	throw "Invalid";
+}
 } // namespace libcube::jsystem

@@ -68,6 +68,7 @@ struct Joint final : public IBoneDelegate, public JointData
 	PX_TYPE_INFO_EX("J3D Joint", "j3d_joint", "J::Joint", ICON_FA_BONE, ICON_FA_BONE);
 
 	std::string getName() const override { return name; }
+	void setName(const std::string& n) override { name = n; }
 	s64 getId() override { return id; }
 	void copy(lib3d::Bone& to) override
 	{
@@ -106,7 +107,7 @@ struct Joint final : public IBoneDelegate, public JointData
 		translate = srt.translation;
 	}
 	s64 getParent() const override { return parent; }
-	void setParent(s64 id) override { parent = (ID<Joint>)id; }
+	void setParent(s64 id) override { parent = (u32)id; }
 	u64 getNumChildren() const override { return children.size(); }
 	s64 getChild(u64 idx) const override { return idx < children.size() ? children[idx] : -1; }
 	s64 addChild(s64 child) override { children.push_back((u32)child); return children.size() - 1; }
@@ -161,6 +162,11 @@ struct Joint final : public IBoneDelegate, public JointData
 	lib3d::Bone::Display getDisplay(u64 idx) const override
 	{
 		return { (u32)displays[idx].material, (u32)displays[idx].shape };
+	}
+
+	void addDisplay(const lib3d::Bone::Display& d) override
+	{
+		displays.emplace_back(d.matId, d.polyId);
 	}
 
 };

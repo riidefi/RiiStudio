@@ -123,15 +123,15 @@ struct MaterialData : public GCMaterialData
 			nbtScale == rhs.nbtScale;
 	}
 };
-
+struct Texture;
 
 struct Material final : public MaterialData, public IGCMaterial
 {
 	PX_TYPE_INFO_EX("J3D Material", "j3d_material", "J::Material", ICON_FA_PAINT_BRUSH, ICON_FA_PAINT_BRUSH);
 
 	~Material() override = default;
-	Material(px::ConcreteCollectionHandle<Texture> textures)
-		: mTextures(textures)
+	Material() //px::ConcreteCollectionHandle<Texture> textures)
+		// : mTextures(textures)
 	{
 		using P = PropertySupport;
 		support.setSupport(P::Feature::CullMode, P::Coverage::ReadWrite);
@@ -151,16 +151,7 @@ struct Material final : public MaterialData, public IGCMaterial
 		return *this;
 	}
 
-	const Texture& getTexture(const std::string& id) const override
-	{
-		for (int i = 0; i < mTextures.size(); ++i)
-			if (mTextures[i].getName() == id)
-				return mTextures[i];
-
-		throw "Invalid";
-	}
-
-	px::ConcreteCollectionHandle<Texture> mTextures;
+	const libcube::Texture& getTexture(const std::string& id) const override;
 };
 
 }

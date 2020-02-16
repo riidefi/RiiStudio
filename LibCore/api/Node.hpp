@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <string_view>
+#include <type_traits>
 
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/v2/writer/binary_writer.hxx>
@@ -22,9 +23,9 @@ Now:
 */
 
 #define PX_TYPE_INFO_EX(gui, cli, internal, icon_pl, icon_sg) \
-    constexpr static px::RichName TypeInfo = { gui, internal, cli, {icon_pl, icon_sg } }
+    constexpr static px::RichName TypeInfo = { gui, internal, cli, {icon_pl, icon_sg } };
 #define PX_TYPE_INFO(gui, cli, internal) \
-    constexpr static px::RichName TypeInfo = { gui, internal, cli }
+    constexpr static px::RichName TypeInfo = { gui, internal, cli };
 
 #define PX_GET_TID(type) \
 	std::string(type::TypeInfo.namespacedId)
@@ -35,6 +36,11 @@ struct IDestructable
     virtual ~IDestructable() = default;
 
 	virtual std::string getName() const { return "Untitled"; }
+	//	// Of type of class.
+	//	virtual void* construct() { return nullptr; }
+
+	// Parent
+	IDestructable* mpScene = nullptr;
 
 	PX_TYPE_INFO_EX("Object", "obj", "IDestructable", "(?)", "(?)");
 };
@@ -85,6 +91,14 @@ struct IFactory : public IDestructable
 	std::string_view id;
 };
 
+#define PX_FACTORY_NAME(type) __Factory##type
+#define PX_FACTORY(type) \
+	struct PX_FACTORY_NAME(type) : public px::IFactory { \
+		std::unique_ptr<px::IFactory> clone() override { return std::make_unique<PX_FACTORY_NAME(type)>(*this); } \
+		px::Dynamic spawn() override { auto obj = px::make_dynamic<type>(); return obj; } \
+		PX_FACTORY_NAME(type) () { id = type::TypeInfo.namespacedId; } \
+	};
+
 struct PackageInstaller
 {
     // DLLs implement their own global instance
@@ -95,6 +109,8 @@ struct PackageInstaller
     virtual void registerSerializer(std::unique_ptr<IBinarySerializer> ser) = 0;
     virtual void registerMirror(const MirrorEntry& entry) = 0;
     virtual void installModule(const std::string& path) = 0;
+
+	virtual Dynamic constructObject(const std::string& type, IDestructable* scene) = 0;
 
     template<typename D, typename B>
     void registerParent()

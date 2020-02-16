@@ -29,6 +29,8 @@ protected:
 
 		std::vector<std::size_t> mSelected;
 		std::size_t mActiveSelect = 0;
+
+		CollectionHost* mHost = nullptr;
 	};
 public:
 	PX_TYPE_INFO("Collection Host", "collection_host", "CollectionHost");
@@ -37,7 +39,7 @@ public:
 	{
 		for (const auto& folder : folders)
 		{
-			mEntries.emplace(folder, Collection{ folder, {} });
+			mEntries.emplace(folder, Collection{ folder, {}, {}, 0, this });
 			mLut.emplace_back(folder);
 		}
 	}
@@ -99,8 +101,20 @@ public:
 		void push(std::unique_ptr<T> in)
 		{
 			assert(in);
+
 			void* data = in.get();
+			in->mpScene = mCollection.mHost->mpScene;
 			push(std::string(T::TypeInfo.namespacedId), data, std::move(in));
+		}
+		void add(const std::string& type)
+		{
+			mCollection.mNodes.push_back(PackageInstaller::spInstance->constructObject(type, mCollection.mHost->mpScene));
+			//	if (mCollection.mHost.mpScene)
+			//		mCollection.mNodes.back().mOwner->initializeFromScene(mCollection.mScene);
+		}
+		void add()
+		{
+			add(mCollection.mNodeType);
 		}
 
 		template<typename T>

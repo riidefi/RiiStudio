@@ -158,6 +158,7 @@ struct SceneState
 
 	void gather(const px::CollectionHost& model, const px::CollectionHost& texture)
 	{
+		bones.emplace(model.getFolder<lib3d::Bone>().value());
 		mTree.gather(model);
 		buildBuffers();
 		buildTextures(texture);
@@ -166,19 +167,49 @@ struct SceneState
 		//	const auto mat = mats->at<lib3d::Material>(0);
 		//	const auto compiled = mat->generateShaders();
 	}
+	std::optional<px::CollectionHost::CollectionHandle> bones;
+	glm::mat4 computeMdlMtx(const lib3d::SRT3& srt)
+	{
+		glm::mat4 mdl(1.0f);
+
+		// TODO
+		// mdl = glm::rotate(mdl, (glm::mat4)srt.rotation);
+		mdl = glm::translate(mdl, srt.translation);
+		mdl = glm::scale(mdl, srt.scale);
+
+		return mdl;
+	}
+	glm::mat4 computeBoneMdl(u32 id)
+	{
+		glm::mat4 mdl(1.0f);
+
+		auto bone = bones->at<lib3d::Bone>(id);
+		const auto parent = bone->getParent();
+		if (parent >= 0)
+			mdl = computeBoneMdl(parent);
+
+		mdl *= computeMdlMtx(bone->getSRT());
+		return mdl;
+	}
+
+	glm::mat4 computeBoneMdl(const lib3d::Bone& bone)
+	{
+		glm::mat4 mdl(1.0f);
+
+		const auto parent = bone.getParent();
+		if (parent >= 0)
+			mdl *= computeBoneMdl(parent);
+
+		mdl *= computeMdlMtx(bone.getSRT());
+		return mdl;
+	}
 	void build(const glm::mat4& view, const glm::mat4& proj)
 	{
 		mUboBuilder.clear();
 		u32 i = 0;
 		for (const auto& node : mTree.opaque)
 		{
-			lib3d::SRT3 srt = node.bone.getSRT();
-			glm::mat4 mdl(1.0f);
-
-			mdl = glm::scale(mdl, srt.scale);
-			// mdl = glm::rotate(mdl, (glm::mat4)srt.rotation);
-			mdl = glm::translate(mdl, srt.translation);
-
+			auto mdl = computeBoneMdl(node.bone);
 			node.mat.generateUniforms(mUboBuilder, mdl, view, proj, node.shader.getId(), texIdMap);
 			node.mtx_id = i;
 			++i;

@@ -14,8 +14,8 @@ struct TextureData
 {
 	std::string mName; // For linking
 
-	u8 mFormat;
-	bool bTransparent;
+	u8 mFormat = 6;
+	bool bTransparent = false;
 	u16 mWidth, mHeight;
 
 	u8 mPaletteFormat;
@@ -25,7 +25,7 @@ struct TextureData
 
 	s8 mMinLod;
 	s8 mMaxLod;
-	u8 mMipmapLevel;
+	u8 mMipmapLevel = 0;
 
 	std::vector<u8> mData;
 };
@@ -36,10 +36,16 @@ struct Texture : public TextureData, public libcube::Texture
 
 
 	std::string getName() const override { return mName; }
+	void setName(const std::string& name) override { mName = name; }
 
     u32 getTextureFormat() const override
 	{
 		return mFormat;
+	}
+
+	void setTextureFormat(u32 format) override
+	{
+		mFormat = format;
 	}
     u32 getMipmapCount() const override
 	{
@@ -48,6 +54,14 @@ struct Texture : public TextureData, public libcube::Texture
     const u8* getData() const override
 	{
 		return mData.data();
+	}
+	u8* getData() override
+	{
+		return mData.data();
+	}
+	void resizeData() override
+	{
+		mData.resize(getEncodedSize(false));
 	}
 
     const u8* getPaletteData() const override
@@ -63,12 +77,12 @@ struct Texture : public TextureData, public libcube::Texture
 	{
 		return mWidth;
 	}
-	void setWidth(u16) override {}
+	void setWidth(u16 width) override { mWidth = width; }
 	u16 getHeight() const override
 	{
 		return mHeight;
 	}
-	void setHeight(u16) override {}
+	void setHeight(u16 height) override { mHeight = height; }
 };
 
 }
