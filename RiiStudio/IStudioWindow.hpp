@@ -59,11 +59,11 @@ private:
 				
 					ImGuiID next = dockspaceId;
 					ImGuiID dock_right_id = ImGui::DockBuilderSplitNode(next, ImGuiDir_Right, 0.2f, nullptr, &next);
-					ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(next, ImGuiDir_Left, 0.2f, nullptr, &next);
+					ImGuiID dock_right_down_id = ImGui::DockBuilderSplitNode(dock_right_id, ImGuiDir_Down, 0.2f, nullptr, &dock_right_id);
 
 					ImGui::DockBuilderDockWindow(idIfy("Outliner").c_str(), dock_right_id);
-					ImGui::DockBuilderDockWindow(idIfy("Texture Preview").c_str(), dock_left_id);
-					ImGui::DockBuilderDockWindow(idIfy("Render test").c_str(), next);
+					ImGui::DockBuilderDockWindow(idIfy("Texture Preview").c_str(), dock_right_down_id);
+					ImGui::DockBuilderDockWindow(idIfy("Viewport").c_str(), next);
 				
 				
 					ImGui::DockBuilderFinish(dockspaceId);

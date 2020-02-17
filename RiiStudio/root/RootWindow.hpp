@@ -43,4 +43,6 @@ private:
 
 
 	u32 dockspace_id;
+
+	bool mVsync = true;
 };

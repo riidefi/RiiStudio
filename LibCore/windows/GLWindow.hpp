@@ -22,6 +22,8 @@ public:
 
 	void glfwhideMouse();
 	void glfwshowMouse();
+
+	void setVsync(bool v);
     
 	GLFWwindow* getGlfwWindow() { return mGlfwWindow; }
 

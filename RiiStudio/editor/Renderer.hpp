@@ -34,5 +34,21 @@ private:
 
 	std::unique_ptr<SceneState> mState;
 
+	
+	// Mouse
+	float mouseSpeed = 0.02f;
+	// Input
+	bool inCtrl = false;
+	int combo_choice_cam = 0;
+	// Camera settings
+	float speed = 0.0f;
+	float cmin = 100.f;
+	float cmax = 100000.f;
+	float fov = 90.0f;
+	// Camera state
 	glm::vec3 eye{ 0.0f, 0.0f, 0.0f };
+	glm::vec3 direction;
+	// Render settings
+	bool rend = true;
+	bool wireframe = false;
 };

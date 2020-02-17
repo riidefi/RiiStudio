@@ -169,8 +169,8 @@ void BmdIo::read(px::Dynamic& state, oishii::BinaryReader& reader)
 	_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
 #endif
 
-	// reader.add_bp(0xd860, 16);
-	//oishii::BinaryReader::ScopedRegion g(reader, "J3D Binary Model Data (.bmd)");
+	// reader.add_bp(0x37ba0, 4);
+	// oishii::BinaryReader::ScopedRegion g(reader, "J3D Binary Model Data (.bmd)");
 
 	J3DCollection* pCol = dynamic_cast<J3DCollection*>(state.mOwner.get());
 	assert(pCol);
@@ -244,7 +244,7 @@ void BMD_Pad(char* dst, u32 len)
 void exportBMD(oishii::v2::Writer& writer, J3DCollection& collection)
 {
 	// writer.attachDataForMatchingOutput(__lastReadDataForWriteDebug);
-	// writer.add_bp(0x4bb0, 4);
+	writer.add_bp(0x37ba0, 16);
 
 	oishii::v2::Linker linker;
 

@@ -298,41 +298,52 @@ static void cb(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei l
 }
 Renderer::Renderer()
 {
-
 	glDebugMessageCallback(cb, 0);
 
 	mState = std::make_unique<SceneState>();
 }
 Renderer::~Renderer() {}
-static float speed = 0.0f; // 3 units / second
-static float cmin = 100.f;
-static float cmax = 100000.f;
-static float fov = 45.0f;
+
 void Renderer::render(u32 width, u32 height, bool& showCursor)
 {
 	if (!bShadersLoaded)
 		createShaderProgram();
 
-	static bool rend = false;
-	ImGui::Checkbox("Render", &rend);
-	if (!rend) return;
+	if (ImGui::BeginMenuBar())
+	{
+		if (ImGui::BeginMenu("Camera"))
+		{
+			ImGui::SliderFloat("Mouse Speed", &mouseSpeed, 0.0f, .2f);
 
-	ImGui::SliderFloat("Camera Speed", &speed, 1.0f, 10000.f);
-	ImGui::SliderFloat("FOV", &fov, 1.0f, 180.0f);
+			ImGui::SliderFloat("Camera Speed", &speed, 1.0f, 10000.f);
+			ImGui::SliderFloat("FOV", &fov, 1.0f, 180.0f);
+
+			ImGui::InputFloat("Near Plane", &cmin);
+			ImGui::InputFloat("Far Plane", &cmax);
+
+			ImGui::DragFloat("X", &eye.x, .01f, -10, 30);
+			ImGui::DragFloat("Y", &eye.y, .01f, -10, 30);
+			ImGui::DragFloat("Z", &eye.z, .01f, -10, 30);
+
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Rendering"))
+		{
+			ImGui::Checkbox("Render", &rend);
+			ImGui::Checkbox("Wireframe", &wireframe);
+			ImGui::EndMenu();
+		}
+		static int combo_choice = 0;
+		ImGui::Combo("Shading", &combo_choice, "Emulated Shaders\0Normals\0TODO");
+
+		ImGui::Combo("Controls", &combo_choice_cam, "WASD // FPS\0WASD // Plane\0");
 
 
-	if (showCursor)
-		// TODO -- check if hovering over current window
-		showCursor = !(ImGui::IsAnyMouseDown() && ImGui::GetIO().WantCaptureMouse);
-	else
-		showCursor = !ImGui::IsAnyMouseDown();
+		ImGui::Checkbox("Wireframe", &wireframe);
 
-	static bool wireframe = false;
-	ImGui::Checkbox("Wireframe", &wireframe);
-	if (wireframe)
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	else
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		ImGui::EndMenuBar();
+	}
+
 	// horizontal angle : toward -Z
 	float horizontalAngle = 3.14f;
 	// vertical angle : 0, look at the horizon
@@ -340,43 +351,92 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 	// Initial Field of View
 	float initialFoV = 45.0f;
 
-	float mouseSpeed = 0.005f;
+	// TODO: Enable for plane mode
+	// glm::vec3 up = glm::cross(right, direction);
+	glm::vec3 up = { 0, 1, 0 };
 
-	float deltaTime = .1f;
+	bool mouseDown = ImGui::IsAnyMouseDown();
+	bool ctrlPress = ImGui::IsKeyPressed(341); // GLFW_KEY_LEFT_CONTROL
 
-	static float xpos = 0;
-	static float ypos = 0;
 
-	if (!showCursor)
+	if (ImGui::IsWindowFocused())
 	{
-		auto pos = ImGui::GetMousePos();
+		if (ctrlPress)
+		{
+			if (inCtrl)
+			{
+				inCtrl = false;
+				showCursor = true;
+			}
+			else
+			{
+				inCtrl = true;
+				showCursor = false;
+			}
+		}
+		else if (!inCtrl)
+		{
+			showCursor = !mouseDown;
+		}
+		float deltaTime = 1.0f / ImGui::GetIO().Framerate;
 
-		xpos = pos.x;
-		ypos = pos.y;
-	}
+		static float xpos = 0;
+		static float ypos = 0;
+
+		if (!showCursor)
+		{
+			auto pos = ImGui::GetMousePos();
+
+			xpos = pos.x;
+			ypos = pos.y;
+		}
 		horizontalAngle += mouseSpeed * deltaTime * float(width - xpos);
 		verticalAngle += mouseSpeed * deltaTime * float(height - ypos);
-	
-	// Direction : Spherical coordinates to Cartesian coordinates conversion
-	glm::vec3 direction(
-		cos(verticalAngle) * sin(horizontalAngle),
-		sin(verticalAngle),
-		cos(verticalAngle) * cos(horizontalAngle)
-	);
-	glm::vec3 right = glm::vec3(
-		sin(horizontalAngle - 3.14f / 2.0f),
-		0,
-		cos(horizontalAngle - 3.14f / 2.0f)
-	);
-	glm::vec3 up = glm::cross(right, direction);
-	if (ImGui::IsKeyDown('W'))
-		eye += direction * deltaTime * speed;
-	if (ImGui::IsKeyDown('S'))
-		eye -= direction * deltaTime * speed;
-	if (ImGui::IsKeyDown('A'))
-		eye -= right * deltaTime * speed;
-	if (ImGui::IsKeyDown('D'))
-		eye += right * deltaTime * speed;
+
+		// Direction : Spherical coordinates to Cartesian coordinates conversion
+		direction = glm::vec3(
+			cos(verticalAngle) * sin(horizontalAngle),
+			sin(verticalAngle),
+			cos(verticalAngle) * cos(horizontalAngle)
+		);
+		glm::vec3 mvmt_dir{ direction.x, combo_choice_cam == 0 ? 0.0f : direction.y, direction.z };
+		if (combo_choice_cam == 0)
+			mvmt_dir = glm::normalize(mvmt_dir);
+		glm::vec3 right = glm::vec3(
+			sin(horizontalAngle - 3.14f / 2.0f),
+			0,
+			cos(horizontalAngle - 3.14f / 2.0f)
+		);
+		if (ImGui::IsKeyDown('W'))
+			eye += mvmt_dir * deltaTime * speed;
+		if (ImGui::IsKeyDown('S'))
+			eye -= mvmt_dir * deltaTime * speed;
+		if (ImGui::IsKeyDown('A'))
+			eye -= right * deltaTime * speed;
+		if (ImGui::IsKeyDown('D'))
+			eye += right * deltaTime * speed;
+
+		if (ImGui::IsKeyDown(' ') && combo_choice_cam == 0 || ImGui::IsKeyDown('E'))
+			eye += up * deltaTime * speed;
+		if (ImGui::IsKeyDown(340)  && combo_choice_cam == 0 || ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
+			eye -= up * deltaTime * speed;
+	}
+	else // if (inCtrl)
+	{
+		inCtrl = false;
+		showCursor = true;
+	}
+
+
+	if (!rend) return;
+
+	if (wireframe)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	else
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+
+
 	glm::mat4 projMtx = glm::perspective(glm::radians(fov),
 		static_cast<f32>(width) / static_cast<f32>(height), cmin, cmax);
 	glm::mat4 viewMtx = glm::lookAt(
@@ -392,7 +452,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 
 	const f32 dist = glm::distance(bound.m_minBounds, bound.m_maxBounds);
 	if (speed == 0.0f)
-		speed = dist / 100.0f;
+		speed = dist / 10.0f;
 	//cmin = std::min(std::min(bound.m_minBounds.x, bound.m_minBounds.y), bound.m_minBounds.z) * 100;
 	//cmax = std::max(std::max(bound.m_maxBounds.x, bound.m_maxBounds.y), bound.m_maxBounds.z) * 100;
 	if (eye == glm::vec3{ 0.0f })
@@ -405,8 +465,5 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 		eye.z = (min.z + max.z) / 2.0f;
 	}
 
-	ImGui::DragFloat("EyeX", &eye.x, .01f, -10, 30);
-	ImGui::DragFloat("EyeY", &eye.y, .01f, -10, 30);
-	ImGui::DragFloat("EyeZ", &eye.z, .01f, -10, 30);
 	mState->draw();
 }

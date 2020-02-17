@@ -364,7 +364,7 @@ struct io_wrapper<Material::TexMatrix>
 		u8 mappingMethod = 0;
 		bool maya = in.transformModel == Material::TexMatrix::CommonTransformModel::Maya;
 
-		J3DMappingMethodDecl::Class _class;
+		J3DMappingMethodDecl::Class _class = J3DMappingMethodDecl::Class::Standard;
 
 		switch (in.option)
 		{
@@ -1183,7 +1183,7 @@ struct MAT3Node : public oishii::v2::Node
 				std::vector<std::string> names(mMdl.getMaterials().size());
 				int i = 0;
 				for (int i = 0; i < mMdl.getMaterials().size(); ++i)
-					names[i++] = mMdl.getMaterials()[i].name;
+					names[i] = mMdl.getMaterials()[i].name;
 				writeNameTable(writer, names);
 				writer.alignTo(4);
 
@@ -1292,8 +1292,8 @@ struct MAT3Node : public oishii::v2::Node
 				mTexMatrices.append(*mat.texMatrices[i].get());
 			for (int i = 0; i < mat.postTexMatrices.size(); ++i)
 				mPostTexMatrices.append(mat.postTexMatrices[i]);
-			//	for (int i = 0; i < mat.textures.size(); ++i)
-			//		mTextureTable.append(mat.textures[i]);
+			for (int i = 0; i < mat.samplers.size(); ++i)
+				mTextureTable.append(static_cast<const Material::J3DSamplerData*>(mat.samplers[i].get())->btiId);
 			for (const auto& stage : mat.shader.mStages)
 				mOrders.append(TevOrder{ stage.rasOrder, stage.texMap, stage.texCoord });
 			for (int i = 0; i < mat.tevColors.size(); ++i)
@@ -1513,41 +1513,57 @@ struct io_wrapper<SerializableMaterial>
 		for (int i = 0; i < m.texMatrices.size(); ++i)
 			texMatrices.push_back(*m.texMatrices[i].get());
 		write_array_vec<u16>(writer, texMatrices, m3.mTexMatrices);
+		// TODO: Assumption
 		write_array_vec<u16>(writer, m.postTexMatrices, m3.mPostTexMatrices);
-		array_vector<Material::J3DSamplerData, 10> samplers;
+		//	write_array_vec<u16>(writer, texMatrices, m3.mTexMatrices);
+		//	for (int i = 0; i < 10; ++i)
+		//		writer.write<s16>(-1);
+
+		dbg.assertSince(0x084);
+		array_vector<Material::J3DSamplerData, 8> samplers;
+		samplers.nElements = m.samplers.size();
 		for (int i = 0; i < m.samplers.size(); ++i)
 			samplers[i] = (Material::J3DSamplerData&)*m.samplers[i].get();
+		dbg.assertSince(0x084);
 		write_array_vec<u16>(writer, samplers, m3.mTextureTable);
+		dbg.assertSince(0x094);
 		write_array_vec<u16>(writer, m.tevKonstColors, m3.mKonstColors);
 
+		dbg.assertSince(0x09C);
 		// TODO -- comparison logic might need to account for ksels being here
 		for (int i = 0; i < m.shader.mStages.size(); ++i)
 			writer.write<u8>(static_cast<u8>(m.shader.mStages[i].colorStage.constantSelection));
 		for (int i = m.shader.mStages.size(); i < 16; ++i)
 			writer.write<u8>(0xc); // Default
 
+		dbg.assertSince(0x0AC);
 		for (int i = 0; i < m.shader.mStages.size(); ++i)
 			writer.write<u8>(static_cast<u8>(m.shader.mStages[i].alphaStage.constantSelection));
 		for (int i = m.shader.mStages.size(); i < 16; ++i)
 			writer.write<u8>(0x1c); // Default
 
+		dbg.assertSince(0x0bc);
 		for (int i = 0; i < m.shader.mStages.size(); ++i)
 			writer.write<u16>(m3.mOrders.find(TevOrder{ m.shader.mStages[i].rasOrder, m.shader.mStages[i].texMap, m.shader.mStages[i].texCoord }));
 		for (int i = m.shader.mStages.size(); i < 16; ++i)
 			writer.write<u16>(-1);
 
+		dbg.assertSince(0x0dc);
 		write_array_vec<u16>(writer, m.tevColors, m3.mTevColors);
 
+		dbg.assertSince(0x0e4);
 		for (int i = 0; i < m.shader.mStages.size(); ++i)
 			writer.write<u16>(m3.mTevStages.find(m.shader.mStages[i]));
 		for (int i = m.shader.mStages.size(); i < 16; ++i)
 			writer.write<u16>(-1);
 
+		dbg.assertSince(0x104);
 		for (int i = 0; i < m.shader.mStages.size(); ++i)
 			writer.write<u16>(m3.mSwapModes.find(SwapSel{ m.shader.mStages[i].rasSwap, m.shader.mStages[i].texMapSwap }));
 		for (int i = m.shader.mStages.size(); i < 16; ++i)
 			writer.write<u16>(-1);
 
+		dbg.assertSince(0x124);
 		for (const auto& table : m.shader.mSwapTable)
 			writer.write<u16>(m3.mSwapTables.find(table));
 

@@ -38,6 +38,7 @@ static bool initWindow(GLFWwindow*& pWin, int width = 1280, int height = 720, co
 	return true;
 }
 
+
 GLWindow::GLWindow(int width, int height, const char* pName)
 {
 	glfwSetErrorCallback(handleGlfwError);
@@ -67,7 +68,10 @@ void GLWindow::glfwhideMouse()
 {
 	glfwSetInputMode(mGlfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
-
+void GLWindow::setVsync(bool v)
+{
+	glfwSwapInterval(v ? 1 : 0);
+}
 GLWindow::~GLWindow()
 {
 	glfwDestroyWindow(mGlfwWindow);

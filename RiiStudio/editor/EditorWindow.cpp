@@ -239,8 +239,6 @@ struct GenericCollectionOutliner : public IStudioWindow
 	void draw() noexcept override
 	{
 
-		const auto& io = ImGui::GetIO();
-		ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate, io.Framerate ? 1000.0f / io.Framerate : 0.0f);
 		mFilter.Draw();
 		drawRecursive(mHost);
 	}
@@ -290,9 +288,9 @@ struct TexImgPreview : public IStudioWindow
 struct RenderTest : public IStudioWindow
 {
 	RenderTest(const px::CollectionHost& host)
-		: IStudioWindow("Render test"), mHost(host)
+		: IStudioWindow("Viewport"), mHost(host)
 	{
-		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize);
+		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
 
 		const auto models = host.getFolder<px::CollectionHost>();
 
