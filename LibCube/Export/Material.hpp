@@ -242,6 +242,8 @@ struct IGCMaterial : public lib3d::Material
 	std::string getName() const override { return getMaterialData().name; }
 	void setName(const std::string& name) override { getMaterialData().name = name; }
 
+	void setMegaState(MegaState& state) const override;
+
 	void configure(lib3d::PixelOcclusion occlusion, std::vector<std::string>& textures) override
 	{
 		// TODO

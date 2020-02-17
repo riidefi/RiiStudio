@@ -111,5 +111,10 @@ void IGCMaterial::genSamplUniforms(u32 shaderId, const std::map<std::string, u32
 		glBindTexture(GL_TEXTURE_2D, texIdMap.at(data.samplers[i]->mTexture));
 	}
 }
+void IGCMaterial::setMegaState(MegaState& state) const
+{
+	GXMaterial mat{ 0, getName(), *const_cast<IGCMaterial*>(this) };
 
+	translateGfxMegaState(state, mat);
+}
 }

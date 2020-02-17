@@ -1,3 +1,5 @@
+#include <ThirdParty/GL/gl3w.h>
+
 #include <ThirdParty/glfw/glfw3.h>
 
 #include "GXProgram.hpp"
@@ -716,7 +718,7 @@ std::string GXProgram::generateTevStagesLastMinuteFixup() {
 	}
 }
 
-std::string GXProgram::generateAlphaTestCompare(gx::Comparison compare, u8 reference)
+std::string GXProgram::generateAlphaTestCompare(gx::Comparison compare, float reference)
 {
 	const auto ref = std::to_string(static_cast<f32>(reference));
 	switch (compare) {
@@ -744,8 +746,8 @@ std::string GXProgram::generateAlphaTest()
 {
 	const auto alphaTest = mMaterial.mat.getMaterialData().alphaCompare;
 	return
-		"	bool t_AlphaTestA = " + generateAlphaTestCompare(alphaTest.compLeft, alphaTest.refLeft / 255.0f) + ";\n"
-		"	bool t_AlphaTestB = " + generateAlphaTestCompare(alphaTest.compRight, alphaTest.refRight / 255.0f) + ";\n"
+		"	bool t_AlphaTestA = " + generateAlphaTestCompare(alphaTest.compLeft, static_cast<float>(alphaTest.refLeft) / 255.0f) + ";\n"
+		"	bool t_AlphaTestB = " + generateAlphaTestCompare(alphaTest.compRight, static_cast<float>(alphaTest.refRight) / 255.0f) + ";\n"
 		"	if (!(" + generateAlphaTestOp(alphaTest.op) + "))\n"
 		"		discard; \n";
 }
@@ -1009,20 +1011,20 @@ void translateGfxMegaState(MegaState& megaState, GXMaterial& material)
 	// megaState.depthWrite = material.ropInfo.depthWrite;
 	// megaState.depthCompare = material.ropInfo.depthTest ? reverseDepthForCompareMode(translateCompareType(material.ropInfo.depthFunc)) : GfxCompareMode.ALWAYS;
 	megaState.frontFace = FrontFace::CW;
-
+	
 	const auto blendMode = material.mat.getMaterialData().blendMode;
 	if (blendMode.type == gx::BlendModeType::none) {
-		// megaState.blendMode = GL_FUNC_ADD;
+		megaState.blendMode = GL_FUNC_ADD;
 		megaState.blendSrcFactor = GL_ONE;
 		megaState.blendDstFactor = GL_ZERO;
 	}
 	else if (blendMode.type == gx::BlendModeType::blend) {
-		// megaState.blendMode = GL_FUNC_ADD;
+		megaState.blendMode = GL_FUNC_ADD;
 		megaState.blendSrcFactor = translateBlendSrcFactor(blendMode.source);
 		megaState.blendDstFactor = translateBlendDstFactor(blendMode.dest);
 	}
 	else if (blendMode.type == gx::BlendModeType::subtract) {
-		// megaState.blendMode = GL_FUNC_REVERSE_SUBTRACT;
+		megaState.blendMode = GL_FUNC_REVERSE_SUBTRACT;
 		megaState.blendSrcFactor = GL_ONE;
 		megaState.blendDstFactor = GL_ONE;
 	}

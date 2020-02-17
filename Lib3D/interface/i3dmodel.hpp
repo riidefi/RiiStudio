@@ -15,6 +15,22 @@
 
 #include <LibCore/api/Collection.hpp>
 
+
+enum class FrontFace { CW, CCW };
+struct MegaState
+{
+	u32 cullMode = -1;
+	u32 depthWrite;
+	u32 depthCompare;
+	FrontFace frontFace;
+
+	u32 blendMode;
+	u32 blendSrcFactor;
+	u32 blendDstFactor;
+
+};
+
+
 namespace lib3d {
 enum class Coverage
 {
@@ -178,7 +194,7 @@ struct Material : public px::IDestructable
 	// TODO: Interdependency
 	virtual void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V, const glm::mat4& P, u32 shaderId, const std::map<std::string, u32>& texIdMap) const = 0;
 	virtual void genSamplUniforms(u32 shaderId, const std::map<std::string, u32>& texIdMap) const = 0;
-
+	virtual void setMegaState(MegaState& state) const = 0;
 	virtual void configure(PixelOcclusion occlusion, std::vector<std::string>& textures) = 0;
 };
 

@@ -249,8 +249,24 @@ struct SceneState
 		glDepthFunc(GL_LESS);
 		glBindVertexArray(mVbo.VAO);
 
+		MegaState state;
+
 		for (const auto& node : mTree.opaque)
 		{
+			node.mat.setMegaState(state);
+			glEnable(GL_BLEND);
+			glBlendFunc(state.blendSrcFactor, state.blendDstFactor);
+			glBlendEquation(state.blendMode);
+			if (state.cullMode == -1)
+			{
+				glDisable(GL_CULL_FACE);
+			}
+			else
+			{
+				// glEnable(GL_CULL_FACE);
+				// glCullFace(state.cullMode);
+			}
+			// TODO: depthWrite, depthCompare, frontFace
 			assert(mVbo.VAO && node.idx_size >= 0 && node.idx_size % 3 == 0);
 			glUseProgram(node.shader.getId());
 			mUboBuilder.use(node.mtx_id);

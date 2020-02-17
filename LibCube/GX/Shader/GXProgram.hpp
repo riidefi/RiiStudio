@@ -136,7 +136,7 @@ protected:
 	//----------------------------------
 	// Alpha Test
 	//----------------------------------
-		std::string generateAlphaTestCompare(gx::Comparison compare, u8 reference);
+		std::string generateAlphaTestCompare(gx::Comparison compare, float reference);
 		std::string generateAlphaTestOp(gx::AlphaOp op);
 		std::string generateAlphaTest();
 
@@ -181,20 +181,6 @@ u32 translateBlendFactorCommon(gx::BlendModeFactor factor);
 u32 translateBlendSrcFactor(gx::BlendModeFactor factor);
 u32 translateBlendDstFactor(gx::BlendModeFactor factor);
 u32 translateCompareType(gx::Comparison compareType);
-
-enum class FrontFace { CW, CCW };
-struct MegaState
-{
-	u32 cullMode;
-	u32 depthWrite;
-	u32 depthCompare;
-	FrontFace frontFace;
-
-	u32 blendMode;
-	u32 blendSrcFactor;
-	u32 blendDstFactor;
-
-};
 
 void translateGfxMegaState(MegaState& megaState, GXMaterial& material);
 gx::ColorSelChanApi getRasColorChannelID(gx::ColorSelChanApi v);
