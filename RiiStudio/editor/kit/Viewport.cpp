@@ -61,7 +61,6 @@ void Viewport::end()
 	mbInRender = false;
 
 	ImVec2 max = ImGui::GetContentRegionAvail();
-	max.y -= ImGui::GetItemsLineHeightWithSpacing();
 
 	const float yRat = static_cast<float>(max.y) / static_cast<float>(mLastHeight);
 
