@@ -60,9 +60,12 @@ void Viewport::end()
 	assert(mbInRender);
 	mbInRender = false;
 
+	ImVec2 max = ImGui::GetContentRegionAvail();
+	max.y -= ImGui::GetItemsLineHeightWithSpacing();
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	ImGui::Image((void*)mTexColorBufId,
-		{ static_cast<float>(mLastWidth), static_cast<float>(mLastHeight) },
+		{ static_cast<float>(mLastWidth), static_cast<float>(max.y) },
 		{0.0f, 1.0f},
 		{1.0f, .0f});
 }
