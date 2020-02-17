@@ -7,9 +7,11 @@
 
 UBOBuilder::UBOBuilder()
 {
-    // glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformStride);
+#ifdef NDEBUG
+    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformStride);
+#else
 	uniformStride = 256;
-
+#endif
     glGenBuffers(1, &UBO);
 }
 
