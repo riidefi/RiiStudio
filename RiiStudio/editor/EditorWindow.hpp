@@ -18,12 +18,14 @@ struct IWindowsCollection
 class EditorWindow : public IStudioWindow
 {
 public:
-	EditorWindow(px::Dynamic state, const std::string& path);
+	EditorWindow(px::Dynamic state, const std::string& path, Window* parent);
 
 	void draw() noexcept override;
 
 	std::string getFilePath() { return mFilePath; }
 	px::Dynamic& getState() { return mState; }
+
+	bool showCursor = true;
 
 private:
 	px::Dynamic mState;

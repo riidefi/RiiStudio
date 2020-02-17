@@ -11,4 +11,7 @@ public:
 
 	void frameProcess() override;
 	void frameRender() override;
+
+	void showMouse() override { glfwshowMouse(); }
+	void hideMouse() override { glfwhideMouse(); }
 };

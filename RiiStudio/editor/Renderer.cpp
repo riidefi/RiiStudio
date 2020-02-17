@@ -16,6 +16,8 @@
 #include "renderer/ShaderCache.hpp"
 #include "renderer/UBOBuilder.hpp"
 
+#include <LibCube/Util/BoundBox.hpp>
+
 struct SceneTree
 {
 	struct Node
@@ -185,10 +187,10 @@ struct SceneState
 
 		auto bone = bones->at<lib3d::Bone>(id);
 		const auto parent = bone->getParent();
-		if (parent >= 0)
-			mdl = computeBoneMdl(parent);
+		//if (parent >= 0 && parent != id)
+		//	mdl = computeBoneMdl(parent);
 
-		mdl *= computeMdlMtx(bone->getSRT());
+		mdl = computeMdlMtx(bone->getSRT());
 		return mdl;
 	}
 
@@ -196,20 +198,38 @@ struct SceneState
 	{
 		glm::mat4 mdl(1.0f);
 
-		const auto parent = bone.getParent();
-		if (parent >= 0)
-			mdl *= computeBoneMdl(parent);
+		//	const auto parent = bone.getParent();
+		//	if (parent >= 0)
+		//		mdl = computeBoneMdl(parent);
 
-		mdl *= computeMdlMtx(bone.getSRT());
+		mdl = computeMdlMtx(bone.getSRT());
 		return mdl;
 	}
-	void build(const glm::mat4& view, const glm::mat4& proj)
+	void build(const glm::mat4& view, const glm::mat4& proj, libcube::AABB& bound)
 	{
+		// TODO
+		bound.m_minBounds = { 0.0f, 0.0f, 0.0f };
+		bound.m_maxBounds = { 0.0f, 0.0f, 0.0f };
+
+		for (const auto& node : mTree.opaque)
+		{
+			auto mdl = computeBoneMdl(node.bone);
+
+			auto nmax = mdl * glm::vec4(node.poly.getBounds().max, 0.0f);
+			auto nmin = mdl * glm::vec4(node.poly.getBounds().min, 0.0f);
+
+			bound.expandBound(libcube::AABB{ nmin, nmax });
+		}
+
+		const f32 dist = glm::distance(bound.m_minBounds, bound.m_maxBounds);
+		
+
 		mUboBuilder.clear();
 		u32 i = 0;
 		for (const auto& node : mTree.opaque)
 		{
 			auto mdl = computeBoneMdl(node.bone);
+
 			node.mat.generateUniforms(mUboBuilder, mdl, view, proj, node.shader.getId(), texIdMap);
 			node.mtx_id = i;
 			++i;
@@ -218,6 +238,8 @@ struct SceneState
 
 		mUboBuilder.submit();
 	}
+
+	glm::mat4 scaleMatrix{ 1.0f };
 
 	void draw()
 	{
@@ -266,17 +288,28 @@ Renderer::Renderer()
 	mState = std::make_unique<SceneState>();
 }
 Renderer::~Renderer() {}
-void Renderer::render(u32 width, u32 height)
+static float speed = 0.0f; // 3 units / second
+static float cmin = 100.f;
+static float cmax = 100000.f;
+static float fov = 45.0f;
+void Renderer::render(u32 width, u32 height, bool& showCursor)
 {
 	if (!bShadersLoaded)
 		createShaderProgram();
-	ImGui::DragFloat("EyeX", &eye.x, .01f, -10, 30);
-	ImGui::DragFloat("EyeY", &eye.y, .01f, -10, 30);
-	ImGui::DragFloat("EyeZ", &eye.z, .01f, -10, 30);
 
 	static bool rend = false;
 	ImGui::Checkbox("Render", &rend);
 	if (!rend) return;
+
+	ImGui::SliderFloat("Camera Speed", &speed, 1.0f, 10000.f);
+	ImGui::SliderFloat("FOV", &fov, 1.0f, 180.0f);
+
+
+	if (showCursor)
+		// TODO -- check if hovering over current window
+		showCursor = !(ImGui::IsAnyMouseDown() && ImGui::GetIO().WantCaptureMouse);
+	else
+		showCursor = !ImGui::IsAnyMouseDown();
 
 	static bool wireframe = false;
 	ImGui::Checkbox("Wireframe", &wireframe);
@@ -291,15 +324,23 @@ void Renderer::render(u32 width, u32 height)
 	// Initial Field of View
 	float initialFoV = 45.0f;
 
-	float speed = 3.0f; // 3 units / second
 	float mouseSpeed = 0.005f;
 
 	float deltaTime = .1f;
 
-	const auto [xpos, ypos] = ImGui::GetMousePos();
+	static float xpos = 0;
+	static float ypos = 0;
 
-	horizontalAngle += mouseSpeed * deltaTime * float(width - xpos);
-	verticalAngle += mouseSpeed * deltaTime * float(height - ypos);
+	if (!showCursor)
+	{
+		auto pos = ImGui::GetMousePos();
+
+		xpos = pos.x;
+		ypos = pos.y;
+	}
+		horizontalAngle += mouseSpeed * deltaTime * float(width - xpos);
+		verticalAngle += mouseSpeed * deltaTime * float(height - ypos);
+	
 	// Direction : Spherical coordinates to Cartesian coordinates conversion
 	glm::vec3 direction(
 		cos(verticalAngle) * sin(horizontalAngle),
@@ -312,7 +353,6 @@ void Renderer::render(u32 width, u32 height)
 		cos(horizontalAngle - 3.14f / 2.0f)
 	);
 	glm::vec3 up = glm::cross(right, direction);
-
 	if (ImGui::IsKeyDown('W'))
 		eye += direction * deltaTime * speed;
 	if (ImGui::IsKeyDown('S'))
@@ -321,14 +361,36 @@ void Renderer::render(u32 width, u32 height)
 		eye -= right * deltaTime * speed;
 	if (ImGui::IsKeyDown('D'))
 		eye += right * deltaTime * speed;
-
-	glm::mat4 projMtx = glm::perspective(glm::radians(45.0f), static_cast<f32>(width) / static_cast<f32>(height), 0.1f, 100.f);
+	glm::mat4 projMtx = glm::perspective(glm::radians(fov),
+		static_cast<f32>(width) / static_cast<f32>(height), cmin, cmax);
 	glm::mat4 viewMtx = glm::lookAt(
 		eye,
 		eye + direction,
 		up
 	);
 
-	mState->build(projMtx, viewMtx);
+	libcube::AABB bound;
+
+	mState->build(projMtx, viewMtx, bound);
+
+
+	const f32 dist = glm::distance(bound.m_minBounds, bound.m_maxBounds);
+	if (speed == 0.0f)
+		speed = dist / 100.0f;
+	//cmin = std::min(std::min(bound.m_minBounds.x, bound.m_minBounds.y), bound.m_minBounds.z) * 100;
+	//cmax = std::max(std::max(bound.m_maxBounds.x, bound.m_maxBounds.y), bound.m_maxBounds.z) * 100;
+	if (eye == glm::vec3{ 0.0f })
+	{
+		const auto min = bound.m_minBounds;
+		const auto max = bound.m_maxBounds;
+
+		eye.x = (min.x + max.x) / 2.0f;
+		eye.y = (min.y + max.y) / 2.0f;
+		eye.z = (min.z + max.z) / 2.0f;
+	}
+
+	ImGui::DragFloat("EyeX", &eye.x, .01f, -10, 30);
+	ImGui::DragFloat("EyeY", &eye.y, .01f, -10, 30);
+	ImGui::DragFloat("EyeZ", &eye.z, .01f, -10, 30);
 	mState->draw();
 }

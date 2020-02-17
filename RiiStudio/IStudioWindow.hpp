@@ -14,8 +14,11 @@ protected:
     // Parents can't change in studio windows.
 	virtual void draw() noexcept {}
 
+
+
 public:
     IStudioWindow* getParent() { return dynamic_cast<IStudioWindow*>(mParent); }
+	void setParent(Window* parent) { mParent = parent; }
 	const ImGuiWindowClass* getWindowClass() { return &mWindowClass; }
 
 	IStudioWindow(const std::string& name, bool dockspace=false)

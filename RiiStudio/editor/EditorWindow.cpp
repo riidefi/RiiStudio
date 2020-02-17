@@ -11,6 +11,8 @@
 #include "Renderer.hpp"
 #include <RiiStudio/editor/kit/Viewport.hpp>
 
+#include <RiiStudio/root/RootWindow.hpp>
+
 struct GenericCollectionOutliner : public IStudioWindow
 {
 	GenericCollectionOutliner(px::CollectionHost& host) : IStudioWindow("Outliner"), mHost(host)
@@ -309,35 +311,19 @@ struct RenderTest : public IStudioWindow
 
 		if (mViewport.begin(bounds.x, bounds.y))
 		{
-			mRenderer.render(bounds.x, bounds.y);
+			auto* parent = dynamic_cast<EditorWindow*>(getParent());
+			mRenderer.render(bounds.x, bounds.y, parent->showCursor);
 			mViewport.end();
 		}
 	}
-
 	Viewport mViewport;
 	Renderer mRenderer;
 	const px::CollectionHost& mHost;
 };
-EditorWindow::EditorWindow(px::Dynamic state, const std::string& path)
+EditorWindow::EditorWindow(px::Dynamic state, const std::string& path, Window* parent)
 	: mState({ std::move(state.mOwner), state.mBase, state.mType }), IStudioWindow(path.substr(path.rfind("\\")+1), true), mFilePath(path)
 {
-#if 0
-	// TODO: Recursive..
-	const auto hnd = px::ReflectionMesh::getInstance()->lookupInfo(
-		mState.mType);
-	assert(hnd);
-
-	for (int i = 0; i < hnd.getNumParents(); ++i)
-	{
-		if (hnd.getParent(i).getName() == px::CollectionHost::TypeInfo.namespacedId)
-		{
-			px::CollectionHost* pHost = hnd.castToImmediateParent<px::CollectionHost>(mState.mBase, i);
-			assert(pHost);
-			if (!pHost) return;
-
-		}
-	}
-#endif
+	setParent(parent);
 	std::vector<px::CollectionHost*> collectionhosts= px::ReflectionMesh::getInstance()->findParentOfType<px::CollectionHost>(mState);
 
 	if (collectionhosts.size() > 1)
@@ -359,10 +345,21 @@ EditorWindow::EditorWindow(px::Dynamic state, const std::string& path)
 		attachWindow(std::make_unique<TexImgPreview>(host));
 		attachWindow(std::make_unique<RenderTest>(host));
 
-		
+	
 	}
 }
 void EditorWindow::draw() noexcept
 {
+	auto* parent = mParent;
 
+	if (!parent) return;
+
+	if (!showCursor)
+	{
+		parent->hideMouse();
+	}
+	else
+	{
+		parent->showMouse();
+	}
 }

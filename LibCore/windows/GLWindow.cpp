@@ -50,13 +50,22 @@ GLWindow::GLWindow(int width, int height, const char* pName)
 		glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, true );
 
 		initWindow(mGlfwWindow, width, height, pName, this);
-
+		
 		if (!gl3wInit())
 			return;
 	}
 
 	fprintf(stderr, "Failed to initialize GLFW!\n");
 	exit(1);
+}
+
+void GLWindow::glfwshowMouse()
+{
+	glfwSetInputMode(mGlfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+}
+void GLWindow::glfwhideMouse()
+{
+	glfwSetInputMode(mGlfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 GLWindow::~GLWindow()

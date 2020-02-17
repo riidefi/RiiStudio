@@ -4,6 +4,9 @@
 
 struct Window
 {
+	virtual void showMouse() {}
+	virtual void hideMouse() {}
+
 	//! @brief The destructor.
 	//!
 	virtual ~Window() {

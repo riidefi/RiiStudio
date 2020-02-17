@@ -85,9 +85,23 @@ void Shape::addTriangle(std::array<SimpleVertex, 3> tri)
 
 		IndexedVertex ivtx;
 
+		assert(hasAttrib(SimpleAttrib::Position));
 
-		if (hasAttrib(SimpleAttrib::Position))
-			ivtx[gx::VertexAttribute::Position] = addPos(vtx.position);
+		ivtx[gx::VertexAttribute::Position] = addPos(vtx.position);
+
+		if (vtx.position.x > bbox.m_maxBounds.x)
+			bbox.m_maxBounds.x = vtx.position.x;
+		if (vtx.position.y > bbox.m_maxBounds.y)
+			bbox.m_maxBounds.y = vtx.position.y;
+		if (vtx.position.z > bbox.m_maxBounds.z)
+			bbox.m_maxBounds.z = vtx.position.z;
+
+		if (vtx.position.x < bbox.m_minBounds.x)
+			bbox.m_minBounds.x = vtx.position.x;
+		if (vtx.position.y < bbox.m_minBounds.y)
+			bbox.m_minBounds.y = vtx.position.y;
+		if (vtx.position.z < bbox.m_minBounds.z)
+			bbox.m_minBounds.z = vtx.position.z;
 		if (hasAttrib(SimpleAttrib::Normal))
 			ivtx[gx::VertexAttribute::Normal] = addNrm(vtx.normal);
 		if (hasAttrib(SimpleAttrib::Color0))

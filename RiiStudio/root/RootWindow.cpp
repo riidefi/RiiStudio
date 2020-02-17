@@ -113,7 +113,7 @@ void RootWindow::draw(Window* ctx) noexcept
 	}
 
 
-    ImGui::ShowDemoWindow();
+    // ImGui::ShowDemoWindow();
 
 	drawChildren();
 
@@ -207,7 +207,7 @@ void RootWindow::openFile(const std::string& file, OpenFilePolicy policy)
 
 		importer.second->read(fileState, *reader.get());
 
-		auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), file);
+		auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), file, this);
 
 		if (policy == OpenFilePolicy::NewEditor)
 		{

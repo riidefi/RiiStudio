@@ -102,6 +102,10 @@ struct Shape final : public ShapeData, public IndexedPolygon
 	{
 		return mVertexDescriptor;
 	}
+	lib3d::AABB getBounds() const override
+	{
+		return { bbox.m_minBounds, bbox.m_maxBounds };
+	}
 
 	glm::vec2 getUv(u64 chan, u64 id) const override;
 	glm::vec4 getClr(u64 id) const override;

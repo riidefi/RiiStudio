@@ -175,7 +175,7 @@ void IndexedPolygon::propogate(VBOBuilder& out) const
 				case gx::VertexAttribute::Texture7MatrixIndex:
 					break;
 				case gx::VertexAttribute::Position:
-					out.pushData(0, getPos(vtx[gx::VertexAttribute::Position]) * 10.f);
+					out.pushData(0, getPos(vtx[gx::VertexAttribute::Position]));
 					break;
 				case gx::VertexAttribute::Color0:
 					out.pushData(5, getClr(vtx[gx::VertexAttribute::Color0]));

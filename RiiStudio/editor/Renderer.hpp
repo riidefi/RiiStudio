@@ -16,7 +16,7 @@ class Renderer
 public:
 	Renderer();
 	~Renderer();
-	void render(u32 width, u32 height);
+	void render(u32 width, u32 height, bool& hideCursor);
 	void createShaderProgram() { bShadersLoaded = true; }
 	void destroyShaders() { bShadersLoaded = false; }
 

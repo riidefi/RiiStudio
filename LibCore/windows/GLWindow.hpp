@@ -19,6 +19,9 @@ protected:
     virtual void frameRender() = 0;
 public:
     virtual void drop(const std::vector<std::string_view>& paths) {}
+
+	void glfwhideMouse();
+	void glfwshowMouse();
     
 	GLFWwindow* getGlfwWindow() { return mGlfwWindow; }
 

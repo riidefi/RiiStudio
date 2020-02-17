@@ -279,6 +279,8 @@ struct Polygon : public px::IDestructable
 
 	// Call after any change
 	virtual void update() {}
+
+	virtual lib3d::AABB getBounds() const = 0;
 };
 // TODO: This should all be runtime
 struct Scene : public px::CollectionHost
