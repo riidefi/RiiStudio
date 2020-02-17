@@ -63,9 +63,11 @@ void Viewport::end()
 	ImVec2 max = ImGui::GetContentRegionAvail();
 	max.y -= ImGui::GetItemsLineHeightWithSpacing();
 
+	const float yRat = static_cast<float>(max.y) / static_cast<float>(mLastHeight);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	ImGui::Image((void*)mTexColorBufId,
 		{ static_cast<float>(mLastWidth), static_cast<float>(max.y) },
-		{0.0f, 1.0f},
+		{0.0f, yRat},
 		{1.0f, .0f});
 }
