@@ -105,10 +105,20 @@ std::string GXProgram::generateLightChannels()
 {
     std::string out;
 
+	const auto& src = mMaterial.mat.getMaterialData().colorChanControls;
 
-	return "";
-    //for(const auto& chan : mMaterial.lightChannels)
-    //    out += generateLightChannel(chan, "v_Color" + std::to_string(i), i) + "\n";
+	std::array<LightingChannelControl, 2> ctrl;
+	ctrl[0].colorChannel = src[0];
+	ctrl[0].alphaChannel = src[1];
+	ctrl[1].colorChannel = src[2];
+	ctrl[1].alphaChannel = src[3];
+
+	int i = 0;
+	for (const auto& chan : ctrl)
+	{
+		out += generateLightChannel(chan, "v_Color" + std::to_string(i), i) + "\n";
+		++i;
+	}
 
     return out;
 }

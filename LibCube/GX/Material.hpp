@@ -136,9 +136,10 @@ enum class LogicOp
 // CMODE0
 struct BlendMode
 {
-	BlendModeType type;
-	BlendModeFactor source, dest;
-	LogicOp logic;
+	BlendModeType type = BlendModeType::none;
+	BlendModeFactor source = BlendModeFactor::src_a;
+	BlendModeFactor dest = BlendModeFactor::inv_src_a;
+	LogicOp logic = LogicOp::_clear;
 
 	const bool operator==(const BlendMode& rhs) const noexcept
 	{

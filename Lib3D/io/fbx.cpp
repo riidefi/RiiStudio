@@ -334,7 +334,9 @@ void readMesh(FBXImportContext ctx, TextureBuilder& raw)
 	long materialId;
 
 	if (fbxMaterial == nullptr) {
-		assert(0); // TODO: Default material
+		materialName = "Default";
+		materialId = -1;
+		// assert(0); // TODO: Default material
 	}
 	else
 	{

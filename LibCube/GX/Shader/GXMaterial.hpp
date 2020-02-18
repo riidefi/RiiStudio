@@ -45,7 +45,7 @@ struct GXMaterial
     bool usePnMtxIdx = false;
     bool useTexMtxIdx[16] {false};
     bool hasPostTexMtxBlock = false;
-    bool hasLightsBlock = false;
+    bool hasLightsBlock = true;
 
     
     inline u32 calcParamsBlockSize() const noexcept
@@ -134,9 +134,9 @@ struct UniformMaterialParams
 	std::array<glm::vec4, 8> TexParams;
 	std::array<glm::mat2x4, 3> IndTexMtx; // 2x3
 	// Optional: Not optional for now.
-	// Light u_LightParams[8];
+	Light u_LightParams[8];
 };
 
-static_assert(sizeof(UniformMaterialParams) == 896);
+static_assert(sizeof(UniformMaterialParams) == 896 + sizeof(std::array<Light, 8>));
 constexpr u32 ub = sizeof(UniformMaterialParams);
 } // namespace libcube

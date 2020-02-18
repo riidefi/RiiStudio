@@ -81,7 +81,7 @@ struct GCMaterialData
 		}
 	};
 	array_vector<ChannelData, 2> chanData;
-
+	// Color0, Alpha0, Color1, Alpha1
 	array_vector<gx::ChannelControl, 4> colorChanControls;
 
 
@@ -102,7 +102,41 @@ struct GCMaterialData
 	gx::AlphaComparison alphaCompare;
 	gx::BlendMode blendMode;
 	bool dither;
+	enum class CommonMappingOption
+	{
+		NoSelection,
+		DontRemapTextureSpace, // -1 -> 1 (J3D "basic")
+		KeepTranslation // Don't reset translation column
+	};
 
+	enum class CommonMappingMethod
+	{
+		// Shared
+		Standard,
+		EnvironmentMapping,
+
+		// J3D name. This is G3D's only PROJMAP.
+		ViewProjectionMapping,
+
+		// J3D only by default. EGG adds this to G3D as "ManualProjectionMapping"
+		ProjectionMapping,
+		ManualProjectionMapping = ProjectionMapping,
+
+		// G3D
+		EnvironmentLightMapping,
+		EnvironmentSpecularMapping,
+
+		// J3D only?
+		ManualEnvironmentMapping // Specify effect matrix maunally
+		// J3D 4/5?
+	};
+	enum class CommonTransformModel
+	{
+		Default,
+		Maya,
+		Max,
+		XSI
+	};
 	struct TexMatrix
 	{
 		gx::TexGenType projection; // Only 3x4 and 2x4 valid
@@ -113,48 +147,11 @@ struct GCMaterialData
 
 		std::array<f32, 16>	effectMatrix;
 
-		enum CommonTransformModel
-		{
-			Default,
-			Maya,
-			Max,
-			XSI
-		};
 		CommonTransformModel transformModel;
-		enum CommonMappingMethod
-		{
-			// Shared
-				Standard,
-
-				EnvironmentMapping,
-				ProjectionMapping,
-
-			// G3D
-				EnvironmentLightMapping,
-				EnvironmentSpecularMapping,
-				// J3D 4/5?
-
-			// EGG G3D
-				ManualProjectionMapping,
-
-			// J3D
-				ViewProjectionMapping,
-				ManualEnvironmentMapping // Specify effect matrix maunally
-
-		};
 		CommonMappingMethod method;
-		enum CommonMappingOption
-		{
-			NoSelection,
-			DontRemapTextureSpace, // -1 -> 1 (J3D "basic")
-			KeepTranslation // Don't reset translation column
-		};
 		CommonMappingOption option;
 
-		virtual glm::mat3x4 compute()
-		{
-			return glm::mat3x4(1);
-		}
+		virtual glm::mat3x4 compute(const glm::mat4& mdl, const glm::mat4& mvp);
 		// TODO: Support / restriction
 
 		virtual bool operator==(const TexMatrix& rhs) const
@@ -269,9 +266,9 @@ struct IGCMaterial : public lib3d::Material
 		mtx->rotate = 0;
 		mtx->translate = { 0, 0 };
 		mtx->effectMatrix = { 0 };
-		mtx->transformModel = GCMaterialData::TexMatrix::CommonTransformModel::Maya;
-		mtx->method = GCMaterialData::TexMatrix::CommonMappingMethod::Standard;
-		mtx->option = GCMaterialData::TexMatrix::CommonMappingOption::NoSelection;
+		mtx->transformModel = GCMaterialData::CommonTransformModel::Maya;
+		mtx->method = GCMaterialData::CommonMappingMethod::Standard;
+		mtx->option = GCMaterialData::CommonMappingOption::NoSelection;
 
 		mat.texMatrices.push_back(std::move(mtx));
 		mat.texMatrices.nElements = 1;

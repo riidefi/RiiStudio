@@ -277,7 +277,7 @@ struct io_wrapper<gx::TexCoordGen>
 };
 struct J3DMappingMethodDecl
 {
-	using Method = Material::TexMatrix::CommonMappingMethod;
+	using Method = Material::CommonMappingMethod;
 	enum class Class { Standard, Basic, Old };
 
 	Method _method;
@@ -318,7 +318,7 @@ struct io_wrapper<Material::TexMatrix>
 		bool maya = mappingMethod & 0x80;
 		mappingMethod &= ~0x80;
 
-		c.transformModel = maya ? Material::TexMatrix::CommonTransformModel::Maya : Material::TexMatrix::CommonTransformModel::Default;
+		c.transformModel = maya ? Material::CommonTransformModel::Maya : Material::CommonTransformModel::Default;
 
 		if (mappingMethod > J3DMappingMethods.size())
 		{
@@ -334,14 +334,16 @@ struct io_wrapper<Material::TexMatrix>
 		switch (method_decl._class)
 		{
 		case J3DMappingMethodDecl::Class::Basic:
-			c.option = Material::TexMatrix::CommonMappingOption::DontRemapTextureSpace;
+			c.option = Material::CommonMappingOption::DontRemapTextureSpace;
 			break;
 		case J3DMappingMethodDecl::Class::Old:
-			c.option = Material::TexMatrix::CommonMappingOption::KeepTranslation;
+			c.option = Material::CommonMappingOption::KeepTranslation;
 			break;
 		default:
 			break;
 		}
+
+		c.method = method_decl._method;
 
 		reader.read<u16>();
 
@@ -362,16 +364,16 @@ struct io_wrapper<Material::TexMatrix>
 		writer.write<u8>(static_cast<u8>(in.projection));
 
 		u8 mappingMethod = 0;
-		bool maya = in.transformModel == Material::TexMatrix::CommonTransformModel::Maya;
+		bool maya = in.transformModel == Material::CommonTransformModel::Maya;
 
 		J3DMappingMethodDecl::Class _class = J3DMappingMethodDecl::Class::Standard;
 
 		switch (in.option)
 		{
-		case Material::TexMatrix::CommonMappingOption::DontRemapTextureSpace:
+		case Material::CommonMappingOption::DontRemapTextureSpace:
 			_class = J3DMappingMethodDecl::Class::Basic;
 			break;
-		case Material::TexMatrix::CommonMappingOption::KeepTranslation:
+		case Material::CommonMappingOption::KeepTranslation:
 			_class = J3DMappingMethodDecl::Class::Old;
 			break;
 		default:
