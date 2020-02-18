@@ -52,11 +52,12 @@ enum class AttenuationFunction
 
 struct ChannelControl
 {
-	bool enabled;
-	ColorSource Ambient, Material;
-	LightID lightMask;
-	DiffuseFunction diffuseFn;
-	AttenuationFunction attenuationFn;
+	bool enabled = false;
+	ColorSource Ambient = ColorSource::Register;
+	ColorSource Material = ColorSource::Register;
+	LightID lightMask = LightID::None;
+	DiffuseFunction diffuseFn = DiffuseFunction::None;
+	AttenuationFunction attenuationFn = AttenuationFunction::None;
 
 	bool operator==(const ChannelControl& other) const
 	{

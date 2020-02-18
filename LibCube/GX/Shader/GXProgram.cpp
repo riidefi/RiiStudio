@@ -108,10 +108,11 @@ std::string GXProgram::generateLightChannels()
 	const auto& src = mMaterial.mat.getMaterialData().colorChanControls;
 
 	std::array<LightingChannelControl, 2> ctrl;
-	ctrl[0].colorChannel = src[0];
-	ctrl[0].alphaChannel = src[1];
-	ctrl[1].colorChannel = src[2];
-	ctrl[1].alphaChannel = src[3];
+
+	if (src.size() > 0) ctrl[0].colorChannel = src[0];
+	if (src.size() > 1) ctrl[0].alphaChannel = src[1];
+	if (src.size() > 2) ctrl[1].colorChannel = src[2];
+	if (src.size() > 3) ctrl[1].alphaChannel = src[3];
 
 	int i = 0;
 	for (const auto& chan : ctrl)
