@@ -1,5 +1,5 @@
 #include "Viewport.hpp"
-#include <GL/gl3w.h>
+#include <LibCore/gl.hpp>
 #include <imgui/imgui.h>
 
 void Viewport::genFBO(u32 width, u32 height)

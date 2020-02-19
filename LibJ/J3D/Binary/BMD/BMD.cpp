@@ -166,7 +166,6 @@ void BmdIo::read(px::Dynamic& state, oishii::BinaryReader& reader)
 #ifndef NDEBUG
 	__lastReadDataForWriteDebug.resize(reader.endpos());
 	memcpy(__lastReadDataForWriteDebug.data(), reader.getStreamStart(), __lastReadDataForWriteDebug.size());
-	_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
 #endif
 
 	// reader.add_bp(0x37ba0, 4);

@@ -1,6 +1,6 @@
 #include "IndexedPolygon.hpp"
 
-#include <LibCUbe/GX/Shader/GXMaterial.hpp>
+#include <LibCube/GX/Shader/GXMaterial.hpp>
 
 namespace libcube {
 

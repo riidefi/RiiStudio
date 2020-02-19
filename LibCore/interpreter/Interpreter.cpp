@@ -1,3 +1,5 @@
+#ifdef _WIN32
+
 #include "Interpreter.hpp"
 
 #include <iostream>
@@ -80,3 +82,5 @@ PYBIND11_EMBEDDED_MODULE(riistudio, m)
 	//	m.def("get_console_handle", &PyGetCH, py::return_value_policy::reference);
 	//	m.def("set_console_handle", &PySetCH);
 }
+
+#endif

@@ -2,7 +2,7 @@
 
 #include <LibCore/common.h>
 
-#include <lib3d/interface/i3dmodel.hpp>
+#include <Lib3D/interface/i3dmodel.hpp>
 #include <LibCore/api/Collection.hpp>
 
 #include <memory>
@@ -23,7 +23,6 @@ public:
 	void prepare(const px::CollectionHost& model, const px::CollectionHost& texture);
 
 private:
-	u32 mShaderProgram = 0;
 	bool bShadersLoaded = false;
 
 

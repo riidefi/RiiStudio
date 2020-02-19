@@ -1,5 +1,3 @@
-#pragma once
-
 #include <LibCube/Util/TextureExport.hpp>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION

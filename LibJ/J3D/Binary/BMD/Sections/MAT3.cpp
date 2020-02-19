@@ -596,10 +596,10 @@ struct MatLoader
 
 			return reader.getAt<TGet>(ofs);
 		}
-		template<typename T, typename TRaw>
+		template<typename T, typename TRaw_>
 		T as()
 		{
-			return static_cast<T>(raw<TRaw>());
+			return static_cast<T>(raw<TRaw_>());
 		}
 	};
 private:
@@ -677,7 +677,7 @@ public:
 			{
 				oishii::Jump<oishii::Whence::Set> g(reader, ofs);
 				// oishii::BinaryReader::ScopedRegion n(reader, io_wrapper<T::value_type>::getName());
-				io_wrapper<T::value_type>::onRead(reader, it);
+				io_wrapper<typename T::value_type>::onRead(reader, it);
 
 				++out.nElements;
 			}
@@ -911,7 +911,7 @@ void readMatEntry(Material& mat, MatLoader& loader, oishii::BinaryReader& reader
 	loader.indexedContainer<u16>(samplers, MatSec::TextureRemapTable, 2);
 	mat.samplers.nElements = samplers.size();
 	for (int i = 0; i < samplers.size(); ++i)
-		mat.samplers[i] = std::move(std::make_unique<Material::J3DSamplerData>(samplers[i]));
+		mat.samplers[i] = std::make_unique<Material::J3DSamplerData>(samplers[i]);
 
 	{
 		dbg.assertSince(0x094);

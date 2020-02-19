@@ -2,6 +2,8 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#ifndef RII_PLATFORM_EMSCRIPTEN
+
 #include <cstring>
 #include <string>
 
@@ -10,6 +12,7 @@
 #include "../Intrinsics.h"
 
 #include "../TextureDecoder/BitTest.hpp"
+
 
 #ifndef _WIN32
 
@@ -104,7 +107,7 @@ void CPUInfo::Detect()
     vendor = CPUVendor::Other;
 
   // Set reasonable default brand string even if brand string not available.
-  strcpy_s(cpu_string, brand_string);
+  strcpy(cpu_string, brand_string);
 
   // Detect family and other misc stuff.
   bool ht = false;
@@ -274,3 +277,5 @@ std::string CPUInfo::Summarize()
     sum += ", 64-bit support";
   return sum;
 }
+
+#endif

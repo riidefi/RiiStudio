@@ -1,7 +1,6 @@
 #include "Renderer.hpp"
 
-#include <GL/gl3w.h>
-#include "GLFW/glfw3.h"
+#include <LibCore/gl.hpp>
 
 #include <iostream>
 
@@ -101,7 +100,7 @@ struct SceneState
 
 	~SceneState()
 	{
-		for (const auto tex : mTextures)
+		for (const auto& tex : mTextures)
 			glDeleteTextures(1, &tex.id);
 		mTextures.clear();
 	}
@@ -126,7 +125,7 @@ struct SceneState
 
 	void buildTextures(const px::CollectionHost& root)
 	{
-		for (const auto tex : mTextures)
+		for (const auto& tex : mTextures)
 			glDeleteTextures(1, &tex.id);
 		mTextures.clear();
 		texIdMap.clear();
@@ -186,7 +185,7 @@ struct SceneState
 		glm::mat4 mdl(1.0f);
 
 		auto bone = bones->at<lib3d::Bone>(id);
-		const auto parent = bone->getParent();
+		// const auto parent = bone->getParent();
 		//if (parent >= 0 && parent != id)
 		//	mdl = computeBoneMdl(parent);
 
@@ -218,10 +217,11 @@ struct SceneState
 			auto nmax = mdl * glm::vec4(node.poly.getBounds().max, 0.0f);
 			auto nmin = mdl * glm::vec4(node.poly.getBounds().min, 0.0f);
 
-			bound.expandBound(libcube::AABB{ nmin, nmax });
+			libcube::AABB newBound{ nmin, nmax };
+			bound.expandBound(newBound);
 		}
 
-		const f32 dist = glm::distance(bound.m_minBounds, bound.m_maxBounds);
+		// const f32 dist = glm::distance(bound.m_minBounds, bound.m_maxBounds);
 		
 
 		mUboBuilder.clear();
@@ -293,12 +293,13 @@ void Renderer::prepare(const px::CollectionHost& model, const px::CollectionHost
 
 static void cb(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)
 {
-	printf(message);
-	printf("\n");
+	printf("%s\n", message);
 }
 Renderer::Renderer()
 {
+#ifdef _WIN32
 	glDebugMessageCallback(cb, 0);
+#endif
 
 	mState = std::make_unique<SceneState>();
 }
@@ -348,8 +349,6 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 	float horizontalAngle = 3.14f;
 	// vertical angle : 0, look at the horizon
 	float verticalAngle = 0.0f;
-	// Initial Field of View
-	float initialFoV = 45.0f;
 
 	// TODO: Enable for plane mode
 	// glm::vec3 up = glm::cross(right, direction);
@@ -416,9 +415,9 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 		if (ImGui::IsKeyDown('D'))
 			eye += right * deltaTime * speed;
 
-		if (ImGui::IsKeyDown(' ') && combo_choice_cam == 0 || ImGui::IsKeyDown('E'))
+		if ((ImGui::IsKeyDown(' ') && combo_choice_cam == 0) || ImGui::IsKeyDown('E'))
 			eye += up * deltaTime * speed;
-		if (ImGui::IsKeyDown(340)  && combo_choice_cam == 0 || ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
+		if ((ImGui::IsKeyDown(340)  && combo_choice_cam == 0) || ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
 			eye -= up * deltaTime * speed;
 	}
 	else // if (inCtrl)
@@ -430,11 +429,12 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 
 	if (!rend) return;
 
+#ifdef _WIN32
 	if (wireframe)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	else
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+#endif
 
 
 	glm::mat4 projMtx = glm::perspective(glm::radians(fov),
@@ -467,3 +467,8 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 
 	mState->draw();
 }
+
+// TODO
+#ifndef _WIN32
+#include <Lib3D/export/export.cpp>
+#endif

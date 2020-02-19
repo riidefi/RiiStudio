@@ -1,4 +1,4 @@
-#include <GL/gl3w.h>
+#include <LibCore/gl.hpp>
 #include "Image.hpp"
 #include <ThirdParty/imgui/imgui.h>
 

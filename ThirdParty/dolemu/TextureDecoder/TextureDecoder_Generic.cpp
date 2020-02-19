@@ -3,11 +3,11 @@
 // Refer to the license.txt file included.
 
 #include "BitTest.hpp"
-#if defined(ENVIRONMENT32) && !defined(ENVIRONMENT64)
+#if (defined(ENVIRONMENT32) && !defined(ENVIRONMENT64)) || defined(RII_PLATFORM_EMSCRIPTEN)
 #include <algorithm>
 #include <cmath>
 
-#include "../CPUDetect.h"
+#include "../CPUDetect/CPUDetect.h"
 #include <oishii/types.hxx>
 #include "../Swap.h"
 

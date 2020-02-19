@@ -12,7 +12,7 @@
  * SSE 4.2 on x86/x64.
  */
 
-#if defined(__GNUC__) || defined(__clang__)
+#if 0 //(defined(__GNUC__) || defined(__clang__)) && !defined(RII_PLATFORM_EMSCRIPTEN)
 
 /**
  * Due to limitations in GCC, SSE intrinsics are only available when compiling with the

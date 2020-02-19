@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "RichName.hpp"
 #include "Reflection.hpp"
 
@@ -63,7 +65,8 @@ Dynamic make_dynamic(Args... args)
 {
     auto constructed = std::make_unique<T>(args...);
     void* base = constructed.get();
-    return std::move(Dynamic(std::move(constructed), base, std::string(T::TypeInfo.namespacedId)));
+
+    return Dynamic(std::move(constructed), base, std::string(T::TypeInfo.namespacedId));
 }
 
 
@@ -104,6 +107,8 @@ struct PackageInstaller
     // DLLs implement their own global instance
     static PackageInstaller* spInstance;
 
+	virtual ~PackageInstaller() = default;
+
 	virtual void registerObject(const RichName& details) = 0;
     virtual void registerFactory(std::unique_ptr<IFactory> factory) = 0;
     virtual void registerSerializer(std::unique_ptr<IBinarySerializer> ser) = 0;
@@ -117,7 +122,7 @@ struct PackageInstaller
     {
         registerMirror({ D::TypeInfo.namespacedId, B::TypeInfo.namespacedId, computeTranslation<D, B>()});
     }
-	template<typename T, typename M>
+	template<typename D, typename B>
 	void registerMember(int slide)
 	{
 		registerMirror({ D::TypeInfo.namespacedId, B::TypeInfo.namespacedId, slide });

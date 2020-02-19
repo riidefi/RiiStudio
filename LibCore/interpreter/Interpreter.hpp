@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#ifdef _WIN32
 #include <pybind11/embed.h>
 namespace py = pybind11;
 
@@ -20,3 +21,4 @@ struct LineObject
 	int getCurrentCharacter() { return current_character; }
 	void setCurrentCharacter(int c) { current_character = c; }
 };
+#endif

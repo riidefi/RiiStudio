@@ -29,4 +29,6 @@ public:
 
 private:
     GLFWwindow* mGlfwWindow;
+public:
+	void mainLoopInternal();
 };

@@ -1,6 +1,7 @@
 #include <LibJ/J3D/Binary/BMD/Sections.hpp>
 #include <ThirdParty/ogc/texture.h>
 #include <map>
+#include <string.h>
 
 namespace libcube::jsystem {
 
@@ -170,8 +171,8 @@ void readTEX1(BMDOutputContext& ctx)
 
 		data->mData.resize(size);
 		assert(ofs + size < reader.endpos());
-		memcpy_s(data->mData.data(), data->mData.size(), reader.getStreamStart() + ofs, size);
-
+		// memcpy_s(data->mData.data(), data->mData.size(), reader.getStreamStart() + ofs, size);
+		memcpy(data->mData.data(), reader.getStreamStart() + ofs, size);
 		ctx.col.getTextures().push(std::move(data));
 
 		++i;
@@ -315,7 +316,8 @@ struct TEX1Node final : public oishii::v2::Node
 			writer.write<u8>(0);
 			writer.seek(-tex.mData.size());
 
-			memcpy_s(writer.getDataBlockStart() + before, writer.endpos(), tex.mData.data(), tex.mData.size());
+			// memcpy_s(writer.getDataBlockStart() + before, writer.endpos(), tex.mData.data(), tex.mData.size());
+			memcpy(writer.getDataBlockStart() + before, tex.mData.data(), tex.mData.size());
 			writer.seek(tex.mData.size());
 			return {};
 		}

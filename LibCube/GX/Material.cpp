@@ -1,5 +1,4 @@
-#include <GL/gl3w.h>
-#include "GLFW/glfw3.h"
+#include <LibCore/gl.hpp>
 
 #include "Material.hpp"
 

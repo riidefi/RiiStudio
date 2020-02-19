@@ -1,6 +1,7 @@
 
 #ifdef _WIN32
 
+#include <string>
 #include <Windows.h>
 #include <LibCore/api/Node.hpp>
 
@@ -20,7 +21,11 @@ bool installModuleNative(const std::string& path, px::PackageInstaller* pInstall
 	fn(pInstaller);
 	return true;
 }
-
+#else
+#warning "No module installation support.."
+template<typename... args>
+bool installModuleNative(args...)
+{}
 #endif
 
 
@@ -68,12 +73,12 @@ struct CorePackageInstaller : px::PackageInstaller
 		for (const auto& it : mFactories)
 		{
 			if (it->id == type)
-				return std::move(it->spawn());
+				return it->spawn();
 		}
 
 		assert(!"Failed to spawn state..");
 		throw "Cannot spawn";
-		return px::Dynamic(std::move(std::make_unique<px::IDestructable>()), 0, "");
+		return px::Dynamic(std::make_unique<px::IDestructable>(), 0, "");
 	}
 	px::Dynamic constructObject(const std::string& type, px::IDestructable* scene) override
 	{
@@ -89,7 +94,7 @@ px::ReflectionMesh* px::ReflectionMesh::spInstance;
 CorePackageInstaller* spCorePackageInstaller;
 px::Dynamic SpawnState(const std::string& type)
 {
-	return std::move(spCorePackageInstaller->spawnState(type));
+	return spCorePackageInstaller->spawnState(type);
 }
 bool IsConstructible(const std::string& type)
 {

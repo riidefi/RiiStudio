@@ -10,6 +10,7 @@
 #include "../MathUtil.h"
 // todo: remove dependency
 //#include "MsgHandler.h"
+#include <cstdio>
 #define PanicAlert printf
 
 

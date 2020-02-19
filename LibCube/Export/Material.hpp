@@ -24,7 +24,7 @@ struct array_vector : public std::array<T, N>
 
 	void push_back(T elem)
 	{
-		at(nElements) = std::move(elem);
+		std::array<T, N>::at(nElements) = std::move(elem);
 		++nElements;
 	}
 	void pop_back()

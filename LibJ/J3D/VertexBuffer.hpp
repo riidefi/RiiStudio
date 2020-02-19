@@ -35,11 +35,11 @@ enum class VBufferKind
 };
 
 
-template<typename T, VBufferKind kind>
+template<typename TB, VBufferKind kind>
 struct VertexBuffer
 {
 	VQuantization mQuant;
-	std::vector<T> mData;
+	std::vector<TB> mData;
 
 	int ComputeComponentCount() const
 	{

@@ -7,7 +7,7 @@
 
 #include <queue>
 
-struct EditorWindow;
+class EditorWindow;
 
 class RootWindow final : public Applet
 {

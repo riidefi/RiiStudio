@@ -40,10 +40,12 @@ struct GenericCollectionOutliner : public IStudioWindow
 		}
 		void Draw()
 		{
+#ifdef _WIN32
 			char buf[128]{};
 			memcpy_s(buf, 128, mFilt.c_str(), mFilt.length());
 			ImGui::InputText(ICON_FA_SEARCH " (regex)", buf, 128);
 			mFilt = buf;
+#endif
 		}
 
 		std::string mFilt;

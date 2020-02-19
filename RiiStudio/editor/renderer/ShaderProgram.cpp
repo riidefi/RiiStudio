@@ -1,8 +1,7 @@
 #include "ShaderProgram.hpp"
 
 
-#include <GL/gl3w.h>
-#include "GLFW/glfw3.h"
+#include <LibCore/gl.hpp>
 
 #include <iostream>
 
@@ -49,5 +48,7 @@ ShaderProgram::ShaderProgram(const std::string& vtx, const std::string& frag)
 }
 ShaderProgram::~ShaderProgram()
 {
+#ifndef RII_PLATFORM_EMSCRIPTEN
     glDeleteProgram(mShaderProgram);
+#endif
 }

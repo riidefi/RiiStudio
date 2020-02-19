@@ -40,10 +40,10 @@ public:
 
 
 	template<BasicTheme theme>
-	static inline void setTheme()
+	inline void setTheme()
 	{}
 
-	static inline void setTheme(BasicTheme theme)
+	inline void setTheme(BasicTheme theme)
 	{
 		switch (theme)
 		{
@@ -77,25 +77,25 @@ public:
 	}
 
 	template<>
-	static inline void setTheme<BasicTheme::ImClassic>()
+	inline void setTheme<BasicTheme::ImClassic>()
 	{
 		ImGui::StyleColorsClassic();
 	}
 
 	template<>
-	static inline void setTheme<BasicTheme::ImDark>()
+	inline void setTheme<BasicTheme::ImDark>()
 	{
 		ImGui::StyleColorsDark();
 	}
 
 	template<>
-	static inline void setTheme<BasicTheme::ImLight>()
+	inline void setTheme<BasicTheme::ImLight>()
 	{
 		ImGui::StyleColorsLight();
 	}
 
 	template<>
-	static inline void setTheme<BasicTheme::UE4ish>()
+	inline void setTheme<BasicTheme::UE4ish>()
 	{
 		// https://github.com/ocornut/imgui/issues/707#issuecomment-415097227
 		ImVec4* colors = ImGui::GetStyle().Colors;
@@ -144,7 +144,7 @@ public:
 	}
 
 	template<>
-	static inline void setTheme<BasicTheme::Raikiri>()
+	inline void setTheme<BasicTheme::Raikiri>()
 	{
 		// https://github.com/ocornut/imgui/issues/707#issuecomment-512669512
 
@@ -204,7 +204,7 @@ public:
 	}
 	// Zenith: https://github.com/gitbetter/Zenith/blob/23533b7de21fc8a6fd4303659da12381a112b1a4/Editor/_Source/ZEditor.cpp#L310
 	template<>
-	static inline void setTheme<BasicTheme::ZenithLight>()
+	inline void setTheme<BasicTheme::ZenithLight>()
 	{
 		
 		ImGuiStyle* style = &ImGui::GetStyle();
@@ -275,7 +275,7 @@ public:
 
 
 	template<>
-	static inline void setTheme<BasicTheme::ZenithDark>()
+	inline void setTheme<BasicTheme::ZenithDark>()
 	{
 		ImGuiStyle* style = &ImGui::GetStyle();
 		ImVec4* colors = style->Colors;

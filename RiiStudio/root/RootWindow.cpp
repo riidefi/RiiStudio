@@ -12,7 +12,7 @@
 #include <LibCore/api/Node.hpp>
 
 #include <RiiStudio/editor/EditorWindow.hpp>
-#include <Lib3d/export/export.hpp>
+#include <Lib3D/export/export.hpp>
 
 void RootWindow::draw(Window* ctx) noexcept
 {

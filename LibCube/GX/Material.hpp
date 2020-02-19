@@ -6,6 +6,8 @@
 #include "Struct/Shader.hpp"
 #include "Enum/Comparison.hpp"
 
+#include <cmath>
+
 namespace libcube { namespace gx {
 
 enum class TextureWrapMode
