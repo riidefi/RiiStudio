@@ -30,11 +30,9 @@ static void handleDrop(GLFWwindow* window, int count, const char** raw_paths)
 }
 
 #ifndef _WIN32
-static GLWindow* spGlWindow = nullptr;
-
-void main_loop(void*)
+void main_loop(void* arg)
 {
-	spGlWindow->mainLoopInternal();
+	reinterpret_cast<GLWindow*>(arg)->mainLoopInternal();
 }
 #endif
 
@@ -51,11 +49,11 @@ static bool initWindow(GLFWwindow*& pWin, int width = 1280, int height = 720, co
 	glfwMakeContextCurrent(pWin);
 
 #ifndef _WIN32
-	spGlWindow = user;
-	emscripten_set_main_loop_arg(main_loop, NULL, 0, true);
+	emscripten_set_main_loop_arg(&main_loop, (void*)user, 0, 0);
+	printf("Hello world\n");
 #endif
 
-	// glfwSwapInterval(1); // vsync
+	glfwSwapInterval(1); // vsync
 	return true;
 }
 
@@ -66,16 +64,25 @@ GLWindow::GLWindow(int width, int height, const char* pName)
 
 	if (glfwInit())
 	{
+#ifndef _WIN32
+		// SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+
+#else
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 	
 		glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, true );
+#endif
 
 		initWindow(mGlfwWindow, width, height, pName, this);
 
 #ifdef _WIN32
 		if (!gl3wInit())
 			return;
+#else
+		return;
 #endif
 	}
 
@@ -137,7 +144,5 @@ void GLWindow::loop()
 		mainLoopInternal();
 	}
 #else
-	spGlWindow = this;
-	emscripten_set_main_loop_arg(main_loop, NULL, 0, true);
 #endif
 }

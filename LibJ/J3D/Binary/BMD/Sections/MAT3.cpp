@@ -736,7 +736,7 @@ struct io_wrapper<Indirect>
 {
 	static void onRead(oishii::BinaryReader& reader, Indirect& c)
 	{
-		reader.warnAt("Start of IndTex block", reader.tell(), reader.tell() + 4);
+		// reader.warnAt("Start of IndTex block", reader.tell(), reader.tell() + 4);
 		c.enabled = reader.read<u8>();
 		c.nIndStage = reader.read<u8>();
 		reader.read<u16>();
@@ -966,8 +966,11 @@ void readMatEntry(Material& mat, MatLoader& loader, oishii::BinaryReader& reader
 	}
 	dbg.assertSince(0x144);
 	loader.indexedContained<u16>(mat.fogInfo, MatSec::FogInfo, 44);
+	dbg.assertSince(0x146);
 	loader.indexedContained<u16>(mat.alphaCompare, MatSec::AlphaCompareInfo, 8);
+	dbg.assertSince(0x148);
 	loader.indexedContained<u16>(mat.blendMode, MatSec::BlendModeInfo, 4);
+	dbg.assertSince(0x14a);
 	loader.indexedContained<u16>(mat.nbtScale, MatSec::NBTScaleInfo, 16);
 
 	if (loader.mSections[(u32)MatSec::IndirectTexturingInfo] != ofsStringTable)

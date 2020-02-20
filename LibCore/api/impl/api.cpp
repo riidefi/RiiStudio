@@ -25,7 +25,9 @@ bool installModuleNative(const std::string& path, px::PackageInstaller* pInstall
 #warning "No module installation support.."
 template<typename... args>
 bool installModuleNative(args...)
-{}
+{
+	return false;
+}
 #endif
 
 

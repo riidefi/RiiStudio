@@ -44,6 +44,8 @@ MODULE_PUBLIC:
         push(binding_point, tmp);
     }
 
+	virtual void setBlockMin(u32 binding_point, u32 min);
+
 MODULE_PRIVATE:
     void clear();
 
@@ -51,6 +53,8 @@ private:
     // Indices as binding ids
     using RawData = std::vector<u8>;
     std::vector<std::vector<RawData>> mData;
+
+	std::vector<u32> mMinSizes;
 
     // Recomputed each submit
     std::vector<u8> mCoalesced;

@@ -33,12 +33,12 @@ class HashManager:
 		return hash(path)
 
 
-	def check(self, path):
-		return path in self.hashes and self.hashes[path] == self.hash(path)
+	def check(self, path, cfg):
+		return cfg+path in self.hashes and self.hashes[cfg+path] == self.hash(path)
 
 
-	def save(self, path, dir=''):
-		self.hashes[path] = self.hash(dir + path)
+	def save(self, path, cfg):
+		self.hashes[cfg+path] = self.hash(path)
 
 	def invalidate(self, path):
 		print("path: %s" % path)
@@ -52,7 +52,8 @@ gHashManager = HashManager("bin-int/hashes.json")
 
 
 DEFINES = [
-	"RII_PLATFORM_EMSCRIPTEN"
+	"RII_PLATFORM_EMSCRIPTEN",
+	"IMGUI_IMPL_OPENGL_ES2"
 ]
 INCLUDES = [
 	"oishii",
@@ -105,7 +106,8 @@ PROJECTS = [
 def format_out(source, int_dir):
 	return os.path.join(int_dir, source.replace(".cpp", ".o").replace(".c", ".o").replace("\\", "_").replace("/", "_")) 
 
-def compile(source, int_dir):
+def compile(source, int_dir, debug):
+
 	args = "em++ -I./ "
 	for proj in PROJECTS:
 		args += " -I./" + proj["name"]
@@ -115,6 +117,8 @@ def compile(source, int_dir):
 		args += " -I./" + incl
 	args += " -Wall -std=c++17 -D\"__debugbreak()\"=\"\""
 	args += " -O0 -s USE_GLFW=3"
+	if debug:
+		args += " -g4 "
 	args += " -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 -c -o"
 	dst = format_out(source, int_dir)
 	args += " " + dst + " " + source
@@ -128,6 +132,8 @@ def build_project(name, type, config, proj=None):
 	require_dir("bin-int/" + outputdir(config))
 
 	locals_objs = []
+
+	debug = config.upper() == "DEBUG"
 
 	bin_dir = "bin/" + outputdir(config) + "/" + name + "/"
 	bin_int_dir = "bin-int/" + outputdir(config) + "/" + name + "/"
@@ -145,11 +151,11 @@ def build_project(name, type, config, proj=None):
 
 		locals_objs.append(format_out(source, bin_int_dir))
 
-		if gHashManager.check(source):
+		if gHashManager.check(source, config):
 			continue
 
-		compile(source, bin_int_dir)
-		gHashManager.save(source)
+		compile(source, bin_int_dir, debug)
+		gHashManager.save(source, config)
 
 	if type == "main_app":
 		link_cmd = "em++ -o " + bin_dir + "out.html -s USE_GLFW=3 -s MAX_WEBGL_VERSION=2"
@@ -159,7 +165,9 @@ def build_project(name, type, config, proj=None):
 			if lib["name"] in proj["links"]:
 				objs += lib["objs"]
 		link_cmd += " ".join(objs)
-		link_cmd += " -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 --no-heap-copy --preload-file ./fonts@/fonts"
+		if debug:
+			link_cmd += " -g4 --source-map-base ../ "
+		link_cmd += "  -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 --no-heap-copy --preload-file ./fonts@/fonts "
 		system_cmd(link_cmd)
 	return locals_objs
 
@@ -168,6 +176,6 @@ def build_projects(config):
 		proj["objs"] = build_project(proj["name"], proj["type"], config, proj)
 
 
-build_projects("DEBUG")
+build_projects("RELEASE")
 
 gHashManager.store_to_file()

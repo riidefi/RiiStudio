@@ -324,7 +324,7 @@ EditorWindow::EditorWindow(px::Dynamic state, const std::string& path, Window* p
 	: mState({ std::move(state.mOwner), state.mBase, state.mType }), IStudioWindow(path.substr(path.rfind("\\")+1), true), mFilePath(path)
 {
 	setParent(parent);
-	std::vector<px::CollectionHost*> collectionhosts= px::ReflectionMesh::getInstance()->findParentOfType<px::CollectionHost>(mState);
+	std::vector<px::CollectionHost*> collectionhosts = px::ReflectionMesh::getInstance()->findParentOfType<px::CollectionHost>(mState);
 
 	if (collectionhosts.size() > 1)
 	{

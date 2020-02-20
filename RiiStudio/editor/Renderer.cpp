@@ -247,7 +247,6 @@ struct SceneState
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
-		glBindVertexArray(mVbo.VAO);
 
 		MegaState state;
 
@@ -270,9 +269,15 @@ struct SceneState
 			assert(mVbo.VAO && node.idx_size >= 0 && node.idx_size % 3 == 0);
 			glUseProgram(node.shader.getId());
 			mUboBuilder.use(node.mtx_id);
+			glBindVertexArray(mVbo.VAO);
+
 			node.mat.genSamplUniforms(node.shader.getId(), texIdMap);
+			// printf("Draw: index (size=%u, ofs=%u)\n", node.idx_size, node.idx_ofs * 4);
 			glDrawElements(GL_TRIANGLES, node.idx_size, GL_UNSIGNED_INT, (void*)(node.idx_ofs * 4));
+			// if (glGetError() != GL_NO_ERROR) exit(1);
 		}
+
+		glBindVertexArray(0);
 	}
 
 	VBOBuilder mVbo;
@@ -307,9 +312,6 @@ Renderer::~Renderer() {}
 
 void Renderer::render(u32 width, u32 height, bool& showCursor)
 {
-	if (!bShadersLoaded)
-		createShaderProgram();
-
 	if (ImGui::BeginMenuBar())
 	{
 		if (ImGui::BeginMenu("Camera"))

@@ -5,7 +5,12 @@
 #include <fa5/IconsFontAwesome5.h>
 
 namespace {
-    static const char* glsl_version = "#version 130";
+static const char* glsl_version =
+#ifdef _WIN32
+"#version 130";
+#else
+nullptr;
+#endif
 }
 
 static bool loadFonts()
@@ -58,6 +63,7 @@ Applet::Applet(const char* name)
 
 	ImGui_ImplOpenGL3_Init(glsl_version);
 	ImGui_ImplGlfw_InitForOpenGL(getGlfwWindow(), true);
+
 }
 
 Applet::~Applet()

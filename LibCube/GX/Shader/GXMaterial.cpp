@@ -47,6 +47,7 @@ int getVertexAttribLocation(VertexAttribute vtxAttrib)
 }
 std::string generateBindingsDefinition(bool postTexMtxBlock, bool lightsBlock)
 {
+#ifdef _WIN32
     return std::string(R"(
 // Expected to be constant across the entire scene.
 layout(std140, binding=0) uniform ub_SceneParams {
@@ -81,6 +82,42 @@ std::string("};\n") +
 "    mat4x3 u_PosMtx[10];\n" // 4x3
 "};\n"
 "uniform sampler2D u_Texture[8];\n";
+#else
+	    return std::string(R"(
+// Expected to be constant across the entire scene.
+layout(std140) uniform ub_SceneParams {
+    mat4x4 u_Projection;
+    vec4 u_Misc0;
+};
+
+#define u_SceneTextureLODBias u_Misc0[0]
+struct Light {
+    vec4 Color;
+    vec4 Position;
+    vec4 Direction;
+    vec4 DistAtten;
+    vec4 CosAtten;
+};
+// Expected to change with each material.
+layout(std140, row_major) uniform ub_MaterialParams {
+    vec4 u_ColorMatReg[2];
+    vec4 u_ColorAmbReg[2];
+    vec4 u_KonstColor[4];
+    vec4 u_Color[4];
+    mat4x3 u_TexMtx[10]; //4x3
+    // SizeX, SizeY, 0, Bias
+    vec4 u_TextureParams[8];
+    mat4x2 u_IndTexMtx[3]; // 4x2
+    // Optional parameters.)") + "\n" +
+(postTexMtxBlock ? "Mat4x3 u_PostTexMtx[20];\n" : "") + // 4x3
+(lightsBlock ? "Light u_LightParams[8];\n" : "") +
+std::string("};\n") +
+"// Expected to change with each shape packet.\n"
+"layout(std140, row_major) uniform ub_PacketParams {\n"
+"    mat4x3 u_PosMtx[10];\n" // 4x3
+"};\n"
+"uniform sampler2D u_Texture[8];\n";
+#endif
 }
 
 } // namespace libcube

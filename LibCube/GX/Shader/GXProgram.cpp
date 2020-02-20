@@ -836,7 +836,8 @@ std::string GXProgram::generateMulNrm()
 std::pair<std::string, std::string> GXProgram::generateShaders()
 {
 	const auto bindingsDefinition = generateBindingsDefinition(mMaterial.hasPostTexMtxBlock, mMaterial.hasLightsBlock);
-		
+
+#if _WIN32
 	const auto both = R"(#version 440
 // )" + mMaterial.mat.getName() + R"(
 precision mediump float;
@@ -867,7 +868,65 @@ in vec3 v_TexCoord4;
 in vec3 v_TexCoord5;
 in vec3 v_TexCoord6;
 in vec3 v_TexCoord7;
+
+
+out vec4 fragOut;
 )";
+#else
+
+	const auto both = R"(#version 300 es
+// )" + mMaterial.mat.getName() + R"(
+precision mediump float;
+)" +
+bindingsDefinition;
+#if 0
+	const std::string varying =
+		R"(varying vec3 v_Position;
+varying vec4 v_Color0;
+varying vec4 v_Color1;
+varying vec3 v_TexCoord0;
+varying vec3 v_TexCoord1;
+varying vec3 v_TexCoord2;
+varying vec3 v_TexCoord3;
+varying vec3 v_TexCoord4;
+varying vec3 v_TexCoord5;
+varying vec3 v_TexCoord6;
+varying vec3 v_TexCoord7;
+)";
+	const std::string& varying_vert = varying;
+	const std::string& varying_frag = varying;
+#else
+
+	const std::string varying_vert =
+		R"(out vec3 v_Position;
+out vec4 v_Color0;
+out vec4 v_Color1;
+out vec3 v_TexCoord0;
+out vec3 v_TexCoord1;
+out vec3 v_TexCoord2;
+out vec3 v_TexCoord3;
+out vec3 v_TexCoord4;
+out vec3 v_TexCoord5;
+out vec3 v_TexCoord6;
+out vec3 v_TexCoord7;
+)";
+	const std::string varying_frag =
+		R"(in vec3 v_Position;
+in vec4 v_Color0;
+in vec4 v_Color1;
+in vec3 v_TexCoord0;
+in vec3 v_TexCoord1;
+in vec3 v_TexCoord2;
+in vec3 v_TexCoord3;
+in vec3 v_TexCoord4;
+in vec3 v_TexCoord5;
+in vec3 v_TexCoord6;
+in vec3 v_TexCoord7;
+out vec4 fragOut;
+)";
+#endif
+	
+#endif
 
 	const auto vert = std::string(both) + varying_vert + generateVertAttributeDefs() +
 		"mat4x3 GetPosTexMatrix(uint t_MtxIdx) {\n"
@@ -931,7 +990,7 @@ void main() {
 		generateAlphaTest() +
 		generateFog() +
 		//"    ;gl_FragColor = vec4(texture(u_Texture[0], v_TexCoord0.xy / v_TexCoord0.z).rgb, 0.5);"
-		"    gl_FragColor = t_PixelOut;\n"
+		"    fragOut = t_PixelOut;\n"
 		"}\n";
 	return { vert, frag };
 }
@@ -946,6 +1005,9 @@ u32 translateCullMode(gx::CullMode cullMode)
         return GL_BACK;
 	case gx::CullMode::None:
         return -1;
+	default:
+		// printf("Invalid cull mode!\n");
+		return GL_BACK;
     }
 }
 

@@ -5,9 +5,9 @@
 
 #include <iostream>
 
-void checkShaderErrors(u32 id)
+bool checkShaderErrors(u32 id)
 {
-	return;
+	return true;
 	int success;
 	char infoLog[512];
 	glGetShaderiv(id, GL_COMPILE_STATUS, &success);
@@ -15,8 +15,10 @@ void checkShaderErrors(u32 id)
 	if (!success)
 	{
 		glGetShaderInfoLog(id, 512, NULL, infoLog);
-		std::cout << "Shader compilation failed: " << infoLog << std::endl;
+		printf("Shader compilation failed: %s\n", infoLog);
 	}
+
+	return success;
 }
 
 ShaderProgram::ShaderProgram(const char* vtx, const char* frag)
@@ -24,14 +26,14 @@ ShaderProgram::ShaderProgram(const char* vtx, const char* frag)
     u32 vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vtx, NULL);
     glCompileShader(vertexShader);
-    checkShaderErrors(vertexShader);
-	// printf(vtx);
+    if (!checkShaderErrors(vertexShader))
+		printf("%s\n", vtx);
 
     u32 fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &frag, NULL);
     glCompileShader(fragmentShader);
-    checkShaderErrors(fragmentShader);
-	// printf(frag);
+    if (!checkShaderErrors(fragmentShader))
+		printf("%s\n", frag);
 
     mShaderProgram = glCreateProgram();
     glAttachShader(mShaderProgram, vertexShader);

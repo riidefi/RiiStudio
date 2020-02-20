@@ -308,6 +308,21 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl, const glm::
 void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
 	const glm::mat4& M, const glm::mat4& V, const glm::mat4& P, u32 shaderId, const std::map<std::string, u32>& texIdMap) const
 {
+	glUniformBlockBinding(shaderId, glGetUniformBlockIndex(shaderId, "ub_SceneParams"), 0);
+	glUniformBlockBinding(shaderId, glGetUniformBlockIndex(shaderId, "ub_MaterialParams"), 1);
+	glUniformBlockBinding(shaderId, glGetUniformBlockIndex(shaderId, "ub_PacketParams"), 2);
+
+	int min;
+	glGetActiveUniformBlockiv(shaderId, 0, GL_UNIFORM_BLOCK_DATA_SIZE, &min);
+	// printf("Min block size: %i\n", min);
+	builder.setBlockMin(0, min);
+	glGetActiveUniformBlockiv(shaderId, 1, GL_UNIFORM_BLOCK_DATA_SIZE, &min);
+	// printf("Min block size: %i\n", min);
+	builder.setBlockMin(1, min);
+	glGetActiveUniformBlockiv(shaderId, 2, GL_UNIFORM_BLOCK_DATA_SIZE, &min);
+	// printf("Min block size: %i\n", min);
+	builder.setBlockMin(2, min);
+
 	UniformSceneParams scene;
 	scene.projection = M * V * P;
 	scene.Misc0 = {};
@@ -353,6 +368,8 @@ void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
 	glUseProgram(shaderId);
 	u32 uTexLoc = glGetUniformLocation(shaderId, "u_Texture");
 	glUniform1iv(uTexLoc, 8, samplerIds);
+
+	
 }
 
 void IGCMaterial::genSamplUniforms(u32 shaderId, const std::map<std::string, u32>& texIdMap) const
