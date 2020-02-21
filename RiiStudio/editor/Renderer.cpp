@@ -269,10 +269,11 @@ struct SceneState
 			}
 			else
 			{
-				// glEnable(GL_CULL_FACE);
-				// glCullFace(state.cullMode);
+				glEnable(GL_CULL_FACE);
+				glCullFace(state.cullMode);
 			}
-			// TODO: depthWrite, depthCompare, frontFace
+			glFrontFace(state.frontFace);
+			// TODO: depthWrite, depthCompare
 			assert(mVbo.VAO && node.idx_size >= 0 && node.idx_size % 3 == 0);
 			glUseProgram(node.shader.getId());
 			mUboBuilder.use(node.mtx_id);
@@ -443,7 +444,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 #endif
 			eye += right * deltaTime * speed;
 
-		if ((ImGui::IsKeyDown(ImGuiKey_Space) && combo_choice_cam == 0) || ImGui::IsKeyDown('E'))
+		if ((ImGui::IsKeyDown(' ') && combo_choice_cam == 0) || ImGui::IsKeyDown('E'))
 			eye += up * deltaTime * speed;
 		if ((ImGui::IsKeyDown(340)  && combo_choice_cam == 0) || ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
 			eye -= up * deltaTime * speed;

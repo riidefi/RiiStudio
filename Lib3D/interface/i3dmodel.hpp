@@ -14,13 +14,12 @@
 #include <RiiStudio/editor/renderer/UBOBuilder.hpp>
 
 
-enum class FrontFace { CW, CCW };
 struct MegaState
 {
 	u32 cullMode = -1;
 	u32 depthWrite;
 	u32 depthCompare;
-	FrontFace frontFace;
+	u32 frontFace;
 
 	u32 blendMode;
 	u32 blendSrcFactor;

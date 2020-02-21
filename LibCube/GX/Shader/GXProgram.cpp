@@ -1083,7 +1083,7 @@ void translateGfxMegaState(MegaState& megaState, GXMaterial& material)
 	megaState.cullMode = translateCullMode(material.mat.getMaterialData().cullMode);
 	// megaState.depthWrite = material.ropInfo.depthWrite;
 	// megaState.depthCompare = material.ropInfo.depthTest ? reverseDepthForCompareMode(translateCompareType(material.ropInfo.depthFunc)) : GfxCompareMode.ALWAYS;
-	megaState.frontFace = FrontFace::CW;
+	megaState.frontFace = GL_CW;
 	
 	const auto blendMode = material.mat.getMaterialData().blendMode;
 	if (blendMode.type == gx::BlendModeType::none) {
