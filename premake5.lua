@@ -46,7 +46,8 @@ function setupSystem()
 		defines
 		{
 			"RII_PLATFORM_WINDOWS",
-			"FBXSDK_SHARED"
+			"FBXSDK_SHARED",
+			"RII_BACKEND_GLFW"
 		}
 end
 

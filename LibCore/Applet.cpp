@@ -4,14 +4,8 @@
 #include <imgui/impl/imgui_impl_opengl3.h>
 #include <fa5/IconsFontAwesome5.h>
 
-namespace {
-static const char* glsl_version =
-#ifdef _WIN32
-"#version 130";
-#else
-nullptr;
-#endif
-}
+#include <ThirdParty/imgui/impl/imgui_impl_sdl.h>
+
 
 static bool loadFonts()
 {
@@ -47,8 +41,12 @@ Applet::Applet(const char* name)
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
-
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable
+#ifdef _WIN32
+		| ImGuiConfigFlags_ViewportsEnable;
+#else
+		;
+#endif
 	ImGuiStyle& style = ImGui::GetStyle();
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 	{
@@ -61,15 +59,19 @@ Applet::Applet(const char* name)
 		fprintf(stderr, "Failed to load fonts");
 	}
 
-	ImGui_ImplOpenGL3_Init(glsl_version);
+#ifdef RII_BACKEND_GLFW
 	ImGui_ImplGlfw_InitForOpenGL(getGlfwWindow(), true);
-
+#endif
 }
 
 Applet::~Applet()
 {
 	ImGui_ImplOpenGL3_Shutdown();
+#ifdef RII_BACKEND_GLFW
 	ImGui_ImplGlfw_Shutdown();
+#else
+	ImGui_ImplSDL2_Shutdown();
+#endif
 	ImGui::DestroyContext();
 }
 
@@ -78,13 +80,22 @@ void Applet::frameRender()
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
+#ifdef RII_BACKEND_SDL
+struct SDL_Window;
+extern SDL_Window* g_Window;
+#endif
+
 void Applet::frameProcess()
 {
 	processWindowQueue();
 	// The queue/vector should not be modified here
 
 	ImGui_ImplOpenGL3_NewFrame();
+#ifdef RII_BACKEND_GLFW
 	ImGui_ImplGlfw_NewFrame();
+#else
+	ImGui_ImplSDL2_NewFrame(g_Window);
+#endif
 	ImGui::NewFrame();
 
 	// ImGui::ShowDemoWindow();

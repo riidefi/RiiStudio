@@ -53,7 +53,8 @@ gHashManager = HashManager("bin-int/hashes.json")
 
 DEFINES = [
 	"RII_PLATFORM_EMSCRIPTEN",
-	"IMGUI_IMPL_OPENGL_ES2"
+	"IMGUI_IMPL_OPENGL_ES2",
+	"RII_BACKEND_SDL"
 ]
 INCLUDES = [
 	"oishii",
@@ -116,9 +117,11 @@ def compile(source, int_dir, debug):
 	for incl in INCLUDES:
 		args += " -I./" + incl
 	args += " -Wall -std=c++17 -D\"__debugbreak()\"=\"\""
-	args += " -O0 -s USE_GLFW=3"
+	args += " -s USE_SDL=2"
 	if debug:
-		args += " -g4 "
+		args += " -g4 -O0 "
+	else:
+		args += " -O3 " 
 	args += " -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 -c -o"
 	dst = format_out(source, int_dir)
 	args += " " + dst + " " + source
@@ -158,7 +161,7 @@ def build_project(name, type, config, proj=None):
 		gHashManager.save(source, config)
 
 	if type == "main_app":
-		link_cmd = "em++ -o " + bin_dir + "out.html -s USE_GLFW=3 -s MAX_WEBGL_VERSION=2"
+		link_cmd = "em++ -o " + bin_dir + "out.html -s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind"
 		link_cmd += "  --shell-file " + bin_dir + "/shell_minimal.html "
 		objs = locals_objs
 		for lib in PROJECTS:

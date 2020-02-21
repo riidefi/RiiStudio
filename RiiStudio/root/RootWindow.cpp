@@ -23,6 +23,12 @@ void RootWindow::draw(Window* ctx) noexcept
 		openFile(mDropQueue.back(), OpenFilePolicy::NewEditor);
 		mDropQueue.pop();
 	}
+	while (!mDataDropQueue.empty())
+	{
+		printf("Opening file..\n");
+		openFile(std::move(mDataDropQueue.back()));
+		mDataDropQueue.pop();
+	}
 
 	ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -186,6 +192,71 @@ std::vector<std::string> GetChildrenOfType(const std::string& type)
 	}
 	return out;
 }
+void RootWindow::attachImporter(std::pair<std::string, std::unique_ptr<px::IBinarySerializer>> importer,
+	std::unique_ptr<oishii::BinaryReader> reader, OpenFilePolicy policy)
+{
+
+	if (!importer.second)
+		return;
+
+	if (!IsConstructible(importer.first))
+	{
+		printf("Non constructable state.. find parents\n");
+
+		const auto children = GetChildrenOfType(importer.first);
+		if (children.empty())
+		{
+			printf("No children. Cannot construct.\n");
+			return;
+		}
+		assert(children.size() == 1 && IsConstructible(children[0])); // TODO
+		importer.first = children[0];
+	}
+
+	auto fileState = SpawnState(importer.first);
+	if (fileState.mBase == nullptr)
+		return;
+	if (fileState.mType.empty())
+		return;
+
+	importer.second->read(fileState, *reader.get());
+
+	auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), reader->getFile(), this);
+
+	if (policy == OpenFilePolicy::NewEditor)
+	{
+		attachEditorWindow(std::move(edWindow));
+	}
+	else if (policy == OpenFilePolicy::ReplaceEditor)
+	{
+		//	if (getActiveEditor())
+		//		detachWindow(getActiveEditor()->mId);
+		attachEditorWindow(std::move(edWindow));
+	}
+	else if (policy == OpenFilePolicy::ReplaceEditorIfMatching)
+	{
+		//	if (getActiveEditor() && ((EditorWindow*)getActiveEditor())->mState->mName.namespacedId == fileState->mName.namespacedId)
+		//	{
+		//		detachWindow(getActiveEditor()->mId);	
+		//	}
+
+		attachEditorWindow(std::move(edWindow));
+	}
+	else
+	{
+		throw "Invalid open file policy";
+	}
+}
+void RootWindow::openFile(DataDrop entry)
+{
+	printf("Len: %u\n", entry.mLen);
+	printf("Ptr: %p\n", entry.mData.get());
+	std::vector<u8> data(entry.mLen);
+	memcpy(data.data(), entry.mData.get(), entry.mLen);
+	auto reader = std::make_unique<oishii::BinaryReader>(std::move(data), (u32)entry.mLen, entry.mPath.c_str());
+	auto importer = SpawnImporter(entry.mPath, *reader.get());
+	attachImporter(std::move(importer), std::move(reader), OpenFilePolicy::NewEditor);
+}
 void RootWindow::openFile(const std::string& file, OpenFilePolicy policy)
 {
 	std::ifstream stream(file, std::ios::binary | std::ios::ate);
@@ -202,57 +273,7 @@ void RootWindow::openFile(const std::string& file, OpenFilePolicy policy)
 		auto reader = std::make_unique<oishii::BinaryReader>(std::move(data), size, file.c_str());
 
 		auto importer = SpawnImporter(file, *reader.get());
-		
-		if (!importer.second)
-			return;
-
-		if (!IsConstructible(importer.first))
-		{
-			printf("Non constructable state.. find parents\n");
-
-			const auto children = GetChildrenOfType(importer.first);
-			if (children.empty())
-			{
-				printf("No children. Cannot construct.\n");
-				return;
-			}
-			assert(children.size() == 1 && IsConstructible(children[0])); // TODO
-			importer.first = children[0];
-		}
-
-		auto fileState = SpawnState(importer.first);
-		if (fileState.mBase == nullptr)
-			return;
-		if (fileState.mType.empty())
-			return;
-
-		importer.second->read(fileState, *reader.get());
-
-		auto edWindow = std::make_unique<EditorWindow>(std::move(fileState), file, this);
-
-		if (policy == OpenFilePolicy::NewEditor)
-		{
-			attachEditorWindow(std::move(edWindow));
-		}
-		else if (policy == OpenFilePolicy::ReplaceEditor)
-		{
-			//	if (getActiveEditor())
-			//		detachWindow(getActiveEditor()->mId);
-			attachEditorWindow(std::move(edWindow));
-		}
-		else if (policy == OpenFilePolicy::ReplaceEditorIfMatching)
-		{
-			//	if (getActiveEditor() && ((EditorWindow*)getActiveEditor())->mState->mName.namespacedId == fileState->mName.namespacedId)
-			//	{
-			//		detachWindow(getActiveEditor()->mId);	
-			//	}
-
-			attachEditorWindow(std::move(edWindow));
-		}
-		else
-		{
-			throw "Invalid open file policy";
-		}
+		attachImporter(std::move(importer), std::move(reader), policy);
 	}
 }
 void RootWindow::openFile(OpenFilePolicy policy)
@@ -278,7 +299,12 @@ void RootWindow::drop(const std::vector<std::string_view>& paths)
 		mDropQueue.push(std::string(path));
 	}
 }
-
+void RootWindow::dropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len, const std::string& name)
+{
+	printf("Dropping file.. %s\n", name.c_str());
+	DataDrop drop{ std::move(data), len, name };
+	mDataDropQueue.emplace(std::move(drop));
+}
 RootWindow::RootWindow()
     : Applet("RiiStudio")
 {

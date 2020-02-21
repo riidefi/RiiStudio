@@ -17,6 +17,13 @@
 
 #include <LibCube/Util/BoundBox.hpp>
 
+
+#ifndef _WIN32
+#include <SDL.h>
+#include <SDL_opengles2.h>
+
+#endif
+
 struct SceneTree
 {
 	struct Node
@@ -408,16 +415,35 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 			0,
 			cos(horizontalAngle - 3.14f / 2.0f)
 		);
+
+#ifdef RII_BACKEND_GLFW
 		if (ImGui::IsKeyDown('W'))
+#else
+		const Uint8* keys = SDL_GetKeyboardState(NULL);
+
+		if (keys[SDL_SCANCODE_W])
+#endif
 			eye += mvmt_dir * deltaTime * speed;
+#ifdef RII_BACKEND_GLFW
 		if (ImGui::IsKeyDown('S'))
+#else
+		if (keys[SDL_SCANCODE_S])
+#endif
 			eye -= mvmt_dir * deltaTime * speed;
+#ifdef RII_BACKEND_GLFW
 		if (ImGui::IsKeyDown('A'))
+#else
+		if (keys[SDL_SCANCODE_A])
+#endif
 			eye -= right * deltaTime * speed;
+#ifdef RII_BACKEND_GLFW
 		if (ImGui::IsKeyDown('D'))
+#else
+		if (keys[SDL_SCANCODE_D])
+#endif
 			eye += right * deltaTime * speed;
 
-		if ((ImGui::IsKeyDown(' ') && combo_choice_cam == 0) || ImGui::IsKeyDown('E'))
+		if ((ImGui::IsKeyDown(ImGuiKey_Space) && combo_choice_cam == 0) || ImGui::IsKeyDown('E'))
 			eye += up * deltaTime * speed;
 		if ((ImGui::IsKeyDown(340)  && combo_choice_cam == 0) || ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
 			eye -= up * deltaTime * speed;
