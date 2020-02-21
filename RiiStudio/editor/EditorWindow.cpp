@@ -1,6 +1,4 @@
 #include "EditorWindow.hpp"
-#include <LibCore/api/Collection.hpp>
-
 #include <LibCore/api/impl/api.hpp>
 
 #include <regex>
@@ -15,7 +13,7 @@
 
 struct GenericCollectionOutliner : public IStudioWindow
 {
-	GenericCollectionOutliner(px::CollectionHost& host) : IStudioWindow("Outliner"), mHost(host)
+	GenericCollectionOutliner(px::IDestructable& host) : IStudioWindow("Outliner"), mHost(host)
 	{}
 
 	struct ImTFilter : public ImGuiTextFilter
@@ -74,7 +72,7 @@ struct GenericCollectionOutliner : public IStudioWindow
 
 	//! @brief Return the number of resources in the source that pass the filter.
 	//!
-	int calcNumFiltered(const px::CollectionHost::CollectionHandle& sampler, const TFilter* filter = nullptr) const noexcept
+	int calcNumFiltered(const px::IDestructable::Handle& sampler, const TFilter* filter = nullptr) const noexcept
 	{
 		// If no data, empty
 		if (sampler.size() == 0)
@@ -95,14 +93,14 @@ struct GenericCollectionOutliner : public IStudioWindow
 
 	//! @brief Format the title in the "<header> (<number of resources>)" format.
 	//!
-	std::string formatTitle(const px::CollectionHost::CollectionHandle& sampler, const TFilter* filter = nullptr) const noexcept
+	std::string formatTitle(const px::IDestructable::Handle& sampler, const TFilter* filter = nullptr) const noexcept
 	{
 		const auto name = GetRich(sampler.getType());
 		return std::string(std::string(name.icon.icon_plural) + "  " +
 			std::string(name.exposedName) + "s (" + std::to_string(calcNumFiltered(sampler, filter)) + ")");
 	}
 
-	void drawFolder(px::CollectionHost::CollectionHandle& sampler, px::CollectionHost& host, const std::string& key) noexcept
+	void drawFolder(px::IDestructable::Handle& sampler, px::IDestructable& host, const std::string& key) noexcept
 	{
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if (!ImGui::TreeNode(formatTitle(sampler, &mFilter).c_str()))
@@ -125,7 +123,7 @@ struct GenericCollectionOutliner : public IStudioWindow
 		{
 			std::string name = sampler.nameAt(i);
 
-			auto subHnds = px::ReflectionMesh::getInstance()->findParentOfType<px::CollectionHost>(sampler.atDynamic(i));
+			auto subHnds = std::vector<px::IDestructable*>{ sampler.atDynamic(i).mOwner.get() };
 
 
 			if (!mFilter.test(name) && subHnds.empty())
@@ -230,7 +228,7 @@ struct GenericCollectionOutliner : public IStudioWindow
 		sampler.setActiveSelection(justSelectedId);
 	}
 
-	void drawRecursive(px::CollectionHost& host) noexcept
+	void drawRecursive(px::IDestructable& host) noexcept
 	{
 		for (u32 i = 0; i < host.getNumFolders(); ++i)
 		{
@@ -246,7 +244,7 @@ struct GenericCollectionOutliner : public IStudioWindow
 	}
 
 private:
-	px::CollectionHost& mHost;
+	px::IDestructable& mHost;
 	TFilter mFilter;
 };
 
@@ -258,7 +256,7 @@ struct WIdek : public IStudioWindow
 
 struct TexImgPreview : public IStudioWindow
 {
-	TexImgPreview(const px::CollectionHost& host)
+	TexImgPreview(const px::IDestructable& host)
 		: IStudioWindow("Texture Preview"), mHost(host)
 	{
 		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize);
@@ -283,18 +281,18 @@ struct TexImgPreview : public IStudioWindow
 		mImg.setFromImage(tex);
 	}
 
-	const px::CollectionHost& mHost;
+	const px::IDestructable& mHost;
 	int lastTexId = -1;
 	ImagePreview mImg;
 };
 struct RenderTest : public IStudioWindow
 {
-	RenderTest(const px::CollectionHost& host)
+	RenderTest(const px::IDestructable& host)
 		: IStudioWindow("Viewport"), mHost(host)
 	{
 		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
 
-		const auto models = host.getFolder<px::CollectionHost>();
+		const auto models = host.getFolder<px::IDestructable>();
 
 		if (!models.has_value())
 			return;
@@ -302,7 +300,7 @@ struct RenderTest : public IStudioWindow
 		if (models->size() == 0)
 			return;
 
-		mRenderer.prepare(*models->at<px::CollectionHost>(0), host);
+		mRenderer.prepare(*models->at<px::IDestructable>(0), host);
 	}
 	void draw() noexcept override
 	{
@@ -318,35 +316,21 @@ struct RenderTest : public IStudioWindow
 	}
 	Viewport mViewport;
 	Renderer mRenderer;
-	const px::CollectionHost& mHost;
+	const px::IDestructable& mHost;
 };
 EditorWindow::EditorWindow(px::Dynamic state, const std::string& path, Window* parent)
-	: mState({ std::move(state.mOwner), state.mBase, state.mType }), IStudioWindow(path.substr(path.rfind("\\")+1), true), mFilePath(path)
+	: IStudioWindow(path.substr(path.rfind("\\") + 1), true), mState({ std::move(state.mOwner), state.mBase, state.mType }),  mFilePath(path)
 {
 	setParent(parent);
-	std::vector<px::CollectionHost*> collectionhosts = px::ReflectionMesh::getInstance()->findParentOfType<px::CollectionHost>(mState);
 
-	if (collectionhosts.size() > 1)
-	{
-		printf("Cannot spawn editor window; too many collection hosts.\n");
-	}
-	else if (collectionhosts.empty())
-	{
-		printf("State has no collection hosts.\n");
-	}
-	else
-	{
-		assert(collectionhosts[0]);
+	auto& host = *(mState.mOwner.get());
+	assert(mState.mOwner.get());
 
-		px::CollectionHost& host = *collectionhosts[0];
-
-
-		attachWindow(std::make_unique<GenericCollectionOutliner>(host));
-		attachWindow(std::make_unique<TexImgPreview>(host));
-		attachWindow(std::make_unique<RenderTest>(host));
+	attachWindow(std::make_unique<GenericCollectionOutliner>(host));
+	attachWindow(std::make_unique<TexImgPreview>(host));
+	attachWindow(std::make_unique<RenderTest>(host));
 
 	
-	}
 }
 void EditorWindow::draw() noexcept
 {

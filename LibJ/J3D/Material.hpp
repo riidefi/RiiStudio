@@ -11,8 +11,6 @@
 
 #include <ThirdParty/fa5/IconsFontAwesome5.h>
 
-#include <LibCore/api/Collection.hpp>
-
 namespace libcube::jsystem {
 
 template<typename T>

@@ -48,8 +48,7 @@ struct ExampleXF : public pl::TransformStack::XForm
 #endif
 const libcube::Texture& Material::getTexture(const std::string& id) const
 {
-	assert(mpScene);
-	J3DCollection* j3dscene = dynamic_cast<J3DCollection*>(mpScene);
+	J3DCollection* j3dscene = dynamic_cast<J3DCollection*>(dynamic_cast<J3DModel*>(mParent)->mParent);
 	assert(j3dscene);
 
 	const auto textures = j3dscene->getTextures();

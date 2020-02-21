@@ -13,8 +13,6 @@
 // TODO: Interdependency
 #include <RiiStudio/editor/renderer/UBOBuilder.hpp>
 
-#include <LibCore/api/Collection.hpp>
-
 
 enum class FrontFace { CW, CCW };
 struct MegaState
@@ -299,12 +297,12 @@ struct Polygon : public px::IDestructable
 	virtual lib3d::AABB getBounds() const = 0;
 };
 // TODO: This should all be runtime
-struct Scene : public px::CollectionHost
+struct Scene : public px::IDestructable
 {
 	PX_TYPE_INFO("Scene", "scene", "3D::Scene");
 	virtual ~Scene() = default;
 
-	using px::CollectionHost::CollectionHost;
+	using px::IDestructable::IDestructable;
 };
 
 } // namespace lib3d

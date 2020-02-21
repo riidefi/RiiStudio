@@ -49,6 +49,9 @@ struct Shape final : public ShapeData, public IndexedPolygon
 {
 	PX_TYPE_INFO_EX("J3D Shape", "shape", "J::Shape", ICON_FA_VECTOR_SQUARE, ICON_FA_VECTOR_SQUARE);
 
+	J3DModel* getModel();
+	const J3DModel* getModel() const;
+
 	std::string getName() const override { return "Shape " + std::to_string(id); }
 	void setName(const std::string& name) override { }
 	u64 getNumMatrixPrimitives() const override

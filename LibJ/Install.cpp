@@ -39,7 +39,7 @@ void Install()
     // TODO: Move to proper system
     installer.registerParent<IBoneDelegate, lib3d::Bone>();
     installer.registerParent<Material, lib3d::Material>();
-	installer.registerParent<J3DModel, px::CollectionHost>();
+	installer.registerParent<J3DModel, px::IDestructable>();
 
 	installer.registerSerializer(std::make_unique<BmdIo>());
 	installer.registerFactory(std::make_unique<PX_FACTORY_NAME(J3DCollection)>());

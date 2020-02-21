@@ -16,7 +16,6 @@
 #include "Texture.hpp"
 
 #include <LibCore/api/Node.hpp>
-#include <LibCore/api/Collection.hpp>
 
 
 namespace libcube::jsystem {
@@ -24,7 +23,7 @@ namespace libcube::jsystem {
 // Not a FileState for now -- always accessed through a J3DCollection.
 // This is subject to change
 // No compatibility with old BMD files yet.
-struct J3DModel : public px::CollectionHost
+struct J3DModel : public px::IDestructable
 {
 	~J3DModel() = default;
 
@@ -62,13 +61,13 @@ struct J3DModel : public px::CollectionHost
 		Bufs() {}
 	} mBufs = Bufs();
 
-	J3DModel() : px::CollectionHost({
-		std::string(Material::TypeInfo.namespacedId),
-		std::string(Joint::TypeInfo.namespacedId),
-		std::string(Shape::TypeInfo.namespacedId)
-	}) {}
+	J3DModel()
+	{
+		acceptChild(PX_GET_TID(Material));
+		acceptChild(PX_GET_TID(Joint));
+		acceptChild(PX_GET_TID(Shape));
+	}
 
-	
 	PX_COLLECTION_FOLDER_GETTER(getMaterials, Material);
 	PX_COLLECTION_FOLDER_GETTER(getBones, Joint);
 	PX_COLLECTION_FOLDER_GETTER(getShapes, Shape);

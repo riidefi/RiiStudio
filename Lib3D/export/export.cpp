@@ -16,7 +16,7 @@ void install()
 	installer.registerSerializer(std::make_unique<FbxIo>());
 #endif
 	installer.registerObject(Scene::TypeInfo);
-	installer.registerParent<Scene, px::CollectionHost>();
+	installer.registerParent<Scene, px::IDestructable>();
 }
 
 } // namespace lib3d

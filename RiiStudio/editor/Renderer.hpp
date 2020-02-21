@@ -3,7 +3,6 @@
 #include <LibCore/common.h>
 
 #include <Lib3D/interface/i3dmodel.hpp>
-#include <LibCore/api/Collection.hpp>
 
 #include <memory>
 
@@ -20,7 +19,7 @@ public:
 	void createShaderProgram() { bShadersLoaded = true; }
 	void destroyShaders() { bShadersLoaded = false; }
 
-	void prepare(const px::CollectionHost& model, const px::CollectionHost& texture);
+	void prepare(const px::IDestructable& model, const px::IDestructable& texture);
 
 private:
 	bool bShadersLoaded = false;

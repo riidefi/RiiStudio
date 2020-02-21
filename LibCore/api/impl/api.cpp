@@ -82,10 +82,10 @@ struct CorePackageInstaller : px::PackageInstaller
 		throw "Cannot spawn";
 		return px::Dynamic(std::make_unique<px::IDestructable>(), 0, "");
 	}
-	px::Dynamic constructObject(const std::string& type, px::IDestructable* scene) override
+	px::Dynamic constructObject(const std::string& type, px::IDestructable* parent) override
 	{
 		auto spawned = spawnState(type);
-		spawned.mOwner->mpScene = scene;
+		spawned.mOwner->mParent = parent;
 		return spawned;
 	}
 	std::vector<std::unique_ptr<px::IFactory>> mFactories;

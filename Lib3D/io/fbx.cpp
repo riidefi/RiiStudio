@@ -41,7 +41,7 @@ using Vec4i = glm::vec<4, u16>;
 using Vec4f = glm::vec4;
 struct FBXImportContext
 {
-	px::CollectionHost& model;
+	px::IDestructable& model;
 	lib3d::Scene& state;
 	FbxScene* scene;
 	FbxNode* node;
@@ -565,6 +565,7 @@ void FbxIo::read(px::Dynamic& state, oishii::BinaryReader& reader)
 
 	if (!scene)
 		return;
+#if 0
 
 	std::map<const FbxTexture*, FbxString> textureLocations;
 	FindFbxTextures(scene.get(), fbxFileName, { "png", "jpg", "jpeg" }, textureLocations);
@@ -580,7 +581,7 @@ void FbxIo::read(px::Dynamic& state, oishii::BinaryReader& reader)
 	assert(p3dScene);
 	lib3d::Scene& _state = *p3dScene;
 
-	auto models = _state.getFolder<px::CollectionHost>();
+	auto models = _state.getFolder<px::IDestructable>();
 	models->add();
 	models->at<px::CollectionHost>(0)->mpScene = p3dScene;
 	std::map<u64, std::size_t> nodeIdToIndex;
@@ -632,6 +633,7 @@ void FbxIo::read(px::Dynamic& state, oishii::BinaryReader& reader)
 
 		mat->configure(lib3d::PixelOcclusion::Opaque, texs);
 	}
+#endif
 }
 void FbxIo::write(px::Dynamic& state, oishii::v2::Writer& writer)
 {

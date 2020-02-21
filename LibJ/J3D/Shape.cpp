@@ -3,9 +3,13 @@
 
 namespace libcube::jsystem {
 
+J3DModel* Shape::getModel() { assert(dynamic_cast<J3DModel*>(mParent)); return dynamic_cast<J3DModel*>(mParent); }
+const J3DModel* Shape::getModel() const { assert(dynamic_cast<J3DModel*>(mParent)); return dynamic_cast<J3DModel*>(mParent); }
+
+
 glm::vec2 Shape::getUv(u64 chan, u64 idx) const
 {
-	auto& mMdl = dynamic_cast<J3DCollection*>(mpScene)->getModels()[0];
+	auto& mMdl = *getModel();
 
 	if (idx > mMdl.mBufs.uv[chan].mData.size())
 		return {};
@@ -13,21 +17,21 @@ glm::vec2 Shape::getUv(u64 chan, u64 idx) const
 }
 glm::vec3 Shape::getPos(u64 idx) const
 {
-	auto& mMdl = dynamic_cast<J3DCollection*>(mpScene)->getModels()[0];
+	auto& mMdl = *getModel();
 	return mMdl.mBufs.pos.mData[idx];
 }
 glm::vec3 Shape::getNrm(u64 idx) const
 {
-	auto& mMdl = dynamic_cast<J3DCollection*>(mpScene)->getModels()[0];
+	auto& mMdl = *getModel();
 	return mMdl.mBufs.norm.mData[idx];
 }
 glm::vec4 Shape::getClr(u64 idx) const
 {
-	auto& mMdl = dynamic_cast<J3DCollection*>(mpScene)->getModels()[0];
+	auto& mMdl = *getModel();
 	if (idx >= mMdl.mBufs.color[0].mData.size())
 		return { 1, 1, 1, 1 };
 
-	auto raw = static_cast<gx::ColorF32>(mMdl.mBufs.color[0].mData[idx]);
+	auto raw = static_cast<gx::ColorF32>((libcube::gx::Color)mMdl.mBufs.color[0].mData[idx]);
 
 	return { raw.r, raw.g, raw.b, raw.a };
 }
@@ -44,19 +48,18 @@ static u64 addUnique(std::vector<T>& array, const T& value)
 
 u64 Shape::addPos(const glm::vec3& v)
 {
-	assert(mpScene);
-	auto& mMdl = dynamic_cast<J3DCollection*>(mpScene)->getModels()[0];
+	auto& mMdl = *getModel();
 	u64 out = addUnique(mMdl.mBufs.pos.mData, v);
 	return out;
 }
 u64 Shape::addNrm(const glm::vec3& v)
 {
-	auto& mMdl = dynamic_cast<J3DCollection*>(mpScene)->getModels()[0];
+	auto& mMdl = *getModel();
 	return addUnique(mMdl.mBufs.norm.mData, v);
 }
 u64 Shape::addClr(u64 chan, const glm::vec4& v)
 {
-	auto& mMdl = dynamic_cast<J3DCollection*>(mpScene)->getModels()[0];
+	auto& mMdl = *getModel();
 	// TODO: Round
 	return addUnique(mMdl.mBufs.color[chan].mData, gx::Color{
 		static_cast<u8>(v[0] * 255.0f),
@@ -66,7 +69,7 @@ u64 Shape::addClr(u64 chan, const glm::vec4& v)
 }
 u64 Shape::addUv(u64 chan, const glm::vec2& v)
 {
-	auto& mMdl = dynamic_cast<J3DCollection*>(mpScene)->getModels()[0];
+	auto& mMdl = *getModel();
 	return addUnique(mMdl.mBufs.uv[chan].mData, v);
 }
 

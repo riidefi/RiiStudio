@@ -4,7 +4,6 @@
 #include "Texture.hpp"
 
 #include <LibCore/api/Node.hpp>
-#include <LibCore/api/Collection.hpp>
 
 
 namespace libcube { namespace jsystem {
@@ -20,12 +19,9 @@ public:
 
 	
 	J3DCollection()
-		: lib3d::Scene({
-			PX_GET_TID(J3DModel),
-			PX_GET_TID(Texture)
-		})
 	{
-		mpScene = this;
+		acceptChild(PX_GET_TID(J3DModel));
+		acceptChild(PX_GET_TID(Texture));
 	}
 
 	PX_COLLECTION_FOLDER_GETTER(getModels, J3DModel);

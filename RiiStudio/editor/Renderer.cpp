@@ -51,8 +51,8 @@ struct SceneTree
 	std::vector<Node> opaque, translucent;
 
 
-	void gatherBoneRecursive(u64 boneId, const px::CollectionHost::CollectionHandle& bones,
-		const px::CollectionHost::CollectionHandle& mats, const px::CollectionHost::CollectionHandle& polys)
+	void gatherBoneRecursive(u64 boneId, const px::IDestructable::Handle& bones,
+		const px::IDestructable::Handle& mats, const px::IDestructable::Handle& polys)
 	{
 		const auto pBone = bones.at<lib3d::Bone>(boneId);
 		if (!pBone) return;
@@ -76,7 +76,7 @@ struct SceneTree
 			gatherBoneRecursive(pBone->getChild(i), bones, mats, polys);
 	}
 
-	void gather(const px::CollectionHost& root)
+	void gather(const px::IDestructable& root)
 	{
 		const auto pMats = root.getFolder<lib3d::Material>();
 		if (!pMats.has_value())
@@ -130,7 +130,7 @@ struct SceneState
 
 	std::map<std::string, u32> texIdMap;
 
-	void buildTextures(const px::CollectionHost& root)
+	void buildTextures(const px::IDestructable& root)
 	{
 		for (const auto& tex : mTextures)
 			glDeleteTextures(1, &tex.id);
@@ -164,7 +164,7 @@ struct SceneState
 		}
 	}
 
-	void gather(const px::CollectionHost& model, const px::CollectionHost& texture)
+	void gather(const px::IDestructable& model, const px::IDestructable& texture)
 	{
 		bones.emplace(model.getFolder<lib3d::Bone>().value());
 		mTree.gather(model);
@@ -175,7 +175,7 @@ struct SceneState
 		//	const auto mat = mats->at<lib3d::Material>(0);
 		//	const auto compiled = mat->generateShaders();
 	}
-	std::optional<px::CollectionHost::CollectionHandle> bones;
+	std::optional<px::IDestructable::Handle> bones;
 	glm::mat4 computeMdlMtx(const lib3d::SRT3& srt)
 	{
 		glm::mat4 mdl(1.0f);
@@ -298,7 +298,7 @@ struct SceneState
 	std::vector<Texture> mTextures;
 };
 
-void Renderer::prepare(const px::CollectionHost& model, const px::CollectionHost& texture)
+void Renderer::prepare(const px::IDestructable& model, const px::IDestructable& texture)
 {
 	mState->gather(model, texture);
 }
