@@ -341,7 +341,9 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 		if (ImGui::BeginMenu("Rendering"))
 		{
 			ImGui::Checkbox("Render", &rend);
+#ifdef _WIN32
 			ImGui::Checkbox("Wireframe", &wireframe);
+#endif
 			ImGui::EndMenu();
 		}
 		static int combo_choice = 0;
@@ -349,9 +351,9 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 
 		ImGui::Combo("Controls", &combo_choice_cam, "WASD // FPS\0WASD // Plane\0");
 
-
+#ifdef _WIN32
 		ImGui::Checkbox("Wireframe", &wireframe);
-
+#endif
 		ImGui::EndMenuBar();
 	}
 
