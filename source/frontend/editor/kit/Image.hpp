@@ -1,0 +1,28 @@
+#pragma once
+
+#include <vector>
+#include <core/common.h>
+
+#include <core/3d/i3dmodel.hpp>
+
+namespace riistudio::frontend {
+
+class ImagePreview
+{
+public:
+	ImagePreview();
+
+	void setFromImage(const lib3d::Texture& tex);
+
+	void draw();
+
+private:
+	u16 width = 0;
+	u16 height = 0;
+	std::vector<u8> mDecodeBuf;
+
+	u32 mGpuTexId = 0;
+	bool mTexUploaded = false;
+};
+
+}

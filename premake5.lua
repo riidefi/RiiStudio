@@ -61,14 +61,14 @@ function setupCppC()
 	
 	files
 	{
-		"%{prj.name}/**.h",
-		"%{prj.name}/**.hpp",
-		"%{prj.name}/**.cpp",
-		"%{prj.name}/**.c"
+		"source/%{prj.name}/**.h",
+		"source/%{prj.name}/**.hpp",
+		"source/%{prj.name}/**.cpp",
+		"source/%{prj.name}/**.c"
 	}
 	excludes
 	{
-		"%{prj.name}/pybind11/**.cpp"
+		"source/%{prj.name}/pybind11/**.cpp"
 	}
 
 	filter "files:*.cpp"
@@ -88,19 +88,19 @@ end
 function setupMainAppCli(set_links)
 	includedirs
 	{
-		"./",
-		"oishii",
-		"ThirdParty",
+		"./source",
+		"./source/vendor/oishii",
+		"./source/vendor",
 		(FBX_SDK_ROOT .. "../../../include"),
 		PYTHON_ROOT .. "./include",
-		"ThirdParty/pybind11/include"
+		"./source/vendor/pybind11/include"
 	}
 	if set_links then
 	links
 	{
-		"LibCore",
-		"LibCube",
-		"ThirdParty",
+		"core",
+		"vendor",
+		"plugins",
 		"libfbxsdk-md"
 	}
 	end
@@ -140,12 +140,10 @@ end
 function setupMainApp()
 	links
 	{
-		"LibCore",
-		"Lib3D",
-		"LibCube",
-		"LibJ",
-		"ThirdParty",
-		"ThirdParty/glfw/lib-vc2017/glfw3dll.lib",
+		"core",
+		"vendor",
+		"plugins",
+		"source/vendor/glfw/lib-vc2017/glfw3dll.lib",
 		"opengl32.lib",
 		"libfbxsdk.lib"
 	}
@@ -161,30 +159,26 @@ function setupMainApp()
 		fbx_dir = FBX_SDK_ROOT .. "/x64/release"
 
 	postbuildcommands {
-		"{COPY} ../ThirdParty/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}",
+		"{COPY} ../vendor/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}",
 		-- "{COPY} " .. fbx_dir .. "libfbxsdk.dll %{cfg.targetdir}",
-		"{COPY} ../fonts/* %{cfg.targetdir}",
+		"{COPY} ../../fonts/* %{cfg.targetdir}",
 		"{COPY} ./scripts/* %{cfg.targetdir}/scripts"
 	}
 end
-project "RiiStudio"
-	location "RiiStudio"
+
+project "frontend"
+	location "source/frontend"
 	setupMainApp()
 
-project "RiiStudioCLI"
-	location "RiiStudioCLI"
-	setupMainAppCli(true)
 
 
-
-
-project "ThirdParty"
-	location "ThirdParty"
+project "vendor"
+	location "source/vendor"
 
 	includedirs
 	{
-		"oishii",
-		"ThirdParty"
+		"source/vendor",
+		"source/vendor/oishii"
 	}
 	setupStaticLib()
 	setupCppC()
@@ -193,49 +187,14 @@ project "ThirdParty"
 	setupSystem()
 	setupPreprocessor()
 
-
-project "LibCube"
-	location "LibCube"
-	includedirs
-	{
-		"LibCube",
-		"ThirdParty",
-		"oishii",
-		"./"
-	}
-
-	setupStaticLib()
-	setupCppC()
-
-
-	setupSystem()
-	setupPreprocessor()
-
-project "LibJ"
-	location "LibJ"
-	includedirs
-	{
-		"LibJ",
-		"oishii",
-		"./"
-	}
-
-	setupStaticLib()
-	setupCppC()
-
-
-	setupSystem()
-	setupPreprocessor()
-
-project "LibCore"
-	location "LibCore"
+project "core"
+	location "source/core"
 	includedirs {
-		"oishii",
-		"./",
-		"ThirdParty",
-		"LibCore",
+		"./source",
+		"source/vendor",
+		"source/core",
 		PYTHON_ROOT .. "./include",
-		"ThirdParty/pybind11/include"
+		"source/vendor/pybind11/include"
 	}
 
 	setupStaticLib()
@@ -243,19 +202,16 @@ project "LibCore"
 	setupSystem()
 	setupPreprocessor()
 
-
-project "Lib3D"
-	location "Lib3D"
-	includedirs
-	{
-		"./",
-		"oishii",
-		(FBX_SDK_ROOT .. "../../../include")
+project "plugins"
+	location "source/plugins"
+	includedirs {
+		"./source",
+		"source/vendor",
+		"source/core",
+		"source/vendor/oishii"
 	}
 
 	setupStaticLib()
 	setupCppC()
-
-
 	setupSystem()
 	setupPreprocessor()
