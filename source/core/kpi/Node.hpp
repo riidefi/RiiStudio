@@ -119,10 +119,10 @@ public:
 		std::string type;
 		IDocumentNode* parent;
 	};
-	std::optional<FolderData> getFolder(const std::string& type, bool fromParent = false, bool fromChild = false) const {
-		auto found = children.find(type);
-		if (found != children.end())
-			return found->second;
+	const FolderData* getFolder(const std::string& type, bool fromParent = false, bool fromChild = false) const {
+		for (auto& c : children)
+			if (c.first == type)
+				return &c.second;
 
 		auto info = kpi::ReflectionMesh::getInstance()->lookupInfo(type);
 
@@ -132,8 +132,8 @@ public:
 			{
 				assert(info.getParent(i).getName() != info.getName());
 
-				auto opt = getFolder(info.getParent(i).getName(), true, false);
-				if (opt.has_value()) return opt;
+				auto* opt = getFolder(info.getParent(i).getName(), true, false);
+				if (opt != nullptr) return opt;
 			}
 		}
 
@@ -146,8 +146,8 @@ public:
 				const std::string infName = info.getName();
 				assert(childName != infName);
 
-				auto opt = getFolder(childName, false, true);
-				if (opt.has_value()) return opt;
+				auto* opt = getFolder(childName, false, true);
+				if (opt != nullptr) return opt;
 			}
 		}
 
@@ -155,8 +155,12 @@ public:
 	}
 
 	template<typename T>
-	std::optional<FolderData> getFolder() const {
+	const FolderData* getFolder() const {
 		return getFolder(typeid(T).name());
+	}
+	template<typename T>
+	FolderData* getFolder() {
+		return const_cast<FolderData*>(getFolder(typeid(T).name()));
 	}
 
 	SelectionState select;
@@ -262,16 +266,61 @@ struct DocumentMemento {
 
 };
 
-
 using FolderData = IDocumentNode::FolderData;
 
+template<typename T> struct TDocData : public IDocData, T {
+	TDocData(const T& dr) : T(dr) { }
+};
 // Might be huge, say a vertex array -- and likely never changed!
 template<typename T>
 struct TDocumentNode final : public IDocumentNode, public T {
 	TDocumentNode() = default;
 	// Potential overrides: getParent, getChild, getNextSibling, etc
+	const IDocumentNode* getParent() const { return parent; }
+	IDocumentNode* getParent() { return parent; }
+
+	// Does not copy anything but data
+	void fromData(const IDocData& rhs) override {
+		const T* pdat = dynamic_cast<const T*>(&rhs);
+		assert(pdat);
+		if (pdat) *static_cast<T*>(this) = *pdat;
+	}
+	std::unique_ptr<IDocData> cloneDataNotChildren() const override {
+		const auto& dr = *static_cast<const T*>(this);
+		return std::make_unique<TDocData<T>>(dr);
+	}
+	std::unique_ptr<IDocumentNode> cloneDeep() const override {
+		return std::make_unique<TDocumentNode<T>>(*this);
+	}
+	bool compareJustThisNotChildren(const IDocData& rhs) const override {
+		const T* pdat = dynamic_cast<const T*>(&rhs);
+		return pdat && *pdat == *static_cast<const T*>(this);
+	}
 };
 
+
+template<typename T>
+class NodeAccessor {
+public:
+	T& get() { assert(data);  return *data; }
+	const T& get() const { assert(data);  return *data; }
+	IDocumentNode& node() { assert(data); return *data; }
+	const IDocumentNode& node() const { assert(data); return *data; }
+	bool valid() const { return data != nullptr; }
+
+	NodeAccessor(IDocumentNode* node) {
+		assert(dynamic_cast<TDocumentNode<T>*>(node) != nullptr);
+		data = reinterpret_cast<TDocumentNode<T>*>(node);
+	}
+
+#define __KPI_FMT_NODE(type) get##type##s
+#define KPI_NODE_FOLDER(type) \
+		  kpi::FolderData& __KPI_FMT_NODE(type)()		{ auto* f = data->getFolder<type>(); assert(f); return *f; } \
+	const kpi::FolderData& __KPI_FMT_NODE(type)() const	{ auto* f = data->getFolder<type>(); assert(f); return *f; }
+
+protected:
+	TDocumentNode<T>* data = nullptr;
+};
 
 
 /*
@@ -316,7 +365,7 @@ public:
 	//!				ApplicationPlugins::getInstance()->addType<SomeType>();
 	//!
 	template<typename T>
-	void addType();
+	ApplicationPlugins& addType();
 
 	//! @brief Add a binary serializer (writer) to the internal registry.
 	//!
@@ -361,7 +410,7 @@ public:
 	//!				ApplicationPlugins::getInstance()->addSerializer<SomeWriter>();
 	//!
 	template<typename T>
-	void addSerializer();
+	ApplicationPlugins& addSerializer();
 
 	//! @brief Add a binary serializer (writer) to the internal registry with a simplified API.
 	//!
@@ -389,7 +438,7 @@ public:
 	//!				ApplicationPlugins::getInstance()->addSimpleSerializer<SomeType>();
 	//!
 	template<typename T>
-	void addSimpleSerializer();
+	ApplicationPlugins& addSimpleSerializer();
 
 	//! @brief Add a binary deserializer (reader) to the internal registry.
 	//!
@@ -435,19 +484,21 @@ public:
 	//!				ApplicationPlugins::getInstance()->addDeserializer<SomeReader>();
 	//!
 	template<typename T>
-	void addDeserializer();
+	ApplicationPlugins& addDeserializer();
 
 	virtual void registerMirror(const kpi::MirrorEntry& entry) = 0;
 
 	template<typename D, typename B>
-	void registerParent()
+	ApplicationPlugins& registerParent()
 	{
 		registerMirror({ typeid(D).name(), typeid(B).name(), computeTranslation<D, B>() });
+		return *this;
 	}
 	template<typename D, typename B>
-	void registerMember(int slide)
+	ApplicationPlugins& registerMember(int slide)
 	{
 		registerMirror({ typeid(D).name(), typeid(B).name(), slide });
+		return *this;
 	}
 
 	virtual void installModule(const std::string& path) = 0;

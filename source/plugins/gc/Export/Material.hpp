@@ -45,9 +45,29 @@ struct array_vector : public std::array<T, N>
 	}
 };
 
-
+template<typename T, std::size_t size>
+struct copyable_polymorphic_array_vector : public array_vector<std::unique_ptr<T>, size> {
+	copyable_polymorphic_array_vector& operator=(const copyable_polymorphic_array_vector& rhs) {
+		for (std::size_t i = 0; i < size(); ++i) {
+			at(i) = nullptr;
+		}
+		for (std::size_t i = 0; i < rhs.size(); ++i) {
+			at(i) = rhs.at(i)->clone();
+		}
+		return *this;
+	}
+	copyable_polymorphic_array_vector(const copyable_polymorphic_array_vector& rhs) {
+		*this = rhs;
+	}
+	copyable_polymorphic_array_vector() = default;
+};
 struct GCMaterialData
 {
+	// TODO:
+	bool operator==(const GCMaterialData& rhs) const {
+		return false;
+	}
+
 	std::string name;
 
 	gx::CullMode cullMode;
@@ -151,6 +171,11 @@ struct GCMaterialData
 		CommonMappingMethod method;
 		CommonMappingOption option;
 
+		// G3d
+		s8 camIdx = -1;
+		s8 lightIdx = -1;
+
+
 		virtual glm::mat3x4 compute(const glm::mat4& mdl, const glm::mat4& mvp);
 		// TODO: Support / restriction
 
@@ -158,13 +183,15 @@ struct GCMaterialData
 		{
 			return projection == rhs.projection && scale == rhs.scale && rotate == rhs.rotate && translate == rhs.translate &&
 				effectMatrix == rhs.effectMatrix && transformModel == rhs.transformModel && method == rhs.method &&
-				option == rhs.option;
+				option == rhs.option && camIdx == rhs.camIdx && lightIdx == rhs.lightIdx;
 		}
-
+		virtual std::unique_ptr<TexMatrix> clone() const {
+			return std::make_unique<TexMatrix>(*this);
+		}
 		virtual ~TexMatrix() = default;
 	};
 
-	array_vector<std::unique_ptr<TexMatrix>, 10> texMatrices;
+	copyable_polymorphic_array_vector<TexMatrix, 10> texMatrices;
 
 	struct SamplerData
 	{
@@ -190,9 +217,12 @@ struct GCMaterialData
 				mMaxAniso == rhs.mMaxAniso && mMinFilter == rhs.mMinFilter && mMagFilter == rhs.mMagFilter &&
 				mLodBias == rhs.mLodBias;
 		}
+		virtual std::unique_ptr<SamplerData> clone() const {
+			return std::make_unique<SamplerData>(*this);
+		}
 	};
 
-	array_vector<std::unique_ptr<SamplerData>, 8> samplers;
+	copyable_polymorphic_array_vector<SamplerData, 8> samplers;
 };
 
 struct IGCMaterial : public riistudio::lib3d::Material

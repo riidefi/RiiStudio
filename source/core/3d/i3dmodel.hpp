@@ -124,6 +124,21 @@ struct SRT3
 		return !operator==(rhs);
 	}
 };
+struct TexSRT
+{
+	glm::vec2 scale;
+	f32 rotation;
+	glm::vec2 translation;
+
+	bool operator==(const TexSRT& rhs) const
+	{
+		return scale == rhs.scale && rotation == rhs.rotation && translation == rhs.translation;
+	}
+	bool operator!=(const TexSRT& rhs) const
+	{
+		return !operator==(rhs);
+	}
+};
 
 
 struct Bone

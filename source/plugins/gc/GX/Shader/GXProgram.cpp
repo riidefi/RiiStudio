@@ -10,8 +10,9 @@ std::string GXProgram::generateMaterialSource(const gx::ChannelControl& chan, in
 {
     switch (chan.Material)
     {
-        case ColorSource::Vertex: return "a_Color" + std::to_string(i);
-        case ColorSource::Register: return "u_ColorMatReg[" + std::to_string(i) + "]";
+		case ColorSource::Vertex: return "a_Color" + std::to_string(i);
+		default:
+		case ColorSource::Register: return "u_ColorMatReg[" + std::to_string(i) + "]";
     }
 }
 
@@ -19,8 +20,9 @@ std::string GXProgram::generateAmbientSource(const gx::ChannelControl& chan, int
 {
     switch (chan.Ambient)
     {
-        case ColorSource::Vertex: return "a_Color" + std::to_string(i);
-        case ColorSource::Register: return "u_ColorAmbReg[" + std::to_string(i) + "]";
+		case ColorSource::Vertex: return "a_Color" + std::to_string(i);
+		default:
+		case ColorSource::Register: return "u_ColorAmbReg[" + std::to_string(i) + "]";
     }
 }
 
@@ -30,9 +32,10 @@ std::string GXProgram::generateLightDiffFn(const gx::ChannelControl& chan, const
 
     switch (chan.diffuseFn)
     {
-        case DiffuseFunction::None: return "1.0";
-        case DiffuseFunction::Sign: return NdotL;
-        case DiffuseFunction::Clamp: return "max(" + NdotL + ", 0.0f)";
+		default:
+		case DiffuseFunction::None: return "1.0";
+		case DiffuseFunction::Sign: return NdotL;
+		case DiffuseFunction::Clamp: return "max(" + NdotL + ", 0.0f)";
     }
 }
 std::string GXProgram::generateLightAttnFn(const gx::ChannelControl& chan, const std::string& lightName)
@@ -41,9 +44,10 @@ std::string GXProgram::generateLightAttnFn(const gx::ChannelControl& chan, const
 
     switch (chan.attenuationFn)
     {
-        case AttenuationFunction::None: return "1.0";
-        case AttenuationFunction::Spotlight: return "max(" + cosAttn + " / max(dot(" + lightName + ".DistAtten.xyz, vec3(1.0, t_LightDeltaDist2, t_LightDeltaDist)), 0.0), 0.0)";
-        case AttenuationFunction::Specular: return "1.0"; // TODO(jtspierre): Specular
+		default:
+		case AttenuationFunction::None: return "1.0";
+		case AttenuationFunction::Spotlight: return "max(" + cosAttn + " / max(dot(" + lightName + ".DistAtten.xyz, vec3(1.0, t_LightDeltaDist2, t_LightDeltaDist)), 0.0), 0.0)";
+		case AttenuationFunction::Specular: return "1.0"; // TODO(jtspierre): Specular
     }
 }
 std::string GXProgram::generateColorChannel(const gx::ChannelControl& chan, const std::string& outputName, int i)

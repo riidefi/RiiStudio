@@ -156,7 +156,7 @@ void IndexedPolygon::propogate(VBOBuilder& out) const
 		const auto& vcd = getVcd();
 		for (const auto& vtx : tri)
 		{
-			out.mIndices.push_back(out.mIndices.size());
+			out.mIndices.push_back(static_cast<u32>(out.mIndices.size()));
 			final_bitfield |= vcd.mBitfield;
 			for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i)
 			{

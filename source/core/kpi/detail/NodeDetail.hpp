@@ -8,7 +8,7 @@ namespace kpi {
 namespace detail {
 
 struct ApplicationPluginsImpl {
-	// Requires TypeIdResolvable<T>
+	// Requires TypeIdResolvable<T>, DefaultConstructible<T>
 	template<typename T>
 	struct TFactory final : public ApplicationPlugins::IFactory {
 		std::unique_ptr<IFactory> clone() const override {
@@ -17,13 +17,13 @@ struct ApplicationPluginsImpl {
 		std::unique_ptr<IDocumentNode> spawn() override {
 			return std::make_unique<TDocumentNode<T>>();
 		}
-		const char* getId() const override { return typeid(T).name; }
+		const char* getId() const override { return typeid(T).name(); }
 	};
 	//! Requires methods:
 	//! - `T::canRead(const std::string& file, oishii::BinaryReader& reader) const`
 	//! - `T::read(doc_node_t node, oishii::BinaryReader& reader) const`
 	template<typename T>
-	struct TBinaryDeserializer final : public ApplicationPlugins::IBinaryDeserializer, public T {
+	struct TBinaryDeserializer final : public IBinaryDeserializer, public T {
 		std::unique_ptr<IBinaryDeserializer> clone() const override {
 			return std::make_unique<TBinaryDeserializer<T>>(*this);
 		}
@@ -38,7 +38,7 @@ struct ApplicationPluginsImpl {
 	//! - `T::canWrite(doc_node_t node) const`
 	//! - `T::write(doc_node_t node, oishii::v2::Writer& writer) const`
 	template<typename T>
-	struct TBinarySerializer final : public ApplicationPlugins::IBinarySerializer, public T {
+	struct TBinarySerializer final : public IBinarySerializer, public T {
 		std::unique_ptr<IBinarySerializer> clone() const override {
 			return std::make_unique<TBinarySerializer<T>>(*this);
 		}
@@ -52,7 +52,7 @@ struct ApplicationPluginsImpl {
 	//! Requires: `::write(doc_node_t, oishii::v2::Writer& writer, X*_=nullptr)` where `X` is some child that may be wrapped in a doc_node_t.
 	//! No support for inheritance.
 	template<typename T>
-	struct TSimpleBinarySerializer final : public ApplicationPlugins::IBinarySerializer {
+	struct TSimpleBinarySerializer final : public IBinarySerializer {
 		std::unique_ptr<IBinarySerializer> clone() const override {
 			return std::make_unique<TSimpleBinarySerializer<T>>(*this);
 		}
@@ -69,23 +69,27 @@ struct ApplicationPluginsImpl {
 
 
 template<typename T>
-inline void ApplicationPlugins::addType() {
-	mFactories[typeid(T).name] = std::make_unique<detail::ApplicationPluginsImpl::TFactory<T>>();
+inline ApplicationPlugins& ApplicationPlugins::addType() {
+	mFactories[typeid(T).name()] = std::make_unique<detail::ApplicationPluginsImpl::TFactory<T>>();
+	return *this;
 }
 
 template<typename T>
-inline void ApplicationPlugins::addSerializer() {
+inline ApplicationPlugins& ApplicationPlugins::addSerializer() {
 	mWriters.push_back(std::make_unique<detail::ApplicationPluginsImpl::TBinarySerializer<T>>());
+	return *this;
 }
 
 template<typename T>
-inline void ApplicationPlugins::addSimpleSerializer() {
+inline ApplicationPlugins& ApplicationPlugins::addSimpleSerializer() {
 	mWriters.push_back(std::make_unique<detail::ApplicationPluginsImpl::TSimpleBinarySerializer<T>>());
+	return *this;
 }
 
 template<typename T>
-inline void ApplicationPlugins::addDeserializer() {
+inline ApplicationPlugins& ApplicationPlugins::addDeserializer() {
 	mReaders.push_back(std::make_unique<detail::ApplicationPluginsImpl::TBinaryDeserializer<T>>());
+	return *this;
 }
 
 

@@ -248,10 +248,10 @@ struct TexImgPreview : public StudioWindow
 	}
 	void draw() noexcept override
 	{
-		auto osamp = mHost.getFolder<lib3d::Texture>();
+		auto* osamp = mHost.getFolder<lib3d::Texture>();
 
-		assert(osamp.has_value());
-		auto samp = osamp.value();
+		assert(osamp);
+		auto& samp = *osamp;
 
 		if (lastTexId != samp.getActiveSelection())
 			setFromImage(samp.at<lib3d::Texture>(samp.getActiveSelection()));
@@ -274,9 +274,9 @@ struct RenderTest : public StudioWindow
 	{
 		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
 
-		const auto models = host.getFolder<kpi::IDocumentNode>();
+		const auto* models = host.getFolder<kpi::IDocumentNode>();
 
-		if (!models.has_value())
+		if (!models)
 			return;
 
 		if (models->size() == 0)

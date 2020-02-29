@@ -77,22 +77,22 @@ struct SceneTree
 
 	void gather(const kpi::IDocumentNode& root)
 	{
-		const auto pMats = root.getFolder<lib3d::Material>();
-		if (!pMats.has_value())
+		const auto* pMats = root.getFolder<lib3d::Material>();
+		if (pMats == nullptr)
 			return;
-		const auto pPolys = root.getFolder<lib3d::Polygon>();
-		if (!pPolys.has_value())
+		const auto* pPolys = root.getFolder<lib3d::Polygon>();
+		if (pPolys == nullptr)
 			return;
 
 		// We cannot proceed without bones, as we attach all render instructions to them.
 		const auto pBones = root.getFolder<lib3d::Bone>();
-		if (!pBones.has_value())
+		if (pBones == nullptr)
 			return;
 
 		// Assumes root at zero
 		if (pBones->size() == 0)
 			return;
-		gatherBoneRecursive(0, pBones.value(), pMats.value(), pPolys.value());
+		gatherBoneRecursive(0, *pBones, *pMats, *pPolys);
 	}
 
 	// TODO: Z Sort
@@ -165,7 +165,7 @@ struct SceneState
 
 	void gather(const kpi::IDocumentNode& model, const kpi::IDocumentNode& texture)
 	{
-		bones.emplace(model.getFolder<lib3d::Bone>().value());
+		bones = model.getFolder<lib3d::Bone>();
 		mTree.gather(model);
 		buildBuffers();
 		buildTextures(texture);
@@ -174,7 +174,7 @@ struct SceneState
 		//	const auto mat = mats->at<lib3d::Material>(0);
 		//	const auto compiled = mat->generateShaders();
 	}
-	std::optional<kpi::FolderData> bones;
+	const kpi::FolderData* bones;
 	glm::mat4 computeMdlMtx(const lib3d::SRT3& srt)
 	{
 		glm::mat4 mdl(1.0f);
