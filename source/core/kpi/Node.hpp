@@ -37,7 +37,7 @@ namespace oishii {
 
 struct SelectionState {
     std::vector<std::size_t> selectedChildren;
-    std::size_t activeSelectChild;
+    std::size_t activeSelectChild = 0;
 };
 
 namespace kpi {
@@ -50,7 +50,7 @@ struct IDocData { virtual ~IDocData() = default; };
 // we know use typeid for type
 class IDocumentNode {
 public:
-	virtual ~IDocumentNode() = 0;
+	virtual ~IDocumentNode() = default;
 
 	virtual void fromData(const IDocData& rhs) = 0;
 	virtual std::unique_ptr<IDocData> cloneDataNotChildren() const = 0;
@@ -78,6 +78,12 @@ public:
 		template<typename T>
 		const T& at(std::size_t i) const {
 			const T* as = dynamic_cast<const T*>(operator[](i).get());
+			assert(as);
+			return *as;
+		}
+		template<typename T>
+		T& at(std::size_t i) {
+			T* as = dynamic_cast<T*>(operator[](i).get());
 			assert(as);
 			return *as;
 		}
@@ -162,6 +168,29 @@ public:
 	FolderData* getFolder() {
 		return const_cast<FolderData*>(getFolder(typeid(T).name()));
 	}
+	// Do not call without ensuring a folder does not already exist.
+	FolderData* addFolder(const std::string& type) {
+		children.emplace(type, FolderData{});
+		lut.emplace(type);
+		return &children[type];
+	}
+	template<typename T>
+	FolderData* addFolder() {
+		return addFolder(typeid(T).name());
+	}
+
+	FolderData& getOrAddFolder(const std::string& type) {
+		auto* f = const_cast<FolderData*>(getFolder(type));
+		if (f == nullptr) f = addFolder(type);
+		assert(f);
+		f->type = type;
+		f->parent = this;
+		return *f;
+	}
+	template<typename T>
+	FolderData& getOrAddFolder() {
+		return getOrAddFolder(typeid(T).name());
+	}
 
 	SelectionState select;
 	IDocumentNode* parent = nullptr;
@@ -170,15 +199,16 @@ public:
 };
 
 struct DocumentMemento {
-	std::shared_ptr<const DocumentMemento> parent;
+	std::shared_ptr<const DocumentMemento> parent = nullptr;
 	std::map<std::string, std::vector<std::shared_ptr<DocumentMemento>>> children;
 	std::set<std::string> lut;
-	std::shared_ptr<const IDocData> JustData;
+	std::shared_ptr<const IDocData> JustData = nullptr;
 
 	inline void createNext(const IDocumentNode& node, std::shared_ptr<DocumentMemento> constructed) const {
 		// Compare the actual data of the node
-		if (!node.compareJustThisNotChildren(*JustData.get())) {
-			constructed->JustData = node.cloneDataNotChildren();
+		if (JustData.get() == nullptr || !node.compareJustThisNotChildren(*JustData.get())) {
+			constructed->JustData = std::make_shared<const IDocData>();
+			constructed->JustData = std::move(node.cloneDataNotChildren());
 		}
 
 		// Synchronize folders
@@ -204,6 +234,8 @@ struct DocumentMemento {
 			// Ensure 1:1 mapping (TODO: Insertion is not handled gracefully)
 			if (folder.second.size() != our_folder.size()) {
 				our_folder.resize(folder.second.size());
+				for (auto& p : our_folder)
+					if (!p) p = std::make_shared<DocumentMemento>();
 			}
 			// Recurse to children
 			for (std::size_t i = 0; i < folder.second.size(); ++i) {
@@ -309,14 +341,36 @@ public:
 	bool valid() const { return data != nullptr; }
 
 	NodeAccessor(IDocumentNode* node) {
+		setInternal(node);
+	}
+	NodeAccessor(IDocumentNode& node) {
+		setInternal(node);
+	}
+	NodeAccessor() {}
+	void setInternal(IDocumentNode* node) {
 		assert(dynamic_cast<TDocumentNode<T>*>(node) != nullptr);
 		data = reinterpret_cast<TDocumentNode<T>*>(node);
 	}
+	void setInternal(IDocumentNode& node) {
+		assert(dynamic_cast<TDocumentNode<T>*>(&node) != nullptr);
+		data = reinterpret_cast<TDocumentNode<T>*>(&node);
+	}
 
 #define __KPI_FMT_NODE(type) get##type##s
-#define KPI_NODE_FOLDER(type) \
+#define KPI_NODE_FOLDER(type, acc) \
 		  kpi::FolderData& __KPI_FMT_NODE(type)()		{ auto* f = data->getFolder<type>(); assert(f); return *f; } \
-	const kpi::FolderData& __KPI_FMT_NODE(type)() const	{ auto* f = data->getFolder<type>(); assert(f); return *f; }
+	const kpi::FolderData& __KPI_FMT_NODE(type)() const	{ auto* f = data->getFolder<type>(); assert(f); return *f; } \
+		  type& get##type##Raw(std::size_t x)			{ auto* f = data->getFolder<type>(); assert(f); return f->at<type>(x); } \
+	const type& get##type##Raw(std::size_t x)	  const { auto* f = data->getFolder<type>(); assert(f); return f->at<type>(x); } \
+		  acc get##type(std::size_t x)					{ auto* f = data->getFolder<type>(); assert(f); return { f->at<kpi::IDocumentNode>(x) }; } \
+	const acc get##type(std::size_t x)			  const { auto* f = data->getFolder<type>(); assert(f); return { f->at<kpi::IDocumentNode>(x) }; } \
+		  type& add##type##Raw()						{ auto& f = data->getOrAddFolder<type>(); \
+														  f.add(); return f.at<type>(f.size() - 1); } \
+		  acc   add##type()								{ auto& f = data->getOrAddFolder<type>(); \
+														  f.add(); return { f.at<kpi::IDocumentNode>(f.size() - 1) }; }
+
+#define KPI_NODE_FOLDER_SIMPLE(type) \
+	KPI_NODE_FOLDER(type, kpi::NodeAccessor<type>)
 
 protected:
 	TDocumentNode<T>* data = nullptr;
@@ -542,6 +596,7 @@ public:
 	}
 	History() {
 		root_history.push_back(std::make_shared<DocumentMemento>()); // Null node
+		history_cursor = 1;
 	}
 private:
 	// At the roots, we don't need persistence

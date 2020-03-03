@@ -43,6 +43,11 @@ struct Dictionary {
 
     void read(oishii::BinaryReader& reader);
     void write(oishii::v2::Writer& writer);
+
+	Dictionary() = default;
+	Dictionary(oishii::BinaryReader& reader) {
+		read(reader);
+	}
 };
 
 

@@ -65,7 +65,7 @@ struct CorePackageInstaller : kpi::ApplicationPlugins
 	{
 		for (const auto& it : mFactories)
 		{
-			if (it.second->getId() == type)
+			if (it.first == type)
 				return it.second->spawn();
 		}
 	

@@ -17,8 +17,12 @@ struct G3DCollection : public lib3d::Scene {
 };
 
 struct G3DCollectionAccessor : public kpi::NodeAccessor<G3DCollection> {
-    KPI_NODE_FOLDER(G3DModel);
-    KPI_NODE_FOLDER(Texture);
+	using super = kpi::NodeAccessor<G3DCollection>;
+
+	using super::super;
+
+    KPI_NODE_FOLDER(G3DModel, G3DModelAccessor);
+    KPI_NODE_FOLDER_SIMPLE(Texture);
 };
 
 } // namespace riistudio::g3d

@@ -138,7 +138,8 @@ struct GenericCollectionOutliner : public StudioWindow
 			thereWasAClick = ImGui::IsItemClicked();
 			bool focused = ImGui::IsItemFocused();
 
-			std::string cur_name = "TODO";
+			std::string cur_name = sampler.type;
+			// std::string cur_name = "TODO";
 			//	std::string(GetRich(sampler.getType()).icon.icon_singular) + " " +
 			//	name;
 
@@ -227,7 +228,7 @@ struct GenericCollectionOutliner : public StudioWindow
 		for (auto folder : host.children)
 			drawFolder(folder.second, host, folder.first);
 	}
-	void draw() noexcept override
+	void draw_() noexcept override
 	{
 
 		mFilter.Draw();
@@ -246,9 +247,10 @@ struct TexImgPreview : public StudioWindow
 	{
 		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize);
 	}
-	void draw() noexcept override
+	void draw_() override
 	{
 		auto* osamp = mHost.getFolder<lib3d::Texture>();
+		if (!osamp) return;
 
 		assert(osamp);
 		auto& samp = *osamp;
@@ -284,7 +286,7 @@ struct RenderTest : public StudioWindow
 
 		mRenderer.prepare(models->at<kpi::IDocumentNode>(0), host);
 	}
-	void draw() noexcept override
+	void draw_() override
 	{
 
 		auto bounds = ImGui::GetWindowSize();
@@ -304,18 +306,19 @@ struct RenderTest : public StudioWindow
 EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state, const std::string& path)
 	: StudioWindow(path.substr(path.rfind("\\") + 1), true), mState(std::move(state)), mFilePath(path)
 {
-	mHistory.commit(*state.get());
+	mHistory.commit(*mState.get());
 
-	attachWindow(std::make_unique<GenericCollectionOutliner>(*state.get()));
-	attachWindow(std::make_unique<TexImgPreview>(*state.get()));
-	attachWindow(std::make_unique<RenderTest>(*state.get()));
+	attachWindow(std::make_unique<GenericCollectionOutliner>(*mState.get()));
+	attachWindow(std::make_unique<TexImgPreview>(*mState.get()));
+	attachWindow(std::make_unique<RenderTest>(*mState.get()));
 }
-void EditorWindow::draw()
+void EditorWindow::draw_()
 {
 	auto* parent = mParent;
 
-	if (!parent) return;
+	// if (!parent) return;
 
+	
 	//	if (!showCursor)
 	//	{
 	//		parent->hideMouse();

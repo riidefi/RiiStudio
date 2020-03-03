@@ -53,10 +53,19 @@ struct BoneData
 		modelMtx;
 	std::array<f32, 3*4>
 		inverseModelMtx;
+
+	bool operator==(const BoneData& rhs) const {
+		// TODO
+		return false;
+	}
 };
 
 struct Bone : public libcube::IBoneDelegate, BoneData
 {
+
+	void setName(const std::string& name) override {
+		mName = name;
+	}
 	// std::string getName() const override { return mName; }
 	s64 getId() override { return mId; }
 	void copy(lib3d::Bone& to) override
@@ -100,8 +109,8 @@ struct Bone : public libcube::IBoneDelegate, BoneData
 		mRotation = srt.rotation;
 		mTranslation = srt.translation;
 	}
-	s64 getParent() const override { return mParent; }
-	void setParent(s64 id) override { mParent = (u32)id; }
+	s64 getBoneParent() const override { return mParent; }
+	void setBoneParent(s64 id) override { mParent = (u32)id; }
 	u64 getNumChildren() const override { return mChildren.size(); }
 	s64 getChild(u64 idx) const override { return idx < mChildren.size() ? mChildren[idx] : -1; }
 	s64 addChild(s64 child) override { mChildren.push_back((u32)child); return mChildren.size() - 1; }
@@ -155,6 +164,12 @@ struct Bone : public libcube::IBoneDelegate, BoneData
 		return Display{ dc.mMaterial, dc.mPoly, dc.mPrio };
 	}
 
+	void addDisplay(const Display& d) override {
+		mDisplayCommands.push_back({ d.matId, d.polyId, d.prio });
+	}
+	bool operator==(const Bone& rhs) const {
+		return static_cast<const BoneData&>(*this) == rhs;
+	}
 };
 
 

@@ -51,7 +51,7 @@ void StudioWindow::draw()
             }
             ImGui::DockSpace(dockspaceId, {}, ImGuiDockNodeFlags_CentralNode, getWindowClass());
         }
-        draw();
+        draw_();
         drawChildren();
 
         // TODO

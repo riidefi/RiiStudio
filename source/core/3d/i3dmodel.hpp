@@ -153,8 +153,8 @@ struct Bone
 	virtual SRT3 getSRT() const = 0;
 	virtual void setSRT(const SRT3& srt) = 0;
 
-	virtual s64 getParent() const = 0;
-	virtual void setParent(s64 id) = 0;
+	virtual s64 getBoneParent() const = 0;
+	virtual void setBoneParent(s64 id) = 0;
 	virtual u64 getNumChildren() const = 0;
 	virtual s64 getChild(u64 idx) const = 0;
 	virtual s64 addChild(s64 child) = 0;

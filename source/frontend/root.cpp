@@ -11,6 +11,10 @@
 
 #include <plugins/gc/Export/Install.hpp>
 
+namespace riistudio::g3d {
+void Install();
+}
+
 namespace riistudio::frontend {
 
 void RootWindow::draw() {
@@ -222,6 +226,7 @@ RootWindow::RootWindow()
 	//	lib3d::install();
 	libcube::Install();
 	// libcube::jsystem::Install();
+	g3d::Install();
 
 	//	px::PackageInstaller::spInstance->installModule("nw.dll");
 

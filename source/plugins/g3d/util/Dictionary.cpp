@@ -3,13 +3,13 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/v2/writer/binary_writer.hxx>
 
+#include <plugins/g3d/util/NameTable.hpp>
+
 namespace riistudio::g3d {
 
 // Based on wszst code on the wiki page
-
 static u16 get_highest_bit(u8 val)
 {
-	// 2do: use a lookup table if this is time critical
 	u16 i = 7;
 	for (; i > 0 && !(val & 0x80); i--, val <<= 1)
 		;
@@ -139,7 +139,7 @@ void DictionaryNode::read(oishii::BinaryReader& reader, u32 groupStartPosition)
 	mFlag = reader.read<u16>();
 	mIdxPrev = reader.read<u16>();
 	mIdxNext = reader.read<u16>();
-	reader.read<u32>(); //transferName(stream, groupStartPosition, mName);
+	mName = readName(reader, groupStartPosition);
 
 	mDataDestination = groupStartPosition + reader.read<s32>();
 	// On write, write dataDest - grpStart

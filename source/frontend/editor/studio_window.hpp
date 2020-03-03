@@ -18,12 +18,14 @@ public:
 	const ImGuiWindowClass* getWindowClass();
 
 	void attachWindow(std::unique_ptr<StudioWindow> win) {
+		win->mParent = this;
 		mChildren.emplace_back(std::move(win));
 	}
+	virtual void draw_() {}
 
 private:
     std::string idIfy(std::string in);
-	void draw() override;
+	void draw() override final;
 
 	ImGuiWindowClass mWindowClass;
 	std::string mName;

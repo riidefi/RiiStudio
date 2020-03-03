@@ -10,7 +10,7 @@ class EditorWindow : public StudioWindow {
 public:
 	EditorWindow(std::unique_ptr<kpi::IDocumentNode> state, const std::string& path);
 
-	void draw() override;
+	void draw_() override;
 
 	std::string getFilePath() { return mFilePath; }
 
