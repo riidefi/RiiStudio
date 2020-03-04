@@ -143,7 +143,7 @@ struct GenericCollectionOutliner : public StudioWindow
 			//	std::string(GetRich(sampler.getType()).icon.icon_singular) + " " +
 			//	name;
 
-			if (ImGui::TreeNodeEx(std::to_string(i).c_str(), ImGuiTreeNodeFlags_DefaultOpen | (false /* TODO */ ? ImGuiTreeNodeFlags_Leaf : 0), cur_name.c_str()))
+			if (ImGui::TreeNodeEx(std::to_string(i).c_str(), ImGuiTreeNodeFlags_DefaultOpen | (sampler.at<kpi::IDocumentNode>(i).children.empty() ? ImGuiTreeNodeFlags_Leaf : 0), cur_name.c_str()))
 			{
 				// NodeDrawer::drawNode(*node.get());
 
@@ -225,12 +225,11 @@ struct GenericCollectionOutliner : public StudioWindow
 
 	void drawRecursive(kpi::IDocumentNode& host) noexcept
 	{
-		for (auto folder : host.children)
+		for (auto& folder : host.children)
 			drawFolder(folder.second, host, folder.first);
 	}
 	void draw_() noexcept override
 	{
-
 		mFilter.Draw();
 		drawRecursive(mHost);
 	}
