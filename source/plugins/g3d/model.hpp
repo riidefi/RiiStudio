@@ -8,6 +8,26 @@
 
 namespace riistudio::g3d {
 
+
+enum class ScalingRule
+{
+	Standard,
+	XSI,
+	Maya
+};
+enum class TextureMatrixMode
+{
+	Maya,
+	XSI,
+	Max
+};
+enum class EnvelopeMatrixMode
+{
+	Normal,
+	Approximation,
+	Precision
+};
+
 struct G3DModel {
 	virtual ~G3DModel() = default;
 	// Shallow comparison
@@ -15,6 +35,12 @@ struct G3DModel {
 	const G3DModel& operator=(const G3DModel& rhs) {
 		return *this;
 	}
+
+	ScalingRule mScalingRule;
+	TextureMatrixMode mTexMtxMode;
+	EnvelopeMatrixMode mEvpMtxMode;
+	std::string sourceLocation;
+	lib3d::AABB aabb;
 };
 
 struct G3DModelAccessor : public kpi::NodeAccessor<G3DModel> {

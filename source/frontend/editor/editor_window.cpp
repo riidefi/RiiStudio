@@ -81,9 +81,9 @@ struct GenericCollectionOutliner : public StudioWindow
 
 		std::size_t nPass = 0;
 
-		//for (u32 i = 0; i < sampler.size(); ++i)
-		//	if (filter->test(sampler.nameAt(i).c_str()))
-		//		++nPass;
+		for (u32 i = 0; i < sampler.size(); ++i)
+			if (filter->test(sampler[i]->getName().c_str()))
+				++nPass;
 
 		return nPass;
 	}
@@ -119,10 +119,10 @@ struct GenericCollectionOutliner : public StudioWindow
 		// Draw the tree
 		for (int i = 0; i < sampler.size(); ++i)
 		{
-			std::string name = "TODO"; // sampler.nameAt(i);
+			auto& nodeAt = sampler[i];
+			const std::string cur_name = nodeAt->getName();
 
-			if (!mFilter.test(name) /* TODO: Check if has children.. */)
-			{
+			if (nodeAt->children.empty() && !mFilter.test(cur_name)) {
 				continue;
 			}
 
@@ -138,16 +138,17 @@ struct GenericCollectionOutliner : public StudioWindow
 			thereWasAClick = ImGui::IsItemClicked();
 			bool focused = ImGui::IsItemFocused();
 
-			std::string cur_name = sampler.type;
+
 			// std::string cur_name = "TODO";
 			//	std::string(GetRich(sampler.getType()).icon.icon_singular) + " " +
 			//	name;
+			
 
-			if (ImGui::TreeNodeEx(std::to_string(i).c_str(), ImGuiTreeNodeFlags_DefaultOpen | (sampler.at<kpi::IDocumentNode>(i).children.empty() ? ImGuiTreeNodeFlags_Leaf : 0), cur_name.c_str()))
+			if (ImGui::TreeNodeEx(std::to_string(i).c_str(), ImGuiTreeNodeFlags_DefaultOpen | (nodeAt->children.empty() ? ImGuiTreeNodeFlags_Leaf : 0), cur_name.c_str()))
 			{
 				// NodeDrawer::drawNode(*node.get());
 
-				drawRecursive(*sampler[i].get());
+				drawRecursive(*nodeAt.get());
 
 				// If there waas a click above, we need to ignore the focus below.
 				// Assume only one item can be clicked.

@@ -18,7 +18,65 @@ inline bool ends_with(const std::string& value, const std::string& ending) {
 }
 
 static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
+	const auto start = reader.tell();
+
 	reader.expectMagic<'MDL0', false>();
+
+	const u32 fileSize = reader.read<u32>();
+	(void)fileSize;
+	const u32 revision = reader.read<u32>();
+	assert(revision == 11);
+	if (revision != 11) return;
+
+	reader.read<s32>(); // ofsBRRES
+
+	union {
+		struct {
+			s32 ofsRenderTree;
+			s32 ofsBones;
+			struct {
+				s32 position;
+				s32 normal;
+				s32 color;
+				s32 uv;
+				s32 furVec;
+				s32 furPos;
+			} ofsBuffers;
+			s32 ofsMaterials;
+			s32 ofsShaders;
+			s32 ofsMeshes;
+			s32 ofsTextureLinks;
+			s32 ofsPaletteLinks;
+			s32 ofsUserData;
+		} secOfs;
+		std::array<s32, 14> secOfsArr;
+	};
+	for (auto& ofs : secOfsArr)
+		ofs = reader.read<s32>();
+
+	mdl.node().setName(readName(reader, start));
+
+	const auto infoPos = reader.tell();
+	reader.seek(8); // Ignore size, ofsMode
+	mdl.get().mScalingRule = static_cast<ScalingRule>(reader.read<u32>());
+	mdl.get().mTexMtxMode = static_cast<TextureMatrixMode>(reader.read<u32>());
+
+	const auto [nVtx, nTri] = reader.readX<u32, 2>();
+	mdl.get().sourceLocation = readName(reader, infoPos);
+	const auto nViewMtx = reader.read<u32>();
+
+	const auto [bMtxArray, bTexMtxArray, bBoundVolume] = reader.readX<u8, 3>();
+	mdl.get().mEvpMtxMode = static_cast<EnvelopeMatrixMode>(reader.read<u8>());
+
+	const s32 ofsBoneTable = reader.read<s32>();
+
+	mdl.get().aabb.min.x = reader.read<f32>();
+	mdl.get().aabb.min.y = reader.read<f32>();
+	mdl.get().aabb.min.z = reader.read<f32>();
+	mdl.get().aabb.max.x = reader.read<f32>();
+	mdl.get().aabb.max.y = reader.read<f32>();
+	mdl.get().aabb.max.z = reader.read<f32>();
+	
 }
 static void readTexture(kpi::NodeAccessor<Texture>& tex, oishii::BinaryReader& reader) {
 	const auto start = reader.tell();

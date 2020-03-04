@@ -1,21 +1,3 @@
-/*
-
-Application:
-    - Type hierarchy
-    - Factories
-    - Serializers
-Document:
-    - Flat pool of elements (boxed)
-    - Hierarchy
-
-Each element standalone.
-Wrapper:
-    What type is the element?
-    -> Spawners / factory
-    Some link to hierarchy element
-    Selection state
-*/
-
 #pragma once
 
 #include <vector>
@@ -59,6 +41,13 @@ public:
 	// Does not compare children
 	virtual bool compareJustThisNotChildren(const IDocData& rhs) const = 0;
 
+	virtual std::string getName() const {
+		return defaultNameField;
+	}
+	virtual void setName(const std::string& v) {
+		defaultNameField = v;
+	}
+	std::string defaultNameField = "Untitled";
 
 	struct FolderData : public std::vector<std::unique_ptr<IDocumentNode>> {
 		FolderData() {}
@@ -310,6 +299,41 @@ struct TDocumentNode final : public IDocumentNode, public T {
 	// Potential overrides: getParent, getChild, getNextSibling, etc
 	const IDocumentNode* getParent() const { return parent; }
 	IDocumentNode* getParent() { return parent; }
+
+	template <typename Q>
+	class has_get_name {
+		typedef char YesType[1];
+		typedef char NoType[2];
+
+		template <typename C> static YesType& test(decltype(&C::getName));
+		template <typename C> static NoType& test(...);
+
+
+	public:
+		enum { value = sizeof(test<Q>(0)) == sizeof(YesType) };
+	};
+
+	struct TestA { std::string getName() { return ""; } };
+	struct TestB { };
+
+	static_assert(has_get_name<TestA>::value, "Detecting getName");
+	static_assert(!has_get_name<TestB>::value, "Detecting getName");
+
+	template<bool B>
+	std::string _getName() const {
+		return defaultNameField;
+	}
+	template<>
+	std::string _getName<true>() const {
+		return T::getName();
+	}
+
+	std::string getName() const override {
+		return _getName<has_get_name<T>::value>();
+	}
+	//	void setName(const std::string& v) override {
+	//		// _setName(v);
+	//	}
 
 	// Does not copy anything but data
 	void fromData(const IDocData& rhs) override {
