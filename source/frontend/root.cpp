@@ -163,8 +163,10 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
 	auto reader = std::make_unique<oishii::BinaryReader>(std::move(vdata), (u32)data.mLen, data.mPath.c_str());
 	auto importer = SpawnImporter(data.mPath, *reader.get());
 
-	if (!importer.second) return;
-
+	if (!importer.second) {
+		printf("Cannot spawn importer..\n");
+		return;
+	}
 	if (!IsConstructible(importer.first))
 	{
 		printf("Non constructable state.. find parents\n");
@@ -180,7 +182,10 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
 	}
 
 	auto fileState = SpawnState(importer.first);
-	if (!fileState.get()) return;
+	if (!fileState.get()) {
+		printf("Cannot spawn file state %s.\n", importer.first.c_str());
+		return;
+	}
 
 	importer.second->read_(*fileState.get(), *reader.get());
 

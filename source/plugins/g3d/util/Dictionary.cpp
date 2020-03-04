@@ -24,7 +24,7 @@ static u16 calc_brres_id
 )
 {
 	if (object_len < subject_len)
-		return subject_len - 1 << 3 | get_highest_bit(subject_name[subject_len - 1]);
+		return (subject_len - 1) << 3 | get_highest_bit(subject_name[subject_len - 1]);
 
 	while (subject_len-- > 0)
 	{

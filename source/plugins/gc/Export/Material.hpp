@@ -47,12 +47,18 @@ struct array_vector : public std::array<T, N>
 
 template<typename T, std::size_t size>
 struct copyable_polymorphic_array_vector : public array_vector<std::unique_ptr<T>, size> {
+#ifdef _WIN32
+	using super = array_vector;
+#else
+	// MSVC bug?
+	using super = array_vector<std::unique_ptr<T>, size>;
+#endif
 	copyable_polymorphic_array_vector& operator=(const copyable_polymorphic_array_vector& rhs) {
-		for (std::size_t i = 0; i < size(); ++i) {
-			at(i) = nullptr;
+		for (std::size_t i = 0; i < super::nElements; ++i) {
+			super::at(i) = nullptr;
 		}
-		for (std::size_t i = 0; i < rhs.size(); ++i) {
-			at(i) = rhs.at(i)->clone();
+		for (std::size_t i = 0; i < rhs.super::nElements; ++i) {
+			super::at(i) = rhs.super::at(i)->clone();
 		}
 		return *this;
 	}
@@ -220,6 +226,7 @@ struct GCMaterialData
 		virtual std::unique_ptr<SamplerData> clone() const {
 			return std::make_unique<SamplerData>(*this);
 		}
+		virtual ~SamplerData() = default;
 	};
 
 	copyable_polymorphic_array_vector<SamplerData, 8> samplers;

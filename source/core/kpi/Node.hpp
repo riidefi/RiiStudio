@@ -32,7 +32,7 @@ Wrapper:
 
 namespace oishii {
 	class BinaryReader;
-	namespace v2 { struct Writer; }
+	namespace v2 { class Writer; }
 }
 
 struct SelectionState {
@@ -208,7 +208,7 @@ struct DocumentMemento {
 		// Compare the actual data of the node
 		if (JustData.get() == nullptr || !node.compareJustThisNotChildren(*JustData.get())) {
 			constructed->JustData = std::make_shared<const IDocData>();
-			constructed->JustData = std::move(node.cloneDataNotChildren());
+			constructed->JustData = node.cloneDataNotChildren();
 		}
 
 		// Synchronize folders

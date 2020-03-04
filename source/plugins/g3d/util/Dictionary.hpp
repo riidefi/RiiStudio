@@ -6,7 +6,7 @@
 
 namespace oishii {
 	class BinaryReader;
-	namespace v2 { struct Writer; }
+	namespace v2 { class Writer; }
 }
 
 namespace riistudio::g3d {

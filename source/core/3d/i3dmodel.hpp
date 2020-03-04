@@ -7,6 +7,7 @@
 
 #include <array>
 #include <core/common.h>
+#include <string>
 
 #include <vendor/fa5/IconsFontAwesome5.h>
 

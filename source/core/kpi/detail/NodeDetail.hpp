@@ -57,7 +57,7 @@ struct ApplicationPluginsImpl {
 			return std::make_unique<TSimpleBinarySerializer<T>>(*this);
 		}
 		bool canWrite_(kpi::IDocumentNode& node) const override {
-			return dynamic_cast<T*>(node.get()) != nullptr;
+			return dynamic_cast<T*>(&node) != nullptr;
 		}
 		void write_(kpi::IDocumentNode& node, oishii::v2::Writer& writer) const override {
 			write(node, writer, static_cast<T*>(nullptr));

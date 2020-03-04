@@ -57,8 +57,9 @@ DEFINES = [
 	"RII_BACKEND_SDL"
 ]
 INCLUDES = [
-	"oishii",
-	"ThirdParty/pybind11/include",
+	"source",
+	"source/vendor/oishii",
+	"source/vendor/pybind11/include",
 	"C:/Python36/include"
 ]
 
@@ -77,29 +78,24 @@ def outputdir(config):
 
 PROJECTS = [
 	{
-		"name": "ThirdParty",
+		"name": "vendor",
 		"type": "static_lib"
 	},
 	{
-		"name": "LibCube",
+		"name": "core",
 		"type": "static_lib"
 	},
 	{
-		"name": "LibJ",
+		"name": "plugins",
 		"type": "static_lib"
 	},
 	{
-		"name": "LibCore",
-		"type": "static_lib"
-	},
-	{
-		"name": "RiiStudio",
+		"name": "frontend",
 		"type": "main_app",
 		"links": [
-			"ThirdParty",
-			"LibCube",
-			"LibJ",
-			"LibCore"
+			"vendor",
+			"core",
+			"plugins"
 		]
 	}
 ]
@@ -111,11 +107,11 @@ def compile(source, int_dir, debug):
 
 	args = "em++ -I./ "
 	for proj in PROJECTS:
-		args += " -I./" + proj["name"]
+		args += " -I./source/" + proj["name"] + " "
 	for d in DEFINES:
 		args += " -D" + d
 	for incl in INCLUDES:
-		args += " -I./" + incl
+		args += " -I./" + incl + " "
 	args += " -Wall -std=c++17 -D\"__debugbreak()\"=\"\""
 	args += " -s USE_SDL=2"
 	if debug:
@@ -146,7 +142,7 @@ def build_project(name, type, config, proj=None):
 
 	get_sources = lambda src, filter: [str(x) for x in Path(src).glob(filter) ]
 
-	cpp = get_sources(name, "**/*.cpp")
+	cpp = get_sources("source/" + name, "**/*.cpp")
 	
 	for source in cpp:
 		if "pybind11\\tests" in source:

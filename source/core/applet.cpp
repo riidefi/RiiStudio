@@ -1,10 +1,16 @@
-#include "Applet.hpp"
+#include "applet.hpp"
 #include <imgui/imgui.h>
 #include <imgui/impl/imgui_impl_glfw.h>
 #include <imgui/impl/imgui_impl_opengl3.h>
 #include <fa5/IconsFontAwesome5.h>
 
 #include <vendor/imgui/impl/imgui_impl_sdl.h>
+
+
+#ifdef RII_BACKEND_SDL
+struct SDL_Window;
+extern SDL_Window* g_Window;
+#endif
 
 namespace riistudio::core {
 
@@ -81,11 +87,6 @@ void Applet::frameRender()
 {
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
-
-#ifdef RII_BACKEND_SDL
-struct SDL_Window;
-extern SDL_Window* g_Window;
-#endif
 
 void Applet::frameProcess()
 {

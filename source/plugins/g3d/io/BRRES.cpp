@@ -59,7 +59,7 @@ public:
 					const auto& sub = cdic.mNodes[j];
 
 					reader.seekSet(sub.mDataDestination);
-					auto& mdl = collection.addG3DModel();
+					auto&& mdl = collection.addG3DModel();
 					readModel(mdl, reader);
 				}
 			} else {

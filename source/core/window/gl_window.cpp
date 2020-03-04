@@ -23,6 +23,7 @@
 
 #include <SDL.h>
 #include <SDL_opengles2.h>
+#include <emscripten/bind.h>
 
 // Emscripten requires to have full control over the main loop. We're going to store our SDL book-keeping variables globally.
 // Having a single function that acts as a loop prevents us to store state in the stack of said function. So we need some location for this.
@@ -54,13 +55,12 @@ static void handleDrop(GLFWwindow* window, int count, const char** raw_paths)
 	glwin->vdrop(paths);
 }
 #else
-#include <emscripten/bind.h>
 
-void readFile(const int& addr, const size_t& len) {
+void readFile(const int& addr, const size_t& len, std::string path) {
 	uint8_t* data = reinterpret_cast<uint8_t*>(addr);
 	printf("Data: %p\n", data);
 
-	g_AppWindow->dropDirect(std::unique_ptr<uint8_t[]>(data), len, "dropped.bmd");
+	g_AppWindow->vdropDirect(std::unique_ptr<uint8_t[]>(data), len, path);
 }
 
 EMSCRIPTEN_BINDINGS(my_module) {
@@ -284,7 +284,7 @@ void GLWindow::mainLoopInternal()
 		{
 		case SDL_DROPFILE:
 		{
-			drop({ event.drop.file });
+			vdrop({ event.drop.file });
 			break;
 		}
 		default:

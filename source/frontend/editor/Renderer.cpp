@@ -499,8 +499,3 @@ void Renderer::render(u32 width, u32 height, bool& showCursor)
 }
 
 }
-
-// TODO
-#ifndef _WIN32
-#include <Lib3D/export/export.cpp>
-#endif
