@@ -46,6 +46,10 @@ struct BoneData
 		u32 mMaterial;
 		u32 mPoly;
 		u8 mPrio;
+
+		bool operator==(const DisplayCommand& rhs) const {
+			return mMaterial == rhs.mMaterial && mPoly == rhs.mPoly && mPrio == rhs.mPrio;
+		}
 	};
 	std::vector<DisplayCommand> mDisplayCommands;
 
@@ -55,14 +59,18 @@ struct BoneData
 		inverseModelMtx;
 
 	bool operator==(const BoneData& rhs) const {
-		// TODO
-		return false;
+		return mName == rhs.mName && ssc == rhs.ssc && classicScale == rhs.classicScale && visible == rhs.visible &&
+			mId == rhs.mId && matrixId == rhs.matrixId && flag == rhs.flag && billboardType == rhs.billboardType &&
+			mScaling == rhs.mScaling && mRotation == rhs.mRotation && mVolume == rhs.mVolume && mParent == rhs.mParent && mChildren == rhs.mChildren &&
+			mDisplayCommands == rhs.mDisplayCommands && modelMtx == rhs.modelMtx && inverseModelMtx == rhs.inverseModelMtx;
 	}
 };
 
 struct Bone : public libcube::IBoneDelegate, BoneData
 {
-
+	std::string getName() const {
+		return mName;
+	}
 	void setName(const std::string& name) override {
 		mName = name;
 	}

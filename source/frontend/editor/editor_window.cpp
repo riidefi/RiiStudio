@@ -1,10 +1,13 @@
 #include "editor_window.hpp"
 
 #include <regex>
+#include <random>
+
 #include <vendor/fa5/IconsFontAwesome5.h>
 #include "kit/Image.hpp"
 #include "Renderer.hpp"
 #include "kit/Viewport.hpp"
+
 
 namespace riistudio::frontend {
 
@@ -104,6 +107,11 @@ struct GenericCollectionOutliner : public StudioWindow
 		if (!ImGui::TreeNode(formatTitle(sampler, &mFilter).c_str()))
 			return;
 
+
+		//	if (ImGui::Button("Shuffle")) {
+		//		static std::default_random_engine rng{};
+		//		std::shuffle(std::begin(sampler), std::end(sampler), rng);
+		//	}
 
 		// A filter tree for multi selection. Prevents inclusion of unfiltered data with SHIFT clicks.
 		std::vector<int> filtered;
@@ -255,6 +263,10 @@ struct TexImgPreview : public StudioWindow
 		assert(osamp);
 		auto& samp = *osamp;
 
+		int width = samp.at<lib3d::Texture>(samp.getActiveSelection()).getWidth();
+		ImGui::InputInt("width", &width);
+		const_cast<lib3d::Texture&>(samp.at<lib3d::Texture>(samp.getActiveSelection())).setWidth(width);
+
 		if (lastTexId != samp.getActiveSelection())
 			setFromImage(samp.at<lib3d::Texture>(samp.getActiveSelection()));
 
@@ -303,11 +315,43 @@ struct RenderTest : public StudioWindow
 	Renderer mRenderer;
 	const kpi::IDocumentNode& mHost;
 };
+
+struct HistoryList : public StudioWindow
+{
+	HistoryList(kpi::History& host, kpi::IDocumentNode& root)
+		: StudioWindow("History"), mHost(host), mRoot(root)
+	{
+	}
+	void draw_() override
+	{
+		if (ImGui::Button("Commit " ICON_FA_SAVE)) {
+			mHost.commit(mRoot);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Undo " ICON_FA_UNDO)) {
+			mHost.undo(mRoot);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Redo " ICON_FA_REDO)) {
+			mHost.redo(mRoot);
+		}
+		ImGui::BeginChild("Record List");
+		for (std::size_t i = 0; i < mHost.size(); ++i) {
+			ImGui::Text("(%s) History #%u", i == mHost.cursor() ? "X" : " ", static_cast<u32>(i));
+		}
+		ImGui::EndChild();
+	}
+
+	kpi::History& mHost;
+	kpi::IDocumentNode& mRoot;
+};
+
 EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state, const std::string& path)
 	: StudioWindow(path.substr(path.rfind("\\") + 1), true), mState(std::move(state)), mFilePath(path)
 {
 	mHistory.commit(*mState.get());
 
+	attachWindow(std::make_unique<HistoryList>(mHistory, *mState.get()));
 	attachWindow(std::make_unique<GenericCollectionOutliner>(*mState.get()));
 	attachWindow(std::make_unique<TexImgPreview>(*mState.get()));
 	attachWindow(std::make_unique<RenderTest>(*mState.get()));

@@ -13,6 +13,55 @@
 
 namespace riistudio::g3d {
 
+
+// Vector reading functions
+template<typename TComponent, int TComponentCount>
+inline void read(oishii::BinaryReader& reader, glm::vec<TComponentCount, TComponent, glm::defaultp>& out);
+
+template<>
+inline void read<f32, 3>(oishii::BinaryReader& reader, glm::vec3& out)
+{
+	out.x = reader.read<f32>();
+	out.y = reader.read<f32>();
+	out.z = reader.read<f32>();
+}
+
+template<>
+inline void read<f32, 2>(oishii::BinaryReader& reader, glm::vec2& out)
+{
+	out.x = reader.read<f32>();
+	out.y = reader.read<f32>();
+}
+template<typename TComponent, int TComponentCount>
+inline void operator<<(glm::vec<TComponentCount, TComponent, glm::defaultp>& out, oishii::BinaryReader& reader);
+
+template<>
+inline void operator<< <f32, 3>(glm::vec3& out, oishii::BinaryReader& reader)
+{
+	out.x = reader.read<f32>();
+	out.y = reader.read<f32>();
+	out.z = reader.read<f32>();
+}
+template<>
+inline void operator<< <f32, 2>(glm::vec2& out, oishii::BinaryReader& reader)
+{
+	out.x = reader.read<f32>();
+	out.y = reader.read<f32>();
+}
+
+inline void operator>>(const glm::vec3& vec, oishii::v2::Writer& writer)
+{
+	writer.write(vec.x);
+	writer.write(vec.y);
+	writer.write(vec.z);
+}
+inline void operator>>(const glm::vec2& vec, oishii::v2::Writer& writer)
+{
+	writer.write(vec.x);
+	writer.write(vec.y);
+}
+
+
 inline bool ends_with(const std::string& value, const std::string& ending) {
 	return ending.size() <= value.size() && std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
@@ -70,13 +119,54 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
 
 	const s32 ofsBoneTable = reader.read<s32>();
 
-	mdl.get().aabb.min.x = reader.read<f32>();
-	mdl.get().aabb.min.y = reader.read<f32>();
-	mdl.get().aabb.min.z = reader.read<f32>();
-	mdl.get().aabb.max.x = reader.read<f32>();
-	mdl.get().aabb.max.y = reader.read<f32>();
-	mdl.get().aabb.max.z = reader.read<f32>();
-	
+	mdl.get().aabb.min << reader;
+	mdl.get().aabb.max << reader;
+
+	auto readDict = [&](u32 xofs, auto handler) {
+		if (xofs) {
+			reader.seekSet(start + xofs);
+			Dictionary _dict(reader);
+			for (std::size_t i = 1; i < _dict.mNodes.size(); ++i) {
+				const auto& dnode = _dict.mNodes[i];
+				assert(dnode.mDataDestination);
+				reader.seekSet(dnode.mDataDestination);
+				handler(dnode);
+			}
+		}
+	};
+
+	readDict(secOfs.ofsBones, [&](const DictionaryNode& dnode) {
+		auto& bone = mdl.addBone().get();
+		reader.seek(8); // skip size and mdl offset
+		bone.setName(readName(reader, dnode.mDataDestination));
+		bone.mId = reader.read<u32>();
+		bone.matrixId = reader.read<u32>();
+		bone.flag = reader.read<u32>();
+		bone.billboardType = reader.read<u32>();
+		reader.read<u32>(); // refId
+		bone.mScaling << reader;
+		bone.mRotation << reader;
+		bone.mTranslation << reader;
+
+		bone.mVolume.min << reader;
+		bone.mVolume.max << reader;
+
+		auto readHierarchyElement = [&]() {
+			const auto ofs = reader.read<s32>();
+			if (ofs == 0) return -1;
+			// skip to id
+			oishii::Jump(reader, dnode.mDataDestination + ofs + 12);
+			return static_cast<s32>(reader.read<u32>());
+		};
+		bone.mParent = readHierarchyElement();
+		reader.seek(12); // Skip sibling and child links -- we recompute it all
+		reader.seek(2 * ((3 * 4) * sizeof(f32))); // skip matrices
+	});
+	// TODO: Buffers
+	// TODO: Fur
+	// TODO: Materials
+	// TODO: Meshes
+	// TODO: Render tree
 }
 static void readTexture(kpi::NodeAccessor<Texture>& tex, oishii::BinaryReader& reader) {
 	const auto start = reader.tell();

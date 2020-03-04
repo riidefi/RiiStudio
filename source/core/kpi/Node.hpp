@@ -189,103 +189,19 @@ public:
 
 struct DocumentMemento {
 	std::shared_ptr<const DocumentMemento> parent = nullptr;
-	std::map<std::string, std::vector<std::shared_ptr<DocumentMemento>>> children;
+	std::map<std::string, std::vector<std::shared_ptr<const DocumentMemento>>> children;
 	std::set<std::string> lut;
 	std::shared_ptr<const IDocData> JustData = nullptr;
 
-	inline void createNext(const IDocumentNode& node, std::shared_ptr<DocumentMemento> constructed) const {
-		// Compare the actual data of the node
-		if (JustData.get() == nullptr || !node.compareJustThisNotChildren(*JustData.get())) {
-			constructed->JustData = std::make_shared<const IDocData>();
-			constructed->JustData = node.cloneDataNotChildren();
-		}
-
-		// Synchronize folders
-		std::vector<std::string> new_folders, deleted_folders;
-		std::set_difference(lut.begin(), lut.end(), node.lut.begin(), node.lut.end(),
-			std::back_inserter(new_folders));
-		std::set_difference(node.lut.begin(), node.lut.end(), lut.begin(), lut.end(),
-			std::back_inserter(deleted_folders));
-
-		for (const auto& folder : new_folders) {
-			constructed->children.insert({ folder, {} });
-			constructed->lut.emplace(folder);
-		}
-		for (const auto& folder : deleted_folders) {
-			constructed->children.insert({ folder, {} });
-			constructed->lut.erase(folder);
-		}
-
-		// Now compare children
-		for (const auto& folder : node.children) {
-			auto& our_folder = constructed->children[folder.first];
-
-			// Ensure 1:1 mapping (TODO: Insertion is not handled gracefully)
-			if (folder.second.size() != our_folder.size()) {
-				our_folder.resize(folder.second.size());
-				for (auto& p : our_folder)
-					if (!p) p = std::make_shared<DocumentMemento>();
-			}
-			// Recurse to children
-			for (std::size_t i = 0; i < folder.second.size(); ++i) {
-				createNext(*folder.second[i].get(), our_folder[i]);
-				our_folder[i]->parent = constructed;
-			}
-		}
+	bool operator==(const DocumentMemento& rhs) const {
+		return parent == rhs.parent && children == rhs.children && lut == rhs.lut && JustData == rhs.JustData;
 	}
-
-	// Pass root node -- parent not set here and no refcount to keep it alive if orphaned
-	inline std::shared_ptr<DocumentMemento> createNext(const IDocumentNode& node) const {
-		// Start with a copy
-		auto constructed = std::make_shared<DocumentMemento>(*this);
-		createNext(node, constructed);
-		return constructed;
-	}
-
-
-	inline void rollback(IDocumentNode& node, const DocumentMemento& constructed) const {
-		// Compare the actual data of the node
-		if (!node.compareJustThisNotChildren(*JustData.get())) {
-			node.fromData(*JustData.get());
-		}
-
-		// Synchronize folders
-		std::vector<std::string> new_folders, deleted_folders;
-		std::set_difference(lut.begin(), lut.end(), node.lut.begin(), node.lut.end(),
-			std::back_inserter(new_folders));
-		std::set_difference(node.lut.begin(), node.lut.end(), lut.begin(), lut.end(),
-			std::back_inserter(deleted_folders));
-
-		for (const auto& folder : new_folders) {
-			node.children.insert({ folder, {} });
-			node.lut.emplace(folder);
-		}
-		for (const auto& folder : deleted_folders) {
-			node.children.insert({ folder, {} });
-			node.lut.erase(folder);
-		}
-
-		// Now compare children
-		for (const auto& folder : constructed.children) {
-			auto& our_folder = node.children[folder.first];
-
-			// Ensure 1:1 mapping (TODO: Insertion is not handled gracefully)
-			if (folder.second.size() != our_folder.size()) {
-				our_folder.resize(folder.second.size());
-			}
-			// Recurse to children
-			for (std::size_t i = 0; i < folder.second.size(); ++i) {
-				rollback(*our_folder[i].get(), *folder.second[i].get());
-				our_folder[i]->parent = &node;
-			}
-		}
-	}
-	// Pass root node
-	inline void rollback(IDocumentNode& node) const {
-		rollback(node, *this);
-	}
-
 };
+
+// Permute a persistent immutable document record, sharing memory where possible
+std::shared_ptr<const DocumentMemento> setNext(const IDocumentNode& node, std::shared_ptr<const DocumentMemento> record);
+// Restore a transient document node to a recorded state.
+void rollback(IDocumentNode& node, std::shared_ptr<const DocumentMemento> record);
 
 using FolderData = IDocumentNode::FolderData;
 
@@ -370,7 +286,6 @@ public:
 	NodeAccessor(IDocumentNode& node) {
 		setInternal(node);
 	}
-	NodeAccessor() {}
 	void setInternal(IDocumentNode* node) {
 		assert(dynamic_cast<TDocumentNode<T>*>(node) != nullptr);
 		data = reinterpret_cast<TDocumentNode<T>*>(node);
@@ -427,7 +342,6 @@ struct IBinarySerializer {
 class ApplicationPlugins {
 	friend class ApplicationPluginsImpl;
 public:
-	// virtual void registerObject(const RichName& details) = 0;
 
 	//! @brief Add a type to the internal registry for future construction and manipulation.
 	//!
@@ -604,29 +518,27 @@ public:
 class History {
 public:
 	void commit(const IDocumentNode& doc) {
-		assert(root_history.size());
-		root_history.erase(root_history.begin() + history_cursor, root_history.end());
-		root_history.push_back(root_history.back()->createNext(doc));
+		if (history_cursor >= 0) root_history.erase(root_history.begin() + history_cursor + 1, root_history.end());
+		root_history.push_back(setNext(doc, root_history.empty() ? std::make_shared<const DocumentMemento>() : root_history.back()));
 		++history_cursor;
 	}
 	void undo(IDocumentNode& doc) {
-		assert(history_cursor > 1 && root_history.size() > 1 && history_cursor < root_history.size());
+		if (history_cursor <= 0) return;
 		--history_cursor;
-		root_history[history_cursor]->rollback(doc);
+		rollback(doc, root_history[history_cursor]);
 	}
 	void redo(IDocumentNode& doc) {
+		if (history_cursor + 1 >= root_history.size()) return;
 		++history_cursor;
-		root_history[history_cursor]->rollback(doc);
+		rollback(doc, root_history[history_cursor]);
 	}
-	History() {
-		root_history.push_back(std::make_shared<DocumentMemento>()); // Null node
-		history_cursor = 1;
-	}
+	std::size_t cursor() const { return history_cursor; }
+	std::size_t size() const { return root_history.size(); }
 private:
 	// At the roots, we don't need persistence
 	// We don't ever expose history to anyone -- only the current document
-	std::vector<std::shared_ptr<DocumentMemento>> root_history;
-	std::size_t history_cursor = 0;
+	std::vector<std::shared_ptr<const DocumentMemento>> root_history;
+	int history_cursor = -1;
 };
 
 }

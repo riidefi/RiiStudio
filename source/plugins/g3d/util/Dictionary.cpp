@@ -142,6 +142,8 @@ void DictionaryNode::read(oishii::BinaryReader& reader, u32 groupStartPosition)
 	mName = readName(reader, groupStartPosition);
 
 	mDataDestination = groupStartPosition + reader.read<s32>();
+	if (mDataDestination == groupStartPosition)
+		mDataDestination = 0;
 	// On write, write dataDest - grpStart
 }
 

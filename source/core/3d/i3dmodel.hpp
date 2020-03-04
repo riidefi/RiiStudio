@@ -109,6 +109,10 @@ enum class BoneFeatures
 struct AABB
 {
 	glm::vec3 min, max;
+
+	bool operator==(const AABB& rhs) const {
+		return min == rhs.min && max == rhs.max;
+	}
 };
 struct SRT3
 {

@@ -2,6 +2,11 @@
 
 #include <core/common.h>
 
+#include <vendor/oishii/oishii/reader/binary_reader.hxx>
+
+#include <plugins/gc/GX/Material.hpp>
+#include <vendor/glm/vec3.hpp>
+
 namespace libcube { namespace gx {
 
 union VertexComponentCount
@@ -172,17 +177,6 @@ constexpr PrimitiveType DecodeDrawPrimitiveCommand(u32 cmd)
 	return static_cast<PrimitiveType>((cmd & PrimitiveMask) >> PrimitiveShift);
 }
 
-static_assert(
-	static_cast<u32>(EncodeDrawPrimitiveCommand(PrimitiveType::Quads)) == 0x80 &&
-	static_cast<u32>(EncodeDrawPrimitiveCommand(PrimitiveType::Quads2)) == 0x88 &&
-	static_cast<u32>(EncodeDrawPrimitiveCommand(PrimitiveType::Triangles)) == 0x90 &&
-	static_cast<u32>(EncodeDrawPrimitiveCommand(PrimitiveType::TriangleStrip)) == 0x98 &&
-	static_cast<u32>(EncodeDrawPrimitiveCommand(PrimitiveType::TriangleFan)) == 0xA0 &&
-	static_cast<u32>(EncodeDrawPrimitiveCommand(PrimitiveType::Lines)) == 0xA8 &&
-	static_cast<u32>(EncodeDrawPrimitiveCommand(PrimitiveType::LineStrip)) == 0xB0 &&
-	static_cast<u32>(EncodeDrawPrimitiveCommand(PrimitiveType::Points)) == 0xB8,
-	"Primitive Command conversion failed");
-
 
 inline gx::VertexAttribute operator+(gx::VertexAttribute attr, u64 i)
 {
@@ -190,4 +184,109 @@ inline gx::VertexAttribute operator+(gx::VertexAttribute attr, u64 i)
 	assert(out < static_cast<u64>(gx::VertexAttribute::Max));
 	return static_cast<gx::VertexAttribute>(out);
 }
+
+
+enum class VertexBufferKind {
+	position,
+	normal,
+	color,
+	textureCoordinate
+};
+
+inline std::size_t computeComponentCount(gx::VertexBufferKind kind, gx::VertexComponentCount count)
+{
+	switch (kind)
+	{
+	case VertexBufferKind::position:
+		return static_cast<std::size_t>(count.position) + 2; // xy -> 2; xyz -> 3
+	case VertexBufferKind::normal:
+		return 3; // TODO: NBT, NBT3
+	case VertexBufferKind::color:
+		return static_cast<std::size_t>(count.color) + 3; // rgb -> 3; rgba -> 4
+	case VertexBufferKind::textureCoordinate:
+		return static_cast<std::size_t>(count.texcoord) + 1; // s -> 1, st -> 2
+	default:
+		throw "Invalid component count!";
+	}
+}
+
+inline f32 readGenericComponentSingle(oishii::BinaryReader& reader, gx::VertexBufferType::Generic type, u32 divisor = 0) {
+	switch (type) {
+	case gx::VertexBufferType::Generic::u8:
+		return reader.read<u8>() >> divisor;
+	case gx::VertexBufferType::Generic::s8:
+		return reader.read<s8>() >> divisor;
+	case gx::VertexBufferType::Generic::u16:
+		return reader.read<u16>() >> divisor;
+	case gx::VertexBufferType::Generic::s16:
+		return reader.read<s16>() >> divisor;
+	case gx::VertexBufferType::Generic::f32:
+		return reader.read<f32>();
+	default:
+		return 0.0f;
+	}
+}
+inline gx::Color readColorComponents(oishii::BinaryReader& reader, gx::VertexBufferType::Color type) {
+	gx::Color result; // TODO: Default color
+
+	switch (type)
+	{
+	case gx::VertexBufferType::Color::rgb565:
+	{
+		const u16 c = reader.read<u16>();
+		result.r = (c & 0xF800) >> 11;
+		result.g = (c & 0x07E0) >> 5;
+		result.b = (c & 0x001F);
+		break;
+	}
+	case gx::VertexBufferType::Color::rgb8:
+		result.r = reader.read<u8>();
+		result.g = reader.read<u8>();
+		result.b = reader.read<u8>();
+		break;
+	case gx::VertexBufferType::Color::rgbx8:
+		result.r = reader.read<u8>();
+		result.g = reader.read<u8>();
+		result.b = reader.read<u8>();
+		reader.seek(1);
+		break;
+	case gx::VertexBufferType::Color::rgba4:
+	{
+		const u16 c = reader.read<u16>();
+		result.r = (c & 0xF000) >> 12;
+		result.g = (c & 0x0F00) >> 8;
+		result.b = (c & 0x00F0) >> 4;
+		result.a = (c & 0x000F);
+		break;
+	}
+	case gx::VertexBufferType::Color::rgba6:
+	{
+		const u32 c = reader.read<u32>();
+		result.r = (c & 0xFC0000) >> 18;
+		result.g = (c & 0x03F000) >> 12;
+		result.b = (c & 0x000FC0) >> 6;
+		result.a = (c & 0x00003F);
+		break;
+	}
+	case gx::VertexBufferType::Color::rgba8:
+		result.r = reader.read<u8>();
+		result.g = reader.read<u8>();
+		result.b = reader.read<u8>();
+		result.a = reader.read<u8>();
+		break;
+	};
+}
+
+inline glm::vec3 readGenericComponents(oishii::BinaryReader& reader, gx::VertexBufferType::Generic type, std::size_t true_count, u32 divisor = 0) {
+	assert(true_count <= 3 && true_count >= 1);
+	glm::vec3 out;
+
+	for (std::size_t i = 0; i < true_count; ++i) {
+		out[i] = readGenericComponentSingle(reader, type, divisor);
+	}
+
+	return out;
+}
+
+
 } } // namespace libcube::gx
