@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en-us">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+    <title>RiiStudio</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: black
+        }
+
+        .emscripten {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            margin: 0px;
+            border: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: block;
+            image-rendering: optimizeSpeed;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -o-crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            -ms-interpolation-mode: nearest-neighbor;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="dropzone">
+        <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    </div>
+    </div>
+    <script type='text/javascript'>
+        var Module = {
+            preRun: [],
+            postRun: [],
+            print: (function () {
+                return function (text) {
+                    text = Array.prototype.slice.call(arguments).join(' ');
+                    console.log(text);
+                };
+            })(),
+            printErr: function (text) {
+                text = Array.prototype.slice.call(arguments).join(' ');
+                console.error(text);
+            },
+            dropHandler: function (e) {
+                let dt = e.dataTransfer;
+                let files = dt.files;
+
+                console.log(files);
+            },
+            canvas: (function () {
+                var canvas = document.getElementById('canvas');
+
+                var dropzone = document.getElementById('dropzone');
+                dropzone.addEventListener('dragenter', function (e) { e.preventDefault(); }, false)
+                dropzone.addEventListener('dragleave', function (e) { e.preventDefault(); }, false)
+                dropzone.addEventListener('dragover', function (e) { e.preventDefault(); }, false)
+                dropzone.addEventListener('drop', function (e) {
+                    let dt = e.dataTransfer;
+                    let files = dt.files;
+
+                    console.log(files);
+
+                    for (const file of files) {
+                        if (!(file instanceof Blob)) return;
+                        const reader = new FileReader();
+                        
+                        reader.onloadend = evt => {
+                            const uint8_t_arr = new Uint8Array(evt.target.result);
+                            const uint8_t_ptr = window.Module._malloc(uint8_t_arr.length);
+                            window.Module.HEAPU8.set(uint8_t_arr, uint8_t_ptr);
+
+                            window.Module.readFile(uint8_t_ptr, uint8_t_arr.length, file.name);
+                        }
+                        reader.readAsArrayBuffer(file);
+                        e.preventDefault();
+                    }
+                }, false);
+                return canvas;
+            })(),
+            setStatus: function (text) {
+                console.log("status: " + text);
+            },
+            monitorRunDependencies: function (left) {
+            }
+        };
+        window.onerror = function () {
+            console.log("onerror: " + event);
+        };
+    </script>
+    <script type="text/javascript" src="out.js"></script>
+</body>
+
+</html>

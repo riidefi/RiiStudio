@@ -1,9 +1,10 @@
 from pathlib import Path
 import glob, os, subprocess
 
-
 import json
 from hashlib import sha256
+
+from shutil import copyfile
 
 def require_dir(path):
 	# TODO: if not isdir, delete
@@ -168,6 +169,7 @@ def build_project(name, type, config, proj=None):
 			link_cmd += " -g4 --source-map-base ../ "
 		link_cmd += "  -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 --no-heap-copy --preload-file ./fonts@/fonts "
 		system_cmd(link_cmd)
+		copyfile("source/" + name + "/app.html", bin_dir + "/app.html")
 	return locals_objs
 
 def build_projects(config):
