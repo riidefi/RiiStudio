@@ -214,7 +214,7 @@ struct GCMaterialData
 		u8 mMaxAniso;
 		u8 mMinFilter;
 		u8 mMagFilter;
-		s16 mLodBias;
+		f32 mLodBias;
 
 		bool operator==(const SamplerData& rhs) const noexcept
 		{

@@ -46,6 +46,8 @@ struct G3dIndConfig {
 struct G3dMaterialData : public libcube::GCMaterialData {
 	libcube::array_vector<G3dIndConfig, 4> indConfig;
 	u32 flag;
+	u32 id; // Local
+	s8 lightSetIndex, fogIndex;
 
 	bool operator==(const G3dMaterialData& rhs) const {
 		return libcube::GCMaterialData::operator==(rhs) && indConfig == rhs.indConfig && flag == rhs.flag;
@@ -56,6 +58,8 @@ struct Material : public G3dMaterialData, public libcube::IGCMaterial {
 	GCMaterialData& getMaterialData() override { return *this; }
 	const GCMaterialData& getMaterialData() const override { return *this; }
 	const libcube::Texture& getTexture(const std::string& id) const override;
+
+	s64 getId() const override { return id; }
 
 	virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
 

@@ -11,6 +11,9 @@
 
 #include <string>
 
+#include <plugins/gc/gpu/GPUMaterial.hpp>
+#include <plugins/gc/gpu/DLPixShader.hpp>
+
 namespace riistudio::g3d {
 
 
@@ -164,7 +167,222 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
 	});
 	// TODO: Buffers
 	// TODO: Fur
-	// TODO: Materials
+
+	readDict(secOfs.ofsMaterials, [&](const DictionaryNode& dnode) {
+		auto& mat = mdl.addMaterial().get();
+		const auto start = reader.tell();
+
+		reader.read<u32>(); // size
+		reader.read<s32>(); // mdl offset
+		mat.name = readName(reader, start);
+		mat.id = reader.read<u32>();
+		mat.flag = reader.read<u32>();
+
+		// Gen info
+		mat.info.nTexGen = reader.read<u8>();
+		mat.info.nColorChan = reader.read<u8>();
+		mat.info.nTevStage = reader.read<u8>();
+		mat.info.nIndStage = reader.read<u8>();
+		mat.cullMode = static_cast<libcube::gx::CullMode>(reader.read<u32>());
+
+		// Misc
+		mat.earlyZComparison = reader.read<u8>();
+		mat.lightSetIndex = reader.read<s8>();
+		mat.fogIndex = reader.read<s8>();
+		reader.read<u8>();
+		const auto indSt = reader.tell();
+		for (u8 i = 0; i < mat.info.nIndStage; ++i) {
+			G3dIndConfig cfg;
+			cfg.method = static_cast<G3dIndMethod>(reader.read<u8>());
+			cfg.normalMapLightRef = reader.peekAt<s8>(4);
+			mat.indConfig.push_back(cfg);
+		}
+		reader.seekSet(indSt + 4 + 4);
+
+		const auto ofsTev = reader.read<s32>();
+		const auto nTex = reader.read<u32>();
+		assert(nTex <= 8);
+		const auto [ofsSamplers, ofsFur, ofsUserData, ofsDisplayLists] = reader.readX<s32, 4>();
+		if (ofsFur || ofsUserData)
+			printf("Warning: Material %s uses Fur or UserData which is unsupported!\n", mat.name.c_str());
+
+		// Texture and palette objects are set on runtime.
+		reader.seek((4 + 8 * 12) + (4 + 8 * 32));
+
+		// Texture transformations
+		reader.read<u32>(); // skip flag, TODO: verify
+		const u32 mtxMode = reader.read<u32>();
+		const std::array<libcube::GCMaterialData::CommonTransformModel, 3> cvtMtx{
+			libcube::GCMaterialData::CommonTransformModel::Maya,
+			libcube::GCMaterialData::CommonTransformModel::XSI,
+			libcube::GCMaterialData::CommonTransformModel::Max
+		};
+		const auto xfModel = cvtMtx[mtxMode];
+
+		for (u8 i = 0; i < nTex; ++i) {
+			auto mtx = std::make_unique<libcube::GCMaterialData::TexMatrix>();
+			mtx->scale << reader;
+			mtx->rotate = reader.read<f32>();
+			mtx->translate << reader;
+			mat.texMatrices.push_back(std::move(mtx));
+		}
+		reader.seek((8 - nTex) * 5 * sizeof(f32));
+		for (u8 i = 0; i < nTex; ++i) {
+			auto& mtx = mat.texMatrices[i];
+
+			mtx->camIdx = reader.read<s8>();
+			mtx->lightIdx = reader.read<s8>();
+			const u8 mapMode = reader.read<u8>();
+
+			mtx->transformModel = xfModel;
+			mtx->option = libcube::GCMaterialData::CommonMappingOption::NoSelection;
+			// Projection needs to be copied from texgen
+
+			switch (mapMode) {
+			default:
+			case 0:
+				mtx->method = libcube::GCMaterialData::CommonMappingMethod::Standard;
+				break;
+			case 1:
+				mtx->method = libcube::GCMaterialData::CommonMappingMethod::EnvironmentMapping;
+				break;
+			case 2:
+				mtx->method = libcube::GCMaterialData::CommonMappingMethod::ViewProjectionMapping;
+				break;
+			case 3:
+				mtx->method = libcube::GCMaterialData::CommonMappingMethod::EnvironmentLightMapping;
+				break;
+			case 4:
+				mtx->method = libcube::GCMaterialData::CommonMappingMethod::EnvironmentSpecularMapping;
+				break;
+			// EGG
+			case 5:
+				mtx->method = libcube::GCMaterialData::CommonMappingMethod::ManualProjectionMapping;
+				break;
+			}
+
+			reader.read<u8>(); // effect mtx flag
+			for (auto& f : mtx->effectMatrix) f = reader.read<f32>();
+		}
+		reader.seek((8 - nTex)* (4 + (4 * 4 * sizeof(f32))));
+		for (u8 i = 0; i < mat.info.nColorChan; ++i) {
+			// skip runtime flag
+			reader.read<u32>();
+			libcube::gx::Color matClr, ambClr;
+			matClr.r = reader.read<u8>();
+			matClr.g = reader.read<u8>();
+			matClr.b = reader.read<u8>();
+			matClr.a = reader.read<u8>();
+
+			ambClr.r = reader.read<u8>();
+			ambClr.g = reader.read<u8>();
+			ambClr.b = reader.read<u8>();
+			ambClr.a = reader.read<u8>();
+
+			mat.chanData.push_back({ matClr, ambClr });
+			libcube::gpu::LitChannel tmp;
+			// Color
+			tmp.hex = reader.read<u32>();
+			mat.colorChanControls.push_back(tmp);
+			// Alpha
+			tmp.hex = reader.read<u32>();
+			mat.colorChanControls.push_back(tmp);
+		}
+
+		// TEV
+		reader.seekSet(start + ofsTev + 32);
+		{
+			const std::array<u32, 16> shaderDlSizes{
+				160, //  0
+				160, //  1
+				192, //  2
+				192, //  3
+				256, //  4
+				256, //  5
+				288, //  6
+				288, //  7
+				352, //  8
+				352, //  9
+				384, // 10
+				384, // 11
+				448, // 12
+				448, // 13
+				480, // 14
+				480, // 15
+			};
+			libcube::gpu::QDisplayListShaderHandler shaderHandler(mat.shader, mat.info.nTevStage);
+			libcube::gpu::RunDisplayList(reader, shaderHandler, shaderDlSizes[mat.info.nTevStage]);
+		}
+
+		// Samplers
+		reader.seekSet(start + ofsSamplers);
+		for (u8 i = 0; i < mat.info.nTexGen; ++i) {
+			auto sampler = std::make_unique<libcube::GCMaterialData::SamplerData>();
+
+			const auto sampStart = reader.tell();
+			sampler->mTexture = readName(reader, sampStart);
+			sampler->mPalette = readName(reader, sampStart);
+			reader.seek(8); // skip runtime pointers
+			reader.read<u32>(); // skip tex id for now
+			reader.read<u32>(); // skip tlut id for now
+			sampler->mWrapU = static_cast<libcube::gx::TextureWrapMode>(reader.read<u32>());
+			sampler->mWrapV = static_cast<libcube::gx::TextureWrapMode>(reader.read<u32>());
+			sampler->mMinFilter = reader.read<u32>();
+			sampler->mMagFilter = reader.read<u32>();
+			sampler->mLodBias = reader.read<f32>();
+			sampler->mMaxAniso = reader.read<u32>();
+			sampler->bBiasClamp = reader.read<u8>();
+			sampler->bEdgeLod = reader.read<u8>();
+			reader.seek(2);
+			mat.samplers.push_back(std::move(sampler));
+		}
+
+		// Display Lists
+		reader.seekSet(start + ofsDisplayLists);
+		{
+			libcube::gpu::QDisplayListMaterialHandler matHandler(mat);
+
+			// Pixel data
+			libcube::gpu::RunDisplayList(reader, matHandler, 32);
+			mat.alphaCompare = matHandler.mGpuMat.mPixel.mAlphaCompare;
+			mat.zMode = matHandler.mGpuMat.mPixel.mZMode;
+			mat.blendMode = matHandler.mGpuMat.mPixel.mBlendMode;
+			// TODO: Dst alpha
+
+			// Uniform data
+			libcube::gpu::RunDisplayList(reader, matHandler, 128);
+			for (int i = 0; i < 3; ++i) {
+				mat.tevColors[i] = matHandler.mGpuMat.mShaderColor.Registers[i + 1];
+			}
+			for (int i = 0; i < 4; ++i) {
+				mat.tevKonstColors[i] = matHandler.mGpuMat.mShaderColor.Konstants[i];
+			}
+
+			// Indirect data
+			libcube::gpu::RunDisplayList(reader, matHandler, 64);
+			for (u8 i = 0; i < mat.info.nIndStage; ++i) {
+				const auto& curScale = matHandler.mGpuMat.mIndirect.mIndTexScales[i > 1 ? i - 2 : i];
+				mat.mIndScales.push_back({ static_cast<libcube::gx::IndirectTextureScalePair::Selection>(curScale.ss0),
+					static_cast<libcube::gx::IndirectTextureScalePair::Selection>(curScale.ss1) });
+
+				mat.mIndMatrices.push_back(matHandler.mGpuMat.mIndirect.mIndMatrices[i]);
+			}
+
+			const std::array<u32, 9> texGenDlSizes{
+				0, // 0
+				32, // 1
+				64, 64, // 2, 3
+				96, 96, // 4, 5
+				128, 128, // 6, 7
+				160 // 8
+			};
+			libcube::gpu::RunDisplayList(reader, matHandler, texGenDlSizes[mat.info.nTexGen]);
+			for (u8 i = 0; i < mat.info.nTexGen; ++i) {
+				mat.texGens.push_back(matHandler.mGpuMat.mTexture[i]);
+				mat.texMatrices[i]->projection = mat.texGens[i].func;
+			}
+		}
+	});
 	// TODO: Meshes
 	// TODO: Render tree
 }
