@@ -185,7 +185,12 @@ GLWindow::GLWindow(int width, int height, const char* pName)
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable;
+
+	
+	ImGui_ImplOpenGL3_Init(glsl_version);
 	// For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
 	// You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.
 	io.IniFilename = NULL;
