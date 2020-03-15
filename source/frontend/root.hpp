@@ -1,11 +1,14 @@
 #pragma once
 
-#include "file_host.hpp"
+#include <queue>
+#include <string>
 
 #include <core/applet.hpp>
 
-#include <queue>
-#include <string>
+#include "file_host.hpp"
+#include "ThemeManager.hpp"
+
+
 
 namespace riistudio::frontend {
 
@@ -31,6 +34,7 @@ private:
     bool vsync = 0;
 
 	std::queue<std::string> mAttachEditorsQueue;
+	ThemeManager mTheme;
 };
 
 }

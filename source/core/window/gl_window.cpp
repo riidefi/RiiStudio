@@ -106,6 +106,7 @@ nullptr;
 }
 #endif
 
+
 GLWindow::GLWindow(int width, int height, const char* pName)
 {
 #ifdef RII_BACKEND_GLFW
@@ -124,15 +125,21 @@ GLWindow::GLWindow(int width, int height, const char* pName)
 	
 		glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, true );
 #endif
-
 		initWindow(mGlfwWindow, width, height, pName, this);
 
-#ifdef _WIN32
-		if (!gl3wInit())
-			return;
-#else
+		gl3wInit();
+
+		// Defer init..
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
+
+		ImGui_ImplGlfw_InitForOpenGL(getGlfwWindow(), true);
+
+		ImGui_ImplOpenGL3_Init(glsl_version);
 		return;
-#endif
 	}
 
 	fprintf(stderr, "Failed to initialize GLFW!\n");
@@ -185,18 +192,12 @@ GLWindow::GLWindow(int width, int height, const char* pName)
 
 	SDL_GL_SetSwapInterval(1); // Enable vsync
 
+	ImGui_ImplSDL2_InitForOpenGL(g_Window, g_GLContext);
 #else
 #error "No backend selected"
 #endif
 
 
-	ImGui_ImplOpenGL3_Init(glsl_version);
-#ifdef RII_BACKEND_GLFW
-	// Defer init..
-#else
-	ImGui_ImplSDL2_InitForOpenGL(g_Window, g_GLContext);
-
-#endif
 
 #ifndef _WIN32
 	g_AppWindow = this;

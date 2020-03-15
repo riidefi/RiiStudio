@@ -19,7 +19,9 @@ struct IndexedVertex
 		assert((u64)attr < (u64)gx::VertexAttribute::Max);
 		return indices[(u64)attr];
 	}
-
+	bool operator==(const IndexedVertex& rhs) const {
+		return indices == rhs.indices;
+	}
 private:
 	std::array<u16, (u64)gx::VertexAttribute::Max> indices;
 };

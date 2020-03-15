@@ -54,6 +54,7 @@ struct copyable_polymorphic_array_vector : public array_vector<std::unique_ptr<T
 	using super = array_vector<std::unique_ptr<T>, size>;
 #endif
 	copyable_polymorphic_array_vector& operator=(const copyable_polymorphic_array_vector& rhs) {
+		super::nElements = rhs.super::nElements;
 		for (std::size_t i = 0; i < super::nElements; ++i) {
 			super::at(i) = nullptr;
 		}
@@ -165,6 +166,7 @@ struct GCMaterialData
 	};
 	struct TexMatrix
 	{
+		// TODO: Deprecate?
 		gx::TexGenType projection; // Only 3x4 and 2x4 valid
 
 		glm::vec2	scale;
@@ -207,19 +209,22 @@ struct GCMaterialData
 		gx::TextureWrapMode mWrapU = gx::TextureWrapMode::Repeat;
 		gx::TextureWrapMode mWrapV = gx::TextureWrapMode::Repeat;
 
-		bool bMipMap = false;
+		// bool bMipMap = false;
 		bool bEdgeLod;
 		bool bBiasClamp;
 
-		u8 mMaxAniso;
-		u8 mMinFilter;
-		u8 mMagFilter;
-		f32 mLodBias;
+		gx::AnisotropyLevel mMaxAniso;
+
+
+		gx::TextureFilter mMinFilter = gx::TextureFilter::linear;
+		gx::TextureFilter mMagFilter;
+		f32 mLodBias = 0.0f;
 
 		bool operator==(const SamplerData& rhs) const noexcept
 		{
 			return mTexture == rhs.mTexture && mWrapU == rhs.mWrapU && mWrapV == rhs.mWrapV &&
-				bMipMap == rhs.bMipMap && bEdgeLod == rhs.bEdgeLod && bBiasClamp == rhs.bBiasClamp &&
+				// bMipMap == rhs.bMipMap &&
+				bEdgeLod == rhs.bEdgeLod && bBiasClamp == rhs.bBiasClamp &&
 				mMaxAniso == rhs.mMaxAniso && mMinFilter == rhs.mMinFilter && mMagFilter == rhs.mMagFilter &&
 				mLodBias == rhs.mLodBias;
 		}

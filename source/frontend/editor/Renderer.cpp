@@ -51,8 +51,8 @@ struct SceneTree
 	std::vector<Node> opaque, translucent;
 
 
-	void gatherBoneRecursive(u64 boneId, kpi::FolderData bones,
-		kpi::FolderData mats, kpi::FolderData polys)
+	void gatherBoneRecursive(u64 boneId, const kpi::FolderData& bones,
+		const kpi::FolderData& mats, const kpi::FolderData& polys)
 	{
 		const auto& pBone = bones.at<lib3d::Bone>(boneId);
 
@@ -139,6 +139,7 @@ struct SceneState
 		const auto textures = root.getFolder<lib3d::Texture>();
 
 		mTextures.resize(textures->size());
+		std::vector<u8> data(1024 * 1024 * 4);
 		for (int i = 0; i < textures->size(); ++i)
 		{
 			const auto& tex = textures->at<lib3d::Texture>(i);
@@ -155,11 +156,10 @@ struct SceneState
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-			tex.decode(mTextures[i].data, false);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex.getWidth(), tex.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, mTextures[i].data.data());
-
+			tex.decode(data, false);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex.getWidth(), tex.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
 			// TODO
-			glGenerateMipmap(GL_TEXTURE_2D);
+			// glGenerateMipmap(GL_TEXTURE_2D);
 		}
 	}
 
@@ -291,7 +291,7 @@ struct SceneState
 	struct Texture
 	{
 		u32 id;
-		std::vector<u8> data;
+		// std::vector<u8> data;
 		//	u32 width;
 		//	u32 height;
 	};

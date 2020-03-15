@@ -44,8 +44,9 @@ void StudioWindow::draw()
 
                 ImGui::DockBuilderDockWindow(idIfy("Outliner").c_str(), dock_right_id);
                 ImGui::DockBuilderDockWindow(idIfy("Texture Preview").c_str(), dock_right_down_id);
+				ImGui::DockBuilderDockWindow(idIfy("History").c_str(), dock_right_down_id);
+				ImGui::DockBuilderDockWindow(idIfy("MatEditor").c_str(), next);
                 ImGui::DockBuilderDockWindow(idIfy("Viewport").c_str(), next);
-            
             
                 ImGui::DockBuilderFinish(dockspaceId);
             }

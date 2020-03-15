@@ -88,8 +88,8 @@ struct TexCoordGen // XF TEX/DUALTEX
 	TexGenSrc		sourceParam;
 	TexMatrix		matrix; // FIXME: for BMD
 	
-	bool			normalize;
-	PostTexMatrix	postMatrix;
+	bool			normalize = false;
+	PostTexMatrix	postMatrix = gx::PostTexMatrix::Identity;;
 
 	const bool operator==(const TexCoordGen& rhs) const noexcept
 	{

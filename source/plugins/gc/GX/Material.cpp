@@ -333,8 +333,9 @@ void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
 
 	for (int i = 0; i < 2; ++i)
 	{
-		tmp.ColorMatRegs[i] = colorConvert(data.chanData[i].matColor);
-		tmp.ColorAmbRegs[i] = colorConvert(data.chanData[i].ambColor);
+		// TODO: Broken
+		tmp.ColorMatRegs[i] = glm::vec4{ 1.0f };// colorConvert(data.chanData[i].matColor);
+		tmp.ColorAmbRegs[i] = glm::vec4{ 1.0f };// colorConvert(data.chanData[i].ambColor);
 	}
 	for (int i = 0; i < 4; ++i)
 	{

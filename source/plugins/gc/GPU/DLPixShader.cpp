@@ -350,6 +350,21 @@ void QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
 void QDisplayListMaterialHandler::onStreamEnd() {
 
 }
-
+void QDisplayListVertexSetupHandler::onCommandBP(const QBPCommand& token) {
+	// TODO: Ignores cull mode repeat
+}
+void QDisplayListVertexSetupHandler::onCommandCP(const QCPCommand& token) {
+	switch (token.reg) {
+	case 0x50:
+		mGpuMesh.VCD.Hex0 = token.val;
+		break;
+	case 0x60:
+		mGpuMesh.VCD.Hex0 |= (token.val << 17);
+		break;
+	default:
+		break;
+	}
+}
+void QDisplayListVertexSetupHandler::onStreamEnd() {}
 
 }

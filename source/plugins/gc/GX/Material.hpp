@@ -7,8 +7,21 @@
 #include "Enum/Comparison.hpp"
 
 #include <cmath>
+#include <algorithm>
+
+#include <glm/vec4.hpp>
 
 namespace libcube { namespace gx {
+
+enum class TextureFilter {
+#undef near
+	near,
+	linear,
+	near_mip_near,
+	lin_mip_near,
+	near_mip_lin,
+	lin_mip_lin
+};
 
 enum class TextureWrapMode
 {
@@ -150,6 +163,7 @@ struct BlendMode
 	}
 };
 struct Color;
+struct ColorS10;
 struct ColorF32
 {
 	f32 r, g, b, a;
@@ -158,8 +172,25 @@ struct ColorF32
 	{
 		return &r;
 	}
+	operator glm::vec4() const {
+		return { r, g, b, a };
+	}
 
-	operator Color();
+	inline void clamp(f32 min, f32 max) {
+#undef min
+#undef max
+		auto clampEach = [&](auto r) {
+			return std::max(std::min(r, max), min);
+		};
+		r = clampEach(r);
+		g = clampEach(g);
+		b = clampEach(b);
+		a = clampEach(a);
+	}
+
+	operator Color() const;
+	operator ColorS10() const;
+
 	inline bool operator==(const ColorF32& rhs) const
 	{
 		return (r == rhs.r) && (g == rhs.g) && (b == rhs.b) && (a == rhs.a);
@@ -178,7 +209,7 @@ struct Color
 		return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
 	}
 
-	inline operator ColorF32()
+	inline operator ColorF32() const
 	{
 		return {
 			static_cast<float>(r) / static_cast<float>(0xff),
@@ -200,15 +231,6 @@ struct Color
 	{}
 };
 
-inline ColorF32::operator Color()
-{
-	return {
-		(u8)roundf(r * 255.0f),
-		(u8)roundf(g * 255.0f),
-		(u8)roundf(b * 255.0f),
-		(u8)roundf(a * 255.0f)
-	};
-}
 struct ColorS10
 {
 	s32 r, g, b, a;
@@ -217,7 +239,7 @@ struct ColorS10
 	{
 		return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
 	}
-	inline operator ColorF32()
+	inline operator ColorF32() const
 	{
 		return {
 			static_cast<float>(r) / static_cast<float>(0xff),
@@ -227,6 +249,24 @@ struct ColorS10
 		};
 	}
 };
+inline ColorF32::operator Color() const
+{
+	return {
+		(u8)roundf(r * 255.0f),
+		(u8)roundf(g * 255.0f),
+		(u8)roundf(b * 255.0f),
+		(u8)roundf(a * 255.0f)
+	};
+}
+inline ColorF32::operator ColorS10() const
+{
+	return {
+		(s16)roundf(r * 255.0f),
+		(s16)roundf(g * 255.0f),
+		(s16)roundf(b * 255.0f),
+		(s16)roundf(a * 255.0f)
+	};
+}
 
 
 enum class AnisotropyLevel
@@ -235,17 +275,6 @@ enum class AnisotropyLevel
 	x2,
 	x4
 };
-enum class TextureFilter
-{
-	Near, // Nearest-neighbor interpolation of texels
-	Linear, // Bi?Linear-neighbor interpolation of texels
-	NearMipNear, // Nearest-neighbor interpolation of texels and mipmap levels
-	LinearMipNear, // Bi?Linear interpolation of texels and nearest neighbor of mipmap levels
-	NearMipLinear,
-	LinearMipLinear, // Bi?Linear interpolation of texels and mipmap levels
-	Max
-};
-
 struct ConstantAlpha
 {
 	bool enable = false;

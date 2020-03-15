@@ -490,4 +490,135 @@ union TevStageIndirect
 	// the texture sample data, so we can skip sampling the texture.
 	//bool IsActive() const { return bs != (u32)IndTexBiasSel::itb_none || mid != 0; }
 };
+
+
+#pragma pack(4)
+union TVtxDesc
+{
+	u64 Hex = 0;
+	struct
+	{
+		// 0: not present
+		// 1: present
+		u64 PosMatIdx : 1;
+		u64 Tex0MatIdx : 1;
+		u64 Tex1MatIdx : 1;
+		u64 Tex2MatIdx : 1;
+		u64 Tex3MatIdx : 1;
+		u64 Tex4MatIdx : 1;
+		u64 Tex5MatIdx : 1;
+		u64 Tex6MatIdx : 1;
+		u64 Tex7MatIdx : 1;
+
+		// 00: not present
+		// 01: direct
+		// 10: 8 bit index
+		// 11: 16 bit index
+		u64 Position : 2;
+		u64 Normal : 2;
+		u64 Color0 : 2;
+		u64 Color1 : 2;
+		u64 Tex0Coord : 2;
+		u64 Tex1Coord : 2;
+		u64 Tex2Coord : 2;
+		u64 Tex3Coord : 2;
+		u64 Tex4Coord : 2;
+		u64 Tex5Coord : 2;
+		u64 Tex6Coord : 2;
+		u64 Tex7Coord : 2;
+		u64 : 31;
+	};
+
+	struct
+	{
+		u32 Hex0;
+		u32 Hex1;
+	};
+
+	// Easily index into the Position..Tex7Coord fields.
+	u32 GetVertexArrayStatus(int idx)
+	{
+		return (Hex >> (9 + idx * 2)) & 0x3;
+	}
+};
+
+union UVAT_group0
+{
+	u32 Hex;
+	struct
+	{
+		// 0:8
+		u32 PosElements : 1;
+		u32 PosFormat : 3;
+		u32 PosFrac : 5;
+		// 9:12
+		u32 NormalElements : 1;
+		u32 NormalFormat : 3;
+		// 13:16
+		u32 Color0Elements : 1;
+		u32 Color0Comp : 3;
+		// 17:20
+		u32 Color1Elements : 1;
+		u32 Color1Comp : 3;
+		// 21:29
+		u32 Tex0CoordElements : 1;
+		u32 Tex0CoordFormat : 3;
+		u32 Tex0Frac : 5;
+		// 30:31
+		u32 ByteDequant : 1;
+		u32 NormalIndex3 : 1;
+	};
+};
+
+union UVAT_group1
+{
+	u32 Hex;
+	struct
+	{
+		// 0:8
+		u32 Tex1CoordElements : 1;
+		u32 Tex1CoordFormat : 3;
+		u32 Tex1Frac : 5;
+		// 9:17
+		u32 Tex2CoordElements : 1;
+		u32 Tex2CoordFormat : 3;
+		u32 Tex2Frac : 5;
+		// 18:26
+		u32 Tex3CoordElements : 1;
+		u32 Tex3CoordFormat : 3;
+		u32 Tex3Frac : 5;
+		// 27:30
+		u32 Tex4CoordElements : 1;
+		u32 Tex4CoordFormat : 3;
+		//
+		u32 : 1;
+	};
+};
+
+union UVAT_group2
+{
+	u32 Hex;
+	struct
+	{
+		// 0:4
+		u32 Tex4Frac : 5;
+		// 5:13
+		u32 Tex5CoordElements : 1;
+		u32 Tex5CoordFormat : 3;
+		u32 Tex5Frac : 5;
+		// 14:22
+		u32 Tex6CoordElements : 1;
+		u32 Tex6CoordFormat : 3;
+		u32 Tex6Frac : 5;
+		// 23:31
+		u32 Tex7CoordElements : 1;
+		u32 Tex7CoordFormat : 3;
+		u32 Tex7Frac : 5;
+	};
+};
+#pragma pack()
+struct GPUMesh
+{
+	TVtxDesc VCD;
+};
 }

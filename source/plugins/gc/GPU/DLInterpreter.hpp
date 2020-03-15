@@ -7,6 +7,8 @@
 
 #include <oishii/reader/binary_reader.hxx>
 
+#include <plugins/gc/gx/VertexTypes.hpp>
+
 namespace libcube::gpu {
 
 struct QBPCommand {
@@ -14,10 +16,11 @@ struct QBPCommand {
     u32 val;
 };
 
-// TODO: Not variable-length
 struct QXFCommand {
 	u16 reg;
-	u32 val;
+	u32 val; // first val
+
+	std::vector<u32> vals; // first val repeated
 };
 struct QCPCommand
 {
@@ -32,6 +35,7 @@ public:
 	virtual void onCommandBP(const QBPCommand& token) {}
 	virtual void onCommandCP(const QCPCommand& token) {}
 	virtual void onCommandXF(const QXFCommand& token) {}
+	virtual void onCommandDraw(oishii::BinaryReader& reader, libcube::gx::PrimitiveType type, u16 nverts) {}
 
 	virtual void onStreamBegin() {}
 	virtual void onStreamEnd() {}

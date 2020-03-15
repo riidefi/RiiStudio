@@ -45,17 +45,9 @@ static bool loadFonts()
 Applet::Applet(const char* name)
 	: GLWindow(1280, 720, name)
 {
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable
-#ifdef _WIN32
-		| ImGuiConfigFlags_ViewportsEnable;
-#else
-		;
-#endif
+	
 	ImGuiStyle& style = ImGui::GetStyle();
+	ImGuiIO& io = ImGui::GetIO();
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 	{
 		style.WindowRounding = 0.0f;
@@ -67,9 +59,6 @@ Applet::Applet(const char* name)
 		fprintf(stderr, "Failed to load fonts");
 	}
 
-#ifdef RII_BACKEND_GLFW
-	ImGui_ImplGlfw_InitForOpenGL(getGlfwWindow(), true);
-#endif
 }
 
 Applet::~Applet()
@@ -101,7 +90,10 @@ void Applet::frameProcess()
 #endif
 	ImGui::NewFrame();
 
-	// ImGui::ShowDemoWindow();
+	ImGui::GetIO().FontGlobalScale = .8;
+
+	static bool demo = true;
+	ImGui::ShowDemoWindow(&demo);
     draw(); // Call down to window manager
     
 

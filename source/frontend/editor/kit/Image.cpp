@@ -7,6 +7,14 @@ namespace riistudio::frontend {
 ImagePreview::ImagePreview()
 {
 }
+ImagePreview::~ImagePreview()
+{
+	if (mTexUploaded)
+	{
+		glDeleteTextures(1, &mGpuTexId);
+		mTexUploaded = false;
+	}
+}
 
 void ImagePreview::setFromImage(const lib3d::Texture& tex)
 {
@@ -21,7 +29,7 @@ void ImagePreview::setFromImage(const lib3d::Texture& tex)
 	}
 }
 
-void ImagePreview::draw()
+void ImagePreview::draw(float wd, float ht)
 {
 	if (!mTexUploaded && mDecodeBuf.size() && width && height)
 	{
@@ -43,6 +51,6 @@ void ImagePreview::draw()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, mDecodeBuf.data());
-	ImGui::Image((void*)(intptr_t)mGpuTexId, ImVec2(width, height));
+	ImGui::Image((void*)(intptr_t)mGpuTexId, ImVec2(wd > 0 ? wd : width, ht > 0 ? ht : height));
 }
 }

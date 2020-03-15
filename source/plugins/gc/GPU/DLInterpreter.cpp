@@ -26,7 +26,18 @@ void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler, 
 			break;
 		case CommandType::XF:
 		{
-			// TODO
+			// TODO: Verify
+			QXFCommand cmd;
+			const auto nCmd = reader.readUnaligned<u16>();
+			const auto reg = reader.readUnaligned<u16>();
+			cmd.reg = reg;
+			cmd.val = reader.readUnaligned<u32>();
+			cmd.vals.resize(nCmd + 1);
+			cmd.vals[0] = cmd.val;
+			for (u16 i = 0; i < nCmd; ++i) {
+				cmd.vals[i] = reader.readUnaligned<u32>();
+			}
+			handler.onCommandXF(cmd);
 			break;
 		}
 		case CommandType::CP:
@@ -39,6 +50,9 @@ void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler, 
 			break;
 		}
 		default:
+			if (static_cast<u32>(tag) & 0x80) {
+				handler.onCommandDraw(reader, libcube::gx::DecodeDrawPrimitiveCommand(static_cast<u32>(tag)), reader.readUnaligned<u16>());
+			}
 			// TODO
 			break;
 		}

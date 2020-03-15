@@ -213,13 +213,13 @@ inline std::size_t computeComponentCount(gx::VertexBufferKind kind, gx::VertexCo
 inline f32 readGenericComponentSingle(oishii::BinaryReader& reader, gx::VertexBufferType::Generic type, u32 divisor = 0) {
 	switch (type) {
 	case gx::VertexBufferType::Generic::u8:
-		return reader.read<u8>() >> divisor;
+		return static_cast<f32>(reader.read<u8>()) / static_cast<f32>((1 << divisor));
 	case gx::VertexBufferType::Generic::s8:
-		return reader.read<s8>() >> divisor;
+		return static_cast<f32>(reader.read<s8>()) / static_cast<f32>((1 << divisor));
 	case gx::VertexBufferType::Generic::u16:
-		return reader.read<u16>() >> divisor;
+		return static_cast<f32>(reader.read<u16>()) / static_cast<f32>((1 << divisor));
 	case gx::VertexBufferType::Generic::s16:
-		return reader.read<s16>() >> divisor;
+		return static_cast<f32>(reader.read<s16>()) / static_cast<f32>((1 << divisor));
 	case gx::VertexBufferType::Generic::f32:
 		return reader.read<f32>();
 	default:
@@ -275,18 +275,29 @@ inline gx::Color readColorComponents(oishii::BinaryReader& reader, gx::VertexBuf
 		result.a = reader.read<u8>();
 		break;
 	};
+
+	return result;
 }
 
-inline glm::vec3 readGenericComponents(oishii::BinaryReader& reader, gx::VertexBufferType::Generic type, std::size_t true_count, u32 divisor = 0) {
+template<typename T>
+inline T readGenericComponents(oishii::BinaryReader& reader, gx::VertexBufferType::Generic type, std::size_t true_count, u32 divisor = 0) {
 	assert(true_count <= 3 && true_count >= 1);
-	glm::vec3 out;
+	T out{};
 
 	for (std::size_t i = 0; i < true_count; ++i) {
-		out[i] = readGenericComponentSingle(reader, type, divisor);
+		*(((f32*)&out.x) + i) = readGenericComponentSingle(reader, type, divisor);
 	}
 
 	return out;
 }
 
+template<typename T>
+inline T readComponents(oishii::BinaryReader& reader, gx::VertexBufferType type, std::size_t true_count, u32 divisor = 0) {
+	return readGenericComponents<T>(reader, type.generic, true_count, divisor);
+}
+template<>
+inline gx::Color readComponents<gx::Color>(oishii::BinaryReader& reader, gx::VertexBufferType type, std::size_t true_count, u32 divisor) {
+	return readColorComponents(reader, type.color);
+}
 
 } } // namespace libcube::gx

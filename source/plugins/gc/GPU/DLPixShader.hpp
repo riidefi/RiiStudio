@@ -6,6 +6,8 @@
 
 #include <plugins/gc/export/Material.hpp>
 
+#include <plugins/gc/export/IndexedPolygon.hpp>
+
 #include <array>
 
 namespace libcube::gpu {
@@ -103,6 +105,16 @@ public:
 
 	GCMaterialData& mMat;
 	GPUMaterial mGpuMat;
+};
+
+class QDisplayListVertexSetupHandler : public QDisplayListHandler
+{
+public:
+	void onCommandBP(const QBPCommand& token) override;
+	void onCommandCP(const QCPCommand& token) override;
+	void onStreamEnd() override;
+
+	GPUMesh mGpuMesh;
 };
 
 }

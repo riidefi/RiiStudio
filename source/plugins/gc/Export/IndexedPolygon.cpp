@@ -158,7 +158,7 @@ void IndexedPolygon::propogate(VBOBuilder& out) const
 		{
 			out.mIndices.push_back(static_cast<u32>(out.mIndices.size()));
 			final_bitfield |= vcd.mBitfield;
-			for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i)
+			for (u32 i = 0; i < (u32)gx::VertexAttribute::Max; ++i)
 			{
 				if (!(vcd.mBitfield & (1 << i))) continue;
 
@@ -191,7 +191,8 @@ void IndexedPolygon::propogate(VBOBuilder& out) const
 				{
 					const auto chan = i - static_cast<int>(gx::VertexAttribute::TexCoord0);
 					const auto attr = static_cast<gx::VertexAttribute>(i);
-					out.pushData(7 + chan , getUv(chan, vtx[attr]));
+					const auto data = getUv(chan, vtx[attr]);
+					out.pushData(7 + chan, data);
 					break;
 				}
 				case gx::VertexAttribute::Normal:

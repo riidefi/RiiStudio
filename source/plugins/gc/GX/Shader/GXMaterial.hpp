@@ -62,11 +62,11 @@ static glm::vec4 scratchVec4;
 // Lighting
 struct Light
 {
-    glm::vec3 Position  = { 0, 0, 0 };
-    glm::vec3 Direction = { 0, 0, -1 };
-    glm::vec3 DistAtten = { 0, 0, 0 };
-    glm::vec3 CosAtten  = { 0, 0, 0 };
-    gx::ColorS10  Color     = { 0, 0, 0, 1};
+    glm::vec4 Position  = { 0, 0, 0, 0 };
+    glm::vec4 Direction = { 0, 0, -1, 0 };
+    glm::vec4 DistAtten = { 0, 0, 0, 0 };
+    glm::vec4 CosAtten  = { 0, 0, 0, 0 };
+    glm::vec4  Color     = { 1, 1, 1, 1};
 
     void setWorldPositionViewMatrix(const glm::mat4& viewMatrix, float x, float y, float z)
     {
@@ -132,6 +132,7 @@ struct UniformMaterialParams
 	// Optional: Not optional for now.
 	Light u_LightParams[8];
 };
+static_assert(sizeof(UniformMaterialParams) == 1536, "Bad sized UParam");
 
 static_assert(sizeof(UniformMaterialParams) == 896 + sizeof(std::array<Light, 8>));
 constexpr u32 ub = sizeof(UniformMaterialParams);

@@ -321,7 +321,9 @@ struct Scene
 {
 	//// PX_TYPE_INFO("Scene", "scene", "3D::Scene");
 	virtual ~Scene() = default;
-
+};
+struct Model {
+	virtual ~Model() = default;
 };
 
 } // namespace lib3d

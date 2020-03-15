@@ -14,6 +14,8 @@
 #include <plugins/gc/gpu/GPUMaterial.hpp>
 #include <plugins/gc/gpu/DLPixShader.hpp>
 
+#include <plugins/gc/gx/VertexTypes.hpp>
+
 namespace riistudio::g3d {
 
 
@@ -51,6 +53,10 @@ inline void operator<< <f32, 2>(glm::vec2& out, oishii::BinaryReader& reader)
 	out.x = reader.read<f32>();
 	out.y = reader.read<f32>();
 }
+inline void operator<<(libcube::gx::Color& out, oishii::BinaryReader& reader)
+{
+	out = libcube::gx::readColorComponents(reader, libcube::gx::VertexBufferType::Color::rgba8);
+}
 
 inline void operator>>(const glm::vec3& vec, oishii::v2::Writer& writer)
 {
@@ -68,6 +74,66 @@ inline void operator>>(const glm::vec2& vec, oishii::v2::Writer& writer)
 inline bool ends_with(const std::string& value, const std::string& ending) {
 	return ending.size() <= value.size() && std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
+
+
+
+template <typename T, bool HasMinimum, bool HasDivisor, libcube::gx::VertexBufferKind kind>
+void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out, oishii::BinaryReader& reader) {
+	const auto start = reader.tell();
+	out.mEntries.clear();
+
+	const auto size = reader.read<u32>();
+	reader.read<u32>(); // mdl0 offset
+	const auto startOfs = reader.read<s32>();
+	out.mName = readName(reader, start);
+	out.mId = reader.read<u32>();
+	out.mQuantize.mComp = libcube::gx::VertexComponentCount(static_cast<libcube::gx::VertexComponentCount::Normal>(reader.read<u32>()));
+	out.mQuantize.mType = libcube::gx::VertexBufferType(static_cast<libcube::gx::VertexBufferType::Color>(reader.read<u32>()));
+	if (HasDivisor) {
+		out.mQuantize.divisor = reader.read<u8>();
+		out.mQuantize.stride = reader.read<u8>();
+	} else {
+		out.mQuantize.divisor = 0;
+		out.mQuantize.stride = reader.read<u8>();
+		reader.read<u8>();
+	}
+	out.mEntries.resize(reader.read<u16>());
+	T minEnt, maxEnt;
+	if (HasMinimum) {
+		minEnt << reader;
+		maxEnt << reader;
+	}
+	const auto nComponents = libcube::gx::computeComponentCount(kind, out.mQuantize.mComp);
+	assert((kind != libcube::gx::VertexBufferKind::normal) || (
+		!((int)out.mQuantize.divisor != 6 && out.mQuantize.mType.generic == libcube::gx::VertexBufferType::Generic::s8) &&
+		!((int)out.mQuantize.divisor != 14 && out.mQuantize.mType.generic == libcube::gx::VertexBufferType::Generic::s16)));
+	assert(kind != libcube::gx::VertexBufferKind::normal || (
+		out.mQuantize.mType.generic != libcube::gx::VertexBufferType::Generic::u8 &&
+		out.mQuantize.mType.generic != libcube::gx::VertexBufferType::Generic::u16));
+
+	reader.seekSet(start + startOfs);
+	// TODO: Recompute bounds
+	for (auto& entry : out.mEntries) {
+		entry = libcube::gx::readComponents<T>(reader, out.mQuantize.mType, nComponents, out.mQuantize.divisor);
+	}
+}
+
+enum class RenderCommand
+{
+	NoOp,
+	Return,
+
+	NodeDescendence,
+	NodeMixing,
+
+	Draw,
+
+	EnvelopeMatrix,
+	MatrixCopy
+
+};
+
+
 
 static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
 	const auto start = reader.tell();
@@ -165,7 +231,18 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
 		reader.seek(12); // Skip sibling and child links -- we recompute it all
 		reader.seek(2 * ((3 * 4) * sizeof(f32))); // skip matrices
 	});
-	// TODO: Buffers
+	readDict(secOfs.ofsBuffers.position, [&](const DictionaryNode& dnode) {
+		readGenericBuffer(mdl.addPositionBuffer().get(), reader);
+	});
+	readDict(secOfs.ofsBuffers.normal, [&](const DictionaryNode& dnode) {
+		readGenericBuffer(mdl.addNormalBuffer().get(), reader);
+	});
+	readDict(secOfs.ofsBuffers.color, [&](const DictionaryNode& dnode) {
+		readGenericBuffer(mdl.addColorBuffer().get(), reader);
+	});
+	readDict(secOfs.ofsBuffers.uv, [&](const DictionaryNode& dnode) {
+		readGenericBuffer(mdl.addTextureCoordinateBuffer().get(), reader);
+	});
 	// TODO: Fur
 
 	readDict(secOfs.ofsMaterials, [&](const DictionaryNode& dnode) {
@@ -327,10 +404,10 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
 			reader.read<u32>(); // skip tlut id for now
 			sampler->mWrapU = static_cast<libcube::gx::TextureWrapMode>(reader.read<u32>());
 			sampler->mWrapV = static_cast<libcube::gx::TextureWrapMode>(reader.read<u32>());
-			sampler->mMinFilter = reader.read<u32>();
-			sampler->mMagFilter = reader.read<u32>();
+			sampler->mMinFilter = static_cast<libcube::gx::TextureFilter>(reader.read<u32>());
+			sampler->mMagFilter = static_cast<libcube::gx::TextureFilter>(reader.read<u32>());
 			sampler->mLodBias = reader.read<f32>();
-			sampler->mMaxAniso = reader.read<u32>();
+			sampler->mMaxAniso = static_cast<libcube::gx::AnisotropyLevel>(reader.read<u32>());
 			sampler->bBiasClamp = reader.read<u8>();
 			sampler->bEdgeLod = reader.read<u8>();
 			reader.seek(2);
@@ -383,8 +460,143 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
 			}
 		}
 	});
-	// TODO: Meshes
-	// TODO: Render tree
+	readDict(secOfs.ofsMeshes, [&](const DictionaryNode& dnode) {
+		auto& poly = mdl.addPolygon().get();
+		const auto start = reader.tell();
+		
+		reader.read<u32>(); // size
+		reader.read<s32>(); // mdl offset
+
+		poly.mCurrentMatrix = reader.read<s32>();
+		reader.seek(12); // cache
+
+		struct DlHandle {
+			std::size_t tag_start;
+			std::size_t buf_size;
+			std::size_t cmd_size;
+			s32			ofs_buf;
+
+			void seekTo(oishii::BinaryReader& reader) {
+				reader.seekSet(tag_start + ofs_buf);
+			}
+			DlHandle(oishii::BinaryReader& reader)
+				: tag_start(reader.tell())
+			{
+				buf_size = reader.read<u32>();
+				cmd_size = reader.read<u32>();
+				ofs_buf = reader.read<s32>();
+			}
+		};
+
+		DlHandle primitiveSetup(reader);
+		DlHandle primitiveData(reader);
+
+		poly.mVertexDescriptor.mBitfield = reader.read<u32>();
+		const u32 flag = reader.read<u32>();
+		poly.currentMatrixEmbedded = flag & 1;
+		assert(!poly.currentMatrixEmbedded);
+		poly.visible = !(flag & 2);
+
+		poly.mName = readName(reader, start);
+		poly.mId = reader.read<u32>();
+		// TODO: Verify / cache
+		reader.read<u32>(); // nVert
+		reader.read<u32>(); // nPoly
+
+		auto readBufHandle = [&](std::string& out, auto ifExist) {
+			const auto hid = reader.read<s16>();
+			if (hid < 0)
+				out = "";
+			else
+				out = ifExist(hid);
+		};
+
+		readBufHandle(poly.mPositionBuffer, [&](s16 hid) { return mdl.getPositionBuffer(hid).get().getName(); });
+		readBufHandle(poly.mNormalBuffer, [&](s16 hid) { return mdl.getNormalBuffer(hid).get().getName(); });
+		for (int i = 0; i < 2; ++i) {
+			readBufHandle(poly.mColorBuffer[i], [&](s16 hid) { return mdl.getColorBuffer(hid).get().getName(); });
+		}
+		for (int i = 0; i < 8; ++i) {
+			readBufHandle(poly.mTexCoordBuffer[i], [&](s16 hid) { return mdl.getTextureCoordinateBuffer(hid).get().getName(); });
+		}
+		reader.read<s32>(); // fur
+		reader.read<s32>(); // matrix usage
+
+		primitiveSetup.seekTo(reader);
+		libcube::gpu::QDisplayListVertexSetupHandler vcdHandler;
+		libcube::gpu::RunDisplayList(reader, vcdHandler, primitiveSetup.buf_size);
+
+		for (u32 i = 0; i < (u32)libcube::gx::VertexAttribute::Max; ++i){
+			if (poly.mVertexDescriptor.mBitfield & (1 << i)) {
+				const auto stat = vcdHandler.mGpuMesh.VCD.GetVertexArrayStatus(i - (u32)libcube::gx::VertexAttribute::Position);
+				const auto att = static_cast<libcube::gx::VertexAttributeType>(stat);
+				assert(att != libcube::gx::VertexAttributeType::None);
+				poly.mVertexDescriptor.mAttributes[(libcube::gx::VertexAttribute)i] = att;
+			}
+		}
+		struct QDisplayListMeshHandler final : public libcube::gpu::QDisplayListHandler {
+			void onCommandDraw(oishii::BinaryReader& reader, libcube::gx::PrimitiveType type, u16 nverts) override {
+				if (mPoly.mMatrixPrimitives.empty()) mPoly.mMatrixPrimitives.push_back(MatrixPrimitive{});
+				auto& prim = mPoly.mMatrixPrimitives.back().mPrimitives.emplace_back(libcube::IndexedPrimitive{});
+				prim.mType = type;
+				prim.mVertices.resize(nverts);
+				for (auto& vert : prim.mVertices) {
+					for (u32 i = 0; i < static_cast<u32>(libcube::gx::VertexAttribute::Max); ++i) {
+						if (mPoly.mVertexDescriptor.mBitfield & (1 << i)) {
+							const auto attr = static_cast<libcube::gx::VertexAttribute>(i);
+							switch (mPoly.mVertexDescriptor.mAttributes[attr]) {
+							case libcube::gx::VertexAttributeType::Direct:
+								throw "TODO";
+								break;
+							case libcube::gx::VertexAttributeType::None:
+								break;
+							case libcube::gx::VertexAttributeType::Byte:
+								vert[attr] = reader.readUnaligned<u8>();
+								break;
+							case libcube::gx::VertexAttributeType::Short:
+								vert[attr] = reader.readUnaligned<u16>();
+								break;
+							}
+						}
+					}
+				}
+			}
+			QDisplayListMeshHandler(Polygon& poly) : mPoly(poly) {}
+			~QDisplayListMeshHandler() {
+				return;
+			}
+			Polygon& mPoly;
+		} meshHandler(poly);
+		primitiveData.seekTo(reader);
+		libcube::gpu::RunDisplayList(reader, meshHandler, primitiveData.buf_size);
+	});
+
+	readDict(secOfs.ofsRenderTree, [&](const DictionaryNode& dnode) {
+		if (dnode.mName == "DrawOpa" || dnode.mName == "DrawXlu") {
+			while (reader.tell() < reader.endpos()) {
+				const auto cmd = static_cast<RenderCommand>(reader.read<u8>());
+				switch (cmd) {
+				case RenderCommand::NoOp:
+					break;
+				case RenderCommand::Return:
+					return;
+				case RenderCommand::Draw:
+				{
+					Bone::Display disp;
+					disp.matId = reader.readUnaligned<u16>();
+					disp.polyId = reader.readUnaligned<u16>();
+					const auto boneIdx = reader.readUnaligned<u16>();
+					disp.prio = reader.readUnaligned<u8>();
+					mdl.getBone(boneIdx).get().addDisplay(disp);
+				}
+					break;
+				default:
+					// TODO
+					break;
+				}
+			}
+		}
+	});
 }
 static void readTexture(kpi::NodeAccessor<Texture>& tex, oishii::BinaryReader& reader) {
 	const auto start = reader.tell();

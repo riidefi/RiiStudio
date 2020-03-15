@@ -76,7 +76,7 @@ struct CorePackageInstaller : kpi::ApplicationPlugins
 	std::unique_ptr<kpi::IDocumentNode> constructObject(const std::string& type, kpi::IDocumentNode* parent = nullptr) const override
 	{
 		auto spawned = spawnState(type);
-		// spawned->parent = parent;
+		spawned->parent = parent;
 		return spawned;
 	}
 };

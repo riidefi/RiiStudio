@@ -18,6 +18,9 @@ struct IndexedPrimitive
 		: mType(type), mVertices(size)
 	{
 	}
+	bool operator==(const IndexedPrimitive& rhs) const {
+		return mType == rhs.mType && mVertices == rhs.mVertices;
+	}
 };
 
 } // namespace libcube

@@ -11,6 +11,7 @@
 
 #include <plugins/gc/Export/Install.hpp>
 
+
 namespace riistudio::g3d {
 void Install();
 }
@@ -238,7 +239,7 @@ RootWindow::RootWindow()
 	kpi::ReflectionMesh::getInstance()->getDataMesh().compute();
 
 	// Theme defaults
-	// mTheme.setTheme<ThemeManager::BasicTheme::ZenithDark>();
+	mTheme.setTheme<ThemeManager::BasicTheme::ZenithDark>();
 }
 RootWindow::~RootWindow()
 {

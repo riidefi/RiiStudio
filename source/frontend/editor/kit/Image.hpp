@@ -11,10 +11,10 @@ class ImagePreview
 {
 public:
 	ImagePreview();
-
+	~ImagePreview();
 	void setFromImage(const lib3d::Texture& tex);
 
-	void draw();
+	void draw(float width=-1.0f, float height=-1.0f);
 
 private:
 	u16 width = 0;

@@ -52,6 +52,9 @@ public:
 	struct FolderData : public std::vector<std::unique_ptr<IDocumentNode>> {
 		FolderData() {}
 		FolderData(const FolderData& rhs) {
+			*this = rhs;
+		}
+		FolderData& operator=(const FolderData& rhs) {
 			state = rhs.state;
 			type = rhs.type;
 			parent = rhs.parent;
@@ -63,6 +66,7 @@ public:
 				[](const std::unique_ptr<IDocumentNode>& it) {
 					return it->cloneDeep();
 				});
+			return *this;
 		}
 		template<typename T>
 		const T& at(std::size_t i) const {
@@ -358,6 +362,15 @@ public:
 	//!
 	template<typename T>
 	ApplicationPlugins& addType();
+
+	//! @brief Add a type with a parent.
+	//!
+	template<typename T, typename P>
+	inline ApplicationPlugins& addType() {
+		addType<T>();
+		registerParent<T, P>();
+		return *this;
+	}
 
 	//! @brief Add a binary serializer (writer) to the internal registry.
 	//!

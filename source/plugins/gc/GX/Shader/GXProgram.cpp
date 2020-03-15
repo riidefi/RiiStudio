@@ -129,7 +129,8 @@ std::string GXProgram::generateLightChannels()
 // Matrix
 std::string GXProgram::generateMulPntMatrixStatic(gx::PostTexMatrix pnt, const std::string& src)
 {
-	if (pnt == gx::PostTexMatrix::Identity
+	// TODO
+	if (true || pnt == gx::PostTexMatrix::Identity
 		|| (int)pnt == (int)gx::TexMatrix::Identity) {
 		return src + ".xyz";
 	}
@@ -205,7 +206,8 @@ std::string GXProgram::generateTexGenSource(gx::TexGenSrc src)
 // Output is a vec3, src is a vec4.
 std::string GXProgram::generatePostTexGenMatrixMult(const gx::TexCoordGen& texCoordGen, int id, const std::string& src)
 {
-	if (texCoordGen.postMatrix == gx::PostTexMatrix::Identity) {
+	// TODO:
+	if (true || texCoordGen.postMatrix == gx::PostTexMatrix::Identity) {
 		return src + ".xyz";
 	}
 	else if (texCoordGen.postMatrix >= gx::PostTexMatrix::Matrix0) {
@@ -229,7 +231,8 @@ vec3_string GXProgram::generateTexGenMatrixMult(const gx::TexCoordGen& texCoordG
 		return generateMulPntMatrixDynamic(attrStr, src);
 	}
 	else {
-		return generateMulPntMatrixStatic((gx::PostTexMatrix)texCoordGen.matrix, src);
+		// TODO: Verify
+		return generateMulPntMatrixStatic(texCoordGen.postMatrix, src);
 	}
 }
 
@@ -260,8 +263,8 @@ std::string GXProgram::generateTexGenNrm(const gx::TexCoordGen& texCoordGen, int
 std::string GXProgram::generateTexGenPost(const gx::TexCoordGen& texCoordGen, int id)
 {
 	const auto src = generateTexGenNrm(texCoordGen, id);
-
-	if (texCoordGen.postMatrix == gx::PostTexMatrix::Identity)
+	// TODO
+	if (true || texCoordGen.postMatrix == gx::PostTexMatrix::Identity)
 		return src;
 	else
 		return generatePostTexGenMatrixMult(texCoordGen, id,  "vec4(" + src + ", 1.0)");
@@ -991,7 +994,7 @@ void main() {
 	"    vec4 t_PixelOut = TevOverflow(t_TevOutput);\n" +
 		generateAlphaTest() +
 		generateFog() +
-		//"    ;gl_FragColor = vec4(texture(u_Texture[0], v_TexCoord0.xy / v_TexCoord0.z).rgb, 0.5);"
+		//"    t_PixelOut = vec4(texture(u_Texture[1], v_TexCoord1.xy / v_TexCoord1.z).rgb, 0.5);"
 		"    fragOut = t_PixelOut;\n"
 		"}\n";
 	return { vert, frag };

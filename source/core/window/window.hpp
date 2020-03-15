@@ -25,6 +25,10 @@ public:
     Window* mActive = nullptr;
     Window* mParent = nullptr;
     std::vector<std::unique_ptr<Window>> mChildren;
+
+//	#ifdef RII_BACKEND_GLFW
+//		GLFWwindow* mpGlfwWindow = nullptr;
+//	#endif
 };
 
 } // riistudio::core
