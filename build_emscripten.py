@@ -118,7 +118,7 @@ def compile(source, int_dir, debug):
 	if debug:
 		args += " -g4 -O0 "
 	else:
-		args += " -O3 " 
+		args += " -O3 -flto " 
 	args += " -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 -c -o"
 	dst = format_out(source, int_dir)
 	args += " " + dst + " " + source

@@ -58,7 +58,9 @@ Applet::Applet(const char* name)
 	{
 		fprintf(stderr, "Failed to load fonts");
 	}
+#ifdef RII_BACKEND_GLFW
 	mpGlfwWindow = getGlfwWindow();
+#endif
 }
 
 Applet::~Applet()
@@ -76,7 +78,9 @@ void Applet::frameRender()
 {
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
-
+#ifdef DEBUG
+static bool demo = true;
+#endif
 void Applet::frameProcess()
 {
 	// processWindowQueue();
@@ -91,9 +95,9 @@ void Applet::frameProcess()
 	ImGui::NewFrame();
 
 	ImGui::GetIO().FontGlobalScale = .8;
-
-	static bool demo = true;
+#ifdef DEBUG
 	ImGui::ShowDemoWindow(&demo);
+#endif
     draw(); // Call down to window manager
     
 
