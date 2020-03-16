@@ -469,6 +469,7 @@ struct MatEditor : public StudioWindow
 		}
 
 		bool drawLeft() {
+#if 0
 			Predicate<ImGui::EndChild> g;
 
 			if (!ImGui::BeginChild("left pane", ImVec2(150, 0), true))
@@ -478,7 +479,18 @@ struct MatEditor : public StudioWindow
 				if (ImGui::Selectable(_TabNames::get(tab), mCurrent == tab))
 					mCurrent = tab;
 			});
-
+#else
+			if (ImGui::BeginTabBar("Pane")) {
+				forEachTab([&](ETabs tab) {
+					bool sel = mCurrent == tab;
+					if (ImGui::BeginTabItem(_TabNames::get(tab))) {
+						mCurrent = tab;
+						ImGui::EndTabItem();
+					}
+				});
+				ImGui::EndTabBar();
+			}
+#endif
 			return true;
 		}
 
@@ -525,7 +537,7 @@ struct MatEditor : public StudioWindow
 		auto* active = dynamic_cast<libcube::IGCMaterial*>(matfolders[mMats->getActiveSelection()].get());
 		ImGui::Text("%s %s (%u)", active->getName().c_str(), mats.size() > 1 ? "..." : "", static_cast<u32>(mats.size()));
 		mTabGui.drawLeft();
-		ImGui::SameLine();
+		// ImGui::SameLine();
 		ImGui::BeginGroup();
 		{
 			auto property = [&](auto compare_fn, auto set_fn, auto ref) {
