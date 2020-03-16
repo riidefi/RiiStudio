@@ -383,6 +383,38 @@ void IGCMaterial::genSamplUniforms(u32 shaderId, const std::map<std::string, u32
 			printf("Invalid texture link.\n");
 		// else printf("Tex id: %u\n", texIdMap.at(data.samplers[i]->mTexture));
 		glBindTexture(GL_TEXTURE_2D, texIdMap.at(data.samplers[i]->mTexture));
+
+		auto gxFilterToGl = [](gx::TextureFilter filter) {
+			switch (filter) {
+			case gx::TextureFilter::linear:
+				return GL_LINEAR;
+			case gx::TextureFilter::near:
+				return GL_NEAREST;
+			case gx::TextureFilter::lin_mip_lin:
+				return GL_LINEAR_MIPMAP_LINEAR;
+			case gx::TextureFilter::lin_mip_near:
+				return GL_LINEAR_MIPMAP_NEAREST;
+			case gx::TextureFilter::near_mip_lin:
+				return GL_NEAREST_MIPMAP_LINEAR;
+			case gx::TextureFilter::near_mip_near:
+				return GL_NEAREST_MIPMAP_NEAREST;
+			}
+		};
+		auto gxTileToGl = [](gx::TextureWrapMode wrap) {
+			switch (wrap) {
+			case gx::TextureWrapMode::Clamp:
+				return GL_CLAMP_TO_EDGE;
+			case gx::TextureWrapMode::Repeat:
+				return GL_REPEAT;
+			case gx::TextureWrapMode::Mirror:
+				return GL_MIRRORED_REPEAT;
+			}
+		};
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gxFilterToGl(data.samplers[i]->mMinFilter));
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gxFilterToGl(data.samplers[i]->mMagFilter));
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, gxTileToGl(data.samplers[i]->mWrapU));
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, gxTileToGl(data.samplers[i]->mWrapV));
 	}
 }
 void IGCMaterial::setMegaState(MegaState& state) const

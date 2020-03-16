@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 struct GLFWwindow;
 
@@ -15,10 +16,11 @@ public:
 
     virtual void draw() {}
 
-    inline void drawChildren() {
-        for (auto& child : mChildren)
-            child->draw();
-    }
+    inline void drawChildren() { for (auto& child : mChildren) child->draw(); }
+	inline void detachClosedChildren() {
+		for (auto& child : mChildren) child->detachClosedChildren();
+		mChildren.erase(std::remove_if(mChildren.begin(), mChildren.end(), [](const auto& x) { return !x->bOpen; }), mChildren.end());
+	}
 
     bool bOpen = true;
     u32 mId = 0;

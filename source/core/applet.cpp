@@ -83,8 +83,7 @@ static bool demo = true;
 #endif
 void Applet::frameProcess()
 {
-	// processWindowQueue();
-	// The queue/vector should not be modified here
+	detachClosedChildren();
 
 	ImGui_ImplOpenGL3_NewFrame();
 #ifdef RII_BACKEND_GLFW

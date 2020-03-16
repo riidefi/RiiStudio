@@ -12,9 +12,20 @@
 
 #ifdef _WIN32
 #include <vendor/glfw/glfw3.h>
+#else
+#include <SDL.h>
+
+#include <emscripten.h>
+
+#include <emscripten/html5.h>
 #endif
 
 #include <algorithm>
+
+// Web security...
+#ifdef __EMSCRIPTEN__
+extern bool gPointerLock;
+#endif
 
 namespace riistudio::frontend {
 
@@ -321,6 +332,11 @@ struct RenderTest : public StudioWindow
 #ifdef RII_BACKEND_GLFW
 			if (mpGlfwWindow != nullptr)
 				glfwSetInputMode(mpGlfwWindow, GLFW_CURSOR, showCursor ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+#elif defined(RII_BACKEND_SDL) && defined(__EMSCRIPTEN__)
+			gPointerLock = !showCursor;
+			if (showCursor) emscripten_exit_pointerlock();
+			else emscripten_request_pointerlock(0, EM_TRUE);
+			// SDL_SetRelativeMouseMode(!showCursor ? SDL_TRUE : SDL_FALSE);
 #endif
 			mViewport.end();
 		}
@@ -677,7 +693,7 @@ struct MatEditor : public StudioWindow
 												int texmatrixid = 0;
 												const int rawtgmatrix = static_cast<int>(tg.matrix);
 												if (rawtgmatrix >= static_cast<int>(libcube::gx::TexMatrix::TexMatrix0) && rawtgmatrix <= static_cast<int>(libcube::gx::TexMatrix::TexMatrix7)) {
-													texmatrixid = rawtgmatrix - static_cast<int>(libcube::gx::TexMatrix::TexMatrix0);
+													texmatrixid = (rawtgmatrix - static_cast<int>(libcube::gx::TexMatrix::TexMatrix0)) / 3;
 												}
 												ImGui::Checkbox("Identity Matrix", &identitymatrix);
 												ImGui::SameLine();
@@ -686,7 +702,7 @@ struct MatEditor : public StudioWindow
 													ImGui::SliderInt("Matrix ID", &texmatrixid, 0, 7);
 												}
 												libcube::gx::TexMatrix newtexmatrix = identitymatrix ? libcube::gx::TexMatrix::Identity :
-													static_cast<libcube::gx::TexMatrix>(static_cast<int>(libcube::gx::TexMatrix::TexMatrix0) + texmatrixid);
+													static_cast<libcube::gx::TexMatrix>(static_cast<int>(libcube::gx::TexMatrix::TexMatrix0) + texmatrixid * 3);
 												AUTO_PROP(texGens[i].matrix, newtexmatrix);
 											}
 											{
@@ -1024,6 +1040,7 @@ struct MatEditor : public StudioWindow
 									ImGui::Text(") * ");
 									ImGui::SameLine();
 									ImGui::Combo("##A", &a, colorOpt);
+
 									ImGui::SameLine();
 									ImGui::Text(" + ");
 									ImGui::SameLine();
@@ -1034,11 +1051,64 @@ struct MatEditor : public StudioWindow
 									ImGui::Combo("##B", &b, colorOpt);
 									ImGui::SameLine();
 									ImGui::Text(" } ");
+
+									AUTO_PROP(shader.mStages[i].colorStage.a, static_cast<libcube::gx::TevColorArg>(a));
+									AUTO_PROP(shader.mStages[i].colorStage.b, static_cast<libcube::gx::TevColorArg>(b));
+									AUTO_PROP(shader.mStages[i].colorStage.c, static_cast<libcube::gx::TevColorArg>(c));
+									AUTO_PROP(shader.mStages[i].colorStage.d, static_cast<libcube::gx::TevColorArg>(d));
 									//ImGui::SameLine();
 									//ImGui::Combo("##Bias", &bias, "+ 0.0\0+")
 
 									ImGui::Checkbox("Clamp calculation to 0-255", &clamp);
 									ImGui::Combo("Calculation Result Output Destionation", &dst, "Register 3\0Register 0\0Register 1\0Register 2");
+									ImGui::PopItemWidth();
+								}
+								if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
+									ImGui::PushItemWidth(200);
+									ImGui::PushID("Alpha");
+									ImGui::Text("[");
+									ImGui::SameLine();
+									int a = static_cast<int>(stage.alphaStage.a);
+									int b = static_cast<int>(stage.alphaStage.b);
+									int c = static_cast<int>(stage.alphaStage.c);
+									int d = static_cast<int>(stage.alphaStage.d);
+									bool clamp = stage.alphaStage.clamp;
+									int dst = static_cast<int>(stage.alphaStage.out);
+									const char* alphaOpt = "Register 3 Alpha\0Register 0 Alpha\0Register 1 Alpha\0Register 2 Alpha\0Texture Alpha\0Raster Alpha\0Constant Alpha Selection\0 0.0\0";
+									ImGui::Combo("##AD", &d, alphaOpt);
+									ImGui::SameLine();
+									ImGui::Text("{(1 - ");
+									{
+										ConditionalActive g(false);
+										ImGui::SameLine();
+										ImGui::Combo("##C_", &c, alphaOpt);
+									}
+									ImGui::SameLine();
+									ImGui::Text(") * ");
+									ImGui::SameLine();
+									ImGui::Combo("##AA", &a, alphaOpt);
+
+									ImGui::SameLine();
+									ImGui::Text(" + ");
+									ImGui::SameLine();
+									ImGui::Combo("##AC", &c, alphaOpt);
+									ImGui::SameLine();
+									ImGui::Text(" * ");
+									ImGui::SameLine();
+									ImGui::Combo("##AB", &b, alphaOpt);
+									ImGui::SameLine();
+									ImGui::Text(" } ");
+
+									AUTO_PROP(shader.mStages[i].alphaStage.a, static_cast<libcube::gx::TevAlphaArg>(a));
+									AUTO_PROP(shader.mStages[i].alphaStage.b, static_cast<libcube::gx::TevAlphaArg>(b));
+									AUTO_PROP(shader.mStages[i].alphaStage.c, static_cast<libcube::gx::TevAlphaArg>(c));
+									AUTO_PROP(shader.mStages[i].alphaStage.d, static_cast<libcube::gx::TevAlphaArg>(d));
+									//ImGui::SameLine();
+									//ImGui::Combo("##Bias", &bias, "+ 0.0\0+")
+
+									ImGui::Checkbox("AClamp calculation to 0-255", &clamp);
+									ImGui::Combo("ACalculation Result Output Destionation", &dst, "Register 3\0Register 0\0Register 1\0Register 2");
+									ImGui::PopID();
 									ImGui::PopItemWidth();
 								}
 							}

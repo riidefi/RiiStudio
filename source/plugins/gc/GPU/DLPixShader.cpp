@@ -203,6 +203,7 @@ void QDisplayListShaderHandler::onStreamEnd() {
 		}
 		// IND_CMD
 		{
+			assert("Corrupted shader data. Have you saved this file in unstable software?" && mGpuShader.isDefinedIndCmd(i));
 			const auto& iCmd = mGpuShader.indCmd[i];
 			auto& dst = stage.indirectStage;
 

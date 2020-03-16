@@ -10,7 +10,7 @@
 #include <oishii/reader/binary_reader.hxx>
 
 #include <plugins/gc/Export/Install.hpp>
-
+#include <plugins/pik/installer.hpp>
 
 namespace riistudio::g3d {
 void Install();
@@ -238,6 +238,7 @@ RootWindow::RootWindow()
 	libcube::Install();
 	// libcube::jsystem::Install();
 	g3d::Install();
+	pik::Install(*kpi::ApplicationPlugins::getInstance());
 
 	//	px::PackageInstaller::spInstance->installModule("nw.dll");
 

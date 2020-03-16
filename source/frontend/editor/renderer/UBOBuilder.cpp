@@ -162,9 +162,12 @@ void VBOBuilder::build()
 		GLsizei stride,
 		const void* pointer)
 	{
+		printf("Index: %u, size: %i, stride: %i, ofs: %u\n", index, size, stride, (u32)pointer);
+
+		assert(stride != 0);
+
 		glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 
-		printf("Index: %u, size: %i, stride: %i, ofs: %u\n", index, size, stride, (u32)pointer);
 
 		assert(glGetError() == GL_NO_ERROR);
 		if (glGetError() != GL_NO_ERROR)
@@ -173,6 +176,8 @@ void VBOBuilder::build()
 
 	for (const auto& attrib : mAttribStack)
 	{
+		// TODO: Hack
+		if (attrib.first.name == nullptr) continue;
 		assert(attrib.first.format == GL_FLOAT);
 		vertexAttribPointer(attrib.first.binding_point, attrib.first.size/4, GL_FLOAT, GL_FALSE, attrib.first.size, (void*)(u32)attrib.second);
 		//glVertexAttribPointer(attrib.first.binding_point, attrib.first.size, attrib.first.format, GL_FALSE, attrib.first.size, (void*)attrib.second);

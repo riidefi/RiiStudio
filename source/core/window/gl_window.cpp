@@ -19,6 +19,7 @@
 
 #ifndef _WIN32
 #include <emscripten.h>
+#include <emscripten/html5.h>
 #include <vendor/imgui/impl/imgui_impl_sdl.h>
 
 #include <SDL.h>
@@ -29,6 +30,8 @@
 // Having a single function that acts as a loop prevents us to store state in the stack of said function. So we need some location for this.
 SDL_Window* g_Window = NULL;
 SDL_GLContext   g_GLContext = NULL;
+
+bool gPointerLock = false;
 
 #endif
 
@@ -314,9 +317,24 @@ void GLWindow::mainLoopInternal()
 #endif
 
 }
+#ifdef __EMSCRIPTEN__
+// based on https://github.com/raysan5/raylib/commit/d2d4b17633d623999eb2509ff24f741b5d669b35#diff-cdfc1aea8847d91e401cad52d98e6d70R2723
+static EM_BOOL EmscriptenMouseCallback(int eventType, const EmscriptenMouseEvent* mouseEvent, void* userData)
+{
+	printf("CB\n");
+	if (gPointerLock)emscripten_request_pointerlock(0, 1);
+	else emscripten_exit_pointerlock();
 
+	return 0;
+}
+#endif
 void GLWindow::loop()
 {
+	// Hacky workaround...
+#ifdef __EMSCRIPTEN__
+	emscripten_set_click_callback(0, 0, 1, EmscriptenMouseCallback);
+#endif
+
 #ifdef _WIN32
 #ifdef RII_BACKEND_GLFW
 	while (!glfwWindowShouldClose(mGlfwWindow))

@@ -158,6 +158,13 @@ void IndexedPolygon::propogate(VBOBuilder& out) const
 		{
 			out.mIndices.push_back(static_cast<u32>(out.mIndices.size()));
 			final_bitfield |= vcd.mBitfield;
+			// HACK:
+			if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::TexCoord1)))
+				out.pushData(8, glm::vec2{});
+			if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::Normal)))
+				out.pushData(4, glm::vec3{});
+			//	if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::Color0)))
+			//		out.pushData(5, glm::vec4{});
 			for (u32 i = 0; i < (u32)gx::VertexAttribute::Max; ++i)
 			{
 				if (!(vcd.mBitfield & (1 << i))) continue;
@@ -248,7 +255,8 @@ void IndexedPolygon::propogate(VBOBuilder& out) const
 	{
 		if (!(final_bitfield & (1 << i))) continue;
 
-		const auto& def = getVertexAttribGenDef((gx::VertexAttribute)i);
+		const auto def = getVertexAttribGenDef((gx::VertexAttribute)i);
+		assert(def.first.name != nullptr);
 		out.mPropogating[def.second].first = VAOEntry{ (u32)def.second, def.first.name, def.first.format, def.first.size * 4 };
 	}
 }

@@ -29,7 +29,6 @@ glm::vec4 Polygon::getClr(u64 id) const {
 			const auto* buf = dynamic_cast<ColorBuffer*>(p.get());
 			const auto entry = buf->mEntries[id];
 			const libcube::gx::ColorF32 ef32 = entry;
-			assert(static_cast<glm::vec4>(ef32).a != 0);
 			return ef32;
 		}
 	}

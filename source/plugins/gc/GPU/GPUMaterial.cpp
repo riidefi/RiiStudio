@@ -121,7 +121,7 @@ XF_TEXTURE::operator gx::TexCoordGen()
 }
 LitChannel::operator gx::ChannelControl()
 {
-	return gx::ChannelControl {
+	return {
 		lightFunc.Value() != 0,
 		static_cast<gx::ColorSource>(ambsource.Value()),
 		static_cast<gx::ColorSource>(matsource.Value()),

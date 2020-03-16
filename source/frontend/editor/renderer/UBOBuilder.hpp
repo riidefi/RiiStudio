@@ -89,9 +89,10 @@ struct VBOBuilder
 	template<typename T>
 	void pushData(u32 binding_point, const T& data)
 	{
-		const std::size_t begin = mPropogating[binding_point].second.size();
-		mPropogating[binding_point].second.resize(mPropogating[binding_point].second.size() + sizeof(T));
-		*reinterpret_cast<T*>(mPropogating[binding_point].second.data() + begin) = data;
+		auto& attrib_buf = mPropogating[binding_point];
+		const std::size_t begin = attrib_buf.second.size();
+		attrib_buf.second.resize(attrib_buf.second.size() + sizeof(T));
+		*reinterpret_cast<T*>(attrib_buf.second.data() + begin) = data;
 	}
 	u32 VAO;
 	u32 mPositionBuf, mIndexBuf;

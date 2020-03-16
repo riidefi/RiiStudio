@@ -10,9 +10,10 @@ std::string GXProgram::generateMaterialSource(const gx::ChannelControl& chan, in
 {
     switch (chan.Material)
     {
-		case ColorSource::Vertex: return "a_Color" + std::to_string(i);
-		default:
-		case ColorSource::Register: return "u_ColorMatReg[" + std::to_string(i) + "]";
+		case ColorSource::Vertex:
+			return "a_Color" + std::to_string(i);
+		case ColorSource::Register:
+			return "u_ColorMatReg[" + std::to_string(i) + "]";
     }
 }
 
@@ -653,7 +654,7 @@ std::string GXProgram::generateTevTexCoordIndTexCoord(const gx::TevStage& stage)
 	const auto baseCoord = "(t_IndTexCoord" + std::to_string(stage.indirectStage.indStageSel) + ")";
 	switch (stage.indirectStage.format) {
 	case gx::IndTexFormat::_8bit: return baseCoord;
-	default: throw "";
+	default: printf("Warning: Unsupported IndTexFmt\n"); return baseCoord;
 	}
 }
 
@@ -1085,8 +1086,12 @@ u32 translateCompareType(gx::Comparison compareType)
 
 void translateGfxMegaState(MegaState& megaState, GXMaterial& material)
 {
-	megaState.cullMode = translateCullMode(material.mat.getMaterialData().cullMode);
-	// megaState.depthWrite = material.ropInfo.depthWrite;
+	auto& matdata = material.mat.getMaterialData();
+	megaState.cullMode = translateCullMode(matdata.cullMode);
+	// TODO: If compare is false, is depth masked?
+	megaState.depthWrite = matdata.zMode.compare && matdata.zMode.update;
+	// TODO: zmode "compare" part no reference
+	megaState.depthCompare = matdata.zMode.compare ? translateCompareType(matdata.zMode.function) : GL_ALWAYS;
 	// megaState.depthCompare = material.ropInfo.depthTest ? reverseDepthForCompareMode(translateCompareType(material.ropInfo.depthFunc)) : GfxCompareMode.ALWAYS;
 	megaState.frontFace = GL_CW;
 	
