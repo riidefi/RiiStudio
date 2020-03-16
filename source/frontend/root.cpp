@@ -219,7 +219,12 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
 void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor)
 {
 	mAttachEditorsQueue.push(editor->getName());
-
+#ifdef RII_BACKEND_GLFW
+	editor->mpGlfwWindow = mpGlfwWindow;
+	for (auto& child : editor->mChildren) {
+		child->mpGlfwWindow = mpGlfwWindow;
+	}
+#endif
 	mChildren.push_back(std::move(editor));
 }
 

@@ -313,8 +313,13 @@ struct RenderTest : public StudioWindow
 		if (mViewport.begin(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y)))
 		{
 			auto* parent = dynamic_cast<EditorWindow*>(mParent);
-			bool showCursor = false;
+			static bool showCursor = false; // TODO
 			mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y), showCursor);
+
+#ifdef RII_BACKEND_GLFW
+			if (mpGlfwWindow != nullptr)
+				glfwSetInputMode(mpGlfwWindow, GLFW_CURSOR, showCursor ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+#endif
 			mViewport.end();
 		}
 	}

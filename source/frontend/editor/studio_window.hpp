@@ -19,6 +19,9 @@ public:
 
 	void attachWindow(std::unique_ptr<StudioWindow> win) {
 		win->mParent = this;
+#ifdef RII_BACKEND_GLFW
+		win->mpGlfwWindow = mpGlfwWindow;
+#endif
 		mChildren.emplace_back(std::move(win));
 	}
 	virtual void draw_() {}

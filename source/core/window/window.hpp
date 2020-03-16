@@ -5,6 +5,8 @@
 #include <vector>
 #include <memory>
 
+struct GLFWwindow;
+
 namespace riistudio::core {
 
 class Window {
@@ -26,9 +28,9 @@ public:
     Window* mParent = nullptr;
     std::vector<std::unique_ptr<Window>> mChildren;
 
-//	#ifdef RII_BACKEND_GLFW
-//		GLFWwindow* mpGlfwWindow = nullptr;
-//	#endif
+	#ifdef RII_BACKEND_GLFW
+		GLFWwindow* mpGlfwWindow = nullptr;
+	#endif
 };
 
 } // riistudio::core

@@ -58,7 +58,7 @@ Applet::Applet(const char* name)
 	{
 		fprintf(stderr, "Failed to load fonts");
 	}
-
+	mpGlfwWindow = getGlfwWindow();
 }
 
 Applet::~Applet()
