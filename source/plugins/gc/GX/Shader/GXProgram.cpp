@@ -130,7 +130,7 @@ std::string GXProgram::generateLightChannels()
 std::string GXProgram::generateMulPntMatrixStatic(gx::PostTexMatrix pnt, const std::string& src)
 {
 	// TODO
-	if (true || pnt == gx::PostTexMatrix::Identity
+	if (pnt == gx::PostTexMatrix::Identity
 		|| (int)pnt == (int)gx::TexMatrix::Identity) {
 		return src + ".xyz";
 	}
@@ -232,7 +232,7 @@ vec3_string GXProgram::generateTexGenMatrixMult(const gx::TexCoordGen& texCoordG
 	}
 	else {
 		// TODO: Verify
-		return generateMulPntMatrixStatic(texCoordGen.postMatrix, src);
+		return generateMulPntMatrixStatic(static_cast<libcube::gx::PostTexMatrix>(texCoordGen.matrix), src);
 	}
 }
 

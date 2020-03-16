@@ -290,6 +290,7 @@ struct TexImgPreview : public StudioWindow
 };
 struct RenderTest : public StudioWindow
 {
+	
 	RenderTest(const kpi::IDocumentNode& host)
 		: StudioWindow("Viewport"), mHost(host)
 	{
@@ -303,7 +304,8 @@ struct RenderTest : public StudioWindow
 		if (models->size() == 0)
 			return;
 
-		mRenderer.prepare(models->at<kpi::IDocumentNode>(0), host);
+		model = &models->at<kpi::IDocumentNode>(0);
+		mRenderer.prepare(*model, host);
 	}
 	void draw_() override
 	{
@@ -325,7 +327,8 @@ struct RenderTest : public StudioWindow
 	}
 	Viewport mViewport;
 	Renderer mRenderer;
-	const kpi::IDocumentNode& mHost;
+	const kpi::IDocumentNode* model;
+	const kpi::IDocumentNode& mHost; // texture
 };
 
 struct HistoryList : public StudioWindow
@@ -550,7 +553,7 @@ struct MatEditor : public StudioWindow
 			};
 #define AUTO_PROP(type, ref) \
 	property([&](auto m) { return m == active->getMaterialData().type; }, \
-			 [&](libcube::IGCMaterial* mat, auto m) { mat->getMaterialData().type = m; }, \
+			 [&](libcube::IGCMaterial* mat, auto m) { mat->getMaterialData().type = m; mat->notifyObservers(); }, \
 			 ref);
 
 

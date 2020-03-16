@@ -147,11 +147,11 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl, const glm::
 	assert(transformModel != CommonTransformModel::Max && transformModel != CommonTransformModel::XSI);
 
 	glm::mat4 texsrt(1.0f);
-	if (transformModel == CommonTransformModel::Maya)
+	if (transformModel == CommonTransformModel::Maya) {
 		calcTexMtx_Maya(texsrt, scale.x, scale.y, rotate, translate.x, translate.y);
-	else
+	} else {
 		calcTexMtx_Basic(texsrt, scale.x, scale.y, rotate, translate.x, translate.y, 0.5, 0.5, 0.5);
-
+	}
 	glm::mat4 inmtx(1.0f);
 	switch (method)
 	{

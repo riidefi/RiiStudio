@@ -26,7 +26,7 @@ namespace riistudio::frontend {
 
 struct SceneTree
 {
-	struct Node
+	struct Node : public lib3d::IObserver
 	{
 		const lib3d::Material& mat;
 		const lib3d::Polygon& poly;
@@ -40,6 +40,15 @@ struct SceneTree
 		mutable u32 idx_size = 0;
 		mutable u32 mtx_id = 0;
 
+		Node(const lib3d::Material& m, const lib3d::Polygon& p, const lib3d::Bone& b, u8 prio, ShaderProgram& prog)
+			: mat(m), poly(p), bone(b), priority(prio), shader(prog)
+		{}
+
+		void update() override {
+			const auto shader_sources = mat.generateShaders();
+			shader = ShaderCache::compile(shader_sources.first, shader_sources.second);
+		}
+
 		bool isTranslucent() const
 		{
 			return mat.isXluPass();
@@ -48,7 +57,7 @@ struct SceneTree
 	};
 
 
-	std::vector<Node> opaque, translucent;
+	std::vector<std::unique_ptr<Node>> opaque, translucent;
 
 
 	void gatherBoneRecursive(u64 boneId, const kpi::FolderData& bones,
@@ -60,15 +69,17 @@ struct SceneTree
 		for (u64 i = 0; i < nDisplay; ++i)
 		{
 			const auto display = pBone.getDisplay(i);
-			const auto& shader_sources = mats.at<lib3d::Material>(display.matId).generateShaders();
+			const auto& mat = mats.at<lib3d::Material>(display.matId);
+			
+			const auto shader_sources = mat.generateShaders();
 			ShaderProgram& shader = ShaderCache::compile(shader_sources.first, shader_sources.second);
-			const Node node{ mats.at<lib3d::Material>(display.matId),
+			const Node node { mats.at<lib3d::Material>(display.matId),
 				polys.at<lib3d::Polygon>(display.polyId), pBone, display.prio, shader };
 
-			if (node.isTranslucent())
-				translucent.push_back(node);
-			else
-				opaque.push_back(node);
+			auto& nodebuf = node.isTranslucent() ? translucent : opaque;
+
+			nodebuf.push_back(std::make_unique<Node>(node));
+			nodebuf.back()->mat.observers.push_back(nodebuf.back().get());
 		}
 
 		for (u64 i = 0; i < pBone.getNumChildren(); ++i)
@@ -117,9 +128,9 @@ struct SceneState
 		// TODO -- nodes may be of incompatible type..
 		for (const auto& node : mTree.opaque)
 		{
-			node.idx_ofs = static_cast<u32>(mVbo.mIndices.size());
-			node.poly.propogate(mVbo);
-			node.idx_size = static_cast<u32>(mVbo.mIndices.size()) - node.idx_ofs;
+			node->idx_ofs = static_cast<u32>(mVbo.mIndices.size());
+			node->poly.propogate(mVbo);
+			node->idx_size = static_cast<u32>(mVbo.mIndices.size()) - node->idx_ofs;
 		}
 
 		mVbo.build();
@@ -163,12 +174,12 @@ struct SceneState
 		}
 	}
 
-	void gather(const kpi::IDocumentNode& model, const kpi::IDocumentNode& texture)
+	void gather(const kpi::IDocumentNode& model, const kpi::IDocumentNode& texture, bool buf=true, bool tex=true)
 	{
 		bones = model.getFolder<lib3d::Bone>();
 		mTree.gather(model);
-		buildBuffers();
-		buildTextures(texture);
+		if (buf) buildBuffers();
+		if (tex) buildTextures(texture);
 
 		//	const auto mats = root.getFolder<lib3d::Material>();
 		//	const auto mat = mats->at<lib3d::Material>(0);
@@ -218,10 +229,10 @@ struct SceneState
 
 		for (const auto& node : mTree.opaque)
 		{
-			auto mdl = computeBoneMdl(node.bone);
+			auto mdl = computeBoneMdl(node->bone);
 
-			auto nmax = mdl * glm::vec4(node.poly.getBounds().max, 0.0f);
-			auto nmin = mdl * glm::vec4(node.poly.getBounds().min, 0.0f);
+			auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
+			auto nmin = mdl * glm::vec4(node->poly.getBounds().min, 0.0f);
 
 			riistudio::core::AABB newBound{ nmin, nmax };
 			bound.expandBound(newBound);
@@ -234,10 +245,10 @@ struct SceneState
 		u32 i = 0;
 		for (const auto& node : mTree.opaque)
 		{
-			auto mdl = computeBoneMdl(node.bone);
+			auto mdl = computeBoneMdl(node->bone);
 
-			node.mat.generateUniforms(mUboBuilder, mdl, view, proj, node.shader.getId(), texIdMap);
-			node.mtx_id = i;
+			node->mat.generateUniforms(mUboBuilder, mdl, view, proj, node->shader.getId(), texIdMap);
+			node->mtx_id = i;
 			++i;
 		}
 
@@ -258,7 +269,7 @@ struct SceneState
 
 		for (const auto& node : mTree.opaque)
 		{
-			node.mat.setMegaState(state);
+			node->mat.setMegaState(state);
 			glEnable(GL_BLEND);
 			glBlendFunc(state.blendSrcFactor, state.blendDstFactor);
 			glBlendEquation(state.blendMode);
@@ -273,14 +284,14 @@ struct SceneState
 			}
 			glFrontFace(state.frontFace);
 			// TODO: depthWrite, depthCompare
-			assert(mVbo.VAO && node.idx_size >= 0 && node.idx_size % 3 == 0);
-			glUseProgram(node.shader.getId());
-			mUboBuilder.use(node.mtx_id);
+			assert(mVbo.VAO && node->idx_size >= 0 && node->idx_size % 3 == 0);
+			glUseProgram(node->shader.getId());
+			mUboBuilder.use(node->mtx_id);
 			glBindVertexArray(mVbo.VAO);
 
-			node.mat.genSamplUniforms(node.shader.getId(), texIdMap);
-			// printf("Draw: index (size=%u, ofs=%u)\n", node.idx_size, node.idx_ofs * 4);
-			glDrawElements(GL_TRIANGLES, node.idx_size, GL_UNSIGNED_INT, (void*)(node.idx_ofs * 4));
+			node->mat.genSamplUniforms(node->shader.getId(), texIdMap);
+			// printf("Draw: index (size=%u, ofs=%u)\n", node->idx_size, node->idx_ofs * 4);
+			glDrawElements(GL_TRIANGLES, node->idx_size, GL_UNSIGNED_INT, (void*)(node->idx_ofs * 4));
 			// if (glGetError() != GL_NO_ERROR) exit(1);
 		}
 
@@ -298,9 +309,9 @@ struct SceneState
 	std::vector<Texture> mTextures;
 };
 
-void Renderer::prepare(const kpi::IDocumentNode& model, const kpi::IDocumentNode& texture)
+void Renderer::prepare(const kpi::IDocumentNode& model, const kpi::IDocumentNode& texture, bool buf, bool tex)
 {
-	mState->gather(model, texture);
+	mState->gather(model, texture, buf, tex);
 }
 
 static void cb(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)

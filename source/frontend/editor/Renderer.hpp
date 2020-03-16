@@ -24,7 +24,7 @@ public:
 	void createShaderProgram() { bShadersLoaded = true; }
 	void destroyShaders() { bShadersLoaded = false; }
 
-	void prepare(const kpi::IDocumentNode& model, const kpi::IDocumentNode& texture);
+	void prepare(const kpi::IDocumentNode& model, const kpi::IDocumentNode& texture, bool buf=true, bool tex=true);
 
 private:
 	bool bShadersLoaded = false;
@@ -36,7 +36,6 @@ private:
 	std::vector<glm::vec3> colors;
 
 	std::unique_ptr<SceneState> mState;
-
 
 	// Mouse
 	float mouseSpeed = 0.02f;

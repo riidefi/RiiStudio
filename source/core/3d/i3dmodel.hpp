@@ -197,6 +197,10 @@ enum class PixelOcclusion
 	//!
 	Translucent
 };
+struct IObserver {
+	// TODO: Detach
+	virtual void update() {}
+};
 struct Material
 {
 	// // PX_TYPE_INFO("3D Material", "3d_material", "3D::Material");
@@ -214,6 +218,14 @@ struct Material
 	virtual void genSamplUniforms(u32 shaderId, const std::map<std::string, u32>& texIdMap) const = 0;
 	virtual void setMegaState(MegaState& state) const = 0;
 	virtual void configure(PixelOcclusion occlusion, std::vector<std::string>& textures) = 0;
+
+	// TODO: Better system..
+	void notifyObservers() {
+		for (auto* it : observers) {
+			it->update();
+		}
+	}
+	mutable std::vector<IObserver*> observers;
 };
 
 struct TextureCodec

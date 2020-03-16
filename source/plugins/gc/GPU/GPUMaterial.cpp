@@ -64,6 +64,7 @@ XF_TEXTURE::operator gx::TexCoordGen()
 {
 	gx::TexCoordGen tmp;
 
+	tmp.matrix = static_cast<libcube::gx::TexMatrix>(30 + id * 3);
 	// tmp.DestinationCoordinateID = id;
 
 	tmp.normalize = dualTex.normalize;
