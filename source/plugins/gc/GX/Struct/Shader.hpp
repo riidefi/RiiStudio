@@ -234,7 +234,7 @@ struct TevStage
 		TevAlphaArg d = TevAlphaArg::aprev;
 		TevAlphaOp formula;
 		// KSEL
-		TevKAlphaSel constantSelection;
+		TevKAlphaSel constantSelection = TevKAlphaSel::k0_a;
 		TevBias bias;
 		TevScale scale;
 		bool clamp;
@@ -272,7 +272,11 @@ struct TevStage
 
 	bool operator==(const TevStage& rhs) const noexcept
 	{
-		return colorStage == rhs.colorStage && alphaStage == rhs.alphaStage && indirectStage == rhs.indirectStage;
+		return	rasOrder == rhs.rasOrder && texMap == rhs.texMap && texCoord == rhs.texCoord &&
+				rasSwap == rhs.rasSwap && texMapSwap == rhs.texMapSwap &&
+				colorStage == rhs.colorStage &&
+				alphaStage == rhs.alphaStage &&
+				indirectStage == rhs.indirectStage;
 	}
 };
 

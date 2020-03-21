@@ -63,10 +63,14 @@ struct CorePackageInstaller : kpi::ApplicationPlugins
 
 	std::unique_ptr<kpi::IDocumentNode> spawnState(const std::string& type) const
 	{
-		for (const auto& it : mFactories)
-		{
-			if (it.first == type)
-				return it.second->spawn();
+		for (const auto& it : mFactories) {
+			if (it.first == type) {
+				auto doc = it.second->spawn();
+
+				doc->mType = type;
+
+				return doc;
+			}
 		}
 	
 		assert(!"Failed to spawn state..");
@@ -132,12 +136,11 @@ std::pair<std::string, std::unique_ptr<kpi::IBinaryDeserializer>> SpawnImporter(
 		};
 	}
 }
-#if 0
-std::unique_ptr<kpi::IBinarySerializer> SpawnExporter(const std::string& type)
+std::unique_ptr<kpi::IBinarySerializer> SpawnExporter(kpi::IDocumentNode& node)
 {
 	for (const auto& plugin : spCorePackageInstaller->mWriters)
 	{
-		if (plugin->canWrite_(type))
+		if (plugin->canWrite_(node))
 		{
 			return plugin->clone();
 		}
@@ -145,7 +148,6 @@ std::unique_ptr<kpi::IBinarySerializer> SpawnExporter(const std::string& type)
 
 	return nullptr;
 }
-#endif
 struct DataMesh : public kpi::DataMesh
 {
     kpi::InternalClassMirror* get(const std::string& id) override

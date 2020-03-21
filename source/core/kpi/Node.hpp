@@ -47,6 +47,7 @@ public:
 	virtual void setName(const std::string& v) {
 		defaultNameField = v;
 	}
+	std::string mType;
 	std::string defaultNameField = "Untitled";
 
 	struct FolderData : public std::vector<std::unique_ptr<IDocumentNode>> {
@@ -291,13 +292,19 @@ public:
 		setInternal(node);
 	}
 	void setInternal(IDocumentNode* node) {
-		assert(dynamic_cast<TDocumentNode<T>*>(node) != nullptr);
-		data = reinterpret_cast<TDocumentNode<T>*>(node);
+		if (node == nullptr) {
+			data = nullptr;
+		} else {
+			assert(dynamic_cast<TDocumentNode<T>*>(node) != nullptr);
+			data = reinterpret_cast<TDocumentNode<T>*>(node);
+		}
 	}
 	void setInternal(IDocumentNode& node) {
 		assert(dynamic_cast<TDocumentNode<T>*>(&node) != nullptr);
 		data = reinterpret_cast<TDocumentNode<T>*>(&node);
 	}
+	operator T& () { return get(); }
+	operator const T& () const { return get(); }
 
 #define __KPI_FMT_NODE(type) get##type##s
 #define KPI_NODE_FOLDER(type, acc) \

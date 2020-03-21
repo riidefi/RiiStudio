@@ -114,7 +114,7 @@ def compile(source, int_dir, debug):
 	for incl in INCLUDES:
 		args += " -I./" + incl + " "
 	args += " -Wall -std=c++17 -D\"__debugbreak()\"=\"\""
-	args += " -s USE_SDL=2"
+	args += " -s USE_SDL=2 -Wno-inconsistent-missing-override"
 	if debug:
 		args += " -g4 -O0 "
 	else:

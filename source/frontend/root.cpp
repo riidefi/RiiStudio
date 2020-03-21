@@ -1,3 +1,5 @@
+#include <vendor/pfd/portable-file-dialogs.h>
+
 #include "root.hpp"
 
 #include <vendor/imgui/imgui.h>
@@ -11,6 +13,11 @@
 
 #include <plugins/gc/Export/Install.hpp>
 #include <plugins/pik/installer.hpp>
+#include <plugins/j3d/Installer.hpp>
+
+#include <fstream>
+#include <oishii/v2/writer/binary_writer.hxx>
+
 
 namespace riistudio::g3d {
 void Install();
@@ -57,7 +64,7 @@ void RootWindow::draw() {
 
 	ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), 0);
 
-	EditorWindow* ed = dynamic_cast<EditorWindow*>(mActive);
+	EditorWindow* ed = dynamic_cast<EditorWindow*>(mActive ? mActive : !mChildren.empty() ? mChildren[0].get() : this);
 
 	if (ImGui::BeginMenuBar())
 	{
@@ -70,24 +77,24 @@ void RootWindow::draw() {
 			if (ImGui::MenuItem("Save"))
 			{
 				
-				//  if (ed)
-				//  {
-				//  	DebugReport("Attempting to save to %s\n", ed->getFilePath().c_str());
-				//  	if (!ed->getFilePath().empty())
-				//  		save(ed->getFilePath());
-				//  	else
-				//  		saveAs();
-				//  }
-				//  else
+				if (ed)
+				{
+					DebugReport("Attempting to save to %s\n", ed->getFilePath().c_str());
+					if (!ed->getFilePath().empty())
+						save(ed->getFilePath());
+					else
+						saveAs();
+				}
+				else
 				{
 					printf("Cannot save.. nothing has been opened.\n");
 				}
 			}
 			if (ImGui::MenuItem("Save As"))
 			{
-				//  if (ed)
-				//  	saveAs();
-				// else
+				if (ed)
+					saveAs();
+				else
                     printf("Cannot save.. nothing has been opened.\n");
 			}
 			ImGui::EndMenu();
@@ -236,7 +243,7 @@ RootWindow::RootWindow()
 	// Register plugins
 	//	lib3d::install();
 	libcube::Install();
-	// libcube::jsystem::Install();
+	j3d::Install(*kpi::ApplicationPlugins::getInstance());
 	g3d::Install();
 	pik::Install(*kpi::ApplicationPlugins::getInstance());
 
@@ -251,4 +258,28 @@ RootWindow::~RootWindow()
 {
 	DeinitAPI();
 }
+
+void RootWindow::save(const std::string& path) {
+	std::ofstream stream(path + "_TEST.bmd", std::ios::binary | std::ios::out);
+
+	oishii::v2::Writer writer(1024);
+
+	EditorWindow* ed = dynamic_cast<EditorWindow*>(mActive ? mActive : !mChildren.empty() ? mChildren[0].get() : this);
+	if (!ed) return;
+
+	auto ex = SpawnExporter(*ed->mState.get());
+	if (!ex) DebugReport("Failed to spawn importer.\n");
+	if (!ex) return;
+	ex->write_(*ed->mState.get(), writer);
+
+	stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
+}
+void RootWindow::saveAs() {
+	auto results = pfd::save_file("Save File", "", { "All Files", "*" }).result();
+	if (results.empty())
+		return;
+
+	save(results);
+}
+
 }

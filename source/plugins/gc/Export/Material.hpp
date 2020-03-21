@@ -176,8 +176,8 @@ struct GCMaterialData
 		std::array<f32, 16>	effectMatrix;
 
 		CommonTransformModel transformModel;
-		CommonMappingMethod method;
-		CommonMappingOption option;
+		CommonMappingMethod method = CommonMappingMethod::Standard;
+		CommonMappingOption option = CommonMappingOption::NoSelection;
 
 		// G3d
 		s8 camIdx = -1;

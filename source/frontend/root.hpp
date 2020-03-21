@@ -27,7 +27,8 @@ public:
 		FileHost::dropDirect(std::move(data), len, name);
 	}
 	void attachEditorWindow(std::unique_ptr<EditorWindow> editor);
-
+	void save(const std::string& path);
+	void saveAs();
 
 private:
     u32 dockspace_id = 0;
