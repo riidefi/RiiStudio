@@ -23,6 +23,8 @@ private:
 
 	u32 mGpuTexId = 0;
 	bool mTexUploaded = false;
+
+	float mScale = 1.0f;
 };
 
 }

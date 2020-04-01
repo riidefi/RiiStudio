@@ -43,6 +43,8 @@ void ImagePreview::draw(float wd, float ht)
 		return;
 	}
 
+	ImGui::SliderFloat("Scale", &mScale, 0.0f, 10.0f);
+
 	glBindTexture(GL_TEXTURE_2D, mGpuTexId);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -51,6 +53,8 @@ void ImagePreview::draw(float wd, float ht)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, mDecodeBuf.data());
-	ImGui::Image((void*)(intptr_t)mGpuTexId, ImVec2(wd > 0 ? wd : width, ht > 0 ? ht : height));
+	ImGui::Image((void*)(intptr_t)mGpuTexId, ImVec2(
+		(wd > 0 ? wd : width) * mScale,
+		(ht > 0 ? ht : height) * mScale));
 }
 }
