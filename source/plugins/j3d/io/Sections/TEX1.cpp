@@ -62,7 +62,7 @@ void Tex::write(oishii::v2::Writer& stream) const
 	stream.write<s16>(mLodBias);
 	// stream.transfer(ofsTex);
 }
-Tex::Tex(Texture& data, libcube::GCMaterialData::SamplerData& sampl)
+Tex::Tex(const Texture& data, const libcube::GCMaterialData::SamplerData& sampl)
 {
 	mFormat = data.mFormat;
 	bTransparent = data.bTransparent;
@@ -336,6 +336,7 @@ struct TEX1Node final : public oishii::v2::Node
 
 	Result gatherChildren(NodeDelegate& d) const noexcept override
 	{
+	
 		d.addNode(std::make_unique<TexHeaders>(mModel, mCol));
 
 		for (int i = 0; i < mCol.getTextures().size(); ++i)

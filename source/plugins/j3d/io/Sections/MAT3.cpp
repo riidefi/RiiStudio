@@ -263,7 +263,7 @@ void readMatEntry(Material& mat, MatLoader& loader, oishii::BinaryReader& reader
 	dbg.assertSince(0x14a);
 	loader.indexedContained<u16>(mat.nbtScale, MatSec::NBTScaleInfo, 16);
 
-	if (loader.mSections[(u32)MatSec::IndirectTexturingInfo] != ofsStringTable)
+	if (loader.mSections[(u32)MatSec::IndirectTexturingInfo] && loader.mSections[(u32)MatSec::IndirectTexturingInfo] != ofsStringTable)
 	{
 		Model::Indirect ind{};
 		loader.indexedContained<Model::Indirect>(ind, MatSec::IndirectTexturingInfo, 0x138, idx);

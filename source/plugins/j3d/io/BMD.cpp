@@ -101,6 +101,52 @@ public:
 		linker.mUserPad = &BMD_Pad;
 		writer.mUserPad = &BMD_Pad;
 
+		// Recompute cache
+
+		std::map<std::string, u32> texNameMap;
+		for (int i = 0; i < collection.getTextures().size(); ++i) {
+			texNameMap[collection.getTexture(i).node().getName()] = i;
+		}
+
+		for (int m_i = 0; m_i < collection.getModels().size(); ++m_i) {
+			auto& model = collection.getModel(m_i);
+			auto& texCache = model.get().mTexCache;
+			auto& matCache = model.get().mMatCache;
+			texCache.clear();
+			matCache.clear();
+
+
+			for (int j = 0; j < model.getMaterials().size(); ++j) {
+				auto& mat = model.getMaterial(j).get();
+				for (int k = 0; k < mat.samplers.size(); ++k) {
+					auto& samp = mat.samplers[k];
+
+					auto* slow = reinterpret_cast<j3d::MaterialData::J3DSamplerData*>(samp.get());
+					assert(slow);
+
+					assert(!samp->mTexture.empty());
+					if (!samp->mTexture.empty()) {
+						const auto btiId = texNameMap[samp->mTexture];
+						Tex tmp(collection.getTexture(btiId).get(), *samp.get());
+						tmp.btiId = btiId;
+
+						auto found = std::find(texCache.begin(), texCache.end(), tmp);
+						if (found == texCache.end()) {
+							texCache.push_back(tmp);
+							slow->btiId = texCache.size() - 1;
+						}
+						else {
+							slow->btiId = found - texCache.begin();
+						}
+					}
+				}
+				matCache.propogate(mat);
+			}
+
+
+
+		}
+
 
 		// writer.add_bp(0x37b2c, 4);
 

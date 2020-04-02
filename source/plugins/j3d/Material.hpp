@@ -74,6 +74,13 @@ struct MaterialData : public libcube::GCMaterialData
 		// Only for linking
 		u16 btiId;
 
+		bool operator==(const J3DSamplerData& rhs) const {
+			if (!SamplerData::operator==(rhs)) return false;
+			if (btiId == rhs.btiId) return true;
+			// printf("TexData does not match\n");
+			return false;
+		}
+
 		J3DSamplerData(u32 id)
 			: btiId(id)
 		{}

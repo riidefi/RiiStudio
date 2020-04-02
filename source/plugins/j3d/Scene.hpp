@@ -65,10 +65,19 @@ struct Tex
 	// Not written, tracked
 	s32 btiId = -1;
 
+	bool operator==(const Tex& rhs) const {
+		return mFormat == rhs.mFormat && bTransparent == rhs.bTransparent && mWidth == rhs.mWidth && mHeight == rhs.mHeight &&
+			mWrapU == rhs.mWrapU && mWrapV == rhs.mWrapV &&
+			mPaletteFormat == rhs.mPaletteFormat && nPalette == rhs.nPalette && ofsPalette == rhs.ofsPalette && bMipMap == rhs.bMipMap &&
+			bEdgeLod == rhs.bEdgeLod && bBiasClamp == rhs.bBiasClamp && mMaxAniso == rhs.mMaxAniso &&
+			mMinFilter == rhs.mMinFilter && mMagFilter == rhs.mMagFilter && mMinLod == rhs.mMinLod && mMaxLod == rhs.mMaxLod &&
+			mMipmapLevel == rhs.mMipmapLevel && mLodBias == rhs.mLodBias && btiId == rhs.btiId; // ofsTex not checked
+	}
+
 	void transfer(oishii::BinaryReader& stream);
 	void write(oishii::v2::Writer& stream) const;
 	Tex() = default;
-	Tex(Texture& data, libcube::GCMaterialData::SamplerData& sampler);
+	Tex(const Texture& data, const libcube::GCMaterialData::SamplerData& sampler);
 };
 
 struct Model : public lib3d::Model {
@@ -125,6 +134,8 @@ struct Model : public lib3d::Model {
 			enabled = mat.indEnabled;
 			nIndStage = mat.info.nIndStage;
 
+			assert(nIndStage <= 4);
+
 			tevOrder = mat.shader.mIndirectOrders;
 			for (int i = 0; i < nIndStage; ++i)
 				texScale[i] = mat.mIndScales[i];
@@ -142,7 +153,7 @@ struct Model : public lib3d::Model {
 				tevStage == rhs.tevStage;
 		}
 	};
-	struct MatCache {
+	mutable struct MatCache {
 		template<typename T>
 		using Section = std::vector<T>;
 		Section<Indirect> indirectInfos;
@@ -174,9 +185,26 @@ struct Model : public lib3d::Model {
 		Section<u8> zCompLocs;
 		Section<u8> dithers;
 		Section<NBTScale> nbtScales;
+
+		void clear() {
+			*this = MatCache{};
+		}
+		template<typename T>
+		void update_section(std::vector<T>& sec, const T& data) {
+			if (std::find(sec.begin(), sec.end(), data) == sec.end()) {
+				sec.push_back(data);
+			}
+		}
+		template<typename T, typename U>
+		void update_section_multi(std::vector<T>& sec, const U& source) {
+			for (int i = 0; i < source.size(); ++i) {
+				update_section(sec, source[i]);
+			}
+		}
+		void propogate(Material& mat);
 	} mMatCache;
 
-	std::vector<Tex> mTexCache;
+	mutable std::vector<Tex> mTexCache;
 };
 
 struct ModelAccessor : public kpi::NodeAccessor<Model> {

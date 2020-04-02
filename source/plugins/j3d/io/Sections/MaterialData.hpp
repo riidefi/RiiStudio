@@ -537,6 +537,7 @@ struct io_wrapper<Model::Indirect>
 		reader.warnAt("Start of IndTex block", reader.tell(), reader.tell() + 4);
 		c.enabled = reader.read<u8>();
 		c.nIndStage = reader.read<u8>();
+		if (c.nIndStage > 4) reader.warnAt("Invalid stage count", reader.tell() - 1, reader.tell());
 		reader.read<u16>();
 
 		assert(c.enabled <= 1 && c.nIndStage <= 4);
