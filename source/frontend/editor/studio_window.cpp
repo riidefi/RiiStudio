@@ -20,7 +20,14 @@ const ImGuiWindowClass* StudioWindow::getWindowClass() { return &mWindowClass; }
 
 std::string StudioWindow::idIfy(std::string in)
 {
-    return in + "##";
+    std::string out = in + "##";
+	if (mParent != nullptr && dynamic_cast<StudioWindow*>(mParent) != nullptr) {
+		out += reinterpret_cast<StudioWindow*>(mParent)->mName;
+	}
+	return out;
+}
+std::string StudioWindow::idIfyChild(std::string title) {
+	return title + "##" + mName;
 }
 void StudioWindow::draw()
 {
@@ -29,11 +36,11 @@ void StudioWindow::draw()
         ImGui::SetNextWindowClass(parent->getWindowClass());
     if (ImGui::Begin(idIfy(mName).c_str(), &bOpen, mFlags))
     {
-        ImGui::PushID(mId);
+        ImGui::PushID(mName.c_str() /*mId*/);
 
         if (mbDrawDockspace)
         {
-            const ImGuiID dockspaceId = ImGui::GetID("###DockSpace");
+            const ImGuiID dockspaceId = ImGui::GetID(idIfyChild("###DockSpace").c_str());
             if (!ImGui::DockBuilderGetNode(dockspaceId)) {
                 ImGui::DockBuilderRemoveNode(dockspaceId);
                 ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_None);
@@ -42,11 +49,11 @@ void StudioWindow::draw()
                 ImGuiID dock_right_id = ImGui::DockBuilderSplitNode(next, ImGuiDir_Right, 0.2f, nullptr, &next);
                 ImGuiID dock_right_down_id = ImGui::DockBuilderSplitNode(dock_right_id, ImGuiDir_Down, 0.2f, nullptr, &dock_right_id);
 
-                ImGui::DockBuilderDockWindow(idIfy("Outliner").c_str(), dock_right_id);
-                ImGui::DockBuilderDockWindow(idIfy("Texture Preview").c_str(), dock_right_down_id);
-				ImGui::DockBuilderDockWindow(idIfy("History").c_str(), dock_right_down_id);
-				ImGui::DockBuilderDockWindow(idIfy("MatEditor").c_str(), next);
-                ImGui::DockBuilderDockWindow(idIfy("Viewport").c_str(), next);
+                ImGui::DockBuilderDockWindow(idIfyChild("Outliner").c_str(), dock_right_id);
+                ImGui::DockBuilderDockWindow(idIfyChild("Texture Preview").c_str(), dock_right_down_id);
+				ImGui::DockBuilderDockWindow(idIfyChild("History").c_str(), dock_right_down_id);
+				ImGui::DockBuilderDockWindow(idIfyChild("MatEditor").c_str(), next);
+                ImGui::DockBuilderDockWindow(idIfyChild("Viewport").c_str(), next);
             
                 ImGui::DockBuilderFinish(dockspaceId);
             }

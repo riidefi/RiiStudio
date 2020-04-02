@@ -28,6 +28,7 @@ public:
 
 private:
     std::string idIfy(std::string in);
+	std::string idIfyChild(std::string in);
 	void draw() override final;
 
 	ImGuiWindowClass mWindowClass;
