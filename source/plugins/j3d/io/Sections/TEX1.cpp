@@ -112,6 +112,7 @@ void readTEX1(BMDOutputContext& ctx)
 	for (int i = 0; i < size; ++i)
 	{
 		Tex tex;
+		tex.btiId = i;
 		tex.transfer(reader);
 		for (int j = 0; j < ctx.mdl.getMaterials().size(); ++j)
 		{
@@ -235,8 +236,8 @@ struct TEX1Node final : public oishii::v2::Node
 		{
 			std::vector<std::string> names;
 			
-			for (int i = 0; i < mCol.getTextures().size(); ++i)
-				names.push_back(mCol.getTexture(i).node().getName());
+			for (int i = 0; i < mMdl.mTexCache.size(); ++i)
+				names.push_back(mCol.getTexture(mMdl.mTexCache[i].btiId).node().getName());
 			writeNameTable(writer, names);
 
 			return {};
@@ -252,19 +253,34 @@ struct TEX1Node final : public oishii::v2::Node
 			: mMdl(mdl), mCol(col)
 		{
 			mId = "TexHeaders";
-			getLinkingRestriction().setLeaf();
 			getLinkingRestriction().alignment = 32;
 		}
 
+		struct TexHeaderEntryLink : public oishii::v2::Node {
+			TexHeaderEntryLink(const Tex& _tex, u32 id, u32 _btiId) : tex(_tex), btiId(_btiId) {
+				mId = std::to_string(id);
+				getLinkingRestriction().setLeaf();
+				getLinkingRestriction().alignment = 4;
+			}
+			Result write(oishii::v2::Writer& writer) const noexcept {
+				tex.write(writer);
+				writer.writeLink<s32>(*this, "TEX1::" + std::to_string(btiId));
+				return {};
+			}
+			const Tex& tex;
+			u32 btiId;
+		};
+
 		Result write(oishii::v2::Writer& writer) const noexcept
 		{
-			int i = 0;
-			for (const auto& ex : mMdl.get().mTexCache)
-			{
-				ex.write(writer);
-				writer.writeLink<s32>(*this, "TEX1::" + std::to_string(i++));
-			}
+			return {};
+		}
 
+		Result gatherChildren(NodeDelegate& d) const noexcept override
+		{
+			u32 id = 0;
+			for (auto& tex : mMdl.get().mTexCache)
+				d.addNode(std::make_unique<TexHeaderEntryLink>(tex, id++, tex.btiId));
 			return {};
 		}
 
@@ -322,7 +338,7 @@ struct TEX1Node final : public oishii::v2::Node
 	{
 		d.addNode(std::make_unique<TexHeaders>(mModel, mCol));
 
-		for (int i = 0; i < mModel.get().mTexCache.size(); ++i)
+		for (int i = 0; i < mCol.getTextures().size(); ++i)
 			d.addNode(std::make_unique<TexEntry>(mModel, mCol, i));
 		
 		d.addNode(std::make_unique<TexNames>(mModel, mCol));

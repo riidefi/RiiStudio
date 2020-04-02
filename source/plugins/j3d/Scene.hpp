@@ -62,6 +62,9 @@ struct Tex
 	s16 mLodBias;
 	u32 ofsTex;
 
+	// Not written, tracked
+	s32 btiId = -1;
+
 	void transfer(oishii::BinaryReader& stream);
 	void write(oishii::v2::Writer& stream) const;
 	Tex() = default;
