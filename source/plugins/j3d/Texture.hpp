@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common.h>
+#include <core/common.h>
 #include <plugins/gc/GX/VertexTypes.hpp>
 #include <vector>
 

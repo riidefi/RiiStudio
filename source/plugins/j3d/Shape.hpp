@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common.h>
+#include <core/common.h>
 #include <vector>
 #include <plugins/gc/GX/VertexTypes.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
@@ -38,9 +38,13 @@ struct ShapeData
 
 		Max
 	};
-	Mode mode;
-	float bsphere;
-	lib3d::AABB bbox;
+	Mode mode = Mode::Normal;
+
+	f32 bsphere = 100000.0f;
+	lib3d::AABB bbox{
+		{ -100000.0f,-100000.0f,-100000.0f },
+		{  100000.0f, 100000.0f, 100000.0f }
+	};
 
 	std::vector<MatrixPrimitive> mMatrixPrimitives;
 	libcube::VertexDescriptor mVertexDescriptor;

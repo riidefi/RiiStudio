@@ -215,12 +215,12 @@ struct SceneState
 	glm::mat4 computeBoneMdl(const lib3d::Bone& bone)
 	{
 		glm::mat4 mdl(1.0f);
-
+		// TODO
 		//	const auto parent = bone.getParent();
 		//	if (parent >= 0)
 		//		mdl = computeBoneMdl(parent);
 
-		mdl = computeMdlMtx(bone.getSRT());
+		// mdl = computeMdlMtx(bone.getSRT());
 		return mdl;
 	}
 	void build(const glm::mat4& view, const glm::mat4& proj, riistudio::core::AABB& bound)

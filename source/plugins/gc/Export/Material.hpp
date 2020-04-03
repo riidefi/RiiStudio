@@ -167,15 +167,15 @@ struct GCMaterialData
 	struct TexMatrix
 	{
 		// TODO: Deprecate?
-		gx::TexGenType projection; // Only 3x4 and 2x4 valid
+		gx::TexGenType projection = gx::TexGenType::Matrix2x4; // Only 3x4 and 2x4 valid
 
-		glm::vec2	scale;
-		f32			rotate;
-		glm::vec2	translate;
+		glm::vec2	scale		{ 1.0f, 1.0f };
+		f32			rotate		{ 0.0f };
+		glm::vec2	translate	{ 0.0f, 0.0f };
 
-		std::array<f32, 16>	effectMatrix;
+		std::array<f32, 16>	effectMatrix{};
 
-		CommonTransformModel transformModel;
+		CommonTransformModel transformModel = CommonTransformModel::Default;
 		CommonMappingMethod method = CommonMappingMethod::Standard;
 		CommonMappingOption option = CommonMappingOption::NoSelection;
 
@@ -189,9 +189,15 @@ struct GCMaterialData
 
 		virtual bool operator==(const TexMatrix& rhs) const
 		{
-			return projection == rhs.projection && scale == rhs.scale && rotate == rhs.rotate && translate == rhs.translate &&
-				effectMatrix == rhs.effectMatrix && transformModel == rhs.transformModel && method == rhs.method &&
-				option == rhs.option && camIdx == rhs.camIdx && lightIdx == rhs.lightIdx;
+			if (!(projection == rhs.projection &&
+				scale == rhs.scale &&
+				rotate == rhs.rotate &&
+				translate == rhs.translate)) return false;
+			// if (effectMatrix != rhs.effectMatrix) return false;
+			return transformModel == rhs.transformModel &&
+						method == rhs.method &&
+						option == rhs.option &&
+					camIdx == rhs.camIdx && lightIdx == rhs.lightIdx;
 		}
 		virtual std::unique_ptr<TexMatrix> clone() const {
 			return std::make_unique<TexMatrix>(*this);

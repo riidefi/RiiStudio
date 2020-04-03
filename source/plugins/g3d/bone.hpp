@@ -76,17 +76,17 @@ struct Bone : public libcube::IBoneDelegate, BoneData
 	}
 	// std::string getName() const override { return mName; }
 	s64 getId() override { return mId; }
-	void copy(lib3d::Bone& to) override
+	void copy(lib3d::Bone& to) const override
 	{
 		IBoneDelegate::copy(to);
 		Bone* pJoint = dynamic_cast<Bone*>(&to);
 		if (pJoint)
 		{
-			mName = pJoint->mName;
-			matrixId = pJoint->matrixId;
-			flag = pJoint->flag;
+			pJoint->mName = mName;
+			pJoint->matrixId = matrixId;
+			pJoint->flag = flag;
 
-			billboardType = pJoint->billboardType;
+			pJoint->billboardType = billboardType;
 			// billboardRefId = pJoint->billboardRefId;
 		}
 

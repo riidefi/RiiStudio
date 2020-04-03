@@ -6,7 +6,7 @@
 #include <plugins/j3d/Scene.hpp>
 #include <oishii/v2/writer/binary_writer.hxx>
 #include <oishii/v2/writer/node.hxx>
-#include <common.h>
+#include <core/common.h>
 
 namespace riistudio::j3d {
 

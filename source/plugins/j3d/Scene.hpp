@@ -107,12 +107,43 @@ struct Model : public lib3d::Model {
 	struct Bufs
 	{
 		// FIXME: Good default values
-		VertexBuffer<glm::vec3, VBufferKind::position> pos{ VQuantization() };
-		VertexBuffer<glm::vec3, VBufferKind::normal> norm{ VQuantization() };
+		VertexBuffer<glm::vec3, VBufferKind::position> pos{ VQuantization{
+			libcube::gx::VertexComponentCount(libcube::gx::VertexComponentCount::Position::xyz),
+			libcube::gx::VertexBufferType(libcube::gx::VertexBufferType::Generic::f32),
+			0,
+			0,
+			12
+		} };
+		VertexBuffer<glm::vec3, VBufferKind::normal> norm{ VQuantization{
+			libcube::gx::VertexComponentCount(libcube::gx::VertexComponentCount::Normal::xyz),
+			libcube::gx::VertexBufferType(libcube::gx::VertexBufferType::Generic::f32),
+			0,
+			0,
+			12
+		} };
 		std::array<VertexBuffer<libcube::gx::Color, VBufferKind::color>, 2> color;
 		std::array<VertexBuffer<glm::vec2, VBufferKind::textureCoordinate>, 8> uv;
 
-		Bufs() {}
+		Bufs() {
+			for (auto& clr : color) {
+				clr = { VQuantization{
+					libcube::gx::VertexComponentCount(libcube::gx::VertexComponentCount::Color::rgba),
+					libcube::gx::VertexBufferType(libcube::gx::VertexBufferType::Color::FORMAT_32B_8888),
+					0,
+					0,
+					4
+				} };
+			}
+			for (auto& uv_ : uv) {
+				uv_ = { VQuantization{
+					libcube::gx::VertexComponentCount(libcube::gx::VertexComponentCount::TextureCoordinate::st),
+					libcube::gx::VertexBufferType(libcube::gx::VertexBufferType::Generic::f32),
+					0,
+					0,
+					8
+				} };
+			}
+		}
 	} mBufs = Bufs();
 
 	

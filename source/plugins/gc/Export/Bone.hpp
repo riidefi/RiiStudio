@@ -31,10 +31,10 @@ struct IBoneDelegate : public riistudio::lib3d::Bone
     virtual Billboard getBillboard() const = 0;
     virtual void setBillboard(Billboard b) = 0;
     // For extendeds
-    virtual s64 getBillboardAncestor() { return -1; }
+    virtual s64 getBillboardAncestor() const { return -1; }
     virtual void setBillboardAncestor(s64 ancestor_id) {}
 
-    void copy(riistudio::lib3d::Bone& to) override
+    void copy(riistudio::lib3d::Bone& to) const override
     {
         riistudio::lib3d::Bone::copy(to);
         IBoneDelegate* bone = reinterpret_cast<IBoneDelegate*>(&to);

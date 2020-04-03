@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common.h>
+#include <core/common.h>
 #include <vector>
 #include <string>
 #include <glm/glm.hpp>
@@ -27,20 +27,25 @@ struct JointData
 		BillboardY
 	};
 
-	std::string name;
-	ID<Joint> id;
+	std::string name = "root";
+	ID<Joint> id = 0;
 
-	u16 flag; // Unused four bits; default value in galaxy is 1
-	MatrixType bbMtxType;
-	bool mayaSSC; // 0xFF acts as false -- likely for compatibility
+	u16 flag  = 1; // Unused four bits; default value in galaxy is 1
+	MatrixType bbMtxType = MatrixType::Standard;
+	bool mayaSSC = false; // 0xFF acts as false -- likely for compatibility
 
-	glm::vec3 scale, rotate, translate;
+	glm::vec3 scale{ 1.0f, 1.0f, 1.0f };
+	glm::vec3 rotate{ 0.0f, 0.0f, 0.0f };
+	glm::vec3 translate{ 0.0f, 0.0f, 0.0f };
 
-	f32 boundingSphereRadius;
-	lib3d::AABB boundingBox;
+	f32 boundingSphereRadius = 100000.0f;
+	lib3d::AABB boundingBox{
+		{ -100000.0f,-100000.0f,-100000.0f },
+		{  100000.0f, 100000.0f, 100000.0f }
+	};
 
 	// From INF1
-	ID<Joint> parent;
+	ID<Joint> parent = -1;
 	std::vector<ID<Joint>> children;
 
 	struct Display
@@ -60,8 +65,7 @@ struct JointData
 
 	// From EVP1
 	//glm::mat4x4
-	std::array<float, 12>
-		inverseBindPoseMtx;
+	std::array<float, 12> inverseBindPoseMtx;
 
 	bool operator==(const JointData& rhs) const {
 		return name == rhs.name && id == rhs.id && bbMtxType == rhs.bbMtxType && mayaSSC == rhs.mayaSSC && scale == rhs.scale && rotate == rhs.rotate &&
@@ -76,14 +80,14 @@ struct Joint  : public libcube::IBoneDelegate, public JointData
 	std::string getName() const { return name; }
 	void setName(const std::string& n) override { name = n; }
 	s64 getId() override { return id; }
-	void copy(lib3d::Bone& to) override
+	void copy(lib3d::Bone& to) const override
 	{
 		IBoneDelegate::copy(to);
 		Joint* pJoint = dynamic_cast<Joint*>(&to);
 		if (pJoint)
 		{
-			name = pJoint->name;
-			flag = pJoint->flag;
+			pJoint->name = name;
+			pJoint->flag = flag;
 		}
 
 	}

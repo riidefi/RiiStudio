@@ -21,6 +21,7 @@
 #endif
 
 #include <algorithm>
+#include <vendor/mp/Metaphrasis.h>
 
 // Web security...
 #ifdef __EMSCRIPTEN__
@@ -281,12 +282,14 @@ struct TexImgPreview : public StudioWindow
 		assert(osamp);
 		auto& samp = *osamp;
 
-		int width = samp.at<lib3d::Texture>(samp.getActiveSelection()).getWidth();
+		auto& tex = samp.at<lib3d::Texture>(samp.getActiveSelection());
+		int width = tex.getWidth();
 		ImGui::InputInt("width", &width);
-		const_cast<lib3d::Texture&>(samp.at<lib3d::Texture>(samp.getActiveSelection())).setWidth(width);
+		const_cast<lib3d::Texture&>(tex).setWidth(width);
+
 
 		if (lastTexId != samp.getActiveSelection())
-			setFromImage(samp.at<lib3d::Texture>(samp.getActiveSelection()));
+			setFromImage(tex);
 
 		mImg.draw();
 	}
@@ -298,6 +301,7 @@ struct TexImgPreview : public StudioWindow
 	const kpi::IDocumentNode& mHost;
 	int lastTexId = -1;
 	ImagePreview mImg;
+	
 };
 struct RenderTest : public StudioWindow
 {

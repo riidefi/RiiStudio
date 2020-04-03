@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common.h>
+#include <core/common.h>
 #include <oishii/reader/binary_reader.hxx>
 #include "OutputCtx.hpp"
 #include <oishii/v2/writer/node.hxx>

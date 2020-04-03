@@ -19,6 +19,7 @@ public:
 private:
 	u16 width = 0;
 	u16 height = 0;
+public:
 	std::vector<u8> mDecodeBuf;
 
 	u32 mGpuTexId = 0;

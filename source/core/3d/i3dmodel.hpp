@@ -151,7 +151,18 @@ struct Bone
 	// // PX_TYPE_INFO_EX("3D Bone", "3d_bone", "3D::Bone", ICON_FA_BONE, ICON_FA_BONE);
 	virtual s64 getId() { return -1; }
 	virtual void setName(const std::string& name) = 0;
-	virtual void copy(lib3d::Bone& to) {}
+	inline virtual void copy(lib3d::Bone& to) const {
+		to.setSRT(getSRT());
+		to.setBoneParent(getBoneParent());
+		to.setSSC(getSSC());
+		to.setAABB(getAABB());
+		to.setBoundingRadius(getBoundingRadius());
+		// TODO: The rest
+		for (int i = 0; i < getNumDisplays(); ++i) {
+			const auto d = getDisplay(i);
+			to.addDisplay(d);
+		}
+	}
 
 	virtual Coverage supportsBoneFeature(BoneFeatures f) { return Coverage::Unsupported; }
 

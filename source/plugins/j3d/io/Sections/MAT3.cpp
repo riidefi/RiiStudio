@@ -580,6 +580,9 @@ auto find = [](const auto& buf, const auto x) {
 	// 	buf.push_back(x);
 	// }
 	assert(found != buf.end());
+	if (found == buf.end()) {
+		printf("Invalid data entry not cached.\n");
+	}
 	return found == buf.end() ? -1 : found - buf.begin();
 };
 template<typename TIdx, typename T, typename TPool>
@@ -657,19 +660,6 @@ struct MAT3Node : public oishii::v2::Node
 		writer.write<u16>(mMdl.getMaterials().size());
 		writer.write<u16>(-1);
 
-
-		auto writeSecLink = [&](const auto& sec, int i)
-		{
-			if (sec.getNumEntries() == 0)
-			{
-				// TODO -- dif behavior for first?
-				writer.writeLink<s32>({ *this }, { sec_names[i + 1] });
-			}
-			else
-			{
-				writer.writeLink<s32>({ *this }, { sec_names[i] });
-			}
-		};
 		auto writeSecLinkS = [&](const std::string& lnk)
 		{
 			writer.writeLink<s32>({ *this }, { lnk });
@@ -837,6 +827,10 @@ void io_wrapper<SerializableMaterial>::onWrite(oishii::v2::Writer& writer, const
 		matColors.push_back(m.chanData[i].matColor);
 		ambColors.push_back(m.chanData[i].ambColor);
 	}
+	if (m.chanData.size() == 1) {
+		matColors.push_back(m.chanData[0].matColor);
+		ambColors.push_back(m.chanData[0].ambColor);
+	}
 	write_array_vec<u16>(writer, matColors, cache.matColors);
 	write_array_vec<u16>(writer, m.colorChanControls, cache.colorChans);
 	write_array_vec<u16>(writer, ambColors, cache.ambColors);
@@ -855,10 +849,13 @@ void io_wrapper<SerializableMaterial>::onWrite(oishii::v2::Writer& writer, const
 
 	dbg.assertSince(0x048);
 	array_vector<Material::TexMatrix, 10> texMatrices;
-	for (int i = 0; i < m.texMatrices.size(); ++i)
+	for (int i = 0; i < m.texMatrices.size(); ++i) {
 		texMatrices.push_back(*m.texMatrices[i].get());
+
+		assert(texMatrices[i] == texMatrices[i]);
+	}
 	write_array_vec<u16>(writer, texMatrices, cache.texMatrices);
-	// TODO: Assumption
+	
 	write_array_vec<u16>(writer, m.postTexMatrices, cache.postTexMatrices);
 	//	write_array_vec<u16>(writer, texMatrices, m3.mTexMatrices);
 	//	for (int i = 0; i < 10; ++i)
@@ -872,6 +869,7 @@ void io_wrapper<SerializableMaterial>::onWrite(oishii::v2::Writer& writer, const
 	dbg.assertSince(0x084);
 	write_array_vec<u16>(writer, samplers, cache.samplers);
 	dbg.assertSince(0x094);
+	assert(m.tevKonstColors.nElements == 4);
 	write_array_vec<u16>(writer, m.tevKonstColors, cache.konstColors);
 
 	dbg.assertSince(0x09C);

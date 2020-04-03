@@ -132,8 +132,8 @@ function setupMainAppCli(set_links)
 		postbuildcommands {
 			"{COPY} %{cfg.targetdir}/*.exe ../dist/",
 			"{COPY} %{cfg.targetdir}/*.dll ../dist/",
-			"{COPY} %{cfg.targetdir}/*.ttf ../dist/fonts/",
-			"{COPY} %{cfg.targetdir}/scripts  ../dist/scripts/"
+			"{COPY} %{cfg.targetdir}/*.ttf ../dist/fonts/"
+			-- "{COPY} %{cfg.targetdir}/scripts  ../dist/scripts/"
 		}
 end
 

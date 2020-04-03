@@ -239,7 +239,7 @@ struct TEX1Node final : public oishii::v2::Node
 			for (int i = 0; i < mMdl.mTexCache.size(); ++i)
 				names.push_back(mCol.getTexture(mMdl.mTexCache[i].btiId).node().getName());
 			writeNameTable(writer, names);
-
+			writer.alignTo(32);
 			return {};
 		}
 

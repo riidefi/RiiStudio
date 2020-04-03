@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common.h>
+#include <core/common.h>
 #include <vector>
 #include <array>
 
@@ -87,18 +87,18 @@ struct MaterialData : public libcube::GCMaterialData
 		J3DSamplerData() : btiId(-1) {}
 	};
 
-	u32 id;
-	u8 flag = 0;
+	u32 id = -1;
+	u8 flag = 1;
 
 	bool indEnabled = false;
 	
 	// odd data
-	Fog fogInfo;
+	Fog fogInfo{};
 	libcube::array_vector<libcube::gx::Color, 8> lightColors;
-	NBTScale nbtScale;
+	NBTScale nbtScale{};
 	// unused data
 	// Note: postTexGens are inferred (only enabled counts)
-	libcube::array_vector<TexMatrix, 20> postTexMatrices;
+	libcube::array_vector<TexMatrix, 20> postTexMatrices{};
 	std::array<u8, 24> stackTrash{}; //!< We have to remember this for 1:1
 
 	// Note: For comparison we don't check the ID or name (or stack trash)

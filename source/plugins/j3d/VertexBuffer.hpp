@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common.h>
+#include <core/common.h>
 #include <vector>
 #include <plugins/gc/GX/VertexTypes.hpp>
 #include <oishii/v2/writer/binary_writer.hxx>

@@ -109,7 +109,7 @@ public:
 		}
 
 		for (int m_i = 0; m_i < collection.getModels().size(); ++m_i) {
-			auto& model = collection.getModel(m_i);
+			auto model = collection.getModel(m_i);
 			auto& texCache = model.get().mTexCache;
 			auto& matCache = model.get().mMatCache;
 			texCache.clear();
