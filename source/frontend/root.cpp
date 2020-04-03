@@ -53,15 +53,15 @@ void RootWindow::draw() {
 	{
 		const std::string& ed_id = mAttachEditorsQueue.front();
 
-		ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
-		ImGui::DockBuilderAddNode(dockspace_id); // Add empty node
-		
-		
-		ImGuiID dock_up_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Up, 0.05f, nullptr, &dock_main_id);
-		ImGui::DockBuilderDockWindow(ed_id.c_str(), dock_up_id);
-		
-
-		ImGui::DockBuilderFinish(dockspace_id);
+		// ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
+		// ImGui::DockBuilderAddNode(dockspace_id); // Add empty node
+		// 
+		// 
+		// ImGuiID dock_up_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Up, 0.05f, nullptr, &dock_main_id);
+		// ImGui::DockBuilderDockWindow(ed_id.c_str(), dock_up_id);
+		// 
+		// 
+		// ImGui::DockBuilderFinish(dockspace_id);
 		mAttachEditorsQueue.pop();
 	}
 

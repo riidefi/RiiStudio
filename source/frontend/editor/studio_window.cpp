@@ -34,6 +34,8 @@ void StudioWindow::draw()
     StudioWindow* parent = dynamic_cast<StudioWindow*>(mParent);
     if (parent)
         ImGui::SetNextWindowClass(parent->getWindowClass());
+	auto avail = ImGui::GetContentRegionAvail();
+	ImGui::SetNextWindowSize(ImVec2{ avail.x / 2, avail.y / 2}, ImGuiCond_Once);
     if (ImGui::Begin(idIfy(mName).c_str(), &bOpen, mFlags))
     {
         ImGui::PushID(mName.c_str() /*mId*/);
