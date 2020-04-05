@@ -272,22 +272,94 @@ struct TexImgPreview : public StudioWindow
 	TexImgPreview(const kpi::IDocumentNode& host)
 		: StudioWindow("Texture Preview"), mHost(host)
 	{
-		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize);
+		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
 	}
 	void draw_() override
 	{
 		auto* osamp = mHost.getFolder<lib3d::Texture>();
 		if (!osamp) return;
-
 		assert(osamp);
 		auto& samp = *osamp;
 
 		auto& tex = samp.at<lib3d::Texture>(samp.getActiveSelection());
+
+		bool resizeAction = false;
+
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("Transform")) {
+				if (ImGui::Button(ICON_FA_DRAW_POLYGON " Resize")) {
+					resizeAction = true;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenuBar();
+		}
+
+		if (resizeAction) ImGui::OpenPopup("Resize");
+
+		if (ImGui::BeginPopupModal("Resize", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			if (resize[0].before <= 0) {
+				resize[0].before = tex.getWidth();
+			}
+			if (resize[1].before <= 0) {
+				resize[1].before = tex.getHeight();
+			}
+
+			int dX = 0;
+			for (auto& it : resize) {
+				auto& other = dX++ ? resize[0] : resize[1];
+
+				int before = it.value;
+				ImGui::InputInt(it.name, &it.value, 1, 64);
+				ImGui::SameLine();
+				ImGui::Checkbox((std::string("Constrained##") + it.name).c_str(), &it.constrained);
+				if (it.constrained) {
+					other.constrained = false;
+				}
+				ImGui::SameLine();
+				if (ImGui::Button((std::string("Reset##") + it.name).c_str())) {
+					it.value = -1;
+				}
+
+				if (before != it.value) {
+					if (it.constrained) {
+						it.value = before;
+					} else if (other.constrained) {
+						other.value = other.before * it.value / it.before;
+					}
+				}
+			}
+
+			if (resize[0].value <= 0) {
+				resize[0].value = tex.getWidth();
+			}
+			if (resize[1].value <= 0) {
+				resize[1].value = tex.getHeight();
+			}
+
+			ImGui::Combo("Algorithm", (int*)&resizealgo, "Ultimate\0Lanczos\0");
+
+			if (ImGui::Button(ICON_FA_CHECK " Resize")) {
+				printf("Do the resizing..\n");
+
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+
+			if (ImGui::Button(ICON_FA_CROSS " Cancel")) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+
+
+		
 		int width = tex.getWidth();
 		ImGui::InputInt("width", &width);
 		const_cast<lib3d::Texture&>(tex).setWidth(width);
 
-
+	
 		if (lastTexId != samp.getActiveSelection())
 			setFromImage(tex);
 
@@ -298,10 +370,25 @@ struct TexImgPreview : public StudioWindow
 		mImg.setFromImage(tex);
 	}
 
+	struct ResizeDimension {
+		const char* name = "?";
+		int before = -1;
+		int value = -1;
+		bool constrained = true;
+	};
+
+	std::array<ResizeDimension, 2> resize{
+		ResizeDimension{ "Width ", -1, -1, false },
+		ResizeDimension{ "Height", -1, -1, true }
+	};
+	enum class ResizeAlgo : int {
+		AVIR,
+		Lanczos
+	};
+	ResizeAlgo resizealgo = ResizeAlgo::AVIR;
 	const kpi::IDocumentNode& mHost;
 	int lastTexId = -1;
 	ImagePreview mImg;
-	
 };
 struct RenderTest : public StudioWindow
 {
