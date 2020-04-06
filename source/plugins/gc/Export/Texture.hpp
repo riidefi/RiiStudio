@@ -32,6 +32,7 @@ struct Texture : public riistudio::lib3d::Texture
     virtual u32 getTextureFormat() const = 0;
 	virtual void setTextureFormat(u32 format) = 0;
     virtual u32 getMipmapCount() const = 0;
+	virtual void setMipmapCount(u32 c) = 0;
     virtual const u8* getData() const = 0;
 	virtual u8* getData() = 0;
 	virtual void resizeData() = 0;

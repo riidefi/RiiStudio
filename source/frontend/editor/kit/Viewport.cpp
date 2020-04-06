@@ -22,7 +22,6 @@ void Viewport::genFBO(u32 width, u32 height)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTexColorBufId, 0);
 
-	u32 rbo;
 	glGenRenderbuffers(1, &rbo);
 	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height); // use a single renderbuffer object for both a depth AND stencil buffer.
@@ -38,6 +37,7 @@ void Viewport::destroyFBO()
 
 	glDeleteFramebuffers(1, &mFboId);
 	glDeleteTextures(1, &mTexColorBufId);
+	glDeleteRenderbuffers(1, &rbo);
 
 	mbFboLoaded = false;
 }

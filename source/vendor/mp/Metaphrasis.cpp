@@ -25,7 +25,7 @@ inline uint32_t* memalign(uint32_t align, uint32_t size)
 
 std::unique_ptr<uint32_t[]> convertBufferToI4(uint32_t* rgbaBuffer, uint16_t bufferWidth, uint16_t bufferHeight) {
 	uint32_t bufferSize = bufferWidth * bufferHeight >> 1;
-	uint32_t* dataBufferI4 = (uint32_t *)memalign(32, bufferSize);
+	uint32_t* dataBufferI4 = new uint32_t[bufferSize/4];
 	memset(dataBufferI4, 0x00, bufferSize);
 
 	uint32_t *src = (uint32_t *)rgbaBuffer;
@@ -58,7 +58,7 @@ std::unique_ptr<uint32_t[]> convertBufferToI4(uint32_t* rgbaBuffer, uint16_t buf
 
 std::unique_ptr<uint32_t[]> convertBufferToI8(uint32_t* rgbaBuffer, uint16_t bufferWidth, uint16_t bufferHeight) {
 	uint32_t bufferSize = bufferWidth * bufferHeight;
-	uint32_t* dataBufferI8 = (uint32_t *)memalign(32, bufferSize);
+	uint32_t* dataBufferI8 = new uint32_t[bufferSize / 4];
 	memset(dataBufferI8, 0x00, bufferSize);
 
 	uint32_t *src = (uint32_t *)rgbaBuffer;
@@ -96,7 +96,7 @@ std::unique_ptr<uint32_t[]> convertBufferToI8(uint32_t* rgbaBuffer, uint16_t buf
 
 std::unique_ptr<uint32_t[]> convertBufferToIA4(uint32_t* rgbaBuffer, uint16_t bufferWidth, uint16_t bufferHeight) {
 	uint32_t bufferSize = bufferWidth * bufferHeight;
-	uint32_t* dataBufferIA4 = (uint32_t *)memalign(32, bufferSize);
+	uint32_t* dataBufferIA4 = new uint32_t[bufferSize / 4];
 	memset(dataBufferIA4, 0x00, bufferSize);
 
 	uint32_t *src = (uint32_t *)rgbaBuffer;
@@ -133,7 +133,7 @@ std::unique_ptr<uint32_t[]> convertBufferToIA4(uint32_t* rgbaBuffer, uint16_t bu
 
 std::unique_ptr<uint32_t[]> convertBufferToIA8(uint32_t* rgbaBuffer, uint16_t bufferWidth, uint16_t bufferHeight) {
 	uint32_t bufferSize = (bufferWidth * bufferHeight) << 1;
-	uint32_t* dataBufferIA8 = (uint32_t *)memalign(32, bufferSize);
+	uint32_t* dataBufferIA8 = new uint32_t[bufferSize / 4];
 	memset(dataBufferIA8, 0x00, bufferSize);
 
 	uint32_t *src = (uint32_t *)rgbaBuffer;
@@ -166,7 +166,7 @@ std::unique_ptr<uint32_t[]> convertBufferToIA8(uint32_t* rgbaBuffer, uint16_t bu
 
 std::unique_ptr<uint32_t[]> convertBufferToRGBA8(uint32_t* rgbaBuffer, uint16_t bufferWidth, uint16_t bufferHeight) {
 	uint32_t bufferSize = (bufferWidth * bufferHeight) << 2;
-	uint32_t* dataBufferRGBA8 = (uint32_t *)memalign(32, bufferSize);
+	uint32_t* dataBufferRGBA8 = new uint32_t[bufferSize / 4];
 	memset(dataBufferRGBA8, 0x00, bufferSize);
 
 	uint8_t *src = (uint8_t *)rgbaBuffer;
@@ -217,7 +217,7 @@ std::unique_ptr<uint32_t[]> convertBufferToRGBA8(uint32_t* rgbaBuffer, uint16_t 
 
 std::unique_ptr<uint32_t[]> convertBufferToRGB565(uint32_t* rgbaBuffer, uint16_t bufferWidth, uint16_t bufferHeight) {
 	uint32_t bufferSize = (bufferWidth * bufferHeight) << 1;
-	uint32_t* dataBufferRGB565 = (uint32_t *)memalign(32, bufferSize);
+	uint32_t* dataBufferRGB565 = new uint32_t[bufferSize / 4];
 	memset(dataBufferRGB565, 0x00, bufferSize);
 
 	uint32_t *src = (uint32_t *)rgbaBuffer;
@@ -251,7 +251,7 @@ std::unique_ptr<uint32_t[]> convertBufferToRGB565(uint32_t* rgbaBuffer, uint16_t
 
 std::unique_ptr<uint32_t[]> convertBufferToRGB5A3(uint32_t* rgbaBuffer, uint16_t bufferWidth, uint16_t bufferHeight) {
 	uint32_t bufferSize = (bufferWidth * bufferHeight) << 1;
-	uint32_t* dataBufferRGB5A3 = (uint32_t *)memalign(32, bufferSize);
+	uint32_t* dataBufferRGB5A3 = new uint32_t[bufferSize / 4];
 	memset(dataBufferRGB5A3, 0x00, bufferSize);
 
 	uint32_t *src = (uint32_t *)rgbaBuffer;

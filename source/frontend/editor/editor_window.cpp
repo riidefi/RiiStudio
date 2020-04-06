@@ -21,7 +21,7 @@
 #endif
 
 #include <algorithm>
-#include <vendor/mp/Metaphrasis.h>
+#include <plugins/gc/Encoder/ImagePlatform.hpp>
 
 // Web security...
 #ifdef __EMSCRIPTEN__
@@ -267,10 +267,10 @@ private:
 	TFilter mFilter;
 };
 
-struct TexImgPreview : public StudioWindow
+struct TextureEditor : public StudioWindow
 {
-	TexImgPreview(const kpi::IDocumentNode& host)
-		: StudioWindow("Texture Preview"), mHost(host)
+	TextureEditor(kpi::IDocumentNode& host, kpi::History& history)
+		: StudioWindow("Texture Preview"), mHost(host), mHistory(history)
 	{
 		setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
 	}
@@ -282,21 +282,63 @@ struct TexImgPreview : public StudioWindow
 		auto& samp = *osamp;
 
 		auto& tex = samp.at<lib3d::Texture>(samp.getActiveSelection());
+		auto& mut = (libcube::Texture&)tex;
 
 		bool resizeAction = false;
+		bool reformatOption = false;
 
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("Transform")) {
 				if (ImGui::Button(ICON_FA_DRAW_POLYGON " Resize")) {
 					resizeAction = true;
 				}
+				if (ImGui::Button(ICON_FA_DRAW_POLYGON " Change format")) {
+					reformatOption = true;
+				}
 				ImGui::EndMenu();
 			}
 			ImGui::EndMenuBar();
 		}
 
-		if (resizeAction) ImGui::OpenPopup("Resize");
+		if (resizeAction) {
+			ImGui::OpenPopup("Resize");
+			resize[0].value = -1;
+			resize[1].value = -1;
+			resize[0].before = -1;
+			resize[1].before = -1;
+		} else if (reformatOption) {
+			ImGui::OpenPopup("Reformat");
+			reformatOpt = -1;
+		}
+		if (ImGui::BeginPopupModal("Reformat", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			if (reformatOpt == -1) {
+				reformatOpt = mut.getTextureFormat();
+			}
+			ImGui::InputInt("Format", &reformatOpt);
+			if (ImGui::Button(ICON_FA_CHECK " Okay")) {
+				const auto oldFormat = mut.getTextureFormat();
+				mut.setTextureFormat(reformatOpt);
+				mut.resizeData();
 
+				libcube::image_platform::transform(mut.getData(),
+					mut.getWidth(), mut.getHeight(),
+					static_cast<libcube::gx::TextureFormat>(oldFormat),
+					static_cast<libcube::gx::TextureFormat>(reformatOpt),
+					mut.getData(), mut.getWidth(), mut.getHeight(),
+					0 // mut.getMipmapCount()
+				);
+				mHistory.commit(mHost);
+
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+
+			if (ImGui::Button(ICON_FA_CROSS " Cancel")) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
 		if (ImGui::BeginPopupModal("Resize", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
 			if (resize[0].before <= 0) {
 				resize[0].before = tex.getWidth();
@@ -342,6 +384,21 @@ struct TexImgPreview : public StudioWindow
 			if (ImGui::Button(ICON_FA_CHECK " Resize")) {
 				printf("Do the resizing..\n");
 
+				const auto oldWidth = mut.getWidth();
+				const auto oldHeight = mut.getHeight();
+
+				mut.setWidth(resize[0].value);
+				mut.setHeight(resize[1].value);
+				mut.resizeData();
+
+				libcube::image_platform::transform(mut.getData(),
+					resize[0].value, resize[1].value,
+					static_cast<libcube::gx::TextureFormat>(mut.getTextureFormat()), std::nullopt,
+					mut.getData(), oldWidth, oldHeight,
+					mut.getMipmapCount(),
+					static_cast<libcube::image_platform::ResizingAlgorithm>(resizealgo));
+				mHistory.commit(mHost);
+
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::SameLine();
@@ -358,8 +415,10 @@ struct TexImgPreview : public StudioWindow
 		int width = tex.getWidth();
 		ImGui::InputInt("width", &width);
 		const_cast<lib3d::Texture&>(tex).setWidth(width);
+		int mmCnt = mut.getMipmapCount();
+		ImGui::InputInt("Mipmap Count", &mmCnt);
+		mut.setMipmapCount(mmCnt);
 
-	
 		if (lastTexId != samp.getActiveSelection())
 			setFromImage(tex);
 
@@ -381,14 +440,12 @@ struct TexImgPreview : public StudioWindow
 		ResizeDimension{ "Width ", -1, -1, false },
 		ResizeDimension{ "Height", -1, -1, true }
 	};
-	enum class ResizeAlgo : int {
-		AVIR,
-		Lanczos
-	};
-	ResizeAlgo resizealgo = ResizeAlgo::AVIR;
-	const kpi::IDocumentNode& mHost;
+	int reformatOpt = -1;
+	int resizealgo = 0;
+	kpi::IDocumentNode& mHost;
 	int lastTexId = -1;
 	ImagePreview mImg;
+	kpi::History& mHistory;
 };
 struct RenderTest : public StudioWindow
 {
@@ -1343,7 +1400,7 @@ EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state, const std:
 	attachWindow(std::make_unique<MatEditor>(mHistory, *mState.get()));
 	attachWindow(std::make_unique<HistoryList>(mHistory, *mState.get()));
 	attachWindow(std::make_unique<GenericCollectionOutliner>(*mState.get()));
-	attachWindow(std::make_unique<TexImgPreview>(*mState.get()));
+	attachWindow(std::make_unique<TextureEditor>(*mState.get(), mHistory));
 	attachWindow(std::make_unique<RenderTest>(*mState.get()));
 }
 void EditorWindow::draw_()

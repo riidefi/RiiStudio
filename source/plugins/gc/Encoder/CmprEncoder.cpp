@@ -328,7 +328,7 @@ void WIMGT_CMPR(const u8* data, cmpr_info_t* info)
 
 	assert(opaque_count >= 3);
 
-	u32 best0 = 0, best1 = 0, max_dist = UINT_MAX;
+	u32 best0 = 0, best1 = 0, max_dist = (u32)-1;
 	if (info->opaque_count < CMPR_MAX_COL)
 	{
 		// we have transparent points -> 1 middle point
@@ -472,7 +472,6 @@ static void CalcImageBlock
 	u32* img_size	// not NULL: return image size
 )
 {
-	assert(img);
 
 	u32 xwidth, xheight;
 	const u32 size = CalcImageSize(width, height,
@@ -496,11 +495,11 @@ void EncodeDXT1(u8* dest_img, const u8* source_img, u32 width, u32 height)
 		&h_blocks, &v_blocks, &img_size);
 
 	u8* dest = dest_img;
-	const u8* src1 = dest_img;
+	const u8* src1 = source_img;
 
 	const u32 block_size = block_width * 4;
 
-	const u32 xwidth = (width + 0x1f) & ~0x1f;
+	const u32 xwidth = ((width + 0x1f) & ~0x1f);
 	const u32 line_size = xwidth * 4;
 	const u32 delta[] = { 0, 16, 4 * line_size, 4 * line_size + 16 };
 
@@ -533,8 +532,8 @@ void EncodeDXT1(u8* dest_img, const u8* source_img, u32 width, u32 height)
 		src1 += line_size * block_height;
 	}
 
-	assert(dest == data + img_size);
-	assert(src1 <= dest_img->data + dest_img->data_size);
+	assert(dest == dest_img + img_size);
+	// assert(src1 <= dest_img->data + dest_img->data_size);
 }
 
 

@@ -19,6 +19,7 @@ private:
 
 	u32 mTexColorBufId = 0;
 	u32 mFboId = 0;
+	u32 rbo = 0;
 
 	// Internal resolution (begin()'s width/height)
 	u32 mLastWidth = 1920 / 2;

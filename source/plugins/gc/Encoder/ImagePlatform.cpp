@@ -31,20 +31,20 @@ void decode(u8* dst, const u8* src, int width, int height, gx::TextureFormat tex
 }
 
 typedef std::unique_ptr<uint32_t[]> codec_t(uint32_t*, uint16_t, uint16_t);
-std::array<void*, 8> codecs {
-	&convertBufferToI4,
-	&convertBufferToI8,
-	&convertBufferToIA4,
-	&convertBufferToIA8,
-	&convertBufferToRGB565,
-	&convertBufferToRGB5A3,
-	&convertBufferToRGBA8
+codec_t* codecs[8]{
+	convertBufferToI4,
+	convertBufferToI8,
+	convertBufferToIA4,
+	convertBufferToIA8,
+	convertBufferToRGB565,
+	convertBufferToRGB5A3,
+	convertBufferToRGBA8
 };
 static std::unique_ptr<uint32_t[]> invokeCodec(uint32_t* rgbaBuf, uint16_t width, uint16_t height, gx::TextureFormat texformat) {
 	int id = static_cast<int>(texformat);
-	assert(id <= codecs.size());
-	if (static_cast<int>(texformat) <= codecs.size()) {
-		return reinterpret_cast<codec_t*>(codecs[id])(rgbaBuf, width, height);
+	assert(id <= 8);
+	if (static_cast<int>(texformat) <= 8) {
+		return codecs[id](rgbaBuf, width, height);
 	} else {
 		return nullptr;
 	}
@@ -55,7 +55,8 @@ void encode(u8* dst, const u8* src, int width, int height, gx::TextureFormat tex
 		EncodeDXT1(dst, src, width, height);
 	} else if (static_cast<int>(texformat) <= static_cast<int>(gx::TextureFormat::RGBA8)) {
 		// TODO: MP does not work on non block dims?
-		assert(getBlockedDimensions(width, height, texformat) == std::make_pair<int, int>(width, height));
+		const auto inpair = std::pair<int, int>(width, height);
+		assert(getBlockedDimensions(width, height, texformat) == inpair);
 
 		// Until we replace this lib...
 		uint32_t* rgbaBuf = const_cast<uint32_t*>(reinterpret_cast<const uint32_t*>(src));
@@ -65,7 +66,8 @@ void encode(u8* dst, const u8* src, int width, int height, gx::TextureFormat tex
 
 		// Copy the temp buffer..
 		assert(newBuf.get());
-		memcpy(dst, newBuf.get(), getEncodedSize(width, height, texformat, 0));
+		const auto encoded_size = getEncodedSize(width, height, texformat, 0);
+		memcpy(dst, newBuf.get(), encoded_size);
 	} else {
 		// No palette support
 		assert(false);
@@ -79,8 +81,6 @@ void reencode(u8* dst, const u8* src, int width, int height,
 	encode(dst, tmp.data(), width, height, newFormat);
 }
 
-avir::CImageResizer<> Avir8BitImageResizer(8);
-avir::CLancIR AvirLanczos;
 void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy, ResizingAlgorithm type) {
 	bool dstSrcTmp = dst == src;
 	u8* realDst = nullptr;
@@ -89,7 +89,7 @@ void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy, ResizingAlgo
 	assert(dst != nullptr);
 	if (dst == nullptr) {
 		return;
-	} else if (src = nullptr) {
+	} else if (src == nullptr) {
 		src = dst;
 	}
 
@@ -99,10 +99,13 @@ void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy, ResizingAlgo
 		dst = tmp.data();
 	}
 	if (type == ResizingAlgorithm::AVIR) {
+
+		avir::CImageResizer<> Avir8BitImageResizer(8);
 		// TODO: Allow more customization (args, k)
 		Avir8BitImageResizer.resizeImage(src, sx, sy, 0, dst, dx, dy, 4, 0);
-	}
-	else {
+		assert(memcmp(src, dst, sx * sy * 4));
+	} else {
+		avir::CLancIR AvirLanczos;
 		AvirLanczos.resizeImage(src, sx, sy, 0, dst, dx, dy, 4, 0);
 	}
 
@@ -112,6 +115,62 @@ void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy, ResizingAlgo
 	}
 }
 
+struct RGBA32ImageSource {
+	RGBA32ImageSource(const u8* buf, int w, int h, gx::TextureFormat fmt)
+		: mBuf(buf), mW(w), mH(h), mFmt(fmt)
+	{
+		if (fmt == gx::TextureFormat::Extension_RawRGBA32) {
+			mDecoded = buf;
+		}
+		else {
+			mTmp.resize(w * h * 4);
+			decode(mTmp.data(), mBuf, w, h, fmt);
+			mDecoded = mTmp.data();
+		}
+	}
+
+	const u8* get() const { return mDecoded; }
+	u32 size() const { return mW * mH * 4; }
+	int width() const { return mW; }
+	int height() const { return mH; }
+private:
+	std::vector<u8> mTmp;
+	const u8* mDecoded = nullptr;
+	const u8* mBuf;
+	int mW;
+	int mH;
+	gx::TextureFormat mFmt;
+};
+struct RGBA32ImageTarget {
+	RGBA32ImageTarget(int w, int h)
+		: mW(w), mH(h)
+	{
+		mTmp.resize(w * h * 4);
+	}
+	void copyTo(u8* dst, gx::TextureFormat fmt) {
+		if (fmt == gx::TextureFormat::Extension_RawRGBA32) {
+			memcpy(dst, mTmp.data(), mTmp.size());
+		} else {
+			encode(dst, mTmp.data(), mW, mH, fmt);
+		}
+	}
+	void fromOtherSized(const u8* src, u32 ow, u32 oh, ResizingAlgorithm al) {
+		if (ow == mW && oh == mH) {
+			memcpy(mTmp.data(), src, mTmp.size());
+		} else {
+			resize(mTmp.data(), mW, mH, src, ow, oh, al);
+		}
+	}
+	void fromOtherSized(RGBA32ImageSource& source, ResizingAlgorithm al) {
+		fromOtherSized(source.get(), source.width(), source.height(), al);
+	}
+	u8* get() { return mTmp.data(); }
+	u32 size() const { return mW * mH * 4; }
+private:
+	std::vector<u8> mTmp;
+	int mW;
+	int mH;
+};
 void transform(u8* dst, int dwidth, int dheight,
 	gx::TextureFormat oldformat,
 	std::optional<gx::TextureFormat> newformat,
@@ -128,6 +187,17 @@ void transform(u8* dst, int dwidth, int dheight,
 
 	// Determine whether to decode this sublevel as an image or many sublvels.
 	if (mipMapCount > 0) {
+		std::vector<u8> srcBuf(0);
+		const u8* pSrc = nullptr;
+		if (dst == src) {
+			srcBuf.resize(getEncodedSize(swidth, sheight, oldformat, mipMapCount));
+			memcpy(srcBuf.data(), src, srcBuf.size());
+			pSrc = srcBuf.data();
+		} else {
+			pSrc = src;
+		}
+		assert(pSrc);
+		transform(dst, dwidth, dheight, oldformat, newformat, pSrc, swidth, sheight, 0, algorithm);
 		for (u32 i = 0; i < mipMapCount; ++i) {
 			const auto src_lod_ofs = getEncodedSize(swidth, sheight, oldformat, i);
 			const auto dst_lod_ofs = getEncodedSize(dwidth, dheight, newformat.value(), i);
@@ -136,47 +206,20 @@ void transform(u8* dst, int dwidth, int dheight,
 			const auto dst_lod_x = dwidth >> i;
 			const auto dst_lod_y = dheight >> i;
 			transform(dst + dst_lod_ofs, dst_lod_x, dst_lod_y, oldformat, newformat.value(),
-				src + src_lod_ofs, src_lod_x, src_lod_y, 0, algorithm);
+				pSrc + src_lod_ofs, src_lod_x, src_lod_y, 0, algorithm);
 		}
 	} else {
-		// First decode the source image
-		std::vector<u8> srcDecoded(0);
-		const u8* pSrcDecoded = nullptr;
-		const bool srcTmp = oldformat != gx::TextureFormat::Extension_RawRGBA32;
-		if (srcTmp) {
-			srcDecoded.resize(swidth * sheight * 4);
-			decode(srcDecoded.data(), src, swidth, sheight, oldformat);
-			pSrcDecoded = srcDecoded.data();
-		} else {
-			pSrcDecoded = src;
-		}
-		assert(pSrcDecoded);
+		RGBA32ImageSource source(src, swidth, sheight, oldformat);
+		assert(source.get());
 
-		// If the dst format is raw and not the source buf, we can directly write to it.
-		// Otherwise, we need to make a buffer.
-		std::vector<u8> dstDecoded(0);
-		u8* pDstDecoded = nullptr;
-		const bool dstTmp = newformat.value() != gx::TextureFormat::Extension_RawRGBA32 ||
-			dst == pSrcDecoded;
-		if (dstTmp) {
-			dstDecoded.resize(dwidth * dheight * 4);
-			pDstDecoded = dstDecoded.data();
-		} else {
-			pDstDecoded = dst;
-		}
-		assert(pDstDecoded);
+		// TODO: We don't always need to allocate this
+		RGBA32ImageTarget target(dwidth, dheight);
+		assert(target.get());
 
-		// If the dimensions differ, resize
-		if (swidth != dwidth || sheight != dheight) {
-			resize(pDstDecoded, dwidth, dheight, pSrcDecoded, swidth, sheight, algorithm);
-		}
+		target.fromOtherSized(source, algorithm);
 
-		// Now we need to encode.
-		if (newformat != gx::TextureFormat::Extension_RawRGBA32) {
-			encode(dst, pDstDecoded, dwidth, dheight, newformat.value());
-		} else if (dstTmp) { // The two buffers are equal
-			memcpy(dst, pDstDecoded, dstDecoded.size());
-		}
+		// TODO: A copy here can be prevented
+		target.copyTo(dst, newformat.value());
 	}
 }
 

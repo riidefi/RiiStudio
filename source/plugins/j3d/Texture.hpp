@@ -58,6 +58,10 @@ struct Texture : public TextureData, public libcube::Texture
 	{
 		return mMipmapLevel;
 	}
+	void setMipmapCount(u32 c) override
+	{
+		mMipmapLevel = c;
+	}
     const u8* getData() const override
 	{
 		return mData.data();
@@ -68,7 +72,7 @@ struct Texture : public TextureData, public libcube::Texture
 	}
 	void resizeData() override
 	{
-		mData.resize(getEncodedSize(false));
+		mData.resize(getEncodedSize(true));
 	}
 
     const u8* getPaletteData() const override
