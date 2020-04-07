@@ -94,7 +94,7 @@ void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy, ResizingAlgo
 void transform(u8* dst, int dx, int dy,
 	gx::TextureFormat oldformat = gx::TextureFormat::Extension_RawRGBA32,
 	std::optional<gx::TextureFormat> newformat = std::nullopt,
-	const u8* src=nullptr, int swidth=-1, int sheight=-1,
+	const u8* src=nullptr, int sx=-1, int sy=-1,
 	u32 mipMapCount = 0,
 	ResizingAlgorithm algorithm = ResizingAlgorithm::AVIR);
 

@@ -21,6 +21,7 @@ std::pair<int, int> getBlockedDimensions(int width, int height, gx::TextureForma
 }
 
 int getEncodedSize(int width, int height, gx::TextureFormat format, u32 mipMapCount) {
+	if (format == libcube::gx::TextureFormat::Extension_RawRGBA32) return width * height * 4;
 	return GetTexBufferSize(width, height, static_cast<u32>(format), mipMapCount != 0, mipMapCount + 1);
 }
 
