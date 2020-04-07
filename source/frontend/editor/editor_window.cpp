@@ -411,18 +411,19 @@ struct TextureEditor : public StudioWindow
 		}
 
 
-		
-		int width = tex.getWidth();
-		ImGui::InputInt("width", &width);
-		const_cast<lib3d::Texture&>(tex).setWidth(width);
-		int mmCnt = mut.getMipmapCount();
-		ImGui::InputInt("Mipmap Count", &mmCnt);
-		mut.setMipmapCount(mmCnt);
-
 		if (lastTexId != samp.getActiveSelection())
 			setFromImage(tex);
 
 		mImg.draw();
+
+		if (ImGui::CollapsingHeader("DEBUG")) {
+			int width = tex.getWidth();
+			ImGui::InputInt("width", &width);
+			const_cast<lib3d::Texture&>(tex).setWidth(width);
+			int mmCnt = mut.getMipmapCount();
+			ImGui::InputInt("Mipmap Count", &mmCnt);
+			mut.setMipmapCount(mmCnt);
+		}
 	}
 	void setFromImage(const lib3d::Texture& tex)
 	{

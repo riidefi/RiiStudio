@@ -259,11 +259,26 @@ struct Texture
 
 	virtual u32 getDecodedSize(bool mip) const
 	{
-		return getWidth() * getHeight() * 4;
+		if (mip) {
+			u32 w = getWidth();
+			u32 h = getHeight();
+			u32 total = w * h * 4;
+			for (int i = 0; i < getMipmapCount(); ++i) {
+				w >> 1;
+				h >> 1;
+				total += w * h * 4;
+			}
+			return total;
+		} else {
+			return getWidth() * getHeight() * 4;
+		}
 	}
 	virtual u32 getEncodedSize(bool mip) const = 0;
 	virtual void decode(std::vector<u8>& out, bool mip) const = 0;
 
+	// 0 -- no mipmap, 1 -- one mipmap; not lod max
+	virtual u32 getMipmapCount() const = 0;
+	virtual void setMipmapCount(u32 c) = 0;
 	
 	virtual u16 getWidth() const = 0;
 	virtual void setWidth(u16 width) = 0;

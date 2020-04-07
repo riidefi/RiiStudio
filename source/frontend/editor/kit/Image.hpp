@@ -26,6 +26,10 @@ public:
 	bool mTexUploaded = false;
 
 	float mScale = 1.0f;
+
+	// MM
+	u32 mNumMipMaps = 0;
+	int mLod = 0;
 };
 
 }

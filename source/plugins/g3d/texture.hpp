@@ -33,8 +33,8 @@ struct Texture : public TextureData, public libcube::Texture {
 	void setName(const std::string& n) override{ name = n; }
 	u32 getTextureFormat() const override { return (u32)format; }
 	void setTextureFormat(u32 f) override { format = f; }
-	u32 getMipmapCount() const override { return mipLevel; }
-	void setMipmapCount(u32 c) override { mipLevel = c; }
+	u32 getMipmapCount() const override { return mipLevel - 1; }
+	void setMipmapCount(u32 c) override { mipLevel = c + 1; }
 	const u8* getData() const override { return data.data(); }
 	u8* getData() override { return data.data(); }
 	void resizeData() override { data.resize(getEncodedSize(true)); }

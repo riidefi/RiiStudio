@@ -19,20 +19,35 @@ struct Texture : public riistudio::lib3d::Texture
 			mip && getMipmapCount() > 1, mip ? getMipmapCount() + 1 : 0);
     }
 	inline void decode(std::vector<u8>& out, bool mip) const override
-    {
-        const u32 size = getDecodedSize(mip);
+	{
+		const u32 size = getDecodedSize(mip);
 
-        if (out.size() < size)
-            out.resize(size);
-
-        TexDecoder_Decode(out.data(), getData(), getWidth(), getHeight(),
-            (TextureFormat)getTextureFormat(), getPaletteData(), (TLUTFormat)getPaletteFormat());
+		if (out.size() < size) {
+			out.resize(size);
+		}
+		auto decodeSingle = [&](u32 out_ofs, u32 in_ofs, u32 lod) {
+			TexDecoder_Decode(out.data() + out_ofs, getData() + in_ofs, getWidth() >> lod, getHeight() >> lod,
+				(TextureFormat)getTextureFormat(), getPaletteData(), (TLUTFormat)getPaletteFormat());
+		};
+		decodeSingle(0, 0, 0);
+		if (mip) {
+			
+			u32 i_ofs = 0;
+			u32 o_ofs = 0;
+			u32 w = getWidth();
+			u32 h = getHeight();
+			for (int i = 0; i < getMipmapCount(); ++i) {
+				i_ofs += GetTexBufferSize(w, h, getTextureFormat(), 0, 1);
+				o_ofs += w * h * 4;
+				decodeSingle(o_ofs, i_ofs, i + 1);
+				w >>= 1;
+				h >>= 1;
+			}
+		}
     }
 
     virtual u32 getTextureFormat() const = 0;
 	virtual void setTextureFormat(u32 format) = 0;
-    virtual u32 getMipmapCount() const = 0;
-	virtual void setMipmapCount(u32 c) = 0;
     virtual const u8* getData() const = 0;
 	virtual u8* getData() = 0;
 	virtual void resizeData() = 0;
