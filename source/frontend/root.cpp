@@ -292,8 +292,8 @@ void RootWindow::draw() {
 					bt.nPalette = 0;
 					bt.ofsPalette = 0;
 					bt.mMinLod = 0; // TODO: Verify
-					bt.mMaxLod = from_texture.getMipmapCount();
-					bt.mMipmapLevel = from_texture.getMipmapCount();
+					bt.mMaxLod = from_texture.getMipmapCount() + 1;
+					bt.mMipmapLevel = from_texture.getMipmapCount() + 1;
 					bt.mData.resize(from_texture.getEncodedSize(true));
 					memcpy(bt.mData.data(), from_texture.getData(), bt.mData.size());
 					// TODO: Copy

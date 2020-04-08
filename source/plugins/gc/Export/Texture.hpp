@@ -27,6 +27,9 @@ struct Texture : public riistudio::lib3d::Texture
 			out.resize(size);
 		}
 		auto decodeSingle = [&](u32 out_ofs, u32 in_ofs, u32 lod) {
+			const auto thisPlaneSize = GetTexBufferSize(getWidth() >> lod, getHeight() >> lod, getTextureFormat(),
+				false, 1);
+
 			TexDecoder_Decode(out.data() + out_ofs, getData() + in_ofs, getWidth() >> lod, getHeight() >> lod,
 				(TextureFormat)getTextureFormat(), getPaletteData(), (TLUTFormat)getPaletteFormat());
 		};

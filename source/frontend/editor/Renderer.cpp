@@ -164,15 +164,19 @@ struct SceneState
 			texIdMap[tex.getName()] = texId;
 			glBindTexture(GL_TEXTURE_2D, texId);
 
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-			tex.decode(data, false);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex.getWidth(), tex.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
-			// TODO
-			glGenerateMipmap(GL_TEXTURE_2D);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, tex.getMipmapCount());
+			tex.decode(data, true);
+			u32 slide = 0;
+			for (u32 i = 0; i <= tex.getMipmapCount(); ++i) {
+				glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, tex.getWidth() >> i, tex.getHeight() >> i, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+					data.data() + slide);
+				slide += (tex.getWidth() >> i) * (tex.getHeight() >> i) * 4;
+			}
 		}
 	}
 

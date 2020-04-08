@@ -30,6 +30,7 @@ void Tex::transfer(oishii::BinaryReader& stream)
 	stream.transfer<s8>(mMinLod);
 	stream.transfer<s8>(mMaxLod);
 	stream.transfer<u8>(mMipmapLevel);
+	assert(mMipmapLevel);
 	stream.seek(1);
 	stream.transfer(mLodBias);
 	stream.transfer(ofsTex);
@@ -167,7 +168,7 @@ void readTEX1(BMDOutputContext& ctx)
 
 		// ofs:size
 		inf.second.first = g.start + ofsHeaders + i * 32 + tex.ofsTex;
-		inf.second.second = GetTexBufferSize(tex.mWidth, tex.mHeight, tex.mFormat, tex.bMipMap, tex.mMaxLod);
+		inf.second.second = GetTexBufferSize(tex.mWidth, tex.mHeight, tex.mFormat, tex.bMipMap, tex.mMipmapLevel);
 	}
 
 	// Deduplicate and read.

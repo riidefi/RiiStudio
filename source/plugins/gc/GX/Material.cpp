@@ -350,7 +350,7 @@ void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
 	{
 		const auto& texData = getTexture(data.samplers[i]->mTexture);
 		
-		tmp.TexParams[i] = glm::vec4{ texData.getWidth(), texData.getHeight(), 0, 0 };
+		tmp.TexParams[i] = glm::vec4{ texData.getWidth(), texData.getHeight(), 0, data.samplers[i]->mLodBias };
 	}
 	for (int i = 0; i < data.mIndMatrices.size(); ++i)
 	{
