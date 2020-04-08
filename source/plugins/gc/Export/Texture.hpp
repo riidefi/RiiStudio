@@ -16,11 +16,12 @@ struct Texture : public riistudio::lib3d::Texture
 	inline u32 getEncodedSize(bool mip) const override
     {
 		return GetTexBufferSize(getWidth(), getHeight(), getTextureFormat(),
-			mip && getMipmapCount() > 1, mip ? getMipmapCount() + 1 : 0);
+			mip && getMipmapCount() > 0, mip ? getMipmapCount() + 1 : 0);
     }
 	inline void decode(std::vector<u8>& out, bool mip) const override
 	{
 		const u32 size = getDecodedSize(mip);
+		assert(size);
 
 		if (out.size() < size) {
 			out.resize(size);
@@ -30,7 +31,7 @@ struct Texture : public riistudio::lib3d::Texture
 				(TextureFormat)getTextureFormat(), getPaletteData(), (TLUTFormat)getPaletteFormat());
 		};
 		decodeSingle(0, 0, 0);
-		if (mip) {
+		if (mip && getMipmapCount() > 0) {
 			
 			u32 i_ofs = 0;
 			u32 o_ofs = 0;

@@ -259,11 +259,12 @@ struct Texture
 
 	virtual u32 getDecodedSize(bool mip) const
 	{
-		if (mip) {
+		u32 mipMapCount = getMipmapCount();
+		if (mip && mipMapCount > 0) {
 			u32 w = getWidth();
 			u32 h = getHeight();
 			u32 total = w * h * 4;
-			for (int i = 0; i < getMipmapCount(); ++i) {
+			for (int i = 0; i < mipMapCount; ++i) {
 				w >> 1;
 				h >> 1;
 				total += w * h * 4;

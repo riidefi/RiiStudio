@@ -56,11 +56,12 @@ struct Texture : public TextureData, public libcube::Texture
 	}
     u32 getMipmapCount() const override
 	{
-		return mMipmapLevel;
+		assert(mMipmapLevel > 0);
+		return mMipmapLevel - 1;
 	}
 	void setMipmapCount(u32 c) override
 	{
-		mMipmapLevel = c;
+		mMipmapLevel = c + 1;
 	}
     const u8* getData() const override
 	{

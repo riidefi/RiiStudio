@@ -395,7 +395,7 @@ struct TextureEditor : public StudioWindow
 					resize[0].value, resize[1].value,
 					static_cast<libcube::gx::TextureFormat>(mut.getTextureFormat()), std::nullopt,
 					mut.getData(), oldWidth, oldHeight,
-					mut.getMipmapCount()-1,
+					mut.getMipmapCount(),
 					static_cast<libcube::image_platform::ResizingAlgorithm>(resizealgo));
 				mHistory.commit(mHost);
 

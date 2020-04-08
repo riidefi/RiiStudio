@@ -220,6 +220,8 @@ void readMatEntry(Material& mat, MatLoader& loader, oishii::BinaryReader& reader
 
 
 		loader.indexedContainer<u16>(mat.tevColors, MatSec::TevColors, 8);
+		// HW 0 is API CPREV/APREV
+		std::rotate(mat.tevColors.rbegin(), mat.tevColors.rbegin()+1, mat.tevColors.rend());
 
 		// FIXME: Directly read into material
 		array_vector<gx::TevStage, 16> tevStageInfos;
@@ -892,7 +894,10 @@ void io_wrapper<SerializableMaterial>::onWrite(oishii::v2::Writer& writer, const
 		writer.write<u16>(-1);
 
 	dbg.assertSince(0x0dc);
-	write_array_vec<u16>(writer, m.tevColors, cache.tevColors);
+	auto tevColors = m.tevColors;
+	// HW 0 is API CPREV/APREV
+	std::rotate(tevColors.begin(), tevColors.begin() + 1, tevColors.end());
+	write_array_vec<u16>(writer, tevColors, cache.tevColors);
 
 	dbg.assertSince(0x0e4);
 	for (int i = 0; i < m.shader.mStages.size(); ++i) {

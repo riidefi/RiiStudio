@@ -161,9 +161,6 @@ void RootWindow::draw() {
 
 							mat.get().getMaterialData() = from_mats->at<libcube::IGCMaterial>(m_i).getMaterialData();
 
-							// BRRES Hack: TODO
-							std::rotate(md.tevColors.begin(), md.tevColors.begin() + 1, md.tevColors.end());
-
 							auto before = mat.get().getMaterialData().samplers;
 							md.samplers = {};
 							for (int i = 0; i < before.size(); ++i) {

@@ -1,6 +1,8 @@
 #include <core/3d/gl.hpp>
 #include "Image.hpp"
 #include <vendor/imgui/imgui.h>
+#include <algorithm>
+#undef min
 
 namespace riistudio::frontend {
 
@@ -21,7 +23,7 @@ void ImagePreview::setFromImage(const lib3d::Texture& tex)
 	width = tex.getWidth();
 	height = tex.getHeight();
 	mNumMipMaps = tex.getMipmapCount();
-	if (mLod > mNumMipMaps) mLod = 0;
+	mLod = std::min(static_cast<u32>(mLod), mNumMipMaps);
 	tex.decode(mDecodeBuf, true);
 
 	if (mTexUploaded)
