@@ -168,6 +168,7 @@ void RootWindow::draw() {
 								static_cast<libcube::GCMaterialData::SamplerData&>(*simp.get()) = static_cast<const libcube::GCMaterialData::SamplerData&>(*before[i].get());
 								md.samplers.push_back(std::move(simp));
 							}
+							mat.get().indEnabled = mat.get().getMaterialData().info.nIndStage > 0;
 						}
 					}
 					// joints
