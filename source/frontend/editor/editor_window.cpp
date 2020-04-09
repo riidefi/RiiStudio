@@ -23,12 +23,24 @@
 #include <algorithm>
 #include <plugins/gc/Encoder/ImagePlatform.hpp>
 
+#include <plugins/gc/Util/TextureExport.hpp>
+#include <vendor/FileDialogues.hpp>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <vendor/stb_image.h>
+
+#undef near
+
 // Web security...
 #ifdef __EMSCRIPTEN__
 extern bool gPointerLock;
 #endif
 
 namespace riistudio::frontend {
+
+inline bool ends_with(const std::string& value, const std::string& ending) {
+	return ending.size() <= value.size() && std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
 
 struct GenericCollectionOutliner : public StudioWindow
 {
@@ -267,6 +279,14 @@ private:
 	TFilter mFilter;
 };
 
+static const std::vector<std::string> StdImageFilters = {
+	"PNG Files", "*.png",
+	"TGA Files", "*.tga",
+	"JPG Files", "*.jpg",
+	"BMP Files", "*.bmp",
+	"All Files", "*",
+};
+
 struct TextureEditor : public StudioWindow
 {
 	TextureEditor(kpi::IDocumentNode& host, kpi::History& history)
@@ -294,6 +314,47 @@ struct TextureEditor : public StudioWindow
 				}
 				if (ImGui::Button(ICON_FA_DRAW_POLYGON " Change format")) {
 					reformatOption = true;
+				}
+				if (ImGui::Button(ICON_FA_SAVE " Export")) {
+					auto results = pfd::save_file("Export image", "", StdImageFilters);
+					if (!results.result().empty()) {
+						const std::string path = results.result();
+						libcube::STBImage imgType = libcube::STBImage::PNG;
+						if (ends_with(path, ".png")) {
+							imgType = libcube::STBImage::PNG;
+						} else if (ends_with(path, ".bmp")) {
+							imgType = libcube::STBImage::BMP;
+						} else if (ends_with(path, ".tga")) {
+							imgType = libcube::STBImage::TGA;
+						} else if (ends_with(path, ".jpg")) {
+							imgType = libcube::STBImage::JPG;
+						}
+
+						// Only top LOD
+						libcube::writeImageStbRGBA(path.c_str(),
+							imgType, tex.getWidth(), tex.getHeight(), mImg.mDecodeBuf.data());
+					}
+				}
+				if (ImGui::Button(ICON_FA_FILE " Import")) {
+					auto result = pfd::open_file("Import image", "", StdImageFilters).result();
+					if (!result.empty()) {
+						const auto path = result[0];
+						int width, height, channels;
+						unsigned char* image = stbi_load(path.c_str(),
+							&width,
+							&height,
+							&channels,
+							STBI_rgb_alpha);
+						assert(image);
+						tex.setWidth(width);
+						tex.setHeight(height);
+						mut.setMipmapCount(0);
+						mut.resizeData();
+						tex.encode(image);
+						stbi_image_free(image);
+						mHistory.commit(mHost);
+						lastTexId = -1;
+					}
 				}
 				ImGui::EndMenu();
 			}
@@ -328,6 +389,7 @@ struct TextureEditor : public StudioWindow
 					mut.getMipmapCount() - 1
 				);
 				mHistory.commit(mHost);
+				lastTexId = -1;
 
 				ImGui::CloseCurrentPopup();
 			}
@@ -398,6 +460,7 @@ struct TextureEditor : public StudioWindow
 					mut.getMipmapCount(),
 					static_cast<libcube::image_platform::ResizingAlgorithm>(resizealgo));
 				mHistory.commit(mHost);
+				lastTexId = -1;
 
 				ImGui::CloseCurrentPopup();
 			}

@@ -5,7 +5,7 @@
 #include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
 
 #include <vendor/mp/Metaphrasis.h>
-
+#include <plugins/gc/Encoder/ImagePlatform.hpp>
 namespace libcube {
 
 
@@ -79,12 +79,11 @@ struct Texture : public riistudio::lib3d::Texture
 	//!
 	void encode(const u8* rawRGBA) override
 	{
-		assert(getEncodedSize(false) == getDecodedSize(false));
-
 		resizeData();
 
-		auto data = convertBufferToRGBA8((uint32_t*)rawRGBA, getWidth(), getHeight());
-		memcpy(getData(), data.get(), getEncodedSize(false));
+		image_platform::transform(getData(), getWidth(), getHeight(), gx::TextureFormat::Extension_RawRGBA32,
+			static_cast<gx::TextureFormat>(getTextureFormat()), rawRGBA, getWidth(), getHeight(),
+			getMipmapCount());
 	}
 };
 

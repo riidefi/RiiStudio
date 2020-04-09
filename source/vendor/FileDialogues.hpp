@@ -1,3 +1,3 @@
 #pragma once
 
-#include <ThirdParty/pfd/portable-file-dialogs.h>
+#include <vendor/pfd/portable-file-dialogs.h>
