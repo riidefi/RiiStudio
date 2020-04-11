@@ -161,7 +161,7 @@ void readMatEntry(Material& mat, MatLoader& loader, oishii::BinaryReader& reader
 	mat.cullMode = loader.indexed<u8>(MatSec::CullModeInfo).as<gx::CullMode, u32>();
 	// TODO:
 	mat.cullMode = libcube::gx::CullMode::Back;
-	mat.info.nColorChan = loader.indexed<u8>(MatSec::NumTexGens).raw();
+	mat.info.nColorChan = loader.indexed<u8>(MatSec::NumColorChannels).raw();
 	mat.info.nTexGen = loader.indexed<u8>(MatSec::NumTexGens).raw();
 	mat.info.nTevStage = loader.indexed<u8>(MatSec::NumTevStages).raw();
 	mat.earlyZComparison = loader.indexed<u8>(MatSec::ZCompareInfo).as<bool, u8>();
@@ -834,6 +834,7 @@ void io_wrapper<SerializableMaterial>::onWrite(oishii::v2::Writer& writer, const
 		ambColors.push_back(m.chanData[0].ambColor);
 	}
 	write_array_vec<u16>(writer, matColors, cache.matColors);
+	assert(m.colorChanControls.size() >= m.info.nColorChan * 2);
 	write_array_vec<u16>(writer, m.colorChanControls, cache.colorChans);
 	write_array_vec<u16>(writer, ambColors, cache.ambColors);
 	write_array_vec<u16>(writer, m.lightColors, cache.lightColors);
