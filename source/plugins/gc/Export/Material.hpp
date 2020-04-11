@@ -276,11 +276,22 @@ struct IGCMaterial : public riistudio::lib3d::Material
 	virtual GCMaterialData& getMaterialData() = 0;
 	virtual const GCMaterialData& getMaterialData() const = 0;
 
-	
+
+
+	virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
 	std::pair<std::string, std::string> generateShaders() const override;
 	void generateUniforms(DelegatedUBOBuilder& builder,
 		const glm::mat4& M, const glm::mat4& V, const glm::mat4& P, u32 shaderId, const std::map<std::string, u32>& texIdMap) const override;
 
+	virtual inline const kpi::FolderData* getTextureSource() const {
+		// Assumption: Parent of parent model is a collection with children.
+		const kpi::IDocumentNode* parent = getParent();
+		assert(parent);
+		const kpi::IDocumentNode* collection = parent->parent;
+		assert(collection);
+
+		return collection->getFolder<libcube::Texture>();
+	}
 	virtual const Texture& getTexture(const std::string& id) const = 0;
 	void genSamplUniforms(u32 shaderId, const std::map<std::string, u32>& texIdMap) const override;
 

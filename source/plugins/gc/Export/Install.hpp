@@ -14,6 +14,10 @@
 
 namespace libcube {
 
+namespace UI {
+	void installDisplaySurface();
+}
+
 static inline void Install()
 {
 	assert(kpi::ApplicationPlugins::getInstance());
@@ -23,6 +27,8 @@ static inline void Install()
 		.registerParent<libcube::IGCMaterial, riistudio::lib3d::Material>()
 		.registerParent<libcube::Texture, riistudio::lib3d::Texture>()
 		.registerParent<libcube::IndexedPolygon, riistudio::lib3d::Polygon>();
+
+	UI::installDisplaySurface();
 }
 
 }

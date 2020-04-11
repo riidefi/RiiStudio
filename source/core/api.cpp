@@ -10,6 +10,9 @@
 #include <core/kpi/Node.hpp>
 #include <oishii/oishii/reader/binary_reader.hxx>
 
+#include <core/kpi/PropertyView.hpp>
+
+kpi::PropertyViewManager kpi::PropertyViewManager::sInstance;
 
 #ifdef _WIN32
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <array>
 
 namespace libcube {
 

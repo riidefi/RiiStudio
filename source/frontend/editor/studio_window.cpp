@@ -49,12 +49,13 @@ void StudioWindow::draw()
             
                 ImGuiID next = dockspaceId;
                 ImGuiID dock_right_id = ImGui::DockBuilderSplitNode(next, ImGuiDir_Right, 0.2f, nullptr, &next);
+				ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(next, ImGuiDir_Left, 0.4f, nullptr, &next);
                 ImGuiID dock_right_down_id = ImGui::DockBuilderSplitNode(dock_right_id, ImGuiDir_Down, 0.2f, nullptr, &dock_right_id);
 
                 ImGui::DockBuilderDockWindow(idIfyChild("Outliner").c_str(), dock_right_id);
                 ImGui::DockBuilderDockWindow(idIfyChild("Texture Preview").c_str(), dock_right_down_id);
 				ImGui::DockBuilderDockWindow(idIfyChild("History").c_str(), dock_right_down_id);
-				ImGui::DockBuilderDockWindow(idIfyChild("MatEditor").c_str(), next);
+				ImGui::DockBuilderDockWindow(idIfyChild("Property Editor").c_str(), dock_left_id);
                 ImGui::DockBuilderDockWindow(idIfyChild("Viewport").c_str(), next);
             
                 ImGui::DockBuilderFinish(dockspaceId);

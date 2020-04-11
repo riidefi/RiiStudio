@@ -61,8 +61,6 @@ struct Material : public G3dMaterialData, public libcube::IGCMaterial {
 
 	s64 getId() const override { return id; }
 
-	virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
-
 	bool operator==(const Material& rhs) const {
 		return G3dMaterialData::operator==(rhs);
 	}
