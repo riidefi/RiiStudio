@@ -5,6 +5,8 @@
 
 namespace riistudio::j3d {
 
+namespace ui { void install(); }
+
 void Install(kpi::ApplicationPlugins& installer) {
 	InstallBMD(installer);
 
@@ -17,6 +19,8 @@ void Install(kpi::ApplicationPlugins& installer) {
 	installer.addType<j3d::Material, libcube::IGCMaterial>();
 	installer.addType<j3d::Shape, libcube::IndexedPolygon>();
 	installer.addType<j3d::Joint, libcube::IBoneDelegate>();
+
+	ui::install();
 }
 
 }

@@ -52,6 +52,9 @@ public:
             [&](const auto& x) { return x.##val; }, \
             [&](auto& x, auto& y) { x.##val = y; } \
         )
+    // When external source updating internal data
+    #define KPI_PROPERTY_EX(delegate, before, after) \
+        KPI_PROPERTY(delegate, delegate.getActive().##before, after, before)
 
 private:
     T& mActive;
