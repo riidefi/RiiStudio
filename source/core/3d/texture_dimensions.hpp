@@ -12,10 +12,10 @@ template <typename T> struct TextureDimensions {
     return !(width % 0x20) && !(height % 0x20);
   }
 
-  bool operator==(const TextureDimensions &rhs) const {
+  bool operator==(const TextureDimensions& rhs) const {
     return width == rhs.width && height == rhs.height;
   }
-  bool operator!=(const TextureDimensions &rhs) const {
+  bool operator!=(const TextureDimensions& rhs) const {
     return !operator==(rhs);
   }
 };

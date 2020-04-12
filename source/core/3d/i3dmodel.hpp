@@ -51,7 +51,7 @@ template <typename Feature> struct TPropertySupport {
       registration[static_cast<u64>(f)] = s;
   }
 
-  Coverage &operator[](Feature f) noexcept {
+  Coverage& operator[](Feature f) noexcept {
     assert(static_cast<u64>(f) < static_cast<u64>(Feature::Max));
 
     return registration[static_cast<u64>(f)];
@@ -85,7 +85,7 @@ enum class BoneFeatures {
 struct AABB {
   glm::vec3 min, max;
 
-  bool operator==(const AABB &rhs) const {
+  bool operator==(const AABB& rhs) const {
     return min == rhs.min && max == rhs.max;
   }
 };
@@ -94,30 +94,30 @@ struct SRT3 {
   glm::vec3 rotation;
   glm::vec3 translation;
 
-  bool operator==(const SRT3 &rhs) const {
+  bool operator==(const SRT3& rhs) const {
     return scale == rhs.scale && rotation == rhs.rotation &&
            translation == rhs.translation;
   }
-  bool operator!=(const SRT3 &rhs) const { return !operator==(rhs); }
+  bool operator!=(const SRT3& rhs) const { return !operator==(rhs); }
 };
 struct TexSRT {
   glm::vec2 scale;
   f32 rotation;
   glm::vec2 translation;
 
-  bool operator==(const TexSRT &rhs) const {
+  bool operator==(const TexSRT& rhs) const {
     return scale == rhs.scale && rotation == rhs.rotation &&
            translation == rhs.translation;
   }
-  bool operator!=(const TexSRT &rhs) const { return !operator==(rhs); }
+  bool operator!=(const TexSRT& rhs) const { return !operator==(rhs); }
 };
 
 struct Bone {
   // // PX_TYPE_INFO_EX("3D Bone", "3d_bone", "3D::Bone", ICON_FA_BONE,
   // ICON_FA_BONE);
   virtual s64 getId() { return -1; }
-  virtual void setName(const std::string &name) = 0;
-  inline virtual void copy(lib3d::Bone &to) const {
+  virtual void setName(const std::string& name) = 0;
+  inline virtual void copy(lib3d::Bone& to) const {
     to.setSRT(getSRT());
     to.setBoneParent(getBoneParent());
     to.setSSC(getSSC());
@@ -135,7 +135,7 @@ struct Bone {
   }
 
   virtual SRT3 getSRT() const = 0;
-  virtual void setSRT(const SRT3 &srt) = 0;
+  virtual void setSRT(const SRT3& srt) = 0;
 
   virtual s64 getBoneParent() const = 0;
   virtual void setBoneParent(s64 id) = 0;
@@ -146,7 +146,7 @@ struct Bone {
   inline s64 removeChild(u64 idx) { return setChild(idx, -1); }
 
   virtual AABB getAABB() const = 0;
-  virtual void setAABB(const AABB &v) = 0;
+  virtual void setAABB(const AABB& v) = 0;
 
   virtual float getBoundingRadius() const = 0;
   virtual void setBoundingRadius(float v) = 0;
@@ -161,7 +161,7 @@ struct Bone {
   };
   virtual u64 getNumDisplays() const = 0;
   virtual Display getDisplay(u64 idx) const = 0;
-  virtual void addDisplay(const Display &d) = 0;
+  virtual void addDisplay(const Display& d) = 0;
 };
 enum class PixelOcclusion {
   //! The texture does not use alpha.
@@ -186,7 +186,7 @@ struct Material {
   // // PX_TYPE_INFO("3D Material", "3d_material", "3D::Material");
 
   virtual std::string getName() const { return "Untitled Material"; }
-  virtual void setName(const std::string &name) {}
+  virtual void setName(const std::string& name) {}
   virtual s64 getId() const { return -1; }
 
   virtual bool isXluPass() const { return false; }
@@ -194,23 +194,23 @@ struct Material {
   virtual std::pair<std::string, std::string> generateShaders() const = 0;
   // TODO: Interdependency
   virtual void
-  generateUniforms(DelegatedUBOBuilder &builder, const glm::mat4 &M,
-                   const glm::mat4 &V, const glm::mat4 &P, u32 shaderId,
-                   const std::map<std::string, u32> &texIdMap) const = 0;
+  generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M,
+                   const glm::mat4& V, const glm::mat4& P, u32 shaderId,
+                   const std::map<std::string, u32>& texIdMap) const = 0;
   virtual void
   genSamplUniforms(u32 shaderId,
-                   const std::map<std::string, u32> &texIdMap) const = 0;
-  virtual void setMegaState(MegaState &state) const = 0;
+                   const std::map<std::string, u32>& texIdMap) const = 0;
+  virtual void setMegaState(MegaState& state) const = 0;
   virtual void configure(PixelOcclusion occlusion,
-                         std::vector<std::string> &textures) = 0;
+                         std::vector<std::string>& textures) = 0;
 
   // TODO: Better system..
   void notifyObservers() {
-    for (auto *it : observers) {
+    for (auto* it : observers) {
       it->update();
     }
   }
-  mutable std::vector<IObserver *> observers;
+  mutable std::vector<IObserver*> observers;
 };
 
 struct TextureCodec {
@@ -219,14 +219,14 @@ struct TextureCodec {
   virtual u32 getBpp() const = 0;
   virtual u32 getBlockWidth() const = 0;
   virtual u32 getBlockHeight() const = 0;
-  virtual void encodeBlock(const u32 *rgbaPixels, void *block, int width) = 0;
+  virtual void encodeBlock(const u32* rgbaPixels, void* block, int width) = 0;
 };
 
 struct Texture {
   // // PX_TYPE_INFO("Texture", "tex", "3D::Texture");
 
   virtual std::string getName() const { return "Untitled Texture"; }
-  virtual void setName(const std::string &name) = 0;
+  virtual void setName(const std::string& name) = 0;
   virtual s64 getId() const { return -1; }
 
   virtual u32 getDecodedSize(bool mip) const {
@@ -246,7 +246,7 @@ struct Texture {
     }
   }
   virtual u32 getEncodedSize(bool mip) const = 0;
-  virtual void decode(std::vector<u8> &out, bool mip) const = 0;
+  virtual void decode(std::vector<u8>& out, bool mip) const = 0;
 
   // 0 -- no mipmap, 1 -- one mipmap; not lod max
   virtual u32 getMipmapCount() const = 0;
@@ -279,14 +279,14 @@ struct Texture {
   //!				- If mipmaps are configured, this must also
   //! include all additional mip levels.
   //!
-  virtual void encode(const u8 *rawRGBA) = 0;
+  virtual void encode(const u8* rawRGBA) = 0;
 };
 
 struct Polygon {
   //	// PX_TYPE_INFO("Polygon", "poly", "3D::Polygon");
   virtual ~Polygon() = default;
 
-  virtual void setName(const std::string &name) = 0;
+  virtual void setName(const std::string& name) = 0;
 
   enum class SimpleAttrib {
     EnvelopeIndex, // u8
@@ -317,7 +317,7 @@ struct Polygon {
   };
 
   // For now... (slow api)
-  virtual void propogate(VBOBuilder &out) const = 0;
+  virtual void propogate(VBOBuilder& out) const = 0;
 
   virtual void addTriangle(std::array<SimpleVertex, 3> tri) = 0;
   //	virtual SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx) = 0;

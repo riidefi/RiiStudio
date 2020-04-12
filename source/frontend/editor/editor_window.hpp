@@ -9,7 +9,7 @@ namespace riistudio::frontend {
 class EditorWindow : public StudioWindow {
 public:
   EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,
-               const std::string &path);
+               const std::string& path);
 
   void draw_() override;
 

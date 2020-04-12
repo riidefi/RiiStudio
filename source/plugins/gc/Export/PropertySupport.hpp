@@ -29,7 +29,7 @@ template <typename Feature> struct TPropertySupport {
       registration[static_cast<u64>(f)] = s;
   }
 
-  Coverage &operator[](Feature f) noexcept {
+  Coverage& operator[](Feature f) noexcept {
     assert(static_cast<u64>(f) < static_cast<u64>(Feature::Max));
 
     return registration[static_cast<u64>(f)];

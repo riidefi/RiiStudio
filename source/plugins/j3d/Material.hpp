@@ -41,7 +41,7 @@ struct Fog {
   libcube::gx::Color color = libcube::gx::Color(0xffffffff);
   std::array<u16, 10> rangeAdjTable;
 
-  bool operator==(const Fog &rhs) const noexcept {
+  bool operator==(const Fog& rhs) const noexcept {
     return type == rhs.type && enabled == rhs.enabled && center == rhs.center &&
            startZ == rhs.startZ && endZ == rhs.endZ && nearZ == rhs.nearZ &&
            farZ == rhs.farZ && color == rhs.color &&
@@ -53,7 +53,7 @@ struct NBTScale {
   bool enable = false;
   glm::vec3 scale = {0.0f, 0.0f, 0.0f};
 
-  bool operator==(const NBTScale &rhs) const noexcept {
+  bool operator==(const NBTScale& rhs) const noexcept {
     return enable == rhs.enable && scale == rhs.scale;
   }
 };
@@ -63,7 +63,7 @@ struct MaterialData : public libcube::GCMaterialData {
     // Only for linking
     u16 btiId;
 
-    bool operator==(const J3DSamplerData &rhs) const {
+    bool operator==(const J3DSamplerData& rhs) const {
       if (!SamplerData::operator==(rhs))
         return false;
       if (btiId == rhs.btiId)
@@ -91,7 +91,7 @@ struct MaterialData : public libcube::GCMaterialData {
   std::array<u8, 24> stackTrash{}; //!< We have to remember this for 1:1
 
   // Note: For comparison we don't check the ID or name (or stack trash)
-  bool operator==(const MaterialData &rhs) const noexcept {
+  bool operator==(const MaterialData& rhs) const noexcept {
     return flag == rhs.flag && indEnabled == rhs.indEnabled &&
            info == rhs.info && cullMode == rhs.cullMode &&
            earlyZComparison == rhs.earlyZComparison && zMode == rhs.zMode &&
@@ -109,7 +109,7 @@ struct MaterialData : public libcube::GCMaterialData {
 struct Texture;
 
 struct Material : public MaterialData, public libcube::IGCMaterial {
-  virtual const kpi::IDocumentNode *getParent() const { return nullptr; }
+  virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
   // PX_TYPE_INFO_EX("J3D Material", "j3d_material", "J::Material",
   // ICON_FA_PAINT_BRUSH, ICON_FA_PAINT_BRUSH);
 
@@ -125,13 +125,13 @@ struct Material : public MaterialData, public libcube::IGCMaterial {
     support.setSupport(P::Feature::MatAmbColor, P::Coverage::ReadWrite);
   }
 
-  libcube::GCMaterialData &getMaterialData() override { return *this; }
-  const libcube::GCMaterialData &getMaterialData() const override {
+  libcube::GCMaterialData& getMaterialData() override { return *this; }
+  const libcube::GCMaterialData& getMaterialData() const override {
     return *this;
   }
 
   bool isXluPass() const override { return flag & 4; }
-  const libcube::Texture &getTexture(const std::string &id) const override;
+  const libcube::Texture& getTexture(const std::string& id) const override;
 };
 
 } // namespace riistudio::j3d

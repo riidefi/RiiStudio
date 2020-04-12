@@ -12,10 +12,10 @@ namespace riistudio::frontend {
 
 class StudioWindow : public core::Window {
 public:
-  StudioWindow(const std::string &name, bool dockspace = false);
+  StudioWindow(const std::string& name, bool dockspace = false);
   void setWindowFlag(u32 flag);
   std::string getName() const;
-  const ImGuiWindowClass *getWindowClass();
+  const ImGuiWindowClass* getWindowClass();
 
   void attachWindow(std::unique_ptr<StudioWindow> win) {
     win->mParent = this;

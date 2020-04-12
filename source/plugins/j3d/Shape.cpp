@@ -3,28 +3,28 @@
 
 namespace riistudio::j3d {
 
-const Model *getModel(const Shape *shp) {
+const Model* getModel(const Shape* shp) {
   assert(shp->getParent());
-  return dynamic_cast<const Model *>(shp->getParent());
+  return dynamic_cast<const Model*>(shp->getParent());
 }
 
 glm::vec2 Shape::getUv(u64 chan, u64 idx) const {
-  auto &mMdl = *getModel(this);
+  auto& mMdl = *getModel(this);
 
   if (idx > mMdl.mBufs.uv[chan].mData.size())
     return {};
   return mMdl.mBufs.uv[chan].mData[idx];
 }
 glm::vec3 Shape::getPos(u64 idx) const {
-  auto &mMdl = *getModel(this);
+  auto& mMdl = *getModel(this);
   return mMdl.mBufs.pos.mData[idx];
 }
 glm::vec3 Shape::getNrm(u64 idx) const {
-  auto &mMdl = *getModel(this);
+  auto& mMdl = *getModel(this);
   return mMdl.mBufs.norm.mData[idx];
 }
 glm::vec4 Shape::getClr(u64 idx) const {
-  auto &mMdl = *getModel(this);
+  auto& mMdl = *getModel(this);
   if (idx >= mMdl.mBufs.color[0].mData.size())
     return {1, 1, 1, 1};
 
@@ -34,7 +34,7 @@ glm::vec4 Shape::getClr(u64 idx) const {
   return {raw.r, raw.g, raw.b, raw.a};
 }
 template <typename T>
-static u64 addUnique(std::vector<T> &array, const T &value) {
+static u64 addUnique(std::vector<T>& array, const T& value) {
   //	const auto found = std::find(array.begin(), array.end(), value);
   //	if (found != array.end())
   //		return found - array.begin();
@@ -43,18 +43,18 @@ static u64 addUnique(std::vector<T> &array, const T &value) {
   return idx;
 }
 
-u64 Shape::addPos(const glm::vec3 &v) {
+u64 Shape::addPos(const glm::vec3& v) {
   return 0;
   //	auto& mMdl = *getModel(this);
   //	u64 out = addUnique(mMdl.mBufs.pos.mData, v);
   //	return out;
 }
-u64 Shape::addNrm(const glm::vec3 &v) {
+u64 Shape::addNrm(const glm::vec3& v) {
   return 0;
   // auto& mMdl = *getModel();
   // return addUnique(mMdl.mBufs.norm.mData, v);
 }
-u64 Shape::addClr(u64 chan, const glm::vec4 &v) {
+u64 Shape::addClr(u64 chan, const glm::vec4& v) {
   return 0;
 
   //	auto& mMdl = *getModel();
@@ -65,7 +65,7 @@ u64 Shape::addClr(u64 chan, const glm::vec4 &v) {
   //		static_cast<u8>(v[2] * 255.0f),
   //		static_cast<u8>(v[3] * 255.0f) });
 }
-u64 Shape::addUv(u64 chan, const glm::vec2 &v) {
+u64 Shape::addUv(u64 chan, const glm::vec2& v) {
   return 0;
 
   //	auto& mMdl = *getModel();
@@ -81,9 +81,9 @@ void Shape::addTriangle(std::array<SimpleVertex, 3> tri) {
     mMatrixPrimitives.back().mPrimitives.emplace_back(
         libcube::gx::PrimitiveType::Triangles, 0);
 
-  auto &prim = mMatrixPrimitives.back().mPrimitives.back();
+  auto& prim = mMatrixPrimitives.back().mPrimitives.back();
 
-  for (const auto &vtx : tri) {
+  for (const auto& vtx : tri) {
     // assert(!hasAttrib(SimpleAttrib::EnvelopeIndex));
 
     libcube::IndexedVertex ivtx;

@@ -8,8 +8,8 @@ namespace riistudio::j3d {
 
 using namespace libcube;
 
-void readJNT1(BMDOutputContext &ctx) {
-  auto &reader = ctx.reader;
+void readJNT1(BMDOutputContext& ctx) {
+  auto& reader = ctx.reader;
   if (!enterSection(ctx, 'JNT1'))
     return;
 
@@ -49,7 +49,7 @@ void readJNT1(BMDOutputContext &ctx) {
   const auto nameTable = readNameTable(reader);
 
   for (int i = 0; i < size; ++i) {
-    auto &joint = ctx.mdl.getJoint(i).get();
+    auto& joint = ctx.mdl.getJoint(i).get();
     reader.seekSet(g.start + ofsJointData + ctx.jointIdLut[i] * 0x40);
     joint.id = ctx.jointIdLut[i]; // TODO
     joint.name = nameTable[i];
@@ -86,9 +86,9 @@ struct JNT1Node final : public oishii::v2::Node {
       getLinkingRestriction().alignment = 4;
     }
 
-    Result write(oishii::v2::Writer &writer) const noexcept {
+    Result write(oishii::v2::Writer& writer) const noexcept {
       for (int i = 0; i < mMdl.getJoints().size(); ++i) {
-        const auto &jnt = mMdl.getJoint(i).get();
+        const auto& jnt = mMdl.getJoint(i).get();
         writer.write<u16>((jnt.flag & 0xf) |
                           (static_cast<u32>(jnt.bbMtxType) << 4));
         writer.write<u8>(jnt.mayaSSC);
@@ -119,7 +119,7 @@ struct JNT1Node final : public oishii::v2::Node {
       getLinkingRestriction().alignment = 2;
     }
 
-    Result write(oishii::v2::Writer &writer) const noexcept {
+    Result write(oishii::v2::Writer& writer) const noexcept {
       for (int i = 0; i < mMdl.getJoints().size(); ++i)
         writer.write<u16>(mMdl.getJoint(i).get().id);
 
@@ -135,7 +135,7 @@ struct JNT1Node final : public oishii::v2::Node {
       getLinkingRestriction().alignment = 4;
     }
 
-    Result write(oishii::v2::Writer &writer) const noexcept {
+    Result write(oishii::v2::Writer& writer) const noexcept {
       auto bones = mMdl.getJoints();
 
       std::vector<std::string> names(bones.size());
@@ -149,7 +149,7 @@ struct JNT1Node final : public oishii::v2::Node {
 
     const ModelAccessor mMdl;
   };
-  Result write(oishii::v2::Writer &writer) const noexcept override {
+  Result write(oishii::v2::Writer& writer) const noexcept override {
     writer.write<u32, oishii::EndianSelect::Big>('JNT1');
     writer.writeLink<s32>({*this}, {"SHP1"});
 
@@ -168,7 +168,7 @@ struct JNT1Node final : public oishii::v2::Node {
     return eResult::Success;
   }
 
-  Result gatherChildren(NodeDelegate &d) const noexcept override {
+  Result gatherChildren(NodeDelegate& d) const noexcept override {
     d.addNode(std::make_unique<JointData>(mModel));
     d.addNode(std::make_unique<JointLUT>(mModel));
     d.addNode(std::make_unique<JointNames>(mModel));
@@ -180,7 +180,7 @@ private:
   const ModelAccessor mModel;
 };
 
-std::unique_ptr<oishii::v2::Node> makeJNT1Node(BMDExportContext &ctx) {
+std::unique_ptr<oishii::v2::Node> makeJNT1Node(BMDExportContext& ctx) {
   return std::make_unique<JNT1Node>(ctx.mdl);
 }
 

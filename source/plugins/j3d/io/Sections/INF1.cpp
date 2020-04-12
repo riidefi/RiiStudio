@@ -4,8 +4,8 @@
 #include "../Sections.hpp"
 namespace riistudio::j3d {
 
-void readINF1(BMDOutputContext &ctx) {
-  auto &reader = ctx.reader;
+void readINF1(BMDOutputContext& ctx) {
+  auto& reader = ctx.reader;
   if (enterSection(ctx, 'INF1')) {
     ScopedSection g(reader, "Information");
 
@@ -31,10 +31,10 @@ void readINF1(BMDOutputContext &ctx) {
 }
 
 struct INF1Node {
-  static const char *getNameId() { return "INF1 InFormation"; }
-  virtual const oishii::v2::Node &getSelf() const = 0;
+  static const char* getNameId() { return "INF1 InFormation"; }
+  virtual const oishii::v2::Node& getSelf() const = 0;
 
-  void write(oishii::v2::Writer &writer) const {
+  void write(oishii::v2::Writer& writer) const {
     if (!mdl.valid())
       return;
 
@@ -57,13 +57,13 @@ struct INF1Node {
                                            oishii::v2::Hook("SceneGraph")});
   }
 
-  void gatherChildren(oishii::v2::Node::NodeDelegate &out) const {
+  void gatherChildren(oishii::v2::Node::NodeDelegate& out) const {
     out.addNode(SceneGraph::getLinkerNode(mdl));
   }
-  INF1Node(BMDExportContext &ctx) : mdl(ctx.mdl) {}
+  INF1Node(BMDExportContext& ctx) : mdl(ctx.mdl) {}
   ModelAccessor mdl{nullptr};
 };
-std::unique_ptr<oishii::v2::Node> makeINF1Node(BMDExportContext &ctx) {
+std::unique_ptr<oishii::v2::Node> makeINF1Node(BMDExportContext& ctx) {
   return std::make_unique<LinkNode<INF1Node>>(ctx);
 }
 

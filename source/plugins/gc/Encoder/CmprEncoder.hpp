@@ -13,6 +13,6 @@ namespace libcube {
 //! @param[in] width  Width of the image.
 //! @param[in] height Height of the image.
 //!
-void EncodeDXT1(u8 *dest, const u8 *source, u32 width, u32 height);
+void EncodeDXT1(u8* dest, const u8* source, u32 width, u32 height);
 
 } // namespace libcube

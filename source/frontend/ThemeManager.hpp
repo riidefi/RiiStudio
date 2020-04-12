@@ -27,7 +27,7 @@ public:
     Default = UE4ish
   };
 
-  static inline const char *ThemeNames =
+  static inline const char* ThemeNames =
       "Classic\0Dark\0Light\0Not Quite UE4\0Raikiri\0Adaptive\0Corporate "
       "Grey\0Zenith: Dark\0Zenith: Light\0";
 
@@ -86,7 +86,7 @@ public:
 
   template <> inline void setTheme<BasicTheme::UE4ish>() {
     // https://github.com/ocornut/imgui/issues/707#issuecomment-415097227
-    ImVec4 *colors = ImGui::GetStyle().Colors;
+    ImVec4* colors = ImGui::GetStyle().Colors;
     colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
     colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.06f, 0.06f, 0.94f);
@@ -138,7 +138,7 @@ public:
     // &config); ImGui::GetStyle().FrameRounding = 4.0f;
     // ImGui::GetStyle().GrabRounding = 4.0f;
 
-    ImVec4 *colors = ImGui::GetStyle().Colors;
+    ImVec4* colors = ImGui::GetStyle().Colors;
     colors[ImGuiCol_Text] = ImVec4(0.95f, 0.96f, 0.98f, 1.00f);
     colors[ImGuiCol_TextDisabled] = ImVec4(0.36f, 0.42f, 0.47f, 1.00f);
     colors[ImGuiCol_WindowBg] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
@@ -192,8 +192,8 @@ public:
   // https://github.com/gitbetter/Zenith/blob/23533b7de21fc8a6fd4303659da12381a112b1a4/Editor/_Source/ZEditor.cpp#L310
   template <> inline void setTheme<BasicTheme::ZenithLight>() {
 
-    ImGuiStyle *style = &ImGui::GetStyle();
-    ImVec4 *colors = style->Colors;
+    ImGuiStyle* style = &ImGui::GetStyle();
+    ImVec4* colors = style->Colors;
 
     style->WindowRounding = 2.0f; // Radius of window corners rounding. Set to
                                   // 0.0f to have rectangular windows
@@ -262,8 +262,8 @@ public:
   }
 
   template <> inline void setTheme<BasicTheme::ZenithDark>() {
-    ImGuiStyle *style = &ImGui::GetStyle();
-    ImVec4 *colors = style->Colors;
+    ImGuiStyle* style = &ImGui::GetStyle();
+    ImVec4* colors = style->Colors;
 
     style->WindowRounding = 2.0f; // Radius of window corners rounding. Set to
                                   // 0.0f to have rectangular windows
@@ -331,8 +331,8 @@ public:
     colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
   }
   template <> inline void setTheme<BasicTheme::CorporateGrey>() {
-    ImGuiStyle &style = ImGui::GetStyle();
-    ImVec4 *colors = style.Colors;
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImVec4* colors = style.Colors;
 
     /// 0 = FLAT APPEARENCE
     /// 1 = MORE "3D" LOOK
@@ -488,7 +488,7 @@ public:
   }
 
   inline void setThemeAdaptive() {
-    ImVec4 *colors = ImGui::GetStyle().Colors;
+    ImVec4* colors = ImGui::GetStyle().Colors;
 
     colors[ImGuiCol_Text] = GetColor(TextColor);
     colors[ImGuiCol_TextDisabled] = Disabled(colors[ImGuiCol_Text]);

@@ -31,7 +31,7 @@ struct VertexDescriptor {
   bool operator[](gx::VertexAttribute attr) const {
     return mBitfield & (1 << static_cast<u64>(attr));
   }
-  bool operator==(const VertexDescriptor &rhs) const {
+  bool operator==(const VertexDescriptor& rhs) const {
     // FIXME: remove NULL attribs before comparing
     return mAttributes.size() == rhs.mAttributes.size() &&
            std::equal(mAttributes.begin(), mAttributes.end(),

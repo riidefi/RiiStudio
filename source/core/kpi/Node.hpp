@@ -37,39 +37,39 @@ class IDocumentNode {
 public:
   virtual ~IDocumentNode() = default;
 
-  virtual void fromData(const IDocData &rhs) = 0;
+  virtual void fromData(const IDocData& rhs) = 0;
   virtual std::unique_ptr<IDocData> cloneDataNotChildren() const = 0;
   virtual std::unique_ptr<IDocumentNode> cloneDeep() const = 0;
 
   // Does not compare children
-  virtual bool compareJustThisNotChildren(const IDocData &rhs) const = 0;
+  virtual bool compareJustThisNotChildren(const IDocData& rhs) const = 0;
 
   virtual std::string getName() const { return defaultNameField; }
-  virtual void setName(const std::string &v) { defaultNameField = v; }
+  virtual void setName(const std::string& v) { defaultNameField = v; }
   std::string mType;
   std::string defaultNameField = "Untitled";
 
   struct FolderData : public std::vector<std::unique_ptr<IDocumentNode>> {
     FolderData() {}
-    FolderData(const FolderData &rhs) { *this = rhs; }
-    FolderData &operator=(const FolderData &rhs) {
+    FolderData(const FolderData& rhs) { *this = rhs; }
+    FolderData& operator=(const FolderData& rhs) {
       state = rhs.state;
       type = rhs.type;
       parent = rhs.parent;
       reserve(rhs.size());
       std::transform(rhs.begin(), rhs.end(), std::back_inserter(*this),
-                     [](const std::unique_ptr<IDocumentNode> &it) {
+                     [](const std::unique_ptr<IDocumentNode>& it) {
                        return it->cloneDeep();
                      });
       return *this;
     }
-    template <typename T> const T &at(std::size_t i) const {
-      const T *as = dynamic_cast<const T *>(operator[](i).get());
+    template <typename T> const T& at(std::size_t i) const {
+      const T* as = dynamic_cast<const T*>(operator[](i).get());
       assert(as);
       return *as;
     }
-    template <typename T> T &at(std::size_t i) {
-      T *as = dynamic_cast<T *>(operator[](i).get());
+    template <typename T> T& at(std::size_t i) {
+      T* as = dynamic_cast<T*>(operator[](i).get());
       assert(as);
       return *as;
     }
@@ -110,11 +110,11 @@ public:
 
     SelectionState state;
     std::string type;
-    IDocumentNode *parent;
+    IDocumentNode* parent;
   };
-  const FolderData *getFolder(const std::string &type, bool fromParent = false,
+  const FolderData* getFolder(const std::string& type, bool fromParent = false,
                               bool fromChild = false) const {
-    for (auto &c : children)
+    for (auto& c : children)
       if (c.first == type)
         return &c.second;
 
@@ -124,7 +124,7 @@ public:
       for (int i = 0; i < info.getNumParents(); ++i) {
         assert(info.getParent(i).getName() != info.getName());
 
-        auto *opt = getFolder(info.getParent(i).getName(), true, false);
+        auto* opt = getFolder(info.getParent(i).getName(), true, false);
         if (opt != nullptr)
           return opt;
       }
@@ -137,7 +137,7 @@ public:
         const std::string infName = info.getName();
         assert(childName != infName);
 
-        auto *opt = getFolder(childName, false, true);
+        auto* opt = getFolder(childName, false, true);
         if (opt != nullptr)
           return opt;
       }
@@ -146,24 +146,24 @@ public:
     return {};
   }
 
-  template <typename T> const FolderData *getFolder() const {
+  template <typename T> const FolderData* getFolder() const {
     return getFolder(typeid(T).name());
   }
-  template <typename T> FolderData *getFolder() {
-    return const_cast<FolderData *>(getFolder(typeid(T).name()));
+  template <typename T> FolderData* getFolder() {
+    return const_cast<FolderData*>(getFolder(typeid(T).name()));
   }
   // Do not call without ensuring a folder does not already exist.
-  FolderData *addFolder(const std::string &type) {
+  FolderData* addFolder(const std::string& type) {
     children.emplace(type, FolderData{});
     lut.emplace(type);
     return &children[type];
   }
-  template <typename T> FolderData *addFolder() {
+  template <typename T> FolderData* addFolder() {
     return addFolder(typeid(T).name());
   }
 
-  FolderData &getOrAddFolder(const std::string &type) {
-    auto *f = const_cast<FolderData *>(getFolder(type));
+  FolderData& getOrAddFolder(const std::string& type) {
+    auto* f = const_cast<FolderData*>(getFolder(type));
     if (f == nullptr)
       f = addFolder(type);
     assert(f);
@@ -171,12 +171,12 @@ public:
     f->parent = this;
     return *f;
   }
-  template <typename T> FolderData &getOrAddFolder() {
+  template <typename T> FolderData& getOrAddFolder() {
     return getOrAddFolder(typeid(T).name());
   }
 
   SelectionState select;
-  IDocumentNode *parent = nullptr;
+  IDocumentNode* parent = nullptr;
   std::map<std::string, FolderData> children;
   std::set<std::string> lut;
 };
@@ -188,7 +188,7 @@ struct DocumentMemento {
   std::set<std::string> lut;
   std::shared_ptr<const IDocData> JustData = nullptr;
 
-  bool operator==(const DocumentMemento &rhs) const {
+  bool operator==(const DocumentMemento& rhs) const {
     return parent == rhs.parent && children == rhs.children && lut == rhs.lut &&
            JustData == rhs.JustData;
   }
@@ -196,31 +196,31 @@ struct DocumentMemento {
 
 // Permute a persistent immutable document record, sharing memory where possible
 std::shared_ptr<const DocumentMemento>
-setNext(const IDocumentNode &node,
+setNext(const IDocumentNode& node,
         std::shared_ptr<const DocumentMemento> record);
 // Restore a transient document node to a recorded state.
-void rollback(IDocumentNode &node,
+void rollback(IDocumentNode& node,
               std::shared_ptr<const DocumentMemento> record);
 
 using FolderData = IDocumentNode::FolderData;
 
 template <typename T> struct TDocData : public IDocData, T {
-  TDocData(const T &dr) : T(dr) {}
+  TDocData(const T& dr) : T(dr) {}
 };
 // Might be huge, say a vertex array -- and likely never changed!
 template <typename T>
 struct TDocumentNode final : public IDocumentNode, public T {
   TDocumentNode() = default;
   // Potential overrides: getParent, getChild, getNextSibling, etc
-  const IDocumentNode *getParent() const { return parent; }
-  IDocumentNode *getParent() { return parent; }
+  const IDocumentNode* getParent() const { return parent; }
+  IDocumentNode* getParent() { return parent; }
 
   template <typename Q> class has_get_name {
     typedef char YesType[1];
     typedef char NoType[2];
 
-    template <typename C> static YesType &test(decltype(&C::getName));
-    template <typename C> static NoType &test(...);
+    template <typename C> static YesType& test(decltype(&C::getName));
+    template <typename C> static NoType& test(...);
 
   public:
     enum { value = sizeof(test<Q>(0)) == sizeof(YesType) };
@@ -245,101 +245,101 @@ struct TDocumentNode final : public IDocumentNode, public T {
   //	}
 
   // Does not copy anything but data
-  void fromData(const IDocData &rhs) override {
-    const T *pdat = dynamic_cast<const T *>(&rhs);
+  void fromData(const IDocData& rhs) override {
+    const T* pdat = dynamic_cast<const T*>(&rhs);
     assert(pdat);
     if (pdat)
-      *static_cast<T *>(this) = *pdat;
+      *static_cast<T*>(this) = *pdat;
   }
   std::unique_ptr<IDocData> cloneDataNotChildren() const override {
-    const auto &dr = *static_cast<const T *>(this);
+    const auto& dr = *static_cast<const T*>(this);
     return std::make_unique<TDocData<T>>(dr);
   }
   std::unique_ptr<IDocumentNode> cloneDeep() const override {
     return std::make_unique<TDocumentNode<T>>(*this);
   }
-  bool compareJustThisNotChildren(const IDocData &rhs) const override {
-    const T *pdat = dynamic_cast<const T *>(&rhs);
-    return pdat && *pdat == *static_cast<const T *>(this);
+  bool compareJustThisNotChildren(const IDocData& rhs) const override {
+    const T* pdat = dynamic_cast<const T*>(&rhs);
+    return pdat && *pdat == *static_cast<const T*>(this);
   }
 };
 
 template <typename T> class NodeAccessor {
 public:
-  T &get() {
+  T& get() {
     assert(data);
     return *data;
   }
-  const T &get() const {
+  const T& get() const {
     assert(data);
     return *data;
   }
-  IDocumentNode &node() {
+  IDocumentNode& node() {
     assert(data);
     return *data;
   }
-  const IDocumentNode &node() const {
+  const IDocumentNode& node() const {
     assert(data);
     return *data;
   }
   bool valid() const { return data != nullptr; }
 
-  NodeAccessor(IDocumentNode *node) { setInternal(node); }
-  NodeAccessor(IDocumentNode &node) { setInternal(node); }
-  void setInternal(IDocumentNode *node) {
+  NodeAccessor(IDocumentNode* node) { setInternal(node); }
+  NodeAccessor(IDocumentNode& node) { setInternal(node); }
+  void setInternal(IDocumentNode* node) {
     if (node == nullptr) {
       data = nullptr;
     } else {
-      assert(dynamic_cast<TDocumentNode<T> *>(node) != nullptr);
-      data = reinterpret_cast<TDocumentNode<T> *>(node);
+      assert(dynamic_cast<TDocumentNode<T>*>(node) != nullptr);
+      data = reinterpret_cast<TDocumentNode<T>*>(node);
     }
   }
-  void setInternal(IDocumentNode &node) {
-    assert(dynamic_cast<TDocumentNode<T> *>(&node) != nullptr);
-    data = reinterpret_cast<TDocumentNode<T> *>(&node);
+  void setInternal(IDocumentNode& node) {
+    assert(dynamic_cast<TDocumentNode<T>*>(&node) != nullptr);
+    data = reinterpret_cast<TDocumentNode<T>*>(&node);
   }
-  operator T &() { return get(); }
-  operator const T &() const { return get(); }
+  operator T&() { return get(); }
+  operator const T&() const { return get(); }
 
 #define __KPI_FMT_NODE(type) get##type##s
 #define KPI_NODE_FOLDER(type, acc)                                             \
-  kpi::FolderData &__KPI_FMT_NODE(type)() {                                    \
-    auto *f = data->getFolder<type>();                                         \
+  kpi::FolderData& __KPI_FMT_NODE(type)() {                                    \
+    auto* f = data->getFolder<type>();                                         \
     assert(f);                                                                 \
     return *f;                                                                 \
   }                                                                            \
-  const kpi::FolderData &__KPI_FMT_NODE(type)() const {                        \
-    auto *f = data->getFolder<type>();                                         \
+  const kpi::FolderData& __KPI_FMT_NODE(type)() const {                        \
+    auto* f = data->getFolder<type>();                                         \
     assert(f);                                                                 \
     return *f;                                                                 \
   }                                                                            \
-  type &get##type##Raw(std::size_t x) {                                        \
-    auto *f = data->getFolder<type>();                                         \
+  type& get##type##Raw(std::size_t x) {                                        \
+    auto* f = data->getFolder<type>();                                         \
     assert(f);                                                                 \
     return f->at<type>(x);                                                     \
   }                                                                            \
-  const type &get##type##Raw(std::size_t x) const {                            \
-    auto *f = data->getFolder<type>();                                         \
+  const type& get##type##Raw(std::size_t x) const {                            \
+    auto* f = data->getFolder<type>();                                         \
     assert(f);                                                                 \
     return f->at<type>(x);                                                     \
   }                                                                            \
   acc get##type(std::size_t x) {                                               \
-    auto *f = data->getFolder<type>();                                         \
+    auto* f = data->getFolder<type>();                                         \
     assert(f);                                                                 \
     return {f->at<kpi::IDocumentNode>(x)};                                     \
   }                                                                            \
   const acc get##type(std::size_t x) const {                                   \
-    auto *f = data->getFolder<type>();                                         \
+    auto* f = data->getFolder<type>();                                         \
     assert(f);                                                                 \
     return {f->at<kpi::IDocumentNode>(x)};                                     \
   }                                                                            \
-  type &add##type##Raw() {                                                     \
-    auto &f = data->getOrAddFolder<type>();                                    \
+  type& add##type##Raw() {                                                     \
+    auto& f = data->getOrAddFolder<type>();                                    \
     f.add();                                                                   \
     return f.at<type>(f.size() - 1);                                           \
   }                                                                            \
   acc add##type() {                                                            \
-    auto &f = data->getOrAddFolder<type>();                                    \
+    auto& f = data->getOrAddFolder<type>();                                    \
     f.add();                                                                   \
     return {f.at<kpi::IDocumentNode>(f.size() - 1)};                           \
   }
@@ -348,7 +348,7 @@ public:
   KPI_NODE_FOLDER(type, kpi::NodeAccessor<type>)
 
 protected:
-  TDocumentNode<T> *data = nullptr;
+  TDocumentNode<T>* data = nullptr;
 };
 
 /*
@@ -362,18 +362,18 @@ Application:
 struct IBinaryDeserializer {
   virtual ~IBinaryDeserializer() = default;
   virtual std::unique_ptr<IBinaryDeserializer> clone() const = 0;
-  virtual std::string canRead_(const std::string &file,
-                               oishii::BinaryReader &reader) const = 0;
-  virtual void read_(kpi::IDocumentNode &node,
-                     oishii::BinaryReader &reader) const = 0;
+  virtual std::string canRead_(const std::string& file,
+                               oishii::BinaryReader& reader) const = 0;
+  virtual void read_(kpi::IDocumentNode& node,
+                     oishii::BinaryReader& reader) const = 0;
 };
 //! A writer: Do not inherit from this type directly
 struct IBinarySerializer {
   virtual ~IBinarySerializer() = default;
   virtual std::unique_ptr<IBinarySerializer> clone() const = 0;
-  virtual bool canWrite_(kpi::IDocumentNode &node) const = 0;
-  virtual void write_(kpi::IDocumentNode &node,
-                      oishii::v2::Writer &writer) const = 0;
+  virtual bool canWrite_(kpi::IDocumentNode& node) const = 0;
+  virtual void write_(kpi::IDocumentNode& node,
+                      oishii::v2::Writer& writer) const = 0;
 };
 
 // Part of the application state itself. Not part of the persistent document.
@@ -395,11 +395,11 @@ public:
   //!
   //!				ApplicationPlugins::getInstance()->addType<SomeType>();
   //!
-  template <typename T> ApplicationPlugins &addType();
+  template <typename T> ApplicationPlugins& addType();
 
   //! @brief Add a type with a parent.
   //!
-  template <typename T, typename P> inline ApplicationPlugins &addType() {
+  template <typename T, typename P> inline ApplicationPlugins& addType() {
     addType<T>();
     registerParent<T, P>();
     return *this;
@@ -452,7 +452,7 @@ public:
   //!
   //!				ApplicationPlugins::getInstance()->addSerializer<SomeWriter>();
   //!
-  template <typename T> ApplicationPlugins &addSerializer();
+  template <typename T> ApplicationPlugins& addSerializer();
 
   //! @brief Add a binary serializer (writer) to the internal registry with a
   //! simplified API.
@@ -488,7 +488,7 @@ public:
   //!
   //!				ApplicationPlugins::getInstance()->addSimpleSerializer<SomeType>();
   //!
-  template <typename T> ApplicationPlugins &addSimpleSerializer();
+  template <typename T> ApplicationPlugins& addSimpleSerializer();
 
   //! @brief Add a binary deserializer (reader) to the internal registry.
   //!
@@ -543,38 +543,38 @@ public:
   //!
   //!				ApplicationPlugins::getInstance()->addDeserializer<SomeReader>();
   //!
-  template <typename T> ApplicationPlugins &addDeserializer();
+  template <typename T> ApplicationPlugins& addDeserializer();
 
-  virtual void registerMirror(const kpi::MirrorEntry &entry) = 0;
+  virtual void registerMirror(const kpi::MirrorEntry& entry) = 0;
 
-  template <typename D, typename B> ApplicationPlugins &registerParent() {
+  template <typename D, typename B> ApplicationPlugins& registerParent() {
     registerMirror(
         {typeid(D).name(), typeid(B).name(), computeTranslation<D, B>()});
     return *this;
   }
   template <typename D, typename B>
-  ApplicationPlugins &registerMember(int slide) {
+  ApplicationPlugins& registerMember(int slide) {
     registerMirror({typeid(D).name(), typeid(B).name(), slide});
     return *this;
   }
 
-  virtual void installModule(const std::string &path) = 0;
+  virtual void installModule(const std::string& path) = 0;
 
   virtual std::unique_ptr<kpi::IDocumentNode>
-  constructObject(const std::string &type,
-                  kpi::IDocumentNode *parent = nullptr) const = 0;
+  constructObject(const std::string& type,
+                  kpi::IDocumentNode* parent = nullptr) const = 0;
 
-  static inline ApplicationPlugins *getInstance() { return spInstance; }
+  static inline ApplicationPlugins* getInstance() { return spInstance; }
   virtual ~ApplicationPlugins() = default;
 
 public:
-  static ApplicationPlugins *spInstance;
+  static ApplicationPlugins* spInstance;
 
   struct IFactory {
     virtual ~IFactory() = default;
     virtual std::unique_ptr<IFactory> clone() const = 0;
     virtual std::unique_ptr<IDocumentNode> spawn() = 0;
-    virtual const char *getId() const = 0;
+    virtual const char* getId() const = 0;
   };
 
   std::map<std::string, std::unique_ptr<IFactory>> mFactories;
@@ -584,7 +584,7 @@ public:
 
 class History {
 public:
-  void commit(const IDocumentNode &doc) {
+  void commit(const IDocumentNode& doc) {
     if (history_cursor >= 0)
       root_history.erase(root_history.begin() + history_cursor + 1,
                          root_history.end());
@@ -593,13 +593,13 @@ public:
                                   : root_history.back()));
     ++history_cursor;
   }
-  void undo(IDocumentNode &doc) {
+  void undo(IDocumentNode& doc) {
     if (history_cursor <= 0)
       return;
     --history_cursor;
     rollback(doc, root_history[history_cursor]);
   }
-  void redo(IDocumentNode &doc) {
+  void redo(IDocumentNode& doc) {
     if (history_cursor + 1 >= root_history.size())
       return;
     ++history_cursor;

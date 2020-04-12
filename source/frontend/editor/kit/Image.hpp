@@ -11,7 +11,7 @@ class ImagePreview {
 public:
   ImagePreview();
   ~ImagePreview();
-  void setFromImage(const lib3d::Texture &tex);
+  void setFromImage(const lib3d::Texture& tex);
 
   void draw(float width = -1.0f, float height = -1.0f);
 

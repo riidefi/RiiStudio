@@ -28,8 +28,8 @@ public:
   //!
   //! @return ID of this name.
   //!
-  Handle reserve(const std::string &name, u32 structPos,
-                 oishii::v2::Writer &writeStream, u32 writePos,
+  Handle reserve(const std::string& name, u32 structPos,
+                 oishii::v2::Writer& writeStream, u32 writePos,
                  bool nonvolatile = false) {
     const Handle id = mCounter++;
     mEntries.push_back(
@@ -51,7 +51,7 @@ private:
   struct NameTableEntry {
     std::string name;
     u32 structPos;
-    oishii::v2::Writer &writeStream;
+    oishii::v2::Writer& writeStream;
     u32 writePos;
     bool nonvolatile;
   };
@@ -63,19 +63,19 @@ private:
   std::vector<u8> mPool;
 };
 
-inline void writeNameForward(NameTable &table, oishii::v2::Writer &writer,
-                             int streamOfsStart, const std::string &name,
+inline void writeNameForward(NameTable& table, oishii::v2::Writer& writer,
+                             int streamOfsStart, const std::string& name,
                              bool nonvol = false) {
   writer.write<u32>(name.empty() ? 0
                                  : table.reserve(name, streamOfsStart, writer,
                                                  writer.tell(), nonvol));
 }
-inline std::string readName(oishii::BinaryReader &reader, std::size_t start) {
+inline std::string readName(oishii::BinaryReader& reader, std::size_t start) {
   const auto ofs = reader.read<s32>();
 
   return (ofs && ofs + start < reader.endpos() && ofs + start > 0)
              ? std::string(
-                   reinterpret_cast<const char *>(reader.getStreamStart()) +
+                   reinterpret_cast<const char*>(reader.getStreamStart()) +
                    start + ofs)
              : "";
 }

@@ -6,7 +6,7 @@ namespace libcube {
 
 using namespace gx;
 
-std::string GXProgram::generateMaterialSource(const gx::ChannelControl &chan,
+std::string GXProgram::generateMaterialSource(const gx::ChannelControl& chan,
                                               int i) {
   switch (chan.Material) {
   case ColorSource::Vertex:
@@ -16,7 +16,7 @@ std::string GXProgram::generateMaterialSource(const gx::ChannelControl &chan,
   }
 }
 
-std::string GXProgram::generateAmbientSource(const gx::ChannelControl &chan,
+std::string GXProgram::generateAmbientSource(const gx::ChannelControl& chan,
                                              int i) {
   switch (chan.Ambient) {
   case ColorSource::Vertex:
@@ -27,8 +27,8 @@ std::string GXProgram::generateAmbientSource(const gx::ChannelControl &chan,
   }
 }
 
-std::string GXProgram::generateLightDiffFn(const gx::ChannelControl &chan,
-                                           const std::string &lightName) {
+std::string GXProgram::generateLightDiffFn(const gx::ChannelControl& chan,
+                                           const std::string& lightName) {
   const std::string NdotL = "dot(t_Normal, t_LightDeltaDir)";
 
   switch (chan.diffuseFn) {
@@ -41,8 +41,8 @@ std::string GXProgram::generateLightDiffFn(const gx::ChannelControl &chan,
     return "max(" + NdotL + ", 0.0f)";
   }
 }
-std::string GXProgram::generateLightAttnFn(const gx::ChannelControl &chan,
-                                           const std::string &lightName) {
+std::string GXProgram::generateLightAttnFn(const gx::ChannelControl& chan,
+                                           const std::string& lightName) {
   const std::string cosAttn = "ApplyCubic(" + lightName +
                               ".CosAtten.xyz, dot(t_LightDeltaDir, " +
                               lightName + ".Direction.xyz))";
@@ -59,8 +59,8 @@ std::string GXProgram::generateLightAttnFn(const gx::ChannelControl &chan,
     return "1.0"; // TODO(jtspierre): Specular
   }
 }
-std::string GXProgram::generateColorChannel(const gx::ChannelControl &chan,
-                                            const std::string &outputName,
+std::string GXProgram::generateColorChannel(const gx::ChannelControl& chan,
+                                            const std::string& outputName,
                                             int i) {
   const std::string matSource = generateMaterialSource(chan, i);
   const std::string ambSource = generateAmbientSource(chan, i);
@@ -98,8 +98,8 @@ std::string GXProgram::generateColorChannel(const gx::ChannelControl &chan,
 }
 
 std::string
-GXProgram::generateLightChannel(const LightingChannelControl &lightChannel,
-                                const std::string &outputName, int i) {
+GXProgram::generateLightChannel(const LightingChannelControl& lightChannel,
+                                const std::string& outputName, int i) {
   if (lightChannel.colorChannel == lightChannel.alphaChannel) {
     // TODO
     return "    " +
@@ -117,7 +117,7 @@ GXProgram::generateLightChannel(const LightingChannelControl &lightChannel,
 std::string GXProgram::generateLightChannels() {
   std::string out;
 
-  const auto &src = mMaterial.mat.getMaterialData().colorChanControls;
+  const auto& src = mMaterial.mat.getMaterialData().colorChanControls;
 
   std::array<LightingChannelControl, 2> ctrl;
 
@@ -131,7 +131,7 @@ std::string GXProgram::generateLightChannels() {
     ctrl[1].alphaChannel = src[3];
 
   int i = 0;
-  for (const auto &chan : ctrl) {
+  for (const auto& chan : ctrl) {
     out += generateLightChannel(chan, "v_Color" + std::to_string(i), i) + "\n";
     ++i;
   }
@@ -141,7 +141,7 @@ std::string GXProgram::generateLightChannels() {
 
 // Matrix
 std::string GXProgram::generateMulPntMatrixStatic(gx::PostTexMatrix pnt,
-                                                  const std::string &src) {
+                                                  const std::string& src) {
   // TODO
   if (pnt == gx::PostTexMatrix::Identity ||
       (int)pnt == (int)gx::TexMatrix::Identity) {
@@ -159,8 +159,8 @@ std::string GXProgram::generateMulPntMatrixStatic(gx::PostTexMatrix pnt,
   return "";
 }
 // Output is a vec3, src is a vec4.
-std::string GXProgram::generateMulPntMatrixDynamic(const std::string &attrStr,
-                                                   const std::string &src) {
+std::string GXProgram::generateMulPntMatrixDynamic(const std::string& attrStr,
+                                                   const std::string& src) {
   return "(GetPosTexMatrix(" + attrStr + ") * " + src + ")";
 }
 std::string GXProgram::generateTexMtxIdxAttr(int index) {
@@ -239,8 +239,8 @@ std::string GXProgram::generateTexGenSource(gx::TexGenSrc src) {
 }
 // Output is a vec3, src is a vec4.
 std::string
-GXProgram::generatePostTexGenMatrixMult(const gx::TexCoordGen &texCoordGen,
-                                        int id, const std::string &src) {
+GXProgram::generatePostTexGenMatrixMult(const gx::TexCoordGen& texCoordGen,
+                                        int id, const std::string& src) {
   // TODO:
   if (true || texCoordGen.postMatrix == gx::PostTexMatrix::Identity) {
     return src + ".xyz";
@@ -257,8 +257,8 @@ GXProgram::generatePostTexGenMatrixMult(const gx::TexCoordGen &texCoordGen,
 }
 // Output is a vec3, src is a vec3.
 vec3_string
-GXProgram::generateTexGenMatrixMult(const gx::TexCoordGen &texCoordGen, int id,
-                                    const vec3_string &src) {
+GXProgram::generateTexGenMatrixMult(const gx::TexCoordGen& texCoordGen, int id,
+                                    const vec3_string& src) {
   // TODO: Will ID ever be different from index?
 
   // Dynamic TexMtxIdx is off by default.
@@ -273,8 +273,8 @@ GXProgram::generateTexGenMatrixMult(const gx::TexCoordGen &texCoordGen, int id,
 }
 
 // Output is a vec3, src is a vec4.
-vec3_string GXProgram::generateTexGenType(const gx::TexCoordGen &texCoordGen,
-                                          int id, const vec4_string &src) {
+vec3_string GXProgram::generateTexGenType(const gx::TexCoordGen& texCoordGen,
+                                          int id, const vec4_string& src) {
   switch (texCoordGen.func) {
   case gx::TexGenType::SRTG:
     return "vec3(" + src + ".xy, 1.0)";
@@ -289,7 +289,7 @@ vec3_string GXProgram::generateTexGenType(const gx::TexCoordGen &texCoordGen,
 }
 
 // Output is a vec3.
-std::string GXProgram::generateTexGenNrm(const gx::TexCoordGen &texCoordGen,
+std::string GXProgram::generateTexGenNrm(const gx::TexCoordGen& texCoordGen,
                                          int id) {
   const auto src = generateTexGenSource(texCoordGen.sourceParam);
   const auto type = generateTexGenType(texCoordGen, id, src);
@@ -299,7 +299,7 @@ std::string GXProgram::generateTexGenNrm(const gx::TexCoordGen &texCoordGen,
     return type;
 }
 // Output is a vec3.
-std::string GXProgram::generateTexGenPost(const gx::TexCoordGen &texCoordGen,
+std::string GXProgram::generateTexGenPost(const gx::TexCoordGen& texCoordGen,
                                           int id) {
   const auto src = generateTexGenNrm(texCoordGen, id);
   // TODO
@@ -310,7 +310,7 @@ std::string GXProgram::generateTexGenPost(const gx::TexCoordGen &texCoordGen,
                                         "vec4(" + src + ", 1.0)");
 }
 
-std::string GXProgram::generateTexGen(const gx::TexCoordGen &texCoordGen,
+std::string GXProgram::generateTexGen(const gx::TexCoordGen& texCoordGen,
                                       int id) {
   return "v_TexCoord" + std::to_string(/*texCoordGen.*/ id) + " = " +
          generateTexGenPost(texCoordGen, id) + ";\n";
@@ -318,7 +318,7 @@ std::string GXProgram::generateTexGen(const gx::TexCoordGen &texCoordGen,
 
 std::string GXProgram::generateTexGens() {
   std::string out;
-  const auto &tgs = mMaterial.mat.getMaterialData().texGens;
+  const auto& tgs = mMaterial.mat.getMaterialData().texGens;
   for (int i = 0; i < tgs.size(); ++i)
     out += generateTexGen(tgs[i], i);
   return out;
@@ -360,9 +360,9 @@ std::string GXProgram::generateIndTexStageScaleN(
 }
 
 std::string
-GXProgram::generateIndTexStageScale(const gx::TevStage::IndirectStage &stage,
-                                    const gx::IndirectTextureScalePair &scale,
-                                    const gx::IndOrder &mIndOrder) {
+GXProgram::generateIndTexStageScale(const gx::TevStage::IndirectStage& stage,
+                                    const gx::IndirectTextureScalePair& scale,
+                                    const gx::IndOrder& mIndOrder) {
   const std::string baseCoord =
       "ReadTexCoord" + std::to_string(mIndOrder.refCoord) + "()";
 
@@ -375,14 +375,14 @@ GXProgram::generateIndTexStageScale(const gx::TevStage::IndirectStage &stage,
 }
 
 std::string GXProgram::generateTextureSample(u32 index,
-                                             const std::string &coord) {
+                                             const std::string& coord) {
   const auto idx_str = std::to_string(index);
   return "texture(u_Texture[" + idx_str + "], " + coord + ", TextureLODBias(" +
          idx_str + "))";
 }
 
 std::string GXProgram::generateIndTexStage(u32 indTexStageIndex) {
-  const auto &stage = mMaterial.mat.getMaterialData()
+  const auto& stage = mMaterial.mat.getMaterialData()
                           .shader.mStages[indTexStageIndex]
                           .indirectStage;
   return "vec3 t_IndTexCoord" + std::to_string(indTexStageIndex) +
@@ -527,7 +527,7 @@ std::string GXProgram::generateKonstAlphaSel(gx::TevKAlphaSel konstAlpha) {
   }
 }
 
-std::string GXProgram::generateRas(const gx::TevStage &stage) {
+std::string GXProgram::generateRas(const gx::TevStage& stage) {
   switch (stage.rasOrder) {
   case gx::ColorSelChanApi::color0a0:
     return "v_Color0";
@@ -540,7 +540,7 @@ std::string GXProgram::generateRas(const gx::TevStage &stage) {
   }
 }
 
-std::string GXProgram::generateTexAccess(const gx::TevStage &stage) {
+std::string GXProgram::generateTexAccess(const gx::TevStage& stage) {
   // Skyward Sword is amazing sometimes. I hope you"re happy...
   // assert(stage.texMap !== GX.TexMapID.TEXMAP_NULL);
   if (stage.texMap == -1)
@@ -553,9 +553,9 @@ std::string GXProgram::generateTexAccess(const gx::TevStage &stage) {
   return generateTextureSample(stage.texMap, "t_TexCoord");
 }
 std::string
-GXProgram::generateComponentSwizzle(const gx::SwapTableEntry *swapTable,
+GXProgram::generateComponentSwizzle(const gx::SwapTableEntry* swapTable,
                                     gx::ColorComponent channel) {
-  const char *suffixes[] = {"r", "g", "b", "a"};
+  const char* suffixes[] = {"r", "g", "b", "a"};
   if (swapTable)
     channel = swapTable->lookup(channel);
   // For sunshine common.szs\halfwhiteball.bmd
@@ -564,7 +564,7 @@ GXProgram::generateComponentSwizzle(const gx::SwapTableEntry *swapTable,
   return suffixes[(u8)channel];
 }
 
-std::string GXProgram::generateColorSwizzle(const gx::SwapTableEntry *swapTable,
+std::string GXProgram::generateColorSwizzle(const gx::SwapTableEntry* swapTable,
                                             gx::TevColorArg colorIn) {
   const auto swapR = generateComponentSwizzle(swapTable, gx::ColorComponent::r);
   const auto swapG = generateComponentSwizzle(swapTable, gx::ColorComponent::g);
@@ -583,7 +583,7 @@ std::string GXProgram::generateColorSwizzle(const gx::SwapTableEntry *swapTable,
   }
 }
 
-std::string GXProgram::generateColorIn(const gx::TevStage &stage,
+std::string GXProgram::generateColorIn(const gx::TevStage& stage,
                                        gx::TevColorArg colorIn) {
   switch (colorIn) {
   case gx::TevColorArg::cprev:
@@ -635,7 +635,7 @@ std::string GXProgram::generateColorIn(const gx::TevStage &stage,
   }
 }
 
-std::string GXProgram::generateAlphaIn(const gx::TevStage &stage,
+std::string GXProgram::generateAlphaIn(const gx::TevStage& stage,
                                        gx::TevAlphaArg alphaIn) {
   switch (alphaIn) {
   case gx::TevAlphaArg::aprev:
@@ -664,7 +664,7 @@ std::string GXProgram::generateAlphaIn(const gx::TevStage &stage,
   }
 }
 
-std::string GXProgram::generateTevInputs(const gx::TevStage &stage) {
+std::string GXProgram::generateTevInputs(const gx::TevStage& stage) {
   return R"(
     t_TevA = TevOverflow(vec4()" +
          generateColorIn(stage, stage.colorStage.a) + ", " +
@@ -693,7 +693,7 @@ std::string GXProgram::generateTevRegister(gx::TevReg regId) {
   }
 }
 
-std::string GXProgram::generateTevOpBiasScaleClamp(const std::string &value,
+std::string GXProgram::generateTevOpBiasScaleClamp(const std::string& value,
                                                    gx::TevBias bias,
                                                    gx::TevScale scale) {
   auto v = value;
@@ -714,10 +714,10 @@ std::string GXProgram::generateTevOpBiasScaleClamp(const std::string &value,
 }
 
 std::string GXProgram::generateTevOp(gx::TevColorOp op, gx::TevBias bias,
-                                     gx::TevScale scale, const std::string &a,
-                                     const std::string &b, const std::string &c,
-                                     const std::string &d,
-                                     const std::string &zero) {
+                                     gx::TevScale scale, const std::string& a,
+                                     const std::string& b, const std::string& c,
+                                     const std::string& d,
+                                     const std::string& zero) {
   switch (op) {
   case gx::TevColorOp::add:
   case gx::TevColorOp::subtract: {
@@ -755,8 +755,8 @@ std::string GXProgram::generateTevOp(gx::TevColorOp op, gx::TevBias bias,
 
 std::string GXProgram::generateTevOpValue(
     gx::TevColorOp op, gx::TevBias bias, gx::TevScale scale, bool clamp,
-    const std::string &a, const std::string &b, const std::string &c,
-    const std::string &d, const std::string &zero) {
+    const std::string& a, const std::string& b, const std::string& c,
+    const std::string& d, const std::string& zero) {
   const auto expr = generateTevOp(op, bias, scale, a, b, c, d, zero);
 
   if (clamp)
@@ -765,7 +765,7 @@ std::string GXProgram::generateTevOpValue(
     return expr;
 }
 
-std::string GXProgram::generateColorOp(const gx::TevStage &stage) {
+std::string GXProgram::generateColorOp(const gx::TevStage& stage) {
   const auto a = "t_TevA.rgb", b = "t_TevB.rgb", c = "t_TevC.rgb",
              d = "t_TevD.rgb", zero = "vec3(0)";
   const auto value = generateTevOpValue(
@@ -774,7 +774,7 @@ std::string GXProgram::generateColorOp(const gx::TevStage &stage) {
   return generateTevRegister(stage.colorStage.out) + ".rgb = " + value + ";\n";
 }
 
-std::string GXProgram::generateAlphaOp(const gx::TevStage &stage) {
+std::string GXProgram::generateAlphaOp(const gx::TevStage& stage) {
   const auto a = "t_TevA.a", b = "t_TevB.a", c = "t_TevC.a", d = "t_TevD.a",
              zero = "0.0";
   const auto value =
@@ -784,7 +784,7 @@ std::string GXProgram::generateAlphaOp(const gx::TevStage &stage) {
   return generateTevRegister(stage.alphaStage.out) + ".a = " + value + ";\n";
 }
 
-std::string GXProgram::generateTevTexCoordWrapN(const std::string &texCoord,
+std::string GXProgram::generateTevTexCoordWrapN(const std::string& texCoord,
                                                 gx::IndTexWrap wrap) {
   switch (wrap) {
   case gx::IndTexWrap::off:
@@ -804,7 +804,7 @@ std::string GXProgram::generateTevTexCoordWrapN(const std::string &texCoord,
   }
 }
 
-std::string GXProgram::generateTevTexCoordWrap(const gx::TevStage &stage) {
+std::string GXProgram::generateTevTexCoordWrap(const gx::TevStage& stage) {
   const int lastTexGenId = mMaterial.mat.getMaterialData().texGens.size() - 1;
   int texGenId = stage.texCoord;
 
@@ -828,7 +828,7 @@ std::string GXProgram::generateTevTexCoordWrap(const gx::TevStage &stage) {
 }
 
 std::string
-GXProgram::generateTevTexCoordIndTexCoordBias(const gx::TevStage &stage) {
+GXProgram::generateTevTexCoordIndTexCoordBias(const gx::TevStage& stage) {
   const std::string bias =
       (stage.indirectStage.format == gx::IndTexFormat::_8bit) ? "-128.0"
                                                               : "1.0";
@@ -854,7 +854,7 @@ GXProgram::generateTevTexCoordIndTexCoordBias(const gx::TevStage &stage) {
 }
 
 std::string
-GXProgram::generateTevTexCoordIndTexCoord(const gx::TevStage &stage) {
+GXProgram::generateTevTexCoordIndTexCoord(const gx::TevStage& stage) {
   const auto baseCoord =
       "(t_IndTexCoord" + std::to_string(stage.indirectStage.indStageSel) + ")";
   switch (stage.indirectStage.format) {
@@ -867,7 +867,7 @@ GXProgram::generateTevTexCoordIndTexCoord(const gx::TevStage &stage) {
 }
 
 std::string
-GXProgram::generateTevTexCoordIndirectMtx(const gx::TevStage &stage) {
+GXProgram::generateTevTexCoordIndirectMtx(const gx::TevStage& stage) {
   const auto indTevCoord = "(" + generateTevTexCoordIndTexCoord(stage) +
                            generateTevTexCoordIndTexCoordBias(stage) + ")";
 
@@ -886,12 +886,12 @@ GXProgram::generateTevTexCoordIndirectMtx(const gx::TevStage &stage) {
 }
 
 std::string
-GXProgram::generateTevTexCoordIndirectTranslation(const gx::TevStage &stage) {
+GXProgram::generateTevTexCoordIndirectTranslation(const gx::TevStage& stage) {
   return "(" + generateTevTexCoordIndirectMtx(stage) + " * TextureInvScale(" +
          std::to_string(stage.texMap) + "))";
 }
 
-std::string GXProgram::generateTevTexCoordIndirect(const gx::TevStage &stage) {
+std::string GXProgram::generateTevTexCoordIndirect(const gx::TevStage& stage) {
   const auto baseCoord = generateTevTexCoordWrap(stage);
 
   if (stage.indirectStage.matrix != gx::IndTexMtxID::off &&
@@ -902,7 +902,7 @@ std::string GXProgram::generateTevTexCoordIndirect(const gx::TevStage &stage) {
     return baseCoord;
 }
 
-std::string GXProgram::generateTevTexCoord(const gx::TevStage &stage) {
+std::string GXProgram::generateTevTexCoord(const gx::TevStage& stage) {
   if (stage.texCoord == -1)
     return "";
 
@@ -915,7 +915,7 @@ std::string GXProgram::generateTevTexCoord(const gx::TevStage &stage) {
 }
 
 std::string GXProgram::generateTevStage(u32 tevStageIndex) {
-  const auto &stage =
+  const auto& stage =
       mMaterial.mat.getMaterialData().shader.mStages[tevStageIndex];
 
   return "// TEV Stage " + std::to_string(tevStageIndex) + "\n" +
@@ -932,9 +932,9 @@ std::string GXProgram::generateTevStages() {
 }
 
 std::string GXProgram::generateTevStagesLastMinuteFixup() {
-  const auto &tevStages = mMaterial.mat.getMaterialData().shader.mStages;
+  const auto& tevStages = mMaterial.mat.getMaterialData().shader.mStages;
 
-  const auto &lastTevStage = tevStages[tevStages.size() - 1];
+  const auto& lastTevStage = tevStages[tevStages.size() - 1];
   const auto colorReg = generateTevRegister(lastTevStage.colorStage.out);
   const auto alphaReg = generateTevRegister(lastTevStage.alphaStage.out);
   if (colorReg == alphaReg) {
@@ -1000,9 +1000,9 @@ std::string GXProgram::generateAlphaTest() {
 std::string GXProgram::generateFogZCoord() { return ""; }
 std::string GXProgram::generateFogBase() { return ""; }
 
-std::string GXProgram::generateFogAdj(const std::string &base) { return ""; }
+std::string GXProgram::generateFogAdj(const std::string& base) { return ""; }
 
-std::string GXProgram::generateFogFunc(const std::string &base) { return ""; }
+std::string GXProgram::generateFogFunc(const std::string& base) { return ""; }
 
 std::string GXProgram::generateFog() { return ""; }
 std::string GXProgram::generateAttributeStorageType(u32 glFormat, u32 count) {
@@ -1028,7 +1028,7 @@ std::string GXProgram::generateAttributeStorageType(u32 glFormat, u32 count) {
 std::string GXProgram::generateVertAttributeDefs() {
   std::string out;
   int i = 0;
-  for (const auto &attr : vtxAttributeGenDefs) {
+  for (const auto& attr : vtxAttributeGenDefs) {
     // if (attr.format != GL_FLOAT) continue;
     out += "layout(location = " + std::to_string(i) + ") in " +
            generateAttributeStorageType(attr.format, attr.size) + " a_" +
@@ -1222,7 +1222,7 @@ void main() {
                     "    vec4 t_PixelOut = TevOverflow(t_TevOutput);\n" +
                     generateAlphaTest() + generateFog() +
                     //"    t_PixelOut = vec4(texture(u_Texture[1],
-                    //v_TexCoord1.xy / v_TexCoord1.z).rgb, 0.5);"
+                    // v_TexCoord1.xy / v_TexCoord1.z).rgb, 0.5);"
                     "    fragOut = t_PixelOut;\n"
                     "}\n";
   return {vert, frag};
@@ -1305,8 +1305,8 @@ u32 translateCompareType(gx::Comparison compareType) {
   }
 }
 
-void translateGfxMegaState(MegaState &megaState, GXMaterial &material) {
-  auto &matdata = material.mat.getMaterialData();
+void translateGfxMegaState(MegaState& megaState, GXMaterial& material) {
+  auto& matdata = material.mat.getMaterialData();
   megaState.cullMode = translateCullMode(matdata.cullMode);
   // TODO: If compare is false, is depth masked?
   megaState.depthWrite = matdata.zMode.compare && matdata.zMode.update;

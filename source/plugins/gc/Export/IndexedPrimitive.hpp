@@ -15,7 +15,7 @@ struct IndexedPrimitive {
   IndexedPrimitive() = default;
   IndexedPrimitive(gx::PrimitiveType type, u64 size)
       : mType(type), mVertices(size) {}
-  bool operator==(const IndexedPrimitive &rhs) const {
+  bool operator==(const IndexedPrimitive& rhs) const {
     return mType == rhs.mType && mVertices == rhs.mVertices;
   }
 };

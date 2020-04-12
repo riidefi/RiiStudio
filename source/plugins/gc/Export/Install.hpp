@@ -3,4 +3,3 @@
 namespace libcube {
 void Install();
 }
-

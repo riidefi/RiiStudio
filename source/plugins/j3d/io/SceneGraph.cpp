@@ -21,11 +21,11 @@ struct ByteCodeCmd {
   ByteCodeOp op;
   s16 idx;
 
-  ByteCodeCmd(oishii::BinaryReader &reader) { transfer(reader); }
+  ByteCodeCmd(oishii::BinaryReader& reader) { transfer(reader); }
   ByteCodeCmd() : op(ByteCodeOp::Unitialized), idx(-1) {}
 
   ByteCodeCmd(ByteCodeOp o, s16 i = 0) : op(o), idx(i) {}
-  template <typename T> void transfer(T &stream) {
+  template <typename T> void transfer(T& stream) {
     stream.template transfer<ByteCodeOp>(op);
     stream.template transfer<s16>(idx);
 
@@ -49,7 +49,7 @@ struct ByteCodeCmd {
   }
 };
 
-void SceneGraph::onRead(oishii::BinaryReader &reader, BMDOutputContext &ctx) {
+void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
   // FIXME: Algorithm can be significantly improved
 
   u16 mat, joint = 0;
@@ -111,7 +111,7 @@ struct SceneGraphNode : public oishii::v2::Node {
     getLinkingRestriction().setFlag(oishii::v2::LinkingRestriction::Leaf);
   }
 
-  Result write(oishii::v2::Writer &writer) const noexcept {
+  Result write(oishii::v2::Writer& writer) const noexcept {
     u32 depth = 0;
 
     writeBone(writer, mdl.getJoint(0).get(), mdl, depth); // Assume root 0
@@ -120,8 +120,8 @@ struct SceneGraphNode : public oishii::v2::Node {
     return eResult::Success;
   }
 
-  void writeBone(oishii::v2::Writer &writer, const Joint &joint,
-                 const ModelAccessor mdl, u32 &depth) const {
+  void writeBone(oishii::v2::Writer& writer, const Joint& joint,
+                 const ModelAccessor mdl, u32& depth) const {
     u32 startDepth = depth;
 
     s16 id = -1;
@@ -136,7 +136,7 @@ struct SceneGraphNode : public oishii::v2::Node {
 
     if (!joint.displays.empty()) {
       JointData::Display last = {-1, -1};
-      for (const auto &d : joint.displays) {
+      for (const auto& d : joint.displays) {
         if (d.material != last.material) {
           s16 mid = -1;
           for (int i = 0; i < mdl.getMaterials().size(); ++i) {
@@ -165,7 +165,7 @@ struct SceneGraphNode : public oishii::v2::Node {
     if (depth != startDepth) {
       // If last is an open, overwrite it
       if (oishii::swapEndian(
-              *(u16 *)(writer.getDataBlockStart() + writer.tell() - 4)) == 1) {
+              *(u16*)(writer.getDataBlockStart() + writer.tell() - 4)) == 1) {
         writer.seek(-4);
         --depth;
       }

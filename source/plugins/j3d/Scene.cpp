@@ -6,18 +6,18 @@ namespace riistudio::j3d {
 
 using namespace libcube;
 
-static gx::TexCoordGen postTexGen(const gx::TexCoordGen &gen) {
+static gx::TexCoordGen postTexGen(const gx::TexCoordGen& gen) {
   return gx::TexCoordGen{// gen.id,
                          gen.func, gen.sourceParam,
                          static_cast<gx::TexMatrix>(gen.postMatrix), false,
                          gen.postMatrix};
 }
-void Model::MatCache::propogate(Material &mat) {
+void Model::MatCache::propogate(Material& mat) {
   Indirect _ind(mat);
   indirectInfos.push_back(mat); // one per mat
   update_section(cullModes, mat.cullMode);
   for (int i = 0; i < mat.chanData.size(); ++i) {
-    auto &chan = mat.chanData[i];
+    auto& chan = mat.chanData[i];
     update_section(matColors, chan.matColor);
     update_section(ambColors, chan.ambColor);
   }
@@ -46,10 +46,10 @@ void Model::MatCache::propogate(Material &mat) {
     // tmp.btiId =
     // reinterpret_cast<MaterialData::J3DSamplerData*>(mat.samplers[i].get())->btiId;
     // update_section(samplers, tmp);
-    update_section(samplers, *reinterpret_cast<MaterialData::J3DSamplerData *>(
+    update_section(samplers, *reinterpret_cast<MaterialData::J3DSamplerData*>(
                                  mat.samplers[i].get()));
   }
-  for (auto &stage : mat.shader.mStages) {
+  for (auto& stage : mat.shader.mStages) {
     TevOrder order;
     order.rasOrder = stage.rasOrder;
     order.texCoord = stage.texCoord;

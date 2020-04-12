@@ -25,20 +25,20 @@ namespace riistudio::frontend {
 
 struct SceneTree {
   struct Node : public lib3d::IObserver {
-    const lib3d::Material &mat;
-    const lib3d::Polygon &poly;
-    const lib3d::Bone &bone;
+    const lib3d::Material& mat;
+    const lib3d::Polygon& poly;
+    const lib3d::Bone& bone;
     u8 priority;
 
-    ShaderProgram &shader;
+    ShaderProgram& shader;
 
     // Only used later
     mutable u32 idx_ofs = 0;
     mutable u32 idx_size = 0;
     mutable u32 mtx_id = 0;
 
-    Node(const lib3d::Material &m, const lib3d::Polygon &p,
-         const lib3d::Bone &b, u8 prio, ShaderProgram &prog)
+    Node(const lib3d::Material& m, const lib3d::Polygon& p,
+         const lib3d::Bone& b, u8 prio, ShaderProgram& prog)
         : mat(m), poly(p), bone(b), priority(prio), shader(prog) {}
 
     void update() override {
@@ -52,24 +52,24 @@ struct SceneTree {
 
   std::vector<std::unique_ptr<Node>> opaque, translucent;
 
-  void gatherBoneRecursive(u64 boneId, const kpi::FolderData &bones,
-                           const kpi::FolderData &mats,
-                           const kpi::FolderData &polys) {
-    const auto &pBone = bones.at<lib3d::Bone>(boneId);
+  void gatherBoneRecursive(u64 boneId, const kpi::FolderData& bones,
+                           const kpi::FolderData& mats,
+                           const kpi::FolderData& polys) {
+    const auto& pBone = bones.at<lib3d::Bone>(boneId);
 
     const u64 nDisplay = pBone.getNumDisplays();
     for (u64 i = 0; i < nDisplay; ++i) {
       const auto display = pBone.getDisplay(i);
-      const auto &mat = mats.at<lib3d::Material>(display.matId);
+      const auto& mat = mats.at<lib3d::Material>(display.matId);
 
       const auto shader_sources = mat.generateShaders();
-      ShaderProgram &shader =
+      ShaderProgram& shader =
           ShaderCache::compile(shader_sources.first, shader_sources.second);
       const Node node{mats.at<lib3d::Material>(display.matId),
                       polys.at<lib3d::Polygon>(display.polyId), pBone,
                       display.prio, shader};
 
-      auto &nodebuf = node.isTranslucent() ? translucent : opaque;
+      auto& nodebuf = node.isTranslucent() ? translucent : opaque;
 
       nodebuf.push_back(std::make_unique<Node>(node));
       nodebuf.back()->mat.observers.push_back(nodebuf.back().get());
@@ -79,11 +79,11 @@ struct SceneTree {
       gatherBoneRecursive(pBone.getChild(i), bones, mats, polys);
   }
 
-  void gather(const kpi::IDocumentNode &root) {
-    const auto *pMats = root.getFolder<lib3d::Material>();
+  void gather(const kpi::IDocumentNode& root) {
+    const auto* pMats = root.getFolder<lib3d::Material>();
     if (pMats == nullptr)
       return;
-    const auto *pPolys = root.getFolder<lib3d::Polygon>();
+    const auto* pPolys = root.getFolder<lib3d::Polygon>();
     if (pPolys == nullptr)
       return;
 
@@ -107,22 +107,22 @@ struct SceneState {
   SceneTree mTree;
 
   ~SceneState() {
-    for (const auto &tex : mTextures)
+    for (const auto& tex : mTextures)
       glDeleteTextures(1, &tex.id);
     mTextures.clear();
   }
 
   void buildBuffers() {
-    auto setupNode = [&](auto &node) {
+    auto setupNode = [&](auto& node) {
       node->idx_ofs = static_cast<u32>(mVbo.mIndices.size());
       node->poly.propogate(mVbo);
       node->idx_size = static_cast<u32>(mVbo.mIndices.size()) - node->idx_ofs;
     };
     // TODO -- nodes may be of incompatible type..
-    for (const auto &node : mTree.opaque) {
+    for (const auto& node : mTree.opaque) {
       setupNode(node);
     }
-    for (const auto &node : mTree.translucent) {
+    for (const auto& node : mTree.translucent) {
       setupNode(node);
     }
 
@@ -132,8 +132,8 @@ struct SceneState {
 
   std::map<std::string, u32> texIdMap;
 
-  void buildTextures(const kpi::IDocumentNode &root) {
-    for (const auto &tex : mTextures)
+  void buildTextures(const kpi::IDocumentNode& root) {
+    for (const auto& tex : mTextures)
       glDeleteTextures(1, &tex.id);
     mTextures.clear();
     texIdMap.clear();
@@ -141,12 +141,12 @@ struct SceneState {
     if (root.getFolder<lib3d::Texture>() == nullptr)
       return;
 
-    const auto *textures = root.getFolder<lib3d::Texture>();
+    const auto* textures = root.getFolder<lib3d::Texture>();
 
     mTextures.resize(textures->size());
     std::vector<u8> data(1024 * 1024 * 4 * 2);
     for (int i = 0; i < textures->size(); ++i) {
-      const auto &tex = textures->at<lib3d::Texture>(i);
+      const auto& tex = textures->at<lib3d::Texture>(i);
 
       // TODO: Wrapping mode, filtering, mipmaps
       glGenTextures(1, &mTextures[i].id);
@@ -174,8 +174,8 @@ struct SceneState {
     }
   }
 
-  void gather(const kpi::IDocumentNode &model,
-              const kpi::IDocumentNode &texture, bool buf = true,
+  void gather(const kpi::IDocumentNode& model,
+              const kpi::IDocumentNode& texture, bool buf = true,
               bool tex = true) {
     bones = model.getFolder<lib3d::Bone>();
     mTree.gather(model);
@@ -188,8 +188,8 @@ struct SceneState {
     //	const auto mat = mats->at<lib3d::Material>(0);
     //	const auto compiled = mat->generateShaders();
   }
-  const kpi::FolderData *bones;
-  glm::mat4 computeMdlMtx(const lib3d::SRT3 &srt) {
+  const kpi::FolderData* bones;
+  glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
     glm::mat4 mdl(1.0f);
 
     // TODO
@@ -202,7 +202,7 @@ struct SceneState {
   glm::mat4 computeBoneMdl(u32 id) {
     glm::mat4 mdl(1.0f);
 
-    auto &bone = bones->at<lib3d::Bone>(id);
+    auto& bone = bones->at<lib3d::Bone>(id);
     // const auto parent = bone->getParent();
     // if (parent >= 0 && parent != id)
     //	mdl = computeBoneMdl(parent);
@@ -211,7 +211,7 @@ struct SceneState {
     return mdl;
   }
 
-  glm::mat4 computeBoneMdl(const lib3d::Bone &bone) {
+  glm::mat4 computeBoneMdl(const lib3d::Bone& bone) {
     glm::mat4 mdl(1.0f);
     // TODO
     //	const auto parent = bone.getParent();
@@ -221,13 +221,13 @@ struct SceneState {
     // mdl = computeMdlMtx(bone.getSRT());
     return mdl;
   }
-  void build(const glm::mat4 &view, const glm::mat4 &proj,
-             riistudio::core::AABB &bound) {
+  void build(const glm::mat4& view, const glm::mat4& proj,
+             riistudio::core::AABB& bound) {
     // TODO
     bound.m_minBounds = {0.0f, 0.0f, 0.0f};
     bound.m_maxBounds = {0.0f, 0.0f, 0.0f};
 
-    for (const auto &node : mTree.opaque) {
+    for (const auto& node : mTree.opaque) {
       auto mdl = computeBoneMdl(node->bone);
 
       auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
@@ -236,7 +236,7 @@ struct SceneState {
       riistudio::core::AABB newBound{nmin, nmax};
       bound.expandBound(newBound);
     }
-    for (const auto &node : mTree.translucent) {
+    for (const auto& node : mTree.translucent) {
       auto mdl = computeBoneMdl(node->bone);
 
       auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
@@ -250,7 +250,7 @@ struct SceneState {
 
     mUboBuilder.clear();
     u32 i = 0;
-    for (const auto &node : mTree.opaque) {
+    for (const auto& node : mTree.opaque) {
       auto mdl = computeBoneMdl(node->bone);
 
       node->mat.generateUniforms(mUboBuilder, mdl, view, proj,
@@ -258,7 +258,7 @@ struct SceneState {
       node->mtx_id = i;
       ++i;
     }
-    for (const auto &node : mTree.translucent) {
+    for (const auto& node : mTree.translucent) {
       auto mdl = computeBoneMdl(node->bone);
 
       node->mat.generateUniforms(mUboBuilder, mdl, view, proj,
@@ -279,7 +279,7 @@ struct SceneState {
 
     MegaState state;
 
-    auto drawNode = [&](const auto &node) {
+    auto drawNode = [&](const auto& node) {
       node->mat.setMegaState(state);
 
       glEnable(GL_BLEND);
@@ -305,14 +305,14 @@ struct SceneState {
       // printf("Draw: index (size=%u, ofs=%u)\n", node->idx_size, node->idx_ofs
       // * 4);
       glDrawElements(GL_TRIANGLES, node->idx_size, GL_UNSIGNED_INT,
-                     (void *)(node->idx_ofs * 4));
+                     (void*)(node->idx_ofs * 4));
       // if (glGetError() != GL_NO_ERROR) exit(1);
     };
 
-    for (const auto &node : mTree.opaque) {
+    for (const auto& node : mTree.opaque) {
       drawNode(node);
     }
-    for (const auto &node : mTree.translucent) {
+    for (const auto& node : mTree.translucent) {
       drawNode(node);
     }
 
@@ -329,13 +329,13 @@ struct SceneState {
   std::vector<Texture> mTextures;
 };
 
-void Renderer::prepare(const kpi::IDocumentNode &model,
-                       const kpi::IDocumentNode &texture, bool buf, bool tex) {
+void Renderer::prepare(const kpi::IDocumentNode& model,
+                       const kpi::IDocumentNode& texture, bool buf, bool tex) {
   mState->gather(model, texture, buf, tex);
 }
 
 static void cb(GLenum source, GLenum type, GLuint id, GLenum severity,
-               GLsizei length, const GLchar *message, GLvoid *userParam) {
+               GLsizei length, const GLchar* message, GLvoid* userParam) {
   printf("%s\n", message);
 }
 Renderer::Renderer() {
@@ -347,7 +347,7 @@ Renderer::Renderer() {
 }
 Renderer::~Renderer() {}
 
-void Renderer::render(u32 width, u32 height, bool &showCursor) {
+void Renderer::render(u32 width, u32 height, bool& showCursor) {
   if (ImGui::BeginMenuBar()) {
     if (ImGui::BeginMenu("Camera")) {
       ImGui::SliderFloat("Mouse Speed", &mouseSpeed, 0.0f, .2f);
@@ -434,7 +434,7 @@ void Renderer::render(u32 width, u32 height, bool &showCursor) {
 #ifdef RII_BACKEND_GLFW
     if (ImGui::IsKeyDown('W'))
 #else
-    const Uint8 *keys = SDL_GetKeyboardState(NULL);
+    const Uint8* keys = SDL_GetKeyboardState(NULL);
 
     if (keys[SDL_SCANCODE_W])
 #endif

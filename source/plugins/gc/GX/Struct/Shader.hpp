@@ -182,7 +182,7 @@ struct TevStage {
     bool clamp = true;
     TevReg out = TevReg::prev;
 
-    bool operator==(const ColorStage &rhs) const noexcept {
+    bool operator==(const ColorStage& rhs) const noexcept {
       return constantSelection == rhs.constantSelection && a == rhs.a &&
              b == rhs.b && c == rhs.c && d == rhs.d && formula == rhs.formula &&
              bias == rhs.bias && scale == rhs.scale && clamp == rhs.clamp &&
@@ -202,7 +202,7 @@ struct TevStage {
     bool clamp;
     TevReg out;
 
-    bool operator==(const AlphaStage &rhs) const noexcept {
+    bool operator==(const AlphaStage& rhs) const noexcept {
       return constantSelection == rhs.constantSelection && a == rhs.a &&
              b == rhs.b && c == rhs.c && d == rhs.d && formula == rhs.formula &&
              bias == rhs.bias && scale == rhs.scale && clamp == rhs.clamp &&
@@ -221,7 +221,7 @@ struct TevStage {
     bool utcLod{false};
     IndTexAlphaSel alpha{IndTexAlphaSel::off};
 
-    bool operator==(const IndirectStage &stage) const noexcept {
+    bool operator==(const IndirectStage& stage) const noexcept {
       return indStageSel == stage.indStageSel && format == stage.format &&
              bias == stage.bias && matrix == stage.matrix &&
              wrapU == stage.wrapU && wrapV == stage.wrapV &&
@@ -230,7 +230,7 @@ struct TevStage {
     }
   } indirectStage;
 
-  bool operator==(const TevStage &rhs) const noexcept {
+  bool operator==(const TevStage& rhs) const noexcept {
     return rasOrder == rhs.rasOrder && texMap == rhs.texMap &&
            texCoord == rhs.texCoord && rasSwap == rhs.rasSwap &&
            texMapSwap == rhs.texMapSwap && colorStage == rhs.colorStage &&
@@ -242,7 +242,7 @@ struct TevStage {
 struct SwapTableEntry {
   ColorComponent r, g, b, a;
 
-  bool operator==(const SwapTableEntry &rhs) const noexcept {
+  bool operator==(const SwapTableEntry& rhs) const noexcept {
     return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
   }
 
@@ -268,7 +268,7 @@ struct Shader {
   // Variable-sized DL
   std::vector<TevStage> mStages;
 
-  bool operator==(const Shader &rhs) const noexcept {
+  bool operator==(const Shader& rhs) const noexcept {
     return mSwapTable == rhs.mSwapTable &&
            mIndirectOrders == rhs.mIndirectOrders && mStages == rhs.mStages;
   }

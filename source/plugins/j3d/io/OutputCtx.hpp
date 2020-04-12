@@ -14,7 +14,7 @@ struct BMDOutputContext {
   ModelAccessor mdl;
   CollectionAccessor col;
 
-  oishii::BinaryReader &reader;
+  oishii::BinaryReader& reader;
 
   // Compression ID LUT (remap table)
   std::vector<u16> jointIdLut;
@@ -34,24 +34,24 @@ struct BMDOutputContext {
 };
 
 template <typename T, u32 r, u32 c, typename TM, glm::qualifier qM>
-inline void transferMatrix(glm::mat<r, c, TM, qM> &mat, T &stream) {
+inline void transferMatrix(glm::mat<r, c, TM, qM>& mat, T& stream) {
   for (int i = 0; i < r; ++i)
     for (int j = 0; j < c; ++j)
       stream.transfer(mat[j][i]);
 }
 template <typename T, u32 r, u32 c, typename TM, glm::qualifier qM>
-inline void writeMatrix(const glm::mat<r, c, TM, qM> &mat, T &stream) {
+inline void writeMatrix(const glm::mat<r, c, TM, qM>& mat, T& stream) {
   for (int i = 0; i < r; ++i)
     for (int j = 0; j < c; ++j)
       stream.write(mat[j][i]);
 }
 
-inline std::vector<std::string> readNameTable(oishii::BinaryReader &reader) {
+inline std::vector<std::string> readNameTable(oishii::BinaryReader& reader) {
   const auto start = reader.tell();
   std::vector<std::string> collected(reader.read<u16>());
   reader.read<u16>();
 
-  for (auto &e : collected) {
+  for (auto& e : collected) {
     const auto [hash, ofs] = reader.readX<u16, 2>();
     {
       oishii::Jump<oishii::Whence::Set> g(reader, start + ofs);
@@ -64,22 +64,22 @@ inline std::vector<std::string> readNameTable(oishii::BinaryReader &reader) {
   return collected;
 }
 
-inline u16 hash(const std::string &str) {
+inline u16 hash(const std::string& str) {
   u16 digest = 0;
   for (const char c : str)
     digest = digest * 3 + c;
   return digest;
 }
 
-inline void writeNameTable(oishii::v2::Writer &writer,
-                           const std::vector<std::string> &names) {
+inline void writeNameTable(oishii::v2::Writer& writer,
+                           const std::vector<std::string>& names) {
   u32 start = writer.tell();
   writer.write<u16>(static_cast<u16>(names.size()));
   writer.write<u16>(0xffff);
 
   writer.seek<oishii::Whence::Current>(names.size() * 4);
   int i = 0;
-  for (const auto &str : names) {
+  for (const auto& str : names) {
     const u32 strStart = writer.tell();
     for (const char c : str)
       if (c == 0)
@@ -101,7 +101,7 @@ inline void writeNameTable(oishii::v2::Writer &writer,
   // (hash, ofs)*
 }
 
-inline bool enterSection(BMDOutputContext &ctx, u32 id) {
+inline bool enterSection(BMDOutputContext& ctx, u32 id) {
   const auto sec = ctx.mSections.find(id);
   if (sec == ctx.mSections.end())
     return false;
@@ -111,7 +111,7 @@ inline bool enterSection(BMDOutputContext &ctx, u32 id) {
 }
 
 struct ScopedSection : private oishii::BinaryReader::ScopedRegion {
-  ScopedSection(oishii::BinaryReader &reader, const char *name)
+  ScopedSection(oishii::BinaryReader& reader, const char* name)
       : oishii::BinaryReader::ScopedRegion(reader, name) {
     start = reader.tell();
     reader.seek(4);
@@ -129,19 +129,19 @@ struct LinkNode final : public T, public oishii::v2::Node {
     if (leaf)
       mLinkingRestriction.setFlag(oishii::v2::LinkingRestriction::Leaf);
   }
-  oishii::v2::Node::Result write(oishii::v2::Writer &writer) const
+  oishii::v2::Node::Result write(oishii::v2::Writer& writer) const
       noexcept override {
     T::write(writer);
     return eResult::Success;
   }
 
   oishii::v2::Node::Result
-  gatherChildren(oishii::v2::Node::NodeDelegate &out) const noexcept override {
+  gatherChildren(oishii::v2::Node::NodeDelegate& out) const noexcept override {
     T::gatherChildren(out);
 
     return {};
   }
-  const oishii::v2::Node &getSelf() const override { return *this; }
+  const oishii::v2::Node& getSelf() const override { return *this; }
 };
 
 struct BMDExportContext {

@@ -9,7 +9,7 @@ namespace ui {
 void install();
 }
 
-void Install(kpi::ApplicationPlugins &installer) {
+void Install(kpi::ApplicationPlugins& installer) {
   InstallBMD(installer);
 
   installer.addType<j3d::Model, lib3d::Model>();

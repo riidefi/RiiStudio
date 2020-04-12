@@ -74,7 +74,7 @@ struct ChannelControl {
   DiffuseFunction diffuseFn = DiffuseFunction::None;
   AttenuationFunction attenuationFn = AttenuationFunction::None;
 
-  bool operator==(const ChannelControl &other) const {
+  bool operator==(const ChannelControl& other) const {
     return enabled == other.enabled && Ambient == other.Ambient &&
            Material == other.Material && lightMask == other.lightMask &&
            diffuseFn == other.diffuseFn && attenuationFn == other.attenuationFn;
@@ -92,7 +92,7 @@ struct AlphaComparison {
   Comparison compRight = Comparison::ALWAYS;
   u8 refRight = 0;
 
-  const bool operator==(const AlphaComparison &rhs) const noexcept {
+  const bool operator==(const AlphaComparison& rhs) const noexcept {
     return compLeft == rhs.compLeft && refLeft == rhs.refLeft && op == rhs.op &&
            compRight == rhs.compRight && refRight == rhs.refRight;
   }
@@ -134,7 +134,7 @@ struct BlendMode {
   BlendModeFactor dest = BlendModeFactor::inv_src_a;
   LogicOp logic = LogicOp::_clear;
 
-  const bool operator==(const BlendMode &rhs) const noexcept {
+  const bool operator==(const BlendMode& rhs) const noexcept {
     return type == rhs.type && source == rhs.source && dest == rhs.dest &&
            logic == rhs.logic;
   }
@@ -144,7 +144,7 @@ struct ColorS10;
 struct ColorF32 {
   f32 r, g, b, a;
 
-  inline operator float *() { return &r; }
+  inline operator float*() { return &r; }
   operator glm::vec4() const { return {r, g, b, a}; }
 
   inline void clamp(f32 min, f32 max) {
@@ -160,15 +160,15 @@ struct ColorF32 {
   operator Color() const;
   operator ColorS10() const;
 
-  inline bool operator==(const ColorF32 &rhs) const {
+  inline bool operator==(const ColorF32& rhs) const {
     return (r == rhs.r) && (g == rhs.g) && (b == rhs.b) && (a == rhs.a);
   }
-  inline bool operator!=(const ColorF32 &rhs) const { return !operator==(rhs); }
+  inline bool operator!=(const ColorF32& rhs) const { return !operator==(rhs); }
 };
 struct Color {
   u32 r, g, b, a;
 
-  inline bool operator==(const Color &rhs) const noexcept {
+  inline bool operator==(const Color& rhs) const noexcept {
     return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
   }
 
@@ -191,7 +191,7 @@ struct Color {
 struct ColorS10 {
   s32 r, g, b, a;
 
-  bool operator==(const ColorS10 &rhs) const noexcept {
+  bool operator==(const ColorS10& rhs) const noexcept {
     return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
   }
   inline operator ColorF32() const {

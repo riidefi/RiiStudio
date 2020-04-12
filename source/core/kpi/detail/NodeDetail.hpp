@@ -6,7 +6,7 @@
 namespace kpi {
 
 inline std::shared_ptr<const DocumentMemento>
-setNext(const IDocumentNode &node,
+setNext(const IDocumentNode& node,
         std::shared_ptr<const DocumentMemento> record) {
   DocumentMemento transient = *record.get();
   // Compare the actual data of the node
@@ -23,23 +23,23 @@ setNext(const IDocumentNode &node,
   std::set_difference(node.lut.begin(), node.lut.end(), record->lut.begin(),
                       record->lut.end(), std::back_inserter(new_folders));
 
-  for (const auto &folder : new_folders) {
+  for (const auto& folder : new_folders) {
     transient.children[folder];
     transient.lut.emplace(folder);
   }
-  for (const auto &folder : deleted_folders) {
+  for (const auto& folder : deleted_folders) {
     transient.children.erase(folder);
     transient.lut.erase(folder);
   }
 
   // Now compare children
-  for (const auto &folder : node.children) {
-    auto &our_folder = transient.children[folder.first];
+  for (const auto& folder : node.children) {
+    auto& our_folder = transient.children[folder.first];
 
     // Ensure 1:1 mapping (TODO: Insertion is not handled gracefully)
     if (folder.second.size() != our_folder.size()) {
       our_folder.resize(folder.second.size());
-      for (auto &p : our_folder)
+      for (auto& p : our_folder)
         if (!p)
           p = std::make_shared<DocumentMemento>();
     }
@@ -54,7 +54,7 @@ setNext(const IDocumentNode &node,
              : std::make_shared<const DocumentMemento>(transient);
 }
 
-inline void rollback(IDocumentNode &node,
+inline void rollback(IDocumentNode& node,
                      std::shared_ptr<const DocumentMemento> record) {
   // Compare the actual data of the node
   if (!node.compareJustThisNotChildren(*record->JustData.get())) {
@@ -68,18 +68,18 @@ inline void rollback(IDocumentNode &node,
   std::set_difference(node.lut.begin(), node.lut.end(), record->lut.begin(),
                       record->lut.end(), std::back_inserter(deleted_folders));
 
-  for (const auto &folder : new_folders) {
+  for (const auto& folder : new_folders) {
     node.children.insert({folder, {}});
     node.lut.emplace(folder);
   }
-  for (const auto &folder : deleted_folders) {
+  for (const auto& folder : deleted_folders) {
     node.children.insert({folder, {}});
     node.lut.erase(folder);
   }
 
   // Now compare children
-  for (const auto &folder : record->children) {
-    auto &our_folder = node.children[folder.first];
+  for (const auto& folder : record->children) {
+    auto& our_folder = node.children[folder.first];
 
     // Ensure 1:1 mapping (TODO: Insertion is not handled gracefully)
     if (folder.second.size() != our_folder.size()) {
@@ -105,7 +105,7 @@ struct ApplicationPluginsImpl {
     std::unique_ptr<IDocumentNode> spawn() override {
       return std::make_unique<TDocumentNode<T>>();
     }
-    const char *getId() const override { return typeid(T).name(); }
+    const char* getId() const override { return typeid(T).name(); }
   };
   //! Requires methods:
   //! - `T::canRead(const std::string& file, oishii::BinaryReader& reader)
@@ -116,12 +116,12 @@ struct ApplicationPluginsImpl {
     std::unique_ptr<IBinaryDeserializer> clone() const override {
       return std::make_unique<TBinaryDeserializer<T>>(*this);
     }
-    std::string canRead_(const std::string &file,
-                         oishii::BinaryReader &reader) const override {
+    std::string canRead_(const std::string& file,
+                         oishii::BinaryReader& reader) const override {
       return T::canRead(file, reader);
     }
-    void read_(kpi::IDocumentNode &node,
-               oishii::BinaryReader &reader) const override {
+    void read_(kpi::IDocumentNode& node,
+               oishii::BinaryReader& reader) const override {
       T::read(node, reader);
     }
   };
@@ -133,11 +133,11 @@ struct ApplicationPluginsImpl {
     std::unique_ptr<IBinarySerializer> clone() const override {
       return std::make_unique<TBinarySerializer<T>>(*this);
     }
-    bool canWrite_(kpi::IDocumentNode &node) const override {
+    bool canWrite_(kpi::IDocumentNode& node) const override {
       return T::canWrite(node);
     }
-    void write_(kpi::IDocumentNode &node,
-                oishii::v2::Writer &writer) const override {
+    void write_(kpi::IDocumentNode& node,
+                oishii::v2::Writer& writer) const override {
       T::write(node, writer);
     }
   };
@@ -149,33 +149,33 @@ struct ApplicationPluginsImpl {
     std::unique_ptr<IBinarySerializer> clone() const override {
       return std::make_unique<TSimpleBinarySerializer<T>>(*this);
     }
-    bool canWrite_(kpi::IDocumentNode &node) const override {
-      return dynamic_cast<T *>(&node) != nullptr;
+    bool canWrite_(kpi::IDocumentNode& node) const override {
+      return dynamic_cast<T*>(&node) != nullptr;
     }
-    void write_(kpi::IDocumentNode &node,
-                oishii::v2::Writer &writer) const override {
-      write(node, writer, static_cast<T *>(nullptr));
+    void write_(kpi::IDocumentNode& node,
+                oishii::v2::Writer& writer) const override {
+      write(node, writer, static_cast<T*>(nullptr));
     }
   };
 };
 
 } // namespace detail
 
-template <typename T> inline ApplicationPlugins &ApplicationPlugins::addType() {
+template <typename T> inline ApplicationPlugins& ApplicationPlugins::addType() {
   mFactories[typeid(T).name()] =
       std::make_unique<detail::ApplicationPluginsImpl::TFactory<T>>();
   return *this;
 }
 
 template <typename T>
-inline ApplicationPlugins &ApplicationPlugins::addSerializer() {
+inline ApplicationPlugins& ApplicationPlugins::addSerializer() {
   mWriters.push_back(
       std::make_unique<detail::ApplicationPluginsImpl::TBinarySerializer<T>>());
   return *this;
 }
 
 template <typename T>
-inline ApplicationPlugins &ApplicationPlugins::addSimpleSerializer() {
+inline ApplicationPlugins& ApplicationPlugins::addSimpleSerializer() {
   mWriters.push_back(
       std::make_unique<
           detail::ApplicationPluginsImpl::TSimpleBinarySerializer<T>>());
@@ -183,7 +183,7 @@ inline ApplicationPlugins &ApplicationPlugins::addSimpleSerializer() {
 }
 
 template <typename T>
-inline ApplicationPlugins &ApplicationPlugins::addDeserializer() {
+inline ApplicationPlugins& ApplicationPlugins::addDeserializer() {
   mReaders.push_back(std::make_unique<
                      detail::ApplicationPluginsImpl::TBinaryDeserializer<T>>());
   return *this;

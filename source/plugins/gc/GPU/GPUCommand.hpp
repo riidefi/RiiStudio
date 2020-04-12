@@ -25,7 +25,7 @@ union BPCommand {
   u32 hex;
 
   BPCommand() : hex(0) {}
-  BPCommand(u8 reg, u8 *val) : mRegister(reg) {
+  BPCommand(u8 reg, u8* val) : mRegister(reg) {
     // assert(val);
     mValue[0] = val[0];
     mValue[1] = val[1];

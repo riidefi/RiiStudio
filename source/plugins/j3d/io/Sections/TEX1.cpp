@@ -5,7 +5,7 @@
 
 namespace riistudio::j3d {
 
-void Tex::transfer(oishii::BinaryReader &stream) {
+void Tex::transfer(oishii::BinaryReader& stream) {
   oishii::DebugExpectSized dbg(stream, 0x20);
 
   mFormat = stream.read<u8>();
@@ -33,7 +33,7 @@ void Tex::transfer(oishii::BinaryReader &stream) {
   stream.transfer(mLodBias);
   stream.transfer(ofsTex);
 }
-void Tex::write(oishii::v2::Writer &stream) const {
+void Tex::write(oishii::v2::Writer& stream) const {
   oishii::DebugExpectSized dbg(stream, 0x20 - 4);
 
   stream.write<u8>(mFormat);
@@ -60,8 +60,8 @@ void Tex::write(oishii::v2::Writer &stream) const {
   stream.write<s16>(mLodBias);
   // stream.transfer(ofsTex);
 }
-Tex::Tex(const Texture &data,
-         const libcube::GCMaterialData::SamplerData &sampl) {
+Tex::Tex(const Texture& data,
+         const libcube::GCMaterialData::SamplerData& sampl) {
   mFormat = data.mFormat;
   bTransparent = data.bTransparent;
   mWidth = data.mWidth;
@@ -84,8 +84,8 @@ Tex::Tex(const Texture &data,
   mLodBias = roundf(sampl.mLodBias * 100.0f);
   ofsTex = -1;
 }
-void readTEX1(BMDOutputContext &ctx) {
-  auto &reader = ctx.reader;
+void readTEX1(BMDOutputContext& ctx) {
+  auto& reader = ctx.reader;
   if (!enterSection(ctx, 'TEX1'))
     return;
 
@@ -113,9 +113,9 @@ void readTEX1(BMDOutputContext &ctx) {
     tex.btiId = i;
     tex.transfer(reader);
     for (int j = 0; j < ctx.mdl.getMaterials().size(); ++j) {
-      auto &mat = ctx.mdl.getMaterial(j).get();
+      auto& mat = ctx.mdl.getMaterial(j).get();
       for (int k = 0; k < mat.samplers.size(); ++k) {
-        auto &samp = (Material::J3DSamplerData &)*mat.samplers[k].get();
+        auto& samp = (Material::J3DSamplerData&)*mat.samplers[k].get();
         if (samp.btiId == i) {
           samp.mTexture = nameTable[i];
           samp.mWrapU = tex.mWrapU;
@@ -130,7 +130,7 @@ void readTEX1(BMDOutputContext &ctx) {
         }
       }
     }
-    for (auto &samp : ctx.mdl.get().mMatCache.samplers) {
+    for (auto& samp : ctx.mdl.get().mMatCache.samplers) {
       if (samp.btiId == i) {
         samp.mTexture = nameTable[i];
         samp.mWrapU = tex.mWrapU;
@@ -145,9 +145,9 @@ void readTEX1(BMDOutputContext &ctx) {
       }
     }
     ctx.mdl.get().mTexCache.push_back(tex);
-    auto &inf = texRaw.emplace_back(std::make_unique<Texture>(),
+    auto& inf = texRaw.emplace_back(std::make_unique<Texture>(),
                                     std::pair<u32, u32>{0, 0});
-    auto &data = *inf.first.get();
+    auto& data = *inf.first.get();
 
     data.mName = nameTable[i];
     data.mFormat = tex.mFormat;
@@ -172,7 +172,7 @@ void readTEX1(BMDOutputContext &ctx) {
   std::vector<std::pair<u32, int>> uniques; // ofs : index
   for (int i = 0; i < size; ++i) {
     const auto found =
-        std::find_if(uniques.begin(), uniques.end(), [&](const auto &it) {
+        std::find_if(uniques.begin(), uniques.end(), [&](const auto& it) {
           return it.first == texRaw[i].second.first;
         });
     if (found == uniques.end())
@@ -180,8 +180,8 @@ void readTEX1(BMDOutputContext &ctx) {
   }
 
   int i = 0;
-  for (const auto &it : uniques) {
-    auto &texpair = texRaw[it.second];
+  for (const auto& it : uniques) {
+    auto& texpair = texRaw[it.second];
     const auto [ofs, size] = texpair.second;
     std::unique_ptr<Texture> data = std::move(texpair.first);
 
@@ -198,9 +198,9 @@ void readTEX1(BMDOutputContext &ctx) {
   }
 
   for (int j = 0; j < ctx.mdl.getMaterials().size(); ++j) {
-    auto &mat = ctx.mdl.getMaterial(j).get();
+    auto& mat = ctx.mdl.getMaterial(j).get();
     for (int k = 0; k < mat.samplers.size(); ++k) {
-      auto &samp = mat.samplers[k];
+      auto& samp = mat.samplers[k];
       if (samp->mTexture.empty()) {
         printf("Material %s: Sampler %u is invalid.\n", mat.getName().c_str(),
                (u32)i);
@@ -217,14 +217,14 @@ struct TEX1Node final : public oishii::v2::Node {
   }
 
   struct TexNames : public oishii::v2::Node {
-    TexNames(const Model &mdl, const CollectionAccessor col)
+    TexNames(const Model& mdl, const CollectionAccessor col)
         : mMdl(mdl), mCol(col) {
       mId = "TexNames";
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 4;
     }
 
-    Result write(oishii::v2::Writer &writer) const noexcept {
+    Result write(oishii::v2::Writer& writer) const noexcept {
       std::vector<std::string> names;
 
       for (int i = 0; i < mMdl.mTexCache.size(); ++i)
@@ -235,7 +235,7 @@ struct TEX1Node final : public oishii::v2::Node {
       return {};
     }
 
-    const Model &mMdl;
+    const Model& mMdl;
     const CollectionAccessor mCol;
   };
 
@@ -247,26 +247,26 @@ struct TEX1Node final : public oishii::v2::Node {
     }
 
     struct TexHeaderEntryLink : public oishii::v2::Node {
-      TexHeaderEntryLink(const Tex &_tex, u32 id, u32 _btiId)
+      TexHeaderEntryLink(const Tex& _tex, u32 id, u32 _btiId)
           : tex(_tex), btiId(_btiId) {
         mId = std::to_string(id);
         getLinkingRestriction().setLeaf();
         getLinkingRestriction().alignment = 4;
       }
-      Result write(oishii::v2::Writer &writer) const noexcept {
+      Result write(oishii::v2::Writer& writer) const noexcept {
         tex.write(writer);
         writer.writeLink<s32>(*this, "TEX1::" + std::to_string(btiId));
         return {};
       }
-      const Tex &tex;
+      const Tex& tex;
       u32 btiId;
     };
 
-    Result write(oishii::v2::Writer &writer) const noexcept { return {}; }
+    Result write(oishii::v2::Writer& writer) const noexcept { return {}; }
 
-    Result gatherChildren(NodeDelegate &d) const noexcept override {
+    Result gatherChildren(NodeDelegate& d) const noexcept override {
       u32 id = 0;
-      for (auto &tex : mMdl.get().mTexCache)
+      for (auto& tex : mMdl.get().mTexCache)
         d.addNode(std::make_unique<TexHeaderEntryLink>(tex, id++, tex.btiId));
       return {};
     }
@@ -275,15 +275,15 @@ struct TEX1Node final : public oishii::v2::Node {
     const CollectionAccessor mCol;
   };
   struct TexEntry : public oishii::v2::Node {
-    TexEntry(const Model &mdl, const CollectionAccessor col, u32 texIdx)
+    TexEntry(const Model& mdl, const CollectionAccessor col, u32 texIdx)
         : mMdl(mdl), mCol(col), mIdx(texIdx) {
       mId = std::to_string(texIdx);
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 32;
     }
 
-    Result write(oishii::v2::Writer &writer) const noexcept {
-      const auto &tex = mCol.getTexture(mIdx).get();
+    Result write(oishii::v2::Writer& writer) const noexcept {
+      const auto& tex = mCol.getTexture(mIdx).get();
       const auto before = writer.tell();
 
       writer.seek(tex.mData.size() - 1);
@@ -298,11 +298,11 @@ struct TEX1Node final : public oishii::v2::Node {
       return {};
     }
 
-    const Model &mMdl;
+    const Model& mMdl;
     const CollectionAccessor mCol;
     const u32 mIdx;
   };
-  Result write(oishii::v2::Writer &writer) const noexcept override {
+  Result write(oishii::v2::Writer& writer) const noexcept override {
     writer.write<u32, oishii::EndianSelect::Big>('TEX1');
     writer.writeLink<s32>({*this}, {*this, oishii::v2::Hook::EndOfChildren});
 
@@ -317,7 +317,7 @@ struct TEX1Node final : public oishii::v2::Node {
     return eResult::Success;
   }
 
-  Result gatherChildren(NodeDelegate &d) const noexcept override {
+  Result gatherChildren(NodeDelegate& d) const noexcept override {
 
     d.addNode(std::make_unique<TexHeaders>(mModel, mCol));
 
@@ -334,7 +334,7 @@ private:
   const CollectionAccessor mCol;
 };
 
-std::unique_ptr<oishii::v2::Node> makeTEX1Node(BMDExportContext &ctx) {
+std::unique_ptr<oishii::v2::Node> makeTEX1Node(BMDExportContext& ctx) {
   return std::make_unique<TEX1Node>(ctx.mdl, ctx.col);
 }
 

@@ -4,8 +4,8 @@ namespace riistudio::j3d {
 
 using namespace libcube;
 
-void readVTX1(BMDOutputContext &ctx) {
-  auto &reader = ctx.reader;
+void readVTX1(BMDOutputContext& ctx) {
+  auto& reader = ctx.reader;
   if (!enterSection(ctx, 'VTX1'))
     return;
 
@@ -36,7 +36,7 @@ void readVTX1(BMDOutputContext &ctx) {
 
     auto estride = 0;
     // FIXME: type punning
-    void *buf = nullptr;
+    void* buf = nullptr;
 
     VBufferKind bufkind = VBufferKind::undefined;
 
@@ -67,7 +67,7 @@ void readVTX1(BMDOutputContext &ctx) {
       break;
     case gx::VertexBufferAttribute::Color0:
     case gx::VertexBufferAttribute::Color1: {
-      auto &clr =
+      auto& clr =
           ctx.mdl.get().mBufs.color[static_cast<size_t>(type) -
                                     static_cast<size_t>(
                                         gx::VertexBufferAttribute::Color0)];
@@ -104,7 +104,7 @@ void readVTX1(BMDOutputContext &ctx) {
     case gx::VertexBufferAttribute::TexCoord5:
     case gx::VertexBufferAttribute::TexCoord6:
     case gx::VertexBufferAttribute::TexCoord7: {
-      auto &uv =
+      auto& uv =
           ctx.mdl.get().mBufs.uv[static_cast<size_t>(type) -
                                  static_cast<size_t>(
                                      gx::VertexBufferAttribute::TexCoord0)];
@@ -176,7 +176,7 @@ void readVTX1(BMDOutputContext &ctx) {
 
       switch (bufkind) {
       case VBufferKind::position: {
-        auto pos = reinterpret_cast<decltype(ctx.mdl.get().mBufs.pos) *>(buf);
+        auto pos = reinterpret_cast<decltype(ctx.mdl.get().mBufs.pos)*>(buf);
 
         pos->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i)
@@ -184,7 +184,7 @@ void readVTX1(BMDOutputContext &ctx) {
         break;
       }
       case VBufferKind::normal: {
-        auto nrm = reinterpret_cast<decltype(ctx.mdl.get().mBufs.norm) *>(buf);
+        auto nrm = reinterpret_cast<decltype(ctx.mdl.get().mBufs.norm)*>(buf);
 
         nrm->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i)
@@ -193,7 +193,7 @@ void readVTX1(BMDOutputContext &ctx) {
       }
       case VBufferKind::color: {
         auto clr =
-            reinterpret_cast<decltype(ctx.mdl.get().mBufs.color)::value_type *>(
+            reinterpret_cast<decltype(ctx.mdl.get().mBufs.color)::value_type*>(
                 buf);
 
         clr->mData.resize(ensize);
@@ -203,7 +203,7 @@ void readVTX1(BMDOutputContext &ctx) {
       }
       case VBufferKind::textureCoordinate: {
         auto uv =
-            reinterpret_cast<decltype(ctx.mdl.get().mBufs.uv)::value_type *>(
+            reinterpret_cast<decltype(ctx.mdl.get().mBufs.uv)::value_type*>(
                 buf);
 
         uv->mData.resize(ensize);
@@ -216,14 +216,14 @@ void readVTX1(BMDOutputContext &ctx) {
   }
 }
 struct FormatDecl : public oishii::v2::Node {
-  FormatDecl(Model *m) : mdl(m) { mId = "Format"; }
+  FormatDecl(Model* m) : mdl(m) { mId = "Format"; }
   struct Entry {
     gx::VertexBufferAttribute attrib;
     u32 cnt = 1;
     u32 data = 0;
     u8 shift = 0;
 
-    void write(oishii::v2::Writer &writer) {
+    void write(oishii::v2::Writer& writer) {
       writer.write<u32>(static_cast<u32>(attrib));
       writer.write<u32>(static_cast<u32>(cnt));
       writer.write<u32>(static_cast<u32>(data));
@@ -233,10 +233,10 @@ struct FormatDecl : public oishii::v2::Node {
     }
   };
 
-  Result write(oishii::v2::Writer &writer) const noexcept {
+  Result write(oishii::v2::Writer& writer) const noexcept {
     // Positions
     if (!mdl->mBufs.pos.mData.empty()) {
-      const auto &q = mdl->mBufs.pos.mQuant;
+      const auto& q = mdl->mBufs.pos.mQuant;
       Entry{gx::VertexBufferAttribute::Position,
             static_cast<u32>(q.comp.position), static_cast<u32>(q.type.generic),
             q.bad_divisor}
@@ -244,7 +244,7 @@ struct FormatDecl : public oishii::v2::Node {
     }
     // Normals
     if (!mdl->mBufs.norm.mData.empty()) {
-      const auto &q = mdl->mBufs.norm.mQuant;
+      const auto& q = mdl->mBufs.norm.mQuant;
       Entry{gx::VertexBufferAttribute::Normal, static_cast<u32>(q.comp.normal),
             static_cast<u32>(q.type.generic), q.bad_divisor}
           .write(writer);
@@ -252,9 +252,9 @@ struct FormatDecl : public oishii::v2::Node {
     // Colors
     {
       int i = 0;
-      for (const auto &buf : mdl->mBufs.color) {
+      for (const auto& buf : mdl->mBufs.color) {
         if (!buf.mData.empty()) {
-          const auto &q = buf.mQuant;
+          const auto& q = buf.mQuant;
           Entry{gx::VertexBufferAttribute(
                     (int)gx::VertexBufferAttribute::Color0 + i),
                 static_cast<u32>(q.comp.color), static_cast<u32>(q.type.color),
@@ -267,9 +267,9 @@ struct FormatDecl : public oishii::v2::Node {
     // UVs
     {
       int i = 0;
-      for (const auto &buf : mdl->mBufs.uv) {
+      for (const auto& buf : mdl->mBufs.uv) {
         if (!buf.mData.empty()) {
-          const auto &q = buf.mQuant;
+          const auto& q = buf.mQuant;
           Entry{gx::VertexBufferAttribute(
                     (int)gx::VertexBufferAttribute::TexCoord0 + i),
                 static_cast<u32>(q.comp.texcoord),
@@ -282,12 +282,12 @@ struct FormatDecl : public oishii::v2::Node {
     Entry{gx::VertexBufferAttribute::Terminate}.write(writer);
     return {};
   }
-  Model *mdl;
+  Model* mdl;
 };
 
 struct VTX1Node {
-  static const char *getNameId() { return "VTX1"; }
-  virtual const oishii::v2::Node &getSelf() const = 0;
+  static const char* getNameId() { return "VTX1"; }
+  virtual const oishii::v2::Node& getSelf() const = 0;
 
   int computeNumOfs() const {
     int numOfs = 0;
@@ -306,7 +306,7 @@ struct VTX1Node {
     return numOfs;
   }
 
-  void write(oishii::v2::Writer &writer) const {
+  void write(oishii::v2::Writer& writer) const {
     if (!mdl)
       return;
 
@@ -325,7 +325,7 @@ struct VTX1Node {
           oishii::v2::Link{oishii::v2::Hook(getSelf()),
                            oishii::v2::Hook("Buf" + std::to_string(i++))});
     };
-    auto writeOptBufLink = [&](const auto &b) {
+    auto writeOptBufLink = [&](const auto& b) {
       if (b.mData.empty())
         writer.write<s32>(0);
       else
@@ -336,36 +336,36 @@ struct VTX1Node {
     writeOptBufLink(mdl->mBufs.norm);
     writer.write<s32>(0); // NBT
 
-    for (const auto &c : mdl->mBufs.color)
+    for (const auto& c : mdl->mBufs.color)
       writeOptBufLink(c);
 
-    for (const auto &u : mdl->mBufs.uv)
+    for (const auto& u : mdl->mBufs.uv)
       writeOptBufLink(u);
   }
 
   template <typename T> struct VertexAttribBuf : public oishii::v2::Node {
-    VertexAttribBuf(const Model &m, const std::string &id, const T &data)
+    VertexAttribBuf(const Model& m, const std::string& id, const T& data)
         : Node(id), mdl(m), mData(data) {
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 32;
     }
 
-    Result write(oishii::v2::Writer &writer) const noexcept {
+    Result write(oishii::v2::Writer& writer) const noexcept {
       mData.writeData(writer);
       return eResult::Success;
     }
 
-    const Model &mdl;
-    const T &mData;
+    const Model& mdl;
+    const T& mData;
   };
 
-  void gatherChildren(oishii::v2::Node::NodeDelegate &ctx) const {
+  void gatherChildren(oishii::v2::Node::NodeDelegate& ctx) const {
 
     ctx.addNode(std::make_unique<FormatDecl>(mdl));
 
     int i = 0;
 
-    auto push_buf = [&](auto &buf) {
+    auto push_buf = [&](auto& buf) {
       ctx.addNode(std::make_unique<VertexAttribBuf<decltype(buf)>>(
           *mdl, "Buf" + std::to_string(i++), buf));
     };
@@ -379,21 +379,21 @@ struct VTX1Node {
       push_buf(mdl->mBufs.norm);
 
     // Colors
-    for (auto &c : mdl->mBufs.color)
+    for (auto& c : mdl->mBufs.color)
       if (!c.mData.empty())
         push_buf(c);
 
     // UV
-    for (auto &c : mdl->mBufs.uv)
+    for (auto& c : mdl->mBufs.uv)
       if (!c.mData.empty())
         push_buf(c);
   }
 
-  VTX1Node(BMDExportContext &ctx) : mdl(&ctx.mdl.get()) {}
-  Model *mdl = nullptr;
+  VTX1Node(BMDExportContext& ctx) : mdl(&ctx.mdl.get()) {}
+  Model* mdl = nullptr;
 };
 
-std::unique_ptr<oishii::v2::Node> makeVTX1Node(BMDExportContext &ctx) {
+std::unique_ptr<oishii::v2::Node> makeVTX1Node(BMDExportContext& ctx) {
   return std::make_unique<LinkNode<VTX1Node>>(ctx);
 }
 

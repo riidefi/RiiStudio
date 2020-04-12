@@ -7,7 +7,7 @@
 namespace libcube {
 
 std::pair<std::string, std::string> IGCMaterial::generateShaders() const {
-  GXProgram program(GXMaterial{0, getName(), *const_cast<IGCMaterial *>(this)});
+  GXProgram program(GXMaterial{0, getName(), *const_cast<IGCMaterial*>(this)});
   return program.generateShaders();
 }
 
@@ -43,7 +43,7 @@ template <typename T> inline glm::vec4 colorConvert(T clr) {
   return {f32c.r, f32c.g, f32c.b, f32c.a};
 }
 
-void calcTexMtx_Basic(glm::mat4 &dst, float scaleS, float scaleT,
+void calcTexMtx_Basic(glm::mat4& dst, float scaleS, float scaleT,
                       float rotation, float translationS, float translationT,
                       float centerS, float centerT, float centerQ) {
   const auto theta = rotation * 3.141592f;
@@ -63,7 +63,7 @@ void calcTexMtx_Basic(glm::mat4 &dst, float scaleS, float scaleT,
       translationT + centerT + -scaleT * (-sinR * centerS + cosR * centerT);
 }
 
-void calcTexMtx_Maya(glm::mat4 &dst, float scaleS, float scaleT, float rotation,
+void calcTexMtx_Maya(glm::mat4& dst, float scaleS, float scaleT, float rotation,
                      float translationS, float translationT) {
   const auto theta = rotation * 3.141592f;
   const auto sinR = sin(theta);
@@ -79,7 +79,7 @@ void calcTexMtx_Maya(glm::mat4 &dst, float scaleS, float scaleT, float rotation,
   dst[1][1] = scaleT * cosR;
   dst[2][1] = scaleT * ((-0.5 * cosR) + (0.5 * sinR - 0.5) + translationT) + 1;
 }
-void computeNormalMatrix(glm::mat4 &dst, const glm::mat4 &m,
+void computeNormalMatrix(glm::mat4& dst, const glm::mat4& m,
                          bool isUniformScale) {
   if (dst != m)
     dst = m;
@@ -94,7 +94,7 @@ void computeNormalMatrix(glm::mat4 &dst, const glm::mat4 &m,
   }
 }
 
-void texEnvMtx(glm::mat4 &dst, float scaleS, float scaleT, float transS,
+void texEnvMtx(glm::mat4& dst, float scaleS, float scaleT, float transS,
                float transT) {
   dst[0][0] = scaleS;
   dst[1][0] = 0.0;
@@ -117,14 +117,14 @@ void texEnvMtx(glm::mat4 &dst, float scaleS, float scaleT, float transS,
   dst[3][3] = 9999.0;
 }
 
-void buildEnvMtxOld(glm::mat4 &dst, float flipYScale) {
+void buildEnvMtxOld(glm::mat4& dst, float flipYScale) {
   // Map from -1...1 range to 0...1 range.
   texEnvMtx(dst, 0.5, 0.5 * flipYScale, 0.5, 0.5);
 
   dst[2][2] = 1.0;
   dst[3][2] = 0.0;
 }
-void buildEnvMtx(glm::mat4 &dst, float flipYScale) {
+void buildEnvMtx(glm::mat4& dst, float flipYScale) {
   // Map from -1...1 range to 0...1 range.
   texEnvMtx(dst, 0.5, 0.5 * flipYScale, 0.5, 0.5);
 
@@ -134,8 +134,8 @@ void buildEnvMtx(glm::mat4 &dst, float flipYScale) {
   std::swap(dst[3][2], dst[2][2]);
 }
 
-glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4 &mdl,
-                                               const glm::mat4 &mvp) {
+glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
+                                               const glm::mat4& mvp) {
   assert(transformModel != CommonTransformModel::Max &&
          transformModel != CommonTransformModel::XSI);
 
@@ -172,10 +172,10 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4 &mdl,
     break;
   }
 
-  auto J3DGetTextureMtxOld = [](glm::mat4 &dst, const glm::mat4 &srt) {
+  auto J3DGetTextureMtxOld = [](glm::mat4& dst, const glm::mat4& srt) {
     dst = srt;
   };
-  auto J3DGetTextureMtx = [](glm::mat4 &dst, const glm::mat4 &srt) {
+  auto J3DGetTextureMtx = [](glm::mat4& dst, const glm::mat4& srt) {
     dst = srt;
 
     // Move translation to third column.
@@ -289,9 +289,9 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4 &mdl,
   return dst;
 }
 void IGCMaterial::generateUniforms(
-    DelegatedUBOBuilder &builder, const glm::mat4 &M, const glm::mat4 &V,
-    const glm::mat4 &P, u32 shaderId,
-    const std::map<std::string, u32> &texIdMap) const {
+    DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V,
+    const glm::mat4& P, u32 shaderId,
+    const std::map<std::string, u32>& texIdMap) const {
   glUniformBlockBinding(shaderId,
                         glGetUniformBlockIndex(shaderId, "ub_SceneParams"), 0);
   glUniformBlockBinding(
@@ -316,7 +316,7 @@ void IGCMaterial::generateUniforms(
 
   UniformMaterialParams tmp{};
 
-  const auto &data = getMaterialData();
+  const auto& data = getMaterialData();
 
   for (int i = 0; i < 2; ++i) {
     // TODO: Broken
@@ -333,7 +333,7 @@ void IGCMaterial::generateUniforms(
     tmp.TexMtx[i] = glm::transpose(data.texMatrices[i]->compute(M, M * V * P));
   }
   for (int i = 0; i < data.samplers.size(); ++i) {
-    const auto &texData = getTexture(data.samplers[i]->mTexture);
+    const auto& texData = getTexture(data.samplers[i]->mTexture);
 
     tmp.TexParams[i] = glm::vec4{texData.getWidth(), texData.getHeight(), 0,
                                  data.samplers[i]->mLodBias};
@@ -342,7 +342,7 @@ void IGCMaterial::generateUniforms(
     tmp.IndTexMtx[i] = data.mIndMatrices[i].compute();
   }
   PacketParams pack{};
-  for (auto &p : pack.posMtx)
+  for (auto& p : pack.posMtx)
     p = glm::transpose(glm::mat4{1.0f});
 
   builder.tpush(0, scene);
@@ -357,8 +357,8 @@ void IGCMaterial::generateUniforms(
 }
 
 void IGCMaterial::genSamplUniforms(
-    u32 shaderId, const std::map<std::string, u32> &texIdMap) const {
-  const auto &data = getMaterialData();
+    u32 shaderId, const std::map<std::string, u32>& texIdMap) const {
+  const auto& data = getMaterialData();
   for (int i = 0; i < data.samplers.size(); ++i) {
     glActiveTexture(GL_TEXTURE0 + i);
     if (texIdMap.find(data.samplers[i]->mTexture) == texIdMap.end())
@@ -403,8 +403,8 @@ void IGCMaterial::genSamplUniforms(
                     gxTileToGl(data.samplers[i]->mWrapV));
   }
 }
-void IGCMaterial::setMegaState(MegaState &state) const {
-  GXMaterial mat{0, getName(), *const_cast<IGCMaterial *>(this)};
+void IGCMaterial::setMegaState(MegaState& state) const {
+  GXMaterial mat{0, getName(), *const_cast<IGCMaterial*>(this)};
 
   translateGfxMegaState(state, mat);
 }

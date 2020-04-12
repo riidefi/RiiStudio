@@ -16,25 +16,25 @@
 
 namespace riistudio::pik {
 
-inline bool ends_with(const std::string &value, const std::string &ending) {
+inline bool ends_with(const std::string& value, const std::string& ending) {
   return ending.size() <= value.size() &&
          std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
 class DMD {
 public:
-  std::string canRead(const std::string &file,
-                      oishii::BinaryReader &reader) const {
+  std::string canRead(const std::string& file,
+                      oishii::BinaryReader& reader) const {
     return ends_with(file, "dmd") || ends_with(file, "mod")
                ? typeid(PikminCollection).name()
                : "";
   }
-  bool canWrite(kpi::IDocumentNode &node) const {
-    return dynamic_cast<PikminCollection *>(&node) != nullptr;
+  bool canWrite(kpi::IDocumentNode& node) const {
+    return dynamic_cast<PikminCollection*>(&node) != nullptr;
   }
 
   // Read a DMD file
-  void readModelAscii(PikminModelAccessor model, Parser &parser) const {
+  void readModelAscii(PikminModelAccessor model, Parser& parser) const {
     while (!parser.atEnd()) {
       const auto block_name = parser.readToken();
       switch (crc32(block_name)) {
@@ -68,15 +68,15 @@ public:
   }
   // Read a MOD file
   void readModelBinary(PikminModelAccessor model,
-                       oishii::BinaryReader &reader) const {
+                       oishii::BinaryReader& reader) const {
     model.get().nJoints = 3;
   }
 
   // Write MOD/DMD file
-  void write(kpi::IDocumentNode &node, oishii::v2::Writer &writer) const {}
+  void write(kpi::IDocumentNode& node, oishii::v2::Writer& writer) const {}
 
-  void read(kpi::IDocumentNode &node, oishii::BinaryReader &reader) const {
-    assert(dynamic_cast<PikminCollection *>(&node) != nullptr);
+  void read(kpi::IDocumentNode& node, oishii::BinaryReader& reader) const {
+    assert(dynamic_cast<PikminCollection*>(&node) != nullptr);
     PikminCollectionAccessor collection(&node);
 
     if (ends_with(reader.getFile(), "dmd")) {
@@ -94,7 +94,7 @@ public:
   }
 };
 
-void InstallDMD(kpi::ApplicationPlugins &installer) {
+void InstallDMD(kpi::ApplicationPlugins& installer) {
   installer.addDeserializer<DMD>();
   installer.addSerializer<DMD>();
 }

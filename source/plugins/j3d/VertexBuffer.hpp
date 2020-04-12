@@ -19,7 +19,7 @@ struct VQuantization {
   VQuantization(libcube::gx::VertexComponentCount c,
                 libcube::gx::VertexBufferType t, u8 d, u8 bad_d, u8 s)
       : comp(c), type(t), divisor(d), bad_divisor(bad_d), stride(s) {}
-  VQuantization(const VQuantization &other)
+  VQuantization(const VQuantization& other)
       : comp(other.comp), type(other.type), divisor(other.divisor),
         stride(other.stride) {}
   VQuantization() = default;
@@ -57,8 +57,8 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
   }
 
   template <int n, typename T, glm::qualifier q>
-  void readBufferEntryGeneric(oishii::BinaryReader &reader,
-                              glm::vec<n, T, q> &result) {
+  void readBufferEntryGeneric(oishii::BinaryReader& reader,
+                              glm::vec<n, T, q>& result) {
     for (int i = 0; i < ComputeComponentCount(); ++i) {
       switch (mQuant.type.generic) {
       case libcube::gx::VertexBufferType::Generic::u8:
@@ -81,8 +81,8 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
       }
     }
   }
-  void readBufferEntryColor(oishii::BinaryReader &reader,
-                            libcube::gx::Color &result) {
+  void readBufferEntryColor(oishii::BinaryReader& reader,
+                            libcube::gx::Color& result) {
     switch (mQuant.type.color) {
     case libcube::gx::VertexBufferType::Color::rgb565: {
       const u16 c = reader.read<u16>();
@@ -130,8 +130,8 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
   }
 
   template <int n, typename T, glm::qualifier q>
-  void writeBufferEntryGeneric(oishii::v2::Writer &writer,
-                               const glm::vec<n, T, q> &v) const {
+  void writeBufferEntryGeneric(oishii::v2::Writer& writer,
+                               const glm::vec<n, T, q>& v) const {
     const auto cnt = ComputeComponentCount();
     for (int i = 0; i < cnt; ++i) {
       switch (mQuant.type.generic) {
@@ -155,8 +155,8 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
       }
     }
   }
-  void writeBufferEntryColor(oishii::v2::Writer &writer,
-                             const libcube::gx::Color &c) const {
+  void writeBufferEntryColor(oishii::v2::Writer& writer,
+                             const libcube::gx::Color& c) const {
     switch (mQuant.type.color) {
     case libcube::gx::VertexBufferType::Color::rgb565:
       writer.write<u16>(((c.r & 0xf8) << 8) | ((c.g & 0xfc) << 3) |
@@ -199,34 +199,34 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
 
   // For dead cases
   template <int n, typename T, glm::qualifier q>
-  void writeBufferEntryColor(oishii::v2::Writer &writer,
-                             const glm::vec<n, T, q> &v) const {
+  void writeBufferEntryColor(oishii::v2::Writer& writer,
+                             const glm::vec<n, T, q>& v) const {
     assert(!"Invalid kind/type template match!");
   }
-  void writeBufferEntryGeneric(oishii::v2::Writer &writer,
-                               const libcube::gx::Color &c) const {
+  void writeBufferEntryGeneric(oishii::v2::Writer& writer,
+                               const libcube::gx::Color& c) const {
     assert(!"Invalid kind/type template match!");
   }
 
-  void writeData(oishii::v2::Writer &writer) const {
+  void writeData(oishii::v2::Writer& writer) const {
     switch (kind) {
     case VBufferKind::position:
       if (mQuant.comp.position ==
           libcube::gx::VertexComponentCount::Position::xy)
         throw "Buffer: XY Pos Component count.";
 
-      for (const auto &d : mData)
+      for (const auto& d : mData)
         writeBufferEntryGeneric(writer, d);
       break;
     case VBufferKind::normal:
       if (mQuant.comp.normal != libcube::gx::VertexComponentCount::Normal::xyz)
         throw "Buffer: NBT Vectors.";
 
-      for (const auto &d : mData)
+      for (const auto& d : mData)
         writeBufferEntryGeneric(writer, d);
       break;
     case VBufferKind::color:
-      for (const auto &d : mData)
+      for (const auto& d : mData)
         writeBufferEntryColor(writer, d);
       break;
     case VBufferKind::textureCoordinate:
@@ -234,7 +234,7 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
           libcube::gx::VertexComponentCount::TextureCoordinate::s)
         throw "Buffer: Single component texcoord vectors.";
 
-      for (const auto &d : mData)
+      for (const auto& d : mData)
         writeBufferEntryGeneric(writer, d);
       break;
     }

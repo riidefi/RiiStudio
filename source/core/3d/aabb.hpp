@@ -7,7 +7,7 @@ namespace riistudio::core {
 //! Axis-aligned bounding box
 //!
 struct AABB {
-  inline void expandBound(const AABB &other) {
+  inline void expandBound(const AABB& other) {
     if (other.m_minBounds.x < m_minBounds.x)
       m_minBounds.x = other.m_minBounds.x;
     if (other.m_minBounds.y < m_minBounds.y)

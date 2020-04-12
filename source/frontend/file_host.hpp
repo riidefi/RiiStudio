@@ -16,7 +16,7 @@ struct FileData {
   std::string mPath;
 
   FileData(std::unique_ptr<uint8_t[]> data, std::size_t len,
-           const std::string &path)
+           const std::string& path)
       : mData(std::move(data)), mLen(len), mPath(path) {}
 };
 
@@ -32,13 +32,13 @@ public:
 
   // Call from UI
   void openFile(OpenFilePolicy policy = OpenFilePolicy::NewEditor);
-  void openFile(const std::string &path,
+  void openFile(const std::string& path,
                 OpenFilePolicy policy = OpenFilePolicy::NewEditor);
 
   // Call from dropper
-  void drop(const std::vector<std::string> &paths);
+  void drop(const std::vector<std::string>& paths);
   void dropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len,
-                  const std::string &name);
+                  const std::string& name);
 
   // Drag and drop..
   std::queue<std::string> mDropQueue;

@@ -164,7 +164,7 @@ inline std::size_t computeComponentCount(gx::VertexBufferKind kind,
   }
 }
 
-inline f32 readGenericComponentSingle(oishii::BinaryReader &reader,
+inline f32 readGenericComponentSingle(oishii::BinaryReader& reader,
                                       gx::VertexBufferType::Generic type,
                                       u32 divisor = 0) {
   switch (type) {
@@ -186,7 +186,7 @@ inline f32 readGenericComponentSingle(oishii::BinaryReader &reader,
     return 0.0f;
   }
 }
-inline gx::Color readColorComponents(oishii::BinaryReader &reader,
+inline gx::Color readColorComponents(oishii::BinaryReader& reader,
                                      gx::VertexBufferType::Color type) {
   gx::Color result; // TODO: Default color
 
@@ -237,26 +237,26 @@ inline gx::Color readColorComponents(oishii::BinaryReader &reader,
 }
 
 template <typename T>
-inline T readGenericComponents(oishii::BinaryReader &reader,
+inline T readGenericComponents(oishii::BinaryReader& reader,
                                gx::VertexBufferType::Generic type,
                                std::size_t true_count, u32 divisor = 0) {
   assert(true_count <= 3 && true_count >= 1);
   T out{};
 
   for (std::size_t i = 0; i < true_count; ++i) {
-    *(((f32 *)&out.x) + i) = readGenericComponentSingle(reader, type, divisor);
+    *(((f32*)&out.x) + i) = readGenericComponentSingle(reader, type, divisor);
   }
 
   return out;
 }
 
 template <typename T>
-inline T readComponents(oishii::BinaryReader &reader, gx::VertexBufferType type,
+inline T readComponents(oishii::BinaryReader& reader, gx::VertexBufferType type,
                         std::size_t true_count, u32 divisor = 0) {
   return readGenericComponents<T>(reader, type.generic, true_count, divisor);
 }
 template <>
-inline gx::Color readComponents<gx::Color>(oishii::BinaryReader &reader,
+inline gx::Color readComponents<gx::Color>(oishii::BinaryReader& reader,
                                            gx::VertexBufferType type,
                                            std::size_t true_count,
                                            u32 divisor) {

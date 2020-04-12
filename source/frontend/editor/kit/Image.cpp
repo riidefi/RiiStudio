@@ -14,7 +14,7 @@ ImagePreview::~ImagePreview() {
   }
 }
 
-void ImagePreview::setFromImage(const lib3d::Texture &tex) {
+void ImagePreview::setFromImage(const lib3d::Texture& tex) {
   width = tex.getWidth();
   height = tex.getHeight();
   mNumMipMaps = tex.getMipmapCount();
@@ -51,7 +51,7 @@ void ImagePreview::draw(float wd, float ht) {
 
   u32 w = width;
   u32 h = height;
-  const u8 *data = mDecodeBuf.data();
+  const u8* data = mDecodeBuf.data();
 
   if (mLod > 0) {
     for (int i = 0; i < mLod; ++i) {
@@ -64,7 +64,7 @@ void ImagePreview::draw(float wd, float ht) {
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                data);
   ImGui::Image(
-      (void *)(intptr_t)mGpuTexId,
+      (void*)(intptr_t)mGpuTexId,
       ImVec2((wd > 0 ? wd : width) * mScale, (ht > 0 ? ht : height) * mScale));
 }
 } // namespace riistudio::frontend

@@ -24,7 +24,7 @@ struct Quantization {
   u8 divisor;
   u8 stride;
 
-  bool operator==(const Quantization &rhs) const {
+  bool operator==(const Quantization& rhs) const {
     // TODO: Better union comparison
     return mComp.normal == rhs.mComp.normal &&
            mType.generic == rhs.mType.generic && divisor == rhs.divisor &&
@@ -41,7 +41,7 @@ struct GenericBuffer {
   Quantization mQuantize;
   std::vector<T> mEntries;
 
-  bool operator==(const GenericBuffer &rhs) const {
+  bool operator==(const GenericBuffer& rhs) const {
     return mName == rhs.mName && mId == rhs.mId && mQuantize == rhs.mQuantize &&
            mEntries == rhs.mEntries;
   }
@@ -62,8 +62,8 @@ class TextureCoordinateBuffer
 struct G3DModel : public lib3d::Model {
   virtual ~G3DModel() = default;
   // Shallow comparison
-  bool operator==(const G3DModel &rhs) const { return true; }
-  const G3DModel &operator=(const G3DModel &rhs) { return *this; }
+  bool operator==(const G3DModel& rhs) const { return true; }
+  const G3DModel& operator=(const G3DModel& rhs) { return *this; }
 
   ScalingRule mScalingRule;
   TextureMatrixMode mTexMtxMode;

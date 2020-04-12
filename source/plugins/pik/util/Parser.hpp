@@ -10,7 +10,7 @@
 
 class Parser {
 public:
-  Parser(std::stringstream &stream) {
+  Parser(std::stringstream& stream) {
     std::string line;
     while (std::getline(stream, line)) {
       std::istringstream iss(line);
@@ -29,13 +29,13 @@ public:
   }
   inline std::string getToken() const { return m_tokens[m_index]; }
   inline bool atEnd() const { return m_index == m_tokens.size(); }
-  inline bool atIs(const std::string &checkFor) const {
+  inline bool atIs(const std::string& checkFor) const {
     return m_tokens[m_index] == checkFor;
   }
 
-  inline void addToken(std::string &toAdd) { m_tokens.push_back(toAdd); }
-  inline void setTokens(std::vector<std::string> &setTo) { m_tokens = setTo; }
-  inline const std::vector<std::string> &getTokens() const { return m_tokens; }
+  inline void addToken(std::string& toAdd) { m_tokens.push_back(toAdd); }
+  inline void setTokens(std::vector<std::string>& setTo) { m_tokens = setTo; }
+  inline const std::vector<std::string>& getTokens() const { return m_tokens; }
   inline std::size_t getIndex() const { return m_index; }
 
 private:

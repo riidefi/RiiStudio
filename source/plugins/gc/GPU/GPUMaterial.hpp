@@ -266,7 +266,7 @@ union GPUTevReg {
     return {(s16)red.Value(), (s16)green.Value(), (s16)blue.Value(),
             (s16)alpha.Value()};
   }
-  GPUTevReg(const gx::Color &color, RegType type) {
+  GPUTevReg(const gx::Color& color, RegType type) {
     red = color.r;
     green = color.g;
     blue = color.b;

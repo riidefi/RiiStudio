@@ -24,13 +24,13 @@ class RichNameManager {
     Component<false> icon;
     Component<true> name;
 
-    virtual bool isInDomain(const IDocumentNode *node) const = 0;
+    virtual bool isInDomain(const IDocumentNode* node) const = 0;
   };
 
   template <typename T> struct EntryImpl final : public IEntry {
     // TODO: This solution cannot handle name overrides.
-    bool isInDomain(const IDocumentNode *node) const override {
-      return dynamic_cast<const T *>(node) != nullptr;
+    bool isInDomain(const IDocumentNode* node) const override {
+      return dynamic_cast<const T*>(node) != nullptr;
     }
     EntryImpl(const std::string_view icon_, const std::string_view name_) {
       icon.sg = icon_;
@@ -41,10 +41,10 @@ class RichNameManager {
 public:
   virtual ~RichNameManager() = default;
 
-  static inline RichNameManager &getInstance() { return sInstance; }
+  static inline RichNameManager& getInstance() { return sInstance; }
 
   template <typename T>
-  inline RichNameManager &addRichName(const std::string_view icon,
+  inline RichNameManager& addRichName(const std::string_view icon,
                                       const std::string_view name,
                                       const std::string_view icon_pl = "",
                                       const std::string_view name_pl = "") {
@@ -73,22 +73,22 @@ public:
     }
 
   private:
-    const IEntry *entry = nullptr;
+    const IEntry* entry = nullptr;
 
   public:
-    EntryDelegate(const IEntry *_entry) : entry(_entry) {}
+    EntryDelegate(const IEntry* _entry) : entry(_entry) {}
   };
 
-  inline EntryDelegate getRich(const IDocumentNode *node) const {
+  inline EntryDelegate getRich(const IDocumentNode* node) const {
     EntryDelegate delegate{getEntry(node)};
     return delegate;
   }
 
 private:
-  inline const IEntry *getEntry(const IDocumentNode *node) const {
+  inline const IEntry* getEntry(const IDocumentNode* node) const {
     const auto found =
         std::find_if(mEntries.begin(), mEntries.end(),
-                     [&](const auto &x) { return x->isInDomain(node); });
+                     [&](const auto& x) { return x->isInDomain(node); });
     return found == mEntries.end() ? nullptr : found->get();
   }
 

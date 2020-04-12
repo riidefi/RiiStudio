@@ -14,17 +14,17 @@ namespace libcube::gpu {
 
 class QDisplayListShaderHandler : public QDisplayListHandler {
 public:
-  QDisplayListShaderHandler(gx::Shader &shader, int numStages);
+  QDisplayListShaderHandler(gx::Shader& shader, int numStages);
   ~QDisplayListShaderHandler();
 
-  void onCommandBP(const QBPCommand &token) override;
+  void onCommandBP(const QBPCommand& token) override;
   void onStreamEnd() override;
 
-  gx::Shader &mShader;
+  gx::Shader& mShader;
   int mNumStages;
 
   struct {
-    template <typename T> inline void setReg(T &reg, const QBPCommand &cmd) {
+    template <typename T> inline void setReg(T& reg, const QBPCommand& cmd) {
       reg.hex = (reg.hex & ~mMask) | (cmd.val & mMask);
     }
 
@@ -70,7 +70,7 @@ struct GPUMaterial {
 
   u32 mMask = u32(-1); // BP mask. only valid for next command
 
-  template <typename T> inline void setReg(T &reg, const QBPCommand &cmd) {
+  template <typename T> inline void setReg(T& reg, const QBPCommand& cmd) {
     reg.hex = (reg.hex & ~mMask) | (cmd.val & mMask);
   }
 
@@ -83,21 +83,21 @@ struct GPUMaterial {
 
 class QDisplayListMaterialHandler : public QDisplayListHandler {
 public:
-  QDisplayListMaterialHandler(GCMaterialData &mat);
+  QDisplayListMaterialHandler(GCMaterialData& mat);
   ~QDisplayListMaterialHandler();
 
-  void onCommandBP(const QBPCommand &token) override;
-  void onCommandXF(const QXFCommand &token) override;
+  void onCommandBP(const QBPCommand& token) override;
+  void onCommandXF(const QXFCommand& token) override;
   void onStreamEnd() override;
 
-  GCMaterialData &mMat;
+  GCMaterialData& mMat;
   GPUMaterial mGpuMat;
 };
 
 class QDisplayListVertexSetupHandler : public QDisplayListHandler {
 public:
-  void onCommandBP(const QBPCommand &token) override;
-  void onCommandCP(const QCPCommand &token) override;
+  void onCommandBP(const QBPCommand& token) override;
+  void onCommandCP(const QCPCommand& token) override;
   void onStreamEnd() override;
 
   GPUMesh mGpuMesh;

@@ -16,25 +16,25 @@ void installDisplaySurface();
 }
 
 void Install() {
-	assert(kpi::ApplicationPlugins::getInstance());
-	kpi::ApplicationPlugins& installer = *kpi::ApplicationPlugins::getInstance();
+  assert(kpi::ApplicationPlugins::getInstance());
+  kpi::ApplicationPlugins& installer = *kpi::ApplicationPlugins::getInstance();
 
-	installer.registerParent<libcube::IBoneDelegate, riistudio::lib3d::Bone>()
-		.registerParent<libcube::IGCMaterial, riistudio::lib3d::Material>()
-		.registerParent<libcube::Texture, riistudio::lib3d::Texture>()
-		.registerParent<libcube::IndexedPolygon, riistudio::lib3d::Polygon>();
+  installer.registerParent<libcube::IBoneDelegate, riistudio::lib3d::Bone>()
+      .registerParent<libcube::IGCMaterial, riistudio::lib3d::Material>()
+      .registerParent<libcube::Texture, riistudio::lib3d::Texture>()
+      .registerParent<libcube::IndexedPolygon, riistudio::lib3d::Polygon>();
 
-	kpi::RichNameManager& rich = kpi::RichNameManager::getInstance();
-	rich.addRichName<riistudio::lib3d::Bone>(ICON_FA_BONE, "Bone")
-		.addRichName<riistudio::lib3d::Material>(ICON_FA_PAINT_BRUSH, "Material")
-		.addRichName<riistudio::lib3d::Texture>(ICON_FA_IMAGE, "Texture", ICON_FA_IMAGES)
-		.addRichName<riistudio::lib3d::Polygon>(ICON_FA_DRAW_POLYGON, "Polygon")
-		.addRichName<riistudio::lib3d::Model>(ICON_FA_CUBE, "Model", ICON_FA_CUBES)
-		.addRichName<riistudio::lib3d::Scene>(ICON_FA_SHAPES, "Scene");
+  kpi::RichNameManager& rich = kpi::RichNameManager::getInstance();
+  rich.addRichName<riistudio::lib3d::Bone>(ICON_FA_BONE, "Bone")
+      .addRichName<riistudio::lib3d::Material>(ICON_FA_PAINT_BRUSH, "Material")
+      .addRichName<riistudio::lib3d::Texture>(ICON_FA_IMAGE, "Texture",
+                                              ICON_FA_IMAGES)
+      .addRichName<riistudio::lib3d::Polygon>(ICON_FA_DRAW_POLYGON, "Polygon")
+      .addRichName<riistudio::lib3d::Model>(ICON_FA_CUBE, "Model",
+                                            ICON_FA_CUBES)
+      .addRichName<riistudio::lib3d::Scene>(ICON_FA_SHAPES, "Scene");
 
-
-
-	UI::installDisplaySurface();
+  UI::installDisplaySurface();
 }
 
 } // namespace libcube

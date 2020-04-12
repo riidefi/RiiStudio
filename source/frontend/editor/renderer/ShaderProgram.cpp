@@ -18,7 +18,7 @@ bool checkShaderErrors(u32 id) {
   return success;
 }
 
-ShaderProgram::ShaderProgram(const char *vtx, const char *frag) {
+ShaderProgram::ShaderProgram(const char* vtx, const char* frag) {
   u32 vertexShader = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vertexShader, 1, &vtx, NULL);
   glCompileShader(vertexShader);
@@ -40,7 +40,7 @@ ShaderProgram::ShaderProgram(const char *vtx, const char *frag) {
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
 }
-ShaderProgram::ShaderProgram(const std::string &vtx, const std::string &frag)
+ShaderProgram::ShaderProgram(const std::string& vtx, const std::string& frag)
     : ShaderProgram(vtx.c_str(), frag.c_str()) {}
 ShaderProgram::~ShaderProgram() {
 #ifndef RII_PLATFORM_EMSCRIPTEN

@@ -30,11 +30,11 @@ struct DictionaryNode {
     return c < mName.size() && ((mName[c] >> (id & 7)) & 1);
   }
 
-  void read(oishii::BinaryReader &reader, u32 start);
+  void read(oishii::BinaryReader& reader, u32 start);
   // void write(oishii::v2::Writer& writer, u32 start) const;
 
   DictionaryNode() = default;
-  inline DictionaryNode(oishii::BinaryReader &reader, u32 start) {
+  inline DictionaryNode(oishii::BinaryReader& reader, u32 start) {
     read(reader, start);
   }
 };
@@ -45,11 +45,11 @@ struct Dictionary {
   void calcNode(u32 id);
   void calcNodes();
 
-  void read(oishii::BinaryReader &reader);
-  void write(oishii::v2::Writer &writer);
+  void read(oishii::BinaryReader& reader);
+  void write(oishii::v2::Writer& writer);
 
   Dictionary() = default;
-  Dictionary(oishii::BinaryReader &reader) { read(reader); }
+  Dictionary(oishii::BinaryReader& reader) { read(reader); }
 };
 
 } // namespace riistudio::g3d

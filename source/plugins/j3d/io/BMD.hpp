@@ -8,6 +8,6 @@ class ApplicationPlugins;
 
 namespace riistudio::j3d {
 
-void InstallBMD(kpi::ApplicationPlugins &installer);
+void InstallBMD(kpi::ApplicationPlugins& installer);
 
 } // namespace riistudio::j3d

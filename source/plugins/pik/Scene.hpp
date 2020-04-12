@@ -7,8 +7,8 @@ namespace riistudio::pik {
 
 struct PikminCollection : public lib3d::Scene {
   // Shallow comparison
-  bool operator==(const PikminCollection &rhs) const { return true; }
-  const PikminCollection &operator=(const PikminCollection &rhs) {
+  bool operator==(const PikminCollection& rhs) const { return true; }
+  const PikminCollection& operator=(const PikminCollection& rhs) {
     return *this;
   }
 };
@@ -16,10 +16,10 @@ struct PikminCollection : public lib3d::Scene {
 struct PikminModel : public lib3d::Model {
   virtual ~PikminModel() = default;
   // Shallow comparison
-  bool operator==(const PikminModel &rhs) const {
+  bool operator==(const PikminModel& rhs) const {
     return nJoints == rhs.nJoints;
   }
-  const PikminModel &operator=(const PikminModel &rhs) { return *this; }
+  const PikminModel& operator=(const PikminModel& rhs) { return *this; }
 
   std::size_t nJoints = 0;
 };

@@ -6,6 +6,6 @@ class ApplicationPlugins;
 
 namespace riistudio::pik {
 
-void InstallDMD(kpi::ApplicationPlugins &installer);
+void InstallDMD(kpi::ApplicationPlugins& installer);
 
 } // namespace riistudio::pik

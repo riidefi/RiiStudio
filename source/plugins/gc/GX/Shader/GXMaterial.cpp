@@ -26,11 +26,11 @@ const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs{
     VertexAttributeGenDef{VertexAttribute::TexCoord6, "Tex6", GL_FLOAT, 2},
     VertexAttributeGenDef{VertexAttribute::TexCoord7, "Tex7", GL_FLOAT, 2}};
 
-std::pair<const VertexAttributeGenDef &, std::size_t>
+std::pair<const VertexAttributeGenDef&, std::size_t>
 getVertexAttribGenDef(VertexAttribute vtxAttrib) {
   const auto it =
       std::find_if(vtxAttributeGenDefs.begin(), vtxAttributeGenDefs.end(),
-                   [vtxAttrib](const VertexAttributeGenDef &def) {
+                   [vtxAttrib](const VertexAttributeGenDef& def) {
                      return def.attrib == vtxAttrib;
                    });
 
@@ -42,7 +42,7 @@ getVertexAttribGenDef(VertexAttribute vtxAttrib) {
 int getVertexAttribLocation(VertexAttribute vtxAttrib) {
   const auto it =
       std::find_if(vtxAttributeGenDefs.begin(), vtxAttributeGenDefs.end(),
-                   [vtxAttrib](const VertexAttributeGenDef &def) {
+                   [vtxAttrib](const VertexAttributeGenDef& def) {
                      return def.attrib == vtxAttrib;
                    });
 

@@ -32,7 +32,7 @@ struct GXMaterial {
   int index = -1;   //!<
   std::string name; //!< For debugging.
 
-  IGCMaterial &mat;
+  IGCMaterial& mat;
 
   bool usePnMtxIdx = false;
   bool useTexMtxIdx[16]{false};
@@ -61,12 +61,12 @@ struct Light {
   glm::vec4 CosAtten = {0, 0, 0, 0};
   glm::vec4 Color = {1, 1, 1, 1};
 
-  void setWorldPositionViewMatrix(const glm::mat4 &viewMatrix, float x, float y,
+  void setWorldPositionViewMatrix(const glm::mat4& viewMatrix, float x, float y,
                                   float z) {
     Position = glm::vec4{x, y, z, 1.0f} * viewMatrix;
   }
 
-  void setWorldDirectionNormalMatrix(const glm::mat4 &normalMatrix, float x,
+  void setWorldDirectionNormalMatrix(const glm::mat4& normalMatrix, float x,
                                      float y, float z) {
     Direction = glm::normalize(glm::vec4(x, y, z, 0.0f) * normalMatrix);
   }
@@ -85,14 +85,14 @@ enum class UniformStorage {
 // Vertex attribute generation
 struct VertexAttributeGenDef {
   gx::VertexAttribute attrib;
-  const char *name;
+  const char* name;
 
   u32 format;
   u32 size;
 };
 static_assert(sizeof(VertexAttributeGenDef) == sizeof(VAOEntry));
 
-std::pair<const VertexAttributeGenDef &, std::size_t>
+std::pair<const VertexAttributeGenDef&, std::size_t>
 getVertexAttribGenDef(gx::VertexAttribute vtxAttrib);
 int getVertexAttribLocation(gx::VertexAttribute vtxAttrib);
 

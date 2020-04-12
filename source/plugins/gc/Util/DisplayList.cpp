@@ -3,9 +3,9 @@
 namespace libcube {
 
 void DecodeMeshDisplayList(
-    oishii::BinaryReader &reader, u32 start, u32 size,
-    IMeshDLDelegate &delegate, const VertexDescriptor &descriptor,
-    std::map<gx::VertexBufferAttribute, u32> *optUsageMap) {
+    oishii::BinaryReader& reader, u32 start, u32 size,
+    IMeshDLDelegate& delegate, const VertexDescriptor& descriptor,
+    std::map<gx::VertexBufferAttribute, u32>* optUsageMap) {
   oishii::Jump<oishii::Whence::Set> g(reader, start);
 
   const u32 end = reader.tell() + size;
@@ -16,7 +16,7 @@ void DecodeMeshDisplayList(
     assert(tag & 0x80 && "Unexpected GPU command in display list.");
 
     u16 nVerts = reader.readUnaligned<u16>();
-    IndexedPrimitive &prim = delegate.addIndexedPrimitive(
+    IndexedPrimitive& prim = delegate.addIndexedPrimitive(
         gx::DecodeDrawPrimitiveCommand(tag), nVerts);
 
     for (u16 vi = 0; vi < nVerts; ++vi) {

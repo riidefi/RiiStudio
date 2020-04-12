@@ -65,35 +65,35 @@ struct ConditionalActive {
 };
 
 struct DisplaySurface final {
-  const char *name = "Surface Visibility";
-  const char *icon = ICON_FA_GHOST;
+  const char* name = "Surface Visibility";
+  const char* icon = ICON_FA_GHOST;
 };
 struct ColorSurface final {
-  const char *name = "Colors";
-  const char *icon = ICON_FA_PAINT_BRUSH;
+  const char* name = "Colors";
+  const char* icon = ICON_FA_PAINT_BRUSH;
 };
 struct SamplerSurface final {
-  const char *name = "Samplers";
-  const char *icon = ICON_FA_IMAGES;
+  const char* name = "Samplers";
+  const char* icon = ICON_FA_IMAGES;
 };
 struct SwapTableSurface final {
-  const char *name = "Swap Tables";
-  const char *icon = ICON_FA_SWATCHBOOK;
+  const char* name = "Swap Tables";
+  const char* icon = ICON_FA_SWATCHBOOK;
 };
 struct StageSurface final {
-  const char *name = "Stage";
-  const char *icon = ICON_FA_NETWORK_WIRED;
+  const char* name = "Stage";
+  const char* icon = ICON_FA_NETWORK_WIRED;
 };
 struct FogSurface final {
-  const char *name = "Fog";
-  const char *icon = ICON_FA_GHOST;
+  const char* name = "Fog";
+  const char* icon = ICON_FA_GHOST;
 };
 struct PixelSurface final {
-  const char *name = "Pixel";
-  const char *icon = ICON_FA_GHOST;
+  const char* name = "Pixel";
+  const char* icon = ICON_FA_GHOST;
 };
 
-void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate,
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   DisplaySurface) {
   const auto before = delegate.getActive().getMaterialData().cullMode;
 
@@ -109,9 +109,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate,
 #define AUTO_PROP(before, after)                                               \
   KPI_PROPERTY(delegate, delegate.getActive().getMaterialData().##before,      \
                after, getMaterialData().##before)
-void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, ColorSurface) {
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
   libcube::gx::ColorF32 clr;
-  auto &matData = delegate.getActive().getMaterialData();
+  auto& matData = delegate.getActive().getMaterialData();
 
   if (ImGui::CollapsingHeader("TEV Color Registers",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -138,25 +138,25 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, ColorSurface) {
   }
 }
 
-void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate,
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SamplerSurface) {
-  auto &matData = delegate.getActive().getMaterialData();
+  auto& matData = delegate.getActive().getMaterialData();
 
   // Hack: The view needs to be stateful..
   static riistudio::frontend::ImagePreview mImg; // In mat sampler
   static std::string mLastImg;
   if (ImGui::BeginTabBar("Textures")) {
     for (std::size_t i = 0; i < matData.texGens.nElements; ++i) {
-      auto &tg = matData.texGens[i];
-      auto &tm = matData.texMatrices[i]; // TODO: Proper lookup
-      auto &samp = matData.samplers[i];
+      auto& tg = matData.texGens[i];
+      auto& tm = matData.texMatrices[i]; // TODO: Proper lookup
+      auto& samp = matData.samplers[i];
 
-      const auto *mImgs = delegate.getActive().getTextureSource();
+      const auto* mImgs = delegate.getActive().getTextureSource();
       if (ImGui::BeginTabItem(
               (std::string("Texture ") + std::to_string(i)).c_str())) {
         if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
           if (ImGui::BeginCombo("Name", samp->mTexture.c_str())) {
-            for (const auto &tex : *mImgs) {
+            for (const auto& tex : *mImgs) {
               bool selected = tex->getName() == samp->mTexture;
               if (ImGui::Selectable(tex->getName().c_str(), selected)) {
                 AUTO_PROP(samplers[i]->mTexture, tex->getName());
@@ -168,10 +168,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate,
             ImGui::EndCombo();
           }
 
-          const riistudio::lib3d::Texture *curImg = nullptr;
+          const riistudio::lib3d::Texture* curImg = nullptr;
 
           for (std::size_t j = 0; j < mImgs->size(); ++j) {
-            auto &it = mImgs->at<riistudio::lib3d::Texture>(j);
+            auto& it = mImgs->at<riistudio::lib3d::Texture>(j);
             if (it.getName() == samp->mTexture) {
               curImg = &it;
             }
@@ -444,7 +444,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate,
             break;
           }
 
-          const char *linNear = "Nearest (no interpolation/pixelated)\0Linear "
+          const char* linNear = "Nearest (no interpolation/pixelated)\0Linear "
                                 "(interpolated/blurry)";
 
           ImGui::Combo("Interpolation when scaled up", &magBase, linNear);
@@ -530,7 +530,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate,
   }
 }
 // TODO -- filler
-void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate,
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SwapTableSurface) {
   ImGui::BeginColumns("swap", 4);
   int sel = 0;
@@ -546,15 +546,15 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate,
   }
   ImGui::EndColumns();
 }
-void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, StageSurface) {
-  auto &matData = delegate.getActive().getMaterialData();
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
+  auto& matData = delegate.getActive().getMaterialData();
 
   // Hack: The view needs to be stateful..
   static riistudio::frontend::ImagePreview mImg; // In mat sampler
   static std::string mLastImg;
   if (ImGui::BeginTabBar("Stages")) {
     for (std::size_t i = 0; i < matData.shader.mStages.size(); ++i) {
-      auto &stage = matData.shader.mStages[i];
+      auto& stage = matData.shader.mStages[i];
 
       if (ImGui::BeginTabItem(
               (std::string("Stage ") + std::to_string(i)).c_str())) {
@@ -573,11 +573,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, StageSurface) {
           if (stage.texCoord >= matData.texGens.size()) {
             ImGui::Text("No valid image.");
           } else {
-            const riistudio::lib3d::Texture *curImg = nullptr;
+            const riistudio::lib3d::Texture* curImg = nullptr;
 
-            const auto *mImgs = delegate.getActive().getTextureSource();
+            const auto* mImgs = delegate.getActive().getTextureSource();
             for (std::size_t j = 0; j < mImgs->size(); ++j) {
-              auto &it = mImgs->at<riistudio::lib3d::Texture>(j);
+              auto& it = mImgs->at<riistudio::lib3d::Texture>(j);
               if (it.getName() == matData.samplers[stage.texMap]->mTexture) {
                 curImg = &it;
               }
@@ -604,7 +604,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, StageSurface) {
             int d = static_cast<int>(stage.colorStage.d);
             bool clamp = stage.colorStage.clamp;
             int dst = static_cast<int>(stage.colorStage.out);
-            const char *colorOpt =
+            const char* colorOpt =
                 "Register 3 Color\0Register 3 Alpha\0Register 0 "
                 "Color\0Register 0 Alpha\0Register 1 Color\0Register 1 "
                 "Alpha\0Register 2 Color\0Register 2 Alpha\0Texture "
@@ -661,7 +661,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, StageSurface) {
             int d = static_cast<int>(stage.alphaStage.d);
             bool clamp = stage.alphaStage.clamp;
             int dst = static_cast<int>(stage.alphaStage.out);
-            const char *alphaOpt =
+            const char* alphaOpt =
                 "Register 3 Alpha\0Register 0 Alpha\0Register 1 "
                 "Alpha\0Register 2 Alpha\0Texture Alpha\0Raster "
                 "Alpha\0Constant Alpha Selection\0 0.0\0";
@@ -714,16 +714,16 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, StageSurface) {
   }
 }
 
-void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, FogSurface) {
-  auto &matData = delegate.getActive().getMaterialData();
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, FogSurface) {
+  auto& matData = delegate.getActive().getMaterialData();
 }
 
-void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, PixelSurface) {
-  auto &matData = delegate.getActive().getMaterialData();
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
+  auto& matData = delegate.getActive().getMaterialData();
 
   if (ImGui::CollapsingHeader("Alpha Comparison",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
-    const char *compStr =
+    const char* compStr =
         "Always do not pass.\0<\0==\0<=\0>\0!=\0>=\0Always pass.";
     ImGui::PushItemWidth(100);
 
@@ -808,10 +808,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, PixelSurface) {
                           static_cast<int>(libcube::gx::BlendModeType::blend));
       ImGui::Text("Blend calculation");
 
-      const char *blendOpts =
+      const char* blendOpts =
           " 0\0 1\0 EFB Color\0 1 - EFB Color\0 Pixel Alpha\0 1 - Pixel "
           "Alpha\0 EFB Alpha\0 1 - EFB Alpha";
-      const char *blendOptsDst =
+      const char* blendOptsDst =
           " 0\0 1\0 Pixel Color\0 1 - Pixel Color\0 Pixel Alpha\0 1 - Pixel "
           "Alpha\0 EFB Alpha\0 1 - EFB Alpha";
       ImGui::Text("( Pixel Color * ");
@@ -844,7 +844,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial> &delegate, PixelSurface) {
 }
 
 void installDisplaySurface() {
-  kpi::PropertyViewManager &manager = kpi::PropertyViewManager::getInstance();
+  kpi::PropertyViewManager& manager = kpi::PropertyViewManager::getInstance();
   manager.addPropertyView<libcube::IGCMaterial, DisplaySurface>();
   manager.addPropertyView<libcube::IGCMaterial, ColorSurface>();
   manager.addPropertyView<libcube::IGCMaterial, SamplerSurface>();

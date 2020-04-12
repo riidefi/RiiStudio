@@ -22,12 +22,12 @@ template <typename T, size_t N> struct array_vector : public std::array<T, N> {
     ++nElements;
   }
   void pop_back() { --nElements; }
-  bool operator==(const array_vector &rhs) const noexcept {
+  bool operator==(const array_vector& rhs) const noexcept {
     if (rhs.nElements != nElements)
       return false;
     for (int i = 0; i < nElements; ++i) {
-      const T &l = this->at(i);
-      const T &r = rhs.at(i);
+      const T& l = this->at(i);
+      const T& r = rhs.at(i);
       if (!(l == r))
         return false;
     }
@@ -44,8 +44,8 @@ struct copyable_polymorphic_array_vector
   // MSVC bug?
   using super = array_vector<std::unique_ptr<T>, size>;
 #endif
-  copyable_polymorphic_array_vector &
-  operator=(const copyable_polymorphic_array_vector &rhs) {
+  copyable_polymorphic_array_vector&
+  operator=(const copyable_polymorphic_array_vector& rhs) {
     super::nElements = rhs.super::nElements;
     for (std::size_t i = 0; i < super::nElements; ++i) {
       super::at(i) = nullptr;
@@ -56,14 +56,14 @@ struct copyable_polymorphic_array_vector
     return *this;
   }
   copyable_polymorphic_array_vector(
-      const copyable_polymorphic_array_vector &rhs) {
+      const copyable_polymorphic_array_vector& rhs) {
     *this = rhs;
   }
   copyable_polymorphic_array_vector() = default;
 };
 struct GCMaterialData {
   // TODO:
-  bool operator==(const GCMaterialData &rhs) const { return false; }
+  bool operator==(const GCMaterialData& rhs) const { return false; }
 
   std::string name;
 
@@ -76,7 +76,7 @@ struct GCMaterialData {
     u8 nTevStage = 1;
     u8 nIndStage = 0;
 
-    bool operator==(const GenInfo &rhs) const {
+    bool operator==(const GenInfo& rhs) const {
       return nColorChan == rhs.nColorChan && nTexGen == rhs.nTexGen &&
              nTevStage == rhs.nTevStage && nIndStage == rhs.nIndStage;
     }
@@ -87,7 +87,7 @@ struct GCMaterialData {
     gx::Color matColor;
     gx::Color ambColor;
 
-    bool operator==(const ChannelData &rhs) const {
+    bool operator==(const ChannelData& rhs) const {
       return matColor == rhs.matColor && ambColor == rhs.ambColor;
     }
   };
@@ -158,10 +158,10 @@ struct GCMaterialData {
     s8 camIdx = -1;
     s8 lightIdx = -1;
 
-    virtual glm::mat3x4 compute(const glm::mat4 &mdl, const glm::mat4 &mvp);
+    virtual glm::mat3x4 compute(const glm::mat4& mdl, const glm::mat4& mvp);
     // TODO: Support / restriction
 
-    virtual bool operator==(const TexMatrix &rhs) const {
+    virtual bool operator==(const TexMatrix& rhs) const {
       if (!(projection == rhs.projection && scale == rhs.scale &&
             rotate == rhs.rotate && translate == rhs.translate))
         return false;
@@ -195,7 +195,7 @@ struct GCMaterialData {
     gx::TextureFilter mMagFilter;
     f32 mLodBias = 0.0f;
 
-    bool operator==(const SamplerData &rhs) const noexcept {
+    bool operator==(const SamplerData& rhs) const noexcept {
       return mTexture == rhs.mTexture && mWrapU == rhs.mWrapU &&
              mWrapV == rhs.mWrapV &&
              // bMipMap == rhs.bMipMap &&
@@ -228,53 +228,53 @@ struct IGCMaterial : public riistudio::lib3d::Material {
   // Compat
   struct PropertySupport : public TPropertySupport<Feature> {
     using Feature = Feature;
-    static constexpr std::array<const char *, (u64)Feature::Max>
-        featureStrings = {"Culling Mode", "Early Z Comparison", "Z Comparison",
-                          "GenInfo", "Material/Ambient Colors"};
+    static constexpr std::array<const char*, (u64)Feature::Max> featureStrings =
+        {"Culling Mode", "Early Z Comparison", "Z Comparison", "GenInfo",
+         "Material/Ambient Colors"};
   };
 
   PropertySupport support;
 
-  virtual GCMaterialData &getMaterialData() = 0;
-  virtual const GCMaterialData &getMaterialData() const = 0;
+  virtual GCMaterialData& getMaterialData() = 0;
+  virtual const GCMaterialData& getMaterialData() const = 0;
 
-  virtual const kpi::IDocumentNode *getParent() const { return nullptr; }
+  virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
   std::pair<std::string, std::string> generateShaders() const override;
   void
-  generateUniforms(DelegatedUBOBuilder &builder, const glm::mat4 &M,
-                   const glm::mat4 &V, const glm::mat4 &P, u32 shaderId,
-                   const std::map<std::string, u32> &texIdMap) const override;
+  generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M,
+                   const glm::mat4& V, const glm::mat4& P, u32 shaderId,
+                   const std::map<std::string, u32>& texIdMap) const override;
 
-  virtual inline const kpi::FolderData *getTextureSource() const {
+  virtual inline const kpi::FolderData* getTextureSource() const {
     // Assumption: Parent of parent model is a collection with children.
-    const kpi::IDocumentNode *parent = getParent();
+    const kpi::IDocumentNode* parent = getParent();
     assert(parent);
-    const kpi::IDocumentNode *collection = parent->parent;
+    const kpi::IDocumentNode* collection = parent->parent;
     assert(collection);
 
     return collection->getFolder<libcube::Texture>();
   }
-  virtual const Texture &getTexture(const std::string &id) const = 0;
+  virtual const Texture& getTexture(const std::string& id) const = 0;
   void
   genSamplUniforms(u32 shaderId,
-                   const std::map<std::string, u32> &texIdMap) const override;
+                   const std::map<std::string, u32>& texIdMap) const override;
 
   std::string getName() const override { return getMaterialData().name; }
-  void setName(const std::string &name) override {
+  void setName(const std::string& name) override {
     getMaterialData().name = name;
   }
 
-  void setMegaState(MegaState &state) const override;
+  void setMegaState(MegaState& state) const override;
 
   void configure(riistudio::lib3d::PixelOcclusion occlusion,
-                 std::vector<std::string> &textures) override {
+                 std::vector<std::string>& textures) override {
     // TODO
     if (textures.empty())
       return;
 
     const auto tex = textures[0];
 
-    auto &mat = getMaterialData();
+    auto& mat = getMaterialData();
 
     auto sampler = std::make_unique<GCMaterialData::SamplerData>();
     sampler->mTexture = tex;

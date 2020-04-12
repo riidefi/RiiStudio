@@ -21,11 +21,11 @@ UBOBuilder::~UBOBuilder() { glDeleteBuffers(1, &UBO); }
 
 void DelegatedUBOBuilder::submit() {
   std::size_t size = 0;
-  for (const auto &binding_point_collection : mData) {
+  for (const auto& binding_point_collection : mData) {
     // printf("DelegatedUBOBuilder: Entry offset: %u\n",
     // static_cast<u32>(size));
     // The user must ensure these are aligned!
-    for (const auto &binding_point_entry : binding_point_collection)
+    for (const auto& binding_point_entry : binding_point_collection)
       size += binding_point_entry.size();
     size = roundUniformUp(size);
   }
@@ -36,7 +36,7 @@ void DelegatedUBOBuilder::submit() {
   mCoalescedOffsets.clear();
 
   std::size_t cursor = 0;
-  for (const auto &binding_point_collection : mData) {
+  for (const auto& binding_point_collection : mData) {
     if (binding_point_collection.size() < 1) {
       mCoalescedOffsets.emplace_back(cursor, 0);
       continue;
@@ -44,7 +44,7 @@ void DelegatedUBOBuilder::submit() {
 
     mCoalescedOffsets.emplace_back(cursor, binding_point_collection[0].size());
     // The user must ensure these are aligned!
-    for (const auto &binding_point_entry : binding_point_collection) {
+    for (const auto& binding_point_entry : binding_point_collection) {
       assert(cursor + binding_point_entry.size() <= size);
       memcpy(mCoalesced.data() + cursor, binding_point_entry.data(),
              binding_point_entry.size());
@@ -72,7 +72,7 @@ void DelegatedUBOBuilder::use(u32 idx) {
     glBindBufferRange(target, index, buffer, offset, size);
   };
   for (int i = 0; i < mData.size(); ++i) {
-    const auto &ofs = mCoalescedOffsets[i];
+    const auto& ofs = mCoalescedOffsets[i];
     assert(ofs.first + ofs.second * idx < mCoalesced.size());
     bindBufferRange(GL_UNIFORM_BUFFER, i, getUboId(),
                     ofs.first + ofs.second * idx,
@@ -80,7 +80,7 @@ void DelegatedUBOBuilder::use(u32 idx) {
   }
 }
 
-void DelegatedUBOBuilder::push(u32 binding_point, const std::vector<u8> &data) {
+void DelegatedUBOBuilder::push(u32 binding_point, const std::vector<u8>& data) {
   if (binding_point >= mData.size())
     mData.resize(binding_point + 1);
   else
@@ -118,7 +118,7 @@ VBOBuilder::~VBOBuilder() {
 void VBOBuilder::build() {
   std::vector<std::pair<VAOEntry, u32>> mAttribStack; // desc : offset
 
-  for (const auto &bind : mPropogating) {
+  for (const auto& bind : mPropogating) {
     mAttribStack.emplace_back(bind.second.first, mData.size());
 
     for (const u8 e : bind.second.second)
@@ -136,7 +136,7 @@ void VBOBuilder::build() {
 
   auto vertexAttribPointer = [&](GLuint index, GLint size, GLenum type,
                                  GLboolean normalized, GLsizei stride,
-                                 const void *pointer) {
+                                 const void* pointer) {
     printf("Index: %u, size: %i, stride: %i, ofs: %u\n", index, size, stride,
            (u32)pointer);
 
@@ -149,14 +149,14 @@ void VBOBuilder::build() {
       exit(1);
   };
 
-  for (const auto &attrib : mAttribStack) {
+  for (const auto& attrib : mAttribStack) {
     // TODO: Hack
     if (attrib.first.name == nullptr)
       continue;
     assert(attrib.first.format == GL_FLOAT);
     vertexAttribPointer(attrib.first.binding_point, attrib.first.size / 4,
                         GL_FLOAT, GL_FALSE, attrib.first.size,
-                        (void *)(u32)attrib.second);
+                        (void*)(u32)attrib.second);
     // glVertexAttribPointer(attrib.first.binding_point, attrib.first.size,
     // attrib.first.format, GL_FALSE, attrib.first.size, (void*)attrib.second);
     glEnableVertexAttribArray(attrib.first.binding_point);

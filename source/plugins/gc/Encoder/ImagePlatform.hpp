@@ -48,8 +48,8 @@ int getEncodedSize(int width, int height, gx::TextureFormat format,
 //! @pre For efficiency reasons, this method does not handle the case where dst
 //! == src.
 //!
-void decode(u8 *dst, const u8 *src, int width, int height,
-            gx::TextureFormat texformat, const u8 *tlut = nullptr,
+void decode(u8* dst, const u8* src, int width, int height,
+            gx::TextureFormat texformat, const u8* tlut = nullptr,
             gx::PaletteFormat tlutformat = gx::PaletteFormat::IA8);
 
 //! @brief Encode an image to a GPU texture.
@@ -64,7 +64,7 @@ void decode(u8 *dst, const u8 *src, int width, int height,
 //! @pre For efficiency reasons, this method does not handle the case where dst
 //! == src.
 //!
-void encode(u8 *dst, const u8 *src, int width, int height,
+void encode(u8* dst, const u8* src, int width, int height,
             gx::TextureFormat texformat);
 
 //! @brief Specifies an algorithm for downscaling/upscaling an image.
@@ -83,14 +83,14 @@ enum ResizingAlgorithm { AVIR, Lanczos };
 //! @param[in] sy   Height of the source image in pixels.
 //! @param[in] type Algorithm to utilize for upscaling/downscaling.
 //!
-void resize(u8 *dst, int dx, int dy, const u8 *src, int sx, int sy,
+void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy,
             ResizingAlgorithm type = ResizingAlgorithm::AVIR);
 
 //! @brief Perform a composite transformation on image data, with mipmap
 //! support.
 //!
-//! @param[in] dst			The desination pointer. (May equal the source
-//! pointer)
+//! @param[in] dst			The desination pointer. (May equal the
+//! source pointer)
 //! @param[in] dx			Width of the target image in pixels.
 //! @param[in] dy			Height of the target image in pixels.
 //! @param[in] oldformat	Format of the source data.
@@ -99,21 +99,21 @@ void resize(u8 *dst, int dx, int dy, const u8 *src, int sx, int sy,
 //! @param[in] newformat	Format of the target data.
 //! gx::TextureFormat::Extension_RawRGBA32 may be passed in to indicate raw
 //! data.
-//! @param[in] src			Pointer to the source data. If nullptr, the value
-//! of dst is used.
-//! @param[in] sx			Width of the source image in pixels. If below 1,
-//! the value of dx is used.
-//! @param[in] sy			Height of the source image in pixels. If below 1,
-//! the value of dy is used.
+//! @param[in] src			Pointer to the source data. If nullptr,
+//! the value of dst is used.
+//! @param[in] sx			Width of the source image in pixels. If
+//! below 1, the value of dx is used.
+//! @param[in] sy			Height of the source image in pixels. If
+//! below 1, the value of dy is used.
 //! @param[in] mipMapCount	Number of additional levels of detail past the
 //! first image. Zero corresponds to the base image--no mipmapping.
 //! @param[in] algorithm	Algorithm to utilize for upscaling/downscaling.
 //!
 void transform(
-    u8 *dst, int dx, int dy,
+    u8* dst, int dx, int dy,
     gx::TextureFormat oldformat = gx::TextureFormat::Extension_RawRGBA32,
     std::optional<gx::TextureFormat> newformat = std::nullopt,
-    const u8 *src = nullptr, int sx = -1, int sy = -1, u32 mipMapCount = 0,
+    const u8* src = nullptr, int sx = -1, int sy = -1, u32 mipMapCount = 0,
     ResizingAlgorithm algorithm = ResizingAlgorithm::AVIR);
 
 } // namespace libcube::image_platform

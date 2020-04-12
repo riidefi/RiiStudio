@@ -17,15 +17,15 @@ namespace riistudio::j3d {
 
 using namespace libcube;
 
-inline bool ends_with(const std::string &value, const std::string &ending) {
+inline bool ends_with(const std::string& value, const std::string& ending) {
   return ending.size() <= value.size() &&
          std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
 struct BMDFile : public oishii::v2::Node {
-  static const char *getNameId() { return "JSystem Binary Model Data"; }
+  static const char* getNameId() { return "JSystem Binary Model Data"; }
 
-  Result write(oishii::v2::Writer &writer) const noexcept {
+  Result write(oishii::v2::Writer& writer) const noexcept {
     // Hack
     writer.write<u32, oishii::EndianSelect::Big>('J3D2');
     writer.write<u32, oishii::EndianSelect::Big>(bBDL ? 'bdl4' : 'bmd3');
@@ -45,7 +45,7 @@ struct BMDFile : public oishii::v2::Node {
 
     return {};
   }
-  Result gatherChildren(oishii::v2::Node::NodeDelegate &ctx) const {
+  Result gatherChildren(oishii::v2::Node::NodeDelegate& ctx) const {
     BMDExportContext exp{mCollection.getModel(0), mCollection};
 
     auto addNode = [&](std::unique_ptr<oishii::v2::Node> node) {
@@ -68,24 +68,24 @@ struct BMDFile : public oishii::v2::Node {
   bool bBDL = true;
   bool bMimic = true;
 };
-void BMD_Pad(char *dst, u32 len) {
+void BMD_Pad(char* dst, u32 len) {
   // assert(len < 30);
   memcpy(dst, "This is padding data to alignment.....", len);
 }
 class BMD {
 public:
-  std::string canRead(const std::string &file,
-                      oishii::BinaryReader &reader) const {
+  std::string canRead(const std::string& file,
+                      oishii::BinaryReader& reader) const {
     return ends_with(file, "bmd") || ends_with(file, "bdl")
                ? typeid(Collection).name()
                : "";
   }
-  bool canWrite(kpi::IDocumentNode &node) const {
-    return dynamic_cast<Collection *>(&node) != nullptr;
+  bool canWrite(kpi::IDocumentNode& node) const {
+    return dynamic_cast<Collection*>(&node) != nullptr;
   }
 
-  void write(kpi::IDocumentNode &node, oishii::v2::Writer &writer) const {
-    assert(dynamic_cast<Collection *>(&node) != nullptr);
+  void write(kpi::IDocumentNode& node, oishii::v2::Writer& writer) const {
+    assert(dynamic_cast<Collection*>(&node) != nullptr);
     CollectionAccessor collection(&node);
 
     oishii::v2::Linker linker;
@@ -107,18 +107,18 @@ public:
 
     for (int m_i = 0; m_i < collection.getModels().size(); ++m_i) {
       auto model = collection.getModel(m_i);
-      auto &texCache = model.get().mTexCache;
-      auto &matCache = model.get().mMatCache;
+      auto& texCache = model.get().mTexCache;
+      auto& matCache = model.get().mMatCache;
       texCache.clear();
       matCache.clear();
 
       for (int j = 0; j < model.getMaterials().size(); ++j) {
-        auto &mat = model.getMaterial(j).get();
+        auto& mat = model.getMaterial(j).get();
         for (int k = 0; k < mat.samplers.size(); ++k) {
-          auto &samp = mat.samplers[k];
+          auto& samp = mat.samplers[k];
 
-          auto *slow =
-              reinterpret_cast<j3d::MaterialData::J3DSamplerData *>(samp.get());
+          auto* slow =
+              reinterpret_cast<j3d::MaterialData::J3DSamplerData*>(samp.get());
           assert(slow);
 
           assert(!samp->mTexture.empty());
@@ -146,8 +146,8 @@ public:
     linker.write(writer);
   }
 
-  void read(kpi::IDocumentNode &node, oishii::BinaryReader &reader) const {
-    assert(dynamic_cast<Collection *>(&node) != nullptr);
+  void read(kpi::IDocumentNode& node, oishii::BinaryReader& reader) const {
+    assert(dynamic_cast<Collection*>(&node) != nullptr);
     CollectionAccessor collection(&node);
 
     auto mdl = collection.addModel();
@@ -211,7 +211,7 @@ public:
     // Read shapes
     readSHP1(ctx);
 
-    for (const auto &e : ctx.mVertexBufferMaxIndices) {
+    for (const auto& e : ctx.mVertexBufferMaxIndices) {
       switch (e.first) {
       case gx::VertexBufferAttribute::Position:
         if (ctx.mdl.get().mBufs.pos.mData.size() != e.second + 1) {
@@ -223,7 +223,7 @@ public:
         break;
       case gx::VertexBufferAttribute::Color0:
       case gx::VertexBufferAttribute::Color1: {
-        auto &buf =
+        auto& buf =
             ctx.mdl.get().mBufs.color[(int)e.first -
                                       (int)gx::VertexBufferAttribute::Color0];
         if (buf.mData.size() != e.second + 1) {
@@ -235,7 +235,7 @@ public:
         break;
       }
       case gx::VertexBufferAttribute::Normal: {
-        auto &buf = ctx.mdl.get().mBufs.norm;
+        auto& buf = ctx.mdl.get().mBufs.norm;
         if (buf.mData.size() != e.second + 1) {
           printf("The normal buffer currently has %u greedily-claimed entries "
                  "due to 32B padding; %u are used.\n",
@@ -252,7 +252,7 @@ public:
       case gx::VertexBufferAttribute::TexCoord5:
       case gx::VertexBufferAttribute::TexCoord6:
       case gx::VertexBufferAttribute::TexCoord7: {
-        auto &buf =
+        auto& buf =
             ctx.mdl.get().mBufs.uv[(int)e.first -
                                    (int)gx::VertexBufferAttribute::TexCoord0];
         if (buf.mData.size() != e.second + 1) {
@@ -279,7 +279,7 @@ public:
     // Read MDL3
   }
 };
-void InstallBMD(kpi::ApplicationPlugins &installer) {
+void InstallBMD(kpi::ApplicationPlugins& installer) {
   installer.addDeserializer<BMD>();
   installer.addSerializer<BMD>();
 }

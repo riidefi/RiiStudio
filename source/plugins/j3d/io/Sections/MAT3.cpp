@@ -43,10 +43,10 @@ enum class MatSec {
 struct MatLoader {
   std::array<s32, static_cast<u32>(MatSec::Max)> mSections;
   u32 start;
-  oishii::BinaryReader &reader;
+  oishii::BinaryReader& reader;
 
   template <typename TRaw> struct SecOfsEntry {
-    oishii::BinaryReader &reader;
+    oishii::BinaryReader& reader;
     u32 ofs;
 
     template <typename TGet = TRaw> TGet raw() {
@@ -95,7 +95,7 @@ public:
   }
 
   template <typename TIdx, typename T>
-  void indexedContained(T &out, MatSec sec, u32 stride) {
+  void indexedContained(T& out, MatSec sec, u32 stride) {
     if (const auto ofs = indexed<TIdx>(sec, stride).ofs) {
       oishii::Jump<oishii::Whence::Set> g(reader, ofs);
 
@@ -103,7 +103,7 @@ public:
     }
   }
   template <typename T>
-  void indexedContained(T &out, MatSec sec, u32 stride, u32 idx) {
+  void indexedContained(T& out, MatSec sec, u32 stride, u32 idx) {
     if (const auto ofs = indexed(sec, stride, idx).ofs) {
       oishii::Jump<oishii::Whence::Set> g(reader, ofs);
 
@@ -112,12 +112,12 @@ public:
   }
 
   template <typename TIdx, typename T>
-  void indexedContainer(T &out, MatSec sec, u32 stride) {
+  void indexedContainer(T& out, MatSec sec, u32 stride) {
     // Big assumption: Entries are contiguous
 
     oishii::JumpOut g(reader, out.max_size() * sizeof(TIdx));
 
-    for (auto &it : out) {
+    for (auto& it : out) {
       if (const auto ofs = indexed<TIdx>(sec, stride).ofs) {
         oishii::Jump<oishii::Whence::Set> g(reader, ofs);
         // oishii::BinaryReader::ScopedRegion n(reader,
@@ -132,8 +132,8 @@ public:
     }
   }
 };
-void readMatEntry(Material &mat, MatLoader &loader,
-                  oishii::BinaryReader &reader, u32 ofsStringTable, u32 idx) {
+void readMatEntry(Material& mat, MatLoader& loader,
+                  oishii::BinaryReader& reader, u32 ofsStringTable, u32 idx) {
   oishii::DebugExpectSized dbg(reader, 332);
   oishii::BinaryReader::ScopedRegion g(reader, "Material");
 
@@ -240,7 +240,7 @@ void readMatEntry(Material &mat, MatLoader &loader,
     for (int i = 0; i < 4; ++i)
       mat.shader.mSwapTable[i] = swap[i];
 
-    for (auto &e : mat.stackTrash)
+    for (auto& e : mat.stackTrash)
       e = reader.read<u8>();
   }
   dbg.assertSince(0x144);
@@ -273,12 +273,12 @@ void readMatEntry(Material &mat, MatLoader &loader,
   }
 }
 
-template <typename T> void operator<<(T &lhs, oishii::BinaryReader &rhs) {
+template <typename T> void operator<<(T& lhs, oishii::BinaryReader& rhs) {
   io_wrapper<T>::onRead(rhs, lhs);
 }
 
-void readMAT3(BMDOutputContext &ctx) {
-  auto &reader = ctx.reader;
+void readMAT3(BMDOutputContext& ctx) {
+  auto& reader = ctx.reader;
   if (!enterSection(ctx, 'MAT3'))
     return;
 
@@ -298,7 +298,7 @@ void readMAT3(BMDOutputContext &ctx) {
 
   {
     // Read cache
-    auto &cache = ctx.mdl.get().mMatCache;
+    auto& cache = ctx.mdl.get().mMatCache;
 
     for (int i = 0; i < (int)MatSec::Max; ++i) {
       const auto begin = loader.mSections[i];
@@ -326,11 +326,11 @@ void readMAT3(BMDOutputContext &ctx) {
       if (size <= 0)
         continue;
 
-      auto readCacheEntry = [&](auto &out, std::size_t entry_size) {
+      auto readCacheEntry = [&](auto& out, std::size_t entry_size) {
         const auto nInferred = size / entry_size;
         out.resize(nInferred);
 
-        auto pad_check = [](oishii::BinaryReader &reader,
+        auto pad_check = [](oishii::BinaryReader& reader,
                             std::size_t search_size) {
           std::string_view pstring = "This is padding data to align";
 
@@ -342,7 +342,7 @@ void readMAT3(BMDOutputContext &ctx) {
         };
 
         std::size_t _it = 0;
-        for (auto &e : out) {
+        for (auto& e : out) {
           reader.seekSet(begin + g.start + _it * entry_size);
           if (pad_check(reader, entry_size)) {
             break;
@@ -461,7 +461,7 @@ void readMAT3(BMDOutputContext &ctx) {
   const auto nameTable = readNameTable(reader);
 
   for (int i = 0; i < size; ++i) {
-    Material &mat = ctx.mdl.getMaterial(i).get();
+    Material& mat = ctx.mdl.getMaterial(i).get();
     reader.seekSet(g.start + ofsMatData + ctx.materialIdLut[i] * 0x14c);
     mat.id = ctx.materialIdLut[i];
     mat.name = nameTable[i];
@@ -473,40 +473,40 @@ template <typename T, u32 bodyAlign = 1, u32 entryAlign = 1,
           bool compress = true>
 class MCompressableVector : public oishii::v2::Node {
   struct Child : public oishii::v2::Node {
-    Child(const MCompressableVector &parent, u32 index)
+    Child(const MCompressableVector& parent, u32 index)
         : mParent(parent), mIndex(index) {
       mId = std::to_string(index);
       getLinkingRestriction().alignment = entryAlign;
       // getLinkingRestriction().setFlag(oishii::v2::LinkingRestriction::PadEnd);
       getLinkingRestriction().setLeaf();
     }
-    Result write(oishii::v2::Writer &writer) const noexcept override {
+    Result write(oishii::v2::Writer& writer) const noexcept override {
       io_wrapper<T>::onWrite(writer, mParent.getEntry(mIndex));
       return {};
     }
-    const MCompressableVector &mParent;
+    const MCompressableVector& mParent;
     const u32 mIndex;
   };
   struct ContainerNode : public oishii::v2::Node {
-    ContainerNode(const MCompressableVector &parent, const std::string &id)
+    ContainerNode(const MCompressableVector& parent, const std::string& id)
         : mParent(parent) {
       mId = id;
       getLinkingRestriction().alignment = bodyAlign;
     }
-    Result gatherChildren(NodeDelegate &d) const noexcept override {
+    Result gatherChildren(NodeDelegate& d) const noexcept override {
       for (u32 i = 0; i < mParent.getNumEntries(); ++i)
         d.addNode(std::make_unique<Child>(mParent, i));
       return {};
     }
-    const MCompressableVector &mParent;
+    const MCompressableVector& mParent;
   };
 
 public:
-  std::unique_ptr<oishii::v2::Node> spawnNode(const std::string &id) const {
+  std::unique_ptr<oishii::v2::Node> spawnNode(const std::string& id) const {
     return std::make_unique<ContainerNode>(*this, id);
   }
 
-  u32 append(const T &entry) {
+  u32 append(const T& entry) {
     const auto found = std::find(mEntries.begin(), mEntries.end(), entry);
     if (found == mEntries.end() || !compress) {
       mEntries.push_back(entry);
@@ -514,7 +514,7 @@ public:
     }
     return found - mEntries.begin();
   }
-  int find(const T &entry) const {
+  int find(const T& entry) const {
     int outIdx = -1;
     for (int i = 0; i < mEntries.size(); ++i)
       if (entry == mEntries[i]) {
@@ -526,11 +526,11 @@ public:
     return outIdx;
   }
   u32 getNumEntries() const { return mEntries.size(); }
-  const T &getEntry(u32 idx) const {
+  const T& getEntry(u32 idx) const {
     assert(idx < mEntries.size());
     return mEntries[idx];
   }
-  T &getEntry(u32 idx) {
+  T& getEntry(u32 idx) {
     assert(idx < mEntries.size());
     return mEntries[idx];
   }
@@ -540,15 +540,15 @@ public:
 };
 struct MAT3Node;
 struct SerializableMaterial {
-  SerializableMaterial(const MAT3Node &mat3, int idx)
+  SerializableMaterial(const MAT3Node& mat3, int idx)
       : mMAT3(mat3), mIdx(idx) {}
 
-  const MAT3Node &mMAT3;
+  const MAT3Node& mMAT3;
   const int mIdx;
 
-  bool operator==(const SerializableMaterial &rhs) const noexcept;
+  bool operator==(const SerializableMaterial& rhs) const noexcept;
 };
-auto find = [](const auto &buf, const auto x) {
+auto find = [](const auto& buf, const auto x) {
   auto found = std::find(buf.begin(), buf.end(), x);
   // if (found == buf.end()) {
   // 	buf.push_back(x);
@@ -560,25 +560,25 @@ auto find = [](const auto &buf, const auto x) {
   return found == buf.end() ? -1 : found - buf.begin();
 };
 template <typename TIdx, typename T, typename TPool>
-void write_array_vec(oishii::v2::Writer &writer, const T &vec, TPool &pool) {
+void write_array_vec(oishii::v2::Writer& writer, const T& vec, TPool& pool) {
   for (int i = 0; i < vec.nElements; ++i)
     writer.write<TIdx>(find(pool, vec[i]));
   for (int i = vec.nElements; i < vec.max_size(); ++i)
     writer.write<TIdx>(-1);
 }
 template <typename T>
-int write_cache(oishii::v2::Writer &writer, const std::vector<T> &cache) {
+int write_cache(oishii::v2::Writer& writer, const std::vector<T>& cache) {
   // while (writer.tell() % io_wrapper<T>::SizeOf) writer.write(0xff);
   const auto start = writer.tell();
-  for (auto &x : cache) {
+  for (auto& x : cache) {
     io_wrapper<T>::onWrite(writer, x);
   }
   return start;
 }
 
 template <> struct io_wrapper<SerializableMaterial> {
-  static void onWrite(oishii::v2::Writer &writer,
-                      const SerializableMaterial &smat);
+  static void onWrite(oishii::v2::Writer& writer,
+                      const SerializableMaterial& smat);
 };
 struct MAT3Node : public oishii::v2::Node {
   template <typename T, MatSec s>
@@ -587,7 +587,7 @@ struct MAT3Node : public oishii::v2::Node {
   struct EntrySection final
       : public Section<SerializableMaterial, MatSec::Max> {
 
-    EntrySection(const ModelAccessor mdl, const MAT3Node &mat3) : mMdl(mdl) {
+    EntrySection(const ModelAccessor mdl, const MAT3Node& mat3) : mMdl(mdl) {
       for (int i = 0; i < mMdl.getMaterials().size(); ++i)
         mLut.push_back(append(SerializableMaterial{mat3, i}));
     }
@@ -599,23 +599,23 @@ struct MAT3Node : public oishii::v2::Node {
   const ModelAccessor mMdl;
   bool hasIndirect = false;
   EntrySection mEntries;
-  const Model::MatCache &mCache;
+  const Model::MatCache& mCache;
 
-  gx::TexCoordGen postTexGen(const gx::TexCoordGen &gen) const noexcept {
+  gx::TexCoordGen postTexGen(const gx::TexCoordGen& gen) const noexcept {
     return gx::TexCoordGen{// gen.id,
                            gen.func, gen.sourceParam,
                            static_cast<gx::TexMatrix>(gen.postMatrix), false,
                            gen.postMatrix};
   }
 
-  MAT3Node(const BMDExportContext &ctx)
+  MAT3Node(const BMDExportContext& ctx)
       : mMdl(ctx.mdl), mEntries(ctx.mdl, *this),
         mCache(ctx.mdl.get().mMatCache) {
     mId = "MAT3";
     getLinkingRestriction().alignment = 32;
   }
 
-  Result write(oishii::v2::Writer &writer) const noexcept override {
+  Result write(oishii::v2::Writer& writer) const noexcept override {
     const auto start = writer.tell();
     writer.write<u32, oishii::EndianSelect::Big>('MAT3');
     writer.writeLink<s32>({*this}, {*this, oishii::v2::Hook::EndOfChildren});
@@ -623,7 +623,7 @@ struct MAT3Node : public oishii::v2::Node {
     writer.write<u16>(mMdl.getMaterials().size());
     writer.write<u16>(-1);
 
-    auto writeSecLinkS = [&](const std::string &lnk) {
+    auto writeSecLinkS = [&](const std::string& lnk) {
       writer.writeLink<s32>({*this}, {lnk});
     };
 
@@ -639,7 +639,7 @@ struct MAT3Node : public oishii::v2::Node {
       writer.write<s32>(-1);
 
     auto entryStart = writer.tell();
-    for (auto &entry : mEntries.mEntries) {
+    for (auto& entry : mEntries.mEntries) {
       io_wrapper<SerializableMaterial>::onWrite(writer, entry);
     }
 
@@ -680,7 +680,7 @@ struct MAT3Node : public oishii::v2::Node {
     }
 
     auto dataPos = writer.tell();
-    auto writeBuf = [&](const auto &buf) {
+    auto writeBuf = [&](const auto& buf) {
       int slide = 0;
 
       if (!buf.empty()) {
@@ -755,16 +755,16 @@ struct MAT3Node : public oishii::v2::Node {
     return {};
   }
 
-  Result gatherChildren(NodeDelegate &d) const noexcept override { return {}; }
+  Result gatherChildren(NodeDelegate& d) const noexcept override { return {}; }
 };
-bool SerializableMaterial::operator==(const SerializableMaterial &rhs) const
+bool SerializableMaterial::operator==(const SerializableMaterial& rhs) const
     noexcept {
   return mMAT3.mMdl.getMaterial(mIdx).get() ==
          rhs.mMAT3.mMdl.getMaterial(rhs.mIdx).get();
 }
 void io_wrapper<SerializableMaterial>::onWrite(
-    oishii::v2::Writer &writer, const SerializableMaterial &smat) {
-  const Material &m = smat.mMAT3.mMdl.getMaterial(smat.mIdx).get();
+    oishii::v2::Writer& writer, const SerializableMaterial& smat) {
+  const Material& m = smat.mMAT3.mMdl.getMaterial(smat.mIdx).get();
 
   oishii::DebugExpectSized dbg(writer, 332);
 
@@ -778,8 +778,8 @@ void io_wrapper<SerializableMaterial>::onWrite(
   writer.write<u8>(find(smat.mMAT3.mCache.dithers, m.dither));
 
   dbg.assertSince(0x008);
-  const auto &m3 = smat.mMAT3;
-  const auto &cache = m3.mCache;
+  const auto& m3 = smat.mMAT3;
+  const auto& cache = m3.mCache;
 
   array_vector<gx::Color, 2> matColors, ambColors;
   for (int i = 0; i < m.chanData.size(); ++i) {
@@ -827,7 +827,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
   array_vector<Material::J3DSamplerData, 8> samplers;
   samplers.nElements = m.samplers.size();
   for (int i = 0; i < m.samplers.size(); ++i)
-    samplers[i] = (Material::J3DSamplerData &)*m.samplers[i].get();
+    samplers[i] = (Material::J3DSamplerData&)*m.samplers[i].get();
   dbg.assertSince(0x084);
   write_array_vec<u16>(writer, samplers, cache.samplers);
   dbg.assertSince(0x094);
@@ -885,7 +885,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
     writer.write<u16>(-1);
 
   dbg.assertSince(0x124);
-  for (const auto &table : m.shader.mSwapTable)
+  for (const auto& table : m.shader.mSwapTable)
     writer.write<u16>(find(cache.swapTables, table));
 
   for (const u8 s : m.stackTrash)
@@ -897,7 +897,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
   writer.write<u16>(find(cache.blendModes, m.blendMode));
   writer.write<u16>(find(cache.nbtScales, m.nbtScale));
 }
-std::unique_ptr<oishii::v2::Node> makeMAT3Node(BMDExportContext &ctx) {
+std::unique_ptr<oishii::v2::Node> makeMAT3Node(BMDExportContext& ctx) {
   return std::make_unique<MAT3Node>(ctx);
 }
 

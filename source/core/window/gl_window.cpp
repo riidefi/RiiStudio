@@ -30,7 +30,7 @@
 // store our SDL book-keeping variables globally. Having a single function that
 // acts as a loop prevents us to store state in the stack of said function. So
 // we need some location for this.
-SDL_Window *g_Window = NULL;
+SDL_Window* g_Window = NULL;
 SDL_GLContext g_GLContext = NULL;
 
 bool gPointerLock = false;
@@ -39,16 +39,16 @@ bool gPointerLock = false;
 
 namespace riistudio::core {
 
-static GLWindow *g_AppWindow = nullptr;
+static GLWindow* g_AppWindow = nullptr;
 
 #ifdef RII_BACKEND_GLFW
-static void handleGlfwError(int err, const char *description) {
+static void handleGlfwError(int err, const char* description) {
   fprintf(stderr, "GLFW Error: %d: %s\n", err, description);
 }
 
-static void handleDrop(GLFWwindow *window, int count, const char **raw_paths) {
-  GLWindow *glwin =
-      reinterpret_cast<GLWindow *>(glfwGetWindowUserPointer(window));
+static void handleDrop(GLFWwindow* window, int count, const char** raw_paths) {
+  GLWindow* glwin =
+      reinterpret_cast<GLWindow*>(glfwGetWindowUserPointer(window));
   if (!glwin || !count || !raw_paths)
     return;
 
@@ -60,8 +60,8 @@ static void handleDrop(GLFWwindow *window, int count, const char **raw_paths) {
 }
 #else
 
-void readFile(const int &addr, const size_t &len, std::string path) {
-  uint8_t *data = reinterpret_cast<uint8_t *>(addr);
+void readFile(const int& addr, const size_t& len, std::string path) {
+  uint8_t* data = reinterpret_cast<uint8_t*>(addr);
   printf("Data: %p\n", data);
 
   g_AppWindow->vdropDirect(std::unique_ptr<uint8_t[]>(data), len, path);
@@ -70,15 +70,15 @@ void readFile(const int &addr, const size_t &len, std::string path) {
 EMSCRIPTEN_BINDINGS(my_module) { emscripten::function("readFile", &readFile); }
 #endif
 #ifndef _WIN32
-void main_loop(void *arg) {
-  reinterpret_cast<GLWindow *>(arg)->mainLoopInternal();
+void main_loop(void* arg) {
+  reinterpret_cast<GLWindow*>(arg)->mainLoopInternal();
 }
 #endif
 
 #ifdef RII_BACKEND_GLFW
-static bool initWindow(GLFWwindow *&pWin, int width = 1280, int height = 720,
-                       const char *pName = "Untitled Window",
-                       GLWindow *user = nullptr) {
+static bool initWindow(GLFWwindow*& pWin, int width = 1280, int height = 720,
+                       const char* pName = "Untitled Window",
+                       GLWindow* user = nullptr) {
   pWin = glfwCreateWindow(width, height, pName, NULL, NULL);
   if (!pWin)
     return false;
@@ -89,7 +89,7 @@ static bool initWindow(GLFWwindow *&pWin, int width = 1280, int height = 720,
   glfwMakeContextCurrent(pWin);
 
 #ifndef _WIN32
-  emscripten_set_main_loop_arg(&main_loop, (void *)user, 0, 0);
+  emscripten_set_main_loop_arg(&main_loop, (void*)user, 0, 0);
 #endif
 
   glfwSwapInterval(1); // vsync
@@ -99,7 +99,7 @@ static bool initWindow(GLFWwindow *&pWin, int width = 1280, int height = 720,
 
 #ifdef RII_BACKEND_GLFW
 namespace {
-static const char *glsl_version =
+static const char* glsl_version =
 #ifdef _WIN32
     "#version 130";
 #else
@@ -108,7 +108,7 @@ static const char *glsl_version =
 } // namespace
 #endif
 
-GLWindow::GLWindow(int width, int height, const char *pName) {
+GLWindow::GLWindow(int width, int height, const char* pName) {
 #ifdef RII_BACKEND_GLFW
   glfwSetErrorCallback(handleGlfwError);
 
@@ -133,7 +133,7 @@ GLWindow::GLWindow(int width, int height, const char *pName) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard |
                       ImGuiConfigFlags_DockingEnable |
                       ImGuiConfigFlags_ViewportsEnable;
@@ -158,7 +158,7 @@ GLWindow::GLWindow(int width, int height, const char *pName) {
   // See the Makefile. for requirement details. It is very likely the generated
   // file won't work in many browsers. Firefox is the only sure bet, but I have
   // successfully run this code on Chrome for Android for example.
-  const char *glsl_version = "#version 100";
+  const char* glsl_version = "#version 100";
   // const char* glsl_version = "#version 300 es";
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -188,7 +188,7 @@ GLWindow::GLWindow(int width, int height, const char *pName) {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
 
-  ImGuiIO &io = ImGui::GetIO();
+  ImGuiIO& io = ImGui::GetIO();
   io.ConfigFlags |=
       ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable;
 
@@ -207,7 +207,7 @@ GLWindow::GLWindow(int width, int height, const char *pName) {
 
 #ifndef _WIN32
   g_AppWindow = this;
-  emscripten_set_main_loop_arg(&main_loop, (void *)this, 0, 0);
+  emscripten_set_main_loop_arg(&main_loop, (void*)this, 0, 0);
 #endif
 }
 
@@ -264,7 +264,7 @@ void GLWindow::mainLoopInternal() {
   //  For this specific demo app we could also call
   //  glfwMakeContextCurrent(window) directly)
   if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-    GLFWwindow *backup_current_context = glfwGetCurrentContext();
+    GLFWwindow* backup_current_context = glfwGetCurrentContext();
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();
     glfwMakeContextCurrent(backup_current_context);
@@ -298,7 +298,7 @@ void GLWindow::mainLoopInternal() {
 
   frameProcess();
 
-  auto &io = ImGui::GetIO();
+  auto& io = ImGui::GetIO();
 
   SDL_GL_MakeCurrent(g_Window, g_GLContext);
   glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
@@ -313,8 +313,8 @@ void GLWindow::mainLoopInternal() {
 // based on
 // https://github.com/raysan5/raylib/commit/d2d4b17633d623999eb2509ff24f741b5d669b35#diff-cdfc1aea8847d91e401cad52d98e6d70R2723
 static EM_BOOL EmscriptenMouseCallback(int eventType,
-                                       const EmscriptenMouseEvent *mouseEvent,
-                                       void *userData) {
+                                       const EmscriptenMouseEvent* mouseEvent,
+                                       void* userData) {
   printf("CB\n");
   if (gPointerLock)
     emscripten_request_pointerlock(0, 1);

@@ -28,7 +28,7 @@ struct TextureData {
 
   std::vector<u8> mData;
 
-  bool operator==(const TextureData &rhs) const {
+  bool operator==(const TextureData& rhs) const {
     return mName == rhs.mName && mFormat == rhs.mFormat &&
            bTransparent == rhs.bTransparent && mWidth == rhs.mWidth &&
            mHeight == rhs.mHeight && mPaletteFormat == rhs.mPaletteFormat &&
@@ -43,7 +43,7 @@ struct Texture : public TextureData, public libcube::Texture {
   // ICON_FA_IMAGE);
 
   std::string getName() const override { return mName; }
-  void setName(const std::string &name) override { mName = name; }
+  void setName(const std::string& name) override { mName = name; }
 
   u32 getTextureFormat() const override { return mFormat; }
 
@@ -53,11 +53,11 @@ struct Texture : public TextureData, public libcube::Texture {
     return mMipmapLevel - 1;
   }
   void setMipmapCount(u32 c) override { mMipmapLevel = c + 1; }
-  const u8 *getData() const override { return mData.data(); }
-  u8 *getData() override { return mData.data(); }
+  const u8* getData() const override { return mData.data(); }
+  u8* getData() override { return mData.data(); }
   void resizeData() override { mData.resize(getEncodedSize(true)); }
 
-  const u8 *getPaletteData() const override { return nullptr; }
+  const u8* getPaletteData() const override { return nullptr; }
   u32 getPaletteFormat() const override { return 0; }
 
   u16 getWidth() const override { return mWidth; }

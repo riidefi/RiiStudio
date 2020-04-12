@@ -47,7 +47,7 @@ struct IndirectTextureScalePair {
   Selection U{Selection::x_1};
   Selection V{Selection::x_1};
 
-  bool operator==(const IndirectTextureScalePair &rhs) const noexcept {
+  bool operator==(const IndirectTextureScalePair& rhs) const noexcept {
     return U == rhs.U && V == rhs.V;
   }
 };
@@ -58,7 +58,7 @@ struct IndirectMatrix {
 
   int quant = 1; // Exponent selection
 
-  bool operator==(const IndirectMatrix &rhs) const noexcept {
+  bool operator==(const IndirectMatrix& rhs) const noexcept {
     return scale == rhs.scale && rotate == rhs.rotate && trans == rhs.trans &&
            quant == rhs.quant;
   }
@@ -71,10 +71,10 @@ struct IndirectSetting {
   IndirectMatrix mtx;
 
   IndirectSetting() {}
-  IndirectSetting(const IndirectTextureScalePair &s, const IndirectMatrix &m)
+  IndirectSetting(const IndirectTextureScalePair& s, const IndirectMatrix& m)
       : texScale(s), mtx(m) {}
 
-  bool operator==(const IndirectSetting &rhs) const noexcept {
+  bool operator==(const IndirectSetting& rhs) const noexcept {
     return texScale == rhs.texScale && mtx == rhs.mtx;
   }
 };
@@ -83,7 +83,7 @@ struct IndirectSetting {
 struct IndOrder {
   u8 refMap, refCoord;
 
-  bool operator==(const IndOrder &rhs) const noexcept {
+  bool operator==(const IndOrder& rhs) const noexcept {
     return rhs.refMap == refMap && rhs.refCoord == refCoord;
   }
 };

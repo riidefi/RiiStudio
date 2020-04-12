@@ -68,7 +68,7 @@ void Viewport::end() {
       static_cast<float>(max.y) / static_cast<float>(mLastHeight);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  ImGui::Image((void *)mTexColorBufId,
+  ImGui::Image((void*)mTexColorBufId,
                {static_cast<float>(mLastWidth), static_cast<float>(max.y)},
                {0.0f, yRat}, {1.0f, .0f});
 }

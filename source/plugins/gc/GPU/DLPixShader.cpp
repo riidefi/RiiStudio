@@ -4,12 +4,12 @@
 
 namespace libcube::gpu {
 
-QDisplayListShaderHandler::QDisplayListShaderHandler(gx::Shader &shader,
+QDisplayListShaderHandler::QDisplayListShaderHandler(gx::Shader& shader,
                                                      int numStages)
     : mShader(shader), mNumStages(numStages) {}
 QDisplayListShaderHandler::~QDisplayListShaderHandler() {}
 
-void QDisplayListShaderHandler::onCommandBP(const QBPCommand &token) {
+void QDisplayListShaderHandler::onCommandBP(const QBPCommand& token) {
   switch (token.reg) {
   case (u32)BPAddress::TEV_KSEL + (0 * 2):
   case (u32)BPAddress::TEV_KSEL + (0 * 2) + 1:
@@ -126,7 +126,7 @@ void QDisplayListShaderHandler::onStreamEnd() {
 
   for (int i = 0; i < mNumStages; i++) // evenStageId
   {
-    auto &stage = mShader.mStages[i];
+    auto& stage = mShader.mStages[i];
 
     // TREF
     stage.texCoord = mGpuShader.tref[i / 2].getTexCoord(i & 1);
@@ -159,8 +159,8 @@ void QDisplayListShaderHandler::onStreamEnd() {
 
     // COLOR_ENV
     {
-      const auto &cEnv = mGpuShader.colorEnv[i];
-      auto &dst = stage.colorStage;
+      const auto& cEnv = mGpuShader.colorEnv[i];
+      auto& dst = stage.colorStage;
 
       dst.out = (gx::TevReg)cEnv.dest.Value();
       dst.clamp = cEnv.clamp.Value();
@@ -184,8 +184,8 @@ void QDisplayListShaderHandler::onStreamEnd() {
     }
     // ALPHA_ENV
     {
-      const auto &aEnv = mGpuShader.alphaEnv[i];
-      auto &dst = stage.alphaStage;
+      const auto& aEnv = mGpuShader.alphaEnv[i];
+      auto& dst = stage.alphaStage;
 
       dst.out = (gx::TevReg)aEnv.dest.Value();
       dst.clamp = aEnv.clamp.Value();
@@ -216,8 +216,8 @@ void QDisplayListShaderHandler::onStreamEnd() {
       assert("Corrupted shader data. Have you saved this file in unstable "
              "software?" &&
              mGpuShader.isDefinedIndCmd(i));
-      const auto &iCmd = mGpuShader.indCmd[i];
-      auto &dst = stage.indirectStage;
+      const auto& iCmd = mGpuShader.indCmd[i];
+      auto& dst = stage.indirectStage;
 
       dst.indStageSel = iCmd.bt.Value();
       dst.format = (gx::IndTexFormat)iCmd.fmt.Value();
@@ -233,12 +233,12 @@ void QDisplayListShaderHandler::onStreamEnd() {
 }
 
 QDisplayListMaterialHandler::QDisplayListMaterialHandler(
-    libcube::GCMaterialData &mat)
+    libcube::GCMaterialData& mat)
     : mMat(mat) {}
 QDisplayListMaterialHandler::~QDisplayListMaterialHandler() {}
 enum RegType { TEV_COLOR_REG = 0, TEV_KONSTANT_REG = 1 };
 enum { XF_TEX0_ID = 0x1040, XF_DUALTEX0_ID = 0x1050 };
-void QDisplayListMaterialHandler::onCommandXF(const QXFCommand &token) {
+void QDisplayListMaterialHandler::onCommandXF(const QXFCommand& token) {
   switch (token.reg) {
   case XF_TEX0_ID:
   case XF_TEX0_ID + 1:
@@ -262,7 +262,7 @@ void QDisplayListMaterialHandler::onCommandXF(const QXFCommand &token) {
     break;
   }
 }
-void QDisplayListMaterialHandler::onCommandBP(const QBPCommand &token) {
+void QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
   switch (token.reg) {
   case BPAddress::ALPHACOMPARE:
     mGpuMat.setReg(mGpuMat.mPixel.mAlphaCompare, token);
@@ -286,13 +286,13 @@ void QDisplayListMaterialHandler::onCommandBP(const QBPCommand &token) {
     GPUTevReg tmp;
     tmp.low = (token.val & mGpuMat.mMask);
     if (tmp.type_ra.Value() == TEV_KONSTANT_REG) {
-      auto &gpuReg =
+      auto& gpuReg =
           mGpuMat.mShaderColor
               .Konstants[((u32)token.reg - (u32)BPAddress::TEV_COLOR_RA) / 2];
       gpuReg.low =
           (gpuReg.low.Value() & ~mGpuMat.mMask) | (token.val & mGpuMat.mMask);
     } else {
-      auto &gpuReg =
+      auto& gpuReg =
           mGpuMat.mShaderColor
               .Registers[((u32)token.reg - (u32)BPAddress::TEV_COLOR_RA) / 2];
       gpuReg.low =
@@ -307,13 +307,13 @@ void QDisplayListMaterialHandler::onCommandBP(const QBPCommand &token) {
     GPUTevReg tmp;
     tmp.high = (token.val & mGpuMat.mMask);
     if (tmp.type_bg.Value() == TEV_KONSTANT_REG) {
-      auto &gpuReg =
+      auto& gpuReg =
           mGpuMat.mShaderColor
               .Konstants[((u32)token.reg - (u32)BPAddress::TEV_COLOR_RA) / 2];
       gpuReg.high =
           (gpuReg.high.Value() & ~mGpuMat.mMask) | (token.val & mGpuMat.mMask);
     } else {
-      auto &gpuReg =
+      auto& gpuReg =
           mGpuMat.mShaderColor
               .Registers[((u32)token.reg - (u32)BPAddress::TEV_COLOR_RA) / 2];
       gpuReg.high =
@@ -363,10 +363,10 @@ void QDisplayListMaterialHandler::onCommandBP(const QBPCommand &token) {
     mGpuMat.mMask = 0xffffffff;
 }
 void QDisplayListMaterialHandler::onStreamEnd() {}
-void QDisplayListVertexSetupHandler::onCommandBP(const QBPCommand &token) {
+void QDisplayListVertexSetupHandler::onCommandBP(const QBPCommand& token) {
   // TODO: Ignores cull mode repeat
 }
-void QDisplayListVertexSetupHandler::onCommandCP(const QCPCommand &token) {
+void QDisplayListVertexSetupHandler::onCommandCP(const QCPCommand& token) {
   switch (token.reg) {
   case 0x50:
     mGpuMesh.VCD.Hex0 = token.val;

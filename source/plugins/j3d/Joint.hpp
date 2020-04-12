@@ -44,7 +44,7 @@ struct JointData {
 
     Display() = default;
     Display(ID<Material> mat, ID<Shape> shp) : material(mat), shape(shp) {}
-    bool operator==(const Display &rhs) const {
+    bool operator==(const Display& rhs) const {
       return material == rhs.material && shape == rhs.shape;
     }
   };
@@ -54,7 +54,7 @@ struct JointData {
   // glm::mat4x4
   std::array<float, 12> inverseBindPoseMtx;
 
-  bool operator==(const JointData &rhs) const {
+  bool operator==(const JointData& rhs) const {
     return name == rhs.name && id == rhs.id && bbMtxType == rhs.bbMtxType &&
            mayaSSC == rhs.mayaSSC && scale == rhs.scale &&
            rotate == rhs.rotate && translate == rhs.translate &&
@@ -69,11 +69,11 @@ struct Joint : public libcube::IBoneDelegate, public JointData {
   // ICON_FA_BONE);
 
   std::string getName() const { return name; }
-  void setName(const std::string &n) override { name = n; }
+  void setName(const std::string& n) override { name = n; }
   s64 getId() override { return id; }
-  void copy(lib3d::Bone &to) const override {
+  void copy(lib3d::Bone& to) const override {
     IBoneDelegate::copy(to);
-    Joint *pJoint = dynamic_cast<Joint *>(&to);
+    Joint* pJoint = dynamic_cast<Joint*>(&to);
     if (pJoint) {
       pJoint->name = name;
       pJoint->flag = flag;
@@ -94,7 +94,7 @@ struct Joint : public libcube::IBoneDelegate, public JointData {
   }
 
   lib3d::SRT3 getSRT() const override { return {scale, rotate, translate}; }
-  void setSRT(const lib3d::SRT3 &srt) override {
+  void setSRT(const lib3d::SRT3& srt) override {
     scale = srt.scale;
     rotate = srt.rotation;
     translate = srt.translation;
@@ -118,7 +118,7 @@ struct Joint : public libcube::IBoneDelegate, public JointData {
     return old;
   }
   lib3d::AABB getAABB() const override { return boundingBox; }
-  void setAABB(const lib3d::AABB &aabb) override {
+  void setAABB(const lib3d::AABB& aabb) override {
     boundingBox = {aabb.min, aabb.max};
   }
   float getBoundingRadius() const override { return boundingSphereRadius; }
@@ -158,7 +158,7 @@ struct Joint : public libcube::IBoneDelegate, public JointData {
     return {(u32)displays[idx].material, (u32)displays[idx].shape};
   }
 
-  void addDisplay(const lib3d::Bone::Display &d) override {
+  void addDisplay(const lib3d::Bone::Display& d) override {
     displays.emplace_back(d.matId, d.polyId);
   }
 };

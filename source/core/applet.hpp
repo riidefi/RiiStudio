@@ -7,7 +7,7 @@ namespace riistudio::core {
 
 class Applet : public Window, public GLWindow {
 public:
-  Applet(const char *name);
+  Applet(const char* name);
   ~Applet();
 
   void frameProcess() override;

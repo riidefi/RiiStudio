@@ -105,7 +105,7 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v) {
     break;
   }
 }
-IndexedPrimitive *IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) {
+IndexedPrimitive* IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) {
   u64 cnt = 0;
   for (u64 i = 0; i < getNumMatrixPrimitives(); ++i) {
     if (idx >= cnt && idx < cnt + getMatrixPrimitiveNumIndexedPrimitive(i))
@@ -115,7 +115,7 @@ IndexedPrimitive *IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) {
   }
   return nullptr;
 }
-const IndexedPrimitive *
+const IndexedPrimitive*
 IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) const {
   u64 cnt = 0;
   for (u64 i = 0; i < getNumMatrixPrimitives(); ++i) {
@@ -127,31 +127,31 @@ IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) const {
   return nullptr;
 }
 u64 IndexedPolygon::getPrimitiveVertexCount(u64 index) const {
-  const IndexedPrimitive *prim = getIndexedPrimitiveFromSuperIndex(index);
+  const IndexedPrimitive* prim = getIndexedPrimitiveFromSuperIndex(index);
   assert(prim);
   return prim->mVertices.size();
 }
 void IndexedPolygon::resizePrimitiveVertexArray(u64 index, u64 size) {
-  IndexedPrimitive *prim = getIndexedPrimitiveFromSuperIndex(index);
+  IndexedPrimitive* prim = getIndexedPrimitiveFromSuperIndex(index);
   assert(prim);
   prim->mVertices.resize(size);
 }
 IndexedPolygon::SimpleVertex IndexedPolygon::getPrimitiveVertex(u64 prim_idx,
                                                                 u64 vtx_idx) {
-  const auto &iprim = *getIndexedPrimitiveFromSuperIndex(prim_idx);
+  const auto& iprim = *getIndexedPrimitiveFromSuperIndex(prim_idx);
   assert(vtx_idx < iprim.mVertices.size());
-  const auto &vtx = iprim.mVertices[vtx_idx];
+  const auto& vtx = iprim.mVertices[vtx_idx];
 
   return {(u8)vtx[gx::VertexAttribute::PositionNormalMatrixIndex],
           getPos(vtx[gx::VertexAttribute::Position])};
   return {};
 }
-void IndexedPolygon::propogate(VBOBuilder &out) const {
+void IndexedPolygon::propogate(VBOBuilder& out) const {
   u32 final_bitfield = 0;
 
-  auto propTri = [&](const std::array<IndexedVertex, 3> &tri) {
-    const auto &vcd = getVcd();
-    for (const auto &vtx : tri) {
+  auto propTri = [&](const std::array<IndexedVertex, 3>& tri) {
+    const auto& vcd = getVcd();
+    for (const auto& vtx : tri) {
       out.mIndices.push_back(static_cast<u32>(out.mIndices.size()));
       final_bitfield |= vcd.mBitfield;
       // HACK:
@@ -210,7 +210,7 @@ void IndexedPolygon::propogate(VBOBuilder &out) const {
 
   for (int i = 0; i < getNumMatrixPrimitives(); ++i) {
     for (int j = 0; j < getMatrixPrimitiveNumIndexedPrimitive(i); ++j) {
-      const auto &idx = getMatrixPrimitiveIndexedPrimitive(i, j);
+      const auto& idx = getMatrixPrimitiveIndexedPrimitive(i, j);
       switch (idx.mType) {
       case gx::PrimitiveType::TriangleStrip:
         for (int v = 2; v < idx.mVertices.size(); ++v) {

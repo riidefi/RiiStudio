@@ -5,8 +5,8 @@
 
 namespace libcube {
 
-void writeImageStb(const char *filename, STBImage type, int x, int y,
-                   int channel_component_count, const void *data) {
+void writeImageStb(const char* filename, STBImage type, int x, int y,
+                   int channel_component_count, const void* data) {
   switch (type) {
   case STBImage::PNG:
     stbi_write_png(filename, x, y, channel_component_count, data,
@@ -23,7 +23,7 @@ void writeImageStb(const char *filename, STBImage type, int x, int y,
     break;
   case STBImage::HDR:
     stbi_write_hdr(filename, x, y, channel_component_count,
-                   static_cast<const float *>(data));
+                   static_cast<const float*>(data));
     break;
   default:
     assert(!"Invalid format.");

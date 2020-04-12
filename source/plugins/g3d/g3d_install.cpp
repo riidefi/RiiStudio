@@ -10,7 +10,7 @@ namespace riistudio::g3d {
 
 void Install() {
   assert(kpi::ApplicationPlugins::getInstance());
-  kpi::ApplicationPlugins &installer = *kpi::ApplicationPlugins::getInstance();
+  kpi::ApplicationPlugins& installer = *kpi::ApplicationPlugins::getInstance();
 
   installer.addType<g3d::Bone, libcube::IBoneDelegate>()
       .addType<g3d::Texture, libcube::Texture>()

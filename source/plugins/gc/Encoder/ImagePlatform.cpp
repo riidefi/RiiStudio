@@ -27,20 +27,20 @@ int getEncodedSize(int width, int height, gx::TextureFormat format,
 }
 
 // X -> raw 8-bit RGBA
-void decode(u8 *dst, const u8 *src, int width, int height,
-            gx::TextureFormat texformat, const u8 *tlut,
+void decode(u8* dst, const u8* src, int width, int height,
+            gx::TextureFormat texformat, const u8* tlut,
             gx::PaletteFormat tlutformat) {
   return TexDecoder_Decode(dst, src, width, height,
                            static_cast<TextureFormat>(texformat), tlut,
                            static_cast<TLUTFormat>(tlutformat));
 }
 
-typedef std::unique_ptr<uint32_t[]> codec_t(uint32_t *, uint16_t, uint16_t);
-codec_t *codecs[8]{convertBufferToI4,     convertBufferToI8,
+typedef std::unique_ptr<uint32_t[]> codec_t(uint32_t*, uint16_t, uint16_t);
+codec_t* codecs[8]{convertBufferToI4,     convertBufferToI8,
                    convertBufferToIA4,    convertBufferToIA8,
                    convertBufferToRGB565, convertBufferToRGB5A3,
                    convertBufferToRGBA8};
-static std::unique_ptr<uint32_t[]> invokeCodec(uint32_t *rgbaBuf,
+static std::unique_ptr<uint32_t[]> invokeCodec(uint32_t* rgbaBuf,
                                                uint16_t width, uint16_t height,
                                                gx::TextureFormat texformat) {
   int id = static_cast<int>(texformat);
@@ -52,7 +52,7 @@ static std::unique_ptr<uint32_t[]> invokeCodec(uint32_t *rgbaBuf,
   }
 }
 // raw 8-bit RGBA -> X
-void encode(u8 *dst, const u8 *src, int width, int height,
+void encode(u8* dst, const u8* src, int width, int height,
             gx::TextureFormat texformat) {
   if (texformat == gx::TextureFormat::CMPR) {
     EncodeDXT1(dst, src, width, height);
@@ -63,8 +63,8 @@ void encode(u8 *dst, const u8 *src, int width, int height,
     assert(getBlockedDimensions(width, height, texformat) == inpair);
 
     // Until we replace this lib...
-    uint32_t *rgbaBuf =
-        const_cast<uint32_t *>(reinterpret_cast<const uint32_t *>(src));
+    uint32_t* rgbaBuf =
+        const_cast<uint32_t*>(reinterpret_cast<const uint32_t*>(src));
 
     // TODO: MP allocates for us. We don't want this.
     auto newBuf = invokeCodec(rgbaBuf, width, height, texformat);
@@ -79,17 +79,17 @@ void encode(u8 *dst, const u8 *src, int width, int height,
   }
 }
 // Change format, no resizing
-void reencode(u8 *dst, const u8 *src, int width, int height,
+void reencode(u8* dst, const u8* src, int width, int height,
               gx::TextureFormat oldFormat, gx::TextureFormat newFormat) {
   std::vector<u8> tmp(width * height * 4);
   decode(tmp.data(), src, width, height, oldFormat);
   encode(dst, tmp.data(), width, height, newFormat);
 }
 
-void resize(u8 *dst, int dx, int dy, const u8 *src, int sx, int sy,
+void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy,
             ResizingAlgorithm type) {
   bool dstSrcTmp = dst == src;
-  u8 *realDst = nullptr;
+  u8* realDst = nullptr;
   std::vector<u8> tmp(0);
 
   assert(dst != nullptr);
@@ -122,7 +122,7 @@ void resize(u8 *dst, int dx, int dy, const u8 *src, int sx, int sy,
 }
 
 struct RGBA32ImageSource {
-  RGBA32ImageSource(const u8 *buf, int w, int h, gx::TextureFormat fmt)
+  RGBA32ImageSource(const u8* buf, int w, int h, gx::TextureFormat fmt)
       : mBuf(buf), mW(w), mH(h), mFmt(fmt) {
     if (fmt == gx::TextureFormat::Extension_RawRGBA32) {
       mDecoded = buf;
@@ -133,39 +133,39 @@ struct RGBA32ImageSource {
     }
   }
 
-  const u8 *get() const { return mDecoded; }
+  const u8* get() const { return mDecoded; }
   u32 size() const { return mW * mH * 4; }
   int width() const { return mW; }
   int height() const { return mH; }
 
 private:
   std::vector<u8> mTmp;
-  const u8 *mDecoded = nullptr;
-  const u8 *mBuf;
+  const u8* mDecoded = nullptr;
+  const u8* mBuf;
   int mW;
   int mH;
   gx::TextureFormat mFmt;
 };
 struct RGBA32ImageTarget {
   RGBA32ImageTarget(int w, int h) : mW(w), mH(h) { mTmp.resize(w * h * 4); }
-  void copyTo(u8 *dst, gx::TextureFormat fmt) {
+  void copyTo(u8* dst, gx::TextureFormat fmt) {
     if (fmt == gx::TextureFormat::Extension_RawRGBA32) {
       memcpy(dst, mTmp.data(), mTmp.size());
     } else {
       encode(dst, mTmp.data(), mW, mH, fmt);
     }
   }
-  void fromOtherSized(const u8 *src, u32 ow, u32 oh, ResizingAlgorithm al) {
+  void fromOtherSized(const u8* src, u32 ow, u32 oh, ResizingAlgorithm al) {
     if (ow == mW && oh == mH) {
       memcpy(mTmp.data(), src, mTmp.size());
     } else {
       resize(mTmp.data(), mW, mH, src, ow, oh, al);
     }
   }
-  void fromOtherSized(RGBA32ImageSource &source, ResizingAlgorithm al) {
+  void fromOtherSized(RGBA32ImageSource& source, ResizingAlgorithm al) {
     fromOtherSized(source.get(), source.width(), source.height(), al);
   }
-  u8 *get() { return mTmp.data(); }
+  u8* get() { return mTmp.data(); }
   u32 size() const { return mW * mH * 4; }
 
 private:
@@ -173,8 +173,8 @@ private:
   int mW;
   int mH;
 };
-void transform(u8 *dst, int dwidth, int dheight, gx::TextureFormat oldformat,
-               std::optional<gx::TextureFormat> newformat, const u8 *src,
+void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
+               std::optional<gx::TextureFormat> newformat, const u8* src,
                int swidth, int sheight, u32 mipMapCount,
                ResizingAlgorithm algorithm) {
   assert(dst);
@@ -191,7 +191,7 @@ void transform(u8 *dst, int dwidth, int dheight, gx::TextureFormat oldformat,
   // Determine whether to decode this sublevel as an image or many sublvels.
   if (mipMapCount > 0) {
     std::vector<u8> srcBuf(0);
-    const u8 *pSrc = nullptr;
+    const u8* pSrc = nullptr;
     if (dst == src) {
       srcBuf.resize(getEncodedSize(swidth, sheight, oldformat, mipMapCount));
       memcpy(srcBuf.data(), src, srcBuf.size());

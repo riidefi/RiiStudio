@@ -40,7 +40,7 @@ void FileHost::openFile(OpenFilePolicy policy) {
   auto file = results[0];
   openFile(file, policy);
 }
-void FileHost::openFile(const std::string &path, OpenFilePolicy policy) {
+void FileHost::openFile(const std::string& path, OpenFilePolicy policy) {
   std::ifstream stream(path, std::ios::binary | std::ios::ate);
 
   if (!stream)
@@ -50,7 +50,7 @@ void FileHost::openFile(const std::string &path, OpenFilePolicy policy) {
   stream.seekg(0, std::ios::beg);
 
   std::unique_ptr<u8[]> data = std::make_unique<u8[]>(size);
-  if (!stream.read(reinterpret_cast<char *>(data.get()), size))
+  if (!stream.read(reinterpret_cast<char*>(data.get()), size))
     return;
 
   FileData drop{std::move(data), static_cast<std::size_t>(size), path};
@@ -58,14 +58,14 @@ void FileHost::openFile(const std::string &path, OpenFilePolicy policy) {
 }
 
 // Call from dropper
-void FileHost::drop(const std::vector<std::string> &paths) {
-  for (const auto &path : paths) {
+void FileHost::drop(const std::vector<std::string>& paths) {
+  for (const auto& path : paths) {
     DebugReport("Dropping file: %s\n", path.c_str());
     mDropQueue.push(path);
   }
 }
 void FileHost::dropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len,
-                          const std::string &name) {
+                          const std::string& name) {
   printf("Dropping file.. %s\n", name.c_str());
   FileData drop{std::move(data), len, name};
   mDataDropQueue.emplace(std::move(drop));

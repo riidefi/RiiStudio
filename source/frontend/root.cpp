@@ -34,7 +34,7 @@ void RootWindow::draw() {
 
   ImGuiWindowFlags window_flags =
       ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-  ImGuiViewport *viewport = ImGui::GetMainViewport();
+  ImGuiViewport* viewport = ImGui::GetMainViewport();
   ImGui::SetNextWindowPos(viewport->Pos);
   ImGui::SetNextWindowSize(viewport->Size);
   ImGui::SetNextWindowViewport(viewport->ID);
@@ -52,7 +52,7 @@ void RootWindow::draw() {
 
   ImGuiID dock_main_id = dockspace_id;
   while (mAttachEditorsQueue.size()) {
-    const std::string &ed_id = mAttachEditorsQueue.front();
+    const std::string& ed_id = mAttachEditorsQueue.front();
 
     // ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
     // ImGui::DockBuilderAddNode(dockspace_id); // Add empty node
@@ -69,7 +69,7 @@ void RootWindow::draw() {
 
   ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), 0);
 
-  EditorWindow *ed = dynamic_cast<EditorWindow *>(
+  EditorWindow* ed = dynamic_cast<EditorWindow*>(
       mActive ? mActive : !mChildren.empty() ? mChildren[0].get() : this);
 
   if (ImGui::BeginMenuBar()) {
@@ -130,23 +130,23 @@ void RootWindow::draw() {
 #ifndef BUILD_DIST
     if (ImGui::BeginMenu("Experimental")) {
       if (ImGui::MenuItem("Convert to BMD") && ed != nullptr) {
-        const kpi::IDocumentNode *from_root = ed->mState.get();
-        auto *from_models = from_root->getFolder<lib3d::Model>();
-        auto *from_textures = from_root->getFolder<libcube::Texture>();
+        const kpi::IDocumentNode* from_root = ed->mState.get();
+        auto* from_models = from_root->getFolder<lib3d::Model>();
+        auto* from_textures = from_root->getFolder<libcube::Texture>();
 
         auto bmd_state = SpawnState(typeid(j3d::Collection).name());
 
         j3d::CollectionAccessor bmd_col(bmd_state.get());
 
         for (int fr_i = 0; fr_i < from_models->size(); ++fr_i) {
-          const auto &from_model = from_models->at<kpi::IDocumentNode>(fr_i);
+          const auto& from_model = from_models->at<kpi::IDocumentNode>(fr_i);
           auto bmd_model = bmd_col.addModel();
           // info
           // Bufs (automate)
           bmd_model.get().mBufs.norm.mQuant.comp.normal =
               libcube::gx::VertexComponentCount::Normal::xyz;
           // drawmtx (skip)
-          auto &mtx = bmd_model.get().mDrawMatrices.emplace_back();
+          auto& mtx = bmd_model.get().mDrawMatrices.emplace_back();
           mtx.mWeights.emplace_back(0, 1.0f);
           // materials
           {
@@ -155,7 +155,7 @@ void RootWindow::draw() {
               auto mat = bmd_model.addMaterial();
               mat.get().id = m_i;
 
-              auto &md = mat.get().getMaterialData();
+              auto& md = mat.get().getMaterialData();
 
               mat.get().getMaterialData() =
                   from_mats->at<libcube::IGCMaterial>(m_i).getMaterialData();
@@ -165,9 +165,9 @@ void RootWindow::draw() {
               for (int i = 0; i < before.size(); ++i) {
                 auto simp =
                     std::make_unique<j3d::MaterialData::J3DSamplerData>();
-                static_cast<libcube::GCMaterialData::SamplerData &>(
+                static_cast<libcube::GCMaterialData::SamplerData&>(
                     *simp.get()) =
-                    static_cast<const libcube::GCMaterialData::SamplerData &>(
+                    static_cast<const libcube::GCMaterialData::SamplerData&>(
                         *before[i].get());
                 md.samplers.push_back(std::move(simp));
               }
@@ -188,36 +188,36 @@ void RootWindow::draw() {
           {
             auto from_shapes = from_model.getFolder<libcube::IndexedPolygon>();
             for (int m_i = 0; m_i < from_shapes->size(); ++m_i) {
-              auto &from_shape = from_shapes->at<libcube::IndexedPolygon>(m_i);
+              auto& from_shape = from_shapes->at<libcube::IndexedPolygon>(m_i);
               const auto vcd = from_shape.getVcd();
 
-              auto &bmd_shape = bmd_model.addShapeRaw();
+              auto& bmd_shape = bmd_model.addShapeRaw();
               bmd_shape.id = m_i;
               bmd_shape.mVertexDescriptor = vcd;
-              for (auto &e : bmd_shape.mVertexDescriptor.mAttributes) {
+              for (auto& e : bmd_shape.mVertexDescriptor.mAttributes) {
                 e.second = libcube::gx::VertexAttributeType::Short;
               }
               bmd_shape.mVertexDescriptor
                   .calcVertexDescriptorFromAttributeList();
 
               for (int i = 0; i < from_shape.getNumMatrixPrimitives(); ++i) {
-                auto &bmd_mp = bmd_shape.mMatrixPrimitives.emplace_back();
+                auto& bmd_mp = bmd_shape.mMatrixPrimitives.emplace_back();
                 bmd_mp.mCurrentMatrix = 0;
                 bmd_mp.mDrawMatrixIndices.push_back(0);
                 // No multi mtx yet
                 for (int j = 0;
                      j < from_shape.getMatrixPrimitiveNumIndexedPrimitive(i);
                      ++j) {
-                  const auto &prim =
+                  const auto& prim =
                       from_shape.getMatrixPrimitiveIndexedPrimitive(i, j);
-                  auto &p = bmd_mp.mPrimitives.emplace_back(prim);
+                  auto& p = bmd_mp.mPrimitives.emplace_back(prim);
                   // Remap vtx indices
-                  for (auto &v : p.mVertices) {
+                  for (auto& v : p.mVertices) {
                     for (u32 x = 0; x < (u32)libcube::gx::VertexAttribute::Max;
                          ++x) {
                       if (!(vcd.mBitfield & (1 << x)))
                         continue;
-                      auto &bufs = bmd_model.get().mBufs;
+                      auto& bufs = bmd_model.get().mBufs;
                       switch (static_cast<libcube::gx::VertexAttribute>(x)) {
                       case libcube::gx::VertexAttribute::
                           PositionNormalMatrixIndex:
@@ -299,10 +299,10 @@ void RootWindow::draw() {
         }
         // textures
         for (int fr_i = 0; fr_i < from_textures->size(); ++fr_i) {
-          const auto &from_texture = from_textures->at<libcube::Texture>(fr_i);
+          const auto& from_texture = from_textures->at<libcube::Texture>(fr_i);
           auto bmd_texture = bmd_col.addTexture();
 
-          auto &bt = bmd_texture.get();
+          auto& bt = bmd_texture.get();
           bt.mName = from_texture.getName();
           bt.mFormat = from_texture.getTextureFormat();
           bt.bTransparent = false; // TODO
@@ -327,7 +327,7 @@ void RootWindow::draw() {
     }
 #endif
 
-    const auto &io = ImGui::GetIO();
+    const auto& io = ImGui::GetIO();
     ImGui::SameLine(ImGui::GetWindowWidth() - 60);
 #ifndef NDEBUG
     ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate,
@@ -357,13 +357,13 @@ void RootWindow::draw() {
   ImGui::PopID();
 }
 
-std::vector<std::string> GetChildrenOfType(const std::string &type) {
+std::vector<std::string> GetChildrenOfType(const std::string& type) {
   std::vector<std::string> out;
   const auto hnd = kpi::ReflectionMesh::getInstance()->lookupInfo(type);
 
   for (int i = 0; i < hnd.getNumChildren(); ++i) {
     out.push_back(hnd.getChild(i).getName());
-    for (const auto &str : GetChildrenOfType(hnd.getChild(i).getName()))
+    for (const auto& str : GetChildrenOfType(hnd.getChild(i).getName()))
       out.push_back(str);
   }
   return out;
@@ -427,7 +427,7 @@ void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
   mAttachEditorsQueue.push(editor->getName());
 #ifdef RII_BACKEND_GLFW
   editor->mpGlfwWindow = mpGlfwWindow;
-  for (auto &child : editor->mChildren) {
+  for (auto& child : editor->mChildren) {
     child->mpGlfwWindow = mpGlfwWindow;
   }
 #endif
@@ -450,12 +450,12 @@ RootWindow::RootWindow() : Applet("RiiStudio") {
 }
 RootWindow::~RootWindow() { DeinitAPI(); }
 
-void RootWindow::save(const std::string &path) {
+void RootWindow::save(const std::string& path) {
   std::ofstream stream(path + "_TEST.bmd", std::ios::binary | std::ios::out);
 
   oishii::v2::Writer writer(1024);
 
-  EditorWindow *ed = dynamic_cast<EditorWindow *>(
+  EditorWindow* ed = dynamic_cast<EditorWindow*>(
       mActive ? mActive : !mChildren.empty() ? mChildren[0].get() : this);
   if (!ed)
     return;
@@ -467,7 +467,7 @@ void RootWindow::save(const std::string &path) {
     return;
   ex->write_(*ed->mState.get(), writer);
 
-  stream.write((const char *)writer.getDataBlockStart(), writer.getBufSize());
+  stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
 }
 void RootWindow::saveAs() {
   auto results = pfd::save_file("Save File", "", {"All Files", "*"}).result();

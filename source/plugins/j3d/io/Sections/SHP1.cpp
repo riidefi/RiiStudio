@@ -6,8 +6,8 @@ namespace riistudio::j3d {
 
 using namespace libcube;
 
-void readSHP1(BMDOutputContext &ctx) {
-  auto &reader = ctx.reader;
+void readSHP1(BMDOutputContext& ctx) {
+  auto& reader = ctx.reader;
 
   if (!enterSection(ctx, 'SHP1'))
     return;
@@ -66,7 +66,7 @@ void readSHP1(BMDOutputContext &ctx) {
   // const auto nameTable = readNameTable(reader);
 
   for (int si = 0; si < size; ++si) {
-    auto &shape = ctx.mdl.getShape(si).get();
+    auto& shape = ctx.mdl.getShape(si).get();
     reader.seekSet(g.start + ofsShapeData + ctx.shapeIdLut[si] * 0x28);
     shape.id = ctx.shapeIdLut[si];
     // printf("Shape (index=%u, id=%u) {\n", si, shape.id);
@@ -137,18 +137,18 @@ void readSHP1(BMDOutputContext &ctx) {
 
       // Mtx Prim Data
       MatrixData mtxPrimHdr = readMatrixData();
-      MatrixPrimitive &mprim = shape.mMatrixPrimitives.emplace_back(
+      MatrixPrimitive& mprim = shape.mMatrixPrimitives.emplace_back(
           mtxPrimHdr.current_matrix, mtxPrimHdr.matrixList);
 
       struct SHP1_MPrim : IMeshDLDelegate {
-        IndexedPrimitive &addIndexedPrimitive(gx::PrimitiveType type,
+        IndexedPrimitive& addIndexedPrimitive(gx::PrimitiveType type,
                                               u16 nVerts) override {
           return mprim.mPrimitives.emplace_back(type, nVerts);
         }
-        SHP1_MPrim(MatrixPrimitive &mp) : mprim(mp) {}
+        SHP1_MPrim(MatrixPrimitive& mp) : mprim(mp) {}
 
       private:
-        MatrixPrimitive &mprim;
+        MatrixPrimitive& mprim;
       } mprim_del(mprim);
       DecodeMeshDisplayList(reader, g.start + ofsDL + dlOfs, dlSz, mprim_del,
                             shape.mVertexDescriptor,
@@ -161,40 +161,40 @@ template <typename T, u32 bodyAlign = 1, u32 entryAlign = 1,
           bool compress = true>
 class CompressableVector : public oishii::v2::Node {
   struct Child : public oishii::v2::Node {
-    Child(const CompressableVector &parent, u32 index)
+    Child(const CompressableVector& parent, u32 index)
         : mParent(parent), mIndex(index) {
       mId = std::to_string(index);
       getLinkingRestriction().alignment = entryAlign;
       // getLinkingRestriction().setFlag(oishii::v2::LinkingRestriction::PadEnd);
       getLinkingRestriction().setLeaf();
     }
-    Result write(oishii::v2::Writer &writer) const noexcept override {
+    Result write(oishii::v2::Writer& writer) const noexcept override {
       mParent.getEntry(mIndex).write(writer);
       return {};
     }
-    const CompressableVector &mParent;
+    const CompressableVector& mParent;
     const u32 mIndex;
   };
   struct ContainerNode : public oishii::v2::Node {
-    ContainerNode(const CompressableVector &parent, const std::string &id)
+    ContainerNode(const CompressableVector& parent, const std::string& id)
         : mParent(parent) {
       mId = id;
       getLinkingRestriction().alignment = bodyAlign;
     }
-    Result gatherChildren(NodeDelegate &d) const noexcept override {
+    Result gatherChildren(NodeDelegate& d) const noexcept override {
       for (u32 i = 0; i < mParent.getNumEntries(); ++i)
         d.addNode(std::make_unique<Child>(mParent, i));
       return {};
     }
-    const CompressableVector &mParent;
+    const CompressableVector& mParent;
   };
 
 public:
-  std::unique_ptr<oishii::v2::Node> spawnNode(const std::string &id) const {
+  std::unique_ptr<oishii::v2::Node> spawnNode(const std::string& id) const {
     return std::make_unique<ContainerNode>(*this, id);
   }
 
-  u32 append(const T &entry) {
+  u32 append(const T& entry) {
     const auto found = std::find(mEntries.begin(), mEntries.end(), entry);
     if (found == mEntries.end() || !compress) {
       mEntries.push_back(entry);
@@ -202,7 +202,7 @@ public:
     }
     return found - mEntries.begin();
   }
-  int find(const T &entry) const {
+  int find(const T& entry) const {
     int outIdx = -1;
     for (int i = 0; i < mEntries.size(); ++i)
       if (entry == mEntries[i])
@@ -212,11 +212,11 @@ public:
     return outIdx;
   }
   u32 getNumEntries() const { return mEntries.size(); }
-  const T &getEntry(u32 idx) const {
+  const T& getEntry(u32 idx) const {
     assert(idx < mEntries.size());
     return mEntries[idx];
   }
-  T &getEntry(u32 idx) {
+  T& getEntry(u32 idx) {
     assert(idx < mEntries.size());
     return mEntries[idx];
   }
@@ -225,11 +225,11 @@ protected:
   std::vector<T> mEntries;
 };
 struct WriteableVertexDescriptor : VertexDescriptor {
-  WriteableVertexDescriptor(const VertexDescriptor &d) {
-    *(VertexDescriptor *)this = d;
+  WriteableVertexDescriptor(const VertexDescriptor& d) {
+    *(VertexDescriptor*)this = d;
   }
-  void write(oishii::v2::Writer &writer) const noexcept {
-    for (auto &x : mAttributes) {
+  void write(oishii::v2::Writer& writer) const noexcept {
+    for (auto& x : mAttributes) {
       writer.write<u32>(static_cast<u32>(x.first));
       writer.write<u32>(static_cast<u32>(x.second));
     }
@@ -238,10 +238,10 @@ struct WriteableVertexDescriptor : VertexDescriptor {
   }
 };
 struct WriteableMatrixList : public std::vector<s16> {
-  WriteableMatrixList(const std::vector<s16> &parent) {
-    *(std::vector<s16> *)this = parent;
+  WriteableMatrixList(const std::vector<s16>& parent) {
+    *(std::vector<s16>*)this = parent;
   }
-  void write(oishii::v2::Writer &writer) const noexcept {
+  void write(oishii::v2::Writer& writer) const noexcept {
     for (int i = 0; i < size(); ++i)
       writer.write<u16>(at(i));
 
@@ -255,9 +255,9 @@ struct SHP1Node final : public oishii::v2::Node {
     mLinkingRestriction.alignment = 32;
 
     for (int i = 0; i < mModel.getShapes().size(); ++i) {
-      const auto &shp = mModel.getShape(i).get();
+      const auto& shp = mModel.getShape(i).get();
       mVcdPool.append(shp.mVertexDescriptor);
-      for (const auto &mp : shp.mMatrixPrimitives)
+      for (const auto& mp : shp.mMatrixPrimitives)
         mMtxListPool.append(mp.mDrawMatrixIndices);
     }
   }
@@ -271,12 +271,12 @@ struct SHP1Node final : public oishii::v2::Node {
 #endif
                      false>
       mMtxListPool;
-  Result write(oishii::v2::Writer &writer) const noexcept override {
+  Result write(oishii::v2::Writer& writer) const noexcept override {
     // VCD List compression compute.
     //	struct VCDHasher
     //	{
     //		std::size_t operator()(const VertexDescriptor& v) const { return
-    //v.mBitfield; }
+    // v.mBitfield; }
     //	};
     //	std::map<VertexDescriptor, int, VCDHasher> vcd;
     //	for (auto& shp : mModel.mShapes)
@@ -328,8 +328,8 @@ struct SHP1Node final : public oishii::v2::Node {
     _MTXListChildMPrim
   };
   struct SubNode : public oishii::v2::Node {
-    const SHP1Node &mParent;
-    SubNode(const ModelAccessor mdl, SubNodeID id, const SHP1Node &parent,
+    const SHP1Node& mParent;
+    SubNode(const ModelAccessor mdl, SubNodeID id, const SHP1Node& parent,
             int polyId = -1, int MPrimId = -1)
         : mMdl(mdl), mSID(id), mPolyId(polyId), mMpId(MPrimId),
           mParent(parent) {
@@ -395,11 +395,11 @@ struct SHP1Node final : public oishii::v2::Node {
       getLinkingRestriction().alignment = align;
     }
 
-    Result write(oishii::v2::Writer &writer) const noexcept {
+    Result write(oishii::v2::Writer& writer) const noexcept {
       switch (mSID) {
       case SubNodeID::ShapeData: {
         for (int i = 0; i < mMdl.getShapes().size(); ++i) {
-          const auto &shp = mMdl.getShape(i).get();
+          const auto& shp = mMdl.getShape(i).get();
 
           writer.write<u8>(static_cast<u8>(shp.mode));
           writer.write<u8>(0xff);
@@ -450,11 +450,11 @@ struct SHP1Node final : public oishii::v2::Node {
       case SubNodeID::_DLChild:
         break; // MPrims write..
       case SubNodeID::_DLChildMPrim: {
-        const auto &poly = mMdl.getShape(mPolyId).get();
-        for (auto &prim : poly.mMatrixPrimitives[mMpId].mPrimitives) {
+        const auto& poly = mMdl.getShape(mPolyId).get();
+        for (auto& prim : poly.mMatrixPrimitives[mMpId].mPrimitives) {
           writer.write<u8>(gx::EncodeDrawPrimitiveCommand(prim.mType));
           writer.write<u16>(prim.mVertices.size());
-          for (const auto &v : prim.mVertices) {
+          for (const auto& v : prim.mVertices) {
             for (int a = 0; a < (int)gx::VertexAttribute::Max; ++a) {
               if (poly.mVertexDescriptor[(gx::VertexAttribute)a]) {
                 switch (poly.mVertexDescriptor.mAttributes.at(
@@ -494,10 +494,10 @@ struct SHP1Node final : public oishii::v2::Node {
 
         u32 num = 0;
         for (int j = 0; j < mPolyId; ++j)
-          for (auto &mp : mMdl.getShape(j).get().mMatrixPrimitives)
+          for (auto& mp : mMdl.getShape(j).get().mMatrixPrimitives)
             num += mp.mDrawMatrixIndices.size();
         int i = 0;
-        for (const auto &x : mMdl.getShape(mPolyId).get().mMatrixPrimitives) {
+        for (const auto& x : mMdl.getShape(mPolyId).get().mMatrixPrimitives) {
           writer.write<u16>(x.mCurrentMatrix);
           // listSize, listStartIndex
           writer.write<u16>(x.mDrawMatrixIndices.size());
@@ -535,7 +535,7 @@ struct SHP1Node final : public oishii::v2::Node {
       return {};
     }
 
-    Result gatherChildren(NodeDelegate &d) const noexcept override {
+    Result gatherChildren(NodeDelegate& d) const noexcept override {
       switch (mSID) {
       case SubNodeID::ShapeData:
       case SubNodeID::LUT:
@@ -576,11 +576,11 @@ struct SHP1Node final : public oishii::v2::Node {
     int mPolyId = -1;
     int mMpId = -1;
 
-    const std::vector<VertexDescriptor> *vcdPool;
-    const std::vector<std::vector<s16>> *mtxListPool;
+    const std::vector<VertexDescriptor>* vcdPool;
+    const std::vector<std::vector<s16>>* mtxListPool;
   };
 
-  Result gatherChildren(NodeDelegate &d) const noexcept override {
+  Result gatherChildren(NodeDelegate& d) const noexcept override {
     auto addSubNode = [&](SubNodeID ID) {
       d.addNode(std::make_unique<SubNode>(mModel, ID, *this, -1, -1));
     };
@@ -597,7 +597,7 @@ struct SHP1Node final : public oishii::v2::Node {
   const ModelAccessor mModel;
 };
 
-std::unique_ptr<oishii::v2::Node> makeSHP1Node(BMDExportContext &ctx) {
+std::unique_ptr<oishii::v2::Node> makeSHP1Node(BMDExportContext& ctx) {
   return std::make_unique<SHP1Node>(ctx.mdl);
 }
 

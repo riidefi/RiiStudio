@@ -30,17 +30,17 @@ struct QCPCommand {
 class QDisplayListHandler {
 public:
   virtual ~QDisplayListHandler() {}
-  virtual void onCommandBP(const QBPCommand &token) {}
-  virtual void onCommandCP(const QCPCommand &token) {}
-  virtual void onCommandXF(const QXFCommand &token) {}
-  virtual void onCommandDraw(oishii::BinaryReader &reader,
+  virtual void onCommandBP(const QBPCommand& token) {}
+  virtual void onCommandCP(const QCPCommand& token) {}
+  virtual void onCommandXF(const QXFCommand& token) {}
+  virtual void onCommandDraw(oishii::BinaryReader& reader,
                              libcube::gx::PrimitiveType type, u16 nverts) {}
 
   virtual void onStreamBegin() {}
   virtual void onStreamEnd() {}
 };
 
-void RunDisplayList(oishii::BinaryReader &reader, QDisplayListHandler &handler,
+void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler,
                     u32 dlSize);
 
 } // namespace libcube::gpu

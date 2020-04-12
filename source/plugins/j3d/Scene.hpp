@@ -16,7 +16,7 @@ struct TevOrder {
   libcube::gx::ColorSelChanApi rasOrder;
   u8 texMap, texCoord;
 
-  bool operator==(const TevOrder &rhs) const noexcept {
+  bool operator==(const TevOrder& rhs) const noexcept {
     return rasOrder == rhs.rasOrder && texMap == rhs.texMap &&
            texCoord == rhs.texCoord;
   }
@@ -25,13 +25,13 @@ struct TevOrder {
 struct SwapSel {
   u8 colorChanSel, texSel;
 
-  bool operator==(const SwapSel &rhs) const noexcept {
+  bool operator==(const SwapSel& rhs) const noexcept {
     return colorChanSel == rhs.colorChanSel && texSel == rhs.texSel;
   }
 };
 
 struct Collection : public lib3d::Scene {
-  bool operator==(const Collection &rhs) const { return true; }
+  bool operator==(const Collection& rhs) const { return true; }
 };
 
 struct Tex {
@@ -57,7 +57,7 @@ struct Tex {
   // Not written, tracked
   s32 btiId = -1;
 
-  bool operator==(const Tex &rhs) const {
+  bool operator==(const Tex& rhs) const {
     return mFormat == rhs.mFormat && bTransparent == rhs.bTransparent &&
            mWidth == rhs.mWidth && mHeight == rhs.mHeight &&
            mWrapU == rhs.mWrapU && mWrapV == rhs.mWrapV &&
@@ -70,16 +70,16 @@ struct Tex {
            mLodBias == rhs.mLodBias && btiId == rhs.btiId; // ofsTex not checked
   }
 
-  void transfer(oishii::BinaryReader &stream);
-  void write(oishii::v2::Writer &stream) const;
+  void transfer(oishii::BinaryReader& stream);
+  void write(oishii::v2::Writer& stream) const;
   Tex() = default;
-  Tex(const Texture &data, const libcube::GCMaterialData::SamplerData &sampler);
+  Tex(const Texture& data, const libcube::GCMaterialData::SamplerData& sampler);
 };
 
 struct Model : public lib3d::Model {
   virtual ~Model() = default;
   // Shallow comparison
-  bool operator==(const Model &rhs) const { return false; }
+  bool operator==(const Model& rhs) const { return false; }
   struct Information {
     // For texmatrix calculations
     enum class ScalingRule { Basic, XSI, Maya };
@@ -110,7 +110,7 @@ struct Model : public lib3d::Model {
     std::array<VertexBuffer<glm::vec2, VBufferKind::textureCoordinate>, 8> uv;
 
     Bufs() {
-      for (auto &clr : color) {
+      for (auto& clr : color) {
         clr = {VQuantization{
             libcube::gx::VertexComponentCount(
                 libcube::gx::VertexComponentCount::Color::rgba),
@@ -118,7 +118,7 @@ struct Model : public lib3d::Model {
                 libcube::gx::VertexBufferType::Color::FORMAT_32B_8888),
             0, 0, 4}};
       }
-      for (auto &uv_ : uv) {
+      for (auto& uv_ : uv) {
         uv_ = {VQuantization{
             libcube::gx::VertexComponentCount(
                 libcube::gx::VertexComponentCount::TextureCoordinate::st),
@@ -141,7 +141,7 @@ struct Model : public lib3d::Model {
     std::array<libcube::gx::TevStage::IndirectStage, 16> tevStage;
 
     Indirect() = default;
-    Indirect(const MaterialData &mat) {
+    Indirect(const MaterialData& mat) {
       enabled = mat.indEnabled;
       nIndStage = mat.info.nIndStage;
 
@@ -156,7 +156,7 @@ struct Model : public lib3d::Model {
         tevStage[i] = mat.shader.mStages[i].indirectStage;
     }
 
-    bool operator==(const Indirect &rhs) const noexcept {
+    bool operator==(const Indirect& rhs) const noexcept {
       return enabled == rhs.enabled && nIndStage == rhs.nIndStage &&
              tevOrder == rhs.tevOrder && texMtx == rhs.texMtx &&
              texScale == rhs.texScale && tevStage == rhs.tevStage;
@@ -196,18 +196,18 @@ struct Model : public lib3d::Model {
 
     void clear() { *this = MatCache{}; }
     template <typename T>
-    void update_section(std::vector<T> &sec, const T &data) {
+    void update_section(std::vector<T>& sec, const T& data) {
       if (std::find(sec.begin(), sec.end(), data) == sec.end()) {
         sec.push_back(data);
       }
     }
     template <typename T, typename U>
-    void update_section_multi(std::vector<T> &sec, const U &source) {
+    void update_section_multi(std::vector<T>& sec, const U& source) {
       for (int i = 0; i < source.size(); ++i) {
         update_section(sec, source[i]);
       }
     }
-    void propogate(Material &mat);
+    void propogate(Material& mat);
   } mMatCache;
 
   mutable std::vector<Tex> mTexCache;

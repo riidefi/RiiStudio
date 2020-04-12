@@ -14,8 +14,8 @@ static u16 get_highest_bit(u8 val) {
     ;
   return i;
 }
-static u16 calc_brres_id(const char *object_name, u32 object_len,
-                         const char *subject_name, u32 subject_len) {
+static u16 calc_brres_id(const char* object_name, u32 object_len,
+                         const char* subject_name, u32 subject_len) {
   if (object_len < subject_len)
     return (subject_len - 1) << 3 |
            get_highest_bit(subject_name[subject_len - 1]);
@@ -30,13 +30,13 @@ static u16 calc_brres_id(const char *object_name, u32 object_len,
 }
 
 void Dictionary::calcNode(u32 entry_idx) {
-  DictionaryNode &entry = mNodes[entry_idx];
+  DictionaryNode& entry = mNodes[entry_idx];
   entry.mId = calc_brres_id(0, 0, entry.mName.c_str(), entry.mName.size());
   entry.mIdxPrev = entry.mIdxNext = entry_idx;
 
-  DictionaryNode &prev = mNodes[0];
+  DictionaryNode& prev = mNodes[0];
   u32 current_idx = prev.mIdxPrev;
-  DictionaryNode &current = mNodes[current_idx];
+  DictionaryNode& current = mNodes[current_idx];
 
   bool is_right = false;
 
@@ -73,7 +73,7 @@ void Dictionary::calcNodes() {
   assert(!mNodes.empty());
 
   // Create root
-  DictionaryNode &root = mNodes[0];
+  DictionaryNode& root = mNodes[0];
   root.mId = 0xffff;
   root.mIdxPrev = root.mIdxNext = 0;
 
@@ -82,7 +82,7 @@ void Dictionary::calcNodes() {
     calcNode(i);
 }
 
-void Dictionary::read(oishii::BinaryReader &reader) {
+void Dictionary::read(oishii::BinaryReader& reader) {
   mNodes.clear();
   const auto grpStart = reader.tell();
 
@@ -94,7 +94,7 @@ void Dictionary::read(oishii::BinaryReader &reader) {
 
   assert(totalSize == reader.tell() - grpStart);
 }
-void Dictionary::write(oishii::v2::Writer &writer) {
+void Dictionary::write(oishii::v2::Writer& writer) {
   calcNodes();
 
   const auto grpStart = writer.tell();
@@ -116,7 +116,7 @@ void Dictionary::write(oishii::v2::Writer &writer) {
   }
 }
 
-void DictionaryNode::read(oishii::BinaryReader &reader,
+void DictionaryNode::read(oishii::BinaryReader& reader,
                           u32 groupStartPosition) {
   mId = reader.read<u16>();
   mFlag = reader.read<u16>();

@@ -5,7 +5,7 @@
 
 namespace riistudio::pik {
 
-void Install(kpi::ApplicationPlugins &installer) {
+void Install(kpi::ApplicationPlugins& installer) {
   InstallDMD(installer);
 
   installer.addType<pik::PikminModel, lib3d::Model>();

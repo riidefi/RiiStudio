@@ -8,13 +8,13 @@
 
 #ifdef RII_BACKEND_SDL
 struct SDL_Window;
-extern SDL_Window *g_Window;
+extern SDL_Window* g_Window;
 #endif
 
 namespace riistudio::core {
 
 static bool loadFonts() {
-  ImGuiIO &io = ImGui::GetIO();
+  ImGuiIO& io = ImGui::GetIO();
   ImFontConfig fontcfg;
   fontcfg.OversampleH = 8;
   fontcfg.OversampleV = 8;
@@ -39,10 +39,10 @@ static bool loadFonts() {
   return true;
 }
 
-Applet::Applet(const char *name) : GLWindow(1280, 720, name) {
+Applet::Applet(const char* name) : GLWindow(1280, 720, name) {
 
-  ImGuiStyle &style = ImGui::GetStyle();
-  ImGuiIO &io = ImGui::GetIO();
+  ImGuiStyle& style = ImGui::GetStyle();
+  ImGuiIO& io = ImGui::GetIO();
   if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
     style.WindowRounding = 0.0f;
     style.Colors[ImGuiCol_WindowBg].w = 1.0f;

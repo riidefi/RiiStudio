@@ -78,8 +78,8 @@ extern const u8 cc86[256]; // convert 8-bit color to 6-bit color
 
 enum { CMPR_MAX_COL = 16, CMPR_DATA_SIZE = 4 * CMPR_MAX_COL };
 
-inline void write_be16(void *dest, u16 val) {
-  *reinterpret_cast<u16 *>(dest) = oishii::swap16(val);
+inline void write_be16(void* dest, u16 val) {
+  *reinterpret_cast<u16*>(dest) = oishii::swap16(val);
 }
 
 struct cmpr_info_t {
@@ -90,29 +90,29 @@ struct cmpr_info_t {
   // if opaque_count < 16: p[2] == p[3]
 };
 
-static u32 calc_distance(const u8 *v1, const u8 *v2) {
+static u32 calc_distance(const u8* v1, const u8* v2) {
   const int d0 = (int)*v1++ - (int)*v2++;
   const int d1 = (int)*v1++ - (int)*v2++;
   const int d2 = (int)*v1++ - (int)*v2++;
   return abs(d0) + abs(d1) + abs(d2);
 }
 
-static u32 calc_distance_square(const u8 *v1, const u8 *v2) {
+static u32 calc_distance_square(const u8* v1, const u8* v2) {
   const int d0 = (int)*v1++ - (int)*v2++;
   const int d1 = (int)*v1++ - (int)*v2++;
   const int d2 = (int)*v1++ - (int)*v2++;
   return d0 * d0 + d1 * d1 + d2 * d2;
 }
 
-void CMPR_close_info(const u8 *data,    // source data
-                     cmpr_info_t *info, // info data structure
-                     u8 *dest           // store destination data here (never 0)
+void CMPR_close_info(const u8* data,    // source data
+                     cmpr_info_t* info, // info data structure
+                     u8* dest           // store destination data here (never 0)
 ) {
   assert(info);
   assert(dest);
 
-  u8 *pal0 = info->p[0];
-  u8 *pal1 = info->p[1];
+  u8* pal0 = info->p[0];
+  u8* pal1 = info->p[1];
 
   if (info->opaque_count < CMPR_MAX_COL) {
     if (!info->opaque_count) {
@@ -155,7 +155,7 @@ void CMPR_close_info(const u8 *data,    // source data
 
     // calculate median palette value
 
-    u8 *pal2 = info->p[2];
+    u8* pal2 = info->p[2];
     pal2[0] = (pal0[0] + pal1[0]) / 2;
     pal2[1] = (pal0[1] + pal1[1]) / 2;
     pal2[2] = (pal0[2] + pal1[2]) / 2;
@@ -214,13 +214,13 @@ void CMPR_close_info(const u8 *data,    // source data
 
     // calculate median palette values
 
-    u8 *pal2 = info->p[2];
+    u8* pal2 = info->p[2];
     pal2[0] = (2 * pal0[0] + pal1[0]) / 3;
     pal2[1] = (2 * pal0[1] + pal1[1]) / 3;
     pal2[2] = (2 * pal0[2] + pal1[2]) / 3;
     pal2[3] = 0xff;
 
-    u8 *pal3 = info->p[3];
+    u8* pal3 = info->p[3];
     pal3[0] = (pal0[0] + 2 * pal1[0]) / 3;
     pal3[1] = (pal0[1] + 2 * pal1[1]) / 3;
     pal3[2] = (pal0[2] + 2 * pal1[2]) / 3;
@@ -253,7 +253,7 @@ void CMPR_close_info(const u8 *data,    // source data
   }
 }
 
-void WIMGT_CMPR(const u8 *data, cmpr_info_t *info) {
+void WIMGT_CMPR(const u8* data, cmpr_info_t* info) {
   assert(info);
   memset(info, 0, sizeof(*info));
 
@@ -265,8 +265,8 @@ void WIMGT_CMPR(const u8 *data, cmpr_info_t *info) {
   sum_t sum[CMPR_MAX_COL];
   u32 n_sum = 0, opaque_count = 0;
 
-  const u8 *data_end = data + CMPR_DATA_SIZE;
-  const u8 *dat;
+  const u8* data_end = data + CMPR_DATA_SIZE;
+  const u8* dat;
   for (dat = data; dat < data_end; dat += 4) {
     if (dat[3] & 0x80) {
       opaque_count++;
@@ -307,16 +307,16 @@ void WIMGT_CMPR(const u8 *data, cmpr_info_t *info) {
     // we have transparent points -> 1 middle point
 
     for (u32 s0 = 0; s0 < n_sum; s0++) {
-      u8 *pal0 = sum[s0].col;
+      u8* pal0 = sum[s0].col;
       for (u32 s1 = s0 + 1; s1 < n_sum; s1++) {
-        u8 *pal1 = sum[s1].col;
+        u8* pal1 = sum[s1].col;
         u8 pal2[4];
         pal2[0] = (pal0[0] + pal1[0]) / 2;
         pal2[1] = (pal0[1] + pal1[1]) / 2;
         pal2[2] = (pal0[2] + pal1[2]) / 2;
 
         u32 dist = 0;
-        const u8 *dat;
+        const u8* dat;
         for (dat = data; dat < data_end && dist < max_dist; dat += 4) {
           if (dat[3] & 0x80) {
             const u32 d0 = calc_distance(dat, pal0);
@@ -340,10 +340,10 @@ void WIMGT_CMPR(const u8 *data, cmpr_info_t *info) {
 
     u32 s0;
     for (s0 = 0; s0 < n_sum; s0++) {
-      u8 *pal0 = sum[s0].col;
+      u8* pal0 = sum[s0].col;
       u32 s1;
       for (s1 = s0 + 1; s1 < n_sum; s1++) {
-        u8 *pal1 = sum[s1].col;
+        u8* pal1 = sum[s1].col;
         u8 pal2[4];
         pal2[0] = (2 * pal0[0] + pal1[0]) / 3;
         pal2[1] = (2 * pal0[1] + pal1[1]) / 3;
@@ -354,7 +354,7 @@ void WIMGT_CMPR(const u8 *data, cmpr_info_t *info) {
         pal3[2] = (pal0[2] + 2 * pal1[2]) / 3;
 
         u32 dist = 0;
-        const u8 *dat;
+        const u8* dat;
         for (dat = data; dat < data_end && dist < max_dist; dat += 4) {
           const u32 d0 = calc_distance(dat, pal0);
           const u32 d1 = calc_distance(dat, pal1);
@@ -392,10 +392,10 @@ u32 CalcImageSize(u32 width,  // width of image in pixel
                   u32 block_width,    // width of a single block
                   u32 block_height,   // height of a single block
 
-                  u32 *x_width,  // not NULL: store extended width here
-                  u32 *x_height, // not NULL: store extended height here
-                  u32 *h_blocks, // not NULL: store number of horizontal blocks
-                  u32 *v_blocks  // not NULL: store number of vertical blocks
+                  u32* x_width,  // not NULL: store extended width here
+                  u32* x_height, // not NULL: store extended height here
+                  u32* h_blocks, // not NULL: store number of horizontal blocks
+                  u32* v_blocks  // not NULL: store number of vertical blocks
 ) {
   const u32 hblocks = (width + block_width - 1) / block_width;
   if (h_blocks)
@@ -422,9 +422,9 @@ CalcImageBlock(u32 width, u32 height,
                u32 block_width,    // width of a single block
                u32 block_height,   // height of a single block
 
-               u32 *h_blocks, // not NULL: store number of horizontal blocks
-               u32 *v_blocks, // not NULL: store number of vertical blocks
-               u32 *img_size  // not NULL: return image size
+               u32* h_blocks, // not NULL: store number of horizontal blocks
+               u32* v_blocks, // not NULL: store number of vertical blocks
+               u32* img_size  // not NULL: return image size
 ) {
 
   u32 xwidth, xheight;
@@ -435,7 +435,7 @@ CalcImageBlock(u32 width, u32 height,
     *img_size = size;
 }
 
-void EncodeDXT1(u8 *dest_img, const u8 *source_img, u32 width, u32 height) {
+void EncodeDXT1(u8* dest_img, const u8* source_img, u32 width, u32 height) {
   assert(dest_img);
   assert(source_img);
 
@@ -447,8 +447,8 @@ void EncodeDXT1(u8 *dest_img, const u8 *source_img, u32 width, u32 height) {
   CalcImageBlock(width, height, bits_per_pixel, block_width, block_height,
                  &h_blocks, &v_blocks, &img_size);
 
-  u8 *dest = dest_img;
-  const u8 *src1 = source_img;
+  u8* dest = dest_img;
+  const u8* src1 = source_img;
 
   const u32 block_size = block_width * 4;
 
@@ -457,14 +457,14 @@ void EncodeDXT1(u8 *dest_img, const u8 *source_img, u32 width, u32 height) {
   const u32 delta[] = {0, 16, 4 * line_size, 4 * line_size + 16};
 
   while (v_blocks-- > 0) {
-    const u8 *src2 = src1;
+    const u8* src2 = src1;
     u32 hblk = h_blocks;
     while (hblk-- > 0) {
       for (u32 subb = 0; subb < 4; subb++) {
         //---- first collect the data of the 16 pixel
 
         u8 vector[16 * 4], *vect = vector;
-        const u8 *src3 = src2 + delta[subb];
+        const u8* src3 = src2 + delta[subb];
         for (u32 i = 0; i < 4; i++) {
           memcpy(vect, src3, 16);
           vect += 16;

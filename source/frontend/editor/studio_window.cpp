@@ -2,7 +2,7 @@
 
 namespace riistudio::frontend {
 
-StudioWindow::StudioWindow(const std::string &name, bool dockspace)
+StudioWindow::StudioWindow(const std::string& name, bool dockspace)
     : mName(name), mbDrawDockspace(dockspace) {
   mId = ImGui::GetID(name.c_str()); // TODO
   mWindowClass.DockingAllowUnclassed = false;
@@ -12,12 +12,12 @@ void StudioWindow::setWindowFlag(u32 flag) { mFlags |= flag; }
 
 std::string StudioWindow::getName() const { return mName; }
 
-const ImGuiWindowClass *StudioWindow::getWindowClass() { return &mWindowClass; }
+const ImGuiWindowClass* StudioWindow::getWindowClass() { return &mWindowClass; }
 
 std::string StudioWindow::idIfy(std::string in) {
   std::string out = in + "##";
-  if (mParent != nullptr && dynamic_cast<StudioWindow *>(mParent) != nullptr) {
-    out += reinterpret_cast<StudioWindow *>(mParent)->mName;
+  if (mParent != nullptr && dynamic_cast<StudioWindow*>(mParent) != nullptr) {
+    out += reinterpret_cast<StudioWindow*>(mParent)->mName;
   }
   return out;
 }
@@ -25,7 +25,7 @@ std::string StudioWindow::idIfyChild(std::string title) {
   return title + "##" + mName;
 }
 void StudioWindow::draw() {
-  StudioWindow *parent = dynamic_cast<StudioWindow *>(mParent);
+  StudioWindow* parent = dynamic_cast<StudioWindow*>(mParent);
   if (parent)
     ImGui::SetNextWindowClass(parent->getWindowClass());
   auto avail = ImGui::GetContentRegionAvail();

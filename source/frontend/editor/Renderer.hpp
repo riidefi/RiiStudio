@@ -18,12 +18,12 @@ class Renderer {
 public:
   Renderer();
   ~Renderer();
-  void render(u32 width, u32 height, bool &hideCursor);
+  void render(u32 width, u32 height, bool& hideCursor);
   void createShaderProgram() { bShadersLoaded = true; }
   void destroyShaders() { bShadersLoaded = false; }
 
-  void prepare(const kpi::IDocumentNode &model,
-               const kpi::IDocumentNode &texture, bool buf = true,
+  void prepare(const kpi::IDocumentNode& model,
+               const kpi::IDocumentNode& texture, bool buf = true,
                bool tex = true);
 
 private:

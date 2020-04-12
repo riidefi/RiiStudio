@@ -4,8 +4,8 @@
 #include <string>
 
 struct ShaderProgram {
-  explicit ShaderProgram(const char *vtx, const char *frag);
-  explicit ShaderProgram(const std::string &vtx, const std::string &frag);
+  explicit ShaderProgram(const char* vtx, const char* frag);
+  explicit ShaderProgram(const std::string& vtx, const std::string& frag);
   ~ShaderProgram();
 
   u32 getId() const { return mShaderProgram; }

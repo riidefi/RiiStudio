@@ -26,11 +26,11 @@ struct ConditionalActive {
 };
 
 struct J3DDataSurface final {
-  const char *name = "J3D Data";
-  const char *icon = ICON_FA_BOXES;
+  const char* name = "J3D Data";
+  const char* icon = ICON_FA_BOXES;
 };
 
-void drawProperty(kpi::PropertyDelegate<Material> &delegate, J3DDataSurface) {
+void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
   int flag = delegate.getActive().flag;
   ImGui::InputInt("Flag", &flag, 1, 1);
   KPI_PROPERTY_EX(delegate, flag, static_cast<u8>(flag));
@@ -38,7 +38,7 @@ void drawProperty(kpi::PropertyDelegate<Material> &delegate, J3DDataSurface) {
   libcube::gx::ColorF32 clr_f32;
 
   if (ImGui::CollapsingHeader("Fog", ImGuiTreeNodeFlags_DefaultOpen)) {
-    auto &fog = delegate.getActive().fogInfo;
+    auto& fog = delegate.getActive().fogInfo;
 
     int orthoOrPersp = static_cast<int>(fog.type) >=
                                static_cast<int>(Fog::Type::OrthographicLinear)
@@ -96,7 +96,7 @@ void drawProperty(kpi::PropertyDelegate<Material> &delegate, J3DDataSurface) {
                               ImGuiTreeNodeFlags_DefaultOpen)) {
 
     int i = 0;
-    for (auto &clr : delegate.getActive().lightColors) {
+    for (auto& clr : delegate.getActive().lightColors) {
       clr_f32 = clr;
       ImGui::ColorEdit4(
           (std::string("Light Color ") + std::to_string(i)).c_str(), clr_f32);

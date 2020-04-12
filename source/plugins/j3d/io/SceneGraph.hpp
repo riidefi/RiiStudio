@@ -13,7 +13,7 @@ namespace riistudio::j3d {
 struct SceneGraph {
   static constexpr const char name[] = "SceneGraph";
 
-  static void onRead(oishii::BinaryReader &reader, BMDOutputContext &ctx);
+  static void onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx);
   static std::unique_ptr<oishii::v2::Node>
   getLinkerNode(const ModelAccessor mdl);
 };

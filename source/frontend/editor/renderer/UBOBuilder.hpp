@@ -31,11 +31,11 @@ struct DelegatedUBOBuilder : public UBOBuilder {
   void use(u32 idx);
 
   MODULE_PUBLIC : virtual void push(u32 binding_point,
-                                    const std::vector<u8> &data);
+                                    const std::vector<u8>& data);
 
-  template <typename T> inline void tpush(u32 binding_point, const T &data) {
+  template <typename T> inline void tpush(u32 binding_point, const T& data) {
     std::vector<u8> tmp(sizeof(T));
-    *reinterpret_cast<T *>(tmp.data()) = data;
+    *reinterpret_cast<T*>(tmp.data()) = data;
     push(binding_point, tmp);
   }
 
@@ -59,7 +59,7 @@ private:
 // Vertex attribute generation
 struct VAOEntry {
   u32 binding_point;
-  const char *name;
+  const char* name;
 
   u32 format; // (gl)
   u32 size;   // (of element / stride)
@@ -78,19 +78,19 @@ struct VBOBuilder {
 
   void build();
 
-  template <typename T> void pushData(u32 binding_point, const T &data) {
-    auto &attrib_buf = mPropogating[binding_point];
+  template <typename T> void pushData(u32 binding_point, const T& data) {
+    auto& attrib_buf = mPropogating[binding_point];
     const std::size_t begin = attrib_buf.second.size();
     attrib_buf.second.resize(attrib_buf.second.size() + sizeof(T));
-    *reinterpret_cast<T *>(attrib_buf.second.data() + begin) = data;
+    *reinterpret_cast<T*>(attrib_buf.second.data() + begin) = data;
   }
   u32 VAO;
   u32 mPositionBuf, mIndexBuf;
 
 private:
-  template <typename T> void push(const T &data) {
+  template <typename T> void push(const T& data) {
     const std::size_t begin = mData.size();
     mData.resize(mData.size() + sizeof(T));
-    *reinterpret_cast<T *>(mData.data() + begin) = data;
+    *reinterpret_cast<T*>(mData.data() + begin) = data;
   }
 };

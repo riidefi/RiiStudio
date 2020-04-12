@@ -45,7 +45,7 @@ struct BoneData {
     u32 mPoly;
     u8 mPrio;
 
-    bool operator==(const DisplayCommand &rhs) const {
+    bool operator==(const DisplayCommand& rhs) const {
       return mMaterial == rhs.mMaterial && mPoly == rhs.mPoly &&
              mPrio == rhs.mPrio;
     }
@@ -55,7 +55,7 @@ struct BoneData {
   std::array<f32, 3 * 4> modelMtx;
   std::array<f32, 3 * 4> inverseModelMtx;
 
-  bool operator==(const BoneData &rhs) const {
+  bool operator==(const BoneData& rhs) const {
     return mName == rhs.mName && ssc == rhs.ssc &&
            classicScale == rhs.classicScale && visible == rhs.visible &&
            mId == rhs.mId && matrixId == rhs.matrixId && flag == rhs.flag &&
@@ -69,12 +69,12 @@ struct BoneData {
 
 struct Bone : public libcube::IBoneDelegate, BoneData {
   std::string getName() const { return mName; }
-  void setName(const std::string &name) override { mName = name; }
+  void setName(const std::string& name) override { mName = name; }
   // std::string getName() const override { return mName; }
   s64 getId() override { return mId; }
-  void copy(lib3d::Bone &to) const override {
+  void copy(lib3d::Bone& to) const override {
     IBoneDelegate::copy(to);
-    Bone *pJoint = dynamic_cast<Bone *>(&to);
+    Bone* pJoint = dynamic_cast<Bone*>(&to);
     if (pJoint) {
       pJoint->mName = mName;
       pJoint->matrixId = matrixId;
@@ -103,7 +103,7 @@ struct Bone : public libcube::IBoneDelegate, BoneData {
   lib3d::SRT3 getSRT() const override {
     return {mScaling, mRotation, mTranslation};
   }
-  void setSRT(const lib3d::SRT3 &srt) override {
+  void setSRT(const lib3d::SRT3& srt) override {
     mScaling = srt.scale;
     mRotation = srt.rotation;
     mTranslation = srt.translation;
@@ -127,7 +127,7 @@ struct Bone : public libcube::IBoneDelegate, BoneData {
     return old;
   }
   lib3d::AABB getAABB() const override { return {mVolume.min, mVolume.max}; }
-  void setAABB(const lib3d::AABB &aabb) override {
+  void setAABB(const lib3d::AABB& aabb) override {
     mVolume = {aabb.min, aabb.max};
   }
   float getBoundingRadius() const override { return 0.0f; }
@@ -159,16 +159,16 @@ struct Bone : public libcube::IBoneDelegate, BoneData {
 
   u64 getNumDisplays() const override { return mDisplayCommands.size(); }
   Display getDisplay(u64 idx) const override {
-    const auto &dc = mDisplayCommands[idx];
+    const auto& dc = mDisplayCommands[idx];
 
     return Display{dc.mMaterial, dc.mPoly, dc.mPrio};
   }
 
-  void addDisplay(const Display &d) override {
+  void addDisplay(const Display& d) override {
     mDisplayCommands.push_back({d.matId, d.polyId, d.prio});
   }
-  bool operator==(const Bone &rhs) const {
-    return static_cast<const BoneData &>(*this) == rhs;
+  bool operator==(const Bone& rhs) const {
+    return static_cast<const BoneData&>(*this) == rhs;
   }
 };
 

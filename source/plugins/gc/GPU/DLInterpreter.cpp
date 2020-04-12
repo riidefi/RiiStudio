@@ -2,7 +2,7 @@
 
 namespace libcube::gpu {
 
-void RunDisplayList(oishii::BinaryReader &reader, QDisplayListHandler &handler,
+void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler,
                     u32 dlSize) {
   const auto start = reader.tell();
 

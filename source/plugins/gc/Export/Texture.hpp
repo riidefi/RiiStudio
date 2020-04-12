@@ -16,7 +16,7 @@ struct Texture : public riistudio::lib3d::Texture {
                             mip && getMipmapCount() > 0,
                             mip ? getMipmapCount() + 1 : 0);
   }
-  inline void decode(std::vector<u8> &out, bool mip) const override {
+  inline void decode(std::vector<u8>& out, bool mip) const override {
     const u32 size = getDecodedSize(mip);
     assert(size);
 
@@ -51,17 +51,17 @@ struct Texture : public riistudio::lib3d::Texture {
 
   virtual u32 getTextureFormat() const = 0;
   virtual void setTextureFormat(u32 format) = 0;
-  virtual const u8 *getData() const = 0;
-  virtual u8 *getData() = 0;
+  virtual const u8* getData() const = 0;
+  virtual u8* getData() = 0;
   virtual void resizeData() = 0;
-  virtual const u8 *getPaletteData() const = 0;
+  virtual const u8* getPaletteData() const = 0;
   virtual u32 getPaletteFormat() const = 0;
 
   //! @brief Set the image encoder based on the expression profile. Pixels are
   //! not recomputed immediately.
   //!
-  //! @param[in] optimizeForSize	If the texture should prefer filesize over
-  //! quality when deciding an encoder.
+  //! @param[in] optimizeForSize	If the texture should prefer filesize
+  //! over quality when deciding an encoder.
   //! @param[in] color			If the texture is not grayscale.
   //! @param[in] occlusion		The pixel occlusion selection.
   //!
@@ -77,10 +77,10 @@ struct Texture : public riistudio::lib3d::Texture {
   //! @param[in] rawRGBA
   //!				- Raw pointer to a RGBA32 pixel array.
   //!				- Must be sized width * height * 4.
-  //!				- If mipmaps are configured, this must also include all
-  //!additional mip levels.
+  //!				- If mipmaps are configured, this must also
+  //!include all additional mip levels.
   //!
-  void encode(const u8 *rawRGBA) override {
+  void encode(const u8* rawRGBA) override {
     resizeData();
 
     image_platform::transform(

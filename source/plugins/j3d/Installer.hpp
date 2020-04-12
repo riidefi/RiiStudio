@@ -6,6 +6,6 @@ class ApplicationPlugins;
 
 namespace riistudio::j3d {
 
-void Install(kpi::ApplicationPlugins &installer);
+void Install(kpi::ApplicationPlugins& installer);
 
 } // namespace riistudio::j3d

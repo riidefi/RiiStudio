@@ -20,61 +20,61 @@ namespace riistudio::g3d {
 
 // Vector reading functions
 template <typename TComponent, int TComponentCount>
-inline void read(oishii::BinaryReader &reader,
-                 glm::vec<TComponentCount, TComponent, glm::defaultp> &out);
+inline void read(oishii::BinaryReader& reader,
+                 glm::vec<TComponentCount, TComponent, glm::defaultp>& out);
 
 template <>
-inline void read<f32, 3>(oishii::BinaryReader &reader, glm::vec3 &out) {
+inline void read<f32, 3>(oishii::BinaryReader& reader, glm::vec3& out) {
   out.x = reader.read<f32>();
   out.y = reader.read<f32>();
   out.z = reader.read<f32>();
 }
 
 template <>
-inline void read<f32, 2>(oishii::BinaryReader &reader, glm::vec2 &out) {
+inline void read<f32, 2>(oishii::BinaryReader& reader, glm::vec2& out) {
   out.x = reader.read<f32>();
   out.y = reader.read<f32>();
 }
 template <typename TComponent, int TComponentCount>
 inline void
-operator<<(glm::vec<TComponentCount, TComponent, glm::defaultp> &out,
-           oishii::BinaryReader &reader);
+operator<<(glm::vec<TComponentCount, TComponent, glm::defaultp>& out,
+           oishii::BinaryReader& reader);
 
 template <>
-inline void operator<<<f32, 3>(glm::vec3 &out, oishii::BinaryReader &reader) {
+inline void operator<<<f32, 3>(glm::vec3& out, oishii::BinaryReader& reader) {
   out.x = reader.read<f32>();
   out.y = reader.read<f32>();
   out.z = reader.read<f32>();
 }
 template <>
-inline void operator<<<f32, 2>(glm::vec2 &out, oishii::BinaryReader &reader) {
+inline void operator<<<f32, 2>(glm::vec2& out, oishii::BinaryReader& reader) {
   out.x = reader.read<f32>();
   out.y = reader.read<f32>();
 }
-inline void operator<<(libcube::gx::Color &out, oishii::BinaryReader &reader) {
+inline void operator<<(libcube::gx::Color& out, oishii::BinaryReader& reader) {
   out = libcube::gx::readColorComponents(
       reader, libcube::gx::VertexBufferType::Color::rgba8);
 }
 
-inline void operator>>(const glm::vec3 &vec, oishii::v2::Writer &writer) {
+inline void operator>>(const glm::vec3& vec, oishii::v2::Writer& writer) {
   writer.write(vec.x);
   writer.write(vec.y);
   writer.write(vec.z);
 }
-inline void operator>>(const glm::vec2 &vec, oishii::v2::Writer &writer) {
+inline void operator>>(const glm::vec2& vec, oishii::v2::Writer& writer) {
   writer.write(vec.x);
   writer.write(vec.y);
 }
 
-inline bool ends_with(const std::string &value, const std::string &ending) {
+inline bool ends_with(const std::string& value, const std::string& ending) {
   return ending.size() <= value.size() &&
          std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
 template <typename T, bool HasMinimum, bool HasDivisor,
           libcube::gx::VertexBufferKind kind>
-void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind> &out,
-                       oishii::BinaryReader &reader) {
+void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
+                       oishii::BinaryReader& reader) {
   const auto start = reader.tell();
   out.mEntries.clear();
 
@@ -119,7 +119,7 @@ void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind> &out,
 
   reader.seekSet(start + startOfs);
   // TODO: Recompute bounds
-  for (auto &entry : out.mEntries) {
+  for (auto& entry : out.mEntries) {
     entry = libcube::gx::readComponents<T>(reader, out.mQuantize.mType,
                                            nComponents, out.mQuantize.divisor);
   }
@@ -139,7 +139,7 @@ enum class RenderCommand {
 
 };
 
-static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
+static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
   const auto start = reader.tell();
 
   reader.expectMagic<'MDL0', false>();
@@ -174,7 +174,7 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
     } secOfs;
     std::array<s32, 14> secOfsArr;
   };
-  for (auto &ofs : secOfsArr)
+  for (auto& ofs : secOfsArr)
     ofs = reader.read<s32>();
 
   mdl.node().setName(readName(reader, start));
@@ -201,7 +201,7 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
       reader.seekSet(start + xofs);
       Dictionary _dict(reader);
       for (std::size_t i = 1; i < _dict.mNodes.size(); ++i) {
-        const auto &dnode = _dict.mNodes[i];
+        const auto& dnode = _dict.mNodes[i];
         assert(dnode.mDataDestination);
         reader.seekSet(dnode.mDataDestination);
         handler(dnode);
@@ -209,8 +209,8 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
     }
   };
 
-  readDict(secOfs.ofsBones, [&](const DictionaryNode &dnode) {
-    auto &bone = mdl.addBone().get();
+  readDict(secOfs.ofsBones, [&](const DictionaryNode& dnode) {
+    auto& bone = mdl.addBone().get();
     reader.seek(8); // skip size and mdl offset
     bone.setName(readName(reader, dnode.mDataDestination));
     bone.mId = reader.read<u32>();
@@ -237,22 +237,22 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
     reader.seek(12); // Skip sibling and child links -- we recompute it all
     reader.seek(2 * ((3 * 4) * sizeof(f32))); // skip matrices
   });
-  readDict(secOfs.ofsBuffers.position, [&](const DictionaryNode &dnode) {
+  readDict(secOfs.ofsBuffers.position, [&](const DictionaryNode& dnode) {
     readGenericBuffer(mdl.addPositionBuffer().get(), reader);
   });
-  readDict(secOfs.ofsBuffers.normal, [&](const DictionaryNode &dnode) {
+  readDict(secOfs.ofsBuffers.normal, [&](const DictionaryNode& dnode) {
     readGenericBuffer(mdl.addNormalBuffer().get(), reader);
   });
-  readDict(secOfs.ofsBuffers.color, [&](const DictionaryNode &dnode) {
+  readDict(secOfs.ofsBuffers.color, [&](const DictionaryNode& dnode) {
     readGenericBuffer(mdl.addColorBuffer().get(), reader);
   });
-  readDict(secOfs.ofsBuffers.uv, [&](const DictionaryNode &dnode) {
+  readDict(secOfs.ofsBuffers.uv, [&](const DictionaryNode& dnode) {
     readGenericBuffer(mdl.addTextureCoordinateBuffer().get(), reader);
   });
   // TODO: Fur
 
-  readDict(secOfs.ofsMaterials, [&](const DictionaryNode &dnode) {
-    auto &mat = mdl.addMaterial().get();
+  readDict(secOfs.ofsMaterials, [&](const DictionaryNode& dnode) {
+    auto& mat = mdl.addMaterial().get();
     const auto start = reader.tell();
 
     reader.read<u32>(); // size
@@ -313,7 +313,7 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
     }
     reader.seekSet(start + 0x250);
     for (u8 i = 0; i < nTex; ++i) {
-      auto &mtx = mat.texMatrices[i];
+      auto& mtx = mat.texMatrices[i];
 
       mtx->camIdx = reader.read<s8>();
       mtx->lightIdx = reader.read<s8>();
@@ -352,7 +352,7 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
       }
 
       reader.read<u8>(); // effect mtx flag
-      for (auto &f : mtx->effectMatrix)
+      for (auto& f : mtx->effectMatrix)
         f = reader.read<f32>();
     }
     // reader.seek((8 - nTex)* (4 + (4 * 4 * sizeof(f32))));
@@ -463,7 +463,7 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
       // Indirect data
       libcube::gpu::RunDisplayList(reader, matHandler, 64);
       for (u8 i = 0; i < mat.info.nIndStage; ++i) {
-        const auto &curScale =
+        const auto& curScale =
             matHandler.mGpuMat.mIndirect.mIndTexScales[i > 1 ? i - 2 : i];
         mat.mIndScales.push_back(
             {static_cast<libcube::gx::IndirectTextureScalePair::Selection>(
@@ -491,8 +491,8 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
       }
     }
   });
-  readDict(secOfs.ofsMeshes, [&](const DictionaryNode &dnode) {
-    auto &poly = mdl.addPolygon().get();
+  readDict(secOfs.ofsMeshes, [&](const DictionaryNode& dnode) {
+    auto& poly = mdl.addPolygon().get();
     const auto start = reader.tell();
 
     reader.read<u32>(); // size
@@ -507,10 +507,10 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
       std::size_t cmd_size;
       s32 ofs_buf;
 
-      void seekTo(oishii::BinaryReader &reader) {
+      void seekTo(oishii::BinaryReader& reader) {
         reader.seekSet(tag_start + ofs_buf);
       }
-      DlHandle(oishii::BinaryReader &reader) : tag_start(reader.tell()) {
+      DlHandle(oishii::BinaryReader& reader) : tag_start(reader.tell()) {
         buf_size = reader.read<u32>();
         cmd_size = reader.read<u32>();
         ofs_buf = reader.read<s32>();
@@ -532,7 +532,7 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
     reader.read<u32>(); // nVert
     reader.read<u32>(); // nPoly
 
-    auto readBufHandle = [&](std::string &out, auto ifExist) {
+    auto readBufHandle = [&](std::string& out, auto ifExist) {
       const auto hid = reader.read<s16>();
       if (hid < 0)
         out = "";
@@ -575,15 +575,15 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
     }
     struct QDisplayListMeshHandler final
         : public libcube::gpu::QDisplayListHandler {
-      void onCommandDraw(oishii::BinaryReader &reader,
+      void onCommandDraw(oishii::BinaryReader& reader,
                          libcube::gx::PrimitiveType type, u16 nverts) override {
         if (mPoly.mMatrixPrimitives.empty())
           mPoly.mMatrixPrimitives.push_back(MatrixPrimitive{});
-        auto &prim = mPoly.mMatrixPrimitives.back().mPrimitives.emplace_back(
+        auto& prim = mPoly.mMatrixPrimitives.back().mPrimitives.emplace_back(
             libcube::IndexedPrimitive{});
         prim.mType = type;
         prim.mVertices.resize(nverts);
-        for (auto &vert : prim.mVertices) {
+        for (auto& vert : prim.mVertices) {
           for (u32 i = 0;
                i < static_cast<u32>(libcube::gx::VertexAttribute::Max); ++i) {
             if (mPoly.mVertexDescriptor.mBitfield & (1 << i)) {
@@ -605,15 +605,15 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
           }
         }
       }
-      QDisplayListMeshHandler(Polygon &poly) : mPoly(poly) {}
+      QDisplayListMeshHandler(Polygon& poly) : mPoly(poly) {}
       ~QDisplayListMeshHandler() { return; }
-      Polygon &mPoly;
+      Polygon& mPoly;
     } meshHandler(poly);
     primitiveData.seekTo(reader);
     libcube::gpu::RunDisplayList(reader, meshHandler, primitiveData.buf_size);
   });
 
-  readDict(secOfs.ofsRenderTree, [&](const DictionaryNode &dnode) {
+  readDict(secOfs.ofsRenderTree, [&](const DictionaryNode& dnode) {
     if (dnode.mName == "DrawOpa" || dnode.mName == "DrawXlu") {
       while (reader.tell() < reader.endpos()) {
         const auto cmd = static_cast<RenderCommand>(reader.read<u8>());
@@ -638,11 +638,11 @@ static void readModel(G3DModelAccessor &mdl, oishii::BinaryReader &reader) {
     }
   });
 }
-static void readTexture(kpi::NodeAccessor<Texture> &tex,
-                        oishii::BinaryReader &reader) {
+static void readTexture(kpi::NodeAccessor<Texture>& tex,
+                        oishii::BinaryReader& reader) {
   const auto start = reader.tell();
 
-  auto &data = tex.get();
+  auto& data = tex.get();
 
   reader.expectMagic<'TEX0', false>();
   reader.read<u32>(); // size
@@ -670,12 +670,12 @@ static void readTexture(kpi::NodeAccessor<Texture> &tex,
 
 class ArchiveDeserializer {
 public:
-  std::string canRead(const std::string &file,
-                      oishii::BinaryReader &reader) const {
+  std::string canRead(const std::string& file,
+                      oishii::BinaryReader& reader) const {
     return ends_with(file, "brres") ? typeid(G3DCollection).name() : "";
   }
-  void read(kpi::IDocumentNode &node, oishii::BinaryReader &reader) const {
-    assert(dynamic_cast<G3DCollection *>(&node) != nullptr);
+  void read(kpi::IDocumentNode& node, oishii::BinaryReader& reader) const {
+    assert(dynamic_cast<G3DCollection*>(&node) != nullptr);
     G3DCollectionAccessor collection(&node);
 
     // Magic
@@ -697,7 +697,7 @@ public:
     Dictionary rootDict(reader);
 
     for (std::size_t i = 1; i < rootDict.mNodes.size(); ++i) {
-      const auto &cnode = rootDict.mNodes[i];
+      const auto& cnode = rootDict.mNodes[i];
 
       reader.seekSet(cnode.mDataDestination);
       Dictionary cdic(reader);
@@ -705,18 +705,18 @@ public:
       // TODO
       if (cnode.mName == "3DModels(NW4R)") {
         for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
-          const auto &sub = cdic.mNodes[j];
+          const auto& sub = cdic.mNodes[j];
 
           reader.seekSet(sub.mDataDestination);
-          auto &&mdl = collection.addG3DModel();
+          auto&& mdl = collection.addG3DModel();
           readModel(mdl, reader);
         }
       } else if (cnode.mName == "Textures(NW4R)") {
         for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
-          const auto &sub = cdic.mNodes[j];
+          const auto& sub = cdic.mNodes[j];
 
           reader.seekSet(sub.mDataDestination);
-          auto &&tex = collection.addTexture();
+          auto&& tex = collection.addTexture();
           readTexture(tex, reader);
         }
       } else {
@@ -725,12 +725,12 @@ public:
     }
   }
 
-  static void Install(kpi::ApplicationPlugins &installer) {
+  static void Install(kpi::ApplicationPlugins& installer) {
     installer.addDeserializer<ArchiveDeserializer>();
   }
 };
 
-void InstallBRRES(kpi::ApplicationPlugins &installer) {
+void InstallBRRES(kpi::ApplicationPlugins& installer) {
   ArchiveDeserializer::Install(installer);
 }
 
