@@ -24,13 +24,6 @@
 #include <core/kpi/RichNameManager.hpp>
 
 #include <algorithm>
-#include <plugins/gc/Encoder/ImagePlatform.hpp>
-
-#include <plugins/gc/Util/TextureExport.hpp>
-#include <vendor/FileDialogues.hpp>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <vendor/stb_image.h>
 
 #undef near
 
@@ -258,228 +251,6 @@ private:
   kpi::IDocumentNode*& mActive;
 };
 
-static const std::vector<std::string> StdImageFilters = {
-    "PNG Files", "*.png",     "TGA Files", "*.tga",     "JPG Files",
-    "*.jpg",     "BMP Files", "*.bmp",     "All Files", "*",
-};
-
-struct TextureEditor : public StudioWindow {
-  TextureEditor(kpi::IDocumentNode& host, kpi::History& history)
-      : StudioWindow("Texture Preview"), mHost(host), mHistory(history) {
-    setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
-  }
-  void draw_() override {
-    auto* osamp = mHost.getFolder<lib3d::Texture>();
-    if (!osamp)
-      return;
-    assert(osamp);
-    auto& samp = *osamp;
-
-    auto& tex = samp.at<lib3d::Texture>(samp.getActiveSelection());
-    auto& mut = (libcube::Texture&)tex;
-
-    bool resizeAction = false;
-    bool reformatOption = false;
-
-    if (ImGui::BeginMenuBar()) {
-      if (ImGui::BeginMenu("Transform")) {
-        if (ImGui::Button(ICON_FA_DRAW_POLYGON " Resize")) {
-          resizeAction = true;
-        }
-        if (ImGui::Button(ICON_FA_DRAW_POLYGON " Change format")) {
-          reformatOption = true;
-        }
-        if (ImGui::Button(ICON_FA_SAVE " Export")) {
-          auto results = pfd::save_file("Export image", "", StdImageFilters);
-          if (!results.result().empty()) {
-            const std::string path = results.result();
-            libcube::STBImage imgType = libcube::STBImage::PNG;
-            if (ends_with(path, ".png")) {
-              imgType = libcube::STBImage::PNG;
-            } else if (ends_with(path, ".bmp")) {
-              imgType = libcube::STBImage::BMP;
-            } else if (ends_with(path, ".tga")) {
-              imgType = libcube::STBImage::TGA;
-            } else if (ends_with(path, ".jpg")) {
-              imgType = libcube::STBImage::JPG;
-            }
-
-            // Only top LOD
-            libcube::writeImageStbRGBA(path.c_str(), imgType, tex.getWidth(),
-                                       tex.getHeight(), mImg.mDecodeBuf.data());
-          }
-        }
-        if (ImGui::Button(ICON_FA_FILE " Import")) {
-          auto result =
-              pfd::open_file("Import image", "", StdImageFilters).result();
-          if (!result.empty()) {
-            const auto path = result[0];
-            int width, height, channels;
-            unsigned char* image = stbi_load(path.c_str(), &width, &height,
-                                             &channels, STBI_rgb_alpha);
-            assert(image);
-            tex.setWidth(width);
-            tex.setHeight(height);
-            mut.setMipmapCount(0);
-            mut.resizeData();
-            tex.encode(image);
-            stbi_image_free(image);
-            mHistory.commit(mHost);
-            lastTexId = -1;
-          }
-        }
-        ImGui::EndMenu();
-      }
-      ImGui::EndMenuBar();
-    }
-
-    if (resizeAction) {
-      ImGui::OpenPopup("Resize");
-      resize[0].value = -1;
-      resize[1].value = -1;
-      resize[0].before = -1;
-      resize[1].before = -1;
-    } else if (reformatOption) {
-      ImGui::OpenPopup("Reformat");
-      reformatOpt = -1;
-    }
-    if (ImGui::BeginPopupModal("Reformat", nullptr,
-                               ImGuiWindowFlags_AlwaysAutoResize)) {
-      if (reformatOpt == -1) {
-        reformatOpt = mut.getTextureFormat();
-      }
-      ImGui::InputInt("Format", &reformatOpt);
-      if (ImGui::Button(ICON_FA_CHECK " Okay")) {
-        const auto oldFormat = mut.getTextureFormat();
-        mut.setTextureFormat(reformatOpt);
-        mut.resizeData();
-
-        libcube::image_platform::transform(
-            mut.getData(), mut.getWidth(), mut.getHeight(),
-            static_cast<libcube::gx::TextureFormat>(oldFormat),
-            static_cast<libcube::gx::TextureFormat>(reformatOpt), mut.getData(),
-            mut.getWidth(), mut.getHeight(), mut.getMipmapCount() - 1);
-        mHistory.commit(mHost);
-        lastTexId = -1;
-
-        ImGui::CloseCurrentPopup();
-      }
-      ImGui::SameLine();
-
-      if (ImGui::Button(ICON_FA_CROSS " Cancel")) {
-        ImGui::CloseCurrentPopup();
-      }
-
-      ImGui::EndPopup();
-    }
-    if (ImGui::BeginPopupModal("Resize", nullptr,
-                               ImGuiWindowFlags_AlwaysAutoResize)) {
-      if (resize[0].before <= 0) {
-        resize[0].before = tex.getWidth();
-      }
-      if (resize[1].before <= 0) {
-        resize[1].before = tex.getHeight();
-      }
-
-      int dX = 0;
-      for (auto& it : resize) {
-        auto& other = dX++ ? resize[0] : resize[1];
-
-        int before = it.value;
-        ImGui::InputInt(it.name, &it.value, 1, 64);
-        ImGui::SameLine();
-        ImGui::Checkbox((std::string("Constrained##") + it.name).c_str(),
-                        &it.constrained);
-        if (it.constrained) {
-          other.constrained = false;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button((std::string("Reset##") + it.name).c_str())) {
-          it.value = -1;
-        }
-
-        if (before != it.value) {
-          if (it.constrained) {
-            it.value = before;
-          } else if (other.constrained) {
-            other.value = other.before * it.value / it.before;
-          }
-        }
-      }
-
-      if (resize[0].value <= 0) {
-        resize[0].value = tex.getWidth();
-      }
-      if (resize[1].value <= 0) {
-        resize[1].value = tex.getHeight();
-      }
-
-      ImGui::Combo("Algorithm", (int*)&resizealgo, "Ultimate\0Lanczos\0");
-
-      if (ImGui::Button(ICON_FA_CHECK " Resize")) {
-        printf("Do the resizing..\n");
-
-        const auto oldWidth = mut.getWidth();
-        const auto oldHeight = mut.getHeight();
-
-        mut.setWidth(resize[0].value);
-        mut.setHeight(resize[1].value);
-        mut.resizeData();
-
-        libcube::image_platform::transform(
-            mut.getData(), resize[0].value, resize[1].value,
-            static_cast<libcube::gx::TextureFormat>(mut.getTextureFormat()),
-            std::nullopt, mut.getData(), oldWidth, oldHeight,
-            mut.getMipmapCount(),
-            static_cast<libcube::image_platform::ResizingAlgorithm>(
-                resizealgo));
-        mHistory.commit(mHost);
-        lastTexId = -1;
-
-        ImGui::CloseCurrentPopup();
-      }
-      ImGui::SameLine();
-
-      if (ImGui::Button(ICON_FA_CROSS " Cancel")) {
-        ImGui::CloseCurrentPopup();
-      }
-
-      ImGui::EndPopup();
-    }
-
-    if (lastTexId != samp.getActiveSelection())
-      setFromImage(tex);
-
-    mImg.draw();
-
-    if (ImGui::CollapsingHeader("DEBUG")) {
-      int width = tex.getWidth();
-      ImGui::InputInt("width", &width);
-      const_cast<lib3d::Texture&>(tex).setWidth(width);
-      int mmCnt = mut.getMipmapCount();
-      ImGui::InputInt("Mipmap Count", &mmCnt);
-      mut.setMipmapCount(mmCnt);
-    }
-  }
-  void setFromImage(const lib3d::Texture& tex) { mImg.setFromImage(tex); }
-
-  struct ResizeDimension {
-    const char* name = "?";
-    int before = -1;
-    int value = -1;
-    bool constrained = true;
-  };
-
-  std::array<ResizeDimension, 2> resize{
-      ResizeDimension{"Width ", -1, -1, false},
-      ResizeDimension{"Height", -1, -1, true}};
-  int reformatOpt = -1;
-  int resizealgo = 0;
-  kpi::IDocumentNode& mHost;
-  int lastTexId = -1;
-  ImagePreview mImg;
-  kpi::History& mHistory;
-};
 struct RenderTest : public StudioWindow {
 
   RenderTest(const kpi::IDocumentNode& host)
@@ -561,7 +332,9 @@ struct PropertyEditor : public StudioWindow {
   PropertyEditor(kpi::History& host, kpi::IDocumentNode& root,
                  kpi::IDocumentNode*& active)
       : StudioWindow("Property Editor"), mHost(host), mRoot(root),
-        mActive(active) {}
+        mActive(active) {
+    setWindowFlag(ImGuiWindowFlags_MenuBar);
+  }
 
   template <typename T>
   void gatherSelected(std::vector<kpi::IDocumentNode*>& tmp,
@@ -654,7 +427,6 @@ EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,
   attachWindow(std::make_unique<HistoryList>(mHistory, *mState.get()));
   attachWindow(
       std::make_unique<GenericCollectionOutliner>(*mState.get(), mActive));
-  attachWindow(std::make_unique<TextureEditor>(*mState.get(), mHistory));
   attachWindow(std::make_unique<RenderTest>(*mState.get()));
 }
 void EditorWindow::draw_() {

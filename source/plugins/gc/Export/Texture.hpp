@@ -78,7 +78,7 @@ struct Texture : public riistudio::lib3d::Texture {
   //!				- Raw pointer to a RGBA32 pixel array.
   //!				- Must be sized width * height * 4.
   //!				- If mipmaps are configured, this must also
-  //!include all additional mip levels.
+  //! include all additional mip levels.
   //!
   void encode(const u8* rawRGBA) override {
     resizeData();
