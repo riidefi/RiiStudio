@@ -262,8 +262,8 @@ struct Texture {
   //! @brief Set the image encoder based on the expression profile. Pixels are
   //! not recomputed immediately.
   //!
-  //! @param[in] optimizeForSize	If the texture should prefer filesize over
-  //! quality when deciding an encoder.
+  //! @param[in] optimizeForSize	If the texture should prefer filesize
+  //! over quality when deciding an encoder.
   //! @param[in] color			If the texture is not grayscale.
   //! @param[in] occlusion		The pixel occlusion selection.
   //!
@@ -276,8 +276,8 @@ struct Texture {
   //! @param[in] rawRGBA
   //!				- Raw pointer to a RGBA32 pixel array.
   //!				- Must be sized width * height * 4.
-  //!				- If mipmaps are configured, this must also include all
-  //!additional mip levels.
+  //!				- If mipmaps are configured, this must also
+  //! include all additional mip levels.
   //!
   virtual void encode(const u8 *rawRGBA) = 0;
 };
@@ -322,7 +322,7 @@ struct Polygon {
   virtual void addTriangle(std::array<SimpleVertex, 3> tri) = 0;
   //	virtual SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx) = 0;
   //	virtual void setPrimitiveVertex(u64 prim_idx, u64 vtx_idx, const
-  //SimpleVertex& vtx) = 0;
+  // SimpleVertex& vtx) = 0;
 
   // Call after any change
   virtual void update() {}

@@ -10,8 +10,10 @@
 #include <vector>
 
 #include <core/kpi/PropertyView.hpp>
+#include <core/kpi/RichNameManager.hpp>
 
 kpi::PropertyViewManager kpi::PropertyViewManager::sInstance;
+kpi::RichNameManager kpi::RichNameManager::sInstance;
 
 #ifdef _WIN32
 

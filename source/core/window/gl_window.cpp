@@ -1,6 +1,7 @@
+#include <core/3d/gl.hpp>
+
 #include "gl_window.hpp"
 
-#include <core/3d/gl.hpp>
 #include <cstdio>
 #ifdef RII_BACKEND_GLFW
 #include <vendor/glfw/glfw3.h>

@@ -15,8 +15,8 @@ struct RichName {
 
   RichIcon icon{};
   //	RichName(std::string_view exposed, std::string_view namespaced,
-  //std::string_view command) 		: exposedName(exposed), namespacedId(namespaced),
-  //commandName(command)
+  // std::string_view command) 		: exposedName(exposed),
+  // namespacedId(namespaced), commandName(command)
   //	{}
 };
 

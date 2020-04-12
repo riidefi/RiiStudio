@@ -21,6 +21,7 @@
 #endif
 
 #include <core/kpi/PropertyView.hpp>
+#include <core/kpi/RichNameManager.hpp>
 
 #include <algorithm>
 #include <plugins/gc/Encoder/ImagePlatform.hpp>
@@ -76,13 +77,6 @@ struct GenericCollectionOutliner : public StudioWindow {
   };
   using TFilter = RegexFilter;
 
-  struct TConfig {
-    static std::string res_name_plural() { return "Unknowns"; }
-    static std::string res_name_singular() { return "Unknown"; }
-    static std::string res_icon_plural() { return "(?)"; }
-    static std::string res_icon_singular() { return "(?)"; }
-  };
-
   //! @brief Return the number of resources in the source that pass the filter.
   //!
   std::size_t calcNumFiltered(const kpi::FolderData &sampler,
@@ -107,12 +101,13 @@ struct GenericCollectionOutliner : public StudioWindow {
   //! @brief Format the title in the "<header> (<number of resources>)" format.
   //!
   std::string formatTitle(const kpi::FolderData &sampler,
-                          const TFilter *filter = nullptr) const noexcept {
-    return "";
-    //	const auto name = GetRich(sampler.getType());
-    //	return std::string(std::string(name.icon.icon_plural) + "  " +
-    //		std::string(name.exposedName) + "s (" +
-    //std::to_string(calcNumFiltered(sampler, filter)) + ")");
+                          const TFilter *filter = nullptr) const {
+    const auto rich = kpi::RichNameManager::getInstance().getRich(
+        &sampler.at<kpi::IDocumentNode>(0));
+    const std::string icon_plural = rich.getIconPlural();
+    const std::string exposed_name = rich.getNamePlural();
+    return std::string(icon_plural + "  " + exposed_name + " (" +
+                       std::to_string(calcNumFiltered(sampler, filter)) + ")");
   }
 
   void drawFolder(kpi::FolderData &sampler, const kpi::IDocumentNode &host,
@@ -160,15 +155,14 @@ struct GenericCollectionOutliner : public StudioWindow {
       thereWasAClick = ImGui::IsItemClicked();
       bool focused = ImGui::IsItemFocused();
 
-      // std::string cur_name = "TODO";
-      //	std::string(GetRich(sampler.getType()).icon.icon_singular) + " "
-      //+ 	name;
+      const auto rich =
+          kpi::RichNameManager::getInstance().getRich(nodeAt.get());
 
       if (ImGui::TreeNodeEx(
               std::to_string(i).c_str(),
               ImGuiTreeNodeFlags_DefaultOpen |
                   (nodeAt->children.empty() ? ImGuiTreeNodeFlags_Leaf : 0),
-              cur_name.c_str())) {
+              (rich.getIconSingular() + " " + cur_name).c_str())) {
         // NodeDrawer::drawNode(*node.get());
 
         drawRecursive(*nodeAt.get());

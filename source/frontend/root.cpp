@@ -107,7 +107,7 @@ void RootWindow::draw() {
       //(ImGui::MenuItem(ed->mWindowCollection->getName(i)))
       //			{
       //				ed->attachWindow(ed->mWindowCollection->spawn(i),
-      //ed->mId);
+      // ed->mId);
       //			}
       //		}
       //	}
@@ -413,7 +413,7 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   } else if (policy == OpenFilePolicy::ReplaceEditorIfMatching) {
     //	if (getActiveEditor() &&
     //((EditorWindow*)getActiveEditor())->mState->mName.namespacedId ==
-    //fileState->mName.namespacedId)
+    // fileState->mName.namespacedId)
     //	{
     //		detachWindow(getActiveEditor()->mId);
     //	}
