@@ -442,6 +442,8 @@ std::string GXProgram::generateComponentSwizzle(const gx::SwapTableEntry* swapTa
 	const char* suffixes[] = { "r", "g", "b", "a" };
 	if (swapTable)
 		channel = swapTable->lookup(channel);
+	// For sunshine common.szs\halfwhiteball.bmd
+	if ((u8)channel >= 4) return "a";
 	return suffixes[(u8)channel];
 }
 

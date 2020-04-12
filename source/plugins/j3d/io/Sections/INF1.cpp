@@ -12,7 +12,7 @@ void readINF1(BMDOutputContext& ctx)
 		ScopedSection g(reader, "Information");
 
 		u16 flag = reader.read<u16>();
-		reader.signalInvalidityLast<u16, oishii::UncommonInvalidity>("Flag");
+		// reader.signalInvalidityLast<u16, oishii::UncommonInvalidity>("Flag");
 		reader.read<u16>();
 
 		// TODO -- Use these for validation

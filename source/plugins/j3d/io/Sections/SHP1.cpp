@@ -72,28 +72,28 @@ void readSHP1(BMDOutputContext& ctx)
         auto& shape = ctx.mdl.getShape(si).get();
         reader.seekSet(g.start + ofsShapeData + ctx.shapeIdLut[si] * 0x28);
         shape.id = ctx.shapeIdLut[si];
-		printf("Shape (index=%u, id=%u) {\n", si, shape.id);
+		// printf("Shape (index=%u, id=%u) {\n", si, shape.id);
         // shape.name = nameTable[si];
         shape.mode = static_cast<ShapeData::Mode>(reader.read<u8>());
         assert(shape.mode < ShapeData::Mode::Max);
         reader.read<u8>();
         // Number of matrix primitives (mtxGrpCnt)
         auto num_matrix_prims = reader.read<u16>();
-		printf("   num_matrix_prims=%u\n", (u32)num_matrix_prims);
+		// printf("   num_matrix_prims=%u\n", (u32)num_matrix_prims);
         auto ofs_vcd_list = reader.read<u16>();
-		printf("   ofs_vcd_list=%u\n", (u32)ofs_vcd_list);
+		// printf("   ofs_vcd_list=%u\n", (u32)ofs_vcd_list);
         // current mtx/mtx list
         auto first_matrix_list = reader.read<u16>();
-		printf("   first_matrix_list=%u\n", (u32)first_matrix_list);
+		// printf("   first_matrix_list=%u\n", (u32)first_matrix_list);
 		// "Packet" or mtx prim summary (accessor) idx
         auto first_mtx_prim_idx = reader.read<u16>();
-		printf("   first_mtx_prim_idx=%u\n", (u32)first_mtx_prim_idx);
+		// printf("   first_mtx_prim_idx=%u\n", (u32)first_mtx_prim_idx);
 		assert(first_matrix_list == first_mtx_prim_idx);
         reader.read<u16>();
         shape.bsphere = reader.read<f32>();
         shape.bbox.min << reader;
 		shape.bbox.max << reader;
-		printf("}\n");
+		// printf("}\n");
 
         // Read VCD attributes
         reader.seekSet(g.start + ofsVcdList + ofs_vcd_list);

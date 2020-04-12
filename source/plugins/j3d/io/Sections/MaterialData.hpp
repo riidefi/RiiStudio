@@ -534,7 +534,6 @@ struct io_wrapper<Model::Indirect>
 {
 	static void onRead(oishii::BinaryReader& reader, Model::Indirect& c)
 	{
-		reader.warnAt("Start of IndTex block", reader.tell(), reader.tell() + 4);
 		c.enabled = reader.read<u8>();
 		c.nIndStage = reader.read<u8>();
 		if (c.nIndStage > 4) reader.warnAt("Invalid stage count", reader.tell() - 1, reader.tell());
