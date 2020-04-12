@@ -1,20 +1,20 @@
 #include "root.hpp"
 
 #ifdef _WIN32
-int main(int argc, char* const* argv)
+int main(int argc, char *const *argv)
 #else
-int main(int, char**)
+int main(int, char **)
 #endif
 {
-	DebugReport("Starting...\n");
+  DebugReport("Starting...\n");
 
-	auto* core = new riistudio::frontend::RootWindow();
+  auto *core = new riistudio::frontend::RootWindow();
 
-	core->loop();
+  core->loop();
 
 #ifdef _WIN32
-	delete core;
+  delete core;
 #endif
 
-	return 0;
+  return 0;
 }

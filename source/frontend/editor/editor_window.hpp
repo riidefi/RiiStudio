@@ -8,15 +8,16 @@ namespace riistudio::frontend {
 
 class EditorWindow : public StudioWindow {
 public:
-	EditorWindow(std::unique_ptr<kpi::IDocumentNode> state, const std::string& path);
+  EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,
+               const std::string &path);
 
-	void draw_() override;
+  void draw_() override;
 
-	std::string getFilePath() { return mFilePath; }
+  std::string getFilePath() { return mFilePath; }
 
-	std::unique_ptr<kpi::IDocumentNode> mState;
-	std::string mFilePath;
-	kpi::History mHistory;
+  std::unique_ptr<kpi::IDocumentNode> mState;
+  std::string mFilePath;
+  kpi::History mHistory;
 };
 
-}
+} // namespace riistudio::frontend

@@ -1,18 +1,18 @@
 #pragma once
 
+namespace libcube {
+namespace gx {
 
-namespace libcube { namespace gx {
-
-enum class Comparison
-{
-	NEVER,
-	LESS,
-	EQUAL,
-	LEQUAL,
-	GREATER,
-	NEQUAL,
-	GEQUAL,
-	ALWAYS
+enum class Comparison {
+  NEVER,
+  LESS,
+  EQUAL,
+  LEQUAL,
+  GREATER,
+  NEQUAL,
+  GEQUAL,
+  ALWAYS
 };
 
-} } // namespace libcube::gx
+}
+} // namespace libcube

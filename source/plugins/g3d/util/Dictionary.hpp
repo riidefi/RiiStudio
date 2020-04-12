@@ -5,51 +5,51 @@
 #include <vector>
 
 namespace oishii {
-	class BinaryReader;
-	namespace v2 { class Writer; }
+class BinaryReader;
+namespace v2 {
+class Writer;
 }
+} // namespace oishii
 
 namespace riistudio::g3d {
 
 struct DictionaryNode {
-    u16 mId = 0;
-    u16 mFlag = 0;
-    u16 mIdxPrev = 0;
-    u16 mIdxNext = 0;
+  u16 mId = 0;
+  u16 mFlag = 0;
+  u16 mIdxPrev = 0;
+  u16 mIdxNext = 0;
 
-    void resetInternal() { mId = mFlag = mIdxPrev = mIdxNext = 0; }
-    std::string mName;
+  void resetInternal() { mId = mFlag = mIdxPrev = mIdxNext = 0; }
+  std::string mName;
 
-    s32 mDataDestination = -1;
+  s32 mDataDestination = -1;
 
-    inline bool calcId(u16 id) {
-        const u32 c = id >> 3;
-        
-        return c < mName.size() && ((mName[c] >> (id & 7)) & 1);
-    }
+  inline bool calcId(u16 id) {
+    const u32 c = id >> 3;
 
-    void read(oishii::BinaryReader& reader, u32 start);
-    // void write(oishii::v2::Writer& writer, u32 start) const;
+    return c < mName.size() && ((mName[c] >> (id & 7)) & 1);
+  }
 
-    DictionaryNode() = default;
-    inline DictionaryNode(oishii::BinaryReader& reader, u32 start) { read(reader, start); }
+  void read(oishii::BinaryReader &reader, u32 start);
+  // void write(oishii::v2::Writer& writer, u32 start) const;
+
+  DictionaryNode() = default;
+  inline DictionaryNode(oishii::BinaryReader &reader, u32 start) {
+    read(reader, start);
+  }
 };
 
 struct Dictionary {
-    std::vector<DictionaryNode> mNodes;
+  std::vector<DictionaryNode> mNodes;
 
-    void calcNode(u32 id);
-    void calcNodes();
+  void calcNode(u32 id);
+  void calcNodes();
 
-    void read(oishii::BinaryReader& reader);
-    void write(oishii::v2::Writer& writer);
+  void read(oishii::BinaryReader &reader);
+  void write(oishii::v2::Writer &writer);
 
-	Dictionary() = default;
-	Dictionary(oishii::BinaryReader& reader) {
-		read(reader);
-	}
+  Dictionary() = default;
+  Dictionary(oishii::BinaryReader &reader) { read(reader); }
 };
 
-
-
-}
+} // namespace riistudio::g3d
