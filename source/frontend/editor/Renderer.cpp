@@ -124,13 +124,17 @@ struct SceneState
 
 	void buildBuffers()
 	{
-
-		// TODO -- nodes may be of incompatible type..
-		for (const auto& node : mTree.opaque)
-		{
+		auto setupNode = [&](auto& node) {
 			node->idx_ofs = static_cast<u32>(mVbo.mIndices.size());
 			node->poly.propogate(mVbo);
 			node->idx_size = static_cast<u32>(mVbo.mIndices.size()) - node->idx_ofs;
+		};
+		// TODO -- nodes may be of incompatible type..
+		for (const auto& node : mTree.opaque) {
+			setupNode(node);
+		}
+		for (const auto& node : mTree.translucent) {
+			setupNode(node);
 		}
 
 		mVbo.build();
@@ -243,6 +247,16 @@ struct SceneState
 			riistudio::core::AABB newBound{ nmin, nmax };
 			bound.expandBound(newBound);
 		}
+		for (const auto& node : mTree.translucent)
+		{
+			auto mdl = computeBoneMdl(node->bone);
+
+			auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
+			auto nmin = mdl * glm::vec4(node->poly.getBounds().min, 0.0f);
+
+			riistudio::core::AABB newBound{ nmin, nmax };
+			bound.expandBound(newBound);
+		}
 
 		// const f32 dist = glm::distance(bound.m_minBounds, bound.m_maxBounds);
 
@@ -250,6 +264,14 @@ struct SceneState
 		mUboBuilder.clear();
 		u32 i = 0;
 		for (const auto& node : mTree.opaque)
+		{
+			auto mdl = computeBoneMdl(node->bone);
+
+			node->mat.generateUniforms(mUboBuilder, mdl, view, proj, node->shader.getId(), texIdMap);
+			node->mtx_id = i;
+			++i;
+		}
+		for (const auto& node : mTree.translucent)
 		{
 			auto mdl = computeBoneMdl(node->bone);
 
@@ -272,10 +294,9 @@ struct SceneState
 		
 		MegaState state;
 
-		for (const auto& node : mTree.opaque)
-		{
+		auto drawNode = [&](const auto& node) {
 			node->mat.setMegaState(state);
-			
+
 			glEnable(GL_BLEND);
 			glBlendFunc(state.blendSrcFactor, state.blendDstFactor);
 			glBlendEquation(state.blendMode);
@@ -303,6 +324,13 @@ struct SceneState
 			// printf("Draw: index (size=%u, ofs=%u)\n", node->idx_size, node->idx_ofs * 4);
 			glDrawElements(GL_TRIANGLES, node->idx_size, GL_UNSIGNED_INT, (void*)(node->idx_ofs * 4));
 			// if (glGetError() != GL_NO_ERROR) exit(1);
+		};
+
+		for (const auto& node : mTree.opaque) {
+			drawNode(node);
+		}
+		for (const auto& node : mTree.translucent) {
+			drawNode(node);
 		}
 
 		glBindVertexArray(0);
