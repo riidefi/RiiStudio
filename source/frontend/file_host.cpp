@@ -15,13 +15,15 @@ static std::vector<std::string> fileDialogueOpen()
 void FileHost::fileHostProcess() {
     while (!mDropQueue.empty())
 	{
-		openFile(mDropQueue.back(), OpenFilePolicy::NewEditor);
+		std::string to_open = mDropQueue.front();
+		DebugReport("Reading from disc: %s\n", to_open.c_str());
 		mDropQueue.pop();
+		openFile(to_open, OpenFilePolicy::NewEditor);
 	}
 	while (!mDataDropQueue.empty())
 	{
-		printf("Opening file..\n");
-		onFileOpen(std::move(mDataDropQueue.back()), OpenFilePolicy::NewEditor);
+		assert(!mDataDropQueue.front().mPath.empty() && mDataDropQueue.front().mPath[0]);
+		onFileOpen(std::move(mDataDropQueue.front()), OpenFilePolicy::NewEditor);
 		mDataDropQueue.pop();
 	}
 }
@@ -61,8 +63,8 @@ void FileHost::openFile(const std::string& path, OpenFilePolicy policy) {
 void FileHost::drop(const std::vector<std::string>& paths) {
     for (const auto& path : paths)
 	{
-		DebugReport("Dropping file: %s\n", path.data());
-		mDropQueue.push(std::string(path));
+		DebugReport("Dropping file: %s\n", path.c_str());
+		mDropQueue.push(path);
 	}
 }
 void FileHost::dropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len, const std::string& name) {

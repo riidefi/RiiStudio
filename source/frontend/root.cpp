@@ -30,7 +30,7 @@ namespace riistudio::frontend {
 
 void RootWindow::draw() {
 	fileHostProcess();
-
+	
     ImGui::PushID(0);
 
 	ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -43,7 +43,7 @@ void RootWindow::draw() {
 	window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 	window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-	ImGui::Begin("DockSpace##", &bOpen, window_flags);
+	ImGui::Begin("DockSpace##Root", &bOpen, window_flags);
 	ImGui::PopStyleVar(3);
 
 	dockspace_id = ImGui::GetID("DockSpaceWidget");
@@ -319,9 +319,6 @@ void RootWindow::draw() {
 
 		ImGui::EndMenuBar();
 	}
-
-
-    // ImGui::ShowDemoWindow();
 
 	drawChildren();
 
