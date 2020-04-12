@@ -47,8 +47,9 @@ inline bool ends_with(const std::string& value, const std::string& ending) {
 }
 
 struct GenericCollectionOutliner : public StudioWindow {
-  GenericCollectionOutliner(kpi::IDocumentNode& host)
-      : StudioWindow("Outliner"), mHost(host) {}
+  GenericCollectionOutliner(kpi::IDocumentNode& host,
+                            kpi::IDocumentNode*& active)
+      : StudioWindow("Outliner"), mHost(host), mActive(active) {}
 
   struct ImTFilter : public ImGuiTextFilter {
     bool test(const std::string& str) const noexcept {
@@ -237,6 +238,9 @@ struct GenericCollectionOutliner : public StudioWindow {
 
     // Set our last selection index, for shift clicks.
     sampler.setActiveSelection(justSelectedId);
+    mActive =
+        sampler[justSelectedId]
+            .get(); // TODO -- removing the active node will cause issues here
   }
 
   void drawRecursive(kpi::IDocumentNode& host) noexcept {
@@ -251,6 +255,7 @@ struct GenericCollectionOutliner : public StudioWindow {
 private:
   kpi::IDocumentNode& mHost;
   TFilter mFilter;
+  kpi::IDocumentNode*& mActive;
 };
 
 static const std::vector<std::string> StdImageFilters = {
@@ -553,32 +558,48 @@ struct HistoryList : public StudioWindow {
 };
 
 struct PropertyEditor : public StudioWindow {
-  PropertyEditor(kpi::History& host, kpi::IDocumentNode& root)
-      : StudioWindow("Property Editor"), mHost(host), mRoot(root) {
-    auto& mdls = *root.getFolder<lib3d::Model>();
-    auto& mdl = mdls[0];
-    mMats = mdl->getFolder<libcube::IGCMaterial>();
-    mImgs = root.getFolder<lib3d::Texture>();
+  PropertyEditor(kpi::History& host, kpi::IDocumentNode& root,
+                 kpi::IDocumentNode*& active)
+      : StudioWindow("Property Editor"), mHost(host), mRoot(root),
+        mActive(active) {}
+
+  template <typename T>
+  void gatherSelected(std::vector<kpi::IDocumentNode*>& tmp,
+                      kpi::FolderData& folder, T& pred) {
+    for (int i = 0; i < folder.size(); ++i) {
+      if (folder.isSelected(i) && pred(folder[i].get())) {
+        tmp.push_back(folder[i].get());
+      }
+
+      for (auto& subfolder : folder[i]->children) {
+        gatherSelected(tmp, subfolder.second, pred);
+      }
+    }
   }
   void draw_() override {
     auto& manager = kpi::PropertyViewManager::getInstance();
 
-    kpi::IPropertyView* activeTab = nullptr;
-    auto& active = mMats->at<kpi::IDocumentNode>(mMats->getActiveSelection());
-
-    std::vector<kpi::IDocumentNode*> mats;
-    for (std::size_t i = 0; i < mMats->size(); ++i) {
-      if (mMats->isSelected(i))
-        mats.push_back(&mMats->at<kpi::IDocumentNode>(i));
-    }
-    if (mats.empty()) {
-      ImGui::Text("No material is selected");
+    if (mActive == nullptr) {
+      ImGui::Text("Nothing is selected.");
       return;
     }
-    auto* _active = dynamic_cast<libcube::IGCMaterial*>(
-        (*mMats)[mMats->getActiveSelection()].get());
-    ImGui::Text("%s %s (%u)", _active->getName().c_str(),
-                mats.size() > 1 ? "..." : "", static_cast<u32>(mats.size()));
+    std::vector<kpi::IDocumentNode*> selected;
+    for (auto& subfolder : mRoot.children) {
+      gatherSelected(selected, subfolder.second, [&](kpi::IDocumentNode* node) {
+        return node->mType == mActive->mType;
+      });
+    }
+
+    kpi::IPropertyView* activeTab = nullptr;
+
+    if (selected.empty()) {
+      ImGui::Text("Active selection and multiselection desynced. This "
+                  "shouldn't happen.");
+      return;
+    }
+    ImGui::Text("%s %s (%u)", mActive->getName().c_str(),
+                selected.size() > 1 ? "..." : "",
+                static_cast<u32>(selected.size()));
 
     if (ImGui::BeginTabBar("Pane")) {
       int i = 0;
@@ -600,7 +621,7 @@ struct PropertyEditor : public StudioWindow {
 
             ++i;
           },
-          active);
+          *mActive);
       ImGui::EndTabBar();
     }
 
@@ -611,14 +632,13 @@ struct PropertyEditor : public StudioWindow {
       return;
     }
 
-    activeTab->draw(active, mats, mHost, mRoot);
+    activeTab->draw(*mActive, selected, mHost, mRoot);
   }
 
   kpi::History& mHost;
   kpi::IDocumentNode& mRoot;
 
-  kpi::FolderData* mMats = nullptr;
-  kpi::FolderData* mImgs = nullptr;
+  kpi::IDocumentNode*& mActive;
 
   int mActiveTab = 0;
 };
@@ -629,9 +649,11 @@ EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,
       mState(std::move(state)), mFilePath(path) {
   mHistory.commit(*mState.get());
 
-  attachWindow(std::make_unique<PropertyEditor>(mHistory, *mState.get()));
+  attachWindow(
+      std::make_unique<PropertyEditor>(mHistory, *mState.get(), mActive));
   attachWindow(std::make_unique<HistoryList>(mHistory, *mState.get()));
-  attachWindow(std::make_unique<GenericCollectionOutliner>(*mState.get()));
+  attachWindow(
+      std::make_unique<GenericCollectionOutliner>(*mState.get(), mActive));
   attachWindow(std::make_unique<TextureEditor>(*mState.get(), mHistory));
   attachWindow(std::make_unique<RenderTest>(*mState.get()));
 }

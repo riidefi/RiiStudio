@@ -18,6 +18,7 @@ public:
   std::unique_ptr<kpi::IDocumentNode> mState;
   std::string mFilePath;
   kpi::History mHistory;
+  kpi::IDocumentNode* mActive = nullptr;
 };
 
 } // namespace riistudio::frontend
