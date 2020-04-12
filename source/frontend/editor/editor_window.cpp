@@ -366,9 +366,10 @@ struct PropertyEditor : public StudioWindow {
     kpi::IPropertyView* activeTab = nullptr;
 
     if (selected.empty()) {
-      ImGui::Text("Active selection and multiselection desynced. This "
+      ImGui::Text(ICON_FA_EXCLAMATION_TRIANGLE
+                  " Active selection and multiselection desynced. This "
                   "shouldn't happen.");
-      return;
+      selected.push_back(mActive);
     }
     ImGui::Text("%s %s (%u)", mActive->getName().c_str(),
                 selected.size() > 1 ? "..." : "",

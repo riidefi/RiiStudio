@@ -1,19 +1,20 @@
-#include <frontend/editor/kit/Image.hpp>
-#include <kpi/PropertyView.hpp>
-#include <plugins/gc/Export/Material.hpp>
-#include <vendor/fa5/IconsFontAwesome5.h>
-#include <vendor/imgui/imgui.h>
-#include <vendor/imgui/imgui_internal.h>
-
-#include <plugins/gc/Encoder/ImagePlatform.hpp>
-
-#include <plugins/gc/Util/TextureExport.hpp>
-#include <vendor/FileDialogues.hpp>
-
 #define STB_IMAGE_IMPLEMENTATION
+#include <vendor/FileDialogues.hpp>
+#include <vendor/fa5/IconsFontAwesome5.h>
 #include <vendor/stb_image.h>
 
+#include <core/util/gui.hpp>
+
 #undef near
+
+#include <frontend/editor/kit/Image.hpp>
+#include <kpi/PropertyView.hpp>
+
+#include <plugins/gc/Encoder/ImagePlatform.hpp>
+#include <plugins/gc/Export/Bone.hpp>
+#include <plugins/gc/Export/IndexedPolygon.hpp>
+#include <plugins/gc/Export/Material.hpp>
+#include <plugins/gc/Util/TextureExport.hpp>
 
 namespace libcube::UI {
 
@@ -62,22 +63,6 @@ struct CullMode {
     ImGui::Checkbox("Front", &front);
     ImGui::Checkbox("Back", &back);
   }
-};
-
-struct ConditionalActive {
-  ConditionalActive(bool pred) : bPred(pred) {
-    if (!bPred) {
-      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-    }
-  }
-  ~ConditionalActive() {
-    if (!bPred) {
-      ImGui::PopItemFlag();
-      ImGui::PopStyleVar();
-    }
-  }
-  bool bPred = false;
 };
 
 struct DisplaySurface final {
@@ -255,7 +240,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                     "lighting calculation result.\0SRTG: Map R(ed) and G(reen) "
                     "components of a color channel to U/V coordinates");
                 {
-                  ConditionalActive g(basefunc == 0);
+                  riistudio::util::ConditionalActive g(basefunc == 0);
                   ImGui::Combo("Matrix Size", &mtxtype,
                                "UV Matrix: 2x4\0UVW Matrix: 3x4");
                   bool identitymatrix =
@@ -274,7 +259,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   ImGui::Checkbox("Identity Matrix", &identitymatrix);
                   ImGui::SameLine();
                   {
-                    ConditionalActive g2(!identitymatrix);
+                    riistudio::util::ConditionalActive g2(!identitymatrix);
                     ImGui::SliderInt("Matrix ID", &texmatrixid, 0, 7);
                   }
                   libcube::gx::TexMatrix newtexmatrix =
@@ -287,7 +272,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   AUTO_PROP(texGens[i].matrix, newtexmatrix);
                 }
                 {
-                  ConditionalActive g(basefunc == 1);
+                  riistudio::util::ConditionalActive g(basefunc == 1);
                   ImGui::SliderInt("Hardware light ID", &lightid, 0, 7);
                 }
 
@@ -476,7 +461,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           ImGui::Checkbox("Use mipmap", &mip);
 
           {
-            struct ConditionalActive g(mip);
+            riistudio::util::ConditionalActive g(mip);
 
             if (ImGui::CollapsingHeader("Mipmapping",
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -635,7 +620,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
             ImGui::SameLine();
             ImGui::Text("{(1 - ");
             {
-              ConditionalActive g(false);
+              riistudio::util::ConditionalActive g(false);
               ImGui::SameLine();
               ImGui::Combo("##C_", &c, colorOpt);
             }
@@ -690,7 +675,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
             ImGui::SameLine();
             ImGui::Text("{(1 - ");
             {
-              ConditionalActive g(false);
+              riistudio::util::ConditionalActive g(false);
               ImGui::SameLine();
               ImGui::Combo("##C_", &c, alphaOpt);
             }
@@ -793,7 +778,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
     AUTO_PROP(zMode.compare, zcmp);
 
     {
-      ConditionalActive g(zcmp);
+      riistudio::util::ConditionalActive g(zcmp);
 
       ImGui::Indent(30.0f);
 
@@ -825,8 +810,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
 
     {
 
-      ConditionalActive g(btype ==
-                          static_cast<int>(libcube::gx::BlendModeType::blend));
+      riistudio::util::ConditionalActive g(
+          btype == static_cast<int>(libcube::gx::BlendModeType::blend));
       ImGui::Text("Blend calculation");
 
       const char* blendOpts =
@@ -856,8 +841,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
       ImGui::Text(")");
     }
     {
-      ConditionalActive g(btype ==
-                          static_cast<int>(libcube::gx::BlendModeType::logic));
+      riistudio::util::ConditionalActive g(
+          btype == static_cast<int>(libcube::gx::BlendModeType::logic));
       ImGui::Text("Logical Operations");
     }
     ImGui::PopItemWidth();
@@ -1079,6 +1064,118 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
   }
 }
 
+struct BoneTransformSurface final {
+  const char* name = "Transformation";
+  const char* icon = ICON_FA_ARROWS_ALT;
+};
+
+struct BoneDisplaySurface final {
+  const char* name = "Displays";
+  const char* icon = ICON_FA_IMAGE;
+};
+
+void drawProperty(kpi::PropertyDelegate<IBoneDelegate>& delegate,
+                  BoneTransformSurface) {
+  auto& bone = delegate.getActive();
+
+  const auto srt = bone.getSRT();
+  auto scl = srt.scale;
+  auto rot = srt.rotation;
+  auto pos = srt.translation;
+
+  ImGui::InputFloat3("Scale", &scl.x);
+  KPI_PROPERTY_EX(delegate, getSRT().scale, scl);
+
+  ImGui::InputFloat3("Rotation", &rot.x);
+  KPI_PROPERTY_EX(delegate, getSRT().rotation, rot);
+
+  ImGui::InputFloat3("Translation", &pos.x);
+  KPI_PROPERTY_EX(delegate, getSRT().translation, pos);
+}
+void drawProperty(kpi::PropertyDelegate<IBoneDelegate>& delegate,
+                  BoneDisplaySurface) {
+  auto& bone = delegate.getActive();
+  ImGui::Text(ICON_FA_EXCLAMATION_TRIANGLE
+              " Display Properties do not currently support multi-selection.");
+
+  if (ImGui::BeginChild("Entries")) {
+
+    for (int i = 0; i < bone.getNumDisplays(); ++i) {
+      auto display = bone.getDisplay(i);
+      ImGui::Text("Display #%i", i);
+      ImGui::PushID(i);
+      ImGui::PushItemWidth(200);
+
+      ImGui::SameLine();
+      int matId = display.matId;
+      ImGui::InputInt("Material ID", &matId);
+      display.matId = matId;
+
+      ImGui::SameLine();
+      int polyId = display.polyId;
+      ImGui::InputInt("Polygon ID", &polyId);
+      display.polyId = polyId;
+
+      ImGui::SameLine();
+      int prio = display.prio;
+      ImGui::InputInt("Sorting Priority", &prio);
+      display.prio = prio;
+
+      if (!(bone.getDisplay(i) == display)) {
+        bone.setDisplay(i, display);
+        delegate.commit("Edit Bone Display Entry");
+      }
+
+      ImGui::SameLine();
+      ImGui::Button("(Delete)");
+      // TODO
+
+      ImGui::PopItemWidth();
+      ImGui::PopID();
+    }
+
+    ImGui::EndChild();
+  }
+}
+
+struct PolyDescriptorSurface final {
+  const char* name = "Vertex Descriptor";
+  const char* icon = ICON_FA_IMAGE;
+};
+void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl,
+                  PolyDescriptorSurface) {
+  auto& poly = dl.getActive();
+
+  auto& desc = poly.getVcd();
+
+  const char* vertexAttribNames =
+      "PositionNormalMatrixIndex\0Texture0MatrixIndex\0Texture1MatrixIndex\0Tex"
+      "ture2MatrixIndex\0Texture3MatrixIndex\0Texture4MatrixIndex\0Texture5Matr"
+      "ixIndex\0Texture6MatrixIndex\0Texture7MatrixIndex\0Position\0Normal\0Col"
+      "or0\0Color1\0TexCoord0\0TexCoord1\0TexCoord2\0TexCoord3\0TexCoord4\0TexC"
+      "oord5\0TexCoord6\0TexCoord7\0PositionMatrixArray\0NormalMatrixArray\0Tex"
+      "tureMatrixArray\0LightArray\0NormalBinormalTangent\0";
+
+  if (ImGui::BeginChild("VCD")) {
+    int i = 0;
+    for (auto& attrib : desc.mAttributes) {
+      riistudio::util::IDScope g(i++);
+
+      ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() / 3);
+
+      int type = static_cast<int>(attrib.first);
+      ImGui::Combo("Attribute Type", &type, vertexAttribNames);
+      int format = static_cast<int>(attrib.second);
+      ImGui::SameLine();
+      ImGui::Combo(
+          "Attribute Format", &format,
+          "None\0Direct\0U8 / 8-bit / 0-255\0U16 / 16-bit / 0-65535\0");
+
+      ImGui::PopItemWidth();
+    }
+  }
+}
+
 void installDisplaySurface() {
   kpi::PropertyViewManager& manager = kpi::PropertyViewManager::getInstance();
   manager.addPropertyView<libcube::IGCMaterial, DisplaySurface>();
@@ -1090,6 +1187,11 @@ void installDisplaySurface() {
   manager.addPropertyView<libcube::IGCMaterial, PixelSurface>();
 
   manager.addPropertyView<libcube::Texture, ImageSurface>();
+
+  manager.addPropertyView<libcube::IBoneDelegate, BoneTransformSurface>();
+  manager.addPropertyView<libcube::IBoneDelegate, BoneDisplaySurface>();
+
+  manager.addPropertyView<libcube::IndexedPolygon, PolyDescriptorSurface>();
 }
 
 } // namespace libcube::UI

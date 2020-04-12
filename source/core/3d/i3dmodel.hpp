@@ -158,10 +158,15 @@ struct Bone {
     u32 matId = 0;
     u32 polyId = 0;
     u8 prio = 0;
+
+    bool operator==(const Display& rhs) const {
+      return matId == rhs.matId && polyId == rhs.polyId && prio == rhs.prio;
+    }
   };
   virtual u64 getNumDisplays() const = 0;
   virtual Display getDisplay(u64 idx) const = 0;
   virtual void addDisplay(const Display& d) = 0;
+  virtual void setDisplay(u64 idx, const Display& d) = 0;
 };
 enum class PixelOcclusion {
   //! The texture does not use alpha.

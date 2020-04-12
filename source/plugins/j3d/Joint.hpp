@@ -157,6 +157,11 @@ struct Joint : public libcube::IBoneDelegate, public JointData {
   lib3d::Bone::Display getDisplay(u64 idx) const override {
     return {(u32)displays[idx].material, (u32)displays[idx].shape};
   }
+  void setDisplay(u64 idx, const lib3d::Bone::Display& d) override {
+    auto& dst = displays[idx];
+    dst.material = d.matId;
+    dst.shape = d.polyId;
+  }
 
   void addDisplay(const lib3d::Bone::Display& d) override {
     displays.emplace_back(d.matId, d.polyId);

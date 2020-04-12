@@ -163,6 +163,12 @@ struct Bone : public libcube::IBoneDelegate, BoneData {
 
     return Display{dc.mMaterial, dc.mPoly, dc.mPrio};
   }
+  void setDisplay(u64 idx, const Display& d) override {
+    auto& dst = mDisplayCommands[idx];
+    dst.mMaterial = d.matId;
+    dst.mPoly = d.polyId;
+    dst.mPrio = d.prio;
+  }
 
   void addDisplay(const Display& d) override {
     mDisplayCommands.push_back({d.matId, d.polyId, d.prio});
