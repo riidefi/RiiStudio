@@ -33,9 +33,12 @@ public:
 private:
     u32 dockspace_id = 0;
     bool vsync = 0;
+	bool bThemeEditor = false;
+	float mFontGlobalScale = 0.8f;
 
 	std::queue<std::string> mAttachEditorsQueue;
 	ThemeManager mTheme;
+	ThemeManager::BasicTheme mCurTheme = ThemeManager::BasicTheme::CorporateGrey;
 };
 
 }

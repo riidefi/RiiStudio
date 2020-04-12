@@ -128,6 +128,8 @@ void RootWindow::draw() {
 				vsync = _vsync;
 			}
 
+			ImGui::Checkbox("Theme Editor", &bThemeEditor);
+
 			ImGui::EndMenu();
 		}
 #ifndef BUILD_DIST
@@ -323,6 +325,16 @@ void RootWindow::draw() {
 
 	drawChildren();
 
+	if (bThemeEditor && ImGui::Begin("Theme Editor", &bThemeEditor)) {
+		int sel = static_cast<int>(mCurTheme);
+		ImGui::Combo("Theme", &sel, ThemeManager::ThemeNames);
+		mCurTheme = static_cast<ThemeManager::BasicTheme>(sel);
+		ImGui::SliderFloat("Font Scale", &mFontGlobalScale, 0.1f, 2.0f);
+		ImGui::End();
+	}
+	mTheme.setThemeEx(mCurTheme);
+
+	ImGui::GetIO().FontGlobalScale = mFontGlobalScale;
 
 	// Handle popups
 	ImGui::End();
@@ -429,9 +441,6 @@ RootWindow::RootWindow()
 	//	px::PackageInstaller::spInstance->installModule("nw.dll");
 
 	kpi::ReflectionMesh::getInstance()->getDataMesh().compute();
-
-	// Theme defaults
-	mTheme.setTheme<ThemeManager::BasicTheme::ZenithDark>();
 }
 RootWindow::~RootWindow()
 {

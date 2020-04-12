@@ -93,9 +93,8 @@ void Applet::frameProcess()
 #endif
 	ImGui::NewFrame();
 
-	ImGui::GetIO().FontGlobalScale = .8;
 #ifdef DEBUG
-	ImGui::ShowDemoWindow(&demo);
+	if (demo) ImGui::ShowDemoWindow(&demo);
 #endif
     draw(); // Call down to window manager
     
