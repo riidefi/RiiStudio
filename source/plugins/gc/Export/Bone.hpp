@@ -31,6 +31,25 @@ struct IBoneDelegate : public riistudio::lib3d::Bone {
   virtual s64 getBillboardAncestor() const { return -1; }
   virtual void setBillboardAncestor(s64 ancestor_id) {}
 
+  glm::vec3 getScale() const { return getSRT().scale; }
+  glm::vec3 getRotation() const { return getSRT().rotation; }
+  glm::vec3 getTranslation() const { return getSRT().translation; }
+  void setScale(glm::vec3 s) {
+    auto srt = getSRT();
+    srt.scale = s;
+    setSRT(srt);
+  }
+  void setRotation(glm::vec3 r) {
+    auto srt = getSRT();
+    srt.rotation = r;
+    setSRT(srt);
+  }
+  void setTranslation(glm::vec3 t) {
+    auto srt = getSRT();
+    srt.translation = t;
+    setSRT(srt);
+  }
+
   void copy(riistudio::lib3d::Bone& to) const override {
     riistudio::lib3d::Bone::copy(to);
     IBoneDelegate* bone = reinterpret_cast<IBoneDelegate*>(&to);

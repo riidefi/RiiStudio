@@ -1079,18 +1079,24 @@ void drawProperty(kpi::PropertyDelegate<IBoneDelegate>& delegate,
   auto& bone = delegate.getActive();
 
   const auto srt = bone.getSRT();
-  auto scl = srt.scale;
-  auto rot = srt.rotation;
-  auto pos = srt.translation;
+  glm::vec3 scl = srt.scale;
+  glm::vec3 rot = srt.rotation;
+  glm::vec3 pos = srt.translation;
 
   ImGui::InputFloat3("Scale", &scl.x);
-  KPI_PROPERTY_EX(delegate, getSRT().scale, scl);
+  delegate.property(
+      bone.getScale(), scl, [](const auto& x) { return x.getScale(); },
+      [](auto& x, const auto& y) { x.setScale(y); });
 
   ImGui::InputFloat3("Rotation", &rot.x);
-  KPI_PROPERTY_EX(delegate, getSRT().rotation, rot);
-
+  delegate.property(
+	  bone.getRotation(), rot, [](const auto& x) { return x.getRotation(); },
+	  [](auto& x, const auto& y) { x.setRotation(y); });
   ImGui::InputFloat3("Translation", &pos.x);
-  KPI_PROPERTY_EX(delegate, getSRT().translation, pos);
+  delegate.property(
+	  bone.getTranslation(), pos, [](const auto& x) { return x.getTranslation(); },
+	  [](auto& x, const auto& y) { x.setTranslation(y); });
+  ImGui::Text("Parent ID: %i", (int)bone.getBoneParent());
 }
 void drawProperty(kpi::PropertyDelegate<IBoneDelegate>& delegate,
                   BoneDisplaySurface) {
@@ -1173,6 +1179,7 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl,
 
       ImGui::PopItemWidth();
     }
+	ImGui::EndChild();
   }
 }
 

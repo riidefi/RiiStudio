@@ -2,9 +2,9 @@
 
 #include <core/3d/gl.hpp>
 
-#include <iostream>
-
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
+#include <iostream>
 
 #include <array>
 #include <imgui/imgui.h>
@@ -190,10 +190,9 @@ struct SceneState {
   }
   const kpi::FolderData* bones;
   glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
-    glm::mat4 mdl(1.0f);
-
-    // TODO
-    // mdl = glm::rotate(mdl, (glm::mat4)srt.rotation);
+    glm::mat4 mdl = glm::eulerAngleYXZ(glm::radians(srt.rotation.x),
+                                       glm::radians(srt.rotation.y),
+                                       glm::radians(srt.rotation.z));
     mdl = glm::translate(mdl, srt.translation);
     mdl = glm::scale(mdl, srt.scale);
 
@@ -203,23 +202,21 @@ struct SceneState {
     glm::mat4 mdl(1.0f);
 
     auto& bone = bones->at<lib3d::Bone>(id);
-    // const auto parent = bone->getParent();
-    // if (parent >= 0 && parent != id)
-    //	mdl = computeBoneMdl(parent);
+    const auto parent = bone.getBoneParent();
+    if (parent >= 0 && parent != id)
+      mdl = computeBoneMdl(parent);
 
-    mdl = computeMdlMtx(bone.getSRT());
-    return mdl;
+    return mdl * computeMdlMtx(bone.getSRT());
   }
 
   glm::mat4 computeBoneMdl(const lib3d::Bone& bone) {
     glm::mat4 mdl(1.0f);
     // TODO
-    //	const auto parent = bone.getParent();
-    //	if (parent >= 0)
-    //		mdl = computeBoneMdl(parent);
+    const auto parent = bone.getBoneParent();
+    if (parent >= 0)
+      mdl = computeBoneMdl(parent);
 
-    // mdl = computeMdlMtx(bone.getSRT());
-    return mdl;
+    return mdl * computeMdlMtx(bone.getSRT());
   }
   void build(const glm::mat4& view, const glm::mat4& proj,
              riistudio::core::AABB& bound) {
