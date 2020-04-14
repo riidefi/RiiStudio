@@ -149,89 +149,93 @@ IndexedPolygon::SimpleVertex IndexedPolygon::getPrimitiveVertex(u64 prim_idx,
 void IndexedPolygon::propogate(VBOBuilder& out) const {
   u32 final_bitfield = 0;
 
-  auto propTri = [&](const std::array<IndexedVertex, 3>& tri) {
+  auto propVtx = [&](const IndexedVertex& vtx) {
     const auto& vcd = getVcd();
-    for (const auto& vtx : tri) {
-      out.mIndices.push_back(static_cast<u32>(out.mIndices.size()));
-      final_bitfield |= vcd.mBitfield;
-      // HACK:
-      if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::TexCoord1)))
-        out.pushData(8, glm::vec2{});
-      if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::Normal)))
-        out.pushData(4, glm::vec3{});
-      //	if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::Color0)))
-      //		out.pushData(5, glm::vec4{});
-      for (u32 i = 0; i < (u32)gx::VertexAttribute::Max; ++i) {
-        if (!(vcd.mBitfield & (1 << i)))
-          continue;
+    out.mIndices.push_back(static_cast<u32>(out.mIndices.size()));
+    assert(final_bitfield == 0 || final_bitfield == vcd.mBitfield);
+    final_bitfield |= vcd.mBitfield;
+    // HACK:
+    // if (!(vcd.mBitfield & (1 <<
+    // (u32)gx::VertexAttribute::PositionNormalMatrixIndex)))
+    //	  out.pushData(1, 0);
+    if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::TexCoord1)))
+      out.pushData(8, glm::vec2{});
+    if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::Normal)))
+      out.pushData(4, glm::vec3{});
+    //	if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::Color0)))
+    //		out.pushData(5, glm::vec4{});
+    for (u32 i = 0; i < (u32)gx::VertexAttribute::Max; ++i) {
+      if (!(vcd.mBitfield & (1 << i)))
+        continue;
 
-        switch (static_cast<gx::VertexAttribute>(i)) {
-        case gx::VertexAttribute::PositionNormalMatrixIndex:
-        case gx::VertexAttribute::Texture0MatrixIndex:
-        case gx::VertexAttribute::Texture1MatrixIndex:
-        case gx::VertexAttribute::Texture2MatrixIndex:
-        case gx::VertexAttribute::Texture3MatrixIndex:
-        case gx::VertexAttribute::Texture4MatrixIndex:
-        case gx::VertexAttribute::Texture5MatrixIndex:
-        case gx::VertexAttribute::Texture6MatrixIndex:
-        case gx::VertexAttribute::Texture7MatrixIndex:
-          break;
-        case gx::VertexAttribute::Position:
-          out.pushData(0, getPos(vtx[gx::VertexAttribute::Position]));
-          break;
-        case gx::VertexAttribute::Color0:
-          out.pushData(5, getClr(vtx[gx::VertexAttribute::Color0]));
-          break;
-        case gx::VertexAttribute::TexCoord0:
-        case gx::VertexAttribute::TexCoord1:
-        case gx::VertexAttribute::TexCoord2:
-        case gx::VertexAttribute::TexCoord3:
-        case gx::VertexAttribute::TexCoord4:
-        case gx::VertexAttribute::TexCoord5:
-        case gx::VertexAttribute::TexCoord6:
-        case gx::VertexAttribute::TexCoord7: {
-          const auto chan =
-              i - static_cast<int>(gx::VertexAttribute::TexCoord0);
-          const auto attr = static_cast<gx::VertexAttribute>(i);
-          const auto data = getUv(chan, vtx[attr]);
-          out.pushData(7 + chan, data);
-          break;
-        }
-        case gx::VertexAttribute::Normal:
-          out.pushData(4, getNrm(vtx[gx::VertexAttribute::Normal]));
-          break;
-        default:
-          throw "Invalid vtx attrib";
-          break;
-        }
+      switch (static_cast<gx::VertexAttribute>(i)) {
+      case gx::VertexAttribute::PositionNormalMatrixIndex:
+        // out.pushData(1,
+        // vtx[gx::VertexAttribute::PositionNormalMatrixIndex]);
+        break;
+      case gx::VertexAttribute::Texture0MatrixIndex:
+      case gx::VertexAttribute::Texture1MatrixIndex:
+      case gx::VertexAttribute::Texture2MatrixIndex:
+      case gx::VertexAttribute::Texture3MatrixIndex:
+      case gx::VertexAttribute::Texture4MatrixIndex:
+      case gx::VertexAttribute::Texture5MatrixIndex:
+      case gx::VertexAttribute::Texture6MatrixIndex:
+      case gx::VertexAttribute::Texture7MatrixIndex:
+        break;
+      case gx::VertexAttribute::Position:
+        out.pushData(0, getPos(vtx[gx::VertexAttribute::Position]));
+        break;
+      case gx::VertexAttribute::Color0:
+        out.pushData(5, getClr(vtx[gx::VertexAttribute::Color0]));
+        break;
+      case gx::VertexAttribute::TexCoord0:
+      case gx::VertexAttribute::TexCoord1:
+      case gx::VertexAttribute::TexCoord2:
+      case gx::VertexAttribute::TexCoord3:
+      case gx::VertexAttribute::TexCoord4:
+      case gx::VertexAttribute::TexCoord5:
+      case gx::VertexAttribute::TexCoord6:
+      case gx::VertexAttribute::TexCoord7: {
+        const auto chan = i - static_cast<int>(gx::VertexAttribute::TexCoord0);
+        const auto attr = static_cast<gx::VertexAttribute>(i);
+        const auto data = getUv(chan, vtx[attr]);
+        out.pushData(7 + chan, data);
+        break;
       }
+      case gx::VertexAttribute::Normal:
+        out.pushData(4, getNrm(vtx[gx::VertexAttribute::Normal]));
+        break;
+      default:
+        throw "Invalid vtx attrib";
+        break;
+      }
+    }
+  };
+  auto propTri = [&](const std::array<IndexedVertex, 3>& tri) {
+    for (const auto& vtx : tri) {
+      propVtx(vtx);
     }
   };
 
   for (int i = 0; i < getNumMatrixPrimitives(); ++i) {
     for (int j = 0; j < getMatrixPrimitiveNumIndexedPrimitive(i); ++j) {
       const auto& idx = getMatrixPrimitiveIndexedPrimitive(i, j);
+      auto propV = [&](int id) { propVtx(idx.mVertices[id]); };
       switch (idx.mType) {
-      case gx::PrimitiveType::TriangleStrip:
-        for (int v = 2; v < idx.mVertices.size(); ++v) {
-          std::array<IndexedVertex, 3> tri;
-          bool isEven = v % 2;
-          tri[0] = idx.mVertices[v - 2];
-          tri[1] = isEven ? idx.mVertices[v] : idx.mVertices[v - 1];
-          tri[2] = isEven ? idx.mVertices[v - 1] : idx.mVertices[v];
-
-          propTri(tri);
+      case gx::PrimitiveType::TriangleStrip: {
+        for (int v = 0; v < 3; ++v) {
+          propV(v);
+        }
+        for (int v = 3; v < idx.mVertices.size(); ++v) {
+          propV(v - ((v & 1) ? 1 : 2));
+          propV(v - ((v & 1) ? 2 : 1));
+          propV(v);
         }
         break;
+      }
       case gx::PrimitiveType::Triangles:
-        for (int v = 0; v < idx.mVertices.size() / 3; ++v) {
-          std::array<IndexedVertex, 3> tri;
-
-          tri[0] = idx.mVertices[v * 3 + 0];
-          tri[1] = idx.mVertices[v * 3 + 1];
-          tri[2] = idx.mVertices[v * 3 + 2];
-
-          propTri(tri);
+        for (const auto& v : idx.mVertices) {
+          propVtx(v);
         }
         break;
       default:
@@ -243,6 +247,8 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
 
   for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i) {
     if (!(final_bitfield & (1 << i)))
+      continue;
+    if (i == (int)gx::VertexAttribute::PositionNormalMatrixIndex)
       continue;
 
     const auto def = getVertexAttribGenDef((gx::VertexAttribute)i);

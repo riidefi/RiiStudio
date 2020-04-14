@@ -247,21 +247,26 @@ struct SceneState {
 
     mUboBuilder.clear();
     u32 i = 0;
-    for (const auto& node : mTree.opaque) {
-      auto mdl = computeBoneMdl(node->bone);
+
+    auto propNode = [&](const auto& node, u32 mtx_id) {
+      glm::mat4 mdl(1.0f);
+      const bool skinned =
+          node->poly.hasAttrib(lib3d::Polygon::SimpleAttrib::EnvelopeIndex);
+      // Rigid -> bone space: The bone SRT is our new model matrix.
+      // Skinnned -> pose space
+      if (!skinned)
+        mdl = computeBoneMdl(node->bone);
 
       node->mat.generateUniforms(mUboBuilder, mdl, view, proj,
                                  node->shader.getId(), texIdMap);
-      node->mtx_id = i;
-      ++i;
+      node->mtx_id = mtx_id;
+    };
+
+    for (const auto& node : mTree.opaque) {
+      propNode(node, i++);
     }
     for (const auto& node : mTree.translucent) {
-      auto mdl = computeBoneMdl(node->bone);
-
-      node->mat.generateUniforms(mUboBuilder, mdl, view, proj,
-                                 node->shader.getId(), texIdMap);
-      node->mtx_id = i;
-      ++i;
+      propNode(node, i++);
     }
 
     mUboBuilder.submit();

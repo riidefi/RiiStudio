@@ -28,7 +28,11 @@ void Tex::transfer(oishii::BinaryReader& stream) {
   stream.transfer<s8>(mMinLod);
   stream.transfer<s8>(mMaxLod);
   stream.transfer<u8>(mMipmapLevel);
-  assert(mMipmapLevel);
+  if (mMipmapLevel == 0) {
+	  stream.warnAt("Invalid LOD: 0. Valid range: [1, 6]", stream.tell() - 1, stream.tell());
+	  mMipmapLevel = 1;
+  }
+  // assert(mMipmapLevel);
   stream.seek(1);
   stream.transfer(mLodBias);
   stream.transfer(ofsTex);
