@@ -14,6 +14,25 @@
 
 namespace riistudio::j3d::ui {
 
+namespace Toolkit {
+void BoundingVolume(lib3d::AABB* bbox, float* sphere = nullptr) {
+	if (bbox != nullptr) {
+		ImGui::InputFloat3("Minimum Point", &bbox->min.x);
+		ImGui::InputFloat3("Maximum Point", &bbox->max.x);
+
+		ImGui::Text("Distance: %f", glm::distance(bbox->min, bbox->max));
+	}
+	if (sphere != nullptr) {
+		ImGui::InputFloat("Sphere Radius", sphere);
+	}
+}
+void Matrix44(const glm::mat4& mtx) {
+	for (int i = 0; i < 4; ++i) {
+		ImGui::Text("%f %f %f %f", mtx[i][0], mtx[i][1], mtx[i][2], mtx[i][3]);
+	}
+}
+} // namespace Toolkit
+
 struct J3DDataSurface final {
   const char* name = "J3D Data";
   const char* icon = ICON_FA_BOXES;
@@ -125,25 +144,18 @@ void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
   ImGui::Combo("Billboard Matrix", &bbMtx, "Standard\0XY\0Y\0");
   KPI_PROPERTY_EX(delegate, bbMtxType,
                   static_cast<JointData::MatrixType>(bbMtx));
+
+  const auto mtx = delegate.getActive().calcSrtMtx();
+
+  ImGui::Text("Computed Matrix:");
+  Toolkit::Matrix44(mtx);
+
 }
 
 struct ShapeJ3DSurface final {
   const char* name = "J3D Shape";
   const char* icon = ICON_FA_BOXES;
 };
-namespace Toolkit {
-void BoundingVolume(lib3d::AABB* bbox, float* sphere = nullptr) {
-  if (bbox != nullptr) {
-    ImGui::InputFloat3("Minimum Point", &bbox->min.x);
-    ImGui::InputFloat3("Maximum Point", &bbox->max.x);
-
-    ImGui::Text("Distance: %f", glm::distance(bbox->min, bbox->max));
-  }
-  if (sphere != nullptr) {
-    ImGui::InputFloat("Sphere Radius", sphere);
-  }
-}
-} // namespace Toolkit
 void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
   auto& shape = dl.getActive();
 
@@ -156,6 +168,24 @@ void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
   Toolkit::BoundingVolume(&bbox, &bsphere);
   KPI_PROPERTY_EX(dl, bbox, bbox);
   KPI_PROPERTY_EX(dl, bsphere, bsphere);
+
+
+  bool vis = shape.visible;
+  ImGui::Checkbox("Visible", &vis);
+  KPI_PROPERTY_EX(dl, visible, vis);
+  int i = 0;
+  for (auto& mp : shape.mMatrixPrimitives) {
+	  ImGui::Text("Matrix Primitive: %i", i);
+
+	  const auto matrices = shape.getPosMtx(i);
+	  int j = 0;
+	  for (auto& elem : mp.mDrawMatrixIndices) {
+		  ImGui::Text("DRW %i: %i", j, elem);
+		  Toolkit::Matrix44(matrices[j]);
+		  ++j;
+	  }
+	  ++i;
+  }
 }
 struct ModelJ3DSurface {
   const char* name = "J3D Model";

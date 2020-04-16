@@ -28,6 +28,10 @@ const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs{
 
 std::pair<const VertexAttributeGenDef&, std::size_t>
 getVertexAttribGenDef(VertexAttribute vtxAttrib) {
+  if (vtxAttrib == VertexAttribute::Texture1MatrixIndex ||
+      vtxAttrib == VertexAttribute::Texture2MatrixIndex ||
+      vtxAttrib == VertexAttribute::Texture3MatrixIndex)
+    vtxAttrib = VertexAttribute::Texture0MatrixIndex;
   const auto it =
       std::find_if(vtxAttributeGenDefs.begin(), vtxAttributeGenDefs.end(),
                    [vtxAttrib](const VertexAttributeGenDef& def) {

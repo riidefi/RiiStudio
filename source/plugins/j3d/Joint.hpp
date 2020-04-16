@@ -35,7 +35,7 @@ struct JointData {
                           {100000.0f, 100000.0f, 100000.0f}};
 
   // From INF1
-  ID<Joint> parent = -1;
+  ID<Joint> parentId = -1;
   std::vector<ID<Joint>> children;
 
   struct Display {
@@ -59,7 +59,7 @@ struct JointData {
            mayaSSC == rhs.mayaSSC && scale == rhs.scale &&
            rotate == rhs.rotate && translate == rhs.translate &&
            boundingSphereRadius == rhs.boundingSphereRadius &&
-           boundingBox == rhs.boundingBox && parent == rhs.parent &&
+           boundingBox == rhs.boundingBox && parentId == rhs.parentId &&
            children == rhs.children && displays == rhs.displays &&
            inverseBindPoseMtx == rhs.inverseBindPoseMtx;
   }
@@ -99,8 +99,8 @@ struct Joint : public libcube::IBoneDelegate, public JointData {
     rotate = srt.rotation;
     translate = srt.translation;
   }
-  s64 getBoneParent() const override { return parent; }
-  void setBoneParent(s64 id) override { parent = (u32)id; }
+  s64 getBoneParent() const override { return parentId; }
+  void setBoneParent(s64 id) override { parentId = (u32)id; }
   u64 getNumChildren() const override { return children.size(); }
   s64 getChild(u64 idx) const override {
     return idx < children.size() ? children[idx] : -1;

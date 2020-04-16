@@ -155,9 +155,9 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
     assert(final_bitfield == 0 || final_bitfield == vcd.mBitfield);
     final_bitfield |= vcd.mBitfield;
     // HACK:
-    // if (!(vcd.mBitfield & (1 <<
-    // (u32)gx::VertexAttribute::PositionNormalMatrixIndex)))
-    //	  out.pushData(1, 0);
+    if (!(vcd.mBitfield &
+          (1 << (u32)gx::VertexAttribute::PositionNormalMatrixIndex)))
+      out.pushData(1, (float)0);
     if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::TexCoord1)))
       out.pushData(8, glm::vec2{});
     if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::Normal)))
@@ -170,8 +170,8 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
 
       switch (static_cast<gx::VertexAttribute>(i)) {
       case gx::VertexAttribute::PositionNormalMatrixIndex:
-        // out.pushData(1,
-        // vtx[gx::VertexAttribute::PositionNormalMatrixIndex]);
+        out.pushData(
+            1, (float)vtx[gx::VertexAttribute::PositionNormalMatrixIndex]);
         break;
       case gx::VertexAttribute::Texture0MatrixIndex:
       case gx::VertexAttribute::Texture1MatrixIndex:
@@ -243,12 +243,11 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
         break;
       }
     }
+    out.markSplice();
   }
 
   for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i) {
-    if (!(final_bitfield & (1 << i)))
-      continue;
-    if (i == (int)gx::VertexAttribute::PositionNormalMatrixIndex)
+    if (!(final_bitfield & (1 << i)) && i != (int)gx::VertexAttribute::PositionNormalMatrixIndex)
       continue;
 
     const auto def = getVertexAttribGenDef((gx::VertexAttribute)i);

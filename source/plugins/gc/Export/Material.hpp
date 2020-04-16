@@ -240,10 +240,10 @@ struct IGCMaterial : public riistudio::lib3d::Material {
 
   virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
   std::pair<std::string, std::string> generateShaders() const override;
-  void
-  generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M,
-                   const glm::mat4& V, const glm::mat4& P, u32 shaderId,
-                   const std::map<std::string, u32>& texIdMap) const override;
+  void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M,
+                        const glm::mat4& V, const glm::mat4& P, u32 shaderId,
+                        const std::map<std::string, u32>& texIdMap,
+                        const riistudio::lib3d::Polygon& poly) const override;
 
   virtual inline const kpi::FolderData* getTextureSource() const {
     // Assumption: Parent of parent model is a collection with children.
@@ -258,7 +258,8 @@ struct IGCMaterial : public riistudio::lib3d::Material {
   void
   genSamplUniforms(u32 shaderId,
                    const std::map<std::string, u32>& texIdMap) const override;
-
+  void onSplice(DelegatedUBOBuilder& builder,
+                const riistudio::lib3d::Polygon& poly, u32 id) const override;
   std::string getName() const override { return getMaterialData().name; }
   void setName(const std::string& name) override {
     getMaterialData().name = name;

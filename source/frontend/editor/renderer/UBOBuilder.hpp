@@ -38,6 +38,11 @@ struct DelegatedUBOBuilder : public UBOBuilder {
     *reinterpret_cast<T*>(tmp.data()) = data;
     push(binding_point, tmp);
   }
+  inline void reset(u32 binding_point) {
+    if (mData.size() > binding_point && !mData[binding_point].empty()) {
+      mData[binding_point][mData[binding_point].size() - 1].clear();
+    }
+  }
 
   virtual void setBlockMin(u32 binding_point, u32 min);
 
@@ -72,11 +77,42 @@ struct VBOBuilder {
 
   std::vector<u8> mData;
   std::vector<u32> mIndices;
+  struct SplicePoint {
+    u32 offset = 0;
+    s64 size = -1;
+  };
 
-  std::map<u32, std::pair<VAOEntry, std::vector<u8>>>
-      mPropogating; // binding_point : data
+  // binding_point : data
+  std::map<u32, std::pair<VAOEntry, std::vector<u8>>> mPropogating;
+
+  int getNumSplices() {
+	  return splicePoints.size() - 1;
+  }
+  SplicePoint getSplice(int i) {
+	  return splicePoints[i];
+  }
+  std::vector<SplicePoint> getSplicesInRange(int start, int ofs) {
+	  std::vector<SplicePoint> out;
+
+	  const auto min = start;
+	  const auto max = start + ofs;
+
+	  for (auto& s : splicePoints) {
+		  if (s.offset >= max) continue;
+		  if (s.offset < min) continue;
+		  out.push_back(s);
+	  }
+	  return out;
+  }
 
   void build();
+  void markSplice() {
+    SplicePoint pt{mIndices.size()};
+    splicePoints[splicePoints.size() - 1].size =
+        mIndices.size() - splicePoints[splicePoints.size() - 1].offset;
+
+	splicePoints.push_back(pt);
+  }
 
   template <typename T> void pushData(u32 binding_point, const T& data) {
     auto& attrib_buf = mPropogating[binding_point];
@@ -88,6 +124,8 @@ struct VBOBuilder {
   u32 mPositionBuf, mIndexBuf;
 
 private:
+  // Splice point end markers. first always starts at 0
+  std::vector<SplicePoint> splicePoints;
   template <typename T> void push(const T& data) {
     const std::size_t begin = mData.size();
     mData.resize(mData.size() + sizeof(T));

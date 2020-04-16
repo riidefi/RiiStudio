@@ -1,9 +1,7 @@
 #pragma once
 
-// #include <LibCore/api/Node.hpp>
-#include <vendor/glm/mat4x4.hpp>
-#include <vendor/glm/vec2.hpp>
-#include <vendor/glm/vec3.hpp>
+#include <core/kpi/Node.hpp>
+#include <vendor/glm/glm.hpp>
 
 #include <array>
 #include <core/common.h>
@@ -13,6 +11,7 @@
 
 // TODO: Interdependency
 #include <frontend/editor/renderer/UBOBuilder.hpp>
+#include <vendor/glm/glm.hpp>
 
 struct MegaState {
   u32 cullMode = -1;
@@ -167,6 +166,57 @@ struct Bone {
   virtual Display getDisplay(u64 idx) const = 0;
   virtual void addDisplay(const Display& d) = 0;
   virtual void setDisplay(u64 idx, const Display& d) = 0;
+
+  inline glm::mat4 calcSrtMtx(const lib3d::SRT3& srt) const {
+    glm::mat4 dst(1.0f);
+
+    //	dst = glm::translate(dst, srt.translation);
+    //	dst = dst * glm::eulerAngleZYX(glm::radians(srt.rotation.x),
+    //glm::radians(srt.rotation.y), glm::radians(srt.rotation.z)); 	return
+    //glm::scale(dst, srt.scale);
+
+    float sinX = sin(glm::radians(srt.rotation.x)),
+          cosX = cos(glm::radians(srt.rotation.x));
+    float sinY = sin(glm::radians(srt.rotation.y)),
+          cosY = cos(glm::radians(srt.rotation.y));
+    float sinZ = sin(glm::radians(srt.rotation.z)),
+          cosZ = cos(glm::radians(srt.rotation.z));
+
+    dst[0][0] = srt.scale.x * (cosY * cosZ);
+    dst[0][1] = srt.scale.x * (sinZ * cosY);
+    dst[0][2] = srt.scale.x * (-sinY);
+    dst[0][3] = 0.0;
+    dst[1][0] = srt.scale.y * (sinX * cosZ * sinY - cosX * sinZ);
+    dst[1][1] = srt.scale.y * (sinX * sinZ * sinY + cosX * cosZ);
+    dst[1][2] = srt.scale.y * (sinX * cosY);
+    dst[1][3] = 0.0;
+    dst[2][0] = srt.scale.z * (cosX * cosZ * sinY + sinX * sinZ);
+    dst[2][1] = srt.scale.z * (cosX * sinZ * sinY - sinX * cosZ);
+    dst[2][2] = srt.scale.z * (cosY * cosX);
+    dst[2][3] = 0.0;
+    dst[3][0] = srt.translation.x;
+    dst[3][1] = srt.translation.y;
+    dst[3][2] = srt.translation.z;
+    dst[3][3] = 1.0;
+
+    return dst;
+  }
+  virtual kpi::IDocumentNode* getParent() { return nullptr; }
+  virtual glm::mat4 calcSrtMtx(kpi::FolderData* bones) const {
+    glm::mat4 mdl(1.0f);
+    const auto parent = getBoneParent();
+    if (parent >= 0 /* && parent != getId() */)
+      mdl = bones->at<Bone>(parent).calcSrtMtx(bones);
+
+    return mdl * calcSrtMtx(getSRT());
+  }
+  inline glm::mat4 calcSrtMtx() {
+    assert(getParent() != nullptr);
+    if (!getParent())
+      return {};
+
+    return calcSrtMtx(getParent()->getFolder<lib3d::Bone>());
+  }
 };
 enum class PixelOcclusion {
   //! The texture does not use alpha.
@@ -187,6 +237,7 @@ struct IObserver {
   // TODO: Detach
   virtual void update() {}
 };
+struct Polygon;
 struct Material {
   // // PX_TYPE_INFO("3D Material", "3d_material", "3D::Material");
 
@@ -198,13 +249,16 @@ struct Material {
 
   virtual std::pair<std::string, std::string> generateShaders() const = 0;
   // TODO: Interdependency
-  virtual void
-  generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M,
-                   const glm::mat4& V, const glm::mat4& P, u32 shaderId,
-                   const std::map<std::string, u32>& texIdMap) const = 0;
+  virtual void generateUniforms(DelegatedUBOBuilder& builder,
+                                const glm::mat4& M, const glm::mat4& V,
+                                const glm::mat4& P, u32 shaderId,
+                                const std::map<std::string, u32>& texIdMap,
+                                const Polygon& poly) const = 0;
   virtual void
   genSamplUniforms(u32 shaderId,
                    const std::map<std::string, u32>& texIdMap) const = 0;
+  virtual void onSplice(DelegatedUBOBuilder& builder, const Polygon& poly,
+                        u32 id) const {}
   virtual void setMegaState(MegaState& state) const = 0;
   virtual void configure(PixelOcclusion occlusion,
                          std::vector<std::string>& textures) = 0;
@@ -290,6 +344,8 @@ struct Texture {
 struct Polygon {
   //	// PX_TYPE_INFO("Polygon", "poly", "3D::Polygon");
   virtual ~Polygon() = default;
+
+  virtual bool isVisible() const { return true; }
 
   virtual void setName(const std::string& name) = 0;
 

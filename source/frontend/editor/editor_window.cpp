@@ -356,6 +356,10 @@ struct PropertyEditor : public StudioWindow {
       ImGui::Text("Nothing is selected.");
       return;
     }
+    int mode = static_cast<int>(mMode);
+    ImGui::Combo("Property Mode", &mode, "Tabs\0Headers\0");
+    mMode = static_cast<Mode>(mode);
+
     std::vector<kpi::IDocumentNode*> selected;
     for (auto& subfolder : mRoot.children) {
       gatherSelected(selected, subfolder.second, [&](kpi::IDocumentNode* node) {
@@ -375,38 +379,57 @@ struct PropertyEditor : public StudioWindow {
                 selected.size() > 1 ? "..." : "",
                 static_cast<u32>(selected.size()));
 
-    if (ImGui::BeginTabBar("Pane")) {
-      int i = 0;
+    if (mMode == Mode::Tabs) {
+
+      if (ImGui::BeginTabBar("Pane")) {
+        int i = 0;
+        std::string title;
+        manager.forEachView(
+            [&](kpi::IPropertyView& view) {
+              const bool sel = mActiveTab == i;
+
+              title.clear();
+              title += view.getIcon();
+              title += " ";
+              title += view.getName();
+
+              if (ImGui::BeginTabItem(title.c_str())) {
+                mActiveTab = i;
+                activeTab = &view;
+                ImGui::EndTabItem();
+              }
+
+              ++i;
+            },
+            *mActive);
+        ImGui::EndTabBar();
+      }
+
+      if (activeTab == nullptr) {
+        mActiveTab = 0;
+
+        ImGui::Text("Invalid Pane");
+        return;
+      }
+
+      activeTab->draw(*mActive, selected, mHost, mRoot);
+    } else if (mMode == Mode::Headers) {
       std::string title;
       manager.forEachView(
           [&](kpi::IPropertyView& view) {
-            const bool sel = mActiveTab == i;
-
             title.clear();
             title += view.getIcon();
             title += " ";
             title += view.getName();
-
-            if (ImGui::BeginTabItem(title.c_str())) {
-              mActiveTab = i;
-              activeTab = &view;
-              ImGui::EndTabItem();
+            if (ImGui::CollapsingHeader(title.c_str(),
+                                        ImGuiTreeNodeFlags_DefaultOpen)) {
+              view.draw(*mActive, selected, mHost, mRoot);
             }
-
-            ++i;
           },
           *mActive);
-      ImGui::EndTabBar();
+    } else {
+      ImGui::Text("Unknown mode");
     }
-
-    if (activeTab == nullptr) {
-      mActiveTab = 0;
-
-      ImGui::Text("Invalid Pane");
-      return;
-    }
-
-    activeTab->draw(*mActive, selected, mHost, mRoot);
   }
 
   kpi::History& mHost;
@@ -415,6 +438,9 @@ struct PropertyEditor : public StudioWindow {
   kpi::IDocumentNode*& mActive;
 
   int mActiveTab = 0;
+
+  enum class Mode { Tabs, Headers };
+  Mode mMode = Mode::Tabs;
 };
 
 EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,

@@ -43,7 +43,11 @@ void DecodeMeshDisplayList(
             break;
           case gx::VertexAttributeType::Direct:
             if (((gx::VertexAttribute)a) !=
-                gx::VertexAttribute::PositionNormalMatrixIndex) {
+                    gx::VertexAttribute::PositionNormalMatrixIndex &&
+                ((gx::VertexAttribute)a) !=
+                    gx::VertexAttribute::Texture0MatrixIndex &&
+				((gx::VertexAttribute)a) !=
+				gx::VertexAttribute::Texture1MatrixIndex) {
               assert(!"Direct vertex data is unsupported.");
               throw "";
             }
@@ -55,7 +59,7 @@ void DecodeMeshDisplayList(
           default:
             assert("!Unknown vertex attribute format.");
             throw "";
-			break;
+            break;
           }
 
           prim.mVertices[vi][(gx::VertexAttribute)a] = val;

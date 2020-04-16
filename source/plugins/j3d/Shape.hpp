@@ -49,6 +49,8 @@ struct ShapeData {
            bbox == rhs.bbox && mMatrixPrimitives == rhs.mMatrixPrimitives &&
            mVertexDescriptor == rhs.mVertexDescriptor;
   }
+
+  bool visible = true; // Editor-only
 };
 struct Shape : public ShapeData, public libcube::IndexedPolygon {
   virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
@@ -111,6 +113,10 @@ struct Shape : public ShapeData, public libcube::IndexedPolygon {
   u64 addUv(u64 chan, const glm::vec2& v) override;
 
   void addTriangle(std::array<SimpleVertex, 3> tri) override;
+
+  std::vector<glm::mat4> getPosMtx(u64 mpid) const override;
+
+  bool isVisible() const override { return visible; }
 };
 
 } // namespace riistudio::j3d

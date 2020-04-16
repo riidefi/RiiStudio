@@ -212,8 +212,8 @@ template <typename T>
 struct TDocumentNode final : public IDocumentNode, public T {
   TDocumentNode() = default;
   // Potential overrides: getParent, getChild, getNextSibling, etc
-  const IDocumentNode* getParent() const { return parent; }
-  IDocumentNode* getParent() { return parent; }
+  const IDocumentNode* getParent() const { return TDocumentNode::parent; }
+  IDocumentNode* getParent() { return TDocumentNode::parent; }
 
   template <typename Q> class has_get_name {
     typedef char YesType[1];

@@ -99,6 +99,7 @@ struct Polygon : public PolygonData, public libcube::IndexedPolygon {
     // TODO
     return {{0, 0, 0}, {0, 0, 0}};
   }
+  std::vector<glm::mat4> getPosMtx(u64 mpId);
 
   glm::vec2 getUv(u64 chan, u64 id) const override;
   glm::vec4 getClr(u64 id) const override;

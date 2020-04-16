@@ -62,9 +62,9 @@ void readJNT1(BMDOutputContext& ctx) {
     u8 pad = reader.read<u8>();
     assert(pad == 0xff);
     joint.scale << reader;
-    joint.rotate.x = static_cast<f32>(reader.read<s16>()) / f32(0x7ff) * M_PI;
-    joint.rotate.y = static_cast<f32>(reader.read<s16>()) / f32(0x7ff) * M_PI;
-    joint.rotate.z = static_cast<f32>(reader.read<s16>()) / f32(0x7ff) * M_PI;
+    joint.rotate.x = static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
+    joint.rotate.y = static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
+    joint.rotate.z = static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
     reader.read<u16>();
     joint.translate << reader;
     joint.boundingSphereRadius = reader.read<f32>();
@@ -95,7 +95,7 @@ struct JNT1Node final : public oishii::v2::Node {
         writer.write<u8>(0xff);
         jnt.scale >> writer;
         auto rotCvt = [](float x) -> s16 {
-          return roundf(x * f32(0x7ff) / M_PI);
+          return roundf(x * f32(0x7fff) / 180.0f);
         };
         writer.write(rotCvt(jnt.rotate.x));
         writer.write(rotCvt(jnt.rotate.y));

@@ -34,7 +34,7 @@ struct GXMaterial {
 
   IGCMaterial& mat;
 
-  bool usePnMtxIdx = false;
+  bool usePnMtxIdx = true;
   bool useTexMtxIdx[16]{false};
   bool hasPostTexMtxBlock = false;
   bool hasLightsBlock = true;

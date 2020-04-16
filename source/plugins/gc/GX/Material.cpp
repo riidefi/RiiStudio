@@ -3,6 +3,9 @@
 #include "Material.hpp"
 
 #include <plugins/gc/GX/Shader/GXProgram.hpp>
+#include <plugins/gc/Export/IndexedPolygon.hpp>
+#include <algorithm>
+#undef min
 
 namespace libcube {
 
@@ -291,7 +294,8 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
 void IGCMaterial::generateUniforms(
     DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V,
     const glm::mat4& P, u32 shaderId,
-    const std::map<std::string, u32>& texIdMap) const {
+    const std::map<std::string, u32>& texIdMap,
+    const riistudio::lib3d::Polygon& poly) const {
   glUniformBlockBinding(shaderId,
                         glGetUniformBlockIndex(shaderId, "ub_SceneParams"), 0);
   glUniformBlockBinding(
@@ -311,7 +315,7 @@ void IGCMaterial::generateUniforms(
   builder.setBlockMin(2, min);
 
   UniformSceneParams scene;
-  scene.projection = M * V * P;
+  scene.projection = V * P;
   scene.Misc0 = {};
 
   UniformMaterialParams tmp{};
@@ -347,7 +351,7 @@ void IGCMaterial::generateUniforms(
 
   builder.tpush(0, scene);
   builder.tpush(1, tmp);
-  builder.tpush(2, pack);
+  // builder.tpush(2, pack);
 
   const s32 samplerIds[] = {0, 1, 2, 3, 4, 5, 6, 7};
 
@@ -402,6 +406,24 @@ void IGCMaterial::genSamplUniforms(
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
                     gxTileToGl(data.samplers[i]->mWrapV));
   }
+}
+void IGCMaterial::onSplice(DelegatedUBOBuilder& builder, const riistudio::lib3d::Polygon& poly,
+                           u32 mpid) const {
+	// builder.reset(2);
+	PacketParams pack{};
+	for (auto& p : pack.posMtx)
+		p = glm::transpose(glm::mat4{ 1.0f });
+
+	assert(dynamic_cast<const IndexedPolygon*>(&poly) != nullptr);
+	const auto& ipoly = reinterpret_cast<const IndexedPolygon&>(poly);
+
+	const auto mtx = ipoly.getPosMtx(mpid);
+	for (int p = 0; p < std::min(static_cast<std::size_t>(10), mtx.size()); ++p) {
+		const auto transposed = glm::transpose((glm::mat4x3)mtx[p]);
+		pack.posMtx[p] = transposed;
+	}
+
+	builder.tpush(2, pack);
 }
 void IGCMaterial::setMegaState(MegaState& state) const {
   GXMaterial mat{0, getName(), *const_cast<IGCMaterial*>(this)};

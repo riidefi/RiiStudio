@@ -81,7 +81,7 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
             .get()
             .children.emplace_back(
                 ctx.mdl.getJoint(ctx.jointIdLut[newId]).get().id);
-        ctx.mdl.getJoint(ctx.jointIdLut[newId]).get().parent =
+        ctx.mdl.getJoint(ctx.jointIdLut[newId]).get().parentId =
             ctx.mdl.getJoint(ctx.jointIdLut[joint_stack.back()]).get().id;
       }
       joint = newId;

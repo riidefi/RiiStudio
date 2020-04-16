@@ -1090,12 +1090,13 @@ void drawProperty(kpi::PropertyDelegate<IBoneDelegate>& delegate,
 
   ImGui::InputFloat3("Rotation", &rot.x);
   delegate.property(
-	  bone.getRotation(), rot, [](const auto& x) { return x.getRotation(); },
-	  [](auto& x, const auto& y) { x.setRotation(y); });
+      bone.getRotation(), rot, [](const auto& x) { return x.getRotation(); },
+      [](auto& x, const auto& y) { x.setRotation(y); });
   ImGui::InputFloat3("Translation", &pos.x);
   delegate.property(
-	  bone.getTranslation(), pos, [](const auto& x) { return x.getTranslation(); },
-	  [](auto& x, const auto& y) { x.setTranslation(y); });
+      bone.getTranslation(), pos,
+      [](const auto& x) { return x.getTranslation(); },
+      [](auto& x, const auto& y) { x.setTranslation(y); });
   ImGui::Text("Parent ID: %i", (int)bone.getBoneParent());
 }
 void drawProperty(kpi::PropertyDelegate<IBoneDelegate>& delegate,
@@ -1148,19 +1149,23 @@ struct PolyDescriptorSurface final {
   const char* name = "Vertex Descriptor";
   const char* icon = ICON_FA_IMAGE;
 };
+struct PolyDataSurface final {
+  const char* name = "Index Data";
+  const char* icon = ICON_FA_IMAGE;
+};
+
+const char* vertexAttribNames =
+    "PositionNormalMatrixIndex\0Texture0MatrixIndex\0Texture1MatrixIndex\0Tex"
+    "ture2MatrixIndex\0Texture3MatrixIndex\0Texture4MatrixIndex\0Texture5Matr"
+    "ixIndex\0Texture6MatrixIndex\0Texture7MatrixIndex\0Position\0Normal\0Col"
+    "or0\0Color1\0TexCoord0\0TexCoord1\0TexCoord2\0TexCoord3\0TexCoord4\0TexC"
+    "oord5\0TexCoord6\0TexCoord7\0PositionMatrixArray\0NormalMatrixArray\0Tex"
+    "tureMatrixArray\0LightArray\0NormalBinormalTangent\0";
 void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl,
                   PolyDescriptorSurface) {
   auto& poly = dl.getActive();
 
   auto& desc = poly.getVcd();
-
-  const char* vertexAttribNames =
-      "PositionNormalMatrixIndex\0Texture0MatrixIndex\0Texture1MatrixIndex\0Tex"
-      "ture2MatrixIndex\0Texture3MatrixIndex\0Texture4MatrixIndex\0Texture5Matr"
-      "ixIndex\0Texture6MatrixIndex\0Texture7MatrixIndex\0Position\0Normal\0Col"
-      "or0\0Color1\0TexCoord0\0TexCoord1\0TexCoord2\0TexCoord3\0TexCoord4\0TexC"
-      "oord5\0TexCoord6\0TexCoord7\0PositionMatrixArray\0NormalMatrixArray\0Tex"
-      "tureMatrixArray\0LightArray\0NormalBinormalTangent\0";
 
   if (ImGui::BeginChild("VCD")) {
     int i = 0;
@@ -1179,7 +1184,67 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl,
 
       ImGui::PopItemWidth();
     }
-	ImGui::EndChild();
+    ImGui::EndChild();
+  }
+}
+
+void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl, PolyDataSurface) {
+  auto& poly = dl.getActive();
+  auto& desc = poly.getVcd();
+
+  if (ImGui::BeginTabBar("Matrix Primitives")) {
+    for (int i = 0; i < poly.getNumMatrixPrimitives(); ++i) {
+      if (ImGui::BeginTabItem(
+              (std::string("Matrix Prim: ") + std::to_string(i)).c_str())) {
+        if (ImGui::CollapsingHeader("Matrix List",
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
+          ImGui::Text("Default Matrix: %u",
+                      (u32)poly.getMatrixPrimitiveCurrentMatrix(i));
+          if (ImGui::BeginChild("Matrix List Data")) {
+
+            ImGui::EndChild();
+          }
+        }
+        if (ImGui::CollapsingHeader("Index Data",
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
+          if (ImGui::BeginTabBar("Matrix Primitives")) {
+            for (int j = 0; j < poly.getMatrixPrimitiveNumIndexedPrimitive(i);
+                 ++j) {
+
+              if (ImGui::BeginTabItem(
+                      (std::string("Primitive: ") + std::to_string(j))
+                          .c_str())) {
+                auto prim = poly.getMatrixPrimitiveIndexedPrimitive(i, j);
+                int type = static_cast<int>(prim.mType);
+                ImGui::Combo("Primitive Type", &type,
+                             "Quads\0Quads2\0Triangles\0TriangleStrips\0Triangl"
+                             "eFans\0Lines\0LineStrips\0Points\0");
+                u32 k = 0;
+                for (auto& v : prim.mVertices) {
+                  char buf[128]{};
+                  sprintf(buf, "----Vertex: %u", k);
+                  if (ImGui::CollapsingHeader(buf,
+                                              ImGuiTreeNodeFlags_DefaultOpen)) {
+                    riistudio::util::IDScope v_s(k);
+                    for (auto& e : poly.getVcd().mAttributes) {
+                      int type = static_cast<int>(e.first);
+                      ImGui::Combo("Attribute Type", &type, vertexAttribNames);
+                      ImGui::Text("Value: %u", v.operator[](e.first));
+                    }
+                    ++k;
+                  }
+                }
+                ImGui::EndTabItem();
+              }
+            }
+
+            ImGui::EndTabBar();
+          }
+        }
+        ImGui::EndTabItem();
+      }
+    }
+    ImGui::EndTabBar();
   }
 }
 
@@ -1199,6 +1264,7 @@ void installDisplaySurface() {
   manager.addPropertyView<libcube::IBoneDelegate, BoneDisplaySurface>();
 
   manager.addPropertyView<libcube::IndexedPolygon, PolyDescriptorSurface>();
+  manager.addPropertyView<libcube::IndexedPolygon, PolyDataSurface>();
 }
 
 } // namespace libcube::UI

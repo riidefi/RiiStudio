@@ -10,49 +10,49 @@ void readEVP1DRW1(BMDOutputContext& ctx) {
 
   // First read our envelope data
   if (enterSection(ctx, 'EVP1')) {
-    ScopedSection g(reader, "Envelopes");
+	  ScopedSection g(reader, "Envelopes");
 
-    u16 size = reader.read<u16>();
-    envelopes.resize(size);
-    reader.read<u16>();
+	  u16 size = reader.read<u16>();
+	  envelopes.resize(size);
+	  reader.read<u16>();
 
-    const auto [ofsMatrixSize, ofsMatrixIndex, ofsMatrixWeight,
-                ofsMatrixInvBind] = reader.readX<s32, 4>();
+	  const auto [ofsMatrixSize, ofsMatrixIndex, ofsMatrixWeight,
+		  ofsMatrixInvBind] = reader.readX<s32, 4>();
 
-    int mtxId = 0;
-    // int maxJointIndex = -1;
+	  if (ofsMatrixSize && ofsMatrixIndex && ofsMatrixWeight && ofsMatrixInvBind) {
 
-    reader.seekSet(g.start);
+		  int mtxId = 0;
+		  // int maxJointIndex = -1;
 
-    for (int i = 0; i < size; ++i) {
-      const auto num = reader.peekAt<u8>(ofsMatrixSize + i);
+		  reader.seekSet(g.start);
 
-      for (int j = 0; j < num; ++j) {
-        const auto index = reader.peekAt<u16>(ofsMatrixIndex + mtxId * 2);
-        const auto influence = reader.peekAt<f32>(ofsMatrixWeight + mtxId * 4);
+		  for (int i = 0; i < size; ++i) {
+			  const auto num = reader.peekAt<u8>(ofsMatrixSize + i);
 
-        envelopes[i].mWeights.emplace_back(index, influence);
+			  for (int j = 0; j < num; ++j) {
+				  const auto index = reader.peekAt<u16>(ofsMatrixIndex + mtxId * 2);
+				  const auto influence = reader.peekAt<f32>(ofsMatrixWeight + mtxId * 4);
 
-        // While this assumption holds on runtime, the format stores them for
-        // all bones.
-        //	if (index > maxJointIndex)
-        //		maxJointIndex = index;
+				  envelopes[i].mWeights.emplace_back(index, influence);
 
-        ++mtxId;
-      }
-    }
+				  // While this assumption holds on runtime, the format stores them for
+				  // all bones.
+				  //	if (index > maxJointIndex)
+				  //		maxJointIndex = index;
 
-    for (int i = 0; i < ctx.mdl.getJoints().size(); ++i) {
-      oishii::Jump<oishii::Whence::Set> gInv(
-          reader, g.start + ofsMatrixInvBind + i * 0x30);
+				  ++mtxId;
+			  }
+		  }
 
-      auto& mtx = ctx.mdl.getJoint(i).get().inverseBindPoseMtx;
+		  for (int i = 0; i < ctx.mdl.getJoints().size(); ++i) {
+			  auto& mtx = ctx.mdl.getJoint(i).get().inverseBindPoseMtx;
 
-      for (auto& f : mtx)
-        f = reader.read<f32>();
-      // transferMatrix<oishii::BinaryReader>(ctx.mdl.mJoints[i].inverseBindPoseMtx,
-      // reader);
-    }
+			  for (int j = 0; j < 12; ++j) {
+				  mtx[j] = reader.getAt<f32>(g.start + ofsMatrixInvBind + (i * 0x30) +
+					  (j * 4));
+			  }
+		  }
+	  }
   }
 
   // Now construct vertex draw matrices.

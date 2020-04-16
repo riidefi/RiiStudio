@@ -21,6 +21,13 @@
 
 #endif
 
+// Hack
+#include <plugins/j3d/Shape.hpp>
+#include <vendor/glm/matrix.hpp>
+
+#undef min
+#include <algorithm>
+
 namespace riistudio::frontend {
 
 struct SceneTree {
@@ -189,35 +196,7 @@ struct SceneState {
     //	const auto compiled = mat->generateShaders();
   }
   const kpi::FolderData* bones;
-  glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
-    glm::mat4 mdl = glm::eulerAngleYXZ(glm::radians(srt.rotation.x),
-                                       glm::radians(srt.rotation.y),
-                                       glm::radians(srt.rotation.z));
-    mdl = glm::translate(mdl, srt.translation);
-    mdl = glm::scale(mdl, srt.scale);
 
-    return mdl;
-  }
-  glm::mat4 computeBoneMdl(u32 id) {
-    glm::mat4 mdl(1.0f);
-
-    auto& bone = bones->at<lib3d::Bone>(id);
-    const auto parent = bone.getBoneParent();
-    if (parent >= 0 && parent != id)
-      mdl = computeBoneMdl(parent);
-
-    return mdl * computeMdlMtx(bone.getSRT());
-  }
-
-  glm::mat4 computeBoneMdl(const lib3d::Bone& bone) {
-    glm::mat4 mdl(1.0f);
-    // TODO
-    const auto parent = bone.getBoneParent();
-    if (parent >= 0)
-      mdl = computeBoneMdl(parent);
-
-    return mdl * computeMdlMtx(bone.getSRT());
-  }
   void build(const glm::mat4& view, const glm::mat4& proj,
              riistudio::core::AABB& bound) {
     // TODO
@@ -225,7 +204,7 @@ struct SceneState {
     bound.m_maxBounds = {0.0f, 0.0f, 0.0f};
 
     for (const auto& node : mTree.opaque) {
-      auto mdl = computeBoneMdl(node->bone);
+      auto mdl = ((lib3d::Bone&)node->bone).calcSrtMtx();
 
       auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
       auto nmin = mdl * glm::vec4(node->poly.getBounds().min, 0.0f);
@@ -234,7 +213,7 @@ struct SceneState {
       bound.expandBound(newBound);
     }
     for (const auto& node : mTree.translucent) {
-      auto mdl = computeBoneMdl(node->bone);
+      auto mdl = ((lib3d::Bone&)node->bone).calcSrtMtx();
 
       auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
       auto nmin = mdl * glm::vec4(node->poly.getBounds().min, 0.0f);
@@ -250,15 +229,16 @@ struct SceneState {
 
     auto propNode = [&](const auto& node, u32 mtx_id) {
       glm::mat4 mdl(1.0f);
-      const bool skinned =
-          node->poly.hasAttrib(lib3d::Polygon::SimpleAttrib::EnvelopeIndex);
-      // Rigid -> bone space: The bone SRT is our new model matrix.
-      // Skinnned -> pose space
-      if (!skinned)
-        mdl = computeBoneMdl(node->bone);
+      // no more mdl here, we just use PNMTX0
+      // mdl = computeBoneMdl(node->bone);
+      // (Up to the mat)
+      // if (!node->poly.hasAttrib(lib3d::Polygon::SimpleAttrib::EnvelopeIndex))
+      // {
+      //  mdl = ((lib3d::Bone&)node->bone).calcSrtMtx();
+      //}
 
       node->mat.generateUniforms(mUboBuilder, mdl, view, proj,
-                                 node->shader.getId(), texIdMap);
+                                 node->shader.getId(), texIdMap, node->poly);
       node->mtx_id = mtx_id;
     };
 
@@ -269,7 +249,7 @@ struct SceneState {
       propNode(node, i++);
     }
 
-    mUboBuilder.submit();
+    // mUboBuilder.submit();
   }
 
   glm::mat4 scaleMatrix{1.0f};
@@ -300,16 +280,67 @@ struct SceneState {
 
       assert(mVbo.VAO && node->idx_size >= 0 && node->idx_size % 3 == 0);
       glUseProgram(node->shader.getId());
-      mUboBuilder.use(node->mtx_id);
+
       glBindVertexArray(mVbo.VAO);
 
       node->mat.genSamplUniforms(node->shader.getId(), texIdMap);
-      // printf("Draw: index (size=%u, ofs=%u)\n", node->idx_size, node->idx_ofs
-      // * 4);
-      glDrawElements(GL_TRIANGLES, node->idx_size, GL_UNSIGNED_INT,
-                     (void*)(node->idx_ofs * 4));
-      // if (glGetError() != GL_NO_ERROR) exit(1);
+
+      int i = 0;
+      for (auto& splice :
+           mVbo.getSplicesInRange(node->idx_ofs, node->idx_size)) {
+        assert(splice.size > 0);
+        DelegatedUBOBuilder PacketBuilder;
+
+        glUniformBlockBinding(
+            node->shader.getId(),
+            glGetUniformBlockIndex(node->shader.getId(), "ub_PacketParams"), 2);
+
+        int min;
+        glGetActiveUniformBlockiv(node->shader.getId(), 2, GL_UNIFORM_BLOCK_DATA_SIZE,
+                                  &min);
+        // printf("Min block size: %i\n", min);
+        PacketBuilder.setBlockMin(2, min);
+
+        node->mat.onSplice(PacketBuilder, node->poly, i);
+        // TODO: huge hack, very expensive
+        PacketBuilder.submit();
+
+        mUboBuilder.use(node->mtx_id);
+        PacketBuilder.use(0);
+        struct PacketParams {
+          glm::mat3x4 posMtx[10];
+        };
+        PacketParams pack{};
+        for (auto& p : pack.posMtx)
+          p = glm::transpose(glm::mat4{1.0f});
+
+        assert(dynamic_cast<const libcube::IndexedPolygon*>(&node->poly) !=
+               nullptr);
+        const auto& ipoly =
+            reinterpret_cast<const libcube::IndexedPolygon&>(node->poly);
+
+        if (node->poly.isVisible()) {
+
+          const auto mtx = ipoly.getPosMtx(i);
+#undef min
+          for (int p = 0;
+               p < std::min(static_cast<std::size_t>(10), mtx.size()); ++p) {
+            const auto transposed = glm::transpose((glm::mat4x3)mtx[p]);
+            pack.posMtx[p] = transposed;
+          }
+#if 0
+			int location = glGetUniformBlockIndex(node->shader.getId(), "ub_PacketParams");
+			glUniformMatrix3x4fv(location, 10, 0, (GLfloat*)&pack.posMtx[0]);
+#endif
+          if (node->poly.isVisible())
+            glDrawElements(GL_TRIANGLES, splice.size, GL_UNSIGNED_INT,
+                           (void*)(splice.offset * 4));
+        }
+        ++i;
+      }
     };
+
+	mUboBuilder.submit();
 
     for (const auto& node : mTree.opaque) {
       drawNode(node);

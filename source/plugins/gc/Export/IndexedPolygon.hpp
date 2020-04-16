@@ -52,6 +52,8 @@ struct IndexedPolygon : public riistudio::lib3d::Polygon {
 
   virtual VertexDescriptor& getVcd() = 0;
   virtual const VertexDescriptor& getVcd() const = 0;
+
+  virtual std::vector<glm::mat4> getPosMtx(u64 mpId) const { return {}; }
 };
 
 } // namespace libcube

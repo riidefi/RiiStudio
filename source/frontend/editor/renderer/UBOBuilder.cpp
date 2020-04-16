@@ -73,6 +73,7 @@ void DelegatedUBOBuilder::use(u32 idx) {
   };
   for (int i = 0; i < mData.size(); ++i) {
     const auto& ofs = mCoalescedOffsets[i];
+	if (ofs.second * (mData[i].size() - idx) == 0) continue;
     assert(ofs.first + ofs.second * idx < mCoalesced.size());
     bindBufferRange(GL_UNIFORM_BUFFER, i, getUboId(),
                     ofs.first + ofs.second * idx,
@@ -83,9 +84,9 @@ void DelegatedUBOBuilder::use(u32 idx) {
 void DelegatedUBOBuilder::push(u32 binding_point, const std::vector<u8>& data) {
   if (binding_point >= mData.size())
     mData.resize(binding_point + 1);
-  else
-    assert(mData[binding_point].empty() ||
-           mData[binding_point][0].size() >= data.size());
+  //	else
+  //	  assert(mData[binding_point].empty() ||
+  //	         mData[binding_point][0].size() >= data.size());
   mData[binding_point].push_back(data);
 
   assert(mMinSizes.size() > binding_point);
@@ -108,6 +109,8 @@ VBOBuilder::VBOBuilder() {
   glGenBuffers(1, &mIndexBuf);
 
   glGenVertexArrays(1, &VAO);
+
+  splicePoints.push_back({});
 }
 VBOBuilder::~VBOBuilder() {
   glDeleteBuffers(1, &mPositionBuf);

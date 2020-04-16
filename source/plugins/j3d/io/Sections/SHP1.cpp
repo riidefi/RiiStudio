@@ -65,6 +65,7 @@ void readSHP1(BMDOutputContext& ctx) {
   // reader.seekSet(ofsStringTable + g.start);
   // const auto nameTable = readNameTable(reader);
 
+  std::array<s16, 10> mtxListLast;
   for (int si = 0; si < size; ++si) {
     auto& shape = ctx.mdl.getShape(si).get();
     reader.seekSet(g.start + ofsShapeData + ctx.shapeIdLut[si] * 0x28);
@@ -130,6 +131,10 @@ void readSHP1(BMDOutputContext& ctx) {
                                                          list_start * 2);
           for (u16 i = 0; i < list_size; ++i) {
             out.matrixList[i] = reader.read<s16>();
+            if (out.matrixList[i] == -1)
+              out.matrixList[i] = mtxListLast[i];
+            else
+              mtxListLast[i] = out.matrixList[i];
           }
         }
         return out;
