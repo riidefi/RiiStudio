@@ -298,7 +298,6 @@ struct SceneState {
         int min;
         glGetActiveUniformBlockiv(node->shader.getId(), 2, GL_UNIFORM_BLOCK_DATA_SIZE,
                                   &min);
-        // printf("Min block size: %i\n", min);
         PacketBuilder.setBlockMin(2, min);
 
         node->mat.onSplice(PacketBuilder, node->poly, i);
