@@ -101,7 +101,8 @@ function setupMainAppCli(set_links)
 		"core",
 		"vendor",
 		"plugins",
-		"libfbxsdk-md"
+		"libfbxsdk-md",
+		"assimp-vc140-mt"
 	}
 	end
 
@@ -115,18 +116,21 @@ function setupMainAppCli(set_links)
 	configuration { "vs*", "Debug" }
 		libdirs {
 			(FBX_SDK_ROOT .. "/x64/debug"),
-			PYTHON_ROOT .. "/libs/"
+			PYTHON_ROOT .. "/libs/",
+			"source/vendor/assimp"
 		}
 		
 	configuration { "vs*", "Release" }
 		libdirs {
 			(FBX_SDK_ROOT .. "/x64/release"),
-			PYTHON_ROOT .. "/libs/"			
+			PYTHON_ROOT .. "/libs/",
+			"source/vendor/assimp"			
 		}
 	configuration { "vs*", "Dist" }
 		libdirs {
 			(FBX_SDK_ROOT .. "/x64/release"),
-			PYTHON_ROOT .. "/libs/"			
+			PYTHON_ROOT .. "/libs/",
+			"source/vendor/assimp"			
 		}
 	filter "configurations:Dist"
 		postbuildcommands {
