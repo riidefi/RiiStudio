@@ -249,7 +249,8 @@ struct IGCMaterial : public riistudio::lib3d::Material {
     // Assumption: Parent of parent model is a collection with children.
     const kpi::IDocumentNode* parent = getParent();
     assert(parent);
-    const kpi::IDocumentNode* collection = parent->parent;
+    const kpi::IDocumentNode* collection =
+        static_cast<const kpi::IDocumentNode*>(parent->parent);
     assert(collection);
 
     return collection->getFolder<libcube::Texture>();

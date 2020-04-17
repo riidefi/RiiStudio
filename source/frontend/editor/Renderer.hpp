@@ -43,8 +43,8 @@ private:
   int combo_choice_cam = 0;
   // Camera settings
   float speed = 0.0f;
-  float cmin = 100.f;
-  float cmax = 100000.f;
+  float cmin = 1.0f;
+  float cmax = 50000.f;
   float fov = 90.0f;
   // Camera state
   glm::vec3 eye{0.0f, 0.0f, 0.0f};

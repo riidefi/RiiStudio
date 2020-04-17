@@ -283,6 +283,15 @@ vec3_string GXProgram::generateTexGenType(const gx::TexCoordGen& texCoordGen,
            ".xy, 1.0)";
   case gx::TexGenType::Matrix3x4:
     return generateTexGenMatrixMult(texCoordGen, id, src);
+  case gx::TexGenType::Bump0:
+  case gx::TexGenType::Bump1:
+  case gx::TexGenType::Bump2:
+  case gx::TexGenType::Bump3:
+  case gx::TexGenType::Bump4:
+  case gx::TexGenType::Bump5:
+  case gx::TexGenType::Bump6:
+  case gx::TexGenType::Bump7:
+    return "vec3(0.5, 0.5, 0.5)";
   default:
     throw "whoops";
   }
@@ -385,17 +394,22 @@ std::string GXProgram::generateIndTexStage(u32 indTexStageIndex) {
   const auto& stage = mMaterial.mat.getMaterialData()
                           .shader.mStages[indTexStageIndex]
                           .indirectStage;
+
+  const auto scale =
+      indTexStageIndex >= mMaterial.mat.getMaterialData().mIndScales.size()
+          ? IndirectTextureScalePair{}
+          : mMaterial.mat.getMaterialData().mIndScales[indTexStageIndex];
+  const auto order =
+      indTexStageIndex >=
+              mMaterial.mat.getMaterialData().shader.mIndirectOrders.size()
+          ? IndOrder{}
+          : mMaterial.mat.getMaterialData()
+                .shader.mIndirectOrders[indTexStageIndex];
+
   return "vec3 t_IndTexCoord" + std::to_string(indTexStageIndex) +
          " = 255.0 * " +
-         generateTextureSample(
-             mMaterial.mat.getMaterialData()
-                 .shader.mIndirectOrders[indTexStageIndex]
-                 .refMap,
-             generateIndTexStageScale(
-                 stage,
-                 mMaterial.mat.getMaterialData().mIndScales[indTexStageIndex],
-                 mMaterial.mat.getMaterialData()
-                     .shader.mIndirectOrders[indTexStageIndex])) +
+         generateTextureSample(order.refMap,
+                               generateIndTexStageScale(stage, scale, order)) +
          ".abg;\n";
 }
 
@@ -529,14 +543,19 @@ std::string GXProgram::generateKonstAlphaSel(gx::TevKAlphaSel konstAlpha) {
 
 std::string GXProgram::generateRas(const gx::TevStage& stage) {
   switch (stage.rasOrder) {
-  case gx::ColorSelChanApi::color0a0:
+  case gx::ColorSelChanApi::color0: // For custom files..
+  case gx::ColorSelChanApi::alpha0:
+  case gx::ColorSelChanApi::color0a0: // Real files will only use this
     return "v_Color0";
-  case gx::ColorSelChanApi::color1a1:
+  case gx::ColorSelChanApi::color1: // For custom files..
+  case gx::ColorSelChanApi::alpha1:
+  case gx::ColorSelChanApi::color1a1: // Real files will only use this
     return "v_Color1";
   case gx::ColorSelChanApi::null:
     return "vec4(0, 0, 0, 0)";
   default:
-    throw "";
+	  assert(!"Invalid ras sel");
+	  return "v_Color0";
   }
 }
 

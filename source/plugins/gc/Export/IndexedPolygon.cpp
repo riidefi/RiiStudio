@@ -205,6 +205,8 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
       case gx::VertexAttribute::Normal:
         out.pushData(4, getNrm(vtx[gx::VertexAttribute::Normal]));
         break;
+	  case gx::VertexAttribute::NormalBinormalTangent:
+		  break;
       default:
         throw "Invalid vtx attrib";
         break;
@@ -247,7 +249,11 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
   }
 
   for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i) {
-    if (!(final_bitfield & (1 << i)) && i != (int)gx::VertexAttribute::PositionNormalMatrixIndex)
+    if (!(final_bitfield & (1 << i)) &&
+        i != (int)gx::VertexAttribute::PositionNormalMatrixIndex)
+      continue;
+	// For now, we just skip it
+    if (i == (int)gx::VertexAttribute::NormalBinormalTangent)
       continue;
 
     const auto def = getVertexAttribGenDef((gx::VertexAttribute)i);

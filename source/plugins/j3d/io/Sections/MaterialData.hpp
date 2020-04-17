@@ -395,7 +395,8 @@ template <> struct io_wrapper<TevOrder> {
 template <> struct io_wrapper<gx::TevStage> {
   static void onRead(oishii::BinaryReader& reader, gx::TevStage& c) {
     const auto unk1 = reader.read<u8>();
-    assert(unk1 == 0xff);
+	// Assumed to be TevOp (see attributedlandmeteoritec.bmd)
+    // assert(unk1 == 0xff);
     c.colorStage.a = static_cast<gx::TevColorArg>(reader.read<u8>());
     c.colorStage.b = static_cast<gx::TevColorArg>(reader.read<u8>());
     c.colorStage.c = static_cast<gx::TevColorArg>(reader.read<u8>());

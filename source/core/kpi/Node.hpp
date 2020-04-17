@@ -32,8 +32,25 @@ struct IDocData {
   virtual ~IDocData() = default;
 };
 
+// The interface for view-only data.
+// Referenced data is stored linearly in the folder-tree
+class IDocumentNodeView {
+public:
+  virtual ~IDocumentNodeView() = default;
+
+  virtual std::string getName() const { return "Untitled"; }
+  std::string mType;
+  IDocumentNodeView* parent = nullptr;
+
+  // Generated. For example, tree structures based on relationships in the core
+  // data.
+  virtual std::vector<std::unique_ptr<IDocumentNodeView>> calcSimpleChildren() {
+    return {};
+  }
+};
+
 // we know use typeid for type
-class IDocumentNode {
+class IDocumentNode : public IDocumentNodeView {
 public:
   virtual ~IDocumentNode() = default;
 
@@ -46,7 +63,6 @@ public:
 
   virtual std::string getName() const { return defaultNameField; }
   virtual void setName(const std::string& v) { defaultNameField = v; }
-  std::string mType;
   std::string defaultNameField = "Untitled";
 
   struct FolderData : public std::vector<std::unique_ptr<IDocumentNode>> {
@@ -175,8 +191,8 @@ public:
     return getOrAddFolder(typeid(T).name());
   }
 
-  SelectionState select;
-  IDocumentNode* parent = nullptr;
+  // SelectionState select;
+
   std::map<std::string, FolderData> children;
   std::set<std::string> lut;
 };
@@ -212,8 +228,14 @@ template <typename T>
 struct TDocumentNode final : public IDocumentNode, public T {
   TDocumentNode() = default;
   // Potential overrides: getParent, getChild, getNextSibling, etc
-  const IDocumentNode* getParent() const { return TDocumentNode::parent; }
-  IDocumentNode* getParent() { return TDocumentNode::parent; }
+  const IDocumentNode* getParent() const {
+    assert(dynamic_cast<const IDocumentNode*>(parent) != nullptr);
+    return static_cast<const IDocumentNode*>(parent);
+  }
+  IDocumentNode* getParent() {
+    assert(dynamic_cast<IDocumentNode*>(parent) != nullptr);
+    return static_cast<IDocumentNode*>(parent);
+  }
 
   template <typename Q> class has_get_name {
     typedef char YesType[1];
