@@ -194,13 +194,13 @@ struct TevStage {
     TevAlphaArg b = TevAlphaArg::zero;
     TevAlphaArg c = TevAlphaArg::zero;
     TevAlphaArg d = TevAlphaArg::aprev;
-    TevAlphaOp formula;
+    TevAlphaOp formula = TevAlphaOp::add;
     // KSEL
     TevKAlphaSel constantSelection = TevKAlphaSel::k0_a;
-    TevBias bias;
-    TevScale scale;
-    bool clamp;
-    TevReg out;
+    TevBias bias = TevBias::zero;
+    TevScale scale = TevScale::scale_1;
+    bool clamp = true;
+    TevReg out = TevReg::prev;
 
     bool operator==(const AlphaStage& rhs) const noexcept {
       return constantSelection == rhs.constantSelection && a == rhs.a &&

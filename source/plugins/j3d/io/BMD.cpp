@@ -101,6 +101,7 @@ public:
     // Recompute cache
 
     std::map<std::string, u32> texNameMap;
+	collection.node().getOrAddFolder<Texture>();
     for (int i = 0; i < collection.getTextures().size(); ++i) {
       texNameMap[collection.getTexture(i).node().getName()] = i;
     }

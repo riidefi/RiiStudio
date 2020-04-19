@@ -149,7 +149,8 @@ function setupMainApp()
 		"plugins",
 		"source/vendor/glfw/lib-vc2017/glfw3dll.lib",
 		"opengl32.lib",
-		"libfbxsdk.lib"
+		"libfbxsdk.lib",
+		"assimp-vc141-mt.lib"
 	}
 
 	setupMainAppCli(false)

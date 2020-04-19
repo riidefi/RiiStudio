@@ -8,7 +8,7 @@
 UBOBuilder::UBOBuilder() {
 #if defined(NDEBUG) || !defined(_WIN32)
   glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformStride);
-  printf("UBOBuilder: Buffer offset alignment: %i\n", uniformStride);
+  // printf("UBOBuilder: Buffer offset alignment: %i\n", uniformStride);
 
 #else
   uniformStride = 1024;

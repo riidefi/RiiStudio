@@ -156,7 +156,8 @@ struct RGBA32ImageTarget {
     }
   }
   void fromOtherSized(const u8* src, u32 ow, u32 oh, ResizingAlgorithm al) {
-    if (ow == mW && oh == mH) {
+	  mTmp.resize(mW * mH * 4);
+	  if (ow == mW && oh == mH) {
       memcpy(mTmp.data(), src, mTmp.size());
     } else {
       resize(mTmp.data(), mW, mH, src, ow, oh, al);

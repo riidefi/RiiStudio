@@ -91,7 +91,8 @@ struct GCMaterialData {
       return matColor == rhs.matColor && ambColor == rhs.ambColor;
     }
   };
-  array_vector<ChannelData, 2> chanData;
+  array_vector<ChannelData, 2> chanData{ChannelData{gx::Color{}, gx::Color{}},
+                                        ChannelData{gx::Color{}, gx::Color{}}};
   // Color0, Alpha0, Color1, Alpha1
   array_vector<gx::ChannelControl, 4> colorChanControls;
 
@@ -99,8 +100,10 @@ struct GCMaterialData {
 
   array_vector<gx::TexCoordGen, 8> texGens;
 
-  array_vector<gx::Color, 4> tevKonstColors;
-  array_vector<gx::ColorS10, 4> tevColors;
+  array_vector<gx::Color, 4> tevKonstColors{gx::Color{}, gx::Color{},
+                                            gx::Color{}, gx::Color{}};
+  array_vector<gx::ColorS10, 4> tevColors{gx::ColorS10{}, gx::ColorS10{},
+                                          gx::ColorS10{}, gx::ColorS10{}};
 
   bool earlyZComparison = true;
   gx::ZMode zMode;
@@ -186,13 +189,13 @@ struct GCMaterialData {
     gx::TextureWrapMode mWrapV = gx::TextureWrapMode::Repeat;
 
     // bool bMipMap = false;
-    bool bEdgeLod;
-    bool bBiasClamp;
+    bool bEdgeLod = false;
+    bool bBiasClamp = false;
 
-    gx::AnisotropyLevel mMaxAniso;
+    gx::AnisotropyLevel mMaxAniso = gx::AnisotropyLevel::x1;
 
     gx::TextureFilter mMinFilter = gx::TextureFilter::linear;
-    gx::TextureFilter mMagFilter;
+    gx::TextureFilter mMagFilter = gx::TextureFilter::linear;
     f32 mLodBias = 0.0f;
 
     bool operator==(const SamplerData& rhs) const noexcept {
@@ -210,6 +213,12 @@ struct GCMaterialData {
   };
 
   copyable_polymorphic_array_vector<SamplerData, 8> samplers;
+
+  GCMaterialData() {
+    tevKonstColors.nElements = 4;
+    tevColors.nElements = 4;
+	chanData.nElements = 2;
+  }
 };
 
 struct IGCMaterial : public riistudio::lib3d::Material {

@@ -225,6 +225,12 @@ struct CollectionAccessor : public kpi::NodeAccessor<Collection> {
 
   KPI_NODE_FOLDER(Model, ModelAccessor);
   KPI_NODE_FOLDER_SIMPLE(Texture);
+
+  CollectionAccessor(kpi::IDocumentNode* node) : super(node) {
+	  if (node == nullptr) return;
+	  data->getOrAddFolder<Model>();
+	  data->getOrAddFolder<Texture>();
+  }
 };
 
 } // namespace riistudio::j3d

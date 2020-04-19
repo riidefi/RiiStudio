@@ -81,13 +81,14 @@ enum class TexMatrix {
 struct TexCoordGen // XF TEX/DUALTEX
 {
   // u8			id = -1; // TODO
-  TexGenType func;
-  TexGenSrc sourceParam;
-  TexMatrix matrix; // FIXME: for BMD
+  TexGenType func = TexGenType::Matrix2x4;
+  TexGenSrc sourceParam = TexGenSrc::UV0;
+  // TODO -- is shader code reading this field incorrectly?
+  TexMatrix matrix = gx::TexMatrix::Identity; // FIXME: for BMD
 
   bool normalize = false;
   PostTexMatrix postMatrix = gx::PostTexMatrix::Identity;
-  ;
+  
 
   const bool operator==(const TexCoordGen& rhs) const noexcept {
     return func == rhs.func && sourceParam == rhs.sourceParam &&

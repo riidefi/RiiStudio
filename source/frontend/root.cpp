@@ -24,6 +24,9 @@
 namespace riistudio::g3d {
 void Install();
 }
+namespace riistudio::ass {
+void Install();
+}
 
 namespace riistudio::frontend {
 
@@ -389,7 +392,7 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
       printf("No children. Cannot construct.\n");
       return;
     }
-    assert(children.size() == 1 && IsConstructible(children[0])); // TODO
+    assert(/*children.size() == 1 &&*/ IsConstructible(children[0])); // TODO
     importer.first = children[0];
   }
 
@@ -443,6 +446,7 @@ RootWindow::RootWindow() : Applet("RiiStudio") {
   j3d::Install(*kpi::ApplicationPlugins::getInstance());
   g3d::Install();
   pik::Install(*kpi::ApplicationPlugins::getInstance());
+  ass::Install();
 
   //	px::PackageInstaller::spInstance->installModule("nw.dll");
 

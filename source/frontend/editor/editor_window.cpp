@@ -96,6 +96,8 @@ struct GenericCollectionOutliner : public StudioWindow {
   //!
   std::string formatTitle(const kpi::FolderData& sampler,
                           const TFilter* filter = nullptr) const {
+    if (sampler.size() == 0)
+      return "";
     const auto rich = kpi::RichNameManager::getInstance().getRich(
         &sampler.at<kpi::IDocumentNode>(0));
     const std::string icon_plural = rich.getIconPlural();

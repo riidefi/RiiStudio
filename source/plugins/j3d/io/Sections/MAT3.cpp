@@ -161,6 +161,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
   array_vector<gx::Color, 2> ambColors;
 
   loader.indexedContainer<u16>(ambColors, MatSec::AmbientColors, 4);
+  mat.chanData.nElements = 0;
   for (int i = 0; i < matColors.size(); ++i)
     mat.chanData.push_back({matColors[i], ambColors[i]});
 
@@ -190,6 +191,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   {
     dbg.assertSince(0x094);
+	mat.tevKonstColors.nElements = 0;
     loader.indexedContainer<u16>(mat.tevKonstColors, MatSec::TevKonstColors, 4);
     dbg.assertSince(0x09C);
 
@@ -206,7 +208,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
     dbg.assertSince(0x0BC);
     array_vector<TevOrder, 16> tevOrderInfos;
     loader.indexedContainer<u16>(tevOrderInfos, MatSec::TevOrderInfo, 4);
-
+	mat.tevColors.nElements = 0;
     loader.indexedContainer<u16>(mat.tevColors, MatSec::TevColors, 8);
     // HW 0 is API CPREV/APREV
     std::rotate(mat.tevColors.rbegin(), mat.tevColors.rbegin() + 1,
