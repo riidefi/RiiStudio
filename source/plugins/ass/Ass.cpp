@@ -697,8 +697,8 @@ struct AssReader {
   std::string canRead(const std::string& file,
                       oishii::BinaryReader& reader) const {
 
-    const std::array<std::string, 3> supported_endings = {".dae", ".obj",
-                                                          ".fbx"};
+    const std::array<std::string, 4> supported_endings = {".dae", ".obj",
+                                                          ".fbx", ".smd"};
 
     if (std::find_if(supported_endings.begin(), supported_endings.end(),
                      [&](const std::string& ending) {
