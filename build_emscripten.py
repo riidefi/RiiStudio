@@ -165,6 +165,8 @@ def build_project(name, type, config, proj=None):
 			if lib["name"] in proj["links"]:
 				objs += lib["objs"]
 		link_cmd += " ".join(objs)
+		for a in ["libassimp", "libIrrXML", "libzlib", "libzlibstatic"]:
+			link_cmd += " source/vendor/assimp/" + a + ".a"
 		if debug:
 			link_cmd += " -g4 --source-map-base ../ "
 		link_cmd += "  -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 --no-heap-copy --preload-file ./fonts@/fonts "

@@ -340,7 +340,7 @@ struct PropertyEditor : public StudioWindow {
 
   template <typename T>
   void gatherSelected(std::vector<kpi::IDocumentNode*>& tmp,
-                      kpi::FolderData& folder, T& pred) {
+                      kpi::FolderData& folder, T pred) {
     for (int i = 0; i < folder.size(); ++i) {
       if (folder.isSelected(i) && pred(folder[i].get())) {
         tmp.push_back(folder[i].get());

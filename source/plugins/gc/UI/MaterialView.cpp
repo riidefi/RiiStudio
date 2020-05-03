@@ -106,15 +106,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   CullMode cm(before);
   cm.draw();
 
-  //  delegate.property(before, cm.get(),
-  //      [](const auto& x) { return x.getMaterialData().cullMode; },
-  //      [](auto& x, auto y) { x.getMaterialData().cullMode = y; });
   KPI_PROPERTY(delegate, before, cm.get(), getMaterialData().cullMode);
 }
 
 #define AUTO_PROP(before, after)                                               \
-  KPI_PROPERTY(delegate, delegate.getActive().getMaterialData().##before,      \
-               after, getMaterialData().##before)
+  KPI_PROPERTY(delegate, delegate.getActive().getMaterialData().before,      \
+               after, getMaterialData().before)
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
   libcube::gx::ColorF32 clr;
   auto& matData = delegate.getActive().getMaterialData();

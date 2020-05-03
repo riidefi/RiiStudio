@@ -14,7 +14,7 @@
 # Compiled Dynamic libraries
 *.so
 *.dylib
-*.dll
+# *.dll
 
 
 # Fortran module files
@@ -24,8 +24,8 @@
 # Compiled Static libraries
 *.lai
 *.la
-*.a
-*.lib
+# *.a
+#*.lib
 
 # Third Party exceptions
 !glfw3.dll

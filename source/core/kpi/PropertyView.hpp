@@ -1,6 +1,6 @@
 #pragma once
 
-#include "node.hpp"
+#include "Node.hpp"
 #include <string_view>
 #include <vector>
 
@@ -46,11 +46,11 @@ public:
   }
 #define KPI_PROPERTY(delegate, before, after, val)                             \
   delegate.property(                                                           \
-      before, after, [&](const auto& x) { return x.##val; },                   \
-      [&](auto& x, auto& y) { x.##val = y; })
+      before, after, [&](const auto& x) { return x.val; },                   \
+      [&](auto& x, auto& y) { x.val = y; })
 // When external source updating internal data
 #define KPI_PROPERTY_EX(delegate, before, after)                               \
-  KPI_PROPERTY(delegate, delegate.getActive().##before, after, before)
+  KPI_PROPERTY(delegate, delegate.getActive().before, after, before)
 
 private:
   T& mActive;
