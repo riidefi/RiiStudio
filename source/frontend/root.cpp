@@ -444,8 +444,10 @@ RootWindow::RootWindow() : Applet("RiiStudio") {
   //	lib3d::install();
   libcube::Install();
   j3d::Install(*kpi::ApplicationPlugins::getInstance());
+#ifndef BUILD_DIST
   g3d::Install();
   pik::Install(*kpi::ApplicationPlugins::getInstance());
+#endif
   ass::Install();
 
   //	px::PackageInstaller::spInstance->installModule("nw.dll");
