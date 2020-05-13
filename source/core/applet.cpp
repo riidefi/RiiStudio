@@ -45,17 +45,15 @@ static bool loadFonts(float fontSize = 12.0f) {
 
   io.Fonts->AddFontFromFileTTF(default_font, fontSize, &fontcfg);
  
-  mdConfig.headingFormats[0].font =
-	  io.Fonts->AddFontFromFileTTF(bold_font, fontSize * 2 * 1.1f, &fontcfg);
-  mdConfig.headingFormats[1].font =
-      io.Fonts->AddFontFromFileTTF(bold_font, fontSize * 2, &fontcfg);
-  mdConfig.headingFormats[2].font = mdConfig.headingFormats[1].font;
+  // mdConfig.headingFormats[0].font = io.Fonts->AddFontFromFileTTF(bold_font, fontSize * 2 * 1.1f, &fontcfg);
+  // mdConfig.headingFormats[1].font = io.Fonts->AddFontFromFileTTF(bold_font, fontSize * 2, &fontcfg);
+  // mdConfig.headingFormats[2].font = mdConfig.headingFormats[1].font;
   
   static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
   ImFontConfig icons_config;
   icons_config.MergeMode = true;
   icons_config.PixelSnapH = true;
-  io.Fonts->AddFontFromFileTTF(icon_font, 14.0f, &icons_config, icons_ranges);
+  io.Fonts->AddFontFromFileTTF(icon_font, fontSize, &icons_config, icons_ranges);
 
   return true;
 }

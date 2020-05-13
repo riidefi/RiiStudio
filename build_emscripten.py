@@ -6,6 +6,8 @@ from hashlib import sha256
 
 from shutil import copyfile
 
+import sys
+
 def require_dir(path):
 	# TODO: if not isdir, delete
 	if not os.path.exists(path):
@@ -104,12 +106,12 @@ PROJECTS = [
 def format_out(source, int_dir):
 	return os.path.join(int_dir, source.replace(".cpp", ".o").replace(".c", ".o").replace("\\", "_").replace("/", "_")) 
 
-def compile(source, int_dir, debug):
+def compile(source, int_dir, debug, config):
 
 	args = "em++ -I./ "
 	for proj in PROJECTS:
 		args += " -I./source/" + proj["name"] + " "
-	for d in DEFINES:
+	for d in DEFINES + defines(config):
 		args += " -D" + d
 	for incl in INCLUDES:
 		args += " -I./" + incl + " "
@@ -154,7 +156,7 @@ def build_project(name, type, config, proj=None):
 		if gHashManager.check(source, config):
 			continue
 
-		compile(source, bin_int_dir, debug)
+		compile(source, bin_int_dir, debug, config)
 		gHashManager.save(source, config)
 
 	if type == "main_app":
@@ -178,7 +180,9 @@ def build_projects(config):
 	for proj in PROJECTS:
 		proj["objs"] = build_project(proj["name"], proj["type"], config, proj)
 
-
-build_projects("RELEASE")
+cfg = "RELEASE"
+if len(sys.argv) > 1:
+	cfg = sys.argv[1].upper()
+build_projects(cfg)
 
 gHashManager.store_to_file()

@@ -351,7 +351,7 @@ void RootWindow::draw() {
   }
 
   // ImGui::ShowDemoWindow();
-  if (mShowChangeLog && ImGui::Begin("Changelog", &mShowChangeLog)) {
+  if (mShowChangeLog && ImGui::Begin("Changelog", &mShowChangeLog, ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::SetWindowFontScale(1.3);
     ImGui::Text("RiiStudio: Alpha 1");
     const std::string& markdownText = u8R"(
