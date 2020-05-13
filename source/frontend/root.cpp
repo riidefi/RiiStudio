@@ -477,7 +477,7 @@ RootWindow::RootWindow() : Applet("RiiStudio " __BUILD " (Built " __DATE__ " at 
 RootWindow::~RootWindow() { DeinitAPI(); }
 
 void RootWindow::save(const std::string& path) {
-  std::ofstream stream(path + "_TEST.bmd", std::ios::binary | std::ios::out);
+  std::ofstream stream(path, std::ios::binary | std::ios::out);
 
   oishii::v2::Writer writer(1024);
 
