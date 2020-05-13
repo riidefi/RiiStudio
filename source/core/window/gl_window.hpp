@@ -3,15 +3,18 @@
 #include <memory>
 #include <string_view>
 #include <vector>
+#include <string>
 
 struct GLFWwindow;
 
 namespace riistudio::core {
 
+inline const std::string DefaultTitle = "Untitled Window";
+
 class GLWindow {
 public:
   GLWindow(int width = 1280, int height = 720,
-           const char* title = "Untitled Window");
+           const std::string& title = DefaultTitle);
   ~GLWindow();
 
   void loop();
@@ -38,6 +41,9 @@ private:
 #endif
 public:
   void mainLoopInternal();
+
+private:
+  std::string mTitle;
 };
 
 } // namespace riistudio::core

@@ -108,7 +108,8 @@ static const char* glsl_version =
 } // namespace
 #endif
 
-GLWindow::GLWindow(int width, int height, const char* pName) {
+GLWindow::GLWindow(int width, int height, const std::string& pName)
+    : mTitle(pName) {
 #ifdef RII_BACKEND_GLFW
   glfwSetErrorCallback(handleGlfwError);
 
@@ -125,7 +126,7 @@ GLWindow::GLWindow(int width, int height, const char* pName) {
 
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 #endif
-    initWindow(mGlfwWindow, width, height, pName, this);
+    initWindow(mGlfwWindow, width, height, mTitle.c_str(), this);
 
     gl3wInit();
 
@@ -173,7 +174,9 @@ GLWindow::GLWindow(int width, int height, const char* pName) {
   SDL_GetCurrentDisplayMode(0, &current);
   SDL_WindowFlags window_flags = (SDL_WindowFlags)(
       SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-  g_Window = SDL_CreateWindow(pName, SDL_WINDOWPOS_CENTERED,
+  static std::string sWinTitle = "App";
+  if (!mTitle.empty()) sWinTitle = mTitle;
+  g_Window = SDL_CreateWindow(sWinTitle.c_str(), SDL_WINDOWPOS_CENTERED,
                               SDL_WINDOWPOS_CENTERED, 1920, 1080, window_flags);
   g_GLContext = SDL_GL_CreateContext(g_Window);
 

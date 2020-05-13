@@ -39,7 +39,7 @@ static bool loadFonts() {
   return true;
 }
 
-Applet::Applet(const char* name) : GLWindow(1280, 720, name) {
+Applet::Applet(const std::string& name) : GLWindow(1280, 720, name) {
 
   ImGuiStyle& style = ImGui::GetStyle();
   ImGuiIO& io = ImGui::GetIO();
