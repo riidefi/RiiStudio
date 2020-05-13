@@ -535,6 +535,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 // TODO -- filler
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SwapTableSurface) {
+#ifndef BUILD_DIST
   ImGui::BeginColumns("swap", 4);
   int sel = 0;
   for (int j = 0; j < 4; ++j) {
@@ -548,9 +549,14 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     ImGui::NextColumn();
   }
   ImGui::EndColumns();
+#endif
 }
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
   auto& matData = delegate.getActive().getMaterialData();
+
+#ifdef BUILD_DIST
+  ImGui::Text("WIP");
+#endif
 
   // Hack: The view needs to be stateful..
   static riistudio::frontend::ImagePreview mImg; // In mat sampler
