@@ -21,6 +21,8 @@
 // Experimental conversion
 #include <plugins/j3d/Scene.hpp>
 
+#include <vendor/imgui_markdown.h>
+
 namespace riistudio::g3d {
 void Install();
 }
@@ -51,6 +53,12 @@ void RootWindow::draw() {
   ImGui::Begin("DockSpace##Root", &bOpen, window_flags);
   ImGui::PopStyleVar(3);
 
+  ImGui::SetWindowFontScale(1.1);
+  if (mChildren.empty()) {
+    ImGui::Text("Drop a file to edit.");
+  }
+  ImGui::Text("Note: For this early alpha, file saving is temporarily disabled.");
+  ImGui::SetWindowFontScale(1.);
   dockspace_id = ImGui::GetID("DockSpaceWidget");
 
   ImGuiID dock_main_id = dockspace_id;
@@ -342,6 +350,46 @@ void RootWindow::draw() {
     ImGui::EndMenuBar();
   }
 
+  // ImGui::ShowDemoWindow();
+  if (mShowChangeLog && ImGui::Begin("Changelog", &mShowChangeLog)) {
+    ImGui::SetWindowFontScale(1.3);
+    ImGui::Text("RiiStudio: Alpha 1");
+    const std::string& markdownText = u8R"(
+Features:
+  * Accurate model previewing, including rigged meshes.
+  * Importing/Exporting of images.
+  * Editing of texture (BTI) properties.
+  * Ergonomic editors for a variety of BMD data:
+    * Materials (WIP)
+    * Textures
+    * Bones
+    * etc.
+Planned Features:
+  * Rebuilding of BDL files. At the moment, they can be read, but will be saved as BMD.
+  * Emulation of lighting. Currently causes undesired behavior in materials that depend on this, especially in games like SMG.
+Work in Progress:
+  * UI
+    * Material editor is WIP and cannot edit everything yet.
+    * Camera controls are a bit awkward.
+  * Rendering
+    * Environment and projection mapping are not quite accurate.
+    * Texture matrix translation is chopped off in some cases.
+    * Uncommon vertex array issues.
+  * Importing/Exporting
+    * Supplying an invalidly large mipmap count will result in degenerate maps that can cause an encoder/decoder crash.
+Pushed to Next Alpha:
+  * FBX IO (Under active development, current state is as follows):
+    * Importing of textures from FBX files only works with absolute paths.
+    * Rigged models do not import correctly.
+    * No support for exporting yet.
+  * BRRES IO:
+    * Currently read-only
+)";
+    core::Markdown(markdownText);
+
+    ImGui::End();
+  }
+
   drawChildren();
 
   if (bThemeEditor && ImGui::Begin("Theme Editor", &bThemeEditor)) {
@@ -457,7 +505,9 @@ void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
 #define __BUILD "Custom"
 #endif
 
-RootWindow::RootWindow() : Applet("RiiStudio " __BUILD " (Built " __DATE__ " at " __TIME__ ", " __CC ")") {
+RootWindow::RootWindow()
+    : Applet("RiiStudio " __BUILD " (Built " __DATE__ " at " __TIME__ ", " __CC
+             ")") {
   InitAPI();
 
   // Register plugins
