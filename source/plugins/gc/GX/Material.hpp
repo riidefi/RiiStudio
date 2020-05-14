@@ -166,7 +166,7 @@ struct ColorF32 {
   inline bool operator!=(const ColorF32& rhs) const { return !operator==(rhs); }
 };
 struct Color {
-  u32 r, g, b, a;
+  u32 r = 0, g = 0, b = 0, a = 0;
 
   inline bool operator==(const Color& rhs) const noexcept {
     return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
@@ -189,7 +189,7 @@ struct Color {
 };
 
 struct ColorS10 {
-  s32 r, g, b, a;
+  s32 r = 0, g = 0, b = 0, a = 0;
 
   bool operator==(const ColorS10& rhs) const noexcept {
     return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;

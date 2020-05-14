@@ -84,15 +84,14 @@ struct GCMaterialData {
   GenInfo info;
 
   struct ChannelData {
-    gx::Color matColor;
-    gx::Color ambColor;
+    gx::Color matColor{0, 0, 0, 0xff};
+    gx::Color ambColor{0, 0, 0, 0xff};
 
     bool operator==(const ChannelData& rhs) const {
       return matColor == rhs.matColor && ambColor == rhs.ambColor;
     }
   };
-  array_vector<ChannelData, 2> chanData{ChannelData{gx::Color{}, gx::Color{}},
-                                        ChannelData{gx::Color{}, gx::Color{}}};
+  array_vector<ChannelData, 2> chanData;
   // Color0, Alpha0, Color1, Alpha1
   array_vector<gx::ChannelControl, 4> colorChanControls;
 
@@ -100,10 +99,8 @@ struct GCMaterialData {
 
   array_vector<gx::TexCoordGen, 8> texGens;
 
-  array_vector<gx::Color, 4> tevKonstColors{gx::Color{}, gx::Color{},
-                                            gx::Color{}, gx::Color{}};
-  array_vector<gx::ColorS10, 4> tevColors{gx::ColorS10{}, gx::ColorS10{},
-                                          gx::ColorS10{}, gx::ColorS10{}};
+  array_vector<gx::Color, 4> tevKonstColors;
+  array_vector<gx::ColorS10, 4> tevColors;
 
   bool earlyZComparison = true;
   gx::ZMode zMode;
@@ -217,7 +214,7 @@ struct GCMaterialData {
   GCMaterialData() {
     tevKonstColors.nElements = 4;
     tevColors.nElements = 4;
-	chanData.nElements = 2;
+    chanData.nElements = 2;
   }
 };
 

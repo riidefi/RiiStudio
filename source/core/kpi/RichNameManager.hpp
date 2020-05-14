@@ -11,6 +11,7 @@ namespace kpi {
 class RichNameManager {
   static RichNameManager sInstance;
   struct IEntry {
+    virtual ~IEntry() = default;
     template <bool addS> struct Component {
       std::string sg, pl;
 

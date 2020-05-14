@@ -560,14 +560,8 @@ std::string GXProgram::generateRas(const gx::TevStage& stage) {
 }
 
 std::string GXProgram::generateTexAccess(const gx::TevStage& stage) {
-  // Skyward Sword is amazing sometimes. I hope you"re happy...
-  // assert(stage.texMap !== GX.TexMapID.TEXMAP_NULL);
-  if (stage.texMap == -1)
+  if (stage.texMap == 0xff)
     return "vec4(1.0, 1.0, 1.0, 1.0)";
-
-  //	// If we disable textures, then return sampled white.
-  //	if (this.hacks !== null && this.hacks.disableTextures)
-  //	    return "vec4(1.0, 1.0, 1.0, 1.0)";
 
   return generateTextureSample(stage.texMap, "t_TexCoord");
 }
@@ -922,7 +916,7 @@ std::string GXProgram::generateTevTexCoordIndirect(const gx::TevStage& stage) {
 }
 
 std::string GXProgram::generateTevTexCoord(const gx::TevStage& stage) {
-  if (stage.texCoord == -1)
+  if (stage.texCoord == 0xff)
     return "";
 
   const auto finalCoord = generateTevTexCoordIndirect(stage);

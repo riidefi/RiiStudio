@@ -172,8 +172,8 @@ struct Bone {
 
     //	dst = glm::translate(dst, srt.translation);
     //	dst = dst * glm::eulerAngleZYX(glm::radians(srt.rotation.x),
-    //glm::radians(srt.rotation.y), glm::radians(srt.rotation.z)); 	return
-    //glm::scale(dst, srt.scale);
+    // glm::radians(srt.rotation.y), glm::radians(srt.rotation.z)); 	return
+    // glm::scale(dst, srt.scale);
 
     float sinX = sin(glm::radians(srt.rotation.x)),
           cosX = cos(glm::radians(srt.rotation.x));
@@ -234,12 +234,13 @@ enum class PixelOcclusion {
   Translucent
 };
 struct IObserver {
+  virtual ~IObserver() = default;
   // TODO: Detach
   virtual void update() {}
 };
 struct Polygon;
 struct Material {
-  // // PX_TYPE_INFO("3D Material", "3d_material", "3D::Material");
+  virtual ~Material() = default;
 
   virtual std::string getName() const { return "Untitled Material"; }
   virtual void setName(const std::string& name) {}
@@ -282,7 +283,7 @@ struct TextureCodec {
 };
 
 struct Texture {
-  // // PX_TYPE_INFO("Texture", "tex", "3D::Texture");
+  virtual ~Texture() = default;
 
   virtual std::string getName() const { return "Untitled Texture"; }
   virtual void setName(const std::string& name) = 0;
@@ -295,8 +296,8 @@ struct Texture {
       u32 h = getHeight();
       u32 total = w * h * 4;
       for (int i = 0; i < mipMapCount; ++i) {
-        w >> 1;
-        h >> 1;
+        w >>= 1;
+        h >>= 1;
         total += w * h * 4;
       }
       return total;
@@ -342,7 +343,6 @@ struct Texture {
 };
 
 struct Polygon {
-  //	// PX_TYPE_INFO("Polygon", "poly", "3D::Polygon");
   virtual ~Polygon() = default;
 
   virtual bool isVisible() const { return true; }
@@ -392,7 +392,6 @@ struct Polygon {
 };
 // TODO: This should all be runtime
 struct Scene {
-  //// PX_TYPE_INFO("Scene", "scene", "3D::Scene");
   virtual ~Scene() = default;
 };
 struct Model {
