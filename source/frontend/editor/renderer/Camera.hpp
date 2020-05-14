@@ -9,6 +9,7 @@ public:
   void calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
             float width, float height, glm::mat4& projMtx, glm::mat4& viewMtx,
             bool w, bool a, bool s, bool d, bool up, bool down);
+
   void drawOptions();
 
   float getSpeed() const { return speed; }
@@ -26,6 +27,10 @@ private:
   // Camera state
   glm::vec3 eye{0.0f, 0.0f, 0.0f};
   glm::vec3 direction;
+  float horizontalAngle = 3.14f;
+  float verticalAngle = 0.0f;
+  float xPrev = 0.0f;
+  float yPrev = 0.0f;
 };
 
 } // namespace riistudio::frontend

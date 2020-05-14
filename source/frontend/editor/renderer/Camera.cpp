@@ -10,29 +10,47 @@ void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
                   glm::mat4& viewMtx, bool _w, bool _a, bool _s, bool _d,
                   bool _up, bool _down) {
 
-  // horizontal angle : toward -Z
-  float horizontalAngle = 3.14f;
-  // vertical angle : 0, look at the horizon
-  float verticalAngle = 0.0f;
-
   // TODO: Enable for plane mode
   // glm::vec3 up = glm::cross(right, direction);
   glm::vec3 up = {0, 1, 0};
 
   float deltaTime = 1.0f / ImGui::GetIO().Framerate;
 
-  static float xpos = 0;
-  static float ypos = 0;
+  const auto pos = ImGui::GetMousePos();
 
-  if (!showCursor) {
-    auto pos = ImGui::GetMousePos();
-
-    xpos = pos.x;
-    ypos = pos.y;
+  const float x_delta = pos.x - xPrev;
+  const float y_delta = pos.y - yPrev;
+  xPrev = pos.x;
+  yPrev = pos.y;
+  ImGui::Text("Mouse position: %f %f. Last: %f %f. Delta: %f %f", pos.x, pos.y,
+              xPrev, yPrev, x_delta, y_delta);
+  const float horiz_delta = mouseSpeed * deltaTime * -x_delta * .1;
+  const float vert_delta = mouseSpeed * deltaTime * -y_delta * .1;
+#ifdef BUILD_DEBUG
+  ImGui::Text("Horiz delta: %f (%f). Vert delta: %f (%f)", horiz_delta,
+              horiz_delta * 180.0f / 3.1415f, vert_delta,
+              vert_delta * 180.0f / 3.1415f);
+  ImGui::Text("Horiz %f (%f degrees), Vert %f (%f degrees)", horizontalAngle,
+              glm::degrees(horizontalAngle), verticalAngle,
+              glm::degrees(verticalAngle));
+#endif
+  // Not sure why this happens
+  if (std::abs(horizontalAngle) > 100000.0f) horizontalAngle = 0.0f;
+  if (std::abs(verticalAngle) > 100000.0f) verticalAngle = 0.0f;
+#ifdef BUILD_DEBUG
+  ImGui::Text("Horiz %f (%f degrees), Vert %f (%f degrees)", horizontalAngle,
+	  glm::degrees(horizontalAngle), verticalAngle,
+	  glm::degrees(verticalAngle));
+#endif
+  if (!showCursor)
+  {
+    horizontalAngle += horiz_delta;
+    verticalAngle += vert_delta;
   }
-  horizontalAngle += mouseSpeed * deltaTime * float(width - xpos);
-  verticalAngle += mouseSpeed * deltaTime * float(height - ypos);
 
+  ImGui::Text("Horiz %f (%f degrees), Vert %f (%f degrees)", horizontalAngle,
+	  glm::degrees(horizontalAngle), verticalAngle,
+	  glm::degrees(verticalAngle));
   // Direction : Spherical coordinates to Cartesian coordinates conversion
   direction =
       glm::vec3(cos(verticalAngle) * sin(horizontalAngle), sin(verticalAngle),
