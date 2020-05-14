@@ -142,7 +142,7 @@ enum class RenderCommand {
 static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
   const auto start = reader.tell();
 
-  reader.expectMagic<'MDL0', false>();
+  reader.expectMagic<'MDL0', true>();
 
   const u32 fileSize = reader.read<u32>();
   (void)fileSize;
@@ -645,7 +645,7 @@ static void readTexture(kpi::NodeAccessor<Texture>& tex,
 
   auto& data = tex.get();
 
-  reader.expectMagic<'TEX0', false>();
+  reader.expectMagic<'TEX0', true>();
   reader.read<u32>(); // size
   const u32 revision = reader.read<u32>();
   assert(revision == 1 || revision == 3);
