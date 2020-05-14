@@ -1,14 +1,11 @@
 #pragma once
 
 #include <core/common.h>
-
 #include <core/3d/i3dmodel.hpp>
-
 #include <memory>
-
 #include <glm/mat4x4.hpp>
-
 #include <core/kpi/Node.hpp>
+#include <frontend/editor/renderer/Camera.hpp>
 
 namespace riistudio::frontend {
 
@@ -36,19 +33,14 @@ private:
 
   std::unique_ptr<SceneState> mState;
 
+
+  Camera mCamera;
+
   // Mouse
   float mouseSpeed = 0.02f;
   // Input
   bool inCtrl = false;
   int combo_choice_cam = 0;
-  // Camera settings
-  float speed = 0.0f;
-  float cmin = 1.0f;
-  float cmax = 50000.f;
-  float fov = 90.0f;
-  // Camera state
-  glm::vec3 eye{0.0f, 0.0f, 0.0f};
-  glm::vec3 direction;
   // Render settings
   bool rend = true;
   bool wireframe = false;
