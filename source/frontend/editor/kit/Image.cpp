@@ -47,7 +47,8 @@ void ImagePreview::draw(float wd, float ht) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  ImGui::SliderInt("LOD", &mLod, 0, mNumMipMaps);
+  if (mNumMipMaps > 0)
+    ImGui::SliderInt("LOD", &mLod, 0, mNumMipMaps);
 
   u32 w = width;
   u32 h = height;
