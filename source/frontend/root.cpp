@@ -392,7 +392,7 @@ Pushed to Next Alpha:
 
   drawChildren();
 
-  if (bThemeEditor && ImGui::Begin("Theme Editor", &bThemeEditor)) {
+  if (bThemeEditor && ImGui::Begin("Theme Editor", &bThemeEditor, ImGuiWindowFlags_AlwaysAutoResize)) {
     int sel = static_cast<int>(mCurTheme);
     ImGui::Combo("Theme", &sel, ThemeManager::ThemeNames);
     mCurTheme = static_cast<ThemeManager::BasicTheme>(sel);
