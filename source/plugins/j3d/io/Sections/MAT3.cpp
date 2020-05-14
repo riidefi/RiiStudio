@@ -141,8 +141,6 @@ void readMatEntry(Material& mat, MatLoader& loader,
   mat.flag = reader.read<u8>();
   mat.cullMode =
       loader.indexed<u8>(MatSec::CullModeInfo).as<gx::CullMode, u32>();
-  // TODO:
-  mat.cullMode = libcube::gx::CullMode::Back;
   mat.info.nColorChan = loader.indexed<u8>(MatSec::NumColorChannels).raw();
   mat.info.nTexGen = loader.indexed<u8>(MatSec::NumTexGens).raw();
   mat.info.nTevStage = loader.indexed<u8>(MatSec::NumTevStages).raw();
