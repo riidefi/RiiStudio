@@ -147,11 +147,11 @@ struct DataMesh : public kpi::DataMesh {
     while (!mToInsert.empty()) {
       const auto& cmd = mToInsert.front();
 
-      // Always ensure the data mesh is in sync with the rest
-      if (mClasses.find(std::string(cmd.base)) == mClasses.end()) {
-        printf("Warning: Type %s references undefined parent %s.\n",
-               cmd.derived.data(), cmd.base.data());
-      }
+	  // Data mesh and type database are now independent..
+      // if (mClasses.find(std::string(cmd.base)) == mClasses.end()) {
+      //   printf("Warning: Type %s references undefined parent %s.\n",
+      //          cmd.derived.data(), cmd.base.data());
+      // }
       //           else
       {
         mClasses[std::string(cmd.base)].derived = cmd.base;

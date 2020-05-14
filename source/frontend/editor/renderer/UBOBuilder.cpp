@@ -73,7 +73,8 @@ void DelegatedUBOBuilder::use(u32 idx) {
   };
   for (int i = 0; i < mData.size(); ++i) {
     const auto& ofs = mCoalescedOffsets[i];
-	if (ofs.second * (mData[i].size() - idx) == 0) continue;
+    if (ofs.second * (mData[i].size() - idx) == 0)
+      continue;
     assert(ofs.first + ofs.second * idx < mCoalesced.size());
     bindBufferRange(GL_UNIFORM_BUFFER, i, getUboId(),
                     ofs.first + ofs.second * idx,
@@ -140,8 +141,10 @@ void VBOBuilder::build() {
   auto vertexAttribPointer = [&](GLuint index, GLint size, GLenum type,
                                  GLboolean normalized, GLsizei stride,
                                  const void* pointer) {
+#ifdef BUILD_DEBUG
     printf("Index: %u, size: %i, stride: %i, ofs: %u\n", index, size, stride,
            (u32)pointer);
+#endif
 
     assert(stride != 0);
 
