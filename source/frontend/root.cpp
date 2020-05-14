@@ -514,8 +514,8 @@ RootWindow::RootWindow()
   //	lib3d::install();
   libcube::Install();
   j3d::Install(*kpi::ApplicationPlugins::getInstance());
-#ifndef BUILD_DIST
   g3d::Install();
+#ifndef BUILD_DIST
   pik::Install(*kpi::ApplicationPlugins::getInstance());
 #endif
   ass::Install();
