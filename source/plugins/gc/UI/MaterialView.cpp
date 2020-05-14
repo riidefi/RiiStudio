@@ -551,171 +551,153 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   ImGui::EndColumns();
 #endif
 }
+
+const char* colorOpt =
+    "Register 3 Color\0Register 3 Alpha\0Register 0 "
+    "Color\0Register 0 Alpha\0Register 1 Color\0Register 1 "
+    "Alpha\0Register 2 Color\0Register 2 Alpha\0Texture "
+    "Color\0Texture Alpha\0Raster Color\0Raster Alpha\0 1.0\0 "
+    "0.5\0 Constant Color Selection\0 0.0\0";
+const char* alphaOpt = "Register 3 Alpha\0Register 0 Alpha\0Register 1 "
+                       "Alpha\0Register 2 Alpha\0Texture Alpha\0Raster "
+                       "Alpha\0Constant Alpha Selection\0 0.0\0";
+
+namespace tev {
+// Hack: The view needs to be stateful..
+static riistudio::frontend::ImagePreview mImg; // In mat sampler
+static std::string mLastImg;
+} // namespace tev
+
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
   auto& matData = delegate.getActive().getMaterialData();
 
-#ifdef BUILD_DIST
-  ImGui::Text("WIP");
-#endif
+  // TEV-ADD form only
+  auto drawSubStage = [&](const auto& stage, const char* opt, auto get_from) {
+    int a = static_cast<int>(stage.a);
+    int b = static_cast<int>(stage.b);
+    int c = static_cast<int>(stage.c);
+    int d = static_cast<int>(stage.d);
+    bool clamp = stage.clamp;
+    int dst = static_cast<int>(stage.out);
 
-  // Hack: The view needs to be stateful..
-  static riistudio::frontend::ImagePreview mImg; // In mat sampler
-  static std::string mLastImg;
+#if 0
+	ImGui::PushItemWidth(200);
+	ImGui::Text("[");
+	ImGui::SameLine();
+	ImGui::Combo("##D", &d, colorOpt);
+	ImGui::SameLine();
+	ImGui::Text("{(1 - ");
+	{
+		riistudio::util::ConditionalActive g(false);
+		ImGui::SameLine();
+		ImGui::Combo("##C_", &c, colorOpt);
+	}
+	ImGui::SameLine();
+	ImGui::Text(") * ");
+	ImGui::SameLine();
+	ImGui::Combo("##A", &a, colorOpt);
+
+	ImGui::SameLine();
+	ImGui::Text(" + ");
+	ImGui::SameLine();
+	ImGui::Combo("##C", &c, colorOpt);
+	ImGui::SameLine();
+	ImGui::Text(" * ");
+	ImGui::SameLine();
+	ImGui::Combo("##B", &b, colorOpt);
+	ImGui::SameLine();
+	ImGui::Text(" } ");
+#endif
+    ImGui::Combo("Operand A", &a, opt);
+    ImGui::Combo("Operand B", &b, opt);
+    ImGui::Combo("Operand C", &c, opt);
+    ImGui::Combo("Operand D", &d, opt);
+
+#define TEV_PROP(a, b)                                                         \
+  delegate.property(                                                           \
+      get_from(delegate.getActive().getMaterialData()).a, b,                   \
+      [&](const auto& x) { return get_from(x).a; },                            \
+      [&](auto& x, const auto& y) { get_from(x).a = y; })
+
+    // TEV_PROP(a, static_cast<libcube::gx::TevColorArg>(a));
+    // TEV_PROP(b, static_cast<libcube::gx::TevColorArg>(b));
+    // TEV_PROP(c, static_cast<libcube::gx::TevColorArg>(c));
+    // TEV_PROP(d, static_cast<libcube::gx::TevColorArg>(d));
+
+    // ImGui::SameLine();
+    // ImGui::Combo("##Bias", &bias, "+ 0.0\0+")
+
+    ImGui::Checkbox("Clamp calculation to 0-255", &clamp);
+    ImGui::Combo("Calculation Result Output Destionation", &dst,
+                 "Register 3\0Register 0\0Register 1\0Register 2\0");
+#if 0
+    ImGui::PopItemWidth();
+#endif
+  };
+
+  auto drawStage = [&](libcube::gx::TevStage& stage, int i) {
+#define STAGE_PROP(a, b) AUTO_PROP(shader.mStages[i].a, b)
+    if (ImGui::CollapsingHeader("Stage Setting",
+                                ImGuiTreeNodeFlags_DefaultOpen)) {
+      // RasColor
+      // TODO: Better selection here
+      int texid = stage.texMap;
+      ImGui::InputInt("TexId", &texid);
+      STAGE_PROP(texMap, (u8)texid);
+      STAGE_PROP(texCoord, (u8)texid);
+
+      if (stage.texCoord != stage.texMap) {
+        ImGui::Text("TODO: TexCoord != TexMap: Not valid");
+      }
+      if (stage.texCoord >= matData.texGens.size()) {
+        ImGui::Text("No valid image.");
+      } else {
+        const riistudio::lib3d::Texture* curImg = nullptr;
+
+        const auto* mImgs = delegate.getActive().getTextureSource();
+        for (std::size_t j = 0; j < mImgs->size(); ++j) {
+          auto& it = mImgs->at<riistudio::lib3d::Texture>(j);
+          if (it.getName() == matData.samplers[stage.texMap]->mTexture) {
+            curImg = &it;
+          }
+        }
+        if (matData.samplers[stage.texCoord]->mTexture != tev::mLastImg) {
+          tev::mImg.setFromImage(*curImg);
+          tev::mLastImg = curImg->getName();
+        }
+        tev::mImg.draw(128.0f * (static_cast<f32>(curImg->getWidth()) /
+                                 static_cast<f32>(curImg->getHeight())),
+                       128.0f);
+      }
+    }
+    if (ImGui::CollapsingHeader("Color Stage",
+                                ImGuiTreeNodeFlags_DefaultOpen)) {
+      // TODO: Only add for now..
+      if (stage.colorStage.formula == libcube::gx::TevColorOp::add) {
+        drawSubStage(stage.colorStage, colorOpt,
+                     [i](const libcube::GCMaterialData& data) {
+                       return data.shader.mStages[i].colorStage;
+                     });
+      }
+    }
+	if (ImGui::CollapsingHeader("Alpha Stage",
+		ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
+			drawSubStage(stage.alphaStage, alphaOpt,
+				[i](const libcube::GCMaterialData& data) {
+					return data.shader.mStages[i].alphaStage;
+				});
+		}
+	}
+  };
+
   if (ImGui::BeginTabBar("Stages")) {
     for (std::size_t i = 0; i < matData.shader.mStages.size(); ++i) {
       auto& stage = matData.shader.mStages[i];
 
       if (ImGui::BeginTabItem(
               (std::string("Stage ") + std::to_string(i)).c_str())) {
-        if (ImGui::CollapsingHeader("Stage Setting",
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          // RasColor
-          // TODO: Better selection here
-          int texid = stage.texMap;
-          ImGui::InputInt("TexId", &texid);
-          AUTO_PROP(shader.mStages[i].texMap, (u8)texid);
-          AUTO_PROP(shader.mStages[i].texCoord, (u8)texid);
-
-          if (stage.texCoord != stage.texMap) {
-            ImGui::Text("TODO: TexCoord != TexMap: Not valid");
-          }
-          if (stage.texCoord >= matData.texGens.size()) {
-            ImGui::Text("No valid image.");
-          } else {
-            const riistudio::lib3d::Texture* curImg = nullptr;
-
-            const auto* mImgs = delegate.getActive().getTextureSource();
-            for (std::size_t j = 0; j < mImgs->size(); ++j) {
-              auto& it = mImgs->at<riistudio::lib3d::Texture>(j);
-              if (it.getName() == matData.samplers[stage.texMap]->mTexture) {
-                curImg = &it;
-              }
-            }
-            if (matData.samplers[stage.texCoord]->mTexture != mLastImg) {
-              mImg.setFromImage(*curImg);
-              mLastImg = curImg->getName();
-            }
-            mImg.draw(128.0f * (static_cast<f32>(curImg->getWidth()) /
-                                static_cast<f32>(curImg->getHeight())),
-                      128.0f);
-          }
-        }
-        if (ImGui::CollapsingHeader("Color Stage",
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          // TODO: Only add for now..
-          if (stage.colorStage.formula == libcube::gx::TevColorOp::add) {
-            ImGui::PushItemWidth(200);
-            ImGui::Text("[");
-            ImGui::SameLine();
-            int a = static_cast<int>(stage.colorStage.a);
-            int b = static_cast<int>(stage.colorStage.b);
-            int c = static_cast<int>(stage.colorStage.c);
-            int d = static_cast<int>(stage.colorStage.d);
-            bool clamp = stage.colorStage.clamp;
-            int dst = static_cast<int>(stage.colorStage.out);
-            const char* colorOpt =
-                "Register 3 Color\0Register 3 Alpha\0Register 0 "
-                "Color\0Register 0 Alpha\0Register 1 Color\0Register 1 "
-                "Alpha\0Register 2 Color\0Register 2 Alpha\0Texture "
-                "Color\0Texture Alpha\0Raster Color\0Raster Alpha\0 1.0\0 "
-                "0.5\0 Constant Color Selection\0 0.0\0";
-            ImGui::Combo("##D", &d, colorOpt);
-            ImGui::SameLine();
-            ImGui::Text("{(1 - ");
-            {
-              riistudio::util::ConditionalActive g(false);
-              ImGui::SameLine();
-              ImGui::Combo("##C_", &c, colorOpt);
-            }
-            ImGui::SameLine();
-            ImGui::Text(") * ");
-            ImGui::SameLine();
-            ImGui::Combo("##A", &a, colorOpt);
-
-            ImGui::SameLine();
-            ImGui::Text(" + ");
-            ImGui::SameLine();
-            ImGui::Combo("##C", &c, colorOpt);
-            ImGui::SameLine();
-            ImGui::Text(" * ");
-            ImGui::SameLine();
-            ImGui::Combo("##B", &b, colorOpt);
-            ImGui::SameLine();
-            ImGui::Text(" } ");
-
-            AUTO_PROP(shader.mStages[i].colorStage.a,
-                      static_cast<libcube::gx::TevColorArg>(a));
-            AUTO_PROP(shader.mStages[i].colorStage.b,
-                      static_cast<libcube::gx::TevColorArg>(b));
-            AUTO_PROP(shader.mStages[i].colorStage.c,
-                      static_cast<libcube::gx::TevColorArg>(c));
-            AUTO_PROP(shader.mStages[i].colorStage.d,
-                      static_cast<libcube::gx::TevColorArg>(d));
-            // ImGui::SameLine();
-            // ImGui::Combo("##Bias", &bias, "+ 0.0\0+")
-
-            ImGui::Checkbox("Clamp calculation to 0-255", &clamp);
-            ImGui::Combo("Calculation Result Output Destionation", &dst,
-                         "Register 3\0Register 0\0Register 1\0Register 2\0");
-            ImGui::PopItemWidth();
-          }
-          if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
-            ImGui::PushItemWidth(200);
-            ImGui::PushID("Alpha");
-            ImGui::Text("[");
-            ImGui::SameLine();
-            int a = static_cast<int>(stage.alphaStage.a);
-            int b = static_cast<int>(stage.alphaStage.b);
-            int c = static_cast<int>(stage.alphaStage.c);
-            int d = static_cast<int>(stage.alphaStage.d);
-            bool clamp = stage.alphaStage.clamp;
-            int dst = static_cast<int>(stage.alphaStage.out);
-            const char* alphaOpt =
-                "Register 3 Alpha\0Register 0 Alpha\0Register 1 "
-                "Alpha\0Register 2 Alpha\0Texture Alpha\0Raster "
-                "Alpha\0Constant Alpha Selection\0 0.0\0";
-            ImGui::Combo("##AD", &d, alphaOpt);
-            ImGui::SameLine();
-            ImGui::Text("{(1 - ");
-            {
-              riistudio::util::ConditionalActive g(false);
-              ImGui::SameLine();
-              ImGui::Combo("##C_", &c, alphaOpt);
-            }
-            ImGui::SameLine();
-            ImGui::Text(") * ");
-            ImGui::SameLine();
-            ImGui::Combo("##AA", &a, alphaOpt);
-
-            ImGui::SameLine();
-            ImGui::Text(" + ");
-            ImGui::SameLine();
-            ImGui::Combo("##AC", &c, alphaOpt);
-            ImGui::SameLine();
-            ImGui::Text(" * ");
-            ImGui::SameLine();
-            ImGui::Combo("##AB", &b, alphaOpt);
-            ImGui::SameLine();
-            ImGui::Text(" } ");
-
-            AUTO_PROP(shader.mStages[i].alphaStage.a,
-                      static_cast<libcube::gx::TevAlphaArg>(a));
-            AUTO_PROP(shader.mStages[i].alphaStage.b,
-                      static_cast<libcube::gx::TevAlphaArg>(b));
-            AUTO_PROP(shader.mStages[i].alphaStage.c,
-                      static_cast<libcube::gx::TevAlphaArg>(c));
-            AUTO_PROP(shader.mStages[i].alphaStage.d,
-                      static_cast<libcube::gx::TevAlphaArg>(d));
-            // ImGui::SameLine();
-            // ImGui::Combo("##Bias", &bias, "+ 0.0\0+")
-
-            ImGui::Checkbox("AClamp calculation to 0-255", &clamp);
-            ImGui::Combo("ACalculation Result Output Destionation", &dst,
-                         "Register 3\0Register 0\0Register 1\0Register 2");
-            ImGui::PopID();
-            ImGui::PopItemWidth();
-          }
-        }
+        drawStage(stage, i);
         ImGui::EndTabItem();
       }
     }
