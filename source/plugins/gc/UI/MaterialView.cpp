@@ -110,8 +110,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 }
 
 #define AUTO_PROP(before, after)                                               \
-  KPI_PROPERTY(delegate, delegate.getActive().getMaterialData().before,      \
-               after, getMaterialData().before)
+  KPI_PROPERTY(delegate, delegate.getActive().getMaterialData().before, after, \
+               getMaterialData().before)
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
   libcube::gx::ColorF32 clr;
   auto& matData = delegate.getActive().getMaterialData();
@@ -235,11 +235,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                     "Function", &basefunc,
                     "Standard Texture Matrix\0Bump Mapping: Use vertex "
                     "lighting calculation result.\0SRTG: Map R(ed) and G(reen) "
-                    "components of a color channel to U/V coordinates");
+                    "components of a color channel to U/V coordinates\0");
                 {
                   riistudio::util::ConditionalActive g(basefunc == 0);
                   ImGui::Combo("Matrix Size", &mtxtype,
-                               "UV Matrix: 2x4\0UVW Matrix: 3x4");
+                               "UV Matrix: 2x4\0UVW Matrix: 3x4\0");
                   bool identitymatrix =
                       tg.matrix == libcube::gx::TexMatrix::Identity;
                   int texmatrixid = 0;
@@ -297,7 +297,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                     "Position\0Normal\0Binormal\0Tangent\0UV 0\0UV 1\0UV 2\0UV "
                     "3\0UV 4\0UV 5\0UV 6\0UV 7\0Bump UV0\0Bump UV1\0Bump "
                     "UV2\0Bump UV3\0Bump UV4\0Bump UV5\0Bump UV6\0Color "
-                    "Channel 0\0Color Channel 1");
+                    "Channel 0\0Color Channel 1\0");
                 AUTO_PROP(texGens[i].sourceParam,
                           static_cast<libcube::gx::TexGenSrc>(src));
               }
@@ -306,7 +306,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 // TODO: Effect matrix
                 int xfmodel = static_cast<int>(tm->transformModel);
                 ImGui::Combo("Transform Model", &xfmodel,
-                             " Default\0 Maya\0 3DS Max\0 Softimage XSI");
+                             " Default\0 Maya\0 3DS Max\0 Softimage XSI\0");
                 AUTO_PROP(
                     texMatrices[i]->transformModel,
                     static_cast<libcube::GCMaterialData::CommonTransformModel>(
@@ -347,7 +347,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                              "Standard Mapping\0Environment Mapping\0View "
                              "Projection Mapping\0Manual Projection "
                              "Mapping\0Environment Light Mapping\0Environment "
-                             "Specular Mapping\0Manual Environment Mapping");
+                             "Specular Mapping\0Manual Environment Mapping\0");
                 libcube::GCMaterialData::CommonMappingMethod newMapMethod =
                     libcube::GCMaterialData::CommonMappingMethod::Standard;
                 using cmm = libcube::GCMaterialData::CommonMappingMethod;
@@ -406,9 +406,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         }
         if (ImGui::CollapsingHeader("Tiling", ImGuiTreeNodeFlags_DefaultOpen)) {
           int sTile = static_cast<int>(samp->mWrapU);
-          ImGui::Combo("U tiling", &sTile, "Clamp\0Repeat\0Mirror");
+          ImGui::Combo("U tiling", &sTile, "Clamp\0Repeat\0Mirror\0");
           int tTile = static_cast<int>(samp->mWrapV);
-          ImGui::Combo("V tiling", &tTile, "Clamp\0Repeat\0Mirror");
+          ImGui::Combo("V tiling", &tTile, "Clamp\0Repeat\0Mirror\0");
           AUTO_PROP(samplers[i]->mWrapU,
                     static_cast<libcube::gx::TextureWrapMode>(sTile));
           AUTO_PROP(samplers[i]->mWrapV,
@@ -448,7 +448,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           }
 
           const char* linNear = "Nearest (no interpolation/pixelated)\0Linear "
-                                "(interpolated/blurry)";
+                                "(interpolated/blurry)\0";
 
           ImGui::Combo("Interpolation when scaled up", &magBase, linNear);
           AUTO_PROP(samplers[i]->mMagFilter,
@@ -618,7 +618,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
                 "Color\0Register 0 Alpha\0Register 1 Color\0Register 1 "
                 "Alpha\0Register 2 Color\0Register 2 Alpha\0Texture "
                 "Color\0Texture Alpha\0Raster Color\0Raster Alpha\0 1.0\0 "
-                "0.5\0 Constant Color Selection\0 0.0";
+                "0.5\0 Constant Color Selection\0 0.0\0";
             ImGui::Combo("##D", &d, colorOpt);
             ImGui::SameLine();
             ImGui::Text("{(1 - ");
@@ -656,7 +656,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
 
             ImGui::Checkbox("Clamp calculation to 0-255", &clamp);
             ImGui::Combo("Calculation Result Output Destionation", &dst,
-                         "Register 3\0Register 0\0Register 1\0Register 2");
+                         "Register 3\0Register 0\0Register 1\0Register 2\0");
             ImGui::PopItemWidth();
           }
           if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
@@ -797,7 +797,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
       ImGui::Combo("Condition", &zcond,
                    "Never draw.\0Pixel Z < EFB Z\0Pixel Z == EFB Z\0Pixel Z <= "
                    "EFB Z\0Pixel Z > EFB Z\0Pixel Z != EFB Z\0Pixel Z >= EFB "
-                   "Z\0 Always draw.");
+                   "Z\0 Always draw.\0");
       AUTO_PROP(zMode.function, static_cast<libcube::gx::Comparison>(zcond));
 
       ImGui::Unindent(30.0f);
@@ -808,7 +808,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
     int btype = static_cast<int>(matData.blendMode.type);
     ImGui::Combo("Type", &btype,
                  "Do not blend.\0Blending\0Logical Operations\0Subtract from "
-                 "Frame Buffer");
+                 "Frame Buffer\0");
     AUTO_PROP(blendMode.type, static_cast<libcube::gx::BlendModeType>(btype));
 
     {
@@ -819,10 +819,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
 
       const char* blendOpts =
           " 0\0 1\0 EFB Color\0 1 - EFB Color\0 Pixel Alpha\0 1 - Pixel "
-          "Alpha\0 EFB Alpha\0 1 - EFB Alpha";
+          "Alpha\0 EFB Alpha\0 1 - EFB Alpha\0";
       const char* blendOptsDst =
           " 0\0 1\0 Pixel Color\0 1 - Pixel Color\0 Pixel Alpha\0 1 - Pixel "
-          "Alpha\0 EFB Alpha\0 1 - EFB Alpha";
+          "Alpha\0 EFB Alpha\0 1 - EFB Alpha\0";
       ImGui::Text("( Pixel Color * ");
 
       int srcFact = static_cast<int>(matData.blendMode.source);

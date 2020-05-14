@@ -70,7 +70,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
       ImGui::EndMenu();
     }
     static int combo_choice = 0;
-    ImGui::Combo("Shading", &combo_choice, "Emulated Shaders\0Normals\0TODO");
+    ImGui::Combo("Shading", &combo_choice, "Emulated Shaders\0Normals\0TODO\0");
 
     ImGui::Combo("Controls", &combo_choice_cam, "WASD // FPS\0WASD // Plane\0");
 
