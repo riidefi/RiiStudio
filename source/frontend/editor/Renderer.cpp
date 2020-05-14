@@ -116,45 +116,36 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
 
 #ifdef RII_BACKEND_GLFW
   if (ImGui::IsKeyDown('W'))
+    key_w = true;
+  if (ImGui::IsKeyDown('A'))
+    key_a = true;
+  if (ImGui::IsKeyDown('S'))
+    key_s = true;
+  if (ImGui::IsKeyDown('D'))
+    key_d = true;
+  if ((ImGui::IsKeyDown(' ') && combo_choice_cam == 0) || ImGui::IsKeyDown('E'))
+    key_up = true;
+  if ((ImGui::IsKeyDown(340) && combo_choice_cam == 0) ||
+      ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
+    key_down = true;
 #else
   const Uint8* keys = SDL_GetKeyboardState(NULL);
 
   if (keys[SDL_SCANCODE_W])
-#endif
     key_w = true;
-#ifdef RII_BACKEND_GLFW
-  if (ImGui::IsKeyDown('S'))
-#else
-  if (keys[SDL_SCANCODE_S])
-#endif
-    key_s = true;
-#ifdef RII_BACKEND_GLFW
-  if (ImGui::IsKeyDown('A'))
-#else
   if (keys[SDL_SCANCODE_A])
-#endif
-    key_d = true;
-#ifdef RII_BACKEND_GLFW
-  if (ImGui::IsKeyDown('D'))
-#else
+    key_a = true;
+  if (keys[SDL_SCANCODE_S])
+    key_s = true;
   if (keys[SDL_SCANCODE_D])
-#endif
     key_d = true;
-#ifdef RII_BACKEND_GLFW
-  if ((ImGui::IsKeyDown(' ') && combo_choice_cam == 0) || ImGui::IsKeyDown('E'))
-#else
   if ((keys[SDL_SCANCODE_SPACE] && combo_choice_cam == 0) ||
       keys[SDL_SCANCODE_E])
-#endif
     key_up = true;
-#ifdef RII_BACKEND_GLFW
-  if ((ImGui::IsKeyDown(340) && combo_choice_cam == 0) ||
-      ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
-#else
   if ((keys[SDL_SCANCODE_LSHIFT] && combo_choice_cam == 0) ||
       keys[SDL_SCANCODE_Q])
-#endif
     key_down = true;
+#endif
 
   glm::mat4 projMtx, viewMtx;
   mCamera.calc(showCursor, mouseSpeed, combo_choice_cam, width, height, projMtx,
