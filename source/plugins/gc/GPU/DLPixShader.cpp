@@ -107,6 +107,8 @@ void QDisplayListShaderHandler::onCommandBP(const QBPCommand& token) {
     mGpuShader.mMask = 0xffffffff;
 }
 void QDisplayListShaderHandler::onStreamEnd() {
+  bool corrupt = false;
+
   // four swap tables and indirect stages
   for (int i = 0; i < 4; i++) {
     mShader.mSwapTable[i].r =
@@ -213,10 +215,12 @@ void QDisplayListShaderHandler::onStreamEnd() {
     }
     // IND_CMD
     {
-      assert("Corrupted shader data. Have you saved this file in unstable "
-             "software?" &&
-             mGpuShader.isDefinedIndCmd(i));
-      const auto& iCmd = mGpuShader.indCmd[i];
+      int j = i;
+      if (!mGpuShader.isDefinedIndCmd(i)) {
+        j >>= 1;
+        corrupt = true;
+      }
+      const auto& iCmd = mGpuShader.indCmd[j];
       auto& dst = stage.indirectStage;
 
       dst.indStageSel = iCmd.bt.Value();
@@ -229,6 +233,10 @@ void QDisplayListShaderHandler::onStreamEnd() {
       dst.utcLod = iCmd.lb_utclod.Value();
       dst.alpha = (gx::IndTexAlphaSel)iCmd.bs.Value();
     }
+  }
+
+  if (corrupt) {
+    // throw std::runtime_error("Corrupt model data");
   }
 }
 
