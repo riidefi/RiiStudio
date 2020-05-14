@@ -24,8 +24,8 @@ void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
   yPrev = pos.y;
   ImGui::Text("Mouse position: %f %f. Last: %f %f. Delta: %f %f", pos.x, pos.y,
               xPrev, yPrev, x_delta, y_delta);
-  const float horiz_delta = mouseSpeed * deltaTime * -x_delta * .1;
-  const float vert_delta = mouseSpeed * deltaTime * -y_delta * .1;
+  const float horiz_delta = mouseSpeed * deltaTime * -x_delta;
+  const float vert_delta = mouseSpeed * deltaTime * -y_delta;
 #ifdef BUILD_DEBUG
   ImGui::Text("Horiz delta: %f (%f). Vert delta: %f (%f)", horiz_delta,
               horiz_delta * 180.0f / 3.1415f, vert_delta,
