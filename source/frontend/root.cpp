@@ -57,7 +57,8 @@ void RootWindow::draw() {
   if (mChildren.empty()) {
     ImGui::Text("Drop a file to edit.");
   }
-  ImGui::Text("Note: For this early alpha, file saving is temporarily disabled.");
+  ImGui::Text(
+      "Note: For this early alpha, file saving is temporarily disabled.");
   ImGui::SetWindowFontScale(1.);
   dockspace_id = ImGui::GetID("DockSpaceWidget");
 
@@ -351,39 +352,26 @@ void RootWindow::draw() {
   }
 
   // ImGui::ShowDemoWindow();
-  if (mShowChangeLog && ImGui::Begin("Changelog", &mShowChangeLog, ImGuiWindowFlags_AlwaysAutoResize)) {
+  if (mShowChangeLog && ImGui::Begin("Changelog", &mShowChangeLog,
+                                     ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::SetWindowFontScale(1.3);
-    ImGui::Text("RiiStudio: Alpha 1");
+    ImGui::Text("RiiStudio: 1.1 Pre-Release");
     const std::string& markdownText = u8R"(
-Features:
-  * Accurate model previewing, including rigged meshes.
-  * Importing/Exporting of images.
-  * Editing of texture (BTI) properties.
-  * Ergonomic editors for a variety of BMD data:
-    * Materials (WIP)
-    * Textures
-    * Bones
-    * etc.
-Planned Features:
-  * Rebuilding of BDL files. At the moment, they can be read, but will be saved as BMD.
-  * Emulation of lighting. Currently causes undesired behavior in materials that depend on this, especially in games like SMG.
-Work in Progress:
-  * UI
-    * Material editor is WIP and cannot edit everything yet.
-    * Camera controls are a bit awkward.
-  * Rendering
-    * Environment and projection mapping are not quite accurate.
-    * Texture matrix translation is chopped off in some cases.
-    * Uncommon vertex array issues.
-  * Importing/Exporting
-    * Supplying an invalidly large mipmap count will result in degenerate maps that can cause an encoder/decoder crash.
-Pushed to Next Alpha:
-  * FBX IO (Under active development, current state is as follows):
-    * Importing of textures from FBX files only works with absolute paths.
-    * Rigged models do not import correctly.
-    * No support for exporting yet.
-  * BRRES IO:
-    * Currently read-only
+Thanks for all the feedback so far! I'll continue to improve the tool accordingly.
+
+Camera controls have been reworked.
+  * No more stuttering, snapping and other unfriendliness.
+  * Thanks, Yoshi2, for helping with this.
+BRRES files now have experimental support.
+  * Static meshes only.
+  * Corrupted models (notably those authored by the tool BrawlBox) are likely to fail.
+Misc:
+  * BMD: Fixed bug forcing backface culling.
+  * UI: Theme picker is now properly sized.
+  * UI: TEV stage operands now presented nicely. (read-only for now, overhaul soon)
+  * UI: Mip level slider hidden when no mipmaps exist for a texture.
+  * Debug: Decluttered console output.
+  * Various bugfixes and performance improvements.
 )";
     core::Markdown(markdownText);
 
@@ -392,7 +380,8 @@ Pushed to Next Alpha:
 
   drawChildren();
 
-  if (bThemeEditor && ImGui::Begin("Theme Editor", &bThemeEditor, ImGuiWindowFlags_AlwaysAutoResize)) {
+  if (bThemeEditor && ImGui::Begin("Theme Editor", &bThemeEditor,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
     int sel = static_cast<int>(mCurTheme);
     ImGui::Combo("Theme", &sel, ThemeManager::ThemeNames);
     mCurTheme = static_cast<ThemeManager::BasicTheme>(sel);
