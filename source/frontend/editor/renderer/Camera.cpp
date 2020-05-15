@@ -22,8 +22,10 @@ void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
   const float y_delta = pos.y - yPrev;
   xPrev = pos.x;
   yPrev = pos.y;
+#ifdef BUILD_DEBUG
   ImGui::Text("Mouse position: %f %f. Last: %f %f. Delta: %f %f", pos.x, pos.y,
               xPrev, yPrev, x_delta, y_delta);
+#endif
   const float horiz_delta = mouseSpeed * deltaTime * -x_delta;
   const float vert_delta = mouseSpeed * deltaTime * -y_delta;
 #ifdef BUILD_DEBUG
@@ -47,10 +49,11 @@ void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
     horizontalAngle += horiz_delta;
     verticalAngle += vert_delta;
   }
-
+#ifdef BUILD_DEBUG
   ImGui::Text("Horiz %f (%f degrees), Vert %f (%f degrees)", horizontalAngle,
 	  glm::degrees(horizontalAngle), verticalAngle,
 	  glm::degrees(verticalAngle));
+#endif
   // Direction : Spherical coordinates to Cartesian coordinates conversion
   direction =
       glm::vec3(cos(verticalAngle) * sin(horizontalAngle), sin(verticalAngle),
