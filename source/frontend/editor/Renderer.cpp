@@ -114,38 +114,41 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
   bool key_w = false, key_s = false, key_a = false, key_d = false,
        key_up = false, key_down = false;
 
+  if (ImGui::IsWindowFocused()) {
 #ifdef RII_BACKEND_GLFW
-  if (ImGui::IsKeyDown('W'))
-    key_w = true;
-  if (ImGui::IsKeyDown('A'))
-    key_a = true;
-  if (ImGui::IsKeyDown('S'))
-    key_s = true;
-  if (ImGui::IsKeyDown('D'))
-    key_d = true;
-  if ((ImGui::IsKeyDown(' ') && combo_choice_cam == 0) || ImGui::IsKeyDown('E'))
-    key_up = true;
-  if ((ImGui::IsKeyDown(340) && combo_choice_cam == 0) ||
-      ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
-    key_down = true;
+    if (ImGui::IsKeyDown('W'))
+      key_w = true;
+    if (ImGui::IsKeyDown('A'))
+      key_a = true;
+    if (ImGui::IsKeyDown('S'))
+      key_s = true;
+    if (ImGui::IsKeyDown('D'))
+      key_d = true;
+    if ((ImGui::IsKeyDown(' ') && combo_choice_cam == 0) ||
+        ImGui::IsKeyDown('E'))
+      key_up = true;
+    if ((ImGui::IsKeyDown(340) && combo_choice_cam == 0) ||
+        ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
+      key_down = true;
 #else
-  const Uint8* keys = SDL_GetKeyboardState(NULL);
+    const Uint8* keys = SDL_GetKeyboardState(NULL);
 
-  if (keys[SDL_SCANCODE_W])
-    key_w = true;
-  if (keys[SDL_SCANCODE_A])
-    key_a = true;
-  if (keys[SDL_SCANCODE_S])
-    key_s = true;
-  if (keys[SDL_SCANCODE_D])
-    key_d = true;
-  if ((keys[SDL_SCANCODE_SPACE] && combo_choice_cam == 0) ||
-      keys[SDL_SCANCODE_E])
-    key_up = true;
-  if ((keys[SDL_SCANCODE_LSHIFT] && combo_choice_cam == 0) ||
-      keys[SDL_SCANCODE_Q])
-    key_down = true;
+    if (keys[SDL_SCANCODE_W])
+      key_w = true;
+    if (keys[SDL_SCANCODE_A])
+      key_a = true;
+    if (keys[SDL_SCANCODE_S])
+      key_s = true;
+    if (keys[SDL_SCANCODE_D])
+      key_d = true;
+    if ((keys[SDL_SCANCODE_SPACE] && combo_choice_cam == 0) ||
+        keys[SDL_SCANCODE_E])
+      key_up = true;
+    if ((keys[SDL_SCANCODE_LSHIFT] && combo_choice_cam == 0) ||
+        keys[SDL_SCANCODE_Q])
+      key_down = true;
 #endif
+  }
 
   glm::mat4 projMtx, viewMtx;
   mCamera.calc(showCursor, mouseSpeed, combo_choice_cam, width, height, projMtx,
