@@ -38,17 +38,12 @@ void ImagePreview::draw(float wd, float ht) {
     return;
   }
 
-  ImGui::SliderFloat("Scale", &mScale, 0.0f, 10.0f);
-
   glBindTexture(GL_TEXTURE_2D, mGpuTexId);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  if (mNumMipMaps > 0)
-    ImGui::SliderInt("LOD", &mLod, 0, mNumMipMaps);
 
   u32 w = width;
   u32 h = height;
@@ -67,5 +62,13 @@ void ImagePreview::draw(float wd, float ht) {
   ImGui::Image(
       (void*)(intptr_t)mGpuTexId,
       ImVec2((wd > 0 ? wd : width) * mScale, (ht > 0 ? ht : height) * mScale));
+
+  if (ImGui::BeginPopupContextWindow()) {
+    ImGui::SliderFloat("Image Preview Scale", &mScale, 0.0f, 10.0f);
+    ImGui::EndPopup();
+  }
+
+  if (mNumMipMaps > 0)
+    ImGui::SliderInt("LOD", &mLod, 0, mNumMipMaps);
 }
 } // namespace riistudio::frontend

@@ -680,15 +680,15 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
                      });
       }
     }
-	if (ImGui::CollapsingHeader("Alpha Stage",
-		ImGuiTreeNodeFlags_DefaultOpen)) {
-		if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
-			drawSubStage(stage.alphaStage, alphaOpt,
-				[i](const libcube::GCMaterialData& data) {
-					return data.shader.mStages[i].alphaStage;
-				});
-		}
-	}
+    if (ImGui::CollapsingHeader("Alpha Stage",
+                                ImGuiTreeNodeFlags_DefaultOpen)) {
+      if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
+        drawSubStage(stage.alphaStage, alphaOpt,
+                     [i](const libcube::GCMaterialData& data) {
+                       return data.shader.mStages[i].alphaStage;
+                     });
+      }
+    }
   };
 
   if (ImGui::BeginTabBar("Stages")) {
@@ -863,55 +863,55 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
   bool reformatOption = false;
 
   if (ImGui::BeginMenuBar()) {
-    if (ImGui::BeginMenu("Transform")) {
-      if (ImGui::Button(ICON_FA_DRAW_POLYGON " Resize")) {
-        resizeAction = true;
-      }
-      if (ImGui::Button(ICON_FA_DRAW_POLYGON " Change format")) {
-        reformatOption = true;
-      }
-      if (ImGui::Button(ICON_FA_SAVE " Export")) {
-        auto results = pfd::save_file("Export image", "", tex::StdImageFilters);
-        if (!results.result().empty()) {
-          const std::string path = results.result();
-          libcube::STBImage imgType = libcube::STBImage::PNG;
-          if (ends_with(path, ".png")) {
-            imgType = libcube::STBImage::PNG;
-          } else if (ends_with(path, ".bmp")) {
-            imgType = libcube::STBImage::BMP;
-          } else if (ends_with(path, ".tga")) {
-            imgType = libcube::STBImage::TGA;
-          } else if (ends_with(path, ".jpg")) {
-            imgType = libcube::STBImage::JPG;
-          }
-
-          // Only top LOD
-          libcube::writeImageStbRGBA(path.c_str(), imgType, data.getWidth(),
-                                     data.getHeight(),
-                                     tex::mImg.mDecodeBuf.data());
-        }
-      }
-      if (ImGui::Button(ICON_FA_FILE " Import")) {
-        auto result =
-            pfd::open_file("Import image", "", tex::StdImageFilters).result();
-        if (!result.empty()) {
-          const auto path = result[0];
-          int width, height, channels;
-          unsigned char* image = stbi_load(path.c_str(), &width, &height,
-                                           &channels, STBI_rgb_alpha);
-          assert(image);
-          data.setWidth(width);
-          data.setHeight(height);
-          data.setMipmapCount(0);
-          data.resizeData();
-          data.encode(image);
-          stbi_image_free(image);
-          delegate.commit("Import Image");
-          tex::lastTex = nullptr;
-        }
-      }
-      ImGui::EndMenu();
+    // if (ImGui::BeginMenu("Transform")) {
+    if (ImGui::Button(ICON_FA_DRAW_POLYGON " Resize")) {
+      resizeAction = true;
     }
+    if (ImGui::Button(ICON_FA_DRAW_POLYGON " Change format")) {
+      reformatOption = true;
+    }
+    if (ImGui::Button(ICON_FA_SAVE " Export")) {
+      auto results = pfd::save_file("Export image", "", tex::StdImageFilters);
+      if (!results.result().empty()) {
+        const std::string path = results.result();
+        libcube::STBImage imgType = libcube::STBImage::PNG;
+        if (ends_with(path, ".png")) {
+          imgType = libcube::STBImage::PNG;
+        } else if (ends_with(path, ".bmp")) {
+          imgType = libcube::STBImage::BMP;
+        } else if (ends_with(path, ".tga")) {
+          imgType = libcube::STBImage::TGA;
+        } else if (ends_with(path, ".jpg")) {
+          imgType = libcube::STBImage::JPG;
+        }
+
+        // Only top LOD
+        libcube::writeImageStbRGBA(path.c_str(), imgType, data.getWidth(),
+                                   data.getHeight(),
+                                   tex::mImg.mDecodeBuf.data());
+      }
+    }
+    if (ImGui::Button(ICON_FA_FILE " Import")) {
+      auto result =
+          pfd::open_file("Import image", "", tex::StdImageFilters).result();
+      if (!result.empty()) {
+        const auto path = result[0];
+        int width, height, channels;
+        unsigned char* image =
+            stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+        assert(image);
+        data.setWidth(width);
+        data.setHeight(height);
+        data.setMipmapCount(0);
+        data.resizeData();
+        data.encode(image);
+        stbi_image_free(image);
+        delegate.commit("Import Image");
+        tex::lastTex = nullptr;
+      }
+    }
+    // ImGui::EndMenu();
+    // }
     ImGui::EndMenuBar();
   }
 
@@ -1039,6 +1039,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
   }
   tex::mImg.draw();
 
+#ifdef BUILD_DEBUG
   if (ImGui::CollapsingHeader("DEBUG")) {
     int width = data.getWidth();
     ImGui::InputInt("width", &width);
@@ -1047,6 +1048,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
     ImGui::InputInt("Mipmap Count", &mmCnt);
     data.setMipmapCount(mmCnt);
   }
+#endif
 }
 
 struct BoneTransformSurface final {

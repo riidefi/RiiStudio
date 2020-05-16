@@ -358,9 +358,25 @@ struct PropertyEditor : public StudioWindow {
       ImGui::Text("Nothing is selected.");
       return;
     }
-    int mode = static_cast<int>(mMode);
-    ImGui::Combo("Property Mode", &mode, "Tabs\0Headers\0");
-    mMode = static_cast<Mode>(mode);
+
+	const auto draw_tab_widget = [&](bool compact=false) {
+		int mode = static_cast<int>(mMode);
+		if (compact)
+			ImGui::PushItemWidth(75);
+		ImGui::Combo(compact ? "##Property Mode" : "Property Mode", &mode, "Tabs\0Headers\0");
+		if (compact)
+			ImGui::PopItemWidth();
+		mMode = static_cast<Mode>(mode);
+	};
+
+	if (ImGui::BeginPopupContextWindow()) {
+		draw_tab_widget();
+		ImGui::EndPopup();
+	}
+	if (ImGui::BeginMenuBar()) {
+		draw_tab_widget(true);
+		ImGui::EndMenuBar();
+	}
 
     std::vector<kpi::IDocumentNode*> selected;
     for (auto& subfolder : mRoot.children) {
