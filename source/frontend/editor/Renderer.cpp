@@ -162,9 +162,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     mCamera.setSpeed(dist / 10.0f);
   if (mCamera.getSpeed() == 0.0f)
     mCamera.setSpeed(6000.0);
-  // cmin = std::min(std::min(bound.m_minBounds.x, bound.m_minBounds.y),
-  // bound.m_minBounds.z) * 100; cmax = std::max(std::max(bound.m_maxBounds.x,
-  // bound.m_maxBounds.y), bound.m_maxBounds.z) * 100;
+
   if (mCamera.getPosition() == glm::vec3{0.0f}) {
     const auto min = bound.m_minBounds;
     const auto max = bound.m_maxBounds;
@@ -174,6 +172,12 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     eye.y = (min.y + max.y) / 2.0f;
     eye.z = (min.z + max.z) / 2.0f;
     mCamera.setPosition(eye);
+
+    const auto dist = glm::distance(min, max);
+    const auto range = 100000.0f;
+    const auto expansion = 5.0f; // Let's assume the user wants to be at least
+                                 // 5x away from the model.
+    mCamera.setClipPlanes(dist / range * expansion, dist * expansion);
   }
 
   mState->draw();
