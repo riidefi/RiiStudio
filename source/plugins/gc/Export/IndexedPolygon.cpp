@@ -158,6 +158,8 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
     if (!(vcd.mBitfield &
           (1 << (u32)gx::VertexAttribute::PositionNormalMatrixIndex)))
       out.pushData(1, (float)0);
+	if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::TexCoord0)))
+		out.pushData(7, glm::vec2{});
     if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::TexCoord1)))
       out.pushData(8, glm::vec2{});
     if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::Normal)))
