@@ -173,11 +173,13 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     eye.z = (min.z + max.z) / 2.0f;
     mCamera.setPosition(eye);
 
-    const auto dist = glm::distance(min, max);
-    const auto range = 100000.0f;
-    const auto expansion = 5.0f; // Let's assume the user wants to be at least
-                                 // 5x away from the model.
-    mCamera.setClipPlanes(dist / range * expansion, dist * expansion);
+    if (min != max) {
+      const auto dist = glm::distance(min, max);
+      const auto range = 100000.0f;
+      const auto expansion = 5.0f; // Let's assume the user wants to be at least
+                                   // 5x away from the model.
+      mCamera.setClipPlanes(dist / range * expansion, dist * expansion);
+    }
   }
 
   mState->draw();
