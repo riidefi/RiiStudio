@@ -1960,7 +1960,7 @@ function isFileURI(filename) {
 
 
 
-var wasmBinaryFile = 'out.wasm';
+var wasmBinaryFile = 'alpha_1_1_hotfix2.wasm';
 if (!isDataURI(wasmBinaryFile)) {
   wasmBinaryFile = locateFile(wasmBinaryFile);
 }
