@@ -108,6 +108,12 @@ struct GenericCollectionOutliner : public StudioWindow {
 
   void drawFolder(kpi::FolderData& sampler, const kpi::IDocumentNode& host,
                   const std::string& key) noexcept {
+    {
+      const auto rich = kpi::RichNameManager::getInstance().getRich(
+          &sampler.at<kpi::IDocumentNode>(0));
+      if (!rich.hasEntry())
+        return;
+    }
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (!ImGui::TreeNode(formatTitle(sampler, &mFilter).c_str()))
       return;
@@ -138,6 +144,12 @@ struct GenericCollectionOutliner : public StudioWindow {
         continue;
       }
 
+      const auto rich =
+          kpi::RichNameManager::getInstance().getRich(nodeAt.get());
+
+      if (!rich.hasEntry())
+        continue;
+
       filtered.push_back(i);
 
       // Whether or not this node is already selected.
@@ -150,9 +162,6 @@ struct GenericCollectionOutliner : public StudioWindow {
 
       thereWasAClick = ImGui::IsItemClicked();
       bool focused = ImGui::IsItemFocused();
-
-      const auto rich =
-          kpi::RichNameManager::getInstance().getRich(nodeAt.get());
 
       if (ImGui::TreeNodeEx(
               std::to_string(i).c_str(),
@@ -359,24 +368,25 @@ struct PropertyEditor : public StudioWindow {
       return;
     }
 
-	const auto draw_tab_widget = [&](bool compact=false) {
-		int mode = static_cast<int>(mMode);
-		if (compact)
-			ImGui::PushItemWidth(75);
-		ImGui::Combo(compact ? "##Property Mode" : "Property Mode", &mode, "Tabs\0Headers\0");
-		if (compact)
-			ImGui::PopItemWidth();
-		mMode = static_cast<Mode>(mode);
-	};
+    const auto draw_tab_widget = [&](bool compact = false) {
+      int mode = static_cast<int>(mMode);
+      if (compact)
+        ImGui::PushItemWidth(75);
+      ImGui::Combo(compact ? "##Property Mode" : "Property Mode", &mode,
+                   "Tabs\0Headers\0");
+      if (compact)
+        ImGui::PopItemWidth();
+      mMode = static_cast<Mode>(mode);
+    };
 
-	if (ImGui::BeginPopupContextWindow()) {
-		draw_tab_widget();
-		ImGui::EndPopup();
-	}
-	if (ImGui::BeginMenuBar()) {
-		draw_tab_widget(true);
-		ImGui::EndMenuBar();
-	}
+    if (ImGui::BeginPopupContextWindow()) {
+      draw_tab_widget();
+      ImGui::EndPopup();
+    }
+    if (ImGui::BeginMenuBar()) {
+      draw_tab_widget(true);
+      ImGui::EndMenuBar();
+    }
 
     std::vector<kpi::IDocumentNode*> selected;
     for (auto& subfolder : mRoot.children) {

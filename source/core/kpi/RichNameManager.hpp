@@ -73,6 +73,8 @@ public:
       return entry != nullptr ? entry->name.getPlural() : "?";
     }
 
+    bool hasEntry() const { return entry != nullptr; }
+
   private:
     const IEntry* entry = nullptr;
 
