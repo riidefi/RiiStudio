@@ -29,30 +29,33 @@ struct ByteCodeCmd {
     stream.template transfer<ByteCodeOp>(op);
     stream.template transfer<s16>(idx);
 
-    //	DebugReport("Op: %s, Id: %u\n", [](ByteCodeOp o) -> const char* {
-    //		switch (o) {
-    //		case ByteCodeOp::Terminate:
-    //			return "Terminate";
-    //		case ByteCodeOp::Open:
-    //			return "Open";
-    //		case ByteCodeOp::Close:
-    //			return "Close";
-    //		case ByteCodeOp::Joint:
-    //			return "Joint";
-    //		case ByteCodeOp::Material:
-    //			return "Material";
-    //		case ByteCodeOp::Shape:
-    //			return "Shape";
-    //		default:
-    //			return "?";
-    //		}}(op), (u32)idx);
+    DebugReport(
+        "Op: %s, Id: %u\n",
+        [](ByteCodeOp o) -> const char* {
+          switch (o) {
+          case ByteCodeOp::Terminate:
+            return "Terminate";
+          case ByteCodeOp::Open:
+            return "Open";
+          case ByteCodeOp::Close:
+            return "Close";
+          case ByteCodeOp::Joint:
+            return "Joint";
+          case ByteCodeOp::Material:
+            return "Material";
+          case ByteCodeOp::Shape:
+            return "Shape";
+          default:
+            return "?";
+          }
+        }(op),
+        (u32)idx);
   }
 };
 
 void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
   // FIXME: Algorithm can be significantly improved
-
-  u16 mat, joint = 0;
+  u16 mat = 0, joint = 0;
   auto lastType = ByteCodeOp::Unitialized;
 
   std::vector<ByteCodeOp> hierarchy_stack;
@@ -77,12 +80,11 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
       const auto newId = cmd.idx;
 
       if (!joint_stack.empty()) {
-        ctx.mdl.getJoint(ctx.jointIdLut[joint_stack.back()])
+        ctx.mdl.getJoint(joint_stack.back())
             .get()
-            .children.emplace_back(
-                ctx.mdl.getJoint(ctx.jointIdLut[newId]).get().id);
-        ctx.mdl.getJoint(ctx.jointIdLut[newId]).get().parentId =
-            ctx.mdl.getJoint(ctx.jointIdLut[joint_stack.back()]).get().id;
+            .children.emplace_back(ctx.mdl.getJoint(newId).get().id);
+        ctx.mdl.getJoint(newId).get().parentId =
+            ctx.mdl.getJoint(joint_stack.back()).get().id;
       }
       joint = newId;
       break;
@@ -90,12 +92,11 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
     case ByteCodeOp::Material:
       mat = cmd.idx;
       break;
-    case ByteCodeOp::Shape:
-      if (mat < ctx.mdl.getMaterials().size())
-        ctx.mdl.getJoint(ctx.jointIdLut[joint])
-            .get()
-            .displays.emplace_back(ctx.mdl.getMaterial(mat).get().id, cmd.idx);
-      break;
+    case ByteCodeOp::Shape: {
+      assert(mat < ctx.mdl.getMaterials().size());
+      auto& displays = ctx.mdl.getJoint(joint).get().displays;
+      displays.emplace_back(mat, cmd.idx);
+    } break;
     case ByteCodeOp::Unitialized:
     default:
       assert(!"Invalid bytecode op");
