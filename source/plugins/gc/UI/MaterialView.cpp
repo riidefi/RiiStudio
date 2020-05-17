@@ -46,6 +46,9 @@ struct CullMode {
       front = true;
       back = false;
       break;
+    default:
+      throw "Invalid cull mode";
+      break;
     }
   }
   libcube::gx::CullMode get() const noexcept {

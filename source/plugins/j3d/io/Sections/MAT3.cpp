@@ -70,9 +70,9 @@ public:
     return secOfsStart(sec) + idx * stride;
   }
 
-  template <typename T> SecOfsEntry<T> indexed(MatSec sec) {
+  template <typename T, typename U = T> SecOfsEntry<T> indexed(MatSec sec) {
     return SecOfsEntry<T>{reader,
-                          secOfsEntryRaw(sec, reader.read<T>(), sizeof(T))};
+                          secOfsEntryRaw(sec, reader.read<T>(), sizeof(U))};
   }
 
   template <typename T> SecOfsEntry<u8> indexed(MatSec sec, u32 stride) {
@@ -139,8 +139,14 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   assert(reader.tell() % 4 == 0);
   mat.flag = reader.read<u8>();
-  mat.cullMode =
-      loader.indexed<u8>(MatSec::CullModeInfo).as<gx::CullMode, u32>();
+  auto cmx = loader.indexed<u8, u32>(MatSec::CullModeInfo);
+  u32 cullMode = cmx.raw<u32>();
+  if (cullMode > static_cast<u32>(libcube::gx::CullMode::All)) {
+    reader.warnAt("Invalid cull mode (Valid range: [0, 3])", cmx.ofs,
+                  cmx.ofs + 4);
+	cullMode = 0;
+  }
+  mat.cullMode = static_cast<gx::CullMode>(cullMode);
   mat.info.nColorChan = loader.indexed<u8>(MatSec::NumColorChannels).raw();
   mat.info.nTexGen = loader.indexed<u8>(MatSec::NumTexGens).raw();
   mat.info.nTevStage = loader.indexed<u8>(MatSec::NumTevStages).raw();
@@ -189,7 +195,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   {
     dbg.assertSince(0x094);
-	mat.tevKonstColors.nElements = 0;
+    mat.tevKonstColors.nElements = 0;
     loader.indexedContainer<u16>(mat.tevKonstColors, MatSec::TevKonstColors, 4);
     dbg.assertSince(0x09C);
 
@@ -206,7 +212,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
     dbg.assertSince(0x0BC);
     array_vector<TevOrder, 16> tevOrderInfos;
     loader.indexedContainer<u16>(tevOrderInfos, MatSec::TevOrderInfo, 4);
-	mat.tevColors.nElements = 0;
+    mat.tevColors.nElements = 0;
     loader.indexedContainer<u16>(mat.tevColors, MatSec::TevColors, 8);
     // HW 0 is API CPREV/APREV
     std::rotate(mat.tevColors.rbegin(), mat.tevColors.rbegin() + 1,
