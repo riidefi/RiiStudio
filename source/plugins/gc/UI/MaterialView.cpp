@@ -383,13 +383,15 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           if (ImGui::CollapsingHeader("Transformation",
                                       ImGuiTreeNodeFlags_DefaultOpen)) {
             auto s = tm->scale;
-            auto r = tm->rotate;
+            const auto rotate = glm::degrees(tm->rotate);
+            auto r = rotate;
             auto t = tm->translate;
-            ImGui::DragFloat2("Scale", &s.x);
-            ImGui::DragFloat("Rotate", &r);
-            ImGui::DragFloat2("Translate", &t.x);
+            ImGui::SliderFloat2("Scale", &s.x, 0.0f, 10.0f);
+            ImGui::SliderFloat("Rotate", &r, 0.0f, 360.0f);
+            ImGui::SliderFloat2("Translate", &t.x, -10.0f, 10.0f);
             AUTO_PROP(texMatrices[i]->scale, s);
-            AUTO_PROP(texMatrices[i]->rotate, r);
+			if (r != rotate)
+				AUTO_PROP(texMatrices[i]->rotate, glm::radians(r));
             AUTO_PROP(texMatrices[i]->translate, t);
           }
         }
