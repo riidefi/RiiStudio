@@ -10,9 +10,7 @@
 
 #undef near
 
-
 namespace libcube::UI {
-
 
 struct CullMode {
   bool front, back;
@@ -62,6 +60,10 @@ struct CullMode {
 struct DisplaySurface final {
   const char* name = "Surface Visibility";
   const char* icon = ICON_FA_GHOST;
+};
+struct LightingSurface final {
+  const char* name = "Lighting";
+  const char* icon = ICON_FA_SUN;
 };
 struct ColorSurface final {
   const char* name = "Colors";
@@ -390,8 +392,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
             ImGui::SliderFloat("Rotate", &r, 0.0f, 360.0f);
             ImGui::SliderFloat2("Translate", &t.x, -10.0f, 10.0f);
             AUTO_PROP(texMatrices[i]->scale, s);
-			if (r != rotate)
-				AUTO_PROP(texMatrices[i]->rotate, glm::radians(r));
+            if (r != rotate)
+              AUTO_PROP(texMatrices[i]->rotate, glm::radians(r));
             AUTO_PROP(texMatrices[i]->translate, t);
           }
         }
@@ -699,7 +701,68 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, FogSurface) {
   auto& matData = delegate.getActive().getMaterialData();
 }
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
+                  LightingSurface) {
+  auto& matData = delegate.getActive().getMaterialData();
 
+  // Color0Alpha0, Color1Alpha1
+  auto& colors = matData.chanData;
+  // Color0, Alpha0, Color1, Alpha1
+  auto& controls = matData.colorChanControls;
+
+  ImGui::Text("Number of colors:   %u", colors.size());
+  ImGui::Text("Number of controls: %u", controls.size());
+
+  if (colors.size() != 2 || controls.size() != 4) {
+    ImGui::Text("Cannot edit this material's lighting data.");
+    return;
+  }
+
+  for (int i = 0; i < 4; i += 2) {
+    auto& ctrl = controls[i];
+
+    riistudio::util::IDScope g(i);
+    if (ImGui::CollapsingHeader(
+            (std::string("Channel ") + std::to_string(i / 2)).c_str(),
+            ImGuiTreeNodeFlags_DefaultOpen)) {
+      int diffuse_src = static_cast<int>(ctrl.Material);
+      bool vclr = diffuse_src == 1;
+      ImGui::Checkbox("Vertex Colors", &vclr);
+      {
+        riistudio::util::ConditionalActive g(!vclr);
+
+        libcube::gx::ColorF32 mclr = colors[i / 2].matColor;
+        ImGui::ColorEdit4("Diffuse Color", mclr);
+      }
+      bool enabled = ctrl.enabled;
+      ImGui::Checkbox("Affected by Light", &enabled);
+
+      libcube::gx::ColorF32 aclr = colors[i / 2].ambColor;
+      ImGui::ColorEdit4("Ambient Color", aclr);
+      const char* diffuseFn[] = {"None", "Sign", "Clamp"};
+	  const char* attnFn[] = {"Specular", "Spotlight", "None", "None"};
+      ImGui::Text("Light flag: %x", ctrl.lightMask);
+      ImGui::Text("Diffuse Fn: %s", diffuseFn[ctrl.diffuseFn]);
+      ImGui::Text("Atten Fn: %s",   attnFn[(int)ctrl.attenuationFn]);
+      /*
+		Diffuse Color: (Vertex Color) [Color]
+
+       * Diffuse Alpha: (Vertex Alpha) [Slider]
+		(Enable Lighting)
+
+       * Ambient Color: (Vertex Color) [Color]
+		Ambient Alpha: (Vertex
+       * Alpha) [Slider]
+		Diffuse Function
+
+       * Attenutation Function
+		Light ID (should move to scene
+       * data!)
+
+	  */
+    }
+  }
+}
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
   auto& matData = delegate.getActive().getMaterialData();
 
@@ -831,6 +894,7 @@ void installTexImageView();
 void installDisplaySurface() {
   kpi::PropertyViewManager& manager = kpi::PropertyViewManager::getInstance();
   manager.addPropertyView<libcube::IGCMaterial, DisplaySurface>();
+  manager.addPropertyView<libcube::IGCMaterial, LightingSurface>();
   manager.addPropertyView<libcube::IGCMaterial, ColorSurface>();
   manager.addPropertyView<libcube::IGCMaterial, SamplerSurface>();
   manager.addPropertyView<libcube::IGCMaterial, SwapTableSurface>();
