@@ -5,6 +5,8 @@
 
 #include <core/util/gui.hpp>
 
+#include <algorithm>
+
 #undef near
 
 #include <frontend/editor/kit/Image.hpp>
@@ -1099,7 +1101,8 @@ void drawProperty(kpi::PropertyDelegate<IBoneDelegate>& delegate,
   ImGui::Text(ICON_FA_EXCLAMATION_TRIANGLE
               " Display Properties do not currently support multi-selection.");
 
-  auto folder_id_combo = [](const char* title, const auto& folder, int& active) {
+  auto folder_id_combo = [](const char* title, const auto& folder,
+                            int& active) {
     if (ImGui::BeginCombo(title, folder[active]->getName().c_str())) {
       int j = 0;
       for (const auto& node : folder) {
@@ -1186,13 +1189,38 @@ const char* vertexAttribNames =
     "or0\0Color1\0TexCoord0\0TexCoord1\0TexCoord2\0TexCoord3\0TexCoord4\0TexC"
     "oord5\0TexCoord6\0TexCoord7\0PositionMatrixArray\0NormalMatrixArray\0Tex"
     "tureMatrixArray\0LightArray\0NormalBinormalTangent\0";
+const char* vertexAttribNamesArray[] = {"PositionNormalMatrixIndex",
+                                        "Texture0MatrixIndex",
+                                        "Texture1MatrixIndex",
+                                        "Texture2MatrixIndex",
+                                        "Texture3MatrixIndex",
+                                        "Texture4MatrixIndex",
+                                        "Texture5MatrixIndex",
+                                        "Texture6MatrixIndex",
+                                        "Texture7MatrixIndex",
+                                        "Position",
+                                        "Normal",
+                                        "Color0",
+                                        "Color1",
+                                        "TexCoord0",
+                                        "TexCoord1",
+                                        "TexCoord2",
+                                        "TexCoord3",
+                                        "TexCoord4",
+                                        "TexCoord5",
+                                        "TexCoord6",
+                                        "TexCoord7",
+                                        "PositionMatrixArray",
+                                        "NormalMatrixArray",
+                                        "TextureMatrixArray",
+                                        "LightArray",
+                                        "NormalBinormalTangent"};
 void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl,
                   PolyDescriptorSurface) {
   auto& poly = dl.getActive();
 
   auto& desc = poly.getVcd();
 
-  if (ImGui::BeginChild("VCD")) {
     int i = 0;
     for (auto& attrib : desc.mAttributes) {
       riistudio::util::IDScope g(i++);
@@ -1209,69 +1237,102 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl,
 
       ImGui::PopItemWidth();
     }
-    ImGui::EndChild();
-  }
 }
 
 void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl, PolyDataSurface) {
   auto& poly = dl.getActive();
   auto& desc = poly.getVcd();
 
+  auto draw_p = [&](int i, int j) {
+    auto prim = poly.getMatrixPrimitiveIndexedPrimitive(i, j);
+    int type = static_cast<int>(prim.mType);
+    ImGui::Combo("Primitive Type", &type,
+                 "Quads\0Quads2\0Triangles\0TriangleStrips\0Triangl"
+                 "eFans\0Lines\0LineStrips\0Points\0");
+
+    u32 k = 0;
+    for (auto& v : prim.mVertices) {
+      ImGui::TableNextRow();
+
+      riistudio::util::IDScope v_s(k);
+
+      ImGui::TableSetColumnIndex(1);
+      ImGui::Text("%u", k);
+
+      u32 q = 0;
+      for (auto& e : poly.getVcd().mAttributes) {
+        if (e.second == gx::VertexAttributeType::None)
+          continue;
+        int type = static_cast<int>(e.first);
+        ImGui::TableSetColumnIndex(2 + q);
+        int data = v.operator[](e.first);
+        ImGui::Text("%i", data);
+        ++q;
+      }
+      ++k;
+    }
+  };
+
+  auto draw_mp = [&](int i) {
+    ImGui::Text("Default Matrix: %u",
+                (u32)poly.getMatrixPrimitiveCurrentMatrix(i));
+
+    const int attrib_cnt = std::count_if(
+        desc.mAttributes.begin(), desc.mAttributes.end(), [](const auto& e) {
+          return e.second != gx::VertexAttributeType::None;
+        });
+
+    const auto table_flags =
+        ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable |
+        ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
+        ImGuiTableFlags_Sortable;
+    if (ImGui::BeginTable("Vertex data", 2 + attrib_cnt, table_flags)) {
+      u32 q = 0;
+      ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+
+      ImGui::TableSetColumnIndex(0);
+      ImGui::Text("Primitive Index");
+      ImGui::TableSetColumnIndex(1);
+      ImGui::Text("Vertex Index");
+      for (auto& e : poly.getVcd().mAttributes) {
+        if (e.second == gx::VertexAttributeType::None)
+          continue;
+
+        ImGui::TableSetColumnIndex(2 + q);
+
+        int type = static_cast<int>(e.first);
+        ImGui::Text(vertexAttribNamesArray[type]);
+        ++q;
+      }
+
+      for (int j = 0; j < poly.getMatrixPrimitiveNumIndexedPrimitive(i); ++j) {
+        ImGui::TableNextRow();
+
+        ImGui::TableSetColumnIndex(0);
+        bool open = ImGui::TreeNodeEx(
+            (std::string("Primitive: ") + std::to_string(j)).c_str(),
+            ImGuiTreeNodeFlags_SpanFullWidth);
+        if (open) {
+          draw_p(i, j);
+          ImGui::TreePop();
+        }
+      }
+
+      ImGui::EndTable();
+    }
+  };
+
   if (ImGui::BeginTabBar("Matrix Primitives")) {
     for (int i = 0; i < poly.getNumMatrixPrimitives(); ++i) {
       if (ImGui::BeginTabItem(
               (std::string("Matrix Prim: ") + std::to_string(i)).c_str())) {
-        if (ImGui::CollapsingHeader("Matrix List",
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          ImGui::Text("Default Matrix: %u",
-                      (u32)poly.getMatrixPrimitiveCurrentMatrix(i));
-          if (ImGui::BeginChild("Matrix List Data")) {
-
-            ImGui::EndChild();
-          }
-        }
-        if (ImGui::CollapsingHeader("Index Data",
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (ImGui::BeginTabBar("Matrix Primitives")) {
-            for (int j = 0; j < poly.getMatrixPrimitiveNumIndexedPrimitive(i);
-                 ++j) {
-
-              if (ImGui::BeginTabItem(
-                      (std::string("Primitive: ") + std::to_string(j))
-                          .c_str())) {
-                auto prim = poly.getMatrixPrimitiveIndexedPrimitive(i, j);
-                int type = static_cast<int>(prim.mType);
-                ImGui::Combo("Primitive Type", &type,
-                             "Quads\0Quads2\0Triangles\0TriangleStrips\0Triangl"
-                             "eFans\0Lines\0LineStrips\0Points\0");
-                u32 k = 0;
-                for (auto& v : prim.mVertices) {
-                  char buf[128]{};
-                  sprintf(buf, "----Vertex: %u", k);
-                  if (ImGui::CollapsingHeader(buf,
-                                              ImGuiTreeNodeFlags_DefaultOpen)) {
-                    riistudio::util::IDScope v_s(k);
-                    for (auto& e : poly.getVcd().mAttributes) {
-                      int type = static_cast<int>(e.first);
-                      ImGui::Combo("Attribute Type", &type, vertexAttribNames);
-                      ImGui::Text("Value: %u", v.operator[](e.first));
-                    }
-                    ++k;
-                  }
-                }
-                ImGui::EndTabItem();
-              }
-            }
-
-            ImGui::EndTabBar();
-          }
-        }
+        draw_mp(i);
         ImGui::EndTabItem();
       }
     }
     ImGui::EndTabBar();
   }
-}
+} // namespace libcube::UI
 
 void installDisplaySurface() {
   kpi::PropertyViewManager& manager = kpi::PropertyViewManager::getInstance();
@@ -1291,5 +1352,4 @@ void installDisplaySurface() {
   manager.addPropertyView<libcube::IndexedPolygon, PolyDescriptorSurface>();
   manager.addPropertyView<libcube::IndexedPolygon, PolyDataSurface>();
 }
-
 } // namespace libcube::UI
