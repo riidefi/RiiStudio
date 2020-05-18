@@ -179,8 +179,8 @@ void readMatEntry(Material& mat, MatLoader& loader,
   dbg.assertSince(0x48);
   array_vector<Material::TexMatrix, 10> texMatrices;
   loader.indexedContainer<u16>(texMatrices, MatSec::TexMatrixInfo, 100);
-  loader.indexedContainer<u16>(mat.postTexMatrices, MatSec::PostTexMatrixInfo,
-                               100);
+  reader.seek<oishii::Whence::Current>(sizeof(u16) * 20); // Unused..
+  // loader.indexedContainer<u16>(mat.postTexMatrices, MatSec::PostTexMatrixInfo, 100);
 
   mat.texMatrices.nElements = texMatrices.size();
   for (int i = 0; i < mat.texMatrices.nElements; ++i)
