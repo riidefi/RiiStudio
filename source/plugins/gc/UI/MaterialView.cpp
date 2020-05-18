@@ -10,11 +10,15 @@
 #include <frontend/editor/kit/Image.hpp>
 #include <kpi/PropertyView.hpp>
 
+#include <core/3d/i3dmodel.hpp>
 #include <plugins/gc/Encoder/ImagePlatform.hpp>
 #include <plugins/gc/Export/Bone.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
 #include <plugins/gc/Util/TextureExport.hpp>
+
+// Tables
+#include <imgui/imgui_internal.h>
 
 namespace libcube::UI {
 
@@ -1095,43 +1099,74 @@ void drawProperty(kpi::PropertyDelegate<IBoneDelegate>& delegate,
   ImGui::Text(ICON_FA_EXCLAMATION_TRIANGLE
               " Display Properties do not currently support multi-selection.");
 
-  if (ImGui::BeginChild("Entries")) {
+  auto folder_id_combo = [](const char* title, const auto& folder, int& active) {
+    if (ImGui::BeginCombo(title, folder[active]->getName().c_str())) {
+      int j = 0;
+      for (const auto& node : folder) {
+        if (ImGui::Selectable(node->getName().c_str(), active == j)) {
+          active = j;
+        }
+
+        if (active == j)
+          ImGui::SetItemDefaultFocus();
+
+        ++j;
+      }
+
+      ImGui::EndCombo();
+    }
+  };
+
+  if (ImGui::BeginTable("Entries", 3, ImGuiTableFlags_Borders)) {
+    const auto* materials = bone.getParent()->getFolder<libcube::IGCMaterial>();
+    assert(materials);
+    const auto* polys = bone.getParent()->getFolder<libcube::IndexedPolygon>();
+    assert(polys);
+
+    ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+
+    ImGui::TableSetColumnIndex(0);
+    ImGui::Text("ID");
+    ImGui::TableSetColumnIndex(1);
+    ImGui::Text("Material");
+    ImGui::TableSetColumnIndex(2);
+    ImGui::Text("Polygon");
+    // ImGui::TableSetColumnIndex(3);
+    // ImGui::Text("Sorting Priority");
 
     for (int i = 0; i < bone.getNumDisplays(); ++i) {
-      auto display = bone.getDisplay(i);
-      ImGui::Text("Display #%i", i);
-      ImGui::PushID(i);
-      ImGui::PushItemWidth(200);
+      ImGui::TableNextRow();
 
-      ImGui::SameLine();
+      ImGui::PushID(i);
+      auto display = bone.getDisplay(i);
+
+      ImGui::TableSetColumnIndex(0);
+      ImGui::Text("%i", i);
+
+      ImGui::TableSetColumnIndex(1);
       int matId = display.matId;
-      ImGui::InputInt("Material ID", &matId);
+      folder_id_combo("Material", *materials, matId);
       display.matId = matId;
 
-      ImGui::SameLine();
+      ImGui::TableSetColumnIndex(2);
       int polyId = display.polyId;
-      ImGui::InputInt("Polygon ID", &polyId);
+      folder_id_combo("Polygon", *polys, polyId);
       display.polyId = polyId;
 
-      ImGui::SameLine();
-      int prio = display.prio;
-      ImGui::InputInt("Sorting Priority", &prio);
-      display.prio = prio;
+      // ImGui::TableSetColumnIndex(3);
+      // int prio = display.prio;
+      // ImGui::InputInt("Sorting Priority", &prio);
+      // display.prio = prio;
 
       if (!(bone.getDisplay(i) == display)) {
         bone.setDisplay(i, display);
         delegate.commit("Edit Bone Display Entry");
       }
 
-      ImGui::SameLine();
-      ImGui::Button("(Delete)");
-      // TODO
-
-      ImGui::PopItemWidth();
       ImGui::PopID();
     }
 
-    ImGui::EndChild();
+    ImGui::EndTable();
   }
 }
 
