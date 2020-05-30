@@ -114,6 +114,8 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
     ImGui::OpenPopup("Reformat");
     tex::reformatOpt = -1;
   }
+
+#ifndef BUILD_DIST
   if (ImGui::BeginPopupModal("Reformat", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
     if (tex::reformatOpt == -1) {
@@ -144,6 +146,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
 
     ImGui::EndPopup();
   }
+#endif
   if (ImGui::BeginPopupModal("Resize", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
     if (tex::resize[0].before <= 0) {
