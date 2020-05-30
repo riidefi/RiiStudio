@@ -726,10 +726,10 @@ struct AssReader {
     assConverter.ImportAss();
   }
 };
-void Install() {
-  auto& installer = *kpi::ApplicationPlugins::spInstance;
 
-  installer.addDeserializer<AssReader>();
-}
+
+kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& plugins) {
+  plugins.addDeserializer<AssReader>();
+});
 
 } // namespace riistudio::ass

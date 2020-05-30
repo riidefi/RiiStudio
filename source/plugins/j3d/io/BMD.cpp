@@ -280,9 +280,10 @@ public:
     // Read MDL3
   }
 };
-void InstallBMD(kpi::ApplicationPlugins& installer) {
+
+kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
   installer.addDeserializer<BMD>();
   installer.addSerializer<BMD>();
-}
+});
 
 } // namespace riistudio::j3d

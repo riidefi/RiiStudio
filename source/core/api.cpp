@@ -14,6 +14,7 @@
 
 kpi::PropertyViewManager kpi::PropertyViewManager::sInstance;
 kpi::RichNameManager kpi::RichNameManager::sInstance;
+kpi::RegistrationLink* kpi::RegistrationLink::gRegistrationChain = nullptr;
 
 #ifdef _WIN32
 

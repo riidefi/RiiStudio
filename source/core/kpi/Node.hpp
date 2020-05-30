@@ -604,6 +604,40 @@ public:
   std::vector<std::unique_ptr<IBinarySerializer>> mWriters;
 };
 
+/** Decentralized initialization via global static initializers.
+ * The caveat here is that we can't guarantee any order here.
+ * As we cannot
+ * force ApplicationPlugins to be initialized first, we simply construct a
+ * singly linked list and defer registration.
+ */
+class RegistrationLink {
+public:
+  virtual ~RegistrationLink() = default;
+
+  RegistrationLink() {
+    last = gRegistrationChain;
+    gRegistrationChain = this;
+  }
+  RegistrationLink(RegistrationLink* last) : last(last) {}
+  virtual void exec(ApplicationPlugins& registrar) {}
+
+  static RegistrationLink* getHead() { return gRegistrationChain; }
+  RegistrationLink* getLast() { return last; }
+
+private:
+  RegistrationLink* last;
+  static RegistrationLink* gRegistrationChain;
+};
+
+template <typename T> class DecentralizedInstaller : private RegistrationLink {
+public:
+  DecentralizedInstaller(T functor) : mFunctor(functor) {}
+  void exec(ApplicationPlugins& registrar) override { mFunctor(registrar); }
+
+private:
+  T mFunctor;
+};
+
 class History {
 public:
   void commit(const IDocumentNode& doc) {

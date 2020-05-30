@@ -725,14 +725,10 @@ public:
       }
     }
   }
-
-  static void Install(kpi::ApplicationPlugins& installer) {
-    installer.addDeserializer<ArchiveDeserializer>();
-  }
 };
 
-void InstallBRRES(kpi::ApplicationPlugins& installer) {
-  ArchiveDeserializer::Install(installer);
-}
+kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& plugins) {
+  plugins.addDeserializer<ArchiveDeserializer>();
+});
 
 } // namespace riistudio::g3d

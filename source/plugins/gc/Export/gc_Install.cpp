@@ -11,14 +11,7 @@
 
 namespace libcube {
 
-namespace UI {
-void installDisplaySurface();
-}
-
-void Install() {
-  assert(kpi::ApplicationPlugins::getInstance());
-  kpi::ApplicationPlugins& installer = *kpi::ApplicationPlugins::getInstance();
-
+kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
   installer.registerParent<libcube::IBoneDelegate, riistudio::lib3d::Bone>()
       .registerParent<libcube::IGCMaterial, riistudio::lib3d::Material>()
       .registerParent<libcube::Texture, riistudio::lib3d::Texture>()
@@ -33,8 +26,7 @@ void Install() {
       .addRichName<riistudio::lib3d::Model>(ICON_FA_CUBE, "Model",
                                             ICON_FA_CUBES)
       .addRichName<riistudio::lib3d::Scene>(ICON_FA_SHAPES, "Scene");
+});
 
-  UI::installDisplaySurface();
-}
 
 } // namespace libcube

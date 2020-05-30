@@ -46,7 +46,7 @@ public:
   }
 #define KPI_PROPERTY(delegate, before, after, val)                             \
   delegate.property(                                                           \
-      before, after, [&](const auto& x) { return x.val; },                   \
+      before, after, [&](const auto& x) { return x.val; },                     \
       [&](auto& x, auto& y) { x.val = y; })
 // When external source updating internal data
 #define KPI_PROPERTY_EX(delegate, before, after)                               \
@@ -99,6 +99,12 @@ struct PropertyViewImpl final : public IPropertyView {
 struct PropertyViewManager {
   template <typename TDomain, typename TTag> void addPropertyView() {
     mViews.push_back(std::make_unique<PropertyViewImpl<TDomain, TTag>>());
+
+    // TODO: Sort tabs based on hierarchy
+    std::stable_sort(mViews.begin(), mViews.end(),
+                     [](const auto& left, const auto& right) {
+                       return left->getName()[0] < right->getName()[0];
+                     });
   }
 
   template <typename T> void forEachView(T func, kpi::IDocumentNode& active) {

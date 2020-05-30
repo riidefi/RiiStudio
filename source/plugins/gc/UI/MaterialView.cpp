@@ -891,7 +891,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
 void installPolygonView();
 void installBoneView();
 void installTexImageView();
-void installDisplaySurface() {
+
+
+kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
   kpi::PropertyViewManager& manager = kpi::PropertyViewManager::getInstance();
   manager.addPropertyView<libcube::IGCMaterial, DisplaySurface>();
   manager.addPropertyView<libcube::IGCMaterial, LightingSurface>();
@@ -905,5 +907,6 @@ void installDisplaySurface() {
   installTexImageView();
   installBoneView();
   installPolygonView();
-}
+});
+
 } // namespace libcube::UI

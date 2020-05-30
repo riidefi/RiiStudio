@@ -4,6 +4,8 @@
 
 #include "CPUDetect.h"
 
+#ifdef RII_PLATFORM_EMSCRIPTEN
+
 CPUInfo cpu_info;
 
 CPUInfo::CPUInfo()
@@ -14,3 +16,5 @@ std::string CPUInfo::Summarize()
 {
   return "Generic";
 }
+
+#endif

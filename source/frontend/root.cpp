@@ -11,10 +11,6 @@
 
 #include <oishii/reader/binary_reader.hxx>
 
-#include <plugins/gc/Export/Install.hpp>
-#include <plugins/j3d/Installer.hpp>
-#include <plugins/pik/installer.hpp>
-
 #include <fstream>
 #include <oishii/v2/writer/binary_writer.hxx>
 
@@ -493,21 +489,16 @@ void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
 #else
 #define __BUILD "Custom"
 #endif
-
 RootWindow::RootWindow()
     : Applet("RiiStudio " __BUILD " (Built " __DATE__ " at " __TIME__ ", " __CC
              ")") {
   InitAPI();
 
   // Register plugins
-  //	lib3d::install();
-  libcube::Install();
-  j3d::Install(*kpi::ApplicationPlugins::getInstance());
-  g3d::Install();
-#ifndef BUILD_DIST
-  pik::Install(*kpi::ApplicationPlugins::getInstance());
-#endif
-  ass::Install();
+  for (auto* it = kpi::RegistrationLink::getHead(); it != nullptr;
+       it = it->getLast()) {
+    it->exec(*kpi::ApplicationPlugins::getInstance());
+  }
 
   //	px::PackageInstaller::spInstance->installModule("nw.dll");
 

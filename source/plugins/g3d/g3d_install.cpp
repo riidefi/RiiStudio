@@ -4,14 +4,9 @@
 #include "collection.hpp"
 #include "model.hpp"
 
-#include "io/BRRES.hpp"
-
 namespace riistudio::g3d {
 
-void Install() {
-  assert(kpi::ApplicationPlugins::getInstance());
-  kpi::ApplicationPlugins& installer = *kpi::ApplicationPlugins::getInstance();
-
+kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
   installer.addType<g3d::Bone, libcube::IBoneDelegate>()
       .addType<g3d::Texture, libcube::Texture>()
       .addType<g3d::Material, libcube::IGCMaterial>()
@@ -22,8 +17,6 @@ void Install() {
       .addType<g3d::ColorBuffer>()
       .addType<g3d::TextureCoordinateBuffer>()
       .addType<g3d::Polygon, libcube::IndexedPolygon>();
-
-  InstallBRRES(installer);
-}
+});
 
 } // namespace riistudio::g3d
