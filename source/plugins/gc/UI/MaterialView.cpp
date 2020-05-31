@@ -718,7 +718,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   // ImGui::Text("Number of colors:   %u", colors.size());
   // ImGui::Text("Number of controls: %u", controls.size());
 
-  if (colors.size() != 2 || controls.size() != 4) {
+  if (colors.size() > controls.size() / 2 || controls.size() % 2 != 0 || controls.size() == 0) {
     ImGui::Text("Cannot edit this material's lighting data.");
     return;
   }
@@ -740,7 +740,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         riistudio::util::ConditionalActive g(!vclr);
 
         libcube::gx::ColorF32 mclr = colors[i / 2].matColor;
-        ImGui::ColorEdit4("Diffuse Color", mclr);
+        if (i % 2 == 0) {
+          ImGui::ColorEdit3("Diffuse Color", mclr);
+        } else {
+          ImGui::DragFloat("Diffuse Alpha", &mclr.a, 0.0f, 1.0f);
+		}
         AUTO_PROP(chanData[i / 2].matColor, (libcube::gx::Color)mclr);
       }
     }
@@ -761,7 +765,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         riistudio::util::ConditionalActive g(!vclr);
 
         libcube::gx::ColorF32 aclr = colors[i / 2].ambColor;
-        ImGui::ColorEdit4("Ambient Color", aclr);
+        if (i % 2 == 0) {
+          ImGui::ColorEdit3("Ambient Color", aclr);
+        } else {
+          ImGui::DragFloat("Ambient Alpha", &aclr.a, 0.0f, 1.0f);
+        }
         AUTO_PROP(chanData[i / 2].ambColor, (libcube::gx::Color)aclr);
       }
     }
@@ -805,31 +813,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
               static_cast<libcube::gx::LightID>(light_mask));
   };
 
-  for (int i = 0; i < 4; i += 2) {
-    auto& color = controls[i];
-    auto& alpha = controls[i + 1];
-
+  for (int i = 0; i < controls.size(); i += 2) {
     riistudio::util::IDScope g(i);
     if (ImGui::CollapsingHeader(
             (std::string("Channel ") + std::to_string(i / 2)).c_str(),
             ImGuiTreeNodeFlags_DefaultOpen)) {
-      /*
-		Diffuse Color: (Vertex Color) [Color]
-
-       * Diffuse Alpha: (Vertex Alpha) [Slider]
-		(Enable
-       * Lighting)
-
-       * Ambient Color: (Vertex Color) [Color]
-		Ambient Alpha: (Vertex
-       * Alpha) [Slider]
-		Diffuse Function
-
-       * Attenutation Function
-		Light ID (should move to scene
-       * data!)
-
-	  */
       ImGui::Columns(2);
       {
         riistudio::util::IDScope g(i);
