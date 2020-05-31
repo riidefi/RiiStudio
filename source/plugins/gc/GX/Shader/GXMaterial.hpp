@@ -118,7 +118,7 @@ struct UniformMaterialParams {
   std::array<glm::vec4, 8> TexParams;
   std::array<glm::mat2x4, 3> IndTexMtx; // 2x3
   // Optional: Not optional for now.
-  Light u_LightParams[8];
+  std::array<Light, 8> u_LightParams;
 };
 static_assert(sizeof(UniformMaterialParams) == 1536, "Bad sized UParam");
 

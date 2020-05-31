@@ -43,20 +43,29 @@ std::string GXProgram::generateLightDiffFn(const gx::ChannelControl& chan,
 }
 std::string GXProgram::generateLightAttnFn(const gx::ChannelControl& chan,
                                            const std::string& lightName) {
-  const std::string cosAttn = "ApplyCubic(" + lightName +
-                              ".CosAtten.xyz, dot(t_LightDeltaDir, " +
-                              lightName + ".Direction.xyz))";
-
-  switch (chan.attenuationFn) {
-  default:
-  case AttenuationFunction::None:
-    return "1.0";
-  case AttenuationFunction::Spotlight:
-    return "max(" + cosAttn + " / max(dot(" + lightName +
-           ".DistAtten.xyz, vec3(1.0, t_LightDeltaDist2, t_LightDeltaDist)), "
-           "0.0), 0.0)";
-  case AttenuationFunction::Specular:
-    return "1.0"; // TODO(jtspierre): Specular
+  if (chan.attenuationFn == AttenuationFunction::None) {
+    return "t_Attenuation = 1.0;";
+  } else if (chan.attenuationFn == AttenuationFunction::Spotlight) {
+    auto attn = std::string("max(0.0, dot(t_LightDeltaDir, ") + lightName +
+                ".Direction.xyz))";
+    auto cosAttn = std::string("max(0.0, ApplyAttenuation(") + lightName +
+                   ".CosAtten.xyz, " + attn + "))";
+    auto distAttn =
+        std::string("dot(") + lightName +
+        ".DistAtten.xyz, vec3(1.0, t_LightDeltaDist, t_LightDeltaDist2))";
+    return std::string("t_Attenuation = ") + cosAttn + " / " + distAttn + ";";
+  } else if (chan.attenuationFn == AttenuationFunction::Specular) {
+    auto attn = std::string("(dot(t_Normal, t_LightDeltaDir) >= 0.0) ? "
+                            "max(0.0, dot(t_Normal, ") +
+                lightName + ".Direction.xyz)) : 0.0";
+    auto cosAttn = std::string("ApplyAttenuation(") + lightName +
+                   ".CosAtten.xyz, t_Attenuation)";
+    auto distAttn = std::string("ApplyAttenuation(") + lightName +
+                    ".DistAtten.xyz, t_Attenuation)";
+    return std::string("t_Attenuation = ") + attn +
+           ";\nt_Attenuation = " + cosAttn + " / " + distAttn + ";";
+  } else {
+    throw "whoops";
   }
 }
 std::string GXProgram::generateColorChannel(const gx::ChannelControl& chan,
@@ -84,10 +93,10 @@ std::string GXProgram::generateColorChannel(const gx::ChannelControl& chan,
           "    t_LightDeltaDist2 = dot(t_LightDelta, t_LightDelta);\n"
           "    t_LightDeltaDist = sqrt(t_LightDeltaDist2);\n"
           "    t_LightDeltaDir = t_LightDelta / t_LightDeltaDist;\n"
-          "    t_LightAccum += " +
-          generateLightDiffFn(chan, lightName) + " * " +
-          generateLightAttnFn(chan, lightName) + " * " + lightName +
-          ".Color;\n";
+
+          + generateLightAttnFn(chan, lightName) +
+          "    t_LightAccum += " + generateLightDiffFn(chan, lightName) +
+          " * t_Attenuation * " + lightName + ".Color;\n";
     }
   } else {
     // Without lighting, everything is full-bright.
@@ -554,8 +563,8 @@ std::string GXProgram::generateRas(const gx::TevStage& stage) {
   case gx::ColorSelChanApi::null:
     return "vec4(0, 0, 0, 0)";
   default:
-	  assert(!"Invalid ras sel");
-	  return "v_Color0";
+    assert(!"Invalid ras sel");
+    return "v_Color0";
   }
 }
 

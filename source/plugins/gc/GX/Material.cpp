@@ -2,9 +2,9 @@
 
 #include "Material.hpp"
 
-#include <plugins/gc/GX/Shader/GXProgram.hpp>
-#include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <algorithm>
+#include <plugins/gc/Export/IndexedPolygon.hpp>
+#include <plugins/gc/GX/Shader/GXProgram.hpp>
 #undef min
 
 namespace libcube {
@@ -320,6 +320,16 @@ void IGCMaterial::generateUniforms(
 
   UniformMaterialParams tmp{};
 
+  Light omni{
+      glm::vec4{0, 0, 0, 0},   // Position
+      glm::vec4{0, -1, 0, 0},  // Direction
+      glm::vec4{1, 0, 0, 0},   // CosAtten
+      glm::vec4{1, 0, 0, 0},   // DistAtten
+      glm::vec4{0, 0, 0, 1.0f} // Color
+  };
+
+  std::fill(tmp.u_LightParams.begin(), tmp.u_LightParams.end(), omni);
+
   const auto& data = getMaterialData();
 
   for (int i = 0; i < 2; ++i) {
@@ -407,23 +417,24 @@ void IGCMaterial::genSamplUniforms(
                     gxTileToGl(data.samplers[i]->mWrapV));
   }
 }
-void IGCMaterial::onSplice(DelegatedUBOBuilder& builder, const riistudio::lib3d::Polygon& poly,
+void IGCMaterial::onSplice(DelegatedUBOBuilder& builder,
+                           const riistudio::lib3d::Polygon& poly,
                            u32 mpid) const {
-	// builder.reset(2);
-	PacketParams pack{};
-	for (auto& p : pack.posMtx)
-		p = glm::transpose(glm::mat4{ 1.0f });
+  // builder.reset(2);
+  PacketParams pack{};
+  for (auto& p : pack.posMtx)
+    p = glm::transpose(glm::mat4{1.0f});
 
-	assert(dynamic_cast<const IndexedPolygon*>(&poly) != nullptr);
-	const auto& ipoly = reinterpret_cast<const IndexedPolygon&>(poly);
+  assert(dynamic_cast<const IndexedPolygon*>(&poly) != nullptr);
+  const auto& ipoly = reinterpret_cast<const IndexedPolygon&>(poly);
 
-	const auto mtx = ipoly.getPosMtx(mpid);
-	for (int p = 0; p < std::min(static_cast<std::size_t>(10), mtx.size()); ++p) {
-		const auto transposed = glm::transpose((glm::mat4x3)mtx[p]);
-		pack.posMtx[p] = transposed;
-	}
+  const auto mtx = ipoly.getPosMtx(mpid);
+  for (int p = 0; p < std::min(static_cast<std::size_t>(10), mtx.size()); ++p) {
+    const auto transposed = glm::transpose((glm::mat4x3)mtx[p]);
+    pack.posMtx[p] = transposed;
+  }
 
-	builder.tpush(2, pack);
+  builder.tpush(2, pack);
 }
 void IGCMaterial::setMegaState(MegaState& state) const {
   GXMaterial mat{0, getName(), *const_cast<IGCMaterial*>(this)};
