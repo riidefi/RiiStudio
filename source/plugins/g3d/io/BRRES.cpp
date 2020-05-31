@@ -727,8 +727,6 @@ public:
   }
 };
 
-kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& plugins) {
-  plugins.addDeserializer<ArchiveDeserializer>();
-});
+kpi::Register<ArchiveDeserializer, kpi::Reader> ArchiveInstaller;
 
 } // namespace riistudio::g3d

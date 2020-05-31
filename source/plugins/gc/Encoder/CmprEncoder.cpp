@@ -97,13 +97,6 @@ static u32 calc_distance(const u8* v1, const u8* v2) {
   return abs(d0) + abs(d1) + abs(d2);
 }
 
-static u32 calc_distance_square(const u8* v1, const u8* v2) {
-  const int d0 = (int)*v1++ - (int)*v2++;
-  const int d1 = (int)*v1++ - (int)*v2++;
-  const int d2 = (int)*v1++ - (int)*v2++;
-  return d0 * d0 + d1 * d1 + d2 * d2;
-}
-
 void CMPR_close_info(const u8* data,    // source data
                      cmpr_info_t* info, // info data structure
                      u8* dest           // store destination data here (never 0)

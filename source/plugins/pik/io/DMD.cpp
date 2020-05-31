@@ -94,8 +94,6 @@ public:
   }
 };
 
-kpi::DecentralizedInstaller DMDInstaller([](kpi::ApplicationPlugins& installer) {
-  installer.addDeserializer<DMD>();
-  installer.addSerializer<DMD>();
-});
+kpi::Register<DMD, kpi::Reader | kpi::Writer> DMDInstaller;
+
 } // namespace riistudio::pik

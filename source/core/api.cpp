@@ -203,17 +203,11 @@ struct ReflectionMesh : public kpi::ReflectionMesh {
   }
 };
 
-#include <core/3d/i3dmodel.hpp>
-
 void InitAPI() {
   spCorePackageInstaller = new CorePackageInstaller();
   kpi::ApplicationPlugins::spInstance = spCorePackageInstaller;
   kpi::ReflectionMesh::setInstance(
       new ReflectionMesh(std::make_unique<DataMesh>()));
-
-  kpi::ApplicationPlugins& installer = *kpi::ApplicationPlugins::spInstance;
-
-  // Scene registers
 }
 void DeinitAPI() {
   spCorePackageInstaller = nullptr;

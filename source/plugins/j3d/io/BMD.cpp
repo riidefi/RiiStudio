@@ -281,9 +281,6 @@ public:
   }
 };
 
-kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
-  installer.addDeserializer<BMD>();
-  installer.addSerializer<BMD>();
-});
+kpi::Register<BMD, kpi::Reader | kpi::Writer> BMDInstaller;
 
 } // namespace riistudio::j3d

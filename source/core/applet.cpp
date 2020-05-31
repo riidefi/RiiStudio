@@ -7,11 +7,6 @@
 #include <vendor/imgui/impl/imgui_impl_sdl.h>
 #include <vendor/imgui_markdown.h>
 
-#ifdef RII_BACKEND_SDL
-struct SDL_Window;
-extern SDL_Window* g_Window;
-#endif
-
 namespace riistudio::core {
 
 // You can make your own Markdown function with your prefered string container
@@ -44,16 +39,18 @@ static bool loadFonts(float fontSize = 12.0f) {
 #undef FONT_DIR
 
   io.Fonts->AddFontFromFileTTF(default_font, fontSize, &fontcfg);
- 
-  // mdConfig.headingFormats[0].font = io.Fonts->AddFontFromFileTTF(bold_font, fontSize * 2 * 1.1f, &fontcfg);
-  // mdConfig.headingFormats[1].font = io.Fonts->AddFontFromFileTTF(bold_font, fontSize * 2, &fontcfg);
+
+  // mdConfig.headingFormats[0].font = io.Fonts->AddFontFromFileTTF(bold_font,
+  // fontSize * 2 * 1.1f, &fontcfg); mdConfig.headingFormats[1].font =
+  // io.Fonts->AddFontFromFileTTF(bold_font, fontSize * 2, &fontcfg);
   // mdConfig.headingFormats[2].font = mdConfig.headingFormats[1].font;
-  
+
   static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
   ImFontConfig icons_config;
   icons_config.MergeMode = true;
   icons_config.PixelSnapH = true;
-  io.Fonts->AddFontFromFileTTF(icon_font, fontSize, &icons_config, icons_ranges);
+  io.Fonts->AddFontFromFileTTF(icon_font, fontSize, &icons_config,
+                               icons_ranges);
 
   return true;
 }
@@ -75,15 +72,7 @@ Applet::Applet(const std::string& name) : GLWindow(1280, 720, name) {
 #endif
 }
 
-Applet::~Applet() {
-  ImGui_ImplOpenGL3_Shutdown();
-#ifdef RII_BACKEND_GLFW
-  ImGui_ImplGlfw_Shutdown();
-#else
-  ImGui_ImplSDL2_Shutdown();
-#endif
-  ImGui::DestroyContext();
-}
+Applet::~Applet() {}
 
 void Applet::frameRender() {
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -95,11 +84,7 @@ void Applet::frameProcess() {
   detachClosedChildren();
 
   ImGui_ImplOpenGL3_NewFrame();
-#ifdef RII_BACKEND_GLFW
-  ImGui_ImplGlfw_NewFrame();
-#else
-  ImGui_ImplSDL2_NewFrame(g_Window);
-#endif
+  newFrame(); // TODO: Include GL3 in this?
   ImGui::NewFrame();
 
 #ifdef DEBUG

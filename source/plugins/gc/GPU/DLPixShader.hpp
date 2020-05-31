@@ -2,11 +2,9 @@
 
 #include "DLInterpreter.hpp"
 #include "GPUMaterial.hpp"
+#include <plugins/gc/Export/IndexedPolygon.hpp>
+#include <plugins/gc/Export/Material.hpp>
 #include <plugins/gc/GX/Struct/Shader.hpp>
-
-#include <plugins/gc/export/Material.hpp>
-
-#include <plugins/gc/export/IndexedPolygon.hpp>
 
 #include <array>
 

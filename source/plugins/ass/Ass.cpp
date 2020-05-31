@@ -727,9 +727,6 @@ struct AssReader {
   }
 };
 
-
-kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& plugins) {
-  plugins.addDeserializer<AssReader>();
-});
+kpi::Register<AssReader, kpi::Reader> AssInstaller;
 
 } // namespace riistudio::ass

@@ -1,5 +1,3 @@
-#pragma once
-
 #include "DLPixShader.hpp"
 
 namespace libcube::gpu {
@@ -10,7 +8,7 @@ QDisplayListShaderHandler::QDisplayListShaderHandler(gx::Shader& shader,
 QDisplayListShaderHandler::~QDisplayListShaderHandler() {}
 
 void QDisplayListShaderHandler::onCommandBP(const QBPCommand& token) {
-  switch (token.reg) {
+  switch ((u32)token.reg) {
   case (u32)BPAddress::TEV_KSEL + (0 * 2):
   case (u32)BPAddress::TEV_KSEL + (0 * 2) + 1:
   case (u32)BPAddress::TEV_KSEL + (1 * 2):
@@ -100,6 +98,8 @@ void QDisplayListShaderHandler::onCommandBP(const QBPCommand& token) {
     break;
   case BPAddress::BP_MASK:
     mGpuShader.mMask = 0xff000000 | (token.val & 0x00ffffff);
+    break;
+  default:
     break;
   }
   // If mask has expired, reset it
@@ -271,7 +271,7 @@ void QDisplayListMaterialHandler::onCommandXF(const QXFCommand& token) {
   }
 }
 void QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
-  switch (token.reg) {
+  switch ((u32)token.reg) {
   case BPAddress::ALPHACOMPARE:
     mGpuMat.setReg(mGpuMat.mPixel.mAlphaCompare, token);
     break;
@@ -364,6 +364,7 @@ void QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
     break;
   default: {
     printf("[Warning] DisplayList: Unknown register 0x%x.\n", token.reg);
+    break;
   }
   }
   // If mask has expired, reset it

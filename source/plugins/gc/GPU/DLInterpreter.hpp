@@ -7,7 +7,7 @@
 
 #include <oishii/reader/binary_reader.hxx>
 
-#include <plugins/gc/gx/VertexTypes.hpp>
+#include <plugins/gc/GX/VertexTypes.hpp>
 
 namespace libcube::gpu {
 

@@ -41,6 +41,7 @@ private:
 #endif
 public:
   void mainLoopInternal();
+  void newFrame(); // Call before every ImGui frame
 
 private:
   std::string mTitle;
