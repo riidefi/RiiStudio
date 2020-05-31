@@ -457,46 +457,51 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
               ImGui::Combo("Interpolation type", &minMipBase, linNear);
 
-              bool mipBiasClamp = samp->bBiasClamp;
-              ImGui::Checkbox("Bias clamp", &mipBiasClamp);
-              AUTO_PROP(samplers[i]->bBiasClamp, mipBiasClamp);
+              float lodbias = samp->mLodBias;
+              ImGui::SliderFloat("LOD bias", &lodbias, -4.0f, 3.99f);
+              AUTO_PROP(samplers[i]->mLodBias, lodbias);
 
               bool edgelod = samp->bEdgeLod;
               ImGui::Checkbox("Edge LOD", &edgelod);
               AUTO_PROP(samplers[i]->bEdgeLod, edgelod);
 
-              float lodbias = samp->mLodBias;
-              ImGui::SliderFloat("LOD bias", &lodbias, -4.0f, 3.99f);
-              AUTO_PROP(samplers[i]->mLodBias, lodbias);
+              {
+                riistudio::util::ConditionalActive g(edgelod);
 
-              int maxaniso = 0;
-              switch (samp->mMaxAniso) {
-              case libcube::gx::AnisotropyLevel::x1:
-                maxaniso = 1;
-                break;
-              case libcube::gx::AnisotropyLevel::x2:
-                maxaniso = 2;
-                break;
-              case libcube::gx::AnisotropyLevel::x4:
-                maxaniso = 4;
-                break;
+                bool mipBiasClamp = samp->bBiasClamp;
+                ImGui::Checkbox("Bias clamp", &mipBiasClamp);
+                AUTO_PROP(samplers[i]->bBiasClamp, mipBiasClamp);
+
+                int maxaniso = 0;
+                switch (samp->mMaxAniso) {
+                case libcube::gx::AnisotropyLevel::x1:
+                  maxaniso = 1;
+                  break;
+                case libcube::gx::AnisotropyLevel::x2:
+                  maxaniso = 2;
+                  break;
+                case libcube::gx::AnisotropyLevel::x4:
+                  maxaniso = 4;
+                  break;
+                }
+                ImGui::SliderInt("Anisotropic filtering level", &maxaniso, 1,
+                                 4);
+                libcube::gx::AnisotropyLevel alvl =
+                    libcube::gx::AnisotropyLevel::x1;
+                switch (maxaniso) {
+                case 1:
+                  alvl = libcube::gx::AnisotropyLevel::x1;
+                  break;
+                case 2:
+                  alvl = libcube::gx::AnisotropyLevel::x2;
+                  break;
+                case 3:
+                case 4:
+                  alvl = libcube::gx::AnisotropyLevel::x4;
+                  break;
+                }
+                AUTO_PROP(samplers[i]->mMaxAniso, alvl);
               }
-              ImGui::SliderInt("Anisotropic filtering level", &maxaniso, 1, 4);
-              libcube::gx::AnisotropyLevel alvl =
-                  libcube::gx::AnisotropyLevel::x1;
-              switch (maxaniso) {
-              case 1:
-                alvl = libcube::gx::AnisotropyLevel::x1;
-                break;
-              case 2:
-                alvl = libcube::gx::AnisotropyLevel::x2;
-                break;
-              case 3:
-              case 4:
-                alvl = libcube::gx::AnisotropyLevel::x4;
-                break;
-              }
-              AUTO_PROP(samplers[i]->mMaxAniso, alvl);
             }
           }
 
@@ -740,15 +745,16 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       libcube::gx::ColorF32 aclr = colors[i / 2].ambColor;
       ImGui::ColorEdit4("Ambient Color", aclr);
       const char* diffuseFn[] = {"None", "Sign", "Clamp"};
-	  const char* attnFn[] = {"Specular", "Spotlight", "None", "None"};
+      const char* attnFn[] = {"Specular", "Spotlight", "None", "None"};
       ImGui::Text("Light flag: %x", ctrl.lightMask);
       ImGui::Text("Diffuse Fn: %s", diffuseFn[ctrl.diffuseFn]);
-      ImGui::Text("Atten Fn: %s",   attnFn[(int)ctrl.attenuationFn]);
+      ImGui::Text("Atten Fn: %s", attnFn[(int)ctrl.attenuationFn]);
       /*
 		Diffuse Color: (Vertex Color) [Color]
 
        * Diffuse Alpha: (Vertex Alpha) [Slider]
-		(Enable Lighting)
+		(Enable
+       * Lighting)
 
        * Ambient Color: (Vertex Color) [Color]
 		Ambient Alpha: (Vertex
@@ -891,7 +897,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
 void installPolygonView();
 void installBoneView();
 void installTexImageView();
-
 
 kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
   kpi::PropertyViewManager& manager = kpi::PropertyViewManager::getInstance();
