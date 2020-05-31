@@ -99,12 +99,12 @@ void GLWindow::glfwhideMouse() {
 }
 void GLWindow::setVsync(bool v) { glfwSwapInterval(v ? 1 : 0); }
 GLWindow::~GLWindow() {
+  ImGui_ImplGlfw_Shutdown();  
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui::DestroyContext();
+
   glfwDestroyWindow(mGlfwWindow);
   glfwTerminate(); // TODO: Move out
-
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
 }
 
 void GLWindow::mainLoopInternal() {

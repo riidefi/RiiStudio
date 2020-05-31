@@ -715,40 +715,104 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   // Color0, Alpha0, Color1, Alpha1
   auto& controls = matData.colorChanControls;
 
-  ImGui::Text("Number of colors:   %u", colors.size());
-  ImGui::Text("Number of controls: %u", controls.size());
+  // ImGui::Text("Number of colors:   %u", colors.size());
+  // ImGui::Text("Number of controls: %u", controls.size());
 
   if (colors.size() != 2 || controls.size() != 4) {
     ImGui::Text("Cannot edit this material's lighting data.");
     return;
   }
 
-  for (int i = 0; i < 4; i += 2) {
+  const auto draw_color_channel = [&](int i) {
     auto& ctrl = controls[i];
 
-    riistudio::util::IDScope g(i);
-    if (ImGui::CollapsingHeader(
-            (std::string("Channel ") + std::to_string(i / 2)).c_str(),
-            ImGuiTreeNodeFlags_DefaultOpen)) {
-      int diffuse_src = static_cast<int>(ctrl.Material);
-      bool vclr = diffuse_src == 1;
-      ImGui::Checkbox("Vertex Colors", &vclr);
+    ImGui::CollapsingHeader(i % 2 ? "Alpha Channel" : "Color Channel",
+                            ImGuiTreeNodeFlags_DefaultOpen);
+
+    {
+      auto diffuse_src = ctrl.Material;
+      bool vclr = diffuse_src == gx::ColorSource::Vertex;
+      ImGui::Checkbox(i % 2 ? "Vertex Alpha" : "Vertex Colors", &vclr);
+      diffuse_src = vclr ? gx::ColorSource::Vertex : gx::ColorSource::Register;
+      AUTO_PROP(colorChanControls[i].Material, diffuse_src);
+
       {
         riistudio::util::ConditionalActive g(!vclr);
 
         libcube::gx::ColorF32 mclr = colors[i / 2].matColor;
         ImGui::ColorEdit4("Diffuse Color", mclr);
+        AUTO_PROP(chanData[i / 2].matColor, (libcube::gx::Color)mclr);
       }
-      bool enabled = ctrl.enabled;
-      ImGui::Checkbox("Affected by Light", &enabled);
+    }
+    bool enabled = ctrl.enabled;
+    ImGui::Checkbox("Affected by Light", &enabled);
 
-      libcube::gx::ColorF32 aclr = colors[i / 2].ambColor;
-      ImGui::ColorEdit4("Ambient Color", aclr);
-      const char* diffuseFn[] = {"None", "Sign", "Clamp"};
-      const char* attnFn[] = {"Specular", "Spotlight", "None", "None"};
-      ImGui::Text("Light flag: %x", ctrl.lightMask);
-      ImGui::Text("Diffuse Fn: %s", diffuseFn[ctrl.diffuseFn]);
-      ImGui::Text("Atten Fn: %s", attnFn[(int)ctrl.attenuationFn]);
+    riistudio::util::ConditionalActive g(enabled);
+    {
+      auto amb_src = ctrl.Ambient;
+      bool vclr = amb_src == gx::ColorSource::Vertex;
+      ImGui::Checkbox(i % 2 ? "Ambient Alpha uses Vertex Alpha"
+                            : "Ambient Color uses Vertex Colors",
+                      &vclr);
+      amb_src = vclr ? gx::ColorSource::Vertex : gx::ColorSource::Register;
+      AUTO_PROP(colorChanControls[i].Ambient, amb_src);
+
+      {
+        riistudio::util::ConditionalActive g(!vclr);
+
+        libcube::gx::ColorF32 aclr = colors[i / 2].ambColor;
+        ImGui::ColorEdit4("Ambient Color", aclr);
+        AUTO_PROP(chanData[i / 2].ambColor, (libcube::gx::Color)aclr);
+      }
+    }
+
+    int diffuse_fn = static_cast<int>(ctrl.diffuseFn);
+    int atten_fn = static_cast<int>(ctrl.attenuationFn);
+
+    ImGui::Combo("Diffusion Type", &diffuse_fn, "None\0Signed\0Clamped\0");
+    AUTO_PROP(colorChanControls[i].diffuseFn,
+              static_cast<libcube::gx::DiffuseFunction>(diffuse_fn));
+    ImGui::Combo("Attenuation Type", &atten_fn,
+                 "Specular\0Spotlight (Diffuse)\0None\0None*\0");
+    AUTO_PROP(colorChanControls[i].attenuationFn,
+              static_cast<libcube::gx::AttenuationFunction>(atten_fn));
+
+    ImGui::Text("Enabled Lights:");
+    auto light_mask = static_cast<u32>(ctrl.lightMask);
+    ImGui::BeginTable("Light Mask", 8, ImGuiTableFlags_Borders);
+    for (int i = 0; i < 8; ++i) {
+      char header[2]{0};
+      header[0] = '0' + i;
+      ImGui::TableSetupColumn(header);
+    }
+    ImGui::TableAutoHeaders();
+    ImGui::TableNextRow();
+    for (int i = 0; i < 8; ++i) {
+      bool light_enabled = (static_cast<u32>(ctrl.lightMask) & (1 << i)) != 0;
+      ImGui::TableSetColumnIndex(i);
+      ImGui::PushID(i);
+      ImGui::Checkbox("###TableLightMask", &light_enabled);
+      ImGui::PopID();
+
+      if (light_enabled) {
+        light_mask |= (1 << i);
+      } else {
+        light_mask &= ~(1 << i);
+      }
+    }
+    ImGui::EndTable();
+    AUTO_PROP(colorChanControls[i].lightMask,
+              static_cast<libcube::gx::LightID>(light_mask));
+  };
+
+  for (int i = 0; i < 4; i += 2) {
+    auto& color = controls[i];
+    auto& alpha = controls[i + 1];
+
+    riistudio::util::IDScope g(i);
+    if (ImGui::CollapsingHeader(
+            (std::string("Channel ") + std::to_string(i / 2)).c_str(),
+            ImGuiTreeNodeFlags_DefaultOpen)) {
       /*
 		Diffuse Color: (Vertex Color) [Color]
 
@@ -766,6 +830,17 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
        * data!)
 
 	  */
+      ImGui::Columns(2);
+      {
+        riistudio::util::IDScope g(i);
+        draw_color_channel(i);
+      }
+      ImGui::NextColumn();
+      {
+        riistudio::util::IDScope g(i + 1);
+        draw_color_channel(i + 1);
+      }
+      ImGui::EndColumns();
     }
   }
 }
