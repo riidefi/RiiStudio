@@ -1,5 +1,3 @@
-#include "BMD.hpp"
-
 #include <core/common.h>
 #include <core/kpi/Node.hpp>
 

@@ -237,6 +237,12 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
     reader.seek(12); // Skip sibling and child links -- we recompute it all
     reader.seek(2 * ((3 * 4) * sizeof(f32))); // skip matrices
   });
+  // Compute children
+  for (int i = 0; i < mdl.getBones().size(); ++i) {
+    if (const auto parent_id = mdl.getBoneRaw(i).mParent; parent_id >= 0) {
+      mdl.getBoneRaw(parent_id).mChildren.push_back(i);
+    }
+  }
   readDict(secOfs.ofsBuffers.position, [&](const DictionaryNode& dnode) {
     readGenericBuffer(mdl.addPositionBuffer().get(), reader);
   });
@@ -607,7 +613,6 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
         }
       }
       QDisplayListMeshHandler(Polygon& poly) : mPoly(poly) {}
-      ~QDisplayListMeshHandler() { return; }
       Polygon& mPoly;
     } meshHandler(poly);
     primitiveData.seekTo(reader);
@@ -615,28 +620,73 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
   });
 
   readDict(secOfs.ofsRenderTree, [&](const DictionaryNode& dnode) {
-    if (dnode.mName == "DrawOpa" || dnode.mName == "DrawXlu") {
-      while (reader.tell() < reader.endpos()) {
-        const auto cmd = static_cast<RenderCommand>(reader.read<u8>());
-        switch (cmd) {
-        case RenderCommand::NoOp:
-          break;
-        case RenderCommand::Return:
-          return;
-        case RenderCommand::Draw: {
-          Bone::Display disp;
-          disp.matId = reader.readUnaligned<u16>();
-          disp.polyId = reader.readUnaligned<u16>();
-          const auto boneIdx = reader.readUnaligned<u16>();
-          disp.prio = reader.readUnaligned<u8>();
-          mdl.getBone(boneIdx).get().addDisplay(disp);
-        } break;
-        default:
-          // TODO
-          break;
+    enum class Tree { DrawOpa, DrawXlu, Node, Other } tree = Tree::Other;
+    std::array<std::pair<std::string_view, Tree>, 3> type_lut{
+        std::pair<std::string_view, Tree>{"DrawOpa", Tree::DrawOpa},
+        std::pair<std::string_view, Tree>{"DrawXlu", Tree::DrawXlu},
+        std::pair<std::string_view, Tree>{"NodeTree", Tree::Node}};
+
+    if (const auto it = std::find_if(
+            type_lut.begin(), type_lut.end(),
+            [&](const auto& tuple) { return tuple.first == dnode.mName; });
+        it != type_lut.end()) {
+      tree = it->second;
+    }
+    int base_matrix_id = -1;
+
+    printf("digraph func {\n");
+    while (reader.tell() < reader.endpos()) {
+      const auto cmd = static_cast<RenderCommand>(reader.read<u8>());
+      switch (cmd) {
+      case RenderCommand::NoOp:
+        break;
+      case RenderCommand::Return:
+        return;
+      case RenderCommand::Draw: {
+        Bone::Display disp;
+        disp.matId = reader.readUnaligned<u16>();
+        disp.polyId = reader.readUnaligned<u16>();
+        const auto boneIdx = reader.readUnaligned<u16>();
+        disp.prio = reader.readUnaligned<u8>();
+        mdl.getBone(boneIdx).get().addDisplay(disp);
+
+        // While with this setup, materials could be XLU and OPA, in
+        // practice, they're not.
+        const bool xlu_mat = mdl.getMaterial(disp.matId).get().isXluPass();
+
+		// Brawlbox....
+		// assert((tree == Tree::DrawOpa && !xlu_mat) ||
+        //        (tree == Tree::DrawXlu && xlu_mat));
+      } break;
+      case RenderCommand::NodeDescendence: {
+        const auto boneIdx = reader.readUnaligned<u16>();
+        const auto parentMtxIdx = reader.readUnaligned<u16>();
+
+        const auto& bone = mdl.getBone(boneIdx).get();
+        const auto matrixId = bone.matrixId;
+
+        // Hack: Base matrix is first copied to end, first instruction
+        if (base_matrix_id == -1) {
+          base_matrix_id = matrixId;
+        } else {
+          auto& drws = mdl.get().mDrawMatrices;
+          if (drws.size() <= matrixId) {
+            drws.resize(matrixId + 1);
+          }
+          // TODO: Start at 100?
+          drws[matrixId].mWeights.emplace_back(boneIdx, 1.0f);
         }
+        printf("BoneIdx: %u (MatrixIdx: %u), ParentMtxIdx: %u\n", (u32)boneIdx,
+               (u32)matrixId, (u32)parentMtxIdx);
+        // printf("\"Matrix %u\" -> \"Matrix %u\" [label=\"parent\"];\n",
+        //        (u32)matrixId, (u32)parentMtxIdx);
+      } break;
+      default:
+        // TODO
+        break;
       }
     }
+    printf("}\n");
   });
 }
 static void readTexture(kpi::NodeAccessor<Texture>& tex,

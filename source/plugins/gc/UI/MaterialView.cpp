@@ -750,6 +750,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     }
     bool enabled = ctrl.enabled;
     ImGui::Checkbox("Affected by Light", &enabled);
+    AUTO_PROP(colorChanControls[i].enabled, enabled);
 
     riistudio::util::ConditionalActive g(enabled);
     {
@@ -830,6 +831,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       }
       ImGui::EndColumns();
     }
+  }
+  if (ImGui::Button("Regenerate Shaders")) {
+    delegate.getActive().notifyObservers();
   }
 }
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {

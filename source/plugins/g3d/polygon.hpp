@@ -99,7 +99,7 @@ struct Polygon : public PolygonData, public libcube::IndexedPolygon {
     // TODO
     return {{0, 0, 0}, {0, 0, 0}};
   }
-  std::vector<glm::mat4> getPosMtx(u64 mpId);
+  std::vector<glm::mat4> getPosMtx(u64 mpId) const override;
 
   glm::vec2 getUv(u64 chan, u64 id) const override;
   glm::vec4 getClr(u64 id) const override;
@@ -111,6 +111,7 @@ struct Polygon : public PolygonData, public libcube::IndexedPolygon {
   u64 addUv(u64 chan, const glm::vec2& v) override;
 
   void addTriangle(std::array<SimpleVertex, 3> tri) override;
+
 
   bool operator==(const Polygon& rhs) const {
     return PolygonData::operator==(rhs);

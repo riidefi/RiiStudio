@@ -1,5 +1,4 @@
 #include "Scene.hpp"
-#include "io/BMD.hpp"
 
 namespace riistudio::j3d {
 

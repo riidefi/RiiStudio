@@ -76,7 +76,7 @@ struct Tex {
   Tex(const Texture& data, const libcube::GCMaterialData::SamplerData& sampler);
 };
 
-struct Model : public lib3d::Model {
+struct Model : public libcube::Model {
   virtual ~Model() = default;
   // Shallow comparison
   bool operator==(const Model& rhs) const { return false; }
@@ -128,8 +128,6 @@ struct Model : public lib3d::Model {
       }
     }
   } mBufs = Bufs();
-
-  std::vector<DrawMatrix> mDrawMatrices;
 
   struct Indirect {
     bool enabled;

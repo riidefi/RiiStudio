@@ -1,8 +1,8 @@
 #pragma once
 
-#include "BMD.hpp"
 #include "oishii/types.hxx"
 #include <oishii/reader/binary_reader.hxx>
+#include "OutputCtx.hpp"
 
 namespace oishii {
 class Node;

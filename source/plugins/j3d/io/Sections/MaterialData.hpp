@@ -300,7 +300,7 @@ template <> struct io_wrapper<Material::TexMatrix> {
     // TODO -- Assert
 
     c.scale << reader;
-    c.rotate = static_cast<f32>(reader.read<s16>()) * 180.f / (f32)0x7FFF;
+    c.rotate = static_cast<f32>(reader.read<s16>()) * glm::pi<f32>() / (f32)0x7FFF;
     reader.read<u16>();
     c.translate << reader;
     for (auto& f : c.effectMatrix)

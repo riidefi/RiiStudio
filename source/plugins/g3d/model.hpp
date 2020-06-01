@@ -59,10 +59,15 @@ class TextureCoordinateBuffer
     : public GenericBuffer<glm::vec2, true, true,
                            libcube::gx::VertexBufferKind::textureCoordinate> {};
 
-struct G3DModel : public lib3d::Model {
+struct G3DModel : public libcube::Model {
   virtual ~G3DModel() = default;
   // Shallow comparison
-  bool operator==(const G3DModel& rhs) const { return true; }
+  bool operator==(const G3DModel& rhs) const {
+    return mDrawMatrices == rhs.mDrawMatrices &&
+           mScalingRule == rhs.mScalingRule && mTexMtxMode == rhs.mTexMtxMode &&
+           mEvpMtxMode == rhs.mEvpMtxMode &&
+           sourceLocation == rhs.sourceLocation && aabb == rhs.aabb;
+  }
   const G3DModel& operator=(const G3DModel& rhs) { return *this; }
 
   ScalingRule mScalingRule;
