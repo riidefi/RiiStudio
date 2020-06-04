@@ -18,31 +18,32 @@ namespace libcube::UI {
 struct ImageSurface final {
   const char* name = "Image Data";
   const char* icon = ICON_FA_IMAGE;
-};
 
-// Big TODO -- better state storage.. (per window)
-namespace tex {
+  // Mark this surface to be more than an IDL tag.
+  int tag_stateful;
+
+  struct ResizeDimension {
+    const char* name = "?";
+    int before = -1;
+    int value = -1;
+    bool constrained = true;
+  };
+
+  std::array<ResizeDimension, 2> resize{
+      ResizeDimension{"Width ", -1, -1, false},
+      ResizeDimension{"Height", -1, -1, true}};
+  int reformatOpt = -1;
+  int resizealgo = 0;
+  Texture* lastTex = nullptr;
+  riistudio::frontend::ImagePreview mImg;
+};
 
 static const std::vector<std::string> StdImageFilters = {
     "PNG Files", "*.png",     "TGA Files", "*.tga",     "JPG Files",
     "*.jpg",     "BMP Files", "*.bmp",     "All Files", "*",
 };
-struct ResizeDimension {
-  const char* name = "?";
-  int before = -1;
-  int value = -1;
-  bool constrained = true;
-};
 
-std::array<ResizeDimension, 2> resize{ResizeDimension{"Width ", -1, -1, false},
-                                      ResizeDimension{"Height", -1, -1, true}};
-int reformatOpt = -1;
-int resizealgo = 0;
-Texture* lastTex = nullptr;
-riistudio::frontend::ImagePreview mImg;
-} // namespace tex
-
-void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
+void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
   auto& data = delegate.getActive();
 
   bool resizeAction = false;
@@ -57,7 +58,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
       reformatOption = true;
     }
     if (ImGui::Button(ICON_FA_SAVE " Export")) {
-      auto results = pfd::save_file("Export image", "", tex::StdImageFilters);
+      auto results = pfd::save_file("Export image", "", StdImageFilters);
       if (!results.result().empty()) {
         const std::string path = results.result();
         libcube::STBImage imgType = libcube::STBImage::PNG;
@@ -74,12 +75,12 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
         // Only top LOD
         libcube::writeImageStbRGBA(path.c_str(), imgType, data.getWidth(),
                                    data.getHeight(),
-                                   tex::mImg.mDecodeBuf.data());
+                                   tex.mImg.mDecodeBuf.data());
       }
     }
     if (ImGui::Button(ICON_FA_FILE " Import")) {
       auto result =
-          pfd::open_file("Import image", "", tex::StdImageFilters).result();
+          pfd::open_file("Import image", "", StdImageFilters).result();
       if (!result.empty()) {
         const auto path = result[0];
         int width, height, channels;
@@ -93,7 +94,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
         data.encode(image);
         stbi_image_free(image);
         delegate.commit("Import Image");
-        tex::lastTex = nullptr;
+        tex.lastTex = nullptr;
       }
     }
     // ImGui::EndMenu();
@@ -106,35 +107,35 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
 
   if (resizeAction) {
     ImGui::OpenPopup("Resize");
-    tex::resize[0].value = -1;
-    tex::resize[1].value = -1;
-    tex::resize[0].before = -1;
-    tex::resize[1].before = -1;
+    tex.resize[0].value = -1;
+    tex.resize[1].value = -1;
+    tex.resize[0].before = -1;
+    tex.resize[1].before = -1;
   } else if (reformatOption) {
     ImGui::OpenPopup("Reformat");
-    tex::reformatOpt = -1;
+    tex.reformatOpt = -1;
   }
 
 #ifndef BUILD_DIST
   if (ImGui::BeginPopupModal("Reformat", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
-    if (tex::reformatOpt == -1) {
-      tex::reformatOpt = data.getTextureFormat();
+    if (tex.reformatOpt == -1) {
+      tex.reformatOpt = data.getTextureFormat();
     }
-    ImGui::InputInt("Format", &tex::reformatOpt);
+    ImGui::InputInt("Format", &tex.reformatOpt);
     if (ImGui::Button(ICON_FA_CHECK " Okay")) {
       const auto oldFormat = data.getTextureFormat();
-      data.setTextureFormat(tex::reformatOpt);
+      data.setTextureFormat(tex.reformatOpt);
       data.resizeData();
 
       libcube::image_platform::transform(
           data.getData(), data.getWidth(), data.getHeight(),
           static_cast<libcube::gx::TextureFormat>(oldFormat),
-          static_cast<libcube::gx::TextureFormat>(tex::reformatOpt),
+          static_cast<libcube::gx::TextureFormat>(tex.reformatOpt),
           data.getData(), data.getWidth(), data.getHeight(),
           data.getMipmapCount() - 1);
       delegate.commit("Reformat Image");
-      tex::lastTex = nullptr;
+      tex.lastTex = nullptr;
 
       ImGui::CloseCurrentPopup();
     }
@@ -149,16 +150,16 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
 #endif
   if (ImGui::BeginPopupModal("Resize", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
-    if (tex::resize[0].before <= 0) {
-      tex::resize[0].before = data.getWidth();
+    if (tex.resize[0].before <= 0) {
+      tex.resize[0].before = data.getWidth();
     }
-    if (tex::resize[1].before <= 0) {
-      tex::resize[1].before = data.getHeight();
+    if (tex.resize[1].before <= 0) {
+      tex.resize[1].before = data.getHeight();
     }
 
     int dX = 0;
-    for (auto& it : tex::resize) {
-      auto& other = dX++ ? tex::resize[0] : tex::resize[1];
+    for (auto& it : tex.resize) {
+      auto& other = dX++ ? tex.resize[0] : tex.resize[1];
 
       int before = it.value;
       ImGui::InputInt(it.name, &it.value, 1, 64);
@@ -182,14 +183,14 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
       }
     }
 
-    if (tex::resize[0].value <= 0) {
-      tex::resize[0].value = data.getWidth();
+    if (tex.resize[0].value <= 0) {
+      tex.resize[0].value = data.getWidth();
     }
-    if (tex::resize[1].value <= 0) {
-      tex::resize[1].value = data.getHeight();
+    if (tex.resize[1].value <= 0) {
+      tex.resize[1].value = data.getHeight();
     }
 
-    ImGui::Combo("Algorithm", (int*)&tex::resizealgo, "Ultimate\0Lanczos\0");
+    ImGui::Combo("Algorithm", (int*)&tex.resizealgo, "Ultimate\0Lanczos\0");
 
     if (ImGui::Button(ICON_FA_CHECK " Resize")) {
       printf("Do the resizing..\n");
@@ -197,19 +198,19 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
       const auto oldWidth = data.getWidth();
       const auto oldHeight = data.getHeight();
 
-      data.setWidth(tex::resize[0].value);
-      data.setHeight(tex::resize[1].value);
+      data.setWidth(tex.resize[0].value);
+      data.setHeight(tex.resize[1].value);
       data.resizeData();
 
       libcube::image_platform::transform(
-          data.getData(), tex::resize[0].value, tex::resize[1].value,
+          data.getData(), tex.resize[0].value, tex.resize[1].value,
           static_cast<libcube::gx::TextureFormat>(data.getTextureFormat()),
           std::nullopt, data.getData(), oldWidth, oldHeight,
           data.getMipmapCount(),
           static_cast<libcube::image_platform::ResizingAlgorithm>(
-              tex::resizealgo));
+              tex.resizealgo));
       delegate.commit("Resize Image");
-      tex::lastTex = nullptr;
+      tex.lastTex = nullptr;
 
       ImGui::CloseCurrentPopup();
     }
@@ -222,11 +223,11 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface) {
     ImGui::EndPopup();
   }
 
-  if (tex::lastTex != &data) {
-    tex::lastTex = &data;
-    tex::mImg.setFromImage(data);
+  if (tex.lastTex != &data) {
+    tex.lastTex = &data;
+    tex.mImg.setFromImage(data);
   }
-  tex::mImg.draw();
+  tex.mImg.draw();
 
 #ifdef BUILD_DEBUG
   if (ImGui::CollapsingHeader("DEBUG")) {

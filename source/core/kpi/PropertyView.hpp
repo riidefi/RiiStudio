@@ -2,9 +2,17 @@
 
 #include "Node.hpp"
 #include <string_view>
+#include <tuple>
+#include <unordered_map>
 #include <vector>
 
 namespace kpi {
+
+class PropertyViewStateHolder;
+
+struct IPropertyViewState {
+  virtual ~IPropertyViewState() = default;
+};
 
 struct IPropertyView {
   virtual ~IPropertyView() = default;
@@ -15,7 +23,10 @@ struct IPropertyView {
   virtual const std::string_view getIcon() const = 0;
   virtual void draw(kpi::IDocumentNode& active,
                     std::vector<kpi::IDocumentNode*> affected,
-                    kpi::History& history, kpi::IDocumentNode& root) = 0;
+                    kpi::History& history, kpi::IDocumentNode& root,
+                    PropertyViewStateHolder& state_holder) = 0;
+
+  virtual std::unique_ptr<IPropertyViewState> constructState() const = 0;
 };
 
 template <typename T> class PropertyDelegate {
@@ -65,8 +76,100 @@ public:
         mTransientRoot(transientRoot) {}
 };
 
+class PropertyViewStateHolder {
+public:
+  static constexpr int lifetime_grace_period = 30; // Duration of 0.5 seconds
+
+  void garbageCollect() {
+    bool changed = true;
+    while (changed) {
+      changed = false;
+      for (auto& [key, value] : states) {
+        if (auto& last_used = value.second;
+            last_used++ > lifetime_grace_period) {
+          DebugReport("[PropertyViewStateHolder] Destroying state for: %s.\n",
+                      std::string(key.id).c_str());
+          states.erase(key);
+          changed = true;
+          break;
+        }
+      }
+    }
+  }
+
+  IPropertyViewState* requestState(kpi::IDocumentNode& node,
+                                   const IPropertyView& blueprint) {
+    Key key{&node, blueprint.getName()};
+    if (auto it = states.find(key); it != states.end()) {
+      auto& [state, last_used] = it->second;
+      last_used = 0;
+      return state.get();
+    }
+
+    auto state = blueprint.constructState();
+    if (state.get() == nullptr) {
+      return nullptr;
+    }
+
+    DebugReport("[PropertyViewStateHolder] Creating state for: %s.\n",
+                std::string(blueprint.getName()).c_str());
+
+    auto* state_ref = state.get();
+    states.emplace(key, std::make_pair(std::move(state), 0));
+    return state_ref;
+  }
+
+private:
+  struct Key {
+    kpi::IDocumentNode* node;
+    std::string_view id;
+
+    bool operator==(const Key& rhs) const {
+      return node == rhs.node && id == rhs.id;
+    }
+  };
+  struct KeyHash {
+    std::size_t operator()(Key const& key) const noexcept {
+      std::size_t h1 = std::hash<kpi::IDocumentNode*>{}(key.node);
+      std::size_t h2 = std::hash<std::string_view>{}(key.id);
+      return h1 ^ (h2 << 1);
+    }
+  };
+  std::unordered_map<
+      Key,
+      std::pair<std::unique_ptr<IPropertyViewState>, int>, // <state, last_used>
+      KeyHash>
+      states;
+};
+
+template <typename T> class is_stateful {
+  using true_t = u8;
+  using false_t = u16;
+
+  template <typename U> static true_t& test(decltype(&U::tag_stateful));
+  template <typename U> static false_t& test(...);
+
+public:
+  enum { value = sizeof(test<T>(0)) == sizeof(true_t) ? 1 : 0 };
+};
+
+template <typename T> constexpr bool is_stateful_v = is_stateful<T>::value != 0;
+
+struct StatefulTestA {
+  int tag_stateful;
+};
+static_assert(is_stateful_v<StatefulTestA>, "Detecting tag_stateful");
+struct StatefulTestB {
+  int no_tag;
+};
+static_assert(!is_stateful_v<StatefulTestB>, "Detecting tag_stateful");
+
 template <typename T, typename U>
 struct PropertyViewImpl final : public IPropertyView {
+  struct ViewStateImpl : public IPropertyViewState {
+    U value;
+  };
+
   bool isInDomain(IDocumentNode* test) const override {
     return dynamic_cast<T*>(test) != nullptr;
   }
@@ -80,7 +183,8 @@ struct PropertyViewImpl final : public IPropertyView {
   }
   void draw(kpi::IDocumentNode& active,
             std::vector<kpi::IDocumentNode*> affected, kpi::History& history,
-            kpi::IDocumentNode& root) override {
+            kpi::IDocumentNode& root,
+            PropertyViewStateHolder& state_holder) override {
     T* _active = dynamic_cast<T*>(&active);
     assert(_active != nullptr);
 
@@ -91,11 +195,20 @@ struct PropertyViewImpl final : public IPropertyView {
     }
 
     PropertyDelegate<T> delegate(*_active, _affected, history, root);
-    U idl_tag;
-
-    drawProperty(delegate, idl_tag);
+    if constexpr (is_stateful_v<U>) {
+      IPropertyViewState* state = state_holder.requestState(active, *this);
+      assert(state != nullptr);
+      drawProperty(delegate, reinterpret_cast<ViewStateImpl*>(state)->value);
+    } else {
+      U idl_tag;
+      drawProperty(delegate, idl_tag);
+    }
+  }
+  std::unique_ptr<IPropertyViewState> constructState() const override {
+    return std::make_unique<ViewStateImpl>();
   }
 };
+
 struct PropertyViewManager {
   template <typename TDomain, typename TTag> void addPropertyView() {
     mViews.push_back(std::make_unique<PropertyViewImpl<TDomain, TTag>>());

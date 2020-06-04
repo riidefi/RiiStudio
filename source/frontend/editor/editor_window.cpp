@@ -346,6 +346,7 @@ struct PropertyEditor : public StudioWindow {
         mActive(active) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
+  ~PropertyEditor() { state_holder.garbageCollect(); }
 
   template <typename T>
   void gatherSelected(std::vector<kpi::IDocumentNode*>& tmp,
@@ -440,7 +441,7 @@ struct PropertyEditor : public StudioWindow {
         return;
       }
 
-      activeTab->draw(*mActive, selected, mHost, mRoot);
+      activeTab->draw(*mActive, selected, mHost, mRoot, state_holder);
     } else if (mMode == Mode::Headers) {
       std::string title;
       manager.forEachView(
@@ -451,15 +452,18 @@ struct PropertyEditor : public StudioWindow {
             title += view.getName();
             if (ImGui::CollapsingHeader(title.c_str(),
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
-              view.draw(*mActive, selected, mHost, mRoot);
+              view.draw(*mActive, selected, mHost, mRoot, state_holder);
             }
           },
           *mActive);
     } else {
       ImGui::Text("Unknown mode");
     }
+
+    state_holder.garbageCollect();
   }
 
+  kpi::PropertyViewStateHolder state_holder;
   kpi::History& mHost;
   kpi::IDocumentNode& mRoot;
 

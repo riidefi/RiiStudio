@@ -80,6 +80,12 @@ struct SwapTableSurface final {
 struct StageSurface final {
   const char* name = "Stage";
   const char* icon = ICON_FA_NETWORK_WIRED;
+
+  // Mark this surface to be more than an IDL tag.
+  int tag_stateful;
+
+  riistudio::frontend::ImagePreview mImg; // In mat sampler
+  std::string mLastImg;
 };
 struct FogSurface final {
   const char* name = "Fog";
@@ -560,13 +566,8 @@ const char* alphaOpt = "Register 3 Alpha\0Register 0 Alpha\0Register 1 "
                        "Alpha\0Register 2 Alpha\0Texture Alpha\0Raster "
                        "Alpha\0Constant Alpha Selection\0 0.0\0";
 
-namespace tev {
-// Hack: The view needs to be stateful..
-static riistudio::frontend::ImagePreview mImg; // In mat sampler
-static std::string mLastImg;
-} // namespace tev
-
-void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
+                  StageSurface& tev) {
   auto& matData = delegate.getActive().getMaterialData();
 
   // TEV-ADD form only
@@ -659,13 +660,13 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, StageSurface) {
             curImg = &it;
           }
         }
-        if (matData.samplers[stage.texCoord]->mTexture != tev::mLastImg) {
-          tev::mImg.setFromImage(*curImg);
-          tev::mLastImg = curImg->getName();
+        if (matData.samplers[stage.texCoord]->mTexture != tev.mLastImg) {
+          tev.mImg.setFromImage(*curImg);
+          tev.mLastImg = curImg->getName();
         }
-        tev::mImg.draw(128.0f * (static_cast<f32>(curImg->getWidth()) /
-                                 static_cast<f32>(curImg->getHeight())),
-                       128.0f);
+        tev.mImg.draw(128.0f * (static_cast<f32>(curImg->getWidth()) /
+                                static_cast<f32>(curImg->getHeight())),
+                      128.0f);
       }
     }
     if (ImGui::CollapsingHeader("Color Stage",
@@ -718,7 +719,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   // ImGui::Text("Number of colors:   %u", colors.size());
   // ImGui::Text("Number of controls: %u", controls.size());
 
-  if (colors.size() > controls.size() / 2 || controls.size() % 2 != 0 || controls.size() == 0) {
+  if (colors.size() > controls.size() / 2 || controls.size() % 2 != 0 ||
+      controls.size() == 0) {
     ImGui::Text("Cannot edit this material's lighting data.");
     return;
   }
@@ -744,7 +746,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           ImGui::ColorEdit3("Diffuse Color", mclr);
         } else {
           ImGui::DragFloat("Diffuse Alpha", &mclr.a, 0.0f, 1.0f);
-		}
+        }
         AUTO_PROP(chanData[i / 2].matColor, (libcube::gx::Color)mclr);
       }
     }
