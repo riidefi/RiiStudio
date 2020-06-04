@@ -55,6 +55,17 @@ struct copyable_polymorphic_array_vector
     }
     return *this;
   }
+  bool operator==(const copyable_polymorphic_array_vector& rhs) const noexcept {
+    if (rhs.nElements != nElements)
+      return false;
+    for (int i = 0; i < nElements; ++i) {
+      const T& l = *this->at(i).get();
+      const T& r = *rhs.at(i).get();
+      if (!(l == r))
+        return false;
+    }
+    return true;
+  }
   copyable_polymorphic_array_vector(
       const copyable_polymorphic_array_vector& rhs) {
     *this = rhs;

@@ -8,7 +8,8 @@ ShaderProgram& ShaderCache::compile(const std::string& vert,
   const auto key = std::pair<std::string, std::string>(vert, frag);
   const auto found = mShaders.find(key);
   if (found != mShaders.end())
-    return *found->second.get();
+    mShaders.erase(key);
+  //   return *found->second.get();
   auto new_program = std::make_unique<ShaderProgram>(vert, frag);
   ShaderProgram& ref = *new_program.get();
   mShaders.emplace(key, std::move(new_program));

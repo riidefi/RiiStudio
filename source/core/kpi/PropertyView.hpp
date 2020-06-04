@@ -55,6 +55,20 @@ public:
 
     commit("Property Update");
   }
+
+  template <typename T> static inline T doNothing(T x) { return x; }
+
+  template <typename U, typename V, typename W>
+  void propertyEx(U before, U after, V val, W pre = &doNothing) {
+    property(
+        before, after, [&](const auto& x) { return pre(x).*val; },
+        [&](auto& x, auto& y) { (pre(x).*val) = y; });
+  }
+  // When external source updating internal data
+  template <typename U, typename V, typename W>
+  void propertyEx(U member, V after, W pre = &doNothing) {
+    propertyEx(pre(getActive()).*member, after, member, pre);
+  }
 #define KPI_PROPERTY(delegate, before, after, val)                             \
   delegate.property(                                                           \
       before, after, [&](const auto& x) { return x.val; },                     \
@@ -65,7 +79,11 @@ public:
 
 private:
   T& mActive;
+
+public:
   std::vector<T*> mAffected;
+
+private:
   kpi::History& mHistory;
   const kpi::IDocumentNode& mTransientRoot;
 

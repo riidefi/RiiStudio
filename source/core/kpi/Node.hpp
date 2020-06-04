@@ -22,7 +22,6 @@ struct SelectionState {
   std::size_t activeSelectChild = 0;
 };
 
-
 struct IDocData {
   virtual ~IDocData() = default;
 };
@@ -55,6 +54,9 @@ public:
 
   // Does not compare children
   virtual bool compareJustThisNotChildren(const IDocData& rhs) const = 0;
+
+  // When changes to the node are undone/redone
+  virtual void onUpdate() {}
 
   virtual std::string getName() const { return defaultNameField; }
   virtual void setName(const std::string& v) { defaultNameField = v; }
@@ -221,6 +223,16 @@ struct TDocumentNode final : public IDocumentNode, public T {
   public:
     enum { value = sizeof(test<Q>(0)) == sizeof(YesType) };
   };
+  template <typename Q> class has_on_update {
+    typedef char YesType[1];
+    typedef char NoType[2];
+
+    template <typename C> static YesType& test(decltype(&C::onUpdate));
+    template <typename C> static NoType& test(...);
+
+  public:
+    enum { value = sizeof(test<Q>(0)) == sizeof(YesType) };
+  };
 
   struct TestA {
     std::string getName() { return ""; }
@@ -236,9 +248,15 @@ struct TDocumentNode final : public IDocumentNode, public T {
   std::string getName() const override {
     return _getName<has_get_name<T>::value>();
   }
+
   //	void setName(const std::string& v) override {
   //		// _setName(v);
   //	}
+
+  template <bool B> void _onUpdate() {}
+  template <> void _onUpdate<true>() { T::onUpdate(); }
+
+  void onUpdate() override { _onUpdate<has_on_update<T>::value>(); }
 
   // Does not copy anything but data
   void fromData(const IDocData& rhs) override {
@@ -256,6 +274,7 @@ struct TDocumentNode final : public IDocumentNode, public T {
   }
   bool compareJustThisNotChildren(const IDocData& rhs) const override {
     const T* pdat = dynamic_cast<const T*>(&rhs);
+    assert(pdat != nullptr);
     return pdat && *pdat == *static_cast<const T*>(this);
   }
 };
@@ -346,7 +365,6 @@ public:
 protected:
   TDocumentNode<T>* data = nullptr;
 };
-
 
 } // namespace kpi
 

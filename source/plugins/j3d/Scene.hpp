@@ -79,7 +79,9 @@ struct Tex {
 struct Model : public libcube::Model {
   virtual ~Model() = default;
   // Shallow comparison
-  bool operator==(const Model& rhs) const { return false; }
+  bool operator==(const Model& rhs) const {
+	  // TODO: Check bufs
+	  return info.mScalingRule == rhs.info.mScalingRule; }
   struct Information {
     // For texmatrix calculations
     enum class ScalingRule { Basic, XSI, Maya };

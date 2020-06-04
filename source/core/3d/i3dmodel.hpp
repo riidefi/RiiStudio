@@ -233,10 +233,11 @@ enum class PixelOcclusion {
   //!
   Translucent
 };
+struct Material;
 struct IObserver {
   virtual ~IObserver() = default;
   // TODO: Detach
-  virtual void update() {}
+  virtual void update(Material* mat) {}
 };
 struct Polygon;
 struct Material {
@@ -267,8 +268,12 @@ struct Material {
   // TODO: Better system..
   void notifyObservers() {
     for (auto* it : observers) {
-      it->update();
+      it->update(this);
     }
+  }
+  void onUpdate() {
+    // (for shader recompilation)
+    notifyObservers();
   }
   mutable std::vector<IObserver*> observers;
 };

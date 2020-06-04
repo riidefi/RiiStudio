@@ -57,8 +57,16 @@ setNext(const IDocumentNode& node,
 void rollback(IDocumentNode& node,
               std::shared_ptr<const DocumentMemento> record) {
   // Compare the actual data of the node
+#ifdef BUILD_DEBUG
+  auto cloned = node.cloneDataNotChildren();
+  bool identity = node.compareJustThisNotChildren(*cloned.get());
+  identity = node.compareJustThisNotChildren(*cloned.get());
+  assert(identity);
+#endif
   if (!node.compareJustThisNotChildren(*record->JustData.get())) {
     node.fromData(*record->JustData.get());
+    node.onUpdate();
+    assert(node.compareJustThisNotChildren(*record->JustData.get()));
   }
 
   // Synchronize folders

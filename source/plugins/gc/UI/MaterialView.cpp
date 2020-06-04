@@ -12,6 +12,19 @@
 
 namespace libcube::UI {
 
+auto get_material_data = [](auto& x) -> GCMaterialData& {
+  return (GCMaterialData&)x.getMaterialData();
+};
+
+auto mat_prop = [](auto& delegate, auto member, const auto& after) {
+  delegate.propertyEx(member, after, get_material_data);
+};
+auto mat_prop_ex = [](auto& delegate, auto member, auto draw) {
+  delegate.propertyEx(member,
+                      draw(delegate.getActive().getMaterialData().*member),
+                      get_material_data);
+};
+
 struct CullMode {
   bool front, back;
 
@@ -56,6 +69,11 @@ struct CullMode {
     ImGui::Checkbox("Back", &back);
   }
 };
+libcube::gx::CullMode DrawCullMode(libcube::gx::CullMode cull_mode) {
+  CullMode widget(cull_mode);
+  widget.draw();
+  return widget.get();
+}
 
 struct DisplaySurface final {
   const char* name = "Surface Visibility";
@@ -98,17 +116,20 @@ struct PixelSurface final {
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   DisplaySurface) {
-  const auto before = delegate.getActive().getMaterialData().cullMode;
-
-  CullMode cm(before);
-  cm.draw();
-
-  KPI_PROPERTY(delegate, before, cm.get(), getMaterialData().cullMode);
+  mat_prop_ex(delegate, &GCMaterialData::cullMode, DrawCullMode);
 }
+#define _AUTO_PROPERTY(delegate, before, after, val)                           \
+  delegate.property(                                                           \
+      before, after, [&](const auto& x) { return x.val; },                     \
+      [&](auto& x, auto& y) {                                                  \
+        x.val = y;                                                             \
+        for (auto& e : delegate.mAffected)                                     \
+          e->notifyObservers();                                                \
+      })
 
 #define AUTO_PROP(before, after)                                               \
-  KPI_PROPERTY(delegate, delegate.getActive().getMaterialData().before, after, \
-               getMaterialData().before)
+  _AUTO_PROPERTY(delegate, delegate.getActive().getMaterialData().before,      \
+                 after, getMaterialData().before)
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
   libcube::gx::ColorF32 clr;
   auto& matData = delegate.getActive().getMaterialData();
@@ -847,39 +868,48 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
         "Always do not pass.\0<\0==\0<=\0>\0!=\0>=\0Always pass.";
     ImGui::PushItemWidth(100);
 
+    auto alpha_compare_prop = [&](auto member, auto after) {
+      delegate.propertyEx(member, after, [](auto& mat) -> gx::AlphaComparison& {
+        return (gx::AlphaComparison&)mat.getMaterialData().alphaCompare;
+      });
+    };
+
     {
       ImGui::Text("( Pixel Alpha");
       ImGui::SameLine();
       int leftAlpha = static_cast<int>(matData.alphaCompare.compLeft);
       ImGui::Combo("##l", &leftAlpha, compStr);
-      AUTO_PROP(alphaCompare.compLeft,
-                static_cast<libcube::gx::Comparison>(leftAlpha));
+      alpha_compare_prop(&gx::AlphaComparison::compLeft,
+                         static_cast<libcube::gx::Comparison>(leftAlpha));
 
       int leftRef = static_cast<int>(
           delegate.getActive().getMaterialData().alphaCompare.refLeft);
       ImGui::SameLine();
       ImGui::SliderInt("##lr", &leftRef, 0, 255);
-      AUTO_PROP(alphaCompare.refLeft, (u8)leftRef);
+      alpha_compare_prop(&gx::AlphaComparison::refLeft,
+                         static_cast<u8>(leftRef));
+
       ImGui::SameLine();
       ImGui::Text(")");
     }
     {
       int op = static_cast<int>(matData.alphaCompare.op);
       ImGui::Combo("##o", &op, "&&\0||\0!=\0==\0");
-      AUTO_PROP(alphaCompare.op, static_cast<libcube::gx::AlphaOp>(op));
+      alpha_compare_prop(&gx::AlphaComparison::op,
+                         static_cast<libcube::gx::AlphaOp>(op));
     }
     {
       ImGui::Text("( Pixel Alpha");
       ImGui::SameLine();
       int rightAlpha = static_cast<int>(matData.alphaCompare.compRight);
       ImGui::Combo("##r", &rightAlpha, compStr);
-      AUTO_PROP(alphaCompare.compRight,
-                static_cast<libcube::gx::Comparison>(rightAlpha));
+      alpha_compare_prop(&gx::AlphaComparison::compRight,
+                         static_cast<libcube::gx::Comparison>(rightAlpha));
 
       int rightRef = static_cast<int>(matData.alphaCompare.refRight);
       ImGui::SameLine();
       ImGui::SliderInt("##rr", &rightRef, 0, 255);
-      AUTO_PROP(alphaCompare.refRight, (u8)rightRef);
+      alpha_compare_prop(&gx::AlphaComparison::refRight, (u8)rightRef);
 
       ImGui::SameLine();
       ImGui::Text(")");
