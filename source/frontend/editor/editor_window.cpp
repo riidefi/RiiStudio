@@ -5,7 +5,9 @@
 
 #include "Renderer.hpp"
 #include "kit/Image.hpp"
-#include "kit/Viewport.hpp"
+
+#include <plate/toolkit/Viewport.hpp>
+
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 #include <plugins/gc/Export/Material.hpp>
@@ -306,7 +308,7 @@ struct RenderTest : public StudioWindow {
       mViewport.end();
     }
   }
-  Viewport mViewport;
+  plate::tk::Viewport mViewport;
   Renderer mRenderer;
   const kpi::IDocumentNode* model;
   const kpi::IDocumentNode& mHost; // texture
