@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vendor/imgui/imgui.h>
-#include <vendor/imgui/imgui_internal.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <string>
 #include <vendor/fa5/IconsFontAwesome5.h>
 

@@ -97,7 +97,8 @@ function setupMainAppCli(set_links)
 	--	(FBX_SDK_ROOT .. "../../../include"),
 	--	PYTHON_ROOT .. "./include",
 		"./source/vendor/pybind11/include",
-		"source/plate"
+		"source/plate/include",
+		"source/plate/vendor"
 	}
 	if set_links then
 	links
@@ -153,7 +154,7 @@ function setupMainApp()
 		"plugins",
 		"plate",
 		"oishii",
-		"source/vendor/glfw/lib-vc2017/glfw3dll.lib",
+		"source/plate/vendor/glfw/lib-vc2017/glfw3dll.lib",
 		"opengl32.lib",
 	--	"libfbxsdk.lib",
 		"assimp-vc141-mt.lib"
@@ -170,7 +171,7 @@ function setupMainApp()
 	--		fbx_dir = FBX_SDK_ROOT .. "/x64/release"
 
 	postbuildcommands {
-		"{COPY} ../vendor/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}",
+		"{COPY} ../source/plate/vendor/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}",
 		-- "{COPY} " .. fbx_dir .. "libfbxsdk.dll %{cfg.targetdir}",
 		"{COPY} ../../fonts/* %{cfg.targetdir}",
 		"{COPY} ./scripts/* %{cfg.targetdir}/scripts"
@@ -187,7 +188,9 @@ project "plate"
 	includedirs
 	{
 		"./source",
-		"source/vendor"
+		"source/vendor",
+		"source/plate/include",
+		"source/plate/vendor"
 	}
 	setupStaticLib()
 	setupCppC()
@@ -233,7 +236,8 @@ project "core"
 		"source/core",
 	--	PYTHON_ROOT .. "./include",
 		"source/vendor/pybind11/include",
-		"source/plate"
+		"source/plate/include",
+		"source/plate/vendor"
 	}
 
 	setupStaticLib()
@@ -246,7 +250,9 @@ project "plugins"
 	includedirs {
 		"./source",
 		"source/vendor",
-		"source/core"
+		"source/core",
+		"source/plate/include",
+		"source/plate/vendor"
 	}
 
 	setupStaticLib()

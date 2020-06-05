@@ -2,8 +2,8 @@
 #include <kpi/PropertyView.hpp>
 #include <plugins/gc/Export/Material.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
-#include <vendor/imgui/imgui.h>
-#include <vendor/imgui/imgui_internal.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 #include <plugins/j3d/Joint.hpp>
 #include <plugins/j3d/Material.hpp>

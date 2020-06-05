@@ -62,6 +62,8 @@ DEFINES = [
 ]
 INCLUDES = [
 	"source",
+	"source/plate/include",
+	"source/plate/vendor",
 	"source/vendor/pybind11/include",
 	"C:/Python36/include"
 ]
