@@ -7,6 +7,7 @@ from hashlib import sha256
 from shutil import copyfile
 
 import sys
+from itertools import chain
 
 def require_dir(path):
 	# TODO: if not isdir, delete
@@ -61,7 +62,6 @@ DEFINES = [
 ]
 INCLUDES = [
 	"source",
-	"source/vendor/oishii",
 	"source/vendor/pybind11/include",
 	"C:/Python36/include"
 ]
@@ -97,19 +97,25 @@ PROJECTS = [
 		"type": "static_lib"
 	},
 	{
+		"name": "oishii",
+		"type": "static_lib"
+	},
+	{
 		"name": "frontend",
 		"type": "main_app",
 		"links": [
 			"vendor",
 			"core",
 			"plugins",
-			"plate"
+			"plate",
+			"oishii"
 		]
 	}
 ]
 
 def format_out(source, int_dir):
-	return os.path.join(int_dir, source.replace(".cpp", ".o").replace(".c", ".o").replace("\\", "_").replace("/", "_")) 
+	return os.path.join(int_dir,
+		source.replace(".cpp", ".o").replace(".cxx", ".o").replace(".c", ".o").replace("\\", "_").replace("/", "_")) 
 
 def compile(source, int_dir, debug, config):
 
@@ -151,8 +157,9 @@ def build_project(name, type, config, proj=None):
 	get_sources = lambda src, filter: [str(x) for x in Path(src).glob(filter) ]
 
 	cpp = get_sources("source/" + name, "**/*.cpp")
+	cxx = get_sources("source/" + name, "**/*.cxx")
 	
-	for source in cpp:
+	for source in chain(cpp, cxx):
 		if "pybind11\\tests" in source:
 			continue
 

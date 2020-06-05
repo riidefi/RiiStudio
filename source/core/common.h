@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vendor/oishii/oishii/options.hxx>
-#include <vendor/oishii/oishii/types.hxx>
+#include <oishii/options.hxx>
+#include <oishii/types.hxx>
 
 #ifndef assert
 #include <cassert>

@@ -41,41 +41,41 @@ enum class ZTextureFormat
 	Z16L = 0xC | _ZTF | _CTF,
 
 };
-u32 GetTexBufferSize(u16 wd, u16 ht, u32 fmt, u8 mipmap, u8 maxlod)
+uint32_t GetTexBufferSize(uint16_t wd, uint16_t ht, uint32_t fmt, uint8_t mipmap, uint8_t maxlod)
 {
-	u32 xshift, yshift, xtiles, ytiles, bitsize, size;
+	uint32_t xshift, yshift, xtiles, ytiles, bitsize, size;
 
 	switch (fmt) {
-	case (u32)TextureFormat::I4:
-	case (u32)TextureFormat::CMPR:
-	case (u32)CopyTextureFormat::R4:
-	case (u32)CopyTextureFormat::RA4:
-	case (u32)ZTextureFormat::Z4:
+	case (uint32_t)TextureFormat::I4:
+	case (uint32_t)TextureFormat::CMPR:
+	case (uint32_t)CopyTextureFormat::R4:
+	case (uint32_t)CopyTextureFormat::RA4:
+	case (uint32_t)ZTextureFormat::Z4:
 		xshift = 3;
 		yshift = 3;
 		break;
-	case (u32)ZTextureFormat::Z8:
-	case (u32)TextureFormat::I8:
-	case (u32)TextureFormat::IA4:
-	case (u32)CopyTextureFormat::A8:
-	case (u32)CopyTextureFormat::R8:
-	case (u32)CopyTextureFormat::G8:
-	case (u32)CopyTextureFormat::B8:
-	case (u32)CopyTextureFormat::RG8:
-	case (u32)CopyTextureFormat::GB8:
-	case (u32)ZTextureFormat::Z8M:
-	case (u32)ZTextureFormat::Z8L:
+	case (uint32_t)ZTextureFormat::Z8:
+	case (uint32_t)TextureFormat::I8:
+	case (uint32_t)TextureFormat::IA4:
+	case (uint32_t)CopyTextureFormat::A8:
+	case (uint32_t)CopyTextureFormat::R8:
+	case (uint32_t)CopyTextureFormat::G8:
+	case (uint32_t)CopyTextureFormat::B8:
+	case (uint32_t)CopyTextureFormat::RG8:
+	case (uint32_t)CopyTextureFormat::GB8:
+	case (uint32_t)ZTextureFormat::Z8M:
+	case (uint32_t)ZTextureFormat::Z8L:
 		xshift = 3;
 		yshift = 2;
 		break;
-	case (u32)TextureFormat::IA8:
-	case (u32)ZTextureFormat::Z16:
-	case (u32)ZTextureFormat::Z24X8:
-	case (u32)TextureFormat::RGB565:
-	case (u32)TextureFormat::RGB5A3:
-	case (u32)TextureFormat::RGBA8:
-	case (u32)ZTextureFormat::Z16L:
-	case (u32)CopyTextureFormat::RA8:
+	case (uint32_t)TextureFormat::IA8:
+	case (uint32_t)ZTextureFormat::Z16:
+	case (uint32_t)ZTextureFormat::Z24X8:
+	case (uint32_t)TextureFormat::RGB565:
+	case (uint32_t)TextureFormat::RGB5A3:
+	case (uint32_t)TextureFormat::RGBA8:
+	case (uint32_t)ZTextureFormat::Z16L:
+	case (uint32_t)CopyTextureFormat::RA8:
 		xshift = 2;
 		yshift = 2;
 		break;
@@ -86,14 +86,14 @@ u32 GetTexBufferSize(u16 wd, u16 ht, u32 fmt, u8 mipmap, u8 maxlod)
 	}
 
 	bitsize = 32;
-	if (fmt == (u32)TextureFormat::RGBA8 || fmt == (u32)ZTextureFormat::Z24X8) bitsize = 64;
+	if (fmt == (uint32_t)TextureFormat::RGBA8 || fmt == (uint32_t)ZTextureFormat::Z24X8) bitsize = 64;
 
 	size = 0;
 	if (mipmap) {
-		u32 cnt = (maxlod & 0xff);
+		uint32_t cnt = (maxlod & 0xff);
 		while (cnt) {
-			u32 w = wd & 0xffff;
-			u32 h = ht & 0xffff;
+			uint32_t w = wd & 0xffff;
+			uint32_t h = ht & 0xffff;
 			xtiles = ((w + (1 << xshift)) - 1) >> xshift;
 			ytiles = ((h + (1 << yshift)) - 1) >> yshift;
 			if (cnt == 0) return size;

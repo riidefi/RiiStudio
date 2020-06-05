@@ -1,10 +1,10 @@
 #pragma once
 
 #include <core/common.h>
+#include <oishii/reader/binary_reader.hxx>
 #include <plugins/gc/Export/IndexedPrimitive.hpp>
 #include <plugins/gc/Export/VertexDescriptor.hpp>
 #include <plugins/gc/GX/VertexTypes.hpp>
-#include <vendor/oishii/oishii/reader/binary_reader.hxx>
 
 namespace libcube {
 

@@ -1,7 +1,7 @@
 #include "common.h"
 #include <core/kpi/Node.hpp>
 #include <memory>
-#include <oishii/oishii/reader/binary_reader.hxx>
+#include <oishii/reader/binary_reader.hxx>
 #include <vector>
 
 #include <core/kpi/PropertyView.hpp>

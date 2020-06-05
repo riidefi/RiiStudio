@@ -1,5 +1,6 @@
 #pragma once
 
-#include <oishii/oishii/types.hxx>
+#include <stdint.h>
 
-u32 GetTexBufferSize(u16 wd, u16 ht, u32 fmt, u8 mipmap, u8 maxlod);
+uint32_t GetTexBufferSize(uint16_t wd, uint16_t ht, uint32_t fmt,
+                          uint8_t mipmap, uint8_t maxlod);

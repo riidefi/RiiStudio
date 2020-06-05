@@ -63,7 +63,9 @@ function setupCppC()
 	{
 		"source/%{prj.name}/**.h",
 		"source/%{prj.name}/**.hpp",
+		"source/%{prj.name}/**.hxx",
 		"source/%{prj.name}/**.cpp",
+		"source/%{prj.name}/**.cxx",
 		"source/%{prj.name}/**.c"
 	}
 	excludes
@@ -72,6 +74,8 @@ function setupCppC()
 	}
 
 	filter "files:*.cpp"
+		language "C++"
+	filter "files:*.cxx"
 		language "C++"
 	filter "files:*.c"
 		language "C"
@@ -89,7 +93,6 @@ function setupMainAppCli(set_links)
 	includedirs
 	{
 		"./source",
-		"./source/vendor/oishii",
 		"./source/vendor",
 	--	(FBX_SDK_ROOT .. "../../../include"),
 	--	PYTHON_ROOT .. "./include",
@@ -149,6 +152,7 @@ function setupMainApp()
 		"vendor",
 		"plugins",
 		"plate",
+		"oishii",
 		"source/vendor/glfw/lib-vc2017/glfw3dll.lib",
 		"opengl32.lib",
 	--	"libfbxsdk.lib",
@@ -192,13 +196,27 @@ project "plate"
 	setupSystem()
 	setupPreprocessor()
 
+project "oishii"
+	location "source/oishii"
+
+	includedirs
+	{
+		"source",
+		"source/oishii"
+	}
+	setupStaticLib()
+	setupCppC()
+
+
+	setupSystem()
+	setupPreprocessor()
+
 project "vendor"
 	location "source/vendor"
 
 	includedirs
 	{
-		"source/vendor",
-		"source/vendor/oishii"
+		"source/vendor"
 	}
 	setupStaticLib()
 	setupCppC()
@@ -228,8 +246,7 @@ project "plugins"
 	includedirs {
 		"./source",
 		"source/vendor",
-		"source/core",
-		"source/vendor/oishii"
+		"source/core"
 	}
 
 	setupStaticLib()

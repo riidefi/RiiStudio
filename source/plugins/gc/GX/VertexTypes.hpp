@@ -2,7 +2,7 @@
 
 #include <core/common.h>
 
-#include <vendor/oishii/oishii/reader/binary_reader.hxx>
+#include <oishii/reader/binary_reader.hxx>
 
 #include <plugins/gc/GX/Material.hpp>
 #include <vendor/glm/vec3.hpp>
