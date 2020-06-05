@@ -90,6 +90,12 @@ struct ColorSurface final {
 struct SamplerSurface final {
   const char* name = "Samplers";
   const char* icon = ICON_FA_IMAGES;
+
+  // Mark this surface to be more than an IDL tag.
+  int tag_stateful;
+
+  riistudio::frontend::ImagePreview mImg; // In mat sampler
+  std::string mLastImg;
 };
 struct SwapTableSurface final {
   const char* name = "Swap Tables";
@@ -160,12 +166,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
 }
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
-                  SamplerSurface) {
+                  SamplerSurface& surface) {
   auto& matData = delegate.getActive().getMaterialData();
 
-  // Hack: The view needs to be stateful..
-  static riistudio::frontend::ImagePreview mImg; // In mat sampler
-  static std::string mLastImg;
   if (ImGui::BeginTabBar("Textures")) {
     for (std::size_t i = 0; i < matData.texGens.nElements; ++i) {
       auto& tg = matData.texGens[i];
@@ -201,13 +204,13 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           if (curImg == nullptr) {
             ImGui::Text("No valid image.");
           } else {
-            if (mLastImg != curImg->getName()) {
-              mImg.setFromImage(*curImg);
-              mLastImg = curImg->getName();
+            if (surface.mLastImg != curImg->getName()) {
+              surface.mImg.setFromImage(*curImg);
+              surface.mLastImg = curImg->getName();
             }
-            mImg.draw(128.0f * (static_cast<f32>(curImg->getWidth()) /
-                                static_cast<f32>(curImg->getHeight())),
-                      128.0f);
+            const auto aspect_ratio = static_cast<f32>(curImg->getWidth()) /
+                                      static_cast<f32>(curImg->getHeight());
+            surface.mImg.draw(128.0f * aspect_ratio, 128.0f);
           }
         }
         if (ImGui::CollapsingHeader("Mapping",
