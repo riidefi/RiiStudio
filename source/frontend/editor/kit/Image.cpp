@@ -1,7 +1,7 @@
 #include "Image.hpp"
 #include <algorithm>
 #include <core/3d/gl.hpp>
-#include <vendor/imgui/imgui.h>
+#include <imgui/imgui.h>
 #undef min
 
 namespace riistudio::frontend {

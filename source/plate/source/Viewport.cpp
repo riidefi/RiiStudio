@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <plate/gl.hpp>
 #include <plate/toolkit/Viewport.hpp>
-#include <vendor/imgui/imgui.h>
+#include <imgui/imgui.h>
 
 namespace plate::tk {
 

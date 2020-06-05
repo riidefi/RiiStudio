@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include <string_view>
 #include <vector>
-#include <vendor/imgui/imgui.h>
-#include <vendor/imgui/impl/imgui_impl_opengl3.h>
-#include <vendor/imgui/impl/imgui_impl_sdl.h>
+#include <imgui/imgui.h>
+#include <imgui/impl/imgui_impl_opengl3.h>
+#include <imgui/impl/imgui_impl_sdl.h>
 
 #include <SDL.h>
 #include <SDL_opengles2.h>

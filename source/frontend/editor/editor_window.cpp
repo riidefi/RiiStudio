@@ -13,7 +13,7 @@
 #include <plugins/gc/Export/Material.hpp>
 
 #ifdef _WIN32
-#include <vendor/glfw/glfw3.h>
+#include <glfw/glfw3.h>
 #else
 #include <SDL.h>
 
@@ -158,8 +158,8 @@ struct GenericCollectionOutliner : public StudioWindow {
       // Selections from other windows will carry over.
       bool curNodeSelected = sampler.isSelected(i);
 
-      bool bSelected =
-          ImGui::Selectable(std::to_string(i).c_str(), curNodeSelected);
+      // bool bSelected =
+      ImGui::Selectable(std::to_string(i).c_str(), curNodeSelected);
       ImGui::SameLine();
 
       thereWasAClick = ImGui::IsItemClicked();
@@ -287,7 +287,7 @@ struct RenderTest : public StudioWindow {
 
     if (mViewport.begin(static_cast<u32>(bounds.x),
                         static_cast<u32>(bounds.y))) {
-      auto* parent = dynamic_cast<EditorWindow*>(mParent);
+      // auto* parent = dynamic_cast<EditorWindow*>(mParent);
       static bool showCursor = false; // TODO
       mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y),
                        showCursor);
@@ -417,7 +417,7 @@ struct PropertyEditor : public StudioWindow {
         std::string title;
         manager.forEachView(
             [&](kpi::IPropertyView& view) {
-              const bool sel = mActiveTab == i;
+              // const bool sel = mActiveTab == i;
 
               title.clear();
               title += view.getIcon();
@@ -500,7 +500,7 @@ void EditorWindow::draw_() {
     }
   }
 #endif
-  auto* parent = mParent;
+  // auto* parent = mParent;
 
   // if (!parent) return;
 

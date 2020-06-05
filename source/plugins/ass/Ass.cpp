@@ -112,12 +112,10 @@ void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
   auto& data = out.getMaterialData();
 
   if (!in.samplers.empty()) {
-    data.samplers.push_back(
-        std::move(std::make_unique<j3d::Material::SamplerData>()));
+    data.samplers.push_back(std::make_unique<j3d::Material::SamplerData>());
     data.samplers[0]->mTexture = in.samplers[0].path;
     texturesToImport.insert(in.samplers[0].path);
-    data.texMatrices.push_back(
-        std::move(std::make_unique<j3d::Material::TexMatrix>()));
+    data.texMatrices.push_back(std::make_unique<j3d::Material::TexMatrix>());
     data.texGens.push_back({});
   }
   libcube::gx::TevStage wip;
@@ -161,7 +159,7 @@ struct AssImporter {
   j3d::Model& out_model;
 
   AssImporter(const aiScene* scene, kpi::IDocumentNode* mdl)
-      : pScene(scene), out_collection({mdl}),
+      : pScene(scene), out_collection(mdl),
         out_model_ac(out_collection.addModel()), out_model(out_model_ac.get()) {
   }
 
@@ -654,6 +652,9 @@ struct AssImporter {
             break;
           case aiTextureMapMode_Mirror:
             impWrapMode = libcube::gx::TextureWrapMode::Mirror;
+            break;
+          case _aiTextureMapMode_Force32Bit:
+          default:
             break;
           }
 

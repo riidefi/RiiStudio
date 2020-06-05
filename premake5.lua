@@ -219,7 +219,8 @@ project "vendor"
 
 	includedirs
 	{
-		"source/vendor"
+		"source/vendor",
+		"source"
 	}
 	setupStaticLib()
 	setupCppC()

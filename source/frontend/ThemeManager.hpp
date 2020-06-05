@@ -2,7 +2,7 @@
 
 #include <array>
 #include <cmath>
-#include <vendor/imgui/imgui.h>
+#include <imgui/imgui.h>
 
 class ThemeManager {
 public:

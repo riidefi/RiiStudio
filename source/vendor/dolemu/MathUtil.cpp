@@ -7,7 +7,6 @@
 #include <limits>
 #include <numeric>
 
-#include <oishii/types.hxx>
 #include "MathUtil.h"
 
 inline void MatrixMul(int n, const float* a, const float* b, float* result)

@@ -1,4 +1,4 @@
-#include <vendor/glfw/glfw3.h>
+#include <glfw/glfw3.h>
 
 #include "GXMaterial.hpp"
 

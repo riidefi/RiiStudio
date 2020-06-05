@@ -11,10 +11,10 @@
 
 #include <string>
 
-#include <plugins/gc/gpu/DLPixShader.hpp>
-#include <plugins/gc/gpu/GPUMaterial.hpp>
+#include <plugins/gc/GPU/DLPixShader.hpp>
+#include <plugins/gc/GPU/GPUMaterial.hpp>
 
-#include <plugins/gc/gx/VertexTypes.hpp>
+#include <plugins/gc/GX/VertexTypes.hpp>
 
 namespace riistudio::g3d {
 
@@ -78,7 +78,7 @@ void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
   const auto start = reader.tell();
   out.mEntries.clear();
 
-  const auto size = reader.read<u32>();
+  reader.read<u32>(); // size
   reader.read<u32>(); // mdl0 offset
   const auto startOfs = reader.read<s32>();
   out.mName = readName(reader, start);
@@ -184,14 +184,16 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
   mdl.get().mScalingRule = static_cast<ScalingRule>(reader.read<u32>());
   mdl.get().mTexMtxMode = static_cast<TextureMatrixMode>(reader.read<u32>());
 
-  const auto [nVtx, nTri] = reader.readX<u32, 2>();
+  reader.readX<u32, 2>(); // number of vertices, number of triangles
   mdl.get().sourceLocation = readName(reader, infoPos);
-  const auto nViewMtx = reader.read<u32>();
+  reader.read<u32>(); // number of view matrices
 
-  const auto [bMtxArray, bTexMtxArray, bBoundVolume] = reader.readX<u8, 3>();
+  // const auto [bMtxArray, bTexMtxArray, bBoundVolume] =
+  reader.readX<u8, 3>();
   mdl.get().mEvpMtxMode = static_cast<EnvelopeMatrixMode>(reader.read<u8>());
 
-  const s32 ofsBoneTable = reader.read<s32>();
+  // const s32 ofsBoneTable =
+  reader.read<s32>();
 
   mdl.get().aabb.min << reader;
   mdl.get().aabb.max << reader;
@@ -634,7 +636,7 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
     }
     int base_matrix_id = -1;
 
-    printf("digraph func {\n");
+    // printf("digraph {\n");
     while (reader.tell() < reader.endpos()) {
       const auto cmd = static_cast<RenderCommand>(reader.read<u8>());
       switch (cmd) {
@@ -652,11 +654,21 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
 
         // While with this setup, materials could be XLU and OPA, in
         // practice, they're not.
-        const bool xlu_mat = mdl.getMaterial(disp.matId).get().isXluPass();
+        const auto& mat = mdl.getMaterialRaw(disp.matId);
+        const bool xlu_mat = mat.isXluPass();
+        auto& poly = mdl.getPolygonRaw(disp.polyId);
 
-		// Brawlbox....
-		// assert((tree == Tree::DrawOpa && !xlu_mat) ||
-        //        (tree == Tree::DrawXlu && xlu_mat));
+        if ((tree == Tree::DrawOpa && xlu_mat) ||
+            (tree == Tree::DrawXlu && !xlu_mat)) {
+          char warn_msg[1024]{};
+          snprintf(warn_msg, sizeof(warn_msg),
+                   "Material %u \"%s\" is rendered in the %s pass (with mesh "
+                   "%u \"%s\"), but is marked as %s.",
+                   disp.matId, mat.getName().c_str(),
+                   xlu_mat ? "Opaue" : "Translucent", disp.polyId,
+                   poly.getName().c_str(), !xlu_mat ? "Opaque" : "Translucent");
+          reader.warnAt(warn_msg, reader.tell() - 8, reader.tell());
+        }
       } break;
       case RenderCommand::NodeDescendence: {
         const auto boneIdx = reader.readUnaligned<u16>();
@@ -676,8 +688,9 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
           // TODO: Start at 100?
           drws[matrixId].mWeights.emplace_back(boneIdx, 1.0f);
         }
-        printf("BoneIdx: %u (MatrixIdx: %u), ParentMtxIdx: %u\n", (u32)boneIdx,
-               (u32)matrixId, (u32)parentMtxIdx);
+        // printf("BoneIdx: %u (MatrixIdx: %u), ParentMtxIdx: %u\n",
+        // (u32)boneIdx,
+        //        (u32)matrixId, (u32)parentMtxIdx);
         // printf("\"Matrix %u\" -> \"Matrix %u\" [label=\"parent\"];\n",
         //        (u32)matrixId, (u32)parentMtxIdx);
       } break;
@@ -686,7 +699,7 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
         break;
       }
     }
-    printf("}\n");
+    // printf("}\n");
   });
 }
 static void readTexture(kpi::NodeAccessor<Texture>& tex,
@@ -698,11 +711,13 @@ static void readTexture(kpi::NodeAccessor<Texture>& tex,
   reader.expectMagic<'TEX0', true>();
   reader.read<u32>(); // size
   const u32 revision = reader.read<u32>();
+  (void)revision;
   assert(revision == 1 || revision == 3);
   reader.read<s32>(); // BRRES offset
   const s32 ofsTex = reader.read<s32>();
   data.name = readName(reader, start);
-  const u32 flag = reader.read<u32>(); // TODO: Paletted textures
+  // const u32 flag =
+  reader.read<u32>(); // TODO: Paletted textures
   data.dimensions.width = reader.read<u16>();
   data.dimensions.height = reader.read<u16>();
   data.format = reader.read<u32>();
@@ -740,11 +755,12 @@ public:
     // ofs
     reader.read<u16>();
     // section size
-    const u16 nSec = reader.read<u16>();
+    reader.read<u16>();
 
     // 'root'
     reader.read<u32>();
-    u32 secLen = reader.read<u32>();
+	// Length of the section
+    reader.read<u32>();
     Dictionary rootDict(reader);
 
     for (std::size_t i = 1; i < rootDict.mNodes.size(); ++i) {

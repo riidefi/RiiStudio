@@ -59,8 +59,11 @@ void encode(u8* dst, const u8* src, int width, int height,
   } else if (static_cast<int>(texformat) <=
              static_cast<int>(gx::TextureFormat::RGBA8)) {
     // TODO: MP does not work on non block dims?
-    const auto inpair = std::pair<int, int>(width, height);
-    assert(getBlockedDimensions(width, height, texformat) == inpair);
+    const bool blocked = getBlockedDimensions(width, height, texformat) ==
+                         std::make_pair(width, height);
+    assert(blocked);
+    if (!blocked)
+      return;
 
     // Until we replace this lib...
     uint32_t* rgbaBuf =
@@ -124,11 +127,11 @@ void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy,
 struct RGBA32ImageSource {
   RGBA32ImageSource(const u8* buf, int w, int h, gx::TextureFormat fmt)
       : mBuf(buf), mW(w), mH(h), mFmt(fmt) {
-    if (fmt == gx::TextureFormat::Extension_RawRGBA32) {
+    if (mFmt == gx::TextureFormat::Extension_RawRGBA32) {
       mDecoded = buf;
     } else {
       mTmp.resize(w * h * 4);
-      decode(mTmp.data(), mBuf, w, h, fmt);
+      decode(mTmp.data(), mBuf, w, h, mFmt);
       mDecoded = mTmp.data();
     }
   }
@@ -156,8 +159,8 @@ struct RGBA32ImageTarget {
     }
   }
   void fromOtherSized(const u8* src, u32 ow, u32 oh, ResizingAlgorithm al) {
-	  mTmp.resize(mW * mH * 4);
-	  if (ow == mW && oh == mH) {
+    mTmp.resize(mW * mH * 4);
+    if (ow == mW && oh == mH) {
       memcpy(mTmp.data(), src, mTmp.size());
     } else {
       resize(mTmp.data(), mW, mH, src, ow, oh, al);

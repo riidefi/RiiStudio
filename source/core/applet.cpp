@@ -1,7 +1,7 @@
 #include "applet.hpp"
 #include <fa5/IconsFontAwesome5.h>
 #include <imgui/imgui.h>
-#include <vendor/imgui_markdown.h>
+#include <imgui_markdown.h>
 
 namespace riistudio::core {
 

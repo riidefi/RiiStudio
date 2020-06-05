@@ -5,13 +5,6 @@
 #include <cstdlib>
 
 
-namespace {
-inline uint32_t* memalign(uint32_t align, uint32_t size)
-{
-	return (uint32_t*)new char[size];
-}
-}
-
 /**
  * Convert the specified RGBA data buffer into the I4 texture format
  * 

@@ -123,11 +123,6 @@ std::vector<glm::mat4> Polygon::getPosMtx(u64 mpid) const {
   const auto handle_drw = [&](const libcube::DrawMatrix& drw) {
     glm::mat4x4 curMtx(1.0f);
 
-    lib3d::SRT3 srt;
-    srt.scale = {1, 1, 1};
-    srt.rotation = {90, 0, 0};
-    srt.translation = {0, 0, 0};
-    auto mtx = computeMdlMtx(srt);
     // Rigid -- bone space
     if (drw.mWeights.size() == 1) {
       u32 boneID = drw.mWeights[0].boneId;

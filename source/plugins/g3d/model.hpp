@@ -7,7 +7,7 @@
 #include "material.hpp"
 #include "polygon.hpp"
 
-#include <plugins/gc/gx/VertexTypes.hpp>
+#include <plugins/gc/GX/VertexTypes.hpp>
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>

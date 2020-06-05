@@ -215,11 +215,6 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
       }
     }
   };
-  auto propTri = [&](const std::array<IndexedVertex, 3>& tri) {
-    for (const auto& vtx : tri) {
-      propVtx(vtx);
-    }
-  };
 
   for (int i = 0; i < getNumMatrixPrimitives(); ++i) {
     for (int j = 0; j < getMatrixPrimitiveNumIndexedPrimitive(i); ++j) {

@@ -1,6 +1,6 @@
 #include "root.hpp"
 
-#include <vendor/pfd/portable-file-dialogs.h>
+#include <pfd/portable-file-dialogs.h>
 
 #include <core/3d/gl.hpp>
 
@@ -13,9 +13,9 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
 
-#include <vendor/imgui/imgui.h>
-#include <vendor/imgui/imgui_internal.h>
-#include <vendor/imgui_markdown.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
+#include <imgui_markdown.h>
 
 // Experimental conversion
 #include <plugins/j3d/Scene.hpp>
@@ -43,7 +43,7 @@ void RootWindow::draw() {
   ImGui::Begin("DockSpace##Root", &bOpen, window_flags);
   ImGui::PopStyleVar(3);
 
-  ImGui::SetWindowFontScale(1.1);
+  ImGui::SetWindowFontScale(1.1f);
   if (mChildren.empty()) {
     ImGui::Text("Drop a file to edit.");
   }
@@ -344,7 +344,7 @@ void RootWindow::draw() {
   // ImGui::ShowDemoWindow();
   if (mShowChangeLog && ImGui::Begin("Changelog", &mShowChangeLog,
                                      ImGuiWindowFlags_AlwaysAutoResize)) {
-    ImGui::SetWindowFontScale(1.3);
+    ImGui::SetWindowFontScale(1.3f);
     ImGui::Text("RiiStudio: 1.1 Pre-Release");
     const std::string& markdownText = u8R"(
 Thanks for all the feedback so far! I'll continue to improve the tool accordingly.
@@ -478,10 +478,10 @@ void RootWindow::save(const std::string& path) {
     return;
 
   auto ex = SpawnExporter(*ed->mState.get());
-  if (!ex)
+  if (!ex) {
     DebugReport("Failed to spawn importer.\n");
-  if (!ex)
     return;
+  }
   ex->write_(*ed->mState.get(), writer);
 
   stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());

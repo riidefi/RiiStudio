@@ -3,8 +3,8 @@
 #include <core/common.h>
 #include <core/window/window.hpp>
 
-#include <vendor/imgui/imgui.h>
-#include <vendor/imgui/imgui_internal.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 #include <string>
 
