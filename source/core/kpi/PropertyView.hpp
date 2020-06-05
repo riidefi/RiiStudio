@@ -8,6 +8,20 @@
 
 namespace kpi {
 
+// Until C++20:
+// https://en.cppreference.com/w/cpp/container/unordered_map/erase_if
+auto erase_if = [](auto& c, auto pred) {
+  auto old_size = c.size();
+  for (auto i = c.begin(), last = c.end(); i != last;) {
+    if (pred(*i)) {
+      i = c.erase(i);
+    } else {
+      ++i;
+    }
+  }
+  return old_size - c.size();
+};
+
 class PropertyViewStateHolder;
 
 struct IPropertyViewState {
@@ -99,20 +113,15 @@ public:
   static constexpr int lifetime_grace_period = 30; // Duration of 0.5 seconds
 
   void garbageCollect() {
-    bool changed = true;
-    while (changed) {
-      changed = false;
-      for (auto& [key, value] : states) {
-        if (auto& last_used = value.second;
-            last_used++ > lifetime_grace_period) {
-          DebugReport("[PropertyViewStateHolder] Destroying state for: %s.\n",
-                      std::string(key.id).c_str());
-          states.erase(key);
-          changed = true;
-          break;
-        }
+    erase_if(states, [&](auto& it) {
+      auto& [key, value] = it;
+      if (auto& last_used = value.second; last_used++ > lifetime_grace_period) {
+        DebugReport("[PropertyViewStateHolder] Destroying state for: %s.\n",
+                    std::string(key.id).c_str());
+        return true;
       }
-    }
+      return false;
+    });
   }
 
   IPropertyViewState* requestState(kpi::IDocumentNode& node,
