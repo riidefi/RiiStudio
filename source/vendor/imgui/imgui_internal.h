@@ -1864,7 +1864,7 @@ struct IMGUI_API ImGuiWindow
     ImGuiCond               SetWindowCollapsedAllowFlags;       // store acceptable condition flags for SetNextWindowCollapsed() use.
     ImGuiCond               SetWindowDockAllowFlags;            // store acceptable condition flags for SetNextWindowDock() use.
     ImVec2                  SetWindowPosVal;                    // store window position when using a non-zero Pivot (position set needs to be processed when we know the window size)
-    ImVec2                  SetWindowPosPivot;                  // store window pivot for positioning. ImVec2(0,0) when positioning from top-left corner; ImVec2(0.5f,0.5f) for centering; ImVec2(1,1) for bottom right.
+    ImVec2                  SetWindowPosPivot;                  // store window pivot for positioning. ImVec2(0, 0) when positioning from top-left corner; ImVec2(0.5f, 0.5f) for centering; ImVec2(1, 1) for bottom right.
 
     ImVector<ImGuiID>       IDStack;                            // ID stack. ID are hashes seeded with the value at the top of the stack. (In theory this should be in the TempData structure)
     ImGuiWindowTempData     DC;                                 // Temporary per-window data, reset at the beginning of the frame. This used to be called ImGuiDrawContext, hence the "DC" variable name.
@@ -2045,9 +2045,9 @@ struct ImGuiTableColumn
     ImGuiTableColumnFlags   Flags;                          // Effective flags. See ImGuiTableColumnFlags_
     float                   MinX;                           // Absolute positions
     float                   MaxX;
-    float                   ResizeWeight;                   //  ~1.0f. Master width data when (Flags & _WidthStretch)
-    float                   WidthRequested;                 // Master width data when !(Flags & _WidthStretch)
-    float                   WidthGiven;                     // == (MaxX - MinX). FIXME-TABLE: Store all persistent width in multiple of FontSize?
+    float                   WidthStretchWeight;             // Master width weight when (Flags & _WidthStretch). Often around ~1.0f initially.
+    float                   WidthRequest;                   // Master width absolute value when !(Flags & _WidthStretch). When Stretch this is derived every frame from WidthStretchWeight in TableUpdateLayout()
+    float                   WidthGiven;                     // Final/actual width visible == (MaxX - MinX), locked in TableUpdateLayout(). May be >WidthRequest to honor minimum width, may be <WidthRequest to honor shrinking columns down in tight space.
     float                   StartXRows;                     // Start position for the frame, currently ~(MinX + CellPaddingX)
     float                   StartXHeaders;
     float                   ContentMaxPosRowsFrozen;        // Submitted contents absolute maximum position, from which we can infer width.
@@ -2078,7 +2078,7 @@ struct ImGuiTableColumn
     ImGuiTableColumn()
     {
         memset(this, 0, sizeof(*this));
-        ResizeWeight = WidthRequested = WidthGiven = -1.0f;
+        WidthStretchWeight = WidthRequest = WidthGiven = -1.0f;
         NameOffset = -1;
         IsVisible = IsVisibleNextFrame = true;
         DisplayOrder = IndexWithinVisibleSet = -1;
@@ -2086,7 +2086,7 @@ struct ImGuiTableColumn
         PrevVisibleColumn = NextVisibleColumn = -1;
         AutoFitQueue = CannotSkipItemsQueue = (1 << 3) - 1; // Skip for three frames
         SortOrder = -1;
-        SortDirection = ImGuiSortDirection_Ascending;
+        SortDirection = ImGuiSortDirection_None;
     }
 };
 
@@ -2133,6 +2133,7 @@ struct ImGuiTable
     float                       ColumnsTotalWidth;          // Sum of current column width
     float                       ColumnsAutoFitWidth;        // Sum of ideal column width in order nothing to be clipped, used for auto-fitting and content width submission in outer window
     float                       ResizedColumnNextWidth;
+    float                       RefScale;                   // Reference scale to be able to rescale columns on font/dpi changes.
     ImRect                      OuterRect;                  // Note: OuterRect.Max.y is often FLT_MAX until EndTable(), unless a height has been specified in BeginTable().
     ImRect                      WorkRect;
     ImRect                      InnerClipRect;
@@ -2167,6 +2168,7 @@ struct ImGuiTable
     bool                        IsInsideRow;                // Set when inside TableBeginRow()/TableEndRow().
     bool                        IsInitializing;
     bool                        IsSortSpecsDirty;
+    bool                        IsSortSpecsChangedForUser;  // Reported to end-user via TableGetSortSpecs()->SpecsChanged and then clear.
     bool                        IsUsingHeaders;             // Set when the first row had the ImGuiTableRowFlags_Headers flag.
     bool                        IsContextPopupOpen;         // Set when default context menu is open (also see: ContextPopupColumn, InstanceInteracted).
     bool                        IsSettingsRequestLoad;
@@ -2185,6 +2187,7 @@ struct ImGuiTable
         LastResizedColumn = -1;
         ContextPopupColumn = -1;
         ReorderColumn = -1;
+        ResizedColumn = -1;
     }
 };
 
@@ -2196,8 +2199,9 @@ struct ImGuiTableColumnSettings
     ImS8    Index;
     ImS8    DisplayOrder;
     ImS8    SortOrder;
-    ImS8    SortDirection : 7;
-    ImU8    Visible : 1;
+    ImU8    SortDirection : 2;
+    ImU8    IsVisible : 1;
+    ImU8    IsWeighted : 1;
 
     ImGuiTableColumnSettings()
     {
@@ -2206,7 +2210,8 @@ struct ImGuiTableColumnSettings
         Index = -1;
         DisplayOrder = SortOrder = -1;
         SortDirection = ImGuiSortDirection_None;
-        Visible = 1;
+        IsVisible = 1;
+        IsWeighted = 0;
     }
 };
 
@@ -2215,6 +2220,7 @@ struct ImGuiTableSettings
 {
     ImGuiID                     ID;                     // Set to 0 to invalidate/delete the setting
     ImGuiTableFlags             SaveFlags;              // Indicate data we want to save using the Resizable/Reorderable/Sortable/Hideable flags (could be using its own flags..)
+    float                       RefScale;               // Reference scale to be able to rescale columns on font/dpi changes.
     ImS8                        ColumnsCount;
     ImS8                        ColumnsCountMax;        // Maximum number of columns this settings instance can store, we can recycle a settings instance with lower number of columns but not higher
     bool                        WantApply;              // Set when loaded from .ini data (to enable merging/loading .ini data into an already running context)
@@ -2451,6 +2457,7 @@ namespace ImGui
     IMGUI_API void          TableDrawContextMenu(ImGuiTable* table, int column_n);
     IMGUI_API void          TableSortSpecsClickColumn(ImGuiTable* table, ImGuiTableColumn* column, bool add_to_existing_sort_orders);
     IMGUI_API void          TableSortSpecsSanitize(ImGuiTable* table);
+    IMGUI_API void          TableSortSpecsBuild(ImGuiTable* table);
     IMGUI_API void          TableBeginRow(ImGuiTable* table);
     IMGUI_API void          TableEndRow(ImGuiTable* table);
     IMGUI_API void          TableBeginCell(ImGuiTable* table, int column_n);
@@ -2461,10 +2468,13 @@ namespace ImGui
     IMGUI_API void          TableSetColumnAutofit(ImGuiTable* table, int column_n);
     IMGUI_API void          PushTableBackground();
     IMGUI_API void          PopTableBackground();
-    IMGUI_API void          TableLoadSettings(ImGuiTable* table);
-    IMGUI_API void          TableSaveSettings(ImGuiTable* table);
-    IMGUI_API ImGuiTableSettings* TableGetBoundSettings(const ImGuiTable* table);
-    IMGUI_API void          TableInstallSettingsHandler(ImGuiContext* context);
+    IMGUI_API void                  TableSettingsInstallHandler(ImGuiContext* context);
+    IMGUI_API ImGuiTableSettings*   TableSettingsCreate(ImGuiID id, int columns_count);
+    IMGUI_API ImGuiTableSettings*   TableSettingsFindByID(ImGuiID id);
+    IMGUI_API void                  TableSettingsClearByID(ImGuiID id);
+    IMGUI_API void                  TableLoadSettings(ImGuiTable* table);
+    IMGUI_API void                  TableSaveSettings(ImGuiTable* table);
+    IMGUI_API ImGuiTableSettings*   TableGetBoundSettings(ImGuiTable* table);
 
     // Tab Bars
     IMGUI_API bool          BeginTabBarEx(ImGuiTabBar* tab_bar, const ImRect& bb, ImGuiTabBarFlags flags, ImGuiDockNode* dock_node);
@@ -2484,7 +2494,7 @@ namespace ImGui
     // NB: All position are in absolute pixels coordinates (we are never using window coordinates internally)
     IMGUI_API void          RenderText(ImVec2 pos, const char* text, const char* text_end = NULL, bool hide_text_after_hash = true);
     IMGUI_API void          RenderTextWrapped(ImVec2 pos, const char* text, const char* text_end, float wrap_width);
-    IMGUI_API void          RenderTextClipped(const ImVec2& pos_min, const ImVec2& pos_max, const char* text, const char* text_end, const ImVec2* text_size_if_known, const ImVec2& align = ImVec2(0,0), const ImRect* clip_rect = NULL);
+    IMGUI_API void          RenderTextClipped(const ImVec2& pos_min, const ImVec2& pos_max, const char* text, const char* text_end, const ImVec2* text_size_if_known, const ImVec2& align = ImVec2(0, 0), const ImRect* clip_rect = NULL);
     IMGUI_API void          RenderTextClippedEx(ImDrawList* draw_list, const ImVec2& pos_min, const ImVec2& pos_max, const char* text, const char* text_end, const ImVec2* text_size_if_known, const ImVec2& align = ImVec2(0, 0), const ImRect* clip_rect = NULL);
     IMGUI_API void          RenderTextEllipsis(ImDrawList* draw_list, const ImVec2& pos_min, const ImVec2& pos_max, float clip_max_x, float ellipsis_max_x, const char* text, const char* text_end, const ImVec2* text_size_if_known);
     IMGUI_API void          RenderFrame(ImVec2 p_min, ImVec2 p_max, ImU32 fill_col, bool border = true, float rounding = 0.0f);
@@ -2512,7 +2522,7 @@ namespace ImGui
 
     // Widgets
     IMGUI_API void          TextEx(const char* text, const char* text_end = NULL, ImGuiTextFlags flags = 0);
-    IMGUI_API bool          ButtonEx(const char* label, const ImVec2& size_arg = ImVec2(0,0), ImGuiButtonFlags flags = 0);
+    IMGUI_API bool          ButtonEx(const char* label, const ImVec2& size_arg = ImVec2(0, 0), ImGuiButtonFlags flags = 0);
     IMGUI_API bool          CloseButton(ImGuiID id, const ImVec2& pos);
     IMGUI_API bool          CollapseButton(ImGuiID id, const ImVec2& pos, ImGuiDockNode* dock_node);
     IMGUI_API bool          ArrowButtonEx(const char* str_id, ImGuiDir dir, ImVec2 size_arg, ImGuiButtonFlags flags = 0);
