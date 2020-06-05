@@ -15,7 +15,8 @@
 #include <cassert>
 #endif
 
-namespace oishii {
+namespace oishii::v2 {
+
 
 // Helpers
 class LinkerHelper
@@ -29,36 +30,38 @@ public:
 		{
 			const std::string nameSpacedSymbol = nameSpace.empty() ? symbol : nameSpace + "::" + symbol;
 			for (const auto& entry : linker.mLayout)
-				if ((entry.second.empty() ? entry.first->getId() : entry.second + "::" + entry.first->getId()) == nameSpacedSymbol)
+				if ((entry.mNamespace.empty() ? entry.mNode->getId() : entry.mNamespace + "::" + entry.mNode->getId()) == nameSpacedSymbol)
 				{
 					//if (resultName)
 						resultName = nameSpacedSymbol;
-					return *entry.first;
+					return *entry.mNode;
 				}
 			}
 		// Children
 		{
-			// TODO: NAME AND ID MUST MATCH. NOT INTENDED
-			const std::string nameSpacePrefix = nameSpace.empty() ? "" : nameSpace + "::";
+			std::string nameSpacePrefix = nameSpace.empty() ? "" : nameSpace + "::";
+			//	if (hasEnding(nameSpacePrefix, "::::"))
+			//		nameSpacePrefix = nameSpacePrefix.substr(0, nameSpacePrefix.size() - 2);
 			const std::string nameSpacedSymbol = nameSpacePrefix + (blockName.empty() ? "" : blockName + "::") + symbol;
 			for (const auto& entry : linker.mLayout)
-				if ((entry.second.empty() ? entry.first->getId() : entry.second + "::" + entry.first->getId()) == nameSpacedSymbol)
+				if ((entry.mNamespace.empty() ? entry.mNode->getId() : entry.mNamespace + "::" + entry.mNode->getId()) == nameSpacedSymbol)
 				{
 					//if (resultName)
 						resultName = nameSpacedSymbol;
-					return *entry.first;
+					return *entry.mNode;
 				}
 		}
 		// Global
 		{
 			for (const auto& entry : linker.mLayout)
-				if (entry.second == symbol)
+				if ((entry.mNamespace.empty() ? entry.mNode->getId() : entry.mNamespace + "::" + entry.mNode->getId()) == symbol)
 				{
 					//if (resultName)
 						resultName = symbol;
-					return *entry.first;
+					return *entry.mNode;
 				}
 		}
+		printf("Search for %s failed!\n", symbol.c_str());
 		assert(!"Failed critical namespaced symbol lookup in layout");
 	}
 	// TODO: Offset might be better removed
@@ -78,15 +81,27 @@ public:
 			{
 				switch (pos)
 				{
-					// todo: EndOfChildren
 				case Hook::RelativePosition::Begin:
 				case Hook::RelativePosition::EndOfChildren: // begin of marker node
-					return (u32)(entry.begin + offset);
+				{
+					auto roundDown = [](u32 in, u32 align) -> u32{
+						return align ? in & ~(align - 1) : in;
+					};
+					auto roundUp = [roundDown](u32 in, u32 align) -> u32 {
+						return align ? roundDown(in + (align - 1), align) : in;
+					};
+					u32 x = entry.begin + offset;
+					// TODO: We don't need to make another pass from the start
+					u32 align = pos == Hook::RelativePosition::Begin ? entry.restrict.alignment :
+						std::find_if(linker.mMap.begin(), linker.mMap.end(), [symbol](auto& e) { return e.symbol == symbol; })->restrict.alignment;
+					u32 rounded = roundUp(x, align);
+					return rounded;
+				}
 				case Hook::RelativePosition::End:
-					return (u32)(entry.end + offset);
+					return entry.end + offset;
 				default:
-					printf("Linker Error: Unknown hook type %u -- assuming Begin\n", pos);
-					return (u32)(entry.begin + offset);
+					printf("Linker Error: Unknown hook type %u -- assuming Begin (no align)\n", pos);
+					return entry.begin + offset;
 				}
 			}
 		}
@@ -97,49 +112,31 @@ public:
 
 struct EndOfChildrenMarker : public Node
 {
-	const Node& mParent;
-	EndOfChildrenMarker(const Node& parent) : mParent(parent), Node("EndOfChildren", { LinkingRestriction::Leaf })
-	{
-		bLinkerOwned = true;
-	}
-	~EndOfChildrenMarker() {}
+	EndOfChildrenMarker(const Node& parent) : Node("EndOfChildren", { LinkingRestriction::Leaf }), mParent(parent)
+	{}
 
-	eResult write(Writer&) const noexcept override { return eResult::Success; }
+	const Node& mParent;
 };
 
-Linker::Linker()
-{}
-Linker::~Linker()
-{
-	//	for (const auto entry : mLayout) if (entry.first)
-	//		delete entry.first;
-}
 
-
-void Linker::gather(const Node& root, const std::string& nameSpace) noexcept
+// We call this recursively	
+void Linker::gather(std::unique_ptr<Node> pRoot, const std::string& nameSpace) noexcept
 {
-	// We call this recursively	
-	
 	// Add the node
-	mLayout.push_back(LayoutElement(&root, nameSpace));
-	// Gather children
-	std::vector<const Node*> children;
-	const auto result = root.getChildren(children);
+	auto& root = *mLayout.emplace_back(std::move(pRoot), nameSpace).mNode.get();
+	
+	std::vector<std::unique_ptr<Node>> children;
+	const Node::eResult result = root.getChildren(children);
 	assert(result == Node::eResult::Success);
-	// Then it's children
-	for (const auto child : children)
+
+	for (auto& child : children)
+		gather(std::move(child), (nameSpace.empty() ? "" : (nameSpace + "::")) + root.getId());
+	
+	if (!(root.getLinkingRestriction().options & LinkingRestriction::Leaf))
 	{
-		gather(*child, (nameSpace.empty() ? "" : (nameSpace + "::")) + root.getId());
+		mLayout.emplace_back(std::make_unique<EndOfChildrenMarker>(root),
+							(nameSpace.empty() ? "" : (nameSpace + "::")) + root.getId());
 	}
-	// TODO: Hacky..
-	// Leaf nodes do not have EndOfChildren markers
-	if(!(root.getLinkingRestriction().options & LinkingRestriction::Leaf))
-		mLayout.push_back(
-			LayoutElement(
-				new EndOfChildrenMarker(root),
-				(nameSpace.empty() ? "" : (nameSpace + "::")) + root.getId()
-			)
-		);
 }
 
 void Linker::shuffle()
@@ -165,19 +162,32 @@ void Linker::write(Writer& writer, bool doShuffle)
 	for (const auto& entry : mLayout)
 	{
 		// align
-		u32 alignment = entry.first->getLinkingRestriction().alignment;
+		u32 alignment = entry.mNode->getLinkingRestriction().alignment;
 		if (alignment)
+		{
+			auto pad_begin = writer.tell();
 			while (writer.tell() % alignment)
-				writer.seek<Whence::Current>(1);
-
+				writer.write('F', false);
+			if (pad_begin != writer.tell() && mUserPad)
+				mUserPad((char*)writer.getDataBlockStart() + pad_begin, writer.tell() - pad_begin);
+		}
 		// Fill map: symbol and begin position
-		mMap.push_back({ (entry.second.empty() ? "" : entry.second + "::") + entry.first->getId(), writer.tell(), 0, entry.first->getLinkingRestriction() });
+		mMap.push_back({ (entry.mNamespace.empty() ? "" : entry.mNamespace + "::") + entry.mNode->getId(), writer.tell(), 0, entry.mNode->getLinkingRestriction() });
 		// Write
-		writer.mNameSpace = entry.second;
-		writer.mBlockName = entry.first->getId();
-		entry.first->write(writer);
+		writer.mNameSpace = entry.mNamespace;
+		writer.mBlockName = entry.mNode->getId();
+		entry.mNode->write(writer);
 		// Set ending position
 		mMap[mMap.size() - 1].end = writer.tell();
+
+		if (entry.mNode->getLinkingRestriction().isFlag(LinkingRestriction::PadEnd) && alignment)
+		{
+			auto pad_begin = writer.tell();
+			while (writer.tell() % alignment)
+				writer.write('F', false);
+			if (pad_begin != writer.tell() && mUserPad)
+				mUserPad((char*)writer.getDataBlockStart() + pad_begin, writer.tell() - pad_begin);
+		}
 	}
 
 	{
@@ -185,7 +195,7 @@ void Linker::write(Writer& writer, bool doShuffle)
 		for (const auto& entry : mMap)
 		{
 			printf("0x%06x 0x%06x 0x%06x 0x%06x %s  %s %s\n",
-				(u32)entry.begin, (u32)entry.end, (u32)entry.end - (u32)entry.begin,
+				entry.begin, entry.end, entry.end - entry.begin,
 				entry.restrict.alignment,
 				entry.restrict.options & LinkingRestriction::Static ? "true " : "false",
 				entry.restrict.options & LinkingRestriction::Leaf ? "true " : "false",
@@ -199,7 +209,7 @@ void Linker::write(Writer& writer, bool doShuffle)
 	for (const auto& reserve : writer.mLinkReservations)
 	{
 		// todo: make map
-		const u32 addr = reserve.addr;
+		const u32 addr = static_cast<u32>(reserve.addr);
 		const Link& link = reserve.mLink;
 		const std::string& nameSpace = reserve.nameSpace.empty() ? "" : reserve.nameSpace + "::";
 
@@ -218,9 +228,9 @@ void Linker::write(Writer& writer, bool doShuffle)
 			bool bSuccess = false;
 			for (const auto& entry : mLayout)
 			{
-				if (entry.first == link.from.mBlock)
+				if (entry.mNode.get() == link.from.mBlock)
 				{
-					fromBlockSymbol = entry.second.empty() ? entry.first->getId() : entry.second + "::" + entry.first->getId();
+					fromBlockSymbol = entry.mNamespace.empty() ? entry.mNode->getId() : entry.mNamespace + "::" + entry.mNode->getId();
 					bSuccess = true;
 					break;
 				}
@@ -233,9 +243,9 @@ void Linker::write(Writer& writer, bool doShuffle)
 			bool bSuccess = false;
 			for (const auto& entry : mLayout)
 			{
-				if (entry.first == link.to.mBlock)
+				if (entry.mNode.get() == link.to.mBlock)
 				{
-					toBlockSymbol = entry.second.empty() ? entry.first->getId() : entry.second + "::" + entry.first->getId();
+					toBlockSymbol = entry.mNamespace.empty() ? entry.mNode->getId() : entry.mNamespace + "::" + entry.mNode->getId();
 					bSuccess = true;
 					break;
 				}
@@ -250,15 +260,26 @@ void Linker::write(Writer& writer, bool doShuffle)
 
 		writer.seek<Whence::Set>(addr);
 
-		writer.writeN(reserve.TSize, toAddr - fromAddr);
-
-	}
-
-	// Clear resources. We may want to move this to the destructor
-	for (const auto& entry : mLayout)
-	{
-		if (entry.first && entry.first->isOwnedByLinker())
-			delete entry.first;
+		u32 dif = (toAddr - fromAddr) / reserve.mLink.mStride;
+		//writer.writeN(reserve.TSize, dif);
+		switch (reserve.TSize)
+		{
+		case 1:
+			assert(dif < (u8)-1 && "Overflow error.");
+			writer.write<u8>(dif);
+			break;
+		case 2:
+			assert(dif < (u16)-1 && "Overflow error.");
+			writer.write<u16>(dif);
+			break;
+		case 4:
+			assert(dif < (u32)-1 && "Overflow error.");
+			writer.write<u32>(dif);
+			break;
+		default:
+			assert(!"Invalid write size.");
+			break;
+		}
 	}
 }
 

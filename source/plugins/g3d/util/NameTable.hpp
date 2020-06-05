@@ -7,7 +7,7 @@
 #include <vector>
 
 #include <oishii/reader/binary_reader.hxx>
-#include <oishii/v2/writer/binary_writer.hxx>
+#include <oishii/writer/binary_writer.hxx>
 
 namespace riistudio::g3d {
 

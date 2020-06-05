@@ -1,7 +1,7 @@
 #pragma once
 
 #include <oishii/reader/binary_reader.hxx>
-#include <oishii/v2/writer/binary_writer.hxx>
+#include <oishii/writer/binary_writer.hxx>
 #include <vendor/glm/vec2.hpp>
 #include <vendor/glm/vec3.hpp>
 

@@ -2,8 +2,8 @@
 #include <core/kpi/Node.hpp>
 
 #include <oishii/reader/binary_reader.hxx>
-#include <oishii/v2/writer/binary_writer.hxx>
-#include <oishii/v2/writer/linker.hxx>
+#include <oishii/writer/binary_writer.hxx>
+#include <oishii/writer/linker.hxx>
 
 #include <string>
 

@@ -11,7 +11,7 @@
 #include <fstream>
 
 #include <oishii/reader/binary_reader.hxx>
-#include <oishii/v2/writer/binary_writer.hxx>
+#include <oishii/writer/binary_writer.hxx>
 
 #include <vendor/imgui/imgui.h>
 #include <vendor/imgui/imgui_internal.h>

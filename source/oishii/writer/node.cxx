@@ -7,20 +7,17 @@
 #include "node.hxx"
 
 
-namespace oishii {
+namespace oishii::v2 {
 
-//std::string Node::getName() const noexcept
-//{
-//    return "Untitled Datablock";
-//}
-Node::eResult Node::gatherChildren(std::vector<const Node*>& mOut) const
+Node::Result Node::gatherChildren(NodeDelegate& mOut) const
 {
-    return eResult::Success;
+    return {};
 }
-Node::eResult Node::getChildren(std::vector<const Node*>& mOut) const
+Node::Result Node::getChildren(std::vector<std::unique_ptr<Node>>& mOut) const
 {
     mOut.clear();
-    auto result = gatherChildren(mOut);
+    NodeDelegate del{mOut};
+    auto result = gatherChildren(del);
 
     if (!mOut.empty() && mLinkingRestriction.options & LinkingRestriction::Leaf)
     {

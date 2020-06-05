@@ -2,8 +2,8 @@
 
 #include <core/common.h>
 #include <map>
-#include <oishii/v2/writer/binary_writer.hxx>
-#include <oishii/v2/writer/node.hxx>
+#include <oishii/writer/binary_writer.hxx>
+#include <oishii/writer/node.hxx>
 #include <plugins/j3d/Model.hpp>
 #include <plugins/j3d/Scene.hpp>
 #include <vector>

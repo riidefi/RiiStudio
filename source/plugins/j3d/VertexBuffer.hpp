@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/common.h>
-#include <oishii/v2/writer/binary_writer.hxx>
+#include <oishii/writer/binary_writer.hxx>
 #include <plugins/gc/GX/VertexTypes.hpp>
 #include <vector>
 

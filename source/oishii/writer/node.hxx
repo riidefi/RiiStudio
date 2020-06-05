@@ -12,7 +12,7 @@
 #include <memory>
 #include <string>
 
-namespace oishii {
+namespace oishii::v2 {
 
 class Writer;
 
@@ -20,7 +20,7 @@ class Writer;
 //!
 struct LinkingRestriction
 {
-    enum Options
+    enum Options : u32
     {
         //! No bits are set.
         //!
@@ -36,7 +36,12 @@ struct LinkingRestriction
         Post = (1 << 1),
 
         //! Signifies that this datablock cannot have children.
-        Leaf = (1 << 2)
+        //!
+        Leaf = (1 << 2),
+
+		//! Pad the end of the block as well as the start.
+		//!
+		PadEnd = (1 << 3)
     };
 
     Options options = None;
@@ -44,6 +49,19 @@ struct LinkingRestriction
     //! Alignment of block. 0 to disable
     //!
     u32 alignment = 0;
+
+    bool isFlag(Options o) const noexcept
+    {
+        return static_cast<u32>(options) & static_cast<u32>(o);
+    }
+    void setFlag(Options o) noexcept
+    {
+        options = static_cast<Options>(static_cast<u32>(options) | static_cast<u32>(o));
+    }
+	void setLeaf()
+	{
+		setFlag(Leaf);
+	}
 };
 
 //! @brief An abstract block (node) in the new serialization model.
@@ -58,12 +76,23 @@ public:
         Fatal    //!< We failed. We might want to make this nuanced, denoting the effects.
     };
 
+    struct Result
+    {
+        Result() : _e(eResult::Success) { }
+        Result(eResult e) : _e(e) {}
+
+        operator eResult() const { return _e;}
+
+        eResult _e;
+    };
+
+    //! @brief The destructor.
+	//!
+	virtual ~Node() = default;
+
 	//! @brief Default constructor.
 	//!
-	//! @param[in] id The ID of this node. Setting it blank signals a randomm unique ID to be generated.
-	//!
-	Node()
-	{}
+	Node() = default;
 
 	//! @brief A constructor.
 	//!
@@ -91,17 +120,13 @@ public:
 	{
 
 	}
-	//! @brief The destructor.
-	//!
-	~Node()
-	{}
+	
 
 
 protected:
 	std::string mId = ""; //!< String ID. If empty, linker will assign a unique ID.
 	LinkingRestriction mLinkingRestriction;
-	bool bLinkerOwned = false; //!< If this block should be freed upon linking completion.
-
+	
 public:
     //! @brief Write this block to a stream.
     //!
@@ -111,25 +136,33 @@ public:
     //!
     //! @return The result of the operation. Returning fatal will not stop other blocks from writing.
     //!
-    virtual eResult write(Writer& writer) const noexcept = 0;
-    
-	// Deprecated
-    //	//! @brief @return Return the formatted name of this resource.
-    //	//!
-    //	//! @details Default behavior will return "Untitled Datablock"
-    //	//!
-    //	virtual std::string getName() const noexcept;
+	virtual Result write(Writer& writer) const noexcept { return {}; }
 
+public:
+    struct NodeDelegate
+    {
+        void addNode(std::unique_ptr<Node> node)
+        {
+            mVec.push_back(std::move(node));
+        }
+
+        NodeDelegate(std::vector<std::unique_ptr<Node>>& vec)
+            : mVec(vec)
+        {}
+
+    private:
+        std::vector<std::unique_ptr<Node>>& mVec;
+    };
 protected:
     //! @brief Gathers children for the block. This will only be called through getChildren foreignly.
     //!
     //! @details Default behavior will do absolutely nothing.
     //!
-    //! @param[out] mOut Vector of children to set. This will be empty when it is passed.
+    //! @param[out] mOut Delegate for adding nodes.
     //!
     //! @return The result of the operation. If this fails, the block will be treated as a leaf node.
     //!
-    virtual eResult gatherChildren(std::vector<const Node*>& mOut) const;
+    virtual Result gatherChildren(NodeDelegate& mOut) const;
 
 public:
     //! @brief Get the children for this block.
@@ -139,7 +172,7 @@ public:
     //! @return The result of the operation.
     //!     A leaf node returning children is considered a Warning and the children will be deleted.
     //!
-    eResult getChildren(std::vector<const Node*>& mOut) const;
+    Result getChildren(std::vector<std::unique_ptr<Node>>& mOut) const;
 
     inline const LinkingRestriction& getLinkingRestriction() const noexcept
     {
@@ -151,18 +184,28 @@ public:
         return mLinkingRestriction;
     }
 
-	inline bool isOwnedByLinker() const noexcept
-	{
-		return bLinkerOwned;
-	}
-	inline void transferOwnershipToLinker(bool state) noexcept
-	{
-		bLinkerOwned = state;
-	}
 	inline const std::string& getId() const noexcept
 	{
 		return mId;
 	}
+
+    Node* toLeaf()
+    {
+        mLinkingRestriction.setFlag(LinkingRestriction::Leaf);
+        return this;
+    }
+    Node* toStatic()
+    {
+        mLinkingRestriction.setFlag(LinkingRestriction::Static);
+        return this;
+    }
+};
+
+struct LeafNode : public Node
+{
+    LeafNode()
+        : Node (LinkingRestriction{LinkingRestriction::Leaf})
+    {}
 };
 
 } // namespace DataBlock

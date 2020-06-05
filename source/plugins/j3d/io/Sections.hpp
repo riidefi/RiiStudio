@@ -3,7 +3,7 @@
 #include "OutputCtx.hpp"
 #include <core/common.h>
 #include <oishii/reader/binary_reader.hxx>
-#include <oishii/v2/writer/node.hxx>
+#include <oishii/writer/node.hxx>
 
 namespace riistudio::j3d {
 

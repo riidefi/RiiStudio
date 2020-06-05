@@ -4,22 +4,22 @@
 #include <memory>
 #include <vector>
 
-namespace oishii {
+namespace oishii::v2 {
 
 //! @brief Writer with expanding buffer.
 //!
 class VectorWriter : public IWriter
 {
 public:
-	VectorWriter(u32 sz)
-		: mPos(0), mBuf(std::make_unique<std::vector<u8>>(sz))
-	{}
-	VectorWriter(std::unique_ptr<std::vector<u8>> buf, u32 sz)
-		: mPos(0), mBuf(std::move(buf))
-	{}
-	virtual ~VectorWriter() {}
+    VectorWriter(u32 buffer_size)
+        : mPos(0), mBuf(buffer_size)
+    {}
+    VectorWriter(std::vector<u8> buf)
+        : mPos(0), mBuf(std::move(buf))
+    {}
+    virtual ~VectorWriter() = default;
 
-	// Faster to put it here (will call devirtualized functions)
+    // Faster to put it here (will call devirtualized functions)
 	template<Whence W = Whence::Current>
 	inline void seek(int ofs, u32 mAtPool = 0)
 	{
@@ -40,8 +40,7 @@ public:
 			break;
 		}
 	}
-
-	u32 tell() final override
+    u32 tell() final override
 	{
 		return mPos;
 	}
@@ -55,33 +54,42 @@ public:
 	}
 	u32 endpos() final override
 	{
-		return (u32)mBuf->size();
+		return (u32)mBuf.size();
 	}
 
 	// Bound check unlike reader -- can always extend file
 	inline bool isInBounds(u32 pos)
 	{
-		return pos < mBuf->size();
+		return pos < mBuf.size();
 	}
+
+	void attachDataForMatchingOutput(const std::vector<u8>& data)
+	{
+#ifndef NDEBUG
+		mDebugMatch = data;
+#endif
+	}
+
 
 protected:
 	u32 mPos;
-	std::unique_ptr<std::vector<u8>> mBuf;
-
+	std::vector<u8> mBuf;
+#ifndef NDEBUG
+	std::vector<u8> mDebugMatch;
+#endif
 public:
 	void resize(u32 sz)
 	{
-		if (mBuf.get())
-			mBuf->resize(sz);
+        mBuf.resize(sz);
 	}
 	u8* getDataBlockStart()
 	{
-		return mBuf.get() ? mBuf.get()->data() : nullptr;
+		return mBuf.data();
 	}
 	u32 getBufSize()
 	{
-		return mBuf.get() ? (u32)mBuf->size() : 0;
+		return (u32)mBuf.size();
 	}
 };
 
-} // namespace oishii
+} // namespace oishii::v2

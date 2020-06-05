@@ -7,7 +7,6 @@
 
 #include <vector>
 #include <string>
-#include <tuple>
 #include <memory>
 
 #include "../types.hxx"
@@ -15,7 +14,7 @@
 #include "hook.hxx"
 #include "node.hxx"
 
-namespace oishii {
+namespace oishii::v2 {
 
 //class Node;
 class Writer;
@@ -31,14 +30,14 @@ class Linker
 	friend class LinkerHelper;
 public:
 
-	Linker();
-	~Linker();
+	Linker() = default;
+	~Linker() = default;
 
 	//! @brief Gathers nodes recursively from the root into the layout.
 	//!
 	//! @param[in] root The root node.
 	//!
-	void gather(const Node& root, const std::string& nameSpace) noexcept;
+	void gather(std::unique_ptr<Node> root, const std::string& nameSpace) noexcept;
 
 	//! @brief Shuffle the layout.
 	//!
@@ -54,10 +53,20 @@ public:
 	//!
 	void write(Writer& writer, bool shuffle = false);
 
+	using PadFunction = void(*)(char* dst, u32 size);
+	PadFunction mUserPad = nullptr;
 	
 private:
-	// NodePtr, Namespace
-	typedef std::pair<const Node*, std::string> LayoutElement;
+	struct LayoutElement
+	{
+		std::unique_ptr<Node> mNode;
+		std::string mNamespace;
+
+		LayoutElement(std::unique_ptr<Node> node, const std::string& Namespace)
+			: mNode(std::move(node)), mNamespace(Namespace)
+		{}
+	};
+
 	std::vector<LayoutElement> mLayout;
 
 public:

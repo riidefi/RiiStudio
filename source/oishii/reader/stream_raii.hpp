@@ -69,8 +69,8 @@ struct DebugExpectSized
 	}
 
 	T& mStream;
-	u32 mSize;
 	u32 mStart;
+	u32 mSize;
 };
 #endif
 

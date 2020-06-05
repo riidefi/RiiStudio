@@ -1,7 +1,7 @@
 #include "Dictionary.hpp"
 
 #include <oishii/reader/binary_reader.hxx>
-#include <oishii/v2/writer/binary_writer.hxx>
+#include <oishii/writer/binary_writer.hxx>
 
 #include <plugins/g3d/util/NameTable.hpp>
 

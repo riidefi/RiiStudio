@@ -179,7 +179,6 @@ private:
 	};
 
 	DispatchStack mStack;
-	u32 cblockstart = 0; // Start of current block, necessary for dispatch
 
 	
 	void boundsCheck(u32 size, u32 at)

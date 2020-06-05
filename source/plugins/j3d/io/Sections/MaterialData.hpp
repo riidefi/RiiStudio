@@ -2,7 +2,7 @@
 #include <vendor/glm/gtx/matrix_decompose.hpp>
 
 #include "../Sections.hpp"
-#include <oishii/v2/writer/binary_writer.hxx>
+#include <oishii/writer/binary_writer.hxx>
 
 #include <plugins/gc/Util/glm_serialization.hpp>
 

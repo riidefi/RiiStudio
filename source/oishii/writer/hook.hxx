@@ -7,7 +7,7 @@
 
 #include <string>
 
-namespace oishii {
+namespace oishii::v2 {
 
 class Node;
 
