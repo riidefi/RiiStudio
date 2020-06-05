@@ -1,10 +1,10 @@
 #pragma once
 
+#include "Reflection.hpp"
+#include <map>
 #include <memory>
 #include <string>
-#include <map>
 #include <vector>
-#include "Reflection.hpp"
 
 namespace oishii {
 class BinaryReader;
@@ -45,15 +45,6 @@ public:
   //!
   //! @tparam T Any default constructible type.
   //!
-  //! @details Example:
-  //!				struct SomeType
-  //!				{
-  //!					SomeType() = default;
-  //!					int value = 0;
-  //!				};
-  //!
-  //!				ApplicationPlugins::getInstance()->addType<SomeType>();
-  //!
   template <typename T> ApplicationPlugins& addType();
 
   //! @brief Add a type with a parent.
@@ -72,45 +63,6 @@ public:
   //!				- `T::write(doc_node_t node, oishii::v2::Writer&
   //! writer) const` (write the file)
   //!
-  //! @details Example:
-  //!				struct SomeWriter
-  //!				{
-  //!					bool canWrite(doc_node_t node) const
-  //!					{
-  //!						// If `node` is not of our type
-  //!`SomeType` from before or a child of it, we cannot write it.
-  //! const SomeType* data = dynamic_cast<const SomeType*>(node.get());
-  //! if (data == nullptr) { return false;
-  //!						}
-  //!
-  //!						// For example, we might not be
-  //! able to express negative
-  //! numbers in this format. 						if
-  //! (data->value < 0) { return false;
-  //!						}
-  //!
-  //!						return true;
-  //!					}
-  //!					void write(doc_node_t node,
-  //! oishii::v2::Writer& writer) const
-  //!					{
-  //!						// We will not be here unless
-  //! our last check
-  //! passed. 						const SomeType* data =
-  //! dynamic_cast<const SomeType*>(node.get());
-  //! assert(data != nullptr);
-  //!
-  //!						// Write our file magic /
-  //! identifier. writer.write<u8>('S'); writer.write<u8>('O');
-  //! writer.write<u8>('M');
-  //! writer.write<u8>('E');
-  //!						// Write our data
-  //!						writer.write<s32>(data->value);
-  //!					}
-  //!				};
-  //!
-  //!				ApplicationPlugins::getInstance()->addSerializer<SomeWriter>();
-  //!
   template <typename T> ApplicationPlugins& addSerializer();
 
   //! @brief Add a binary serializer (writer) to the internal registry with a
@@ -118,93 +70,25 @@ public:
   //!
   //! @tparam T Any default constructible type T where the following function
   //! exists:
-  //!				- `::write(doc_node_t, oishii::v2::Writer&
-  //! writer, X*_=nullptr)` where `X` is some child that may be wrapped in a
-  //! doc_node_t.
-  //!
-  //! @details Example:
-  //!				// `dummy` is necessary to distinguish this
-  //!`write` function from other `write` functions.
-  //!				// It will always be nullptr.
-  //!				void write(doc_node_t node, oishii::v2::Writer&
-  //! writer, SomeType* dummy=nullptr) const
-  //!				{
-  //!					// We will not be here unless node is a
-  //! child of SomeType or SomeType itself. const
-  //! SomeType*
-  //! data = dynamic_cast<const
-  //! SomeType*>(node.get()); 					assert(data !=
-  //! nullptr);
-  //!
-  //!					// Write our file magic / identifier.
-  //!					writer.write<u8>('S');
-  //!					writer.write<u8>('O');
-  //!					writer.write<u8>('M');
-  //!					writer.write<u8>('E');
-  //!					// Write our data
-  //!					writer.write<s32>(data->value);
-  //!				}
-  //!
-  //!				ApplicationPlugins::getInstance()->addSimpleSerializer<SomeType>();
+  //! - `::write(doc_node_t, oishii::v2::Writer&
+  //!			 writer, X*_=nullptr)`
+  //!   where `X` is some child that may be wrapped in a doc_node_t.
   //!
   template <typename T> ApplicationPlugins& addSimpleSerializer();
 
   //! @brief Add a binary deserializer (reader) to the internal registry.
   //!
   //! @tparam T Any default constructible type T with member functions:
-  //!				- `std::string T::canRead(const std::string&
-  //! file, oishii::BinaryReader& reader) const` (return the type of the file
-  //! identified or empty)
-  //!				- `T::read(doc_node_t node,
-  //! oishii::BinaryReader& reader) const` (read the file)
-  //!
-  //! @details Example:
-  //!				struct SomeReader
-  //!				{
-  //!					std::string canRead(const std::string&
-  //! file, oishii::BinaryReader& reader) const
-  //!					{
-  //!						// Our file is eight bytes long.
-  //!						if (reader.endpos() != 8) {
-  //!							return "";
-  //!						}
-  //!
-  //!						// Our file uses the file magic
-  //!/ identifier 'SOME'. 						if
-  //!(reader.peek<u8>(0) != 'S' ||
-  //! reader.peek<u8>(1)
-  //!!= 'O' || reader.peek<u8>(2) != 'M'
-  //!|| reader.peek<u8>(3)
-  //!!= 'E') { return "";
-  //!						}
-  //!
-  //!						// Use the name of SomeType to
-  //! identify it later. 						return
-  //! typeid(SomeType).name;
-  //!					}
-  //!					void read(doc_node_t node,
-  //! oishii::BinaryReader& writer) const
-  //!					{
-  //!						// Ensure that the constructed
-  //! document node is derived
-  //! from or of type SomeType. const SomeType* data = dynamic_cast<const
-  //! SomeType*>(node.get()); assert(data != nullptr);
-  //!
-  //!						// We already checked our magic
-  //! in our `canRead` function. We can ignore it.
-  //! reader.seek(4);
-  //!
-  //!						// Read our data
-  //!						data->value =
-  //! reader.read<s32>();
-  //!					}
-  //!				};
-  //!
-  //!				ApplicationPlugins::getInstance()->addDeserializer<SomeReader>();
+  //! - `std::string // return the type of the file identified, or empty
+  //!	T::canRead(
+  //!			   const std::string& file,
+  //!			   oishii::BinaryReader& reader) const`
+  //! - `T::read(doc_node_t node,
+  //!			 oishii::BinaryReader& reader) const`
   //!
   template <typename T> ApplicationPlugins& addDeserializer();
 
-  virtual void registerMirror(const kpi::MirrorEntry& entry) = 0;
+  virtual void registerMirror(const kpi::MirrorEntry& entry);
 
   template <typename D, typename B> ApplicationPlugins& registerParent() {
     registerMirror(
@@ -217,11 +101,11 @@ public:
     return *this;
   }
 
-  virtual void installModule(const std::string& path) = 0;
+  virtual void installModule(const std::string& path);
 
   virtual std::unique_ptr<kpi::IDocumentNode>
   constructObject(const std::string& type,
-                  kpi::IDocumentNode* parent = nullptr) const = 0;
+                  kpi::IDocumentNode* parent = nullptr) const;
 
   static inline ApplicationPlugins* getInstance() { return spInstance; }
   virtual ~ApplicationPlugins() = default;
@@ -239,6 +123,9 @@ public:
   std::map<std::string, std::unique_ptr<IFactory>> mFactories;
   std::vector<std::unique_ptr<IBinaryDeserializer>> mReaders;
   std::vector<std::unique_ptr<IBinarySerializer>> mWriters;
+
+private:
+  std::unique_ptr<kpi::IDocumentNode> spawnState(const std::string& type) const;
 };
 
 /** Decentralized initialization via global static initializers.

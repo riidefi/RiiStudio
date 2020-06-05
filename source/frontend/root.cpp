@@ -1,30 +1,24 @@
+#include "root.hpp"
+
 #include <vendor/pfd/portable-file-dialogs.h>
 
-#include "root.hpp"
+#include <core/3d/gl.hpp>
+
+#include <core/api.hpp>
+#include <core/util/timestamp.hpp>
+
+#include <frontend/editor/editor_window.hpp>
+#include <fstream>
+
+#include <oishii/reader/binary_reader.hxx>
+#include <oishii/v2/writer/binary_writer.hxx>
 
 #include <vendor/imgui/imgui.h>
 #include <vendor/imgui/imgui_internal.h>
-
-#include <frontend/editor/editor_window.hpp>
-
-#include <core/api.hpp>
-
-#include <oishii/reader/binary_reader.hxx>
-
-#include <fstream>
-#include <oishii/v2/writer/binary_writer.hxx>
+#include <vendor/imgui_markdown.h>
 
 // Experimental conversion
 #include <plugins/j3d/Scene.hpp>
-
-#include <vendor/imgui_markdown.h>
-
-namespace riistudio::g3d {
-void Install();
-}
-namespace riistudio::ass {
-void Install();
-}
 
 namespace riistudio::frontend {
 
@@ -392,18 +386,6 @@ Misc:
   ImGui::End();
   ImGui::PopID();
 }
-
-std::vector<std::string> GetChildrenOfType(const std::string& type) {
-  std::vector<std::string> out;
-  const auto hnd = kpi::ReflectionMesh::getInstance()->lookupInfo(type);
-
-  for (int i = 0; i < hnd.getNumChildren(); ++i) {
-    out.push_back(hnd.getChild(i).getName());
-    for (const auto& str : GetChildrenOfType(hnd.getChild(i).getName()))
-      out.push_back(str);
-  }
-  return out;
-}
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   printf("Opening file: %s\n", data.mPath.c_str());
 
@@ -470,28 +452,7 @@ void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
   mChildren.push_back(std::move(editor));
 }
 
-#if defined(__VERSION__)
-#define __CC __VERSION__
-#elif defined(_MSC_VER)
-#define STRINGIZE(x) STRINGIZE_(x)
-#define STRINGIZE_(x) #x
-#define __CC "MSVC " STRINGIZE(_MSC_VER)
-#else
-#define __CC "Unknown"
-#endif
-
-#if defined(BUILD_DEBUG)
-#define __BUILD "Alpha Debug"
-#elif defined(BUILD_RELEASE)
-#define __BUILD "Alpha Release"
-#elif defined(BUILD_DIST)
-#define __BUILD "Alpha" // TODO: better system for this
-#else
-#define __BUILD "Custom"
-#endif
-RootWindow::RootWindow()
-    : Applet("RiiStudio " __BUILD " (Built " __DATE__ " at " __TIME__ ", " __CC
-             ")") {
+RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
   InitAPI();
 
   // Register plugins

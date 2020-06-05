@@ -14,3 +14,4 @@ std::unique_ptr<kpi::IDocumentNode> SpawnState(const std::string& type);
 // px::RichName GetRich(const std::string& type);
 
 bool IsConstructible(const std::string& type);
+std::vector<std::string> GetChildrenOfType(const std::string& type);

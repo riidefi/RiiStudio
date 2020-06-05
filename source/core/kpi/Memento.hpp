@@ -32,5 +32,4 @@ setNext(const IDocumentNode& node,
 void rollback(IDocumentNode& node,
               std::shared_ptr<const DocumentMemento> record);
 
-
 } // namespace kpi

@@ -1,8 +1,3 @@
-#ifdef _WIN32
-#include <Windows.h>
-#include <string>
-#endif
-
 #include "common.h"
 #include <core/kpi/Node.hpp>
 #include <memory>
@@ -12,81 +7,13 @@
 #include <core/kpi/PropertyView.hpp>
 #include <core/kpi/RichNameManager.hpp>
 
-kpi::PropertyViewManager kpi::PropertyViewManager::sInstance;
-kpi::RichNameManager kpi::RichNameManager::sInstance;
-kpi::RegistrationLink* kpi::RegistrationLink::gRegistrationChain = nullptr;
-
-#ifdef _WIN32
-
-using riimain_fn_t = void(CALLBACK*)(kpi::ApplicationPlugins*);
-
-bool installModuleNative(const std::string& path,
-                         kpi::ApplicationPlugins* pInstaller) {
-  auto hnd = LoadLibraryA(path.c_str());
-
-  if (!hnd)
-    return false;
-
-  auto fn = reinterpret_cast<riimain_fn_t>(GetProcAddress(hnd, "__riimain"));
-  if (!fn)
-    return false;
-
-  fn(pInstaller);
-  return true;
-}
-#else
-#warning "No module installation support.."
-template <typename... args> bool installModuleNative(args...) { return false; }
-#endif
-
-kpi::ApplicationPlugins* kpi::ApplicationPlugins::spInstance;
-
-static bool ends_with(const std::string& value, const std::string& ending) {
-  return ending.size() <= value.size() &&
-         std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
-struct CorePackageInstaller : kpi::ApplicationPlugins {
-  void registerMirror(const kpi::MirrorEntry& entry) override {
-    kpi::ReflectionMesh::getInstance()->getDataMesh().enqueueHierarchy(entry);
-  }
-  void installModule(const std::string& path) override {
-    if (ends_with(path, ".dll"))
-      installModuleNative(path, this);
-  }
-
-  std::unique_ptr<kpi::IDocumentNode>
-  spawnState(const std::string& type) const {
-    for (const auto& it : mFactories) {
-      if (it.first == type) {
-        auto doc = it.second->spawn();
-
-        doc->mType = type;
-
-        return doc;
-      }
-    }
-
-    assert(!"Failed to spawn state..");
-    throw "Cannot spawn";
-    return nullptr;
-  }
-  std::unique_ptr<kpi::IDocumentNode>
-  constructObject(const std::string& type,
-                  kpi::IDocumentNode* parent = nullptr) const override {
-    auto spawned = spawnState(type);
-    spawned->parent = parent;
-    return spawned;
-  }
-};
-
 kpi::ReflectionMesh* kpi::ReflectionMesh::spInstance;
-CorePackageInstaller* spCorePackageInstaller;
+
 std::unique_ptr<kpi::IDocumentNode> SpawnState(const std::string& type) {
-  return spCorePackageInstaller->spawnState(type);
+  return kpi::ApplicationPlugins::spInstance->constructObject(type, nullptr);
 }
 bool IsConstructible(const std::string& type) {
-  const auto& factories = spCorePackageInstaller->mFactories;
+  const auto& factories = kpi::ApplicationPlugins::spInstance->mFactories;
   return std::find_if(factories.begin(), factories.end(), [&](const auto& it) {
            return it.second->getId() == type;
          }) != factories.end();
@@ -103,7 +30,7 @@ SpawnImporter(const std::string& fileName, oishii::BinaryReader& reader) {
   std::unique_ptr<kpi::IBinaryDeserializer> out = nullptr;
 
   assert(spCorePackageInstaller);
-  for (const auto& plugin : spCorePackageInstaller->mReaders) {
+  for (const auto& plugin : kpi::ApplicationPlugins::spInstance->mReaders) {
     oishii::JumpOut reader_guard(reader, reader.tell());
     match = plugin->canRead_(fileName, reader);
     if (!match.empty()) {
@@ -122,7 +49,7 @@ SpawnImporter(const std::string& fileName, oishii::BinaryReader& reader) {
 }
 std::unique_ptr<kpi::IBinarySerializer>
 SpawnExporter(kpi::IDocumentNode& node) {
-  for (const auto& plugin : spCorePackageInstaller->mWriters) {
+  for (const auto& plugin : kpi::ApplicationPlugins::spInstance->mWriters) {
     if (plugin->canWrite_(node)) {
       return plugin->clone();
     }
@@ -204,13 +131,23 @@ struct ReflectionMesh : public kpi::ReflectionMesh {
 };
 
 void InitAPI() {
-  spCorePackageInstaller = new CorePackageInstaller();
-  kpi::ApplicationPlugins::spInstance = spCorePackageInstaller;
+  kpi::ApplicationPlugins::spInstance = new kpi::ApplicationPlugins();
   kpi::ReflectionMesh::setInstance(
       new ReflectionMesh(std::make_unique<DataMesh>()));
 }
 void DeinitAPI() {
-  spCorePackageInstaller = nullptr;
   delete kpi::ApplicationPlugins::spInstance;
   delete kpi::ReflectionMesh::getInstance();
+}
+
+std::vector<std::string> GetChildrenOfType(const std::string& type) {
+  std::vector<std::string> out;
+  const auto hnd = kpi::ReflectionMesh::getInstance()->lookupInfo(type);
+
+  for (int i = 0; i < hnd.getNumChildren(); ++i) {
+    out.push_back(hnd.getChild(i).getName());
+    for (const auto& str : GetChildrenOfType(hnd.getChild(i).getName()))
+      out.push_back(str);
+  }
+  return out;
 }
