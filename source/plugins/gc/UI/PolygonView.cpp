@@ -1,21 +1,12 @@
-#include <vendor/fa5/IconsFontAwesome5.h>
-#include <core/util/gui.hpp>
 #include <algorithm>
-
-#undef near
-
+#include <core/3d/i3dmodel.hpp>
+#include <core/util/gui.hpp>
 #include <frontend/editor/kit/Image.hpp>
 #include <kpi/PropertyView.hpp>
-
-#include <core/3d/i3dmodel.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
-
-// Tables
-#include <imgui/imgui_internal.h>
-
+#include <vendor/fa5/IconsFontAwesome5.h>
 
 namespace libcube::UI {
-
 
 struct PolyDescriptorSurface final {
   const char* name = "Vertex Descriptor";

@@ -241,9 +241,6 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
 #endif
 }
 
-void installTexImageView() {
-  kpi::PropertyViewManager& manager = kpi::PropertyViewManager::getInstance();
-  manager.addPropertyView<libcube::Texture, ImageSurface>();
-}
+kpi::RegisterPropertyView<libcube::Texture, ImageSurface> ImageSurfaceInstaller();
 
 } // namespace libcube::UI

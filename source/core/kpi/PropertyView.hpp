@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Plugins.hpp"
+
 namespace kpi {
 
 // Until C++20:
@@ -237,14 +239,17 @@ struct PropertyViewImpl final : public IPropertyView {
 };
 
 struct PropertyViewManager {
-  template <typename TDomain, typename TTag> void addPropertyView() {
-    mViews.push_back(std::make_unique<PropertyViewImpl<TDomain, TTag>>());
+  void addPropertyView(std::unique_ptr<IPropertyView> view) {
+    mViews.push_back(std::move(view));
 
     // TODO: Sort tabs based on hierarchy
     std::stable_sort(mViews.begin(), mViews.end(),
                      [](const auto& left, const auto& right) {
                        return left->getName()[0] < right->getName()[0];
                      });
+  }
+  template <typename TDomain, typename TTag> void addPropertyView() {
+    addPropertyView(std::make_unique<PropertyViewImpl<TDomain, TTag>>());
   }
 
   template <typename T> void forEachView(T func, kpi::IDocumentNode& active) {
@@ -264,6 +269,94 @@ private:
 
 public:
   static PropertyViewManager sInstance;
+};
+
+template <typename TDomain, typename TTag>
+class RegisterPropertyView : private RegistrationLink {
+  void exec(ApplicationPlugins&) override {
+    PropertyViewManager::getInstance().addPropertyView<TDomain, TTag>();
+  }
+};
+
+template <typename T, typename U>
+struct StatelessPropertyViewImpl : public IPropertyView {
+  bool isInDomain(IDocumentNode* test) const override {
+    return dynamic_cast<T*>(test) != nullptr;
+  }
+  const std::string_view getName() const override { return mName; }
+  const std::string_view getIcon() const override { return mIcon; }
+  void draw(kpi::IDocumentNode& active,
+            std::vector<kpi::IDocumentNode*> affected, kpi::History& history,
+            kpi::IDocumentNode& root,
+            PropertyViewStateHolder& state_holder) override {
+    T* _active = dynamic_cast<T*>(&active);
+    assert(_active != nullptr);
+
+    std::vector<T*> _affected(affected.size());
+    for (std::size_t i = 0; i < affected.size(); ++i) {
+      _affected[i] = dynamic_cast<T*>(affected[i]);
+      assert(_affected[i] != nullptr);
+    }
+
+    PropertyDelegate<T> delegate(*_active, _affected, history, root);
+
+    mFunctor(delegate);
+  }
+
+  virtual std::unique_ptr<IPropertyViewState> constructState() const override {
+    return nullptr;
+  }
+
+  std::string_view mName, mIcon;
+  U mFunctor;
+
+  StatelessPropertyViewImpl(std::string_view name, std::string_view icon,
+                            U functor)
+      : mName(name), mIcon(icon), mFunctor(functor) {}
+};
+
+template <typename TDomain>
+class StatelessPropertyView : private RegistrationLink {
+public:
+  typedef void (*functor_t)(PropertyDelegate<TDomain>&);
+
+  StatelessPropertyView(const char* name, const char* icon, functor_t functor)
+      : mName(name), mIcon(icon), mFunctor(functor) {}
+  explicit StatelessPropertyView(bool link = true)
+      : RegistrationLink(link), mName("???"), mIcon("?"), mFunctor(nullptr) {}
+
+  StatelessPropertyView& setTitle(const char* title) {
+    mName = title;
+    return *this;
+  }
+  StatelessPropertyView& setIcon(const char* icon) {
+    mIcon = icon;
+    return *this;
+  }
+  StatelessPropertyView& onDraw(functor_t functor) {
+    mFunctor = functor;
+    return *this;
+  }
+
+  StatelessPropertyView(StatelessPropertyView& rhs) : RegistrationLink(false) {
+    assert(rhs.next == nullptr);
+    mName = rhs.mName;
+    mIcon = rhs.mIcon;
+    mFunctor = rhs.mFunctor;
+    rhs.last->next = this;
+    last = rhs.last;
+    gRegistrationChain = this;
+  }
+
+private:
+  void exec(ApplicationPlugins&) override {
+    PropertyViewManager::getInstance().addPropertyView(
+        std::make_unique<StatelessPropertyViewImpl<TDomain, functor_t>>(
+            mName, mIcon, mFunctor));
+  }
+
+  const char *mName, *mIcon;
+  functor_t mFunctor;
 };
 
 } // namespace kpi

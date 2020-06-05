@@ -138,18 +138,23 @@ class RegistrationLink {
 public:
   virtual ~RegistrationLink() = default;
 
-  RegistrationLink() {
+  explicit RegistrationLink(bool link = true) {
+    if (!link)
+      return;
+    if (gRegistrationChain != nullptr)
+      gRegistrationChain->next = this;
     last = gRegistrationChain;
     gRegistrationChain = this;
   }
-  RegistrationLink(RegistrationLink* last) : last(last) {}
+  explicit RegistrationLink(RegistrationLink* last) : last(last), next(nullptr) {}
   virtual void exec(ApplicationPlugins& registrar) {}
 
   static RegistrationLink* getHead() { return gRegistrationChain; }
   RegistrationLink* getLast() { return last; }
 
-private:
-  RegistrationLink* last;
+public: // todo
+  RegistrationLink* next = nullptr;
+  RegistrationLink* last = nullptr;
   static RegistrationLink* gRegistrationChain;
 };
 

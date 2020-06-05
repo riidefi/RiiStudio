@@ -997,7 +997,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
 }
 
 void installPolygonView();
-void installBoneView();
 void installTexImageView();
 
 kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
@@ -1011,8 +1010,6 @@ kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
   // manager.addPropertyView<libcube::IGCMaterial, FogSurface>();
   manager.addPropertyView<libcube::IGCMaterial, PixelSurface>();
 
-  installTexImageView();
-  installBoneView();
   installPolygonView();
 });
 
