@@ -1,10 +1,6 @@
 #include "applet.hpp"
 #include <fa5/IconsFontAwesome5.h>
 #include <imgui/imgui.h>
-#include <imgui/impl/imgui_impl_glfw.h>
-#include <imgui/impl/imgui_impl_opengl3.h>
-
-#include <vendor/imgui/impl/imgui_impl_sdl.h>
 #include <vendor/imgui_markdown.h>
 
 namespace riistudio::core {
@@ -55,7 +51,7 @@ static bool loadFonts(float fontSize = 12.0f) {
   return true;
 }
 
-Applet::Applet(const std::string& name) : GLWindow(1280, 720, name) {
+Applet::Applet(const std::string& name) : plate::Platform(1280, 720, name) {
 
   ImGuiStyle& style = ImGui::GetStyle();
   ImGuiIO& io = ImGui::GetIO();
@@ -68,32 +64,16 @@ Applet::Applet(const std::string& name) : GLWindow(1280, 720, name) {
     fprintf(stderr, "Failed to load fonts");
   }
 #ifdef RII_BACKEND_GLFW
-  mpGlfwWindow = getGlfwWindow();
+  mpGlfwWindow = (GLFWwindow*)getPlatformWindow();
 #endif
 }
 
 Applet::~Applet() {}
 
-void Applet::frameRender() {
-  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-#ifdef DEBUG
-static bool demo = true;
-#endif
-void Applet::frameProcess() {
+void Applet::rootDraw() {}
+void Applet::rootCalc() {
   detachClosedChildren();
-
-  ImGui_ImplOpenGL3_NewFrame();
-  newFrame(); // TODO: Include GL3 in this?
-  ImGui::NewFrame();
-
-#ifdef DEBUG
-  if (demo)
-    ImGui::ShowDemoWindow(&demo);
-#endif
   draw(); // Call down to window manager
-
-  ImGui::Render();
 }
 
 } // namespace riistudio::core

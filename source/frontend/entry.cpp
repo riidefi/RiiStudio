@@ -10,7 +10,7 @@ int main(int, char**)
 
   auto* core = new riistudio::frontend::RootWindow();
 
-  core->loop();
+  core->enter();
 
 #ifdef _WIN32
   delete core;

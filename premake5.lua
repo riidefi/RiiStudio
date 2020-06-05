@@ -93,7 +93,8 @@ function setupMainAppCli(set_links)
 		"./source/vendor",
 	--	(FBX_SDK_ROOT .. "../../../include"),
 	--	PYTHON_ROOT .. "./include",
-		"./source/vendor/pybind11/include"
+		"./source/vendor/pybind11/include",
+		"source/plate"
 	}
 	if set_links then
 	links
@@ -147,6 +148,7 @@ function setupMainApp()
 		"core",
 		"vendor",
 		"plugins",
+		"plate",
 		"source/vendor/glfw/lib-vc2017/glfw3dll.lib",
 		"opengl32.lib",
 	--	"libfbxsdk.lib",
@@ -175,7 +177,20 @@ project "frontend"
 	location "source/frontend"
 	setupMainApp()
 
+project "plate"
+	location "source/plate"
 
+	includedirs
+	{
+		"./source",
+		"source/vendor"
+	}
+	setupStaticLib()
+	setupCppC()
+
+
+	setupSystem()
+	setupPreprocessor()
 
 project "vendor"
 	location "source/vendor"
@@ -199,7 +214,8 @@ project "core"
 		"source/vendor",
 		"source/core",
 	--	PYTHON_ROOT .. "./include",
-		"source/vendor/pybind11/include"
+		"source/vendor/pybind11/include",
+		"source/plate"
 	}
 
 	setupStaticLib()

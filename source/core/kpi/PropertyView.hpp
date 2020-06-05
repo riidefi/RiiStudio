@@ -56,7 +56,7 @@ public:
     commit("Property Update");
   }
 
-  template <typename T> static inline T doNothing(T x) { return x; }
+  template <typename U> static inline U doNothing(U x) { return x; }
 
   template <typename U, typename V, typename W>
   void propertyEx(U before, U after, V val, W pre = &doNothing) {

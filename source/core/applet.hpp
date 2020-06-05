@@ -1,17 +1,17 @@
 #pragma once
 
-#include <core/window/gl_window.hpp>
+#include <plate/Platform.hpp>
 #include <core/window/window.hpp>
 
 namespace riistudio::core {
 
-class Applet : public Window, public GLWindow {
+class Applet : public Window, public plate::Platform {
 public:
   Applet(const std::string& name);
   ~Applet();
 
-  void frameProcess() override;
-  void frameRender() override;
+  void rootCalc() override;
+  void rootDraw() override;
 };
 
 // TODO -- place more appropriately

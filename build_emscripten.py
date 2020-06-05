@@ -93,12 +93,17 @@ PROJECTS = [
 		"type": "static_lib"
 	},
 	{
+		"name": "plate",
+		"type": "static_lib"
+	},
+	{
 		"name": "frontend",
 		"type": "main_app",
 		"links": [
 			"vendor",
 			"core",
-			"plugins"
+			"plugins",
+			"plate"
 		]
 	}
 ]

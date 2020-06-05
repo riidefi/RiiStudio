@@ -1,11 +1,11 @@
-// SDL-Emscripten
 #ifdef RII_BACKEND_SDL
 
-#include "gl_window.hpp"
-#include <core/3d/gl.hpp>
+#include <plate/gl.hpp>
+
 #include <cstdio>
 #include <emscripten.h>
 #include <emscripten/html5.h>
+#include <plate/Platform.hpp>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string_view>
@@ -27,9 +27,9 @@ SDL_GLContext g_GLContext = NULL;
 
 bool gPointerLock = false;
 
-namespace riistudio::core {
+namespace plate {
 
-static GLWindow* g_AppWindow = nullptr;
+static Platform* g_AppWindow = nullptr;
 
 void readFile(const int& addr, const size_t& len, std::string path) {
   uint8_t* data = reinterpret_cast<uint8_t*>(addr);
@@ -41,10 +41,10 @@ void readFile(const int& addr, const size_t& len, std::string path) {
 EMSCRIPTEN_BINDINGS(my_module) { emscripten::function("readFile", &readFile); }
 
 void main_loop(void* arg) {
-  reinterpret_cast<GLWindow*>(arg)->mainLoopInternal();
+  reinterpret_cast<Platform*>(arg)->mainLoopInternal();
 }
 
-GLWindow::GLWindow(int width, int height, const std::string& pName)
+Platform::Platform(unsigned width, unsigned height, const std::string& pName)
     : mTitle(pName) {
   // Setup SDL
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) !=
@@ -53,10 +53,6 @@ GLWindow::GLWindow(int width, int height, const std::string& pName)
     return;
   }
 
-  // For the browser using Emscripten, we are going to use WebGL1 with GL ES2.
-  // See the Makefile. for requirement details. It is very likely the generated
-  // file won't work in many browsers. Firefox is the only sure bet, but I have
-  // successfully run this code on Chrome for Android for example.
   const char* glsl_version = "#version 100";
   // const char* glsl_version = "#version 300 es";
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
@@ -106,19 +102,18 @@ GLWindow::GLWindow(int width, int height, const std::string& pName)
 
   // Emscripten
   g_AppWindow = this;
-  emscripten_set_main_loop_arg(&main_loop, (void*)this, 0, 0);
 }
 
-void GLWindow::glfwshowMouse() { SDL_SetRelativeMouseMode(SDL_FALSE); }
-void GLWindow::glfwhideMouse() { SDL_SetRelativeMouseMode(SDL_TRUE); }
-void GLWindow::setVsync(bool v) { SDL_GL_SetSwapInterval(v ? 1 : 0); }
-GLWindow::~GLWindow() {
+void Platform::showMouse() { SDL_SetRelativeMouseMode(SDL_FALSE); }
+void Platform::hideMouse() { SDL_SetRelativeMouseMode(SDL_TRUE); }
+void Platform::setVsync(bool v) { SDL_GL_SetSwapInterval(v ? 1 : 0); }
+Platform::~Platform() {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL2_Shutdown();
   ImGui::DestroyContext();
 }
 
-void GLWindow::mainLoopInternal() {
+void Platform::mainLoopInternal() {
   // Poll and handle events (inputs, window resize, etc.)
   // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell
   // if dear imgui wants to use your inputs.
@@ -133,24 +128,29 @@ void GLWindow::mainLoopInternal() {
     // Capture events here, based on io.WantCaptureMouse and
     // io.WantCaptureKeyboard
     switch (event.type) {
-    case SDL_DROPFILE: {
-      vdrop({event.drop.file});
-      break;
-    }
+    // case SDL_DROPFILE: {
+    //   vdrop({event.drop.file});
+    //   break;
+    // }
     default:
       break;
     }
   }
+  ImGui_ImplOpenGL3_NewFrame();
+  ImGui_ImplSDL2_NewFrame(g_Window);
+  ImGui::NewFrame();
+  rootCalc();
 
-  frameProcess();
-
+  ImGui::Render();
   auto& io = ImGui::GetIO();
 
   SDL_GL_MakeCurrent(g_Window, g_GLContext);
   glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
   // glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
   glClear(GL_COLOR_BUFFER_BIT);
-  frameRender();
+  rootDraw();
+  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
   SDL_GL_SwapWindow(g_Window);
 }
 // based on
@@ -158,7 +158,6 @@ void GLWindow::mainLoopInternal() {
 static EM_BOOL EmscriptenMouseCallback(int eventType,
                                        const EmscriptenMouseEvent* mouseEvent,
                                        void* userData) {
-  printf("CB\n");
   if (gPointerLock)
     emscripten_request_pointerlock(0, 1);
   else
@@ -166,11 +165,11 @@ static EM_BOOL EmscriptenMouseCallback(int eventType,
 
   return 0;
 }
-void GLWindow::loop() {
+void Platform::enter() {
+  emscripten_set_main_loop_arg(&main_loop, (void*)this, 0, 0);
   // Hacky workaround...
   emscripten_set_click_callback(0, 0, 1, EmscriptenMouseCallback);
 }
-void GLWindow::newFrame() { ImGui_ImplSDL2_NewFrame(g_Window); }
-} // namespace riistudio::core
+} // namespace plate
 
 #endif

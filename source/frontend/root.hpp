@@ -19,9 +19,6 @@ public:
   void draw() override;
   void onFileOpen(FileData data, OpenFilePolicy policy) override;
 
-  void vdrop(const std::vector<std::string>& paths) override {
-    FileHost::drop(paths);
-  }
   void vdropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len,
                    const std::string& name) override {
     FileHost::dropDirect(std::move(data), len, name);

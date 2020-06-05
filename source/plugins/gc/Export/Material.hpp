@@ -56,9 +56,9 @@ struct copyable_polymorphic_array_vector
     return *this;
   }
   bool operator==(const copyable_polymorphic_array_vector& rhs) const noexcept {
-    if (rhs.nElements != nElements)
+    if (rhs.nElements != super::nElements)
       return false;
-    for (int i = 0; i < nElements; ++i) {
+    for (int i = 0; i < super::nElements; ++i) {
       const T& l = *this->at(i).get();
       const T& r = *rhs.at(i).get();
       if (!(l == r))
