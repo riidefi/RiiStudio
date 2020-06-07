@@ -108,43 +108,6 @@ T BinaryReader::peekAt(int trans)
 //	return decoded;
 //}
 
-template<typename THandler, typename Indirection, typename TContext, bool needsSeekBack>
-inline void BinaryReader::invokeIndirection(TContext& ctx, u32 atPool)
-{
-	const u32 start = tell();
-	const u32 ptr = Indirection::is_pointed ? (u32)read<typename Indirection::offset_t>() : 0;
-	const u32 back = tell();
-
-	seek<Indirection::whence>(ptr + Indirection::translation, atPool);
-	if (Indirection::has_next)
-	{
-		invokeIndirection<THandler, typename Indirection::next, TContext, false>(ctx);
-	}
-	else
-	{
-		// FIXME: Update ScopedRegion to be usable here.
-		u32 jump_save = 0;
-		u32 jump_size_save = 0;
-
-		enterRegion(THandler::name, jump_save, jump_size_save, start, sizeof(typename Indirection::offset_t)); // TODO -- ensure 0 for direct
-
-		THandler::onRead(*this, ctx);
-
-		exitRegion(jump_save, jump_size_save);
-	}
-	// With multiple levels of indirection, we only need to seek back on the outermost layer
-	if (needsSeekBack)
-		seek<Whence::Set>(back);
-}
-
-template <typename THandler,
-	typename TIndirection,
-	bool seekBack,
-	typename TContext>
-	void BinaryReader::dispatch(TContext& ctx, u32 atPool)
-{
-	invokeIndirection<THandler, TIndirection, TContext, seekBack>(ctx, atPool);
-}
 template<typename lastReadType, typename TInval>
 void BinaryReader::signalInvalidityLast()
 {

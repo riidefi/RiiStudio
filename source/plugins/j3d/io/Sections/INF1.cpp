@@ -23,10 +23,8 @@ void readINF1(BMDOutputContext& ctx) {
         static_cast<Model::Information::ScalingRule>(flag & 0xf);
     // FIXME
     // assert((flag & ~0xf) == 0);
-
-    reader
-        .dispatch<SceneGraph, oishii::Indirection<0, s32, oishii::Whence::At>>(
-            ctx, g.start);
+    reader.seekSet(g.start + reader.read<s32>());
+    SceneGraph::onRead(reader, ctx);
   }
 }
 

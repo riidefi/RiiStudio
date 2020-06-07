@@ -1,7 +1,6 @@
 #pragma once
 
 #include "memory_reader.hxx"
-#include "indirection.hxx"
 #include "../util/util.hxx"
 
 #include <array>
@@ -80,22 +79,6 @@ public:
 	{
 		return peekAt<T, E, unaligned>(trans - tell());
 	}
-
-
-private:
-	template<typename THandler, typename Indirection, typename TContext, bool needsSeekBack = true>
-	inline void invokeIndirection(TContext& ctx, u32 atPool=0);
-
-public:
-	//! @brief Dispatch an indirect data read to a handler.
-	//!
-	//! @tparam THandler		The handler.
-	//! @tparam TIndirection	The sequence necessary to derive the value.
-	//! @tparam seekback		Whether or not the reader should be restored to the end of the first indirection jump.
-	//! @tparam TContext		Type of value to pass to handler.
-	//!
-	template <typename THandler, typename TIndirection = Direct, bool seekBack = true, typename TContext>
-	void dispatch(TContext& ctx, u32 atPool=0);
 
 	struct ScopedRegion
 	{
@@ -234,17 +217,6 @@ private:
 	}
 
 };
-
-
-
-#define READER_HANDLER_DECL(hname, desc, ctx_t) \
-	struct hname { static constexpr char name[] = desc; \
-		static inline void onRead(oishii::BinaryReader& reader, ctx_t ctx); };
-#define READER_HANDLER_IMPL(hname, ctx_t) \
-	void hname::onRead(oishii::BinaryReader& reader, ctx_t ctx)
-#define READER_HANDLER(hname, desc, ctx_t) \
-	READER_HANDLER_DECL(hname, desc, ctx_t) \
-	READER_HANDLER_IMPL(hname, ctx_t)
 
 
 } // namespace oishii
