@@ -18,28 +18,13 @@ struct Invalidity
 class BinaryReader final : public MemoryBlockReader
 {
 public:
-	//! @brief The constructor
-	//!
-	//! @param[in] sz Size of the buffer to create.
-	//! @param[in] f  Filename
-	//!
-	BinaryReader(u32 sz, const char* f = "")
-		: MemoryBlockReader(sz), file(f)
+	BinaryReader(u32 buffer_size, const char* file_name = "")
+		: MemoryBlockReader(buffer_size), file(file_name)
 	{}
-
-	//! @brief The constructor
-	//!
-	//! @param[in] buf The buffer to manage.
-	//! @param[in] sz  Size of the buffer.
-	//! @param[in] f   Filename
-	//!
-	BinaryReader(std::vector<u8> buf, u32 sz, const char* f = "")
-		: MemoryBlockReader(std::move(buf), sz), file(f)
+	BinaryReader(std::vector<u8> buffer, u32 buffer_size, const char* file_name = "")
+		: MemoryBlockReader(std::move(buffer), buffer_size), file(file_name)
 	{}
-
-	//! @brief The destructor.
-	//!
-	~BinaryReader() final {}
+	~BinaryReader() = default;
 
 	//! @brief Given a type T, return T in the specified endiannes. (Current: swap endian if reader endian != sys endian)
 	//!
@@ -121,7 +106,7 @@ public:
 	inline void expectMagic();
 
 
-	void switchEndian() noexcept { bigEndian = !bigEndian; }
+	void switchEndian()			noexcept { bigEndian = !bigEndian; }
 	void setEndian(bool big)	noexcept { bigEndian = big; }
 	bool getIsBigEndian() const noexcept { return bigEndian; }
 
@@ -141,7 +126,6 @@ private:
 
 			const char* handlerName; // Name of handler
 			u32 handlerStart; // Start address of handler
-
 		};
 
 		std::array<Entry, 16> mStack;
@@ -174,7 +158,7 @@ private:
 			throw "Out of bounds read.";
 		}
 	}
-	void boundsCheck(u32 size) noexcept
+	void boundsCheck(u32 size)
 	{
 		boundsCheck(size, tell());
 	}
