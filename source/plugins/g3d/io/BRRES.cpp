@@ -180,7 +180,7 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
   mdl.node().setName(readName(reader, start));
 
   const auto infoPos = reader.tell();
-  reader.seek(8); // Ignore size, ofsMode
+  reader.skip(8); // Ignore size, ofsMode
   mdl.get().mScalingRule = static_cast<ScalingRule>(reader.read<u32>());
   mdl.get().mTexMtxMode = static_cast<TextureMatrixMode>(reader.read<u32>());
 
@@ -213,7 +213,7 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
 
   readDict(secOfs.ofsBones, [&](const DictionaryNode& dnode) {
     auto& bone = mdl.addBone().get();
-    reader.seek(8); // skip size and mdl offset
+    reader.skip(8); // skip size and mdl offset
     bone.setName(readName(reader, dnode.mDataDestination));
     bone.mId = reader.read<u32>();
     bone.matrixId = reader.read<u32>();
@@ -236,8 +236,8 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
       return static_cast<s32>(reader.read<u32>());
     };
     bone.mParent = readHierarchyElement();
-    reader.seek(12); // Skip sibling and child links -- we recompute it all
-    reader.seek(2 * ((3 * 4) * sizeof(f32))); // skip matrices
+    reader.skip(12); // Skip sibling and child links -- we recompute it all
+    reader.skip(2 * ((3 * 4) * sizeof(f32))); // skip matrices
   });
   // Compute children
   for (int i = 0; i < mdl.getBones().size(); ++i) {
@@ -301,7 +301,7 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
           mat.name.c_str());
 
     // Texture and palette objects are set on runtime.
-    reader.seek((4 + 8 * 12) + (4 + 8 * 32));
+    reader.skip((4 + 8 * 12) + (4 + 8 * 32));
 
     // Texture transformations
     reader.read<u32>(); // skip flag, TODO: verify
@@ -425,7 +425,7 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
       const auto sampStart = reader.tell();
       sampler->mTexture = readName(reader, sampStart);
       sampler->mPalette = readName(reader, sampStart);
-      reader.seek(8);     // skip runtime pointers
+      reader.skip(8);     // skip runtime pointers
       reader.read<u32>(); // skip tex id for now
       reader.read<u32>(); // skip tlut id for now
       sampler->mWrapU =
@@ -441,7 +441,7 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
           static_cast<libcube::gx::AnisotropyLevel>(reader.read<u32>());
       sampler->bBiasClamp = reader.read<u8>();
       sampler->bEdgeLod = reader.read<u8>();
-      reader.seek(2);
+      reader.skip(2);
       mat.samplers.push_back(std::move(sampler));
     }
 
@@ -508,7 +508,7 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
     reader.read<s32>(); // mdl offset
 
     poly.mCurrentMatrix = reader.read<s32>();
-    reader.seek(12); // cache
+    reader.skip(12); // cache
 
     struct DlHandle {
       std::size_t tag_start;
@@ -731,7 +731,7 @@ static void readTexture(kpi::NodeAccessor<Texture>& tex,
   assert(reader.tell() + data.getEncodedSize(true) < reader.endpos());
   memcpy(data.data.data(), reader.getStreamStart() + reader.tell(),
          data.getEncodedSize(true));
-  reader.seek(data.getEncodedSize(true));
+  reader.skip(data.getEncodedSize(true));
 }
 
 class ArchiveDeserializer {

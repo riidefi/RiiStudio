@@ -14,7 +14,7 @@ void Tex::transfer(oishii::BinaryReader& stream) {
   mHeight = stream.read<u16>();
   mWrapU = static_cast<libcube::gx::TextureWrapMode>(stream.read<u8>());
   mWrapV = static_cast<libcube::gx::TextureWrapMode>(stream.read<u8>());
-  stream.seek(1);
+  stream.skip(1);
   stream.transfer(mPaletteFormat);
   stream.transfer(nPalette);
   stream.transfer(ofsPalette);
@@ -33,7 +33,7 @@ void Tex::transfer(oishii::BinaryReader& stream) {
 	  mMipmapLevel = 1;
   }
   // assert(mMipmapLevel);
-  stream.seek(1);
+  stream.skip(1);
   stream.transfer(mLodBias);
   stream.transfer(ofsTex);
 }
@@ -46,7 +46,7 @@ void Tex::write(oishii::v2::Writer& stream) const {
   stream.write<u16>(mHeight);
   stream.write<u8>(static_cast<u8>(mWrapU));
   stream.write<u8>(static_cast<u8>(mWrapV));
-  stream.seek(1);
+  stream.skip(1);
   stream.write<u8>(mPaletteFormat);
   stream.write<u16>(nPalette);
   stream.write<u32>(0);
@@ -60,7 +60,7 @@ void Tex::write(oishii::v2::Writer& stream) const {
   stream.write<s8>(mMinLod);
   stream.write<s8>(mMaxLod);
   stream.write<u8>(mMipmapLevel);
-  stream.seek(1);
+  stream.skip(1);
   stream.write<s16>(mLodBias);
   // stream.transfer(ofsTex);
 }
@@ -111,7 +111,7 @@ void readTEX1(BMDOutputContext& ctx) {
 
   std::vector<std::pair<std::unique_ptr<Texture>, std::pair<u32, u32>>> texRaw;
 
-  reader.seek(ofsHeaders);
+  reader.skip(ofsHeaders);
   for (int i = 0; i < size; ++i) {
     Tex tex;
     tex.btiId = i;
@@ -290,15 +290,15 @@ struct TEX1Node final : public oishii::v2::Node {
       const auto& tex = mCol.getTexture(mIdx).get();
       const auto before = writer.tell();
 
-      writer.seek(tex.mData.size() - 1);
+      writer.skip(tex.mData.size() - 1);
       writer.write<u8>(0);
-      writer.seek(-tex.mData.size());
+      writer.skip(-tex.mData.size());
 
       // memcpy_s(writer.getDataBlockStart() + before, writer.endpos(),
       // tex.mData.data(), tex.mData.size());
       memcpy(writer.getDataBlockStart() + before, tex.mData.data(),
              tex.mData.size());
-      writer.seek(tex.mData.size());
+      writer.skip(tex.mData.size());
       return {};
     }
 

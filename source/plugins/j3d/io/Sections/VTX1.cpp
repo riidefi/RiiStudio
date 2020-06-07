@@ -30,7 +30,7 @@ void readVTX1(BMDOutputContext& ctx) {
                   ? 2
                   : 1;
     const auto shift = reader.read<u8>();
-    reader.seek(3);
+    reader.skip(3);
 
     assert(0 <= shift && shift <= 31);
 

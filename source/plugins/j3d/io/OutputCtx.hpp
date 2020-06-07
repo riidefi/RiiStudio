@@ -114,7 +114,7 @@ struct ScopedSection : private oishii::BinaryReader::ScopedRegion {
   ScopedSection(oishii::BinaryReader& reader, const char* name)
       : oishii::BinaryReader::ScopedRegion(reader, name) {
     start = reader.tell();
-    reader.seek(4);
+    reader.skip(4);
     size = reader.read<u32>();
   }
   u32 start = 0;

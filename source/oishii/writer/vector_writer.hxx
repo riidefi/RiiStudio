@@ -20,7 +20,7 @@ public:
     virtual ~VectorWriter() = default;
 
     // Faster to put it here (will call devirtualized functions)
-	template<Whence W = Whence::Current>
+    template <Whence W = Whence::Last>
 	inline void seek(int ofs, u32 mAtPool = 0)
 	{
 		static_assert(W != Whence::Last, "Cannot use last seek yet.");
@@ -39,6 +39,11 @@ public:
 			mPos = ofs + mAtPool;
 			break;
 		}
+	}
+
+	inline void skip(int ofs)
+	{
+		seek<Whence::Current>(ofs);
 	}
     u32 tell() final override
 	{

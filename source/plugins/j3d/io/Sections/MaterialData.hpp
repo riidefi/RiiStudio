@@ -83,7 +83,7 @@ template <> struct io_wrapper<gx::AlphaComparison> {
     c.op = static_cast<gx::AlphaOp>(reader.read<u8>());
     c.compRight = static_cast<gx::Comparison>(reader.read<u8>());
     c.refRight = reader.read<u8>();
-    reader.seek(3);
+    reader.skip(3);
   }
   static void onWrite(oishii::v2::Writer& writer,
                       const gx::AlphaComparison& in) {
@@ -181,7 +181,7 @@ template <> struct io_wrapper<gx::ColorS10> {
 template <> struct io_wrapper<NBTScale> {
   static void onRead(oishii::BinaryReader& reader, NBTScale& c) {
     c.enable = static_cast<bool>(reader.read<u8>());
-    reader.seek(3);
+    reader.skip(3);
     c.scale << reader;
   }
   static void onWrite(oishii::v2::Writer& writer, const NBTScale& in) {
@@ -513,7 +513,7 @@ template <> struct io_wrapper<Model::Indirect> {
       m_raw[1][1] = reader.read<f32>();
       m_raw[1][2] = reader.read<f32>();
       e.quant = reader.read<u8>();
-      reader.seek(3);
+      reader.skip(3);
 
       glm::vec3 scale;
       glm::quat rotation;
@@ -534,7 +534,7 @@ template <> struct io_wrapper<Model::Indirect> {
           reader.read<u8>());
       e.V = static_cast<gx::IndirectTextureScalePair::Selection>(
           reader.read<u8>());
-      reader.seek(2);
+      reader.skip(2);
     }
     int i = 0;
     for (auto& e : c.tevStage) {
@@ -548,7 +548,7 @@ template <> struct io_wrapper<Model::Indirect> {
       e.addPrev = reader.read<u8>();
       e.utcLod = reader.read<u8>();
       e.alpha = static_cast<gx::IndTexAlphaSel>(reader.read<u8>());
-      reader.seek(3);
+      reader.skip(3);
 
       ++i;
     }

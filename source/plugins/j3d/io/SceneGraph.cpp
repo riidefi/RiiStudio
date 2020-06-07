@@ -167,7 +167,7 @@ struct SceneGraphNode : public oishii::v2::Node {
       // If last is an open, overwrite it
       if (oishii::swapEndian(
               *(u16*)(writer.getDataBlockStart() + writer.tell() - 4)) == 1) {
-        writer.seek(-4);
+        writer.skip(-4);
         --depth;
       }
       for (u32 i = startDepth; i < depth; ++i) {

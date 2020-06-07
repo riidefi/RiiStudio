@@ -100,7 +100,7 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
       result.r = reader.read<u8>();
       result.g = reader.read<u8>();
       result.b = reader.read<u8>();
-      reader.seek(1);
+      reader.skip(1);
       break;
     case libcube::gx::VertexBufferType::Color::rgba4: {
       const u16 c = reader.read<u16>();
