@@ -416,7 +416,25 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
     printf("Cannot spawn file state %s.\n", importer.first.c_str());
     return;
   }
-
+  struct Handler : oishii::ErrorHandler {
+    void onErrorBegin(oishii::AbstractStream& stream) override { puts("[Begin Error]");
+	}
+    void onErrorDescribe(oishii::AbstractStream& stream, const char* type,
+                             const char* brief, const char* details) override {
+      printf("- [Describe] Type %s, Brief: %s, Details: %s\n", type, brief, details);
+	}
+    void onErrorAddStackTrace(oishii::AbstractStream& stream,
+                                      std::streampos start,
+                                      std::streamsize size,
+                                  const char* domain) override {
+      printf("- [Stack] Start: %u, Size: %u, Domain: %s\n", (u32)start,
+             (u32)size, domain);
+    }
+    void onErrorEnd(oishii::AbstractStream& stream) override {
+      puts("[End Error]");
+	}
+  } handler;
+  reader->addErrorHandler(&handler);
   importer.second->read_(*fileState.get(), *reader.get());
 
   auto edWindow =

@@ -85,7 +85,7 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
   if (checkStack) {
     beginError();
     describeError("Warning", msg, "");
-    // addErrorStackTrace(selectBegin, selectEnd - selectBegin, "<root>");
+    addErrorStackTrace(selectBegin, selectEnd - selectBegin, "<root>");
 
     // printf("\tStack Trace\n\t===========\n");
     for (s32 i = mStack.mSize - 1; i >= 0; --i) {
