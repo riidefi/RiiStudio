@@ -12,9 +12,7 @@ enum class Whence
 	Current, // Relative -- current position
 	End, // Relative -- end position
 	// Only valid for invalidities so far
-	Last, // Relative -- last read value
-
-	At, // Indirection -- use specified translation (runtime) argument
+	Last // Relative -- last read value
 };
 
 class AbstractStream
@@ -64,6 +62,32 @@ public:
 	template<typename T>
 	void add_bp(u32) {}
 #endif
+
+	// Faster version for memoryblock
+	template<Whence W = Whence::Last>
+	inline void seek(int ofs, u32 mAtPool=0)
+	{
+		static_assert(W != Whence::Last, "Cannot use last seek yet.");
+		static_assert(W == Whence::Set || W == Whence::Current || W == Whence::End, "Invalid whence.");
+		switch (W)
+		{
+		case Whence::Set:
+			seekSet(ofs);
+			break;
+		case Whence::Current:
+			if (ofs != 0)
+				seekSet(tell() + ofs);
+			break;
+		case Whence::End:
+			seekSet(endpos() - ofs);
+			break;
+		}
+	}
+
+	inline void skip(int ofs)
+	{
+		seek<Whence::Current>(ofs);
+	}
 };
 
 class IReader : public AbstractStream

@@ -18,37 +18,6 @@ public:
 	{}
 	virtual ~MemoryBlockReader() {}
 
-	// Faster version for memoryblock
-	template<Whence W = Whence::Last>
-	inline void seek(int ofs, u32 mAtPool=0)
-	{
-		static_assert(W != Whence::Last, "Cannot use last seek yet.");
-		static_assert(W == Whence::Set || W == Whence::Current || W == Whence::End || W == Whence::At, "Invalid whence.");
-		switch (W)
-		{
-		case Whence::Set:
-			mPos = ofs;
-			break;
-		case Whence::Current:
-			if (ofs)
-				mPos += ofs;
-			break;
-			//case Whence::End:
-			//	// TODO: Is it endpos - pos or endpos + pos
-			//	seekSet(endpos() - ofs);
-			//	break;
-		// At hack: summative
-		case Whence::At:
-			mPos = ofs + mAtPool;
-			break;
-		}
-	}
-
-	inline void skip(int ofs)
-	{
-		seek<Whence::Current>(ofs);
-	}
-
 	u32 tell() final override
 	{
 		return mPos;

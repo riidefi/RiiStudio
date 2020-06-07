@@ -144,7 +144,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
   if (cullMode > static_cast<u32>(libcube::gx::CullMode::All)) {
     reader.warnAt("Invalid cull mode (Valid range: [0, 3])", cmx.ofs,
                   cmx.ofs + 4);
-	cullMode = 0;
+    cullMode = 0;
   }
   mat.cullMode = static_cast<gx::CullMode>(cullMode);
   mat.info.nColorChan = loader.indexed<u8>(MatSec::NumColorChannels).raw();
@@ -180,7 +180,8 @@ void readMatEntry(Material& mat, MatLoader& loader,
   array_vector<Material::TexMatrix, 10> texMatrices;
   loader.indexedContainer<u16>(texMatrices, MatSec::TexMatrixInfo, 100);
   reader.seek<oishii::Whence::Current>(sizeof(u16) * 20); // Unused..
-  // loader.indexedContainer<u16>(mat.postTexMatrices, MatSec::PostTexMatrixInfo, 100);
+  // loader.indexedContainer<u16>(mat.postTexMatrices,
+  // MatSec::PostTexMatrixInfo, 100);
 
   mat.texMatrices.nElements = texMatrices.size();
   for (int i = 0; i < mat.texMatrices.nElements; ++i)
@@ -650,8 +651,8 @@ struct MAT3Node : public oishii::v2::Node {
     }
 
     {
-      oishii::Jump<oishii::Whence::At, oishii::v2::Writer> g(writer,
-                                                             ofsEntries);
+      oishii::Jump<oishii::Whence::Set, oishii::v2::Writer> g(writer,
+                                                              ofsEntries);
       writer.write<s32>(entryStart - start);
     }
 
@@ -664,7 +665,7 @@ struct MAT3Node : public oishii::v2::Node {
       for (const auto e : mEntries.mLut)
         writer.write<u16>(e);
 
-      oishii::Jump<oishii::Whence::At, oishii::v2::Writer> g(writer, ofsLut);
+      oishii::Jump<oishii::Whence::Set, oishii::v2::Writer> g(writer, ofsLut);
       writer.write<s32>(lutStart - start);
     }
     {
@@ -680,8 +681,8 @@ struct MAT3Node : public oishii::v2::Node {
       writeNameTable(writer, names);
       writer.alignTo(4);
 
-      oishii::Jump<oishii::Whence::At, oishii::v2::Writer> g(writer,
-                                                             ofsNameTab);
+      oishii::Jump<oishii::Whence::Set, oishii::v2::Writer> g(writer,
+                                                              ofsNameTab);
       writer.write<s32>(nameTabStart - start);
     }
 
