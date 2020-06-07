@@ -79,11 +79,6 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl, PolyDataSurface) {
 
   auto draw_p = [&](int i, int j) {
     auto prim = poly.getMatrixPrimitiveIndexedPrimitive(i, j);
-    int type = static_cast<int>(prim.mType);
-    ImGui::Combo("Primitive Type", &type,
-                 "Quads\0Quads2\0Triangles\0TriangleStrips\0Triangl"
-                 "eFans\0Lines\0LineStrips\0Points\0");
-
     u32 k = 0;
     for (auto& v : prim.mVertices) {
       ImGui::TableNextRow();
@@ -138,14 +133,21 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl, PolyDataSurface) {
         ImGui::Text(vertexAttribNamesArray[type]);
         ++q;
       }
+      static const std::array<std::string, 8> prim_types{
+          "Quads",        "QuadStrips", "Triangles",  "TriangleStrips",
+          "TriangleFans", "Lines",      "LineStrips", "Points"};
 
       for (int j = 0; j < poly.getMatrixPrimitiveNumIndexedPrimitive(i); ++j) {
         ImGui::TableNextRow();
 
         ImGui::TableSetColumnIndex(0);
         bool open = ImGui::TreeNodeEx(
-            (std::string("Primitive: ") + std::to_string(j)).c_str(),
-            ImGuiTreeNodeFlags_SpanFullWidth);
+            (std::string("#") + std::to_string(j) + " (" +
+             prim_types[static_cast<int>(
+                 poly.getMatrixPrimitiveIndexedPrimitive(i, j).mType)] +
+             ")")
+                .c_str(),
+            ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen);
         if (open) {
           draw_p(i, j);
           ImGui::TreePop();

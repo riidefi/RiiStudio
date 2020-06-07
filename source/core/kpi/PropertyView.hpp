@@ -273,6 +273,8 @@ public:
 
 template <typename TDomain, typename TTag>
 class RegisterPropertyView : private RegistrationLink {
+public:
+  RegisterPropertyView() : RegistrationLink(true) {}
   void exec(ApplicationPlugins&) override {
     PropertyViewManager::getInstance().addPropertyView<TDomain, TTag>();
   }

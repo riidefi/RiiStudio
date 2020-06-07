@@ -19,6 +19,7 @@ auto BoneDisplaySurface =
 
           auto folder_id_combo = [](const char* title, const auto& folder,
                                     int& active) {
+            ImGui::PushItemWidth(200);
             if (ImGui::BeginCombo(title, folder[active]->getName().c_str())) {
               int j = 0;
               for (const auto& node : folder) {
@@ -34,9 +35,13 @@ auto BoneDisplaySurface =
 
               ImGui::EndCombo();
             }
+            ImGui::PopItemWidth();
           };
 
-          if (ImGui::BeginTable("Entries", 3, ImGuiTableFlags_Borders)) {
+          const auto entry_flags =
+              ImGuiTableFlags_Borders | ImGuiTableFlags_Sortable |
+              ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable;
+          if (ImGui::BeginTable("Entries", 3, entry_flags)) {
             const auto* materials =
                 bone.getParent()->getFolder<libcube::IGCMaterial>();
             assert(materials);

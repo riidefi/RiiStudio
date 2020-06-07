@@ -29,7 +29,7 @@ public:
 
 private:
   u32 dockspace_id = 0;
-  bool vsync = 0;
+  bool vsync = true;
   bool bThemeEditor = false;
   float mFontGlobalScale = 1.0f;
 

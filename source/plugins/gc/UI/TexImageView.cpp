@@ -241,6 +241,6 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
 #endif
 }
 
-kpi::RegisterPropertyView<libcube::Texture, ImageSurface> ImageSurfaceInstaller();
+kpi::RegisterPropertyView<libcube::Texture, ImageSurface> ImageSurfaceInstaller;
 
 } // namespace libcube::UI
