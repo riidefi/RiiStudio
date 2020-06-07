@@ -154,18 +154,18 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
   mCamera.calc(showCursor, mouseSpeed, combo_choice_cam, width, height, projMtx,
                viewMtx, key_w, key_a, key_s, key_d, key_up, key_down);
 
-  riistudio::core::AABB bound;
+  riistudio::lib3d::AABB bound;
   mState->build(projMtx, viewMtx, bound);
 
-  const f32 dist = glm::distance(bound.m_minBounds, bound.m_maxBounds);
+  const f32 dist = glm::distance(bound.min, bound.max);
   if (mCamera.getSpeed() == 0.0f)
     mCamera.setSpeed(dist / 10.0f);
   if (mCamera.getSpeed() == 0.0f)
     mCamera.setSpeed(6000.0);
 
   if (mCamera.getPosition() == glm::vec3{0.0f}) {
-    const auto min = bound.m_minBounds;
-    const auto max = bound.m_maxBounds;
+    const auto min = bound.min;
+    const auto max = bound.max;
 
     glm::vec3 eye;
     eye.x = (min.x + max.x) / 2.0f;

@@ -16,7 +16,7 @@ struct SceneState {
               bool tex = true);
 
   void build(const glm::mat4& view, const glm::mat4& proj,
-             riistudio::core::AABB& bound);
+             riistudio::lib3d::AABB& bound);
 
   void draw();
 

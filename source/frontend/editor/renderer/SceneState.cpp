@@ -96,10 +96,10 @@ void SceneState::gather(const kpi::IDocumentNode& model,
 }
 
 void SceneState::build(const glm::mat4& view, const glm::mat4& proj,
-                       riistudio::core::AABB& bound) {
+                       riistudio::lib3d::AABB& bound) {
   // TODO
-  bound.m_minBounds = {0.0f, 0.0f, 0.0f};
-  bound.m_maxBounds = {0.0f, 0.0f, 0.0f};
+  bound.min = {0.0f, 0.0f, 0.0f};
+  bound.max = {0.0f, 0.0f, 0.0f};
 
   for (const auto& node : mTree.opaque) {
     auto mdl = ((lib3d::Bone&)node->bone).calcSrtMtx();
@@ -107,7 +107,7 @@ void SceneState::build(const glm::mat4& view, const glm::mat4& proj,
     auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
     auto nmin = mdl * glm::vec4(node->poly.getBounds().min, 0.0f);
 
-    riistudio::core::AABB newBound{nmin, nmax};
+    riistudio::lib3d::AABB newBound{nmin, nmax};
     bound.expandBound(newBound);
   }
   for (const auto& node : mTree.translucent) {
@@ -116,7 +116,7 @@ void SceneState::build(const glm::mat4& view, const glm::mat4& proj,
     auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
     auto nmin = mdl * glm::vec4(node->poly.getBounds().min, 0.0f);
 
-    riistudio::core::AABB newBound{nmin, nmax};
+    riistudio::lib3d::AABB newBound{nmin, nmax};
     bound.expandBound(newBound);
   }
 

@@ -2,28 +2,32 @@
 
 #include <vendor/glm/vec3.hpp>
 
-namespace riistudio::core {
+namespace riistudio::lib3d {
 
 //! Axis-aligned bounding box
 //!
 struct AABB {
   inline void expandBound(const AABB& other) {
-    if (other.m_minBounds.x < m_minBounds.x)
-      m_minBounds.x = other.m_minBounds.x;
-    if (other.m_minBounds.y < m_minBounds.y)
-      m_minBounds.y = other.m_minBounds.y;
-    if (other.m_minBounds.z < m_minBounds.z)
-      m_minBounds.z = other.m_minBounds.z;
-    if (other.m_maxBounds.x > m_maxBounds.x)
-      m_maxBounds.x = other.m_maxBounds.x;
-    if (other.m_maxBounds.y > m_maxBounds.y)
-      m_maxBounds.y = other.m_maxBounds.y;
-    if (other.m_maxBounds.z > m_maxBounds.z)
-      m_maxBounds.z = other.m_maxBounds.z;
+    if (other.min.x < min.x)
+      min.x = other.min.x;
+    if (other.min.y < min.y)
+      min.y = other.min.y;
+    if (other.min.z < min.z)
+      min.z = other.min.z;
+    if (other.max.x > max.x)
+      max.x = other.max.x;
+    if (other.max.y > max.y)
+      max.y = other.max.y;
+    if (other.max.z > max.z)
+      max.z = other.max.z;
   }
 
-  glm::vec3 m_minBounds;
-  glm::vec3 m_maxBounds;
+  bool operator==(const AABB& rhs) const {
+    return min == rhs.min && max == rhs.max;
+  }
+
+  glm::vec3 min;
+  glm::vec3 max;
 };
 
-} // namespace riistudio::core
+} // namespace riistudio::lib3d
