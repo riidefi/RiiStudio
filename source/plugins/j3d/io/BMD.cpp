@@ -20,18 +20,18 @@ inline bool ends_with(const std::string& value, const std::string& ending) {
          std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-struct BMDFile : public oishii::v2::Node {
+struct BMDFile : public oishii::Node {
   static const char* getNameId() { return "JSystem Binary Model Data"; }
 
-  Result write(oishii::v2::Writer& writer) const noexcept {
+  Result write(oishii::Writer& writer) const noexcept {
     // Hack
     writer.write<u32, oishii::EndianSelect::Big>('J3D2');
     writer.write<u32, oishii::EndianSelect::Big>(bBDL ? 'bdl4' : 'bmd3');
 
     // Filesize
-    writer.writeLink<s32>(oishii::v2::Link{
-        oishii::v2::Hook(*this),
-        oishii::v2::Hook(*this, oishii::v2::Hook::EndOfChildren)});
+    writer.writeLink<s32>(oishii::Link{
+        oishii::Hook(*this),
+        oishii::Hook(*this, oishii::Hook::EndOfChildren)});
 
     // 8 sections
     writer.write<u32>(bBDL ? 9 : 8);
@@ -43,10 +43,10 @@ struct BMDFile : public oishii::v2::Node {
 
     return {};
   }
-  Result gatherChildren(oishii::v2::Node::NodeDelegate& ctx) const {
+  Result gatherChildren(oishii::Node::NodeDelegate& ctx) const {
     BMDExportContext exp{mCollection.getModel(0), mCollection};
 
-    auto addNode = [&](std::unique_ptr<oishii::v2::Node> node) {
+    auto addNode = [&](std::unique_ptr<oishii::Node> node) {
       node->getLinkingRestriction().alignment = 32;
       ctx.addNode(std::move(node));
     };
@@ -82,11 +82,11 @@ public:
     return dynamic_cast<Collection*>(&node) != nullptr;
   }
 
-  void write(kpi::IDocumentNode& node, oishii::v2::Writer& writer) const {
+  void write(kpi::IDocumentNode& node, oishii::Writer& writer) const {
     assert(dynamic_cast<Collection*>(&node) != nullptr);
     CollectionAccessor collection(&node);
 
-    oishii::v2::Linker linker;
+    oishii::Linker linker;
 
     auto bmd = std::make_unique<BMDFile>();
     bmd->bBDL = false; // collection.bdl;

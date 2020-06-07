@@ -107,12 +107,12 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
       lastType = cmd.op;
   }
 }
-struct SceneGraphNode : public oishii::v2::Node {
+struct SceneGraphNode : public oishii::Node {
   SceneGraphNode(const ModelAccessor mdl) : Node("SceneGraph"), mdl(mdl) {
-    getLinkingRestriction().setFlag(oishii::v2::LinkingRestriction::Leaf);
+    getLinkingRestriction().setFlag(oishii::LinkingRestriction::Leaf);
   }
 
-  Result write(oishii::v2::Writer& writer) const noexcept {
+  Result write(oishii::Writer& writer) const noexcept {
     u32 depth = 0;
 
     writeBone(writer, mdl.getJoint(0).get(), mdl, depth); // Assume root 0
@@ -121,7 +121,7 @@ struct SceneGraphNode : public oishii::v2::Node {
     return eResult::Success;
   }
 
-  void writeBone(oishii::v2::Writer& writer, const Joint& joint,
+  void writeBone(oishii::Writer& writer, const Joint& joint,
                  const ModelAccessor mdl, u32& depth) const {
     u32 startDepth = depth;
 
@@ -179,7 +179,7 @@ struct SceneGraphNode : public oishii::v2::Node {
 
   const ModelAccessor mdl;
 };
-std::unique_ptr<oishii::v2::Node>
+std::unique_ptr<oishii::Node>
 SceneGraph::getLinkerNode(const ModelAccessor mdl) {
   return std::make_unique<SceneGraphNode>(mdl);
 }

@@ -8,9 +8,7 @@
 
 namespace oishii {
 class BinaryReader;
-namespace v2 {
 class Writer;
-}
 } // namespace oishii
 
 namespace kpi {
@@ -32,7 +30,7 @@ struct IBinarySerializer {
   virtual std::unique_ptr<IBinarySerializer> clone() const = 0;
   virtual bool canWrite_(kpi::IDocumentNode& node) const = 0;
   virtual void write_(kpi::IDocumentNode& node,
-                      oishii::v2::Writer& writer) const = 0;
+                      oishii::Writer& writer) const = 0;
 };
 
 // Part of the application state itself. Not part of the persistent document.
@@ -60,7 +58,7 @@ public:
   //! @tparam T Any default constructible type T with member functions:
   //!				- `bool T::canWrite(doc_node_t node) const`
   //!					(return if we can write)
-  //!				- `T::write(doc_node_t node, oishii::v2::Writer&
+  //!				- `T::write(doc_node_t node, oishii::Writer&
   //! writer) const` (write the file)
   //!
   template <typename T> ApplicationPlugins& addSerializer();
@@ -70,7 +68,7 @@ public:
   //!
   //! @tparam T Any default constructible type T where the following function
   //! exists:
-  //! - `::write(doc_node_t, oishii::v2::Writer&
+  //! - `::write(doc_node_t, oishii::Writer&
   //!			 writer, X*_=nullptr)`
   //!   where `X` is some child that may be wrapped in a doc_node_t.
   //!

@@ -16,13 +16,13 @@ void readMAT3(BMDOutputContext& ctx);
 void readSHP1(BMDOutputContext& ctx);
 void readTEX1(BMDOutputContext& ctx);
 
-std::unique_ptr<oishii::v2::Node> makeINF1Node(BMDExportContext& ctx);
-std::unique_ptr<oishii::v2::Node> makeVTX1Node(BMDExportContext& ctx);
-std::unique_ptr<oishii::v2::Node> makeEVP1Node(BMDExportContext& ctx);
-std::unique_ptr<oishii::v2::Node> makeDRW1Node(BMDExportContext& ctx);
-std::unique_ptr<oishii::v2::Node> makeJNT1Node(BMDExportContext& ctx);
-std::unique_ptr<oishii::v2::Node> makeSHP1Node(BMDExportContext& ctx);
-std::unique_ptr<oishii::v2::Node> makeMAT3Node(BMDExportContext& ctx);
-std::unique_ptr<oishii::v2::Node> makeTEX1Node(BMDExportContext& ctx);
+std::unique_ptr<oishii::Node> makeINF1Node(BMDExportContext& ctx);
+std::unique_ptr<oishii::Node> makeVTX1Node(BMDExportContext& ctx);
+std::unique_ptr<oishii::Node> makeEVP1Node(BMDExportContext& ctx);
+std::unique_ptr<oishii::Node> makeDRW1Node(BMDExportContext& ctx);
+std::unique_ptr<oishii::Node> makeJNT1Node(BMDExportContext& ctx);
+std::unique_ptr<oishii::Node> makeSHP1Node(BMDExportContext& ctx);
+std::unique_ptr<oishii::Node> makeMAT3Node(BMDExportContext& ctx);
+std::unique_ptr<oishii::Node> makeTEX1Node(BMDExportContext& ctx);
 
 } // namespace riistudio::j3d

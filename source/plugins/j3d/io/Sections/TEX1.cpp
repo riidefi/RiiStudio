@@ -37,7 +37,7 @@ void Tex::transfer(oishii::BinaryReader& stream) {
   stream.transfer(mLodBias);
   stream.transfer(ofsTex);
 }
-void Tex::write(oishii::v2::Writer& stream) const {
+void Tex::write(oishii::Writer& stream) const {
   oishii::DebugExpectSized dbg(stream, 0x20 - 4);
 
   stream.write<u8>(mFormat);
@@ -213,14 +213,14 @@ void readTEX1(BMDOutputContext& ctx) {
     }
   }
 }
-struct TEX1Node final : public oishii::v2::Node {
+struct TEX1Node final : public oishii::Node {
   TEX1Node(const ModelAccessor model, const CollectionAccessor col)
       : mModel(model), mCol(col) {
     mId = "TEX1";
     mLinkingRestriction.alignment = 32;
   }
 
-  struct TexNames : public oishii::v2::Node {
+  struct TexNames : public oishii::Node {
     TexNames(const Model& mdl, const CollectionAccessor col)
         : mMdl(mdl), mCol(col) {
       mId = "TexNames";
@@ -228,7 +228,7 @@ struct TEX1Node final : public oishii::v2::Node {
       getLinkingRestriction().alignment = 4;
     }
 
-    Result write(oishii::v2::Writer& writer) const noexcept {
+    Result write(oishii::Writer& writer) const noexcept {
       std::vector<std::string> names;
 
       for (int i = 0; i < mMdl.mTexCache.size(); ++i)
@@ -243,21 +243,21 @@ struct TEX1Node final : public oishii::v2::Node {
     const CollectionAccessor mCol;
   };
 
-  struct TexHeaders : public oishii::v2::Node {
+  struct TexHeaders : public oishii::Node {
     TexHeaders(const ModelAccessor mdl, const CollectionAccessor col)
         : mMdl(mdl), mCol(col) {
       mId = "TexHeaders";
       getLinkingRestriction().alignment = 32;
     }
 
-    struct TexHeaderEntryLink : public oishii::v2::Node {
+    struct TexHeaderEntryLink : public oishii::Node {
       TexHeaderEntryLink(const Tex& _tex, u32 id, u32 _btiId)
           : tex(_tex), btiId(_btiId) {
         mId = std::to_string(id);
         getLinkingRestriction().setLeaf();
         getLinkingRestriction().alignment = 4;
       }
-      Result write(oishii::v2::Writer& writer) const noexcept {
+      Result write(oishii::Writer& writer) const noexcept {
         tex.write(writer);
         writer.writeLink<s32>(*this, "TEX1::" + std::to_string(btiId));
         return {};
@@ -266,7 +266,7 @@ struct TEX1Node final : public oishii::v2::Node {
       u32 btiId;
     };
 
-    Result write(oishii::v2::Writer& writer) const noexcept { return {}; }
+    Result write(oishii::Writer& writer) const noexcept { return {}; }
 
     Result gatherChildren(NodeDelegate& d) const noexcept override {
       u32 id = 0;
@@ -278,7 +278,7 @@ struct TEX1Node final : public oishii::v2::Node {
     const ModelAccessor mMdl;
     const CollectionAccessor mCol;
   };
-  struct TexEntry : public oishii::v2::Node {
+  struct TexEntry : public oishii::Node {
     TexEntry(const Model& mdl, const CollectionAccessor col, u32 texIdx)
         : mMdl(mdl), mCol(col), mIdx(texIdx) {
       mId = std::to_string(texIdx);
@@ -286,7 +286,7 @@ struct TEX1Node final : public oishii::v2::Node {
       getLinkingRestriction().alignment = 32;
     }
 
-    Result write(oishii::v2::Writer& writer) const noexcept {
+    Result write(oishii::Writer& writer) const noexcept {
       const auto& tex = mCol.getTexture(mIdx).get();
       const auto before = writer.tell();
 
@@ -306,17 +306,17 @@ struct TEX1Node final : public oishii::v2::Node {
     const CollectionAccessor mCol;
     const u32 mIdx;
   };
-  Result write(oishii::v2::Writer& writer) const noexcept override {
+  Result write(oishii::Writer& writer) const noexcept override {
     writer.write<u32, oishii::EndianSelect::Big>('TEX1');
-    writer.writeLink<s32>({*this}, {*this, oishii::v2::Hook::EndOfChildren});
+    writer.writeLink<s32>({*this}, {*this, oishii::Hook::EndOfChildren});
 
     writer.write<u16>((u16)mModel.get().mTexCache.size());
     writer.write<u16>(-1);
 
-    writer.writeLink<s32>(oishii::v2::Hook(*this),
-                          oishii::v2::Hook("TexHeaders"));
-    writer.writeLink<s32>(oishii::v2::Hook(*this),
-                          oishii::v2::Hook("TexNames"));
+    writer.writeLink<s32>(oishii::Hook(*this),
+                          oishii::Hook("TexHeaders"));
+    writer.writeLink<s32>(oishii::Hook(*this),
+                          oishii::Hook("TexNames"));
 
     return eResult::Success;
   }
@@ -338,7 +338,7 @@ private:
   const CollectionAccessor mCol;
 };
 
-std::unique_ptr<oishii::v2::Node> makeTEX1Node(BMDExportContext& ctx) {
+std::unique_ptr<oishii::Node> makeTEX1Node(BMDExportContext& ctx) {
   return std::make_unique<TEX1Node>(ctx.mdl, ctx.col);
 }
 

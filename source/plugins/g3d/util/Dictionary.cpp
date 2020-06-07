@@ -94,7 +94,7 @@ void Dictionary::read(oishii::BinaryReader& reader) {
 
   assert(totalSize == reader.tell() - grpStart);
 }
-void Dictionary::write(oishii::v2::Writer& writer) {
+void Dictionary::write(oishii::Writer& writer) {
   calcNodes();
 
   const auto grpStart = writer.tell();

@@ -7,7 +7,7 @@
 
 #include <string>
 
-namespace oishii::v2 {
+namespace oishii {
 
 class Node;
 
@@ -33,4 +33,4 @@ struct Hook {
       : mId(id), mRelation(relation), mOffset(offset) {}
 };
 
-} // namespace oishii::v2
+} // namespace oishii

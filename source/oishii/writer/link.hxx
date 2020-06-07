@@ -7,7 +7,7 @@
 
 #include "hook.hxx"
 
-namespace oishii::v2 {
+namespace oishii {
 
 //! @brief Link between two endpoints (hooks). The linker will compute these.
 //!
@@ -16,4 +16,4 @@ struct Link {
   int mStride = 1;
 };
 
-} // namespace oishii::v2
+} // namespace oishii

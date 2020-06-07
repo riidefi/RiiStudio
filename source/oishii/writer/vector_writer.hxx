@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-namespace oishii::v2 {
+namespace oishii {
 
 //! @brief Writer with expanding buffer.
 //!
@@ -40,4 +40,4 @@ public:
   u32 getBufSize() { return (u32)mBuf.size(); }
 };
 
-} // namespace oishii::v2
+} // namespace oishii

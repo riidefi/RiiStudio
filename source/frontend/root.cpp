@@ -470,7 +470,7 @@ RootWindow::~RootWindow() { DeinitAPI(); }
 void RootWindow::save(const std::string& path) {
   std::ofstream stream(path, std::ios::binary | std::ios::out);
 
-  oishii::v2::Writer writer(1024);
+  oishii::Writer writer(1024);
 
   EditorWindow* ed = dynamic_cast<EditorWindow*>(
       mActive ? mActive : !mChildren.empty() ? mChildren[0].get() : this);

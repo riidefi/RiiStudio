@@ -71,7 +71,7 @@ struct Tex {
   }
 
   void transfer(oishii::BinaryReader& stream);
-  void write(oishii::v2::Writer& stream) const;
+  void write(oishii::Writer& stream) const;
   Tex() = default;
   Tex(const Texture& data, const libcube::GCMaterialData::SamplerData& sampler);
 };

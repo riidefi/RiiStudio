@@ -7,7 +7,7 @@
 #include "link.hxx"
 #include "vector_writer.hxx"
 
-namespace oishii::v2 {
+namespace oishii {
 
 class Writer : public VectorWriter {
 public:
@@ -162,4 +162,4 @@ private:
   bool bigEndian = true; // to swap
 };
 
-} // namespace oishii::v2
+} // namespace oishii

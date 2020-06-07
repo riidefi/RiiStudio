@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-namespace oishii::v2 {
+namespace oishii {
 
 class Writer;
 
@@ -186,4 +186,4 @@ struct LeafNode : public Node {
   LeafNode() : Node(LinkingRestriction{LinkingRestriction::Leaf}) {}
 };
 
-} // namespace oishii::v2
+} // namespace oishii

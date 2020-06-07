@@ -71,7 +71,7 @@ inline u16 hash(const std::string& str) {
   return digest;
 }
 
-inline void writeNameTable(oishii::v2::Writer& writer,
+inline void writeNameTable(oishii::Writer& writer,
                            const std::vector<std::string>& names) {
   u32 start = writer.tell();
   writer.write<u16>(static_cast<u16>(names.size()));
@@ -90,7 +90,7 @@ inline void writeNameTable(oishii::v2::Writer& writer,
     // const u32 end = writer.tell();
 
     {
-      oishii::Jump<oishii::Whence::Set, oishii::v2::Writer> g(
+      oishii::Jump<oishii::Whence::Set, oishii::Writer> g(
           writer, start + 4 + i * 4);
 
       writer.write<u16>(hash(str));
@@ -122,26 +122,26 @@ struct ScopedSection : private oishii::BinaryReader::ScopedRegion {
 };
 
 template <typename T, bool leaf = false>
-struct LinkNode final : public T, public oishii::v2::Node {
+struct LinkNode final : public T, public oishii::Node {
 
   template <typename... S>
   LinkNode(S... arg) : T(arg...), Node(T::getNameId()) {
     if (leaf)
-      mLinkingRestriction.setFlag(oishii::v2::LinkingRestriction::Leaf);
+      mLinkingRestriction.setFlag(oishii::LinkingRestriction::Leaf);
   }
-  oishii::v2::Node::Result write(oishii::v2::Writer& writer) const
+  oishii::Node::Result write(oishii::Writer& writer) const
       noexcept override {
     T::write(writer);
     return eResult::Success;
   }
 
-  oishii::v2::Node::Result
-  gatherChildren(oishii::v2::Node::NodeDelegate& out) const noexcept override {
+  oishii::Node::Result
+  gatherChildren(oishii::Node::NodeDelegate& out) const noexcept override {
     T::gatherChildren(out);
 
     return {};
   }
-  const oishii::v2::Node& getSelf() const override { return *this; }
+  const oishii::Node& getSelf() const override { return *this; }
 };
 
 struct BMDExportContext {

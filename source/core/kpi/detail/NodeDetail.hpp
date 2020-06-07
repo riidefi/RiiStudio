@@ -39,7 +39,7 @@ struct ApplicationPluginsImpl {
   };
   //! Requires methods:
   //! - `T::canWrite(doc_node_t node) const`
-  //! - `T::write(doc_node_t node, oishii::v2::Writer& writer) const`
+  //! - `T::write(doc_node_t node, oishii::Writer& writer) const`
   template <typename T>
   struct TBinarySerializer final : public IBinarySerializer, public T {
     std::unique_ptr<IBinarySerializer> clone() const override {
@@ -49,11 +49,11 @@ struct ApplicationPluginsImpl {
       return T::canWrite(node);
     }
     void write_(kpi::IDocumentNode& node,
-                oishii::v2::Writer& writer) const override {
+                oishii::Writer& writer) const override {
       T::write(node, writer);
     }
   };
-  //! Requires: `::write(doc_node_t, oishii::v2::Writer& writer, X*_=nullptr)`
+  //! Requires: `::write(doc_node_t, oishii::Writer& writer, X*_=nullptr)`
   //! where `X` is some child that may be wrapped in a doc_node_t. No support
   //! for inheritance.
   template <typename T>
@@ -65,7 +65,7 @@ struct ApplicationPluginsImpl {
       return dynamic_cast<T*>(&node) != nullptr;
     }
     void write_(kpi::IDocumentNode& node,
-                oishii::v2::Writer& writer) const override {
+                oishii::Writer& writer) const override {
       write(node, writer, static_cast<T*>(nullptr));
     }
   };

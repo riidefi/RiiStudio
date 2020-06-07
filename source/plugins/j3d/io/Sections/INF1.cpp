@@ -30,16 +30,16 @@ void readINF1(BMDOutputContext& ctx) {
 
 struct INF1Node {
   static const char* getNameId() { return "INF1 InFormation"; }
-  virtual const oishii::v2::Node& getSelf() const = 0;
+  virtual const oishii::Node& getSelf() const = 0;
 
-  void write(oishii::v2::Writer& writer) const {
+  void write(oishii::Writer& writer) const {
     if (!mdl.valid())
       return;
 
     writer.write<u32, oishii::EndianSelect::Big>('INF1');
-    writer.writeLink<s32>(oishii::v2::Link{
-        oishii::v2::Hook(getSelf()),
-        oishii::v2::Hook("VTX1" /*getSelf(), oishii::Hook::EndOfChildren*/)});
+    writer.writeLink<s32>(oishii::Link{
+        oishii::Hook(getSelf()),
+        oishii::Hook("VTX1" /*getSelf(), oishii::Hook::EndOfChildren*/)});
 
     writer.write<u16>(static_cast<u16>(mdl.get().info.mScalingRule) & 0xf);
     writer.write<u16>(-1);
@@ -51,17 +51,17 @@ struct INF1Node {
     // Vertex position count
     writer.write<u32>((u32)mdl.get().mBufs.pos.mData.size());
 
-    writer.writeLink<s32>(oishii::v2::Link{oishii::v2::Hook(getSelf()),
-                                           oishii::v2::Hook("SceneGraph")});
+    writer.writeLink<s32>(oishii::Link{oishii::Hook(getSelf()),
+                                           oishii::Hook("SceneGraph")});
   }
 
-  void gatherChildren(oishii::v2::Node::NodeDelegate& out) const {
+  void gatherChildren(oishii::Node::NodeDelegate& out) const {
     out.addNode(SceneGraph::getLinkerNode(mdl));
   }
   INF1Node(BMDExportContext& ctx) : mdl(ctx.mdl) {}
   ModelAccessor mdl{nullptr};
 };
-std::unique_ptr<oishii::v2::Node> makeINF1Node(BMDExportContext& ctx) {
+std::unique_ptr<oishii::Node> makeINF1Node(BMDExportContext& ctx) {
   return std::make_unique<LinkNode<INF1Node>>(ctx);
 }
 

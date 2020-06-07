@@ -215,7 +215,7 @@ void readVTX1(BMDOutputContext& ctx) {
     }
   }
 }
-struct FormatDecl : public oishii::v2::Node {
+struct FormatDecl : public oishii::Node {
   FormatDecl(Model* m) : mdl(m) { mId = "Format"; }
   struct Entry {
     gx::VertexBufferAttribute attrib;
@@ -223,7 +223,7 @@ struct FormatDecl : public oishii::v2::Node {
     u32 data = 0;
     u8 shift = 0;
 
-    void write(oishii::v2::Writer& writer) {
+    void write(oishii::Writer& writer) {
       writer.write<u32>(static_cast<u32>(attrib));
       writer.write<u32>(static_cast<u32>(cnt));
       writer.write<u32>(static_cast<u32>(data));
@@ -233,7 +233,7 @@ struct FormatDecl : public oishii::v2::Node {
     }
   };
 
-  Result write(oishii::v2::Writer& writer) const noexcept {
+  Result write(oishii::Writer& writer) const noexcept {
     // Positions
     if (!mdl->mBufs.pos.mData.empty()) {
       const auto& q = mdl->mBufs.pos.mQuant;
@@ -287,7 +287,7 @@ struct FormatDecl : public oishii::v2::Node {
 
 struct VTX1Node {
   static const char* getNameId() { return "VTX1"; }
-  virtual const oishii::v2::Node& getSelf() const = 0;
+  virtual const oishii::Node& getSelf() const = 0;
 
   int computeNumOfs() const {
     int numOfs = 0;
@@ -306,24 +306,24 @@ struct VTX1Node {
     return numOfs;
   }
 
-  void write(oishii::v2::Writer& writer) const {
+  void write(oishii::Writer& writer) const {
     if (!mdl)
       return;
 
     writer.write<u32, oishii::EndianSelect::Big>('VTX1');
-    writer.writeLink<s32>(oishii::v2::Link{
-        oishii::v2::Hook(getSelf()),
-        oishii::v2::Hook(getSelf(), oishii::v2::Hook::EndOfChildren)});
+    writer.writeLink<s32>(oishii::Link{
+        oishii::Hook(getSelf()),
+        oishii::Hook(getSelf(), oishii::Hook::EndOfChildren)});
 
-    writer.writeLink<s32>(oishii::v2::Link{oishii::v2::Hook(getSelf()),
-                                           oishii::v2::Hook("Format")});
+    writer.writeLink<s32>(oishii::Link{oishii::Hook(getSelf()),
+                                           oishii::Hook("Format")});
 
     const auto numOfs = computeNumOfs();
     int i = 0;
     auto writeBufLink = [&]() {
       writer.writeLink<s32>(
-          oishii::v2::Link{oishii::v2::Hook(getSelf()),
-                           oishii::v2::Hook("Buf" + std::to_string(i++))});
+          oishii::Link{oishii::Hook(getSelf()),
+                           oishii::Hook("Buf" + std::to_string(i++))});
     };
     auto writeOptBufLink = [&](const auto& b) {
       if (b.mData.empty())
@@ -343,14 +343,14 @@ struct VTX1Node {
       writeOptBufLink(u);
   }
 
-  template <typename T> struct VertexAttribBuf : public oishii::v2::Node {
+  template <typename T> struct VertexAttribBuf : public oishii::Node {
     VertexAttribBuf(const Model& m, const std::string& id, const T& data)
         : Node(id), mdl(m), mData(data) {
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 32;
     }
 
-    Result write(oishii::v2::Writer& writer) const noexcept {
+    Result write(oishii::Writer& writer) const noexcept {
       mData.writeData(writer);
       return eResult::Success;
     }
@@ -359,7 +359,7 @@ struct VTX1Node {
     const T& mData;
   };
 
-  void gatherChildren(oishii::v2::Node::NodeDelegate& ctx) const {
+  void gatherChildren(oishii::Node::NodeDelegate& ctx) const {
 
     ctx.addNode(std::make_unique<FormatDecl>(mdl));
 
@@ -393,7 +393,7 @@ struct VTX1Node {
   Model* mdl = nullptr;
 };
 
-std::unique_ptr<oishii::v2::Node> makeVTX1Node(BMDExportContext& ctx) {
+std::unique_ptr<oishii::Node> makeVTX1Node(BMDExportContext& ctx) {
   return std::make_unique<LinkNode<VTX1Node>>(ctx);
 }
 

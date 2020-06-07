@@ -29,7 +29,7 @@ public:
   //! @return ID of this name.
   //!
   Handle reserve(const std::string& name, u32 structPos,
-                 oishii::v2::Writer& writeStream, u32 writePos,
+                 oishii::Writer& writeStream, u32 writePos,
                  bool nonvolatile = false) {
     const Handle id = mCounter++;
     mEntries.push_back(
@@ -51,7 +51,7 @@ private:
   struct NameTableEntry {
     std::string name;
     u32 structPos;
-    oishii::v2::Writer& writeStream;
+    oishii::Writer& writeStream;
     u32 writePos;
     bool nonvolatile;
   };
@@ -63,7 +63,7 @@ private:
   std::vector<u8> mPool;
 };
 
-inline void writeNameForward(NameTable& table, oishii::v2::Writer& writer,
+inline void writeNameForward(NameTable& table, oishii::Writer& writer,
                              int streamOfsStart, const std::string& name,
                              bool nonvol = false) {
   writer.write<u32>(name.empty() ? 0

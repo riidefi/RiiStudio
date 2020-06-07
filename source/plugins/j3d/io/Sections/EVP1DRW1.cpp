@@ -90,9 +90,9 @@ void readEVP1DRW1(BMDOutputContext& ctx) {
 
 struct EVP1Node {
   static const char* getNameId() { return "EVP1"; }
-  virtual const oishii::v2::Node& getSelf() const = 0;
+  virtual const oishii::Node& getSelf() const = 0;
 
-  void write(oishii::v2::Writer& writer) const {
+  void write(oishii::Writer& writer) const {
     writer.write<u32, oishii::EndianSelect::Big>('EVP1');
     writer.writeLink<s32>({getSelf()}, {"DRW1"});
 
@@ -103,24 +103,24 @@ struct EVP1Node {
       for (int i = 0; i < 4; ++i)
         writer.write<u32>(0);
     } else {
-      writer.writeLink<s32>(oishii::v2::Hook(getSelf()),
-                            oishii::v2::Hook("MatrixSizeTable"));
-      writer.writeLink<s32>(oishii::v2::Hook(getSelf()),
-                            oishii::v2::Hook("MatrixIndexTable"));
-      writer.writeLink<s32>(oishii::v2::Hook(getSelf()),
-                            oishii::v2::Hook("MatrixWeightTable"));
-      writer.writeLink<s32>(oishii::v2::Hook(getSelf()),
-                            oishii::v2::Hook("MatrixInvBindTable"));
+      writer.writeLink<s32>(oishii::Hook(getSelf()),
+                            oishii::Hook("MatrixSizeTable"));
+      writer.writeLink<s32>(oishii::Hook(getSelf()),
+                            oishii::Hook("MatrixIndexTable"));
+      writer.writeLink<s32>(oishii::Hook(getSelf()),
+                            oishii::Hook("MatrixWeightTable"));
+      writer.writeLink<s32>(oishii::Hook(getSelf()),
+                            oishii::Hook("MatrixInvBindTable"));
     }
   }
-  struct SimpleEvpNode : public oishii::v2::Node {
+  struct SimpleEvpNode : public oishii::Node {
 
     SimpleEvpNode(const std::vector<DrawMatrix>& from,
                   const std::vector<int>& toWrite,
                   const std::vector<float>& weightPool,
                   const ModelAccessor mdl = ModelAccessor{nullptr})
         : mFrom(from), mToWrite(toWrite), mWeightPool(weightPool), mMdl(mdl) {
-      getLinkingRestriction().setFlag(oishii::v2::LinkingRestriction::Leaf);
+      getLinkingRestriction().setFlag(oishii::LinkingRestriction::Leaf);
     }
     Result gatherChildren(NodeDelegate&) const noexcept { return {}; }
     const std::vector<DrawMatrix>& mFrom;
@@ -134,7 +134,7 @@ struct EVP1Node {
                         node.weightPool) {
       mId = "MatrixSizeTable";
     }
-    Result write(oishii::v2::Writer& writer) const noexcept {
+    Result write(oishii::Writer& writer) const noexcept {
       for (int i : mToWrite)
         writer.write<u8>(mFrom[i].mWeights.size());
       return {};
@@ -146,7 +146,7 @@ struct EVP1Node {
                         node.weightPool) {
       mId = "MatrixIndexTable";
     }
-    Result write(oishii::v2::Writer& writer) const noexcept {
+    Result write(oishii::Writer& writer) const noexcept {
       for (int i : mToWrite) {
         const auto& mtx = mFrom[i].mWeights;
         for (const auto& w : mtx)
@@ -162,7 +162,7 @@ struct EVP1Node {
       mId = "MatrixWeightTable";
       mLinkingRestriction.alignment = 8;
     }
-    Result write(oishii::v2::Writer& writer) const noexcept {
+    Result write(oishii::Writer& writer) const noexcept {
       for (f32 f : mWeightPool)
         writer.write<f32>(f);
       return {};
@@ -174,7 +174,7 @@ struct EVP1Node {
                         node.weightPool, md) {
       mId = "MatrixInvBindTable";
     }
-    Result write(oishii::v2::Writer& writer) const noexcept {
+    Result write(oishii::Writer& writer) const noexcept {
       for (int i = 0; i < mMdl.getJoints().size(); ++i) {
         for (const auto f : mMdl.getJoint(i).get().inverseBindPoseMtx)
           writer.write(f);
@@ -182,7 +182,7 @@ struct EVP1Node {
       return {};
     }
   };
-  void gatherChildren(oishii::v2::Node::NodeDelegate& ctx) const {
+  void gatherChildren(oishii::Node::NodeDelegate& ctx) const {
     if (envelopesToWrite.empty())
       return;
     ctx.addNode(std::make_unique<MatrixSizeTable>(*this));
@@ -212,13 +212,13 @@ struct EVP1Node {
 
 struct DRW1Node {
   static const char* getNameId() { return "DRW1"; }
-  virtual const oishii::v2::Node& getSelf() const = 0;
+  virtual const oishii::Node& getSelf() const = 0;
 
-  void write(oishii::v2::Writer& writer) const {
+  void write(oishii::Writer& writer) const {
     writer.write<u32, oishii::EndianSelect::Big>('DRW1');
-    writer.writeLink<s32>(oishii::v2::Link{
-        oishii::v2::Hook(getSelf()),
-        oishii::v2::Hook(getSelf(), oishii::v2::Hook::EndOfChildren)});
+    writer.writeLink<s32>(oishii::Link{
+        oishii::Hook(getSelf()),
+        oishii::Hook(getSelf(), oishii::Hook::EndOfChildren)});
 
     u32 evp = 0;
     for (const auto& drw : mdl.mDrawMatrices)
@@ -227,15 +227,15 @@ struct DRW1Node {
 
     writer.write<u16>(mdl.mDrawMatrices.size() + evp);
     writer.write<u16>(-1);
-    writer.writeLink<s32>(oishii::v2::Link{
-        oishii::v2::Hook(getSelf()), oishii::v2::Hook("MatrixTypeTable")});
-    writer.writeLink<s32>(oishii::v2::Link{oishii::v2::Hook(getSelf()),
-                                           oishii::v2::Hook("DataTable")});
+    writer.writeLink<s32>(oishii::Link{
+        oishii::Hook(getSelf()), oishii::Hook("MatrixTypeTable")});
+    writer.writeLink<s32>(oishii::Link{oishii::Hook(getSelf()),
+                                           oishii::Hook("DataTable")});
   }
-  struct MatrixTypeTable : public oishii::v2::Node {
+  struct MatrixTypeTable : public oishii::Node {
     MatrixTypeTable(const Model& mdl) : mMdl(mdl) { mId = "MatrixTypeTable"; }
 
-    Result write(oishii::v2::Writer& writer) const noexcept {
+    Result write(oishii::Writer& writer) const noexcept {
       for (const auto& drw : mMdl.mDrawMatrices)
         writer.write<u8>(drw.mWeights.size() > 1);
       // Nintendo's bug
@@ -247,13 +247,13 @@ struct DRW1Node {
 
     const Model& mMdl;
   };
-  struct DataTable : public oishii::v2::Node {
+  struct DataTable : public oishii::Node {
     DataTable(const Model& mdl) : mMdl(mdl) {
       mId = "DataTable";
       getLinkingRestriction().alignment = 2;
     }
 
-    Result write(oishii::v2::Writer& writer) const noexcept {
+    Result write(oishii::Writer& writer) const noexcept {
       // TODO -- we can do much better
       std::vector<int> envelopesToWrite;
       for (int i = 0; i < mMdl.mDrawMatrices.size(); ++i) {
@@ -291,7 +291,7 @@ struct DRW1Node {
 
     const Model& mMdl;
   };
-  void gatherChildren(oishii::v2::Node::NodeDelegate& ctx) const {
+  void gatherChildren(oishii::Node::NodeDelegate& ctx) const {
     ctx.addNode(std::make_unique<MatrixTypeTable>(mdl));
     ctx.addNode(std::make_unique<DataTable>(mdl));
   }
@@ -300,10 +300,10 @@ struct DRW1Node {
   Model& mdl;
 };
 
-std::unique_ptr<oishii::v2::Node> makeEVP1Node(BMDExportContext& ctx) {
+std::unique_ptr<oishii::Node> makeEVP1Node(BMDExportContext& ctx) {
   return std::make_unique<LinkNode<EVP1Node>>(ctx);
 }
-std::unique_ptr<oishii::v2::Node> makeDRW1Node(BMDExportContext& ctx) {
+std::unique_ptr<oishii::Node> makeDRW1Node(BMDExportContext& ctx) {
   return std::make_unique<LinkNode<DRW1Node>>(ctx);
 }
 } // namespace riistudio::j3d

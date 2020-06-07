@@ -15,7 +15,7 @@
 #include <cassert>
 #endif
 
-namespace oishii::v2 {
+namespace oishii {
 
 // Helpers
 class LinkerHelper {
@@ -303,4 +303,4 @@ void Linker::write(Writer& writer, bool doShuffle) {
   }
 }
 
-} // namespace oishii::v2
+} // namespace oishii

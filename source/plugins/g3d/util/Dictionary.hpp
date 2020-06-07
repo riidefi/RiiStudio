@@ -6,9 +6,7 @@
 
 namespace oishii {
 class BinaryReader;
-namespace v2 {
 class Writer;
-}
 } // namespace oishii
 
 namespace riistudio::g3d {
@@ -31,7 +29,7 @@ struct DictionaryNode {
   }
 
   void read(oishii::BinaryReader& reader, u32 start);
-  // void write(oishii::v2::Writer& writer, u32 start) const;
+  // void write(oishii::Writer& writer, u32 start) const;
 
   DictionaryNode() = default;
   inline DictionaryNode(oishii::BinaryReader& reader, u32 start) {
@@ -46,7 +44,7 @@ struct Dictionary {
   void calcNodes();
 
   void read(oishii::BinaryReader& reader);
-  void write(oishii::v2::Writer& writer);
+  void write(oishii::Writer& writer);
 
   Dictionary() = default;
   Dictionary(oishii::BinaryReader& reader) { read(reader); }

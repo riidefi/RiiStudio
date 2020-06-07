@@ -5,7 +5,7 @@
 
 #include "node.hxx"
 
-namespace oishii::v2 {
+namespace oishii {
 
 Node::Result Node::gatherChildren(NodeDelegate& mOut) const { return {}; }
 Node::Result Node::getChildren(std::vector<std::unique_ptr<Node>>& mOut) const {
@@ -21,4 +21,4 @@ Node::Result Node::getChildren(std::vector<std::unique_ptr<Node>>& mOut) const {
 
   return result;
 }
-} // namespace oishii::v2
+} // namespace oishii

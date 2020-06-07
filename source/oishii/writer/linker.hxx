@@ -15,7 +15,7 @@
 #include "hook.hxx"
 #include "node.hxx"
 
-namespace oishii::v2 {
+namespace oishii {
 
 // class Node;
 class Writer;
@@ -83,4 +83,4 @@ public:
   std::vector<MapEntry> mMap;
 };
 
-} // namespace oishii::v2
+} // namespace oishii

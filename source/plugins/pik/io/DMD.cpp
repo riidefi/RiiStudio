@@ -73,7 +73,7 @@ public:
   }
 
   // Write MOD/DMD file
-  void write(kpi::IDocumentNode& node, oishii::v2::Writer& writer) const {}
+  void write(kpi::IDocumentNode& node, oishii::Writer& writer) const {}
 
   void read(kpi::IDocumentNode& node, oishii::BinaryReader& reader) const {
     assert(dynamic_cast<PikminCollection*>(&node) != nullptr);

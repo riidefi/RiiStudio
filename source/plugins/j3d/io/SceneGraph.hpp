@@ -14,7 +14,7 @@ struct SceneGraph {
   static constexpr const char name[] = "SceneGraph";
 
   static void onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx);
-  static std::unique_ptr<oishii::v2::Node>
+  static std::unique_ptr<oishii::Node>
   getLinkerNode(const ModelAccessor mdl);
 };
 

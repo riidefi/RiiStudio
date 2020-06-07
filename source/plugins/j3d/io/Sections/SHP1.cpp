@@ -164,23 +164,23 @@ void readSHP1(BMDOutputContext& ctx) {
 
 template <typename T, u32 bodyAlign = 1, u32 entryAlign = 1,
           bool compress = true>
-class CompressableVector : public oishii::v2::Node {
-  struct Child : public oishii::v2::Node {
+class CompressableVector : public oishii::Node {
+  struct Child : public oishii::Node {
     Child(const CompressableVector& parent, u32 index)
         : mParent(parent), mIndex(index) {
       mId = std::to_string(index);
       getLinkingRestriction().alignment = entryAlign;
-      // getLinkingRestriction().setFlag(oishii::v2::LinkingRestriction::PadEnd);
+      // getLinkingRestriction().setFlag(oishii::LinkingRestriction::PadEnd);
       getLinkingRestriction().setLeaf();
     }
-    Result write(oishii::v2::Writer& writer) const noexcept override {
+    Result write(oishii::Writer& writer) const noexcept override {
       mParent.getEntry(mIndex).write(writer);
       return {};
     }
     const CompressableVector& mParent;
     const u32 mIndex;
   };
-  struct ContainerNode : public oishii::v2::Node {
+  struct ContainerNode : public oishii::Node {
     ContainerNode(const CompressableVector& parent, const std::string& id)
         : mParent(parent) {
       mId = id;
@@ -195,7 +195,7 @@ class CompressableVector : public oishii::v2::Node {
   };
 
 public:
-  std::unique_ptr<oishii::v2::Node> spawnNode(const std::string& id) const {
+  std::unique_ptr<oishii::Node> spawnNode(const std::string& id) const {
     return std::make_unique<ContainerNode>(*this, id);
   }
 
@@ -233,7 +233,7 @@ struct WriteableVertexDescriptor : VertexDescriptor {
   WriteableVertexDescriptor(const VertexDescriptor& d) {
     *(VertexDescriptor*)this = d;
   }
-  void write(oishii::v2::Writer& writer) const noexcept {
+  void write(oishii::Writer& writer) const noexcept {
     for (auto& x : mAttributes) {
       writer.write<u32>(static_cast<u32>(x.first));
       writer.write<u32>(static_cast<u32>(x.second));
@@ -246,7 +246,7 @@ struct WriteableMatrixList : public std::vector<s16> {
   WriteableMatrixList(const std::vector<s16>& parent) {
     *(std::vector<s16>*)this = parent;
   }
-  void write(oishii::v2::Writer& writer) const noexcept {
+  void write(oishii::Writer& writer) const noexcept {
     for (int i = 0; i < size(); ++i)
       writer.write<u16>(at(i));
 
@@ -254,7 +254,7 @@ struct WriteableMatrixList : public std::vector<s16> {
     //		writer.write<u8>(0);
   }
 };
-struct SHP1Node final : public oishii::v2::Node {
+struct SHP1Node final : public oishii::Node {
   SHP1Node(const ModelAccessor model) : mModel(model) {
     mId = "SHP1";
     mLinkingRestriction.alignment = 32;
@@ -276,7 +276,7 @@ struct SHP1Node final : public oishii::v2::Node {
 #endif
                      false>
       mMtxListPool;
-  Result write(oishii::v2::Writer& writer) const noexcept override {
+  Result write(oishii::Writer& writer) const noexcept override {
     // VCD List compression compute.
     //	struct VCDHasher
     //	{
@@ -288,7 +288,7 @@ struct SHP1Node final : public oishii::v2::Node {
     //		vcd[shp.mVertexDescriptor] = 0;
 
     writer.write<u32, oishii::EndianSelect::Big>('SHP1');
-    writer.writeLink<s32>({*this}, {*this, oishii::v2::Hook::EndOfChildren});
+    writer.writeLink<s32>({*this}, {*this, oishii::Hook::EndOfChildren});
 
     writer.write<u16>(mModel.getShapes().size());
     writer.write<u16>(-1);
@@ -332,7 +332,7 @@ struct SHP1Node final : public oishii::v2::Node {
     _MTXListChild,
     _MTXListChildMPrim
   };
-  struct SubNode : public oishii::v2::Node {
+  struct SubNode : public oishii::Node {
     const SHP1Node& mParent;
     SubNode(const ModelAccessor mdl, SubNodeID id, const SHP1Node& parent,
             int polyId = -1, int MPrimId = -1)
@@ -348,7 +348,7 @@ struct SHP1Node final : public oishii::v2::Node {
       case SubNodeID::LUT:
         mId = "LUT";
         align = 4;
-        getLinkingRestriction().setFlag(oishii::v2::LinkingRestriction::PadEnd);
+        getLinkingRestriction().setFlag(oishii::LinkingRestriction::PadEnd);
         break;
       case SubNodeID::NameTable:
         mId = "NameTable";
@@ -400,7 +400,7 @@ struct SHP1Node final : public oishii::v2::Node {
       getLinkingRestriction().alignment = align;
     }
 
-    Result write(oishii::v2::Writer& writer) const noexcept {
+    Result write(oishii::Writer& writer) const noexcept {
       switch (mSID) {
       case SubNodeID::ShapeData: {
         for (int i = 0; i < mMdl.getShapes().size(); ++i) {
@@ -531,7 +531,7 @@ struct SHP1Node final : public oishii::v2::Node {
           // DL size
           writer.writeLink<u32>({front + std::to_string(i)},
                                 {front + std::to_string(i),
-                                 oishii::v2::Hook::RelativePosition::End});
+                                 oishii::Hook::RelativePosition::End});
           // Relative DL offset
           writer.writeLink<u32>({"SHP1::DLData"}, {front + std::to_string(i)});
         }
@@ -602,7 +602,7 @@ struct SHP1Node final : public oishii::v2::Node {
   const ModelAccessor mModel;
 };
 
-std::unique_ptr<oishii::v2::Node> makeSHP1Node(BMDExportContext& ctx) {
+std::unique_ptr<oishii::Node> makeSHP1Node(BMDExportContext& ctx) {
   return std::make_unique<SHP1Node>(ctx.mdl);
 }
 

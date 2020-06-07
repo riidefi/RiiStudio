@@ -17,7 +17,7 @@ template <typename T> struct io_wrapper {
   //		DebugReport("Unimplemented IO wrapper called.\n");
   //	}
   //	template<typename C>
-  //	static void onWrite(oishii::v2::Writer&, const C&)
+  //	static void onWrite(oishii::Writer&, const C&)
   //	{
   //		DebugReport("Unimplemented IO writer wrapper called.\n");
   //	}
@@ -43,7 +43,7 @@ template <typename T> struct io_wrapper {
   template <typename C = T,
             typename _ = typename std::enable_if<
                 sizeof(T) <= 4 && std::is_integral<T>::value>::type>
-  static void onWrite(oishii::v2::Writer& writer, const T& c) {
+  static void onWrite(oishii::Writer& writer, const T& c) {
     switch (sizeof(T)) {
     case 1:
       writer.write<u8>(static_cast<u8>(c));
@@ -68,7 +68,7 @@ template <> struct io_wrapper<gx::ZMode> {
     out.update = reader.read<u8>();
     reader.read<u8>();
   }
-  static void onWrite(oishii::v2::Writer& writer, const gx::ZMode& in) {
+  static void onWrite(oishii::Writer& writer, const gx::ZMode& in) {
     writer.write<u8>(in.compare);
     writer.write<u8>(static_cast<u8>(in.function));
     writer.write<u8>(in.update);
@@ -85,7 +85,7 @@ template <> struct io_wrapper<gx::AlphaComparison> {
     c.refRight = reader.read<u8>();
     reader.skip(3);
   }
-  static void onWrite(oishii::v2::Writer& writer,
+  static void onWrite(oishii::Writer& writer,
                       const gx::AlphaComparison& in) {
     writer.write<u8>(static_cast<u8>(in.compLeft));
     writer.write<u8>(in.refLeft);
@@ -104,7 +104,7 @@ template <> struct io_wrapper<gx::BlendMode> {
     c.dest = static_cast<gx::BlendModeFactor>(reader.read<u8>());
     c.logic = static_cast<gx::LogicOp>(reader.read<u8>());
   }
-  static void onWrite(oishii::v2::Writer& writer, const gx::BlendMode& in) {
+  static void onWrite(oishii::Writer& writer, const gx::BlendMode& in) {
     writer.write<u8>(static_cast<u8>(in.type));
     writer.write<u8>(static_cast<u8>(in.source));
     writer.write<u8>(static_cast<u8>(in.dest));
@@ -119,7 +119,7 @@ template <> struct io_wrapper<gx::Color> {
     out.b = reader.read<u8>();
     out.a = reader.read<u8>();
   }
-  static void onWrite(oishii::v2::Writer& writer, const gx::Color& in) {
+  static void onWrite(oishii::Writer& writer, const gx::Color& in) {
     writer.write<u8>(in.r);
     writer.write<u8>(in.g);
     writer.write<u8>(in.b);
@@ -144,7 +144,7 @@ template <> struct io_wrapper<gx::ChannelControl> {
 
     reader.read<u16>();
   }
-  static void onWrite(oishii::v2::Writer& writer,
+  static void onWrite(oishii::Writer& writer,
                       const gx::ChannelControl& in) {
     writer.write<u8>(in.enabled);
     writer.write<u8>(static_cast<u8>(in.Material));
@@ -170,7 +170,7 @@ template <> struct io_wrapper<gx::ColorS10> {
     out.b = reader.read<s16>();
     out.a = reader.read<s16>();
   }
-  static void onWrite(oishii::v2::Writer& writer, const gx::ColorS10& in) {
+  static void onWrite(oishii::Writer& writer, const gx::ColorS10& in) {
     writer.write<s16>(in.r);
     writer.write<s16>(in.g);
     writer.write<s16>(in.b);
@@ -184,7 +184,7 @@ template <> struct io_wrapper<NBTScale> {
     reader.skip(3);
     c.scale << reader;
   }
-  static void onWrite(oishii::v2::Writer& writer, const NBTScale& in) {
+  static void onWrite(oishii::Writer& writer, const NBTScale& in) {
     writer.write<u8>(in.enable);
     for (int i = 0; i < 3; ++i)
       writer.write<u8>(-1);
@@ -206,7 +206,7 @@ template <> struct io_wrapper<gx::TexCoordGen> {
     ctx.normalize = false;
     ctx.postMatrix = gx::PostTexMatrix::Identity;
   }
-  static void onWrite(oishii::v2::Writer& writer, const gx::TexCoordGen& in) {
+  static void onWrite(oishii::Writer& writer, const gx::TexCoordGen& in) {
     writer.write<u8>(static_cast<u8>(in.func));
     writer.write<u8>(static_cast<u8>(in.sourceParam));
     writer.write<u8>(static_cast<u8>(in.matrix));
@@ -306,7 +306,7 @@ template <> struct io_wrapper<Material::TexMatrix> {
     for (auto& f : c.effectMatrix)
       f = reader.read<f32>();
   }
-  static void onWrite(oishii::v2::Writer& writer,
+  static void onWrite(oishii::Writer& writer,
                       const Material::TexMatrix& in) {
     writer.write<u8>(static_cast<u8>(in.projection));
 
@@ -355,7 +355,7 @@ template <> struct io_wrapper<SwapSel> {
     c.texSel = reader.read<u8>();
     reader.read<u16>();
   }
-  static void onWrite(oishii::v2::Writer& writer, const SwapSel& in) {
+  static void onWrite(oishii::Writer& writer, const SwapSel& in) {
     writer.write<u8>(in.colorChanSel);
     writer.write<u8>(in.texSel);
     writer.write<u16>(-1);
@@ -368,7 +368,7 @@ template <> struct io_wrapper<gx::SwapTableEntry> {
     c.b = static_cast<gx::ColorComponent>(reader.read<u8>());
     c.a = static_cast<gx::ColorComponent>(reader.read<u8>());
   }
-  static void onWrite(oishii::v2::Writer& writer,
+  static void onWrite(oishii::Writer& writer,
                       const gx::SwapTableEntry& in) {
     writer.write<u8>(static_cast<u8>(in.r));
     writer.write<u8>(static_cast<u8>(in.g));
@@ -384,7 +384,7 @@ template <> struct io_wrapper<TevOrder> {
     c.rasOrder = static_cast<gx::ColorSelChanApi>(reader.read<u8>());
     reader.read<u8>();
   }
-  static void onWrite(oishii::v2::Writer& writer, const TevOrder& in) {
+  static void onWrite(oishii::Writer& writer, const TevOrder& in) {
     writer.write<u8>(in.texCoord);
     writer.write<u8>(in.texMap);
     writer.write<u8>(static_cast<u8>(in.rasOrder));
@@ -422,7 +422,7 @@ template <> struct io_wrapper<gx::TevStage> {
     const auto unk2 = reader.read<u8>();
     assert(unk2 == 0xff);
   }
-  static void onWrite(oishii::v2::Writer& writer, const gx::TevStage& in) {
+  static void onWrite(oishii::Writer& writer, const gx::TevStage& in) {
     writer.write<u8>(0xff);
     writer.write<u8>(static_cast<u8>(in.colorStage.a));
     writer.write<u8>(static_cast<u8>(in.colorStage.b));
@@ -461,7 +461,7 @@ template <> struct io_wrapper<Fog> {
     io_wrapper<gx::Color>::onRead(reader, f.color);
     f.rangeAdjTable = reader.readX<u16, 10>();
   }
-  static void onWrite(oishii::v2::Writer& writer, const Fog& in) {
+  static void onWrite(oishii::Writer& writer, const Fog& in) {
     writer.write<u8>(static_cast<u8>(in.type));
     writer.write<u8>(in.enabled);
     writer.write<u16>(in.center);
@@ -481,7 +481,7 @@ template <> struct io_wrapper<Material::J3DSamplerData> {
     reinterpret_cast<Material::J3DSamplerData&>(sampler).btiId =
         reader.read<u16>();
   }
-  static void onWrite(oishii::v2::Writer& writer,
+  static void onWrite(oishii::Writer& writer,
                       const Material::J3DSamplerData& sampler) {
     writer.write<u16>(sampler.btiId);
   }
@@ -553,7 +553,7 @@ template <> struct io_wrapper<Model::Indirect> {
       ++i;
     }
   }
-  static void onWrite(oishii::v2::Writer& writer, const Model::Indirect& c) {
+  static void onWrite(oishii::Writer& writer, const Model::Indirect& c) {
     writer.write<u8>(c.enabled);
     writer.write<u8>(c.nIndStage);
     writer.write<u16>(-1);
@@ -619,7 +619,7 @@ template <> struct io_wrapper<gx::CullMode> {
   static void onRead(oishii::BinaryReader& reader, gx::CullMode& out) {
     out = static_cast<gx::CullMode>(reader.read<u32>());
   }
-  static void onWrite(oishii::v2::Writer& writer, gx::CullMode cm) {
+  static void onWrite(oishii::Writer& writer, gx::CullMode cm) {
     writer.write<u32>(static_cast<u32>(cm));
   }
 };

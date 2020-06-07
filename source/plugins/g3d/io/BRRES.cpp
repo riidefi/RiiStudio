@@ -56,12 +56,12 @@ inline void operator<<(libcube::gx::Color& out, oishii::BinaryReader& reader) {
       reader, libcube::gx::VertexBufferType::Color::rgba8);
 }
 
-inline void operator>>(const glm::vec3& vec, oishii::v2::Writer& writer) {
+inline void operator>>(const glm::vec3& vec, oishii::Writer& writer) {
   writer.write(vec.x);
   writer.write(vec.y);
   writer.write(vec.z);
 }
-inline void operator>>(const glm::vec2& vec, oishii::v2::Writer& writer) {
+inline void operator>>(const glm::vec2& vec, oishii::Writer& writer) {
   writer.write(vec.x);
   writer.write(vec.y);
 }

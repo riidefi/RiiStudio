@@ -130,7 +130,7 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
   }
 
   template <int n, typename T, glm::qualifier q>
-  void writeBufferEntryGeneric(oishii::v2::Writer& writer,
+  void writeBufferEntryGeneric(oishii::Writer& writer,
                                const glm::vec<n, T, q>& v) const {
     const auto cnt = ComputeComponentCount();
     for (int i = 0; i < cnt; ++i) {
@@ -155,7 +155,7 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
       }
     }
   }
-  void writeBufferEntryColor(oishii::v2::Writer& writer,
+  void writeBufferEntryColor(oishii::Writer& writer,
                              const libcube::gx::Color& c) const {
     switch (mQuant.type.color) {
     case libcube::gx::VertexBufferType::Color::rgb565:
@@ -199,16 +199,16 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
 
   // For dead cases
   template <int n, typename T, glm::qualifier q>
-  void writeBufferEntryColor(oishii::v2::Writer& writer,
+  void writeBufferEntryColor(oishii::Writer& writer,
                              const glm::vec<n, T, q>& v) const {
     assert(!"Invalid kind/type template match!");
   }
-  void writeBufferEntryGeneric(oishii::v2::Writer& writer,
+  void writeBufferEntryGeneric(oishii::Writer& writer,
                                const libcube::gx::Color& c) const {
     assert(!"Invalid kind/type template match!");
   }
 
-  void writeData(oishii::v2::Writer& writer) const {
+  void writeData(oishii::Writer& writer) const {
     switch (kind) {
     case VBufferKind::position:
       if (mQuant.comp.position ==
