@@ -4,132 +4,110 @@
 
 namespace oishii {
 
-template <u32 m>
-struct MagicInvalidity;
+template <u32 m> struct MagicInvalidity;
 
 template <typename T, EndianSelect E>
-inline T BinaryReader::endianDecode(T val) const noexcept
-{
-	if (!Options::MULTIENDIAN_SUPPORT)
-		return val;
+inline T BinaryReader::endianDecode(T val) const noexcept {
+  if (!Options::MULTIENDIAN_SUPPORT)
+    return val;
 
-	bool be = false;
+  bool be = false;
 
-	switch (E)
-	{
-	case EndianSelect::Current:
-		be = bigEndian;
-		break;
-	case EndianSelect::Big:
-		be = true;
-		break;
-	case EndianSelect::Little:
-		be = false;
-		break;
-	}
+  switch (E) {
+  case EndianSelect::Current:
+    be = bigEndian;
+    break;
+  case EndianSelect::Big:
+    be = true;
+    break;
+  case EndianSelect::Little:
+    be = false;
+    break;
+  }
 
-	if (!Options::PLATFORM_LE)
-		be = !be;
+  if (!Options::PLATFORM_LE)
+    be = !be;
 
-	return be ? swapEndian<T>(val) : val;
-
+  return be ? swapEndian<T>(val) : val;
 }
 
-template <typename T, EndianSelect E, bool unaligned>
-T BinaryReader::peek()
-{
-	boundsCheck(sizeof(T));
-
+template <typename T, EndianSelect E, bool unaligned> T BinaryReader::peek() {
+  boundsCheck(sizeof(T));
 
 #ifndef NDEBUG
-	for (const auto& bp : mBreakPoints)
-	{
-		if (tell() >= bp.offset && tell() + sizeof(T) <= bp.offset + bp.size)
-		{
-			printf("Reading from %04u (0x%04x) sized %u\n", tell(), tell(), (u32)sizeof(T));
-			warnAt("Breakpoint hit", tell(), tell() + sizeof(T));
-			__debugbreak();
-		}
-	}
+  for (const auto& bp : mBreakPoints) {
+    if (tell() >= bp.offset && tell() + sizeof(T) <= bp.offset + bp.size) {
+      printf("Reading from %04u (0x%04x) sized %u\n", tell(), tell(),
+             (u32)sizeof(T));
+      warnAt("Breakpoint hit", tell(), tell() + sizeof(T));
+      __debugbreak();
+    }
+  }
 #endif
 
-	if (!unaligned)
-		alignmentCheck(sizeof(T));
-	T decoded = endianDecode<T, E>(*reinterpret_cast<T*>(getStreamStart() + tell()));
+  if (!unaligned)
+    alignmentCheck(sizeof(T));
+  T decoded =
+      endianDecode<T, E>(*reinterpret_cast<T*>(getStreamStart() + tell()));
 
-	return decoded;
+  return decoded;
 }
-template <typename T, EndianSelect E, bool unaligned>
-T BinaryReader::read()
-{
-	T decoded = peek<T, E, unaligned>();
-	seek<Whence::Current>(sizeof(T));
-	return decoded;
+template <typename T, EndianSelect E, bool unaligned> T BinaryReader::read() {
+  T decoded = peek<T, E, unaligned>();
+  seek<Whence::Current>(sizeof(T));
+  return decoded;
 }
-
 
 template <typename T, int num, EndianSelect E, bool unaligned>
-std::array<T, num> BinaryReader::readX()
-{
-	std::array<T, num> result;
+std::array<T, num> BinaryReader::readX() {
+  std::array<T, num> result;
 
-	for (auto& e : result)
-		e = read<T, E, unaligned>();
+  for (auto& e : result)
+    e = read<T, E, unaligned>();
 
-	return result;
+  return result;
 }
 
 // TODO: Can rewrite read/peek to use peekAt
 template <typename T, EndianSelect E, bool unaligned>
-T BinaryReader::peekAt(int trans)
-{
-	if (!unaligned)
-		boundsCheck(sizeof(T), tell() + trans);
+T BinaryReader::peekAt(int trans) {
+  if (!unaligned)
+    boundsCheck(sizeof(T), tell() + trans);
 
 #ifndef NDEBUG
-	for (const auto& bp : mBreakPoints)
-	{
-		if (tell() + trans >= bp.offset && tell() + trans + sizeof(T) <= bp.offset + bp.size)
-		{
-			printf("Reading from %04u (0x%04x) sized %u\n", (u32)tell() + trans, (u32)tell() + trans, (u32)sizeof(T));
-			warnAt("Breakpoint hit", tell() + trans, tell() + trans + sizeof(T));
-			__debugbreak();
-		}
-	}
+  for (const auto& bp : mBreakPoints) {
+    if (tell() + trans >= bp.offset &&
+        tell() + trans + sizeof(T) <= bp.offset + bp.size) {
+      printf("Reading from %04u (0x%04x) sized %u\n", (u32)tell() + trans,
+             (u32)tell() + trans, (u32)sizeof(T));
+      warnAt("Breakpoint hit", tell() + trans, tell() + trans + sizeof(T));
+      __debugbreak();
+    }
+  }
 #endif
-	T decoded = endianDecode<T, E>(*reinterpret_cast<T*>(getStreamStart() + tell() + trans));
+  T decoded = endianDecode<T, E>(
+      *reinterpret_cast<T*>(getStreamStart() + tell() + trans));
 
-	return decoded;
-}
-//template <typename T, EndianSelect E>
-//T BinaryReader::readAt(int trans)
-//{
-//	T decoded = peekAt<T, E>(trans);
-//	return decoded;
-//}
-
-template<typename lastReadType, typename TInval>
-void BinaryReader::signalInvalidityLast()
-{
-	// Unfortunate workaround, would prefer to do warn<type>
-	TInval::warn(*this, sizeof(lastReadType));
-}
-template<typename lastReadType, typename TInval, int>
-void BinaryReader::signalInvalidityLast(const char* msg)
-{
-	TInval::warn(*this, sizeof(lastReadType), msg);
+  return decoded;
 }
 
-template<u32 magic, bool critical>
-inline void BinaryReader::expectMagic()
-{
-	if (read<u32, EndianSelect::Big>() != magic)
-	{
-		signalInvalidityLast<u32, MagicInvalidity<magic>>();
+template <typename lastReadType, typename TInval>
+void BinaryReader::signalInvalidityLast() {
+  // Unfortunate workaround, would prefer to do warn<type>
+  TInval::warn(*this, sizeof(lastReadType));
+}
+template <typename lastReadType, typename TInval, int>
+void BinaryReader::signalInvalidityLast(const char* msg) {
+  TInval::warn(*this, sizeof(lastReadType), msg);
+}
 
-		if (critical)
-			exit(1);
-	}
+template <u32 magic, bool critical> inline void BinaryReader::expectMagic() {
+  if (read<u32, EndianSelect::Big>() != magic) {
+    signalInvalidityLast<u32, MagicInvalidity<magic>>();
+
+    if (critical)
+      exit(1);
+  }
 }
 
 } // namespace oishii

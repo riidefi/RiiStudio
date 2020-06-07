@@ -11,11 +11,9 @@ namespace oishii::v2 {
 
 //! @brief Link between two endpoints (hooks). The linker will compute these.
 //!
-struct Link
-{
-	Hook from, to;
-	int mStride = 1;
+struct Link {
+  Hook from, to;
+  int mStride = 1;
 };
 
-
-} // namespace DataBlock
+} // namespace oishii::v2
