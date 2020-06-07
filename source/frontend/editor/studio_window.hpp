@@ -10,27 +10,26 @@
 
 namespace riistudio::frontend {
 
-class StudioWindow : public core::Window {
+class StudioWindow : public core::Window<StudioWindow, core::IWindow> {
 public:
   StudioWindow(const std::string& name, bool dockspace = false);
-  void setWindowFlag(u32 flag);
-  std::string getName() const;
-  const ImGuiWindowClass* getWindowClass();
 
-  void attachWindow(std::unique_ptr<StudioWindow> win) {
-    win->mParent = this;
-#ifdef RII_BACKEND_GLFW
-    win->mpGlfwWindow = mpGlfwWindow;
-#endif
-    mChildren.emplace_back(std::move(win));
-  }
+  void setWindowFlag(u32 flag) { mFlags |= flag; }
+  std::string getName() const { return mName; }
+  const ImGuiWindowClass* getWindowClass() const { return &mWindowClass; }
+
   virtual void draw_() {}
+  virtual ImGuiID buildDock(ImGuiID root_id) { return root_id; }
+
+  void draw() override final;
 
 private:
   std::string idIfy(std::string in);
-  std::string idIfyChild(std::string in);
-  void draw() override final;
 
+protected:
+  std::string idIfyChild(std::string in);
+
+private:
   ImGuiWindowClass mWindowClass;
   std::string mName;
   ImGuiID mId;

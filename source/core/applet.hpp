@@ -5,7 +5,7 @@
 
 namespace riistudio::core {
 
-class Applet : public Window, public plate::Platform {
+class Applet : public Window<IWindow, void>, public plate::Platform {
 public:
   Applet(const std::string& name);
   ~Applet();

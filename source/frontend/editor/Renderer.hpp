@@ -16,15 +16,12 @@ public:
   Renderer();
   ~Renderer();
   void render(u32 width, u32 height, bool& hideCursor);
-  void createShaderProgram() { bShadersLoaded = true; }
-  void destroyShaders() { bShadersLoaded = false; }
 
   void prepare(const kpi::IDocumentNode& model,
                const kpi::IDocumentNode& texture, bool buf = true,
                bool tex = true);
 
 private:
-  bool bShadersLoaded = false;
 
   glm::vec3 max{0, 0, 0};
   std::vector<glm::vec3> pos;
@@ -37,7 +34,7 @@ private:
   Camera mCamera;
 
   // Mouse
-  float mouseSpeed = 0.02f;
+  float mouseSpeed = 0.2f;
   // Input
   bool inCtrl = false;
   int combo_choice_cam = 0;

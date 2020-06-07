@@ -4,7 +4,7 @@
 #include <regex>
 
 #include "Renderer.hpp"
-#include "kit/Image.hpp"
+#include <core/3d/ui/Image.hpp>
 
 #include <plate/toolkit/Viewport.hpp>
 
@@ -26,6 +26,8 @@
 #include <core/kpi/RichNameManager.hpp>
 
 #include <algorithm>
+
+#include <core/applet.hpp>
 
 #undef near
 
@@ -490,8 +492,36 @@ EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,
       std::make_unique<GenericCollectionOutliner>(*mState.get(), mActive));
   attachWindow(std::make_unique<RenderTest>(*mState.get()));
 }
+ImGuiID EditorWindow::buildDock(ImGuiID root_id) {
+  ImGuiID next = root_id;
+  ImGuiID dock_right_id =
+      ImGui::DockBuilderSplitNode(next, ImGuiDir_Right, 0.2f, nullptr, &next);
+  ImGuiID dock_left_id =
+      ImGui::DockBuilderSplitNode(next, ImGuiDir_Left, 0.4f, nullptr, &next);
+  ImGuiID dock_right_down_id = ImGui::DockBuilderSplitNode(
+      dock_right_id, ImGuiDir_Down, 0.2f, nullptr, &dock_right_id);
+
+  ImGui::DockBuilderDockWindow(idIfyChild("Outliner").c_str(), dock_right_id);
+  ImGui::DockBuilderDockWindow(idIfyChild("Texture Preview").c_str(),
+                               dock_right_down_id);
+  ImGui::DockBuilderDockWindow(idIfyChild("History").c_str(),
+                               dock_right_down_id);
+  ImGui::DockBuilderDockWindow(idIfyChild("Property Editor").c_str(),
+                               dock_left_id);
+  ImGui::DockBuilderDockWindow(idIfyChild("Viewport").c_str(), next);
+  return next;
+}
 void EditorWindow::draw_() {
-#ifdef _WIN32
+  // TODO: This doesn't work
+  core::Applet* parent = dynamic_cast<core::Applet*>(getParent());
+  if (parent != nullptr) {
+    if (parent->getActive() == this) {
+      ImGui::Text("<Active>");
+    } else {
+      return;
+    }
+  }
+
   if (ImGui::GetIO().KeyCtrl) {
     if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
       mHistory.undo(*mState.get());
@@ -499,18 +529,5 @@ void EditorWindow::draw_() {
       mHistory.redo(*mState.get());
     }
   }
-#endif
-  // auto* parent = mParent;
-
-  // if (!parent) return;
-
-  //	if (!showCursor)
-  //	{
-  //		parent->hideMouse();
-  //	}
-  //	else
-  //	{
-  //		parent->showMouse();
-  //	}
 }
 } // namespace riistudio::frontend

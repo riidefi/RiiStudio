@@ -11,6 +11,8 @@ public:
   EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,
                const std::string& path);
 
+  ImGuiID buildDock(ImGuiID root_id) override;
+
   void draw_() override;
 
   std::string getFilePath() { return mFilePath; }

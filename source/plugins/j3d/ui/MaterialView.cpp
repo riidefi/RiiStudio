@@ -1,4 +1,3 @@
-#include <frontend/editor/kit/Image.hpp>
 #include <kpi/PropertyView.hpp>
 #include <plugins/gc/Export/Material.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
