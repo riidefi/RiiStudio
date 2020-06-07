@@ -83,17 +83,27 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
   // Stack trace
 
   if (checkStack) {
+    beginError();
+    describeError("Warning", msg, "");
+    // addErrorStackTrace(selectBegin, selectEnd - selectBegin, "<root>");
+
     // printf("\tStack Trace\n\t===========\n");
     for (s32 i = mStack.mSize - 1; i >= 0; --i) {
       const auto& entry = mStack.mStack[i];
       printf("\t\tIn %s: start=0x%X, at=0x%X\n",
              entry.handlerName ? entry.handlerName : "?", entry.handlerStart,
              entry.jump);
+      if (entry.jump != entry.handlerStart)
+        addErrorStackTrace(entry.jump, entry.jump_sz, "indirection");
+      addErrorStackTrace(entry.handlerStart, 0,
+                         entry.handlerName ? entry.handlerName : "?");
 
       if (entry.jump != selectBegin &&
           (i == mStack.mSize - 1 || mStack.mStack[i + 1].jump != entry.jump))
         warnAt("STACK TRACE", entry.jump, entry.jump + entry.jump_sz, false);
     }
+
+    endError();
   }
 }
 

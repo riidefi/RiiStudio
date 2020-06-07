@@ -2,7 +2,9 @@
 
 #include "types.hxx"
 #include <cstdio>
+#include <set>
 #include <vector>
+#include <iostream>
 
 namespace oishii {
 
@@ -12,6 +14,25 @@ enum class Whence {
   End,     // Relative -- end position
   // Only valid for invalidities so far
   Last // Relative -- last read value
+};
+
+class AbstractStream;
+
+struct ErrorHandler {
+  virtual ~ErrorHandler() = default;
+
+  // Some care may need to be taken if multiple streams exist in parallel
+  // For this reason, the stream is always passed.
+  // Note: Streams will never nest errors
+
+  virtual void onErrorBegin(AbstractStream& stream) = 0;
+  virtual void onErrorDescribe(AbstractStream& stream, const char* type,
+                               const char* brief, const char* details) = 0;
+  // First call for the root
+  virtual void onErrorAddStackTrace(AbstractStream& stream,
+                                    std::streampos start, std::streamsize size,
+                                    const char* domain) = 0;
+  virtual void onErrorEnd(AbstractStream& stream) = 0;
 };
 
 class AbstractStream {
@@ -68,6 +89,35 @@ public:
   }
 
   inline void skip(int ofs) { seek<Whence::Current>(ofs); }
+
+  void addErrorHandler(ErrorHandler* handler) {
+    mErrorHandlers.emplace(handler);
+  }
+  void removeErrorHandler(ErrorHandler* handler) {
+    mErrorHandlers.erase(handler);
+  }
+
+protected:
+  void beginError() {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorBegin(*this);
+  }
+  void describeError(const char* type, const char* brief, const char* details) {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorDescribe(*this, type, brief, details);
+  }
+  void addErrorStackTrace(std::streampos start, std::streamsize size,
+                          const char* domain) {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorAddStackTrace(*this, start, size, domain);
+  }
+  void endError() {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorEnd(*this);
+  }
+
+private:
+  std::set<ErrorHandler*> mErrorHandlers;
 };
 
 class IReader : public AbstractStream {
