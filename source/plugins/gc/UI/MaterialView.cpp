@@ -1,16 +1,16 @@
-#include <algorithm>
-#include <core/3d/i3dmodel.hpp>
-#include <core/3d/ui/Image.hpp>
-#include <core/util/gui.hpp>
-#include <kpi/PropertyView.hpp>
-#include <plugins/gc/Encoder/ImagePlatform.hpp>
-#include <plugins/gc/Export/Bone.hpp>
-#include <plugins/gc/Export/IndexedPolygon.hpp>
-#include <plugins/gc/Export/Material.hpp>
-
+#include "TevSolver.hpp"                  // for optimizeNode
+#include <algorithm>                      // for std::min
+#include <core/3d/ui/Image.hpp>           // for ImagePreview
+#include <core/util/gui.hpp>              // for ImGui
+#include <core/util/string_builder.hpp>   // for StringBuilder
+#include <kpi/PropertyView.hpp>           // for kpi::PropertyViewManager
+#include <plugins/gc/Export/Material.hpp> // for GCMaterialData
 #undef near
+#undef max
 
 namespace libcube::UI {
+
+using namespace riistudio::util;
 
 auto get_material_data = [](auto& x) -> GCMaterialData& {
   return (GCMaterialData&)x.getMaterialData();
@@ -258,7 +258,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                     "lighting calculation result.\0SRTG: Map R(ed) and G(reen) "
                     "components of a color channel to U/V coordinates\0");
                 {
-                  riistudio::util::ConditionalActive g(basefunc == 0);
+                  ConditionalActive g(basefunc == 0);
                   ImGui::Combo("Matrix Size", &mtxtype,
                                "UV Matrix: 2x4\0UVW Matrix: 3x4\0");
                   bool identitymatrix =
@@ -277,7 +277,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   ImGui::Checkbox("Identity Matrix", &identitymatrix);
                   ImGui::SameLine();
                   {
-                    riistudio::util::ConditionalActive g2(!identitymatrix);
+                    ConditionalActive g2(!identitymatrix);
                     ImGui::SliderInt("Matrix ID", &texmatrixid, 0, 7);
                   }
                   libcube::gx::TexMatrix newtexmatrix =
@@ -290,7 +290,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   AUTO_PROP(texGens[i].matrix, newtexmatrix);
                 }
                 {
-                  riistudio::util::ConditionalActive g(basefunc == 1);
+                  ConditionalActive g(basefunc == 1);
                   ImGui::SliderInt("Hardware light ID", &lightid, 0, 7);
                 }
 
@@ -481,7 +481,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           ImGui::Checkbox("Use mipmap", &mip);
 
           {
-            riistudio::util::ConditionalActive g(mip);
+            ConditionalActive g(mip);
 
             if (ImGui::CollapsingHeader("Mipmapping",
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -496,7 +496,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
               AUTO_PROP(samplers[i]->bEdgeLod, edgelod);
 
               {
-                riistudio::util::ConditionalActive g(edgelod);
+                ConditionalActive g(edgelod);
 
                 bool mipBiasClamp = samp->bBiasClamp;
                 ImGui::Checkbox("Bias clamp", &mipBiasClamp);
@@ -625,7 +625,7 @@ const char* alphaOpt = "Register 3 Alpha\0Register 0 Alpha\0Register 1 "
 	ImGui::SameLine();
 	ImGui::Text("{(1 - ");
 	{
-		riistudio::util::ConditionalActive g(false);
+		ConditionalActive g(false);
 		ImGui::SameLine();
 		ImGui::Combo("##C_", &c, colorOpt);
 	}
@@ -645,6 +645,50 @@ const char* alphaOpt = "Register 3 Alpha\0Register 0 Alpha\0Register 1 "
 	ImGui::SameLine();
 	ImGui::Text(" } ");
 #endif
+
+template <typename T> T DrawKonstSel(T x) {
+  int ksel = static_cast<int>(x);
+  bool k_constant = ksel == std::clamp(ksel, static_cast<int>(T::const_8_8),
+                                       static_cast<int>(T::const_1_8));
+  int k_numerator =
+      k_constant ? 8 - (ksel - static_cast<int>(T::const_8_8)) : -1;
+  int k_reg = !k_constant ? (ksel - static_cast<int>(T::k0)) % 5 : -1;
+  int k_sub = !k_constant ? (ksel - static_cast<int>(T::k0)) / 5
+                          : -1; // rgba, r, g, b, a
+
+  int k_type = k_constant ? 0 : 1;
+  ImGui::Combo("Konst Selection", &k_type, "Constant\0Uniform\0");
+  if (k_type == 0) { // constant
+    float k_frac = static_cast<float>(k_numerator) / 8.0f;
+    ImGui::SliderFloat("Constant Value", &k_frac, 0.0f, 1.0f);
+    k_numerator = static_cast<int>(roundf(k_frac * 8.0f));
+    k_numerator = std::max(k_numerator, 1);
+  } else { // uniform
+    ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth() / 3 - 2);
+    ImGui::Combo(
+        ".##Konstant Register ID", &k_reg,
+        "Konst Color 0\0Konst Color 1\0Konst Color 2\0Konst Color 3\0");
+    ImGui::SameLine();
+    if (std::is_same_v<T, gx::TevKColorSel>) {
+      ImGui::Combo("Konst Register##Subscript", &k_sub,
+                   "RGB\0RRR\0GGG\0BBB\0AAA\0");
+    } else {
+      --k_sub;
+      ImGui::Combo("Konst Register##Subscript", &k_sub, "R\0G\0B\0A\0");
+      ++k_sub;
+    }
+    ImGui::PopItemWidth();
+  }
+
+  if (k_type == 0) {
+    k_numerator -= 1;               // [0, 7]
+    k_numerator = -k_numerator + 7; // -> [7, 0]
+    ksel = static_cast<int>(T::const_8_8) + k_numerator;
+  } else {
+    ksel = static_cast<int>(T::k0) + (k_sub * 5) + k_reg;
+  }
+  return static_cast<T>(ksel);
+}
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   StageSurface& tev) {
@@ -748,67 +792,105 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       // TODO: Only add for now..
       if (stage.colorStage.formula == libcube::gx::TevColorOp::add) {
+
+        std::array<char, 1024> buf;
+        StringBuilder builder(buf.data(), buf.size());
+        auto& root = solveTevStage(stage.colorStage, builder);
+
+        ImGui::SetWindowFontScale(1.3f);
+        ImGui::Text("%s", buf);
+        ImGui::SetWindowFontScale(1.0f);
+
+        const u32 used = computeUsed(root);
+
         int a = static_cast<int>(stage.colorStage.a);
         int b = static_cast<int>(stage.colorStage.b);
         int c = static_cast<int>(stage.colorStage.c);
         int d = static_cast<int>(stage.colorStage.d);
         bool clamp = stage.colorStage.clamp;
         int bias = static_cast<int>(stage.colorStage.bias);
+        int scale = static_cast<int>(stage.colorStage.scale);
         int dst = static_cast<int>(stage.colorStage.out);
 
-        ImGui::Combo("Operand A", &a, colorOpt);
-        ImGui::Combo("Operand B", &b, colorOpt);
-        ImGui::Combo("Operand C", &c, colorOpt);
-        ImGui::Combo("Operand D", &d, colorOpt);
+        const auto ksel = DrawKonstSel(stage.colorStage.constantSelection);
+        STAGE_PROP(colorStage.constantSelection, ksel);
+
+        auto draw_color_operand = [&](const char* title, int* op, u32 op_mask) {
+          // ConditionalActive g(used & op_mask, false);
+          ImGui::Combo(title, op, colorOpt);
+        };
+
+        draw_color_operand("Operand A", &a, A);
+        draw_color_operand("Operand B", &b, B);
+        draw_color_operand("Operand C", &c, C);
+        draw_color_operand("Operand D", &d, D);
         ImGui::Combo("Bias", &bias,
                      "No bias\0Add middle gray\0Subtract middle gray\0");
+        ImGui::Combo("Scale", &scale, "* 1\0* 2\0* 4\0");
         ImGui::Checkbox("Clamp calculation to 0-255", &clamp);
         ImGui::Combo("Calculation Result Output Destionation", &dst,
                      "Register 3\0Register 0\0Register 1\0Register 2\0");
 
-        gx::TevStage::ColorStage newStage = stage.colorStage;
-        newStage.a = static_cast<gx::TevColorArg>(a);
-        newStage.b = static_cast<gx::TevColorArg>(b);
-        newStage.c = static_cast<gx::TevColorArg>(c);
-        newStage.d = static_cast<gx::TevColorArg>(d);
-        newStage.clamp = clamp;
-        newStage.bias = static_cast<gx::TevBias>(bias);
-        newStage.out = static_cast<gx::TevReg>(dst);
-
-        STAGE_PROP(colorStage, newStage);
+        STAGE_PROP(colorStage.a, static_cast<gx::TevColorArg>(a));
+        STAGE_PROP(colorStage.b, static_cast<gx::TevColorArg>(b));
+        STAGE_PROP(colorStage.c, static_cast<gx::TevColorArg>(c));
+        STAGE_PROP(colorStage.d, static_cast<gx::TevColorArg>(d));
+        STAGE_PROP(colorStage.clamp, clamp);
+        STAGE_PROP(colorStage.bias, static_cast<gx::TevBias>(bias));
+        STAGE_PROP(colorStage.scale, static_cast<gx::TevScale>(scale));
+        STAGE_PROP(colorStage.out, static_cast<gx::TevReg>(dst));
       }
     }
     if (ImGui::CollapsingHeader("Alpha Stage",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
+      IDScope alphag("Alpha");
       if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
+        std::array<char, 1024> buf;
+        StringBuilder builder(buf.data(), buf.size());
+        auto& root = solveTevStage(stage.alphaStage, builder);
+
+        ImGui::SetWindowFontScale(1.3f);
+        ImGui::Text("%s", buf);
+        ImGui::SetWindowFontScale(1.0f);
+
+        const u32 used = computeUsed(root);
+
         int a = static_cast<int>(stage.alphaStage.a);
         int b = static_cast<int>(stage.alphaStage.b);
         int c = static_cast<int>(stage.alphaStage.c);
         int d = static_cast<int>(stage.alphaStage.d);
         bool clamp = stage.alphaStage.clamp;
         int bias = static_cast<int>(stage.alphaStage.bias);
+        int scale = static_cast<int>(stage.alphaStage.scale);
         int dst = static_cast<int>(stage.alphaStage.out);
 
-        ImGui::Combo("Operand A##Alpha", &a, alphaOpt);
-        ImGui::Combo("Operand B##Alpha", &b, alphaOpt);
-        ImGui::Combo("Operand C##Alpha", &c, alphaOpt);
-        ImGui::Combo("Operand D##Alpha", &d, alphaOpt);
+        const auto ksel = DrawKonstSel(stage.alphaStage.constantSelection);
+        STAGE_PROP(alphaStage.constantSelection, ksel);
+
+        auto draw_alpha_operand = [&](const char* title, int* op, u32 op_mask) {
+          // ConditionalActive g(used & op_mask, false);
+          ImGui::Combo(title, op, alphaOpt);
+        };
+
+        draw_alpha_operand("Operand A##Alpha", &a, A);
+        draw_alpha_operand("Operand B##Alpha", &b, B);
+        draw_alpha_operand("Operand C##Alpha", &c, C);
+        draw_alpha_operand("Operand D##Alpha", &d, D);
         ImGui::Combo("Bias##Alpha", &bias,
                      "No bias\0Add middle gray\0Subtract middle gray\0");
+        ImGui::Combo("Scale", &scale, "* 1\0* 2\0* 4\0");
         ImGui::Checkbox("Clamp calculation to 0-255##Alpha", &clamp);
         ImGui::Combo("Calculation Result Output Destionation##Alpha", &dst,
                      "Register 3\0Register 0\0Register 1\0Register 2\0");
 
-        gx::TevStage::AlphaStage newStage = stage.alphaStage;
-        newStage.a = static_cast<gx::TevAlphaArg>(a);
-        newStage.b = static_cast<gx::TevAlphaArg>(b);
-        newStage.c = static_cast<gx::TevAlphaArg>(c);
-        newStage.d = static_cast<gx::TevAlphaArg>(d);
-        newStage.clamp = clamp;
-        newStage.bias = static_cast<gx::TevBias>(bias);
-        newStage.out = static_cast<gx::TevReg>(dst);
-
-        STAGE_PROP(alphaStage, newStage);
+        STAGE_PROP(alphaStage.a, static_cast<gx::TevAlphaArg>(a));
+        STAGE_PROP(alphaStage.b, static_cast<gx::TevAlphaArg>(b));
+        STAGE_PROP(alphaStage.c, static_cast<gx::TevAlphaArg>(c));
+        STAGE_PROP(alphaStage.d, static_cast<gx::TevAlphaArg>(d));
+        STAGE_PROP(alphaStage.clamp, clamp);
+        STAGE_PROP(alphaStage.bias, static_cast<gx::TevBias>(bias));
+        STAGE_PROP(alphaStage.scale, static_cast<gx::TevScale>(scale));
+        STAGE_PROP(alphaStage.out, static_cast<gx::TevReg>(dst));
       }
     }
   };
@@ -892,7 +974,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       AUTO_PROP(colorChanControls[i].Material, diffuse_src);
 
       {
-        riistudio::util::ConditionalActive g(!vclr);
+        ConditionalActive g(!vclr);
 
         libcube::gx::ColorF32 mclr = colors[i / 2].matColor;
         if (i % 2 == 0) {
@@ -907,7 +989,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     ImGui::Checkbox("Affected by Light", &enabled);
     AUTO_PROP(colorChanControls[i].enabled, enabled);
 
-    riistudio::util::ConditionalActive g(enabled);
+    ConditionalActive g(enabled);
     {
       auto amb_src = ctrl.Ambient;
       bool vclr = amb_src == gx::ColorSource::Vertex;
@@ -918,7 +1000,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       AUTO_PROP(colorChanControls[i].Ambient, amb_src);
 
       {
-        riistudio::util::ConditionalActive g(!vclr);
+        ConditionalActive g(!vclr);
 
         libcube::gx::ColorF32 aclr = colors[i / 2].ambColor;
         if (i % 2 == 0) {
@@ -970,18 +1052,18 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   };
 
   for (int i = 0; i < controls.size(); i += 2) {
-    riistudio::util::IDScope g(i);
+    IDScope g(i);
     if (ImGui::CollapsingHeader(
             (std::string("Channel ") + std::to_string(i / 2)).c_str(),
             ImGuiTreeNodeFlags_DefaultOpen)) {
       ImGui::Columns(2);
       {
-        riistudio::util::IDScope g(i);
+        IDScope g(i);
         draw_color_channel(i);
       }
       ImGui::NextColumn();
       {
-        riistudio::util::IDScope g(i + 1);
+        IDScope g(i + 1);
         draw_color_channel(i + 1);
       }
       ImGui::EndColumns();
@@ -1054,7 +1136,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
     AUTO_PROP(zMode.compare, zcmp);
 
     {
-      riistudio::util::ConditionalActive g(zcmp);
+      ConditionalActive g(zcmp);
 
       ImGui::Indent(30.0f);
 
@@ -1086,8 +1168,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
 
     {
 
-      riistudio::util::ConditionalActive g(
-          btype == static_cast<int>(libcube::gx::BlendModeType::blend));
+      ConditionalActive g(btype ==
+                          static_cast<int>(libcube::gx::BlendModeType::blend));
       ImGui::Text("Blend calculation");
 
       const char* blendOpts =
@@ -1117,8 +1199,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
       ImGui::Text(")");
     }
     {
-      riistudio::util::ConditionalActive g(
-          btype == static_cast<int>(libcube::gx::BlendModeType::logic));
+      ConditionalActive g(btype ==
+                          static_cast<int>(libcube::gx::BlendModeType::logic));
       ImGui::Text("Logical Operations");
     }
     ImGui::PopItemWidth();

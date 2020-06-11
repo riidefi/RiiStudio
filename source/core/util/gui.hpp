@@ -8,19 +8,21 @@
 namespace riistudio::util {
 
 struct ConditionalActive {
-  ConditionalActive(bool pred) : bPred(pred) {
+  ConditionalActive(bool pred, bool flag = true) : bPred(pred), bFlag(flag) {
     if (!bPred) {
-      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      if (bFlag)
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
     }
   }
   ~ConditionalActive() {
     if (!bPred) {
-      ImGui::PopItemFlag();
+      if (bFlag)
+        ImGui::PopItemFlag();
       ImGui::PopStyleVar();
     }
   }
-  bool bPred = false;
+  bool bPred = false, bFlag = true;
 };
 struct IDScope {
   template <typename T> IDScope(T id) { ImGui::PushID(id); }

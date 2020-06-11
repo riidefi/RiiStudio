@@ -120,6 +120,14 @@ enum class TevKAlphaSel {
   const_2_8,
   const_1_8,
 
+  // Not valid. For generic code
+  // {
+  k0 = 12,
+  k1,
+  k2,
+  k3,
+  // }
+
   k0_r = 16,
   k1_r,
   k2_r,
