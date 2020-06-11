@@ -4,15 +4,15 @@
 
 #include <iostream>
 
-bool checkShaderErrors(u32 id) {
-  return true;
-  int success;
+bool checkShaderErrors(u32 id, std::string& error) {
+  s32 success;
   char infoLog[512];
   glGetShaderiv(id, GL_COMPILE_STATUS, &success);
 
   if (!success) {
     glGetShaderInfoLog(id, 512, NULL, infoLog);
     printf("Shader compilation failed: %s\n", infoLog);
+    error += infoLog;
   }
 
   return success;
@@ -22,21 +22,24 @@ ShaderProgram::ShaderProgram(const char* vtx, const char* frag) {
   u32 vertexShader = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vertexShader, 1, &vtx, NULL);
   glCompileShader(vertexShader);
-  if (!checkShaderErrors(vertexShader))
+  if (!checkShaderErrors(vertexShader, mErrorDesc)) {
+    bError = true;
     printf("%s\n", vtx);
-
+    throw "Invalid vertex shader"; // This is really unlikely
+  }
   u32 fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fragmentShader, 1, &frag, NULL);
   glCompileShader(fragmentShader);
-  if (!checkShaderErrors(fragmentShader))
+  if (!checkShaderErrors(fragmentShader, mErrorDesc)) {
+    bError = true;
     printf("%s\n", frag);
-
+    // mErrorDesc = frag;
+  }
   mShaderProgram = glCreateProgram();
   glAttachShader(mShaderProgram, vertexShader);
   glAttachShader(mShaderProgram, fragmentShader);
   glLinkProgram(mShaderProgram);
-  checkShaderErrors(mShaderProgram);
-
+  
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
 }

@@ -9,7 +9,11 @@ struct ShaderProgram {
   ~ShaderProgram();
 
   u32 getId() const { return mShaderProgram; }
+  bool getError() const { return bError; }
+  const std::string& getErrorDesc() { return mErrorDesc; }
 
 private:
+  std::string mErrorDesc;
   u32 mShaderProgram;
+  bool bError = false;
 };

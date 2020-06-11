@@ -21,13 +21,21 @@ struct SceneTree {
 
     Node(const lib3d::Material& m, const lib3d::Polygon& p,
          const lib3d::Bone& b, u8 prio, ShaderProgram& prog)
-        : mat((lib3d::Material&)m), poly(p), bone(b), priority(prio), shader(prog) {}
+        : mat((lib3d::Material&)m), poly(p), bone(b), priority(prio),
+          shader(prog) {}
 
     void update(lib3d::Material* _mat) override {
       mat = *_mat;
       const auto shader_sources = mat.generateShaders();
-      shader =
-          ShaderCache::compile(shader_sources.first, shader_sources.second);
+      auto& new_shader = ShaderCache::compile(
+          shader_sources.first, _mat->applyCacheAgain ? _mat->cachedPixelShader : shader_sources.second);
+      if (new_shader.getError()) {
+        _mat->isShaderError = true;
+        _mat->shaderError = new_shader.getErrorDesc();
+        return;
+      }
+      shader = new_shader;
+      _mat->isShaderError = false;
     }
 
     bool isTranslucent() const { return mat.isXluPass(); }

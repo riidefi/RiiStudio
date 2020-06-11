@@ -373,6 +373,15 @@ struct PropertyEditor : public StudioWindow {
       return;
     }
 
+    if (lib3d::Material* mat = dynamic_cast<lib3d::Material*>(mActive);
+        mat != nullptr && mat->isShaderError) {
+      ImGui::SetWindowFontScale(2.0f);
+      ImVec4 warnColor{1.0f, 0.0f, 0.0f, 1.0f};
+	  ImGui::TextColored(warnColor, "[WARNING] Invalid shader!");
+      ImGui::TextColored(warnColor, mat->shaderError.c_str());
+      ImGui::SetWindowFontScale(1.0f);
+    }
+
     const auto draw_tab_widget = [&](bool compact = false) {
       int mode = static_cast<int>(mMode);
       if (compact)

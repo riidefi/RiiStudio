@@ -1126,7 +1126,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
 }
 
 void installPolygonView();
-void installTexImageView();
 
 kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
   kpi::PropertyViewManager& manager = kpi::PropertyViewManager::getInstance();

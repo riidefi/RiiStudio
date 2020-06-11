@@ -57,6 +57,11 @@ struct Material {
     notifyObservers();
   }
   mutable std::vector<IObserver*> observers;
+
+  mutable std::string cachedPixelShader;
+  mutable bool isShaderError = false;
+  mutable std::string shaderError;
+  mutable bool applyCacheAgain = false;
 };
 
 } // namespace riistudio::lib3d
