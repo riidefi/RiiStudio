@@ -377,7 +377,7 @@ struct PropertyEditor : public StudioWindow {
         mat != nullptr && mat->isShaderError) {
       ImGui::SetWindowFontScale(2.0f);
       ImVec4 warnColor{1.0f, 0.0f, 0.0f, 1.0f};
-	  ImGui::TextColored(warnColor, "[WARNING] Invalid shader!");
+      ImGui::TextColored(warnColor, "[WARNING] Invalid shader!");
       ImGui::TextColored(warnColor, mat->shaderError.c_str());
       ImGui::SetWindowFontScale(1.0f);
     }
@@ -385,9 +385,9 @@ struct PropertyEditor : public StudioWindow {
     const auto draw_tab_widget = [&](bool compact = false) {
       int mode = static_cast<int>(mMode);
       if (compact)
-        ImGui::PushItemWidth(75);
+        ImGui::PushItemWidth(150);
       ImGui::Combo(compact ? "##Property Mode" : "Property Mode", &mode,
-                   "Tabs\0Headers\0");
+                   "Tabs\0Vertical Tabs\0Headers\0");
       if (compact)
         ImGui::PopItemWidth();
       mMode = static_cast<Mode>(mode);
@@ -422,7 +422,6 @@ struct PropertyEditor : public StudioWindow {
                 static_cast<u32>(selected.size()));
 
     if (mMode == Mode::Tabs) {
-
       if (ImGui::BeginTabBar("Pane")) {
         int i = 0;
         std::string title;
@@ -455,10 +454,78 @@ struct PropertyEditor : public StudioWindow {
       }
 
       activeTab->draw(*mActive, selected, mHost, mRoot, state_holder);
-    } else if (mMode == Mode::Headers) {
+    } else if (mMode == Mode::VertTabs) {
+      ImGui::BeginChild("Left", ImVec2(120, 0), true);
+      int i = 0;
       std::string title;
       manager.forEachView(
           [&](kpi::IPropertyView& view) {
+            const bool sel = mActiveTab == i;
+
+            title.clear();
+            title += view.getIcon();
+            title += " ";
+            title += view.getName();
+
+            if (ImGui::Selectable(title.c_str(), sel) || sel) {
+              mActiveTab = i;
+              activeTab = &view;
+            }
+
+            ++i;
+          },
+          *mActive);
+      ImGui::EndChild();
+
+      ImGui::SameLine();
+
+      ImGui::BeginChild("Right", ImGui::GetContentRegionAvail(), true);
+      {
+        if (activeTab == nullptr) {
+          mActiveTab = 0;
+
+          ImGui::Text("Invalid Pane");
+        } else {
+          activeTab->draw(*mActive, selected, mHost, mRoot, state_holder);
+        }
+      }
+      ImGui::EndChild();
+
+    } else if (mMode == Mode::Headers) {
+      std::string title;
+      int i = 0;
+      manager.forEachView([&](kpi::IPropertyView& view) { ++i; }, *mActive);
+      const int num_headers = i;
+
+      if (tab_filter.size() != num_headers) {
+        tab_filter.resize(num_headers);
+        std::fill(tab_filter.begin(), tab_filter.end(), true);
+      }
+
+      i = 0;
+      manager.forEachView(
+          [&](kpi::IPropertyView& view) {
+            title.clear();
+            title += view.getIcon();
+            title += " ";
+            title += view.getName();
+			// TODO: >
+            bool tmp = tab_filter[i];
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
+            ImGui::Checkbox(title.c_str(), &tmp);
+            ImGui::PopStyleVar();
+            tab_filter[i] = tmp;
+
+            ++i;
+          },
+          *mActive);
+
+      i = 0;
+      manager.forEachView(
+          [&](kpi::IPropertyView& view) {
+            if (!tab_filter[i++])
+              return;
+
             title.clear();
             title += view.getIcon();
             title += " ";
@@ -484,9 +551,12 @@ struct PropertyEditor : public StudioWindow {
 
   int mActiveTab = 0;
 
-  enum class Mode { Tabs, Headers };
+  enum class Mode { Tabs, VertTabs, Headers };
   Mode mMode = Mode::Tabs;
-};
+
+  std::vector<bool> tab_filter;
+
+}; // namespace riistudio::frontend
 
 EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,
                            const std::string& path)
