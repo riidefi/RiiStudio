@@ -20,7 +20,7 @@ template <typename TWindow = IWindow, typename TWindowParent = TWindow>
 class Window : public IWindow {
 public:
   Window() {}
-  Window(TWindow&& win) {
+  Window(TWindow&& rhs) {
     *this = rhs;
     for (auto& child : mChildren)
       child.mParent = this;

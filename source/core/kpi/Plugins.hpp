@@ -144,7 +144,8 @@ public:
     last = gRegistrationChain;
     gRegistrationChain = this;
   }
-  explicit RegistrationLink(RegistrationLink* last) : last(last), next(nullptr) {}
+  explicit RegistrationLink(RegistrationLink* last)
+      : next(nullptr), last(last) {}
   virtual void exec(ApplicationPlugins& registrar) {}
 
   static RegistrationLink* getHead() { return gRegistrationChain; }

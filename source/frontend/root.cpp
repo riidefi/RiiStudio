@@ -24,6 +24,10 @@
 #include "widgets/fps.hpp"
 #include "widgets/theme_editor.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 namespace riistudio::frontend {
 
 bool BeginFullscreenWindow(const char* label, bool* open) {
@@ -55,12 +59,12 @@ void RootWindow::draw() {
 
   ImGui::PushID(0);
   if (BeginFullscreenWindow("##RootWindow", getOpen())) {
+    ImGui::SetWindowFontScale(1.1f);
     if (!hasChildren()) {
       ImGui::Text("Drop a file to edit.");
     }
-    ImGui::SetWindowFontScale(1.1f);
-    ImGui::Text(
-        "Note: For this early alpha, file saving is temporarily disabled.");
+    // ImGui::Text(
+    //     "Note: For this early alpha, file saving is temporarily disabled.");
     ImGui::SetWindowFontScale(1.0f);
     dockspace_id = ImGui::GetID("DockSpaceWidget");
 
@@ -89,9 +93,11 @@ void RootWindow::draw() {
 
     if (ImGui::BeginMenuBar()) {
       if (ImGui::BeginMenu("File")) {
+#ifdef _WIN32
         if (ImGui::MenuItem("Open")) {
           openFile();
         }
+#endif
         if (ImGui::MenuItem("Save")) {
 
           if (ed) {
@@ -105,12 +111,14 @@ void RootWindow::draw() {
             printf("Cannot save.. nothing has been opened.\n");
           }
         }
+#ifdef _WIN32
         if (ImGui::MenuItem("Save As")) {
           if (ed)
             saveAs();
           else
             printf("Cannot save.. nothing has been opened.\n");
         }
+#endif
         ImGui::EndMenu();
       }
       if (ImGui::BeginMenu("Windows")) {
@@ -458,14 +466,12 @@ RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
 RootWindow::~RootWindow() { DeinitAPI(); }
 
 void RootWindow::save(const std::string& path) {
-  std::ofstream stream(path, std::ios::binary | std::ios::out);
-
-  oishii::Writer writer(1024);
-
   EditorWindow* ed =
       dynamic_cast<EditorWindow*>(getActive() ? getActive() : nullptr);
   if (!ed)
     return;
+
+  oishii::Writer writer(1024);
 
   auto ex = SpawnExporter(*ed->mState.get());
   if (!ex) {
@@ -474,7 +480,16 @@ void RootWindow::save(const std::string& path) {
   }
   ex->write_(*ed->mState.get(), writer);
 
+#ifdef _WIN32
+  std::ofstream stream(path, std::ios::binary | std::ios::out);
   stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
+#else
+  static_assert(sizeof(void*) == sizeof(u32), "emscripten pointer size");
+
+  EM_ASM({ window.Module.downloadBuffer($0, $1, $2, $3); },
+         reinterpret_cast<u32>(writer.getDataBlockStart()), writer.getBufSize(),
+         reinterpret_cast<u32>(path.c_str()), path.size());
+#endif
 }
 void RootWindow::saveAs() {
   auto results = pfd::save_file("Save File", "", {"All Files", "*"}).result();

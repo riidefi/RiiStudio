@@ -53,6 +53,26 @@
                 text = Array.prototype.slice.call(arguments).join(' ');
                 console.error(text);
             },
+            // https://github.com/magcius/noclip.website/blob/master/src/DownloadUtils.ts
+            downloadHref: function(filename, href) {
+                const elem = document.createElement('a');
+                elem.setAttribute('href', href);
+                elem.setAttribute('download', filename);
+                document.body.appendChild(elem);
+                elem.click();
+                document.body.removeChild(elem);
+            },
+            downloadBlob: function (filename, blob) {
+                const url = window.URL.createObjectURL(blob);
+                window.Module.downloadHref(filename, url);
+                window.URL.revokeObjectURL(url);
+            },
+            downloadBuffer : function(ptr, size, string_ptr, string_size) {
+                let string_buf = new Uint8Array(window.Module.HEAPU8.buffer, string_ptr, string_size);
+                let filename = String.fromCharCode.apply(String, string_buf);
+                let buf = new Uint8Array(window.Module.HEAPU8.buffer, ptr, size);
+                window.Module.downloadBlob(filename, new Blob([buf]));
+            },
             dropHandler: function (e) {
                 let dt = e.dataTransfer;
                 let files = dt.files;
@@ -63,9 +83,9 @@
                 var canvas = document.getElementById('canvas');
 
                 var dropzone = document.getElementById('dropzone');
-                dropzone.addEventListener('dragenter', function (e) { e.preventDefault(); }, false)
-                dropzone.addEventListener('dragleave', function (e) { e.preventDefault(); }, false)
-                dropzone.addEventListener('dragover', function (e) { e.preventDefault(); }, false)
+                dropzone.addEventListener('dragenter', function (e) { e.preventDefault(); }, false);
+                dropzone.addEventListener('dragleave', function (e) { e.preventDefault(); }, false);
+                dropzone.addEventListener('dragover', function (e) { e.preventDefault(); }, false);
                 dropzone.addEventListener('drop', function (e) {
                     let dt = e.dataTransfer;
                     let files = dt.files;

@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <core/3d/i3dmodel.hpp>
 #include <core/util/gui.hpp>
-#include <frontend/editor/kit/Image.hpp>
 #include <kpi/PropertyView.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
