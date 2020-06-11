@@ -424,11 +424,17 @@ std::string GXProgram::generateIndTexStage(u32 indTexStageIndex) {
 
 std::string GXProgram::generateIndTexStages() {
   std::string out;
+  auto& matData = mMaterial.mat.getMaterialData();
+  auto& shader = matData.shader;
 
-  for (int i = 0; i < mMaterial.mat.getMaterialData().shader.mStages.size();
-       ++i) {
-    if (mMaterial.mat.getMaterialData().shader.mIndirectOrders[i].refCoord >=
-        mMaterial.mat.getMaterialData().texGens.size())
+  for (std::size_t i = 0; i < shader.mStages.size(); ++i) {
+    if (shader.mIndirectOrders[0].refCoord >= matData.texGens.size())
+      continue;
+    // if (shader.mIndirectOrders[shader.mStages[i].indirectStage.indStageSel]
+    //         .refCoord >= matData.texGens.size())
+    //   continue;
+    // TODO: This is wrong, but changing it breaks things..
+    if (i < 4 && shader.mIndirectOrders[i].refCoord >= matData.texGens.size())
       continue;
     out += generateIndTexStage(i);
   }

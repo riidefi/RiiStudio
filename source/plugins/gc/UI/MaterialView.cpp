@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <core/3d/i3dmodel.hpp>
-#include <core/util/gui.hpp>
 #include <core/3d/ui/Image.hpp>
+#include <core/util/gui.hpp>
 #include <kpi/PropertyView.hpp>
 #include <plugins/gc/Encoder/ImagePlatform.hpp>
 #include <plugins/gc/Export/Bone.hpp>
@@ -560,24 +560,51 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     ImGui::EndTabBar();
   }
 }
-// TODO -- filler
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SwapTableSurface) {
-#ifndef BUILD_DIST
-  ImGui::BeginColumns("swap", 4);
-  int sel = 0;
-  for (int j = 0; j < 4; ++j) {
-    ImGui::Combo("R", &sel, "R\0G\0\0B\0A");
-    ImGui::NextColumn();
-    ImGui::Combo("G", &sel, "R\0G\0\0B\0A");
-    ImGui::NextColumn();
-    ImGui::Combo("B", &sel, "R\0G\0\0B\0A");
-    ImGui::NextColumn();
-    ImGui::Combo("A", &sel, "R\0G\0\0B\0A");
-    ImGui::NextColumn();
+  auto& matData = delegate.getActive().getMaterialData();
+
+  const char* colors = "Sample from Red\0Sample from Green\0Sample from "
+                       "Blue\0Sample from Alpha\0";
+  ImGui::BeginTable("Swap Tables", 5, ImGuiTableFlags_Borders);
+  ImGui::TableSetupColumn("Table ID");
+  ImGui::TableSetupColumn("Red Destination");
+  ImGui::TableSetupColumn("Green Destination");
+  ImGui::TableSetupColumn("Blue Destination");
+  ImGui::TableSetupColumn("Alpha Destination");
+  ImGui::TableAutoHeaders();
+  ImGui::TableNextRow();
+  for (int i = 0; i < matData.shader.mSwapTable.size(); ++i) {
+    ImGui::PushID(i);
+    auto& swap = matData.shader.mSwapTable[i];
+
+    int r = static_cast<int>(swap.r);
+    int g = static_cast<int>(swap.g);
+    int b = static_cast<int>(swap.b);
+    int a = static_cast<int>(swap.a);
+
+    ImGui::Text((std::string("Swap ") + std::to_string(i)).c_str());
+    ImGui::TableNextCell();
+
+    ImGui::Combo("##R", &r, colors);
+    ImGui::TableNextCell();
+    ImGui::Combo("##G", &g, colors);
+    ImGui::TableNextCell();
+    ImGui::Combo("##B", &b, colors);
+    ImGui::TableNextCell();
+    ImGui::Combo("##A", &a, colors);
+    ImGui::TableNextCell();
+
+    AUTO_PROP(shader.mSwapTable[i].r, static_cast<gx::ColorComponent>(r));
+    AUTO_PROP(shader.mSwapTable[i].g, static_cast<gx::ColorComponent>(g));
+    AUTO_PROP(shader.mSwapTable[i].b, static_cast<gx::ColorComponent>(b));
+    AUTO_PROP(shader.mSwapTable[i].a, static_cast<gx::ColorComponent>(a));
+
+    ImGui::PopID();
+    ImGui::TableNextRow();
   }
-  ImGui::EndColumns();
-#endif
+
+  ImGui::EndTable();
 }
 
 const char* colorOpt =
@@ -585,23 +612,10 @@ const char* colorOpt =
     "Color\0Register 0 Alpha\0Register 1 Color\0Register 1 "
     "Alpha\0Register 2 Color\0Register 2 Alpha\0Texture "
     "Color\0Texture Alpha\0Raster Color\0Raster Alpha\0 1.0\0 "
-    "0.5\0 Constant Color Selection\0 0.0\0";
+    "0.5\0 Constant Color Selection\0 0.0\0\0";
 const char* alphaOpt = "Register 3 Alpha\0Register 0 Alpha\0Register 1 "
                        "Alpha\0Register 2 Alpha\0Texture Alpha\0Raster "
-                       "Alpha\0Constant Alpha Selection\0 0.0\0";
-
-void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
-                  StageSurface& tev) {
-  auto& matData = delegate.getActive().getMaterialData();
-
-  // TEV-ADD form only
-  auto drawSubStage = [&](const auto& stage, const char* opt, auto get_from) {
-    int a = static_cast<int>(stage.a);
-    int b = static_cast<int>(stage.b);
-    int c = static_cast<int>(stage.c);
-    int d = static_cast<int>(stage.d);
-    bool clamp = stage.clamp;
-    int dst = static_cast<int>(stage.out);
+                       "Alpha\0Constant Alpha Selection\0 0.0\0\0";
 
 #if 0
 	ImGui::PushItemWidth(200);
@@ -631,48 +645,84 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 	ImGui::SameLine();
 	ImGui::Text(" } ");
 #endif
-    ImGui::Combo("Operand A", &a, opt);
-    ImGui::Combo("Operand B", &b, opt);
-    ImGui::Combo("Operand C", &c, opt);
-    ImGui::Combo("Operand D", &d, opt);
 
-#define TEV_PROP(a, b)                                                         \
-  delegate.property(                                                           \
-      get_from(delegate.getActive().getMaterialData()).a, b,                   \
-      [&](const auto& x) { return get_from(x).a; },                            \
-      [&](auto& x, const auto& y) { get_from(x).a = y; })
-
-    // TEV_PROP(a, static_cast<libcube::gx::TevColorArg>(a));
-    // TEV_PROP(b, static_cast<libcube::gx::TevColorArg>(b));
-    // TEV_PROP(c, static_cast<libcube::gx::TevColorArg>(c));
-    // TEV_PROP(d, static_cast<libcube::gx::TevColorArg>(d));
-
-    // ImGui::SameLine();
-    // ImGui::Combo("##Bias", &bias, "+ 0.0\0+")
-
-    ImGui::Checkbox("Clamp calculation to 0-255", &clamp);
-    ImGui::Combo("Calculation Result Output Destionation", &dst,
-                 "Register 3\0Register 0\0Register 1\0Register 2\0");
-#if 0
-    ImGui::PopItemWidth();
-#endif
-  };
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
+                  StageSurface& tev) {
+  auto& matData = delegate.getActive().getMaterialData();
 
   auto drawStage = [&](libcube::gx::TevStage& stage, int i) {
 #define STAGE_PROP(a, b) AUTO_PROP(shader.mStages[i].a, b)
     if (ImGui::CollapsingHeader("Stage Setting",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       // RasColor
-      // TODO: Better selection here
-      int texid = stage.texMap;
-      ImGui::InputInt("TexId", &texid);
-      STAGE_PROP(texMap, (u8)texid);
-      STAGE_PROP(texCoord, (u8)texid);
+      int rasId = [](gx::ColorSelChanApi sel) -> int {
+        switch (sel) {
+        case gx::ColorSelChanApi::color0:
+        case gx::ColorSelChanApi::alpha0:
+        case gx::ColorSelChanApi::color0a0:
+          return 0;
+        case gx::ColorSelChanApi::color1:
+        case gx::ColorSelChanApi::alpha1:
+        case gx::ColorSelChanApi::color1a1:
+          return 1;
+        case gx::ColorSelChanApi::zero:
+        case gx::ColorSelChanApi::null:
+          return 2;
+        case gx::ColorSelChanApi::ind_alpha:
+          return 3;
+        case gx::ColorSelChanApi::normalized_ind_alpha:
+          return 4;
+        }
+      }(stage.rasOrder);
+      const int rasIdOld = rasId;
+      ImGui::Combo("Channel ID", &rasId,
+                   "Channel 0\0Channel 1\0None\0Indirect Alpha\0Normalized "
+                   "Indirect Alpha\0");
 
+      if (rasId != rasIdOld) {
+        gx::ColorSelChanApi ras = [](int sel) -> gx::ColorSelChanApi {
+          switch (sel) {
+          case 0:
+            return gx::ColorSelChanApi::color0a0;
+          case 1:
+            return gx::ColorSelChanApi::color1a1;
+          case 2:
+            return gx::ColorSelChanApi::zero; // TODO: Prefer null?
+          case 3:
+            return gx::ColorSelChanApi::ind_alpha;
+          case 4:
+            return gx::ColorSelChanApi::normalized_ind_alpha;
+          }
+        }(rasId);
+
+        STAGE_PROP(rasOrder, ras);
+      }
+      {
+        ImGui::PushItemWidth(50);
+        int ras_swap = stage.rasSwap;
+        ImGui::SameLine();
+        ImGui::SliderInt("Swap ID##Ras", &ras_swap, 0, 3);
+        STAGE_PROP(rasSwap, static_cast<u8>(ras_swap));
+        ImGui::PopItemWidth();
+      }
       if (stage.texCoord != stage.texMap) {
         ImGui::Text("TODO: TexCoord != TexMap: Not valid");
+      } else {
+
+        // TODO: Better selection here
+        int texid = stage.texMap;
+        ImGui::InputInt("Sampler ID", &texid);
+        STAGE_PROP(texMap, (u8)texid);
+        STAGE_PROP(texCoord, (u8)texid);
+
+        ImGui::PushItemWidth(50);
+        int tex_swap = stage.texMapSwap;
+        ImGui::SameLine();
+        ImGui::SliderInt("Swap ID##Tex", &tex_swap, 0, 3);
+        STAGE_PROP(texMapSwap, static_cast<u8>(tex_swap));
+        ImGui::PopItemWidth();
       }
-      if (stage.texCoord >= matData.texGens.size()) {
+      if (stage.texMap >= matData.texGens.size()) {
         ImGui::Text("No valid image.");
       } else {
         const riistudio::lib3d::Texture* curImg = nullptr;
@@ -693,38 +743,117 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                       128.0f);
       }
     }
+
     if (ImGui::CollapsingHeader("Color Stage",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       // TODO: Only add for now..
       if (stage.colorStage.formula == libcube::gx::TevColorOp::add) {
-        drawSubStage(stage.colorStage, colorOpt,
-                     [i](const libcube::GCMaterialData& data) {
-                       return data.shader.mStages[i].colorStage;
-                     });
+        int a = static_cast<int>(stage.colorStage.a);
+        int b = static_cast<int>(stage.colorStage.b);
+        int c = static_cast<int>(stage.colorStage.c);
+        int d = static_cast<int>(stage.colorStage.d);
+        bool clamp = stage.colorStage.clamp;
+        int bias = static_cast<int>(stage.colorStage.bias);
+        int dst = static_cast<int>(stage.colorStage.out);
+
+        ImGui::Combo("Operand A", &a, colorOpt);
+        ImGui::Combo("Operand B", &b, colorOpt);
+        ImGui::Combo("Operand C", &c, colorOpt);
+        ImGui::Combo("Operand D", &d, colorOpt);
+        ImGui::Combo("Bias", &bias,
+                     "No bias\0Add middle gray\0Subtract middle gray\0");
+        ImGui::Checkbox("Clamp calculation to 0-255", &clamp);
+        ImGui::Combo("Calculation Result Output Destionation", &dst,
+                     "Register 3\0Register 0\0Register 1\0Register 2\0");
+
+        gx::TevStage::ColorStage newStage = stage.colorStage;
+        newStage.a = static_cast<gx::TevColorArg>(a);
+        newStage.b = static_cast<gx::TevColorArg>(b);
+        newStage.c = static_cast<gx::TevColorArg>(c);
+        newStage.d = static_cast<gx::TevColorArg>(d);
+        newStage.clamp = clamp;
+        newStage.bias = static_cast<gx::TevBias>(bias);
+        newStage.out = static_cast<gx::TevReg>(dst);
+
+        STAGE_PROP(colorStage, newStage);
       }
     }
     if (ImGui::CollapsingHeader("Alpha Stage",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
-        drawSubStage(stage.alphaStage, alphaOpt,
-                     [i](const libcube::GCMaterialData& data) {
-                       return data.shader.mStages[i].alphaStage;
-                     });
+        int a = static_cast<int>(stage.alphaStage.a);
+        int b = static_cast<int>(stage.alphaStage.b);
+        int c = static_cast<int>(stage.alphaStage.c);
+        int d = static_cast<int>(stage.alphaStage.d);
+        bool clamp = stage.alphaStage.clamp;
+        int bias = static_cast<int>(stage.alphaStage.bias);
+        int dst = static_cast<int>(stage.alphaStage.out);
+
+        ImGui::Combo("Operand A##Alpha", &a, alphaOpt);
+        ImGui::Combo("Operand B##Alpha", &b, alphaOpt);
+        ImGui::Combo("Operand C##Alpha", &c, alphaOpt);
+        ImGui::Combo("Operand D##Alpha", &d, alphaOpt);
+        ImGui::Combo("Bias##Alpha", &bias,
+                     "No bias\0Add middle gray\0Subtract middle gray\0");
+        ImGui::Checkbox("Clamp calculation to 0-255##Alpha", &clamp);
+        ImGui::Combo("Calculation Result Output Destionation##Alpha", &dst,
+                     "Register 3\0Register 0\0Register 1\0Register 2\0");
+
+        gx::TevStage::AlphaStage newStage = stage.alphaStage;
+        newStage.a = static_cast<gx::TevAlphaArg>(a);
+        newStage.b = static_cast<gx::TevAlphaArg>(b);
+        newStage.c = static_cast<gx::TevAlphaArg>(c);
+        newStage.d = static_cast<gx::TevAlphaArg>(d);
+        newStage.clamp = clamp;
+        newStage.bias = static_cast<gx::TevBias>(bias);
+        newStage.out = static_cast<gx::TevReg>(dst);
+
+        STAGE_PROP(alphaStage, newStage);
       }
     }
   };
 
-  if (ImGui::BeginTabBar("Stages")) {
-    for (std::size_t i = 0; i < matData.shader.mStages.size(); ++i) {
-      auto& stage = matData.shader.mStages[i];
+  std::array<bool, 16> opened{true};
 
-      if (ImGui::BeginTabItem(
-              (std::string("Stage ") + std::to_string(i)).c_str())) {
+  auto& stages = matData.shader.mStages;
+
+  if (ImGui::Button("Add a Stage")) {
+    stages.emplace_back();
+  }
+
+  if (ImGui::BeginTabBar("Stages",
+                         ImGuiTabBarFlags_AutoSelectNewTabs |
+                             ImGuiTabBarFlags_FittingPolicyResizeDown)) {
+    for (std::size_t i = 0; i < stages.size(); ++i) {
+      auto& stage = stages[i];
+
+      opened[i] = true;
+
+      // TODO -- ImGui bug does not allow closable tabs?
+      if (opened[i] && ImGui::BeginTabItem(
+                           (std::string("Stage ") + std::to_string(i)).c_str())
+          //  ,&opened[i], ImGuiTabItemFlags_NoPushId
+      ) {
         drawStage(stage, i);
+
         ImGui::EndTabItem();
       }
     }
     ImGui::EndTabBar();
+  }
+
+  for (std::size_t i = 0; i < stages.size(); ++i) {
+    if (opened[i])
+      continue;
+
+    // Only one may be deleted at a time
+    stages.erase(stages.begin() + i);
+
+    if (stages.empty()) {
+      stages.emplace_back();
+    }
+
+    break;
   }
 }
 
