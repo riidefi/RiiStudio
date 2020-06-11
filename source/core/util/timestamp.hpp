@@ -15,10 +15,15 @@
 #elif defined(BUILD_RELEASE)
 #define __BUILD "Alpha Release"
 #elif defined(BUILD_DIST)
-#define __BUILD "Alpha" // TODO: better system for this
+#define __BUILD "Alpha 2.0" // TODO: better system for this
 #else
 #define __BUILD "Custom"
 #endif
 
+#if defined(BUILD_DIST) && defined(__EMSCRIPTEN__)
+#define RII_TIME_STAMP __BUILD
+#else
 #define RII_TIME_STAMP __BUILD " (Built " __DATE__ " at " __TIME__ ", " __CC ")"
+#endif // defined(BUILD_DST) && defined(__EMSCRIPTEN__)
+
 #endif // RII_TIME_STAMP

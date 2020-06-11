@@ -9,23 +9,24 @@ void DrawChangeLog(bool* show = nullptr) {
 
   if (ImGui::Begin("Changelog", show, ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::SetWindowFontScale(1.3f);
-    ImGui::Text("RiiStudio: 1.1 Pre-Release");
+    ImGui::Text("RiiStudio: Alpha 2.0 Pre-Release");
     const std::string& markdownText = u8R"(
-Thanks for all the feedback so far! I'll continue to improve the tool accordingly.
+UI Overhaul:
+  * New TEV, Lighting, Pixel Shader, Swap Table, Draw Call, Vertex Data, and Texture property editors.
 
-Camera controls have been reworked.
-  * No more stuttering, snapping and other unfriendliness.
-  * Thanks, Yoshi2, for helping with this.
-BRRES files now have experimental support.
-  * Static meshes only.
-  * Corrupted models (notably those authored by the tool BrawlBox) are likely to fail.
+BMD Saving:
+  * Note: BDL files currently will be saved as BMD. This incurs no data loss.
+
 Misc:
-  * BMD: Fixed bug forcing backface culling.
-  * UI: Theme picker is now properly sized.
-  * UI: TEV stage operands now presented nicely. (read-only for now, overhaul soon)
-  * UI: Mip level slider hidden when no mipmaps exist for a texture.
-  * Debug: Decluttered console output.
-  * Various bugfixes and performance improvements.
+  * Added vertical tabs and header visibility toggles to the property editor.
+  * Fixed several shadergen bugs.
+  * Added support for BRRES files with basic rigging.
+  * Multiple instances of property editors on the same tab can work in parallel.
+  * Fixed bug where rotation was converted to radians twice for BMD SRT matrices.
+  * Fixed culling mode being read incorrectly in BMD files.
+  * Automatically set camera clipping planes.
+  * Fixed handling compression LUTs in BMD files.
+  * Fixed rendering BMD files with varying vertex descriptors.
 )";
     core::Markdown(markdownText);
 
