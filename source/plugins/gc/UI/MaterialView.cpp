@@ -792,13 +792,15 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       // TODO: Only add for now..
       if (stage.colorStage.formula == libcube::gx::TevColorOp::add) {
+        std::array<u8, TevSolverWorkMemSizeApprox> workmem;
+        std::array<char, 1024> string;
 
-        std::array<char, 1024> buf;
-        StringBuilder builder(buf.data(), buf.size());
-        auto& root = solveTevStage(stage.colorStage, builder);
+        StringBuilder builder(string.data(), string.size());
+        auto& root = solveTevStage(stage.colorStage, builder, workmem.data(),
+                                   workmem.size());
 
         ImGui::SetWindowFontScale(1.3f);
-        ImGui::Text("%s", buf);
+        ImGui::Text("%s", string.data());
         ImGui::SetWindowFontScale(1.0f);
 
         const u32 used = computeUsed(root);
@@ -816,7 +818,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         STAGE_PROP(colorStage.constantSelection, ksel);
 
         auto draw_color_operand = [&](const char* title, int* op, u32 op_mask) {
-          // ConditionalActive g(used & op_mask, false);
+          ConditionalActive g(used & op_mask, false);
           ImGui::Combo(title, op, colorOpt);
         };
 
@@ -845,12 +847,15 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       IDScope alphag("Alpha");
       if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
-        std::array<char, 1024> buf;
-        StringBuilder builder(buf.data(), buf.size());
-        auto& root = solveTevStage(stage.alphaStage, builder);
+        std::array<u8, TevSolverWorkMemSizeApprox> workmem;
+        std::array<char, 1024> string;
+
+        StringBuilder builder(string.data(), string.size());
+        auto& root = solveTevStage(stage.alphaStage, builder, workmem.data(),
+                                   workmem.size());
 
         ImGui::SetWindowFontScale(1.3f);
-        ImGui::Text("%s", buf);
+        ImGui::Text("%s", string);
         ImGui::SetWindowFontScale(1.0f);
 
         const u32 used = computeUsed(root);
@@ -868,7 +873,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         STAGE_PROP(alphaStage.constantSelection, ksel);
 
         auto draw_alpha_operand = [&](const char* title, int* op, u32 op_mask) {
-          // ConditionalActive g(used & op_mask, false);
+          ConditionalActive g(used & op_mask, false);
           ImGui::Combo(title, op, alphaOpt);
         };
 

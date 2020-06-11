@@ -2,7 +2,8 @@
 
 #include <core/common.h>                  // for u32
 #include <core/util/string_builder.hpp>   // for StringBuilder
-#include <plugins/gc/Export/Material.hpp> // gx:::TevStage
+#include <plugins/gc/Export/Material.hpp> // gx::TevStage
+#include <tuple>                          // for std::pair
 
 namespace libcube::UI {
 
@@ -26,11 +27,14 @@ void printExprPoly(Expr& e, riistudio::util::StringBuilder& builder,
                    bool root = false);
 u32 computeUsed(const Expr& e);
 
+extern const u32 TevSolverWorkMemSize; // 448, 64-bit
+constexpr u32 TevSolverWorkMemSizeApprox = 512;
+
 Expr& solveTevStage(const gx::TevStage::ColorStage& substage,
-                    riistudio::util::StringBuilder& builder,
-                    bool do_print_inter = true);
+                    riistudio::util::StringBuilder& builder, u8* workmem,
+                    std::size_t workmem_size, bool do_print_inter = true);
 Expr& solveTevStage(const gx::TevStage::AlphaStage& substage,
-                    riistudio::util::StringBuilder& builder,
-                    bool do_print_inter = true);
+                    riistudio::util::StringBuilder& builder, u8* workmem,
+                    std::size_t workmem_size, bool do_print_inter = true);
 
 } // namespace libcube::UI

@@ -3,9 +3,9 @@
 
 namespace libcube::UI {
 
-enum class ExprOp { Add, Sub, Mul };
+enum class ExprOp : u32 { Add, Sub, Mul };
 struct Expr {
-  enum Type { Unary, Binary };
+  enum Type : u32 { Unary, Binary };
   Type type;
   Expr* parent = nullptr;
 };
@@ -35,7 +35,7 @@ struct BinExpr : Expr {
 };
 
 struct ExprAlloc {
-  struct AnyExpr {
+  union AnyExpr {
     UnaryExpr unary;
     BinExpr bin;
 
@@ -69,6 +69,10 @@ struct ExprAlloc {
     return expr;
   };
 };
+
+const u32 TevSolverWorkMemSize = sizeof(ExprAlloc);
+static_assert(TevSolverWorkMemSizeApprox >= sizeof(ExprAlloc),
+              "Invalid workmem size");
 
 static bool optimizeNodeBinary(BinExpr& e) {
   BinExpr* left_bin = e.left->type == Expr::Binary
@@ -260,12 +264,18 @@ u32 computeUsed(const Expr& e) {
 template <typename T>
 Expr& solve_tev_stage_impl(const T& substage,
                            riistudio::util::StringBuilder& builder,
-                           bool do_print_inter) {
-  ExprAlloc expr_alloc;
+                           bool do_print_inter, u8* workmem,
+                           std::size_t workmem_size) {
+  assert(workmem_size >= sizeof(ExprAlloc));
+  if (workmem_size < sizeof(ExprAlloc))
+    throw "Not enough memory.. cannot proceed";
 
-  auto make_unary = [&](u32 val) { return expr_alloc.makeUnary(val); };
+  std::fill_n(workmem, workmem_size, 0);
+  ExprAlloc& allocator = *reinterpret_cast<ExprAlloc*>(workmem);
+
+  auto make_unary = [&](u32 val) { return allocator.makeUnary(val); };
   auto make_binary = [&](ExprOp op, Expr* left, Expr* right) {
-    return expr_alloc.makeBinary(op, left, right);
+    return allocator.makeBinary(op, left, right);
   };
 
   auto arg_to_state = [&](u32 id, auto arg, const auto& substage) -> u32 {
@@ -346,14 +356,17 @@ Expr& solve_tev_stage_impl(const T& substage,
 };
 
 Expr& solveTevStage(const gx::TevStage::ColorStage& substage,
-                    riistudio::util::StringBuilder& builder,
-                    bool do_print_inter) {
-  return solve_tev_stage_impl(substage, builder, do_print_inter);
+                    riistudio::util::StringBuilder& builder, u8* workmem,
+                    std::size_t workmem_size, bool do_print_inter) {
+
+  return solve_tev_stage_impl(substage, builder, do_print_inter, workmem,
+                              workmem_size);
 }
 Expr& solveTevStage(const gx::TevStage::AlphaStage& substage,
-                    riistudio::util::StringBuilder& builder,
-                    bool do_print_inter) {
-  return solve_tev_stage_impl(substage, builder, do_print_inter);
+                    riistudio::util::StringBuilder& builder, u8* workmem,
+                    std::size_t workmem_size, bool do_print_inter) {
+  return solve_tev_stage_impl(substage, builder, do_print_inter, workmem,
+                              workmem_size);
 }
 
 } // namespace libcube::UI
