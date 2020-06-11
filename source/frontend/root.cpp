@@ -88,7 +88,7 @@ void RootWindow::draw() {
     ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), 0);
 
     EditorWindow* ed =
-        dynamic_cast<EditorWindow*>(getActive() ? getActive() : nullptr);
+        getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
     assert(ed || !hasChildren());
 
     if (ImGui::BeginMenuBar()) {

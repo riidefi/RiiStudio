@@ -33,9 +33,23 @@ public:
       child->draw();
   }
   void detachClosedChildren() {
+    bool reassign_active = false;
+
     mChildren.erase(std::remove_if(mChildren.begin(), mChildren.end(),
-                                   [](const auto& x) { return !x->isOpen(); }),
+                                   [&](const auto& x) {
+                                     if (x->isOpen())
+                                       return false;
+
+                                     if (x.get() == getActive())
+                                       reassign_active = true;
+
+                                     return true;
+                                   }),
                     mChildren.end());
+
+    if (reassign_active) {
+      mActive = mChildren.empty() ? nullptr : mChildren[0].get();
+    }
   }
 
   bool isOpen() const override { return bOpen; }

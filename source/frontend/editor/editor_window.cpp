@@ -512,6 +512,8 @@ ImGuiID EditorWindow::buildDock(ImGuiID root_id) {
   return next;
 }
 void EditorWindow::draw_() {
+  detachClosedChildren();
+
   // TODO: This doesn't work
   core::Applet* parent = dynamic_cast<core::Applet*>(getParent());
   if (parent != nullptr) {
