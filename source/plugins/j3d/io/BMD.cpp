@@ -286,7 +286,7 @@ public:
         auto& tg = mat->texGens[i];
 
         if (tg.isIdentityMatrix() && (used & (1 << i)) == 0) {
-          assert(mat->texMatrices[i].isIdentity());
+          assert(mat->texMatrices[i]->isIdentity());
           tg.setMatrixIndex(i);
         }
       }

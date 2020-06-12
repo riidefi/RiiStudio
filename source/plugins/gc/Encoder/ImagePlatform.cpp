@@ -112,7 +112,7 @@ void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy,
     avir::CImageResizer<> Avir8BitImageResizer(8);
     // TODO: Allow more customization (args, k)
     Avir8BitImageResizer.resizeImage(src, sx, sy, 0, dst, dx, dy, 4, 0);
-    assert(memcmp(src, dst, sx * sy * 4));
+    assert((sx == dx && sy == dy) || memcmp(src, dst, sx * sy * 4));
   } else {
     avir::CLancIR AvirLanczos;
     AvirLanczos.resizeImage(src, sx, sy, 0, dst, dx, dy, 4, 0);

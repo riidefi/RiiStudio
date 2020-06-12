@@ -29,7 +29,7 @@ SpawnImporter(const std::string& fileName, oishii::BinaryReader& reader) {
   std::string match = "";
   std::unique_ptr<kpi::IBinaryDeserializer> out = nullptr;
 
-  assert(kpi::ApplicationPlugins::spInstance);
+  assert(kpi::ApplicationPlugins::getInstance());
   for (const auto& plugin : kpi::ApplicationPlugins::getInstance()->mReaders) {
     oishii::JumpOut reader_guard(reader, reader.tell());
     match = plugin->canRead_(fileName, reader);

@@ -139,12 +139,15 @@ struct SceneGraphNode : public oishii::Node {
       JointData::Display last = {-1, -1};
       for (const auto& d : joint.displays) {
         if (d.material != last.material) {
-          s16 mid = -1;
-          for (int i = 0; i < mdl.getMaterials().size(); ++i) {
-            if (mdl.getMaterial(i).get().id == d.material)
-              mid = i;
-          }
-          assert(mid != -1);
+          // s16 mid = -1;
+          // for (int i = 0; i < mdl.getMaterials().size(); ++i) {
+          //   if (mdl.getMaterial(i).get().id == d.material)
+          //     mid = i;
+          // }
+          // assert(mid != -1);
+
+          // TODO: Ensure index=id is true before calling this
+          s16 mid = d.material;
 
           ByteCodeCmd(ByteCodeOp::Material, mid).transfer(writer);
           ByteCodeCmd(ByteCodeOp::Open).transfer(writer);

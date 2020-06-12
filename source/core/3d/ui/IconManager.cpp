@@ -35,7 +35,7 @@ IconManager::Icon::Icon(lib3d::Texture& texture, u32 dimension) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  assert(mIconDim <= 128);
+  assert(dimension <= 128);
   texture.decode(tmp, false);
   libcube::image_platform::resize(scratch.data(), dimension, dimension,
                                   tmp.data(), texture.getWidth(),
