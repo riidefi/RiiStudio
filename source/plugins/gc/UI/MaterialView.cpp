@@ -8,6 +8,9 @@
 #undef near
 #undef max
 
+// TODO: Awful interdependency. Fix this when icon system is stable
+#include <frontend/editor/editor_window.hpp>
+
 namespace libcube::UI {
 
 using namespace riistudio::util;
@@ -165,14 +168,69 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
   }
 }
 
+bool IconSelectable(const char* text, bool selected, kpi::IDocumentNode* tex,
+                    riistudio::frontend::EditorWindow* ed) {
+  ImGui::PushID(tex->getName().c_str());
+  auto s =
+      ImGui::Selectable("##ID", selected, ImGuiSelectableFlags_None, {0, 32});
+  ImGui::PopID();
+  if (ed != nullptr) {
+    ImGui::SameLine();
+    ed->drawImageIcon(dynamic_cast<riistudio::lib3d::Texture*>(tex), 32);
+  }
+  ImGui::SameLine();
+  ImGui::Text(text);
+  return s;
+}
+
 std::string TextureImageCombo(const char* current,
-                              const kpi::FolderData& images) {
+                              const kpi::FolderData& images,
+                              riistudio::frontend::EditorWindow* ed) {
   std::string result;
   if (ImGui::BeginCombo("Name##Img", current)) {
     for (const auto& tex : images) {
       bool selected = tex->getName() == current;
-      if (ImGui::Selectable(tex->getName().c_str(), selected)) {
+      if (IconSelectable(tex->getName().c_str(), selected, tex.get(), ed)) {
         result = tex->getName();
+      }
+      if (selected)
+        ImGui::SetItemDefaultFocus();
+    }
+
+    ImGui::EndCombo();
+  }
+  return result;
+}
+
+int SamplerCombo(
+    int current,
+    copyable_polymorphic_array_vector<GCMaterialData::SamplerData, 8>& samplers,
+    const kpi::FolderData& images, riistudio::frontend::EditorWindow* ed) {
+  int result = current;
+
+  const auto format = [&](int id) -> std::string {
+    if (id >= samplers.size())
+      return "No selection";
+    return std::string("[") + std::to_string(id) + "] " +
+           samplers[id]->mTexture;
+  };
+
+  if (ImGui::BeginCombo("Sampler ID##Img", samplers.empty()
+                                               ? "No Samplers"
+                                               : format(current).c_str())) {
+    for (int i = 0; i < samplers.size(); ++i) {
+      bool selected = i == current;
+
+      kpi::IDocumentNode* curImg = nullptr;
+
+      for (auto& it : images) {
+        if (it->getName() == samplers[i]->mTexture) {
+          curImg = it.get();
+        }
+      }
+
+      if (IconSelectable(format(i).c_str(), selected, curImg, ed)) {
+        result = i;
       }
       if (selected)
         ImGui::SetItemDefaultFocus();
@@ -221,7 +279,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       if (ImGui::BeginTabItem(
               (std::string("Texture ") + std::to_string(i)).c_str())) {
         if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (auto result = TextureImageCombo(samp->mTexture.c_str(), *mImgs);
+          if (auto result = TextureImageCombo(samp->mTexture.c_str(), *mImgs,
+                                              delegate.mEd);
               !result.empty()) {
             AUTO_PROP(samplers[i]->mTexture, result);
           }
@@ -787,9 +846,16 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
         // TODO: Better selection here
         int texid = stage.texMap;
-        ImGui::InputInt("Sampler ID", &texid);
-        STAGE_PROP(texMap, (u8)texid);
-        STAGE_PROP(texCoord, (u8)texid);
+        texid = SamplerCombo(texid, matData.samplers,
+                             *delegate.getActive().getTextureSource(),
+                             delegate.mEd);
+        if (texid != stage.texMap) {
+          for (auto* e : delegate.mAffected) {
+            auto& stage = e->getMaterialData().shader.mStages[i];
+            stage.texCoord = stage.texMap = texid;
+          }
+          delegate.commit("Property update");
+        }
 
         ImGui::PushItemWidth(50);
         int tex_swap = stage.texMapSwap;

@@ -1,16 +1,11 @@
 #include "editor_window.hpp"
-
-#include <random>
-#include <regex>
-
 #include "Renderer.hpp"
 #include <core/3d/ui/Image.hpp>
-
 #include <plate/toolkit/Viewport.hpp>
-
-#include <vendor/fa5/IconsFontAwesome5.h>
-
 #include <plugins/gc/Export/Material.hpp>
+#include <random>
+#include <regex>
+#include <vendor/fa5/IconsFontAwesome5.h>
 
 #ifdef _WIN32
 #include <glfw/glfw3.h>
@@ -21,13 +16,11 @@
 
 #include <emscripten/html5.h>
 #endif
-
+#include <algorithm>
+#include <core/applet.hpp>
 #include <core/kpi/PropertyView.hpp>
 #include <core/kpi/RichNameManager.hpp>
-
-#include <algorithm>
-
-#include <core/applet.hpp>
+#include <imgui/imgui_internal.h>
 
 #undef near
 
@@ -45,8 +38,8 @@ inline bool ends_with(const std::string& value, const std::string& ending) {
 
 struct GenericCollectionOutliner : public StudioWindow {
   GenericCollectionOutliner(kpi::IDocumentNode& host,
-                            kpi::IDocumentNode*& active)
-      : StudioWindow("Outliner"), mHost(host), mActive(active) {}
+                            kpi::IDocumentNode*& active, EditorWindow& ed)
+      : StudioWindow("Outliner"), mHost(host), mActive(active), ed(ed) {}
 
   struct ImTFilter : public ImGuiTextFilter {
     bool test(const std::string& str) const noexcept {
@@ -160,18 +153,56 @@ struct GenericCollectionOutliner : public StudioWindow {
       // Selections from other windows will carry over.
       bool curNodeSelected = sampler.isSelected(i);
 
-      // bool bSelected =
-      ImGui::Selectable(std::to_string(i).c_str(), curNodeSelected);
+	  const int icon_size = 24;
+
+      ImGui::Selectable(std::to_string(i).c_str(), curNodeSelected,
+                            ImGuiSelectableFlags_None, {0, icon_size});
       ImGui::SameLine();
 
       thereWasAClick = ImGui::IsItemClicked();
       bool focused = ImGui::IsItemFocused();
 
-      if (ImGui::TreeNodeEx(
-              std::to_string(i).c_str(),
-              ImGuiTreeNodeFlags_DefaultOpen |
-                  (nodeAt->children.empty() ? ImGuiTreeNodeFlags_Leaf : 0),
-              (rich.getIconSingular() + " " + cur_name).c_str())) {
+      lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(nodeAt.get());
+
+      libcube::IGCMaterial* mat =
+          dynamic_cast<libcube::IGCMaterial*>(nodeAt.get());
+
+      u32 flags = ImGuiTreeNodeFlags_DefaultOpen;
+      if (nodeAt->children.empty())
+        flags |= ImGuiTreeNodeFlags_Leaf;
+
+      const auto text_size = ImGui::CalcTextSize("T");
+      const auto initial_pos_y = ImGui::GetCursorPosY();
+      ImGui::SetCursorPosY(initial_pos_y + (icon_size - text_size.y) / 2);
+
+	  const auto treenode =
+          ImGui::TreeNodeEx(std::to_string(i).c_str(), flags,
+                            (rich.getIconSingular() + " " + cur_name).c_str());
+      
+      if (treenode) {
+
+        if (mat != nullptr) {
+          for (int s = 0; s < mat->getMaterialData().samplers.size(); ++s) {
+            auto& sampl = *mat->getMaterialData().samplers[s].get();
+            kpi::IDocumentNode* curImg = nullptr;
+            for (auto& it : *mat->getTextureSource()) {
+              if (it->getName() == sampl.mTexture) {
+                curImg = it.get();
+              }
+            }
+            ImGui::SameLine();
+            ImGui::SetCursorPosY(initial_pos_y);
+            ed.drawImageIcon(dynamic_cast<lib3d::Texture*>(curImg), icon_size);
+          }
+        }
+        if (tex != nullptr) {
+          ImGui::SameLine();
+          ImGui::SetCursorPosY(initial_pos_y);
+          ed.drawImageIcon(tex, icon_size);
+        }
+      }
+      ImGui::SetCursorPosY(initial_pos_y + icon_size);
+	  if (treenode) {
         // NodeDrawer::drawNode(*node.get());
 
         drawRecursive(*nodeAt.get());
@@ -264,6 +295,7 @@ private:
   kpi::IDocumentNode& mHost;
   TFilter mFilter;
   kpi::IDocumentNode*& mActive;
+  EditorWindow& ed;
 };
 
 struct RenderTest : public StudioWindow {
@@ -337,6 +369,7 @@ struct HistoryList : public StudioWindow {
                   static_cast<u32>(i));
     }
     ImGui::EndChild();
+    ImGui::ShowDemoWindow();
   }
 
   kpi::History& mHost;
@@ -345,9 +378,9 @@ struct HistoryList : public StudioWindow {
 
 struct PropertyEditor : public StudioWindow {
   PropertyEditor(kpi::History& host, kpi::IDocumentNode& root,
-                 kpi::IDocumentNode*& active)
+                 kpi::IDocumentNode*& active, EditorWindow& ed)
       : StudioWindow("Property Editor"), mHost(host), mRoot(root),
-        mActive(active) {
+        mActive(active), ed(ed) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
   ~PropertyEditor() { state_holder.garbageCollect(); }
@@ -453,7 +486,7 @@ struct PropertyEditor : public StudioWindow {
         return;
       }
 
-      activeTab->draw(*mActive, selected, mHost, mRoot, state_holder);
+      activeTab->draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
     } else if (mMode == Mode::VertTabs) {
       ImGui::BeginChild("Left", ImVec2(120, 0), true);
       int i = 0;
@@ -486,7 +519,7 @@ struct PropertyEditor : public StudioWindow {
 
           ImGui::Text("Invalid Pane");
         } else {
-          activeTab->draw(*mActive, selected, mHost, mRoot, state_holder);
+          activeTab->draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
         }
       }
       ImGui::EndChild();
@@ -509,7 +542,7 @@ struct PropertyEditor : public StudioWindow {
             title += view.getIcon();
             title += " ";
             title += view.getName();
-			// TODO: >
+            // TODO: >
             bool tmp = tab_filter[i];
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
             ImGui::Checkbox(title.c_str(), &tmp);
@@ -532,7 +565,7 @@ struct PropertyEditor : public StudioWindow {
             title += view.getName();
             if (ImGui::CollapsingHeader(title.c_str(),
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
-              view.draw(*mActive, selected, mHost, mRoot, state_holder);
+              view.draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
             }
           },
           *mActive);
@@ -555,7 +588,7 @@ struct PropertyEditor : public StudioWindow {
   Mode mMode = Mode::Tabs;
 
   std::vector<bool> tab_filter;
-
+  EditorWindow& ed;
 }; // namespace riistudio::frontend
 
 EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,
@@ -564,11 +597,13 @@ EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,
       mState(std::move(state)), mFilePath(path) {
   mHistory.commit(*mState.get());
 
-  attachWindow(
-      std::make_unique<PropertyEditor>(mHistory, *mState.get(), mActive));
+  propogateIcons(*mState.get());
+
+  attachWindow(std::make_unique<PropertyEditor>(mHistory, *mState.get(),
+                                                mActive, *this));
   attachWindow(std::make_unique<HistoryList>(mHistory, *mState.get()));
-  attachWindow(
-      std::make_unique<GenericCollectionOutliner>(*mState.get(), mActive));
+  attachWindow(std::make_unique<GenericCollectionOutliner>(*mState.get(),
+                                                           mActive, *this));
   attachWindow(std::make_unique<RenderTest>(*mState.get()));
 }
 ImGuiID EditorWindow::buildDock(ImGuiID root_id) {

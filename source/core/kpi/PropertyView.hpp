@@ -8,6 +8,10 @@
 
 #include "Plugins.hpp"
 
+namespace riistudio::frontend {
+class EditorWindow;
+}
+
 namespace kpi {
 
 // Until C++20:
@@ -40,7 +44,8 @@ struct IPropertyView {
   virtual void draw(kpi::IDocumentNode& active,
                     std::vector<kpi::IDocumentNode*> affected,
                     kpi::History& history, kpi::IDocumentNode& root,
-                    PropertyViewStateHolder& state_holder) = 0;
+                    PropertyViewStateHolder& state_holder,
+                    riistudio::frontend::EditorWindow* ed) = 0;
 
   virtual std::unique_ptr<IPropertyViewState> constructState() const = 0;
 };
@@ -98,6 +103,7 @@ private:
 
 public:
   std::vector<T*> mAffected;
+  riistudio::frontend::EditorWindow* mEd;
 
 private:
   kpi::History& mHistory;
@@ -105,9 +111,10 @@ private:
 
 public:
   PropertyDelegate(T& active, std::vector<T*> affected, kpi::History& history,
-                   const kpi::IDocumentNode& transientRoot)
+                   const kpi::IDocumentNode& transientRoot,
+                   riistudio::frontend::EditorWindow* ed)
       : mActive(active), mAffected(affected), mHistory(history),
-        mTransientRoot(transientRoot) {}
+        mTransientRoot(transientRoot), mEd(ed) {}
 };
 
 class PropertyViewStateHolder {
@@ -210,10 +217,11 @@ struct PropertyViewImpl final : public IPropertyView {
     U tmp;
     return tmp.icon;
   }
+  // TODO - IconDelegate to replace ref EditorWindow
   void draw(kpi::IDocumentNode& active,
             std::vector<kpi::IDocumentNode*> affected, kpi::History& history,
-            kpi::IDocumentNode& root,
-            PropertyViewStateHolder& state_holder) override {
+            kpi::IDocumentNode& root, PropertyViewStateHolder& state_holder,
+            riistudio::frontend::EditorWindow* ed) override {
     T* _active = dynamic_cast<T*>(&active);
     assert(_active != nullptr);
 
@@ -223,7 +231,7 @@ struct PropertyViewImpl final : public IPropertyView {
       assert(_affected[i] != nullptr);
     }
 
-    PropertyDelegate<T> delegate(*_active, _affected, history, root);
+    PropertyDelegate<T> delegate(*_active, _affected, history, root, ed);
     if constexpr (is_stateful_v<U>) {
       IPropertyViewState* state = state_holder.requestState(active, *this);
       assert(state != nullptr);
@@ -289,8 +297,8 @@ struct StatelessPropertyViewImpl : public IPropertyView {
   const std::string_view getIcon() const override { return mIcon; }
   void draw(kpi::IDocumentNode& active,
             std::vector<kpi::IDocumentNode*> affected, kpi::History& history,
-            kpi::IDocumentNode& root,
-            PropertyViewStateHolder& state_holder) override {
+            kpi::IDocumentNode& root, PropertyViewStateHolder& state_holder,
+            riistudio::frontend::EditorWindow* ed) override {
     T* _active = dynamic_cast<T*>(&active);
     assert(_active != nullptr);
 
@@ -300,7 +308,7 @@ struct StatelessPropertyViewImpl : public IPropertyView {
       assert(_affected[i] != nullptr);
     }
 
-    PropertyDelegate<T> delegate(*_active, _affected, history, root);
+    PropertyDelegate<T> delegate(*_active, _affected, history, root, ed);
 
     mFunctor(delegate);
   }
