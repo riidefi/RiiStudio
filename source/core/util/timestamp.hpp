@@ -15,7 +15,7 @@
 #elif defined(BUILD_RELEASE)
 #define __BUILD "Alpha Release"
 #elif defined(BUILD_DIST)
-#define __BUILD "Alpha 2.0" // TODO: better system for this
+#define __BUILD "Alpha 2.1" // TODO: better system for this
 #else
 #define __BUILD "Custom"
 #endif
