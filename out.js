@@ -193,7 +193,7 @@ var Module = typeof Module !== 'undefined' ? Module : {};
     }
   
    }
-   loadPackage({"files": [{"filename": "/fonts/fa-regular-400.ttf", "start": 0, "end": 34092, "audio": 0}, {"filename": "/fonts/fa-solid-900.ttf", "start": 34092, "end": 225924, "audio": 0}, {"filename": "/fonts/Roboto-Bold.ttf", "start": 225924, "end": 361744, "audio": 0}, {"filename": "/fonts/Roboto-Medium.ttf", "start": 361744, "end": 524332, "audio": 0}], "remote_package_size": 524332, "package_uuid": "1d1837c8-efff-4fba-84d6-3bafe43e939a"});
+   loadPackage({"files": [{"filename": "/fonts/fa-regular-400.ttf", "start": 0, "end": 34092, "audio": 0}, {"filename": "/fonts/fa-solid-900.ttf", "start": 34092, "end": 225924, "audio": 0}, {"filename": "/fonts/Roboto-Bold.ttf", "start": 225924, "end": 361744, "audio": 0}, {"filename": "/fonts/Roboto-Medium.ttf", "start": 361744, "end": 524332, "audio": 0}], "remote_package_size": 524332, "package_uuid": "046a5d5a-6056-49e1-aa53-46929144f2c6"});
   
   })();
   
@@ -892,8 +892,8 @@ var wasmMemory;
 // In the wasm backend, we polyfill the WebAssembly object,
 // so this creates a (non-native-wasm) table for us.
 var wasmTable = new WebAssembly.Table({
-  'initial': 10802,
-  'maximum': 10802 + 0,
+  'initial': 10805,
+  'maximum': 10805 + 0,
   'element': 'anyfunc'
 });
 
@@ -1514,11 +1514,11 @@ function updateGlobalBufferAndViews(buf) {
 }
 
 var STATIC_BASE = 1024,
-    STACK_BASE = 6075136,
+    STACK_BASE = 6140976,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 832256,
-    DYNAMIC_BASE = 6075136,
-    DYNAMICTOP_PTR = 832096;
+    STACK_MAX = 898096,
+    DYNAMIC_BASE = 6140976,
+    DYNAMICTOP_PTR = 897936;
 
 assert(STACK_BASE % 16 === 0, 'stack must start aligned');
 assert(DYNAMIC_BASE % 16 === 0, 'heap must start aligned');
@@ -1960,7 +1960,7 @@ function isFileURI(filename) {
 
 
 
-var wasmBinaryFile = 'alpha_2.wasm';
+var wasmBinaryFile = 'alpha_2_1.wasm';
 if (!isDataURI(wasmBinaryFile)) {
   wasmBinaryFile = locateFile(wasmBinaryFile);
 }
@@ -2116,7 +2116,7 @@ var ASM_CONSTS = {
  324064: function($0, $1) {var SDL2 = Module['SDL2']; var numChannels = SDL2.capture.currentCaptureBuffer.numberOfChannels; for (var c = 0; c < numChannels; ++c) { var channelData = SDL2.capture.currentCaptureBuffer.getChannelData(c); if (channelData.length != $1) { throw 'Web Audio capture buffer length mismatch! Destination size: ' + channelData.length + ' samples vs expected ' + $1 + ' samples!'; } if (numChannels == 1) { for (var j = 0; j < $1; ++j) { setValue($0 + (j * 4), channelData[j], 'float'); } } else { for (var j = 0; j < $1; ++j) { setValue($0 + (((j * numChannels) + c) * 4), channelData[j], 'float'); } } }},  
  324669: function($0, $1) {var SDL2 = Module['SDL2']; var numChannels = SDL2.audio.currentOutputBuffer['numberOfChannels']; for (var c = 0; c < numChannels; ++c) { var channelData = SDL2.audio.currentOutputBuffer['getChannelData'](c); if (channelData.length != $1) { throw 'Web Audio output buffer length mismatch! Destination size: ' + channelData.length + ' samples vs expected ' + $1 + ' samples!'; } for (var j = 0; j < $1; ++j) { channelData[j] = HEAPF32[$0 + ((j*numChannels + c) << 2) >> 2]; } }},  
  325149: function($0) {var SDL2 = Module['SDL2']; if ($0) { if (SDL2.capture.silenceTimer !== undefined) { clearTimeout(SDL2.capture.silenceTimer); } if (SDL2.capture.stream !== undefined) { var tracks = SDL2.capture.stream.getAudioTracks(); for (var i = 0; i < tracks.length; i++) { SDL2.capture.stream.removeTrack(tracks[i]); } SDL2.capture.stream = undefined; } if (SDL2.capture.scriptProcessorNode !== undefined) { SDL2.capture.scriptProcessorNode.onaudioprocess = function(audioProcessingEvent) {}; SDL2.capture.scriptProcessorNode.disconnect(); SDL2.capture.scriptProcessorNode = undefined; } if (SDL2.capture.mediaStreamNode !== undefined) { SDL2.capture.mediaStreamNode.disconnect(); SDL2.capture.mediaStreamNode = undefined; } if (SDL2.capture.silenceBuffer !== undefined) { SDL2.capture.silenceBuffer = undefined } SDL2.capture = undefined; } else { if (SDL2.audio.scriptProcessorNode != undefined) { SDL2.audio.scriptProcessorNode.disconnect(); SDL2.audio.scriptProcessorNode = undefined; } SDL2.audio = undefined; } if ((SDL2.audioContext !== undefined) && (SDL2.audio === undefined) && (SDL2.capture === undefined)) { SDL2.audioContext.close(); SDL2.audioContext = undefined; }},  
- 359856: function($0, $1, $2, $3) {window.Module.downloadBuffer($0, $1, $2, $3);}
+ 360004: function($0, $1, $2, $3) {window.Module.downloadBuffer($0, $1, $2, $3);}
 };
 
 function _emscripten_asm_const_iii(code, sigPtr, argbuf) {
@@ -2126,7 +2126,7 @@ function _emscripten_asm_const_iii(code, sigPtr, argbuf) {
 
 
 
-// STATICTOP = STATIC_BASE + 831232;
+// STATICTOP = STATIC_BASE + 897072;
 /* global initializers */  __ATINIT__.push({ func: function() { ___wasm_call_ctors() } });
 
 
@@ -7633,7 +7633,7 @@ function _emscripten_asm_const_iii(code, sigPtr, argbuf) {
     }
 
   function _emscripten_get_sbrk_ptr() {
-      return 832096;
+      return 897936;
     }
 
   function _emscripten_glActiveTexture(x0) { GLctx['activeTexture'](x0) }
