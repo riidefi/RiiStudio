@@ -88,12 +88,32 @@ struct TexCoordGen // XF TEX/DUALTEX
 
   bool normalize = false;
   PostTexMatrix postMatrix = gx::PostTexMatrix::Identity;
-  
 
   const bool operator==(const TexCoordGen& rhs) const noexcept {
     return func == rhs.func && sourceParam == rhs.sourceParam &&
            matrix == rhs.matrix && normalize == rhs.normalize &&
            postMatrix == rhs.postMatrix;
+  }
+
+  bool isIdentityMatrix() const { return matrix == TexMatrix::Identity; }
+
+  int getMatrixIndex() const {
+    int texmatrixid = -1;
+    const int rawtgmatrix = static_cast<int>(matrix);
+    if (rawtgmatrix >= static_cast<int>(TexMatrix::TexMatrix0) &&
+        rawtgmatrix <= static_cast<int>(TexMatrix::TexMatrix7)) {
+      texmatrixid = (rawtgmatrix - static_cast<int>(TexMatrix::TexMatrix0)) / 3;
+    }
+    return texmatrixid;
+  }
+
+  void setMatrixIndex(int index) {
+    if (index < 0) {
+      matrix = TexMatrix::Identity;
+      return;
+    }
+    matrix = static_cast<TexMatrix>(static_cast<int>(TexMatrix::TexMatrix0) +
+                                    index * 3);
   }
 };
 

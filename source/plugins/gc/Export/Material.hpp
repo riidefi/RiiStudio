@@ -169,6 +169,13 @@ struct GCMaterialData {
     s8 camIdx = -1;
     s8 lightIdx = -1;
 
+    bool isIdentity() const {
+      // TODO -- proper float equality
+      return scale == glm::vec2{1.0f, 1.0f} && rotate == 0.0f &&
+             translate == glm::vec2{0.0f, 0.0f} &&
+             method == CommonMappingMethod::Standard;
+    }
+
     virtual glm::mat3x4 compute(const glm::mat4& mdl, const glm::mat4& mvp);
     // TODO: Support / restriction
 

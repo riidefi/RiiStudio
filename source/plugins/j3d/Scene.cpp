@@ -25,7 +25,13 @@ void Model::MatCache::propogate(Material& mat) {
   update_section_multi(colorChans, mat.colorChanControls);
   update_section_multi(lightColors, mat.lightColors);
   update_section(nTexGens, mat.info.nTexGen);
-  update_section_multi(texGens, mat.texGens);
+  auto tgs = mat.texGens;
+  for (auto& tg : tgs) {
+    if (auto mtx = tg.getMatrixIndex();
+        mtx > 0 && mat.texMatrices[mtx]->isIdentity())
+      tg.matrix = gx::TexMatrix::Identity;
+  }
+  update_section_multi(texGens, tgs);
 
   for (int i = 0; i < mat.texGens.size(); ++i) {
     if (mat.texGens[i].postMatrix != gx::PostTexMatrix::Identity) {

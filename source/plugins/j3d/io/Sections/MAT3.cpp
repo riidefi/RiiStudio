@@ -803,8 +803,15 @@ void io_wrapper<SerializableMaterial>::onWrite(
   write_array_vec<u16>(writer, ambColors, cache.ambColors);
   write_array_vec<u16>(writer, m.lightColors, cache.lightColors);
 
+  auto tgs = m.texGens;
+  for (auto& tg : tgs) {
+    if (auto mtx = tg.getMatrixIndex();
+        mtx > 0 && m.texMatrices[mtx]->isIdentity())
+      tg.matrix = gx::TexMatrix::Identity;
+  }
+
   for (int i = 0; i < m.texGens.size(); ++i)
-    writer.write<u16>(find(cache.texGens, m.texGens[i]));
+    writer.write<u16>(find(cache.texGens, tgs[i]));
   for (int i = m.texGens.size(); i < m.texGens.max_size(); ++i)
     writer.write<u16>(-1);
 

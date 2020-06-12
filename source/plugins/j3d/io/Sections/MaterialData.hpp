@@ -85,8 +85,7 @@ template <> struct io_wrapper<gx::AlphaComparison> {
     c.refRight = reader.read<u8>();
     reader.skip(3);
   }
-  static void onWrite(oishii::Writer& writer,
-                      const gx::AlphaComparison& in) {
+  static void onWrite(oishii::Writer& writer, const gx::AlphaComparison& in) {
     writer.write<u8>(static_cast<u8>(in.compLeft));
     writer.write<u8>(in.refLeft);
     writer.write<u8>(static_cast<u8>(in.op));
@@ -144,8 +143,7 @@ template <> struct io_wrapper<gx::ChannelControl> {
 
     reader.read<u16>();
   }
-  static void onWrite(oishii::Writer& writer,
-                      const gx::ChannelControl& in) {
+  static void onWrite(oishii::Writer& writer, const gx::ChannelControl& in) {
     writer.write<u8>(in.enabled);
     writer.write<u8>(static_cast<u8>(in.Material));
     writer.write<u8>(static_cast<u8>(in.lightMask));
@@ -300,14 +298,14 @@ template <> struct io_wrapper<Material::TexMatrix> {
     // TODO -- Assert
 
     c.scale << reader;
-    c.rotate = static_cast<f32>(reader.read<s16>()) * glm::pi<f32>() / (f32)0x7FFF;
+    c.rotate =
+        static_cast<f32>(reader.read<s16>()) * glm::pi<f32>() / (f32)0x7FFF;
     reader.read<u16>();
     c.translate << reader;
     for (auto& f : c.effectMatrix)
       f = reader.read<f32>();
   }
-  static void onWrite(oishii::Writer& writer,
-                      const Material::TexMatrix& in) {
+  static void onWrite(oishii::Writer& writer, const Material::TexMatrix& in) {
     writer.write<u8>(static_cast<u8>(in.projection));
 
     u8 mappingMethod = 0;
@@ -368,8 +366,7 @@ template <> struct io_wrapper<gx::SwapTableEntry> {
     c.b = static_cast<gx::ColorComponent>(reader.read<u8>());
     c.a = static_cast<gx::ColorComponent>(reader.read<u8>());
   }
-  static void onWrite(oishii::Writer& writer,
-                      const gx::SwapTableEntry& in) {
+  static void onWrite(oishii::Writer& writer, const gx::SwapTableEntry& in) {
     writer.write<u8>(static_cast<u8>(in.r));
     writer.write<u8>(static_cast<u8>(in.g));
     writer.write<u8>(static_cast<u8>(in.b));
@@ -395,7 +392,7 @@ template <> struct io_wrapper<TevOrder> {
 template <> struct io_wrapper<gx::TevStage> {
   static void onRead(oishii::BinaryReader& reader, gx::TevStage& c) {
     const auto unk1 = reader.read<u8>();
-	// Assumed to be TevOp (see attributedlandmeteoritec.bmd)
+    // Assumed to be TevOp (see attributedlandmeteoritec.bmd)
     // assert(unk1 == 0xff);
     c.colorStage.a = static_cast<gx::TevColorArg>(reader.read<u8>());
     c.colorStage.b = static_cast<gx::TevColorArg>(reader.read<u8>());

@@ -165,31 +165,65 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
   }
 }
 
+std::string TextureImageCombo(const char* current,
+                              const kpi::FolderData& images) {
+  std::string result;
+  if (ImGui::BeginCombo("Name##Img", current)) {
+    for (const auto& tex : images) {
+      bool selected = tex->getName() == current;
+      if (ImGui::Selectable(tex->getName().c_str(), selected)) {
+        result = tex->getName();
+      }
+      if (selected)
+        ImGui::SetItemDefaultFocus();
+    }
+
+    ImGui::EndCombo();
+  }
+  return result;
+}
+
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SamplerSurface& surface) {
   auto& matData = delegate.getActive().getMaterialData();
 
+  if (ImGui::Button("Add Sampler")) {
+    for (auto* obj : delegate.mAffected) {
+      auto& d = obj->getMaterialData();
+
+      if (d.texGens.size() != d.samplers.size()) {
+        printf("[Warning] Cannot add sampler on material %s\n", d.name.c_str());
+      }
+
+      gx::TexCoordGen gen;
+      gen.setMatrixIndex(d.texMatrices.size());
+      d.texGens.push_back(gen);
+      d.texMatrices.push_back(std::make_unique<GCMaterialData::TexMatrix>());
+      d.samplers.push_back(std::make_unique<GCMaterialData::SamplerData>());
+    }
+    delegate.commit("Added sampler");
+  }
+
   if (ImGui::BeginTabBar("Textures")) {
     for (std::size_t i = 0; i < matData.texGens.nElements; ++i) {
       auto& tg = matData.texGens[i];
-      auto& tm = matData.texMatrices[i]; // TODO: Proper lookup
+
+      bool identitymatrix = tg.isIdentityMatrix();
+      const int rawtgmatrix = static_cast<int>(tg.matrix);
+      int texmatrixid = tg.getMatrixIndex();
+
+      GCMaterialData::TexMatrix* tm = nullptr;
+      if (tg.matrix != gx::TexMatrix::Identity)
+        tm = matData.texMatrices[texmatrixid].get(); // TODO: Proper lookup
       auto& samp = matData.samplers[i];
 
       const auto* mImgs = delegate.getActive().getTextureSource();
       if (ImGui::BeginTabItem(
               (std::string("Texture ") + std::to_string(i)).c_str())) {
         if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (ImGui::BeginCombo("Name", samp->mTexture.c_str())) {
-            for (const auto& tex : *mImgs) {
-              bool selected = tex->getName() == samp->mTexture;
-              if (ImGui::Selectable(tex->getName().c_str(), selected)) {
-                AUTO_PROP(samplers[i]->mTexture, tex->getName());
-              }
-              if (selected)
-                ImGui::SetItemDefaultFocus();
-            }
-
-            ImGui::EndCombo();
+          if (auto result = TextureImageCombo(samp->mTexture.c_str(), *mImgs);
+              !result.empty()) {
+            AUTO_PROP(samplers[i]->mTexture, result);
           }
 
           const riistudio::lib3d::Texture* curImg = nullptr;
@@ -261,19 +295,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   ConditionalActive g(basefunc == 0);
                   ImGui::Combo("Matrix Size", &mtxtype,
                                "UV Matrix: 2x4\0UVW Matrix: 3x4\0");
-                  bool identitymatrix =
-                      tg.matrix == libcube::gx::TexMatrix::Identity;
-                  int texmatrixid = 0;
-                  const int rawtgmatrix = static_cast<int>(tg.matrix);
-                  if (rawtgmatrix >= static_cast<int>(
-                                         libcube::gx::TexMatrix::TexMatrix0) &&
-                      rawtgmatrix <= static_cast<int>(
-                                         libcube::gx::TexMatrix::TexMatrix7)) {
-                    texmatrixid =
-                        (rawtgmatrix -
-                         static_cast<int>(libcube::gx::TexMatrix::TexMatrix0)) /
-                        3;
-                  }
+
                   ImGui::Checkbox("Identity Matrix", &identitymatrix);
                   ImGui::SameLine();
                   {
@@ -286,7 +308,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                           : static_cast<libcube::gx::TexMatrix>(
                                 static_cast<int>(
                                     libcube::gx::TexMatrix::TexMatrix0) +
-                                texmatrixid * 3);
+                                std::max(0, texmatrixid) * 3);
                   AUTO_PROP(texGens[i].matrix, newtexmatrix);
                 }
                 {
@@ -322,7 +344,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 AUTO_PROP(texGens[i].sourceParam,
                           static_cast<libcube::gx::TexGenSrc>(src));
               }
-              if (ImGui::CollapsingHeader("Texture Coordinate Generator",
+              if (tm != nullptr &&
+                  ImGui::CollapsingHeader("Texture Coordinate Generator",
                                           ImGuiTreeNodeFlags_DefaultOpen)) {
                 // TODO: Effect matrix
                 int xfmodel = static_cast<int>(tm->transformModel);
@@ -412,7 +435,16 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
             }
             ImGui::EndTabBar();
           }
-          if (ImGui::CollapsingHeader("Transformation",
+          if (tm == nullptr) {
+            ImVec4 col{200.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f};
+            ImGui::SetWindowFontScale(2.0f);
+            ImGui::TextColored(col, "No texture matrix is attached");
+            ImGui::SetWindowFontScale(1.0f);
+          } else {
+            ImGui::Text("(Texture Matrix %u)", (u32)texmatrixid);
+          }
+          if (tm != nullptr &&
+              ImGui::CollapsingHeader("Transformation",
                                       ImGuiTreeNodeFlags_DefaultOpen)) {
             auto s = tm->scale;
             const auto rotate = glm::degrees(tm->rotate);

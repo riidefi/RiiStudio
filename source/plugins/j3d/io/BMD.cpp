@@ -30,8 +30,7 @@ struct BMDFile : public oishii::Node {
 
     // Filesize
     writer.writeLink<s32>(oishii::Link{
-        oishii::Hook(*this),
-        oishii::Hook(*this, oishii::Hook::EndOfChildren)});
+        oishii::Hook(*this), oishii::Hook(*this, oishii::Hook::EndOfChildren)});
 
     // 8 sections
     writer.write<u32>(bBDL ? 9 : 8);
@@ -99,7 +98,7 @@ public:
     // Recompute cache
 
     std::map<std::string, u32> texNameMap;
-	collection.node().getOrAddFolder<Texture>();
+    collection.node().getOrAddFolder<Texture>();
     for (int i = 0; i < collection.getTextures().size(); ++i) {
       texNameMap[collection.getTexture(i).node().getName()] = i;
     }
@@ -268,6 +267,30 @@ public:
 
     // Read materials
     readMAT3(ctx);
+
+    // fixup identity matrix optimization for editor
+    for (auto& it : ctx.mdl.getMaterials()) {
+      j3d::Material* mat = dynamic_cast<j3d::Material*>(it.get());
+
+      if (mat->texGens.size() != mat->texMatrices.size())
+        continue;
+
+      // Compute a used bitmap. 8 max texgens, 10 max texmatrices
+      u32 used = 0;
+      for (int i = 0; i < mat->texGens.size(); ++i) {
+        if (auto idx = mat->texGens[i].getMatrixIndex(); idx > 0)
+          used |= (1 << idx);
+      }
+
+      for (int i = 0; i < mat->texGens.size(); ++i) {
+        auto& tg = mat->texGens[i];
+
+        if (tg.isIdentityMatrix() && (used & (1 << i)) == 0) {
+          assert(mat->texMatrices[i].isIdentity());
+          tg.setMatrixIndex(i);
+        }
+      }
+    }
 
     // Read TEX1
     readTEX1(ctx);

@@ -13,7 +13,7 @@ std::pair<std::string, std::string> IGCMaterial::generateShaders() const {
   GXProgram program(GXMaterial{0, getName(), *const_cast<IGCMaterial*>(this)});
   const auto result = program.generateShaders();
   if (!applyCacheAgain)
-	cachedPixelShader = result.second + "\n\n // End of shader";
+    cachedPixelShader = result.second + "\n\n // End of shader";
   return result;
 }
 
@@ -350,6 +350,8 @@ void IGCMaterial::generateUniforms(
     tmp.TexMtx[i] = glm::transpose(data.texMatrices[i]->compute(M, M * V * P));
   }
   for (int i = 0; i < data.samplers.size(); ++i) {
+    if (data.samplers[i]->mTexture.empty())
+      continue;
     const auto& texData = getTexture(data.samplers[i]->mTexture);
 
     tmp.TexParams[i] = glm::vec4{texData.getWidth(), texData.getHeight(), 0,
@@ -378,8 +380,11 @@ void IGCMaterial::genSamplUniforms(
   const auto& data = getMaterialData();
   for (int i = 0; i < data.samplers.size(); ++i) {
     glActiveTexture(GL_TEXTURE0 + i);
-    if (texIdMap.find(data.samplers[i]->mTexture) == texIdMap.end())
+    if (data.samplers[i]->mTexture.empty() ||
+        texIdMap.find(data.samplers[i]->mTexture) == texIdMap.end()) {
       printf("Invalid texture link.\n");
+      continue;
+    }
     // else printf("Tex id: %u\n", texIdMap.at(data.samplers[i]->mTexture));
     glBindTexture(GL_TEXTURE_2D, texIdMap.at(data.samplers[i]->mTexture));
 
