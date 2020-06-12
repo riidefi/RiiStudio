@@ -33,30 +33,28 @@ void ImagePreview::setFromImage(const lib3d::Texture& tex) {
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  u32 w = width;
-  u32 h = height;
-  const u8* data = mDecodeBuf.data();
-
-  if (mLod > 0) {
-    for (int i = 0; i < mLod; ++i) {
-      data += (w * h * 4);
-      w >>= 1;
-      h >>= 1;
-    }
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, tex.getMipmapCount());
+  u32 slide = 0;
+  for (u32 i = 0; i <= tex.getMipmapCount(); ++i) {
+    glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, tex.getWidth() >> i,
+                 tex.getHeight() >> i, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 mDecodeBuf.data() + slide);
+    slide += (tex.getWidth() >> i) * (tex.getHeight() >> i) * 4;
   }
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-               data);
+  mDecodeBuf.clear();
 }
 
 void ImagePreview::draw(float wd, float ht) {
-  if (!mTexUploaded || !mDecodeBuf.size()) {
+  if (!mTexUploaded) {
     ImGui::Text("No image to display");
     return;
   }
+
+  glBindTexture(GL_TEXTURE_2D, mGpuTexId);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, static_cast<f32>(mLod));
 
   ImGui::Image(
       (void*)(intptr_t)mGpuTexId,
