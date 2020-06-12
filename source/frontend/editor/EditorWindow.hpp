@@ -1,10 +1,10 @@
 #pragma once
 
-#include "studio_window.hpp"          // for StudioWindow
-#include <core/3d/Texture.hpp>        // for lib3d::Texture
-#include <core/3d/ui/IconManager.hpp> // for IconManager
-#include <core/kpi/Node.hpp>          // for kpi::IDocumentNode
-#include <unordered_map>              // for std::unordered_map
+#include "StudioWindow.hpp"           // StudioWindow
+#include <core/3d/Texture.hpp>        // lib3d::Texture
+#include <core/3d/ui/IconManager.hpp> // IconManager
+#include <core/kpi/Node.hpp>          // kpi::IDocumentNode
+#include <unordered_map>              // std::unordered_map
 
 namespace riistudio::frontend {
 
@@ -33,7 +33,7 @@ public:
         mImageIcons.emplace(tex, mIconManager.addIcon(*tex));
       }
 
-	  propogateIcons(*elem.get());
+      propogateIcons(*elem.get());
     }
   }
   void propogateIcons(kpi::IDocumentNode& node) {

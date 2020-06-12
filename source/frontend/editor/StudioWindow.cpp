@@ -1,4 +1,4 @@
-#include "studio_window.hpp"
+#include "StudioWindow.hpp"
 
 namespace riistudio::frontend {
 

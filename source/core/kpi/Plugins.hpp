@@ -105,11 +105,11 @@ public:
   constructObject(const std::string& type,
                   kpi::IDocumentNode* parent = nullptr) const;
 
-  static inline ApplicationPlugins* getInstance() { return spInstance; }
+  static inline ApplicationPlugins* getInstance() { return &sInstance; }
   virtual ~ApplicationPlugins() = default;
 
 public:
-  static ApplicationPlugins* spInstance;
+  static ApplicationPlugins sInstance;
 
   struct IFactory {
     virtual ~IFactory() = default;

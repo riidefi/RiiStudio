@@ -7,6 +7,13 @@
 #include <cassert>
 #endif
 
+// Platform
+#if defined(RII_PLATFORM_WINDOWS)
+#define RII_NATIVE_GL_WIREFRAME
+#elif defined(RII_PLATFORM_EMSCRIPTEN)
+#endif
+
+
 #define LIB_RII_TO_STRING(v) __LIB_RII_TO_STRING(v)
 #define __LIB_RII_TO_STRING(v) #v
 

@@ -1,19 +1,7 @@
 #include "Renderer.hpp"
-
-#include <core/3d/gl.hpp>
-
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/euler_angles.hpp>
-#include <iostream>
-
-#include <array>
-#include <imgui/imgui.h>
-
-#include "renderer/ShaderCache.hpp"
-#include "renderer/ShaderProgram.hpp"
-#include "renderer/UBOBuilder.hpp"
-
-#include <core/3d/aabb.hpp>
+#include "SceneState.hpp"    // SceneState
+#include <core/3d/gl.hpp>    // glDebugMessageCallback
+#include <core/util/gui.hpp> // ImGui::BeginMenuBar
 
 #ifndef _WIN32
 #include <SDL.h>
@@ -25,10 +13,6 @@
 #include <vendor/glm/matrix.hpp>
 
 #undef min
-#include <algorithm>
-
-#include "renderer/SceneState.hpp"
-#include "renderer/SceneTree.hpp"
 
 namespace riistudio::frontend {
 
@@ -64,23 +48,25 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     }
     if (ImGui::BeginMenu("Rendering")) {
       ImGui::Checkbox("Render", &rend);
-#ifdef _WIN32
+#ifdef RII_NATIVE_GL_WIREFRAME
       ImGui::Checkbox("Wireframe", &wireframe);
 #endif
       ImGui::EndMenu();
     }
     // static int combo_choice = 0;
-    // ImGui::Combo("Shading", &combo_choice, "Emulated Shaders\0Normals\0TODO\0");
+    // ImGui::Combo("Shading", &combo_choice, "Emulated
+    // Shaders\0Normals\0TODO\0");
 
-    ImGui::Combo("##Controls", &combo_choice_cam, "WASD // FPS\0WASD // Plane\0");
+    ImGui::Combo("##Controls", &combo_choice_cam,
+                 "WASD // FPS\0WASD // Plane\0");
 
-#ifdef _WIN32
+#ifdef RII_NATIVE_GL_WIREFRAME
     ImGui::Checkbox("Wireframe", &wireframe);
 #endif
     ImGui::EndMenuBar();
   }
 
-#ifdef _WIN32
+#ifdef RII_NATIVE_GL_WIREFRAME
   if (wireframe)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   else

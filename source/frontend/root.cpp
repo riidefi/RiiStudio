@@ -1,58 +1,26 @@
 #include "root.hpp"
-
-#include <pfd/portable-file-dialogs.h>
-
 #include <core/3d/gl.hpp>
-
 #include <core/api.hpp>
+#include <core/util/gui.hpp>
 #include <core/util/timestamp.hpp>
-
-#include <frontend/editor/editor_window.hpp>
+#include <frontend/editor/EditorWindow.hpp>
+#include <frontend/widgets/changelog.hpp>
+#include <frontend/widgets/fps.hpp>
+#include <frontend/widgets/fullscreen.hpp>
+#include <frontend/widgets/theme_editor.hpp>
 #include <fstream>
-
+#include <imgui_markdown.h>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
-
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-#include <imgui_markdown.h>
-
+#include <pfd/portable-file-dialogs.h>
 // Experimental conversion
 #include <plugins/j3d/Scene.hpp>
-
-#include "widgets/changelog.hpp"
-#include "widgets/fps.hpp"
-#include "widgets/theme_editor.hpp"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
 
 namespace riistudio::frontend {
-
-bool BeginFullscreenWindow(const char* label, bool* open) {
-  if (open != nullptr && !*open)
-    return false;
-
-  ImGuiWindowFlags window_flags =
-      ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-  ImGuiViewport* viewport = ImGui::GetMainViewport();
-  ImGui::SetNextWindowPos(viewport->Pos);
-  ImGui::SetNextWindowSize(viewport->Size);
-  ImGui::SetNextWindowViewport(viewport->ID);
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-  window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-  window_flags |=
-      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-  const bool result = ImGui::Begin(label, open, window_flags);
-  ImGui::PopStyleVar(3);
-  return result;
-}
-void EndFullscreenWindow() { ImGui::End(); }
 
 void RootWindow::draw() {
   fileHostProcess();
@@ -452,17 +420,7 @@ void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
   attachWindow(std::move(editor));
 }
 
-RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
-  InitAPI();
-
-  // Register plugins
-  for (auto* it = kpi::RegistrationLink::getHead(); it != nullptr;
-       it = it->getLast()) {
-    it->exec(*kpi::ApplicationPlugins::getInstance());
-  }
-
-  kpi::ReflectionMesh::getInstance()->getDataMesh().compute();
-}
+RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) { InitAPI(); }
 RootWindow::~RootWindow() { DeinitAPI(); }
 
 void RootWindow::save(const std::string& path) {

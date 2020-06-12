@@ -9,7 +9,7 @@
 #undef max
 
 // TODO: Awful interdependency. Fix this when icon system is stable
-#include <frontend/editor/editor_window.hpp>
+#include <frontend/editor/EditorWindow.hpp>
 
 namespace libcube::UI {
 

@@ -7,7 +7,8 @@
 #include <string>
 
 // TODO: Interdependency
-#include <frontend/editor/renderer/UBOBuilder.hpp>
+#include <frontend/renderer/UBOBuilder.hpp>
+#include <frontend/renderer/VBOBuilder.hpp>
 
 namespace riistudio::lib3d {
 

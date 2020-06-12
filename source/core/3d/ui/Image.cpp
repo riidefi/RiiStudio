@@ -23,20 +23,11 @@ void ImagePreview::setFromImage(const lib3d::Texture& tex) {
 
   if (mTexUploaded) {
     glDeleteTextures(1, &mGpuTexId);
-    mTexUploaded = false;
   }
-}
-
-void ImagePreview::draw(float wd, float ht) {
-  if (!mTexUploaded && mDecodeBuf.size() && width && height) {
+  if (mDecodeBuf.size() && width && height) {
     glGenTextures(1, &mGpuTexId);
-    mTexUploaded = true;
   }
-
-  if (!mTexUploaded || !mDecodeBuf.size()) {
-    ImGui::Text("No image to display");
-    return;
-  }
+  mTexUploaded = true;
 
   glBindTexture(GL_TEXTURE_2D, mGpuTexId);
 
@@ -59,6 +50,14 @@ void ImagePreview::draw(float wd, float ht) {
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                data);
+}
+
+void ImagePreview::draw(float wd, float ht) {
+  if (!mTexUploaded || !mDecodeBuf.size()) {
+    ImGui::Text("No image to display");
+    return;
+  }
+
   ImGui::Image(
       (void*)(intptr_t)mGpuTexId,
       ImVec2((wd > 0 ? wd : width) * mScale, (ht > 0 ? ht : height) * mScale));

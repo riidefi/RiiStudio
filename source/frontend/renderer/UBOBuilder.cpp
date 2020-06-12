@@ -88,14 +88,14 @@ void DelegatedUBOBuilder::push(u32 binding_point, const std::vector<u8>& data) {
   //	else
   //	  assert(mData[binding_point].empty() ||
   //	         mData[binding_point][0].size() >= data.size());
-  mData[binding_point].push_back(data);
+  auto& bound_data = mData[binding_point].emplace_back(data);
 
   assert(mMinSizes.size() > binding_point);
   if (mMinSizes[binding_point] > 1024 * 1024 * 1024) {
     throw "Invalid minimum size. Likely a shader compilation error earlier.";
   }
-  for (int i = data.size(); i < mMinSizes[binding_point]; ++i)
-    mData[binding_point][mData[binding_point].size() - 1].push_back(0);
+  if (bound_data.size() < mMinSizes[binding_point])
+    bound_data.resize(mMinSizes[binding_point]);
 }
 void DelegatedUBOBuilder::clear() { mData.clear(); }
 
@@ -106,70 +106,4 @@ void DelegatedUBOBuilder::setBlockMin(u32 binding_point, u32 min) {
   }
 
   assert(mMinSizes[binding_point] == roundUniformUp(min));
-}
-
-VBOBuilder::VBOBuilder() {
-  glGenBuffers(1, &mPositionBuf);
-  glGenBuffers(1, &mIndexBuf);
-
-  glGenVertexArrays(1, &VAO);
-
-  splicePoints.push_back({});
-}
-VBOBuilder::~VBOBuilder() {
-  glDeleteBuffers(1, &mPositionBuf);
-  glDeleteBuffers(1, &mIndexBuf);
-
-  glDeleteVertexArrays(1, &VAO);
-}
-void VBOBuilder::build() {
-  std::vector<std::pair<VAOEntry, u32>> mAttribStack; // desc : offset
-
-  for (const auto& bind : mPropogating) {
-    mAttribStack.emplace_back(bind.second.first, mData.size());
-
-    for (const u8 e : bind.second.second)
-      push(e);
-  }
-
-  glBindVertexArray(VAO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuf);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndices.size() * 4, mIndices.data(),
-               GL_STATIC_DRAW);
-
-  glBindBuffer(GL_ARRAY_BUFFER, mPositionBuf);
-  glBufferData(GL_ARRAY_BUFFER, mData.size(), mData.data(), GL_STATIC_DRAW);
-  glBindVertexArray(VAO);
-
-  auto vertexAttribPointer = [&](GLuint index, GLint size, GLenum type,
-                                 GLboolean normalized, GLsizei stride,
-                                 const void* pointer) {
-#ifdef BUILD_DEBUG
-    printf("Index: %u, size: %i, stride: %i, ofs: %u\n", index, size, stride,
-           (u32)pointer);
-#endif
-
-    assert(stride != 0);
-
-    glVertexAttribPointer(index, size, type, normalized, stride, pointer);
-
-    assert(glGetError() == GL_NO_ERROR);
-    if (glGetError() != GL_NO_ERROR)
-      exit(1);
-  };
-
-  for (const auto& attrib : mAttribStack) {
-    // TODO: Hack
-    if (attrib.first.name == nullptr)
-      continue;
-    assert(attrib.first.format == GL_FLOAT);
-    vertexAttribPointer(attrib.first.binding_point, attrib.first.size / 4,
-                        GL_FLOAT, GL_FALSE, attrib.first.size,
-                        (void*)(u32)attrib.second);
-    // glVertexAttribPointer(attrib.first.binding_point, attrib.first.size,
-    // attrib.first.format, GL_FALSE, attrib.first.size, (void*)attrib.second);
-    glEnableVertexAttribArray(attrib.first.binding_point);
-  }
-
-  mPropogating.clear();
 }

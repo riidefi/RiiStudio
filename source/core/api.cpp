@@ -10,10 +10,10 @@
 kpi::ReflectionMesh* kpi::ReflectionMesh::spInstance;
 
 std::unique_ptr<kpi::IDocumentNode> SpawnState(const std::string& type) {
-  return kpi::ApplicationPlugins::spInstance->constructObject(type, nullptr);
+  return kpi::ApplicationPlugins::getInstance()->constructObject(type, nullptr);
 }
 bool IsConstructible(const std::string& type) {
-  const auto& factories = kpi::ApplicationPlugins::spInstance->mFactories;
+  const auto& factories = kpi::ApplicationPlugins::getInstance()->mFactories;
   return std::find_if(factories.begin(), factories.end(), [&](const auto& it) {
            return it.second->getId() == type;
          }) != factories.end();
@@ -30,7 +30,7 @@ SpawnImporter(const std::string& fileName, oishii::BinaryReader& reader) {
   std::unique_ptr<kpi::IBinaryDeserializer> out = nullptr;
 
   assert(kpi::ApplicationPlugins::spInstance);
-  for (const auto& plugin : kpi::ApplicationPlugins::spInstance->mReaders) {
+  for (const auto& plugin : kpi::ApplicationPlugins::getInstance()->mReaders) {
     oishii::JumpOut reader_guard(reader, reader.tell());
     match = plugin->canRead_(fileName, reader);
     if (!match.empty()) {
@@ -49,7 +49,7 @@ SpawnImporter(const std::string& fileName, oishii::BinaryReader& reader) {
 }
 std::unique_ptr<kpi::IBinarySerializer>
 SpawnExporter(kpi::IDocumentNode& node) {
-  for (const auto& plugin : kpi::ApplicationPlugins::spInstance->mWriters) {
+  for (const auto& plugin : kpi::ApplicationPlugins::getInstance()->mWriters) {
     if (plugin->canWrite_(node)) {
       return plugin->clone();
     }
@@ -75,7 +75,7 @@ struct DataMesh : public kpi::DataMesh {
     while (!mToInsert.empty()) {
       const auto& cmd = mToInsert.front();
 
-	  // Data mesh and type database are now independent..
+      // Data mesh and type database are now independent..
       // if (mClasses.find(std::string(cmd.base)) == mClasses.end()) {
       //   printf("Warning: Type %s references undefined parent %s.\n",
       //          cmd.derived.data(), cmd.base.data());
@@ -131,12 +131,18 @@ struct ReflectionMesh : public kpi::ReflectionMesh {
 };
 
 void InitAPI() {
-  kpi::ApplicationPlugins::spInstance = new kpi::ApplicationPlugins();
   kpi::ReflectionMesh::setInstance(
       new ReflectionMesh(std::make_unique<DataMesh>()));
+
+  // Register plugins
+  for (auto* it = kpi::RegistrationLink::getHead(); it != nullptr;
+       it = it->getLast()) {
+    it->exec(*kpi::ApplicationPlugins::getInstance());
+  }
+
+  kpi::ReflectionMesh::getInstance()->getDataMesh().compute();
 }
 void DeinitAPI() {
-  delete kpi::ApplicationPlugins::spInstance;
   delete kpi::ReflectionMesh::getInstance();
 }
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/3d/i3dmodel.hpp>
-#include <frontend/editor/renderer/ShaderCache.hpp>
+#include <frontend/renderer/ShaderCache.hpp>
 
 namespace riistudio::frontend {
 

@@ -5,7 +5,7 @@
 #include <memory>
 #include <glm/mat4x4.hpp>
 #include <core/kpi/Node.hpp>
-#include <frontend/editor/renderer/Camera.hpp>
+#include <frontend/renderer/Camera.hpp>
 
 namespace riistudio::frontend {
 
@@ -40,6 +40,8 @@ private:
   int combo_choice_cam = 0;
   // Render settings
   bool rend = true;
+#ifdef RII_NATIVE_GL_WIREFRAME
   bool wireframe = false;
+  #endif
 };
 } // namespace riistudio::frontend
