@@ -63,6 +63,10 @@ public:
     seek<Whence::Current>(sizeof(T));
   }
 
+  template <typename T, EndianSelect E = EndianSelect::Current>
+  inline void writeUnaligned(T value) {
+    write<T, E>(value);
+  }
   template <EndianSelect E = EndianSelect::Current>
   void writeN(std::size_t sz, u32 val) {
     while (tell() + sz > mBuf.size())

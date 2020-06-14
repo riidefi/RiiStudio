@@ -35,7 +35,7 @@ struct Collection : public lib3d::Scene {
 };
 
 struct Tex {
-  u8 mFormat;
+  libcube::gx::TextureFormat mFormat;
   u8 bTransparent;
   u16 mWidth, mHeight;
   libcube::gx::TextureWrapMode mWrapU, mWrapV;
@@ -80,8 +80,9 @@ struct Model : public libcube::Model {
   virtual ~Model() = default;
   // Shallow comparison
   bool operator==(const Model& rhs) const {
-	  // TODO: Check bufs
-	  return info.mScalingRule == rhs.info.mScalingRule; }
+    // TODO: Check bufs
+    return info.mScalingRule == rhs.info.mScalingRule;
+  }
   struct Information {
     // For texmatrix calculations
     enum class ScalingRule { Basic, XSI, Maya };
@@ -130,6 +131,8 @@ struct Model : public libcube::Model {
       }
     }
   } mBufs = Bufs();
+
+  bool isBDL = false;
 
   struct Indirect {
     bool enabled;
@@ -227,9 +230,10 @@ struct CollectionAccessor : public kpi::NodeAccessor<Collection> {
   KPI_NODE_FOLDER_SIMPLE(Texture);
 
   CollectionAccessor(kpi::IDocumentNode* node) : super(node) {
-	  if (node == nullptr) return;
-	  data->getOrAddFolder<Model>();
-	  data->getOrAddFolder<Texture>();
+    if (node == nullptr)
+      return;
+    data->getOrAddFolder<Model>();
+    data->getOrAddFolder<Texture>();
   }
 };
 

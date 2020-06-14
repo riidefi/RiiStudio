@@ -23,6 +23,7 @@ std::unique_ptr<oishii::Node> makeDRW1Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::Node> makeJNT1Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::Node> makeSHP1Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::Node> makeMAT3Node(BMDExportContext& ctx);
+std::unique_ptr<oishii::Node> makeMDL3Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::Node> makeTEX1Node(BMDExportContext& ctx);
 
 } // namespace riistudio::j3d

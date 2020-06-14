@@ -7,6 +7,7 @@
 
 #include <glm/glm.hpp>
 #include <plugins/gc/GX/Material.hpp>
+#include <tuple> // std::pair
 
 namespace libcube::gpu {
 
@@ -567,8 +568,134 @@ union UVAT_group2 {
     u32 Tex7Frac : 5;
   };
 };
-#pragma pack()
+
+union TMatrixIndexA {
+  struct {
+    u32 PosNormalMtxIdx : 6;
+    u32 Tex0MtxIdx : 6;
+    u32 Tex1MtxIdx : 6;
+    u32 Tex2MtxIdx : 6;
+    u32 Tex3MtxIdx : 6;
+  };
+  struct {
+    u32 Hex : 30;
+    u32 unused : 2;
+  };
+};
+
+union TMatrixIndexB {
+  struct {
+    u32 Tex4MtxIdx : 6;
+    u32 Tex5MtxIdx : 6;
+    u32 Tex6MtxIdx : 6;
+    u32 Tex7MtxIdx : 6;
+  };
+  struct {
+    u32 Hex : 24;
+    u32 unused : 8;
+  };
+};
+
+template <typename T> // T must be a range of texgens
+std::pair<TMatrixIndexA, TMatrixIndexB> buildMtxIdx(T& texgens) {
+  TMatrixIndexA first;
+  first.Hex = first.unused = 0;
+  TMatrixIndexB second;
+  second.Hex = first.unused = 0;
+
+  int i = 0;
+  for (const auto& tg : texgens) {
+    const auto mtx = (static_cast<u32>(tg.matrix) & ((1 << 6) - 1));
+    if (i > 3) {
+      first.Hex |= mtx >> (i * 6);
+    } else {
+      second.Hex |= mtx >> ((i - 4) * 6);
+    }
+    ++i;
+  }
+
+  return {first, second};
+}
+
+union TexMode0 {
+  enum TextureFilter : u32 { TEXF_NONE = 0, TEXF_POINT = 1, TEXF_LINEAR = 2 };
+
+  struct {
+    u32 wrap_s : 2;
+    u32 wrap_t : 2;
+    u32 mag_filter : 1;
+    u32 min_filter : 3;
+    u32 diag_lod : 1;
+    s32 lod_bias : 8;
+    u32 pad0 : 2;
+    u32 max_aniso : 2;
+    u32 lod_clamp : 1;
+  };
+  u32 hex;
+};
+union TexMode1 {
+  struct {
+    u32 min_lod : 8;
+    u32 max_lod : 8;
+  };
+  u32 hex;
+};
+// ZCOMPARE
+union PEControl {
+  enum PixelFormat : u32 {
+    RGB8_Z24 = 0,
+    RGBA6_Z24 = 1,
+    RGB565_Z16 = 2,
+    Z24 = 3,
+    Y8 = 4,
+    U8 = 5,
+    V8 = 6,
+    YUV420 = 7,
+    INVALID_FMT = 0xffffffff, // Used by Dolphin to represent a missing value.
+  };
+
+  enum DepthFormat : u32 {
+    ZLINEAR = 0,
+    ZNEAR = 1,
+    ZMID = 2,
+    ZFAR = 3,
+
+    // It seems these Z formats aren't supported/were removed ?
+    ZINV_LINEAR = 4,
+    ZINV_NEAR = 5,
+    ZINV_MID = 6,
+    ZINV_FAR = 7
+  };
+
+  BitField<0, 3, PixelFormat> pixel_format;
+  BitField<3, 3, DepthFormat> zformat;
+  BitField<6, 1, u32> early_ztest;
+
+  u32 hex;
+};
+union GenMode {
+  enum CullMode : u32 {
+    CULL_NONE = 0,
+    CULL_BACK = 1,  // cull back-facing primitives
+    CULL_FRONT = 2, // cull front-facing primitives
+    CULL_ALL = 3,   // cull all primitives
+  };
+
+  BitField<0, 4, u32> numtexgens;
+  BitField<4, 3, u32> numcolchans;
+  // 1 bit unused?
+  BitField<8, 1, u32> flat_shading; // unconfirmed
+  BitField<9, 1, u32> multisampling;
+  BitField<10, 4, u32> numtevstages;
+  BitField<14, 2, CullMode> cullmode;
+  BitField<16, 3, u32> numindstages;
+  BitField<19, 1, u32> zfreeze;
+
+  u32 hex;
+};
 struct GPUMesh {
   TVtxDesc VCD;
 };
+#pragma pack()
+
 } // namespace libcube::gpu

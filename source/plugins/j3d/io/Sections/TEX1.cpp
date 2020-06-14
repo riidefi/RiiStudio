@@ -8,7 +8,7 @@ namespace riistudio::j3d {
 void Tex::transfer(oishii::BinaryReader& stream) {
   oishii::DebugExpectSized dbg(stream, 0x20);
 
-  mFormat = stream.read<u8>();
+  mFormat = static_cast<libcube::gx::TextureFormat>(stream.read<u8>());
   bTransparent = stream.read<u8>();
   mWidth = stream.read<u16>();
   mHeight = stream.read<u16>();
@@ -29,8 +29,9 @@ void Tex::transfer(oishii::BinaryReader& stream) {
   stream.transfer<s8>(mMaxLod);
   stream.transfer<u8>(mMipmapLevel);
   if (mMipmapLevel == 0) {
-	  stream.warnAt("Invalid LOD: 0. Valid range: [1, 6]", stream.tell() - 1, stream.tell());
-	  mMipmapLevel = 1;
+    stream.warnAt("Invalid LOD: 0. Valid range: [1, 6]", stream.tell() - 1,
+                  stream.tell());
+    mMipmapLevel = 1;
   }
   // assert(mMipmapLevel);
   stream.skip(1);
@@ -40,7 +41,7 @@ void Tex::transfer(oishii::BinaryReader& stream) {
 void Tex::write(oishii::Writer& stream) const {
   oishii::DebugExpectSized dbg(stream, 0x20 - 4);
 
-  stream.write<u8>(mFormat);
+  stream.write<u8>(static_cast<u8>(mFormat));
   stream.write<u8>(bTransparent);
   stream.write<u16>(mWidth);
   stream.write<u16>(mHeight);
@@ -66,7 +67,7 @@ void Tex::write(oishii::Writer& stream) const {
 }
 Tex::Tex(const Texture& data,
          const libcube::GCMaterialData::SamplerData& sampl) {
-  mFormat = data.mFormat;
+  mFormat = static_cast<libcube::gx::TextureFormat>(data.mFormat);
   bTransparent = data.bTransparent;
   mWidth = data.mWidth;
   mHeight = data.mHeight;
@@ -154,7 +155,7 @@ void readTEX1(BMDOutputContext& ctx) {
     auto& data = *inf.first.get();
 
     data.mName = nameTable[i];
-    data.mFormat = tex.mFormat;
+    data.mFormat = static_cast<u8>(tex.mFormat);
     data.mWidth = tex.mWidth;
     data.mHeight = tex.mHeight;
     data.mPaletteFormat = tex.mPaletteFormat;
@@ -166,8 +167,9 @@ void readTEX1(BMDOutputContext& ctx) {
 
     // ofs:size
     inf.second.first = g.start + ofsHeaders + i * 32 + tex.ofsTex;
-    inf.second.second = GetTexBufferSize(tex.mWidth, tex.mHeight, tex.mFormat,
-                                         tex.bMipMap, tex.mMipmapLevel);
+    inf.second.second =
+        GetTexBufferSize(tex.mWidth, tex.mHeight, static_cast<u32>(tex.mFormat),
+                         tex.bMipMap, tex.mMipmapLevel);
   }
 
   // Deduplicate and read.
@@ -313,10 +315,8 @@ struct TEX1Node final : public oishii::Node {
     writer.write<u16>((u16)mModel.get().mTexCache.size());
     writer.write<u16>(-1);
 
-    writer.writeLink<s32>(oishii::Hook(*this),
-                          oishii::Hook("TexHeaders"));
-    writer.writeLink<s32>(oishii::Hook(*this),
-                          oishii::Hook("TexNames"));
+    writer.writeLink<s32>(oishii::Hook(*this), oishii::Hook("TexHeaders"));
+    writer.writeLink<s32>(oishii::Hook(*this), oishii::Hook("TexNames"));
 
     return eResult::Success;
   }

@@ -423,7 +423,16 @@ void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
 RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) { InitAPI(); }
 RootWindow::~RootWindow() { DeinitAPI(); }
 
-void RootWindow::save(const std::string& path) {
+inline bool ends_with(const std::string& value, const std::string& ending) {
+  return ending.size() <= value.size() &&
+         std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+void RootWindow::save(const std::string& _path) {
+  std::string path = _path;
+  if (ends_with(path, ".bdl")) {
+    path.resize(path.size() - 4);
+    path += ".bmd";
+  }
   EditorWindow* ed =
       dynamic_cast<EditorWindow*>(getActive() ? getActive() : nullptr);
   if (!ed)

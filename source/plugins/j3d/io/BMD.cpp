@@ -57,6 +57,8 @@ struct BMDFile : public oishii::Node {
     addNode(makeJNT1Node(exp));
     addNode(makeSHP1Node(exp));
     addNode(makeMAT3Node(exp));
+    if (bBDL)
+      addNode(makeMDL3Node(exp));
     addNode(makeTEX1Node(exp));
     return {};
   }
@@ -88,7 +90,7 @@ public:
     oishii::Linker linker;
 
     auto bmd = std::make_unique<BMDFile>();
-    bmd->bBDL = false; // collection.bdl;
+    bmd->bBDL = collection.getModel(0).get().isBDL;
     bmd->bMimic = true;
     bmd->mCollection = collection;
 
@@ -155,8 +157,15 @@ public:
     reader.setEndian(true);
     reader.expectMagic<'J3D2'>();
 
+    mdl.get().isBDL = false;
+
     u32 bmdVer = reader.read<u32>();
-    if (bmdVer != 'bmd3' && bmdVer != 'bdl4') {
+    if (bmdVer == 'bmd3') {
+    } else if (bmdVer == 'bdl4') {
+#ifndef BUILD_DIST
+      // mdl.get().isBDL = true;
+#endif
+    } else {
       reader.signalInvalidityLast<u32, oishii::MagicInvalidity<'bmd3'>>();
       // error = true;
       return;
