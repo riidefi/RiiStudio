@@ -40,7 +40,7 @@ struct GenericCollectionOutliner : public StudioWindow {
 
     std::string mFilt;
   };
-  using TFilter = RegexFilter;
+  using TFilter = ImTFilter;
 
   //! @brief Return the number of resources in the source that pass the filter.
   //!

@@ -256,7 +256,7 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
       // with out own. In Galaxy, this is done in ViewProjmapEffectMtxSetter.
       // Replaces the effectMatrix. EnvMtx is built into this call, as well.
       //... texProjCameraSceneTex(tmp1, camera, viewport, flipYScale);
-
+      tmp1 = mvp;
       tmp1 = tmp2 * tmp1;
       dst = tmp1 * dst;
       break;
@@ -267,7 +267,7 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
 
       // Multiply the effect matrix by the inverse of the model matrix.
       // In Galaxy, this is done in ProjmapEffectMtxSetter.
-      tmp1 = glm::inverse(mdl);
+      // tmp1 = glm::inverse(mdl);
       //... tmp1 = effectMatrix * tmp1;
 
       tmp1 = tmp2 * tmp1;
@@ -347,7 +347,7 @@ void IGCMaterial::generateUniforms(
     tmp.Color[i] = colorConvert(data.tevColors[i]);
   }
   for (int i = 0; i < data.texMatrices.size(); ++i) {
-    tmp.TexMtx[i] = glm::transpose(data.texMatrices[i]->compute(M, M * V * P));
+    tmp.TexMtx[i] = glm::transpose(data.texMatrices[i]->compute(M, V * P));
   }
   for (int i = 0; i < data.samplers.size(); ++i) {
     if (data.samplers[i]->mTexture.empty())
@@ -358,7 +358,12 @@ void IGCMaterial::generateUniforms(
                                  data.samplers[i]->mLodBias};
   }
   for (int i = 0; i < data.mIndMatrices.size(); ++i) {
-    tmp.IndTexMtx[i] = data.mIndMatrices[i].compute();
+    auto& it = data.mIndMatrices[i];
+    // TODO:: Verify..
+    glm::mat4 im;
+    calcTexMtx_Basic(im, it.scale.x, it.scale.y, it.rotate, it.trans.x,
+                     it.trans.y, 0.5, 0.5, 0.5);
+    tmp.IndTexMtx[i] = im;
   }
   PacketParams pack{};
   for (auto& p : pack.posMtx)

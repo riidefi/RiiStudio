@@ -26,6 +26,9 @@ void ImagePreview::setFromImage(const lib3d::Texture& tex) {
   }
   if (mDecodeBuf.size() && width && height) {
     glGenTextures(1, &mGpuTexId);
+  } else {
+    mTexUploaded = false;
+    return;
   }
   mTexUploaded = true;
 
