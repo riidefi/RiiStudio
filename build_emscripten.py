@@ -58,7 +58,8 @@ gHashManager = HashManager("bin-int/hashes.json")
 DEFINES = [
 	"RII_PLATFORM_EMSCRIPTEN",
 	"IMGUI_IMPL_OPENGL_ES2",
-	"RII_BACKEND_SDL"
+	"RII_BACKEND_SDL",
+	"__linux__"
 ]
 INCLUDES = [
 	"source",
@@ -174,7 +175,7 @@ def build_project(name, type, config, proj=None):
 		gHashManager.save(source, config)
 
 	if type == "main_app":
-		link_cmd = "em++ -o " + bin_dir + "out.html -s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind"
+		link_cmd = " -o " + bin_dir + "out.html -s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind"
 		link_cmd += "  --shell-file " + bin_dir + "/shell_minimal.html "
 		objs = locals_objs
 		for lib in PROJECTS:
@@ -186,7 +187,9 @@ def build_project(name, type, config, proj=None):
 		if debug:
 			link_cmd += " -g4 --source-map-base ../ "
 		link_cmd += "  -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 --no-heap-copy --preload-file ./fonts@/fonts "
-		system_cmd(link_cmd)
+		with open(bin_int_dir + "link_cmd.txt", 'w') as lc:
+			lc.write(link_cmd)
+		system_cmd("em++ @" + bin_int_dir + "link_cmd.txt")
 		copyfile("source/" + name + "/app.html", bin_dir + "/app.html")
 	return locals_objs
 
