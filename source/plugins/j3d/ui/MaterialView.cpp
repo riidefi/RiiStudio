@@ -33,8 +33,8 @@ void Matrix44(const glm::mat4& mtx) {
 } // namespace Toolkit
 
 struct J3DDataSurface final {
-  const char* name = "J3D Data";
-  const char* icon = ICON_FA_BOXES;
+  static inline const char* name = "J3D Data";
+  static inline const char* icon = ICON_FA_BOXES;
 };
 
 void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
@@ -128,8 +128,8 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
   }
 }
 struct BoneJ3DSurface final {
-  const char* name = "J3D Data";
-  const char* icon = ICON_FA_BOXES;
+  static inline const char* name = "J3D Data";
+  static inline const char* icon = ICON_FA_BOXES;
 };
 
 void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
@@ -151,8 +151,8 @@ void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
 }
 
 struct ShapeJ3DSurface final {
-  const char* name = "J3D Shape";
-  const char* icon = ICON_FA_BOXES;
+  static inline const char* name = "J3D Shape";
+  static inline const char* icon = ICON_FA_BOXES;
 };
 void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
   auto& shape = dl.getActive();
@@ -185,8 +185,8 @@ void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
   }
 }
 struct ModelJ3DSurface {
-  const char* name = "J3D Model";
-  const char* icon = ICON_FA_ADDRESS_BOOK;
+  static inline const char* name = "J3D Model";
+  static inline const char* icon = ICON_FA_ADDRESS_BOOK;
 };
 void drawProperty(kpi::PropertyDelegate<j3d::Model>& dl, ModelJ3DSurface) {
   auto& mdl = dl.getActive();

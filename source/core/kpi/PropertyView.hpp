@@ -210,12 +210,10 @@ struct PropertyViewImpl final : public IPropertyView {
     return dynamic_cast<T*>(test) != nullptr;
   }
   const std::string_view getName() const override {
-    U tmp;
-    return tmp.name;
+    return U::name;
   }
   const std::string_view getIcon() const override {
-    U tmp;
-    return tmp.icon;
+    return U::icon;
   }
   // TODO - IconDelegate to replace ref EditorWindow
   void draw(kpi::IDocumentNode& active,

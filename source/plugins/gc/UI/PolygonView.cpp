@@ -8,12 +8,12 @@
 namespace libcube::UI {
 
 struct PolyDescriptorSurface final {
-  const char* name = "Vertex Descriptor";
-  const char* icon = ICON_FA_IMAGE;
+  static inline const char* name = "Vertex Descriptor";
+  static inline const char* icon = ICON_FA_IMAGE;
 };
 struct PolyDataSurface final {
-  const char* name = "Index Data";
-  const char* icon = ICON_FA_IMAGE;
+  static inline const char* name = "Index Data";
+  static inline const char* icon = ICON_FA_IMAGE;
 };
 
 const char* vertexAttribNames =

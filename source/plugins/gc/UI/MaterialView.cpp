@@ -79,20 +79,20 @@ libcube::gx::CullMode DrawCullMode(libcube::gx::CullMode cull_mode) {
 }
 
 struct DisplaySurface final {
-  const char* name = "Surface Visibility";
-  const char* icon = ICON_FA_GHOST;
+  static inline const char* name = "Surface Visibility";
+  static inline const char* icon = ICON_FA_GHOST;
 };
 struct LightingSurface final {
-  const char* name = "Lighting";
-  const char* icon = ICON_FA_SUN;
+  static inline const char* name = "Lighting";
+  static inline const char* icon = ICON_FA_SUN;
 };
 struct ColorSurface final {
-  const char* name = "Colors";
-  const char* icon = ICON_FA_PAINT_BRUSH;
+  static inline const char* name = "Colors";
+  static inline const char* icon = ICON_FA_PAINT_BRUSH;
 };
 struct SamplerSurface final {
-  const char* name = "Samplers";
-  const char* icon = ICON_FA_IMAGES;
+  static inline const char* name = "Samplers";
+  static inline const char* icon = ICON_FA_IMAGES;
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;
@@ -101,12 +101,12 @@ struct SamplerSurface final {
   std::string mLastImg;
 };
 struct SwapTableSurface final {
-  const char* name = "Swap Tables";
-  const char* icon = ICON_FA_SWATCHBOOK;
+  static inline const char* name = "Swap Tables";
+  static inline const char* icon = ICON_FA_SWATCHBOOK;
 };
 struct StageSurface final {
-  const char* name = "Stage";
-  const char* icon = ICON_FA_NETWORK_WIRED;
+  static inline const char* name = "Stage";
+  static inline const char* icon = ICON_FA_NETWORK_WIRED;
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;
@@ -115,12 +115,12 @@ struct StageSurface final {
   std::string mLastImg;
 };
 struct FogSurface final {
-  const char* name = "Fog";
-  const char* icon = ICON_FA_GHOST;
+  static inline const char* name = "Fog";
+  static inline const char* icon = ICON_FA_GHOST;
 };
 struct PixelSurface final {
-  const char* name = "Pixel";
-  const char* icon = ICON_FA_GHOST;
+  static inline const char* name = "Pixel";
+  static inline const char* icon = ICON_FA_GHOST;
 };
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,

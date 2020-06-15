@@ -16,8 +16,8 @@
 namespace libcube::UI {
 
 struct ImageSurface final {
-  const char* name = "Image Data";
-  const char* icon = ICON_FA_IMAGE;
+  static inline const char* name = "Image Data";
+  static inline const char* icon = ICON_FA_IMAGE;
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;

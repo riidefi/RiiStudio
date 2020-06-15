@@ -9,7 +9,7 @@
 
 namespace oishii {
 
-class Writer : public VectorWriter {
+class Writer final : public VectorWriter {
 public:
   Writer(u32 size) : VectorWriter(size) {}
   Writer(std::vector<u8> buf) : VectorWriter(std::move(buf)) {}

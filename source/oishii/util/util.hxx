@@ -5,6 +5,11 @@
 
 #pragma once
 
+// Clang on windows fails here
+#ifdef _MSC_EXTENSIONS
+#undef _MSC_EXTENSIONS
+#endif
+
 #include "../options.hxx"
 #include "../types.hxx"
 

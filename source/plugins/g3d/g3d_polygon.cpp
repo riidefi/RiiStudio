@@ -13,7 +13,7 @@ glm::vec2 Polygon::getUv(u64 chan, u64 id) const {
   for (const auto& p : *posBufs) {
     if (p->getName() == mTexCoordBuffer[chan]) {
       auto* x = dynamic_cast<TextureCoordinateBuffer*>(p.get());
-      return x->mEntries[id];
+      return id >= x->mEntries.size() ? glm::vec2{} : x->mEntries[id];
     }
   }
   return {};

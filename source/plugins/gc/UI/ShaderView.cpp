@@ -10,8 +10,8 @@
 namespace libcube::UI {
 
 struct ShaderSurface final {
-  const char* name = "Pixel Shader";
-  const char* icon = ICON_FA_CODE;
+  static inline const char* name = "Pixel Shader";
+  static inline const char* icon = ICON_FA_CODE;
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful = 1;

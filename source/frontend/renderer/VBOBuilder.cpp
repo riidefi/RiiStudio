@@ -17,8 +17,8 @@ VBOBuilder::~VBOBuilder() {
 
   glDeleteVertexArrays(1, &VAO);
 }
-std::vector<VBOBuilder::SplicePoint> VBOBuilder::getSplicesInRange(int start,
-                                                                   int ofs) {
+std::vector<VBOBuilder::SplicePoint>
+VBOBuilder::getSplicesInRange(std::size_t start, std::size_t ofs) {
   std::vector<SplicePoint> out;
 
   const auto min = start;

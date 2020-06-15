@@ -1,11 +1,12 @@
 #pragma once
 
-#include "memory_reader.hxx"
-//
+#include "../interfaces.hxx"
 #include "../util/util.hxx"
-
+#include <array> // Why?
 #include <array>
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace oishii {
 
@@ -14,15 +15,34 @@ struct Invalidity {
   enum { invality_t };
 };
 
-class BinaryReader final : public MemoryBlockReader {
+class BinaryReader final : public IReader {
 public:
   BinaryReader(u32 buffer_size, const char* file_name = "")
-      : MemoryBlockReader(buffer_size), file(file_name) {}
+      : mBuf(buffer_size), mBufSize(buffer_size), file(file_name) {}
   BinaryReader(std::vector<u8> buffer, u32 buffer_size,
                const char* file_name = "")
-      : MemoryBlockReader(std::move(buffer), buffer_size), file(file_name) {}
+      : mBuf(std::move(buffer)), mBufSize(buffer_size), file(file_name) {}
   ~BinaryReader() = default;
 
+  // MemoryBlockReader
+  u32 tell() final override { return mPos; }
+  void seekSet(u32 ofs) final override { mPos = ofs; }
+  u32 startpos() final override { return 0; }
+  u32 endpos() final override { return mBufSize; }
+  u8* getStreamStart() final override { return mBuf.data(); }
+
+  // Faster bound check
+  inline bool isInBounds(u32 pos) {
+    // Can't be negative, start always at zero
+    return pos < mBufSize;
+  }
+
+private:
+  u32 mPos = 0;
+  std::vector<u8> mBuf;
+  u32 mBufSize;
+
+public:
   //! @brief Given a type T, return T in the specified endiannes. (Current: swap
   //! endian if reader endian != sys endian)
   //!
@@ -89,8 +109,8 @@ public:
   //! @param[in] msg			Message to print
   //! @param[in] selectBegin	File offset where warning selection begins.
   //! @param[in] selectEnd	File offset where warning selection ends.
-  //! @param[in] checkStack	Whether or not to output a stack trace. Necessary
-  //! to prevent infinite recursion.
+  //! @param[in] checkStack	Whether or not to output a stack trace.
+  //! Necessary to prevent infinite recursion.
   //!
   void warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
               bool checkStack = true);

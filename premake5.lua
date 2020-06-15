@@ -9,6 +9,7 @@ PYTHON_ROOT = "C:\\Python36"
 
 workspace "RiiStudio"
 	architecture "x64"
+	startproject "frontend"
 
 	configurations
 	{

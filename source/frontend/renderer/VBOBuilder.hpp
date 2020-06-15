@@ -24,16 +24,17 @@ struct VBOBuilder {
   std::vector<u8> mData;
   std::vector<u32> mIndices;
   struct SplicePoint {
-    u32 offset = 0;
-    s64 size = -1;
+    std::size_t offset = 0;
+    std::size_t size = -1;
   };
 
   // binding_point : data
   std::map<u32, std::pair<VAOEntry, std::vector<u8>>> mPropogating;
 
   int getNumSplices() { return splicePoints.size() - 1; }
-  SplicePoint getSplice(int i) { return splicePoints[i]; }
-  std::vector<SplicePoint> getSplicesInRange(int start, int ofs);
+  SplicePoint getSplice(std::size_t i) { return splicePoints[i]; }
+  std::vector<SplicePoint> getSplicesInRange(std::size_t start,
+                                             std::size_t ofs);
 
   void build();
   void markSplice() {
