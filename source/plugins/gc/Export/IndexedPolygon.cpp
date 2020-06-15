@@ -190,6 +190,9 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
       case gx::VertexAttribute::Color0:
         out.pushData(5, getClr(vtx[gx::VertexAttribute::Color0]));
         break;
+      case gx::VertexAttribute::Color1:
+        out.pushData(5, glm::vec4{});
+        break;
       case gx::VertexAttribute::TexCoord0:
       case gx::VertexAttribute::TexCoord1:
       case gx::VertexAttribute::TexCoord2:

@@ -98,7 +98,7 @@ struct MaterialData : public libcube::GCMaterialData {
            colorChanControls == rhs.colorChanControls &&
            chanData == rhs.chanData && lightColors == rhs.lightColors &&
            texGens == rhs.texGens && texMatrices == rhs.texMatrices &&
-           postTexMatrices == rhs.postTexMatrices &&
+           samplers == rhs.samplers && postTexMatrices == rhs.postTexMatrices &&
            tevKonstColors == rhs.tevKonstColors && tevColors == rhs.tevColors &&
            shader == rhs.shader && mIndScales == rhs.mIndScales &&
            mIndMatrices == rhs.mIndMatrices && fogInfo == rhs.fogInfo &&
