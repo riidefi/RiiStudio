@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <llvm/Support/Error.h>
 #include <oishii/reader/binary_reader.hxx>
 #include <plugins/gc/Export/IndexedPrimitive.hpp>
 #include <plugins/gc/Export/VertexDescriptor.hpp>
@@ -13,9 +14,10 @@ struct IMeshDLDelegate {
                                                 u16 nVerts) = 0;
 };
 
-void DecodeMeshDisplayList(
-    oishii::BinaryReader& reader, u32 start, u32 size,
-    IMeshDLDelegate& delegate, const VertexDescriptor& descriptor,
-    std::map<gx::VertexBufferAttribute, u32>* optUsageMap);
+llvm::Error
+DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
+                      IMeshDLDelegate& delegate,
+                      const VertexDescriptor& descriptor,
+                      std::map<gx::VertexBufferAttribute, u32>* optUsageMap);
 
 } // namespace libcube

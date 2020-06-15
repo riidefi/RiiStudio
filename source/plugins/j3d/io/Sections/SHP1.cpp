@@ -155,9 +155,20 @@ void readSHP1(BMDOutputContext& ctx) {
       private:
         MatrixPrimitive& mprim;
       } mprim_del(mprim);
-      DecodeMeshDisplayList(reader, g.start + ofsDL + dlOfs, dlSz, mprim_del,
-                            shape.mVertexDescriptor,
-                            &ctx.mVertexBufferMaxIndices);
+      auto err = DecodeMeshDisplayList(reader, g.start + ofsDL + dlOfs, dlSz,
+                                       mprim_del, shape.mVertexDescriptor,
+                                       &ctx.mVertexBufferMaxIndices);
+
+      if (err) {
+        printf("Invalid mesh display list..\n");
+
+		std::string buf;
+        llvm::raw_string_ostream stream(buf);
+        stream << err;
+        printf("%s\n", buf.c_str());
+
+        llvm::consumeError(std::move(err));
+      }
     }
   }
 }
@@ -529,9 +540,9 @@ struct SHP1Node final : public oishii::Node {
           std::string front =
               std::string("SHP1::DLData::") + std::to_string(mPolyId) + "::";
           // DL size
-          writer.writeLink<u32>({front + std::to_string(i)},
-                                {front + std::to_string(i),
-                                 oishii::Hook::RelativePosition::End});
+          writer.writeLink<u32>(
+              {front + std::to_string(i)},
+              {front + std::to_string(i), oishii::Hook::RelativePosition::End});
           // Relative DL offset
           writer.writeLink<u32>({"SHP1::DLData"}, {front + std::to_string(i)});
         }

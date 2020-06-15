@@ -25,7 +25,7 @@ struct VBOBuilder {
   std::vector<u32> mIndices;
   struct SplicePoint {
     std::size_t offset = 0;
-    std::size_t size = -1;
+    std::size_t size = (std::size_t)-1;
   };
 
   // binding_point : data

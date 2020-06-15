@@ -1,13 +1,12 @@
 #pragma once
 
+#include "Indirect.hpp"
 #include <array>
 #include <core/common.h>
+#include <llvm/ADT/SmallVector.h>
 #include <vector>
 
-#include "Indirect.hpp"
-
-namespace libcube {
-namespace gx {
+namespace libcube::gx {
 
 enum class TevColorArg {
   cprev,
@@ -274,7 +273,7 @@ struct Shader {
   std::array<IndOrder, 4> mIndirectOrders;
 
   // Variable-sized DL
-  std::vector<TevStage> mStages;
+  llvm::SmallVector<TevStage, 16> mStages;
 
   bool operator==(const Shader& rhs) const noexcept {
     return mSwapTable == rhs.mSwapTable &&
@@ -298,5 +297,4 @@ struct Shader {
   }
 };
 
-} // namespace gx
-} // namespace libcube
+} // namespace libcube::gx

@@ -122,13 +122,13 @@ private:
 template <typename T> static void writeAt(T& stream, u32 pos, s32 val) {
   auto back = stream.tell();
   stream.seekSet(pos);
-  stream.write<s32>(val);
+  stream.template write<s32>(val);
   stream.seekSet(back);
 }
 template <typename T> static void writeAtS16(T& stream, u32 pos, s16 val) {
   auto back = stream.tell();
   stream.seekSet(pos);
-  stream.write<s16>(val);
+  stream.template write<s16>(val);
   stream.seekSet(back);
 }
 
