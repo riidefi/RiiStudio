@@ -13,15 +13,14 @@ void SceneTree::gatherBoneRecursive(u64 boneId, const kpi::FolderData& bones,
     const auto& mat = mats.at<lib3d::Material>(display.matId);
 
     const auto shader_sources = mat.generateShaders();
-    ShaderProgram& shader =
-        ShaderCache::compile(shader_sources.first, shader_sources.second);
-    const Node node{mats.at<lib3d::Material>(display.matId),
+    ShaderProgram shader(shader_sources.first, shader_sources.second);
+    Node node{mats.at<lib3d::Material>(display.matId),
                     polys.at<lib3d::Polygon>(display.polyId), pBone,
-                    display.prio, shader};
+                    display.prio, std::move(shader)};
 
     auto& nodebuf = node.isTranslucent() ? translucent : opaque;
 
-    nodebuf.push_back(std::make_unique<Node>(node));
+    nodebuf.push_back(std::make_unique<Node>(std::move(node)));
     nodebuf.back()->mat.observers.push_back(nodebuf.back().get());
   }
 

@@ -25,7 +25,6 @@ void Scene::build(const glm::mat4& view, const glm::mat4& proj, AABB& bound) {
 }
 
 void Scene::draw() {
-  // glClearColor(0.2f, 0.3f, 0.3f, 0.0f);
   const auto bg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
   glClearColor(bg.x, bg.y, bg.z, bg.w);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -117,6 +116,7 @@ void Scene::draw() {
   }
 
   glBindVertexArray(0);
+  glUseProgram(0);
 }
 
 } // namespace riistudio::lib3d

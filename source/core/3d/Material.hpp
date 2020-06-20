@@ -53,6 +53,14 @@ struct Material {
     // (for shader recompilation)
     notifyObservers();
   }
+  lib3d::Material& operator=(const lib3d::Material& rhs) {
+    // Observers intentionally omitted
+    cachedPixelShader = rhs.cachedPixelShader;
+    isShaderError = rhs.isShaderError;
+    shaderError = rhs.shaderError;
+    applyCacheAgain = rhs.applyCacheAgain;
+    return *this;
+  }
   mutable std::vector<IObserver*> observers;
 
   mutable std::string cachedPixelShader;

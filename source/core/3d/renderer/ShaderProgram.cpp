@@ -39,7 +39,7 @@ ShaderProgram::ShaderProgram(const char* vtx, const char* frag) {
   glAttachShader(mShaderProgram, vertexShader);
   glAttachShader(mShaderProgram, fragmentShader);
   glLinkProgram(mShaderProgram);
-  
+
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
 }
@@ -47,6 +47,7 @@ ShaderProgram::ShaderProgram(const std::string& vtx, const std::string& frag)
     : ShaderProgram(vtx.c_str(), frag.c_str()) {}
 ShaderProgram::~ShaderProgram() {
 #ifndef RII_PLATFORM_EMSCRIPTEN
-  glDeleteProgram(mShaderProgram);
+  if (mShaderProgram != ~0)
+    glDeleteProgram(mShaderProgram);
 #endif
 }

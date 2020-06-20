@@ -12,7 +12,7 @@ struct SceneTree {
     const lib3d::Bone& bone;
     u8 priority;
 
-    ShaderProgram& shader;
+    ShaderProgram shader;
 
     // Only used later
     mutable u32 idx_ofs = 0;
@@ -20,21 +20,21 @@ struct SceneTree {
     mutable u32 mtx_id = 0;
 
     Node(const lib3d::Material& m, const lib3d::Polygon& p,
-         const lib3d::Bone& b, u8 prio, ShaderProgram& prog)
+         const lib3d::Bone& b, u8 prio, ShaderProgram&& prog)
         : mat((lib3d::Material&)m), poly(p), bone(b), priority(prio),
-          shader(prog) {}
+          shader(std::move(prog)) {}
 
     void update(lib3d::Material* _mat) override {
       mat = *_mat;
       const auto shader_sources = mat.generateShaders();
-      auto& new_shader = ShaderCache::compile(
+      ShaderProgram new_shader(
           shader_sources.first, _mat->applyCacheAgain ? _mat->cachedPixelShader : shader_sources.second);
       if (new_shader.getError()) {
         _mat->isShaderError = true;
         _mat->shaderError = new_shader.getErrorDesc();
         return;
       }
-      shader = new_shader;
+      shader = std::move(new_shader);
       _mat->isShaderError = false;
     }
 
