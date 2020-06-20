@@ -247,7 +247,8 @@ struct TevStage {
 
 // SWAP table
 struct SwapTableEntry {
-  ColorComponent r, g, b, a;
+  ColorComponent r = ColorComponent::r, g = ColorComponent::g,
+                 b = ColorComponent::b, a = ColorComponent::a;
 
   bool operator==(const SwapTableEntry& rhs) const noexcept {
     return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;

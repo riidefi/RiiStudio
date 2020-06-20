@@ -244,7 +244,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
     // TODO: We can't use a std::array as indexedContainer relies on nEntries
     array_vector<gx::SwapTableEntry, 4> swap;
     loader.indexedContainer<u16>(swap, MatSec::TevSwapModeTableInfo, 4);
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < swap.nElements; ++i)
       mat.shader.mSwapTable[i] = swap[i];
 
     for (auto& e : mat.stackTrash)
@@ -584,8 +584,7 @@ int write_cache(oishii::Writer& writer, const std::vector<T>& cache) {
 }
 
 template <> struct io_wrapper<SerializableMaterial> {
-  static void onWrite(oishii::Writer& writer,
-                      const SerializableMaterial& smat);
+  static void onWrite(oishii::Writer& writer, const SerializableMaterial& smat);
 };
 struct MAT3Node : public oishii::Node {
   template <typename T, MatSec s>
@@ -651,8 +650,7 @@ struct MAT3Node : public oishii::Node {
     }
 
     {
-      oishii::Jump<oishii::Whence::Set, oishii::Writer> g(writer,
-                                                              ofsEntries);
+      oishii::Jump<oishii::Whence::Set, oishii::Writer> g(writer, ofsEntries);
       writer.write<s32>(entryStart - start);
     }
 
@@ -681,8 +679,7 @@ struct MAT3Node : public oishii::Node {
       writeNameTable(writer, names);
       writer.alignTo(4);
 
-      oishii::Jump<oishii::Whence::Set, oishii::Writer> g(writer,
-                                                              ofsNameTab);
+      oishii::Jump<oishii::Whence::Set, oishii::Writer> g(writer, ofsNameTab);
       writer.write<s32>(nameTabStart - start);
     }
 
@@ -697,8 +694,7 @@ struct MAT3Node : public oishii::Node {
         slide = ofs - start;
       }
 
-      oishii::Jump<oishii::Whence::Set, oishii::Writer> g(writer,
-                                                              tableCursor);
+      oishii::Jump<oishii::Whence::Set, oishii::Writer> g(writer, tableCursor);
       writer.write<s32>(slide);
 
       tableCursor += 4;
