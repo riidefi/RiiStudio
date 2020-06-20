@@ -2,13 +2,11 @@
 
 #include "aabb.hpp"
 #include <array>
+#include <core/3d/renderer/UBOBuilder.hpp>
+#include <core/3d/renderer/VBOBuilder.hpp>
 #include <core/common.h>
 #include <glm/glm.hpp>
 #include <string>
-
-// TODO: Interdependency
-#include <frontend/renderer/UBOBuilder.hpp>
-#include <frontend/renderer/VBOBuilder.hpp>
 
 namespace riistudio::lib3d {
 

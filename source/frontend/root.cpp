@@ -22,6 +22,14 @@
 
 namespace riistudio::frontend {
 
+#ifdef _WIN32
+static void GlCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
+                       GLsizei length, const GLchar* message,
+                       GLvoid* userParam) {
+  printf("%s\n", message);
+}
+#endif
+
 void RootWindow::draw() {
   fileHostProcess();
 
@@ -420,7 +428,13 @@ void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
   attachWindow(std::move(editor));
 }
 
-RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) { InitAPI(); }
+RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
+#ifdef _WIN32
+  glDebugMessageCallback(GlCallback, 0);
+#endif
+
+  InitAPI();
+}
 RootWindow::~RootWindow() { DeinitAPI(); }
 
 inline bool ends_with(const std::string& value, const std::string& ending) {

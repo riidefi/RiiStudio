@@ -1,6 +1,6 @@
+#define NOMINMAX
 #include "Renderer.hpp"
-#include "SceneState.hpp"    // SceneState
-#include <core/3d/gl.hpp>    // glDebugMessageCallback
+#include <core/3d/gl.hpp>    // glPolygonMode
 #include <core/util/gui.hpp> // ImGui::BeginMenuBar
 
 #ifndef _WIN32
@@ -12,29 +12,9 @@
 #include <plugins/j3d/Shape.hpp>
 #include <vendor/glm/matrix.hpp>
 
-#undef min
-
 namespace riistudio::frontend {
 
-void Renderer::prepare(const kpi::IDocumentNode& model,
-                       const kpi::IDocumentNode& texture, bool buf, bool tex) {
-  mState->gather(model, texture, buf, tex);
-}
-
-#ifdef _WIN32
-static void cb(GLenum source, GLenum type, GLuint id, GLenum severity,
-               GLsizei length, const GLchar* message, GLvoid* userParam) {
-  printf("%s\n", message);
-}
-#endif
-
-Renderer::Renderer() {
-#ifdef _WIN32
-  glDebugMessageCallback(cb, 0);
-#endif
-
-  mState = std::make_unique<SceneState>();
-}
+Renderer::Renderer(lib3d::IDrawable* root) : mRoot(root) {}
 Renderer::~Renderer() {}
 
 void Renderer::render(u32 width, u32 height, bool& showCursor) {
@@ -141,7 +121,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
                viewMtx, key_w, key_a, key_s, key_d, key_up, key_down);
 
   riistudio::lib3d::AABB bound;
-  mState->build(projMtx, viewMtx, bound);
+  mRoot->build(projMtx, viewMtx, bound);
 
   const f32 dist = glm::distance(bound.min, bound.max);
   if (mCamera.getSpeed() == 0.0f)
@@ -168,7 +148,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     }
   }
 
-  mState->draw();
+  mRoot->draw();
 }
 
 } // namespace riistudio::frontend

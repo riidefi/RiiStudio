@@ -1,6 +1,6 @@
 #include "SceneTree.hpp"
 
-namespace riistudio::frontend {
+namespace riistudio::lib3d {
 
 void SceneTree::gatherBoneRecursive(u64 boneId, const kpi::FolderData& bones,
                                     const kpi::FolderData& mats,
@@ -49,4 +49,4 @@ void SceneTree::gather(const kpi::IDocumentNode& root) {
   gatherBoneRecursive(0, *pBones, *pMats, *pPolys);
 }
 
-} // namespace riistudio::frontend
+} // namespace riistudio::lib3d

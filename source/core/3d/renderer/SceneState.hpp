@@ -1,9 +1,11 @@
 #pragma once
 
-#include "SceneTree.hpp"
-#include <core/3d/aabb.hpp>
+#include <core/3d/aabb.hpp>                // AABB
+#include <core/3d/renderer/SceneTree.hpp>  // SceneTree
+#include <core/3d/renderer/UBOBuilder.hpp> // DelegatedUBOBuilder
+#include <core/3d/renderer/VBOBuilder.hpp> // VBOBuilder
 
-namespace riistudio::frontend {
+namespace riistudio::lib3d {
 
 struct SceneState {
   ~SceneState();
@@ -15,12 +17,10 @@ struct SceneState {
               const kpi::IDocumentNode& texture, bool buf = true,
               bool tex = true);
 
-  void build(const glm::mat4& view, const glm::mat4& proj,
-             riistudio::lib3d::AABB& bound);
+  void build(const glm::mat4& view, const glm::mat4& proj, AABB& bound);
 
   void draw();
 
-  DelegatedUBOBuilder mUboBuilder;
   SceneTree mTree;
   std::map<std::string, u32> texIdMap;
   const kpi::FolderData* bones;
@@ -34,6 +34,7 @@ struct SceneState {
     //	u32 height;
   };
   std::vector<Texture> mTextures;
+  DelegatedUBOBuilder mUboBuilder;
 };
 
-} // namespace riistudio::frontend
+} // namespace riistudio::lib3d

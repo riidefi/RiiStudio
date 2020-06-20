@@ -140,9 +140,9 @@ function setupMainAppCli(set_links)
 		}
 	filter "configurations:Dist"
 		postbuildcommands {
-			"{COPY} %{cfg.targetdir}/*.exe ../dist/",
-			"{COPY} %{cfg.targetdir}/*.dll ../dist/",
-			"{COPY} %{cfg.targetdir}/*.ttf ../dist/fonts/"
+			"{COPY} %{cfg.targetdir}/*.exe ../../dist/",
+			"{COPY} %{cfg.targetdir}/*.dll ../../dist/",
+			"{COPY} %{cfg.targetdir}/fonts ../../dist/fonts/"
 			-- "{COPY} %{cfg.targetdir}/scripts  ../dist/scripts/"
 		}
 end
@@ -160,7 +160,13 @@ function setupMainApp()
 	--	"libfbxsdk.lib",
 		"assimp-vc141-mt.lib"
 	}
-
+	postbuildcommands {
+		"{COPY} ../../source/plate/vendor/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}",
+		"{COPY} ../../source/vendor/assimp/assimp-vc141-mt.dll %{cfg.targetdir}",
+		-- "{COPY} " .. fbx_dir .. "libfbxsdk.dll %{cfg.targetdir}",
+		"{COPY} ../../fonts/* %{cfg.targetdir}/fonts",
+		-- "{COPY} ./scripts/* %{cfg.targetdir}/scripts"
+	}
 	setupMainAppCli(false)
 	
 	--	fbx_dir = ""
@@ -171,12 +177,7 @@ function setupMainApp()
 	--	configuration { "vs*", "Dist" }
 	--		fbx_dir = FBX_SDK_ROOT .. "/x64/release"
 
-	postbuildcommands {
-		"{COPY} ../source/plate/vendor/glfw/lib-vc2017/glfw3.dll %{cfg.targetdir}",
-		-- "{COPY} " .. fbx_dir .. "libfbxsdk.dll %{cfg.targetdir}",
-		"{COPY} ../../fonts/* %{cfg.targetdir}",
-		"{COPY} ./scripts/* %{cfg.targetdir}/scripts"
-	}
+	
 end
 
 project "frontend"

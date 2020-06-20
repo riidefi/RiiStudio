@@ -1,9 +1,9 @@
 #pragma once
 
 #include <core/3d/i3dmodel.hpp>
-#include <frontend/renderer/ShaderCache.hpp>
+#include <core/3d/renderer/ShaderCache.hpp>
 
-namespace riistudio::frontend {
+namespace riistudio::lib3d {
 
 struct SceneTree {
   struct Node : public lib3d::IObserver {
@@ -52,4 +52,4 @@ struct SceneTree {
   // TODO: Z Sort
 };
 
-} // namespace riistudio::frontend
+} // namespace riistudio::lib3d

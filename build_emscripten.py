@@ -193,13 +193,20 @@ def build_project(name, type, config, proj=None):
 		copyfile("source/" + name + "/app.html", bin_dir + "/app.html")
 	return locals_objs
 
-def build_projects(config):
+def build_projects(config, rebuild):
+	if rebuild:
+		to_remove = []
+		for hash in gHashManager.hashes:
+			if not 'vendor' in hash:
+				to_remove.append(hash)
+		for hash in to_remove:
+			gHashManager.hashes.pop(hash, None)
 	for proj in PROJECTS:
 		proj["objs"] = build_project(proj["name"], proj["type"], config, proj)
 
 cfg = "RELEASE"
 if len(sys.argv) > 1:
 	cfg = sys.argv[1].upper()
-build_projects(cfg)
+build_projects(cfg, len(sys.argv) > 2 and sys.argv[2] == "-rebuild")
 
 gHashManager.store_to_file()

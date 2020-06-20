@@ -1,15 +1,12 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <map>
-#include <string>
-#include <tuple>
-
-#include "MegaState.hpp"
-#include "PixelOcclusion.hpp"
-
-// TODO: Interdependency
-#include <frontend/renderer/UBOBuilder.hpp>
+#include "MegaState.hpp"                   // MegaState
+#include "PixelOcclusion.hpp"              // PixelOcclusion
+#include <core/3d/renderer/UBOBuilder.hpp> // DelegatedUBOBuilder
+#include <glm/glm.hpp>                     // glm::mat4
+#include <map>                             // std::map<string, u32>
+#include <string>                          // std::string
+#include <tuple>                           // std::pair<string, string>
 
 namespace riistudio::lib3d {
 

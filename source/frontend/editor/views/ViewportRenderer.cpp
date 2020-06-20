@@ -30,16 +30,9 @@ private:
 };
 
 RenderTest::RenderTest(const kpi::IDocumentNode& host)
-    : StudioWindow("Viewport"), mHost(host) {
+    : StudioWindow("Viewport"), mHost(host), mRenderer(dynamic_cast<lib3d::IDrawable*>(const_cast<kpi::IDocumentNode*>(&host))) {
   setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
-
-  const auto* models = host.getFolder<lib3d::Model>();
-
-  if (!models || models->empty())
-    return;
-
-  model = &models->at<kpi::IDocumentNode>(0);
-  mRenderer.prepare(*model, host);
+  mRenderer.prepare(host);
 }
 
 void RenderTest::draw_() {
