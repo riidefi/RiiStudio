@@ -35,6 +35,9 @@ void RootWindow::draw() {
 
   ImGui::PushID(0);
   if (BeginFullscreenWindow("##RootWindow", getOpen())) {
+    mTheme.setThemeEx(mCurTheme);
+    ImGui::GetIO().FontGlobalScale = mFontGlobalScale;
+
     ImGui::SetWindowFontScale(1.1f);
     if (!hasChildren()) {
       ImGui::Text("Drop a file to edit.");
@@ -123,7 +126,7 @@ void RootWindow::draw() {
           vsync = _vsync;
         }
 
-        ImGui::Checkbox("Theme Editor", &bThemeEditor);
+        DrawThemeEditor(mCurTheme, mFontGlobalScale, nullptr);
 
         ImGui::EndMenu();
       }
@@ -338,10 +341,6 @@ void RootWindow::draw() {
     }
 
     DrawChangeLog(&mShowChangeLog);
-
-    DrawThemeEditor(mCurTheme, mFontGlobalScale, &bThemeEditor);
-    mTheme.setThemeEx(mCurTheme);
-    ImGui::GetIO().FontGlobalScale = mFontGlobalScale;
 
     drawChildren();
   }
