@@ -1,10 +1,14 @@
 #pragma once
 
 #include "GXMaterial.hpp"
-
+#include <core/util/string_builder.hpp> // StringBuilder
+#include <llvm/Support/Error.h>         // llvm::Error
+#include <string>                       // std::string
 #include <vendor/glm/vec4.hpp>
 
 namespace libcube {
+
+using StringBuilder = riistudio::util::StringBuilder;
 
 enum class GfxFormat { F32_R, F32_RG, F32_RGB, F32_RGBA };
 
@@ -24,17 +28,23 @@ protected:
   //----------------------------------
   // Lighting
   //----------------------------------
-  std::string generateMaterialSource(const gx::ChannelControl& chan, int i);
-  std::string generateAmbientSource(const gx::ChannelControl& chan, int i);
-  std::string generateLightDiffFn(const gx::ChannelControl& chan,
+  llvm::Error generateMaterialSource(StringBuilder& builder,
+                                     const gx::ChannelControl& chan, int i);
+  llvm::Error generateAmbientSource(StringBuilder& builder,
+                                    const gx::ChannelControl& chan, int i);
+  llvm::Error generateLightDiffFn(StringBuilder& builder,
+                                  const gx::ChannelControl& chan,
                                   const std::string& lightName);
-  std::string generateLightAttnFn(const gx::ChannelControl& chan,
+  llvm::Error generateLightAttnFn(StringBuilder& builder,
+                                  const gx::ChannelControl& chan,
                                   const std::string& lightName);
-  std::string generateColorChannel(const gx::ChannelControl& chan,
+  llvm::Error generateColorChannel(StringBuilder& builder,
+                                   const gx::ChannelControl& chan,
                                    const std::string& outputName, int i);
-  std::string generateLightChannel(const LightingChannelControl& lightChannel,
+  llvm::Error generateLightChannel(StringBuilder& builder,
+                                   const LightingChannelControl& lightChannel,
                                    const std::string& outputName, int i);
-  std::string generateLightChannels();
+  llvm::Error generateLightChannels(StringBuilder& builder);
 
   //----------------------------------
   // Matrix
@@ -131,16 +141,17 @@ protected:
   std::string generateTevTexCoord(const gx::TevStage& stage);
 
   // Putting it all together
-  std::string generateTevStage(u32 tevStageIndex);
-  std::string generateTevStages();
-  std::string generateTevStagesLastMinuteFixup();
+  llvm::Error generateTevStage(StringBuilder& builder, u32 tevStageIndex);
+  llvm::Error generateTevStages(StringBuilder& builder);
+  llvm::Error generateTevStagesLastMinuteFixup(StringBuilder& builder);
 
   //----------------------------------
   // Alpha Test
   //----------------------------------
-  std::string generateAlphaTestCompare(gx::Comparison compare, float reference);
-  std::string generateAlphaTestOp(gx::AlphaOp op);
-  std::string generateAlphaTest();
+  llvm::Error generateAlphaTestCompare(StringBuilder& builder,
+                                       gx::Comparison compare, float reference);
+  llvm::Error generateAlphaTestOp(StringBuilder& builder, gx::AlphaOp op);
+  llvm::Error generateAlphaTest(StringBuilder& builder);
 
   //----------------------------------
   // Fog
@@ -154,14 +165,14 @@ protected:
   //----------------------------------
   // Attributes
   //----------------------------------
-  std::string generateAttributeStorageType(u32 glFormat, u32 count);
-  std::string generateVertAttributeDefs();
+  llvm::Error generateAttributeStorageType(StringBuilder& builder,u32 glFormat, u32 count);
+  llvm::Error generateVertAttributeDefs(StringBuilder& builder);
 
   //----------------------------------
   // PNMTX
   //----------------------------------
-  std::string generateMulPos();
-  std::string generateMulNrm();
+  llvm::Error generateMulPos(StringBuilder& builder);
+  llvm::Error generateMulNrm(StringBuilder& builder);
 
 public:
   //----------------------------------

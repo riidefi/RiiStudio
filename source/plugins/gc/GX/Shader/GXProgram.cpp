@@ -6,45 +6,66 @@ namespace libcube {
 
 using namespace gx;
 
-std::string GXProgram::generateMaterialSource(const gx::ChannelControl& chan,
+llvm::Error GXProgram::generateMaterialSource(StringBuilder& builder,
+                                              const gx::ChannelControl& chan,
                                               int i) {
   switch (chan.Material) {
   case ColorSource::Vertex:
-    return "a_Color" + std::to_string(i);
+    builder += "a_Color";
+    builder += std::to_string(i);
+    break;
   case ColorSource::Register:
-    return "u_ColorMatReg[" + std::to_string(i) + "]";
+    builder += "u_ColorMatReg[";
+    builder += std::to_string(i);
+    builder += "]";
+    break;
   }
+  return llvm::Error::success();
 }
 
-std::string GXProgram::generateAmbientSource(const gx::ChannelControl& chan,
+llvm::Error GXProgram::generateAmbientSource(StringBuilder& builder,
+                                             const gx::ChannelControl& chan,
                                              int i) {
   switch (chan.Ambient) {
   case ColorSource::Vertex:
-    return "a_Color" + std::to_string(i);
-  default:
+    builder += "a_Color";
+    builder += std::to_string(i);
+    break;
   case ColorSource::Register:
-    return "u_ColorAmbReg[" + std::to_string(i) + "]";
+    builder += "u_ColorAmbReg[";
+    builder += std::to_string(i);
+    builder += "]";
+    break;
   }
+  return llvm::Error::success();
 }
 
-std::string GXProgram::generateLightDiffFn(const gx::ChannelControl& chan,
+llvm::Error GXProgram::generateLightDiffFn(StringBuilder& builder,
+                                           const gx::ChannelControl& chan,
                                            const std::string& lightName) {
-  const std::string NdotL = "dot(t_Normal, t_LightDeltaDir)";
+  const char* NdotL = "dot(t_Normal, t_LightDeltaDir)";
 
   switch (chan.diffuseFn) {
   default:
   case DiffuseFunction::None:
-    return "1.0";
+    builder += "1.0";
+    break;
   case DiffuseFunction::Sign:
-    return NdotL;
+    builder += NdotL;
+    break;
   case DiffuseFunction::Clamp:
-    return "max(" + NdotL + ", 0.0f)";
+    builder += "max(";
+    builder += NdotL;
+    builder += ", 0.0f)";
+    break;
   }
+  return llvm::Error::success();
 }
-std::string GXProgram::generateLightAttnFn(const gx::ChannelControl& chan,
+llvm::Error GXProgram::generateLightAttnFn(StringBuilder& builder,
+                                           const gx::ChannelControl& chan,
                                            const std::string& lightName) {
   if (chan.attenuationFn == AttenuationFunction::None) {
-    return "t_Attenuation = 1.0;";
+    builder += "t_Attenuation = 1.0;";
   } else if (chan.attenuationFn == AttenuationFunction::Spotlight) {
     auto attn = std::string("max(0.0, dot(t_LightDeltaDir, ") + lightName +
                 ".Direction.xyz))";
@@ -53,7 +74,12 @@ std::string GXProgram::generateLightAttnFn(const gx::ChannelControl& chan,
     auto distAttn =
         std::string("dot(") + lightName +
         ".DistAtten.xyz, vec3(1.0, t_LightDeltaDist, t_LightDeltaDist2))";
-    return std::string("t_Attenuation = ") + cosAttn + " / " + distAttn + ";";
+
+    builder += "t_Attenuation = ";
+    builder += cosAttn;
+    builder += " / ";
+    builder += distAttn;
+    builder += ";";
   } else if (chan.attenuationFn == AttenuationFunction::Specular) {
     auto attn = std::string("(dot(t_Normal, t_LightDeltaDir) >= 0.0) ? "
                             "max(0.0, dot(t_Normal, ") +
@@ -62,22 +88,32 @@ std::string GXProgram::generateLightAttnFn(const gx::ChannelControl& chan,
                    ".CosAtten.xyz, t_Attenuation)";
     auto distAttn = std::string("ApplyAttenuation(") + lightName +
                     ".DistAtten.xyz, t_Attenuation)";
-    return std::string("t_Attenuation = ") + attn +
-           ";\nt_Attenuation = " + cosAttn + " / " + distAttn + ";";
+
+    builder += "t_Attenuation = ";
+    builder += attn;
+    builder += ";\n";
+
+    builder += "t_Attenuation = ";
+    builder += cosAttn;
+    builder += " / ";
+    builder += distAttn;
+    builder += ";";
   } else {
-    throw "whoops";
+    return llvm::createStringError(llvm::inconvertibleErrorCode(),
+                                   "Invalid attenuation function");
   }
+
+  return llvm::Error::success();
 }
-std::string GXProgram::generateColorChannel(const gx::ChannelControl& chan,
+llvm::Error GXProgram::generateColorChannel(StringBuilder& builder,
+                                            const gx::ChannelControl& chan,
                                             const std::string& outputName,
                                             int i) {
-  const std::string matSource = generateMaterialSource(chan, i);
-  const std::string ambSource = generateAmbientSource(chan, i);
-
-  std::string generateLightAccum = "";
 
   if (chan.enabled) {
-    generateLightAccum = "t_LightAccum = " + ambSource + ";\n";
+    builder += "t_LightAccum = ";
+    llvm::cantFail(generateAmbientSource(builder, chan, i));
+    builder += ";\n";
 
     if (chan.lightMask != LightID::None)
       assert(mMaterial.hasLightsBlock);
@@ -87,45 +123,59 @@ std::string GXProgram::generateColorChannel(const gx::ChannelControl& chan,
         continue;
 
       const std::string lightName = "u_LightParams[" + std::to_string(j) + "]";
-      generateLightAccum +=
-          "    t_LightDelta = " + lightName +
-          ".Position.xyz - v_Position.xyz;\n"
-          "    t_LightDeltaDist2 = dot(t_LightDelta, t_LightDelta);\n"
-          "    t_LightDeltaDist = sqrt(t_LightDeltaDist2);\n"
-          "    t_LightDeltaDir = t_LightDelta / t_LightDeltaDist;\n"
 
-          + generateLightAttnFn(chan, lightName) +
-          "    t_LightAccum += " + generateLightDiffFn(chan, lightName) +
-          " * t_Attenuation * " + lightName + ".Color;\n";
+      builder += "    t_LightDelta = ";
+      builder += lightName;
+      builder += ".Position.xyz - v_Position.xyz;\n"
+                 "    t_LightDeltaDist2 = dot(t_LightDelta, t_LightDelta);\n"
+                 "    t_LightDeltaDist = sqrt(t_LightDeltaDist2);\n"
+                 "    t_LightDeltaDir = t_LightDelta / t_LightDeltaDist;\n";
+
+      if (auto err = generateLightAttnFn(builder, chan, lightName)) {
+        return std::move(err);
+      }
+      builder += "    t_LightAccum += ";
+      if (auto err = generateLightDiffFn(builder, chan, lightName)) {
+        return std::move(err);
+      }
+      builder += " * t_Attenuation * " + lightName + ".Color;\n";
     }
   } else {
     // Without lighting, everything is full-bright.
-    generateLightAccum += "    t_LightAccum = vec4(1.0);\n";
+    builder += "    t_LightAccum = vec4(1.0);\n";
   }
-  return generateLightAccum + "    " + outputName + " = " + matSource +
-         " * clamp(t_LightAccum, 0.0, 1.0);\n"; // .trim();
+
+  builder += "    ";
+  builder += outputName;
+  builder += " = ";
+  llvm::cantFail(generateMaterialSource(builder, chan, i));
+  builder += " * clamp(t_LightAccum, 0.0, 1.0);\n";
+
+  return llvm::Error::success();
 }
 
-std::string
-GXProgram::generateLightChannel(const LightingChannelControl& lightChannel,
+llvm::Error
+GXProgram::generateLightChannel(StringBuilder& builder,
+                                const LightingChannelControl& lightChannel,
                                 const std::string& outputName, int i) {
   if (lightChannel.colorChannel == lightChannel.alphaChannel) {
     // TODO
-    return "    " +
-           generateColorChannel(lightChannel.colorChannel, outputName, i);
+    builder += "    ";
+    llvm::cantFail(generateColorChannel(builder, lightChannel.colorChannel,
+                                        outputName, i));
   } else {
-    return generateColorChannel(lightChannel.colorChannel, "t_ColorChanTemp",
-                                i) +
-           "\n" + outputName + ".rgb = t_ColorChanTemp.rgb;\n" +
-           generateColorChannel(lightChannel.alphaChannel, "t_ColorChanTemp",
-                                i) +
-           "\n" + outputName + ".a = t_ColorChanTemp.a;\n";
+    llvm::cantFail(generateColorChannel(builder, lightChannel.colorChannel,
+                                        "t_ColorChanTemp", i));
+    builder += "\n" + outputName + ".rgb = t_ColorChanTemp.rgb;\n";
+    llvm::cantFail(generateColorChannel(builder, lightChannel.alphaChannel,
+                                        "t_ColorChanTemp", i));
+    builder += "\n" + outputName + ".a = t_ColorChanTemp.a;\n";
   }
+
+  return llvm::Error::success();
 }
 
-std::string GXProgram::generateLightChannels() {
-  std::string out;
-
+llvm::Error GXProgram::generateLightChannels(StringBuilder& builder) {
   const auto& src = mMaterial.mat.getMaterialData().colorChanControls;
 
   std::array<LightingChannelControl, 2> ctrl;
@@ -141,11 +191,13 @@ std::string GXProgram::generateLightChannels() {
 
   int i = 0;
   for (const auto& chan : ctrl) {
-    out += generateLightChannel(chan, "v_Color" + std::to_string(i), i) + "\n";
+    llvm::cantFail(
+        generateLightChannel(builder, chan, "v_Color" + std::to_string(i), i));
+    builder += "\n";
     ++i;
   }
 
-  return out;
+  return llvm::Error::success();
 }
 
 // Matrix
@@ -955,88 +1007,124 @@ std::string GXProgram::generateTevTexCoord(const gx::TevStage& stage) {
   }
 }
 
-std::string GXProgram::generateTevStage(u32 tevStageIndex) {
+llvm::Error GXProgram::generateTevStage(StringBuilder& builder,
+                                        u32 tevStageIndex) {
   const auto& stage =
       mMaterial.mat.getMaterialData().shader.mStages[tevStageIndex];
 
-  return "\n\n    //\n    // TEV Stage " + std::to_string(tevStageIndex) +
-         "\n    //\n" + generateTevTexCoord(stage) + generateTevInputs(stage) +
-         generateColorOp(stage) + generateAlphaOp(stage);
+  builder += "\n\n    //\n    // TEV Stage ";
+  builder += std::to_string(tevStageIndex);
+  builder += "\n    //\n";
+  builder += generateTevTexCoord(stage);
+  builder += generateTevInputs(stage);
+  builder += generateColorOp(stage);
+  builder += generateAlphaOp(stage);
+
+  return llvm::Error::success();
 }
 
-std::string GXProgram::generateTevStages() {
-  std::string out;
+llvm::Error GXProgram::generateTevStages(StringBuilder& builder) {
   for (int i = 0; i < mMaterial.mat.getMaterialData().shader.mStages.size();
        ++i)
-    out += generateTevStage(i);
-  return out;
+    if (auto err = generateTevStage(builder, i))
+      return std::move(err);
+
+  return llvm::Error::success();
 }
 
-std::string GXProgram::generateTevStagesLastMinuteFixup() {
+llvm::Error
+GXProgram::generateTevStagesLastMinuteFixup(StringBuilder& builder) {
   const auto& tevStages = mMaterial.mat.getMaterialData().shader.mStages;
 
   const auto& lastTevStage = tevStages[tevStages.size() - 1];
   const auto colorReg = generateTevRegister(lastTevStage.colorStage.out);
   const auto alphaReg = generateTevRegister(lastTevStage.alphaStage.out);
+
   if (colorReg == alphaReg) {
-    return "    vec4 t_TevOutput = " + colorReg + ";\n";
+    builder += "    vec4 t_TevOutput = " + colorReg + ";\n";
   } else {
-    return "    vec4 t_TevOutput = vec4(" + colorReg + ".rgb, " + alphaReg +
-           ".a);\n";
+    builder += "    vec4 t_TevOutput = vec4(" + colorReg + ".rgb, " + alphaReg +
+               ".a);\n";
   }
+
+  return llvm::Error::success();
 }
 
-std::string GXProgram::generateAlphaTestCompare(gx::Comparison compare,
+llvm::Error GXProgram::generateAlphaTestCompare(StringBuilder& builder,
+                                                gx::Comparison compare,
                                                 float reference) {
   const auto ref = std::to_string(static_cast<f32>(reference));
   switch (compare) {
   case gx::Comparison::NEVER:
-    return "false";
+    builder += "false";
+    break;
   case gx::Comparison::LESS:
-    return "t_PixelOut.a <  " + ref;
+    builder += "t_PixelOut.a <  ";
+    builder += ref;
+    break;
   case gx::Comparison::EQUAL:
-    return "t_PixelOut.a == " + ref;
+    builder += "t_PixelOut.a == ";
+    builder += ref;
+    break;
   case gx::Comparison::LEQUAL:
-    return "t_PixelOut.a <= " + ref;
+    builder += "t_PixelOut.a <= ";
+    builder += ref;
+    break;
   case gx::Comparison::GREATER:
-    return "t_PixelOut.a >  " + ref;
+    builder += "t_PixelOut.a >  ";
+    builder += ref;
+    break;
   case gx::Comparison::NEQUAL:
-    return "t_PixelOut.a != " + ref;
+    builder += "t_PixelOut.a != ";
+    builder += ref;
+    break;
   case gx::Comparison::GEQUAL:
-    return "t_PixelOut.a >= " + ref;
+    builder += "t_PixelOut.a >= ";
+    builder += ref;
+    break;
   case gx::Comparison::ALWAYS:
-    return "true";
+    builder += "true";
+    break;
   }
+  return llvm::Error::success();
 }
 
-std::string GXProgram::generateAlphaTestOp(gx::AlphaOp op) {
+llvm::Error GXProgram::generateAlphaTestOp(StringBuilder& builder,
+                                           gx::AlphaOp op) {
   switch (op) {
   case gx::AlphaOp::_and:
-    return "t_AlphaTestA && t_AlphaTestB";
+    builder += "t_AlphaTestA && t_AlphaTestB";
+    break;
   case gx::AlphaOp::_or:
-    return "t_AlphaTestA || t_AlphaTestB";
+    builder += "t_AlphaTestA || t_AlphaTestB";
+    break;
   case gx::AlphaOp::_xor:
-    return "t_AlphaTestA != t_AlphaTestB";
+    builder += "t_AlphaTestA != t_AlphaTestB";
+    break;
   case gx::AlphaOp::_xnor:
-    return "t_AlphaTestA == t_AlphaTestB";
+    builder += "t_AlphaTestA == t_AlphaTestB";
+    break;
   }
+  return llvm::Error::success();
 }
-std::string GXProgram::generateAlphaTest() {
+llvm::Error GXProgram::generateAlphaTest(StringBuilder& builder) {
   const auto alphaTest = mMaterial.mat.getMaterialData().alphaCompare;
-  return "\n	bool t_AlphaTestA = " +
-         generateAlphaTestCompare(alphaTest.compLeft,
-                                  static_cast<float>(alphaTest.refLeft) /
-                                      255.0f) +
-         ";\n"
-         "	bool t_AlphaTestB = " +
-         generateAlphaTestCompare(alphaTest.compRight,
-                                  static_cast<float>(alphaTest.refRight) /
-                                      255.0f) +
-         ";\n"
-         "	if (!(" +
-         generateAlphaTestOp(alphaTest.op) +
-         "))\n"
-         "		discard; \n";
+  builder += "\n	bool t_AlphaTestA = ";
+  llvm::cantFail(
+      generateAlphaTestCompare(builder, alphaTest.compLeft,
+                               static_cast<float>(alphaTest.refLeft) / 255.0f));
+  builder += ";\n";
+  builder += "	bool t_AlphaTestB = ";
+  llvm::cantFail(generateAlphaTestCompare(
+      builder, alphaTest.compRight,
+      static_cast<float>(alphaTest.refRight) / 255.0f));
+  builder += ";\n";
+  builder += "	if (!(";
+  llvm::cantFail(generateAlphaTestOp(builder, alphaTest.op));
+  builder += "))\n";
+  builder += "		discard; \n";
+
+  return llvm::Error::success();
 }
 std::string GXProgram::generateFogZCoord() { return ""; }
 std::string GXProgram::generateFogBase() { return ""; }
@@ -1046,55 +1134,71 @@ std::string GXProgram::generateFogAdj(const std::string& base) { return ""; }
 std::string GXProgram::generateFogFunc(const std::string& base) { return ""; }
 
 std::string GXProgram::generateFog() { return ""; }
-std::string GXProgram::generateAttributeStorageType(u32 glFormat, u32 count) {
-  assert(glFormat == GL_FLOAT);
-  if (glFormat != GL_FLOAT)
-    throw "whoops";
+llvm::Error GXProgram::generateAttributeStorageType(StringBuilder& builder,
+                                                    u32 glFormat, u32 count) {
+  assert(glFormat == GL_FLOAT && "Invalid format");
 
   switch (count) {
   case 1:
-    return "float";
+    builder += "float";
+    break;
   case 2:
-    return "vec2";
+    builder += "vec2";
+    break;
   case 3:
-    return "vec3";
+    builder += "vec3";
+    break;
   case 4:
-    return "vec4";
+    builder += "vec4";
+    break;
   default:
-    throw "whoops";
+    assert(!"Invalid count");
+    break;
   }
-  return "";
+
+  return llvm::Error::success();
 }
 
-std::string GXProgram::generateVertAttributeDefs() {
-  std::string out;
+llvm::Error GXProgram::generateVertAttributeDefs(StringBuilder& builder) {
   int i = 0;
   for (const auto& attr : vtxAttributeGenDefs) {
     // if (attr.format != GL_FLOAT) continue;
-    out += "layout(location = " + std::to_string(i) + ") in " +
-           generateAttributeStorageType(attr.format, attr.size) + " a_" +
-           attr.name + ";\n";
+    builder += "layout(location = ";
+    builder += std::to_string(i);
+    builder += ")";
+
+    builder += " in ";
+    llvm::cantFail(
+        generateAttributeStorageType(builder, attr.format, attr.size));
+    builder += " a_";
+    builder += attr.name;
+    builder += ";\n";
     ++i;
   }
-  return out;
+
+  return llvm::Error::success();
 }
-std::string GXProgram::generateMulPos() {
+llvm::Error GXProgram::generateMulPos(StringBuilder& builder) {
   // Default to using pnmtxidx.
   const auto src = "vec4(a_Position, 1.0)";
   if (mMaterial.usePnMtxIdx)
-    return generateMulPntMatrixDynamic("uint(a_PnMtxIdx)", src);
+    builder += generateMulPntMatrixDynamic("uint(a_PnMtxIdx)", src);
   else
-    return generateMulPntMatrixStatic(gx::PostTexMatrix::Matrix0, src);
+    builder += generateMulPntMatrixStatic(gx::PostTexMatrix::Matrix0, src);
+
+  return llvm::Error::success();
 }
 
-std::string GXProgram::generateMulNrm() {
+llvm::Error GXProgram::generateMulNrm(StringBuilder& builder) {
   // Default to using pnmtxidx.
   const auto src = "vec4(a_Normal, 0.0)";
   // TODO(jstpierre): Move to a normal matrix calculated on the CPU
   if (mMaterial.usePnMtxIdx)
-    return generateMulPntMatrixDynamic("uint(a_PnMtxIdx)", src);
+    builder += generateMulPntMatrixDynamic("uint(a_PnMtxIdx)", src);
   else
-    return generateMulPntMatrixStatic(gx::PostTexMatrix::Matrix0, src);
+    builder += generateMulPntMatrixStatic(gx::PostTexMatrix::Matrix0, src);
+
+  return llvm::Error::success();
 }
 
 std::pair<std::string, std::string> GXProgram::generateShaders() {
@@ -1192,45 +1296,57 @@ out vec4 fragOut;
 
 #endif
 
-  const auto vert =
-      std::string(both) + varying_vert + generateVertAttributeDefs() +
-      "mat4x3 GetPosTexMatrix(uint t_MtxIdx) {\n"
-      "    if (t_MtxIdx == " +
-      std::to_string((int)gx::TexMatrix::Identity) +
-      "u)\n"
-      "        return mat4x3(1.0);\n"
-      "    else if (t_MtxIdx >= " +
-      std::to_string((int)gx::TexMatrix::TexMatrix0) +
-      "u)\n"
-      "        return u_TexMtx[(t_MtxIdx - " +
-      std::to_string((int)gx::TexMatrix::TexMatrix0) +
-      "u) / 3u];\n"
-      "    else\n"
-      "        return u_PosMtx[t_MtxIdx / 3u];\n"
-      "}\n" +
-      R"(
+  std::array<char, 1024 * 64> vert_buf;
+  StringBuilder vert(vert_buf.data(), vert_buf.size());
+  vert += both;
+  vert += varying_vert;
+  llvm::cantFail(generateVertAttributeDefs(vert));
+  vert += "mat4x3 GetPosTexMatrix(uint t_MtxIdx) {\n"
+          "    if (t_MtxIdx == " +
+          std::to_string((int)gx::TexMatrix::Identity) +
+          "u)\n"
+          "        return mat4x3(1.0);\n"
+          "    else if (t_MtxIdx >= " +
+          std::to_string((int)gx::TexMatrix::TexMatrix0) +
+          "u)\n"
+          "        return u_TexMtx[(t_MtxIdx - " +
+          std::to_string((int)gx::TexMatrix::TexMatrix0) +
+          "u) / 3u];\n"
+          "    else\n"
+          "        return u_PosMtx[t_MtxIdx / 3u];\n"
+          "}\n" +
+          R"(
 float ApplyAttenuation(vec3 t_Coeff, float t_Value) {
     return dot(t_Coeff, vec3(1.0, t_Value, t_Value*t_Value));
 }
-)" +
-      "void main() {\n"
-      "    vec3 t_Position = " +
-      generateMulPos() +
-      ";\n"
-      "    v_Position = t_Position;\n"
-      "    vec3 t_Normal = " +
-      generateMulNrm() +
-      ";\n"
-      "    vec4 t_LightAccum;\n"
-      "    vec3 t_LightDelta, t_LightDeltaDir;\n"
-      "    float t_LightDeltaDist2, t_LightDeltaDist, t_Attenuation;\n"
-      "    vec4 t_ColorChanTemp;\n"
-      "    v_Color0 = a_Color0;\n" +
-      generateLightChannels() + generateTexGens() +
-      "gl_Position = (u_Projection * vec4(t_Position, 1.0));\n"
-      "}\n";
+)";
+  vert += "void main() {\n";
 
-  const auto frag = both + varying_frag + generateTexCoordGetters() + R"(
+  vert += "    vec3 t_Position = ";
+  llvm::cantFail(generateMulPos(vert));
+  vert += ";\n";
+
+  vert += "    v_Position = t_Position;\n";
+
+  vert += "    vec3 t_Normal = ";
+  llvm::cantFail(generateMulNrm(vert));
+  vert += ";\n";
+
+  vert += "    vec4 t_LightAccum;\n"
+          "    vec3 t_LightDelta, t_LightDeltaDir;\n"
+          "    float t_LightDeltaDist2, t_LightDeltaDist, t_Attenuation;\n"
+          "    vec4 t_ColorChanTemp;\n"
+          "    v_Color0 = a_Color0;\n";
+  llvm::cantFail(generateLightChannels(vert));
+  vert += generateTexGens();
+  vert += "gl_Position = (u_Projection * vec4(t_Position, 1.0));\n"
+          "}\n";
+  std::array<char, 1024 * 64> frag_buf;
+  StringBuilder frag(frag_buf.data(), frag_buf.size());
+  frag += both;
+  frag += varying_frag;
+  frag += generateTexCoordGetters();
+  frag += R"(
 float TextureLODBias(int index) { return u_SceneTextureLODBias + u_TextureParams[index].w; }
 vec2 TextureInvScale(int index) { return 1.0 / u_TextureParams[index].xy; }
 vec2 TextureScale(int index) { return u_TextureParams[index].xy; }
@@ -1257,18 +1373,20 @@ void main() {
     vec4 t_Color0    = u_Color[1];
     vec4 t_Color1    = u_Color[2];
     vec4 t_Color2    = u_Color[3];
-)" + generateIndTexStages() +
-                    R"(
+)";
+  frag += generateIndTexStages();
+  frag +=
+      R"(
     vec2 t_TexCoord = vec2(0.0, 0.0);
-    vec4 t_TevA, t_TevB, t_TevC, t_TevD;)" +
-                    generateTevStages() + generateTevStagesLastMinuteFixup() +
-                    "    vec4 t_PixelOut = TevOverflow(t_TevOutput);\n" +
-                    generateAlphaTest() + generateFog() +
-                    //"    t_PixelOut = vec4(texture(u_Texture[1],
-                    // v_TexCoord1.xy / v_TexCoord1.z).rgb, 0.5);"
-                    "    fragOut = t_PixelOut;\n"
-                    "}\n";
-  return {vert, frag};
+    vec4 t_TevA, t_TevB, t_TevC, t_TevD;)";
+  llvm::cantFail(generateTevStages(frag));
+  llvm::cantFail(generateTevStagesLastMinuteFixup(frag));
+  frag += "    vec4 t_PixelOut = TevOverflow(t_TevOutput);\n";
+  llvm::cantFail(generateAlphaTest(frag));
+  frag += generateFog();
+  frag += "    fragOut = t_PixelOut;\n"
+          "}\n";
+  return {vert_buf.data(), frag_buf.data()};
 }
 u32 translateCullMode(gx::CullMode cullMode) {
   switch (cullMode) {

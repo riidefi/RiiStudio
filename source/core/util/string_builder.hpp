@@ -1,8 +1,9 @@
 #pragma once
 
-#include <algorithm> // for std::fill
-#include <core/common.h> // for assert
-#include <string_view> // for std::string_view
+#include <algorithm>        // std::fill
+#include <core/common.h>    // assert
+#include <llvm/ADT/Twine.h> // llvm::Twine
+#include <string_view>      // std::string_view
 
 namespace riistudio::util {
 
@@ -18,9 +19,19 @@ public:
     std::memcpy(mIt, string.data(), string.length());
     mIt += string.length();
   }
+  void appendTwine(const llvm::Twine& string) { append(string.str()); }
   void reset() {
     std::fill(mBuf, mIt, '\0');
     mIt = mBuf;
+  }
+
+  StringBuilder& operator+=(std::string_view string) {
+    append(string);
+    return *this;
+  }
+  StringBuilder& operator<<(const llvm::Twine& string) {
+    appendTwine(string);
+    return *this;
   }
 
 private:
