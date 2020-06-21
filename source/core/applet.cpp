@@ -30,7 +30,7 @@ static bool loadFonts(float fontSize = 12.0f) {
 #endif
 
   const char* default_font = FONT_DIR "Roboto-Medium.ttf";
-  const char* bold_font = FONT_DIR "Roboto-Bold.ttf";
+  // const char* bold_font = FONT_DIR "Roboto-Bold.ttf";
   const char* icon_font = FONT_DIR FONT_ICON_FILE_NAME_FAS;
 #undef FONT_DIR
 

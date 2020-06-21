@@ -40,7 +40,7 @@ enum class TextureFilter {
   lin_mip_lin
 };
 
-enum class TextureWrapMode { Clamp, Repeat, Mirror, MAX };
+enum class TextureWrapMode { Clamp, Repeat, Mirror };
 
 enum class ColorSource { Register, Vertex };
 enum class LightID {

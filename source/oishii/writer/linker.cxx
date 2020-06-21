@@ -46,7 +46,7 @@ public:
       std::string nameSpacePrefix = nameSpace.empty() ? "" : nameSpace + "::";
       //	if (hasEnding(nameSpacePrefix, "::::"))
       //		nameSpacePrefix = nameSpacePrefix.substr(0,
-      //nameSpacePrefix.size() - 2);
+      // nameSpacePrefix.size() - 2);
       const std::string nameSpacedSymbol =
           nameSpacePrefix + (blockName.empty() ? "" : blockName + "::") +
           symbol;
@@ -202,8 +202,9 @@ void Linker::write(Writer& writer, bool doShuffle) {
   {
     printf("Begin    End      Size     Align    Static Leaf  Symbol\n");
     for (const auto& entry : mMap) {
-      printf("0x%06x 0x%06x 0x%06x 0x%06x %s  %s %s\n", entry.begin, entry.end,
-             entry.end - entry.begin, entry.restrict.alignment,
+      printf("0x%06x 0x%06x 0x%06x 0x%06x %s  %s %s\n", (u32)entry.begin,
+             (u32)entry.end, (u32)(entry.end - entry.begin),
+             (u32)entry.restrict.alignment,
              entry.restrict.options & LinkingRestriction::Static ? "true "
                                                                  : "false",
              entry.restrict.options & LinkingRestriction::Leaf ? "true "

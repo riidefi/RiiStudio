@@ -672,7 +672,8 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
       } break;
       case RenderCommand::NodeDescendence: {
         const auto boneIdx = reader.readUnaligned<u16>();
-        const auto parentMtxIdx = reader.readUnaligned<u16>();
+        // const auto parentMtxIdx =
+        reader.readUnaligned<u16>();
 
         const auto& bone = mdl.getBone(boneIdx).get();
         const auto matrixId = bone.matrixId;
@@ -759,7 +760,7 @@ public:
 
     // 'root'
     reader.read<u32>();
-	// Length of the section
+    // Length of the section
     reader.read<u32>();
     Dictionary rootDict(reader);
 

@@ -113,8 +113,8 @@ public:
   PropertyDelegate(T& active, std::vector<T*> affected, kpi::History& history,
                    const kpi::IDocumentNode& transientRoot,
                    riistudio::frontend::EditorWindow* ed)
-      : mActive(active), mAffected(affected), mHistory(history),
-        mTransientRoot(transientRoot), mEd(ed) {}
+      : mActive(active), mAffected(affected), mEd(ed), mHistory(history),
+        mTransientRoot(transientRoot) {}
 };
 
 class PropertyViewStateHolder {
@@ -209,12 +209,8 @@ struct PropertyViewImpl final : public IPropertyView {
   bool isInDomain(IDocumentNode* test) const override {
     return dynamic_cast<T*>(test) != nullptr;
   }
-  const std::string_view getName() const override {
-    return U::name;
-  }
-  const std::string_view getIcon() const override {
-    return U::icon;
-  }
+  const std::string_view getName() const override { return U::name; }
+  const std::string_view getIcon() const override { return U::icon; }
   // TODO - IconDelegate to replace ref EditorWindow
   void draw(kpi::IDocumentNode& active,
             std::vector<kpi::IDocumentNode*> affected, kpi::History& history,

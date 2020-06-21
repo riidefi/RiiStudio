@@ -20,7 +20,7 @@ struct Texture {
       u32 w = getWidth();
       u32 h = getHeight();
       u32 total = w * h * 4;
-      for (int i = 0; i < mipMapCount; ++i) {
+      for (u32 i = 0; i < mipMapCount; ++i) {
         w >>= 1;
         h >>= 1;
         total += w * h * 4;

@@ -297,14 +297,14 @@ void QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
       auto& gpuReg =
           mGpuMat.mShaderColor
               .Konstants[((u32)token.reg - (u32)BPAddress::TEV_COLOR_RA) / 2];
-      gpuReg.low =
-          (gpuReg.low.Value() & ~mGpuMat.mMask) | (token.val & mGpuMat.mMask);
+      gpuReg.low = (gpuReg.low.Value() & ~static_cast<u64>(mGpuMat.mMask)) |
+                   (token.val & static_cast<u64>(mGpuMat.mMask));
     } else {
       auto& gpuReg =
           mGpuMat.mShaderColor
               .Registers[((u32)token.reg - (u32)BPAddress::TEV_COLOR_RA) / 2];
-      gpuReg.low =
-          (gpuReg.low.Value() & ~mGpuMat.mMask) | (token.val & mGpuMat.mMask);
+      gpuReg.low = (gpuReg.low.Value() & ~static_cast<u64>(mGpuMat.mMask)) |
+                   (token.val & static_cast<u64>(mGpuMat.mMask));
     }
     break;
   }
@@ -318,14 +318,14 @@ void QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
       auto& gpuReg =
           mGpuMat.mShaderColor
               .Konstants[((u32)token.reg - (u32)BPAddress::TEV_COLOR_RA) / 2];
-      gpuReg.high =
-          (gpuReg.high.Value() & ~mGpuMat.mMask) | (token.val & mGpuMat.mMask);
+      gpuReg.high = (gpuReg.high.Value() & ~static_cast<u64>(mGpuMat.mMask)) |
+                    (token.val & static_cast<u64>(mGpuMat.mMask));
     } else {
       auto& gpuReg =
           mGpuMat.mShaderColor
               .Registers[((u32)token.reg - (u32)BPAddress::TEV_COLOR_RA) / 2];
-      gpuReg.high =
-          (gpuReg.high.Value() & ~mGpuMat.mMask) | (token.val & mGpuMat.mMask);
+      gpuReg.high = (gpuReg.high.Value() & ~static_cast<u64>(mGpuMat.mMask)) |
+                    (token.val & static_cast<u64>(mGpuMat.mMask));
     }
     break;
   }

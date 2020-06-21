@@ -23,14 +23,11 @@ private:
   // Components
   plate::tk::Viewport mViewport;
   Renderer mRenderer;
-
-  // Data view
-  const kpi::IDocumentNode* model;
-  const kpi::IDocumentNode& mHost; // texture
 };
 
 RenderTest::RenderTest(const kpi::IDocumentNode& host)
-    : StudioWindow("Viewport"), mHost(host), mRenderer(dynamic_cast<lib3d::IDrawable*>(const_cast<kpi::IDocumentNode*>(&host))) {
+    : StudioWindow("Viewport"), mRenderer(dynamic_cast<lib3d::IDrawable*>(
+                                    const_cast<kpi::IDocumentNode*>(&host))) {
   setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
   mRenderer.prepare(host);
 }

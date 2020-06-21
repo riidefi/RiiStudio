@@ -505,6 +505,7 @@ std::string GXProgram::generateKonstColorSel(gx::TevKColorSel konstColor) {
 
 std::string GXProgram::generateKonstAlphaSel(gx::TevKAlphaSel konstAlpha) {
   switch (konstAlpha) {
+  default: // k0/k1/k2/k3 not valid for alpha
   case gx::TevKAlphaSel::const_8_8:
     return "(8.0/8.0)";
   case gx::TevKAlphaSel::const_7_8:
@@ -694,16 +695,26 @@ std::string GXProgram::generateAlphaIn(const gx::TevStage& stage,
 
 std::string GXProgram::generateTevInputs(const gx::TevStage& stage) {
   return R"(
-    t_TevA = TevOverflow(vec4()" "\n        " + 
-         generateColorIn(stage, stage.colorStage.a) + ",\n        " + 
-         generateAlphaIn(stage, stage.alphaStage.a) + "\n    " R"());
-    t_TevB = TevOverflow(vec4()" "\n        " +
+    t_TevA = TevOverflow(vec4()"
+         "\n        " +
+         generateColorIn(stage, stage.colorStage.a) + ",\n        " +
+         generateAlphaIn(stage, stage.alphaStage.a) +
+         "\n    "
+         R"());
+    t_TevB = TevOverflow(vec4()"
+         "\n        " +
          generateColorIn(stage, stage.colorStage.b) + ",\n        " +
-         generateAlphaIn(stage, stage.alphaStage.b) + "\n    " R"());
-    t_TevC = TevOverflow(vec4()" "\n        " +
+         generateAlphaIn(stage, stage.alphaStage.b) +
+         "\n    "
+         R"());
+    t_TevC = TevOverflow(vec4()"
+         "\n        " +
          generateColorIn(stage, stage.colorStage.c) + ",\n        " +
-         generateAlphaIn(stage, stage.alphaStage.c) + "\n    " R"());
-    t_TevD = vec4()" "\n        " +
+         generateAlphaIn(stage, stage.alphaStage.c) +
+         "\n    "
+         R"());
+    t_TevD = vec4()"
+         "\n        " +
          generateColorIn(stage, stage.colorStage.d) + ",\n        " +
          generateAlphaIn(stage, stage.alphaStage.d) + "\n    );\n"; //.trim();
 }
@@ -799,7 +810,8 @@ std::string GXProgram::generateColorOp(const gx::TevStage& stage) {
   const auto value = generateTevOpValue(
       stage.colorStage.formula, stage.colorStage.bias, stage.colorStage.scale,
       stage.colorStage.clamp, a, b, c, d, zero);
-  return std::string("    ") + generateTevRegister(stage.colorStage.out) + ".rgb = " + value + ";\n";
+  return std::string("    ") + generateTevRegister(stage.colorStage.out) +
+         ".rgb = " + value + ";\n";
 }
 
 std::string GXProgram::generateAlphaOp(const gx::TevStage& stage) {
@@ -947,8 +959,8 @@ std::string GXProgram::generateTevStage(u32 tevStageIndex) {
   const auto& stage =
       mMaterial.mat.getMaterialData().shader.mStages[tevStageIndex];
 
-  return "\n\n    //\n    // TEV Stage " + std::to_string(tevStageIndex) + "\n    //\n" +
-         generateTevTexCoord(stage) + generateTevInputs(stage) +
+  return "\n\n    //\n    // TEV Stage " + std::to_string(tevStageIndex) +
+         "\n    //\n" + generateTevTexCoord(stage) + generateTevInputs(stage) +
          generateColorOp(stage) + generateAlphaOp(stage);
 }
 
@@ -1332,6 +1344,8 @@ u32 translateCompareType(gx::Comparison compareType) {
   case gx::Comparison::GEQUAL:
     return GL_GEQUAL;
   case gx::Comparison::ALWAYS:
+    return GL_ALWAYS;
+  default:
     return GL_ALWAYS;
   }
 }

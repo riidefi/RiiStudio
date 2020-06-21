@@ -27,15 +27,15 @@ function setupPreprocessor()
 	filter "configurations:Debug"
 		defines { "DEBUG", "BUILD_DEBUG" }
 		symbols "On"
-		buildoptions "/MDd"
+		-- buildoptions "/MDd"
 	filter "configurations:Release"
 		defines { "NDEBUG", "BUILD_RELEASE" }
 		optimize "On"
-		buildoptions "/MD"
+		-- buildoptions "/MD"
 	filter "configurations:Dist"
 		defines { "NDEBUG", "BUILD_DIST" }
 		optimize "On"
-		buildoptions "/MD"
+		-- buildoptions "/MD"
 end
 
 function setupSystem()
@@ -44,11 +44,22 @@ function setupSystem()
 		staticruntime "On"
 		systemversion "latest"
 
+		disablewarnings
+		{
+			-- Warnings from LLVM headers
+			"4244",
+			"4267",
+			"4146",
+			"4624",
+			"4996"
+		}
+
 		defines
 		{
 			"RII_PLATFORM_WINDOWS",
 			"FBXSDK_SHARED",
-			"RII_BACKEND_GLFW"
+			"RII_BACKEND_GLFW",
+			"NOMINMAX"
 		}
 end
 

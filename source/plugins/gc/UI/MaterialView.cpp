@@ -35,7 +35,7 @@ struct CullMode {
   CullMode(bool f, bool b) : front(f), back(b) {}
   CullMode(libcube::gx::CullMode c) { set(c); }
 
-  void set(libcube::gx::CullMode c) noexcept {
+  void set(libcube::gx::CullMode c) {
     switch (c) {
     case libcube::gx::CullMode::All:
       front = back = false;
@@ -267,7 +267,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       auto& tg = matData.texGens[i];
 
       bool identitymatrix = tg.isIdentityMatrix();
-      const int rawtgmatrix = static_cast<int>(tg.matrix);
       int texmatrixid = tg.getMatrixIndex();
 
       GCMaterialData::TexMatrix* tm = nullptr;
@@ -800,6 +799,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         case gx::ColorSelChanApi::alpha1:
         case gx::ColorSelChanApi::color1a1:
           return 1;
+        default:
         case gx::ColorSelChanApi::zero:
         case gx::ColorSelChanApi::null:
           return 2;
@@ -822,6 +822,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           case 1:
             return gx::ColorSelChanApi::color1a1;
           case 2:
+          default:
             return gx::ColorSelChanApi::zero; // TODO: Prefer null?
           case 3:
             return gx::ColorSelChanApi::ind_alpha;
@@ -953,7 +954,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                    workmem.size());
 
         ImGui::SetWindowFontScale(1.3f);
-        ImGui::Text("%s", string);
+        ImGui::Text("%s", string.data());
         ImGui::SetWindowFontScale(1.0f);
 
         const u32 used = computeUsed(root);
@@ -1043,7 +1044,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 }
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, FogSurface) {
-  auto& matData = delegate.getActive().getMaterialData();
+  // auto& matData = delegate.getActive().getMaterialData();
 }
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   LightingSurface) {

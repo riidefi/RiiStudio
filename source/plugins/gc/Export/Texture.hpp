@@ -40,7 +40,7 @@ struct Texture : public riistudio::lib3d::Texture {
       u32 o_ofs = 0;
       u32 w = getWidth();
       u32 h = getHeight();
-      for (int i = 0; i < getMipmapCount(); ++i) {
+      for (u32 i = 0; i < getMipmapCount(); ++i) {
         i_ofs += GetTexBufferSize(w, h, getTextureFormat(), 0, 1);
         o_ofs += w * h * 4;
         decodeSingle(o_ofs, i_ofs, i + 1);

@@ -3,7 +3,7 @@
 #include <memory> // std::unique_ptr
 
 namespace kpi {
-struct IDocumentNode;
+class IDocumentNode;
 } // namespace kpi
 
 namespace riistudio::frontend {
