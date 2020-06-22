@@ -25,10 +25,12 @@ struct SceneTree {
           shader(std::move(prog)) {}
 
     void update(lib3d::Material* _mat) override {
+      DebugReport("Recompiling shader for %s..\n", _mat->getName().c_str());
       mat = *_mat;
       const auto shader_sources = mat.generateShaders();
-      ShaderProgram new_shader(
-          shader_sources.first, _mat->applyCacheAgain ? _mat->cachedPixelShader : shader_sources.second);
+      ShaderProgram new_shader(shader_sources.first,
+                               _mat->applyCacheAgain ? _mat->cachedPixelShader
+                                                     : shader_sources.second);
       if (new_shader.getError()) {
         _mat->isShaderError = true;
         _mat->shaderError = new_shader.getErrorDesc();

@@ -132,8 +132,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       before, after, [&](const auto& x) { return x.val; },                     \
       [&](auto& x, auto& y) {                                                  \
         x.val = y;                                                             \
-        for (auto& e : delegate.mAffected)                                     \
-          e->notifyObservers();                                                \
+        x.notifyObservers();                                                   \
       })
 
 #define AUTO_PROP(before, after)                                               \
