@@ -4,10 +4,13 @@
 #include <core/3d/PropertySupport.hpp>
 #include <core/common.h>
 #include <core/kpi/Node.hpp>
+#include <core/kpi/Node2.hpp>
 #include <glm/glm.hpp>
 #include <string>
 
 namespace riistudio::lib3d {
+
+class Model;
 
 enum class BoneFeatures {
   // -- Standard features: XForm, Hierarchy. Here for read-only access
@@ -36,7 +39,7 @@ struct SRT3 {
   bool operator!=(const SRT3& rhs) const { return !operator==(rhs); }
 };
 
-struct Bone {
+struct Bone : public virtual kpi::IObject {
   // // PX_TYPE_INFO_EX("3D Bone", "3d_bone", "3D::Bone", ICON_FA_BONE,
   // ICON_FA_BONE);
   virtual s64 getId() { return -1; }
@@ -126,22 +129,17 @@ struct Bone {
 
     return dst;
   }
-  virtual kpi::IDocumentNode* getParent() { return nullptr; }
-  virtual glm::mat4 calcSrtMtx(kpi::FolderData* bones) const {
+  virtual const lib3d::Model* getParent();
+  virtual glm::mat4
+  calcSrtMtx(kpi::ConstCollectionRange<lib3d::Bone> bones) const {
     glm::mat4 mdl(1.0f);
     const auto parent = getBoneParent();
     if (parent >= 0 /* && parent != getId() */)
-      mdl = bones->at<Bone>(parent).calcSrtMtx(bones);
+      mdl = bones[parent].calcSrtMtx(bones);
 
     return mdl * calcSrtMtx(getSRT());
   }
-  inline glm::mat4 calcSrtMtx() {
-    assert(getParent() != nullptr);
-    if (!getParent())
-      return {};
-
-    return calcSrtMtx(getParent()->getFolder<lib3d::Bone>());
-  }
+  glm::mat4 calcSrtMtx();
 };
 
 } // namespace riistudio::lib3d

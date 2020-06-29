@@ -37,13 +37,12 @@ struct IPropertyViewState {
 struct IPropertyView {
   virtual ~IPropertyView() = default;
 
-  virtual bool isInDomain(IDocumentNode* test) const = 0;
+  virtual bool isInDomain(IObject* test) const = 0;
 
   virtual const std::string_view getName() const = 0;
   virtual const std::string_view getIcon() const = 0;
-  virtual void draw(kpi::IDocumentNode& active,
-                    std::vector<kpi::IDocumentNode*> affected,
-                    kpi::History& history, kpi::IDocumentNode& root,
+  virtual void draw(kpi::IObject& active, std::vector<IObject*> affected,
+                    kpi::History& history, kpi::INode& root,
                     PropertyViewStateHolder& state_holder,
                     riistudio::frontend::EditorWindow* ed) = 0;
 
@@ -107,11 +106,11 @@ public:
 
 private:
   kpi::History& mHistory;
-  const kpi::IDocumentNode& mTransientRoot;
+  const kpi::INode& mTransientRoot;
 
 public:
   PropertyDelegate(T& active, std::vector<T*> affected, kpi::History& history,
-                   const kpi::IDocumentNode& transientRoot,
+                   const kpi::INode& transientRoot,
                    riistudio::frontend::EditorWindow* ed)
       : mActive(active), mAffected(affected), mEd(ed), mHistory(history),
         mTransientRoot(transientRoot) {}
@@ -133,7 +132,7 @@ public:
     });
   }
 
-  IPropertyViewState* requestState(kpi::IDocumentNode& node,
+  IPropertyViewState* requestState(kpi::IObject& node,
                                    const IPropertyView& blueprint) {
     Key key{&node, blueprint.getName()};
     if (auto it = states.find(key); it != states.end()) {
@@ -157,7 +156,7 @@ public:
 
 private:
   struct Key {
-    kpi::IDocumentNode* node;
+    kpi::IObject* node;
     std::string_view id;
 
     bool operator==(const Key& rhs) const {
@@ -166,7 +165,7 @@ private:
   };
   struct KeyHash {
     std::size_t operator()(Key const& key) const noexcept {
-      std::size_t h1 = std::hash<kpi::IDocumentNode*>{}(key.node);
+      std::size_t h1 = std::hash<kpi::IObject*>{}(key.node);
       std::size_t h2 = std::hash<std::string_view>{}(key.id);
       return h1 ^ (h2 << 1);
     }
@@ -206,15 +205,15 @@ struct PropertyViewImpl final : public IPropertyView {
     U value;
   };
 
-  bool isInDomain(IDocumentNode* test) const override {
+  bool isInDomain(IObject* test) const override {
     return dynamic_cast<T*>(test) != nullptr;
   }
   const std::string_view getName() const override { return U::name; }
   const std::string_view getIcon() const override { return U::icon; }
   // TODO - IconDelegate to replace ref EditorWindow
-  void draw(kpi::IDocumentNode& active,
-            std::vector<kpi::IDocumentNode*> affected, kpi::History& history,
-            kpi::IDocumentNode& root, PropertyViewStateHolder& state_holder,
+  void draw(kpi::IObject& active, std::vector<IObject*> affected,
+            kpi::History& history, kpi::INode& root,
+            PropertyViewStateHolder& state_holder,
             riistudio::frontend::EditorWindow* ed) override {
     T* _active = dynamic_cast<T*>(&active);
     assert(_active != nullptr);
@@ -254,7 +253,7 @@ struct PropertyViewManager {
     addPropertyView(std::make_unique<PropertyViewImpl<TDomain, TTag>>());
   }
 
-  template <typename T> void forEachView(T func, kpi::IDocumentNode& active) {
+  template <typename T> void forEachView(T func, kpi::IObject& active) {
     for (auto& it : mViews) {
       if (!it->isInDomain(&active))
         continue;
@@ -284,14 +283,14 @@ public:
 
 template <typename T, typename U>
 struct StatelessPropertyViewImpl : public IPropertyView {
-  bool isInDomain(IDocumentNode* test) const override {
+  bool isInDomain(IObject* test) const override {
     return dynamic_cast<T*>(test) != nullptr;
   }
   const std::string_view getName() const override { return mName; }
   const std::string_view getIcon() const override { return mIcon; }
-  void draw(kpi::IDocumentNode& active,
-            std::vector<kpi::IDocumentNode*> affected, kpi::History& history,
-            kpi::IDocumentNode& root, PropertyViewStateHolder& state_holder,
+  void draw(kpi::IObject& active, std::vector<kpi::IObject*> affected,
+            kpi::History& history, kpi::INode& root,
+            PropertyViewStateHolder& state_holder,
             riistudio::frontend::EditorWindow* ed) override {
     T* _active = dynamic_cast<T*>(&active);
     assert(_active != nullptr);

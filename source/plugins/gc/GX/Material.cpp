@@ -352,9 +352,10 @@ void IGCMaterial::generateUniforms(
   for (int i = 0; i < data.samplers.size(); ++i) {
     if (data.samplers[i]->mTexture.empty())
       continue;
-    const auto& texData = getTexture(data.samplers[i]->mTexture);
-
-    tmp.TexParams[i] = glm::vec4{texData.getWidth(), texData.getHeight(), 0,
+    const auto* texData = getTexture(data.samplers[i]->mTexture);
+    if (texData == nullptr)
+      continue;
+    tmp.TexParams[i] = glm::vec4{texData->getWidth(), texData->getHeight(), 0,
                                  data.samplers[i]->mLodBias};
   }
   for (int i = 0; i < data.mIndMatrices.size(); ++i) {

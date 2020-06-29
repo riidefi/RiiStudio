@@ -9,7 +9,7 @@
 
 kpi::ReflectionMesh* kpi::ReflectionMesh::spInstance;
 
-std::unique_ptr<kpi::IDocumentNode> SpawnState(const std::string& type) {
+std::unique_ptr<kpi::IObject> SpawnState(const std::string& type) {
   return kpi::ApplicationPlugins::getInstance()->constructObject(type, nullptr);
 }
 bool IsConstructible(const std::string& type) {
@@ -48,7 +48,7 @@ SpawnImporter(const std::string& fileName, oishii::BinaryReader& reader) {
   }
 }
 std::unique_ptr<kpi::IBinarySerializer>
-SpawnExporter(kpi::IDocumentNode& node) {
+SpawnExporter(kpi::INode& node) {
   for (const auto& plugin : kpi::ApplicationPlugins::getInstance()->mWriters) {
     if (plugin->canWrite_(node)) {
       return plugin->clone();

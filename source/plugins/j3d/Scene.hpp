@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/3d/i3dmodel.hpp>
-#include <core/kpi/Node.hpp>
 
 #include "DrawMatrix.hpp"
 #include "Joint.hpp"
@@ -9,6 +8,7 @@
 #include "Shape.hpp"
 #include "Texture.hpp"
 #include "VertexBuffer.hpp"
+#include <plugins/gc/Export/Scene.hpp>
 
 namespace riistudio::j3d {
 
@@ -30,10 +30,6 @@ struct SwapSel {
   }
 };
 
-struct Collection : public lib3d::Scene {
-  bool operator==(const Collection& rhs) const { return true; }
-};
-
 struct Tex {
   libcube::gx::TextureFormat mFormat;
   u8 bTransparent;
@@ -41,7 +37,7 @@ struct Tex {
   libcube::gx::TextureWrapMode mWrapU, mWrapV;
   u8 mPaletteFormat;
   u16 nPalette;
-  u32 ofsPalette;
+  u32 ofsPalette = 0;
   u8 bMipMap;
   u8 bEdgeLod;
   u8 bBiasClamp;
@@ -52,7 +48,7 @@ struct Tex {
   s8 mMaxLod;
   u8 mMipmapLevel;
   s16 mLodBias;
-  u32 ofsTex;
+  u32 ofsTex = 0;
 
   // Not written, tracked
   s32 btiId = -1;
@@ -76,10 +72,10 @@ struct Tex {
   Tex(const Texture& data, const libcube::GCMaterialData::SamplerData& sampler);
 };
 
-struct Model : public libcube::Model {
-  virtual ~Model() = default;
+struct ModelData {
+  virtual ~ModelData() = default;
   // Shallow comparison
-  bool operator==(const Model& rhs) const {
+  bool operator==(const ModelData& rhs) const {
     // TODO: Check bufs
     return info.mScalingRule == rhs.info.mScalingRule;
   }
@@ -216,25 +212,6 @@ struct Model : public libcube::Model {
   mutable std::vector<Tex> mTexCache;
 };
 
-struct ModelAccessor : public kpi::NodeAccessor<Model> {
-  KPI_NODE_FOLDER_SIMPLE(Material);
-  KPI_NODE_FOLDER_SIMPLE(Joint);
-  KPI_NODE_FOLDER_SIMPLE(Shape);
-};
-
-struct CollectionAccessor : public kpi::NodeAccessor<Collection> {
-  using super = kpi::NodeAccessor<Collection>;
-  using super::super;
-
-  KPI_NODE_FOLDER(Model, ModelAccessor);
-  KPI_NODE_FOLDER_SIMPLE(Texture);
-
-  CollectionAccessor(kpi::IDocumentNode* node) : super(node) {
-    if (node == nullptr)
-      return;
-    data->getOrAddFolder<Model>();
-    data->getOrAddFolder<Texture>();
-  }
-};
-
 } // namespace riistudio::j3d
+
+#include "Node.h"

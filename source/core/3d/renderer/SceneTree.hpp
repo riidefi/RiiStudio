@@ -45,11 +45,9 @@ struct SceneTree {
 
   std::vector<std::unique_ptr<Node>> opaque, translucent;
 
-  void gatherBoneRecursive(u64 boneId, const kpi::FolderData& bones,
-                           const kpi::FolderData& mats,
-                           const kpi::FolderData& polys);
+  void gatherBoneRecursive(u64 boneId, const lib3d::Model& root);
 
-  void gather(const kpi::IDocumentNode& root);
+  void gather(const lib3d::Model& root);
 
   // TODO: Z Sort
 };

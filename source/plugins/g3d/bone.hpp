@@ -67,7 +67,9 @@ struct BoneData {
   }
 };
 
-struct Bone : public libcube::IBoneDelegate, BoneData {
+struct Bone : public libcube::IBoneDelegate,
+              public BoneData,
+              public virtual kpi::IObject {
   std::string getName() const { return mName; }
   void setName(const std::string& name) override { mName = name; }
   // std::string getName() const override { return mName; }

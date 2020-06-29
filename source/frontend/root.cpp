@@ -133,38 +133,38 @@ void RootWindow::draw() {
 #ifndef BUILD_DIST
       if (ImGui::BeginMenu("Experimental")) {
         if (ImGui::MenuItem("Convert to BMD") && ed != nullptr) {
-          const kpi::IDocumentNode* from_root = ed->mState.get();
-          auto* from_models = from_root->getFolder<lib3d::Model>();
-          auto* from_textures = from_root->getFolder<libcube::Texture>();
+          const libcube::Scene* from_root =
+              dynamic_cast<libcube::Scene*>(ed->mState.get());
+          auto from_models = from_root->getModels();
+          auto from_textures = from_root->getTextures();
 
-          auto bmd_state = SpawnState(typeid(j3d::Collection).name());
+          std::unique_ptr<kpi::INode> bmd_state{dynamic_cast<kpi::INode*>(
+              SpawnState(typeid(j3d::Collection).name()).release())};
 
-          j3d::CollectionAccessor bmd_col(bmd_state.get());
+          j3d::Collection& bmd_col =
+              *dynamic_cast<j3d::Collection*>(bmd_state.get());
 
-          for (int fr_i = 0; fr_i < from_models->size(); ++fr_i) {
-            const auto& from_model = from_models->at<kpi::IDocumentNode>(fr_i);
-            auto bmd_model = bmd_col.addModel();
+          for (auto& from_model : from_models) {
+            auto& bmd_model = bmd_col.getModels().add();
             // info
             // Bufs (automate)
-            bmd_model.get().mBufs.norm.mQuant.comp.normal =
+            bmd_model.mBufs.norm.mQuant.comp.normal =
                 libcube::gx::VertexComponentCount::Normal::xyz;
             // drawmtx (skip)
-            auto& mtx = bmd_model.get().mDrawMatrices.emplace_back();
+            auto& mtx = bmd_model.mDrawMatrices.emplace_back();
             mtx.mWeights.emplace_back(0, 1.0f);
             // materials
             {
-              const auto from_mats =
-                  from_model.getFolder<libcube::IGCMaterial>();
-              for (int m_i = 0; m_i < from_mats->size(); ++m_i) {
-                auto mat = bmd_model.addMaterial();
-                mat.get().id = m_i;
+              const auto from_mats = from_model.getMaterials();
+              for (int m_i = 0; m_i < from_mats.size(); ++m_i) {
+                auto& mat = bmd_model.getMaterials().add();
+                mat.id = m_i;
 
-                auto& md = mat.get().getMaterialData();
+                auto& md = mat.getMaterialData();
 
-                mat.get().getMaterialData() =
-                    from_mats->at<libcube::IGCMaterial>(m_i).getMaterialData();
+                mat.getMaterialData() = from_mats[m_i].getMaterialData();
 
-                auto before = mat.get().getMaterialData().samplers;
+                auto before = mat.getMaterialData().samplers;
                 md.samplers = {};
                 for (int i = 0; i < before.size(); ++i) {
                   auto simp =
@@ -175,29 +175,26 @@ void RootWindow::draw() {
                           *before[i].get());
                   md.samplers.push_back(std::move(simp));
                 }
-                mat.get().indEnabled =
-                    mat.get().getMaterialData().info.nIndStage > 0;
+                mat.indEnabled = mat.getMaterialData().info.nIndStage > 0;
               }
             }
             // joints
             {
-              auto from_joints = from_model.getFolder<libcube::IBoneDelegate>();
-              for (int m_i = 0; m_i < from_joints->size(); ++m_i) {
-                auto joint = bmd_model.addJoint();
-                joint.get().id = m_i;
-                from_joints->at<libcube::IBoneDelegate>(m_i).copy(joint.get());
+              auto from_joints = from_model.getBones();
+              for (int m_i = 0; m_i < from_joints.size(); ++m_i) {
+                auto& joint = bmd_model.getBones().add();
+                joint.id = m_i;
+                from_joints[m_i].copy(joint);
               }
             }
             // shapes
             {
-              auto from_shapes =
-                  from_model.getFolder<libcube::IndexedPolygon>();
-              for (int m_i = 0; m_i < from_shapes->size(); ++m_i) {
-                auto& from_shape =
-                    from_shapes->at<libcube::IndexedPolygon>(m_i);
+              auto from_shapes = from_model.getMeshes();
+              for (int m_i = 0; m_i < from_shapes.size(); ++m_i) {
+                auto& from_shape = from_shapes[m_i];
                 const auto vcd = from_shape.getVcd();
 
-                auto& bmd_shape = bmd_model.addShapeRaw();
+                auto& bmd_shape = bmd_model.getMeshes().add();
                 bmd_shape.id = m_i;
                 bmd_shape.mVertexDescriptor = vcd;
                 for (auto& e : bmd_shape.mVertexDescriptor.mAttributes) {
@@ -223,7 +220,7 @@ void RootWindow::draw() {
                            x < (u32)libcube::gx::VertexAttribute::Max; ++x) {
                         if (!(vcd.mBitfield & (1 << x)))
                           continue;
-                        auto& bufs = bmd_model.get().mBufs;
+                        auto& bufs = bmd_model.mBufs;
                         switch (static_cast<libcube::gx::VertexAttribute>(x)) {
                         case libcube::gx::VertexAttribute::
                             PositionNormalMatrixIndex:
@@ -242,9 +239,9 @@ void RootWindow::draw() {
                           auto found = std::find(bufs.pos.mData.begin(),
                                                  bufs.pos.mData.end(), pos);
                           if (found == bufs.pos.mData.end()) {
-                            bmd_model.get().mBufs.pos.mData.push_back(pos);
+                            bmd_model.mBufs.pos.mData.push_back(pos);
                             v[libcube::gx::VertexAttribute::Position] =
-                                bmd_model.get().mBufs.pos.mData.size() - 1;
+                                bmd_model.mBufs.pos.mData.size() - 1;
                           } else {
                             v[libcube::gx::VertexAttribute::Position] =
                                 found - bufs.pos.mData.begin();
@@ -259,9 +256,9 @@ void RootWindow::draw() {
                           clr.g = roundf(scolor[1] * 255.0f);
                           clr.b = roundf(scolor[2] * 255.0f);
                           clr.a = roundf(scolor[3] * 255.0f);
-                          bmd_model.get().mBufs.color[0].mData.push_back(clr);
+                          bmd_model.mBufs.color[0].mData.push_back(clr);
                           v[libcube::gx::VertexAttribute::Color0] =
-                              bmd_model.get().mBufs.color[0].mData.size() - 1;
+                              bmd_model.mBufs.color[0].mData.size() - 1;
                           break;
                         }
                         case libcube::gx::VertexAttribute::TexCoord0:
@@ -279,18 +276,18 @@ void RootWindow::draw() {
                               static_cast<libcube::gx::VertexAttribute>(x);
                           const auto data = from_shape.getUv(chan, v[attr]);
 
-                          bmd_model.get().mBufs.uv[chan].mData.push_back(data);
+                          bmd_model.mBufs.uv[chan].mData.push_back(data);
                           v[static_cast<libcube::gx::VertexAttribute>(x)] =
-                              bmd_model.get().mBufs.uv[chan].mData.size() - 1;
+                              bmd_model.mBufs.uv[chan].mData.size() - 1;
 
                           break;
                         }
                         case libcube::gx::VertexAttribute::Normal:
-                          bmd_model.get().mBufs.norm.mData.push_back(
+                          bmd_model.mBufs.norm.mData.push_back(
                               from_shape.getNrm(
                                   v[libcube::gx::VertexAttribute::Normal]));
                           v[libcube::gx::VertexAttribute::Normal] =
-                              bmd_model.get().mBufs.norm.mData.size() - 1;
+                              bmd_model.mBufs.norm.mData.size() - 1;
                           break;
                         default:
                           throw "Invalid vtx attrib";
@@ -304,12 +301,8 @@ void RootWindow::draw() {
             }
           }
           // textures
-          for (int fr_i = 0; fr_i < from_textures->size(); ++fr_i) {
-            const auto& from_texture =
-                from_textures->at<libcube::Texture>(fr_i);
-            auto bmd_texture = bmd_col.addTexture();
-
-            auto& bt = bmd_texture.get();
+          for (const auto& from_texture : from_textures) {
+            auto& bt = bmd_col.getTextures().add();
             bt.mName = from_texture.getName();
             bt.mFormat = from_texture.getTextureFormat();
             bt.bTransparent = false; // TODO
@@ -373,7 +366,8 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
     importer.first = children[0];
   }
 
-  auto fileState = SpawnState(importer.first);
+  std::unique_ptr<kpi::INode> fileState{
+      dynamic_cast<kpi::INode*>(SpawnState(importer.first).release())};
   if (!fileState.get()) {
     printf("Cannot spawn file state %s.\n", importer.first.c_str());
     return;
@@ -398,7 +392,8 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
     }
   } handler;
   reader->addErrorHandler(&handler);
-  importer.second->read_(*fileState.get(), *reader.get());
+  importer.second->read_(*dynamic_cast<kpi::INode*>(fileState.get()),
+                         *reader.get());
 
   auto edWindow =
       std::make_unique<EditorWindow>(std::move(fileState), reader->getFile());

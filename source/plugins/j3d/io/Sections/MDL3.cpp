@@ -134,7 +134,7 @@ template <typename T> static void writeAtS16(T& stream, u32 pos, s16 val) {
 
 // TODO
 struct MDL3Node final : public oishii::Node {
-  MDL3Node(const ModelAccessor model, const CollectionAccessor col)
+  MDL3Node(const Model& model, const Collection& col)
       : mModel(model), mCol(col) {
     mId = "MDL3";
     mLinkingRestriction.alignment = 32;
@@ -177,7 +177,7 @@ struct MDL3Node final : public oishii::Node {
 
     const auto dlDataOfs = writer.tell();
     for (int i = 0; i < mats.size(); ++i) {
-      const auto& mat = mModel.getMaterial(i).get();
+      const auto& mat = mModel.getMaterials()[i];
       const auto dl_start = writer.tell();
       writeAt(writer, dlHandlesOfs + 8 * i + 0,
               writer.tell() - dlHandlesOfs * 8 + i);
@@ -191,7 +191,7 @@ struct MDL3Node final : public oishii::Node {
           const auto& sampler =
               *reinterpret_cast<const Material::J3DSamplerData*>(
                   mat.samplers[i].get());
-          const auto& image = mModel.get().mTexCache[sampler.btiId];
+          const auto& image = mModel.mTexCache[sampler.btiId];
 
           auto tex_delegate = builder.setTexture(i);
 
@@ -301,8 +301,8 @@ struct MDL3Node final : public oishii::Node {
   }
 
 private:
-  const ModelAccessor mModel;
-  const CollectionAccessor mCol;
+  const Model& mModel;
+  const Collection& mCol;
 };
 
 std::unique_ptr<oishii::Node> makeMDL3Node(BMDExportContext& ctx) {

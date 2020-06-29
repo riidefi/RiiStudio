@@ -154,14 +154,12 @@ struct AssImporter {
   IdCounter* boneIdCtr = &ctr;
 
   const aiScene* pScene = nullptr;
-  j3d::CollectionAccessor out_collection;
-  j3d::ModelAccessor out_model_ac;
+  j3d::Collection& out_collection;
   j3d::Model& out_model;
 
-  AssImporter(const aiScene* scene, kpi::IDocumentNode* mdl)
-      : pScene(scene), out_collection(mdl),
-        out_model_ac(out_collection.addModel()), out_model(out_model_ac.get()) {
-  }
+  AssImporter(const aiScene* scene, kpi::INode* mdl)
+      : pScene(scene), out_collection(*dynamic_cast<j3d::Collection*>(mdl)),
+        out_model(out_collection.getModels().add()) {}
 
   int get_bone_id(const aiNode* pNode) {
     return boneIdCtr->nodeToBoneIdMap.find(pNode) !=
@@ -340,16 +338,15 @@ struct AssImporter {
   void ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
     assert(pMesh->mPrimitiveTypes == aiPrimitiveType_TRIANGLE);
 
-    auto poly = out_model_ac.addShape();
-    auto& poly_data = poly.get();
-    poly_data.mode = j3d::ShapeData::Mode::Skinned;
-    poly.get().bbox.min = {pMesh->mAABB.mMin.x, pMesh->mAABB.mMin.y,
-                           pMesh->mAABB.mMin.z};
-    poly.get().bbox.max = {pMesh->mAABB.mMax.x, pMesh->mAABB.mMax.y,
-                           pMesh->mAABB.mMax.z};
+    auto poly = out_model.getMeshes().add();
+    poly.mode = j3d::ShapeData::Mode::Skinned;
+    poly.bbox.min = {pMesh->mAABB.mMin.x, pMesh->mAABB.mMin.y,
+                     pMesh->mAABB.mMin.z};
+    poly.bbox.max = {pMesh->mAABB.mMax.x, pMesh->mAABB.mMax.y,
+                     pMesh->mAABB.mMax.z};
     // TODO: Sphere
     auto add_attribute = [&](auto type, bool direct = false) {
-      poly_data.mVertexDescriptor.mAttributes[type] =
+      poly.mVertexDescriptor.mAttributes[type] =
           direct ? libcube::gx::VertexAttributeType::Direct
                  : libcube::gx::VertexAttributeType::Short;
     };
@@ -387,24 +384,24 @@ struct AssImporter {
       // could be a bad assumption..
       if (wt != nullptr && wt->mWeights.size() == 1) {
         const auto& acting_influence =
-            out_model_ac.getJointRaw(wt->mWeights[0].boneId);
-        pos = glm::vec4(pos, 0) * glm::inverse(acting_influence.calcSrtMtx(
-                                      &out_model_ac.getJoints()));
+            out_model.getBones()[wt->mWeights[0].boneId];
+        pos = glm::vec4(pos, 0) *
+              glm::inverse(acting_influence.calcSrtMtx(out_model.getBones()));
       }
 
-      return add_to_buffer(pos, out_model_ac.get().mBufs.pos.mData);
+      return add_to_buffer(pos, out_model.mBufs.pos.mData);
     };
     auto add_normal = [&](int v) {
       return add_to_buffer(getVec(pMesh->mNormals[v]),
-                           out_model_ac.get().mBufs.norm.mData);
+                           out_model.mBufs.norm.mData);
     };
     auto add_color = [&](int v, int j) {
       return add_to_buffer(getClr(pMesh->mColors[j][v]),
-                           out_model_ac.get().mBufs.color[j].mData);
+                           out_model.mBufs.color[j].mData);
     };
     auto add_uv = [&](int v, int j) {
       return add_to_buffer(getVec2(pMesh->mTextureCoords[j][v]),
-                           out_model_ac.get().mBufs.uv[j].mData);
+                           out_model.mBufs.uv[j].mData);
     };
 
     // More than one bone -> Assume multi mtx, unless zero influence
@@ -415,7 +412,7 @@ struct AssImporter {
     if (multi_mtx)
       add_attribute(PNM);
 
-    poly_data.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
+    poly.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
 
     std::vector<libcube::IndexedVertex> vertices;
 
@@ -448,13 +445,13 @@ struct AssImporter {
       }
     }
 
-    ProcessMeshTriangles(poly_data, pMesh, pNode, std::move(vertices));
+    ProcessMeshTriangles(poly, pMesh, pNode, std::move(vertices));
   }
 
   void ImportNode(const aiNode* pNode, lib3d::Bone* parent = nullptr) {
     // Create a bone (with name)
-    auto joint = out_model_ac.addJoint();
-    joint.get().setName(pNode->mName.C_Str());
+    auto joint = out_model.getBones().add();
+    joint.setName(pNode->mName.C_Str());
     const glm::mat4 xf = getMat4(pNode->mTransformation);
 
     lib3d::SRT3 srt;
@@ -466,17 +463,17 @@ struct AssImporter {
     srt.rotation = {glm::degrees(glm::eulerAngles(rotation).x),
                     glm::degrees(glm::eulerAngles(rotation).y),
                     glm::degrees(glm::eulerAngles(rotation).z)};
-    joint.get().setSRT(srt);
+    joint.setSRT(srt);
 
     IdCounter localBoneIdCtr;
     if (boneIdCtr == nullptr)
       boneIdCtr = &localBoneIdCtr;
-    joint.get().id = boneIdCtr->boneId++;
-    boneIdCtr->nodeToBoneIdMap[pNode] = joint.get().id;
+    joint.id = boneIdCtr->boneId++;
+    boneIdCtr->nodeToBoneIdMap[pNode] = joint.id;
 
-    joint.get().setBoneParent(parent != nullptr ? parent->getId() : -1);
+    joint.setBoneParent(parent != nullptr ? parent->getId() : -1);
     if (parent != nullptr)
-      parent->addChild(joint.get().getId());
+      parent->addChild(joint.getId());
 
     // Mesh data
     for (int i = 0; i < pNode->mNumMeshes; ++i) {
@@ -486,13 +483,13 @@ struct AssImporter {
       assert(boneIdCtr->matIdToMatIdMap.find(pMesh->mMaterialIndex) !=
              boneIdCtr->matIdToMatIdMap.end());
       const auto matId = boneIdCtr->matIdToMatIdMap[pMesh->mMaterialIndex];
-      joint.get().addDisplay({matId, boneIdCtr->meshId++, 0});
+      joint.addDisplay({matId, boneIdCtr->meshId++, 0});
 
       ImportMesh(pMesh, pNode);
     }
 
     for (int i = 0; i < pNode->mNumChildren; ++i) {
-      ImportNode(pNode->mChildren[i], &joint.get());
+      ImportNode(pNode->mChildren[i], &joint);
     }
   }
 
@@ -504,7 +501,7 @@ struct AssImporter {
 
     for (unsigned int i = 0; i < pScene->mNumMaterials; ++i) {
       auto* pMat = pScene->mMaterials[i];
-      auto& mr = out_model_ac.addMaterialRaw();
+      auto& mr = out_model.getMaterials().add();
       mr.id = i;
       const auto name = pMat->GetName();
       mr.name = name.C_Str();
@@ -669,7 +666,7 @@ struct AssImporter {
     for (auto& tex : texturesToImport) {
       printf("Importing texture: %s\n", tex.c_str());
 
-      auto& data = out_collection.addTextureRaw();
+      auto& data = out_collection.getTextures().add();
       data.mName = tex;
 
       int width, height, channels;
@@ -710,7 +707,7 @@ struct AssReader {
 
     return typeid(lib3d::Scene).name();
   }
-  void read(kpi::IDocumentNode& node, oishii::BinaryReader& reader) const {
+  void read(kpi::INode& node, oishii::BinaryReader& reader) const {
     const u32 ass_flags =
         aiProcess_Triangulate | aiProcess_GenSmoothNormals |
         aiProcess_ValidateDataStructure | aiProcess_RemoveRedundantMaterials |

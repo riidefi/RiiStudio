@@ -25,12 +25,12 @@ class RichNameManager {
     Component<false> icon;
     Component<true> name;
 
-    virtual bool isInDomain(const IDocumentNode* node) const = 0;
+    virtual bool isInDomain(const IObject* node) const = 0;
   };
 
   template <typename T> struct EntryImpl final : public IEntry {
     // TODO: This solution cannot handle name overrides.
-    bool isInDomain(const IDocumentNode* node) const override {
+    bool isInDomain(const IObject* node) const override {
       return dynamic_cast<const T*>(node) != nullptr;
     }
     EntryImpl(const std::string_view icon_, const std::string_view name_) {
@@ -82,13 +82,13 @@ public:
     EntryDelegate(const IEntry* _entry) : entry(_entry) {}
   };
 
-  inline EntryDelegate getRich(const IDocumentNode* node) const {
+  inline EntryDelegate getRich(const IObject* node) const {
     EntryDelegate delegate{getEntry(node)};
     return delegate;
   }
 
 private:
-  inline const IEntry* getEntry(const IDocumentNode* node) const {
+  inline const IEntry* getEntry(const IObject* node) const {
     const auto found =
         std::find_if(mEntries.begin(), mEntries.end(),
                      [&](const auto& x) { return x->isInDomain(node); });

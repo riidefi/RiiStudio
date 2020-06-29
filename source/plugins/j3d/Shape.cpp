@@ -7,8 +7,7 @@
 namespace riistudio::j3d {
 
 const Model* getModel(const Shape* shp) {
-  assert(shp->getParent());
-  return dynamic_cast<const Model*>(shp->getParent());
+  return dynamic_cast<const Model*>(shp->childOf);
 }
 
 glm::vec2 Shape::getUv(u64 chan, u64 idx) const {
@@ -158,10 +157,10 @@ glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
 
   return dst;
 }
-glm::mat4 computeBoneMdl(u32 id, kpi::FolderData* bones) {
+glm::mat4 computeBoneMdl(u32 id, kpi::ConstCollectionRange<lib3d::Bone> bones) {
   glm::mat4 mdl(1.0f);
 
-  auto& bone = bones->at<lib3d::Bone>(id);
+  auto& bone = bones[id];
   const auto parent = bone.getBoneParent();
   if (parent >= 0 && parent != id)
     mdl = computeBoneMdl(parent, bones);
@@ -174,8 +173,6 @@ std::vector<glm::mat4> Shape::getPosMtx(u64 mpid) const {
   const auto& mp = mMatrixPrimitives[mpid];
 
   auto& mdl = *getModel(this);
-  ModelAccessor mdl_ac{const_cast<kpi::IDocumentNode*>(
-      dynamic_cast<const kpi::IDocumentNode*>(&mdl))};
   // if (!(getVcd().mBitfield &
   //       (1 << (int)libcube::gx::VertexAttribute::PositionNormalMatrixIndex))) {
   //   return {
@@ -188,7 +185,7 @@ std::vector<glm::mat4> Shape::getPosMtx(u64 mpid) const {
     // Rigid -- bone space
     if (drw.mWeights.size() == 1) {
       u32 boneID = drw.mWeights[0].boneId;
-      curMtx = mdl_ac.getJoint(boneID).get().calcSrtMtx(&mdl_ac.getJoints());
+      curMtx = mdl.getBones()[boneID].calcSrtMtx(mdl.getBones().toConst());
     } else {
       // curMtx = glm::mat4{ 0.0f };
       // for (const auto& w : drw.mWeights) {

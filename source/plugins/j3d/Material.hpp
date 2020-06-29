@@ -13,6 +13,8 @@
 
 namespace riistudio::j3d {
 
+class Model;
+
 template <typename T> using ID = int;
 
 // FIXME: This will exist in our scene and be referenced.
@@ -109,7 +111,6 @@ struct MaterialData : public libcube::GCMaterialData {
 struct Texture;
 
 struct Material : public MaterialData, public libcube::IGCMaterial {
-  virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
   // PX_TYPE_INFO_EX("J3D Material", "j3d_material", "J::Material",
   // ICON_FA_PAINT_BRUSH, ICON_FA_PAINT_BRUSH);
 
@@ -131,7 +132,7 @@ struct Material : public MaterialData, public libcube::IGCMaterial {
   }
 
   bool isXluPass() const override { return flag & 4; }
-  const libcube::Texture& getTexture(const std::string& id) const override;
+  const libcube::Texture* getTexture(const std::string& id) const override;
 };
 
 } // namespace riistudio::j3d

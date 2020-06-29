@@ -11,8 +11,8 @@
 namespace riistudio::j3d {
 
 struct BMDOutputContext {
-  ModelAccessor mdl;
-  CollectionAccessor col;
+  Model& mdl;
+  Collection& col;
 
   oishii::BinaryReader& reader;
 
@@ -90,8 +90,8 @@ inline void writeNameTable(oishii::Writer& writer,
     // const u32 end = writer.tell();
 
     {
-      oishii::Jump<oishii::Whence::Set, oishii::Writer> g(
-          writer, start + 4 + i * 4);
+      oishii::Jump<oishii::Whence::Set, oishii::Writer> g(writer,
+                                                          start + 4 + i * 4);
 
       writer.write<u16>(hash(str));
       writer.write<u16>(strStart - start);
@@ -129,14 +129,13 @@ struct LinkNode final : public T, public oishii::Node {
     if (leaf)
       mLinkingRestriction.setFlag(oishii::LinkingRestriction::Leaf);
   }
-  oishii::Node::Result write(oishii::Writer& writer) const
-      noexcept override {
+  oishii::Node::Result write(oishii::Writer& writer) const noexcept override {
     T::write(writer);
     return eResult::Success;
   }
 
-  oishii::Node::Result
-  gatherChildren(oishii::Node::NodeDelegate& out) const noexcept override {
+  oishii::Node::Result gatherChildren(oishii::Node::NodeDelegate& out) const
+      noexcept override {
     T::gatherChildren(out);
 
     return {};
@@ -145,8 +144,8 @@ struct LinkNode final : public T, public oishii::Node {
 };
 
 struct BMDExportContext {
-  ModelAccessor mdl;
-  CollectionAccessor col;
+  Model& mdl;
+  Collection& col;
   /*
   We need to associate Samplers and TexData
   */

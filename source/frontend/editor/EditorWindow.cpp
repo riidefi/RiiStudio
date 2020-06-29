@@ -8,7 +8,7 @@
 
 namespace riistudio::frontend {
 
-EditorWindow::EditorWindow(std::unique_ptr<kpi::IDocumentNode> state,
+EditorWindow::EditorWindow(std::unique_ptr<kpi::INode> state,
                            const std::string& path)
     : StudioWindow(path.substr(path.rfind("\\") + 1), true),
       mState(std::move(state)), mFilePath(path) {

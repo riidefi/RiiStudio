@@ -14,8 +14,8 @@ struct ApplicationPluginsImpl {
     std::unique_ptr<IFactory> clone() const override {
       return std::make_unique<TFactory<T>>(*this);
     }
-    std::unique_ptr<IDocumentNode> spawn() override {
-      return std::make_unique<TDocumentNode<T>>();
+    std::unique_ptr<IObject> spawn() override {
+      return std::unique_ptr<IObject> { static_cast<IObject*>(new T()) };
     }
     const char* getId() const override { return typeid(T).name(); }
   };
@@ -32,8 +32,7 @@ struct ApplicationPluginsImpl {
                          oishii::BinaryReader& reader) const override {
       return T::canRead(file, reader);
     }
-    void read_(kpi::IDocumentNode& node,
-               oishii::BinaryReader& reader) const override {
+    void read_(kpi::INode& node, oishii::BinaryReader& reader) const override {
       T::read(node, reader);
     }
   };
@@ -45,11 +44,10 @@ struct ApplicationPluginsImpl {
     std::unique_ptr<IBinarySerializer> clone() const override {
       return std::make_unique<TBinarySerializer<T>>(*this);
     }
-    bool canWrite_(kpi::IDocumentNode& node) const override {
+    bool canWrite_(kpi::INode& node) const override {
       return T::canWrite(node);
     }
-    void write_(kpi::IDocumentNode& node,
-                oishii::Writer& writer) const override {
+    void write_(kpi::INode& node, oishii::Writer& writer) const override {
       T::write(node, writer);
     }
   };
@@ -61,11 +59,10 @@ struct ApplicationPluginsImpl {
     std::unique_ptr<IBinarySerializer> clone() const override {
       return std::make_unique<TSimpleBinarySerializer<T>>(*this);
     }
-    bool canWrite_(kpi::IDocumentNode& node) const override {
+    bool canWrite_(kpi::INode& node) const override {
       return dynamic_cast<T*>(&node) != nullptr;
     }
-    void write_(kpi::IDocumentNode& node,
-                oishii::Writer& writer) const override {
+    void write_(kpi::INode& node, oishii::Writer& writer) const override {
       write(node, writer, static_cast<T*>(nullptr));
     }
   };
@@ -99,51 +96,6 @@ inline ApplicationPlugins& ApplicationPlugins::addDeserializer() {
   mReaders.push_back(std::make_unique<
                      detail::ApplicationPluginsImpl::TBinaryDeserializer<T>>());
   return *this;
-}
-
-inline void IDocumentNode::FolderData::add() {
-  emplace_back(
-      ApplicationPlugins::getInstance()->constructObject(type, parent));
-}
-
-inline bool IDocumentNode::FolderData::isSelected(std::size_t index) const {
-  return std::find(state.selectedChildren.begin(), state.selectedChildren.end(),
-                   index) != state.selectedChildren.end();
-}
-
-inline bool IDocumentNode::FolderData::select(std::size_t index) {
-  if (isSelected(index))
-    return true;
-
-  state.selectedChildren.push_back(index);
-  return false;
-}
-
-inline bool IDocumentNode::FolderData::deselect(std::size_t index) {
-  auto it = std::find(state.selectedChildren.begin(),
-                      state.selectedChildren.end(), index);
-
-  if (it == state.selectedChildren.end())
-    return false;
-  state.selectedChildren.erase(it);
-  return true;
-}
-
-inline std::size_t IDocumentNode::FolderData::clearSelection() {
-  std::size_t before = state.selectedChildren.size();
-  state.selectedChildren.clear();
-  return before;
-}
-
-inline std::size_t IDocumentNode::FolderData::getActiveSelection() const {
-  return state.activeSelectChild;
-}
-
-inline std::size_t
-IDocumentNode::FolderData::setActiveSelection(std::size_t value) {
-  const std::size_t old = state.activeSelectChild;
-  state.activeSelectChild = value;
-  return old;
 }
 
 } // namespace kpi

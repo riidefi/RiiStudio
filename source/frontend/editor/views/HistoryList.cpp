@@ -6,17 +6,17 @@
 namespace riistudio::frontend {
 
 struct HistoryList : public StudioWindow {
-  HistoryList(kpi::History& host, kpi::IDocumentNode& root);
+  HistoryList(kpi::History& host, kpi::INode& root);
   ~HistoryList();
 
 private:
   void draw_() override;
 
   kpi::History& mHost;
-  kpi::IDocumentNode& mRoot;
+  kpi::INode& mRoot;
 };
 
-HistoryList::HistoryList(kpi::History& host, kpi::IDocumentNode& root)
+HistoryList::HistoryList(kpi::History& host, kpi::INode& root)
     : StudioWindow("History"), mHost(host), mRoot(root) {}
 
 HistoryList::~HistoryList() {}
@@ -43,7 +43,7 @@ void HistoryList::draw_() {
 }
 
 std::unique_ptr<StudioWindow> MakeHistoryList(kpi::History& host,
-                                              kpi::IDocumentNode& root) {
+                                              kpi::INode& root) {
   return std::make_unique<HistoryList>(host, root);
 }
 

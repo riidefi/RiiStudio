@@ -7,8 +7,8 @@ namespace riistudio::frontend {
 
 class PropertyEditor : public StudioWindow {
 public:
-  PropertyEditor(kpi::History& host, kpi::IDocumentNode& root,
-                 kpi::IDocumentNode*& active, EditorWindow& ed);
+  PropertyEditor(kpi::History& host, kpi::INode& root, kpi::IObject*& active,
+                 EditorWindow& ed);
   ~PropertyEditor();
 
 private:
@@ -25,29 +25,32 @@ private:
 
   EditorWindow& ed;
   kpi::History& mHost;
-  kpi::IDocumentNode& mRoot;
-  kpi::IDocumentNode*& mActive;
+  kpi::INode& mRoot;
+  kpi::IObject*& mActive;
 
   kpi::PropertyViewStateHolder state_holder;
 };
 
-
 template <typename T>
-static void gatherSelected(std::vector<kpi::IDocumentNode*>& tmp,
-                           kpi::FolderData& folder, T pred) {
+static void gatherSelected(std::vector<kpi::IObject*>& tmp,
+                           kpi::ICollection& folder, T pred) {
   for (int i = 0; i < folder.size(); ++i) {
-    if (folder.isSelected(i) && pred(folder[i].get())) {
-      tmp.push_back(folder[i].get());
+    auto* obj = folder.atObject(i);
+    if (folder.isSelected(i) && pred(obj)) {
+      tmp.push_back(obj);
     }
 
-    for (auto& subfolder : folder[i]->children) {
-      gatherSelected(tmp, subfolder.second, pred);
+    auto* col = dynamic_cast<kpi::INode*>(obj);
+    if (col != nullptr) {
+      for (int j = 0; j < col->numFolders(); ++j) {
+        gatherSelected(tmp, *col->folderAt(i), pred);
+      }
     }
   }
 }
 
-PropertyEditor::PropertyEditor(kpi::History& host, kpi::IDocumentNode& root,
-                               kpi::IDocumentNode*& active, EditorWindow& ed)
+PropertyEditor::PropertyEditor(kpi::History& host, kpi::INode& root,
+                               kpi::IObject*& active, EditorWindow& ed)
     : StudioWindow("Property Editor"), mHost(host), mRoot(root),
       mActive(active), ed(ed) {
   setWindowFlag(ImGuiWindowFlags_MenuBar);
@@ -92,10 +95,10 @@ void PropertyEditor::draw_() {
     ImGui::EndMenuBar();
   }
 
-  std::vector<kpi::IDocumentNode*> selected;
-  for (auto& subfolder : mRoot.children) {
-    gatherSelected(selected, subfolder.second, [&](kpi::IDocumentNode* node) {
-      return node->mType == mActive->mType;
+  std::vector<kpi::IObject*> selected;
+  for (int i = 0; i < mRoot.numFolders();  ++i) {
+    gatherSelected(selected, *mRoot.folderAt(i), [&](kpi::IObject* node) {
+      return typeid(*node).name() == typeid(mActive).name(); // return node->mType == mActive->mType;
     });
   }
 
@@ -234,8 +237,8 @@ void PropertyEditor::draw_() {
 }
 
 std::unique_ptr<StudioWindow> MakePropertyEditor(kpi::History& host,
-                                                 kpi::IDocumentNode& root,
-                                                 kpi::IDocumentNode*& active,
+                                                 kpi::INode& root,
+                                                 kpi::IObject*& active,
                                                  EditorWindow& ed) {
   return std::make_unique<PropertyEditor>(host, root, active, ed);
 }

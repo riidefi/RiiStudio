@@ -9,6 +9,8 @@
 #include <core/kpi/RichNameManager.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
+#include "Scene.hpp"
+
 namespace libcube {
 
 kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
@@ -28,5 +30,15 @@ kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
       .addRichName<riistudio::lib3d::Scene>(ICON_FA_SHAPES, "Scene");
 });
 
+kpi::ConstCollectionRange<Texture>
+IGCMaterial::getTextureSource() const {
+  auto* parent = childOf;
+  assert(parent);
+  auto* grandparent = parent->childOf;
+  assert(grandparent);
+  const libcube::Scene* pScn = dynamic_cast<const libcube::Scene*>(grandparent);
+  assert(pScn);
+  return pScn->getTextures();
+}
 
 } // namespace libcube

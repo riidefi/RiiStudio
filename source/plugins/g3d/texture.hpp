@@ -30,7 +30,7 @@ struct TextureData {
   }
 };
 
-struct Texture : public TextureData, public libcube::Texture {
+struct Texture : public TextureData, public libcube::Texture, public virtual kpi::IObject {
   std::string getName() const override { return name; }
   void setName(const std::string& n) override { name = n; }
   u32 getTextureFormat() const override { return (u32)format; }

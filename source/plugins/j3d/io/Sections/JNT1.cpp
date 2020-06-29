@@ -18,7 +18,7 @@ void readJNT1(BMDOutputContext& ctx) {
   u16 size = reader.read<u16>();
 
   for (u32 i = 0; i < size; ++i)
-    ctx.mdl.addJoint();
+    ctx.mdl.getBones().add();
   ctx.jointIdLut.resize(size);
   reader.read<u16>();
 
@@ -48,8 +48,8 @@ void readJNT1(BMDOutputContext& ctx) {
   reader.seekSet(ofsStringTable + g.start);
   const auto nameTable = readNameTable(reader);
 
-  for (int i = 0; i < size; ++i) {
-    auto& joint = ctx.mdl.getJoint(i).get();
+  int i = 0;
+  for (auto& joint : ctx.mdl.getBones()) {
     reader.seekSet(g.start + ofsJointData + ctx.jointIdLut[i] * 0x40);
     joint.id = ctx.jointIdLut[i]; // TODO
     joint.name = nameTable[i];
@@ -62,33 +62,36 @@ void readJNT1(BMDOutputContext& ctx) {
     u8 pad = reader.read<u8>();
     assert(pad == 0xff);
     joint.scale << reader;
-    joint.rotate.x = static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
-    joint.rotate.y = static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
-    joint.rotate.z = static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
+    joint.rotate.x =
+        static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
+    joint.rotate.y =
+        static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
+    joint.rotate.z =
+        static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
     reader.read<u16>();
     joint.translate << reader;
     joint.boundingSphereRadius = reader.read<f32>();
     joint.boundingBox.min << reader;
     joint.boundingBox.max << reader;
+    ++i;
   }
 }
 
 struct JNT1Node final : public oishii::Node {
-  JNT1Node(const ModelAccessor model) : mModel(model) {
+  JNT1Node(const Model& model) : mModel(model) {
     mId = "JNT1";
     mLinkingRestriction.alignment = 32;
   }
 
   struct JointData : public oishii::Node {
-    JointData(const ModelAccessor mdl) : mMdl(mdl) {
+    JointData(const Model& mdl) : mMdl(mdl) {
       mId = "JointData";
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 4;
     }
 
     Result write(oishii::Writer& writer) const noexcept {
-      for (int i = 0; i < mMdl.getJoints().size(); ++i) {
-        const auto& jnt = mMdl.getJoint(i).get();
+      for (auto& jnt : mMdl.getBones()) {
         writer.write<u16>((jnt.flag & 0xf) |
                           (static_cast<u32>(jnt.bbMtxType) << 4));
         writer.write<u8>(jnt.mayaSSC);
@@ -110,60 +113,57 @@ struct JNT1Node final : public oishii::Node {
       return {};
     }
 
-    const ModelAccessor mMdl;
+    const Model& mMdl;
   };
   struct JointLUT : public oishii::Node {
-    JointLUT(const ModelAccessor mdl) : mMdl(mdl) {
+    JointLUT(const Model& mdl) : mMdl(mdl) {
       mId = "JointLUT";
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 2;
     }
 
     Result write(oishii::Writer& writer) const noexcept {
-      for (int i = 0; i < mMdl.getJoints().size(); ++i)
-        writer.write<u16>(mMdl.getJoint(i).get().id);
+      for (auto& joint : mMdl.getBones())
+        writer.write<u16>(joint.id);
 
       return {};
     }
 
-    const ModelAccessor mMdl;
+    const Model& mMdl;
   };
   struct JointNames : public oishii::Node {
-    JointNames(const ModelAccessor mdl) : mMdl(mdl) {
+    JointNames(const Model& mdl) : mMdl(mdl) {
       mId = "JointNames";
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 4;
     }
 
     Result write(oishii::Writer& writer) const noexcept {
-      auto bones = mMdl.getJoints();
+      auto bones = mMdl.getBones();
 
       std::vector<std::string> names(bones.size());
 
       for (int i = 0; i < bones.size(); ++i)
-        names[i] = mMdl.getJoint(i).get().name;
+        names[i] = mMdl.getBones()[i].name;
       writeNameTable(writer, names);
 
       return {};
     }
 
-    const ModelAccessor mMdl;
+    const Model& mMdl;
   };
   Result write(oishii::Writer& writer) const noexcept override {
     writer.write<u32, oishii::EndianSelect::Big>('JNT1');
     writer.writeLink<s32>({*this}, {"SHP1"});
 
-    writer.write<u16>(mModel.getJoints().size());
+    writer.write<u16>(mModel.getBones().size());
     writer.write<u16>(-1);
 
     // TODO: We don't compress joints. I haven't seen this out in the wild yet.
 
-    writer.writeLink<s32>(oishii::Hook(*this),
-                          oishii::Hook("JointData"));
-    writer.writeLink<s32>(oishii::Hook(*this),
-                          oishii::Hook("JointLUT"));
-    writer.writeLink<s32>(oishii::Hook(*this),
-                          oishii::Hook("JointNames"));
+    writer.writeLink<s32>(oishii::Hook(*this), oishii::Hook("JointData"));
+    writer.writeLink<s32>(oishii::Hook(*this), oishii::Hook("JointLUT"));
+    writer.writeLink<s32>(oishii::Hook(*this), oishii::Hook("JointNames"));
 
     return eResult::Success;
   }
@@ -177,7 +177,7 @@ struct JNT1Node final : public oishii::Node {
   }
 
 private:
-  const ModelAccessor mModel;
+  const Model& mModel;
 };
 
 std::unique_ptr<oishii::Node> makeJNT1Node(BMDExportContext& ctx) {

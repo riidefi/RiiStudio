@@ -5,7 +5,6 @@
 
 namespace riistudio::frontend {
 
-std::unique_ptr<StudioWindow>
-MakeViewportRenderer(const kpi::IDocumentNode& host);
+std::unique_ptr<StudioWindow> MakeViewportRenderer(const kpi::INode& host);
 
 } // namespace riistudio::frontend

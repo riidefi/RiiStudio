@@ -7,6 +7,6 @@
 namespace riistudio::frontend {
 
 std::unique_ptr<StudioWindow> MakeHistoryList(kpi::History& host,
-                                              kpi::IDocumentNode& root);
+                                              kpi::INode& root);
 
 } // namespace riistudio::frontend

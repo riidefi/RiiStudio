@@ -12,10 +12,9 @@ struct SceneState {
 
   void buildBuffers();
 
-  void buildTextures(const kpi::IDocumentNode& root);
-  void gather(const kpi::IDocumentNode& model,
-              const kpi::IDocumentNode& texture, bool buf = true,
-              bool tex = true);
+  void buildTextures(const lib3d::Scene& root);
+  void gather(const lib3d::Model& model, const lib3d::Scene& texture,
+              bool buf = true, bool tex = true);
 
   void build(const glm::mat4& view, const glm::mat4& proj, AABB& bound);
 
@@ -23,7 +22,6 @@ struct SceneState {
 
   SceneTree mTree;
   std::map<std::string, u32> texIdMap;
-  const kpi::FolderData* bones;
   glm::mat4 scaleMatrix{1.0f};
 
   VBOBuilder mVbo;

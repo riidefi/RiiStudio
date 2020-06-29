@@ -64,7 +64,9 @@ struct JointData {
            inverseBindPoseMtx == rhs.inverseBindPoseMtx;
   }
 };
-struct Joint : public libcube::IBoneDelegate, public JointData {
+struct Joint : public libcube::IBoneDelegate,
+               public JointData,
+               public virtual kpi::IObject {
   // PX_TYPE_INFO_EX("J3D Joint", "j3d_joint", "J::Joint", ICON_FA_BONE,
   // ICON_FA_BONE);
 

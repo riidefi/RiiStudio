@@ -12,8 +12,8 @@
 namespace riistudio::frontend {
 
 struct GenericCollectionOutliner : public StudioWindow {
-  GenericCollectionOutliner(kpi::IDocumentNode& host,
-                            kpi::IDocumentNode*& active, EditorWindow& ed);
+  GenericCollectionOutliner(kpi::INode& host, kpi::IObject*& active,
+                            EditorWindow& ed);
 
   struct ImTFilter : public ImGuiTextFilter {
     bool test(const std::string& str) const noexcept {
@@ -44,34 +44,35 @@ struct GenericCollectionOutliner : public StudioWindow {
 
   //! @brief Return the number of resources in the source that pass the filter.
   //!
-  std::size_t calcNumFiltered(const kpi::FolderData& sampler,
+  std::size_t calcNumFiltered(const kpi::ICollection& sampler,
                               const TFilter* filter = nullptr) const noexcept;
 
   //! @brief Format the title in the "<header> (<number of resources>)" format.
   //!
-  std::string formatTitle(const kpi::FolderData& sampler,
+  std::string formatTitle(const kpi::ICollection& sampler,
                           const TFilter* filter = nullptr) const;
 
-  void drawFolder(kpi::FolderData& sampler, const kpi::IDocumentNode& host,
+  void drawFolder(kpi::ICollection& sampler, const kpi::INode& host,
                   const std::string& key) noexcept;
 
-  void drawRecursive(kpi::IDocumentNode& host) noexcept;
+  void drawRecursive(kpi::INode& host) noexcept;
 
 private:
   void draw_() noexcept override;
 
-  kpi::IDocumentNode& mHost;
+  kpi::INode& mHost;
   TFilter mFilter;
-  kpi::IDocumentNode*& mActive;
+  kpi::IObject*& mActive;
   EditorWindow& ed;
 };
 
-GenericCollectionOutliner::GenericCollectionOutliner(
-    kpi::IDocumentNode& host, kpi::IDocumentNode*& active, EditorWindow& ed)
+GenericCollectionOutliner::GenericCollectionOutliner(kpi::INode& host,
+                                                     kpi::IObject*& active,
+                                                     EditorWindow& ed)
     : StudioWindow("Outliner"), mHost(host), mActive(active), ed(ed) {}
 
 std::size_t GenericCollectionOutliner::calcNumFiltered(
-    const kpi::FolderData& sampler, const TFilter* filter) const noexcept {
+    const kpi::ICollection& sampler, const TFilter* filter) const noexcept {
   // If no data, empty
   if (sampler.size() == 0)
     return 0;
@@ -83,31 +84,31 @@ std::size_t GenericCollectionOutliner::calcNumFiltered(
   std::size_t nPass = 0;
 
   for (u32 i = 0; i < sampler.size(); ++i)
-    if (filter->test(sampler[i]->getName().c_str()))
+    if (filter->test(sampler.atObject(i)->getName().c_str()))
       ++nPass;
 
   return nPass;
 }
 
 std::string
-GenericCollectionOutliner::formatTitle(const kpi::FolderData& sampler,
+GenericCollectionOutliner::formatTitle(const kpi::ICollection& sampler,
                                        const TFilter* filter) const {
   if (sampler.size() == 0)
     return "";
-  const auto rich = kpi::RichNameManager::getInstance().getRich(
-      &sampler.at<kpi::IDocumentNode>(0));
+  const auto rich =
+      kpi::RichNameManager::getInstance().getRich(sampler.atObject(0));
   const std::string icon_plural = rich.getIconPlural();
   const std::string exposed_name = rich.getNamePlural();
   return std::string(icon_plural + "  " + exposed_name + " (" +
                      std::to_string(calcNumFiltered(sampler, filter)) + ")");
 }
 
-void GenericCollectionOutliner::drawFolder(kpi::FolderData& sampler,
-                                           const kpi::IDocumentNode& host,
+void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
+                                           const kpi::INode& host,
                                            const std::string& key) noexcept {
   {
-    const auto rich = kpi::RichNameManager::getInstance().getRich(
-        &sampler.at<kpi::IDocumentNode>(0));
+    const auto rich =
+        kpi::RichNameManager::getInstance().getRich(sampler.atObject(0));
     if (!rich.hasEntry())
       return;
   }
@@ -129,14 +130,15 @@ void GenericCollectionOutliner::drawFolder(kpi::FolderData& sampler,
 
   // Draw the tree
   for (int i = 0; i < sampler.size(); ++i) {
-    auto& nodeAt = sampler[i];
-    const std::string cur_name = nodeAt->getName();
+    auto& nodeAt = *sampler.atObject(i);
+    const std::string cur_name = nodeAt.getName();
 
-    if (nodeAt->children.empty() && !mFilter.test(cur_name)) {
+    auto* as_host = dynamic_cast<kpi::INode*>(&nodeAt);
+
+    if (as_host == nullptr && !mFilter.test(cur_name))
       continue;
-    }
 
-    const auto rich = kpi::RichNameManager::getInstance().getRich(nodeAt.get());
+    const auto rich = kpi::RichNameManager::getInstance().getRich(&nodeAt);
 
     if (!rich.hasEntry())
       continue;
@@ -156,13 +158,11 @@ void GenericCollectionOutliner::drawFolder(kpi::FolderData& sampler,
     thereWasAClick = ImGui::IsItemClicked();
     bool focused = ImGui::IsItemFocused();
 
-    lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(nodeAt.get());
-
-    libcube::IGCMaterial* mat =
-        dynamic_cast<libcube::IGCMaterial*>(nodeAt.get());
+    lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(&nodeAt);
+    libcube::IGCMaterial* mat = dynamic_cast<libcube::IGCMaterial*>(&nodeAt);
 
     u32 flags = ImGuiTreeNodeFlags_DefaultOpen;
-    if (nodeAt->children.empty())
+    if (as_host == nullptr)
       flags |= ImGuiTreeNodeFlags_Leaf;
 
     const auto text_size = ImGui::CalcTextSize("T");
@@ -178,15 +178,15 @@ void GenericCollectionOutliner::drawFolder(kpi::FolderData& sampler,
       if (mat != nullptr) {
         for (int s = 0; s < mat->getMaterialData().samplers.size(); ++s) {
           auto& sampl = *mat->getMaterialData().samplers[s].get();
-          kpi::IDocumentNode* curImg = nullptr;
-          for (auto& it : *mat->getTextureSource()) {
-            if (it->getName() == sampl.mTexture) {
-              curImg = it.get();
+          const lib3d::Texture* curImg = nullptr;
+          for (auto& it : mat->getTextureSource()) {
+            if (it.getName() == sampl.mTexture) {
+              curImg = &it;
             }
           }
           ImGui::SameLine();
           ImGui::SetCursorPosY(initial_pos_y);
-          ed.drawImageIcon(dynamic_cast<lib3d::Texture*>(curImg), icon_size);
+          ed.drawImageIcon(curImg, icon_size);
         }
       }
       if (tex != nullptr) {
@@ -199,7 +199,8 @@ void GenericCollectionOutliner::drawFolder(kpi::FolderData& sampler,
     if (treenode) {
       // NodeDrawer::drawNode(*node.get());
 
-      drawRecursive(*nodeAt.get());
+      if (as_host != nullptr)
+        drawRecursive(*as_host);
 
       // If there waas a click above, we need to ignore the focus below.
       // Assume only one item can be clicked.
@@ -269,25 +270,22 @@ void GenericCollectionOutliner::drawFolder(kpi::FolderData& sampler,
 
   // Set our last selection index, for shift clicks.
   sampler.setActiveSelection(justSelectedId);
-  mActive =
-      sampler[justSelectedId]
-          .get(); // TODO -- removing the active node will cause issues here
+  mActive = sampler.atObject(justSelectedId); // TODO -- removing the active
+                                              // node will cause issues here
 }
 
-void GenericCollectionOutliner::drawRecursive(
-    kpi::IDocumentNode& host) noexcept {
-  for (auto& folder : host.children)
-    drawFolder(folder.second, host, folder.first);
+void GenericCollectionOutliner::drawRecursive(kpi::INode& host) noexcept {
+  for (int i = 0; i < host.numFolders(); ++i)
+    drawFolder(*host.folderAt(i), host, host.idAt(i));
 }
 
 void GenericCollectionOutliner::draw_() noexcept {
   mFilter.Draw();
-  drawRecursive(mHost);
+  drawRecursive((kpi::INode&)mHost);
 }
 
-std::unique_ptr<StudioWindow> MakeOutliner(kpi::IDocumentNode& host,
-                                           kpi::IDocumentNode*& active,
-                                           EditorWindow& ed) {
+std::unique_ptr<StudioWindow>
+MakeOutliner(kpi::INode& host, kpi::IObject*& active, EditorWindow& ed) {
   return std::make_unique<GenericCollectionOutliner>(host, active, ed);
 }
 

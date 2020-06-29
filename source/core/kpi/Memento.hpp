@@ -8,8 +8,8 @@
 
 namespace kpi {
 
+struct INode;
 struct IDocData;
-class IDocumentNode;
 
 struct DocumentMemento {
   std::shared_ptr<const DocumentMemento> parent = nullptr;
@@ -26,10 +26,8 @@ struct DocumentMemento {
 
 // Permute a persistent immutable document record, sharing memory where possible
 std::shared_ptr<const DocumentMemento>
-setNext(const IDocumentNode& node,
-        std::shared_ptr<const DocumentMemento> record);
+setNext(const INode& node, std::shared_ptr<const DocumentMemento> record);
 // Restore a transient document node to a recorded state.
-void rollback(IDocumentNode& node,
-              std::shared_ptr<const DocumentMemento> record);
+void rollback(INode& node, std::shared_ptr<const DocumentMemento> record);
 
 } // namespace kpi

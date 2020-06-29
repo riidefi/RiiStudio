@@ -2,12 +2,13 @@
 
 #include "PixelOcclusion.hpp"
 #include <core/common.h>
+#include <core/kpi/Node2.hpp>
 #include <string>
 #include <vector>
 
 namespace riistudio::lib3d {
 
-struct Texture {
+struct Texture : public virtual kpi::IObject {
   virtual ~Texture() = default;
 
   virtual std::string getName() const { return "Untitled Texture"; }

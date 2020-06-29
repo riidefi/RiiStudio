@@ -20,10 +20,10 @@ auto BoneDisplaySurface =
           auto folder_id_combo = [](const char* title, const auto& folder,
                                     int& active) {
             ImGui::PushItemWidth(200);
-            if (ImGui::BeginCombo(title, folder[active]->getName().c_str())) {
+            if (ImGui::BeginCombo(title, folder[active].getName().c_str())) {
               int j = 0;
               for (const auto& node : folder) {
-                if (ImGui::Selectable(node->getName().c_str(), active == j)) {
+                if (ImGui::Selectable(node.getName().c_str(), active == j)) {
                   active = j;
                 }
 
@@ -42,12 +42,8 @@ auto BoneDisplaySurface =
               ImGuiTableFlags_Borders | ImGuiTableFlags_Sortable |
               ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable;
           if (ImGui::BeginTable("Entries", 3, entry_flags)) {
-            const auto* materials =
-                bone.getParent()->getFolder<libcube::IGCMaterial>();
-            assert(materials);
-            const auto* polys =
-                bone.getParent()->getFolder<libcube::IndexedPolygon>();
-            assert(polys);
+            const auto materials = bone.getParent()->getMaterials();
+            const auto polys = bone.getParent()->getMeshes();
 
             ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
@@ -71,12 +67,12 @@ auto BoneDisplaySurface =
 
               ImGui::TableSetColumnIndex(1);
               int matId = display.matId;
-              folder_id_combo("Material", *materials, matId);
+              folder_id_combo("Material", materials, matId);
               display.matId = matId;
 
               ImGui::TableSetColumnIndex(2);
               int polyId = display.polyId;
-              folder_id_combo("Polygon", *polys, polyId);
+              folder_id_combo("Polygon", polys, polyId);
               display.polyId = polyId;
 
               // ImGui::TableSetColumnIndex(3);

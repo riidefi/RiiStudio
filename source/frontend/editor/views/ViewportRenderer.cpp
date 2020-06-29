@@ -15,7 +15,7 @@ extern bool gPointerLock;
 namespace riistudio::frontend {
 
 struct RenderTest : public StudioWindow {
-  RenderTest(const kpi::IDocumentNode& host);
+  RenderTest(const kpi::INode& host);
 
 private:
   void draw_() override;
@@ -25,9 +25,9 @@ private:
   Renderer mRenderer;
 };
 
-RenderTest::RenderTest(const kpi::IDocumentNode& host)
+RenderTest::RenderTest(const kpi::INode& host)
     : StudioWindow("Viewport"), mRenderer(dynamic_cast<lib3d::IDrawable*>(
-                                    const_cast<kpi::IDocumentNode*>(&host))) {
+                                    const_cast<kpi::INode*>(&host))) {
   setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
   mRenderer.prepare(host);
 }
@@ -58,7 +58,7 @@ void RenderTest::draw_() {
 }
 
 std::unique_ptr<StudioWindow>
-MakeViewportRenderer(const kpi::IDocumentNode& host) {
+MakeViewportRenderer(const kpi::INode& host) {
   return std::make_unique<RenderTest>(host);
 }
 

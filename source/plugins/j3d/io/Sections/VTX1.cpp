@@ -42,20 +42,20 @@ void readVTX1(BMDOutputContext& ctx) {
 
     switch (type) {
     case gx::VertexBufferAttribute::Position:
-      buf = &ctx.mdl.get().mBufs.pos;
+      buf = &ctx.mdl.mBufs.pos;
       bufkind = VBufferKind::position;
-      ctx.mdl.get().mBufs.pos.mQuant = VQuantization(
+      ctx.mdl.mBufs.pos.mQuant = VQuantization(
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::Position>(comp)),
           gx::VertexBufferType(gen_data),
           gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0, shift,
           (comp + 2) * gen_comp_size);
-      estride = ctx.mdl.get().mBufs.pos.mQuant.stride;
+      estride = ctx.mdl.mBufs.pos.mQuant.stride;
       break;
     case gx::VertexBufferAttribute::Normal:
-      buf = &ctx.mdl.get().mBufs.norm;
+      buf = &ctx.mdl.mBufs.norm;
       bufkind = VBufferKind::normal;
-      ctx.mdl.get().mBufs.norm.mQuant = VQuantization(
+      ctx.mdl.mBufs.norm.mQuant = VQuantization(
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::Normal>(comp)),
           gx::VertexBufferType(gen_data),
@@ -63,14 +63,14 @@ void readVTX1(BMDOutputContext& ctx) {
               ? 6
               : gen_data == gx::VertexBufferType::Generic::s16 ? 14 : 0,
           shift, 3 * gen_comp_size);
-      estride = ctx.mdl.get().mBufs.norm.mQuant.stride;
+      estride = ctx.mdl.mBufs.norm.mQuant.stride;
       break;
     case gx::VertexBufferAttribute::Color0:
     case gx::VertexBufferAttribute::Color1: {
       auto& clr =
-          ctx.mdl.get().mBufs.color[static_cast<size_t>(type) -
-                                    static_cast<size_t>(
-                                        gx::VertexBufferAttribute::Color0)];
+          ctx.mdl.mBufs
+              .color[static_cast<size_t>(type) -
+                     static_cast<size_t>(gx::VertexBufferAttribute::Color0)];
       buf = &clr;
       bufkind = VBufferKind::color;
       clr.mQuant = VQuantization(
@@ -105,9 +105,9 @@ void readVTX1(BMDOutputContext& ctx) {
     case gx::VertexBufferAttribute::TexCoord6:
     case gx::VertexBufferAttribute::TexCoord7: {
       auto& uv =
-          ctx.mdl.get().mBufs.uv[static_cast<size_t>(type) -
-                                 static_cast<size_t>(
-                                     gx::VertexBufferAttribute::TexCoord0)];
+          ctx.mdl.mBufs
+              .uv[static_cast<size_t>(type) -
+                  static_cast<size_t>(gx::VertexBufferAttribute::TexCoord0)];
       buf = &uv;
       bufkind = VBufferKind::textureCoordinate;
       uv.mQuant = VQuantization(
@@ -176,7 +176,7 @@ void readVTX1(BMDOutputContext& ctx) {
 
       switch (bufkind) {
       case VBufferKind::position: {
-        auto pos = reinterpret_cast<decltype(ctx.mdl.get().mBufs.pos)*>(buf);
+        auto pos = reinterpret_cast<decltype(ctx.mdl.mBufs.pos)*>(buf);
 
         pos->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i)
@@ -184,7 +184,7 @@ void readVTX1(BMDOutputContext& ctx) {
         break;
       }
       case VBufferKind::normal: {
-        auto nrm = reinterpret_cast<decltype(ctx.mdl.get().mBufs.norm)*>(buf);
+        auto nrm = reinterpret_cast<decltype(ctx.mdl.mBufs.norm)*>(buf);
 
         nrm->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i)
@@ -193,8 +193,7 @@ void readVTX1(BMDOutputContext& ctx) {
       }
       case VBufferKind::color: {
         auto clr =
-            reinterpret_cast<decltype(ctx.mdl.get().mBufs.color)::value_type*>(
-                buf);
+            reinterpret_cast<decltype(ctx.mdl.mBufs.color)::value_type*>(buf);
 
         clr->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i)
@@ -203,8 +202,7 @@ void readVTX1(BMDOutputContext& ctx) {
       }
       case VBufferKind::textureCoordinate: {
         auto uv =
-            reinterpret_cast<decltype(ctx.mdl.get().mBufs.uv)::value_type*>(
-                buf);
+            reinterpret_cast<decltype(ctx.mdl.mBufs.uv)::value_type*>(buf);
 
         uv->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i)
@@ -311,19 +309,18 @@ struct VTX1Node {
       return;
 
     writer.write<u32, oishii::EndianSelect::Big>('VTX1');
-    writer.writeLink<s32>(oishii::Link{
-        oishii::Hook(getSelf()),
-        oishii::Hook(getSelf(), oishii::Hook::EndOfChildren)});
+    writer.writeLink<s32>(
+        oishii::Link{oishii::Hook(getSelf()),
+                     oishii::Hook(getSelf(), oishii::Hook::EndOfChildren)});
 
-    writer.writeLink<s32>(oishii::Link{oishii::Hook(getSelf()),
-                                           oishii::Hook("Format")});
+    writer.writeLink<s32>(
+        oishii::Link{oishii::Hook(getSelf()), oishii::Hook("Format")});
 
     const auto numOfs = computeNumOfs();
     int i = 0;
     auto writeBufLink = [&]() {
-      writer.writeLink<s32>(
-          oishii::Link{oishii::Hook(getSelf()),
-                           oishii::Hook("Buf" + std::to_string(i++))});
+      writer.writeLink<s32>(oishii::Link{
+          oishii::Hook(getSelf()), oishii::Hook("Buf" + std::to_string(i++))});
     };
     auto writeOptBufLink = [&](const auto& b) {
       if (b.mData.empty())
@@ -389,7 +386,7 @@ struct VTX1Node {
         push_buf(c);
   }
 
-  VTX1Node(BMDExportContext& ctx) : mdl(&ctx.mdl.get()) {}
+  VTX1Node(BMDExportContext& ctx) : mdl(&ctx.mdl) {}
   Model* mdl = nullptr;
 };
 

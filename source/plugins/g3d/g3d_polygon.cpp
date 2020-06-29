@@ -1,57 +1,42 @@
-#include "polygon.hpp"
-
 #include "model.hpp"
+#include "polygon.hpp"
 
 namespace riistudio::g3d {
 
 glm::vec2 Polygon::getUv(u64 chan, u64 id) const {
   // Assumption: Parent of parent model is a collection with children.
-  const kpi::IDocumentNode* parent = getParent();
-  assert(parent);
-  const auto* posBufs = parent->getFolder<TextureCoordinateBuffer>();
-  assert(posBufs);
-  for (const auto& p : *posBufs) {
-    if (p->getName() == mTexCoordBuffer[chan]) {
-      auto* x = dynamic_cast<TextureCoordinateBuffer*>(p.get());
-      return id >= x->mEntries.size() ? glm::vec2{} : x->mEntries[id];
-    }
+  assert(getParent());
+
+  for (const auto& p : getParent()->getBuf_Uv()) {
+    if (p.getName() == mTexCoordBuffer[chan])
+      return id >= p.mEntries.size() ? glm::vec2{} : p.mEntries[id];
   }
   return {};
 }
 glm::vec4 Polygon::getClr(u64 id) const {
-  const kpi::IDocumentNode* parent = getParent();
-  assert(parent);
-  const auto* posBufs = parent->getFolder<ColorBuffer>();
-  assert(posBufs);
-  for (const auto& p : *posBufs) {
-    if (p->getName() == mColorBuffer[0]) {
-      const auto* buf = dynamic_cast<ColorBuffer*>(p.get());
-      const auto entry = buf->mEntries[id];
-      const libcube::gx::ColorF32 ef32 = entry;
-      return ef32;
-    }
+  assert(getParent());
+
+  for (const auto& p : getParent()->getBuf_Clr()) {
+    if (p.getName() == mColorBuffer[0])
+      return libcube::gx::ColorF32(p.mEntries[id]);
   }
   return {};
 }
 glm::vec3 Polygon::getPos(u64 id) const {
-  const kpi::IDocumentNode* parent = getParent();
-  assert(parent);
-  const auto* posBufs = parent->getFolder<PositionBuffer>();
-  assert(posBufs);
-  for (const auto& p : *posBufs) {
-    if (p->getName() == mPositionBuffer)
-      return dynamic_cast<PositionBuffer*>(p.get())->mEntries[id];
+  assert(getParent());
+
+  for (const auto& p : getParent()->getBuf_Pos()) {
+    if (p.getName() == mPositionBuffer)
+      return p.mEntries[id];
   }
   return {};
 }
 glm::vec3 Polygon::getNrm(u64 id) const {
-  const kpi::IDocumentNode* parent = getParent();
-  assert(parent);
-  const auto* posBufs = parent->getFolder<NormalBuffer>();
-  assert(posBufs);
-  for (const auto& p : *posBufs) {
-    if (p->getName() == mNormalBuffer)
-      return dynamic_cast<NormalBuffer*>(p.get())->mEntries[id];
+  assert(getParent());
+
+  for (const auto& p : getParent()->getBuf_Nrm()) {
+    if (p.getName() == mNormalBuffer)
+      return p.mEntries[id];
   }
   return {};
 }
@@ -96,10 +81,10 @@ glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
 
   return dst;
 }
-glm::mat4 computeBoneMdl(u32 id, kpi::FolderData* bones) {
+glm::mat4 computeBoneMdl(u32 id, kpi::ConstCollectionRange<lib3d::Bone> bones) {
   glm::mat4 mdl(1.0f);
 
-  auto& bone = bones->at<lib3d::Bone>(id);
+  auto& bone = bones[id];
   const auto parent = bone.getBoneParent();
   if (parent >= 0 && parent != id)
     mdl = computeBoneMdl(parent, bones);
@@ -107,18 +92,16 @@ glm::mat4 computeBoneMdl(u32 id, kpi::FolderData* bones) {
   return mdl * computeMdlMtx(bone.getSRT());
 }
 
-const G3DModel* getModel(const Polygon* shp) {
+const Model* getModel(const Polygon* shp) {
   assert(shp->getParent());
-  return dynamic_cast<const G3DModel*>(shp->getParent());
+  return dynamic_cast<const Model*>(shp->getParent());
 }
 std::vector<glm::mat4> Polygon::getPosMtx(u64 mpid) const {
   std::vector<glm::mat4> out;
 
   const auto& mp = mMatrixPrimitives[mpid];
 
-  auto& mdl = *getModel(this);
-  G3DModelAccessor mdl_ac{const_cast<kpi::IDocumentNode*>(
-      dynamic_cast<const kpi::IDocumentNode*>(&mdl))};
+  const g3d::Model& mdl_ac = *getModel(this);
 
   const auto handle_drw = [&](const libcube::DrawMatrix& drw) {
     glm::mat4x4 curMtx(1.0f);
@@ -126,7 +109,8 @@ std::vector<glm::mat4> Polygon::getPosMtx(u64 mpid) const {
     // Rigid -- bone space
     if (drw.mWeights.size() == 1) {
       u32 boneID = drw.mWeights[0].boneId;
-      curMtx = mdl_ac.getBone(boneID).get().calcSrtMtx(&mdl_ac.getBones());
+      curMtx = const_cast<Bone&>(mdl_ac.getBones()[boneID])
+                   .calcSrtMtx(mdl_ac.getBones());
     } else {
       // already world space
     }
@@ -134,12 +118,12 @@ std::vector<glm::mat4> Polygon::getPosMtx(u64 mpid) const {
   };
 
   if (mp.mDrawMatrixIndices.empty()) {
-    if (mdl.mDrawMatrices.size() > mCurrentMatrix) {
-      handle_drw(mdl.mDrawMatrices[mCurrentMatrix]);
+    if (mdl_ac.mDrawMatrices.size() > mCurrentMatrix) {
+      handle_drw(mdl_ac.mDrawMatrices[mCurrentMatrix]);
     }
   } else {
     for (const auto it : mp.mDrawMatrixIndices) {
-      handle_drw(mdl.mDrawMatrices[it]);
+      handle_drw(mdl_ac.mDrawMatrices[it]);
     }
   }
   return out;

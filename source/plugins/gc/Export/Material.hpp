@@ -11,6 +11,8 @@
 
 namespace libcube {
 
+class Model;
+
 // Assumption: all elements are contiguous--no holes
 // Much faster than a vector for the many static sized arrays in materials
 template <typename T, size_t N> struct array_vector : public std::array<T, N> {
@@ -262,24 +264,15 @@ struct IGCMaterial : public riistudio::lib3d::Material {
   virtual GCMaterialData& getMaterialData() = 0;
   virtual const GCMaterialData& getMaterialData() const = 0;
 
-  virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
+  virtual const libcube::Model* getParent() const { return nullptr; }
   std::pair<std::string, std::string> generateShaders() const override;
   void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M,
                         const glm::mat4& V, const glm::mat4& P, u32 shaderId,
                         const std::map<std::string, u32>& texIdMap,
                         const riistudio::lib3d::Polygon& poly) const override;
 
-  virtual inline const kpi::FolderData* getTextureSource() const {
-    // Assumption: Parent of parent model is a collection with children.
-    const kpi::IDocumentNode* parent = getParent();
-    assert(parent);
-    const kpi::IDocumentNode* collection =
-        static_cast<const kpi::IDocumentNode*>(parent->parent);
-    assert(collection);
-
-    return collection->getFolder<libcube::Texture>();
-  }
-  virtual const Texture& getTexture(const std::string& id) const = 0;
+  virtual kpi::ConstCollectionRange<Texture> getTextureSource() const;
+  virtual const Texture* getTexture(const std::string& id) const = 0;
   void
   genSamplUniforms(u32 shaderId,
                    const std::map<std::string, u32>& texIdMap) const override;

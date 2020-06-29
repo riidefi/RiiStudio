@@ -52,8 +52,10 @@ struct ShapeData {
 
   bool visible = true; // Editor-only
 };
-struct Shape : public ShapeData, public libcube::IndexedPolygon {
-  virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
+struct Shape : public ShapeData,
+               public libcube::IndexedPolygon,
+               public virtual kpi::IObject {
+  virtual const j3d::Model* getParent() const { return nullptr; }
 
   std::string getName() const { return "Shape " + std::to_string(id); }
   void setName(const std::string& name) override {}

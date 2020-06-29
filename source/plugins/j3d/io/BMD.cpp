@@ -43,7 +43,7 @@ struct BMDFile : public oishii::Node {
     return {};
   }
   Result gatherChildren(oishii::Node::NodeDelegate& ctx) const {
-    BMDExportContext exp{mCollection.getModel(0), mCollection};
+    BMDExportContext exp{mCollection->getModels()[0], *mCollection};
 
     auto addNode = [&](std::unique_ptr<oishii::Node> node) {
       node->getLinkingRestriction().alignment = 32;
@@ -63,7 +63,7 @@ struct BMDFile : public oishii::Node {
     return {};
   }
 
-  CollectionAccessor mCollection = CollectionAccessor{nullptr};
+  j3d::Collection* mCollection;
   bool bBDL = true;
   bool bMimic = true;
 };
@@ -79,66 +79,68 @@ public:
                ? typeid(Collection).name()
                : "";
   }
-  bool canWrite(kpi::IDocumentNode& node) const {
+  bool canWrite(kpi::INode& node) const {
     return dynamic_cast<Collection*>(&node) != nullptr;
   }
 
-  void write(kpi::IDocumentNode& node, oishii::Writer& writer) const {
+  void processModelForWrite(j3d::Collection& collection, j3d::Model& model,
+                            std::map<std::string, u32>& texNameMap) const {
+    auto& texCache = model.mTexCache;
+    auto& matCache = model.mMatCache;
+    texCache.clear();
+    matCache.clear();
+
+    for (auto& mat : model.getMaterials()) {
+      for (auto& samp : mat.samplers) {
+        auto* slow = reinterpret_cast<MaterialData::J3DSamplerData*>(&samp);
+        assert(slow != nullptr);
+
+        assert(!samp->mTexture.empty());
+        if (!samp->mTexture.empty()) {
+          const auto btiId = texNameMap[samp->mTexture];
+          Tex tmp(collection.getTextures()[btiId], *samp.get());
+          tmp.btiId = btiId;
+
+          auto found = std::find(texCache.begin(), texCache.end(), tmp);
+          if (found == texCache.end()) {
+            texCache.push_back(tmp);
+            slow->btiId = texCache.size() - 1;
+          } else {
+            slow->btiId = found - texCache.begin();
+          }
+        }
+      }
+      matCache.propogate(mat);
+    }
+  }
+
+  // Recompute cache
+  void processCollectionForWrite(j3d::Collection& collection) const {
+    std::map<std::string, u32> texNameMap;
+    for (int i = 0; i < collection.getTextures().size(); ++i) {
+      texNameMap[collection.getTextures()[i].getName()] = i;
+    }
+
+    for (auto& model : collection.getModels()) {
+      processModelForWrite(collection, model, texNameMap);
+    }
+  }
+
+  void write(kpi::INode& node, oishii::Writer& writer) const {
     assert(dynamic_cast<Collection*>(&node) != nullptr);
-    CollectionAccessor collection(&node);
+    Collection& collection = *dynamic_cast<Collection*>(&node);
 
     oishii::Linker linker;
 
     auto bmd = std::make_unique<BMDFile>();
-    bmd->bBDL = collection.getModel(0).get().isBDL;
+    bmd->bBDL = collection.getModels()[0].isBDL;
     bmd->bMimic = true;
-    bmd->mCollection = collection;
+    bmd->mCollection = &collection;
 
     linker.mUserPad = &BMD_Pad;
     writer.mUserPad = &BMD_Pad;
 
-    // Recompute cache
-
-    std::map<std::string, u32> texNameMap;
-    collection.node().getOrAddFolder<Texture>();
-    for (int i = 0; i < collection.getTextures().size(); ++i) {
-      texNameMap[collection.getTexture(i).node().getName()] = i;
-    }
-
-    for (int m_i = 0; m_i < collection.getModels().size(); ++m_i) {
-      auto model = collection.getModel(m_i);
-      auto& texCache = model.get().mTexCache;
-      auto& matCache = model.get().mMatCache;
-      texCache.clear();
-      matCache.clear();
-
-      for (int j = 0; j < model.getMaterials().size(); ++j) {
-        auto& mat = model.getMaterial(j).get();
-        for (int k = 0; k < mat.samplers.size(); ++k) {
-          auto& samp = mat.samplers[k];
-
-          auto* slow =
-              reinterpret_cast<j3d::MaterialData::J3DSamplerData*>(samp.get());
-          assert(slow);
-
-          assert(!samp->mTexture.empty());
-          if (!samp->mTexture.empty()) {
-            const auto btiId = texNameMap[samp->mTexture];
-            Tex tmp(collection.getTexture(btiId).get(), *samp.get());
-            tmp.btiId = btiId;
-
-            auto found = std::find(texCache.begin(), texCache.end(), tmp);
-            if (found == texCache.end()) {
-              texCache.push_back(tmp);
-              slow->btiId = texCache.size() - 1;
-            } else {
-              slow->btiId = found - texCache.begin();
-            }
-          }
-        }
-        matCache.propogate(mat);
-      }
-    }
+    processCollectionForWrite(collection);
 
     // writer.add_bp(0x37b2c, 4);
 
@@ -146,24 +148,24 @@ public:
     linker.write(writer);
   }
 
-  void read(kpi::IDocumentNode& node, oishii::BinaryReader& reader) const {
+  void read(kpi::INode& node, oishii::BinaryReader& reader) const {
     assert(dynamic_cast<Collection*>(&node) != nullptr);
-    CollectionAccessor collection(&node);
+    Collection& collection = *dynamic_cast<Collection*>(&node);
 
-    auto mdl = collection.addModel();
+    auto& mdl = collection.getModels().add();
 
     BMDOutputContext ctx{mdl, collection, reader};
 
     reader.setEndian(true);
     reader.expectMagic<'J3D2'>();
 
-    mdl.get().isBDL = false;
+    mdl.isBDL = false;
 
     u32 bmdVer = reader.read<u32>();
     if (bmdVer == 'bmd3') {
     } else if (bmdVer == 'bdl4') {
 #ifndef BUILD_DIST
-      // mdl.get().isBDL = true;
+      // mdl.isBDL = true;
 #endif
     } else {
       reader.signalInvalidityLast<u32, oishii::MagicInvalidity<'bmd3'>>();
@@ -221,32 +223,35 @@ public:
     for (const auto& e : ctx.mVertexBufferMaxIndices) {
       switch (e.first) {
       case gx::VertexBufferAttribute::Position:
-        if (ctx.mdl.get().mBufs.pos.mData.size() != e.second + 1) {
-          printf("The position vertex buffer currently has %u greedily-claimed "
-                 "entries due to 32B padding; %u are used.\n",
-                 (u32)ctx.mdl.get().mBufs.pos.mData.size(), e.second + 1);
-          ctx.mdl.get().mBufs.pos.mData.resize(e.second + 1);
+        if (ctx.mdl.mBufs.pos.mData.size() != e.second + 1) {
+          DebugReport(
+              "The position vertex buffer currently has %u greedily-claimed "
+              "entries due to 32B padding; %u are used.\n",
+              (u32)ctx.mdl.mBufs.pos.mData.size(), e.second + 1);
+          ctx.mdl.mBufs.pos.mData.resize(e.second + 1);
         }
         break;
       case gx::VertexBufferAttribute::Color0:
       case gx::VertexBufferAttribute::Color1: {
         auto& buf =
-            ctx.mdl.get().mBufs.color[(int)e.first -
-                                      (int)gx::VertexBufferAttribute::Color0];
+            ctx.mdl.mBufs
+                .color[(int)e.first - (int)gx::VertexBufferAttribute::Color0];
         if (buf.mData.size() != e.second + 1) {
-          printf("The color buffer currently has %u greedily-claimed entries "
-                 "due to 32B padding; %u are used.\n",
-                 (u32)buf.mData.size(), e.second + 1);
+          DebugReport(
+              "The color buffer currently has %u greedily-claimed entries "
+              "due to 32B padding; %u are used.\n",
+              (u32)buf.mData.size(), e.second + 1);
           buf.mData.resize(e.second + 1);
         }
         break;
       }
       case gx::VertexBufferAttribute::Normal: {
-        auto& buf = ctx.mdl.get().mBufs.norm;
+        auto& buf = ctx.mdl.mBufs.norm;
         if (buf.mData.size() != e.second + 1) {
-          printf("The normal buffer currently has %u greedily-claimed entries "
-                 "due to 32B padding; %u are used.\n",
-                 (u32)buf.mData.size(), e.second + 1);
+          DebugReport(
+              "The normal buffer currently has %u greedily-claimed entries "
+              "due to 32B padding; %u are used.\n",
+              (u32)buf.mData.size(), e.second + 1);
           buf.mData.resize(e.second + 1);
         }
         break;
@@ -260,12 +265,13 @@ public:
       case gx::VertexBufferAttribute::TexCoord6:
       case gx::VertexBufferAttribute::TexCoord7: {
         auto& buf =
-            ctx.mdl.get().mBufs.uv[(int)e.first -
-                                   (int)gx::VertexBufferAttribute::TexCoord0];
+            ctx.mdl.mBufs
+                .uv[(int)e.first - (int)gx::VertexBufferAttribute::TexCoord0];
         if (buf.mData.size() != e.second + 1) {
-          printf("The UV buffer currently has %u greedily-claimed entries due "
-                 "to 32B padding; %u are used.\n",
-                 (u32)buf.mData.size(), e.second + 1);
+          DebugReport(
+              "The UV buffer currently has %u greedily-claimed entries due "
+              "to 32B padding; %u are used.\n",
+              (u32)buf.mData.size(), e.second + 1);
           buf.mData.resize(e.second + 1);
         }
       }
@@ -278,24 +284,22 @@ public:
     readMAT3(ctx);
 
     // fixup identity matrix optimization for editor
-    for (auto& it : ctx.mdl.getMaterials()) {
-      j3d::Material* mat = dynamic_cast<j3d::Material*>(it.get());
-
-      if (mat->texGens.size() != mat->texMatrices.size())
+    for (auto& mat : ctx.mdl.getMaterials()) {
+      if (mat.texGens.size() != mat.texMatrices.size())
         continue;
 
       // Compute a used bitmap. 8 max texgens, 10 max texmatrices
       u32 used = 0;
-      for (int i = 0; i < mat->texGens.size(); ++i) {
-        if (auto idx = mat->texGens[i].getMatrixIndex(); idx > 0)
+      for (int i = 0; i < mat.texGens.size(); ++i) {
+        if (auto idx = mat.texGens[i].getMatrixIndex(); idx > 0)
           used |= (1 << idx);
       }
 
-      for (int i = 0; i < mat->texGens.size(); ++i) {
-        auto& tg = mat->texGens[i];
+      for (int i = 0; i < mat.texGens.size(); ++i) {
+        auto& tg = mat.texGens[i];
 
         if (tg.isIdentityMatrix() && (used & (1 << i)) == 0) {
-          assert(mat->texMatrices[i]->isIdentity());
+          assert(mat.texMatrices[i]->isIdentity());
           tg.setMatrixIndex(i);
         }
       }

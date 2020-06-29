@@ -27,8 +27,12 @@ struct DrawMatrix {
     return mWeights == rhs.mWeights;
   }
 };
-struct Model : public riistudio::lib3d::Model {
+struct ModelData {
   std::vector<DrawMatrix> mDrawMatrices;
+
+  bool operator==(const ModelData& rhs) const {
+    return mDrawMatrices == rhs.mDrawMatrices;
+  }
 };
 
 struct IBoneDelegate : public riistudio::lib3d::Bone {

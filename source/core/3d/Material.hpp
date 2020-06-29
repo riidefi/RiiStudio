@@ -18,7 +18,7 @@ struct IObserver {
   virtual void update(Material* mat) {}
 };
 struct Polygon;
-struct Material {
+struct Material : public virtual kpi::IObject {
   virtual ~Material() = default;
 
   virtual std::string getName() const { return "Untitled Material"; }

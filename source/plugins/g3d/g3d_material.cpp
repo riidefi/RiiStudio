@@ -3,17 +3,16 @@
 #include <core/kpi/Node.hpp>
 
 namespace riistudio::g3d {
-const libcube::Texture& Material::getTexture(const std::string& id) const {
-  const auto* textures = getTextureSource();
 
-  for (std::size_t i = 0; i < textures->size(); ++i) {
-    const auto& at = textures->at<libcube::Texture>(i);
+const libcube::Texture* Material::getTexture(const std::string& id) const {
+  const auto textures = getTextureSource();
 
-    if (at.getName() == id)
-      return at;
+  for (auto& tex : textures) {
+    if (tex.getName() == id)
+      return &tex;
   }
 
-  throw "Invalid";
+  return nullptr;
 }
 
 } // namespace riistudio::g3d

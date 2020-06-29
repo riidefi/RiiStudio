@@ -16,7 +16,7 @@ public:
   Renderer(lib3d::IDrawable* root);
   ~Renderer();
   void render(u32 width, u32 height, bool& hideCursor);
-  void prepare(const kpi::IDocumentNode& host) { mRoot->prepare(host); }
+  void prepare(const kpi::INode& host) { mRoot->prepare(host); }
 
 private:
   lib3d::IDrawable* mRoot = nullptr;

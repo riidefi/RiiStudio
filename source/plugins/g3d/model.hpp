@@ -1,16 +1,15 @@
 #pragma once
 
-#include <core/3d/i3dmodel.hpp>
-#include <core/kpi/Node.hpp>
-
 #include "bone.hpp"
 #include "material.hpp"
 #include "polygon.hpp"
-
+#include <core/kpi/Node2.hpp>
+#include <glm/vec2.hpp> // glm::vec2
+#include <glm/vec3.hpp> // glm::vec3
+#include <plugins/gc/Export/Scene.hpp>
 #include <plugins/gc/GX/VertexTypes.hpp>
 
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
+#include "texture.hpp"
 
 namespace riistudio::g3d {
 
@@ -33,7 +32,7 @@ struct Quantization {
 };
 template <typename T, bool HasMinimum, bool HasDivisor,
           libcube::gx::VertexBufferKind kind>
-struct GenericBuffer {
+struct GenericBuffer : public virtual kpi::IObject {
   std::string mName;
   u32 mId;
   std::string getName() const { return mName; }
@@ -59,34 +58,26 @@ class TextureCoordinateBuffer
     : public GenericBuffer<glm::vec2, true, true,
                            libcube::gx::VertexBufferKind::textureCoordinate> {};
 
-struct G3DModel : public libcube::Model {
-  virtual ~G3DModel() = default;
+struct G3DModelData {
+  virtual ~G3DModelData() = default;
   // Shallow comparison
-  bool operator==(const G3DModel& rhs) const {
-    return mDrawMatrices == rhs.mDrawMatrices &&
-           mScalingRule == rhs.mScalingRule && mTexMtxMode == rhs.mTexMtxMode &&
+  bool operator==(const G3DModelData& rhs) const {
+    return mScalingRule == rhs.mScalingRule && mTexMtxMode == rhs.mTexMtxMode &&
            mEvpMtxMode == rhs.mEvpMtxMode &&
            sourceLocation == rhs.sourceLocation && aabb == rhs.aabb;
   }
-  const G3DModel& operator=(const G3DModel& rhs) { return *this; }
+  const G3DModelData& operator=(const G3DModelData& rhs) { return *this; }
 
   ScalingRule mScalingRule;
   TextureMatrixMode mTexMtxMode;
   EnvelopeMatrixMode mEvpMtxMode;
   std::string sourceLocation;
   lib3d::AABB aabb;
-};
 
-struct G3DModelAccessor : public kpi::NodeAccessor<G3DModel> {
-  KPI_NODE_FOLDER_SIMPLE(Material);
-  KPI_NODE_FOLDER_SIMPLE(Bone);
-
-  KPI_NODE_FOLDER_SIMPLE(PositionBuffer);
-  KPI_NODE_FOLDER_SIMPLE(NormalBuffer);
-  KPI_NODE_FOLDER_SIMPLE(ColorBuffer);
-  KPI_NODE_FOLDER_SIMPLE(TextureCoordinateBuffer);
-
-  KPI_NODE_FOLDER_SIMPLE(Polygon);
+  std::string mName;
+  void setName(const std::string& name) { mName = name; }
 };
 
 } // namespace riistudio::g3d
+
+#include "Node.h"

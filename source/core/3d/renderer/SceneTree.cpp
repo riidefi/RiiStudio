@@ -2,21 +2,22 @@
 
 namespace riistudio::lib3d {
 
-void SceneTree::gatherBoneRecursive(u64 boneId, const kpi::FolderData& bones,
-                                    const kpi::FolderData& mats,
-                                    const kpi::FolderData& polys) {
-  const auto& pBone = bones.at<lib3d::Bone>(boneId);
+void SceneTree::gatherBoneRecursive(u64 boneId, const lib3d::Model& root) {
+  auto bones = root.getBones();
+  auto polys = root.getMeshes();
+  auto mats = root.getMaterials();
 
+  const auto& pBone = bones[boneId];
   const u64 nDisplay = pBone.getNumDisplays();
+
   for (u64 i = 0; i < nDisplay; ++i) {
     const auto display = pBone.getDisplay(i);
-    const auto& mat = mats.at<lib3d::Material>(display.matId);
+    const auto& mat = mats[display.matId];
 
     const auto shader_sources = mat.generateShaders();
     ShaderProgram shader(shader_sources.first, shader_sources.second);
-    Node node{mats.at<lib3d::Material>(display.matId),
-                    polys.at<lib3d::Polygon>(display.polyId), pBone,
-                    display.prio, std::move(shader)};
+    Node node{mats[display.matId], polys[display.polyId], pBone, display.prio,
+              std::move(shader)};
 
     auto& nodebuf = node.isTranslucent() ? translucent : opaque;
 
@@ -25,27 +26,16 @@ void SceneTree::gatherBoneRecursive(u64 boneId, const kpi::FolderData& bones,
   }
 
   for (u64 i = 0; i < pBone.getNumChildren(); ++i)
-    gatherBoneRecursive(pBone.getChild(i), bones, mats, polys);
+    gatherBoneRecursive(pBone.getChild(i), root);
 }
 
-void SceneTree::gather(const kpi::IDocumentNode& root) {
-  const auto* pMats = root.getFolder<lib3d::Material>();
-  if (pMats == nullptr)
-    return;
-  const auto* pPolys = root.getFolder<lib3d::Polygon>();
-  if (pPolys == nullptr)
-    return;
-
-  // We cannot proceed without bones, as we attach all render instructions to
-  // them.
-  const auto pBones = root.getFolder<lib3d::Bone>();
-  if (pBones == nullptr)
+void SceneTree::gather(const lib3d::Model& root) {
+  if (root.getMaterials().empty() || root.getMeshes().empty() ||
+      root.getBones().empty())
     return;
 
   // Assumes root at zero
-  if (pBones->size() == 0)
-    return;
-  gatherBoneRecursive(0, *pBones, *pMats, *pPolys);
+  gatherBoneRecursive(0, root);
 }
 
 } // namespace riistudio::lib3d

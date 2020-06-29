@@ -9,8 +9,8 @@
 namespace riistudio::frontend {
 
 std::unique_ptr<StudioWindow> MakePropertyEditor(kpi::History& host,
-                                                 kpi::IDocumentNode& root,
-                                                 kpi::IDocumentNode*& active,
+                                                 kpi::INode& root,
+                                                 kpi::IObject*& active,
                                                  EditorWindow& ed);
 
 } // namespace riistudio::frontend

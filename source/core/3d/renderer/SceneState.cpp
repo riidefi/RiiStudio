@@ -1,5 +1,6 @@
+#ifndef NOMINMAX
 #define NOMINMAX
-
+#endif
 #include "SceneState.hpp"
 #include <core/3d/gl.hpp>
 #include <plugins/j3d/Shape.hpp> // Hack
@@ -31,21 +32,18 @@ void SceneState::buildBuffers() {
   glBindVertexArray(0);
 }
 
-void SceneState::buildTextures(const kpi::IDocumentNode& root) {
+void SceneState::buildTextures(const lib3d::Scene& root) {
   for (const auto& tex : mTextures)
     glDeleteTextures(1, &tex.id);
   mTextures.clear();
   texIdMap.clear();
 
-  if (root.getFolder<lib3d::Texture>() == nullptr)
-    return;
+  const auto textures = root.getTextures();
 
-  const auto* textures = root.getFolder<lib3d::Texture>();
-
-  mTextures.resize(textures->size());
+  mTextures.resize(textures.size());
   std::vector<u8> data(1024 * 1024 * 4 * 2);
-  for (int i = 0; i < textures->size(); ++i) {
-    const auto& tex = textures->at<lib3d::Texture>(i);
+  for (int i = 0; i < textures.size(); ++i) {
+    const auto& tex = textures[i];
 
     // TODO: Wrapping mode, filtering, mipmaps
     glGenTextures(1, &mTextures[i].id);
@@ -72,9 +70,8 @@ void SceneState::buildTextures(const kpi::IDocumentNode& root) {
   }
 }
 
-void SceneState::gather(const kpi::IDocumentNode& model,
-                        const kpi::IDocumentNode& texture, bool buf, bool tex) {
-  bones = model.getFolder<lib3d::Bone>();
+void SceneState::gather(const lib3d::Model& model, const lib3d::Scene& texture,
+                        bool buf, bool tex) {
   mTree.gather(model);
   if (buf)
     buildBuffers();

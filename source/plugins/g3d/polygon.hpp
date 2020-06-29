@@ -9,6 +9,8 @@
 
 namespace riistudio::g3d {
 
+class Model;
+
 struct MatrixPrimitive {
   std::vector<s16> mDrawMatrixIndices;
   std::vector<libcube::IndexedPrimitive> mPrimitives;
@@ -52,8 +54,8 @@ struct PolygonData {
            mMatrixPrimitives == rhs.mMatrixPrimitives;
   }
 };
-struct Polygon : public PolygonData, public libcube::IndexedPolygon {
-  virtual const kpi::IDocumentNode* getParent() const { return nullptr; }
+struct Polygon : public PolygonData, public libcube::IndexedPolygon, public virtual kpi::IObject {
+  virtual const g3d::Model* getParent() const { return nullptr; }
   std::string getName() const { return mName; }
   void setName(const std::string& name) override { mName = name; }
 

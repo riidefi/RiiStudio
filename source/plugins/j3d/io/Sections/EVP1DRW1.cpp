@@ -10,57 +10,59 @@ void readEVP1DRW1(BMDOutputContext& ctx) {
 
   // First read our envelope data
   if (enterSection(ctx, 'EVP1')) {
-	  ScopedSection g(reader, "Envelopes");
+    ScopedSection g(reader, "Envelopes");
 
-	  u16 size = reader.read<u16>();
-	  envelopes.resize(size);
-	  reader.read<u16>();
+    u16 size = reader.read<u16>();
+    envelopes.resize(size);
+    reader.read<u16>();
 
-	  const auto [ofsMatrixSize, ofsMatrixIndex, ofsMatrixWeight,
-		  ofsMatrixInvBind] = reader.readX<s32, 4>();
+    const auto [ofsMatrixSize, ofsMatrixIndex, ofsMatrixWeight,
+                ofsMatrixInvBind] = reader.readX<s32, 4>();
 
-	  if (ofsMatrixSize && ofsMatrixIndex && ofsMatrixWeight && ofsMatrixInvBind) {
+    if (ofsMatrixSize && ofsMatrixIndex && ofsMatrixWeight &&
+        ofsMatrixInvBind) {
 
-		  int mtxId = 0;
-		  // int maxJointIndex = -1;
+      int mtxId = 0;
+      // int maxJointIndex = -1;
 
-		  reader.seekSet(g.start);
+      reader.seekSet(g.start);
 
-		  for (int i = 0; i < size; ++i) {
-			  const auto num = reader.peekAt<u8>(ofsMatrixSize + i);
+      for (int i = 0; i < size; ++i) {
+        const auto num = reader.peekAt<u8>(ofsMatrixSize + i);
 
-			  for (int j = 0; j < num; ++j) {
-				  const auto index = reader.peekAt<u16>(ofsMatrixIndex + mtxId * 2);
-				  const auto influence = reader.peekAt<f32>(ofsMatrixWeight + mtxId * 4);
+        for (int j = 0; j < num; ++j) {
+          const auto index = reader.peekAt<u16>(ofsMatrixIndex + mtxId * 2);
+          const auto influence =
+              reader.peekAt<f32>(ofsMatrixWeight + mtxId * 4);
 
-				  envelopes[i].mWeights.emplace_back(index, influence);
+          envelopes[i].mWeights.emplace_back(index, influence);
 
-				  // While this assumption holds on runtime, the format stores them for
-				  // all bones.
-				  //	if (index > maxJointIndex)
-				  //		maxJointIndex = index;
+          // While this assumption holds on runtime, the format stores them for
+          // all bones.
+          //	if (index > maxJointIndex)
+          //		maxJointIndex = index;
 
-				  ++mtxId;
-			  }
-		  }
+          ++mtxId;
+        }
+      }
 
-		  for (int i = 0; i < ctx.mdl.getJoints().size(); ++i) {
-			  auto& mtx = ctx.mdl.getJoint(i).get().inverseBindPoseMtx;
+      for (int i = 0; i < ctx.mdl.getBones().size(); ++i) {
+        auto& mtx = ctx.mdl.getBones()[i].inverseBindPoseMtx;
 
-			  for (int j = 0; j < 12; ++j) {
-				  mtx[j] = reader.getAt<f32>(g.start + ofsMatrixInvBind + (i * 0x30) +
-					  (j * 4));
-			  }
-		  }
-	  }
+        for (int j = 0; j < 12; ++j) {
+          mtx[j] = reader.getAt<f32>(g.start + ofsMatrixInvBind + (i * 0x30) +
+                                     (j * 4));
+        }
+      }
+    }
   }
 
   // Now construct vertex draw matrices.
   if (enterSection(ctx, 'DRW1')) {
     ScopedSection g(reader, "Vertex Draw Matrix");
 
-    ctx.mdl.get().mDrawMatrices.clear();
-    ctx.mdl.get().mDrawMatrices.resize(
+    ctx.mdl.mDrawMatrices.clear();
+    ctx.mdl.mDrawMatrices.resize(
         reader.read<u16>() -
         envelopes.size()); // Bug in N's tooling corrected on runtime
     reader.read<u16>();
@@ -70,7 +72,7 @@ void readEVP1DRW1(BMDOutputContext& ctx) {
     reader.seekSet(g.start);
 
     int i = 0;
-    for (auto& mtx : ctx.mdl.get().mDrawMatrices) {
+    for (auto& mtx : ctx.mdl.mDrawMatrices) {
 
       const auto multipleInfluences =
           reader.peekAt<u8>(ofsPartialWeighting + i);
@@ -118,7 +120,7 @@ struct EVP1Node {
     SimpleEvpNode(const std::vector<DrawMatrix>& from,
                   const std::vector<int>& toWrite,
                   const std::vector<float>& weightPool,
-                  const ModelAccessor mdl = ModelAccessor{nullptr})
+                  const Model* mdl = nullptr)
         : mFrom(from), mToWrite(toWrite), mWeightPool(weightPool), mMdl(mdl) {
       getLinkingRestriction().setFlag(oishii::LinkingRestriction::Leaf);
     }
@@ -126,11 +128,11 @@ struct EVP1Node {
     const std::vector<DrawMatrix>& mFrom;
     const std::vector<int>& mToWrite;
     const std::vector<float>& mWeightPool;
-    const ModelAccessor mMdl;
+    const Model* mMdl;
   };
   struct MatrixSizeTable : public SimpleEvpNode {
     MatrixSizeTable(const EVP1Node& node)
-        : SimpleEvpNode(node.mdl.get().mDrawMatrices, node.envelopesToWrite,
+        : SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite,
                         node.weightPool) {
       mId = "MatrixSizeTable";
     }
@@ -142,7 +144,7 @@ struct EVP1Node {
   };
   struct MatrixIndexTable : public SimpleEvpNode {
     MatrixIndexTable(const EVP1Node& node)
-        : SimpleEvpNode(node.mdl.get().mDrawMatrices, node.envelopesToWrite,
+        : SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite,
                         node.weightPool) {
       mId = "MatrixIndexTable";
     }
@@ -157,7 +159,7 @@ struct EVP1Node {
   };
   struct MatrixWeightTable : public SimpleEvpNode {
     MatrixWeightTable(const EVP1Node& node)
-        : SimpleEvpNode(node.mdl.get().mDrawMatrices, node.envelopesToWrite,
+        : SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite,
                         node.weightPool) {
       mId = "MatrixWeightTable";
       mLinkingRestriction.alignment = 8;
@@ -169,14 +171,14 @@ struct EVP1Node {
     }
   };
   struct MatrixInvBindTable : public SimpleEvpNode {
-    MatrixInvBindTable(const EVP1Node& node, const ModelAccessor md)
-        : SimpleEvpNode(node.mdl.get().mDrawMatrices, node.envelopesToWrite,
-                        node.weightPool, md) {
+    MatrixInvBindTable(const EVP1Node& node, const Model& md)
+        : SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite,
+                        node.weightPool, &md) {
       mId = "MatrixInvBindTable";
     }
     Result write(oishii::Writer& writer) const noexcept {
-      for (int i = 0; i < mMdl.getJoints().size(); ++i) {
-        for (const auto f : mMdl.getJoint(i).get().inverseBindPoseMtx)
+      for (const auto& joint : mMdl->getBones()) {
+        for (const auto f : joint.inverseBindPoseMtx)
           writer.write(f);
       }
       return {};
@@ -192,12 +194,12 @@ struct EVP1Node {
   }
 
   EVP1Node(BMDExportContext& e) : mdl(e.mdl) {
-    for (int i = 0; i < mdl.get().mDrawMatrices.size(); ++i) {
-      if (mdl.get().mDrawMatrices[i].mWeights.size() <= 1) {
-        assert(mdl.get().mDrawMatrices[i].mWeights[0].weight == 1.0f);
+    for (int i = 0; i < mdl.mDrawMatrices.size(); ++i) {
+      if (mdl.mDrawMatrices[i].mWeights.size() <= 1) {
+        assert(mdl.mDrawMatrices[i].mWeights[0].weight == 1.0f);
       } else {
         envelopesToWrite.push_back(i);
-        for (const auto& it : mdl.get().mDrawMatrices[i].mWeights) {
+        for (const auto& it : mdl.mDrawMatrices[i].mWeights) {
           // if (std::find(weightPool.begin(), weightPool.end(), it.weight) ==
           // weightPool.end())
           weightPool.push_back(it.weight);
@@ -207,7 +209,7 @@ struct EVP1Node {
   }
   std::vector<f32> weightPool;
   std::vector<int> envelopesToWrite;
-  const ModelAccessor mdl;
+  const Model& mdl;
 };
 
 struct DRW1Node {
@@ -216,9 +218,9 @@ struct DRW1Node {
 
   void write(oishii::Writer& writer) const {
     writer.write<u32, oishii::EndianSelect::Big>('DRW1');
-    writer.writeLink<s32>(oishii::Link{
-        oishii::Hook(getSelf()),
-        oishii::Hook(getSelf(), oishii::Hook::EndOfChildren)});
+    writer.writeLink<s32>(
+        oishii::Link{oishii::Hook(getSelf()),
+                     oishii::Hook(getSelf(), oishii::Hook::EndOfChildren)});
 
     u32 evp = 0;
     for (const auto& drw : mdl.mDrawMatrices)
@@ -227,10 +229,10 @@ struct DRW1Node {
 
     writer.write<u16>(mdl.mDrawMatrices.size() + evp);
     writer.write<u16>(-1);
-    writer.writeLink<s32>(oishii::Link{
-        oishii::Hook(getSelf()), oishii::Hook("MatrixTypeTable")});
-    writer.writeLink<s32>(oishii::Link{oishii::Hook(getSelf()),
-                                           oishii::Hook("DataTable")});
+    writer.writeLink<s32>(
+        oishii::Link{oishii::Hook(getSelf()), oishii::Hook("MatrixTypeTable")});
+    writer.writeLink<s32>(
+        oishii::Link{oishii::Hook(getSelf()), oishii::Hook("DataTable")});
   }
   struct MatrixTypeTable : public oishii::Node {
     MatrixTypeTable(const Model& mdl) : mMdl(mdl) { mId = "MatrixTypeTable"; }
@@ -296,7 +298,7 @@ struct DRW1Node {
     ctx.addNode(std::make_unique<DataTable>(mdl));
   }
 
-  DRW1Node(BMDExportContext& e) : mdl(e.mdl.get()) {}
+  DRW1Node(BMDExportContext& e) : mdl(e.mdl) {}
   Model& mdl;
 };
 

@@ -16,7 +16,7 @@ void readSHP1(BMDOutputContext& ctx) {
 
   u16 size = reader.read<u16>();
   for (int i = 0; i < size; ++i)
-    ctx.mdl.addShape();
+    ctx.mdl.getMeshes().add();
 
   ctx.shapeIdLut.resize(size);
   reader.read<u16>();
@@ -67,7 +67,7 @@ void readSHP1(BMDOutputContext& ctx) {
 
   std::array<s16, 10> mtxListLast;
   for (int si = 0; si < size; ++si) {
-    auto& shape = ctx.mdl.getShape(si).get();
+    auto& shape = ctx.mdl.getMeshes()[si];
     reader.seekSet(g.start + ofsShapeData + ctx.shapeIdLut[si] * 0x28);
     shape.id = ctx.shapeIdLut[si];
     // printf("Shape (index=%u, id=%u) {\n", si, shape.id);
@@ -162,7 +162,7 @@ void readSHP1(BMDOutputContext& ctx) {
       if (err) {
         printf("Invalid mesh display list..\n");
 
-		std::string buf;
+        std::string buf;
         llvm::raw_string_ostream stream(buf);
         stream << err;
         printf("%s\n", buf.c_str());
@@ -266,12 +266,11 @@ struct WriteableMatrixList : public std::vector<s16> {
   }
 };
 struct SHP1Node final : public oishii::Node {
-  SHP1Node(const ModelAccessor model) : mModel(model) {
+  SHP1Node(const Model& model) : mModel(model) {
     mId = "SHP1";
     mLinkingRestriction.alignment = 32;
 
-    for (int i = 0; i < mModel.getShapes().size(); ++i) {
-      const auto& shp = mModel.getShape(i).get();
+    for (const auto& shp : mModel.getMeshes()) {
       mVcdPool.append(shp.mVertexDescriptor);
       for (const auto& mp : shp.mMatrixPrimitives)
         mMtxListPool.append(mp.mDrawMatrixIndices);
@@ -301,7 +300,7 @@ struct SHP1Node final : public oishii::Node {
     writer.write<u32, oishii::EndianSelect::Big>('SHP1');
     writer.writeLink<s32>({*this}, {*this, oishii::Hook::EndOfChildren});
 
-    writer.write<u16>(mModel.getShapes().size());
+    writer.write<u16>(mModel.getMeshes().size());
     writer.write<u16>(-1);
 
     writer.writeLink<u32>({*this}, {"ShapeData"});
@@ -345,7 +344,7 @@ struct SHP1Node final : public oishii::Node {
   };
   struct SubNode : public oishii::Node {
     const SHP1Node& mParent;
-    SubNode(const ModelAccessor mdl, SubNodeID id, const SHP1Node& parent,
+    SubNode(const Model& mdl, SubNodeID id, const SHP1Node& parent,
             int polyId = -1, int MPrimId = -1)
         : mMdl(mdl), mSID(id), mPolyId(polyId), mMpId(MPrimId),
           mParent(parent) {
@@ -414,8 +413,8 @@ struct SHP1Node final : public oishii::Node {
     Result write(oishii::Writer& writer) const noexcept {
       switch (mSID) {
       case SubNodeID::ShapeData: {
-        for (int i = 0; i < mMdl.getShapes().size(); ++i) {
-          const auto& shp = mMdl.getShape(i).get();
+        for (int i = 0; i < mMdl.getMeshes().size(); ++i) {
+          const auto& shp = mMdl.getMeshes()[i];
 
           writer.write<u8>(static_cast<u8>(shp.mode));
           writer.write<u8>(0xff);
@@ -426,8 +425,8 @@ struct SHP1Node final : public oishii::Node {
                                  std::to_string(vcd)}); // offset into VCD list
           // TODO -- we don't support compression..
           int mpi = 0;
-          for (int j = 0; j < i; ++j) {
-            mpi += mMdl.getShape(j).get().mMatrixPrimitives.size();
+          for (const auto& shp : mMdl.getMeshes()) {
+            mpi += shp.mMatrixPrimitives.size();
           }
           writer.write<u16>(mpi); // Matrix list index of this prim
           writer.write<u16>(mpi); // Matrix primitive index
@@ -442,7 +441,7 @@ struct SHP1Node final : public oishii::Node {
       }
       case SubNodeID::LUT:
         // TODO...
-        for (int i = 0; i < mMdl.getShapes().size(); ++i)
+        for (int i = 0; i < mMdl.getMeshes().size(); ++i)
           writer.write<u16>(i);
         break;
       case SubNodeID::NameTable:
@@ -466,7 +465,7 @@ struct SHP1Node final : public oishii::Node {
       case SubNodeID::_DLChild:
         break; // MPrims write..
       case SubNodeID::_DLChildMPrim: {
-        const auto& poly = mMdl.getShape(mPolyId).get();
+        const auto& poly = mMdl.getMeshes()[mPolyId];
         for (auto& prim : poly.mMatrixPrimitives[mMpId].mPrimitives) {
           writer.write<u8>(gx::EncodeDrawPrimitiveCommand(prim.mType));
           writer.write<u16>(prim.mVertices.size());
@@ -510,10 +509,10 @@ struct SHP1Node final : public oishii::Node {
 
         u32 num = 0;
         for (int j = 0; j < mPolyId; ++j)
-          for (auto& mp : mMdl.getShape(j).get().mMatrixPrimitives)
+          for (auto& mp : mMdl.getMeshes()[j].mMatrixPrimitives)
             num += mp.mDrawMatrixIndices.size();
         int i = 0;
-        for (const auto& x : mMdl.getShape(mPolyId).get().mMatrixPrimitives) {
+        for (const auto& x : mMdl.getMeshes()[mPolyId].mMatrixPrimitives) {
           writer.write<u16>(x.mCurrentMatrix);
           // listSize, listStartIndex
           writer.write<u16>(x.mDrawMatrixIndices.size());
@@ -535,8 +534,8 @@ struct SHP1Node final : public oishii::Node {
       case SubNodeID::MTXGrpHdr:
         break; // Children write
       case SubNodeID::_MTXGrpChild:
-        for (int i = 0;
-             i < mMdl.getShape(mPolyId).get().mMatrixPrimitives.size(); ++i) {
+        for (int i = 0; i < mMdl.getMeshes()[mPolyId].mMatrixPrimitives.size();
+             ++i) {
           std::string front =
               std::string("SHP1::DLData::") + std::to_string(mPolyId) + "::";
           // DL size
@@ -562,23 +561,23 @@ struct SHP1Node final : public oishii::Node {
       case SubNodeID::_MTXDataChild:
         break;
       case SubNodeID::DLData:
-        for (int i = 0; i < mMdl.getShapes().size(); ++i)
+        for (int i = 0; i < mMdl.getMeshes().size(); ++i)
           d.addNode(
               std::make_unique<SubNode>(mMdl, SubNodeID::_DLChild, mParent, i));
         break;
       case SubNodeID::MTXData:
-        for (int i = 0; i < mMdl.getShapes().size(); ++i)
+        for (int i = 0; i < mMdl.getMeshes().size(); ++i)
           d.addNode(std::make_unique<SubNode>(mMdl, SubNodeID::_MTXDataChild,
                                               mParent, i));
         break;
       case SubNodeID::MTXGrpHdr:
-        for (int i = 0; i < mMdl.getShapes().size(); ++i)
+        for (int i = 0; i < mMdl.getMeshes().size(); ++i)
           d.addNode(std::make_unique<SubNode>(mMdl, SubNodeID::_MTXGrpChild,
                                               mParent, i));
         break;
       case SubNodeID::_DLChild:
-        for (int i = 0;
-             i < mMdl.getShape(mPolyId).get().mMatrixPrimitives.size(); ++i)
+        for (int i = 0; i < mMdl.getMeshes()[mPolyId].mMatrixPrimitives.size();
+             ++i)
           d.addNode(std::make_unique<SubNode>(mMdl, SubNodeID::_DLChildMPrim,
                                               mParent, mPolyId, i));
         break;
@@ -587,7 +586,7 @@ struct SHP1Node final : public oishii::Node {
       return eResult::Success;
     }
 
-    const ModelAccessor mMdl;
+    const Model& mMdl;
     const SubNodeID mSID;
     int mPolyId = -1;
     int mMpId = -1;
@@ -610,7 +609,7 @@ struct SHP1Node final : public oishii::Node {
     addSubNode(SubNodeID::MTXGrpHdr);
     return {};
   }
-  const ModelAccessor mModel;
+  const Model& mModel;
 };
 
 std::unique_ptr<oishii::Node> makeSHP1Node(BMDExportContext& ctx) {

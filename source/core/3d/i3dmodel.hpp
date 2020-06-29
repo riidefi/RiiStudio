@@ -4,12 +4,14 @@
 #include "Material.hpp"
 #include "Polygon.hpp"
 #include "Texture.hpp"
-
-#include <memory> // std::shared_ptr
+#include "aabb.hpp"
+#include <core/kpi/Node2.hpp> // kpi::Collection
+#include <memory>             // std::shared_ptr
 
 namespace riistudio::lib3d {
 
 struct SceneState;
+class Scene;
 
 // Used for the root element
 struct IDrawable {
@@ -24,24 +26,22 @@ struct IDrawable {
                      AABB& bound) = 0;
 
   //! Prepare a scene based on the resource data.
-  virtual void prepare(const kpi::IDocumentNode& root) = 0;
+  virtual void prepare(const kpi::INode& root) = 0;
 };
 
-// TODO: This should all be runtime
-struct Scene : public IDrawable {
-  virtual ~Scene() = default;
-  Scene();
+struct SceneImpl : public IDrawable {
+  virtual ~SceneImpl() = default;
+  SceneImpl();
 
   void draw() override;
   void build(const glm::mat4& view, const glm::mat4& proj,
              AABB& bound) override;
-  void prepare(const kpi::IDocumentNode& host) override;
+  void prepare(const kpi::INode& host) override;
 
 private:
   std::shared_ptr<SceneState> mState;
 };
-struct Model {
-  virtual ~Model() = default;
-};
 
 } // namespace riistudio::lib3d
+
+#include "Node.h"

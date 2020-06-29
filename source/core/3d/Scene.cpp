@@ -1,4 +1,6 @@
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include "i3dmodel.hpp"
 #include <algorithm>                       // std::min
 #include <core/3d/gl.hpp>                  // glClearColor
@@ -9,22 +11,33 @@
 
 namespace riistudio::lib3d {
 
-Scene::Scene() : mState(std::make_shared<SceneState>()) {}
+glm::mat4 Bone::calcSrtMtx() {
+  if (!collectionOf)
+    return {};
 
-void Scene::prepare(const kpi::IDocumentNode& host) {
-  const auto* models = host.getFolder<lib3d::Model>();
-
-  if (!models || models->empty())
-    return;
-
-  mState->gather(models->at<kpi::IDocumentNode>(0), host, true, true);
+  return calcSrtMtx(collectionOf);
+}
+const lib3d::Model* Bone::getParent() {
+  return dynamic_cast<lib3d::Model*>(childOf);
 }
 
-void Scene::build(const glm::mat4& view, const glm::mat4& proj, AABB& bound) {
+SceneImpl::SceneImpl() : mState(std::make_shared<SceneState>()) {}
+
+void SceneImpl::prepare(const kpi::INode& _host) {
+  auto& host = *dynamic_cast<const Scene*>(&_host);
+
+  kpi::ConstCollectionRange<Model> models = host.getModels();
+
+  if (!models.empty())
+    mState->gather(models[0], host, true, true);
+}
+
+void SceneImpl::build(const glm::mat4& view, const glm::mat4& proj,
+                      AABB& bound) {
   mState->build(view, proj, bound);
 }
 
-void Scene::draw() {
+void SceneImpl::draw() {
   const auto bg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
   glClearColor(bg.x, bg.y, bg.z, bg.w);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

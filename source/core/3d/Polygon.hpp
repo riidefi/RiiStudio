@@ -5,16 +5,17 @@
 #include <core/3d/renderer/UBOBuilder.hpp>
 #include <core/3d/renderer/VBOBuilder.hpp>
 #include <core/common.h>
+#include <core/kpi/Node2.hpp>
 #include <glm/glm.hpp>
 #include <string>
 
 namespace riistudio::lib3d {
 
-struct Polygon {
+struct Polygon : public virtual kpi::IObject {
   virtual ~Polygon() = default;
 
   virtual bool isVisible() const { return true; }
-
+  virtual std::string getName() const { return "TODO"; }
   virtual void setName(const std::string& name) = 0;
 
   enum class SimpleAttrib {

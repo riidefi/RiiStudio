@@ -4,6 +4,7 @@
 #endif
 
 #include "Node.hpp"
+#include "Node2.hpp"
 #include "Plugins.hpp"
 #include "common.h"
 
@@ -49,15 +50,13 @@ void ApplicationPlugins::installModule(const std::string& path) {
 }
 
 // TODO: Cleanup
-std::unique_ptr<IDocumentNode>
+std::unique_ptr<IObject>
 ApplicationPlugins::spawnState(const std::string& type) const {
   for (const auto& it : mFactories) {
     if (it.first == type) {
       auto doc = it.second->spawn();
-
-      doc->mType = type;
-
-      return doc;
+      // doc->mType = type;
+      return std::move(doc);
     }
   }
 
@@ -65,11 +64,11 @@ ApplicationPlugins::spawnState(const std::string& type) const {
   throw "Cannot spawn";
   return nullptr;
 }
-std::unique_ptr<IDocumentNode>
+std::unique_ptr<IObject>
 ApplicationPlugins::constructObject(const std::string& type,
-                                    IDocumentNode* parent) const {
+                                    INode* parent) const {
   auto spawned = spawnState(type);
-  spawned->parent = parent;
+  // spawned->parent = parent;
   return spawned;
 }
 

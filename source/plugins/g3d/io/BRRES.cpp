@@ -139,7 +139,7 @@ enum class RenderCommand {
 
 };
 
-static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
+static void readModel(Model& mdl, oishii::BinaryReader& reader) {
   const auto start = reader.tell();
 
   reader.expectMagic<'MDL0', true>();
@@ -177,26 +177,26 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
   for (auto& ofs : secOfsArr)
     ofs = reader.read<s32>();
 
-  mdl.node().setName(readName(reader, start));
+  mdl.setName(readName(reader, start));
 
   const auto infoPos = reader.tell();
   reader.skip(8); // Ignore size, ofsMode
-  mdl.get().mScalingRule = static_cast<ScalingRule>(reader.read<u32>());
-  mdl.get().mTexMtxMode = static_cast<TextureMatrixMode>(reader.read<u32>());
+  mdl.mScalingRule = static_cast<ScalingRule>(reader.read<u32>());
+  mdl.mTexMtxMode = static_cast<TextureMatrixMode>(reader.read<u32>());
 
   reader.readX<u32, 2>(); // number of vertices, number of triangles
-  mdl.get().sourceLocation = readName(reader, infoPos);
+  mdl.sourceLocation = readName(reader, infoPos);
   reader.read<u32>(); // number of view matrices
 
   // const auto [bMtxArray, bTexMtxArray, bBoundVolume] =
   reader.readX<u8, 3>();
-  mdl.get().mEvpMtxMode = static_cast<EnvelopeMatrixMode>(reader.read<u8>());
+  mdl.mEvpMtxMode = static_cast<EnvelopeMatrixMode>(reader.read<u8>());
 
   // const s32 ofsBoneTable =
   reader.read<s32>();
 
-  mdl.get().aabb.min << reader;
-  mdl.get().aabb.max << reader;
+  mdl.aabb.min << reader;
+  mdl.aabb.max << reader;
 
   auto readDict = [&](u32 xofs, auto handler) {
     if (xofs) {
@@ -212,7 +212,7 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
   };
 
   readDict(secOfs.ofsBones, [&](const DictionaryNode& dnode) {
-    auto& bone = mdl.addBone().get();
+    auto& bone = mdl.getBones().add();
     reader.skip(8); // skip size and mdl offset
     bone.setName(readName(reader, dnode.mDataDestination));
     bone.mId = reader.read<u32>();
@@ -241,26 +241,26 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
   });
   // Compute children
   for (int i = 0; i < mdl.getBones().size(); ++i) {
-    if (const auto parent_id = mdl.getBoneRaw(i).mParent; parent_id >= 0) {
-      mdl.getBoneRaw(parent_id).mChildren.push_back(i);
+    if (const auto parent_id = mdl.getBones()[i].mParent; parent_id >= 0) {
+      mdl.getBones()[parent_id].mChildren.push_back(i);
     }
   }
   readDict(secOfs.ofsBuffers.position, [&](const DictionaryNode& dnode) {
-    readGenericBuffer(mdl.addPositionBuffer().get(), reader);
+    readGenericBuffer(mdl.getBuf_Pos().add(), reader);
   });
   readDict(secOfs.ofsBuffers.normal, [&](const DictionaryNode& dnode) {
-    readGenericBuffer(mdl.addNormalBuffer().get(), reader);
+    readGenericBuffer(mdl.getBuf_Nrm().add(), reader);
   });
   readDict(secOfs.ofsBuffers.color, [&](const DictionaryNode& dnode) {
-    readGenericBuffer(mdl.addColorBuffer().get(), reader);
+    readGenericBuffer(mdl.getBuf_Clr().add(), reader);
   });
   readDict(secOfs.ofsBuffers.uv, [&](const DictionaryNode& dnode) {
-    readGenericBuffer(mdl.addTextureCoordinateBuffer().get(), reader);
+    readGenericBuffer(mdl.getBuf_Uv().add(), reader);
   });
   // TODO: Fur
 
   readDict(secOfs.ofsMaterials, [&](const DictionaryNode& dnode) {
-    auto& mat = mdl.addMaterial().get();
+    auto& mat = mdl.getMaterials().add();
     const auto start = reader.tell();
 
     reader.read<u32>(); // size
@@ -501,7 +501,7 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
     }
   });
   readDict(secOfs.ofsMeshes, [&](const DictionaryNode& dnode) {
-    auto& poly = mdl.addPolygon().get();
+    auto& poly = mdl.getMeshes().add();
     const auto start = reader.tell();
 
     reader.read<u32>(); // size
@@ -549,21 +549,17 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
         out = ifExist(hid);
     };
 
-    readBufHandle(poly.mPositionBuffer, [&](s16 hid) {
-      return mdl.getPositionBuffer(hid).get().getName();
-    });
-    readBufHandle(poly.mNormalBuffer, [&](s16 hid) {
-      return mdl.getNormalBuffer(hid).get().getName();
-    });
+    readBufHandle(poly.mPositionBuffer,
+                  [&](s16 hid) { return mdl.getBuf_Pos()[hid].getName(); });
+    readBufHandle(poly.mNormalBuffer,
+                  [&](s16 hid) { return mdl.getBuf_Nrm()[hid].getName(); });
     for (int i = 0; i < 2; ++i) {
-      readBufHandle(poly.mColorBuffer[i], [&](s16 hid) {
-        return mdl.getColorBuffer(hid).get().getName();
-      });
+      readBufHandle(poly.mColorBuffer[i],
+                    [&](s16 hid) { return mdl.getBuf_Clr()[hid].getName(); });
     }
     for (int i = 0; i < 8; ++i) {
-      readBufHandle(poly.mTexCoordBuffer[i], [&](s16 hid) {
-        return mdl.getTextureCoordinateBuffer(hid).get().getName();
-      });
+      readBufHandle(poly.mTexCoordBuffer[i],
+                    [&](s16 hid) { return mdl.getBuf_Uv()[hid].getName(); });
     }
     reader.read<s32>(); // fur
     reader.read<s32>(); // matrix usage
@@ -650,13 +646,13 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
         disp.polyId = reader.readUnaligned<u16>();
         const auto boneIdx = reader.readUnaligned<u16>();
         disp.prio = reader.readUnaligned<u8>();
-        mdl.getBone(boneIdx).get().addDisplay(disp);
+        mdl.getBones()[boneIdx].addDisplay(disp);
 
         // While with this setup, materials could be XLU and OPA, in
         // practice, they're not.
-        const auto& mat = mdl.getMaterialRaw(disp.matId);
+        const auto& mat = mdl.getMaterials()[disp.matId];
         const bool xlu_mat = mat.isXluPass();
-        auto& poly = mdl.getPolygonRaw(disp.polyId);
+        auto& poly = mdl.getMeshes()[disp.polyId];
 
         if ((tree == Tree::DrawOpa && xlu_mat) ||
             (tree == Tree::DrawXlu && !xlu_mat)) {
@@ -664,7 +660,8 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
           snprintf(warn_msg, sizeof(warn_msg),
                    "Material %u \"%s\" is rendered in the %s pass (with mesh "
                    "%u \"%s\"), but is marked as %s.",
-                   disp.matId, mat.getName().c_str(),
+                   disp.matId,
+                   ((riistudio::lib3d::Material&)mat).getName().c_str(),
                    xlu_mat ? "Opaue" : "Translucent", disp.polyId,
                    poly.getName().c_str(), !xlu_mat ? "Opaque" : "Translucent");
           reader.warnAt(warn_msg, reader.tell() - 8, reader.tell());
@@ -675,14 +672,14 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
         // const auto parentMtxIdx =
         reader.readUnaligned<u16>();
 
-        const auto& bone = mdl.getBone(boneIdx).get();
+        const auto& bone = mdl.getBones()[boneIdx];
         const auto matrixId = bone.matrixId;
 
         // Hack: Base matrix is first copied to end, first instruction
         if (base_matrix_id == -1) {
           base_matrix_id = matrixId;
         } else {
-          auto& drws = mdl.get().mDrawMatrices;
+          auto& drws = mdl.mDrawMatrices;
           if (drws.size() <= matrixId) {
             drws.resize(matrixId + 1);
           }
@@ -703,11 +700,8 @@ static void readModel(G3DModelAccessor& mdl, oishii::BinaryReader& reader) {
     // printf("}\n");
   });
 }
-static void readTexture(kpi::NodeAccessor<Texture>& tex,
-                        oishii::BinaryReader& reader) {
+static void readTexture(Texture& data, oishii::BinaryReader& reader) {
   const auto start = reader.tell();
-
-  auto& data = tex.get();
 
   reader.expectMagic<'TEX0', true>();
   reader.read<u32>(); // size
@@ -739,11 +733,11 @@ class ArchiveDeserializer {
 public:
   std::string canRead(const std::string& file,
                       oishii::BinaryReader& reader) const {
-    return ends_with(file, "brres") ? typeid(G3DCollection).name() : "";
+    return ends_with(file, "brres") ? typeid(Collection).name() : "";
   }
-  void read(kpi::IDocumentNode& node, oishii::BinaryReader& reader) const {
-    assert(dynamic_cast<G3DCollection*>(&node) != nullptr);
-    G3DCollectionAccessor collection(&node);
+  void read(kpi::INode& node, oishii::BinaryReader& reader) const {
+    assert(dynamic_cast<Collection*>(&node) != nullptr);
+    Collection& collection = *dynamic_cast<Collection*>(&node);
 
     // Magic
     reader.read<u32>();
@@ -776,7 +770,7 @@ public:
           const auto& sub = cdic.mNodes[j];
 
           reader.seekSet(sub.mDataDestination);
-          auto&& mdl = collection.addG3DModel();
+          auto& mdl = collection.getModels().add();
           readModel(mdl, reader);
         }
       } else if (cnode.mName == "Textures(NW4R)") {
@@ -784,7 +778,7 @@ public:
           const auto& sub = cdic.mNodes[j];
 
           reader.seekSet(sub.mDataDestination);
-          auto&& tex = collection.addTexture();
+          auto& tex = collection.getTextures().add();
           readTexture(tex, reader);
         }
       } else {

@@ -167,7 +167,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
   }
 }
 
-bool IconSelectable(const char* text, bool selected, kpi::IDocumentNode* tex,
+bool IconSelectable(const char* text, bool selected,
+                    const riistudio::lib3d::Texture* tex,
                     riistudio::frontend::EditorWindow* ed) {
   ImGui::PushID(tex->getName().c_str());
   auto s =
@@ -175,7 +176,7 @@ bool IconSelectable(const char* text, bool selected, kpi::IDocumentNode* tex,
   ImGui::PopID();
   if (ed != nullptr) {
     ImGui::SameLine();
-    ed->drawImageIcon(dynamic_cast<riistudio::lib3d::Texture*>(tex), 32);
+    ed->drawImageIcon(tex, 32);
   }
   ImGui::SameLine();
   ImGui::Text(text);
@@ -183,14 +184,14 @@ bool IconSelectable(const char* text, bool selected, kpi::IDocumentNode* tex,
 }
 
 std::string TextureImageCombo(const char* current,
-                              const kpi::FolderData& images,
+                              kpi::ConstCollectionRange<Texture> images,
                               riistudio::frontend::EditorWindow* ed) {
   std::string result;
   if (ImGui::BeginCombo("Name##Img", current)) {
     for (const auto& tex : images) {
-      bool selected = tex->getName() == current;
-      if (IconSelectable(tex->getName().c_str(), selected, tex.get(), ed)) {
-        result = tex->getName();
+      bool selected = tex.getName() == current;
+      if (IconSelectable(tex.getName().c_str(), selected, &tex, ed)) {
+        result = tex.getName();
       }
       if (selected)
         ImGui::SetItemDefaultFocus();
@@ -204,7 +205,8 @@ std::string TextureImageCombo(const char* current,
 int SamplerCombo(
     int current,
     copyable_polymorphic_array_vector<GCMaterialData::SamplerData, 8>& samplers,
-    const kpi::FolderData& images, riistudio::frontend::EditorWindow* ed) {
+    kpi::ConstCollectionRange<riistudio::lib3d::Texture> images,
+    riistudio::frontend::EditorWindow* ed) {
   int result = current;
 
   const auto format = [&](int id) -> std::string {
@@ -220,11 +222,11 @@ int SamplerCombo(
     for (int i = 0; i < samplers.size(); ++i) {
       bool selected = i == current;
 
-      kpi::IDocumentNode* curImg = nullptr;
+      const riistudio::lib3d::Texture* curImg = nullptr;
 
       for (auto& it : images) {
-        if (it->getName() == samplers[i]->mTexture) {
-          curImg = it.get();
+        if (it.getName() == samplers[i]->mTexture) {
+          curImg = &it;
         }
       }
 
@@ -273,11 +275,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         tm = matData.texMatrices[texmatrixid].get(); // TODO: Proper lookup
       auto& samp = matData.samplers[i];
 
-      const auto* mImgs = delegate.getActive().getTextureSource();
+      const auto mImgs = delegate.getActive().getTextureSource();
       if (ImGui::BeginTabItem(
               (std::string("Texture ") + std::to_string(i)).c_str())) {
         if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (auto result = TextureImageCombo(samp->mTexture.c_str(), *mImgs,
+          if (auto result = TextureImageCombo(samp->mTexture.c_str(), mImgs,
                                               delegate.mEd);
               !result.empty()) {
             AUTO_PROP(samplers[i]->mTexture, result);
@@ -285,8 +287,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
           const riistudio::lib3d::Texture* curImg = nullptr;
 
-          for (std::size_t j = 0; j < mImgs->size(); ++j) {
-            auto& it = mImgs->at<riistudio::lib3d::Texture>(j);
+          for (auto& it : mImgs) {
             if (it.getName() == samp->mTexture) {
               curImg = &it;
             }
@@ -846,9 +847,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
         // TODO: Better selection here
         int texid = stage.texMap;
-        texid = SamplerCombo(texid, matData.samplers,
-                             *delegate.getActive().getTextureSource(),
-                             delegate.mEd);
+        texid =
+            SamplerCombo(texid, matData.samplers,
+                         delegate.getActive().getTextureSource(), delegate.mEd);
         if (texid != stage.texMap) {
           for (auto* e : delegate.mAffected) {
             auto& stage = e->getMaterialData().shader.mStages[i];
@@ -869,9 +870,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       } else {
         const riistudio::lib3d::Texture* curImg = nullptr;
 
-        const auto* mImgs = delegate.getActive().getTextureSource();
-        for (std::size_t j = 0; j < mImgs->size(); ++j) {
-          auto& it = mImgs->at<riistudio::lib3d::Texture>(j);
+        const auto mImgs = delegate.getActive().getTextureSource();
+        for (auto& it : mImgs) {
           if (it.getName() == matData.samplers[stage.texMap]->mTexture) {
             curImg = &it;
           }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Node2.hpp"
 #include "Reflection.hpp"
 #include <map>
 #include <memory>
@@ -13,24 +14,20 @@ class Writer;
 
 namespace kpi {
 
-class IDocumentNode;
-
 //! A reader: Do not inherit from this type directly
 struct IBinaryDeserializer {
   virtual ~IBinaryDeserializer() = default;
   virtual std::unique_ptr<IBinaryDeserializer> clone() const = 0;
   virtual std::string canRead_(const std::string& file,
                                oishii::BinaryReader& reader) const = 0;
-  virtual void read_(kpi::IDocumentNode& node,
-                     oishii::BinaryReader& reader) const = 0;
+  virtual void read_(kpi::INode& node, oishii::BinaryReader& reader) const = 0;
 };
 //! A writer: Do not inherit from this type directly
 struct IBinarySerializer {
   virtual ~IBinarySerializer() = default;
   virtual std::unique_ptr<IBinarySerializer> clone() const = 0;
-  virtual bool canWrite_(kpi::IDocumentNode& node) const = 0;
-  virtual void write_(kpi::IDocumentNode& node,
-                      oishii::Writer& writer) const = 0;
+  virtual bool canWrite_(kpi::INode& node) const = 0;
+  virtual void write_(kpi::INode& node, oishii::Writer& writer) const = 0;
 };
 
 // Part of the application state itself. Not part of the persistent document.
@@ -101,9 +98,8 @@ public:
 
   virtual void installModule(const std::string& path);
 
-  virtual std::unique_ptr<kpi::IDocumentNode>
-  constructObject(const std::string& type,
-                  kpi::IDocumentNode* parent = nullptr) const;
+  virtual std::unique_ptr<kpi::IObject>
+  constructObject(const std::string& type, kpi::INode* parent = nullptr) const;
 
   static inline ApplicationPlugins* getInstance() { return &sInstance; }
   virtual ~ApplicationPlugins() = default;
@@ -114,7 +110,7 @@ public:
   struct IFactory {
     virtual ~IFactory() = default;
     virtual std::unique_ptr<IFactory> clone() const = 0;
-    virtual std::unique_ptr<IDocumentNode> spawn() = 0;
+    virtual std::unique_ptr<IObject> spawn() = 0;
     virtual const char* getId() const = 0;
   };
 
@@ -123,7 +119,7 @@ public:
   std::vector<std::unique_ptr<IBinarySerializer>> mWriters;
 
 private:
-  std::unique_ptr<kpi::IDocumentNode> spawnState(const std::string& type) const;
+  std::unique_ptr<kpi::IObject> spawnState(const std::string& type) const;
 };
 
 /** Decentralized initialization via global static initializers.

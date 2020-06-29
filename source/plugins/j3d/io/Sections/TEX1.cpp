@@ -108,7 +108,7 @@ void readTEX1(BMDOutputContext& ctx) {
     nameTable = readNameTable(reader);
   }
 
-  ctx.mdl.get().mTexCache.clear();
+  ctx.mdl.mTexCache.clear();
 
   std::vector<std::pair<std::unique_ptr<Texture>, std::pair<u32, u32>>> texRaw;
 
@@ -117,8 +117,7 @@ void readTEX1(BMDOutputContext& ctx) {
     Tex tex;
     tex.btiId = i;
     tex.transfer(reader);
-    for (int j = 0; j < ctx.mdl.getMaterials().size(); ++j) {
-      auto& mat = ctx.mdl.getMaterial(j).get();
+    for (auto& mat : ctx.mdl.getMaterials()) {
       for (int k = 0; k < mat.samplers.size(); ++k) {
         auto& samp = (Material::J3DSamplerData&)*mat.samplers[k].get();
         if (samp.btiId == i) {
@@ -135,7 +134,7 @@ void readTEX1(BMDOutputContext& ctx) {
         }
       }
     }
-    for (auto& samp : ctx.mdl.get().mMatCache.samplers) {
+    for (auto& samp : ctx.mdl.mMatCache.samplers) {
       if (samp.btiId == i) {
         samp.mTexture = nameTable[i];
         samp.mWrapU = tex.mWrapU;
@@ -149,7 +148,7 @@ void readTEX1(BMDOutputContext& ctx) {
         samp.mLodBias = static_cast<f32>(tex.mLodBias) / 100.0f;
       }
     }
-    ctx.mdl.get().mTexCache.push_back(tex);
+    ctx.mdl.mTexCache.push_back(tex);
     auto& inf = texRaw.emplace_back(std::make_unique<Texture>(),
                                     std::pair<u32, u32>{0, 0});
     auto& data = *inf.first.get();
@@ -197,14 +196,12 @@ void readTEX1(BMDOutputContext& ctx) {
     // + ofs, size);
     if (ofs + size < reader.endpos())
       memcpy(data->mData.data(), reader.getStreamStart() + ofs, size);
-    ctx.col.addTexture();
-    ctx.col.getTexture(ctx.col.getTextures().size() - 1).get() = *data.get();
+    ctx.col.getTextures().add() = *data.get();
 
     ++i;
   }
 
-  for (int j = 0; j < ctx.mdl.getMaterials().size(); ++j) {
-    auto& mat = ctx.mdl.getMaterial(j).get();
+  for (auto& mat : ctx.mdl.getMaterials()) {
     for (int k = 0; k < mat.samplers.size(); ++k) {
       auto& samp = mat.samplers[k];
       if (samp->mTexture.empty()) {
@@ -216,15 +213,14 @@ void readTEX1(BMDOutputContext& ctx) {
   }
 }
 struct TEX1Node final : public oishii::Node {
-  TEX1Node(const ModelAccessor model, const CollectionAccessor col)
+  TEX1Node(const Model& model, const Collection& col)
       : mModel(model), mCol(col) {
     mId = "TEX1";
     mLinkingRestriction.alignment = 32;
   }
 
   struct TexNames : public oishii::Node {
-    TexNames(const Model& mdl, const CollectionAccessor col)
-        : mMdl(mdl), mCol(col) {
+    TexNames(const Model& mdl, const Collection& col) : mMdl(mdl), mCol(col) {
       mId = "TexNames";
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 4;
@@ -234,20 +230,18 @@ struct TEX1Node final : public oishii::Node {
       std::vector<std::string> names;
 
       for (int i = 0; i < mMdl.mTexCache.size(); ++i)
-        names.push_back(
-            mCol.getTexture(mMdl.mTexCache[i].btiId).node().getName());
+        names.push_back(mCol.getTextures()[mMdl.mTexCache[i].btiId].getName());
       writeNameTable(writer, names);
       writer.alignTo(32);
       return {};
     }
 
     const Model& mMdl;
-    const CollectionAccessor mCol;
+    const Collection& mCol;
   };
 
   struct TexHeaders : public oishii::Node {
-    TexHeaders(const ModelAccessor mdl, const CollectionAccessor col)
-        : mMdl(mdl), mCol(col) {
+    TexHeaders(const Model& mdl, const Collection& col) : mMdl(mdl), mCol(col) {
       mId = "TexHeaders";
       getLinkingRestriction().alignment = 32;
     }
@@ -272,16 +266,16 @@ struct TEX1Node final : public oishii::Node {
 
     Result gatherChildren(NodeDelegate& d) const noexcept override {
       u32 id = 0;
-      for (auto& tex : mMdl.get().mTexCache)
+      for (auto& tex : mMdl.mTexCache)
         d.addNode(std::make_unique<TexHeaderEntryLink>(tex, id++, tex.btiId));
       return {};
     }
 
-    const ModelAccessor mMdl;
-    const CollectionAccessor mCol;
+    const Model& mMdl;
+    const Collection& mCol;
   };
   struct TexEntry : public oishii::Node {
-    TexEntry(const Model& mdl, const CollectionAccessor col, u32 texIdx)
+    TexEntry(const Model& mdl, const Collection& col, u32 texIdx)
         : mMdl(mdl), mCol(col), mIdx(texIdx) {
       mId = std::to_string(texIdx);
       getLinkingRestriction().setLeaf();
@@ -289,7 +283,7 @@ struct TEX1Node final : public oishii::Node {
     }
 
     Result write(oishii::Writer& writer) const noexcept {
-      const auto& tex = mCol.getTexture(mIdx).get();
+      const auto& tex = mCol.getTextures()[mIdx];
       const auto before = writer.tell();
 
       writer.skip(tex.mData.size() - 1);
@@ -305,14 +299,14 @@ struct TEX1Node final : public oishii::Node {
     }
 
     const Model& mMdl;
-    const CollectionAccessor mCol;
+    const Collection& mCol;
     const u32 mIdx;
   };
   Result write(oishii::Writer& writer) const noexcept override {
     writer.write<u32, oishii::EndianSelect::Big>('TEX1');
     writer.writeLink<s32>({*this}, {*this, oishii::Hook::EndOfChildren});
 
-    writer.write<u16>((u16)mModel.get().mTexCache.size());
+    writer.write<u16>((u16)mModel.mTexCache.size());
     writer.write<u16>(-1);
 
     writer.writeLink<s32>(oishii::Hook(*this), oishii::Hook("TexHeaders"));
@@ -334,8 +328,8 @@ struct TEX1Node final : public oishii::Node {
   }
 
 private:
-  const ModelAccessor mModel;
-  const CollectionAccessor mCol;
+  const Model& mModel;
+  const Collection& mCol;
 };
 
 std::unique_ptr<oishii::Node> makeTEX1Node(BMDExportContext& ctx) {

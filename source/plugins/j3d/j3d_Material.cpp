@@ -1,26 +1,17 @@
 #include "Material.hpp"
-
+#include <plugins/gc/Export/Scene.hpp>
 #include <core/kpi/Node.hpp>
 
 namespace riistudio::j3d {
 
-const libcube::Texture& Material::getTexture(const std::string& id) const {
-  // Assumption: Parent of parent model is a collection with children.
-  const kpi::IDocumentNode* parent = getParent();
+const libcube::Texture* Material::getTexture(const std::string& id) const {
+  auto* parent = childOf;
   assert(parent);
-  const kpi::IDocumentNode* collection = static_cast<kpi::IDocumentNode*>(parent->parent);
-  assert(collection);
-
-  const auto* textures = collection->getFolder<libcube::Texture>();
-
-  for (std::size_t i = 0; i < textures->size(); ++i) {
-    const auto& at = textures->at<libcube::Texture>(i);
-
-    if (at.getName() == id)
-      return at;
-  }
-
-  throw "Invalid";
+  auto* grandparent = parent->childOf;
+  assert(grandparent);
+  const libcube::Scene* pScn = dynamic_cast<const libcube::Scene*>(grandparent);
+  assert(pScn);
+  return pScn->getTextures().findByName(id);
 }
 
 } // namespace riistudio::j3d
