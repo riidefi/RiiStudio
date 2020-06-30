@@ -10,7 +10,7 @@ void DrawChangeLog(bool* show = nullptr) {
   if (ImGui::Begin("Changelog", show, ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::SetWindowFontScale(1.3f);
     ImGui::Text("RiiStudio: Alpha 2.1 Pre-Release");
-    const std::string& markdownText = u8R"(
+    const std::string& markdownText = R"(
 UI:
   * Support for adding samplers
   * Fixed texture SRT issues

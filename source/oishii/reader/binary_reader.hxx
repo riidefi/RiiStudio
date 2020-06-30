@@ -178,7 +178,9 @@ private:
               " is not " + std::to_string(size) + " byte aligned.")
                  .c_str(),
              at, at + size, true);
+#ifdef RII_PLATFORM_WINDOWS
       __debugbreak();
+#endif
     }
   }
   void alignmentCheck(u32 size) { alignmentCheck(size, tell()); }

@@ -4,7 +4,7 @@
 #include <frontend/editor/StudioWindow.hpp> // StudioWindow
 #include <plugins/gc/Export/Material.hpp>   // libcube::IGCMaterial
 #include <regex>                            // std::regex_search
-#include <vendor/fa5/IconsFontAwesome5.h>   // ICON_FA_SEARCH
+#include <vendor/fa5/IconsFontAwesome5.h>   // (const char*)ICON_FA_SEARCH
 
 #undef min
 #undef max
@@ -33,7 +33,7 @@ struct GenericCollectionOutliner : public StudioWindow {
 #ifdef _WIN32
       char buf[128]{};
       memcpy_s(buf, 128, mFilt.c_str(), mFilt.length());
-      ImGui::InputText(ICON_FA_SEARCH " (regex)", buf, 128);
+      ImGui::InputText((const char*)ICON_FA_SEARCH " (regex)", buf, 128);
       mFilt = buf;
 #endif
     }
@@ -178,12 +178,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
       if (mat != nullptr) {
         for (int s = 0; s < mat->getMaterialData().samplers.size(); ++s) {
           auto& sampl = *mat->getMaterialData().samplers[s].get();
-          const lib3d::Texture* curImg = nullptr;
-          for (auto& it : mat->getTextureSource()) {
-            if (it.getName() == sampl.mTexture) {
-              curImg = &it;
-            }
-          }
+          const lib3d::Texture* curImg = mat->getTexture(sampl.mTexture);
           ImGui::SameLine();
           ImGui::SetCursorPosY(initial_pos_y);
           ed.drawImageIcon(curImg, icon_size);

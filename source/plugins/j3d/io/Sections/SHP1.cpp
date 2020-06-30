@@ -404,6 +404,8 @@ struct SHP1Node final : public oishii::Node {
         align = 32;
         leaf = true;
         break;
+      default:
+        break;
       }
       if (leaf)
         getLinkingRestriction().setLeaf();
@@ -545,6 +547,8 @@ struct SHP1Node final : public oishii::Node {
           // Relative DL offset
           writer.writeLink<u32>({"SHP1::DLData"}, {front + std::to_string(i)});
         }
+        break;
+      default:
         break;
       }
       return {};

@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <core/3d/i3dmodel.hpp>
 #include <core/util/gui.hpp>
-#include <kpi/PropertyView.hpp>
+#include <core/kpi/PropertyView.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
@@ -9,11 +9,11 @@ namespace libcube::UI {
 
 struct PolyDescriptorSurface final {
   static inline const char* name = "Vertex Descriptor";
-  static inline const char* icon = ICON_FA_IMAGE;
+  static inline const char* icon = (const char*)ICON_FA_IMAGE;
 };
 struct PolyDataSurface final {
   static inline const char* name = "Index Data";
-  static inline const char* icon = ICON_FA_IMAGE;
+  static inline const char* icon = (const char*)ICON_FA_IMAGE;
 };
 
 const char* vertexAttribNames =
@@ -129,7 +129,7 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl, PolyDataSurface) {
         ImGui::TableSetColumnIndex(2 + q);
 
         int type = static_cast<int>(e.first);
-        ImGui::Text(vertexAttribNamesArray[type]);
+        ImGui::TextUnformatted(vertexAttribNamesArray[type]);
         ++q;
       }
       static const std::array<std::string, 8> prim_types{

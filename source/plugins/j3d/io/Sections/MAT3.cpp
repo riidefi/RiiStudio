@@ -294,7 +294,7 @@ void readMAT3(BMDOutputContext& ctx) {
   u16 size = reader.read<u16>();
 
   for (u32 i = 0; i < size; ++i)
-    ctx.mdl.addMaterial();
+    ctx.mdl.getMaterials().add();
   ctx.materialIdLut.resize(size);
   reader.read<u16>();
 
@@ -305,7 +305,7 @@ void readMAT3(BMDOutputContext& ctx) {
 
   {
     // Read cache
-    auto& cache = ctx.mdl.get().mMatCache;
+    auto& cache = ctx.mdl.mMatCache;
 
     for (int i = 0; i < (int)MatSec::Max; ++i) {
       const auto begin = loader.mSections[i];
@@ -468,7 +468,7 @@ void readMAT3(BMDOutputContext& ctx) {
   const auto nameTable = readNameTable(reader);
 
   for (int i = 0; i < size; ++i) {
-    Material& mat = ctx.mdl.getMaterial(i).get();
+    Material& mat = ctx.mdl.getMaterials()[i];
     reader.seekSet(g.start + ofsMatData + ctx.materialIdLut[i] * 0x14c);
     mat.id = ctx.materialIdLut[i];
     mat.name = nameTable[i];
@@ -593,16 +593,16 @@ struct MAT3Node : public oishii::Node {
   struct EntrySection final
       : public Section<SerializableMaterial, MatSec::Max> {
 
-    EntrySection(const ModelAccessor mdl, const MAT3Node& mat3) : mMdl(mdl) {
+    EntrySection(const Model& mdl, const MAT3Node& mat3) : mMdl(mdl) {
       for (int i = 0; i < mMdl.getMaterials().size(); ++i)
         mLut.push_back(append(SerializableMaterial{mat3, i}));
     }
 
-    const ModelAccessor mMdl;
+    const Model& mMdl;
     std::vector<u16> mLut;
   };
 
-  const ModelAccessor mMdl;
+  const Model& mMdl;
   bool hasIndirect = false;
   EntrySection mEntries;
   const Model::MatCache& mCache;
@@ -615,8 +615,7 @@ struct MAT3Node : public oishii::Node {
   }
 
   MAT3Node(const BMDExportContext& ctx)
-      : mMdl(ctx.mdl), mEntries(ctx.mdl, *this),
-        mCache(ctx.mdl.get().mMatCache) {
+      : mMdl(ctx.mdl), mEntries(ctx.mdl, *this), mCache(ctx.mdl.mMatCache) {
     mId = "MAT3";
     getLinkingRestriction().alignment = 32;
   }
@@ -675,7 +674,7 @@ struct MAT3Node : public oishii::Node {
       std::vector<std::string> names(mMdl.getMaterials().size());
       int i = 0;
       for (int i = 0; i < mMdl.getMaterials().size(); ++i)
-        names[i] = mMdl.getMaterial(i).get().name;
+        names[i] = mMdl.getMaterials()[i].name;
       writeNameTable(writer, names);
       writer.alignTo(4);
 
@@ -762,12 +761,12 @@ struct MAT3Node : public oishii::Node {
 };
 bool SerializableMaterial::operator==(const SerializableMaterial& rhs) const
     noexcept {
-  return mMAT3.mMdl.getMaterial(mIdx).get() ==
-         rhs.mMAT3.mMdl.getMaterial(rhs.mIdx).get();
+  return mMAT3.mMdl.getMaterials()[mIdx] ==
+         rhs.mMAT3.mMdl.getMaterials()[rhs.mIdx];
 }
 void io_wrapper<SerializableMaterial>::onWrite(
     oishii::Writer& writer, const SerializableMaterial& smat) {
-  const Material& m = smat.mMAT3.mMdl.getMaterial(smat.mIdx).get();
+  const Material& m = smat.mMAT3.mMdl.getMaterials()[smat.mIdx];
 
   oishii::DebugExpectSized dbg(writer, 332);
 

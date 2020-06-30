@@ -1,5 +1,5 @@
 #include <core/util/gui.hpp>
-#include <kpi/PropertyView.hpp>
+#include <core/kpi/PropertyView.hpp>
 #include <plugins/gc/Export/Bone.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
@@ -31,7 +31,8 @@ auto bone_transform_ui = [](kpi::PropertyDelegate<IBoneDelegate>& delegate) {
 };
 
 kpi::StatelessPropertyView<libcube::IBoneDelegate>
-    BoneTransformSurfaceInstaller("Transformation", ICON_FA_ARROWS_ALT,
+    BoneTransformSurfaceInstaller("Transformation",
+                                  (const char*)ICON_FA_ARROWS_ALT,
                                   bone_transform_ui);
 
 } // namespace libcube::UI

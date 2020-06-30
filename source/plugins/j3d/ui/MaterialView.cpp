@@ -1,6 +1,6 @@
+#include <core/kpi/PropertyView.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
-#include <kpi/PropertyView.hpp>
 #include <plugins/gc/Export/Material.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
@@ -34,7 +34,7 @@ void Matrix44(const glm::mat4& mtx) {
 
 struct J3DDataSurface final {
   static inline const char* name = "J3D Data";
-  static inline const char* icon = ICON_FA_BOXES;
+  static inline const char* icon = (const char*)ICON_FA_BOXES;
 };
 
 void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
@@ -129,7 +129,7 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
 }
 struct BoneJ3DSurface final {
   static inline const char* name = "J3D Data";
-  static inline const char* icon = ICON_FA_BOXES;
+  static inline const char* icon = (const char*)ICON_FA_BOXES;
 };
 
 void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
@@ -152,7 +152,7 @@ void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
 
 struct ShapeJ3DSurface final {
   static inline const char* name = "J3D Shape";
-  static inline const char* icon = ICON_FA_BOXES;
+  static inline const char* icon = (const char*)ICON_FA_BOXES;
 };
 void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
   auto& shape = dl.getActive();
@@ -186,7 +186,7 @@ void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
 }
 struct ModelJ3DSurface {
   static inline const char* name = "J3D Model";
-  static inline const char* icon = ICON_FA_ADDRESS_BOOK;
+  static inline const char* icon = (const char*)ICON_FA_ADDRESS_BOOK;
 };
 void drawProperty(kpi::PropertyDelegate<j3d::Model>& dl, ModelJ3DSurface) {
   auto& mdl = dl.getActive();

@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <core/3d/i3dmodel.hpp>
 #include <core/util/gui.hpp>
-#include <kpi/PropertyView.hpp>
+#include <core/kpi/PropertyView.hpp>
 
 #include <vendor/ImGuiColorTextEdit/TextEditor.h>
 
@@ -11,7 +11,7 @@ namespace libcube::UI {
 
 struct ShaderSurface final {
   static inline const char* name = "Pixel Shader";
-  static inline const char* icon = ICON_FA_CODE;
+  static inline const char* icon = (const char*)ICON_FA_CODE;
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful = 1;

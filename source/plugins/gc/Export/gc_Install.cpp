@@ -20,14 +20,17 @@ kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
       .registerParent<libcube::IndexedPolygon, riistudio::lib3d::Polygon>();
 
   kpi::RichNameManager& rich = kpi::RichNameManager::getInstance();
-  rich.addRichName<riistudio::lib3d::Bone>(ICON_FA_BONE, "Bone")
-      .addRichName<riistudio::lib3d::Material>(ICON_FA_PAINT_BRUSH, "Material")
-      .addRichName<riistudio::lib3d::Texture>(ICON_FA_IMAGE, "Texture",
-                                              ICON_FA_IMAGES)
-      .addRichName<riistudio::lib3d::Polygon>(ICON_FA_DRAW_POLYGON, "Polygon")
-      .addRichName<riistudio::lib3d::Model>(ICON_FA_CUBE, "Model",
-                                            ICON_FA_CUBES)
-      .addRichName<riistudio::lib3d::Scene>(ICON_FA_SHAPES, "Scene");
+  rich.addRichName<riistudio::lib3d::Bone>((const char*)ICON_FA_BONE, "Bone")
+      .addRichName<riistudio::lib3d::Material>((const char*)ICON_FA_PAINT_BRUSH,
+                                               "Material")
+      .addRichName<riistudio::lib3d::Texture>((const char*)ICON_FA_IMAGE,
+                                              "Texture", (const char*)ICON_FA_IMAGES)
+      .addRichName<riistudio::lib3d::Polygon>((const char*)ICON_FA_DRAW_POLYGON,
+                                              "Polygon")
+      .addRichName<riistudio::lib3d::Model>((const char*)ICON_FA_CUBE, "Model",
+                                            (const char*)ICON_FA_CUBES)
+      .addRichName<riistudio::lib3d::Scene>((const char*)ICON_FA_SHAPES,
+                                            "Scene");
 });
 
 kpi::ConstCollectionRange<Texture>

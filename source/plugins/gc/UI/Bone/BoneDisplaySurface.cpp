@@ -1,5 +1,5 @@
 #include <core/util/gui.hpp>
-#include <kpi/PropertyView.hpp>
+#include <core/kpi/PropertyView.hpp>
 #include <plugins/gc/Export/Bone.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
@@ -10,12 +10,13 @@ namespace libcube::UI {
 auto BoneDisplaySurface =
     kpi::StatelessPropertyView<libcube::IBoneDelegate>()
         .setTitle("Displays")
-        .setIcon(ICON_FA_IMAGE)
+        .setIcon((const char*)ICON_FA_IMAGE)
         .onDraw([](kpi::PropertyDelegate<IBoneDelegate>& delegate) {
           auto& bone = delegate.getActive();
           ImGui::Text(
-              ICON_FA_EXCLAMATION_TRIANGLE
-              " Display Properties do not currently support multi-selection.");
+              (const char*)
+                  ICON_FA_EXCLAMATION_TRIANGLE
+              u8" Display Properties do not currently support multi-selection.");
 
           auto folder_id_combo = [](const char* title, const auto& folder,
                                     int& active) {

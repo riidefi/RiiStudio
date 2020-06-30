@@ -10,7 +10,7 @@ namespace riistudio::core {
 static ImGui::MarkdownConfig mdConfig{
     nullptr,
     nullptr,
-    ICON_FA_LINK,
+    reinterpret_cast<const char*>(ICON_FA_LINK),
     {{NULL, true}, {NULL, true}, {NULL, false}}};
 
 void Markdown(const std::string& markdown_) {
@@ -23,11 +23,11 @@ static bool loadFonts(float fontSize = 12.0f) {
   fontcfg.OversampleH = 8;
   fontcfg.OversampleV = 8;
 
-#ifdef BUILD_DIST
+// #ifdef BUILD_DIST
 #define FONT_DIR "./fonts/"
-#else
-#define FONT_DIR "../../fonts/"
-#endif
+// #else
+// #define FONT_DIR "../../fonts/"
+// #endif
 
   const char* default_font = FONT_DIR "Roboto-Medium.ttf";
   // const char* bold_font = FONT_DIR "Roboto-Bold.ttf";

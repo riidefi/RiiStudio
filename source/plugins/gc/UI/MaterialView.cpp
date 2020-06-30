@@ -1,9 +1,9 @@
 #include "TevSolver.hpp"                  // for optimizeNode
 #include <algorithm>                      // for std::min
 #include <core/3d/ui/Image.hpp>           // for ImagePreview
+#include <core/kpi/PropertyView.hpp>      // for kpi::PropertyViewManager
 #include <core/util/gui.hpp>              // for ImGui
 #include <core/util/string_builder.hpp>   // for StringBuilder
-#include <kpi/PropertyView.hpp>           // for kpi::PropertyViewManager
 #include <plugins/gc/Export/Material.hpp> // for GCMaterialData
 #undef near
 #undef max
@@ -80,19 +80,19 @@ libcube::gx::CullMode DrawCullMode(libcube::gx::CullMode cull_mode) {
 
 struct DisplaySurface final {
   static inline const char* name = "Surface Visibility";
-  static inline const char* icon = ICON_FA_GHOST;
+  static inline const char* icon = (const char*)ICON_FA_GHOST;
 };
 struct LightingSurface final {
   static inline const char* name = "Lighting";
-  static inline const char* icon = ICON_FA_SUN;
+  static inline const char* icon = (const char*)ICON_FA_SUN;
 };
 struct ColorSurface final {
   static inline const char* name = "Colors";
-  static inline const char* icon = ICON_FA_PAINT_BRUSH;
+  static inline const char* icon = (const char*)ICON_FA_PAINT_BRUSH;
 };
 struct SamplerSurface final {
   static inline const char* name = "Samplers";
-  static inline const char* icon = ICON_FA_IMAGES;
+  static inline const char* icon = (const char*)ICON_FA_IMAGES;
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;
@@ -102,11 +102,11 @@ struct SamplerSurface final {
 };
 struct SwapTableSurface final {
   static inline const char* name = "Swap Tables";
-  static inline const char* icon = ICON_FA_SWATCHBOOK;
+  static inline const char* icon = (const char*)ICON_FA_SWATCHBOOK;
 };
 struct StageSurface final {
   static inline const char* name = "Stage";
-  static inline const char* icon = ICON_FA_NETWORK_WIRED;
+  static inline const char* icon = (const char*)ICON_FA_NETWORK_WIRED;
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;
@@ -116,11 +116,11 @@ struct StageSurface final {
 };
 struct FogSurface final {
   static inline const char* name = "Fog";
-  static inline const char* icon = ICON_FA_GHOST;
+  static inline const char* icon = (const char*)ICON_FA_GHOST;
 };
 struct PixelSurface final {
   static inline const char* name = "Pixel";
-  static inline const char* icon = ICON_FA_GHOST;
+  static inline const char* icon = (const char*)ICON_FA_GHOST;
 };
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,

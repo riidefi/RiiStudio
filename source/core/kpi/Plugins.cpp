@@ -6,7 +6,7 @@
 #include "Node.hpp"
 #include "Node2.hpp"
 #include "Plugins.hpp"
-#include "common.h"
+#include <core/common.h>
 
 namespace kpi {
 

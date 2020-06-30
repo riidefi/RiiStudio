@@ -22,15 +22,15 @@ HistoryList::HistoryList(kpi::History& host, kpi::INode& root)
 HistoryList::~HistoryList() {}
 
 void HistoryList::draw_() {
-  if (ImGui::Button("Commit " ICON_FA_SAVE)) {
+  if (ImGui::Button((const char*)u8"Commit " ICON_FA_SAVE)) {
     mHost.commit(mRoot);
   }
 
-  if (ImGui::SameLine(); ImGui::Button("Undo " ICON_FA_UNDO)) {
+  if (ImGui::SameLine(); ImGui::Button((const char*)u8"Undo " ICON_FA_UNDO)) {
     mHost.undo(mRoot);
   }
 
-  if (ImGui::SameLine(); ImGui::Button("Redo " ICON_FA_REDO)) {
+  if (ImGui::SameLine(); ImGui::Button((const char*)u8"Redo " ICON_FA_REDO)) {
     mHost.redo(mRoot);
   }
 

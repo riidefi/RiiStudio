@@ -1,7 +1,7 @@
 #include "PropertyEditor.hpp"
 #include <core/3d/Material.hpp>           // lib3d::Material
 #include <imgui/imgui.h>                  // ImGui::Text
-#include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_EXCLAMATION_TRIANGLE
+#include <vendor/fa5/IconsFontAwesome5.h> // (const char*)ICON_FA_EXCLAMATION_TRIANGLE
 
 namespace riistudio::frontend {
 
@@ -105,7 +105,7 @@ void PropertyEditor::draw_() {
   kpi::IPropertyView* activeTab = nullptr;
 
   if (selected.empty()) {
-    ImGui::Text(ICON_FA_EXCLAMATION_TRIANGLE
+    ImGui::Text((const char*)ICON_FA_EXCLAMATION_TRIANGLE
                 " Active selection and multiselection desynced."
                 " This shouldn't happen.");
     selected.push_back(mActive);

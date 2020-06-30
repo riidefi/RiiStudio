@@ -48,7 +48,7 @@ struct ICollection {
     const auto _size = size();
     for (std::size_t i = 0; i < _size; ++i) {
       const auto* obj = atObject(i);
-      if (atObject(i)->getName() == name)
+      if (obj->getName() == name)
         return i;
     }
     return _size;
@@ -99,7 +99,7 @@ template <typename T> struct CollectionIterator {
   ~CollectionIterator() = default;
   CollectionIterator& operator=(const CollectionIterator& rhs) {
     i = rhs.i;
-    data = src.data;
+    data = rhs.data;
     return *this;
   }
   CollectionIterator& operator++() { // pre
@@ -131,8 +131,12 @@ template <typename T> struct MutCollectionIterator : CollectionIterator<T> {
 
   using CollectionIterator<T>::CollectionIterator;
 
-  T& operator*() const { return *reinterpret_cast<T*>(data->at(i)); }
-  T* operator->() const { return reinterpret_cast<T*>(data->at(i)); }
+  T& operator*() const {
+    return *reinterpret_cast<T*>(this->data->at(this->i));
+  }
+  T* operator->() const {
+    return reinterpret_cast<T*>(this->data->at(this->i));
+  }
 };
 template <typename T> struct ConstCollectionIterator : CollectionIterator<T> {
   typedef ConstCollectionIterator<T> self_type;
@@ -145,13 +149,14 @@ template <typename T> struct ConstCollectionIterator : CollectionIterator<T> {
   using CollectionIterator<T>::CollectionIterator;
 
   ConstCollectionIterator(const ICollection* data, std::size_t i)
-      : CollectionIterator<T>(const_cast<ICollection*>(data), i) {}
+      : CollectionIterator<T>(const_cast<ICollection*>(data),
+                              CollectionIterator<T>::i) {}
 
   const T& operator*() const {
-    return *reinterpret_cast<const T*>(data->at(i));
+    return *reinterpret_cast<const T*>(this->data->at(this->i));
   }
   const T* operator->() const {
-    return reinterpret_cast<const T*>(data->at(i));
+    return reinterpret_cast<const T*>(this->data->at(this->i));
   }
 };
 struct IDocData {
@@ -271,7 +276,7 @@ public:
   ConstCollectionRange<T> toConst() const { return {low}; }
 
   template <typename U> operator ConstCollectionRange<U>() {
-    return toConst().toBase<U>();
+    return toConst().template toBase<U>();
   }
   template <typename U> MutCollectionRange<U> toBase() {
     static_assert((std::is_same_v<U, T> ||

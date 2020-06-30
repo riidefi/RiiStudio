@@ -7,7 +7,7 @@
 #include <core/3d/i3dmodel.hpp>
 #include <core/util/gui.hpp>
 #include <core/3d/ui/Image.hpp>
-#include <kpi/PropertyView.hpp>
+#include <core/kpi/PropertyView.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
 
@@ -17,7 +17,7 @@ namespace libcube::UI {
 
 struct ImageSurface final {
   static inline const char* name = "Image Data";
-  static inline const char* icon = ICON_FA_IMAGE;
+  static inline const char* icon = (const char*)ICON_FA_IMAGE;
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;
@@ -51,13 +51,13 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
 
   if (ImGui::BeginMenuBar()) {
     // if (ImGui::BeginMenu("Transform")) {
-    if (ImGui::Button(ICON_FA_DRAW_POLYGON " Resize")) {
+    if (ImGui::Button((const char*)ICON_FA_DRAW_POLYGON u8" Resize")) {
       resizeAction = true;
     }
-    if (ImGui::Button(ICON_FA_DRAW_POLYGON " Change format")) {
+    if (ImGui::Button((const char*)ICON_FA_DRAW_POLYGON u8" Change format")) {
       reformatOption = true;
     }
-    if (ImGui::Button(ICON_FA_SAVE " Export")) {
+    if (ImGui::Button((const char*)ICON_FA_SAVE u8" Export")) {
       auto results = pfd::save_file("Export image", "", StdImageFilters);
       if (!results.result().empty()) {
         const std::string path = results.result();
@@ -78,7 +78,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
                                    tex.mImg.mDecodeBuf.data());
       }
     }
-    if (ImGui::Button(ICON_FA_FILE " Import")) {
+    if (ImGui::Button((const char*)ICON_FA_FILE u8" Import")) {
       auto result =
           pfd::open_file("Import image", "", StdImageFilters).result();
       if (!result.empty()) {
@@ -102,8 +102,8 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
     ImGui::EndMenuBar();
   }
 
-  ImGui::Text(ICON_FA_EXCLAMATION_TRIANGLE
-              " Image Properties do not support multi-selection currently.");
+  ImGui::Text((const char*)ICON_FA_EXCLAMATION_TRIANGLE
+              u8" Image Properties do not support multi-selection currently.");
 
   if (resizeAction) {
     ImGui::OpenPopup("Resize");
@@ -123,7 +123,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
       tex.reformatOpt = data.getTextureFormat();
     }
     ImGui::InputInt("Format", &tex.reformatOpt);
-    if (ImGui::Button(ICON_FA_CHECK " Okay")) {
+    if (ImGui::Button((const char*)ICON_FA_CHECK u8" Okay")) {
       const auto oldFormat = data.getTextureFormat();
       data.setTextureFormat(tex.reformatOpt);
       data.resizeData();
@@ -141,7 +141,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
     }
     ImGui::SameLine();
 
-    if (ImGui::Button(ICON_FA_CROSS " Cancel")) {
+    if (ImGui::Button((const char*)ICON_FA_CROSS u8" Cancel")) {
       ImGui::CloseCurrentPopup();
     }
 
@@ -192,7 +192,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
 
     ImGui::Combo("Algorithm", (int*)&tex.resizealgo, "Ultimate\0Lanczos\0");
 
-    if (ImGui::Button(ICON_FA_CHECK " Resize")) {
+    if (ImGui::Button((const char*)ICON_FA_CHECK u8" Resize")) {
       printf("Do the resizing..\n");
 
       const auto oldWidth = data.getWidth();
@@ -216,7 +216,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
     }
     ImGui::SameLine();
 
-    if (ImGui::Button(ICON_FA_CROSS " Cancel")) {
+    if (ImGui::Button((const char*)ICON_FA_CROSS u8" Cancel")) {
       ImGui::CloseCurrentPopup();
     }
 

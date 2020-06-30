@@ -7,7 +7,7 @@
 
 namespace riistudio::j3d {
 
-struct Model;
+class Model;
 
 struct MatrixPrimitive {
   s16 mCurrentMatrix = -1; // Part of the polygon in G3D
