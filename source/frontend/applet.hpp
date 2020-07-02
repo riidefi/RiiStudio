@@ -1,9 +1,9 @@
 #pragma once
 
 #include <plate/Platform.hpp>
-#include <core/window/window.hpp>
+#include <frontend/window/window.hpp>
 
-namespace riistudio::core {
+namespace riistudio::frontend {
 
 class Applet : public Window<IWindow, void>, public plate::Platform {
 public:
@@ -17,4 +17,4 @@ public:
 // TODO -- place more appropriately
 void Markdown(const std::string& markdown_);
 
-} // namespace riistudio::core
+} // namespace riistudio::frontend

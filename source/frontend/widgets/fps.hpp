@@ -1,5 +1,5 @@
-#include <core/applet.hpp> // core::Markdown
-#include <core/util/gui.hpp>
+#include <core/util/gui.hpp> // ImGui::Text
+#include <numeric>           // roundf
 
 namespace riistudio {
 

@@ -8,7 +8,7 @@
 
 struct GLFWwindow;
 
-namespace riistudio::core {
+namespace riistudio::frontend {
 
 struct IWindow {
   virtual ~IWindow() = default;
@@ -90,4 +90,4 @@ public:
 #endif
 };
 
-} // namespace riistudio::core
+} // namespace riistudio::frontend

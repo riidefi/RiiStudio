@@ -1,5 +1,5 @@
-#include <core/applet.hpp> // core::Markdown
-#include <core/util/gui.hpp>
+#include <core/util/gui.hpp>   // ImGui::Text
+#include <frontend/applet.hpp> // core::Markdown
 
 namespace riistudio {
 
@@ -38,7 +38,7 @@ Misc:
   * Fixed handling compression LUTs in BMD files.
   * Fixed rendering BMD files with varying vertex descriptors.
 )";
-    core::Markdown(markdownText);
+    frontend::Markdown(markdownText);
 
     ImGui::End();
   }

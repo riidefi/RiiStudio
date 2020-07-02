@@ -1,6 +1,6 @@
 #include "EditorWindow.hpp"
-#include <core/applet.hpp>                       // core::Applet
 #include <core/util/gui.hpp>                     // ImGui::DockBuilderDockWindow
+#include <frontend/applet.hpp>                   // core::Applet
 #include <frontend/editor/views/HistoryList.hpp> // MakePropertyEditor
 #include <frontend/editor/views/Outliner.hpp>    // MakeHistoryList
 #include <frontend/editor/views/PropertyEditor.hpp>   // MakeOutliner
@@ -42,7 +42,7 @@ void EditorWindow::draw_() {
   detachClosedChildren();
 
   // TODO: This doesn't work
-  core::Applet* parent = dynamic_cast<core::Applet*>(getParent());
+  frontend::Applet* parent = dynamic_cast<frontend::Applet*>(getParent());
   if (parent != nullptr) {
     if (parent->getActive() == this) {
       ImGui::Text("<Active>");

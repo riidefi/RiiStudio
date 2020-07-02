@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/common.h>
-#include <core/window/window.hpp>
+#include <frontend/window/window.hpp>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -10,7 +10,7 @@
 
 namespace riistudio::frontend {
 
-class StudioWindow : public core::Window<StudioWindow, core::IWindow> {
+class StudioWindow : public frontend::Window<StudioWindow, frontend::IWindow> {
 public:
   StudioWindow(const std::string& name, bool dockspace = false);
 

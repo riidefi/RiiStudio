@@ -3,7 +3,7 @@
 #include <imgui/imgui.h>
 #include <imgui_markdown.h>
 
-namespace riistudio::core {
+namespace riistudio::frontend {
 
 // You can make your own Markdown function with your prefered string container
 // and markdown config.
@@ -76,4 +76,4 @@ void Applet::rootCalc() {
   draw(); // Call down to window manager
 }
 
-} // namespace riistudio::core
+} // namespace riistudio::frontend
