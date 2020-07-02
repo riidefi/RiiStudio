@@ -217,6 +217,17 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
   if (justSelectedId == -1)
     return;
 
+  // Unique selection model: No selections of different types.
+  // Since we use type-folders, this means only one folder can have selections.
+  // We only need to clear the folder of the last active object.
+  if (mActive != nullptr && mActive->collectionOf != nullptr &&
+      mActive->collectionOf != &sampler) {
+    // Invalidate last selection, otherwise SHIFT anchors from the old folder
+    // would carry over.
+    sampler.setActiveSelection(~0);
+    mActive->collectionOf->clearSelection();
+  }
+
   // Currently, nothing for ctrl + shift or ctrl + art.
   // If both are pressed, SHIFT takes priority.
   const ImGuiIO& io = ImGui::GetIO();

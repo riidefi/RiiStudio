@@ -32,12 +32,12 @@ private:
 };
 
 template <typename T>
-static void gatherSelected(std::vector<kpi::IObject*>& tmp,
+static void gatherSelected(std::set<kpi::IObject*>& tmp,
                            kpi::ICollection& folder, T pred) {
   for (int i = 0; i < folder.size(); ++i) {
     auto* obj = folder.atObject(i);
     if (folder.isSelected(i) && pred(obj)) {
-      tmp.push_back(obj);
+      tmp.emplace(obj);
     }
 
     auto* col = dynamic_cast<kpi::INode*>(obj);
@@ -95,24 +95,29 @@ void PropertyEditor::draw_() {
     ImGui::EndMenuBar();
   }
 
-  std::vector<kpi::IObject*> selected;
-  for (int i = 0; i < mRoot.numFolders();  ++i) {
-    gatherSelected(selected, *mRoot.folderAt(i), [&](kpi::IObject* node) {
-      return typeid(*node).name() == typeid(mActive).name(); // return node->mType == mActive->mType;
+  std::set<kpi::IObject*> _selected;
+  for (int i = 0; i < mRoot.numFolders(); ++i) {
+    gatherSelected(_selected, *mRoot.folderAt(i), [&](kpi::IObject* node) {
+      return node->collectionOf == mActive->collectionOf;
     });
   }
+  // TODO: 7 objects per selection..?
 
   kpi::IPropertyView* activeTab = nullptr;
 
-  if (selected.empty()) {
+  if (_selected.empty()) {
     ImGui::Text((const char*)ICON_FA_EXCLAMATION_TRIANGLE
                 " Active selection and multiselection desynced."
                 " This shouldn't happen.");
-    selected.push_back(mActive);
+    _selected.emplace(mActive);
   }
-  ImGui::Text("%s %s (%u)", mActive->getName().c_str(),
-              selected.size() > 1 ? "..." : "",
-              static_cast<u32>(selected.size()));
+  ImGui::Text("%s %s (%i)", mActive->getName().c_str(),
+              _selected.size() > 1 ? "..." : "",
+              static_cast<int>(_selected.size()));
+
+  std::vector<kpi::IObject*> selected(_selected.size());
+  selected.resize(0);
+  std::copy(_selected.begin(), _selected.end(), std::back_inserter(selected));
 
   if (mMode == Mode::Tabs) {
     if (ImGui::BeginTabBar("Pane")) {
