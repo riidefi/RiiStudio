@@ -35,7 +35,10 @@ void RootWindow::draw() {
 
   ImGui::PushID(0);
   if (BeginFullscreenWindow("##RootWindow", getOpen())) {
-    mTheme.setThemeEx(mCurTheme);
+    if (mThemeUpdated) {
+      mTheme.setThemeEx(mCurTheme);
+      mThemeUpdated = false;
+    }
     ImGui::GetIO().FontGlobalScale = mFontGlobalScale;
 
     ImGui::SetWindowFontScale(1.1f);
@@ -126,10 +129,18 @@ void RootWindow::draw() {
           vsync = _vsync;
         }
 
-        DrawThemeEditor(mCurTheme, mFontGlobalScale, nullptr);
+        mThemeUpdated |= DrawThemeEditor(mCurTheme, mFontGlobalScale, nullptr);
+
+#ifdef BUILD_DEBUG
+        ImGui::Checkbox("ImGui Demo", &bDemo);
+#endif
 
         ImGui::EndMenu();
       }
+
+      if (bDemo)
+        ImGui::ShowDemoWindow(&bDemo);
+
 #ifndef BUILD_DIST
       if (ImGui::BeginMenu("Experimental")) {
         if (ImGui::MenuItem("Convert to BMD") && ed != nullptr) {
