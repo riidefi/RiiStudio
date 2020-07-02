@@ -221,6 +221,8 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
       // PSMTXConcat(tmp1, inputMatrix, this->finalMatrix)
       dst = tmp1 * dst;
       break;
+    default:
+      break;
     }
   } else if (option == CommonMappingOption::KeepTranslation) {
     switch (method) {
@@ -239,6 +241,8 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
 
       // PSMTXConcat(tmp1, inputMatrix, this->finalMatrix)
       dst = tmp1 * dst;
+      break;
+    default:
       break;
     }
   } else {
@@ -289,6 +293,7 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
       J3DGetTextureMtxOld(dst, texsrt);
 
       //... mtxFlipY(dst, flipY);
+      break;
     }
   }
 

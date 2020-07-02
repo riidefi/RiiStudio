@@ -117,8 +117,8 @@ template <typename T> struct CollectionIterator {
   bool operator!=(const CollectionIterator& rhs) const {
     return !(*this == rhs);
   }
-  ICollection* data;
-  std::size_t i;
+  ICollection* data = nullptr;
+  std::size_t i = 0;
 };
 
 template <typename T> struct MutCollectionIterator : CollectionIterator<T> {
@@ -149,8 +149,7 @@ template <typename T> struct ConstCollectionIterator : CollectionIterator<T> {
   using CollectionIterator<T>::CollectionIterator;
 
   ConstCollectionIterator(const ICollection* data, std::size_t i)
-      : CollectionIterator<T>(const_cast<ICollection*>(data),
-                              CollectionIterator<T>::i) {}
+      : CollectionIterator<T>(const_cast<ICollection*>(data), i) {}
 
   const T& operator*() const {
     return *reinterpret_cast<const T*>(this->data->at(this->i));
@@ -196,6 +195,8 @@ struct INode : public virtual IObject // TODO: Global factories require this.
   // For memento tracking
   virtual const char* idAt(std::size_t) const = 0;
   virtual std::size_t fromId(const char*) const = 0;
+
+  // virtual std::unique_ptr<INode> clone() const = 0;
 };
 
 template <typename T> class ConstCollectionRange {
@@ -207,6 +208,10 @@ public:
   }
   ConstCollectionRange() : low(nullptr) {}
   ConstCollectionRange(const ICollection* src) : low(src) {}
+  ConstCollectionRange(const ConstCollectionRange& src) : low(src.low) {
+    assert(src.low);
+    assert(src.low->size() < 0xFFFF);
+  }
 
   const T& operator[](std::size_t i) const {
     assert(at(i));
@@ -305,12 +310,20 @@ template <typename T> struct CollectionImpl final : public ICollection {
   // Rationale: It's quite common to have a single bone (static pose) and a
   // single model (formats like BMD). Perhaps in the future, this should be
   // customized further.
+#ifndef BUILD_DEBUG
   llvm::SmallVector<CollectionItemImpl<T>, 1> data;
+#else
+  std::vector<CollectionItemImpl<T>> data;
+#endif
   INode* parent = nullptr;
 
   std::size_t size() const override { return data.size(); }
-  void* at(std::size_t i) override { return static_cast<T*>(&data[i]); }
+  void* at(std::size_t i) override {
+    assert(i < data.size());
+    return static_cast<T*>(&data[i]);
+  }
   const void* at(std::size_t i) const override {
+    assert(i < data.size());
     return static_cast<const T*>(&data[i]);
   }
   IObject* atObject(std::size_t i) override { return &data[i]; }

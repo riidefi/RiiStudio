@@ -132,11 +132,11 @@ llvm::Error GXProgram::generateColorChannel(StringBuilder& builder,
                  "    t_LightDeltaDir = t_LightDelta / t_LightDeltaDist;\n";
 
       if (auto err = generateLightAttnFn(builder, chan, lightName)) {
-        return std::move(err);
+        return err;
       }
       builder += "    t_LightAccum += ";
       if (auto err = generateLightDiffFn(builder, chan, lightName)) {
-        return std::move(err);
+        return err;
       }
       builder += " * t_Attenuation * " + lightName + ".Color;\n";
     }
@@ -1027,7 +1027,7 @@ llvm::Error GXProgram::generateTevStages(StringBuilder& builder) {
   for (int i = 0; i < mMaterial.mat.getMaterialData().shader.mStages.size();
        ++i)
     if (auto err = generateTevStage(builder, i))
-      return std::move(err);
+      return err;
 
   return llvm::Error::success();
 }

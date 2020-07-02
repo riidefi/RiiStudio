@@ -59,7 +59,7 @@ void readJNT1(BMDOutputContext& ctx) {
     const u8 mayaSSC = reader.read<u8>();
     // TODO -- keep track of this fallback behavior
     joint.mayaSSC = mayaSSC == 0xff ? false : mayaSSC;
-    u8 pad = reader.read<u8>();
+    const auto pad = reader.read<u8>(); // pad
     assert(pad == 0xff);
     joint.scale << reader;
     joint.rotate.x =

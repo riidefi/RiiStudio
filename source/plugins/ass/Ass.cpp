@@ -181,10 +181,10 @@ struct AssImporter {
   u16 add_weight_matrix(int v, const aiMesh* pMesh,
                         j3d::DrawMatrix* pDrwOut = nullptr) {
     j3d::DrawMatrix drw;
-    for (int j = 0; j < pMesh->mNumBones; ++j) {
+    for (unsigned j = 0; j < pMesh->mNumBones; ++j) {
       const auto* pBone = pMesh->mBones[j];
 
-      for (int k = 0; k < pBone->mNumWeights; ++k) {
+      for (unsigned k = 0; k < pBone->mNumWeights; ++k) {
         const auto* pWeight = &pBone->mWeights[k];
         if (pWeight->mVertexId == v) {
           const auto boneid = get_bone_id(pBone->mNode);
@@ -416,7 +416,7 @@ struct AssImporter {
 
     std::vector<libcube::IndexedVertex> vertices;
 
-    for (int f = 0; f < pMesh->mNumFaces; ++f) {
+    for (unsigned f = 0; f < pMesh->mNumFaces; ++f) {
       for (int fv = 0; fv < 3; ++fv) {
         const auto v = pMesh->mFaces[f].mIndices[fv];
 
@@ -476,7 +476,7 @@ struct AssImporter {
       parent->addChild(joint.getId());
 
     // Mesh data
-    for (int i = 0; i < pNode->mNumMeshes; ++i) {
+    for (unsigned i = 0; i < pNode->mNumMeshes; ++i) {
       // Can these be duplicated?
       const auto* pMesh = pScene->mMeshes[pNode->mMeshes[i]];
 
@@ -488,7 +488,7 @@ struct AssImporter {
       ImportMesh(pMesh, pNode);
     }
 
-    for (int i = 0; i < pNode->mNumChildren; ++i) {
+    for (unsigned i = 0; i < pNode->mNumChildren; ++i) {
       ImportNode(pNode->mChildren[i], &joint);
     }
   }
@@ -499,7 +499,7 @@ struct AssImporter {
 
     std::set<std::string> texturesToImport;
 
-    for (unsigned int i = 0; i < pScene->mNumMaterials; ++i) {
+    for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
       auto* pMat = pScene->mMaterials[i];
       auto& mr = out_model.getMaterials().add();
       mr.id = i;
@@ -512,8 +512,9 @@ struct AssImporter {
       boneIdCtr->matIdToMatIdMap[i] = mr.id;
       ImpMaterial impMat;
 
-      for (int t = aiTextureType_DIFFUSE; t <= aiTextureType_UNKNOWN; ++t) {
-        for (int j = 0; j < pMat->GetTextureCount((aiTextureType)t); ++j) {
+      for (unsigned t = aiTextureType_DIFFUSE; t <= aiTextureType_UNKNOWN;
+           ++t) {
+        for (unsigned j = 0; j < pMat->GetTextureCount((aiTextureType)t); ++j) {
 
           const auto [path, uvindex, mapmode] = GetTexture(pMat, t, j);
 

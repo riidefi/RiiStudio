@@ -173,7 +173,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   dbg.assertSince(0x28);
   loader.indexedContainer<u16>(mat.texGens, MatSec::TexGenInfo, 4);
-  const auto post_tg = reader.readX<u16, 8>();
+  [[maybe_unused]] const auto post_tg = reader.readX<u16, 8>();
   // TODO: Validate assumptions here
 
   dbg.assertSince(0x48);
@@ -443,6 +443,8 @@ void readMAT3(BMDOutputContext& ctx) {
       case MatSec::NBTScaleInfo:
         readCacheEntry(cache.nbtScales, 16);
         break;
+      default: // Warnings for MatSec::Max
+        break;
       }
     }
   }
@@ -628,10 +630,6 @@ struct MAT3Node : public oishii::Node {
     writer.write<u16>(mMdl.getMaterials().size());
     writer.write<u16>(-1);
 
-    auto writeSecLinkS = [&](const std::string& lnk) {
-      writer.writeLink<s32>({*this}, {lnk});
-    };
-
     const auto ofsEntries = writer.tell();
     writer.write<s32>(-1);
     const auto ofsLut = writer.tell();
@@ -672,7 +670,6 @@ struct MAT3Node : public oishii::Node {
       auto nameTabStart = writer.tell();
 
       std::vector<std::string> names(mMdl.getMaterials().size());
-      int i = 0;
       for (int i = 0; i < mMdl.getMaterials().size(); ++i)
         names[i] = mMdl.getMaterials()[i].name;
       writeNameTable(writer, names);
@@ -682,7 +679,6 @@ struct MAT3Node : public oishii::Node {
       writer.write<s32>(nameTabStart - start);
     }
 
-    auto dataPos = writer.tell();
     auto writeBuf = [&](const auto& buf) {
       int slide = 0;
 
@@ -759,8 +755,8 @@ struct MAT3Node : public oishii::Node {
 
   Result gatherChildren(NodeDelegate& d) const noexcept override { return {}; }
 };
-bool SerializableMaterial::operator==(const SerializableMaterial& rhs) const
-    noexcept {
+bool SerializableMaterial::operator==(
+    const SerializableMaterial& rhs) const noexcept {
   return mMAT3.mMdl.getMaterials()[mIdx] ==
          rhs.mMAT3.mMdl.getMaterials()[rhs.mIdx];
 }

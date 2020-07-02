@@ -3,11 +3,8 @@
 #include <frontend/editor/EditorWindow.hpp> // EditorWindow
 #include <frontend/editor/StudioWindow.hpp> // StudioWindow
 #include <plugins/gc/Export/Material.hpp>   // libcube::IGCMaterial
-#include <regex>                            // std::regex_search
-#include <vendor/fa5/IconsFontAwesome5.h>   // (const char*)ICON_FA_SEARCH
-
-#undef min
-#undef max
+//#include <regex>                          // std::regex_search
+#include <vendor/fa5/IconsFontAwesome5.h> // (const char*)ICON_FA_SEARCH
 
 namespace riistudio::frontend {
 
@@ -20,6 +17,7 @@ struct GenericCollectionOutliner : public StudioWindow {
       return PassFilter(str.c_str());
     }
   };
+#if 0
   struct RegexFilter {
     bool test(const std::string& str) const noexcept {
       try {
@@ -40,6 +38,7 @@ struct GenericCollectionOutliner : public StudioWindow {
 
     std::string mFilt;
   };
+#endif
   using TFilter = ImTFilter;
 
   //! @brief Return the number of resources in the source that pass the filter.
@@ -106,6 +105,8 @@ GenericCollectionOutliner::formatTitle(const kpi::ICollection& sampler,
 void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
                                            const kpi::INode& host,
                                            const std::string& key) noexcept {
+  if (sampler.size() == 0)
+    return;
   {
     const auto rich =
         kpi::RichNameManager::getInstance().getRich(sampler.atObject(0));
@@ -170,8 +171,8 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
     ImGui::SetCursorPosY(initial_pos_y + (icon_size - text_size.y) / 2);
 
     const auto treenode =
-        ImGui::TreeNodeEx(std::to_string(i).c_str(), flags,
-                          (rich.getIconSingular() + " " + cur_name).c_str());
+        ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s %s",
+                          rich.getIconSingular().c_str(), cur_name.c_str());
 
     if (treenode) {
 

@@ -32,9 +32,12 @@ public:
       constexpr u32 dimension_mask = (1 << 10) - 1;
       constexpr u32 format_mask = (1 << 4) - 1;
 
-      mBuilder.writeBp(lut[mId], ((width - 1) & dimension_mask) |
-                                     (((height - 1) & dimension_mask) << 10) |
-                                     (static_cast<u32>(format) << 20));
+      const u32 width_field = (width - 1) & dimension_mask;
+      const u32 height_field = (height - 1) & dimension_mask;
+      const u32 format_field = static_cast<u32>(format) & format_mask;
+
+      mBuilder.writeBp(lut[mId], width_field | (height_field << 10) |
+                                     (format_field << 20));
     }
     void setLookupMode(libcube::gx::TextureWrapMode wrap_s,
                        libcube::gx::TextureWrapMode wrap_t,
@@ -142,7 +145,7 @@ struct MDL3Node final : public oishii::Node {
 
   Result write(oishii::Writer& writer) const noexcept override {
     const auto& mats = mModel.getMaterials();
-    const auto start = writer.tell();
+    [[maybe_unused]] const auto start = writer.tell();
 
     writer.write<u32, oishii::EndianSelect::Big>('MDL3');
     writer.writeLink<s32>({*this}, {*this, oishii::Hook::EndOfChildren});
@@ -150,16 +153,16 @@ struct MDL3Node final : public oishii::Node {
     writer.write<u16>((u32)mats.size());
     writer.write<u16>(-1);
 
-    const auto ofsDls = writer.tell();
+    [[maybe_unused]] const auto ofsDls = writer.tell();
     writer.write<u32>(32 + mats.size() * 6 * sizeof(u32));
-    const auto ofsDlHdrs = writer.tell();
+    [[maybe_unused]] const auto ofsDlHdrs = writer.tell();
     writer.write<u32>(32);
 
-    const auto ofsSrMtxIdx = writer.tell();
+    [[maybe_unused]] const auto ofsSrMtxIdx = writer.tell();
     writer.write<u32>(0);
-    const auto ofsLut = writer.tell();
+    [[maybe_unused]] const auto ofsLut = writer.tell();
     writer.write<u32>(0);
-    const auto ofsNameTable = writer.tell();
+    [[maybe_unused]] const auto ofsNameTable = writer.tell();
     writer.write<u32>(0);
 
     const auto dlHandlesOfs = writer.tell();
@@ -175,7 +178,7 @@ struct MDL3Node final : public oishii::Node {
     for (int i = 0; i < mats.size() * 6; ++i)
       writer.write<u16>(0);
 
-    const auto dlDataOfs = writer.tell();
+    // const auto dlDataOfs = writer.tell();
     for (int i = 0; i < mats.size(); ++i) {
       const auto& mat = mModel.getMaterials()[i];
       const auto dl_start = writer.tell();
@@ -216,6 +219,7 @@ struct MDL3Node final : public oishii::Node {
         const auto& stages = mat.getMaterialData().shader.mStages;
         for (int i = 0; i < stages.size(); ++i) {
           const auto& stage = stages[i];
+          (void)stage;
 
           if (i % 2 == 0)
             builder.setTevOrder();
@@ -302,7 +306,7 @@ struct MDL3Node final : public oishii::Node {
 
 private:
   const Model& mModel;
-  const Collection& mCol;
+  [[maybe_unused]] const Collection& mCol;
 };
 
 std::unique_ptr<oishii::Node> makeMDL3Node(BMDExportContext& ctx) {

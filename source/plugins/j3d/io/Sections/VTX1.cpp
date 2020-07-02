@@ -209,6 +209,8 @@ void readVTX1(BMDOutputContext& ctx) {
           uv->readBufferEntryGeneric(reader, uv->mData[i]);
         break;
       }
+      case VBufferKind::undefined:
+        break;
       }
     }
   }
@@ -316,7 +318,7 @@ struct VTX1Node {
     writer.writeLink<s32>(
         oishii::Link{oishii::Hook(getSelf()), oishii::Hook("Format")});
 
-    const auto numOfs = computeNumOfs();
+    // const auto numOfs = computeNumOfs();
     int i = 0;
     auto writeBufLink = [&]() {
       writer.writeLink<s32>(oishii::Link{

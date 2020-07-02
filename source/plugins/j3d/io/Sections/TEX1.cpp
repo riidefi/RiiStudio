@@ -189,13 +189,7 @@ void readTEX1(BMDOutputContext& ctx) {
     auto& texpair = texRaw[it.second];
     const auto [ofs, size] = texpair.second;
     std::unique_ptr<Texture> data = std::move(texpair.first);
-
-    data->mData.resize(size);
-    // assert(ofs + size < reader.endpos());
-    // memcpy_s(data->mData.data(), data->mData.size(), reader.getStreamStart()
-    // + ofs, size);
-    if (ofs + size < reader.endpos())
-      memcpy(data->mData.data(), reader.getStreamStart() + ofs, size);
+	reader.readBuffer(data->mData, size, ofs);
     ctx.col.getTextures().add() = *data.get();
 
     ++i;

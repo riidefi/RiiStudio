@@ -393,6 +393,7 @@ template <> struct io_wrapper<gx::TevStage> {
   static void onRead(oishii::BinaryReader& reader, gx::TevStage& c) {
     const auto unk1 = reader.read<u8>();
     // Assumed to be TevOp (see attributedlandmeteoritec.bmd)
+    (void)unk1;
     // assert(unk1 == 0xff);
     c.colorStage.a = static_cast<gx::TevColorArg>(reader.read<u8>());
     c.colorStage.b = static_cast<gx::TevColorArg>(reader.read<u8>());
@@ -485,13 +486,14 @@ template <> struct io_wrapper<Material::J3DSamplerData> {
 };
 template <> struct io_wrapper<Model::Indirect> {
   static void onRead(oishii::BinaryReader& reader, Model::Indirect& c) {
-    c.enabled = reader.read<u8>();
+    const auto enabled = reader.read<u8>();
+    c.enabled = enabled != 0;
     c.nIndStage = reader.read<u8>();
     if (c.nIndStage > 4)
       reader.warnAt("Invalid stage count", reader.tell() - 1, reader.tell());
     reader.read<u16>();
 
-    assert(c.enabled <= 1 && c.nIndStage <= 4);
+    assert(enabled <= 1 && c.nIndStage <= 4);
     assert(!c.enabled || c.nIndStage);
 
     for (auto& e : c.tevOrder) {
@@ -536,6 +538,7 @@ template <> struct io_wrapper<Model::Indirect> {
     int i = 0;
     for (auto& e : c.tevStage) {
       u8 id = reader.read<u8>();
+      (void)id;
       // assert(id == i || i >= c.nIndStage);
       e.format = static_cast<gx::IndTexFormat>(reader.read<u8>());
       e.bias = static_cast<gx::IndTexBiasSel>(reader.read<u8>());

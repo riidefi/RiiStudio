@@ -1,5 +1,10 @@
 project(plate)
 
+# <GLFW/glfw3native.h> vs <glfw/glfw3native.HDR_FILES> in imgui_impl_glfw.cpp
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  add_compile_options("-Wno-error")
+endif()
+
 include_directories(${PROJECT_SOURCE_DIR}/../)
 include_directories(${PROJECT_SOURCE_DIR}/../vendor)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/include)

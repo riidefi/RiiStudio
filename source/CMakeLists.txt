@@ -27,13 +27,23 @@ else()
   # set(CMAKE_CXX_FLAGS "-s USE_SDL=2 -s ASSERTIONS=2")
   #add_compile_options("-s ALLOW_MEMORY_GROWTH=1")
   #add_compile_options("-s NO_EXIT_RUNTIME=0")
+endif()
+
+# Clang/Clang-Cl
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   add_compile_options("-Wno-inconsistent-missing-override")
+  # GLM
   add_compile_options("-Wno-deprecated-volatile")
+  # Assimp
+  add_compile_options("-Wno-pragma-pack")
+  add_compile_options("-Werror")
 endif()
 
 if (MSVC)
   # LLVM headers
   add_compile_options(/wd4244 /wd4267 /wd4146 /wd4624 /wd4996)
+  # Inherits via dominance (generated code)
+  add_compile_options(/wd4250)
 endif()
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/Configurations.cmake)

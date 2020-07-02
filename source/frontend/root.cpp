@@ -50,9 +50,10 @@ void RootWindow::draw() {
     ImGui::SetWindowFontScale(1.0f);
     dockspace_id = ImGui::GetID("DockSpaceWidget");
 
-    ImGuiID dock_main_id = dockspace_id;
+    // ImGuiID dock_main_id = dockspace_id;
     while (mAttachEditorsQueue.size()) {
       const std::string& ed_id = mAttachEditorsQueue.front();
+      (void)ed_id;
 
       // ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing
       // layout ImGui::DockBuilderAddNode(dockspace_id); // Add empty node

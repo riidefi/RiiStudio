@@ -19,6 +19,7 @@ auto get_material_data = [](auto& x) -> GCMaterialData& {
   return (GCMaterialData&)x.getMaterialData();
 };
 
+[[maybe_unused]]
 auto mat_prop = [](auto& delegate, auto member, const auto& after) {
   delegate.propertyEx(member, after, get_material_data);
 };
@@ -179,7 +180,7 @@ bool IconSelectable(const char* text, bool selected,
     ed->drawImageIcon(tex, 32);
   }
   ImGui::SameLine();
-  ImGui::Text(text);
+  ImGui::TextUnformatted(text);
   return s;
 }
 
@@ -673,7 +674,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     int b = static_cast<int>(swap.b);
     int a = static_cast<int>(swap.a);
 
-    ImGui::Text((std::string("Swap ") + std::to_string(i)).c_str());
+    ImGui::Text("Swap %i", i);
     ImGui::TableNextCell();
 
     ImGui::Combo("##R", &r, colors);

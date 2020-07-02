@@ -103,7 +103,7 @@ void readSHP1(BMDOutputContext& ctx) {
 
     // Calculate the VCD bitfield
     shape.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
-    const u32 vcd_size = (u32)shape.mVertexDescriptor.getVcdSize();
+    // const u32 vcd_size = (u32)shape.mVertexDescriptor.getVcdSize();
 
     // Read the two-layer primitives
 
@@ -346,8 +346,8 @@ struct SHP1Node final : public oishii::Node {
     const SHP1Node& mParent;
     SubNode(const Model& mdl, SubNodeID id, const SHP1Node& parent,
             int polyId = -1, int MPrimId = -1)
-        : mMdl(mdl), mSID(id), mPolyId(polyId), mMpId(MPrimId),
-          mParent(parent) {
+        : mParent(parent), mMdl(mdl), mSID(id), mPolyId(polyId),
+          mMpId(MPrimId) {
       u32 align = 4;
       bool leaf = true;
       switch (id) {
@@ -488,13 +488,13 @@ struct SHP1Node final : public oishii::Node {
                   if (((gx::VertexAttribute)a) !=
                       gx::VertexAttribute::PositionNormalMatrixIndex) {
                     assert(!"Direct vertex data is unsupported.");
-                    throw "";
+                    abort();
                   }
                   writer.write<u8>(v[(gx::VertexAttribute)a]);
                   break;
                 default:
                   assert("!Unknown vertex attribute format.");
-                  throw "";
+                  abort();
                 }
               }
             }
@@ -585,6 +585,8 @@ struct SHP1Node final : public oishii::Node {
           d.addNode(std::make_unique<SubNode>(mMdl, SubNodeID::_DLChildMPrim,
                                               mParent, mPolyId, i));
         break;
+      default:
+        return eResult::Fatal;
       }
 
       return eResult::Success;

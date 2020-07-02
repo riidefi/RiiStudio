@@ -1,7 +1,7 @@
 #include <assert.h>
+#include <imgui/imgui.h>
 #include <plate/gl.hpp>
 #include <plate/toolkit/Viewport.hpp>
-#include <imgui/imgui.h>
 
 namespace plate::tk {
 
@@ -36,7 +36,7 @@ void Viewport::end() {
 
   // TODO
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  ImGui::Image((void*)mImageBufId,
+  ImGui::Image(reinterpret_cast<void*>(mImageBufId),
                {static_cast<float>(region.x), static_cast<float>(region.y)},
                {0.0f, horiz_ratio}, {vert_ratio, .0f});
 }

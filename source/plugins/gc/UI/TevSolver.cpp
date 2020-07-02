@@ -38,8 +38,6 @@ struct ExprAlloc {
   union AnyExpr {
     UnaryExpr unary;
     BinExpr bin;
-
-    AnyExpr() = default;
   };
 
   // Maximum complexity of a tev stage

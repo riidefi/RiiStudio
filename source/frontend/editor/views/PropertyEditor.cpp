@@ -1,7 +1,7 @@
 #include "PropertyEditor.hpp"
 #include <core/3d/Material.hpp>           // lib3d::Material
 #include <imgui/imgui.h>                  // ImGui::Text
-#include <vendor/fa5/IconsFontAwesome5.h> // (const char*)ICON_FA_EXCLAMATION_TRIANGLE
+#include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_EXCLAMATION_TRIANGLE
 
 namespace riistudio::frontend {
 
@@ -51,8 +51,8 @@ static void gatherSelected(std::set<kpi::IObject*>& tmp,
 
 PropertyEditor::PropertyEditor(kpi::History& host, kpi::INode& root,
                                kpi::IObject*& active, EditorWindow& ed)
-    : StudioWindow("Property Editor"), mHost(host), mRoot(root),
-      mActive(active), ed(ed) {
+    : StudioWindow("Property Editor"), ed(ed), mHost(host), mRoot(root),
+      mActive(active) {
   setWindowFlag(ImGuiWindowFlags_MenuBar);
 }
 
@@ -69,9 +69,12 @@ void PropertyEditor::draw_() {
   if (lib3d::Material* mat = dynamic_cast<lib3d::Material*>(mActive);
       mat != nullptr && mat->isShaderError) {
     ImGui::SetWindowFontScale(2.0f);
-    ImVec4 warnColor{1.0f, 0.0f, 0.0f, 1.0f};
-    ImGui::TextColored(warnColor, "[WARNING] Invalid shader!");
-    ImGui::TextColored(warnColor, mat->shaderError.c_str());
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 0.0f, 0.0f, 1.0f});
+    {
+      ImGui::TextUnformatted("[WARNING] Invalid shader!");
+      ImGui::TextUnformatted(mat->shaderError.c_str());
+    }
+    ImGui::PopStyleColor();
     ImGui::SetWindowFontScale(1.0f);
   }
 

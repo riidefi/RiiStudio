@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <core/3d/i3dmodel.hpp>
-#include <core/util/gui.hpp>
 #include <core/kpi/PropertyView.hpp>
+#include <core/util/gui.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
@@ -91,7 +91,6 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl, PolyDataSurface) {
       for (auto& e : poly.getVcd().mAttributes) {
         if (e.second == gx::VertexAttributeType::None)
           continue;
-        int type = static_cast<int>(e.first);
         ImGui::TableSetColumnIndex(2 + q);
         int data = v.operator[](e.first);
         ImGui::Text("%i", data);
