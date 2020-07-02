@@ -4,6 +4,12 @@ project(vendor)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# Clang/Clang-Cl
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  add_compile_options("-Wno-error")
+endif()
+
+
 include_directories(${PROJECT_SOURCE_DIR}/../)
 include_directories(${PROJECT_SOURCE_DIR}/../vendor)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
