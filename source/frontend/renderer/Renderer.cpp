@@ -1,4 +1,6 @@
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include "Renderer.hpp"
 #include <core/3d/gl.hpp>    // glPolygonMode
 #include <core/util/gui.hpp> // ImGui::BeginMenuBar
@@ -53,8 +55,10 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 #endif
 
-  bool mouseDown = ImGui::IsAnyMouseDown();
-  bool ctrlPress = ImGui::IsKeyPressed(341); // GLFW_KEY_LEFT_CONTROL
+  const bool mouseDown = ImGui::IsAnyMouseDown();
+  // Disabled this feature, not useful.
+  const bool ctrlPress = false;
+  // ImGui::IsKeyPressed(341); // GLFW_KEY_LEFT_CONTROL
 
   if (ImGui::IsWindowFocused()) {
     if (ctrlPress) {
