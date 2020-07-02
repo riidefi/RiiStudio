@@ -20,7 +20,7 @@ namespace oishii {
 // Helpers
 class LinkerHelper {
 public:
-  static const Node& findNamespacedID(const Linker& linker,
+  static const Node* findNamespacedID(const Linker& linker,
                                       const std::string& symbol,
                                       const std::string& nameSpace,
                                       const std::string& blockName,
@@ -38,7 +38,7 @@ public:
             nameSpacedSymbol) {
           // if (resultName)
           resultName = nameSpacedSymbol;
-          return *entry.mNode;
+          return entry.mNode.get();
         }
     }
     // Children
@@ -57,7 +57,7 @@ public:
             nameSpacedSymbol) {
           // if (resultName)
           resultName = nameSpacedSymbol;
-          return *entry.mNode;
+          return entry.mNode.get();
         }
     }
     // Global
@@ -68,11 +68,12 @@ public:
                  : entry.mNamespace + "::" + entry.mNode->getId()) == symbol) {
           // if (resultName)
           resultName = symbol;
-          return *entry.mNode;
+          return entry.mNode.get();
         }
     }
     printf("Search for %s failed!\n", symbol.c_str());
     assert(!"Failed critical namespaced symbol lookup in layout");
+    return nullptr;
   }
   // TODO: Offset might be better removed
   static u32 resolveHook(const Linker& linker, const std::string& symbol,
@@ -228,17 +229,19 @@ void Linker::write(Writer& writer, bool doShuffle) {
     std::string fromBlockSymbol;
     std::string toBlockSymbol;
 
-    const Node& from = link.from.mBlock
-                           ? *link.from.mBlock
-                           : LinkerHelper::findNamespacedID(
-                                 *this, link.from.mId, nameSpace,
-                                 reserve.blockName, fromBlockSymbol);
-    const Node& to =
+#ifdef BUILD_DEBUG
+    [[maybe_unused]] const Node& from =
+        link.from.mBlock
+            ? *link.from.mBlock
+            : *LinkerHelper::findNamespacedID(*this, link.from.mId, nameSpace,
+                                              reserve.blockName,
+                                              fromBlockSymbol);
+    [[maybe_unused]] const Node& to =
         link.to.mBlock
             ? *link.to.mBlock
-            : LinkerHelper::findNamespacedID(*this, link.to.mId, nameSpace,
-                                             reserve.blockName, toBlockSymbol);
-
+            : *LinkerHelper::findNamespacedID(*this, link.to.mId, nameSpace,
+                                              reserve.blockName, toBlockSymbol);
+#endif
     // TODO: Generalize all of these from/to methods
     if (link.from.mBlock) {
       bool bSuccess = false;

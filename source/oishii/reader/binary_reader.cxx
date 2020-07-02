@@ -12,7 +12,7 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
   if (checkStack) // TODO, unintuitive limitation
   {
     // TODO: Warn class
-    printf("%s:0x%02X: ", file, selectBegin);
+    printf("%s:0x%02X: ", getFile(), selectBegin);
     {
       ScopedFormatter fmt(0xe);
       printf("warning: ");

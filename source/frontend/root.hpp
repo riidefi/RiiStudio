@@ -3,7 +3,7 @@
 #include <queue>
 #include <string>
 
-#include <core/applet.hpp>
+#include <frontend/applet.hpp>
 
 #include "ThemeManager.hpp"
 #include "file_host.hpp"
@@ -12,7 +12,7 @@ namespace riistudio::frontend {
 
 class EditorWindow;
 
-class RootWindow final : public core::Applet, FileHost {
+class RootWindow final : public Applet, FileHost {
 public:
   RootWindow();
   ~RootWindow();
@@ -30,12 +30,13 @@ public:
 private:
   u32 dockspace_id = 0;
   bool vsync = true;
-  bool bThemeEditor = false;
+  bool bDemo = false;
   float mFontGlobalScale = 1.0f;
 
   std::queue<std::string> mAttachEditorsQueue;
   ThemeManager mTheme;
   ThemeManager::BasicTheme mCurTheme = ThemeManager::BasicTheme::CorporateGrey;
+  bool mThemeUpdated = true;
 
   bool mShowChangeLog = true;
 };

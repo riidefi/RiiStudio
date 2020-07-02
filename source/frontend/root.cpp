@@ -343,12 +343,13 @@ void RootWindow::draw() {
 }
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   printf("Opening file: %s\n", data.mPath.c_str());
+  // TODO: Not ideal..
+  std::vector<u8> vec(data.mLen);
+  memcpy(vec.data(), data.mData.get(), data.mLen);
 
-  std::vector<u8> vdata(data.mLen);
-  memcpy(vdata.data(), data.mData.get(), data.mLen);
-  auto reader = std::make_unique<oishii::BinaryReader>(
-      std::move(vdata), (u32)data.mLen, data.mPath.c_str());
-  auto importer = SpawnImporter(data.mPath, *reader.get());
+  oishii::DataProvider provider(std::move(vec), data.mPath);
+  oishii::BinaryReader reader(provider.slice());
+  auto importer = SpawnImporter(data.mPath, provider.slice());
 
   if (!importer.second) {
     printf("Cannot spawn importer..\n");
@@ -373,30 +374,31 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
     return;
   }
   struct Handler : oishii::ErrorHandler {
-    void onErrorBegin(oishii::AbstractStream& stream) override {
+    void onErrorBegin(const oishii::DataProvider& stream) override {
       puts("[Begin Error]");
     }
-    void onErrorDescribe(oishii::AbstractStream& stream, const char* type,
+    void onErrorDescribe(const oishii::DataProvider& stream, const char* type,
                          const char* brief, const char* details) override {
       printf("- [Describe] Type %s, Brief: %s, Details: %s\n", type, brief,
              details);
     }
-    void onErrorAddStackTrace(oishii::AbstractStream& stream,
+    void onErrorAddStackTrace(const oishii::DataProvider& stream,
                               std::streampos start, std::streamsize size,
                               const char* domain) override {
       printf("- [Stack] Start: %u, Size: %u, Domain: %s\n", (u32)start,
              (u32)size, domain);
     }
-    void onErrorEnd(oishii::AbstractStream& stream) override {
+    void onErrorEnd(const oishii::DataProvider& stream) override {
       puts("[End Error]");
     }
   } handler;
-  reader->addErrorHandler(&handler);
+  reader.addErrorHandler(&handler);
+
   importer.second->read_(*dynamic_cast<kpi::INode*>(fileState.get()),
-                         *reader.get());
+                         provider.slice());
 
   auto edWindow =
-      std::make_unique<EditorWindow>(std::move(fileState), reader->getFile());
+      std::make_unique<EditorWindow>(std::move(fileState), reader.getFile());
 
   if (policy == OpenFilePolicy::NewEditor) {
     attachEditorWindow(std::move(edWindow));

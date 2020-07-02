@@ -15,11 +15,6 @@ namespace riistudio::j3d {
 
 using namespace libcube;
 
-inline bool ends_with(const std::string& value, const std::string& ending) {
-  return ending.size() <= value.size() &&
-         std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
 struct BMDFile : public oishii::Node {
   static const char* getNameId() { return "JSystem Binary Model Data"; }
 
@@ -75,7 +70,7 @@ class BMD {
 public:
   std::string canRead(const std::string& file,
                       oishii::BinaryReader& reader) const {
-    return ends_with(file, "bmd") || ends_with(file, "bdl")
+    return file.ends_with("bmd") || file.ends_with("bdl")
                ? typeid(Collection).name()
                : "";
   }
@@ -148,11 +143,12 @@ public:
     linker.write(writer);
   }
 
-  void read(kpi::INode& node, oishii::BinaryReader& reader) const {
+  void read(kpi::INode& node, oishii::ByteView data) const {
     assert(dynamic_cast<Collection*>(&node) != nullptr);
-    Collection& collection = *dynamic_cast<Collection*>(&node);
-
+    auto& collection = *dynamic_cast<Collection*>(&node);
     auto& mdl = collection.getModels().add();
+
+    oishii::BinaryReader reader(std::move(data));
 
     BMDOutputContext ctx{mdl, collection, reader};
 

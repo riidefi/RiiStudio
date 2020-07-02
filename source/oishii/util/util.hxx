@@ -96,7 +96,10 @@ static inline u16 swap16(u16 v);
 #define MAKE_LE32(x) _BSWAP_32(x)
 #endif
 
-#ifdef _MSC_VER
+#if defined(__llvm__) || (defined(__GNUC__) && !defined(__ICC))
+static inline u32 swap32(u32 v) { return __builtin_bswap32(v); }
+static inline u16 swap16(u16 v) { return _BSWAP_16(v); }
+#elif defined(_MSC_VER)
 #include <stdlib.h>
 static inline u32 swap32(u32 v) { return _byteswap_ulong(v); }
 static inline u16 swap16(u16 v) { return _byteswap_ushort(v); }
@@ -140,4 +143,17 @@ enum class EndianSelect {
   Big,
   Little
 };
+
+template <u32 size> struct integral_of_equal_size;
+
+template <> struct integral_of_equal_size<1> { using type = u8; };
+
+template <> struct integral_of_equal_size<2> { using type = u16; };
+
+template <> struct integral_of_equal_size<4> { using type = u32; };
+
+template <typename T>
+using integral_of_equal_size_t =
+    typename integral_of_equal_size<sizeof(T)>::type;
+
 } // namespace oishii

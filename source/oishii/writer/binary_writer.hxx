@@ -19,18 +19,6 @@ public:
     write<T>(out);
   }
 
-  template <u32 size> struct integral_of_equal_size;
-
-  template <> struct integral_of_equal_size<1> { using type = u8; };
-
-  template <> struct integral_of_equal_size<2> { using type = u16; };
-
-  template <> struct integral_of_equal_size<4> { using type = u32; };
-
-  template <typename T>
-  using integral_of_equal_size_t =
-      typename integral_of_equal_size<sizeof(T)>::type;
-
   template <typename T, EndianSelect E = EndianSelect::Current>
   void write(T val, bool checkmatch = true) {
     using integral_t = integral_of_equal_size_t<T>;

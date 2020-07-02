@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../data_provider.hxx"
 #include "../interfaces.hxx"
 #include "../util/util.hxx"
-#include <array> // Why?
 #include <array>
 #include <memory>
 #include <string>
@@ -15,32 +15,53 @@ struct Invalidity {
   enum { invality_t };
 };
 
-class BinaryReader final : public IReader {
+class BinaryReader final : public AbstractStream<BinaryReader> {
 public:
-  BinaryReader(u32 buffer_size, const char* file_name = "")
-      : mBuf(buffer_size), mBufSize(buffer_size), file(file_name) {}
-  BinaryReader(std::vector<u8> buffer, u32 buffer_size,
-               const char* file_name = "")
-      : mBuf(std::move(buffer)), mBufSize(buffer_size), file(file_name) {}
+  BinaryReader(ByteView&& view) : mView(std::move(view)) {}
   ~BinaryReader() = default;
 
   // MemoryBlockReader
-  u32 tell() final override { return mPos; }
-  void seekSet(u32 ofs) final override { mPos = ofs; }
-  u32 startpos() final override { return 0; }
-  u32 endpos() final override { return mBufSize; }
-  u8* getStreamStart() final override { return mBuf.data(); }
+  u32 tell() { return mPos; }
+  void seekSet(u32 ofs) { mPos = ofs; }
+  u32 startpos() { return 0; }
+  u32 endpos() { return mView.size(); }
+  u8* getStreamStart() { return (u8*)mView.data(); }
 
-  // Faster bound check
-  inline bool isInBounds(u32 pos) {
-    // Can't be negative, start always at zero
-    return pos < mBufSize;
-  }
+  inline bool isInBounds(u32 pos) { return mView.isInBounds(pos); }
 
 private:
   u32 mPos = 0;
-  std::vector<u8> mBuf;
-  u32 mBufSize;
+  ByteView mView;
+
+public:
+  void addErrorHandler(ErrorHandler* handler) {
+    mErrorHandlers.emplace(handler);
+  }
+  void removeErrorHandler(ErrorHandler* handler) {
+    mErrorHandlers.erase(handler);
+  }
+
+protected:
+  void beginError() {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorBegin(*mView.getProvider());
+  }
+  void describeError(const char* type, const char* brief, const char* details) {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorDescribe(*mView.getProvider(), type, brief, details);
+  }
+  void addErrorStackTrace(std::streampos start, std::streamsize size,
+                          const char* domain) {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorAddStackTrace(*mView.getProvider(), start, size, domain);
+  }
+  void endError() {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorEnd(*mView.getProvider());
+  }
+
+private:
+  std::set<ErrorHandler*> mErrorHandlers;
 
 public:
   //! @brief Given a type T, return T in the specified endiannes. (Current: swap
@@ -53,7 +74,29 @@ public:
   //! @return T, endian decoded.
   //!
   template <typename T, EndianSelect E = EndianSelect::Current>
-  inline T endianDecode(T val) const noexcept;
+  inline T endianDecode(T val) const noexcept {
+    if (!Options::MULTIENDIAN_SUPPORT)
+      return val;
+
+    bool be = false;
+
+    switch (E) {
+    case EndianSelect::Current:
+      be = bigEndian;
+      break;
+    case EndianSelect::Big:
+      be = true;
+      break;
+    case EndianSelect::Little:
+      be = false;
+      break;
+    }
+
+    if (!Options::PLATFORM_LE)
+      be = !be;
+
+    return be ? swapEndian<T>(val) : val;
+  }
 
   template <typename T, EndianSelect E = EndianSelect::Current,
             bool unaligned = false>
@@ -128,12 +171,23 @@ public:
   void setEndian(bool big) noexcept { bigEndian = big; }
   bool getIsBigEndian() const noexcept { return bigEndian; }
 
-  const char* getFile() const noexcept { return file; }
-  void setFile(const char* f) noexcept { file = f; }
+  // TODO
+  const char* getFile() const noexcept {
+    return mView.getProvider()->getFilePath().data();
+  }
+
+  void readBuffer(std::vector<u8>& out, u32 size, s32 ofs = -1) {
+    if (ofs < 0)
+      ofs = mPos;
+    out.reserve(out.size() + size);
+    boundsCheck(size);
+    std::copy(mView.begin() + ofs, mView.begin() + ofs + size,
+              std::back_inserter(out));
+    mPos += size;
+  }
 
 private:
   bool bigEndian = true; // to swap
-  const char* file = "?";
 
   struct DispatchStack {
     struct Entry {

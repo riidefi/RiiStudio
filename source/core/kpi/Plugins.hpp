@@ -4,6 +4,7 @@
 #include "Reflection.hpp"
 #include <map>
 #include <memory>
+#include <oishii/data_provider.hxx>
 #include <string>
 #include <vector>
 
@@ -20,7 +21,7 @@ struct IBinaryDeserializer {
   virtual std::unique_ptr<IBinaryDeserializer> clone() const = 0;
   virtual std::string canRead_(const std::string& file,
                                oishii::BinaryReader& reader) const = 0;
-  virtual void read_(kpi::INode& node, oishii::BinaryReader& reader) const = 0;
+  virtual void read_(kpi::INode& node, oishii::ByteView data) const = 0;
 };
 //! A writer: Do not inherit from this type directly
 struct IBinarySerializer {

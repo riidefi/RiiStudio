@@ -1,11 +1,11 @@
 #pragma once
 
+#include "RichName.hpp"
 #include <map>
 #include <memory>
 #include <queue>
+#include <string>
 #include <string_view>
-
-#include "RichName.hpp"
 
 namespace kpi {
 
@@ -52,19 +52,13 @@ struct DataMesh {
 };
 
 class ReflectionMesh {
-  static ReflectionMesh* spInstance;
+  static ReflectionMesh sInstance;
 
 public:
+  ReflectionMesh();
   virtual ~ReflectionMesh() = default;
 
-  static inline ReflectionMesh* getInstance() { return spInstance; }
-  static inline ReflectionMesh* setInstance(ReflectionMesh* inst) {
-    ReflectionMesh* old = spInstance;
-    spInstance = inst;
-    return old;
-  }
-
-  ReflectionMesh(std::unique_ptr<DataMesh> mesh) : mDataMesh(std::move(mesh)) {}
+  static inline ReflectionMesh* getInstance() { return &sInstance; }
 
   inline DataMesh& getDataMesh() { return *mDataMesh.get(); }
 
@@ -136,10 +130,10 @@ public:
         : mMesh(mesh), mMirror(mirror) {}
   };
 
-  virtual ReflectionInfoHandle lookupInfo(std::string info) = 0;
+  virtual ReflectionInfoHandle lookupInfo(std::string info);
   virtual void findParentOfType(std::vector<void*>& out, void* in,
                                 const std::string& info,
-                                const std::string& key) = 0;
+                                const std::string& key);
 
   template <typename TDst, typename TDynamic>
   inline std::vector<TDst*> findParentOfType(TDynamic&& type) {

@@ -6,31 +6,6 @@ namespace oishii {
 
 template <u32 m> struct MagicInvalidity;
 
-template <typename T, EndianSelect E>
-inline T BinaryReader::endianDecode(T val) const noexcept {
-  if (!Options::MULTIENDIAN_SUPPORT)
-    return val;
-
-  bool be = false;
-
-  switch (E) {
-  case EndianSelect::Current:
-    be = bigEndian;
-    break;
-  case EndianSelect::Big:
-    be = true;
-    break;
-  case EndianSelect::Little:
-    be = false;
-    break;
-  }
-
-  if (!Options::PLATFORM_LE)
-    be = !be;
-
-  return be ? swapEndian<T>(val) : val;
-}
-
 template <typename T, EndianSelect E, bool unaligned> T BinaryReader::peek() {
   boundsCheck(sizeof(T));
 

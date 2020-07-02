@@ -8,16 +8,16 @@ namespace oishii {
 
 //! @brief Writer with expanding buffer.
 //!
-class VectorWriter : public IWriter {
+class VectorWriter : public AbstractStream<VectorWriter> {
 public:
   VectorWriter(u32 buffer_size) : mPos(0), mBuf(buffer_size) {}
   VectorWriter(std::vector<u8> buf) : mPos(0), mBuf(std::move(buf)) {}
   virtual ~VectorWriter() = default;
 
-  u32 tell() final override { return mPos; }
-  void seekSet(u32 ofs) final override { mPos = ofs; }
-  u32 startpos() final override { return 0; }
-  u32 endpos() final override { return (u32)mBuf.size(); }
+  u32 tell() { return mPos; }
+  void seekSet(u32 ofs) { mPos = ofs; }
+  u32 startpos() { return 0; }
+  u32 endpos() { return (u32)mBuf.size(); }
 
   // Bound check unlike reader -- can always extend file
   inline bool isInBounds(u32 pos) { return pos < mBuf.size(); }

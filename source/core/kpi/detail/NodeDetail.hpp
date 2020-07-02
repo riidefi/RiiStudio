@@ -22,7 +22,7 @@ struct ApplicationPluginsImpl {
   //! Requires methods:
   //! - `T::canRead(const std::string& file, oishii::BinaryReader& reader)
   //! const`
-  //! - `T::read(doc_node_t node, oishii::BinaryReader& reader) const`
+  //! - `T::read(doc_node_t node, oishii::ByteView data) const`
   template <typename T>
   struct TBinaryDeserializer final : public IBinaryDeserializer, public T {
     std::unique_ptr<IBinaryDeserializer> clone() const override {
@@ -32,8 +32,8 @@ struct ApplicationPluginsImpl {
                          oishii::BinaryReader& reader) const override {
       return T::canRead(file, reader);
     }
-    void read_(kpi::INode& node, oishii::BinaryReader& reader) const override {
-      T::read(node, reader);
+    void read_(kpi::INode& node, oishii::ByteView data) const override {
+      T::read(node, data);
     }
   };
   //! Requires methods:
