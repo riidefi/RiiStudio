@@ -36,16 +36,11 @@ bool installModuleNative(const std::string& path,
 template <typename... args> bool installModuleNative(args...) { return false; }
 #endif
 
-static bool ends_with(const std::string& value, const std::string& ending) {
-  return ending.size() <= value.size() &&
-         std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
 void ApplicationPlugins::registerMirror(const MirrorEntry& entry) {
   ReflectionMesh::getInstance()->getDataMesh().enqueueHierarchy(entry);
 }
 void ApplicationPlugins::installModule(const std::string& path) {
-  if (ends_with(path, ".dll"))
+  if (path.ends_with(".dll"))
     installModuleNative(path, this);
 }
 

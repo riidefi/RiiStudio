@@ -29,9 +29,4 @@ struct IDScope {
   ~IDScope() { ImGui::PopID(); }
 };
 
-inline bool ends_with(const std::string& value, const std::string& ending) {
-  return ending.size() <= value.size() &&
-         std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
 } // namespace riistudio::util

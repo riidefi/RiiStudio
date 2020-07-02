@@ -685,29 +685,22 @@ struct AssImporter {
     ImportNode(root);
   }
 };
-
-inline bool ends_with(const std::string& value, const std::string& ending) {
-  return ending.size() <= value.size() &&
-         std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
 struct AssReader {
+  static constexpr std::array<std::string_view, 4> supported_endings = {
+      ".dae", ".obj", ".fbx", ".smd"};
+
   std::string canRead(const std::string& file,
                       oishii::BinaryReader& reader) const {
-
-    const std::array<std::string, 4> supported_endings = {".dae", ".obj",
-                                                          ".fbx", ".smd"};
-
     if (std::find_if(supported_endings.begin(), supported_endings.end(),
-                     [&](const std::string& ending) {
-                       return ends_with(file, ending);
+                     [&](const std::string_view& ending) {
+                       return file.ends_with(ending);
                      }) == supported_endings.end()) {
       return "";
     }
 
     return typeid(lib3d::Scene).name();
   }
-  void read(kpi::INode& node, oishii::BinaryReader& reader) const {
+  void read(kpi::INode& node, oishii::ByteView data) const {
     const u32 ass_flags =
         aiProcess_Triangulate | aiProcess_GenSmoothNormals |
         aiProcess_ValidateDataStructure | aiProcess_RemoveRedundantMaterials |
@@ -718,10 +711,11 @@ struct AssReader {
         aiProcess_FlipWindingOrder;
 
     Assimp::Importer importer;
-    const auto* pScene = importer.ReadFileFromMemory(
-        reader.getStreamStart(), reader.endpos(), ass_flags, reader.getFile());
-    AssImporter assConverter(pScene, &node);
-    assConverter.ImportAss();
+    std::string path(data.getProvider()->getFilePath());
+    const auto* pScene = importer.ReadFileFromMemory(data.data(), data.size(),
+                                                     ass_flags, path.c_str());
+    AssImporter ass_converter(pScene, &node);
+    ass_converter.ImportAss();
   }
 };
 

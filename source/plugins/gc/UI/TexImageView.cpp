@@ -5,9 +5,9 @@
 
 #include <algorithm>
 #include <core/3d/i3dmodel.hpp>
-#include <core/util/gui.hpp>
 #include <core/3d/ui/Image.hpp>
 #include <core/kpi/PropertyView.hpp>
+#include <core/util/gui.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
 
@@ -62,13 +62,13 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
       if (!results.result().empty()) {
         const std::string path = results.result();
         libcube::STBImage imgType = libcube::STBImage::PNG;
-        if (riistudio::util::ends_with(path, ".png")) {
+        if (path.ends_with(".png")) {
           imgType = libcube::STBImage::PNG;
-        } else if (riistudio::util::ends_with(path, ".bmp")) {
+        } else if (path.ends_with(".bmp")) {
           imgType = libcube::STBImage::BMP;
-        } else if (riistudio::util::ends_with(path, ".tga")) {
+        } else if (path.ends_with(".tga")) {
           imgType = libcube::STBImage::TGA;
-        } else if (riistudio::util::ends_with(path, ".jpg")) {
+        } else if (path.ends_with(".jpg")) {
           imgType = libcube::STBImage::JPG;
         }
 
@@ -102,8 +102,10 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
     ImGui::EndMenuBar();
   }
 
-  ImGui::Text((const char*)ICON_FA_EXCLAMATION_TRIANGLE
-              u8" Image Properties do not support multi-selection currently.");
+  ImGui::Text(
+      (const char*)
+          ICON_FA_EXCLAMATION_TRIANGLE u8" Image Properties do not support "
+                                       u8"multi-selection currently.");
 
   if (resizeAction) {
     ImGui::OpenPopup("Resize");

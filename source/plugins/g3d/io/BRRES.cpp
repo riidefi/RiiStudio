@@ -66,11 +66,6 @@ inline void operator>>(const glm::vec2& vec, oishii::Writer& writer) {
   writer.write(vec.y);
 }
 
-inline bool ends_with(const std::string& value, const std::string& ending) {
-  return ending.size() <= value.size() &&
-         std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
 template <typename T, bool HasMinimum, bool HasDivisor,
           libcube::gx::VertexBufferKind kind>
 void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
@@ -733,11 +728,12 @@ class ArchiveDeserializer {
 public:
   std::string canRead(const std::string& file,
                       oishii::BinaryReader& reader) const {
-    return ends_with(file, "brres") ? typeid(Collection).name() : "";
+    return file.ends_with("brres") ? typeid(Collection).name() : "";
   }
-  void read(kpi::INode& node, oishii::BinaryReader& reader) const {
+  void read(kpi::INode& node, oishii::ByteView data) const {
     assert(dynamic_cast<Collection*>(&node) != nullptr);
     Collection& collection = *dynamic_cast<Collection*>(&node);
+    oishii::BinaryReader reader(std::move(data));
 
     // Magic
     reader.read<u32>();

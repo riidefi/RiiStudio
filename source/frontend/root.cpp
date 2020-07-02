@@ -433,13 +433,9 @@ RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
 }
 RootWindow::~RootWindow() { DeinitAPI(); }
 
-inline bool ends_with(const std::string& value, const std::string& ending) {
-  return ending.size() <= value.size() &&
-         std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
 void RootWindow::save(const std::string& _path) {
   std::string path = _path;
-  if (ends_with(path, ".bdl")) {
+  if (path.ends_with(".bdl")) {
     path.resize(path.size() - 4);
     path += ".bmd";
   }
