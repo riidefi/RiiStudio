@@ -250,7 +250,7 @@ void RootWindow::draw() {
                         }
                         case libcube::gx::VertexAttribute::Color0: {
                           const auto scolor = from_shape.getClr(
-                              v[libcube::gx::VertexAttribute::Color0]);
+                              0, v[libcube::gx::VertexAttribute::Color0]);
                           libcube::gx::Color clr;
                           clr.r = roundf(scolor[0] * 255.0f);
                           clr.g = roundf(scolor[1] * 255.0f);

@@ -3,42 +3,38 @@
 
 namespace riistudio::g3d {
 
+const g3d::Model* Polygon::getParent() const {
+  return dynamic_cast<const g3d::Model*>(childOf);
+}
+
 glm::vec2 Polygon::getUv(u64 chan, u64 id) const {
   // Assumption: Parent of parent model is a collection with children.
   assert(getParent());
-
-  for (const auto& p : getParent()->getBuf_Uv()) {
-    if (p.getName() == mTexCoordBuffer[chan])
-      return id >= p.mEntries.size() ? glm::vec2{} : p.mEntries[id];
-  }
-  return {};
+  const auto* buf = getParent()->getBuf_Uv().findByName(mTexCoordBuffer[chan]);
+  assert(buf);
+  assert(id < buf->mEntries.size());
+  return buf->mEntries[id];
 }
-glm::vec4 Polygon::getClr(u64 id) const {
+glm::vec4 Polygon::getClr(u64 chan, u64 id) const {
   assert(getParent());
-
-  for (const auto& p : getParent()->getBuf_Clr()) {
-    if (p.getName() == mColorBuffer[0])
-      return libcube::gx::ColorF32(p.mEntries[id]);
-  }
-  return {};
+  const auto* buf = getParent()->getBuf_Clr().findByName(mColorBuffer[chan]);
+  assert(buf);
+  assert(id < buf->mEntries.size());
+  return static_cast<libcube::gx::ColorF32>(buf->mEntries[id]);
 }
 glm::vec3 Polygon::getPos(u64 id) const {
   assert(getParent());
-
-  for (const auto& p : getParent()->getBuf_Pos()) {
-    if (p.getName() == mPositionBuffer)
-      return p.mEntries[id];
-  }
-  return {};
+  const auto* buf = getParent()->getBuf_Pos().findByName(mPositionBuffer);
+  assert(buf);
+  assert(id < buf->mEntries.size());
+  return buf->mEntries[id];
 }
 glm::vec3 Polygon::getNrm(u64 id) const {
   assert(getParent());
-
-  for (const auto& p : getParent()->getBuf_Nrm()) {
-    if (p.getName() == mNormalBuffer)
-      return p.mEntries[id];
-  }
-  return {};
+  const auto* buf = getParent()->getBuf_Nrm().findByName(mNormalBuffer);
+  assert(buf);
+  assert(id < buf->mEntries.size());
+  return buf->mEntries[id];
 }
 u64 Polygon::addPos(const glm::vec3& v) { return 0; }
 u64 Polygon::addNrm(const glm::vec3& v) { return 0; }

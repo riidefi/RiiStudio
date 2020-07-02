@@ -188,10 +188,10 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
         out.pushData(0, getPos(vtx[gx::VertexAttribute::Position]));
         break;
       case gx::VertexAttribute::Color0:
-        out.pushData(5, getClr(vtx[gx::VertexAttribute::Color0]));
+        out.pushData(5, getClr(0, vtx[gx::VertexAttribute::Color0]));
         break;
       case gx::VertexAttribute::Color1:
-        out.pushData(5, glm::vec4{});
+        out.pushData(6, getClr(1, vtx[gx::VertexAttribute::Color1]));
         break;
       case gx::VertexAttribute::TexCoord0:
       case gx::VertexAttribute::TexCoord1:

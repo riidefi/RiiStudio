@@ -25,13 +25,13 @@ glm::vec3 Shape::getNrm(u64 idx) const {
   auto& mMdl = *getModel(this);
   return mMdl.mBufs.norm.mData[idx];
 }
-glm::vec4 Shape::getClr(u64 idx) const {
+glm::vec4 Shape::getClr(u64 chan, u64 idx) const {
   auto& mMdl = *getModel(this);
-  if (idx >= mMdl.mBufs.color[0].mData.size())
+  if (idx >= mMdl.mBufs.color[chan].mData.size())
     return {1, 1, 1, 1};
 
   auto raw = static_cast<libcube::gx::ColorF32>(
-      (libcube::gx::Color)mMdl.mBufs.color[0].mData[idx]);
+      (libcube::gx::Color)mMdl.mBufs.color[chan].mData[idx]);
 
   return {raw.r, raw.g, raw.b, raw.a};
 }

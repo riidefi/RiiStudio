@@ -55,7 +55,7 @@ struct PolygonData {
   }
 };
 struct Polygon : public PolygonData, public libcube::IndexedPolygon, public virtual kpi::IObject {
-  virtual const g3d::Model* getParent() const { return nullptr; }
+  virtual const g3d::Model* getParent() const;
   std::string getName() const { return mName; }
   void setName(const std::string& name) override { mName = name; }
 
@@ -104,7 +104,7 @@ struct Polygon : public PolygonData, public libcube::IndexedPolygon, public virt
   std::vector<glm::mat4> getPosMtx(u64 mpId) const override;
 
   glm::vec2 getUv(u64 chan, u64 id) const override;
-  glm::vec4 getClr(u64 id) const override;
+  glm::vec4 getClr(u64 chan, u64 id) const override;
   glm::vec3 getPos(u64 id) const override;
   glm::vec3 getNrm(u64 id) const override;
   u64 addPos(const glm::vec3& v) override;

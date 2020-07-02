@@ -26,7 +26,7 @@ struct IndexedPolygon : public riistudio::lib3d::Polygon {
   void propogate(VBOBuilder& out) const override;
   virtual glm::vec3 getPos(u64 id) const = 0;
   virtual glm::vec3 getNrm(u64 id) const = 0;
-  virtual glm::vec4 getClr(u64 id) const = 0;
+  virtual glm::vec4 getClr(u64 chan, u64 id) const = 0;
   virtual glm::vec2 getUv(u64 chan, u64 id) const = 0;
 
   virtual u64 addPos(const glm::vec3& v) = 0;

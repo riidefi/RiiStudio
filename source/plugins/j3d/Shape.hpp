@@ -106,7 +106,7 @@ struct Shape : public ShapeData,
   lib3d::AABB getBounds() const override { return bbox; }
 
   glm::vec2 getUv(u64 chan, u64 id) const override;
-  glm::vec4 getClr(u64 id) const override;
+  glm::vec4 getClr(u64 chan, u64 id) const override;
   glm::vec3 getPos(u64 id) const override;
   glm::vec3 getNrm(u64 id) const override;
   u64 addPos(const glm::vec3& v) override;
