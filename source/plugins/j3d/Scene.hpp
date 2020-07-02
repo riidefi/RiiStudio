@@ -72,7 +72,7 @@ struct Tex {
   Tex(const Texture& data, const libcube::GCMaterialData::SamplerData& sampler);
 };
 
-struct ModelData {
+struct ModelData : public virtual kpi::IObject {
   virtual ~ModelData() = default;
   // Shallow comparison
   bool operator==(const ModelData& rhs) const {
@@ -88,6 +88,8 @@ struct ModelData {
 
     // Hierarchy data is included in joints.
   };
+
+  std::string getName() const { return "Model"; }
 
   Information info;
 

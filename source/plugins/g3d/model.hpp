@@ -58,7 +58,7 @@ class TextureCoordinateBuffer
     : public GenericBuffer<glm::vec2, true, true,
                            libcube::gx::VertexBufferKind::textureCoordinate> {};
 
-struct G3DModelData {
+struct G3DModelData : public virtual kpi::IObject {
   virtual ~G3DModelData() = default;
   // Shallow comparison
   bool operator==(const G3DModelData& rhs) const {
@@ -75,6 +75,7 @@ struct G3DModelData {
   lib3d::AABB aabb;
 
   std::string mName;
+  std::string getName() const { return mName; }
   void setName(const std::string& name) { mName = name; }
 };
 
