@@ -19,8 +19,8 @@ auto get_material_data = [](auto& x) -> GCMaterialData& {
   return (GCMaterialData&)x.getMaterialData();
 };
 
-[[maybe_unused]]
-auto mat_prop = [](auto& delegate, auto member, const auto& after) {
+[[maybe_unused]] auto mat_prop = [](auto& delegate, auto member,
+                                    const auto& after) {
   delegate.propertyEx(member, after, get_material_data);
 };
 auto mat_prop_ex = [](auto& delegate, auto member, auto draw) {
@@ -247,6 +247,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SamplerSurface& surface) {
   auto& matData = delegate.getActive().getMaterialData();
 
+  if (matData.info.nTexGen != matData.texGens.size()) {
+    ImGui::Text("Cannot edit: source data is invalid!");
+    return;
+  }
+
   if (ImGui::Button("Add Sampler")) {
     for (auto* obj : delegate.mAffected) {
       auto& d = obj->getMaterialData();
@@ -260,6 +265,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       d.texGens.push_back(gen);
       d.texMatrices.push_back(std::make_unique<GCMaterialData::TexMatrix>());
       d.samplers.push_back(std::make_unique<GCMaterialData::SamplerData>());
+      ++d.info.nTexGen;
     }
     delegate.commit("Added sampler");
   }
@@ -785,6 +791,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   StageSurface& tev) {
   auto& matData = delegate.getActive().getMaterialData();
 
+  if (matData.info.nTevStage != matData.shader.mStages.size()) {
+    ImGui::Text("Cannot edit this material: source data is invalid");
+    return;
+  }
+
   auto drawStage = [&](libcube::gx::TevStage& stage, int i) {
 #define STAGE_PROP(a, b) AUTO_PROP(shader.mStages[i].a, b)
     if (ImGui::CollapsingHeader("Stage Setting",
@@ -1041,6 +1052,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
     break;
   }
+
+  matData.info.nTevStage = matData.shader.mStages.size();
 }
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, FogSurface) {
@@ -1173,9 +1186,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       ImGui::EndColumns();
     }
   }
-  if (ImGui::Button("Regenerate Shaders")) {
-    delegate.getActive().notifyObservers();
-  }
+  matData.info.nColorChan = controls.size() * 2;
 }
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
   auto& matData = delegate.getActive().getMaterialData();
