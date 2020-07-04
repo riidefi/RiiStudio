@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Node.hpp"
+#include "Plugins.hpp"
+#include <imgui/imgui.h>
 #include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
-
-#include "Plugins.hpp"
 
 namespace riistudio::frontend {
 class EditorWindow;
@@ -47,6 +47,21 @@ struct IPropertyView {
                     riistudio::frontend::EditorWindow* ed) = 0;
 
   virtual std::unique_ptr<IPropertyViewState> constructState() const = 0;
+
+private:
+  bool bCommitPosted = false;
+
+public:
+  void postUpdate() { bCommitPosted = true; }
+  void consumeUpdate(kpi::History& history, kpi::INode& doc) {
+    assert(bCommitPosted);
+    history.commit(doc);
+    bCommitPosted = false;
+  }
+  void handleUpdates(kpi::History& history, kpi::INode& doc) {
+    if (bCommitPosted && !ImGui::IsAnyMouseDown())
+      consumeUpdate(history, doc);
+  }
 };
 
 template <typename T> class PropertyDelegate {
@@ -73,7 +88,13 @@ public:
       }
     }
 
-    commit("Property Update");
+    if (ImGui::IsAnyMouseDown()) {
+      // Not all property updates come from clicks. But for those that do,
+      // postpone a commit until mouse up.
+      mView.postUpdate();
+    } else {
+      commit("Property Update");
+    }
   }
 
   template <typename U> static inline U doNothing(U x) { return x; }
@@ -107,13 +128,14 @@ public:
 private:
   kpi::History& mHistory;
   const kpi::INode& mTransientRoot;
+  IPropertyView& mView;
 
 public:
-  PropertyDelegate(T& active, std::vector<T*> affected, kpi::History& history,
-                   const kpi::INode& transientRoot,
+  PropertyDelegate(IPropertyView& view, T& active, std::vector<T*> affected,
+                   kpi::History& history, const kpi::INode& transientRoot,
                    riistudio::frontend::EditorWindow* ed)
       : mActive(active), mAffected(affected), mEd(ed), mHistory(history),
-        mTransientRoot(transientRoot) {}
+        mTransientRoot(transientRoot), mView(view) {}
 };
 
 class PropertyViewStateHolder {
@@ -224,7 +246,7 @@ struct PropertyViewImpl final : public IPropertyView {
       assert(_affected[i] != nullptr);
     }
 
-    PropertyDelegate<T> delegate(*_active, _affected, history, root, ed);
+    PropertyDelegate<T> delegate(*this, *_active, _affected, history, root, ed);
     if constexpr (is_stateful_v<U>) {
       IPropertyViewState* state = state_holder.requestState(active, *this);
       assert(state != nullptr);
@@ -233,6 +255,7 @@ struct PropertyViewImpl final : public IPropertyView {
       U idl_tag;
       drawProperty(delegate, idl_tag);
     }
+    handleUpdates(history, root);
   }
   std::unique_ptr<IPropertyViewState> constructState() const override {
     return std::make_unique<ViewStateImpl>();
@@ -301,9 +324,9 @@ struct StatelessPropertyViewImpl : public IPropertyView {
       assert(_affected[i] != nullptr);
     }
 
-    PropertyDelegate<T> delegate(*_active, _affected, history, root, ed);
-
+    PropertyDelegate<T> delegate(*this, *_active, _affected, history, root, ed);
     mFunctor(delegate);
+    handleUpdates(history, root);
   }
 
   virtual std::unique_ptr<IPropertyViewState> constructState() const override {
