@@ -1,6 +1,7 @@
 #include "PropertyEditor.hpp"
 #include <core/3d/Material.hpp>           // lib3d::Material
 #include <imgui/imgui.h>                  // ImGui::Text
+#include <llvm/ADT/SmallVector.h>         // llvm::SmallVector
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_EXCLAMATION_TRIANGLE
 
 namespace riistudio::frontend {
@@ -21,7 +22,7 @@ private:
   };
   Mode mMode = Mode::Tabs;
   int mActiveTab = 0;
-  std::vector<bool> tab_filter;
+  llvm::SmallVector<bool, 16> tab_filter;
 
   EditorWindow& ed;
   kpi::History& mHost;
@@ -202,10 +203,13 @@ void PropertyEditor::draw_() {
       tab_filter.resize(num_headers);
       std::fill(tab_filter.begin(), tab_filter.end(), true);
     }
-
+    ImGui::BeginTable("Checkboxes Widget", num_headers / 5 + 1);
+    ImGui::TableNextRow();
     i = 0;
     manager.forEachView(
         [&](kpi::IPropertyView& view) {
+          ImGui::TableSetColumnIndex(i / 5);
+
           title.clear();
           title += view.getIcon();
           title += " ";
@@ -220,21 +224,25 @@ void PropertyEditor::draw_() {
           ++i;
         },
         *mActive);
-
+    ImGui::EndTable();
     i = 0;
     manager.forEachView(
         [&](kpi::IPropertyView& view) {
-          if (!tab_filter[i++])
+          if (!tab_filter[i]) {
+            ++i;
             return;
+          }
 
           title.clear();
           title += view.getIcon();
           title += " ";
           title += view.getName();
-          if (ImGui::CollapsingHeader(title.c_str(),
+          if (ImGui::CollapsingHeader((title + "##_TAB").c_str(),
+                                      tab_filter.data() + i,
                                       ImGuiTreeNodeFlags_DefaultOpen)) {
             view.draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
           }
+          ++i;
         },
         *mActive);
   } else {
