@@ -3,55 +3,44 @@
 #include "StudioWindow.hpp"           // StudioWindow
 #include <core/3d/Texture.hpp>        // lib3d::Texture
 #include <core/3d/ui/IconManager.hpp> // IconManager
-#include <core/kpi/Node.hpp>          // kpi::IDocumentNode
+#include <core/kpi/Document.hpp>      // kpi::Document
 #include <core/kpi/Node2.hpp>         // kpi::INode
-#include <unordered_map>              // std::unordered_map
+#include <frontend/file_host.hpp>     // FileData
+#include <string_view>                // std::string_view
 
 namespace riistudio::frontend {
 
 class EditorWindow : public StudioWindow {
 public:
   EditorWindow(std::unique_ptr<kpi::INode> state, const std::string& path);
+  EditorWindow(FileData&& data);
+  ~EditorWindow() = default;
 
   ImGuiID buildDock(ImGuiID root_id) override;
-
   void draw_() override;
+  void drawImageIcon(const lib3d::Texture* tex, u32 dim) const {
+    mIconManager.drawImageIcon(tex, dim);
+  }
 
   std::string getFilePath() { return mFilePath; }
+  kpi::Document& getDocument() { return mDocument; }
+  const kpi::Document& getDocument() const { return mDocument; }
 
-  std::unique_ptr<kpi::INode> mState;
-  std::string mFilePath;
-  kpi::History mHistory;
-  kpi::IObject* mActive = nullptr;
+  kpi::IObject* getActive() { return mActive; }
+  const kpi::IObject* getActive() const { return mActive; }
+  void setActive(kpi::IObject* active) { mActive = active; }
 
-  void propogateIcons(kpi::ICollection& folder) {
-    for (int i = 0; i < folder.size(); ++i) {
-      kpi::IObject* elem = folder.atObject(i);
-
-      if (lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(elem);
-          tex != nullptr) {
-        mImageIcons.emplace(tex, mIconManager.addIcon(*tex));
-      }
-
-      if (kpi::INode* node = dynamic_cast<kpi::INode*>(elem); node != nullptr) {
-        propogateIcons(*node);
-      }
-    }
-  }
-  void propogateIcons(kpi::INode& node) {
-    for (int i = 0; i < node.numFolders(); ++i)
-      propogateIcons(*node.folderAt(i));
-  }
-
-  void drawImageIcon(const lib3d::Texture* tex, u32 dim) {
-    if (auto icon = mImageIcons.find(const_cast<lib3d::Texture*>(tex));
-        icon != mImageIcons.end())
-      mIconManager.drawIcon(icon->second, dim, dim);
-  }
+  void save(const std::string_view path);
 
 private:
+  void propogateIcons(kpi::INode& node) { mIconManager.propogateIcons(node); }
+  void init();
+
+private:
+  kpi::Document mDocument;
   IconManager mIconManager;
-  std::unordered_map<lib3d::Texture*, IconManager::Key> mImageIcons;
+  kpi::IObject* mActive = nullptr;
+  std::string mFilePath;
 };
 
 } // namespace riistudio::frontend

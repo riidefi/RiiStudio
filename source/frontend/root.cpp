@@ -146,7 +146,7 @@ void RootWindow::draw() {
       if (ImGui::BeginMenu("Experimental")) {
         if (ImGui::MenuItem("Convert to BMD") && ed != nullptr) {
           const libcube::Scene* from_root =
-              dynamic_cast<libcube::Scene*>(ed->mState.get());
+              dynamic_cast<libcube::Scene*>(&ed->getDocument().getRoot());
           auto from_models = from_root->getModels();
           auto from_textures = from_root->getTextures();
 
@@ -355,81 +355,7 @@ void RootWindow::draw() {
 }
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   printf("Opening file: %s\n", data.mPath.c_str());
-  // TODO: Not ideal..
-  std::vector<u8> vec(data.mLen);
-  memcpy(vec.data(), data.mData.get(), data.mLen);
-
-  oishii::DataProvider provider(std::move(vec), data.mPath);
-  oishii::BinaryReader reader(provider.slice());
-  auto importer = SpawnImporter(data.mPath, provider.slice());
-
-  if (!importer.second) {
-    printf("Cannot spawn importer..\n");
-    return;
-  }
-  if (!IsConstructible(importer.first)) {
-    printf("Non constructable state.. find parents\n");
-
-    const auto children = GetChildrenOfType(importer.first);
-    if (children.empty()) {
-      printf("No children. Cannot construct.\n");
-      return;
-    }
-    assert(/*children.size() == 1 &&*/ IsConstructible(children[0])); // TODO
-    importer.first = children[0];
-  }
-
-  std::unique_ptr<kpi::INode> fileState{
-      dynamic_cast<kpi::INode*>(SpawnState(importer.first).release())};
-  if (!fileState.get()) {
-    printf("Cannot spawn file state %s.\n", importer.first.c_str());
-    return;
-  }
-  struct Handler : oishii::ErrorHandler {
-    void onErrorBegin(const oishii::DataProvider& stream) override {
-      puts("[Begin Error]");
-    }
-    void onErrorDescribe(const oishii::DataProvider& stream, const char* type,
-                         const char* brief, const char* details) override {
-      printf("- [Describe] Type %s, Brief: %s, Details: %s\n", type, brief,
-             details);
-    }
-    void onErrorAddStackTrace(const oishii::DataProvider& stream,
-                              std::streampos start, std::streamsize size,
-                              const char* domain) override {
-      printf("- [Stack] Start: %u, Size: %u, Domain: %s\n", (u32)start,
-             (u32)size, domain);
-    }
-    void onErrorEnd(const oishii::DataProvider& stream) override {
-      puts("[End Error]");
-    }
-  } handler;
-  reader.addErrorHandler(&handler);
-
-  importer.second->read_(*dynamic_cast<kpi::INode*>(fileState.get()),
-                         provider.slice());
-
-  auto edWindow =
-      std::make_unique<EditorWindow>(std::move(fileState), reader.getFile());
-
-  if (policy == OpenFilePolicy::NewEditor) {
-    attachEditorWindow(std::move(edWindow));
-  } else if (policy == OpenFilePolicy::ReplaceEditor) {
-    //	if (getActiveEditor())
-    //		detachWindow(getActiveEditor()->mId);
-    attachEditorWindow(std::move(edWindow));
-  } else if (policy == OpenFilePolicy::ReplaceEditorIfMatching) {
-    //	if (getActiveEditor() &&
-    //((EditorWindow*)getActiveEditor())->mState->mName.namespacedId ==
-    // fileState->mName.namespacedId)
-    //	{
-    //		detachWindow(getActiveEditor()->mId);
-    //	}
-
-    attachEditorWindow(std::move(edWindow));
-  } else {
-    throw "Invalid open file policy";
-  }
+  attachEditorWindow(std::make_unique<EditorWindow>(std::move(data)));
 }
 void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
   mAttachEditorsQueue.push(editor->getName());
@@ -453,28 +379,8 @@ void RootWindow::save(const std::string& _path) {
   }
   EditorWindow* ed =
       dynamic_cast<EditorWindow*>(getActive() ? getActive() : nullptr);
-  if (!ed)
-    return;
-
-  oishii::Writer writer(1024);
-
-  auto ex = SpawnExporter(*ed->mState.get());
-  if (!ex) {
-    DebugReport("Failed to spawn importer.\n");
-    return;
-  }
-  ex->write_(*ed->mState.get(), writer);
-
-#ifdef _WIN32
-  std::ofstream stream(path, std::ios::binary | std::ios::out);
-  stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
-#else
-  static_assert(sizeof(void*) == sizeof(u32), "emscripten pointer size");
-
-  EM_ASM({ window.Module.downloadBuffer($0, $1, $2, $3); },
-         reinterpret_cast<u32>(writer.getDataBlockStart()), writer.getBufSize(),
-         reinterpret_cast<u32>(path.c_str()), path.size());
-#endif
+  if (ed != nullptr)
+    ed->save(path);
 }
 void RootWindow::saveAs() {
   auto results = pfd::save_file("Save File", "", {"All Files", "*"}).result();

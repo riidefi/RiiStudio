@@ -1,5 +1,5 @@
-#include <core/util/gui.hpp>
 #include <core/kpi/PropertyView.hpp>
+#include <core/util/gui.hpp>
 #include <plugins/gc/Export/Bone.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
@@ -13,16 +13,16 @@ auto bone_transform_ui = [](kpi::PropertyDelegate<IBoneDelegate>& delegate) {
   glm::vec3 rot = srt.rotation;
   glm::vec3 pos = srt.translation;
 
-  ImGui::InputFloat3("Scale", &scl.x);
+  ImGui::SliderFloat3("Scale", &scl.x, 0.01f, 100.0f);
   delegate.property(
       bone.getScale(), scl, [](const auto& x) { return x.getScale(); },
       [](auto& x, const auto& y) { x.setScale(y); });
 
-  ImGui::InputFloat3("Rotation", &rot.x);
+  ImGui::SliderFloat3("Rotation", &rot.x, 0.0f, 360.0f);
   delegate.property(
       bone.getRotation(), rot, [](const auto& x) { return x.getRotation(); },
       [](auto& x, const auto& y) { x.setRotation(y); });
-  ImGui::InputFloat3("Translation", &pos.x);
+  ImGui::SliderFloat3("Translation", &pos.x, -1000.0f, 1000.0f);
   delegate.property(
       bone.getTranslation(), pos,
       [](const auto& x) { return x.getTranslation(); },

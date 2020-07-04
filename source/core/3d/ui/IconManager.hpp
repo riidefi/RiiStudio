@@ -1,33 +1,21 @@
 #pragma once
 
-#include <core/3d/Texture.hpp> // for lib3d::Texture
-#include <core/common.h>       // for u64
-#include <vector>              // for vector
-
+#include <core/3d/ui/IconDatabase.hpp> // IconDatabase
+#include <vendor/llvm/ADT/DenseMap.h>  // llvm::DenseMap
 namespace riistudio {
 
 class IconManager {
 public:
-  using Key = u64;
+  IconManager() = default;
+  ~IconManager() = default;
 
-  IconManager(u32 iconDimension = 64);
-  ~IconManager();
-
-  Key addIcon(lib3d::Texture& texture);
-  void drawIcon(Key id, int wd, int ht) const;
+  void propogateIcons(kpi::ICollection& folder);
+  void propogateIcons(kpi::INode& node);
+  void drawImageIcon(const lib3d::Texture* tex, u32 dim) const;
 
 private:
-  // To be a valid Icon, it must be GPU uploaded.
-  struct Icon {
-    u32 glId;
-
-	Icon(Icon&& rhs) : glId(rhs.glId) { rhs.glId = -1; }
-    Icon(lib3d::Texture& texture, u32 dimension);
-    ~Icon();
-  };
-
-  u32 mIconDim;
-  std::vector<Icon> mIcons;
+  IconDatabase mIconManager;
+  llvm::DenseMap<const lib3d::Texture*, IconDatabase::Key> mImageIcons;
 };
 
 } // namespace riistudio

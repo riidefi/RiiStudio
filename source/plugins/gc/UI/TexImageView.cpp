@@ -187,9 +187,13 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
 
     if (tex.resize[0].value <= 0) {
       tex.resize[0].value = data.getWidth();
+    } else if (tex.resize[0].value > 1024) {
+      tex.resize[0].value = 1024;
     }
     if (tex.resize[1].value <= 0) {
       tex.resize[1].value = data.getHeight();
+    } else if (tex.resize[1].value > 1024) {
+      tex.resize[1].value = 1024;
     }
 
     ImGui::Combo("Algorithm", (int*)&tex.resizealgo, "Ultimate\0Lanczos\0");

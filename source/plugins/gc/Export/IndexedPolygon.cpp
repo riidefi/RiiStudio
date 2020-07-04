@@ -240,6 +240,17 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
           propVtx(v);
         }
         break;
+      case gx::PrimitiveType::TriangleFan: {
+        for (int v = 0; v < 3; ++v) {
+          propV(v);
+        }
+        for (int v = 3; v < idx.mVertices.size(); ++v) {
+          propV(0);
+          propV(v - 1);
+          propV(v);
+        }
+        break;
+      }
       default:
         assert(!"TODO");
         break;
