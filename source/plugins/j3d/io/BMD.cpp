@@ -86,7 +86,8 @@ public:
     matCache.clear();
 
     for (auto& mat : model.getMaterials()) {
-      for (auto& samp : mat.samplers) {
+      for (int i = 0; i < mat.samplers.size(); ++i) {
+        auto& samp = mat.samplers[i];
         auto* slow = reinterpret_cast<MaterialData::J3DSamplerData*>(&samp);
         assert(slow != nullptr);
 

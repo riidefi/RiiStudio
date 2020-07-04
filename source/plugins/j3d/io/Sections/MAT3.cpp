@@ -789,7 +789,8 @@ void io_wrapper<SerializableMaterial>::onWrite(
     ambColors.push_back(m.chanData[0].ambColor);
   }
   write_array_vec<u16>(writer, matColors, cache.matColors);
-  assert(m.colorChanControls.size() >= m.info.nColorChan * 2);
+  // TODO
+  // assert(m.colorChanControls.size() >= m.info.nColorChan * 2);
   write_array_vec<u16>(writer, m.colorChanControls, cache.colorChans);
   write_array_vec<u16>(writer, ambColors, cache.ambColors);
   write_array_vec<u16>(writer, m.lightColors, cache.lightColors);

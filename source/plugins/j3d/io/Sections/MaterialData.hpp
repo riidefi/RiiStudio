@@ -418,6 +418,7 @@ template <> struct io_wrapper<gx::TevStage> {
     c.alphaStage.out = static_cast<gx::TevReg>(reader.read<u8>());
 
     const auto unk2 = reader.read<u8>();
+    (void)unk2;
     assert(unk2 == 0xff);
   }
   static void onWrite(oishii::Writer& writer, const gx::TevStage& in) {

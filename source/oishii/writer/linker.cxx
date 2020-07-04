@@ -139,6 +139,7 @@ void Linker::gather(std::unique_ptr<Node> pRoot,
 
   std::vector<std::unique_ptr<Node>> children;
   const Node::eResult result = root.getChildren(children);
+  (void)result;
   assert(result == Node::eResult::Success);
 
   for (auto& child : children)
@@ -221,15 +222,16 @@ void Linker::write(Writer& writer, bool doShuffle) {
     // todo: make map
     const u32 addr = static_cast<u32>(reserve.addr);
     const Link& link = reserve.mLink;
+
+    std::string fromBlockSymbol;
+    std::string toBlockSymbol;
+
+    //#ifdef BUILD_DEBUG
     const std::string& nameSpace =
         reserve.nameSpace.empty() ? "" : reserve.nameSpace + "::";
 
     // Order: local -> children -> global
 
-    std::string fromBlockSymbol;
-    std::string toBlockSymbol;
-
-#ifdef BUILD_DEBUG
     [[maybe_unused]] const Node& from =
         link.from.mBlock
             ? *link.from.mBlock
@@ -241,7 +243,7 @@ void Linker::write(Writer& writer, bool doShuffle) {
             ? *link.to.mBlock
             : *LinkerHelper::findNamespacedID(*this, link.to.mId, nameSpace,
                                               reserve.blockName, toBlockSymbol);
-#endif
+    //#endif
     // TODO: Generalize all of these from/to methods
     if (link.from.mBlock) {
       bool bSuccess = false;

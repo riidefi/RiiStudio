@@ -427,8 +427,8 @@ struct SHP1Node final : public oishii::Node {
                                  std::to_string(vcd)}); // offset into VCD list
           // TODO -- we don't support compression..
           int mpi = 0;
-          for (const auto& shp : mMdl.getMeshes()) {
-            mpi += shp.mMatrixPrimitives.size();
+          for (int j = 0; j < i; ++j) {
+            mpi += mMdl.getMeshes()[j].mMatrixPrimitives.size();
           }
           writer.write<u16>(mpi); // Matrix list index of this prim
           writer.write<u16>(mpi); // Matrix primitive index
@@ -586,7 +586,7 @@ struct SHP1Node final : public oishii::Node {
                                               mParent, mPolyId, i));
         break;
       default:
-        return eResult::Fatal;
+        break;
       }
 
       return eResult::Success;

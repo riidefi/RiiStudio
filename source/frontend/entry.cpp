@@ -5,7 +5,9 @@
 struct RootHolder {
   void create(int& argc, const char**& argv) {
     window = std::make_unique<riistudio::frontend::RootWindow>();
+#ifndef BUILD_DEBUG
     initLlvm = std::make_unique<llvm::InitLLVM>(argc, argv);
+#endif
   }
   void enter() { window->enter(); }
 
