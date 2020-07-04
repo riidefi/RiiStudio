@@ -141,16 +141,8 @@ void EditorWindow::save(const std::string_view path) {
   }
   ex->write_(getDocument().getRoot(), writer);
 
-#ifdef _WIN32
-  std::ofstream stream(std::string(path), std::ios::binary | std::ios::out);
-  stream.write((const char*)writer.getDataBlockStart(), writer.getBufSize());
-#else
-  static_assert(sizeof(void*) == sizeof(u32), "emscripten pointer size");
-
-  EM_ASM({ window.Module.downloadBuffer($0, $1, $2, $3); },
-         reinterpret_cast<u32>(writer.getDataBlockStart()), writer.getBufSize(),
-         reinterpret_cast<u32>(path.c_str()), path.size());
-#endif
+  plate::Platform::writeFile({writer.getDataBlockStart(), writer.getBufSize()},
+                             path);
 }
 
 } // namespace riistudio::frontend
