@@ -73,6 +73,34 @@ def compile_members(members, concrete, parent_data):
 		else:
 			result += "\tvirtual kpi::IDocData* getImmediateData() { return nullptr; }\n"
 			result += "\tvirtual const kpi::IDocData* getImmediateData() const { return nullptr; }\n"
+		# Memento
+		result += "\npublic:\n"
+		# virtual std::unique_ptr<kpi::IMemento> next(const kpi::INode& last) const = 0;
+		# virtual void from(const kpi::IMemento& memento) = 0;
+		result += "\tstruct _Memento : public kpi::IMemento {\n"
+		for member in members:
+			result += "\t\tkpi::ConstPersistentVec<%s> m%s;\n" % (member[0], member[1].title())
+		result += "\t\ttemplate<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {\n"
+		result += "\t\t\tconst auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;\n"
+		for member in members:
+			result += "\t\t\tkpi::nextFolder(this->m%s, _new.get%s(), old ? &old->m%s : nullptr);\n" % (
+				member[1].title(), member[1].title(), member[1].title()
+			)
+		result += "\t\t}\n"
+		
+		result += "\t};\n"
+		result += "\tstd::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const override {\n"
+		result += "\t\treturn std::make_unique<_Memento>(*this, last);\n"
+		result += "\t}\n"
+		result += "\tvoid from(const kpi::IMemento& _memento) override {\n"
+		result += "\t\tauto* in = dynamic_cast<const _Memento*>(&_memento);\n"
+		result += "\t\tassert(in);\n"
+		for member in members:
+			result += "\t\tkpi::fromFolder(get%s(), in->m%s);\n" % (
+				member[1].title(), member[1].title()
+			)
+		result += "\t}\n"
+		result += "\ttemplate<typename T> void* operator=(const T& rhs) { from(rhs); return this; }\n"
 	return result
 
 def compile_record(raw_name, record):

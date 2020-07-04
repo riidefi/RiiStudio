@@ -90,6 +90,42 @@ private:
     }
     virtual kpi::IDocData* getImmediateData() { return static_cast<kpi::TDocData<riistudio::g3d::G3DModelData>*>(this); }
     virtual const kpi::IDocData* getImmediateData() const { return static_cast<const kpi::TDocData<riistudio::g3d::G3DModelData>*>(this); }
+
+public:
+    struct _Memento : public kpi::IMemento {
+        kpi::ConstPersistentVec<Material> mMaterials;
+        kpi::ConstPersistentVec<Bone> mBones;
+        kpi::ConstPersistentVec<Polygon> mMeshes;
+        kpi::ConstPersistentVec<PositionBuffer> mBuf_Pos;
+        kpi::ConstPersistentVec<NormalBuffer> mBuf_Nrm;
+        kpi::ConstPersistentVec<ColorBuffer> mBuf_Clr;
+        kpi::ConstPersistentVec<TextureCoordinateBuffer> mBuf_Uv;
+        template<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {
+            const auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;
+            kpi::nextFolder(this->mMaterials, _new.getMaterials(), old ? &old->mMaterials : nullptr);
+            kpi::nextFolder(this->mBones, _new.getBones(), old ? &old->mBones : nullptr);
+            kpi::nextFolder(this->mMeshes, _new.getMeshes(), old ? &old->mMeshes : nullptr);
+            kpi::nextFolder(this->mBuf_Pos, _new.getBuf_Pos(), old ? &old->mBuf_Pos : nullptr);
+            kpi::nextFolder(this->mBuf_Nrm, _new.getBuf_Nrm(), old ? &old->mBuf_Nrm : nullptr);
+            kpi::nextFolder(this->mBuf_Clr, _new.getBuf_Clr(), old ? &old->mBuf_Clr : nullptr);
+            kpi::nextFolder(this->mBuf_Uv, _new.getBuf_Uv(), old ? &old->mBuf_Uv : nullptr);
+        }
+    };
+    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const override {
+        return std::make_unique<_Memento>(*this, last);
+    }
+    void from(const kpi::IMemento& _memento) override {
+        auto* in = dynamic_cast<const _Memento*>(&_memento);
+        assert(in);
+        kpi::fromFolder(getMaterials(), in->mMaterials);
+        kpi::fromFolder(getBones(), in->mBones);
+        kpi::fromFolder(getMeshes(), in->mMeshes);
+        kpi::fromFolder(getBuf_Pos(), in->mBuf_Pos);
+        kpi::fromFolder(getBuf_Nrm(), in->mBuf_Nrm);
+        kpi::fromFolder(getBuf_Clr(), in->mBuf_Clr);
+        kpi::fromFolder(getBuf_Uv(), in->mBuf_Uv);
+    }
+    template<typename T> void* operator=(const T& rhs) { from(rhs); return this; }
 };
 
 } // namespace riistudio::g3d
@@ -144,6 +180,27 @@ private:
     }
     virtual kpi::IDocData* getImmediateData() { return nullptr; }
     virtual const kpi::IDocData* getImmediateData() const { return nullptr; }
+
+public:
+    struct _Memento : public kpi::IMemento {
+        kpi::ConstPersistentVec<Model> mModels;
+        kpi::ConstPersistentVec<Texture> mTextures;
+        template<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {
+            const auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;
+            kpi::nextFolder(this->mModels, _new.getModels(), old ? &old->mModels : nullptr);
+            kpi::nextFolder(this->mTextures, _new.getTextures(), old ? &old->mTextures : nullptr);
+        }
+    };
+    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const override {
+        return std::make_unique<_Memento>(*this, last);
+    }
+    void from(const kpi::IMemento& _memento) override {
+        auto* in = dynamic_cast<const _Memento*>(&_memento);
+        assert(in);
+        kpi::fromFolder(getModels(), in->mModels);
+        kpi::fromFolder(getTextures(), in->mTextures);
+    }
+    template<typename T> void* operator=(const T& rhs) { from(rhs); return this; }
 };
 
 } // namespace riistudio::g3d

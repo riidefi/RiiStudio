@@ -177,7 +177,7 @@ template <typename T> struct TDocData : public IDocData, public T {
     return std::make_unique<TDocData<T>>(*this);
   }
 };
-
+struct IMemento;
 // Base of all concrete collection types
 struct INode : public virtual IObject // TODO: Global factories require this.
                                       // But we don't need them?
@@ -195,7 +195,9 @@ struct INode : public virtual IObject // TODO: Global factories require this.
   // For memento tracking
   virtual const char* idAt(std::size_t) const = 0;
   virtual std::size_t fromId(const char*) const = 0;
-
+  virtual std::unique_ptr<kpi::IMemento>
+  next(const kpi::IMemento* last) const = 0;
+  virtual void from(const kpi::IMemento& memento) = 0;
   // virtual std::unique_ptr<INode> clone() const = 0;
 };
 
@@ -254,6 +256,7 @@ public:
   const T* at(std::size_t i) const {
     return low != nullptr ? reinterpret_cast<T*>(low->at(i)) : nullptr;
   }
+  void resize(std::size_t sz) { low->resize(sz); }
   T& add() {
     assert(low != nullptr);
     const auto i = low->size();
@@ -353,4 +356,81 @@ template <typename T> struct CollectionImpl final : public ICollection {
   }
 };
 
+// Memento
+
+struct IMemento {
+  virtual ~IMemento() = default;
+};
+template <typename T, typename V = void> struct _MementoIfy {
+  using _type = T;
+};
+template <typename T> struct _MementoIfy<T, std::void_t<typename T::_Memento>> {
+  using _type = typename T::_Memento;
+};
+template <typename T> using MementoIfy = typename _MementoIfy<T>::_type;
+
+template <typename T>
+using ConstPersistentVec = std::vector<std::shared_ptr<const MementoIfy<T>>>;
+
+template <typename T, typename U> bool should_set(const T* out, const U* in) {
+  assert(in);
+  if (out == nullptr)
+    return true;
+
+  if constexpr (std::is_same_v<std::remove_const<T>, std::remove_const<U>>) {
+    if (*out == *in)
+      return false;
+  }
+
+  return true;
+}
+
+template <typename R, typename T, typename U>
+std::shared_ptr<R> set_m(const T* last, const U& in) {
+  if constexpr (!std::is_same_v<std::remove_const<T>, std::remove_const<U>>) {
+    return std::make_shared<T>(in, last);
+  } else {
+    return std::make_shared<T>(in);
+  }
+}
+
+template <typename InT, typename OutT, typename OldT>
+void nextFolder(OutT& out, const InT& in, const OldT* old) {
+  if (old != nullptr) {
+    auto& last = *old;
+    out.resize(in.size());
+    for (int i = 0; i < in.size(); ++i) {
+      if (should_set(last[i].get(), &in[i])) {
+        using record_t = MementoIfy<typename OutT::value_type::element_type>;
+        out[i] = set_m<record_t>(last[i].get(), in[i]);
+      } else {
+        out[i] = last[i];
+      }
+    }
+  } else {
+    out.resize(in.size());
+    for (int i = 0; i < in.size(); ++i) {
+      using record_t = MementoIfy<typename OutT::value_type::element_type>;
+      out[i] = std::make_shared<const record_t>(in[i]);
+    }
+  }
+}
+template <typename InT, typename OutT>
+void fromFolder(OutT&& out /*rvalue range*/, const InT& in) {
+  const auto both = std::min(in.size(), out.size());
+  for (int i = 0; i < both; ++i) {
+    if (should_set(&out[i], in[i].get())) {
+      out[i] = *in[i];
+    }
+  }
+  if (in.size() < out.size()) {
+    out.resize(in.size());
+  } else if (in.size() > out.size()) {
+    const auto added = in.size() - out.size();
+    out.resize(in.size());
+    for (int i = in.size() - added; i <= in.size(); ++i) {
+      out[i] = *in[i];
+    }
+  }
+}
 } // namespace kpi

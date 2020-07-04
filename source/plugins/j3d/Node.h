@@ -58,6 +58,30 @@ private:
     }
     virtual kpi::IDocData* getImmediateData() { return static_cast<kpi::TDocData<riistudio::j3d::ModelData>*>(this); }
     virtual const kpi::IDocData* getImmediateData() const { return static_cast<const kpi::TDocData<riistudio::j3d::ModelData>*>(this); }
+
+public:
+    struct _Memento : public kpi::IMemento {
+        kpi::ConstPersistentVec<riistudio::j3d::Material> mMaterials;
+        kpi::ConstPersistentVec<riistudio::j3d::Joint> mBones;
+        kpi::ConstPersistentVec<riistudio::j3d::Shape> mMeshes;
+        template<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {
+            const auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;
+            kpi::nextFolder(this->mMaterials, _new.getMaterials(), old ? &old->mMaterials : nullptr);
+            kpi::nextFolder(this->mBones, _new.getBones(), old ? &old->mBones : nullptr);
+            kpi::nextFolder(this->mMeshes, _new.getMeshes(), old ? &old->mMeshes : nullptr);
+        }
+    };
+    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const override {
+        return std::make_unique<_Memento>(*this, last);
+    }
+    void from(const kpi::IMemento& _memento) override {
+        auto* in = dynamic_cast<const _Memento*>(&_memento);
+        assert(in);
+        kpi::fromFolder(getMaterials(), in->mMaterials);
+        kpi::fromFolder(getBones(), in->mBones);
+        kpi::fromFolder(getMeshes(), in->mMeshes);
+    }
+    template<typename T> void* operator=(const T& rhs) { from(rhs); return this; }
 };
 
 } // namespace riistudio::j3d
@@ -112,6 +136,27 @@ private:
     }
     virtual kpi::IDocData* getImmediateData() { return nullptr; }
     virtual const kpi::IDocData* getImmediateData() const { return nullptr; }
+
+public:
+    struct _Memento : public kpi::IMemento {
+        kpi::ConstPersistentVec<riistudio::j3d::Model> mModels;
+        kpi::ConstPersistentVec<riistudio::j3d::Texture> mTextures;
+        template<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {
+            const auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;
+            kpi::nextFolder(this->mModels, _new.getModels(), old ? &old->mModels : nullptr);
+            kpi::nextFolder(this->mTextures, _new.getTextures(), old ? &old->mTextures : nullptr);
+        }
+    };
+    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const override {
+        return std::make_unique<_Memento>(*this, last);
+    }
+    void from(const kpi::IMemento& _memento) override {
+        auto* in = dynamic_cast<const _Memento*>(&_memento);
+        assert(in);
+        kpi::fromFolder(getModels(), in->mModels);
+        kpi::fromFolder(getTextures(), in->mTextures);
+    }
+    template<typename T> void* operator=(const T& rhs) { from(rhs); return this; }
 };
 
 } // namespace riistudio::j3d
