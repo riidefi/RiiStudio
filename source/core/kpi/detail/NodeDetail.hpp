@@ -20,7 +20,7 @@ struct ApplicationPluginsImpl {
     const char* getId() const override { return typeid(T).name(); }
   };
   //! Requires methods:
-  //! - `T::canRead(const std::string& file, oishii::BinaryReader& reader)
+  //! - `T::canRead(IOTransaction&)
   //! const`
   //! - `T::read(doc_node_t node, oishii::ByteView data) const`
   template <typename T>
@@ -32,13 +32,13 @@ struct ApplicationPluginsImpl {
                          oishii::BinaryReader& reader) const override {
       return T::canRead(file, reader);
     }
-    void read_(kpi::INode& node, oishii::ByteView data) const override {
-      T::read(node, data);
+    void read_(IOTransaction& transaction) const override {
+      T::read(transaction);
     }
   };
   //! Requires methods:
   //! - `T::canWrite(doc_node_t node) const`
-  //! - `T::write(doc_node_t node, oishii::Writer& writer) const`
+  //! - `T::write(kpi::INode& node, oishii::Writer& writer) const`
   template <typename T>
   struct TBinarySerializer final : public IBinarySerializer, public T {
     std::unique_ptr<IBinarySerializer> clone() const override {

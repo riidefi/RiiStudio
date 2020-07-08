@@ -2,6 +2,7 @@
 
 #include "Node2.hpp"
 #include "Reflection.hpp"
+#include <functional>
 #include <map>
 #include <memory>
 #include <oishii/data_provider.hxx>
@@ -15,13 +16,36 @@ class Writer;
 
 namespace kpi {
 
+enum class IOMessageClass : u32 {
+  None = 0,
+  Information = (1 << 0),
+  Warning = (1 << 1),
+  Error = (1 << 2)
+};
+
+inline IOMessageClass operator|(const IOMessageClass lhs,
+                                const IOMessageClass rhs) {
+  return static_cast<IOMessageClass>(static_cast<u32>(lhs) |
+                                     static_cast<u32>(rhs));
+}
+
+struct IOTransaction {
+  kpi::INode& node;
+  oishii::ByteView data;
+
+  std::function<void(IOMessageClass message_class,
+                     const std::string_view domain,
+                     const std::string_view message_body)>
+      callback;
+};
+
 //! A reader: Do not inherit from this type directly
 struct IBinaryDeserializer {
   virtual ~IBinaryDeserializer() = default;
   virtual std::unique_ptr<IBinaryDeserializer> clone() const = 0;
   virtual std::string canRead_(const std::string& file,
                                oishii::BinaryReader& reader) const = 0;
-  virtual void read_(kpi::INode& node, oishii::ByteView data) const = 0;
+  virtual void read_(IOTransaction& transaction) const = 0;
 };
 //! A writer: Do not inherit from this type directly
 struct IBinarySerializer {
@@ -79,8 +103,7 @@ public:
   //!	T::canRead(
   //!			   const std::string& file,
   //!			   oishii::BinaryReader& reader) const`
-  //! - `T::read(doc_node_t node,
-  //!			 oishii::BinaryReader& reader) const`
+  //! - `T::read(IOTransaction&) const`
   //!
   template <typename T> ApplicationPlugins& addDeserializer();
 

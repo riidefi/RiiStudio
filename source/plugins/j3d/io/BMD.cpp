@@ -144,7 +144,10 @@ public:
     linker.write(writer);
   }
 
-  void read(kpi::INode& node, oishii::ByteView data) const {
+  void read(kpi::IOTransaction& transaction) const {
+    auto& node = transaction.node;
+    auto& data = transaction.data;
+
     assert(dynamic_cast<Collection*>(&node) != nullptr);
     auto& collection = *dynamic_cast<Collection*>(&node);
     auto& mdl = collection.getModels().add();

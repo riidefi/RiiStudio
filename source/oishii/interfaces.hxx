@@ -87,7 +87,7 @@ public:
       derived().seekSet(derived().endpos() - ofs);
       break;
     }
-    assert(derived().tell() < derived().endpos());
+    // assert(derived().tell() < derived().endpos());
   }
 
   inline void skip(int ofs) { seek<Whence::Current>(ofs); }

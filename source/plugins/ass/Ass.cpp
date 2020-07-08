@@ -701,7 +701,7 @@ struct AssReader {
 
     return typeid(lib3d::Scene).name();
   }
-  void read(kpi::INode& node, oishii::ByteView data) const {
+  void read(kpi::IOTransaction& transaction) const {
     const u32 ass_flags =
         aiProcess_Triangulate | aiProcess_GenSmoothNormals |
         aiProcess_ValidateDataStructure | aiProcess_RemoveRedundantMaterials |
@@ -712,10 +712,11 @@ struct AssReader {
         aiProcess_FlipWindingOrder;
 
     Assimp::Importer importer;
-    std::string path(data.getProvider()->getFilePath());
-    const auto* pScene = importer.ReadFileFromMemory(data.data(), data.size(),
+    std::string path(transaction.data.getProvider()->getFilePath());
+    const auto* pScene = importer.ReadFileFromMemory(transaction.data.data(),
+                                                     transaction.data.size(),
                                                      ass_flags, path.c_str());
-    AssImporter ass_converter(pScene, &node);
+    AssImporter ass_converter(pScene, &transaction.node);
     ass_converter.ImportAss();
   }
 };

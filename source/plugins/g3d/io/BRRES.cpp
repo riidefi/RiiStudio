@@ -134,7 +134,9 @@ enum class RenderCommand {
 
 };
 
-static void readModel(Model& mdl, oishii::BinaryReader& reader) {
+static void readModel(Model& mdl, oishii::BinaryReader& reader,
+                      kpi::IOTransaction& transaction,
+                      const std::string& transaction_path) {
   const auto start = reader.tell();
 
   reader.expectMagic<'MDL0', true>();
@@ -142,9 +144,12 @@ static void readModel(Model& mdl, oishii::BinaryReader& reader) {
   const u32 fileSize = reader.read<u32>();
   (void)fileSize;
   const u32 revision = reader.read<u32>();
-  assert(revision == 11);
-  if (revision != 11)
+  if (revision != 11) {
+    transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                         "MDL0 is version " + std::to_string(revision) +
+                             ". Only MDL0 version 11 is supported.");
     return;
+  }
 
   reader.read<s32>(); // ofsBRRES
 
@@ -652,14 +657,17 @@ static void readModel(Model& mdl, oishii::BinaryReader& reader) {
         if ((tree == Tree::DrawOpa && xlu_mat) ||
             (tree == Tree::DrawXlu && !xlu_mat)) {
           char warn_msg[1024]{};
+          const auto mat_name = ((riistudio::lib3d::Material&)mat).getName();
           snprintf(warn_msg, sizeof(warn_msg),
                    "Material %u \"%s\" is rendered in the %s pass (with mesh "
                    "%u \"%s\"), but is marked as %s.",
-                   disp.matId,
-                   ((riistudio::lib3d::Material&)mat).getName().c_str(),
+                   disp.matId, mat_name.c_str(),
                    xlu_mat ? "Opaue" : "Translucent", disp.polyId,
                    poly.getName().c_str(), !xlu_mat ? "Opaque" : "Translucent");
           reader.warnAt(warn_msg, reader.tell() - 8, reader.tell());
+          transaction.callback(kpi::IOMessageClass::Warning,
+                               transaction_path + "materials/" + mat_name,
+                               warn_msg);
         }
       } break;
       case RenderCommand::NodeDescendence: {
@@ -730,7 +738,10 @@ public:
                       oishii::BinaryReader& reader) const {
     return file.ends_with("brres") ? typeid(Collection).name() : "";
   }
-  void read(kpi::INode& node, oishii::ByteView data) const {
+  void read(kpi::IOTransaction& transaction) const {
+    auto& node = transaction.node;
+    auto& data = transaction.data;
+
     assert(dynamic_cast<Collection*>(&node) != nullptr);
     Collection& collection = *dynamic_cast<Collection*>(&node);
     oishii::BinaryReader reader(std::move(data));
@@ -767,7 +778,8 @@ public:
 
           reader.seekSet(sub.mDataDestination);
           auto& mdl = collection.getModels().add();
-          readModel(mdl, reader);
+          readModel(mdl, reader, transaction,
+                    "/" + cnode.mName + "/" + sub.mName + "/");
         }
       } else if (cnode.mName == "Textures(NW4R)") {
         for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
@@ -778,6 +790,9 @@ public:
           readTexture(tex, reader);
         }
       } else {
+        transaction.callback(kpi::IOMessageClass::Warning, "/" + cnode.mName,
+                             "Unsupported folder: " + cnode.mName);
+
         printf("Unsupported folder: %s\n", cnode.mName.c_str());
       }
     }

@@ -10,6 +10,7 @@
 #include <oishii/reader/binary_reader.hxx>            // oishii::BinaryWriter
 #include <oishii/writer/binary_writer.hxx>            // oishii::Writer
 #include <string>                                     // std::string
+#include <vendor/fa5/IconsFontAwesome5.h>             // ICON_FA_TIMES
 
 namespace riistudio::frontend {
 
@@ -67,6 +68,7 @@ EditorWindow::EditorWindow(FileData&& data)
     return;
   }
   getDocument().setRoot(std::move(fileState));
+#if 0
   struct Handler : oishii::ErrorHandler {
     void onErrorBegin(const oishii::DataProvider& stream) override {
       puts("[Begin Error]");
@@ -87,8 +89,16 @@ EditorWindow::EditorWindow(FileData&& data)
     }
   } handler;
   reader.addErrorHandler(&handler);
-
-  importer.second->read_(getDocument().getRoot(), provider.slice());
+#endif
+  auto message_handler = [&](kpi::IOMessageClass message_class,
+                             const std::string_view domain,
+                             const std::string_view message_body) {
+    mMessages.emplace_back(message_class, std::string(domain),
+                           std::string(message_body));
+  };
+  kpi::IOTransaction transaction{getDocument().getRoot(), provider.slice(),
+                                 message_handler};
+  importer.second->read_(transaction);
 
   init();
 }
@@ -112,6 +122,7 @@ ImGuiID EditorWindow::buildDock(ImGuiID root_id) {
 void EditorWindow::draw_() {
   detachClosedChildren();
 
+#if 0
   // TODO: This doesn't work
   frontend::Applet* parent = dynamic_cast<frontend::Applet*>(getParent());
   if (parent != nullptr) {
@@ -121,6 +132,7 @@ void EditorWindow::draw_() {
       return;
     }
   }
+#endif
 
   if (ImGui::GetIO().KeyCtrl) {
     if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
@@ -128,6 +140,54 @@ void EditorWindow::draw_() {
     } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
       mDocument.redo();
     }
+  }
+
+  if (mShowMessages && !mMessages.empty()) {
+    ImGui::OpenPopup("Log");
+  }
+  ImGui::SetNextWindowSize({800.0f, 0.0f}, ImGuiCond_Once);
+  if (ImGui::BeginPopupModal("Log", &mShowMessages)) {
+    ImGui::SetWindowFontScale(1.2f);
+    const auto entry_flags =
+        ImGuiTableFlags_Borders | ImGuiTableFlags_Sortable |
+        ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable;
+    if (ImGui::BeginTable("Body", 3, entry_flags)) {
+      ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+      ImGui::TableSetColumnIndex(0);
+      ImGui::Text("Message Type");
+      ImGui::TableSetColumnIndex(1);
+      ImGui::Text("Message Path");
+      ImGui::TableSetColumnIndex(2);
+      ImGui::Text("Message Body");
+      for (auto& msg : mMessages) {
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::Text([](kpi::IOMessageClass mclass) -> const char* {
+          switch (mclass) {
+          case kpi::IOMessageClass::None:
+            return "Invalid";
+          case kpi::IOMessageClass::Information:
+            return (const char*)ICON_FA_BELL u8" Info";
+          case kpi::IOMessageClass::Warning:
+            return (const char*)ICON_FA_EXCLAMATION_TRIANGLE u8" Warning";
+          case kpi::IOMessageClass::Error:
+            return (const char*)ICON_FA_TIMES u8" Error";
+          }
+        }(msg.message_class));
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Text(msg.domain.c_str());
+        ImGui::TableSetColumnIndex(2);
+        ImGui::TextWrapped(msg.message_body.c_str());
+      }
+
+      ImGui::EndTable();
+    }
+
+    if (ImGui::Button("Close")) {
+      ImGui::CloseCurrentPopup();
+      mShowMessages = false;
+    }
+    ImGui::EndPopup();
   }
 }
 

@@ -32,7 +32,7 @@ bool installModuleNative(const std::string& path,
   return true;
 }
 #else
-#warning "No module installation support.."
+// #message "No module installation support.."
 template <typename... args> bool installModuleNative(args...) { return false; }
 #endif
 
