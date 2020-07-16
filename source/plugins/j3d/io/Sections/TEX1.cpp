@@ -168,7 +168,7 @@ void readTEX1(BMDOutputContext& ctx) {
     inf.second.first = g.start + ofsHeaders + i * 32 + tex.ofsTex;
     inf.second.second =
         GetTexBufferSize(tex.mWidth, tex.mHeight, static_cast<u32>(tex.mFormat),
-                         tex.bMipMap, tex.mMipmapLevel);
+                         true, tex.mMipmapLevel);
   }
 
   // Deduplicate and read.
