@@ -12,6 +12,8 @@ glm::vec2 Polygon::getUv(u64 chan, u64 id) const {
   assert(getParent());
   const auto* buf = getParent()->getBuf_Uv().findByName(mTexCoordBuffer[chan]);
   assert(buf);
+  if (id >= buf->mEntries.size())
+    return {};
   assert(id < buf->mEntries.size());
   return buf->mEntries[id];
 }
@@ -19,6 +21,8 @@ glm::vec4 Polygon::getClr(u64 chan, u64 id) const {
   assert(getParent());
   const auto* buf = getParent()->getBuf_Clr().findByName(mColorBuffer[chan]);
   assert(buf);
+  if (id >= buf->mEntries.size())
+    return {};
   assert(id < buf->mEntries.size());
   return static_cast<libcube::gx::ColorF32>(buf->mEntries[id]);
 }
@@ -26,6 +30,8 @@ glm::vec3 Polygon::getPos(u64 id) const {
   assert(getParent());
   const auto* buf = getParent()->getBuf_Pos().findByName(mPositionBuffer);
   assert(buf);
+  if (id >= buf->mEntries.size())
+    return {};
   assert(id < buf->mEntries.size());
   return buf->mEntries[id];
 }

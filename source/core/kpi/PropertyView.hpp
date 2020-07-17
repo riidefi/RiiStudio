@@ -97,6 +97,14 @@ public:
     }
   }
 
+  template <typename TGet, typename TSet, typename TVal>
+  void propertyAbstract(TGet get, TSet set, const TVal& after) {
+    const auto& before = (getActive().*get)();
+    const auto prop_get = [get](const auto& x) { return (x.*get)(); };
+    const auto prop_set = [set](auto& x, const auto& y) { return (x.*set)(y); };
+    property(before, after, prop_get, prop_set);
+  }
+
   template <typename U> static inline U doNothing(U x) { return x; }
 
   template <typename U, typename V, typename W>
@@ -107,8 +115,12 @@ public:
   }
   // When external source updating internal data
   template <typename U, typename V, typename W>
-  void propertyEx(U member, V after, W pre = &doNothing) {
+  void propertyEx(U member, V after, W pre) {
     propertyEx(pre(getActive()).*member, after, member, pre);
+  }
+  template <typename U, typename V> void propertyEx(U member, V after) {
+    propertyEx(getActive().*member, after, member,
+               []<typename A>(A& arg) -> A& { return arg; });
   }
 #define KPI_PROPERTY(delegate, before, after, val)                             \
   delegate.property(                                                           \
@@ -369,7 +381,8 @@ public:
     mName = rhs.mName;
     mIcon = rhs.mIcon;
     mFunctor = rhs.mFunctor;
-    rhs.last->next = this;
+    if (rhs.last != nullptr)
+      rhs.last->next = this;
     last = rhs.last;
     gRegistrationChain = this;
   }

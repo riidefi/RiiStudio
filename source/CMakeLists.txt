@@ -32,6 +32,8 @@ endif()
 # Clang/Clang-Cl
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   add_compile_options("-Wno-inconsistent-missing-override")
+  # LLVM
+  add_compile_options("-Wno-ambiguous-reversed-operator")
   # GLM
   add_compile_options("-Wno-deprecated-volatile")
   # Assimp

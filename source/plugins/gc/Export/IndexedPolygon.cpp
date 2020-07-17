@@ -223,6 +223,8 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
     for (int j = 0; j < getMatrixPrimitiveNumIndexedPrimitive(i); ++j) {
       const auto& idx = getMatrixPrimitiveIndexedPrimitive(i, j);
       auto propV = [&](int id) { propVtx(idx.mVertices[id]); };
+      if (idx.mVertices.empty())
+        goto broken;
       switch (idx.mType) {
       case gx::PrimitiveType::TriangleStrip: {
         for (int v = 0; v < 3; ++v) {
@@ -252,10 +254,12 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
         break;
       }
       default:
+        goto broken;
         assert(!"TODO");
         break;
       }
     }
+  broken:
     out.markSplice();
   }
 

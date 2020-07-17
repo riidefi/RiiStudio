@@ -1,4 +1,5 @@
 #include "EditorWindow.hpp"
+#include <core/3d/i3dmodel.hpp>                  // lib3d::Scene
 #include <core/api.hpp>                          // SpawnExporter
 #include <core/util/gui.hpp>                     // ImGui::DockBuilderDockWindow
 #include <frontend/applet.hpp>                   // core::Applet
@@ -26,7 +27,8 @@ void EditorWindow::init() {
                                   mActive, *this));
   attachWindow(MakeHistoryList(mDocument.getHistory(), mDocument.getRoot()));
   attachWindow(MakeOutliner(mDocument.getRoot(), mActive, *this));
-  attachWindow(MakeViewportRenderer(mDocument.getRoot()));
+  if (dynamic_cast<lib3d::Scene*>(&mDocument.getRoot()) != nullptr)
+    attachWindow(MakeViewportRenderer(mDocument.getRoot()));
 }
 
 EditorWindow::EditorWindow(std::unique_ptr<kpi::INode> state,
@@ -162,7 +164,7 @@ void EditorWindow::draw_() {
       for (auto& msg : mMessages) {
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
-        ImGui::Text([](kpi::IOMessageClass mclass) -> const char* {
+        ImGui::TextUnformatted([](kpi::IOMessageClass mclass) -> const char* {
           switch (mclass) {
           case kpi::IOMessageClass::None:
             return "Invalid";
@@ -175,9 +177,9 @@ void EditorWindow::draw_() {
           }
         }(msg.message_class));
         ImGui::TableSetColumnIndex(1);
-        ImGui::Text(msg.domain.c_str());
+        ImGui::TextUnformatted(msg.domain.c_str());
         ImGui::TableSetColumnIndex(2);
-        ImGui::TextWrapped(msg.message_body.c_str());
+        ImGui::TextWrapped("%s", msg.message_body.c_str());
       }
 
       ImGui::EndTable();

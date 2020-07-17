@@ -2,8 +2,13 @@ from config import *
 
 import os
 
+def title(str):
+  if str[0].isupper(): return str
+  return str.title()
+
 def compile_members(members, concrete, parent_data):
 	result = ""
+
 # Collection<3DMaterial> getMaterials() { return { v_getMaterials() }; }
 	for cv in ["", "const "]:
 		for member in members:
@@ -12,7 +17,7 @@ def compile_members(members, concrete, parent_data):
 				_str = _str.replace("v_get%s()", "&m%s")
 			_str = _str.replace("kpi::Collection", "kpi::MutCollectionRange" if not len(cv) else "kpi::ConstCollectionRange")
 
-			result += _str % (member[0], member[1].title(), cv, member[1].title())
+			result += _str % (member[0], title(member[1]), cv, title(member[1]))
 	result += "\nprotected:\n"
 
 # Note: We break const-correctness internally to only have one vfunc
@@ -22,15 +27,15 @@ def compile_members(members, concrete, parent_data):
 # ICollection& v_getMaterials() final { return mMaterials; }
 	if not concrete:
 		for member in members:
-			result += "\tvirtual kpi::ICollection* v_get%s() const = 0;\n" % member[1].title()
+			result += "\tvirtual kpi::ICollection* v_get%s() const = 0;\n" % title(member[1])
 	else:
 		for member in members:
-			result += "\tkpi::ICollection* v_get%s() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&m%s)); }\n" % (member[1].title(), member[1].title())
+			result += "\tkpi::ICollection* v_get%s() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&m%s)); }\n" % (title(member[1]), title(member[1]))
 	if concrete:
 		result += "\nprivate:\n"
 		# CollectionImpl<Material> mMaterials;
 		for member in members:
-			result += "\tkpi::CollectionImpl<%s> m%s{this};\n" % (member[0], member[1].title())
+			result += "\tkpi::CollectionImpl<%s> m%s{this};\n" % (member[0], title(member[1]))
 
 		result += "\n\t// INode implementations\n"
 		"""
@@ -44,13 +49,13 @@ def compile_members(members, concrete, parent_data):
 		
 		result += "\tconst kpi::ICollection* folderAt(std::size_t index) const override {\n\t\tswitch (index) {\n"
 		for i in range(len(members)):
-			result += "\t\tcase %s: return &m%s;\n" % (i, members[i][1].title())
+			result += "\t\tcase %s: return &m%s;\n" % (i, title(members[i][1]))
 		result += "\t\tdefault: return nullptr;\n"
 		result += "\t\t}\n\t}\n"
 
 		result += "\tkpi::ICollection* folderAt(std::size_t index) override {\n\t\tswitch (index) {\n"
 		for i in range(len(members)):
-			result += "\t\tcase %s: return &m%s;\n" % (i, members[i][1].title())
+			result += "\t\tcase %s: return &m%s;\n" % (i, title(members[i][1]))
 		result += "\t\tdefault: return nullptr;\n"
 		result += "\t\t}\n\t}\n"
 		# const char* idAt(std::size_t) const
@@ -79,12 +84,12 @@ def compile_members(members, concrete, parent_data):
 		# virtual void from(const kpi::IMemento& memento) = 0;
 		result += "\tstruct _Memento : public kpi::IMemento {\n"
 		for member in members:
-			result += "\t\tkpi::ConstPersistentVec<%s> m%s;\n" % (member[0], member[1].title())
+			result += "\t\tkpi::ConstPersistentVec<%s> m%s;\n" % (member[0], title(member[1]))
 		result += "\t\ttemplate<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {\n"
 		result += "\t\t\tconst auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;\n"
 		for member in members:
 			result += "\t\t\tkpi::nextFolder(this->m%s, _new.get%s(), old ? &old->m%s : nullptr);\n" % (
-				member[1].title(), member[1].title(), member[1].title()
+				title(member[1]), title(member[1]), title(member[1])
 			)
 		result += "\t\t}\n"
 		
@@ -97,7 +102,7 @@ def compile_members(members, concrete, parent_data):
 		result += "\t\tassert(in);\n"
 		for member in members:
 			result += "\t\tkpi::fromFolder(get%s(), in->m%s);\n" % (
-				member[1].title(), member[1].title()
+				title(member[1]), title(member[1])
 			)
 		result += "\t}\n"
 		result += "\ttemplate<typename T> void* operator=(const T& rhs) { from(rhs); return this; }\n"

@@ -62,7 +62,7 @@ void SceneImpl::draw() {
     // glDepthMask(state.depthWrite ? GL_TRUE : GL_FALSE);
     glDepthFunc(state.depthCompare);
 
-    assert(mState->mVbo.VAO && node->idx_size >= 0 && node->idx_size % 3 == 0);
+    // assert(mState->mVbo.VAO && node->idx_size >= 0 && node->idx_size % 3 == 0);
     glUseProgram(node->shader.getId());
 
     glBindVertexArray(mState->mVbo.VAO);

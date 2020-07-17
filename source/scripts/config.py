@@ -44,12 +44,29 @@ data = {
 	"riistudio::g3d::Collection*": [ "libcube::Scene", "",
 		[ "Model", "models" ],
 		[ "Texture", "textures" ]
-	]
+	],
+
+  # KMP
+  "riistudio::mk::CourseMap*": [ "mk::NullClass", "mk::CourseMapData",
+      [ "StartPoint", "StartPoints" ],
+      [ "EnemyPath", "EnemyPaths" ],
+      [ "ItemPath", "ItemPaths" ],
+      [ "CheckPath", "CheckPaths" ],
+      [ "Path", "Paths" ],
+      [ "GeoObj", "GeoObjs" ],
+      [ "Area", "Areas" ],
+      [ "Camera", "Cameras" ],
+      [ "RespawnPoint", "RespawnPoints" ],
+      [ "Cannon", "CannonPoints" ],
+      [ "Stage", "Stages" ],
+      [ "MissionPoint", "MissionPoints" ]
+  ]
 }
 
 out = {
 	"core\\3d\\Node.h":     [ "riistudio::lib3d::Model", "riistudio::lib3d::Scene" ],
 	"plugins\\gc\\Node.h":  [ "libcube::Model",          "libcube::Scene" ],
 	"plugins\\j3d\\Node.h": [ "riistudio::j3d::Model*",  "riistudio::j3d::Collection*" ],
-	"plugins\\g3d\\Node.h": [ "riistudio::g3d::Model*",  "riistudio::g3d::Collection*" ]
+	"plugins\\g3d\\Node.h": [ "riistudio::g3d::Model*",  "riistudio::g3d::Collection*" ],
+  "plugins\\mk\\KMP\\Node.h": [ "riistudio::mk::CourseMap*" ]
 }

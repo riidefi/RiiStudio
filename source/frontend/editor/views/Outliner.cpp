@@ -132,7 +132,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
   // Draw the tree
   for (int i = 0; i < sampler.size(); ++i) {
     auto& nodeAt = *sampler.atObject(i);
-    const std::string cur_name = nodeAt.getName();
+    std::string cur_name = nodeAt.getName();
 
     auto* as_host = dynamic_cast<kpi::INode*>(&nodeAt);
 
@@ -143,6 +143,10 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
 
     if (!rich.hasEntry())
       continue;
+
+	if (cur_name == "TODO") {
+      cur_name = rich.getNameSingular() + " #" + std::to_string(i);
+    }
 
     filtered.push_back(i);
 
