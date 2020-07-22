@@ -188,7 +188,7 @@ public:
     colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
     colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 
-    colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+	colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.08f, 0.11f, 0.13f, 1.00f);
   }
   // Zenith:
   // https://github.com/gitbetter/Zenith/blob/23533b7de21fc8a6fd4303659da12381a112b1a4/Editor/_Source/ZEditor.cpp#L310
