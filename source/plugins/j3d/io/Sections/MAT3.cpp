@@ -50,8 +50,7 @@ struct MatLoader {
     u32 ofs;
 
     template <typename TGet = TRaw> TGet raw() {
-      if (!ofs)
-        throw "Invalid read.";
+      assert(ofs != 0 && "Invalid read.");
 
       return reader.getAt<TGet>(ofs);
     }

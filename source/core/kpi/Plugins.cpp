@@ -56,7 +56,6 @@ ApplicationPlugins::spawnState(const std::string& type) const {
   }
 
   assert(!"Failed to spawn state..");
-  throw "Cannot spawn";
   return nullptr;
 }
 std::unique_ptr<IObject>

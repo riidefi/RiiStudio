@@ -103,12 +103,6 @@ void KMP::read(kpi::IOTransaction& transaction) const {
     }
   }
 
-  const auto id_defined = []<typename T>(const T id) {
-    return id != static_cast<T>(-1);
-  };
-  assert(!id_defined((u8)0xFF));
-  assert(!id_defined((u16)0xFFFF));
-
   const auto read_path_section = [&](u32 path_key, u32 point_key, auto sec,
                                      u32 point_stride, auto read_point) {
     auto [pt_found, pt_num_entry, pt_user_data] = search(point_key);
@@ -387,11 +381,13 @@ public:
     const auto from = mLabels.find(reloc.from);
     const auto to = mLabels.find(reloc.to);
 
+    std::size_t delta = 0;
     if (from == mLabels.end() || to == mLabels.end()) {
-      throw "Bad lookup";
+      printf("Bad lookup: %s to %s\n", reloc.from.c_str(), reloc.to.c_str());
+    } else {
+      delta = to->second - from->second;
     }
 
-    const auto delta = to->second - from->second;
     const auto back = mWriter.tell();
 
     mWriter.seekSet(reloc.ofs);
@@ -401,7 +397,8 @@ public:
     } else if (reloc.sz == 2) {
       mWriter.write<u16>(delta);
     } else {
-      throw "Invalid reloc size";
+      assert(false);
+      printf("Invalid reloc size..\n");
     }
 
     mWriter.seekSet(back);

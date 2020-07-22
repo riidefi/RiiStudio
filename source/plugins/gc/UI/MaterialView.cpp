@@ -53,7 +53,8 @@ struct CullMode {
       back = false;
       break;
     default:
-      throw "Invalid cull mode";
+      assert(!"Invalid cull mode");
+      front = back = true;
       break;
     }
   }

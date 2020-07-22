@@ -264,9 +264,8 @@ Expr& solve_tev_stage_impl(const T& substage,
                            riistudio::util::StringBuilder& builder,
                            bool do_print_inter, u8* workmem,
                            std::size_t workmem_size) {
-  assert(workmem_size >= sizeof(ExprAlloc));
-  if (workmem_size < sizeof(ExprAlloc))
-    throw "Not enough memory.. cannot proceed";
+  assert(workmem_size >= sizeof(ExprAlloc) &&
+         "Not enough memory.. cannot proceed");
 
   std::fill_n(workmem, workmem_size, 0);
   ExprAlloc& allocator = *reinterpret_cast<ExprAlloc*>(workmem);
