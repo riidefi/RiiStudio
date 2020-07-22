@@ -242,6 +242,15 @@ public:
     return index < low->size() ? at(index) : nullptr;
   }
 
+  s32 indexOf(const std::string_view name) const {
+    if (name.empty())
+      return -1;
+    const auto low_index = low->indexOf(name);
+    // Unmanaged indexOf returns the size of the collection when not found (like
+    // an iterator)
+    return low_index != low->size() ? low_index : -1;
+  }
+
 private:
   const ICollection* low = nullptr;
 };

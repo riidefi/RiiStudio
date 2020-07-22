@@ -140,15 +140,32 @@ public:
     return be ? swapEndian<T>(val) : val;
   }
 
+  constexpr u32 roundDown(u32 in, u32 align) {
+    return align ? in & ~(align - 1) : in;
+  };
+  constexpr u32 roundUp(u32 in, u32 align) {
+    return align ? roundDown(in + (align - 1), align) : in;
+  };
   void alignTo(u32 alignment) {
     auto pad_begin = tell();
-    while (tell() % alignment)
-      write('F', false);
-    if (pad_begin != tell() && mUserPad)
-      mUserPad((char*)getDataBlockStart() + pad_begin, tell() - pad_begin);
+    auto pad_end = roundUp(tell(), alignment);
+    if (pad_begin == pad_end)
+      return;
+    for (int i = 0; i < pad_end - pad_begin; ++i)
+      this->write<u8>(0);
+    if (mUserPad)
+      mUserPad((char*)getDataBlockStart() + pad_begin, pad_end - pad_begin);
   }
   using PadFunction = void (*)(char* dst, u32 size);
   PadFunction mUserPad = nullptr;
+
+  template<typename T>
+  void writeAt(T val, u32 pos) {
+    const auto back = tell();
+    seekSet(pos);
+    write<T>(val);
+    seekSet(back);
+  }
 
 private:
   bool bigEndian = true; // to swap
