@@ -245,7 +245,6 @@ QDisplayListMaterialHandler::QDisplayListMaterialHandler(
     : mMat(mat) {}
 QDisplayListMaterialHandler::~QDisplayListMaterialHandler() {}
 enum RegType { TEV_COLOR_REG = 0, TEV_KONSTANT_REG = 1 };
-enum { XF_TEX0_ID = 0x1040, XF_DUALTEX0_ID = 0x1050 };
 void QDisplayListMaterialHandler::onCommandXF(const QXFCommand& token) {
   switch (token.reg) {
   case XF_TEX0_ID:
@@ -378,10 +377,10 @@ void QDisplayListVertexSetupHandler::onCommandBP(const QBPCommand& token) {
 void QDisplayListVertexSetupHandler::onCommandCP(const QCPCommand& token) {
   switch (token.reg) {
   case 0x50:
-    mGpuMesh.VCD.Hex0 = token.val;
+    mGpuMesh.VCD.Hex = token.val;
     break;
   case 0x60:
-    mGpuMesh.VCD.Hex0 |= (token.val << 17);
+    mGpuMesh.VCD.Hex |= (token.val << 17);
     break;
   default:
     break;

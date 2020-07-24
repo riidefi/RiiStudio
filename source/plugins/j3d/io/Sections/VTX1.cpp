@@ -38,7 +38,7 @@ void readVTX1(BMDOutputContext& ctx) {
     // FIXME: type punning
     void* buf = nullptr;
 
-    VBufferKind bufkind = VBufferKind::undefined;
+    VBufferKind bufkind = VBufferKind::position;
 
     switch (type) {
     case gx::VertexBufferAttribute::Position:
@@ -124,7 +124,6 @@ void readVTX1(BMDOutputContext& ctx) {
     }
 
     assert(estride);
-    assert(bufkind != VBufferKind::undefined);
 
     const auto getDataIndex = [&](gx::VertexBufferAttribute attr) {
       static const constexpr std::array<
@@ -209,8 +208,6 @@ void readVTX1(BMDOutputContext& ctx) {
           uv->readBufferEntryGeneric(reader, uv->mData[i]);
         break;
       }
-      case VBufferKind::undefined:
-        break;
       }
     }
   }

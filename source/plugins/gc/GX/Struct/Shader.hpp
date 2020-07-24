@@ -269,33 +269,23 @@ struct SwapTableEntry {
 };
 
 struct Shader {
+  using Clr = ColorComponent;
   // Fixed-size DL
-  std::array<SwapTableEntry, 4> mSwapTable;
+  std::array<SwapTableEntry, 4> mSwapTable{
+      SwapTableEntry{Clr::r, Clr::g, Clr::b, Clr::a},
+      SwapTableEntry{Clr::r, Clr::r, Clr::r, Clr::a},
+      SwapTableEntry{Clr::g, Clr::g, Clr::g, Clr::a},
+      SwapTableEntry{Clr::b, Clr::b, Clr::b, Clr::a},
+  };
   std::array<IndOrder, 4> mIndirectOrders;
 
   // Variable-sized DL
-  llvm::SmallVector<TevStage, 16> mStages;
+  // Max 16
+  llvm::SmallVector<TevStage, 8> mStages;
 
-  bool operator==(const Shader& rhs) const noexcept {
-    return mSwapTable == rhs.mSwapTable &&
-           mIndirectOrders == rhs.mIndirectOrders && mStages == rhs.mStages;
-  }
+  bool operator==(const Shader&) const = default;
 
-  Shader() {
-    mSwapTable = {
-        SwapTableEntry{ColorComponent::r, ColorComponent::g, ColorComponent::b,
-                       ColorComponent::a},
-        SwapTableEntry{ColorComponent::r, ColorComponent::r, ColorComponent::r,
-                       ColorComponent::a},
-        SwapTableEntry{ColorComponent::g, ColorComponent::g, ColorComponent::g,
-                       ColorComponent::a},
-        SwapTableEntry{ColorComponent::b, ColorComponent::b, ColorComponent::b,
-                       ColorComponent::a},
-    };
-    mStages.push_back(TevStage{
-
-    });
-  }
+  Shader() { mStages.emplace_back(); }
 };
 
 } // namespace libcube::gx

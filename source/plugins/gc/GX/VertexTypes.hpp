@@ -1,14 +1,12 @@
 #pragma once
 
 #include <core/common.h>
-
 #include <oishii/reader/binary_reader.hxx>
-
+#include <oishii/writer/binary_writer.hxx>
 #include <plugins/gc/GX/Material.hpp>
 #include <vendor/glm/vec3.hpp>
 
-namespace libcube {
-namespace gx {
+namespace libcube::gx {
 
 union VertexComponentCount {
 
@@ -160,7 +158,8 @@ inline std::size_t computeComponentCount(gx::VertexBufferKind kind,
   case VertexBufferKind::textureCoordinate:
     return static_cast<std::size_t>(count.texcoord) + 1; // s -> 1, st -> 2
   default:
-    throw "Invalid component count!";
+    assert(!"Invalid component count!");
+    break;
   }
 }
 
@@ -263,5 +262,179 @@ inline gx::Color readComponents<gx::Color>(oishii::BinaryReader& reader,
   return readColorComponents(reader, type.color);
 }
 
-} // namespace gx
-} // namespace libcube
+inline void writeColorComponents(oishii::Writer& writer,
+                                 const libcube::gx::Color& c,
+                          VertexBufferType::Color colort) {
+  switch (colort) {
+  case libcube::gx::VertexBufferType::Color::rgb565:
+    writer.write<u16>(((c.r & 0xf8) << 8) | ((c.g & 0xfc) << 3) |
+                      ((c.b & 0xf8) >> 3));
+    break;
+  case libcube::gx::VertexBufferType::Color::rgb8:
+    writer.write<u8>(c.r);
+    writer.write<u8>(c.g);
+    writer.write<u8>(c.b);
+    break;
+  case libcube::gx::VertexBufferType::Color::rgbx8:
+    writer.write<u8>(c.r);
+    writer.write<u8>(c.g);
+    writer.write<u8>(c.b);
+    writer.write<u8>(0);
+    break;
+  case libcube::gx::VertexBufferType::Color::rgba4:
+    writer.write<u16>(((c.r & 0xf0) << 8) | ((c.g & 0xf0) << 4) | (c.b & 0xf0) |
+                      ((c.a & 0xf0) >> 4));
+    break;
+  case libcube::gx::VertexBufferType::Color::rgba6: {
+    // TODO: Verify
+    u32 v = ((c.r & 0x3f) << 18) | ((c.g & 0x3f) << 12) | (c.b & 0x3f << 6) |
+            (c.a & 0x3f);
+    writer.write<u8>((v & 0x00ff0000) >> 16);
+    writer.write<u8>((v & 0x0000ff00) >> 8);
+    writer.write<u8>((v & 0x000000ff));
+    break;
+  }
+  case libcube::gx::VertexBufferType::Color::rgba8:
+    writer.write<u8>(c.r);
+    writer.write<u8>(c.g);
+    writer.write<u8>(c.b);
+    writer.write<u8>(c.a);
+    break;
+  default:
+    assert(!"Invalid buffer type!");
+    break;
+  };
+}
+
+template <int n, typename T, glm::qualifier q>
+inline void writeGenericComponents(oishii::Writer& writer, const glm::vec<n, T, q>& v,
+                            libcube::gx::VertexBufferType::Generic g,
+                            u32 real_component_count, u32 divisor) {
+  for (int i = 0; i < real_component_count; ++i) {
+    switch (g) {
+    case libcube::gx::VertexBufferType::Generic::u8:
+      writer.write<u8>(roundf(v[i] * (1 << divisor)));
+      break;
+    case libcube::gx::VertexBufferType::Generic::s8:
+      writer.write<s8>(roundf(v[i] * (1 << divisor)));
+      break;
+    case libcube::gx::VertexBufferType::Generic::u16:
+      writer.write<u16>(roundf(v[i] * (1 << divisor)));
+      break;
+    case libcube::gx::VertexBufferType::Generic::s16:
+      writer.write<s16>(roundf(v[i] * (1 << divisor)));
+      break;
+    case libcube::gx::VertexBufferType::Generic::f32:
+      writer.write<f32>(v[i]);
+      break;
+    default:
+      assert(!"Invalid buffer type!");
+      break;
+    }
+  }
+}
+template <typename T>
+inline void writeComponents(oishii::Writer& writer, const T& d,
+                            gx::VertexBufferType type, std::size_t true_count,
+                            u32 divisor = 0) {
+  return writeGenericComponents(writer, d, type.generic, true_count, divisor);
+}
+template <>
+inline void writeComponents<gx::Color>(oishii::Writer& writer,
+                                       const gx::Color& c,
+                                       gx::VertexBufferType type,
+                                       std::size_t true_count, u32 divisor) {
+  return writeColorComponents(writer, c, type.color);
+}
+
+struct VQuantization {
+  libcube::gx::VertexComponentCount comp = libcube::gx::VertexComponentCount(
+      libcube::gx::VertexComponentCount::Position::xyz);
+  libcube::gx::VertexBufferType type = libcube::gx::VertexBufferType(
+      libcube::gx::VertexBufferType::Generic::f32);
+  u8 divisor = 0;
+  u8 bad_divisor = 0; //!< Accommodation for a bug on N's part
+  u8 stride = 12;
+
+  VQuantization(libcube::gx::VertexComponentCount c,
+                libcube::gx::VertexBufferType t, u8 d, u8 bad_d, u8 s)
+      : comp(c), type(t), divisor(d), bad_divisor(bad_d), stride(s) {}
+  VQuantization(const VQuantization& other)
+      : comp(other.comp), type(other.type), divisor(other.divisor),
+        stride(other.stride) {}
+  VQuantization() = default;
+};
+using VBufferKind = VertexBufferKind;
+
+template <typename TB, VBufferKind kind> struct VertexBuffer {
+  VQuantization mQuant;
+  std::vector<TB> mData;
+
+  int ComputeComponentCount() const {
+    return computeComponentCount(kind, mQuant.comp);
+  }
+
+  template <int n, typename T, glm::qualifier q>
+  void readBufferEntryGeneric(oishii::BinaryReader& reader,
+                              glm::vec<n, T, q>& result) {
+    result = readGenericComponents<glm::vec<n, T, q>>(
+        reader, mQuant.type.generic, ComputeComponentCount(), mQuant.divisor);
+  }
+  void readBufferEntryColor(oishii::BinaryReader& reader,
+                            libcube::gx::Color& result) {
+    result = readColorComponents(reader, mQuant.type.color);
+  }
+
+  template <int n, typename T, glm::qualifier q>
+  void writeBufferEntryGeneric(oishii::Writer& writer,
+                               const glm::vec<n, T, q>& v) const {
+    writeGenericComponents(writer, v, mQuant.type.generic,
+                           ComputeComponentCount(), mQuant.divisor);
+  }
+  void writeBufferEntryColor(oishii::Writer& writer,
+                             const libcube::gx::Color& c) const {
+    writeColorComponents(writer, c, mQuant.type.color);
+  }
+  // For dead cases
+  template <int n, typename T, glm::qualifier q>
+  void writeBufferEntryColor(oishii::Writer& writer,
+                             const glm::vec<n, T, q>& v) const {
+    assert(!"Invalid kind/type template match!");
+  }
+  void writeBufferEntryGeneric(oishii::Writer& writer,
+                               const libcube::gx::Color& c) const {
+    assert(!"Invalid kind/type template match!");
+  }
+
+  void writeData(oishii::Writer& writer) const {
+    if constexpr (kind == VBufferKind::position) {
+      if (mQuant.comp.position ==
+          libcube::gx::VertexComponentCount::Position::xy)
+        throw "Buffer: XY Pos Component count.";
+
+      for (const auto& d : mData)
+        writeBufferEntryGeneric(writer, d);
+    } else if constexpr (kind == VBufferKind::normal) {
+      if (mQuant.comp.normal != libcube::gx::VertexComponentCount::Normal::xyz)
+        throw "Buffer: NBT Vectors.";
+
+      for (const auto& d : mData)
+        writeBufferEntryGeneric(writer, d);
+    } else if constexpr (kind == VBufferKind::color) {
+      for (const auto& d : mData)
+        writeBufferEntryColor(writer, d);
+    } else if constexpr (kind == VBufferKind::textureCoordinate) {
+      if (mQuant.comp.texcoord ==
+          libcube::gx::VertexComponentCount::TextureCoordinate::s)
+        throw "Buffer: Single component texcoord vectors.";
+
+      for (const auto& d : mData)
+        writeBufferEntryGeneric(writer, d);
+    }
+  }
+
+  VertexBuffer() {}
+  VertexBuffer(VQuantization q) : mQuant(q) {}
+};
+
+} // namespace libcube::gx

@@ -1,126 +1,11 @@
 #include "../Sections.hpp"
 #include <map>
+#include <plugins/gc/GPU/DLBuilder.hpp>
 #include <string.h>
-
-#include <plugins/gc/GPU/GPUAddressSpace.hpp>
-#include <plugins/gc/GPU/GPUMaterial.hpp>
 
 namespace riistudio::j3d {
 
-class DLBuilder {
-public:
-  DLBuilder(oishii::Writer& writer) : mWriter(writer) {}
-  ~DLBuilder() = default;
-
-  struct TexDelegate {
-    TexDelegate(DLBuilder& builder, u8 id) : mBuilder(builder), mId(id) {}
-
-    void setImagePointer(u32 physical_addr, bool use_raw = false) {
-      assert(!use_raw || physical_addr % 32 == 0 &&
-                             "Physical address has too must granularity "
-                             "(restricted to 32-byte cache lines).");
-      std::array<u8, 8> lut{0x94, 0x95, 0x96, 0x97, 0xB4, 0xB5, 0xB6, 0xB7};
-
-      mBuilder.writeBp(lut[mId], use_raw ? physical_addr : physical_addr << 5);
-    }
-    void setImageAttributes(u16 width, u16 height,
-                            libcube::gx::TextureFormat format) {
-      assert(width <= 1024 && height <= 1024 &&
-             "No dimension may exceed 1024x1024");
-      std::array<u8, 8> lut{0x94, 0x95, 0x96, 0x97, 0xB4, 0xB5, 0xB6, 0xB7};
-
-      constexpr u32 dimension_mask = (1 << 10) - 1;
-      constexpr u32 format_mask = (1 << 4) - 1;
-
-      const u32 width_field = (width - 1) & dimension_mask;
-      const u32 height_field = (height - 1) & dimension_mask;
-      const u32 format_field = static_cast<u32>(format) & format_mask;
-
-      mBuilder.writeBp(lut[mId], width_field | (height_field << 10) |
-                                     (format_field << 20));
-    }
-    void setLookupMode(libcube::gx::TextureWrapMode wrap_s,
-                       libcube::gx::TextureWrapMode wrap_t,
-                       libcube::gx::TextureFilter min_filt,
-                       libcube::gx::TextureFilter mag_filt, f32 min_lod,
-                       f32 max_lod, f32 lod_bias, bool clamp_bias,
-                       bool edge_lod, libcube::gx::AnisotropyLevel aniso) {
-      std::array<u8, 8> lut0{0x80, 0x81, 0x82, 0x83, 0xA0, 0xA1, 0xA2, 0xA3};
-      std::array<u8, 8> lut1{0x84, 0x85, 0x86, 0x87, 0xA4, 0xA5, 0xA6, 0xA7};
-
-      std::array<u8, 6> filter_lut{0, 4, 1, 5, 2, 6};
-
-      libcube::gpu::TexMode0 mode0;
-      mode0.hex = 0;
-      libcube::gpu::TexMode1 mode1;
-      mode1.hex = 0;
-
-      mode0.wrap_s = static_cast<u32>(wrap_s);
-      mode0.wrap_t = static_cast<u32>(wrap_t);
-      mode0.mag_filter = mag_filt == libcube::gx::TextureFilter::linear;
-      mode0.min_filter = filter_lut[static_cast<u32>(mag_filt)];
-      mode0.diag_lod = !edge_lod;
-      mode0.lod_bias =
-          static_cast<u32>(roundf(32.0f * static_cast<f32>(lod_bias)));
-      mode0.max_aniso = static_cast<u32>(aniso);
-      mode0.lod_clamp = clamp_bias;
-
-      mode1.min_lod =
-          static_cast<u32>(roundf(static_cast<f32>(min_lod) * 16.0f));
-      mode1.max_lod =
-          static_cast<u32>(roundf(static_cast<f32>(max_lod) * 16.0f));
-
-      mBuilder.writeBp(lut0[mId], mode0.hex);
-      mBuilder.writeBp(lut1[mId], mode1.hex);
-    }
-
-    void setTLUT() {}
-
-  private:
-    DLBuilder& mBuilder;
-    u32 mId;
-  };
-  TexDelegate setTexture(u8 id) {
-    assert(id < 8 && "Only 8 textures may be supplied.");
-    return {*this, id};
-  }
-  void loadTLUT() {}
-
-  void setTevOrder() {}
-  void setTexCoordScale2() {}
-
-  void setTevColor() {}
-  void setTevKColor() {}
-  void setTevColorCalc() {}
-  void setTevAlphaCalcAndSwap() {}
-  void setTevIndirect() {}
-  void setTevKonstantSelAndSwapModeTable() {}
-  void setIndTexMtx() {}
-  void setIndTexCoordScale() {}
-
-  void setFog() {}
-  void setFogRangeAdj() {}
-  void setAlphaCompare() {}
-  void setBlendMode() {}
-  void setZMode() {}
-
-  void setChanColor() {}
-  void setAmbColor() {}
-
-private:
-  enum class Command { BP = 0x61 };
-
-  void writeBp(u8 reg, u32 val) {
-    val &= static_cast<u32>((1 << 24) - 1); // 24-bit
-    val |= (reg & 0xff) << 24;
-
-    mWriter.writeUnaligned<u8>(static_cast<u8>(Command::BP));
-    mWriter.writeUnaligned<u32>(val);
-  }
-  void writeBp(BPAddress reg, u32 val) { writeBp(static_cast<u8>(reg), val); }
-
-  oishii::Writer& mWriter;
-};
+using DLBuilder = libcube::gx::DLBuilder;
 
 template <typename T> static void writeAt(T& stream, u32 pos, s32 val) {
   auto back = stream.tell();
@@ -222,7 +107,7 @@ struct MDL3Node final : public oishii::Node {
           (void)stage;
 
           if (i % 2 == 0)
-            builder.setTevOrder();
+            ; // builder.setTevOrder();
 
           builder.setTexCoordScale2();
         }
@@ -233,23 +118,27 @@ struct MDL3Node final : public oishii::Node {
       {
         // Don't set prev
         for (int i = 0; i < 3; ++i)
-          ; // builder.setTevColor(reg, i + 1);
+          builder.setTevColor(i + 1, mat.tevColors[i]);
         for (int i = 0; i < 4; ++i)
-          ; // builder.setTevKColor(reg, i);
+          builder.setTevKColor(i, mat.tevKonstColors[i]);
         for (int i = 0; i < mat.shader.mStages.size(); ++i) {
-          builder.setTevColorCalc();
-          builder.setTevAlphaCalcAndSwap();
-          builder.setTevIndirect();
+          builder.setTevColorCalc(i, mat.shader.mStages[i].colorStage);
+          builder.setTevAlphaCalcAndSwap(i, mat.shader.mStages[i].alphaStage,
+                                         mat.shader.mStages[i].rasSwap,
+                                         mat.shader.mStages[i].texMapSwap);
+          builder.setTevIndirect(i, mat.shader.mStages[i].indirectStage);
         }
         for (int i = 0; i < 8; ++i)
           builder.setTevKonstantSelAndSwapModeTable();
         for (int i = 0; i < mat.info.nIndStage; ++i) {
-          builder.setIndTexMtx();
+          builder.setIndTexMtx(i, mat.mIndMatrices[i]);
         }
         for (int i = 0; i < mat.info.nIndStage; ++i) {
           if (i % 2 == 0)
-            builder.setIndTexCoordScale();
+            builder.setIndTexCoordScale(i, mat.mIndScales[i],
+                                        mat.mIndScales[i + 1]);
         }
+        // TODO: PAD?
         for (int i = 0; i < mat.info.nIndStage; ++i) {
           // mask 0x03FFFF
           // SU_SSIZE, SU_TSIZE
@@ -268,9 +157,9 @@ struct MDL3Node final : public oishii::Node {
       {
         builder.setFog();
         builder.setFogRangeAdj();
-        builder.setAlphaCompare();
-        builder.setBlendMode();
-        builder.setZMode();
+        builder.setAlphaCompare(mat.alphaCompare);
+        builder.setBlendMode(mat.blendMode);
+        builder.setZMode(mat.zMode);
         // ZCOMPARE / PECNTRL
         // GENMODE
       }

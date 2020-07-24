@@ -319,6 +319,11 @@ enum {
   XF_TEX5_INROW = 0xa,
   XF_TEX6_INROW = 0xb,
   XF_TEX7_INROW = 0xc,
+
+  XF_TEX0_ID = 0x1040,
+  XF_DUALTEX0_ID = 0x1050,
+
+  XF_INVTXSPEC_ID = 0x1008
 };
 struct XF_TEXTURE {
   u32 id;
@@ -342,7 +347,12 @@ union LitChannel {
   unsigned int GetFullLightMask() const {
     return lightFunc ? (lightMask0_3 | (lightMask4_7 << 4)) : 0;
   }
+  void SetFullLightMask(u32 mask) {
+    lightMask0_3 = mask & 0b1111;
+    lightMask4_7 = (mask >> 4) & 0b1111;
+  }
 
+  void from(const gx::ChannelControl& ctrl);
   operator gx::ChannelControl();
 };
 union TevKSel {
@@ -545,7 +555,7 @@ union UVAT_group1 {
     u32 Tex4CoordElements : 1;
     u32 Tex4CoordFormat : 3;
     //
-    u32 : 1;
+    u32 pad : 1;
   };
 };
 

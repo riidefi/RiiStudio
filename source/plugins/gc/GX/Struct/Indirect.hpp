@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/common.h>
-#include <vendor/glm/mat2x3.hpp>
+#include <vendor/glm/mat3x2.hpp>
 #include <vendor/glm/vec2.hpp>
 
 namespace libcube {
@@ -62,8 +62,26 @@ struct IndirectMatrix {
     return scale == rhs.scale && rotate == rhs.rotate && trans == rhs.trans &&
            quant == rhs.quant;
   }
+  // TODO: Verify with glm decompose
+  glm::mat3x2 compute() const {
+    const auto theta = rotate / 180.0f * 3.141592f;
+    const auto sinR = sin(theta);
+    const auto cosR = cos(theta);
+    const f32 center = 0.0f;
 
-  glm::mat2x3 compute() const { return glm::mat2x3{1.0f}; }
+    glm::mat3x2 dst;
+
+    dst[0][0] = scale[0] * cosR;
+    dst[1][0] = scale[0] * -sinR;
+    dst[2][0] = trans[0] + center + scale[0] * (sinR * center - cosR * center);
+
+    dst[0][1] = scale[1] * sinR;
+    dst[1][1] = scale[1] * cosR;
+    dst[2][1] =
+        trans[1] + center + -scale[1] * (-sinR * center + cosR * center);
+
+    return dst;
+  }
 };
 // The material part
 struct IndirectSetting {

@@ -113,6 +113,7 @@ struct GCMaterialData {
   array_vector<gx::TexCoordGen, 8> texGens;
 
   array_vector<gx::Color, 4> tevKonstColors;
+  // last is tevprev?
   array_vector<gx::ColorS10, 4> tevColors;
 
   bool earlyZComparison = true;

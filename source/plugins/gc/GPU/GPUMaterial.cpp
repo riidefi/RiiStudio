@@ -50,6 +50,7 @@ IND_MTX::operator gx::IndirectMatrix() {
   glm::vec4 perspective;
   glm::decompose(transformation, scale, rotation, translation, skew,
                  perspective);
+  // rotation = glm::conjugate(rotation);
 
   tmp.scale[0] = scale.x;
   tmp.scale[1] = scale.y;
@@ -102,7 +103,7 @@ XF_TEXTURE::operator gx::TexCoordGen() {
           tex.sourcerow - XF_TEX0_INROW + (u32)gx::TexGenSrc::UV0);
       break;
     default:
-      assert(!"Invalid texgen");
+      //assert(!"Invalid texgen");
       break;
     }
 
@@ -125,19 +126,35 @@ XF_TEXTURE::operator gx::TexCoordGen() {
   }
 }
 LitChannel::operator gx::ChannelControl() {
-  return {lightFunc.Value() != 0,
-          static_cast<gx::ColorSource>(ambsource.Value()),
-          static_cast<gx::ColorSource>(matsource.Value()),
-          static_cast<gx::LightID>(GetFullLightMask()),
-          (!attnSelect.Value())
-              ? gx::DiffuseFunction::None
-              : static_cast<gx::DiffuseFunction>(
-                    diffuseAtten.Value(),
-                    (!attnSelect.Value())
-                        ? gx::AttenuationFunction::Specular
-                        : (!attnEnable.Value()
-                               ? gx::AttenuationFunction::None
-                               : gx::AttenuationFunction::Spotlight))};
-}
+  auto diffuse_fn = gx::DiffuseFunction::None;
+  auto attn_fn = gx::AttenuationFunction::None;
 
+  if (!attnSelect.Value()) {
+    attn_fn = gx::AttenuationFunction::Specular;
+  } else if (!attnEnable.Value()) {
+    diffuse_fn = static_cast<gx::DiffuseFunction>(diffuseAtten.Value());
+  } else {
+    attn_fn = gx::AttenuationFunction::Spotlight;
+    diffuse_fn = static_cast<gx::DiffuseFunction>(diffuseAtten.Value());
+  }
+
+  return {.enabled = lightFunc.Value() != 0,
+          .Ambient = static_cast<gx::ColorSource>(ambsource.Value()),
+          .Material = static_cast<gx::ColorSource>(matsource.Value()),
+          .lightMask = static_cast<gx::LightID>(GetFullLightMask()),
+          .diffuseFn = diffuse_fn,
+          .attenuationFn = attn_fn};
+}
+void LitChannel::from(const gx::ChannelControl& ctrl) {
+  lightFunc = ctrl.enabled;
+  ambsource = static_cast<u32>(ctrl.Ambient);
+  matsource = static_cast<u32>(ctrl.Material);
+  SetFullLightMask(static_cast<u32>(ctrl.lightMask));
+  diffuseAtten =
+      static_cast<u32>((ctrl.attenuationFn == gx::AttenuationFunction::Specular)
+                           ? gx::DiffuseFunction::None
+                           : ctrl.diffuseFn);
+  attnEnable = ctrl.attenuationFn != gx::AttenuationFunction::None;
+  attnSelect = ctrl.attenuationFn != libcube::gx::AttenuationFunction::Specular;
+}
 } // namespace libcube::gpu
