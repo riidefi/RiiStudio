@@ -116,4 +116,8 @@ add_library(plugins
 	"mk/KMP/MapInstaller.cpp"
 	"mk/KMP/Node.h"
 	"nitro/types.hpp"
- "mk/KMP/io/KMP.hpp")
+  "mk/KMP/io/KMP.hpp"
+  "gc/GPU/DLBuilder.hpp"
+  "szs/SZS.hpp"
+  "szs/SZS.cpp"
+)
