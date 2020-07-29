@@ -8,19 +8,19 @@ namespace kpi {
 
 //! Holds the state of a document, including a single history channel--suitable
 //! for simple editors.
-class Document {
+template <typename T = INode> class Document {
 public:
-  Document(std::unique_ptr<INode>&& node) : mState(std::move(node)) {}
+  Document(std::unique_ptr<T>&& node) : mState(std::move(node)) {}
   Document() : mState(nullptr) {}
   ~Document() = default;
 
-  void setRoot(std::unique_ptr<INode>&& node) { mState = std::move(node); }
+  void setRoot(std::unique_ptr<T>&& node) { mState = std::move(node); }
 
-  INode& getRoot() {
+  T& getRoot() {
     assert(mState.get() != nullptr);
     return *mState.get();
   }
-  const INode& getRoot() const {
+  const T& getRoot() const {
     assert(mState.get() != nullptr);
     return *mState.get();
   }
@@ -41,7 +41,7 @@ public:
   std::size_t size() const { return mHistory.size(); }
 
 private:
-  std::unique_ptr<INode> mState;
+  std::unique_ptr<T> mState;
   kpi::History mHistory;
 };
 

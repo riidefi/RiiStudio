@@ -8,7 +8,7 @@ namespace kpi {
 
 class History {
 public:
-  void commit(const INode& doc) {
+  void commit(const IMementoOriginator& doc) {
     if (history_cursor >= 0)
       root_history.erase(root_history.begin() + history_cursor + 1,
                          root_history.end());
@@ -17,13 +17,13 @@ public:
     ++history_cursor;
     onCommit(doc);
   }
-  void undo(INode& doc) {
+  void undo(IMementoOriginator& doc) {
     if (history_cursor <= 0)
       return;
     --history_cursor;
     onRollback(doc);
   }
-  void redo(INode& doc) {
+  void redo(IMementoOriginator& doc) {
     if (history_cursor + 1 >= root_history.size())
       return;
     ++history_cursor;
@@ -49,11 +49,11 @@ private:
   signed history_cursor = -1;
   std::set<Observer*> mObservers;
 
-  void onCommit(const INode& doc) {
+  void onCommit(const IMementoOriginator& doc) {
     for (auto& observer : mObservers)
       observer->onCommit();
   }
-  void onRollback(INode& doc) {
+  void onRollback(IMementoOriginator& doc) {
     for (auto& observer : mObservers)
       observer->beforeRollback();
     rollback(doc, *root_history[history_cursor].get());

@@ -12,7 +12,7 @@
 
 namespace riistudio::frontend {
 
-class EditorDocument : public kpi::Document {
+class EditorDocument : public kpi::Document<kpi::INode> {
   //! Open a file
   EditorDocument(FileData&& data);
   EditorDocument(std::unique_ptr<kpi::INode> state,
@@ -42,8 +42,8 @@ public:
   }
 
   std::string getFilePath() { return mFilePath; }
-  kpi::Document& getDocument() { return mDocument; }
-  const kpi::Document& getDocument() const { return mDocument; }
+  kpi::Document<kpi::INode>& getDocument() { return mDocument; }
+  const kpi::Document<kpi::INode>& getDocument() const { return mDocument; }
 
   kpi::IObject* getActive() { return mActive; }
   const kpi::IObject* getActive() const { return mActive; }
@@ -56,7 +56,7 @@ private:
   void init();
 
 private:
-  kpi::Document mDocument;
+  kpi::Document<kpi::INode> mDocument;
   IconManager mIconManager;
   kpi::IObject* mActive = nullptr;
   std::string mFilePath;

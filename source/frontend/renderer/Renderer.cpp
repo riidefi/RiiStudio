@@ -152,6 +152,10 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     }
   }
 
+  const auto bg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
+  glClearColor(bg.x, bg.y, bg.z, bg.w);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  
   mRoot->draw();
 }
 

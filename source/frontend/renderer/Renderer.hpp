@@ -18,6 +18,8 @@ public:
   void render(u32 width, u32 height, bool& hideCursor);
   void prepare(const kpi::INode& host) { mRoot->prepare(host); }
 
+  Camera& getCamera() { return mCamera; }
+
 private:
   lib3d::IDrawable* mRoot = nullptr;
 

@@ -178,11 +178,10 @@ template <typename T> struct TDocData : public IDocData, public T {
   }
 };
 struct IMemento;
-// Base of all concrete collection types
-struct INode : public virtual IObject // TODO: Global factories require this.
-                                      // But we don't need them?
-{
-  virtual ~INode() = default;
+
+struct ITypeFolderManager {
+  virtual ~ITypeFolderManager() = default;
+
   virtual std::size_t numFolders() const = 0;
   virtual const ICollection* folderAt(std::size_t index) const = 0;
   virtual ICollection* folderAt(std::size_t index) = 0;
@@ -192,12 +191,26 @@ struct INode : public virtual IObject // TODO: Global factories require this.
   virtual IDocData* getImmediateData() = 0;
   virtual const IDocData* getImmediateData() const = 0;
 
-  // For memento tracking
   virtual const char* idAt(std::size_t) const = 0;
   virtual std::size_t fromId(const char*) const = 0;
+};
+
+struct IMementoOriginator {
+  virtual ~IMementoOriginator() = default;
+
   virtual std::unique_ptr<kpi::IMemento>
   next(const kpi::IMemento* last) const = 0;
   virtual void from(const kpi::IMemento& memento) = 0;
+};
+
+// Base of all concrete collection types
+struct INode : public ITypeFolderManager,
+               public IMementoOriginator,
+               public virtual IObject // TODO: Global factories require this.
+                                      // But we don't need them?
+{
+  virtual ~INode() = default;
+
   // virtual std::unique_ptr<INode> clone() const = 0;
 };
 
