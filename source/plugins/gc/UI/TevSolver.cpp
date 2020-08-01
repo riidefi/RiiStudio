@@ -10,6 +10,8 @@ struct Expr {
   Expr* parent = nullptr;
 };
 
+namespace impl {
+
 struct UnaryExpr : Expr {
   u32 val = 0;
   // We will never point to another..
@@ -260,14 +262,14 @@ u32 computeUsed(const Expr& e) {
 }
 
 template <typename T>
-Expr& solve_tev_stage_impl(const T& substage,
+static Expr& solve_tev_stage_impl(const T& substage,
                            riistudio::util::StringBuilder& builder,
                            bool do_print_inter, u8* workmem,
                            std::size_t workmem_size) {
   assert(workmem_size >= sizeof(ExprAlloc) &&
          "Not enough memory.. cannot proceed");
 
-  std::fill_n(workmem, workmem_size, 0);
+  // std::fill_n(workmem, workmem_size, 0);
   ExprAlloc& allocator = *reinterpret_cast<ExprAlloc*>(workmem);
 
   auto make_unary = [&](u32 val) { return allocator.makeUnary(val); };
@@ -365,5 +367,7 @@ Expr& solveTevStage(const gx::TevStage::AlphaStage& substage,
   return solve_tev_stage_impl(substage, builder, do_print_inter, workmem,
                               workmem_size);
 }
+
+} // namespace impl
 
 } // namespace libcube::UI
