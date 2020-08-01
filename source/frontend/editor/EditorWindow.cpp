@@ -1,107 +1,39 @@
 #include "EditorWindow.hpp"
 #include <core/3d/i3dmodel.hpp>                  // lib3d::Scene
-#include <core/api.hpp>                          // SpawnExporter
 #include <core/util/gui.hpp>                     // ImGui::DockBuilderDockWindow
 #include <frontend/applet.hpp>                   // core::Applet
 #include <frontend/editor/views/HistoryList.hpp> // MakePropertyEditor
 #include <frontend/editor/views/Outliner.hpp>    // MakeHistoryList
 #include <frontend/editor/views/PropertyEditor.hpp>   // MakeOutliner
 #include <frontend/editor/views/ViewportRenderer.hpp> // MakeViewportRenderer
-#include <fstream>                                    // ofstream
-#include <oishii/reader/binary_reader.hxx>            // oishii::BinaryWriter
-#include <oishii/writer/binary_writer.hxx>            // oishii::Writer
-#include <string>                                     // std::string
 #include <vendor/fa5/IconsFontAwesome5.h>             // ICON_FA_TIMES
 
 namespace riistudio::frontend {
 
-std::string getFileShort(const std::string& path) {
+static std::string getFileShort(const std::string& path) {
   return path.substr(path.rfind("\\") + 1);
 }
 
 void EditorWindow::init() {
-  mDocument.commit();
-  propogateIcons(mDocument.getRoot());
+  commit();
+  mIconManager.propogateIcons(getRoot());
 
-  attachWindow(MakePropertyEditor(mDocument.getHistory(), mDocument.getRoot(),
-                                  mActive, *this));
-  attachWindow(MakeHistoryList(mDocument.getHistory(), mDocument.getRoot()));
-  attachWindow(MakeOutliner(mDocument.getRoot(), mActive, *this));
-  if (dynamic_cast<lib3d::Scene*>(&mDocument.getRoot()) != nullptr)
-    attachWindow(MakeViewportRenderer(mDocument.getRoot()));
+  attachWindow(MakePropertyEditor(getHistory(), getRoot(), mActive, *this));
+  attachWindow(MakeHistoryList(getHistory(), getRoot()));
+  attachWindow(MakeOutliner(getRoot(), mActive, *this));
+  if (dynamic_cast<lib3d::Scene*>(&getRoot()) != nullptr)
+    attachWindow(MakeViewportRenderer(getRoot()));
 }
 
 EditorWindow::EditorWindow(std::unique_ptr<kpi::INode> state,
                            const std::string& path)
-    : StudioWindow(getFileShort(path), true), mDocument(std::move(state)),
-      mFilePath(path) {
+    : StudioWindow(getFileShort(path), true),
+      EditorDocument(std::move(state), path) {
   init();
 }
 EditorWindow::EditorWindow(FileData&& data)
-    : StudioWindow(getFileShort(data.mPath), true), mFilePath(data.mPath) {
-  // TODO: Not ideal..
-  std::vector<u8> vec(data.mLen);
-  memcpy(vec.data(), data.mData.get(), data.mLen);
-
-  oishii::DataProvider provider(std::move(vec), data.mPath);
-  oishii::BinaryReader reader(provider.slice());
-  auto importer = SpawnImporter(data.mPath, provider.slice());
-
-  if (!importer.second) {
-    printf("Cannot spawn importer..\n");
-    return;
-  }
-  if (!IsConstructible(importer.first)) {
-    printf("Non constructable state.. find parents\n");
-
-    const auto children = GetChildrenOfType(importer.first);
-    if (children.empty()) {
-      printf("No children. Cannot construct.\n");
-      return;
-    }
-    assert(/*children.size() == 1 &&*/ IsConstructible(children[0])); // TODO
-    importer.first = children[0];
-  }
-
-  std::unique_ptr<kpi::INode> fileState{
-      dynamic_cast<kpi::INode*>(SpawnState(importer.first).release())};
-  if (!fileState.get()) {
-    printf("Cannot spawn file state %s.\n", importer.first.c_str());
-    return;
-  }
-  getDocument().setRoot(std::move(fileState));
-#if 0
-  struct Handler : oishii::ErrorHandler {
-    void onErrorBegin(const oishii::DataProvider& stream) override {
-      puts("[Begin Error]");
-    }
-    void onErrorDescribe(const oishii::DataProvider& stream, const char* type,
-                         const char* brief, const char* details) override {
-      printf("- [Describe] Type %s, Brief: %s, Details: %s\n", type, brief,
-             details);
-    }
-    void onErrorAddStackTrace(const oishii::DataProvider& stream,
-                              std::streampos start, std::streamsize size,
-                              const char* domain) override {
-      printf("- [Stack] Start: %u, Size: %u, Domain: %s\n", (u32)start,
-             (u32)size, domain);
-    }
-    void onErrorEnd(const oishii::DataProvider& stream) override {
-      puts("[End Error]");
-    }
-  } handler;
-  reader.addErrorHandler(&handler);
-#endif
-  auto message_handler = [&](kpi::IOMessageClass message_class,
-                             const std::string_view domain,
-                             const std::string_view message_body) {
-    mMessages.emplace_back(message_class, std::string(domain),
-                           std::string(message_body));
-  };
-  kpi::IOTransaction transaction{getDocument().getRoot(), provider.slice(),
-                                 message_handler};
-  importer.second->read_(transaction);
-
+    : StudioWindow(getFileShort(data.mPath), true),
+      EditorDocument(std::move(data)) {
   init();
 }
 ImGuiID EditorWindow::buildDock(ImGuiID root_id) {
@@ -136,11 +68,12 @@ void EditorWindow::draw_() {
   }
 #endif
 
+  // TODO: Only affect active window
   if (ImGui::GetIO().KeyCtrl) {
     if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
-      mDocument.undo();
+      undo();
     } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
-      mDocument.redo();
+      redo();
     }
   }
 
@@ -191,20 +124,6 @@ void EditorWindow::draw_() {
     }
     ImGui::EndPopup();
   }
-}
-
-void EditorWindow::save(const std::string_view path) {
-  oishii::Writer writer(1024);
-
-  auto ex = SpawnExporter(getDocument().getRoot());
-  if (!ex) {
-    DebugReport("Failed to spawn importer.\n");
-    return;
-  }
-  ex->write_(getDocument().getRoot(), writer);
-
-  plate::Platform::writeFile({writer.getDataBlockStart(), writer.getBufSize()},
-                             path);
 }
 
 } // namespace riistudio::frontend

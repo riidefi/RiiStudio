@@ -370,16 +370,11 @@ RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
 }
 RootWindow::~RootWindow() { DeinitAPI(); }
 
-void RootWindow::save(const std::string& _path) {
-  std::string path = _path;
-  if (path.ends_with(".bdl")) {
-    path.resize(path.size() - 4);
-    path += ".bmd";
-  }
+void RootWindow::save(const std::string& path) {
   EditorWindow* ed =
-      dynamic_cast<EditorWindow*>(getActive() ? getActive() : nullptr);
+      getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
   if (ed != nullptr)
-    ed->save(path);
+    ed->saveAs(path);
 }
 void RootWindow::saveAs() {
   auto results = pfd::save_file("Save File", "", {"All Files", "*"}).result();
