@@ -170,7 +170,6 @@ void RootWindow::draw() {
               const auto from_mats = from_model.getMaterials();
               for (int m_i = 0; m_i < from_mats.size(); ++m_i) {
                 auto& mat = bmd_model.getMaterials().add();
-                mat.id = m_i;
 
                 auto& md = mat.getMaterialData();
 

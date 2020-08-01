@@ -336,9 +336,11 @@ struct AssImporter {
   }
 
   void ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
-    assert(pMesh->mPrimitiveTypes == aiPrimitiveType_TRIANGLE);
+    // Ignore points and lines
+    if (pMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
+      return;
 
-    auto poly = out_model.getMeshes().add();
+    auto& poly = out_model.getMeshes().add();
     poly.mode = j3d::ShapeData::Mode::Skinned;
     poly.bbox.min = {pMesh->mAABB.mMin.x, pMesh->mAABB.mMin.y,
                      pMesh->mAABB.mMin.z};
@@ -448,9 +450,10 @@ struct AssImporter {
     ProcessMeshTriangles(poly, pMesh, pNode, std::move(vertices));
   }
 
-  void ImportNode(const aiNode* pNode, lib3d::Bone* parent = nullptr) {
+  void ImportNode(const aiNode* pNode, int parent = -1) {
     // Create a bone (with name)
-    auto joint = out_model.getBones().add();
+    const auto joint_id = out_model.getBones().size();
+    auto& joint = out_model.getBones().add();
     joint.setName(pNode->mName.C_Str());
     const glm::mat4 xf = getMat4(pNode->mTransformation);
 
@@ -471,9 +474,9 @@ struct AssImporter {
     joint.id = boneIdCtr->boneId++;
     boneIdCtr->nodeToBoneIdMap[pNode] = joint.id;
 
-    joint.setBoneParent(parent != nullptr ? parent->getId() : -1);
-    if (parent != nullptr)
-      parent->addChild(joint.getId());
+    joint.setBoneParent(parent);
+    if (parent != -1)
+      out_model.getBones()[parent].addChild(joint.getId());
 
     // Mesh data
     for (unsigned i = 0; i < pNode->mNumMeshes; ++i) {
@@ -489,7 +492,7 @@ struct AssImporter {
     }
 
     for (unsigned i = 0; i < pNode->mNumChildren; ++i) {
-      ImportNode(pNode->mChildren[i], &joint);
+      ImportNode(pNode->mChildren[i], joint_id);
     }
   }
 
@@ -502,14 +505,13 @@ struct AssImporter {
     for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
       auto* pMat = pScene->mMaterials[i];
       auto& mr = out_model.getMaterials().add();
-      mr.id = i;
       const auto name = pMat->GetName();
       mr.name = name.C_Str();
       if (mr.name == "") {
         mr.name = "Material";
         mr.name += std::to_string(i);
       }
-      boneIdCtr->matIdToMatIdMap[i] = mr.id;
+      boneIdCtr->matIdToMatIdMap[i] = i;
       ImpMaterial impMat;
 
       for (unsigned t = aiTextureType_DIFFUSE; t <= aiTextureType_UNKNOWN;
@@ -673,6 +675,10 @@ struct AssImporter {
       int width, height, channels;
       unsigned char* image =
           stbi_load((tex).c_str(), &width, &height, &channels, STBI_rgb_alpha);
+      if (!image) {
+        printf("Cannot find texture %s\n", tex.c_str());
+        continue;
+      }
       assert(image);
       data.mFormat = (int)libcube::gx::TextureFormat::CMPR;
       data.setWidth(width);
@@ -703,11 +709,12 @@ struct AssReader {
   }
   void read(kpi::IOTransaction& transaction) const {
     const u32 ass_flags =
-        aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-        aiProcess_ValidateDataStructure | aiProcess_RemoveRedundantMaterials |
-        aiProcess_PopulateArmatureData | aiProcess_FindDegenerates |
-        aiProcess_FindInvalidData | aiProcess_GenUVCoords |
-        aiProcess_FindInstances | aiProcess_OptimizeMeshes | aiProcess_Debone |
+        aiProcess_Triangulate | aiProcess_SortByPType |
+        aiProcess_GenSmoothNormals | aiProcess_ValidateDataStructure |
+        aiProcess_RemoveRedundantMaterials | aiProcess_PopulateArmatureData |
+        aiProcess_FindDegenerates | aiProcess_FindInvalidData |
+        aiProcess_GenUVCoords | aiProcess_FindInstances |
+        aiProcess_OptimizeMeshes | aiProcess_Debone |
         aiProcess_GenBoundingBoxes | aiProcess_FlipUVs |
         aiProcess_FlipWindingOrder;
 

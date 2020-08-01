@@ -20,6 +20,8 @@ struct JointData {
   enum class MatrixType : u16 { Standard = 0, Billboard, BillboardY };
 
   std::string name = "root";
+
+  // Facilitates reading. Not used for editing/writing.
   ID<Joint> id = 0;
 
   u16 flag = 1; // Unused four bits; default value in galaxy is 1

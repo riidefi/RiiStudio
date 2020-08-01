@@ -15,6 +15,7 @@ struct BMDOutputContext {
   Collection& col;
 
   oishii::BinaryReader& reader;
+  kpi::IOTransaction& transaction;
 
   // Compression ID LUT (remap table)
   std::vector<u16> jointIdLut;

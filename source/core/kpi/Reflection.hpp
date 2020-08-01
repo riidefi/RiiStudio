@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RichName.hpp"
+#include <core/common.h>
 #include <map>
 #include <memory>
 #include <queue>
@@ -94,8 +95,7 @@ public:
     }
     int getTranslationForParent(int index) const {
       // TODO
-      if (!valid() || index > mMirror->mParents.size())
-        throw "";
+      assert(valid() && index <= mMirror->mParents.size());
 
       return mMirror->mParents[index].translation;
     }

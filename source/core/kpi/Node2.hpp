@@ -416,6 +416,7 @@ std::shared_ptr<R> set_m(const T* last, const U& in) {
   }
 }
 
+// Create a composite memento
 template <typename InT, typename OutT, typename OldT>
 void nextFolder(OutT& out, const InT& in, const OldT* old) {
   if (old != nullptr) {
@@ -437,12 +438,32 @@ void nextFolder(OutT& out, const InT& in, const OldT* old) {
     }
   }
 }
+
+template <typename Q> class has_notify_observers {
+  typedef char YesType[1];
+  typedef char NoType[2];
+
+  template <typename C> static YesType& test(decltype(&C::notifyObservers));
+  template <typename C> static NoType& test(...);
+
+public:
+  enum { value = sizeof(test<Q>(0)) == sizeof(YesType) };
+};
+
+template <typename CType, typename MType>
+void set_concrete_element(CType& out, const MType& memento) {
+  out = memento;
+  if constexpr (has_notify_observers<CType>::value)
+    out.notifyObservers();
+}
+
+// Restore a concrete object from a memento
 template <typename InT, typename OutT>
 void fromFolder(OutT&& out /*rvalue range*/, const InT& in) {
   const auto both = std::min(in.size(), out.size());
   for (int i = 0; i < both; ++i) {
     if (should_set(&out[i], in[i].get())) {
-      out[i] = *in[i];
+      set_concrete_element(out[i], *in[i].get());
     }
   }
   if (in.size() < out.size()) {
@@ -452,6 +473,8 @@ void fromFolder(OutT&& out /*rvalue range*/, const InT& in) {
     out.resize(in.size());
     for (int i = in.size() - added; i <= in.size(); ++i) {
       out[i] = *in[i];
+      // Observers are not notified here.
+      // Rationale: New objects likely do not have observers.
     }
   }
 }

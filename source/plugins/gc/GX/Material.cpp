@@ -174,7 +174,7 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
     computeNormalMatrix(inmtx, mdl, true);
     break;
   default:
-    throw "Unsupported mapping method!";
+    assert(!"Unsupported mapping method!");
     break;
   }
 

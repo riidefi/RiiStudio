@@ -24,7 +24,7 @@ struct TextureData {
 
   s8 mMinLod;
   s8 mMaxLod;
-  u8 mMipmapLevel = 0;
+  u8 mMipmapLevel = 1;
 
   std::vector<u8> mData;
 

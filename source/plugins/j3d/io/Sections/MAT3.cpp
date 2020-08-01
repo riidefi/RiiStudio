@@ -461,9 +461,10 @@ void readMAT3(BMDOutputContext& ctx) {
       sorted = false;
   }
 
-  if (!sorted)
-    DebugReport("Material IDS will be remapped on save and incompatible with "
-                "animations.\n");
+  if (!sorted) {
+    ctx.transaction.callback(kpi::IOMessageClass::Warning, "MAT3",
+                             "Materials data is compressed.");
+  }
 
   reader.seekSet(ofsStringTable + g.start);
   const auto nameTable = readNameTable(reader);
@@ -471,7 +472,8 @@ void readMAT3(BMDOutputContext& ctx) {
   for (int i = 0; i < size; ++i) {
     Material& mat = ctx.mdl.getMaterials()[i];
     reader.seekSet(g.start + ofsMatData + ctx.materialIdLut[i] * 0x14c);
-    mat.id = ctx.materialIdLut[i];
+    // This was a bug: multiple materials should not share the same ID.
+    // mat.id = ctx.materialIdLut[i];
     mat.name = nameTable[i];
 
     readMatEntry(mat, loader, reader, ofsStringTable, i);
@@ -834,7 +836,10 @@ void io_wrapper<SerializableMaterial>::onWrite(
   for (int i = 0; i < m.samplers.size(); ++i)
     samplers[i] = (Material::J3DSamplerData&)*m.samplers[i].get();
   dbg.assertSince(0x084);
-  write_array_vec<u16>(writer, samplers, cache.samplers);
+  for (int i = 0; i < samplers.size(); ++i)
+    writer.write<u16>(samplers[i].btiId);
+  for (int i = samplers.size(); i < 8; ++i)
+    writer.write<u16>(~0);
   dbg.assertSince(0x094);
   assert(m.tevKonstColors.nElements == 4);
   write_array_vec<u16>(writer, m.tevKonstColors, cache.konstColors);

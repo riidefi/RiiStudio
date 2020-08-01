@@ -40,8 +40,9 @@ void readJNT1(BMDOutputContext& ctx) {
   }
 
   if (!sorted) {
-    DebugReport("Joint IDS are remapped.\n");
-    throw "";
+    ctx.transaction.callback(kpi::IOMessageClass::Warning, "JNT1",
+                             "The model employs joint compression."
+                             "Filesize on resave may be slightly larger.");
   }
 
   // FIXME: unnecessary allocation of a vector.
@@ -124,8 +125,8 @@ struct JNT1Node final : public oishii::Node {
     }
 
     Result write(oishii::Writer& writer) const noexcept {
-      for (auto& joint : mMdl.getBones())
-        writer.write<u16>(joint.id);
+      for (u16 i = 0; i < mMdl.getBones().size(); ++i)
+        writer.write<u16>(i);
 
       return {};
     }

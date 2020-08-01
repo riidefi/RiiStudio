@@ -78,8 +78,9 @@ public:
     return dynamic_cast<Collection*>(&node) != nullptr;
   }
 
-  void processModelForWrite(j3d::Collection& collection, j3d::Model& model,
-                            std::map<std::string, u32>& texNameMap) const {
+  void
+  processModelForWrite(j3d::Collection& collection, j3d::Model& model,
+                       const std::map<std::string, u32>& texNameMap) const {
     auto& texCache = model.mTexCache;
     auto& matCache = model.mMatCache;
     texCache.clear();
@@ -88,12 +89,12 @@ public:
     for (auto& mat : model.getMaterials()) {
       for (int i = 0; i < mat.samplers.size(); ++i) {
         auto& samp = mat.samplers[i];
-        auto* slow = reinterpret_cast<MaterialData::J3DSamplerData*>(&samp);
+        auto* slow = reinterpret_cast<MaterialData::J3DSamplerData*>(samp.get());
         assert(slow != nullptr);
 
         assert(!samp->mTexture.empty());
         if (!samp->mTexture.empty()) {
-          const auto btiId = texNameMap[samp->mTexture];
+          const auto btiId = texNameMap.at(samp->mTexture);
           Tex tmp(collection.getTextures()[btiId], *samp.get());
           tmp.btiId = btiId;
 
@@ -154,7 +155,7 @@ public:
 
     oishii::BinaryReader reader(std::move(data));
 
-    BMDOutputContext ctx{mdl, collection, reader};
+    BMDOutputContext ctx{mdl, collection, reader, transaction};
 
     reader.setEndian(true);
     reader.expectMagic<'J3D2'>();

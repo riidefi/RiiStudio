@@ -78,7 +78,6 @@ struct MaterialData : public libcube::GCMaterialData {
     J3DSamplerData() : btiId(-1) {}
   };
 
-  u32 id = -1;
   u8 flag = 1;
 
   bool indEnabled = false;

@@ -235,7 +235,7 @@ public:
     const auto from = mLabels.find(reloc.from);
     const auto to = mLabels.find(reloc.to);
 
-    std::size_t delta = 0;
+    int delta = 0;
     if (from == mLabels.end() || to == mLabels.end()) {
       printf("Bad lookup: %s to %s\n", reloc.from.c_str(), reloc.to.c_str());
       return; // come back..
@@ -248,9 +248,9 @@ public:
     mWriter.seekSet(reloc.ofs);
 
     if (reloc.sz == 4) {
-      mWriter.write<u32>(delta);
+      mWriter.write<s32>(delta);
     } else if (reloc.sz == 2) {
-      mWriter.write<u16>(delta);
+      mWriter.write<s16>(delta);
     } else {
       assert(false);
       printf("Invalid reloc size..\n");
@@ -438,6 +438,7 @@ struct DlHandle {
     cmd_size = c;
     buf_size = roundUp(c, 32);
   }
+  void setBufSize(std::size_t c) { buf_size = c; }
   void setBufAddr(s32 addr) { ofs_buf = addr - tag_start; }
 };
 void writeVertexDataDL(const libcube::IndexedPolygon& poly,
@@ -524,7 +525,8 @@ void writeDictionary(const std::string& name, T src_range, U handler,
 };
 
 static void writeModel(const Model& mdl, oishii::Writer& writer,
-                       RelocWriter& linker, NameTable& names) {
+                       RelocWriter& linker, NameTable& names,
+                       std::size_t brres_start) {
   const auto mdl_start = writer.tell();
   int d_cursor = 0;
 
@@ -593,7 +595,8 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
     writer.write<u32>('MDL0');                  // magic
     linker.writeReloc<u32>("MDL0", "MDL0_END"); // file size
     writer.write<u32>(11);                      // revision
-    linker.writeReloc<s32>("MDL0", "BRRES");    // offset to the BRRES start
+    writer.write<u32>(brres_start - mdl_start);
+    // linker.writeReloc<s32>("MDL0", "BRRES");    // offset to the BRRES start
 
     // Section offsets
     linker.writeReloc<s32>("MDL0", "RenderTree");
@@ -838,10 +841,10 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
           const u32 identity_scale = mtx.scale == glm::vec2{1.0f, 1.0f};
           const u32 identity_rotate = mtx.rotate == 0.0f;
           const u32 identity_translate = mtx.translate == glm::vec2{0.0f, 0.0f};
-          printf("identity_scale: %u, identity_rotate: %u, identity_translate: "
-                 "%u\n",
-                 identity_scale, identity_rotate, identity_translate);
-          // TODO: Flag 1's meaning seems wrong
+          // printf("identity_scale: %u, identity_rotate: %u,
+          // identity_translate: "
+          //        "%u\n",
+          //        identity_scale, identity_rotate, identity_translate);
           return 1 | (identity_scale << 1) | (identity_rotate << 2) |
                  (identity_translate << 3);
         };
@@ -891,8 +894,8 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
         for (int i = 0; i < mat.texMatrices.size(); ++i) {
           auto& mtx = *mat.texMatrices[i];
 
-          printf("CamIdx: %i, LIdx: %i\n", (signed)mtx.camIdx,
-                 (signed)mtx.lightIdx);
+          // printf("CamIdx: %i, LIdx: %i\n", (signed)mtx.camIdx,
+          //        (signed)mtx.lightIdx);
           writer.write<s8>((s8)mtx.camIdx);
           writer.write<s8>((s8)mtx.lightIdx);
 
@@ -941,7 +944,7 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
 
         for (u8 i = 0; i < mat.info.nColorChan; ++i) {
           // TODO: flag
-          writer.write<u32>(0xf);
+          writer.write<u32>(0x3f);
           mat.chanData[i].matColor >> writer;
           mat.chanData[i].ambColor >> writer;
 
@@ -1259,7 +1262,8 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
 
         writer.alignTo(32);
         setup.setBufAddr(writer.tell());
-        setup.setCmdSize(160);
+        setup.setCmdSize(0xa0);
+        setup.setBufSize(0xe0); // 0xa0 is already 32b aligned
         setup.write();
         build_dlsetup();
 
@@ -1414,6 +1418,10 @@ static void readModel(Model& mdl, oishii::BinaryReader& reader,
   // Compute children
   for (int i = 0; i < mdl.getBones().size(); ++i) {
     if (const auto parent_id = mdl.getBones()[i].mParent; parent_id >= 0) {
+      if (parent_id >= mdl.getBones().size()) {
+        printf("Invalidly large parent index..\n");
+        break;
+      }
       mdl.getBones()[parent_id].mChildren.push_back(i);
     }
   }
@@ -1713,6 +1721,9 @@ static void readModel(Model& mdl, oishii::BinaryReader& reader,
 
     for (u32 i = 0; i < (u32)libcube::gx::VertexAttribute::Max; ++i) {
       if (poly.mVertexDescriptor.mBitfield & (1 << i)) {
+        if (i == 0)
+          throw "Unsupported";
+
         const auto stat = vcdHandler.mGpuMesh.VCD.GetVertexArrayStatus(
             i - (u32)libcube::gx::VertexAttribute::Position);
         const auto att = static_cast<libcube::gx::VertexAttributeType>(stat);
@@ -1977,6 +1988,7 @@ public:
     RelocWriter linker(writer);
     NameTable names;
 
+    const auto start = writer.tell();
     linker.label("BRRES");
 
     writer.write<u32>('bres');                    // magic
@@ -2059,7 +2071,7 @@ public:
       writer.alignTo(32);
       models_dict.mNodes[i + 1].setDataDestination(writer.tell());
       auto mdl_linker = linker.sublet("Models/" + std::to_string(i));
-      writeModel(collection.getModels()[i], writer, mdl_linker, names);
+      writeModel(collection.getModels()[i], writer, mdl_linker, names, start);
     }
     for (int i = 0; i < collection.getTextures().size(); ++i) {
       writer.alignTo(32);
