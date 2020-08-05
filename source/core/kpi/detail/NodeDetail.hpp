@@ -7,6 +7,17 @@ namespace kpi {
 
 namespace detail {
 
+template <typename Q> class has_render {
+  typedef char YesType[1];
+  typedef char NoType[2];
+
+  template <typename C> static YesType& test(decltype(&C::render));
+  template <typename C> static NoType& test(...);
+
+public:
+  enum { value = sizeof(test<Q>(0)) == sizeof(YesType) };
+};
+
 struct ApplicationPluginsImpl {
   // Requires TypeIdResolvable<T>, DefaultConstructible<T>
   template <typename T>
@@ -15,7 +26,7 @@ struct ApplicationPluginsImpl {
       return std::make_unique<TFactory<T>>(*this);
     }
     std::unique_ptr<IObject> spawn() override {
-      return std::unique_ptr<IObject> { static_cast<IObject*>(new T()) };
+      return std::unique_ptr<IObject>{static_cast<IObject*>(new T())};
     }
     const char* getId() const override { return typeid(T).name(); }
   };
@@ -32,8 +43,10 @@ struct ApplicationPluginsImpl {
                          oishii::BinaryReader& reader) const override {
       return T::canRead(file, reader);
     }
-    void read_(IOTransaction& transaction) override {
-      T::read(transaction);
+    void read_(IOTransaction& transaction) override { T::read(transaction); }
+    void render() override {
+      if constexpr (has_render<T>::value)
+        T::render();
     }
   };
   //! Requires methods:

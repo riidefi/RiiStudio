@@ -94,6 +94,11 @@ protected:
   // dependencies are resolved)
   bool process();
 
+  void importerRender() {
+    if (mDeserializer)
+      mDeserializer->render();
+  }
+
   State result = State::NotImportable;
   std::optional<kpi::IOTransaction> transaction = std::nullopt;
 

@@ -1,759 +1,28 @@
 // Assimp importer.
 
-#include <glm/glm.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
-
+#include "AssImporter.hpp"
+#include "AssLogger.hpp"
+#include "Utility.hpp"
+#include <algorithm>
 #include <core/3d/i3dmodel.hpp>
 #include <core/kpi/Node.hpp>
-
+#include <core/util/gui.hpp>
+#include <map>
+#include <plugins/gc/Export/IndexedPolygon.hpp>
+#include <plugins/j3d/Scene.hpp>
+#include <span>
+#include <unordered_map>
+#include <vendor/assimp/DefaultLogger.hpp>
 #include <vendor/assimp/Importer.hpp>
 #include <vendor/assimp/postprocess.h>
 #include <vendor/assimp/scene.h>
-
-#include <plugins/gc/Export/IndexedPolygon.hpp>
-#include <plugins/j3d/Scene.hpp>
-
-#include <algorithm>
-#include <map>
-#include <span>
-#include <vendor/stb_image.h>
 #undef min
 
 namespace riistudio::ass {
 
-#pragma region Utility
-static std::string getFileShort(const std::string& path) {
-  return path.substr(path.rfind("\\") + 1);
-}
-static glm::vec3 getVec(const aiVector3D& vec) { return {vec.x, vec.y, vec.z}; }
-static glm::vec2 getVec2(const aiVector3D& vec) { return {vec.x, vec.y}; }
-static libcube::gx::Color getClr(const aiColor4D& clr) {
-  libcube::gx::ColorF32 fclr{clr.r, clr.g, clr.b, clr.a};
-  return fclr;
-}
-static glm::mat4 getMat4(const aiMatrix4x4& mtx) {
-  glm::mat4 out;
+static constexpr std::array<std::string_view, 4> supported_endings = {
+    ".dae", ".obj", ".fbx", ".smd"};
 
-  out[0][0] = mtx.a1;
-  out[1][0] = mtx.a2;
-  out[2][0] = mtx.a3;
-  out[3][0] = mtx.a4;
-  out[0][1] = mtx.b1;
-  out[1][1] = mtx.b2;
-  out[2][1] = mtx.b3;
-  out[3][1] = mtx.b4;
-  out[0][2] = mtx.c1;
-  out[1][2] = mtx.c2;
-  out[2][2] = mtx.c3;
-  out[3][2] = mtx.c4;
-  out[0][3] = mtx.d1;
-  out[1][3] = mtx.d2;
-  out[2][3] = mtx.d3;
-  out[3][3] = mtx.d4;
-  return out;
-}
-
-struct IdCounter {
-  u32 boneId = 0;
-  u32 meshId = 0;
-  u32 matId = 0;
-
-  std::map<const aiNode*, u32> nodeToBoneIdMap;
-  std::map<u32, u32> matIdToMatIdMap;
-};
-
-// Actual data we can respect
-enum class ImpTexType {
-  Diffuse,  // Base color
-  Specular, // Attenuate spec lighting or env lighting
-  Ambient,  // We can't mix with amb color, but we can just add it on.
-  Emissive, // We also add this on. Perhaps later in the pipeline.
-  Bump,     // We use the height map as a basic bump map.
-            // We do not support normal maps. Perhaps convert to Bump.
-  // We do not support shininess. In setups with two env maps, we could
-  // use this to attenuate the specular one. For now, though, it is
-  // unsupported.
-  Opacity,      // This can actually be useful. For example, combining CMPR +
-                // I8.
-  Displacement, // Effectively the same as bump maps, but attenuate the
-                // single diffuse component.
-
-  // Treated as second diffuse, for now
-  // LightMap,     // Any second diffuse image gets moved here
-  // We don't support reflection.
-  // Base Color -> Diffuse
-  // Normal Camera -> Unsupported
-  // Emission Color -> Emissive
-  // Metalness -> Ignored for now. We can tint specular to achieve this.
-  // Diffuse Roughness -> Invert for specular eventually
-  // AO -> ANother LightMap
-  // Unknown -> Treat as diffuse, if beyond first slot, LightMap
-};
-struct ImpSampler {
-  ImpTexType type;
-  std::string path;
-  u32 uv_channel;
-  libcube::gx::TextureWrapMode wrap;
-};
-struct ImpMaterial {
-  std::vector<ImpSampler> samplers;
-};
-void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
-                     std::set<std::string>& texturesToImport) {
-  // Vertex Lighting:
-  // Ambient* + (Diffuse* x LightMap x DIFFUSE_LIGHT)
-  // + (Specular* x SPECULAR_LIGHT) -> Replace with opacity, not attenuate
-
-  // Env Lighting:
-  // Ambient* + (Diffuse* x LightMap x DIFFUSE_TEX*(Bump)) +
-  // (Specular* x SPECULAR_TEX*(Bump)) -> Replace with opacity
-
-  // Current, lazy setup:
-  // Diffuse x Diffuse.. -> Replace with opacity
-
-  // WIP, just supply a pure color..
-  auto& data = out.getMaterialData();
-
-  if (!in.samplers.empty()) {
-    data.samplers.push_back(std::make_unique<j3d::Material::J3DSamplerData>());
-    data.samplers[0]->mTexture = in.samplers[0].path;
-    texturesToImport.insert(in.samplers[0].path);
-    data.texMatrices.push_back(std::make_unique<j3d::Material::TexMatrix>());
-    data.texGens.push_back({});
-  }
-
-  data.cullMode = libcube::gx::CullMode::Back;
-
-  libcube::gx::TevStage wip;
-  wip.texMap = wip.texCoord = 0;
-  wip.rasOrder = libcube::gx::ColorSelChanApi::color0a0;
-  wip.rasSwap = 0;
-  wip.colorStage.a = libcube::gx::TevColorArg::zero;
-  wip.colorStage.b = libcube::gx::TevColorArg::texc;
-  wip.colorStage.c = libcube::gx::TevColorArg::rasc;
-  wip.colorStage.d = libcube::gx::TevColorArg::zero;
-
-  wip.alphaStage.a = libcube::gx::TevAlphaArg::zero;
-  wip.alphaStage.b = libcube::gx::TevAlphaArg::texa;
-  wip.alphaStage.c = libcube::gx::TevAlphaArg::rasa;
-  wip.alphaStage.d = libcube::gx::TevAlphaArg::zero;
-
-  data.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
-  data.shader.mStages[0] = wip;
-
-  libcube::gx::ChannelControl ctrl;
-  ctrl.enabled = true;
-  ctrl.Material = libcube::gx::ColorSource::Vertex;
-  data.colorChanControls.push_back(ctrl); // rgb
-  data.colorChanControls.push_back(ctrl); // a
-}
-std::tuple<aiString, unsigned int, aiTextureMapMode>
-GetTexture(aiMaterial* pMat, int t, int j) {
-  aiString path;
-  // No support for anything non-uv -- already processed away by the time
-  // we get it aiTextureMapping mapping;
-  unsigned int uvindex = 0;
-  // We don't support blend/op.
-  // All the data here *could* be translated to TEV,
-  // but it isn't practical.
-  // ai_real blend;
-  // aiTextureOp op;
-  // No decal support
-  u32 mapmode = aiTextureMapMode_Wrap;
-
-  pMat->GetTexture(static_cast<aiTextureType>(t), j, &path, nullptr, &uvindex,
-                   nullptr, nullptr, nullptr //(aiTextureMapMode*)&mapmode
-  );
-  return {path, uvindex, (aiTextureMapMode)mapmode};
-}
-#pragma endregion
-
-constexpr libcube::gx::VertexAttribute PNM =
-    libcube::gx::VertexAttribute::PositionNormalMatrixIndex;
-
-struct AssImporter {
-  IdCounter ctr;
-  IdCounter* boneIdCtr = &ctr;
-
-  const aiScene* pScene = nullptr;
-  j3d::Collection* out_collection = nullptr;
-  j3d::Model* out_model = nullptr;
-
-  AssImporter(const aiScene* scene, kpi::INode* mdl) : pScene(scene) {
-    out_collection = dynamic_cast<j3d::Collection*>(mdl);
-    assert(out_collection != nullptr);
-    out_model = &out_collection->getModels().add();
-    assert(out_model != nullptr);
-  }
-  int get_bone_id(const aiNode* pNode) {
-    return boneIdCtr->nodeToBoneIdMap.find(pNode) !=
-                   boneIdCtr->nodeToBoneIdMap.end()
-               ? boneIdCtr->nodeToBoneIdMap[pNode]
-               : -1;
-  }
-  // Only call if weighted
-  u16 add_weight_matrix_low(const j3d::DrawMatrix& drw) {
-    const auto found = std::find(out_model->mDrawMatrices.begin(),
-                                 out_model->mDrawMatrices.end(), drw);
-    if (found != out_model->mDrawMatrices.end()) {
-      return found - out_model->mDrawMatrices.begin();
-    } else {
-      out_model->mDrawMatrices.push_back(drw);
-      return out_model->mDrawMatrices.size() - 1;
-    }
-  }
-  u16 add_weight_matrix(int v, const aiMesh* pMesh,
-                        j3d::DrawMatrix* pDrwOut = nullptr) {
-    j3d::DrawMatrix drw;
-    for (unsigned j = 0; j < pMesh->mNumBones; ++j) {
-      const auto* pBone = pMesh->mBones[j];
-
-      for (unsigned k = 0; k < pBone->mNumWeights; ++k) {
-        const auto* pWeight = &pBone->mWeights[k];
-        if (pWeight->mVertexId == v) {
-          const auto boneid = get_bone_id(pBone->mNode);
-          assert(boneid != -1);
-          drw.mWeights.emplace_back(boneid, pWeight->mWeight);
-          break;
-        }
-      }
-    }
-    if (pDrwOut != nullptr)
-      *pDrwOut = drw;
-    return add_weight_matrix_low(drw);
-  };
-
-  void
-  ProcessMeshTrianglesStatic(const aiNode* singleInfluence,
-                             j3d::Shape& poly_data,
-                             std::vector<libcube::IndexedVertex>&& vertices) {
-    auto& mp = poly_data.mMatrixPrimitives[poly_data.addMatrixPrimitive()];
-    // Copy triangle data
-    // We will do triangle-stripping in a post-process
-    auto& tris = mp.mPrimitives.emplace_back();
-    tris.mType = libcube::gx::PrimitiveType::Triangles;
-    tris.mVertices = std::move(vertices);
-
-    const int boneId = get_bone_id(singleInfluence);
-    assert(boneId > 0);
-    j3d::DrawMatrix drw{{{static_cast<u32>(boneId), 1.0f}}};
-    const auto mtx = add_weight_matrix_low(drw);
-    mp.mCurrentMatrix = mtx;
-    mp.mDrawMatrixIndices.push_back(mtx);
-  }
-  void
-  ProcessMeshTrianglesWeighted(j3d::Shape& poly_data,
-                               std::vector<libcube::IndexedVertex>&& vertices) {
-
-    // At this point, the mtx index of vertices is global.
-    // We need to convert it to a local palette index.
-    // Tolerence should be implemented here, eventually.
-
-    std::vector<u16> matrix_indices;
-
-    for (auto& v : vertices) {
-      const auto mtx_idx = v[PNM];
-
-      // Hack: We will come across data as such (assume 3-wide sweep)
-      // (A B B) (C A D)
-      // To prevent this transforming into
-      // (A B C) (D)
-      // Where references to A in the second sweep will fail,
-      // we simply don't compress across sweeps:
-      // (A B B) (C A D)
-      // (A B C) (A D)
-      // It's far from optimal, but the current choice:
-      const std::size_t sweep_id = matrix_indices.size() / 10;
-      const std::size_t sweep_begin = sweep_id * 10;
-      const std::size_t sweep_end =
-          std::min(matrix_indices.size(), (sweep_id + 1) * 10);
-      const auto found = std::find(matrix_indices.begin() + sweep_begin,
-                                   matrix_indices.begin() + sweep_end, mtx_idx);
-
-      if (found == matrix_indices.end()) {
-        matrix_indices.push_back(mtx_idx);
-      }
-    }
-
-    auto vertex_sweep_index = [&](int v, int sweep) -> int {
-      const auto found =
-          std::find(matrix_indices.begin() + sweep * 10,
-                    matrix_indices.begin() +
-                        std::min(static_cast<int>(matrix_indices.size()),
-                                 (sweep + 1) * 10),
-                    vertices[v][PNM]);
-
-      if (found == matrix_indices.end())
-        return -1;
-      const auto idx = std::distance(matrix_indices.begin(), found);
-      // Old code not based on sweep-specific search
-      // if (idx >= sweep * 10 && idx < (sweep + 1) * 10) {
-      //   // We're inside the sweep;
-      //   return idx - sweep * 10;
-      // }
-      // We're outside the sweep:
-      // return -1;
-      return idx;
-    };
-    assert(vertices.size() % 3 == 0);
-    int sweep_wave = 0;
-    bool reversed = false;
-    int last_sweep_vtx = 0;
-    for (int f = 0; f < vertices.size() / 3; ++f) {
-      const int v0 = f * 3 + 0;
-      const int v1 = f * 3 + 1;
-      const int v2 = f * 3 + 2;
-
-      const int s0 = vertex_sweep_index(v0, sweep_wave);
-      const int s1 = vertex_sweep_index(v1, sweep_wave);
-      const int s2 = vertex_sweep_index(v2, sweep_wave);
-
-      if (s0 < 0 || s1 < 0 || s2 < 0) {
-        assert(s0 != -2 && s1 != -2 && s2 != -2 &&
-               "matrix_indices has not been properly filled");
-
-        // But submit what we have so far, first:
-        auto& mp = poly_data.mMatrixPrimitives[poly_data.addMatrixPrimitive()];
-        auto& tris = mp.mPrimitives.emplace_back();
-        tris.mType = libcube::gx::PrimitiveType::Triangles;
-        std::copy(vertices.begin() + last_sweep_vtx, vertices.begin() + v0,
-                  std::back_inserter(tris.mVertices));
-        last_sweep_vtx = v0;
-        mp.mCurrentMatrix = -1;
-        const auto sweep_begin = sweep_wave * 10;
-        const auto sweep_end = std::min(
-            (sweep_wave + 1) * 10, static_cast<int>(matrix_indices.size()));
-
-        std::copy(matrix_indices.begin() + sweep_begin,
-                  matrix_indices.begin() + sweep_end,
-                  std::back_inserter(mp.mDrawMatrixIndices));
-
-        // Reverse one step, but in the next wave:
-        assert(!reversed && "matrix_indices is unsorted");
-        --f;
-        ++sweep_wave;
-        reversed = true;
-
-        continue;
-      }
-
-      reversed = false;
-      vertices[v0][PNM] = s0;
-      vertices[v0][PNM] = s1;
-      vertices[v0][PNM] = s2;
-    }
-  }
-
-  void ProcessMeshTriangles(j3d::Shape& poly_data, const aiMesh* pMesh,
-                            const aiNode* pNode,
-                            std::vector<libcube::IndexedVertex>&& vertices) {
-    // Determine if we need to do matrix processing
-    if (poly_data.mVertexDescriptor.mBitfield & (1 << (int)PNM)) {
-      ProcessMeshTrianglesWeighted(poly_data, std::move(vertices));
-    } else {
-      // If one bone, bind to that; otherwise, bind to the node itself.
-      const aiNode* single_influence =
-          pMesh->HasBones() ? pMesh->mBones[0]->mNode : pNode;
-      ProcessMeshTrianglesStatic(single_influence, poly_data,
-                                 std::move(vertices));
-    }
-  }
-
-  void ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
-    // Ignore points and lines
-    if (pMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
-      return;
-
-    auto& poly = out_model->getMeshes().add();
-    poly.mode = j3d::ShapeData::Mode::Skinned;
-    poly.bbox.min = {pMesh->mAABB.mMin.x, pMesh->mAABB.mMin.y,
-                     pMesh->mAABB.mMin.z};
-    poly.bbox.max = {pMesh->mAABB.mMax.x, pMesh->mAABB.mMax.y,
-                     pMesh->mAABB.mMax.z};
-    // TODO: Sphere
-    auto add_attribute = [&](auto type, bool direct = false) {
-      poly.mVertexDescriptor.mAttributes[type] =
-          direct ? libcube::gx::VertexAttributeType::Direct
-                 : libcube::gx::VertexAttributeType::Short;
-    };
-    add_attribute(libcube::gx::VertexAttribute::Position);
-    if (pMesh->HasNormals())
-      add_attribute(libcube::gx::VertexAttribute::Normal);
-
-    for (int j = 0; j < 2; ++j) {
-      if (pMesh->HasVertexColors(j))
-        add_attribute(libcube::gx::VertexAttribute::Color0 + j);
-    }
-    for (int j = 0; j < 8; ++j) {
-      if (pMesh->HasTextureCoords(j)) {
-        add_attribute(libcube::gx::VertexAttribute::TexCoord0 + j);
-
-        assert(pMesh->mNumUVComponents[j] == 2);
-      }
-    }
-
-    auto add_to_buffer = [&](const auto& entry, auto& buf) -> u16 {
-      const auto found = std::find(buf.begin(), buf.end(), entry);
-      if (found != buf.end()) {
-        return found - buf.begin();
-      }
-
-      buf.push_back(entry);
-      return buf.size() - 1;
-    };
-
-    auto add_position = [&](int v, const j3d::DrawMatrix* wt = nullptr) {
-      glm::vec3 pos = getVec(pMesh->mVertices[v]);
-
-      // If rigid, transform into bone-space
-      // This assumes that meshes will not be influenced by their children? This
-      // could be a bad assumption..
-      if (wt != nullptr && wt->mWeights.size() == 1) {
-        const auto& acting_influence =
-            out_model->getBones()[wt->mWeights[0].boneId];
-        pos = glm::vec4(pos, 0) *
-              glm::inverse(acting_influence.calcSrtMtx(out_model->getBones()));
-      }
-
-      return add_to_buffer(pos, out_model->mBufs.pos.mData);
-    };
-    auto add_normal = [&](int v) {
-      return add_to_buffer(getVec(pMesh->mNormals[v]),
-                           out_model->mBufs.norm.mData);
-    };
-    auto add_color = [&](int v, int j) {
-      return add_to_buffer(getClr(pMesh->mColors[j][v]),
-                           out_model->mBufs.color[j].mData);
-    };
-    auto add_uv = [&](int v, int j) {
-      return add_to_buffer(getVec2(pMesh->mTextureCoords[j][v]),
-                           out_model->mBufs.uv[j].mData);
-    };
-
-    // More than one bone -> Assume multi mtx, unless zero influence
-    // With one weight, must be singlebound! no partial / null weight
-
-    bool multi_mtx = pMesh->HasBones() && pMesh->mNumBones > 1;
-
-    if (multi_mtx)
-      add_attribute(PNM);
-
-    poly.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
-
-    std::vector<libcube::IndexedVertex> vertices;
-
-    for (unsigned f = 0; f < pMesh->mNumFaces; ++f) {
-      for (int fv = 0; fv < 3; ++fv) {
-        const auto v = pMesh->mFaces[f].mIndices[fv];
-
-        libcube::IndexedVertex vtx{};
-        j3d::DrawMatrix drw;
-        const auto weightInfo =
-            pMesh->HasBones() ? add_weight_matrix(v, pMesh, &drw) : 0;
-
-        if (multi_mtx) {
-          vtx[PNM] = weightInfo * 3;
-        }
-
-        vtx[libcube::gx::VertexAttribute::Position] = add_position(v, &drw);
-        if (pMesh->HasNormals())
-          vtx[libcube::gx::VertexAttribute::Normal] = add_normal(v);
-        for (int j = 0; j < 2; ++j) {
-          if (pMesh->HasVertexColors(j))
-            vtx[libcube::gx::VertexAttribute::Color0 + j] = add_color(v, j);
-        }
-        for (int j = 0; j < 8; ++j) {
-          if (pMesh->HasTextureCoords(j)) {
-            vtx[libcube::gx::VertexAttribute::TexCoord0 + j] = add_uv(v, j);
-          }
-        }
-        vertices.push_back(vtx);
-      }
-    }
-
-    ProcessMeshTriangles(poly, pMesh, pNode, std::move(vertices));
-  }
-
-  void ImportNode(const aiNode* pNode, int parent = -1) {
-    // Create a bone (with name)
-    const auto joint_id = out_model->getBones().size();
-    auto& joint = out_model->getBones().add();
-    joint.setName(pNode->mName.C_Str());
-    const glm::mat4 xf = getMat4(pNode->mTransformation);
-
-    lib3d::SRT3 srt;
-    glm::quat rotation;
-    glm::vec3 skew;
-    glm::vec4 perspective;
-    glm::decompose(xf, srt.scale, rotation, srt.translation, skew, perspective);
-
-    srt.rotation = {glm::degrees(glm::eulerAngles(rotation).x),
-                    glm::degrees(glm::eulerAngles(rotation).y),
-                    glm::degrees(glm::eulerAngles(rotation).z)};
-    joint.setSRT(srt);
-
-    IdCounter localBoneIdCtr;
-    if (boneIdCtr == nullptr)
-      boneIdCtr = &localBoneIdCtr;
-    joint.id = boneIdCtr->boneId++;
-    boneIdCtr->nodeToBoneIdMap[pNode] = joint.id;
-
-    joint.setBoneParent(parent);
-    if (parent != -1)
-      out_model->getBones()[parent].addChild(joint.getId());
-
-    // Mesh data
-    for (unsigned i = 0; i < pNode->mNumMeshes; ++i) {
-      // Can these be duplicated?
-      const auto* pMesh = pScene->mMeshes[pNode->mMeshes[i]];
-
-      assert(boneIdCtr->matIdToMatIdMap.find(pMesh->mMaterialIndex) !=
-             boneIdCtr->matIdToMatIdMap.end());
-      const auto matId = boneIdCtr->matIdToMatIdMap[pMesh->mMaterialIndex];
-      joint.addDisplay({matId, boneIdCtr->meshId++, 0});
-
-      ImportMesh(pMesh, pNode);
-    }
-
-    for (unsigned i = 0; i < pNode->mNumChildren; ++i) {
-      ImportNode(pNode->mChildren[i], joint_id);
-    }
-  }
-  aiNode* root;
-
-  bool assimpSuccess() const {
-    return pScene != nullptr && pScene->mRootNode != nullptr;
-  }
-
-  std::set<std::pair<std::size_t, std::string>> PrepareAss() {
-    root = pScene->mRootNode;
-    assert(root != nullptr);
-
-    std::set<std::string> texturesToImport;
-
-    for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
-      auto* pMat = pScene->mMaterials[i];
-      auto& mr = out_model->getMaterials().add();
-      const auto name = pMat->GetName();
-      mr.name = name.C_Str();
-      if (mr.name == "") {
-        mr.name = "Material";
-        mr.name += std::to_string(i);
-      }
-      boneIdCtr->matIdToMatIdMap[i] = i;
-      ImpMaterial impMat;
-
-      for (unsigned t = aiTextureType_DIFFUSE; t <= aiTextureType_UNKNOWN;
-           ++t) {
-        for (unsigned j = 0; j < pMat->GetTextureCount((aiTextureType)t); ++j) {
-
-          const auto [path, uvindex, mapmode] = GetTexture(pMat, t, j);
-
-          ImpTexType impTexType = ImpTexType::Diffuse;
-
-          switch (t) {
-          case aiTextureType_DIFFUSE:
-            impTexType = ImpTexType::Diffuse;
-            break;
-            /** The texture is combined with the result of the specular
-             *  lighting equation.
-             */
-          case aiTextureType_SPECULAR:
-            impTexType = ImpTexType::Specular;
-            break;
-            /** The texture is combined with the result of the ambient
-             *  lighting equation.
-             */
-          case aiTextureType_AMBIENT:
-            impTexType = ImpTexType::Ambient;
-            break;
-            /** The texture is added to the result of the lighting
-             *  calculation. It isn't influenced by incoming light.
-             */
-          case aiTextureType_EMISSIVE:
-            impTexType = ImpTexType::Emissive;
-            break;
-            /** The texture is a height map.
-             *
-             *  By convention, higher gray-scale values stand for
-             *  higher elevations from the base height.
-             */
-          case aiTextureType_HEIGHT:
-            impTexType = ImpTexType::Bump;
-            break;
-            /** The texture is a (tangent space) normal-map.
-             *
-             *  Again, there are several conventions for tangent-space
-             *  normal maps. Assimp does (intentionally) not
-             *  distinguish here.
-             */
-          case aiTextureType_NORMALS:
-            impTexType = ImpTexType::Diffuse; // TODO
-            break;
-            /** The texture defines the glossiness of the material.
-             *
-             *  The glossiness is in fact the exponent of the specular
-             *  (phong) lighting equation. Usually there is a conversion
-             *  function defined to map the linear color values in the
-             *  texture to a suitable exponent. Have fun.
-             */
-          case aiTextureType_SHININESS:
-            impTexType = ImpTexType::Diffuse; // TODO
-            break;
-            /** The texture defines per-pixel opacity.
-             *
-             *  Usually 'white' means opaque and 'black' means
-             *  'transparency'. Or quite the opposite. Have fun.
-             */
-          case aiTextureType_OPACITY:
-            impTexType = ImpTexType::Opacity;
-            break;
-            /** Displacement texture
-             *
-             *  The exact purpose and format is application-dependent.
-             *  Higher color values stand for higher vertex displacements.
-             */
-          case aiTextureType_DISPLACEMENT:
-            impTexType = ImpTexType::Displacement;
-            break;
-            /** Lightmap texture (aka Ambient Occlusion)
-             *
-             *  Both 'Lightmaps' and dedicated 'ambient occlusion maps' are
-             *  covered by this material property. The texture contains a
-             *  scaling value for the final color value of a pixel. Its
-             *  intensity is not affected by incoming light.
-             */
-          case aiTextureType_LIGHTMAP:
-            impTexType = ImpTexType::Diffuse; // TODO
-            break;
-            /** Reflection texture
-             *
-             * Contains the color of a perfect mirror reflection.
-             * Rarely used, almost never for real-time applications.
-             */
-          case aiTextureType_REFLECTION:
-            impTexType = ImpTexType::Diffuse; // TODO
-            break;
-            /** PBR Materials
-             * PBR definitions from maya and other modelling packages now use
-             * this standard. This was originally introduced around 2012.
-             * Support for this is in game engines like Godot, Unreal or
-             * Unity3D. Modelling packages which use this are very common now.
-             */
-          case aiTextureType_BASE_COLOR:
-            impTexType = ImpTexType::Diffuse;
-            break;
-          case aiTextureType_NORMAL_CAMERA:
-            impTexType = ImpTexType::Diffuse; // TODO
-            break;
-          case aiTextureType_EMISSION_COLOR:
-            impTexType = ImpTexType::Emissive;
-            break;
-          case aiTextureType_METALNESS:
-            impTexType = ImpTexType::Diffuse; // TODO
-            break;
-          case aiTextureType_DIFFUSE_ROUGHNESS:
-            impTexType = ImpTexType::Diffuse; // TODO
-            break;
-          case aiTextureType_AMBIENT_OCCLUSION:
-            impTexType = ImpTexType::Diffuse; // LM
-            break;
-            /** Unknown texture
-             *
-             *  A texture reference that does not match any of the definitions
-             *  above is considered to be 'unknown'. It is still imported,
-             *  but is excluded from any further post-processing.
-             */
-          case aiTextureType_UNKNOWN:
-            impTexType = ImpTexType::Diffuse;
-
-            break;
-          }
-          libcube::gx::TextureWrapMode impWrapMode =
-              libcube::gx::TextureWrapMode::Repeat;
-          switch (mapmode) {
-          case aiTextureMapMode_Decal:
-          case aiTextureMapMode_Clamp:
-            impWrapMode = libcube::gx::TextureWrapMode::Clamp;
-            break;
-          case aiTextureMapMode_Wrap:
-            impWrapMode = libcube::gx::TextureWrapMode::Repeat;
-            break;
-          case aiTextureMapMode_Mirror:
-            impWrapMode = libcube::gx::TextureWrapMode::Mirror;
-            break;
-          case _aiTextureMapMode_Force32Bit:
-          default:
-            break;
-          }
-
-          ImpSampler impSamp{impTexType, getFileShort(path.C_Str()), uvindex,
-                             impWrapMode};
-          impMat.samplers.push_back(impSamp);
-        }
-      }
-
-      CompileMaterial(mr, impMat, texturesToImport);
-    }
-
-    std::set<std::pair<std::size_t, std::string>> unresolved;
-
-    for (auto& tex : texturesToImport) {
-      printf("Importing texture: %s\n", tex.c_str());
-
-      const int i = out_collection->getTextures().size();
-      auto& data = out_collection->getTextures().add();
-      data.mName = getFileShort(tex);
-
-      int width, height, channels;
-      u8* image =
-          stbi_load(tex.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-      if (!image) {
-        printf("Cannot find texture %s\n", tex.c_str());
-        unresolved.emplace(i, tex);
-        continue;
-      }
-      assert(image);
-      data.mFormat = (int)libcube::gx::TextureFormat::CMPR;
-      data.setWidth(width);
-      data.setHeight(height);
-      data.setMipmapCount(0);
-      data.resizeData();
-      data.encode(image);
-      stbi_image_free(image);
-    }
-
-    return unresolved;
-  }
-  void
-  ImportAss(const std::vector<std::pair<std::size_t, std::vector<u8>>>& data) {
-
-    for (auto& [idx, idata] : data) {
-      auto& data = out_collection->getTextures()[idx];
-      int width, height, channels;
-      u8* image = stbi_load_from_memory(idata.data(), idata.size(), &width,
-                                        &height, &channels, STBI_rgb_alpha);
-      if (!image) {
-        printf("Invalid texture..\n");
-        throw "Invalid texture";
-      }
-      assert(image);
-      data.mFormat = (int)libcube::gx::TextureFormat::CMPR;
-      data.setWidth(width);
-      data.setHeight(height);
-      data.setMipmapCount(0);
-      data.resizeData();
-      data.encode(image);
-      stbi_image_free(image);
-    }
-
-    ImportNode(root);
-
-    // Assign IDs
-    for (int i = 0; i < out_model->getMeshes().size(); ++i)
-      out_model->getMeshes()[i].id = i;
-  }
-};
 struct AssReader {
   enum class State {
     Unengaged,
@@ -763,94 +32,220 @@ struct AssReader {
     // tell the importer to fix them or abort
     WaitForTextureDependencies,
     // Now we actually import!
-    // No state necessary, we'll just return
+    // And we're done:
+    Completed
   };
+
+  std::string canRead(const std::string& file,
+                      oishii::BinaryReader& reader) const;
+  void read(kpi::IOTransaction& transaction);
+  void render();
+
   State state = State::Unengaged;
   // Hack (we know importer will not be copied):
   // Won't be necessary when IBinaryDeserializable is split into Factory and
   // Instance, and Instance does not require copyable.
   std::shared_ptr<Assimp::Importer> importer =
       std::make_shared<Assimp::Importer>();
-
-  static constexpr std::array<std::string_view, 4> supported_endings = {
-      ".dae", ".obj", ".fbx", ".smd"};
-
-  std::string canRead(const std::string& file,
-                      oishii::BinaryReader& reader) const {
-    if (std::find_if(supported_endings.begin(), supported_endings.end(),
-                     [&](const std::string_view& ending) {
-                       return file.ends_with(ending);
-                     }) == supported_endings.end()) {
-      return "";
-    }
-
-    return typeid(lib3d::Scene).name();
-  }
-
   std::optional<AssImporter> helper = std::nullopt;
   std::set<std::pair<std::size_t, std::string>> unresolved;
   std::vector<std::pair<std::size_t, std::vector<u8>>> additional_textures;
-  void read(kpi::IOTransaction& transaction) {
-    // Ask for properties
-    if (state == State::Unengaged) {
-      state = State::WaitForSettings;
-      transaction.state = kpi::TransactionState::ConfigureProperties;
-      return;
-    }
-    // Expect settings to have been configured.
-    // Load assimp file and check for texture dependencies
-    if (state == State::WaitForSettings) {
-      const u32 ass_flags =
-          aiProcess_Triangulate | aiProcess_SortByPType |
-          aiProcess_GenSmoothNormals | aiProcess_ValidateDataStructure |
-          aiProcess_RemoveRedundantMaterials | aiProcess_PopulateArmatureData |
-          aiProcess_FindDegenerates | aiProcess_FindInvalidData |
-          aiProcess_GenUVCoords | aiProcess_FindInstances |
-          aiProcess_OptimizeMeshes | aiProcess_Debone |
-          aiProcess_GenBoundingBoxes | aiProcess_FlipUVs |
-          aiProcess_FlipWindingOrder;
 
-      std::string path(transaction.data.getProvider()->getFilePath());
-      const auto* pScene = importer->ReadFileFromMemory(
-          transaction.data.data(), transaction.data.size(), ass_flags,
-          path.c_str());
-      if (pScene == nullptr) {
-        // We will never be called again..
-        transaction.callback(kpi::IOMessageClass::Error, "Assimp",
-                             importer->GetErrorString());
-        transaction.state = kpi::TransactionState::Failure;
-        return;
-      }
-      helper.emplace(pScene, &transaction.node);
-      unresolved = helper->PrepareAss();
+  static constexpr u32 DefaultFlags =
+      aiProcess_GenSmoothNormals | aiProcess_ValidateDataStructure |
+      aiProcess_RemoveRedundantMaterials | aiProcess_FindDegenerates |
+      aiProcess_FindInvalidData | aiProcess_FindInstances |
+      aiProcess_OptimizeMeshes | aiProcess_Debone | aiProcess_OptimizeGraph |
+      aiProcess_ImproveCacheLocality;
+  static constexpr u32 AlwaysFlags =
+      aiProcess_Triangulate | aiProcess_SortByPType |
+      aiProcess_PopulateArmatureData | aiProcess_GenUVCoords |
+      aiProcess_GenBoundingBoxes | aiProcess_FlipUVs |
+      aiProcess_FlipWindingOrder;
+  u32 ass_flags = AlwaysFlags | DefaultFlags;
+  float mMagnification = 1.0f;
 
-      state = State::WaitForTextureDependencies;
-      // This step might be optional
-      if (!unresolved.empty()) {
-        transaction.state = kpi::TransactionState::ResolveDependencies;
-        transaction.resolvedFiles.resize(unresolved.size());
-        transaction.unresolvedFiles.reserve(unresolved.size());
-        for (auto& missing : unresolved)
-          transaction.unresolvedFiles.push_back(missing.second);
-        return;
-      }
-    }
-    if (state == State::WaitForTextureDependencies) {
-      if (!unresolved.empty()) {
-        for (std::size_t i = 0; i < transaction.resolvedFiles.size(); ++i) {
-          auto& found = transaction.resolvedFiles[i];
-          if (found.empty())
-            continue;
-          additional_textures.emplace_back(i, std::move(found));
-        }
-      }
-      helper->ImportAss(additional_textures);
-      transaction.state = kpi::TransactionState::Complete;
-      // And we die~
-    }
-  }
+  // if mGenerateMipMaps, create mip levels until < mMinMipDimension or >
+  // mMaxMipCount
+  bool mGenerateMipMaps = true;
+  int mMinMipDimension = 32;
+  int mMaxMipCount = 5;
+  // Set stencil outline if alpha
+  bool mAutoTransparent = true;
 };
 
 kpi::Register<AssReader, kpi::Reader> AssInstaller;
+
+std::string AssReader::canRead(const std::string& file,
+                               oishii::BinaryReader& reader) const {
+  if (std::find_if(supported_endings.begin(), supported_endings.end(),
+                   [&](const std::string_view& ending) {
+                     return file.ends_with(ending);
+                   }) == supported_endings.end()) {
+    return "";
+  }
+
+  return typeid(lib3d::Scene).name();
+}
+
+void AssReader::read(kpi::IOTransaction& transaction) {
+  // Ask for properties
+  if (state == State::Unengaged) {
+    state = State::WaitForSettings;
+    transaction.state = kpi::TransactionState::ConfigureProperties;
+    return;
+  }
+  // Expect settings to have been configured.
+  // Load assimp file and check for texture dependencies
+  if (state == State::WaitForSettings) {
+
+    std::string path(transaction.data.getProvider()->getFilePath());
+
+    // Assimp requires it be heap allocated, so it can delete it for us.
+    AssLogger* logger = new AssLogger(transaction.callback, getFileShort(path));
+    Assimp::DefaultLogger::set(logger);
+
+    if (mMagnification != 1.0f) {
+      ass_flags |= aiProcess_GlobalScale;
+      importer->SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
+                                 mMagnification);
+    }
+    const auto* pScene = importer->ReadFileFromMemory(transaction.data.data(),
+                                                      transaction.data.size(),
+                                                      ass_flags, path.c_str());
+    // this calls `delete` on logger
+    Assimp::DefaultLogger::set(nullptr);
+    if (pScene == nullptr) {
+      // We will never be called again..
+      transaction.callback(kpi::IOMessageClass::Error, getFileShort(path),
+                           importer->GetErrorString());
+      transaction.state = kpi::TransactionState::Failure;
+      return;
+    }
+    helper.emplace(pScene, &transaction.node);
+    unresolved =
+        helper->PrepareAss(mGenerateMipMaps, mMinMipDimension, mMaxMipCount);
+
+    state = State::WaitForTextureDependencies;
+    // This step might be optional
+    if (!unresolved.empty()) {
+      transaction.state = kpi::TransactionState::ResolveDependencies;
+      transaction.resolvedFiles.resize(unresolved.size());
+      transaction.unresolvedFiles.reserve(unresolved.size());
+      for (auto& missing : unresolved)
+        transaction.unresolvedFiles.push_back(missing.second);
+      return;
+    }
+  }
+  if (state == State::WaitForTextureDependencies) {
+    if (!unresolved.empty()) {
+      for (std::size_t i = 0; i < transaction.resolvedFiles.size(); ++i) {
+        auto& found = transaction.resolvedFiles[i];
+        if (found.empty())
+          continue;
+        additional_textures.emplace_back(i, std::move(found));
+      }
+    }
+    helper->ImportAss(additional_textures, mGenerateMipMaps, mMinMipDimension,
+                      mMaxMipCount, mAutoTransparent);
+    transaction.state = kpi::TransactionState::Complete;
+    state = State::Completed;
+    // And we die~
+  }
+}
+
+void AssReader::render() {
+  if (ImGui::CollapsingHeader("Importing Settings",
+                              ImGuiTreeNodeFlags_DefaultOpen)) {
+    //
+    // Never enabled:
+    //
+    // aiProcess_CalcTangentSpace - We don't support NBT anywhere
+    // aiProcess_JoinIdenticalVertices - We already reindex? I don't think we
+    // need this.
+    // aiProcess_MakeLeftHanded - TODO
+    // aiProcess_EmbedTextures - TODO
+
+    //
+    // Always enabled
+    //
+    // aiProcess_Triangulate - Always enabled
+    // aiProcess_SortByPType - Always on: We don't support lines/points, so we
+    // have to filter them out.
+    // aiProcess_GenBoundingBoxes - Always on
+    // aiProcess_PopulateArmatureData - Always on
+    // aiProcess_GenUVCoords - Always on
+    // aiProcess_FlipUVs - TODO
+    // aiProcess_FlipWindingOrder - TODO
+
+    //
+    // Configure
+    //
+    // aiProcess_RemoveComponent  - TODO
+    // aiProcess_GenNormals - TODO
+    // aiProcess_GenSmoothNormals - TODO
+    // aiProcess_SplitLargeMeshes - We probably don't need this?
+    // aiProcess_PreTransformVertices - Doubt this is desirable..
+    // aiProcess_LimitBoneWeights - TODO
+    // aiProcess_ValidateDataStructure
+    ImGui::CheckboxFlags("Data Validation", &ass_flags,
+                         aiProcess_ValidateDataStructure);
+    // aiProcess_ImproveCacheLocality
+    ImGui::CheckboxFlags("Cache Locality Optimization", &ass_flags,
+                         aiProcess_ImproveCacheLocality);
+    // aiProcess_RemoveRedundantMaterials
+    ImGui::CheckboxFlags("Material Deduplication", &ass_flags,
+                         aiProcess_RemoveRedundantMaterials);
+    // aiProcess_FixInfacingNormals
+    ImGui::CheckboxFlags("Fix flipped normals", &ass_flags,
+                         aiProcess_FixInfacingNormals);
+    // aiProcess_FindDegenerates - TODO
+    ImGui::CheckboxFlags("Remove degenerate triangles", &ass_flags,
+                         aiProcess_FindDegenerates);
+    // aiProcess_FindInvalidData - TODO
+    ImGui::CheckboxFlags("Remove invalid data", &ass_flags,
+                         aiProcess_FindInvalidData);
+    // aiProcess_TransformUVCoords - Undesirable?
+    ImGui::CheckboxFlags("Bake material-transformed UV coords", &ass_flags,
+                         aiProcess_TransformUVCoords);
+    // aiProcess_FindInstances - TODO
+    // aiProcess_OptimizeMeshes
+    ImGui::CheckboxFlags("Optimize meshes", &ass_flags,
+                         aiProcess_OptimizeMeshes);
+    // aiProcess_OptimizeGraph
+    ImGui::CheckboxFlags("Compress bones (for static scenes)", &ass_flags,
+                         aiProcess_OptimizeGraph);
+    // aiProcess_SplitByBoneCount - ?
+    // aiProcess_Debone - TODO
+    // aiProcess_GlobalScale
+    ImGui::InputFloat("Magnification", &mMagnification);
+    // aiProcess_ForceGenNormals - TODO
+    // aiProcess_DropNormals - TODO
+  }
+
+  if (ImGui::CollapsingHeader("BMD Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Checkbox("Generate Mipmaps", &mGenerateMipMaps);
+    {
+      util::ConditionalActive g(mGenerateMipMaps);
+      ImGui::Indent(50);
+      ImGui::SliderInt("Minimum mipmap dimension.", &mMinMipDimension, 1, 512);
+      // round down to last power of two
+      const int old = mMinMipDimension;
+      int res = 0;
+      while (mMinMipDimension >>= 1)
+        ++res;
+      mMinMipDimension = (1 << res);
+      // round up
+      if ((mMinMipDimension << 1) - old < old - mMinMipDimension)
+        mMinMipDimension <<= 1;
+
+      ImGui::SliderInt("Maximum number of mipmaps.", &mMaxMipCount, 0, 8);
+
+      ImGui::Indent(-50);
+    }
+    ImGui::Checkbox("Automatically set transparent materials",
+                    &mAutoTransparent);
+  }
+}
 
 } // namespace riistudio::ass

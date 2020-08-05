@@ -65,6 +65,8 @@ struct IBinaryDeserializer {
   virtual std::string canRead_(const std::string& file,
                                oishii::BinaryReader& reader) const = 0;
   virtual void read_(IOTransaction& transaction) = 0;
+  //! For config UIs. Given ImGui control.
+  virtual void render() = 0;
 };
 //! A writer: Do not inherit from this type directly
 struct IBinarySerializer {

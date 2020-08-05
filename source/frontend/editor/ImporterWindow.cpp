@@ -25,6 +25,7 @@ void ImporterWindow::draw() {
     switch (result) {
     case State::ConfigureProperties:
       ImGui::Text("Configure Properties");
+      importerRender();
       break;
     case State::ResolveDependencies: {
       unsigned num = 0;

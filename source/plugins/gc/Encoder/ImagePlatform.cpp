@@ -1,6 +1,7 @@
 #include "ImagePlatform.hpp"
 
 #include "CmprEncoder.hpp"
+#include <span>
 #include <vendor/avir/avir.h>
 #include <vendor/avir/lancir.h>
 #include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
@@ -20,8 +21,13 @@ std::pair<int, int> getBlockedDimensions(int width, int height,
 
 int getEncodedSize(int width, int height, gx::TextureFormat format,
                    u32 mipMapCount) {
-  if (format == libcube::gx::TextureFormat::Extension_RawRGBA32)
-    return width * height * 4;
+  if (format == libcube::gx::TextureFormat::Extension_RawRGBA32) {
+    u32 size = 0;
+    for (int i = 0; i <= mipMapCount; ++i) {
+      size += (width >> i) * (height >> i) * 4;
+    }
+    return size;
+  }
   return GetTexBufferSize(width, height, static_cast<u32>(format),
                           mipMapCount != 0, mipMapCount + 1);
 }
@@ -136,7 +142,7 @@ struct RGBA32ImageSource {
     }
   }
 
-  const u8* get() const { return mDecoded; }
+  std::span<const u8> get() const { return {mDecoded, size()}; }
   u32 size() const { return mW * mH * 4; }
   int width() const { return mW; }
   int height() const { return mH; }
@@ -150,7 +156,9 @@ private:
   gx::TextureFormat mFmt;
 };
 struct RGBA32ImageTarget {
-  RGBA32ImageTarget(int w, int h) : mW(w), mH(h) { mTmp.resize(roundUp(w, 32) * roundUp(h, 32) * 4); }
+  RGBA32ImageTarget(int w, int h) : mW(w), mH(h) {
+    mTmp.resize(roundUp(w, 32) * roundUp(h, 32) * 4);
+  }
   void copyTo(u8* dst, gx::TextureFormat fmt) {
     if (fmt == gx::TextureFormat::Extension_RawRGBA32) {
       memcpy(dst, mTmp.data(), mTmp.size());
@@ -158,18 +166,21 @@ struct RGBA32ImageTarget {
       encode(dst, mTmp.data(), mW, mH, fmt);
     }
   }
-  void fromOtherSized(const u8* src, u32 ow, u32 oh, ResizingAlgorithm al) {
+  void fromOtherSized(std::span<const u8> src, u32 ow, u32 oh,
+                      ResizingAlgorithm al) {
     mTmp.resize(mW * mH * 4);
+    assert(src.size() >= mTmp.size());
     if (ow == mW && oh == mH) {
-      memcpy(mTmp.data(), src, mTmp.size());
+      memcpy(mTmp.data(), src.data(), mTmp.size());
     } else {
-      resize(mTmp.data(), mW, mH, src, ow, oh, al);
+      resize(mTmp.data(), mW, mH, src.data(), ow, oh, al);
     }
   }
-  void fromOtherSized(RGBA32ImageSource& source, ResizingAlgorithm al) {
+  void fromOtherSized(const RGBA32ImageSource& source, ResizingAlgorithm al) {
     fromOtherSized(source.get(), source.width(), source.height(), al);
   }
-  u8* get() { return mTmp.data(); }
+  std::span<u8> get() { return {mTmp.data(), mTmp.size()}; }
+  std::span<const u8> get() const { return {mTmp.data(), mTmp.size()}; }
   u32 size() const { return mW * mH * 4; }
 
 private:
@@ -181,6 +192,9 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
                std::optional<gx::TextureFormat> newformat, const u8* src,
                int swidth, int sheight, u32 mipMapCount,
                ResizingAlgorithm algorithm) {
+  printf(
+      "Transform: Dest={%p, w:%i, h:%i}, Source={%p, w:%i, h:%i}, NumMip=%u\n",
+      dst, dwidth, dheight, src, swidth, sheight, mipMapCount);
   assert(dst);
   assert(dwidth > 0 && dheight > 0);
   if (swidth <= 0)
@@ -206,10 +220,11 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
     assert(pSrc);
     transform(dst, dwidth, dheight, oldformat, newformat, pSrc, swidth, sheight,
               0, algorithm);
-    for (u32 i = 0; i < mipMapCount; ++i) {
-      const auto src_lod_ofs = getEncodedSize(swidth, sheight, oldformat, i);
+    for (u32 i = 1; i <= mipMapCount; ++i) {
+      const auto src_lod_ofs =
+          getEncodedSize(swidth, sheight, oldformat, i - 1);
       const auto dst_lod_ofs =
-          getEncodedSize(dwidth, dheight, newformat.value(), i);
+          getEncodedSize(dwidth, dheight, newformat.value(), i - 1);
       const auto src_lod_x = swidth >> i;
       const auto src_lod_y = sheight >> i;
       const auto dst_lod_x = dwidth >> i;
@@ -220,11 +235,11 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
     }
   } else {
     RGBA32ImageSource source(src, swidth, sheight, oldformat);
-    assert(source.get());
+    assert(source.get().data());
 
     // TODO: We don't always need to allocate this
     RGBA32ImageTarget target(dwidth, dheight);
-    assert(target.get());
+    assert(target.get().data());
 
     target.fromOtherSized(source, algorithm);
 
