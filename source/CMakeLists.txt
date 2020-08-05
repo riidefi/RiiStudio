@@ -39,6 +39,12 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   # Assimp
   add_compile_options("-Wno-pragma-pack")
   add_compile_options("-Werror")
+  add_compile_options("/MT")
+  if (ASAN)
+    add_compile_options("-fsanitize=address")
+    set(ENV{ASAN_OPTIONS} "detect_leaks=1")
+    add_compile_definitions(BUILD_ASAN)
+  endif()
 endif()
 
 if (MSVC)

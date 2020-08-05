@@ -20,6 +20,10 @@
 #include <emscripten.h>
 #endif
 
+#ifdef BUILD_ASAN
+#include <sanitizer/lsan_interface.h>
+#endif
+
 namespace riistudio::frontend {
 
 #ifdef _WIN32
@@ -370,6 +374,10 @@ void RootWindow::draw() {
   // Handle popups
   EndFullscreenWindow();
   ImGui::PopID();
+
+#ifdef BUILD_ASAN
+  __lsan_do_leak_check();
+#endif
 }
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   printf("Opening file: %s\n", data.mPath.c_str());

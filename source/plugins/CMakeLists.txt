@@ -7,7 +7,6 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
 
 add_library(plugins
-	"ass/Ass.cpp"
 	"g3d/bone.hpp"
 	"g3d/collection.hpp"
 	"g3d/g3d_install.cpp"
@@ -125,4 +124,9 @@ add_library(plugins
 	"arc/LinearFST.hpp"
 	"arc/U8.hpp"
 	"arc/U8.cpp"
+	"ass/Ass.cpp"
+  "ass/AssImporter.cpp"
+  "ass/AssImporter.hpp"
+  "ass/AssLogger.hpp"
+  "ass/Utility.hpp"
 )

@@ -29,11 +29,16 @@ target_link_libraries(frontend PUBLIC
 )
 
 if (WIN32)
-	target_link_libraries(frontend PUBLIC
+  set(LINK_LIBS
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
-	  opengl32.lib
+		opengl32.lib
 	)
+  if (ASAN)
+    set(LINK_LIBS ${LINK_LIBS} "C:\\Program Files\\LLVM\\lib\\clang\\10.0.0\\lib\\windows\\clang_rt.asan-x86_64.lib")
+  endif()
+  
+	target_link_libraries(frontend PUBLIC ${LINK_LIBS})
 else()
 	target_link_libraries(frontend PUBLIC
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
@@ -59,7 +64,7 @@ endif()
 if (MSVC)
   # clang-cl
   if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "/WHOLEARCHIVE:source\\plugins\\plugins.lib")
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-defaultlib:libcmt /WHOLEARCHIVE:source\\plugins\\plugins.lib")
   else()
 	  SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "/WHOLEARCHIVE:plugins")
   endif()
