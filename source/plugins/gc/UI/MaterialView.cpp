@@ -1181,28 +1181,22 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
   if (ImGui::CollapsingHeader("Alpha Comparison",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     const char* compStr =
-        "Always do not pass.\0<\0==\0<=\0>\0!=\0>=\0Always pass.";
+        "Always do not pass.\0<\0==\0<=\0>\0!=\0>=\0Always pass.\0";
     ImGui::PushItemWidth(100);
-
-    auto alpha_compare_prop = [&](auto member, auto after) {
-      delegate.propertyEx(member, after, [](auto& mat) -> gx::AlphaComparison& {
-        return (gx::AlphaComparison&)mat.getMaterialData().alphaCompare;
-      });
-    };
 
     {
       ImGui::Text("( Pixel Alpha");
       ImGui::SameLine();
       int leftAlpha = static_cast<int>(matData.alphaCompare.compLeft);
       ImGui::Combo("##l", &leftAlpha, compStr);
-      alpha_compare_prop(&gx::AlphaComparison::compLeft,
+      AUTO_PROP(alphaCompare.compLeft,
                          static_cast<libcube::gx::Comparison>(leftAlpha));
 
       int leftRef = static_cast<int>(
           delegate.getActive().getMaterialData().alphaCompare.refLeft);
       ImGui::SameLine();
       ImGui::SliderInt("##lr", &leftRef, 0, 255);
-      alpha_compare_prop(&gx::AlphaComparison::refLeft,
+      AUTO_PROP(alphaCompare.refLeft,
                          static_cast<u8>(leftRef));
 
       ImGui::SameLine();
@@ -1211,7 +1205,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
     {
       int op = static_cast<int>(matData.alphaCompare.op);
       ImGui::Combo("##o", &op, "&&\0||\0!=\0==\0");
-      alpha_compare_prop(&gx::AlphaComparison::op,
+      AUTO_PROP(alphaCompare.op,
                          static_cast<libcube::gx::AlphaOp>(op));
     }
     {
@@ -1219,13 +1213,13 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
       ImGui::SameLine();
       int rightAlpha = static_cast<int>(matData.alphaCompare.compRight);
       ImGui::Combo("##r", &rightAlpha, compStr);
-      alpha_compare_prop(&gx::AlphaComparison::compRight,
+      AUTO_PROP(alphaCompare.compRight,
                          static_cast<libcube::gx::Comparison>(rightAlpha));
 
       int rightRef = static_cast<int>(matData.alphaCompare.refRight);
       ImGui::SameLine();
       ImGui::SliderInt("##rr", &rightRef, 0, 255);
-      alpha_compare_prop(&gx::AlphaComparison::refRight, (u8)rightRef);
+      AUTO_PROP(alphaCompare.refRight, (u8)rightRef);
 
       ImGui::SameLine();
       ImGui::Text(")");
