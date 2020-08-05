@@ -37,7 +37,7 @@ private:
 
   std::queue<std::string> mAttachEditorsQueue;
   ThemeManager mTheme;
-  ThemeManager::BasicTheme mCurTheme = ThemeManager::BasicTheme::CorporateGrey;
+  ThemeManager::BasicTheme mCurTheme = ThemeManager::BasicTheme::Raikiri;
   bool mThemeUpdated = true;
 
   bool mShowChangeLog = true;

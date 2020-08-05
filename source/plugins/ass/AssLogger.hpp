@@ -17,7 +17,9 @@ struct AssLogger : public Assimp::Logger {
     m_Severity = static_cast<LogSeverity>(Debugging | Info | Warn | Err);
   }
   void OnDebug(const char* message) override {
+#ifdef BUILD_DEBUG
     mCallback(kpi::IOMessageClass::Information, domain, message);
+#endif
   }
   void OnInfo(const char* message) override {
     mCallback(kpi::IOMessageClass::Information, domain, message);

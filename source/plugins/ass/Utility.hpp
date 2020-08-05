@@ -11,7 +11,9 @@
 namespace riistudio::ass {
 
 static inline std::string getFileShort(const std::string& path) {
-  return path.substr(path.rfind("\\") + 1);
+  auto tmp = path.substr(path.rfind("\\") + 1);
+  tmp = tmp.substr(0, tmp.rfind("."));
+  return tmp;
 }
 static inline glm::vec3 getVec(const aiVector3D& vec) {
   return {vec.x, vec.y, vec.z};

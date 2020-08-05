@@ -55,8 +55,7 @@ struct AssReader {
       aiProcess_GenSmoothNormals | aiProcess_ValidateDataStructure |
       aiProcess_RemoveRedundantMaterials | aiProcess_FindDegenerates |
       aiProcess_FindInvalidData | aiProcess_FindInstances |
-      aiProcess_OptimizeMeshes | aiProcess_Debone | aiProcess_OptimizeGraph |
-      aiProcess_ImproveCacheLocality;
+      aiProcess_OptimizeMeshes | aiProcess_Debone | aiProcess_OptimizeGraph;
   static constexpr u32 AlwaysFlags =
       aiProcess_Triangulate | aiProcess_SortByPType |
       aiProcess_PopulateArmatureData | aiProcess_GenUVCoords |
@@ -117,8 +116,8 @@ void AssReader::read(kpi::IOTransaction& transaction) {
     Assimp::DefaultLogger::set(nullptr);
     if (pScene == nullptr) {
       // We will never be called again..
-      transaction.callback(kpi::IOMessageClass::Error, getFileShort(path),
-                           importer->GetErrorString());
+      // transaction.callback(kpi::IOMessageClass::Error, getFileShort(path),
+      //                      importer->GetErrorString());
       transaction.state = kpi::TransactionState::Failure;
       return;
     }
@@ -191,8 +190,9 @@ void AssReader::render() {
     ImGui::CheckboxFlags("Data Validation", &ass_flags,
                          aiProcess_ValidateDataStructure);
     // aiProcess_ImproveCacheLocality
-    ImGui::CheckboxFlags("Cache Locality Optimization", &ass_flags,
-                         aiProcess_ImproveCacheLocality);
+    // TODO
+    // ImGui::CheckboxFlags("Cache Locality Optimization", &ass_flags,
+    //                      aiProcess_ImproveCacheLocality);
     // aiProcess_RemoveRedundantMaterials
     ImGui::CheckboxFlags("Material Deduplication", &ass_flags,
                          aiProcess_RemoveRedundantMaterials);

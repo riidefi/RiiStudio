@@ -5,19 +5,17 @@
 
 namespace riistudio::frontend {
 
-static std::string getFileShort(const std::string& path) {
-  return path.substr(path.rfind("\\") + 1);
-}
-
 void ImporterWindow::draw() {
   assert(!mDone && "ImporterWindow was called after it completed.");
   if (mDone)
     return;
 
+  ImVec4 error_col{200.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f};
+
   const bool finished = succeeded() || failed();
 
   if (failed()) {
-    ImGui::TextUnformatted(describeError());
+    ImGui::TextColored(error_col, "%s", describeError());
   } else if (succeeded()) {
     ImGui::Text("Success");
   } else {
@@ -38,11 +36,11 @@ void ImporterWindow::draw() {
         return;
       }
 
-      ImVec4 col{200.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f};
       ImGui::SetWindowFontScale(2.0f);
       ImGui::TextColored(
-          col, "Missing textures! Please drop the following textures into "
-               "this window.");
+          error_col,
+          "Missing textures! Please drop the following textures into "
+          "this window.");
 
       ImGui::Text("(%u Remaining)", num);
       ImGui::SetWindowFontScale(1.0f);
@@ -74,7 +72,7 @@ void ImporterWindow::draw() {
     }
   }
 
-  if (ImGui::Button("Next",
+  if (ImGui::Button(failed() ? "Quit" : "Next",
                     ImVec2{ImGui::GetContentRegionAvailWidth(), 0.0f})) {
     if (finished) {
       mDone = true;
@@ -122,14 +120,20 @@ void ImporterWindow::drawMessages() {
   // ImGui::SetWindowFontScale(1.0f);
 }
 
+static inline std::string getFileShortStripped(const std::string& path) {
+  auto tmp = path.substr(path.rfind("\\") + 1);
+  tmp = tmp.substr(0, tmp.rfind("."));
+  return tmp;
+}
+
 void ImporterWindow::drop(FileData&& data) {
   // Assumption: individual files across folders are unique.
   // We may need to change this?
 
-  const auto file = getFileShort(data.mPath);
+  const auto file = getFileShortStripped(data.mPath);
 
   for (int i = 0; i < transaction->unresolvedFiles.size(); ++i) {
-    if (getFileShort(transaction->unresolvedFiles[i]) == file) {
+    if (getFileShortStripped(transaction->unresolvedFiles[i]) == file) {
       auto& resolved = transaction->resolvedFiles[i];
       // Unfortunate..
       resolved.resize(data.mLen);

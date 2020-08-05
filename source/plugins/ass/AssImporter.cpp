@@ -3,6 +3,7 @@
 #include <core/3d/texture_dimensions.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <unordered_map>
 #include <vendor/stb_image.h>
 
 namespace riistudio::ass {
@@ -318,6 +319,11 @@ void AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
     if (pMesh->HasVertexColors(j))
       add_attribute(libcube::gx::VertexAttribute::Color0 + j);
   }
+
+  // Force Color0 for materials
+  if (!pMesh->HasVertexColors(0))
+    add_attribute(libcube::gx::VertexAttribute::Color0);
+
   for (int j = 0; j < 8; ++j) {
     if (pMesh->HasTextureCoords(j)) {
       add_attribute(libcube::gx::VertexAttribute::TexCoord0 + j);
@@ -356,7 +362,9 @@ void AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
                          out_model->mBufs.norm.mData);
   };
   auto add_color = [&](int v, int j) {
-    return add_to_buffer(getClr(pMesh->mColors[j][v]),
+    return add_to_buffer(j >= pMesh->GetNumColorChannels()
+                             ? libcube::gx::Color{0xff, 0xff, 0xff, 0xff}
+                             : getClr(pMesh->mColors[j][v]),
                          out_model->mBufs.color[j].mData);
   };
   auto add_uv = [&](int v, int j) {
@@ -393,7 +401,7 @@ void AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
       if (pMesh->HasNormals())
         vtx[libcube::gx::VertexAttribute::Normal] = add_normal(v);
       for (int j = 0; j < 2; ++j) {
-        if (pMesh->HasVertexColors(j))
+        if (pMesh->HasVertexColors(j) || j == 0)
           vtx[libcube::gx::VertexAttribute::Color0 + j] = add_color(v, j);
       }
       for (int j = 0; j < 8; ++j) {
