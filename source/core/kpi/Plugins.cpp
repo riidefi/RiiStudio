@@ -51,7 +51,7 @@ ApplicationPlugins::spawnState(const std::string& type) const {
     if (it.first == type) {
       auto doc = it.second->spawn();
       // doc->mType = type;
-      return std::move(doc);
+      return doc;
     }
   }
 

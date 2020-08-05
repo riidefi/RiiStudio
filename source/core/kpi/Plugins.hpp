@@ -29,14 +29,33 @@ inline IOMessageClass operator|(const IOMessageClass lhs,
                                      static_cast<u32>(rhs));
 }
 
+//! @brief A (de)serializer may request input from the user.
+//!
+//! Configure? -> Interrupted?* (not available for clis) -> Complete
+enum class TransactionState {
+  Complete,            //!< Operation has ended
+  Failure,             //!< Exit
+  ConfigureProperties, //!< Configure + Interrupted
+  ResolveDependencies, //!< Interrupted: The entire point of this system!
+};
+
 struct IOTransaction {
+  // Caller -> Deserializer
   kpi::INode& node;
   oishii::ByteView data;
 
+  // Deserializer -> Caller
   std::function<void(IOMessageClass message_class,
                      const std::string_view domain,
                      const std::string_view message_body)>
       callback;
+
+  TransactionState state = TransactionState::Complete;
+
+  // Unresolved
+  llvm::SmallVector<std::string, 8> unresolvedFiles; // request
+  llvm::SmallVector<std::vector<u8>, 8>
+      resolvedFiles; // reply: size 0 -> ignore
 };
 
 //! A reader: Do not inherit from this type directly
@@ -45,7 +64,7 @@ struct IBinaryDeserializer {
   virtual std::unique_ptr<IBinaryDeserializer> clone() const = 0;
   virtual std::string canRead_(const std::string& file,
                                oishii::BinaryReader& reader) const = 0;
-  virtual void read_(IOTransaction& transaction) const = 0;
+  virtual void read_(IOTransaction& transaction) = 0;
 };
 //! A writer: Do not inherit from this type directly
 struct IBinarySerializer {

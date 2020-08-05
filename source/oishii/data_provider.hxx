@@ -3,6 +3,7 @@
 #include "types.hxx"
 #include <assert.h>
 #include <span>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <vector>
@@ -76,7 +77,7 @@ private:
   // reallocated.
   const std::vector<u8> mData;
 
-  std::string_view mPath;
+  std::string mPath;
 };
 
 // Relies on DataProvider definition

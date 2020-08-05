@@ -20,9 +20,9 @@ struct ApplicationPluginsImpl {
     const char* getId() const override { return typeid(T).name(); }
   };
   //! Requires methods:
-  //! - `T::canRead(IOTransaction&)
+  //! - `T::canRead(IOTransaction&) const
   //! const`
-  //! - `T::read(doc_node_t node, oishii::ByteView data) const`
+  //! - `T::read(doc_node_t node, oishii::ByteView data)`
   template <typename T>
   struct TBinaryDeserializer final : public IBinaryDeserializer, public T {
     std::unique_ptr<IBinaryDeserializer> clone() const override {
@@ -32,7 +32,7 @@ struct ApplicationPluginsImpl {
                          oishii::BinaryReader& reader) const override {
       return T::canRead(file, reader);
     }
-    void read_(IOTransaction& transaction) const override {
+    void read_(IOTransaction& transaction) override {
       T::read(transaction);
     }
   };

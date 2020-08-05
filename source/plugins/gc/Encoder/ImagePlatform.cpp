@@ -150,7 +150,7 @@ private:
   gx::TextureFormat mFmt;
 };
 struct RGBA32ImageTarget {
-  RGBA32ImageTarget(int w, int h) : mW(w), mH(h) { mTmp.resize(w * h * 4); }
+  RGBA32ImageTarget(int w, int h) : mW(w), mH(h) { mTmp.resize(roundUp(w, 32) * roundUp(h, 32) * 4); }
   void copyTo(u8* dst, gx::TextureFormat fmt) {
     if (fmt == gx::TextureFormat::Extension_RawRGBA32) {
       memcpy(dst, mTmp.data(), mTmp.size());

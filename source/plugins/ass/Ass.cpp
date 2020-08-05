@@ -7,7 +7,6 @@
 #include <core/kpi/Node.hpp>
 
 #include <vendor/assimp/Importer.hpp>
-#include <vendor/assimp/cimport.h>
 #include <vendor/assimp/postprocess.h>
 #include <vendor/assimp/scene.h>
 
@@ -16,12 +15,16 @@
 
 #include <algorithm>
 #include <map>
+#include <span>
 #include <vendor/stb_image.h>
 #undef min
 
 namespace riistudio::ass {
 
 #pragma region Utility
+static std::string getFileShort(const std::string& path) {
+  return path.substr(path.rfind("\\") + 1);
+}
 static glm::vec3 getVec(const aiVector3D& vec) { return {vec.x, vec.y, vec.z}; }
 static glm::vec2 getVec2(const aiVector3D& vec) { return {vec.x, vec.y}; }
 static libcube::gx::Color getClr(const aiColor4D& clr) {
@@ -112,18 +115,37 @@ void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
   auto& data = out.getMaterialData();
 
   if (!in.samplers.empty()) {
-    data.samplers.push_back(std::make_unique<j3d::Material::SamplerData>());
+    data.samplers.push_back(std::make_unique<j3d::Material::J3DSamplerData>());
     data.samplers[0]->mTexture = in.samplers[0].path;
     texturesToImport.insert(in.samplers[0].path);
     data.texMatrices.push_back(std::make_unique<j3d::Material::TexMatrix>());
     data.texGens.push_back({});
   }
+
+  data.cullMode = libcube::gx::CullMode::Back;
+
   libcube::gx::TevStage wip;
   wip.texMap = wip.texCoord = 0;
-  wip.colorStage.d = libcube::gx::TevColorArg::texc;
-  wip.alphaStage.d = libcube::gx::TevAlphaArg::texa;
+  wip.rasOrder = libcube::gx::ColorSelChanApi::color0a0;
+  wip.rasSwap = 0;
+  wip.colorStage.a = libcube::gx::TevColorArg::zero;
+  wip.colorStage.b = libcube::gx::TevColorArg::texc;
+  wip.colorStage.c = libcube::gx::TevColorArg::rasc;
+  wip.colorStage.d = libcube::gx::TevColorArg::zero;
+
+  wip.alphaStage.a = libcube::gx::TevAlphaArg::zero;
+  wip.alphaStage.b = libcube::gx::TevAlphaArg::texa;
+  wip.alphaStage.c = libcube::gx::TevAlphaArg::rasa;
+  wip.alphaStage.d = libcube::gx::TevAlphaArg::zero;
+
   data.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
   data.shader.mStages[0] = wip;
+
+  libcube::gx::ChannelControl ctrl;
+  ctrl.enabled = true;
+  ctrl.Material = libcube::gx::ColorSource::Vertex;
+  data.colorChanControls.push_back(ctrl); // rgb
+  data.colorChanControls.push_back(ctrl); // a
 }
 std::tuple<aiString, unsigned int, aiTextureMapMode>
 GetTexture(aiMaterial* pMat, int t, int j) {
@@ -154,13 +176,15 @@ struct AssImporter {
   IdCounter* boneIdCtr = &ctr;
 
   const aiScene* pScene = nullptr;
-  j3d::Collection& out_collection;
-  j3d::Model& out_model;
+  j3d::Collection* out_collection = nullptr;
+  j3d::Model* out_model = nullptr;
 
-  AssImporter(const aiScene* scene, kpi::INode* mdl)
-      : pScene(scene), out_collection(*dynamic_cast<j3d::Collection*>(mdl)),
-        out_model(out_collection.getModels().add()) {}
-
+  AssImporter(const aiScene* scene, kpi::INode* mdl) : pScene(scene) {
+    out_collection = dynamic_cast<j3d::Collection*>(mdl);
+    assert(out_collection != nullptr);
+    out_model = &out_collection->getModels().add();
+    assert(out_model != nullptr);
+  }
   int get_bone_id(const aiNode* pNode) {
     return boneIdCtr->nodeToBoneIdMap.find(pNode) !=
                    boneIdCtr->nodeToBoneIdMap.end()
@@ -169,13 +193,13 @@ struct AssImporter {
   }
   // Only call if weighted
   u16 add_weight_matrix_low(const j3d::DrawMatrix& drw) {
-    const auto found = std::find(out_model.mDrawMatrices.begin(),
-                                 out_model.mDrawMatrices.end(), drw);
-    if (found != out_model.mDrawMatrices.end()) {
-      return found - out_model.mDrawMatrices.begin();
+    const auto found = std::find(out_model->mDrawMatrices.begin(),
+                                 out_model->mDrawMatrices.end(), drw);
+    if (found != out_model->mDrawMatrices.end()) {
+      return found - out_model->mDrawMatrices.begin();
     } else {
-      out_model.mDrawMatrices.push_back(drw);
-      return out_model.mDrawMatrices.size() - 1;
+      out_model->mDrawMatrices.push_back(drw);
+      return out_model->mDrawMatrices.size() - 1;
     }
   }
   u16 add_weight_matrix(int v, const aiMesh* pMesh,
@@ -340,7 +364,7 @@ struct AssImporter {
     if (pMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
       return;
 
-    auto& poly = out_model.getMeshes().add();
+    auto& poly = out_model->getMeshes().add();
     poly.mode = j3d::ShapeData::Mode::Skinned;
     poly.bbox.min = {pMesh->mAABB.mMin.x, pMesh->mAABB.mMin.y,
                      pMesh->mAABB.mMin.z};
@@ -386,24 +410,24 @@ struct AssImporter {
       // could be a bad assumption..
       if (wt != nullptr && wt->mWeights.size() == 1) {
         const auto& acting_influence =
-            out_model.getBones()[wt->mWeights[0].boneId];
+            out_model->getBones()[wt->mWeights[0].boneId];
         pos = glm::vec4(pos, 0) *
-              glm::inverse(acting_influence.calcSrtMtx(out_model.getBones()));
+              glm::inverse(acting_influence.calcSrtMtx(out_model->getBones()));
       }
 
-      return add_to_buffer(pos, out_model.mBufs.pos.mData);
+      return add_to_buffer(pos, out_model->mBufs.pos.mData);
     };
     auto add_normal = [&](int v) {
       return add_to_buffer(getVec(pMesh->mNormals[v]),
-                           out_model.mBufs.norm.mData);
+                           out_model->mBufs.norm.mData);
     };
     auto add_color = [&](int v, int j) {
       return add_to_buffer(getClr(pMesh->mColors[j][v]),
-                           out_model.mBufs.color[j].mData);
+                           out_model->mBufs.color[j].mData);
     };
     auto add_uv = [&](int v, int j) {
       return add_to_buffer(getVec2(pMesh->mTextureCoords[j][v]),
-                           out_model.mBufs.uv[j].mData);
+                           out_model->mBufs.uv[j].mData);
     };
 
     // More than one bone -> Assume multi mtx, unless zero influence
@@ -452,8 +476,8 @@ struct AssImporter {
 
   void ImportNode(const aiNode* pNode, int parent = -1) {
     // Create a bone (with name)
-    const auto joint_id = out_model.getBones().size();
-    auto& joint = out_model.getBones().add();
+    const auto joint_id = out_model->getBones().size();
+    auto& joint = out_model->getBones().add();
     joint.setName(pNode->mName.C_Str());
     const glm::mat4 xf = getMat4(pNode->mTransformation);
 
@@ -476,7 +500,7 @@ struct AssImporter {
 
     joint.setBoneParent(parent);
     if (parent != -1)
-      out_model.getBones()[parent].addChild(joint.getId());
+      out_model->getBones()[parent].addChild(joint.getId());
 
     // Mesh data
     for (unsigned i = 0; i < pNode->mNumMeshes; ++i) {
@@ -495,16 +519,21 @@ struct AssImporter {
       ImportNode(pNode->mChildren[i], joint_id);
     }
   }
+  aiNode* root;
 
-  void ImportAss() {
-    const auto* root = pScene->mRootNode;
+  bool assimpSuccess() const {
+    return pScene != nullptr && pScene->mRootNode != nullptr;
+  }
+
+  std::set<std::pair<std::size_t, std::string>> PrepareAss() {
+    root = pScene->mRootNode;
     assert(root != nullptr);
 
     std::set<std::string> texturesToImport;
 
     for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
       auto* pMat = pScene->mMaterials[i];
-      auto& mr = out_model.getMaterials().add();
+      auto& mr = out_model->getMaterials().add();
       const auto name = pMat->GetName();
       mr.name = name.C_Str();
       if (mr.name == "") {
@@ -658,7 +687,8 @@ struct AssImporter {
             break;
           }
 
-          ImpSampler impSamp{impTexType, path.C_Str(), uvindex, impWrapMode};
+          ImpSampler impSamp{impTexType, getFileShort(path.C_Str()), uvindex,
+                             impWrapMode};
           impMat.samplers.push_back(impSamp);
         }
       }
@@ -666,17 +696,21 @@ struct AssImporter {
       CompileMaterial(mr, impMat, texturesToImport);
     }
 
+    std::set<std::pair<std::size_t, std::string>> unresolved;
+
     for (auto& tex : texturesToImport) {
       printf("Importing texture: %s\n", tex.c_str());
 
-      auto& data = out_collection.getTextures().add();
-      data.mName = tex;
+      const int i = out_collection->getTextures().size();
+      auto& data = out_collection->getTextures().add();
+      data.mName = getFileShort(tex);
 
       int width, height, channels;
-      unsigned char* image =
-          stbi_load((tex).c_str(), &width, &height, &channels, STBI_rgb_alpha);
+      u8* image =
+          stbi_load(tex.c_str(), &width, &height, &channels, STBI_rgb_alpha);
       if (!image) {
         printf("Cannot find texture %s\n", tex.c_str());
+        unresolved.emplace(i, tex);
         continue;
       }
       assert(image);
@@ -689,10 +723,55 @@ struct AssImporter {
       stbi_image_free(image);
     }
 
+    return unresolved;
+  }
+  void
+  ImportAss(const std::vector<std::pair<std::size_t, std::vector<u8>>>& data) {
+
+    for (auto& [idx, idata] : data) {
+      auto& data = out_collection->getTextures()[idx];
+      int width, height, channels;
+      u8* image = stbi_load_from_memory(idata.data(), idata.size(), &width,
+                                        &height, &channels, STBI_rgb_alpha);
+      if (!image) {
+        printf("Invalid texture..\n");
+        throw "Invalid texture";
+      }
+      assert(image);
+      data.mFormat = (int)libcube::gx::TextureFormat::CMPR;
+      data.setWidth(width);
+      data.setHeight(height);
+      data.setMipmapCount(0);
+      data.resizeData();
+      data.encode(image);
+      stbi_image_free(image);
+    }
+
     ImportNode(root);
+
+    // Assign IDs
+    for (int i = 0; i < out_model->getMeshes().size(); ++i)
+      out_model->getMeshes()[i].id = i;
   }
 };
 struct AssReader {
+  enum class State {
+    Unengaged,
+    // send settings request, set mode to
+    WaitForSettings,
+    // check for texture dependencies
+    // tell the importer to fix them or abort
+    WaitForTextureDependencies,
+    // Now we actually import!
+    // No state necessary, we'll just return
+  };
+  State state = State::Unengaged;
+  // Hack (we know importer will not be copied):
+  // Won't be necessary when IBinaryDeserializable is split into Factory and
+  // Instance, and Instance does not require copyable.
+  std::shared_ptr<Assimp::Importer> importer =
+      std::make_shared<Assimp::Importer>();
+
   static constexpr std::array<std::string_view, 4> supported_endings = {
       ".dae", ".obj", ".fbx", ".smd"};
 
@@ -707,24 +786,68 @@ struct AssReader {
 
     return typeid(lib3d::Scene).name();
   }
-  void read(kpi::IOTransaction& transaction) const {
-    const u32 ass_flags =
-        aiProcess_Triangulate | aiProcess_SortByPType |
-        aiProcess_GenSmoothNormals | aiProcess_ValidateDataStructure |
-        aiProcess_RemoveRedundantMaterials | aiProcess_PopulateArmatureData |
-        aiProcess_FindDegenerates | aiProcess_FindInvalidData |
-        aiProcess_GenUVCoords | aiProcess_FindInstances |
-        aiProcess_OptimizeMeshes | aiProcess_Debone |
-        aiProcess_GenBoundingBoxes | aiProcess_FlipUVs |
-        aiProcess_FlipWindingOrder;
 
-    Assimp::Importer importer;
-    std::string path(transaction.data.getProvider()->getFilePath());
-    const auto* pScene = importer.ReadFileFromMemory(transaction.data.data(),
-                                                     transaction.data.size(),
-                                                     ass_flags, path.c_str());
-    AssImporter ass_converter(pScene, &transaction.node);
-    ass_converter.ImportAss();
+  std::optional<AssImporter> helper = std::nullopt;
+  std::set<std::pair<std::size_t, std::string>> unresolved;
+  std::vector<std::pair<std::size_t, std::vector<u8>>> additional_textures;
+  void read(kpi::IOTransaction& transaction) {
+    // Ask for properties
+    if (state == State::Unengaged) {
+      state = State::WaitForSettings;
+      transaction.state = kpi::TransactionState::ConfigureProperties;
+      return;
+    }
+    // Expect settings to have been configured.
+    // Load assimp file and check for texture dependencies
+    if (state == State::WaitForSettings) {
+      const u32 ass_flags =
+          aiProcess_Triangulate | aiProcess_SortByPType |
+          aiProcess_GenSmoothNormals | aiProcess_ValidateDataStructure |
+          aiProcess_RemoveRedundantMaterials | aiProcess_PopulateArmatureData |
+          aiProcess_FindDegenerates | aiProcess_FindInvalidData |
+          aiProcess_GenUVCoords | aiProcess_FindInstances |
+          aiProcess_OptimizeMeshes | aiProcess_Debone |
+          aiProcess_GenBoundingBoxes | aiProcess_FlipUVs |
+          aiProcess_FlipWindingOrder;
+
+      std::string path(transaction.data.getProvider()->getFilePath());
+      const auto* pScene = importer->ReadFileFromMemory(
+          transaction.data.data(), transaction.data.size(), ass_flags,
+          path.c_str());
+      if (pScene == nullptr) {
+        // We will never be called again..
+        transaction.callback(kpi::IOMessageClass::Error, "Assimp",
+                             importer->GetErrorString());
+        transaction.state = kpi::TransactionState::Failure;
+        return;
+      }
+      helper.emplace(pScene, &transaction.node);
+      unresolved = helper->PrepareAss();
+
+      state = State::WaitForTextureDependencies;
+      // This step might be optional
+      if (!unresolved.empty()) {
+        transaction.state = kpi::TransactionState::ResolveDependencies;
+        transaction.resolvedFiles.resize(unresolved.size());
+        transaction.unresolvedFiles.reserve(unresolved.size());
+        for (auto& missing : unresolved)
+          transaction.unresolvedFiles.push_back(missing.second);
+        return;
+      }
+    }
+    if (state == State::WaitForTextureDependencies) {
+      if (!unresolved.empty()) {
+        for (std::size_t i = 0; i < transaction.resolvedFiles.size(); ++i) {
+          auto& found = transaction.resolvedFiles[i];
+          if (found.empty())
+            continue;
+          additional_textures.emplace_back(i, std::move(found));
+        }
+      }
+      helper->ImportAss(additional_textures);
+      transaction.state = kpi::TransactionState::Complete;
+      // And we die~
+    }
   }
 };
 

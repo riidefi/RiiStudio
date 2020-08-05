@@ -3,6 +3,7 @@
 #include <core/common.h>
 #include <vendor/glm/mat3x2.hpp>
 #include <vendor/glm/vec2.hpp>
+#include <math.h>
 
 namespace libcube {
 namespace gx {

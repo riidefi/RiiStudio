@@ -38,28 +38,6 @@ EditorDocument::EditorDocument(FileData&& data) {
     return;
   }
   setRoot(std::move(fileState));
-#if 0
-  struct Handler : oishii::ErrorHandler {
-    void onErrorBegin(const oishii::DataProvider& stream) override {
-      puts("[Begin Error]");
-    }
-    void onErrorDescribe(const oishii::DataProvider& stream, const char* type,
-                         const char* brief, const char* details) override {
-      printf("- [Describe] Type %s, Brief: %s, Details: %s\n", type, brief,
-             details);
-    }
-    void onErrorAddStackTrace(const oishii::DataProvider& stream,
-                              std::streampos start, std::streamsize size,
-                              const char* domain) override {
-      printf("- [Stack] Start: %u, Size: %u, Domain: %s\n", (u32)start,
-             (u32)size, domain);
-    }
-    void onErrorEnd(const oishii::DataProvider& stream) override {
-      puts("[End Error]");
-    }
-  } handler;
-  reader.addErrorHandler(&handler);
-#endif
   auto message_handler = [&](kpi::IOMessageClass message_class,
                              const std::string_view domain,
                              const std::string_view message_body) {

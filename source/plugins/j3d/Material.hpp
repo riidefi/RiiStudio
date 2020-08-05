@@ -73,6 +73,9 @@ struct MaterialData : public libcube::GCMaterialData {
       // printf("TexData does not match\n");
       return false;
     }
+    std::unique_ptr<SamplerData> clone() const override {
+      return std::make_unique<J3DSamplerData>(*this);
+    }
 
     J3DSamplerData(u32 id) : btiId(id) {}
     J3DSamplerData() : btiId(-1) {}

@@ -37,7 +37,7 @@ private:
 
   IconManager mIconManager;
   kpi::IObject* mActive = nullptr;
-  bool mShowMessages = true;
+  // bool mShowMessages = true;
 };
 
 } // namespace riistudio::frontend

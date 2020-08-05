@@ -8,6 +8,8 @@
 #include "ThemeManager.hpp"
 #include "file_host.hpp"
 
+#include <frontend/editor/ImporterWindow.hpp>
+
 namespace riistudio::frontend {
 
 class EditorWindow;
@@ -39,6 +41,7 @@ private:
   bool mThemeUpdated = true;
 
   bool mShowChangeLog = true;
+  std::queue<ImporterWindow> mImportersQueue;
 };
 
 } // namespace riistudio::frontend

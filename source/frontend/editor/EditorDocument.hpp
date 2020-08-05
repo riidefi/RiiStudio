@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EditorImporter.hpp"
 #include <core/kpi/Document.hpp>         // kpi::Document, kpi::INode
 #include <core/kpi/Plugins.hpp>          // kpi::IOMessageClass
 #include <frontend/file_host.hpp>        // FileData
@@ -30,16 +31,6 @@ private:
   std::string mFilePath;
 
 protected:
-  struct Message {
-    kpi::IOMessageClass message_class;
-    std::string domain;
-    std::string message_body;
-
-    Message(kpi::IOMessageClass mclass, std::string&& mdomain,
-            std::string&& body)
-        : message_class(mclass), domain(std::move(mdomain)),
-          message_body(std::move(body)) {}
-  };
   llvm::SmallVector<Message, 16> mMessages;
 };
 

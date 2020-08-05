@@ -55,6 +55,7 @@ struct ShapeData {
 struct Shape : public ShapeData,
                public libcube::IndexedPolygon,
                public virtual kpi::IObject {
+  void setId(u32 _id) override { id = _id; }
   virtual const j3d::Model* getParent() const { return nullptr; }
 
   std::string getName() const { return "Shape " + std::to_string(id); }

@@ -346,6 +346,25 @@ void RootWindow::draw() {
 
     DrawChangeLog(&mShowChangeLog);
 
+    if (!mImportersQueue.empty()) {
+      auto& window = mImportersQueue.front();
+      if (window.attachEditor()) {
+        attachEditorWindow(std::make_unique<EditorWindow>(window.takeResult(),
+                                                          window.getPath()));
+        mImportersQueue.pop();
+      } else if (window.abort()) {
+        mImportersQueue.pop();
+      } else {
+        const auto wflags = ImGuiWindowFlags_NoCollapse;
+
+        ImGui::OpenPopup("Importer");
+
+        ImGui::SetNextWindowSize({800.0f, 00.0f});
+        ImGui::BeginPopupModal("Importer", nullptr, wflags);
+        window.draw();
+        ImGui::EndPopup();
+      }
+    }
     drawChildren();
   }
   // Handle popups
@@ -354,7 +373,17 @@ void RootWindow::draw() {
 }
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   printf("Opening file: %s\n", data.mPath.c_str());
-  attachEditorWindow(std::make_unique<EditorWindow>(std::move(data)));
+
+  if (!mImportersQueue.empty()) {
+    auto& top = mImportersQueue.front();
+
+    if (top.acceptDrop()) {
+      top.drop(std::move(data));
+      return;
+    }
+  }
+
+  mImportersQueue.emplace(std::move(data));
 }
 void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
   mAttachEditorsQueue.push(editor->getName());

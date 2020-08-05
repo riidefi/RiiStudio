@@ -89,7 +89,11 @@ public:
     for (auto& mat : model.getMaterials()) {
       for (int i = 0; i < mat.samplers.size(); ++i) {
         auto& samp = mat.samplers[i];
-        auto* slow = reinterpret_cast<MaterialData::J3DSamplerData*>(samp.get());
+        if (samp.get() == nullptr)
+          continue;
+        auto* slow = dynamic_cast<Material::J3DSamplerData*>(samp.get());
+        if (slow == nullptr)
+          printf("Invalid sampler referring to %s\n", samp->mTexture.c_str());
         assert(slow != nullptr);
 
         assert(!samp->mTexture.empty());

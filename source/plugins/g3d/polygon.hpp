@@ -54,7 +54,10 @@ struct PolygonData {
            mMatrixPrimitives == rhs.mMatrixPrimitives;
   }
 };
-struct Polygon : public PolygonData, public libcube::IndexedPolygon, public virtual kpi::IObject {
+struct Polygon : public PolygonData,
+                 public libcube::IndexedPolygon,
+                 public virtual kpi::IObject {
+  void setId(u32 id) override { mId = id; }
   virtual const g3d::Model* getParent() const;
   std::string getName() const { return mName; }
   void setName(const std::string& name) override { mName = name; }
@@ -113,7 +116,6 @@ struct Polygon : public PolygonData, public libcube::IndexedPolygon, public virt
   u64 addUv(u64 chan, const glm::vec2& v) override;
 
   void addTriangle(std::array<SimpleVertex, 3> tri) override;
-
 
   bool operator==(const Polygon& rhs) const {
     return PolygonData::operator==(rhs);
