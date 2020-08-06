@@ -665,7 +665,7 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
   tally_dict("Buffer_Color", mdl.getBuf_Clr());
   tally_dict("Buffer_UV", mdl.getBuf_Uv());
   tally_dict("Materials", mdl.getMaterials());
-  tally_dict("Shaders", shaders);
+  tally_dict("Shaders", mdl.getMaterials());
   tally_dict("Meshes", mdl.getMeshes());
   u32 n_samplers = 0;
   for (auto& mat : mdl.getMaterials())
@@ -825,7 +825,13 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
         linker.writeReloc<s32>("Mat" + std::to_string(mat_start),
                                get_shader_id(mat.shader));
         writer.write<u32>(mat.samplers.size());
-        const auto sampler_offset = writePlaceholder(writer);
+        u32 sampler_offset = 0;
+        if (mat.samplers.size()) {
+          sampler_offset = writePlaceholder(writer);
+        } else {
+          writer.write<s32>(0); // no samplers
+          printf(">> Mat %s has no samplers.\n", mat.name.c_str());
+        }
         writer.write<s32>(0); // fur
         writer.write<s32>(0); // ud
         const auto dl_offset = writePlaceholder(writer);
@@ -964,39 +970,42 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
           writer.write<u32>(0);    // alph
         }
 
-        writeOffsetBackpatch(writer, sampler_offset, mat_start);
-        for (int i = 0; i < mat.samplers.size(); ++i) {
-          const auto s_start = writer.tell();
-          const auto& sampler = *mat.samplers[i];
+        // Not written if no samplers..
+        if (sampler_offset != 0) {
+          writeOffsetBackpatch(writer, sampler_offset, mat_start);
+          for (int i = 0; i < mat.samplers.size(); ++i) {
+            const auto s_start = writer.tell();
+            const auto& sampler = *mat.samplers[i];
 
-          {
-            const auto [entry_start, struct_start] =
-                tex_sampler_mappings.from_mat(&mat, i);
-            printf("<material=\"%s\" sampler=%u>\n", mat.getName().c_str(), i);
-            printf("\tentry_start=%x, struct_start=%x\n", (unsigned)entry_start,
-                   (unsigned)struct_start);
-            oishii::Jump<oishii::Whence::Set, oishii::Writer> sg(writer,
-                                                                 entry_start);
-            writer.write<s32>(mat_start - struct_start);
-            writer.write<s32>(s_start - struct_start);
+            {
+              const auto [entry_start, struct_start] =
+                  tex_sampler_mappings.from_mat(&mat, i);
+              printf("<material=\"%s\" sampler=%u>\n", mat.getName().c_str(),
+                     i);
+              printf("\tentry_start=%x, struct_start=%x\n",
+                     (unsigned)entry_start, (unsigned)struct_start);
+              oishii::Jump<oishii::Whence::Set, oishii::Writer> sg(writer,
+                                                                   entry_start);
+              writer.write<s32>(mat_start - struct_start);
+              writer.write<s32>(s_start - struct_start);
+            }
+
+            writeNameForward(names, writer, s_start, sampler.mTexture);
+            writeNameForward(names, writer, s_start, sampler.mPalette);
+            writer.skip(8);       // runtime pointers
+            writer.write<u32>(i); // gpu texture slot
+            writer.write<u32>(i); // no palette support
+            writer.write<u32>(static_cast<u32>(sampler.mWrapU));
+            writer.write<u32>(static_cast<u32>(sampler.mWrapV));
+            writer.write<u32>(static_cast<u32>(sampler.mMinFilter));
+            writer.write<u32>(static_cast<u32>(sampler.mMagFilter));
+            writer.write<f32>(sampler.mLodBias);
+            writer.write<u32>(static_cast<u32>(sampler.mMaxAniso));
+            writer.write<u8>(sampler.bBiasClamp);
+            writer.write<u8>(sampler.bEdgeLod);
+            writer.skip(2);
           }
-
-          writeNameForward(names, writer, s_start, sampler.mTexture);
-          writeNameForward(names, writer, s_start, sampler.mPalette);
-          writer.skip(8);       // runtime pointers
-          writer.write<u32>(i); // gpu texture slot
-          writer.write<u32>(i); // no palette support
-          writer.write<u32>(static_cast<u32>(sampler.mWrapU));
-          writer.write<u32>(static_cast<u32>(sampler.mWrapV));
-          writer.write<u32>(static_cast<u32>(sampler.mMinFilter));
-          writer.write<u32>(static_cast<u32>(sampler.mMagFilter));
-          writer.write<f32>(sampler.mLodBias);
-          writer.write<u32>(static_cast<u32>(sampler.mMaxAniso));
-          writer.write<u8>(sampler.bBiasClamp);
-          writer.write<u8>(sampler.bEdgeLod);
-          writer.skip(2);
         }
-
         writer.alignTo(32);
         writeOffsetBackpatch(writer, dl_offset, mat_start);
         writeMaterialDisplayList(mat.getMaterialData(), writer);
@@ -1016,6 +1025,9 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
     for (auto& stage : shader.mStages)
       if (stage.texCoord != 0xff && stage.texMap != 0xff)
         genTexMapping[stage.texCoord] = stage.texMap;
+    for (auto& order : shader.mIndirectOrders)
+      if (order.refCoord != 0xff && order.refMap != 0xff)
+        genTexMapping[order.refCoord] = order.refMap;
     for (auto e : genTexMapping)
       writer.write<u8>(e);
     writer.skip(8);
@@ -1575,6 +1587,23 @@ static void readModel(Model& mdl, oishii::BinaryReader& reader,
     }
 
     // TEV
+    reader.seekSet(start + ofsTev + 16);
+    std::array<u8, 8> coord_map_lut;
+    for (auto& e : coord_map_lut)
+      e = reader.read<u8>();
+    printf(">>>>> Coord->Map LUT:\n");
+    for (auto e : coord_map_lut)
+      printf("%u ", (unsigned)e);
+    printf("\n");
+    bool error = false;
+    {
+      u8 last = 0;
+      for (auto e : coord_map_lut) {
+        error |= e <= last;
+        last = e;
+      }
+    }
+    // assert(!error && "Invalid sampler configuration");
     reader.seekSet(start + ofsTev + 32);
     {
 
@@ -1586,7 +1615,8 @@ static void readModel(Model& mdl, oishii::BinaryReader& reader,
 
     // Samplers
     reader.seekSet(start + ofsSamplers);
-    for (u8 i = 0; i < mat.info.nTexGen; ++i) {
+    assert(mat.info.nTexGen == nTex);
+    for (u8 i = 0; i < nTex; ++i) {
       auto sampler = std::make_unique<libcube::GCMaterialData::SamplerData>();
 
       const auto sampStart = reader.tell();
