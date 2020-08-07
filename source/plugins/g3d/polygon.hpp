@@ -11,20 +11,8 @@ namespace riistudio::g3d {
 
 class Model;
 
-struct MatrixPrimitive {
-  std::vector<s16> mDrawMatrixIndices;
-  std::vector<libcube::IndexedPrimitive> mPrimitives;
-
-  MatrixPrimitive() = default;
-  MatrixPrimitive(std::vector<s16> drawMatrixIndices)
-      : mDrawMatrixIndices(drawMatrixIndices) {}
-
-  bool operator==(const MatrixPrimitive& rhs) const {
-    return mDrawMatrixIndices == rhs.mDrawMatrixIndices &&
-           mPrimitives == rhs.mPrimitives;
-  }
-};
-struct PolygonData {
+using MatrixPrimitive = libcube::MatrixPrimitive;
+struct PolygonData : public libcube::MeshData {
   std::string mName;
   u32 mId;
 
@@ -38,9 +26,6 @@ struct PolygonData {
   std::string mNormalBuffer;
   std::array<std::string, 2> mColorBuffer;
   std::array<std::string, 8> mTexCoordBuffer;
-
-  std::vector<MatrixPrimitive> mMatrixPrimitives;
-  libcube::VertexDescriptor mVertexDescriptor;
 
   bool operator==(const PolygonData& rhs) const {
     return mName == rhs.mName && mId == rhs.mId &&
@@ -59,22 +44,10 @@ struct Polygon : public PolygonData,
                  public virtual kpi::IObject {
   void setId(u32 id) override { mId = id; }
   virtual const g3d::Model* getParent() const;
+  g3d::Model* getMutParent();
   std::string getName() const { return mName; }
   void setName(const std::string& name) override { mName = name; }
 
-  u64 getNumMatrixPrimitives() const override {
-    return mMatrixPrimitives.size();
-  }
-  s32 addMatrixPrimitive() override {
-    mMatrixPrimitives.emplace_back();
-    return (s32)mMatrixPrimitives.size() - 1;
-  }
-  s16 getMatrixPrimitiveCurrentMatrix(u64 idx) const override {
-    return mCurrentMatrix;
-  }
-  void setMatrixPrimitiveCurrentMatrix(u64 idx, s16 mtx) override {
-    mCurrentMatrix = mtx;
-  }
   // Matrix list access
   u64 getMatrixPrimitiveNumIndexedPrimitive(u64 idx) const override {
     assert(idx < mMatrixPrimitives.size());
@@ -94,12 +67,8 @@ struct Polygon : public PolygonData,
     assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());
     return mMatrixPrimitives[idx].mPrimitives[prim_idx];
   }
-  virtual libcube::VertexDescriptor& getVcd() override {
-    return mVertexDescriptor;
-  }
-  virtual const libcube::VertexDescriptor& getVcd() const override {
-    return mVertexDescriptor;
-  }
+  MeshData& getMeshData() override { return *this; }
+  const MeshData& getMeshData() const { return *this; }
   lib3d::AABB getBounds() const override {
     // TODO
     return {{0, 0, 0}, {0, 0, 0}};
@@ -116,7 +85,13 @@ struct Polygon : public PolygonData,
   u64 addUv(u64 chan, const glm::vec2& v) override;
 
   void addTriangle(std::array<SimpleVertex, 3> tri) override;
-
+  void init(bool skinned, riistudio::lib3d::AABB* boundingBox) override {
+    // TODO: Handle skinning...
+    (void)skinned;
+    // No bounding box here
+    (void)boundingBox;
+  }
+  void initBufsFromVcd() override;
   bool operator==(const Polygon& rhs) const {
     return PolygonData::operator==(rhs);
   }

@@ -80,7 +80,7 @@ struct GCMaterialData {
 
   std::string name;
 
-  gx::CullMode cullMode;
+  gx::CullMode cullMode = libcube::gx::CullMode::Back;
 
   // Gen Info counts
   struct GenInfo {
@@ -125,7 +125,7 @@ struct GCMaterialData {
 
   gx::AlphaComparison alphaCompare;
   gx::BlendMode blendMode;
-  bool dither;
+  bool dither = false;
   enum class CommonMappingOption {
     NoSelection,
     DontRemapTextureSpace, // -1 -> 1 (J3D "basic")
@@ -235,7 +235,7 @@ struct GCMaterialData {
   GCMaterialData() {
     tevKonstColors.nElements = 4;
     tevColors.nElements = 4;
-    chanData.nElements = 2;
+    // chanData.nElements = 2;
   }
 };
 

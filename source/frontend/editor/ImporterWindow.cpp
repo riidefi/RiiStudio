@@ -25,6 +25,26 @@ void ImporterWindow::draw() {
       ImGui::Text("Configure Properties");
       importerRender();
       break;
+    case State::AmbiguousConstructible: {
+      ImGui::Text("Pick which file format to create.");
+      bool answered = false;
+      for (auto& choice : choices) {
+        const char* format = choice.c_str();
+        if (choice.find("g3d") != std::string::npos)
+          format = "BRRES Model";
+        else if (choice.find("j3d") != std::string::npos)
+          format = "BMD Model";
+        if (ImGui::Button(format,
+                          ImVec2{ImGui::GetContentRegionAvailWidth(), 0.0f})) {
+          data_id = choice;
+          result = State::Constructible;
+          answered = true;
+        }
+      }
+      // Keep asking..
+      if (!answered)
+        return;
+    }
     case State::ResolveDependencies: {
       unsigned num = 0;
       for (auto& vec : transaction->resolvedFiles)

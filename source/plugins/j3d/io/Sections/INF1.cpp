@@ -46,7 +46,7 @@ struct INF1Node {
     // Matrix primitive count
     u64 num_mprim = 0;
     for (auto& shp : mdl->getMeshes())
-      num_mprim += shp.getNumMatrixPrimitives();
+      num_mprim += shp.getMeshData().mMatrixPrimitives.size();
     writer.write<u32>(num_mprim);
     // Vertex position count
     writer.write<u32>((u32)mdl->mBufs.pos.mData.size());

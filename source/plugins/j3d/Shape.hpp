@@ -9,23 +9,9 @@ namespace riistudio::j3d {
 
 class Model;
 
-struct MatrixPrimitive {
-  s16 mCurrentMatrix = -1; // Part of the polygon in G3D
+using MatrixPrimitive = libcube::MatrixPrimitive;
 
-  std::vector<s16> mDrawMatrixIndices;
-
-  std::vector<libcube::IndexedPrimitive> mPrimitives;
-
-  MatrixPrimitive() = default;
-  MatrixPrimitive(s16 current_matrix, std::vector<s16> drawMatrixIndices)
-      : mCurrentMatrix(current_matrix), mDrawMatrixIndices(drawMatrixIndices) {}
-  bool operator==(const MatrixPrimitive& rhs) const {
-    return mCurrentMatrix == rhs.mCurrentMatrix &&
-           mDrawMatrixIndices == rhs.mDrawMatrixIndices &&
-           mPrimitives == rhs.mPrimitives;
-  }
-};
-struct ShapeData {
+struct ShapeData : public libcube::MeshData {
   u32 id;
   enum class Mode {
     Normal,
@@ -40,9 +26,6 @@ struct ShapeData {
   f32 bsphere = 100000.0f;
   lib3d::AABB bbox{{-100000.0f, -100000.0f, -100000.0f},
                    {100000.0f, 100000.0f, 100000.0f}};
-
-  std::vector<MatrixPrimitive> mMatrixPrimitives;
-  libcube::VertexDescriptor mVertexDescriptor;
 
   bool operator==(const ShapeData& rhs) const {
     return id == rhs.id && mode == rhs.mode && bsphere == rhs.bsphere &&
@@ -60,25 +43,7 @@ struct Shape : public ShapeData,
 
   std::string getName() const { return "Shape " + std::to_string(id); }
   void setName(const std::string& name) override {}
-  u64 getNumMatrixPrimitives() const override {
-    return mMatrixPrimitives.size();
-  }
-  s32 addMatrixPrimitive() override {
-    mMatrixPrimitives.emplace_back();
-    return (s32)mMatrixPrimitives.size() - 1;
-  }
-  s16 getMatrixPrimitiveCurrentMatrix(u64 idx) const override {
-    assert(idx < mMatrixPrimitives.size());
-    if (idx < mMatrixPrimitives.size())
-      return mMatrixPrimitives[idx].mCurrentMatrix;
-    else
-      return -1;
-  }
-  void setMatrixPrimitiveCurrentMatrix(u64 idx, s16 mtx) override {
-    assert(idx < mMatrixPrimitives.size());
-    if (idx < mMatrixPrimitives.size())
-      mMatrixPrimitives[idx].mCurrentMatrix = mtx;
-  }
+
   // Matrix list access
   u64 getMatrixPrimitiveNumIndexedPrimitive(u64 idx) const override {
     assert(idx < mMatrixPrimitives.size());
@@ -98,12 +63,8 @@ struct Shape : public ShapeData,
     assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());
     return mMatrixPrimitives[idx].mPrimitives[prim_idx];
   }
-  virtual libcube::VertexDescriptor& getVcd() override {
-    return mVertexDescriptor;
-  }
-  virtual const libcube::VertexDescriptor& getVcd() const override {
-    return mVertexDescriptor;
-  }
+  MeshData& getMeshData() override { return *this; }
+  const MeshData& getMeshData() const { return *this; }
   lib3d::AABB getBounds() const override { return bbox; }
 
   glm::vec2 getUv(u64 chan, u64 id) const override;
@@ -120,6 +81,12 @@ struct Shape : public ShapeData,
   std::vector<glm::mat4> getPosMtx(u64 mpid) const override;
 
   bool isVisible() const override { return visible; }
+  void init(bool skinned, riistudio::lib3d::AABB* boundingBox) override {
+    if (skinned)
+      mode = j3d::ShapeData::Mode::Skinned;
+    if (boundingBox != nullptr)
+      bbox = *boundingBox;
+  }
 };
 
 } // namespace riistudio::j3d

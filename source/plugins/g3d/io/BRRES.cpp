@@ -762,11 +762,12 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
       },
       true, 1);
 
+  u32 bone_id = 0;
   write_dict(
       "Bones", mdl.getBones(), [&](const Bone& bone, std::size_t bone_start) {
         printf("Bone at %x\n", (unsigned)bone_start);
         writeNameForward(names, writer, bone_start, bone.getName());
-        writer.write<u32>(bone.mId);
+        writer.write<u32>(bone_id++);
         writer.write<u32>(bone.matrixId);
         writer.write<u32>(bone.flag);
         writer.write<u32>(bone.billboardType);
@@ -1258,7 +1259,8 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
         writer.write<u32>(ntri);
 
         assert_since(0x48);
-        writer.write<s16>(mdl.getBuf_Pos().indexOf(mesh.mPositionBuffer));
+        const auto pos_idx = mdl.getBuf_Pos().indexOf(mesh.mPositionBuffer);
+        writer.write<s16>(pos_idx);
         writer.write<s16>(mdl.getBuf_Nrm().indexOf(mesh.mNormalBuffer));
         for (int i = 0; i < 2; ++i)
           writer.write<s16>(mdl.getBuf_Clr().indexOf(mesh.mColorBuffer[i]));
@@ -1398,11 +1400,15 @@ static void readModel(Model& mdl, oishii::BinaryReader& reader,
     }
   };
 
+  u32 bone_id = 0;
   readDict(secOfs.ofsBones, [&](const DictionaryNode& dnode) {
     auto& bone = mdl.getBones().add();
     reader.skip(8); // skip size and mdl offset
     bone.setName(readName(reader, dnode.mDataDestination));
-    bone.mId = reader.read<u32>();
+    const u32 id = reader.read<u32>();
+    (void)id;
+	assert(id == bone_id);
+    ++bone_id;
     bone.matrixId = reader.read<u32>();
     bone.flag = reader.read<u32>();
     bone.billboardType = reader.read<u32>();
@@ -1564,7 +1570,8 @@ static void readModel(Model& mdl, oishii::BinaryReader& reader,
     mat.chanData.nElements = 0;
     for (u8 i = 0; i < mat.info.nColorChan; ++i) {
       // skip runtime flag
-      reader.read<u32>();
+      const auto flag = reader.read<u32>();
+      (void)flag;
       libcube::gx::Color matClr, ambClr;
       matClr.r = reader.read<u8>();
       matClr.g = reader.read<u8>();

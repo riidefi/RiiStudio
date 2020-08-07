@@ -619,6 +619,7 @@ std::string GXProgram::generateRas(const gx::TevStage& stage) {
   case gx::ColorSelChanApi::alpha1:
   case gx::ColorSelChanApi::color1a1: // Real files will only use this
     return "v_Color1";
+  case gx::ColorSelChanApi::zero:
   case gx::ColorSelChanApi::null:
     return "vec4(0, 0, 0, 0)";
   default:

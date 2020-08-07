@@ -6,122 +6,15 @@
 #include <unordered_map>
 #include <vendor/stb_image.h>
 
+#include "AssMaterial.hpp"
+
 namespace riistudio::ass {
-
-// Actual data we can respect
-enum class ImpTexType {
-  Diffuse,  // Base color
-  Specular, // Attenuate spec lighting or env lighting
-  Ambient,  // We can't mix with amb color, but we can just add it on.
-  Emissive, // We also add this on. Perhaps later in the pipeline.
-  Bump,     // We use the height map as a basic bump map.
-            // We do not support normal maps. Perhaps convert to Bump.
-  // We do not support shininess. In setups with two env maps, we could
-  // use this to attenuate the specular one. For now, though, it is
-  // unsupported.
-  Opacity,      // This can actually be useful. For example, combining CMPR +
-                // I8.
-  Displacement, // Effectively the same as bump maps, but attenuate the
-                // single diffuse component.
-
-  // Treated as second diffuse, for now
-  // LightMap,     // Any second diffuse image gets moved here
-  // We don't support reflection.
-  // Base Color -> Diffuse
-  // Normal Camera -> Unsupported
-  // Emission Color -> Emissive
-  // Metalness -> Ignored for now. We can tint specular to achieve this.
-  // Diffuse Roughness -> Invert for specular eventually
-  // AO -> ANother LightMap
-  // Unknown -> Treat as diffuse, if beyond first slot, LightMap
-};
-struct ImpSampler {
-  ImpTexType type;
-  std::string path;
-  u32 uv_channel;
-  libcube::gx::TextureWrapMode wrap;
-};
-struct ImpMaterial {
-  std::vector<ImpSampler> samplers;
-};
-static void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
-                            std::set<std::string>& texturesToImport) {
-  // Vertex Lighting:
-  // Ambient* + (Diffuse* x LightMap x DIFFUSE_LIGHT)
-  // + (Specular* x SPECULAR_LIGHT) -> Replace with opacity, not attenuate
-
-  // Env Lighting:
-  // Ambient* + (Diffuse* x LightMap x DIFFUSE_TEX*(Bump)) +
-  // (Specular* x SPECULAR_TEX*(Bump)) -> Replace with opacity
-
-  // Current, lazy setup:
-  // Diffuse x Diffuse.. -> Replace with opacity
-
-  // WIP, just supply a pure color..
-  auto& data = out.getMaterialData();
-
-  if (!in.samplers.empty()) {
-    data.samplers.push_back(std::make_unique<j3d::Material::J3DSamplerData>());
-    data.samplers[0]->mTexture = in.samplers[0].path;
-    texturesToImport.insert(in.samplers[0].path);
-
-    data.texMatrices.push_back(std::make_unique<j3d::Material::TexMatrix>());
-    data.texGens.push_back({.matrix = libcube::gx::TexMatrix::TexMatrix0});
-    data.info.nTexGen = 1;
-  }
-
-  data.cullMode = libcube::gx::CullMode::Back;
-  data.info.nTevStage = 1;
-
-  libcube::gx::TevStage wip;
-  wip.texMap = wip.texCoord = 0;
-  wip.rasOrder = libcube::gx::ColorSelChanApi::color0a0;
-  wip.rasSwap = 0;
-  wip.colorStage.a = libcube::gx::TevColorArg::zero;
-  wip.colorStage.b = libcube::gx::TevColorArg::texc;
-  wip.colorStage.c = libcube::gx::TevColorArg::rasc;
-  wip.colorStage.d = libcube::gx::TevColorArg::zero;
-
-  wip.alphaStage.a = libcube::gx::TevAlphaArg::zero;
-  wip.alphaStage.b = libcube::gx::TevAlphaArg::texa;
-  wip.alphaStage.c = libcube::gx::TevAlphaArg::rasa;
-  wip.alphaStage.d = libcube::gx::TevAlphaArg::zero;
-
-  data.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
-  data.shader.mStages[0] = wip;
-
-  libcube::gx::ChannelControl ctrl;
-  ctrl.enabled = true;
-  ctrl.Material = libcube::gx::ColorSource::Vertex;
-  data.colorChanControls.push_back(ctrl); // rgb
-  data.colorChanControls.push_back(ctrl); // a
-}
-static std::tuple<aiString, unsigned int, aiTextureMapMode>
-GetTexture(aiMaterial* pMat, int t, int j) {
-  aiString path;
-  // No support for anything non-uv -- already processed away by the time
-  // we get it aiTextureMapping mapping;
-  unsigned int uvindex = 0;
-  // We don't support blend/op.
-  // All the data here *could* be translated to TEV,
-  // but it isn't practical.
-  // ai_real blend;
-  // aiTextureOp op;
-  // No decal support
-  u32 mapmode = aiTextureMapMode_Wrap;
-
-  pMat->GetTexture(static_cast<aiTextureType>(t), j, &path, nullptr, &uvindex,
-                   nullptr, nullptr, nullptr //(aiTextureMapMode*)&mapmode
-  );
-  return {path, uvindex, (aiTextureMapMode)mapmode};
-}
 
 AssImporter::AssImporter(const aiScene* scene, kpi::INode* mdl)
     : pScene(scene) {
-  out_collection = dynamic_cast<j3d::Collection*>(mdl);
+  out_collection = dynamic_cast<libcube::Scene*>(mdl);
   assert(out_collection != nullptr);
   out_model = &out_collection->getModels().add();
-  assert(out_model != nullptr);
 }
 int AssImporter::get_bone_id(const aiNode* pNode) {
   return boneIdCtr->nodeToBoneIdMap.find(pNode) !=
@@ -162,9 +55,9 @@ u16 AssImporter::add_weight_matrix(int v, const aiMesh* pMesh,
 };
 
 void AssImporter::ProcessMeshTrianglesStatic(
-    const aiNode* singleInfluence, j3d::Shape& poly_data,
+    const aiNode* singleInfluence, libcube::IndexedPolygon& poly_data,
     std::vector<libcube::IndexedVertex>&& vertices) {
-  auto& mp = poly_data.mMatrixPrimitives[poly_data.addMatrixPrimitive()];
+  auto& mp = poly_data.getMeshData().mMatrixPrimitives.emplace_back();
   // Copy triangle data
   // We will do triangle-stripping in a post-process
   auto& tris = mp.mPrimitives.emplace_back();
@@ -179,7 +72,8 @@ void AssImporter::ProcessMeshTrianglesStatic(
   mp.mDrawMatrixIndices.push_back(mtx);
 }
 void AssImporter::ProcessMeshTrianglesWeighted(
-    j3d::Shape& poly_data, std::vector<libcube::IndexedVertex>&& vertices) {
+    libcube::IndexedPolygon& poly_data,
+    std::vector<libcube::IndexedVertex>&& vertices) {
 
   // At this point, the mtx index of vertices is global.
   // We need to convert it to a local palette index.
@@ -248,7 +142,7 @@ void AssImporter::ProcessMeshTrianglesWeighted(
              "matrix_indices has not been properly filled");
 
       // But submit what we have so far, first:
-      auto& mp = poly_data.mMatrixPrimitives[poly_data.addMatrixPrimitive()];
+      auto& mp = poly_data.getMeshData().mMatrixPrimitives.emplace_back();
       auto& tris = mp.mPrimitives.emplace_back();
       tris.mType = libcube::gx::PrimitiveType::Triangles;
       std::copy(vertices.begin() + last_sweep_vtx, vertices.begin() + v0,
@@ -280,10 +174,10 @@ void AssImporter::ProcessMeshTrianglesWeighted(
 }
 
 void AssImporter::ProcessMeshTriangles(
-    j3d::Shape& poly_data, const aiMesh* pMesh, const aiNode* pNode,
-    std::vector<libcube::IndexedVertex>&& vertices) {
+    libcube::IndexedPolygon& poly_data, const aiMesh* pMesh,
+    const aiNode* pNode, std::vector<libcube::IndexedVertex>&& vertices) {
   // Determine if we need to do matrix processing
-  if (poly_data.mVertexDescriptor.mBitfield & (1 << (int)PNM)) {
+  if (poly_data.getVcd().mBitfield & (1 << (int)PNM)) {
     ProcessMeshTrianglesWeighted(poly_data, std::move(vertices));
   } else {
     // If one bone, bind to that; otherwise, bind to the node itself.
@@ -300,16 +194,19 @@ void AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
     return;
 
   auto& poly = out_model->getMeshes().add();
-  poly.mode = j3d::ShapeData::Mode::Skinned;
-  poly.bbox.min = {pMesh->mAABB.mMin.x, pMesh->mAABB.mMin.y,
-                   pMesh->mAABB.mMin.z};
-  poly.bbox.max = {pMesh->mAABB.mMax.x, pMesh->mAABB.mMax.y,
-                   pMesh->mAABB.mMax.z};
+  poly.setName(pMesh->mName.C_Str());
+  auto& data = poly.getMeshData();
+  auto& vcd = data.mVertexDescriptor;
+
+  lib3d::AABB bbox;
+  bbox.min = {pMesh->mAABB.mMin.x, pMesh->mAABB.mMin.y, pMesh->mAABB.mMin.z};
+  bbox.max = {pMesh->mAABB.mMax.x, pMesh->mAABB.mMax.y, pMesh->mAABB.mMax.z};
+  // TODO: Should the skinning flag always be set?
+  poly.init(/* skinned */ true, &bbox);
   // TODO: Sphere
   auto add_attribute = [&](auto type, bool direct = false) {
-    poly.mVertexDescriptor.mAttributes[type] =
-        direct ? libcube::gx::VertexAttributeType::Direct
-               : libcube::gx::VertexAttributeType::Short;
+    vcd.mAttributes[type] = direct ? libcube::gx::VertexAttributeType::Direct
+                                   : libcube::gx::VertexAttributeType::Short;
   };
   add_attribute(libcube::gx::VertexAttribute::Position);
   if (pMesh->HasNormals())
@@ -332,16 +229,6 @@ void AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
     }
   }
 
-  auto add_to_buffer = [&](const auto& entry, auto& buf) -> u16 {
-    const auto found = std::find(buf.begin(), buf.end(), entry);
-    if (found != buf.end()) {
-      return found - buf.begin();
-    }
-
-    buf.push_back(entry);
-    return buf.size() - 1;
-  };
-
   auto add_position = [&](int v, const j3d::DrawMatrix* wt = nullptr) {
     glm::vec3 pos = getVec(pMesh->mVertices[v]);
 
@@ -355,21 +242,22 @@ void AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
             glm::inverse(acting_influence.calcSrtMtx(out_model->getBones()));
     }
 
-    return add_to_buffer(pos, out_model->mBufs.pos.mData);
+    return poly.addPos(pos);
   };
   auto add_normal = [&](int v) {
-    return add_to_buffer(getVec(pMesh->mNormals[v]),
-                         out_model->mBufs.norm.mData);
+    const auto nrm = getVec(pMesh->mNormals[v]);
+    return poly.addNrm(nrm);
   };
   auto add_color = [&](int v, int j) {
-    return add_to_buffer(j >= pMesh->GetNumColorChannels()
-                             ? libcube::gx::Color{0xff, 0xff, 0xff, 0xff}
-                             : getClr(pMesh->mColors[j][v]),
-                         out_model->mBufs.color[j].mData);
+    const auto clr = j >= pMesh->GetNumColorChannels()
+                         ? libcube::gx::Color{0xff, 0xff, 0xff, 0xff}
+                         : getClr(pMesh->mColors[j][v]);
+    libcube::gx::ColorF32 fclr(clr);
+    return poly.addClr(j, fclr);
   };
   auto add_uv = [&](int v, int j) {
-    return add_to_buffer(getVec2(pMesh->mTextureCoords[j][v]),
-                         out_model->mBufs.uv[j].mData);
+    const auto uv = getVec2(pMesh->mTextureCoords[j][v]);
+    return poly.addUv(j, uv);
   };
 
   // More than one bone -> Assume multi mtx, unless zero influence
@@ -380,7 +268,8 @@ void AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
   if (multi_mtx)
     add_attribute(PNM);
 
-  poly.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
+  vcd.calcVertexDescriptorFromAttributeList();
+  poly.initBufsFromVcd();
 
   std::vector<libcube::IndexedVertex> vertices;
 
@@ -537,12 +426,12 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip) {
   for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
     auto* pMat = pScene->mMaterials[i];
     auto& mr = out_model->getMaterials().add();
-    const auto name = pMat->GetName();
-    mr.name = name.C_Str();
-    if (mr.name == "") {
-      mr.name = "Material";
-      mr.name += std::to_string(i);
+    std::string name = pMat->GetName().C_Str();
+    if (name.empty()) {
+      name = "Material";
+      name += std::to_string(i);
     }
+    mr.setName(name);
     boneIdCtr->matIdToMatIdMap[i] = i;
     ImpMaterial impMat;
 
@@ -705,7 +594,7 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip) {
 
     const int i = out_collection->getTextures().size();
     auto& data = out_collection->getTextures().add();
-    data.mName = getFileShort(tex);
+    data.setName(getFileShort(tex));
 
     if (!importTexture(data, tex.c_str(), scratch, mip_gen, min_dim, max_mip)) {
       printf("Cannot find texture %s\n", tex.c_str());
@@ -776,8 +665,9 @@ void AssImporter::ImportAss(
   ImportNode(root);
 
   // Assign IDs
-  for (int i = 0; i < out_model->getMeshes().size(); ++i)
-    out_model->getMeshes()[i].id = i;
+  for (int i = 0; i < out_model->getMeshes().size(); ++i) {
+    out_model->getMeshes()[i].setId(i);
+  }
 }
 
 } // namespace riistudio::ass

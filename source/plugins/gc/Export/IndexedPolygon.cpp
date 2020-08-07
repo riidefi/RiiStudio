@@ -7,7 +7,7 @@ namespace libcube {
 u64 IndexedPolygon::getNumPrimitives() const {
   u64 total = 0;
 
-  for (u64 i = 0; i < getNumMatrixPrimitives(); ++i)
+  for (u64 i = 0; i < getMeshData().mMatrixPrimitives.size(); ++i)
     total += getMatrixPrimitiveNumIndexedPrimitive(i);
 
   return total;
@@ -15,10 +15,10 @@ u64 IndexedPolygon::getNumPrimitives() const {
 // Triangles
 // We add this to the last mprim. May need to be split up later.
 s64 IndexedPolygon::addPrimitive() {
-  if (getNumMatrixPrimitives() == 0)
-    addMatrixPrimitive();
+  if (getMeshData().mMatrixPrimitives.empty())
+    getMeshData().mMatrixPrimitives.emplace_back();
 
-  const s64 idx = getNumMatrixPrimitives();
+  const s64 idx = getMeshData().mMatrixPrimitives.size();
   assert(idx > 0);
   if (idx <= 0)
     return -1;
@@ -107,7 +107,7 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v) {
 }
 IndexedPrimitive* IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) {
   u64 cnt = 0;
-  for (u64 i = 0; i < getNumMatrixPrimitives(); ++i) {
+  for (u64 i = 0; i < getMeshData().mMatrixPrimitives.size(); ++i) {
     if (idx >= cnt && idx < cnt + getMatrixPrimitiveNumIndexedPrimitive(i))
       return &getMatrixPrimitiveIndexedPrimitive(i, idx - cnt);
 
@@ -118,7 +118,7 @@ IndexedPrimitive* IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) {
 const IndexedPrimitive*
 IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) const {
   u64 cnt = 0;
-  for (u64 i = 0; i < getNumMatrixPrimitives(); ++i) {
+  for (u64 i = 0; i < getMeshData().mMatrixPrimitives.size(); ++i) {
     if (idx >= cnt && idx < cnt + getMatrixPrimitiveNumIndexedPrimitive(i))
       return &getMatrixPrimitiveIndexedPrimitive(i, idx - cnt);
 
@@ -219,7 +219,7 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
     }
   };
 
-  for (int i = 0; i < getNumMatrixPrimitives(); ++i) {
+  for (int i = 0; i < getMeshData().mMatrixPrimitives.size(); ++i) {
     for (int j = 0; j < getMatrixPrimitiveNumIndexedPrimitive(i); ++j) {
       const auto& idx = getMatrixPrimitiveIndexedPrimitive(i, j);
       auto propV = [&](int id) { propVtx(idx.mVertices[id]); };

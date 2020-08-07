@@ -38,6 +38,8 @@ struct ModelData {
 struct IBoneDelegate : public riistudio::lib3d::Bone {
   // PX_TYPE_INFO("GC Bone", "gc_bone", "GC::IBoneDelegate");
 
+  // Facilitates reading. Not used for editing/writing.
+  u32 id = 0;
   enum class Billboard {
     None,
     /* G3D Standard */

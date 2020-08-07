@@ -75,6 +75,7 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl,
 void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl, PolyDataSurface) {
   auto& poly = dl.getActive();
   auto& desc = poly.getVcd();
+  auto& mesh_data = poly.getMeshData();
 
   auto draw_p = [&](int i, int j) {
     auto prim = poly.getMatrixPrimitiveIndexedPrimitive(i, j);
@@ -101,8 +102,8 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl, PolyDataSurface) {
   };
 
   auto draw_mp = [&](int i) {
-    ImGui::Text("Default Matrix: %u",
-                (u32)poly.getMatrixPrimitiveCurrentMatrix(i));
+    auto& mprim = mesh_data.mMatrixPrimitives[i];
+    ImGui::Text("Default Matrix: %u", (u32)mprim.mCurrentMatrix);
 
     const int attrib_cnt = std::count_if(
         desc.mAttributes.begin(), desc.mAttributes.end(), [](const auto& e) {
@@ -157,7 +158,7 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl, PolyDataSurface) {
   };
 
   if (ImGui::BeginTabBar("Matrix Primitives")) {
-    for (int i = 0; i < poly.getNumMatrixPrimitives(); ++i) {
+    for (int i = 0; i < poly.getMeshData().mMatrixPrimitives.size(); ++i) {
       if (ImGui::BeginTabItem(
               (std::string("Matrix Prim: ") + std::to_string(i)).c_str())) {
         draw_mp(i);

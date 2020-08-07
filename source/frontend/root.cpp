@@ -218,7 +218,9 @@ void RootWindow::draw() {
                 bmd_shape.mVertexDescriptor
                     .calcVertexDescriptorFromAttributeList();
 
-                for (int i = 0; i < from_shape.getNumMatrixPrimitives(); ++i) {
+                for (int i = 0;
+                     i < from_shape.getMeshData().mMatrixPrimitives.size();
+                     ++i) {
                   auto& bmd_mp = bmd_shape.mMatrixPrimitives.emplace_back();
                   bmd_mp.mCurrentMatrix = 0;
                   bmd_mp.mDrawMatrixIndices.push_back(0);

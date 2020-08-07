@@ -20,8 +20,8 @@ enum class EnvelopeMatrixMode { Normal, Approximation, Precision };
 struct Quantization {
   libcube::gx::VertexComponentCount mComp;
   libcube::gx::VertexBufferType mType;
-  u8 divisor;
-  u8 stride;
+  u8 divisor = 0;
+  u8 stride = 0;
 
   bool operator==(const Quantization& rhs) const {
     // TODO: Better union comparison
@@ -47,16 +47,55 @@ struct GenericBuffer : public virtual kpi::IObject {
 };
 class PositionBuffer
     : public GenericBuffer<glm::vec3, true, true,
-                           libcube::gx::VertexBufferKind::position> {};
+                           libcube::gx::VertexBufferKind::position> {
+public:
+  PositionBuffer(const PositionBuffer&) = default;
+  PositionBuffer() {
+    mQuantize.mComp = libcube::gx::VertexComponentCount(
+        libcube::gx::VertexComponentCount::Position::xyz);
+    mQuantize.mType = libcube::gx::VertexBufferType(
+        libcube::gx::VertexBufferType::Generic::f32);
+    mQuantize.stride = 12;
+  }
+};
 class NormalBuffer
     : public GenericBuffer<glm::vec3, false, true,
-                           libcube::gx::VertexBufferKind::normal> {};
+                           libcube::gx::VertexBufferKind::normal> {
+public:
+  NormalBuffer(const NormalBuffer&) = default;
+  NormalBuffer() {
+    mQuantize.mComp = libcube::gx::VertexComponentCount(
+        libcube::gx::VertexComponentCount::Normal::xyz);
+    mQuantize.mType = libcube::gx::VertexBufferType(
+        libcube::gx::VertexBufferType::Generic::f32);
+    mQuantize.stride = 12;
+  }
+};
 class ColorBuffer : public GenericBuffer<libcube::gx::Color, false, false,
                                          libcube::gx::VertexBufferKind::color> {
+public:
+  ColorBuffer(const ColorBuffer&) = default;
+  ColorBuffer() {
+    mQuantize.mComp = libcube::gx::VertexComponentCount(
+        libcube::gx::VertexComponentCount::Color::rgba);
+    mQuantize.mType = libcube::gx::VertexBufferType(
+        libcube::gx::VertexBufferType::Color::rgba8);
+    mQuantize.stride = 4;
+  }
 };
 class TextureCoordinateBuffer
     : public GenericBuffer<glm::vec2, true, true,
-                           libcube::gx::VertexBufferKind::textureCoordinate> {};
+                           libcube::gx::VertexBufferKind::textureCoordinate> {
+public:
+  TextureCoordinateBuffer(const TextureCoordinateBuffer&) = default;
+  TextureCoordinateBuffer() {
+    mQuantize.mComp = libcube::gx::VertexComponentCount(
+        libcube::gx::VertexComponentCount::TextureCoordinate::uv);
+    mQuantize.mType = libcube::gx::VertexBufferType(
+        libcube::gx::VertexBufferType::Generic::f32);
+    mQuantize.stride = 8;
+  }
+};
 
 struct G3DModelData : public virtual kpi::IObject {
   virtual ~G3DModelData() = default;
@@ -68,13 +107,13 @@ struct G3DModelData : public virtual kpi::IObject {
   }
   const G3DModelData& operator=(const G3DModelData& rhs) { return *this; }
 
-  ScalingRule mScalingRule;
-  TextureMatrixMode mTexMtxMode;
-  EnvelopeMatrixMode mEvpMtxMode;
+  ScalingRule mScalingRule = ScalingRule::Standard;
+  TextureMatrixMode mTexMtxMode = TextureMatrixMode::Maya;
+  EnvelopeMatrixMode mEvpMtxMode = EnvelopeMatrixMode::Normal;
   std::string sourceLocation;
   lib3d::AABB aabb;
 
-  std::string mName;
+  std::string mName = "course";
   std::string getName() const { return mName; }
   void setName(const std::string& name) { mName = name; }
 };

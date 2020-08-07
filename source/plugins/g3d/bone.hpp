@@ -25,17 +25,16 @@ struct BoneData {
   // display matrix flag not used
   // bb ref recomputed
 
-  u32 mId;
-  u32 matrixId;
-  u32 flag;
+  u32 matrixId = 0;
+  u32 flag = 0x31f;
 
-  u32 billboardType;
+  u32 billboardType = 0;
 
   glm::vec3 mScaling, mRotation, mTranslation;
 
   lib3d::AABB mVolume;
 
-  s32 mParent;
+  s32 mParent = -1;
   std::vector<s32> mChildren;
 
   // TODO: userdata
@@ -58,7 +57,7 @@ struct BoneData {
   bool operator==(const BoneData& rhs) const {
     return mName == rhs.mName && ssc == rhs.ssc &&
            classicScale == rhs.classicScale && visible == rhs.visible &&
-           mId == rhs.mId && matrixId == rhs.matrixId && flag == rhs.flag &&
+           matrixId == rhs.matrixId && flag == rhs.flag &&
            billboardType == rhs.billboardType && mScaling == rhs.mScaling &&
            mRotation == rhs.mRotation && mVolume == rhs.mVolume &&
            mParent == rhs.mParent && mChildren == rhs.mChildren &&
@@ -73,7 +72,7 @@ struct Bone : public libcube::IBoneDelegate,
   std::string getName() const { return mName; }
   void setName(const std::string& name) override { mName = name; }
   // std::string getName() const override { return mName; }
-  s64 getId() override { return mId; }
+  s64 getId() override { return id; }
   void copy(lib3d::Bone& to) const override {
     IBoneDelegate::copy(to);
     Bone* pJoint = dynamic_cast<Bone*>(&to);

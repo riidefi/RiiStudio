@@ -33,11 +33,12 @@ public:
     // Progress types
     _Progress,
     AmbiguousConstructible = _Progress, //!< User must pick an option
-                                        //!< (Unimplemented for now)
-    ConfigureProperties,                //!< Set importer requested properties
-    ResolveDependencies,                //!< Supply missing textures
-    Communicating,                      //!< Waiting on importer
-                                        //!< (only visible when multithreading)
+    Constructible, //!< Ambiguity resolved, or there was never one to begin
+                   //!< with. Create the file!
+    ConfigureProperties, //!< Set importer requested properties
+    ResolveDependencies, //!< Supply missing textures
+    Communicating,       //!< Waiting on importer
+                         //!< (only visible when multithreading)
     _LastProgress = Communicating,
 
     // Success
@@ -101,6 +102,11 @@ protected:
 
   State result = State::NotImportable;
   std::optional<kpi::IOTransaction> transaction = std::nullopt;
+
+  // question
+  std::vector<std::string> choices;
+  // answer
+  std::string data_id;
 
 private:
   kpi::TransactionState transact();

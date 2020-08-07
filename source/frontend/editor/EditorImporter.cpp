@@ -12,59 +12,73 @@ EditorImporter::EditorImporter(FileData&& data) { // TODO: Not ideal..
   memcpy(vec.data(), data.mData.get(), data.mLen);
 
   provider = std::make_unique<oishii::DataProvider>(std::move(vec), data.mPath);
-  auto [data_id, importer] = SpawnImporter(data.mPath, provider->slice());
+  auto [_data_id, _importer] = SpawnImporter(data.mPath, provider->slice());
+  data_id = std::move(_data_id);
+  mDeserializer = std::move(_importer);
 
-  if (!importer) {
+  if (!mDeserializer) {
     result = State::NotImportable;
     return;
   }
 
+  // TODO: Perhaps we might want to support more specialized children of a
+  // concrete class?
   if (!IsConstructible(data_id)) {
-    printf("Non constructible state.. find parents\n");
-
     const auto children = GetChildrenOfType(data_id);
     if (children.empty()) {
       result = State::NotConstructible;
       return;
     }
-    data_id = typeid(j3d::Collection).name();
-    // assert(/*children.size() == 1 &&*/ IsConstructible(children[1])); // TODO
-    // data_id = children[1];
-  }
 
-  auto object = SpawnState(data_id);
-  if (object == nullptr) {
-    result = State::NotConstructible;
+    choices.clear();
+    for (auto& child : children) {
+      if (IsConstructible(child)) {
+        choices.push_back(child);
+      }
+    }
+    result = State::AmbiguousConstructible;
     return;
   }
-  fileState =
-      std::unique_ptr<kpi::INode>{dynamic_cast<kpi::INode*>(object.release())};
-  if (fileState == nullptr) {
-    result = State::NotConstructible;
-    return;
-  }
-  // auto fn = std::bind(&EditorImporter::messageHandler, std::ref(*this));
-  auto fn = [](...) {};
-  transaction.emplace(
-      kpi::IOTransaction{*fileState.get(), provider->slice(), fn});
 
-  mDeserializer = std::move(importer);
-  // TODO: Move elsewhere..
-  auto path = getPath();
-  if (path.ends_with("dae") || path.ends_with("fbx") || path.ends_with("obj") ||
-      path.ends_with("smd")) {
-    path.resize(path.size() - 3);
-    path += "bmd";
-    setPath(path);
-  }
-
-  // Process one time first..
+  // Just create the file.
+  // If that goes well, a transaction will also occur.
+  result = State::Constructible;
   process();
 }
 
 bool EditorImporter::process() {
   constexpr bool StayAlive = true;
   constexpr bool Die = false;
+
+  if (result == State::Constructible) {
+    auto object = SpawnState(data_id);
+    if (object == nullptr) {
+      result = State::NotConstructible;
+      return Die;
+    }
+    fileState = std::unique_ptr<kpi::INode>{
+        dynamic_cast<kpi::INode*>(object.release())};
+    if (fileState == nullptr) {
+      result = State::NotConstructible;
+      return Die;
+    }
+    // auto fn = std::bind(&EditorImporter::messageHandler, std::ref(*this));
+    auto fn = [](...) {};
+    transaction.emplace(
+        kpi::IOTransaction{*fileState.get(), provider->slice(), fn});
+
+    // TODO: Move elsewhere..
+    auto path = getPath();
+    if (path.ends_with("dae") || path.ends_with("fbx") ||
+        path.ends_with("obj") || path.ends_with("smd")) {
+      path.resize(path.size() - 3);
+      if (data_id.find("j3d") != std::string::npos)
+        path += "bmd";
+      else if (data_id.find("g3d") != std::string::npos)
+        path += "brres";
+      setPath(path);
+    }
+  }
 
   const auto msg = transact();
   switch (msg) {

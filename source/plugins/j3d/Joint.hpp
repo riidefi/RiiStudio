@@ -21,9 +21,6 @@ struct JointData {
 
   std::string name = "root";
 
-  // Facilitates reading. Not used for editing/writing.
-  ID<Joint> id = 0;
-
   u16 flag = 1; // Unused four bits; default value in galaxy is 1
   MatrixType bbMtxType = MatrixType::Standard;
   bool mayaSSC = false; // 0xFF acts as false -- likely for compatibility
@@ -57,7 +54,7 @@ struct JointData {
   std::array<float, 12> inverseBindPoseMtx;
 
   bool operator==(const JointData& rhs) const {
-    return name == rhs.name && id == rhs.id && bbMtxType == rhs.bbMtxType &&
+    return name == rhs.name && bbMtxType == rhs.bbMtxType &&
            mayaSSC == rhs.mayaSSC && scale == rhs.scale &&
            rotate == rhs.rotate && translate == rhs.translate &&
            boundingSphereRadius == rhs.boundingSphereRadius &&

@@ -40,8 +40,8 @@ private:
   IdCounter* boneIdCtr = &ctr;
 
   const aiScene* pScene = nullptr;
-  j3d::Collection* out_collection = nullptr;
-  j3d::Model* out_model = nullptr;
+  libcube::Scene* out_collection = nullptr;
+  libcube::Model* out_model = nullptr;
   aiNode* root;
   std::vector<u8> scratch;
 
@@ -53,14 +53,14 @@ private:
 
   void
   ProcessMeshTrianglesStatic(const aiNode* singleInfluence,
-                             j3d::Shape& poly_data,
+                             libcube::IndexedPolygon& poly_data,
                              std::vector<libcube::IndexedVertex>&& vertices);
   void
-  ProcessMeshTrianglesWeighted(j3d::Shape& poly_data,
+  ProcessMeshTrianglesWeighted(libcube::IndexedPolygon& poly_data,
                                std::vector<libcube::IndexedVertex>&& vertices);
 
-  void ProcessMeshTriangles(j3d::Shape& poly_data, const aiMesh* pMesh,
-                            const aiNode* pNode,
+  void ProcessMeshTriangles(libcube::IndexedPolygon& poly_data,
+                            const aiMesh* pMesh, const aiNode* pNode,
                             std::vector<libcube::IndexedVertex>&& vertices);
 
   void ImportMesh(const aiMesh* pMesh, const aiNode* pNode);

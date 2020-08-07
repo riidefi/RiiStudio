@@ -9,6 +9,9 @@ namespace riistudio::j3d {
 const Model* getModel(const Shape* shp) {
   return dynamic_cast<const Model*>(shp->childOf);
 }
+Model* getMutModel(Shape* shp) {
+  return dynamic_cast<Model*>(shp->childOf);
+}
 
 glm::vec2 Shape::getUv(u64 chan, u64 idx) const {
   auto& mMdl = *getModel(this);
@@ -35,43 +38,35 @@ glm::vec4 Shape::getClr(u64 chan, u64 idx) const {
 
   return {raw.r, raw.g, raw.b, raw.a};
 }
-template <typename T>
-static u64 addUnique(std::vector<T>& array, const T& value) {
-  //	const auto found = std::find(array.begin(), array.end(), value);
-  //	if (found != array.end())
-  //		return found - array.begin();
-  const auto idx = array.size();
-  array.push_back(value);
-  return idx;
-}
+
+template <typename X, typename Y>
+auto add_to_buffer(const X& entry, Y& buf) -> u16 {
+  const auto found = std::find(buf.begin(), buf.end(), entry);
+  if (found != buf.end()) {
+    return found - buf.begin();
+  }
+
+  buf.push_back(entry);
+  return buf.size() - 1;
+};
 
 u64 Shape::addPos(const glm::vec3& v) {
-  return 0;
-  //	auto& mMdl = *getModel(this);
-  //	u64 out = addUnique(mMdl.mBufs.pos.mData, v);
-  //	return out;
+  return add_to_buffer(v, getMutModel(this)->mBufs.pos.mData);
 }
 u64 Shape::addNrm(const glm::vec3& v) {
-  return 0;
-  // auto& mMdl = *getModel();
-  // return addUnique(mMdl.mBufs.norm.mData, v);
+  return add_to_buffer(v, getMutModel(this)->mBufs.norm.mData);
 }
 u64 Shape::addClr(u64 chan, const glm::vec4& v) {
-  return 0;
-
-  //	auto& mMdl = *getModel();
-  //	// TODO: Round
-  //	return addUnique(mMdl.mBufs.color[chan].mData, gx::Color{
-  //		static_cast<u8>(v[0] * 255.0f),
-  //		static_cast<u8>(v[1] * 255.0f),
-  //		static_cast<u8>(v[2] * 255.0f),
-  //		static_cast<u8>(v[3] * 255.0f) });
+  libcube::gx::ColorF32 fclr;
+  fclr.r = v[0];
+  fclr.g = v[1];
+  fclr.b = v[2];
+  fclr.a = v[3];
+  libcube::gx::Color c = fclr;
+  return add_to_buffer(c, getMutModel(this)->mBufs.color[chan].mData);
 }
 u64 Shape::addUv(u64 chan, const glm::vec2& v) {
-  return 0;
-
-  //	auto& mMdl = *getModel();
-  //	return addUnique(mMdl.mBufs.uv[chan].mData, v);
+  return add_to_buffer(v, getMutModel(this)->mBufs.uv[chan].mData);
 }
 
 void Shape::addTriangle(std::array<SimpleVertex, 3> tri) {
@@ -128,8 +123,8 @@ glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
 
   //	dst = glm::translate(dst, srt.translation);
   //	dst = dst * glm::eulerAngleZYX(glm::radians(srt.rotation.x),
-  //glm::radians(srt.rotation.y), glm::radians(srt.rotation.z)); 	return
-  //glm::scale(dst, srt.scale);
+  // glm::radians(srt.rotation.y), glm::radians(srt.rotation.z)); 	return
+  // glm::scale(dst, srt.scale);
 
   float sinX = sin(glm::radians(srt.rotation.x)),
         cosX = cos(glm::radians(srt.rotation.x));
@@ -174,9 +169,11 @@ std::vector<glm::mat4> Shape::getPosMtx(u64 mpid) const {
 
   auto& mdl = *getModel(this);
   // if (!(getVcd().mBitfield &
-  //       (1 << (int)libcube::gx::VertexAttribute::PositionNormalMatrixIndex))) {
+  //       (1 << (int)libcube::gx::VertexAttribute::PositionNormalMatrixIndex)))
+  //       {
   //   return {
-  //       mdl_ac.getJoint(0 /* DEBUG */).get().calcSrtMtx(&mdl_ac.getJoints())};
+  //       mdl_ac.getJoint(0 /* DEBUG
+  //       */).get().calcSrtMtx(&mdl_ac.getJoints())};
   // }
   for (const auto it : mp.mDrawMatrixIndices) {
     const auto& drw = mdl.mDrawMatrices[it];
