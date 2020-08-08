@@ -33,6 +33,7 @@ constructFile(const std::string_view path, std::span<const uint8_t> data) {
 
       return fileState;
     } catch (const char* mesg) {
+      printf("Importer failed with reason: %s\n", mesg);
       return nullptr;
     }
   };

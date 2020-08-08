@@ -1055,7 +1055,7 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
     const auto stages_count = shader.mStages.size();
     const auto stages_count_rounded = roundUp(stages_count, 2);
 
-    for (int i = 0; i < stages_count_rounded; i += 2) {
+    for (unsigned i = 0; i < stages_count_rounded; i += 2) {
       const auto& even_stage = stages[i];
       const auto& odd_stage = stages[i + 1];
 

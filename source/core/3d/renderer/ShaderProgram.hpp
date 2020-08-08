@@ -24,7 +24,7 @@ struct ShaderProgram {
 
   u32 getId() const { return mShaderProgram; }
   bool getError() const { return bError; }
-  const std::string& getErrorDesc() { return mErrorDesc; }
+  std::string getErrorDesc() const { return mErrorDesc; }
 
 private:
   std::string mErrorDesc;

@@ -248,7 +248,7 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
     const auto nrm = getVec(pMesh->mNormals[v]);
     return poly.addNrm(nrm);
   };
-  auto add_color = [&](int v, int j) {
+  auto add_color = [&](int v, unsigned j) {
     const auto clr = j >= pMesh->GetNumColorChannels()
                          ? libcube::gx::Color{0xff, 0xff, 0xff, 0xff}
                          : getClr(pMesh->mColors[j][v]);
@@ -649,7 +649,7 @@ void AssImporter::ImportAss(
         const auto decoded_size = tex->getDecodedSize(true);
         scratch.resize(decoded_size);
         tex->decode(scratch, true);
-        for (int i = 0; i < decoded_size; i += 4) {
+        for (u32 i = 0; i < decoded_size; i += 4) {
           if (scratch[i] != 0xff) {
             transparent = true;
             break;

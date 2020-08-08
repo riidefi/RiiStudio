@@ -310,7 +310,7 @@ template <int n, typename T, glm::qualifier q>
 inline void writeGenericComponents(oishii::Writer& writer, const glm::vec<n, T, q>& v,
                             libcube::gx::VertexBufferType::Generic g,
                             u32 real_component_count, u32 divisor) {
-  for (int i = 0; i < real_component_count; ++i) {
+  for (u32 i = 0; i < real_component_count; ++i) {
     switch (g) {
     case libcube::gx::VertexBufferType::Generic::u8:
       writer.write<u8>(roundf(v[i] * (1 << divisor)));

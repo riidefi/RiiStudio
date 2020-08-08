@@ -401,6 +401,7 @@ void IGCMaterial::genSamplUniforms(
 
     auto gxFilterToGl = [](gx::TextureFilter filter) {
       switch (filter) {
+      default:
       case gx::TextureFilter::linear:
         return GL_LINEAR;
       case gx::TextureFilter::near:
@@ -417,6 +418,7 @@ void IGCMaterial::genSamplUniforms(
     };
     auto gxTileToGl = [](gx::TextureWrapMode wrap) {
       switch (wrap) {
+      default:
       case gx::TextureWrapMode::Clamp:
         return GL_CLAMP_TO_EDGE;
       case gx::TextureWrapMode::Repeat:

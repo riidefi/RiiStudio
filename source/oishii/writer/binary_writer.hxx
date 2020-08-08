@@ -151,7 +151,7 @@ public:
     auto pad_end = roundUp(tell(), alignment);
     if (pad_begin == pad_end)
       return;
-    for (int i = 0; i < pad_end - pad_begin; ++i)
+    for (u32 i = 0; i < pad_end - pad_begin; ++i)
       this->write<u8>(0);
     if (mUserPad)
       mUserPad((char*)getDataBlockStart() + pad_begin, pad_end - pad_begin);
