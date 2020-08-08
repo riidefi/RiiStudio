@@ -19,7 +19,7 @@ auto get_material_data = [](auto& x) -> GCMaterialData& {
   return (GCMaterialData&)x.getMaterialData();
 };
 
-[[maybe_unused]] auto mat_prop = [](auto& delegate, auto member,
+MAYBE_UNUSED auto mat_prop = [](auto& delegate, auto member,
                                     const auto& after) {
   delegate.propertyEx(member, after, get_material_data);
 };

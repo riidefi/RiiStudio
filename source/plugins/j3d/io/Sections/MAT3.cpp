@@ -172,7 +172,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   dbg.assertSince(0x28);
   loader.indexedContainer<u16>(mat.texGens, MatSec::TexGenInfo, 4);
-  [[maybe_unused]] const auto post_tg = reader.readX<u16, 8>();
+  MAYBE_UNUSED const auto post_tg = reader.readX<u16, 8>();
   // TODO: Validate assumptions here
 
   dbg.assertSince(0x48);

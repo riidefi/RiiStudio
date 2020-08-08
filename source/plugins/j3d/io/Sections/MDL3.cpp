@@ -30,7 +30,7 @@ struct MDL3Node final : public oishii::Node {
 
   Result write(oishii::Writer& writer) const noexcept override {
     const auto& mats = mModel.getMaterials();
-    [[maybe_unused]] const auto start = writer.tell();
+    MAYBE_UNUSED const auto start = writer.tell();
 
     writer.write<u32, oishii::EndianSelect::Big>('MDL3');
     writer.writeLink<s32>({*this}, {*this, oishii::Hook::EndOfChildren});
@@ -38,16 +38,16 @@ struct MDL3Node final : public oishii::Node {
     writer.write<u16>((u32)mats.size());
     writer.write<u16>(-1);
 
-    [[maybe_unused]] const auto ofsDls = writer.tell();
+    MAYBE_UNUSED const auto ofsDls = writer.tell();
     writer.write<u32>(32 + mats.size() * 6 * sizeof(u32));
-    [[maybe_unused]] const auto ofsDlHdrs = writer.tell();
+    MAYBE_UNUSED const auto ofsDlHdrs = writer.tell();
     writer.write<u32>(32);
 
-    [[maybe_unused]] const auto ofsSrMtxIdx = writer.tell();
+    MAYBE_UNUSED const auto ofsSrMtxIdx = writer.tell();
     writer.write<u32>(0);
-    [[maybe_unused]] const auto ofsLut = writer.tell();
+    MAYBE_UNUSED const auto ofsLut = writer.tell();
     writer.write<u32>(0);
-    [[maybe_unused]] const auto ofsNameTable = writer.tell();
+    MAYBE_UNUSED const auto ofsNameTable = writer.tell();
     writer.write<u32>(0);
 
     const auto dlHandlesOfs = writer.tell();
@@ -195,7 +195,7 @@ struct MDL3Node final : public oishii::Node {
 
 private:
   const Model& mModel;
-  [[maybe_unused]] const Collection& mCol;
+  MAYBE_UNUSED const Collection& mCol;
 };
 
 std::unique_ptr<oishii::Node> makeMDL3Node(BMDExportContext& ctx) {

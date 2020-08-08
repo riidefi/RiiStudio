@@ -310,7 +310,7 @@ const std::array<u32, 16> shaderDlSizes{
 };
 static void writeMaterialDisplayList(const libcube::GCMaterialData& mat,
                                      oishii::Writer& writer) {
-  [[maybe_unused]] const auto dl_start = writer.tell();
+  MAYBE_UNUSED const auto dl_start = writer.tell();
   printf("Mat dl start: %x\n", (unsigned)writer.tell());
   libcube::gx::DLBuilder dl(writer);
   {
@@ -1093,14 +1093,14 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
 
       writer.skip(3); // 3
 
-      [[maybe_unused]] const auto couple_len = writer.tell() - couple_start;
+      MAYBE_UNUSED const auto couple_len = writer.tell() - couple_start;
       printf("CoupleLen: %u\n", (unsigned)couple_len);
       assert(couple_len == 48);
     }
     writer.skip(48 * (8 - stages_count_rounded / 2));
 
-    [[maybe_unused]] const auto end = writer.tell();
-    [[maybe_unused]] const auto shader_size = writer.tell() - shader_start;
+    MAYBE_UNUSED const auto end = writer.tell();
+    MAYBE_UNUSED const auto shader_size = writer.tell() - shader_start;
     assert(shader_size == 0x200);
   };
   // Shaders
@@ -1226,7 +1226,7 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
           dl.align();           // 30
         };
         const auto assert_since = [&](u32 ofs) {
-          [[maybe_unused]] const auto since = writer.tell() - mesh_start;
+          MAYBE_UNUSED const auto since = writer.tell() - mesh_start;
           assert(since == ofs);
         };
 
@@ -1332,7 +1332,7 @@ static void readModel(Model& mdl, oishii::BinaryReader& reader,
 
   reader.expectMagic<'MDL0', false>();
 
-  [[maybe_unused]] const u32 fileSize = reader.read<u32>();
+  MAYBE_UNUSED const u32 fileSize = reader.read<u32>();
   const u32 revision = reader.read<u32>();
   if (revision != 11) {
     transaction.callback(kpi::IOMessageClass::Error, transaction_path,

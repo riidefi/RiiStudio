@@ -49,3 +49,10 @@ constexpr u32 roundUp(u32 in, u32 align) {
 
 #define MODULE_PRIVATE public
 #define MODULE_PUBLIC public
+
+
+#ifdef __clang__
+#define MAYBE_UNUSED [[maybe_unused]]
+#else
+#define MAYBE_UNUSED
+#endif

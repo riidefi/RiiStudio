@@ -232,7 +232,7 @@ void QDictionary::calcNodes() {
 void QDictionary::read(oishii::BinaryReader& reader) {
   mNodes.clear();
   u32 grpStart = reader.tell();
-  [[maybe_unused]] u32 totalSize = reader.read<u32>();
+  MAYBE_UNUSED u32 totalSize = reader.read<u32>();
   u32 nEntry = reader.read<u32>(); // Not including root
 
   for (u32 i = 0; i <= nEntry; i++)

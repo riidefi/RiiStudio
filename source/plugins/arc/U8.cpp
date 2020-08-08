@@ -49,8 +49,8 @@ void readArchive(Archive& dst, oishii::BinaryReader& reader) {
 
   reader.skip(4); // skip magic
   const auto fst_start = reader.read<s32>();
-  [[maybe_unused]] const auto fst_size = reader.read<s32>();
-  [[maybe_unused]] const auto data_ofs = reader.read<s32>();
+  MAYBE_UNUSED const auto fst_size = reader.read<s32>();
+  MAYBE_UNUSED const auto data_ofs = reader.read<s32>();
   reader.skip(16); // pad
 
   const auto strings_offset =

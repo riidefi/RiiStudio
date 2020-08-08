@@ -11,6 +11,8 @@
 #include <memory>
 #include <string>
 
+#include <core/common.h>
+
 #ifndef assert
 #include <cassert>
 #endif
@@ -232,13 +234,13 @@ void Linker::write(Writer& writer, bool doShuffle) {
 
     // Order: local -> children -> global
 
-    [[maybe_unused]] const Node& from =
+    MAYBE_UNUSED const Node& from =
         link.from.mBlock
             ? *link.from.mBlock
             : *LinkerHelper::findNamespacedID(*this, link.from.mId, nameSpace,
                                               reserve.blockName,
                                               fromBlockSymbol);
-    [[maybe_unused]] const Node& to =
+    MAYBE_UNUSED const Node& to =
         link.to.mBlock
             ? *link.to.mBlock
             : *LinkerHelper::findNamespacedID(*this, link.to.mId, nameSpace,
