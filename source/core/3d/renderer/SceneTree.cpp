@@ -16,6 +16,8 @@ void SceneTree::gatherBoneRecursive(u64 boneId, const lib3d::Model& root) {
 
     const auto shader_sources = mat.generateShaders();
     ShaderProgram shader(shader_sources.first, shader_sources.second);
+	assert(display.matId < mats.size());
+	assert(display.polyId < polys.size());
     Node node{mats[display.matId], polys[display.polyId], pBone, display.prio,
               std::move(shader)};
 

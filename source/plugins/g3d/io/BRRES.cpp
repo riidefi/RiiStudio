@@ -795,6 +795,7 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
           writer.write<f32>(d);
       });
 
+  u32 mat_idx = 0;
   write_dict(
       "Materials", mdl.getMaterials(),
       [&](const Material& mat, std::size_t mat_start) {
@@ -803,7 +804,7 @@ static void writeModel(const Model& mdl, oishii::Writer& writer,
         printf("MAT_NAME %x\n", writer.tell());
         writeNameForward(names, writer, mat_start, mat.getName());
         printf("MATIDAT %x\n", writer.tell());
-        writer.write<u32>(mat.id);
+        writer.write<u32>(mat_idx++);
         writer.write<u32>(mat.flag);
         writer.write<u8>(static_cast<u8>(mat.info.nTexGen));
         writer.write<u8>(static_cast<u8>(mat.info.nColorChan));
@@ -1407,7 +1408,7 @@ static void readModel(Model& mdl, oishii::BinaryReader& reader,
     bone.setName(readName(reader, dnode.mDataDestination));
     const u32 id = reader.read<u32>();
     (void)id;
-	assert(id == bone_id);
+    assert(id == bone_id);
     ++bone_id;
     bone.matrixId = reader.read<u32>();
     bone.flag = reader.read<u32>();

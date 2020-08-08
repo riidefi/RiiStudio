@@ -77,9 +77,12 @@ kpi::Register<AssReader, kpi::Reader> AssInstaller;
 
 std::string AssReader::canRead(const std::string& file,
                                oishii::BinaryReader& reader) const {
+  std::string lower_file(file);
+  for (auto& c : lower_file)
+    c = tolower(c);
   if (std::find_if(supported_endings.begin(), supported_endings.end(),
                    [&](const std::string_view& ending) {
-                     return file.ends_with(ending);
+                     return lower_file.ends_with(ending);
                    }) == supported_endings.end()) {
     return "";
   }

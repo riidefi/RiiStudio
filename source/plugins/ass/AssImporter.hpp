@@ -63,7 +63,7 @@ private:
                             const aiMesh* pMesh, const aiNode* pNode,
                             std::vector<libcube::IndexedVertex>&& vertices);
 
-  void ImportMesh(const aiMesh* pMesh, const aiNode* pNode);
+  bool ImportMesh(const aiMesh* pMesh, const aiNode* pNode);
   void ImportNode(const aiNode* pNode, int parent = -1);
 };
 

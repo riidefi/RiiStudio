@@ -188,10 +188,10 @@ void AssImporter::ProcessMeshTriangles(
   }
 }
 
-void AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
+bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
   // Ignore points and lines
   if (pMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
-    return;
+    return false;
 
   auto& poly = out_model->getMeshes().add();
   poly.setName(pMesh->mName.C_Str());
@@ -303,6 +303,7 @@ void AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
   }
 
   ProcessMeshTriangles(poly, pMesh, pNode, std::move(vertices));
+  return true;
 }
 
 static bool importTexture(libcube::Texture& data, u8* image,
@@ -406,9 +407,12 @@ void AssImporter::ImportNode(const aiNode* pNode, int parent) {
     assert(boneIdCtr->matIdToMatIdMap.find(pMesh->mMaterialIndex) !=
            boneIdCtr->matIdToMatIdMap.end());
     const auto matId = boneIdCtr->matIdToMatIdMap[pMesh->mMaterialIndex];
-    joint.addDisplay({matId, boneIdCtr->meshId++, 0});
 
-    ImportMesh(pMesh, pNode);
+    if (ImportMesh(pMesh, pNode)) {
+      joint.addDisplay({matId, boneIdCtr->meshId++, 0});
+    } else {
+      printf("Mesh has denegerate triangles or points/lines\n");
+    }
   }
 
   for (unsigned i = 0; i < pNode->mNumChildren; ++i) {
@@ -657,6 +661,7 @@ void AssImporter::ImportAss(
                                 .op = libcube::gx::AlphaOp::_and,
                                 .compRight = libcube::gx::Comparison::LEQUAL,
                                 .refRight = 255};
+          mdata.earlyZComparison = false;
         }
       }
     }

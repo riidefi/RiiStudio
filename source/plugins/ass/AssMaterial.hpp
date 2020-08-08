@@ -91,8 +91,10 @@ static void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
   data.shader.mStages[0] = wip;
 
   libcube::gx::ChannelControl ctrl;
-  ctrl.enabled = true;
+  data.info.nColorChan = 2;
+  ctrl.enabled = false;
   ctrl.Material = libcube::gx::ColorSource::Vertex;
+  data.chanData[0].matColor = {0xff, 0xff, 0xff, 0xff};
   data.colorChanControls.push_back(ctrl); // rgb
   data.colorChanControls.push_back(ctrl); // a
 }
