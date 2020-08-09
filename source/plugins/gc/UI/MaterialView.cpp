@@ -20,7 +20,7 @@ auto get_material_data = [](auto& x) -> GCMaterialData& {
 };
 
 MAYBE_UNUSED auto mat_prop = [](auto& delegate, auto member,
-                                    const auto& after) {
+                                const auto& after) {
   delegate.propertyEx(member, after, get_material_data);
 };
 auto mat_prop_ex = [](auto& delegate, auto member, auto draw) {
@@ -208,7 +208,7 @@ int SamplerCombo(
     int current,
     copyable_polymorphic_array_vector<GCMaterialData::SamplerData, 8>& samplers,
     kpi::ConstCollectionRange<riistudio::lib3d::Texture> images,
-    riistudio::frontend::EditorWindow* ed) {
+    riistudio::frontend::EditorWindow* ed, bool allow_none = false) {
   int result = current;
 
   const auto format = [&](int id) -> std::string {
@@ -221,6 +221,15 @@ int SamplerCombo(
   if (ImGui::BeginCombo("Sampler ID##Img", samplers.empty()
                                                ? "No Samplers"
                                                : format(current).c_str())) {
+    if (allow_none) {
+      bool selected = current = 0xff;
+      if (ImGui::Selectable("None", selected)) {
+        result = 0xff;
+      }
+      if (selected)
+        ImGui::SetItemDefaultFocus();
+    }
+
     for (int i = 0; i < samplers.size(); ++i) {
       bool selected = i == current;
 
@@ -860,9 +869,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
         // TODO: Better selection here
         int texid = stage.texMap;
-        texid =
-            SamplerCombo(texid, matData.samplers,
-                         delegate.getActive().getTextureSource(), delegate.mEd);
+        texid = SamplerCombo(texid, matData.samplers,
+                             delegate.getActive().getTextureSource(),
+                             delegate.mEd, true);
         if (texid != stage.texMap) {
           for (auto* e : delegate.mAffected) {
             auto& stage = e->getMaterialData().shader.mStages[i];
@@ -950,7 +959,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     if (ImGui::CollapsingHeader("Alpha Stage",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       IDScope alphag("Alpha");
-      if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {     
+      if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
         TevExpression expression(stage.alphaStage);
 
         ImGui::SetWindowFontScale(1.3f);
@@ -1013,11 +1022,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
       opened[i] = true;
 
-      // TODO -- ImGui bug does not allow closable tabs?
       if (opened[i] && ImGui::BeginTabItem(
-                           (std::string("Stage ") + std::to_string(i)).c_str())
-          //  ,&opened[i], ImGuiTabItemFlags_NoPushId
-      ) {
+                           (std::string("Stage ") + std::to_string(i)).c_str(),
+                           &opened[i], ImGuiTabItemFlags_NoPushId)) {
         drawStage(stage, i);
 
         ImGui::EndTabItem();
@@ -1026,9 +1033,13 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     ImGui::EndTabBar();
   }
 
+  bool changed = false;
+
   for (std::size_t i = 0; i < stages.size(); ++i) {
     if (opened[i])
       continue;
+
+    changed = true;
 
     // Only one may be deleted at a time
     stages.erase(stages.begin() + i);
@@ -1041,6 +1052,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 
   matData.info.nTevStage = matData.shader.mStages.size();
+
+  if (changed)
+    delegate.commit("Stage added/removed");
 }
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, FogSurface) {
@@ -1190,14 +1204,13 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
       int leftAlpha = static_cast<int>(matData.alphaCompare.compLeft);
       ImGui::Combo("##l", &leftAlpha, compStr);
       AUTO_PROP(alphaCompare.compLeft,
-                         static_cast<libcube::gx::Comparison>(leftAlpha));
+                static_cast<libcube::gx::Comparison>(leftAlpha));
 
       int leftRef = static_cast<int>(
           delegate.getActive().getMaterialData().alphaCompare.refLeft);
       ImGui::SameLine();
       ImGui::SliderInt("##lr", &leftRef, 0, 255);
-      AUTO_PROP(alphaCompare.refLeft,
-                         static_cast<u8>(leftRef));
+      AUTO_PROP(alphaCompare.refLeft, static_cast<u8>(leftRef));
 
       ImGui::SameLine();
       ImGui::Text(")");
@@ -1205,8 +1218,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
     {
       int op = static_cast<int>(matData.alphaCompare.op);
       ImGui::Combo("##o", &op, "&&\0||\0!=\0==\0");
-      AUTO_PROP(alphaCompare.op,
-                         static_cast<libcube::gx::AlphaOp>(op));
+      AUTO_PROP(alphaCompare.op, static_cast<libcube::gx::AlphaOp>(op));
     }
     {
       ImGui::Text("( Pixel Alpha");
@@ -1214,7 +1226,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
       int rightAlpha = static_cast<int>(matData.alphaCompare.compRight);
       ImGui::Combo("##r", &rightAlpha, compStr);
       AUTO_PROP(alphaCompare.compRight,
-                         static_cast<libcube::gx::Comparison>(rightAlpha));
+                static_cast<libcube::gx::Comparison>(rightAlpha));
 
       int rightRef = static_cast<int>(matData.alphaCompare.refRight);
       ImGui::SameLine();
