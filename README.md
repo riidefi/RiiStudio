@@ -1,13 +1,28 @@
 # RiiStudio
 Sophisticated editors for GameCube and Wii files
 
-## File Formats
+## Editable File Formats
 | Format | Can Open | Can Save |
 |--------|----------|----------|
 | BMD    | Yes      | Yes      |
 | BDL    | Yes      | As .BMD  |
-| BRRES  | Yes      | No       |
+| BRRES* | Yes      | Yes      |
 | KMP    | Yes      | Yes      |
+
+\* MDL0 and TEX0
+
+## Importing
+Assimp supported formats like FBX and DAE can be imported as BMD/BRRES*.
+
+\* Currently limited to non-rigged models\
+
+## RiiStudio (as a C++ library) also supports
+| Format | Can Open | Can Save |
+|--------|----------|----------|
+| U8     | Yes      | No       |
+| SZS    | Yes      | Yes*     |
+
+\* With "fast" compression only.
 
 ## Credits
  * Dear ImGui - "Bloat-free Immediate Mode Graphical User interface for C++ with minimal dependencies" - https://github.com/ocornut/imgui
