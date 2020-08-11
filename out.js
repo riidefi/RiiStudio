@@ -193,7 +193,7 @@ var Module = typeof Module !== 'undefined' ? Module : {};
     }
   
    }
-   loadPackage({"files": [{"filename": "/fonts/fa-regular-400.ttf", "start": 0, "end": 34092, "audio": 0}, {"filename": "/fonts/fa-solid-900.ttf", "start": 34092, "end": 225924, "audio": 0}, {"filename": "/fonts/MS Sans Serif Bold.ttf", "start": 225924, "end": 238180, "audio": 0}, {"filename": "/fonts/MS Sans Serif.ttf", "start": 238180, "end": 252460, "audio": 0}, {"filename": "/fonts/Roboto-Bold.ttf", "start": 252460, "end": 388280, "audio": 0}, {"filename": "/fonts/Roboto-Medium.ttf", "start": 388280, "end": 550868, "audio": 0}], "remote_package_size": 550868, "package_uuid": "445967b7-ea79-4414-88f8-5579c9e23077"});
+   loadPackage({"files": [{"filename": "/fonts/fa-regular-400.ttf", "start": 0, "end": 34092, "audio": 0}, {"filename": "/fonts/fa-solid-900.ttf", "start": 34092, "end": 225924, "audio": 0}, {"filename": "/fonts/MS Sans Serif Bold.ttf", "start": 225924, "end": 238180, "audio": 0}, {"filename": "/fonts/MS Sans Serif.ttf", "start": 238180, "end": 252460, "audio": 0}, {"filename": "/fonts/Roboto-Bold.ttf", "start": 252460, "end": 388280, "audio": 0}, {"filename": "/fonts/Roboto-Medium.ttf", "start": 388280, "end": 550868, "audio": 0}], "remote_package_size": 550868, "package_uuid": "db21d174-3cd6-4d01-819b-bcb74385c0b2"});
   
   })();
   
@@ -1960,7 +1960,7 @@ function isFileURI(filename) {
 
 
 
-var wasmBinaryFile = 'alpha_3.wasm';
+var wasmBinaryFile = 'alpha_3H1.wasm';
 if (!isDataURI(wasmBinaryFile)) {
   wasmBinaryFile = locateFile(wasmBinaryFile);
 }
