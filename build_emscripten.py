@@ -9,6 +9,11 @@ from shutil import copyfile
 import sys
 from itertools import chain
 
+from multiprocessing.dummy import Pool as ThreadPool
+import time
+
+gPool = ThreadPool(4)
+
 def require_dir(path):
 	# TODO: if not isdir, delete
 	if not os.path.exists(path):
@@ -121,8 +126,8 @@ def format_out(source, int_dir):
 		source.replace(".cpp", ".o").replace(".cxx", ".o").replace(".c", ".o").replace("\\", "_").replace("/", "_")) 
 
 def compile(source, int_dir, debug, config):
-
-	args = "em++ -I./ "
+	print("BUILD %s" % source)
+	args = "em++ -Wno-deprecated-volatile -Wno-inconsistent-missing-override -Wno-ambiguous-reversed-operator -I./ "
 	for proj in PROJECTS:
 		args += " -I./source/" + proj["name"] + " "
 	for d in DEFINES + defines(config):
@@ -130,11 +135,11 @@ def compile(source, int_dir, debug, config):
 	for incl in INCLUDES:
 		args += " -I./" + incl + " "
 	args += " -Wall -std=c++20 -D\"__debugbreak()\"=\"\""
-	args += " -s USE_SDL=2 -Wno-inconsistent-missing-override"
+	args += " -s USE_SDL=2 "
 	if debug:
 		args += " -g4 -O0 "
 	else:
-		args += " -O3 -flto " 
+		args += " -O3 -flto" 
 	args += " -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 -c -o"
 	dst = format_out(source, int_dir)
 	args += " " + dst + " " + source
@@ -161,20 +166,22 @@ def build_project(name, type, config, proj=None):
 
 	cpp = get_sources("source/" + name, "**/*.cpp")
 	cxx = get_sources("source/" + name, "**/*.cxx")
-	
-	for source in chain(cpp, cxx):
-		if "pybind11\\tests" in source:
-			continue
-
+	sources = chain(cpp, cxx)
+	sources = list(filter(lambda x: "pybind11\\tests" not in x, sources))
+	for source in sources:
 		locals_objs.append(format_out(source, bin_int_dir))
+	sources = list(filter(lambda x: not gHashManager.check(x, config), sources))
+	do_compile = lambda source: [ compile(source, bin_int_dir, debug, config), gHashManager.save(source, config)]
 
-		if gHashManager.check(source, config):
-			continue
-
-		compile(source, bin_int_dir, debug, config)
-		gHashManager.save(source, config)
+	if len(sources):
+		gPool.map(do_compile, sources)
 
 	if type == "main_app":
+		# Main app must be last
+		gPool.close()
+		gPool.join()
+		print("LINKING")
+
 		link_cmd = " -o " + bin_dir + "out.html -s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind"
 		link_cmd += "  --shell-file " + bin_dir + "/shell_minimal.html "
 		objs = locals_objs
@@ -207,6 +214,10 @@ def build_projects(config, rebuild):
 cfg = "RELEASE"
 if len(sys.argv) > 1:
 	cfg = sys.argv[1].upper()
+
+start = time.time()
 build_projects(cfg, len(sys.argv) > 2 and sys.argv[2] == "-rebuild")
 
 gHashManager.store_to_file()
+end = time.time()
+print("Operation took %ss" % (end - start))
