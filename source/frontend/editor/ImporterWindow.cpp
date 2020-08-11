@@ -44,8 +44,13 @@ void ImporterWindow::draw() {
       // Keep asking..
       if (!answered)
         return;
+
+      // The consumer will construct the state
+      process();
+      break;
     }
     case State::ResolveDependencies: {
+      assert(transaction.has_value());
       unsigned num = 0;
       for (auto& vec : transaction->resolvedFiles)
         if (vec.empty())
