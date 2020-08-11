@@ -1,6 +1,8 @@
 # RiiStudio
 Sophisticated editors for GameCube and Wii files
 
+![Importing](https://raw.githubusercontent.com/riidefi/RiiStudio/gh-pages/assets/alpha_3.0/import_brres.gif)
+
 ## Editable File Formats
 | Format | Can Open | Can Save |
 |--------|----------|----------|
