@@ -338,8 +338,8 @@ template <> struct io_wrapper<Material::TexMatrix> {
     writer.write<f32>(0.5f);
     writer.write<f32>(in.scale.x);
     writer.write<f32>(in.scale.y);
-    writer.write<u16>(
-        (u16)roundf(static_cast<f32>(in.rotate * (f32)0x7FFF / 180.0f)));
+    writer.write<u16>((u16)roundf(
+        static_cast<f32>(in.rotate * (f32)0x7FFF / glm::pi<f32>())));
     writer.write<u16>(-1);
     writer.write<f32>(in.translate.x);
     writer.write<f32>(in.translate.y);
