@@ -127,14 +127,16 @@ def format_out(source, int_dir):
 
 def compile(source, int_dir, debug, config):
 	print("BUILD %s" % source)
-	args = "em++ -Wno-deprecated-volatile -Wno-inconsistent-missing-override -Wno-ambiguous-reversed-operator -I./ "
+	args = "em++ -std=c++20 -Wno-deprecated-volatile -Wno-inconsistent-missing-override -Wno-ambiguous-reversed-operator -I./ "
+	if source.endswith(".c"):
+		args = args.replace("em++ -std=c++20", "emcc")
 	for proj in PROJECTS:
 		args += " -I./source/" + proj["name"] + " "
 	for d in DEFINES + defines(config):
 		args += " -D" + d
 	for incl in INCLUDES:
 		args += " -I./" + incl + " "
-	args += " -Wall -std=c++20 -D\"__debugbreak()\"=\"\""
+	args += " -Wall -D\"__debugbreak()\"=\"\""
 	args += " -s USE_SDL=2 "
 	if debug:
 		args += " -g4 -O0 "
@@ -166,7 +168,8 @@ def build_project(name, type, config, proj=None):
 
 	cpp = get_sources("source/" + name, "**/*.cpp")
 	cxx = get_sources("source/" + name, "**/*.cxx")
-	sources = chain(cpp, cxx)
+	c   = get_sources("source/" + name, "**/*.c")
+	sources = chain(cpp, cxx, c)
 	sources = list(filter(lambda x: "pybind11\\tests" not in x, sources))
 	for source in sources:
 		locals_objs.append(format_out(source, bin_int_dir))

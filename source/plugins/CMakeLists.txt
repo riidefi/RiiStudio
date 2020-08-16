@@ -129,4 +129,4 @@ add_library(plugins
   "ass/AssImporter.hpp"
   "ass/AssLogger.hpp"
   "ass/Utility.hpp"
- "ass/AssMaterial.hpp")
+ "ass/AssMaterial.hpp" "gc/UI/ResizeAction.hpp" "gc/UI/ResizeAction.cpp")

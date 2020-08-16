@@ -36,7 +36,8 @@ void ImagePreview::setFromImage(const lib3d::Texture& tex) {
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, tex.getMipmapCount());
@@ -50,7 +51,7 @@ void ImagePreview::setFromImage(const lib3d::Texture& tex) {
   mDecodeBuf.clear();
 }
 
-void ImagePreview::draw(float wd, float ht) {
+void ImagePreview::draw(float wd, float ht, bool mip_slider) {
   if (!mTexUploaded) {
     ImGui::Text("No image to display");
     return;
@@ -58,6 +59,7 @@ void ImagePreview::draw(float wd, float ht) {
 
   glBindTexture(GL_TEXTURE_2D, mGpuTexId);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, static_cast<f32>(mLod));
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, static_cast<f32>(mLod));
 
   ImGui::Image(
       (void*)(intptr_t)mGpuTexId,
@@ -68,7 +70,7 @@ void ImagePreview::draw(float wd, float ht) {
     ImGui::EndPopup();
   }
 
-  if (mNumMipMaps > 0)
+  if (mip_slider && mNumMipMaps > 0)
     ImGui::SliderInt("LOD", &mLod, 0, mNumMipMaps);
 }
 } // namespace riistudio::frontend

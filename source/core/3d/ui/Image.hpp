@@ -13,7 +13,7 @@ public:
   ~ImagePreview();
   void setFromImage(const lib3d::Texture& tex);
 
-  void draw(float width = -1.0f, float height = -1.0f);
+  void draw(float width = -1.0f, float height = -1.0f, bool mip_slider=true);
 
 private:
   u16 width = 0;

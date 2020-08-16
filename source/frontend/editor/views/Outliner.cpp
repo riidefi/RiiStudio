@@ -6,6 +6,8 @@
 //#include <regex>                          // std::regex_search
 #include <vendor/fa5/IconsFontAwesome5.h> // (const char*)ICON_FA_SEARCH
 
+#include <core/kpi/ActionMenu.hpp> // kpi::ActionMenuManager
+
 namespace riistudio::frontend {
 
 struct GenericCollectionOutliner : public StudioWindow {
@@ -63,6 +65,8 @@ private:
   TFilter mFilter;
   kpi::IObject*& mActive;
   EditorWindow& ed;
+
+  kpi::IObject* activeModal = nullptr;
 };
 
 GenericCollectionOutliner::GenericCollectionOutliner(kpi::INode& host,
@@ -144,7 +148,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
     if (!rich.hasEntry())
       continue;
 
-	if (cur_name == "TODO") {
+    if (cur_name == "TODO") {
       cur_name = rich.getNameSingular() + " #" + std::to_string(i);
     }
 
@@ -158,6 +162,23 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
 
     ImGui::Selectable(std::to_string(i).c_str(), curNodeSelected,
                       ImGuiSelectableFlags_None, {0, icon_size});
+    if (ImGui::BeginPopupContextItem(("Ctx" + std::to_string(i)).c_str())) {
+      activeModal = &nodeAt;
+      ImGui::TextUnformatted((rich.getIconSingular() + " " +
+                              rich.getNameSingular() + ": " + cur_name)
+                                 .c_str());
+      ImGui::Separator();
+
+      {
+        if (kpi::ActionMenuManager::get().drawContextMenus(nodeAt))
+          ed.getDocument().commit();
+        
+        // ImGui::PopID();
+      }
+
+      ImGui::EndPopup();
+    }
+
     ImGui::SameLine();
 
     thereWasAClick = ImGui::IsItemClicked();
@@ -291,8 +312,13 @@ void GenericCollectionOutliner::drawRecursive(kpi::INode& host) noexcept {
 }
 
 void GenericCollectionOutliner::draw_() noexcept {
+  // activeModal = nullptr;
   mFilter.Draw();
   drawRecursive((kpi::INode&)mHost);
+
+  if (activeModal != nullptr)
+    if (kpi::ActionMenuManager::get().drawModals(*activeModal))
+      ed.getDocument().commit();
 }
 
 std::unique_ptr<StudioWindow>

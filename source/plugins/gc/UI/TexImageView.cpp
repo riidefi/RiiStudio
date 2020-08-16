@@ -1,46 +1,179 @@
-#define STB_IMAGE_IMPLEMENTATION
+#include <vendor/FileDialogues.hpp>
 #include <vendor/stb_image.h>
 
-#include <vendor/FileDialogues.hpp>
-
 #include <algorithm>
+
 #include <core/3d/i3dmodel.hpp>
 #include <core/3d/ui/Image.hpp>
+#include <core/kpi/ActionMenu.hpp>
 #include <core/kpi/PropertyView.hpp>
 #include <core/util/gui.hpp>
+
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
-
 #include <plugins/gc/Util/TextureExport.hpp>
+
+#include "ResizeAction.hpp"
 
 namespace libcube::UI {
 
-struct ImageSurface final {
+struct PopupOpener {
+  ~PopupOpener() {
+    if (name != nullptr)
+      ImGui::OpenPopup(name);
+  }
+
+  void open(const char* _name) { name = _name; }
+
+  const char* name = nullptr;
+};
+static const std::vector<std::string> StdImageFilters = {
+    "PNG Files", "*.png",     "TGA Files", "*.tga",     "JPG Files",
+    "*.jpg",     "BMP Files", "*.bmp",     "All Files", "*",
+};
+
+void exportImage(const Texture& tex, u32 export_lod) {
+  std::string path = tex.getName() + " Mip Level "+ std::to_string(export_lod) + ".png";
+  libcube::STBImage imgType = libcube::STBImage::PNG;
+
+#ifdef RII_PLATFORM_WINDOWS
+  auto results = pfd::save_file("Export image", "", StdImageFilters);
+  if (results.result().empty())
+    return;
+  path = results.result();
+  if (path.ends_with(".png")) {
+    imgType = libcube::STBImage::PNG;
+  } else if (path.ends_with(".bmp")) {
+    imgType = libcube::STBImage::BMP;
+  } else if (path.ends_with(".tga")) {
+    imgType = libcube::STBImage::TGA;
+  } else if (path.ends_with(".jpg")) {
+    imgType = libcube::STBImage::JPG;
+  }
+#endif
+
+  std::vector<u8> data;
+  tex.decode(data, true);
+
+  u32 offset = 0;
+  for (u32 i = 0; i < export_lod; ++i)
+    offset += (tex.getWidth() >> i) * (tex.getHeight() >> i) * 4;
+
+  libcube::writeImageStbRGBA(
+      path.c_str(), imgType, tex.getWidth() >> export_lod,
+      tex.getHeight() >> export_lod, data.data() + offset);
+}
+
+class ImageActions : public kpi::ActionMenu<Texture>,
+                     public ResizeAction,
+                     public ReformatAction {
+  bool resize = false, reformat = false;
+
+  int export_lod = -1;
+
+  std::vector<riistudio::frontend::ImagePreview> mImg;
+  const Texture* lastTex = nullptr;
+
+  // Return true if the state of obj was mutated (add to history)
+  bool context(kpi::IObject& obj) override {
+    auto& tex = *dynamic_cast<const Texture*>(&obj);
+
+    if (ImGui::MenuItem("Resize")) {
+      resize_reset();
+      resize = true;
+    }
+    if (ImGui::MenuItem("Reformat")) {
+      reformat_reset();
+      reformat = true;
+    }
+
+    if (ImGui::BeginMenu("Export")) {
+      if (lastTex != &tex) {
+        mImg.clear();
+        mImg.resize(tex.getMipmapCount() + 1);
+        for (int i = 0; i <= tex.getMipmapCount(); ++i)
+          mImg[i].setFromImage(tex);
+        lastTex = &tex;
+      }
+
+      export_lod = -1;
+
+      mImg[0].draw(75, 75, false);
+      if (ImGui::MenuItem("Base Image (LOD 0)")) {
+        export_lod = 0;
+      }
+      if (tex.getMipmapCount() > 0) {
+        ImGui::Separator();
+        for (unsigned i = 1; i <= tex.getMipmapCount(); ++i) {
+          mImg[i].mLod = i;
+          mImg[i].draw(75, 75, false);
+          if (ImGui::MenuItem(("LOD " + std::to_string(i)).c_str())) {
+            export_lod = i;
+          }
+        }
+      }
+
+      ImGui::EndMenu();
+    }
+
+    return false;
+  }
+
+  bool modal(kpi::IObject& obj) override {
+    auto& tex = *dynamic_cast<const Texture*>(&obj);
+
+    if (export_lod != -1) {
+      exportImage(tex, export_lod);
+      export_lod = -1;
+    }
+    if (resize) {
+      ImGui::OpenPopup("Resize");
+      resize = false;
+    }
+    if (reformat) {
+      ImGui::OpenPopup("Reformat");
+      reformat = false;
+    }
+
+    bool all_changed = false;
+    if (ImGui::BeginPopupModal("Resize", nullptr,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+      bool changed = false;
+      const bool keep_alive =
+          resize_draw(*dynamic_cast<libcube::Texture*>(&obj), &changed);
+      all_changed |= changed;
+
+      if (!keep_alive)
+        ImGui::CloseCurrentPopup();
+
+      ImGui::EndPopup();
+    }
+    if (ImGui::BeginPopupModal("Reformat", nullptr,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+      bool changed = false;
+      const bool keep_alive =
+          reformat_draw(*dynamic_cast<libcube::Texture*>(&obj), &changed);
+      all_changed |= changed;
+
+      if (!keep_alive)
+        ImGui::CloseCurrentPopup();
+
+      ImGui::EndPopup();
+    }
+
+    return all_changed;
+  }
+};
+
+struct ImageSurface final : public ResizeAction, public ReformatAction {
   static inline const char* name = "Image Data";
   static inline const char* icon = (const char*)ICON_FA_IMAGE;
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;
 
-  struct ResizeDimension {
-    const char* name = "?";
-    int before = -1;
-    int value = -1;
-    bool constrained = true;
-  };
-
-  std::array<ResizeDimension, 2> resize{
-      ResizeDimension{"Width ", -1, -1, false},
-      ResizeDimension{"Height", -1, -1, true}};
-  int reformatOpt = -1;
-  int resizealgo = 0;
   Texture* lastTex = nullptr;
   riistudio::frontend::ImagePreview mImg;
-};
-
-static const std::vector<std::string> StdImageFilters = {
-    "PNG Files", "*.png",     "TGA Files", "*.tga",     "JPG Files",
-    "*.jpg",     "BMP Files", "*.bmp",     "All Files", "*",
 };
 
 void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
@@ -58,25 +191,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
       reformatOption = true;
     }
     if (ImGui::Button((const char*)ICON_FA_SAVE u8" Export")) {
-      auto results = pfd::save_file("Export image", "", StdImageFilters);
-      if (!results.result().empty()) {
-        const std::string path = results.result();
-        libcube::STBImage imgType = libcube::STBImage::PNG;
-        if (path.ends_with(".png")) {
-          imgType = libcube::STBImage::PNG;
-        } else if (path.ends_with(".bmp")) {
-          imgType = libcube::STBImage::BMP;
-        } else if (path.ends_with(".tga")) {
-          imgType = libcube::STBImage::TGA;
-        } else if (path.ends_with(".jpg")) {
-          imgType = libcube::STBImage::JPG;
-        }
-
-        // Only top LOD
-        libcube::writeImageStbRGBA(path.c_str(), imgType, data.getWidth(),
-                                   data.getHeight(),
-                                   tex.mImg.mDecodeBuf.data());
-      }
+      exportImage(data, 0);
     }
     if (ImGui::Button((const char*)ICON_FA_FILE u8" Import")) {
       auto result =
@@ -109,122 +224,39 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
 
   if (resizeAction) {
     ImGui::OpenPopup("Resize");
-    tex.resize[0].value = -1;
-    tex.resize[1].value = -1;
-    tex.resize[0].before = -1;
-    tex.resize[1].before = -1;
+    tex.resize_reset();
   } else if (reformatOption) {
     ImGui::OpenPopup("Reformat");
-    tex.reformatOpt = -1;
+    tex.reformat_reset();
   }
 
-#ifndef BUILD_DIST
   if (ImGui::BeginPopupModal("Reformat", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
-    if (tex.reformatOpt == -1) {
-      tex.reformatOpt = data.getTextureFormat();
-    }
-    ImGui::InputInt("Format", &tex.reformatOpt);
-    if (ImGui::Button((const char*)ICON_FA_CHECK u8" Okay")) {
-      const auto oldFormat = data.getTextureFormat();
-      data.setTextureFormat(tex.reformatOpt);
-      data.resizeData();
+    bool changed = false;
+    const bool keep_alive = tex.reformat_draw(data, &changed);
 
-      libcube::image_platform::transform(
-          data.getData(), data.getWidth(), data.getHeight(),
-          static_cast<libcube::gx::TextureFormat>(oldFormat),
-          static_cast<libcube::gx::TextureFormat>(tex.reformatOpt),
-          data.getData(), data.getWidth(), data.getHeight(),
-          data.getMipmapCount() - 1);
+    if (changed) {
       delegate.commit("Reformat Image");
       tex.lastTex = nullptr;
-
-      ImGui::CloseCurrentPopup();
     }
-    ImGui::SameLine();
 
-    if (ImGui::Button((const char*)ICON_FA_CROSS u8" Cancel")) {
+    if (!keep_alive)
       ImGui::CloseCurrentPopup();
-    }
 
     ImGui::EndPopup();
   }
-#endif
   if (ImGui::BeginPopupModal("Resize", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
-    if (tex.resize[0].before <= 0) {
-      tex.resize[0].before = data.getWidth();
-    }
-    if (tex.resize[1].before <= 0) {
-      tex.resize[1].before = data.getHeight();
-    }
+    bool changed = false;
+    const bool keep_alive = tex.resize_draw(data, &changed);
 
-    int dX = 0;
-    for (auto& it : tex.resize) {
-      auto& other = dX++ ? tex.resize[0] : tex.resize[1];
-
-      int before = it.value;
-      ImGui::InputInt(it.name, &it.value, 1, 64);
-      ImGui::SameLine();
-      ImGui::Checkbox((std::string("Constrained##") + it.name).c_str(),
-                      &it.constrained);
-      if (it.constrained) {
-        other.constrained = false;
-      }
-      ImGui::SameLine();
-      if (ImGui::Button((std::string("Reset##") + it.name).c_str())) {
-        it.value = -1;
-      }
-
-      if (before != it.value) {
-        if (it.constrained) {
-          it.value = before;
-        } else if (other.constrained) {
-          other.value = other.before * it.value / it.before;
-        }
-      }
-    }
-
-    if (tex.resize[0].value <= 0) {
-      tex.resize[0].value = data.getWidth();
-    } else if (tex.resize[0].value > 1024) {
-      tex.resize[0].value = 1024;
-    }
-    if (tex.resize[1].value <= 0) {
-      tex.resize[1].value = data.getHeight();
-    } else if (tex.resize[1].value > 1024) {
-      tex.resize[1].value = 1024;
-    }
-
-    ImGui::Combo("Algorithm", (int*)&tex.resizealgo, "Ultimate\0Lanczos\0");
-
-    if (ImGui::Button((const char*)ICON_FA_CHECK u8" Resize")) {
-      printf("Do the resizing..\n");
-
-      const auto oldWidth = data.getWidth();
-      const auto oldHeight = data.getHeight();
-
-      data.setWidth(tex.resize[0].value);
-      data.setHeight(tex.resize[1].value);
-      data.resizeData();
-
-      libcube::image_platform::transform(
-          data.getData(), tex.resize[0].value, tex.resize[1].value,
-          static_cast<libcube::gx::TextureFormat>(data.getTextureFormat()),
-          std::nullopt, data.getData(), oldWidth, oldHeight,
-          data.getMipmapCount(),
-          static_cast<libcube::image_platform::ResizingAlgorithm>(
-              tex.resizealgo));
+    if (changed) {
       delegate.commit("Resize Image");
       tex.lastTex = nullptr;
-
-      ImGui::CloseCurrentPopup();
     }
-    ImGui::SameLine();
 
-    if (ImGui::Button((const char*)ICON_FA_CROSS u8" Cancel")) {
+    if (!keep_alive)
       ImGui::CloseCurrentPopup();
-    }
 
     ImGui::EndPopup();
   }
@@ -248,5 +280,10 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
 }
 
 kpi::RegisterPropertyView<libcube::Texture, ImageSurface> ImageSurfaceInstaller;
+
+kpi::DecentralizedInstaller
+    ImageActionsInstaller([](kpi::ApplicationPlugins& installer) {
+      kpi::ActionMenuManager::get().addMenu(std::make_unique<ImageActions>());
+    });
 
 } // namespace libcube::UI
