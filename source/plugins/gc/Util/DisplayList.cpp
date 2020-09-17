@@ -2,6 +2,9 @@
 
 namespace libcube {
 
+// This is always BE
+constexpr oishii::EndianSelect CmdProcEndian = oishii::EndianSelect::Big;
+
 static llvm::Expected<u16> ProcessAttr(
     oishii::BinaryReader& reader,
     const std::map<gx::VertexAttribute, gx::VertexAttributeType>& attribstypes,
@@ -12,11 +15,11 @@ static llvm::Expected<u16> ProcessAttr(
   case gx::VertexAttributeType::None:
     break;
   case gx::VertexAttributeType::Byte:
-    val = reader.read<u8, oishii::EndianSelect::Current, true>();
+    val = reader.read<u8, CmdProcEndian, true>();
     assert(val != 0xff);
     break;
   case gx::VertexAttributeType::Short:
-    val = reader.read<u16, oishii::EndianSelect::Current, true>();
+    val = reader.read<u16, CmdProcEndian, true>();
     if (val == 0xffff) {
       printf("Index: %u, Attribute: %x\n", vi, (u32)a);
       reader.warnAt("Disabled vertex", reader.tell() - 2, reader.tell());
@@ -33,7 +36,7 @@ static llvm::Expected<u16> ProcessAttr(
     }
     // As PNM indices are always direct, we
     // still use them in an all-indexed vertex
-    val = reader.read<u8, oishii::EndianSelect::Current, true>();
+    val = reader.read<u8, CmdProcEndian, true>();
     assert(val != 0xff);
     break;
   default:
@@ -65,7 +68,7 @@ DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
           "Unexpected command in mesh display list.");
     }
 
-    u16 nVerts = reader.readUnaligned<u16>();
+    u16 nVerts = reader.readUnaligned<u16, CmdProcEndian>();
     IndexedPrimitive& prim = delegate.addIndexedPrimitive(
         gx::DecodeDrawPrimitiveCommand(tag), nVerts);
 

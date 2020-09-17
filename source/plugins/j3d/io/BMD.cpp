@@ -162,7 +162,15 @@ public:
     BMDOutputContext ctx{mdl, collection, reader, transaction};
 
     reader.setEndian(true);
-    reader.expectMagic<'J3D2'>();
+    const auto magic = reader.read<u32>();
+    if (magic == 'J3D2') {
+      // Big endian
+    } else if (magic == '2D3J') {
+      reader.setEndian(false);
+    } else {
+      // Invalid file
+      return;
+    }
 
     mdl.isBDL = false;
 
