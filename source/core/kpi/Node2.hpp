@@ -324,6 +324,13 @@ public:
     return index < low->size() ? at(index) : nullptr;
   }
 
+  MutCollectionRange<T>& operator=(const MutCollectionRange<T>& rhs) {
+    resize(rhs.size());
+    for (int i = 0; i < rhs.size(); ++i)
+      operator[](i) = rhs[i];
+    return *this;
+  }
+
 private:
   ICollection* low = nullptr;
 };

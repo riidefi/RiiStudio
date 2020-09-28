@@ -28,6 +28,8 @@ struct AssReader {
     Unengaged,
     // send settings request, set mode to
     WaitForSettings,
+	// Special step: Determine what to keep and what to discard
+	WaitForReplace,
     // check for texture dependencies
     // tell the importer to fix them or abort
     WaitForTextureDependencies,
@@ -125,7 +127,8 @@ void AssReader::read(kpi::IOTransaction& transaction) {
       return;
     }
     helper.emplace(pScene, &transaction.node);
-    unresolved =
+    std::vector<std::string> mat_merge;
+	unresolved =
         helper->PrepareAss(mGenerateMipMaps, mMinMipDimension, mMaxMipCount);
 
     state = State::WaitForTextureDependencies;

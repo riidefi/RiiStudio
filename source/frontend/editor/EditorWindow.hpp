@@ -32,6 +32,11 @@ public:
   const kpi::IObject* getActive() const { return mActive; }
   void setActive(kpi::IObject* active) { mActive = active; }
 
+  void reinit() {
+    detachAllChildren();
+    init();
+  }
+
 private:
   void init();
 

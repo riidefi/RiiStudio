@@ -16,6 +16,9 @@ class EditorWindow;
 
 class RootWindow final : public Applet, FileHost {
 public:
+  static RootWindow* spInstance;
+
+
   RootWindow();
   ~RootWindow();
   void draw() override;
@@ -42,6 +45,20 @@ private:
 
   bool mShowChangeLog = true;
   std::queue<ImporterWindow> mImportersQueue;
+
+  // Hack...
+  bool mWantFile = false;
+  bool mGotFile = false;
+  FileData mReqData;
+
+public:
+  void requestFile() { mWantFile = true; }
+  FileData* getFile() {
+    if (!mGotFile)
+      return nullptr;
+    return &mReqData;
+  }
+  void endRequestFile() { mWantFile = false; }
 };
 
 } // namespace riistudio::frontend

@@ -1,12 +1,13 @@
 #include "AssImporter.hpp"
+#include "AssMaterial.hpp"
 #include "Utility.hpp"
 #include <core/3d/texture_dimensions.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <map>
+#include <plugins/g3d/model.hpp>
 #include <unordered_map>
 #include <vendor/stb_image.h>
-
-#include "AssMaterial.hpp"
 
 namespace riistudio::ass {
 
@@ -14,7 +15,9 @@ AssImporter::AssImporter(const aiScene* scene, kpi::INode* mdl)
     : pScene(scene) {
   out_collection = dynamic_cast<libcube::Scene*>(mdl);
   assert(out_collection != nullptr);
-  out_model = &out_collection->getModels().add();
+  out_model = out_collection->getModels().empty()
+                  ? &out_collection->getModels().add()
+                  : &out_collection->getModels()[0];
 }
 int AssImporter::get_bone_id(const aiNode* pNode) {
   return boneIdCtr->nodeToBoneIdMap.find(pNode) !=
@@ -426,17 +429,48 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip) {
   assert(root != nullptr);
 
   std::set<std::string> texturesToImport;
+  std::map<std::string, std::unique_ptr<g3d::Material>> old_materials;
+
+  if (auto* gmdl = dynamic_cast<g3d::Model*>(out_model); gmdl != nullptr) {
+    for (auto& mat : gmdl->getMaterials())
+      old_materials.emplace(mat.getName(),
+                            std::make_unique<g3d::Material>(mat));
+
+    gmdl->getBuf_Clr().resize(0);
+    gmdl->getBuf_Nrm().resize(0);
+    gmdl->getBuf_Uv().resize(0);
+    gmdl->getBuf_Pos().resize(0);
+  }
+
+  std::vector<std::string> new_mats;
+  std::vector<bool> replaces;
 
   for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
     auto* pMat = pScene->mMaterials[i];
-    auto& mr = out_model->getMaterials().add();
     std::string name = pMat->GetName().C_Str();
     if (name.empty()) {
       name = "Material";
       name += std::to_string(i);
     }
-    mr.setName(name);
+    new_mats.push_back(name);
+    replaces.push_back(old_materials.contains(name));
+  }
+  out_model->getMaterials().resize(0);
+
+  out_model->getBones().resize(0);
+  out_model->getMeshes().resize(0);
+
+  for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
+    auto* pMat = pScene->mMaterials[i];
+    auto& mr = out_model->getMaterials().add();
+    mr.setName(new_mats[i]);
     boneIdCtr->matIdToMatIdMap[i] = i;
+
+    if (replaces[i]) {
+      mr = *old_materials[new_mats[i]];
+      continue;
+    }
+
     ImpMaterial impMat;
 
     for (unsigned t = aiTextureType_DIFFUSE; t <= aiTextureType_UNKNOWN; ++t) {

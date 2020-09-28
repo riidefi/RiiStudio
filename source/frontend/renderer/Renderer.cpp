@@ -20,6 +20,13 @@ Renderer::Renderer(lib3d::IDrawable* root) : mRoot(root) {}
 Renderer::~Renderer() {}
 
 void Renderer::render(u32 width, u32 height, bool& showCursor) {
+  if (mRoot->poisoned)
+    return;
+  if (mRoot->reinit) {
+    mRoot->reinit = false;
+    prepare(*dynamic_cast<kpi::INode*>(mRoot));
+  }
+
   if (ImGui::BeginMenuBar()) {
     if (ImGui::BeginMenu("Camera")) {
       ImGui::SliderFloat("Mouse Speed", &mouseSpeed, 0.0f, .2f);
@@ -155,7 +162,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
   const auto bg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
   glClearColor(bg.x, bg.y, bg.z, bg.w);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  
+
   mRoot->draw();
 }
 

@@ -115,6 +115,7 @@ struct G3DModelData : public virtual kpi::IObject {
   lib3d::AABB aabb;
 
   std::string mName = "course";
+
   std::string getName() const { return mName; }
   void setName(const std::string& name) { mName = name; }
 };

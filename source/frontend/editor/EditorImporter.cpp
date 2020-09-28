@@ -7,7 +7,8 @@
 
 namespace riistudio::frontend {
 
-EditorImporter::EditorImporter(FileData&& data) { // TODO: Not ideal..
+EditorImporter::EditorImporter(FileData&& data, kpi::INode* _fileState)
+    : fileState(_fileState) { // TODO: Not ideal..
   std::vector<u8> vec(data.mLen);
   memcpy(vec.data(), data.mData.get(), data.mLen);
 
@@ -23,7 +24,7 @@ EditorImporter::EditorImporter(FileData&& data) { // TODO: Not ideal..
 
   // TODO: Perhaps we might want to support more specialized children of a
   // concrete class?
-  if (!IsConstructible(data_id)) {
+  if (!fileState && !IsConstructible(data_id)) {
     const auto children = GetChildrenOfType(data_id);
     if (children.empty()) {
       result = State::NotConstructible;
@@ -51,13 +52,15 @@ bool EditorImporter::process() {
   constexpr bool Die = false;
 
   if (result == State::Constructible) {
-    auto object = SpawnState(data_id);
-    if (object == nullptr) {
-      result = State::NotConstructible;
-      return Die;
+    if (!fileState) {
+      auto object = SpawnState(data_id);
+      if (object == nullptr) {
+        result = State::NotConstructible;
+        return Die;
+      }
+      fileState = std::unique_ptr<kpi::INode>{
+          dynamic_cast<kpi::INode*>(object.release())};
     }
-    fileState = std::unique_ptr<kpi::INode>{
-        dynamic_cast<kpi::INode*>(object.release())};
     if (fileState == nullptr) {
       result = State::NotConstructible;
       return Die;

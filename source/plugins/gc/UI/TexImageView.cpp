@@ -33,7 +33,8 @@ static const std::vector<std::string> StdImageFilters = {
 };
 
 void exportImage(const Texture& tex, u32 export_lod) {
-  std::string path = tex.getName() + " Mip Level "+ std::to_string(export_lod) + ".png";
+  std::string path =
+      tex.getName() + " Mip Level " + std::to_string(export_lod) + ".png";
   libcube::STBImage imgType = libcube::STBImage::PNG;
 
 #ifdef RII_PLATFORM_WINDOWS
@@ -64,7 +65,7 @@ void exportImage(const Texture& tex, u32 export_lod) {
       tex.getHeight() >> export_lod, data.data() + offset);
 }
 
-class ImageActions : public kpi::ActionMenu<Texture>,
+class ImageActions : public kpi::ActionMenu<Texture, ImageActions>,
                      public ResizeAction,
                      public ReformatAction {
   bool resize = false, reformat = false;
@@ -75,9 +76,8 @@ class ImageActions : public kpi::ActionMenu<Texture>,
   const Texture* lastTex = nullptr;
 
   // Return true if the state of obj was mutated (add to history)
-  bool context(kpi::IObject& obj) override {
-    auto& tex = *dynamic_cast<const Texture*>(&obj);
-
+public:
+  bool _context(Texture& tex) {
     if (ImGui::MenuItem("Resize")) {
       resize_reset();
       resize = true;
@@ -119,9 +119,7 @@ class ImageActions : public kpi::ActionMenu<Texture>,
     return false;
   }
 
-  bool modal(kpi::IObject& obj) override {
-    auto& tex = *dynamic_cast<const Texture*>(&obj);
-
+  bool _modal(Texture& tex) {
     if (export_lod != -1) {
       exportImage(tex, export_lod);
       export_lod = -1;
@@ -139,8 +137,7 @@ class ImageActions : public kpi::ActionMenu<Texture>,
     if (ImGui::BeginPopupModal("Resize", nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
       bool changed = false;
-      const bool keep_alive =
-          resize_draw(*dynamic_cast<libcube::Texture*>(&obj), &changed);
+      const bool keep_alive = resize_draw(tex, &changed);
       all_changed |= changed;
 
       if (!keep_alive)
@@ -151,8 +148,7 @@ class ImageActions : public kpi::ActionMenu<Texture>,
     if (ImGui::BeginPopupModal("Reformat", nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
       bool changed = false;
-      const bool keep_alive =
-          reformat_draw(*dynamic_cast<libcube::Texture*>(&obj), &changed);
+      const bool keep_alive = reformat_draw(tex, &changed);
       all_changed |= changed;
 
       if (!keep_alive)

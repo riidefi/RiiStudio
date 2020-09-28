@@ -57,8 +57,7 @@ void RenderTest::draw_() {
   }
 }
 
-std::unique_ptr<StudioWindow>
-MakeViewportRenderer(const kpi::INode& host) {
+std::unique_ptr<StudioWindow> MakeViewportRenderer(const kpi::INode& host) {
   return std::make_unique<RenderTest>(host);
 }
 

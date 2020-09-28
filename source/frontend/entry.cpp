@@ -11,10 +11,16 @@ struct RootHolder {
   }
   void enter() { window->enter(); }
 
+  riistudio::frontend::RootWindow& getWindow() {
+    assert(window);
+    return *window;
+  }
+
 private:
   std::unique_ptr<riistudio::frontend::RootWindow> window;
   std::unique_ptr<llvm::InitLLVM> initLlvm;
 } sRootHolder;
+
 
 int main(int argc, const char** argv) {
   sRootHolder.create(argc, argv);

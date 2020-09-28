@@ -6,7 +6,8 @@ namespace riistudio::frontend {
 
 class ImporterWindow : public EditorImporter {
 public:
-  ImporterWindow(FileData&& data) : EditorImporter(std::move(data)) {}
+  ImporterWindow(FileData&& data, kpi::INode* fileState = nullptr)
+      : EditorImporter(std::move(data), fileState) {}
   ~ImporterWindow() = default;
 
   void draw();

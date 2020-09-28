@@ -26,6 +26,8 @@
 
 namespace riistudio::frontend {
 
+RootWindow* RootWindow::spInstance;
+
 #ifdef _WIN32
 static void GlCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
                        GLsizei length, const GLchar* message,
@@ -384,6 +386,12 @@ void RootWindow::draw() {
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   printf("Opening file: %s\n", data.mPath.c_str());
 
+  if (mWantFile) {
+    mReqData = std::move(data);
+    mGotFile = true;
+    return;
+  }
+
   if (!mImportersQueue.empty()) {
     auto& top = mImportersQueue.front();
 
@@ -404,6 +412,8 @@ RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
 #ifdef _WIN32
   glDebugMessageCallback(GlCallback, 0);
 #endif
+
+  spInstance = this;
 
   InitAPI();
 }

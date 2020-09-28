@@ -45,7 +45,7 @@ public:
     Success
   };
 
-  EditorImporter(FileData&& data);
+  EditorImporter(FileData&& data, kpi::INode* fileState);
 
   State getState() const { return result; }
   bool failed() const {

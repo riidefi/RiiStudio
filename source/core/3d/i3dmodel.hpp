@@ -27,6 +27,9 @@ struct IDrawable {
 
   //! Prepare a scene based on the resource data.
   virtual void prepare(const kpi::INode& root) = 0;
+
+  bool poisoned = false;
+  bool reinit = false;
 };
 
 struct SceneImpl : public IDrawable {

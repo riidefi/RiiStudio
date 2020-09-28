@@ -317,7 +317,7 @@ void GenericCollectionOutliner::draw_() noexcept {
   drawRecursive((kpi::INode&)mHost);
 
   if (activeModal != nullptr)
-    if (kpi::ActionMenuManager::get().drawModals(*activeModal))
+    if (kpi::ActionMenuManager::get().drawModals(*activeModal, &ed))
       ed.getDocument().commit();
 }
 

@@ -18,6 +18,7 @@ struct FileData {
   FileData(std::unique_ptr<uint8_t[]> data, std::size_t len,
            const std::string& path)
       : mData(std::move(data)), mLen(len), mPath(path) {}
+  FileData() = default;
 };
 
 enum class OpenFilePolicy { NewEditor, ReplaceEditorIfMatching, ReplaceEditor };

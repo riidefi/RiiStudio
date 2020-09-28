@@ -29,8 +29,9 @@ public:
   ~Window() { detachClosedChildren(); }
 
   void drawChildren() {
-    for (auto& child : mChildren)
-      child->draw();
+    for (int i = 0; i < mChildren.size(); ++i) {
+      mChildren[i]->draw();
+    }
   }
   void detachClosedChildren() {
     bool reassign_active = false;
@@ -76,6 +77,8 @@ public:
     }
     return ref;
   }
+
+  void detachAllChildren() { mChildren.clear(); }
 
 private:
   bool bOpen = true;
