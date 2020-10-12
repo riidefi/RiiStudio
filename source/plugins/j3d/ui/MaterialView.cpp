@@ -144,6 +144,12 @@ void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
   KPI_PROPERTY_EX(delegate, bbMtxType,
                   static_cast<JointData::MatrixType>(bbMtx));
 
+  auto boundingBox = bone.boundingBox;
+  auto boundingSphereRadius = bone.boundingSphereRadius;
+  Toolkit::BoundingVolume(&boundingBox, &boundingSphereRadius);
+  KPI_PROPERTY_EX(delegate, boundingBox, boundingBox);
+  KPI_PROPERTY_EX(delegate, boundingSphereRadius, boundingSphereRadius);
+
   const auto mtx = delegate.getActive().calcSrtMtx();
 
   ImGui::Text("Computed Matrix:");

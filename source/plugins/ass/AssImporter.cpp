@@ -402,6 +402,8 @@ void AssImporter::ImportNode(const aiNode* pNode, int parent) {
   if (parent != -1)
     out_model->getBones()[parent].addChild(joint.getId());
 
+  lib3d::AABB aabb{{FLT_MAX, FLT_MAX, FLT_MAX}, {FLT_MIN, FLT_MIN, FLT_MIN}};
+
   // Mesh data
   for (unsigned i = 0; i < pNode->mNumMeshes; ++i) {
     // Can these be duplicated?
@@ -412,11 +414,16 @@ void AssImporter::ImportNode(const aiNode* pNode, int parent) {
     const auto matId = boneIdCtr->matIdToMatIdMap[pMesh->mMaterialIndex];
 
     if (ImportMesh(pMesh, pNode)) {
+      aabb.expandBound(out_model->getMeshes()[boneIdCtr->meshId].getBounds());
       joint.addDisplay({matId, boneIdCtr->meshId++, 0});
     } else {
       printf("Mesh has denegerate triangles or points/lines\n");
     }
   }
+
+  joint.setAABB(aabb);
+  // TODO: Not accurate..
+  joint.setBoundingRadius(glm::length(aabb.max - aabb.max));
 
   for (unsigned i = 0; i < pNode->mNumChildren; ++i) {
     ImportNode(pNode->mChildren[i], joint_id);

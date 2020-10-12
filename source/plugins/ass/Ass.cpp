@@ -16,6 +16,7 @@
 #include <vendor/assimp/Importer.hpp>
 #include <vendor/assimp/postprocess.h>
 #include <vendor/assimp/scene.h>
+#include <vendor/fa5/IconsFontAwesome5.h>
 #undef min
 
 namespace riistudio::ass {
@@ -28,8 +29,8 @@ struct AssReader {
     Unengaged,
     // send settings request, set mode to
     WaitForSettings,
-	// Special step: Determine what to keep and what to discard
-	WaitForReplace,
+    // Special step: Determine what to keep and what to discard
+    WaitForReplace,
     // check for texture dependencies
     // tell the importer to fix them or abort
     WaitForTextureDependencies,
@@ -54,14 +55,14 @@ struct AssReader {
   std::vector<std::pair<std::size_t, std::vector<u8>>> additional_textures;
 
   static constexpr u32 DefaultFlags =
-      aiProcess_GenSmoothNormals | aiProcess_ValidateDataStructure |
-      aiProcess_RemoveRedundantMaterials | aiProcess_FindDegenerates |
-      aiProcess_FindInvalidData | aiProcess_FindInstances |
-      aiProcess_OptimizeMeshes | aiProcess_Debone | aiProcess_OptimizeGraph;
+      aiProcess_GenSmoothNormals | aiProcess_RemoveRedundantMaterials |
+      aiProcess_FindDegenerates | aiProcess_FindInvalidData |
+      aiProcess_FindInstances | aiProcess_OptimizeMeshes | aiProcess_Debone |
+      aiProcess_OptimizeGraph;
   static constexpr u32 AlwaysFlags =
-      aiProcess_Triangulate | aiProcess_SortByPType |
-      aiProcess_PopulateArmatureData | aiProcess_GenUVCoords |
-      aiProcess_GenBoundingBoxes | aiProcess_FlipUVs |
+      aiProcess_ValidateDataStructure | aiProcess_Triangulate |
+      aiProcess_SortByPType | aiProcess_PopulateArmatureData |
+      aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes | aiProcess_FlipUVs |
       aiProcess_FlipWindingOrder;
   u32 ass_flags = AlwaysFlags | DefaultFlags;
   float mMagnification = 1.0f;
@@ -114,9 +115,22 @@ void AssReader::read(kpi::IOTransaction& transaction) {
       importer->SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
                                  mMagnification);
     }
+
     const auto* pScene = importer->ReadFileFromMemory(transaction.data.data(),
                                                       transaction.data.size(),
                                                       ass_flags, path.c_str());
+
+    double unit_scale = 0.0;
+    pScene->mMetaData->Get("UnitScaleFactor", unit_scale);
+
+    // Handle custom units
+    if (unit_scale != 0.0) {
+      // FBX-only property: internally in centimeters
+      importer->SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
+                                 (1.0 / unit_scale) / 100.0);
+      importer->ApplyPostProcessing(aiProcess_GlobalScale);
+    }
+
     // this calls `delete` on logger
     Assimp::DefaultLogger::set(nullptr);
     if (pScene == nullptr) {
@@ -128,7 +142,7 @@ void AssReader::read(kpi::IOTransaction& transaction) {
     }
     helper.emplace(pScene, &transaction.node);
     std::vector<std::string> mat_merge;
-	unresolved =
+    unresolved =
         helper->PrepareAss(mGenerateMipMaps, mMinMipDimension, mMaxMipCount);
 
     state = State::WaitForTextureDependencies;
@@ -182,6 +196,7 @@ void AssReader::render() {
     // aiProcess_GenUVCoords - Always on
     // aiProcess_FlipUVs - TODO
     // aiProcess_FlipWindingOrder - TODO
+    // aiProcess_ValidateDataStructure - No reason not to?
 
     //
     // Configure
@@ -192,44 +207,26 @@ void AssReader::render() {
     // aiProcess_SplitLargeMeshes - We probably don't need this?
     // aiProcess_PreTransformVertices - Doubt this is desirable..
     // aiProcess_LimitBoneWeights - TODO
-    // aiProcess_ValidateDataStructure
-    ImGui::CheckboxFlags("Data Validation", &ass_flags,
-                         aiProcess_ValidateDataStructure);
     // aiProcess_ImproveCacheLocality
     // TODO
     // ImGui::CheckboxFlags("Cache Locality Optimization", &ass_flags,
     //                      aiProcess_ImproveCacheLocality);
-    // aiProcess_RemoveRedundantMaterials
-    ImGui::CheckboxFlags("Material Deduplication", &ass_flags,
-                         aiProcess_RemoveRedundantMaterials);
-    // aiProcess_FixInfacingNormals
-    ImGui::CheckboxFlags("Fix flipped normals", &ass_flags,
-                         aiProcess_FixInfacingNormals);
-    // aiProcess_FindDegenerates - TODO
-    ImGui::CheckboxFlags("Remove degenerate triangles", &ass_flags,
-                         aiProcess_FindDegenerates);
-    // aiProcess_FindInvalidData - TODO
-    ImGui::CheckboxFlags("Remove invalid data", &ass_flags,
-                         aiProcess_FindInvalidData);
-    // aiProcess_TransformUVCoords - Undesirable?
-    ImGui::CheckboxFlags("Bake material-transformed UV coords", &ass_flags,
-                         aiProcess_TransformUVCoords);
+
     // aiProcess_FindInstances - TODO
-    // aiProcess_OptimizeMeshes
-    ImGui::CheckboxFlags("Optimize meshes", &ass_flags,
-                         aiProcess_OptimizeMeshes);
-    // aiProcess_OptimizeGraph
-    ImGui::CheckboxFlags("Compress bones (for static scenes)", &ass_flags,
-                         aiProcess_OptimizeGraph);
+
     // aiProcess_SplitByBoneCount - ?
     // aiProcess_Debone - TODO
     // aiProcess_GlobalScale
-    ImGui::InputFloat("Magnification", &mMagnification);
+    ImGui::InputFloat("Model Scale", &mMagnification);
     // aiProcess_ForceGenNormals - TODO
     // aiProcess_DropNormals - TODO
+
+    int import_config = 0;
+    ImGui::Combo("Import Config", &import_config, "World (single bone)\0\0");
   }
 
-  if (ImGui::CollapsingHeader("BMD Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+  if (ImGui::CollapsingHeader((const char*)ICON_FA_IMAGES u8" Mip Maps",
+                              ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Checkbox("Generate Mipmaps", &mGenerateMipMaps);
     {
       util::ConditionalActive g(mGenerateMipMaps);
@@ -249,8 +246,35 @@ void AssReader::render() {
 
       ImGui::Indent(-50);
     }
-    ImGui::Checkbox("Automatically set transparent materials",
-                    &mAutoTransparent);
+  }
+  if (ImGui::CollapsingHeader((const char*)ICON_FA_BRUSH u8" Material Settings",
+                              ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Checkbox(
+        "Detect transparent textures, and configure materials accordingly.",
+        &mAutoTransparent);
+    ImGui::CheckboxFlags("Combine identical materials", &ass_flags,
+                         aiProcess_RemoveRedundantMaterials);
+    ImGui::CheckboxFlags("Bake UV coord scale/rotate/translate", &ass_flags,
+                         aiProcess_TransformUVCoords);
+  }
+  if (ImGui::CollapsingHeader(
+          (const char*)ICON_FA_PROJECT_DIAGRAM u8" Mesh Settings",
+          ImGuiTreeNodeFlags_DefaultOpen)) {
+    // aiProcess_FindDegenerates - TODO
+    ImGui::CheckboxFlags("Remove degenerate triangles", &ass_flags,
+                         aiProcess_FindDegenerates);
+    // aiProcess_FindInvalidData - TODO
+    ImGui::CheckboxFlags("Remove invalid data", &ass_flags,
+                         aiProcess_FindInvalidData);
+    // aiProcess_FixInfacingNormals
+    ImGui::CheckboxFlags("Fix flipped normals", &ass_flags,
+                         aiProcess_FixInfacingNormals);
+    // aiProcess_OptimizeMeshes
+    ImGui::CheckboxFlags("Optimize meshes", &ass_flags,
+                         aiProcess_OptimizeMeshes);
+    // aiProcess_OptimizeGraph
+    ImGui::CheckboxFlags("Compress bones (for static scenes)", &ass_flags,
+                         aiProcess_OptimizeGraph);
   }
 }
 
