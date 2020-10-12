@@ -4,6 +4,7 @@
 #include <core/3d/texture_dimensions.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <llvm/ADT/BitVector.h>
 #include <map>
 #include <plugins/g3d/model.hpp>
 #include <unordered_map>
@@ -664,6 +665,43 @@ void AssImporter::ImportAss(
   for (auto& tex : out_collection->getTextures())
     tex_lut.emplace(tex.getName(), &tex);
 
+  // llvm::BitVector default_textures(out_collection->getTextures().size());
+
+  // Handle uninitialized textures
+  for (u16 tex_idx = 0; tex_idx < out_collection->getTextures().size();
+       ++tex_idx) {
+    auto& tex = out_collection->getTextures()[tex_idx];
+    const bool tex_valid = tex.getWidth() != 0 && tex.getHeight() != 0;
+    if (tex_valid)
+      continue;
+    // default_textures[tex_idx] = true;
+
+    // 32x32 (32bpp)
+    const auto dummy_width = 32;
+    const auto dummy_height = 32;
+    tex.setWidth(dummy_width);
+    tex.setHeight(dummy_height);
+    scratch.resize(dummy_width * dummy_height * 4);
+    // Make a basic checkerboard
+    const u32 fg = 0xff'00'dc'ff;
+    const u32 bg = 0x00'00'00'ff;
+    for (int i = 0; i < dummy_height; ++i) {
+      for (int j = 0; j < dummy_width; ++j) {
+        const auto px_offset = i * dummy_width * 4 + j * 4;
+        const bool is_fg = ((i / 8) & 1) != ((j / 8) & 1);
+        const u32 color = is_fg ? fg : bg;
+        scratch[px_offset] = (color & 0xff'00'00'00) >> 24;
+        scratch[px_offset + 1] = (color & 0x00'ff'00'00) >> 16;
+        scratch[px_offset + 2] = (color & 0x00'00'ff'00) >> 8;
+        scratch[px_offset + 3] = (color & 0x00'00'00'ff);
+      }
+    }
+    tex.setMipmapCount(0);
+    tex.setTextureFormat((int)libcube::gx::TextureFormat::CMPR);
+    tex.encode(scratch.data());
+    tex.setWidth(0); // hack..
+  }
+
   // Handle material limitations for samplers..
   for (auto& mat : out_model->getMaterials()) {
     auto& mdata = mat.getMaterialData();
@@ -685,11 +723,21 @@ void AssImporter::ImportAss(
       }
       if (tex->getMipmapCount() > 0)
         sampler->mMinFilter = libcube::gx::TextureFilter::lin_mip_lin;
+      if (tex->getWidth() == 0) {
+        sampler->mMagFilter = libcube::gx::TextureFilter::near;
+        tex->setWidth(32);
+      }
       if (auto_outline) {
         bool transparent = false;
         const auto decoded_size = tex->getDecodedSize(true);
-        scratch.resize(decoded_size);
-        tex->decode(scratch, true);
+
+        if (decoded_size == 0) {
+          assert(!"Invalid texture");
+          continue;
+        } else {
+          scratch.resize(decoded_size);
+          tex->decode(scratch, true);
+        }
         for (u32 i = 0; i < decoded_size; i += 4) {
           if (scratch[i] != 0xff) {
             transparent = true;
