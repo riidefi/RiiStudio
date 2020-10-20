@@ -123,6 +123,11 @@ struct FogSurface final {
 struct PixelSurface final {
   static inline const char* name = "Pixel";
   static inline const char* icon = (const char*)ICON_FA_GHOST;
+
+  int tag_stateful;
+
+  std::string force_custom_at; // If empty, disabled: Name of material
+  std::string force_custom_whole;
 };
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
@@ -1189,55 +1194,194 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
   matData.info.nColorChan = controls.size() * 2;
 }
-void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, PixelSurface) {
+void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
+                  PixelSurface& surface) {
   auto& matData = delegate.getActive().getMaterialData();
+
+  enum AlphaTest : int {
+    ALPHA_TEST_CUSTOM,
+    ALPHA_TEST_DISABLED,
+    ALPHA_TEST_STENCIL,
+  };
+  int alpha_test = ALPHA_TEST_CUSTOM;
+
+  const gx::AlphaComparison stencil_comparison = {
+      .compLeft = gx::Comparison::GEQUAL,
+      .refLeft = 128,
+      .op = gx::AlphaOp::_and,
+      .compRight = gx::Comparison::LEQUAL,
+      .refRight = 255};
+  const gx::AlphaComparison disabled_comparison = {
+      .compLeft = gx::Comparison::ALWAYS,
+      .refLeft = 0,
+      .op = gx::AlphaOp::_and,
+      .compRight = gx::Comparison::ALWAYS,
+      .refRight = 0};
+
+  if (surface.force_custom_at != matData.name) {
+    if (matData.alphaCompare == stencil_comparison)
+      alpha_test = ALPHA_TEST_STENCIL;
+    else if (matData.alphaCompare == disabled_comparison)
+      alpha_test = ALPHA_TEST_DISABLED;
+  }
+  const gx::BlendMode no_blend = {.type = gx::BlendModeType::none,
+                                  .source = gx::BlendModeFactor::src_a,
+                                  .dest = gx::BlendModeFactor::inv_src_a,
+                                  .logic = gx::LogicOp::_copy};
+  const gx::BlendMode yes_blend = {.type = gx::BlendModeType::blend,
+                                   .source = gx::BlendModeFactor::src_a,
+                                   .dest = gx::BlendModeFactor::inv_src_a,
+                                   .logic = gx::LogicOp::_copy};
+
+  const gx::ZMode normal_z = {
+      .compare = true, .function = gx::Comparison::LEQUAL, .update = true};
+  const gx::ZMode blend_z = {
+      .compare = true, .function = gx::Comparison::LEQUAL, .update = false};
+
+  enum PixMode : int {
+    PIX_DEFAULT_OPAQUE,
+    PIX_STENCIL,
+    PIX_TRANSLUCENT,
+    PIX_CUSTOM
+  };
+  int pix_mode = PIX_CUSTOM;
+
+  int xlu_mode = delegate.getActive().isXluPass() ? 1 : 0;
+
+  if (surface.force_custom_whole != matData.name) {
+    if (alpha_test == ALPHA_TEST_DISABLED && matData.zMode == normal_z &&
+        matData.blendMode == no_blend && xlu_mode == 0 &&
+        matData.earlyZComparison) {
+      pix_mode = PIX_DEFAULT_OPAQUE;
+    } else if (alpha_test == ALPHA_TEST_STENCIL && matData.zMode == normal_z &&
+               matData.blendMode == no_blend && xlu_mode == 0 &&
+               !matData.earlyZComparison) {
+      pix_mode = PIX_STENCIL;
+    } else if (alpha_test == ALPHA_TEST_DISABLED && matData.zMode == blend_z &&
+               matData.blendMode == yes_blend && xlu_mode == 1 &&
+               matData.earlyZComparison) {
+      pix_mode = PIX_TRANSLUCENT;
+    }
+  }
+
+  const auto pix_mode_before = pix_mode;
+  ImGui::Combo("Configuration", &pix_mode,
+               "Opaque\0Stencil Alpha\0Translucent\0Custom\0");
+  if (pix_mode_before != pix_mode) {
+    if (pix_mode == PIX_CUSTOM) {
+      surface.force_custom_whole = matData.name;
+    } else {
+      for (auto* pO : delegate.mAffected) {
+        auto& o = pO->getMaterialData();
+
+        if (pix_mode == PIX_DEFAULT_OPAQUE) {
+          o.alphaCompare = disabled_comparison;
+          o.zMode = normal_z;
+          o.blendMode = no_blend;
+          pO->setXluPass(false);
+          o.earlyZComparison = true;
+        } else if (pix_mode == PIX_STENCIL) {
+          o.alphaCompare = stencil_comparison;
+          o.zMode = normal_z;
+          o.blendMode = no_blend;
+          pO->setXluPass(false);
+          o.earlyZComparison = false;
+        } else if (pix_mode == PIX_TRANSLUCENT) {
+          o.alphaCompare = disabled_comparison;
+          o.zMode = blend_z;
+          o.blendMode = yes_blend;
+          pO->setXluPass(true);
+          o.earlyZComparison = true;
+        }
+      }
+      delegate.commit("Updated pixel config");
+
+      surface.force_custom_whole.clear();
+    }
+  }
+
+  if (pix_mode != PIX_CUSTOM)
+    return;
+  if (ImGui::CollapsingHeader("Scenegraph", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Combo(
+        "Render Pass", &xlu_mode,
+        "Pass 0: Opaque objects, no order\0Pass 1: Translucent objects, "
+        "sorted front-to-back (reverse painter's algorithm)\0");
+  }
+  delegate.property(
+      delegate.getActive().isXluPass(), xlu_mode != 0,
+      [&](const auto& x) { return x.isXluPass(); },
+      [&](auto& x, bool y) {
+        x.setXluPass(y);
+        x.notifyObservers();
+      });
 
   if (ImGui::CollapsingHeader("Alpha Comparison",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
-    const char* compStr =
-        "Always do not pass.\0<\0==\0<=\0>\0!=\0>=\0Always pass.\0";
-    ImGui::PushItemWidth(100);
-
-    {
-      ImGui::Text("( Pixel Alpha");
-      ImGui::SameLine();
-      int leftAlpha = static_cast<int>(matData.alphaCompare.compLeft);
-      ImGui::Combo("##l", &leftAlpha, compStr);
-      AUTO_PROP(alphaCompare.compLeft,
-                static_cast<libcube::gx::Comparison>(leftAlpha));
-
-      int leftRef = static_cast<int>(
-          delegate.getActive().getMaterialData().alphaCompare.refLeft);
-      ImGui::SameLine();
-      ImGui::SliderInt("##lr", &leftRef, 0, 255);
-      AUTO_PROP(alphaCompare.refLeft, static_cast<u8>(leftRef));
-
-      ImGui::SameLine();
-      ImGui::Text(")");
+    const auto alpha_test_before = alpha_test;
+    ImGui::Combo("Alpha Test", &alpha_test, "Custom\0Disabled\0Stencil\0");
+    if (alpha_test_before != alpha_test) {
+      if (alpha_test == ALPHA_TEST_CUSTOM) {
+        surface.force_custom_at = matData.name;
+      } else {
+        if (alpha_test == ALPHA_TEST_DISABLED)
+          AUTO_PROP(alphaCompare, disabled_comparison);
+        else if (alpha_test == ALPHA_TEST_STENCIL)
+          AUTO_PROP(alphaCompare, stencil_comparison);
+        surface.force_custom_at.clear();
+      }
     }
-    {
-      int op = static_cast<int>(matData.alphaCompare.op);
-      ImGui::Combo("##o", &op, "&&\0||\0!=\0==\0");
-      AUTO_PROP(alphaCompare.op, static_cast<libcube::gx::AlphaOp>(op));
-    }
-    {
-      ImGui::Text("( Pixel Alpha");
-      ImGui::SameLine();
-      int rightAlpha = static_cast<int>(matData.alphaCompare.compRight);
-      ImGui::Combo("##r", &rightAlpha, compStr);
-      AUTO_PROP(alphaCompare.compRight,
-                static_cast<libcube::gx::Comparison>(rightAlpha));
+    if (alpha_test == ALPHA_TEST_DISABLED) {
+      // ImGui::Text("There is no alpha test");
+    } else if (alpha_test == ALPHA_TEST_STENCIL) {
+      ImGui::Text("Pixels are either fully transparent or fully opaque.");
+    } else {
+      const char* compStr =
+          "Always do not pass.\0<\0==\0<=\0>\0!=\0>=\0Always pass.\0";
+      ImGui::PushItemWidth(100);
 
-      int rightRef = static_cast<int>(matData.alphaCompare.refRight);
-      ImGui::SameLine();
-      ImGui::SliderInt("##rr", &rightRef, 0, 255);
-      AUTO_PROP(alphaCompare.refRight, (u8)rightRef);
+      {
+        ImGui::Text("( Pixel Alpha");
+        ImGui::SameLine();
+        int leftAlpha = static_cast<int>(matData.alphaCompare.compLeft);
+        ImGui::Combo("##l", &leftAlpha, compStr);
+        AUTO_PROP(alphaCompare.compLeft,
+                  static_cast<libcube::gx::Comparison>(leftAlpha));
 
-      ImGui::SameLine();
-      ImGui::Text(")");
+        int leftRef = static_cast<int>(
+            delegate.getActive().getMaterialData().alphaCompare.refLeft);
+        ImGui::SameLine();
+        ImGui::SliderInt("##lr", &leftRef, 0, 255);
+        AUTO_PROP(alphaCompare.refLeft, static_cast<u8>(leftRef));
+
+        ImGui::SameLine();
+        ImGui::Text(")");
+      }
+      {
+        int op = static_cast<int>(matData.alphaCompare.op);
+        ImGui::Combo("##o", &op, "&&\0||\0!=\0==\0");
+        AUTO_PROP(alphaCompare.op, static_cast<libcube::gx::AlphaOp>(op));
+      }
+      {
+        ImGui::Text("( Pixel Alpha");
+        ImGui::SameLine();
+        int rightAlpha = static_cast<int>(matData.alphaCompare.compRight);
+        ImGui::Combo("##r", &rightAlpha, compStr);
+        AUTO_PROP(alphaCompare.compRight,
+                  static_cast<libcube::gx::Comparison>(rightAlpha));
+
+        int rightRef = static_cast<int>(matData.alphaCompare.refRight);
+        ImGui::SameLine();
+        ImGui::SliderInt("##rr", &rightRef, 0, 255);
+        AUTO_PROP(alphaCompare.refRight, (u8)rightRef);
+
+        ImGui::SameLine();
+        ImGui::Text(")");
+      }
+      ImGui::PopItemWidth();
     }
-    ImGui::PopItemWidth();
   }
+
   if (ImGui::CollapsingHeader("Z Buffer", ImGuiTreeNodeFlags_DefaultOpen)) {
     bool zcmp = matData.zMode.compare;
     ImGui::Checkbox("Compare Z Values", &zcmp);

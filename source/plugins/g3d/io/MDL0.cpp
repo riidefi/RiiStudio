@@ -1613,8 +1613,8 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
 
         // While with this setup, materials could be XLU and OPA, in
         // practice, they're not.
-        const auto& mat = mdl.getMaterials()[disp.matId];
-        const bool xlu_mat = mat.isXluPass();
+        auto& mat = mdl.getMaterials()[disp.matId];
+        const bool xlu_mat = mat.flag & 0x80000000;
         auto& poly = mdl.getMeshes()[disp.polyId];
 
         if ((tree == Tree::DrawOpa && xlu_mat) ||
@@ -1632,6 +1632,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
                                transaction_path + "materials/" + mat_name,
                                warn_msg);
         }
+        mat.setXluPass(tree == Tree::DrawXlu);
       } break;
       case RenderCommand::NodeDescendence: {
         const auto boneIdx = reader.readUnaligned<u16>();

@@ -134,6 +134,7 @@ struct Material : public MaterialData, public libcube::IGCMaterial {
   }
 
   bool isXluPass() const override { return flag & 4; }
+  void setXluPass(bool b) override { flag = (flag & ~4) | (b ? 4 : 0); }
   const libcube::Texture* getTexture(const std::string& id) const override;
 };
 

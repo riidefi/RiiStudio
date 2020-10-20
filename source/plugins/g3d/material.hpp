@@ -51,18 +51,28 @@ struct G3dMaterialData : public libcube::GCMaterialData {
   u32 id; // Local
   s8 lightSetIndex = -1, fogIndex = -1;
 
+  bool is_xlu = false;
+
   bool operator==(const G3dMaterialData& rhs) const {
     return libcube::GCMaterialData::operator==(rhs) &&
            indConfig == rhs.indConfig && flag == rhs.flag;
   }
 };
 
-struct Material : public G3dMaterialData, public libcube::IGCMaterial, public virtual kpi::IObject {
+struct Material : public G3dMaterialData,
+                  public libcube::IGCMaterial,
+                  public virtual kpi::IObject {
   GCMaterialData& getMaterialData() override { return *this; }
   const GCMaterialData& getMaterialData() const override { return *this; }
   const libcube::Texture* getTexture(const std::string& id) const override;
 
   s64 getId() const override { return id; }
+
+  bool isXluPass() const override { return is_xlu; }
+  void setXluPass(bool b) override {
+    is_xlu = b;
+    flag = (flag & ~0x80000000) | (b ? 0x80000000 : 0);
+  }
 
   bool operator==(const Material& rhs) const {
     return G3dMaterialData::operator==(rhs);

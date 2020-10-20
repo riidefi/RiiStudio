@@ -26,6 +26,7 @@ struct Material : public virtual kpi::IObject {
   virtual s64 getId() const { return -1; }
 
   virtual bool isXluPass() const { return false; }
+  virtual void setXluPass(bool b) = 0;
 
   virtual std::pair<std::string, std::string> generateShaders() const = 0;
   // TODO: Interdependency

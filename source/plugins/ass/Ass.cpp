@@ -119,7 +119,10 @@ void AssReader::read(kpi::IOTransaction& transaction) {
     const auto* pScene = importer->ReadFileFromMemory(transaction.data.data(),
                                                       transaction.data.size(),
                                                       ass_flags, path.c_str());
-
+    if (!pScene) {
+      transaction.state = kpi::TransactionState::Failure;
+      return;
+	}
     double unit_scale = 0.0;
     pScene->mMetaData->Get("UnitScaleFactor", unit_scale);
 
