@@ -1293,6 +1293,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           pO->setXluPass(true);
           o.earlyZComparison = true;
         }
+
+		pO->notifyObservers();
       }
       delegate.commit("Updated pixel config");
 
