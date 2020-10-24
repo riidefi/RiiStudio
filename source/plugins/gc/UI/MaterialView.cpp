@@ -1242,7 +1242,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     PIX_DEFAULT_OPAQUE,
     PIX_STENCIL,
     PIX_TRANSLUCENT,
-    PIX_CUSTOM
+    PIX_CUSTOM,
+    PIX_BBX_DEFAULT
   };
   int pix_mode = PIX_CUSTOM;
 
@@ -1250,9 +1251,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
   if (surface.force_custom_whole != matData.name) {
     if (alpha_test == ALPHA_TEST_DISABLED && matData.zMode == normal_z &&
-        matData.blendMode == no_blend && xlu_mode == 0 &&
-        matData.earlyZComparison) {
-      pix_mode = PIX_DEFAULT_OPAQUE;
+        matData.blendMode == no_blend && xlu_mode == 0) {
+      pix_mode =
+          matData.earlyZComparison ? PIX_DEFAULT_OPAQUE : PIX_BBX_DEFAULT;
     } else if (alpha_test == ALPHA_TEST_STENCIL && matData.zMode == normal_z &&
                matData.blendMode == no_blend && xlu_mode == 0 &&
                !matData.earlyZComparison) {
@@ -1265,8 +1266,20 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 
   const auto pix_mode_before = pix_mode;
-  ImGui::Combo("Configuration", &pix_mode,
-               "Opaque\0Stencil Alpha\0Translucent\0Custom\0");
+  if (pix_mode == PIX_BBX_DEFAULT) {
+    ImGui::SetWindowFontScale(1.2f);
+    ImGui::Text(
+        "This material is currently in the default BrawlBox configuration.");
+    ImGui::Text("This is considerably less performant than the Opaque "
+                "configuration while being visually identical.\nIt is strongly "
+                "recommended that you convert the material.");
+    if (ImGui::Button("Convert Material"))
+      pix_mode = PIX_DEFAULT_OPAQUE;
+    ImGui::SetWindowFontScale(1.0f);
+  } else {
+    ImGui::Combo("Configuration", &pix_mode,
+                 "Opaque\0Stencil Alpha\0Translucent\0Custom\0");
+  }
   if (pix_mode_before != pix_mode) {
     if (pix_mode == PIX_CUSTOM) {
       surface.force_custom_whole = matData.name;
@@ -1294,7 +1307,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           o.earlyZComparison = true;
         }
 
-		pO->notifyObservers();
+        pO->notifyObservers();
       }
       delegate.commit("Updated pixel config");
 
