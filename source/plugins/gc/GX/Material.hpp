@@ -132,7 +132,7 @@ struct BlendMode {
   BlendModeType type = BlendModeType::none;
   BlendModeFactor source = BlendModeFactor::src_a;
   BlendModeFactor dest = BlendModeFactor::inv_src_a;
-  LogicOp logic = LogicOp::_clear;
+  LogicOp logic = LogicOp::_copy;
 
   const bool operator==(const BlendMode& rhs) const noexcept {
     return type == rhs.type && source == rhs.source && dest == rhs.dest &&
