@@ -946,7 +946,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         draw_color_operand("Operand D", &d, D);
         ImGui::Combo("Bias", &bias,
                      "No bias\0Add middle gray\0Subtract middle gray\0");
-        ImGui::Combo("Scale", &scale, "* 1\0* 2\0* 4\0");
+        ImGui::Combo("Scale", &scale,
+                     "100% brightness\0"
+                     "200% brightness\0"
+                     "400% brightness\0"
+                     "50% brightness\0");
         ImGui::Checkbox("Clamp calculation to 0-255", &clamp);
         ImGui::Combo("Calculation Result Output Destionation", &dst,
                      "Register 3\0Register 0\0Register 1\0Register 2\0");
