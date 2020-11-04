@@ -169,7 +169,7 @@ struct RGBA32ImageTarget {
   void fromOtherSized(std::span<const u8> src, u32 ow, u32 oh,
                       ResizingAlgorithm al) {
     mTmp.resize(mW * mH * 4);
-    assert(src.size() >= mTmp.size());
+    //assert(src.size() >= mTmp.size());
     if (ow == mW && oh == mH) {
       memcpy(mTmp.data(), src.data(), mTmp.size());
     } else {
@@ -246,6 +246,13 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
     // TODO: A copy here can be prevented
     target.copyTo(dst, newformat.value());
   }
+}
+
+u32 getMipOffset(u32 width, u32 height, u32 mipLevel) {
+	u32 offset = 0;
+	for (u32 i = 0; i < mipLevel; ++i)
+		offset += (width >> i) * (height >> i) * 4;
+	return offset;
 }
 
 } // namespace libcube::image_platform

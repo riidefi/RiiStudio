@@ -65,12 +65,34 @@ void exportImage(const Texture& tex, u32 export_lod) {
       tex.getHeight() >> export_lod, data.data() + offset);
 }
 
+void importImage(Texture& tex, u32 import_lod) {
+  auto result = pfd::open_file("Import image", "", StdImageFilters).result();
+  if (!result.empty()) {
+    const auto path = result[0];
+    int width, height, channels;
+    unsigned char* image =
+        stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    assert(image);
+    const auto fmt = static_cast<gx::TextureFormat>(tex.getTextureFormat());
+    const auto offset =
+        import_lod == 0
+            ? 0
+            : libcube::image_platform::getEncodedSize(
+                  tex.getWidth(), tex.getHeight(), fmt, import_lod - 1);
+    libcube::image_platform::transform(
+        tex.getData() + offset, tex.getWidth() >> import_lod,
+        tex.getHeight() >> import_lod, gx::TextureFormat::Extension_RawRGBA32,
+        fmt, image, width, height);
+  }
+}
+
 class ImageActions : public kpi::ActionMenu<Texture, ImageActions>,
                      public ResizeAction,
                      public ReformatAction {
   bool resize = false, reformat = false;
 
   int export_lod = -1;
+  int import_lod = -1;
 
   std::vector<riistudio::frontend::ImagePreview> mImg;
   const Texture* lastTex = nullptr;
@@ -116,14 +138,52 @@ public:
       ImGui::EndMenu();
     }
 
+    if (ImGui::BeginMenu("Import")) {
+      if (lastTex != &tex) {
+        mImg.clear();
+        mImg.resize(tex.getMipmapCount() + 1);
+        for (int i = 0; i <= tex.getMipmapCount(); ++i)
+          mImg[i].setFromImage(tex);
+        lastTex = &tex;
+      }
+
+      import_lod = -1;
+
+      mImg[0].draw(75, 75, false);
+      if (ImGui::MenuItem("Base Image (LOD 0)")) {
+        import_lod = 0;
+      }
+      if (tex.getMipmapCount() > 0) {
+        ImGui::Separator();
+        for (unsigned i = 1; i <= tex.getMipmapCount(); ++i) {
+          mImg[i].mLod = i;
+          mImg[i].draw(75, 75, false);
+          if (ImGui::MenuItem(("LOD " + std::to_string(i)).c_str())) {
+            import_lod = i;
+          }
+        }
+      }
+
+      ImGui::EndMenu();
+    }
+
     return false;
   }
 
   bool _modal(Texture& tex) {
+    bool all_changed = false;
+
     if (export_lod != -1) {
       exportImage(tex, export_lod);
       export_lod = -1;
     }
+
+    if (import_lod != -1) {
+      importImage(tex, import_lod);
+      all_changed = true;
+      import_lod = -1;
+    }
+
     if (resize) {
       ImGui::OpenPopup("Resize");
       resize = false;
@@ -133,7 +193,6 @@ public:
       reformat = false;
     }
 
-    bool all_changed = false;
     if (ImGui::BeginPopupModal("Resize", nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
       bool changed = false;

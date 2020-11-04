@@ -89,7 +89,14 @@ bool ReformatAction::reformat_draw(Texture& data, bool* changed) {
   if (reformatOpt == -1)
     reformatOpt = data.getTextureFormat();
 
-  ImGui::InputInt("Format", &reformatOpt);
+  if (reformatOpt == 14) // Temporarily set CMPR to 7 for UI convenience.
+    reformatOpt = 7;
+
+  ImGui::Combo("Texture Format", &reformatOpt, "I4\0I8\0IA4\0IA8\0RGB565\0RGB5A3\0RGBA8\0CMPR\0");
+
+  if (reformatOpt == 7)
+    reformatOpt = 14; // Set CMPR back to its respective ID.
+
   if (ImGui::Button((const char*)ICON_FA_CHECK u8" Okay")) {
     const auto oldFormat = data.getTextureFormat();
     data.setTextureFormat(reformatOpt);
