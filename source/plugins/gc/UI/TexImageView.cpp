@@ -73,13 +73,16 @@ void importImage(Texture& tex, u32 import_lod) {
     unsigned char* image =
         stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
     assert(image);
-    const auto offset = libcube::image_platform::getMipOffset(
-        tex.getWidth(), tex.getHeight(), import_lod);
+    const auto fmt = static_cast<gx::TextureFormat>(tex.getTextureFormat());
+    const auto offset =
+        import_lod == 0
+            ? 0
+            : libcube::image_platform::getEncodedSize(
+                  tex.getWidth(), tex.getHeight(), fmt, import_lod - 1);
     libcube::image_platform::transform(
         tex.getData() + offset, tex.getWidth() >> import_lod,
         tex.getHeight() >> import_lod, gx::TextureFormat::Extension_RawRGBA32,
-        static_cast<gx::TextureFormat>(tex.getTextureFormat()), image, width,
-        height);
+        fmt, image, width, height);
   }
 }
 
