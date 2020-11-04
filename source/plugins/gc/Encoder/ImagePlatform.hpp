@@ -116,14 +116,4 @@ void transform(
     const u8* src = nullptr, int sx = -1, int sy = -1, u32 mipMapCount = 0,
     ResizingAlgorithm algorithm = ResizingAlgorithm::AVIR);
 
-//! @brief Compute the mipmap offset for an image.
-//!
-//! @param[in] width    Width of the image.
-//! @param[in] height   Height of the image.
-//! @param[in] mipLevel The LOD level to find the offset for.
-//!
-//! @return The number of bytes until the next sub-level begins relative to the first level.
-//!
-u32 getMipOffset(u32 width, u32 height, u32 mipLevel);
-
 } // namespace libcube::image_platform
