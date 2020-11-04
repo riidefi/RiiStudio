@@ -35,6 +35,13 @@ template <typename T, size_t N> struct array_vector : public std::array<T, N> {
     }
     return true;
   }
+  void erase(std::size_t index) {
+    assert(index >= 0 && index < nElements);
+    for (std::size_t i = index; i < nElements - 1; ++i) {
+      std::array<T, N>::at(i) = std::move(std::array<T, N>::at(i + 1));
+    }
+    --nElements;
+  }
 };
 
 template <typename T, std::size_t size>

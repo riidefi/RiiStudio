@@ -262,7 +262,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SamplerSurface& surface) {
   auto& matData = delegate.getActive().getMaterialData();
 
-  if (matData.info.nTexGen != matData.texGens.size()) {
+  if (matData.info.nTexGen != matData.texGens.size() ||
+      matData.info.nTexGen != matData.samplers.size()) {
     ImGui::Text("Cannot edit: source data is invalid!");
     return;
   }
@@ -286,6 +287,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 
   if (ImGui::BeginTabBar("Textures")) {
+    llvm::SmallVector<bool, 16> open(matData.texGens.nElements, true);
     for (std::size_t i = 0; i < matData.texGens.nElements; ++i) {
       auto& tg = matData.texGens[i];
 
@@ -299,7 +301,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
       const auto mImgs = delegate.getActive().getTextureSource();
       if (ImGui::BeginTabItem(
-              (std::string("Texture ") + std::to_string(i)).c_str())) {
+              (std::string("Texture ") + std::to_string(i) + " [" + samp->mTexture + "]").c_str(),
+              &open[i])) {
         if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
           if (auto result = TextureImageCombo(samp->mTexture.c_str(), mImgs,
                                               delegate.mEd);
@@ -668,6 +671,37 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         }
         ImGui::EndTabItem();
       }
+    }
+    bool changed = false;
+    for (std::size_t i = 0; i < matData.texGens.nElements; ++i) {
+      if (open[i])
+        continue;
+
+      changed = true;
+
+      // Only one may be deleted at a time
+      matData.samplers.erase(i);
+      assert(matData.texGens[i].getMatrixIndex() == i);
+      matData.texGens.erase(i);
+      matData.texMatrices.erase(i);
+      --matData.info.nTexGen;
+
+      // Correct stages
+      for (auto& stage : matData.shader.mStages) {
+        if (stage.texCoord == stage.texMap) {
+          if (stage.texCoord == i) {
+            // Might be a better way of doing this
+            stage.texCoord = stage.texMap = 0;
+          } else if (stage.texCoord > i) {
+            --stage.texCoord;
+            --stage.texMap;
+          }
+        }
+      }
+
+      delegate.commit("Erased a sampler");
+
+      break;
     }
     ImGui::EndTabBar();
   }
