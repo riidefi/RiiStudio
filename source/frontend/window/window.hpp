@@ -60,7 +60,7 @@ public:
   TWindowParent* getParent() { return mParent; }
 
   TWindow* getActive() { return mActive; }
-  void setActive(TWindow* active) { mActive = true; }
+  void setActive(TWindow* active) { mActive = active; }
 
   bool hasChildren() const { return !mChildren.empty(); }
 
