@@ -72,8 +72,11 @@ bool EditorImporter::process() {
 
     // TODO: Move elsewhere..
     auto path = getPath();
-    if (path.ends_with("dae") || path.ends_with("fbx") ||
-        path.ends_with("obj") || path.ends_with("smd")) {
+    std::string low_path(path);
+    for (auto& c : low_path)
+      c = tolower(c);
+    if (low_path.ends_with("dae") || low_path.ends_with("fbx") ||
+        low_path.ends_with("obj") || low_path.ends_with("smd")) {
       path.resize(path.size() - 3);
       if (data_id.find("j3d") != std::string::npos)
         path += "bmd";
