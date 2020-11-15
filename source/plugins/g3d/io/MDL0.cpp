@@ -1100,6 +1100,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
                kpi::IOTransaction& transaction,
                const std::string& transaction_path) {
   const auto start = reader.tell();
+  bool isValid = true;
 
   reader.expectMagic<'MDL0', false>();
 
@@ -1109,6 +1110,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     transaction.callback(kpi::IOMessageClass::Error, transaction_path,
                          "MDL0 is version " + std::to_string(revision) +
                              ". Only MDL0 version 11 is supported.");
+    transaction.state = kpi::TransactionState::Failure;
     return;
   }
 
@@ -1476,12 +1478,13 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       }
     }
   });
+
   readDict(secOfs.ofsMeshes, [&](const DictionaryNode& dnode) {
     auto& poly = mdl.getMeshes().add();
     const auto start = reader.tell();
 
-    reader.read<u32>(); // size
-    reader.read<s32>(); // mdl offset
+    isValid &= reader.read<u32>() != 0; // size
+    isValid &= reader.read<s32>() < 0;  // mdl offset
 
     poly.mCurrentMatrix = reader.read<s32>();
     reader.skip(12); // cache
@@ -1492,14 +1495,16 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     poly.mVertexDescriptor.mBitfield = reader.read<u32>();
     const u32 flag = reader.read<u32>();
     poly.currentMatrixEmbedded = flag & 1;
-    assert(!poly.currentMatrixEmbedded);
+    if (poly.currentMatrixEmbedded) {
+      // TODO (should be caught later)
+    }
     poly.visible = !(flag & 2);
 
     poly.mName = readName(reader, start);
     poly.mId = reader.read<u32>();
     // TODO: Verify / cache
-    reader.read<u32>(); // nVert
-    reader.read<u32>(); // nPoly
+    isValid &= reader.read<u32>() > 0; // nVert
+    isValid &= reader.read<u32>() > 0; // nPoly
 
     auto readBufHandle = [&](std::string& out, auto ifExist) {
       const auto hid = reader.read<s16>();
@@ -1521,8 +1526,8 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       readBufHandle(poly.mTexCoordBuffer[i],
                     [&](s16 hid) { return mdl.getBuf_Uv()[hid].getName(); });
     }
-    reader.read<s32>(); // fur
-    reader.read<s32>(); // matrix usage
+    isValid &= reader.read<s32>() == -1; // fur
+    reader.read<s32>();                  // matrix usage
 
     primitiveSetup.seekTo(reader);
     libcube::gpu::QDisplayListVertexSetupHandler vcdHandler;
@@ -1666,6 +1671,23 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     }
     // printf("}\n");
   });
+
+  if (!isValid && mdl.getBones().size() > 1) {
+    transaction.callback(
+        kpi::IOMessageClass::Error, transaction_path,
+        "BRRES file was created with BrawlBox and is invalid. It is "
+        "recommended you create BRRES files here by dropping a DAE/FBX file.");
+    transaction.state = kpi::TransactionState::Failure;
+  } else if (!isValid) {
+    transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
+                         "Note: BRRES file was saved with BrawlBox. Certain "
+                         "materials may flicker during ghost replays.");
+  } else if (mdl.getBones().size() > 1) {
+    transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                         "Rigging support is not fully tested."
+                         "Rejecting file to avoid potential corruption.");
+    transaction.state = kpi::TransactionState::Failure;
+  }
 }
 
 } // namespace riistudio::g3d

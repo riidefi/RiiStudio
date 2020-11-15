@@ -68,6 +68,13 @@ public:
 
       // TODO
       if (cnode.mName == "3DModels(NW4R)") {
+        if (cdic.mNodes.size() > 2) {
+          transaction.callback(
+              kpi::IOMessageClass::Error, cnode.mName,
+              "This file has multiple MDL0 files within it. "
+              "Only single-MDL0 BRRES files are currently supported.");
+          transaction.state = kpi::TransactionState::Failure;
+        }
         for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
           const auto& sub = cdic.mNodes[j];
 
@@ -86,7 +93,8 @@ public:
         }
       } else {
         transaction.callback(kpi::IOMessageClass::Warning, "/" + cnode.mName,
-                             "Unsupported folder: " + cnode.mName);
+                             "[WILL NOT BE SAVED] Unsupported folder: " +
+                                 cnode.mName);
 
         printf("Unsupported folder: %s\n", cnode.mName.c_str());
       }

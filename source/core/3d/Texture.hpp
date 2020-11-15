@@ -66,6 +66,23 @@ struct Texture : public virtual kpi::IObject {
   //!				  include all additional mip levels.
   //!
   virtual void encode(const u8* rawRGBA) = 0;
+
+  struct IObserver {
+    virtual ~IObserver() = default;
+    // TODO: Detach
+    virtual void update(const Texture* tex) {}
+  };
+
+  void notifyObservers() const {
+    for (auto* it : observers) {
+      it->update(this);
+    }
+  }
+  void onUpdate() {
+    // (for shader recompilation)
+    notifyObservers();
+  }
+  mutable std::vector<IObserver*> observers;
 };
 
 } // namespace riistudio::lib3d

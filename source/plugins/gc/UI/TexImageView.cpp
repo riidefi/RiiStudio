@@ -182,6 +182,9 @@ public:
       importImage(tex, import_lod);
       all_changed = true;
       import_lod = -1;
+      if (lastTex != nullptr)
+        lastTex->notifyObservers();
+      lastTex = nullptr;
     }
 
     if (resize) {
@@ -220,7 +223,9 @@ public:
   }
 };
 
-struct ImageSurface final : public ResizeAction, public ReformatAction {
+struct ImageSurface final : public riistudio::lib3d::Texture::IObserver,
+                            public ResizeAction,
+                            public ReformatAction {
   static inline const char* name = "Image Data";
   static inline const char* icon = (const char*)ICON_FA_IMAGE;
 
@@ -228,7 +233,20 @@ struct ImageSurface final : public ResizeAction, public ReformatAction {
   int tag_stateful;
 
   Texture* lastTex = nullptr;
+  Texture* attached = nullptr;
   riistudio::frontend::ImagePreview mImg;
+
+  void update(const riistudio::lib3d::Texture* tex) override {
+    if (tex == lastTex)
+      lastTex = nullptr;
+  }
+
+  ~ImageSurface() {
+    if (attached != nullptr)
+      attached->observers.erase(
+          std::remove_if(attached->observers.begin(), attached->observers.end(),
+                         [&](auto* x) { return x == this; }));
+  }
 };
 
 void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
@@ -318,6 +336,12 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
 
   if (tex.lastTex != &data) {
     tex.lastTex = &data;
+    if (tex.attached != nullptr)
+      tex.attached->observers.erase(std::remove_if(
+          tex.attached->observers.begin(), tex.attached->observers.end(),
+          [&](auto* x) { return x == &tex; }));
+    tex.attached = &data;
+    data.observers.push_back(&tex);
     tex.mImg.setFromImage(data);
   }
   tex.mImg.draw();
