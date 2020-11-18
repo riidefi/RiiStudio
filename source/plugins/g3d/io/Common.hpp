@@ -9,6 +9,7 @@
 #include <plugins/gc/GX/Material.hpp>
 #include <plugins/gc/GX/VertexTypes.hpp>
 #include <string>
+#include <plugins/g3d/util/Dictionary.hpp>
 
 inline void operator<<(libcube::gx::Color& out, oishii::BinaryReader& reader) {
   out = libcube::gx::readColorComponents(
