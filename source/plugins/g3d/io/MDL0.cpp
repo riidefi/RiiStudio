@@ -1244,6 +1244,8 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     // Gen info
     mat.info.nTexGen = reader.read<u8>();
     mat.info.nColorChan = reader.read<u8>();
+    if (mat.info.nColorChan == 4)
+      mat.info.nColorChan = 2;
     mat.info.nTevStage = reader.read<u8>();
     mat.info.nIndStage = reader.read<u8>();
     mat.cullMode = static_cast<libcube::gx::CullMode>(reader.read<u32>());
