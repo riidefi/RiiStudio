@@ -1358,6 +1358,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       delegate.commit("Updated pixel config");
 
       surface.force_custom_whole.clear();
+      surface.force_custom_at.clear();
     }
   }
 
