@@ -22,13 +22,45 @@ struct BoneData {
   // SSC parent - recompute
   bool classicScale = true;
   bool visible = true;
-  // display matrix flag not used
+  // display mtx - recompute
   // bb ref recomputed
 
   u32 matrixId = 0;
-  u32 flag = 0x31f;
-
   u32 billboardType = 0;
+
+  u32 computeFlag() const {
+    u32 flag = 0;
+    if (mScaling.x == mScaling.y == mScaling.z) {
+      flag |= 0x10;
+      if (mScaling == glm::vec3{1.0f, 1.0f, 1.0f})
+        flag |= 8;
+    }
+    if (mRotation == glm::vec3{0.0f, 0.0f, 0.0f})
+      flag |= 4;
+    if (mTranslation == glm::vec3{0.0f, 0.0f, 0.0f})
+      flag |= 2;
+    if (flag & (2 | 4 | 8))
+      flag |= 1;
+    // TODO: Flag 0x40
+    if (ssc)
+      flag |= 0x20;
+    if (!classicScale)
+      flag |= 0x80;
+    if (visible)
+      flag |= 0x100;
+    // TODO: Check children?
+    if (!mDisplayCommands.empty())
+      flag |= 0x200;
+    // TODO: 0x400 check parents
+    return flag;
+  }
+  // Call this last
+  void setFromFlag(u32 flag) {
+    // TODO: Validate items
+    ssc = (flag & 0x20) != 0;
+    classicScale = (flag & 0x80) == 0;
+    visible = (flag & 0x100) != 0;
+  }
 
   glm::vec3 mScaling, mRotation, mTranslation;
 
@@ -44,26 +76,14 @@ struct BoneData {
     u32 mPoly;
     u8 mPrio;
 
-    bool operator==(const DisplayCommand& rhs) const {
-      return mMaterial == rhs.mMaterial && mPoly == rhs.mPoly &&
-             mPrio == rhs.mPrio;
-    }
+    bool operator==(const DisplayCommand& rhs) const = default;
   };
   std::vector<DisplayCommand> mDisplayCommands;
 
   std::array<f32, 3 * 4> modelMtx;
   std::array<f32, 3 * 4> inverseModelMtx;
 
-  bool operator==(const BoneData& rhs) const {
-    return mName == rhs.mName && ssc == rhs.ssc &&
-           classicScale == rhs.classicScale && visible == rhs.visible &&
-           matrixId == rhs.matrixId && flag == rhs.flag &&
-           billboardType == rhs.billboardType && mScaling == rhs.mScaling &&
-           mRotation == rhs.mRotation && mVolume == rhs.mVolume &&
-           mParent == rhs.mParent && mChildren == rhs.mChildren &&
-           mDisplayCommands == rhs.mDisplayCommands &&
-           modelMtx == rhs.modelMtx && inverseModelMtx == rhs.inverseModelMtx;
-  }
+  bool operator==(const BoneData& rhs) const = default;
 };
 
 struct Bone : public libcube::IBoneDelegate,
@@ -79,8 +99,9 @@ struct Bone : public libcube::IBoneDelegate,
     if (pJoint) {
       pJoint->mName = mName;
       pJoint->matrixId = matrixId;
-      pJoint->flag = flag;
-
+      pJoint->ssc = ssc;
+      pJoint->classicScale = classicScale;
+      pJoint->visible = visible;
       pJoint->billboardType = billboardType;
       // billboardRefId = pJoint->billboardRefId;
     }
