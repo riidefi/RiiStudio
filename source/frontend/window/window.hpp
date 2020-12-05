@@ -54,7 +54,7 @@ public:
   }
 
   bool isOpen() const override { return bOpen; }
-  bool* getOpen() { return &bOpen; }
+  bool* getOpen() { return mClosable ? &bOpen : nullptr; }
   void close() { bOpen = false; }
 
   TWindowParent* getParent() { return mParent; }
@@ -80,8 +80,12 @@ public:
 
   void detachAllChildren() { mChildren.clear(); }
 
+protected:
+  void setClosable(bool b) { mClosable = b; }
+
 private:
   bool bOpen = true;
+  bool mClosable = true;
 
   TWindow* mActive = nullptr;
   TWindowParent* mParent = nullptr;

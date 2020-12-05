@@ -17,7 +17,9 @@ private:
 };
 
 HistoryList::HistoryList(kpi::History& host, kpi::INode& root)
-    : StudioWindow("History"), mHost(host), mRoot(root) {}
+    : StudioWindow("History"), mHost(host), mRoot(root) {
+  setClosable(false);
+}
 
 HistoryList::~HistoryList() {}
 

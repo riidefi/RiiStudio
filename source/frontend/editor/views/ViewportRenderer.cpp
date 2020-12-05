@@ -29,6 +29,7 @@ RenderTest::RenderTest(const kpi::INode& host)
     : StudioWindow("Viewport"), mRenderer(dynamic_cast<lib3d::IDrawable*>(
                                     const_cast<kpi::INode*>(&host))) {
   setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
+  setClosable(false);
   mRenderer.prepare(host);
 }
 

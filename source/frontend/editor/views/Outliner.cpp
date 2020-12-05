@@ -72,7 +72,9 @@ private:
 GenericCollectionOutliner::GenericCollectionOutliner(kpi::INode& host,
                                                      kpi::IObject*& active,
                                                      EditorWindow& ed)
-    : StudioWindow("Outliner"), mHost(host), mActive(active), ed(ed) {}
+    : StudioWindow("Outliner"), mHost(host), mActive(active), ed(ed) {
+  setClosable(false);
+}
 
 std::size_t GenericCollectionOutliner::calcNumFiltered(
     const kpi::ICollection& sampler, const TFilter* filter) const noexcept {
@@ -172,7 +174,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
       {
         if (kpi::ActionMenuManager::get().drawContextMenus(nodeAt))
           ed.getDocument().commit();
-        
+
         // ImGui::PopID();
       }
 
