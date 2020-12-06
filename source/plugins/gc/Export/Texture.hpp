@@ -18,8 +18,10 @@ struct Texture : public riistudio::lib3d::Texture {
   }
   inline void decode(std::vector<u8>& out, bool mip) const override {
     const u32 size = getDecodedSize(mip);
-    assert(size);
-
+    if (size == 0)
+      return;
+    // assert(size);
+	
     if (out.size() < size) {
       out.resize(size);
     }
