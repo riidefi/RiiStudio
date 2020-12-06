@@ -117,31 +117,7 @@ void AssReader::read(kpi::IOTransaction& transaction) {
     AssLogger* logger = new AssLogger(transaction.callback, getFileShort(path));
     Assimp::DefaultLogger::set(logger);
 
-    if (mMagnification != 1.0f) {
-      ass_flags |= aiProcess_GlobalScale;
-      importer->SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
-                                 mMagnification);
-    }
-
-    const auto* pScene = importer->ReadFileFromMemory(transaction.data.data(),
-                                                      transaction.data.size(),
-                                                      ass_flags, path.c_str());
-    if (!pScene) {
-      transaction.state = kpi::TransactionState::Failure;
-      return;
-    }
-    double unit_scale = 0.0;
-    pScene->mMetaData->Get("UnitScaleFactor", unit_scale);
-
-    // Handle custom units
-    if (unit_scale != 0.0) {
-      // FBX-only property: internally in centimeters
-      importer->SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
-                                 (1.0 / unit_scale) / 100.0);
-      importer->ApplyPostProcessing(aiProcess_GlobalScale);
-    }
-
-	const u32 exclusion_mask = data_to_exclude();
+    const u32 exclusion_mask = data_to_exclude();
     if (exclusion_mask & aiComponent_NORMALS)
       puts("Excluding normals");
     if (exclusion_mask & aiComponent_TANGENTS_AND_BITANGENTS)
@@ -165,6 +141,30 @@ void AssReader::read(kpi::IOTransaction& transaction) {
     if (exclusion_mask & aiComponent_MATERIALS)
       puts("Excluding materials");
     importer->SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS, exclusion_mask);
+
+    if (mMagnification != 1.0f) {
+      ass_flags |= aiProcess_GlobalScale;
+      importer->SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
+                                 mMagnification);
+    }
+
+    const auto* pScene = importer->ReadFileFromMemory(transaction.data.data(),
+                                                      transaction.data.size(),
+                                                      ass_flags, path.c_str());
+    if (!pScene) {
+      transaction.state = kpi::TransactionState::Failure;
+      return;
+    }
+    double unit_scale = 0.0;
+    pScene->mMetaData->Get("UnitScaleFactor", unit_scale);
+
+    // Handle custom units
+    if (unit_scale != 0.0) {
+      // FBX-only property: internally in centimeters
+      importer->SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
+                                 (1.0 / unit_scale) / 100.0);
+      importer->ApplyPostProcessing(aiProcess_GlobalScale);
+    }
 
     // this calls `delete` on logger
     Assimp::DefaultLogger::set(nullptr);
