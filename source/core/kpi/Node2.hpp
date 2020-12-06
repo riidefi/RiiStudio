@@ -426,21 +426,20 @@ std::shared_ptr<R> set_m(const T* last, const U& in) {
 // Create a composite memento
 template <typename InT, typename OutT, typename OldT>
 void nextFolder(OutT& out, const InT& in, const OldT* old) {
+  using record_t = MementoIfy<typename OutT::value_type::element_type>;
   if (old != nullptr) {
     auto& last = *old;
     out.resize(in.size());
     for (int i = 0; i < in.size(); ++i) {
-      if (should_set(last[i].get(), &in[i])) {
-        using record_t = MementoIfy<typename OutT::value_type::element_type>;
+      if (i < last.size() && should_set(last[i].get(), &in[i])) {
         out[i] = set_m<record_t>(last[i].get(), in[i]);
       } else {
-        out[i] = last[i];
+        out[i] = std::make_shared<const record_t>(in[i]);
       }
     }
   } else {
     out.resize(in.size());
     for (int i = 0; i < in.size(); ++i) {
-      using record_t = MementoIfy<typename OutT::value_type::element_type>;
       out[i] = std::make_shared<const record_t>(in[i]);
     }
   }
