@@ -36,8 +36,7 @@ void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
   const float vert_delta = mouseSpeed * deltaTime * -y_delta;
 #ifdef BUILD_DEBUG
   ImGui::Text("Horiz delta: %f (%f). Vert delta: %f (%f)", horiz_delta,
-              horiz_delta * 180.0f / 3.1415f, vert_delta,
-              vert_delta * 180.0f / 3.1415f);
+              glm::degrees(horiz_delta), vert_delta, glm::degrees(vert_delta));
   ImGui::Text("Horiz %f (%f degrees), Vert %f (%f degrees)", mHorizontalAngle,
               glm::degrees(mHorizontalAngle), mVerticalAngle,
               glm::degrees(mVerticalAngle));
@@ -51,6 +50,9 @@ void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
   if (!showCursor) {
     mHorizontalAngle += horiz_delta;
     mVerticalAngle += vert_delta;
+    // Slightly less than pi/2 prevents weird behavior when parallel with up
+    // direction
+    mVerticalAngle = std::clamp(mVerticalAngle, -1.56f, 1.56f);
   }
 #ifdef BUILD_DEBUG
   ImGui::Text("Horiz %f (%f degrees), Vert %f (%f degrees)", mHorizontalAngle,
@@ -66,8 +68,8 @@ void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
                      mDirection.z};
   if (combo_choice_cam == 0)
     mvmt_dir = glm::normalize(mvmt_dir);
-  glm::vec3 right = glm::vec3(sin(mHorizontalAngle - 3.14f / 2.0f), 0,
-                              cos(mHorizontalAngle - 3.14f / 2.0f));
+  glm::vec3 right =
+      glm::vec3(sin(mHorizontalAngle - 1.57), 0, cos(mHorizontalAngle - 1.57));
 
   projMtx =
       glm::perspective(glm::radians(mFOV),
