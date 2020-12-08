@@ -58,7 +58,7 @@ struct AssReader {
       aiProcess_GenSmoothNormals | aiProcess_RemoveRedundantMaterials |
       aiProcess_FindDegenerates | aiProcess_FindInvalidData |
       aiProcess_FindInstances | aiProcess_OptimizeMeshes | aiProcess_Debone |
-      aiProcess_OptimizeGraph;
+      aiProcess_OptimizeGraph | aiProcess_RemoveComponent;
   static constexpr u32 AlwaysFlags =
       aiProcess_ValidateDataStructure | aiProcess_Triangulate |
       aiProcess_SortByPType | aiProcess_PopulateArmatureData |
@@ -74,6 +74,13 @@ struct AssReader {
   int mMaxMipCount = 5;
   // Set stencil outline if alpha
   bool mAutoTransparent = true;
+  //
+  u32 data_to_include = aiComponent_NORMALS | aiComponent_COLORS |
+                        aiComponent_TEXCOORDS | aiComponent_TEXTURES |
+                        aiComponent_MESHES | aiComponent_MATERIALS;
+  u32 data_to_exclude() const {
+    return (~data_to_include) & ((aiComponent_MATERIALS << 1) - 1);
+  }
 };
 
 kpi::Register<AssReader, kpi::Reader> AssInstaller;
@@ -110,6 +117,31 @@ void AssReader::read(kpi::IOTransaction& transaction) {
     AssLogger* logger = new AssLogger(transaction.callback, getFileShort(path));
     Assimp::DefaultLogger::set(logger);
 
+    const u32 exclusion_mask = data_to_exclude();
+    if (exclusion_mask & aiComponent_NORMALS)
+      puts("Excluding normals");
+    if (exclusion_mask & aiComponent_TANGENTS_AND_BITANGENTS)
+      puts("Excluding tangents/bitangents");
+    if (exclusion_mask & aiComponent_COLORS)
+      puts("Excluding colors");
+    if (exclusion_mask & aiComponent_TEXCOORDS)
+      puts("Excluding uvs");
+    if (exclusion_mask & aiComponent_BONEWEIGHTS)
+      puts("Excluding boneweights");
+    if (exclusion_mask & aiComponent_ANIMATIONS)
+      puts("Excluding animations");
+    if (exclusion_mask & aiComponent_TEXTURES)
+      puts("Excluding textures");
+    if (exclusion_mask & aiComponent_LIGHTS)
+      puts("Excluding lights");
+    if (exclusion_mask & aiComponent_CAMERAS)
+      puts("Excluding cameras");
+    if (exclusion_mask & aiComponent_MESHES)
+      puts("Excluding meshes");
+    if (exclusion_mask & aiComponent_MATERIALS)
+      puts("Excluding materials");
+    importer->SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS, exclusion_mask);
+
     if (mMagnification != 1.0f) {
       ass_flags |= aiProcess_GlobalScale;
       importer->SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
@@ -122,7 +154,7 @@ void AssReader::read(kpi::IOTransaction& transaction) {
     if (!pScene) {
       transaction.state = kpi::TransactionState::Failure;
       return;
-	}
+    }
     double unit_scale = 0.0;
     pScene->mMetaData->Get("UnitScaleFactor", unit_scale);
 
@@ -200,11 +232,11 @@ void AssReader::render() {
     // aiProcess_FlipUVs - TODO
     // aiProcess_FlipWindingOrder - TODO
     // aiProcess_ValidateDataStructure - No reason not to?
+    // aiProcess_RemoveComponent  - Deslect all to disable
 
     //
     // Configure
     //
-    // aiProcess_RemoveComponent  - TODO
     // aiProcess_GenNormals - TODO
     // aiProcess_GenSmoothNormals - TODO
     // aiProcess_SplitLargeMeshes - We probably don't need this?
@@ -278,6 +310,28 @@ void AssReader::render() {
     // aiProcess_OptimizeGraph
     ImGui::CheckboxFlags("Compress bones (for static scenes)", &ass_flags,
                          aiProcess_OptimizeGraph);
+  }
+  if (ImGui::CollapsingHeader(
+          (const char*)ICON_FA_PROJECT_DIAGRAM u8" Data to Import",
+          ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::CheckboxFlags(
+        (const char*)ICON_FA_SORT_AMOUNT_UP u8" Vertex Normals",
+        &data_to_include, aiComponent_NORMALS);
+    // aiComponent_TANGENTS_AND_BITANGENTS: Unsupported
+    ImGui::CheckboxFlags((const char*)ICON_FA_PALETTE u8" Vertex Colors",
+                         &data_to_include, aiComponent_COLORS);
+    ImGui::CheckboxFlags((const char*)ICON_FA_GLOBE u8" UV Maps",
+                         &data_to_include, aiComponent_TEXCOORDS);
+    ImGui::CheckboxFlags((const char*)ICON_FA_BONE u8" Bone Weights",
+                         &data_to_include, aiComponent_BONEWEIGHTS);
+    // aiComponent_ANIMATIONS: Unsupported
+    // TODO: aiComponent_TEXTURES: Unsupported
+    // aiComponent_LIGHTS: Unsupported
+    // aiComponent_CAMERAS: Unsupported
+    ImGui::CheckboxFlags((const char*)ICON_FA_PROJECT_DIAGRAM u8" Meshes",
+                         &data_to_include, aiComponent_MESHES);
+    ImGui::CheckboxFlags((const char*)ICON_FA_PAINT_BRUSH u8" Materials",
+                         &data_to_include, aiComponent_MATERIALS);
   }
 }
 

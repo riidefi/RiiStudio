@@ -77,15 +77,28 @@ static void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
   wip.texMap = wip.texCoord = 0;
   wip.rasOrder = libcube::gx::ColorSelChanApi::color0a0;
   wip.rasSwap = 0;
-  wip.colorStage.a = libcube::gx::TevColorArg::zero;
-  wip.colorStage.b = libcube::gx::TevColorArg::texc;
-  wip.colorStage.c = libcube::gx::TevColorArg::rasc;
-  wip.colorStage.d = libcube::gx::TevColorArg::zero;
 
-  wip.alphaStage.a = libcube::gx::TevAlphaArg::zero;
-  wip.alphaStage.b = libcube::gx::TevAlphaArg::texa;
-  wip.alphaStage.c = libcube::gx::TevAlphaArg::rasa;
-  wip.alphaStage.d = libcube::gx::TevAlphaArg::zero;
+  if (!in.samplers.empty()) {
+    wip.colorStage.a = libcube::gx::TevColorArg::zero;
+    wip.colorStage.b = libcube::gx::TevColorArg::texc;
+    wip.colorStage.c = libcube::gx::TevColorArg::rasc;
+    wip.colorStage.d = libcube::gx::TevColorArg::zero;
+
+    wip.alphaStage.a = libcube::gx::TevAlphaArg::zero;
+    wip.alphaStage.b = libcube::gx::TevAlphaArg::texa;
+    wip.alphaStage.c = libcube::gx::TevAlphaArg::rasa;
+    wip.alphaStage.d = libcube::gx::TevAlphaArg::zero;
+  } else {
+    wip.colorStage.a = libcube::gx::TevColorArg::rasc;
+    wip.colorStage.b = libcube::gx::TevColorArg::zero;
+    wip.colorStage.c = libcube::gx::TevColorArg::zero;
+    wip.colorStage.d = libcube::gx::TevColorArg::zero;
+
+    wip.alphaStage.a = libcube::gx::TevAlphaArg::rasa;
+    wip.alphaStage.b = libcube::gx::TevAlphaArg::zero;
+    wip.alphaStage.c = libcube::gx::TevAlphaArg::zero;
+    wip.alphaStage.d = libcube::gx::TevAlphaArg::zero;
+  }
 
   data.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
   data.shader.mStages[0] = wip;

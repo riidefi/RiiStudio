@@ -92,7 +92,8 @@ bool ReformatAction::reformat_draw(Texture& data, bool* changed) {
   if (reformatOpt == 14) // Temporarily set CMPR to 7 for UI convenience.
     reformatOpt = 7;
 
-  ImGui::Combo("Texture Format", &reformatOpt, "I4\0I8\0IA4\0IA8\0RGB565\0RGB5A3\0RGBA8\0CMPR\0");
+  ImGui::Combo("Texture Format", &reformatOpt,
+               "I4\0I8\0IA4\0IA8\0RGB565\0RGB5A3\0RGBA8\0CMPR\0");
 
   if (reformatOpt == 7)
     reformatOpt = 14; // Set CMPR back to its respective ID.
@@ -106,7 +107,7 @@ bool ReformatAction::reformat_draw(Texture& data, bool* changed) {
         data.getData(), data.getWidth(), data.getHeight(),
         static_cast<libcube::gx::TextureFormat>(oldFormat),
         static_cast<libcube::gx::TextureFormat>(reformatOpt), data.getData(),
-        data.getWidth(), data.getHeight(), data.getMipmapCount() - 1);
+        data.getWidth(), data.getHeight(), data.getMipmapCount());
 
     if (changed != nullptr)
       *changed = true;

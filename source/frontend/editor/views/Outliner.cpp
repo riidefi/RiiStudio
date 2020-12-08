@@ -72,7 +72,9 @@ private:
 GenericCollectionOutliner::GenericCollectionOutliner(kpi::INode& host,
                                                      kpi::IObject*& active,
                                                      EditorWindow& ed)
-    : StudioWindow("Outliner"), mHost(host), mActive(active), ed(ed) {}
+    : StudioWindow("Outliner"), mHost(host), mActive(active), ed(ed) {
+  setClosable(false);
+}
 
 std::size_t GenericCollectionOutliner::calcNumFiltered(
     const kpi::ICollection& sampler, const TFilter* filter) const noexcept {
@@ -111,14 +113,32 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
                                            const std::string& key) noexcept {
   if (sampler.size() == 0)
     return;
-  {
-    const auto rich =
-        kpi::RichNameManager::getInstance().getRich(sampler.atObject(0));
-    if (!rich.hasEntry())
-      return;
-  }
+  const auto rich =
+      kpi::RichNameManager::getInstance().getRich(sampler.atObject(0));
+  if (!rich.hasEntry())
+    return;
   ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-  if (!ImGui::TreeNode(formatTitle(sampler, &mFilter).c_str()))
+  const bool opened = ImGui::TreeNode(formatTitle(sampler, &mFilter).c_str());
+  if (!key.ends_with("Model") && !key.ends_with("Bone")) {
+    const auto local_id = reinterpret_cast<u64>(&sampler);
+    const auto id_str = std::string("MCtx") + std::to_string(local_id);
+    if (ImGui::BeginPopupContextItem(id_str.c_str())) {
+      ImGui::TextUnformatted(
+          (rich.getIconPlural() + " " + rich.getNamePlural() + ": ").c_str());
+      ImGui::Separator();
+
+      {
+        // set activeModal for an actual gui
+        if (ImGui::MenuItem("Add New")) {
+          sampler.add();
+          ed.getDocument().commit();
+        }
+      }
+
+      ImGui::EndPopup();
+    }
+  }
+  if (!opened)
     return;
 
   // A filter tree for multi selection. Prevents inclusion of unfiltered data
@@ -172,7 +192,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
       {
         if (kpi::ActionMenuManager::get().drawContextMenus(nodeAt))
           ed.getDocument().commit();
-        
+
         // ImGui::PopID();
       }
 

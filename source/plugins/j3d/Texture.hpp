@@ -13,9 +13,9 @@ namespace riistudio::j3d {
 struct TextureData {
   std::string mName; // For linking
 
-  u8 mFormat = 6;
+  u8 mFormat = 0;
   bool bTransparent = false;
-  u16 mWidth, mHeight;
+  u16 mWidth = 32, mHeight = 32;
 
   u8 mPaletteFormat;
   // Not resolved or supported currently
@@ -26,16 +26,10 @@ struct TextureData {
   s8 mMaxLod;
   u8 mMipmapLevel = 1;
 
-  std::vector<u8> mData;
+  std::vector<u8> mData =
+      std::vector<u8>(GetTexBufferSize(mWidth, mHeight, mFormat, 0, 0));
 
-  bool operator==(const TextureData& rhs) const {
-    return mName == rhs.mName && mFormat == rhs.mFormat &&
-           bTransparent == rhs.bTransparent && mWidth == rhs.mWidth &&
-           mHeight == rhs.mHeight && mPaletteFormat == rhs.mPaletteFormat &&
-           nPalette == rhs.nPalette && ofsPalette == rhs.ofsPalette &&
-           mMinLod == rhs.mMinLod && mMaxLod == rhs.mMaxLod &&
-           mMipmapLevel == rhs.mMipmapLevel && mData == rhs.mData;
-  }
+  bool operator==(const TextureData& rhs) const = default;
 };
 
 struct Texture : public TextureData, public libcube::Texture {

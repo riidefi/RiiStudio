@@ -55,6 +55,7 @@ PropertyEditor::PropertyEditor(kpi::History& host, kpi::INode& root,
     : StudioWindow("Property Editor"), ed(ed), mHost(host), mRoot(root),
       mActive(active) {
   setWindowFlag(ImGuiWindowFlags_MenuBar);
+  setClosable(false);
 }
 
 PropertyEditor::~PropertyEditor() { state_holder.garbageCollect(); }

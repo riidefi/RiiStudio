@@ -192,9 +192,9 @@ inline gx::Color readColorComponents(oishii::BinaryReader& reader,
   switch (type) {
   case gx::VertexBufferType::Color::rgb565: {
     const u16 c = reader.read<u16>();
-    result.r = (c & 0xF800) >> 11;
-    result.g = (c & 0x07E0) >> 5;
-    result.b = (c & 0x001F);
+    result.r = static_cast<float>((c & 0xF800) >> 11) * (255.0f / 31.0f);
+    result.g = static_cast<float>((c & 0x07E0) >> 5) * (255.0f / 63.0f);
+    result.b = static_cast<float>(c & 0x001F) * (255.0f / 31.0f);
     break;
   }
   case gx::VertexBufferType::Color::rgb8:
@@ -210,18 +210,21 @@ inline gx::Color readColorComponents(oishii::BinaryReader& reader,
     break;
   case gx::VertexBufferType::Color::rgba4: {
     const u16 c = reader.read<u16>();
-    result.r = (c & 0xF000) >> 12;
-    result.g = (c & 0x0F00) >> 8;
-    result.b = (c & 0x00F0) >> 4;
-    result.a = (c & 0x000F);
+    result.r = ((c & 0xF000) >> 12) * 17;
+    result.g = ((c & 0x0F00) >> 8) * 17;
+    result.b = ((c & 0x00F0) >> 4) * 17;
+    result.a = (c & 0x000F) * 17;
     break;
   }
   case gx::VertexBufferType::Color::rgba6: {
-    const u32 c = reader.read<u32>();
-    result.r = (c & 0xFC0000) >> 18;
-    result.g = (c & 0x03F000) >> 12;
-    result.b = (c & 0x000FC0) >> 6;
-    result.a = (c & 0x00003F);
+    u32 c = 0;
+    c |= reader.read<u8>() << 16;
+    c |= reader.read<u8>() << 8;
+    c |= reader.read<u8>();
+    result.r = static_cast<float>((c & 0xFC0000) >> 18) * (255.0f / 63.0f);
+    result.g = static_cast<float>((c & 0x03F000) >> 12) * (255.0f / 63.0f);
+    result.b = static_cast<float>((c & 0x000FC0) >> 6) * (255.0f / 63.0f);
+    result.a = static_cast<float>(c & 0x00003F) * (255.0f / 63.0f);
     break;
   }
   case gx::VertexBufferType::Color::rgba8:
@@ -264,7 +267,7 @@ inline gx::Color readComponents<gx::Color>(oishii::BinaryReader& reader,
 
 inline void writeColorComponents(oishii::Writer& writer,
                                  const libcube::gx::Color& c,
-                          VertexBufferType::Color colort) {
+                                 VertexBufferType::Color colort) {
   switch (colort) {
   case libcube::gx::VertexBufferType::Color::rgb565:
     writer.write<u16>(((c.r & 0xf8) << 8) | ((c.g & 0xfc) << 3) |
@@ -286,9 +289,8 @@ inline void writeColorComponents(oishii::Writer& writer,
                       ((c.a & 0xf0) >> 4));
     break;
   case libcube::gx::VertexBufferType::Color::rgba6: {
-    // TODO: Verify
-    u32 v = ((c.r & 0x3f) << 18) | ((c.g & 0x3f) << 12) | (c.b & 0x3f << 6) |
-            (c.a & 0x3f);
+    const u32 v = ((c.r & 0xfc) << 16) | ((c.g & 0xfc) << 10) |
+                  ((c.b & 0xfc) << 4) | ((c.a & 0xfc) >> 2);
     writer.write<u8>((v & 0x00ff0000) >> 16);
     writer.write<u8>((v & 0x0000ff00) >> 8);
     writer.write<u8>((v & 0x000000ff));
@@ -307,9 +309,10 @@ inline void writeColorComponents(oishii::Writer& writer,
 }
 
 template <int n, typename T, glm::qualifier q>
-inline void writeGenericComponents(oishii::Writer& writer, const glm::vec<n, T, q>& v,
-                            libcube::gx::VertexBufferType::Generic g,
-                            u32 real_component_count, u32 divisor) {
+inline void writeGenericComponents(oishii::Writer& writer,
+                                   const glm::vec<n, T, q>& v,
+                                   libcube::gx::VertexBufferType::Generic g,
+                                   u32 real_component_count, u32 divisor) {
   for (u32 i = 0; i < real_component_count; ++i) {
     switch (g) {
     case libcube::gx::VertexBufferType::Generic::u8:

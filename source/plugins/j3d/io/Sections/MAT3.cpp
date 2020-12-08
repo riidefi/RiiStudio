@@ -161,6 +161,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   loader.indexedContainer<u16>(mat.colorChanControls, MatSec::ColorChannelInfo,
                                8);
+  mat.colorChanControls.nElements = mat.info.nColorChan * 2;
   array_vector<gx::Color, 2> ambColors;
 
   loader.indexedContainer<u16>(ambColors, MatSec::AmbientColors, 4);

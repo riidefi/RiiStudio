@@ -103,7 +103,7 @@ void drawProperty(kpi::PropertyDelegate<IndexedPolygon> dl, PolyDataSurface) {
 
   auto draw_mp = [&](int i) {
     auto& mprim = mesh_data.mMatrixPrimitives[i];
-    ImGui::Text("Default Matrix: %u", (u32)mprim.mCurrentMatrix);
+    ImGui::Text("Default Matrix: %i", (int)mprim.mCurrentMatrix);
 
     const int attrib_cnt = std::count_if(
         desc.mAttributes.begin(), desc.mAttributes.end(), [](const auto& e) {

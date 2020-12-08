@@ -300,9 +300,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       auto& samp = matData.samplers[i];
 
       const auto mImgs = delegate.getActive().getTextureSource();
-      if (ImGui::BeginTabItem(
-              (std::string("Texture ") + std::to_string(i) + " [" + samp->mTexture + "]").c_str(),
-              &open[i])) {
+      if (ImGui::BeginTabItem((std::string("Texture ") + std::to_string(i) +
+                               " [" + samp->mTexture + "]")
+                                  .c_str(),
+                              &open[i])) {
         if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
           if (auto result = TextureImageCombo(samp->mTexture.c_str(), mImgs,
                                               delegate.mEd);
@@ -803,6 +804,7 @@ template <typename T> T DrawKonstSel(T x) {
                           : -1; // rgba, r, g, b, a
 
   int k_type = k_constant ? 0 : 1;
+  const int last_k_type = k_type;
   ImGui::Combo("Konst Selection", &k_type, "Constant\0Uniform\0");
   if (k_type == 0) { // constant
     float k_frac = static_cast<float>(k_numerator) / 8.0f;
@@ -810,6 +812,10 @@ template <typename T> T DrawKonstSel(T x) {
     k_numerator = static_cast<int>(roundf(k_frac * 8.0f));
     k_numerator = std::max(k_numerator, 1);
   } else { // uniform
+    if (k_type != last_k_type) {
+      k_reg = 0;
+      k_sub = 0;
+    }
     ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth() / 3 - 2);
     ImGui::Combo(
         ".##Konstant Register ID", &k_reg,
@@ -1230,7 +1236,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       ImGui::EndColumns();
     }
   }
-  matData.info.nColorChan = controls.size() * 2;
+  matData.info.nColorChan = controls.size() >= 2 //
+                                ? 2
+                                : controls.size() > 0 ? 1 : 0;
 }
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   PixelSurface& surface) {
@@ -1350,6 +1358,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       delegate.commit("Updated pixel config");
 
       surface.force_custom_whole.clear();
+      surface.force_custom_at.clear();
     }
   }
 
