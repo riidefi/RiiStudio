@@ -18,6 +18,8 @@ public:
   glm::vec3 getPosition() { return mEye; }
   void setPosition(const glm::vec3& p) { mEye = p; }
 
+  void setSpeedFactor(float s) { mSpeedFactor = s; }
+
   void setClipPlanes(float near, float far) {
     mClipMin = near;
     mClipMax = far;
@@ -25,7 +27,8 @@ public:
 
 private:
   // Camera settings
-  float mSpeed = 0.0f;
+  float mSpeed = 150.0f;
+  float mSpeedFactor = 0.0f;
   float mClipMin = 1.0f;
   float mClipMax = 50000.f;
   float mFOV = 90.0f;

@@ -6,7 +6,9 @@
 
 namespace riistudio::frontend {
 
-constexpr float MAX_SPEED = 10000.f;
+constexpr float MIN_SPEED = 10.0f;
+constexpr float MAX_SPEED = 1000.f;
+constexpr float SCROLL_SPEED = 10.0f;
 
 void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
                   float width, float height, glm::mat4& projMtx,
@@ -73,22 +75,25 @@ void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
                        mClipMin, mClipMax);
   viewMtx = glm::lookAt(mEye, mEye + mDirection, up);
 
+  mSpeed += ImGui::GetIO().MouseWheel * SCROLL_SPEED;
+  mSpeed = std::clamp(mSpeed, MIN_SPEED, MAX_SPEED);
+
   if (_w)
-    mEye += mvmt_dir * deltaTime * mSpeed;
+    mEye += mvmt_dir * deltaTime * mSpeed * mSpeedFactor;
   if (_s)
-    mEye -= mvmt_dir * deltaTime * mSpeed;
+    mEye -= mvmt_dir * deltaTime * mSpeed * mSpeedFactor;
   if (_a)
-    mEye -= right * deltaTime * mSpeed;
+    mEye -= right * deltaTime * mSpeed * mSpeedFactor;
   if (_d)
-    mEye += right * deltaTime * mSpeed;
+    mEye += right * deltaTime * mSpeed * mSpeedFactor;
   if (_up)
-    mEye += up * deltaTime * mSpeed;
+    mEye += up * deltaTime * mSpeed * mSpeedFactor;
   if (_down)
-    mEye -= up * deltaTime * mSpeed;
+    mEye -= up * deltaTime * mSpeed * mSpeedFactor;
 }
 
 void Camera::drawOptions() {
-  ImGui::SliderFloat("Camera Speed", &mSpeed, 1.0f, MAX_SPEED);
+  ImGui::SliderFloat("Camera Speed", &mSpeed, MIN_SPEED, MAX_SPEED);
   ImGui::SliderFloat("FOV", &mFOV, 1.0f, 180.0f);
 
   ImGui::InputFloat("Near Plane", &mClipMin);

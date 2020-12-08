@@ -135,10 +135,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
   mRoot->build(projMtx, viewMtx, bound);
 
   const f32 dist = glm::distance(bound.min, bound.max);
-  if (mCamera.getSpeed() == 0.0f)
-    mCamera.setSpeed(dist / 10.0f);
-  if (mCamera.getSpeed() == 0.0f)
-    mCamera.setSpeed(6000.0);
+  mCamera.setSpeedFactor(dist == 0.0f ? 50.0f : dist / 1000.0f);
 
   if (mCamera.getPosition() == glm::vec3{0.0f}) {
     const auto min = bound.min;
