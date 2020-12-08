@@ -249,11 +249,4 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
   }
 }
 
-u32 getMipOffset(u32 width, u32 height, u32 mipLevel) {
-	u32 offset = 0;
-	for (u32 i = 0; i < mipLevel; ++i)
-		offset += (width >> i) * (height >> i) * 4;
-	return offset;
-}
-
 } // namespace libcube::image_platform
