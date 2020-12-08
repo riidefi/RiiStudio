@@ -12,30 +12,30 @@ public:
 
   void drawOptions();
 
-  float getSpeed() const { return speed; }
-  void setSpeed(float s) { speed = s; }
+  float getSpeed() const { return mSpeed; }
+  void setSpeed(float s) { mSpeed = s; }
 
-  glm::vec3 getPosition() { return eye; }
-  void setPosition(const glm::vec3& p) { eye = p; }
+  glm::vec3 getPosition() { return mEye; }
+  void setPosition(const glm::vec3& p) { mEye = p; }
 
   void setClipPlanes(float near, float far) {
-    cmin = near;
-    cmax = far;
+    mClipMin = near;
+    mClipMax = far;
   }
 
 private:
   // Camera settings
-  float speed = 0.0f;
-  float cmin = 1.0f;
-  float cmax = 50000.f;
-  float fov = 90.0f;
+  float mSpeed = 0.0f;
+  float mClipMin = 1.0f;
+  float mClipMax = 50000.f;
+  float mFOV = 90.0f;
   // Camera state
-  glm::vec3 eye{0.0f, 0.0f, 0.0f};
-  glm::vec3 direction;
-  float horizontalAngle = 3.14f;
-  float verticalAngle = 0.0f;
-  float xPrev = 0.0f;
-  float yPrev = 0.0f;
+  glm::vec3 mEye{0.0f, 0.0f, 0.0f};
+  glm::vec3 mDirection;
+  float mHorizontalAngle = 3.14f;
+  float mVerticalAngle = 0.0f;
+  float mPrevX = 0.0f;
+  float mPrevY = 0.0f;
 };
 
 } // namespace riistudio::frontend
