@@ -416,6 +416,8 @@ RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
   spInstance = this;
 
   InitAPI();
+
+  ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 }
 RootWindow::~RootWindow() { DeinitAPI(); }
 
