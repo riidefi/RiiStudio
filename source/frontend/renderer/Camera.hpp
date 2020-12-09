@@ -1,14 +1,27 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <imgui/imgui.h>
 
 namespace riistudio::frontend {
 
 class Camera {
 public:
-  void calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
-            float width, float height, glm::mat4& projMtx, glm::mat4& viewMtx,
-            bool w, bool a, bool s, bool d, bool up, bool down);
+  void calcMatrices(float width, float height, glm::mat4& projMtx,
+                    glm::mat4& viewMtx);
+
+  struct InputState {
+    bool forward : 1;
+    bool left : 1;
+    bool backward : 1;
+    bool right : 1;
+    bool up : 1;
+    bool down : 1;
+    bool clickSelect : 1;
+    bool clickView : 1;
+  };
+
+  void calc(float mouseSpeed, int combo_choice_cam, InputState input);
 
   void drawOptions();
 

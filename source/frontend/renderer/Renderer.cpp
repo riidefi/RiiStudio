@@ -62,34 +62,12 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 #endif
 
-  const bool mouseDown = ImGui::IsAnyMouseDown();
-  // Disabled this feature, not useful.
-  const bool ctrlPress = false;
-  // ImGui::IsKeyPressed(341); // GLFW_KEY_LEFT_CONTROL
-
-  if (ImGui::IsWindowFocused()) {
-    if (ctrlPress) {
-      if (inCtrl) {
-        inCtrl = false;
-        showCursor = true;
-      } else {
-        inCtrl = true;
-        showCursor = false;
-      }
-    } else if (!inCtrl) {
-      showCursor = !mouseDown;
-    }
-  } else // if (inCtrl)
-  {
-    inCtrl = false;
-    showCursor = true;
-  }
-
   if (!rend)
     return;
 
   bool key_w = false, key_s = false, key_a = false, key_d = false,
-       key_up = false, key_down = false;
+       key_up = false, key_down = false, mouse_select = false,
+       mouse_view = false;
 
   if (ImGui::IsWindowFocused()) {
 #ifdef RII_BACKEND_GLFW
@@ -125,11 +103,25 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
         keys[SDL_SCANCODE_Q])
       key_down = true;
 #endif
+    if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+      mouse_select = true;
+    if (ImGui::IsMouseDown(ImGuiMouseButton_Right) ||
+        ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+      mouse_view = true;
   }
+  Camera::InputState input{.forward = key_w,
+                           .left = key_a,
+                           .backward = key_s,
+                           .right = key_d,
+                           .up = key_up,
+                           .down = key_down,
+                           .clickSelect = mouse_select,
+                           .clickView = mouse_view};
 
   glm::mat4 projMtx, viewMtx;
-  mCamera.calc(showCursor, mouseSpeed, combo_choice_cam, width, height, projMtx,
-               viewMtx, key_w, key_a, key_s, key_d, key_up, key_down);
+  mCamera.calc(mouseSpeed, combo_choice_cam, input);
+
+  mCamera.calcMatrices(width, height, projMtx, viewMtx);
 
   riistudio::lib3d::AABB bound;
   mRoot->build(projMtx, viewMtx, bound);

@@ -9,15 +9,20 @@ namespace riistudio::frontend {
 constexpr float MIN_SPEED = 10.0f;
 constexpr float MAX_SPEED = 1000.f;
 constexpr float SCROLL_SPEED = 10.0f;
+// TODO: Enable for plane mode
+// glm::vec3 up = glm::cross(right, direction);
+constexpr glm::vec3 up = {0, 1, 0};
 
-void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
-                  float width, float height, glm::mat4& projMtx,
-                  glm::mat4& viewMtx, bool _w, bool _a, bool _s, bool _d,
-                  bool _up, bool _down) {
+void Camera::calcMatrices(float width, float height, glm::mat4& projMtx,
+                          glm::mat4& viewMtx) {
+  projMtx =
+      glm::perspective(glm::radians(mFOV),
+                       static_cast<float>(width) / static_cast<float>(height),
+                       mClipMin, mClipMax);
+  viewMtx = glm::lookAt(mEye, mEye + mDirection, up);
+}
 
-  // TODO: Enable for plane mode
-  // glm::vec3 up = glm::cross(right, direction);
-  glm::vec3 up = {0, 1, 0};
+void Camera::calc(float mouseSpeed, int combo_choice_cam, InputState input) {
 
   float deltaTime = 1.0f / ImGui::GetIO().Framerate;
 
@@ -47,7 +52,7 @@ void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
               glm::degrees(mHorizontalAngle), mVerticalAngle,
               glm::degrees(mVerticalAngle));
 #endif
-  if (!showCursor) {
+  if (input.clickView) {
     mHorizontalAngle += horiz_delta;
     mVerticalAngle += vert_delta;
     // Slightly less than pi/2 prevents weird behavior when parallel with up
@@ -71,26 +76,20 @@ void Camera::calc(bool showCursor, float mouseSpeed, int combo_choice_cam,
   glm::vec3 right =
       glm::vec3(sin(mHorizontalAngle - 1.57), 0, cos(mHorizontalAngle - 1.57));
 
-  projMtx =
-      glm::perspective(glm::radians(mFOV),
-                       static_cast<float>(width) / static_cast<float>(height),
-                       mClipMin, mClipMax);
-  viewMtx = glm::lookAt(mEye, mEye + mDirection, up);
-
   mSpeed += ImGui::GetIO().MouseWheel * SCROLL_SPEED;
   mSpeed = std::clamp(mSpeed, MIN_SPEED, MAX_SPEED);
 
-  if (_w)
+  if (input.forward)
     mEye += mvmt_dir * deltaTime * mSpeed * mSpeedFactor;
-  if (_s)
+  if (input.backward)
     mEye -= mvmt_dir * deltaTime * mSpeed * mSpeedFactor;
-  if (_a)
+  if (input.left)
     mEye -= right * deltaTime * mSpeed * mSpeedFactor;
-  if (_d)
+  if (input.right)
     mEye += right * deltaTime * mSpeed * mSpeedFactor;
-  if (_up)
+  if (input.up)
     mEye += up * deltaTime * mSpeed * mSpeedFactor;
-  if (_down)
+  if (input.down)
     mEye -= up * deltaTime * mSpeed * mSpeedFactor;
 }
 

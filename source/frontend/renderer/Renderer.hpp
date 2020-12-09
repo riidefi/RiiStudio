@@ -32,8 +32,6 @@ private:
 
   // Mouse
   float mouseSpeed = 0.2f;
-  // Input
-  bool inCtrl = false;
   int combo_choice_cam = 0;
   // Render settings
   bool rend = true;
