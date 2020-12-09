@@ -20,6 +20,8 @@ public:
 
   Camera& getCamera() { return mCameraController.mCamera; }
 
+  CameraController::InputState buildInputState() const;
+
 private:
   lib3d::IDrawable* mRoot = nullptr;
 
