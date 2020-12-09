@@ -32,7 +32,7 @@ private:
 
   // Mouse
   float mouseSpeed = 0.2f;
-  int combo_choice_cam = 0;
+  CameraController::ControllerType combo_choice_cam = CameraController::ControllerType::WASD_Minecraft;
   // Render settings
   bool rend = true;
 #ifdef RII_NATIVE_GL_WIREFRAME

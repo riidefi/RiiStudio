@@ -46,7 +46,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     // ImGui::Combo("Shading", &combo_choice, "Emulated
     // Shaders\0Normals\0TODO\0");
 
-    ImGui::Combo("##Controls", &combo_choice_cam,
+    ImGui::Combo("##Controls", (int*)&combo_choice_cam,
                  "WASD // FPS\0WASD // Plane\0");
 
 #ifdef RII_NATIVE_GL_WIREFRAME
@@ -79,10 +79,14 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
       key_s = true;
     if (ImGui::IsKeyDown('D'))
       key_d = true;
-    if ((ImGui::IsKeyDown(' ') && combo_choice_cam == 0) ||
+    if ((ImGui::IsKeyDown(' ') &&
+         combo_choice_cam ==
+             CameraController::ControllerType::WASD_Minecraft) ||
         ImGui::IsKeyDown('E'))
       key_up = true;
-    if ((ImGui::IsKeyDown(340) && combo_choice_cam == 0) ||
+    if ((ImGui::IsKeyDown(340) &&
+         combo_choice_cam ==
+             CameraController::ControllerType::WASD_Minecraft) ||
         ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
       key_down = true;
 #else
