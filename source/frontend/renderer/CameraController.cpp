@@ -14,8 +14,8 @@ void CameraController::move(float mouseSpeed, ControllerType controller_type,
 
   float deltaTime = 1.0f / ImGui::GetIO().Framerate;
 
-  const auto pos =
-      ImGui::IsMousePosValid() ? ImGui::GetMousePos() : ImVec2(mPrevX, mPrevY);
+  const auto pos = input.mouse.has_value() ? input.mouse->position
+                                           : glm::vec2(mPrevX, mPrevY);
 
   const float x_delta = pos.x - mPrevX;
   const float y_delta = pos.y - mPrevY;
@@ -35,11 +35,6 @@ void CameraController::move(float mouseSpeed, ControllerType controller_type,
               glm::degrees(mVerticalAngle));
 #endif
 
-#ifdef BUILD_DEBUG
-  ImGui::Text("Horiz %f (%f degrees), Vert %f (%f degrees)", mHorizontalAngle,
-              glm::degrees(mHorizontalAngle), mVerticalAngle,
-              glm::degrees(mVerticalAngle));
-#endif
   if (input.clickView) {
     mHorizontalAngle += horiz_delta;
     mVerticalAngle += vert_delta;
@@ -67,8 +62,10 @@ void CameraController::move(float mouseSpeed, ControllerType controller_type,
   glm::vec3 right =
       glm::vec3(sin(mHorizontalAngle - 1.57), 0, cos(mHorizontalAngle - 1.57));
 
-  mSpeed += ImGui::GetIO().MouseWheel * SCROLL_SPEED;
-  mSpeed = std::clamp(mSpeed, MIN_SPEED, MAX_SPEED);
+  if (input.mouse.has_value()) {
+    mSpeed += input.mouse->scroll * SCROLL_SPEED;
+    mSpeed = std::clamp(mSpeed, MIN_SPEED, MAX_SPEED);
+  }
 
   if (input.forward)
     mCamera.mEye += mvmt_dir * deltaTime * mSpeed * mSpeedFactor;

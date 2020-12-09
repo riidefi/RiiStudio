@@ -151,6 +151,14 @@ CameraController::InputState Renderer::buildInputState() const {
       ImGui::IsMouseDown(ImGuiMouseButton_Middle))
     mouse_view = true;
 
+  std::optional<CameraController::InputState::MouseState> mouse;
+
+  if (ImGui::IsMousePosValid()) {
+    mouse = {.position =
+                 glm::vec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y),
+             .scroll = ImGui::GetIO().MouseWheel};
+  }
+
   return CameraController::InputState{.forward = key_w,
                                       .left = key_a,
                                       .backward = key_s,
@@ -158,7 +166,8 @@ CameraController::InputState Renderer::buildInputState() const {
                                       .up = key_up,
                                       .down = key_down,
                                       .clickSelect = mouse_select,
-                                      .clickView = mouse_view};
+                                      .clickView = mouse_view,
+                                      .mouse = mouse};
 }
 
 } // namespace riistudio::frontend
