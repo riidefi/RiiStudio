@@ -9,11 +9,8 @@ constexpr float MIN_SPEED = 10.0f;
 constexpr float MAX_SPEED = 1000.f;
 constexpr float SCROLL_SPEED = 10.0f;
 
-void CameraController::move(float mouseSpeed, ControllerType controller_type,
+void CameraController::move(float time_step, ControllerType controller_type,
                             InputState input) {
-
-  float deltaTime = 1.0f / ImGui::GetIO().Framerate;
-
   const auto pos = input.mouse.has_value() ? input.mouse->position
                                            : glm::vec2(mPrevX, mPrevY);
 
@@ -25,8 +22,8 @@ void CameraController::move(float mouseSpeed, ControllerType controller_type,
   ImGui::Text("Mouse position: %f %f. Last: %f %f. Delta: %f %f", pos.x, pos.y,
               mPrevX, mPrevY, x_delta, y_delta);
 #endif
-  const float horiz_delta = mouseSpeed * deltaTime * -x_delta;
-  const float vert_delta = mouseSpeed * deltaTime * -y_delta;
+  const float horiz_delta = mMouseSpeed * time_step * -x_delta;
+  const float vert_delta = mMouseSpeed * time_step * -y_delta;
 #ifdef BUILD_DEBUG
   ImGui::Text("Horiz delta: %f (%f). Vert delta: %f (%f)", horiz_delta,
               glm::degrees(horiz_delta), vert_delta, glm::degrees(vert_delta));
@@ -68,20 +65,21 @@ void CameraController::move(float mouseSpeed, ControllerType controller_type,
   }
 
   if (input.forward)
-    mCamera.mEye += mvmt_dir * deltaTime * mSpeed * mSpeedFactor;
+    mCamera.mEye += mvmt_dir * time_step * mSpeed * mSpeedFactor;
   if (input.backward)
-    mCamera.mEye -= mvmt_dir * deltaTime * mSpeed * mSpeedFactor;
+    mCamera.mEye -= mvmt_dir * time_step * mSpeed * mSpeedFactor;
   if (input.left)
-    mCamera.mEye -= right * deltaTime * mSpeed * mSpeedFactor;
+    mCamera.mEye -= right * time_step * mSpeed * mSpeedFactor;
   if (input.right)
-    mCamera.mEye += right * deltaTime * mSpeed * mSpeedFactor;
+    mCamera.mEye += right * time_step * mSpeed * mSpeedFactor;
   if (input.up)
-    mCamera.mEye += mCamera.getUp() * deltaTime * mSpeed * mSpeedFactor;
+    mCamera.mEye += mCamera.getUp() * time_step * mSpeed * mSpeedFactor;
   if (input.down)
-    mCamera.mEye -= mCamera.getUp() * deltaTime * mSpeed * mSpeedFactor;
+    mCamera.mEye -= mCamera.getUp() * time_step * mSpeed * mSpeedFactor;
 }
 
 void CameraController::drawOptions() {
+  ImGui::SliderFloat("Mouse Speed", &mMouseSpeed, 0.0f, .2f);
   ImGui::SliderFloat("Camera Speed", &mSpeed, MIN_SPEED, MAX_SPEED);
   ImGui::SliderFloat("FOV", &mCamera.mFOV, 1.0f, 180.0f);
 

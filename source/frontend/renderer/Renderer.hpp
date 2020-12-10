@@ -31,9 +31,6 @@ private:
   std::vector<glm::vec3> colors;
 
   CameraController mCameraController;
-
-  // Mouse
-  float mouseSpeed = 0.2f;
   CameraController::ControllerType combo_choice_cam = CameraController::ControllerType::WASD_Minecraft;
   // Render settings
   bool rend = true;

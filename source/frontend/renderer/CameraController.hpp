@@ -43,11 +43,12 @@ public:
                //!<   (Matching WASD_Minecraft's behavior for SPACE/SHIFT)
   };
 
-  void move(float mouseSpeed, ControllerType controller_type, InputState input);
+  void move(float time_step, ControllerType controller_type, InputState input);
 
   void drawOptions();
 
   Camera mCamera;
+  float mMouseSpeed = 0.2f;
   float mSpeed = 150.0f;
   float mSpeedFactor = 0.0f;
   float mHorizontalAngle = 3.14f;

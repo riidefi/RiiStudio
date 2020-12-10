@@ -29,8 +29,6 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
 
   if (ImGui::BeginMenuBar()) {
     if (ImGui::BeginMenu("Camera")) {
-      ImGui::SliderFloat("Mouse Speed", &mouseSpeed, 0.0f, .2f);
-
       mCameraController.drawOptions();
 
       ImGui::EndMenu();
@@ -66,7 +64,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     return;
 
   if (ImGui::IsWindowFocused()) {
-    mCameraController.move(mouseSpeed, combo_choice_cam, buildInputState());
+    mCameraController.move(1.0f / ImGui::GetIO().Framerate, combo_choice_cam, buildInputState());
   }
 
   glm::mat4 projMtx, viewMtx;
