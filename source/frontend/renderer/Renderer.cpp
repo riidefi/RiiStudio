@@ -20,13 +20,45 @@ Renderer::Renderer(lib3d::IDrawable* root) : mRoot(root) {}
 Renderer::~Renderer() {}
 
 void Renderer::render(u32 width, u32 height, bool& showCursor) {
+  // The root may set a flag to signal it is undergoing a mutation and is unsafe to
+  // be drawn.
   if (mRoot->poisoned)
     return;
+
+  // After the mutation occurs, the root will signal us to reinitialize our
+  // cache of it.
   if (mRoot->reinit) {
     mRoot->reinit = false;
     prepare(*dynamic_cast<kpi::INode*>(mRoot));
   }
 
+  drawMenuBar();
+
+#ifdef RII_NATIVE_GL_WIREFRAME
+  setGlWireframe(wireframe);
+#endif
+
+  if (!rend)
+    return;
+
+  if (ImGui::IsWindowFocused()) {
+    mCameraController.move(1.0f / ImGui::GetIO().Framerate, combo_choice_cam,
+                           buildInputState());
+  }
+
+  glm::mat4 projMtx, viewMtx;
+  mCameraController.mCamera.calcMatrices(width, height, projMtx, viewMtx);
+
+  riistudio::lib3d::AABB bound;
+  mRoot->build(projMtx, viewMtx, bound);
+
+  updateCameraController(bound);
+
+  clearGlScreen();
+  mRoot->draw();
+}
+
+void Renderer::drawMenuBar() {
   if (ImGui::BeginMenuBar()) {
     if (ImGui::BeginMenu("Camera")) {
       mCameraController.drawOptions();
@@ -52,27 +84,9 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
 #endif
     ImGui::EndMenuBar();
   }
+}
 
-#ifdef RII_NATIVE_GL_WIREFRAME
-  if (wireframe)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  else
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-#endif
-
-  if (!rend)
-    return;
-
-  if (ImGui::IsWindowFocused()) {
-    mCameraController.move(1.0f / ImGui::GetIO().Framerate, combo_choice_cam, buildInputState());
-  }
-
-  glm::mat4 projMtx, viewMtx;
-  mCameraController.mCamera.calcMatrices(width, height, projMtx, viewMtx);
-
-  riistudio::lib3d::AABB bound;
-  mRoot->build(projMtx, viewMtx, bound);
-
+void Renderer::updateCameraController(const lib3d::AABB& bound) {
   const f32 dist = glm::distance(bound.min, bound.max);
   mCameraController.mSpeedFactor = dist == 0.0f ? 50.0f : dist / 1000.0f;
 
@@ -80,11 +94,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     const auto min = bound.min;
     const auto max = bound.max;
 
-    glm::vec3 eye;
-    eye.x = (min.x + max.x) / 2.0f;
-    eye.y = (min.y + max.y) / 2.0f;
-    eye.z = (min.z + max.z) / 2.0f;
-    mCameraController.mCamera.setPosition(eye);
+    mCameraController.mCamera.setPosition((min + max) / 2.0f);
 
     if (min != max) {
       const auto dist = glm::distance(min, max);
@@ -95,12 +105,21 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
                                               dist * expansion);
     }
   }
+}
 
+void Renderer::setGlWireframe(bool wireframe) const {
+#ifdef RII_NATIVE_GL_WIREFRAME
+  if (wireframe)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  else
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#endif
+}
+
+void Renderer::clearGlScreen() const {
   const auto bg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
   glClearColor(bg.x, bg.y, bg.z, bg.w);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  mRoot->draw();
 }
 
 CameraController::InputState Renderer::buildInputState() const {

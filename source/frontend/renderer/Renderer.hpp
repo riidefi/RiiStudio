@@ -20,16 +20,14 @@ public:
 
   Camera& getCamera() { return mCameraController.mCamera; }
 
+  void drawMenuBar();
+  void updateCameraController(const lib3d::AABB& bounding_box);
+  void setGlWireframe(bool wireframe) const;
+  void clearGlScreen() const;
   CameraController::InputState buildInputState() const;
 
 private:
   lib3d::IDrawable* mRoot = nullptr;
-
-  glm::vec3 max{0, 0, 0};
-  std::vector<glm::vec3> pos;
-  std::vector<u32> idx;
-  std::vector<glm::vec3> colors;
-
   CameraController mCameraController;
   CameraController::ControllerType combo_choice_cam = CameraController::ControllerType::WASD_Minecraft;
   // Render settings
