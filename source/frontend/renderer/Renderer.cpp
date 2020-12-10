@@ -31,7 +31,7 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     if (ImGui::BeginMenu("Camera")) {
       ImGui::SliderFloat("Mouse Speed", &mouseSpeed, 0.0f, .2f);
 
-      mCamera.drawOptions();
+      mCameraController.drawOptions();
 
       ImGui::EndMenu();
     }
@@ -109,27 +109,27 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
         ImGui::IsMouseDown(ImGuiMouseButton_Middle))
       mouse_view = true;
   }
-  Camera::InputState input{.forward = key_w,
-                           .left = key_a,
-                           .backward = key_s,
-                           .right = key_d,
-                           .up = key_up,
-                           .down = key_down,
-                           .clickSelect = mouse_select,
-                           .clickView = mouse_view};
+  CameraController::InputState input{.forward = key_w,
+                                     .left = key_a,
+                                     .backward = key_s,
+                                     .right = key_d,
+                                     .up = key_up,
+                                     .down = key_down,
+                                     .clickSelect = mouse_select,
+                                     .clickView = mouse_view};
 
   glm::mat4 projMtx, viewMtx;
-  mCamera.calc(mouseSpeed, combo_choice_cam, input);
+  mCameraController.move(mouseSpeed, combo_choice_cam, input);
 
-  mCamera.calcMatrices(width, height, projMtx, viewMtx);
+  mCameraController.mCamera.calcMatrices(width, height, projMtx, viewMtx);
 
   riistudio::lib3d::AABB bound;
   mRoot->build(projMtx, viewMtx, bound);
 
   const f32 dist = glm::distance(bound.min, bound.max);
-  mCamera.setSpeedFactor(dist == 0.0f ? 50.0f : dist / 1000.0f);
+  mCameraController.mSpeedFactor = dist == 0.0f ? 50.0f : dist / 1000.0f;
 
-  if (mCamera.getPosition() == glm::vec3{0.0f}) {
+  if (mCameraController.mCamera.getPosition() == glm::vec3{0.0f}) {
     const auto min = bound.min;
     const auto max = bound.max;
 
@@ -137,14 +137,15 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     eye.x = (min.x + max.x) / 2.0f;
     eye.y = (min.y + max.y) / 2.0f;
     eye.z = (min.z + max.z) / 2.0f;
-    mCamera.setPosition(eye);
+    mCameraController.mCamera.setPosition(eye);
 
     if (min != max) {
       const auto dist = glm::distance(min, max);
       const auto range = 100000.0f;
       const auto expansion = 5.0f; // Let's assume the user wants to be at least
                                    // 5x away from the model.
-      mCamera.setClipPlanes(dist / range * expansion, dist * expansion);
+      mCameraController.mCamera.setClipPlanes(dist / range * expansion,
+                                              dist * expansion);
     }
   }
 

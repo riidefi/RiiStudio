@@ -3,7 +3,7 @@
 #include <core/3d/i3dmodel.hpp>
 #include <core/common.h>
 #include <core/kpi/Node.hpp>
-#include <frontend/renderer/Camera.hpp>
+#include <frontend/renderer/CameraController.hpp>
 #include <glm/mat4x4.hpp>
 #include <memory>
 
@@ -18,7 +18,7 @@ public:
   void render(u32 width, u32 height, bool& hideCursor);
   void prepare(const kpi::INode& host) { mRoot->prepare(host); }
 
-  Camera& getCamera() { return mCamera; }
+  Camera& getCamera() { return mCameraController.mCamera; }
 
 private:
   lib3d::IDrawable* mRoot = nullptr;
@@ -28,7 +28,7 @@ private:
   std::vector<u32> idx;
   std::vector<glm::vec3> colors;
 
-  Camera mCamera;
+  CameraController mCameraController;
 
   // Mouse
   float mouseSpeed = 0.2f;
