@@ -1246,7 +1246,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     // Gen info
     mat.info.nTexGen = reader.read<u8>();
     mat.info.nColorChan = reader.read<u8>();
-    if (mat.info.nColorChan == 4)
+    if (mat.info.nColorChan >= 2)
       mat.info.nColorChan = 2;
     mat.info.nTevStage = reader.read<u8>();
     mat.info.nIndStage = reader.read<u8>();
@@ -1346,6 +1346,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     // reader.seek((8 - nTex)* (4 + (4 * 4 * sizeof(f32))));
     reader.seekSet(start + 0x3f0);
     mat.chanData.nElements = 0;
+	assert(mat.info.nColorChan < mat.colorChanControls.max_size());
     for (u8 i = 0; i < mat.info.nColorChan; ++i) {
       // skip runtime flag
       const auto flag = reader.read<u32>();
