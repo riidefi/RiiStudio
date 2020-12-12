@@ -43,25 +43,25 @@ auto fogEntry =
           KPI_PROPERTY_EX(delegate, mEnabled, static_cast<u16>(enabled));
           {
             util::ConditionalActive g(enabled);
-            ImGui::PushItemWidth(200);
-            {
-              int center = fog.mCenter;
-              ImGui::InputInt("Center", &center);
-              KPI_PROPERTY_EX(delegate, mCenter, static_cast<u16>(center));
+            float startZ = fog.mStartZ;
+            ImGui::InputFloat("Start Z", &startZ);
+            KPI_PROPERTY_EX(delegate, mStartZ, startZ);
 
-              float startZ = fog.mStartZ;
-              ImGui::InputFloat("Start Z", &startZ);
-              KPI_PROPERTY_EX(delegate, mStartZ, startZ);
+            float endZ = fog.mEndZ;
+            ImGui::InputFloat("End Z", &endZ);
+            KPI_PROPERTY_EX(delegate, mEndZ, endZ);
 
-              float endZ = fog.mEndZ;
-              ImGui::InputFloat("End Z", &endZ);
-              KPI_PROPERTY_EX(delegate, mEndZ, endZ);
-            }
-            ImGui::PopItemWidth();
             libcube::gx::ColorF32 clr_f32 = fog.mColor;
             ImGui::ColorEdit4("Fog Color", clr_f32);
-            KPI_PROPERTY_EX(delegate, mColor,
-                            (libcube::gx::Color)clr_f32);
+            KPI_PROPERTY_EX(delegate, mColor, (libcube::gx::Color)clr_f32);
+
+            int center = fog.mCenter;
+            ImGui::InputInt("Center", &center);
+            KPI_PROPERTY_EX(delegate, mCenter, static_cast<u16>(center));
+
+            float fadeSpeed = fog.mFadeSpeed;
+            ImGui::InputFloat("Fade Speed", &fadeSpeed);
+            KPI_PROPERTY_EX(delegate, mFadeSpeed, fadeSpeed);
           }
         });
 } // namespace ui
