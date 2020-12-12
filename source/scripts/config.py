@@ -60,6 +60,11 @@ data = {
       [ "Cannon", "CannonPoints" ],
       [ "Stage", "Stages" ],
       [ "MissionPoint", "MissionPoints" ]
+  ],
+
+  # BFG
+  "riistudio::mk::BinaryFog*": [ "mk::NullClass", "mk::BinaryFogData",
+      [ "FogEntry", "FogEntries" ]
   ]
 }
 
@@ -68,5 +73,6 @@ out = {
 	"plugins\\gc\\Node.h":  [ "libcube::Model",          "libcube::Scene" ],
 	"plugins\\j3d\\Node.h": [ "riistudio::j3d::Model*",  "riistudio::j3d::Collection*" ],
 	"plugins\\g3d\\Node.h": [ "riistudio::g3d::Model*",  "riistudio::g3d::Collection*" ],
-  "plugins\\mk\\KMP\\Node.h": [ "riistudio::mk::CourseMap*" ]
+  "plugins\\mk\\KMP\\Node.h": [ "riistudio::mk::CourseMap*" ],
+  "plugins\\mk\\BFG\\Node.h": [ "riistudio::mk::BinaryFog*" ]
 }
