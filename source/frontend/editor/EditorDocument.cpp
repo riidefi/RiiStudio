@@ -59,7 +59,7 @@ void EditorDocument::saveAs(const std::string_view _path) {
     path.resize(path.size() - 4);
     path += ".bmd";
   }
-  oishii::Writer writer(1024);
+  oishii::Writer writer(0);
 
   auto ex = SpawnExporter(getRoot());
   if (!ex) {

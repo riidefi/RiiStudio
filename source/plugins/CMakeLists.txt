@@ -129,4 +129,17 @@ add_library(plugins
   "ass/AssImporter.hpp"
   "ass/AssLogger.hpp"
   "ass/Utility.hpp"
- "ass/AssMaterial.hpp" "gc/UI/ResizeAction.hpp" "gc/UI/ResizeAction.cpp" "g3d/io/TEX0.cpp" "g3d/io/MDL0.cpp" "g3d/io/Common.hpp" "g3d/io/Common.cpp" "ass/ModelActions.cpp")
+  "ass/AssMaterial.hpp"
+  "gc/UI/ResizeAction.hpp"
+  "gc/UI/ResizeAction.cpp"
+  "g3d/io/TEX0.cpp"
+  "g3d/io/MDL0.cpp"
+  "g3d/io/Common.hpp"
+  "g3d/io/Common.cpp"
+  "ass/ModelActions.cpp"
+  "mk/BFG/io/BFG.hpp"
+  "mk/BFG/io/BFG.cpp"
+  "mk/BFG/Fog.hpp"
+  "mk/BFG/FogEntry.hpp"
+  "mk/BFG/FogView.cpp"
+  "mk/BFG/Node.h")
