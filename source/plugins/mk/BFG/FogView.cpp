@@ -60,7 +60,7 @@ auto fogEntry =
             KPI_PROPERTY_EX(delegate, mCenter, static_cast<u16>(center));
 
             float fadeSpeed = fog.mFadeSpeed;
-            ImGui::InputFloat("Fade Speed", &fadeSpeed);
+            ImGui::SliderFloat("Fade Speed", &fadeSpeed, 0.0f, 1.0f);
             KPI_PROPERTY_EX(delegate, mFadeSpeed, fadeSpeed);
           }
         });
