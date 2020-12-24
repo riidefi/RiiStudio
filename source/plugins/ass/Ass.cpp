@@ -57,12 +57,13 @@ struct AssReader {
   static constexpr u32 DefaultFlags =
       aiProcess_GenSmoothNormals | aiProcess_RemoveRedundantMaterials |
       aiProcess_FindDegenerates | aiProcess_FindInvalidData |
-      aiProcess_FindInstances | aiProcess_OptimizeMeshes | aiProcess_Debone |
-      aiProcess_OptimizeGraph | aiProcess_RemoveComponent;
+      aiProcess_OptimizeMeshes | aiProcess_Debone | aiProcess_OptimizeGraph |
+      aiProcess_RemoveComponent;
   static constexpr u32 AlwaysFlags =
-      aiProcess_ValidateDataStructure | aiProcess_Triangulate |
-      aiProcess_SortByPType | aiProcess_PopulateArmatureData |
-      aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes | aiProcess_FlipUVs |
+      aiProcess_JoinIdenticalVertices | aiProcess_ValidateDataStructure |
+      aiProcess_Triangulate | aiProcess_SortByPType |
+      aiProcess_PopulateArmatureData | aiProcess_GenUVCoords |
+      aiProcess_GenBoundingBoxes | aiProcess_FlipUVs |
       aiProcess_FlipWindingOrder;
   u32 ass_flags = AlwaysFlags | DefaultFlags;
   float mMagnification = 1.0f;
@@ -148,9 +149,11 @@ void AssReader::read(kpi::IOTransaction& transaction) {
                                  mMagnification);
     }
 
-    const auto* pScene = importer->ReadFileFromMemory(transaction.data.data(),
-                                                      transaction.data.size(),
-                                                      ass_flags, path.c_str());
+    importer->ReadFileFromMemory(transaction.data.data(),
+                                 transaction.data.size(),
+                                 aiProcess_PreTransformVertices, path.c_str());
+    const auto* pScene = importer->ApplyPostProcessing(ass_flags);
+
     if (!pScene) {
       transaction.state = kpi::TransactionState::Failure;
       return;

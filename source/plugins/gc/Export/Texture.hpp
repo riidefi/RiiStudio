@@ -6,6 +6,8 @@
 
 #include <plugins/gc/Encoder/ImagePlatform.hpp>
 #include <vendor/mp/Metaphrasis.h>
+#include <algorithm>
+
 namespace libcube {
 
 struct Texture : public riistudio::lib3d::Texture {
@@ -17,9 +19,10 @@ struct Texture : public riistudio::lib3d::Texture {
                             mip ? getMipmapCount() + 1 : 0);
   }
   inline void decode(std::vector<u8>& out, bool mip) const override {
-    const u32 size = getDecodedSize(mip);
+    u32 size = getDecodedSize(mip);
     if (size == 0)
       return;
+	size = std::max(size, u32(1024 * 1024 * 4));
     // assert(size);
 	
     if (out.size() < size) {

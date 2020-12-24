@@ -18,14 +18,14 @@ struct AssLogger : public Assimp::Logger {
   }
   void OnDebug(const char* message) override {
 #ifdef BUILD_DEBUG
-    mCallback(kpi::IOMessageClass::Information, domain, message);
+    //mCallback(kpi::IOMessageClass::Information, domain, message);
 #endif
   }
   void OnInfo(const char* message) override {
-    mCallback(kpi::IOMessageClass::Information, domain, message);
+    //mCallback(kpi::IOMessageClass::Information, domain, message);
   }
   void OnWarn(const char* message) override {
-    mCallback(kpi::IOMessageClass::Warning, domain, message);
+    //mCallback(kpi::IOMessageClass::Warning, domain, message);
   }
   void OnError(const char* message) override {
     mCallback(kpi::IOMessageClass::Error, domain, message);
