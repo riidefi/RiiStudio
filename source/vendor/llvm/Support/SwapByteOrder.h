@@ -22,7 +22,7 @@
 #endif
 
 #if defined(__linux__) || defined(__GNU__) || defined(__HAIKU__)
-#include <endian.h>
+//#include <endian.h>
 #elif defined(_AIX)
 #include <sys/machine.h>
 #elif defined(__sun)

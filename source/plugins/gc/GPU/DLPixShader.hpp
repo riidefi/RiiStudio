@@ -2,13 +2,33 @@
 
 #include "DLInterpreter.hpp"
 #include "GPUMaterial.hpp"
+#include <array>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
 #include <plugins/gc/GX/Struct/Shader.hpp>
-
-#include <array>
+#include <vector>
 
 namespace libcube::gpu {
+
+struct GPUShader {
+  template <typename T> inline void setReg(T& reg, const QBPCommand& cmd) {
+    reg.hex = (reg.hex & ~mMask) | (cmd.val & mMask);
+  }
+
+  u32 mMask = u32(-1); // BP mask. only valid for next
+
+  std::array<gpu::TevKSel, 8> tevksel;
+  gpu::RAS1_IREF iref;
+  std::array<gpu::RAS1_TREF, 8> tref;
+
+  std::array<ColorCombiner, 16> colorEnv;
+  std::array<AlphaCombiner, 16> alphaEnv;
+  std::array<TevStageIndirect, 16> indCmd;
+
+  u16 definedIndCmds = 0;
+  void defineIndCmd(int i) { definedIndCmds |= (1 << i); }
+  bool isDefinedIndCmd(int i) { return definedIndCmds & (1 << i); }
+};
 
 class QDisplayListShaderHandler : public QDisplayListHandler {
 public:
@@ -21,35 +41,14 @@ public:
   gx::Shader& mShader;
   int mNumStages;
 
-  struct {
-    template <typename T> inline void setReg(T& reg, const QBPCommand& cmd) {
-      reg.hex = (reg.hex & ~mMask) | (cmd.val & mMask);
-    }
-
-    u32 mMask = u32(-1); // BP mask. only valid for next
-
-    std::array<gpu::TevKSel, 8> tevksel;
-    gpu::RAS1_IREF iref;
-    std::array<gpu::RAS1_TREF, 8> tref;
-
-    std::array<ColorCombiner, 16> colorEnv;
-    std::array<AlphaCombiner, 16> alphaEnv;
-    std::array<TevStageIndirect, 16> indCmd;
-
-    // Brawlbox bug makes this useful
-    u16 definedIndCmds = 0;
-    void defineIndCmd(int i) { definedIndCmds |= (1 << i); }
-    bool isDefinedIndCmd(int i) { return definedIndCmds & (1 << i); }
-  } mGpuShader;
+  GPUShader mGpuShader;
 };
 
 struct GPUMaterial {
   // Display lists
-  struct {
-    std::vector<BPCommand> mMiscBPCommands;
-    std::vector<CPCommand> mMiscCPCommands;
-    std::vector<XFCommand> mMiscXFCommands;
-  };
+  std::vector<BPCommand> mMiscBPCommands;
+  std::vector<CPCommand> mMiscCPCommands;
+  std::vector<XFCommand> mMiscXFCommands;
   struct PixelEngine {
     AlphaTest mAlphaCompare;
     ZMode mZMode;

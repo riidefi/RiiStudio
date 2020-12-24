@@ -21,3 +21,7 @@ static_assert(sizeof(s32) == 4 && sizeof(u32) == 4, "!");
 static_assert(sizeof(f32) == 4, "!");
 static_assert(sizeof(f64) == 8, "!");
 #endif
+
+#ifndef _WIN32
+#define __debugbreak(...)
+#endif

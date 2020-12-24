@@ -31,33 +31,32 @@ public:
       "Classic\0Dark\0Light\0Not Quite UE4\0Raikiri\0Adaptive\0Corporate "
       "Grey\0Zenith: Dark\0Zenith: Light\0";
 
-  template <BasicTheme theme> inline void setTheme() {}
 
   inline void setTheme(BasicTheme theme) {
     switch (theme) {
     case BasicTheme::ImClassic:
-      setTheme<BasicTheme::ImClassic>();
+      setThemeImClassic();
       break;
     case BasicTheme::ImDark:
-      setTheme<BasicTheme::ImDark>();
+      setThemeImDark();
       break;
     case BasicTheme::ImLight:
-      setTheme<BasicTheme::ImLight>();
+      setThemeImLight();
       break;
     case BasicTheme::UE4ish:
-      setTheme<BasicTheme::UE4ish>();
+      setThemeUE4ish();
       break;
     case BasicTheme::Raikiri:
-      setTheme<BasicTheme::Raikiri>();
+      setThemeRaikiri();
       break;
     case BasicTheme::CorporateGrey:
-      setTheme<BasicTheme::CorporateGrey>();
+      setThemeCorporateGrey();
       break;
     case BasicTheme::ZenithDark:
-      setTheme<BasicTheme::ZenithDark>();
+      setThemeZenithDark();
       break;
     case BasicTheme::ZenithLight:
-      setTheme<BasicTheme::ZenithLight>();
+      setThemeZenithLight();
       break;
     default:
       break;
@@ -72,19 +71,19 @@ public:
       setTheme(theme);
   }
 
-  template <> inline void setTheme<BasicTheme::ImClassic>() {
+  inline void setThemeImClassic() {
     ImGui::StyleColorsClassic();
   }
 
-  template <> inline void setTheme<BasicTheme::ImDark>() {
+  inline void setThemeImDark() {
     ImGui::StyleColorsDark();
   }
 
-  template <> inline void setTheme<BasicTheme::ImLight>() {
+  inline void setThemeImLight() {
     ImGui::StyleColorsLight();
   }
 
-  template <> inline void setTheme<BasicTheme::UE4ish>() {
+  inline void setThemeUE4ish() {
     // https://github.com/ocornut/imgui/issues/707#issuecomment-415097227
     ImVec4* colors = ImGui::GetStyle().Colors;
     colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
@@ -131,7 +130,7 @@ public:
     colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
   }
 
-  template <> inline void setTheme<BasicTheme::Raikiri>() {
+  inline void setThemeRaikiri() {
     // https://github.com/ocornut/imgui/issues/707#issuecomment-512669512
 
     // imGuiIO.Fonts->AddFontFromFileTTF("../data/Fonts/Ruda-Bold.ttf", 15.0f,
@@ -192,7 +191,7 @@ public:
   }
   // Zenith:
   // https://github.com/gitbetter/Zenith/blob/23533b7de21fc8a6fd4303659da12381a112b1a4/Editor/_Source/ZEditor.cpp#L310
-  template <> inline void setTheme<BasicTheme::ZenithLight>() {
+  inline void setThemeZenithLight() {
 
     ImGuiStyle* style = &ImGui::GetStyle();
     ImVec4* colors = style->Colors;
@@ -263,7 +262,7 @@ public:
     colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
   }
 
-  template <> inline void setTheme<BasicTheme::ZenithDark>() {
+  inline void setThemeZenithDark() {
     ImGuiStyle* style = &ImGui::GetStyle();
     ImVec4* colors = style->Colors;
 
@@ -332,7 +331,7 @@ public:
     colors[ImGuiCol_NavHighlight] = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
     colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
   }
-  template <> inline void setTheme<BasicTheme::CorporateGrey>() {
+  inline void setThemeCorporateGrey() {
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
 

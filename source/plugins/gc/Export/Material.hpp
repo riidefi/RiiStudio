@@ -47,7 +47,7 @@ template <typename T, size_t N> struct array_vector : public std::array<T, N> {
 template <typename T, std::size_t size>
 struct copyable_polymorphic_array_vector
     : public array_vector<std::unique_ptr<T>, size> {
-#ifndef __clang__
+#ifdef _MSVC_VER
   using super = array_vector;
 #else
   // MSVC bug?
@@ -261,7 +261,7 @@ struct IGCMaterial : public riistudio::lib3d::Material {
   };
   // Compat
   struct PropertySupport : public TPropertySupport<Feature> {
-    using Feature = Feature;
+    using Feature = IGCMaterial::Feature;
     static constexpr std::array<const char*, (u64)Feature::Max> featureStrings =
         {"Culling Mode", "Early Z Comparison", "Z Comparison", "GenInfo",
          "Material/Ambient Colors"};

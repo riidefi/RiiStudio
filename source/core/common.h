@@ -24,7 +24,7 @@
 #include <stdio.h>
 #endif
 
-#ifndef _WIN32
+#if defined(__emscripten__)
 #include <emscripten.h>
 
 #define DebugReport(...)                                                       \
