@@ -67,6 +67,7 @@ struct AssReader {
       aiProcess_FlipWindingOrder;
   u32 ass_flags = AlwaysFlags | DefaultFlags;
   float mMagnification = 1.0f;
+  std::array<f32, 3> model_tint = {1.0f, 1.0f, 1.0f};
 
   // if mGenerateMipMaps, create mip levels until < mMinMipDimension or >
   // mMaxMipCount
@@ -204,7 +205,8 @@ void AssReader::read(kpi::IOTransaction& transaction) {
       }
     }
     helper->ImportAss(additional_textures, mGenerateMipMaps, mMinMipDimension,
-                      mMaxMipCount, mAutoTransparent);
+                      mMaxMipCount, mAutoTransparent,
+                      glm::vec3(model_tint[0], model_tint[1], model_tint[2]));
     transaction.state = kpi::TransactionState::Complete;
     state = State::Completed;
     // And we die~
@@ -294,6 +296,7 @@ void AssReader::render() {
                          aiProcess_RemoveRedundantMaterials);
     ImGui::CheckboxFlags("Bake UV coord scale/rotate/translate", &ass_flags,
                          aiProcess_TransformUVCoords);
+    ImGui::ColorEdit3("Model Tint", model_tint.data());
   }
   if (ImGui::CollapsingHeader(
           (const char*)ICON_FA_PROJECT_DIAGRAM u8" Mesh Settings",

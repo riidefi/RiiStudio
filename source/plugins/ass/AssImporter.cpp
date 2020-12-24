@@ -192,7 +192,7 @@ void AssImporter::ProcessMeshTriangles(
   }
 }
 
-bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
+bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode, glm::vec3 tint) {
   // Ignore points and lines
   if (pMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
     return false;
@@ -257,6 +257,8 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode) {
                          ? libcube::gx::Color{0xff, 0xff, 0xff, 0xff}
                          : getClr(pMesh->mColors[j][v]);
     libcube::gx::ColorF32 fclr(clr);
+    auto tclr = glm::vec4(fclr.r, fclr.g, fclr.b, fclr.a) * glm::vec4(tint, 1.0f);
+    fclr = {.r = tclr.x, .g = tclr.y, .b = tclr.z, .a = tclr.w};
     return poly.addClr(j, fclr);
   };
   auto add_uv = [&](int v, int j) {
@@ -375,7 +377,7 @@ static bool importTexture(libcube::Texture& data, const char* path,
                        height, channels);
 }
 
-void AssImporter::ImportNode(const aiNode* pNode, int parent) {
+void AssImporter::ImportNode(const aiNode* pNode, glm::vec3 tint, int parent) {
   // Create a bone (with name)
   const auto joint_id = out_model->getBones().size();
   auto& joint = out_model->getBones().add();
@@ -414,7 +416,7 @@ void AssImporter::ImportNode(const aiNode* pNode, int parent) {
            boneIdCtr->matIdToMatIdMap.end());
     const auto matId = boneIdCtr->matIdToMatIdMap[pMesh->mMaterialIndex];
 
-    if (ImportMesh(pMesh, pNode)) {
+    if (ImportMesh(pMesh, pNode, tint)) {
       aabb.expandBound(out_model->getMeshes()[boneIdCtr->meshId].getBounds());
       joint.addDisplay({matId, boneIdCtr->meshId++, 0});
     } else {
@@ -427,7 +429,7 @@ void AssImporter::ImportNode(const aiNode* pNode, int parent) {
   joint.setBoundingRadius(glm::length(aabb.max - aabb.max));
 
   for (unsigned i = 0; i < pNode->mNumChildren; ++i) {
-    ImportNode(pNode->mChildren[i], joint_id);
+    ImportNode(pNode->mChildren[i], tint, joint_id);
   }
 }
 
@@ -653,7 +655,7 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip) {
 
 void AssImporter::ImportAss(
     const std::vector<std::pair<std::size_t, std::vector<u8>>>& data,
-    bool mip_gen, int min_dim, int max_mip, bool auto_outline) {
+    bool mip_gen, int min_dim, int max_mip, bool auto_outline, glm::vec3 tint) {
   for (auto& [idx, idata] : data) {
     auto& data = out_collection->getTextures()[idx];
     bool imported = importTexture(data, idata.data(), idata.size(), scratch,
@@ -710,7 +712,7 @@ void AssImporter::ImportAss(
       if (sampler == nullptr)
         continue;
       auto* tex = tex_lut[sampler->mTexture]; // TODO
-      assert(tex != nullptr);
+      // assert(tex != nullptr);
       if (tex == nullptr)
         continue;
       core::TextureDimensions<u32> dimensions;
@@ -756,11 +758,12 @@ void AssImporter::ImportAss(
     }
   }
 
-  ImportNode(root);
+  ImportNode(root, tint);
 
   // Assign IDs
   for (int i = 0; i < out_model->getMeshes().size(); ++i) {
-    out_model->getMeshes()[i].setId(i);
+    auto& mesh = out_model->getMeshes()[i];
+    mesh.setId(i);
   }
 }
 

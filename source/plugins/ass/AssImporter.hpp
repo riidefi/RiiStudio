@@ -33,7 +33,8 @@ public:
   PrepareAss(bool mip_gen, int min_dim, int max_mip);
   void
   ImportAss(const std::vector<std::pair<std::size_t, std::vector<u8>>>& data,
-            bool mip_gen, int min_dim, int max_mip, bool auto_outline);
+            bool mip_gen, int min_dim, int max_mip, bool auto_outline,
+            glm::vec3 tint);
 
 private:
   IdCounter ctr;
@@ -63,8 +64,8 @@ private:
                             const aiMesh* pMesh, const aiNode* pNode,
                             std::vector<libcube::IndexedVertex>&& vertices);
 
-  bool ImportMesh(const aiMesh* pMesh, const aiNode* pNode);
-  void ImportNode(const aiNode* pNode, int parent = -1);
+  bool ImportMesh(const aiMesh* pMesh, const aiNode* pNode, glm::vec3 tint);
+  void ImportNode(const aiNode* pNode, glm::vec3 tint, int parent = -1);
 };
 
 } // namespace riistudio::ass
