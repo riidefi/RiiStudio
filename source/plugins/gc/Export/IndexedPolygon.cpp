@@ -213,7 +213,7 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
       case gx::VertexAttribute::NormalBinormalTangent:
         break;
       default:
-        throw "Invalid vtx attrib";
+        assert(!"Invalid vtx attrib");
         break;
       }
     }

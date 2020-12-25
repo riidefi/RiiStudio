@@ -309,7 +309,8 @@ void RootWindow::draw() {
                               bmd_model.mBufs.norm.mData.size() - 1;
                           break;
                         default:
-                          throw "Invalid vtx attrib";
+                          assert(!"Invalid vtx attrib");
+                          
                           break;
                         }
                       }

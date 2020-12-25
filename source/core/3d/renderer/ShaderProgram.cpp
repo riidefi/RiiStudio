@@ -25,7 +25,7 @@ ShaderProgram::ShaderProgram(const char* vtx, const char* frag) {
   if (!checkShaderErrors(vertexShader, mErrorDesc)) {
     bError = true;
     printf("%s\n", vtx);
-    throw "Invalid vertex shader"; // This is really unlikely
+    
   }
   u32 fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fragmentShader, 1, &frag, NULL);

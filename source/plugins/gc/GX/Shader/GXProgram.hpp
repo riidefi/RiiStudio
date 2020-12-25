@@ -49,7 +49,8 @@ protected:
   //----------------------------------
   // Matrix
   //----------------------------------
-  std::string generateMulPntMatrixStatic(gx::PostTexMatrix pnt,
+  llvm::Error generateMulPntMatrixStatic(StringBuilder& builder,
+                                         gx::PostTexMatrix pnt,
                                          const std::string& src);
   vec3_string generateMulPntMatrixDynamic(const std::string& attrStr,
                                           const vec4_string& src);
@@ -165,7 +166,8 @@ protected:
   //----------------------------------
   // Attributes
   //----------------------------------
-  llvm::Error generateAttributeStorageType(StringBuilder& builder,u32 glFormat, u32 count);
+  llvm::Error generateAttributeStorageType(StringBuilder& builder, u32 glFormat,
+                                           u32 count);
   llvm::Error generateVertAttributeDefs(StringBuilder& builder);
 
   //----------------------------------

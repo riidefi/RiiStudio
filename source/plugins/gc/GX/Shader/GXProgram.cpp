@@ -201,23 +201,39 @@ llvm::Error GXProgram::generateLightChannels(StringBuilder& builder) {
 }
 
 // Matrix
-std::string GXProgram::generateMulPntMatrixStatic(gx::PostTexMatrix pnt,
+llvm::Error GXProgram::generateMulPntMatrixStatic(StringBuilder& builder,
+                                                  gx::PostTexMatrix pnt,
                                                   const std::string& src) {
   // TODO
   if (pnt == gx::PostTexMatrix::Identity ||
       (int)pnt == (int)gx::TexMatrix::Identity) {
-    return src + ".xyz";
-  } else if (pnt >= gx::PostTexMatrix::Matrix0) {
-    const int pnMtxIdx = (((int)pnt - (int)gx::PostTexMatrix::Matrix0)) / 3;
-    return "(u_PosMtx[" + std::to_string(pnMtxIdx) + "] * " + src + ")";
-  } else if ((int)pnt >= (int)gx::TexMatrix::TexMatrix0) {
-    const int texMtxIdx = (((int)pnt - (int)gx::TexMatrix::TexMatrix0)) / 3;
-    return "(u_TexMtx[" + std::to_string(texMtxIdx) + "] * " + src + ")";
-  } else {
-    throw "whoops";
+    builder += src;
+    builder += ".xyz";
+    return llvm::Error::success();
   }
 
-  return "";
+  if (pnt >= gx::PostTexMatrix::Matrix0) {
+    const int pnMtxIdx = (((int)pnt - (int)gx::PostTexMatrix::Matrix0)) / 3;
+    builder += "(u_PosMtx[";
+    builder += std::to_string(pnMtxIdx);
+    builder += "] * ";
+    builder += src;
+    builder += ")";
+    return llvm::Error::success();
+  }
+
+  if ((int)pnt >= (int)gx::TexMatrix::TexMatrix0) {
+    const int texMtxIdx = (((int)pnt - (int)gx::TexMatrix::TexMatrix0)) / 3;
+    builder += "(u_TexMtx[";
+    builder += std::to_string(texMtxIdx);
+    builder += "] * ";
+    builder += src;
+    builder += ")";
+    return llvm::Error::success();
+  }
+
+  return llvm::createStringError(llvm::inconvertibleErrorCode(),
+                                 "Invalid posttexmatrix");
 }
 // Output is a vec3, src is a vec4.
 std::string GXProgram::generateMulPntMatrixDynamic(const std::string& attrStr,
@@ -243,7 +259,7 @@ std::string GXProgram::generateTexMtxIdxAttr(int index) {
   case 7:
     return "a_TexMtx4567Idx.w";
   default:
-    throw "whoops";
+    return "INVALID";
   }
 
   return "";
@@ -294,7 +310,7 @@ std::string GXProgram::generateTexGenSource(gx::TexGenSrc src) {
   case gx::TexGenSrc::BumpUV6:
     return "vec4(v_TexCoord6, 1.0)";
   default:
-    throw "whoops";
+    return "INVALID";
   }
   return "";
 }
@@ -312,7 +328,7 @@ GXProgram::generatePostTexGenMatrixMult(const gx::TexCoordGen& texCoordGen,
     return "(u_PostTexMtx[" + std::to_string(texMtxIdx) + std::string("] * ") +
            src + ")";
   } else {
-    throw "whoops";
+    return "INVALID";
     return "";
   }
 }
@@ -328,8 +344,14 @@ GXProgram::generateTexGenMatrixMult(const gx::TexCoordGen& texCoordGen, int id,
     return generateMulPntMatrixDynamic(attrStr, src);
   } else {
     // TODO: Verify
-    return generateMulPntMatrixStatic(
-        static_cast<libcube::gx::PostTexMatrix>(texCoordGen.matrix), src);
+    std::array<char, 256> buf{};
+    StringBuilder builder(buf.data(), buf.size());
+    auto err = generateMulPntMatrixStatic(
+        builder, static_cast<libcube::gx::PostTexMatrix>(texCoordGen.matrix),
+        src);
+    if (err)
+      return "INVALID"; // TODO
+    return buf.data();
   }
 }
 
@@ -354,7 +376,7 @@ vec3_string GXProgram::generateTexGenType(const gx::TexCoordGen& texCoordGen,
   case gx::TexGenType::Bump7:
     return "vec3(0.5, 0.5, 0.5)";
   default:
-    throw "whoops";
+    return "INVALID";
   }
 }
 
@@ -661,7 +683,7 @@ std::string GXProgram::generateColorSwizzle(const gx::SwapTableEntry* swapTable,
   case gx::TevColorArg::rasa:
     return swapA + swapA + swapA;
   default:
-    throw "whoops";
+    return "INVALID";
   }
 }
 
@@ -839,7 +861,7 @@ std::string GXProgram::generateTevOp(gx::TevColorOp op, gx::TevBias bias,
   case gx::TevColorOp::comp_rgb8_eq:
     return "(TevPerCompEQ(${a}, ${b}) * ${c}) + ${d}";
   default:
-    throw "";
+    return "INVALID";
   }
 
   return "";
@@ -1182,10 +1204,13 @@ llvm::Error GXProgram::generateVertAttributeDefs(StringBuilder& builder) {
 llvm::Error GXProgram::generateMulPos(StringBuilder& builder) {
   // Default to using pnmtxidx.
   const auto src = "vec4(a_Position, 1.0)";
-  if (mMaterial.usePnMtxIdx)
+  if (mMaterial.usePnMtxIdx) {
     builder += generateMulPntMatrixDynamic("uint(a_PnMtxIdx)", src);
-  else
-    builder += generateMulPntMatrixStatic(gx::PostTexMatrix::Matrix0, src);
+  } else {
+    if (auto err = generateMulPntMatrixStatic(builder,
+                                              gx::PostTexMatrix::Matrix0, src))
+      return err;
+  }
 
   return llvm::Error::success();
 }
@@ -1193,11 +1218,11 @@ llvm::Error GXProgram::generateMulPos(StringBuilder& builder) {
 llvm::Error GXProgram::generateMulNrm(StringBuilder& builder) {
   // Default to using pnmtxidx.
   const auto src = "vec4(a_Normal, 0.0)";
-  // TODO(jstpierre): Move to a normal matrix calculated on the CPU
   if (mMaterial.usePnMtxIdx)
     builder += generateMulPntMatrixDynamic("uint(a_PnMtxIdx)", src);
-  else
-    builder += generateMulPntMatrixStatic(gx::PostTexMatrix::Matrix0, src);
+  else if (auto err = generateMulPntMatrixStatic(
+               builder, gx::PostTexMatrix::Matrix0, src))
+    return err;
 
   return llvm::Error::success();
 }
@@ -1420,7 +1445,8 @@ u32 translateBlendFactorCommon(gx::BlendModeFactor factor) {
   case gx::BlendModeFactor::inv_dst_a:
     return GL_ONE_MINUS_DST_ALPHA;
   default:
-    throw "";
+    assert(!"Invalid blend mode");
+    return ~0;
   }
 }
 
@@ -1519,7 +1545,8 @@ gx::ColorSelChanApi getRasColorChannelID(gx::ColorSelChanApi v) {
   case gx::ColorSelChanApi::null:
     return gx::ColorSelChanApi::zero;
   default:
-    throw "whoops";
+    assert(!"Invalid color channel selection");
+    return gx::ColorSelChanApi::zero;
   }
 }
 

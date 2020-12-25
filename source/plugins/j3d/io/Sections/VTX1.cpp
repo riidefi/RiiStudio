@@ -90,7 +90,8 @@ void readVTX1(BMDOutputContext& ctx) {
             case ct::FORMAT_32B_888x:
               return 4;
             default:
-              throw "Invalid color data type.";
+              assert(!"Invalid color data type.");
+              return 4;
             }
           }(static_cast<gx::VertexBufferType::Color>(data)));
       estride = clr.mQuant.stride;
@@ -347,8 +348,10 @@ struct VTX1Node {
     }
 
     Result write(oishii::Writer& writer) const noexcept {
-      mData.writeData(writer);
-      return eResult::Success;
+      if (mData.writeData(writer))
+        return eResult::Success;
+
+      return eResult::Fatal;
     }
 
     const Model& mdl;

@@ -409,17 +409,22 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
     assert(!"Invalid kind/type template match!");
   }
 
-  void writeData(oishii::Writer& writer) const {
+  [[nodiscard]] bool writeData(oishii::Writer& writer) const {
     if constexpr (kind == VBufferKind::position) {
       if (mQuant.comp.position ==
-          libcube::gx::VertexComponentCount::Position::xy)
-        throw "Buffer: XY Pos Component count.";
+          libcube::gx::VertexComponentCount::Position::xy) {
+        assert(!"Buffer: XY Pos Component count.");
+        return false;
+      }
 
       for (const auto& d : mData)
         writeBufferEntryGeneric(writer, d);
     } else if constexpr (kind == VBufferKind::normal) {
-      if (mQuant.comp.normal != libcube::gx::VertexComponentCount::Normal::xyz)
-        throw "Buffer: NBT Vectors.";
+      if (mQuant.comp.normal !=
+          libcube::gx::VertexComponentCount::Normal::xyz) {
+        assert(!"Buffer: NBT Vectors.");
+        return false;
+      }
 
       for (const auto& d : mData)
         writeBufferEntryGeneric(writer, d);
@@ -428,12 +433,16 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
         writeBufferEntryColor(writer, d);
     } else if constexpr (kind == VBufferKind::textureCoordinate) {
       if (mQuant.comp.texcoord ==
-          libcube::gx::VertexComponentCount::TextureCoordinate::s)
-        throw "Buffer: Single component texcoord vectors.";
+          libcube::gx::VertexComponentCount::TextureCoordinate::s) {
+        assert(!"Buffer: Single component texcoord vectors.");
+        return false;
+      }
 
       for (const auto& d : mData)
         writeBufferEntryGeneric(writer, d);
     }
+
+	return true;
   }
 
   VertexBuffer() {}

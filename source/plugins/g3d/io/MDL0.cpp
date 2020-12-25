@@ -476,8 +476,10 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
     }
     std::pair<u32, u32> from_mat(const Material* mat, int sampl_idx) {
       std::pair key{mat, sampl_idx};
-      if (!matMap.contains(key))
-        throw "Fail";
+      if (!matMap.contains(key)) {
+        // TODO: Invalid tex ref.
+        return {0, 0};
+      }
       assert(matMap.contains(key));
       const auto [entry_n, sub_n] = matMap.at(key);
       const auto entry_ofs = entries[entry_n].entries[sub_n];
@@ -1207,7 +1209,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     reader.skip(12); // Skip sibling and child links -- we recompute it all
     reader.skip(2 * ((3 * 4) * sizeof(f32))); // skip matrices
 
-	bone.setFromFlag(bone_flag);
+    bone.setFromFlag(bone_flag);
   });
   // Compute children
   for (int i = 0; i < mdl.getBones().size(); ++i) {
@@ -1346,7 +1348,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     // reader.seek((8 - nTex)* (4 + (4 * 4 * sizeof(f32))));
     reader.seekSet(start + 0x3f0);
     mat.chanData.nElements = 0;
-	assert(mat.info.nColorChan < mat.colorChanControls.max_size());
+    assert(mat.info.nColorChan < mat.colorChanControls.max_size());
     for (u8 i = 0; i < mat.info.nColorChan; ++i) {
       // skip runtime flag
       const auto flag = reader.read<u32>();
@@ -1540,9 +1542,12 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
 
     for (u32 i = 0; i < (u32)libcube::gx::VertexAttribute::Max; ++i) {
       if (poly.mVertexDescriptor.mBitfield & (1 << i)) {
-        if (i == 0)
-          throw "Unsupported";
-
+        if (i == 0) {
+          transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                               "Unsuported attribute");
+          transaction.state = kpi::TransactionState::Failure;
+          return;
+        }
         const auto stat = vcdHandler.mGpuMesh.VCD.GetVertexArrayStatus(
             i - (u32)libcube::gx::VertexAttribute::Position);
         const auto att = static_cast<libcube::gx::VertexAttributeType>(stat);
@@ -1555,6 +1560,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
         : public libcube::gpu::QDisplayListHandler {
       void onCommandDraw(oishii::BinaryReader& reader,
                          libcube::gx::PrimitiveType type, u16 nverts) override {
+        if (mErr)
+          return;
+
         if (mPoly.mMatrixPrimitives.empty())
           mPoly.mMatrixPrimitives.push_back(MatrixPrimitive{});
         auto& prim = mPoly.mMatrixPrimitives.back().mPrimitives.emplace_back(
@@ -1568,8 +1576,8 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
               const auto attr = static_cast<libcube::gx::VertexAttribute>(i);
               switch (mPoly.mVertexDescriptor.mAttributes[attr]) {
               case libcube::gx::VertexAttributeType::Direct:
-                throw "TODO";
-                break;
+                mErr = true;
+                return;
               case libcube::gx::VertexAttributeType::None:
                 break;
               case libcube::gx::VertexAttributeType::Byte:
@@ -1584,11 +1592,20 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
         }
       }
       QDisplayListMeshHandler(Polygon& poly) : mPoly(poly) {}
+      bool mErr = false;
       Polygon& mPoly;
     } meshHandler(poly);
     primitiveData.seekTo(reader);
     libcube::gpu::RunDisplayList(reader, meshHandler, primitiveData.buf_size);
+    if (meshHandler.mErr) {
+      transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
+                           "Mesh unsupported.");
+      transaction.state = kpi::TransactionState::Failure;
+    }
   });
+
+  if (transaction.state == kpi::TransactionState::Failure)
+    return;
 
   readDict(secOfs.ofsRenderTree, [&](const DictionaryNode& dnode) {
     enum class Tree { DrawOpa, DrawXlu, Node, Other } tree = Tree::Other;
@@ -1682,6 +1699,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
         kpi::IOMessageClass::Error, transaction_path,
         "BRRES file was created with BrawlBox and is invalid. It is "
         "recommended you create BRRES files here by dropping a DAE/FBX file.");
+    //
     transaction.state = kpi::TransactionState::Failure;
   } else if (!isValid) {
     transaction.callback(kpi::IOMessageClass::Warning, transaction_path,

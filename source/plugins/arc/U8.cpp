@@ -15,27 +15,27 @@ constructFile(const std::string_view path, std::span<const uint8_t> data) {
   const auto construct_node = [&]() -> std::unique_ptr<kpi::INode> {
     if (data.empty())
       return nullptr;
-    try {
-      oishii::DataProvider provider({data.begin(), data.end()}, path);
-      auto importer = SpawnImporter(std::string(path), provider.slice());
+    // try {
+    oishii::DataProvider provider({data.begin(), data.end()}, path);
+    auto importer = SpawnImporter(std::string(path), provider.slice());
 
-      // Don't worry about ambiguous cases for now
-      if (!importer.second || !IsConstructible(importer.first))
-        return nullptr;
-
-      std::unique_ptr<kpi::INode> fileState{
-          dynamic_cast<kpi::INode*>(SpawnState(importer.first).release())};
-      if (!fileState.get())
-        return nullptr;
-
-      kpi::IOTransaction transaction{*fileState, provider.slice(), [](...) {}};
-      importer.second->read_(transaction);
-
-      return fileState;
-    } catch (const char* mesg) {
-      printf("Importer failed with reason: %s\n", mesg);
+    // Don't worry about ambiguous cases for now
+    if (!importer.second || !IsConstructible(importer.first))
       return nullptr;
-    }
+
+    std::unique_ptr<kpi::INode> fileState{
+        dynamic_cast<kpi::INode*>(SpawnState(importer.first).release())};
+    if (!fileState.get())
+      return nullptr;
+
+    kpi::IOTransaction transaction{*fileState, provider.slice(), [](...) {}};
+    importer.second->read_(transaction);
+
+    return fileState;
+    //} catch (const char* mesg) {
+    //  printf("Importer failed with reason: %s\n", mesg);
+    //  return nullptr;
+    //}
   };
 
   if (auto node = construct_node(); node) {

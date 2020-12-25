@@ -221,7 +221,9 @@ private:
     if (Options::BOUNDS_CHECK && at + size > endpos()) {
       // warnAt("Out of bounds read...", at, size + at);
       // Fatal invalidity -- out of space
-      throw "Out of bounds read.";
+      assert(!"Out of bounds read");
+      abort();
+      // throw "Out of bounds read.";
     }
   }
   void boundsCheck(u32 size) { boundsCheck(size, tell()); }

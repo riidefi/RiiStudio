@@ -92,7 +92,8 @@ void DelegatedUBOBuilder::push(u32 binding_point, const std::vector<u8>& data) {
 
   assert(mMinSizes.size() > binding_point);
   if (mMinSizes[binding_point] > 1024 * 1024 * 1024) {
-    throw "Invalid minimum size. Likely a shader compilation error earlier.";
+    assert(!"Invalid minimum size. Likely a shader compilation error earlier.");
+    abort();
   }
   if (bound_data.size() < mMinSizes[binding_point])
     bound_data.resize(mMinSizes[binding_point]);
