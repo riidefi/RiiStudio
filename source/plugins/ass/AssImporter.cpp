@@ -479,7 +479,8 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip) {
     boneIdCtr->matIdToMatIdMap[i] = i;
 
     if (replaces[i]) {
-      mr = *old_materials[new_mats[i]];
+      reinterpret_cast<riistudio::g3d::Material&>(mr) =
+          *old_materials[new_mats[i]];
       continue;
     }
 
