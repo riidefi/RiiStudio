@@ -1,10 +1,11 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <algorithm>
+#include <core/common.h>
+#include <glm/glm.hpp>
 
 namespace librii::gx {
-  
+
 struct Color;
 struct ColorS10;
 struct ColorF32 {
@@ -72,4 +73,4 @@ inline ColorF32::operator ColorS10() const {
           (s16)roundf(b * 255.0f), (s16)roundf(a * 255.0f)};
 }
 
-} // namepace librii::gx
+} // namespace librii::gx

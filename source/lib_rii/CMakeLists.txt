@@ -8,4 +8,4 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
 add_library(lib_rii
 	lib_rii.cpp
-)
+ "gl/Compiler.hpp" "gl/Compiler.cpp")

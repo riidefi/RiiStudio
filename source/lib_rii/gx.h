@@ -1,6 +1,9 @@
 #pragma once
 
+#include <core/common.h>
+
 namespace librii::gx {
+
 enum class Comparison {
   NEVER,
   LESS,

@@ -24,6 +24,7 @@ target_link_libraries(frontend PUBLIC
 	core
 	oishii
 	plate
+  lib_rii
 	plugins
 	vendor
 )

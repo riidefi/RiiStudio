@@ -1,20 +1,24 @@
-#include <core/3d/gl.hpp>
-
-
 #include <algorithm>
+#include <core/3d/gl.hpp>
+#include <lib_rii/gl/Compiler.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
+#include <plugins/gc/Export/Material.hpp>
 #include <plugins/gc/GX/Shader/GXProgram.hpp>
 #undef min
 
 namespace libcube {
 
 std::pair<std::string, std::string> IGCMaterial::generateShaders() const {
-  GXProgram program(GXMaterial{0, getName(), *const_cast<IGCMaterial*>(this)});
-  const auto result = program.generateShaders();
+  auto result = librii::gl::compileShader(getMaterialData(), getName());
+
   assert(result);
+  if (!result) {
+    return {"Invalid", "Invalid"};
+  }
+
   if (!applyCacheAgain)
-    cachedPixelShader = result->second + "\n\n // End of shader";
-  return *result;
+    cachedPixelShader = result->fragment + "\n\n // End of shader";
+  return {result->vertex, result->fragment};
 }
 
 /*
