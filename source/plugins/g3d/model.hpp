@@ -7,7 +7,7 @@
 #include <glm/vec2.hpp> // glm::vec2
 #include <glm/vec3.hpp> // glm::vec3
 #include <plugins/gc/Export/Scene.hpp>
-#include <plugins/gc/GX/VertexTypes.hpp>
+#include <lib_rii/gx.h>
 #include <tuple>
 
 #include "texture.hpp"
@@ -19,8 +19,8 @@ enum class TextureMatrixMode { Maya, XSI, Max };
 enum class EnvelopeMatrixMode { Normal, Approximation, Precision };
 
 struct Quantization {
-  libcube::gx::VertexComponentCount mComp;
-  libcube::gx::VertexBufferType mType;
+  librii::gx::VertexComponentCount mComp;
+  librii::gx::VertexBufferType mType;
   u8 divisor = 0;
   u8 stride = 0;
 
@@ -32,7 +32,7 @@ struct Quantization {
   }
 };
 template <typename T, bool HasMinimum, bool HasDivisor,
-          libcube::gx::VertexBufferKind kind>
+          librii::gx::VertexBufferKind kind>
 struct GenericBuffer : public virtual kpi::IObject {
   std::string mName;
   u32 mId;
@@ -48,52 +48,52 @@ struct GenericBuffer : public virtual kpi::IObject {
 };
 class PositionBuffer
     : public GenericBuffer<glm::vec3, true, true,
-                           libcube::gx::VertexBufferKind::position> {
+                           librii::gx::VertexBufferKind::position> {
 public:
   PositionBuffer(const PositionBuffer&) = default;
   PositionBuffer() {
-    mQuantize.mComp = libcube::gx::VertexComponentCount(
-        libcube::gx::VertexComponentCount::Position::xyz);
-    mQuantize.mType = libcube::gx::VertexBufferType(
-        libcube::gx::VertexBufferType::Generic::f32);
+    mQuantize.mComp = librii::gx::VertexComponentCount(
+        librii::gx::VertexComponentCount::Position::xyz);
+    mQuantize.mType = librii::gx::VertexBufferType(
+        librii::gx::VertexBufferType::Generic::f32);
     mQuantize.stride = 12;
   }
 };
 class NormalBuffer
     : public GenericBuffer<glm::vec3, false, true,
-                           libcube::gx::VertexBufferKind::normal> {
+                           librii::gx::VertexBufferKind::normal> {
 public:
   NormalBuffer(const NormalBuffer&) = default;
   NormalBuffer() {
-    mQuantize.mComp = libcube::gx::VertexComponentCount(
-        libcube::gx::VertexComponentCount::Normal::xyz);
-    mQuantize.mType = libcube::gx::VertexBufferType(
-        libcube::gx::VertexBufferType::Generic::f32);
+    mQuantize.mComp = librii::gx::VertexComponentCount(
+        librii::gx::VertexComponentCount::Normal::xyz);
+    mQuantize.mType = librii::gx::VertexBufferType(
+        librii::gx::VertexBufferType::Generic::f32);
     mQuantize.stride = 12;
   }
 };
-class ColorBuffer : public GenericBuffer<libcube::gx::Color, false, false,
-                                         libcube::gx::VertexBufferKind::color> {
+class ColorBuffer : public GenericBuffer<librii::gx::Color, false, false,
+                                         librii::gx::VertexBufferKind::color> {
 public:
   ColorBuffer(const ColorBuffer&) = default;
   ColorBuffer() {
-    mQuantize.mComp = libcube::gx::VertexComponentCount(
-        libcube::gx::VertexComponentCount::Color::rgba);
-    mQuantize.mType = libcube::gx::VertexBufferType(
-        libcube::gx::VertexBufferType::Color::rgba8);
+    mQuantize.mComp = librii::gx::VertexComponentCount(
+        librii::gx::VertexComponentCount::Color::rgba);
+    mQuantize.mType = librii::gx::VertexBufferType(
+        librii::gx::VertexBufferType::Color::rgba8);
     mQuantize.stride = 4;
   }
 };
 class TextureCoordinateBuffer
     : public GenericBuffer<glm::vec2, true, true,
-                           libcube::gx::VertexBufferKind::textureCoordinate> {
+                           librii::gx::VertexBufferKind::textureCoordinate> {
 public:
   TextureCoordinateBuffer(const TextureCoordinateBuffer&) = default;
   TextureCoordinateBuffer() {
-    mQuantize.mComp = libcube::gx::VertexComponentCount(
-        libcube::gx::VertexComponentCount::TextureCoordinate::uv);
-    mQuantize.mType = libcube::gx::VertexBufferType(
-        libcube::gx::VertexBufferType::Generic::f32);
+    mQuantize.mComp = librii::gx::VertexComponentCount(
+        librii::gx::VertexComponentCount::TextureCoordinate::uv);
+    mQuantize.mType = librii::gx::VertexBufferType(
+        librii::gx::VertexBufferType::Generic::f32);
     mQuantize.stride = 8;
   }
 };
@@ -135,7 +135,7 @@ inline std::pair<u32, u32> computeVertTriCounts(const Polygon& mesh) {
     u32 quot : 4;
     u32 dif : 4;
   };
-  constexpr std::array<LinEq, (u32)libcube::gx::PrimitiveType::Max> triVertCvt{
+  constexpr std::array<LinEq, (u32)librii::gx::PrimitiveType::Max> triVertCvt{
       LinEq{4, 0}, // 0 [v / 4] Quads
       LinEq{4, 0}, // 1 [v / 4] QuadStrip
       LinEq{3, 0}, // 2 [v / 3] Triangles
@@ -149,7 +149,7 @@ inline std::pair<u32, u32> computeVertTriCounts(const Polygon& mesh) {
   for (const auto& mprim : mesh.mMatrixPrimitives) {
     for (const auto& prim : mprim.mPrimitives) {
       const u8 pIdx = static_cast<u8>(prim.mType);
-      assert(pIdx < static_cast<u8>(libcube::gx::PrimitiveType::Max));
+      assert(pIdx < static_cast<u8>(librii::gx::PrimitiveType::Max));
       const LinEq& pCvtr = triVertCvt[pIdx];
       const u32 pVCount = prim.mVertices.size();
 

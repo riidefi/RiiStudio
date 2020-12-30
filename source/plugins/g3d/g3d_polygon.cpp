@@ -26,7 +26,7 @@ glm::vec4 Polygon::getClr(u64 chan, u64 id) const {
   if (id >= buf->mEntries.size())
     return {};
   assert(id < buf->mEntries.size());
-  return static_cast<libcube::gx::ColorF32>(buf->mEntries[id]);
+  return static_cast<librii::gx::ColorF32>(buf->mEntries[id]);
 }
 glm::vec3 Polygon::getPos(u64 id) const {
   assert(getParent());
@@ -73,12 +73,12 @@ u64 Polygon::addClr(u64 chan, const glm::vec4& v) {
   auto* buf = getMutParent()->getBuf_Clr().findByName(mColorBuffer[chan]);
   assert(buf);
 
-  libcube::gx::ColorF32 fclr;
+  librii::gx::ColorF32 fclr;
   fclr.r = v[0];
   fclr.g = v[1];
   fclr.b = v[2];
   fclr.a = v[3];
-  libcube::gx::Color c = fclr;
+  librii::gx::Color c = fclr;
   return add_to_buffer(c, *buf);
 }
 u64 Polygon::addUv(u64 chan, const glm::vec2& v) {
@@ -177,7 +177,7 @@ std::vector<glm::mat4> Polygon::getPosMtx(u64 mpid) const {
   return out;
 }
 
-using namespace libcube;
+using namespace librii;
 
 void Polygon::initBufsFromVcd() {
   // Will break skinned
@@ -187,7 +187,7 @@ void Polygon::initBufsFromVcd() {
     if (type == gx::VertexAttributeType::None)
       continue;
     switch (attr) {
-    case libcube::gx::VertexAttribute::Position: {
+    case librii::gx::VertexAttribute::Position: {
       const auto id = getMutParent()->getBuf_Pos().size();
       auto& buf = getMutParent()->getBuf_Pos().add();
       buf.mId = id;
@@ -195,7 +195,7 @@ void Polygon::initBufsFromVcd() {
       mPositionBuffer = buf.mName;
       break;
     }
-    case libcube::gx::VertexAttribute::Normal: {
+    case librii::gx::VertexAttribute::Normal: {
       const auto id = getMutParent()->getBuf_Nrm().size();
       auto& buf = getMutParent()->getBuf_Nrm().add();
       buf.mName = "Nrm" + std::to_string(id);

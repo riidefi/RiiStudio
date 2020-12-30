@@ -5,7 +5,7 @@
 #include <assimp/vector2.h>
 #include <assimp/vector3.h>
 #include <glm/glm.hpp>
-#include <plugins/gc/GX/Material.hpp>
+#include <lib_rii/gx.h>
 #include <string>
 
 namespace riistudio::ass {
@@ -21,8 +21,8 @@ static inline glm::vec3 getVec(const aiVector3D& vec) {
 static inline glm::vec2 getVec2(const aiVector3D& vec) {
   return {vec.x, vec.y};
 }
-static inline libcube::gx::Color getClr(const aiColor4D& clr) {
-  libcube::gx::ColorF32 fclr{clr.r, clr.g, clr.b, clr.a};
+static inline librii::gx::Color getClr(const aiColor4D& clr) {
+  librii::gx::ColorF32 fclr{clr.r, clr.g, clr.b, clr.a};
   return fclr;
 }
 static inline glm::mat4 getMat4(const aiMatrix4x4& mtx) {

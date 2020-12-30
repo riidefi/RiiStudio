@@ -347,7 +347,7 @@ GXProgram::generateTexGenMatrixMult(const gx::TexCoordGen& texCoordGen, int id,
     std::array<char, 256> buf{};
     StringBuilder builder(buf.data(), buf.size());
     auto err = generateMulPntMatrixStatic(
-        builder, static_cast<libcube::gx::PostTexMatrix>(texCoordGen.matrix),
+        builder, static_cast<librii::gx::PostTexMatrix>(texCoordGen.matrix),
         src);
     if (err)
       return "INVALID"; // TODO

@@ -13,7 +13,7 @@
 namespace riistudio::j3d {
 
 struct TevOrder {
-  libcube::gx::ColorSelChanApi rasOrder;
+  librii::gx::ColorSelChanApi rasOrder;
   u8 texMap, texCoord;
 
   bool operator==(const TevOrder& rhs) const noexcept {
@@ -31,19 +31,19 @@ struct SwapSel {
 };
 
 struct Tex {
-  libcube::gx::TextureFormat mFormat;
+  librii::gx::TextureFormat mFormat;
   u8 bTransparent;
   u16 mWidth, mHeight;
-  libcube::gx::TextureWrapMode mWrapU, mWrapV;
+  librii::gx::TextureWrapMode mWrapU, mWrapV;
   u8 mPaletteFormat;
   u16 nPalette;
   u32 ofsPalette = 0;
   u8 bMipMap;
   u8 bEdgeLod;
   u8 bBiasClamp;
-  libcube::gx::AnisotropyLevel mMaxAniso;
-  libcube::gx::TextureFilter mMinFilter;
-  libcube::gx::TextureFilter mMagFilter;
+  librii::gx::AnisotropyLevel mMaxAniso;
+  librii::gx::TextureFilter mMinFilter;
+  librii::gx::TextureFilter mMagFilter;
   s8 mMinLod;
   s8 mMaxLod;
   u8 mMipmapLevel;
@@ -96,35 +96,35 @@ struct ModelData : public virtual kpi::IObject {
   struct Bufs {
     // FIXME: Good default values
     VertexBuffer<glm::vec3, VBufferKind::position> pos{
-        VQuantization{libcube::gx::VertexComponentCount(
-                          libcube::gx::VertexComponentCount::Position::xyz),
-                      libcube::gx::VertexBufferType(
-                          libcube::gx::VertexBufferType::Generic::f32),
+        VQuantization{librii::gx::VertexComponentCount(
+                          librii::gx::VertexComponentCount::Position::xyz),
+                      librii::gx::VertexBufferType(
+                          librii::gx::VertexBufferType::Generic::f32),
                       0, 0, 12}};
     VertexBuffer<glm::vec3, VBufferKind::normal> norm{
-        VQuantization{libcube::gx::VertexComponentCount(
-                          libcube::gx::VertexComponentCount::Normal::xyz),
-                      libcube::gx::VertexBufferType(
-                          libcube::gx::VertexBufferType::Generic::f32),
+        VQuantization{librii::gx::VertexComponentCount(
+                          librii::gx::VertexComponentCount::Normal::xyz),
+                      librii::gx::VertexBufferType(
+                          librii::gx::VertexBufferType::Generic::f32),
                       0, 0, 12}};
-    std::array<VertexBuffer<libcube::gx::Color, VBufferKind::color>, 2> color;
+    std::array<VertexBuffer<librii::gx::Color, VBufferKind::color>, 2> color;
     std::array<VertexBuffer<glm::vec2, VBufferKind::textureCoordinate>, 8> uv;
 
     Bufs() {
       for (auto& clr : color) {
         clr = {VQuantization{
-            libcube::gx::VertexComponentCount(
-                libcube::gx::VertexComponentCount::Color::rgba),
-            libcube::gx::VertexBufferType(
-                libcube::gx::VertexBufferType::Color::FORMAT_32B_8888),
+            librii::gx::VertexComponentCount(
+                librii::gx::VertexComponentCount::Color::rgba),
+            librii::gx::VertexBufferType(
+                librii::gx::VertexBufferType::Color::FORMAT_32B_8888),
             0, 0, 4}};
       }
       for (auto& uv_ : uv) {
         uv_ = {VQuantization{
-            libcube::gx::VertexComponentCount(
-                libcube::gx::VertexComponentCount::TextureCoordinate::st),
-            libcube::gx::VertexBufferType(
-                libcube::gx::VertexBufferType::Generic::f32),
+            librii::gx::VertexComponentCount(
+                librii::gx::VertexComponentCount::TextureCoordinate::st),
+            librii::gx::VertexBufferType(
+                librii::gx::VertexBufferType::Generic::f32),
             0, 0, 8}};
       }
     }
@@ -136,10 +136,10 @@ struct ModelData : public virtual kpi::IObject {
     bool enabled;
     u8 nIndStage;
 
-    std::array<libcube::gx::IndOrder, 4> tevOrder;
-    std::array<libcube::gx::IndirectMatrix, 3> texMtx;
-    std::array<libcube::gx::IndirectTextureScalePair, 4> texScale;
-    std::array<libcube::gx::TevStage::IndirectStage, 16> tevStage;
+    std::array<librii::gx::IndOrder, 4> tevOrder;
+    std::array<librii::gx::IndirectMatrix, 3> texMtx;
+    std::array<librii::gx::IndirectTextureScalePair, 4> texScale;
+    std::array<librii::gx::TevStage::IndirectStage, 16> tevStage;
 
     Indirect() = default;
     Indirect(const MaterialData& mat) {
@@ -166,31 +166,31 @@ struct ModelData : public virtual kpi::IObject {
   mutable struct MatCache {
     template <typename T> using Section = std::vector<T>;
     Section<Indirect> indirectInfos;
-    Section<libcube::gx::CullMode> cullModes;
-    Section<libcube::gx::Color> matColors;
+    Section<librii::gx::CullMode> cullModes;
+    Section<librii::gx::Color> matColors;
     Section<u8> nColorChan;
-    Section<libcube::gx::ChannelControl> colorChans;
-    Section<libcube::gx::Color> ambColors;
-    Section<libcube::gx::Color> lightColors;
+    Section<librii::gx::ChannelControl> colorChans;
+    Section<librii::gx::Color> ambColors;
+    Section<librii::gx::Color> lightColors;
     Section<u8> nTexGens;
-    Section<libcube::gx::TexCoordGen> texGens;
-    Section<libcube::gx::TexCoordGen> posTexGens;
+    Section<librii::gx::TexCoordGen> texGens;
+    Section<librii::gx::TexCoordGen> posTexGens;
     Section<Material::TexMatrix> texMatrices;
     Section<Material::TexMatrix> postTexMatrices;
     Section<Material::J3DSamplerData> samplers;
     Section<TevOrder> orders;
-    Section<libcube::gx::ColorS10> tevColors;
-    Section<libcube::gx::Color> konstColors;
+    Section<librii::gx::ColorS10> tevColors;
+    Section<librii::gx::Color> konstColors;
 
     Section<u8> nTevStages;
-    Section<libcube::gx::TevStage> tevStages;
+    Section<librii::gx::TevStage> tevStages;
     Section<SwapSel> swapModes;
-    Section<libcube::gx::SwapTableEntry> swapTables;
+    Section<librii::gx::SwapTableEntry> swapTables;
     Section<Fog> fogs;
 
-    Section<libcube::gx::AlphaComparison> alphaComparisons;
-    Section<libcube::gx::BlendMode> blendModes;
-    Section<libcube::gx::ZMode> zModes;
+    Section<librii::gx::AlphaComparison> alphaComparisons;
+    Section<librii::gx::BlendMode> blendModes;
+    Section<librii::gx::ZMode> zModes;
     Section<u8> zCompLocs;
     Section<u8> dithers;
     Section<NBTScale> nbtScales;

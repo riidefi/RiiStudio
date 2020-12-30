@@ -1,13 +1,7 @@
 #pragma once
 
-#include <core/common.h>
-#include <vendor/glm/mat3x2.hpp>
-#include <vendor/glm/vec2.hpp>
-#include <math.h>
-
-namespace libcube {
-namespace gx {
-
+namespace librii::gx {
+	
 enum class IndTexFormat {
   _8bit,
   _5bit,
@@ -93,18 +87,15 @@ struct IndirectSetting {
   IndirectSetting(const IndirectTextureScalePair& s, const IndirectMatrix& m)
       : texScale(s), mtx(m) {}
 
-  bool operator==(const IndirectSetting& rhs) const noexcept {
-    return texScale == rhs.texScale && mtx == rhs.mtx;
-  }
+  bool operator==(const IndirectSetting& rhs) const = default;
 };
 
 // Used in TEV settings -- one per stage
 struct IndOrder {
-  u8 refMap, refCoord;
+  u8 refMap = 0;
+  u8 refCoord = 0;
 
-  bool operator==(const IndOrder& rhs) const noexcept {
-    return rhs.refMap == refMap && rhs.refCoord == refCoord;
-  }
+  bool operator==(const IndOrder& rhs) const = default;
 };
-} // namespace gx
-} // namespace libcube
+	
+} // namepace librii::gx

@@ -1,10 +1,6 @@
 #pragma once
 
-#include "../Enum/Comparison.hpp"
-#include <core/common.h>
-
-namespace libcube {
-namespace gx {
+namespace librii::gx {
 
 enum class TexGenType {
   Matrix3x4,
@@ -117,5 +113,4 @@ struct TexCoordGen // XF TEX/DUALTEX
   }
 };
 
-} // namespace gx
-} // namespace libcube
+} // namespace librii::gx

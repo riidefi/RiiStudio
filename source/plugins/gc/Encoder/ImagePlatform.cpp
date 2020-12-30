@@ -22,7 +22,7 @@ std::pair<int, int> getBlockedDimensions(int width, int height,
 int getEncodedSize(int width, int height, gx::TextureFormat format,
                    u32 mipMapCount) {
   assert(mipMapCount < 0xff);
-  if (format == libcube::gx::TextureFormat::Extension_RawRGBA32) {
+  if (format == librii::gx::TextureFormat::Extension_RawRGBA32) {
     u32 size = 0;
     for (int i = 0; i <= mipMapCount; ++i) {
       size += (width >> i) * (height >> i) * 4;

@@ -5,7 +5,7 @@
 #include <array>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
-#include <plugins/gc/GX/Struct/Shader.hpp>
+#include <lib_rii/gx.h>
 #include <vector>
 
 namespace libcube::gpu {
@@ -32,13 +32,13 @@ struct GPUShader {
 
 class QDisplayListShaderHandler : public QDisplayListHandler {
 public:
-  QDisplayListShaderHandler(gx::Shader& shader, int numStages);
+  QDisplayListShaderHandler(librii::gx::Shader& shader, int numStages);
   ~QDisplayListShaderHandler();
 
   void onCommandBP(const QBPCommand& token) override;
   void onStreamEnd() override;
 
-  gx::Shader& mShader;
+  librii::gx::Shader& mShader;
   int mNumStages;
 
   GPUShader mGpuShader;

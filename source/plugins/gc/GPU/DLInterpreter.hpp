@@ -7,7 +7,7 @@
 
 #include <oishii/reader/binary_reader.hxx>
 
-#include <plugins/gc/GX/VertexTypes.hpp>
+#include <lib_rii/gx.h>
 
 namespace libcube::gpu {
 
@@ -34,7 +34,7 @@ public:
   virtual void onCommandCP(const QCPCommand& token) {}
   virtual void onCommandXF(const QXFCommand& token) {}
   virtual void onCommandDraw(oishii::BinaryReader& reader,
-                             libcube::gx::PrimitiveType type, u16 nverts) {}
+                             librii::gx::PrimitiveType type, u16 nverts) {}
 
   virtual void onStreamBegin() {}
   virtual void onStreamEnd() {}

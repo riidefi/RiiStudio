@@ -167,7 +167,7 @@ void RootWindow::draw() {
             // info
             // Bufs (automate)
             bmd_model.mBufs.norm.mQuant.comp.normal =
-                libcube::gx::VertexComponentCount::Normal::xyz;
+                librii::gx::VertexComponentCount::Normal::xyz;
             // drawmtx (skip)
             auto& mtx = bmd_model.mDrawMatrices.emplace_back();
             mtx.mWeights.emplace_back(0, 1.0f);
@@ -215,7 +215,7 @@ void RootWindow::draw() {
                 bmd_shape.id = m_i;
                 bmd_shape.mVertexDescriptor = vcd;
                 for (auto& e : bmd_shape.mVertexDescriptor.mAttributes) {
-                  e.second = libcube::gx::VertexAttributeType::Short;
+                  e.second = librii::gx::VertexAttributeType::Short;
                 }
                 bmd_shape.mVertexDescriptor
                     .calcVertexDescriptorFromAttributeList();
@@ -236,81 +236,81 @@ void RootWindow::draw() {
                     // Remap vtx indices
                     for (auto& v : p.mVertices) {
                       for (u32 x = 0;
-                           x < (u32)libcube::gx::VertexAttribute::Max; ++x) {
+                           x < (u32)librii::gx::VertexAttribute::Max; ++x) {
                         if (!(vcd.mBitfield & (1 << x)))
                           continue;
                         auto& bufs = bmd_model.mBufs;
-                        switch (static_cast<libcube::gx::VertexAttribute>(x)) {
-                        case libcube::gx::VertexAttribute::
+                        switch (static_cast<librii::gx::VertexAttribute>(x)) {
+                        case librii::gx::VertexAttribute::
                             PositionNormalMatrixIndex:
-                        case libcube::gx::VertexAttribute::Texture0MatrixIndex:
-                        case libcube::gx::VertexAttribute::Texture1MatrixIndex:
-                        case libcube::gx::VertexAttribute::Texture2MatrixIndex:
-                        case libcube::gx::VertexAttribute::Texture3MatrixIndex:
-                        case libcube::gx::VertexAttribute::Texture4MatrixIndex:
-                        case libcube::gx::VertexAttribute::Texture5MatrixIndex:
-                        case libcube::gx::VertexAttribute::Texture6MatrixIndex:
-                        case libcube::gx::VertexAttribute::Texture7MatrixIndex:
+                        case librii::gx::VertexAttribute::Texture0MatrixIndex:
+                        case librii::gx::VertexAttribute::Texture1MatrixIndex:
+                        case librii::gx::VertexAttribute::Texture2MatrixIndex:
+                        case librii::gx::VertexAttribute::Texture3MatrixIndex:
+                        case librii::gx::VertexAttribute::Texture4MatrixIndex:
+                        case librii::gx::VertexAttribute::Texture5MatrixIndex:
+                        case librii::gx::VertexAttribute::Texture6MatrixIndex:
+                        case librii::gx::VertexAttribute::Texture7MatrixIndex:
                           break;
-                        case libcube::gx::VertexAttribute::Position: {
+                        case librii::gx::VertexAttribute::Position: {
                           auto pos = from_shape.getPos(
-                              v[libcube::gx::VertexAttribute::Position]);
+                              v[librii::gx::VertexAttribute::Position]);
                           auto found = std::find(bufs.pos.mData.begin(),
                                                  bufs.pos.mData.end(), pos);
                           if (found == bufs.pos.mData.end()) {
                             bmd_model.mBufs.pos.mData.push_back(pos);
-                            v[libcube::gx::VertexAttribute::Position] =
+                            v[librii::gx::VertexAttribute::Position] =
                                 bmd_model.mBufs.pos.mData.size() - 1;
                           } else {
-                            v[libcube::gx::VertexAttribute::Position] =
+                            v[librii::gx::VertexAttribute::Position] =
                                 found - bufs.pos.mData.begin();
                           }
                           break;
                         }
-                        case libcube::gx::VertexAttribute::Color0: {
+                        case librii::gx::VertexAttribute::Color0: {
                           const auto scolor = from_shape.getClr(
-                              0, v[libcube::gx::VertexAttribute::Color0]);
-                          libcube::gx::Color clr;
+                              0, v[librii::gx::VertexAttribute::Color0]);
+                          librii::gx::Color clr;
                           clr.r = roundf(scolor[0] * 255.0f);
                           clr.g = roundf(scolor[1] * 255.0f);
                           clr.b = roundf(scolor[2] * 255.0f);
                           clr.a = roundf(scolor[3] * 255.0f);
                           bmd_model.mBufs.color[0].mData.push_back(clr);
-                          v[libcube::gx::VertexAttribute::Color0] =
+                          v[librii::gx::VertexAttribute::Color0] =
                               bmd_model.mBufs.color[0].mData.size() - 1;
                           break;
                         }
-                        case libcube::gx::VertexAttribute::TexCoord0:
-                        case libcube::gx::VertexAttribute::TexCoord1:
-                        case libcube::gx::VertexAttribute::TexCoord2:
-                        case libcube::gx::VertexAttribute::TexCoord3:
-                        case libcube::gx::VertexAttribute::TexCoord4:
-                        case libcube::gx::VertexAttribute::TexCoord5:
-                        case libcube::gx::VertexAttribute::TexCoord6:
-                        case libcube::gx::VertexAttribute::TexCoord7: {
+                        case librii::gx::VertexAttribute::TexCoord0:
+                        case librii::gx::VertexAttribute::TexCoord1:
+                        case librii::gx::VertexAttribute::TexCoord2:
+                        case librii::gx::VertexAttribute::TexCoord3:
+                        case librii::gx::VertexAttribute::TexCoord4:
+                        case librii::gx::VertexAttribute::TexCoord5:
+                        case librii::gx::VertexAttribute::TexCoord6:
+                        case librii::gx::VertexAttribute::TexCoord7: {
                           const auto chan =
                               x - static_cast<int>(
-                                      libcube::gx::VertexAttribute::TexCoord0);
+                                      librii::gx::VertexAttribute::TexCoord0);
                           const auto attr =
-                              static_cast<libcube::gx::VertexAttribute>(x);
+                              static_cast<librii::gx::VertexAttribute>(x);
                           const auto data = from_shape.getUv(chan, v[attr]);
 
                           bmd_model.mBufs.uv[chan].mData.push_back(data);
-                          v[static_cast<libcube::gx::VertexAttribute>(x)] =
+                          v[static_cast<librii::gx::VertexAttribute>(x)] =
                               bmd_model.mBufs.uv[chan].mData.size() - 1;
 
                           break;
                         }
-                        case libcube::gx::VertexAttribute::Normal:
+                        case librii::gx::VertexAttribute::Normal:
                           bmd_model.mBufs.norm.mData.push_back(
                               from_shape.getNrm(
-                                  v[libcube::gx::VertexAttribute::Normal]));
-                          v[libcube::gx::VertexAttribute::Normal] =
+                                  v[librii::gx::VertexAttribute::Normal]));
+                          v[librii::gx::VertexAttribute::Normal] =
                               bmd_model.mBufs.norm.mData.size() - 1;
                           break;
                         default:
                           assert(!"Invalid vtx attrib");
-                          
+
                           break;
                         }
                       }

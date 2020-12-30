@@ -8,12 +8,12 @@ namespace riistudio::j3d {
 void Tex::transfer(oishii::BinaryReader& stream) {
   oishii::DebugExpectSized dbg(stream, 0x20);
 
-  mFormat = static_cast<libcube::gx::TextureFormat>(stream.read<u8>());
+  mFormat = static_cast<librii::gx::TextureFormat>(stream.read<u8>());
   bTransparent = stream.read<u8>();
   mWidth = stream.read<u16>();
   mHeight = stream.read<u16>();
-  mWrapU = static_cast<libcube::gx::TextureWrapMode>(stream.read<u8>());
-  mWrapV = static_cast<libcube::gx::TextureWrapMode>(stream.read<u8>());
+  mWrapU = static_cast<librii::gx::TextureWrapMode>(stream.read<u8>());
+  mWrapV = static_cast<librii::gx::TextureWrapMode>(stream.read<u8>());
   stream.skip(1);
   stream.transfer(mPaletteFormat);
   stream.transfer(nPalette);
@@ -22,9 +22,9 @@ void Tex::transfer(oishii::BinaryReader& stream) {
   stream.transfer(bMipMap);
   stream.transfer(bEdgeLod);
   stream.transfer(bBiasClamp);
-  mMaxAniso = static_cast<libcube::gx::AnisotropyLevel>(stream.read<u8>());
-  mMinFilter = static_cast<libcube::gx::TextureFilter>(stream.read<u8>());
-  mMagFilter = static_cast<libcube::gx::TextureFilter>(stream.read<u8>());
+  mMaxAniso = static_cast<librii::gx::AnisotropyLevel>(stream.read<u8>());
+  mMinFilter = static_cast<librii::gx::TextureFilter>(stream.read<u8>());
+  mMagFilter = static_cast<librii::gx::TextureFilter>(stream.read<u8>());
   stream.transfer<s8>(mMinLod);
   stream.transfer<s8>(mMaxLod);
   stream.transfer<u8>(mMipmapLevel);
@@ -67,7 +67,7 @@ void Tex::write(oishii::Writer& stream) const {
 }
 Tex::Tex(const Texture& data,
          const libcube::GCMaterialData::SamplerData& sampl) {
-  mFormat = static_cast<libcube::gx::TextureFormat>(data.mFormat);
+  mFormat = static_cast<librii::gx::TextureFormat>(data.mFormat);
   bTransparent = data.bTransparent;
   mWidth = data.mWidth;
   mHeight = data.mHeight;
@@ -76,8 +76,8 @@ Tex::Tex(const Texture& data,
   mPaletteFormat = data.mPaletteFormat;
   nPalette = data.nPalette;
   ofsPalette = 0;
-  bMipMap = sampl.mMinFilter != libcube::gx::TextureFilter::linear &&
-            sampl.mMinFilter != libcube::gx::TextureFilter::near;
+  bMipMap = sampl.mMinFilter != librii::gx::TextureFilter::linear &&
+            sampl.mMinFilter != librii::gx::TextureFilter::near;
   bEdgeLod = sampl.bEdgeLod;
   bBiasClamp = sampl.bBiasClamp;
   mMaxAniso = sampl.mMaxAniso;

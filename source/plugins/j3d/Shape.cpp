@@ -33,8 +33,8 @@ glm::vec4 Shape::getClr(u64 chan, u64 idx) const {
   if (idx >= mMdl.mBufs.color[chan].mData.size())
     return {1, 1, 1, 1};
 
-  auto raw = static_cast<libcube::gx::ColorF32>(
-      (libcube::gx::Color)mMdl.mBufs.color[chan].mData[idx]);
+  auto raw = static_cast<librii::gx::ColorF32>(
+      (librii::gx::Color)mMdl.mBufs.color[chan].mData[idx]);
 
   return {raw.r, raw.g, raw.b, raw.a};
 }
@@ -57,12 +57,12 @@ u64 Shape::addNrm(const glm::vec3& v) {
   return add_to_buffer(v, getMutModel(this)->mBufs.norm.mData);
 }
 u64 Shape::addClr(u64 chan, const glm::vec4& v) {
-  libcube::gx::ColorF32 fclr;
+  librii::gx::ColorF32 fclr;
   fclr.r = v[0];
   fclr.g = v[1];
   fclr.b = v[2];
   fclr.a = v[3];
-  libcube::gx::Color c = fclr;
+  librii::gx::Color c = fclr;
   return add_to_buffer(c, getMutModel(this)->mBufs.color[chan].mData);
 }
 u64 Shape::addUv(u64 chan, const glm::vec2& v) {
@@ -74,9 +74,9 @@ void Shape::addTriangle(std::array<SimpleVertex, 3> tri) {
     mMatrixPrimitives.emplace_back();
   if (mMatrixPrimitives.back().mPrimitives.empty() ||
       mMatrixPrimitives.back().mPrimitives.back().mType !=
-          libcube::gx::PrimitiveType::Triangles)
+          librii::gx::PrimitiveType::Triangles)
     mMatrixPrimitives.back().mPrimitives.emplace_back(
-        libcube::gx::PrimitiveType::Triangles, 0);
+        librii::gx::PrimitiveType::Triangles, 0);
 
   auto& prim = mMatrixPrimitives.back().mPrimitives.back();
 
@@ -87,7 +87,7 @@ void Shape::addTriangle(std::array<SimpleVertex, 3> tri) {
 
     assert(hasAttrib(SimpleAttrib::Position));
 
-    ivtx[libcube::gx::VertexAttribute::Position] = addPos(vtx.position);
+    ivtx[librii::gx::VertexAttribute::Position] = addPos(vtx.position);
 
     if (vtx.position.x > bbox.max.x)
       bbox.max.x = vtx.position.x;
@@ -103,16 +103,16 @@ void Shape::addTriangle(std::array<SimpleVertex, 3> tri) {
     if (vtx.position.z < bbox.min.z)
       bbox.min.z = vtx.position.z;
     if (hasAttrib(SimpleAttrib::Normal))
-      ivtx[libcube::gx::VertexAttribute::Normal] = addNrm(vtx.normal);
+      ivtx[librii::gx::VertexAttribute::Normal] = addNrm(vtx.normal);
     if (hasAttrib(SimpleAttrib::Color0))
-      ivtx[libcube::gx::VertexAttribute::Color0] = addClr(0, vtx.colors[0]);
+      ivtx[librii::gx::VertexAttribute::Color0] = addClr(0, vtx.colors[0]);
     if (hasAttrib(SimpleAttrib::Color1))
-      ivtx[libcube::gx::VertexAttribute::Color1] = addClr(1, vtx.colors[1]);
+      ivtx[librii::gx::VertexAttribute::Color1] = addClr(1, vtx.colors[1]);
     // TODO: Support all
     if (hasAttrib(SimpleAttrib::TexCoord0))
-      ivtx[libcube::gx::VertexAttribute::TexCoord0] = addUv(0, vtx.uvs[0]);
+      ivtx[librii::gx::VertexAttribute::TexCoord0] = addUv(0, vtx.uvs[0]);
     if (hasAttrib(SimpleAttrib::TexCoord1))
-      ivtx[libcube::gx::VertexAttribute::TexCoord1] = addUv(1, vtx.uvs[1]);
+      ivtx[librii::gx::VertexAttribute::TexCoord1] = addUv(1, vtx.uvs[1]);
 
     prim.mVertices.push_back(ivtx);
   }
@@ -169,7 +169,7 @@ std::vector<glm::mat4> Shape::getPosMtx(u64 mpid) const {
 
   auto& mdl = *getModel(this);
   // if (!(getVcd().mBitfield &
-  //       (1 << (int)libcube::gx::VertexAttribute::PositionNormalMatrixIndex)))
+  //       (1 << (int)librii::gx::VertexAttribute::PositionNormalMatrixIndex)))
   //       {
   //   return {
   //       mdl_ac.getJoint(0 /* DEBUG

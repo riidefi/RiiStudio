@@ -70,5 +70,7 @@ add_subdirectory(frontend)
 add_subdirectory(oishii)
 add_subdirectory(plate)
 
+add_subdirectory(lib_rii)
+
 # Third-party libraries
 add_subdirectory(vendor)

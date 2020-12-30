@@ -49,7 +49,7 @@ void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler,
       if (static_cast<u32>(tag) & 0x80) {
         handler.onCommandDraw(
             reader,
-            libcube::gx::DecodeDrawPrimitiveCommand(static_cast<u32>(tag)),
+            librii::gx::DecodeDrawPrimitiveCommand(static_cast<u32>(tag)),
             reader.readUnaligned<u16>());
       }
       // TODO

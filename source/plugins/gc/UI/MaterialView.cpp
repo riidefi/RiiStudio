@@ -34,21 +34,21 @@ struct CullMode {
 
   CullMode() : front(true), back(false) {}
   CullMode(bool f, bool b) : front(f), back(b) {}
-  CullMode(libcube::gx::CullMode c) { set(c); }
+  CullMode(librii::gx::CullMode c) { set(c); }
 
-  void set(libcube::gx::CullMode c) {
+  void set(librii::gx::CullMode c) {
     switch (c) {
-    case libcube::gx::CullMode::All:
+    case librii::gx::CullMode::All:
       front = back = false;
       break;
-    case libcube::gx::CullMode::None:
+    case librii::gx::CullMode::None:
       front = back = true;
       break;
-    case libcube::gx::CullMode::Front:
+    case librii::gx::CullMode::Front:
       front = false;
       back = true;
       break;
-    case libcube::gx::CullMode::Back:
+    case librii::gx::CullMode::Back:
       front = true;
       back = false;
       break;
@@ -58,14 +58,14 @@ struct CullMode {
       break;
     }
   }
-  libcube::gx::CullMode get() const noexcept {
+  librii::gx::CullMode get() const noexcept {
     if (front && back)
-      return libcube::gx::CullMode::None;
+      return librii::gx::CullMode::None;
 
     if (!front && !back)
-      return libcube::gx::CullMode::All;
+      return librii::gx::CullMode::All;
 
-    return front ? libcube::gx::CullMode::Back : libcube::gx::CullMode::Front;
+    return front ? librii::gx::CullMode::Back : librii::gx::CullMode::Front;
   }
 
   void draw() {
@@ -74,7 +74,7 @@ struct CullMode {
     ImGui::Checkbox("Back", &back);
   }
 };
-libcube::gx::CullMode DrawCullMode(libcube::gx::CullMode cull_mode) {
+librii::gx::CullMode DrawCullMode(librii::gx::CullMode cull_mode) {
   CullMode widget(cull_mode);
   widget.draw();
   return widget.get();
@@ -146,7 +146,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   _AUTO_PROPERTY(delegate, delegate.getActive().getMaterialData().before,      \
                  after, getMaterialData().before)
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
-  libcube::gx::ColorF32 clr;
+  librii::gx::ColorF32 clr;
   auto& matData = delegate.getActive().getMaterialData();
 
   if (ImGui::CollapsingHeader("TEV Color Registers",
@@ -158,7 +158,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
       ImGui::ColorEdit4(
           (std::string("Color Register ") + std::to_string(i)).c_str(), clr);
       clr.clamp(-1024.0f / 255.0f, 1023.0f / 255.0f);
-      AUTO_PROP(tevColors[i], static_cast<libcube::gx::ColorS10>(clr));
+      AUTO_PROP(tevColors[i], static_cast<librii::gx::ColorS10>(clr));
     }
   }
 
@@ -169,7 +169,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
       ImGui::ColorEdit4(
           (std::string("Constant Register ") + std::to_string(i)).c_str(), clr);
       clr.clamp(0.0f, 1.0f);
-      AUTO_PROP(tevKonstColors[i], static_cast<libcube::gx::Color>(clr));
+      AUTO_PROP(tevKonstColors[i], static_cast<librii::gx::Color>(clr));
     }
   }
 }
@@ -345,27 +345,27 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 int lightid = 0;
 
                 switch (tg.func) {
-                case libcube::gx::TexGenType::Matrix2x4:
+                case librii::gx::TexGenType::Matrix2x4:
                   basefunc = 0;
                   mtxtype = 0;
                   break;
-                case libcube::gx::TexGenType::Matrix3x4:
+                case librii::gx::TexGenType::Matrix3x4:
                   basefunc = 0;
                   mtxtype = 1;
                   break;
-                case libcube::gx::TexGenType::Bump0:
-                case libcube::gx::TexGenType::Bump1:
-                case libcube::gx::TexGenType::Bump2:
-                case libcube::gx::TexGenType::Bump3:
-                case libcube::gx::TexGenType::Bump4:
-                case libcube::gx::TexGenType::Bump5:
-                case libcube::gx::TexGenType::Bump6:
-                case libcube::gx::TexGenType::Bump7:
+                case librii::gx::TexGenType::Bump0:
+                case librii::gx::TexGenType::Bump1:
+                case librii::gx::TexGenType::Bump2:
+                case librii::gx::TexGenType::Bump3:
+                case librii::gx::TexGenType::Bump4:
+                case librii::gx::TexGenType::Bump5:
+                case librii::gx::TexGenType::Bump6:
+                case librii::gx::TexGenType::Bump7:
                   basefunc = 1;
                   lightid = static_cast<int>(tg.func) -
-                            static_cast<int>(libcube::gx::TexGenType::Bump0);
+                            static_cast<int>(librii::gx::TexGenType::Bump0);
                   break;
-                case libcube::gx::TexGenType::SRTG:
+                case librii::gx::TexGenType::SRTG:
                   basefunc = 2;
                   break;
                 }
@@ -386,12 +386,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                     ConditionalActive g2(!identitymatrix);
                     ImGui::SliderInt("Matrix ID", &texmatrixid, 0, 7);
                   }
-                  libcube::gx::TexMatrix newtexmatrix =
+                  librii::gx::TexMatrix newtexmatrix =
                       identitymatrix
-                          ? libcube::gx::TexMatrix::Identity
-                          : static_cast<libcube::gx::TexMatrix>(
+                          ? librii::gx::TexMatrix::Identity
+                          : static_cast<librii::gx::TexMatrix>(
                                 static_cast<int>(
-                                    libcube::gx::TexMatrix::TexMatrix0) +
+                                    librii::gx::TexMatrix::TexMatrix0) +
                                 std::max(0, texmatrixid) * 3);
                   AUTO_PROP(texGens[i].matrix, newtexmatrix);
                 }
@@ -400,20 +400,20 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   ImGui::SliderInt("Hardware light ID", &lightid, 0, 7);
                 }
 
-                libcube::gx::TexGenType newfunc =
-                    libcube::gx::TexGenType::Matrix2x4;
+                librii::gx::TexGenType newfunc =
+                    librii::gx::TexGenType::Matrix2x4;
                 switch (basefunc) {
                 case 0:
-                  newfunc = mtxtype ? libcube::gx::TexGenType::Matrix3x4
-                                    : libcube::gx::TexGenType::Matrix2x4;
+                  newfunc = mtxtype ? librii::gx::TexGenType::Matrix3x4
+                                    : librii::gx::TexGenType::Matrix2x4;
                   break;
                 case 1:
-                  newfunc = static_cast<libcube::gx::TexGenType>(
-                      static_cast<int>(libcube::gx::TexGenType::Bump0) +
+                  newfunc = static_cast<librii::gx::TexGenType>(
+                      static_cast<int>(librii::gx::TexGenType::Bump0) +
                       lightid);
                   break;
                 case 2:
-                  newfunc = libcube::gx::TexGenType::SRTG;
+                  newfunc = librii::gx::TexGenType::SRTG;
                   break;
                 }
                 AUTO_PROP(texGens[i].func, newfunc);
@@ -426,7 +426,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                     "UV2\0Bump UV3\0Bump UV4\0Bump UV5\0Bump UV6\0Color "
                     "Channel 0\0Color Channel 1\0");
                 AUTO_PROP(texGens[i].sourceParam,
-                          static_cast<libcube::gx::TexGenSrc>(src));
+                          static_cast<librii::gx::TexGenSrc>(src));
               }
               if (tm != nullptr &&
                   ImGui::CollapsingHeader("Texture Coordinate Generator",
@@ -549,9 +549,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           int tTile = static_cast<int>(samp->mWrapV);
           ImGui::Combo("V tiling", &tTile, "Clamp\0Repeat\0Mirror\0");
           AUTO_PROP(samplers[i]->mWrapU,
-                    static_cast<libcube::gx::TextureWrapMode>(sTile));
+                    static_cast<librii::gx::TextureWrapMode>(sTile));
           AUTO_PROP(samplers[i]->mWrapV,
-                    static_cast<libcube::gx::TextureWrapMode>(tTile));
+                    static_cast<librii::gx::TextureWrapMode>(tTile));
         }
         if (ImGui::CollapsingHeader("Filtering",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -562,27 +562,27 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           bool mip = false;
 
           switch (samp->mMinFilter) {
-          case libcube::gx::TextureFilter::near_mip_near:
+          case librii::gx::TextureFilter::near_mip_near:
             mip = true;
-          case libcube::gx::TextureFilter::near:
+          case librii::gx::TextureFilter::near:
             minBase = minMipBase =
-                static_cast<int>(libcube::gx::TextureFilter::near);
+                static_cast<int>(librii::gx::TextureFilter::near);
             break;
-          case libcube::gx::TextureFilter::lin_mip_lin:
+          case librii::gx::TextureFilter::lin_mip_lin:
             mip = true;
-          case libcube::gx::TextureFilter::linear:
+          case librii::gx::TextureFilter::linear:
             minBase = minMipBase =
-                static_cast<int>(libcube::gx::TextureFilter::linear);
+                static_cast<int>(librii::gx::TextureFilter::linear);
             break;
-          case libcube::gx::TextureFilter::near_mip_lin:
+          case librii::gx::TextureFilter::near_mip_lin:
             mip = true;
-            minBase = static_cast<int>(libcube::gx::TextureFilter::near);
-            minMipBase = static_cast<int>(libcube::gx::TextureFilter::linear);
+            minBase = static_cast<int>(librii::gx::TextureFilter::near);
+            minMipBase = static_cast<int>(librii::gx::TextureFilter::linear);
             break;
-          case libcube::gx::TextureFilter::lin_mip_near:
+          case librii::gx::TextureFilter::lin_mip_near:
             mip = true;
-            minBase = static_cast<int>(libcube::gx::TextureFilter::linear);
-            minMipBase = static_cast<int>(libcube::gx::TextureFilter::near);
+            minBase = static_cast<int>(librii::gx::TextureFilter::linear);
+            minMipBase = static_cast<int>(librii::gx::TextureFilter::near);
             break;
           }
 
@@ -591,7 +591,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
           ImGui::Combo("Interpolation when scaled up", &magBase, linNear);
           AUTO_PROP(samplers[i]->mMagFilter,
-                    static_cast<libcube::gx::TextureFilter>(magBase));
+                    static_cast<librii::gx::TextureFilter>(magBase));
           ImGui::Combo("Interpolation when scaled down", &minBase, linNear);
 
           ImGui::Checkbox("Use mipmap", &mip);
@@ -620,30 +620,30 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
                 int maxaniso = 0;
                 switch (samp->mMaxAniso) {
-                case libcube::gx::AnisotropyLevel::x1:
+                case librii::gx::AnisotropyLevel::x1:
                   maxaniso = 1;
                   break;
-                case libcube::gx::AnisotropyLevel::x2:
+                case librii::gx::AnisotropyLevel::x2:
                   maxaniso = 2;
                   break;
-                case libcube::gx::AnisotropyLevel::x4:
+                case librii::gx::AnisotropyLevel::x4:
                   maxaniso = 4;
                   break;
                 }
                 ImGui::SliderInt("Anisotropic filtering level", &maxaniso, 1,
                                  4);
-                libcube::gx::AnisotropyLevel alvl =
-                    libcube::gx::AnisotropyLevel::x1;
+                librii::gx::AnisotropyLevel alvl =
+                    librii::gx::AnisotropyLevel::x1;
                 switch (maxaniso) {
                 case 1:
-                  alvl = libcube::gx::AnisotropyLevel::x1;
+                  alvl = librii::gx::AnisotropyLevel::x1;
                   break;
                 case 2:
-                  alvl = libcube::gx::AnisotropyLevel::x2;
+                  alvl = librii::gx::AnisotropyLevel::x2;
                   break;
                 case 3:
                 case 4:
-                  alvl = libcube::gx::AnisotropyLevel::x4;
+                  alvl = librii::gx::AnisotropyLevel::x4;
                   break;
                 }
                 AUTO_PROP(samplers[i]->mMaxAniso, alvl);
@@ -651,20 +651,20 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
             }
           }
 
-          libcube::gx::TextureFilter computedMin =
-              libcube::gx::TextureFilter::near;
+          librii::gx::TextureFilter computedMin =
+              librii::gx::TextureFilter::near;
           if (!mip) {
-            computedMin = static_cast<libcube::gx::TextureFilter>(minBase);
+            computedMin = static_cast<librii::gx::TextureFilter>(minBase);
           } else {
-            bool baseLin = static_cast<libcube::gx::TextureFilter>(minBase) ==
-                           libcube::gx::TextureFilter::linear;
-            if (static_cast<libcube::gx::TextureFilter>(minMipBase) ==
-                libcube::gx::TextureFilter::linear) {
-              computedMin = baseLin ? libcube::gx::TextureFilter::lin_mip_lin
-                                    : libcube::gx::TextureFilter::near_mip_lin;
+            bool baseLin = static_cast<librii::gx::TextureFilter>(minBase) ==
+                           librii::gx::TextureFilter::linear;
+            if (static_cast<librii::gx::TextureFilter>(minMipBase) ==
+                librii::gx::TextureFilter::linear) {
+              computedMin = baseLin ? librii::gx::TextureFilter::lin_mip_lin
+                                    : librii::gx::TextureFilter::near_mip_lin;
             } else {
-              computedMin = baseLin ? libcube::gx::TextureFilter::lin_mip_near
-                                    : libcube::gx::TextureFilter::near_mip_near;
+              computedMin = baseLin ? librii::gx::TextureFilter::lin_mip_near
+                                    : librii::gx::TextureFilter::near_mip_near;
             }
           }
 
@@ -851,7 +851,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     return;
   }
 
-  auto drawStage = [&](libcube::gx::TevStage& stage, int i) {
+  auto drawStage = [&](librii::gx::TevStage& stage, int i) {
 #define STAGE_PROP(a, b) AUTO_PROP(shader.mStages[i].a, b)
     if (ImGui::CollapsingHeader("Stage Setting",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -956,7 +956,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     if (ImGui::CollapsingHeader("Color Stage",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       // TODO: Only add for now..
-      if (stage.colorStage.formula == libcube::gx::TevColorOp::add) {
+      if (stage.colorStage.formula == librii::gx::TevColorOp::add) {
         TevExpression expression(stage.colorStage);
 
         ImGui::SetWindowFontScale(1.3f);
@@ -1008,7 +1008,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     if (ImGui::CollapsingHeader("Alpha Stage",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       IDScope alphag("Alpha");
-      if (stage.alphaStage.formula == libcube::gx::TevAlphaOp::add) {
+      if (stage.alphaStage.formula == librii::gx::TevAlphaOp::add) {
         TevExpression expression(stage.alphaStage);
 
         ImGui::SetWindowFontScale(1.3f);
@@ -1143,13 +1143,13 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       {
         ConditionalActive g(!vclr);
 
-        libcube::gx::ColorF32 mclr = colors[i / 2].matColor;
+        librii::gx::ColorF32 mclr = colors[i / 2].matColor;
         if (i % 2 == 0) {
           ImGui::ColorEdit3("Diffuse Color", mclr);
         } else {
           ImGui::DragFloat("Diffuse Alpha", &mclr.a, 0.0f, 1.0f);
         }
-        AUTO_PROP(chanData[i / 2].matColor, (libcube::gx::Color)mclr);
+        AUTO_PROP(chanData[i / 2].matColor, (librii::gx::Color)mclr);
       }
     }
     bool enabled = ctrl.enabled;
@@ -1169,13 +1169,13 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       {
         ConditionalActive g(!vclr);
 
-        libcube::gx::ColorF32 aclr = colors[i / 2].ambColor;
+        librii::gx::ColorF32 aclr = colors[i / 2].ambColor;
         if (i % 2 == 0) {
           ImGui::ColorEdit3("Ambient Color", aclr);
         } else {
           ImGui::DragFloat("Ambient Alpha", &aclr.a, 0.0f, 1.0f);
         }
-        AUTO_PROP(chanData[i / 2].ambColor, (libcube::gx::Color)aclr);
+        AUTO_PROP(chanData[i / 2].ambColor, (librii::gx::Color)aclr);
       }
     }
 
@@ -1184,11 +1184,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
     ImGui::Combo("Diffusion Type", &diffuse_fn, "None\0Signed\0Clamped\0");
     AUTO_PROP(colorChanControls[i].diffuseFn,
-              static_cast<libcube::gx::DiffuseFunction>(diffuse_fn));
+              static_cast<librii::gx::DiffuseFunction>(diffuse_fn));
     ImGui::Combo("Attenuation Type", &atten_fn,
                  "Specular\0Spotlight (Diffuse)\0None\0None*\0");
     AUTO_PROP(colorChanControls[i].attenuationFn,
-              static_cast<libcube::gx::AttenuationFunction>(atten_fn));
+              static_cast<librii::gx::AttenuationFunction>(atten_fn));
 
     ImGui::Text("Enabled Lights:");
     auto light_mask = static_cast<u32>(ctrl.lightMask);
@@ -1215,7 +1215,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     }
     ImGui::EndTable();
     AUTO_PROP(colorChanControls[i].lightMask,
-              static_cast<libcube::gx::LightID>(light_mask));
+              static_cast<librii::gx::LightID>(light_mask));
   };
 
   for (int i = 0; i < controls.size(); i += 2) {
@@ -1408,7 +1408,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         int leftAlpha = static_cast<int>(matData.alphaCompare.compLeft);
         ImGui::Combo("##l", &leftAlpha, compStr);
         AUTO_PROP(alphaCompare.compLeft,
-                  static_cast<libcube::gx::Comparison>(leftAlpha));
+                  static_cast<librii::gx::Comparison>(leftAlpha));
 
         int leftRef = static_cast<int>(
             delegate.getActive().getMaterialData().alphaCompare.refLeft);
@@ -1422,7 +1422,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       {
         int op = static_cast<int>(matData.alphaCompare.op);
         ImGui::Combo("##o", &op, "&&\0||\0!=\0==\0");
-        AUTO_PROP(alphaCompare.op, static_cast<libcube::gx::AlphaOp>(op));
+        AUTO_PROP(alphaCompare.op, static_cast<librii::gx::AlphaOp>(op));
       }
       {
         ImGui::Text("( Pixel Alpha");
@@ -1430,7 +1430,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         int rightAlpha = static_cast<int>(matData.alphaCompare.compRight);
         ImGui::Combo("##r", &rightAlpha, compStr);
         AUTO_PROP(alphaCompare.compRight,
-                  static_cast<libcube::gx::Comparison>(rightAlpha));
+                  static_cast<librii::gx::Comparison>(rightAlpha));
 
         int rightRef = static_cast<int>(matData.alphaCompare.refRight);
         ImGui::SameLine();
@@ -1467,7 +1467,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                    "Never draw.\0Pixel Z < EFB Z\0Pixel Z == EFB Z\0Pixel Z <= "
                    "EFB Z\0Pixel Z > EFB Z\0Pixel Z != EFB Z\0Pixel Z >= EFB "
                    "Z\0 Always draw.\0");
-      AUTO_PROP(zMode.function, static_cast<libcube::gx::Comparison>(zcond));
+      AUTO_PROP(zMode.function, static_cast<librii::gx::Comparison>(zcond));
 
       ImGui::Unindent(30.0f);
     }
@@ -1478,12 +1478,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     ImGui::Combo("Type", &btype,
                  "Do not blend.\0Blending\0Logical Operations\0Subtract from "
                  "Frame Buffer\0");
-    AUTO_PROP(blendMode.type, static_cast<libcube::gx::BlendModeType>(btype));
+    AUTO_PROP(blendMode.type, static_cast<librii::gx::BlendModeType>(btype));
 
     {
 
       ConditionalActive g(btype ==
-                          static_cast<int>(libcube::gx::BlendModeType::blend));
+                          static_cast<int>(librii::gx::BlendModeType::blend));
       ImGui::Text("Blend calculation");
 
       const char* blendOpts =
@@ -1498,7 +1498,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       ImGui::SameLine();
       ImGui::Combo("##Src", &srcFact, blendOpts);
       AUTO_PROP(blendMode.source,
-                static_cast<libcube::gx::BlendModeFactor>(srcFact));
+                static_cast<librii::gx::BlendModeFactor>(srcFact));
 
       ImGui::SameLine();
       ImGui::Text(") + ( EFB Color * ");
@@ -1507,14 +1507,14 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       ImGui::SameLine();
       ImGui::Combo("##Dst", &dstFact, blendOptsDst);
       AUTO_PROP(blendMode.dest,
-                static_cast<libcube::gx::BlendModeFactor>(dstFact));
+                static_cast<librii::gx::BlendModeFactor>(dstFact));
 
       ImGui::SameLine();
       ImGui::Text(")");
     }
     {
       ConditionalActive g(btype ==
-                          static_cast<int>(libcube::gx::BlendModeType::logic));
+                          static_cast<int>(librii::gx::BlendModeType::logic));
       ImGui::Text("Logical Operations");
     }
     ImGui::PopItemWidth();

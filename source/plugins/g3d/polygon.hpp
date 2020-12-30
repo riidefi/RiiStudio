@@ -2,7 +2,7 @@
 
 #include <core/common.h>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
-#include <plugins/gc/GX/VertexTypes.hpp>
+#include <lib_rii/gx.h>
 #include <vector>
 
 #include <core/kpi/Node.hpp>

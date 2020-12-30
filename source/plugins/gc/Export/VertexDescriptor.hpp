@@ -2,7 +2,7 @@
 
 #include <core/common.h>
 #include <map>
-#include <plugins/gc/GX/VertexTypes.hpp>
+#include <lib_rii/gx.h>
 
 namespace libcube {
 

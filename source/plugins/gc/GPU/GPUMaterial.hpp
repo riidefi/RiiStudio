@@ -6,7 +6,7 @@
 #include "GPUCommand.hpp"
 
 #include <glm/glm.hpp>
-#include <plugins/gc/GX/Material.hpp>
+#include <lib_rii/gx.h>
 #include <tuple> // std::pair
 
 namespace libcube::gpu {
@@ -78,13 +78,13 @@ union AlphaTest {
     }
     return UNDETERMINED;
   }
-  operator gx::AlphaComparison() {
-    gx::AlphaComparison tmp;
+  operator librii::gx::AlphaComparison() {
+    librii::gx::AlphaComparison tmp;
     tmp.refLeft = ref0.Value();
     tmp.refRight = ref1.Value();
-    tmp.compLeft = static_cast<gx::Comparison>(comp0.Value());
-    tmp.compRight = static_cast<gx::Comparison>(comp1.Value());
-    tmp.op = static_cast<gx::AlphaOp>(logic.Value());
+    tmp.compLeft = static_cast<librii::gx::Comparison>(comp0.Value());
+    tmp.compRight = static_cast<librii::gx::Comparison>(comp1.Value());
+    tmp.op = static_cast<librii::gx::AlphaOp>(logic.Value());
     return tmp;
   }
 };
@@ -106,11 +106,11 @@ union ZMode {
 
   u32 hex;
 
-  operator gx::ZMode() {
-    gx::ZMode tmp;
+  operator librii::gx::ZMode() {
+    librii::gx::ZMode tmp;
 
     tmp.compare = testenable.Value();
-    tmp.function = static_cast<gx::Comparison>(func.Value());
+    tmp.function = static_cast<librii::gx::Comparison>(func.Value());
     tmp.update = updateenable.Value();
 
     return tmp;
@@ -165,21 +165,22 @@ union CMODE0 {
 
   bool UseLogicOp() const;
 
-  operator gx::BlendMode() {
-    gx::BlendMode tmp;
+  operator librii::gx::BlendMode() {
+    using namespace librii::gx;
+    BlendMode tmp;
 
     if (logicopenable.Value())
-      tmp.type = gx::BlendModeType::logic;
+      tmp.type = BlendModeType::logic;
     else if (subtract.Value())
-      tmp.type = gx::BlendModeType::subtract;
+      tmp.type = BlendModeType::subtract;
     else if (blendenable.Value())
-      tmp.type = gx::BlendModeType::blend;
+      tmp.type = BlendModeType::blend;
     else
-      tmp.type = gx::BlendModeType::none;
+      tmp.type = BlendModeType::none;
 
-    tmp.source = static_cast<gx::BlendModeFactor>(srcfactor.Value());
-    tmp.dest = static_cast<gx::BlendModeFactor>(dstfactor.Value());
-    tmp.logic = static_cast<gx::LogicOp>(logicmode.Value());
+    tmp.source = static_cast<BlendModeFactor>(srcfactor.Value());
+    tmp.dest = static_cast<BlendModeFactor>(dstfactor.Value());
+    tmp.logic = static_cast<librii::gx::LogicOp>(logicmode.Value());
     return tmp;
   }
 };
@@ -235,7 +236,7 @@ struct IND_MTX {
   IND_MTXC col2;
 
   operator glm::mat4();
-  operator gx::IndirectMatrix();
+  operator librii::gx::IndirectMatrix();
 };
 union GPUTevReg {
   enum RegType { REGISTER, KONSTANT };
@@ -259,15 +260,15 @@ union GPUTevReg {
   BitField<44, 11, s64> green;
   BitField<55, 1, u64> type_bg;
 
-  operator gx::Color() {
+  operator librii::gx::Color() {
     return {(u8)red.Value(), (u8)green.Value(), (u8)blue.Value(),
             (u8)alpha.Value()};
   }
-  operator gx::ColorS10() {
+  operator librii::gx::ColorS10() {
     return {(s16)red.Value(), (s16)green.Value(), (s16)blue.Value(),
             (s16)alpha.Value()};
   }
-  GPUTevReg(const gx::Color& color, RegType type) {
+  GPUTevReg(const librii::gx::Color& color, RegType type) {
     red = color.r;
     green = color.g;
     blue = color.b;
@@ -330,7 +331,7 @@ struct XF_TEXTURE {
   TexMtxInfo tex;
   PostMtxInfo dualTex;
 
-  operator gx::TexCoordGen();
+  operator librii::gx::TexCoordGen();
 };
 
 union LitChannel {
@@ -352,8 +353,8 @@ union LitChannel {
     lightMask4_7 = (mask >> 4) & 0b1111;
   }
 
-  void from(const gx::ChannelControl& ctrl);
-  operator gx::ChannelControl();
+  void from(const librii::gx::ChannelControl& ctrl);
+  operator librii::gx::ChannelControl();
 };
 union TevKSel {
   BitField<0, 2, u32> swaprb;

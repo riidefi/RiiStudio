@@ -6,7 +6,7 @@
 #include <llvm/ADT/SmallVector.h>
 #include <vector>
 
-namespace libcube::gx {
+namespace librii::gx {
 
 enum class TevColorArg {
   cprev,
@@ -288,4 +288,4 @@ struct Shader {
   Shader() { mStages.emplace_back(); }
 };
 
-} // namespace libcube::gx
+} // namespace librii::gx

@@ -68,7 +68,7 @@ bool ResizeAction::resize_draw(Texture& data, bool* changed) {
 
     libcube::image_platform::transform(
         data.getData(), resize[0].value, resize[1].value,
-        static_cast<libcube::gx::TextureFormat>(data.getTextureFormat()),
+        static_cast<librii::gx::TextureFormat>(data.getTextureFormat()),
         std::nullopt, data.getData(), oldWidth, oldHeight,
         data.getMipmapCount(),
         static_cast<libcube::image_platform::ResizingAlgorithm>(resizealgo));
@@ -105,8 +105,8 @@ bool ReformatAction::reformat_draw(Texture& data, bool* changed) {
 
     libcube::image_platform::transform(
         data.getData(), data.getWidth(), data.getHeight(),
-        static_cast<libcube::gx::TextureFormat>(oldFormat),
-        static_cast<libcube::gx::TextureFormat>(reformatOpt), data.getData(),
+        static_cast<librii::gx::TextureFormat>(oldFormat),
+        static_cast<librii::gx::TextureFormat>(reformatOpt), data.getData(),
         data.getWidth(), data.getHeight(), data.getMipmapCount());
 
     if (changed != nullptr)

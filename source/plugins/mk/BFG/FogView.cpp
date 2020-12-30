@@ -51,9 +51,9 @@ auto fogEntry =
             ImGui::InputFloat("End Z", &endZ);
             KPI_PROPERTY_EX(delegate, mEndZ, endZ);
 
-            libcube::gx::ColorF32 clr_f32 = fog.mColor;
+            librii::gx::ColorF32 clr_f32 = fog.mColor;
             ImGui::ColorEdit4("Fog Color", clr_f32);
-            KPI_PROPERTY_EX(delegate, mColor, (libcube::gx::Color)clr_f32);
+            KPI_PROPERTY_EX(delegate, mColor, (librii::gx::Color)clr_f32);
 
             int center = fog.mCenter;
             ImGui::InputInt("Center", &center);

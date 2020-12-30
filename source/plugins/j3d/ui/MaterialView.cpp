@@ -42,7 +42,7 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
   ImGui::InputInt("Flag", &flag, 1, 1);
   KPI_PROPERTY_EX(delegate, flag, static_cast<u8>(flag));
 
-  libcube::gx::ColorF32 clr_f32;
+  librii::gx::ColorF32 clr_f32;
 
   if (ImGui::CollapsingHeader("Fog", ImGuiTreeNodeFlags_DefaultOpen)) {
     auto& fog = delegate.getActive().fogInfo;
@@ -93,7 +93,7 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
       ImGui::PopItemWidth();
       clr_f32 = fog.color;
       ImGui::ColorEdit4("Fog Color", clr_f32);
-      KPI_PROPERTY_EX(delegate, fogInfo.color, (libcube::gx::Color)clr_f32);
+      KPI_PROPERTY_EX(delegate, fogInfo.color, (librii::gx::Color)clr_f32);
 
       // RangeAdjTable? Maybe a graph?
     }
@@ -108,7 +108,7 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
       ImGui::ColorEdit4(
           (std::string("Light Color ") + std::to_string(i)).c_str(), clr_f32);
 
-      KPI_PROPERTY(delegate, clr, (libcube::gx::Color)clr_f32, lightColors[i]);
+      KPI_PROPERTY(delegate, clr, (librii::gx::Color)clr_f32, lightColors[i]);
       ++i;
     }
   }

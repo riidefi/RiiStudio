@@ -3,7 +3,7 @@
 #include "PropertySupport.hpp"
 #include <core/3d/i3dmodel.hpp>
 #include <core/common.h>
-#include <plugins/gc/GX/Material.hpp>
+#include <lib_rii/gx.h>
 
 #include <core/kpi/Node.hpp>
 
@@ -87,7 +87,7 @@ struct GCMaterialData {
 
   std::string name;
 
-  gx::CullMode cullMode = libcube::gx::CullMode::Back;
+  gx::CullMode cullMode = librii::gx::CullMode::Back;
 
   // Gen Info counts
   struct GenInfo {

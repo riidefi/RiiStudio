@@ -65,7 +65,7 @@ void AssImporter::ProcessMeshTrianglesStatic(
   // Copy triangle data
   // We will do triangle-stripping in a post-process
   auto& tris = mp.mPrimitives.emplace_back();
-  tris.mType = libcube::gx::PrimitiveType::Triangles;
+  tris.mType = librii::gx::PrimitiveType::Triangles;
   tris.mVertices = std::move(vertices);
 
   const int boneId = get_bone_id(singleInfluence);
@@ -148,7 +148,7 @@ void AssImporter::ProcessMeshTrianglesWeighted(
       // But submit what we have so far, first:
       auto& mp = poly_data.getMeshData().mMatrixPrimitives.emplace_back();
       auto& tris = mp.mPrimitives.emplace_back();
-      tris.mType = libcube::gx::PrimitiveType::Triangles;
+      tris.mType = librii::gx::PrimitiveType::Triangles;
       std::copy(vertices.begin() + last_sweep_vtx, vertices.begin() + v0,
                 std::back_inserter(tris.mVertices));
       last_sweep_vtx = v0;
@@ -192,7 +192,8 @@ void AssImporter::ProcessMeshTriangles(
   }
 }
 
-bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode, glm::vec3 tint) {
+bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
+                             glm::vec3 tint) {
   // Ignore points and lines
   if (pMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
     return false;
@@ -209,25 +210,25 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode, glm::vec3
   poly.init(/* skinned */ true, &bbox);
   // TODO: Sphere
   auto add_attribute = [&](auto type, bool direct = false) {
-    vcd.mAttributes[type] = direct ? libcube::gx::VertexAttributeType::Direct
-                                   : libcube::gx::VertexAttributeType::Short;
+    vcd.mAttributes[type] = direct ? librii::gx::VertexAttributeType::Direct
+                                   : librii::gx::VertexAttributeType::Short;
   };
-  add_attribute(libcube::gx::VertexAttribute::Position);
+  add_attribute(librii::gx::VertexAttribute::Position);
   if (pMesh->HasNormals())
-    add_attribute(libcube::gx::VertexAttribute::Normal);
+    add_attribute(librii::gx::VertexAttribute::Normal);
 
   for (int j = 0; j < 2; ++j) {
     if (pMesh->HasVertexColors(j))
-      add_attribute(libcube::gx::VertexAttribute::Color0 + j);
+      add_attribute(librii::gx::VertexAttribute::Color0 + j);
   }
 
   // Force Color0 for materials
   if (!pMesh->HasVertexColors(0))
-    add_attribute(libcube::gx::VertexAttribute::Color0);
+    add_attribute(librii::gx::VertexAttribute::Color0);
 
   for (int j = 0; j < 8; ++j) {
     if (pMesh->HasTextureCoords(j)) {
-      add_attribute(libcube::gx::VertexAttribute::TexCoord0 + j);
+      add_attribute(librii::gx::VertexAttribute::TexCoord0 + j);
 
       assert(pMesh->mNumUVComponents[j] == 2);
     }
@@ -254,10 +255,11 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode, glm::vec3
   };
   auto add_color = [&](int v, unsigned j) {
     const auto clr = j >= pMesh->GetNumColorChannels()
-                         ? libcube::gx::Color{0xff, 0xff, 0xff, 0xff}
+                         ? librii::gx::Color{0xff, 0xff, 0xff, 0xff}
                          : getClr(pMesh->mColors[j][v]);
-    libcube::gx::ColorF32 fclr(clr);
-    auto tclr = glm::vec4(fclr.r, fclr.g, fclr.b, fclr.a) * glm::vec4(tint, 1.0f);
+    librii::gx::ColorF32 fclr(clr);
+    auto tclr =
+        glm::vec4(fclr.r, fclr.g, fclr.b, fclr.a) * glm::vec4(tint, 1.0f);
     fclr = {.r = tclr.x, .g = tclr.y, .b = tclr.z, .a = tclr.w};
     return poly.addClr(j, fclr);
   };
@@ -292,16 +294,16 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode, glm::vec3
         vtx[PNM] = weightInfo * 3;
       }
 
-      vtx[libcube::gx::VertexAttribute::Position] = add_position(v, &drw);
+      vtx[librii::gx::VertexAttribute::Position] = add_position(v, &drw);
       if (pMesh->HasNormals())
-        vtx[libcube::gx::VertexAttribute::Normal] = add_normal(v);
+        vtx[librii::gx::VertexAttribute::Normal] = add_normal(v);
       for (int j = 0; j < 2; ++j) {
         if (pMesh->HasVertexColors(j) || j == 0)
-          vtx[libcube::gx::VertexAttribute::Color0 + j] = add_color(v, j);
+          vtx[librii::gx::VertexAttribute::Color0 + j] = add_color(v, j);
       }
       for (int j = 0; j < 8; ++j) {
         if (pMesh->HasTextureCoords(j)) {
-          vtx[libcube::gx::VertexAttribute::TexCoord0 + j] = add_uv(v, j);
+          vtx[librii::gx::VertexAttribute::TexCoord0 + j] = add_uv(v, j);
         }
       }
       vertices.push_back(vtx);
@@ -329,7 +331,7 @@ static bool importTexture(libcube::Texture& data, u8* image,
            (height >> (num_mip + 1)) >= min_dim)
       ++num_mip;
   }
-  data.setTextureFormat((int)libcube::gx::TextureFormat::CMPR);
+  data.setTextureFormat((int)librii::gx::TextureFormat::CMPR);
   data.setWidth(width);
   data.setHeight(height);
   data.setMipmapCount(num_mip);
@@ -608,18 +610,18 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip) {
 
           break;
         }
-        libcube::gx::TextureWrapMode impWrapMode =
-            libcube::gx::TextureWrapMode::Repeat;
+        librii::gx::TextureWrapMode impWrapMode =
+            librii::gx::TextureWrapMode::Repeat;
         switch (mapmode) {
         case aiTextureMapMode_Decal:
         case aiTextureMapMode_Clamp:
-          impWrapMode = libcube::gx::TextureWrapMode::Clamp;
+          impWrapMode = librii::gx::TextureWrapMode::Clamp;
           break;
         case aiTextureMapMode_Wrap:
-          impWrapMode = libcube::gx::TextureWrapMode::Repeat;
+          impWrapMode = librii::gx::TextureWrapMode::Repeat;
           break;
         case aiTextureMapMode_Mirror:
-          impWrapMode = libcube::gx::TextureWrapMode::Mirror;
+          impWrapMode = librii::gx::TextureWrapMode::Mirror;
           break;
         case _aiTextureMapMode_Force32Bit:
         default:
@@ -699,7 +701,7 @@ void AssImporter::ImportAss(
       }
     }
     tex.setMipmapCount(0);
-    tex.setTextureFormat((int)libcube::gx::TextureFormat::CMPR);
+    tex.setTextureFormat((int)librii::gx::TextureFormat::CMPR);
     tex.encode(scratch.data());
     tex.setWidth(0); // hack..
   }
@@ -720,13 +722,14 @@ void AssImporter::ImportAss(
       dimensions.height = tex->getHeight();
 
       if (!dimensions.isPowerOfTwo()) {
-        sampler->mWrapU = libcube::gx::TextureWrapMode::Clamp;
-        sampler->mWrapV = libcube::gx::TextureWrapMode::Clamp;
+        sampler->mWrapU = librii::gx::TextureWrapMode::Clamp;
+        sampler->mWrapV = librii::gx::TextureWrapMode::Clamp;
       }
       if (tex->getMipmapCount() > 0)
-        sampler->mMinFilter = libcube::gx::TextureFilter::lin_mip_lin;
+        sampler->mMinFilter = librii::gx::TextureFilter::lin_mip_lin;
       if (tex->getWidth() == 0) {
-        sampler->mMagFilter = libcube::gx::TextureFilter::near;
+#undef near
+        sampler->mMagFilter = librii::gx::TextureFilter::near;
         tex->setWidth(32);
       }
       if (auto_outline) {
@@ -747,10 +750,10 @@ void AssImporter::ImportAss(
           }
         }
         if (transparent) {
-          mdata.alphaCompare = {.compLeft = libcube::gx::Comparison::GEQUAL,
+          mdata.alphaCompare = {.compLeft = librii::gx::Comparison::GEQUAL,
                                 .refLeft = 128,
-                                .op = libcube::gx::AlphaOp::_and,
-                                .compRight = libcube::gx::Comparison::LEQUAL,
+                                .op = librii::gx::AlphaOp::_and,
+                                .compRight = librii::gx::Comparison::LEQUAL,
                                 .refRight = 255};
           mdata.earlyZComparison = false;
         }

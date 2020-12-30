@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <glm/glm.hpp>
-#include <plugins/gc/GX/Material.hpp>
+#include <lib_rii/gx.h>
 
 #include <plugins/gc/Export/Material.hpp>
 
@@ -40,7 +40,7 @@ struct Fog {
   u16 center;
   f32 startZ, endZ = 0.0f;
   f32 nearZ, farZ = 0.0f;
-  libcube::gx::Color color = libcube::gx::Color(0xffffffff);
+  librii::gx::Color color = librii::gx::Color(0xffffffff);
   std::array<u16, 10> rangeAdjTable;
 
   bool operator==(const Fog& rhs) const noexcept {
@@ -87,7 +87,7 @@ struct MaterialData : public libcube::GCMaterialData {
 
   // odd data
   Fog fogInfo{};
-  libcube::array_vector<libcube::gx::Color, 8> lightColors;
+  libcube::array_vector<librii::gx::Color, 8> lightColors;
   NBTScale nbtScale{};
   // unused data
   // Note: postTexGens are inferred (only enabled counts)

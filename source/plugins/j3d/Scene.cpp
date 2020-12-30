@@ -1,6 +1,6 @@
 #include "Scene.hpp"
 
-#include <plugins/gc/GX/Material.hpp>
+#include <lib_rii/gx.h>
 
 namespace riistudio::j3d {
 
@@ -69,7 +69,7 @@ void Model::MatCache::propogate(Material& mat) {
 
     update_section(swapModes, swap);
 
-    libcube::gx::TevStage tmp;
+    librii::gx::TevStage tmp;
     tmp.colorStage = stage.colorStage;
     tmp.colorStage.constantSelection = gx::TevKColorSel::k0;
     tmp.alphaStage = stage.alphaStage;

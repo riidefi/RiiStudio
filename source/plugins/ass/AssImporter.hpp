@@ -10,8 +10,8 @@
 
 namespace riistudio::ass {
 
-constexpr libcube::gx::VertexAttribute PNM =
-    libcube::gx::VertexAttribute::PositionNormalMatrixIndex;
+constexpr librii::gx::VertexAttribute PNM =
+    librii::gx::VertexAttribute::PositionNormalMatrixIndex;
 
 struct IdCounter {
   u32 boneId = 0;

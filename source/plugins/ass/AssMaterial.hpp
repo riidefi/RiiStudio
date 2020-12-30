@@ -39,7 +39,7 @@ struct ImpSampler {
   ImpTexType type;
   std::string path;
   u32 uv_channel;
-  libcube::gx::TextureWrapMode wrap;
+  librii::gx::TextureWrapMode wrap;
 };
 struct ImpMaterial {
   std::vector<ImpSampler> samplers;
@@ -66,47 +66,47 @@ static void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
     texturesToImport.insert(in.samplers[0].path);
 
     data.texMatrices.push_back(std::make_unique<j3d::Material::TexMatrix>());
-    data.texGens.push_back({.matrix = libcube::gx::TexMatrix::TexMatrix0});
+    data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
     data.info.nTexGen = 1;
   }
 
-  data.cullMode = libcube::gx::CullMode::Back;
+  data.cullMode = librii::gx::CullMode::Back;
   data.info.nTevStage = 1;
 
-  libcube::gx::TevStage wip;
+  librii::gx::TevStage wip;
   wip.texMap = wip.texCoord = 0;
-  wip.rasOrder = libcube::gx::ColorSelChanApi::color0a0;
+  wip.rasOrder = librii::gx::ColorSelChanApi::color0a0;
   wip.rasSwap = 0;
 
   if (!in.samplers.empty()) {
-    wip.colorStage.a = libcube::gx::TevColorArg::zero;
-    wip.colorStage.b = libcube::gx::TevColorArg::texc;
-    wip.colorStage.c = libcube::gx::TevColorArg::rasc;
-    wip.colorStage.d = libcube::gx::TevColorArg::zero;
+    wip.colorStage.a = librii::gx::TevColorArg::zero;
+    wip.colorStage.b = librii::gx::TevColorArg::texc;
+    wip.colorStage.c = librii::gx::TevColorArg::rasc;
+    wip.colorStage.d = librii::gx::TevColorArg::zero;
 
-    wip.alphaStage.a = libcube::gx::TevAlphaArg::zero;
-    wip.alphaStage.b = libcube::gx::TevAlphaArg::texa;
-    wip.alphaStage.c = libcube::gx::TevAlphaArg::rasa;
-    wip.alphaStage.d = libcube::gx::TevAlphaArg::zero;
+    wip.alphaStage.a = librii::gx::TevAlphaArg::zero;
+    wip.alphaStage.b = librii::gx::TevAlphaArg::texa;
+    wip.alphaStage.c = librii::gx::TevAlphaArg::rasa;
+    wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
   } else {
-    wip.colorStage.a = libcube::gx::TevColorArg::rasc;
-    wip.colorStage.b = libcube::gx::TevColorArg::zero;
-    wip.colorStage.c = libcube::gx::TevColorArg::zero;
-    wip.colorStage.d = libcube::gx::TevColorArg::zero;
+    wip.colorStage.a = librii::gx::TevColorArg::rasc;
+    wip.colorStage.b = librii::gx::TevColorArg::zero;
+    wip.colorStage.c = librii::gx::TevColorArg::zero;
+    wip.colorStage.d = librii::gx::TevColorArg::zero;
 
-    wip.alphaStage.a = libcube::gx::TevAlphaArg::rasa;
-    wip.alphaStage.b = libcube::gx::TevAlphaArg::zero;
-    wip.alphaStage.c = libcube::gx::TevAlphaArg::zero;
-    wip.alphaStage.d = libcube::gx::TevAlphaArg::zero;
+    wip.alphaStage.a = librii::gx::TevAlphaArg::rasa;
+    wip.alphaStage.b = librii::gx::TevAlphaArg::zero;
+    wip.alphaStage.c = librii::gx::TevAlphaArg::zero;
+    wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
   }
 
   data.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
   data.shader.mStages[0] = wip;
 
-  libcube::gx::ChannelControl ctrl;
+  librii::gx::ChannelControl ctrl;
   data.info.nColorChan = 2;
   ctrl.enabled = false;
-  ctrl.Material = libcube::gx::ColorSource::Vertex;
+  ctrl.Material = librii::gx::ColorSource::Vertex;
   data.chanData[0].matColor = {0xff, 0xff, 0xff, 0xff};
   data.colorChanControls.push_back(ctrl); // rgb
   data.colorChanControls.push_back(ctrl); // a

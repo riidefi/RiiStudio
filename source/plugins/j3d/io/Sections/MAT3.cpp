@@ -140,7 +140,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
   mat.flag = reader.read<u8>();
   auto cmx = loader.indexed<u8, u32>(MatSec::CullModeInfo);
   u32 cullMode = cmx.raw<u32>();
-  if (cullMode > static_cast<u32>(libcube::gx::CullMode::All)) {
+  if (cullMode > static_cast<u32>(librii::gx::CullMode::All)) {
     reader.warnAt("Invalid cull mode (Valid range: [0, 3])", cmx.ofs,
                   cmx.ofs + 4);
     cullMode = 0;
@@ -877,7 +877,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   dbg.assertSince(0x0e4);
   for (int i = 0; i < m.shader.mStages.size(); ++i) {
-    libcube::gx::TevStage tmp;
+    librii::gx::TevStage tmp;
     tmp.colorStage = m.shader.mStages[i].colorStage;
     tmp.colorStage.constantSelection = gx::TevKColorSel::k0;
     tmp.alphaStage = m.shader.mStages[i].alphaStage;

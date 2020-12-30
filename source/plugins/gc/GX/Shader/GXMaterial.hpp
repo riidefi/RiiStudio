@@ -15,7 +15,7 @@
 #include <vendor/glm/vec4.hpp>
 
 #include <plugins/gc/Export/Material.hpp>
-#include <plugins/gc/GX/VertexTypes.hpp>
+#include <lib_rii/gx.h>
 
 typedef int TODO;
 

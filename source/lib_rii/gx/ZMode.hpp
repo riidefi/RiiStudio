@@ -1,9 +1,7 @@
 #pragma once
 
-#include "../Enum/Comparison.hpp"
-
-namespace libcube {
-namespace gx {
+namespace librii::gx {
+	
 
 struct ZMode {
   bool compare = true;
@@ -15,6 +13,5 @@ struct ZMode {
            update == rhs.update;
   }
 };
-
-} // namespace gx
-} // namespace libcube
+	
+} // namepace librii::gx

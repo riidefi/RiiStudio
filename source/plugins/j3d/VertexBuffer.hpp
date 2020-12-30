@@ -2,13 +2,13 @@
 
 #include <core/common.h>
 #include <oishii/writer/binary_writer.hxx>
-#include <plugins/gc/GX/VertexTypes.hpp>
+#include <lib_rii/gx.h>
 #include <vector>
 
 namespace riistudio::j3d {
 
-using libcube::gx::VQuantization;
-using libcube::gx::VertexBuffer;
-using libcube::gx::VBufferKind;
+using librii::gx::VQuantization;
+using librii::gx::VertexBuffer;
+using librii::gx::VBufferKind;
 
 } // namespace riistudio::j3d

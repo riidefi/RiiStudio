@@ -66,7 +66,7 @@ IND_MTX::operator gx::IndirectMatrix() {
 XF_TEXTURE::operator gx::TexCoordGen() {
   gx::TexCoordGen tmp;
 
-  tmp.matrix = static_cast<libcube::gx::TexMatrix>(30 + id * 3);
+  tmp.matrix = static_cast<librii::gx::TexMatrix>(30 + id * 3);
   // tmp.DestinationCoordinateID = id;
 
   tmp.normalize = dualTex.normalize;
@@ -155,6 +155,6 @@ void LitChannel::from(const gx::ChannelControl& ctrl) {
                            ? gx::DiffuseFunction::None
                            : ctrl.diffuseFn);
   attnEnable = ctrl.attenuationFn != gx::AttenuationFunction::None;
-  attnSelect = ctrl.attenuationFn != libcube::gx::AttenuationFunction::Specular;
+  attnSelect = ctrl.attenuationFn != librii::gx::AttenuationFunction::Specular;
 }
 } // namespace libcube::gpu

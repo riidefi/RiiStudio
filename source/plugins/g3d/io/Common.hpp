@@ -2,23 +2,22 @@
 
 #include <core/util/glm_io.hpp>
 #include <functional>
+#include <lib_rii/gx.h>
 #include <llvm/ADT/SmallVector.h>
 #include <map>
 #include <oishii/writer/binary_writer.hxx>
-#include <plugins/g3d/util/NameTable.hpp>
-#include <plugins/gc/GX/Material.hpp>
-#include <plugins/gc/GX/VertexTypes.hpp>
-#include <string>
 #include <plugins/g3d/util/Dictionary.hpp>
+#include <plugins/g3d/util/NameTable.hpp>
+#include <string>
 
-inline void operator<<(libcube::gx::Color& out, oishii::BinaryReader& reader) {
-  out = libcube::gx::readColorComponents(
-      reader, libcube::gx::VertexBufferType::Color::rgba8);
+inline void operator<<(librii::gx::Color& out, oishii::BinaryReader& reader) {
+  out = librii::gx::readColorComponents(
+      reader, librii::gx::VertexBufferType::Color::rgba8);
 }
 
-inline void operator>>(const libcube::gx::Color& out, oishii::Writer& writer) {
-  libcube::gx::writeColorComponents(
-      writer, out, libcube::gx::VertexBufferType::Color::rgba8);
+inline void operator>>(const librii::gx::Color& out, oishii::Writer& writer) {
+  librii::gx::writeColorComponents(writer, out,
+                                   librii::gx::VertexBufferType::Color::rgba8);
 }
 
 inline auto writePlaceholder(oishii::Writer& writer) {

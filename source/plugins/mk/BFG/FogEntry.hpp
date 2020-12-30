@@ -29,7 +29,7 @@ public:
   FogType mType;
   f32 mStartZ;
   f32 mEndZ;
-  libcube::gx::Color mColor;
+  librii::gx::Color mColor;
   u16 mEnabled;
   u16 mCenter;
   f32 mFadeSpeed;

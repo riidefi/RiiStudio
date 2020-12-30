@@ -1,6 +1,5 @@
 #include <core/3d/gl.hpp>
 
-#include "Material.hpp"
 
 #include <algorithm>
 #include <plugins/gc/Export/IndexedPolygon.hpp>

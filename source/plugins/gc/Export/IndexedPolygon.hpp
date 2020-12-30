@@ -2,7 +2,7 @@
 
 #include <core/3d/i3dmodel.hpp>
 #include <core/common.h>
-#include <plugins/gc/GX/VertexTypes.hpp>
+#include <lib_rii/gx.h>
 
 #include "IndexedPrimitive.hpp"
 #include "VertexDescriptor.hpp"

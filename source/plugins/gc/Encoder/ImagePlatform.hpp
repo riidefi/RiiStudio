@@ -5,7 +5,7 @@
 #include <optional>
 #include <tuple>
 
-#include <plugins/gc/GX/Material.hpp>
+#include <lib_rii/gx.h>
 
 namespace libcube::image_platform {
 

@@ -92,9 +92,9 @@ struct MDL3Node final : public oishii::Node {
                                      sampler.mLodBias, sampler.bBiasClamp,
                                      sampler.bEdgeLod, sampler.mMaxAniso);
 
-          if (image.mFormat == libcube::gx::TextureFormat::C4 ||
-              image.mFormat == libcube::gx::TextureFormat::C8 ||
-              image.mFormat == libcube::gx::TextureFormat::C14X2) {
+          if (image.mFormat == librii::gx::TextureFormat::C4 ||
+              image.mFormat == librii::gx::TextureFormat::C8 ||
+              image.mFormat == librii::gx::TextureFormat::C14X2) {
             // TODO: implement
             builder.loadTLUT();
             tex_delegate.setTLUT();

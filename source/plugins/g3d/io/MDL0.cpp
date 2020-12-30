@@ -7,7 +7,7 @@
 #include <plugins/gc/GPU/DLBuilder.hpp>
 #include <plugins/gc/GPU/DLPixShader.hpp>
 #include <plugins/gc/GPU/GPUMaterial.hpp>
-#include <plugins/gc/GX/VertexTypes.hpp>
+#include <lib_rii/gx.h>
 
 namespace riistudio::g3d {
 
@@ -51,7 +51,7 @@ struct RenderList {
   std::string getName() const { return name; }
 };
 template <typename T, bool HasMinimum, bool HasDivisor,
-          libcube::gx::VertexBufferKind kind>
+          librii::gx::VertexBufferKind kind>
 void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
                        oishii::BinaryReader& reader) {
   const auto start = reader.tell();
@@ -62,11 +62,11 @@ void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
   const auto startOfs = reader.read<s32>();
   out.mName = readName(reader, start);
   out.mId = reader.read<u32>();
-  out.mQuantize.mComp = libcube::gx::VertexComponentCount(
-      static_cast<libcube::gx::VertexComponentCount::Normal>(
+  out.mQuantize.mComp = librii::gx::VertexComponentCount(
+      static_cast<librii::gx::VertexComponentCount::Normal>(
           reader.read<u32>()));
-  out.mQuantize.mType = libcube::gx::VertexBufferType(
-      static_cast<libcube::gx::VertexBufferType::Color>(reader.read<u32>()));
+  out.mQuantize.mType = librii::gx::VertexBufferType(
+      static_cast<librii::gx::VertexBufferType::Color>(reader.read<u32>()));
   if (HasDivisor) {
     out.mQuantize.divisor = reader.read<u8>();
     out.mQuantize.stride = reader.read<u8>();
@@ -82,31 +82,31 @@ void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
     maxEnt << reader;
   }
   const auto nComponents =
-      libcube::gx::computeComponentCount(kind, out.mQuantize.mComp);
-  assert((kind != libcube::gx::VertexBufferKind::normal) ||
+      librii::gx::computeComponentCount(kind, out.mQuantize.mComp);
+  assert((kind != librii::gx::VertexBufferKind::normal) ||
          (!((int)out.mQuantize.divisor != 6 &&
             out.mQuantize.mType.generic ==
-                libcube::gx::VertexBufferType::Generic::s8) &&
+                librii::gx::VertexBufferType::Generic::s8) &&
           !((int)out.mQuantize.divisor != 14 &&
             out.mQuantize.mType.generic ==
-                libcube::gx::VertexBufferType::Generic::s16)));
-  assert(kind != libcube::gx::VertexBufferKind::normal ||
+                librii::gx::VertexBufferType::Generic::s16)));
+  assert(kind != librii::gx::VertexBufferKind::normal ||
          (out.mQuantize.mType.generic !=
-              libcube::gx::VertexBufferType::Generic::u8 &&
+              librii::gx::VertexBufferType::Generic::u8 &&
           out.mQuantize.mType.generic !=
-              libcube::gx::VertexBufferType::Generic::u16));
+              librii::gx::VertexBufferType::Generic::u16));
 
   reader.seekSet(start + startOfs);
   // TODO: Recompute bounds
   for (auto& entry : out.mEntries) {
-    entry = libcube::gx::readComponents<T>(reader, out.mQuantize.mType,
+    entry = librii::gx::readComponents<T>(reader, out.mQuantize.mType,
                                            nComponents, out.mQuantize.divisor);
   }
 }
 
 // Does not write size or mdl0 offset
 template <typename T, bool HasMinimum, bool HasDivisor,
-          libcube::gx::VertexBufferKind kind>
+          librii::gx::VertexBufferKind kind>
 void writeGenericBuffer(
     const GenericBuffer<T, HasMinimum, HasDivisor, kind>& buf,
     oishii::Writer& writer, u32 header_start, NameTable& names) {
@@ -146,10 +146,10 @@ void writeGenericBuffer(
   writeOffsetBackpatch(writer, backpatch_array_ofs, header_start);
 
   const auto nComponents =
-      libcube::gx::computeComponentCount(kind, buf.mQuantize.mComp);
+      librii::gx::computeComponentCount(kind, buf.mQuantize.mComp);
 
   for (auto& entry : buf.mEntries) {
-    libcube::gx::writeComponents(writer, entry, buf.mQuantize.mType,
+    librii::gx::writeComponents(writer, entry, buf.mQuantize.mType,
                                  nComponents, buf.mQuantize.divisor);
   }
   writer.alignTo(32);
@@ -196,7 +196,7 @@ static void writeMaterialDisplayList(const libcube::GCMaterialData& mat,
   }
   assert(writer.tell() - dl_start == 0xa0);
   {
-    std::array<libcube::gx::IndirectTextureScalePair, 4> scales;
+    std::array<librii::gx::IndirectTextureScalePair, 4> scales;
     for (int i = 0; i < mat.mIndScales.size(); ++i)
       scales[i] = mat.mIndScales[i];
     dl.setIndTexCoordScale(0, scales[0], scales[1]);
@@ -259,11 +259,11 @@ struct DlHandle {
 };
 void writeVertexDataDL(const libcube::IndexedPolygon& poly,
                        const MatrixPrimitive& mp, oishii::Writer& writer) {
-  using VATAttrib = libcube::gx::VertexAttribute;
-  using VATType = libcube::gx::VertexAttributeType;
+  using VATAttrib = librii::gx::VertexAttribute;
+  using VATType = librii::gx::VertexAttributeType;
 
   for (auto& prim : mp.mPrimitives) {
-    writer.write<u8>(libcube::gx::EncodeDrawPrimitiveCommand(prim.mType));
+    writer.write<u8>(librii::gx::EncodeDrawPrimitiveCommand(prim.mType));
     writer.write<u16>(prim.mVertices.size());
     for (const auto& v : prim.mVertices) {
       for (int a = 0; a < (int)VATAttrib::Max; ++a) {
@@ -333,7 +333,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   //
   // Build shaders
   //
-  std::vector<libcube::gx::Shader> shaders;
+  std::vector<librii::gx::Shader> shaders;
   std::vector<u32> matToShaderMap;
   for (auto& mat : mdl.getMaterials()) {
     auto& shader = mat.getMaterialData().shader;
@@ -345,7 +345,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       matToShaderMap.emplace_back(found - shaders.begin());
     }
   }
-  const auto get_shader_id = [&](const libcube::gx::Shader& shader) {
+  const auto get_shader_id = [&](const librii::gx::Shader& shader) {
     const auto found = std::find(shaders.begin(), shaders.end(), shader);
     assert(found != shaders.end());
     return "Shader" + std::to_string(std::distance(shaders.begin(), found));
@@ -787,7 +787,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       },
       false, 4);
 
-  const auto write_shader = [&](const libcube::gx::Shader& shader,
+  const auto write_shader = [&](const librii::gx::Shader& shader,
                                 std::size_t shader_start, int shader_id) {
     printf("Shader at %x\n", (unsigned)shader_start);
     linker.label("Shader" + std::to_string(shader_id), shader_start);
@@ -821,7 +821,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
     assert(writer.tell() - shader_start == 32 + 0x60);
 
-    std::array<libcube::gx::TevStage, 16> stages;
+    std::array<librii::gx::TevStage, 16> stages;
     for (int i = 0; i < shader.mStages.size(); ++i)
       stages[i] = shader.mStages[i];
 
@@ -838,9 +838,9 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
           i, even_stage.colorStage.constantSelection,
           even_stage.alphaStage.constantSelection,
           i + 1 < stages_count ? odd_stage.colorStage.constantSelection
-                               : libcube::gx::TevKColorSel::const_8_8,
+                               : librii::gx::TevKColorSel::const_8_8,
           i + 1 < stages_count ? odd_stage.alphaStage.constantSelection
-                               : libcube::gx::TevKAlphaSel::const_8_8);
+                               : librii::gx::TevKAlphaSel::const_8_8);
 
       dl.setTevOrder(i, even_stage, odd_stage);
 
@@ -920,13 +920,13 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
           // Build desc
           // ----
-          std::vector<std::pair<libcube::gx::VertexAttribute,
-                                libcube::gx::VQuantization>>
+          std::vector<std::pair<librii::gx::VertexAttribute,
+                                librii::gx::VQuantization>>
               desc;
           for (auto [attr, type] : mesh.getVcd().mAttributes) {
-            if (type == libcube::gx::VertexAttributeType::None)
+            if (type == librii::gx::VertexAttributeType::None)
               continue;
-            libcube::gx::VQuantization quant;
+            librii::gx::VQuantization quant;
 
             const auto set_quant = [&](const auto& quantize) {
               quant.comp = quantize.mComp;
@@ -936,7 +936,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
               quant.stride = quantize.stride;
             };
 
-            using VA = libcube::gx::VertexAttribute;
+            using VA = librii::gx::VertexAttribute;
             switch (attr) {
             case VA::Position: {
               const auto* buf = mesh.getParent()->getBuf_Pos().findByName(
@@ -988,7 +988,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
               break;
             }
 
-            std::pair<libcube::gx::VertexAttribute, libcube::gx::VQuantization>
+            std::pair<librii::gx::VertexAttribute, librii::gx::VQuantization>
                 tmp{attr, quant};
             desc.push_back(tmp);
           }
@@ -1252,7 +1252,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       mat.info.nColorChan = 2;
     mat.info.nTevStage = reader.read<u8>();
     mat.info.nIndStage = reader.read<u8>();
-    mat.cullMode = static_cast<libcube::gx::CullMode>(reader.read<u32>());
+    mat.cullMode = static_cast<librii::gx::CullMode>(reader.read<u32>());
 
     // Misc
     mat.earlyZComparison = reader.read<u8>();
@@ -1353,7 +1353,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       // skip runtime flag
       const auto flag = reader.read<u32>();
       (void)flag;
-      libcube::gx::Color matClr, ambClr;
+      librii::gx::Color matClr, ambClr;
       matClr.r = reader.read<u8>();
       matClr.g = reader.read<u8>();
       matClr.b = reader.read<u8>();
@@ -1414,16 +1414,16 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       reader.read<u32>(); // skip tex id for now
       reader.read<u32>(); // skip tlut id for now
       sampler->mWrapU =
-          static_cast<libcube::gx::TextureWrapMode>(reader.read<u32>());
+          static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
       sampler->mWrapV =
-          static_cast<libcube::gx::TextureWrapMode>(reader.read<u32>());
+          static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
       sampler->mMinFilter =
-          static_cast<libcube::gx::TextureFilter>(reader.read<u32>());
+          static_cast<librii::gx::TextureFilter>(reader.read<u32>());
       sampler->mMagFilter =
-          static_cast<libcube::gx::TextureFilter>(reader.read<u32>());
+          static_cast<librii::gx::TextureFilter>(reader.read<u32>());
       sampler->mLodBias = reader.read<f32>();
       sampler->mMaxAniso =
-          static_cast<libcube::gx::AnisotropyLevel>(reader.read<u32>());
+          static_cast<librii::gx::AnisotropyLevel>(reader.read<u32>());
       sampler->bBiasClamp = reader.read<u8>();
       sampler->bEdgeLod = reader.read<u8>();
       reader.skip(2);
@@ -1460,9 +1460,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
         const auto& curScale =
             matHandler.mGpuMat.mIndirect.mIndTexScales[i > 1 ? i - 2 : i];
         mat.mIndScales.push_back(
-            {static_cast<libcube::gx::IndirectTextureScalePair::Selection>(
+            {static_cast<librii::gx::IndirectTextureScalePair::Selection>(
                  curScale.ss0),
-             static_cast<libcube::gx::IndirectTextureScalePair::Selection>(
+             static_cast<librii::gx::IndirectTextureScalePair::Selection>(
                  curScale.ss1)});
 
         mat.mIndMatrices.push_back(
@@ -1540,7 +1540,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     libcube::gpu::QDisplayListVertexSetupHandler vcdHandler;
     libcube::gpu::RunDisplayList(reader, vcdHandler, primitiveSetup.buf_size);
 
-    for (u32 i = 0; i < (u32)libcube::gx::VertexAttribute::Max; ++i) {
+    for (u32 i = 0; i < (u32)librii::gx::VertexAttribute::Max; ++i) {
       if (poly.mVertexDescriptor.mBitfield & (1 << i)) {
         if (i == 0) {
           transaction.callback(kpi::IOMessageClass::Error, transaction_path,
@@ -1549,17 +1549,17 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
           return;
         }
         const auto stat = vcdHandler.mGpuMesh.VCD.GetVertexArrayStatus(
-            i - (u32)libcube::gx::VertexAttribute::Position);
-        const auto att = static_cast<libcube::gx::VertexAttributeType>(stat);
-        assert(att != libcube::gx::VertexAttributeType::None);
-        poly.mVertexDescriptor.mAttributes[(libcube::gx::VertexAttribute)i] =
+            i - (u32)librii::gx::VertexAttribute::Position);
+        const auto att = static_cast<librii::gx::VertexAttributeType>(stat);
+        assert(att != librii::gx::VertexAttributeType::None);
+        poly.mVertexDescriptor.mAttributes[(librii::gx::VertexAttribute)i] =
             att;
       }
     }
     struct QDisplayListMeshHandler final
         : public libcube::gpu::QDisplayListHandler {
       void onCommandDraw(oishii::BinaryReader& reader,
-                         libcube::gx::PrimitiveType type, u16 nverts) override {
+                         librii::gx::PrimitiveType type, u16 nverts) override {
         if (mErr)
           return;
 
@@ -1571,19 +1571,19 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
         prim.mVertices.resize(nverts);
         for (auto& vert : prim.mVertices) {
           for (u32 i = 0;
-               i < static_cast<u32>(libcube::gx::VertexAttribute::Max); ++i) {
+               i < static_cast<u32>(librii::gx::VertexAttribute::Max); ++i) {
             if (mPoly.mVertexDescriptor.mBitfield & (1 << i)) {
-              const auto attr = static_cast<libcube::gx::VertexAttribute>(i);
+              const auto attr = static_cast<librii::gx::VertexAttribute>(i);
               switch (mPoly.mVertexDescriptor.mAttributes[attr]) {
-              case libcube::gx::VertexAttributeType::Direct:
+              case librii::gx::VertexAttributeType::Direct:
                 mErr = true;
                 return;
-              case libcube::gx::VertexAttributeType::None:
+              case librii::gx::VertexAttributeType::None:
                 break;
-              case libcube::gx::VertexAttributeType::Byte:
+              case librii::gx::VertexAttributeType::Byte:
                 vert[attr] = reader.readUnaligned<u8>();
                 break;
-              case libcube::gx::VertexAttributeType::Short:
+              case librii::gx::VertexAttributeType::Short:
                 vert[attr] = reader.readUnaligned<u16>();
                 break;
               }

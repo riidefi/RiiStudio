@@ -27,7 +27,7 @@ public:
       mBuilder.writeBp(lut[mId], use_raw ? physical_addr : physical_addr << 5);
     }
     void setImageAttributes(u16 width, u16 height,
-                            libcube::gx::TextureFormat format) {
+                            librii::gx::TextureFormat format) {
       assert(width <= 1024 && height <= 1024 &&
              "No dimension may exceed 1024x1024");
       std::array<u8, 8> lut{0x94, 0x95, 0x96, 0x97, 0xB4, 0xB5, 0xB6, 0xB7};
@@ -42,12 +42,12 @@ public:
       mBuilder.writeBp(lut[mId], width_field | (height_field << 10) |
                                      (format_field << 20));
     }
-    void setLookupMode(libcube::gx::TextureWrapMode wrap_s,
-                       libcube::gx::TextureWrapMode wrap_t,
-                       libcube::gx::TextureFilter min_filt,
-                       libcube::gx::TextureFilter mag_filt, f32 min_lod,
+    void setLookupMode(librii::gx::TextureWrapMode wrap_s,
+                       librii::gx::TextureWrapMode wrap_t,
+                       librii::gx::TextureFilter min_filt,
+                       librii::gx::TextureFilter mag_filt, f32 min_lod,
                        f32 max_lod, f32 lod_bias, bool clamp_bias,
-                       bool edge_lod, libcube::gx::AnisotropyLevel aniso) {
+                       bool edge_lod, librii::gx::AnisotropyLevel aniso) {
       std::array<u8, 8> lut0{0x80, 0x81, 0x82, 0x83, 0xA0, 0xA1, 0xA2, 0xA3};
       std::array<u8, 8> lut1{0x84, 0x85, 0x86, 0x87, 0xA4, 0xA5, 0xA6, 0xA7};
 
@@ -60,7 +60,7 @@ public:
 
       mode0.wrap_s = static_cast<u32>(wrap_s);
       mode0.wrap_t = static_cast<u32>(wrap_t);
-      mode0.mag_filter = mag_filt == libcube::gx::TextureFilter::linear;
+      mode0.mag_filter = mag_filt == librii::gx::TextureFilter::linear;
       mode0.min_filter = filter_lut[static_cast<u32>(mag_filt)];
       mode0.diag_lod = !edge_lod;
       mode0.lod_bias =
@@ -87,7 +87,8 @@ public:
     assert(id < 8 && "Only 8 textures may be supplied.");
     return {*this, id};
   }
-  void setTexCoordGen(u8 id, libcube::gx::TexCoordGen gen) {
+  void setTexCoordGen(u8 id, librii::gx::TexCoordGen gen) {
+    using namespace librii::gx;
     assert(id < 8 && "Only 8 texture coordinate channels may be supplied");
 
     gpu::XF_TEXTURE xf_tex;
@@ -193,10 +194,10 @@ public:
   }
   void loadTLUT() {}
 
-  void setTevKonstantSel(u8 even_id, libcube::gx::TevKColorSel kc0,
-                         libcube::gx::TevKAlphaSel ka0,
-                         libcube::gx::TevKColorSel kc1,
-                         libcube::gx::TevKAlphaSel ka1) {
+  void setTevKonstantSel(u8 even_id, librii::gx::TevKColorSel kc0,
+                         librii::gx::TevKAlphaSel ka0,
+                         librii::gx::TevKColorSel kc1,
+                         librii::gx::TevKAlphaSel ka1) {
     assert(even_id <= 16 && even_id % 2 == 0 && "Invalid stage id");
     bpMask(0xfffff0);
     libcube::gpu::TevKSel sel;
@@ -207,8 +208,10 @@ public:
     sel.kasel1 = static_cast<u32>(ka1);
     writeBp(BPAddress::TEV_KSEL + even_id / 2, sel.hex);
   }
-  void setTevOrder(u8 even_id, u8 gen0, u8 tex0, ColorSelChanApi chan0, u8 gen1,
-                   u8 tex1, ColorSelChanApi chan1) {
+  void setTevOrder(u8 even_id, u8 gen0, u8 tex0,
+                   librii::gx::ColorSelChanApi chan0, u8 gen1, u8 tex1,
+                   librii::gx::ColorSelChanApi chan1) {
+    using namespace librii::gx;
     assert(even_id <= 16 && even_id % 2 == 0 && "Invalid stage id");
     constexpr ColorSelChanLow cvt[] = {ColorSelChanLow::color0a0,
                                        ColorSelChanLow::color1a1,
@@ -244,14 +247,16 @@ public:
 
     writeBp(BPAddress::TREF + even_id / 2, tref.hex);
   }
-  void setTevOrder(u8 even_id, TevStage even, TevStage odd) {
+  void setTevOrder(u8 even_id, librii::gx::TevStage even,
+                   librii::gx::TevStage odd) {
     setTevOrder(even_id, even.texCoord, even.texMap, even.rasOrder,
                 odd.texCoord, odd.texMap, odd.rasOrder);
   }
   void setTexCoordScale2() {}
 
   // 0 is tevprev
-  void setTevColor(u8 reg, gx::ColorS10 color, u32 type = 0 /* color reg*/) {
+  void setTevColor(u8 reg, librii::gx::ColorS10 color,
+                   u32 type = 0 /* color reg*/) {
     libcube::gpu::GPUTevReg tevreg;
     tevreg.hex = 0;
     tevreg.red = color.r;
@@ -273,16 +278,18 @@ public:
       writeBp(BPAddress::TEV_REGISTERH_0_ID + reg * 2, bg);
     }
   }
-  void setTevKColor(u8 reg, gx::Color color) {
-    setTevColor(
-        reg,
-        gx::ColorS10{static_cast<s32>(color.r), static_cast<s32>(color.g),
-                     static_cast<s32>(color.b), static_cast<s32>(color.a)},
-        1 /* konst reg*/);
+  void setTevKColor(u8 reg, librii::gx::Color color) {
+    setTevColor(reg,
+                librii::gx::ColorS10{
+                    static_cast<s32>(color.r), static_cast<s32>(color.g),
+                    static_cast<s32>(color.b), static_cast<s32>(color.a)},
+                1 /* konst reg*/);
   }
-  void setTevColorCalc(u8 id, TevColorArg a, TevColorArg b, TevColorArg c,
-                       TevColorArg d, TevColorOp op, TevBias bias,
-                       TevScale scale, bool clamp, TevReg dst) {
+  void setTevColorCalc(u8 id, librii::gx::TevColorArg a,
+                       librii::gx::TevColorArg b, librii::gx::TevColorArg c,
+                       librii::gx::TevColorArg d, librii::gx::TevColorOp op,
+                       librii::gx::TevBias bias, librii::gx::TevScale scale,
+                       bool clamp, librii::gx::TevReg dst) {
     libcube::gpu::ColorCombiner color_env;
     color_env.hex = 0;
 
@@ -291,7 +298,7 @@ public:
     color_env.b = static_cast<u32>(b);
     color_env.a = static_cast<u32>(a);
 
-    if ((u32)op <= (u32)TevColorOp::subtract) {
+    if ((u32)op <= (u32)librii::gx::TevColorOp::subtract) {
       color_env.bias = static_cast<u32>(bias);
       color_env.op = static_cast<u32>(op) & 1;
       color_env.clamp = clamp;
@@ -307,14 +314,17 @@ public:
 
     writeBp(BPAddress::TEV_COLOR_ENV + id * 2, color_env.hex);
   }
-  void setTevColorCalc(u8 id, TevStage::ColorStage stage) {
+  void setTevColorCalc(u8 id, librii::gx::TevStage::ColorStage stage) {
     setTevColorCalc(id, stage.a, stage.b, stage.c, stage.d, stage.formula,
                     stage.bias, stage.scale, stage.clamp, stage.out);
   }
-  void setTevAlphaCalcAndSwap(u8 id, TevAlphaArg a, TevAlphaArg b,
-                              TevAlphaArg c, TevAlphaArg d, TevAlphaOp op,
-                              TevBias bias, TevScale scale, bool clamp,
-                              TevReg dst, u8 ras_swap, u8 tex_swap) {
+  void
+  setTevAlphaCalcAndSwap(u8 id, librii::gx::TevAlphaArg a,
+                         librii::gx::TevAlphaArg b, librii::gx::TevAlphaArg c,
+                         librii::gx::TevAlphaArg d, librii::gx::TevAlphaOp op,
+                         librii::gx::TevBias bias, librii::gx::TevScale scale,
+                         bool clamp, librii::gx::TevReg dst, u8 ras_swap,
+                         u8 tex_swap) {
     libcube::gpu::AlphaCombiner alpha_env;
     alpha_env.hex = 0;
 
@@ -326,7 +336,7 @@ public:
     alpha_env.b = static_cast<u32>(b);
     alpha_env.a = static_cast<u32>(a);
 
-    if ((u32)op <= (u32)TevAlphaOp::subtract) {
+    if ((u32)op <= (u32)librii::gx::TevAlphaOp::subtract) {
       alpha_env.bias = static_cast<u32>(bias);
       alpha_env.op = static_cast<u32>(op) & 1;
       alpha_env.clamp = clamp;
@@ -342,13 +352,13 @@ public:
 
     writeBp(BPAddress::TEV_ALPHA_ENV + id * 2, alpha_env.hex);
   }
-  void setTevAlphaCalcAndSwap(u8 id, TevStage::AlphaStage stage, u8 ras_swap,
-                              u8 tex_swap) {
+  void setTevAlphaCalcAndSwap(u8 id, librii::gx::TevStage::AlphaStage stage,
+                              u8 ras_swap, u8 tex_swap) {
     setTevAlphaCalcAndSwap(id, stage.a, stage.b, stage.c, stage.d,
                            stage.formula, stage.bias, stage.scale, stage.clamp,
                            stage.out, ras_swap, tex_swap);
   }
-  void setTevIndirect(u8 id, TevStage::IndirectStage stage) {
+  void setTevIndirect(u8 id, librii::gx::TevStage::IndirectStage stage) {
     assert(id < 16 && "Invalid stage id");
     gpu::TevStageIndirect reg;
     reg.bt = stage.indStageSel;
@@ -362,7 +372,7 @@ public:
     reg.fb_addprev = stage.addPrev;
     writeBp(BPAddress::IND_CMD + id, reg.hex);
   }
-  void setTevSwapModeTable(u8 id, SwapTableEntry swap) {
+  void setTevSwapModeTable(u8 id, librii::gx::SwapTableEntry swap) {
     assert(id <= 3 && "Invalid swap table index");
     libcube::gpu::TevKSel ksel;
     ksel.hex = 0;
@@ -377,7 +387,7 @@ public:
     writeBp(BPAddress::TEV_KSEL + (id * 2) + 1, ksel.hex);
   }
   void setTevKonstantSelAndSwapModeTable() {}
-  void setIndTexMtx(u8 id, const gx::IndirectMatrix& mtx) {
+  void setIndTexMtx(u8 id, const librii::gx::IndirectMatrix& mtx) {
     // indirect matrix is column-major, same as glm
     setIndTexMtx(id, mtx.compute());
   }
@@ -449,8 +459,9 @@ public:
     writeBp(BPAddress::IND_MTXB + (id * 3), gpu_mtx.col1.hex);
     writeBp(BPAddress::IND_MTXC + (id * 3), gpu_mtx.col2.hex);
   }
-  void setIndTexCoordScale(u8 evenIndStage, IndirectTextureScalePair s0,
-                           IndirectTextureScalePair s1) {
+  void setIndTexCoordScale(u8 evenIndStage,
+                           librii::gx::IndirectTextureScalePair s0,
+                           librii::gx::IndirectTextureScalePair s1) {
     assert(evenIndStage % 2 == 0 && evenIndStage <= 2 && "Invalid stage index");
     libcube::gpu::ras1_ss ras1ss;
     ras1ss.hex = 0;
@@ -475,7 +486,7 @@ public:
   }
   void setFog() {}
   void setFogRangeAdj() {}
-  void setAlphaCompare(AlphaComparison in) {
+  void setAlphaCompare(librii::gx::AlphaComparison in) {
     libcube::gpu::AlphaTest test;
     test.ref0 = in.refLeft;
     test.ref1 = in.refRight;
@@ -485,15 +496,15 @@ public:
     test.logic = static_cast<libcube::gpu::AlphaTest::Op>(in.op);
     writeBp(BPAddress::ALPHACOMPARE, test.hex);
   }
-  void setBlendMode(libcube::gx::BlendMode in) {
+  void setBlendMode(librii::gx::BlendMode in) {
     bpMask(0xffe3);
     libcube::gpu::CMODE0 cmode0;
 
     cmode0.blendenable =
-        static_cast<u32>(in.type == libcube::gx::BlendModeType::blend ||
-                         in.type == libcube::gx::BlendModeType::subtract);
+        static_cast<u32>(in.type == librii::gx::BlendModeType::blend ||
+                         in.type == librii::gx::BlendModeType::subtract);
     cmode0.logicopenable =
-        static_cast<u32>(in.type == libcube::gx::BlendModeType::logic);
+        static_cast<u32>(in.type == librii::gx::BlendModeType::logic);
     // Masked
     cmode0.dither = 0;
     cmode0.colorupdate = 0;
@@ -502,12 +513,12 @@ public:
     cmode0.dstfactor = static_cast<libcube::gpu::CMODE0::BlendFactor>(in.dest);
     cmode0.srcfactor =
         static_cast<libcube::gpu::CMODE0::BlendFactor>(in.source);
-    cmode0.subtract = in.type == libcube::gx::BlendModeType::subtract;
+    cmode0.subtract = in.type == librii::gx::BlendModeType::subtract;
     cmode0.logicmode = static_cast<libcube::gpu::CMODE0::LogicOp>(in.logic);
 
     writeBp(BPAddress::BLENDMODE, cmode0.hex);
   }
-  void setZMode(libcube::gx::ZMode in) {
+  void setZMode(librii::gx::ZMode in) {
     libcube::gpu::ZMode zmode;
     zmode.testenable = in.compare;
     zmode.func = static_cast<libcube::gpu::ZMode::CompareMode>(in.function);
@@ -524,7 +535,7 @@ public:
   void setAmbColor() {}
 
   // Mesh data
-  void setCullMode(CullMode mode) {
+  void setCullMode(librii::gx::CullMode mode) {
     bpMask(3 << 14); // reject
     constexpr std::array<gpu::GenMode::CullMode, 4> cvt{
         gpu::GenMode::CULL_NONE, gpu::GenMode::CULL_FRONT,
@@ -535,7 +546,9 @@ public:
     writeBp(BPAddress::GENMODE, gen.hex);
   }
   // vtxdesc_low, vtxdesc_high, vtx_spec
-  static std::tuple<u32, u32, u32> calcVtxDescv(const VertexDescriptor& desc) {
+  static std::tuple<u32, u32, u32>
+  calcVtxDescv(const libcube::VertexDescriptor& desc) {
+    using namespace librii::gx;
     gpu::TVtxDesc vtx_desc;
     vtx_desc.Hex = 0;
     vtx_desc.Position = static_cast<u32>(VertexAttributeType::Direct);
@@ -652,17 +665,19 @@ public:
         colors_count | (normals_count << 2) | (texcoords_count << 4);
     return {vd_low, vd_high, vspec};
   }
-  void setVtxDescv(const VertexDescriptor& desc) {
+  void setVtxDescv(const libcube::VertexDescriptor& desc) {
     const auto [vd_low, vd_high, vspec] = calcVtxDescv(desc);
 
     writeCp(0x50, vd_low);
     writeCp(0x60, vd_high);
     writeXf(gpu::XF_INVTXSPEC_ID, vspec);
   }
-  void
-  setVtxAttrFmtv(u8 fmtIdx,
-                 std::span<std::pair<VertexAttribute, VQuantization>> quants) {
+  void setVtxAttrFmtv(u8 fmtIdx,
+                      std::span<std::pair<librii::gx::VertexAttribute,
+                                          librii::gx::VQuantization>>
+                          quants) {
     assert(fmtIdx < 8);
+    using namespace librii::gx;
 
     gpu::UVAT_group0 group0;
     group0.Hex = 0;
