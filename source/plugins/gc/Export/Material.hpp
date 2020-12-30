@@ -17,13 +17,12 @@ using copyable_polymorphic_array_vector =
 
 class Model;
 
-struct GCMaterialData {
+
+struct GCMaterialData : public gx::LowLevelGxMaterial {
   // TODO:
   bool operator==(const GCMaterialData& rhs) const { return false; }
 
   std::string name;
-
-  gx::CullMode cullMode = librii::gx::CullMode::Back;
 
   // Gen Info counts
   struct GenInfo {
@@ -39,36 +38,6 @@ struct GCMaterialData {
   };
   GenInfo info;
 
-  struct ChannelData {
-    gx::Color matColor{0, 0, 0, 0xff};
-    gx::Color ambColor{0, 0, 0, 0xff};
-
-    bool operator==(const ChannelData& rhs) const {
-      return matColor == rhs.matColor && ambColor == rhs.ambColor;
-    }
-  };
-  array_vector<ChannelData, 2> chanData;
-  // Color0, Alpha0, Color1, Alpha1
-  array_vector<gx::ChannelControl, 4> colorChanControls;
-
-  gx::Shader shader;
-
-  array_vector<gx::TexCoordGen, 8> texGens;
-
-  array_vector<gx::Color, 4> tevKonstColors;
-  // last is tevprev?
-  array_vector<gx::ColorS10, 4> tevColors;
-
-  bool earlyZComparison = true;
-  gx::ZMode zMode;
-
-  // Split up -- only 3 indmtx
-  std::vector<gx::IndirectTextureScalePair> mIndScales;
-  std::vector<gx::IndirectMatrix> mIndMatrices;
-
-  gx::AlphaComparison alphaCompare;
-  gx::BlendMode blendMode;
-  bool dither = false;
   enum class CommonMappingOption {
     NoSelection,
     DontRemapTextureSpace, // -1 -> 1 (J3D "basic")

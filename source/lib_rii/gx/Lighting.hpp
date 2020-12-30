@@ -1,7 +1,7 @@
 #pragma once
 
 namespace librii::gx {
-	
+
 enum class ColorSource { Register, Vertex };
 enum class LightID {
   None = 0,
@@ -36,5 +36,12 @@ struct ChannelControl {
 
   bool operator==(const ChannelControl& other) const = default;
 };
-	
-} // namepace librii::gx
+
+struct ChannelData {
+  gx::Color matColor{0, 0, 0, 0xff};
+  gx::Color ambColor{0, 0, 0, 0xff};
+
+  bool operator==(const ChannelData& rhs) const = default;
+};
+
+} // namespace librii::gx
