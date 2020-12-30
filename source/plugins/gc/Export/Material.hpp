@@ -247,28 +247,6 @@ struct GCMaterialData {
 };
 
 struct IGCMaterial : public riistudio::lib3d::Material {
-  // PX_TYPE_INFO("GC Material", "gc_mat", "GC::IMaterialDelegate");
-
-  enum class Feature {
-    CullMode,
-    ZCompareLoc,
-    ZCompare,
-    GenInfo,
-
-    MatAmbColor,
-
-    Max
-  };
-  // Compat
-  struct PropertySupport : public TPropertySupport<Feature> {
-    using Feature = IGCMaterial::Feature;
-    static constexpr std::array<const char*, (u64)Feature::Max> featureStrings =
-        {"Culling Mode", "Early Z Comparison", "Z Comparison", "GenInfo",
-         "Material/Ambient Colors"};
-  };
-
-  PropertySupport support;
-
   virtual GCMaterialData& getMaterialData() = 0;
   virtual const GCMaterialData& getMaterialData() const = 0;
 

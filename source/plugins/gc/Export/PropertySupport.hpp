@@ -3,7 +3,7 @@
 #include <array>
 #include <core/common.h>
 
-namespace libcube {
+namespace libcube::deprecated {
 
 template <typename Feature> struct TPropertySupport {
   enum class Coverage { Unsupported, Read, ReadWrite };

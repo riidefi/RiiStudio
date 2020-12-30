@@ -117,16 +117,7 @@ struct Material : public MaterialData, public libcube::IGCMaterial {
   // ICON_FA_PAINT_BRUSH, ICON_FA_PAINT_BRUSH);
 
   ~Material() = default;
-  Material() // px::ConcreteCollectionHandle<Texture> textures)
-             // : mTextures(textures)
-  {
-    using P = PropertySupport;
-    support.setSupport(P::Feature::CullMode, P::Coverage::ReadWrite);
-    support.setSupport(P::Feature::ZCompareLoc, P::Coverage::ReadWrite);
-    support.setSupport(P::Feature::ZCompare, P::Coverage::ReadWrite);
-    support.setSupport(P::Feature::GenInfo, P::Coverage::ReadWrite);
-    support.setSupport(P::Feature::MatAmbColor, P::Coverage::ReadWrite);
-  }
+  Material() = default;
 
   libcube::GCMaterialData& getMaterialData() override { return *this; }
   const libcube::GCMaterialData& getMaterialData() const override {
