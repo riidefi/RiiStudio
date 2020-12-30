@@ -11,9 +11,10 @@ namespace libcube {
 std::pair<std::string, std::string> IGCMaterial::generateShaders() const {
   GXProgram program(GXMaterial{0, getName(), *const_cast<IGCMaterial*>(this)});
   const auto result = program.generateShaders();
+  assert(result);
   if (!applyCacheAgain)
-    cachedPixelShader = result.second + "\n\n // End of shader";
-  return result;
+    cachedPixelShader = result->second + "\n\n // End of shader";
+  return *result;
 }
 
 /*

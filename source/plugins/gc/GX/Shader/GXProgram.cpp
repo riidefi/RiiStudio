@@ -1227,17 +1227,9 @@ llvm::Error GXProgram::generateMulNrm(StringBuilder& builder) {
   return llvm::Error::success();
 }
 
-std::pair<std::string, std::string> GXProgram::generateShaders() {
-  const auto bindingsDefinition = generateBindingsDefinition(
-      mMaterial.hasPostTexMtxBlock, mMaterial.hasLightsBlock);
+llvm::Expected<std::string> GXProgram::generateVert() {
 
-#if _WIN32
-  const auto both = R"(#version 440
-// )" + mMaterial.mat.getName() +
-                    R"(
-precision mediump float;
-)" + bindingsDefinition;
-  const std::string varying_vert =
+  const std::string_view varying_vert =
       R"(out vec3 v_Position;
 out vec4 v_Color0;
 out vec4 v_Color1;
@@ -1250,83 +1242,12 @@ out vec3 v_TexCoord5;
 out vec3 v_TexCoord6;
 out vec3 v_TexCoord7;
 )";
-  const std::string varying_frag =
-      R"(in vec3 v_Position;
-in vec4 v_Color0;
-in vec4 v_Color1;
-in vec3 v_TexCoord0;
-in vec3 v_TexCoord1;
-in vec3 v_TexCoord2;
-in vec3 v_TexCoord3;
-in vec3 v_TexCoord4;
-in vec3 v_TexCoord5;
-in vec3 v_TexCoord6;
-in vec3 v_TexCoord7;
-
-
-out vec4 fragOut;
-)";
-#else
-
-  const auto both = R"(#version 300 es
-// )" + mMaterial.mat.getName() +
-                    R"(
-precision mediump float;
-)" + bindingsDefinition;
-#if 0
-	const std::string varying =
-		R"(varying vec3 v_Position;
-varying vec4 v_Color0;
-varying vec4 v_Color1;
-varying vec3 v_TexCoord0;
-varying vec3 v_TexCoord1;
-varying vec3 v_TexCoord2;
-varying vec3 v_TexCoord3;
-varying vec3 v_TexCoord4;
-varying vec3 v_TexCoord5;
-varying vec3 v_TexCoord6;
-varying vec3 v_TexCoord7;
-)";
-	const std::string& varying_vert = varying;
-	const std::string& varying_frag = varying;
-#else
-
-  const std::string varying_vert =
-      R"(out vec3 v_Position;
-out vec4 v_Color0;
-out vec4 v_Color1;
-out vec3 v_TexCoord0;
-out vec3 v_TexCoord1;
-out vec3 v_TexCoord2;
-out vec3 v_TexCoord3;
-out vec3 v_TexCoord4;
-out vec3 v_TexCoord5;
-out vec3 v_TexCoord6;
-out vec3 v_TexCoord7;
-)";
-  const std::string varying_frag =
-      R"(in vec3 v_Position;
-in vec4 v_Color0;
-in vec4 v_Color1;
-in vec3 v_TexCoord0;
-in vec3 v_TexCoord1;
-in vec3 v_TexCoord2;
-in vec3 v_TexCoord3;
-in vec3 v_TexCoord4;
-in vec3 v_TexCoord5;
-in vec3 v_TexCoord6;
-in vec3 v_TexCoord7;
-out vec4 fragOut;
-)";
-#endif
-
-#endif
 
   std::array<char, 1024 * 64> vert_buf;
   StringBuilder vert(vert_buf.data(), vert_buf.size());
-  vert += both;
   vert += varying_vert;
-  llvm::cantFail(generateVertAttributeDefs(vert));
+  if (auto err = generateVertAttributeDefs(vert); err)
+    return std::move(err);
   vert += "mat4x3 GetPosTexMatrix(uint t_MtxIdx) {\n"
           "    if (t_MtxIdx == " +
           std::to_string((int)gx::TexMatrix::Identity) +
@@ -1349,13 +1270,15 @@ float ApplyAttenuation(vec3 t_Coeff, float t_Value) {
   vert += "void main() {\n";
 
   vert += "    vec3 t_Position = ";
-  llvm::cantFail(generateMulPos(vert));
+  if (auto err = generateMulPos(vert); err)
+    return std::move(err);
   vert += ";\n";
 
   vert += "    v_Position = t_Position;\n";
 
   vert += "    vec3 t_Normal = ";
-  llvm::cantFail(generateMulNrm(vert));
+  if (auto err = generateMulNrm(vert); err)
+    return std::move(err);
   vert += ";\n";
 
   vert += "    vec4 t_LightAccum;\n"
@@ -1363,13 +1286,33 @@ float ApplyAttenuation(vec3 t_Coeff, float t_Value) {
           "    float t_LightDeltaDist2, t_LightDeltaDist, t_Attenuation;\n"
           "    vec4 t_ColorChanTemp;\n"
           "    v_Color0 = a_Color0;\n";
-  llvm::cantFail(generateLightChannels(vert));
+  if (auto err = generateLightChannels(vert); err)
+    return std::move(err);
   vert += generateTexGens();
   vert += "gl_Position = (u_Projection * vec4(t_Position, 1.0));\n"
           "}\n";
+
+  return vert_buf.data();
+}
+
+llvm::Expected<std::string> GXProgram::generateFrag() {
+  constexpr std::string_view varying_frag =
+      R"(in vec3 v_Position;
+in vec4 v_Color0;
+in vec4 v_Color1;
+in vec3 v_TexCoord0;
+in vec3 v_TexCoord1;
+in vec3 v_TexCoord2;
+in vec3 v_TexCoord3;
+in vec3 v_TexCoord4;
+in vec3 v_TexCoord5;
+in vec3 v_TexCoord6;
+in vec3 v_TexCoord7;
+out vec4 fragOut;
+)";
+
   std::array<char, 1024 * 64> frag_buf;
   StringBuilder frag(frag_buf.data(), frag_buf.size());
-  frag += both;
   frag += varying_frag;
   frag += generateTexCoordGetters();
   frag += R"(
@@ -1412,7 +1355,37 @@ void main() {
   frag += generateFog();
   frag += "    fragOut = t_PixelOut;\n"
           "}\n";
-  return {vert_buf.data(), frag_buf.data()};
+
+  return frag_buf.data();
+}
+
+std::string GXProgram::generateBoth() {
+  const auto bindingsDefinition = generateBindingsDefinition(
+      mMaterial.hasPostTexMtxBlock, mMaterial.hasLightsBlock);
+
+#if __emscripten__
+  const std::string version = "#version 300 es";
+#else
+  const std::string version = "#version 440";
+#endif
+
+  return version + "\n// " + mMaterial.mat.getName() +
+         "\nprecision mediump float;\n" + bindingsDefinition;
+}
+
+std::optional<std::pair<std::string, std::string>>
+GXProgram::generateShaders() {
+  auto both = generateBoth();
+
+  auto vert = generateVert();
+  if (auto err = vert.takeError(); err)
+    return std::nullopt;
+
+  auto frag = generateFrag();
+  if (auto err = frag.takeError(); err)
+    return std::nullopt;
+
+  return std::pair<std::string, std::string>{both + *vert, both + *frag};
 }
 u32 translateCullMode(gx::CullMode cullMode) {
   switch (cullMode) {

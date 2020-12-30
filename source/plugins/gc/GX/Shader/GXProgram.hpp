@@ -181,15 +181,34 @@ public:
   // Tying it all up
   //----------------------------------
 
+  std::string generateBoth();
+  llvm::Expected<std::string> generateVert();
+  llvm::Expected<std::string> generateFrag();
+
   //! @brief Generate a pair of GLSL shaders for the given GX material.
   //!
   //! @return vertex_source : fragment_source
   //!
-  std::pair<std::string, std::string> generateShaders();
+  std::optional<std::pair<std::string, std::string>> generateShaders();
 
   GXMaterial mMaterial;
   std::string mName;
 };
+
+struct GlShaderPair {
+  std::string vertex;
+  std::string fragment;
+
+};
+
+inline
+std::optional<GlShaderPair> compileShader(GXMaterial& mat) {
+  GXProgram program(mat);
+  auto compiled = program.generateShaders();
+  if (!compiled)
+    return std::nullopt;
+  return GlShaderPair{compiled->first, compiled->second};
+}
 // Converts to GL
 u32 translateCullMode(gx::CullMode cullMode);
 u32 translateBlendFactorCommon(gx::BlendModeFactor factor);
