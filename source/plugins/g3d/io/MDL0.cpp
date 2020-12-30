@@ -1445,11 +1445,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       // Uniform data
       libcube::gpu::RunDisplayList(reader, matHandler, 128);
       mat.tevColors[0] = {0xff, 0xff, 0xff, 0xff};
-      mat.tevColors.nElements = 4;
       for (int i = 0; i < 3; ++i) {
         mat.tevColors[i + 1] = matHandler.mGpuMat.mShaderColor.Registers[i + 1];
       }
-      mat.tevKonstColors.nElements = 4;
       for (int i = 0; i < 4; ++i) {
         mat.tevKonstColors[i] = matHandler.mGpuMat.mShaderColor.Konstants[i];
       }

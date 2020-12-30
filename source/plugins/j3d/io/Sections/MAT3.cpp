@@ -196,9 +196,12 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   {
     dbg.assertSince(0x094);
-    mat.tevKonstColors.nElements = 0;
-    loader.indexedContainer<u16>(mat.tevKonstColors, MatSec::TevKonstColors, 4);
+    array_vector<gx::Color, 4> tevKonstColors;
+    tevKonstColors.nElements = 0;
+    loader.indexedContainer<u16>(tevKonstColors, MatSec::TevKonstColors, 4);
     dbg.assertSince(0x09C);
+
+    mat.tevKonstColors = tevKonstColors;
 
     const auto kc_sels = reader.readX<u8, 16>();
     const auto ka_sels = reader.readX<u8, 16>();
@@ -213,8 +216,10 @@ void readMatEntry(Material& mat, MatLoader& loader,
     dbg.assertSince(0x0BC);
     array_vector<TevOrder, 16> tevOrderInfos;
     loader.indexedContainer<u16>(tevOrderInfos, MatSec::TevOrderInfo, 4);
-    mat.tevColors.nElements = 0;
-    loader.indexedContainer<u16>(mat.tevColors, MatSec::TevColors, 8);
+    array_vector<gx::ColorS10, 4> tevColors;
+    tevColors.nElements = 0;
+    loader.indexedContainer<u16>(tevColors, MatSec::TevColors, 8);
+    mat.tevColors = tevColors;
     // HW 0 is API CPREV/APREV
     std::rotate(mat.tevColors.rbegin(), mat.tevColors.rbegin() + 1,
                 mat.tevColors.rend());
@@ -842,8 +847,12 @@ void io_wrapper<SerializableMaterial>::onWrite(
   for (int i = samplers.size(); i < 8; ++i)
     writer.write<u16>(~0);
   dbg.assertSince(0x094);
-  assert(m.tevKonstColors.nElements == 4);
-  write_array_vec<u16>(writer, m.tevKonstColors, cache.konstColors);
+
+  array_vector<gx::Color, 4> tevKonstColors;
+  tevKonstColors.nElements = 4;
+  for (int i = 0; i < 4; ++i)
+    tevKonstColors[i] = m.tevKonstColors[i];
+  write_array_vec<u16>(writer, tevKonstColors, cache.konstColors);
 
   dbg.assertSince(0x09C);
   // TODO -- comparison logic might need to account for ksels being here
@@ -870,7 +879,10 @@ void io_wrapper<SerializableMaterial>::onWrite(
     writer.write<u16>(-1);
 
   dbg.assertSince(0x0dc);
-  auto tevColors = m.tevColors;
+  array_vector<gx::ColorS10, 4> tevColors;
+  tevColors.nElements = 4;
+  for (int i = 0; i < 4; ++i)
+    tevColors[i] = m.tevColors[i];
   // HW 0 is API CPREV/APREV
   std::rotate(tevColors.begin(), tevColors.begin() + 1, tevColors.end());
   write_array_vec<u16>(writer, tevColors, cache.tevColors);

@@ -51,12 +51,13 @@ struct LowLevelGxMaterial {
   // - nIndStage -> mIndScales.size() and shader.mIndOrders.size()
 
   riistudio::util::array_vector<gx::ChannelData, 2> chanData;
-
   // Color0, Alpha0, Color1, Alpha1
   riistudio::util::array_vector<gx::ChannelControl, 4> colorChanControls;
+
   riistudio::util::array_vector<gx::TexCoordGen, 8> texGens;
-  riistudio::util::array_vector<gx::Color, 4> tevKonstColors;
-  riistudio::util::array_vector<gx::ColorS10, 4> tevColors; // last is tevprev?
+
+  std::array<gx::Color, 4> tevKonstColors;
+  std::array<gx::ColorS10, 4> tevColors; // last is tevprev?
 
   bool earlyZComparison = true;
   gx::ZMode zMode;

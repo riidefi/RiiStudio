@@ -145,8 +145,6 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
   copyable_polymorphic_array_vector<SamplerData, 8> samplers;
 
   GCMaterialData() {
-    tevKonstColors.nElements = 4;
-    tevColors.nElements = 4;
     // chanData.nElements = 2;
   }
 };
