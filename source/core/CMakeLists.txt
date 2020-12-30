@@ -16,4 +16,4 @@ file(GLOB_RECURSE HDR_FILES
 add_library(core
 	${SRC_FILES}
 	${HDR_FILES}
-)
+ "interface.hpp")
