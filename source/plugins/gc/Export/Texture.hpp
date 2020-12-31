@@ -4,9 +4,9 @@
 #include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
 #include <vendor/ogc/texture.h>
 
-#include <plugins/gc/Encoder/ImagePlatform.hpp>
-#include <vendor/mp/Metaphrasis.h>
 #include <algorithm>
+#include <lib_rii/image/ImagePlatform.hpp>
+#include <vendor/mp/Metaphrasis.h>
 
 namespace libcube {
 
@@ -22,9 +22,9 @@ struct Texture : public riistudio::lib3d::Texture {
     u32 size = getDecodedSize(mip);
     if (size == 0)
       return;
-	size = std::max(size, u32(1024 * 1024 * 4));
+    size = std::max(size, u32(1024 * 1024 * 4));
     // assert(size);
-	
+
     if (out.size() < size) {
       out.resize(size);
     }
@@ -89,11 +89,11 @@ struct Texture : public riistudio::lib3d::Texture {
   void encode(const u8* rawRGBA) override {
     resizeData();
 
-    image_platform::transform(
-        getData(), getWidth(), getHeight(),
-        gx::TextureFormat::Extension_RawRGBA32,
-        static_cast<gx::TextureFormat>(getTextureFormat()), rawRGBA, getWidth(),
-        getHeight(), getMipmapCount());
+    librii::image::transform(getData(), getWidth(), getHeight(),
+                             gx::TextureFormat::Extension_RawRGBA32,
+                             static_cast<gx::TextureFormat>(getTextureFormat()),
+                             rawRGBA, getWidth(), getHeight(),
+                             getMipmapCount());
   }
 };
 

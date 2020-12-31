@@ -3,7 +3,7 @@
 #include <core/3d/gl.hpp> // for glGenTextures
 #include <imgui/imgui.h>  // for ImGui::Image
 // TODO: Interdependency
-#include <plugins/gc/Encoder/ImagePlatform.hpp>
+#include <lib_rii/image/ImagePlatform.hpp>
 
 namespace riistudio {
 
@@ -37,9 +37,9 @@ IconDatabase::Icon::Icon(lib3d::Texture& texture, u32 dimension) {
 
   assert(dimension <= 128);
   texture.decode(tmp, false);
-  libcube::image_platform::resize(
-      scratch.data(), dimension, dimension, tmp.data(), texture.getWidth(),
-      texture.getHeight(), libcube::image_platform::Lanczos);
+  librii::image::resize(scratch.data(), dimension, dimension, tmp.data(),
+                        texture.getWidth(), texture.getHeight(),
+                        librii::image::Lanczos);
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dimension, dimension, 0, GL_RGBA,
                GL_UNSIGNED_BYTE, (void*)scratch.data());

@@ -8,7 +8,7 @@
 #include <vendor/mp/Metaphrasis.h>
 #include <vendor/ogc/texture.h>
 
-namespace libcube::image_platform {
+namespace librii::image {
 
 std::pair<int, int> getBlockedDimensions(int width, int height,
                                          gx::TextureFormat format) {
@@ -249,4 +249,4 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
   }
 }
 
-} // namespace libcube::image_platform
+} // namespace librii::image

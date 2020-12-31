@@ -17,4 +17,9 @@ add_library(lib_rii
   "szs/SZS.hpp"
   "szs/SZS.cpp"
   "nitro/types.hpp"
+  "image/CmprEncoder.cpp"
+  "image/CmprEncoder.hpp"
+  "image/ImagePlatform.cpp"
+  "image/ImagePlatform.hpp"
+
 )

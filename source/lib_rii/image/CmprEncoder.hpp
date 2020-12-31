@@ -2,7 +2,7 @@
 
 #include <core/common.h>
 
-namespace libcube {
+namespace librii::image {
 
 //! @brief Encode a RGBA32 buffer to GC DXT1.
 //!
@@ -15,4 +15,4 @@ namespace libcube {
 //!
 void EncodeDXT1(u8* dest, const u8* source, u32 width, u32 height);
 
-} // namespace libcube
+} // namespace librii::image

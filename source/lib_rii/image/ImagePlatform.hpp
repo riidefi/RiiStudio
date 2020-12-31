@@ -7,7 +7,7 @@
 
 #include <lib_rii/gx.h>
 
-namespace libcube::image_platform {
+namespace librii::image {
 
 //! @brief Compute padded dimensions for an image.
 //!
@@ -116,4 +116,4 @@ void transform(
     const u8* src = nullptr, int sx = -1, int sy = -1, u32 mipMapCount = 0,
     ResizingAlgorithm algorithm = ResizingAlgorithm::AVIR);
 
-} // namespace libcube::image_platform
+} // namespace librii::image

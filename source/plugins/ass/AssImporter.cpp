@@ -350,9 +350,8 @@ static bool importTexture(libcube::Texture& data, u8* image,
 
     u32 slide = 0;
     for (int i = 0; i <= num_mip; ++i) {
-      libcube::image_platform::resize(scratch.data() + slide, width >> i,
-                                      height >> i, image, width, height,
-                                      libcube::image_platform::Lanczos);
+      librii::image::resize(scratch.data() + slide, width >> i, height >> i,
+                            image, width, height, librii::image::Lanczos);
       slide += (width >> i) * (height >> i) * 4;
     }
 

@@ -10,7 +10,7 @@
 
 #include <oishii/util/util.hxx>
 
-namespace libcube {
+namespace librii::image {
 
 const u8 cc58[32] = // convert 5-bit color to 8-bit color
     {0x00, 0x08, 0x10, 0x19, 0x21, 0x29, 0x31, 0x3a, 0x42, 0x4a, 0x52,
@@ -481,4 +481,4 @@ void EncodeDXT1(u8* dest_img, const u8* source_img, u32 width, u32 height) {
   // assert(src1 <= dest_img->data + dest_img->data_size);
 }
 
-} // namespace libcube
+} // namespace librii::image

@@ -77,9 +77,9 @@ void importImage(Texture& tex, u32 import_lod) {
     const auto offset =
         import_lod == 0
             ? 0
-            : libcube::image_platform::getEncodedSize(
-                  tex.getWidth(), tex.getHeight(), fmt, import_lod - 1);
-    libcube::image_platform::transform(
+            : librii::image::getEncodedSize(tex.getWidth(), tex.getHeight(),
+                                            fmt, import_lod - 1);
+    librii::image::transform(
         tex.getData() + offset, tex.getWidth() >> import_lod,
         tex.getHeight() >> import_lod, gx::TextureFormat::Extension_RawRGBA32,
         fmt, image, width, height);
