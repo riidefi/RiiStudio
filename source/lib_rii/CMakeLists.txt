@@ -16,4 +16,5 @@ add_library(lib_rii
   "kmp/io/KMP.hpp"
   "szs/SZS.hpp"
   "szs/SZS.cpp"
+  "nitro/types.hpp"
 )

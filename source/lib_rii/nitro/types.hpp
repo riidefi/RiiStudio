@@ -10,7 +10,7 @@
 
 #pragma push(packed)
 
-namespace riistudio::nitro {
+namespace librii::nitro {
 
 template <typename T> struct fx {
   static_assert(std::is_integral_v<T>, "T must be an integer");
@@ -77,6 +77,6 @@ union ARGB1555 {
 
 static_assert(sizeof(ARGB1555) == 2, "Invalidly sized types");
 
-} // namespace riistudio::nitro
+} // namespace librii::nitro
 
 #pragma pop(packed)
