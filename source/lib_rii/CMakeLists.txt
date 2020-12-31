@@ -7,5 +7,13 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
 
 add_library(lib_rii
-	lib_rii.cpp
- "gl/Compiler.hpp" "gl/Compiler.cpp" "kmp/CourseMap.hpp" "kmp/CourseMap.cpp" "kmp/io/KMP.cpp" "kmp/io/KMP.hpp")
+  lib_rii.cpp
+  "gl/Compiler.hpp"
+  "gl/Compiler.cpp"
+  "kmp/CourseMap.hpp"
+  "kmp/CourseMap.cpp"
+  "kmp/io/KMP.cpp"
+  "kmp/io/KMP.hpp"
+  "szs/SZS.hpp"
+  "szs/SZS.cpp"
+)

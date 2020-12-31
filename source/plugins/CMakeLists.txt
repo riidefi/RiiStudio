@@ -110,8 +110,7 @@ add_library(plugins
 	"nitro/types.hpp"
 	"mk/KMP/io/KMP.hpp"
 	"gc/GPU/DLBuilder.hpp"
-	"szs/SZS.hpp"
-	"szs/SZS.cpp"
+
 	"arc/Arc.hpp"
 	"arc/Arc.cpp"
 	"arc/LinearFST.hpp"

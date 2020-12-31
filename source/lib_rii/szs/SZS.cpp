@@ -3,7 +3,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <oishii/writer/binary_writer.hxx>
 
-namespace riistudio::szs {
+namespace librii::szs {
 
 u32 getExpandedSize(const std::span<u8> src) {
   assert(src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0');
@@ -110,4 +110,4 @@ std::vector<u8> encodeFast(const std::span<u8> src) {
   return result;
 }
 
-} // namespace riistudio::szs
+} // namespace librii::szs
