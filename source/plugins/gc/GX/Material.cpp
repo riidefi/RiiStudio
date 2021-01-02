@@ -48,10 +48,6 @@ struct UniformSceneParams {
 struct PacketParams {
   glm::mat3x4 posMtx[10];
 };
-template <typename T> inline glm::vec4 colorConvert(T clr) {
-  const auto f32c = (gx::ColorF32)clr;
-  return {f32c.r, f32c.g, f32c.b, f32c.a};
-}
 
 void calcTexMtx_Basic(glm::mat4& dst, float scaleS, float scaleT,
                       float rotation, float translationS, float translationT,
@@ -330,31 +326,11 @@ void IGCMaterial::generateUniforms(
   scene.projection = V * P;
   scene.Misc0 = {};
 
-  UniformMaterialParams tmp{};
+  librii::gl::UniformMaterialParams tmp{};
 
-  Light omni{
-      glm::vec4{0, 0, 0, 0},   // Position
-      glm::vec4{0, -1, 0, 0},  // Direction
-      glm::vec4{1, 0, 0, 0},   // CosAtten
-      glm::vec4{1, 0, 0, 0},   // DistAtten
-      glm::vec4{0, 0, 0, 1.0f} // Color
-  };
-
-  std::fill(tmp.u_LightParams.begin(), tmp.u_LightParams.end(), omni);
-
+  librii::gl::setUniformsFromMaterial(tmp, getMaterialData());
   const auto& data = getMaterialData();
 
-  for (int i = 0; i < 2; ++i) {
-    // TODO: Broken
-    tmp.ColorMatRegs[i] =
-        glm::vec4{1.0f}; // colorConvert(data.chanData[i].matColor);
-    tmp.ColorAmbRegs[i] =
-        glm::vec4{1.0f}; // colorConvert(data.chanData[i].ambColor);
-  }
-  for (int i = 0; i < 4; ++i) {
-    tmp.KonstColor[i] = colorConvert(data.tevKonstColors[i]);
-    tmp.Color[i] = colorConvert(data.tevColors[i]);
-  }
   for (int i = 0; i < data.texMatrices.size(); ++i) {
     tmp.TexMtx[i] = glm::transpose(data.texMatrices[i]->compute(M, V * P));
   }
@@ -367,14 +343,14 @@ void IGCMaterial::generateUniforms(
     tmp.TexParams[i] = glm::vec4{texData->getWidth(), texData->getHeight(), 0,
                                  data.samplers[i]->mLodBias};
   }
-  for (int i = 0; i < data.mIndMatrices.size(); ++i) {
-    auto& it = data.mIndMatrices[i];
-    // TODO:: Verify..
-    glm::mat4 im;
-    calcTexMtx_Basic(im, it.scale.x, it.scale.y, it.rotate, it.trans.x,
-                     it.trans.y, 0.5, 0.5, 0.5);
-    tmp.IndTexMtx[i] = im;
-  }
+  // for (int i = 0; i < data.mIndMatrices.size(); ++i) {
+  //   auto& it = data.mIndMatrices[i];
+  //   // TODO:: Verify..
+  //   glm::mat4 im;
+  //   calcTexMtx_Basic(im, it.scale.x, it.scale.y, it.rotate, it.trans.x,
+  //                    it.trans.y, 0.5, 0.5, 0.5);
+  //   tmp.IndTexMtx[i] = im;
+  // }
   PacketParams pack{};
   for (auto& p : pack.posMtx)
     p = glm::transpose(glm::mat4{1.0f});

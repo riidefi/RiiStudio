@@ -26,6 +26,12 @@ struct Light {
   }
 };
 
+constexpr Light LightOmni = {.Position = glm::vec4{0, 0, 0, 0},
+                             .Direction = glm::vec4{0, -1, 0, 0},
+                             .DistAtten = glm::vec4{1, 0, 0, 0},
+                             .CosAtten = glm::vec4{1, 0, 0, 0},
+                             .Color = glm::vec4{0, 0, 0, 1.0f}};
+
 // ROW-MAJOR
 struct UniformMaterialParams {
   std::array<glm::vec4, 2> ColorMatRegs;
@@ -54,7 +60,34 @@ struct PacketParams {
   glm::mat3x4 posMtx[10];
 };
 
-inline bool setUniformsFromMaterial(const gx::LowLevelGxMaterial& mat) {
+template <typename T> inline glm::vec4 colorConvert(T clr) {
+  const auto f32c = (gx::ColorF32)clr;
+  return {f32c.r, f32c.g, f32c.b, f32c.a};
+}
+
+// Does not set:
+// - TexMtx
+// - TexParams
+inline bool setUniformsFromMaterial(UniformMaterialParams& uniform,
+                                    const gx::LowLevelGxMaterial& mat) {
+  std::fill(uniform.u_LightParams.begin(), uniform.u_LightParams.end(),
+            LightOmni);
+
+  for (int i = 0; i < 2; ++i) {
+    // TODO: Broken
+    uniform.ColorMatRegs[i] =
+        glm::vec4{1.0f}; // colorConvert(data.chanData[i].matColor);
+    uniform.ColorAmbRegs[i] =
+        glm::vec4{1.0f}; // colorConvert(data.chanData[i].ambColor);
+  }
+  for (int i = 0; i < 4; ++i) {
+    uniform.KonstColor[i] = colorConvert(mat.tevKonstColors[i]);
+    uniform.Color[i] = colorConvert(mat.tevColors[i]);
+  }
+  for (int i = 0; i < mat.mIndMatrices.size(); ++i) {
+    // TODO: Do we need to transpose (column-major -> row-major)?
+    uniform.IndTexMtx[i] = mat.mIndMatrices[i].compute();
+  }
   return false;
 }
 

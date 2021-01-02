@@ -107,22 +107,4 @@ struct Mat42 {
 struct Mat43 {
   glm::vec4 a, b, c;
 };
-// ROW-MAJOR
-struct UniformMaterialParams {
-  std::array<glm::vec4, 2> ColorMatRegs;
-  std::array<glm::vec4, 2> ColorAmbRegs;
-  std::array<glm::vec4, 4> KonstColor;
-  std::array<glm::vec4, 4> Color;
-  std::array<glm::mat3x4, 10> TexMtx; // 4x3
-  // sizex, sizey, 0, bias
-  std::array<glm::vec4, 8> TexParams;
-  std::array<glm::mat2x4, 3> IndTexMtx; // 2x3
-  // Optional: Not optional for now.
-  std::array<Light, 8> u_LightParams;
-};
-static_assert(sizeof(UniformMaterialParams) == 1536, "Bad sized UParam");
-
-static_assert(sizeof(UniformMaterialParams) ==
-              896 + sizeof(std::array<Light, 8>));
-constexpr u32 ub = sizeof(UniformMaterialParams);
 } // namespace libcube
