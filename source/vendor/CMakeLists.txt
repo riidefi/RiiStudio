@@ -31,5 +31,4 @@ list(FILTER SRC_FILES EXCLUDE REGEX ".*pybind11.*$")
 add_library(vendor
 	${SRC_FILES}
 	${HDR_FILES}
-  libcurl.dll
 )
