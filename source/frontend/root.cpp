@@ -353,6 +353,8 @@ void RootWindow::draw() {
       ImGui::EndMenuBar();
     }
 
+	mUpdater.draw();
+
     DrawChangeLog(&mShowChangeLog);
 
     if (!mImportersQueue.empty()) {
@@ -413,7 +415,6 @@ RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
 #ifdef _WIN32
   glDebugMessageCallback(GlCallback, 0);
 #endif
-
   spInstance = this;
 
   InitAPI();

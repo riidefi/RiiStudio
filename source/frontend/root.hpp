@@ -9,6 +9,7 @@
 #include "file_host.hpp"
 
 #include <frontend/editor/ImporterWindow.hpp>
+#include <frontend/updater/updater.hpp>
 
 namespace riistudio::frontend {
 
@@ -50,6 +51,8 @@ private:
   bool mWantFile = false;
   bool mGotFile = false;
   FileData mReqData;
+
+  Updater mUpdater = Updater();
 
 public:
   void requestFile() { mWantFile = true; }

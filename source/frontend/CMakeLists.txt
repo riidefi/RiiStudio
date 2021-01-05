@@ -17,7 +17,7 @@ file(GLOB_RECURSE HDR_FILES
 add_executable(frontend
 	${SRC_FILES}
 	${HDR_FILES}
- "renderer/CameraController.hpp")
+ "renderer/CameraController.hpp"  "updater/updater.hpp"  "updater/updater.cpp")
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
