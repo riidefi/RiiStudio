@@ -20,8 +20,8 @@ Renderer::Renderer(lib3d::IDrawable* root) : mRoot(root) {}
 Renderer::~Renderer() {}
 
 void Renderer::render(u32 width, u32 height, bool& showCursor) {
-  // The root may set a flag to signal it is undergoing a mutation and is unsafe to
-  // be drawn.
+  // The root may set a flag to signal it is undergoing a mutation and is unsafe
+  // to be drawn.
   if (mRoot->poisoned)
     return;
 
@@ -155,10 +155,12 @@ CameraController::InputState Renderer::buildInputState() const {
     key_s = true;
   if (keys[SDL_SCANCODE_D])
     key_d = true;
-  if ((keys[SDL_SCANCODE_SPACE] && combo_choice_cam == 0) ||
+  if ((keys[SDL_SCANCODE_SPACE] &&
+       combo_choice_cam == CameraController::ControllerType::WASD_Minecraft) ||
       keys[SDL_SCANCODE_E])
     key_up = true;
-  if ((keys[SDL_SCANCODE_LSHIFT] && combo_choice_cam == 0) ||
+  if ((keys[SDL_SCANCODE_LSHIFT] &&
+       combo_choice_cam == CameraController::ControllerType::WASD_Minecraft) ||
       keys[SDL_SCANCODE_Q])
     key_down = true;
 #endif

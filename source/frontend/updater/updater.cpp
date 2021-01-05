@@ -1,5 +1,12 @@
 #include "updater.hpp"
 
+#ifndef _WIN32
+namespace riistudio {
+Updater::Updater() = default;
+void Updater::draw() {}
+} // namespace riistudio
+#else
+
 #include <Windows.h>
 
 #include <Libloaderapi.h>
@@ -142,18 +149,20 @@ void Updater::InstallUpdate() {
   std::array<char, 32> buf{};
 
   CreateProcessA(new_exe.string().c_str(), // lpApplicationName
-                 buf.data(),       // lpCommandLine
-                 nullptr,          // lpProcessAttributes
-                 nullptr,          // lpThreadAttributes
-                 false,            // bInheritHandles
-                 0,                // dwCreationFlags
-                 nullptr,          // lpEnvironment
-                 nullptr,          // lpCurrentDirectory
-                 &si,              // lpStartupInfo
-                 &pi               // lpProcessInformation
+                 buf.data(),               // lpCommandLine
+                 nullptr,                  // lpProcessAttributes
+                 nullptr,                  // lpThreadAttributes
+                 false,                    // bInheritHandles
+                 0,                        // dwCreationFlags
+                 nullptr,                  // lpEnvironment
+                 nullptr,                  // lpCurrentDirectory
+                 &si,                      // lpStartupInfo
+                 &pi                       // lpProcessInformation
   );
 
   exit(0);
 }
 
-}; // namespace riistudio
+} // namespace riistudio
+
+#endif

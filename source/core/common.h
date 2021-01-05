@@ -24,7 +24,7 @@
 #include <stdio.h>
 #endif
 
-#if defined(__emscripten__)
+#if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 
 #define DebugReport(...)                                                       \

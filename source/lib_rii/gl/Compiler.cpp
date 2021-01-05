@@ -43,7 +43,7 @@ const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs{
     VertexAttributeGenDef{VertexAttribute::TexCoord7, "Tex7", GL_FLOAT, 2}};
 
 std::string generateBindingsDefinition(bool postTexMtxBlock, bool lightsBlock) {
-#ifdef __emscripten__
+#ifdef __EMSCRIPTEN__
   return std::string(R"(
 // Expected to be constant across the entire scene.
 layout(std140) uniform ub_SceneParams {
@@ -1457,7 +1457,7 @@ void main() {
     const auto bindingsDefinition =
         generateBindingsDefinition(hasPostTexMtxBlock, hasLightsBlock);
 
-#if __emscripten__
+#if __EMSCRIPTEN__
     const std::string version = "#version 300 es";
 #else
     const std::string version = "#version 440";
