@@ -74,3 +74,4 @@ add_subdirectory(lib_rii)
 
 # Third-party libraries
 add_subdirectory(vendor)
+add_subdirectory(11zip)

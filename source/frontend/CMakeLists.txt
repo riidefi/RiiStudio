@@ -4,6 +4,7 @@ include_directories(${PROJECT_SOURCE_DIR}/../)
 include_directories(${PROJECT_SOURCE_DIR}/../vendor)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
+include_directories(${PROJECT_SOURCE_DIR}/../11zip/include)
 
 file(GLOB_RECURSE SRC_FILES
 	${PROJECT_SOURCE_DIR}/*.cpp
@@ -27,6 +28,7 @@ target_link_libraries(frontend PUBLIC
   lib_rii
 	plugins
 	vendor
+  elzip
 )
 
 if (WIN32)
