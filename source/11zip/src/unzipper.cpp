@@ -195,6 +195,7 @@ namespace ziputils
             delete[] buf;
             return ret;
         }
-        throw std::runtime_error("Entry is not opened");
+        //throw std::runtime_error("Entry is not opened");
+        return "";
     }
 };

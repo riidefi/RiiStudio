@@ -28,9 +28,9 @@
 
 // see Include/shared/winapifamily.h in the Windows Kit
 #if defined(WINAPI_FAMILY_PARTITION) && (!(defined(IOWIN32_USING_WINRT_API)))
-#if WINAPI_FAMILY_ONE_PARTITION(WINAPI_FAMILY, WINAPI_PARTITION_APP)
+//#if WINAPI_FAMILY_ONE_PARTITION(WINAPI_FAMILY, WINAPI_PARTITION_APP)
 #define IOWIN32_USING_WINRT_API 1
-#endif
+//#endif
 #endif
 
 voidpf ZCALLBACK win32_open_file_func OF((voidpf opaque, const char* filename, int mode));
@@ -95,7 +95,7 @@ static voidpf win32_build_iowin(HANDLE hFile)
 
 voidpf ZCALLBACK win32_open64_file_func(voidpf opaque, const void* filename, int mode)
 {
-    const char* mode_fopen = NULL;
+    //const char* mode_fopen = NULL;
     DWORD dwDesiredAccess, dwCreationDisposition, dwShareMode, dwFlagsAndAttributes;
     HANDLE hFile = NULL;
 
@@ -124,7 +124,7 @@ voidpf ZCALLBACK win32_open64_file_func(voidpf opaque, const void* filename, int
 
 voidpf ZCALLBACK win32_open64_file_funcA(voidpf opaque, const void* filename, int mode)
 {
-    const char* mode_fopen = NULL;
+    //const char* mode_fopen = NULL;
     DWORD dwDesiredAccess, dwCreationDisposition, dwShareMode, dwFlagsAndAttributes;
     HANDLE hFile = NULL;
 
@@ -148,7 +148,7 @@ voidpf ZCALLBACK win32_open64_file_funcA(voidpf opaque, const void* filename, in
 
 voidpf ZCALLBACK win32_open64_file_funcW(voidpf opaque, const void* filename, int mode)
 {
-    const char* mode_fopen = NULL;
+    //const char* mode_fopen = NULL;
     DWORD dwDesiredAccess, dwCreationDisposition, dwShareMode, dwFlagsAndAttributes;
     HANDLE hFile = NULL;
 
@@ -168,7 +168,7 @@ voidpf ZCALLBACK win32_open64_file_funcW(voidpf opaque, const void* filename, in
 
 voidpf ZCALLBACK win32_open_file_func(voidpf opaque, const char* filename, int mode)
 {
-    const char* mode_fopen = NULL;
+    //const char* mode_fopen = NULL;
     DWORD dwDesiredAccess, dwCreationDisposition, dwShareMode, dwFlagsAndAttributes;
     HANDLE hFile = NULL;
 

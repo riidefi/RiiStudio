@@ -74,7 +74,7 @@ namespace ziputils
             }
 
             //?? we dont need the stinking time
-            zip_fileinfo zi = {0};
+            zip_fileinfo zi = {{0}};
             getTime(zi.tmz_date);
 
             int err = zipOpenNewFileInZip(zipFile_, filename, &zi,
@@ -109,7 +109,7 @@ namespace ziputils
     {
         int err = ZIP_OK;
         char buf[BUFSIZE];
-        unsigned long nRead = 0;
+        //unsigned long nRead = 0;
 
         if (isOpenEntry())
         {
