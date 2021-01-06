@@ -110,7 +110,13 @@ void readTEX1(BMDOutputContext& ctx) {
 
   ctx.mdl.mTexCache.clear();
 
-  std::vector<std::pair<std::unique_ptr<Texture>, std::pair<u32, u32>>> texRaw;
+  struct RawTexture {
+    Texture data;
+    u32 absolute_file_offset;
+    u32 byte_size;
+  };
+
+  std::vector<RawTexture> texRaw;
 
   reader.skip(ofsHeaders);
   for (int i = 0; i < size; ++i) {
@@ -149,9 +155,8 @@ void readTEX1(BMDOutputContext& ctx) {
       }
     }
     ctx.mdl.mTexCache.push_back(tex);
-    auto& inf = texRaw.emplace_back(std::make_unique<Texture>(),
-                                    std::pair<u32, u32>{0, 0});
-    auto& data = *inf.first.get();
+    auto& inf = texRaw.emplace_back();
+    auto& data = inf.data;
 
     data.mName = nameTable[i];
     data.mFormat = static_cast<u8>(tex.mFormat);
@@ -164,9 +169,8 @@ void readTEX1(BMDOutputContext& ctx) {
     data.mMaxLod = tex.mMaxLod;
     data.mMipmapLevel = tex.mMipmapLevel;
 
-    // ofs:size
-    inf.second.first = g.start + ofsHeaders + i * 32 + tex.ofsTex;
-    inf.second.second =
+    inf.absolute_file_offset = g.start + ofsHeaders + i * 32 + tex.ofsTex;
+    inf.byte_size =
         GetTexBufferSize(tex.mWidth, tex.mHeight, static_cast<u32>(tex.mFormat),
                          true, tex.mMipmapLevel);
   }
@@ -174,23 +178,28 @@ void readTEX1(BMDOutputContext& ctx) {
   // Deduplicate and read.
   // Assumption: Data will not be spliced
 
-  std::vector<std::pair<u32, int>> uniques; // ofs : index
+  struct UniqueImage {
+    u32 offset;
+    int bti_index; // This may be the first of many
+
+    UniqueImage(u32 ofs, int idx) : offset(ofs), bti_index(idx) {}
+  };
+  std::vector<UniqueImage> uniques;
   for (int i = 0; i < size; ++i) {
     const auto found =
         std::find_if(uniques.begin(), uniques.end(), [&](const auto& it) {
-          return it.first == texRaw[i].second.first;
+          return it.offset == texRaw[i].absolute_file_offset;
         });
     if (found == uniques.end())
-      uniques.emplace_back(texRaw[i].second.first, i);
+      uniques.emplace_back(texRaw[i].absolute_file_offset, i);
   }
 
   int i = 0;
   for (const auto& it : uniques) {
-    auto& texpair = texRaw[it.second];
-    const auto [ofs, size] = texpair.second;
-    std::unique_ptr<Texture> data = std::move(texpair.first);
-	reader.readBuffer(data->mData, size, ofs);
-    ctx.col.getTextures().add() = *data.get();
+    auto& texpair = texRaw[it.bti_index];
+    reader.readBuffer(texpair.data.mData, texpair.byte_size,
+                      texpair.absolute_file_offset);
+    ctx.col.getTextures().add() = texpair.data;
 
     ++i;
   }
