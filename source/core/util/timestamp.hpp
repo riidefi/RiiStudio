@@ -10,6 +10,11 @@
 #define __CC "Unknown"
 #endif
 
+// Must be exactly 16 bytes long
+#define VERSION_SHORT "RiiStudio: A-4.2"
+static_assert(sizeof(VERSION_SHORT) - 1 == 16,
+              "VERSION_SHORT must be 16 bytes long");
+
 #if defined(BUILD_DEBUG)
 #define __BUILD "Alpha Debug"
 #elif defined(BUILD_RELEASE)
