@@ -15,13 +15,6 @@ using StringBuilder = riistudio::util::StringBuilder;
 
 using namespace librii::gx;
 
-struct VertexAttributeGenDef {
-  gx::VertexAttribute attrib;
-  const char* name;
-
-  u32 format;
-  u32 size;
-};
 const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs{
     VertexAttributeGenDef{VertexAttribute::Position, "Position", GL_FLOAT, 3},
     VertexAttributeGenDef{VertexAttribute::PositionNormalMatrixIndex,
@@ -41,6 +34,23 @@ const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs{
     VertexAttributeGenDef{VertexAttribute::TexCoord5, "Tex5", GL_FLOAT, 2},
     VertexAttributeGenDef{VertexAttribute::TexCoord6, "Tex6", GL_FLOAT, 2},
     VertexAttributeGenDef{VertexAttribute::TexCoord7, "Tex7", GL_FLOAT, 2}};
+
+std::pair<const VertexAttributeGenDef&, std::size_t>
+getVertexAttribGenDef(VertexAttribute vtxAttrib) {
+  if (vtxAttrib == VertexAttribute::Texture1MatrixIndex ||
+      vtxAttrib == VertexAttribute::Texture2MatrixIndex ||
+      vtxAttrib == VertexAttribute::Texture3MatrixIndex)
+    vtxAttrib = VertexAttribute::Texture0MatrixIndex;
+  const auto it =
+      std::find_if(vtxAttributeGenDefs.begin(), vtxAttributeGenDefs.end(),
+                   [vtxAttrib](const VertexAttributeGenDef& def) {
+                     return def.attrib == vtxAttrib;
+                   });
+
+  assert(it != vtxAttributeGenDefs.end());
+
+  return {*it, it - vtxAttributeGenDefs.begin()};
+}
 
 std::string generateBindingsDefinition(bool postTexMtxBlock, bool lightsBlock) {
 #ifdef __EMSCRIPTEN__

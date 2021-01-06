@@ -1,6 +1,5 @@
 #include "IndexedPolygon.hpp"
-
-#include <plugins/gc/GX/Shader/GXMaterial.hpp>
+#include <librii/gl/Compiler.hpp>
 
 namespace libcube {
 
@@ -271,7 +270,7 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
     if (i == (int)gx::VertexAttribute::NormalBinormalTangent)
       continue;
 
-    const auto def = getVertexAttribGenDef((gx::VertexAttribute)i);
+    const auto def = librii::gl::getVertexAttribGenDef((gx::VertexAttribute)i);
     assert(def.first.name != nullptr);
     out.mPropogating[def.second].first = VAOEntry{
         (u32)def.second, def.first.name, def.first.format, def.first.size * 4};

@@ -35,10 +35,6 @@ add_library(plugins
   
 
 	"gc/GX/Material.cpp"
-	"gc/GX/Shader/GXMaterial.cpp"
-	"gc/GX/Shader/GXMaterial.hpp"
-	"gc/GX/Shader/GXProgram.cpp"
-	"gc/GX/Shader/GXProgram.hpp"
 	
 	
 	"gc/Node.h"

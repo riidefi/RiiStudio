@@ -40,4 +40,4 @@ add_library(librii
   "gpu/GPUCommand.hpp"
   "gpu/GPUMaterial.cpp"
   "gpu/GPUMaterial.hpp"
-)
+ "gl/EnumConverter.hpp" "gl/EnumConverter.cpp")

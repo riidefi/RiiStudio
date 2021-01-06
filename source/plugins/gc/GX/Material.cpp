@@ -1,12 +1,70 @@
 #include <algorithm>
 #include <core/3d/gl.hpp>
 #include <librii/gl/Compiler.hpp>
+#include <librii/gl/EnumConverter.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
-#include <plugins/gc/GX/Shader/GXProgram.hpp>
 #undef min
 
 namespace libcube {
+
+void translateGfxMegaState(MegaState& megaState,
+                           const librii::gx::LowLevelGxMaterial& matdata) {
+  megaState.cullMode = librii::gl::translateCullMode(matdata.cullMode);
+  // TODO: If compare is false, is depth masked?
+  megaState.depthWrite = matdata.zMode.compare && matdata.zMode.update;
+  // TODO: zmode "compare" part no reference
+  megaState.depthCompare =
+      matdata.zMode.compare
+          ? librii::gl::translateCompareType(matdata.zMode.function)
+          : GL_ALWAYS;
+  // megaState.depthCompare = material.ropInfo.depthTest ?
+  // reverseDepthForCompareMode(translateCompareType(material.ropInfo.depthFunc))
+  // : GfxCompareMode.ALWAYS;
+  megaState.frontFace = GL_CW;
+
+  const auto blendMode = matdata.blendMode;
+  if (blendMode.type == gx::BlendModeType::none) {
+    megaState.blendMode = GL_FUNC_ADD;
+    megaState.blendSrcFactor = GL_ONE;
+    megaState.blendDstFactor = GL_ZERO;
+  } else if (blendMode.type == gx::BlendModeType::blend) {
+    megaState.blendMode = GL_FUNC_ADD;
+    megaState.blendSrcFactor =
+        librii::gl::translateBlendSrcFactor(blendMode.source);
+    megaState.blendDstFactor =
+        librii::gl::translateBlendDstFactor(blendMode.dest);
+  } else if (blendMode.type == gx::BlendModeType::subtract) {
+    megaState.blendMode = GL_FUNC_REVERSE_SUBTRACT;
+    megaState.blendSrcFactor = GL_ONE;
+    megaState.blendDstFactor = GL_ONE;
+  } else if (blendMode.type == gx::BlendModeType::logic) {
+    printf("LOGIC mode is unsupported.\n");
+  }
+}
+
+gx::ColorSelChanApi getRasColorChannelID(gx::ColorSelChanApi v) {
+  switch (v) {
+  case gx::ColorSelChanApi::color0:
+  case gx::ColorSelChanApi::alpha0:
+  case gx::ColorSelChanApi::color0a0:
+    return gx::ColorSelChanApi::color0a0;
+  case gx::ColorSelChanApi::color1:
+  case gx::ColorSelChanApi::alpha1:
+  case gx::ColorSelChanApi::color1a1:
+    return gx::ColorSelChanApi::color1a1;
+  case gx::ColorSelChanApi::ind_alpha:
+    return gx::ColorSelChanApi::ind_alpha;
+  case gx::ColorSelChanApi::normalized_ind_alpha:
+    return gx::ColorSelChanApi::normalized_ind_alpha;
+  case gx::ColorSelChanApi::zero:
+  case gx::ColorSelChanApi::null:
+    return gx::ColorSelChanApi::zero;
+  default:
+    assert(!"Invalid color channel selection");
+    return gx::ColorSelChanApi::zero;
+  }
+}
 
 std::pair<std::string, std::string> IGCMaterial::generateShaders() const {
   auto result = librii::gl::compileShader(getMaterialData(), getName());
@@ -379,43 +437,14 @@ void IGCMaterial::genSamplUniforms(
     // else printf("Tex id: %u\n", texIdMap.at(data.samplers[i]->mTexture));
     glBindTexture(GL_TEXTURE_2D, texIdMap.at(data.samplers[i]->mTexture));
 
-    auto gxFilterToGl = [](gx::TextureFilter filter) {
-      switch (filter) {
-      default:
-      case gx::TextureFilter::linear:
-        return GL_LINEAR;
-      case gx::TextureFilter::near:
-        return GL_NEAREST;
-      case gx::TextureFilter::lin_mip_lin:
-        return GL_LINEAR_MIPMAP_LINEAR;
-      case gx::TextureFilter::lin_mip_near:
-        return GL_LINEAR_MIPMAP_NEAREST;
-      case gx::TextureFilter::near_mip_lin:
-        return GL_NEAREST_MIPMAP_LINEAR;
-      case gx::TextureFilter::near_mip_near:
-        return GL_NEAREST_MIPMAP_NEAREST;
-      }
-    };
-    auto gxTileToGl = [](gx::TextureWrapMode wrap) {
-      switch (wrap) {
-      default:
-      case gx::TextureWrapMode::Clamp:
-        return GL_CLAMP_TO_EDGE;
-      case gx::TextureWrapMode::Repeat:
-        return GL_REPEAT;
-      case gx::TextureWrapMode::Mirror:
-        return GL_MIRRORED_REPEAT;
-      }
-    };
-
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                    gxFilterToGl(data.samplers[i]->mMinFilter));
+                    librii::gl::gxFilterToGl(data.samplers[i]->mMinFilter));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                    gxFilterToGl(data.samplers[i]->mMagFilter));
+                    librii::gl::gxFilterToGl(data.samplers[i]->mMagFilter));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                    gxTileToGl(data.samplers[i]->mWrapU));
+                    librii::gl::gxTileToGl(data.samplers[i]->mWrapU));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                    gxTileToGl(data.samplers[i]->mWrapV));
+                    librii::gl::gxTileToGl(data.samplers[i]->mWrapV));
   }
 }
 void IGCMaterial::onSplice(DelegatedUBOBuilder& builder,
@@ -438,8 +467,6 @@ void IGCMaterial::onSplice(DelegatedUBOBuilder& builder,
   builder.tpush(2, pack);
 }
 void IGCMaterial::setMegaState(MegaState& state) const {
-  GXMaterial mat{0, getName(), *const_cast<IGCMaterial*>(this)};
-
-  translateGfxMegaState(state, mat);
+  translateGfxMegaState(state, getMaterialData());
 }
 } // namespace libcube

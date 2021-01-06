@@ -4,8 +4,20 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 
 namespace librii::gl {
+
+struct VertexAttributeGenDef {
+  gx::VertexAttribute attrib;
+  const char* name;
+
+  u32 format;
+  u32 size;
+};
+
+std::pair<const VertexAttributeGenDef&, std::size_t>
+getVertexAttribGenDef(gx::VertexAttribute vtxAttrib);
 
 // For communicating with your shader:
 struct Light {
