@@ -20,8 +20,8 @@ struct TextureData {
   f32 maxLod{1.0f};
 
   std::string sourcePath;
-  std::vector<u8> data = std::vector<u8>(
-      GetTexBufferSize(dimensions.width, dimensions.height, format, 0, 0));
+  std::vector<u8> data = std::vector<u8>(librii::gx::computeImageSize(
+      dimensions.width, dimensions.height, format, 1));
 
   bool operator==(const TextureData& rhs) const = default;
 };

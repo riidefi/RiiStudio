@@ -26,8 +26,8 @@ struct TextureData {
   s8 mMaxLod;
   u8 mMipmapLevel = 1;
 
-  std::vector<u8> mData =
-      std::vector<u8>(GetTexBufferSize(mWidth, mHeight, mFormat, 0, 0));
+  std::vector<u8> mData = std::vector<u8>(
+      librii::gx::computeImageSize(mWidth, mHeight, mFormat, 1));
 
   bool operator==(const TextureData& rhs) const = default;
 };

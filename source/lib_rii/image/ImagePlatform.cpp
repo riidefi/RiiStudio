@@ -1,12 +1,12 @@
 #include "ImagePlatform.hpp"
 
 #include "CmprEncoder.hpp"
+#include <lib_rii/gx.h>
 #include <span>
 #include <vendor/avir/avir.h>
 #include <vendor/avir/lancir.h>
 #include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
 #include <vendor/mp/Metaphrasis.h>
-#include <vendor/ogc/texture.h>
 
 namespace librii::image {
 
@@ -22,15 +22,8 @@ std::pair<int, int> getBlockedDimensions(int width, int height,
 int getEncodedSize(int width, int height, gx::TextureFormat format,
                    u32 mipMapCount) {
   assert(mipMapCount < 0xff);
-  if (format == librii::gx::TextureFormat::Extension_RawRGBA32) {
-    u32 size = 0;
-    for (int i = 0; i <= mipMapCount; ++i) {
-      size += (width >> i) * (height >> i) * 4;
-    }
-    return size;
-  }
-  return GetTexBufferSize(width, height, static_cast<u32>(format),
-                          mipMapCount != 0, mipMapCount + 1);
+  return librii::gx::computeImageSize(width, height, static_cast<u32>(format),
+                                      mipMapCount + 1);
 }
 
 // X -> raw 8-bit RGBA
@@ -170,7 +163,7 @@ struct RGBA32ImageTarget {
   void fromOtherSized(std::span<const u8> src, u32 ow, u32 oh,
                       ResizingAlgorithm al) {
     mTmp.resize(mW * mH * 4);
-    //assert(src.size() >= mTmp.size());
+    // assert(src.size() >= mTmp.size());
     if (ow == mW && oh == mH) {
       memcpy(mTmp.data(), src.data(), mTmp.size());
     } else {

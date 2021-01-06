@@ -22,4 +22,4 @@ add_library(lib_rii
   "image/ImagePlatform.cpp"
   "image/ImagePlatform.hpp"
 
- "gx/validate/MaterialValidate.hpp" "gx/validate/MaterialValidate.cpp")
+ "gx/validate/MaterialValidate.hpp" "gx/validate/MaterialValidate.cpp" "gx/Texture.cpp")

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <core/3d/i3dmodel.hpp>
-#include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
-#include <vendor/ogc/texture.h>
-
 #include <algorithm>
+#include <core/3d/i3dmodel.hpp>
+#include <lib_rii/gx/Texture.hpp>
 #include <lib_rii/image/ImagePlatform.hpp>
+#include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
 #include <vendor/mp/Metaphrasis.h>
 
 namespace libcube {
@@ -14,9 +13,9 @@ struct Texture : public riistudio::lib3d::Texture {
   // PX_TYPE_INFO("GameCube Texture", "gc_tex", "GC::Texture");
 
   inline u32 getEncodedSize(bool mip) const override {
-    return GetTexBufferSize(getWidth(), getHeight(), getTextureFormat(),
-                            mip && getMipmapCount() > 0,
-                            mip ? getMipmapCount() + 1 : 0);
+    return librii::gx::computeImageSize(getWidth(), getHeight(),
+                                        getTextureFormat(),
+                                        mip ? getMipmapCount() + 1 : 0);
   }
   inline void decode(std::vector<u8>& out, bool mip) const override {
     u32 size = getDecodedSize(mip);
@@ -46,7 +45,7 @@ struct Texture : public riistudio::lib3d::Texture {
       u32 w = getWidth();
       u32 h = getHeight();
       for (u32 i = 0; i < getMipmapCount(); ++i) {
-        i_ofs += GetTexBufferSize(w, h, getTextureFormat(), 0, 1);
+        i_ofs += librii::gx::computeImageSize(w, h, getTextureFormat(), 1);
         o_ofs += w * h * 4;
         decodeSingle(o_ofs, i_ofs, i + 1);
         w >>= 1;

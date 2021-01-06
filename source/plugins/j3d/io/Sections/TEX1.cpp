@@ -1,7 +1,6 @@
 #include "../Sections.hpp"
 #include <map>
 #include <string.h>
-#include <vendor/ogc/texture.h>
 
 namespace riistudio::j3d {
 
@@ -170,9 +169,9 @@ void readTEX1(BMDOutputContext& ctx) {
     data.mMipmapLevel = tex.mMipmapLevel;
 
     inf.absolute_file_offset = g.start + ofsHeaders + i * 32 + tex.ofsTex;
-    inf.byte_size =
-        GetTexBufferSize(tex.mWidth, tex.mHeight, static_cast<u32>(tex.mFormat),
-                         true, tex.mMipmapLevel);
+    inf.byte_size = librii::gx::computeImageSize(tex.mWidth, tex.mHeight,
+                                                 static_cast<u32>(tex.mFormat),
+                                                 tex.mMipmapLevel);
   }
 
   // Deduplicate and read.
