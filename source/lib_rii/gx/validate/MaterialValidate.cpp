@@ -74,6 +74,8 @@ void expandSharedTexGens(LowLevelGxMaterial& material) {
 
   for (auto& stage : material.shader.mStages) {
     const auto coord = stage.texCoord;
+    if (coord >= old_to_new.size())
+      continue;
     stage.texCoord = old_to_new[coord];
 
     // One use: nothing to do
