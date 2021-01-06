@@ -9,7 +9,6 @@
 namespace riistudio::lib3d {
 
 struct Texture : public virtual kpi::IObject {
-  virtual ~Texture() = default;
 
   virtual std::string getName() const { return "Untitled Texture"; }
   virtual void setName(const std::string& name) = 0;
@@ -69,7 +68,7 @@ struct Texture : public virtual kpi::IObject {
 
   struct IObserver {
     virtual ~IObserver() = default;
-    // TODO: Detach
+    virtual void detach(const Texture* tex) {}
     virtual void update(const Texture* tex) {}
   };
 
@@ -83,6 +82,11 @@ struct Texture : public virtual kpi::IObject {
     notifyObservers();
   }
   mutable std::vector<IObserver*> observers;
+
+  virtual ~Texture() {
+    for (auto* it : observers)
+      it->detach(this);
+  }
 };
 
 } // namespace riistudio::lib3d

@@ -241,6 +241,13 @@ struct ImageSurface final : public riistudio::lib3d::Texture::IObserver,
       lastTex = nullptr;
   }
 
+  void detach(const riistudio::lib3d::Texture* tex) override {
+    if (tex == attached) {
+      attached = nullptr;
+      lastTex = nullptr;
+    }
+  }
+
   ~ImageSurface() {
     if (attached != nullptr)
       attached->observers.erase(
