@@ -113,6 +113,8 @@ void readTEX1(BMDOutputContext& ctx) {
     Texture data;
     u32 absolute_file_offset;
     u32 byte_size;
+
+	RawTexture() { data.mData.resize(0); }
   };
 
   std::vector<RawTexture> texRaw;
