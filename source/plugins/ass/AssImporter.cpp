@@ -257,6 +257,8 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
     const auto clr = j >= pMesh->GetNumColorChannels()
                          ? librii::gx::Color{0xff, 0xff, 0xff, 0xff}
                          : getClr(pMesh->mColors[j][v]);
+    if (clr.a != 0xFF)
+      poly.is_xlu_import = true;
     librii::gx::ColorF32 fclr(clr);
     auto tclr =
         glm::vec4(fclr.r, fclr.g, fclr.b, fclr.a) * glm::vec4(tint, 1.0f);
@@ -767,6 +769,43 @@ void AssImporter::ImportAss(
   for (int i = 0; i < out_model->getMeshes().size(); ++i) {
     auto& mesh = out_model->getMeshes()[i];
     mesh.setId(i);
+  }
+
+  // Vertex alpha default
+  // TODO: Material may be used by different meshes that still satisfy the
+  // requirements.
+  std::vector<u8> material_uses(out_model->getMaterials().size());
+  std::vector<u8> material_meshes(out_model->getMaterials().size());
+  for (auto& bone : out_model->getBones()) {
+    for (int i = 0; i < bone.getNumDisplays(); ++i) {
+      const auto& d = bone.getDisplay(i);
+      if (material_uses[d.matId] == 0)
+        material_meshes[d.matId] = d.polyId;
+      ++material_uses[d.matId];
+    }
+  }
+
+  for (int i = 0; i < out_model->getMaterials().size(); ++i) {
+    if (material_uses[i] > 1)
+      continue;
+    auto& mat = out_model->getMaterials()[i];
+    auto& mesh = out_model->getMeshes()[material_meshes[i]];
+
+    if (mesh.is_xlu_import) {
+      mat.getMaterialData().zMode = gx::ZMode{
+          .compare = true, .function = gx::Comparison::LEQUAL, .update = false};
+      mat.getMaterialData().blendMode = {.type = gx::BlendModeType::blend,
+                                         .source = gx::BlendModeFactor::src_a,
+                                         .dest = gx::BlendModeFactor::inv_src_a,
+                                         .logic = gx::LogicOp::_copy};
+      mat.getMaterialData().alphaCompare = {.compLeft = gx::Comparison::ALWAYS,
+                                            .refLeft = 0,
+                                            .op = gx::AlphaOp::_and,
+                                            .compRight = gx::Comparison::ALWAYS,
+                                            .refRight = 0};
+      mat.setXluPass(true);
+      mat.getMaterialData().earlyZComparison = true;
+    }
   }
 }
 

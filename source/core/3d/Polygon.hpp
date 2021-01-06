@@ -58,6 +58,8 @@ struct Polygon : public virtual kpi::IObject {
   virtual void update() {}
 
   virtual AABB getBounds() const = 0;
+
+  bool is_xlu_import = false;
 };
 
 } // namespace riistudio::lib3d
