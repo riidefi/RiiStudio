@@ -9,9 +9,9 @@
 #include <core/kpi/PropertyView.hpp>
 #include <core/util/gui.hpp>
 
+#include <lib_rii/image/TextureExport.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
-#include <plugins/gc/Util/TextureExport.hpp>
 
 #include "ResizeAction.hpp"
 
@@ -35,7 +35,7 @@ static const std::vector<std::string> StdImageFilters = {
 void exportImage(const Texture& tex, u32 export_lod) {
   std::string path =
       tex.getName() + " Mip Level " + std::to_string(export_lod) + ".png";
-  libcube::STBImage imgType = libcube::STBImage::PNG;
+  librii::STBImage imgType = librii::STBImage::PNG;
 
 #ifdef RII_PLATFORM_WINDOWS
   auto results = pfd::save_file("Export image", "", StdImageFilters);
@@ -43,13 +43,13 @@ void exportImage(const Texture& tex, u32 export_lod) {
     return;
   path = results.result();
   if (path.ends_with(".png")) {
-    imgType = libcube::STBImage::PNG;
+    imgType = librii::STBImage::PNG;
   } else if (path.ends_with(".bmp")) {
-    imgType = libcube::STBImage::BMP;
+    imgType = librii::STBImage::BMP;
   } else if (path.ends_with(".tga")) {
-    imgType = libcube::STBImage::TGA;
+    imgType = librii::STBImage::TGA;
   } else if (path.ends_with(".jpg")) {
-    imgType = libcube::STBImage::JPG;
+    imgType = librii::STBImage::JPG;
   }
 #endif
 
@@ -60,9 +60,9 @@ void exportImage(const Texture& tex, u32 export_lod) {
   for (u32 i = 0; i < export_lod; ++i)
     offset += (tex.getWidth() >> i) * (tex.getHeight() >> i) * 4;
 
-  libcube::writeImageStbRGBA(
-      path.c_str(), imgType, tex.getWidth() >> export_lod,
-      tex.getHeight() >> export_lod, data.data() + offset);
+  librii::writeImageStbRGBA(path.c_str(), imgType, tex.getWidth() >> export_lod,
+                            tex.getHeight() >> export_lod,
+                            data.data() + offset);
 }
 
 void importImage(Texture& tex, u32 import_lod) {

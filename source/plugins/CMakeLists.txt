@@ -60,8 +60,6 @@ add_library(plugins
 	"gc/Util/DisplayList.hpp"
 	"gc/Util/glm_serialization.hpp"
 	"gc/Util/TextureDimensions.hpp"
-	"gc/Util/TextureExport.cpp"
-	"gc/Util/TextureExport.hpp"
 	"j3d/DrawMatrix.hpp"
 	"j3d/io/BMD.cpp"
 	"j3d/io/OutputCtx.hpp"

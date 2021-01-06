@@ -1,11 +1,11 @@
-#include <plugins/gc/Util/TextureExport.hpp>
+#include "TextureExport.hpp"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <vendor/stb_image_write.h>
 
 #include <plate/Platform.hpp>
 
-namespace libcube {
+namespace librii {
 
 void writeImageStb(const char* filename, STBImage type, int x, int y,
                    int channel_component_count, const void* data) {
@@ -40,4 +40,4 @@ void writeImageStb(const char* filename, STBImage type, int x, int y,
   }
 }
 
-} // namespace libcube
+} // namespace librii

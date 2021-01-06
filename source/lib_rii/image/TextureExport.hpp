@@ -1,6 +1,6 @@
 #pragma once
 
-namespace libcube {
+namespace librii {
 
 enum class STBImage {
   PNG,
