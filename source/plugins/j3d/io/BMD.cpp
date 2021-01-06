@@ -11,6 +11,8 @@
 
 #include "Sections.hpp"
 
+#include <lib_rii/gx/validate/MaterialValidate.hpp>
+
 namespace riistudio::j3d {
 
 using namespace libcube;
@@ -316,6 +318,12 @@ public:
           tg.setMatrixIndex(i);
         }
       }
+
+      if (mat.info.nTexGen != mat.texGens.size()) {
+        printf("Invalid nTexGen!\n");
+      }
+      librii::gx::expandSharedTexGens(mat);
+      mat.info.nTexGen = mat.texGens.size();
     }
 
     // Read TEX1
