@@ -1,6 +1,6 @@
 #include "DLPixShader.hpp"
 
-namespace libcube::gpu {
+namespace librii::gpu {
 
 QDisplayListShaderHandler::QDisplayListShaderHandler(gx::Shader& shader,
                                                      int numStages)
@@ -241,7 +241,7 @@ void QDisplayListShaderHandler::onStreamEnd() {
 }
 
 QDisplayListMaterialHandler::QDisplayListMaterialHandler(
-    libcube::GCMaterialData& mat)
+    gx::LowLevelGxMaterial& mat)
     : mMat(mat) {}
 QDisplayListMaterialHandler::~QDisplayListMaterialHandler() {}
 enum RegType { TEV_COLOR_REG = 0, TEV_KONSTANT_REG = 1 };
@@ -388,4 +388,4 @@ void QDisplayListVertexSetupHandler::onCommandCP(const QCPCommand& token) {
 }
 void QDisplayListVertexSetupHandler::onStreamEnd() {}
 
-} // namespace libcube::gpu
+} // namespace librii::gpu

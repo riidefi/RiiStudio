@@ -32,14 +32,8 @@ add_library(plugins
 	"gc/Export/Scene.hpp"
 	"gc/Export/Texture.hpp"
 	"gc/Export/VertexDescriptor.hpp"
-	"gc/GPU/DLInterpreter.cpp"
-	"gc/GPU/DLInterpreter.hpp"
-	"gc/GPU/DLPixShader.cpp"
-	"gc/GPU/DLPixShader.hpp"
-	"gc/GPU/GPUAddressSpace.hpp"
-	"gc/GPU/GPUCommand.hpp"
-	"gc/GPU/GPUMaterial.cpp"
-	"gc/GPU/GPUMaterial.hpp"
+  
+
 	"gc/GX/Material.cpp"
 	"gc/GX/Shader/GXMaterial.cpp"
 	"gc/GX/Shader/GXMaterial.hpp"
@@ -102,7 +96,6 @@ add_library(plugins
 	"mk/KMP/MapInstaller.cpp"
 	"mk/KMP/Node.h"
 	"mk/KMP/io/KMP.hpp"
-	"gc/GPU/DLBuilder.hpp"
 
 	"arc/Arc.hpp"
 	"arc/Arc.cpp"

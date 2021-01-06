@@ -3,12 +3,10 @@
 #include "DLInterpreter.hpp"
 #include "GPUMaterial.hpp"
 #include <array>
-#include <plugins/gc/Export/IndexedPolygon.hpp>
-#include <plugins/gc/Export/Material.hpp>
 #include <lib_rii/gx.h>
 #include <vector>
 
-namespace libcube::gpu {
+namespace librii::gpu {
 
 struct GPUShader {
   template <typename T> inline void setReg(T& reg, const QBPCommand& cmd) {
@@ -80,14 +78,14 @@ struct GPUMaterial {
 
 class QDisplayListMaterialHandler : public QDisplayListHandler {
 public:
-  QDisplayListMaterialHandler(GCMaterialData& mat);
+  QDisplayListMaterialHandler(gx::LowLevelGxMaterial& mat);
   ~QDisplayListMaterialHandler();
 
   void onCommandBP(const QBPCommand& token) override;
   void onCommandXF(const QXFCommand& token) override;
   void onStreamEnd() override;
 
-  GCMaterialData& mMat;
+  gx::LowLevelGxMaterial& mMat;
   GPUMaterial mGpuMat;
 };
 
@@ -100,4 +98,4 @@ public:
   GPUMesh mGpuMesh;
 };
 
-} // namespace libcube::gpu
+} // namespace librii::gpu

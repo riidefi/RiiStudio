@@ -1,11 +1,11 @@
 #include "../Sections.hpp"
 #include <map>
-#include <plugins/gc/GPU/DLBuilder.hpp>
+#include <lib_rii/gpu/DLBuilder.hpp>
 #include <string.h>
 
 namespace riistudio::j3d {
 
-using DLBuilder = libcube::gx::DLBuilder;
+using DLBuilder = librii::gpu::DLBuilder;
 
 template <typename T> static void writeAt(T& stream, u32 pos, s32 val) {
   auto back = stream.tell();

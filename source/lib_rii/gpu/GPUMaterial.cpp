@@ -3,7 +3,7 @@
 
 #include "GPUMaterial.hpp"
 
-namespace libcube::gpu {
+namespace librii::gpu {
 
 IND_MTX::operator glm::mat4() {
   const f32 s = powf(
@@ -157,4 +157,4 @@ void LitChannel::from(const gx::ChannelControl& ctrl) {
   attnEnable = ctrl.attenuationFn != gx::AttenuationFunction::None;
   attnSelect = ctrl.attenuationFn != librii::gx::AttenuationFunction::Specular;
 }
-} // namespace libcube::gpu
+} // namespace librii::gpu

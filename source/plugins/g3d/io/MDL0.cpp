@@ -3,11 +3,11 @@
 #include <plugins/g3d/util/NameTable.hpp>
 
 #include "Common.hpp"
-#include <plugins/g3d/util/Dictionary.hpp>
-#include <plugins/gc/GPU/DLBuilder.hpp>
-#include <plugins/gc/GPU/DLPixShader.hpp>
-#include <plugins/gc/GPU/GPUMaterial.hpp>
+#include <lib_rii/gpu/DLBuilder.hpp>
+#include <lib_rii/gpu/DLPixShader.hpp>
+#include <lib_rii/gpu/GPUMaterial.hpp>
 #include <lib_rii/gx.h>
+#include <plugins/g3d/util/Dictionary.hpp>
 
 namespace riistudio::g3d {
 
@@ -100,7 +100,7 @@ void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
   // TODO: Recompute bounds
   for (auto& entry : out.mEntries) {
     entry = librii::gx::readComponents<T>(reader, out.mQuantize.mType,
-                                           nComponents, out.mQuantize.divisor);
+                                          nComponents, out.mQuantize.divisor);
   }
 }
 
@@ -149,8 +149,8 @@ void writeGenericBuffer(
       librii::gx::computeComponentCount(kind, buf.mQuantize.mComp);
 
   for (auto& entry : buf.mEntries) {
-    librii::gx::writeComponents(writer, entry, buf.mQuantize.mType,
-                                 nComponents, buf.mQuantize.divisor);
+    librii::gx::writeComponents(writer, entry, buf.mQuantize.mType, nComponents,
+                                buf.mQuantize.divisor);
   }
   writer.alignTo(32);
 } // namespace riistudio::g3d
@@ -177,7 +177,7 @@ static void writeMaterialDisplayList(const libcube::GCMaterialData& mat,
                                      oishii::Writer& writer) {
   MAYBE_UNUSED const auto dl_start = writer.tell();
   printf("Mat dl start: %x\n", (unsigned)writer.tell());
-  libcube::gx::DLBuilder dl(writer);
+  librii::gpu::DLBuilder dl(writer);
   {
     dl.setAlphaCompare(mat.alphaCompare);
     dl.setZMode(mat.zMode);
@@ -729,7 +729,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
           mat.chanData[i].matColor >> writer;
           mat.chanData[i].ambColor >> writer;
 
-          libcube::gpu::LitChannel clr, alpha;
+          librii::gpu::LitChannel clr, alpha;
 
           clr.from(mat.colorChanControls[i]);
           alpha.from(mat.colorChanControls[i + 1]);
@@ -809,7 +809,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
     // DL
     assert(writer.tell() - shader_start == 32);
-    libcube::gx::DLBuilder dl(writer);
+    librii::gpu::DLBuilder dl(writer);
     for (int i = 0; i < 4; ++i)
       dl.setTevSwapModeTable(i, shader.mSwapTable[i]);
     dl.setIndTexOrder(
@@ -908,7 +908,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       "Meshes", mdl.getMeshes(),
       [&](const g3d::Polygon& mesh, std::size_t mesh_start) {
         const auto build_dlcache = [&]() {
-          libcube::gx::DLBuilder dl(writer);
+          librii::gpu::DLBuilder dl(writer);
           writer.skip(5 * 2); // runtime
           dl.setVtxDescv(mesh.mVertexDescriptor);
           writer.write<u8>(0);
@@ -916,12 +916,12 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         };
         const auto build_dlsetup = [&]() {
           build_dlcache();
-          libcube::gx::DLBuilder dl(writer);
+          librii::gpu::DLBuilder dl(writer);
 
           // Build desc
           // ----
-          std::vector<std::pair<librii::gx::VertexAttribute,
-                                librii::gx::VQuantization>>
+          std::vector<
+              std::pair<librii::gx::VertexAttribute, librii::gx::VQuantization>>
               desc;
           for (auto [attr, type] : mesh.getVcd().mAttributes) {
             if (type == librii::gx::VertexAttributeType::None)
@@ -1008,7 +1008,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
         assert_since(12);
         const auto [c_a, c_b, c_c] =
-            libcube::gx::DLBuilder::calcVtxDescv(mesh.mVertexDescriptor);
+            librii::gpu::DLBuilder::calcVtxDescv(mesh.mVertexDescriptor);
         writer.write<u32>(c_a);
         writer.write<u32>(c_b);
         writer.write<u32>(c_c);
@@ -1365,7 +1365,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       ambClr.a = reader.read<u8>();
 
       mat.chanData.push_back({matClr, ambClr});
-      libcube::gpu::LitChannel tmp;
+      librii::gpu::LitChannel tmp;
       // Color
       tmp.hex = reader.read<u32>();
       mat.colorChanControls.push_back(tmp);
@@ -1395,9 +1395,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     reader.seekSet(start + ofsTev + 32);
     {
 
-      libcube::gpu::QDisplayListShaderHandler shaderHandler(mat.shader,
+      librii::gpu::QDisplayListShaderHandler shaderHandler(mat.shader,
                                                             mat.info.nTevStage);
-      libcube::gpu::RunDisplayList(reader, shaderHandler,
+      librii::gpu::RunDisplayList(reader, shaderHandler,
                                    shaderDlSizes[mat.info.nTevStage]);
     }
 
@@ -1433,17 +1433,17 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     // Display Lists
     reader.seekSet(start + ofsDisplayLists);
     {
-      libcube::gpu::QDisplayListMaterialHandler matHandler(mat);
+      librii::gpu::QDisplayListMaterialHandler matHandler(mat);
 
       // Pixel data
-      libcube::gpu::RunDisplayList(reader, matHandler, 32);
+      librii::gpu::RunDisplayList(reader, matHandler, 32);
       mat.alphaCompare = matHandler.mGpuMat.mPixel.mAlphaCompare;
       mat.zMode = matHandler.mGpuMat.mPixel.mZMode;
       mat.blendMode = matHandler.mGpuMat.mPixel.mBlendMode;
       // TODO: Dst alpha
 
       // Uniform data
-      libcube::gpu::RunDisplayList(reader, matHandler, 128);
+      librii::gpu::RunDisplayList(reader, matHandler, 128);
       mat.tevColors[0] = {0xff, 0xff, 0xff, 0xff};
       for (int i = 0; i < 3; ++i) {
         mat.tevColors[i + 1] = matHandler.mGpuMat.mShaderColor.Registers[i + 1];
@@ -1453,7 +1453,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       }
 
       // Indirect data
-      libcube::gpu::RunDisplayList(reader, matHandler, 64);
+      librii::gpu::RunDisplayList(reader, matHandler, 64);
       for (u8 i = 0; i < mat.info.nIndStage; ++i) {
         const auto& curScale =
             matHandler.mGpuMat.mIndirect.mIndTexScales[i > 1 ? i - 2 : i];
@@ -1475,7 +1475,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
           128, 128, // 6, 7
           160       // 8
       };
-      libcube::gpu::RunDisplayList(reader, matHandler,
+      librii::gpu::RunDisplayList(reader, matHandler,
                                    texGenDlSizes[mat.info.nTexGen]);
       for (u8 i = 0; i < mat.info.nTexGen; ++i) {
         mat.texGens.push_back(matHandler.mGpuMat.mTexture[i]);
@@ -1535,8 +1535,8 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     reader.read<s32>();                  // matrix usage
 
     primitiveSetup.seekTo(reader);
-    libcube::gpu::QDisplayListVertexSetupHandler vcdHandler;
-    libcube::gpu::RunDisplayList(reader, vcdHandler, primitiveSetup.buf_size);
+    librii::gpu::QDisplayListVertexSetupHandler vcdHandler;
+    librii::gpu::RunDisplayList(reader, vcdHandler, primitiveSetup.buf_size);
 
     for (u32 i = 0; i < (u32)librii::gx::VertexAttribute::Max; ++i) {
       if (poly.mVertexDescriptor.mBitfield & (1 << i)) {
@@ -1555,7 +1555,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       }
     }
     struct QDisplayListMeshHandler final
-        : public libcube::gpu::QDisplayListHandler {
+        : public librii::gpu::QDisplayListHandler {
       void onCommandDraw(oishii::BinaryReader& reader,
                          librii::gx::PrimitiveType type, u16 nverts) override {
         if (mErr)
@@ -1594,7 +1594,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       Polygon& mPoly;
     } meshHandler(poly);
     primitiveData.seekTo(reader);
-    libcube::gpu::RunDisplayList(reader, meshHandler, primitiveData.buf_size);
+    librii::gpu::RunDisplayList(reader, meshHandler, primitiveData.buf_size);
     if (meshHandler.mErr) {
       transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
                            "Mesh unsupported.");

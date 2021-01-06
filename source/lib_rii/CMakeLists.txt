@@ -31,4 +31,14 @@ add_library(lib_rii
   "image/ImagePlatform.hpp"
   "image/TextureExport.cpp"
   "image/TextureExport.hpp"
+
+  "gpu/DLBuilder.hpp"
+  "gpu/DLInterpreter.cpp"
+  "gpu/DLInterpreter.hpp"
+  "gpu/DLPixShader.cpp"
+  "gpu/DLPixShader.hpp"
+  "gpu/GPUAddressSpace.hpp"
+  "gpu/GPUCommand.hpp"
+  "gpu/GPUMaterial.cpp"
+  "gpu/GPUMaterial.hpp"
 )

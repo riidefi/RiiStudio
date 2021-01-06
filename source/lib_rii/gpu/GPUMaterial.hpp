@@ -9,7 +9,7 @@
 #include <lib_rii/gx.h>
 #include <tuple> // std::pair
 
-namespace libcube::gpu {
+namespace librii::gpu {
 
 union AlphaTest {
   enum CompareMode : u32 {
@@ -709,4 +709,4 @@ struct GPUMesh {
 };
 #pragma pack()
 
-} // namespace libcube::gpu
+} // namespace librii::gpu

@@ -1,6 +1,6 @@
 #include "DLInterpreter.hpp"
 
-namespace libcube::gpu {
+namespace librii::gpu {
 
 void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler,
                     u32 dlSize) {
@@ -60,4 +60,4 @@ void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler,
   handler.onStreamEnd();
 }
 
-} // namespace libcube::gpu
+} // namespace librii::gpu

@@ -1,15 +1,12 @@
 #pragma once
 
-#include <core/common.h>
-
 #include "GPUAddressSpace.hpp"
 #include "GPUCommand.hpp"
-
+#include <core/common.h>
+#include <lib_rii/gx.h>
 #include <oishii/reader/binary_reader.hxx>
 
-#include <lib_rii/gx.h>
-
-namespace libcube::gpu {
+namespace librii::gpu {
 
 struct QBPCommand {
   BPAddress reg;
@@ -43,4 +40,4 @@ public:
 void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler,
                     u32 dlSize);
 
-} // namespace libcube::gpu
+} // namespace librii::gpu

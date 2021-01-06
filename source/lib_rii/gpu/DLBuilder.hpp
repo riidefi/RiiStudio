@@ -3,12 +3,12 @@
 #include <array>
 #include <core/common.h>
 #include <functional>
+#include <lib_rii/gpu/GPUAddressSpace.hpp>
+#include <lib_rii/gpu/GPUMaterial.hpp>
 #include <oishii/writer/binary_writer.hxx>
-#include <plugins/gc/GPU/GPUAddressSpace.hpp>
-#include <plugins/gc/GPU/GPUMaterial.hpp>
 #include <span>
 
-namespace libcube::gx {
+namespace librii::gpu {
 
 class DLBuilder {
 public:
@@ -53,9 +53,9 @@ public:
 
       std::array<u8, 6> filter_lut{0, 4, 1, 5, 2, 6};
 
-      libcube::gpu::TexMode0 mode0;
+      librii::gpu::TexMode0 mode0;
       mode0.hex = 0;
-      libcube::gpu::TexMode1 mode1;
+      librii::gpu::TexMode1 mode1;
       mode1.hex = 0;
 
       mode0.wrap_s = static_cast<u32>(wrap_s);
@@ -200,7 +200,7 @@ public:
                          librii::gx::TevKAlphaSel ka1) {
     assert(even_id <= 16 && even_id % 2 == 0 && "Invalid stage id");
     bpMask(0xfffff0);
-    libcube::gpu::TevKSel sel;
+    librii::gpu::TevKSel sel;
     sel.hex = 0;
     sel.kcsel0 = static_cast<u32>(kc0);
     sel.kasel0 = static_cast<u32>(ka0);
@@ -229,7 +229,7 @@ public:
                                        ColorSelChanLow::color0a0,
                                        ColorSelChanLow::color0a0,
                                        ColorSelChanLow::null};
-    libcube::gpu::RAS1_TREF tref;
+    librii::gpu::RAS1_TREF tref;
     tref.hex = 0;
     tref.texmap0 = tex0;
     tref.texcoord0 = gen0;
@@ -257,7 +257,7 @@ public:
   // 0 is tevprev
   void setTevColor(u8 reg, librii::gx::ColorS10 color,
                    u32 type = 0 /* color reg*/) {
-    libcube::gpu::GPUTevReg tevreg;
+    librii::gpu::GPUTevReg tevreg;
     tevreg.hex = 0;
     tevreg.red = color.r;
     tevreg.alpha = color.a;
@@ -290,7 +290,7 @@ public:
                        librii::gx::TevColorArg d, librii::gx::TevColorOp op,
                        librii::gx::TevBias bias, librii::gx::TevScale scale,
                        bool clamp, librii::gx::TevReg dst) {
-    libcube::gpu::ColorCombiner color_env;
+    librii::gpu::ColorCombiner color_env;
     color_env.hex = 0;
 
     color_env.d = static_cast<u32>(d);
@@ -325,7 +325,7 @@ public:
                          librii::gx::TevBias bias, librii::gx::TevScale scale,
                          bool clamp, librii::gx::TevReg dst, u8 ras_swap,
                          u8 tex_swap) {
-    libcube::gpu::AlphaCombiner alpha_env;
+    librii::gpu::AlphaCombiner alpha_env;
     alpha_env.hex = 0;
 
     alpha_env.rswap = ras_swap;
@@ -374,7 +374,7 @@ public:
   }
   void setTevSwapModeTable(u8 id, librii::gx::SwapTableEntry swap) {
     assert(id <= 3 && "Invalid swap table index");
-    libcube::gpu::TevKSel ksel;
+    librii::gpu::TevKSel ksel;
     ksel.hex = 0;
     ksel.swaprb = static_cast<u32>(swap.r);
     ksel.swapga = static_cast<u32>(swap.g);
@@ -442,7 +442,7 @@ public:
       return static_cast<s32>(x * (1 << 10)) & 0x7ff;
     };
 
-    libcube::gpu::IND_MTX gpu_mtx;
+    librii::gpu::IND_MTX gpu_mtx;
     gpu_mtx.col0.ma = elem(m[0][0]);
     gpu_mtx.col0.mb = elem(m[0][1]);
     gpu_mtx.col0.s0 = mantissa & 0x03;
@@ -463,7 +463,7 @@ public:
                            librii::gx::IndirectTextureScalePair s0,
                            librii::gx::IndirectTextureScalePair s1) {
     assert(evenIndStage % 2 == 0 && evenIndStage <= 2 && "Invalid stage index");
-    libcube::gpu::ras1_ss ras1ss;
+    librii::gpu::ras1_ss ras1ss;
     ras1ss.hex = 0;
     ras1ss.ss0 = static_cast<u32>(s0.U);
     ras1ss.ts0 = static_cast<u32>(s0.V);
@@ -473,7 +473,7 @@ public:
   }
   void setIndTexOrder(u8 coord0, u8 map0, u8 coord1, u8 map1, u8 coord2,
                       u8 map2, u8 coord3, u8 map3) {
-    libcube::gpu::RAS1_IREF iref;
+    librii::gpu::RAS1_IREF iref;
     iref.bi0 = map0;
     iref.bc0 = coord0;
     iref.bi1 = map1;
@@ -487,18 +487,17 @@ public:
   void setFog() {}
   void setFogRangeAdj() {}
   void setAlphaCompare(librii::gx::AlphaComparison in) {
-    libcube::gpu::AlphaTest test;
+    librii::gpu::AlphaTest test;
     test.ref0 = in.refLeft;
     test.ref1 = in.refRight;
-    test.comp0 = static_cast<libcube::gpu::AlphaTest::CompareMode>(in.compLeft);
-    test.comp1 =
-        static_cast<libcube::gpu::AlphaTest::CompareMode>(in.compRight);
-    test.logic = static_cast<libcube::gpu::AlphaTest::Op>(in.op);
+    test.comp0 = static_cast<librii::gpu::AlphaTest::CompareMode>(in.compLeft);
+    test.comp1 = static_cast<librii::gpu::AlphaTest::CompareMode>(in.compRight);
+    test.logic = static_cast<librii::gpu::AlphaTest::Op>(in.op);
     writeBp(BPAddress::ALPHACOMPARE, test.hex);
   }
   void setBlendMode(librii::gx::BlendMode in) {
     bpMask(0xffe3);
-    libcube::gpu::CMODE0 cmode0;
+    librii::gpu::CMODE0 cmode0;
 
     cmode0.blendenable =
         static_cast<u32>(in.type == librii::gx::BlendModeType::blend ||
@@ -510,23 +509,22 @@ public:
     cmode0.colorupdate = 0;
     cmode0.alphaupdate = 0;
     // ---
-    cmode0.dstfactor = static_cast<libcube::gpu::CMODE0::BlendFactor>(in.dest);
-    cmode0.srcfactor =
-        static_cast<libcube::gpu::CMODE0::BlendFactor>(in.source);
+    cmode0.dstfactor = static_cast<librii::gpu::CMODE0::BlendFactor>(in.dest);
+    cmode0.srcfactor = static_cast<librii::gpu::CMODE0::BlendFactor>(in.source);
     cmode0.subtract = in.type == librii::gx::BlendModeType::subtract;
-    cmode0.logicmode = static_cast<libcube::gpu::CMODE0::LogicOp>(in.logic);
+    cmode0.logicmode = static_cast<librii::gpu::CMODE0::LogicOp>(in.logic);
 
     writeBp(BPAddress::BLENDMODE, cmode0.hex);
   }
   void setZMode(librii::gx::ZMode in) {
-    libcube::gpu::ZMode zmode;
+    librii::gpu::ZMode zmode;
     zmode.testenable = in.compare;
-    zmode.func = static_cast<libcube::gpu::ZMode::CompareMode>(in.function);
+    zmode.func = static_cast<librii::gpu::ZMode::CompareMode>(in.function);
     zmode.updateenable = in.update;
     writeBp(BPAddress::ZMODE, zmode.hex);
   }
   void setDstAlpha(bool enable, u8 alpha) {
-    libcube::gpu::CMODE1 cmode1;
+    librii::gpu::CMODE1 cmode1;
     cmode1.alpha = alpha;
     cmode1.enable = enable;
     writeBp(BPAddress::CONSTANTALPHA, cmode1.hex);
@@ -852,4 +850,4 @@ private:
   oishii::Writer& mWriter;
 };
 
-} // namespace libcube::gx
+} // namespace librii::gpu
