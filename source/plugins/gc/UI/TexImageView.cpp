@@ -242,18 +242,20 @@ struct ImageSurface final : public riistudio::lib3d::Texture::IObserver,
   }
 
   void detach(const riistudio::lib3d::Texture* tex) override {
-    if (tex == attached) {
-      attached = nullptr;
-      lastTex = nullptr;
-    }
+    attached = nullptr;
+    lastTex = nullptr;
   }
 
-  ~ImageSurface() {
-    if (attached != nullptr)
+  void unlisten() {
+    if (attached != nullptr && !attached->observers.empty())
       attached->observers.erase(
           std::remove_if(attached->observers.begin(), attached->observers.end(),
                          [&](auto* x) { return x == this; }));
+    attached = nullptr;
+    lastTex = nullptr;
   }
+
+  ~ImageSurface() { unlisten(); }
 };
 
 void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
@@ -316,8 +318,8 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
     const bool keep_alive = tex.reformat_draw(data, &changed);
 
     if (changed) {
+      tex.unlisten();
       delegate.commit("Reformat Image");
-      tex.lastTex = nullptr;
     }
 
     if (!keep_alive)
@@ -331,8 +333,8 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
     const bool keep_alive = tex.resize_draw(data, &changed);
 
     if (changed) {
+      tex.unlisten();
       delegate.commit("Resize Image");
-      tex.lastTex = nullptr;
     }
 
     if (!keep_alive)
@@ -342,11 +344,8 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
   }
 
   if (tex.lastTex != &data) {
+    tex.unlisten();
     tex.lastTex = &data;
-    if (tex.attached != nullptr)
-      tex.attached->observers.erase(std::remove_if(
-          tex.attached->observers.begin(), tex.attached->observers.end(),
-          [&](auto* x) { return x == &tex; }));
     tex.attached = &data;
     data.observers.push_back(&tex);
     tex.mImg.setFromImage(data);
