@@ -6,7 +6,6 @@
 #include <vendor/avir/avir.h>
 #include <vendor/avir/lancir.h>
 #include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
-#include <vendor/mp/Metaphrasis.h>
 
 namespace librii::image {
 
@@ -35,51 +34,231 @@ void decode(u8* dst, const u8* src, int width, int height,
                            static_cast<TLUTFormat>(tlutformat));
 }
 
-typedef std::unique_ptr<uint32_t[]> codec_t(uint32_t*, uint16_t, uint16_t);
-codec_t* codecs[8]{convertBufferToI4,     convertBufferToI8,
-                   convertBufferToIA4,    convertBufferToIA8,
-                   convertBufferToRGB565, convertBufferToRGB5A3,
-                   convertBufferToRGBA8};
-static std::unique_ptr<uint32_t[]> invokeCodec(uint32_t* rgbaBuf,
-                                               uint16_t width, uint16_t height,
-                                               gx::TextureFormat texformat) {
-  int id = static_cast<int>(texformat);
-  assert(id <= 8);
-  if (static_cast<int>(texformat) <= 8) {
-    return codecs[id](rgbaBuf, width, height);
-  } else {
-    return nullptr;
+struct rgba {
+  u8 r;
+  u8 g;
+  u8 b;
+  u8 a;
+};
+
+constexpr u8 luminosity(const rgba& rgba) {
+  return static_cast<float>(rgba.r) * 0.299 +
+         static_cast<float>(rgba.g) * 0.587 +
+         static_cast<float>(rgba.b) * 0.144;
+}
+
+void encodeI4(u8* dst, const u32* src, u32 width, u32 height) {
+  for (int y = 0; y < height; y += 8) {
+    for (int x = 0; x < width; x += 8) {
+      // Encode the 8x8 block
+      // There are 8 rows (4 bits wide) and 4 columns
+
+      for (int row = 0; row < 8; ++row) {
+        for (int column = 0; column < 4; ++column) {
+          struct rgba_x2 {
+            rgba _0;
+            rgba _1;
+          };
+          rgba_x2 rgba = *(rgba_x2*)&src[(y + row) * width + x + column * 2];
+          u32 i0 = luminosity(rgba._0);
+          u32 i1 = luminosity(rgba._1);
+
+          u8 i0i1 = (i0 & 0b11'11'00'00) | ((i1 >> 4) & 0b11'11);
+          dst[column] = i0i1;
+        }
+        dst += 4;
+      }
+    }
   }
 }
+void encodeI8(u8* dst, const u32* src, u32 width, u32 height) {
+  for (int y = 0; y < height; y += 4) {
+    for (int x = 0; x < width; x += 8) {
+      // Encode the 4x8 block
+      // There are 4 rows (8 bits wide) and 4 columns
+      // Same block size as I4
+
+      for (int row = 0; row < 4; ++row) {
+        for (int column = 0; column < 8; ++column) {
+          rgba _rgba = *(rgba*)&src[(y + row) * width + x + column];
+          dst[column] = luminosity(_rgba);
+        }
+        dst += 8;
+      }
+    }
+  }
+}
+void encodeIA4(u8* dst, const u32* src, u32 width, u32 height) {
+  for (int y = 0; y < height; y += 4) {
+    for (int x = 0; x < width; x += 8) {
+      // Encode the 4x8 block
+      // There are 4 rows (8 bits wide) and 4 columns
+      // Same block size as I4
+
+      for (int row = 0; row < 4; ++row) {
+        for (int column = 0; column < 8; ++column) {
+          rgba _rgba = *(rgba*)&src[(y + row) * width + x + column];
+          dst[column] = (luminosity(_rgba) & 0b11'11'00'00) | (_rgba.a >> 4);
+        }
+        dst += 8;
+      }
+    }
+  }
+}
+void encodeIA8(u8* dst, const u32* src, u32 width, u32 height) {
+  for (int y = 0; y < height; y += 4) {
+    for (int x = 0; x < width; x += 4) {
+
+      for (int row = 0; row < 4; ++row) {
+        for (int column = 0; column < 4; ++column) {
+          rgba c = *(rgba*)&src[(y + row) * width + x + column];
+          dst[column * 2] = luminosity(c) << 8;
+          dst[column * 2 + 1] = c.a;
+        }
+        dst += 8;
+      }
+    }
+  }
+}
+
+void encodeRGB565(u8* dst, const u32* src, u32 width, u32 height) {
+  for (int y = 0; y < height; y += 4) {
+    for (int x = 0; x < width; x += 4) {
+
+      for (int row = 0; row < 4; ++row) {
+        for (int column = 0; column < 4; ++column) {
+          rgba c = *(rgba*)&src[(y + row) * width + x + column];
+          u16 packed =
+              ((c.r & 0xf8) << 8) | ((c.g & 0xfc) << 3) | ((c.b & 0xf8) >> 3);
+          dst[column * 2] = packed >> 8;
+          dst[column * 2 + 1] = packed & 0xFF;
+        }
+        dst += 8;
+      }
+    }
+  }
+}
+
+void encodeRGB5A3(u8* dst, const u32* src, u32 width, u32 height) {
+  for (int y = 0; y < height; y += 4) {
+    for (int x = 0; x < width; x += 4) {
+
+      for (int row = 0; row < 4; ++row) {
+        for (int column = 0; column < 4; ++column) {
+          rgba c = *(rgba*)&src[(y + row) * width + x + column];
+          u16 packed = 0;
+          if (c.a < 0xe0)
+            packed = ((c.a & 0xe0) << 7) | ((c.r & 0xf0) << 4) | (c.g & 0xf0) |
+                     ((c.b & 0xf0) >> 4);
+          else
+            packed = 0x8000 | ((c.r & 0xf8) << 7) | ((c.g & 0xf8) << 2) |
+                     ((c.b & 0xf8) >> 3);
+          dst[column * 2] = packed >> 8;
+          dst[column * 2 + 1] = packed & 0xFF;
+        }
+        dst += 8;
+      }
+    }
+  }
+}
+
+void encodeRGBA8(u8* dst, const u32* src4, u32 width, u32 height) {
+#if 0
+  for (int y = 0; y < height; y += 4) {
+    for (int x = 0; x < width; x += 4) {
+
+      for (int row = 0; row < 2; ++row) {
+        for (int column = 0; column < 4; ++column) {
+          rgba c = *(rgba*)&src[(y + row) * width + x + column];
+          rgba c2 = *(rgba*)&src[(y + row) * width + x + column + 16];
+          dst[column * 4] = c.a;
+          dst[column * 4 + 1] = c2.g;
+          dst[column * 4 + 2] = c2.b;
+          dst[column * 4 + 3] = c.r;
+        }
+        dst += 64;
+      }
+    }
+  }
+#endif
+  // From MP
+  const u8* src = reinterpret_cast<const u8*>(src4);
+  for (uint16_t block = 0; block < height; block += 4) {
+    for (uint16_t i = 0; i < width; i += 4) {
+
+      for (uint32_t c = 0; c < 4; c++) {
+        uint32_t blockWid = (((block + c) * width) + i) << 2;
+
+        *dst++ = src[blockWid + 3]; // ar = 0
+        *dst++ = src[blockWid + 0];
+        *dst++ = src[blockWid + 7]; // ar = 1
+        *dst++ = src[blockWid + 4];
+        *dst++ = src[blockWid + 11]; // ar = 2
+        *dst++ = src[blockWid + 8];
+        *dst++ = src[blockWid + 15]; // ar = 3
+        *dst++ = src[blockWid + 12];
+      }
+      for (uint32_t c = 0; c < 4; c++) {
+        uint32_t blockWid = (((block + c) * width) + i) << 2;
+
+        *dst++ = src[blockWid + 1]; // gb = 0
+        *dst++ = src[blockWid + 2];
+        *dst++ = src[blockWid + 5]; // gb = 1
+        *dst++ = src[blockWid + 6];
+        *dst++ = src[blockWid + 9]; // gb = 2
+        *dst++ = src[blockWid + 10];
+        *dst++ = src[blockWid + 13]; // gb = 3
+        *dst++ = src[blockWid + 14];
+      }
+    }
+  }
+}
+
 // raw 8-bit RGBA -> X
 void encode(u8* dst, const u8* src, int width, int height,
             gx::TextureFormat texformat) {
   if (texformat == gx::TextureFormat::CMPR) {
     EncodeDXT1(dst, src, width, height);
-  } else if (static_cast<int>(texformat) <=
-             static_cast<int>(gx::TextureFormat::RGBA8)) {
-    // TODO: MP does not work on non block dims?
-    const bool blocked = getBlockedDimensions(width, height, texformat) ==
-                         std::make_pair(width, height);
-    assert(blocked);
-    if (!blocked)
-      return;
-
-    // Until we replace this lib...
-    uint32_t* rgbaBuf =
-        const_cast<uint32_t*>(reinterpret_cast<const uint32_t*>(src));
-
-    // TODO: MP allocates for us. We don't want this.
-    auto newBuf = invokeCodec(rgbaBuf, width, height, texformat);
-
-    // Copy the temp buffer..
-    assert(newBuf.get());
-    const auto encoded_size = getEncodedSize(width, height, texformat, 0);
-    memcpy(dst, newBuf.get(), encoded_size);
-  } else {
-    // No palette support
-    assert(false);
+    return;
   }
+
+  if (texformat == gx::TextureFormat::I4) {
+    encodeI4(dst, (const u32*)src, width, height);
+    return;
+  }
+
+  if (texformat == gx::TextureFormat::I8) {
+    encodeI8(dst, (const u32*)src, width, height);
+    return;
+  }
+
+  if (texformat == gx::TextureFormat::IA4) {
+    encodeIA4(dst, (const u32*)src, width, height);
+    return;
+  }
+
+  if (texformat == gx::TextureFormat::IA8) {
+    encodeIA8(dst, (const u32*)src, width, height);
+    return;
+  }
+
+  if (texformat == gx::TextureFormat::RGB565) {
+    encodeRGB565(dst, (const u32*)src, width, height);
+    return;
+  }
+
+  if (texformat == gx::TextureFormat::RGB5A3) {
+    encodeRGB5A3(dst, (const u32*)src, width, height);
+    return;
+  }
+
+  if (texformat == gx::TextureFormat::RGBA8) {
+    encodeRGBA8(dst, (const u32*)src, width, height);
+    return;
+  }
+
+  // No palette support
+  assert(false);
 }
 // Change format, no resizing
 void reencode(u8* dst, const u8* src, int width, int height,

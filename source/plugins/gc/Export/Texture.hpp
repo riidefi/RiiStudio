@@ -5,7 +5,6 @@
 #include <lib_rii/gx/Texture.hpp>
 #include <lib_rii/image/ImagePlatform.hpp>
 #include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
-#include <vendor/mp/Metaphrasis.h>
 
 namespace libcube {
 
