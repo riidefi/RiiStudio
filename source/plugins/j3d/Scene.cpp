@@ -1,6 +1,6 @@
 #include "Scene.hpp"
 
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 
 namespace riistudio::j3d {
 

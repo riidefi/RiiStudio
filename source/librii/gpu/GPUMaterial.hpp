@@ -6,7 +6,7 @@
 #include "GPUCommand.hpp"
 
 #include <glm/glm.hpp>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 #include <tuple> // std::pair
 
 namespace librii::gpu {

@@ -1,6 +1,6 @@
 #include "TextureDecoding.hpp"
 #include "dolemu/TextureDecoder/TextureDecoder.h"
-#include <lib_rii/gx/Texture.hpp>
+#include <librii/gx/Texture.hpp>
 
 namespace TextureDecoding {
 

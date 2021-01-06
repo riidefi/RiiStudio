@@ -5,7 +5,7 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <plugins/gc/Export/IndexedPrimitive.hpp>
 #include <plugins/gc/Export/VertexDescriptor.hpp>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 
 namespace libcube {
 

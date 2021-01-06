@@ -3,7 +3,7 @@
 #include <core/3d/gl.hpp> // for glGenTextures
 #include <imgui/imgui.h>  // for ImGui::Image
 // TODO: Interdependency
-#include <lib_rii/image/ImagePlatform.hpp>
+#include <librii/image/ImagePlatform.hpp>
 
 namespace riistudio {
 

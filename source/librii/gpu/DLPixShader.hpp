@@ -3,7 +3,7 @@
 #include "DLInterpreter.hpp"
 #include "GPUMaterial.hpp"
 #include <array>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 #include <vector>
 
 namespace librii::gpu {

@@ -5,7 +5,7 @@
 #include <optional>
 #include <tuple>
 
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 
 namespace librii::image {
 

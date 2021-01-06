@@ -1,15 +1,15 @@
 #pragma once
 
 #include <core/common.h>
-#include <lib_rii/kmp/data/MapArea.hpp>
-#include <lib_rii/kmp/data/MapCamera.hpp>
-#include <lib_rii/kmp/data/MapCannon.hpp>
-#include <lib_rii/kmp/data/MapGeoObj.hpp>
-#include <lib_rii/kmp/data/MapMissionPoint.hpp>
-#include <lib_rii/kmp/data/MapPath.hpp>
-#include <lib_rii/kmp/data/MapRespawn.hpp>
-#include <lib_rii/kmp/data/MapStage.hpp>
-#include <lib_rii/kmp/data/MapStart.hpp>
+#include <librii/kmp/data/MapArea.hpp>
+#include <librii/kmp/data/MapCamera.hpp>
+#include <librii/kmp/data/MapCannon.hpp>
+#include <librii/kmp/data/MapGeoObj.hpp>
+#include <librii/kmp/data/MapMissionPoint.hpp>
+#include <librii/kmp/data/MapPath.hpp>
+#include <librii/kmp/data/MapRespawn.hpp>
+#include <librii/kmp/data/MapStage.hpp>
+#include <librii/kmp/data/MapStart.hpp>
 #include <llvm/ADT/SmallVector.h>
 
 namespace librii::kmp {

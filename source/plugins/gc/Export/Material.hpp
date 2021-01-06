@@ -5,7 +5,7 @@
 #include <core/common.h>
 #include <core/kpi/Node.hpp>
 #include <core/util/array_vector.hpp>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 
 namespace libcube {
 

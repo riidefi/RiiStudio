@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <core/3d/gl.hpp>
-#include <lib_rii/gl/Compiler.hpp>
+#include <librii/gl/Compiler.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
 #include <plugins/gc/GX/Shader/GXProgram.hpp>

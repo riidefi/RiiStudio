@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/common.h>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 #include <vector>
 
 #include <plugins/gc/Export/Texture.hpp>

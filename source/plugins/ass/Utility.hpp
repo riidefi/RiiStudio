@@ -5,7 +5,7 @@
 #include <assimp/vector2.h>
 #include <assimp/vector3.h>
 #include <glm/glm.hpp>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 #include <string>
 
 namespace riistudio::ass {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 #include <optional>
 #include <string>
 #include <string_view>

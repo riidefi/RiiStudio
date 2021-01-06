@@ -3,7 +3,7 @@
 #include "GPUAddressSpace.hpp"
 #include "GPUCommand.hpp"
 #include <core/common.h>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 #include <oishii/reader/binary_reader.hxx>
 
 namespace librii::gpu {

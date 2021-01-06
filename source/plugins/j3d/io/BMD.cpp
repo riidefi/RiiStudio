@@ -11,7 +11,7 @@
 
 #include "Sections.hpp"
 
-#include <lib_rii/gx/validate/MaterialValidate.hpp>
+#include <librii/gx/validate/MaterialValidate.hpp>
 
 namespace riistudio::j3d {
 

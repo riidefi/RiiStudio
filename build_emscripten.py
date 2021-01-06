@@ -101,7 +101,7 @@ PROJECTS = [
 		"type": "static_lib"
 	},
 	{
-		"name": "lib_rii",
+		"name": "librii",
 		"type": "static_lib"
 	},
 	{
@@ -119,7 +119,7 @@ PROJECTS = [
 			"vendor",
 			"core",
 			"plugins",
-			"lib_rii",
+			"librii",
 			"plate",
 			"oishii"
 		]

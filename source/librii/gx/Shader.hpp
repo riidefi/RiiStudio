@@ -279,9 +279,13 @@ struct Shader {
   };
   std::array<IndOrder, 4> mIndirectOrders;
 
-  // Variable-sized DL
-  // Max 16
+// Variable-sized DL
+// Max 16
+#ifdef DEBUG
+  std::vector<TevStage> mStages;
+#else
   llvm::SmallVector<TevStage, 8> mStages;
+#endif
 
   bool operator==(const Shader&) const = default;
 

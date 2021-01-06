@@ -2,7 +2,7 @@
 
 #include <core/common.h>
 #include <oishii/writer/binary_writer.hxx>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 #include <vector>
 
 namespace riistudio::j3d {

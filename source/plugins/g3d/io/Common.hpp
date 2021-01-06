@@ -2,7 +2,7 @@
 
 #include <core/util/glm_io.hpp>
 #include <functional>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 #include <llvm/ADT/SmallVector.h>
 #include <map>
 #include <oishii/writer/binary_writer.hxx>

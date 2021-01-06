@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <glm/glm.hpp>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 
 #include <plugins/gc/Export/Material.hpp>
 

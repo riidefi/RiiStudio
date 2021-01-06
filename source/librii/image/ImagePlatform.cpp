@@ -1,7 +1,7 @@
 #include "ImagePlatform.hpp"
 
 #include "CmprEncoder.hpp"
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 #include <span>
 #include <vendor/avir/avir.h>
 #include <vendor/avir/lancir.h>

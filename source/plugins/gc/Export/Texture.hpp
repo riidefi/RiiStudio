@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <core/3d/i3dmodel.hpp>
-#include <lib_rii/gx/Texture.hpp>
-#include <lib_rii/image/ImagePlatform.hpp>
+#include <librii/gx/Texture.hpp>
+#include <librii/image/ImagePlatform.hpp>
 #include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
 
 namespace libcube {

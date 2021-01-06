@@ -7,7 +7,7 @@
 #include <glm/vec2.hpp> // glm::vec2
 #include <glm/vec3.hpp> // glm::vec3
 #include <plugins/gc/Export/Scene.hpp>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 #include <tuple>
 
 #include "texture.hpp"

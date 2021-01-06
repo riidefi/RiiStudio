@@ -3,10 +3,10 @@
 #include <plugins/g3d/util/NameTable.hpp>
 
 #include "Common.hpp"
-#include <lib_rii/gpu/DLBuilder.hpp>
-#include <lib_rii/gpu/DLPixShader.hpp>
-#include <lib_rii/gpu/GPUMaterial.hpp>
-#include <lib_rii/gx.h>
+#include <librii/gpu/DLBuilder.hpp>
+#include <librii/gpu/DLPixShader.hpp>
+#include <librii/gpu/GPUMaterial.hpp>
+#include <librii/gx.h>
 #include <plugins/g3d/util/Dictionary.hpp>
 
 namespace riistudio::g3d {

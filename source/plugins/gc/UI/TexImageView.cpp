@@ -9,7 +9,7 @@
 #include <core/kpi/PropertyView.hpp>
 #include <core/util/gui.hpp>
 
-#include <lib_rii/image/TextureExport.hpp>
+#include <librii/image/TextureExport.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
 

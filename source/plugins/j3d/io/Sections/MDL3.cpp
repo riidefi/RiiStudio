@@ -1,6 +1,6 @@
 #include "../Sections.hpp"
 #include <map>
-#include <lib_rii/gpu/DLBuilder.hpp>
+#include <librii/gpu/DLBuilder.hpp>
 #include <string.h>
 
 namespace riistudio::j3d {

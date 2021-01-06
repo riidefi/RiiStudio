@@ -15,7 +15,7 @@
 #include <vendor/glm/vec4.hpp>
 
 #include <plugins/gc/Export/Material.hpp>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 
 typedef int TODO;
 

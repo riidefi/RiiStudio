@@ -1,5 +1,5 @@
 #include <core/util/string_builder.hpp>
-#include <lib_rii/gl/Compiler.hpp>
+#include <librii/gl/Compiler.hpp>
 #include <llvm/Support/Error.h>
 #include <string_view>
 #include <glfw/glfw3.h>

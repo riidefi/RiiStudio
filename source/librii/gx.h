@@ -23,17 +23,17 @@ inline DisplaySurface cullModeToDisplaySurfacee(CullMode c) {
 }
 } // namespace librii::gx
 
-#include <lib_rii/gx/AlphaCompare.hpp>
-#include <lib_rii/gx/Blend.hpp>
-#include <lib_rii/gx/Color.hpp>
-#include <lib_rii/gx/ConstAlpha.hpp>
-#include <lib_rii/gx/Indirect.hpp>
-#include <lib_rii/gx/Lighting.hpp>
-#include <lib_rii/gx/Shader.hpp>
-#include <lib_rii/gx/TexGen.hpp>
-#include <lib_rii/gx/Texture.hpp>
-#include <lib_rii/gx/Vertex.hpp>
-#include <lib_rii/gx/ZMode.hpp>
+#include <librii/gx/AlphaCompare.hpp>
+#include <librii/gx/Blend.hpp>
+#include <librii/gx/Color.hpp>
+#include <librii/gx/ConstAlpha.hpp>
+#include <librii/gx/Indirect.hpp>
+#include <librii/gx/Lighting.hpp>
+#include <librii/gx/Shader.hpp>
+#include <librii/gx/TexGen.hpp>
+#include <librii/gx/Texture.hpp>
+#include <librii/gx/Vertex.hpp>
+#include <librii/gx/ZMode.hpp>
 
 #include <core/util/array_vector.hpp>
 

@@ -2,7 +2,7 @@
 
 #include <core/common.h>
 #include <map>
-#include <lib_rii/gx.h>
+#include <librii/gx.h>
 
 namespace libcube {
 

@@ -3,8 +3,8 @@
 #include <array>
 #include <core/common.h>
 #include <functional>
-#include <lib_rii/gpu/GPUAddressSpace.hpp>
-#include <lib_rii/gpu/GPUMaterial.hpp>
+#include <librii/gpu/GPUAddressSpace.hpp>
+#include <librii/gpu/GPUMaterial.hpp>
 #include <oishii/writer/binary_writer.hxx>
 #include <span>
 
