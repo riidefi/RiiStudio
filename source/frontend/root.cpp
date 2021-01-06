@@ -13,6 +13,7 @@
 #include <oishii/writer/binary_writer.hxx>
 #include <pfd/portable-file-dialogs.h>
 // Experimental conversion
+#include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/Scene.hpp>
 
 #ifdef __EMSCRIPTEN__
@@ -234,8 +235,8 @@ void RootWindow::draw() {
                     auto& p = bmd_mp.mPrimitives.emplace_back(prim);
                     // Remap vtx indices
                     for (auto& v : p.mVertices) {
-                      for (u32 x = 0;
-                           x < (u32)librii::gx::VertexAttribute::Max; ++x) {
+                      for (u32 x = 0; x < (u32)librii::gx::VertexAttribute::Max;
+                           ++x) {
                         if (!(vcd.mBitfield & (1 << x)))
                           continue;
                         auto& bufs = bmd_model.mBufs;
@@ -352,7 +353,7 @@ void RootWindow::draw() {
       ImGui::EndMenuBar();
     }
 
-	mUpdater.draw();
+    mUpdater.draw();
 
     if (!mImportersQueue.empty()) {
       auto& window = mImportersQueue.front();
@@ -427,9 +428,38 @@ void RootWindow::save(const std::string& path) {
     ed->saveAs(path);
 }
 void RootWindow::saveAs() {
-  auto results = pfd::save_file("Save File", "", {"All Files", "*"}).result();
+  std::vector<std::string> filters;
+
+  EditorWindow* ed =
+      getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
+  if (ed == nullptr)
+    return;
+
+  const kpi::INode* node = &ed->getDocument().getRoot();
+
+    if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
+      filters.push_back("Binary Model Data (*.bmd)");
+      filters.push_back("*.bmd");
+    } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) !=
+               nullptr) {
+      filters.push_back("Binary Resource (*.brres)");
+      filters.push_back("*.brres");
+    }
+  
+  filters.push_back("All Files");
+  filters.push_back("*");
+
+  auto results = pfd::save_file("Save File", "", filters).result();
   if (results.empty())
     return;
+
+  if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
+    if (!results.ends_with(".bmd"))
+      results.append(".bmd");
+  } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) != nullptr) {
+    if (!results.ends_with(".brres"))
+      results.append(".brres");
+  }
 
   save(results);
 }
