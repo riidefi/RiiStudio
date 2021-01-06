@@ -10,15 +10,12 @@ void Updater::draw() {}
 #include <Windows.h>
 
 #include <Libloaderapi.h>
-#include <curl/curl.h>
-#include <filesystem>
-#include <urlmon.h>
-
-#pragma comment(lib, "urlmon.lib")
-
 #include <core/util/gui.hpp>
+#include <curl/curl.h>
 #include <elzip/elzip.hpp>
+#include <filesystem>
 #include <frontend/applet.hpp>
+#include <thread>
 
 namespace riistudio {
 
@@ -54,23 +51,32 @@ void Updater::draw() {
   if (!mShowUpdateDialog)
     return;
 
-  const auto wflags = ImGuiWindowFlags_NoResize; //| ImGuiWindowFlags_NoMove;
+  const auto wflags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
   ImGui::OpenPopup("RiiStudio Update");
   if (ImGui::BeginPopupModal("RiiStudio Update", nullptr, wflags)) {
-    ImGui::Text("A new version of RiiStudio (%s) was found. Would you like "
-                "to update?",
-                mLatestVer.c_str());
-    if (ImGui::Button("Yes", ImVec2(170, 0))) {
-      InstallUpdate();
-      mShowUpdateDialog = false;
-      ImGui::CloseCurrentPopup();
+    if (mIsInUpdate) {
+      ImGui::ProgressBar(mUpdateProgress);
+      if (!mLaunchPath.empty()) {
+        LaunchUpdate(mLaunchPath);
+        // (Never reached)
+        mShowUpdateDialog = false;
+        ImGui::CloseCurrentPopup();
+      }
+    } else {
+      ImGui::Text("A new version of RiiStudio (%s) was found. Would you like "
+                  "to update?",
+                  mLatestVer.c_str());
+      if (ImGui::Button("Yes", ImVec2(170, 0))) {
+        InstallUpdate();
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("No", ImVec2(170, 0))) {
+        mShowUpdateDialog = false;
+        ImGui::CloseCurrentPopup();
+      }
     }
-    ImGui::SameLine();
-    if (ImGui::Button("No", ImVec2(170, 0))) {
-      mShowUpdateDialog = false;
-      ImGui::CloseCurrentPopup();
-    }
+
     ImGui::EndPopup();
   }
 }
@@ -112,31 +118,75 @@ std::string Updater::ExecutableFilename() {
   const int n =
       GetModuleFileNameA(nullptr, pathBuffer.data(), pathBuffer.size());
 
-  if (n < 1024)
+  // We don't want a truncated path
+  if (n < 1020)
     return std::string(pathBuffer.data(), n);
   return "";
 }
 
+static size_t write_data(void* ptr, size_t size, size_t nmemb, FILE* stream) {
+  size_t written = fwrite(ptr, size, nmemb, stream);
+  return written;
+}
+
 void Updater::InstallUpdate() {
   const auto current_exe = ExecutableFilename();
-  const auto url = ParseJSON("browser_download_url", "");
-
-  if (current_exe.empty() || url.empty())
+  if (current_exe.empty())
     return;
 
-  const auto folder = std::filesystem::path(current_exe).parent_path();
-  const auto new_exe = folder / "RiiStudio.exe";
-  const auto temp_exe = folder / "temp.exe";
-  const auto download = folder / "download.zip";
+  const auto url = ParseJSON("browser_download_url", "");
+  if (url.empty())
+    return;
 
-  URLDownloadToFile(nullptr, url.c_str(), download.string().c_str(), 0,
-                    nullptr);
+  auto progress_func =
+      +[](void* userdata, double total, double current, double, double) {
+        Updater* updater = reinterpret_cast<Updater*>(userdata);
+        updater->SetProgress(current / total);
+        return 0;
+      };
 
-  std::filesystem::rename(current_exe, temp_exe);
+  mIsInUpdate = true;
+  static std::thread sThread = std::thread(
+      [=](Updater* updater) {
+        const auto folder = std::filesystem::path(current_exe).parent_path();
+        const auto new_exe = folder / "RiiStudio.exe";
+        const auto temp_exe = folder / "temp.exe";
+        const auto download = folder / "download.zip";
 
-  elz::extractZip(download.string(), folder.string());
-  remove(download);
+        CURL* curl = curl_easy_init();
+        assert(curl);
+        FILE* fp = fopen(download.string().c_str(), "wb");
+        printf("%s\n", url.c_str());
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, "RiiStudio");
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, FALSE);
+        curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, progress_func);
+        curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, this);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, TRUE);
+        auto res = curl_easy_perform(curl);
 
+        if (res != CURLE_OK) {
+          const char* str = curl_easy_strerror(res);
+          printf("libcurl said %s\n", str);
+        }
+
+        curl_easy_cleanup(curl);
+        fclose(fp);
+
+        std::filesystem::rename(current_exe, temp_exe);
+
+        elz::extractZip(download.string(), folder.string());
+        remove(download);
+
+        updater->QueueLaunch(new_exe.string());
+      },
+      this);
+}
+
+void Updater::LaunchUpdate(const std::string& new_exe) {
+#ifdef _WIN32
   // https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
   STARTUPINFO si;
@@ -148,17 +198,20 @@ void Updater::InstallUpdate() {
 
   std::array<char, 32> buf{};
 
-  CreateProcessA(new_exe.string().c_str(), // lpApplicationName
-                 buf.data(),               // lpCommandLine
-                 nullptr,                  // lpProcessAttributes
-                 nullptr,                  // lpThreadAttributes
-                 false,                    // bInheritHandles
-                 0,                        // dwCreationFlags
-                 nullptr,                  // lpEnvironment
-                 nullptr,                  // lpCurrentDirectory
-                 &si,                      // lpStartupInfo
-                 &pi                       // lpProcessInformation
+  CreateProcessA(new_exe.c_str(), // lpApplicationName
+                 buf.data(),      // lpCommandLine
+                 nullptr,         // lpProcessAttributes
+                 nullptr,         // lpThreadAttributes
+                 false,           // bInheritHandles
+                 0,               // dwCreationFlags
+                 nullptr,         // lpEnvironment
+                 nullptr,         // lpCurrentDirectory
+                 &si,             // lpStartupInfo
+                 &pi              // lpProcessInformation
   );
+#else
+  // FIXME: Provide Linux/Mac version
+#endif
 
   exit(0);
 }
