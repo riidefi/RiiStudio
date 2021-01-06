@@ -44,7 +44,6 @@ private:
   ThemeManager::BasicTheme mCurTheme = ThemeManager::BasicTheme::Raikiri;
   bool mThemeUpdated = true;
 
-  bool mShowChangeLog = true;
   std::queue<ImporterWindow> mImportersQueue;
 
   // Hack...

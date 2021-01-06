@@ -4,7 +4,6 @@
 #include <core/util/gui.hpp>
 #include <core/util/timestamp.hpp>
 #include <frontend/editor/EditorWindow.hpp>
-#include <frontend/widgets/changelog.hpp>
 #include <frontend/widgets/fps.hpp>
 #include <frontend/widgets/fullscreen.hpp>
 #include <frontend/widgets/theme_editor.hpp>
@@ -354,8 +353,6 @@ void RootWindow::draw() {
     }
 
 	mUpdater.draw();
-
-    DrawChangeLog(&mShowChangeLog);
 
     if (!mImportersQueue.empty()) {
       auto& window = mImportersQueue.front();

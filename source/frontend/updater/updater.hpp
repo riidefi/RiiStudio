@@ -1,24 +1,31 @@
 #include <array>
+#include <memory>
 #include <string>
 
 namespace riistudio {
 
+class JSON;
+
+inline const char* VERSION = "Alpha 3.0";
+
 class Updater {
+
 public:
   Updater();
+  ~Updater();
   void draw();
 
 private:
-  std::string mJSON;
-  std::string mLatestVer;
+  std::unique_ptr<JSON> mJSON;
+  std::string mLatestVer = VERSION;
   bool mShowUpdateDialog = false;
+  bool mShowChangelog = false;
   bool mIsInUpdate = false;
   float mUpdateProgress = 0.0f;
   std::string mLaunchPath;
 
   void InitRepoJSON();
-  void InstallUpdate();
-  std::string ParseJSON(std::string key, std::string defaultValue);
+  bool InstallUpdate();
   std::string ExecutableFilename();
 
 public:

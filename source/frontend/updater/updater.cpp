@@ -3,6 +3,7 @@
 #ifndef _WIN32
 namespace riistudio {
 Updater::Updater() = default;
+Updater::~Updater() = default;
 void Updater::draw() {}
 } // namespace riistudio
 #else
@@ -15,11 +16,17 @@ void Updater::draw() {}
 #include <elzip/elzip.hpp>
 #include <filesystem>
 #include <frontend/applet.hpp>
+#include <frontend/widgets/changelog.hpp>
+#include <nlohmann/json.hpp>
 #include <thread>
 
 namespace riistudio {
 
-const char* VERSION = "Alpha 4.0";
+class JSON {
+public:
+  nlohmann::json data;
+};
+
 const char* REPO_URL =
     "https://api.github.com/repos/riidefi/RiiStudio/releases/latest";
 
@@ -33,25 +40,35 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb,
 
 Updater::Updater() {
   InitRepoJSON();
-  mLatestVer = ParseJSON("name", VERSION);
-  mShowUpdateDialog = VERSION != mLatestVer;
+  if (mJSON->data.contains("name"))
+    mLatestVer = mJSON->data["name"].get<std::string>();
 
   const auto current_exe = ExecutableFilename();
-  if (current_exe.empty())
+
+  if (mLatestVer.empty() || current_exe.empty())
     return;
+
+  mShowUpdateDialog = VERSION != mLatestVer;
 
   const auto folder = std::filesystem::path(current_exe).parent_path();
   const auto temp = folder / "temp.exe";
 
-  if (std::filesystem::exists(temp))
+  if (std::filesystem::exists(temp)) {
+    mShowChangelog = true;
     remove(temp);
+  }
 }
 
+Updater::~Updater() {}
+
 void Updater::draw() {
+  if (mJSON->data.contains("body"))
+    DrawChangeLog(&mShowChangelog, mJSON->data["body"].get<std::string>());
+
   if (!mShowUpdateDialog)
     return;
 
-  const auto wflags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+  const auto wflags = ImGuiWindowFlags_NoResize;
 
   ImGui::OpenPopup("RiiStudio Update");
   if (ImGui::BeginPopupModal("RiiStudio Update", nullptr, wflags)) {
@@ -87,10 +104,12 @@ void Updater::InitRepoJSON() {
   if (curl == nullptr)
     return;
 
+  std::string rawJSON = "";
+
   curl_easy_setopt(curl, CURLOPT_URL, REPO_URL);
   curl_easy_setopt(curl, CURLOPT_USERAGENT, "RiiStudio");
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &mJSON);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &rawJSON);
 
   CURLcode res = curl_easy_perform(curl);
 
@@ -100,17 +119,9 @@ void Updater::InitRepoJSON() {
   }
 
   curl_easy_cleanup(curl);
-}
 
-std::string Updater::ParseJSON(std::string key, std::string defaultValue) {
-  int start = mJSON.find("\"" + key + "\"");
-  if (start == std::string::npos)
-    return defaultValue;
-
-  start += key.size() + 4;
-  int len = mJSON.find("\"", start) - start;
-
-  return mJSON.substr(start, len);
+  mJSON = std::make_unique<JSON>();
+  mJSON->data = nlohmann::json::parse(rawJSON);
 }
 
 std::string Updater::ExecutableFilename() {
@@ -129,14 +140,17 @@ static size_t write_data(void* ptr, size_t size, size_t nmemb, FILE* stream) {
   return written;
 }
 
-void Updater::InstallUpdate() {
+bool Updater::InstallUpdate() {
   const auto current_exe = ExecutableFilename();
   if (current_exe.empty())
-    return;
+    return false;
 
-  const auto url = ParseJSON("browser_download_url", "");
-  if (url.empty())
-    return;
+  if (!(mJSON->data.contains("assets") && mJSON->data["assets"].size() > 0 &&
+        mJSON->data["assets"][0].contains("browser_download_url")))
+    return false;
+
+  const auto url =
+      mJSON->data["assets"][0]["browser_download_url"].get<std::string>();
 
   auto progress_func =
       +[](void* userdata, double total, double current, double, double) {
@@ -183,6 +197,7 @@ void Updater::InstallUpdate() {
         updater->QueueLaunch(new_exe.string());
       },
       this);
+  return true;
 }
 
 void Updater::LaunchUpdate(const std::string& new_exe) {
