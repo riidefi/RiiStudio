@@ -14,6 +14,8 @@ void expandSharedTexGens(LowLevelGxMaterial& material) {
   {
     std::array<std::bitset<8>, 8> texcoords_uses{};
     for (const auto& stage : material.shader.mStages) {
+      if (stage.texCoord >= 8) // 0xFF = NULL
+        continue;
       const bool is_already_used = texcoords_uses[stage.texCoord][stage.texMap];
 
       texcoord_totaluse[stage.texCoord] += is_already_used ? 0 : 1;
@@ -23,6 +25,8 @@ void expandSharedTexGens(LowLevelGxMaterial& material) {
   {
     std::array<std::bitset<8>, 8> texmaps_uses{};
     for (const auto& stage : material.shader.mStages) {
+      if (stage.texMap >= 8) // 0xFF = NULL
+        continue;
       const bool is_already_used = texmaps_uses[stage.texMap][stage.texCoord];
 
       texmap_totaluse[stage.texMap] += is_already_used ? 0 : 1;
