@@ -50,8 +50,8 @@ add_library(plugins
 	"gc/Node.h"
 	"gc/UI/Bone/BoneDisplaySurface.cpp"
 	"gc/UI/Bone/BoneTransformSurface.cpp"
-	"gc/UI/MaterialView.cpp"
-	"gc/UI/PolygonView.cpp"
+	
+	
 	"gc/UI/ShaderView.cpp"
 	"gc/UI/TevSolver.cpp"
 	"gc/UI/TevSolver.hpp"
@@ -129,4 +129,7 @@ add_library(plugins
   "mk/BFG/Fog.hpp"
   "mk/BFG/FogEntry.hpp"
   "mk/BFG/FogView.cpp"
-  "mk/BFG/Node.h")
+  "mk/BFG/Node.h"
+
+  "gc/UI/Polygon/PolyDescriptorSurface.cpp"
+  "gc/UI/Polygon/PolyDataSurface.cpp" "gc/UI/Polygon/Common.hpp" "gc/UI/Material/PixelSurface.cpp" "gc/UI/Material/Common.hpp" "gc/UI/Material/DisplaySurface.cpp" "gc/UI/Material/ColorSurface.cpp" "gc/UI/Material/SamplerSurface.cpp" "gc/UI/Material/StageSurface.cpp" "gc/UI/Material/LightingSurface.cpp" "gc/UI/Material/SwapTableSurface.cpp" "gc/UI/Material/FogSurface.cpp")
