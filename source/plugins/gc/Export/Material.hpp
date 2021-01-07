@@ -6,6 +6,7 @@
 #include <core/kpi/Node.hpp>
 #include <core/util/array_vector.hpp>
 #include <librii/gx.h>
+#include <librii/mtx/TexMtx.hpp>
 
 namespace libcube {
 
@@ -16,7 +17,6 @@ using copyable_polymorphic_array_vector =
     riistudio::util::copyable_polymorphic_array_vector<T, N>;
 
 class Model;
-
 
 struct GCMaterialData : public gx::LowLevelGxMaterial {
   // TODO:
@@ -38,32 +38,9 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
   };
   GenInfo info;
 
-  enum class CommonMappingOption {
-    NoSelection,
-    DontRemapTextureSpace, // -1 -> 1 (J3D "basic")
-    KeepTranslation        // Don't reset translation column
-  };
+  using CommonMappingOption = librii::mtx::CommonMappingOption;
 
-  enum class CommonMappingMethod {
-    // Shared
-    Standard,
-    EnvironmentMapping,
-
-    // J3D name. This is G3D's only PROJMAP.
-    ViewProjectionMapping,
-
-    // J3D only by default. EGG adds this to G3D as "ManualProjectionMapping"
-    ProjectionMapping,
-    ManualProjectionMapping = ProjectionMapping,
-
-    // G3D
-    EnvironmentLightMapping,
-    EnvironmentSpecularMapping,
-
-    // J3D only?
-    ManualEnvironmentMapping // Specify effect matrix maunally
-                             // J3D 4/5?
-  };
+  using CommonMappingMethod = librii::mtx::CommonMappingMethod;
   enum class CommonTransformModel { Default, Maya, Max, XSI };
   struct TexMatrix {
     // TODO: Deprecate?

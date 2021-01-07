@@ -17,6 +17,10 @@ Supports encoding/decoding/resizing Wii images.
 ### librii::kmp
 Support for Mario Kart Wii's .kmp files.
 
+### librii::mtx
+Texture matrix calculation.
+NOTE: Lots of accuracy issues currently
+
 ### librii::nitro
 Support for DS fixed-point types.
 
