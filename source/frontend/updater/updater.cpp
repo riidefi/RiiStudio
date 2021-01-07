@@ -9,6 +9,7 @@ void Updater::draw() {}
 #else
 
 #include <Windows.h>
+// #include <securitybaseapi.h>
 
 #include <Libloaderapi.h>
 #include <core/util/gui.hpp>
@@ -17,8 +18,11 @@ void Updater::draw() {}
 #include <filesystem>
 #include <frontend/applet.hpp>
 #include <frontend/widgets/changelog.hpp>
+#include <io.h>
 #include <nlohmann/json.hpp>
 #include <thread>
+
+#include <iostream>
 
 namespace riistudio {
 
@@ -50,8 +54,8 @@ Updater::Updater() {
 
   mShowUpdateDialog = VERSION != mLatestVer;
 
-  const auto folder = std::filesystem::path(current_exe).parent_path();
-  const auto temp = folder / "temp.exe";
+  const auto temp =
+      std::filesystem::temp_directory_path() / "RiiStudio_temp.exe";
 
   if (std::filesystem::exists(temp)) {
     mShowChangelog = true;
@@ -65,6 +69,21 @@ void Updater::draw() {
   if (mJSON->data.contains("body"))
     DrawChangeLog(&mShowChangelog, mJSON->data["body"].get<std::string>());
 
+  // Hack.. wait one frame for the UI to size properly
+  if (mForceUpdate && !mFirstFrame) {
+    if (!InstallUpdate()) {
+      // Give up.. admin perms didn't solve our problem
+    }
+
+    mForceUpdate = false;
+  }
+
+  if (!mLaunchPath.empty()) {
+    LaunchUpdate(mLaunchPath);
+    // (Never reached)
+    mShowUpdateDialog = false;
+  }
+
   if (!mShowUpdateDialog)
     return;
 
@@ -73,19 +92,17 @@ void Updater::draw() {
   ImGui::OpenPopup("RiiStudio Update");
   if (ImGui::BeginPopupModal("RiiStudio Update", nullptr, wflags)) {
     if (mIsInUpdate) {
+      ImGui::Text("Installing Riistudio %s..", mLatestVer.c_str());
       ImGui::ProgressBar(mUpdateProgress);
-      if (!mLaunchPath.empty()) {
-        LaunchUpdate(mLaunchPath);
-        // (Never reached)
-        mShowUpdateDialog = false;
-        ImGui::CloseCurrentPopup();
-      }
     } else {
       ImGui::Text("A new version of RiiStudio (%s) was found. Would you like "
                   "to update?",
                   mLatestVer.c_str());
       if (ImGui::Button("Yes", ImVec2(170, 0))) {
-        InstallUpdate();
+        if (!InstallUpdate() && mNeedAdmin) {
+          RetryAsAdmin();
+          // (Never reached)
+        }
       }
       ImGui::SameLine();
       if (ImGui::Button("No", ImVec2(170, 0))) {
@@ -96,6 +113,7 @@ void Updater::draw() {
 
     ImGui::EndPopup();
   }
+  mFirstFrame = false;
 }
 
 void Updater::InitRepoJSON() {
@@ -149,6 +167,22 @@ bool Updater::InstallUpdate() {
         mJSON->data["assets"][0].contains("browser_download_url")))
     return false;
 
+  const auto folder = std::filesystem::path(current_exe).parent_path();
+  const auto new_exe = folder / "RiiStudio.exe";
+  const auto temp_exe =
+      std::filesystem::temp_directory_path() / "RiiStudio_temp.exe";
+  const auto download = folder / "download.zip";
+
+  std::error_code error_code;
+  std::filesystem::rename(current_exe, temp_exe, error_code);
+
+  if (error_code) {
+    std::cout << error_code.message() << std::endl;
+    // Request admin perms...
+    mNeedAdmin = true;
+    return false;
+  }
+
   const auto url =
       mJSON->data["assets"][0]["browser_download_url"].get<std::string>();
 
@@ -162,11 +196,6 @@ bool Updater::InstallUpdate() {
   mIsInUpdate = true;
   static std::thread sThread = std::thread(
       [=](Updater* updater) {
-        const auto folder = std::filesystem::path(current_exe).parent_path();
-        const auto new_exe = folder / "RiiStudio.exe";
-        const auto temp_exe = folder / "temp.exe";
-        const auto download = folder / "download.zip";
-
         CURL* curl = curl_easy_init();
         assert(curl);
         FILE* fp = fopen(download.string().c_str(), "wb");
@@ -189,15 +218,24 @@ bool Updater::InstallUpdate() {
         curl_easy_cleanup(curl);
         fclose(fp);
 
-        std::filesystem::rename(current_exe, temp_exe);
-
         elz::extractZip(download.string(), folder.string());
-        remove(download);
+        std::filesystem::remove(download);
 
         updater->QueueLaunch(new_exe.string());
       },
       this);
   return true;
+}
+
+void Updater::RetryAsAdmin() {
+#ifdef _WIN32
+  auto path = ExecutableFilename();
+  ShellExecute(nullptr, "runas", path.c_str(), "update", 0, SW_SHOWNORMAL);
+#else
+// FIXME: Provide Linux/Mac version
+#endif
+
+  exit(0);
 }
 
 void Updater::LaunchUpdate(const std::string& new_exe) {
@@ -224,6 +262,10 @@ void Updater::LaunchUpdate(const std::string& new_exe) {
                  &si,             // lpStartupInfo
                  &pi              // lpProcessInformation
   );
+
+  // TODO: If we were launched as an admin, drop those permissions
+  // AdjustTokenPrivileges(nullptr, true, nullptr, 0, nullptr, 0);
+
 #else
   // FIXME: Provide Linux/Mac version
 #endif

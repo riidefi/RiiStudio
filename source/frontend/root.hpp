@@ -61,6 +61,8 @@ public:
     return &mReqData;
   }
   void endRequestFile() { mWantFile = false; }
+
+  void setForceUpdate(bool update) { mUpdater.SetForceUpdate(update); }
 };
 
 } // namespace riistudio::frontend

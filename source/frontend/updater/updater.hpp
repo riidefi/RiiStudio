@@ -21,17 +21,22 @@ private:
   bool mShowUpdateDialog = false;
   bool mShowChangelog = false;
   bool mIsInUpdate = false;
+  bool mNeedAdmin = false;
   float mUpdateProgress = 0.0f;
   std::string mLaunchPath;
+  bool mForceUpdate = false;
+  bool mFirstFrame = true;
 
   void InitRepoJSON();
   bool InstallUpdate();
   std::string ExecutableFilename();
+  void RetryAsAdmin();
 
 public:
   void LaunchUpdate(const std::string& new_exe);
   void QueueLaunch(const std::string& path) { mLaunchPath = path; }
   void SetProgress(float progress) { mUpdateProgress = progress; }
+  void SetForceUpdate(bool update) { mForceUpdate = update; }
 };
 
 } // namespace riistudio

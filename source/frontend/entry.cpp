@@ -9,6 +9,7 @@ struct RootHolder {
     initLlvm = std::make_unique<llvm::InitLLVM>(argc, argv);
 #endif
   }
+  void setForceUpdate(bool update) { window->setForceUpdate(update); }
   void enter() { window->enter(); }
 
   riistudio::frontend::RootWindow& getWindow() {
@@ -23,7 +24,10 @@ private:
 
 
 int main(int argc, const char** argv) {
+  const bool force_update = argc > 1 && !strcmp(argv[1], "update");
+
   sRootHolder.create(argc, argv);
+  sRootHolder.setForceUpdate(force_update);
   sRootHolder.enter();
 
   return 0;
