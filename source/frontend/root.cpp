@@ -440,15 +440,14 @@ void RootWindow::saveAs() {
 
   const kpi::INode* node = &ed->getDocument().getRoot();
 
-    if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
-      filters.push_back("Binary Model Data (*.bmd)");
-      filters.push_back("*.bmd");
-    } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) !=
-               nullptr) {
-      filters.push_back("Binary Resource (*.brres)");
-      filters.push_back("*.brres");
-    }
-  
+  if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
+    filters.push_back("Binary Model Data (*.bmd)");
+    filters.push_back("*.bmd");
+  } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) != nullptr) {
+    filters.push_back("Binary Resource (*.brres)");
+    filters.push_back("*.brres");
+  }
+
   filters.push_back("All Files");
   filters.push_back("*");
 
