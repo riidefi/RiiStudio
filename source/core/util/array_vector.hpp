@@ -39,7 +39,7 @@ template <typename T, size_t N> struct array_vector : public std::array<T, N> {
 template <typename T, std::size_t size>
 struct copyable_polymorphic_array_vector
     : public array_vector<std::unique_ptr<T>, size> {
-#ifdef _MSVC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
   using super = array_vector;
 #else
   // MSVC bug?
