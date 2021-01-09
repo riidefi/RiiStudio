@@ -17,7 +17,10 @@ file(GLOB_RECURSE HDR_FILES
 add_executable(frontend
 	${SRC_FILES}
 	${HDR_FILES}
- "renderer/CameraController.hpp"  "updater/updater.hpp"  "updater/updater.cpp")
+ "renderer/CameraController.hpp"  "updater/updater.hpp"  "updater/updater.cpp"
+ 
+${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc
+)
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
@@ -109,5 +112,12 @@ endif()
 	  COMMAND ${CMAKE_COMMAND} -E copy
 		  ${PROJECT_SOURCE_DIR}/../vendor/libcurl.dll
 		  $<TARGET_FILE_DIR:frontend>/libcurl.dll
-	)
+  )
+  add_custom_command(
+	TARGET frontend 
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy
+		${PROJECT_SOURCE_DIR}/rc/icon.png
+		$<TARGET_FILE_DIR:frontend>/icon.png
+)
 # endif()

@@ -16,6 +16,8 @@
 #include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/Scene.hpp>
 
+#include <vendor/stb_image.h>
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -421,6 +423,13 @@ RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
   InitAPI();
 
   ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
+#ifdef RII_BACKEND_GLFW
+  GLFWwindow* window = reinterpret_cast<GLFWwindow*>(getPlatformWindow());
+  GLFWimage image;
+  image.pixels = stbi_load("icon.png", &image.width, &image.height, 0, 4);
+  glfwSetWindowIcon(window, 1, &image);
+  stbi_image_free(image.pixels);
+#endif
 }
 RootWindow::~RootWindow() { DeinitAPI(); }
 
