@@ -4,6 +4,7 @@
 #include "Renderer.hpp"
 #include <core/3d/gl.hpp>    // glPolygonMode
 #include <core/util/gui.hpp> // ImGui::BeginMenuBar
+#include <frontend/root.hpp> // RootWindow
 
 #ifndef _WIN32
 #include <SDL.h>
@@ -42,8 +43,14 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     return;
 
   if (ImGui::IsWindowFocused()) {
+    const auto input_state = buildInputState();
     mCameraController.move(1.0f / ImGui::GetIO().Framerate, combo_choice_cam,
-                           buildInputState());
+                           input_state);
+    if (input_state.clickView) {
+      RootWindow::spInstance->hideMouse();
+    } else {
+      RootWindow::spInstance->showMouse();
+    }
   }
 
   glm::mat4 projMtx, viewMtx;
