@@ -1,14 +1,14 @@
 #pragma once
 
-#include "EditorDocument.hpp"         // EditorDocument
-#include "StudioWindow.hpp"           // StudioWindow
-#include <core/3d/Texture.hpp>        // lib3d::Texture
-#include <core/3d/ui/IconManager.hpp> // IconManager
-#include <core/kpi/Document.hpp>      // kpi::Document
-#include <core/kpi/Node2.hpp>         // kpi::INode
-#include <core/kpi/Plugins.hpp>       // kpi::IOTransaction
-#include <llvm/ADT/SmallVector.h>     // llvm::SmallVector
-#include <string_view>                // std::string_view
+#include "EditorDocument.hpp"               // EditorDocument
+#include "StudioWindow.hpp"                 // StudioWindow
+#include <core/3d/Texture.hpp>              // lib3d::Texture
+#include <core/kpi/Document.hpp>            // kpi::Document
+#include <core/kpi/Node2.hpp>               // kpi::INode
+#include <core/kpi/Plugins.hpp>             // kpi::IOTransaction
+#include <frontend/widgets/IconManager.hpp> // IconManager
+#include <llvm/ADT/SmallVector.h>           // llvm::SmallVector
+#include <string_view>                      // std::string_view
 
 namespace riistudio::frontend {
 

@@ -2,7 +2,6 @@
 #include <array>          // for std::array
 #include <core/3d/gl.hpp> // for glGenTextures
 #include <imgui/imgui.h>  // for ImGui::Image
-// TODO: Interdependency
 #include <librii/image/ImagePlatform.hpp>
 
 namespace riistudio {

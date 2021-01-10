@@ -1,7 +1,8 @@
 #pragma once
 
-#include <core/3d/ui/IconDatabase.hpp> // IconDatabase
-#include <vendor/llvm/ADT/DenseMap.h>  // llvm::DenseMap
+#include <frontend/widgets/IconDatabase.hpp> // IconDatabase
+#include <vendor/llvm/ADT/DenseMap.h>        // llvm::DenseMap
+
 namespace riistudio {
 
 class IconManager {
