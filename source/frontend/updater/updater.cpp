@@ -52,7 +52,7 @@ Updater::Updater() {
   if (mLatestVer.empty() || current_exe.empty())
     return;
 
-  mShowUpdateDialog = VERSION != mLatestVer;
+  mShowUpdateDialog = GIT_TAG != mLatestVer;
 
   const auto temp =
       std::filesystem::temp_directory_path() / "RiiStudio_temp.exe";

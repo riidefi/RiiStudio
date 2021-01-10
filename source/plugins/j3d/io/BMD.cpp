@@ -41,7 +41,6 @@ struct BMDFile : public oishii::Node {
       writer.write<u32>(-1);
 #else
     std::string author = VERSION_SHORT;
-    static_assert(sizeof(VERSION_SHORT) - 1 == 16);
     for (char c : author)
       writer.write<char>(c);
 #endif

@@ -414,7 +414,7 @@ void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
   attachWindow(std::move(editor));
 }
 
-RootWindow::RootWindow() : Applet("RiiStudio " RII_TIME_STAMP) {
+RootWindow::RootWindow() : Applet(std::string("RiiStudio ") + RII_TIME_STAMP) {
 #ifdef _WIN32
   glDebugMessageCallback(GlCallback, 0);
 #endif

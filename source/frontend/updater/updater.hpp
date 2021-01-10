@@ -1,12 +1,11 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <core/util/timestamp.hpp>
 
 namespace riistudio {
 
 class JSON;
-
-inline const char* VERSION = "Alpha 3.0";
 
 class Updater {
 
@@ -17,7 +16,7 @@ public:
 
 private:
   std::unique_ptr<JSON> mJSON;
-  std::string mLatestVer = VERSION;
+  std::string mLatestVer = GIT_TAG;
   bool mShowUpdateDialog = false;
   bool mShowChangelog = false;
   bool mIsInUpdate = false;
