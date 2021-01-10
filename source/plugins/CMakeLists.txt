@@ -48,7 +48,7 @@ add_library(plugins
 	"gc/UI/TexImageView.cpp"
 	"gc/Util/DisplayList.cpp"
 	"gc/Util/DisplayList.hpp"
-	"gc/Util/glm_serialization.hpp"
+	
 	
 	"j3d/DrawMatrix.hpp"
 	"j3d/io/BMD.cpp"

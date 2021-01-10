@@ -2,7 +2,7 @@
 #include <cmath>
 
 #include "../Sections.hpp"
-#include <plugins/gc/Util/glm_serialization.hpp>
+#include <core/util/glm_io.hpp>
 
 namespace riistudio::j3d {
 

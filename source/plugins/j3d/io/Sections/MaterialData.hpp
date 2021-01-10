@@ -4,7 +4,7 @@
 #include "../Sections.hpp"
 #include <oishii/writer/binary_writer.hxx>
 
-#include <plugins/gc/Util/glm_serialization.hpp>
+#include <core/util/glm_io.hpp>
 
 namespace riistudio::j3d {
 
