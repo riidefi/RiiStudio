@@ -49,7 +49,7 @@ add_library(plugins
 	"gc/Util/DisplayList.cpp"
 	"gc/Util/DisplayList.hpp"
 	"gc/Util/glm_serialization.hpp"
-	"gc/Util/TextureDimensions.hpp"
+	
 	"j3d/DrawMatrix.hpp"
 	"j3d/io/BMD.cpp"
 	"j3d/io/OutputCtx.hpp"

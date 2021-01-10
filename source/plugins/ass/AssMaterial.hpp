@@ -1,6 +1,5 @@
 #include "AssImporter.hpp"
 #include "Utility.hpp"
-#include <core/3d/texture_dimensions.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <unordered_map>

@@ -1,7 +1,6 @@
 #include "AssImporter.hpp"
 #include "AssMaterial.hpp"
 #include "Utility.hpp"
-#include <core/3d/texture_dimensions.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <llvm/ADT/BitVector.h>
@@ -11,6 +10,8 @@
 #include <vendor/stb_image.h>
 
 namespace riistudio::ass {
+
+const auto power_of_2 = [](u32 x) { return x & (x - 1); };
 
 AssImporter::AssImporter(const aiScene* scene, kpi::INode* mdl)
     : pScene(scene) {
@@ -325,10 +326,7 @@ static bool importTexture(libcube::Texture& data, u8* image,
   assert(image);
 
   int num_mip = 0;
-  core::TextureDimensions<u32> dimensions;
-  dimensions.width = width;
-  dimensions.height = height;
-  if (mip_gen && dimensions.isPowerOfTwo()) {
+  if (mip_gen && power_of_2(width) && power_of_2(height)) {
     while ((num_mip + 1) < max_mip && (width >> (num_mip + 1)) >= min_dim &&
            (height >> (num_mip + 1)) >= min_dim)
       ++num_mip;
@@ -719,12 +717,13 @@ void AssImporter::ImportAss(
       // assert(tex != nullptr);
       if (tex == nullptr)
         continue;
-      core::TextureDimensions<u32> dimensions;
-      dimensions.width = tex->getWidth();
-      dimensions.height = tex->getHeight();
 
-      if (!dimensions.isPowerOfTwo()) {
+      assert(power_of_2(64));
+      assert(!power_of_2(65));
+      if (!power_of_2(tex->getWidth())) {
         sampler->mWrapU = librii::gx::TextureWrapMode::Clamp;
+      }
+      if (!power_of_2(tex->getHeight())) {
         sampler->mWrapV = librii::gx::TextureWrapMode::Clamp;
       }
       if (tex->getMipmapCount() > 0)

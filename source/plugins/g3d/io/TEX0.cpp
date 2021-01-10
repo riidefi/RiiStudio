@@ -15,8 +15,8 @@ void writeTexture(const Texture& data, oishii::Writer& writer,
   writer.write<s32>(64);     // texture offset
   writeNameForward(names, writer, start, data.name);
   writer.write<u32>(0); // flag, ci
-  writer.write<u16>(data.dimensions.width);
-  writer.write<u16>(data.dimensions.height);
+  writer.write<u16>(data.width);
+  writer.write<u16>(data.height);
   writer.write<u32>(static_cast<u32>(data.format));
   writer.write<u32>(data.mipLevel);
   writer.write<f32>(data.minLod);
@@ -42,8 +42,8 @@ void readTexture(Texture& data, oishii::BinaryReader& reader) {
   data.name = readName(reader, start);
   // const u32 flag =
   reader.read<u32>(); // TODO: Paletted textures
-  data.dimensions.width = reader.read<u16>();
-  data.dimensions.height = reader.read<u16>();
+  data.width = reader.read<u16>();
+  data.height = reader.read<u16>();
   data.format = reader.read<u32>();
   data.mipLevel = reader.read<u32>();
   data.minLod = reader.read<f32>();
