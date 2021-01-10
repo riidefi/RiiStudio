@@ -107,6 +107,19 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [ "clang_cl_x64_x64" ],
             "variables": []
+        },
+        {
+            "name": "Wii-PPC",
+            "generator": "Ninja",
+            "configurationType": "RelWithDebInfo",
+            "buildRoot": "${projectDir}\\out\\build\\${name}",
+            "installRoot": "${projectDir}\\out\\install\\${name}",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "",
+            "ctestCommandArgs": "",
+            "cmakeToolchain": "${projectDir}\\source\\scripts\\WiiGCC.cmake",
+            "inheritEnvironments": [],
+            "variables": []
         }
     ]
 }
