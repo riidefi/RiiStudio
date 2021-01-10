@@ -28,7 +28,7 @@ add_library(plugins
 	"gc/Export/IndexedPrimitive.hpp"
 	"gc/Export/IndexedVertex.hpp"
 	"gc/Export/Material.hpp"
-	"gc/Export/PropertySupport.hpp"
+	
 	"gc/Export/Scene.hpp"
 	"gc/Export/Texture.hpp"
 	"gc/Export/VertexDescriptor.hpp"
