@@ -1314,8 +1314,8 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
 
       mtx->camIdx = reader.read<s8>();
       mtx->lightIdx = reader.read<s8>();
-      printf("[read] CamIDX: %i, LIDX:%i\n", (signed)mtx->camIdx,
-             (signed)mtx->lightIdx);
+      // printf("[read] CamIDX: %i, LIDX:%i\n", (signed)mtx->camIdx,
+      //        (signed)mtx->lightIdx);
       const u8 mapMode = reader.read<u8>();
 
       mtx->transformModel = xfModel;
@@ -1389,10 +1389,10 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     std::array<u8, 8> coord_map_lut;
     for (auto& e : coord_map_lut)
       e = reader.read<u8>();
-    printf(">>>>> Coord->Map LUT:\n");
-    for (auto e : coord_map_lut)
-      printf("%u ", (unsigned)e);
-    printf("\n");
+    // printf(">>>>> Coord->Map LUT:\n");
+    // for (auto e : coord_map_lut)
+    //   printf("%u ", (unsigned)e);
+    // printf("\n");
     bool error = false;
     {
       u8 last = 0;
