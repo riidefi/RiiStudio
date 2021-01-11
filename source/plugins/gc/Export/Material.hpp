@@ -38,10 +38,10 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
   };
   GenInfo info;
 
+  using CommonTransformModel = librii::mtx::CommonTransformModel;
   using CommonMappingOption = librii::mtx::CommonMappingOption;
-
   using CommonMappingMethod = librii::mtx::CommonMappingMethod;
-  enum class CommonTransformModel { Default, Maya, Max, XSI };
+
   struct TexMatrix {
     // TODO: Deprecate?
     gx::TexGenType projection =

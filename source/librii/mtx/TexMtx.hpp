@@ -32,8 +32,11 @@ enum class CommonMappingOption {
   KeepTranslation        // Don't reset translation column
 };
 
+enum class CommonTransformModel { Default, Maya, Max, XSI };
+
 glm::mat4 computeTexSrt(const glm::vec2& scale, f32 rotate,
                         const glm::vec2& translate, bool maya);
+
 glm::mat4 computeTexMtx(const glm::mat4& mdl, const glm::mat4& mvp,
                         const glm::mat4& texsrt, CommonMappingMethod method,
                         CommonMappingOption option);
