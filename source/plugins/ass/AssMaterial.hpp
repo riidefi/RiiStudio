@@ -101,7 +101,6 @@ static void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
   data.shader.mStages[0] = wip;
 
   librii::gx::ChannelControl ctrl;
-  data.info.nColorChan = 2;
   ctrl.enabled = false;
   ctrl.Material = librii::gx::ColorSource::Vertex;
   data.chanData[0].matColor = {0xff, 0xff, 0xff, 0xff};

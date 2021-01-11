@@ -21,7 +21,7 @@ void Model::MatCache::propogate(Material& mat) {
     update_section(matColors, chan.matColor);
     update_section(ambColors, chan.ambColor);
   }
-  update_section(nColorChan, mat.info.nColorChan);
+  update_section(nColorChan, static_cast<u8>(mat.chanData.size()));
   update_section_multi(colorChans, mat.colorChanControls);
   update_section_multi(lightColors, mat.lightColors);
   update_section(nTexGens, static_cast<u8>(mat.texGens.size()));

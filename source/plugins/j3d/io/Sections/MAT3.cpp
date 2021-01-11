@@ -146,7 +146,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
     cullMode = 0;
   }
   mat.cullMode = static_cast<gx::CullMode>(cullMode);
-  mat.info.nColorChan = loader.indexed<u8>(MatSec::NumColorChannels).raw();
+  const u8 nColorChan = loader.indexed<u8>(MatSec::NumColorChannels).raw();
   mat.texGens.resize(loader.indexed<u8>(MatSec::NumTexGens).raw());
   mat.shader.mStages.resize(loader.indexed<u8>(MatSec::NumTevStages).raw());
   mat.earlyZComparison =
@@ -161,7 +161,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   loader.indexedContainer<u16>(mat.colorChanControls, MatSec::ColorChannelInfo,
                                8);
-  mat.colorChanControls.nElements = mat.info.nColorChan * 2;
+  mat.colorChanControls.nElements = nColorChan * 2;
   array_vector<gx::Color, 2> ambColors;
 
   loader.indexedContainer<u16>(ambColors, MatSec::AmbientColors, 4);
@@ -775,7 +775,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   writer.write<u8>(m.flag);
   writer.write<u8>(find(smat.mMAT3.mCache.cullModes, m.cullMode));
-  writer.write<u8>(find(smat.mMAT3.mCache.nColorChan, m.info.nColorChan));
+  writer.write<u8>(find(smat.mMAT3.mCache.nColorChan, m.chanData.size()));
   writer.write<u8>(find(smat.mMAT3.mCache.nTexGens, m.texGens.size()));
   writer.write<u8>(find(smat.mMAT3.mCache.nTevStages, m.shader.mStages.size()));
   writer.write<u8>(find(smat.mMAT3.mCache.zCompLocs, m.earlyZComparison));

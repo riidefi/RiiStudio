@@ -591,7 +591,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         writer.write<u32>(mat_idx++);
         writer.write<u32>(mat.flag);
         writer.write<u8>(static_cast<u8>(mat.texGens.size()));
-        writer.write<u8>(static_cast<u8>(mat.info.nColorChan));
+        writer.write<u8>(static_cast<u8>(mat.chanData.size()));
         writer.write<u8>(static_cast<u8>(mat.shader.mStages.size()));
         writer.write<u8>(static_cast<u8>(mat.indirectStages.size()));
         writer.write<u32>(static_cast<u32>(mat.cullMode));
@@ -734,7 +734,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
             writer.write<f32>(d);
         }
 
-        for (u8 i = 0; i < mat.info.nColorChan; ++i) {
+        for (u8 i = 0; i < mat.chanData.size(); ++i) {
           // TODO: flag
           writer.write<u32>(0x3f);
           mat.chanData[i].matColor >> writer;
@@ -748,7 +748,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
           writer.write<u32>(clr.hex);
           writer.write<u32>(alpha.hex);
         }
-        for (u8 i = mat.info.nColorChan; i < 2; ++i) {
+        for (u8 i = mat.chanData.size(); i < 2; ++i) {
           writer.write<u32>(0x3f); // TODO: flag, reset on runtime
           writer.write<u32>(0);    // mclr
           writer.write<u32>(0);    // aclr
@@ -1258,9 +1258,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
 
     // Gen info
     mat.texGens.resize(reader.read<u8>());
-    mat.info.nColorChan = reader.read<u8>();
-    if (mat.info.nColorChan >= 2)
-      mat.info.nColorChan = 2;
+    auto nColorChan = reader.read<u8>();
+    if (nColorChan >= 2)
+      nColorChan = 2;
     mat.shader.mStages.resize(reader.read<u8>());
     mat.indirectStages.resize(reader.read<u8>());
     mat.cullMode = static_cast<librii::gx::CullMode>(reader.read<u32>());
@@ -1359,8 +1359,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     // reader.seek((8 - nTex)* (4 + (4 * 4 * sizeof(f32))));
     reader.seekSet(start + 0x3f0);
     mat.chanData.nElements = 0;
-    assert(mat.info.nColorChan < mat.colorChanControls.max_size());
-    for (u8 i = 0; i < mat.info.nColorChan; ++i) {
+    for (u8 i = 0; i < nColorChan; ++i) {
       // skip runtime flag
       const auto flag = reader.read<u32>();
       (void)flag;

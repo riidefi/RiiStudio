@@ -136,9 +136,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       ImGui::EndColumns();
     }
   }
-  matData.info.nColorChan = controls.size() >= 2 //
-                                ? 2
-                                : controls.size() > 0 ? 1 : 0;
 }
 
 

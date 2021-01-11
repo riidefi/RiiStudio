@@ -24,17 +24,6 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
 
   std::string name;
 
-  // Gen Info counts
-  struct GenInfo {
-    u8 nColorChan = 0; // 0, 1, 2
-    // u8 nTexGen = 0;
-    // u8 nTevStage = 1;
-    // u8 nIndStage = 0;
-
-    bool operator==(const GenInfo& rhs) const = default;
-  };
-  GenInfo info;
-
   using CommonTransformModel = librii::mtx::CommonTransformModel;
   using CommonMappingOption = librii::mtx::CommonMappingOption;
   using CommonMappingMethod = librii::mtx::CommonMappingMethod;
