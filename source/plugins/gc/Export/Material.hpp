@@ -27,14 +27,11 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
   // Gen Info counts
   struct GenInfo {
     u8 nColorChan = 0;
-    u8 nTexGen = 0;
-    u8 nTevStage = 1;
+    // u8 nTexGen = 0;
+    // u8 nTevStage = 1;
     u8 nIndStage = 0;
 
-    bool operator==(const GenInfo& rhs) const {
-      return nColorChan == rhs.nColorChan && nTexGen == rhs.nTexGen &&
-             nTevStage == rhs.nTevStage && nIndStage == rhs.nIndStage;
-    }
+    bool operator==(const GenInfo& rhs) const = default;
   };
   GenInfo info;
 

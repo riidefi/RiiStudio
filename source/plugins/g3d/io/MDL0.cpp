@@ -216,9 +216,9 @@ static void writeMaterialDisplayList(const libcube::GCMaterialData& mat,
   }
   assert(writer.tell() - dl_start == 0xe0);
   {
-    for (int i = 0; i < mat.info.nTexGen; ++i)
+    for (int i = 0; i < mat.texGens.size(); ++i)
       dl.setTexCoordGen(i, mat.texGens[i]);
-    writer.skip(18 * (8 - mat.info.nTexGen));
+    writer.skip(18 * (8 - mat.texGens.size()));
     dl.align();
   }
   assert(writer.tell() - dl_start == 0x180);
@@ -579,9 +579,9 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         printf("MATIDAT %x\n", writer.tell());
         writer.write<u32>(mat_idx++);
         writer.write<u32>(mat.flag);
-        writer.write<u8>(static_cast<u8>(mat.info.nTexGen));
+        writer.write<u8>(static_cast<u8>(mat.texGens.size()));
         writer.write<u8>(static_cast<u8>(mat.info.nColorChan));
-        writer.write<u8>(static_cast<u8>(mat.info.nTevStage));
+        writer.write<u8>(static_cast<u8>(mat.shader.mStages.size()));
         writer.write<u8>(static_cast<u8>(mat.info.nIndStage));
         writer.write<u32>(static_cast<u32>(mat.cullMode));
         // Misc
@@ -1246,11 +1246,11 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     mat.flag = reader.read<u32>();
 
     // Gen info
-    mat.info.nTexGen = reader.read<u8>();
+    mat.texGens.resize(reader.read<u8>());
     mat.info.nColorChan = reader.read<u8>();
     if (mat.info.nColorChan >= 2)
       mat.info.nColorChan = 2;
-    mat.info.nTevStage = reader.read<u8>();
+    mat.shader.mStages.resize(reader.read<u8>());
     mat.info.nIndStage = reader.read<u8>();
     mat.cullMode = static_cast<librii::gx::CullMode>(reader.read<u32>());
 
@@ -1395,15 +1395,15 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     reader.seekSet(start + ofsTev + 32);
     {
 
-      librii::gpu::QDisplayListShaderHandler shaderHandler(mat.shader,
-                                                            mat.info.nTevStage);
+      librii::gpu::QDisplayListShaderHandler shaderHandler(
+          mat.shader, mat.shader.mStages.size());
       librii::gpu::RunDisplayList(reader, shaderHandler,
-                                   shaderDlSizes[mat.info.nTevStage]);
+                                  shaderDlSizes[mat.shader.mStages.size()]);
     }
 
     // Samplers
     reader.seekSet(start + ofsSamplers);
-    assert(mat.info.nTexGen == nTex);
+    assert(mat.texGens.size() == nTex);
     for (u8 i = 0; i < nTex; ++i) {
       auto sampler = std::make_unique<libcube::GCMaterialData::SamplerData>();
 
@@ -1476,9 +1476,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
           160       // 8
       };
       librii::gpu::RunDisplayList(reader, matHandler,
-                                   texGenDlSizes[mat.info.nTexGen]);
-      for (u8 i = 0; i < mat.info.nTexGen; ++i) {
-        mat.texGens.push_back(matHandler.mGpuMat.mTexture[i]);
+                                  texGenDlSizes[mat.texGens.size()]);
+      for (u8 i = 0; i < mat.texGens.size(); ++i) {
+        mat.texGens[i] = matHandler.mGpuMat.mTexture[i];
         mat.texMatrices[i]->projection = mat.texGens[i].func;
       }
     }

@@ -24,7 +24,7 @@ void Model::MatCache::propogate(Material& mat) {
   update_section(nColorChan, mat.info.nColorChan);
   update_section_multi(colorChans, mat.colorChanControls);
   update_section_multi(lightColors, mat.lightColors);
-  update_section(nTexGens, mat.info.nTexGen);
+  update_section(nTexGens, static_cast<u8>(mat.texGens.size()));
   auto tgs = mat.texGens;
   for (auto& tg : tgs) {
     if (auto mtx = tg.getMatrixIndex();
@@ -79,7 +79,7 @@ void Model::MatCache::propogate(Material& mat) {
   }
   update_section_multi(tevColors, mat.tevColors);
   update_section_multi(konstColors, mat.tevKonstColors);
-  update_section(nTevStages, mat.info.nTevStage);
+  update_section(nTevStages, static_cast<u8>(mat.shader.mStages.size()));
 
   update_section_multi(swapTables, mat.shader.mSwapTable);
   update_section(fogs, mat.fogInfo);

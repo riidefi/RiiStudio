@@ -66,11 +66,9 @@ static void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
 
     data.texMatrices.push_back(std::make_unique<j3d::Material::TexMatrix>());
     data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
-    data.info.nTexGen = 1;
   }
 
   data.cullMode = librii::gx::CullMode::Back;
-  data.info.nTevStage = 1;
 
   librii::gx::TevStage wip;
   wip.texMap = wip.texCoord = 0;

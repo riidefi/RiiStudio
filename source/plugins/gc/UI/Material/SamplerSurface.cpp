@@ -22,8 +22,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SamplerSurface& surface) {
   auto& matData = delegate.getActive().getMaterialData();
 
-  if (matData.info.nTexGen != matData.texGens.size() ||
-      matData.info.nTexGen != matData.samplers.size()) {
+  if (matData.texGens.size() != matData.samplers.size()) {
     ImGui::Text("Cannot edit: source data is invalid!");
     return;
   }
@@ -41,7 +40,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       d.texGens.push_back(gen);
       d.texMatrices.push_back(std::make_unique<GCMaterialData::TexMatrix>());
       d.samplers.push_back(std::make_unique<GCMaterialData::SamplerData>());
-      ++d.info.nTexGen;
     }
     delegate.commit("Added sampler");
   }
@@ -445,7 +443,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       assert(matData.texGens[i].getMatrixIndex() == i);
       matData.texGens.erase(i);
       matData.texMatrices.erase(i);
-      --matData.info.nTexGen;
 
       // Correct stages
       for (auto& stage : matData.shader.mStages) {

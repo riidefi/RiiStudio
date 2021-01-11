@@ -334,11 +334,7 @@ public:
         }
       }
 
-      if (mat.info.nTexGen != mat.texGens.size()) {
-        printf("Invalid nTexGen!\n");
-      }
       librii::gx::expandSharedTexGens(mat);
-      mat.info.nTexGen = mat.texGens.size();
     }
 
     // Read TEX1

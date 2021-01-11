@@ -80,11 +80,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   StageSurface& tev) {
   auto& matData = delegate.getActive().getMaterialData();
 
-  if (matData.info.nTevStage != matData.shader.mStages.size()) {
-    ImGui::Text("Cannot edit this material: source data is invalid");
-    return;
-  }
-
   auto drawStage = [&](librii::gx::TevStage& stage, int i) {
 #define STAGE_PROP(a, b) AUTO_PROP(shader.mStages[i].a, b)
     if (ImGui::CollapsingHeader("Stage Setting",
@@ -333,8 +328,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
     break;
   }
-
-  matData.info.nTevStage = matData.shader.mStages.size();
 
   if (changed)
     delegate.commit("Stage added/removed");
