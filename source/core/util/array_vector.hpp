@@ -9,6 +9,7 @@ namespace riistudio::util {
 // Much faster than a vector for the many static sized arrays in materials
 template <typename T, size_t N> struct array_vector : public std::array<T, N> {
   size_t size() const { return nElements; }
+  void resize(size_t n_elem) { nElements = n_elem; }
   size_t nElements = 0;
 
   void push_back(T elem) {
