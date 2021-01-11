@@ -130,21 +130,21 @@ struct MDL3Node final : public oishii::Node {
         }
         for (int i = 0; i < 8; ++i)
           builder.setTevKonstantSelAndSwapModeTable();
-        for (int i = 0; i < mat.info.nIndStage; ++i) {
+        for (int i = 0; i < mat.indirectStages.size(); ++i) {
           builder.setIndTexMtx(i, mat.mIndMatrices[i]);
         }
-        for (int i = 0; i < mat.info.nIndStage; ++i) {
+        for (int i = 0; i < mat.indirectStages.size(); ++i) {
           if (i % 2 == 0)
-            builder.setIndTexCoordScale(i, mat.mIndScales[i],
-                                        mat.mIndScales[i + 1]);
+            builder.setIndTexCoordScale(i, mat.indirectStages[i].scale,
+                                        mat.indirectStages[i + 1].scale);
         }
         // TODO: PAD?
-        for (int i = 0; i < mat.info.nIndStage; ++i) {
+        for (int i = 0; i < mat.indirectStages.size(); ++i) {
           // mask 0x03FFFF
           // SU_SSIZE, SU_TSIZE
         }
 
-        for (int i = 0; i < 4 - mat.info.nIndStage; ++i) {
+        for (int i = 0; i < 4 - mat.indirectStages.size(); ++i) {
           // mask 0x03FFFF, 0x2e, 0x2f
           // Not valid, though will be corrected later in DL
         }

@@ -2,9 +2,9 @@
 
 namespace librii::gpu {
 
-QDisplayListShaderHandler::QDisplayListShaderHandler(gx::Shader& shader,
-                                                     int numStages)
-    : mShader(shader), mNumStages(numStages) {}
+QDisplayListShaderHandler::QDisplayListShaderHandler(
+    gx::LowLevelGxMaterial& material, int numStages)
+    : mShader(material.shader), mMaterial(material), mNumStages(numStages) {}
 QDisplayListShaderHandler::~QDisplayListShaderHandler() {}
 
 void QDisplayListShaderHandler::onCommandBP(const QBPCommand& token) {
@@ -120,8 +120,9 @@ void QDisplayListShaderHandler::onStreamEnd() {
     mShader.mSwapTable[i].a =
         (gx::ColorComponent)mGpuShader.tevksel[i * 2 + 1].swapga.Value();
 
-    mShader.mIndirectOrders[i].refMap = mGpuShader.iref.getTexMap(i);
-    mShader.mIndirectOrders[i].refCoord = mGpuShader.iref.getTexCoord(i);
+    mMaterial.indirectStages[i].order.refMap = mGpuShader.iref.getTexMap(i);
+    mMaterial.indirectStages[i].order.refCoord =
+        mGpuShader.iref.getTexCoord(i);
   }
 
   mShader.mStages.resize(mNumStages);

@@ -94,21 +94,7 @@ struct MaterialData : public libcube::GCMaterialData {
   libcube::array_vector<TexMatrix, 20> postTexMatrices{};
   std::array<u8, 24> stackTrash{}; //!< We have to remember this for 1:1
 
-  // Note: For comparison we don't check the ID or name (or stack trash)
-  bool operator==(const MaterialData& rhs) const noexcept {
-    return flag == rhs.flag && indEnabled == rhs.indEnabled &&
-           info == rhs.info && cullMode == rhs.cullMode &&
-           earlyZComparison == rhs.earlyZComparison && zMode == rhs.zMode &&
-           colorChanControls == rhs.colorChanControls &&
-           chanData == rhs.chanData && lightColors == rhs.lightColors &&
-           texGens == rhs.texGens && texMatrices == rhs.texMatrices &&
-           samplers == rhs.samplers && postTexMatrices == rhs.postTexMatrices &&
-           tevKonstColors == rhs.tevKonstColors && tevColors == rhs.tevColors &&
-           shader == rhs.shader && mIndScales == rhs.mIndScales &&
-           mIndMatrices == rhs.mIndMatrices && fogInfo == rhs.fogInfo &&
-           alphaCompare == rhs.alphaCompare && blendMode == rhs.blendMode &&
-           dither == rhs.dither && nbtScale == rhs.nbtScale;
-  }
+  bool operator==(const MaterialData& rhs) const = default;
 };
 struct Texture;
 

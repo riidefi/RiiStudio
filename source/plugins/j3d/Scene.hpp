@@ -144,15 +144,18 @@ struct ModelData : public virtual kpi::IObject {
     Indirect() = default;
     Indirect(const MaterialData& mat) {
       enabled = mat.indEnabled;
-      nIndStage = mat.info.nIndStage;
+      nIndStage = mat.indirectStages.size();
 
       assert(nIndStage <= 4);
 
-      tevOrder = mat.shader.mIndirectOrders;
       for (int i = 0; i < nIndStage; ++i)
-        texScale[i] = mat.mIndScales[i];
+        tevOrder[i] = mat.indirectStages[i].order;
+      for (int i = 0; i < nIndStage; ++i)
+        texScale[i] = mat.indirectStages[i].scale;
+
       for (int i = 0; i < 3 && i < mat.mIndMatrices.size(); ++i)
         texMtx[i] = mat.mIndMatrices[i];
+
       for (int i = 0; i < mat.shader.mStages.size(); ++i)
         tevStage[i] = mat.shader.mStages[i].indirectStage;
     }

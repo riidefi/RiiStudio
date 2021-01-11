@@ -41,6 +41,11 @@ using namespace librii;
 
 namespace librii::gx {
 
+struct IndirectStage {
+  IndirectTextureScalePair scale;
+  IndOrder order;
+};
+
 //! Models a GPU material, at a high level
 //! These values directly map to low-level registers
 struct LowLevelGxMaterial {
@@ -68,7 +73,7 @@ struct LowLevelGxMaterial {
   gx::BlendMode blendMode;
   bool dither = false;
 
-  std::vector<gx::IndirectTextureScalePair> mIndScales;
+  riistudio::util::array_vector<IndirectStage, 4> indirectStages;
   std::vector<gx::IndirectMatrix> mIndMatrices;
 
   gx::Shader shader;

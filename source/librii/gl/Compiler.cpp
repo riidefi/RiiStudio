@@ -1,8 +1,8 @@
 #include <core/util/string_builder.hpp>
+#include <glfw/glfw3.h>
 #include <librii/gl/Compiler.hpp>
 #include <llvm/Support/Error.h>
 #include <string_view>
-#include <glfw/glfw3.h>
 
 namespace librii::gl {
 
@@ -469,7 +469,8 @@ public:
       std::array<char, 256> buf{};
       StringBuilder builder(buf.data(), buf.size());
       auto err = generateMulPntMatrixStatic(
-          builder, static_cast<librii::gx::PostTexMatrix>(texCoordGen.matrix), src);
+          builder, static_cast<librii::gx::PostTexMatrix>(texCoordGen.matrix),
+          src);
       if (err)
         return "INVALID"; // TODO
       return buf.data();
@@ -590,40 +591,38 @@ public:
            ", TextureLODBias(" + idx_str + "))";
   }
 
-  std::string generateIndTexStage(u32 indTexStageIndex) {
+  void generateIndTexStage(std::string& out, u32 indTexStageIndex) {
     const auto& stage =
         mMaterial.shader.mStages[indTexStageIndex].indirectStage;
 
-    const auto scale = indTexStageIndex >= mMaterial.mIndScales.size()
+    const auto scale = indTexStageIndex >= mMaterial.indirectStages.size()
                            ? IndirectTextureScalePair{}
-                           : mMaterial.mIndScales[indTexStageIndex];
-    const auto order =
-        indTexStageIndex >= mMaterial.shader.mIndirectOrders.size()
-            ? IndOrder{}
-            : mMaterial.shader.mIndirectOrders[indTexStageIndex];
+                           : mMaterial.indirectStages[indTexStageIndex].scale;
+    const auto order = indTexStageIndex >= mMaterial.indirectStages.size()
+                           ? IndOrder{}
+                           : mMaterial.indirectStages[indTexStageIndex].order;
 
-    return "vec3 t_IndTexCoord" + std::to_string(indTexStageIndex) +
-           " = 255.0 * " +
-           generateTextureSample(
-               order.refMap, generateIndTexStageScale(stage, scale, order)) +
-           ".abg;\n";
+    out += "vec3 t_IndTexCoord";
+    out += std::to_string(indTexStageIndex);
+    out += " = ";
+
+    out += "255.0 * ";
+    out += generateTextureSample(order.refMap,
+                                 generateIndTexStageScale(stage, scale, order));
+    out += ".abg;\n";
   }
 
   std::string generateIndTexStages() {
     std::string out;
     auto& matData = mMaterial;
-    auto& shader = matData.shader;
 
-    for (std::size_t i = 0; i < shader.mStages.size(); ++i) {
-      if (shader.mIndirectOrders[0].refCoord >= matData.texGens.size())
+    for (std::size_t i = 0; i < matData.indirectStages.size(); ++i) {
+      if (matData.indirectStages[i].order.refCoord >= matData.texGens.size())
         continue;
-      // if (shader.mIndirectOrders[shader.mStages[i].indirectStage.indStageSel]
-      //         .refCoord >= matData.texGens.size())
+      // if (matData.indirectStages[i].order.refMap >= matData.samplers.size())
       //   continue;
-      // TODO: This is wrong, but changing it breaks things..
-      if (i < 4 && shader.mIndirectOrders[i].refCoord >= matData.texGens.size())
-        continue;
-      out += generateIndTexStage(i);
+
+      generateIndTexStage(out, i);
     }
     return out;
   }
@@ -1332,7 +1331,6 @@ public:
   }
 
   llvm::Expected<std::string> generateVert() {
-
     const std::string_view varying_vert =
         R"(out vec3 v_Position;
 out vec4 v_Color0;

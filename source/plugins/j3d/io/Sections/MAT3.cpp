@@ -271,15 +271,15 @@ void readMatEntry(Material& mat, MatLoader& loader,
                                              0x138, idx);
 
     mat.indEnabled = ind.enabled;
-    mat.info.nIndStage = ind.nIndStage;
+    mat.indirectStages.resize(ind.nIndStage);
 
     for (int i = 0; i < ind.nIndStage; ++i)
-      mat.mIndScales.emplace_back(ind.texScale[i]);
+      mat.indirectStages[i].scale = ind.texScale[i];
     // TODO: Assumes one indmtx / indstage
     for (int i = 0; i < 3 && i < ind.nIndStage; ++i)
       mat.mIndMatrices.emplace_back(ind.texMtx[i]);
-    for (int i = 0; i < 4; ++i)
-      mat.shader.mIndirectOrders[i] = ind.tevOrder[i];
+    for (int i = 0; i < ind.nIndStage; ++i)
+      mat.indirectStages[i].order = ind.tevOrder[i];
     for (int i = 0; i < mat.shader.mStages.size(); ++i)
       mat.shader.mStages[i].indirectStage = ind.tevStage[i];
   }

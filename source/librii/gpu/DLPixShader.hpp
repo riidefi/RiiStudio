@@ -30,13 +30,15 @@ struct GPUShader {
 
 class QDisplayListShaderHandler : public QDisplayListHandler {
 public:
-  QDisplayListShaderHandler(librii::gx::Shader& shader, int numStages);
+  QDisplayListShaderHandler(librii::gx::LowLevelGxMaterial& material,
+                            int numStages);
   ~QDisplayListShaderHandler();
 
   void onCommandBP(const QBPCommand& token) override;
   void onStreamEnd() override;
 
   librii::gx::Shader& mShader;
+  gx::LowLevelGxMaterial& mMaterial;
   int mNumStages;
 
   GPUShader mGpuShader;

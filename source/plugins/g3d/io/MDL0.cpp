@@ -197,8 +197,8 @@ static void writeMaterialDisplayList(const libcube::GCMaterialData& mat,
   assert(writer.tell() - dl_start == 0xa0);
   {
     std::array<librii::gx::IndirectTextureScalePair, 4> scales;
-    for (int i = 0; i < mat.mIndScales.size(); ++i)
-      scales[i] = mat.mIndScales[i];
+    for (int i = 0; i < mat.indirectStages.size(); ++i)
+      scales[i] = mat.indirectStages[i].scale;
     dl.setIndTexCoordScale(0, scales[0], scales[1]);
     dl.setIndTexCoordScale(2, scales[2], scales[3]);
 
@@ -333,10 +333,21 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   //
   // Build shaders
   //
-  std::vector<librii::gx::Shader> shaders;
+  struct G3dShader : public librii::gx::Shader {
+    bool operator==(const G3dShader&) const = default;
+
+    riistudio::util::array_vector<librii::gx::IndOrder, 4> mIndirectOrders;
+
+    G3dShader(const librii::gx::LowLevelGxMaterial& mat) : Shader(mat.shader) {
+      mIndirectOrders.resize(mat.indirectStages.size());
+      for (int i = 0; i < mIndirectOrders.size(); ++i)
+        mIndirectOrders[i] = mat.indirectStages[i].order;
+    }
+  };
+  std::vector<G3dShader> shaders;
   std::vector<u32> matToShaderMap;
   for (auto& mat : mdl.getMaterials()) {
-    auto& shader = mat.getMaterialData().shader;
+    G3dShader shader(mat.getMaterialData());
     auto found = std::find(shaders.begin(), shaders.end(), shader);
     if (found == shaders.end()) {
       matToShaderMap.emplace_back(shaders.size());
@@ -582,20 +593,20 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         writer.write<u8>(static_cast<u8>(mat.texGens.size()));
         writer.write<u8>(static_cast<u8>(mat.info.nColorChan));
         writer.write<u8>(static_cast<u8>(mat.shader.mStages.size()));
-        writer.write<u8>(static_cast<u8>(mat.info.nIndStage));
+        writer.write<u8>(static_cast<u8>(mat.indirectStages.size()));
         writer.write<u32>(static_cast<u32>(mat.cullMode));
         // Misc
         writer.write<u8>(mat.earlyZComparison);
         writer.write<u8>(mat.lightSetIndex);
         writer.write<u8>(mat.fogIndex);
         writer.write<u8>(0); // pad
-        for (u8 i = 0; i < mat.info.nIndStage; ++i)
+        for (u8 i = 0; i < mat.indirectStages.size(); ++i)
           writer.write<u8>(static_cast<u8>(mat.indConfig[i].method));
-        for (u8 i = mat.info.nIndStage; i < 4; ++i)
+        for (u8 i = mat.indirectStages.size(); i < 4; ++i)
           writer.write<u8>(0);
-        for (u8 i = 0; i < mat.info.nIndStage; ++i)
+        for (u8 i = 0; i < mat.indirectStages.size(); ++i)
           writer.write<u8>(mat.indConfig[i].normalMapLightRef);
-        for (u8 i = mat.info.nIndStage; i < 4; ++i)
+        for (u8 i = mat.indirectStages.size(); i < 4; ++i)
           writer.write<u8>(0xff);
         linker.writeReloc<s32>("Mat" + std::to_string(mat_start),
                                get_shader_id(mat.shader));
@@ -787,7 +798,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       },
       false, 4);
 
-  const auto write_shader = [&](const librii::gx::Shader& shader,
+  const auto write_shader = [&](const G3dShader& shader,
                                 std::size_t shader_start, int shader_id) {
     printf("Shader at %x\n", (unsigned)shader_start);
     linker.label("Shader" + std::to_string(shader_id), shader_start);
@@ -1251,7 +1262,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     if (mat.info.nColorChan >= 2)
       mat.info.nColorChan = 2;
     mat.shader.mStages.resize(reader.read<u8>());
-    mat.info.nIndStage = reader.read<u8>();
+    mat.indirectStages.resize(reader.read<u8>());
     mat.cullMode = static_cast<librii::gx::CullMode>(reader.read<u32>());
 
     // Misc
@@ -1260,7 +1271,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     mat.fogIndex = reader.read<s8>();
     reader.read<u8>();
     const auto indSt = reader.tell();
-    for (u8 i = 0; i < mat.info.nIndStage; ++i) {
+    for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
       G3dIndConfig cfg;
       cfg.method = static_cast<G3dIndMethod>(reader.read<u8>());
       cfg.normalMapLightRef = reader.peekAt<s8>(4);
@@ -1396,7 +1407,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     {
 
       librii::gpu::QDisplayListShaderHandler shaderHandler(
-          mat.shader, mat.shader.mStages.size());
+          mat, mat.shader.mStages.size());
       librii::gpu::RunDisplayList(reader, shaderHandler,
                                   shaderDlSizes[mat.shader.mStages.size()]);
     }
@@ -1454,14 +1465,14 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
 
       // Indirect data
       librii::gpu::RunDisplayList(reader, matHandler, 64);
-      for (u8 i = 0; i < mat.info.nIndStage; ++i) {
+      for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
         const auto& curScale =
             matHandler.mGpuMat.mIndirect.mIndTexScales[i > 1 ? i - 2 : i];
-        mat.mIndScales.push_back(
-            {static_cast<librii::gx::IndirectTextureScalePair::Selection>(
-                 curScale.ss0),
-             static_cast<librii::gx::IndirectTextureScalePair::Selection>(
-                 curScale.ss1)});
+        mat.indirectStages[i].scale = librii::gx::IndirectTextureScalePair{
+            static_cast<librii::gx::IndirectTextureScalePair::Selection>(
+                curScale.ss0),
+            static_cast<librii::gx::IndirectTextureScalePair::Selection>(
+                curScale.ss1)};
 
         mat.mIndMatrices.push_back(
             matHandler.mGpuMat.mIndirect.mIndMatrices[i]);

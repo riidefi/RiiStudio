@@ -277,7 +277,6 @@ struct Shader {
       SwapTableEntry{Clr::g, Clr::g, Clr::g, Clr::a},
       SwapTableEntry{Clr::b, Clr::b, Clr::b, Clr::a},
   };
-  std::array<IndOrder, 4> mIndirectOrders;
 
 // Variable-sized DL
 // Max 16

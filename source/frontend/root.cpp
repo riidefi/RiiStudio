@@ -197,7 +197,7 @@ void RootWindow::draw() {
                           *before[i].get());
                   md.samplers.push_back(std::move(simp));
                 }
-                mat.indEnabled = mat.getMaterialData().info.nIndStage > 0;
+                mat.indEnabled = !mat.getMaterialData().indirectStages.empty();
               }
             }
             // joints
