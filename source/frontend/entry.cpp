@@ -4,19 +4,16 @@
 
 struct RootHolder {
   void create(int& argc, const char**& argv) {
-    window = std::make_unique<riistudio::frontend::RootWindow>();
 #ifndef BUILD_DEBUG
     initLlvm = std::make_unique<llvm::InitLLVM>(argc, argv);
 #endif
+
+    window = std::make_unique<riistudio::frontend::RootWindow>();
   }
-  void setForceUpdate(bool update) { window->setForceUpdate(update); }
-  void openFileArgument(int argc, const char** argv) {
-    if (argc > 1 && strcmp(argv[1], "update"))
-      window->openFile(argv[1], riistudio::frontend::OpenFilePolicy::NewEditor);
-  }
+
   void enter() { window->enter(); }
 
-  riistudio::frontend::RootWindow& getWindow() {
+  riistudio::frontend::RootWindow& getRoot() {
     assert(window);
     return *window;
   }
@@ -26,13 +23,17 @@ private:
   std::unique_ptr<llvm::InitLLVM> initLlvm;
 } sRootHolder;
 
-
 int main(int argc, const char** argv) {
-  const bool force_update = argc > 1 && !strcmp(argv[1], "update");
-
   sRootHolder.create(argc, argv);
-  sRootHolder.openFileArgument(argc, argv);
-  sRootHolder.setForceUpdate(force_update);
+
+  if (argc > 1) {
+    if (!strcmp(argv[1], "--update")) {
+      sRootHolder.getRoot().setForceUpdate(true);
+    } else {
+      sRootHolder.getRoot().openFile(argv[1]);
+    }
+  }
+
   sRootHolder.enter();
 
   return 0;

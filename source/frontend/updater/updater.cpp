@@ -230,7 +230,7 @@ bool Updater::InstallUpdate() {
 void Updater::RetryAsAdmin() {
 #ifdef _WIN32
   auto path = ExecutableFilename();
-  ShellExecute(nullptr, "runas", path.c_str(), "update", 0, SW_SHOWNORMAL);
+  ShellExecute(nullptr, "runas", path.c_str(), "--update", 0, SW_SHOWNORMAL);
 #else
 // FIXME: Provide Linux/Mac version
 #endif
