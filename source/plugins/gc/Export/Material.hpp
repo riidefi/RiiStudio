@@ -19,8 +19,7 @@ using copyable_polymorphic_array_vector =
 class Model;
 
 struct GCMaterialData : public gx::LowLevelGxMaterial {
-  // TODO:
-  bool operator==(const GCMaterialData& rhs) const { return false; }
+  bool operator==(const GCMaterialData& rhs) const = default;
 
   std::string name;
 
@@ -106,10 +105,6 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
   };
 
   copyable_polymorphic_array_vector<SamplerData, 8> samplers;
-
-  GCMaterialData() {
-    // chanData.nElements = 2;
-  }
 };
 
 struct IGCMaterial : public riistudio::lib3d::Material {

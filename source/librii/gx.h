@@ -42,6 +42,8 @@ using namespace librii;
 namespace librii::gx {
 
 struct IndirectStage {
+  bool operator==(const IndirectStage&) const = default;
+
   IndirectTextureScalePair scale;
   IndOrder order;
 };
@@ -49,6 +51,8 @@ struct IndirectStage {
 //! Models a GPU material, at a high level
 //! These values directly map to low-level registers
 struct LowLevelGxMaterial {
+  bool operator==(const LowLevelGxMaterial&) const = default;
+
   gx::CullMode cullMode = librii::gx::CullMode::Back;
 
   // Gen Info counts are implied:
