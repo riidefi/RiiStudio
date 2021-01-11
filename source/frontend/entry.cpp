@@ -10,6 +10,10 @@ struct RootHolder {
 #endif
   }
   void setForceUpdate(bool update) { window->setForceUpdate(update); }
+  void openFileArgument(int argc, const char** argv) {
+    if (argc > 1 && strcmp(argv[1], "update"))
+      window->openFile(argv[1], riistudio::frontend::OpenFilePolicy::NewEditor);
+  }
   void enter() { window->enter(); }
 
   riistudio::frontend::RootWindow& getWindow() {
@@ -27,6 +31,7 @@ int main(int argc, const char** argv) {
   const bool force_update = argc > 1 && !strcmp(argv[1], "update");
 
   sRootHolder.create(argc, argv);
+  sRootHolder.openFileArgument(argc, argv);
   sRootHolder.setForceUpdate(force_update);
   sRootHolder.enter();
 

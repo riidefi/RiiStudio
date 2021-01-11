@@ -15,7 +15,7 @@ namespace riistudio::frontend {
 
 class EditorWindow;
 
-class RootWindow final : public Applet, FileHost {
+class RootWindow final : public Applet, public FileHost {
 public:
   static RootWindow* spInstance;
 
