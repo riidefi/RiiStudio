@@ -1,4 +1,5 @@
 #include "root.hpp"
+#include <filesystem>
 #include <memory>
 #include <vendor/llvm/Support/InitLLVM.h>
 
@@ -24,6 +25,11 @@ private:
 } sRootHolder;
 
 int main(int argc, const char** argv) {
+  if (argc > 0) {
+    printf("%s\n", argv[0]);
+    std::filesystem::current_path(std::filesystem::path(argv[0]).parent_path());
+  }
+
   sRootHolder.create(argc, argv);
 
   if (argc > 1) {
