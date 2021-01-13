@@ -12,6 +12,9 @@ struct SceneTree {
     const lib3d::Bone& bone;
     u8 priority;
 
+    const lib3d::Scene& scn;
+    const lib3d::Model& mdl;
+
     ShaderProgram shader;
 
     // Only used later
@@ -20,9 +23,10 @@ struct SceneTree {
     mutable u32 mtx_id = 0;
 
     Node(const lib3d::Material& m, const lib3d::Polygon& p,
-         const lib3d::Bone& b, u8 prio, ShaderProgram&& prog)
-        : mat((lib3d::Material&)m), poly(p), bone(b), priority(prio),
-          shader(std::move(prog)) {}
+         const lib3d::Bone& b, u8 prio, const lib3d::Scene& _scn,
+         const lib3d::Model& _mdl, ShaderProgram&& prog)
+        : mat((lib3d::Material&)m), poly(p), bone(b), priority(prio), scn(_scn),
+          mdl(_mdl), shader(std::move(prog)) {}
 
     void update(lib3d::Material* _mat) override {
       DebugReport("Recompiling shader for %s..\n", _mat->getName().c_str());
@@ -45,9 +49,10 @@ struct SceneTree {
 
   std::vector<std::unique_ptr<Node>> opaque, translucent;
 
-  void gatherBoneRecursive(u64 boneId, const lib3d::Model& root);
+  void gatherBoneRecursive(u64 boneId, const lib3d::Model& root,
+                           const lib3d::Scene& scn);
 
-  void gather(const lib3d::Model& root);
+  void gather(const lib3d::Model& root, const lib3d::Scene& scene);
 
   // TODO: Z Sort
 };

@@ -8,6 +8,8 @@
 
 #include <core/kpi/ActionMenu.hpp> // kpi::ActionMenuManager
 
+#include <plugins/gc/Export/Scene.hpp>
+
 namespace riistudio::frontend {
 
 struct GenericCollectionOutliner : public StudioWindow {
@@ -206,6 +208,8 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
 
     lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(&nodeAt);
     libcube::IGCMaterial* mat = dynamic_cast<libcube::IGCMaterial*>(&nodeAt);
+    libcube::Scene* scn =
+        dynamic_cast<libcube::Scene*>(nodeAt.childOf->childOf);
 
     u32 flags = ImGuiTreeNodeFlags_DefaultOpen;
     if (as_host == nullptr)
@@ -224,7 +228,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
       if (mat != nullptr) {
         for (int s = 0; s < mat->getMaterialData().samplers.size(); ++s) {
           auto& sampl = *mat->getMaterialData().samplers[s].get();
-          const lib3d::Texture* curImg = mat->getTexture(sampl.mTexture);
+          const lib3d::Texture* curImg = mat->getTexture(*scn, sampl.mTexture);
           ImGui::SameLine();
           ImGui::SetCursorPosY(initial_pos_y);
           ed.drawImageIcon(curImg, icon_size);

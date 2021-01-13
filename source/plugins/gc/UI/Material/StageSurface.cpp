@@ -2,6 +2,8 @@
 #include <core/3d/ui/Image.hpp>        // for ImagePreview
 #include <plugins/gc/UI/TevSolver.hpp> // for optimizeNode
 
+#include <plugins/gc/Export/Scene.hpp>
+
 namespace libcube::UI {
 
 using namespace riistudio::util;
@@ -79,6 +81,9 @@ template <typename T> T DrawKonstSel(T x) {
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   StageSurface& tev) {
   auto& matData = delegate.getActive().getMaterialData();
+  const libcube::Scene* pScn = dynamic_cast<const libcube::Scene*>(
+      dynamic_cast<const kpi::IObject*>(&delegate.getActive())
+          ->childOf->childOf);
 
   auto drawStage = [&](librii::gx::TevStage& stage, int i) {
 #define STAGE_PROP(a, b) AUTO_PROP(shader.mStages[i].a, b)
@@ -140,11 +145,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       if (stage.texCoord != stage.texMap) {
         ImGui::Text("TODO: TexCoord != TexMap: Not valid");
       } else {
-
         // TODO: Better selection here
         int texid = stage.texMap;
         texid = SamplerCombo(texid, matData.samplers,
-                             delegate.getActive().getTextureSource(),
+                             delegate.getActive().getTextureSource(*pScn),
                              delegate.mEd, true);
         if (texid != stage.texMap) {
           for (auto* e : delegate.mAffected) {
@@ -166,7 +170,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       } else {
         const riistudio::lib3d::Texture* curImg = nullptr;
 
-        const auto mImgs = delegate.getActive().getTextureSource();
+        const auto mImgs = delegate.getActive().getTextureSource(*pScn);
         for (auto& it : mImgs) {
           if (it.getName() == matData.samplers[stage.texMap]->mTexture) {
             curImg = &it;

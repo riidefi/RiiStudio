@@ -10,6 +10,8 @@
 
 namespace libcube {
 
+class Scene;
+
 template <typename T, size_t N>
 using array_vector = riistudio::util::array_vector<T, N>;
 template <typename T, size_t N>
@@ -116,10 +118,13 @@ struct IGCMaterial : public riistudio::lib3d::Material {
   void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M,
                         const glm::mat4& V, const glm::mat4& P, u32 shaderId,
                         const std::map<std::string, u32>& texIdMap,
-                        const riistudio::lib3d::Polygon& poly) const override;
+                        const riistudio::lib3d::Polygon& poly,
+                        const riistudio::lib3d::Scene& scn) const override;
 
-  virtual kpi::ConstCollectionRange<Texture> getTextureSource() const;
-  virtual const Texture* getTexture(const std::string& id) const = 0;
+  virtual kpi::ConstCollectionRange<Texture>
+  getTextureSource(const libcube::Scene& scn) const;
+  virtual const Texture* getTexture(const libcube::Scene& scn,
+                                    const std::string& id) const = 0;
   void
   genSamplUniforms(u32 shaderId,
                    const std::map<std::string, u32>& texIdMap) const override;

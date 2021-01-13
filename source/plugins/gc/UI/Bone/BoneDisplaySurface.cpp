@@ -1,5 +1,5 @@
-#include <core/util/gui.hpp>
 #include <core/kpi/PropertyView.hpp>
+#include <core/util/gui.hpp>
 #include <plugins/gc/Export/Bone.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
@@ -15,8 +15,9 @@ auto BoneDisplaySurface =
           auto& bone = delegate.getActive();
           ImGui::Text(
               (const char*)
-                  ICON_FA_EXCLAMATION_TRIANGLE
-              u8" Display Properties do not currently support multi-selection.");
+                  ICON_FA_EXCLAMATION_TRIANGLE u8" Display Properties do not "
+                                               u8"currently support "
+                                               u8"multi-selection.");
 
           auto folder_id_combo = [](const char* title, const auto& folder,
                                     int& active) {
@@ -43,8 +44,11 @@ auto BoneDisplaySurface =
               ImGuiTableFlags_Borders | ImGuiTableFlags_Sortable |
               ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable;
           if (ImGui::BeginTable("Entries", 3, entry_flags)) {
-            const auto materials = bone.getParent()->getMaterials();
-            const auto polys = bone.getParent()->getMeshes();
+            const riistudio::lib3d::Model* pMdl =
+                dynamic_cast<const riistudio::lib3d::Model*>(
+                    dynamic_cast<const kpi::IObject*>(&bone)->childOf);
+            const auto materials = pMdl->getMaterials();
+            const auto polys = pMdl->getMeshes();
 
             ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 

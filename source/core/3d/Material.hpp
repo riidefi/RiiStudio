@@ -11,6 +11,8 @@
 namespace riistudio::lib3d {
 
 struct Material;
+class Scene;
+
 
 struct IObserver {
   virtual ~IObserver() = default;
@@ -18,7 +20,7 @@ struct IObserver {
   virtual void update(Material* mat) {}
 };
 struct Polygon;
-struct Material : public virtual kpi::IObject {
+struct Material {
   virtual ~Material() = default;
 
   virtual std::string getName() const { return "Untitled Material"; }
@@ -34,7 +36,8 @@ struct Material : public virtual kpi::IObject {
                                 const glm::mat4& M, const glm::mat4& V,
                                 const glm::mat4& P, u32 shaderId,
                                 const std::map<std::string, u32>& texIdMap,
-                                const Polygon& poly) const = 0;
+                                const Polygon& poly,
+                                const Scene& scene) const = 0;
   virtual void
   genSamplUniforms(u32 shaderId,
                    const std::map<std::string, u32>& texIdMap) const = 0;

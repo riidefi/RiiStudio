@@ -368,8 +368,17 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
     if (src_range.end() == src_range.begin())
       return;
     int d_pos = Dictionaries.at(name);
-    writeDictionary<true>(name, src_range, handler, linker, writer, mdl_start,
-                          names, &d_pos, raw, align);
+    writeDictionary<true, false>(name, src_range, handler, linker, writer,
+                                 mdl_start, names, &d_pos, raw, align);
+  };
+  const auto write_dict_mat = [&](const std::string& name, auto src_range,
+                                  auto handler, bool raw = false,
+                                  u32 align = 4) {
+    if (src_range.end() == src_range.begin())
+      return;
+    int d_pos = Dictionaries.at(name);
+    writeDictionary<true, true>(name, src_range, handler, linker, writer,
+                                mdl_start, names, &d_pos, raw, align);
   };
 
   {
@@ -580,13 +589,13 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       });
 
   u32 mat_idx = 0;
-  write_dict(
+  write_dict_mat(
       "Materials", mdl.getMaterials(),
       [&](const Material& mat, std::size_t mat_start) {
         linker.label("Mat" + std::to_string(mat_start), mat_start);
         printf("MAT_START %x\n", (u32)mat_start);
         printf("MAT_NAME %x\n", writer.tell());
-        writeNameForward(names, writer, mat_start, mat.getName());
+        writeNameForward(names, writer, mat_start, mat.IGCMaterial::getName());
         printf("MATIDAT %x\n", writer.tell());
         writer.write<u32>(mat_idx++);
         writer.write<u32>(mat.flag);
@@ -766,8 +775,8 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
             {
               const auto [entry_start, struct_start] =
                   tex_sampler_mappings.from_mat(&mat, i);
-              printf("<material=\"%s\" sampler=%u>\n", mat.getName().c_str(),
-                     i);
+              printf("<material=\"%s\" sampler=%u>\n",
+                     mat.IGCMaterial::getName().c_str(), i);
               printf("\tentry_start=%x, struct_start=%x\n",
                      (unsigned)entry_start, (unsigned)struct_start);
               oishii::Jump<oishii::Whence::Set, oishii::Writer> sg(writer,
@@ -901,7 +910,8 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       for (int j = 0; j < matToShaderMap.size(); ++j) {
         if (matToShaderMap[j] == i) {
           _dict.mNodes[j + 1].setDataDestination(writer.tell());
-          _dict.mNodes[j + 1].setName(mdl.getMaterials()[j].getName());
+          _dict.mNodes[j + 1].setName(
+              mdl.getMaterials()[j].IGCMaterial::getName());
         }
       }
       const auto backpatch = writePlaceholder(writer); // size

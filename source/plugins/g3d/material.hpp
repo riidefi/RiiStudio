@@ -64,7 +64,8 @@ struct Material : public G3dMaterialData,
                   public virtual kpi::IObject {
   GCMaterialData& getMaterialData() override { return *this; }
   const GCMaterialData& getMaterialData() const override { return *this; }
-  const libcube::Texture* getTexture(const std::string& id) const override;
+  const libcube::Texture* getTexture(const libcube::Scene& scn,
+                                     const std::string& id) const override;
 
   s64 getId() const override { return id; }
 

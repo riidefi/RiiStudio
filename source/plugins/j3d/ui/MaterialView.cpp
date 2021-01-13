@@ -150,7 +150,10 @@ void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
   KPI_PROPERTY_EX(delegate, boundingBox, boundingBox);
   KPI_PROPERTY_EX(delegate, boundingSphereRadius, boundingSphereRadius);
 
-  const auto mtx = delegate.getActive().calcSrtMtx();
+  const riistudio::lib3d::Model* pMdl =
+      dynamic_cast<const riistudio::lib3d::Model*>(
+          dynamic_cast<const kpi::IObject*>(&bone)->childOf);
+  const auto mtx = delegate.getActive().calcSrtMtx(pMdl);
 
   ImGui::Text("Computed Matrix:");
   Toolkit::Matrix44(mtx);

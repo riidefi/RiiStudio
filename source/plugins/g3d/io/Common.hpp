@@ -140,7 +140,7 @@ private:
       mChildren;
 };
 
-template <bool Named, typename T, typename U>
+template <bool Named, bool bMaterial, typename T, typename U>
 void writeDictionary(const std::string& name, T src_range, U handler,
                      RelocWriter& linker, oishii::Writer& writer, u32 mdl_start,
                      NameTable& names, int* d_cursor, bool raw = false,
@@ -165,8 +165,12 @@ void writeDictionary(const std::string& name, T src_range, U handler,
   for (std::size_t i = 0; i < src_range.size(); ++i) {
     writer.alignTo(align); //
     _dict.mNodes[i + 1].setDataDestination(writer.tell());
-    if constexpr (Named)
-      _dict.mNodes[i + 1].setName(src_range[i].getName());
+    if constexpr (Named) {
+      if constexpr (bMaterial)
+        _dict.mNodes[i + 1].setName(src_range[i].IGCMaterial::getName());
+      else
+        _dict.mNodes[i + 1].setName(src_range[i].getName());
+    }
 
     if (!raw) {
       const auto backpatch = writePlaceholder(writer); // size

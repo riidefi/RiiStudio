@@ -4,8 +4,8 @@
 
 namespace riistudio::g3d {
 
-const libcube::Texture* Material::getTexture(const std::string& id) const {
-  const auto textures = getTextureSource();
+const libcube::Texture* Material::getTexture(const libcube::Scene& scn, const std::string& id) const {
+  const auto textures = getTextureSource(scn);
 
   for (auto& tex : textures) {
     if (tex.getName() == id)

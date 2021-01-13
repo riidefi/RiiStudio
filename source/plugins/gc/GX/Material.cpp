@@ -117,11 +117,12 @@ glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
       scale, rotate, translate, transformModel == CommonTransformModel::Maya);
   return librii::mtx::computeTexMtx(mdl, mvp, texsrt, method, option);
 }
-void IGCMaterial::generateUniforms(
-    DelegatedUBOBuilder& builder, const glm::mat4& M, const glm::mat4& V,
-    const glm::mat4& P, u32 shaderId,
-    const std::map<std::string, u32>& texIdMap,
-    const riistudio::lib3d::Polygon& poly) const {
+void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
+                                   const glm::mat4& M, const glm::mat4& V,
+                                   const glm::mat4& P, u32 shaderId,
+                                   const std::map<std::string, u32>& texIdMap,
+                                   const riistudio::lib3d::Polygon& poly,
+                                   const riistudio::lib3d::Scene& scn) const {
   glUniformBlockBinding(shaderId,
                         glGetUniformBlockIndex(shaderId, "ub_SceneParams"), 0);
   glUniformBlockBinding(
@@ -155,7 +156,9 @@ void IGCMaterial::generateUniforms(
   for (int i = 0; i < data.samplers.size(); ++i) {
     if (data.samplers[i]->mTexture.empty())
       continue;
-    const auto* texData = getTexture(data.samplers[i]->mTexture);
+    const auto* texData =
+        getTexture(reinterpret_cast<const libcube::Scene&>(scn),
+                   data.samplers[i]->mTexture);
     if (texData == nullptr)
       continue;
     tmp.TexParams[i] = glm::vec4{texData->getWidth(), texData->getHeight(), 0,

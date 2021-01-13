@@ -444,7 +444,7 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip) {
 
   if (auto* gmdl = dynamic_cast<g3d::Model*>(out_model); gmdl != nullptr) {
     for (auto& mat : gmdl->getMaterials())
-      old_materials.emplace(mat.getName(),
+      old_materials.emplace(mat.libcube::IGCMaterial::getName(),
                             std::make_unique<g3d::Material>(mat));
 
     gmdl->getBuf_Clr().resize(0);

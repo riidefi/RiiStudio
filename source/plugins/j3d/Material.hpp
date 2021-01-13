@@ -98,12 +98,18 @@ struct MaterialData : public libcube::GCMaterialData {
 };
 struct Texture;
 
-struct Material : public MaterialData, public libcube::IGCMaterial {
+struct Material : public MaterialData,
+                  public libcube::IGCMaterial,
+                  public virtual kpi::IObject {
   // PX_TYPE_INFO_EX("J3D Material", "j3d_material", "J::Material",
   // ICON_FA_PAINT_BRUSH, ICON_FA_PAINT_BRUSH);
 
   ~Material() = default;
   Material() = default;
+
+  std::string getName() const override {
+    return libcube::IGCMaterial::getName();
+  }
 
   libcube::GCMaterialData& getMaterialData() override { return *this; }
   const libcube::GCMaterialData& getMaterialData() const override {
@@ -112,7 +118,8 @@ struct Material : public MaterialData, public libcube::IGCMaterial {
 
   bool isXluPass() const override { return flag & 4; }
   void setXluPass(bool b) override { flag = (flag & ~4) | (b ? 4 : 0); }
-  const libcube::Texture* getTexture(const std::string& id) const override;
+  const libcube::Texture* getTexture(const libcube::Scene& scene,
+                                     const std::string& id) const override;
 };
 
 } // namespace riistudio::j3d

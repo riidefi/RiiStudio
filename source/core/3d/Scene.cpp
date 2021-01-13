@@ -11,14 +11,11 @@
 
 namespace riistudio::lib3d {
 
-glm::mat4 Bone::calcSrtMtx() {
-  if (!collectionOf)
+glm::mat4 Bone::calcSrtMtx(const lib3d::Model* mdl) const {
+  if (mdl == nullptr)
     return {};
 
-  return calcSrtMtx(collectionOf);
-}
-const lib3d::Model* Bone::getParent() {
-  return dynamic_cast<lib3d::Model*>(childOf);
+  return calcSrtMtx(mdl->getBones());
 }
 
 SceneImpl::SceneImpl() : mState(std::make_shared<SceneState>()) {}

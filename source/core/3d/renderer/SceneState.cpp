@@ -72,7 +72,7 @@ void SceneState::buildTextures(const lib3d::Scene& root) {
 
 void SceneState::gather(const lib3d::Model& model, const lib3d::Scene& texture,
                         bool buf, bool tex) {
-  mTree.gather(model);
+  mTree.gather(model, texture);
   if (buf)
     buildBuffers();
   if (tex)
@@ -90,7 +90,7 @@ void SceneState::build(const glm::mat4& view, const glm::mat4& proj,
   bound.max = {0.0f, 0.0f, 0.0f};
 
   for (const auto& node : mTree.opaque) {
-    auto mdl = ((lib3d::Bone&)node->bone).calcSrtMtx();
+    auto mdl = node->bone.calcSrtMtx(&node->mdl);
 
     auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
     auto nmin = mdl * glm::vec4(node->poly.getBounds().min, 0.0f);
@@ -99,7 +99,7 @@ void SceneState::build(const glm::mat4& view, const glm::mat4& proj,
     bound.expandBound(newBound);
   }
   for (const auto& node : mTree.translucent) {
-    auto mdl = ((lib3d::Bone&)node->bone).calcSrtMtx();
+    auto mdl = node->bone.calcSrtMtx(&node->mdl);
 
     auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
     auto nmin = mdl * glm::vec4(node->poly.getBounds().min, 0.0f);
@@ -124,7 +124,8 @@ void SceneState::build(const glm::mat4& view, const glm::mat4& proj,
     //}
 
     node->mat.generateUniforms(mUboBuilder, mdl, view, proj,
-                               node->shader.getId(), texIdMap, node->poly);
+                               node->shader.getId(), texIdMap, node->poly,
+                               node->scn);
     node->mtx_id = mtx_id;
   };
 

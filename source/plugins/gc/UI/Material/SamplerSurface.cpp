@@ -1,5 +1,6 @@
 #include "Common.hpp"
 #include <core/3d/ui/Image.hpp> // for ImagePreview
+#include <plugins/gc/Export/Scene.hpp>
 
 #undef near
 #undef far
@@ -56,8 +57,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       if (tg.matrix != gx::TexMatrix::Identity)
         tm = matData.texMatrices[texmatrixid].get(); // TODO: Proper lookup
       auto& samp = matData.samplers[i];
-
-      const auto mImgs = delegate.getActive().getTextureSource();
+      const libcube::Scene* pScn = dynamic_cast<const libcube::Scene*>(
+          dynamic_cast<const kpi::IObject*>(&delegate.getActive())
+              ->childOf->childOf);
+      const auto mImgs = delegate.getActive().getTextureSource(*pScn);
       if (ImGui::BeginTabItem((std::string("Texture ") + std::to_string(i) +
                                " [" + samp->mTexture + "]")
                                   .c_str(),

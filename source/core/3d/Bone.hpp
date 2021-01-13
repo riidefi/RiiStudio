@@ -39,7 +39,7 @@ struct SRT3 {
   bool operator!=(const SRT3& rhs) const { return !operator==(rhs); }
 };
 
-struct Bone : public virtual kpi::IObject {
+struct Bone {
   // // PX_TYPE_INFO_EX("3D Bone", "3d_bone", "3D::Bone", ICON_FA_BONE,
   // ICON_FA_BONE);
   virtual s64 getId() { return -1; }
@@ -129,7 +129,6 @@ struct Bone : public virtual kpi::IObject {
 
     return dst;
   }
-  virtual const lib3d::Model* getParent();
   virtual glm::mat4
   calcSrtMtx(kpi::ConstCollectionRange<lib3d::Bone> bones) const {
     glm::mat4 mdl(1.0f);
@@ -139,7 +138,7 @@ struct Bone : public virtual kpi::IObject {
 
     return mdl * calcSrtMtx(getSRT());
   }
-  glm::mat4 calcSrtMtx();
+  glm::mat4 calcSrtMtx(const lib3d::Model* mdl) const;
 };
 
 } // namespace riistudio::lib3d

@@ -34,14 +34,8 @@ kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
 });
 
 kpi::ConstCollectionRange<Texture>
-IGCMaterial::getTextureSource() const {
-  auto* parent = childOf;
-  assert(parent);
-  auto* grandparent = parent->childOf;
-  assert(grandparent);
-  const libcube::Scene* pScn = dynamic_cast<const libcube::Scene*>(grandparent);
-  assert(pScn);
-  return pScn->getTextures();
+IGCMaterial::getTextureSource(const libcube::Scene& scn) const {
+  return scn.getTextures();
 }
 
 } // namespace libcube
