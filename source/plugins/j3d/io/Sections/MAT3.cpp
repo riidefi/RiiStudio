@@ -147,8 +147,8 @@ void readMatEntry(Material& mat, MatLoader& loader,
   }
   mat.cullMode = static_cast<gx::CullMode>(cullMode);
   const u8 nColorChan = loader.indexed<u8>(MatSec::NumColorChannels).raw();
-  mat.texGens.resize(loader.indexed<u8>(MatSec::NumTexGens).raw());
-  mat.mStages.resize(loader.indexed<u8>(MatSec::NumTevStages).raw());
+  const u8 num_tg = loader.indexed<u8>(MatSec::NumTexGens).raw();
+  const u8 num_stage = loader.indexed<u8>(MatSec::NumTevStages).raw();
   mat.earlyZComparison =
       loader.indexed<u8>(MatSec::ZCompareInfo).as<bool, u8>();
   loader.indexedContained<u8>(mat.zMode, MatSec::ZModeInfo, 4);
@@ -173,6 +173,10 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   dbg.assertSince(0x28);
   loader.indexedContainer<u16>(mat.texGens, MatSec::TexGenInfo, 4);
+  if (mat.texGens.size() != num_tg) {
+    reader.warnAt("Number of TexGens does not match GenInfo count",
+                  reader.tell() - 20, reader.tell());
+  }
   MAYBE_UNUSED const auto post_tg = reader.readX<u16, 8>();
   // TODO: Validate assumptions here
 
@@ -227,6 +231,11 @@ void readMatEntry(Material& mat, MatLoader& loader,
     // FIXME: Directly read into material
     array_vector<gx::TevStage, 16> tevStageInfos;
     loader.indexedContainer<u16>(tevStageInfos, MatSec::TevStageInfo, 20);
+
+    if (tevStageInfos.size() != num_stage) {
+      reader.warnAt("Number of TEV Stages does not match GenInfo count",
+                    reader.tell() - 32, reader.tell());
+    }
 
     mat.mStages.resize(tevStageInfos.size());
     for (int i = 0; i < tevStageInfos.size(); ++i) {
