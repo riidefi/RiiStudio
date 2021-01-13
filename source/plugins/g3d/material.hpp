@@ -69,12 +69,6 @@ struct Material : public G3dMaterialData,
 
   s64 getId() const override { return id; }
 
-  bool isXluPass() const override { return is_xlu; }
-  void setXluPass(bool b) override {
-    is_xlu = b;
-    flag = (flag & ~0x80000000) | (b ? 0x80000000 : 0);
-  }
-
   bool operator==(const Material& rhs) const {
     return G3dMaterialData::operator==(rhs);
   }

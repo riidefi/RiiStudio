@@ -773,7 +773,9 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   oishii::DebugExpectSized dbg(writer, 332);
 
-  writer.write<u8>(m.flag);
+  u8 flag = m.flag;
+  flag = (flag & ~4) | (m.xlu ? 4 : 0);
+  writer.write<u8>(flag);
   writer.write<u8>(find(smat.mMAT3.mCache.cullModes, m.cullMode));
   writer.write<u8>(find(smat.mMAT3.mCache.nColorChan, m.chanData.size()));
   writer.write<u8>(find(smat.mMAT3.mCache.nTexGens, m.texGens.size()));
@@ -872,9 +874,8 @@ void io_wrapper<SerializableMaterial>::onWrite(
   dbg.assertSince(0x0bc);
   for (int i = 0; i < m.mStages.size(); ++i)
     writer.write<u16>(
-        find(cache.orders,
-             TevOrder{m.mStages[i].rasOrder, m.mStages[i].texMap,
-                      m.mStages[i].texCoord}));
+        find(cache.orders, TevOrder{m.mStages[i].rasOrder, m.mStages[i].texMap,
+                                    m.mStages[i].texCoord}));
   for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u16>(-1);
 
@@ -901,9 +902,8 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   dbg.assertSince(0x104);
   for (int i = 0; i < m.mStages.size(); ++i)
-    writer.write<u16>(
-        find(cache.swapModes, SwapSel{m.mStages[i].rasSwap,
-                                      m.mStages[i].texMapSwap}));
+    writer.write<u16>(find(cache.swapModes, SwapSel{m.mStages[i].rasSwap,
+                                                    m.mStages[i].texMapSwap}));
   for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u16>(-1);
 

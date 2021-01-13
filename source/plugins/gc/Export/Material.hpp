@@ -94,6 +94,9 @@ struct IGCMaterial : public riistudio::lib3d::Material {
   virtual GCMaterialData& getMaterialData() = 0;
   virtual const GCMaterialData& getMaterialData() const = 0;
 
+  bool isXluPass() const override final { return getMaterialData().xlu; }
+  void setXluPass(bool b) override final { getMaterialData().xlu = b; }
+
   virtual const libcube::Model* getParent() const { return nullptr; }
   std::pair<std::string, std::string> generateShaders() const override;
   void generateUniforms(DelegatedUBOBuilder& builder, const glm::mat4& M,

@@ -68,7 +68,9 @@ struct LowLevelGxMaterial {
   ZMode zMode;
   AlphaComparison alphaCompare;
   BlendMode blendMode;
-  bool dither = false;
+  bool dither = false; // Only seen in J3D normally,
+                       // though we could support it for G3D.
+  bool xlu = false;
 
   riistudio::util::array_vector<IndirectStage, 4> indirectStages;
   riistudio::util::array_vector<IndirectMatrix, 3> mIndMatrices;

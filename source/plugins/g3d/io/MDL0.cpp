@@ -604,7 +604,9 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         writeNameForward(names, writer, mat_start, mat.IGCMaterial::getName());
         printf("MATIDAT %x\n", writer.tell());
         writer.write<u32>(mat_idx++);
-        writer.write<u32>(mat.flag);
+        u32 flag = mat.flag;
+        flag = (flag & ~0x80000000) | (mat.is_xlu ? 0x80000000 : 0);
+        writer.write<u32>(flag);
         writer.write<u8>(static_cast<u8>(mat.texGens.size()));
         writer.write<u8>(static_cast<u8>(mat.chanData.size()));
         writer.write<u8>(static_cast<u8>(mat.mStages.size()));
