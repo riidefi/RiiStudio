@@ -687,7 +687,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
           writer.write<f32>(mtx.scale.x);
           writer.write<f32>(mtx.scale.y);
-          writer.write<f32>(mtx.rotate);
+          writer.write<f32>(glm::degrees(mtx.rotate));
           writer.write<f32>(mtx.translate.x);
           writer.write<f32>(mtx.translate.y);
         }
@@ -1322,7 +1322,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     for (u8 i = 0; i < nTex; ++i) {
       libcube::GCMaterialData::TexMatrix mtx;
       mtx.scale << reader;
-      mtx.rotate = reader.read<f32>();
+      mtx.rotate = glm::radians(reader.read<f32>());
       mtx.translate << reader;
       mat.texMatrices.push_back(mtx);
     }
