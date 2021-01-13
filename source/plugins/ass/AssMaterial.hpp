@@ -64,7 +64,7 @@ static void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
     data.samplers[0]->mTexture = in.samplers[0].path;
     texturesToImport.insert(in.samplers[0].path);
 
-    data.texMatrices.push_back(std::make_unique<j3d::Material::TexMatrix>());
+    data.texMatrices.push_back(j3d::Material::TexMatrix{});
     data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
   }
 

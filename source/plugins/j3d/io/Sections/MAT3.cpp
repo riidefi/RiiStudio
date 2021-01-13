@@ -185,7 +185,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   mat.texMatrices.nElements = texMatrices.size();
   for (int i = 0; i < mat.texMatrices.nElements; ++i)
-    mat.texMatrices[i] = std::make_unique<Material::TexMatrix>(texMatrices[i]);
+    mat.texMatrices[i] = texMatrices[i];
   dbg.assertSince(0x84);
 
   array_vector<Material::J3DSamplerData, 8> samplers;
@@ -805,7 +805,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
   auto tgs = m.texGens;
   for (auto& tg : tgs) {
     if (auto mtx = tg.getMatrixIndex();
-        mtx > 0 && m.texMatrices[mtx]->isIdentity())
+        mtx > 0 && m.texMatrices[mtx].isIdentity())
       tg.matrix = gx::TexMatrix::Identity;
   }
 
@@ -825,7 +825,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
   dbg.assertSince(0x048);
   array_vector<Material::TexMatrix, 10> texMatrices;
   for (int i = 0; i < m.texMatrices.size(); ++i) {
-    texMatrices.push_back(*m.texMatrices[i].get());
+    texMatrices.push_back(m.texMatrices[i]);
 
     assert(texMatrices[i] == texMatrices[i]);
   }

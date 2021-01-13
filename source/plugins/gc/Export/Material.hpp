@@ -55,25 +55,13 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
              method == CommonMappingMethod::Standard;
     }
 
-    virtual glm::mat3x4 compute(const glm::mat4& mdl, const glm::mat4& mvp);
+    glm::mat3x4 compute(const glm::mat4& mdl, const glm::mat4& mvp) const;
     // TODO: Support / restriction
 
-    virtual bool operator==(const TexMatrix& rhs) const {
-      if (!(projection == rhs.projection && scale == rhs.scale &&
-            rotate == rhs.rotate && translate == rhs.translate))
-        return false;
-      // if (effectMatrix != rhs.effectMatrix) return false;
-      return transformModel == rhs.transformModel && method == rhs.method &&
-             option == rhs.option && camIdx == rhs.camIdx &&
-             lightIdx == rhs.lightIdx;
-    }
-    virtual std::unique_ptr<TexMatrix> clone() const {
-      return std::make_unique<TexMatrix>(*this);
-    }
-    virtual ~TexMatrix() = default;
+    bool operator==(const TexMatrix& rhs) const = default;
   };
 
-  copyable_polymorphic_array_vector<TexMatrix, 10> texMatrices;
+  array_vector<TexMatrix, 10> texMatrices;
 
   struct SamplerData {
     std::string mTexture;
@@ -92,14 +80,7 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
     gx::TextureFilter mMagFilter = gx::TextureFilter::linear;
     f32 mLodBias = 0.0f;
 
-    bool operator==(const SamplerData& rhs) const noexcept {
-      return mTexture == rhs.mTexture && mWrapU == rhs.mWrapU &&
-             mWrapV == rhs.mWrapV &&
-             // bMipMap == rhs.bMipMap &&
-             bEdgeLod == rhs.bEdgeLod && bBiasClamp == rhs.bBiasClamp &&
-             mMaxAniso == rhs.mMaxAniso && mMinFilter == rhs.mMinFilter &&
-             mMagFilter == rhs.mMagFilter && mLodBias == rhs.mLodBias;
-    }
+    bool operator==(const SamplerData& rhs) const = default;
     virtual std::unique_ptr<SamplerData> clone() const {
       return std::make_unique<SamplerData>(*this);
     }
@@ -158,15 +139,15 @@ struct IGCMaterial : public riistudio::lib3d::Material {
         gx::TexGenType::Matrix3x4, gx::TexGenSrc::UV0,
         gx::TexMatrix::TexMatrix0, false, gx::PostTexMatrix::Identity});
     mat.texGens.nElements = 1;
-    auto mtx = std::make_unique<GCMaterialData::TexMatrix>();
-    mtx->projection = gx::TexGenType::Matrix3x4;
-    mtx->scale = {1, 1};
-    mtx->rotate = 0;
-    mtx->translate = {0, 0};
-    mtx->effectMatrix = {0};
-    mtx->transformModel = GCMaterialData::CommonTransformModel::Maya;
-    mtx->method = GCMaterialData::CommonMappingMethod::Standard;
-    mtx->option = GCMaterialData::CommonMappingOption::NoSelection;
+    GCMaterialData::TexMatrix mtx;
+    mtx.projection = gx::TexGenType::Matrix3x4;
+    mtx.scale = {1, 1};
+    mtx.rotate = 0;
+    mtx.translate = {0, 0};
+    mtx.effectMatrix = {0};
+    mtx.transformModel = GCMaterialData::CommonTransformModel::Maya;
+    mtx.method = GCMaterialData::CommonMappingMethod::Standard;
+    mtx.option = GCMaterialData::CommonMappingOption::NoSelection;
 
     mat.texMatrices.push_back(std::move(mtx));
     mat.texMatrices.nElements = 1;

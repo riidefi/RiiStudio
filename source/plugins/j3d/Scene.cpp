@@ -28,7 +28,7 @@ void Model::MatCache::propogate(Material& mat) {
   auto tgs = mat.texGens;
   for (auto& tg : tgs) {
     if (auto mtx = tg.getMatrixIndex();
-        mtx > 0 && mat.texMatrices[mtx]->isIdentity())
+        mtx > 0 && mat.texMatrices[mtx].isIdentity())
       tg.matrix = gx::TexMatrix::Identity;
   }
   update_section_multi(texGens, tgs);
@@ -40,7 +40,7 @@ void Model::MatCache::propogate(Material& mat) {
   }
 
   for (int i = 0; i < mat.texMatrices.size(); ++i) {
-    update_section(texMatrices, *mat.texMatrices[i].get());
+    update_section(texMatrices, mat.texMatrices[i]);
   }
   for (int i = 0; i < mat.postTexMatrices.size(); ++i) {
     update_section(postTexMatrices, mat.postTexMatrices[i]);

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <core/common.h>
-#include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <librii/gx.h>
+#include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <vector>
 
 #include <core/kpi/Node.hpp>
@@ -27,17 +27,7 @@ struct PolygonData : public libcube::MeshData {
   std::array<std::string, 2> mColorBuffer;
   std::array<std::string, 8> mTexCoordBuffer;
 
-  bool operator==(const PolygonData& rhs) const {
-    return mName == rhs.mName && mId == rhs.mId &&
-           mCurrentMatrix == rhs.mCurrentMatrix &&
-           currentMatrixEmbedded == rhs.currentMatrixEmbedded &&
-           visible == rhs.visible && mPositionBuffer == rhs.mPositionBuffer &&
-           mNormalBuffer == rhs.mNormalBuffer &&
-           mColorBuffer == rhs.mColorBuffer &&
-           mTexCoordBuffer == rhs.mTexCoordBuffer &&
-           mVertexDescriptor == rhs.mVertexDescriptor &&
-           mMatrixPrimitives == rhs.mMatrixPrimitives;
-  }
+  bool operator==(const PolygonData& rhs) const = default;
 };
 struct Polygon : public PolygonData,
                  public libcube::IndexedPolygon,

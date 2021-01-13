@@ -39,7 +39,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       gx::TexCoordGen gen;
       gen.setMatrixIndex(d.texMatrices.size());
       d.texGens.push_back(gen);
-      d.texMatrices.push_back(std::make_unique<GCMaterialData::TexMatrix>());
+      d.texMatrices.push_back(GCMaterialData::TexMatrix{});
       d.samplers.push_back(std::make_unique<GCMaterialData::SamplerData>());
     }
     delegate.commit("Added sampler");
@@ -55,7 +55,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
       GCMaterialData::TexMatrix* tm = nullptr;
       if (tg.matrix != gx::TexMatrix::Identity)
-        tm = matData.texMatrices[texmatrixid].get(); // TODO: Proper lookup
+        tm = &matData.texMatrices[texmatrixid]; // TODO: Proper lookup
       auto& samp = matData.samplers[i];
       const libcube::Scene* pScn = dynamic_cast<const libcube::Scene*>(
           dynamic_cast<const kpi::IObject*>(&delegate.getActive())
@@ -197,7 +197,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 ImGui::Combo("Transform Model", &xfmodel,
                              " Default\0 Maya\0 3DS Max\0 Softimage XSI\0");
                 AUTO_PROP(
-                    texMatrices[texmatrixid]->transformModel,
+                    texMatrices[texmatrixid].transformModel,
                     static_cast<libcube::GCMaterialData::CommonTransformModel>(
                         xfmodel));
                 // TODO: Not all backends support all modes..
@@ -264,7 +264,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   newMapMethod = cmm::ManualEnvironmentMapping;
                   break;
                 }
-                AUTO_PROP(texMatrices[texmatrixid]->method, newMapMethod);
+                AUTO_PROP(texMatrices[texmatrixid].method, newMapMethod);
 
                 int mod = static_cast<int>(tm->option);
                 ImGui::Combo(
@@ -272,7 +272,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                     "Standard\0J3D Basic: Don't remap into texture space (Keep "
                     "-1..1 not 0...1)\0J3D Old: Keep translation column.");
                 AUTO_PROP(
-                    texMatrices[texmatrixid]->option,
+                    texMatrices[texmatrixid].option,
                     static_cast<libcube::GCMaterialData::CommonMappingOption>(
                         mod));
               }
@@ -298,10 +298,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
             ImGui::SliderFloat2("Scale", &s.x, 0.0f, 10.0f);
             ImGui::SliderFloat("Rotate", &r, 0.0f, 360.0f);
             ImGui::SliderFloat2("Translate", &t.x, -10.0f, 10.0f);
-            AUTO_PROP(texMatrices[texmatrixid]->scale, s);
+            AUTO_PROP(texMatrices[texmatrixid].scale, s);
             if (r != rotate)
-              AUTO_PROP(texMatrices[texmatrixid]->rotate, glm::radians(r));
-            AUTO_PROP(texMatrices[texmatrixid]->translate, t);
+              AUTO_PROP(texMatrices[texmatrixid].rotate, glm::radians(r));
+            AUTO_PROP(texMatrices[texmatrixid].translate, t);
           }
         }
         if (ImGui::CollapsingHeader("Tiling", ImGuiTreeNodeFlags_DefaultOpen)) {

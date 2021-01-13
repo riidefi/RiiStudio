@@ -30,6 +30,8 @@ struct MatrixPrimitive {
 struct MeshData {
   std::vector<MatrixPrimitive> mMatrixPrimitives;
   libcube::VertexDescriptor mVertexDescriptor;
+
+  bool operator==(const MeshData&) const = default;
 };
 
 struct IndexedPolygon : public riistudio::lib3d::Polygon {

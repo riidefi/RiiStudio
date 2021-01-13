@@ -109,7 +109,7 @@ struct PacketParams {
 };
 
 glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
-                                               const glm::mat4& mvp) {
+                                               const glm::mat4& mvp) const {
   assert(transformModel != CommonTransformModel::Max &&
          transformModel != CommonTransformModel::XSI);
 
@@ -151,7 +151,7 @@ void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
   const auto& data = getMaterialData();
 
   for (int i = 0; i < data.texMatrices.size(); ++i) {
-    tmp.TexMtx[i] = glm::transpose(data.texMatrices[i]->compute(M, V * P));
+    tmp.TexMtx[i] = glm::transpose(data.texMatrices[i].compute(M, V * P));
   }
   for (int i = 0; i < data.samplers.size(); ++i) {
     if (data.samplers[i]->mTexture.empty())

@@ -637,7 +637,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         // Texture transformations
 
         const auto build_flags =
-            [](libcube::GCMaterialData::TexMatrix& mtx) -> u32 {
+            [](const libcube::GCMaterialData::TexMatrix& mtx) -> u32 {
           // TODO: Float equality
           const u32 identity_scale = mtx.scale == glm::vec2{1.0f, 1.0f};
           const u32 identity_rotate = mtx.rotate == 0.0f;
@@ -651,7 +651,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         };
         u32 tex_flags = 0;
         for (int i = mat.texMatrices.size() - 1; i >= 0; --i) {
-          tex_flags = (tex_flags << 4) | build_flags(*mat.texMatrices[i]);
+          tex_flags = (tex_flags << 4) | build_flags(mat.texMatrices[i]);
         }
         writer.write<u32>(tex_flags);
         // Unlike J3D, only one texmatrix mode per material
@@ -659,7 +659,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
             libcube::GCMaterialData::CommonTransformModel;
         CommonTransformModel texmtx_mode = CommonTransformModel::Default;
         for (int i = 0; i < mat.texMatrices.size(); ++i) {
-          texmtx_mode = mat.texMatrices[i]->transformModel;
+          texmtx_mode = mat.texMatrices[i].transformModel;
         }
         switch (texmtx_mode) {
         case CommonTransformModel::Default:
@@ -675,7 +675,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
           break;
         }
         for (int i = 0; i < mat.texMatrices.size(); ++i) {
-          auto& mtx = *mat.texMatrices[i];
+          auto& mtx = mat.texMatrices[i];
 
           writer.write<f32>(mtx.scale.x);
           writer.write<f32>(mtx.scale.y);
@@ -693,7 +693,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         std::array<f32, 3 * 4> ident34{1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
                                        0.0, 0.0, 0.0, 0.0, 1.0, 0.0};
         for (int i = 0; i < mat.texMatrices.size(); ++i) {
-          auto& mtx = *mat.texMatrices[i];
+          auto& mtx = mat.texMatrices[i];
 
           // printf("CamIdx: %i, LIdx: %i\n", (signed)mtx.camIdx,
           //        (signed)mtx.lightIdx);
@@ -1312,15 +1312,15 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     const auto xfModel = cvtMtx[mtxMode];
 
     for (u8 i = 0; i < nTex; ++i) {
-      auto mtx = std::make_unique<libcube::GCMaterialData::TexMatrix>();
-      mtx->scale << reader;
-      mtx->rotate = reader.read<f32>();
-      mtx->translate << reader;
-      mat.texMatrices.push_back(std::move(mtx));
+      libcube::GCMaterialData::TexMatrix mtx;
+      mtx.scale << reader;
+      mtx.rotate = reader.read<f32>();
+      mtx.translate << reader;
+      mat.texMatrices.push_back(mtx);
     }
     reader.seekSet(start + 0x250);
     for (u8 i = 0; i < nTex; ++i) {
-      auto& mtx = mat.texMatrices[i];
+      auto* mtx = &mat.texMatrices[i];
 
       mtx->camIdx = reader.read<s8>();
       mtx->lightIdx = reader.read<s8>();
@@ -1499,7 +1499,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
                                   texGenDlSizes[mat.texGens.size()]);
       for (u8 i = 0; i < mat.texGens.size(); ++i) {
         mat.texGens[i] = matHandler.mGpuMat.mTexture[i];
-        mat.texMatrices[i]->projection = mat.texGens[i].func;
+        mat.texMatrices[i].projection = mat.texGens[i].func;
       }
     }
   });
