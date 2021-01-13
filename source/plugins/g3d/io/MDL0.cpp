@@ -333,12 +333,18 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   //
   // Build shaders
   //
-  struct G3dShader : public librii::gx::Shader {
+  struct G3dShader {
     bool operator==(const G3dShader&) const = default;
 
+    // Fixed-size DL
+    librii::gx::SwapTable mSwapTable;
     riistudio::util::array_vector<librii::gx::IndOrder, 4> mIndirectOrders;
 
-    G3dShader(const librii::gx::LowLevelGxMaterial& mat) : Shader(mat.shader) {
+    // Variable-sized DL
+    riistudio::util::array_vector<librii::gx::TevStage, 16> mStages;
+
+    G3dShader(const librii::gx::LowLevelGxMaterial& mat)
+        : mSwapTable(mat.mSwapTable), mStages(mat.mStages) {
       mIndirectOrders.resize(mat.indirectStages.size());
       for (int i = 0; i < mIndirectOrders.size(); ++i)
         mIndirectOrders[i] = mat.indirectStages[i].order;
@@ -356,7 +362,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       matToShaderMap.emplace_back(found - shaders.begin());
     }
   }
-  const auto get_shader_id = [&](const librii::gx::Shader& shader) {
+  const auto get_shader_id = [&](const G3dShader& shader) {
     const auto found = std::find(shaders.begin(), shaders.end(), shader);
     assert(found != shaders.end());
     return "Shader" + std::to_string(std::distance(shaders.begin(), found));
@@ -601,7 +607,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         writer.write<u32>(mat.flag);
         writer.write<u8>(static_cast<u8>(mat.texGens.size()));
         writer.write<u8>(static_cast<u8>(mat.chanData.size()));
-        writer.write<u8>(static_cast<u8>(mat.shader.mStages.size()));
+        writer.write<u8>(static_cast<u8>(mat.mStages.size()));
         writer.write<u8>(static_cast<u8>(mat.indirectStages.size()));
         writer.write<u32>(static_cast<u32>(mat.cullMode));
         // Misc
@@ -618,7 +624,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         for (u8 i = mat.indirectStages.size(); i < 4; ++i)
           writer.write<u8>(0xff);
         linker.writeReloc<s32>("Mat" + std::to_string(mat_start),
-                               get_shader_id(mat.shader));
+                               get_shader_id(mat));
         writer.write<u32>(mat.samplers.size());
         u32 sampler_offset = 0;
         if (mat.samplers.size()) {
@@ -1271,7 +1277,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     auto nColorChan = reader.read<u8>();
     if (nColorChan >= 2)
       nColorChan = 2;
-    mat.shader.mStages.resize(reader.read<u8>());
+    mat.mStages.resize(reader.read<u8>());
     mat.indirectStages.resize(reader.read<u8>());
     mat.cullMode = static_cast<librii::gx::CullMode>(reader.read<u32>());
 
@@ -1416,9 +1422,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     {
 
       librii::gpu::QDisplayListShaderHandler shaderHandler(
-          mat, mat.shader.mStages.size());
+          mat, mat.mStages.size());
       librii::gpu::RunDisplayList(reader, shaderHandler,
-                                  shaderDlSizes[mat.shader.mStages.size()]);
+                                  shaderDlSizes[mat.mStages.size()]);
     }
 
     // Samplers

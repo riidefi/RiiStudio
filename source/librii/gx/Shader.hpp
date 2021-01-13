@@ -268,27 +268,15 @@ struct SwapTableEntry {
   }
 };
 
-struct Shader {
+struct SwapTable : public std::array<SwapTableEntry, 4> {
   using Clr = ColorComponent;
-  // Fixed-size DL
-  std::array<SwapTableEntry, 4> mSwapTable{
-      SwapTableEntry{Clr::r, Clr::g, Clr::b, Clr::a},
-      SwapTableEntry{Clr::r, Clr::r, Clr::r, Clr::a},
-      SwapTableEntry{Clr::g, Clr::g, Clr::g, Clr::a},
-      SwapTableEntry{Clr::b, Clr::b, Clr::b, Clr::a},
-  };
-
-// Variable-sized DL
-// Max 16
-#ifdef DEBUG
-  std::vector<TevStage> mStages;
-#else
-  llvm::SmallVector<TevStage, 8> mStages;
-#endif
-
-  bool operator==(const Shader&) const = default;
-
-  Shader() { mStages.emplace_back(); }
+  SwapTable() {
+    (*this)[0] = {Clr::r, Clr::g, Clr::b, Clr::a};
+    (*this)[1] = {Clr::r, Clr::r, Clr::r, Clr::a};
+    (*this)[2] = {Clr::g, Clr::g, Clr::g, Clr::a};
+    (*this)[3] = {Clr::b, Clr::b, Clr::b, Clr::a};
+  }
 };
+
 
 } // namespace librii::gx

@@ -55,7 +55,7 @@ void Model::MatCache::propogate(Material& mat) {
     update_section(samplers, *reinterpret_cast<MaterialData::J3DSamplerData*>(
                                  mat.samplers[i].get()));
   }
-  for (auto& stage : mat.shader.mStages) {
+  for (auto& stage : mat.mStages) {
     TevOrder order;
     order.rasOrder = stage.rasOrder;
     order.texCoord = stage.texCoord;
@@ -79,9 +79,9 @@ void Model::MatCache::propogate(Material& mat) {
   }
   update_section_multi(tevColors, mat.tevColors);
   update_section_multi(konstColors, mat.tevKonstColors);
-  update_section(nTevStages, static_cast<u8>(mat.shader.mStages.size()));
+  update_section(nTevStages, static_cast<u8>(mat.mStages.size()));
 
-  update_section_multi(swapTables, mat.shader.mSwapTable);
+  update_section_multi(swapTables, mat.mSwapTable);
   update_section(fogs, mat.fogInfo);
   update_section(alphaComparisons, mat.alphaCompare);
   update_section(blendModes, mat.blendMode);

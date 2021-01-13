@@ -592,8 +592,7 @@ public:
   }
 
   void generateIndTexStage(std::string& out, u32 indTexStageIndex) {
-    const auto& stage =
-        mMaterial.shader.mStages[indTexStageIndex].indirectStage;
+    const auto& stage = mMaterial.mStages[indTexStageIndex].indirectStage;
 
     const auto scale = indTexStageIndex >= mMaterial.indirectStages.size()
                            ? IndirectTextureScalePair{}
@@ -823,20 +822,20 @@ public:
       return "t_Color2.aaa";
     case gx::TevColorArg::texc:
       return generateTexAccess(stage) + "." +
-             generateColorSwizzle(
-                 &mMaterial.shader.mSwapTable[stage.texMapSwap], colorIn);
+             generateColorSwizzle(&mMaterial.mSwapTable[stage.texMapSwap],
+                                  colorIn);
     case gx::TevColorArg::texa:
       return generateTexAccess(stage) + "." +
-             generateColorSwizzle(
-                 &mMaterial.shader.mSwapTable[stage.texMapSwap], colorIn);
+             generateColorSwizzle(&mMaterial.mSwapTable[stage.texMapSwap],
+                                  colorIn);
     case gx::TevColorArg::rasc:
       return "TevSaturate(" + generateRas(stage) + "." +
-             generateColorSwizzle(&mMaterial.shader.mSwapTable[stage.rasSwap],
+             generateColorSwizzle(&mMaterial.mSwapTable[stage.rasSwap],
                                   colorIn) +
              ")";
     case gx::TevColorArg::rasa:
       return "TevSaturate(" + generateRas(stage) + "." +
-             generateColorSwizzle(&mMaterial.shader.mSwapTable[stage.rasSwap],
+             generateColorSwizzle(&mMaterial.mSwapTable[stage.rasSwap],
                                   colorIn) +
              ")";
     case gx::TevColorArg::one:
@@ -863,14 +862,12 @@ public:
       return "t_Color2.a";
     case gx::TevAlphaArg::texa:
       return generateTexAccess(stage) + "." +
-             generateComponentSwizzle(
-                 &mMaterial.shader.mSwapTable[stage.texMapSwap],
-                 gx::ColorComponent::a);
+             generateComponentSwizzle(&mMaterial.mSwapTable[stage.texMapSwap],
+                                      gx::ColorComponent::a);
     case gx::TevAlphaArg::rasa:
       return "TevSaturate(" + generateRas(stage) + "." +
-             generateComponentSwizzle(
-                 &mMaterial.shader.mSwapTable[stage.rasSwap],
-                 gx::ColorComponent::a) +
+             generateComponentSwizzle(&mMaterial.mSwapTable[stage.rasSwap],
+                                      gx::ColorComponent::a) +
              ")";
     case gx::TevAlphaArg::konst:
       return generateKonstAlphaSel(stage.alphaStage.constantSelection);
@@ -1120,7 +1117,7 @@ public:
     const auto baseCoord = generateTevTexCoordWrap(stage);
 
     if (stage.indirectStage.matrix != gx::IndTexMtxID::off &&
-        stage.indirectStage.indStageSel < mMaterial.shader.mStages.size())
+        stage.indirectStage.indStageSel < mMaterial.mStages.size())
       return baseCoord + " + " + generateTevTexCoordIndirectTranslation(stage);
     else
       return baseCoord;
@@ -1139,7 +1136,7 @@ public:
   }
 
   llvm::Error generateTevStage(StringBuilder& builder, u32 tevStageIndex) {
-    const auto& stage = mMaterial.shader.mStages[tevStageIndex];
+    const auto& stage = mMaterial.mStages[tevStageIndex];
 
     builder += "\n\n    //\n    // TEV Stage ";
     builder += std::to_string(tevStageIndex);
@@ -1153,7 +1150,7 @@ public:
   }
 
   llvm::Error generateTevStages(StringBuilder& builder) {
-    for (int i = 0; i < mMaterial.shader.mStages.size(); ++i)
+    for (int i = 0; i < mMaterial.mStages.size(); ++i)
       if (auto err = generateTevStage(builder, i))
         return err;
 
@@ -1161,7 +1158,7 @@ public:
   }
 
   llvm::Error generateTevStagesLastMinuteFixup(StringBuilder& builder) {
-    const auto& tevStages = mMaterial.shader.mStages;
+    const auto& tevStages = mMaterial.mStages;
 
     const auto& lastTevStage = tevStages[tevStages.size() - 1];
     const auto colorReg = generateTevRegister(lastTevStage.colorStage.out);

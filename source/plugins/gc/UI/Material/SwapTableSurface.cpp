@@ -21,9 +21,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   ImGui::TableSetupColumn("Alpha Destination");
   ImGui::TableAutoHeaders();
   ImGui::TableNextRow();
-  for (int i = 0; i < matData.shader.mSwapTable.size(); ++i) {
+  for (int i = 0; i < matData.mSwapTable.size(); ++i) {
     ImGui::PushID(i);
-    auto& swap = matData.shader.mSwapTable[i];
+    auto& swap = matData.mSwapTable[i];
 
     int r = static_cast<int>(swap.r);
     int g = static_cast<int>(swap.g);
@@ -42,10 +42,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     ImGui::Combo("##A", &a, colors);
     ImGui::TableNextCell();
 
-    AUTO_PROP(shader.mSwapTable[i].r, static_cast<gx::ColorComponent>(r));
-    AUTO_PROP(shader.mSwapTable[i].g, static_cast<gx::ColorComponent>(g));
-    AUTO_PROP(shader.mSwapTable[i].b, static_cast<gx::ColorComponent>(b));
-    AUTO_PROP(shader.mSwapTable[i].a, static_cast<gx::ColorComponent>(a));
+    AUTO_PROP(mSwapTable[i].r, static_cast<gx::ColorComponent>(r));
+    AUTO_PROP(mSwapTable[i].g, static_cast<gx::ColorComponent>(g));
+    AUTO_PROP(mSwapTable[i].b, static_cast<gx::ColorComponent>(b));
+    AUTO_PROP(mSwapTable[i].a, static_cast<gx::ColorComponent>(a));
 
     ImGui::PopID();
     ImGui::TableNextRow();

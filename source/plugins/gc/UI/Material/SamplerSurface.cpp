@@ -448,7 +448,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       matData.texMatrices.erase(i);
 
       // Correct stages
-      for (auto& stage : matData.shader.mStages) {
+      for (auto& stage : matData.mStages) {
         if (stage.texCoord == stage.texMap) {
           if (stage.texCoord == i) {
             // Might be a better way of doing this

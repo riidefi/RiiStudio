@@ -86,7 +86,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           ->childOf->childOf);
 
   auto drawStage = [&](librii::gx::TevStage& stage, int i) {
-#define STAGE_PROP(a, b) AUTO_PROP(shader.mStages[i].a, b)
+#define STAGE_PROP(a, b) AUTO_PROP(mStages[i].a, b)
     if (ImGui::CollapsingHeader("Stage Setting",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       // RasColor
@@ -152,7 +152,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                              delegate.mEd, true);
         if (texid != stage.texMap) {
           for (auto* e : delegate.mAffected) {
-            auto& stage = e->getMaterialData().shader.mStages[i];
+            auto& stage = e->getMaterialData().mStages[i];
             stage.texCoord = stage.texMap = texid;
           }
           delegate.commit("Property update");
@@ -290,10 +290,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
   std::array<bool, 16> opened{true};
 
-  auto& stages = matData.shader.mStages;
+  auto& stages = matData.mStages;
 
   if (ImGui::Button("Add a Stage")) {
-    stages.emplace_back();
+    stages.push_back({});
   }
 
   if (ImGui::BeginTabBar("Stages",
@@ -324,10 +324,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     changed = true;
 
     // Only one may be deleted at a time
-    stages.erase(stages.begin() + i);
+    stages.erase(i);
 
     if (stages.empty()) {
-      stages.emplace_back();
+      stages.push_back({});
     }
 
     break;

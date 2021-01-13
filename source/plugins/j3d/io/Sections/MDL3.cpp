@@ -101,7 +101,7 @@ struct MDL3Node final : public oishii::Node {
           }
         }
 
-        const auto& stages = mat.getMaterialData().shader.mStages;
+        const auto& stages = mat.getMaterialData().mStages;
         for (int i = 0; i < stages.size(); ++i) {
           const auto& stage = stages[i];
           (void)stage;
@@ -121,12 +121,12 @@ struct MDL3Node final : public oishii::Node {
           builder.setTevColor(i + 1, mat.tevColors[i]);
         for (int i = 0; i < 4; ++i)
           builder.setTevKColor(i, mat.tevKonstColors[i]);
-        for (int i = 0; i < mat.shader.mStages.size(); ++i) {
-          builder.setTevColorCalc(i, mat.shader.mStages[i].colorStage);
-          builder.setTevAlphaCalcAndSwap(i, mat.shader.mStages[i].alphaStage,
-                                         mat.shader.mStages[i].rasSwap,
-                                         mat.shader.mStages[i].texMapSwap);
-          builder.setTevIndirect(i, mat.shader.mStages[i].indirectStage);
+        for (int i = 0; i < mat.mStages.size(); ++i) {
+          builder.setTevColorCalc(i, mat.mStages[i].colorStage);
+          builder.setTevAlphaCalcAndSwap(i, mat.mStages[i].alphaStage,
+                                         mat.mStages[i].rasSwap,
+                                         mat.mStages[i].texMapSwap);
+          builder.setTevIndirect(i, mat.mStages[i].indirectStage);
         }
         for (int i = 0; i < 8; ++i)
           builder.setTevKonstantSelAndSwapModeTable();

@@ -98,7 +98,7 @@ static void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
   }
 
   data.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
-  data.shader.mStages[0] = wip;
+  data.mStages[0] = wip;
 
   librii::gx::ChannelControl ctrl;
   ctrl.enabled = false;

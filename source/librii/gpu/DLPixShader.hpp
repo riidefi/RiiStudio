@@ -37,7 +37,6 @@ public:
   void onCommandBP(const QBPCommand& token) override;
   void onStreamEnd() override;
 
-  librii::gx::Shader& mShader;
   gx::LowLevelGxMaterial& mMaterial;
   int mNumStages;
 

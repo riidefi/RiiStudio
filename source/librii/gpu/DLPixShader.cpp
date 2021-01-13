@@ -4,7 +4,7 @@ namespace librii::gpu {
 
 QDisplayListShaderHandler::QDisplayListShaderHandler(
     gx::LowLevelGxMaterial& material, int numStages)
-    : mShader(material.shader), mMaterial(material), mNumStages(numStages) {}
+    : mMaterial(material), mNumStages(numStages) {}
 QDisplayListShaderHandler::~QDisplayListShaderHandler() {}
 
 void QDisplayListShaderHandler::onCommandBP(const QBPCommand& token) {
@@ -111,25 +111,24 @@ void QDisplayListShaderHandler::onStreamEnd() {
 
   // four swap tables and indirect stages
   for (int i = 0; i < 4; i++) {
-    mShader.mSwapTable[i].r =
+    mMaterial.mSwapTable[i].r =
         (gx::ColorComponent)mGpuShader.tevksel[i * 2].swaprb.Value();
-    mShader.mSwapTable[i].g =
+    mMaterial.mSwapTable[i].g =
         (gx::ColorComponent)mGpuShader.tevksel[i * 2].swapga.Value();
-    mShader.mSwapTable[i].b =
+    mMaterial.mSwapTable[i].b =
         (gx::ColorComponent)mGpuShader.tevksel[i * 2 + 1].swaprb.Value();
-    mShader.mSwapTable[i].a =
+    mMaterial.mSwapTable[i].a =
         (gx::ColorComponent)mGpuShader.tevksel[i * 2 + 1].swapga.Value();
 
     mMaterial.indirectStages[i].order.refMap = mGpuShader.iref.getTexMap(i);
-    mMaterial.indirectStages[i].order.refCoord =
-        mGpuShader.iref.getTexCoord(i);
+    mMaterial.indirectStages[i].order.refCoord = mGpuShader.iref.getTexCoord(i);
   }
 
-  mShader.mStages.resize(mNumStages);
+  mMaterial.mStages.resize(mNumStages);
 
   for (int i = 0; i < mNumStages; i++) // evenStageId
   {
-    auto& stage = mShader.mStages[i];
+    auto& stage = mMaterial.mStages[i];
 
     // TREF
     stage.texCoord = mGpuShader.tref[i / 2].getTexCoord(i & 1);

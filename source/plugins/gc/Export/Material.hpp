@@ -152,10 +152,10 @@ struct IGCMaterial : public riistudio::lib3d::Material {
     mat.texMatrices.push_back(std::move(mtx));
     mat.texMatrices.nElements = 1;
 
-    mat.shader.mStages[0].texMap = 0;
-    mat.shader.mStages[0].texCoord = 0;
-    mat.shader.mStages[0].colorStage.d = gx::TevColorArg::texc;
-    mat.shader.mStages[0].alphaStage.d = gx::TevAlphaArg::texa;
+    mat.mStages[0].texMap = 0;
+    mat.mStages[0].texCoord = 0;
+    mat.mStages[0].colorStage.d = gx::TevColorArg::texc;
+    mat.mStages[0].alphaStage.d = gx::TevAlphaArg::texa;
   }
 };
 

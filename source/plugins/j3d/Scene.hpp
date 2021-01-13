@@ -156,8 +156,8 @@ struct ModelData : public virtual kpi::IObject {
       for (int i = 0; i < 3 && i < mat.mIndMatrices.size(); ++i)
         texMtx[i] = mat.mIndMatrices[i];
 
-      for (int i = 0; i < mat.shader.mStages.size(); ++i)
-        tevStage[i] = mat.shader.mStages[i].indirectStage;
+      for (int i = 0; i < mat.mStages.size(); ++i)
+        tevStage[i] = mat.mStages[i].indirectStage;
     }
 
     bool operator==(const Indirect& rhs) const noexcept {

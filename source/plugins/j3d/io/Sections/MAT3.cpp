@@ -148,7 +148,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
   mat.cullMode = static_cast<gx::CullMode>(cullMode);
   const u8 nColorChan = loader.indexed<u8>(MatSec::NumColorChannels).raw();
   mat.texGens.resize(loader.indexed<u8>(MatSec::NumTexGens).raw());
-  mat.shader.mStages.resize(loader.indexed<u8>(MatSec::NumTevStages).raw());
+  mat.mStages.resize(loader.indexed<u8>(MatSec::NumTevStages).raw());
   mat.earlyZComparison =
       loader.indexed<u8>(MatSec::ZCompareInfo).as<bool, u8>();
   loader.indexedContained<u8>(mat.zMode, MatSec::ZModeInfo, 4);
@@ -228,29 +228,29 @@ void readMatEntry(Material& mat, MatLoader& loader,
     array_vector<gx::TevStage, 16> tevStageInfos;
     loader.indexedContainer<u16>(tevStageInfos, MatSec::TevStageInfo, 20);
 
-    mat.shader.mStages.resize(tevStageInfos.size());
+    mat.mStages.resize(tevStageInfos.size());
     for (int i = 0; i < tevStageInfos.size(); ++i) {
-      mat.shader.mStages[i] = tevStageInfos[i];
-      mat.shader.mStages[i].texCoord = tevOrderInfos[i].texCoord;
-      mat.shader.mStages[i].texMap = tevOrderInfos[i].texMap;
-      mat.shader.mStages[i].rasOrder = tevOrderInfos[i].rasOrder;
-      mat.shader.mStages[i].colorStage.constantSelection = get_kc(i);
-      mat.shader.mStages[i].alphaStage.constantSelection = get_ka(i);
+      mat.mStages[i] = tevStageInfos[i];
+      mat.mStages[i].texCoord = tevOrderInfos[i].texCoord;
+      mat.mStages[i].texMap = tevOrderInfos[i].texMap;
+      mat.mStages[i].rasOrder = tevOrderInfos[i].rasOrder;
+      mat.mStages[i].colorStage.constantSelection = get_kc(i);
+      mat.mStages[i].alphaStage.constantSelection = get_ka(i);
     }
 
     dbg.assertSince(0x104);
     array_vector<SwapSel, 16> swapSels;
     loader.indexedContainer<u16>(swapSels, MatSec::TevSwapModeInfo, 4);
-    for (int i = 0; i < mat.shader.mStages.size(); ++i) {
-      mat.shader.mStages[i].texMapSwap = swapSels[i].texSel;
-      mat.shader.mStages[i].rasSwap = swapSels[i].colorChanSel;
+    for (int i = 0; i < mat.mStages.size(); ++i) {
+      mat.mStages[i].texMapSwap = swapSels[i].texSel;
+      mat.mStages[i].rasSwap = swapSels[i].colorChanSel;
     }
 
     // TODO: We can't use a std::array as indexedContainer relies on nEntries
     array_vector<gx::SwapTableEntry, 4> swap;
     loader.indexedContainer<u16>(swap, MatSec::TevSwapModeTableInfo, 4);
     for (int i = 0; i < swap.nElements; ++i)
-      mat.shader.mSwapTable[i] = swap[i];
+      mat.mSwapTable[i] = swap[i];
 
     for (auto& e : mat.stackTrash)
       e = reader.read<u8>();
@@ -277,11 +277,11 @@ void readMatEntry(Material& mat, MatLoader& loader,
       mat.indirectStages[i].scale = ind.texScale[i];
     // TODO: Assumes one indmtx / indstage
     for (int i = 0; i < 3 && i < ind.nIndStage; ++i)
-      mat.mIndMatrices.emplace_back(ind.texMtx[i]);
+      mat.mIndMatrices.push_back(ind.texMtx[i]);
     for (int i = 0; i < ind.nIndStage; ++i)
       mat.indirectStages[i].order = ind.tevOrder[i];
-    for (int i = 0; i < mat.shader.mStages.size(); ++i)
-      mat.shader.mStages[i].indirectStage = ind.tevStage[i];
+    for (int i = 0; i < mat.mStages.size(); ++i)
+      mat.mStages[i].indirectStage = ind.tevStage[i];
   }
 }
 
@@ -777,7 +777,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
   writer.write<u8>(find(smat.mMAT3.mCache.cullModes, m.cullMode));
   writer.write<u8>(find(smat.mMAT3.mCache.nColorChan, m.chanData.size()));
   writer.write<u8>(find(smat.mMAT3.mCache.nTexGens, m.texGens.size()));
-  writer.write<u8>(find(smat.mMAT3.mCache.nTevStages, m.shader.mStages.size()));
+  writer.write<u8>(find(smat.mMAT3.mCache.nTevStages, m.mStages.size()));
   writer.write<u8>(find(smat.mMAT3.mCache.zCompLocs, m.earlyZComparison));
   writer.write<u8>(find(smat.mMAT3.mCache.zModes, m.zMode));
   writer.write<u8>(find(smat.mMAT3.mCache.dithers, m.dither));
@@ -856,26 +856,26 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   dbg.assertSince(0x09C);
   // TODO -- comparison logic might need to account for ksels being here
-  for (int i = 0; i < m.shader.mStages.size(); ++i)
+  for (int i = 0; i < m.mStages.size(); ++i)
     writer.write<u8>(
-        static_cast<u8>(m.shader.mStages[i].colorStage.constantSelection));
-  for (int i = m.shader.mStages.size(); i < 16; ++i)
+        static_cast<u8>(m.mStages[i].colorStage.constantSelection));
+  for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u8>(0xc); // Default
 
   dbg.assertSince(0x0AC);
-  for (int i = 0; i < m.shader.mStages.size(); ++i)
+  for (int i = 0; i < m.mStages.size(); ++i)
     writer.write<u8>(
-        static_cast<u8>(m.shader.mStages[i].alphaStage.constantSelection));
-  for (int i = m.shader.mStages.size(); i < 16; ++i)
+        static_cast<u8>(m.mStages[i].alphaStage.constantSelection));
+  for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u8>(0x1c); // Default
 
   dbg.assertSince(0x0bc);
-  for (int i = 0; i < m.shader.mStages.size(); ++i)
+  for (int i = 0; i < m.mStages.size(); ++i)
     writer.write<u16>(
         find(cache.orders,
-             TevOrder{m.shader.mStages[i].rasOrder, m.shader.mStages[i].texMap,
-                      m.shader.mStages[i].texCoord}));
-  for (int i = m.shader.mStages.size(); i < 16; ++i)
+             TevOrder{m.mStages[i].rasOrder, m.mStages[i].texMap,
+                      m.mStages[i].texCoord}));
+  for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u16>(-1);
 
   dbg.assertSince(0x0dc);
@@ -888,27 +888,27 @@ void io_wrapper<SerializableMaterial>::onWrite(
   write_array_vec<u16>(writer, tevColors, cache.tevColors);
 
   dbg.assertSince(0x0e4);
-  for (int i = 0; i < m.shader.mStages.size(); ++i) {
+  for (int i = 0; i < m.mStages.size(); ++i) {
     librii::gx::TevStage tmp;
-    tmp.colorStage = m.shader.mStages[i].colorStage;
+    tmp.colorStage = m.mStages[i].colorStage;
     tmp.colorStage.constantSelection = gx::TevKColorSel::k0;
-    tmp.alphaStage = m.shader.mStages[i].alphaStage;
+    tmp.alphaStage = m.mStages[i].alphaStage;
     tmp.alphaStage.constantSelection = gx::TevKAlphaSel::k0_a;
     writer.write<u16>(find(cache.tevStages, tmp));
   }
-  for (int i = m.shader.mStages.size(); i < 16; ++i)
+  for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u16>(-1);
 
   dbg.assertSince(0x104);
-  for (int i = 0; i < m.shader.mStages.size(); ++i)
+  for (int i = 0; i < m.mStages.size(); ++i)
     writer.write<u16>(
-        find(cache.swapModes, SwapSel{m.shader.mStages[i].rasSwap,
-                                      m.shader.mStages[i].texMapSwap}));
-  for (int i = m.shader.mStages.size(); i < 16; ++i)
+        find(cache.swapModes, SwapSel{m.mStages[i].rasSwap,
+                                      m.mStages[i].texMapSwap}));
+  for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u16>(-1);
 
   dbg.assertSince(0x124);
-  for (const auto& table : m.shader.mSwapTable)
+  for (const auto& table : m.mSwapTable)
     writer.write<u16>(find(cache.swapTables, table));
 
   for (const u8 s : m.stackTrash)

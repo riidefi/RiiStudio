@@ -53,36 +53,32 @@ struct IndirectStage {
 struct LowLevelGxMaterial {
   bool operator==(const LowLevelGxMaterial&) const = default;
 
-  gx::CullMode cullMode = librii::gx::CullMode::Back;
+  CullMode cullMode = CullMode::Back;
 
-  // Gen Info counts are implied:
-  // - The material shouldn't hold unused entries:
-  // - nColorChan -> (this one is confusing)
-  // - nTexGen -> texGens.size()
-  // - nTevStage -> shader.stages.size()
-  // - nIndStage -> mIndScales.size() and shader.mIndOrders.size()
-
-  riistudio::util::array_vector<gx::ChannelData, 2> chanData;
+  riistudio::util::array_vector<ChannelData, 2> chanData;
   // Color0, Alpha0, Color1, Alpha1
-  riistudio::util::array_vector<gx::ChannelControl, 4> colorChanControls;
+  riistudio::util::array_vector<ChannelControl, 4> colorChanControls;
 
-  riistudio::util::array_vector<gx::TexCoordGen, 8> texGens;
+  riistudio::util::array_vector<TexCoordGen, 8> texGens;
 
-  std::array<gx::Color, 4> tevKonstColors;
-  std::array<gx::ColorS10, 4> tevColors; // last is tevprev?
+  std::array<Color, 4> tevKonstColors{};
+  std::array<ColorS10, 4> tevColors{}; // last is tevprev?
 
   bool earlyZComparison = true;
-  gx::ZMode zMode;
-  gx::AlphaComparison alphaCompare;
-  gx::BlendMode blendMode;
+  ZMode zMode;
+  AlphaComparison alphaCompare;
+  BlendMode blendMode;
   bool dither = false;
 
   riistudio::util::array_vector<IndirectStage, 4> indirectStages;
-  std::vector<gx::IndirectMatrix> mIndMatrices;
+  riistudio::util::array_vector<IndirectMatrix, 3> mIndMatrices;
 
-  gx::Shader shader;
+  SwapTable mSwapTable;
+  riistudio::util::array_vector<TevStage, 16> mStages;
 
   // Notably missing are texture matrices
+
+  LowLevelGxMaterial() { mStages.push_back(TevStage{}); }
 };
 
 } // namespace librii::gx

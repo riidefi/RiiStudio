@@ -40,8 +40,11 @@ public:
         dynamic_cast<lib3d::IDrawable*>(model.childOf)->poisoned = true;
         if (mImporter->abort()) {
           mImporter.reset();
-          // TODO
-          // dynamic_cast<lib3d::IDrawable*>(model.childOf)->poisoned = false;
+          if (auto* drawable = dynamic_cast<lib3d::IDrawable*>(model.childOf);
+              drawable != nullptr) {
+            drawable->poisoned = false;
+            drawable->reinit = true;
+          }
           ImGui::CloseCurrentPopup();
 
           ImGui::EndPopup();
@@ -64,6 +67,12 @@ public:
           assert(mEd);
           // if (mEd)
           //   mEd->reinit();
+
+          if (auto* drawable = dynamic_cast<lib3d::IDrawable*>(model.childOf);
+              drawable != nullptr) {
+            drawable->poisoned = false;
+            drawable->reinit = true;
+          }
 
           ImGui::CloseCurrentPopup();
 
