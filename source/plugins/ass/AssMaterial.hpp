@@ -103,7 +103,7 @@ static void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
   librii::gx::ChannelControl ctrl;
   ctrl.enabled = false;
   ctrl.Material = librii::gx::ColorSource::Vertex;
-  data.chanData[0].matColor = {0xff, 0xff, 0xff, 0xff};
+  data.chanData.push_back({});
   data.colorChanControls.push_back(ctrl); // rgb
   data.colorChanControls.push_back(ctrl); // a
 }

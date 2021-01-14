@@ -38,7 +38,7 @@ struct ChannelControl {
 };
 
 struct ChannelData {
-  gx::Color matColor{0, 0, 0, 0xff};
+  gx::Color matColor{0xff, 0xff, 0xff, 0xff};
   gx::Color ambColor{0, 0, 0, 0xff};
 
   bool operator==(const ChannelData& rhs) const = default;

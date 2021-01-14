@@ -55,11 +55,11 @@ struct LowLevelGxMaterial {
 
   CullMode cullMode = CullMode::Back;
 
-  riistudio::util::array_vector<ChannelData, 2> chanData;
+  riistudio::util::array_vector<ChannelData, 2> chanData{};
   // Color0, Alpha0, Color1, Alpha1
-  riistudio::util::array_vector<ChannelControl, 4> colorChanControls;
+  riistudio::util::array_vector<ChannelControl, 4> colorChanControls{};
 
-  riistudio::util::array_vector<TexCoordGen, 8> texGens;
+  riistudio::util::array_vector<TexCoordGen, 8> texGens{};
 
   std::array<Color, 4> tevKonstColors{};
   std::array<ColorS10, 4> tevColors{}; // last is tevprev?
@@ -72,11 +72,11 @@ struct LowLevelGxMaterial {
                        // though we could support it for G3D.
   bool xlu = false;
 
-  riistudio::util::array_vector<IndirectStage, 4> indirectStages;
-  riistudio::util::array_vector<IndirectMatrix, 3> mIndMatrices;
+  riistudio::util::array_vector<IndirectStage, 4> indirectStages{};
+  riistudio::util::array_vector<IndirectMatrix, 3> mIndMatrices{};
 
   SwapTable mSwapTable;
-  riistudio::util::array_vector<TevStage, 16> mStages;
+  riistudio::util::array_vector<TevStage, 16> mStages{};
 
   // Notably missing are texture matrices
 
