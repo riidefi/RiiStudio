@@ -14,14 +14,12 @@ ImagePreview::~ImagePreview() {
   }
 }
 
-void ImagePreview::setFromImage(u32 _width, u32 _height, u32 _num_mip,
-                                std::vector<u8>&& _buffer) {
-  width = _width;
-  height = _height;
-  mNumMipMaps = _num_mip;
-  mDecodeBuf = std::move(_buffer);
-
+void ImagePreview::setFromImage(const lib3d::Texture& tex) {
+  width = tex.getWidth();
+  height = tex.getHeight();
+  mNumMipMaps = tex.getMipmapCount();
   mLod = std::min(static_cast<u32>(mLod), mNumMipMaps);
+  tex.decode(mDecodeBuf, true);
 
   if (mTexUploaded) {
     glDeleteTextures(1, &mGpuTexId);
@@ -42,12 +40,13 @@ void ImagePreview::setFromImage(u32 _width, u32 _height, u32 _num_mip,
                   GL_LINEAR_MIPMAP_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, mNumMipMaps);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, tex.getMipmapCount());
   u32 slide = 0;
-  for (u32 i = 0; i <= mNumMipMaps; ++i) {
-    glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, width, height >> i, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, mDecodeBuf.data() + slide);
-    slide += (width >> i) * (height >> i) * 4;
+  for (u32 i = 0; i <= tex.getMipmapCount(); ++i) {
+    glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, tex.getWidth() >> i,
+                 tex.getHeight() >> i, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 mDecodeBuf.data() + slide);
+    slide += (tex.getWidth() >> i) * (tex.getHeight() >> i) * 4;
   }
   mDecodeBuf.clear();
 }

@@ -11,15 +11,7 @@ class ImagePreview {
 public:
   ImagePreview();
   ~ImagePreview();
-
-  void setFromImage(u32 width, u32 height,
-                    u32 mNumMipMaps /* image_count - 1 */,
-                    std::vector<u8>&& buffer);
-  void setFromImage(const lib3d::Texture& tex) {
-    std::vector<u8> buf(tex.getDecodedSize(true));
-    tex.decode(buf, true);
-    setFromImage(tex.getWidth(), tex.getHeight(), tex.getMipmapCount(), std::move(buf));
-  }
+  void setFromImage(const lib3d::Texture& tex);
 
   void draw(float width = -1.0f, float height = -1.0f, bool mip_slider = true);
 
