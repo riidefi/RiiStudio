@@ -13,7 +13,7 @@ void translateGfxMegaState(MegaState& megaState,
                            const librii::gx::LowLevelGxMaterial& matdata) {
   megaState.cullMode = librii::gl::translateCullMode(matdata.cullMode);
   // TODO: If compare is false, is depth masked?
-  megaState.depthWrite = matdata.zMode.compare && matdata.zMode.update;
+  megaState.depthWrite = matdata.zMode.update;
   // TODO: zmode "compare" part no reference
   megaState.depthCompare =
       matdata.zMode.compare

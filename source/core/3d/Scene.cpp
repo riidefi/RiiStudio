@@ -36,7 +36,6 @@ void SceneImpl::build(const glm::mat4& view, const glm::mat4& proj,
 
 void SceneImpl::draw() {
   glEnable(GL_DEPTH_TEST);
-
   MegaState state;
 
   auto drawNode = [&](const auto& node) {
@@ -52,8 +51,7 @@ void SceneImpl::draw() {
       glCullFace(state.cullMode);
     }
     glFrontFace(state.frontFace);
-    // TODO: depthWrite, depthCompare
-    // glDepthMask(state.depthWrite ? GL_TRUE : GL_FALSE);
+    glDepthMask(state.depthWrite ? GL_TRUE : GL_FALSE);
     glDepthFunc(state.depthCompare);
 
     // assert(mState->mVbo.VAO && node->idx_size >= 0 && node->idx_size % 3 == 0);
@@ -124,6 +122,7 @@ void SceneImpl::draw() {
 
   glBindVertexArray(0);
   glUseProgram(0);
+  glDepthMask(GL_TRUE);
 }
 
 } // namespace riistudio::lib3d
