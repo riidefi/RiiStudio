@@ -13,24 +13,6 @@
 
 namespace riistudio::j3d::ui {
 
-namespace Toolkit {
-void BoundingVolume(lib3d::AABB* bbox, float* sphere = nullptr) {
-  if (bbox != nullptr) {
-    ImGui::InputFloat3("Minimum Point", &bbox->min.x);
-    ImGui::InputFloat3("Maximum Point", &bbox->max.x);
-
-    ImGui::Text("Distance: %f", glm::distance(bbox->min, bbox->max));
-  }
-  if (sphere != nullptr) {
-    ImGui::InputFloat("Sphere Radius", sphere);
-  }
-}
-void Matrix44(const glm::mat4& mtx) {
-  for (int i = 0; i < 4; ++i) {
-    ImGui::Text("%f %f %f %f", mtx[i][0], mtx[i][1], mtx[i][2], mtx[i][3]);
-  }
-}
-} // namespace Toolkit
 
 struct J3DDataSurface final {
   static inline const char* name = "J3D Data";

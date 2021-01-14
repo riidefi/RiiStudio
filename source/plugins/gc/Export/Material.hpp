@@ -40,7 +40,7 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
 
     std::array<f32, 16> effectMatrix{};
 
-    CommonTransformModel transformModel = CommonTransformModel::Default;
+    CommonTransformModel transformModel = CommonTransformModel::Maya;
     CommonMappingMethod method = CommonMappingMethod::Standard;
     CommonMappingOption option = CommonMappingOption::NoSelection;
 
@@ -55,7 +55,7 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
              method == CommonMappingMethod::Standard;
     }
 
-    glm::mat3x4 compute(const glm::mat4& mdl, const glm::mat4& mvp) const;
+    glm::mat4x4 compute(const glm::mat4& mdl, const glm::mat4& mvp) const;
     // TODO: Support / restriction
 
     bool operator==(const TexMatrix& rhs) const = default;

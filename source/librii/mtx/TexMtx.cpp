@@ -7,38 +7,76 @@ static void calcTexMtx_Basic(glm::mat4& dst, float scaleS, float scaleT,
                              float rotation, float translationS,
                              float translationT, float centerS, float centerT,
                              float centerQ) {
-  const auto theta = rotation * 3.141592f;
-  const auto sinR = sin(theta);
-  const auto cosR = cos(theta);
+  const auto sinR = sin(rotation);
+  const auto cosR = cos(rotation);
 
   dst = glm::mat4(1.0f);
 
   dst[0][0] = scaleS * cosR;
   dst[1][0] = scaleS * -sinR;
-  dst[2][0] =
-      translationS + centerS + scaleS * (sinR * centerT - cosR * centerS);
+  dst[3][0] = translationS + centerS - (dst[0][0] * centerS + dst[1][0] * centerT);
 
   dst[0][1] = scaleT * sinR;
   dst[1][1] = scaleT * cosR;
-  dst[2][1] =
-      translationT + centerT + -scaleT * (-sinR * centerS + cosR * centerT);
+  dst[3][1] = translationT + centerT - (dst[0][1] * centerS + dst[1][1] * centerT);
 }
-static void calcTexMtx_Maya(glm::mat4& dst, float scaleS, float scaleT,
-                            float rotation, float translationS,
-                            float translationT) {
-  const auto theta = rotation * 3.141592f;
-  const auto sinR = sin(theta);
-  const auto cosR = cos(theta);
+static void computeMayaTexMtx(glm::mat4& dst, float scaleS, float scaleT,
+                              float rotation, float translationS,
+                              float translationT) {
+  const auto sinR = sin(rotation);
+  const auto cosR = cos(rotation);
 
   dst = glm::mat4(1.0f);
 
   dst[0][0] = scaleS * cosR;
-  dst[1][0] = scaleT * -sinR;
-  dst[2][0] = scaleS * ((-0.5 * cosR) - (0.5 * sinR - 0.5) - translationS);
-
-  dst[0][1] = scaleS * sinR;
+  dst[1][0] = scaleS * sinR;
+  dst[2][0] = 0.0f;
+  dst[3][0] = scaleS * (-0.5f * sinR - 0.5f * cosR + 0.5f - translationS);
+  dst[0][1] = -scaleT * sinR;
   dst[1][1] = scaleT * cosR;
-  dst[2][1] = scaleT * ((-0.5 * cosR) + (0.5 * sinR - 0.5) + translationT) + 1;
+  dst[2][1] = 0.0f;
+  dst[3][1] = scaleT * (0.5f * sinR - 0.5f * cosR - 0.5f + translationT) + 1.0f;
+  dst[0][2] = 0.0f;
+  dst[1][2] = 0.0f;
+  dst[2][2] = 1.0f;
+  dst[3][2] = 0.0f;
+}
+
+static void computeMaxTexMtx(glm::mat4& dst, float scaleS, float scaleT,
+                             float rotation, float translationS,
+                             float translationT) {
+  const auto sinR = sin(rotation);
+  const auto cosR = cos(rotation);
+
+  dst = glm::mat4(1.0f);
+
+  dst[0][0] = scaleS * cosR;
+  dst[1][0] = scaleS * sinR;
+  dst[3][0] = -scaleS * cosR * (translationS + 0.5f) +
+              scaleS * sinR * (translationT - 0.5f) + 0.5f;
+
+  dst[0][1] = -scaleT * sinR;
+  dst[1][1] = scaleT * cosR;
+  dst[3][1] = scaleT * sinR * (translationS + 0.5f) +
+              scaleS * cosR * (translationT - 0.5f) + 0.5f;
+}
+static void computeXSITexMtx(glm::mat4& dst, float scaleS, float scaleT,
+                             float rotation, float translationS,
+                             float translationT) {
+  const auto sinR = sin(rotation);
+  const auto cosR = cos(rotation);
+
+  dst = glm::mat4(1.0f);
+
+  dst[0][0] = scaleS * cosR;
+  dst[1][0] = -scaleS * sinR;
+  dst[3][0] = (scaleS * sinR) - (scaleS * cosR * translationS) -
+              (scaleS * sinR * translationT);
+
+  dst[0][1] = scaleT * sinR;
+  dst[1][1] = scaleT * cosR;
+  dst[3][1] = (scaleT * -cosR) - (scaleT * sinR * translationS) +
+              (scaleT * cosR * translationT) + 1.0f;
 }
 static void computeNormalMatrix(glm::mat4& dst, const glm::mat4& m,
                                 bool isUniformScale) {
@@ -95,11 +133,24 @@ static void buildEnvMtx(glm::mat4& dst, float flipYScale) {
 }
 
 glm::mat4 computeTexSrt(const glm::vec2& scale, f32 rotate,
-                        const glm::vec2& translate, bool maya) {
+                        const glm::vec2& translate,
+                        CommonTransformModel xform) {
   glm::mat4 texsrt(1.0f);
-  if (maya) {
-    calcTexMtx_Maya(texsrt, scale.x, scale.y, rotate, translate.x, translate.y);
-  } else {
+  switch (xform) {
+  case CommonTransformModel::Maya:
+    computeMayaTexMtx(texsrt, scale.x, scale.y, rotate, translate.x,
+                      translate.y);
+    break;
+  case CommonTransformModel::Max:
+    computeMaxTexMtx(texsrt, scale.x, scale.y, rotate, translate.x,
+                     translate.y);
+    break;
+  case CommonTransformModel::XSI:
+    computeXSITexMtx(texsrt, scale.x, scale.y, rotate, translate.x,
+                     translate.y);
+    break;
+  case CommonTransformModel::Default:
+  default:
     calcTexMtx_Basic(texsrt, scale.x, scale.y, rotate, translate.x, translate.y,
                      0.5, 0.5, 0.5);
   }

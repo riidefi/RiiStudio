@@ -302,6 +302,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
             if (r != rotate)
               AUTO_PROP(texMatrices[texmatrixid].rotate, glm::radians(r));
             AUTO_PROP(texMatrices[texmatrixid].translate, t);
+
+#ifdef BUILD_DEBUG
+            const auto computed = glm::transpose(tm->compute({}, {}));
+            Toolkit::Matrix44(computed);
+#endif
           }
         }
         if (ImGui::CollapsingHeader("Tiling", ImGuiTreeNodeFlags_DefaultOpen)) {

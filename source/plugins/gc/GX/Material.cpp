@@ -108,13 +108,10 @@ struct PacketParams {
   glm::mat3x4 posMtx[10];
 };
 
-glm::mat3x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
+glm::mat4x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
                                                const glm::mat4& mvp) const {
-  assert(transformModel != CommonTransformModel::Max &&
-         transformModel != CommonTransformModel::XSI);
-
-  auto texsrt = librii::mtx::computeTexSrt(
-      scale, rotate, translate, transformModel == CommonTransformModel::Maya);
+  auto texsrt =
+      librii::mtx::computeTexSrt(scale, rotate, translate, transformModel);
   return librii::mtx::computeTexMtx(mdl, mvp, texsrt, method, option);
 }
 void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
