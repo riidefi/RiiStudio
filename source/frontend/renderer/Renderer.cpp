@@ -51,6 +51,8 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     } else {
       RootWindow::spInstance->showMouse();
     }
+  } else {
+    RootWindow::spInstance->showMouse();
   }
 
   glm::mat4 projMtx, viewMtx;
