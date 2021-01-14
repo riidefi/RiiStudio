@@ -138,6 +138,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   assert(reader.tell() % 4 == 0);
   mat.flag = reader.read<u8>();
+  mat.xlu = mat.flag & 4;
   auto cmx = loader.indexed<u8, u32>(MatSec::CullModeInfo);
   u32 cullMode = cmx.raw<u32>();
   if (cullMode > static_cast<u32>(librii::gx::CullMode::All)) {
