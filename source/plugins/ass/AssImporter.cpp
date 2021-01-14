@@ -765,6 +765,9 @@ void AssImporter::ImportAss(
 
   ImportNode(root, tint);
 
+  if (auto* gmdl = dynamic_cast<g3d::Model*>(out_model); gmdl != nullptr)
+    gmdl->aabb = gmdl->getBones()[0].getAABB();
+
   // Assign IDs
   for (int i = 0; i < out_model->getMeshes().size(); ++i) {
     auto& mesh = out_model->getMeshes()[i];
