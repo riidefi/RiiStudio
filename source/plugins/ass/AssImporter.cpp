@@ -11,7 +11,7 @@
 
 namespace riistudio::ass {
 
-const auto power_of_2 = [](u32 x) { return x & (x - 1); };
+const auto power_of_2 = [](u32 x) { return (x & (x - 1)) == 0; };
 
 AssImporter::AssImporter(const aiScene* scene, kpi::INode* mdl)
     : pScene(scene) {
@@ -418,7 +418,8 @@ void AssImporter::ImportNode(const aiNode* pNode, glm::vec3 tint, int parent) {
     const auto matId = boneIdCtr->matIdToMatIdMap[pMesh->mMaterialIndex];
 
     if (ImportMesh(pMesh, pNode, tint)) {
-      aabb.expandBound(out_model->getMeshes()[boneIdCtr->meshId].getBounds());
+      const auto bounds = out_model->getMeshes()[boneIdCtr->meshId].getBounds();
+      aabb.expandBound(bounds);
       joint.addDisplay({matId, boneIdCtr->meshId++, 0});
     } else {
       printf("Mesh has denegerate triangles or points/lines\n");
