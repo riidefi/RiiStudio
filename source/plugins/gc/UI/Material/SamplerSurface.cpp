@@ -4,6 +4,8 @@
 #include <librii/hx/TextureFilter.hpp>
 #include <plugins/gc/Export/Scene.hpp>
 
+#include <plugins/j3d/Material.hpp>
+
 #undef near
 #undef far
 namespace libcube::UI {
@@ -191,8 +193,20 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                           ImGuiTreeNodeFlags_DefaultOpen)) {
                 // TODO: Effect matrix
                 int xfmodel = static_cast<int>(tm->transformModel);
-                ImGui::Combo("Transform Model", &xfmodel,
-                             " Default\0 Maya\0 3DS Max\0 Softimage XSI\0");
+                bool is_j3d = dynamic_cast<const riistudio::j3d::Material*>(
+                    &delegate.getActive());
+                if (is_j3d) {
+                  ImGui::Combo("Transform Model", &xfmodel,
+                               "Basic (Not Recommended)\0"
+                               "Maya\0");
+                } else {
+                  --xfmodel;
+                  ImGui::Combo("Transform Model", &xfmodel,
+                               "Maya\0"
+                               "3DS Max\0"
+                               "Softimage XSI\0");
+                  ++xfmodel;
+                }
                 AUTO_PROP(
                     texMatrices[texmatrixid].transformModel,
                     static_cast<libcube::GCMaterialData::CommonTransformModel>(
