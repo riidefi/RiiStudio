@@ -1,10 +1,54 @@
 #include "Common.hpp"
 #include <core/3d/ui/Image.hpp> // for ImagePreview
+#include <librii/hx/TexGenType.hpp>
+#include <librii/hx/TextureFilter.hpp>
 #include <plugins/gc/Export/Scene.hpp>
 
 #undef near
 #undef far
 namespace libcube::UI {
+
+void addSampler(libcube::GCMaterialData& d) {
+  if (d.texGens.size() != d.samplers.size() || d.texGens.size() == 10 ||
+      d.samplers.size() == 8 || d.texMatrices.size() == 10) {
+    printf("[Warning] Cannot add sampler on material %s\n", d.name.c_str());
+    return;
+  }
+
+  gx::TexCoordGen gen;
+  gen.setMatrixIndex(d.texMatrices.size());
+  d.texGens.push_back(gen);
+  d.texMatrices.push_back(GCMaterialData::TexMatrix{});
+  d.samplers.push_back(std::make_unique<GCMaterialData::SamplerData>());
+}
+
+void deleteSampler(libcube::GCMaterialData& matData, size_t i) {
+  // Only one may be deleted at a time
+  matData.samplers.erase(i);
+  assert(matData.texGens[i].getMatrixIndex() == i);
+  matData.texGens.erase(i);
+  matData.texMatrices.erase(i);
+
+  // Correct stages
+  for (auto& stage : matData.mStages) {
+    if (stage.texCoord == stage.texMap) {
+      if (stage.texCoord == i) {
+        // Might be a better way of doing this
+        stage.texCoord = stage.texMap = 0;
+      } else if (stage.texCoord > i) {
+        --stage.texCoord;
+        --stage.texMap;
+      }
+    }
+  }
+}
+
+void addSampler(kpi::PropertyDelegate<libcube::IGCMaterial>& delegate) {
+  for (auto* obj : delegate.mAffected) {
+    addSampler(obj->getMaterialData());
+  }
+  delegate.commit("Added sampler");
+}
 
 using namespace riistudio::util;
 
@@ -19,6 +63,30 @@ struct SamplerSurface final {
   std::string mLastImg;
 };
 
+void drawSamplerImage(const kpi::ConstCollectionRange<libcube::Texture>& mImgs,
+                      libcube::GCMaterialData::SamplerData& samp,
+                      libcube::UI::SamplerSurface& surface) {
+  const riistudio::lib3d::Texture* curImg = nullptr;
+
+  for (auto& it : mImgs) {
+    if (it.getName() == samp.mTexture) {
+      curImg = &it;
+    }
+  }
+
+  if (curImg == nullptr) {
+    ImGui::Text("No valid image.");
+  } else {
+    if (surface.mLastImg != curImg->getName()) {
+      surface.mImg.setFromImage(*curImg);
+      surface.mLastImg = curImg->getName();
+    }
+    const auto aspect_ratio = static_cast<f32>(curImg->getWidth()) /
+                              static_cast<f32>(curImg->getHeight());
+    surface.mImg.draw(128.0f * aspect_ratio, 128.0f);
+  }
+}
+
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SamplerSurface& surface) {
   auto& matData = delegate.getActive().getMaterialData();
@@ -29,25 +97,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 
   if (ImGui::Button("Add Sampler")) {
-    for (auto* obj : delegate.mAffected) {
-      auto& d = obj->getMaterialData();
-
-      if (d.texGens.size() != d.samplers.size()) {
-        printf("[Warning] Cannot add sampler on material %s\n", d.name.c_str());
-      }
-
-      gx::TexCoordGen gen;
-      gen.setMatrixIndex(d.texMatrices.size());
-      d.texGens.push_back(gen);
-      d.texMatrices.push_back(GCMaterialData::TexMatrix{});
-      d.samplers.push_back(std::make_unique<GCMaterialData::SamplerData>());
-    }
-    delegate.commit("Added sampler");
+    addSampler(delegate);
   }
 
   if (ImGui::BeginTabBar("Textures")) {
-    llvm::SmallVector<bool, 16> open(matData.texGens.nElements, true);
-    for (std::size_t i = 0; i < matData.texGens.nElements; ++i) {
+    llvm::SmallVector<bool, 16> open(matData.texGens.size(), true);
+    for (std::size_t i = 0; i < matData.texGens.size(); ++i) {
       auto& tg = matData.texGens[i];
 
       bool identitymatrix = tg.isIdentityMatrix();
@@ -72,25 +127,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
             AUTO_PROP(samplers[i]->mTexture, result);
           }
 
-          const riistudio::lib3d::Texture* curImg = nullptr;
-
-          for (auto& it : mImgs) {
-            if (it.getName() == samp->mTexture) {
-              curImg = &it;
-            }
-          }
-
-          if (curImg == nullptr) {
-            ImGui::Text("No valid image.");
-          } else {
-            if (surface.mLastImg != curImg->getName()) {
-              surface.mImg.setFromImage(*curImg);
-              surface.mLastImg = curImg->getName();
-            }
-            const auto aspect_ratio = static_cast<f32>(curImg->getWidth()) /
-                                      static_cast<f32>(curImg->getHeight());
-            surface.mImg.draw(128.0f * aspect_ratio, 128.0f);
-          }
+          if (samp != nullptr)
+            drawSamplerImage(mImgs, *samp, surface);
         }
         if (ImGui::CollapsingHeader("Mapping",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -101,44 +139,17 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
             if (ImGui::BeginTabItem("Advanced")) {
               if (ImGui::CollapsingHeader("Texture Coordinate Generator",
                                           ImGuiTreeNodeFlags_DefaultOpen)) {
-                int basefunc = 0;
-                int mtxtype = 0;
-                int lightid = 0;
-
-                switch (tg.func) {
-                case librii::gx::TexGenType::Matrix2x4:
-                  basefunc = 0;
-                  mtxtype = 0;
-                  break;
-                case librii::gx::TexGenType::Matrix3x4:
-                  basefunc = 0;
-                  mtxtype = 1;
-                  break;
-                case librii::gx::TexGenType::Bump0:
-                case librii::gx::TexGenType::Bump1:
-                case librii::gx::TexGenType::Bump2:
-                case librii::gx::TexGenType::Bump3:
-                case librii::gx::TexGenType::Bump4:
-                case librii::gx::TexGenType::Bump5:
-                case librii::gx::TexGenType::Bump6:
-                case librii::gx::TexGenType::Bump7:
-                  basefunc = 1;
-                  lightid = static_cast<int>(tg.func) -
-                            static_cast<int>(librii::gx::TexGenType::Bump0);
-                  break;
-                case librii::gx::TexGenType::SRTG:
-                  basefunc = 2;
-                  break;
-                }
+                librii::hx::TexGenType hx_tg =
+                    librii::hx::elevateTexGenType(tg.func);
 
                 ImGui::Combo(
-                    "Function", &basefunc,
+                    "Function", &hx_tg.basefunc,
                     "Standard Texture Matrix\0Bump Mapping: Use vertex "
                     "lighting calculation result.\0SRTG: Map R(ed) and G(reen) "
                     "components of a color channel to U/V coordinates\0");
                 {
-                  ConditionalActive g(basefunc == 0);
-                  ImGui::Combo("Matrix Size", &mtxtype,
+                  ConditionalActive g(hx_tg.basefunc == 0);
+                  ImGui::Combo("Matrix Size", &hx_tg.mtxtype,
                                "UV Matrix: 2x4\0UVW Matrix: 3x4\0");
 
                   ImGui::Checkbox("Identity Matrix", &identitymatrix);
@@ -157,26 +168,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   AUTO_PROP(texGens[i].matrix, newtexmatrix);
                 }
                 {
-                  ConditionalActive g(basefunc == 1);
-                  ImGui::SliderInt("Hardware light ID", &lightid, 0, 7);
+                  ConditionalActive g(hx_tg.basefunc == 1);
+                  ImGui::SliderInt("Hardware light ID", &hx_tg.lightid, 0, 7);
                 }
 
                 librii::gx::TexGenType newfunc =
-                    librii::gx::TexGenType::Matrix2x4;
-                switch (basefunc) {
-                case 0:
-                  newfunc = mtxtype ? librii::gx::TexGenType::Matrix3x4
-                                    : librii::gx::TexGenType::Matrix2x4;
-                  break;
-                case 1:
-                  newfunc = static_cast<librii::gx::TexGenType>(
-                      static_cast<int>(librii::gx::TexGenType::Bump0) +
-                      lightid);
-                  break;
-                case 2:
-                  newfunc = librii::gx::TexGenType::SRTG;
-                  break;
-                }
+                    librii::hx::lowerTexGenType(hx_tg);
                 AUTO_PROP(texGens[i].func, newfunc);
 
                 int src = static_cast<int>(tg.sourceParam);
@@ -323,34 +320,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
           int magBase = static_cast<int>(samp->mMagFilter);
 
-          int minBase = 0;
-          int minMipBase = 0;
-          bool mip = false;
-
-          switch (samp->mMinFilter) {
-          case librii::gx::TextureFilter::near_mip_near:
-            mip = true;
-          case librii::gx::TextureFilter::near:
-            minBase = minMipBase =
-                static_cast<int>(librii::gx::TextureFilter::near);
-            break;
-          case librii::gx::TextureFilter::lin_mip_lin:
-            mip = true;
-          case librii::gx::TextureFilter::linear:
-            minBase = minMipBase =
-                static_cast<int>(librii::gx::TextureFilter::linear);
-            break;
-          case librii::gx::TextureFilter::near_mip_lin:
-            mip = true;
-            minBase = static_cast<int>(librii::gx::TextureFilter::near);
-            minMipBase = static_cast<int>(librii::gx::TextureFilter::linear);
-            break;
-          case librii::gx::TextureFilter::lin_mip_near:
-            mip = true;
-            minBase = static_cast<int>(librii::gx::TextureFilter::linear);
-            minMipBase = static_cast<int>(librii::gx::TextureFilter::near);
-            break;
-          }
+          auto min_filt = librii::hx::elevateTextureFilter(samp->mMinFilter);
 
           const char* linNear = "Nearest (no interpolation/pixelated)\0Linear "
                                 "(interpolated/blurry)\0";
@@ -358,16 +328,17 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           ImGui::Combo("Interpolation when scaled up", &magBase, linNear);
           AUTO_PROP(samplers[i]->mMagFilter,
                     static_cast<librii::gx::TextureFilter>(magBase));
-          ImGui::Combo("Interpolation when scaled down", &minBase, linNear);
+          ImGui::Combo("Interpolation when scaled down", &min_filt.minBase,
+                       linNear);
 
-          ImGui::Checkbox("Use mipmap", &mip);
+          ImGui::Checkbox("Use mipmap", &min_filt.mip);
 
           {
-            ConditionalActive g(mip);
+            ConditionalActive g(min_filt.mip);
 
             if (ImGui::CollapsingHeader("Mipmapping",
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
-              ImGui::Combo("Interpolation type", &minMipBase, linNear);
+              ImGui::Combo("Interpolation type", &min_filt.minMipBase, linNear);
 
               float lodbias = samp->mLodBias;
               ImGui::SliderFloat("LOD bias", &lodbias, -4.0f, 3.99f);
@@ -418,56 +389,20 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           }
 
           librii::gx::TextureFilter computedMin =
-              librii::gx::TextureFilter::near;
-          if (!mip) {
-            computedMin = static_cast<librii::gx::TextureFilter>(minBase);
-          } else {
-            bool baseLin = static_cast<librii::gx::TextureFilter>(minBase) ==
-                           librii::gx::TextureFilter::linear;
-            if (static_cast<librii::gx::TextureFilter>(minMipBase) ==
-                librii::gx::TextureFilter::linear) {
-              computedMin = baseLin ? librii::gx::TextureFilter::lin_mip_lin
-                                    : librii::gx::TextureFilter::near_mip_lin;
-            } else {
-              computedMin = baseLin ? librii::gx::TextureFilter::lin_mip_near
-                                    : librii::gx::TextureFilter::near_mip_near;
-            }
-          }
+              librii::hx::lowerTextureFilter(min_filt);
 
           AUTO_PROP(samplers[i]->mMinFilter, computedMin);
         }
         ImGui::EndTabItem();
       }
     }
-    bool changed = false;
-    for (std::size_t i = 0; i < matData.texGens.nElements; ++i) {
-      if (open[i])
-        continue;
 
-      changed = true;
-
-      // Only one may be deleted at a time
-      matData.samplers.erase(i);
-      assert(matData.texGens[i].getMatrixIndex() == i);
-      matData.texGens.erase(i);
-      matData.texMatrices.erase(i);
-
-      // Correct stages
-      for (auto& stage : matData.mStages) {
-        if (stage.texCoord == stage.texMap) {
-          if (stage.texCoord == i) {
-            // Might be a better way of doing this
-            stage.texCoord = stage.texMap = 0;
-          } else if (stage.texCoord > i) {
-            --stage.texCoord;
-            --stage.texMap;
-          }
-        }
+    for (std::size_t i = 0; i < matData.texGens.size(); ++i) {
+      if (!open[i]) {
+        deleteSampler(matData, i);
+        delegate.commit("Erased a sampler");
+        break;
       }
-
-      delegate.commit("Erased a sampler");
-
-      break;
     }
     ImGui::EndTabBar();
   }

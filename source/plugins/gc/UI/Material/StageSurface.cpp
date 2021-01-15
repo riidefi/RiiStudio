@@ -1,6 +1,7 @@
 #include "Common.hpp"
-#include <core/3d/ui/Image.hpp>        // for ImagePreview
-#include <plugins/gc/UI/TevSolver.hpp> // for optimizeNode
+#include <core/3d/ui/Image.hpp>        // ImagePreview
+#include <librii/hx/KonstSel.hpp>      // elevateKonstSel
+#include <plugins/gc/UI/TevSolver.hpp> // optimizeNode
 
 #include <plugins/gc/Export/Scene.hpp>
 
@@ -30,52 +31,39 @@ const char* alphaOpt = "Register 3 Alpha\0Register 0 Alpha\0Register 1 "
                        "Alpha\0Constant Alpha Selection\0 0.0\0\0";
 
 template <typename T> T DrawKonstSel(T x) {
-  int ksel = static_cast<int>(x);
-  bool k_constant = ksel == std::clamp(ksel, static_cast<int>(T::const_8_8),
-                                       static_cast<int>(T::const_1_8));
-  int k_numerator =
-      k_constant ? 8 - (ksel - static_cast<int>(T::const_8_8)) : -1;
-  int k_reg = !k_constant ? (ksel - static_cast<int>(T::k0)) % 5 : -1;
-  int k_sub = !k_constant ? (ksel - static_cast<int>(T::k0)) / 5
-                          : -1; // rgba, r, g, b, a
+  auto ksel = librii::hx::elevateKonstSel(x);
 
-  int k_type = k_constant ? 0 : 1;
+  int k_type = ksel.k_constant ? 0 : 1;
   const int last_k_type = k_type;
   ImGui::Combo("Konst Selection", &k_type, "Constant\0Uniform\0");
   if (k_type == 0) { // constant
-    float k_frac = static_cast<float>(k_numerator) / 8.0f;
+    float k_frac = static_cast<float>(ksel.k_numerator) / 8.0f;
     ImGui::SliderFloat("Constant Value", &k_frac, 0.0f, 1.0f);
-    k_numerator = static_cast<int>(roundf(k_frac * 8.0f));
-    k_numerator = std::max(k_numerator, 1);
+    ksel.k_numerator = static_cast<int>(roundf(k_frac * 8.0f));
+    ksel.k_numerator = std::max(ksel.k_numerator, 1);
   } else { // uniform
     if (k_type != last_k_type) {
-      k_reg = 0;
-      k_sub = 0;
+      ksel.k_reg = 0;
+      ksel.k_sub = 0;
     }
     ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth() / 3 - 2);
     ImGui::Combo(
-        ".##Konstant Register ID", &k_reg,
+        ".##Konstant Register ID", &ksel.k_reg,
         "Konst Color 0\0Konst Color 1\0Konst Color 2\0Konst Color 3\0");
     ImGui::SameLine();
     if (std::is_same_v<T, gx::TevKColorSel>) {
-      ImGui::Combo("Konst Register##Subscript", &k_sub,
+      ImGui::Combo("Konst Register##Subscript", &ksel.k_sub,
                    "RGB\0RRR\0GGG\0BBB\0AAA\0");
     } else {
-      --k_sub;
-      ImGui::Combo("Konst Register##Subscript", &k_sub, "R\0G\0B\0A\0");
-      ++k_sub;
+      --ksel.k_sub;
+      ImGui::Combo("Konst Register##Subscript", &ksel.k_sub, "R\0G\0B\0A\0");
+      ++ksel.k_sub;
     }
     ImGui::PopItemWidth();
   }
+  ksel.k_constant = k_type == 0;
 
-  if (k_type == 0) {
-    k_numerator -= 1;               // [0, 7]
-    k_numerator = -k_numerator + 7; // -> [7, 0]
-    ksel = static_cast<int>(T::const_8_8) + k_numerator;
-  } else {
-    ksel = static_cast<int>(T::k0) + (k_sub * 5) + k_reg;
-  }
-  return static_cast<T>(ksel);
+  return librii::hx::lowerKonstSel<T>(ksel);
 }
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,

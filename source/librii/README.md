@@ -11,6 +11,9 @@ Allows direct interaction with the Wii GPU.
 ### librii::gx
 Data structures for the Wii graphics driver.
 
+### librii::hx
+Abstractions of librii::gx structures.
+
 ### librii::image
 Supports encoding/decoding/resizing Wii images.
 

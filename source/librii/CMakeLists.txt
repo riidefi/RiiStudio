@@ -9,6 +9,8 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 add_library(librii
   "gl/Compiler.hpp"
   "gl/Compiler.cpp"
+  "gl/EnumConverter.hpp"
+  "gl/EnumConverter.cpp"
 
   "gx/Texture.cpp"
   "gx/validate/MaterialValidate.hpp"
@@ -40,4 +42,11 @@ add_library(librii
   "gpu/GPUCommand.hpp"
   "gpu/GPUMaterial.cpp"
   "gpu/GPUMaterial.hpp"
- "gl/EnumConverter.hpp" "gl/EnumConverter.cpp" "mtx/TexMtx.cpp" "mtx/TexMtx.hpp")
+ 
+  "mtx/TexMtx.cpp"
+  "mtx/TexMtx.hpp"
+
+  "hx/CullMode.hpp"
+  "hx/TexGenType.hpp"
+  "hx/TextureFilter.hpp"
+  "hx/KonstSel.hpp")
