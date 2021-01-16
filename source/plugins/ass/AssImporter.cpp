@@ -3,6 +3,7 @@
 #include "Utility.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <librii/image/CheckerBoard.hpp>
 #include <llvm/ADT/BitVector.h>
 #include <map>
 #include <plugins/g3d/model.hpp>
@@ -321,6 +322,8 @@ static bool importTexture(libcube::Texture& data, u8* image,
                           std::vector<u8>& scratch, bool mip_gen, int min_dim,
                           int max_mip, int width, int height, int channels) {
   if (!image) {
+    data.setWidth(0);
+	data.setHeight(0);
     return false;
   }
   assert(image);
@@ -688,19 +691,8 @@ void AssImporter::ImportAss(
     tex.setHeight(dummy_height);
     scratch.resize(dummy_width * dummy_height * 4);
     // Make a basic checkerboard
-    const u32 fg = 0xff'00'dc'ff;
-    const u32 bg = 0x00'00'00'ff;
-    for (int i = 0; i < dummy_height; ++i) {
-      for (int j = 0; j < dummy_width; ++j) {
-        const auto px_offset = i * dummy_width * 4 + j * 4;
-        const bool is_fg = ((i / 8) & 1) != ((j / 8) & 1);
-        const u32 color = is_fg ? fg : bg;
-        scratch[px_offset] = (color & 0xff'00'00'00) >> 24;
-        scratch[px_offset + 1] = (color & 0x00'ff'00'00) >> 16;
-        scratch[px_offset + 2] = (color & 0x00'00'ff'00) >> 8;
-        scratch[px_offset + 3] = (color & 0x00'00'00'ff);
-      }
-    }
+    librii::image::generateCheckerboard(scratch.data(), dummy_width,
+                                        dummy_height);
     tex.setMipmapCount(0);
     tex.setTextureFormat((int)librii::gx::TextureFormat::CMPR);
     tex.encode(scratch.data());
