@@ -204,6 +204,7 @@ void AssReader::read(kpi::IOTransaction& transaction) {
         additional_textures.emplace_back(i, std::move(found));
       }
     }
+    helper->SetTransaction(transaction);
     helper->ImportAss(additional_textures, mGenerateMipMaps, mMinMipDimension,
                       mMaxMipCount, mAutoTransparent,
                       glm::vec3(model_tint[0], model_tint[1], model_tint[2]));

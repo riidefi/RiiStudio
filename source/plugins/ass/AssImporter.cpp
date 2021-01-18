@@ -713,6 +713,15 @@ void AssImporter::ImportAss(
 
       assert(power_of_2(64));
       assert(!power_of_2(65));
+      if (!power_of_2(tex->getWidth()) || !power_of_2(tex->getHeight())) {
+        if (transaction != nullptr) {
+          transaction->callback(kpi::IOMessageClass::Warning, tex->getName(),
+                                std::string("Texture dimensions (") +
+                                    std::to_string(tex->getWidth()) + "x" +
+                                    std::to_string(tex->getHeight()) +
+                                    ") are not powers of two.");
+        }
+      }
       if (!power_of_2(tex->getWidth())) {
         sampler->mWrapU = librii::gx::TextureWrapMode::Clamp;
       }

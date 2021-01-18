@@ -36,7 +36,10 @@ public:
             bool mip_gen, int min_dim, int max_mip, bool auto_outline,
             glm::vec3 tint);
 
+  void SetTransaction(kpi::IOTransaction& t) { transaction = &t; }
+
 private:
+  kpi::IOTransaction* transaction = nullptr;
   IdCounter ctr;
   IdCounter* boneIdCtr = &ctr;
 
