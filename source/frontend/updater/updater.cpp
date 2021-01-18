@@ -44,18 +44,31 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb,
 
 Updater::Updater() {
   InitRepoJSON();
-  if (mJSON->data.contains("name"))
+  if (mJSON->data.contains("name") && mJSON->data["name"].is_string())
     mLatestVer = mJSON->data["name"].get<std::string>();
 
-  const auto current_exe = ExecutableFilename();
-
-  if (mLatestVer.empty() || current_exe.empty())
+  if (mLatestVer.empty()) {
+    fprintf(stderr, "There is no name field\n");
     return;
+  }
+
+  const auto current_exe = ExecutableFilename();
+  if (current_exe.empty()) {
+    fprintf(stderr, "Cannot get the name of the current .exe\n");
+    return;
+  }
 
   mShowUpdateDialog = GIT_TAG != mLatestVer;
 
-  const auto temp =
-      std::filesystem::temp_directory_path() / "RiiStudio_temp.exe";
+  std::error_code ec;
+  auto temp_dir = std::filesystem::temp_directory_path(ec);
+
+  if (ec) {
+    std::cout << ec.message() << std::endl;
+    return;
+  }
+
+  const auto temp = temp_dir / "RiiStudio_temp.exe";
 
   if (std::filesystem::exists(temp)) {
     mShowChangelog = true;
@@ -66,7 +79,7 @@ Updater::Updater() {
 Updater::~Updater() {}
 
 void Updater::draw() {
-  if (mJSON->data.contains("body"))
+  if (mJSON->data.contains("body") && mJSON->data["body"].is_string())
     DrawChangeLog(&mShowChangelog, mJSON->data["body"].get<std::string>());
 
   // Hack.. wait one frame for the UI to size properly
@@ -87,7 +100,7 @@ void Updater::draw() {
   if (!mShowUpdateDialog)
     return;
 
-  const auto wflags = ImGuiWindowFlags_NoResize;
+  const auto wflags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
   ImGui::OpenPopup("RiiStudio Update");
   if (ImGui::BeginPopupModal("RiiStudio Update", nullptr, wflags)) {
@@ -143,7 +156,7 @@ void Updater::InitRepoJSON() {
 }
 
 std::string Updater::ExecutableFilename() {
-  std::array<char, 1024> pathBuffer;
+  std::array<char, 1024> pathBuffer{};
   const int n =
       GetModuleFileNameA(nullptr, pathBuffer.data(), pathBuffer.size());
 
