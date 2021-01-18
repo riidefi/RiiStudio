@@ -15,7 +15,7 @@ auto PolyDataSurface =
           auto& mesh_data = poly.getMeshData();
 
           auto draw_p = [&](int i, int j) {
-            auto prim = poly.getMatrixPrimitiveIndexedPrimitive(i, j);
+            auto prim = poly.getMeshData().mMatrixPrimitives[i].mPrimitives[j];
             u32 k = 0;
             for (auto& v : prim.mVertices) {
               ImGui::TableNextRow();
@@ -74,15 +74,18 @@ auto PolyDataSurface =
                   "Quads",        "QuadStrips", "Triangles",  "TriangleStrips",
                   "TriangleFans", "Lines",      "LineStrips", "Points"};
 
-              for (int j = 0; j < poly.getMatrixPrimitiveNumIndexedPrimitive(i);
+              for (int j = 0;
+                   j <
+                   poly.getMeshData().mMatrixPrimitives[i].mPrimitives.size();
                    ++j) {
                 ImGui::TableNextRow();
 
                 ImGui::TableSetColumnIndex(0);
                 bool open = ImGui::TreeNodeEx(
                     (std::string("#") + std::to_string(j) + " (" +
-                     prim_types[static_cast<int>(
-                         poly.getMatrixPrimitiveIndexedPrimitive(i, j).mType)] +
+                     prim_types[static_cast<int>(poly.getMeshData()
+                                                     .mMatrixPrimitives[i]
+                                                     .mPrimitives[j].mType)] +
                      ")")
                         .c_str(),
                     ImGuiTreeNodeFlags_SpanFullWidth |

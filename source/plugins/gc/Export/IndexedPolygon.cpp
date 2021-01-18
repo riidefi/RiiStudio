@@ -3,35 +3,6 @@
 
 namespace libcube {
 
-u64 IndexedPolygon::getNumPrimitives() const {
-  u64 total = 0;
-
-  for (u64 i = 0; i < getMeshData().mMatrixPrimitives.size(); ++i)
-    total += getMatrixPrimitiveNumIndexedPrimitive(i);
-
-  return total;
-}
-// Triangles
-// We add this to the last mprim. May need to be split up later.
-s64 IndexedPolygon::addPrimitive() {
-  if (getMeshData().mMatrixPrimitives.empty())
-    getMeshData().mMatrixPrimitives.emplace_back();
-
-  const s64 idx = getMeshData().mMatrixPrimitives.size();
-  assert(idx > 0);
-  if (idx <= 0)
-    return -1;
-
-  //	const s64 iprim_idx = addMatrixPrimitiveIndexedPrimitive();
-  //	assert(iprim_idx >= 0);
-  //	if (iprim_idx < 0)
-  //		return;
-  //
-  //	auto& iprim = getMatrixPrimitiveIndexedPrimitive(idx, iprim_idx);
-  //
-  //	// TODO
-  return -1;
-}
 bool IndexedPolygon::hasAttrib(SimpleAttrib attrib) const {
   switch (attrib) {
   case SimpleAttrib::EnvelopeIndex:
@@ -103,48 +74,6 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v) {
     assert(!"Invalid simple vertex attrib");
     break;
   }
-}
-librii::gx::IndexedPrimitive* IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) {
-  u64 cnt = 0;
-  for (u64 i = 0; i < getMeshData().mMatrixPrimitives.size(); ++i) {
-    if (idx >= cnt && idx < cnt + getMatrixPrimitiveNumIndexedPrimitive(i))
-      return &getMatrixPrimitiveIndexedPrimitive(i, idx - cnt);
-
-    cnt += getMatrixPrimitiveNumIndexedPrimitive(i);
-  }
-  return nullptr;
-}
-const librii::gx::IndexedPrimitive*
-IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) const {
-  u64 cnt = 0;
-  for (u64 i = 0; i < getMeshData().mMatrixPrimitives.size(); ++i) {
-    if (idx >= cnt && idx < cnt + getMatrixPrimitiveNumIndexedPrimitive(i))
-      return &getMatrixPrimitiveIndexedPrimitive(i, idx - cnt);
-
-    cnt += getMatrixPrimitiveNumIndexedPrimitive(i);
-  }
-  return nullptr;
-}
-u64 IndexedPolygon::getPrimitiveVertexCount(u64 index) const {
-  const librii::gx::IndexedPrimitive* prim =
-      getIndexedPrimitiveFromSuperIndex(index);
-  assert(prim);
-  return prim->mVertices.size();
-}
-void IndexedPolygon::resizePrimitiveVertexArray(u64 index, u64 size) {
-  librii::gx::IndexedPrimitive* prim = getIndexedPrimitiveFromSuperIndex(index);
-  assert(prim);
-  prim->mVertices.resize(size);
-}
-IndexedPolygon::SimpleVertex IndexedPolygon::getPrimitiveVertex(u64 prim_idx,
-                                                                u64 vtx_idx) {
-  const auto& iprim = *getIndexedPrimitiveFromSuperIndex(prim_idx);
-  assert(vtx_idx < iprim.mVertices.size());
-  const auto& vtx = iprim.mVertices[vtx_idx];
-
-  return {(u8)vtx[gx::VertexAttribute::PositionNormalMatrixIndex],
-          getPos(vtx[gx::VertexAttribute::Position])};
-  return {};
 }
 void IndexedPolygon::propogate(VBOBuilder& out) const {
   u32 final_bitfield = 0;
@@ -219,9 +148,9 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
     }
   };
 
-  for (int i = 0; i < getMeshData().mMatrixPrimitives.size(); ++i) {
-    for (int j = 0; j < getMatrixPrimitiveNumIndexedPrimitive(i); ++j) {
-      const auto& idx = getMatrixPrimitiveIndexedPrimitive(i, j);
+  auto& mprims = getMeshData().mMatrixPrimitives;
+  for (auto& mprim : mprims) {
+    for (auto& idx : mprim.mPrimitives) {
       auto propV = [&](int id) { propVtx(idx.mVertices[id]); };
       if (idx.mVertices.empty())
         goto broken;

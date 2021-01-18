@@ -232,11 +232,9 @@ void RootWindow::draw() {
                   bmd_mp.mCurrentMatrix = 0;
                   bmd_mp.mDrawMatrixIndices.push_back(0);
                   // No multi mtx yet
-                  for (int j = 0;
-                       j < from_shape.getMatrixPrimitiveNumIndexedPrimitive(i);
-                       ++j) {
-                    const auto& prim =
-                        from_shape.getMatrixPrimitiveIndexedPrimitive(i, j);
+                  for (auto& prim : from_shape.getMeshData()
+                                        .mMatrixPrimitives[i]
+                                        .mPrimitives) {
                     auto& p = bmd_mp.mPrimitives.emplace_back(prim);
                     // Remap vtx indices
                     for (auto& v : p.mVertices) {

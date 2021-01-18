@@ -69,54 +69,6 @@ u64 Shape::addUv(u64 chan, const glm::vec2& v) {
   return add_to_buffer(v, getMutModel(this)->mBufs.uv[chan].mData);
 }
 
-void Shape::addTriangle(std::array<SimpleVertex, 3> tri) {
-  if (mMatrixPrimitives.empty())
-    mMatrixPrimitives.emplace_back();
-  if (mMatrixPrimitives.back().mPrimitives.empty() ||
-      mMatrixPrimitives.back().mPrimitives.back().mType !=
-          librii::gx::PrimitiveType::Triangles)
-    mMatrixPrimitives.back().mPrimitives.emplace_back(
-        librii::gx::PrimitiveType::Triangles, 0);
-
-  auto& prim = mMatrixPrimitives.back().mPrimitives.back();
-
-  for (const auto& vtx : tri) {
-    // assert(!hasAttrib(SimpleAttrib::EnvelopeIndex));
-
-    librii::gx::IndexedVertex ivtx;
-
-    assert(hasAttrib(SimpleAttrib::Position));
-
-    ivtx[librii::gx::VertexAttribute::Position] = addPos(vtx.position);
-
-    if (vtx.position.x > bbox.max.x)
-      bbox.max.x = vtx.position.x;
-    if (vtx.position.y > bbox.max.y)
-      bbox.max.y = vtx.position.y;
-    if (vtx.position.z > bbox.max.z)
-      bbox.max.z = vtx.position.z;
-
-    if (vtx.position.x < bbox.min.x)
-      bbox.min.x = vtx.position.x;
-    if (vtx.position.y < bbox.min.y)
-      bbox.min.y = vtx.position.y;
-    if (vtx.position.z < bbox.min.z)
-      bbox.min.z = vtx.position.z;
-    if (hasAttrib(SimpleAttrib::Normal))
-      ivtx[librii::gx::VertexAttribute::Normal] = addNrm(vtx.normal);
-    if (hasAttrib(SimpleAttrib::Color0))
-      ivtx[librii::gx::VertexAttribute::Color0] = addClr(0, vtx.colors[0]);
-    if (hasAttrib(SimpleAttrib::Color1))
-      ivtx[librii::gx::VertexAttribute::Color1] = addClr(1, vtx.colors[1]);
-    // TODO: Support all
-    if (hasAttrib(SimpleAttrib::TexCoord0))
-      ivtx[librii::gx::VertexAttribute::TexCoord0] = addUv(0, vtx.uvs[0]);
-    if (hasAttrib(SimpleAttrib::TexCoord1))
-      ivtx[librii::gx::VertexAttribute::TexCoord1] = addUv(1, vtx.uvs[1]);
-
-    prim.mVertices.push_back(ivtx);
-  }
-}
 
 glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
   glm::mat4 dst(1.0f);

@@ -88,7 +88,6 @@ u64 Polygon::addUv(u64 chan, const glm::vec2& v) {
   return add_to_buffer(v, *buf);
 }
 
-void Polygon::addTriangle(std::array<SimpleVertex, 3> tri) {}
 
 glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
   glm::mat4 dst(1.0f);

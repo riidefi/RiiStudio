@@ -38,25 +38,6 @@ struct Polygon : public PolygonData,
   std::string getName() const { return mName; }
   void setName(const std::string& name) override { mName = name; }
 
-  // Matrix list access
-  u64 getMatrixPrimitiveNumIndexedPrimitive(u64 idx) const override {
-    assert(idx < mMatrixPrimitives.size());
-    if (idx < mMatrixPrimitives.size())
-      return mMatrixPrimitives[idx].mPrimitives.size();
-    return 0;
-  }
-  const librii::gx::IndexedPrimitive&
-  getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) const override {
-    assert(idx < mMatrixPrimitives.size());
-    assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());
-    return mMatrixPrimitives[idx].mPrimitives[prim_idx];
-  }
-  librii::gx::IndexedPrimitive&
-  getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) override {
-    assert(idx < mMatrixPrimitives.size());
-    assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());
-    return mMatrixPrimitives[idx].mPrimitives[prim_idx];
-  }
   MeshData& getMeshData() override { return *this; }
   const MeshData& getMeshData() const { return *this; }
   lib3d::AABB getBounds() const override { return bounds; }
@@ -71,7 +52,6 @@ struct Polygon : public PolygonData,
   u64 addClr(u64 chan, const glm::vec4& v) override;
   u64 addUv(u64 chan, const glm::vec2& v) override;
 
-  void addTriangle(std::array<SimpleVertex, 3> tri) override;
   void init(bool skinned, riistudio::lib3d::AABB* boundingBox) override {
     // TODO: Handle skinning...
     (void)skinned;

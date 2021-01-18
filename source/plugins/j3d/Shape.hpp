@@ -40,25 +40,7 @@ struct Shape : public ShapeData,
   std::string getName() const { return "Shape " + std::to_string(id); }
   void setName(const std::string& name) override {}
 
-  // Matrix list access
-  u64 getMatrixPrimitiveNumIndexedPrimitive(u64 idx) const override {
-    assert(idx < mMatrixPrimitives.size());
-    if (idx < mMatrixPrimitives.size())
-      return mMatrixPrimitives[idx].mPrimitives.size();
-    return 0;
-  }
-  const librii::gx::IndexedPrimitive&
-  getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) const override {
-    assert(idx < mMatrixPrimitives.size());
-    assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());
-    return mMatrixPrimitives[idx].mPrimitives[prim_idx];
-  }
-  librii::gx::IndexedPrimitive&
-  getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) override {
-    assert(idx < mMatrixPrimitives.size());
-    assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());
-    return mMatrixPrimitives[idx].mPrimitives[prim_idx];
-  }
+ 
   MeshData& getMeshData() override { return *this; }
   const MeshData& getMeshData() const { return *this; }
   lib3d::AABB getBounds() const override { return bbox; }
@@ -72,7 +54,6 @@ struct Shape : public ShapeData,
   u64 addClr(u64 chan, const glm::vec4& v) override;
   u64 addUv(u64 chan, const glm::vec2& v) override;
 
-  void addTriangle(std::array<SimpleVertex, 3> tri) override;
 
   std::vector<glm::mat4> getPosMtx(u64 mpid) const override;
 
