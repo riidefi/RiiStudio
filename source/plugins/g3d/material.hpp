@@ -40,9 +40,7 @@ struct G3dIndConfig {
   G3dIndMethod method{G3dIndMethod::Warp};
   s8 normalMapLightRef{-1};
 
-  bool operator==(const G3dIndConfig& rhs) const {
-    return method == rhs.method && normalMapLightRef == rhs.normalMapLightRef;
-  }
+  bool operator==(const G3dIndConfig& rhs) const = default;
 };
 
 struct G3dMaterialData : public libcube::GCMaterialData {
@@ -50,8 +48,6 @@ struct G3dMaterialData : public libcube::GCMaterialData {
   u32 flag = 0;
   u32 id; // Local
   s8 lightSetIndex = -1, fogIndex = -1;
-
-  bool is_xlu = false;
 
   bool operator==(const G3dMaterialData& rhs) const {
     return libcube::GCMaterialData::operator==(rhs) &&

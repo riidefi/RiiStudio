@@ -136,12 +136,12 @@ struct IGCMaterial : public riistudio::lib3d::Material {
     // TODO: EdgeLod/BiasClamp
     // TODO: MaxAniso, filter, bias
     mat.samplers.push_back(std::move(sampler));
-    mat.samplers.nElements = 1;
+    mat.samplers.resize(1);
 
     mat.texGens.push_back(gx::TexCoordGen{
         gx::TexGenType::Matrix3x4, gx::TexGenSrc::UV0,
         gx::TexMatrix::TexMatrix0, false, gx::PostTexMatrix::Identity});
-    mat.texGens.nElements = 1;
+    mat.texGens.resize(1);
     GCMaterialData::TexMatrix mtx;
     mtx.projection = gx::TexGenType::Matrix3x4;
     mtx.scale = {1, 1};
@@ -153,7 +153,7 @@ struct IGCMaterial : public riistudio::lib3d::Material {
     mtx.option = GCMaterialData::CommonMappingOption::NoSelection;
 
     mat.texMatrices.push_back(std::move(mtx));
-    mat.texMatrices.nElements = 1;
+    mat.texMatrices.resize(1);
 
     mat.mStages[0].texMap = 0;
     mat.mStages[0].texCoord = 0;

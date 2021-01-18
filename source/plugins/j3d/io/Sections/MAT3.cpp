@@ -123,7 +123,7 @@ public:
         // io_wrapper<T::value_type>::getName());
         io_wrapper<typename T::value_type>::onRead(reader, it);
 
-        ++out.nElements;
+        out.resize(out.size() + 1);
       }
       // Assume entries are contiguous
       else
@@ -162,11 +162,11 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   loader.indexedContainer<u16>(mat.colorChanControls, MatSec::ColorChannelInfo,
                                8);
-  mat.colorChanControls.nElements = nColorChan * 2;
+  mat.colorChanControls.resize(nColorChan * 2);
   array_vector<gx::Color, 2> ambColors;
 
   loader.indexedContainer<u16>(ambColors, MatSec::AmbientColors, 4);
-  mat.chanData.nElements = 0;
+  mat.chanData.resize(0);
   for (int i = 0; i < matColors.size(); ++i)
     mat.chanData.push_back({matColors[i], ambColors[i]});
 
@@ -188,21 +188,21 @@ void readMatEntry(Material& mat, MatLoader& loader,
   // loader.indexedContainer<u16>(mat.postTexMatrices,
   // MatSec::PostTexMatrixInfo, 100);
 
-  mat.texMatrices.nElements = texMatrices.size();
-  for (int i = 0; i < mat.texMatrices.nElements; ++i)
+  mat.texMatrices.resize(texMatrices.size());
+  for (int i = 0; i < mat.texMatrices.size(); ++i)
     mat.texMatrices[i] = texMatrices[i];
   dbg.assertSince(0x84);
 
   array_vector<Material::J3DSamplerData, 8> samplers;
   loader.indexedContainer<u16>(samplers, MatSec::TextureRemapTable, 2);
-  mat.samplers.nElements = samplers.size();
+  mat.samplers.resize(samplers.size());
   for (int i = 0; i < samplers.size(); ++i)
     mat.samplers[i] = std::make_unique<Material::J3DSamplerData>(samplers[i]);
 
   {
     dbg.assertSince(0x094);
     array_vector<gx::Color, 4> tevKonstColors;
-    tevKonstColors.nElements = 0;
+    tevKonstColors.resize(0);
     loader.indexedContainer<u16>(tevKonstColors, MatSec::TevKonstColors, 4);
     dbg.assertSince(0x09C);
 
@@ -222,7 +222,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
     array_vector<TevOrder, 16> tevOrderInfos;
     loader.indexedContainer<u16>(tevOrderInfos, MatSec::TevOrderInfo, 4);
     array_vector<gx::ColorS10, 4> tevColors;
-    tevColors.nElements = 0;
+    tevColors.resize(0);
     loader.indexedContainer<u16>(tevColors, MatSec::TevColors, 8);
     mat.tevColors = tevColors;
     // HW 0 is API CPREV/APREV
@@ -259,7 +259,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
     // TODO: We can't use a std::array as indexedContainer relies on nEntries
     array_vector<gx::SwapTableEntry, 4> swap;
     loader.indexedContainer<u16>(swap, MatSec::TevSwapModeTableInfo, 4);
-    for (int i = 0; i < swap.nElements; ++i)
+    for (int i = 0; i < swap.size(); ++i)
       mat.mSwapTable[i] = swap[i];
 
     for (auto& e : mat.stackTrash)
@@ -587,9 +587,9 @@ auto find = [](const auto& buf, const auto x) {
 };
 template <typename TIdx, typename T, typename TPool>
 void write_array_vec(oishii::Writer& writer, const T& vec, TPool& pool) {
-  for (int i = 0; i < vec.nElements; ++i)
+  for (int i = 0; i < vec.size(); ++i)
     writer.write<TIdx>(find(pool, vec[i]));
-  for (int i = vec.nElements; i < vec.max_size(); ++i)
+  for (int i = vec.size(); i < vec.max_size(); ++i)
     writer.write<TIdx>(-1);
 }
 template <typename T>
@@ -850,7 +850,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   dbg.assertSince(0x084);
   array_vector<Material::J3DSamplerData, 8> samplers;
-  samplers.nElements = m.samplers.size();
+  samplers.resize(m.samplers.size());
   for (int i = 0; i < m.samplers.size(); ++i)
     samplers[i] = (Material::J3DSamplerData&)*m.samplers[i].get();
   dbg.assertSince(0x084);
@@ -861,7 +861,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
   dbg.assertSince(0x094);
 
   array_vector<gx::Color, 4> tevKonstColors;
-  tevKonstColors.nElements = 4;
+  tevKonstColors.resize(4);
   for (int i = 0; i < 4; ++i)
     tevKonstColors[i] = m.tevKonstColors[i];
   write_array_vec<u16>(writer, tevKonstColors, cache.konstColors);
@@ -891,7 +891,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   dbg.assertSince(0x0dc);
   array_vector<gx::ColorS10, 4> tevColors;
-  tevColors.nElements = 4;
+  tevColors.resize(4);
   for (int i = 0; i < 4; ++i)
     tevColors[i] = m.tevColors[i];
   // HW 0 is API CPREV/APREV

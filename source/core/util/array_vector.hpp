@@ -10,7 +10,6 @@ namespace riistudio::util {
 template <typename T, size_t N> struct array_vector : public std::array<T, N> {
   size_t size() const { return nElements; }
   void resize(size_t n_elem) { nElements = n_elem; }
-  size_t nElements = 0;
 
   void push_back(T elem) {
     std::array<T, N>::at(nElements) = std::move(elem);
@@ -35,6 +34,9 @@ template <typename T, size_t N> struct array_vector : public std::array<T, N> {
     }
     --nElements;
   }
+
+protected:
+  size_t nElements = 0;
 };
 
 template <typename T, std::size_t size>

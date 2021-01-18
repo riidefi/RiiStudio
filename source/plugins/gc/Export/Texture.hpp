@@ -26,31 +26,11 @@ struct Texture : public riistudio::lib3d::Texture {
     if (out.size() < size) {
       out.resize(size);
     }
-    auto decodeSingle = [&](u32 out_ofs, u32 in_ofs, u32 lod) {
-      // const auto thisPlaneSize = GetTexBufferSize(
-      //     getWidth() >> lod, getHeight() >> lod, getTextureFormat(), false,
-      //     1);
-
-      TexDecoder_Decode(out.data() + out_ofs, getData() + in_ofs,
-                        getWidth() >> lod, getHeight() >> lod,
-                        (TextureFormat)getTextureFormat(), getPaletteData(),
-                        (TLUTFormat)getPaletteFormat());
-    };
-    decodeSingle(0, 0, 0);
-    if (mip && getMipmapCount() > 0) {
-
-      u32 i_ofs = 0;
-      u32 o_ofs = 0;
-      u32 w = getWidth();
-      u32 h = getHeight();
-      for (u32 i = 0; i < getMipmapCount(); ++i) {
-        i_ofs += librii::gx::computeImageSize(w, h, getTextureFormat(), 1);
-        o_ofs += w * h * 4;
-        decodeSingle(o_ofs, i_ofs, i + 1);
-        w >>= 1;
-        h >>= 1;
-      }
-    }
+    librii::image::transform(
+        out.data(), getWidth(), getHeight(),
+        static_cast<librii::gx::TextureFormat>(getTextureFormat()),
+        librii::gx::TextureFormat::Extension_RawRGBA32, getData(), getWidth(),
+        getHeight(), mip ? getMipmapCount() + 1 : 0);
   }
 
   virtual u32 getTextureFormat() const = 0;

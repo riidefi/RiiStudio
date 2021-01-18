@@ -605,7 +605,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         printf("MATIDAT %x\n", writer.tell());
         writer.write<u32>(mat_idx++);
         u32 flag = mat.flag;
-        flag = (flag & ~0x80000000) | (mat.is_xlu ? 0x80000000 : 0);
+        flag = (flag & ~0x80000000) | (mat.xlu ? 0x80000000 : 0);
         writer.write<u32>(flag);
         writer.write<u8>(static_cast<u8>(mat.texGens.size()));
         writer.write<u8>(static_cast<u8>(mat.chanData.size()));
@@ -1376,7 +1376,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     }
     // reader.seek((8 - nTex)* (4 + (4 * 4 * sizeof(f32))));
     reader.seekSet(start + 0x3f0);
-    mat.chanData.nElements = 0;
+    mat.chanData.resize(0);
     for (u8 i = 0; i < nColorChan; ++i) {
       // skip runtime flag
       const auto flag = reader.read<u32>();
