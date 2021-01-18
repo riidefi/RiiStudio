@@ -1,6 +1,6 @@
 #include "../Sections.hpp"
 #include <core/util/glm_io.hpp>
-#include <plugins/gc/Util/DisplayList.hpp>
+#include <librii/gpu/DLMesh.hpp>
 
 namespace riistudio::j3d {
 
@@ -145,7 +145,7 @@ void readSHP1(BMDOutputContext& ctx) {
       MatrixPrimitive& mprim = shape.mMatrixPrimitives.emplace_back(
           mtxPrimHdr.current_matrix, mtxPrimHdr.matrixList);
 
-      struct SHP1_MPrim : IMeshDLDelegate {
+      struct SHP1_MPrim : librii::gpu::IMeshDLDelegate {
         librii::gx::IndexedPrimitive&
         addIndexedPrimitive(gx::PrimitiveType type, u16 nVerts) override {
           return mprim.mPrimitives.emplace_back(type, nVerts);

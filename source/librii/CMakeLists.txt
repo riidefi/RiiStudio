@@ -49,4 +49,4 @@ add_library(librii
   "hx/CullMode.hpp"
   "hx/TexGenType.hpp"
   "hx/TextureFilter.hpp"
-  "hx/KonstSel.hpp" "image/CheckerBoard.hpp" "hx/PixMode.hpp" "gx/Polygon.hpp")
+  "hx/KonstSel.hpp" "image/CheckerBoard.hpp" "hx/PixMode.hpp" "gx/Polygon.hpp" "gpu/DLMesh.hpp" "gpu/DLMesh.cpp")

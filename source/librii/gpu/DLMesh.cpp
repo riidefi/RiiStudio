@@ -1,6 +1,6 @@
-#include <plugins/gc/Util/DisplayList.hpp>
+#include "DLMesh.hpp"
 
-namespace libcube {
+namespace librii::gpu {
 
 // This is always BE
 constexpr oishii::EndianSelect CmdProcEndian = oishii::EndianSelect::Big;
@@ -96,4 +96,4 @@ DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
   return llvm::Error::success();
 }
 
-} // namespace libcube
+} // namespace librii::gpu
