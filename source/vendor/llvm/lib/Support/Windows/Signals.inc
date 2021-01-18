@@ -19,6 +19,9 @@
 #include <signal.h>
 #include <stdio.h>
 
+// getch
+#include <conio.h>
+
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -245,7 +248,7 @@ static bool printStackTraceWithLLVMSymbolizer(llvm::raw_ostream &OS,
     if (Depth >= array_lengthof(StackTrace))
       break;
   }
-
+  
   return printSymbolizedStackTrace(Argv0, &StackTrace[0], Depth, OS);
 }
 
@@ -377,6 +380,10 @@ static void PrintStackTraceForThread(llvm::raw_ostream &OS, HANDLE hProcess,
 
     OS << '\n';
   }
+
+  OS << "Press any key to exit..\n";
+  OS.flush();
+  getch();
 }
 
 namespace llvm {
