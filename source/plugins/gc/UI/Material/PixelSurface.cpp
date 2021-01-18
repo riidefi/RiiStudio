@@ -1,4 +1,5 @@
 #include "Common.hpp"
+#include <librii/hx/PixMode.hpp>
 
 namespace libcube::UI {
 
@@ -18,75 +19,22 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   PixelSurface& surface) {
   auto& matData = delegate.getActive().getMaterialData();
 
-  enum AlphaTest : int {
-    ALPHA_TEST_CUSTOM,
-    ALPHA_TEST_DISABLED,
-    ALPHA_TEST_STENCIL,
-  };
-  int alpha_test = ALPHA_TEST_CUSTOM;
-
-  const gx::AlphaComparison stencil_comparison = {
-      .compLeft = gx::Comparison::GEQUAL,
-      .refLeft = 128,
-      .op = gx::AlphaOp::_and,
-      .compRight = gx::Comparison::LEQUAL,
-      .refRight = 255};
-  const gx::AlphaComparison disabled_comparison = {
-      .compLeft = gx::Comparison::ALWAYS,
-      .refLeft = 0,
-      .op = gx::AlphaOp::_and,
-      .compRight = gx::Comparison::ALWAYS,
-      .refRight = 0};
+  int alpha_test = librii::hx::ALPHA_TEST_CUSTOM;
 
   if (surface.force_custom_at != matData.name) {
-    if (matData.alphaCompare == stencil_comparison)
-      alpha_test = ALPHA_TEST_STENCIL;
-    else if (matData.alphaCompare == disabled_comparison)
-      alpha_test = ALPHA_TEST_DISABLED;
+    alpha_test = librii::hx::classifyAlphaCompare(matData.alphaCompare);
   }
-  const gx::BlendMode no_blend = {.type = gx::BlendModeType::none,
-                                  .source = gx::BlendModeFactor::src_a,
-                                  .dest = gx::BlendModeFactor::inv_src_a,
-                                  .logic = gx::LogicOp::_copy};
-  const gx::BlendMode yes_blend = {.type = gx::BlendModeType::blend,
-                                   .source = gx::BlendModeFactor::src_a,
-                                   .dest = gx::BlendModeFactor::inv_src_a,
-                                   .logic = gx::LogicOp::_copy};
 
-  const gx::ZMode normal_z = {
-      .compare = true, .function = gx::Comparison::LEQUAL, .update = true};
-  const gx::ZMode blend_z = {
-      .compare = true, .function = gx::Comparison::LEQUAL, .update = false};
+  int pix_mode = librii::hx::PIX_CUSTOM;
 
-  enum PixMode : int {
-    PIX_DEFAULT_OPAQUE,
-    PIX_STENCIL,
-    PIX_TRANSLUCENT,
-    PIX_CUSTOM,
-    PIX_BBX_DEFAULT
-  };
-  int pix_mode = PIX_CUSTOM;
-
-  int xlu_mode = delegate.getActive().isXluPass() ? 1 : 0;
+  int xlu_mode = matData.xlu ? 1 : 0;
 
   if (surface.force_custom_whole != matData.name) {
-    if (alpha_test == ALPHA_TEST_DISABLED && matData.zMode == normal_z &&
-        matData.blendMode == no_blend && xlu_mode == 0) {
-      pix_mode =
-          matData.earlyZComparison ? PIX_DEFAULT_OPAQUE : PIX_BBX_DEFAULT;
-    } else if (alpha_test == ALPHA_TEST_STENCIL && matData.zMode == normal_z &&
-               matData.blendMode == no_blend && xlu_mode == 0 &&
-               !matData.earlyZComparison) {
-      pix_mode = PIX_STENCIL;
-    } else if (alpha_test == ALPHA_TEST_DISABLED && matData.zMode == blend_z &&
-               matData.blendMode == yes_blend && xlu_mode == 1 &&
-               matData.earlyZComparison) {
-      pix_mode = PIX_TRANSLUCENT;
-    }
+    pix_mode = librii::hx::classifyPixMode(matData);
   }
 
   const auto pix_mode_before = pix_mode;
-  if (pix_mode == PIX_BBX_DEFAULT) {
+  if (pix_mode == librii::hx::PIX_BBX_DEFAULT) {
     ImGui::SetWindowFontScale(1.2f);
     ImGui::Text(
         "This material is currently in the default BrawlBox configuration.");
@@ -94,38 +42,19 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 "configuration while being visually identical.\nIt is strongly "
                 "recommended that you convert the material.");
     if (ImGui::Button("Convert Material"))
-      pix_mode = PIX_DEFAULT_OPAQUE;
+      pix_mode = librii::hx::PIX_DEFAULT_OPAQUE;
     ImGui::SetWindowFontScale(1.0f);
   } else {
     ImGui::Combo("Configuration", &pix_mode,
                  "Opaque\0Stencil Alpha\0Translucent\0Custom\0");
   }
   if (pix_mode_before != pix_mode) {
-    if (pix_mode == PIX_CUSTOM) {
+    if (pix_mode == librii::hx::PIX_CUSTOM) {
       surface.force_custom_whole = matData.name;
     } else {
       for (auto* pO : delegate.mAffected) {
-        auto& o = pO->getMaterialData();
-
-        if (pix_mode == PIX_DEFAULT_OPAQUE) {
-          o.alphaCompare = disabled_comparison;
-          o.zMode = normal_z;
-          o.blendMode = no_blend;
-          pO->setXluPass(false);
-          o.earlyZComparison = true;
-        } else if (pix_mode == PIX_STENCIL) {
-          o.alphaCompare = stencil_comparison;
-          o.zMode = normal_z;
-          o.blendMode = no_blend;
-          pO->setXluPass(false);
-          o.earlyZComparison = false;
-        } else if (pix_mode == PIX_TRANSLUCENT) {
-          o.alphaCompare = disabled_comparison;
-          o.zMode = blend_z;
-          o.blendMode = yes_blend;
-          pO->setXluPass(true);
-          o.earlyZComparison = true;
-        }
+        librii::hx::configurePixMode(
+            pO->getMaterialData(), static_cast<librii::hx::PixMode>(pix_mode));
 
         pO->notifyObservers();
       }
@@ -136,7 +65,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     }
   }
 
-  if (pix_mode != PIX_CUSTOM)
+  if (pix_mode != librii::hx::PIX_CUSTOM)
     return;
   if (ImGui::CollapsingHeader("Scenegraph", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Combo(
@@ -157,19 +86,19 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     const auto alpha_test_before = alpha_test;
     ImGui::Combo("Alpha Test", &alpha_test, "Custom\0Disabled\0Stencil\0");
     if (alpha_test_before != alpha_test) {
-      if (alpha_test == ALPHA_TEST_CUSTOM) {
+      if (alpha_test == librii::hx::ALPHA_TEST_CUSTOM) {
         surface.force_custom_at = matData.name;
       } else {
-        if (alpha_test == ALPHA_TEST_DISABLED)
-          AUTO_PROP(alphaCompare, disabled_comparison);
-        else if (alpha_test == ALPHA_TEST_STENCIL)
-          AUTO_PROP(alphaCompare, stencil_comparison);
+        if (alpha_test == librii::hx::ALPHA_TEST_DISABLED)
+          AUTO_PROP(alphaCompare, librii::hx::disabled_comparison);
+        else if (alpha_test == librii::hx::ALPHA_TEST_STENCIL)
+          AUTO_PROP(alphaCompare, librii::hx::stencil_comparison);
         surface.force_custom_at.clear();
       }
     }
-    if (alpha_test == ALPHA_TEST_DISABLED) {
+    if (alpha_test == librii::hx::ALPHA_TEST_DISABLED) {
       // ImGui::Text("There is no alpha test");
-    } else if (alpha_test == ALPHA_TEST_STENCIL) {
+    } else if (alpha_test == librii::hx::ALPHA_TEST_STENCIL) {
       ImGui::Text("Pixels are either fully transparent or fully opaque.");
     } else {
       const char* compStr =
@@ -295,7 +224,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 }
 
-kpi::RegisterPropertyView<IGCMaterial, PixelSurface>
-    PixelSurfaceInstaller;
+kpi::RegisterPropertyView<IGCMaterial, PixelSurface> PixelSurfaceInstaller;
 
 } // namespace libcube::UI
