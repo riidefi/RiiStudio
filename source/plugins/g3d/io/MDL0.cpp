@@ -968,22 +968,22 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
             using VA = librii::gx::VertexAttribute;
             switch (attr) {
             case VA::Position: {
-              const auto* buf = mesh.getParent()->getBuf_Pos().findByName(
-                  mesh.mPositionBuffer);
+              const auto* buf =
+                  mdl.getBuf_Pos().findByName(mesh.mPositionBuffer);
               assert(buf);
               set_quant(buf->mQuantize);
               break;
             }
             case VA::Color0: {
-              const auto* buf = mesh.getParent()->getBuf_Clr().findByName(
-                  mesh.mColorBuffer[0]);
+              const auto* buf =
+                  mdl.getBuf_Clr().findByName(mesh.mColorBuffer[0]);
               assert(buf);
               set_quant(buf->mQuantize);
               break;
             }
             case VA::Color1: {
-              const auto* buf = mesh.getParent()->getBuf_Clr().findByName(
-                  mesh.mColorBuffer[1]);
+              const auto* buf =
+                  mdl.getBuf_Clr().findByName(mesh.mColorBuffer[1]);
               assert(buf);
               set_quant(buf->mQuantize);
               break;
@@ -999,16 +999,15 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
               const auto chan =
                   static_cast<int>(attr) - static_cast<int>(VA::TexCoord0);
 
-              const auto* buf = mesh.getParent()->getBuf_Uv().findByName(
-                  mesh.mTexCoordBuffer[chan]);
+              const auto* buf =
+                  mdl.getBuf_Uv().findByName(mesh.mTexCoordBuffer[chan]);
               assert(buf);
               set_quant(buf->mQuantize);
               break;
             }
             case VA::Normal:
             case VA::NormalBinormalTangent: {
-              const auto* buf =
-                  mesh.getParent()->getBuf_Nrm().findByName(mesh.mNormalBuffer);
+              const auto* buf = mdl.getBuf_Nrm().findByName(mesh.mNormalBuffer);
               assert(buf);
               set_quant(buf->mQuantize);
               break;
@@ -1423,8 +1422,8 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     reader.seekSet(start + ofsTev + 32);
     {
 
-      librii::gpu::QDisplayListShaderHandler shaderHandler(
-          mat, mat.mStages.size());
+      librii::gpu::QDisplayListShaderHandler shaderHandler(mat,
+                                                           mat.mStages.size());
       librii::gpu::RunDisplayList(reader, shaderHandler,
                                   shaderDlSizes[mat.mStages.size()]);
     }

@@ -113,6 +113,7 @@ struct IGCMaterial : public riistudio::lib3d::Material {
   genSamplUniforms(u32 shaderId,
                    const std::map<std::string, u32>& texIdMap) const override;
   void onSplice(DelegatedUBOBuilder& builder,
+                const riistudio::lib3d::Model& model,
                 const riistudio::lib3d::Polygon& poly, u32 id) const override;
   std::string getName() const override { return getMaterialData().name; }
   void setName(const std::string& name) override {

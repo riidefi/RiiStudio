@@ -12,7 +12,7 @@ namespace riistudio::lib3d {
 
 struct Material;
 class Scene;
-
+class Model;
 
 struct IObserver {
   virtual ~IObserver() = default;
@@ -41,8 +41,8 @@ struct Material : public virtual kpi::IObject {
   virtual void
   genSamplUniforms(u32 shaderId,
                    const std::map<std::string, u32>& texIdMap) const = 0;
-  virtual void onSplice(DelegatedUBOBuilder& builder, const Polygon& poly,
-                        u32 id) const {}
+  virtual void onSplice(DelegatedUBOBuilder& builder, const Model& model,
+                        const Polygon& poly, u32 id) const {}
   virtual void setMegaState(MegaState& state) const = 0;
   virtual void configure(PixelOcclusion occlusion,
                          std::vector<std::string>& textures) = 0;

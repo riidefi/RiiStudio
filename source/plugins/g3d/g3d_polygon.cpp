@@ -3,43 +3,36 @@
 
 namespace riistudio::g3d {
 
-const g3d::Model* Polygon::getParent() const {
-  return dynamic_cast<const g3d::Model*>(childOf);
-}
-g3d::Model* Polygon::getMutParent() {
-  return dynamic_cast<g3d::Model*>(childOf);
-}
-
-glm::vec2 Polygon::getUv(u64 chan, u64 id) const {
-  assert(getParent());
-  const auto* buf = getParent()->getBuf_Uv().findByName(mTexCoordBuffer[chan]);
+glm::vec2 Polygon::getUv(const libcube::Model& mdl, u64 chan, u64 id) const {
+  const auto* buf = reinterpret_cast<const Model&>(mdl).getBuf_Uv().findByName(
+      mTexCoordBuffer[chan]);
   assert(buf);
   if (id >= buf->mEntries.size())
     return {};
   assert(id < buf->mEntries.size());
   return buf->mEntries[id];
 }
-glm::vec4 Polygon::getClr(u64 chan, u64 id) const {
-  assert(getParent());
-  const auto* buf = getParent()->getBuf_Clr().findByName(mColorBuffer[chan]);
+glm::vec4 Polygon::getClr(const libcube::Model& mdl, u64 chan, u64 id) const {
+  const auto* buf = reinterpret_cast<const Model&>(mdl).getBuf_Clr().findByName(
+      mColorBuffer[chan]);
   assert(buf);
   if (id >= buf->mEntries.size())
     return {};
   assert(id < buf->mEntries.size());
   return static_cast<librii::gx::ColorF32>(buf->mEntries[id]);
 }
-glm::vec3 Polygon::getPos(u64 id) const {
-  assert(getParent());
-  const auto* buf = getParent()->getBuf_Pos().findByName(mPositionBuffer);
+glm::vec3 Polygon::getPos(const libcube::Model& mdl, u64 id) const {
+  const auto* buf = reinterpret_cast<const Model&>(mdl).getBuf_Pos().findByName(
+      mPositionBuffer);
   assert(buf);
   if (id >= buf->mEntries.size())
     return {};
   assert(id < buf->mEntries.size());
   return buf->mEntries[id];
 }
-glm::vec3 Polygon::getNrm(u64 id) const {
-  assert(getParent());
-  const auto* buf = getParent()->getBuf_Nrm().findByName(mNormalBuffer);
+glm::vec3 Polygon::getNrm(const libcube::Model& mdl, u64 id) const {
+  const auto* buf = reinterpret_cast<const Model&>(mdl).getBuf_Nrm().findByName(
+      mNormalBuffer);
   assert(buf);
   assert(id < buf->mEntries.size());
   return buf->mEntries[id];
@@ -56,21 +49,21 @@ auto add_to_buffer(const X& entry, Y& buf) -> u16 {
   return buf.mEntries.size() - 1;
 };
 
-u64 Polygon::addPos(const glm::vec3& v) {
-  assert(getMutParent());
-  auto* buf = getMutParent()->getBuf_Pos().findByName(mPositionBuffer);
+u64 Polygon::addPos(libcube::Model& mdl, const glm::vec3& v) {
+  auto* buf =
+      reinterpret_cast<Model&>(mdl).getBuf_Pos().findByName(mPositionBuffer);
   assert(buf);
   return add_to_buffer(v, *buf);
 }
-u64 Polygon::addNrm(const glm::vec3& v) {
-  assert(getMutParent());
-  auto* buf = getMutParent()->getBuf_Nrm().findByName(mNormalBuffer);
+u64 Polygon::addNrm(libcube::Model& mdl, const glm::vec3& v) {
+  auto* buf =
+      reinterpret_cast<Model&>(mdl).getBuf_Nrm().findByName(mNormalBuffer);
   assert(buf);
   return add_to_buffer(v, *buf);
 }
-u64 Polygon::addClr(u64 chan, const glm::vec4& v) {
-  assert(getMutParent());
-  auto* buf = getMutParent()->getBuf_Clr().findByName(mColorBuffer[chan]);
+u64 Polygon::addClr(libcube::Model& mdl, u64 chan, const glm::vec4& v) {
+  auto* buf =
+      reinterpret_cast<Model&>(mdl).getBuf_Clr().findByName(mColorBuffer[chan]);
   assert(buf);
 
   librii::gx::ColorF32 fclr;
@@ -81,13 +74,12 @@ u64 Polygon::addClr(u64 chan, const glm::vec4& v) {
   librii::gx::Color c = fclr;
   return add_to_buffer(c, *buf);
 }
-u64 Polygon::addUv(u64 chan, const glm::vec2& v) {
-  assert(getMutParent());
-  auto* buf = getMutParent()->getBuf_Uv().findByName(mTexCoordBuffer[chan]);
+u64 Polygon::addUv(libcube::Model& mdl, u64 chan, const glm::vec2& v) {
+  auto* buf = reinterpret_cast<Model&>(mdl).getBuf_Uv().findByName(
+      mTexCoordBuffer[chan]);
   assert(buf);
   return add_to_buffer(v, *buf);
 }
-
 
 glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
   glm::mat4 dst(1.0f);
@@ -134,16 +126,13 @@ glm::mat4 computeBoneMdl(u32 id, kpi::ConstCollectionRange<lib3d::Bone> bones) {
   return mdl * computeMdlMtx(bone.getSRT());
 }
 
-const Model* getModel(const Polygon* shp) {
-  assert(shp->getParent());
-  return dynamic_cast<const Model*>(shp->getParent());
-}
-std::vector<glm::mat4> Polygon::getPosMtx(u64 mpid) const {
+std::vector<glm::mat4> Polygon::getPosMtx(const libcube::Model& mdl,
+                                          u64 mpid) const {
   std::vector<glm::mat4> out;
 
   const auto& mp = mMatrixPrimitives[mpid];
 
-  const g3d::Model& mdl_ac = *getModel(this);
+  const g3d::Model& mdl_ac = reinterpret_cast<const Model&>(mdl);
 
   const auto handle_drw = [&](const libcube::DrawMatrix& drw) {
     glm::mat4x4 curMtx(1.0f);
@@ -178,7 +167,8 @@ std::vector<glm::mat4> Polygon::getPosMtx(u64 mpid) const {
 
 using namespace librii;
 
-void Polygon::initBufsFromVcd() {
+void Polygon::initBufsFromVcd(lib3d::Model& _mdl) {
+  auto& mdl = reinterpret_cast<Model&>(_mdl);
   // Will break skinned
   mCurrentMatrix = 0;
 
@@ -187,16 +177,16 @@ void Polygon::initBufsFromVcd() {
       continue;
     switch (attr) {
     case librii::gx::VertexAttribute::Position: {
-      const auto id = getMutParent()->getBuf_Pos().size();
-      auto& buf = getMutParent()->getBuf_Pos().add();
+      const auto id = mdl.getBuf_Pos().size();
+      auto& buf = mdl.getBuf_Pos().add();
       buf.mId = id;
       buf.mName = "Pos" + std::to_string(id);
       mPositionBuffer = buf.mName;
       break;
     }
     case librii::gx::VertexAttribute::Normal: {
-      const auto id = getMutParent()->getBuf_Nrm().size();
-      auto& buf = getMutParent()->getBuf_Nrm().add();
+      const auto id = mdl.getBuf_Nrm().size();
+      auto& buf = mdl.getBuf_Nrm().add();
       buf.mName = "Nrm" + std::to_string(id);
       buf.mId = id;
       mNormalBuffer = buf.mName;
@@ -214,8 +204,8 @@ void Polygon::initBufsFromVcd() {
                         static_cast<int>(gx::VertexAttribute::TexCoord0);
 
       if (mTexCoordBuffer[0].empty()) {
-        const auto id = getMutParent()->getBuf_Uv().size();
-        auto& buf = getMutParent()->getBuf_Uv().add();
+        const auto id = mdl.getBuf_Uv().size();
+        auto& buf = mdl.getBuf_Uv().add();
         buf.mName = "Uv" + std::to_string(id);
         buf.mId = id;
         mTexCoordBuffer[chan] = buf.mName;
@@ -230,8 +220,8 @@ void Polygon::initBufsFromVcd() {
                         static_cast<int>(gx::VertexAttribute::Color0);
 
       if (mColorBuffer[0].empty()) {
-        const auto id = getMutParent()->getBuf_Clr().size();
-        auto& buf = getMutParent()->getBuf_Clr().add();
+        const auto id = mdl.getBuf_Clr().size();
+        auto& buf = mdl.getBuf_Clr().add();
         buf.mName = "Clr" + std::to_string(id);
         buf.mId = id;
         mColorBuffer[chan] = buf.mName;

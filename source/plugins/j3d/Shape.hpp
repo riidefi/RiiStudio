@@ -40,22 +40,21 @@ struct Shape : public ShapeData,
   std::string getName() const { return "Shape " + std::to_string(id); }
   void setName(const std::string& name) override {}
 
- 
   MeshData& getMeshData() override { return *this; }
   const MeshData& getMeshData() const { return *this; }
   lib3d::AABB getBounds() const override { return bbox; }
 
-  glm::vec2 getUv(u64 chan, u64 id) const override;
-  glm::vec4 getClr(u64 chan, u64 id) const override;
-  glm::vec3 getPos(u64 id) const override;
-  glm::vec3 getNrm(u64 id) const override;
-  u64 addPos(const glm::vec3& v) override;
-  u64 addNrm(const glm::vec3& v) override;
-  u64 addClr(u64 chan, const glm::vec4& v) override;
-  u64 addUv(u64 chan, const glm::vec2& v) override;
+  glm::vec2 getUv(const libcube::Model& mdl, u64 chan, u64 id) const override;
+  glm::vec4 getClr(const libcube::Model& mdl, u64 chan, u64 id) const override;
+  glm::vec3 getPos(const libcube::Model& mdl, u64 id) const override;
+  glm::vec3 getNrm(const libcube::Model& mdl, u64 id) const override;
+  u64 addPos(libcube::Model& mdl, const glm::vec3& v) override;
+  u64 addNrm(libcube::Model& mdl, const glm::vec3& v) override;
+  u64 addClr(libcube::Model& mdl, u64 chan, const glm::vec4& v) override;
+  u64 addUv(libcube::Model& mdl, u64 chan, const glm::vec2& v) override;
 
-
-  std::vector<glm::mat4> getPosMtx(u64 mpid) const override;
+  std::vector<glm::mat4> getPosMtx(const libcube::Model& mdl,
+                                   u64 mpid) const override;
 
   bool isVisible() const override { return visible; }
   void init(bool skinned, riistudio::lib3d::AABB* boundingBox) override {

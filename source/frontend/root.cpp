@@ -257,6 +257,7 @@ void RootWindow::draw() {
                           break;
                         case librii::gx::VertexAttribute::Position: {
                           auto pos = from_shape.getPos(
+                              from_model,
                               v[librii::gx::VertexAttribute::Position]);
                           auto found = std::find(bufs.pos.mData.begin(),
                                                  bufs.pos.mData.end(), pos);
@@ -272,7 +273,8 @@ void RootWindow::draw() {
                         }
                         case librii::gx::VertexAttribute::Color0: {
                           const auto scolor = from_shape.getClr(
-                              0, v[librii::gx::VertexAttribute::Color0]);
+                              from_model, 0,
+                              v[librii::gx::VertexAttribute::Color0]);
                           librii::gx::Color clr;
                           clr.r = roundf(scolor[0] * 255.0f);
                           clr.g = roundf(scolor[1] * 255.0f);
@@ -296,7 +298,8 @@ void RootWindow::draw() {
                                       librii::gx::VertexAttribute::TexCoord0);
                           const auto attr =
                               static_cast<librii::gx::VertexAttribute>(x);
-                          const auto data = from_shape.getUv(chan, v[attr]);
+                          const auto data =
+                              from_shape.getUv(from_model, chan, v[attr]);
 
                           bmd_model.mBufs.uv[chan].mData.push_back(data);
                           v[static_cast<librii::gx::VertexAttribute>(x)] =
@@ -307,6 +310,7 @@ void RootWindow::draw() {
                         case librii::gx::VertexAttribute::Normal:
                           bmd_model.mBufs.norm.mData.push_back(
                               from_shape.getNrm(
+                                  from_model,
                                   v[librii::gx::VertexAttribute::Normal]));
                           v[librii::gx::VertexAttribute::Normal] =
                               bmd_model.mBufs.norm.mData.size() - 1;

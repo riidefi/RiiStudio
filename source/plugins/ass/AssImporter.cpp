@@ -249,11 +249,11 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
             glm::inverse(acting_influence.calcSrtMtx(out_model->getBones()));
     }
 
-    return poly.addPos(pos);
+    return poly.addPos(*out_model, pos);
   };
   auto add_normal = [&](int v) {
     const auto nrm = getVec(pMesh->mNormals[v]);
-    return poly.addNrm(nrm);
+    return poly.addNrm(*out_model, nrm);
   };
   auto add_color = [&](int v, unsigned j) {
     const auto clr = j >= pMesh->GetNumColorChannels()
@@ -265,11 +265,11 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
     auto tclr =
         glm::vec4(fclr.r, fclr.g, fclr.b, fclr.a) * glm::vec4(tint, 1.0f);
     fclr = {.r = tclr.x, .g = tclr.y, .b = tclr.z, .a = tclr.w};
-    return poly.addClr(j, fclr);
+    return poly.addClr(*out_model, j, fclr);
   };
   auto add_uv = [&](int v, int j) {
     const auto uv = getVec2(pMesh->mTextureCoords[j][v]);
-    return poly.addUv(j, uv);
+    return poly.addUv(*out_model, j, uv);
   };
 
   // More than one bone -> Assume multi mtx, unless zero influence
@@ -281,7 +281,7 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
     add_attribute(PNM);
 
   vcd.calcVertexDescriptorFromAttributeList();
-  poly.initBufsFromVcd();
+  poly.initBufsFromVcd(*out_model);
 
   std::vector<librii::gx::IndexedVertex> vertices;
 

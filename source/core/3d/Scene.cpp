@@ -54,7 +54,8 @@ void SceneImpl::draw() {
     glDepthMask(state.depthWrite ? GL_TRUE : GL_FALSE);
     glDepthFunc(state.depthCompare);
 
-    // assert(mState->mVbo.VAO && node->idx_size >= 0 && node->idx_size % 3 == 0);
+    // assert(mState->mVbo.VAO && node->idx_size >= 0 && node->idx_size % 3 ==
+    // 0);
     glUseProgram(node->shader.getId());
 
     glBindVertexArray(mState->mVbo.VAO);
@@ -76,7 +77,7 @@ void SceneImpl::draw() {
                                 GL_UNIFORM_BLOCK_DATA_SIZE, &min);
       PacketBuilder.setBlockMin(2, min);
 
-      node->mat.onSplice(PacketBuilder, node->poly, i);
+      node->mat.onSplice(PacketBuilder, node->mdl, node->poly, i);
       // TODO: huge hack, very expensive
       PacketBuilder.submit();
 
@@ -96,7 +97,8 @@ void SceneImpl::draw() {
 
       if (node->poly.isVisible()) {
 
-        const auto mtx = ipoly.getPosMtx(i);
+        const auto mtx = ipoly.getPosMtx(
+            reinterpret_cast<const libcube::Model&>(node->mdl), i);
         for (int p = 0; p < std::min(static_cast<std::size_t>(10), mtx.size());
              ++p) {
           const auto transposed = glm::transpose((glm::mat4x3)mtx[p]);

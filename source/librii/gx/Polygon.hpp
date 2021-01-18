@@ -41,7 +41,7 @@ struct VertexDescriptor {
 };
 
 struct IndexedVertex {
-  u16 operator[](VertexAttribute attr) const {
+  const u16& operator[](VertexAttribute attr) const {
     assert((u64)attr < (u64)VertexAttribute::Max);
     return indices[(u64)attr];
   }

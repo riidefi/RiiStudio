@@ -38,7 +38,7 @@ struct Polygon : public virtual kpi::IObject {
   virtual void setAttrib(SimpleAttrib attrib, bool v) = 0;
 
   // For now... (slow api)
-  virtual void propogate(VBOBuilder& out) const = 0;
+  virtual void propogate(const Model& mdl, VBOBuilder& out) const = 0;
 
   // Call after any change
   virtual void update() {}

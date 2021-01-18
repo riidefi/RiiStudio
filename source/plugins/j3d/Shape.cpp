@@ -6,30 +6,23 @@
 
 namespace riistudio::j3d {
 
-const Model* getModel(const Shape* shp) {
-  return dynamic_cast<const Model*>(shp->childOf);
-}
-Model* getMutModel(Shape* shp) {
-  return dynamic_cast<Model*>(shp->childOf);
-}
-
-glm::vec2 Shape::getUv(u64 chan, u64 idx) const {
-  auto& mMdl = *getModel(this);
+glm::vec2 Shape::getUv(const libcube::Model& mdl, u64 chan, u64 idx) const {
+  auto& mMdl = reinterpret_cast<const Model&>(mdl);
 
   if (idx > mMdl.mBufs.uv[chan].mData.size())
     return {};
   return mMdl.mBufs.uv[chan].mData[idx];
 }
-glm::vec3 Shape::getPos(u64 idx) const {
-  auto& mMdl = *getModel(this);
+glm::vec3 Shape::getPos(const libcube::Model& mdl, u64 idx) const {
+  auto& mMdl = reinterpret_cast<const Model&>(mdl);
   return mMdl.mBufs.pos.mData[idx];
 }
-glm::vec3 Shape::getNrm(u64 idx) const {
-  auto& mMdl = *getModel(this);
+glm::vec3 Shape::getNrm(const libcube::Model& mdl, u64 idx) const {
+  auto& mMdl = reinterpret_cast<const Model&>(mdl);
   return mMdl.mBufs.norm.mData[idx];
 }
-glm::vec4 Shape::getClr(u64 chan, u64 idx) const {
-  auto& mMdl = *getModel(this);
+glm::vec4 Shape::getClr(const libcube::Model& mdl, u64 chan, u64 idx) const {
+  auto& mMdl = reinterpret_cast<const Model&>(mdl);
   if (idx >= mMdl.mBufs.color[chan].mData.size())
     return {1, 1, 1, 1};
 
@@ -50,25 +43,25 @@ auto add_to_buffer(const X& entry, Y& buf) -> u16 {
   return buf.size() - 1;
 };
 
-u64 Shape::addPos(const glm::vec3& v) {
-  return add_to_buffer(v, getMutModel(this)->mBufs.pos.mData);
+u64 Shape::addPos(libcube::Model& mdl, const glm::vec3& v) {
+  return add_to_buffer(v, reinterpret_cast<Model&>(mdl).mBufs.pos.mData);
 }
-u64 Shape::addNrm(const glm::vec3& v) {
-  return add_to_buffer(v, getMutModel(this)->mBufs.norm.mData);
+u64 Shape::addNrm(libcube::Model& mdl, const glm::vec3& v) {
+  return add_to_buffer(v, reinterpret_cast<Model&>(mdl).mBufs.norm.mData);
 }
-u64 Shape::addClr(u64 chan, const glm::vec4& v) {
+u64 Shape::addClr(libcube::Model& mdl, u64 chan, const glm::vec4& v) {
   librii::gx::ColorF32 fclr;
   fclr.r = v[0];
   fclr.g = v[1];
   fclr.b = v[2];
   fclr.a = v[3];
   librii::gx::Color c = fclr;
-  return add_to_buffer(c, getMutModel(this)->mBufs.color[chan].mData);
+  return add_to_buffer(c,
+                       reinterpret_cast<Model&>(mdl).mBufs.color[chan].mData);
 }
-u64 Shape::addUv(u64 chan, const glm::vec2& v) {
-  return add_to_buffer(v, getMutModel(this)->mBufs.uv[chan].mData);
+u64 Shape::addUv(libcube::Model& mdl, u64 chan, const glm::vec2& v) {
+  return add_to_buffer(v, reinterpret_cast<Model&>(mdl).mBufs.uv[chan].mData);
 }
-
 
 glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
   glm::mat4 dst(1.0f);
@@ -114,12 +107,13 @@ glm::mat4 computeBoneMdl(u32 id, kpi::ConstCollectionRange<lib3d::Bone> bones) {
 
   return mdl * computeMdlMtx(bone.getSRT());
 }
-std::vector<glm::mat4> Shape::getPosMtx(u64 mpid) const {
+std::vector<glm::mat4> Shape::getPosMtx(const libcube::Model& _mdl,
+                                        u64 mpid) const {
   std::vector<glm::mat4> out;
 
   const auto& mp = mMatrixPrimitives[mpid];
 
-  auto& mdl = *getModel(this);
+  auto& mdl = reinterpret_cast<const Model&>(_mdl);
   // if (!(getVcd().mBitfield &
   //       (1 << (int)librii::gx::VertexAttribute::PositionNormalMatrixIndex)))
   //       {

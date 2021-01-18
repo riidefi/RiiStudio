@@ -75,7 +75,9 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v) {
     break;
   }
 }
-void IndexedPolygon::propogate(VBOBuilder& out) const {
+void IndexedPolygon::propogate(const riistudio::lib3d::Model& mdl,
+                               VBOBuilder& out) const {
+  const libcube::Model& gmdl = reinterpret_cast<const libcube::Model&>(mdl);
   u32 final_bitfield = 0;
 
   auto propVtx = [&](const librii::gx::IndexedVertex& vtx) {
@@ -114,13 +116,13 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
       case gx::VertexAttribute::Texture7MatrixIndex:
         break;
       case gx::VertexAttribute::Position:
-        out.pushData(0, getPos(vtx[gx::VertexAttribute::Position]));
+        out.pushData(0, getPos(gmdl, vtx[gx::VertexAttribute::Position]));
         break;
       case gx::VertexAttribute::Color0:
-        out.pushData(5, getClr(0, vtx[gx::VertexAttribute::Color0]));
+        out.pushData(5, getClr(gmdl, 0, vtx[gx::VertexAttribute::Color0]));
         break;
       case gx::VertexAttribute::Color1:
-        out.pushData(6, getClr(1, vtx[gx::VertexAttribute::Color1]));
+        out.pushData(6, getClr(gmdl, 1, vtx[gx::VertexAttribute::Color1]));
         break;
       case gx::VertexAttribute::TexCoord0:
       case gx::VertexAttribute::TexCoord1:
@@ -132,12 +134,12 @@ void IndexedPolygon::propogate(VBOBuilder& out) const {
       case gx::VertexAttribute::TexCoord7: {
         const auto chan = i - static_cast<int>(gx::VertexAttribute::TexCoord0);
         const auto attr = static_cast<gx::VertexAttribute>(i);
-        const auto data = getUv(chan, vtx[attr]);
+        const auto data = getUv(gmdl, chan, vtx[attr]);
         out.pushData(7 + chan, data);
         break;
       }
       case gx::VertexAttribute::Normal:
-        out.pushData(4, getNrm(vtx[gx::VertexAttribute::Normal]));
+        out.pushData(4, getNrm(gmdl, vtx[gx::VertexAttribute::Normal]));
         break;
       case gx::VertexAttribute::NormalBinormalTangent:
         break;

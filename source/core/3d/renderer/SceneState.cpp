@@ -17,7 +17,7 @@ SceneState::~SceneState() {
 void SceneState::buildBuffers() {
   auto setupNode = [&](auto& node) {
     node->idx_ofs = static_cast<u32>(mVbo.mIndices.size());
-    node->poly.propogate(mVbo);
+    node->poly.propogate(node->mdl, mVbo);
     node->idx_size = static_cast<u32>(mVbo.mIndices.size()) - node->idx_ofs;
   };
   // TODO -- nodes may be of incompatible type..

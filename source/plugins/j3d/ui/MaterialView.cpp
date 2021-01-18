@@ -13,7 +13,6 @@
 
 namespace riistudio::j3d::ui {
 
-
 struct J3DDataSurface final {
   static inline const char* name = "J3D Data";
   static inline const char* icon = (const char*)ICON_FA_BOXES;
@@ -165,7 +164,8 @@ void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
   for (auto& mp : shape.mMatrixPrimitives) {
     ImGui::Text("Matrix Primitive: %i", i);
 
-    const auto matrices = shape.getPosMtx(i);
+    const auto matrices =
+        shape.getPosMtx(*dynamic_cast<libcube::Model*>(shape.childOf), i);
     int j = 0;
     for (auto& elem : mp.mDrawMatrixIndices) {
       ImGui::Text("DRW %i: %i", j, elem);

@@ -208,6 +208,7 @@ void IGCMaterial::genSamplUniforms(
   }
 }
 void IGCMaterial::onSplice(DelegatedUBOBuilder& builder,
+                           const riistudio::lib3d::Model& model,
                            const riistudio::lib3d::Polygon& poly,
                            u32 mpid) const {
   // builder.reset(2);
@@ -218,7 +219,8 @@ void IGCMaterial::onSplice(DelegatedUBOBuilder& builder,
   assert(dynamic_cast<const IndexedPolygon*>(&poly) != nullptr);
   const auto& ipoly = reinterpret_cast<const IndexedPolygon&>(poly);
 
-  const auto mtx = ipoly.getPosMtx(mpid);
+  const auto mtx =
+      ipoly.getPosMtx(reinterpret_cast<const libcube::Model&>(model), mpid);
   for (int p = 0; p < std::min(static_cast<std::size_t>(10), mtx.size()); ++p) {
     const auto transposed = glm::transpose((glm::mat4x3)mtx[p]);
     pack.posMtx[p] = transposed;
