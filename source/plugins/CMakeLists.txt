@@ -25,13 +25,13 @@ add_library(plugins
 	"gc/Export/gc_Install.cpp"
 	"gc/Export/IndexedPolygon.cpp"
 	"gc/Export/IndexedPolygon.hpp"
-	"gc/Export/IndexedPrimitive.hpp"
-	"gc/Export/IndexedVertex.hpp"
+	
+	
 	"gc/Export/Material.hpp"
 	
 	"gc/Export/Scene.hpp"
 	"gc/Export/Texture.hpp"
-	"gc/Export/VertexDescriptor.hpp"
+	
   
 
 	"gc/GX/Material.cpp"

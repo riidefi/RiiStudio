@@ -33,6 +33,7 @@ inline DisplaySurface cullModeToDisplaySurfacee(CullMode c) {
 #include <librii/gx/TexGen.hpp>
 #include <librii/gx/Texture.hpp>
 #include <librii/gx/Vertex.hpp>
+#include <librii/gx/Polygon.hpp>
 #include <librii/gx/ZMode.hpp>
 
 #include <core/util/array_vector.hpp>

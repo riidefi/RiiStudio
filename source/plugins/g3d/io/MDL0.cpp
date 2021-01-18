@@ -1592,7 +1592,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
         if (mPoly.mMatrixPrimitives.empty())
           mPoly.mMatrixPrimitives.push_back(MatrixPrimitive{});
         auto& prim = mPoly.mMatrixPrimitives.back().mPrimitives.emplace_back(
-            libcube::IndexedPrimitive{});
+            librii::gx::IndexedPrimitive{});
         prim.mType = type;
         prim.mVertices.resize(nverts);
         for (auto& vert : prim.mVertices) {

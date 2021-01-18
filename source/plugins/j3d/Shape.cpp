@@ -83,7 +83,7 @@ void Shape::addTriangle(std::array<SimpleVertex, 3> tri) {
   for (const auto& vtx : tri) {
     // assert(!hasAttrib(SimpleAttrib::EnvelopeIndex));
 
-    libcube::IndexedVertex ivtx;
+    librii::gx::IndexedVertex ivtx;
 
     assert(hasAttrib(SimpleAttrib::Position));
 

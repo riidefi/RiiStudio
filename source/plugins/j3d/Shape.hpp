@@ -1,17 +1,17 @@
 #pragma once
 
 #include <core/common.h>
-#include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <librii/gx.h>
+#include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <vector>
 
 namespace riistudio::j3d {
 
 class Model;
 
-using MatrixPrimitive = libcube::MatrixPrimitive;
+using MatrixPrimitive = librii::gx::MatrixPrimitive;
 
-struct ShapeData : public libcube::MeshData {
+struct ShapeData : public librii::gx::MeshData {
   u32 id;
   enum class Mode {
     Normal,
@@ -27,11 +27,7 @@ struct ShapeData : public libcube::MeshData {
   lib3d::AABB bbox{{-100000.0f, -100000.0f, -100000.0f},
                    {100000.0f, 100000.0f, 100000.0f}};
 
-  bool operator==(const ShapeData& rhs) const {
-    return id == rhs.id && mode == rhs.mode && bsphere == rhs.bsphere &&
-           bbox == rhs.bbox && mMatrixPrimitives == rhs.mMatrixPrimitives &&
-           mVertexDescriptor == rhs.mVertexDescriptor;
-  }
+  bool operator==(const ShapeData& rhs) const = default;
 
   bool visible = true; // Editor-only
 };
@@ -51,13 +47,13 @@ struct Shape : public ShapeData,
       return mMatrixPrimitives[idx].mPrimitives.size();
     return 0;
   }
-  const libcube::IndexedPrimitive&
+  const librii::gx::IndexedPrimitive&
   getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) const override {
     assert(idx < mMatrixPrimitives.size());
     assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());
     return mMatrixPrimitives[idx].mPrimitives[prim_idx];
   }
-  libcube::IndexedPrimitive&
+  librii::gx::IndexedPrimitive&
   getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) override {
     assert(idx < mMatrixPrimitives.size());
     assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());

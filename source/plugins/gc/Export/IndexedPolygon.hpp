@@ -4,51 +4,24 @@
 #include <core/common.h>
 #include <librii/gx.h>
 
-#include "IndexedPrimitive.hpp"
-#include "VertexDescriptor.hpp"
-
 namespace libcube {
-struct MatrixPrimitive {
-  // Part of the polygon in G3D
-  // Not the most robust solution, but currently each expoerter will pick which
-  // of the data to use
-  s16 mCurrentMatrix = -1;
-
-  std::vector<s16> mDrawMatrixIndices;
-
-  std::vector<libcube::IndexedPrimitive> mPrimitives;
-
-  MatrixPrimitive() = default;
-  MatrixPrimitive(s16 current_matrix, std::vector<s16> drawMatrixIndices)
-      : mCurrentMatrix(current_matrix), mDrawMatrixIndices(drawMatrixIndices) {}
-  bool operator==(const MatrixPrimitive& rhs) const {
-    return mCurrentMatrix == rhs.mCurrentMatrix &&
-           mDrawMatrixIndices == rhs.mDrawMatrixIndices &&
-           mPrimitives == rhs.mPrimitives;
-  }
-};
-struct MeshData {
-  std::vector<MatrixPrimitive> mMatrixPrimitives;
-  libcube::VertexDescriptor mVertexDescriptor;
-
-  bool operator==(const MeshData&) const = default;
-};
 
 struct IndexedPolygon : public riistudio::lib3d::Polygon {
   virtual void setId(u32 id) = 0;
   // // PX_TYPE_INFO("GameCube Polygon", "gc_indexedpoly",
   // "GC::IndexedPolygon"); In wii/gc, absolute indices across mprims
 
-  virtual MeshData& getMeshData() = 0;
-  virtual const MeshData& getMeshData() const = 0;
+  virtual librii::gx::MeshData& getMeshData() = 0;
+  virtual const librii::gx::MeshData& getMeshData() const = 0;
   u64 getNumPrimitives() const;
   // Triangles
   // We add this to the last mprim. May need to be split up later.
   s64 addPrimitive();
   bool hasAttrib(SimpleAttrib attrib) const override;
   void setAttrib(SimpleAttrib attrib, bool v) override;
-  IndexedPrimitive* getIndexedPrimitiveFromSuperIndex(u64 idx);
-  const IndexedPrimitive* getIndexedPrimitiveFromSuperIndex(u64 idx) const;
+  librii::gx::IndexedPrimitive* getIndexedPrimitiveFromSuperIndex(u64 idx);
+  const librii::gx::IndexedPrimitive*
+  getIndexedPrimitiveFromSuperIndex(u64 idx) const;
   u64 getPrimitiveVertexCount(u64 index) const;
   void resizePrimitiveVertexArray(u64 index, u64 size);
   SimpleVertex getPrimitiveVertex(u64 prim_idx, u64 vtx_idx);
@@ -70,13 +43,15 @@ struct IndexedPolygon : public riistudio::lib3d::Polygon {
 
   // Matrix list access
   virtual u64 getMatrixPrimitiveNumIndexedPrimitive(u64 idx) const = 0;
-  virtual const IndexedPrimitive&
+  virtual const librii::gx::IndexedPrimitive&
   getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) const = 0;
-  virtual IndexedPrimitive&
+  virtual librii::gx::IndexedPrimitive&
   getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) = 0;
 
-  virtual VertexDescriptor& getVcd() { return getMeshData().mVertexDescriptor; }
-  virtual const VertexDescriptor& getVcd() const {
+  virtual librii::gx::VertexDescriptor& getVcd() {
+    return getMeshData().mVertexDescriptor;
+  }
+  virtual const librii::gx::VertexDescriptor& getVcd() const {
     return getMeshData().mVertexDescriptor;
   }
 

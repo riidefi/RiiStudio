@@ -62,7 +62,7 @@ u16 AssImporter::add_weight_matrix(int v, const aiMesh* pMesh,
 
 void AssImporter::ProcessMeshTrianglesStatic(
     const aiNode* singleInfluence, libcube::IndexedPolygon& poly_data,
-    std::vector<libcube::IndexedVertex>&& vertices) {
+    std::vector<librii::gx::IndexedVertex>&& vertices) {
   auto& mp = poly_data.getMeshData().mMatrixPrimitives.emplace_back();
   // Copy triangle data
   // We will do triangle-stripping in a post-process
@@ -79,7 +79,7 @@ void AssImporter::ProcessMeshTrianglesStatic(
 }
 void AssImporter::ProcessMeshTrianglesWeighted(
     libcube::IndexedPolygon& poly_data,
-    std::vector<libcube::IndexedVertex>&& vertices) {
+    std::vector<librii::gx::IndexedVertex>&& vertices) {
 
   // At this point, the mtx index of vertices is global.
   // We need to convert it to a local palette index.
@@ -181,7 +181,7 @@ void AssImporter::ProcessMeshTrianglesWeighted(
 
 void AssImporter::ProcessMeshTriangles(
     libcube::IndexedPolygon& poly_data, const aiMesh* pMesh,
-    const aiNode* pNode, std::vector<libcube::IndexedVertex>&& vertices) {
+    const aiNode* pNode, std::vector<librii::gx::IndexedVertex>&& vertices) {
   // Determine if we need to do matrix processing
   if (poly_data.getVcd().mBitfield & (1 << (int)PNM)) {
     ProcessMeshTrianglesWeighted(poly_data, std::move(vertices));
@@ -283,13 +283,13 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
   vcd.calcVertexDescriptorFromAttributeList();
   poly.initBufsFromVcd();
 
-  std::vector<libcube::IndexedVertex> vertices;
+  std::vector<librii::gx::IndexedVertex> vertices;
 
   for (unsigned f = 0; f < pMesh->mNumFaces; ++f) {
     for (int fv = 0; fv < 3; ++fv) {
       const auto v = pMesh->mFaces[f].mIndices[fv];
 
-      libcube::IndexedVertex vtx{};
+      librii::gx::IndexedVertex vtx{};
       j3d::DrawMatrix drw;
       const auto weightInfo =
           pMesh->HasBones() ? add_weight_matrix(v, pMesh, &drw) : 0;
@@ -323,7 +323,7 @@ static bool importTexture(libcube::Texture& data, u8* image,
                           int max_mip, int width, int height, int channels) {
   if (!image) {
     data.setWidth(0);
-	data.setHeight(0);
+    data.setHeight(0);
     return false;
   }
   assert(image);

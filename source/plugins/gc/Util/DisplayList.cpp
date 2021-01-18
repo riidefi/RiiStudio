@@ -50,7 +50,7 @@ static llvm::Expected<u16> ProcessAttr(
 llvm::Error
 DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
                       IMeshDLDelegate& delegate,
-                      const VertexDescriptor& descriptor,
+                      const librii::gx::VertexDescriptor& descriptor,
                       std::map<gx::VertexBufferAttribute, u32>* optUsageMap) {
   oishii::Jump<oishii::Whence::Set> g(reader, start);
 
@@ -69,7 +69,7 @@ DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
     }
 
     u16 nVerts = reader.readUnaligned<u16, CmdProcEndian>();
-    IndexedPrimitive& prim = delegate.addIndexedPrimitive(
+    auto& prim = delegate.addIndexedPrimitive(
         gx::DecodeDrawPrimitiveCommand(tag), nVerts);
 
     for (u16 vi = 0; vi < nVerts; ++vi) {

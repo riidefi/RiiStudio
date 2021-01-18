@@ -55,14 +55,14 @@ private:
   void
   ProcessMeshTrianglesStatic(const aiNode* singleInfluence,
                              libcube::IndexedPolygon& poly_data,
-                             std::vector<libcube::IndexedVertex>&& vertices);
-  void
-  ProcessMeshTrianglesWeighted(libcube::IndexedPolygon& poly_data,
-                               std::vector<libcube::IndexedVertex>&& vertices);
+                             std::vector<librii::gx::IndexedVertex>&& vertices);
+  void ProcessMeshTrianglesWeighted(
+      libcube::IndexedPolygon& poly_data,
+      std::vector<librii::gx::IndexedVertex>&& vertices);
 
   void ProcessMeshTriangles(libcube::IndexedPolygon& poly_data,
                             const aiMesh* pMesh, const aiNode* pNode,
-                            std::vector<libcube::IndexedVertex>&& vertices);
+                            std::vector<librii::gx::IndexedVertex>&& vertices);
 
   bool ImportMesh(const aiMesh* pMesh, const aiNode* pNode, glm::vec3 tint);
   void ImportNode(const aiNode* pNode, glm::vec3 tint, int parent = -1);

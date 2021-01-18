@@ -545,7 +545,7 @@ public:
   }
   // vtxdesc_low, vtxdesc_high, vtx_spec
   static std::tuple<u32, u32, u32>
-  calcVtxDescv(const libcube::VertexDescriptor& desc) {
+  calcVtxDescv(const librii::gx::VertexDescriptor& desc) {
     using namespace librii::gx;
     gpu::TVtxDesc vtx_desc;
     vtx_desc.Hex = 0;
@@ -663,7 +663,7 @@ public:
         colors_count | (normals_count << 2) | (texcoords_count << 4);
     return {vd_low, vd_high, vspec};
   }
-  void setVtxDescv(const libcube::VertexDescriptor& desc) {
+  void setVtxDescv(const librii::gx::VertexDescriptor& desc) {
     const auto [vd_low, vd_high, vspec] = calcVtxDescv(desc);
 
     writeCp(0x50, vd_low);

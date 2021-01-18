@@ -1,6 +1,6 @@
 #include "../Sections.hpp"
-#include <plugins/gc/Util/DisplayList.hpp>
 #include <core/util/glm_io.hpp>
+#include <plugins/gc/Util/DisplayList.hpp>
 
 namespace riistudio::j3d {
 
@@ -146,8 +146,8 @@ void readSHP1(BMDOutputContext& ctx) {
           mtxPrimHdr.current_matrix, mtxPrimHdr.matrixList);
 
       struct SHP1_MPrim : IMeshDLDelegate {
-        IndexedPrimitive& addIndexedPrimitive(gx::PrimitiveType type,
-                                              u16 nVerts) override {
+        librii::gx::IndexedPrimitive&
+        addIndexedPrimitive(gx::PrimitiveType type, u16 nVerts) override {
           return mprim.mPrimitives.emplace_back(type, nVerts);
         }
         SHP1_MPrim(MatrixPrimitive& mp) : mprim(mp) {}
@@ -240,7 +240,7 @@ public:
 protected:
   std::vector<T> mEntries;
 };
-struct WriteableVertexDescriptor : VertexDescriptor {
+struct WriteableVertexDescriptor : librii::gx::VertexDescriptor {
   WriteableVertexDescriptor(const VertexDescriptor& d) {
     *(VertexDescriptor*)this = d;
   }
@@ -597,7 +597,7 @@ struct SHP1Node final : public oishii::Node {
     int mPolyId = -1;
     int mMpId = -1;
 
-    const std::vector<VertexDescriptor>* vcdPool;
+    const std::vector<librii::gx::VertexDescriptor>* vcdPool;
     const std::vector<std::vector<s16>>* mtxListPool;
   };
 

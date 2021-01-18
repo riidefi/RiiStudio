@@ -11,8 +11,8 @@ namespace riistudio::g3d {
 
 class Model;
 
-using MatrixPrimitive = libcube::MatrixPrimitive;
-struct PolygonData : public libcube::MeshData {
+using MatrixPrimitive = librii::gx::MatrixPrimitive;
+struct PolygonData : public librii::gx::MeshData {
   std::string mName;
   u32 mId;
 
@@ -45,13 +45,13 @@ struct Polygon : public PolygonData,
       return mMatrixPrimitives[idx].mPrimitives.size();
     return 0;
   }
-  const libcube::IndexedPrimitive&
+  const librii::gx::IndexedPrimitive&
   getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) const override {
     assert(idx < mMatrixPrimitives.size());
     assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());
     return mMatrixPrimitives[idx].mPrimitives[prim_idx];
   }
-  libcube::IndexedPrimitive&
+  librii::gx::IndexedPrimitive&
   getMatrixPrimitiveIndexedPrimitive(u64 idx, u64 prim_idx) override {
     assert(idx < mMatrixPrimitives.size());
     assert(prim_idx < mMatrixPrimitives[idx].mPrimitives.size());

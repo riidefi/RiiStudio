@@ -104,7 +104,7 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v) {
     break;
   }
 }
-IndexedPrimitive* IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) {
+librii::gx::IndexedPrimitive* IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) {
   u64 cnt = 0;
   for (u64 i = 0; i < getMeshData().mMatrixPrimitives.size(); ++i) {
     if (idx >= cnt && idx < cnt + getMatrixPrimitiveNumIndexedPrimitive(i))
@@ -114,7 +114,7 @@ IndexedPrimitive* IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) {
   }
   return nullptr;
 }
-const IndexedPrimitive*
+const librii::gx::IndexedPrimitive*
 IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) const {
   u64 cnt = 0;
   for (u64 i = 0; i < getMeshData().mMatrixPrimitives.size(); ++i) {
@@ -126,12 +126,13 @@ IndexedPolygon::getIndexedPrimitiveFromSuperIndex(u64 idx) const {
   return nullptr;
 }
 u64 IndexedPolygon::getPrimitiveVertexCount(u64 index) const {
-  const IndexedPrimitive* prim = getIndexedPrimitiveFromSuperIndex(index);
+  const librii::gx::IndexedPrimitive* prim =
+      getIndexedPrimitiveFromSuperIndex(index);
   assert(prim);
   return prim->mVertices.size();
 }
 void IndexedPolygon::resizePrimitiveVertexArray(u64 index, u64 size) {
-  IndexedPrimitive* prim = getIndexedPrimitiveFromSuperIndex(index);
+  librii::gx::IndexedPrimitive* prim = getIndexedPrimitiveFromSuperIndex(index);
   assert(prim);
   prim->mVertices.resize(size);
 }
@@ -148,7 +149,7 @@ IndexedPolygon::SimpleVertex IndexedPolygon::getPrimitiveVertex(u64 prim_idx,
 void IndexedPolygon::propogate(VBOBuilder& out) const {
   u32 final_bitfield = 0;
 
-  auto propVtx = [&](const IndexedVertex& vtx) {
+  auto propVtx = [&](const librii::gx::IndexedVertex& vtx) {
     const auto& vcd = getVcd();
     out.mIndices.push_back(static_cast<u32>(out.mIndices.size()));
     assert(final_bitfield == 0 || final_bitfield == vcd.mBitfield);
