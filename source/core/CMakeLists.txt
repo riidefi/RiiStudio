@@ -5,15 +5,23 @@ include_directories(${PROJECT_SOURCE_DIR}/../vendor)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
-file(GLOB_RECURSE SRC_FILES
-	${PROJECT_SOURCE_DIR}/*.cpp
-)
-file(GLOB_RECURSE HDR_FILES
-	${PROJECT_SOURCE_DIR}/*.hpp
-	${PROJECT_SOURCE_DIR}/*.h
-)
-
 add_library(core
-	${SRC_FILES}
-	${HDR_FILES}
- "interface.hpp" "util/array_vector.hpp" "util/timestamp.cpp")
+  "api.cpp"
+  "common.h"
+  "3d/Node.h"
+  "3d/Scene.cpp"
+  "3d/renderer/SceneState.cpp"
+  "3d/renderer/SceneTree.cpp"
+  "3d/renderer/ShaderCache.cpp"
+  "3d/renderer/ShaderProgram.cpp"
+  "3d/renderer/UBOBuilder.cpp"
+  "3d/renderer/VBOBuilder.cpp"
+  "3d/ui/Image.cpp"
+  "kpi/ActionMenu.cpp"
+  "kpi/Memento.cpp"
+  "kpi/Plugins.cpp"
+  "kpi/PropertyView.cpp"
+  "kpi/Reflection.cpp"
+  "kpi/RichNameManager.cpp"
+  "util/timestamp.cpp"
+)
