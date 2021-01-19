@@ -408,8 +408,6 @@ MigrationBackup/
 bin-int/
 bin/
 UnitTest/
-*.bmd
-*.bdl
 *.bak
 
 dist/
