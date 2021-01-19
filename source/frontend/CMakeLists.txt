@@ -17,8 +17,31 @@ file(GLOB_RECURSE HDR_FILES
 add_executable(frontend
 	${SRC_FILES}
 	${HDR_FILES}
- "renderer/CameraController.hpp"  "updater/updater.hpp"  "updater/updater.cpp"
- 
+ "renderer/CameraController.hpp"
+ "updater/updater.hpp"
+ "updater/updater.cpp"
+ "ModelActions.cpp"
+ 	"properties/gc/Bone/BoneDisplaySurface.cpp"
+	"properties/gc/Bone/BoneTransformSurface.cpp"
+	"properties/gc/ShaderView.cpp"
+	"properties/gc/TevSolver.cpp"
+	"properties/gc/TevSolver.hpp"
+	"properties/gc/TexImageView.cpp"
+  "properties/gc/Polygon/PolyDescriptorSurface.cpp"
+  "properties/gc/Polygon/PolyDataSurface.cpp"
+  "properties/gc/Polygon/Common.hpp"
+  "properties/gc/Material/PixelSurface.cpp"
+  "properties/gc/Material/Common.hpp"
+  "properties/gc/Material/DisplaySurface.cpp"
+  "properties/gc/Material/ColorSurface.cpp"
+  "properties/gc/Material/SamplerSurface.cpp"
+  "properties/gc/Material/StageSurface.cpp"
+  "properties/gc/Material/LightingSurface.cpp"
+  "properties/gc/Material/SwapTableSurface.cpp"
+  "properties/gc/Material/FogSurface.cpp"
+  "properties/gc/ResizeAction.hpp"
+  "properties/gc/ResizeAction.cpp"
+  
 ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc
 )
 

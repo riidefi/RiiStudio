@@ -38,15 +38,6 @@ add_library(plugins
 	
 	
 	"gc/Node.h"
-	"gc/UI/Bone/BoneDisplaySurface.cpp"
-	"gc/UI/Bone/BoneTransformSurface.cpp"
-	
-	
-	"gc/UI/ShaderView.cpp"
-	"gc/UI/TevSolver.cpp"
-	"gc/UI/TevSolver.hpp"
-	"gc/UI/TexImageView.cpp"
-	
 	"j3d/DrawMatrix.hpp"
 	"j3d/io/BMD.cpp"
 	"j3d/io/OutputCtx.hpp"
@@ -101,19 +92,15 @@ add_library(plugins
   "ass/AssLogger.hpp"
   "ass/Utility.hpp"
   "ass/AssMaterial.hpp"
-  "gc/UI/ResizeAction.hpp"
-  "gc/UI/ResizeAction.cpp"
   "g3d/io/TEX0.cpp"
   "g3d/io/MDL0.cpp"
   "g3d/io/Common.hpp"
   "g3d/io/Common.cpp"
-  "ass/ModelActions.cpp"
   "mk/BFG/io/BFG.hpp"
   "mk/BFG/io/BFG.cpp"
   "mk/BFG/Fog.hpp"
   "mk/BFG/FogEntry.hpp"
   "mk/BFG/FogView.cpp"
   "mk/BFG/Node.h"
-
-  "gc/UI/Polygon/PolyDescriptorSurface.cpp"
-  "gc/UI/Polygon/PolyDataSurface.cpp" "gc/UI/Polygon/Common.hpp" "gc/UI/Material/PixelSurface.cpp" "gc/UI/Material/Common.hpp" "gc/UI/Material/DisplaySurface.cpp" "gc/UI/Material/ColorSurface.cpp" "gc/UI/Material/SamplerSurface.cpp" "gc/UI/Material/StageSurface.cpp" "gc/UI/Material/LightingSurface.cpp" "gc/UI/Material/SwapTableSurface.cpp" "gc/UI/Material/FogSurface.cpp")
+  
+)
