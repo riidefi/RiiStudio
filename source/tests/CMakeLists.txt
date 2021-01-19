@@ -13,6 +13,7 @@ set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
 target_link_libraries(tests PUBLIC
 	core
+  librii
 	oishii
 	plate
 	plugins
