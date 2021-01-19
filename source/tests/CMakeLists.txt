@@ -87,4 +87,13 @@ endif()
 		  ${PROJECT_SOURCE_DIR}/../../fonts
 		  $<TARGET_FILE_DIR:tests>/fonts
 	)
+
+  add_custom_command(
+	  TARGET tests 
+	  POST_BUILD
+	  COMMAND python.exe ${PROJECT_SOURCE_DIR}/../../tests/tests.py
+		  $<TARGET_FILE_DIR:tests>/tests.exe
+		  ${PROJECT_SOURCE_DIR}/../../tests/samples
+      ${PROJECT_SOURCE_DIR}/../../tests/out
+	)
 # endif()

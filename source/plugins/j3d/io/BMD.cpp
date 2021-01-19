@@ -15,6 +15,8 @@
 
 #include <core/util/timestamp.hpp>
 
+bool gTestMode = false;
+
 namespace riistudio::j3d {
 
 using namespace libcube;
@@ -34,16 +36,16 @@ struct BMDFile : public oishii::Node {
     // 8 sections
     writer.write<u32>(bBDL ? 9 : 8);
 
-#if 0
-    // SubVeRsion
-    writer.write<u32, oishii::EndianSelect::Big>('SVR3');
-    for (int i = 0; i < 3; ++i)
-      writer.write<u32>(-1);
-#else
-    std::string author = VERSION_SHORT;
-    for (char c : author)
-      writer.write<char>(c);
-#endif
+    if (gTestMode) {
+      // SubVeRsion
+      writer.write<u32, oishii::EndianSelect::Big>('SVR3');
+      for (int i = 0; i < 3; ++i)
+        writer.write<u32>(-1);
+    } else {
+      std::string author = VERSION_SHORT;
+      for (char c : author)
+        writer.write<char>(c);
+    }
 
     return {};
   }
@@ -73,11 +75,11 @@ struct BMDFile : public oishii::Node {
   bool bMimic = true;
 };
 void BMD_Pad(char* dst, u32 len) {
-#if 0
   const char* pad_str = "This is padding data to alignment.....";
-#else
-  const char* pad_str = RII_TIME_STAMP;
-#endif
+  if (!gTestMode) {
+    pad_str = RII_TIME_STAMP;
+  }
+
   if (len < strlen(pad_str))
     memcpy(dst, pad_str, len);
   else

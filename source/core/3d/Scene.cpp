@@ -9,6 +9,8 @@
 
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 
+extern bool gTestMode;
+
 namespace riistudio::lib3d {
 
 glm::mat4 Bone::calcSrtMtx(const lib3d::Model* mdl) const {
@@ -18,7 +20,8 @@ glm::mat4 Bone::calcSrtMtx(const lib3d::Model* mdl) const {
   return calcSrtMtx(mdl->getBones());
 }
 
-SceneImpl::SceneImpl() : mState(std::make_shared<SceneState>()) {}
+SceneImpl::SceneImpl()
+    : mState(gTestMode ? nullptr : std::make_shared<SceneState>()) {}
 
 void SceneImpl::prepare(const kpi::INode& _host) {
   auto& host = *dynamic_cast<const Scene*>(&_host);

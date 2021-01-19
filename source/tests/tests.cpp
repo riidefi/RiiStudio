@@ -68,21 +68,27 @@ void rebuild(const std::string_view from, const std::string_view to) {
   save(to, *data);
 }
 
+extern bool gTestMode;
+
 #define ANNOUNCE(TITLE) printf("------\n" TITLE "\n\n")
 
 int main(int argc, const char** argv) {
+  gTestMode = true;
+
   ANNOUNCE("Initializing LLVM");
   llvm::InitLLVM init_llvm(argc, argv);
 
-  ANNOUNCE("Initializing Platform");
-  plate::Platform platform(32, 32, "Unfortunate Hack");
+  // We circumvent this limitation via the gTestMode flag
+  //
+  // ANNOUNCE("Initializing Platform");
+  // plate::Platform platform(32, 32, "Unfortunate Hack");
 
   ANNOUNCE("Initializing plugins");
   InitAPI();
 
   ANNOUNCE("Performing tasks");
   if (argc < 3) {
-    printf("Too few arguments:\ntests.exe <from> <to>\n");
+    fprintf(stderr, "Error: Too few arguments:\ntests.exe <from> <to>\n");
   } else {
     rebuild(argv[1], argv[2]);
   }
