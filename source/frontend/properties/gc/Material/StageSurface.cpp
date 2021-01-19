@@ -1,8 +1,7 @@
 #include "Common.hpp"
-#include <core/3d/ui/Image.hpp>                 // ImagePreview
 #include <frontend/properties/gc/TevSolver.hpp> // optimizeNode
+#include <frontend/widgets/Image.hpp>           // ImagePreview
 #include <librii/hx/KonstSel.hpp>               // elevateKonstSel
-
 #include <plugins/gc/Export/Scene.hpp>
 
 namespace libcube::UI {

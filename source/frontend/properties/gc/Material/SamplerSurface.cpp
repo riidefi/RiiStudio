@@ -1,9 +1,8 @@
 #include "Common.hpp"
-#include <core/3d/ui/Image.hpp> // for ImagePreview
+#include <frontend/widgets/Image.hpp> // for ImagePreview
 #include <librii/hx/TexGenType.hpp>
 #include <librii/hx/TextureFilter.hpp>
 #include <plugins/gc/Export/Scene.hpp>
-
 #include <plugins/j3d/Material.hpp>
 
 #undef near

@@ -16,7 +16,6 @@ add_library(core
   "3d/renderer/ShaderProgram.cpp"
   "3d/renderer/UBOBuilder.cpp"
   "3d/renderer/VBOBuilder.cpp"
-  "3d/ui/Image.cpp"
   "kpi/ActionMenu.cpp"
   "kpi/Memento.cpp"
   "kpi/Plugins.cpp"

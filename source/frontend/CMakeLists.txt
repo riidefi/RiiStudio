@@ -43,6 +43,7 @@ add_executable(frontend
   "updater/updater.cpp"
   "widgets/IconDatabase.cpp"
   "widgets/IconManager.cpp"
+  "widgets/Image.cpp"
 
   ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc
 )

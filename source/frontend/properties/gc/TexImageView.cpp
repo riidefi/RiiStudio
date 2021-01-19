@@ -1,19 +1,16 @@
 #include <vendor/FileDialogues.hpp>
-#include <vendor/stb_image.h>
-
+//
+#include "ResizeAction.hpp"
 #include <algorithm>
-
 #include <core/3d/i3dmodel.hpp>
-#include <core/3d/ui/Image.hpp>
 #include <core/kpi/ActionMenu.hpp>
 #include <core/kpi/PropertyView.hpp>
 #include <core/util/gui.hpp>
-
+#include <frontend/widgets/Image.hpp>
 #include <librii/image/TextureExport.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
-
-#include "ResizeAction.hpp"
+#include <vendor/stb_image.h>
 
 namespace libcube::UI {
 
