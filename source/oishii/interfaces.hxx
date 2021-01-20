@@ -47,7 +47,7 @@ public:
         printf("Writing to %04u (0x%04x) sized %u\n", derived().tell(),
                derived().tell(), size);
         // warnAt("Breakpoint hit", tell(), tell() + sizeof(T));
-#ifdef _MSVC
+#ifdef _MSC_VER
         __debugbreak();
 #endif
       }
