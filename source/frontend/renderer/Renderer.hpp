@@ -24,7 +24,6 @@ public:
   void updateCameraController(const lib3d::AABB& bounding_box);
   void setGlWireframe(bool wireframe) const;
   void clearGlScreen() const;
-  CameraController::InputState buildInputState() const;
 
 private:
   lib3d::IDrawable* mRoot = nullptr;

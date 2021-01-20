@@ -46,7 +46,7 @@ add_executable(frontend
   "widgets/Image.cpp"
 
   ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc
-)
+ "renderer/InputState.hpp" "renderer/InputState.cpp")
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
