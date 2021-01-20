@@ -6,7 +6,8 @@
 #include <core/3d/gl.hpp>                  // glClearColor
 #include <core/3d/renderer/SceneState.hpp> // SceneState
 #include <core/util/gui.hpp>               // ImGui::GetStyle()
-
+#include <librii/gl/Compiler.hpp>          // PacketParams
+#include <librii/gl/EnumConverter.hpp>     // setGlState
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 
 extern bool gTestMode;
@@ -39,23 +40,12 @@ void SceneImpl::build(const glm::mat4& view, const glm::mat4& proj,
 
 void SceneImpl::draw() {
   glEnable(GL_DEPTH_TEST);
-  MegaState state;
+  librii::gfx::MegaState state;
 
   auto drawNode = [&](const auto& node) {
     node->mat.setMegaState(state);
 
-    glEnable(GL_BLEND);
-    glBlendFunc(state.blendSrcFactor, state.blendDstFactor);
-    glBlendEquation(state.blendMode);
-    if (state.cullMode == -1) {
-      glDisable(GL_CULL_FACE);
-    } else {
-      glEnable(GL_CULL_FACE);
-      glCullFace(state.cullMode);
-    }
-    glFrontFace(state.frontFace);
-    glDepthMask(state.depthWrite ? GL_TRUE : GL_FALSE);
-    glDepthFunc(state.depthCompare);
+    librii::gl::setGlState(state);
 
     // assert(mState->mVbo.VAO && node->idx_size >= 0 && node->idx_size % 3 ==
     // 0);
@@ -86,10 +76,8 @@ void SceneImpl::draw() {
 
       mState->mUboBuilder.use(node->mtx_id);
       PacketBuilder.use(0);
-      struct PacketParams {
-        glm::mat3x4 posMtx[10];
-      };
-      PacketParams pack{};
+
+      librii::gl::PacketParams pack{};
       for (auto& p : pack.posMtx)
         p = glm::transpose(glm::mat4{1.0f});
 

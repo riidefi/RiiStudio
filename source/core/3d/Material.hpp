@@ -1,9 +1,9 @@
 #pragma once
 
-#include "MegaState.hpp"                   // MegaState
 #include "PixelOcclusion.hpp"              // PixelOcclusion
 #include <core/3d/renderer/UBOBuilder.hpp> // DelegatedUBOBuilder
 #include <glm/glm.hpp>                     // glm::mat4
+#include <librii/gfx/MegaState.hpp>        // MegaState
 #include <map>                             // std::map<string, u32>
 #include <string>                          // std::string
 #include <tuple>                           // std::pair<string, string>
@@ -43,7 +43,7 @@ struct Material : public virtual kpi::IObject {
                    const std::map<std::string, u32>& texIdMap) const = 0;
   virtual void onSplice(DelegatedUBOBuilder& builder, const Model& model,
                         const Polygon& poly, u32 id) const {}
-  virtual void setMegaState(MegaState& state) const = 0;
+  virtual void setMegaState(librii::gfx::MegaState& state) const = 0;
   virtual void configure(PixelOcclusion occlusion,
                          std::vector<std::string>& textures) = 0;
 

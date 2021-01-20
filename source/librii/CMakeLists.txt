@@ -15,6 +15,8 @@ add_library(librii
   "gx/Texture.cpp"
   "gx/validate/MaterialValidate.hpp"
   "gx/validate/MaterialValidate.cpp"
+  "hx/PixMode.hpp"
+  "gx/Polygon.hpp"
 
   "kmp/CourseMap.hpp"
   "kmp/CourseMap.cpp"
@@ -32,6 +34,7 @@ add_library(librii
   "image/ImagePlatform.hpp"
   "image/TextureExport.cpp"
   "image/TextureExport.hpp"
+  "image/CheckerBoard.hpp"
 
   "gpu/DLBuilder.hpp"
   "gpu/DLInterpreter.cpp"
@@ -42,6 +45,8 @@ add_library(librii
   "gpu/GPUCommand.hpp"
   "gpu/GPUMaterial.cpp"
   "gpu/GPUMaterial.hpp"
+  "gpu/DLMesh.hpp"
+  "gpu/DLMesh.cpp"
  
   "mtx/TexMtx.cpp"
   "mtx/TexMtx.hpp"
@@ -49,4 +54,7 @@ add_library(librii
   "hx/CullMode.hpp"
   "hx/TexGenType.hpp"
   "hx/TextureFilter.hpp"
-  "hx/KonstSel.hpp" "image/CheckerBoard.hpp" "hx/PixMode.hpp" "gx/Polygon.hpp" "gpu/DLMesh.hpp" "gpu/DLMesh.cpp")
+  "hx/KonstSel.hpp"
+
+  "gfx/MegaState.hpp"
+  )

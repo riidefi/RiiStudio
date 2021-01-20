@@ -9,64 +9,6 @@
 
 namespace libcube {
 
-void translateGfxMegaState(MegaState& megaState,
-                           const librii::gx::LowLevelGxMaterial& matdata) {
-  megaState.cullMode = librii::gl::translateCullMode(matdata.cullMode);
-  // TODO: If compare is false, is depth masked?
-  megaState.depthWrite = matdata.zMode.update;
-  // TODO: zmode "compare" part no reference
-  megaState.depthCompare =
-      matdata.zMode.compare
-          ? librii::gl::translateCompareType(matdata.zMode.function)
-          : GL_ALWAYS;
-  // megaState.depthCompare = material.ropInfo.depthTest ?
-  // reverseDepthForCompareMode(translateCompareType(material.ropInfo.depthFunc))
-  // : GfxCompareMode.ALWAYS;
-  megaState.frontFace = GL_CW;
-
-  const auto blendMode = matdata.blendMode;
-  if (blendMode.type == gx::BlendModeType::none) {
-    megaState.blendMode = GL_FUNC_ADD;
-    megaState.blendSrcFactor = GL_ONE;
-    megaState.blendDstFactor = GL_ZERO;
-  } else if (blendMode.type == gx::BlendModeType::blend) {
-    megaState.blendMode = GL_FUNC_ADD;
-    megaState.blendSrcFactor =
-        librii::gl::translateBlendSrcFactor(blendMode.source);
-    megaState.blendDstFactor =
-        librii::gl::translateBlendDstFactor(blendMode.dest);
-  } else if (blendMode.type == gx::BlendModeType::subtract) {
-    megaState.blendMode = GL_FUNC_REVERSE_SUBTRACT;
-    megaState.blendSrcFactor = GL_ONE;
-    megaState.blendDstFactor = GL_ONE;
-  } else if (blendMode.type == gx::BlendModeType::logic) {
-    printf("LOGIC mode is unsupported.\n");
-  }
-}
-
-gx::ColorSelChanApi getRasColorChannelID(gx::ColorSelChanApi v) {
-  switch (v) {
-  case gx::ColorSelChanApi::color0:
-  case gx::ColorSelChanApi::alpha0:
-  case gx::ColorSelChanApi::color0a0:
-    return gx::ColorSelChanApi::color0a0;
-  case gx::ColorSelChanApi::color1:
-  case gx::ColorSelChanApi::alpha1:
-  case gx::ColorSelChanApi::color1a1:
-    return gx::ColorSelChanApi::color1a1;
-  case gx::ColorSelChanApi::ind_alpha:
-    return gx::ColorSelChanApi::ind_alpha;
-  case gx::ColorSelChanApi::normalized_ind_alpha:
-    return gx::ColorSelChanApi::normalized_ind_alpha;
-  case gx::ColorSelChanApi::zero:
-  case gx::ColorSelChanApi::null:
-    return gx::ColorSelChanApi::zero;
-  default:
-    assert(!"Invalid color channel selection");
-    return gx::ColorSelChanApi::zero;
-  }
-}
-
 std::pair<std::string, std::string> IGCMaterial::generateShaders() const {
   auto result = librii::gl::compileShader(getMaterialData(), getName());
 
@@ -99,15 +41,6 @@ Shape
 
 */
 
-struct UniformSceneParams {
-  glm::mat4 projection;
-  glm::vec4 Misc0;
-};
-// ROW_MAJOR
-struct PacketParams {
-  glm::mat3x4 posMtx[10];
-};
-
 glm::mat4x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
                                                const glm::mat4& mvp) const {
   auto texsrt =
@@ -138,7 +71,7 @@ void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
   // printf("Min block size: %i\n", min);
   builder.setBlockMin(2, min);
 
-  UniformSceneParams scene;
+  librii::gl::UniformSceneParams scene;
   scene.projection = V * P;
   scene.Misc0 = {};
 
@@ -169,7 +102,7 @@ void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
   //                    it.trans.y, 0.5, 0.5, 0.5);
   //   tmp.IndTexMtx[i] = im;
   // }
-  PacketParams pack{};
+  librii::gl::PacketParams pack{};
   for (auto& p : pack.posMtx)
     p = glm::transpose(glm::mat4{1.0f});
 
@@ -212,7 +145,7 @@ void IGCMaterial::onSplice(DelegatedUBOBuilder& builder,
                            const riistudio::lib3d::Polygon& poly,
                            u32 mpid) const {
   // builder.reset(2);
-  PacketParams pack{};
+  librii::gl::PacketParams pack{};
   for (auto& p : pack.posMtx)
     p = glm::transpose(glm::mat4{1.0f});
 
@@ -228,7 +161,7 @@ void IGCMaterial::onSplice(DelegatedUBOBuilder& builder,
 
   builder.tpush(2, pack);
 }
-void IGCMaterial::setMegaState(MegaState& state) const {
-  translateGfxMegaState(state, getMaterialData());
+void IGCMaterial::setMegaState(librii::gfx::MegaState& state) const {
+  librii::gl::translateGfxMegaState(state, getMaterialData());
 }
 } // namespace libcube

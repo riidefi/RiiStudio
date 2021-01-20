@@ -2,6 +2,9 @@
 
 ## Libraries
 
+### librii::gfx
+C++ implementation of noclip's MegaState structure.
+
 ### librii::gl
 OpenGL support.
 

@@ -120,7 +120,7 @@ struct IGCMaterial : public riistudio::lib3d::Material {
     getMaterialData().name = name;
   }
 
-  void setMegaState(MegaState& state) const override;
+  void setMegaState(librii::gfx::MegaState& state) const override;
 
   void configure(riistudio::lib3d::PixelOcclusion occlusion,
                  std::vector<std::string>& textures) override {

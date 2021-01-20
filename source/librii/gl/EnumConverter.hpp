@@ -1,5 +1,6 @@
 #pragma once
 
+#include <librii/gfx/MegaState.hpp>
 #include <librii/gx.h>
 
 namespace librii::gl {
@@ -13,5 +14,10 @@ u32 translateCompareType(gx::Comparison compareType);
 
 u32 gxFilterToGl(gx::TextureFilter filter);
 u32 gxTileToGl(gx::TextureWrapMode wrap);
+
+void translateGfxMegaState(gfx::MegaState& megaState,
+                           const gx::LowLevelGxMaterial& matdata);
+
+void setGlState(const librii::gfx::MegaState& state);
 
 } // namespace librii::gl
