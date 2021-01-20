@@ -121,6 +121,7 @@ void Renderer::setGlWireframe(bool wireframe) const {
 }
 
 void Renderer::clearGlScreen() const {
+  glDepthMask(GL_TRUE);
   const auto bg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
   glClearColor(bg.x, bg.y, bg.z, bg.w);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

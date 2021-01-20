@@ -5,8 +5,8 @@
 #include "Polygon.hpp"
 #include "Texture.hpp"
 #include "aabb.hpp"
-#include <core/kpi/Node2.hpp> // kpi::Collection
-#include <memory>             // std::shared_ptr
+#include <core/kpi/Node2.hpp>             // kpi::Collection
+#include <memory>                         // std::shared_ptr
 
 namespace riistudio::lib3d {
 
@@ -32,10 +32,13 @@ struct IDrawable {
   bool reinit = false;
 };
 
+struct SceneNode;
+
 struct SceneImpl : public IDrawable {
   virtual ~SceneImpl() = default;
   SceneImpl();
 
+  void drawNode(SceneNode& node);
   void draw() override;
   void build(const glm::mat4& view, const glm::mat4& proj,
              AABB& bound) override;

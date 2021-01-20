@@ -10,10 +10,10 @@ struct UBOBuilder {
   UBOBuilder();
   ~UBOBuilder();
 
-  inline u32 roundUniformUp(u32 ofs) { return roundUp(ofs, uniformStride); }
-  inline u32 roundUniformDown(u32 ofs) { return roundDown(ofs, uniformStride); }
-  inline int getUniformAlignment() const { return uniformStride; }
-  inline u32 getUboId() const { return UBO; }
+  u32 roundUniformUp(u32 ofs) const { return roundUp(ofs, uniformStride); }
+  u32 roundUniformDown(u32 ofs) const { return roundDown(ofs, uniformStride); }
+  int getUniformAlignment() const { return uniformStride; }
+  u32 getUboId() const { return UBO; }
 
 private:
   int uniformStride = 0;
