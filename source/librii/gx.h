@@ -77,7 +77,8 @@ struct LowLevelGxMaterial {
   riistudio::util::array_vector<IndirectMatrix, 3> mIndMatrices{};
 
   SwapTable mSwapTable;
-  riistudio::util::array_vector<TevStage, 16> mStages{};
+  // FIXME: Bug in J3D cache propogation requires fixed-size for matching.
+  riistudio::util::array_vector_fixed<TevStage, 16> mStages{};
 
   // Notably missing are texture matrices
 

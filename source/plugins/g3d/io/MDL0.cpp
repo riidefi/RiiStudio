@@ -344,10 +344,14 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
     riistudio::util::array_vector<librii::gx::TevStage, 16> mStages;
 
     G3dShader(const librii::gx::LowLevelGxMaterial& mat)
-        : mSwapTable(mat.mSwapTable), mStages(mat.mStages) {
+        : mSwapTable(mat.mSwapTable) {
       mIndirectOrders.resize(mat.indirectStages.size());
       for (int i = 0; i < mIndirectOrders.size(); ++i)
         mIndirectOrders[i] = mat.indirectStages[i].order;
+
+      mStages.resize(mat.mStages.size());
+      for (int i = 0; i < mat.mStages.size(); ++i)
+        mStages[i] = mat.mStages[i];
     }
   };
   std::vector<G3dShader> shaders;
@@ -840,11 +844,12 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
     librii::gpu::DLBuilder dl(writer);
     for (int i = 0; i < 4; ++i)
       dl.setTevSwapModeTable(i, shader.mSwapTable[i]);
-    dl.setIndTexOrder(
-        shader.mIndirectOrders[0].refCoord, shader.mIndirectOrders[0].refMap,
-        shader.mIndirectOrders[1].refCoord, shader.mIndirectOrders[1].refMap,
-        shader.mIndirectOrders[2].refCoord, shader.mIndirectOrders[2].refMap,
-        shader.mIndirectOrders[3].refCoord, shader.mIndirectOrders[3].refMap);
+    auto ind_orders = shader.mIndirectOrders;
+    ind_orders.resize(4);
+    dl.setIndTexOrder(ind_orders[0].refCoord, ind_orders[0].refMap,
+                      ind_orders[1].refCoord, ind_orders[1].refMap,
+                      ind_orders[2].refCoord, ind_orders[2].refMap,
+                      ind_orders[3].refCoord, ind_orders[3].refMap);
     dl.align(); // 11
 
     assert(writer.tell() - shader_start == 32 + 0x60);

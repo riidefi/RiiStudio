@@ -1,4 +1,3 @@
-
 #include "MaterialData.hpp"
 
 namespace riistudio::j3d {
@@ -114,20 +113,19 @@ public:
   void indexedContainer(T& out, MatSec sec, u32 stride) {
     // Big assumption: Entries are contiguous
 
-    oishii::JumpOut g(reader, out.max_size() * sizeof(TIdx));
+    oishii::JumpOut g(reader, out.fixed_size() * sizeof(TIdx));
 
-    for (auto& it : out) {
-      if (const auto ofs = indexed<TIdx>(sec, stride).ofs) {
-        oishii::Jump<oishii::Whence::Set> g(reader, ofs);
-        // oishii::BinaryReader::ScopedRegion n(reader,
-        // io_wrapper<T::value_type>::getName());
-        io_wrapper<typename T::value_type>::onRead(reader, it);
-
-        out.resize(out.size() + 1);
-      }
+    for (int i = 0; i < out.fixed_size(); ++i) {
+      const auto ofs = indexed<TIdx>(sec, stride).ofs;
       // Assume entries are contiguous
-      else
+      if (!ofs)
         break;
+
+      oishii::Jump<oishii::Whence::Set> g(reader, ofs);
+      // oishii::BinaryReader::ScopedRegion n(reader,
+      // io_wrapper<T::value_type>::getName());
+      out.resize(i + 1);
+      io_wrapper<typename T::value_type>::onRead(reader, out[i]);
     }
   }
 };
@@ -206,7 +204,8 @@ void readMatEntry(Material& mat, MatLoader& loader,
     loader.indexedContainer<u16>(tevKonstColors, MatSec::TevKonstColors, 4);
     dbg.assertSince(0x09C);
 
-    mat.tevKonstColors = tevKonstColors;
+    for (int i = 0; i < tevKonstColors.size(); ++i)
+      mat.tevKonstColors[i] = tevKonstColors[i];
 
     const auto kc_sels = reader.readX<u8, 16>();
     const auto ka_sels = reader.readX<u8, 16>();
@@ -224,7 +223,8 @@ void readMatEntry(Material& mat, MatLoader& loader,
     array_vector<gx::ColorS10, 4> tevColors;
     tevColors.resize(0);
     loader.indexedContainer<u16>(tevColors, MatSec::TevColors, 8);
-    mat.tevColors = tevColors;
+    for (int i = 0; i < tevColors.size(); ++i)
+      mat.tevColors[i] = tevColors[i];
     // HW 0 is API CPREV/APREV
     std::rotate(mat.tevColors.rbegin(), mat.tevColors.rbegin() + 1,
                 mat.tevColors.rend());
@@ -589,7 +589,7 @@ template <typename TIdx, typename T, typename TPool>
 void write_array_vec(oishii::Writer& writer, const T& vec, TPool& pool) {
   for (int i = 0; i < vec.size(); ++i)
     writer.write<TIdx>(find(pool, vec[i]));
-  for (int i = vec.size(); i < vec.max_size(); ++i)
+  for (int i = vec.size(); i < vec.fixed_size(); ++i)
     writer.write<TIdx>(-1);
 }
 template <typename T>
@@ -823,7 +823,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   for (int i = 0; i < m.texGens.size(); ++i)
     writer.write<u16>(find(cache.texGens, tgs[i]));
-  for (int i = m.texGens.size(); i < m.texGens.max_size(); ++i)
+  for (int i = m.texGens.size(); i < m.texGens.fixed_size(); ++i)
     writer.write<u16>(-1);
 
   for (int i = 0; i < m.texGens.size(); ++i)
@@ -831,7 +831,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
         m.texGens[i].postMatrix == gx::PostTexMatrix::Identity
             ? -1
             : find(cache.posTexGens, m3.postTexGen(m.texGens[i])));
-  for (int i = m.texGens.size(); i < m.texGens.max_size(); ++i)
+  for (int i = m.texGens.size(); i < m.texGens.fixed_size(); ++i)
     writer.write<u16>(-1);
 
   dbg.assertSince(0x048);

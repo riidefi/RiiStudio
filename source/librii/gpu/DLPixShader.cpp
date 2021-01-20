@@ -120,8 +120,11 @@ void QDisplayListShaderHandler::onStreamEnd() {
     mMaterial.mSwapTable[i].a =
         (gx::ColorComponent)mGpuShader.tevksel[i * 2 + 1].swapga.Value();
 
-    mMaterial.indirectStages[i].order.refMap = mGpuShader.iref.getTexMap(i);
-    mMaterial.indirectStages[i].order.refCoord = mGpuShader.iref.getTexCoord(i);
+    if (i < mMaterial.indirectStages.size()) {
+      mMaterial.indirectStages[i].order.refMap = mGpuShader.iref.getTexMap(i);
+      mMaterial.indirectStages[i].order.refCoord =
+          mGpuShader.iref.getTexCoord(i);
+    }
   }
 
   mMaterial.mStages.resize(mNumStages);
