@@ -31,7 +31,7 @@ union AlphaTest {
   BitField<19, 3, CompareMode> comp1;
   BitField<22, 2, Op> logic;
 
-  u32 hex;
+  u32 hex = 0;
 
   enum TEST_RESULT {
     UNDETERMINED = 0,
@@ -104,7 +104,7 @@ union ZMode {
   BitField<1, 3, CompareMode> func;
   BitField<4, 1, u32> updateenable;
 
-  u32 hex;
+  u32 hex = 0;
 
   operator librii::gx::ZMode() {
     librii::gx::ZMode tmp;
@@ -161,7 +161,7 @@ union CMODE0 {
   BitField<11, 1, u32> subtract;
   BitField<12, 4, LogicOp> logicmode;
 
-  u32 hex;
+  u32 hex = 0;
 
   bool UseLogicOp() const;
 
@@ -187,7 +187,7 @@ union CMODE0 {
 union CMODE1 {
   BitField<0, 8, u32> alpha;
   BitField<8, 1, u32> enable;
-  u32 hex;
+  u32 hex = 0;
 };
 union ras1_ss {
   struct {
@@ -198,7 +198,7 @@ union ras1_ss {
     u32 pad : 8;
     u32 rid : 8;
   };
-  u32 hex;
+  u32 hex = 0;
 };
 union IND_MTXA {
   struct {
@@ -207,7 +207,7 @@ union IND_MTXA {
     u32 s0 : 2; // bits 0-1 of scale factor
     u32 rid : 8;
   };
-  u32 hex;
+  u32 hex = 0;
 };
 
 union IND_MTXB {
@@ -217,7 +217,7 @@ union IND_MTXB {
     u32 s1 : 2; // bits 2-3 of scale factor
     u32 rid : 8;
   };
-  u32 hex;
+  u32 hex = 0;
 };
 
 union IND_MTXC {
@@ -227,7 +227,7 @@ union IND_MTXC {
     u32 s2 : 2; // bits 4-5 of scale factor
     u32 rid : 8;
   };
-  u32 hex;
+  u32 hex = 0;
 };
 
 struct IND_MTX {
@@ -290,12 +290,12 @@ union TexMtxInfo {
   BitField<12, 3, u32> embosssourceshift; // what generated texcoord to use
   BitField<15, 3, u32> embosslightshift;  // light index that is used
 
-  u32 hex;
+  u32 hex = 0;
 };
 union PostMtxInfo {
   BitField<0, 8, u32> index;     // base row of dual transform matrix
   BitField<8, 1, u32> normalize; // normalize before send operation
-  u32 hex;
+  u32 hex = 0;
 };
 
 enum {
@@ -343,7 +343,7 @@ union LitChannel {
   BitField<9, 1, u32> attnEnable;
   BitField<10, 1, u32> attnSelect;
   BitField<11, 4, u32> lightMask4_7;
-  u32 hex;
+  u32 hex = 0;
 
   unsigned int GetFullLightMask() const {
     return lightFunc ? (lightMask0_3 | (lightMask4_7 << 4)) : 0;
@@ -363,7 +363,7 @@ union TevKSel {
   BitField<9, 5, u32> kasel0;
   BitField<14, 5, u32> kcsel1;
   BitField<19, 5, u32> kasel1;
-  u32 hex;
+  u32 hex = 0;
 
   u32 getKC(int i) const { return i ? kcsel1.Value() : kcsel0.Value(); }
   u32 getKA(int i) const { return i ? kasel1.Value() : kasel0.Value(); }
@@ -380,7 +380,7 @@ union RAS1_IREF {
     u32 bc3 : 3;
     u32 rid : 8;
   };
-  u32 hex;
+  u32 hex = 0;
 
   u32 getTexCoord(int i) const { return (hex >> (6 * i + 3)) & 7; }
   u32 getTexMap(int i) const { return (hex >> (6 * i)) & 7; }
@@ -399,7 +399,7 @@ union RAS1_TREF // or "TwoTevStageOrders"
 
   BitField<24, 8, u32> rid;
 
-  u32 hex;
+  u32 hex = 0;
   u32 getTexMap(int i) const { return i ? texmap1.Value() : texmap0.Value(); }
   u32 getTexCoord(int i) const {
     return i ? texcoord1.Value() : texcoord0.Value();
@@ -423,7 +423,7 @@ union ColorCombiner {
   BitField<20, 2, u32> shift;
   BitField<22, 2, u32> dest; // 1,2,3
 
-  u32 hex;
+  u32 hex = 0;
 };
 union AlphaCombiner {
   BitField<0, 2, u32> rswap;
@@ -440,7 +440,7 @@ union AlphaCombiner {
   BitField<20, 2, u32> shift;
   BitField<22, 2, u32> dest; // 1,2,3
 
-  u32 hex;
+  u32 hex = 0;
 };
 union TevStageIndirect {
   BitField<0, 2, u32> bt;   // Indirect tex stage ID
@@ -512,7 +512,7 @@ union TVtxDesc {
 };
 
 union UVAT_group0 {
-  u32 Hex;
+  u32 Hex = 0;
   struct {
     // 0:8
     u32 PosElements : 1;
@@ -538,7 +538,7 @@ union UVAT_group0 {
 };
 
 union UVAT_group1 {
-  u32 Hex;
+  u32 Hex = 0;
   struct {
     // 0:8
     u32 Tex1CoordElements : 1;
@@ -561,7 +561,7 @@ union UVAT_group1 {
 };
 
 union UVAT_group2 {
-  u32 Hex;
+  u32 Hex = 0;
   struct {
     // 0:4
     u32 Tex4Frac : 5;
@@ -642,14 +642,14 @@ union TexMode0 {
     u32 max_aniso : 2;
     u32 lod_clamp : 1;
   };
-  u32 hex;
+  u32 hex = 0;
 };
 union TexMode1 {
   struct {
     u32 min_lod : 8;
     u32 max_lod : 8;
   };
-  u32 hex;
+  u32 hex = 0;
 };
 // ZCOMPARE
 union PEControl {
@@ -682,7 +682,7 @@ union PEControl {
   BitField<3, 3, DepthFormat> zformat;
   BitField<6, 1, u32> early_ztest;
 
-  u32 hex;
+  u32 hex = 0;
 };
 union GenMode {
   enum CullMode : u32 {
@@ -702,7 +702,7 @@ union GenMode {
   BitField<16, 3, u32> numindstages;
   BitField<19, 1, u32> zfreeze;
 
-  u32 hex;
+  u32 hex = 0;
 };
 struct GPUMesh {
   TVtxDesc VCD;
