@@ -7,7 +7,7 @@ namespace librii::gfx {
 struct MegaState {
   u32 cullMode = -1;
   u32 depthWrite;
-  bool depthCompare;
+  u32 depthCompare;
   u32 frontFace;
 
   u32 blendMode;

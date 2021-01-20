@@ -151,7 +151,9 @@ void translateGfxMegaState(gfx::MegaState& megaState,
 }
 
 void setGlState(const librii::gfx::MegaState& state) {
+  glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
+
   glBlendFunc(state.blendSrcFactor, state.blendDstFactor);
   glBlendEquation(state.blendMode);
   if (state.cullMode == -1) {

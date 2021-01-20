@@ -39,7 +39,6 @@ void SceneImpl::build(const glm::mat4& view, const glm::mat4& proj,
 }
 
 void SceneImpl::draw() {
-  glEnable(GL_DEPTH_TEST);
   librii::gfx::MegaState state;
 
   auto drawNode = [&](const auto& node) {
