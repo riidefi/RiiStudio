@@ -30,7 +30,7 @@ struct DelegatedUBOBuilder : public UBOBuilder {
   MODULE_PRIVATE : void submit();
 
   // Use the data at each binding point
-  void use(u32 idx);
+  void use(u32 idx) const;
 
   MODULE_PUBLIC : virtual void push(u32 binding_point,
                                     const std::vector<u8>& data);

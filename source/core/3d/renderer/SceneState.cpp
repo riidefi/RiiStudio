@@ -15,17 +15,11 @@ SceneState::~SceneState() {
 }
 
 void SceneState::buildBuffers() {
-  auto setupNode = [&](auto& node) {
-    node->idx_ofs = static_cast<u32>(mVbo.mIndices.size());
-    node->poly.propogate(node->mdl, mVbo);
-    node->idx_size = static_cast<u32>(mVbo.mIndices.size()) - node->idx_ofs;
-  };
-  // TODO -- nodes may be of incompatible type..
   for (const auto& node : mTree.opaque) {
-    setupNode(node);
+    node->buildVertexBuffer(mVbo);
   }
   for (const auto& node : mTree.translucent) {
-    setupNode(node);
+    node->buildVertexBuffer(mVbo);
   }
 
   mVbo.build();
@@ -90,22 +84,10 @@ void SceneState::build(const glm::mat4& view, const glm::mat4& proj,
   bound.max = {0.0f, 0.0f, 0.0f};
 
   for (const auto& node : mTree.opaque) {
-    auto mdl = node->bone.calcSrtMtx(&node->mdl);
-
-    auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
-    auto nmin = mdl * glm::vec4(node->poly.getBounds().min, 0.0f);
-
-    riistudio::lib3d::AABB newBound{nmin, nmax};
-    bound.expandBound(newBound);
+    node->expandBound(bound);
   }
   for (const auto& node : mTree.translucent) {
-    auto mdl = node->bone.calcSrtMtx(&node->mdl);
-
-    auto nmax = mdl * glm::vec4(node->poly.getBounds().max, 0.0f);
-    auto nmin = mdl * glm::vec4(node->poly.getBounds().min, 0.0f);
-
-    riistudio::lib3d::AABB newBound{nmin, nmax};
-    bound.expandBound(newBound);
+    node->expandBound(bound);
   }
 
   // const f32 dist = glm::distance(bound.m_minBounds, bound.m_maxBounds);
@@ -113,27 +95,13 @@ void SceneState::build(const glm::mat4& view, const glm::mat4& proj,
   mUboBuilder.clear();
   u32 i = 0;
 
-  auto propNode = [&](const auto& node, u32 mtx_id) {
-    glm::mat4 mdl(1.0f);
-    // no more mdl here, we just use PNMTX0
-    // mdl = computeBoneMdl(node->bone);
-    // (Up to the mat)
-    // if (!node->poly.hasAttrib(lib3d::Polygon::SimpleAttrib::EnvelopeIndex))
-    // {
-    //  mdl = ((lib3d::Bone&)node->bone).calcSrtMtx();
-    //}
-
-    node->mat.generateUniforms(mUboBuilder, mdl, view, proj,
-                               node->shader.getId(), texIdMap, node->poly,
-                               node->scn);
-    node->mtx_id = mtx_id;
-  };
+  glm::mat4 mdl{1.0f};
 
   for (const auto& node : mTree.opaque) {
-    propNode(node, i++);
+    node->buildUniformBuffer(mUboBuilder, texIdMap, i++, mdl, view, proj);
   }
   for (const auto& node : mTree.translucent) {
-    propNode(node, i++);
+    node->buildUniformBuffer(mUboBuilder, texIdMap, i++, mdl, view, proj);
   }
 
   // mUboBuilder.submit();

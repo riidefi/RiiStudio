@@ -63,7 +63,7 @@ void DelegatedUBOBuilder::submit() {
 }
 
 // Use the data at each binding point
-void DelegatedUBOBuilder::use(u32 idx) {
+void DelegatedUBOBuilder::use(u32 idx) const {
   auto bindBufferRange = [&](GLenum target, GLuint index, GLuint buffer,
                              GLintptr offset, GLsizeiptr size) {
     //	assert(offset % getUniformAlignment() == 0);

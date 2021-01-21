@@ -36,7 +36,7 @@ struct VBOBuilder {
   int getNumSplices() { return splicePoints.size() - 1; }
   SplicePoint getSplice(std::size_t i) { return splicePoints[i]; }
   std::vector<SplicePoint> getSplicesInRange(std::size_t start,
-                                             std::size_t ofs);
+                                             std::size_t ofs) const;
 
   void build();
   void markSplice() {
