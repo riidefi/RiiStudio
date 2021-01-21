@@ -42,18 +42,6 @@ void RenderTest::draw_() {
     mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y),
                      showCursor);
 
-#ifdef RII_BACKEND_GLFW
-    if (mpGlfwWindow != nullptr)
-      glfwSetInputMode(mpGlfwWindow, GLFW_CURSOR,
-                       showCursor ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
-#elif defined(RII_BACKEND_SDL) && defined(__EMSCRIPTEN__)
-    gPointerLock = !showCursor;
-    if (showCursor)
-      emscripten_exit_pointerlock();
-    else
-      emscripten_request_pointerlock(0, EM_TRUE);
-      // SDL_SetRelativeMouseMode(!showCursor ? SDL_TRUE : SDL_FALSE);
-#endif
     mViewport.end();
   }
 }
