@@ -57,4 +57,10 @@ add_library(librii
   "hx/KonstSel.hpp"
 
   "gfx/MegaState.hpp"
+
+  
+  "glhelper/ShaderCache.cpp"
+  "glhelper/ShaderProgram.cpp"
+  "glhelper/UBOBuilder.cpp"
+  "glhelper/VBOBuilder.cpp"
   )

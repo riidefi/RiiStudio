@@ -47,12 +47,12 @@ glm::mat4x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
       librii::mtx::computeTexSrt(scale, rotate, translate, transformModel);
   return librii::mtx::computeTexMtx(mdl, mvp, texsrt, method, option);
 }
-void IGCMaterial::generateUniforms(DelegatedUBOBuilder& builder,
-                                   const glm::mat4& M, const glm::mat4& V,
-                                   const glm::mat4& P, u32 shaderId,
-                                   const std::map<std::string, u32>& texIdMap,
-                                   const riistudio::lib3d::Polygon& poly,
-                                   const riistudio::lib3d::Scene& scn) const {
+void IGCMaterial::generateUniforms(
+    librii::glhelper::DelegatedUBOBuilder& builder, const glm::mat4& M,
+    const glm::mat4& V, const glm::mat4& P, u32 shaderId,
+    const std::map<std::string, u32>& texIdMap,
+    const riistudio::lib3d::Polygon& poly,
+    const riistudio::lib3d::Scene& scn) const {
   glUniformBlockBinding(shaderId,
                         glGetUniformBlockIndex(shaderId, "ub_SceneParams"), 0);
   glUniformBlockBinding(
@@ -140,7 +140,7 @@ void IGCMaterial::genSamplUniforms(
                     librii::gl::gxTileToGl(data.samplers[i]->mWrapV));
   }
 }
-void IGCMaterial::onSplice(DelegatedUBOBuilder& builder,
+void IGCMaterial::onSplice(librii::glhelper::DelegatedUBOBuilder& builder,
                            const riistudio::lib3d::Model& model,
                            const riistudio::lib3d::Polygon& poly,
                            u32 mpid) const {

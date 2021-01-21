@@ -1,7 +1,8 @@
-#include <core/3d/gl.hpp>
-
 #include "VBOBuilder.hpp"
 #include <algorithm>
+#include <core/3d/gl.hpp>
+
+namespace librii::glhelper {
 
 VBOBuilder::VBOBuilder() {
   glGenBuffers(1, &mPositionBuf);
@@ -82,3 +83,5 @@ void VBOBuilder::build() {
 
   mPropogating.clear();
 }
+
+} // namespace librii::glhelper

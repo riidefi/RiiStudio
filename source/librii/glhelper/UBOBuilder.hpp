@@ -6,6 +6,8 @@
 #include <tuple>
 #include <vector>
 
+namespace librii::glhelper {
+
 struct UBOBuilder {
   UBOBuilder();
   ~UBOBuilder();
@@ -59,3 +61,5 @@ private:
   std::vector<u8> mCoalesced;
   std::vector<std::pair<u32, u32>> mCoalescedOffsets; // Offset : Stride
 };
+
+} // namespace librii::glhelper

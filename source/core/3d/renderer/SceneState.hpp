@@ -1,9 +1,9 @@
 #pragma once
 
-#include <core/3d/aabb.hpp>                // AABB
-#include <core/3d/renderer/SceneTree.hpp>  // SceneTree
-#include <core/3d/renderer/UBOBuilder.hpp> // DelegatedUBOBuilder
-#include <core/3d/renderer/VBOBuilder.hpp> // VBOBuilder
+#include <core/3d/aabb.hpp>               // AABB
+#include <core/3d/renderer/SceneTree.hpp> // SceneTree
+#include <librii/glhelper/UBOBuilder.hpp> // DelegatedUBOBuilder
+#include <librii/glhelper/VBOBuilder.hpp> // VBOBuilder
 
 namespace riistudio::lib3d {
 
@@ -24,7 +24,7 @@ struct SceneState {
   std::map<std::string, u32> texIdMap;
   glm::mat4 scaleMatrix{1.0f};
 
-  VBOBuilder mVbo;
+  librii::glhelper::VBOBuilder mVbo;
   struct Texture {
     u32 id;
     // std::vector<u8> data;
@@ -32,7 +32,7 @@ struct SceneState {
     //	u32 height;
   };
   std::vector<Texture> mTextures;
-  DelegatedUBOBuilder mUboBuilder;
+  librii::glhelper::DelegatedUBOBuilder mUboBuilder;
 };
 
 } // namespace riistudio::lib3d

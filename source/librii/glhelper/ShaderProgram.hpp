@@ -3,6 +3,8 @@
 #include <core/common.h>
 #include <string>
 
+namespace librii::glhelper {
+
 struct ShaderProgram {
   explicit ShaderProgram(const char* vtx, const char* frag);
   explicit ShaderProgram(const std::string& vtx, const std::string& frag);
@@ -31,3 +33,5 @@ private:
   u32 mShaderProgram;
   bool bError = false;
 };
+
+} // namespace librii::glhelper

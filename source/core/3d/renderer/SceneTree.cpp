@@ -16,7 +16,8 @@ void SceneTree::gatherBoneRecursive(u64 boneId, const lib3d::Model& root,
     const auto& mat = mats[display.matId];
 
     const auto shader_sources = mat.generateShaders();
-    ShaderProgram shader(shader_sources.first, shader_sources.second);
+    librii::glhelper::ShaderProgram shader(shader_sources.first,
+                                           shader_sources.second);
     assert(display.matId < mats.size());
     assert(display.polyId < polys.size());
     Node node{mats[display.matId],
@@ -29,21 +30,12 @@ void SceneTree::gatherBoneRecursive(u64 boneId, const lib3d::Model& root,
 
     auto& nodebuf = node.isTranslucent() ? translucent : opaque;
 
-    nodebuf.push_back(std::make_unique<Node>(std::move(node)));
-    nodebuf.back()->mat.observers.push_back(nodebuf.back().get());
+    nodebuf.nodes.push_back(std::make_unique<Node>(std::move(node)));
+    nodebuf.nodes.back()->mat.observers.push_back(nodebuf.nodes.back().get());
   }
 
   for (u64 i = 0; i < pBone.getNumChildren(); ++i)
     gatherBoneRecursive(pBone.getChild(i), root, scene);
-}
-
-void SceneTree::gather(const lib3d::Model& root, const lib3d::Scene& scene) {
-  if (root.getMaterials().empty() || root.getMeshes().empty() ||
-      root.getBones().empty())
-    return;
-
-  // Assumes root at zero
-  gatherBoneRecursive(0, root, scene);
 }
 
 } // namespace riistudio::lib3d

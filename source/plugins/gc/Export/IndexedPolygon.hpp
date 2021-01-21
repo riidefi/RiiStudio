@@ -17,7 +17,7 @@ struct IndexedPolygon : public riistudio::lib3d::Polygon {
   bool hasAttrib(SimpleAttrib attrib) const override;
   void setAttrib(SimpleAttrib attrib, bool v) override;
   void propogate(const riistudio::lib3d::Model& mdl,
-                 VBOBuilder& out) const override;
+                 librii::glhelper::VBOBuilder& out) const override;
   virtual glm::vec3 getPos(const Model& mdl, u64 id) const = 0;
   virtual glm::vec3 getNrm(const Model& mdl, u64 id) const = 0;
   virtual glm::vec4 getClr(const Model& mdl, u64 chan, u64 id) const = 0;

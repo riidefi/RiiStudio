@@ -1,5 +1,7 @@
 #include "ShaderCache.hpp"
 
+namespace librii::glhelper {
+
 std::map<std::pair<std::string, std::string>, std::unique_ptr<ShaderProgram>>
     ShaderCache::mShaders;
 
@@ -14,3 +16,5 @@ ShaderProgram& ShaderCache::compile(const std::string& vert,
   mShaders.emplace(key, std::move(new_program));
   return ref;
 }
+
+} // namespace librii::glhelper

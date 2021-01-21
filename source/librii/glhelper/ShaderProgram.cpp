@@ -1,8 +1,8 @@
 #include "ShaderProgram.hpp"
-
 #include <core/3d/gl.hpp>
-
 #include <iostream>
+
+namespace librii::glhelper {
 
 bool checkShaderErrors(u32 id, std::string& error) {
   s32 success;
@@ -25,7 +25,6 @@ ShaderProgram::ShaderProgram(const char* vtx, const char* frag) {
   if (!checkShaderErrors(vertexShader, mErrorDesc)) {
     bError = true;
     printf("%s\n", vtx);
-    
   }
   u32 fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fragmentShader, 1, &frag, NULL);
@@ -51,3 +50,5 @@ ShaderProgram::~ShaderProgram() {
     glDeleteProgram(mShaderProgram);
 #endif
 }
+
+} // namespace librii::glhelper

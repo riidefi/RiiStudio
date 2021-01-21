@@ -8,6 +8,9 @@ C++ implementation of noclip's MegaState structure.
 ### librii::gl
 OpenGL support.
 
+### librii::glhelper
+OpenGL helper classes. These can definitely use improvement.
+
 ### librii::gpu
 Allows direct interaction with the Wii GPU.
 

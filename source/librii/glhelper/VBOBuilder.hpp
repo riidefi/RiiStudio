@@ -6,6 +6,8 @@
 #include <tuple>
 #include <vector>
 
+namespace librii::glhelper {
+
 //----------------------------------
 // Vertex attribute generation
 struct VAOEntry {
@@ -63,3 +65,5 @@ private:
     *reinterpret_cast<T*>(mData.data() + begin) = data;
   }
 };
+
+} // namespace librii::glhelper

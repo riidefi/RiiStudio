@@ -76,7 +76,7 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v) {
   }
 }
 void IndexedPolygon::propogate(const riistudio::lib3d::Model& mdl,
-                               VBOBuilder& out) const {
+                               librii::glhelper::VBOBuilder& out) const {
   const libcube::Model& gmdl = reinterpret_cast<const libcube::Model&>(mdl);
   u32 final_bitfield = 0;
 
@@ -204,7 +204,7 @@ void IndexedPolygon::propogate(const riistudio::lib3d::Model& mdl,
 
     const auto def = librii::gl::getVertexAttribGenDef((gx::VertexAttribute)i);
     assert(def.first.name != nullptr);
-    out.mPropogating[def.second].first = VAOEntry{
+    out.mPropogating[def.second].first = librii::glhelper::VAOEntry{
         (u32)def.second, def.first.name, def.first.format, def.first.size * 4};
   }
 }

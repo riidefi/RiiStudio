@@ -1,9 +1,11 @@
 #pragma once
 
-#include "ShaderProgram.hpp"
+#include <librii/glhelper/ShaderProgram.hpp>
 #include <map>
 #include <memory>
 #include <string>
+
+namespace librii::glhelper {
 
 struct ShaderCache {
   static ShaderProgram& compile(const std::string& vert,
@@ -14,3 +16,5 @@ private:
                   std::unique_ptr<ShaderProgram>>
       mShaders;
 };
+
+} // namespace librii::glhelper

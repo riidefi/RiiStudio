@@ -1,12 +1,12 @@
 #pragma once
 
-#include "PixelOcclusion.hpp"              // PixelOcclusion
-#include <core/3d/renderer/UBOBuilder.hpp> // DelegatedUBOBuilder
-#include <glm/glm.hpp>                     // glm::mat4
-#include <librii/gfx/MegaState.hpp>        // MegaState
-#include <map>                             // std::map<string, u32>
-#include <string>                          // std::string
-#include <tuple>                           // std::pair<string, string>
+#include "PixelOcclusion.hpp"             // PixelOcclusion
+#include <glm/glm.hpp>                    // glm::mat4
+#include <librii/gfx/MegaState.hpp>       // MegaState
+#include <librii/glhelper/UBOBuilder.hpp> // DelegatedUBOBuilder
+#include <map>                            // std::map<string, u32>
+#include <string>                         // std::string
+#include <tuple>                          // std::pair<string, string>
 
 namespace riistudio::lib3d {
 
@@ -32,7 +32,7 @@ struct Material : public virtual kpi::IObject {
 
   virtual std::pair<std::string, std::string> generateShaders() const = 0;
   // TODO: Interdependency
-  virtual void generateUniforms(DelegatedUBOBuilder& builder,
+  virtual void generateUniforms(librii::glhelper::DelegatedUBOBuilder& builder,
                                 const glm::mat4& M, const glm::mat4& V,
                                 const glm::mat4& P, u32 shaderId,
                                 const std::map<std::string, u32>& texIdMap,
@@ -41,8 +41,9 @@ struct Material : public virtual kpi::IObject {
   virtual void
   genSamplUniforms(u32 shaderId,
                    const std::map<std::string, u32>& texIdMap) const = 0;
-  virtual void onSplice(DelegatedUBOBuilder& builder, const Model& model,
-                        const Polygon& poly, u32 id) const {}
+  virtual void onSplice(librii::glhelper::DelegatedUBOBuilder& builder,
+                        const Model& model, const Polygon& poly, u32 id) const {
+  }
   virtual void setMegaState(librii::gfx::MegaState& state) const = 0;
   virtual void configure(PixelOcclusion occlusion,
                          std::vector<std::string>& textures) = 0;

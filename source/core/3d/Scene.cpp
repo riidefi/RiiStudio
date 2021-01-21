@@ -56,7 +56,7 @@ void SceneImpl::drawNode(SceneNode& node) {
   for (auto& splice :
        mState->mVbo.getSplicesInRange(node.idx_ofs, node.idx_size)) {
     assert(splice.size > 0);
-    DelegatedUBOBuilder PacketBuilder;
+    librii::glhelper::DelegatedUBOBuilder PacketBuilder;
 
     glUniformBlockBinding(
         node.shader.getId(),

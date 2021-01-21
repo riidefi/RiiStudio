@@ -2,11 +2,11 @@
 
 #include "aabb.hpp"
 #include <array>
-#include <core/3d/renderer/UBOBuilder.hpp>
-#include <core/3d/renderer/VBOBuilder.hpp>
 #include <core/common.h>
 #include <core/kpi/Node2.hpp>
 #include <glm/glm.hpp>
+#include <librii/glhelper/UBOBuilder.hpp>
+#include <librii/glhelper/VBOBuilder.hpp>
 #include <string>
 
 namespace riistudio::lib3d {
@@ -38,7 +38,8 @@ struct Polygon : public virtual kpi::IObject {
   virtual void setAttrib(SimpleAttrib attrib, bool v) = 0;
 
   // For now... (slow api)
-  virtual void propogate(const Model& mdl, VBOBuilder& out) const = 0;
+  virtual void propogate(const Model& mdl,
+                         librii::glhelper::VBOBuilder& out) const = 0;
 
   // Call after any change
   virtual void update() {}

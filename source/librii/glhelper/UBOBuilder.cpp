@@ -1,9 +1,9 @@
-#include <core/3d/gl.hpp>
-
 #include "UBOBuilder.hpp"
 #include <algorithm>
-
+#include <core/3d/gl.hpp>
 #include <cstdio>
+
+namespace librii::glhelper {
 
 UBOBuilder::UBOBuilder() {
 #if defined(NDEBUG) || !defined(_WIN32)
@@ -108,3 +108,5 @@ void DelegatedUBOBuilder::setBlockMin(u32 binding_point, u32 min) {
 
   assert(mMinSizes[binding_point] == roundUniformUp(min));
 }
+
+} // namespace librii::glhelper
