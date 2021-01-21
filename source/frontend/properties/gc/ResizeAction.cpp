@@ -79,7 +79,7 @@ bool ResizeAction::resize_draw(Texture& data, bool* changed) {
   }
   ImGui::SameLine();
 
-  if (ImGui::Button((const char*)ICON_FA_CROSS u8" Cancel")) {
+  if (ImGui::Button((const char*)ICON_FA_TIMES u8" Cancel")) {
     return false;
   }
   return true;
@@ -115,7 +115,7 @@ bool ReformatAction::reformat_draw(Texture& data, bool* changed) {
   }
   ImGui::SameLine();
 
-  if (ImGui::Button((const char*)ICON_FA_CROSS u8" Cancel")) {
+  if (ImGui::Button((const char*)ICON_FA_TIMES u8" Cancel")) {
     return false;
   }
 
