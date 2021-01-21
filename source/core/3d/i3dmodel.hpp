@@ -5,8 +5,8 @@
 #include "Polygon.hpp"
 #include "Texture.hpp"
 #include "aabb.hpp"
-#include <core/kpi/Node2.hpp>             // kpi::Collection
-#include <memory>                         // std::shared_ptr
+#include <core/kpi/Node2.hpp> // kpi::Collection
+#include <memory>             // std::shared_ptr
 
 namespace riistudio::lib3d {
 
@@ -17,35 +17,27 @@ class Scene;
 struct IDrawable {
   virtual ~IDrawable() = default;
 
-  //! Draw the entire scene.
-  virtual void draw() = 0;
-
-  //! Build the scene state given the view and projection matrices.
-  //! Output the bounding box
-  virtual void build(const glm::mat4& view, const glm::mat4& proj,
-                     AABB& bound) = 0;
-
   //! Prepare a scene based on the resource data.
-  virtual void prepare(const kpi::INode& root) = 0;
+  virtual void prepare(SceneState& state, const kpi::INode& root) = 0;
 
   bool poisoned = false;
   bool reinit = false;
 };
 
 struct SceneNode;
+struct SceneBuffers;
 
 struct SceneImpl : public IDrawable {
   virtual ~SceneImpl() = default;
   SceneImpl();
 
-  void drawNode(SceneNode& node);
-  void draw() override;
-  void build(const glm::mat4& view, const glm::mat4& proj,
-             AABB& bound) override;
-  void prepare(const kpi::INode& host) override;
+  void prepare(SceneState& state, const kpi::INode& host) override;
 
-private:
-  std::shared_ptr<SceneState> mState;
+  void gatherBoneRecursive(SceneBuffers& output, u64 boneId,
+                           const lib3d::Model& root, const lib3d::Scene& scn);
+
+  void gather(SceneBuffers& output, const lib3d::Model& root,
+              const lib3d::Scene& scene);
 };
 
 } // namespace riistudio::lib3d

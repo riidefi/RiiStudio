@@ -78,11 +78,6 @@ int main(int argc, const char** argv) {
   ANNOUNCE("Initializing LLVM");
   llvm::InitLLVM init_llvm(argc, argv);
 
-  // We circumvent this limitation via the gTestMode flag
-  //
-  // ANNOUNCE("Initializing Platform");
-  // plate::Platform platform(32, 32, "Unfortunate Hack");
-
   ANNOUNCE("Initializing plugins");
   InitAPI();
 

@@ -6,10 +6,6 @@
 #include <core/util/gui.hpp> // ImGui::BeginMenuBar
 #include <frontend/root.hpp> // RootWindow
 
-// Hack
-#include <plugins/j3d/Shape.hpp>
-#include <vendor/glm/matrix.hpp>
-
 namespace riistudio::frontend {
 
 Renderer::Renderer(lib3d::IDrawable* root) : mRoot(root) {}
@@ -25,7 +21,8 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
   // cache of it.
   if (mRoot->reinit) {
     mRoot->reinit = false;
-    prepare(*dynamic_cast<kpi::INode*>(mRoot));
+    mRoot->prepare(mSceneState, *dynamic_cast<kpi::INode*>(mRoot));
+    mSceneState.buildVertexBuffers();
   }
 
   drawMenuBar();
@@ -50,16 +47,15 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     RootWindow::spInstance->showMouse();
   }
 
+  updateCameraController(mSceneState.computeBounds());
+
   glm::mat4 projMtx, viewMtx;
   mCameraController.mCamera.calcMatrices(width, height, projMtx, viewMtx);
 
-  riistudio::lib3d::AABB bound;
-  mRoot->build(projMtx, viewMtx, bound);
-
-  updateCameraController(bound);
+  mSceneState.buildUniformBuffers(projMtx, viewMtx);
 
   clearGlScreen();
-  mRoot->draw();
+  mSceneState.draw();
 }
 
 void Renderer::drawMenuBar() {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/3d/i3dmodel.hpp>
+#include <core/3d/renderer/SceneState.hpp>
 #include <core/common.h>
 #include <core/kpi/Node.hpp>
 #include <frontend/renderer/CameraController.hpp>
@@ -16,7 +17,10 @@ public:
   Renderer(lib3d::IDrawable* root);
   ~Renderer();
   void render(u32 width, u32 height, bool& hideCursor);
-  void prepare(const kpi::INode& host) { mRoot->prepare(host); }
+  void prepare(const kpi::INode& host) {
+    mRoot->prepare(mSceneState, host);
+    mSceneState.buildVertexBuffers();
+  }
 
   Camera& getCamera() { return mCameraController.mCamera; }
 
@@ -26,9 +30,14 @@ public:
   void clearGlScreen() const;
 
 private:
+  // Scene state
+  lib3d::SceneState mSceneState;
+
   lib3d::IDrawable* mRoot = nullptr;
   CameraController mCameraController;
-  CameraController::ControllerType combo_choice_cam = CameraController::ControllerType::WASD_Minecraft;
+  CameraController::ControllerType combo_choice_cam =
+      CameraController::ControllerType::WASD_Minecraft;
+
   // Render settings
   bool rend = true;
 #ifdef RII_NATIVE_GL_WIREFRAME

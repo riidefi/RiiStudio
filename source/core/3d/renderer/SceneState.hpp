@@ -1,37 +1,42 @@
 #pragma once
 
 #include <core/3d/aabb.hpp>               // AABB
-#include <core/3d/renderer/SceneTree.hpp> // SceneTree
+#include <core/3d/renderer/GlTexture.hpp> // GlTexture
+#include <core/3d/renderer/SceneTree.hpp> // SceneBuffers
 #include <librii/glhelper/UBOBuilder.hpp> // DelegatedUBOBuilder
 #include <librii/glhelper/VBOBuilder.hpp> // VBOBuilder
 
 namespace riistudio::lib3d {
 
 struct SceneState {
-  ~SceneState();
+public:
+  SceneState() = default;
+  ~SceneState() = default;
 
-  void buildBuffers();
+  // Build the VBO. Typically called only once.
+  void buildVertexBuffers();
 
-  void buildTextures(const lib3d::Scene& root);
-  void gather(const lib3d::Model& model, const lib3d::Scene& texture,
-              bool buf = true, bool tex = true);
+  // Upload a texture to the database
+  void addTexture(const std::string& key, const lib3d::Texture& tex);
 
-  void build(const glm::mat4& view, const glm::mat4& proj, AABB& bound);
+  // Compute the composite bounding box (in model space)
+  AABB computeBounds();
 
+  // Build the UBO. Typically called every frame.
+  void buildUniformBuffers(const glm::mat4& view, const glm::mat4& proj);
+
+  // Draw the model to the screen. You'll want to clear it first.
   void draw();
 
-  SceneTree mTree;
+  // Direct access to attached renderables.
+  SceneBuffers& getBuffers() { return mTree; }
+
+private:
+  SceneBuffers mTree;
   std::map<std::string, u32> texIdMap;
-  glm::mat4 scaleMatrix{1.0f};
 
   librii::glhelper::VBOBuilder mVbo;
-  struct Texture {
-    u32 id;
-    // std::vector<u8> data;
-    //	u32 width;
-    //	u32 height;
-  };
-  std::vector<Texture> mTextures;
+  std::vector<GlTexture> mTextures;
   librii::glhelper::DelegatedUBOBuilder mUboBuilder;
 };
 

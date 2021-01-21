@@ -53,6 +53,11 @@ struct VBOBuilder {
     attrib_buf.second.resize(attrib_buf.second.size() + sizeof(T));
     *reinterpret_cast<T*>(attrib_buf.second.data() + begin) = data;
   }
+
+  void bind();
+  void unbind();
+
+private:
   u32 VAO;
   u32 mPositionBuf, mIndexBuf;
 

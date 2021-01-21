@@ -82,6 +82,11 @@ void VBOBuilder::build() {
   }
 
   mPropogating.clear();
+  glBindVertexArray(0);
 }
+
+void VBOBuilder::bind() { glBindVertexArray(VAO); }
+void VBOBuilder::unbind() { glBindVertexArray(0); }
+
 
 } // namespace librii::glhelper
