@@ -49,8 +49,8 @@ void readTexture(Texture& data, oishii::BinaryReader& reader) {
   data.mipLevel = reader.read<u32>();
   data.minLod = reader.read<f32>();
   data.maxLod = reader.read<f32>();
-  data.custom_lod = data.minLod != 0.0f ||
-                    data.maxLod != static_cast<float>(data.mipLevel - 1);
+  // data.custom_lod = data.minLod != 0.0f ||
+  //                   data.maxLod != static_cast<float>(data.mipLevel - 1);
   data.sourcePath = readName(reader, start);
   // Skip user data
   reader.seekSet(start + ofsTex);
