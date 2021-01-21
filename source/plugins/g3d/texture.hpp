@@ -16,6 +16,7 @@ struct TextureData {
   u32 height = 32;
 
   u32 mipLevel{1}; // 1 - no mipmaps
+  bool custom_lod = false;
   f32 minLod{0.0f};
   f32 maxLod{1.0f};
 
