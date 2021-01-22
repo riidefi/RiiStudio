@@ -7,6 +7,9 @@ Core utilities and structures. Available to all other modules.
 ## frontend
 The main editor itself.
 
+## imcxx
+My C++ wrappers for ImGui.
+
 ## librii
 Library for interacting with Wii data.
 

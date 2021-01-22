@@ -1,4 +1,5 @@
 #include "Common.hpp"
+#include <imcxx/Widgets.hpp>
 #include <librii/hx/PixMode.hpp>
 
 namespace libcube::UI {
@@ -108,10 +109,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       {
         ImGui::Text("( Pixel Alpha");
         ImGui::SameLine();
-        int leftAlpha = static_cast<int>(matData.alphaCompare.compLeft);
-        ImGui::Combo("##l", &leftAlpha, compStr);
-        AUTO_PROP(alphaCompare.compLeft,
-                  static_cast<librii::gx::Comparison>(leftAlpha));
+        const auto leftAlpha =
+            imcxx::Combo("##l", matData.alphaCompare.compLeft, compStr);
+        AUTO_PROP(alphaCompare.compLeft, leftAlpha);
 
         int leftRef = static_cast<int>(
             delegate.getActive().getMaterialData().alphaCompare.refLeft);
@@ -123,17 +123,16 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         ImGui::Text(")");
       }
       {
-        int op = static_cast<int>(matData.alphaCompare.op);
-        ImGui::Combo("##o", &op, "&&\0||\0!=\0==\0");
-        AUTO_PROP(alphaCompare.op, static_cast<librii::gx::AlphaOp>(op));
+        auto op =
+            imcxx::Combo("##o", matData.alphaCompare.op, "&&\0||\0!=\0==\0");
+        AUTO_PROP(alphaCompare.op, op);
       }
       {
         ImGui::Text("( Pixel Alpha");
         ImGui::SameLine();
-        int rightAlpha = static_cast<int>(matData.alphaCompare.compRight);
-        ImGui::Combo("##r", &rightAlpha, compStr);
-        AUTO_PROP(alphaCompare.compRight,
-                  static_cast<librii::gx::Comparison>(rightAlpha));
+        const auto rightAlpha =
+            imcxx::Combo("##r", matData.alphaCompare.compRight, compStr);
+        AUTO_PROP(alphaCompare.compRight, rightAlpha);
 
         int rightRef = static_cast<int>(matData.alphaCompare.refRight);
         ImGui::SameLine();
@@ -165,28 +164,27 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       ImGui::Checkbox("Write to Z Buffer", &zwrite);
       AUTO_PROP(zMode.update, zwrite);
 
-      int zcond = static_cast<int>(matData.zMode.function);
-      ImGui::Combo("Condition", &zcond,
-                   "Never draw.\0Pixel Z < EFB Z\0Pixel Z == EFB Z\0Pixel Z <= "
-                   "EFB Z\0Pixel Z > EFB Z\0Pixel Z != EFB Z\0Pixel Z >= EFB "
-                   "Z\0 Always draw.\0");
-      AUTO_PROP(zMode.function, static_cast<librii::gx::Comparison>(zcond));
+      auto zcond = imcxx::Combo(
+          "Condition", matData.zMode.function,
+          "Never draw.\0Pixel Z < EFB Z\0Pixel Z == EFB Z\0Pixel Z <= "
+          "EFB Z\0Pixel Z > EFB Z\0Pixel Z != EFB Z\0Pixel Z >= EFB "
+          "Z\0 Always draw.\0");
+      AUTO_PROP(zMode.function, zcond);
 
       ImGui::Unindent(30.0f);
     }
   }
   if (ImGui::CollapsingHeader("Blending", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::PushItemWidth(200);
-    int btype = static_cast<int>(matData.blendMode.type);
-    ImGui::Combo("Type", &btype,
-                 "Do not blend.\0Blending\0Logical Operations\0Subtract from "
-                 "Frame Buffer\0");
-    AUTO_PROP(blendMode.type, static_cast<librii::gx::BlendModeType>(btype));
+    auto btype = imcxx::Combo(
+        "Type", matData.blendMode.type,
+        "Do not blend.\0Blending\0Logical Operations\0Subtract from "
+        "Frame Buffer\0");
+    AUTO_PROP(blendMode.type, btype);
 
     {
 
-      ConditionalActive g(btype ==
-                          static_cast<int>(librii::gx::BlendModeType::blend));
+      ConditionalActive g(btype == librii::gx::BlendModeType::blend);
       ImGui::Text("Blend calculation");
 
       const char* blendOpts =
@@ -197,27 +195,23 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           "Alpha\0 EFB Alpha\0 1 - EFB Alpha\0";
       ImGui::Text("( Pixel Color * ");
 
-      int srcFact = static_cast<int>(matData.blendMode.source);
       ImGui::SameLine();
-      ImGui::Combo("##Src", &srcFact, blendOpts);
-      AUTO_PROP(blendMode.source,
-                static_cast<librii::gx::BlendModeFactor>(srcFact));
+      auto srcFact = imcxx::Combo("##Src", matData.blendMode.source, blendOpts);
+      AUTO_PROP(blendMode.source, srcFact);
 
       ImGui::SameLine();
       ImGui::Text(") + ( EFB Color * ");
 
-      int dstFact = static_cast<int>(matData.blendMode.dest);
       ImGui::SameLine();
-      ImGui::Combo("##Dst", &dstFact, blendOptsDst);
-      AUTO_PROP(blendMode.dest,
-                static_cast<librii::gx::BlendModeFactor>(dstFact));
+      auto dstFact =
+          imcxx::Combo("##Dst", matData.blendMode.dest, blendOptsDst);
+      AUTO_PROP(blendMode.dest, dstFact);
 
       ImGui::SameLine();
       ImGui::Text(")");
     }
     {
-      ConditionalActive g(btype ==
-                          static_cast<int>(librii::gx::BlendModeType::logic));
+      ConditionalActive g(btype == librii::gx::BlendModeType::logic);
       ImGui::Text("Logical Operations");
     }
     ImGui::PopItemWidth();

@@ -1,4 +1,5 @@
 #include "Common.hpp"
+#include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/Scene.hpp>
 
 namespace libcube::UI {
@@ -55,20 +56,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                     "1/64x\0"
                                     "1/128x\0"
                                     "1/256x\0";
-            int u_scale = static_cast<int>(conf.scale.U);
-            ImGui::Combo("U Scale", &u_scale, scale_opt);
 
-            int v_scale = static_cast<int>(conf.scale.V);
-            ImGui::Combo("V Scale", &v_scale, scale_opt);
+            auto u_scale = imcxx::Combo("U Scale", conf.scale.U, scale_opt);
+            auto v_scale = imcxx::Combo("V Scale", conf.scale.V, scale_opt);
 
-            AUTO_PROP(
-                indirectStages[i].scale.U,
-                static_cast<librii::gx::IndirectTextureScalePair::Selection>(
-                    u_scale));
-            AUTO_PROP(
-                indirectStages[i].scale.V,
-                static_cast<librii::gx::IndirectTextureScalePair::Selection>(
-                    v_scale));
+            AUTO_PROP(indirectStages[i].scale.U, u_scale);
+            AUTO_PROP(indirectStages[i].scale.V, v_scale);
           }
           ImGui::EndTabItem();
         }

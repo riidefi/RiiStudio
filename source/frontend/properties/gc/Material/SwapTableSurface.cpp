@@ -1,4 +1,5 @@
 #include "Common.hpp"
+#include <imcxx/Widgets.hpp>
 
 namespace libcube::UI {
 
@@ -25,27 +26,22 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     ImGui::PushID(i);
     auto& swap = matData.mSwapTable[i];
 
-    int r = static_cast<int>(swap.r);
-    int g = static_cast<int>(swap.g);
-    int b = static_cast<int>(swap.b);
-    int a = static_cast<int>(swap.a);
-
     ImGui::Text("Swap %i", i);
     ImGui::TableNextCell();
 
-    ImGui::Combo("##R", &r, colors);
+    auto r = imcxx::Combo("##R", swap.r, colors);
     ImGui::TableNextCell();
-    ImGui::Combo("##G", &g, colors);
+    auto g = imcxx::Combo("##G", swap.g, colors);
     ImGui::TableNextCell();
-    ImGui::Combo("##B", &b, colors);
+    auto b = imcxx::Combo("##B", swap.b, colors);
     ImGui::TableNextCell();
-    ImGui::Combo("##A", &a, colors);
+    auto a = imcxx::Combo("##A", swap.a, colors);
     ImGui::TableNextCell();
 
-    AUTO_PROP(mSwapTable[i].r, static_cast<gx::ColorComponent>(r));
-    AUTO_PROP(mSwapTable[i].g, static_cast<gx::ColorComponent>(g));
-    AUTO_PROP(mSwapTable[i].b, static_cast<gx::ColorComponent>(b));
-    AUTO_PROP(mSwapTable[i].a, static_cast<gx::ColorComponent>(a));
+    AUTO_PROP(mSwapTable[i].r, r);
+    AUTO_PROP(mSwapTable[i].g, g);
+    AUTO_PROP(mSwapTable[i].b, b);
+    AUTO_PROP(mSwapTable[i].a, a);
 
     ImGui::PopID();
     ImGui::TableNextRow();

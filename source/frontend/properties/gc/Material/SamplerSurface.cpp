@@ -1,5 +1,6 @@
 #include "Common.hpp"
 #include <frontend/widgets/Image.hpp> // for ImagePreview
+#include <imcxx/Widgets.hpp>
 #include <librii/hx/TexGenType.hpp>
 #include <librii/hx/TextureFilter.hpp>
 #include <plugins/gc/Export/Scene.hpp>
@@ -320,14 +321,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           }
         }
         if (ImGui::CollapsingHeader("Tiling", ImGuiTreeNodeFlags_DefaultOpen)) {
-          int sTile = static_cast<int>(samp->mWrapU);
-          ImGui::Combo("U tiling", &sTile, "Clamp\0Repeat\0Mirror\0");
-          int tTile = static_cast<int>(samp->mWrapV);
-          ImGui::Combo("V tiling", &tTile, "Clamp\0Repeat\0Mirror\0");
-          AUTO_PROP(samplers[i]->mWrapU,
-                    static_cast<librii::gx::TextureWrapMode>(sTile));
-          AUTO_PROP(samplers[i]->mWrapV,
-                    static_cast<librii::gx::TextureWrapMode>(tTile));
+          const char* wrap_modes = "Clamp\0Repeat\0Mirror\0";
+          auto uTile = imcxx::Combo("U tiling", samp->mWrapU, wrap_modes);
+          auto vTile = imcxx::Combo("V tiling", samp->mWrapV, wrap_modes);
+          AUTO_PROP(samplers[i]->mWrapU, uTile);
+          AUTO_PROP(samplers[i]->mWrapV, vTile);
         }
         if (ImGui::CollapsingHeader("Filtering",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
