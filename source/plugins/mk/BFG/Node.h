@@ -12,6 +12,19 @@ public:
 
 protected:
     kpi::ICollection* v_getFogEntries() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mFogEntries)); }
+    void onRelocate() {
+        mFogEntries.onParentMoved(this);
+    }
+    BinaryFog(BinaryFog&& rhs) {
+        new (&mFogEntries) decltype(mFogEntries) (std::move(rhs.mFogEntries));
+
+        onRelocate();
+    }
+    BinaryFog(const BinaryFog& rhs) {
+        new (&mFogEntries) decltype(mFogEntries) (rhs.mFogEntries);
+
+        onRelocate();
+    }
 
 private:
     kpi::CollectionImpl<FogEntry> mFogEntries{this};

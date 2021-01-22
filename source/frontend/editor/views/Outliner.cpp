@@ -209,8 +209,9 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
     lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(&nodeAt);
     libcube::IGCMaterial* mat = dynamic_cast<libcube::IGCMaterial*>(&nodeAt);
     libcube::Scene* scn =
-        nodeAt.childOf ? dynamic_cast<libcube::Scene*>(nodeAt.childOf->childOf)
-                       : nullptr;
+        nodeAt.childOf && nodeAt.childOf->childOf
+            ? dynamic_cast<libcube::Scene*>(nodeAt.childOf->childOf)
+            : nullptr;
 
     u32 flags = ImGuiTreeNodeFlags_DefaultOpen;
     if (as_host == nullptr)

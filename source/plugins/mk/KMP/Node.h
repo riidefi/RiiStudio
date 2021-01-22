@@ -45,6 +45,52 @@ protected:
     kpi::ICollection* v_getCannonPoints() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mCannonPoints)); }
     kpi::ICollection* v_getStages() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mStages)); }
     kpi::ICollection* v_getMissionPoints() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mMissionPoints)); }
+    void onRelocate() {
+        mStartPoints.onParentMoved(this);
+        mEnemyPaths.onParentMoved(this);
+        mItemPaths.onParentMoved(this);
+        mCheckPaths.onParentMoved(this);
+        mPaths.onParentMoved(this);
+        mGeoObjs.onParentMoved(this);
+        mAreas.onParentMoved(this);
+        mCameras.onParentMoved(this);
+        mRespawnPoints.onParentMoved(this);
+        mCannonPoints.onParentMoved(this);
+        mStages.onParentMoved(this);
+        mMissionPoints.onParentMoved(this);
+    }
+    CourseMap(CourseMap&& rhs) {
+        new (&mStartPoints) decltype(mStartPoints) (std::move(rhs.mStartPoints));
+        new (&mEnemyPaths) decltype(mEnemyPaths) (std::move(rhs.mEnemyPaths));
+        new (&mItemPaths) decltype(mItemPaths) (std::move(rhs.mItemPaths));
+        new (&mCheckPaths) decltype(mCheckPaths) (std::move(rhs.mCheckPaths));
+        new (&mPaths) decltype(mPaths) (std::move(rhs.mPaths));
+        new (&mGeoObjs) decltype(mGeoObjs) (std::move(rhs.mGeoObjs));
+        new (&mAreas) decltype(mAreas) (std::move(rhs.mAreas));
+        new (&mCameras) decltype(mCameras) (std::move(rhs.mCameras));
+        new (&mRespawnPoints) decltype(mRespawnPoints) (std::move(rhs.mRespawnPoints));
+        new (&mCannonPoints) decltype(mCannonPoints) (std::move(rhs.mCannonPoints));
+        new (&mStages) decltype(mStages) (std::move(rhs.mStages));
+        new (&mMissionPoints) decltype(mMissionPoints) (std::move(rhs.mMissionPoints));
+
+        onRelocate();
+    }
+    CourseMap(const CourseMap& rhs) {
+        new (&mStartPoints) decltype(mStartPoints) (rhs.mStartPoints);
+        new (&mEnemyPaths) decltype(mEnemyPaths) (rhs.mEnemyPaths);
+        new (&mItemPaths) decltype(mItemPaths) (rhs.mItemPaths);
+        new (&mCheckPaths) decltype(mCheckPaths) (rhs.mCheckPaths);
+        new (&mPaths) decltype(mPaths) (rhs.mPaths);
+        new (&mGeoObjs) decltype(mGeoObjs) (rhs.mGeoObjs);
+        new (&mAreas) decltype(mAreas) (rhs.mAreas);
+        new (&mCameras) decltype(mCameras) (rhs.mCameras);
+        new (&mRespawnPoints) decltype(mRespawnPoints) (rhs.mRespawnPoints);
+        new (&mCannonPoints) decltype(mCannonPoints) (rhs.mCannonPoints);
+        new (&mStages) decltype(mStages) (rhs.mStages);
+        new (&mMissionPoints) decltype(mMissionPoints) (rhs.mMissionPoints);
+
+        onRelocate();
+    }
 
 private:
     kpi::CollectionImpl<StartPoint> mStartPoints{this};

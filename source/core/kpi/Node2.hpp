@@ -375,13 +375,23 @@ template <typename T> struct CollectionImpl final : public ICollection {
   CollectionImpl(INode* _parent) : parent(_parent) {}
   CollectionImpl(const CollectionImpl& rhs)
       : data(rhs.data), parent(rhs.parent) {
-    for (auto& elem : data)
+    for (auto& elem : data) {
       elem.collectionOf = this;
+      elem.childOf = parent;
+    }
   }
   CollectionImpl(CollectionImpl&& rhs)
       : data(std::move(rhs.data)), parent(rhs.parent) {
-    for (auto& elem : data)
+    for (auto& elem : data) {
       elem.collectionOf = this;
+      elem.childOf = parent;
+    }
+  }
+
+  void onParentMoved(INode* _parent) {
+    parent = _parent;
+    for (auto& elem : data)
+      elem.childOf = _parent;
   }
 };
 

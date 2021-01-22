@@ -6,7 +6,7 @@ def title(str):
   if str[0].isupper(): return str
   return str.title()
 
-def compile_members(members, concrete, parent_data):
+def compile_members(members, concrete, parent_data, name):
 	result = ""
 
 # Collection<3DMaterial> getMaterials() { return { v_getMaterials() }; }
@@ -32,6 +32,24 @@ def compile_members(members, concrete, parent_data):
 		for member in members:
 			result += "\tkpi::ICollection* v_get%s() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&m%s)); }\n" % (title(member[1]), title(member[1]))
 	if concrete:
+		result += "\tvoid onRelocate() {\n"
+		for member in members:
+			result += "\t\tm%s.onParentMoved(this);\n" % title(member[1])
+		result += "\t}\n"
+		result += "\t%s(%s&& rhs) {\n" % (name, name)
+		for member in members:
+			# result += "\t\tm%s = std::move(rhs.m%s);\n" % (title(member[1]), title(member[1]))
+			result += "\t\tnew (&m%s) decltype(m%s) (std::move(rhs.m%s));\n" % (title(member[1]), title(member[1]), title(member[1]))
+
+		result += "\n\t\tonRelocate();\n"
+		result += "\t}\n"
+		result += "\t%s(const %s& rhs) {\n" % (name, name)
+		for member in members:
+			#"\t\tm%s = rhs.m%s;\n" % (title(member[1]), title(member[1]))
+			result += "\t\tnew (&m%s) decltype(m%s) (rhs.m%s);\n" % (title(member[1]), title(member[1]), title(member[1]))
+		result += "\n\t\tonRelocate();\n"
+		result += "\t}\n"
+		
 		result += "\nprivate:\n"
 		# CollectionImpl<Material> mMaterials;
 		for member in members:
@@ -144,7 +162,7 @@ def compile_record(raw_name, record):
 	result += "\t%s() = default;\n" % name
 	result += "\tvirtual ~%s() = default;\n\n" % name
 
-	result += compile_members(members, concrete, parent_data)
+	result += compile_members(members, concrete, parent_data, name)
 
 	result += "};\n"
 

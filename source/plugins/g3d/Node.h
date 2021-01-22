@@ -30,6 +30,37 @@ protected:
     kpi::ICollection* v_getBuf_Nrm() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mBuf_Nrm)); }
     kpi::ICollection* v_getBuf_Clr() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mBuf_Clr)); }
     kpi::ICollection* v_getBuf_Uv() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mBuf_Uv)); }
+    void onRelocate() {
+        mMaterials.onParentMoved(this);
+        mBones.onParentMoved(this);
+        mMeshes.onParentMoved(this);
+        mBuf_Pos.onParentMoved(this);
+        mBuf_Nrm.onParentMoved(this);
+        mBuf_Clr.onParentMoved(this);
+        mBuf_Uv.onParentMoved(this);
+    }
+    Model(Model&& rhs) {
+        new (&mMaterials) decltype(mMaterials) (std::move(rhs.mMaterials));
+        new (&mBones) decltype(mBones) (std::move(rhs.mBones));
+        new (&mMeshes) decltype(mMeshes) (std::move(rhs.mMeshes));
+        new (&mBuf_Pos) decltype(mBuf_Pos) (std::move(rhs.mBuf_Pos));
+        new (&mBuf_Nrm) decltype(mBuf_Nrm) (std::move(rhs.mBuf_Nrm));
+        new (&mBuf_Clr) decltype(mBuf_Clr) (std::move(rhs.mBuf_Clr));
+        new (&mBuf_Uv) decltype(mBuf_Uv) (std::move(rhs.mBuf_Uv));
+
+        onRelocate();
+    }
+    Model(const Model& rhs) {
+        new (&mMaterials) decltype(mMaterials) (rhs.mMaterials);
+        new (&mBones) decltype(mBones) (rhs.mBones);
+        new (&mMeshes) decltype(mMeshes) (rhs.mMeshes);
+        new (&mBuf_Pos) decltype(mBuf_Pos) (rhs.mBuf_Pos);
+        new (&mBuf_Nrm) decltype(mBuf_Nrm) (rhs.mBuf_Nrm);
+        new (&mBuf_Clr) decltype(mBuf_Clr) (rhs.mBuf_Clr);
+        new (&mBuf_Uv) decltype(mBuf_Uv) (rhs.mBuf_Uv);
+
+        onRelocate();
+    }
 
 private:
     kpi::CollectionImpl<Material> mMaterials{this};
@@ -145,6 +176,22 @@ public:
 protected:
     kpi::ICollection* v_getModels() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mModels)); }
     kpi::ICollection* v_getTextures() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mTextures)); }
+    void onRelocate() {
+        mModels.onParentMoved(this);
+        mTextures.onParentMoved(this);
+    }
+    Collection(Collection&& rhs) {
+        new (&mModels) decltype(mModels) (std::move(rhs.mModels));
+        new (&mTextures) decltype(mTextures) (std::move(rhs.mTextures));
+
+        onRelocate();
+    }
+    Collection(const Collection& rhs) {
+        new (&mModels) decltype(mModels) (rhs.mModels);
+        new (&mTextures) decltype(mTextures) (rhs.mTextures);
+
+        onRelocate();
+    }
 
 private:
     kpi::CollectionImpl<Model> mModels{this};

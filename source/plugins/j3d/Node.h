@@ -18,6 +18,25 @@ protected:
     kpi::ICollection* v_getMaterials() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mMaterials)); }
     kpi::ICollection* v_getBones() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mBones)); }
     kpi::ICollection* v_getMeshes() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mMeshes)); }
+    void onRelocate() {
+        mMaterials.onParentMoved(this);
+        mBones.onParentMoved(this);
+        mMeshes.onParentMoved(this);
+    }
+    Model(Model&& rhs) {
+        new (&mMaterials) decltype(mMaterials) (std::move(rhs.mMaterials));
+        new (&mBones) decltype(mBones) (std::move(rhs.mBones));
+        new (&mMeshes) decltype(mMeshes) (std::move(rhs.mMeshes));
+
+        onRelocate();
+    }
+    Model(const Model& rhs) {
+        new (&mMaterials) decltype(mMaterials) (rhs.mMaterials);
+        new (&mBones) decltype(mBones) (rhs.mBones);
+        new (&mMeshes) decltype(mMeshes) (rhs.mMeshes);
+
+        onRelocate();
+    }
 
 private:
     kpi::CollectionImpl<riistudio::j3d::Material> mMaterials{this};
@@ -101,6 +120,22 @@ public:
 protected:
     kpi::ICollection* v_getModels() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mModels)); }
     kpi::ICollection* v_getTextures() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mTextures)); }
+    void onRelocate() {
+        mModels.onParentMoved(this);
+        mTextures.onParentMoved(this);
+    }
+    Collection(Collection&& rhs) {
+        new (&mModels) decltype(mModels) (std::move(rhs.mModels));
+        new (&mTextures) decltype(mTextures) (std::move(rhs.mTextures));
+
+        onRelocate();
+    }
+    Collection(const Collection& rhs) {
+        new (&mModels) decltype(mModels) (rhs.mModels);
+        new (&mTextures) decltype(mTextures) (rhs.mTextures);
+
+        onRelocate();
+    }
 
 private:
     kpi::CollectionImpl<riistudio::j3d::Model> mModels{this};
