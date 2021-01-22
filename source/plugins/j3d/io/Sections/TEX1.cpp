@@ -75,8 +75,8 @@ Tex::Tex(const Texture& data,
   mPaletteFormat = data.mPaletteFormat;
   nPalette = data.nPalette;
   ofsPalette = 0;
-  bMipMap = sampl.mMinFilter != librii::gx::TextureFilter::linear &&
-            sampl.mMinFilter != librii::gx::TextureFilter::near;
+  bMipMap = sampl.mMinFilter != librii::gx::TextureFilter::Linear &&
+            sampl.mMinFilter != librii::gx::TextureFilter::Near;
   bEdgeLod = sampl.bEdgeLod;
   bBiasClamp = sampl.bBiasClamp;
   mMaxAniso = sampl.mMaxAniso;
@@ -114,7 +114,7 @@ void readTEX1(BMDOutputContext& ctx) {
     u32 absolute_file_offset;
     u32 byte_size;
 
-	RawTexture() { data.mData.resize(0); }
+    RawTexture() { data.mData.resize(0); }
   };
 
   std::vector<RawTexture> texRaw;

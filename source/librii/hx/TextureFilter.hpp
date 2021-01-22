@@ -1,7 +1,6 @@
 #pragma once
 
 #include <librii/gx.h>
-#undef near
 
 namespace librii::hx {
 
@@ -23,26 +22,26 @@ inline TextureFilter elevateTextureFilter(gx::TextureFilter filter) {
   case gx::TextureFilter::near_mip_near:
     result.mip = true;
     // Fallthrough
-  case gx::TextureFilter::near:
+  case gx::TextureFilter::Near:
     result.minBase = result.minMipBase =
-        static_cast<int>(gx::TextureFilter::near);
+        static_cast<int>(gx::TextureFilter::Near);
     break;
   case gx::TextureFilter::lin_mip_lin:
     result.mip = true;
     // Fallthrough
-  case gx::TextureFilter::linear:
+  case gx::TextureFilter::Linear:
     result.minBase = result.minMipBase =
-        static_cast<int>(gx::TextureFilter::linear);
+        static_cast<int>(gx::TextureFilter::Linear);
     break;
   case gx::TextureFilter::near_mip_lin:
     result.mip = true;
-    result.minBase = static_cast<int>(gx::TextureFilter::near);
-    result.minMipBase = static_cast<int>(gx::TextureFilter::linear);
+    result.minBase = static_cast<int>(gx::TextureFilter::Near);
+    result.minMipBase = static_cast<int>(gx::TextureFilter::Linear);
     break;
   case gx::TextureFilter::lin_mip_near:
     result.mip = true;
-    result.minBase = static_cast<int>(gx::TextureFilter::linear);
-    result.minMipBase = static_cast<int>(gx::TextureFilter::near);
+    result.minBase = static_cast<int>(gx::TextureFilter::Linear);
+    result.minMipBase = static_cast<int>(gx::TextureFilter::Near);
     break;
   }
 
@@ -54,9 +53,9 @@ inline gx::TextureFilter lowerTextureFilter(TextureFilter filter) {
     return static_cast<gx::TextureFilter>(filter.minBase);
 
   bool baseLin = static_cast<gx::TextureFilter>(filter.minBase) ==
-                 gx::TextureFilter::linear;
+                 gx::TextureFilter::Linear;
   if (static_cast<gx::TextureFilter>(filter.minMipBase) ==
-      gx::TextureFilter::linear) {
+      gx::TextureFilter::Near) {
     return baseLin ? gx::TextureFilter::lin_mip_lin
                    : gx::TextureFilter::near_mip_lin;
   } else {

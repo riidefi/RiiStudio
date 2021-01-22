@@ -731,8 +731,7 @@ void AssImporter::ImportAss(
       if (tex->getMipmapCount() > 0)
         sampler->mMinFilter = librii::gx::TextureFilter::lin_mip_lin;
       if (tex->getWidth() == 0) {
-#undef near
-        sampler->mMagFilter = librii::gx::TextureFilter::near;
+        sampler->mMagFilter = librii::gx::TextureFilter::Near;
         tex->setWidth(32);
       }
       if (auto_outline) {

@@ -53,9 +53,8 @@ enum class ZTextureFormat {
 
 enum class PaletteFormat { IA8, RGB565, RGB5A3 };
 enum class TextureFilter {
-#undef near
-  near,
-  linear,
+  Near,
+  Linear,
   near_mip_near,
   lin_mip_near,
   near_mip_lin,

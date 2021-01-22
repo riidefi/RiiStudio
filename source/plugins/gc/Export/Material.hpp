@@ -76,8 +76,8 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
 
     gx::AnisotropyLevel mMaxAniso = gx::AnisotropyLevel::x1;
 
-    gx::TextureFilter mMinFilter = gx::TextureFilter::linear;
-    gx::TextureFilter mMagFilter = gx::TextureFilter::linear;
+    gx::TextureFilter mMinFilter = gx::TextureFilter::Linear;
+    gx::TextureFilter mMagFilter = gx::TextureFilter::Linear;
     f32 mLodBias = 0.0f;
 
     bool operator==(const SamplerData& rhs) const = default;

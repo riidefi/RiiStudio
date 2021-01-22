@@ -6,8 +6,6 @@
 #include <plugins/gc/Export/Scene.hpp>
 #include <plugins/j3d/Material.hpp>
 
-#undef near
-#undef far
 namespace libcube::UI {
 
 void addSampler(libcube::GCMaterialData& d) {

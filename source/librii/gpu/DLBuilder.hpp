@@ -60,7 +60,7 @@ public:
 
       mode0.wrap_s = static_cast<u32>(wrap_s);
       mode0.wrap_t = static_cast<u32>(wrap_t);
-      mode0.mag_filter = mag_filt == librii::gx::TextureFilter::linear;
+      mode0.mag_filter = mag_filt == librii::gx::TextureFilter::Linear;
       mode0.min_filter = filter_lut[static_cast<u32>(mag_filt)];
       mode0.diag_lod = !edge_lod;
       mode0.lod_bias =

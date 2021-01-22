@@ -85,13 +85,13 @@ u32 translateCompareType(gx::Comparison compareType) {
     return GL_ALWAYS;
   }
 }
-#undef near
+
 u32 gxFilterToGl(gx::TextureFilter filter) {
   switch (filter) {
   default:
-  case gx::TextureFilter::linear:
+  case gx::TextureFilter::Linear:
     return GL_LINEAR;
-  case gx::TextureFilter::near:
+  case gx::TextureFilter::Near:
     return GL_NEAREST;
   case gx::TextureFilter::lin_mip_lin:
     return GL_LINEAR_MIPMAP_LINEAR;
