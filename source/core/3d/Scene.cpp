@@ -37,7 +37,7 @@ void SceneImpl::prepare(SceneState& state, const kpi::INode& _host) {
 }
 
 struct GCSceneNode : public SceneNode {
-  GCSceneNode(librii::glhelper::SpliceVBOBuilder& v, const lib3d::Material& m,
+  GCSceneNode(librii::glhelper::VBOBuilder& v, const lib3d::Material& m,
               const lib3d::Polygon& p, const lib3d::Bone& b,
               const lib3d::Scene& _scn, const lib3d::Model& _mdl,
               librii::glhelper::ShaderProgram&& prog, u32 mi)
@@ -57,7 +57,7 @@ struct GCSceneNode : public SceneNode {
                           u32 _mtx_id, const glm::mat4& model_matrix,
                           const glm::mat4& view_matrix,
                           const glm::mat4& proj_matrix) final;
-  void buildVertexBuffer(librii::glhelper::SpliceVBOBuilder& vbo_builder);
+  void buildVertexBuffer(librii::glhelper::VBOBuilder& vbo_builder);
 
   u32 mp_id = 0;
 
@@ -65,7 +65,7 @@ private:
   // Refers to the scene node's VBOBuilder;
   // that instance is a unique_ptr, and the scene must outlive its children, so
   // we can be safe about this reference dangling.
-  librii::glhelper::SpliceVBOBuilder& vbo_builder;
+  librii::glhelper::VBOBuilder& vbo_builder;
 
   // These references aren't safe, though
   lib3d::Material& mat;
@@ -141,13 +141,13 @@ void GCSceneNode::update(lib3d::Material* _mat) {
 }
 
 void GCSceneNode::buildVertexBuffer(
-    librii::glhelper::SpliceVBOBuilder& vbo_builder) {
+    librii::glhelper::VBOBuilder& vbo_builder) {
   idx_ofs = static_cast<u32>(vbo_builder.mIndices.size());
   poly.propagate(mdl, mp_id, vbo_builder);
   idx_size = static_cast<u32>(vbo_builder.mIndices.size()) - idx_ofs;
 }
 
-void pushDisplay(librii::glhelper::SpliceVBOBuilder& vbo_builder,
+void pushDisplay(librii::glhelper::VBOBuilder& vbo_builder,
                  const riistudio::lib3d::Material& mat,
                  const libcube::IndexedPolygon& poly,
                  const riistudio::lib3d::Bone& pBone,
@@ -171,7 +171,7 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
                                     const lib3d::Model& root,
                                     const lib3d::Scene& scene) {
   if (mVboBuilder == nullptr)
-    mVboBuilder = std::make_unique<librii::glhelper::SpliceVBOBuilder>();
+    mVboBuilder = std::make_unique<librii::glhelper::VBOBuilder>();
 
   auto bones = root.getBones();
   auto polys = root.getMeshes();

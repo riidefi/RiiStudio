@@ -58,30 +58,4 @@ private:
   }
 };
 
-struct SpliceVBOBuilder : public VBOBuilder {
-  struct SplicePoint {
-    std::size_t offset = 0;
-    std::size_t size = (std::size_t)-1;
-  };
-
-  SpliceVBOBuilder() { splicePoints.push_back({}); }
-
-  int getNumSplices() { return splicePoints.size() - 1; }
-  SplicePoint getSplice(std::size_t i) { return splicePoints[i]; }
-  std::vector<SplicePoint> getSplicesInRange(std::size_t start,
-                                             std::size_t ofs) const;
-
-  void markSplice() {
-    SplicePoint pt{mIndices.size()};
-    splicePoints[splicePoints.size() - 1].size =
-        mIndices.size() - splicePoints[splicePoints.size() - 1].offset;
-
-    splicePoints.push_back(pt);
-  }
-
-private:
-  // Splice point end markers. first always starts at 0
-  std::vector<SplicePoint> splicePoints;
-};
-
 } // namespace librii::glhelper

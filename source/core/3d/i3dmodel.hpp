@@ -40,7 +40,7 @@ struct SceneImpl : public IDrawable {
   void gather(SceneBuffers& output, const lib3d::Model& root,
               const lib3d::Scene& scene);
 
-  std::unique_ptr<librii::glhelper::SpliceVBOBuilder> mVboBuilder;
+  std::unique_ptr<librii::glhelper::VBOBuilder> mVboBuilder;
 };
 
 } // namespace riistudio::lib3d
