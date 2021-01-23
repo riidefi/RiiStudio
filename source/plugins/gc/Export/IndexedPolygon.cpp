@@ -189,11 +189,8 @@ void IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
   };
 
   auto& mprims = getMeshData().mMatrixPrimitives;
-  for (auto& mprim : mprims) {
-    for (auto& idx : mprim.mPrimitives)
-      propPrim(idx);
-    out.markSplice();
-  }
+  for (auto& idx : mprims[mp_id].mPrimitives)
+    propPrim(idx);
 
   for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i) {
     if (!(final_bitfield & (1 << i)) &&

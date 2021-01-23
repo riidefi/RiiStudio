@@ -40,9 +40,9 @@ struct GCSceneNode : public SceneNode {
   GCSceneNode(librii::glhelper::SpliceVBOBuilder& v, const lib3d::Material& m,
               const lib3d::Polygon& p, const lib3d::Bone& b,
               const lib3d::Scene& _scn, const lib3d::Model& _mdl,
-              librii::glhelper::ShaderProgram&& prog)
-      : vbo_builder(v), mat(const_cast<lib3d::Material&>(m)), poly(p), bone(b),
-        scn(_scn), mdl(_mdl), shader(std::move(prog)) {
+              librii::glhelper::ShaderProgram&& prog, u32 mi)
+      : mp_id(mi), vbo_builder(v), mat(const_cast<lib3d::Material&>(m)),
+        poly(p), bone(b), scn(_scn), mdl(_mdl), shader(std::move(prog)) {
     buildVertexBuffer(vbo_builder);
   }
 
@@ -98,12 +98,9 @@ void GCSceneNode::draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
   ubo_builder.use(mtx_id);
   mat.genSamplUniforms(shader.getId(), tex_id_map);
 
-  auto splices = vbo_builder.getSplicesInRange(idx_ofs, idx_size);
-  auto& splice = splices[mp_id];
-
   if (poly.isVisible())
-    glDrawElements(GL_TRIANGLES, splice.size, GL_UNSIGNED_INT,
-                   (void*)(splice.offset * 4));
+    glDrawElements(GL_TRIANGLES, idx_size, GL_UNSIGNED_INT,
+                   reinterpret_cast<void*>(idx_ofs * 4));
 }
 
 void GCSceneNode::expandBound(AABB& bound) {
@@ -121,14 +118,6 @@ void GCSceneNode::buildUniformBuffer(
     const std::map<std::string, u32>& tex_id_map, u32 _mtx_id,
     const glm::mat4& model_matrix, const glm::mat4& view_matrix,
     const glm::mat4& proj_matrix) {
-  // no more mdl here, we just use PNMTX0
-  // mdl = computeBoneMdl(node->bone);
-  // (Up to the mat)
-  // if (!node->poly.hasAttrib(lib3d::Polygon::SimpleAttrib::EnvelopeIndex))
-  // {
-  //  mdl = ((lib3d::Bone&)node->bone).calcSrtMtx();
-  //}
-
   mat.generateUniforms(ubo_builder, model_matrix, view_matrix, proj_matrix,
                        shader.getId(), tex_id_map, poly, scn);
   mat.onSplice(ubo_builder, mdl, poly, mp_id);
@@ -169,9 +158,8 @@ void pushDisplay(librii::glhelper::SpliceVBOBuilder& vbo_builder,
   librii::glhelper::ShaderProgram shader(shader_sources.first,
                                          shader_sources.second);
 
-  auto node = std::make_unique<GCSceneNode>(vbo_builder, mat, poly, pBone,
-                                            scene, root, std::move(shader));
-  node->mp_id = mp_id;
+  auto node = std::make_unique<GCSceneNode>(
+      vbo_builder, mat, poly, pBone, scene, root, std::move(shader), mp_id);
 
   auto& nodebuf = mat.isXluPass() ? output.translucent : output.opaque;
 
