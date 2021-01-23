@@ -8,12 +8,6 @@
 
 namespace riistudio::lib3d {
 
-void SceneState::buildVertexBuffers() {
-  mTree.forEachNode([&](SceneNode& node) { node.buildVertexBuffer(mVbo); });
-
-  mVbo.build();
-}
-
 void SceneState::addTexture(const std::string& key, const lib3d::Texture& tex) {
   texIdMap[key] = mTextures.emplace_back(tex).getGlId();
 }
@@ -30,7 +24,8 @@ AABB SceneState::computeBounds() {
   return bound;
 }
 
-void SceneState::buildUniformBuffers(const glm::mat4& view, const glm::mat4& proj) {
+void SceneState::buildUniformBuffers(const glm::mat4& view,
+                                     const glm::mat4& proj) {
   mUboBuilder.clear();
   u32 i = 0;
 
@@ -46,8 +41,7 @@ void SceneState::buildUniformBuffers(const glm::mat4& view, const glm::mat4& pro
 void SceneState::draw() {
   mUboBuilder.submit();
 
-  mTree.forEachNode(
-      [&](SceneNode& node) { node.draw(mVbo, mUboBuilder, texIdMap); });
+  mTree.forEachNode([&](SceneNode& node) { node.draw(mUboBuilder, texIdMap); });
 
   glBindVertexArray(0);
   glUseProgram(0);

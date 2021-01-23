@@ -16,8 +16,7 @@ struct SceneNode : public lib3d::IObserver {
   virtual ~SceneNode() = default;
 
   // Draw the node to the screen
-  virtual void draw(librii::glhelper::VBOBuilder& vbo_builder,
-                    librii::glhelper::DelegatedUBOBuilder& ubo_builder,
+  virtual void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                     const std::map<std::string, u32>& tex_id_map) = 0;
 
   // Expand an AABB with the current bounding box
@@ -34,13 +33,7 @@ struct SceneNode : public lib3d::IObserver {
                      const glm::mat4& model_matrix,
                      const glm::mat4& view_matrix,
                      const glm::mat4& proj_matrix) = 0;
-
-  // Fill-in a VBO, remembering the start/end index
-  //
-  // Called once (or when vertex data is changed)
-  virtual void buildVertexBuffer(librii::glhelper::VBOBuilder& vbo_builder) = 0;
 };
-
 
 struct DrawBuffer {
   std::vector<std::unique_ptr<SceneNode>> nodes;

@@ -22,7 +22,6 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
   if (mRoot->reinit) {
     mRoot->reinit = false;
     mRoot->prepare(mSceneState, *dynamic_cast<kpi::INode*>(mRoot));
-    mSceneState.buildVertexBuffers();
   }
 
   drawMenuBar();

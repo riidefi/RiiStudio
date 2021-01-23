@@ -29,17 +29,20 @@ void SceneImpl::prepare(SceneState& state, const kpi::INode& _host) {
   for (auto& model : host.getModels())
     gather(state.getBuffers(), model, host);
 
+  if (mVboBuilder != nullptr)
+    mVboBuilder->build();
+
   for (auto& tex : host.getTextures())
     state.addTexture(tex.getName(), tex);
 }
 
 struct GCSceneNode : public SceneNode {
-  GCSceneNode(const lib3d::Material& m, const lib3d::Polygon& p,
-              const lib3d::Bone& b, const lib3d::Scene& _scn,
-              const lib3d::Model& _mdl, librii::glhelper::ShaderProgram&& prog);
+  GCSceneNode(librii::glhelper::VBOBuilder& v, const lib3d::Material& m,
+              const lib3d::Polygon& p, const lib3d::Bone& b,
+              const lib3d::Scene& _scn, const lib3d::Model& _mdl,
+              librii::glhelper::ShaderProgram&& prog);
 
-  void draw(librii::glhelper::VBOBuilder& vbo_builder,
-            librii::glhelper::DelegatedUBOBuilder& ubo_builder,
+  void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
             const std::map<std::string, u32>& tex_id_map) final;
   void expandBound(AABB& bound) final;
 
@@ -50,9 +53,15 @@ struct GCSceneNode : public SceneNode {
                           u32 _mtx_id, const glm::mat4& model_matrix,
                           const glm::mat4& view_matrix,
                           const glm::mat4& proj_matrix) final;
-  void buildVertexBuffer(librii::glhelper::VBOBuilder& vbo_builder) final;
+  void buildVertexBuffer(librii::glhelper::VBOBuilder& vbo_builder);
 
 private:
+  // Refers to the scene node's VBOBuilder;
+  // that instance is a unique_ptr, and the scene must outlive its children, so
+  // we can be safe about this reference dangling.
+  librii::glhelper::VBOBuilder& vbo_builder;
+
+  // These references aren't safe, though
   lib3d::Material& mat;
   const lib3d::Polygon& poly;
   const lib3d::Bone& bone;
@@ -68,15 +77,17 @@ private:
   mutable u32 mtx_id = 0;
 };
 
-GCSceneNode::GCSceneNode(const lib3d::Material& m, const lib3d::Polygon& p,
+GCSceneNode::GCSceneNode(librii::glhelper::VBOBuilder& v,
+                         const lib3d::Material& m, const lib3d::Polygon& p,
                          const lib3d::Bone& b, const lib3d::Scene& _scn,
                          const lib3d::Model& _mdl,
                          librii::glhelper::ShaderProgram&& prog)
-    : mat(const_cast<lib3d::Material&>(m)), poly(p), bone(b), scn(_scn),
-      mdl(_mdl), shader(std::move(prog)) {}
+    : vbo_builder(v), mat(const_cast<lib3d::Material&>(m)), poly(p), bone(b),
+      scn(_scn), mdl(_mdl), shader(std::move(prog)) {
+  buildVertexBuffer(vbo_builder);
+}
 
-void GCSceneNode::draw(librii::glhelper::VBOBuilder& vbo_builder,
-                       librii::glhelper::DelegatedUBOBuilder& ubo_builder,
+void GCSceneNode::draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                        const std::map<std::string, u32>& tex_id_map) {
   librii::gfx::MegaState state;
   mat.setMegaState(state);
@@ -204,9 +215,11 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
                                            shader_sources.second);
     assert(display.matId < mats.size());
     assert(display.polyId < polys.size());
+    if (mVboBuilder == nullptr)
+      mVboBuilder = std::make_unique<librii::glhelper::VBOBuilder>();
     GCSceneNode node{
-        mats[display.matId], polys[display.polyId], pBone, scene, root,
-        std::move(shader)};
+        *mVboBuilder, mats[display.matId], polys[display.polyId], pBone, scene,
+        root,         std::move(shader)};
 
     auto& nodebuf =
         mats[display.matId].isXluPass() ? output.translucent : output.opaque;

@@ -7,6 +7,7 @@
 #include "aabb.hpp"
 #include <core/kpi/Node2.hpp> // kpi::Collection
 #include <memory>             // std::shared_ptr
+#include <librii/glhelper/VBOBuilder.hpp>
 
 namespace riistudio::lib3d {
 
@@ -38,6 +39,8 @@ struct SceneImpl : public IDrawable {
 
   void gather(SceneBuffers& output, const lib3d::Model& root,
               const lib3d::Scene& scene);
+
+  std::unique_ptr<librii::glhelper::VBOBuilder> mVboBuilder;
 };
 
 } // namespace riistudio::lib3d

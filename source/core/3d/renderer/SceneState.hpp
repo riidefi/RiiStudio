@@ -13,9 +13,6 @@ public:
   SceneState() = default;
   ~SceneState() = default;
 
-  // Build the VBO. Typically called only once.
-  void buildVertexBuffers();
-
   // Upload a texture to the database
   void addTexture(const std::string& key, const lib3d::Texture& tex);
 
@@ -35,7 +32,6 @@ private:
   SceneBuffers mTree;
   std::map<std::string, u32> texIdMap;
 
-  librii::glhelper::VBOBuilder mVbo;
   std::vector<GlTexture> mTextures;
   librii::glhelper::DelegatedUBOBuilder mUboBuilder;
 };

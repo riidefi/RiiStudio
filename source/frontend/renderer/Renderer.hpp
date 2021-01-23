@@ -19,7 +19,6 @@ public:
   void render(u32 width, u32 height, bool& hideCursor);
   void prepare(const kpi::INode& host) {
     mRoot->prepare(mSceneState, host);
-    mSceneState.buildVertexBuffers();
   }
 
   Camera& getCamera() { return mCameraController.mCamera; }
