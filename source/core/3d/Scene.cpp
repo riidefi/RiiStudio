@@ -98,17 +98,12 @@ void GCSceneNode::draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
   ubo_builder.use(mtx_id);
   mat.genSamplUniforms(shader.getId(), tex_id_map);
 
-  int i = 0;
-  for (auto& splice : vbo_builder.getSplicesInRange(idx_ofs, idx_size)) {
-    assert(splice.size > 0);
+  auto splices = vbo_builder.getSplicesInRange(idx_ofs, idx_size);
+  auto& splice = splices[mp_id];
 
-
-    if (poly.isVisible() && i == mp_id)
-      glDrawElements(GL_TRIANGLES, splice.size, GL_UNSIGNED_INT,
-                     (void*)(splice.offset * 4));
-
-    ++i;
-  }
+  if (poly.isVisible())
+    glDrawElements(GL_TRIANGLES, splice.size, GL_UNSIGNED_INT,
+                   (void*)(splice.offset * 4));
 }
 
 void GCSceneNode::expandBound(AABB& bound) {
@@ -159,7 +154,7 @@ void GCSceneNode::update(lib3d::Material* _mat) {
 void GCSceneNode::buildVertexBuffer(
     librii::glhelper::SpliceVBOBuilder& vbo_builder) {
   idx_ofs = static_cast<u32>(vbo_builder.mIndices.size());
-  poly.propogate(mdl, vbo_builder);
+  poly.propagate(mdl, mp_id, vbo_builder);
   idx_size = static_cast<u32>(vbo_builder.mIndices.size()) - idx_ofs;
 }
 

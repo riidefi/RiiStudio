@@ -26,16 +26,21 @@ struct VBOBuilder {
   std::vector<u8> mData;
   std::vector<u32> mIndices;
 
+  struct VertexArray {
+    VAOEntry descriptor;
+    std::vector<u8> data;
+  };
+
   // binding_point : data
-  std::map<u32, std::pair<VAOEntry, std::vector<u8>>> mPropogating;
+  std::map<u32, VertexArray> mPropogating;
 
   void build();
 
   template <typename T> void pushData(u32 binding_point, const T& data) {
     auto& attrib_buf = mPropogating[binding_point];
-    const std::size_t begin = attrib_buf.second.size();
-    attrib_buf.second.resize(attrib_buf.second.size() + sizeof(T));
-    *reinterpret_cast<T*>(attrib_buf.second.data() + begin) = data;
+    const std::size_t begin = attrib_buf.data.size();
+    attrib_buf.data.resize(attrib_buf.data.size() + sizeof(T));
+    *reinterpret_cast<T*>(attrib_buf.data.data() + begin) = data;
   }
 
   void bind();
@@ -53,7 +58,7 @@ private:
   }
 };
 
-struct SpliceVBOBuilder : public VBOBuilder{
+struct SpliceVBOBuilder : public VBOBuilder {
   struct SplicePoint {
     std::size_t offset = 0;
     std::size_t size = (std::size_t)-1;

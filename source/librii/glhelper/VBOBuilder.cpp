@@ -20,9 +20,9 @@ void VBOBuilder::build() {
   std::vector<std::pair<VAOEntry, u32>> mAttribStack; // desc : offset
 
   for (const auto& bind : mPropogating) {
-    mAttribStack.emplace_back(bind.second.first, mData.size());
+    mAttribStack.emplace_back(bind.second.descriptor, mData.size());
 
-    for (const u8 e : bind.second.second)
+    for (const u8 e : bind.second.data)
       push(e);
   }
 

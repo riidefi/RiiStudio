@@ -75,7 +75,7 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v) {
     break;
   }
 }
-void IndexedPolygon::propogate(const riistudio::lib3d::Model& mdl,
+void IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
                                librii::glhelper::SpliceVBOBuilder& out) const {
   const libcube::Model& gmdl = reinterpret_cast<const libcube::Model&>(mdl);
   u32 final_bitfield = 0;
@@ -150,47 +150,48 @@ void IndexedPolygon::propogate(const riistudio::lib3d::Model& mdl,
     }
   };
 
+  auto propPrim = [&](const librii::gx::IndexedPrimitive& idx) {
+    auto propV = [&](int id) { propVtx(idx.mVertices[id]); };
+    if (idx.mVertices.empty())
+      return;
+    switch (idx.mType) {
+    case gx::PrimitiveType::TriangleStrip: {
+      for (int v = 0; v < 3; ++v) {
+        propV(v);
+      }
+      for (int v = 3; v < idx.mVertices.size(); ++v) {
+        propV(v - ((v & 1) ? 1 : 2));
+        propV(v - ((v & 1) ? 2 : 1));
+        propV(v);
+      }
+      break;
+    }
+    case gx::PrimitiveType::Triangles:
+      for (const auto& v : idx.mVertices) {
+        propVtx(v);
+      }
+      break;
+    case gx::PrimitiveType::TriangleFan: {
+      for (int v = 0; v < 3; ++v) {
+        propV(v);
+      }
+      for (int v = 3; v < idx.mVertices.size(); ++v) {
+        propV(0);
+        propV(v - 1);
+        propV(v);
+      }
+      break;
+    }
+    default:
+      assert(!"TODO");
+      return;
+    }
+  };
+
   auto& mprims = getMeshData().mMatrixPrimitives;
   for (auto& mprim : mprims) {
-    for (auto& idx : mprim.mPrimitives) {
-      auto propV = [&](int id) { propVtx(idx.mVertices[id]); };
-      if (idx.mVertices.empty())
-        goto broken;
-      switch (idx.mType) {
-      case gx::PrimitiveType::TriangleStrip: {
-        for (int v = 0; v < 3; ++v) {
-          propV(v);
-        }
-        for (int v = 3; v < idx.mVertices.size(); ++v) {
-          propV(v - ((v & 1) ? 1 : 2));
-          propV(v - ((v & 1) ? 2 : 1));
-          propV(v);
-        }
-        break;
-      }
-      case gx::PrimitiveType::Triangles:
-        for (const auto& v : idx.mVertices) {
-          propVtx(v);
-        }
-        break;
-      case gx::PrimitiveType::TriangleFan: {
-        for (int v = 0; v < 3; ++v) {
-          propV(v);
-        }
-        for (int v = 3; v < idx.mVertices.size(); ++v) {
-          propV(0);
-          propV(v - 1);
-          propV(v);
-        }
-        break;
-      }
-      default:
-        goto broken;
-        assert(!"TODO");
-        break;
-      }
-    }
-  broken:
+    for (auto& idx : mprim.mPrimitives)
+      propPrim(idx);
     out.markSplice();
   }
 
@@ -204,8 +205,11 @@ void IndexedPolygon::propogate(const riistudio::lib3d::Model& mdl,
 
     const auto def = librii::gl::getVertexAttribGenDef((gx::VertexAttribute)i);
     assert(def.first.name != nullptr);
-    out.mPropogating[def.second].first = librii::glhelper::VAOEntry{
-        (u32)def.second, def.first.name, def.first.format, def.first.size * 4};
+    out.mPropogating[def.second].descriptor =
+        librii::glhelper::VAOEntry{.binding_point = (u32)def.second,
+                                   .name = def.first.name,
+                                   .format = def.first.format,
+                                   .size = def.first.size * 4};
   }
 }
 } // namespace libcube
