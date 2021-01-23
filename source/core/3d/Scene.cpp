@@ -37,7 +37,7 @@ void SceneImpl::prepare(SceneState& state, const kpi::INode& _host) {
 }
 
 struct GCSceneNode : public SceneNode {
-  GCSceneNode(librii::glhelper::VBOBuilder& v, const lib3d::Material& m,
+  GCSceneNode(librii::glhelper::SpliceVBOBuilder& v, const lib3d::Material& m,
               const lib3d::Polygon& p, const lib3d::Bone& b,
               const lib3d::Scene& _scn, const lib3d::Model& _mdl,
               librii::glhelper::ShaderProgram&& prog);
@@ -53,13 +53,13 @@ struct GCSceneNode : public SceneNode {
                           u32 _mtx_id, const glm::mat4& model_matrix,
                           const glm::mat4& view_matrix,
                           const glm::mat4& proj_matrix) final;
-  void buildVertexBuffer(librii::glhelper::VBOBuilder& vbo_builder);
+  void buildVertexBuffer(librii::glhelper::SpliceVBOBuilder& vbo_builder);
 
 private:
   // Refers to the scene node's VBOBuilder;
   // that instance is a unique_ptr, and the scene must outlive its children, so
   // we can be safe about this reference dangling.
-  librii::glhelper::VBOBuilder& vbo_builder;
+  librii::glhelper::SpliceVBOBuilder& vbo_builder;
 
   // These references aren't safe, though
   lib3d::Material& mat;
@@ -77,7 +77,7 @@ private:
   mutable u32 mtx_id = 0;
 };
 
-GCSceneNode::GCSceneNode(librii::glhelper::VBOBuilder& v,
+GCSceneNode::GCSceneNode(librii::glhelper::SpliceVBOBuilder& v,
                          const lib3d::Material& m, const lib3d::Polygon& p,
                          const lib3d::Bone& b, const lib3d::Scene& _scn,
                          const lib3d::Model& _mdl,
@@ -190,7 +190,7 @@ void GCSceneNode::update(lib3d::Material* _mat) {
   _mat->isShaderError = false;
 }
 
-void GCSceneNode::buildVertexBuffer(librii::glhelper::VBOBuilder& vbo_builder) {
+void GCSceneNode::buildVertexBuffer(librii::glhelper::SpliceVBOBuilder& vbo_builder) {
   idx_ofs = static_cast<u32>(vbo_builder.mIndices.size());
   poly.propogate(mdl, vbo_builder);
   idx_size = static_cast<u32>(vbo_builder.mIndices.size()) - idx_ofs;
@@ -216,7 +216,7 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
     assert(display.matId < mats.size());
     assert(display.polyId < polys.size());
     if (mVboBuilder == nullptr)
-      mVboBuilder = std::make_unique<librii::glhelper::VBOBuilder>();
+      mVboBuilder = std::make_unique<librii::glhelper::SpliceVBOBuilder>();
     GCSceneNode node{
         *mVboBuilder, mats[display.matId], polys[display.polyId], pBone, scene,
         root,         std::move(shader)};

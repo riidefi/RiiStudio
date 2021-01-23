@@ -76,7 +76,7 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v) {
   }
 }
 void IndexedPolygon::propogate(const riistudio::lib3d::Model& mdl,
-                               librii::glhelper::VBOBuilder& out) const {
+                               librii::glhelper::SpliceVBOBuilder& out) const {
   const libcube::Model& gmdl = reinterpret_cast<const libcube::Model&>(mdl);
   u32 final_bitfield = 0;
 

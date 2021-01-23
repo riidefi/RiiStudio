@@ -9,30 +9,12 @@ VBOBuilder::VBOBuilder() {
   glGenBuffers(1, &mIndexBuf);
 
   glGenVertexArrays(1, &VAO);
-
-  splicePoints.push_back({});
 }
 VBOBuilder::~VBOBuilder() {
   glDeleteBuffers(1, &mPositionBuf);
   glDeleteBuffers(1, &mIndexBuf);
 
   glDeleteVertexArrays(1, &VAO);
-}
-std::vector<VBOBuilder::SplicePoint>
-VBOBuilder::getSplicesInRange(std::size_t start, std::size_t ofs) const {
-  std::vector<SplicePoint> out;
-
-  const auto min = start;
-  const auto max = start + ofs;
-
-  for (auto& s : splicePoints) {
-    if (s.offset >= max)
-      continue;
-    if (s.offset < min)
-      continue;
-    out.push_back(s);
-  }
-  return out;
 }
 void VBOBuilder::build() {
   std::vector<std::pair<VAOEntry, u32>> mAttribStack; // desc : offset
@@ -88,5 +70,22 @@ void VBOBuilder::build() {
 void VBOBuilder::bind() { glBindVertexArray(VAO); }
 void VBOBuilder::unbind() { glBindVertexArray(0); }
 
+
+std::vector<SpliceVBOBuilder::SplicePoint>
+SpliceVBOBuilder::getSplicesInRange(std::size_t start, std::size_t ofs) const {
+  std::vector<SplicePoint> out;
+
+  const auto min = start;
+  const auto max = start + ofs;
+
+  for (auto& s : splicePoints) {
+    if (s.offset >= max)
+      continue;
+    if (s.offset < min)
+      continue;
+    out.push_back(s);
+  }
+  return out;
+}
 
 } // namespace librii::glhelper

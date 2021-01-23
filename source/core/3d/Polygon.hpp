@@ -39,7 +39,7 @@ struct Polygon : public virtual kpi::IObject {
 
   // For now... (slow api)
   virtual void propogate(const Model& mdl,
-                         librii::glhelper::VBOBuilder& out) const = 0;
+                         librii::glhelper::SpliceVBOBuilder& out) const = 0;
 
   // Call after any change
   virtual void update() {}
