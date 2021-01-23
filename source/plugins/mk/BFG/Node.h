@@ -25,6 +25,16 @@ protected:
 
         onRelocate();
     }
+    BinaryFog& operator=(BinaryFog&& rhs) {
+        new (this) BinaryFog (std::move(rhs));
+        onRelocate();
+        return *this;
+    }
+    BinaryFog& operator=(const BinaryFog& rhs) {
+        new (this) BinaryFog (rhs);
+        onRelocate();
+        return *this;
+    }
 
 private:
     kpi::CollectionImpl<FogEntry> mFogEntries{this};

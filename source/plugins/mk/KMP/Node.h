@@ -91,6 +91,16 @@ protected:
 
         onRelocate();
     }
+    CourseMap& operator=(CourseMap&& rhs) {
+        new (this) CourseMap (std::move(rhs));
+        onRelocate();
+        return *this;
+    }
+    CourseMap& operator=(const CourseMap& rhs) {
+        new (this) CourseMap (rhs);
+        onRelocate();
+        return *this;
+    }
 
 private:
     kpi::CollectionImpl<StartPoint> mStartPoints{this};

@@ -37,6 +37,16 @@ protected:
 
         onRelocate();
     }
+    Model& operator=(Model&& rhs) {
+        new (this) Model (std::move(rhs));
+        onRelocate();
+        return *this;
+    }
+    Model& operator=(const Model& rhs) {
+        new (this) Model (rhs);
+        onRelocate();
+        return *this;
+    }
 
 private:
     kpi::CollectionImpl<riistudio::j3d::Material> mMaterials{this};
@@ -135,6 +145,16 @@ protected:
         new (&mTextures) decltype(mTextures) (rhs.mTextures);
 
         onRelocate();
+    }
+    Collection& operator=(Collection&& rhs) {
+        new (this) Collection (std::move(rhs));
+        onRelocate();
+        return *this;
+    }
+    Collection& operator=(const Collection& rhs) {
+        new (this) Collection (rhs);
+        onRelocate();
+        return *this;
     }
 
 private:

@@ -49,6 +49,18 @@ def compile_members(members, concrete, parent_data, name):
 			result += "\t\tnew (&m%s) decltype(m%s) (rhs.m%s);\n" % (title(member[1]), title(member[1]), title(member[1]))
 		result += "\n\t\tonRelocate();\n"
 		result += "\t}\n"
+
+		result += "\t%s& operator=(%s&& rhs) {\n" % (name, name)
+		result += "\t\tnew (this) %s (std::move(rhs));\n" % name
+		result += "\t\tonRelocate();\n" # TODO: Double call?
+		result += "\t\treturn *this;\n"
+		result += "\t}\n"
+
+		result += "\t%s& operator=(const %s& rhs) {\n" % (name, name)
+		result += "\t\tnew (this) %s (rhs);\n" % name
+		result += "\t\tonRelocate();\n" # TODO: Double call?
+		result += "\t\treturn *this;\n"
+		result += "\t}\n"
 		
 		result += "\nprivate:\n"
 		# CollectionImpl<Material> mMaterials;
