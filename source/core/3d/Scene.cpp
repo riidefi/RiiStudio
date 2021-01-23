@@ -40,7 +40,11 @@ struct GCSceneNode : public SceneNode {
   GCSceneNode(librii::glhelper::SpliceVBOBuilder& v, const lib3d::Material& m,
               const lib3d::Polygon& p, const lib3d::Bone& b,
               const lib3d::Scene& _scn, const lib3d::Model& _mdl,
-              librii::glhelper::ShaderProgram&& prog);
+              librii::glhelper::ShaderProgram&& prog)
+      : vbo_builder(v), mat(const_cast<lib3d::Material&>(m)), poly(p), bone(b),
+        scn(_scn), mdl(_mdl), shader(std::move(prog)) {
+    buildVertexBuffer(vbo_builder);
+  }
 
   void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
             const std::map<std::string, u32>& tex_id_map) final;
@@ -54,6 +58,8 @@ struct GCSceneNode : public SceneNode {
                           const glm::mat4& view_matrix,
                           const glm::mat4& proj_matrix) final;
   void buildVertexBuffer(librii::glhelper::SpliceVBOBuilder& vbo_builder);
+
+  u32 mp_id = 0;
 
 private:
   // Refers to the scene node's VBOBuilder;
@@ -76,16 +82,6 @@ private:
   mutable u32 idx_size = 0;
   mutable u32 mtx_id = 0;
 };
-
-GCSceneNode::GCSceneNode(librii::glhelper::SpliceVBOBuilder& v,
-                         const lib3d::Material& m, const lib3d::Polygon& p,
-                         const lib3d::Bone& b, const lib3d::Scene& _scn,
-                         const lib3d::Model& _mdl,
-                         librii::glhelper::ShaderProgram&& prog)
-    : vbo_builder(v), mat(const_cast<lib3d::Material&>(m)), poly(p), bone(b),
-      scn(_scn), mdl(_mdl), shader(std::move(prog)) {
-  buildVertexBuffer(vbo_builder);
-}
 
 void GCSceneNode::draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                        const std::map<std::string, u32>& tex_id_map) {
@@ -138,7 +134,7 @@ void GCSceneNode::draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
         pack.posMtx[p] = glm::transpose(mtx[p]);
       }
 
-      if (poly.isVisible())
+      if (poly.isVisible() && i == mp_id)
         glDrawElements(GL_TRIANGLES, splice.size, GL_UNSIGNED_INT,
                        (void*)(splice.offset * 4));
     }
@@ -190,15 +186,40 @@ void GCSceneNode::update(lib3d::Material* _mat) {
   _mat->isShaderError = false;
 }
 
-void GCSceneNode::buildVertexBuffer(librii::glhelper::SpliceVBOBuilder& vbo_builder) {
+void GCSceneNode::buildVertexBuffer(
+    librii::glhelper::SpliceVBOBuilder& vbo_builder) {
   idx_ofs = static_cast<u32>(vbo_builder.mIndices.size());
   poly.propogate(mdl, vbo_builder);
   idx_size = static_cast<u32>(vbo_builder.mIndices.size()) - idx_ofs;
 }
 
+void pushDisplay(librii::glhelper::SpliceVBOBuilder& vbo_builder,
+                 const riistudio::lib3d::Material& mat,
+                 const libcube::IndexedPolygon& poly,
+                 const riistudio::lib3d::Bone& pBone,
+                 const riistudio::lib3d::Scene& scene,
+                 const riistudio::lib3d::Model& root,
+                 riistudio::lib3d::SceneBuffers& output, u32 mp_id) {
+  const auto shader_sources = mat.generateShaders();
+  librii::glhelper::ShaderProgram shader(shader_sources.first,
+                                         shader_sources.second);
+
+  auto node = std::make_unique<GCSceneNode>(vbo_builder, mat, poly, pBone,
+                                            scene, root, std::move(shader));
+  node->mp_id = mp_id;
+
+  auto& nodebuf = mat.isXluPass() ? output.translucent : output.opaque;
+
+  nodebuf.nodes.push_back(std::move(node));
+  mat.observers.push_back(nodebuf.nodes.back().get());
+}
+
 void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
                                     const lib3d::Model& root,
                                     const lib3d::Scene& scene) {
+  if (mVboBuilder == nullptr)
+    mVboBuilder = std::make_unique<librii::glhelper::SpliceVBOBuilder>();
+
   auto bones = root.getBones();
   auto polys = root.getMeshes();
   auto mats = root.getMaterials();
@@ -208,24 +229,14 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
 
   for (u64 i = 0; i < nDisplay; ++i) {
     const auto display = pBone.getDisplay(i);
-    const auto& mat = mats[display.matId];
-
-    const auto shader_sources = mat.generateShaders();
-    librii::glhelper::ShaderProgram shader(shader_sources.first,
-                                           shader_sources.second);
     assert(display.matId < mats.size());
     assert(display.polyId < polys.size());
-    if (mVboBuilder == nullptr)
-      mVboBuilder = std::make_unique<librii::glhelper::SpliceVBOBuilder>();
-    GCSceneNode node{
-        *mVboBuilder, mats[display.matId], polys[display.polyId], pBone, scene,
-        root,         std::move(shader)};
+    const auto& mat = mats[display.matId];
+    const auto& poly =
+        reinterpret_cast<const libcube::IndexedPolygon&>(polys[display.polyId]);
 
-    auto& nodebuf =
-        mats[display.matId].isXluPass() ? output.translucent : output.opaque;
-
-    nodebuf.nodes.push_back(std::make_unique<GCSceneNode>(std::move(node)));
-    mats[display.matId].observers.push_back(nodebuf.nodes.back().get());
+    for (u32 i = 0; i < poly.getMeshData().mMatrixPrimitives.size(); ++i)
+      pushDisplay(*mVboBuilder, mat, poly, pBone, scene, root, output, i);
   }
 
   for (u64 i = 0; i < pBone.getNumChildren(); ++i)
