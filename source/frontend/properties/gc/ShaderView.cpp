@@ -77,7 +77,9 @@ void drawProperty(kpi::PropertyDelegate<riistudio::lib3d::Material>& delegate,
     mat.cachedPixelShader = text;
 }
 
+#ifdef BUILD_DEBUG
 kpi::RegisterPropertyView<riistudio::lib3d::Material, ShaderSurface>
     ShaderSurfaceInstaller;
+#endif
 
 } // namespace libcube::UI
