@@ -95,49 +95,18 @@ void GCSceneNode::draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
   glUseProgram(shader.getId());
 
   vbo_builder.bind();
-
+  ubo_builder.use(mtx_id);
   mat.genSamplUniforms(shader.getId(), tex_id_map);
 
   int i = 0;
   for (auto& splice : vbo_builder.getSplicesInRange(idx_ofs, idx_size)) {
     assert(splice.size > 0);
-    librii::glhelper::DelegatedUBOBuilder PacketBuilder;
 
-    glUniformBlockBinding(
-        shader.getId(),
-        glGetUniformBlockIndex(shader.getId(), "ub_PacketParams"), 2);
 
-    int min;
-    glGetActiveUniformBlockiv(shader.getId(), 2, GL_UNIFORM_BLOCK_DATA_SIZE,
-                              &min);
-    PacketBuilder.setBlockMin(2, min);
+    if (poly.isVisible() && i == mp_id)
+      glDrawElements(GL_TRIANGLES, splice.size, GL_UNSIGNED_INT,
+                     (void*)(splice.offset * 4));
 
-    mat.onSplice(PacketBuilder, mdl, poly, i);
-    // TODO: huge hack, very expensive
-    PacketBuilder.submit();
-
-    ubo_builder.use(mtx_id);
-    PacketBuilder.use(0);
-
-    librii::gl::PacketParams pack{};
-    for (auto& p : pack.posMtx)
-      p = glm::transpose(glm::mat4{1.0f});
-
-    assert(dynamic_cast<const libcube::IndexedPolygon*>(&poly) != nullptr);
-    const auto& ipoly = reinterpret_cast<const libcube::IndexedPolygon&>(poly);
-
-    if (poly.isVisible()) {
-      const auto mtx =
-          ipoly.getPosMtx(reinterpret_cast<const libcube::Model&>(mdl), i);
-      for (int p = 0; p < std::min(static_cast<std::size_t>(10), mtx.size());
-           ++p) {
-        pack.posMtx[p] = glm::transpose(mtx[p]);
-      }
-
-      if (poly.isVisible() && i == mp_id)
-        glDrawElements(GL_TRIANGLES, splice.size, GL_UNSIGNED_INT,
-                       (void*)(splice.offset * 4));
-    }
     ++i;
   }
 }
@@ -167,6 +136,7 @@ void GCSceneNode::buildUniformBuffer(
 
   mat.generateUniforms(ubo_builder, model_matrix, view_matrix, proj_matrix,
                        shader.getId(), tex_id_map, poly, scn);
+  mat.onSplice(ubo_builder, mdl, poly, mp_id);
   mtx_id = _mtx_id;
 }
 
