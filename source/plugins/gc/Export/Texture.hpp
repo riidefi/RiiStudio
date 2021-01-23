@@ -30,7 +30,7 @@ struct Texture : public riistudio::lib3d::Texture {
         out.data(), getWidth(), getHeight(),
         static_cast<librii::gx::TextureFormat>(getTextureFormat()),
         librii::gx::TextureFormat::Extension_RawRGBA32, getData(), getWidth(),
-        getHeight(), mip ? getMipmapCount() + 1 : 0);
+        getHeight(), mip ? getMipmapCount() : 0);
   }
 
   virtual u32 getTextureFormat() const = 0;

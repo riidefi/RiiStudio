@@ -380,7 +380,7 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
     newformat = oldformat;
 
   // Determine whether to decode this sublevel as an image or many sublvels.
-  if (mipMapCount > 0) {
+  if (mipMapCount > 1) {
     std::vector<u8> srcBuf(0);
     const u8* pSrc = nullptr;
     if (dst == src) {
