@@ -32,44 +32,96 @@ private:
   u32 UBO;
 };
 
+// A write-only binary object.
+class Blob {
+public:
+  Blob() = default;
+  Blob(std::vector<u8>&& data) : mData(std::move(data)) {}
+  Blob(const std::vector<u8>& data) : mData(data) {}
+  Blob(Blob&& blob) : Blob(std::move(blob.mData)) {}
+
+  std::size_t size() const { return mData.size(); }
+  void resize(std::size_t size) { mData.resize(size); }
+  void clear() { mData.clear(); }
+
+  const u8* data() const { return mData.data(); }
+
+  void insert_bytes(std::size_t begin, const u8* bytes,
+                    std::size_t byte_count) {
+    if (begin + byte_count > mData.size()) {
+      assert(!"insert_bytes: range is out of bounds");
+      return;
+    }
+
+    memcpy(mData.data() + begin, bytes, byte_count);
+  }
+
+private:
+  std::vector<u8> mData;
+};
+
 // Prototype -- we can do this much more efficiently
-struct DelegatedUBOBuilder : public UBOBuilder {
+class DelegatedUBOBuilder : public UBOBuilder {
+public:
   DelegatedUBOBuilder() = default;
   ~DelegatedUBOBuilder() = default;
 
-  MODULE_PRIVATE : void submit();
+  void submit();
 
   // Use the data at each binding point
   void use(u32 idx) const;
 
-  MODULE_PUBLIC : virtual void push(u32 binding_point,
-                                    const std::vector<u8>& data);
+  void push(u32 binding_point, const std::vector<u8>& data);
 
-  template <typename T> inline void tpush(u32 binding_point, const T& data) {
+  template <typename T> void tpush(u32 binding_point, const T& data) {
     std::vector<u8> tmp(sizeof(T));
     *reinterpret_cast<T*>(tmp.data()) = data;
     push(binding_point, tmp);
   }
-  inline void reset(u32 binding_point) {
-    if (mData.size() > binding_point && !mData[binding_point].empty()) {
+  void reset(u32 binding_point) {
+    // Check if the binding point has been set
+    if (mData.size() > binding_point)
+      return;
+
+    if (!mData[binding_point].empty()) {
       mData[binding_point][mData[binding_point].size() - 1].clear();
     }
   }
 
-  virtual void setBlockMin(u32 binding_point, u32 min);
+  void setBlockMin(u32 binding_point, u32 min);
 
-  MODULE_PRIVATE : void clear();
+  void clear();
 
 private:
   // Indices as binding ids
-  using RawData = std::vector<u8>;
-  std::vector<std::vector<RawData>> mData;
+  std::vector<std::vector<Blob>> mData;
 
   std::vector<u32> mMinSizes;
 
   // Recomputed each submit
-  std::vector<u8> mCoalesced;
-  std::vector<std::pair<u32, u32>> mCoalescedOffsets; // Offset : Stride
+  Blob mCoalesced;
+  struct CoalescedEntry {
+    u32 offset = 0;
+    u32 stride = 0;
+  };
+  std::vector<CoalescedEntry> mCoalescedOffsets;
+
+  std::vector<Blob>& getTempData(u32 binding_point) {
+    if (binding_point >= mData.size())
+      return mData.emplace_back();
+
+    return mData[binding_point];
+  }
+
+  std::size_t calcBlobSize() const {
+    std::size_t size = 0;
+    for (const auto& binding_point_collection : mData) {
+      for (const auto& binding_point_entry : binding_point_collection)
+        size += roundUniformUp(binding_point_entry.size());
+    }
+    // printf("DelegatedUBOBuilder: Final size: %u\n", static_cast<u32>(size));
+    return size;
+  }
 };
 
 } // namespace librii::glhelper

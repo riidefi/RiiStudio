@@ -3,10 +3,13 @@
 #include "PixelOcclusion.hpp"             // PixelOcclusion
 #include <glm/glm.hpp>                    // glm::mat4
 #include <librii/gfx/MegaState.hpp>       // MegaState
-#include <librii/glhelper/UBOBuilder.hpp> // DelegatedUBOBuilder
 #include <map>                            // std::map<string, u32>
 #include <string>                         // std::string
 #include <tuple>                          // std::pair<string, string>
+
+namespace librii::glhelper {
+class DelegatedUBOBuilder;
+}
 
 namespace riistudio::lib3d {
 

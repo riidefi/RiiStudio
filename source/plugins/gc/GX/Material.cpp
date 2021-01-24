@@ -2,10 +2,10 @@
 #include <core/3d/gl.hpp>
 #include <librii/gl/Compiler.hpp>
 #include <librii/gl/EnumConverter.hpp>
+#include <librii/glhelper/UBOBuilder.hpp>
 #include <librii/mtx/TexMtx.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
-#undef min
 
 namespace libcube {
 

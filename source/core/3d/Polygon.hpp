@@ -5,7 +5,6 @@
 #include <core/common.h>
 #include <core/kpi/Node2.hpp>
 #include <glm/glm.hpp>
-#include <librii/glhelper/UBOBuilder.hpp>
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <string>
 
