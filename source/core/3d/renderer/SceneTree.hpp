@@ -17,7 +17,7 @@ struct SceneNode : public lib3d::IObserver {
 
   // Draw the node to the screen
   virtual void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-                    const std::map<std::string, u32>& tex_id_map) = 0;
+                    u32 draw_index) = 0;
 
   // Expand an AABB with the current bounding box
   //
@@ -29,7 +29,6 @@ struct SceneNode : public lib3d::IObserver {
   // Called every frame
   virtual void
   buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-                     const std::map<std::string, u32>& tex_id_map, u32 _mtx_id,
                      const glm::mat4& model_matrix,
                      const glm::mat4& view_matrix,
                      const glm::mat4& proj_matrix) = 0;

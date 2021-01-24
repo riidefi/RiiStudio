@@ -13,9 +13,6 @@ public:
   SceneState() = default;
   ~SceneState() = default;
 
-  // Upload a texture to the database
-  void addTexture(const std::string& key, const lib3d::Texture& tex);
-
   // Compute the composite bounding box (in model space)
   AABB computeBounds();
 
@@ -30,9 +27,7 @@ public:
 
 private:
   SceneBuffers mTree;
-  std::map<std::string, u32> texIdMap;
 
-  std::vector<GlTexture> mTextures;
   librii::glhelper::DelegatedUBOBuilder mUboBuilder;
 };
 

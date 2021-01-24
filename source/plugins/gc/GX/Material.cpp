@@ -155,8 +155,7 @@ void IGCMaterial::onSplice(librii::glhelper::DelegatedUBOBuilder& builder,
   const auto mtx =
       ipoly.getPosMtx(reinterpret_cast<const libcube::Model&>(model), mpid);
   for (int p = 0; p < std::min(static_cast<std::size_t>(10), mtx.size()); ++p) {
-    const auto transposed = glm::transpose((glm::mat4x3)mtx[p]);
-    pack.posMtx[p] = transposed;
+    pack.posMtx[p] = glm::transpose(mtx[p]);
   }
 
   builder.tpush(2, pack);

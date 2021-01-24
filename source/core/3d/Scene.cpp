@@ -32,34 +32,43 @@ void SceneImpl::prepare(SceneState& state, const kpi::INode& _host) {
   if (mVboBuilder != nullptr)
     mVboBuilder->build();
 
-  for (auto& tex : host.getTextures())
-    state.addTexture(tex.getName(), tex);
+  if (mTexIdMap == nullptr)
+    mTexIdMap = std::make_unique<std::map<std::string, u32>>();
+
+  for (auto& tex : host.getTextures()) {
+    if (mTexIdMap->contains(tex.getName()))
+      continue;
+
+    (*mTexIdMap)[tex.getName()] = mTextures.emplace_back(tex).getGlId();
+  }
 }
 
 struct GCSceneNode : public SceneNode {
-  GCSceneNode(librii::glhelper::VBOBuilder& v, const lib3d::Material& m,
+  GCSceneNode(librii::glhelper::VBOBuilder& v,
+              const std::map<std::string, u32>& tm, const lib3d::Material& m,
               const lib3d::Polygon& p, const lib3d::Bone& b,
               const lib3d::Scene& _scn, const lib3d::Model& _mdl,
               librii::glhelper::ShaderProgram&& prog, u32 mi)
-      : mp_id(mi), vbo_builder(v), mat(const_cast<lib3d::Material&>(m)),
-        poly(p), bone(b), scn(_scn), mdl(_mdl), shader(std::move(prog)) {
+      : mp_id(mi), tex_id_map(tm), vbo_builder(v),
+        mat(const_cast<lib3d::Material&>(m)), poly(p), bone(b), scn(_scn),
+        mdl(_mdl), shader(std::move(prog)) {
     buildVertexBuffer(vbo_builder);
   }
 
   void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-            const std::map<std::string, u32>& tex_id_map) final;
+            u32 mtx_id) final;
   void expandBound(AABB& bound) final;
 
   void update(lib3d::Material* _mat) final;
 
   void buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-                          const std::map<std::string, u32>& tex_id_map,
-                          u32 _mtx_id, const glm::mat4& model_matrix,
+                          const glm::mat4& model_matrix,
                           const glm::mat4& view_matrix,
                           const glm::mat4& proj_matrix) final;
   void buildVertexBuffer(librii::glhelper::VBOBuilder& vbo_builder);
 
   u32 mp_id = 0;
+  const std::map<std::string, u32>& tex_id_map;
 
 private:
   // Refers to the scene node's VBOBuilder;
@@ -77,14 +86,12 @@ private:
 
   librii::glhelper::ShaderProgram shader;
 
-  // Only used later
-  mutable u32 idx_ofs = 0;
-  mutable u32 idx_size = 0;
-  mutable u32 mtx_id = 0;
+  u32 idx_ofs = 0;
+  u32 idx_size = 0;
 };
 
 void GCSceneNode::draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-                       const std::map<std::string, u32>& tex_id_map) {
+                       u32 mtx_id) {
   librii::gfx::MegaState state;
   mat.setMegaState(state);
 
@@ -115,13 +122,11 @@ void GCSceneNode::expandBound(AABB& bound) {
 
 void GCSceneNode::buildUniformBuffer(
     librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-    const std::map<std::string, u32>& tex_id_map, u32 _mtx_id,
     const glm::mat4& model_matrix, const glm::mat4& view_matrix,
     const glm::mat4& proj_matrix) {
   mat.generateUniforms(ubo_builder, model_matrix, view_matrix, proj_matrix,
                        shader.getId(), tex_id_map, poly, scn);
   mat.onSplice(ubo_builder, mdl, poly, mp_id);
-  mtx_id = _mtx_id;
 }
 
 void GCSceneNode::update(lib3d::Material* _mat) {
@@ -140,8 +145,7 @@ void GCSceneNode::update(lib3d::Material* _mat) {
   _mat->isShaderError = false;
 }
 
-void GCSceneNode::buildVertexBuffer(
-    librii::glhelper::VBOBuilder& vbo_builder) {
+void GCSceneNode::buildVertexBuffer(librii::glhelper::VBOBuilder& vbo_builder) {
   idx_ofs = static_cast<u32>(vbo_builder.mIndices.size());
   poly.propagate(mdl, mp_id, vbo_builder);
   idx_size = static_cast<u32>(vbo_builder.mIndices.size()) - idx_ofs;
@@ -153,13 +157,15 @@ void pushDisplay(librii::glhelper::VBOBuilder& vbo_builder,
                  const riistudio::lib3d::Bone& pBone,
                  const riistudio::lib3d::Scene& scene,
                  const riistudio::lib3d::Model& root,
-                 riistudio::lib3d::SceneBuffers& output, u32 mp_id) {
+                 riistudio::lib3d::SceneBuffers& output, u32 mp_id,
+                 const std::map<std::string, u32>& tex_id_map) {
   const auto shader_sources = mat.generateShaders();
   librii::glhelper::ShaderProgram shader(shader_sources.first,
                                          shader_sources.second);
 
-  auto node = std::make_unique<GCSceneNode>(
-      vbo_builder, mat, poly, pBone, scene, root, std::move(shader), mp_id);
+  auto node =
+      std::make_unique<GCSceneNode>(vbo_builder, tex_id_map, mat, poly, pBone,
+                                    scene, root, std::move(shader), mp_id);
 
   auto& nodebuf = mat.isXluPass() ? output.translucent : output.opaque;
 
@@ -172,6 +178,8 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
                                     const lib3d::Scene& scene) {
   if (mVboBuilder == nullptr)
     mVboBuilder = std::make_unique<librii::glhelper::VBOBuilder>();
+  if (mTexIdMap == nullptr)
+    mTexIdMap = std::make_unique<std::map<std::string, u32>>();
 
   auto bones = root.getBones();
   auto polys = root.getMeshes();
@@ -189,7 +197,8 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
         reinterpret_cast<const libcube::IndexedPolygon&>(polys[display.polyId]);
 
     for (u32 i = 0; i < poly.getMeshData().mMatrixPrimitives.size(); ++i)
-      pushDisplay(*mVboBuilder, mat, poly, pBone, scene, root, output, i);
+      pushDisplay(*mVboBuilder, mat, poly, pBone, scene, root, output, i,
+                  *mTexIdMap);
   }
 
   for (u64 i = 0; i < pBone.getNumChildren(); ++i)

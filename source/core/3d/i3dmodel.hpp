@@ -5,6 +5,7 @@
 #include "Polygon.hpp"
 #include "Texture.hpp"
 #include "aabb.hpp"
+#include <core/3d/renderer/GlTexture.hpp>
 #include <core/kpi/Node2.hpp> // kpi::Collection
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <memory> // std::shared_ptr
@@ -41,6 +42,8 @@ struct SceneImpl : public IDrawable {
               const lib3d::Scene& scene);
 
   std::unique_ptr<librii::glhelper::VBOBuilder> mVboBuilder;
+  std::unique_ptr<std::map<std::string, u32>> mTexIdMap;
+  std::vector<GlTexture> mTextures;
 };
 
 } // namespace riistudio::lib3d
