@@ -12,8 +12,18 @@ struct UBOBuilder {
   UBOBuilder();
   ~UBOBuilder();
 
-  u32 roundUniformUp(u32 ofs) const { return roundUp(ofs, uniformStride); }
-  u32 roundUniformDown(u32 ofs) const { return roundDown(ofs, uniformStride); }
+  u32 roundUniformUp(u32 ofs) const {
+    auto res = roundUp(ofs, uniformStride);
+    assert((res % uniformStride) == 0);
+    assert(res >= ofs);
+    return res;
+  }
+  u32 roundUniformDown(u32 ofs) const {
+    auto res = roundDown(ofs, uniformStride);
+    assert((res % uniformStride) == 0);
+    assert(res <= ofs);
+    return res;
+  }
   int getUniformAlignment() const { return uniformStride; }
   u32 getUboId() const { return UBO; }
 

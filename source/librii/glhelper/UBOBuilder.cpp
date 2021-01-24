@@ -8,11 +8,14 @@ namespace librii::glhelper {
 UBOBuilder::UBOBuilder() {
 #if defined(NDEBUG) || !defined(_WIN32)
   glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformStride);
-  // printf("UBOBuilder: Buffer offset alignment: %i\n", uniformStride);
+  printf("UBOBuilder: Buffer offset alignment: %i\n", uniformStride);
 
 #else
   uniformStride = 1024;
 #endif
+
+  // FIXME: Unknown bug when using native alignment offset
+  uniformStride = 1024;
 
   glGenBuffers(1, &UBO);
 }
@@ -66,8 +69,7 @@ void DelegatedUBOBuilder::submit() {
 void DelegatedUBOBuilder::use(u32 idx) const {
   auto bindBufferRange = [&](GLenum target, GLuint index, GLuint buffer,
                              GLintptr offset, GLsizeiptr size) {
-    //	assert(offset % getUniformAlignment() == 0);
-    //	assert(size   % getUniformAlignment() == 0);
+    assert((offset % getUniformAlignment()) == 0);
 
     glBindBufferRange(target, index, buffer, offset, size);
   };
