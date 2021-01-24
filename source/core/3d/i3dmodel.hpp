@@ -30,7 +30,7 @@ struct SceneNode;
 struct SceneBuffers;
 
 struct SceneImpl : public IDrawable {
-  virtual ~SceneImpl() = default;
+  virtual ~SceneImpl();
   SceneImpl();
 
   void prepare(SceneState& state, const kpi::INode& host) override;
@@ -41,9 +41,9 @@ struct SceneImpl : public IDrawable {
   void gather(SceneBuffers& output, const lib3d::Model& root,
               const lib3d::Scene& scene);
 
-  std::unique_ptr<librii::glhelper::VBOBuilder> mVboBuilder;
-  std::unique_ptr<std::map<std::string, u32>> mTexIdMap;
-  std::vector<GlTexture> mTextures;
+private:
+  struct Internal;
+  std::unique_ptr<Internal> mImpl;
 };
 
 } // namespace riistudio::lib3d
