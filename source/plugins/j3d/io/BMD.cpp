@@ -180,12 +180,12 @@ public:
 
     BMDOutputContext ctx{mdl, collection, reader, transaction};
 
-    reader.setEndian(true);
+    reader.setEndian(std::endian::big);
     const auto magic = reader.read<u32>();
     if (magic == 'J3D2') {
       // Big endian
     } else if (magic == '2D3J') {
-      reader.setEndian(false);
+      reader.setEndian(std::endian::little);
     } else {
       // Invalid file
       return;

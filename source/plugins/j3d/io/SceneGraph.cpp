@@ -110,7 +110,7 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
 }
 struct SceneGraphNode : public oishii::Node {
   SceneGraphNode(const Model& mdl) : Node("SceneGraph"), mdl(mdl) {
-    getLinkingRestriction().setFlag(oishii::LinkingRestriction::Leaf);
+    getLinkingRestriction().setLeaf();
   }
 
   Result write(oishii::Writer& writer) const noexcept {

@@ -358,7 +358,7 @@ struct SHP1Node final : public oishii::Node {
       case SubNodeID::LUT:
         mId = "LUT";
         align = 4;
-        getLinkingRestriction().setFlag(oishii::LinkingRestriction::PadEnd);
+        getLinkingRestriction().PadEnd = true;
         break;
       case SubNodeID::NameTable:
         mId = "NameTable";

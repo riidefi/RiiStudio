@@ -429,7 +429,7 @@ std::string stringifyId(u32 key) {
 
 void KMP::write(kpi::INode& node, oishii::Writer& writer) const {
   const CourseMap& map = *dynamic_cast<CourseMap*>(&node);
-  writer.setEndian(true);
+  writer.setEndian(std::endian::big);
   RelocWriter reloc(writer);
   reloc.label("KMP_BEGIN");
 

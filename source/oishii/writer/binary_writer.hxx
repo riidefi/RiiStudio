@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bit>
 #include <string>
 #include <vector>
 
@@ -111,33 +112,23 @@ public:
     writeLink<T>(Link{from, to});
   }
 
-  void switchEndian() noexcept { bigEndian = !bigEndian; }
-  void setEndian(bool big) noexcept { bigEndian = big; }
-  bool getIsBigEndian() const noexcept { return bigEndian; }
+  void setEndian(std::endian endian) noexcept { mFileEndian = endian; }
+  bool getIsBigEndian() const noexcept {
+    return mFileEndian == std::endian::big;
+  }
 
   template <typename T, EndianSelect E>
   inline T endianDecode(T val) const noexcept {
-    if (!Options::MULTIENDIAN_SUPPORT)
-      return val;
-
-    bool be = false;
-
-    switch (E) {
-    case EndianSelect::Current:
-      be = bigEndian;
-      break;
-    case EndianSelect::Big:
-      be = true;
-      break;
-    case EndianSelect::Little:
-      be = false;
-      break;
+    if constexpr (E == EndianSelect::Big) {
+      return std::endian::native != std::endian::big ? swapEndian<T>(val) : val;
+    } else if constexpr (E == EndianSelect::Little) {
+      return std::endian::native != std::endian::little ? swapEndian<T>(val)
+                                                        : val;
+    } else if constexpr (E == EndianSelect::Current) {
+      return std::endian::native != mFileEndian ? swapEndian<T>(val) : val;
     }
 
-    if (!Options::PLATFORM_LE)
-      be = !be;
-
-    return be ? swapEndian<T>(val) : val;
+    return val;
   }
 
   constexpr u32 roundDown(u32 in, u32 align) {
@@ -159,8 +150,7 @@ public:
   using PadFunction = void (*)(char* dst, u32 size);
   PadFunction mUserPad = nullptr;
 
-  template<typename T>
-  void writeAt(T val, u32 pos) {
+  template <typename T> void writeAt(T val, u32 pos) {
     const auto back = tell();
     seekSet(pos);
     write<T>(val);
@@ -168,7 +158,7 @@ public:
   }
 
 private:
-  bool bigEndian = true; // to swap
+  std::endian mFileEndian = std::endian::big; // to swap
 };
 
 } // namespace oishii

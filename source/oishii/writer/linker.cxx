@@ -128,7 +128,7 @@ public:
 
 struct EndOfChildrenMarker : public Node {
   EndOfChildrenMarker(const Node& parent)
-      : Node("EndOfChildren", {LinkingRestriction::Leaf}), mParent(parent) {}
+      : Node("EndOfChildren", {.Leaf = true}), mParent(parent) {}
 
   const Node& mParent;
 };
@@ -148,7 +148,7 @@ void Linker::gather(std::unique_ptr<Node> pRoot,
     gather(std::move(child),
            (nameSpace.empty() ? "" : (nameSpace + "::")) + root.getId());
 
-  if (!(root.getLinkingRestriction().options & LinkingRestriction::Leaf)) {
+  if (!(root.getLinkingRestriction().Leaf)) {
     mLayout.emplace_back(std::make_unique<EndOfChildrenMarker>(root),
                          (nameSpace.empty() ? "" : (nameSpace + "::")) +
                              root.getId());
@@ -191,9 +191,7 @@ void Linker::write(Writer& writer, bool doShuffle) {
     // Set ending position
     mMap[mMap.size() - 1].end = writer.tell();
 
-    if (entry.mNode->getLinkingRestriction().isFlag(
-            LinkingRestriction::PadEnd) &&
-        alignment) {
+    if (entry.mNode->getLinkingRestriction().PadEnd && alignment) {
       auto pad_begin = writer.tell();
       while (writer.tell() % alignment)
         writer.write('F', false);
@@ -209,11 +207,8 @@ void Linker::write(Writer& writer, bool doShuffle) {
       printf("0x%06x 0x%06x 0x%06x 0x%06x %s  %s %s\n", (u32)entry.begin,
              (u32)entry.end, (u32)(entry.end - entry.begin),
              (u32)entry.restrict.alignment,
-             entry.restrict.options & LinkingRestriction::Static ? "true "
-                                                                 : "false",
-             entry.restrict.options & LinkingRestriction::Leaf ? "true "
-                                                               : "false",
-             entry.symbol.c_str());
+             entry.restrict.Static ? "true " : "false",
+             entry.restrict.Leaf ? "true " : "false", entry.symbol.c_str());
     }
   }
 

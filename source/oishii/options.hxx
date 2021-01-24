@@ -3,8 +3,7 @@
 #ifdef __cplusplus
 namespace oishii {
 #endif
-// TODO: Use OISHII_DEBUG and OISHII_RELEASE not poular DEBUG/RELEASE
-// TODO: Implement bounds checking and enable by default on debug builds
+// TODO: Use OISHII_DEBUG and OISHII_RELEASE not popular DEBUG/RELEASE
 
 #if defined(_DEBUG) && !defined(DEBUG)
 #define DEBUG
@@ -24,12 +23,11 @@ namespace oishii {
 #endif
 
 /*
-Options:
-        OISHII_MULTIENDIAN_SUPPORT	(Default: Enabled)
-        OISHII_PLATFORM_LE			(Default: Enabled)
-        OISHII_BOUNDS_CHECK			(Default: Disabled -- not
-implemented fully) OISHII_ALIGNMENT_CHECK		(Default: Disabled on
-release, enabled on debug)
+OISHII_BOUNDS_CHECK
+	(Default: Disabled on release, enabled on debug)
+
+OISHII_ALIGNMENT_CHECK
+	(Default: Disabled on release, enabled on debug)
 */
 
 // Prefer options enumeration to macros
@@ -40,20 +38,6 @@ enum Options {
 #else
   IF_DEBUG = 0,
 #define OISHII_IF_DEBUG = 0
-#endif
-
-#ifdef OISHII_MULTIENDIAN_SUPPORT
-  MULTIENDIAN_SUPPORT = OISHII_MULTIENDIAN_SUPPORT,
-#else
-  MULTIENDIAN_SUPPORT = 1,
-#define OISHII_MULTIENDIAN_SUPPORT 1
-#endif
-
-#ifdef OISHII_PLATFORM_LE
-  PLATFORM_LE = OISHII_PLATFORM_LE,
-#else
-  PLATFORM_LE = 1,
-#define OISHII_PLATFORM_LE 1
 #endif
 
 #ifdef OISHII_BOUNDS_CHECK

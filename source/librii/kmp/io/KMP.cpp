@@ -414,7 +414,7 @@ std::string stringifyId(u32 key) {
 }
 
 void writeKMP(const CourseMap& map, oishii::Writer& writer) {
-  writer.setEndian(true);
+  writer.setEndian(std::endian::big);
   RelocWriter reloc(writer);
   reloc.label("KMP_BEGIN");
 

@@ -17,44 +17,29 @@ class Writer;
 //! Restrictions for linkable blocks.
 //!
 struct LinkingRestriction {
-  enum Options : u32 {
-    //! No bits are set.
-    //!
-    None = 0,
+  //! A block must be linked behind the block in front of it.
+  //! If this is not set, the linker is not required to maintain ordering.
+  //!
+  bool Static : 1 = false;
 
-    //! A block must be linked behind the block in front of it.
-    //! If this is not set, the linker is not required to maintain ordering.
-    //!
-    Static = (1 << 0),
+  //! (TODO: Unimplemented) For unsigned offsets, datablocks cannot exist
+  //! before their reference.
+  //!
+  bool Post : 1 = false;
 
-    //! (TODO: Unimplemented) For unsigned offsets, datablocks cannot exist
-    //! before their reference.
-    //!
-    Post = (1 << 1),
+  //! Signifies that this datablock cannot have children.
+  //!
+  bool Leaf : 1 = false;
 
-    //! Signifies that this datablock cannot have children.
-    //!
-    Leaf = (1 << 2),
-
-    //! Pad the end of the block as well as the start.
-    //!
-    PadEnd = (1 << 3)
-  };
-
-  Options options = None;
+  //! Pad the end of the block as well as the start.
+  //!
+  bool PadEnd : 1 = false;
 
   //! Alignment of block. 0 to disable
   //!
   u32 alignment = 0;
 
-  bool isFlag(Options o) const noexcept {
-    return static_cast<u32>(options) & static_cast<u32>(o);
-  }
-  void setFlag(Options o) noexcept {
-    options =
-        static_cast<Options>(static_cast<u32>(options) | static_cast<u32>(o));
-  }
-  void setLeaf() { setFlag(Leaf); }
+  void setLeaf() { Leaf = true; }
 };
 
 //! @brief An abstract block (node) in the new serialization model.
@@ -173,17 +158,17 @@ public:
   inline const std::string& getId() const noexcept { return mId; }
 
   Node* toLeaf() {
-    mLinkingRestriction.setFlag(LinkingRestriction::Leaf);
+    mLinkingRestriction.Leaf = true;
     return this;
   }
   Node* toStatic() {
-    mLinkingRestriction.setFlag(LinkingRestriction::Static);
+    mLinkingRestriction.Static = true;
     return this;
   }
 };
 
 struct LeafNode : public Node {
-  LeafNode() : Node(LinkingRestriction{LinkingRestriction::Leaf}) {}
+  LeafNode() : Node(LinkingRestriction{.Leaf = true}) {}
 };
 
 } // namespace oishii

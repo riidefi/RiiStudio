@@ -4,6 +4,7 @@
 #include "../interfaces.hxx"
 #include "../util/util.hxx"
 #include <array>
+#include <bit>
 #include <memory>
 #include <string>
 #include <vector>
@@ -15,10 +16,56 @@ struct Invalidity {
   enum { invality_t };
 };
 
-class BinaryReader final : public AbstractStream<BinaryReader> {
+//! Distributes error messages to all connected handlers.
+//!
+struct ErrorEmitter {
 public:
-  BinaryReader(ByteView&& view) : mView(std::move(view)) {}
+  ErrorEmitter(const DataProvider& provider) : mProvider(&provider) {}
+  ~ErrorEmitter() = default;
+
+  void addErrorHandler(ErrorHandler* handler) {
+    mErrorHandlers.emplace(handler);
+  }
+  void removeErrorHandler(ErrorHandler* handler) {
+    mErrorHandlers.erase(handler);
+  }
+
+  void beginError() {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorBegin(*mProvider);
+  }
+  void describeError(const char* type, const char* brief, const char* details) {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorDescribe(*mProvider, type, brief, details);
+  }
+  void addErrorStackTrace(std::streampos start, std::streamsize size,
+                          const char* domain) {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorAddStackTrace(*mProvider, start, size, domain);
+  }
+  void endError() {
+    for (auto* handler : mErrorHandlers)
+      handler->onErrorEnd(*mProvider);
+  }
+
+private:
+  const DataProvider* mProvider = nullptr;
+  std::set<ErrorHandler*> mErrorHandlers;
+};
+
+class BinaryReader final : public AbstractStream<BinaryReader>,
+                           private ErrorEmitter {
+public:
+  BinaryReader(ByteView&& view)
+      : ErrorEmitter(*view.getProvider()), mView(std::move(view)) {}
   ~BinaryReader() = default;
+
+  void addErrorHandler(ErrorHandler* handler) {
+    ErrorEmitter::addErrorHandler(handler);
+  }
+  void removeErrorHandler(ErrorHandler* handler) {
+    ErrorEmitter::removeErrorHandler(handler);
+  }
 
   // MemoryBlockReader
   u32 tell() { return mPos; }
@@ -27,75 +74,25 @@ public:
   u32 endpos() { return mView.size(); }
   u8* getStreamStart() { return (u8*)mView.data(); }
 
-  inline bool isInBounds(u32 pos) { return mView.isInBounds(pos); }
+  bool isInBounds(u32 pos) { return mView.isInBounds(pos); }
 
 private:
   u32 mPos = 0;
   ByteView mView;
 
 public:
-  void addErrorHandler(ErrorHandler* handler) {
-    mErrorHandlers.emplace(handler);
-  }
-  void removeErrorHandler(ErrorHandler* handler) {
-    mErrorHandlers.erase(handler);
-  }
-
-protected:
-  void beginError() {
-    for (auto* handler : mErrorHandlers)
-      handler->onErrorBegin(*mView.getProvider());
-  }
-  void describeError(const char* type, const char* brief, const char* details) {
-    for (auto* handler : mErrorHandlers)
-      handler->onErrorDescribe(*mView.getProvider(), type, brief, details);
-  }
-  void addErrorStackTrace(std::streampos start, std::streamsize size,
-                          const char* domain) {
-    for (auto* handler : mErrorHandlers)
-      handler->onErrorAddStackTrace(*mView.getProvider(), start, size, domain);
-  }
-  void endError() {
-    for (auto* handler : mErrorHandlers)
-      handler->onErrorEnd(*mView.getProvider());
-  }
-
-private:
-  std::set<ErrorHandler*> mErrorHandlers;
-
-public:
-  //! @brief Given a type T, return T in the specified endiannes. (Current: swap
-  //! endian if reader endian != sys endian)
-  //!
-  //! @tparam T Type of value to decode and return.
-  //! @tparam E Endian transformation. Current will decode the value based on
-  //! the endian switch flag
-  //!
-  //! @return T, endian decoded.
-  //!
   template <typename T, EndianSelect E = EndianSelect::Current>
-  inline T endianDecode(T val) const noexcept {
-    if (!Options::MULTIENDIAN_SUPPORT)
-      return val;
-
-    bool be = false;
-
-    switch (E) {
-    case EndianSelect::Current:
-      be = bigEndian;
-      break;
-    case EndianSelect::Big:
-      be = true;
-      break;
-    case EndianSelect::Little:
-      be = false;
-      break;
+  T endianDecode(T val) const {
+    if constexpr (E == EndianSelect::Big) {
+      return std::endian::native != std::endian::big ? swapEndian<T>(val) : val;
+    } else if constexpr (E == EndianSelect::Little) {
+      return std::endian::native != std::endian::little ? swapEndian<T>(val)
+                                                        : val;
+    } else if constexpr (E == EndianSelect::Current) {
+      return std::endian::native != mFileEndian ? swapEndian<T>(val) : val;
     }
 
-    if (!Options::PLATFORM_LE)
-      be = !be;
-
-    return be ? swapEndian<T>(val) : val;
+    return val;
   }
 
   template <typename T, EndianSelect E = EndianSelect::Current,
@@ -167,9 +164,10 @@ public:
   // Magics are assumed to be 32 bit
   template <u32 magic, bool critical = true> inline void expectMagic();
 
-  void switchEndian() noexcept { bigEndian = !bigEndian; }
-  void setEndian(bool big) noexcept { bigEndian = big; }
-  bool getIsBigEndian() const noexcept { return bigEndian; }
+  void setEndian(std::endian endian) noexcept { mFileEndian = endian; }
+  bool getIsBigEndian() const noexcept {
+    return mFileEndian == std::endian::big;
+  }
 
   // TODO
   const char* getFile() const noexcept {
@@ -187,7 +185,7 @@ public:
   }
 
 private:
-  bool bigEndian = true; // to swap
+  std::endian mFileEndian = std::endian::big;
 
   struct DispatchStack {
     struct Entry {

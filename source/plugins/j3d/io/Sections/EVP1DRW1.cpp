@@ -122,7 +122,7 @@ struct EVP1Node {
                   const std::vector<float>& weightPool,
                   const Model* mdl = nullptr)
         : mFrom(from), mToWrite(toWrite), mWeightPool(weightPool), mMdl(mdl) {
-      getLinkingRestriction().setFlag(oishii::LinkingRestriction::Leaf);
+      getLinkingRestriction().setLeaf();
     }
     Result gatherChildren(NodeDelegate&) const noexcept { return {}; }
     const std::vector<DrawMatrix>& mFrom;

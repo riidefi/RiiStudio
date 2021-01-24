@@ -104,7 +104,7 @@ public:
     return dynamic_cast<Collection*>(&node) != nullptr;
   }
   void write(kpi::INode& node, oishii::Writer& writer) const {
-    writer.setEndian(true);
+    writer.setEndian(std::endian::big);
     assert(dynamic_cast<Collection*>(&node) != nullptr);
     Collection& collection = *dynamic_cast<Collection*>(&node);
 

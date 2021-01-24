@@ -22,10 +22,9 @@ template <typename T, EndianSelect E, bool unaligned> T BinaryReader::peek() {
 
   if (!unaligned)
     alignmentCheck(sizeof(T));
-  T decoded =
-      endianDecode<T, E>(*reinterpret_cast<T*>(getStreamStart() + tell()));
 
-  return decoded;
+  const T* native_elem = reinterpret_cast<T*>(getStreamStart() + tell());
+  return endianDecode<T, E>(*native_elem);
 }
 template <typename T, EndianSelect E, bool unaligned> T BinaryReader::read() {
   T decoded = peek<T, E, unaligned>();

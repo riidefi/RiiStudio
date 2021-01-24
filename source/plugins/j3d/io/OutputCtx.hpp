@@ -128,15 +128,15 @@ struct LinkNode final : public T, public oishii::Node {
   template <typename... S>
   LinkNode(S... arg) : T(arg...), Node(T::getNameId()) {
     if (leaf)
-      mLinkingRestriction.setFlag(oishii::LinkingRestriction::Leaf);
+      mLinkingRestriction.setLeaf();
   }
   oishii::Node::Result write(oishii::Writer& writer) const noexcept override {
     T::write(writer);
     return eResult::Success;
   }
 
-  oishii::Node::Result gatherChildren(oishii::Node::NodeDelegate& out) const
-      noexcept override {
+  oishii::Node::Result
+  gatherChildren(oishii::Node::NodeDelegate& out) const noexcept override {
     T::gatherChildren(out);
 
     return {};

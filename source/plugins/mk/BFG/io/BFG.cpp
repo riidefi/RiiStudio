@@ -68,7 +68,7 @@ void BFG::read(kpi::IOTransaction& transaction) const {
 
 void BFG::write(kpi::INode& node, oishii::Writer& writer) const {
   const BinaryFog& fog = *dynamic_cast<BinaryFog*>(&node);
-  writer.setEndian(true);
+  writer.setEndian(std::endian::big);
 
   auto entries = fog.getFogEntries();
   for (auto& entry : entries) {
