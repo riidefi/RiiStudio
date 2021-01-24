@@ -22,25 +22,6 @@ std::pair<std::string, std::string> IGCMaterial::generateShaders() const {
   return {result->vertex, result->fragment};
 }
 
-/*
-Layout in memory:
-(Binding 0) Scene
-(Binding 1) Mat
-(Binding 2) Shape
-
-<---
-Scene
-Mat
-<---
-Mat
-Mat
-Shape
-<---
-Shape
-Shape
-
-*/
-
 glm::mat4x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
                                                const glm::mat4& mvp) const {
   auto texsrt =
@@ -53,12 +34,16 @@ void IGCMaterial::generateUniforms(
     const std::map<std::string, u32>& texIdMap,
     const riistudio::lib3d::Polygon& poly,
     const riistudio::lib3d::Scene& scn) const {
+
+  // WebGL doesn't support binding=n in the shader
+#ifdef __EMSCRIPTEN__
   glUniformBlockBinding(shaderId,
                         glGetUniformBlockIndex(shaderId, "ub_SceneParams"), 0);
   glUniformBlockBinding(
       shaderId, glGetUniformBlockIndex(shaderId, "ub_MaterialParams"), 1);
   glUniformBlockBinding(shaderId,
                         glGetUniformBlockIndex(shaderId, "ub_PacketParams"), 2);
+#endif // __EMSCRIPTEN__
 
   int min;
   glGetActiveUniformBlockiv(shaderId, 0, GL_UNIFORM_BLOCK_DATA_SIZE, &min);
@@ -72,13 +57,13 @@ void IGCMaterial::generateUniforms(
   builder.setBlockMin(2, min);
 
   librii::gl::UniformSceneParams scene;
-  scene.projection = V * P;
+  scene.projection = M * V * P;
   scene.Misc0 = {};
 
-  librii::gl::UniformMaterialParams tmp{};
-
-  librii::gl::setUniformsFromMaterial(tmp, getMaterialData());
   const auto& data = getMaterialData();
+
+  librii::gl::UniformMaterialParams tmp{};
+  librii::gl::setUniformsFromMaterial(tmp, data);
 
   for (int i = 0; i < data.texMatrices.size(); ++i) {
     tmp.TexMtx[i] = glm::transpose(data.texMatrices[i].compute(M, V * P));
@@ -94,21 +79,11 @@ void IGCMaterial::generateUniforms(
     tmp.TexParams[i] = glm::vec4{texData->getWidth(), texData->getHeight(), 0,
                                  data.samplers[i]->mLodBias};
   }
-  // for (int i = 0; i < data.mIndMatrices.size(); ++i) {
-  //   auto& it = data.mIndMatrices[i];
-  //   // TODO:: Verify..
-  //   glm::mat4 im;
-  //   calcTexMtx_Basic(im, it.scale.x, it.scale.y, it.rotate, it.trans.x,
-  //                    it.trans.y, 0.5, 0.5, 0.5);
-  //   tmp.IndTexMtx[i] = im;
-  // }
-  librii::gl::PacketParams pack{};
-  for (auto& p : pack.posMtx)
-    p = glm::transpose(glm::mat4{1.0f});
 
   builder.tpush(0, scene);
   builder.tpush(1, tmp);
   // builder.tpush(2, pack);
+  // ^^ filled in onSplice
 
   const s32 samplerIds[] = {0, 1, 2, 3, 4, 5, 6, 7};
 
@@ -121,23 +96,35 @@ void IGCMaterial::genSamplUniforms(
     u32 shaderId, const std::map<std::string, u32>& texIdMap) const {
   const auto& data = getMaterialData();
   for (int i = 0; i < data.samplers.size(); ++i) {
-    glActiveTexture(GL_TEXTURE0 + i);
-    if (data.samplers[i]->mTexture.empty() ||
-        texIdMap.find(data.samplers[i]->mTexture) == texIdMap.end()) {
-      printf("Invalid texture link.\n");
+    const auto& sampler = *data.samplers[i];
+
+    if (sampler.mTexture.empty()) {
+      // No textures specified
       continue;
     }
-    // else printf("Tex id: %u\n", texIdMap.at(data.samplers[i]->mTexture));
-    glBindTexture(GL_TEXTURE_2D, texIdMap.at(data.samplers[i]->mTexture));
 
+    {
+      const auto found = texIdMap.find(sampler.mTexture);
+      if (found == texIdMap.end()) {
+        printf("Invalid texture link.\n");
+        continue;
+      }
+
+      glActiveTexture(GL_TEXTURE0 + i);
+      glBindTexture(GL_TEXTURE_2D, found->second);
+    }
+
+    // TODO: Can we cache these parameters?
+    // Is this even safe? Does glTexParameteri limit itself based on the
+    // glActiveTexture call, or does changing one change all?
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                    librii::gl::gxFilterToGl(data.samplers[i]->mMinFilter));
+                    librii::gl::gxFilterToGl(sampler.mMinFilter));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                    librii::gl::gxFilterToGl(data.samplers[i]->mMagFilter));
+                    librii::gl::gxFilterToGl(sampler.mMagFilter));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                    librii::gl::gxTileToGl(data.samplers[i]->mWrapU));
+                    librii::gl::gxTileToGl(sampler.mWrapU));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                    librii::gl::gxTileToGl(data.samplers[i]->mWrapV));
+                    librii::gl::gxTileToGl(sampler.mWrapV));
   }
 }
 void IGCMaterial::onSplice(librii::glhelper::DelegatedUBOBuilder& builder,
