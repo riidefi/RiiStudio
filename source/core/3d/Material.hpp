@@ -21,6 +21,10 @@ struct IObserver {
   virtual ~IObserver() = default;
   // TODO: Detach
   virtual void update(Material* mat) {}
+
+  IObserver() = default;
+  IObserver(const IObserver&) = delete;
+  IObserver(IObserver&&) = delete;
 };
 struct Polygon;
 struct Material : public virtual kpi::IObject {

@@ -12,7 +12,7 @@ enum class RenderPass {
   ID // For selection
 };
 
-struct SceneNode : public lib3d::IObserver {
+struct SceneNode {
   virtual ~SceneNode() = default;
 
   // Draw the node to the screen

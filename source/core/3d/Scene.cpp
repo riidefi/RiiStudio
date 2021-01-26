@@ -33,6 +33,42 @@ struct VertexBufferTenant {
   u32 idx_size;
 };
 
+struct ShaderUser {
+  ShaderUser(librii::glhelper::ShaderProgram&& shader) {
+    mImpl = std::make_unique<Impl>(std::move(shader));
+  }
+
+  auto& getProgram() { return mImpl->mProgram; }
+  void attachToMaterial(const lib3d::Material& mat) {
+    mat.observers.push_back(mImpl.get());
+  }
+
+private:
+  // IObservers should be heap allocated
+  struct Impl : public IObserver {
+    Impl(librii::glhelper::ShaderProgram&& program)
+        : mProgram(std::move(program)) {}
+
+    librii::glhelper::ShaderProgram mProgram;
+
+    void update(lib3d::Material* _mat) final {
+      DebugReport("Recompiling shader for %s..\n", _mat->getName().c_str());
+      const auto shader_sources = _mat->generateShaders();
+      librii::glhelper::ShaderProgram new_shader(
+          shader_sources.first, _mat->applyCacheAgain ? _mat->cachedPixelShader
+                                                      : shader_sources.second);
+      if (new_shader.getError()) {
+        _mat->isShaderError = true;
+        _mat->shaderError = new_shader.getErrorDesc();
+        return;
+      }
+      mProgram = std::move(new_shader);
+      _mat->isShaderError = false;
+    }
+  };
+  std::unique_ptr<Impl> mImpl;
+};
+
 struct MeshName {
   std::string string;
   u32 mprim_index = 0;
@@ -58,7 +94,7 @@ struct SceneImpl::Internal {
   // Maps material name -> Shader
   // Each entry is heap allocated so we shouldnt have to worry about dangling
   // references.
-  std::map<std::string, librii::glhelper::ShaderProgram> mMatToShader;
+  std::map<std::string, ShaderUser> mMatToShader;
 
   void buildVertexBuffer(const Model& model) {
     for (auto& mesh : model.getMeshes()) {
@@ -120,8 +156,6 @@ struct GCSceneNode : public SceneNode {
   void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
             u32 mtx_id) final;
   void expandBound(AABB& bound) final;
-
-  void update(lib3d::Material* _mat) final;
 
   void buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                           const glm::mat4& model_matrix,
@@ -187,22 +221,6 @@ void GCSceneNode::buildUniformBuffer(
   mat.onSplice(ubo_builder, mdl, poly, mp_id);
 }
 
-void GCSceneNode::update(lib3d::Material* _mat) {
-  DebugReport("Recompiling shader for %s..\n", _mat->getName().c_str());
-  mat = *_mat;
-  const auto shader_sources = mat.generateShaders();
-  librii::glhelper::ShaderProgram new_shader(
-      shader_sources.first,
-      _mat->applyCacheAgain ? _mat->cachedPixelShader : shader_sources.second);
-  if (new_shader.getError()) {
-    _mat->isShaderError = true;
-    _mat->shaderError = new_shader.getErrorDesc();
-    return;
-  }
-  shader = std::move(new_shader);
-  _mat->isShaderError = false;
-}
-
 void pushDisplay(
     VertexBufferTenant& tenant, librii::glhelper::VBOBuilder& vbo_builder,
     const riistudio::lib3d::Material& mat, const libcube::IndexedPolygon& poly,
@@ -218,7 +236,6 @@ void pushDisplay(
   auto& nodebuf = mat.isXluPass() ? output.translucent : output.opaque;
 
   nodebuf.nodes.push_back(std::move(node));
-  mat.observers.push_back(nodebuf.nodes.back().get());
 }
 
 void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
@@ -245,13 +262,14 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
       mImpl->mMatToShader.emplace(
           mat.getName(), librii::glhelper::ShaderProgram{
                              shader_sources.first, shader_sources.second});
+      mImpl->mMatToShader.at(mat.getName()).attachToMaterial(mat);
     }
 
     for (u32 i = 0; i < poly.getMeshData().mMatrixPrimitives.size(); ++i) {
       MeshName mesh_name{.string = poly.getName(), .mprim_index = i};
       pushDisplay(mImpl->mTenants.at(mesh_name), mImpl->mVboBuilder, mat, poly,
                   pBone, scene, root, output, i, mImpl->mTexIdMap,
-                  mImpl->mMatToShader.at(mat.getName()));
+                  mImpl->mMatToShader.at(mat.getName()).getProgram());
     }
   }
 
