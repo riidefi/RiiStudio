@@ -5,12 +5,12 @@
 #include <algorithm>                       // std::min
 #include <core/3d/gl.hpp>                  // glClearColor
 #include <core/3d/renderer/SceneState.hpp> // SceneState
-#include <core/util/gui.hpp>               // ImGui::GetStyle()
-#include <librii/gl/Compiler.hpp>          // PacketParams
-#include <librii/gl/EnumConverter.hpp>     // setGlState
-#include <plugins/gc/Export/IndexedPolygon.hpp>
-
 #include <core/3d/renderer/SceneTree.hpp>
+#include <core/util/gui.hpp>           // ImGui::GetStyle()
+#include <librii/gl/Compiler.hpp>      // PacketParams
+#include <librii/gl/EnumConverter.hpp> // setGlState
+#include <plugins/gc/Export/IndexedPolygon.hpp>
+#include <unordered_map>
 
 namespace riistudio::lib3d {
 
