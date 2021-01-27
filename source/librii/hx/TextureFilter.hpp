@@ -55,7 +55,7 @@ inline gx::TextureFilter lowerTextureFilter(TextureFilter filter) {
   bool baseLin = static_cast<gx::TextureFilter>(filter.minBase) ==
                  gx::TextureFilter::Linear;
   if (static_cast<gx::TextureFilter>(filter.minMipBase) ==
-      gx::TextureFilter::Near) {
+      gx::TextureFilter::Linear) {
     return baseLin ? gx::TextureFilter::lin_mip_lin
                    : gx::TextureFilter::near_mip_lin;
   } else {
