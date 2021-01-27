@@ -7,17 +7,17 @@ import os
 
 # "input_hash": "output_hash", # course_model0.brres
 TEST_DATA = {
-	'2539da38cadc7e525a8f7b922296721c': 'e495566170717422092a96a80569d6bd', # ReverseGravity2DDossunPlanet.bdl
-	'09d487932c00b616b40179c03807cf81': 'ca93cffc166880e4f9d2a5b1e7270d98', # ReverseGravity2DLiftPlanet.bdl
-	'2b2941acaea433d202d9e6d6d2754efb': 'ff78215eaaeac069e0e20681f79c9608', # ReverseGravity2DRoofActionPlanet.bdl
+	'2539da38cadc7e525a8f7b922296721c': '69c30402e669ff3e3e726347fb593a2f', # ReverseGravity2DDossunPlanet.bdl
+	'09d487932c00b616b40179c03807cf81': '5332a8384573f5175bd96df3d14afc0c', # ReverseGravity2DLiftPlanet.bdl
+	'2b2941acaea433d202d9e6d6d2754efb': '37591d6941f51a415256e8687ac3e8bd', # ReverseGravity2DRoofActionPlanet.bdl
 
 	# Resaved variants
-	'e495566170717422092a96a80569d6bd': 'b21ad1638be53925217aa9e3d4676184',
-	'ca93cffc166880e4f9d2a5b1e7270d98': 'c914860d1e1a8104d7300b2d948d7390',
-	'ff78215eaaeac069e0e20681f79c9608': 'a892dd7050dbcd22eea3e5a0c62c17e9',
+	'69c30402e669ff3e3e726347fb593a2f': '393bb1ad4f6db5740c9cd95bc2d4c03f',
+	'5332a8384573f5175bd96df3d14afc0c': 'b0ac8c123705294adb4e2b478a2ce25c',
+	'37591d6941f51a415256e8687ac3e8bd': 'ab5d81430e5daedd7ea8fed9a5343664',
 
 	# Mario.bdl
-	'5ef11e53f6c94c4f00e9d256309d0a38': '3e224c5090f27af435aa96dbf0bf9c8f',
+	'5ef11e53f6c94c4f00e9d256309d0a38': '9024b847a55b58cf246d4adabfff10f4',
 
 	# luigi_circuit.kmp
 	# 1:1!

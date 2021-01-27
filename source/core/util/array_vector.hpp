@@ -39,6 +39,14 @@ struct array_vector_fixed : public std::array<T, N> {
     --nElements;
   }
 
+#if 1
+  const T* begin() const { return &this->at(0); }
+  const T* end() const { return &this->at(0) + this->size(); }
+  T* begin() { return &this->at(0); }
+  T* end() { return &this->at(0) + this->size(); }
+#else
+  void begin() const {}
+#endif
 protected:
   size_t nElements = 0;
 };
