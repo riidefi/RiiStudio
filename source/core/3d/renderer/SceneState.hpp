@@ -25,6 +25,11 @@ public:
   // Direct access to attached renderables.
   SceneBuffers& getBuffers() { return mTree; }
 
+  void invalidate() {
+    mTree.opaque.nodes.clear();
+    mTree.translucent.nodes.clear();
+  }
+
 private:
   SceneBuffers mTree;
 

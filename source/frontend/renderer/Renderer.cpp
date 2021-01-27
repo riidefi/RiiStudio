@@ -21,8 +21,11 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
   // cache of it.
   if (mRoot->reinit) {
     mRoot->reinit = false;
-    mRoot->prepare(mSceneState, *dynamic_cast<kpi::INode*>(mRoot));
+    // TODO: Regen VBOs and such
   }
+
+  mSceneState.invalidate();
+  mRoot->prepare(mSceneState, *dynamic_cast<kpi::INode*>(mRoot));
 
   drawMenuBar();
 
