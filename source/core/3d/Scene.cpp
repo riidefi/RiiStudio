@@ -149,13 +149,26 @@ struct GCSceneNode : public SceneNode {
               const lib3d::Polygon& p, const lib3d::Bone& b,
               const lib3d::Scene& _scn, const lib3d::Model& _mdl,
               librii::glhelper::ShaderProgram& prog, u32 mi)
-      : mVertexBufferTenant(tenant), mp_id(mi), tex_id_map(tm), vbo_builder(v),
-        mat(const_cast<lib3d::Material&>(m)), poly(p), bone(b), scn(_scn),
-        mdl(_mdl), shader(prog) {}
+      : mVertexBufferTenant(tenant), mp_id(mi), tex_id_map(tm),
+        mVaoId(v.getGlId()), mat(m), poly(p), bone(b), scn(_scn), mdl(_mdl) {
+    // Calc the bound
+    {
+      auto mdl_mtx = bone.calcSrtMtx(&mdl);
+
+      auto nmax = mdl_mtx * glm::vec4(poly.getBounds().max, 0.0f);
+      auto nmin = mdl_mtx * glm::vec4(poly.getBounds().min, 0.0f);
+
+      mBound = {nmin, nmax};
+    }
+
+    //
+    mat.setMegaState(mState);
+    mShaderId = prog.getId();
+  }
 
   void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
             u32 mtx_id) final;
-  void expandBound(AABB& bound) final;
+  void expandBound(AABB& bound) final { bound.expandBound(mBound); }
 
   void buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                           const glm::mat4& model_matrix,
@@ -166,50 +179,31 @@ struct GCSceneNode : public SceneNode {
   const std::map<std::string, u32>& tex_id_map;
 
 private:
-  // Refers to the scene node's VBOBuilder;
-  // that instance is a unique_ptr, and the scene must outlive its children, so
-  // we can be safe about this reference dangling.
-  librii::glhelper::VBOBuilder& vbo_builder;
+  u32 mVaoId = 0;
 
   // These references aren't safe, though
-  lib3d::Material& mat;
+  const lib3d::Material& mat;
   const lib3d::Polygon& poly;
   const lib3d::Bone& bone;
 
   const lib3d::Scene& scn;
   const lib3d::Model& mdl;
 
-  librii::glhelper::ShaderProgram& shader;
+  lib3d::AABB mBound;
+  librii::gfx::MegaState mState;
+  u32 mShaderId = 0;
 };
 
 void GCSceneNode::draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                        u32 mtx_id) {
-  librii::gfx::MegaState state;
-  mat.setMegaState(state);
-
-  librii::gl::setGlState(state);
-
-  // assert(mState->mVbo.VAO && node.idx_size >= 0 && node.idx_size % 3 ==
-  // 0);
-  glUseProgram(shader.getId());
-
-  vbo_builder.bind();
+  librii::gl::setGlState(mState);
+  glUseProgram(mShaderId);
+  glBindVertexArray(mVaoId);
   ubo_builder.use(mtx_id);
-  mat.genSamplUniforms(shader.getId(), tex_id_map);
+  mat.genSamplUniforms(mShaderId, tex_id_map);
 
-  if (poly.isVisible())
-    glDrawElements(GL_TRIANGLES, mVertexBufferTenant.idx_size, GL_UNSIGNED_INT,
-                   reinterpret_cast<void*>(mVertexBufferTenant.idx_ofs * 4));
-}
-
-void GCSceneNode::expandBound(AABB& bound) {
-  auto mdl_mtx = bone.calcSrtMtx(&mdl);
-
-  auto nmax = mdl_mtx * glm::vec4(poly.getBounds().max, 0.0f);
-  auto nmin = mdl_mtx * glm::vec4(poly.getBounds().min, 0.0f);
-
-  riistudio::lib3d::AABB newBound{nmin, nmax};
-  bound.expandBound(newBound);
+  glDrawElements(GL_TRIANGLES, mVertexBufferTenant.idx_size, GL_UNSIGNED_INT,
+                 reinterpret_cast<void*>(mVertexBufferTenant.idx_ofs * 4));
 }
 
 void GCSceneNode::buildUniformBuffer(
@@ -217,7 +211,7 @@ void GCSceneNode::buildUniformBuffer(
     const glm::mat4& model_matrix, const glm::mat4& view_matrix,
     const glm::mat4& proj_matrix) {
   mat.generateUniforms(ubo_builder, model_matrix, view_matrix, proj_matrix,
-                       shader.getId(), tex_id_map, poly, scn);
+                       mShaderId, tex_id_map, poly, scn);
   mat.onSplice(ubo_builder, mdl, poly, mp_id);
 }
 
@@ -266,6 +260,9 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
     }
 
     for (u32 i = 0; i < poly.getMeshData().mMatrixPrimitives.size(); ++i) {
+      if (!poly.isVisible())
+        continue;
+
       MeshName mesh_name{.string = poly.getName(), .mprim_index = i};
       pushDisplay(mImpl->mTenants.at(mesh_name), mImpl->mVboBuilder, mat, poly,
                   pBone, scene, root, output, i, mImpl->mTexIdMap,

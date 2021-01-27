@@ -45,6 +45,7 @@ struct VBOBuilder {
 
   void bind();
   void unbind();
+  u32 getGlId() const { return VAO; }
 
 private:
   u32 VAO;
