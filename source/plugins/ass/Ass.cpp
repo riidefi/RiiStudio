@@ -182,7 +182,7 @@ void AssReader::read(kpi::IOTransaction& transaction) {
     helper.emplace(pScene, &transaction.node);
     std::vector<std::string> mat_merge;
     unresolved =
-        helper->PrepareAss(mGenerateMipMaps, mMinMipDimension, mMaxMipCount);
+        helper->PrepareAss(mGenerateMipMaps, mMinMipDimension, mMaxMipCount, path);
 
     state = State::WaitForTextureDependencies;
     // This step might be optional

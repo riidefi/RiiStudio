@@ -1,6 +1,7 @@
 #include "AssImporter.hpp"
 #include "AssMaterial.hpp"
 #include "Utility.hpp"
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <librii/image/CheckerBoard.hpp>
@@ -439,7 +440,8 @@ void AssImporter::ImportNode(const aiNode* pNode, glm::vec3 tint, int parent) {
 }
 
 std::set<std::pair<std::size_t, std::string>>
-AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip) {
+AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip,
+                        const std::string& model_path) {
   root = pScene->mRootNode;
   assert(root != nullptr);
 
@@ -651,8 +653,16 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip) {
     data.setName(getFileShort(tex));
 
     if (!importTexture(data, tex.c_str(), scratch, mip_gen, min_dim, max_mip)) {
-      printf("Cannot find texture %s\n", tex.c_str());
-      unresolved.emplace(i, tex);
+      // Favor PNG, and the current directory
+      if (!importTexture(
+              data,
+              (std::filesystem::path(model_path).parent_path() / (tex + ".png"))
+                  .string()
+                  .c_str(),
+              scratch, mip_gen, min_dim, max_mip)) {
+        printf("Cannot find texture %s\n", tex.c_str());
+        unresolved.emplace(i, tex);
+      }
     }
   }
 

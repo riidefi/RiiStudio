@@ -30,7 +30,8 @@ public:
   AssImporter(const aiScene* scene, kpi::INode* mdl);
 
   std::set<std::pair<std::size_t, std::string>>
-  PrepareAss(bool mip_gen, int min_dim, int max_mip);
+  PrepareAss(bool mip_gen, int min_dim, int max_mip,
+             const std::string& model_path);
   void
   ImportAss(const std::vector<std::pair<std::size_t, std::vector<u8>>>& data,
             bool mip_gen, int min_dim, int max_mip, bool auto_outline,
