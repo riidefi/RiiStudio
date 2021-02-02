@@ -9,9 +9,8 @@
 
 namespace librii::image {
 
-std::pair<int, int> getBlockedDimensions(int width, int height,
+std::pair<u32, u32> getBlockedDimensions(u32 width, u32 height,
                                          gx::TextureFormat format) {
-  assert(width > 0 && height > 0);
   const u32 blocksize = format == gx::TextureFormat::RGBA8 ? 64 : 32;
 
   return {(width + blocksize - 1) & ~(blocksize - 1),
@@ -380,7 +379,7 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
     newformat = oldformat;
 
   // Determine whether to decode this sublevel as an image or many sublvels.
-  if (mipMapCount > 1) {
+  if (mipMapCount >= 1) {
     std::vector<u8> srcBuf(0);
     const u8* pSrc = nullptr;
     if (dst == src) {
@@ -400,8 +399,15 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
           getEncodedSize(dwidth, dheight, newformat.value(), i - 1);
       const auto src_lod_x = swidth >> i;
       const auto src_lod_y = sheight >> i;
-      const auto dst_lod_x = dwidth >> i;
-      const auto dst_lod_y = dheight >> i;
+      auto dst_lod_x = dwidth >> i;
+      auto dst_lod_y = dheight >> i;
+      if (newformat.has_value() &&
+          newformat.value() != librii::gx::TextureFormat::Extension_RawRGBA32) {
+        auto block =
+            getBlockedDimensions(dst_lod_x, dst_lod_y, newformat.value());
+        dst_lod_x = block.first;
+        dst_lod_y = block.second;
+      }
       transform(dst + dst_lod_ofs, dst_lod_x, dst_lod_y, oldformat,
                 newformat.value(), pSrc + src_lod_ofs, src_lod_x, src_lod_y, 0,
                 algorithm);

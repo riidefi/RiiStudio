@@ -18,7 +18,7 @@ namespace librii::image {
 //!
 //! @return Dimensions rounded up blocked size.
 //!
-std::pair<int, int> getBlockedDimensions(int width, int height,
+std::pair<u32, u32> getBlockedDimensions(u32 width, u32 height,
                                          gx::TextureFormat format);
 
 //! @brief Compute the encoded size of an image.
