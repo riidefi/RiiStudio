@@ -118,6 +118,13 @@ endif()
 		  ${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.dll
 		  $<TARGET_FILE_DIR:frontend>/assimp-vc141-mt.dll
 	)
+  add_custom_command(
+	  TARGET frontend 
+	  POST_BUILD
+	  COMMAND ${CMAKE_COMMAND} -E copy
+		  ${PROJECT_SOURCE_DIR}/../vendor/assimp/zlib1.dll
+		  $<TARGET_FILE_DIR:frontend>/zlib1.dll
+	)
 	add_custom_command(
 	  TARGET frontend 
 	  POST_BUILD
@@ -147,3 +154,5 @@ endif()
 		$<TARGET_FILE_DIR:frontend>/icon.png
 )
 # endif()
+
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "RiiStudio")
