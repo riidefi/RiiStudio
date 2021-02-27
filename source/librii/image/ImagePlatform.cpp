@@ -412,7 +412,7 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
                 newformat.value(), pSrc + src_lod_ofs, src_lod_x, src_lod_y, 0,
                 algorithm);
     }
-  } else {
+  } else if (swidth >= 32 && sheight >= 32){
     RGBA32ImageSource source(src, swidth, sheight, oldformat);
     assert(source.get().data());
 

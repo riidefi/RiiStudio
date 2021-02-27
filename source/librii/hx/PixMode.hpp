@@ -23,7 +23,7 @@ constexpr gx::AlphaComparison disabled_comparison = {
     .compRight = gx::Comparison::ALWAYS,
     .refRight = 0};
 
-AlphaTest classifyAlphaCompare(gx::AlphaComparison compare) {
+inline AlphaTest classifyAlphaCompare(gx::AlphaComparison compare) {
 
   if (compare == librii::hx::stencil_comparison)
     return ALPHA_TEST_STENCIL;
@@ -56,9 +56,10 @@ enum PixMode : int {
   PIX_BBX_DEFAULT
 };
 
-PixMode classifyPixMode(const gx::AlphaComparison& alphaCompare,
-                        const gx::BlendMode& blendMode, const gx::ZMode& zMode,
-                        bool earlyZComparison, bool xlu) {
+inline PixMode classifyPixMode(const gx::AlphaComparison& alphaCompare,
+                               const gx::BlendMode& blendMode,
+                               const gx::ZMode& zMode, bool earlyZComparison,
+                               bool xlu) {
   const auto alpha_test = classifyAlphaCompare(alphaCompare);
 
   if (alpha_test == ALPHA_TEST_DISABLED && zMode == normal_z &&
@@ -80,7 +81,7 @@ PixMode classifyPixMode(const gx::AlphaComparison& alphaCompare,
 }
 
 // Handles OPAQUE, STENCIL, TRANSLUCENT
-bool configurePixMode(gx::LowLevelGxMaterial& o, PixMode pix_mode) {
+inline bool configurePixMode(gx::LowLevelGxMaterial& o, PixMode pix_mode) {
   if (pix_mode == PIX_DEFAULT_OPAQUE) {
     o.alphaCompare = disabled_comparison;
     o.zMode = normal_z;
@@ -111,7 +112,7 @@ bool configurePixMode(gx::LowLevelGxMaterial& o, PixMode pix_mode) {
   return false;
 }
 
-PixMode classifyPixMode(const gx::LowLevelGxMaterial& mat) {
+inline PixMode classifyPixMode(const gx::LowLevelGxMaterial& mat) {
   return classifyPixMode(mat.alphaCompare, mat.blendMode, mat.zMode,
                          mat.earlyZComparison, mat.xlu);
 }

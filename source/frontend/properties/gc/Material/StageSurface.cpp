@@ -163,13 +163,15 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
             curImg = &it;
           }
         }
-        if (matData.samplers[stage.texCoord]->mTexture != tev.mLastImg) {
-          tev.mImg.setFromImage(*curImg);
-          tev.mLastImg = curImg->getName();
+        if (curImg) {
+          if (matData.samplers[stage.texCoord]->mTexture != tev.mLastImg) {
+            tev.mImg.setFromImage(*curImg);
+            tev.mLastImg = curImg->getName();
+          }
+          tev.mImg.draw(128.0f * (static_cast<f32>(curImg->getWidth()) /
+                                  static_cast<f32>(curImg->getHeight())),
+                        128.0f);
         }
-        tev.mImg.draw(128.0f * (static_cast<f32>(curImg->getWidth()) /
-                                static_cast<f32>(curImg->getHeight())),
-                      128.0f);
       }
     }
 

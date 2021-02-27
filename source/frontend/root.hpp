@@ -52,6 +52,7 @@ private:
   FileData mReqData;
 
   Updater mUpdater = Updater();
+  bool mCheckUpdate = true;
 
 public:
   void requestFile() { mWantFile = true; }
@@ -63,6 +64,7 @@ public:
   void endRequestFile() { mWantFile = false; }
 
   void setForceUpdate(bool update) { mUpdater.SetForceUpdate(update); }
+  void setCheckUpdate(bool update) { mCheckUpdate = update; }
 };
 
 } // namespace riistudio::frontend

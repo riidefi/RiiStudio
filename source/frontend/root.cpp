@@ -129,6 +129,8 @@ void RootWindow::draw() {
         //			}
         //		}
         //	}
+        ed = nullptr;
+        ed->attachWindow(nullptr);
         ImGui::EndMenu();
       }
 
@@ -360,7 +362,8 @@ void RootWindow::draw() {
       ImGui::EndMenuBar();
     }
 
-    mUpdater.draw();
+    if (mCheckUpdate)
+      mUpdater.draw();
 
     if (!mImportersQueue.empty()) {
       auto& window = mImportersQueue.front();

@@ -34,8 +34,8 @@ struct Material {
 
   AlphaMode alpha_mode = AlphaMode::Opaque;
 
-  s8 lightset_index = -1;
-  s8 fog_index = -1;
+  s32 lightset_index = -1;
+  s32 fog_index = -1;
 };
 
 struct DrawCall {
@@ -65,10 +65,10 @@ struct Vertex {
   array_vector<glm::vec4, 2> colors;
 };
 
-enum class PrimitiveType { Triangles, TriangleStrip, TriangleFan };
+enum class Topology { Triangles, TriangleStrip, TriangleFan };
 
 struct Primitive {
-  PrimitiveType primitive_type = PrimitiveType::Triangles;
+  Topology topology = Topology::Triangles;
 
   std::vector<Vertex> vertices;
 };
@@ -93,10 +93,19 @@ struct MetaData {
   std::string exporter_version = GIT_TAG;
 };
 
+struct Weight {
+  s32 bone_index;
+  s32 influence;
+};
+struct WeightMatrix {
+  std::vector<Weight> weights; // all the influences
+};
+
 struct SceneTree {
   MetaData meta_data;
 
   std::vector<Bone> bones;
+  std::vector<WeightMatrix> weights;
   std::vector<Mesh> meshes;
   std::vector<Material> materials;
 };

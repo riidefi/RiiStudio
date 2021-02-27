@@ -5,9 +5,8 @@
 
 struct RootHolder {
   void create(int& argc, const char**& argv) {
-#ifndef BUILD_DEBUG
+    printf("Initializing LLVM\n");
     initLlvm = std::make_unique<llvm::InitLLVM>(argc, argv);
-#endif
 
     window = std::make_unique<riistudio::frontend::RootWindow>();
   }
@@ -27,7 +26,9 @@ private:
 int main(int argc, const char** argv) {
   if (argc > 0) {
     printf("%s\n", argv[0]);
-    std::filesystem::current_path(std::filesystem::path(argv[0]).parent_path());
+    auto path = std::filesystem::path(argv[0]);
+    if (path.is_absolute())
+      std::filesystem::current_path(path.parent_path());
   }
 
   sRootHolder.create(argc, argv);
@@ -36,6 +37,8 @@ int main(int argc, const char** argv) {
     if (!strcmp(argv[1], "--update")) {
       sRootHolder.getRoot().setForceUpdate(true);
     } else {
+      printf("File: %s\n", argv[1]);
+      sRootHolder.getRoot().setCheckUpdate(false);
       sRootHolder.getRoot().openFile(argv[1]);
     }
   }

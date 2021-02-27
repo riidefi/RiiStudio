@@ -225,6 +225,10 @@ public:
 
     linker.resolve();
     linker.printLabels();
+
+	writer.seekSet(0);
+    writer.write<u32>('bres'); // magic
+    writer.write<u16>(0xfeff); // bom
   }
 };
 
