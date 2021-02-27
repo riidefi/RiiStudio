@@ -33,5 +33,8 @@ NOTE: Lots of accuracy issues currently
 ### librii::nitro
 Support for DS fixed-point types.
 
+### librii::rhst
+Interchange format designed specifically for GC/Wii. My blender exporter can produce these files.
+
 ### librii::szs
 Support for compressing/decompressing SZS files.
