@@ -27,6 +27,9 @@ Specific plugins for the editor.
 - BFG
 - Assimp (to BMD/BRRES)
 
+## rsl
+My standard library: very generic template types.
+
 ## scripts
 Used for generating format Node files.
 
