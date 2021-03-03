@@ -4,7 +4,7 @@ bl_info = {
 	"name": "RiiStudio Blender Exporter",
 	"author": "riidefi",
 	"version": (1, 0),
-	"blender": (2, 7, 9),
+	"blender": (2, 80, 0),
 	"location": "File > Export",
 	"description": "Export to BRRES/BMD files.",
 	"warning": "Experimental Build",
@@ -35,6 +35,7 @@ from bpy.types import Operator
 
 from collections import OrderedDict
 
+BLENDER_28 = bpy.app.version[1] >= 80
 
 RHST_DATA_NULL   = 0
 
@@ -318,18 +319,24 @@ texture_format_items = (
 	('cmpr', "Compresed Texture (CMPR)", "4 Bits/Texel  - 0 Levels of Translucence - 8x8 Tiles")
 )
 
+def get_filename_without_extension(file_path):
+    file_basename = os.path.basename(file_path)
+    filename_without_extension = file_basename.split('.')[0]
+    return filename_without_extension
 
 # src\helpers\export_tex.py
 
 def export_tex(texture, out_folder):
-	print("ExportTex: %s" % texture.name)
+	tex_name = get_filename_without_extension(texture.image.name) if BLENDER_28 else texture.name
+	print("ExportTex: %s" % tex_name)
 	# Force PNG
 	texture.image.file_format = 'PNG'
 	# save image as PNNG
-	texture_outpath = os.path.join(out_folder, texture.name) + ".png"
-	tex0_outpath = os.path.join(out_folder, texture.name) + ".tex0"
+	texture_outpath = os.path.join(out_folder, tex_name) + ".png"
+	tex0_outpath = os.path.join(out_folder, tex_name) + ".tex0"
 	texture.image.save_render(texture_outpath)
 	# determine format
+	# print(best_tex_format(texture))
 	tformat_string = (
 		texture.brres_manual_format if texture.brres_mode == 'manual' else best_tex_format(
 			texture)).upper()
@@ -350,22 +357,26 @@ class BRRESTexturePanel(bpy.types.Panel):
 	"""
 	bl_label = "RiiStudio Texture Options"
 	bl_idname = "TEXTURE_PT_rstudio"
-	bl_space_type = 'PROPERTIES'
-	bl_region_type = 'WINDOW'
-	bl_context = "texture"
+	bl_space_type = 'NODE_EDITOR' if BLENDER_28 else 'PROPERTIES'
+	bl_region_type = 'UI' if BLENDER_28 else 'WINDOW'
+	bl_category = "Item" if BLENDER_28 else ''
+	bl_context = "node" if BLENDER_28 else 'texture'
 
 	@classmethod
 	def poll(cls, context):
-		return context.texture and context.texture.type == 'IMAGE' and context.texture.image
+		if BLENDER_28 and context.active_node and context.active_node.bl_idname == 'ShaderNodeTexImage':
+			return context.active_node
+		else:
+			return context.texture and context.texture.type == 'IMAGE' and context.texture.image
 
 	def draw(self, context):
-		tex = context.texture
+		tex = context.active_node if BLENDER_28 else context.texture
 		layout = self.layout
 		c_box = layout.box()
-		c_box.label("Caching", icon='IMAGEFILE')
+		c_box.label(text="Caching", icon='FILE_IMAGE')
 		c_box.row().prop(tex, "jres_is_cached")
 		mm_box = layout.box()
-		mm_box.label("Mipmaps", icon='RENDERLAYERS')
+		mm_box.label(text="Mipmaps", icon='RENDERLAYERS')
 		col = mm_box.column()
 		col.row().prop(tex, 'brres_mipmap_mode', expand=True)
 		if tex.brres_mipmap_mode == 'manual':
@@ -373,7 +384,7 @@ class BRRESTexturePanel(bpy.types.Panel):
 		elif tex.brres_mipmap_mode == 'auto':
 			col.prop(tex, 'brres_mipmap_minsize')
 		else:
-			col.label("No mipmapping will be performed")
+			col.label(text="No mipmapping will be performed")
 		tf_box = layout.box()
 		tf_box.label(text="Wii Texture Format", icon='TEXTURE_DATA')
 		row = tf_box.row()
@@ -425,12 +436,12 @@ class BRRESTexturePanel(bpy.types.Panel):
 				if item[0] == optimal_format:
 					optimal_format_display = item[1]
 					optimal_format_display2 = item[2]
-			box2.row().label('Optimal Format: %s' % optimal_format_display)
-			box2.row().label('(%s)' % optimal_format_display2)
+			box2.row().label(text='Optimal Format: %s' % optimal_format_display)
+			box2.row().label(text='(%s)' % optimal_format_display2)
 		else:
 			box = layout.box()
 			col = box.column()
-			col.label("Texture format")
+			col.label(text="Texture format")
 			col.prop(tex, "brres_manual_format", expand=True)
 
 
@@ -456,30 +467,30 @@ class JRESMaterialPanel(bpy.types.Panel):
 
 		# Culling
 		box = layout.box()
-		box.label("Culling", icon='MOD_WIREFRAME')
+		box.label(text="Culling", icon='MOD_WIREFRAME')
 		row = box.row(align=True)
 		row.prop(mat, "jres_display_front", toggle=True)
 		row.prop(mat, "jres_display_back", toggle=True)
 
 		# PE
 		box = layout.box()
-		box.label("Pixel Engine", icon='IMAGE_ALPHA')
+		box.label(text="Pixel Engine", icon='IMAGE_ALPHA')
 		row = box.row(align=True)
 		row.prop(mat, "jres_pe_mode", expand=True)
 
 		# Lighting
 		box = layout.box()
-		box.label("Lighting", icon='LAMP_SUN')  # Might want to change icon here
+		box.label(text="Lighting", icon='OUTLINER_OB_LIGHT' if BLENDER_28 else 'LAMP_SUN')  # Might want to change icon here
 		box.row().prop(mat, "jres_lightset_index")
 
 		# Fog
 		box = layout.box()
-		box.label("Fog", icon='RESTRICT_RENDER_ON')
+		box.label(text="Fog", icon='RESTRICT_RENDER_ON')
 		box.row().prop(mat, "jres_fog_index")
 
 		# UV Wrapping
 		box = layout.box()
-		box.label("UV Wrapping Mode", icon='GROUP_UVS')
+		box.label(text="UV Wrapping Mode", icon='GROUP_UVS')
 		row = box.row(align=True)
 		row.prop(mat, "jres_wrap_u")
 		row.prop(mat, "jres_wrap_v")
@@ -506,7 +517,7 @@ class JRESScenePanel(bpy.types.Panel):
 
 		# Caching
 		box = layout.box()
-		box.label("Caching", icon='IMAGEFILE')
+		box.label(text="Caching", icon='FILE_IMAGE')
 		row = box.row(align=True)
 		row.prop(scn, "jres_cache_dir")
 
@@ -518,6 +529,138 @@ def vec3(x):
 	return (x.x, x.y, x.z)
 def vec4(x):
 	return (x.x, x.y, x.z, x.w)
+
+def export_mesh(
+	Object,
+	magnification,
+	split_mesh_by_material,
+	add_dummy_colors,
+	current_data,
+	material_remap,
+	materials,
+	object_i,
+	draw_calls,
+	fp_format,
+	context
+):
+	triangulated = Object.to_mesh(preserve_all_data_layers=False) if BLENDER_28 else Object.to_mesh(context.scene, True, 'PREVIEW', calc_tessface=False, calc_undeformed=True)
+	# Triangulate:
+	bm = bmesh.new()
+	bm.from_mesh(triangulated)
+	bmesh.ops.triangulate(bm, faces=bm.faces)
+	bm.to_mesh(triangulated)
+	bm.free()
+
+	axis = axis_conversion(to_forward='-Z', to_up='Y',).to_4x4()
+	global_matrix = (mathutils.Matrix.Scale(magnification, 4) @ axis) if BLENDER_28 else (mathutils.Matrix.Scale(magnification, 4) * axis)
+
+	triangulated.transform(global_matrix @ Object.matrix_world if BLENDER_28 else global_matrix * Object.matrix_world)
+	triangulated.flip_normals()
+	'''
+	triangulated.transform(mathutils.Matrix.Scale(magnification, 4))
+	quat = Object.matrix_world.to_quaternion()
+	quat.rotate(mathutils.Quaternion((1, 0, 0), math.radians(270)).to_matrix())
+	triangulated.transform(quat.to_matrix().to_4x4())
+	'''
+	has_vcolors = len(triangulated.vertex_colors)
+
+	ColorInputs = [-1, -1]
+	for x in range(len(triangulated.vertex_colors[:2])):
+		ColorInputs[x] = 0
+	
+	if add_dummy_colors and ColorInputs[0] == -1:
+		ColorInputs[0] = 0
+
+	UVInputs = [-1, -1, -1, -1, -1, -1, -1, -1]
+	for x in range(len(triangulated.uv_layers[:8])):
+		UVInputs[x] = 0
+
+	for mat_index, mat in enumerate(triangulated.materials):
+		# for tri in triangulated.polygons:
+		# if tri.material_index == mat_index:
+		# Draw Calls format: [material_index, polygon_index, priority]
+
+		# TODO: manually assign priority in object attribs
+		mat_name = 'default_material'
+		if BLENDER_28 and mat.node_tree.nodes.get('Image Texture'):
+			mat_name = get_filename_without_extension(mat.node_tree.nodes.get('Image Texture').image.name)
+		elif mat and mat.active_texture:
+			mat_name = mat.active_texture.name
+
+		vcd_set = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+		polygon_object = OrderedDict({
+			"name": "%s___%s" % (Object.name, mat_name),
+			"primitive_type": "triangle_fan",
+			"current_matrix": 0,
+			"facepoint_format": vcd_set})
+		polygon_object["matrix_primitives"] = []
+
+		vcd_set[9] = vcd_set[10] = 1
+		vcd_set[11:13] = [int(i > -1) for i in ColorInputs] if has_vcolors else [int(add_dummy_colors), 0]
+		vcd_set[13:21] = [int(i > -1) for i in UVInputs]
+
+		# we'll worry about this when we have to, 1 primitive array should be fine for now.
+		facepoints = [] # [ [ V, N, C0, C1, U0, U1, U2, U3, U4, U5, U6, U7 ], ... ]
+		num_verts = len(triangulated.polygons) * 3
+		for idx, tri in zip(range(0, num_verts, 3), triangulated.polygons):
+			#print(idx)
+			#print(tri)
+			if tri.material_index != mat_index and split_mesh_by_material:
+				print("Skipped because tri mat: %u, target: %u" % (tri.material_index, mat_index))
+				continue
+			for global_index, fpVerticeIndex in enumerate(tri.vertices, idx):
+				#print(global_index, fpVerticeIndex)
+				blender_vertex = triangulated.vertices[fpVerticeIndex]
+				gvertex = [vec3(blender_vertex.co), vec3(blender_vertex.normal)]
+				if has_vcolors:
+					for layer in triangulated.vertex_colors[:2]:
+						# TODO: Is this less if smaller? Add data not index
+						gvertex += vec4(layer.data[global_index])
+				elif add_dummy_colors:
+					gvertex += [[1.0, 1.0, 1.0, 1.0]]
+				for layer in triangulated.uv_layers[:8]:
+					raw_uv = vec2(layer.data[global_index].uv)
+					gvertex += [(raw_uv[0], 1 - raw_uv[1])]
+				facepoints.append(gvertex)		
+
+		texture = mat.node_tree.nodes.get('Image Texture') if BLENDER_28 else mat.active_texture
+		if len(facepoints) and mat and texture:
+			polygon_object["matrix_primitives"].append({
+				"name": "N/A",
+				"matrix": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+				"primitives": [{
+					"name": "N/A",
+					"primitive_type": "triangles",
+					"facepoints": facepoints
+				}]
+			})
+			current_data["polygons"].append(polygon_object)
+			new_mi = -1
+			if mat_name in material_remap:
+				new_mi = material_remap[mat_name]
+			else:
+				new_mi = len(materials)
+				materials.append({
+					'name': mat.name,
+					# Texture element soon to be replaced with texmap array
+					'texture': mat_name,
+					"wrap_u": mat.jres_wrap_u,
+					"wrap_v": mat.jres_wrap_v,
+					# Culling / Display Surfaces
+					'display_front': mat.jres_display_front,
+					'display_back': mat.jres_display_back,
+					'pe': mat.jres_pe_mode,
+					'lightset': mat.jres_lightset_index,
+					'fog': mat.jres_fog_index
+				})
+				material_remap[mat_name] = len(materials) - 1
+			draw_calls.append([new_mi, object_i, 0])
+			object_i += 1
+		else:
+			print("No Vertices, Null Material Slot, Material, or Active Texture; skipping")
+		# All mesh data will already be exported if not being split. This stops duplicate data
+		if not split_mesh_by_material:
+			break
 
 def export_jres(
 		file_name,
@@ -585,131 +728,47 @@ def export_jres(
 	# Remap optimization
 	material_remap = {}
 	# Blender Index: Export Index
-	for Object in bpy.data.objects:
-		# Only objects in the leftmost layers are exported
-		lxe = any(Object.layers[0:5] + Object.layers[10:15])
-		if not lxe:
-			print("Object %s excluded as not in left layers" % Object.name)
-			continue
-		# riidefi: TODO -- export scene lights to BRSCA
-		# JRES/BRRES/BMD/BDL model export base only supports mesh objects
-		if Object.type == 'MESH':
-			triangulated = Object.to_mesh(context.scene, True, 'PREVIEW', calc_tessface=False,
-										  calc_undeformed=True)
-			# Triangulate:
-			bm = bmesh.new()
-			bm.from_mesh(triangulated)
-			bmesh.ops.triangulate(bm, faces=bm.faces)
-			bm.to_mesh(triangulated)
-			bm.free()
-
-			global_matrix = (mathutils.Matrix.Scale(magnification, 4) * axis_conversion(
-				to_forward='-Z',
-				to_up='Y',
-			).to_4x4())
-
-			triangulated.transform(global_matrix * Object.matrix_world)
-			triangulated.flip_normals()
-			'''
-			triangulated.transform(mathutils.Matrix.Scale(magnification, 4))
-			quat = Object.matrix_world.to_quaternion()
-			quat.rotate(mathutils.Quaternion((1, 0, 0), math.radians(270)).to_matrix())
-			triangulated.transform(quat.to_matrix().to_4x4())
-			'''
-			has_vcolors = len(triangulated.vertex_colors)
-
-			ColorInputs = [-1, -1]
-			for x in range(len(triangulated.vertex_colors[:2])):
-				ColorInputs[x] = 0
-			
-			if add_dummy_colors and ColorInputs[0] == -1:
-				ColorInputs[0] = 0
-
-			UVInputs = [-1, -1, -1, -1, -1, -1, -1, -1]
-			for x in range(len(triangulated.uv_layers[:8])):
-				UVInputs[x] = 0
-
-			for mat_index, mat in enumerate(triangulated.materials):
-				# for tri in triangulated.polygons:
-				# if tri.material_index == mat_index:
-				# Draw Calls format: [material_index, polygon_index, priority]
-
-				# TODO: manually assign priority in object attribs
-
-				vcd_set = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-				polygon_object = OrderedDict({
-					"name": "%s___%s" % (Object.name, mat.name),
-					"primitive_type": "triangle_fan",
-					"current_matrix": 0,
-					"facepoint_format": vcd_set})
-				polygon_object["matrix_primitives"] = []
-
-				vcd_set[9] = vcd_set[10] = 1
-				vcd_set[11:13] = [int(i > -1) for i in ColorInputs] if has_vcolors else [int(add_dummy_colors), 0]
-				vcd_set[13:21] = [int(i > -1) for i in UVInputs]
-
-				# we'll worry about this when we have to, 1 primitive array should be fine for now.
-				facepoints = [] # [ [ V, N, C0, C1, U0, U1, U2, U3, U4, U5, U6, U7 ], ... ]
-				num_verts = len(triangulated.polygons) * 3
-				for idx, tri in zip(range(0, num_verts, 3), triangulated.polygons):
-					#print(idx)
-					#print(tri)
-					if tri.material_index != mat_index and split_mesh_by_material:
-						print("Skipped because tri mat: %u, target: %u" % (tri.material_index, mat_index))
-						continue
-					for global_index, fpVerticeIndex in enumerate(tri.vertices, idx):
-						#print(global_index, fpVerticeIndex)
-						blender_vertex = triangulated.vertices[fpVerticeIndex]
-						gvertex = [vec3(blender_vertex.co), vec3(blender_vertex.normal)]
-						if has_vcolors:
-							for layer in triangulated.vertex_colors[:2]:
-								# TODO: Is this less if smaller? Add data not index
-								gvertex += vec4(layer.data[global_index])
-						elif add_dummy_colors:
-							gvertex += [[1.0, 1.0, 1.0, 1.0]]
-						for layer in triangulated.uv_layers[:8]:
-							raw_uv = vec2(layer.data[global_index].uv)
-							gvertex += [(raw_uv[0], 1 - raw_uv[1])]
-						facepoints.append(gvertex)		
-
-				# print("LF: %u, M: %s, MA: %s" % (len(facepoints), mat, mat.active_texture if mat else None))
-				if len(facepoints) and mat and mat.active_texture:
-					polygon_object["matrix_primitives"].append({
-						"name": "N/A",
-						"matrix": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-						"primitives": [{
-							"name": "N/A",
-							"primitive_type": "triangles",
-							"facepoints": facepoints
-						}]
-					})
-					current_data["polygons"].append(polygon_object)
-					new_mi = -1
-					if mat.name in material_remap:
-						new_mi = material_remap[mat.name]
-					else:
-						new_mi = len(materials)
-						materials.append({
-							'name': mat.name,
-							# Texture element soon to be replaced with texmap array
-							'texture': mat.active_texture.name,
-							"wrap_u": mat.jres_wrap_u,
-							"wrap_v": mat.jres_wrap_v,
-							# Culling / Display Surfaces
-							'display_front': mat.jres_display_front,
-							'display_back': mat.jres_display_back,
-							'pe': mat.jres_pe_mode,
-							'lightset': mat.jres_lightset_index,
-							'fog': mat.jres_fog_index
-						})
-						material_remap[mat.name] = len(materials) - 1
-					draw_calls.append([new_mi, object_i, 0])
-					object_i += 1
-				else:
-					print("No Vertices, Null Material Slot, Material, or Active Texture; skipping")
-				# All mesh data will already be exported if not being split. This stops duplicate data
-				if not split_mesh_by_material:
-					break
+	if BLENDER_28:
+		for Collection in bpy.data.collections:
+			for Object in Collection.objects:
+				# riidefi: TODO -- export scene lights to BRSCA
+				# JRES/BRRES/BMD/BDL model export base only supports mesh objects
+				if Object.type == 'MESH':
+					export_mesh(
+						Object,
+						magnification,
+						split_mesh_by_material,
+						add_dummy_colors,
+						current_data,
+						material_remap,
+						materials,
+						object_i,
+						draw_calls,
+						fp_format,
+						context
+					)
+	else:
+		for Object in bpy.data.objects:
+			# Only objects in the leftmost layers are exported
+			lxe = any(Object.layers[0:5] + Object.layers[10:15])
+			if not lxe:
+				print("Object %s excluded as not in left layers" % Object.name)
+				continue
+			if Object.type == 'MESH':
+				export_mesh(
+					Object,
+					magnification,
+					split_mesh_by_material,
+					add_dummy_colors,
+					current_data,
+					material_remap,
+					materials,
+					object_i,
+					draw_calls,
+					fp_format,
+					context
+				)
+				
 	current_data["bones"][0]["draws"] = draw_calls
 	current_data["materials"] = materials
 
@@ -812,11 +871,11 @@ class ExportBRRES(Operator, ExportHelper):
 	def draw(self, context):
 		layout = self.layout
 		box = layout.box()
-		box.label("BRRES", icon='FILESEL')
+		box.label(text="BRRES", icon='FILE_TICK' if BLENDER_28 else 'FILESEL')
 		# Mesh
 		box = layout.box()
-		box.label("Mesh", icon='MESH_DATA')
-		box.prop(self, "magnification", icon='MAN_SCALE')
+		box.label(text="Mesh", icon='MESH_DATA')
+		box.prop(self, "magnification", icon='VIEWZOOM' if BLENDER_28 else 'MAN_SCALE')
 		box.prop(self, "split_mesh_by_material")
 		box.prop(self, "mesh_conversion_mode")
 		box.prop(self, 'add_dummy_colors')
@@ -828,7 +887,7 @@ class ExportBRRES(Operator, ExportHelper):
 		# box.prop(self, "rspm_build_debug")
 		# Quantization
 		box = layout.box()
-		box.label("Quantization", icon='LINENUMBERS_ON')
+		box.label(text="Quantization", icon='LINENUMBERS_ON')
 		col = box.column()
 		col.prop(self, "position_quantize")
 		col.prop(self, "normal_quantize")
@@ -836,19 +895,19 @@ class ExportBRRES(Operator, ExportHelper):
 		col.prop(self, "color_quantize")
 		# Root Transform
 		box = layout.box()
-		box.label("Root Transform", icon='MANIPUL')
+		box.label(text="Root Transform", icon='FULLSCREEN_ENTER' if BLENDER_28 else 'MANIPUL')
 		row = box.row(align=True)
-		row.label("Scale")
+		row.label(text="Scale")
 		row.prop(self, "root_transform_scale_x")
 		row.prop(self, "root_transform_scale_y")
 		row.prop(self, "root_transform_scale_z")
 		row = box.row(align=True)
-		row.label("Rotate")
+		row.label(text="Rotate")
 		row.prop(self, "root_transform_rotate_x")
 		row.prop(self, "root_transform_rotate_y")
 		row.prop(self, "root_transform_rotate_z")
 		row = box.row(align=True)
-		row.label("Translate")
+		row.label(text="Translate")
 		row.prop(self, "root_transform_translate_x")
 		row.prop(self, "root_transform_translate_y")
 		row.prop(self, "root_transform_translate_z")
@@ -880,7 +939,8 @@ class ExportBRRES(Operator, ExportHelper):
 			ignore_cache=self.ignore_cache,
 		)
 
-		addon_prefs = context.user_preferences.addons[__name__].preferences
+		preferences = context.preferences if BLENDER_28 else context.user_preferences
+		addon_prefs = preferences.addons[__name__].preferences
 		binRoot = addon_prefs.riistudio_directory
 
 		# Create texture folder if not exist
@@ -890,17 +950,26 @@ class ExportBRRES(Operator, ExportHelper):
 			ignore_cache = True # Invalidate the cache
 		used_textures = []
 
+		if BLENDER_28:
+			for Collection in bpy.data.collections:
+				for Object in Collection.objects:
 
-		for Object in bpy.data.objects:
-			# Only objects in the leftmost layers are exported
-			if not any(Object.layers[0:5] + Object.layers[10:15]):
-				continue
+					if Object.type == 'MESH':
+						mat = Object.active_material
+						# TODO: skip if null
+						texture = mat.node_tree.nodes.get('Image Texture')
+						used_textures.append(texture)
+		else:
+			for Object in bpy.data.objects:
+				# Only objects in the leftmost layers are exported
+				if not any(Object.layers[0:5] + Object.layers[10:15]):
+					continue
 
-			if Object.type == 'MESH':
-				mat = Object.active_material
-				# TODO: skip if null
-				texture = mat.active_texture
-				used_textures.append(texture)
+				if Object.type == 'MESH':
+					mat = Object.active_material
+					# TODO: skip if null
+					texture = mat.active_texture
+					used_textures.append(texture)
 
 		for tex in set(used_textures):
 			export_tex(tex, texture_folder)
@@ -908,7 +977,7 @@ class ExportBRRES(Operator, ExportHelper):
 		# out = self.filepath
 		print(binRoot)
 		cmd = binRoot + "tests.exe %s %s" % (
-			qname, self.filepath
+			"\"" + qname + "\"", "\"" + self.filepath + "\""
 		)
 		print(cmd)
 		os.system(cmd)
@@ -937,9 +1006,9 @@ class RiidefiStudioPreferenceProperty(bpy.types.AddonPreferences):
 	def draw(self, context):
 		layout = self.layout
 		box = layout.box()
-		box.label("RiiStudio Folder", icon='IMAGEFILE')
+		box.label(text="RiiStudio Folder", icon='FILE_IMAGE')
 		box.row().prop(self, "riistudio_directory")
-		layout.label("Don't forget to save user preferences!")
+		layout.label(text="Don't forget to save user preferences!")
 
 
 
@@ -979,20 +1048,22 @@ UV_WRAP_MODES = (
 
 
 def register_tex():
-	bpy.types.Texture.brres_mode = EnumProperty(
+	tex_type = bpy.types.Node if BLENDER_28 else bpy.types.Texture
+
+	tex_type.brres_mode = EnumProperty(
 		default='guided',
 		items=(
 			('guided', 'Guided', 'Guided Texture setting'),
 			('manual', 'Manual', 'Manually specify format')
 		)
 	)
-	bpy.types.Texture.brres_guided_optimize = EnumProperty(
+	tex_type.brres_guided_optimize = EnumProperty(
 		name="Optimize for",
 		items=(
 			('quality', 'Quality', 'Optimize for quality'), ('filesize', 'Filesize', 'Optimize for lowest filesize')),
 		default='filesize'
 	)
-	bpy.types.Texture.brres_guided_color = EnumProperty(
+	tex_type.brres_guided_color = EnumProperty(
 		name="Color Type",
 		items=(
 			('color', 'Color', 'Color Image'),
@@ -1000,7 +1071,7 @@ def register_tex():
 		),
 		default='color'
 	)
-	bpy.types.Texture.brres_guided_color_transparency = EnumProperty(
+	tex_type.brres_guided_color_transparency = EnumProperty(
 		name="Transparency Type",
 		default='opaque',
 		items=(
@@ -1009,7 +1080,7 @@ def register_tex():
 			('translucent', "Translucent", "Translucent (Full Transparent) Image")
 		)
 	)
-	bpy.types.Texture.brres_guided_grayscale_alpha = EnumProperty(
+	tex_type.brres_guided_grayscale_alpha = EnumProperty(
 		name="Uses Alpha",
 		default='use_alpha',
 		items=(
@@ -1017,10 +1088,10 @@ def register_tex():
 			('no_alpha', 'Does\'t use transparency', 'The image does not use transparency')
 		)
 	)
-	bpy.types.Texture.brres_manual_format = EnumProperty(
+	tex_type.brres_manual_format = EnumProperty(
 		items=texture_format_items
 	)
-	bpy.types.Texture.brres_mipmap_mode = EnumProperty(
+	tex_type.brres_mipmap_mode = EnumProperty(
 		items=(
 			('auto', "Auto", "Allow the conversion tool to determine best mipmapping level (currently wimgt)"),
 			('manual', "Manual", "Specify the number of mipmaps"),
@@ -1029,11 +1100,11 @@ def register_tex():
 		default='auto',
 		name="Mode"
 	)
-	bpy.types.Texture.brres_mipmap_manual = IntProperty(
+	tex_type.brres_mipmap_manual = IntProperty(
 		name="#Mipmap",
 		default=0
 	)
-	bpy.types.Texture.brres_mipmap_minsize = IntProperty(
+	tex_type.brres_mipmap_minsize = IntProperty(
 		name="Minimum Mipmap Size",
 		default=32
 	)
@@ -1082,13 +1153,15 @@ def register_mat():
 	)
 
 def register():
-	bpy.types.INFO_MT_file_export.append(brres_menu_func_export)
+	MT_file_export = bpy.types.TOPBAR_MT_file_export if BLENDER_28 else bpy.types.INFO_MT_file_export
+	MT_file_export.append(brres_menu_func_export)
 	
 	register_tex()
 	register_mat()
 
 	# Texture Cache
-	bpy.types.Texture.jres_is_cached = BoolProperty(
+	tex_type = bpy.types.Node if BLENDER_28 else bpy.types.Texture
+	tex_type.jres_is_cached = BoolProperty(
 		name="Is cached? Uncheck when changes are made",
 		default=False
 	)
@@ -1105,7 +1178,8 @@ def register():
 def unregister():
 	for c in classes:
 		bpy.utils.unregister_class(c)
-	bpy.types.INFO_MT_file_export.remove(menu_func_export)
+	MT_file_export = bpy.types.TOPBAR_MT_file_export if BLENDER_28 else bpy.types.INFO_MT_file_export
+	MT_file_export.remove(brres_menu_func_export)
 
 
 if __name__ == "__main__":
