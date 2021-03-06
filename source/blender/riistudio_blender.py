@@ -615,7 +615,8 @@ def export_mesh(
 				if has_vcolors:
 					for layer in triangulated.vertex_colors[:2]:
 						# TODO: Is this less if smaller? Add data not index
-						gvertex += vec4(layer.data[global_index])
+						clr = layer.data[global_index].color
+						gvertex += [tuple(attr for attr in clr)]
 				elif add_dummy_colors:
 					gvertex += [[1.0, 1.0, 1.0, 1.0]]
 				for layer in triangulated.uv_layers[:8]:
