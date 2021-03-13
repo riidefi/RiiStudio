@@ -238,6 +238,7 @@ public:
   Expected readMetaData() {
     return dictIter([&](std::string_view key, int index) -> Expected {
       auto* value = mReader.expect<RHSTReader::StringToken>();
+
       if (value == nullptr)
         return Failure("Failure");
 
@@ -251,6 +252,9 @@ public:
       }
       if (key == "version") {
         mBuilding.meta_data.exporter_version = value->data;
+        return Success();
+      }
+      if (key == "name") {
         return Success();
       }
 

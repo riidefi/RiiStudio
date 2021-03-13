@@ -35,6 +35,8 @@ from bpy.types import Operator
 
 from collections import OrderedDict
 
+from time import perf_counter
+
 BLENDER_28 = bpy.app.version[1] >= 80
 
 def get_user_prefs(context):
@@ -57,72 +59,41 @@ RHST_DATA_STRING = 7
 RHST_DATA_S32    = 8
 RHST_DATA_F32    = 9
 
+import mmap
+import cProfile
+
+DEBUG = False
+
 # RHST (Rii Hierarchical Scene Tree) is a high-throughput,
 # multipurpose bitstream format I thought of the other day.
 class RHSTWriter:
-	class RHSTStack:
-		def __init__(self):
-			self.__stack = [ None ]
+	class RHSTStream:
+		def __init__(self, capacity, path):
+			self.__pos = 0
+			self.__max_size = 0
+			with open(path, 'wb') as file:
+				file.truncate(0)
+			self.__file = open(path, "r+b")
+			self.__buffer = mmap.mmap(self.__file.fileno(), capacity, access=mmap.ACCESS_WRITE)
 
-		def begin_count(self, ofs, debug, ofs_type = -1):
-			self.__stack.append({
-				"count": 0,
-				"type": None,
-				"ofs": ofs,
-				"ofs_type": ofs_type,
-				"debug": debug
-			})
+		def write(self, data, size):
+			self.__buffer[self.__pos : self.__pos + size] = data
+			self.__pos += size
+			
+		def seek(self, position, whence):
+			assert whence == 0
+			self.__pos = position
 
-		def end_count(self, stream):
-			elem = self.__stack.pop()
-			if elem is None:
-				raise RuntimeError("begin() / end() mismatch. Make sure there is only one call each")
-			# print("HandlingTraceBack: %s" % elem["debug"])
-			# print("Writes32 *%x = *%x" % (elem["ofs"], elem["count"]))
-			if not isinstance(elem["count"], int):
-				raise RuntimeError("Type %s is not valid for a count" % (type(elem["count"])))
-			stream.write_s32_at(elem["ofs"], elem["count"])
-			if elem["ofs_type"] != -1:
-				stream.write_s32_at(elem["ofs_type"], elem["type"])
-				# print("Writes32 *%x = *%x" % (elem["ofs_type"], elem["type"]))
-		
-		def set_type(self, type):
-			assert len(self.__stack) != 0
+		def tell(self):
+			return self.__pos
 
-			# Root node
-			if len(self.__stack) == 1:
-				return
-
-			# Only care for arrays
-			if self.__stack[-1]["ofs_type"] == -1:
-				return
-
-			if self.__stack[-1]["type"] is not None:
-				if self.__stack[-1]["type"] != type:
-					raise RuntimeError("Inside an array, all values must be of the same type!")
-
-			self.__stack[-1]["type"] = type
-
-		def is_type_implied(self):
-			return False
-			assert len(self.__stack) != 0
-
-			if len(self.__stack) == 1:
-				return False
-
-			return self.__stack[-1]["type"] is not None
-
-		def increment_count(self):
-			assert len(self.__stack) != 0
-			elem = self.__stack[-1]
-			if elem is None:
-				return
-
-			elem["count"] += 1
-
+		def close(self):
+			self.__buffer.flush()
+			self.__buffer.close()
+			self.__file.close()
+			
 	def __init__(self, path):
-		self.__stream = open(path, 'wb')
-		self.__stack = self.RHSTStack()
+		self.__stream = self.RHSTStream(100 * 1000 * 1000, path)
 
 		# Write header
 		self.__write_bytes("RHST")
@@ -132,38 +103,19 @@ class RHSTWriter:
 		self.__write_s32(RHST_DATA_NULL)
 		self.__stream.close()
 		
-	def __write_refcounted(self, debug, has_type):
-		self.__stack.begin_count(self.__stream.tell(), debug, self.__stream.tell() + 4 if has_type else -1)
-		self.__write_s32(0)
-		if has_type:
-			self.__write_s32(0)
-
-	def __increment_count(self, type):
-		self.__stack.set_type(type)
-		self.__stack.increment_count()
-
-	def __end_refcounted(self):
-		self.__stack.end_count(self)
-
 	def __write_s32(self, val):
-		self.__stream.write(struct.pack("<i", val))
+		self.__stream.write(struct.pack("<i", val), 4)
 
 	def __write_f32(self, val):
-		self.__stream.write(struct.pack("<f", val))
+		self.__stream.write(struct.pack("<f", val), 4)
 
 	def __write_bytes(self, string):
 		for val in string:
-			self.__stream.write(struct.pack("<c", bytes(val, 'ascii')))
+			self.__stream.write(struct.pack("<c", bytes(val, 'ascii')), 1)
 
 	def __align(self, alignment):
 		while self.__stream.tell() % alignment:
-			self.__stream.write(bytes([0]))
-
-	def write_s32_at(self, ofs, val):
-		back = self.__stream.tell()
-		self.__stream.seek(ofs, 0)
-		self.__write_s32(val)
-		self.__stream.seek(back, 0)
+			self.__stream.write(bytes([0]), 1)
 
 	def __write_inline_string(self, name):
 		self.__write_s32(len(name))
@@ -171,117 +123,62 @@ class RHSTWriter:
 		self.__align(4)
 
 	def write_s32(self, num):
-		self.__increment_count(RHST_DATA_S32)
-
-		if not self.__stack.is_type_implied():
-			self.__write_s32(RHST_DATA_S32)
-		self.__write_s32(num)
+		self.__stream.write(struct.pack("<ii", RHST_DATA_S32, num), 8)
 		
 	def write_f32(self, num):
-		self.__increment_count(RHST_DATA_F32)
-
-		if not self.__stack.is_type_implied():
-			self.__write_s32(RHST_DATA_F32)
-		self.__write_f32(num)
+		self.__stream.write(struct.pack("<if", RHST_DATA_F32, num), 8)
 
 	def write_string(self, string):
-		self.__increment_count(RHST_DATA_STRING)
+		self.__stream.write(struct.pack("<ii", RHST_DATA_STRING, len(string)), 8)
+		self.__write_bytes(string)
+		self.__align(4)
 
-		if not self.__stack.is_type_implied():
-			self.__write_s32(RHST_DATA_STRING)
-		self.__write_inline_string(string)
-
-	def begin_object(self, name):
-		self.__increment_count(RHST_DATA_DICT)
-		
-		if not self.__stack.is_type_implied():
-			self.__write_s32(RHST_DATA_DICT)
-		self.__write_refcounted(name, False)
-		self.__write_inline_string(name)
+	def begin_object(self, name, size):
+		self.__stream.write(struct.pack("<iii", RHST_DATA_DICT, size, len(name)), 12)
+		self.__write_bytes(name)
+		self.__align(4)
 
 		return True
-
-	def begin_array(self):
-		self.__increment_count(RHST_DATA_ARRAY)
-
-		if not self.__stack.is_type_implied():
-			self.__write_s32(RHST_DATA_ARRAY)
-		else:
-			print("Array type is implied")
-		self.__write_refcounted("array", True)
-
-		return True
-		
-	def end_array(self):
-		self.__end_refcounted()
-		self.__write_s32(RHST_DATA_END_ARRAY)
 
 	def end_object(self):
-		self.__end_refcounted()
-		self.__write_s32(RHST_DATA_END_DICT)
+		self.__stream.write(struct.pack("<i", RHST_DATA_END_DICT), 4)
 
+	def begin_array(self, size, type):
+		self.__stream.write(struct.pack("<iii", RHST_DATA_ARRAY, size, type), 12)
 
-	class ArrayScope:
-		def __init__(self, parent):
-			self.parent = parent
+		return True
 
-		def __enter__(self):
-			self.parent.begin_array()
-
-		def __exit__(self, exc_type, exc_val, exc_tb):
-			self.parent.end_array()
-
-	class ObjectScope:
-		def __init__(self, parent, name):
-			self.parent = parent
-			self.name = name
-
-		def __enter__(self):
-			self.parent.begin_object(self.name)
-
-		def __exit__(self, exc_type, exc_val, exc_tb):
-			self.parent.end_object()
-
-	def array(self):
-		return self.ArrayScope(self)
-
-	def object(self, name):
-		return self.ObjectScope(self, name)
-
+	def end_array(self):
+		self.__stream.write(struct.pack("<i", RHST_DATA_END_ARRAY), 4)
+		
 	def from_py(self, obj):
-		if isinstance(obj, list) or isinstance(obj, tuple):
-			self.begin_array()
+		x = type(obj)
+
+		if x == float:
+			self.write_f32(obj)
+		elif x == int:
+			self.write_s32(obj)
+		elif x == str:
+			self.write_string(obj)
+		elif x == list or x == tuple:
+			self.begin_array(len(obj), 0)
 			for item in obj:
 				self.from_py(item)
 			self.end_array()
-		elif isinstance(obj, dict) or isinstance(obj, OrderedDict):
+		elif x == dict or x == OrderedDict:
 			#print(obj['name'])
-			self.begin_object(obj['name'])
+			self.begin_object(obj['name'], len(obj))
 			for k, v in obj.items():
-				assert isinstance(k, str)
-				self.begin_object(k)
+				#assert isinstance(k, str)
+				self.begin_object(k, 1)
 				self.from_py(v)
 				self.end_object()
 			self.end_object()
-		elif isinstance(obj, int):
+		elif x == bool:
 			self.write_s32(obj)
-		elif isinstance(obj, float):
-			self.write_f32(obj)
-		elif isinstance(obj, str):
-			self.write_string(obj)
 		else:
 			print(type(obj))
 			raise RuntimeError("Invalid type!")
-
-	def string_kv(self, key, value):
-		self.begin_object(key)
-		self.begin_object(value)
-		self.end_object()
-		self.end_object()
-
-	def dict_kv(self, dict):
-		for item in dict:
-			self.string_kv(item, dict[item])
 
 # src\helpers\best_tex_format.py
 
@@ -735,15 +632,9 @@ def export_jres(
 ):
 	rhst = RHSTWriter(file_name)
 
-	rhst.begin_object("root")
+	rhst.begin_object("root", 2)
 
-	with rhst.object("head"):
-		with rhst.object("generator"):
-			rhst.write_string("Blender JRES Exporter")
-		with rhst.object("type"):
-			rhst.write_string("JMDL")
-		with rhst.object("version"):
-			rhst.write_string("0.0.1")
+	rhst.from_py({'name': "head", 'generator': "RiiStudio Blender", 'type': "JMDL", 'version': "Beta 1"})
 
 	current_data = {
 		"materials": [],
@@ -818,10 +709,17 @@ def export_jres(
 
 	# print(current_data)
 
+	start = perf_counter()
+
 	rhst.from_py(current_data)
+	#cProfile.runctx("rhst.from_py(current_data)", globals(), locals())
 	
 	rhst.end_object() # "root"
 	rhst.close()
+
+	end = perf_counter()
+	delta = end - start
+	print("Serialize took %u sec, %u msec" % (delta, delta * 1000))
 
 # src\exporters\brres\ExportBRRESCap.py
 
@@ -956,6 +854,8 @@ class ExportBRRES(Operator, ExportHelper):
 
 
 	def execute(self, context):
+		start = perf_counter()
+		
 		qname = os.path.split(self.filepath)[0] + "\\course.rhst"
 
 		jres_exported = export_jres(
@@ -1002,6 +902,11 @@ class ExportBRRES(Operator, ExportHelper):
 		os.system(cmd)
 		#os.remove(qname)
 		#shutil.rmtree(texture_folder)
+		
+		stop = perf_counter()
+		delta = stop - start
+		print("BRRES export took took %s seconds, %s ms" % (delta, delta * 1000))
+		
 		
 		return {'FINISHED'}
 
