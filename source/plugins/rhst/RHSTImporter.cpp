@@ -10,6 +10,7 @@
 #include <set>
 #include <stb_image.h>
 #include <string>
+#include <vendor/thread_pool.hpp>
 
 namespace riistudio::rhst {
 
@@ -311,6 +312,27 @@ static bool importTexture(libcube::Texture& data, const char* path,
   return importTexture(data, image, scratch, mip_gen, min_dim, max_mip, width,
                        height, channels);
 }
+
+void import_texture(std::string tex, libcube::Texture* pdata,
+                    std::filesystem::path file_path) {
+  libcube::Texture& data = *pdata;
+  std::vector<u8> scratch;
+  bool mip_gen = true;
+  u32 min_dim = 64;
+  u32 max_mip = 3;
+
+  const auto alt_path =
+      (file_path.parent_path() / "textures" / (tex + ".png")).string();
+
+  if (!importTexture(data, tex.c_str(), scratch, mip_gen, min_dim, max_mip)) {
+    if (!importTexture(data, alt_path.c_str(), scratch, mip_gen, min_dim,
+                       max_mip)) {
+      printf("Cannot find texture %s\n", tex.c_str());
+      // unresolved.emplace(i, tex);
+    }
+  }
+};
+
 void RHSTReader::read(kpi::IOTransaction& transaction) {
   std::string error_msg;
   auto result = librii::rhst::ReadSceneTree(transaction.data, error_msg);
@@ -319,6 +341,11 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
     transaction.state = kpi::TransactionState::Failure;
     return;
   }
+  int hw_threads = std::thread::hardware_concurrency();
+  // Account for the main thread
+  if (hw_threads > 1)
+    --hw_threads;
+  thread_pool pool(hw_threads);
 
   std::set<std::string> textures_needed;
 
@@ -339,35 +366,33 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
   for (auto& bone : result->bones) {
     compileBone(mdl.getBones().add(), bone);
   }
-  int i = 0;
-  for (auto& mesh : result->meshes) {
-    compileMesh(mdl.getMeshes().add(), mesh, i++, mdl);
-  }
 
   for (auto& tex : textures_needed) {
     printf("Importing texture: %s\n", tex.c_str());
 
     auto& data = scene.getTextures().add();
     data.setName(getFileShort(tex));
+  }
+  // Favor PNG, and the current directory
+  auto file_path =
+      std::filesystem::path(transaction.data.getProvider()->getFilePath());
 
-    std::vector<u8> scratch;
-    bool mip_gen = true;
-    u32 min_dim = 64;
-    u32 max_mip = 3;
-    if (!importTexture(data, tex.c_str(), scratch, mip_gen, min_dim, max_mip)) {
-      // Favor PNG, and the current directory
-      if (!importTexture(data,
-                         (std::filesystem::path(
-                              transaction.data.getProvider()->getFilePath())
-                              .parent_path() /
-                          "textures" / (tex + ".png"))
-                             .string()
-                             .c_str(),
-                         scratch, mip_gen, min_dim, max_mip)) {
-        printf("Cannot find texture %s\n", tex.c_str());
-        // unresolved.emplace(i, tex);
-      }
-    }
+  std::vector<std::future<bool>> futures;
+
+  for (int i = 0; i < scene.getTextures().size(); ++i) {
+    libcube::Texture* data = &scene.getTextures()[i];
+
+    auto task = std::bind(&import_texture, data->getName(), data, file_path);
+    futures.push_back(pool.submit(task));
+  }
+
+  int i = 0;
+  for (auto& mesh : result->meshes) {
+    compileMesh(mdl.getMeshes().add(), mesh, i++, mdl);
+  }
+
+  for (auto& f : futures) {
+    f.get();
   }
 
   transaction.state = kpi::TransactionState::Complete;
