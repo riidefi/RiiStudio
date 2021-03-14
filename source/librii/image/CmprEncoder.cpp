@@ -90,16 +90,17 @@ struct cmpr_info_t {
   // if opaque_count < 16: p[2] == p[3]
 };
 
-static u32 calc_distance(const u8* v1, const u8* v2) {
+static inline u32 calc_distance(const u8* v1, const u8* v2) {
   const int d0 = (int)*v1++ - (int)*v2++;
   const int d1 = (int)*v1++ - (int)*v2++;
   const int d2 = (int)*v1++ - (int)*v2++;
   return abs(d0) + abs(d1) + abs(d2);
 }
 
-void CMPR_close_info(const u8* data,    // source data
-                     cmpr_info_t* info, // info data structure
-                     u8* dest           // store destination data here (never 0)
+static constexpr inline void
+CMPR_close_info(const u8* data,    // source data
+                cmpr_info_t* info, // info data structure
+                u8* dest           // store destination data here (never 0)
 ) {
   assert(info);
   assert(dest);
@@ -246,7 +247,7 @@ void CMPR_close_info(const u8* data,    // source data
   }
 }
 
-void WIMGT_CMPR(const u8* data, cmpr_info_t* info) {
+static inline void WIMGT_CMPR(const u8* data, cmpr_info_t* info) {
   assert(info);
   memset(info, 0, sizeof(*info));
 
