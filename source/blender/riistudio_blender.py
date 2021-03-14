@@ -78,6 +78,17 @@ import cProfile
 
 DEBUG = False
 
+class Timer:
+	def __init__(self, name):
+		self.name = name
+		self.start = perf_counter()
+
+	def dump(self):
+		stop = perf_counter()
+		delta = stop - self.start
+
+		print("[%s] Elapsed %s seconds (%s ms)" % (self.name, delta, delta * 1000))
+
 # RHST (Rii Hierarchical Scene Tree) is a high-throughput,
 # multipurpose bitstream format I thought of the other day.
 class RHSTWriter:
@@ -94,15 +105,14 @@ class RHSTWriter:
 			self.__buffer[self.__pos : self.__pos + size] = data
 			self.__pos += size
 			
-		def seek(self, position, whence):
-			assert whence == 0
-			self.__pos = position
+		#	def seek(self, position, whence):
+		#		assert whence == 0
+		#		self.__pos = position
 
 		def tell(self):
 			return self.__pos
 
 		def close(self):
-			self.__buffer.flush()
 			self.__buffer.close()
 			self.__file.close()
 			
@@ -931,16 +941,22 @@ class ExportBRRES(Operator, ExportHelper):
 
 	def export(self, context, format):
 		# Produce a RHST file
+		timer = Timer("RHST Generation")
 		export_jres(
 			context,
 			self.get_export_params()
 		)
+		timer.dump()
 
 		# Dump .PNG images
+		timer = Timer("PNG Dumping")
 		export_textures(self.get_textures_path())
+		timer.dump()
 
 		# Convert RHST to BRRES
+		timer = Timer("BRRES Conversion")
 		invoke_converter(context, source=self.get_rhst_path(), dest=self.get_dest_path())
+		timer.dump()
 
 		# Optional cleanup
 		PURGE_BUILD_ARTIFACTS = False
@@ -950,14 +966,12 @@ class ExportBRRES(Operator, ExportHelper):
 			shutil.rmtree(self.get_textures_path())
 		
 	def execute(self, context):
-		start = perf_counter()
+		timer = Timer("BRRES Export")
 		
 		self.export(context, 'BRRES')
-		
-		stop = perf_counter()
-		delta = stop - start
-		print("BRRES export took took %s seconds, %s ms" % (delta, delta * 1000))
-		
+
+		timer.dump()
+				
 		return {'FINISHED'}
 
 # Only needed if you want to add into a dynamic menu
