@@ -45,6 +45,20 @@ def get_user_prefs(context):
 def get_rs_prefs(context):
 	return get_user_prefs(context).addons[__name__].preferences
 
+
+def invoke_command(string):
+	print(string)
+	os.system(string)
+
+def invoke_converter(context, source, dest):
+	bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
+	tests_exe = os.path.join(bin_root, "tests.exe")
+	
+	cmd = "%s \"%s\" \"%s\"" % (
+		tests_exe, source, dest
+	)
+	invoke_command(cmd)
+
 RHST_DATA_NULL   = 0
 
 RHST_DATA_DICT   = 1
@@ -435,7 +449,7 @@ def vec3(x):
 def vec4(x):
 	return (x.x, x.y, x.z, x.w)
 
-def all_meshes():
+def all_objects():
 	if BLENDER_28:
 		for Collection in bpy.data.collections:
 			for Object in Collection.objects:
@@ -447,8 +461,13 @@ def all_meshes():
 			if not lxe:
 				print("Object %s excluded as not in left layers" % Object.name)
 				continue
-			if Object.type == 'MESH':
-				yield Object
+			
+			yield Object
+
+def all_meshes():
+	for obj in all_objects():
+		if obj.type == 'MESH':
+			yield obj
 
 def get_texture(mat):
 	if BLENDER_28:
@@ -464,6 +483,13 @@ def all_tex_uses():
 
 def all_textures():
 	return set(all_tex_uses())
+
+def export_textures(textures_path):
+	if not os.path.exists(textures_path):
+		os.makedirs(textures_path)
+
+	for tex in all_textures():
+		export_tex(tex, textures_path)
 
 def build_rs_mat(mat, texture_name):
 	return {
@@ -485,7 +511,6 @@ def export_mesh(
 	magnification,
 	split_mesh_by_material,
 	add_dummy_colors,
-	fp_format,
 	context,
 	model
 ):
@@ -607,30 +632,43 @@ def export_mesh(
 		if not split_mesh_by_material:
 			break
 
-def export_jres(
-		file_name,
-		context,
-		quantize_position="float",
-		quantize_normal="float",
-		quantize_uv="float",
-		quantize_color="auto",
-		root_transform_scale_x=1,
-		root_transform_scale_y=1,
-		root_transform_scale_z=1,
-		root_transform_rotate_x=0,
-		root_transform_rotate_y=0,
-		root_transform_rotate_z=0,
-		root_transform_translate_x=0,
-		root_transform_translate_y=0,
-		root_transform_translate_z=0,
-		magnification=1000,
-		split_mesh_by_material=True,
-		mesh_conversion_mode='PREVIEW',
-		write_metadata=False,  # Not settable in GUI
-		add_dummy_colors=True,
-		ignore_cache=False
-):
-	rhst = RHSTWriter(file_name)
+class SRT:
+	def __init__(self, s=(1.0, 1.0, 1.0), r=(0.0, 0.0, 0.0), t=(0.0, 0.0, 0.0)):
+		self.s = s
+		self.r = r
+		self.t = t
+
+
+class Quantization:
+	def __init__(self, pos="float", nrm="float", uv="float", clr="auto"):
+		self.pos = pos
+		self.nrm = nrm
+		self.uv  = uv
+		self.clr = clr
+
+
+class ConverterFlags:
+	def __init__(self, split_mesh_by_material=True, mesh_conversion_mode='PREVIEW',
+		add_dummy_colors = True, ignore_cache = False, write_metadata = False):
+		
+		self.split_mesh_by_material = split_mesh_by_material
+		self.mesh_conversion_mode = mesh_conversion_mode
+		self.add_dummy_colors = add_dummy_colors
+		self.ignore_cache = ignore_cache
+		self.write_metadata = False
+
+class RHSTExportParams:
+	def __init__(self, dest_path, quantization=Quantization(), root_transform = SRT(),
+				magnification=1000, flags = ConverterFlags()):
+		self.dest_path = dest_path
+		self.quantization = quantization
+		self.root_transform = root_transform
+		self.magnification = magnification
+		self.flags = flags
+
+
+def export_jres(context, params : RHSTExportParams):
+	rhst = RHSTWriter(params.dest_path)
 
 	rhst.begin_object("root", 2)
 
@@ -648,9 +686,9 @@ def export_jres(
 			"name": "blender_root",
 			"parent": -1,
 			"child": -1,
-			"scale": [root_transform_scale_x, root_transform_scale_y, root_transform_scale_z],
-			"rotate": [root_transform_rotate_x, root_transform_rotate_y, root_transform_rotate_z],
-			"translate": [root_transform_translate_x, root_transform_translate_y, root_transform_translate_z],
+			"scale": params.root_transform.s,
+			"rotate": params.root_transform.r,
+			"translate": params.root_transform.t,
 			"min": [0, 0, 0],
 			"max": [0, 0, 0],
 			"billboard": "none",
@@ -669,7 +707,7 @@ def export_jres(
 			return cur_id
 
 		def append_drawcall(self, mat, poly, prio):
-			current_data["bones"][0]["draws"].append([mat, poly, prio])
+			self.current_data["bones"][0]["draws"].append([mat, poly, prio])
 
 		def add_mesh(self, poly):
 			self.current_data["polygons"].append(poly)
@@ -688,26 +726,19 @@ def export_jres(
 			self.material_remap[tex_name] = len(materials) - 1
 			return new_mi
 
-
 	model = Model(current_data)
-
-	# The vertex descriptor
-	fp_format = []
 
 	for Object in all_meshes():
 		export_mesh(
 			Object,
-			magnification,
-			split_mesh_by_material,
-			add_dummy_colors,
-			fp_format,
+			params.magnification,
+			params.flags.split_mesh_by_material,
+			params.flags.add_dummy_colors,
 			context,
 			model
 		)
 
 	current_data['name'] = 'body'
-
-	# print(current_data)
 
 	start = perf_counter()
 
@@ -852,61 +883,80 @@ class ExportBRRES(Operator, ExportHelper):
 		row.prop(self, "root_transform_translate_y")
 		row.prop(self, "root_transform_translate_z")
 
+	def get_root_transform(self):
+		root_scale     = [self.root_transform_scale_x,     self.root_transform_scale_y,     self.root_transform_scale_z]
+		root_rotate    = [self.root_transform_rotate_x,    self.root_transform_rotate_y,    self.root_transform_rotate_z]
+		root_translate = [self.root_transform_translate_x, self.root_transform_translate_y, self.root_transform_translate_z]
 
+		return SRT(root_scale, root_rotate, root_translate)
+
+	def get_quantization(self):
+		return Quantization(
+			pos = self.position_quantize,
+			nrm = self.normal_quantize,
+			uv  = self.uv_quantize,
+			clr = self.color_quantize
+		)
+
+	def get_converter_flags(self):
+		return ConverterFlags(
+			self.split_mesh_by_material,
+			self.mesh_conversion_mode,
+			self.add_dummy_colors,
+			self.ignore_cache
+		)
+
+	def get_rhst_path(self):
+		return os.path.join(os.path.split(self.filepath)[0], "course.rhst")
+
+	def get_textures_path(self):
+		return os.path.join(os.path.split(self.filepath)[0], "textures")
+
+	def get_dest_path(self):
+		return self.filepath
+
+	def get_export_params(self):
+		tmp_path = self.get_rhst_path()
+
+		root_transform = self.get_root_transform()
+		quantization = self.get_quantization()
+		converter_flags = self.get_converter_flags()
+
+		return RHSTExportParams(tmp_path,
+			quantization   = quantization,
+			root_transform = root_transform,
+			magnification  = self.magnification,
+			flags          = converter_flags
+		)
+
+	def export(self, context, format):
+		# Produce a RHST file
+		export_jres(
+			context,
+			self.get_export_params()
+		)
+
+		# Dump .PNG images
+		export_textures(self.get_textures_path())
+
+		# Convert RHST to BRRES
+		invoke_converter(context, source=self.get_rhst_path(), dest=self.get_dest_path())
+
+		# Optional cleanup
+		PURGE_BUILD_ARTIFACTS = False
+
+		if PURGE_BUILD_ARTIFACTS:
+			os.remove(self.get_rhst_path())
+			shutil.rmtree(self.get_textures_path())
+		
 	def execute(self, context):
 		start = perf_counter()
 		
-		qname = os.path.split(self.filepath)[0] + "\\course.rhst"
-
-		jres_exported = export_jres(
-			qname,
-			context,
-			quantize_position=self.position_quantize,
-			quantize_normal=self.normal_quantize,
-			quantize_uv=self.uv_quantize,
-			quantize_color=self.color_quantize,
-			root_transform_scale_x=self.root_transform_scale_x,
-			root_transform_scale_y=self.root_transform_scale_x,
-			root_transform_scale_z=self.root_transform_scale_z,
-			root_transform_rotate_x=self.root_transform_rotate_x,
-			root_transform_rotate_y=self.root_transform_rotate_y,
-			root_transform_rotate_z=self.root_transform_rotate_z,
-			root_transform_translate_x=self.root_transform_translate_x,
-			root_transform_translate_y=self.root_transform_translate_y,
-			root_transform_translate_z=self.root_transform_translate_z,
-			magnification=self.magnification,
-			split_mesh_by_material=self.split_mesh_by_material,
-			mesh_conversion_mode=self.mesh_conversion_mode,
-			add_dummy_colors=self.add_dummy_colors,
-			ignore_cache=self.ignore_cache,
-		)
-
-
-		binRoot = get_rs_prefs(context).riistudio_directory
-
-		# Create texture folder if not exist
-		texture_folder = os.path.join(os.path.split(self.filepath)[0], "textures")
-		if not os.path.exists(texture_folder):
-			os.makedirs(texture_folder)
-			ignore_cache = True # Invalidate the cache
-
-		for tex in all_textures():
-			export_tex(tex, texture_folder)
-
-		# out = self.filepath
-		print(binRoot)
-		cmd = binRoot + "tests.exe %s %s" % (
-			"\"" + qname + "\"", "\"" + self.filepath + "\""
-		)
-		print(cmd)
-		os.system(cmd)
-		#os.remove(qname)
-		#shutil.rmtree(texture_folder)
+		self.export(context, 'BRRES')
 		
 		stop = perf_counter()
 		delta = stop - start
 		print("BRRES export took took %s seconds, %s ms" % (delta, delta * 1000))
-		
 		
 		return {'FINISHED'}
 
