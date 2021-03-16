@@ -5,12 +5,17 @@
 #include <librii/hx/PixMode.hpp>
 #include <librii/rhst/RHST.hpp>
 #include <oishii/reader/binary_reader.hxx>
+#include <plugins/g3d/collection.hpp>
 #include <plugins/gc/Export/Scene.hpp>
 #include <plugins/j3d/Material.hpp>
+#include <plugins/j3d/Scene.hpp>
 #include <set>
 #include <stb_image.h>
 #include <string>
 #include <vendor/thread_pool.hpp>
+
+// XXX: Hack, though we'll refactor all of this way soon
+std::string rebuild_dest;
 
 namespace riistudio::rhst {
 
@@ -196,6 +201,7 @@ void compileMatrixPrim(librii::gx::MatrixPrimitive& dst,
                        s32 current_matrix, libcube::IndexedPolygon& poly,
                        libcube::Model& model) {
   dst.mCurrentMatrix = current_matrix;
+  dst.mDrawMatrixIndices.push_back(current_matrix);
   // TODO: Support these
   // std::copy(src.draw_matrices.begin(), src.draw_matrices.end(),
   //           std::back_inserter(dst.mDrawMatrixIndices));
@@ -210,6 +216,8 @@ void compileMesh(libcube::IndexedPolygon& dst, const librii::rhst::Mesh& src,
   dst.setName(src.name);
   dst.setId(id);
 
+  // No skinning/BB
+  dst.init(false, nullptr);
   auto& data = dst.getMeshData();
 
   for (int i = 0; i < static_cast<int>(librii::gx::VertexAttribute::Max); ++i) {
@@ -227,8 +235,8 @@ void compileMesh(libcube::IndexedPolygon& dst, const librii::rhst::Mesh& src,
   dst.initBufsFromVcd(model);
 
   for (auto& matrix_prim : src.matrix_primitives) {
-    compileMatrixPrim(data.mMatrixPrimitives.emplace_back(), matrix_prim,
-                      src.current_matrix, dst, model);
+    compileMatrixPrim(data.mMatrixPrimitives.emplace_back(), matrix_prim, 0,
+                      dst, model);
   }
 }
 
@@ -247,6 +255,12 @@ std::string RHSTReader::canRead(const std::string& file,
 
   if (reader.read<u32, oishii::EndianSelect::Little>() != 1)
     return "";
+
+  if (rebuild_dest.ends_with(".brres"))
+    return typeid(g3d::Collection).name();
+
+  if (rebuild_dest.ends_with(".bmd"))
+    return typeid(j3d::Collection).name();
 
   return typeid(lib3d::Scene).name();
 }
@@ -389,6 +403,17 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
   int i = 0;
   for (auto& mesh : result->meshes) {
     compileMesh(mdl.getMeshes().add(), mesh, i++, mdl);
+  }
+
+  for (auto& weight : result->weights) {
+    auto& bweightgroup = mdl.mDrawMatrices.emplace_back();
+
+    for (auto& influence : weight.weights) {
+      auto& bweight = bweightgroup.mWeights.emplace_back();
+
+      bweight.boneId = influence.bone_index;
+      bweight.weight = static_cast<float>(influence.influence) / 100.0f;
+    }
   }
 
   for (auto& f : futures) {

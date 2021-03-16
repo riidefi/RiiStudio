@@ -59,7 +59,12 @@ std::unique_ptr<kpi::INode> open(const std::string_view path) {
   return fileState;
 }
 
+// XXX: Hack, though we'll refactor all of this way soon
+extern std::string rebuild_dest;
+
 void rebuild(const std::string_view from, const std::string_view to) {
+  rebuild_dest = to;
+
   auto data = open(from);
   if (!data) {
     printf("Cannot rebuild!\n");

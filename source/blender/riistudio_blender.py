@@ -762,23 +762,7 @@ def export_jres(context, params : RHSTExportParams):
 	delta = end - start
 	print("Serialize took %u sec, %u msec" % (delta, delta * 1000))
 
-# src\exporters\brres\ExportBRRESCap.py
-
-class ExportBRRES(Operator, ExportHelper):
-	"""Export file as BMD"""
-	bl_idname = "rstudio.export_brres"
-	bl_label = "Blender BRRES Exporter"
-	bl_options = {'PRESET'}
-	filename_ext = ".brres"
-
-	filter_glob = StringProperty(
-		default="*.brres",
-		options={'HIDDEN'},
-		maxlen=255,  # Max internal buffer length, longer would be clamped.
-	)
-
-# src\exporters\jres\JRES_RNA.py
-
+class RHST_RNA:
 	quantize_types = (
 		("float", "float", "Higher precision"),
 		("fixed", "fixed", "Lower precision")  # ,
@@ -847,51 +831,11 @@ class ExportBRRES(Operator, ExportHelper):
 		description="Ignore the cache and rebuild every texture"
 	)
 
-# src\exporters\brres\ExportBRRES.py
-
-	def draw(self, context):
-		layout = self.layout
-		box = layout.box()
-		box.label(text="BRRES", icon='FILE_TICK' if BLENDER_28 else 'FILESEL')
-		# Mesh
-		box = layout.box()
-		box.label(text="Mesh", icon='MESH_DATA')
-		box.prop(self, "magnification", icon='VIEWZOOM' if BLENDER_28 else 'MAN_SCALE')
-		box.prop(self, "split_mesh_by_material")
-		box.prop(self, "mesh_conversion_mode")
-		box.prop(self, 'add_dummy_colors')
-		box.prop(self, 'ignore_cache')
-
-		# # CT Integrations
-		# box = layout.box()
-		# box.label("CT Integrations", icon='LINK_BLEND')
-		# box.prop(self, "rspm_build_debug")
-		# Quantization
-		box = layout.box()
-		box.label(text="Quantization", icon='LINENUMBERS_ON')
-		col = box.column()
-		col.prop(self, "position_quantize")
-		col.prop(self, "normal_quantize")
-		col.prop(self, "uv_quantize")
-		col.prop(self, "color_quantize")
-		# Root Transform
-		box = layout.box()
-		box.label(text="Root Transform", icon='FULLSCREEN_ENTER' if BLENDER_28 else 'MANIPUL')
-		row = box.row(align=True)
-		row.label(text="Scale")
-		row.prop(self, "root_transform_scale_x")
-		row.prop(self, "root_transform_scale_y")
-		row.prop(self, "root_transform_scale_z")
-		row = box.row(align=True)
-		row.label(text="Rotate")
-		row.prop(self, "root_transform_rotate_x")
-		row.prop(self, "root_transform_rotate_y")
-		row.prop(self, "root_transform_rotate_z")
-		row = box.row(align=True)
-		row.label(text="Translate")
-		row.prop(self, "root_transform_translate_x")
-		row.prop(self, "root_transform_translate_y")
-		row.prop(self, "root_transform_translate_z")
+	keep_build_artifacts = BoolProperty(
+		name="Keep Build Artifacts",
+		default=False,
+		description="Don't delete .rhst and .png files"
+	)
 
 	def get_root_transform(self):
 		root_scale     = [self.root_transform_scale_x,     self.root_transform_scale_y,     self.root_transform_scale_z]
@@ -939,7 +883,49 @@ class ExportBRRES(Operator, ExportHelper):
 			flags          = converter_flags
 		)
 
-	def export(self, context, format):
+	def draw_rhst_options(self, context):
+		layout = self.layout
+		# Mesh
+		box = layout.box()
+		box.label(text="PMesh", icon='MESH_DATA')
+		box.prop(self, "magnification", icon='VIEWZOOM' if BLENDER_28 else 'MAN_SCALE')
+		box.prop(self, "split_mesh_by_material")
+		box.prop(self, "mesh_conversion_mode")
+		box.prop(self, 'add_dummy_colors')
+		box.prop(self, 'ignore_cache')
+
+		# # CT Integrations
+		# box = layout.box()
+		# box.label("CT Integrations", icon='LINK_BLEND')
+		# box.prop(self, "rspm_build_debug")
+		# Quantization
+		box = layout.box()
+		box.label(text="Quantization", icon='LINENUMBERS_ON')
+		col = box.column()
+		col.prop(self, "position_quantize")
+		col.prop(self, "normal_quantize")
+		col.prop(self, "uv_quantize")
+		col.prop(self, "color_quantize")
+		# Root Transform
+		box = layout.box()
+		box.label(text="Root Transform", icon='FULLSCREEN_ENTER' if BLENDER_28 else 'MANIPUL')
+		row = box.row(align=True)
+		row.label(text="Scale")
+		row.prop(self, "root_transform_scale_x")
+		row.prop(self, "root_transform_scale_y")
+		row.prop(self, "root_transform_scale_z")
+		row = box.row(align=True)
+		row.label(text="Rotate")
+		row.prop(self, "root_transform_rotate_x")
+		row.prop(self, "root_transform_rotate_y")
+		row.prop(self, "root_transform_rotate_z")
+		row = box.row(align=True)
+		row.label(text="Translate")
+		row.prop(self, "root_transform_translate_x")
+		row.prop(self, "root_transform_translate_y")
+		row.prop(self, "root_transform_translate_z")
+
+	def export_rhst(self, context, dump_pngs=True):
 		# Produce a RHST file
 		timer = Timer("RHST Generation")
 		export_jres(
@@ -948,22 +934,49 @@ class ExportBRRES(Operator, ExportHelper):
 		)
 		timer.dump()
 
-		# Dump .PNG images
-		timer = Timer("PNG Dumping")
-		export_textures(self.get_textures_path())
-		timer.dump()
+		if dump_pngs:
+			# Dump .PNG images
+			timer = Timer("PNG Dumping")
+			export_textures(self.get_textures_path())
+			timer.dump()
 
-		# Convert RHST to BRRES
+	def cleanup_rhst(self):
+		os.remove(self.get_rhst_path())
+		shutil.rmtree(self.get_textures_path())
+
+	def cleanup_if_enabled(self):
+		if not self.keep_build_artifacts:
+			self.cleanup_rhst()
+
+# src\exporters\brres\ExportBRRESCap.py
+
+class ExportBRRES(Operator, ExportHelper, RHST_RNA):
+	"""Export file as BRRES"""
+	bl_idname = "rstudio.export_brres"
+	bl_label = "Blender BRRES Exporter"
+	bl_options = {'PRESET'}
+	filename_ext = ".brres"
+
+	filter_glob = StringProperty(
+		default="*.brres",
+		options={'HIDDEN'},
+		maxlen=255,  # Max internal buffer length, longer would be clamped.
+	)
+
+	def draw(self, context):
+		box = self.layout.box()
+		box.label(text="BRRES", icon='FILE_TICK' if BLENDER_28 else 'FILESEL')
+		
+		self.draw_rhst_options(context)
+
+	def export(self, context, format):
+		self.export_rhst(context, dump_pngs=True)
+		
 		timer = Timer("BRRES Conversion")
 		invoke_converter(context, source=self.get_rhst_path(), dest=self.get_dest_path())
 		timer.dump()
 
-		# Optional cleanup
-		PURGE_BUILD_ARTIFACTS = False
-
-		if PURGE_BUILD_ARTIFACTS:
-			os.remove(self.get_rhst_path())
-			shutil.rmtree(self.get_textures_path())
+		self.cleanup_if_enabled()
 		
 	def execute(self, context):
 		timer = Timer("BRRES Export")
@@ -974,9 +987,46 @@ class ExportBRRES(Operator, ExportHelper):
 				
 		return {'FINISHED'}
 
+class ExportBMD(Operator, ExportHelper, RHST_RNA):
+	"""Export file as BMD"""
+	bl_idname = "rstudio.export_bmd"
+	bl_label = "Blender BMD Exporter"
+	bl_options = {'PRESET'}
+	filename_ext = ".bmd"
+
+	filter_glob = StringProperty(
+		default="*.bmd",
+		options={'HIDDEN'},
+		maxlen=255,  # Max internal buffer length, longer would be clamped.
+	)
+
+	def draw(self, context):
+		box = self.layout.box()
+		box.label(text="BMD", icon='FILE_TICK' if BLENDER_28 else 'FILESEL')
+		
+		self.draw_rhst_options(context)
+
+	def export(self, context, format):
+		self.export_rhst(context, dump_pngs=True)
+		
+		timer = Timer("BMD Conversion")
+		invoke_converter(context, source=self.get_rhst_path(), dest=self.get_dest_path())
+		timer.dump()
+
+		self.cleanup_if_enabled()
+	
+	def execute(self, context):
+		timer = Timer("BMD Export")
+		self.export(context, 'BMD')
+		timer.dump()
+				
+		return {'FINISHED'}
+
 # Only needed if you want to add into a dynamic menu
 def brres_menu_func_export(self, context):
 	self.layout.operator(ExportBRRES.bl_idname, text="BRRES")
+def bmd_menu_func_export(self, context):
+	self.layout.operator(ExportBMD.bl_idname, text="BMD")
 
 
 # src\preferences.py
@@ -996,7 +1046,8 @@ class RiidefiStudioPreferenceProperty(bpy.types.AddonPreferences):
 		box = layout.box()
 		box.label(text="RiiStudio Folder", icon='FILE_IMAGE')
 		box.row().prop(self, "riistudio_directory")
-		layout.label(text="Don't forget to save user preferences!")
+		if not BLENDER_28:
+			layout.label(text="Don't forget to save user preferences!")
 
 
 
@@ -1021,9 +1072,12 @@ class OBJECT_OT_addon_prefs_example(bpy.types.Operator):
 
 classes = (
 	ExportBRRES,
+	ExportBMD,
+
 	BRRESTexturePanel,
 	JRESMaterialPanel,
 	JRESScenePanel,
+
 	RiidefiStudioPreferenceProperty,
 	OBJECT_OT_addon_prefs_example
 )
@@ -1143,6 +1197,7 @@ def register_mat():
 def register():
 	MT_file_export = bpy.types.TOPBAR_MT_file_export if BLENDER_28 else bpy.types.INFO_MT_file_export
 	MT_file_export.append(brres_menu_func_export)
+	MT_file_export.append(bmd_menu_func_export)
 	
 	register_tex()
 	register_mat()
@@ -1168,6 +1223,7 @@ def unregister():
 		bpy.utils.unregister_class(c)
 	MT_file_export = bpy.types.TOPBAR_MT_file_export if BLENDER_28 else bpy.types.INFO_MT_file_export
 	MT_file_export.remove(brres_menu_func_export)
+	MT_file_export.remove(bmd_menu_func_export)
 
 
 def main():
