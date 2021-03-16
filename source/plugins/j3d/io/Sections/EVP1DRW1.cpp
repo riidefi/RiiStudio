@@ -6,7 +6,7 @@ namespace riistudio::j3d {
 void readEVP1DRW1(BMDOutputContext& ctx) {
   auto& reader = ctx.reader;
   // We infer DRW1 -- one bone -> singlebound, else create envelope
-  std::vector<DrawMatrix> envelopes;
+  std::vector<libcube::DrawMatrix> envelopes;
 
   // First read our envelope data
   if (enterSection(ctx, 'EVP1')) {
@@ -83,8 +83,9 @@ void readEVP1DRW1(BMDOutputContext& ctx) {
 
       mtx = multipleInfluences
                 ? envelopes[index]
-                : DrawMatrix{std::vector<DrawMatrix::MatrixWeight>{
-                      DrawMatrix::MatrixWeight(index, 1.0f)}};
+                : libcube::DrawMatrix{
+                      std::vector<libcube::DrawMatrix::MatrixWeight>{
+                          libcube::DrawMatrix::MatrixWeight(index, 1.0f)}};
       i++;
     }
   }
@@ -117,7 +118,7 @@ struct EVP1Node {
   }
   struct SimpleEvpNode : public oishii::Node {
 
-    SimpleEvpNode(const std::vector<DrawMatrix>& from,
+    SimpleEvpNode(const std::vector<libcube::DrawMatrix>& from,
                   const std::vector<int>& toWrite,
                   const std::vector<float>& weightPool,
                   const Model* mdl = nullptr)
@@ -125,7 +126,7 @@ struct EVP1Node {
       getLinkingRestriction().setLeaf();
     }
     Result gatherChildren(NodeDelegate&) const noexcept { return {}; }
-    const std::vector<DrawMatrix>& mFrom;
+    const std::vector<libcube::DrawMatrix>& mFrom;
     const std::vector<int>& mToWrite;
     const std::vector<float>& mWeightPool;
     const Model* mMdl;

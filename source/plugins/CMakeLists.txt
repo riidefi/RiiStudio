@@ -38,7 +38,7 @@ add_library(plugins
 	
 	
 	"gc/Node.h"
-	"j3d/DrawMatrix.hpp"
+	
 	"j3d/io/BMD.cpp"
 	"j3d/io/OutputCtx.hpp"
 	"j3d/io/SceneGraph.cpp"

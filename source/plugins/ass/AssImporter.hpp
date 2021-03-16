@@ -52,9 +52,9 @@ private:
 
   int get_bone_id(const aiNode* pNode);
   // Only call if weighted
-  u16 add_weight_matrix_low(const j3d::DrawMatrix& drw);
+  u16 add_weight_matrix_low(const libcube::DrawMatrix& drw);
   u16 add_weight_matrix(int v, const aiMesh* pMesh,
-                        j3d::DrawMatrix* pDrwOut = nullptr);
+                        libcube::DrawMatrix* pDrwOut = nullptr);
 
   void
   ProcessMeshTrianglesStatic(const aiNode* singleInfluence,

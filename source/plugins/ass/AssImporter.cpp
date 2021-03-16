@@ -30,7 +30,7 @@ int AssImporter::get_bone_id(const aiNode* pNode) {
              : -1;
 }
 // Only call if weighted
-u16 AssImporter::add_weight_matrix_low(const j3d::DrawMatrix& drw) {
+u16 AssImporter::add_weight_matrix_low(const libcube::DrawMatrix& drw) {
   const auto found = std::find(out_model->mDrawMatrices.begin(),
                                out_model->mDrawMatrices.end(), drw);
   if (found != out_model->mDrawMatrices.end()) {
@@ -41,8 +41,8 @@ u16 AssImporter::add_weight_matrix_low(const j3d::DrawMatrix& drw) {
   }
 }
 u16 AssImporter::add_weight_matrix(int v, const aiMesh* pMesh,
-                                   j3d::DrawMatrix* pDrwOut) {
-  j3d::DrawMatrix drw;
+                                   libcube::DrawMatrix* pDrwOut) {
+  libcube::DrawMatrix drw;
   for (unsigned j = 0; j < pMesh->mNumBones; ++j) {
     const auto* pBone = pMesh->mBones[j];
 
@@ -73,7 +73,7 @@ void AssImporter::ProcessMeshTrianglesStatic(
 
   const int boneId = get_bone_id(singleInfluence);
   assert(boneId >= 0);
-  j3d::DrawMatrix drw{{{static_cast<u32>(boneId), 1.0f}}};
+  libcube::DrawMatrix drw{{{static_cast<u32>(boneId), 1.0f}}};
   const auto mtx = add_weight_matrix_low(drw);
   mp.mCurrentMatrix = mtx;
   mp.mDrawMatrixIndices.push_back(mtx);
@@ -237,7 +237,7 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
     }
   }
 
-  auto add_position = [&](int v, const j3d::DrawMatrix* wt = nullptr) {
+  auto add_position = [&](int v, const libcube::DrawMatrix* wt = nullptr) {
     glm::vec3 pos = getVec(pMesh->mVertices[v]);
 
     // If rigid, transform into bone-space
@@ -291,7 +291,7 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
       const auto v = pMesh->mFaces[f].mIndices[fv];
 
       librii::gx::IndexedVertex vtx{};
-      j3d::DrawMatrix drw;
+      libcube::DrawMatrix drw;
       const auto weightInfo =
           pMesh->HasBones() ? add_weight_matrix(v, pMesh, &drw) : 0;
 

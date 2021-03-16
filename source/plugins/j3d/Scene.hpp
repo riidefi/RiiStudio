@@ -2,7 +2,6 @@
 
 #include <core/3d/i3dmodel.hpp>
 
-#include "DrawMatrix.hpp"
 #include "Joint.hpp"
 #include "Material.hpp"
 #include "Shape.hpp"
