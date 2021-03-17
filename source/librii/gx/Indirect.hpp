@@ -42,9 +42,7 @@ struct IndirectTextureScalePair {
   Selection U{Selection::x_1};
   Selection V{Selection::x_1};
 
-  bool operator==(const IndirectTextureScalePair& rhs) const noexcept {
-    return U == rhs.U && V == rhs.V;
-  }
+  bool operator==(const IndirectTextureScalePair& rhs) const noexcept = default;
 };
 struct IndirectMatrix {
   glm::vec2 scale{0.5f, 0.5f};
@@ -53,10 +51,7 @@ struct IndirectMatrix {
 
   int quant = 1; // Exponent selection
 
-  bool operator==(const IndirectMatrix& rhs) const noexcept {
-    return scale == rhs.scale && rotate == rhs.rotate && trans == rhs.trans &&
-           quant == rhs.quant;
-  }
+  bool operator==(const IndirectMatrix& rhs) const noexcept = default;
   // TODO: Verify with glm decompose
   glm::mat3x2 compute() const {
     const auto theta = rotate / 180.0f * 3.141592f;

@@ -33,9 +33,7 @@ struct ColorF32 {
 struct Color {
   u32 r = 0, g = 0, b = 0, a = 0;
 
-  inline bool operator==(const Color& rhs) const noexcept {
-    return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
-  }
+  inline bool operator==(const Color& rhs) const noexcept = default;
 
   inline operator ColorF32() const {
     return {static_cast<float>(r) / static_cast<float>(0xff),

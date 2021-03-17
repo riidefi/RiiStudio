@@ -8,10 +8,7 @@ struct ZMode {
   Comparison function = Comparison::LEQUAL;
   bool update = true;
 
-  const bool operator==(const ZMode& rhs) const noexcept {
-    return compare == rhs.compare && function == rhs.function &&
-           update == rhs.update;
-  }
+  bool operator==(const ZMode& rhs) const noexcept = default;
 };
 	
 } // namepace librii::gx

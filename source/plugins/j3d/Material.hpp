@@ -43,21 +43,14 @@ struct Fog {
   librii::gx::Color color = librii::gx::Color(0xffffffff);
   std::array<u16, 10> rangeAdjTable;
 
-  bool operator==(const Fog& rhs) const noexcept {
-    return type == rhs.type && enabled == rhs.enabled && center == rhs.center &&
-           startZ == rhs.startZ && endZ == rhs.endZ && nearZ == rhs.nearZ &&
-           farZ == rhs.farZ && color == rhs.color &&
-           rangeAdjTable == rhs.rangeAdjTable;
-  }
+  bool operator==(const Fog& rhs) const noexcept = default;
 };
 
 struct NBTScale {
   bool enable = false;
   glm::vec3 scale = {0.0f, 0.0f, 0.0f};
 
-  bool operator==(const NBTScale& rhs) const noexcept {
-    return enable == rhs.enable && scale == rhs.scale;
-  }
+  bool operator==(const NBTScale& rhs) const noexcept = default;
 };
 
 struct MaterialData : public libcube::GCMaterialData {

@@ -15,18 +15,13 @@ struct TevOrder {
   librii::gx::ColorSelChanApi rasOrder;
   u8 texMap, texCoord;
 
-  bool operator==(const TevOrder& rhs) const noexcept {
-    return rasOrder == rhs.rasOrder && texMap == rhs.texMap &&
-           texCoord == rhs.texCoord;
-  }
+  bool operator==(const TevOrder& rhs) const noexcept = default;
 };
 
 struct SwapSel {
   u8 colorChanSel, texSel;
 
-  bool operator==(const SwapSel& rhs) const noexcept {
-    return colorChanSel == rhs.colorChanSel && texSel == rhs.texSel;
-  }
+  bool operator==(const SwapSel& rhs) const noexcept = default;
 };
 
 struct Tex {
@@ -159,11 +154,7 @@ struct ModelData : public virtual kpi::IObject {
         tevStage[i] = mat.mStages[i].indirectStage;
     }
 
-    bool operator==(const Indirect& rhs) const noexcept {
-      return enabled == rhs.enabled && nIndStage == rhs.nIndStage &&
-             tevOrder == rhs.tevOrder && texMtx == rhs.texMtx &&
-             texScale == rhs.texScale && tevStage == rhs.tevStage;
-    }
+    bool operator==(const Indirect& rhs) const noexcept = default;
   };
   mutable struct MatCache {
     template <typename T> using Section = std::vector<T>;

@@ -189,12 +189,7 @@ struct TevStage {
     bool clamp = true;
     TevReg out = TevReg::prev;
 
-    bool operator==(const ColorStage& rhs) const noexcept {
-      return constantSelection == rhs.constantSelection && a == rhs.a &&
-             b == rhs.b && c == rhs.c && d == rhs.d && formula == rhs.formula &&
-             bias == rhs.bias && scale == rhs.scale && clamp == rhs.clamp &&
-             out == rhs.out;
-    }
+    bool operator==(const ColorStage& rhs) const noexcept = default;
   } colorStage;
   struct AlphaStage {
     TevAlphaArg a = TevAlphaArg::zero;
@@ -209,12 +204,7 @@ struct TevStage {
     bool clamp = true;
     TevReg out = TevReg::prev;
 
-    bool operator==(const AlphaStage& rhs) const noexcept {
-      return constantSelection == rhs.constantSelection && a == rhs.a &&
-             b == rhs.b && c == rhs.c && d == rhs.d && formula == rhs.formula &&
-             bias == rhs.bias && scale == rhs.scale && clamp == rhs.clamp &&
-             out == rhs.out;
-    }
+    bool operator==(const AlphaStage& rhs) const noexcept = default;
   } alphaStage;
   struct IndirectStage {
     u8 indStageSel{0}; // TODO: Ind tex stage sel
@@ -228,21 +218,10 @@ struct TevStage {
     bool utcLod{false};
     IndTexAlphaSel alpha{IndTexAlphaSel::off};
 
-    bool operator==(const IndirectStage& stage) const noexcept {
-      return indStageSel == stage.indStageSel && format == stage.format &&
-             bias == stage.bias && matrix == stage.matrix &&
-             wrapU == stage.wrapU && wrapV == stage.wrapV &&
-             addPrev == stage.addPrev && utcLod == stage.utcLod &&
-             alpha == stage.alpha;
-    }
+    bool operator==(const IndirectStage& stage) const noexcept = default;
   } indirectStage;
 
-  bool operator==(const TevStage& rhs) const noexcept {
-    return rasOrder == rhs.rasOrder && texMap == rhs.texMap &&
-           texCoord == rhs.texCoord && rasSwap == rhs.rasSwap &&
-           texMapSwap == rhs.texMapSwap && colorStage == rhs.colorStage &&
-           alphaStage == rhs.alphaStage && indirectStage == rhs.indirectStage;
-  }
+  bool operator==(const TevStage& rhs) const noexcept = default;
 };
 
 // SWAP table
@@ -250,9 +229,7 @@ struct SwapTableEntry {
   ColorComponent r = ColorComponent::r, g = ColorComponent::g,
                  b = ColorComponent::b, a = ColorComponent::a;
 
-  bool operator==(const SwapTableEntry& rhs) const noexcept {
-    return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
-  }
+  bool operator==(const SwapTableEntry& rhs) const noexcept = default;
 
   ColorComponent lookup(ColorComponent other) const {
     switch (other) {
@@ -277,6 +254,5 @@ struct SwapTable : public std::array<SwapTableEntry, 4> {
     (*this)[3] = {Clr::b, Clr::b, Clr::b, Clr::a};
   }
 };
-
 
 } // namespace librii::gx

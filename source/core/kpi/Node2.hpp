@@ -111,9 +111,7 @@ template <typename T> struct CollectionIterator {
     tmp.i++;
     return tmp;
   }
-  bool operator==(const CollectionIterator& rhs) const {
-    return data == rhs.data && i == rhs.i;
-  }
+  bool operator==(const CollectionIterator& rhs) const = default;
   bool operator!=(const CollectionIterator& rhs) const {
     return !(*this == rhs);
   }

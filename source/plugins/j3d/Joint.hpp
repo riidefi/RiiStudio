@@ -43,9 +43,7 @@ struct JointData {
 
     Display() = default;
     Display(ID<Material> mat, ID<Shape> shp) : material(mat), shape(shp) {}
-    bool operator==(const Display& rhs) const {
-      return material == rhs.material && shape == rhs.shape;
-    }
+    bool operator==(const Display& rhs) const = default;
   };
   std::vector<Display> displays;
 

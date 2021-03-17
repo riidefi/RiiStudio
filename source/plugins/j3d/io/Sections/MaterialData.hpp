@@ -218,9 +218,7 @@ struct J3DMappingMethodDecl {
   Method _method;
   Class _class;
 
-  bool operator==(const J3DMappingMethodDecl& rhs) const {
-    return _method == rhs._method && _class == rhs._class;
-  }
+  bool operator==(const J3DMappingMethodDecl& rhs) const = default;
 };
 
 static std::array<J3DMappingMethodDecl, 12> J3DMappingMethods{

@@ -32,10 +32,7 @@ struct SRT3 {
   glm::vec3 rotation;
   glm::vec3 translation;
 
-  bool operator==(const SRT3& rhs) const {
-    return scale == rhs.scale && rotation == rhs.rotation &&
-           translation == rhs.translation;
-  }
+  bool operator==(const SRT3& rhs) const = default;
   bool operator!=(const SRT3& rhs) const { return !operator==(rhs); }
 };
 
@@ -86,9 +83,7 @@ struct Bone {
     u32 polyId = 0;
     u8 prio = 0;
 
-    bool operator==(const Display& rhs) const {
-      return matId == rhs.matId && polyId == rhs.polyId && prio == rhs.prio;
-    }
+    bool operator==(const Display& rhs) const = default;
   };
   virtual u64 getNumDisplays() const = 0;
   virtual Display getDisplay(u64 idx) const = 0;

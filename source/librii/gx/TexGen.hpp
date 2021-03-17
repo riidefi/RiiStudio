@@ -85,11 +85,7 @@ struct TexCoordGen // XF TEX/DUALTEX
   bool normalize = false;
   PostTexMatrix postMatrix = gx::PostTexMatrix::Identity;
 
-  const bool operator==(const TexCoordGen& rhs) const noexcept {
-    return func == rhs.func && sourceParam == rhs.sourceParam &&
-           matrix == rhs.matrix && normalize == rhs.normalize &&
-           postMatrix == rhs.postMatrix;
-  }
+  bool operator==(const TexCoordGen& rhs) const noexcept = default;
 
   bool isIdentityMatrix() const { return matrix == TexMatrix::Identity; }
 
