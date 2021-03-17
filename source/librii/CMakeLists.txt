@@ -63,4 +63,12 @@ add_library(librii
   "glhelper/ShaderProgram.cpp"
   "glhelper/UBOBuilder.cpp"
   "glhelper/VBOBuilder.cpp"
-   "rhst/RHST.hpp" "rhst/RHST.cpp" "math/aabb.hpp")
+
+  "rhst/RHST.hpp"
+  "rhst/RHST.cpp"
+
+  "math/aabb.hpp"
+
+  "kcol/SerializationProfile.hpp"
+  "kcol/SerializationProfile.cpp"
+)

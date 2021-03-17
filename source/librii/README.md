@@ -23,6 +23,9 @@ Abstractions of librii::gx structures.
 ### librii::image
 Supports encoding/decoding/resizing Wii images.
 
+### librii::kcol
+Support for KCollision v1 (.kcl) files across several platforms (DS, Wii, 3DS).
+
 ### librii::kmp
 Support for Mario Kart Wii's .kmp files.
 
