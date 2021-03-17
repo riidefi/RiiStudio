@@ -54,7 +54,7 @@ def invoke_converter(context, source, dest):
 	bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
 	tests_exe = os.path.join(bin_root, "tests.exe")
 	
-	cmd = "%s \"%s\" \"%s\"" % (
+	cmd = "\"%s\" \"%s\" \"%s\"" % (
 		tests_exe, source, dest
 	)
 	invoke_command(cmd)
