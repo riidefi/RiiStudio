@@ -44,7 +44,7 @@ struct IndexedPolygon : public riistudio::lib3d::Polygon {
     return {};
   }
 
-  virtual void init(bool skinned, riistudio::lib3d::AABB* boundingBox) = 0;
+  virtual void init(bool skinned, librii::math::AABB* boundingBox) = 0;
   virtual void initBufsFromVcd(riistudio::lib3d::Model&) {}
 };
 

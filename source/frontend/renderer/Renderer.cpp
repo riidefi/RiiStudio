@@ -88,7 +88,7 @@ void Renderer::drawMenuBar() {
   }
 }
 
-void Renderer::updateCameraController(const lib3d::AABB& bound) {
+void Renderer::updateCameraController(const librii::math::AABB& bound) {
   const f32 dist = glm::distance(bound.min, bound.max);
   mCameraController.mSpeedFactor = dist == 0.0f ? 50.0f : dist / 1000.0f;
 

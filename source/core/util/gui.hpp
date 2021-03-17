@@ -1,15 +1,14 @@
 #pragma once
 
-#include <core/3d/aabb.hpp>
 #include <glm/mat4x4.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+#include <librii/math/aabb.hpp>
 #include <string>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 namespace Toolkit {
-inline void BoundingVolume(riistudio::lib3d::AABB* bbox,
-                           float* sphere = nullptr) {
+inline void BoundingVolume(librii::math::AABB* bbox, float* sphere = nullptr) {
   if (bbox != nullptr) {
     ImGui::InputFloat3("Minimum Point", &bbox->min.x);
     ImGui::InputFloat3("Maximum Point", &bbox->max.x);

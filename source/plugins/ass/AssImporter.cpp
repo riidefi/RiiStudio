@@ -206,7 +206,7 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
   auto& data = poly.getMeshData();
   auto& vcd = data.mVertexDescriptor;
 
-  lib3d::AABB bbox;
+  librii::math::AABB bbox;
   bbox.min = {pMesh->mAABB.mMin.x, pMesh->mAABB.mMin.y, pMesh->mAABB.mMin.z};
   bbox.max = {pMesh->mAABB.mMax.x, pMesh->mAABB.mMax.y, pMesh->mAABB.mMax.z};
   // TODO: Should the skinning flag always be set?
@@ -410,7 +410,8 @@ void AssImporter::ImportNode(const aiNode* pNode, glm::vec3 tint, int parent) {
   if (parent != -1)
     out_model->getBones()[parent].addChild(joint.getId());
 
-  lib3d::AABB aabb{{FLT_MAX, FLT_MAX, FLT_MAX}, {FLT_MIN, FLT_MIN, FLT_MIN}};
+  librii::math::AABB aabb{{FLT_MAX, FLT_MAX, FLT_MAX},
+                          {FLT_MIN, FLT_MIN, FLT_MIN}};
 
   // Mesh data
   for (unsigned i = 0; i < pNode->mNumMeshes; ++i) {

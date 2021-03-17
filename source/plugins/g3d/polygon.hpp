@@ -38,7 +38,7 @@ struct Polygon : public PolygonData,
 
   MeshData& getMeshData() override { return *this; }
   const MeshData& getMeshData() const { return *this; }
-  lib3d::AABB getBounds() const override { return bounds; }
+  librii::math::AABB getBounds() const override { return bounds; }
   std::vector<glm::mat4> getPosMtx(const libcube::Model& mdl,
                                    u64 mpId) const override;
 
@@ -51,7 +51,7 @@ struct Polygon : public PolygonData,
   u64 addClr(libcube::Model& mdl, u64 chan, const glm::vec4& v) override;
   u64 addUv(libcube::Model& mdl, u64 chan, const glm::vec2& v) override;
 
-  void init(bool skinned, riistudio::lib3d::AABB* boundingBox) override {
+  void init(bool skinned, librii::math::AABB* boundingBox) override {
     // TODO: Handle skinning...
     (void)skinned;
     if (boundingBox != nullptr)
@@ -62,7 +62,7 @@ struct Polygon : public PolygonData,
     return PolygonData::operator==(rhs);
   }
 
-  lib3d::AABB bounds;
+  librii::math::AABB bounds;
 };
 
 } // namespace riistudio::g3d

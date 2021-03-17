@@ -1,10 +1,10 @@
 #pragma once
 
-#include <core/3d/aabb.hpp>               // AABB
 #include <core/3d/renderer/GlTexture.hpp> // GlTexture
 #include <core/3d/renderer/SceneTree.hpp> // SceneBuffers
 #include <librii/glhelper/UBOBuilder.hpp> // DelegatedUBOBuilder
 #include <librii/glhelper/VBOBuilder.hpp> // VBOBuilder
+#include <librii/math/aabb.hpp>           // AABB
 
 namespace riistudio::lib3d {
 
@@ -14,7 +14,7 @@ public:
   ~SceneState() = default;
 
   // Compute the composite bounding box (in model space)
-  AABB computeBounds();
+  librii::math::AABB computeBounds();
 
   // Build the UBO. Typically called every frame.
   void buildUniformBuffers(const glm::mat4& view, const glm::mat4& proj);

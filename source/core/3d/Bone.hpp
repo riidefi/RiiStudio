@@ -1,11 +1,11 @@
 #pragma once
 
-#include "aabb.hpp"
 #include <core/3d/PropertySupport.hpp>
 #include <core/common.h>
 #include <core/kpi/Node.hpp>
 #include <core/kpi/Node2.hpp>
 #include <glm/glm.hpp>
+#include <librii/math/aabb.hpp>
 #include <string>
 
 namespace riistudio::lib3d {
@@ -72,8 +72,8 @@ struct Bone {
   virtual s64 setChild(u64 idx, s64 id) = 0;
   inline s64 removeChild(u64 idx) { return setChild(idx, -1); }
 
-  virtual AABB getAABB() const = 0;
-  virtual void setAABB(const AABB& v) = 0;
+  virtual librii::math::AABB getAABB() const = 0;
+  virtual void setAABB(const librii::math::AABB& v) = 0;
 
   virtual float getBoundingRadius() const = 0;
   virtual void setBoundingRadius(float v) = 0;

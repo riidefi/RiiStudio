@@ -30,6 +30,9 @@ Support for Mario Kart Wii's .kmp files.
 Texture matrix calculation.
 NOTE: Lots of accuracy issues currently
 
+### librii::math
+3D math helpers: AABB, SRT3
+
 ### librii::nitro
 Support for DS fixed-point types.
 

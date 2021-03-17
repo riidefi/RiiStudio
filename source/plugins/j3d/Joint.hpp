@@ -30,7 +30,7 @@ struct JointData {
   glm::vec3 translate{0.0f, 0.0f, 0.0f};
 
   f32 boundingSphereRadius = 100000.0f;
-  lib3d::AABB boundingBox{{-100000.0f, -100000.0f, -100000.0f},
+  librii::math::AABB boundingBox{{-100000.0f, -100000.0f, -100000.0f},
                           {100000.0f, 100000.0f, 100000.0f}};
 
   // From INF1
@@ -53,15 +53,7 @@ struct JointData {
   // glm::mat4x4
   std::array<float, 12> inverseBindPoseMtx;
 
-  bool operator==(const JointData& rhs) const {
-    return name == rhs.name && bbMtxType == rhs.bbMtxType &&
-           mayaSSC == rhs.mayaSSC && scale == rhs.scale &&
-           rotate == rhs.rotate && translate == rhs.translate &&
-           boundingSphereRadius == rhs.boundingSphereRadius &&
-           boundingBox == rhs.boundingBox && parentId == rhs.parentId &&
-           children == rhs.children && displays == rhs.displays &&
-           inverseBindPoseMtx == rhs.inverseBindPoseMtx;
-  }
+  bool operator==(const JointData& rhs) const = default;
 };
 struct Joint : public libcube::IBoneDelegate,
                public JointData,
@@ -118,9 +110,9 @@ struct Joint : public libcube::IBoneDelegate,
     }
     return old;
   }
-  lib3d::AABB getAABB() const override { return boundingBox; }
-  void setAABB(const lib3d::AABB& aabb) override {
-    boundingBox = {aabb.min, aabb.max};
+  librii::math::AABB getAABB() const override { return boundingBox; }
+  void setAABB(const librii::math::AABB& aabb) override {
+    boundingBox = aabb;
   }
   float getBoundingRadius() const override { return boundingSphereRadius; }
   void setBoundingRadius(float r) override { boundingSphereRadius = r; }

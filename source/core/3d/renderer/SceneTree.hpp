@@ -22,7 +22,7 @@ struct SceneNode {
   // Expand an AABB with the current bounding box
   //
   // Note: Model-space
-  virtual void expandBound(AABB& bound) = 0;
+  virtual void expandBound(librii::math::AABB& bound) = 0;
 
   // Fill-in a UBO
   //

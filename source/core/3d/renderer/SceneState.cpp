@@ -8,8 +8,8 @@
 
 namespace riistudio::lib3d {
 
-AABB SceneState::computeBounds() {
-  AABB bound;
+librii::math::AABB SceneState::computeBounds() {
+  librii::math::AABB bound;
   // TODO
   bound.min = {0.0f, 0.0f, 0.0f};
   bound.max = {0.0f, 0.0f, 0.0f};

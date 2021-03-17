@@ -17,14 +17,12 @@ public:
   Renderer(lib3d::IDrawable* root);
   ~Renderer();
   void render(u32 width, u32 height, bool& hideCursor);
-  void prepare(const kpi::INode& host) {
-    mRoot->prepare(mSceneState, host);
-  }
+  void prepare(const kpi::INode& host) { mRoot->prepare(mSceneState, host); }
 
   Camera& getCamera() { return mCameraController.mCamera; }
 
   void drawMenuBar();
-  void updateCameraController(const lib3d::AABB& bounding_box);
+  void updateCameraController(const librii::math::AABB& bounding_box);
   void setGlWireframe(bool wireframe) const;
   void clearGlScreen() const;
 

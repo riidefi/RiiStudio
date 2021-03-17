@@ -168,7 +168,9 @@ struct GCSceneNode : public SceneNode {
 
   void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
             u32 mtx_id) final;
-  void expandBound(AABB& bound) final { bound.expandBound(mBound); }
+  void expandBound(librii::math::AABB& bound) final {
+    bound.expandBound(mBound);
+  }
 
   void buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                           const glm::mat4& model_matrix,
@@ -189,7 +191,7 @@ private:
   const lib3d::Scene& scn;
   const lib3d::Model& mdl;
 
-  lib3d::AABB mBound;
+  librii::math::AABB mBound;
   librii::gfx::MegaState mState;
   u32 mShaderId = 0;
 };

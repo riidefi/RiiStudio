@@ -5,9 +5,9 @@
 
 #include <glm/vec3.hpp>
 
-#include <core/3d/aabb.hpp>
 #include <core/3d/i3dmodel.hpp>
 #include <core/common.h>
+#include <librii/math/aabb.hpp>
 
 #include <plugins/gc/Export/Bone.hpp>
 
@@ -64,7 +64,7 @@ struct BoneData {
 
   glm::vec3 mScaling, mRotation, mTranslation;
 
-  lib3d::AABB mVolume;
+  librii::math::AABB mVolume;
 
   s32 mParent = -1;
   std::vector<s32> mChildren;
@@ -148,10 +148,8 @@ struct Bone : public libcube::IBoneDelegate,
     }
     return old;
   }
-  lib3d::AABB getAABB() const override { return {mVolume.min, mVolume.max}; }
-  void setAABB(const lib3d::AABB& aabb) override {
-    mVolume = {aabb.min, aabb.max};
-  }
+  librii::math::AABB getAABB() const override { return mVolume; }
+  void setAABB(const librii::math::AABB& aabb) override { mVolume = aabb; }
   float getBoundingRadius() const override { return 0.0f; }
   void setBoundingRadius(float r) override {}
   bool getSSC() const override { return ssc; }

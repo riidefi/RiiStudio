@@ -2,12 +2,12 @@
 
 #include <vendor/glm/vec3.hpp>
 
-namespace riistudio::lib3d {
+namespace librii::math {
 
 //! Axis-aligned bounding box
 //!
 struct AABB {
-  inline void expandBound(const AABB& other) {
+  void expandBound(const AABB& other) {
     if (other.min.x < min.x)
       min.x = other.min.x;
     if (other.min.y < min.y)
@@ -22,12 +22,10 @@ struct AABB {
       max.z = other.max.z;
   }
 
-  bool operator==(const AABB& rhs) const {
-    return min == rhs.min && max == rhs.max;
-  }
+  bool operator==(const AABB& rhs) const = default;
 
   glm::vec3 min;
   glm::vec3 max;
 };
 
-} // namespace riistudio::lib3d
+} // namespace librii::math

@@ -112,7 +112,7 @@ struct G3DModelData : public virtual kpi::IObject {
   TextureMatrixMode mTexMtxMode = TextureMatrixMode::Maya;
   EnvelopeMatrixMode mEvpMtxMode = EnvelopeMatrixMode::Normal;
   std::string sourceLocation;
-  lib3d::AABB aabb;
+  librii::math::AABB aabb;
 
   std::string mName = "course";
 

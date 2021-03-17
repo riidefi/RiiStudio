@@ -24,8 +24,8 @@ struct ShapeData : public librii::gx::MeshData {
   Mode mode = Mode::Normal;
 
   f32 bsphere = 100000.0f;
-  lib3d::AABB bbox{{-100000.0f, -100000.0f, -100000.0f},
-                   {100000.0f, 100000.0f, 100000.0f}};
+  librii::math::AABB bbox{{-100000.0f, -100000.0f, -100000.0f},
+                          {100000.0f, 100000.0f, 100000.0f}};
 
   bool operator==(const ShapeData& rhs) const = default;
 
@@ -42,7 +42,7 @@ struct Shape : public ShapeData,
 
   MeshData& getMeshData() override { return *this; }
   const MeshData& getMeshData() const { return *this; }
-  lib3d::AABB getBounds() const override { return bbox; }
+  librii::math::AABB getBounds() const override { return bbox; }
 
   glm::vec2 getUv(const libcube::Model& mdl, u64 chan, u64 id) const override;
   glm::vec4 getClr(const libcube::Model& mdl, u64 chan, u64 id) const override;
@@ -57,7 +57,7 @@ struct Shape : public ShapeData,
                                    u64 mpid) const override;
 
   bool isVisible() const override { return visible; }
-  void init(bool skinned, riistudio::lib3d::AABB* boundingBox) override {
+  void init(bool skinned, librii::math::AABB* boundingBox) override {
     if (skinned)
       mode = j3d::ShapeData::Mode::Skinned;
     if (boundingBox != nullptr)
