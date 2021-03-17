@@ -494,8 +494,14 @@ def get_texture(mat):
 def all_tex_uses():
 	for Object in all_meshes():	
 		mat = Object.active_material
-		if mat:
-			yield get_texture(mat)
+		if not mat:
+			continue
+		
+		tex = get_texture(mat)
+		if not tex:
+			continue
+		
+		yield tex
 
 def all_textures():
 	return set(all_tex_uses())
@@ -574,10 +580,12 @@ def export_mesh(
 
 		# TODO: manually assign priority in object attribs
 		texture_name = 'default_material'
-		if BLENDER_28 and mat.node_tree.nodes.get('Image Texture'):
-			texture_name = get_filename_without_extension(mat.node_tree.nodes.get('Image Texture').image.name)
-		elif mat and mat.active_texture:
-			texture_name = mat.active_texture.name
+		if BLENDER_28:
+			if mat.node_tree.nodes.get('Image Texture'):
+				texture_name = get_filename_without_extension(mat.node_tree.nodes.get('Image Texture').image.name)
+		else:
+			if mat and mat.active_texture:
+				texture_name = mat.active_texture.name
 
 		vcd_set = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 		polygon_object = OrderedDict({
