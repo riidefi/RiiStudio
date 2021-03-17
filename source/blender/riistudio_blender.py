@@ -89,6 +89,8 @@ class Timer:
 
 		print("[%s] Elapsed %s seconds (%s ms)" % (self.name, delta, delta * 1000))
 
+gOpenStreams = []
+
 # RHST (Rii Hierarchical Scene Tree) is a high-throughput,
 # multipurpose bitstream format I thought of the other day.
 class RHSTWriter:
@@ -100,6 +102,8 @@ class RHSTWriter:
 				file.truncate(0)
 			self.__file = open(path, "r+b")
 			self.__buffer = mmap.mmap(self.__file.fileno(), capacity, access=mmap.ACCESS_WRITE)
+
+			gOpenStreams.append(self)
 
 		def write(self, data, size):
 			self.__buffer[self.__pos : self.__pos + size] = data
@@ -115,6 +119,8 @@ class RHSTWriter:
 		def close(self):
 			self.__buffer.close()
 			self.__file.close()
+
+			gOpenStreams.remove(self)
 			
 	def __init__(self, path):
 		self.__stream = self.RHSTStream(100 * 1000 * 1000, path)
@@ -926,19 +932,23 @@ class RHST_RNA:
 		row.prop(self, "root_transform_translate_z")
 
 	def export_rhst(self, context, dump_pngs=True):
-		# Produce a RHST file
-		timer = Timer("RHST Generation")
-		export_jres(
-			context,
-			self.get_export_params()
-		)
-		timer.dump()
+		try:
+			timer = Timer("RHST Generation")
 
-		if dump_pngs:
-			# Dump .PNG images
-			timer = Timer("PNG Dumping")
-			export_textures(self.get_textures_path())
+			export_jres(
+				context,
+				self.get_export_params()
+			)
 			timer.dump()
+
+			if dump_pngs:
+				# Dump .PNG images
+				timer = Timer("PNG Dumping")
+				export_textures(self.get_textures_path())
+				timer.dump()
+		finally:
+			for stream in gOpenStreams:
+				stream.close()
 
 	def cleanup_rhst(self):
 		os.remove(self.get_rhst_path())
@@ -970,13 +980,14 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 		self.draw_rhst_options(context)
 
 	def export(self, context, format):
-		self.export_rhst(context, dump_pngs=True)
-		
-		timer = Timer("BRRES Conversion")
-		invoke_converter(context, source=self.get_rhst_path(), dest=self.get_dest_path())
-		timer.dump()
-
-		self.cleanup_if_enabled()
+		try:
+			self.export_rhst(context, dump_pngs=True)
+			
+			timer = Timer("BRRES Conversion")
+			invoke_converter(context, source=self.get_rhst_path(), dest=self.get_dest_path())
+			timer.dump()
+		finally:
+			self.cleanup_if_enabled()
 		
 	def execute(self, context):
 		timer = Timer("BRRES Export")
@@ -1007,13 +1018,14 @@ class ExportBMD(Operator, ExportHelper, RHST_RNA):
 		self.draw_rhst_options(context)
 
 	def export(self, context, format):
-		self.export_rhst(context, dump_pngs=True)
-		
-		timer = Timer("BMD Conversion")
-		invoke_converter(context, source=self.get_rhst_path(), dest=self.get_dest_path())
-		timer.dump()
-
-		self.cleanup_if_enabled()
+		try:
+			self.export_rhst(context, dump_pngs=True)
+			
+			timer = Timer("BMD Conversion")
+			invoke_converter(context, source=self.get_rhst_path(), dest=self.get_dest_path())
+			timer.dump()
+		finally:
+			self.cleanup_if_enabled()
 	
 	def execute(self, context):
 		timer = Timer("BMD Export")
