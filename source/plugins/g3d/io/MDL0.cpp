@@ -176,7 +176,7 @@ const std::array<u32, 16> shaderDlSizes{
 static void writeMaterialDisplayList(const libcube::GCMaterialData& mat,
                                      oishii::Writer& writer) {
   MAYBE_UNUSED const auto dl_start = writer.tell();
-  printf("Mat dl start: %x\n", (unsigned)writer.tell());
+  DebugReport("Mat dl start: %x\n", (unsigned)writer.tell());
   librii::gpu::DLBuilder dl(writer);
   {
     dl.setAlphaCompare(mat.alphaCompare);
@@ -453,7 +453,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   d_cursor = writer.tell();
   u32 dicts_size = 0;
   const auto tally_dict = [&](const char* str, const auto& dict) {
-    printf("%s: %u entries\n", str, (unsigned)dict.size());
+    DebugReport("%s: %u entries\n", str, (unsigned)dict.size());
     if (dict.empty())
       return;
     Dictionaries.emplace(str, dicts_size + d_cursor);
@@ -476,7 +476,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
     dicts_size += 24 + 16 * n_samplers;
   }
   for (auto [key, val] : Dictionaries) {
-    printf("%s: %x\n", key.c_str(), (unsigned)val);
+    DebugReport("%s: %x\n", key.c_str(), (unsigned)val);
   }
   writer.skip(dicts_size);
 
@@ -568,7 +568,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   u32 bone_id = 0;
   write_dict(
       "Bones", mdl.getBones(), [&](const Bone& bone, std::size_t bone_start) {
-        printf("Bone at %x\n", (unsigned)bone_start);
+        DebugReport("Bone at %x\n", (unsigned)bone_start);
         writeNameForward(names, writer, bone_start, bone.getName());
         writer.write<u32>(bone_id++);
         writer.write<u32>(bone.matrixId);
@@ -603,10 +603,10 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       "Materials", mdl.getMaterials(),
       [&](const Material& mat, std::size_t mat_start) {
         linker.label("Mat" + std::to_string(mat_start), mat_start);
-        printf("MAT_START %x\n", (u32)mat_start);
-        printf("MAT_NAME %x\n", writer.tell());
+        DebugReport("MAT_START %x\n", (u32)mat_start);
+        DebugReport("MAT_NAME %x\n", writer.tell());
         writeNameForward(names, writer, mat_start, mat.IGCMaterial::getName());
-        printf("MATIDAT %x\n", writer.tell());
+        DebugReport("MATIDAT %x\n", writer.tell());
         writer.write<u32>(mat_idx++);
         u32 flag = mat.flag;
         flag = (flag & ~0x80000000) | (mat.xlu ? 0x80000000 : 0);
@@ -787,10 +787,10 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
             {
               const auto [entry_start, struct_start] =
                   tex_sampler_mappings.from_mat(&mat, i);
-              printf("<material=\"%s\" sampler=%u>\n",
-                     mat.IGCMaterial::getName().c_str(), i);
-              printf("\tentry_start=%x, struct_start=%x\n",
-                     (unsigned)entry_start, (unsigned)struct_start);
+              DebugReport("<material=\"%s\" sampler=%u>\n",
+                          mat.IGCMaterial::getName().c_str(), i);
+              DebugReport("\tentry_start=%x, struct_start=%x\n",
+                          (unsigned)entry_start, (unsigned)struct_start);
               oishii::Jump<oishii::Whence::Set, oishii::Writer> sg(writer,
                                                                    entry_start);
               writer.write<s32>(mat_start - struct_start);
@@ -821,7 +821,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
   const auto write_shader = [&](const G3dShader& shader,
                                 std::size_t shader_start, int shader_id) {
-    printf("Shader at %x\n", (unsigned)shader_start);
+    DebugReport("Shader at %x\n", (unsigned)shader_start);
     linker.label("Shader" + std::to_string(shader_id), shader_start);
     writer.write<u32>(shader_id);
     writer.write<u8>(shader.mStages.size());
@@ -900,7 +900,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       writer.skip(3); // 3
 
       MAYBE_UNUSED const auto couple_len = writer.tell() - couple_start;
-      printf("CoupleLen: %u\n", (unsigned)couple_len);
+      DebugReport("CoupleLen: %u\n", (unsigned)couple_len);
       assert(couple_len == 48);
     }
     writer.skip(48 * (8 - stages_count_rounded / 2));
