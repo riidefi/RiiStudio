@@ -75,8 +75,6 @@ void compileMaterial(libcube::IGCMaterial& out,
     data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
   }
 
-  data.cullMode = librii::gx::CullMode::Back;
-
   librii::gx::TevStage wip;
   wip.texMap = wip.texCoord = 0;
   wip.rasOrder = librii::gx::ColorSelChanApi::color0a0;
