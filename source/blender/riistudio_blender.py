@@ -36,6 +36,7 @@ from bpy.types import Operator
 from collections import OrderedDict
 
 from time import perf_counter
+import subprocess
 
 BLENDER_28 = bpy.app.version[1] >= 80
 
@@ -45,19 +46,11 @@ def get_user_prefs(context):
 def get_rs_prefs(context):
 	return get_user_prefs(context).addons[__name__].preferences
 
-
-def invoke_command(string):
-	print(string)
-	os.system(string)
-
 def invoke_converter(context, source, dest):
 	bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
 	tests_exe = os.path.join(bin_root, "tests.exe")
 	
-	cmd = "\"%s\" \"%s\" \"%s\"" % (
-		tests_exe, source, dest
-	)
-	invoke_command(cmd)
+	subprocess.call([tests_exe, source, dest])
 
 RHST_DATA_NULL   = 0
 
