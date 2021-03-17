@@ -43,6 +43,8 @@ template <typename T> struct VecFx {
     x = vec.x;
     y = vec.y;
     z = vec.z;
+
+	return *this;
   }
 
   fx<T> x = 0.0f, y = 0.0f, z = 0.0f;
@@ -66,10 +68,12 @@ union ARGB1555 {
     return {static_cast<float>(r) / 32.0f, static_cast<float>(g) / 32.0f,
             static_cast<float>(b) / 32.0f};
   }
-  void operator=(const glm::vec3& vec) {
+  ARGB1555& operator=(const glm::vec3& vec) {
     r = std::roundf(vec.x * 32.0f);
     g = std::roundf(vec.y * 32.0f);
     b = std::roundf(vec.z * 32.0f);
+
+	return *this;
   }
 
   u16 hex = 0;
