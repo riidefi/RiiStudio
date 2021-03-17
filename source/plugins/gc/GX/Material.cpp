@@ -69,15 +69,15 @@ void IGCMaterial::generateUniforms(
     tmp.TexMtx[i] = glm::transpose(data.texMatrices[i].compute(M, V * P));
   }
   for (int i = 0; i < data.samplers.size(); ++i) {
-    if (data.samplers[i]->mTexture.empty())
+    if (data.samplers[i].mTexture.empty())
       continue;
     const auto* texData =
         getTexture(reinterpret_cast<const libcube::Scene&>(scn),
-                   data.samplers[i]->mTexture);
+                   data.samplers[i].mTexture);
     if (texData == nullptr)
       continue;
     tmp.TexParams[i] = glm::vec4{texData->getWidth(), texData->getHeight(), 0,
-                                 data.samplers[i]->mLodBias};
+                                 data.samplers[i].mLodBias};
   }
 
   builder.tpush(0, scene);
@@ -96,7 +96,7 @@ void IGCMaterial::genSamplUniforms(
     u32 shaderId, const std::map<std::string, u32>& texIdMap) const {
   const auto& data = getMaterialData();
   for (int i = 0; i < data.samplers.size(); ++i) {
-    const auto& sampler = *data.samplers[i];
+    const auto& sampler = data.samplers[i];
 
     if (sampler.mTexture.empty()) {
       // No textures specified

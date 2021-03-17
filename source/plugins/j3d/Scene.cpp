@@ -52,8 +52,7 @@ void Model::MatCache::propogate(Material& mat) {
     // tmp.btiId =
     // reinterpret_cast<MaterialData::J3DSamplerData*>(mat.samplers[i].get())->btiId;
     // update_section(samplers, tmp);
-    update_section(samplers, *reinterpret_cast<MaterialData::J3DSamplerData*>(
-                                 mat.samplers[i].get()));
+    update_section(samplers, mat.samplers[i]);
   }
   for (auto& stage : mat.mStages) {
     TevOrder order;

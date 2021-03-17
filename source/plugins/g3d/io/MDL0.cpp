@@ -539,7 +539,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   for (auto& tex : dynamic_cast<const Collection*>(mdl.childOf)->getTextures())
     for (auto& mat : mdl.getMaterials())
       for (int s = 0; s < mat.samplers.size(); ++s)
-        if (mat.samplers[s]->mTexture == tex.getName())
+        if (mat.samplers[s].mTexture == tex.getName())
           tex_sampler_mappings.add_entry(tex.getName(), &mat, s);
 
   int sm_i = 0;
@@ -782,7 +782,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
           writeOffsetBackpatch(writer, sampler_offset, mat_start);
           for (int i = 0; i < mat.samplers.size(); ++i) {
             const auto s_start = writer.tell();
-            const auto& sampler = *mat.samplers[i];
+            const auto& sampler = mat.samplers[i];
 
             {
               const auto [entry_start, struct_start] =
@@ -1437,27 +1437,27 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     reader.seekSet(start + ofsSamplers);
     assert(mat.texGens.size() == nTex);
     for (u8 i = 0; i < nTex; ++i) {
-      auto sampler = std::make_unique<libcube::GCMaterialData::SamplerData>();
+      libcube::GCMaterialData::SamplerData sampler;
 
       const auto sampStart = reader.tell();
-      sampler->mTexture = readName(reader, sampStart);
-      sampler->mPalette = readName(reader, sampStart);
+      sampler.mTexture = readName(reader, sampStart);
+      sampler.mPalette = readName(reader, sampStart);
       reader.skip(8);     // skip runtime pointers
       reader.read<u32>(); // skip tex id for now
       reader.read<u32>(); // skip tlut id for now
-      sampler->mWrapU =
+      sampler.mWrapU =
           static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
-      sampler->mWrapV =
+      sampler.mWrapV =
           static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
-      sampler->mMinFilter =
+      sampler.mMinFilter =
           static_cast<librii::gx::TextureFilter>(reader.read<u32>());
-      sampler->mMagFilter =
+      sampler.mMagFilter =
           static_cast<librii::gx::TextureFilter>(reader.read<u32>());
-      sampler->mLodBias = reader.read<f32>();
-      sampler->mMaxAniso =
+      sampler.mLodBias = reader.read<f32>();
+      sampler.mMaxAniso =
           static_cast<librii::gx::AnisotropyLevel>(reader.read<u32>());
-      sampler->bBiasClamp = reader.read<u8>();
-      sampler->bEdgeLod = reader.read<u8>();
+      sampler.bBiasClamp = reader.read<u8>();
+      sampler.bEdgeLod = reader.read<u8>();
       reader.skip(2);
       mat.samplers.push_back(std::move(sampler));
     }

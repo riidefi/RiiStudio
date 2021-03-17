@@ -61,11 +61,11 @@ void compileMaterial(libcube::IGCMaterial& out,
   auto& data = out.getMaterialData();
 
   if (!in.texture_name.empty()) {
-    data.samplers.push_back(std::make_unique<j3d::Material::J3DSamplerData>());
+    data.samplers.push_back({});
     auto& sampler = data.samplers[0];
-    sampler->mTexture = in.texture_name;
-    sampler->mWrapU = compileWrap(in.wrap_u);
-    sampler->mWrapV = compileWrap(in.wrap_v);
+    sampler.mTexture = in.texture_name;
+    sampler.mWrapU = compileWrap(in.wrap_u);
+    sampler.mWrapV = compileWrap(in.wrap_v);
 
     compileCullMode(data, in.show_front, in.show_back);
     // TODO: lightset, fog indices

@@ -63,7 +63,7 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
 
   array_vector<TexMatrix, 10> texMatrices;
 
-  struct SamplerData {
+  struct SamplerData final {
     std::string mTexture;
     std::string mPalette;
 
@@ -80,14 +80,12 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
     gx::TextureFilter mMagFilter = gx::TextureFilter::Linear;
     f32 mLodBias = 0.0f;
 
+    u16 btiId = 0; // Hack for J3D IO
+
     bool operator==(const SamplerData& rhs) const = default;
-    virtual std::unique_ptr<SamplerData> clone() const {
-      return std::make_unique<SamplerData>(*this);
-    }
-    virtual ~SamplerData() = default;
   };
 
-  copyable_polymorphic_array_vector<SamplerData, 8> samplers;
+  array_vector<SamplerData, 8> samplers;
 };
 
 struct IGCMaterial : public riistudio::lib3d::Material {
@@ -133,8 +131,8 @@ struct IGCMaterial : public riistudio::lib3d::Material {
 
     auto& mat = getMaterialData();
 
-    auto sampler = std::make_unique<GCMaterialData::SamplerData>();
-    sampler->mTexture = tex;
+    GCMaterialData::SamplerData sampler;
+    sampler.mTexture = tex;
     // TODO: EdgeLod/BiasClamp
     // TODO: MaxAniso, filter, bias
     mat.samplers.push_back(std::move(sampler));

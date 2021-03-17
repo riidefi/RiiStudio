@@ -61,25 +61,7 @@ struct NBTScale {
 };
 
 struct MaterialData : public libcube::GCMaterialData {
-  struct J3DSamplerData : SamplerData {
-    // Only for linking
-    u16 btiId;
-
-    bool operator==(const J3DSamplerData& rhs) const {
-      if (!SamplerData::operator==(rhs))
-        return false;
-      if (btiId == rhs.btiId)
-        return true;
-      // printf("TexData does not match\n");
-      return false;
-    }
-    std::unique_ptr<SamplerData> clone() const override {
-      return std::make_unique<J3DSamplerData>(*this);
-    }
-
-    J3DSamplerData(u32 id) : btiId(id) {}
-    J3DSamplerData() : btiId(-1) {}
-  };
+  using J3DSamplerData = SamplerData;
 
   u8 flag = 1;
 

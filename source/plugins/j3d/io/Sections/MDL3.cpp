@@ -1,6 +1,6 @@
 #include "../Sections.hpp"
-#include <map>
 #include <librii/gpu/DLBuilder.hpp>
+#include <map>
 #include <string.h>
 
 namespace riistudio::j3d {
@@ -76,9 +76,7 @@ struct MDL3Node final : public oishii::Node {
                  writer.tell() - (dlHeadersOfs + i * 24 + 12));
       {
         for (int i = 0; i < mat.samplers.size(); ++i) {
-          const auto& sampler =
-              *reinterpret_cast<const Material::J3DSamplerData*>(
-                  mat.samplers[i].get());
+          const auto& sampler = mat.samplers[i];
           const auto& image = mModel.mTexCache[sampler.btiId];
 
           auto tex_delegate = builder.setTexture(i);

@@ -195,7 +195,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
   loader.indexedContainer<u16>(samplers, MatSec::TextureRemapTable, 2);
   mat.samplers.resize(samplers.size());
   for (int i = 0; i < samplers.size(); ++i)
-    mat.samplers[i] = std::make_unique<Material::J3DSamplerData>(samplers[i]);
+    mat.samplers[i] = samplers[i];
 
   {
     dbg.assertSince(0x094);
@@ -852,7 +852,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
   array_vector<Material::J3DSamplerData, 8> samplers;
   samplers.resize(m.samplers.size());
   for (int i = 0; i < m.samplers.size(); ++i)
-    samplers[i] = (Material::J3DSamplerData&)*m.samplers[i].get();
+    samplers[i] = m.samplers[i];
   dbg.assertSince(0x084);
   for (int i = 0; i < samplers.size(); ++i)
     writer.write<u16>(samplers[i].btiId);

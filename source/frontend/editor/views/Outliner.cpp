@@ -229,7 +229,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
 
       if (mat != nullptr) {
         for (int s = 0; s < mat->getMaterialData().samplers.size(); ++s) {
-          auto& sampl = *mat->getMaterialData().samplers[s].get();
+          auto& sampl = mat->getMaterialData().samplers[s];
           const lib3d::Texture* curImg = mat->getTexture(*scn, sampl.mTexture);
           ImGui::SameLine();
           ImGui::SetCursorPosY(initial_pos_y);

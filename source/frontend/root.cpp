@@ -184,21 +184,8 @@ void RootWindow::draw() {
               for (int m_i = 0; m_i < from_mats.size(); ++m_i) {
                 auto& mat = bmd_model.getMaterials().add();
 
-                auto& md = mat.getMaterialData();
-
                 mat.getMaterialData() = from_mats[m_i].getMaterialData();
 
-                auto before = mat.getMaterialData().samplers;
-                md.samplers = {};
-                for (int i = 0; i < before.size(); ++i) {
-                  auto simp =
-                      std::make_unique<j3d::MaterialData::J3DSamplerData>();
-                  static_cast<libcube::GCMaterialData::SamplerData&>(
-                      *simp.get()) =
-                      static_cast<const libcube::GCMaterialData::SamplerData&>(
-                          *before[i].get());
-                  md.samplers.push_back(std::move(simp));
-                }
                 mat.indEnabled = !mat.getMaterialData().indirectStages.empty();
               }
             }

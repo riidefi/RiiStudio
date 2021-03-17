@@ -126,7 +126,7 @@ void readTEX1(BMDOutputContext& ctx) {
     tex.transfer(reader);
     for (auto& mat : ctx.mdl.getMaterials()) {
       for (int k = 0; k < mat.samplers.size(); ++k) {
-        auto& samp = (Material::J3DSamplerData&)*mat.samplers[k].get();
+        auto& samp = mat.samplers[k];
         if (samp.btiId == i) {
           samp.mTexture = nameTable[i];
           samp.mWrapU = tex.mWrapU;
@@ -208,10 +208,10 @@ void readTEX1(BMDOutputContext& ctx) {
   for (auto& mat : ctx.mdl.getMaterials()) {
     for (int k = 0; k < mat.samplers.size(); ++k) {
       auto& samp = mat.samplers[k];
-      if (samp->mTexture.empty()) {
+      if (samp.mTexture.empty()) {
         printf("Material %s: Sampler %u is invalid.\n", mat.getName().c_str(),
                (u32)i);
-        assert(!samp->mTexture.empty());
+        assert(!samp.mTexture.empty());
       }
     }
   }

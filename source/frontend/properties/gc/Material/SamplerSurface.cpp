@@ -19,7 +19,7 @@ void addSampler(libcube::GCMaterialData& d) {
   gen.setMatrixIndex(d.texMatrices.size());
   d.texGens.push_back(gen);
   d.texMatrices.push_back(GCMaterialData::TexMatrix{});
-  d.samplers.push_back(std::make_unique<GCMaterialData::SamplerData>());
+  d.samplers.push_back(GCMaterialData::SamplerData{});
 }
 
 void deleteSampler(libcube::GCMaterialData& matData, size_t i) {
@@ -111,7 +111,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       GCMaterialData::TexMatrix* tm = nullptr;
       if (tg.matrix != gx::TexMatrix::Identity)
         tm = &matData.texMatrices[texmatrixid]; // TODO: Proper lookup
-      auto& samp = matData.samplers[i];
+      auto* samp = &matData.samplers[i];
       const libcube::Scene* pScn = dynamic_cast<const libcube::Scene*>(
           dynamic_cast<const kpi::IObject*>(&delegate.getActive())
               ->childOf->childOf);
@@ -124,7 +124,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           if (auto result = TextureImageCombo(samp->mTexture.c_str(), mImgs,
                                               delegate.mEd);
               !result.empty()) {
-            AUTO_PROP(samplers[i]->mTexture, result);
+            AUTO_PROP(samplers[i].mTexture, result);
           }
 
           if (samp != nullptr)
@@ -322,8 +322,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           const char* wrap_modes = "Clamp\0Repeat\0Mirror\0";
           auto uTile = imcxx::Combo("U tiling", samp->mWrapU, wrap_modes);
           auto vTile = imcxx::Combo("V tiling", samp->mWrapV, wrap_modes);
-          AUTO_PROP(samplers[i]->mWrapU, uTile);
-          AUTO_PROP(samplers[i]->mWrapV, vTile);
+          AUTO_PROP(samplers[i].mWrapU, uTile);
+          AUTO_PROP(samplers[i].mWrapV, vTile);
         }
         if (ImGui::CollapsingHeader("Filtering",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -335,7 +335,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                 "(interpolated/blurry)\0";
 
           ImGui::Combo("Interpolation when scaled up", &magBase, linNear);
-          AUTO_PROP(samplers[i]->mMagFilter,
+          AUTO_PROP(samplers[i].mMagFilter,
                     static_cast<librii::gx::TextureFilter>(magBase));
           ImGui::Combo("Interpolation when scaled down", &min_filt.minBase,
                        linNear);
@@ -351,18 +351,18 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
               float lodbias = samp->mLodBias;
               ImGui::SliderFloat("LOD bias", &lodbias, -4.0f, 3.99f);
-              AUTO_PROP(samplers[i]->mLodBias, lodbias);
+              AUTO_PROP(samplers[i].mLodBias, lodbias);
 
               bool edgelod = samp->bEdgeLod;
               ImGui::Checkbox("Edge LOD", &edgelod);
-              AUTO_PROP(samplers[i]->bEdgeLod, edgelod);
+              AUTO_PROP(samplers[i].bEdgeLod, edgelod);
 
               {
                 ConditionalActive g(edgelod);
 
                 bool mipBiasClamp = samp->bBiasClamp;
                 ImGui::Checkbox("Bias clamp", &mipBiasClamp);
-                AUTO_PROP(samplers[i]->bBiasClamp, mipBiasClamp);
+                AUTO_PROP(samplers[i].bBiasClamp, mipBiasClamp);
 
                 int maxaniso = 0;
                 switch (samp->mMaxAniso) {
@@ -392,7 +392,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   alvl = librii::gx::AnisotropyLevel::x4;
                   break;
                 }
-                AUTO_PROP(samplers[i]->mMaxAniso, alvl);
+                AUTO_PROP(samplers[i].mMaxAniso, alvl);
               }
             }
           }
@@ -400,7 +400,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           librii::gx::TextureFilter computedMin =
               librii::hx::lowerTextureFilter(min_filt);
 
-          AUTO_PROP(samplers[i]->mMinFilter, computedMin);
+          AUTO_PROP(samplers[i].mMinFilter, computedMin);
         }
         ImGui::EndTabItem();
       }

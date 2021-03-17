@@ -159,12 +159,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
         const auto mImgs = delegate.getActive().getTextureSource(*pScn);
         for (auto& it : mImgs) {
-          if (it.getName() == matData.samplers[stage.texMap]->mTexture) {
+          if (it.getName() == matData.samplers[stage.texMap].mTexture) {
             curImg = &it;
           }
         }
         if (curImg) {
-          if (matData.samplers[stage.texCoord]->mTexture != tev.mLastImg) {
+          if (matData.samplers[stage.texCoord].mTexture != tev.mLastImg) {
             tev.mImg.setFromImage(*curImg);
             tev.mLastImg = curImg->getName();
           }

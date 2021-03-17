@@ -68,18 +68,17 @@ inline std::string TextureImageCombo(const char* current,
   }
   return result;
 }
-inline int SamplerCombo(
-    int current,
-    copyable_polymorphic_array_vector<GCMaterialData::SamplerData, 8>& samplers,
-    kpi::ConstCollectionRange<riistudio::lib3d::Texture> images,
-    riistudio::frontend::EditorWindow* ed, bool allow_none = false) {
+inline int
+SamplerCombo(int current,
+             array_vector<GCMaterialData::SamplerData, 8>& samplers,
+             kpi::ConstCollectionRange<riistudio::lib3d::Texture> images,
+             riistudio::frontend::EditorWindow* ed, bool allow_none = false) {
   int result = current;
 
   const auto format = [&](int id) -> std::string {
     if (id >= samplers.size())
       return "No selection";
-    return std::string("[") + std::to_string(id) + "] " +
-           samplers[id]->mTexture;
+    return std::string("[") + std::to_string(id) + "] " + samplers[id].mTexture;
   };
 
   if (ImGui::BeginCombo("Sampler ID##Img", samplers.empty()
@@ -100,7 +99,7 @@ inline int SamplerCombo(
       const riistudio::lib3d::Texture* curImg = nullptr;
 
       for (auto& it : images) {
-        if (it.getName() == samplers[i]->mTexture) {
+        if (it.getName() == samplers[i].mTexture) {
           curImg = &it;
         }
       }

@@ -107,26 +107,20 @@ public:
 
     for (auto& mat : model.getMaterials()) {
       for (int i = 0; i < mat.samplers.size(); ++i) {
-        auto& samp = mat.samplers[i];
-        if (samp.get() == nullptr)
-          continue;
-        auto* slow = dynamic_cast<Material::J3DSamplerData*>(samp.get());
-        if (slow == nullptr)
-          printf("Invalid sampler referring to %s\n", samp->mTexture.c_str());
-        assert(slow != nullptr);
+        auto* samp = &mat.samplers[i];
 
         assert(!samp->mTexture.empty());
         if (!samp->mTexture.empty()) {
           const auto btiId = texNameMap.at(samp->mTexture);
-          Tex tmp(collection.getTextures()[btiId], *samp.get());
+          Tex tmp(collection.getTextures()[btiId], *samp);
           tmp.btiId = btiId;
 
           auto found = std::find(texCache.begin(), texCache.end(), tmp);
           if (found == texCache.end()) {
             texCache.push_back(tmp);
-            slow->btiId = texCache.size() - 1;
+            samp->btiId = texCache.size() - 1;
           } else {
-            slow->btiId = found - texCache.begin();
+            samp->btiId = found - texCache.begin();
           }
         }
       }

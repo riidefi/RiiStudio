@@ -60,8 +60,8 @@ static void CompileMaterial(libcube::IGCMaterial& out, const ImpMaterial& in,
   auto& data = out.getMaterialData();
 
   if (!in.samplers.empty()) {
-    data.samplers.push_back(std::make_unique<j3d::Material::J3DSamplerData>());
-    data.samplers[0]->mTexture = in.samplers[0].path;
+    data.samplers.push_back({});
+    data.samplers[0].mTexture = in.samplers[0].path;
     texturesToImport.insert(in.samplers[0].path);
 
     data.texMatrices.push_back(j3d::Material::TexMatrix{});

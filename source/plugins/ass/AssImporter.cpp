@@ -713,7 +713,7 @@ void AssImporter::ImportAss(
   for (auto& mat : out_model->getMaterials()) {
     auto& mdata = mat.getMaterialData();
     for (int i = 0; i < mdata.samplers.size(); ++i) {
-      auto* sampler = mdata.samplers[i].get();
+      auto* sampler = &mdata.samplers[i];
       if (sampler == nullptr)
         continue;
       auto* tex = tex_lut[sampler->mTexture]; // TODO
