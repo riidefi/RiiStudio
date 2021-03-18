@@ -8,35 +8,26 @@ bl_info = {
 	"location": "File > Export",
 	"description": "Export to BRRES/BMD files.",
 	"warning": "Experimental Build",
-	"wiki_url": "",
+	"wiki_url": "https://github.com/riidefi/RiiStudio",
 	"tracker_url": "",
 	"category": "Export"
 }
 
 # src\imports.py
 
-from os.path import dirname, basename
-
 import struct
 import bpy, bmesh
-import json
 import os, shutil
-import math, mathutils
-import hashlib
+import mathutils
 from bpy_extras.io_utils import axis_conversion
-# ExportHelper is a helper class, defines filename and
-# invoke() function which calls the file selector.
-# noinspection PyUnresolvedReferences
 from bpy_extras.io_utils import ExportHelper
-# noinspection PyUnresolvedReferences
 from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty, IntProperty
-# noinspection PyUnresolvedReferences
 from bpy.types import Operator
-
 from collections import OrderedDict
-
 from time import perf_counter
 import subprocess
+import mmap
+import cProfile
 
 BLENDER_28 = bpy.app.version[1] >= 80
 
@@ -65,9 +56,6 @@ RHST_DATA_END_ARRAY_DYNAMIC = 6
 RHST_DATA_STRING = 7
 RHST_DATA_S32    = 8
 RHST_DATA_F32    = 9
-
-import mmap
-import cProfile
 
 DEBUG = False
 
@@ -700,7 +688,7 @@ def export_jres(context, params : RHSTExportParams):
 			]
 		],
 		"bones": [{
-			"name": "blender_root",
+			"name": "riistudio_blender%s" % bpy.app.version[1],
 			"parent": -1,
 			"child": -1,
 			"scale": params.root_transform.s,
@@ -900,11 +888,8 @@ class RHST_RNA:
 		box.prop(self, "mesh_conversion_mode")
 		box.prop(self, 'add_dummy_colors')
 		box.prop(self, 'ignore_cache')
+		box.prop(self, 'keep_build_artifacts')
 
-		# # CT Integrations
-		# box = layout.box()
-		# box.label("CT Integrations", icon='LINK_BLEND')
-		# box.prop(self, "rspm_build_debug")
 		# Quantization
 		box = layout.box()
 		box.label(text="Quantization", icon='LINENUMBERS_ON')
@@ -913,6 +898,7 @@ class RHST_RNA:
 		col.prop(self, "normal_quantize")
 		col.prop(self, "uv_quantize")
 		col.prop(self, "color_quantize")
+		
 		# Root Transform
 		box = layout.box()
 		box.label(text="Root Transform", icon='FULLSCREEN_ENTER' if BLENDER_28 else 'MANIPUL')
@@ -1037,9 +1023,9 @@ class ExportBMD(Operator, ExportHelper, RHST_RNA):
 
 # Only needed if you want to add into a dynamic menu
 def brres_menu_func_export(self, context):
-	self.layout.operator(ExportBRRES.bl_idname, text="BRRES")
+	self.layout.operator(ExportBRRES.bl_idname, text="BRRES (RiiStudio)")
 def bmd_menu_func_export(self, context):
-	self.layout.operator(ExportBMD.bl_idname, text="BMD")
+	self.layout.operator(ExportBMD.bl_idname, text="BMD (RiiStudio)")
 
 
 # src\preferences.py
