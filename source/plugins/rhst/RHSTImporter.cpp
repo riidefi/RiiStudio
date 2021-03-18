@@ -265,7 +265,7 @@ std::string RHSTReader::canRead(const std::string& file,
 
 static inline std::string getFileShort(const std::string& path) {
   auto tmp = path.substr(path.rfind("\\") + 1);
-  tmp = tmp.substr(0, tmp.rfind("."));
+  // tmp = tmp.substr(0, tmp.rfind("."));
   return tmp;
 }
 
