@@ -3,7 +3,7 @@
 
 namespace libcube::UI {
 
-enum class ExprOp : u32 { Add, Sub, Mul };
+enum class ExprOp : u32 { Add, Sub, Mul, Eq, Gt, TernOp, Colon };
 struct Expr {
   enum Type : u32 { Unary, Binary };
   Type type;
@@ -165,6 +165,59 @@ static bool optimizeNodeBinary(BinExpr& e) {
     return true;
   }
 
+  // Axiom of identity
+  // 0 == 0 -> true
+  // 0 == 1 -> false
+  // 1 == 0 -> false
+  // 1 == 1 -> true
+  if (e.op == ExprOp::Eq) {
+    if ((left_zero && right_zero) || (left_one && right_one)) {
+      to_unary(One);
+      return true;
+    }
+    if ((left_one && right_zero) || (left_zero && right_one)) {
+      to_unary(Zero);
+      return true;
+    }
+  }
+
+  // 0 > 0 -> false
+  // 0 > 1 -> false
+  // 1 > 0 -> true
+  // 1 > 1 -> false
+  if (e.op == ExprOp::Gt) {
+    if ((left_zero && right_zero) || (left_zero && right_one) ||
+        (left_one && right_one)) {
+      to_unary(One);
+      return true;
+    }
+    if ((left_one && right_zero)) {
+      to_unary(Zero);
+      return true;
+    }
+  }
+
+  if (e.op == ExprOp::TernOp) {
+
+    // Bit of a hack: done to skip displaying a step
+    // A ? 0 : 0 -> 0
+    const auto rl_un = reinterpret_cast<UnaryExpr*>(right_bin->left);
+    if (rl_un->val == Zero) {
+      to_unary(Zero);
+      return true;
+    }
+    // true ? A : B -> A
+    if (left_one) {
+      to_expr(*right_bin->left);
+      return true;
+    }
+    // false ? A : B -> B
+    if (left_zero) {
+      to_expr(*right_bin->right);
+      return true;
+    }
+  }
+
   // Process children
   bool changed = false;
   if (left_bin)
@@ -231,6 +284,18 @@ static void printExpr(BinExpr& e, riistudio::util::StringBuilder& builder,
   case ExprOp::Sub:
     builder.append(" - ");
     break;
+  case ExprOp::Eq:
+    builder.append(" == ");
+    break;
+  case ExprOp::Gt:
+    builder.append(" > ");
+    break;
+  case ExprOp::TernOp:
+    builder.append(" ? ");
+    break;
+  case ExprOp::Colon:
+    builder.append(" : ");
+    break;
   }
 
   if (right_bin != nullptr)
@@ -263,9 +328,9 @@ u32 computeUsed(const Expr& e) {
 
 template <typename T>
 static Expr& solve_tev_stage_impl(const T& substage,
-                           riistudio::util::StringBuilder& builder,
-                           bool do_print_inter, u8* workmem,
-                           std::size_t workmem_size) {
+                                  riistudio::util::StringBuilder& builder,
+                                  bool do_print_inter, u8* workmem,
+                                  std::size_t workmem_size) {
   assert(workmem_size >= sizeof(ExprAlloc) &&
          "Not enough memory.. cannot proceed");
 
@@ -321,15 +386,26 @@ static Expr& solve_tev_stage_impl(const T& substage,
   const auto unary_b = make_unary(arg_to_state(B, substage.b, substage));
   const auto unary_c = make_unary(arg_to_state(C, substage.c, substage));
   const auto unary_d = make_unary(arg_to_state(D, substage.d, substage));
+  const auto formula = static_cast<int>(substage.formula);
+  const auto base_op = formula == 1 ? ExprOp::Sub : ExprOp::Add;
+  const auto comp_op = (formula & 1) == 0 ? ExprOp::Eq : ExprOp::Gt;
 
-  BinExpr& root = *make_binary(
-      ExprOp::Add, unary_d,
-      make_binary(
-          ExprOp::Add,
-          make_binary(ExprOp::Mul,
-                      make_binary(ExprOp::Sub, make_unary(One), unary_c),
-                      unary_a),
-          make_binary(ExprOp::Mul, unary_c, unary_b)));
+  auto arithmetic_expr = [&] {
+    return make_binary(
+        ExprOp::Add,
+        make_binary(ExprOp::Mul,
+                    make_binary(ExprOp::Sub, make_unary(One), unary_c),
+                    unary_a),
+        make_binary(ExprOp::Mul, unary_c, unary_b));
+  };
+
+  auto ternary_expr = [&] {
+    return make_binary(ExprOp::TernOp, make_binary(comp_op, unary_a, unary_b),
+                       make_binary(ExprOp::Colon, unary_c, make_unary(Zero)));
+  };
+
+  const auto sub_expr = formula < 2 ? arithmetic_expr() : ternary_expr();
+  BinExpr& root = *make_binary(base_op, unary_d, sub_expr);
 
   // A + C(B-A)
   //
