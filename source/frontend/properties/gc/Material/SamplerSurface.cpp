@@ -279,7 +279,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 ImGui::Combo(
                     "Option", &mod,
                     "Standard\0J3D Basic: Don't remap into texture space (Keep "
-                    "-1..1 not 0...1)\0J3D Old: Keep translation column.");
+                    "-1..1 not 0...1)\0J3D Old: Keep translation column.\0");
                 AUTO_PROP(
                     texMatrices[texmatrixid].option,
                     static_cast<libcube::GCMaterialData::CommonMappingOption>(
