@@ -1,6 +1,7 @@
 #include "Common.hpp"
 #include <frontend/properties/gc/TevSolver.hpp> // optimizeNode
 #include <frontend/widgets/Image.hpp>           // ImagePreview
+#include <imcxx/Widgets.hpp>                    // imcxx::Combo
 #include <librii/hx/KonstSel.hpp>               // elevateKonstSel
 #include <plugins/gc/Export/Scene.hpp>
 
@@ -19,15 +20,87 @@ struct StageSurface final {
   std::string mLastImg;
 };
 
-const char* colorOpt =
-    "Register 3 Color\0Register 3 Alpha\0Register 0 "
-    "Color\0Register 0 Alpha\0Register 1 Color\0Register 1 "
-    "Alpha\0Register 2 Color\0Register 2 Alpha\0Texture "
-    "Color\0Texture Alpha\0Raster Color\0Raster Alpha\0 1.0\0 "
-    "0.5\0 Constant Color Selection\0 0.0\0\0";
-const char* alphaOpt = "Register 3 Alpha\0Register 0 Alpha\0Register 1 "
-                       "Alpha\0Register 2 Alpha\0Texture Alpha\0Raster "
-                       "Alpha\0Constant Alpha Selection\0 0.0\0\0";
+const char* colorOpt = "Register 3 Color\0"
+                       "Register 3 Alpha\0"
+                       "Register 0 Color\0"
+                       "Register 0 Alpha\0"
+                       "Register 1 Color\0"
+                       "Register 1 Alpha\0"
+                       "Register 2 Color\0"
+                       "Register 2 Alpha\0"
+                       "Texture Color\0"
+                       "Texture Alpha\0"
+                       "Raster Color\0"
+                       "Raster Alpha\0"
+                       "1.0\0"
+                       "0.5\0"
+                       "Constant Color Selection\0"
+                       "0.0\0"
+                       "\0";
+
+const char* alphaOpt = "Register 3 Alpha\0"
+                       "Register 0 Alpha\0"
+                       "Register 1 Alpha\0"
+                       "Register 2 Alpha\0"
+                       "Texture Alpha\0"
+                       "Raster Alpha\0"
+                       "Constant Alpha Selection\0"
+                       "0.0\0"
+                       "\0";
+
+librii::gx::TevBias drawTevBias(librii::gx::TevBias bias) {
+  return imcxx::Combo("Bias", bias,
+                      "No bias\0"
+                      "Add middle gray\0"
+                      "Subtract middle gray\0");
+}
+librii::gx::TevScale drawTevScale(librii::gx::TevScale scale) {
+  return imcxx::Combo("Scale", scale,
+                      "100% brightness\0"
+                      "200% brightness\0"
+                      "400% brightness\0"
+                      "50% brightness\0");
+}
+librii::gx::TevReg drawOutRegister(librii::gx::TevReg out) {
+  return imcxx::Combo("Calculation Result Output Destionation", out,
+                      "Register 3\0"
+                      "Register 0\0"
+                      "Register 1\0"
+                      "Register 2\0");
+}
+gx::TevColorArg drawTevOp(const TevExpression& expression, const char* title,
+                          gx::TevColorArg op, u32 op_mask) {
+  ConditionalActive g(expression.isUsed(op_mask), false);
+  return imcxx::Combo(title, op, colorOpt);
+}
+gx::TevAlphaArg drawTevOp(const TevExpression& expression, const char* title,
+                          gx::TevAlphaArg op, u32 op_mask) {
+  ConditionalActive g(expression.isUsed(op_mask), false);
+  return imcxx::Combo(title, op, alphaOpt);
+};
+
+template <typename T> T drawSubStage(T stage) {
+  TevExpression expression(stage);
+
+  ImGui::SetWindowFontScale(1.3f);
+  ImGui::Text("%s", expression.getString());
+  ImGui::SetWindowFontScale(1.0f);
+
+  stage.constantSelection = DrawKonstSel(stage.constantSelection);
+
+  stage.a = drawTevOp(expression, "Operand A", stage.a, A);
+  stage.b = drawTevOp(expression, "Operand B", stage.b, B);
+  stage.c = drawTevOp(expression, "Operand C", stage.c, C);
+  stage.d = drawTevOp(expression, "Operand D", stage.d, D);
+
+  stage.bias = drawTevBias(stage.bias);
+  stage.scale = drawTevScale(stage.scale);
+
+  ImGui::Checkbox("Clamp calculation to 0-255", &stage.clamp);
+  stage.out = drawOutRegister(stage.out);
+
+  return stage;
+}
 
 template <typename T> T DrawKonstSel(T x) {
   auto ksel = librii::hx::elevateKonstSel(x);
@@ -99,8 +172,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       }(stage.rasOrder);
       const int rasIdOld = rasId;
       ImGui::Combo("Channel ID", &rasId,
-                   "Channel 0\0Channel 1\0None\0Indirect Alpha\0Normalized "
-                   "Indirect Alpha\0");
+                   "Channel 0\0"
+                   "Channel 1\0"
+                   "None\0"
+                   "Indirect Alpha\0"
+                   "Normalized Indirect Alpha\0");
 
       if (rasId != rasIdOld) {
         gx::ColorSelChanApi ras = [](int sel) -> gx::ColorSelChanApi {
@@ -179,100 +255,35 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       // TODO: Only add for now..
       if (stage.colorStage.formula == librii::gx::TevColorOp::add) {
-        TevExpression expression(stage.colorStage);
-
-        ImGui::SetWindowFontScale(1.3f);
-        ImGui::Text("%s", expression.getString());
-        ImGui::SetWindowFontScale(1.0f);
-
-        int a = static_cast<int>(stage.colorStage.a);
-        int b = static_cast<int>(stage.colorStage.b);
-        int c = static_cast<int>(stage.colorStage.c);
-        int d = static_cast<int>(stage.colorStage.d);
-        bool clamp = stage.colorStage.clamp;
-        int bias = static_cast<int>(stage.colorStage.bias);
-        int scale = static_cast<int>(stage.colorStage.scale);
-        int dst = static_cast<int>(stage.colorStage.out);
-
-        const auto ksel = DrawKonstSel(stage.colorStage.constantSelection);
-        STAGE_PROP(colorStage.constantSelection, ksel);
-
-        auto draw_color_operand = [&](const char* title, int* op, u32 op_mask) {
-          ConditionalActive g(expression.isUsed(op_mask), false);
-          ImGui::Combo(title, op, colorOpt);
-        };
-
-        draw_color_operand("Operand A", &a, A);
-        draw_color_operand("Operand B", &b, B);
-        draw_color_operand("Operand C", &c, C);
-        draw_color_operand("Operand D", &d, D);
-        ImGui::Combo("Bias", &bias,
-                     "No bias\0Add middle gray\0Subtract middle gray\0");
-        ImGui::Combo("Scale", &scale,
-                     "100% brightness\0"
-                     "200% brightness\0"
-                     "400% brightness\0"
-                     "50% brightness\0");
-        ImGui::Checkbox("Clamp calculation to 0-255", &clamp);
-        ImGui::Combo("Calculation Result Output Destionation", &dst,
-                     "Register 3\0Register 0\0Register 1\0Register 2\0");
-
-        STAGE_PROP(colorStage.a, static_cast<gx::TevColorArg>(a));
-        STAGE_PROP(colorStage.b, static_cast<gx::TevColorArg>(b));
-        STAGE_PROP(colorStage.c, static_cast<gx::TevColorArg>(c));
-        STAGE_PROP(colorStage.d, static_cast<gx::TevColorArg>(d));
-        STAGE_PROP(colorStage.clamp, clamp);
-        STAGE_PROP(colorStage.bias, static_cast<gx::TevBias>(bias));
-        STAGE_PROP(colorStage.scale, static_cast<gx::TevScale>(scale));
-        STAGE_PROP(colorStage.out, static_cast<gx::TevReg>(dst));
+        librii::gx::TevStage::ColorStage substage =
+            drawSubStage(stage.colorStage);
+        STAGE_PROP(colorStage.constantSelection, substage.constantSelection);
+        STAGE_PROP(colorStage.a, substage.a);
+        STAGE_PROP(colorStage.b, substage.b);
+        STAGE_PROP(colorStage.c, substage.c);
+        STAGE_PROP(colorStage.d, substage.d);
+        STAGE_PROP(colorStage.clamp, substage.clamp);
+        STAGE_PROP(colorStage.bias, substage.bias);
+        STAGE_PROP(colorStage.scale, substage.scale);
+        STAGE_PROP(colorStage.out, substage.out);
       }
     }
     if (ImGui::CollapsingHeader("Alpha Stage",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       IDScope alphag("Alpha");
       if (stage.alphaStage.formula == librii::gx::TevAlphaOp::add) {
-        TevExpression expression(stage.alphaStage);
+        librii::gx::TevStage::AlphaStage substage =
+            drawSubStage(stage.alphaStage);
 
-        ImGui::SetWindowFontScale(1.3f);
-        ImGui::Text("%s", expression.getString());
-        ImGui::SetWindowFontScale(1.0f);
-
-        int a = static_cast<int>(stage.alphaStage.a);
-        int b = static_cast<int>(stage.alphaStage.b);
-        int c = static_cast<int>(stage.alphaStage.c);
-        int d = static_cast<int>(stage.alphaStage.d);
-        bool clamp = stage.alphaStage.clamp;
-        int bias = static_cast<int>(stage.alphaStage.bias);
-        int scale = static_cast<int>(stage.alphaStage.scale);
-        int dst = static_cast<int>(stage.alphaStage.out);
-
-        const auto ksel = DrawKonstSel(stage.alphaStage.constantSelection);
-        STAGE_PROP(alphaStage.constantSelection, ksel);
-
-        auto draw_alpha_operand = [&](const char* title, int* op, u32 op_mask) {
-          ConditionalActive g(expression.isUsed(op_mask), false);
-          ImGui::Combo(title, op, alphaOpt);
-        };
-
-        draw_alpha_operand("Operand A##Alpha", &a, A);
-        draw_alpha_operand("Operand B##Alpha", &b, B);
-        draw_alpha_operand("Operand C##Alpha", &c, C);
-        draw_alpha_operand("Operand D##Alpha", &d, D);
-        ImGui::Combo("Bias##Alpha", &bias,
-                     "No bias\0Add middle gray\0Subtract middle gray\0");
-        ImGui::Combo("Scale", &scale, "* 1\0* 2\0* 4\0");
-        ImGui::Checkbox("Clamp calculation to 0-255##Alpha", &clamp);
-        ImGui::Combo("Calculation Result Output Destionation##Alpha", &dst,
-                     "Register 3\0Register 0\0Register 1\0Register 2\0");
-
-        STAGE_PROP(alphaStage.a, static_cast<gx::TevAlphaArg>(a));
-        STAGE_PROP(alphaStage.b, static_cast<gx::TevAlphaArg>(b));
-        STAGE_PROP(alphaStage.c, static_cast<gx::TevAlphaArg>(c));
-        STAGE_PROP(alphaStage.d, static_cast<gx::TevAlphaArg>(d));
-        STAGE_PROP(alphaStage.clamp, clamp);
-        STAGE_PROP(alphaStage.bias, static_cast<gx::TevBias>(bias));
-        STAGE_PROP(alphaStage.scale, static_cast<gx::TevScale>(scale));
-        STAGE_PROP(alphaStage.out, static_cast<gx::TevReg>(dst));
+        STAGE_PROP(alphaStage.constantSelection, substage.constantSelection);
+        STAGE_PROP(alphaStage.a, substage.a);
+        STAGE_PROP(alphaStage.b, substage.b);
+        STAGE_PROP(alphaStage.c, substage.c);
+        STAGE_PROP(alphaStage.d, substage.d);
+        STAGE_PROP(alphaStage.clamp, substage.clamp);
+        STAGE_PROP(alphaStage.bias, substage.bias);
+        STAGE_PROP(alphaStage.scale, substage.scale);
+        STAGE_PROP(alphaStage.out, substage.out);
       }
     }
   };
