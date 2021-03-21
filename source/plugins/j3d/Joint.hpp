@@ -62,30 +62,9 @@ struct Joint : public libcube::IBoneDelegate,
   std::string getName() const { return name; }
   void setName(const std::string& n) override { name = n; }
   s64 getId() override { return id; }
-  void copy(lib3d::Bone& to) const override {
-    IBoneDelegate::copy(to);
-    Joint* pJoint = dynamic_cast<Joint*>(&to);
-    if (pJoint) {
-      pJoint->name = name;
-      pJoint->flag = flag;
-    }
-  }
-  lib3d::Coverage supportsBoneFeature(lib3d::BoneFeatures f) override {
-    switch (f) {
-    case lib3d::BoneFeatures::SRT:
-    case lib3d::BoneFeatures::Hierarchy:
-    case lib3d::BoneFeatures::StandardBillboards:
-    case lib3d::BoneFeatures::AABB:
-    case lib3d::BoneFeatures::BoundingSphere:
-    case lib3d::BoneFeatures::SegmentScaleCompensation:
-      return lib3d::Coverage::ReadWrite;
-    default:
-      return lib3d::Coverage::Unsupported;
-    }
-  }
-
-  lib3d::SRT3 getSRT() const override { return {scale, rotate, translate}; }
-  void setSRT(const lib3d::SRT3& srt) override {
+  
+  librii::math::SRT3 getSRT() const override { return {scale, rotate, translate}; }
+  void setSRT(const librii::math::SRT3& srt) override {
     scale = srt.scale;
     rotate = srt.rotation;
     translate = srt.translation;

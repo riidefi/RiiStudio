@@ -71,4 +71,4 @@ add_library(librii
 
   "kcol/SerializationProfile.hpp"
   "kcol/SerializationProfile.cpp"
-)
+ "math/srt3.hpp")

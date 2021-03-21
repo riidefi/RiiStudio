@@ -389,7 +389,7 @@ void AssImporter::ImportNode(const aiNode* pNode, glm::vec3 tint, int parent) {
   joint.setName(pNode->mName.C_Str());
   const glm::mat4 xf = getMat4(pNode->mTransformation);
 
-  lib3d::SRT3 srt;
+  librii::math::SRT3 srt;
   glm::quat rotation;
   glm::vec3 skew;
   glm::vec4 perspective;

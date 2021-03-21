@@ -93,39 +93,11 @@ struct Bone : public libcube::IBoneDelegate,
   void setName(const std::string& name) override { mName = name; }
   // std::string getName() const override { return mName; }
   s64 getId() override { return id; }
-  void copy(lib3d::Bone& to) const override {
-    IBoneDelegate::copy(to);
-    Bone* pJoint = dynamic_cast<Bone*>(&to);
-    if (pJoint) {
-      pJoint->mName = mName;
-      pJoint->matrixId = matrixId;
-      pJoint->ssc = ssc;
-      pJoint->classicScale = classicScale;
-      pJoint->visible = visible;
-      pJoint->billboardType = billboardType;
-      // billboardRefId = pJoint->billboardRefId;
-    }
-  }
-  lib3d::Coverage supportsBoneFeature(lib3d::BoneFeatures f) override {
-    switch (f) {
-    case lib3d::BoneFeatures::SRT:
-    case lib3d::BoneFeatures::Hierarchy:
-    case lib3d::BoneFeatures::StandardBillboards:
-    case lib3d::BoneFeatures::AABB:
-    case lib3d::BoneFeatures::SegmentScaleCompensation:
-    case lib3d::BoneFeatures::ExtendedBillboards:
-      return lib3d::Coverage::ReadWrite;
-
-    case lib3d::BoneFeatures::BoundingSphere:
-    default:
-      return lib3d::Coverage::Unsupported;
-    }
-  }
-
-  lib3d::SRT3 getSRT() const override {
+ 
+  librii::math::SRT3 getSRT() const override {
     return {mScaling, mRotation, mTranslation};
   }
-  void setSRT(const lib3d::SRT3& srt) override {
+  void setSRT(const librii::math::SRT3& srt) override {
     mScaling = srt.scale;
     mRotation = srt.rotation;
     mTranslation = srt.translation;

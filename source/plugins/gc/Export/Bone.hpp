@@ -79,24 +79,6 @@ struct IBoneDelegate : public riistudio::lib3d::Bone {
     srt.translation = t;
     setSRT(srt);
   }
-
-  void copy(riistudio::lib3d::Bone& to) const override {
-    riistudio::lib3d::Bone::copy(to);
-    IBoneDelegate* bone = reinterpret_cast<IBoneDelegate*>(&to);
-    if (bone) {
-      if (bone->supportsBoneFeature(
-              riistudio::lib3d::BoneFeatures::StandardBillboards) ==
-          riistudio::lib3d::Coverage::ReadWrite)
-        bone->setBillboard(getBillboard());
-      if (bone->supportsBoneFeature(
-              riistudio::lib3d::BoneFeatures::ExtendedBillboards) ==
-          riistudio::lib3d::Coverage::ReadWrite)
-        bone->setBillboardAncestor(getBillboardAncestor());
-    }
-  }
-  inline bool canWrite(riistudio::lib3d::BoneFeatures f) {
-    return supportsBoneFeature(f) == riistudio::lib3d::Coverage::ReadWrite;
-  }
 };
 
 } // namespace libcube

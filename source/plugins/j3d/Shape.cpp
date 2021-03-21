@@ -63,40 +63,6 @@ u64 Shape::addUv(libcube::Model& mdl, u64 chan, const glm::vec2& v) {
   return add_to_buffer(v, reinterpret_cast<Model&>(mdl).mBufs.uv[chan].mData);
 }
 
-glm::mat4 computeMdlMtx(const lib3d::SRT3& srt) {
-  glm::mat4 dst(1.0f);
-
-  //	dst = glm::translate(dst, srt.translation);
-  //	dst = dst * glm::eulerAngleZYX(glm::radians(srt.rotation.x),
-  // glm::radians(srt.rotation.y), glm::radians(srt.rotation.z)); 	return
-  // glm::scale(dst, srt.scale);
-
-  float sinX = sin(glm::radians(srt.rotation.x)),
-        cosX = cos(glm::radians(srt.rotation.x));
-  float sinY = sin(glm::radians(srt.rotation.y)),
-        cosY = cos(glm::radians(srt.rotation.y));
-  float sinZ = sin(glm::radians(srt.rotation.z)),
-        cosZ = cos(glm::radians(srt.rotation.z));
-
-  dst[0][0] = srt.scale.x * (cosY * cosZ);
-  dst[0][1] = srt.scale.x * (sinZ * cosY);
-  dst[0][2] = srt.scale.x * (-sinY);
-  dst[0][3] = 0.0;
-  dst[1][0] = srt.scale.y * (sinX * cosZ * sinY - cosX * sinZ);
-  dst[1][1] = srt.scale.y * (sinX * sinZ * sinY + cosX * cosZ);
-  dst[1][2] = srt.scale.y * (sinX * cosY);
-  dst[1][3] = 0.0;
-  dst[2][0] = srt.scale.z * (cosX * cosZ * sinY + sinX * sinZ);
-  dst[2][1] = srt.scale.z * (cosX * sinZ * sinY - sinX * cosZ);
-  dst[2][2] = srt.scale.z * (cosY * cosX);
-  dst[2][3] = 0.0;
-  dst[3][0] = srt.translation.x;
-  dst[3][1] = srt.translation.y;
-  dst[3][2] = srt.translation.z;
-  dst[3][3] = 1.0;
-
-  return dst;
-}
 glm::mat4 computeBoneMdl(u32 id, kpi::ConstCollectionRange<lib3d::Bone> bones) {
   glm::mat4 mdl(1.0f);
 
@@ -105,7 +71,7 @@ glm::mat4 computeBoneMdl(u32 id, kpi::ConstCollectionRange<lib3d::Bone> bones) {
   if (parent >= 0 && parent != id)
     mdl = computeBoneMdl(parent, bones);
 
-  return mdl * computeMdlMtx(bone.getSRT());
+  return mdl * librii::math::calcXform(bone.getSRT());
 }
 std::vector<glm::mat4> Shape::getPosMtx(const libcube::Model& _mdl,
                                         u64 mpid) const {
