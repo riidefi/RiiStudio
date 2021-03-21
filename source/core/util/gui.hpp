@@ -45,6 +45,32 @@ struct ConditionalActive {
   }
   bool bPred = false, bFlag = true;
 };
+struct ConditionalBold {
+  ConditionalBold(bool pred) : bPred(pred) {
+    if (!bPred) {
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{.6f, .6f, .6f, 1.0f});
+    }
+  }
+  ~ConditionalBold() {
+    if (!bPred) {
+      ImGui::PopStyleColor();
+    }
+  }
+  bool bPred = false, bFlag = true;
+};
+struct ConditionalHighlight {
+  ConditionalHighlight(bool pred) : bPred(pred) {
+    if (bPred) {
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 1.0f, 0.0f, 1.0f});
+    }
+  }
+  ~ConditionalHighlight() {
+    if (bPred) {
+      ImGui::PopStyleColor();
+    }
+  }
+  bool bPred = false, bFlag = true;
+};
 struct IDScope {
   template <typename T> IDScope(T id) { ImGui::PushID(id); }
   ~IDScope() { ImGui::PopID(); }

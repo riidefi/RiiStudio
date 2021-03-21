@@ -70,12 +70,12 @@ librii::gx::TevReg drawOutRegister(librii::gx::TevReg out) {
 }
 gx::TevColorArg drawTevOp(const TevExpression& expression, const char* title,
                           gx::TevColorArg op, u32 op_mask) {
-  ConditionalActive g(expression.isUsed(op_mask), false);
+  ConditionalHighlight g(expression.isUsed(op_mask));
   return imcxx::Combo(title, op, colorOpt);
 }
 gx::TevAlphaArg drawTevOp(const TevExpression& expression, const char* title,
                           gx::TevAlphaArg op, u32 op_mask) {
-  ConditionalActive g(expression.isUsed(op_mask), false);
+  ConditionalHighlight g(expression.isUsed(op_mask));
   return imcxx::Combo(title, op, alphaOpt);
 };
 
