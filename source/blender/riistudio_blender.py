@@ -1030,6 +1030,12 @@ def bmd_menu_func_export(self, context):
 
 # src\preferences.py
 
+def make_rs_path_absolute():
+	prefs = get_rs_prefs(bpy.context)
+
+	if prefs.riistudio_directory.startswith('//'):
+		prefs.riistudio_directory = os.path.abspath(bpy.path.abspath(prefs.riistudio_directory))
+
 class RiidefiStudioPreferenceProperty(bpy.types.AddonPreferences):
 	bl_idname = __name__
 
@@ -1037,6 +1043,7 @@ class RiidefiStudioPreferenceProperty(bpy.types.AddonPreferences):
 		name="RiiStudio Directory",
 		description="Folder of RiiStudio.exe",
 		subtype='DIR_PATH',
+		update = lambda s,c: make_rs_path_absolute(),
 		default=""
 	)
 
