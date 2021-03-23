@@ -14,7 +14,7 @@ librii::math::AABB SceneState::computeBounds() {
   bound.min = {0.0f, 0.0f, 0.0f};
   bound.max = {0.0f, 0.0f, 0.0f};
 
-  mTree.forEachNode([&](SceneNode& node) { node.expandBound(bound); });
+  mTree.forEachNode([&](SceneNode& node) { bound.expandBound(node.bound); });
 
   return bound;
 }
@@ -34,7 +34,8 @@ void SceneState::draw() {
   mUboBuilder.submit();
 
   u32 i = 0;
-  mTree.forEachNode([&](SceneNode& node) { node.draw(mUboBuilder, i++); });
+  mTree.forEachNode(
+      [&](SceneNode& node) { drawReplacement(node, mUboBuilder, i++); });
 
   glBindVertexArray(0);
   glUseProgram(0);

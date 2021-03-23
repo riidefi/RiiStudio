@@ -1,6 +1,8 @@
 #pragma once
 
 #include <core/3d/i3dmodel.hpp>
+#include <core/util/array_vector.hpp>
+#include <cstring>
 #include <librii/glhelper/ShaderCache.hpp>
 #include <map>
 
@@ -12,17 +14,40 @@ enum class RenderPass {
   ID // For selection
 };
 
+struct TextureObj {
+  u32 active_id;
+  u32 image_id;
+  u32 glMinFilter;
+  u32 glMagFilter;
+  u32 glWrapU;
+  u32 glWrapV;
+};
+
+void useTexObj(const TextureObj& obj);
+
 struct SceneNode {
   virtual ~SceneNode() = default;
 
   // Draw the node to the screen
-  virtual void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-                    u32 draw_index) = 0;
+  // virtual void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
+  //                   u32 draw_index) = 0;
+
+  librii::gfx::MegaState mega_state;
+  u32 shader_id;
+  u32 vao_id;
+
+  util::array_vector<TextureObj, 8> texture_objects;
+
+  u32 glBeginMode; // GL_TRIANGLES
+  u32 vertex_count;
+  u32 glVertexDataType; // GL_UNSIGNED_INT
+  void* indices;
 
   // Expand an AABB with the current bounding box
   //
   // Note: Model-space
-  virtual void expandBound(librii::math::AABB& bound) = 0;
+  // virtual void expandBound(librii::math::AABB& bound) = 0;
+  librii::math::AABB bound;
 
   // Fill-in a UBO
   //
@@ -33,6 +58,10 @@ struct SceneNode {
                      const glm::mat4& view_matrix,
                      const glm::mat4& proj_matrix) = 0;
 };
+
+void drawReplacement(const SceneNode& node,
+                     librii::glhelper::DelegatedUBOBuilder& ubo_builder,
+                     u32 draw_index);
 
 struct DrawBuffer {
   std::vector<std::unique_ptr<SceneNode>> nodes;

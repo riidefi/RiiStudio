@@ -15,9 +15,9 @@ public:
   glm::vec3 getPosition() { return mEye; }
   void setPosition(const glm::vec3& p) { mEye = p; }
 
-  void setClipPlanes(float near, float far) {
-    mClipMin = near;
-    mClipMax = far;
+  void setClipPlanes(float near_, float far_) {
+    mClipMin = near_;
+    mClipMax = far_;
   }
 
   // TODO: Enable for plane mode

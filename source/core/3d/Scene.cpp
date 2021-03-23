@@ -10,6 +10,7 @@
 #include <librii/gl/Compiler.hpp>      // PacketParams
 #include <librii/gl/EnumConverter.hpp> // setGlState
 #include <plugins/gc/Export/IndexedPolygon.hpp>
+#include <plugins/gc/Export/Material.hpp>
 #include <unordered_map>
 
 namespace riistudio::lib3d {
@@ -143,14 +144,14 @@ void SceneImpl::prepare(SceneState& state, const kpi::INode& _host) {
 }
 
 struct GCSceneNode : public SceneNode {
-  VertexBufferTenant& mVertexBufferTenant;
   GCSceneNode(VertexBufferTenant& tenant, librii::glhelper::VBOBuilder& v,
               const std::map<std::string, u32>& tm, const lib3d::Material& m,
               const lib3d::Polygon& p, const lib3d::Bone& b,
               const lib3d::Scene& _scn, const lib3d::Model& _mdl,
               librii::glhelper::ShaderProgram& prog, u32 mi)
-      : mVertexBufferTenant(tenant), mp_id(mi), tex_id_map(tm),
-        mVaoId(v.getGlId()), mat(m), poly(p), bone(b), scn(_scn), mdl(_mdl) {
+      : mp_id(mi), tex_id_map(tm), mat(m), poly(p), bone(b), scn(_scn),
+        mdl(_mdl) {
+    this->vao_id = v.getGlId();
     // Calc the bound
     {
       auto mdl_mtx = bone.calcSrtMtx(&mdl);
@@ -158,18 +159,49 @@ struct GCSceneNode : public SceneNode {
       auto nmax = mdl_mtx * glm::vec4(poly.getBounds().max, 0.0f);
       auto nmin = mdl_mtx * glm::vec4(poly.getBounds().min, 0.0f);
 
-      mBound = {nmin, nmax};
+      this->bound = {nmin, nmax};
     }
 
     //
-    mat.setMegaState(mState);
-    mShaderId = prog.getId();
-  }
+    mat.setMegaState(this->mega_state);
+    this->shader_id = prog.getId();
 
-  void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-            u32 mtx_id) final;
-  void expandBound(librii::math::AABB& bound) final {
-    bound.expandBound(mBound);
+    // draw
+    this->glBeginMode = GL_TRIANGLES;
+    this->vertex_count = tenant.idx_size;
+    this->glVertexDataType = GL_UNSIGNED_INT;
+    this->indices = reinterpret_cast<void*>(tenant.idx_ofs * 4);
+
+    const libcube::GCMaterialData& gc_mat =
+        reinterpret_cast<const libcube::IGCMaterial&>(mat).getMaterialData();
+    for (int i = 0; i < gc_mat.samplers.size(); ++i) {
+      const auto& sampler = gc_mat.samplers[i];
+
+      TextureObj obj;
+
+      if (sampler.mTexture.empty()) {
+        // No textures specified
+        continue;
+      }
+
+      {
+        const auto found = tex_id_map.find(sampler.mTexture);
+        if (found == tex_id_map.end()) {
+          printf("Invalid texture link.\n");
+          continue;
+        }
+
+        obj.active_id = i;
+        obj.image_id = found->second;
+      }
+
+      obj.glMinFilter = librii::gl::gxFilterToGl(sampler.mMinFilter);
+      obj.glMagFilter = librii::gl::gxFilterToGl(sampler.mMagFilter);
+      obj.glWrapU = librii::gl::gxTileToGl(sampler.mWrapU);
+      obj.glWrapV = librii::gl::gxTileToGl(sampler.mWrapV);
+
+      this->texture_objects.push_back(obj);
+    }
   }
 
   void buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
@@ -181,8 +213,6 @@ struct GCSceneNode : public SceneNode {
   const std::map<std::string, u32>& tex_id_map;
 
 private:
-  u32 mVaoId = 0;
-
   // These references aren't safe, though
   const lib3d::Material& mat;
   const lib3d::Polygon& poly;
@@ -190,30 +220,14 @@ private:
 
   const lib3d::Scene& scn;
   const lib3d::Model& mdl;
-
-  librii::math::AABB mBound;
-  librii::gfx::MegaState mState;
-  u32 mShaderId = 0;
 };
-
-void GCSceneNode::draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-                       u32 mtx_id) {
-  librii::gl::setGlState(mState);
-  glUseProgram(mShaderId);
-  glBindVertexArray(mVaoId);
-  ubo_builder.use(mtx_id);
-  mat.genSamplUniforms(mShaderId, tex_id_map);
-
-  glDrawElements(GL_TRIANGLES, mVertexBufferTenant.idx_size, GL_UNSIGNED_INT,
-                 reinterpret_cast<void*>(mVertexBufferTenant.idx_ofs * 4));
-}
 
 void GCSceneNode::buildUniformBuffer(
     librii::glhelper::DelegatedUBOBuilder& ubo_builder,
     const glm::mat4& model_matrix, const glm::mat4& view_matrix,
     const glm::mat4& proj_matrix) {
   mat.generateUniforms(ubo_builder, model_matrix, view_matrix, proj_matrix,
-                       mShaderId, tex_id_map, poly, scn);
+                       this->shader_id, tex_id_map, poly, scn);
   mat.onSplice(ubo_builder, mdl, poly, mp_id);
 }
 
