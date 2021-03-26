@@ -143,27 +143,35 @@ void SceneImpl::prepare(SceneState& state, const kpi::INode& _host) {
     gather(state.getBuffers(), model, host);
 }
 
+librii::math::AABB CalcPolyBound(const lib3d::Polygon& poly,
+                                 const lib3d::Bone& bone,
+                                 const lib3d::Model& mdl) {
+  auto mdl_mtx = bone.calcSrtMtx(&mdl);
+
+  auto nmax = mdl_mtx * glm::vec4(poly.getBounds().max, 0.0f);
+  auto nmin = mdl_mtx * glm::vec4(poly.getBounds().min, 0.0f);
+
+  return {nmin, nmax};
+}
+
+struct Node {
+  const lib3d::Scene& scene;
+  const lib3d::Model& model;
+  const lib3d::Bone& bone;
+  const lib3d::Material& mat;
+  const lib3d::Polygon& poly;
+};
+
 struct GCSceneNode : public SceneNode {
   GCSceneNode(VertexBufferTenant& tenant, librii::glhelper::VBOBuilder& v,
-              const std::map<std::string, u32>& tm, const lib3d::Material& m,
-              const lib3d::Polygon& p, const lib3d::Bone& b,
-              const lib3d::Scene& _scn, const lib3d::Model& _mdl,
+              const std::map<std::string, u32>& tm, Node node,
               librii::glhelper::ShaderProgram& prog, u32 mi)
-      : mp_id(mi), tex_id_map(tm), mat(m), poly(p), bone(b), scn(_scn),
-        mdl(_mdl) {
+      : mp_id(mi), tex_id_map(tm), mNode(node) {
     this->vao_id = v.getGlId();
-    // Calc the bound
-    {
-      auto mdl_mtx = bone.calcSrtMtx(&mdl);
-
-      auto nmax = mdl_mtx * glm::vec4(poly.getBounds().max, 0.0f);
-      auto nmin = mdl_mtx * glm::vec4(poly.getBounds().min, 0.0f);
-
-      this->bound = {nmin, nmax};
-    }
+    this->bound = CalcPolyBound(node.poly, node.bone, node.model);
 
     //
-    mat.setMegaState(this->mega_state);
+    node.mat.setMegaState(this->mega_state);
     this->shader_id = prog.getId();
 
     // draw
@@ -173,7 +181,8 @@ struct GCSceneNode : public SceneNode {
     this->indices = reinterpret_cast<void*>(tenant.idx_ofs * 4);
 
     const libcube::GCMaterialData& gc_mat =
-        reinterpret_cast<const libcube::IGCMaterial&>(mat).getMaterialData();
+        reinterpret_cast<const libcube::IGCMaterial&>(node.mat)
+            .getMaterialData();
     for (int i = 0; i < gc_mat.samplers.size(); ++i) {
       const auto& sampler = gc_mat.samplers[i];
 
@@ -214,38 +223,31 @@ struct GCSceneNode : public SceneNode {
 
 private:
   // These references aren't safe, though
-  const lib3d::Material& mat;
-  const lib3d::Polygon& poly;
-  const lib3d::Bone& bone;
-
-  const lib3d::Scene& scn;
-  const lib3d::Model& mdl;
+  Node mNode;
 };
 
 void GCSceneNode::buildUniformBuffer(
     librii::glhelper::DelegatedUBOBuilder& ubo_builder,
     const glm::mat4& model_matrix, const glm::mat4& view_matrix,
     const glm::mat4& proj_matrix) {
-  mat.generateUniforms(ubo_builder, model_matrix, view_matrix, proj_matrix,
-                       this->shader_id, tex_id_map, poly, scn);
-  mat.onSplice(ubo_builder, mdl, poly, mp_id);
+  mNode.mat.generateUniforms(ubo_builder, model_matrix, view_matrix,
+                             proj_matrix, this->shader_id, tex_id_map,
+                             mNode.poly, mNode.scene);
+  mNode.mat.onSplice(ubo_builder, mNode.model, mNode.poly, mp_id);
 }
 
-void pushDisplay(
-    VertexBufferTenant& tenant, librii::glhelper::VBOBuilder& vbo_builder,
-    const riistudio::lib3d::Material& mat, const libcube::IndexedPolygon& poly,
-    const riistudio::lib3d::Bone& pBone, const riistudio::lib3d::Scene& scene,
-    const riistudio::lib3d::Model& root, riistudio::lib3d::SceneBuffers& output,
-    u32 mp_id, const std::map<std::string, u32>& tex_id_map,
-    librii::glhelper::ShaderProgram& shader) {
+void pushDisplay(VertexBufferTenant& tenant,
+                 librii::glhelper::VBOBuilder& vbo_builder, Node node,
+                 riistudio::lib3d::SceneBuffers& output, u32 mp_id,
+                 const std::map<std::string, u32>& tex_id_map,
+                 librii::glhelper::ShaderProgram& shader) {
 
-  auto node =
-      std::make_unique<GCSceneNode>(tenant, vbo_builder, tex_id_map, mat, poly,
-                                    pBone, scene, root, shader, mp_id);
+  auto mnode = std::make_unique<GCSceneNode>(tenant, vbo_builder, tex_id_map,
+                                            node, shader, mp_id);
 
-  auto& nodebuf = mat.isXluPass() ? output.translucent : output.opaque;
+  auto& nodebuf = node.mat.isXluPass() ? output.translucent : output.opaque;
 
-  nodebuf.nodes.push_back(std::move(node));
+  nodebuf.nodes.push_back(std::move(mnode));
 }
 
 void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
@@ -280,8 +282,15 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
         continue;
 
       MeshName mesh_name{.string = poly.getName(), .mprim_index = i};
-      pushDisplay(mImpl->mTenants.at(mesh_name), mImpl->mVboBuilder, mat, poly,
-                  pBone, scene, root, output, i, mImpl->mTexIdMap,
+      Node node{
+          .scene = scene,
+          .model = root,
+          .bone = pBone,
+          .mat = mat,
+          .poly = poly,
+      };
+      pushDisplay(mImpl->mTenants.at(mesh_name), mImpl->mVboBuilder, node,
+                  output, i, mImpl->mTexIdMap,
                   mImpl->mMatToShader.at(mat.getName()).getProgram());
     }
   }

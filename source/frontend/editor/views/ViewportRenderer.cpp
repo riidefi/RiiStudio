@@ -30,7 +30,6 @@ RenderTest::RenderTest(const kpi::INode& host)
                                     const_cast<kpi::INode*>(&host))) {
   setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
   setClosable(false);
-  mRenderer.prepare(host);
 }
 
 void RenderTest::draw_() {

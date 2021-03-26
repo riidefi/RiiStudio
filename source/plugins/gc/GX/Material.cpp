@@ -92,41 +92,6 @@ void IGCMaterial::generateUniforms(
   glUniform1iv(uTexLoc, 8, samplerIds);
 }
 
-void IGCMaterial::genSamplUniforms(
-    u32 shaderId, const std::map<std::string, u32>& texIdMap) const {
-  const auto& data = getMaterialData();
-  for (int i = 0; i < data.samplers.size(); ++i) {
-    const auto& sampler = data.samplers[i];
-
-    if (sampler.mTexture.empty()) {
-      // No textures specified
-      continue;
-    }
-
-    {
-      const auto found = texIdMap.find(sampler.mTexture);
-      if (found == texIdMap.end()) {
-        printf("Invalid texture link.\n");
-        continue;
-      }
-
-      glActiveTexture(GL_TEXTURE0 + i);
-      glBindTexture(GL_TEXTURE_2D, found->second);
-    }
-
-    // TODO: Can we cache these parameters?
-    // Is this even safe? Does glTexParameteri limit itself based on the
-    // glActiveTexture call, or does changing one change all?
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                    librii::gl::gxFilterToGl(sampler.mMinFilter));
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                    librii::gl::gxFilterToGl(sampler.mMagFilter));
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                    librii::gl::gxTileToGl(sampler.mWrapU));
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                    librii::gl::gxTileToGl(sampler.mWrapV));
-  }
-}
 void IGCMaterial::onSplice(librii::glhelper::DelegatedUBOBuilder& builder,
                            const riistudio::lib3d::Model& model,
                            const riistudio::lib3d::Polygon& poly,

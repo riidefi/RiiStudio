@@ -45,9 +45,7 @@ struct Material : public virtual kpi::IObject {
                                 const std::map<std::string, u32>& texIdMap,
                                 const Polygon& poly,
                                 const Scene& scene) const = 0;
-  virtual void
-  genSamplUniforms(u32 shaderId,
-                   const std::map<std::string, u32>& texIdMap) const = 0;
+
   virtual void onSplice(librii::glhelper::DelegatedUBOBuilder& builder,
                         const Model& model, const Polygon& poly, u32 id) const {
   }

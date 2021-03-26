@@ -108,9 +108,7 @@ struct IGCMaterial : public riistudio::lib3d::Material {
   getTextureSource(const libcube::Scene& scn) const;
   virtual const Texture* getTexture(const libcube::Scene& scn,
                                     const std::string& id) const = 0;
-  void
-  genSamplUniforms(u32 shaderId,
-                   const std::map<std::string, u32>& texIdMap) const override;
+  
   void onSplice(librii::glhelper::DelegatedUBOBuilder& builder,
                 const riistudio::lib3d::Model& model,
                 const riistudio::lib3d::Polygon& poly, u32 id) const override;
