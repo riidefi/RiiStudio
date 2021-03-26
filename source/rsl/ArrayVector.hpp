@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-namespace riistudio::util {
+namespace rsl {
 
 // Assumption: all elements are contiguous--no holes
 // Much faster than a vector for the many static sized arrays in materials
@@ -108,4 +108,4 @@ struct copyable_polymorphic_array_vector
   copyable_polymorphic_array_vector() = default;
 };
 
-} // namespace riistudio::util
+} // namespace rsl

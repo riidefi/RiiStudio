@@ -44,7 +44,7 @@ struct G3dIndConfig {
 };
 
 struct G3dMaterialData : public libcube::GCMaterialData {
-  libcube::array_vector<G3dIndConfig, 4> indConfig;
+  rsl::array_vector<G3dIndConfig, 4> indConfig;
   u32 flag = 0;
   u32 id; // Local
   s8 lightSetIndex = -1, fogIndex = -1;

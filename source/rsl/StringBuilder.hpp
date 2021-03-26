@@ -5,7 +5,7 @@
 #include <llvm/ADT/Twine.h> // llvm::Twine
 #include <string_view>      // std::string_view
 
-namespace riistudio::util {
+namespace rsl {
 
 class StringBuilder {
 public:
@@ -40,4 +40,4 @@ private:
   char* mEnd;
 };
 
-} // namespace riistudio::util
+} // namespace rsl

@@ -199,7 +199,7 @@ static const char* printExpr(UnaryExpr& e) {
   }
 }
 
-static void printExpr(BinExpr& e, riistudio::util::StringBuilder& builder,
+static void printExpr(BinExpr& e, rsl::StringBuilder& builder,
                       bool root = false) {
   BinExpr* left_bin = e.left->type == Expr::Binary
                           ? reinterpret_cast<BinExpr*>(e.left)
@@ -241,8 +241,7 @@ static void printExpr(BinExpr& e, riistudio::util::StringBuilder& builder,
   if (!root)
     builder.append(")");
 }
-void printExprPoly(Expr& e, riistudio::util::StringBuilder& builder,
-                   bool root) {
+void printExprPoly(Expr& e, rsl::StringBuilder& builder, bool root) {
   if (e.type == Expr::Binary)
     printExpr(reinterpret_cast<BinExpr&>(e), builder, root);
   else
@@ -263,9 +262,9 @@ u32 computeUsed(const Expr& e) {
 
 template <typename T>
 static Expr& solve_tev_stage_impl(const T& substage,
-                           riistudio::util::StringBuilder& builder,
-                           bool do_print_inter, u8* workmem,
-                           std::size_t workmem_size) {
+                                  rsl::StringBuilder& builder,
+                                  bool do_print_inter, u8* workmem,
+                                  std::size_t workmem_size) {
   assert(workmem_size >= sizeof(ExprAlloc) &&
          "Not enough memory.. cannot proceed");
 
@@ -355,14 +354,14 @@ static Expr& solve_tev_stage_impl(const T& substage,
 };
 
 Expr& solveTevStage(const gx::TevStage::ColorStage& substage,
-                    riistudio::util::StringBuilder& builder, u8* workmem,
+                    rsl::StringBuilder& builder, u8* workmem,
                     std::size_t workmem_size, bool do_print_inter) {
 
   return solve_tev_stage_impl(substage, builder, do_print_inter, workmem,
                               workmem_size);
 }
 Expr& solveTevStage(const gx::TevStage::AlphaStage& substage,
-                    riistudio::util::StringBuilder& builder, u8* workmem,
+                    rsl::StringBuilder& builder, u8* workmem,
                     std::size_t workmem_size, bool do_print_inter) {
   return solve_tev_stage_impl(substage, builder, do_print_inter, workmem,
                               workmem_size);

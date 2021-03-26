@@ -154,14 +154,14 @@ void readMatEntry(Material& mat, MatLoader& loader,
   mat.dither = loader.indexed<u8>(MatSec::DitherInfo).as<bool, u8>();
 
   dbg.assertSince(8);
-  array_vector<gx::Color, 2> matColors;
+  rsl::array_vector<gx::Color, 2> matColors;
   loader.indexedContainer<u16>(matColors, MatSec::MaterialColors, 4);
   dbg.assertSince(0xc);
 
   loader.indexedContainer<u16>(mat.colorChanControls, MatSec::ColorChannelInfo,
                                8);
   mat.colorChanControls.resize(nColorChan * 2);
-  array_vector<gx::Color, 2> ambColors;
+  rsl::array_vector<gx::Color, 2> ambColors;
 
   loader.indexedContainer<u16>(ambColors, MatSec::AmbientColors, 4);
   mat.chanData.resize(0);
@@ -180,7 +180,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
   // TODO: Validate assumptions here
 
   dbg.assertSince(0x48);
-  array_vector<Material::TexMatrix, 10> texMatrices;
+  rsl::array_vector<Material::TexMatrix, 10> texMatrices;
   loader.indexedContainer<u16>(texMatrices, MatSec::TexMatrixInfo, 100);
   reader.seek<oishii::Whence::Current>(sizeof(u16) * 20); // Unused..
   // loader.indexedContainer<u16>(mat.postTexMatrices,
@@ -191,7 +191,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
     mat.texMatrices[i] = texMatrices[i];
   dbg.assertSince(0x84);
 
-  array_vector<Material::J3DSamplerData, 8> samplers;
+  rsl::array_vector<Material::J3DSamplerData, 8> samplers;
   loader.indexedContainer<u16>(samplers, MatSec::TextureRemapTable, 2);
   mat.samplers.resize(samplers.size());
   for (int i = 0; i < samplers.size(); ++i)
@@ -199,7 +199,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
 
   {
     dbg.assertSince(0x094);
-    array_vector<gx::Color, 4> tevKonstColors;
+    rsl::array_vector<gx::Color, 4> tevKonstColors;
     tevKonstColors.resize(0);
     loader.indexedContainer<u16>(tevKonstColors, MatSec::TevKonstColors, 4);
     dbg.assertSince(0x09C);
@@ -218,9 +218,9 @@ void readMatEntry(Material& mat, MatLoader& loader,
     };
 
     dbg.assertSince(0x0BC);
-    array_vector<TevOrder, 16> tevOrderInfos;
+    rsl::array_vector<TevOrder, 16> tevOrderInfos;
     loader.indexedContainer<u16>(tevOrderInfos, MatSec::TevOrderInfo, 4);
-    array_vector<gx::ColorS10, 4> tevColors;
+    rsl::array_vector<gx::ColorS10, 4> tevColors;
     tevColors.resize(0);
     loader.indexedContainer<u16>(tevColors, MatSec::TevColors, 8);
     for (int i = 0; i < tevColors.size(); ++i)
@@ -230,7 +230,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
                 mat.tevColors.rend());
 
     // FIXME: Directly read into material
-    array_vector<gx::TevStage, 16> tevStageInfos;
+    rsl::array_vector<gx::TevStage, 16> tevStageInfos;
     loader.indexedContainer<u16>(tevStageInfos, MatSec::TevStageInfo, 20);
 
     if (tevStageInfos.size() != num_stage) {
@@ -249,7 +249,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
     }
 
     dbg.assertSince(0x104);
-    array_vector<SwapSel, 16> swapSels;
+    rsl::array_vector<SwapSel, 16> swapSels;
     loader.indexedContainer<u16>(swapSels, MatSec::TevSwapModeInfo, 4);
     for (int i = 0; i < mat.mStages.size(); ++i) {
       mat.mStages[i].texMapSwap = swapSels[i].texSel;
@@ -257,7 +257,7 @@ void readMatEntry(Material& mat, MatLoader& loader,
     }
 
     // TODO: We can't use a std::array as indexedContainer relies on nEntries
-    array_vector<gx::SwapTableEntry, 4> swap;
+    rsl::array_vector<gx::SwapTableEntry, 4> swap;
     loader.indexedContainer<u16>(swap, MatSec::TevSwapModeTableInfo, 4);
     for (int i = 0; i < swap.size(); ++i)
       mat.mSwapTable[i] = swap[i];
@@ -798,7 +798,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
   const auto& m3 = smat.mMAT3;
   const auto& cache = m3.mCache;
 
-  array_vector<gx::Color, 2> matColors, ambColors;
+  rsl::array_vector<gx::Color, 2> matColors, ambColors;
   for (int i = 0; i < m.chanData.size(); ++i) {
     matColors.push_back(m.chanData[i].matColor);
     ambColors.push_back(m.chanData[i].ambColor);
@@ -835,7 +835,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
     writer.write<u16>(-1);
 
   dbg.assertSince(0x048);
-  array_vector<Material::TexMatrix, 10> texMatrices;
+  rsl::array_vector<Material::TexMatrix, 10> texMatrices;
   for (int i = 0; i < m.texMatrices.size(); ++i) {
     texMatrices.push_back(m.texMatrices[i]);
 
@@ -849,7 +849,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
   //		writer.write<s16>(-1);
 
   dbg.assertSince(0x084);
-  array_vector<Material::J3DSamplerData, 8> samplers;
+  rsl::array_vector<Material::J3DSamplerData, 8> samplers;
   samplers.resize(m.samplers.size());
   for (int i = 0; i < m.samplers.size(); ++i)
     samplers[i] = m.samplers[i];
@@ -860,7 +860,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
     writer.write<u16>(~0);
   dbg.assertSince(0x094);
 
-  array_vector<gx::Color, 4> tevKonstColors;
+  rsl::array_vector<gx::Color, 4> tevKonstColors;
   tevKonstColors.resize(4);
   for (int i = 0; i < 4; ++i)
     tevKonstColors[i] = m.tevKonstColors[i];
@@ -890,7 +890,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
     writer.write<u16>(-1);
 
   dbg.assertSince(0x0dc);
-  array_vector<gx::ColorS10, 4> tevColors;
+  rsl::array_vector<gx::ColorS10, 4> tevColors;
   tevColors.resize(4);
   for (int i = 0; i < 4; ++i)
     tevColors[i] = m.tevColors[i];

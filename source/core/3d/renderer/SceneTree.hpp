@@ -1,10 +1,10 @@
 #pragma once
 
 #include <core/3d/i3dmodel.hpp>
-#include <core/util/array_vector.hpp>
 #include <cstring>
 #include <librii/glhelper/ShaderCache.hpp>
 #include <map>
+#include <rsl/ArrayVector.hpp>
 
 namespace riistudio::lib3d {
 
@@ -36,7 +36,7 @@ struct SceneNode {
   u32 shader_id;
   u32 vao_id;
 
-  util::array_vector<TextureObj, 8> texture_objects;
+  rsl::array_vector<TextureObj, 8> texture_objects;
 
   u32 glBeginMode; // GL_TRIANGLES
   u32 vertex_count;

@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <string_view>
 
+namespace rsl {
+
 namespace detail {
 
 static constexpr unsigned int crc_table[256] = {
@@ -58,3 +60,5 @@ constexpr uint32_t crc32(std::string_view str) {
     crc = (crc >> 8) ^ detail::crc_table[(crc ^ c) & 0xff];
   return crc ^ 0xffffffff;
 }
+
+} // namespace rsl

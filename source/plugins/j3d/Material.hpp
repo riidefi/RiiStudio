@@ -62,11 +62,11 @@ struct MaterialData : public libcube::GCMaterialData {
 
   // odd data
   Fog fogInfo{};
-  libcube::array_vector<librii::gx::Color, 8> lightColors;
+  rsl::array_vector<librii::gx::Color, 8> lightColors;
   NBTScale nbtScale{};
   // unused data
   // Note: postTexGens are inferred (only enabled counts)
-  libcube::array_vector<TexMatrix, 20> postTexMatrices{};
+  rsl::array_vector<TexMatrix, 20> postTexMatrices{};
   std::array<u8, 24> stackTrash{}; //!< We have to remember this for 1:1
 
   bool operator==(const MaterialData& rhs) const = default;

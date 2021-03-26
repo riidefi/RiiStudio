@@ -338,10 +338,10 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
     // Fixed-size DL
     librii::gx::SwapTable mSwapTable;
-    riistudio::util::array_vector<librii::gx::IndOrder, 4> mIndirectOrders;
+    rsl::array_vector<librii::gx::IndOrder, 4> mIndirectOrders;
 
     // Variable-sized DL
-    riistudio::util::array_vector<librii::gx::TevStage, 16> mStages;
+    rsl::array_vector<librii::gx::TevStage, 16> mStages;
 
     G3dShader(const librii::gx::LowLevelGxMaterial& mat)
         : mSwapTable(mat.mSwapTable) {

@@ -1,20 +1,17 @@
 #pragma once
 
-#include <core/common.h>              // s8
-#include <core/util/array_vector.hpp> // riistudio::util::array_vector
-#include <core/util/timestamp.hpp>    // GIT_TAG
-#include <glm/vec2.hpp>               // glm::vec3
-#include <glm/vec3.hpp>               // glm::vec3
-#include <glm/vec4.hpp>               // glm::vec4
+#include <core/common.h>           // s8
+#include <core/util/timestamp.hpp> // GIT_TAG
+#include <glm/vec2.hpp>            // glm::vec3
+#include <glm/vec3.hpp>            // glm::vec3
+#include <glm/vec4.hpp>            // glm::vec4
 #include <optional>
+#include <rsl/ArrayVector.hpp> // rsl::array_vector
 #include <span>
 #include <string>
 #include <vector>
 
 namespace librii::rhst {
-
-template <typename T, int N>
-using array_vector = riistudio::util::array_vector<T, N>;
 
 // Rii hierarchical scene tree
 
@@ -61,8 +58,8 @@ struct Vertex {
   glm::vec3 position{0.0f, 0.0f, 0.0f};
   glm::vec3 normal{0.0f, 0.0f, 0.0f};
 
-  array_vector<glm::vec2, 8> uvs;
-  array_vector<glm::vec4, 2> colors;
+  rsl::array_vector<glm::vec2, 8> uvs;
+  rsl::array_vector<glm::vec4, 2> colors;
 };
 
 enum class Topology { Triangles, TriangleStrip, TriangleFan };

@@ -29,14 +29,14 @@ inline DisplaySurface cullModeToDisplaySurfacee(CullMode c) {
 #include <librii/gx/ConstAlpha.hpp>
 #include <librii/gx/Indirect.hpp>
 #include <librii/gx/Lighting.hpp>
+#include <librii/gx/Polygon.hpp>
 #include <librii/gx/Shader.hpp>
 #include <librii/gx/TexGen.hpp>
 #include <librii/gx/Texture.hpp>
 #include <librii/gx/Vertex.hpp>
-#include <librii/gx/Polygon.hpp>
 #include <librii/gx/ZMode.hpp>
 
-#include <core/util/array_vector.hpp>
+#include <rsl/ArrayVector.hpp>
 
 using namespace librii;
 
@@ -56,11 +56,11 @@ struct LowLevelGxMaterial {
 
   CullMode cullMode = CullMode::Back;
 
-  riistudio::util::array_vector<ChannelData, 2> chanData{};
+  rsl::array_vector<ChannelData, 2> chanData{};
   // Color0, Alpha0, Color1, Alpha1
-  riistudio::util::array_vector<ChannelControl, 4> colorChanControls{};
+  rsl::array_vector<ChannelControl, 4> colorChanControls{};
 
-  riistudio::util::array_vector<TexCoordGen, 8> texGens{};
+  rsl::array_vector<TexCoordGen, 8> texGens{};
 
   std::array<Color, 4> tevKonstColors{};
   std::array<ColorS10, 4> tevColors{}; // last is tevprev?
@@ -73,11 +73,11 @@ struct LowLevelGxMaterial {
                        // though we could support it for G3D.
   bool xlu = false;
 
-  riistudio::util::array_vector<IndirectStage, 4> indirectStages{};
-  riistudio::util::array_vector<IndirectMatrix, 3> mIndMatrices{};
+  rsl::array_vector<IndirectStage, 4> indirectStages{};
+  rsl::array_vector<IndirectMatrix, 3> mIndMatrices{};
 
   SwapTable mSwapTable;
-  riistudio::util::array_vector<TevStage, 16> mStages{};
+  rsl::array_vector<TevStage, 16> mStages{};
 
   // Notably missing are texture matrices
 

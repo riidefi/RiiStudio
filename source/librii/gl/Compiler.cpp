@@ -1,7 +1,7 @@
-#include <core/util/string_builder.hpp>
 #include <glfw/glfw3.h>
 #include <librii/gl/Compiler.hpp>
 #include <llvm/Support/Error.h>
+#include <rsl/StringBuilder.hpp>
 #include <string_view>
 
 namespace librii::gl {
@@ -11,7 +11,7 @@ struct LightingChannelControl {
   gx::ChannelControl alphaChannel;
 };
 
-using StringBuilder = riistudio::util::StringBuilder;
+using StringBuilder = rsl::StringBuilder;
 
 using namespace librii::gx;
 

@@ -70,7 +70,7 @@ inline std::string TextureImageCombo(const char* current,
 }
 inline int
 SamplerCombo(int current,
-             array_vector<GCMaterialData::SamplerData, 8>& samplers,
+             rsl::array_vector<GCMaterialData::SamplerData, 8>& samplers,
              kpi::ConstCollectionRange<riistudio::lib3d::Texture> images,
              riistudio::frontend::EditorWindow* ed, bool allow_none = false) {
   int result = current;

@@ -4,20 +4,13 @@
 #include <core/3d/i3dmodel.hpp>
 #include <core/common.h>
 #include <core/kpi/Node.hpp>
-#include <core/util/array_vector.hpp>
 #include <librii/gx.h>
 #include <librii/mtx/TexMtx.hpp>
+#include <rsl/ArrayVector.hpp>
 
 namespace libcube {
 
 class Scene;
-
-template <typename T, size_t N>
-using array_vector = riistudio::util::array_vector<T, N>;
-template <typename T, size_t N>
-using copyable_polymorphic_array_vector =
-    riistudio::util::copyable_polymorphic_array_vector<T, N>;
-
 class Model;
 
 struct GCMaterialData : public gx::LowLevelGxMaterial {
@@ -61,7 +54,7 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
     bool operator==(const TexMatrix& rhs) const = default;
   };
 
-  array_vector<TexMatrix, 10> texMatrices;
+  rsl::array_vector<TexMatrix, 10> texMatrices;
 
   struct SamplerData final {
     std::string mTexture;
@@ -85,7 +78,7 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
     bool operator==(const SamplerData& rhs) const = default;
   };
 
-  array_vector<SamplerData, 8> samplers;
+  rsl::array_vector<SamplerData, 8> samplers;
 };
 
 struct IGCMaterial : public riistudio::lib3d::Material {
@@ -108,7 +101,7 @@ struct IGCMaterial : public riistudio::lib3d::Material {
   getTextureSource(const libcube::Scene& scn) const;
   virtual const Texture* getTexture(const libcube::Scene& scn,
                                     const std::string& id) const = 0;
-  
+
   void onSplice(librii::glhelper::DelegatedUBOBuilder& builder,
                 const riistudio::lib3d::Model& model,
                 const riistudio::lib3d::Polygon& poly, u32 id) const override;
