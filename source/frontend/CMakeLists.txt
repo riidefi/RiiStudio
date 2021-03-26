@@ -132,6 +132,13 @@ endif()
 		  ${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3.dll
 		  $<TARGET_FILE_DIR:frontend>/glfw3.dll
 	)
+  add_custom_command(
+    TARGET frontend 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+      ${PROJECT_SOURCE_DIR}/../vendor/msdia140.dll
+      $<TARGET_FILE_DIR:frontend>/msdia140.dll
+  )
 	add_custom_command(
 	  TARGET frontend 
 	  POST_BUILD
