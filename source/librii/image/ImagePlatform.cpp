@@ -401,18 +401,12 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
       const auto src_lod_y = sheight >> i;
       auto dst_lod_x = dwidth >> i;
       auto dst_lod_y = dheight >> i;
-      if (newformat.has_value() &&
-          newformat.value() != librii::gx::TextureFormat::Extension_RawRGBA32) {
-        auto block =
-            getBlockedDimensions(dst_lod_x, dst_lod_y, newformat.value());
-        dst_lod_x = block.first;
-        dst_lod_y = block.second;
-      }
+
       transform(dst + dst_lod_ofs, dst_lod_x, dst_lod_y, oldformat,
                 newformat.value(), pSrc + src_lod_ofs, src_lod_x, src_lod_y, 0,
                 algorithm);
     }
-  } else if (swidth >= 32 && sheight >= 32){
+  } else if (swidth > 4 && sheight > 4) {
     RGBA32ImageSource source(src, swidth, sheight, oldformat);
     assert(source.get().data());
 
