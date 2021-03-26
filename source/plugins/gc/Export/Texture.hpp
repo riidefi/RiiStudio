@@ -33,8 +33,8 @@ struct Texture : public riistudio::lib3d::Texture {
         getHeight(), mip ? getMipmapCount() : 0);
   }
 
-  virtual u32 getTextureFormat() const = 0;
-  virtual void setTextureFormat(u32 format) = 0;
+  virtual librii::gx::TextureFormat getTextureFormat() const = 0;
+  virtual void setTextureFormat(librii::gx::TextureFormat format) = 0;
   virtual const u8* getData() const = 0;
   virtual u8* getData() = 0;
   virtual void resizeData() = 0;
@@ -52,7 +52,7 @@ struct Texture : public riistudio::lib3d::Texture {
   void setEncoder(bool optimizeForSize, bool color,
                   Occlusion occlusion) override {
     // TODO
-    setTextureFormat(6);
+    setTextureFormat(librii::gx::TextureFormat::CMPR);
   }
 
   //! @brief Encode the texture based on the current encoder, width, height,
@@ -69,9 +69,8 @@ struct Texture : public riistudio::lib3d::Texture {
 
     librii::image::transform(getData(), getWidth(), getHeight(),
                              gx::TextureFormat::Extension_RawRGBA32,
-                             static_cast<gx::TextureFormat>(getTextureFormat()),
-                             rawRGBA, getWidth(), getHeight(),
-                             getMipmapCount());
+                             getTextureFormat(), rawRGBA, getWidth(),
+                             getHeight(), getMipmapCount());
   }
 };
 

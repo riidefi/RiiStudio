@@ -13,7 +13,7 @@ namespace riistudio::j3d {
 struct TextureData {
   std::string mName; // For linking
 
-  u8 mFormat = 0;
+  librii::gx::TextureFormat mFormat = librii::gx::TextureFormat::I4;
   bool bTransparent = false;
   u16 mWidth = 32, mHeight = 32;
 
@@ -39,9 +39,13 @@ struct Texture : public TextureData, public libcube::Texture {
   std::string getName() const override { return mName; }
   void setName(const std::string& name) override { mName = name; }
 
-  u32 getTextureFormat() const override { return mFormat; }
+  librii::gx::TextureFormat getTextureFormat() const override {
+    return mFormat;
+  }
 
-  void setTextureFormat(u32 format) override { mFormat = format; }
+  void setTextureFormat(librii::gx::TextureFormat format) override {
+    mFormat = format;
+  }
   u32 getMipmapCount() const override {
     assert(mMipmapLevel > 0);
     return mMipmapLevel - 1;

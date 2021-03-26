@@ -49,10 +49,7 @@ struct G3dMaterialData : public libcube::GCMaterialData {
   u32 id; // Local
   s8 lightSetIndex = -1, fogIndex = -1;
 
-  bool operator==(const G3dMaterialData& rhs) const {
-    return libcube::GCMaterialData::operator==(rhs) &&
-           indConfig == rhs.indConfig && flag == rhs.flag;
-  }
+  bool operator==(const G3dMaterialData& rhs) const = default;
 };
 
 struct Material : public G3dMaterialData,

@@ -11,7 +11,7 @@ namespace riistudio::g3d {
 
 struct TextureData {
   std::string name{"Untitled"};
-  u32 format = 0;
+  librii::gx::TextureFormat format = librii::gx::TextureFormat::I4;
   u32 width = 32;
   u32 height = 32;
 
@@ -32,8 +32,8 @@ struct Texture : public TextureData,
                  public virtual kpi::IObject {
   std::string getName() const override { return name; }
   void setName(const std::string& n) override { name = n; }
-  u32 getTextureFormat() const override { return (u32)format; }
-  void setTextureFormat(u32 f) override { format = f; }
+  librii::gx::TextureFormat getTextureFormat() const override { return format; }
+  void setTextureFormat(librii::gx::TextureFormat f) override { format = f; }
   u32 getMipmapCount() const override {
     assert(mipLevel > 0);
     return mipLevel - 1;

@@ -70,7 +70,7 @@ void importImage(Texture& tex, u32 import_lod) {
     unsigned char* image =
         stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
     assert(image);
-    const auto fmt = static_cast<gx::TextureFormat>(tex.getTextureFormat());
+    const auto fmt = tex.getTextureFormat();
     const auto offset =
         import_lod == 0
             ? 0

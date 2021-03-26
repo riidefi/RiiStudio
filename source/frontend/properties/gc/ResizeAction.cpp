@@ -1,5 +1,6 @@
 #include "ResizeAction.hpp"
 #include <core/util/gui.hpp>
+#include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/Texture.hpp>
 
 namespace libcube::UI {
@@ -54,7 +55,9 @@ bool ResizeAction::resize_draw(Texture& data, bool* changed) {
     resize[1].value = 1024;
   }
 
-  ImGui::Combo("Algorithm", &resizealgo, "Ultimate\0Lanczos\0");
+  resizealgo = imcxx::Combo("Algorithm", resizealgo,
+                            "Ultimate\0"
+                            "Lanczos\0");
 
   if (ImGui::Button((const char*)ICON_FA_CHECK u8" Resize")) {
     printf("Do the resizing..\n");
@@ -66,12 +69,10 @@ bool ResizeAction::resize_draw(Texture& data, bool* changed) {
     data.setHeight(resize[1].value);
     data.resizeData();
 
-    librii::image::transform(
-        data.getData(), resize[0].value, resize[1].value,
-        static_cast<librii::gx::TextureFormat>(data.getTextureFormat()),
-        std::nullopt, data.getData(), oldWidth, oldHeight,
-        data.getMipmapCount(),
-        static_cast<librii::image::ResizingAlgorithm>(resizealgo));
+    librii::image::transform(data.getData(), resize[0].value, resize[1].value,
+                             data.getTextureFormat(), std::nullopt,
+                             data.getData(), oldWidth, oldHeight,
+                             data.getMipmapCount(), resizealgo);
     if (changed != nullptr)
       *changed = true;
 
@@ -85,27 +86,42 @@ bool ResizeAction::resize_draw(Texture& data, bool* changed) {
   return true;
 }
 
+librii::gx::TextureFormat TexFormatCombo(librii::gx::TextureFormat format) {
+  int format_int = static_cast<int>(format);
+
+  if (format_int == 14) // Temporarily set CMPR to 7 for UI convenience.
+    format_int = 7;
+
+  ImGui::Combo("Texture Format", &format_int,
+               "I4\0"
+               "I8\0"
+               "IA4\0"
+               "IA8\0"
+               "RGB565\0"
+               "RGB5A3\0"
+               "RGBA8\0"
+               "CMPR\0");
+
+  if (format_int == 7)
+    format_int = 14; // Set CMPR back to its respective ID.
+
+  return static_cast<librii::gx::TextureFormat>(format_int);
+}
+
 bool ReformatAction::reformat_draw(Texture& data, bool* changed) {
   if (reformatOpt == -1)
-    reformatOpt = data.getTextureFormat();
+    reformatOpt = static_cast<int>(data.getTextureFormat());
 
-  if (reformatOpt == 14) // Temporarily set CMPR to 7 for UI convenience.
-    reformatOpt = 7;
-
-  ImGui::Combo("Texture Format", &reformatOpt,
-               "I4\0I8\0IA4\0IA8\0RGB565\0RGB5A3\0RGBA8\0CMPR\0");
-
-  if (reformatOpt == 7)
-    reformatOpt = 14; // Set CMPR back to its respective ID.
+  reformatOpt = static_cast<int>(
+      TexFormatCombo(static_cast<librii::gx::TextureFormat>(reformatOpt)));
 
   if (ImGui::Button((const char*)ICON_FA_CHECK u8" Okay")) {
     const auto oldFormat = data.getTextureFormat();
-    data.setTextureFormat(reformatOpt);
+    data.setTextureFormat(static_cast<librii::gx::TextureFormat>(reformatOpt));
     data.resizeData();
 
     librii::image::transform(
-        data.getData(), data.getWidth(), data.getHeight(),
-        static_cast<librii::gx::TextureFormat>(oldFormat),
+        data.getData(), data.getWidth(), data.getHeight(), oldFormat,
         static_cast<librii::gx::TextureFormat>(reformatOpt), data.getData(),
         data.getWidth(), data.getHeight(), data.getMipmapCount());
 

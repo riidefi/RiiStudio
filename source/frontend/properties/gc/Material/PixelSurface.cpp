@@ -47,7 +47,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     ImGui::SetWindowFontScale(1.0f);
   } else {
     ImGui::Combo("Configuration", &pix_mode,
-                 "Opaque\0Stencil Alpha\0Translucent\0Custom\0");
+                 "Opaque\0"
+                 "Stencil Alpha\0"
+                 "Translucent\0"
+                 "Custom\0");
   }
   if (pix_mode_before != pix_mode) {
     if (pix_mode == librii::hx::PIX_CUSTOM) {
@@ -69,10 +72,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   if (pix_mode != librii::hx::PIX_CUSTOM)
     return;
   if (ImGui::CollapsingHeader("Scenegraph", ImGuiTreeNodeFlags_DefaultOpen)) {
-    ImGui::Combo(
-        "Render Pass", &xlu_mode,
-        "Pass 0: Opaque objects, no order\0Pass 1: Translucent objects, "
-        "sorted front-to-back (reverse painter's algorithm)\0");
+    ImGui::Combo("Render Pass", &xlu_mode,
+                 "Pass 0: Opaque objects, no order\0"
+                 "Pass 1: Translucent objects, sorted front-to-back (reverse "
+                 "painter's algorithm)\0");
   }
   delegate.property(
       delegate.getActive().isXluPass(), xlu_mode != 0,
@@ -85,7 +88,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   if (ImGui::CollapsingHeader("Alpha Comparison",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     const auto alpha_test_before = alpha_test;
-    ImGui::Combo("Alpha Test", &alpha_test, "Custom\0Disabled\0Stencil\0");
+    ImGui::Combo("Alpha Test", &alpha_test,
+                 "Custom\0"
+                 "Disabled\0"
+                 "Stencil\0");
     if (alpha_test_before != alpha_test) {
       if (alpha_test == librii::hx::ALPHA_TEST_CUSTOM) {
         surface.force_custom_at = matData.name;
@@ -102,8 +108,14 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     } else if (alpha_test == librii::hx::ALPHA_TEST_STENCIL) {
       ImGui::Text("Pixels are either fully transparent or fully opaque.");
     } else {
-      const char* compStr =
-          "Always do not pass.\0<\0==\0<=\0>\0!=\0>=\0Always pass.\0";
+      const char* compStr = "Always do not pass.\0"
+                            "<\0"
+                            "==\0"
+                            "<=\0"
+                            ">\0"
+                            "!=\0"
+                            ">=\0"
+                            "Always pass.\0";
       ImGui::PushItemWidth(100);
 
       {
@@ -123,8 +135,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         ImGui::Text(")");
       }
       {
-        auto op =
-            imcxx::Combo("##o", matData.alphaCompare.op, "&&\0||\0!=\0==\0");
+        auto op = imcxx::Combo("##o", matData.alphaCompare.op,
+                               "&&\0"
+                               "||\0"
+                               "!=\0"
+                               "==\0");
         AUTO_PROP(alphaCompare.op, op);
       }
       {
@@ -164,11 +179,15 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       ImGui::Checkbox("Write to Z Buffer", &zwrite);
       AUTO_PROP(zMode.update, zwrite);
 
-      auto zcond = imcxx::Combo(
-          "Condition", matData.zMode.function,
-          "Never draw.\0Pixel Z < EFB Z\0Pixel Z == EFB Z\0Pixel Z <= "
-          "EFB Z\0Pixel Z > EFB Z\0Pixel Z != EFB Z\0Pixel Z >= EFB "
-          "Z\0 Always draw.\0");
+      auto zcond = imcxx::Combo("Condition", matData.zMode.function,
+                                "Never draw.\0"
+                                "Pixel Z < EFB Z\0"
+                                "Pixel Z == EFB Z\0"
+                                "Pixel Z <= EFB Z\0"
+                                "Pixel Z > EFB Z\0"
+                                "Pixel Z != EFB Z\0"
+                                "Pixel Z >= EFB Z\0"
+                                "Always draw.\0");
       AUTO_PROP(zMode.function, zcond);
 
       ImGui::Unindent(30.0f);
@@ -176,10 +195,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
   if (ImGui::CollapsingHeader("Blending", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::PushItemWidth(200);
-    auto btype = imcxx::Combo(
-        "Type", matData.blendMode.type,
-        "Do not blend.\0Blending\0Logical Operations\0Subtract from "
-        "Frame Buffer\0");
+    auto btype = imcxx::Combo("Type", matData.blendMode.type,
+                              "Do not blend.\0"
+                              "Blending\0"
+                              "Logical Operations\0"
+                              "Subtract from Frame Buffer\0");
     AUTO_PROP(blendMode.type, btype);
 
     {
@@ -187,12 +207,22 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       ConditionalActive g(btype == librii::gx::BlendModeType::blend);
       ImGui::Text("Blend calculation");
 
-      const char* blendOpts =
-          " 0\0 1\0 EFB Color\0 1 - EFB Color\0 Pixel Alpha\0 1 - Pixel "
-          "Alpha\0 EFB Alpha\0 1 - EFB Alpha\0";
-      const char* blendOptsDst =
-          " 0\0 1\0 Pixel Color\0 1 - Pixel Color\0 Pixel Alpha\0 1 - Pixel "
-          "Alpha\0 EFB Alpha\0 1 - EFB Alpha\0";
+      const char* blendOpts = "0\0"
+                              "1\0"
+                              "EFB Color\0"
+                              "1 - EFB Color\0"
+                              "Pixel Alpha\0"
+                              "1 - Pixel Alpha\0"
+                              "EFB Alpha\0"
+                              "1 - EFB Alpha\0";
+      const char* blendOptsDst = "0\0"
+                                 "1\0"
+                                 "Pixel Color\0"
+                                 "1 - Pixel Color\0"
+                                 "Pixel Alpha\0"
+                                 "1 - Pixel Alpha\0"
+                                 "EFB Alpha\0"
+                                 "1 - EFB Alpha\0";
       ImGui::Text("( Pixel Color * ");
 
       ImGui::SameLine();

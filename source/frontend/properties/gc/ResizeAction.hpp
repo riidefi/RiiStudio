@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <plugins/gc/Export/Texture.hpp>
 
 namespace libcube {
 struct Texture;
@@ -20,7 +21,8 @@ struct ResizeAction {
       ResizeDimension{"Width ", -1, -1, false},
       ResizeDimension{"Height", -1, -1, true}};
 
-  int resizealgo = 0;
+  librii::image::ResizingAlgorithm resizealgo =
+      librii::image::ResizingAlgorithm::Lanczos;
 
   void resize_reset();
 

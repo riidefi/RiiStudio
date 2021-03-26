@@ -1,5 +1,6 @@
 #include "PropertyEditor.hpp"
 #include <core/3d/Material.hpp>           // lib3d::Material
+#include <imcxx/Widgets.hpp>              // imcxx::Combo
 #include <imgui/imgui.h>                  // ImGui::Text
 #include <llvm/ADT/SmallVector.h>         // llvm::SmallVector
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_EXCLAMATION_TRIANGLE
@@ -13,6 +14,16 @@ public:
   ~PropertyEditor();
 
 private:
+  void DrawTabWidget(bool compact);
+  void DrawHorizTabs(kpi::PropertyViewManager& manager,
+                     kpi::IPropertyView* activeTab,
+                     std::vector<kpi::IObject*>& selected);
+  void DrawVertTabs(kpi::PropertyViewManager& manager,
+                    kpi::IPropertyView* activeTab,
+                    std::vector<kpi::IObject*>& selected);
+  void DrawHeaderTabs(kpi::PropertyViewManager& manager,
+                      kpi::IPropertyView* activeTab,
+                      std::vector<kpi::IObject*>& selected);
   void draw_() override;
 
   enum class Mode {
@@ -60,16 +71,8 @@ PropertyEditor::PropertyEditor(kpi::History& host, kpi::INode& root,
 
 PropertyEditor::~PropertyEditor() { state_holder.garbageCollect(); }
 
-void PropertyEditor::draw_() {
-  auto& manager = kpi::PropertyViewManager::getInstance();
-
-  if (mActive == nullptr) {
-    ImGui::Text("Nothing is selected.");
-    return;
-  }
-
-  if (lib3d::Material* mat = dynamic_cast<lib3d::Material*>(mActive);
-      mat != nullptr && mat->isShaderError) {
+static void DrawMaterialHeader(riistudio::lib3d::Material* mat) {
+  if (mat->isShaderError) {
     ImGui::SetWindowFontScale(2.0f);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 0.0f, 0.0f, 1.0f});
     {
@@ -79,24 +82,172 @@ void PropertyEditor::draw_() {
     ImGui::PopStyleColor();
     ImGui::SetWindowFontScale(1.0f);
   }
+}
 
-  const auto draw_tab_widget = [&](bool compact = false) {
-    int mode = static_cast<int>(mMode);
-    if (compact)
-      ImGui::PushItemWidth(150);
-    ImGui::Combo(compact ? "##Property Mode" : "Property Mode", &mode,
-                 "Tabs\0Vertical Tabs\0Headers\0");
-    if (compact)
-      ImGui::PopItemWidth();
-    mMode = static_cast<Mode>(mode);
-  };
+void PropertyEditor::DrawTabWidget(bool compact) {
+  if (compact)
+    ImGui::PushItemWidth(150);
+
+  mMode = imcxx::Combo(compact ? "##Property Mode" : "Property Mode", mMode,
+                       "Tabs\0"
+                       "Vertical Tabs\0"
+                       "Headers\0");
+  if (compact)
+    ImGui::PopItemWidth();
+}
+
+void PropertyEditor::DrawHorizTabs(kpi::PropertyViewManager& manager,
+                                   kpi::IPropertyView* activeTab,
+                                   std::vector<kpi::IObject*>& selected) {
+  if (ImGui::BeginTabBar("Pane")) {
+    int i = 0;
+    std::string title;
+    manager.forEachView(
+        [&](kpi::IPropertyView& view) {
+          // const bool sel = mActiveTab == i;
+
+          title.clear();
+          title += view.getIcon();
+          title += " ";
+          title += view.getName();
+
+          if (ImGui::BeginTabItem(title.c_str())) {
+            mActiveTab = i;
+            activeTab = &view;
+            ImGui::EndTabItem();
+          }
+
+          ++i;
+        },
+        *mActive);
+    ImGui::EndTabBar();
+  }
+
+  if (activeTab == nullptr) {
+    mActiveTab = 0;
+
+    ImGui::Text("Invalid Pane");
+    return;
+  }
+
+  activeTab->draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
+}
+
+void PropertyEditor::DrawVertTabs(kpi::PropertyViewManager& manager,
+                                  kpi::IPropertyView* activeTab,
+                                  std::vector<kpi::IObject*>& selected) {
+  ImGui::BeginChild("Left", ImVec2(120, 0), true);
+  int i = 0;
+  std::string title;
+  manager.forEachView(
+      [&](kpi::IPropertyView& view) {
+        const bool sel = mActiveTab == i;
+
+        title.clear();
+        title += view.getIcon();
+        title += " ";
+        title += view.getName();
+
+        if (ImGui::Selectable(title.c_str(), sel) || sel) {
+          mActiveTab = i;
+          activeTab = &view;
+        }
+
+        ++i;
+      },
+      *mActive);
+  ImGui::EndChild();
+
+  ImGui::SameLine();
+
+  ImGui::BeginChild("Right", ImGui::GetContentRegionAvail(), true);
+  {
+    if (activeTab == nullptr) {
+      mActiveTab = 0;
+
+      ImGui::Text("Invalid Pane");
+    } else {
+      activeTab->draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
+    }
+  }
+  ImGui::EndChild();
+}
+
+void PropertyEditor::DrawHeaderTabs(kpi::PropertyViewManager& manager,
+                                    kpi::IPropertyView* activeTab,
+                                    std::vector<kpi::IObject*>& selected) {
+  std::string title;
+  int i = 0;
+  manager.forEachView([&](kpi::IPropertyView& view) { ++i; }, *mActive);
+  const int num_headers = i;
+
+  if (tab_filter.size() != num_headers) {
+    tab_filter.resize(num_headers);
+    std::fill(tab_filter.begin(), tab_filter.end(), true);
+  }
+  ImGui::BeginTable("Checkboxes Widget", num_headers / 5 + 1);
+  ImGui::TableNextRow();
+  i = 0;
+  manager.forEachView(
+      [&](kpi::IPropertyView& view) {
+        ImGui::TableSetColumnIndex(i / 5);
+
+        title.clear();
+        title += view.getIcon();
+        title += " ";
+        title += view.getName();
+        // TODO: >
+        bool tmp = tab_filter[i];
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
+        ImGui::Checkbox(title.c_str(), &tmp);
+        ImGui::PopStyleVar();
+        tab_filter[i] = tmp;
+
+        ++i;
+      },
+      *mActive);
+  ImGui::EndTable();
+  i = 0;
+  manager.forEachView(
+      [&](kpi::IPropertyView& view) {
+        if (!tab_filter[i]) {
+          ++i;
+          return;
+        }
+
+        title.clear();
+        title += view.getIcon();
+        title += " ";
+        title += view.getName();
+        if (ImGui::CollapsingHeader((title + "##_TAB").c_str(),
+                                    tab_filter.data() + i,
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
+          view.draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
+        }
+        ++i;
+      },
+      *mActive);
+}
+
+void PropertyEditor::draw_() {
+  auto& manager = kpi::PropertyViewManager::getInstance();
+
+  if (mActive == nullptr) {
+    ImGui::Text("Nothing is selected.");
+    return;
+  }
+
+  if (lib3d::Material* mat = dynamic_cast<lib3d::Material*>(mActive);
+      mat != nullptr) {
+    DrawMaterialHeader(mat);
+  }
 
   if (ImGui::BeginPopupContextWindow()) {
-    draw_tab_widget();
+    DrawTabWidget(false);
     ImGui::EndPopup();
   }
   if (ImGui::BeginMenuBar()) {
-    draw_tab_widget(true);
+    DrawTabWidget(true);
     ImGui::EndMenuBar();
   }
 
@@ -125,127 +276,11 @@ void PropertyEditor::draw_() {
   std::copy(_selected.begin(), _selected.end(), std::back_inserter(selected));
 
   if (mMode == Mode::Tabs) {
-    if (ImGui::BeginTabBar("Pane")) {
-      int i = 0;
-      std::string title;
-      manager.forEachView(
-          [&](kpi::IPropertyView& view) {
-            // const bool sel = mActiveTab == i;
-
-            title.clear();
-            title += view.getIcon();
-            title += " ";
-            title += view.getName();
-
-            if (ImGui::BeginTabItem(title.c_str())) {
-              mActiveTab = i;
-              activeTab = &view;
-              ImGui::EndTabItem();
-            }
-
-            ++i;
-          },
-          *mActive);
-      ImGui::EndTabBar();
-    }
-
-    if (activeTab == nullptr) {
-      mActiveTab = 0;
-
-      ImGui::Text("Invalid Pane");
-      return;
-    }
-
-    activeTab->draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
+    DrawHorizTabs(manager, activeTab, selected);
   } else if (mMode == Mode::VertTabs) {
-    ImGui::BeginChild("Left", ImVec2(120, 0), true);
-    int i = 0;
-    std::string title;
-    manager.forEachView(
-        [&](kpi::IPropertyView& view) {
-          const bool sel = mActiveTab == i;
-
-          title.clear();
-          title += view.getIcon();
-          title += " ";
-          title += view.getName();
-
-          if (ImGui::Selectable(title.c_str(), sel) || sel) {
-            mActiveTab = i;
-            activeTab = &view;
-          }
-
-          ++i;
-        },
-        *mActive);
-    ImGui::EndChild();
-
-    ImGui::SameLine();
-
-    ImGui::BeginChild("Right", ImGui::GetContentRegionAvail(), true);
-    {
-      if (activeTab == nullptr) {
-        mActiveTab = 0;
-
-        ImGui::Text("Invalid Pane");
-      } else {
-        activeTab->draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
-      }
-    }
-    ImGui::EndChild();
-
+    DrawVertTabs(manager, activeTab, selected);
   } else if (mMode == Mode::Headers) {
-    std::string title;
-    int i = 0;
-    manager.forEachView([&](kpi::IPropertyView& view) { ++i; }, *mActive);
-    const int num_headers = i;
-
-    if (tab_filter.size() != num_headers) {
-      tab_filter.resize(num_headers);
-      std::fill(tab_filter.begin(), tab_filter.end(), true);
-    }
-    ImGui::BeginTable("Checkboxes Widget", num_headers / 5 + 1);
-    ImGui::TableNextRow();
-    i = 0;
-    manager.forEachView(
-        [&](kpi::IPropertyView& view) {
-          ImGui::TableSetColumnIndex(i / 5);
-
-          title.clear();
-          title += view.getIcon();
-          title += " ";
-          title += view.getName();
-          // TODO: >
-          bool tmp = tab_filter[i];
-          ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
-          ImGui::Checkbox(title.c_str(), &tmp);
-          ImGui::PopStyleVar();
-          tab_filter[i] = tmp;
-
-          ++i;
-        },
-        *mActive);
-    ImGui::EndTable();
-    i = 0;
-    manager.forEachView(
-        [&](kpi::IPropertyView& view) {
-          if (!tab_filter[i]) {
-            ++i;
-            return;
-          }
-
-          title.clear();
-          title += view.getIcon();
-          title += " ";
-          title += view.getName();
-          if (ImGui::CollapsingHeader((title + "##_TAB").c_str(),
-                                      tab_filter.data() + i,
-                                      ImGuiTreeNodeFlags_DefaultOpen)) {
-            view.draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
-          }
-          ++i;
-        },
-        *mActive);
+    DrawHeaderTabs(manager, activeTab, selected);
   } else {
     ImGui::Text("Unknown mode");
   }

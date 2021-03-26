@@ -12,9 +12,9 @@ enum class BaseTexGenFunction : int {
 };
 
 struct TexGenType {
-  int basefunc = 0; // BaseTexGenFunction
-  int mtxtype = 0;  //!< When basefunc == TextureMatrix
-  int lightid = 0;  //!< When basefunc == Bump
+  BaseTexGenFunction basefunc = BaseTexGenFunction::TextureMatrix;
+  int mtxtype = 0; //!< When basefunc == TextureMatrix
+  int lightid = 0; //!< When basefunc == Bump
 
   bool operator==(const TexGenType&) const = default;
 };
@@ -23,11 +23,11 @@ inline TexGenType elevateTexGenType(gx::TexGenType func) {
   TexGenType result;
   switch (func) {
   case gx::TexGenType::Matrix2x4:
-    result.basefunc = 0;
+    result.basefunc = BaseTexGenFunction::TextureMatrix;
     result.mtxtype = 0;
     break;
   case gx::TexGenType::Matrix3x4:
-    result.basefunc = 0;
+    result.basefunc = BaseTexGenFunction::TextureMatrix;
     result.mtxtype = 1;
     break;
   case gx::TexGenType::Bump0:
@@ -38,12 +38,12 @@ inline TexGenType elevateTexGenType(gx::TexGenType func) {
   case gx::TexGenType::Bump5:
   case gx::TexGenType::Bump6:
   case gx::TexGenType::Bump7:
-    result.basefunc = 1;
+    result.basefunc = BaseTexGenFunction::Bump;
     result.lightid =
         static_cast<int>(func) - static_cast<int>(gx::TexGenType::Bump0);
     break;
   case gx::TexGenType::SRTG:
-    result.basefunc = 2;
+    result.basefunc = BaseTexGenFunction::SRTG;
     break;
   }
 
@@ -52,13 +52,12 @@ inline TexGenType elevateTexGenType(gx::TexGenType func) {
 
 inline gx::TexGenType lowerTexGenType(hx::TexGenType tg) {
   switch (tg.basefunc) {
-  case 0:
-  default:
+  case hx::BaseTexGenFunction::TextureMatrix:
     return tg.mtxtype ? gx::TexGenType::Matrix3x4 : gx::TexGenType::Matrix2x4;
-  case 1:
+  case hx::BaseTexGenFunction::Bump:
     return static_cast<gx::TexGenType>(static_cast<int>(gx::TexGenType::Bump0) +
                                        tg.lightid);
-  case 2:
+  case hx::BaseTexGenFunction::SRTG:
     return gx::TexGenType::SRTG;
   }
 }

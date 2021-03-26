@@ -110,6 +110,11 @@ GenericCollectionOutliner::formatTitle(const kpi::ICollection& sampler,
                      std::to_string(calcNumFiltered(sampler, filter)) + ")");
 }
 
+// For models and bones we disable "add new" functionality for some reason
+static bool CanCreateNew(std::string_view key) {
+  return !key.ends_with("Model") && !key.ends_with("Bone");
+}
+
 void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
                                            const kpi::INode& host,
                                            const std::string& key) noexcept {
@@ -121,7 +126,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
     return;
   ImGui::SetNextItemOpen(true, ImGuiCond_Once);
   const bool opened = ImGui::TreeNode(formatTitle(sampler, &mFilter).c_str());
-  if (!key.ends_with("Model") && !key.ends_with("Bone")) {
+  if (CanCreateNew(key)) {
     const auto local_id = reinterpret_cast<u64>(&sampler);
     const auto id_str = std::string("MCtx") + std::to_string(local_id);
     if (ImGui::BeginPopupContextItem(id_str.c_str())) {

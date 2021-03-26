@@ -12,8 +12,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SwapTableSurface) {
   auto& matData = delegate.getActive().getMaterialData();
 
-  const char* colors = "Sample from Red\0Sample from Green\0Sample from "
-                       "Blue\0Sample from Alpha\0";
+  const char* colors = "Sample from Red\0"
+                       "Sample from Green\0"
+                       "Sample from Blue\0"
+                       "Sample from Alpha\0";
   ImGui::BeginTable("Swap Tables", 5, ImGuiTableFlags_Borders);
   ImGui::TableSetupColumn("Table ID");
   ImGui::TableSetupColumn("Red Destination");

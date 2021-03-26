@@ -287,7 +287,7 @@ static bool importTexture(libcube::Texture& data, u8* image,
            (height >> (num_mip + 1)) >= min_dim)
       ++num_mip;
   }
-  data.setTextureFormat((int)librii::gx::TextureFormat::CMPR);
+  data.setTextureFormat(librii::gx::TextureFormat::CMPR);
   data.setWidth(width);
   data.setHeight(height);
   data.setMipmapCount(num_mip);

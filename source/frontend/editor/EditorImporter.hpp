@@ -70,8 +70,7 @@ public:
     case State::Canceled:
       return "Operation was canceled by the user.";
     default:
-      assert(!"The importer is not in a failure state");
-      return nullptr;
+      return "The importer is not in a failure state";
     }
   }
   std::unique_ptr<kpi::INode> takeResult() {

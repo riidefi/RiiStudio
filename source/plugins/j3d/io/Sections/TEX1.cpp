@@ -160,7 +160,7 @@ void readTEX1(BMDOutputContext& ctx) {
     auto& data = inf.data;
 
     data.mName = nameTable[i];
-    data.mFormat = static_cast<u8>(tex.mFormat);
+    data.mFormat = tex.mFormat;
     data.mWidth = tex.mWidth;
     data.mHeight = tex.mHeight;
     data.mPaletteFormat = tex.mPaletteFormat;
@@ -172,8 +172,7 @@ void readTEX1(BMDOutputContext& ctx) {
 
     inf.absolute_file_offset = g.start + ofsHeaders + i * 32 + tex.ofsTex;
     inf.byte_size = librii::gx::computeImageSize(tex.mWidth, tex.mHeight,
-                                                 static_cast<u32>(tex.mFormat),
-                                                 tex.mMipmapLevel);
+                                                 tex.mFormat, tex.mMipmapLevel);
   }
 
   // Deduplicate and read.

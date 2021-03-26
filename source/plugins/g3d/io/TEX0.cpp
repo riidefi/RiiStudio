@@ -45,7 +45,7 @@ void readTexture(Texture& data, oishii::BinaryReader& reader) {
   reader.read<u32>(); // TODO: Paletted textures
   data.width = reader.read<u16>();
   data.height = reader.read<u16>();
-  data.format = reader.read<u32>();
+  data.format = static_cast<librii::gx::TextureFormat>(reader.read<u32>());
   data.mipLevel = reader.read<u32>();
   data.minLod = reader.read<f32>();
   data.maxLod = reader.read<f32>();

@@ -6,8 +6,8 @@
 #include <core/kpi/Node2.hpp>
 #include <glm/vec2.hpp> // glm::vec2
 #include <glm/vec3.hpp> // glm::vec3
-#include <plugins/gc/Export/Scene.hpp>
 #include <librii/gx.h>
+#include <plugins/gc/Export/Scene.hpp>
 #include <tuple>
 
 #include "texture.hpp"
@@ -98,16 +98,7 @@ public:
   }
 };
 
-struct G3DModelData : public virtual kpi::IObject {
-  virtual ~G3DModelData() = default;
-  // Shallow comparison
-  bool operator==(const G3DModelData& rhs) const {
-    return mScalingRule == rhs.mScalingRule && mTexMtxMode == rhs.mTexMtxMode &&
-           mEvpMtxMode == rhs.mEvpMtxMode &&
-           sourceLocation == rhs.sourceLocation && aabb == rhs.aabb;
-  }
-  const G3DModelData& operator=(const G3DModelData& rhs) { return *this; }
-
+struct G3DModelDataData {
   ScalingRule mScalingRule = ScalingRule::Standard;
   TextureMatrixMode mTexMtxMode = TextureMatrixMode::Maya;
   EnvelopeMatrixMode mEvpMtxMode = EnvelopeMatrixMode::Normal;
@@ -115,6 +106,20 @@ struct G3DModelData : public virtual kpi::IObject {
   librii::math::AABB aabb;
 
   std::string mName = "course";
+
+  bool operator==(const G3DModelDataData& rhs) const = default;
+};
+
+struct G3DModelData : public G3DModelDataData, public virtual kpi::IObject {
+  virtual ~G3DModelData() = default;
+  // Shallow comparison
+  bool operator==(const G3DModelData& rhs) const {
+    return static_cast<const G3DModelDataData&>(rhs) == *this;
+  }
+  const G3DModelData& operator=(const G3DModelData& rhs) {
+    static_cast<G3DModelDataData&>(*this) = rhs;
+    return *this;
+  }
 
   std::string getName() const { return mName; }
   void setName(const std::string& name) { mName = name; }

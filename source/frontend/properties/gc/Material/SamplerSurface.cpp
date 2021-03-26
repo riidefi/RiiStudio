@@ -87,6 +87,150 @@ void drawSamplerImage(const kpi::ConstCollectionRange<libcube::Texture>& mImgs,
   }
 }
 
+librii::gx::AnisotropyLevel DrawAniso(librii::gx::AnisotropyLevel alvl) {
+  int maxaniso = 0;
+  switch (alvl) {
+  case librii::gx::AnisotropyLevel::x1:
+    maxaniso = 1;
+    break;
+  case librii::gx::AnisotropyLevel::x2:
+    maxaniso = 2;
+    break;
+  case librii::gx::AnisotropyLevel::x4:
+    maxaniso = 4;
+    break;
+  }
+
+  ImGui::SliderInt("Anisotropic filtering level", &maxaniso, 1, 4);
+
+  switch (maxaniso) {
+  default:
+  case 1:
+    return librii::gx::AnisotropyLevel::x1;
+  case 2:
+    return librii::gx::AnisotropyLevel::x2;
+  case 3:
+  case 4:
+    return librii::gx::AnisotropyLevel::x4;
+  }
+}
+
+librii::gx::TexGenSrc DrawTGSource(librii::gx::TexGenSrc source) {
+  return imcxx::Combo("Source data", source,
+                      "Position\0"
+                      "Normal\0"
+                      "Binormal\0"
+                      "Tangent\0"
+                      "UV 0\0"
+                      "UV 1\0"
+                      "UV 2\0"
+                      "UV 3\0"
+                      "UV 4\0"
+                      "UV 5\0"
+                      "UV 6\0"
+                      "UV 7\0"
+                      "Bump UV0\0"
+                      "Bump UV1\0"
+                      "Bump UV2\0"
+                      "Bump UV3\0"
+                      "Bump UV4\0"
+                      "Bump UV5\0"
+                      "Bump UV6\0"
+                      "Color Channel 0\0"
+                      "Color Channel 1\0");
+}
+
+librii::hx::BaseTexGenFunction
+DrawBaseTGFunc(librii::hx::BaseTexGenFunction func) {
+  return imcxx::Combo("Function", func,
+                      "Standard Texture Matrix\0"
+                      "Bump Mapping: Use vertex lighting calculation result.\0"
+                      "SRTG: Map R(ed) and G(reen) components of a color "
+                      "channel to U/V coordinates\0");
+}
+
+libcube::GCMaterialData::CommonTransformModel
+DrawCommXModel(libcube::GCMaterialData::CommonTransformModel mdl, bool is_j3d) {
+  int xfmodel = static_cast<int>(mdl);
+  if (is_j3d) {
+    ImGui::Combo("Transform Model", &xfmodel,
+                 "Basic (Not Recommended)\0"
+                 "Maya\0");
+  } else {
+    --xfmodel;
+    ImGui::Combo("Transform Model", &xfmodel,
+                 "Maya\0"
+                 "3DS Max\0"
+                 "Softimage XSI\0");
+    ++xfmodel;
+  }
+
+  return static_cast<libcube::GCMaterialData::CommonTransformModel>(xfmodel);
+}
+
+auto DrawCommMapMethod(libcube::GCMaterialData::CommonMappingMethod method) {
+  int mapMethod = 0;
+  switch (method) {
+  default:
+  case libcube::GCMaterialData::CommonMappingMethod::Standard:
+    mapMethod = 0;
+    break;
+  case libcube::GCMaterialData::CommonMappingMethod::EnvironmentMapping:
+    mapMethod = 1;
+    break;
+  case libcube::GCMaterialData::CommonMappingMethod::ViewProjectionMapping:
+    mapMethod = 2;
+    break;
+  case libcube::GCMaterialData::CommonMappingMethod::ProjectionMapping:
+    mapMethod = 3;
+    break;
+  case libcube::GCMaterialData::CommonMappingMethod::EnvironmentLightMapping:
+    mapMethod = 4;
+    break;
+  case libcube::GCMaterialData::CommonMappingMethod::EnvironmentSpecularMapping:
+    mapMethod = 5;
+    break;
+  case libcube::GCMaterialData::CommonMappingMethod::ManualEnvironmentMapping:
+    mapMethod = 6;
+    break;
+  }
+  ImGui::Combo("Mapping method", &mapMethod,
+               "Standard Mapping\0"
+               "Environment Mapping\0"
+               "View Projection Mapping\0"
+               "Manual Projection Mapping\0"
+               "Environment Light Mapping\0"
+               "Environment Specular Mapping\0"
+               "Manual Environment Mapping\0");
+
+  using cmm = libcube::GCMaterialData::CommonMappingMethod;
+  switch (mapMethod) {
+  default:
+  case 0:
+    return cmm::Standard;
+  case 1:
+    return cmm::EnvironmentMapping;
+  case 2:
+    return cmm::ViewProjectionMapping;
+  case 3:
+    return cmm::ProjectionMapping;
+  case 4:
+    return cmm::EnvironmentLightMapping;
+  case 5:
+    return cmm::EnvironmentSpecularMapping;
+  case 6:
+    return cmm::ManualEnvironmentMapping;
+  }
+}
+
+auto DrawCommMapMod(libcube::GCMaterialData::CommonMappingOption mod) {
+  return imcxx::Combo(
+      "Option", mod,
+      "Standard\0"
+      "J3D Basic: Don't remap into texture space (Keep -1..1 not 0...1)\0"
+      "J3D Old: Keep translation column.\0");
+}
+
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SamplerSurface& surface) {
   auto& matData = delegate.getActive().getMaterialData();
@@ -142,15 +286,14 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 librii::hx::TexGenType hx_tg =
                     librii::hx::elevateTexGenType(tg.func);
 
-                ImGui::Combo(
-                    "Function", &hx_tg.basefunc,
-                    "Standard Texture Matrix\0Bump Mapping: Use vertex "
-                    "lighting calculation result.\0SRTG: Map R(ed) and G(reen) "
-                    "components of a color channel to U/V coordinates\0");
+                hx_tg.basefunc = DrawBaseTGFunc(hx_tg.basefunc);
                 {
-                  ConditionalActive g(hx_tg.basefunc == 0);
+                  ConditionalActive g(
+                      hx_tg.basefunc ==
+                      librii::hx::BaseTexGenFunction::TextureMatrix);
                   ImGui::Combo("Matrix Size", &hx_tg.mtxtype,
-                               "UV Matrix: 2x4\0UVW Matrix: 3x4\0");
+                               "UV Matrix: 2x4\0"
+                               "UVW Matrix: 3x4\0");
 
                   ImGui::Checkbox("Identity Matrix", &identitymatrix);
                   ImGui::SameLine();
@@ -158,17 +301,19 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                     ConditionalActive g2(!identitymatrix);
                     ImGui::SliderInt("Matrix ID", &texmatrixid, 0, 7);
                   }
+
+                  auto actual_matrix = static_cast<librii::gx::TexMatrix>(
+                      static_cast<int>(librii::gx::TexMatrix::TexMatrix0) +
+                      std::max(0, texmatrixid) * 3);
+
                   librii::gx::TexMatrix newtexmatrix =
-                      identitymatrix
-                          ? librii::gx::TexMatrix::Identity
-                          : static_cast<librii::gx::TexMatrix>(
-                                static_cast<int>(
-                                    librii::gx::TexMatrix::TexMatrix0) +
-                                std::max(0, texmatrixid) * 3);
+                      identitymatrix ? librii::gx::TexMatrix::Identity
+                                     : actual_matrix;
                   AUTO_PROP(texGens[i].matrix, newtexmatrix);
                 }
                 {
-                  ConditionalActive g(hx_tg.basefunc == 1);
+                  ConditionalActive g(hx_tg.basefunc ==
+                                      librii::hx::BaseTexGenFunction::Bump);
                   ImGui::SliderInt("Hardware light ID", &hx_tg.lightid, 0, 7);
                 }
 
@@ -176,114 +321,29 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                     librii::hx::lowerTexGenType(hx_tg);
                 AUTO_PROP(texGens[i].func, newfunc);
 
-                int src = static_cast<int>(tg.sourceParam);
-                ImGui::Combo(
-                    "Source data", &src,
-                    "Position\0Normal\0Binormal\0Tangent\0UV 0\0UV 1\0UV 2\0UV "
-                    "3\0UV 4\0UV 5\0UV 6\0UV 7\0Bump UV0\0Bump UV1\0Bump "
-                    "UV2\0Bump UV3\0Bump UV4\0Bump UV5\0Bump UV6\0Color "
-                    "Channel 0\0Color Channel 1\0");
-                AUTO_PROP(texGens[i].sourceParam,
-                          static_cast<librii::gx::TexGenSrc>(src));
+                auto src = DrawTGSource(tg.sourceParam);
+                AUTO_PROP(texGens[i].sourceParam, src);
               }
               if (tm != nullptr &&
                   ImGui::CollapsingHeader("Texture Coordinate Generator",
                                           ImGuiTreeNodeFlags_DefaultOpen)) {
                 // TODO: Effect matrix
-                int xfmodel = static_cast<int>(tm->transformModel);
-                bool is_j3d = dynamic_cast<const riistudio::j3d::Material*>(
-                    &delegate.getActive());
-                if (is_j3d) {
-                  ImGui::Combo("Transform Model", &xfmodel,
-                               "Basic (Not Recommended)\0"
-                               "Maya\0");
-                } else {
-                  --xfmodel;
-                  ImGui::Combo("Transform Model", &xfmodel,
-                               "Maya\0"
-                               "3DS Max\0"
-                               "Softimage XSI\0");
-                  ++xfmodel;
-                }
-                AUTO_PROP(
-                    texMatrices[texmatrixid].transformModel,
-                    static_cast<libcube::GCMaterialData::CommonTransformModel>(
-                        xfmodel));
-                // TODO: Not all backends support all modes..
-                int mapMethod = 0;
-                switch (tm->method) {
-                default:
-                case libcube::GCMaterialData::CommonMappingMethod::Standard:
-                  mapMethod = 0;
-                  break;
-                case libcube::GCMaterialData::CommonMappingMethod::
-                    EnvironmentMapping:
-                  mapMethod = 1;
-                  break;
-                case libcube::GCMaterialData::CommonMappingMethod::
-                    ViewProjectionMapping:
-                  mapMethod = 2;
-                  break;
-                case libcube::GCMaterialData::CommonMappingMethod::
-                    ProjectionMapping:
-                  mapMethod = 3;
-                  break;
-                case libcube::GCMaterialData::CommonMappingMethod::
-                    EnvironmentLightMapping:
-                  mapMethod = 4;
-                  break;
-                case libcube::GCMaterialData::CommonMappingMethod::
-                    EnvironmentSpecularMapping:
-                  mapMethod = 5;
-                  break;
-                case libcube::GCMaterialData::CommonMappingMethod::
-                    ManualEnvironmentMapping:
-                  mapMethod = 6;
-                  break;
-                }
-                ImGui::Combo("Mapping method", &mapMethod,
-                             "Standard Mapping\0Environment Mapping\0View "
-                             "Projection Mapping\0Manual Projection "
-                             "Mapping\0Environment Light Mapping\0Environment "
-                             "Specular Mapping\0Manual Environment Mapping\0");
-                libcube::GCMaterialData::CommonMappingMethod newMapMethod =
-                    libcube::GCMaterialData::CommonMappingMethod::Standard;
-                using cmm = libcube::GCMaterialData::CommonMappingMethod;
-                switch (mapMethod) {
-                default:
-                case 0:
-                  newMapMethod = cmm::Standard;
-                  break;
-                case 1:
-                  newMapMethod = cmm::EnvironmentMapping;
-                  break;
-                case 2:
-                  newMapMethod = cmm::ViewProjectionMapping;
-                  break;
-                case 3:
-                  newMapMethod = cmm::ProjectionMapping;
-                  break;
-                case 4:
-                  newMapMethod = cmm::EnvironmentLightMapping;
-                  break;
-                case 5:
-                  newMapMethod = cmm::EnvironmentSpecularMapping;
-                  break;
-                case 6:
-                  newMapMethod = cmm::ManualEnvironmentMapping;
-                  break;
-                }
-                AUTO_PROP(texMatrices[texmatrixid].method, newMapMethod);
+                {
+                  bool is_j3d = dynamic_cast<const riistudio::j3d::Material*>(
+                      &delegate.getActive());
 
-                int mod = static_cast<int>(tm->option);
-                ImGui::Combo(
-                    "Option", &mod,
-                    "Standard\0J3D Basic: Don't remap into texture space (Keep "
-                    "-1..1 not 0...1)\0J3D Old: Keep translation column.");
-                AUTO_PROP(
-                    texMatrices[texmatrixid].option,
-                    static_cast<libcube::GCMaterialData::CommonMappingOption>(
-                        mod));
+                  auto xfmodel = DrawCommXModel(tm->transformModel, is_j3d);
+                  AUTO_PROP(texMatrices[texmatrixid].transformModel, xfmodel);
+                }
+                {
+                  // TODO: Not all backends support all modes..
+                  auto newMapMethod = DrawCommMapMethod(tm->method);
+                  AUTO_PROP(texMatrices[texmatrixid].method, newMapMethod);
+                }
+                {
+                  auto mod = DrawCommMapMod(tm->option);
+                  AUTO_PROP(texMatrices[texmatrixid].option, mod);
+                }
               }
               ImGui::EndTabItem();
             }
@@ -319,7 +379,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           }
         }
         if (ImGui::CollapsingHeader("Tiling", ImGuiTreeNodeFlags_DefaultOpen)) {
-          const char* wrap_modes = "Clamp\0Repeat\0Mirror\0";
+          const char* wrap_modes = "Clamp\0"
+                                   "Repeat\0"
+                                   "Mirror\0";
           auto uTile = imcxx::Combo("U tiling", samp->mWrapU, wrap_modes);
           auto vTile = imcxx::Combo("V tiling", samp->mWrapV, wrap_modes);
           AUTO_PROP(samplers[i].mWrapU, uTile);
@@ -327,16 +389,16 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         }
         if (ImGui::CollapsingHeader("Filtering",
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-          int magBase = static_cast<int>(samp->mMagFilter);
+          auto magBase = samp->mMagFilter;
 
           auto min_filt = librii::hx::elevateTextureFilter(samp->mMinFilter);
 
-          const char* linNear = "Nearest (no interpolation/pixelated)\0Linear "
-                                "(interpolated/blurry)\0";
+          const char* linNear = "Nearest (no interpolation/pixelated)\0"
+                                "Linear (interpolated/blurry)\0";
 
-          ImGui::Combo("Interpolation when scaled up", &magBase, linNear);
-          AUTO_PROP(samplers[i].mMagFilter,
-                    static_cast<librii::gx::TextureFilter>(magBase));
+          magBase =
+              imcxx::Combo("Interpolation when scaled up", magBase, linNear);
+          AUTO_PROP(samplers[i].mMagFilter, magBase);
           ImGui::Combo("Interpolation when scaled down", &min_filt.minBase,
                        linNear);
 
@@ -364,34 +426,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 ImGui::Checkbox("Bias clamp", &mipBiasClamp);
                 AUTO_PROP(samplers[i].bBiasClamp, mipBiasClamp);
 
-                int maxaniso = 0;
-                switch (samp->mMaxAniso) {
-                case librii::gx::AnisotropyLevel::x1:
-                  maxaniso = 1;
-                  break;
-                case librii::gx::AnisotropyLevel::x2:
-                  maxaniso = 2;
-                  break;
-                case librii::gx::AnisotropyLevel::x4:
-                  maxaniso = 4;
-                  break;
-                }
-                ImGui::SliderInt("Anisotropic filtering level", &maxaniso, 1,
-                                 4);
-                librii::gx::AnisotropyLevel alvl =
-                    librii::gx::AnisotropyLevel::x1;
-                switch (maxaniso) {
-                case 1:
-                  alvl = librii::gx::AnisotropyLevel::x1;
-                  break;
-                case 2:
-                  alvl = librii::gx::AnisotropyLevel::x2;
-                  break;
-                case 3:
-                case 4:
-                  alvl = librii::gx::AnisotropyLevel::x4;
-                  break;
-                }
+                auto alvl = DrawAniso(samp->mMaxAniso);
                 AUTO_PROP(samplers[i].mMaxAniso, alvl);
               }
             }

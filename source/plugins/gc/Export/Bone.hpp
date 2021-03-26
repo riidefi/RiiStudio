@@ -16,23 +16,17 @@ struct DrawMatrix {
     MatrixWeight() : boneId(-1), weight(0.0f) {}
     MatrixWeight(u32 b, f32 w) : boneId(b), weight(w) {}
 
-    bool operator==(const MatrixWeight& rhs) const {
-      return boneId == rhs.boneId && weight == rhs.weight;
-    }
+    bool operator==(const MatrixWeight& rhs) const = default;
   };
 
   std::vector<MatrixWeight> mWeights; // 1 weight -> singlebound, no envelope
 
-  bool operator==(const DrawMatrix& rhs) const {
-    return mWeights == rhs.mWeights;
-  }
+  bool operator==(const DrawMatrix& rhs) const = default;
 };
 struct ModelData {
   std::vector<DrawMatrix> mDrawMatrices;
 
-  bool operator==(const ModelData& rhs) const {
-    return mDrawMatrices == rhs.mDrawMatrices;
-  }
+  bool operator==(const ModelData& rhs) const = default;
 };
 
 struct IBoneDelegate : public riistudio::lib3d::Bone {

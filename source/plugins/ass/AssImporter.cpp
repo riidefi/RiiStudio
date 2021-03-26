@@ -335,7 +335,7 @@ static bool importTexture(libcube::Texture& data, u8* image,
            (height >> (num_mip + 1)) >= min_dim)
       ++num_mip;
   }
-  data.setTextureFormat((int)librii::gx::TextureFormat::CMPR);
+  data.setTextureFormat(librii::gx::TextureFormat::CMPR);
   data.setWidth(width);
   data.setHeight(height);
   data.setMipmapCount(num_mip);
@@ -705,7 +705,7 @@ void AssImporter::ImportAss(
     librii::image::generateCheckerboard(scratch.data(), dummy_width,
                                         dummy_height);
     tex.setMipmapCount(0);
-    tex.setTextureFormat((int)librii::gx::TextureFormat::CMPR);
+    tex.setTextureFormat(librii::gx::TextureFormat::CMPR);
     tex.encode(scratch.data());
     tex.setWidth(0); // hack..
   }

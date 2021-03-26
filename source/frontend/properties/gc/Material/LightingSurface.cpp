@@ -82,11 +82,17 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     int diffuse_fn = static_cast<int>(ctrl.diffuseFn);
     int atten_fn = static_cast<int>(ctrl.attenuationFn);
 
-    ImGui::Combo("Diffusion Type", &diffuse_fn, "None\0Signed\0Clamped\0");
+    ImGui::Combo("Diffusion Type", &diffuse_fn,
+                 "None\0"
+                 "Signed\0"
+                 "Clamped\0");
     AUTO_PROP(colorChanControls[i].diffuseFn,
               static_cast<librii::gx::DiffuseFunction>(diffuse_fn));
     ImGui::Combo("Attenuation Type", &atten_fn,
-                 "Specular\0Spotlight (Diffuse)\0None\0None*\0");
+                 "Specular\0"
+                 "Spotlight (Diffuse)\0"
+                 "None\0"
+                 "None*\0");
     AUTO_PROP(colorChanControls[i].attenuationFn,
               static_cast<librii::gx::AttenuationFunction>(atten_fn));
 
@@ -137,8 +143,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     }
   }
 }
-
-
 
 kpi::RegisterPropertyView<IGCMaterial, LightingSurface>
     LightingSurfaceInstaller;

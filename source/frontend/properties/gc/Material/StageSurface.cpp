@@ -107,7 +107,9 @@ template <typename T> T DrawKonstSel(T x) {
 
   int k_type = ksel.k_constant ? 0 : 1;
   const int last_k_type = k_type;
-  ImGui::Combo("Konst Selection", &k_type, "Constant\0Uniform\0");
+  ImGui::Combo("Konst Selection", &k_type,
+               "Constant\0"
+               "Uniform\0");
   if (k_type == 0) { // constant
     float k_frac = static_cast<float>(ksel.k_numerator) / 8.0f;
     ImGui::SliderFloat("Constant Value", &k_frac, 0.0f, 1.0f);
@@ -119,16 +121,26 @@ template <typename T> T DrawKonstSel(T x) {
       ksel.k_sub = 0;
     }
     ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth() / 3 - 2);
-    ImGui::Combo(
-        ".##Konstant Register ID", &ksel.k_reg,
-        "Konst Color 0\0Konst Color 1\0Konst Color 2\0Konst Color 3\0");
+    ImGui::Combo(".##Constant Register ID", &ksel.k_reg,
+                 "Constant Color 0\0"
+                 "Constant Color 1\0"
+                 "Constant Color 2\0"
+                 "Constant Color 3\0");
     ImGui::SameLine();
     if (std::is_same_v<T, gx::TevKColorSel>) {
-      ImGui::Combo("Konst Register##Subscript", &ksel.k_sub,
-                   "RGB\0RRR\0GGG\0BBB\0AAA\0");
+      ImGui::Combo("Const Register##Subscript", &ksel.k_sub,
+                   "RGB\0"
+                   "RRR\0"
+                   "GGG\0"
+                   "BBB\0"
+                   "AAA\0");
     } else {
       --ksel.k_sub;
-      ImGui::Combo("Konst Register##Subscript", &ksel.k_sub, "R\0G\0B\0A\0");
+      ImGui::Combo("Const Register##Subscript", &ksel.k_sub,
+                   "R\0"
+                   "G\0"
+                   "B\0"
+                   "A\0");
       ++ksel.k_sub;
     }
     ImGui::PopItemWidth();
