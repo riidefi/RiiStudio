@@ -93,6 +93,7 @@ void Updater::draw() {
   }
 
   if (!mLaunchPath.empty()) {
+    printf("Launching update %s\n", mLaunchPath.c_str());
     LaunchUpdate(mLaunchPath);
     // (Never reached)
     mShowUpdateDialog = false;
@@ -172,6 +173,8 @@ static size_t write_data(void* ptr, size_t size, size_t nmemb, FILE* stream) {
   return written;
 }
 
+static std::thread sThread;
+
 bool Updater::InstallUpdate() {
   const auto current_exe = ExecutableFilename();
   if (current_exe.empty())
@@ -208,7 +211,7 @@ bool Updater::InstallUpdate() {
       };
 
   mIsInUpdate = true;
-  static std::thread sThread = std::thread(
+  sThread = std::thread(
       [=](Updater* updater) {
         CURL* curl = curl_easy_init();
         assert(curl);
@@ -253,6 +256,11 @@ void Updater::RetryAsAdmin() {
 }
 
 void Updater::LaunchUpdate(const std::string& new_exe) {
+  // On slow machines, the thread may not have been joined yet--so wait for it.
+  sThread.join();
+
+  assert(!sThread.joinable());
+
 #ifdef _WIN32
   // https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
