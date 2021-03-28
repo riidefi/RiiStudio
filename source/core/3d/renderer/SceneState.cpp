@@ -23,7 +23,7 @@ void SceneState::buildUniformBuffers() {
   mUboBuilder.clear();
 
   mTree.forEachNode([&](SceneNode& node) {
-    buildUniformBufferRepalcement(node, mUboBuilder);
+    buildUniformBufferReplacement(node, mUboBuilder);
   });
 }
 

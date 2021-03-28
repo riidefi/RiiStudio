@@ -28,7 +28,7 @@ struct TextureObj {
 void useTexObj(const TextureObj& obj);
 
 struct SceneNode {
-  virtual ~SceneNode() = default;
+  // virtual ~SceneNode() = default;
 
   // Draw the node to the screen
   // virtual void draw(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
@@ -62,20 +62,30 @@ struct SceneNode {
 
   llvm::SmallVector<UniformData, 4> uniform_data;
 
+  // TODO: We don't need to set these every draw, just every shader?
+  struct UniformMin {
+    u32 binding_point;
+    u32 min_size;
+  };
+
+  llvm::SmallVector<UniformMin, 4> uniform_mins;
+
   // Fill-in a UBO
   //
   // Called every frame
-  virtual void
-  buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder) = 0;
+  // virtual void
+  // buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder) = 0;
 };
 
 void drawReplacement(const SceneNode& node,
                      librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                      u32 draw_index);
 
-inline void buildUniformBufferRepalcement(
+inline void buildUniformBufferReplacement(
     SceneNode& node, librii::glhelper::DelegatedUBOBuilder& ubo_builder) {
-  node.buildUniformBuffer(ubo_builder);
+  for (auto& command : node.uniform_mins) {
+    ubo_builder.setBlockMin(command.binding_point, command.min_size);
+  }
 
   for (auto& command : node.uniform_data) {
     // TODO: Remove this bloat
@@ -88,7 +98,7 @@ inline void buildUniformBufferRepalcement(
 }
 
 struct DrawBuffer {
-  std::vector<std::unique_ptr<SceneNode>> nodes;
+  std::vector<SceneNode> nodes;
 
   auto begin() { return nodes.begin(); }
   auto begin() const { return nodes.begin(); }
@@ -108,9 +118,9 @@ struct SceneBuffers {
 
   template <typename T> void forEachNode(T functor) {
     for (auto& node : opaque)
-      functor(*node);
+      functor(node);
     for (auto& node : translucent)
-      functor(*node);
+      functor(node);
   }
 };
 

@@ -164,171 +164,149 @@ struct Node {
   const lib3d::Material& mat;
   const lib3d::Polygon& poly;
 };
+template <typename T>
+SceneNode::UniformData pushUniform(u32 binding_point, const T& data) {
+  const u8* pack_begin = reinterpret_cast<const u8*>(&data);
+  const u8* pack_end = reinterpret_cast<const u8*>(pack_begin + sizeof(data));
 
-struct GCSceneNode : public SceneNode {
-  GCSceneNode(VertexBufferTenant& tenant, librii::glhelper::VBOBuilder& v,
-              const std::map<std::string, u32>& tm, Node node,
-              librii::glhelper::ShaderProgram& prog, u32 mi, glm::mat4 v_mtx,
-              glm::mat4 p_mtx)
-      : mp_id(mi), tex_id_map(tm), mNode(node), view_matrix(v_mtx),
-        proj_matrix(p_mtx) {
-    this->vao_id = v.getGlId();
-    this->bound = CalcPolyBound(node.poly, node.bone, node.model);
+  return SceneNode::UniformData{.binding_point = binding_point,
+                                .raw_data = {pack_begin, pack_end}};
+}
+void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
+                   librii::glhelper::VBOBuilder& v,
+                   const std::map<std::string, u32>& tex_id_map, Node node,
+                   librii::glhelper::ShaderProgram& prog, u32 mp_id,
+                   glm::mat4 view_matrix, glm::mat4 proj_matrix) {
+  glm::mat4 model_matrix{1.0f};
 
-    //
-    node.mat.setMegaState(this->mega_state);
-    this->shader_id = prog.getId();
+  out.vao_id = v.getGlId();
+  out.bound = CalcPolyBound(node.poly, node.bone, node.model);
 
-    // draw
-    this->glBeginMode = GL_TRIANGLES;
-    this->vertex_count = tenant.idx_size;
-    this->glVertexDataType = GL_UNSIGNED_INT;
-    this->indices = reinterpret_cast<void*>(tenant.idx_ofs * 4);
+  //
+  node.mat.setMegaState(out.mega_state);
+  out.shader_id = prog.getId();
 
-    const libcube::GCMaterialData& gc_mat =
-        reinterpret_cast<const libcube::IGCMaterial&>(node.mat)
-            .getMaterialData();
-    for (int i = 0; i < gc_mat.samplers.size(); ++i) {
-      const auto& sampler = gc_mat.samplers[i];
+  // draw
+  out.glBeginMode = GL_TRIANGLES;
+  out.vertex_count = tenant.idx_size;
+  out.glVertexDataType = GL_UNSIGNED_INT;
+  out.indices = reinterpret_cast<void*>(tenant.idx_ofs * 4);
 
-      TextureObj obj;
+  const libcube::GCMaterialData& gc_mat =
+      reinterpret_cast<const libcube::IGCMaterial&>(node.mat).getMaterialData();
+  for (int i = 0; i < gc_mat.samplers.size(); ++i) {
+    const auto& sampler = gc_mat.samplers[i];
 
-      if (sampler.mTexture.empty()) {
-        // No textures specified
+    TextureObj obj;
+
+    if (sampler.mTexture.empty()) {
+      // No textures specified
+      continue;
+    }
+
+    {
+      const auto found = tex_id_map.find(sampler.mTexture);
+      if (found == tex_id_map.end()) {
+        printf("Invalid texture link.\n");
         continue;
       }
 
-      {
-        const auto found = tex_id_map.find(sampler.mTexture);
-        if (found == tex_id_map.end()) {
-          printf("Invalid texture link.\n");
-          continue;
-        }
-
-        obj.active_id = i;
-        obj.image_id = found->second;
-      }
-
-      obj.glMinFilter = librii::gl::gxFilterToGl(sampler.mMinFilter);
-      obj.glMagFilter = librii::gl::gxFilterToGl(sampler.mMagFilter);
-      obj.glWrapU = librii::gl::gxTileToGl(sampler.mWrapU);
-      obj.glWrapV = librii::gl::gxTileToGl(sampler.mWrapV);
-
-      this->texture_objects.push_back(obj);
+      obj.active_id = i;
+      obj.image_id = found->second;
     }
 
-    {
-      librii::gl::UniformSceneParams scene;
+    obj.glMinFilter = librii::gl::gxFilterToGl(sampler.mMinFilter);
+    obj.glMagFilter = librii::gl::gxFilterToGl(sampler.mMagFilter);
+    obj.glWrapU = librii::gl::gxTileToGl(sampler.mWrapU);
+    obj.glWrapV = librii::gl::gxTileToGl(sampler.mWrapV);
 
-      scene.projection = model_matrix * view_matrix * proj_matrix;
-      scene.Misc0 = {};
+    out.texture_objects.push_back(obj);
+  }
 
-      pushUniform(0, scene);
+  {
+    int query_min;
+
+    for (u32 i = 0; i < 3; ++i) {
+      glGetActiveUniformBlockiv(out.shader_id, i, GL_UNIFORM_BLOCK_DATA_SIZE,
+                                &query_min);
+      out.uniform_mins.push_back(
+          {.binding_point = i, .min_size = static_cast<u32>(query_min)});
+    }
+  }
+
+  {
+    librii::gl::UniformSceneParams scene;
+
+    scene.projection = model_matrix * view_matrix * proj_matrix;
+    scene.Misc0 = {};
+
+    out.uniform_data.emplace_back(pushUniform(0, scene));
+  }
+
+  {
+    const auto& data = reinterpret_cast<const libcube::IGCMaterial&>(node.mat)
+                           .getMaterialData();
+
+    librii::gl::UniformMaterialParams tmp{};
+    librii::gl::setUniformsFromMaterial(tmp, data);
+
+    for (int i = 0; i < data.texMatrices.size(); ++i) {
+      tmp.TexMtx[i] = glm::transpose(
+          data.texMatrices[i].compute(model_matrix, view_matrix * proj_matrix));
+    }
+    for (int i = 0; i < data.samplers.size(); ++i) {
+      if (data.samplers[i].mTexture.empty())
+        continue;
+      const auto* texData =
+          reinterpret_cast<const libcube::IGCMaterial&>(node.mat).getTexture(
+              reinterpret_cast<const libcube::Scene&>(node.scene),
+              data.samplers[i].mTexture);
+      if (texData == nullptr)
+        continue;
+      tmp.TexParams[i] = glm::vec4{texData->getWidth(), texData->getHeight(), 0,
+                                   data.samplers[i].mLodBias};
     }
 
-    {
-      const auto& data =
-          reinterpret_cast<const libcube::IGCMaterial&>(mNode.mat)
-              .getMaterialData();
+    out.uniform_data.push_back(pushUniform(1, tmp));
+  }
 
-      librii::gl::UniformMaterialParams tmp{};
-      librii::gl::setUniformsFromMaterial(tmp, data);
+  {
+    // builder.reset(2);
+    librii::gl::PacketParams pack{};
+    for (auto& p : pack.posMtx)
+      p = glm::transpose(glm::mat4{1.0f});
 
-      for (int i = 0; i < data.texMatrices.size(); ++i) {
-        tmp.TexMtx[i] = glm::transpose(data.texMatrices[i].compute(
-            model_matrix, view_matrix * proj_matrix));
-      }
-      for (int i = 0; i < data.samplers.size(); ++i) {
-        if (data.samplers[i].mTexture.empty())
-          continue;
-        const auto* texData =
-            reinterpret_cast<const libcube::IGCMaterial&>(mNode.mat).getTexture(
-                reinterpret_cast<const libcube::Scene&>(mNode.scene),
-                data.samplers[i].mTexture);
-        if (texData == nullptr)
-          continue;
-        tmp.TexParams[i] = glm::vec4{texData->getWidth(), texData->getHeight(),
-                                     0, data.samplers[i].mLodBias};
-      }
+    assert(dynamic_cast<const libcube::IndexedPolygon*>(&node.poly) != nullptr);
+    const auto& ipoly =
+        reinterpret_cast<const libcube::IndexedPolygon&>(node.poly);
 
-      pushUniform(1, tmp);
+    const auto mtx = ipoly.getPosMtx(
+        reinterpret_cast<const libcube::Model&>(node.model), mp_id);
+    for (int p = 0; p < std::min<std::size_t>(10, mtx.size()); ++p) {
+      pack.posMtx[p] = glm::transpose(mtx[p]);
     }
 
-    {
-      // builder.reset(2);
-      librii::gl::PacketParams pack{};
-      for (auto& p : pack.posMtx)
-        p = glm::transpose(glm::mat4{1.0f});
+    out.uniform_data.push_back(pushUniform(2, pack));
+  }
 
-      assert(dynamic_cast<const libcube::IndexedPolygon*>(&mNode.poly) !=
-             nullptr);
-      const auto& ipoly =
-          reinterpret_cast<const libcube::IndexedPolygon&>(mNode.poly);
+  {
 
-      const auto mtx = ipoly.getPosMtx(
-          reinterpret_cast<const libcube::Model&>(mNode.model), mp_id);
-      for (int p = 0; p < std::min<std::size_t>(10, mtx.size()); ++p) {
-        pack.posMtx[p] = glm::transpose(mtx[p]);
-      }
-
-      pushUniform(2, pack);
-    }
-
-    {
-
-      // WebGL doesn't support binding=n in the shader
+    // WebGL doesn't support binding=n in the shader
 #ifdef __EMSCRIPTEN__
-      glUniformBlockBinding(
-          shader_id, glGetUniformBlockIndex(shader_id, "ub_SceneParams"), 0);
-      glUniformBlockBinding(
-          shader_id, glGetUniformBlockIndex(shader_id, "ub_MaterialParams"), 1);
-      glUniformBlockBinding(
-          shader_id, glGetUniformBlockIndex(shader_id, "ub_PacketParams"), 2);
+    glUniformBlockBinding(
+        shader_id, glGetUniformBlockIndex(shader_id, "ub_SceneParams"), 0);
+    glUniformBlockBinding(
+        shader_id, glGetUniformBlockIndex(shader_id, "ub_MaterialParams"), 1);
+    glUniformBlockBinding(
+        shader_id, glGetUniformBlockIndex(shader_id, "ub_PacketParams"), 2);
 #endif // __EMSCRIPTEN__
 
-      const s32 samplerIds[] = {0, 1, 2, 3, 4, 5, 6, 7};
+    const s32 samplerIds[] = {0, 1, 2, 3, 4, 5, 6, 7};
 
-      glUseProgram(shader_id);
-      u32 uTexLoc = glGetUniformLocation(shader_id, "u_Texture");
-      glUniform1iv(uTexLoc, 8, samplerIds);
-    }
+    glUseProgram(out.shader_id);
+    u32 uTexLoc = glGetUniformLocation(out.shader_id, "u_Texture");
+    glUniform1iv(uTexLoc, 8, samplerIds);
   }
-
-  template <typename T> void pushUniform(u32 binding_point, const T& data) {
-    const u8* pack_begin = reinterpret_cast<const u8*>(&data);
-    const u8* pack_end = reinterpret_cast<const u8*>(pack_begin + sizeof(data));
-
-    uniform_data.push_back(UniformData{.binding_point = binding_point,
-                                       .raw_data = {pack_begin, pack_end}});
-  }
-
-  void
-  buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder) final;
-
-  u32 mp_id = 0;
-  const std::map<std::string, u32>& tex_id_map;
-
-private:
-  // These references aren't safe, though
-  Node mNode;
-
-  glm::mat4 model_matrix{1.0f};
-  glm::mat4 view_matrix;
-  glm::mat4 proj_matrix;
-};
-
-void GCSceneNode::buildUniformBuffer(
-    librii::glhelper::DelegatedUBOBuilder& ubo_builder) {
-  int min;
-  glGetActiveUniformBlockiv(shader_id, 0, GL_UNIFORM_BLOCK_DATA_SIZE, &min);
-  // printf("Min block size: %i\n", min);
-  ubo_builder.setBlockMin(0, min);
-  glGetActiveUniformBlockiv(shader_id, 1, GL_UNIFORM_BLOCK_DATA_SIZE, &min);
-  // printf("Min block size: %i\n", min);
-  ubo_builder.setBlockMin(1, min);
-  glGetActiveUniformBlockiv(shader_id, 2, GL_UNIFORM_BLOCK_DATA_SIZE, &min);
-  // printf("Min block size: %i\n", min);
-  ubo_builder.setBlockMin(2, min);
 }
 
 void pushDisplay(VertexBufferTenant& tenant,
@@ -338,8 +316,9 @@ void pushDisplay(VertexBufferTenant& tenant,
                  librii::glhelper::ShaderProgram& shader, glm::mat4 v_mtx,
                  glm::mat4 p_mtx) {
 
-  auto mnode = std::make_unique<GCSceneNode>(tenant, vbo_builder, tex_id_map,
-                                             node, shader, mp_id, v_mtx, p_mtx);
+  SceneNode mnode;
+  MakeSceneNode(mnode, tenant, vbo_builder, tex_id_map, node, shader, mp_id,
+                v_mtx, p_mtx);
 
   auto& nodebuf = node.mat.isXluPass() ? output.translucent : output.opaque;
 
