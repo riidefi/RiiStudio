@@ -17,7 +17,7 @@ public:
   librii::math::AABB computeBounds();
 
   // Build the UBO. Typically called every frame.
-  void buildUniformBuffers(const glm::mat4& view, const glm::mat4& proj);
+  void buildUniformBuffers();
 
   // Draw the model to the screen. You'll want to clear it first.
   void draw();

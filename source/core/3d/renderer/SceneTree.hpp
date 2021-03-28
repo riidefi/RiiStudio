@@ -53,10 +53,7 @@ struct SceneNode {
   //
   // Called every frame
   virtual void
-  buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-                     const glm::mat4& model_matrix,
-                     const glm::mat4& view_matrix,
-                     const glm::mat4& proj_matrix) = 0;
+  buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder) = 0;
 };
 
 void drawReplacement(const SceneNode& node,

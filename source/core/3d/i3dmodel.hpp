@@ -19,7 +19,8 @@ struct IDrawable {
   virtual ~IDrawable() = default;
 
   //! Prepare a scene based on the resource data.
-  virtual void prepare(SceneState& state, const kpi::INode& root) = 0;
+  virtual void prepare(SceneState& state, const kpi::INode& root,
+                       glm::mat4 v_mtx, glm::mat4 p_mtx) = 0;
 
   bool poisoned = false;
   bool reinit = false;
@@ -32,13 +33,15 @@ struct SceneImpl : public IDrawable {
   virtual ~SceneImpl();
   SceneImpl();
 
-  void prepare(SceneState& state, const kpi::INode& host) override;
+  void prepare(SceneState& state, const kpi::INode& host, glm::mat4 v_mtx,
+               glm::mat4 p_mtx) override;
 
   void gatherBoneRecursive(SceneBuffers& output, u64 boneId,
-                           const lib3d::Model& root, const lib3d::Scene& scn);
+                           const lib3d::Model& root, const lib3d::Scene& scn,
+                           glm::mat4 v_mtx, glm::mat4 p_mtx);
 
   void gather(SceneBuffers& output, const lib3d::Model& root,
-              const lib3d::Scene& scene);
+              const lib3d::Scene& scene, glm::mat4 v_mtx, glm::mat4 p_mtx);
 
 private:
   struct Internal;

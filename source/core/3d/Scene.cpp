@@ -126,7 +126,8 @@ struct SceneImpl::Internal {
 SceneImpl::SceneImpl() = default;
 SceneImpl::~SceneImpl() = default;
 
-void SceneImpl::prepare(SceneState& state, const kpi::INode& _host) {
+void SceneImpl::prepare(SceneState& state, const kpi::INode& _host,
+                        glm::mat4 v_mtx, glm::mat4 p_mtx) {
   auto& host = *dynamic_cast<const Scene*>(&_host);
 
   if (mImpl == nullptr) {
@@ -140,7 +141,7 @@ void SceneImpl::prepare(SceneState& state, const kpi::INode& _host) {
   }
 
   for (auto& model : host.getModels())
-    gather(state.getBuffers(), model, host);
+    gather(state.getBuffers(), model, host, v_mtx, p_mtx);
 }
 
 librii::math::AABB CalcPolyBound(const lib3d::Polygon& poly,
@@ -165,8 +166,10 @@ struct Node {
 struct GCSceneNode : public SceneNode {
   GCSceneNode(VertexBufferTenant& tenant, librii::glhelper::VBOBuilder& v,
               const std::map<std::string, u32>& tm, Node node,
-              librii::glhelper::ShaderProgram& prog, u32 mi)
-      : mp_id(mi), tex_id_map(tm), mNode(node) {
+              librii::glhelper::ShaderProgram& prog, u32 mi, glm::mat4 v_mtx,
+              glm::mat4 p_mtx)
+      : mp_id(mi), tex_id_map(tm), mNode(node), view_matrix(v_mtx),
+        proj_matrix(p_mtx) {
     this->vao_id = v.getGlId();
     this->bound = CalcPolyBound(node.poly, node.bone, node.model);
 
@@ -213,10 +216,8 @@ struct GCSceneNode : public SceneNode {
     }
   }
 
-  void buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-                          const glm::mat4& model_matrix,
-                          const glm::mat4& view_matrix,
-                          const glm::mat4& proj_matrix) final;
+  void
+  buildUniformBuffer(librii::glhelper::DelegatedUBOBuilder& ubo_builder) final;
 
   u32 mp_id = 0;
   const std::map<std::string, u32>& tex_id_map;
@@ -224,12 +225,14 @@ struct GCSceneNode : public SceneNode {
 private:
   // These references aren't safe, though
   Node mNode;
+
+  glm::mat4 model_matrix{1.0f};
+  glm::mat4 view_matrix;
+  glm::mat4 proj_matrix;
 };
 
 void GCSceneNode::buildUniformBuffer(
-    librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-    const glm::mat4& model_matrix, const glm::mat4& view_matrix,
-    const glm::mat4& proj_matrix) {
+    librii::glhelper::DelegatedUBOBuilder& ubo_builder) {
   mNode.mat.generateUniforms(ubo_builder, model_matrix, view_matrix,
                              proj_matrix, this->shader_id, tex_id_map,
                              mNode.poly, mNode.scene);
@@ -240,10 +243,11 @@ void pushDisplay(VertexBufferTenant& tenant,
                  librii::glhelper::VBOBuilder& vbo_builder, Node node,
                  riistudio::lib3d::SceneBuffers& output, u32 mp_id,
                  const std::map<std::string, u32>& tex_id_map,
-                 librii::glhelper::ShaderProgram& shader) {
+                 librii::glhelper::ShaderProgram& shader, glm::mat4 v_mtx,
+                 glm::mat4 p_mtx) {
 
   auto mnode = std::make_unique<GCSceneNode>(tenant, vbo_builder, tex_id_map,
-                                            node, shader, mp_id);
+                                             node, shader, mp_id, v_mtx, p_mtx);
 
   auto& nodebuf = node.mat.isXluPass() ? output.translucent : output.opaque;
 
@@ -252,7 +256,8 @@ void pushDisplay(VertexBufferTenant& tenant,
 
 void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
                                     const lib3d::Model& root,
-                                    const lib3d::Scene& scene) {
+                                    const lib3d::Scene& scene, glm::mat4 v_mtx,
+                                    glm::mat4 p_mtx) {
   auto bones = root.getBones();
   auto polys = root.getMeshes();
   auto mats = root.getMaterials();
@@ -291,22 +296,24 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
       };
       pushDisplay(mImpl->mTenants.at(mesh_name), mImpl->mVboBuilder, node,
                   output, i, mImpl->mTexIdMap,
-                  mImpl->mMatToShader.at(mat.getName()).getProgram());
+                  mImpl->mMatToShader.at(mat.getName()).getProgram(), v_mtx,
+                  p_mtx);
     }
   }
 
   for (u64 i = 0; i < pBone.getNumChildren(); ++i)
-    gatherBoneRecursive(output, pBone.getChild(i), root, scene);
+    gatherBoneRecursive(output, pBone.getChild(i), root, scene, v_mtx, p_mtx);
 }
 
 void SceneImpl::gather(SceneBuffers& output, const lib3d::Model& root,
-                       const lib3d::Scene& scene) {
+                       const lib3d::Scene& scene, glm::mat4 v_mtx,
+                       glm::mat4 p_mtx) {
   if (root.getMaterials().empty() || root.getMeshes().empty() ||
       root.getBones().empty())
     return;
 
   // Assumes root at zero
-  gatherBoneRecursive(output, 0, root, scene);
+  gatherBoneRecursive(output, 0, root, scene, v_mtx, p_mtx);
 }
 
 } // namespace riistudio::lib3d

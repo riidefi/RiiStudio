@@ -19,14 +19,11 @@ librii::math::AABB SceneState::computeBounds() {
   return bound;
 }
 
-void SceneState::buildUniformBuffers(const glm::mat4& view,
-                                     const glm::mat4& proj) {
+void SceneState::buildUniformBuffers() {
   mUboBuilder.clear();
 
-  const glm::mat4 mdl{1.0f};
-
   mTree.forEachNode([&](SceneNode& node) {
-    node.buildUniformBuffer(mUboBuilder, mdl, view, proj);
+    node.buildUniformBuffer(mUboBuilder);
   });
 }
 

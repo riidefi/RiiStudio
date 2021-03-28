@@ -17,7 +17,9 @@ public:
   Renderer(lib3d::IDrawable* root);
   ~Renderer();
   void render(u32 width, u32 height, bool& hideCursor);
-  void prepare(const kpi::INode& host) { mRoot->prepare(mSceneState, host); }
+  void prepare(const kpi::INode& host, glm::mat4 v_mtx, glm::mat4 p_mtx) {
+    mRoot->prepare(mSceneState, host, v_mtx, p_mtx);
+  }
 
   Camera& getCamera() { return mCameraController.mCamera; }
 

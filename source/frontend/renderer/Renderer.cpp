@@ -24,9 +24,6 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
     // TODO: Regen VBOs and such
   }
 
-  mSceneState.invalidate();
-  mRoot->prepare(mSceneState, *dynamic_cast<kpi::INode*>(mRoot));
-
   drawMenuBar();
 
 #ifdef RII_NATIVE_GL_WIREFRAME
@@ -54,7 +51,10 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
   glm::mat4 projMtx, viewMtx;
   mCameraController.mCamera.calcMatrices(width, height, projMtx, viewMtx);
 
-  mSceneState.buildUniformBuffers(projMtx, viewMtx);
+  mSceneState.invalidate();
+  mRoot->prepare(mSceneState, *dynamic_cast<kpi::INode*>(mRoot), projMtx,
+                 viewMtx);
+  mSceneState.buildUniformBuffers();
 
   clearGlScreen();
   mSceneState.draw();
