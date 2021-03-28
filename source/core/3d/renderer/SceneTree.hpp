@@ -3,6 +3,8 @@
 #include <core/3d/i3dmodel.hpp>
 #include <cstring>
 #include <librii/glhelper/ShaderCache.hpp>
+#include <librii/glhelper/UBOBuilder.hpp>
+#include <llvm/ADT/SmallVector.h>
 #include <map>
 #include <rsl/ArrayVector.hpp>
 
@@ -49,6 +51,17 @@ struct SceneNode {
   // virtual void expandBound(librii::math::AABB& bound) = 0;
   librii::math::AABB bound;
 
+  struct UniformData {
+    //! Binding pointer to insert the data at
+    u32 binding_point;
+
+    //! Raw data to store there
+    //! Note: sizeof(UniformMaterialParams) == 1536
+    llvm::SmallVector<u8, 2048> raw_data;
+  };
+
+  llvm::SmallVector<UniformData, 4> uniform_data;
+
   // Fill-in a UBO
   //
   // Called every frame
@@ -59,6 +72,20 @@ struct SceneNode {
 void drawReplacement(const SceneNode& node,
                      librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                      u32 draw_index);
+
+inline void buildUniformBufferRepalcement(
+    SceneNode& node, librii::glhelper::DelegatedUBOBuilder& ubo_builder) {
+  node.buildUniformBuffer(ubo_builder);
+
+  for (auto& command : node.uniform_data) {
+    // TODO: Remove this bloat
+    static std::vector<u8> scratch;
+    scratch.resize(command.raw_data.size());
+    memcpy(scratch.data(), command.raw_data.data(), scratch.size());
+
+    ubo_builder.push(command.binding_point, scratch);
+  }
+}
 
 struct DrawBuffer {
   std::vector<std::unique_ptr<SceneNode>> nodes;

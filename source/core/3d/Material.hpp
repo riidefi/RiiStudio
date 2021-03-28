@@ -38,17 +38,7 @@ struct Material : public virtual kpi::IObject {
   virtual void setXluPass(bool b) = 0;
 
   virtual std::pair<std::string, std::string> generateShaders() const = 0;
-  // TODO: Interdependency
-  virtual void generateUniforms(librii::glhelper::DelegatedUBOBuilder& builder,
-                                const glm::mat4& M, const glm::mat4& V,
-                                const glm::mat4& P, u32 shaderId,
-                                const std::map<std::string, u32>& texIdMap,
-                                const Polygon& poly,
-                                const Scene& scene) const = 0;
 
-  virtual void onSplice(librii::glhelper::DelegatedUBOBuilder& builder,
-                        const Model& model, const Polygon& poly, u32 id) const {
-  }
   virtual void setMegaState(librii::gfx::MegaState& state) const = 0;
   virtual void configure(PixelOcclusion occlusion,
                          std::vector<std::string>& textures) = 0;
