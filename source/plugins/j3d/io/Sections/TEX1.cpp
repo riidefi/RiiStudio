@@ -84,7 +84,7 @@ Tex::Tex(const Texture& data,
   mMagFilter = sampl.mMagFilter;
   mMinLod = data.mMinLod;
   mMaxLod = data.mMaxLod;
-  mMipmapLevel = data.mMipmapLevel;
+  mMipmapLevel = data.mImageCount;
   mLodBias = roundf(sampl.mLodBias * 100.0f);
   ofsTex = -1;
 }
@@ -168,7 +168,7 @@ void readTEX1(BMDOutputContext& ctx) {
     data.ofsPalette = tex.ofsPalette;
     data.mMinLod = tex.mMinLod;
     data.mMaxLod = tex.mMaxLod;
-    data.mMipmapLevel = tex.mMipmapLevel;
+    data.mImageCount = tex.mMipmapLevel;
 
     inf.absolute_file_offset = g.start + ofsHeaders + i * 32 + tex.ofsTex;
     inf.byte_size = librii::gx::computeImageSize(tex.mWidth, tex.mHeight,

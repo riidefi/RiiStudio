@@ -18,10 +18,11 @@ void writeTexture(const Texture& data, oishii::Writer& writer,
   writer.write<u16>(data.width);
   writer.write<u16>(data.height);
   writer.write<u32>(static_cast<u32>(data.format));
-  writer.write<u32>(data.mipLevel);
+  writer.write<u32>(data.number_of_images);
   writer.write<f32>(data.custom_lod ? data.minLod : 0.0f);
-  writer.write<f32>(data.custom_lod ? data.maxLod
-                                    : static_cast<float>(data.mipLevel - 1));
+  writer.write<f32>(data.custom_lod
+                        ? data.maxLod
+                        : static_cast<float>(data.number_of_images - 1));
   writer.write<u32>(0); // src path
   writer.write<u32>(0); // user data
   writer.alignTo(32);   // Assumes already 32b aligned
@@ -46,7 +47,7 @@ void readTexture(Texture& data, oishii::BinaryReader& reader) {
   data.width = reader.read<u16>();
   data.height = reader.read<u16>();
   data.format = static_cast<librii::gx::TextureFormat>(reader.read<u32>());
-  data.mipLevel = reader.read<u32>();
+  data.number_of_images = reader.read<u32>();
   data.minLod = reader.read<f32>();
   data.maxLod = reader.read<f32>();
   // data.custom_lod = data.minLod != 0.0f ||

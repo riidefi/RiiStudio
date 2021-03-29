@@ -15,7 +15,7 @@ struct TextureData {
   u32 width = 32;
   u32 height = 32;
 
-  u32 mipLevel{1}; // 1 - no mipmaps
+  u32 number_of_images{1}; // 1 - no mipmaps
   bool custom_lod = false;
   f32 minLod{0.0f};
   f32 maxLod{1.0f};
@@ -34,11 +34,8 @@ struct Texture : public TextureData,
   void setName(const std::string& n) override { name = n; }
   librii::gx::TextureFormat getTextureFormat() const override { return format; }
   void setTextureFormat(librii::gx::TextureFormat f) override { format = f; }
-  u32 getMipmapCount() const override {
-    assert(mipLevel > 0);
-    return mipLevel - 1;
-  }
-  void setMipmapCount(u32 c) override { mipLevel = c + 1; }
+  u32 getImageCount() const override { return number_of_images; }
+  void setImageCount(u32 c) override { number_of_images = c; }
   const u8* getData() const override { return data.data(); }
   u8* getData() override { return data.data(); }
   void resizeData() override { data.resize(getEncodedSize(true)); }

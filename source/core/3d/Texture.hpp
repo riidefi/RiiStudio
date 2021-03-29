@@ -33,9 +33,15 @@ struct Texture : public virtual kpi::IObject {
   virtual u32 getEncodedSize(bool mip) const = 0;
   virtual void decode(std::vector<u8>& out, bool mip) const = 0;
 
-  // 0 -- no mipmap, 1 -- one mipmap; not lod max
-  virtual u32 getMipmapCount() const = 0;
-  virtual void setMipmapCount(u32 c) = 0;
+  virtual u32 getImageCount() const = 0;
+  virtual void setImageCount(u32 c) = 0;
+
+  u32 getMipmapCount() const {
+    u32 image_count = getImageCount();
+    assert(image_count > 0);
+    return image_count - 1;
+  }
+  void setMipmapCount(u32 c) { setImageCount(c + 1); }
 
   virtual u16 getWidth() const = 0;
   virtual void setWidth(u16 width) = 0;

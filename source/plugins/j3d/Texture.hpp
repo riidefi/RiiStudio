@@ -24,7 +24,7 @@ struct TextureData {
 
   s8 mMinLod;
   s8 mMaxLod;
-  u8 mMipmapLevel = 1;
+  u8 mImageCount = 1;
 
   std::vector<u8> mData = std::vector<u8>(
       librii::gx::computeImageSize(mWidth, mHeight, mFormat, 1));
@@ -46,11 +46,10 @@ struct Texture : public TextureData, public libcube::Texture {
   void setTextureFormat(librii::gx::TextureFormat format) override {
     mFormat = format;
   }
-  u32 getMipmapCount() const override {
-    assert(mMipmapLevel > 0);
-    return mMipmapLevel - 1;
+  u32 getImageCount() const override {
+    return mImageCount;
   }
-  void setMipmapCount(u32 c) override { mMipmapLevel = c + 1; }
+  void setImageCount(u32 c) override { mImageCount = c; }
   const u8* getData() const override { return mData.data(); }
   u8* getData() override { return mData.data(); }
   void resizeData() override { mData.resize(getEncodedSize(true)); }
