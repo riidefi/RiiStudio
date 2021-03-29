@@ -16,13 +16,13 @@ struct TextureData {
   u32 height = 32;
 
   u32 number_of_images{1}; // 1 - no mipmaps
-  bool custom_lod = false;
+  bool custom_lod = false; // If false, minLod and maxLod are recalculated.
   f32 minLod{0.0f};
   f32 maxLod{1.0f};
 
   std::string sourcePath;
-  std::vector<u8> data =
-      std::vector<u8>(librii::gx::computeImageSize(width, height, format, 1));
+  std::vector<u8> data = std::vector<u8>(
+      librii::gx::computeImageSize(width, height, format, number_of_images));
 
   bool operator==(const TextureData& rhs) const = default;
 };

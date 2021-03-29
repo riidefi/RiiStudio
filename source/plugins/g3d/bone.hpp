@@ -28,41 +28,9 @@ struct BoneData {
   u32 matrixId = 0;
   u32 billboardType = 0;
 
-  u32 computeFlag() const {
-    u32 flag = 0;
-    if (mScaling.x == mScaling.y == mScaling.z) {
-      flag |= 0x10;
-      if (mScaling == glm::vec3{1.0f, 1.0f, 1.0f})
-        flag |= 8;
-    }
-    if (mRotation == glm::vec3{0.0f, 0.0f, 0.0f})
-      flag |= 4;
-    if (mTranslation == glm::vec3{0.0f, 0.0f, 0.0f})
-      flag |= 2;
-    if (flag & (2 | 4 | 8))
-      flag |= 1;
-    // TODO: Flag 0x40
-    if (ssc)
-      flag |= 0x20;
-    if (!classicScale)
-      flag |= 0x80;
-    if (visible)
-      flag |= 0x100;
-    // TODO: Check children?
-    if (!mDisplayCommands.empty())
-      flag |= 0x200;
-    // TODO: 0x400 check parents
-    return flag;
-  }
-  // Call this last
-  void setFromFlag(u32 flag) {
-    // TODO: Validate items
-    ssc = (flag & 0x20) != 0;
-    classicScale = (flag & 0x80) == 0;
-    visible = (flag & 0x100) != 0;
-  }
-
-  glm::vec3 mScaling, mRotation, mTranslation;
+  glm::vec3 mScaling{1.0f, 1.0f, 1.0f};
+  glm::vec3 mRotation{0.0f, 0.0f, 0.0f};
+  glm::vec3 mTranslation{0.0f, 0.0f, 0.0f};
 
   librii::math::AABB mVolume;
 
@@ -86,6 +54,40 @@ struct BoneData {
   bool operator==(const BoneData& rhs) const = default;
 };
 
+inline u32 computeFlag(const BoneData& data) {
+  u32 flag = 0;
+  if (data.mScaling.x == data.mScaling.y == data.mScaling.z) {
+    flag |= 0x10;
+    if (data.mScaling == glm::vec3{1.0f, 1.0f, 1.0f})
+      flag |= 8;
+  }
+  if (data.mRotation == glm::vec3{0.0f, 0.0f, 0.0f})
+    flag |= 4;
+  if (data.mTranslation == glm::vec3{0.0f, 0.0f, 0.0f})
+    flag |= 2;
+  if (flag & (2 | 4 | 8))
+    flag |= 1;
+  // TODO: Flag 0x40
+  if (data.ssc)
+    flag |= 0x20;
+  if (!data.classicScale)
+    flag |= 0x80;
+  if (data.visible)
+    flag |= 0x100;
+  // TODO: Check children?
+  if (!data.mDisplayCommands.empty())
+    flag |= 0x200;
+  // TODO: 0x400 check parents
+  return flag;
+}
+// Call this last
+inline void setFromFlag(BoneData& data, u32 flag) {
+  // TODO: Validate items
+  data.ssc = (flag & 0x20) != 0;
+  data.classicScale = (flag & 0x80) == 0;
+  data.visible = (flag & 0x100) != 0;
+}
+
 struct Bone : public libcube::IBoneDelegate,
               public BoneData,
               public virtual kpi::IObject {
@@ -93,7 +95,7 @@ struct Bone : public libcube::IBoneDelegate,
   void setName(const std::string& name) override { mName = name; }
   // std::string getName() const override { return mName; }
   s64 getId() override { return id; }
- 
+
   librii::math::SRT3 getSRT() const override {
     return {mScaling, mRotation, mTranslation};
   }

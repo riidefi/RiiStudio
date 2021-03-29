@@ -572,7 +572,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         writeNameForward(names, writer, bone_start, bone.getName());
         writer.write<u32>(bone_id++);
         writer.write<u32>(bone.matrixId);
-        writer.write<u32>(bone.computeFlag());
+        writer.write<u32>(computeFlag(bone));
         writer.write<u32>(bone.billboardType);
         writer.write<u32>(0); // TODO: ref
         bone.mScaling >> writer;
@@ -1242,7 +1242,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     reader.skip(12); // Skip sibling and child links -- we recompute it all
     reader.skip(2 * ((3 * 4) * sizeof(f32))); // skip matrices
 
-    bone.setFromFlag(bone_flag);
+    setFromFlag(bone, bone_flag);
   });
   // Compute children
   for (int i = 0; i < mdl.getBones().size(); ++i) {
