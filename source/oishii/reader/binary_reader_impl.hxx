@@ -75,13 +75,17 @@ void BinaryReader::signalInvalidityLast(const char* msg) {
   TInval::warn(*this, sizeof(lastReadType), msg);
 }
 
-template <u32 magic, bool critical> inline void BinaryReader::expectMagic() {
+template <u32 magic, bool critical> inline bool BinaryReader::expectMagic() {
   if (read<u32, EndianSelect::Big>() != magic) {
     signalInvalidityLast<u32, MagicInvalidity<magic>>();
 
     if (critical)
       exit(1);
+
+    return false;
   }
+
+  return true;
 }
 
 } // namespace oishii

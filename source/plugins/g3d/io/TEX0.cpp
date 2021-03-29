@@ -31,14 +31,17 @@ void writeTexture(const Texture& data, oishii::Writer& writer,
        pData < data.getData() + data.getEncodedSize(true); ++pData)
     writer.write<u8>(*pData);
 }
-void readTexture(Texture& data, oishii::BinaryReader& reader) {
+bool readTexture(Texture& data, oishii::BinaryReader& reader) {
   const auto start = reader.tell();
 
-  reader.expectMagic<'TEX0', false>();
+  if (!reader.expectMagic<'TEX0', false>()) {
+    return false;
+  }
   reader.read<u32>(); // size
   const u32 revision = reader.read<u32>();
-  (void)revision;
-  assert(revision == 1 || revision == 3);
+  if (revision != 1 && revision != 3) {
+    return false;
+  }
   reader.read<s32>(); // BRRES offset
   const s32 ofsTex = reader.read<s32>();
   data.name = readName(reader, start);
@@ -60,6 +63,7 @@ void readTexture(Texture& data, oishii::BinaryReader& reader) {
   memcpy(data.data.data(), reader.getStreamStart() + reader.tell(),
          data.getEncodedSize(true));
   reader.skip(data.getEncodedSize(true));
+  return true;
 }
 
 } // namespace riistudio::g3d

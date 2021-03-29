@@ -1131,13 +1131,302 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   linker.resolve();
 } // namespace riistudio::g3d
 
+bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader) {
+  const auto start = reader.tell();
+
+  reader.read<u32>(); // size
+  reader.read<s32>(); // mdl offset
+  mat.name = readName(reader, start);
+  mat.id = reader.read<u32>();
+  mat.flag = reader.read<u32>();
+
+  // Gen info
+  mat.texGens.resize(reader.read<u8>());
+  auto nColorChan = reader.read<u8>();
+  if (nColorChan >= 2)
+    nColorChan = 2;
+  mat.mStages.resize(reader.read<u8>());
+  mat.indirectStages.resize(reader.read<u8>());
+  mat.cullMode = static_cast<librii::gx::CullMode>(reader.read<u32>());
+
+  // Misc
+  mat.earlyZComparison = reader.read<u8>();
+  mat.lightSetIndex = reader.read<s8>();
+  mat.fogIndex = reader.read<s8>();
+  reader.read<u8>();
+  const auto indSt = reader.tell();
+  for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
+    librii::g3d::G3dIndConfig cfg;
+    cfg.method = static_cast<librii::g3d::G3dIndMethod>(reader.read<u8>());
+    cfg.normalMapLightRef = reader.peekAt<s8>(4);
+    mat.indConfig.push_back(cfg);
+  }
+  reader.seekSet(indSt + 4 + 4);
+
+  const auto ofsTev = reader.read<s32>();
+  const auto nTex = reader.read<u32>();
+  if (nTex > 8) {
+    return false;
+  }
+  const auto [ofsSamplers, ofsFur, ofsUserData, ofsDisplayLists] =
+      reader.readX<s32, 4>();
+  if (ofsFur || ofsUserData)
+    printf("Warning: Material %s uses Fur or UserData which is unsupported!\n",
+           mat.name.c_str());
+
+  // Texture and palette objects are set on runtime.
+  reader.skip((4 + 8 * 12) + (4 + 8 * 32));
+
+  // Texture transformations
+  reader.read<u32>(); // skip flag, TODO: verify
+  const u32 mtxMode = reader.read<u32>();
+  const std::array<libcube::GCMaterialData::CommonTransformModel, 3> cvtMtx{
+      libcube::GCMaterialData::CommonTransformModel::Maya,
+      libcube::GCMaterialData::CommonTransformModel::XSI,
+      libcube::GCMaterialData::CommonTransformModel::Max};
+  const auto xfModel = cvtMtx[mtxMode];
+
+  for (u8 i = 0; i < nTex; ++i) {
+    libcube::GCMaterialData::TexMatrix mtx;
+    mtx.scale << reader;
+    mtx.rotate = glm::radians(reader.read<f32>());
+    mtx.translate << reader;
+    mat.texMatrices.push_back(mtx);
+  }
+  reader.seekSet(start + 0x250);
+  for (u8 i = 0; i < nTex; ++i) {
+    auto* mtx = &mat.texMatrices[i];
+
+    mtx->camIdx = reader.read<s8>();
+    mtx->lightIdx = reader.read<s8>();
+    // printf("[read] CamIDX: %i, LIDX:%i\n", (signed)mtx->camIdx,
+    //        (signed)mtx->lightIdx);
+    const u8 mapMode = reader.read<u8>();
+
+    mtx->transformModel = xfModel;
+    mtx->option = libcube::GCMaterialData::CommonMappingOption::NoSelection;
+    // Projection needs to be copied from texgen
+
+    switch (mapMode) {
+    default:
+    case 0:
+      mtx->method = libcube::GCMaterialData::CommonMappingMethod::Standard;
+      break;
+    case 1:
+      mtx->method =
+          libcube::GCMaterialData::CommonMappingMethod::EnvironmentMapping;
+      break;
+    case 2:
+      mtx->method =
+          libcube::GCMaterialData::CommonMappingMethod::ViewProjectionMapping;
+      break;
+    case 3:
+      mtx->method =
+          libcube::GCMaterialData::CommonMappingMethod::EnvironmentLightMapping;
+      break;
+    case 4:
+      mtx->method = libcube::GCMaterialData::CommonMappingMethod::
+          EnvironmentSpecularMapping;
+      break;
+    // EGG
+    case 5:
+      mtx->method =
+          libcube::GCMaterialData::CommonMappingMethod::ManualProjectionMapping;
+      break;
+    }
+
+    reader.read<u8>(); // effect mtx flag
+    // G3D effectmatrix is 3x4. J3D is 4x4
+    reader.skip(3 * 4 * sizeof(f32));
+    // for (auto& f : mtx->effectMatrix)
+    //   f = reader.read<f32>();
+  }
+  // reader.seek((8 - nTex)* (4 + (4 * 4 * sizeof(f32))));
+  reader.seekSet(start + 0x3f0);
+  mat.chanData.resize(0);
+  for (u8 i = 0; i < nColorChan; ++i) {
+    // skip runtime flag
+    const auto flag = reader.read<u32>();
+    (void)flag;
+    librii::gx::Color matClr, ambClr;
+    matClr.r = reader.read<u8>();
+    matClr.g = reader.read<u8>();
+    matClr.b = reader.read<u8>();
+    matClr.a = reader.read<u8>();
+
+    ambClr.r = reader.read<u8>();
+    ambClr.g = reader.read<u8>();
+    ambClr.b = reader.read<u8>();
+    ambClr.a = reader.read<u8>();
+
+    mat.chanData.push_back({matClr, ambClr});
+    librii::gpu::LitChannel tmp;
+    // Color
+    tmp.hex = reader.read<u32>();
+    mat.colorChanControls.push_back(tmp);
+    // Alpha
+    tmp.hex = reader.read<u32>();
+    mat.colorChanControls.push_back(tmp);
+  }
+
+  // TEV
+  reader.seekSet(start + ofsTev + 16);
+  std::array<u8, 8> coord_map_lut;
+  for (auto& e : coord_map_lut)
+    e = reader.read<u8>();
+  // printf(">>>>> Coord->Map LUT:\n");
+  // for (auto e : coord_map_lut)
+  //   printf("%u ", (unsigned)e);
+  // printf("\n");
+  bool error = false;
+  {
+    u8 last = 0;
+    for (auto e : coord_map_lut) {
+      error |= e <= last;
+      last = e;
+    }
+  }
+  // assert(!error && "Invalid sampler configuration");
+  reader.seekSet(start + ofsTev + 32);
+  {
+
+    librii::gpu::QDisplayListShaderHandler shaderHandler(mat,
+                                                         mat.mStages.size());
+    librii::gpu::RunDisplayList(reader, shaderHandler,
+                                shaderDlSizes[mat.mStages.size()]);
+  }
+
+  // Samplers
+  reader.seekSet(start + ofsSamplers);
+  if (mat.texGens.size() != nTex) {
+    return false;
+  }
+  for (u8 i = 0; i < nTex; ++i) {
+    libcube::GCMaterialData::SamplerData sampler;
+
+    const auto sampStart = reader.tell();
+    sampler.mTexture = readName(reader, sampStart);
+    sampler.mPalette = readName(reader, sampStart);
+    reader.skip(8);     // skip runtime pointers
+    reader.read<u32>(); // skip tex id for now
+    reader.read<u32>(); // skip tlut id for now
+    sampler.mWrapU =
+        static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
+    sampler.mWrapV =
+        static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
+    sampler.mMinFilter =
+        static_cast<librii::gx::TextureFilter>(reader.read<u32>());
+    sampler.mMagFilter =
+        static_cast<librii::gx::TextureFilter>(reader.read<u32>());
+    sampler.mLodBias = reader.read<f32>();
+    sampler.mMaxAniso =
+        static_cast<librii::gx::AnisotropyLevel>(reader.read<u32>());
+    sampler.bBiasClamp = reader.read<u8>();
+    sampler.bEdgeLod = reader.read<u8>();
+    reader.skip(2);
+    mat.samplers.push_back(std::move(sampler));
+  }
+
+  // Display Lists
+  reader.seekSet(start + ofsDisplayLists);
+  {
+    librii::gpu::QDisplayListMaterialHandler matHandler(mat);
+
+    // Pixel data
+    librii::gpu::RunDisplayList(reader, matHandler, 32);
+    mat.alphaCompare = matHandler.mGpuMat.mPixel.mAlphaCompare;
+    mat.zMode = matHandler.mGpuMat.mPixel.mZMode;
+    mat.blendMode = matHandler.mGpuMat.mPixel.mBlendMode;
+    // TODO: Dst alpha
+
+    // Uniform data
+    librii::gpu::RunDisplayList(reader, matHandler, 128);
+    mat.tevColors[0] = {0xff, 0xff, 0xff, 0xff};
+    for (int i = 0; i < 3; ++i) {
+      mat.tevColors[i + 1] = matHandler.mGpuMat.mShaderColor.Registers[i + 1];
+    }
+    for (int i = 0; i < 4; ++i) {
+      mat.tevKonstColors[i] = matHandler.mGpuMat.mShaderColor.Konstants[i];
+    }
+
+    // Indirect data
+    librii::gpu::RunDisplayList(reader, matHandler, 64);
+    for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
+      const auto& curScale =
+          matHandler.mGpuMat.mIndirect.mIndTexScales[i > 1 ? i - 2 : i];
+      mat.indirectStages[i].scale = librii::gx::IndirectTextureScalePair{
+          static_cast<librii::gx::IndirectTextureScalePair::Selection>(
+              curScale.ss0),
+          static_cast<librii::gx::IndirectTextureScalePair::Selection>(
+              curScale.ss1)};
+
+      mat.mIndMatrices.push_back(matHandler.mGpuMat.mIndirect.mIndMatrices[i]);
+    }
+
+    const std::array<u32, 9> texGenDlSizes{
+        0,        // 0
+        32,       // 1
+        64,  64,  // 2, 3
+        96,  96,  // 4, 5
+        128, 128, // 6, 7
+        160       // 8
+    };
+    librii::gpu::RunDisplayList(reader, matHandler,
+                                texGenDlSizes[mat.texGens.size()]);
+    for (u8 i = 0; i < mat.texGens.size(); ++i) {
+      mat.texGens[i] = matHandler.mGpuMat.mTexture[i];
+      mat.texMatrices[i].projection = mat.texGens[i].func;
+    }
+  }
+
+  return true;
+}
+
+bool readBone(Bone& bone, oishii::BinaryReader& reader, u32 bone_id,
+              s32 data_destination) {
+  reader.skip(8); // skip size and mdl offset
+  bone.mName = readName(reader, data_destination);
+
+  const u32 id = reader.read<u32>();
+  if (id != bone_id) {
+    return false;
+  }
+  bone.matrixId = reader.read<u32>();
+  const auto bone_flag = reader.read<u32>();
+  bone.billboardType = reader.read<u32>();
+  reader.read<u32>(); // refId
+  bone.mScaling << reader;
+  bone.mRotation << reader;
+  bone.mTranslation << reader;
+
+  bone.mVolume.min << reader;
+  bone.mVolume.max << reader;
+
+  auto readHierarchyElement = [&]() {
+    const auto ofs = reader.read<s32>();
+    if (ofs == 0)
+      return -1;
+    // skip to id
+    oishii::Jump<oishii::Whence::Set>(reader, data_destination + ofs + 12);
+    return static_cast<s32>(reader.read<u32>());
+  };
+  bone.mParent = readHierarchyElement();
+  reader.skip(12); // Skip sibling and child links -- we recompute it all
+  reader.skip(2 * ((3 * 4) * sizeof(f32))); // skip matrices
+
+  setFromFlag(bone, bone_flag);
+  return true;
+}
+
 void readModel(Model& mdl, oishii::BinaryReader& reader,
                kpi::IOTransaction& transaction,
                const std::string& transaction_path) {
   const auto start = reader.tell();
   bool isValid = true;
 
-  reader.expectMagic<'MDL0', false>();
+  if (!reader.expectMagic<'MDL0', false>()) {
+    return;
+  }
 
   MAYBE_UNUSED const u32 fileSize = reader.read<u32>();
   const u32 revision = reader.read<u32>();
@@ -1214,37 +1503,10 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
   u32 bone_id = 0;
   readDict(secOfs.ofsBones, [&](const DictionaryNode& dnode) {
     auto& bone = mdl.getBones().add();
-    reader.skip(8); // skip size and mdl offset
-    bone.setName(readName(reader, dnode.mDataDestination));
-    const u32 id = reader.read<u32>();
-    (void)id;
-    assert(id == bone_id);
-    ++bone_id;
-    bone.matrixId = reader.read<u32>();
-    const auto bone_flag = reader.read<u32>();
-    bone.billboardType = reader.read<u32>();
-    reader.read<u32>(); // refId
-    bone.mScaling << reader;
-    bone.mRotation << reader;
-    bone.mTranslation << reader;
-
-    bone.mVolume.min << reader;
-    bone.mVolume.max << reader;
-
-    auto readHierarchyElement = [&]() {
-      const auto ofs = reader.read<s32>();
-      if (ofs == 0)
-        return -1;
-      // skip to id
-      oishii::Jump<oishii::Whence::Set>(reader,
-                                        dnode.mDataDestination + ofs + 12);
-      return static_cast<s32>(reader.read<u32>());
-    };
-    bone.mParent = readHierarchyElement();
-    reader.skip(12); // Skip sibling and child links -- we recompute it all
-    reader.skip(2 * ((3 * 4) * sizeof(f32))); // skip matrices
-
-    setFromFlag(bone, bone_flag);
+    if (!readBone(bone, reader, bone_id, dnode.mDataDestination)) {
+      printf("Failed to read bone %s\n", dnode.mName.c_str());
+    }
+    bone_id++;
   });
   // Compute children
   for (int i = 0; i < mdl.getBones().size(); ++i) {
@@ -1272,249 +1534,10 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
 
   readDict(secOfs.ofsMaterials, [&](const DictionaryNode& dnode) {
     auto& mat = mdl.getMaterials().add();
-    const auto start = reader.tell();
+    const bool ok = readMaterial(mat, reader);
 
-    reader.read<u32>(); // size
-    reader.read<s32>(); // mdl offset
-    mat.name = readName(reader, start);
-    mat.id = reader.read<u32>();
-    mat.flag = reader.read<u32>();
-
-    // Gen info
-    mat.texGens.resize(reader.read<u8>());
-    auto nColorChan = reader.read<u8>();
-    if (nColorChan >= 2)
-      nColorChan = 2;
-    mat.mStages.resize(reader.read<u8>());
-    mat.indirectStages.resize(reader.read<u8>());
-    mat.cullMode = static_cast<librii::gx::CullMode>(reader.read<u32>());
-
-    // Misc
-    mat.earlyZComparison = reader.read<u8>();
-    mat.lightSetIndex = reader.read<s8>();
-    mat.fogIndex = reader.read<s8>();
-    reader.read<u8>();
-    const auto indSt = reader.tell();
-    for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
-      librii::g3d::G3dIndConfig cfg;
-      cfg.method = static_cast<librii::g3d::G3dIndMethod>(reader.read<u8>());
-      cfg.normalMapLightRef = reader.peekAt<s8>(4);
-      mat.indConfig.push_back(cfg);
-    }
-    reader.seekSet(indSt + 4 + 4);
-
-    const auto ofsTev = reader.read<s32>();
-    const auto nTex = reader.read<u32>();
-    assert(nTex <= 8);
-    const auto [ofsSamplers, ofsFur, ofsUserData, ofsDisplayLists] =
-        reader.readX<s32, 4>();
-    if (ofsFur || ofsUserData)
-      printf(
-          "Warning: Material %s uses Fur or UserData which is unsupported!\n",
-          mat.name.c_str());
-
-    // Texture and palette objects are set on runtime.
-    reader.skip((4 + 8 * 12) + (4 + 8 * 32));
-
-    // Texture transformations
-    reader.read<u32>(); // skip flag, TODO: verify
-    const u32 mtxMode = reader.read<u32>();
-    const std::array<libcube::GCMaterialData::CommonTransformModel, 3> cvtMtx{
-        libcube::GCMaterialData::CommonTransformModel::Maya,
-        libcube::GCMaterialData::CommonTransformModel::XSI,
-        libcube::GCMaterialData::CommonTransformModel::Max};
-    const auto xfModel = cvtMtx[mtxMode];
-
-    for (u8 i = 0; i < nTex; ++i) {
-      libcube::GCMaterialData::TexMatrix mtx;
-      mtx.scale << reader;
-      mtx.rotate = glm::radians(reader.read<f32>());
-      mtx.translate << reader;
-      mat.texMatrices.push_back(mtx);
-    }
-    reader.seekSet(start + 0x250);
-    for (u8 i = 0; i < nTex; ++i) {
-      auto* mtx = &mat.texMatrices[i];
-
-      mtx->camIdx = reader.read<s8>();
-      mtx->lightIdx = reader.read<s8>();
-      // printf("[read] CamIDX: %i, LIDX:%i\n", (signed)mtx->camIdx,
-      //        (signed)mtx->lightIdx);
-      const u8 mapMode = reader.read<u8>();
-
-      mtx->transformModel = xfModel;
-      mtx->option = libcube::GCMaterialData::CommonMappingOption::NoSelection;
-      // Projection needs to be copied from texgen
-
-      switch (mapMode) {
-      default:
-      case 0:
-        mtx->method = libcube::GCMaterialData::CommonMappingMethod::Standard;
-        break;
-      case 1:
-        mtx->method =
-            libcube::GCMaterialData::CommonMappingMethod::EnvironmentMapping;
-        break;
-      case 2:
-        mtx->method =
-            libcube::GCMaterialData::CommonMappingMethod::ViewProjectionMapping;
-        break;
-      case 3:
-        mtx->method = libcube::GCMaterialData::CommonMappingMethod::
-            EnvironmentLightMapping;
-        break;
-      case 4:
-        mtx->method = libcube::GCMaterialData::CommonMappingMethod::
-            EnvironmentSpecularMapping;
-        break;
-      // EGG
-      case 5:
-        mtx->method = libcube::GCMaterialData::CommonMappingMethod::
-            ManualProjectionMapping;
-        break;
-      }
-
-      reader.read<u8>(); // effect mtx flag
-      // G3D effectmatrix is 3x4. J3D is 4x4
-      reader.skip(3 * 4 * sizeof(f32));
-      // for (auto& f : mtx->effectMatrix)
-      //   f = reader.read<f32>();
-    }
-    // reader.seek((8 - nTex)* (4 + (4 * 4 * sizeof(f32))));
-    reader.seekSet(start + 0x3f0);
-    mat.chanData.resize(0);
-    for (u8 i = 0; i < nColorChan; ++i) {
-      // skip runtime flag
-      const auto flag = reader.read<u32>();
-      (void)flag;
-      librii::gx::Color matClr, ambClr;
-      matClr.r = reader.read<u8>();
-      matClr.g = reader.read<u8>();
-      matClr.b = reader.read<u8>();
-      matClr.a = reader.read<u8>();
-
-      ambClr.r = reader.read<u8>();
-      ambClr.g = reader.read<u8>();
-      ambClr.b = reader.read<u8>();
-      ambClr.a = reader.read<u8>();
-
-      mat.chanData.push_back({matClr, ambClr});
-      librii::gpu::LitChannel tmp;
-      // Color
-      tmp.hex = reader.read<u32>();
-      mat.colorChanControls.push_back(tmp);
-      // Alpha
-      tmp.hex = reader.read<u32>();
-      mat.colorChanControls.push_back(tmp);
-    }
-
-    // TEV
-    reader.seekSet(start + ofsTev + 16);
-    std::array<u8, 8> coord_map_lut;
-    for (auto& e : coord_map_lut)
-      e = reader.read<u8>();
-    // printf(">>>>> Coord->Map LUT:\n");
-    // for (auto e : coord_map_lut)
-    //   printf("%u ", (unsigned)e);
-    // printf("\n");
-    bool error = false;
-    {
-      u8 last = 0;
-      for (auto e : coord_map_lut) {
-        error |= e <= last;
-        last = e;
-      }
-    }
-    // assert(!error && "Invalid sampler configuration");
-    reader.seekSet(start + ofsTev + 32);
-    {
-
-      librii::gpu::QDisplayListShaderHandler shaderHandler(mat,
-                                                           mat.mStages.size());
-      librii::gpu::RunDisplayList(reader, shaderHandler,
-                                  shaderDlSizes[mat.mStages.size()]);
-    }
-
-    // Samplers
-    reader.seekSet(start + ofsSamplers);
-    assert(mat.texGens.size() == nTex);
-    for (u8 i = 0; i < nTex; ++i) {
-      libcube::GCMaterialData::SamplerData sampler;
-
-      const auto sampStart = reader.tell();
-      sampler.mTexture = readName(reader, sampStart);
-      sampler.mPalette = readName(reader, sampStart);
-      reader.skip(8);     // skip runtime pointers
-      reader.read<u32>(); // skip tex id for now
-      reader.read<u32>(); // skip tlut id for now
-      sampler.mWrapU =
-          static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
-      sampler.mWrapV =
-          static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
-      sampler.mMinFilter =
-          static_cast<librii::gx::TextureFilter>(reader.read<u32>());
-      sampler.mMagFilter =
-          static_cast<librii::gx::TextureFilter>(reader.read<u32>());
-      sampler.mLodBias = reader.read<f32>();
-      sampler.mMaxAniso =
-          static_cast<librii::gx::AnisotropyLevel>(reader.read<u32>());
-      sampler.bBiasClamp = reader.read<u8>();
-      sampler.bEdgeLod = reader.read<u8>();
-      reader.skip(2);
-      mat.samplers.push_back(std::move(sampler));
-    }
-
-    // Display Lists
-    reader.seekSet(start + ofsDisplayLists);
-    {
-      librii::gpu::QDisplayListMaterialHandler matHandler(mat);
-
-      // Pixel data
-      librii::gpu::RunDisplayList(reader, matHandler, 32);
-      mat.alphaCompare = matHandler.mGpuMat.mPixel.mAlphaCompare;
-      mat.zMode = matHandler.mGpuMat.mPixel.mZMode;
-      mat.blendMode = matHandler.mGpuMat.mPixel.mBlendMode;
-      // TODO: Dst alpha
-
-      // Uniform data
-      librii::gpu::RunDisplayList(reader, matHandler, 128);
-      mat.tevColors[0] = {0xff, 0xff, 0xff, 0xff};
-      for (int i = 0; i < 3; ++i) {
-        mat.tevColors[i + 1] = matHandler.mGpuMat.mShaderColor.Registers[i + 1];
-      }
-      for (int i = 0; i < 4; ++i) {
-        mat.tevKonstColors[i] = matHandler.mGpuMat.mShaderColor.Konstants[i];
-      }
-
-      // Indirect data
-      librii::gpu::RunDisplayList(reader, matHandler, 64);
-      for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
-        const auto& curScale =
-            matHandler.mGpuMat.mIndirect.mIndTexScales[i > 1 ? i - 2 : i];
-        mat.indirectStages[i].scale = librii::gx::IndirectTextureScalePair{
-            static_cast<librii::gx::IndirectTextureScalePair::Selection>(
-                curScale.ss0),
-            static_cast<librii::gx::IndirectTextureScalePair::Selection>(
-                curScale.ss1)};
-
-        mat.mIndMatrices.push_back(
-            matHandler.mGpuMat.mIndirect.mIndMatrices[i]);
-      }
-
-      const std::array<u32, 9> texGenDlSizes{
-          0,        // 0
-          32,       // 1
-          64,  64,  // 2, 3
-          96,  96,  // 4, 5
-          128, 128, // 6, 7
-          160       // 8
-      };
-      librii::gpu::RunDisplayList(reader, matHandler,
-                                  texGenDlSizes[mat.texGens.size()]);
-      for (u8 i = 0; i < mat.texGens.size(); ++i) {
-        mat.texGens[i] = matHandler.mGpuMat.mTexture[i];
-        mat.texMatrices[i].projection = mat.texGens[i].func;
-      }
+    if (!ok) {
+      printf("Failed to read material %s\n", dnode.mName.c_str());
     }
   });
 

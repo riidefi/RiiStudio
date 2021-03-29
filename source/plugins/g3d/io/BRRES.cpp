@@ -23,7 +23,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
                const std::string& transaction_path);
 
 // TEX0.cpp
-void readTexture(Texture& data, oishii::BinaryReader& reader);
+bool readTexture(Texture& data, oishii::BinaryReader& reader);
 void writeTexture(const Texture& data, oishii::Writer& writer,
                   NameTable& names);
 
@@ -89,7 +89,13 @@ public:
 
           reader.seekSet(sub.mDataDestination);
           auto& tex = collection.getTextures().add();
-          readTexture(tex, reader);
+          const bool ok = readTexture(tex, reader);
+
+          if (!ok) {
+            transaction.callback(kpi::IOMessageClass::Warning,
+                                 "/" + cnode.mName,
+                                 "Failed to read texture: " + sub.mName);
+          }
         }
       } else {
         transaction.callback(kpi::IOMessageClass::Warning, "/" + cnode.mName,
@@ -226,7 +232,7 @@ public:
     linker.resolve();
     linker.printLabels();
 
-	writer.seekSet(0);
+    writer.seekSet(0);
     writer.write<u32>('bres'); // magic
     writer.write<u16>(0xfeff); // bom
   }

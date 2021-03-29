@@ -162,7 +162,7 @@ public:
   void signalInvalidityLast(const char* userData);
 
   // Magics are assumed to be 32 bit
-  template <u32 magic, bool critical = true> inline void expectMagic();
+  template <u32 magic, bool critical = true> inline bool expectMagic();
 
   void setEndian(std::endian endian) noexcept { mFileEndian = endian; }
   bool getIsBigEndian() const noexcept {
