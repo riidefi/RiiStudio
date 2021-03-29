@@ -116,48 +116,11 @@ struct G3DModelData : public librii::g3d::G3DModelDataData,
 
 namespace riistudio::g3d {
 
-inline std::pair<u32, u32> computeVertTriCounts(const Polygon& mesh) {
-  u32 nVert = 0, nTri = 0;
-
-  // Set of linear equations for computing polygon count from number of
-  // vertices. Division by zero acts as multiplication by zero here.
-  struct LinEq {
-    u32 quot : 4;
-    u32 dif : 4;
-  };
-  constexpr std::array<LinEq, (u32)librii::gx::PrimitiveType::Max> triVertCvt{
-      LinEq{4, 0}, // 0 [v / 4] Quads
-      LinEq{4, 0}, // 1 [v / 4] QuadStrip
-      LinEq{3, 0}, // 2 [v / 3] Triangles
-      LinEq{1, 2}, // 3 [v - 2] TriangleStrip
-      LinEq{1, 2}, // 4 [v - 2] TriangleFan
-      LinEq{0, 0}, // 5 [v * 0] Lines
-      LinEq{0, 0}, // 6 [v * 0] LineStrip
-      LinEq{0, 0}  // 7 [v * 0] Points
-  };
-
-  for (const auto& mprim : mesh.mMatrixPrimitives) {
-    for (const auto& prim : mprim.mPrimitives) {
-      const u8 pIdx = static_cast<u8>(prim.mType);
-      assert(pIdx < static_cast<u8>(librii::gx::PrimitiveType::Max));
-      const LinEq& pCvtr = triVertCvt[pIdx];
-      const u32 pVCount = prim.mVertices.size();
-
-      if (pVCount == 0)
-        continue;
-
-      nVert += pVCount;
-      nTri += pCvtr.quot == 0 ? 0 : pVCount / pCvtr.quot - pCvtr.dif;
-    }
-  }
-
-  return {nVert, nTri};
-}
 inline std::pair<u32, u32> computeVertTriCounts(const Model& model) {
   u32 nVert = 0, nTri = 0;
 
   for (const auto& mesh : model.getMeshes()) {
-    const auto [vert, tri] = computeVertTriCounts(mesh);
+    const auto [vert, tri] = librii::gx::ComputeVertTriCounts(mesh);
     nVert += vert;
     nTri += tri;
   }
