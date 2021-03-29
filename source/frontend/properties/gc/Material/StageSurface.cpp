@@ -79,29 +79,6 @@ gx::TevAlphaArg drawTevOp(const TevExpression& expression, const char* title,
   return imcxx::Combo(title, op, alphaOpt);
 };
 
-template <typename T> T drawSubStage(T stage) {
-  TevExpression expression(stage);
-
-  ImGui::SetWindowFontScale(1.3f);
-  ImGui::Text("%s", expression.getString());
-  ImGui::SetWindowFontScale(1.0f);
-
-  stage.constantSelection = DrawKonstSel(stage.constantSelection);
-
-  stage.a = drawTevOp(expression, "Operand A", stage.a, A);
-  stage.b = drawTevOp(expression, "Operand B", stage.b, B);
-  stage.c = drawTevOp(expression, "Operand C", stage.c, C);
-  stage.d = drawTevOp(expression, "Operand D", stage.d, D);
-
-  stage.bias = drawTevBias(stage.bias);
-  stage.scale = drawTevScale(stage.scale);
-
-  ImGui::Checkbox("Clamp calculation to 0-255", &stage.clamp);
-  stage.out = drawOutRegister(stage.out);
-
-  return stage;
-}
-
 template <typename T> T DrawKonstSel(T x) {
   auto ksel = librii::hx::elevateKonstSel(x);
 
@@ -148,6 +125,29 @@ template <typename T> T DrawKonstSel(T x) {
   ksel.k_constant = k_type == 0;
 
   return librii::hx::lowerKonstSel<T>(ksel);
+}
+
+template <typename T> T drawSubStage(T stage) {
+  TevExpression expression(stage);
+
+  ImGui::SetWindowFontScale(1.3f);
+  ImGui::Text("%s", expression.getString());
+  ImGui::SetWindowFontScale(1.0f);
+
+  stage.constantSelection = DrawKonstSel(stage.constantSelection);
+
+  stage.a = drawTevOp(expression, "Operand A", stage.a, A);
+  stage.b = drawTevOp(expression, "Operand B", stage.b, B);
+  stage.c = drawTevOp(expression, "Operand C", stage.c, C);
+  stage.d = drawTevOp(expression, "Operand D", stage.d, D);
+
+  stage.bias = drawTevBias(stage.bias);
+  stage.scale = drawTevScale(stage.scale);
+
+  ImGui::Checkbox("Clamp calculation to 0-255", &stage.clamp);
+  stage.out = drawOutRegister(stage.out);
+
+  return stage;
 }
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,

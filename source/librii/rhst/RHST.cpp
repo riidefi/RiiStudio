@@ -179,7 +179,7 @@ class SceneTreeReader {
 public:
   SceneTreeReader(RHSTReader& reader) : mReader(reader) {}
 
-  Expected arrayIter(auto functor) {
+  template <typename T> Expected arrayIter(T functor) {
     auto* array_begin = mReader.expect<RHSTReader::ArrayBeginToken>();
     if (array_begin == nullptr)
       return Failure("Expected an array");
@@ -198,7 +198,7 @@ public:
     return Success();
   }
 
-  Expected dictIter(auto functor) {
+  template <typename T> Expected dictIter(T functor) {
     auto* begin = mReader.expect<RHSTReader::DictBeginToken>();
     if (begin == nullptr)
       return Failure("Expected a dictionary");
@@ -736,7 +736,7 @@ public:
     return arrayIter([&](int v_index) { return readInt(out[v_index]); });
   }
 
-  Expected stringKeyIter(auto functor) {
+  template <typename T> Expected stringKeyIter(T functor) {
     return dictIter([&](std::string_view root, int index) -> Expected {
       auto* begin = mReader.expect<RHSTReader::DictBeginToken>();
       if (!begin)

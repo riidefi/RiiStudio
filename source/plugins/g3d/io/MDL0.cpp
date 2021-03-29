@@ -1061,7 +1061,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
         writer.write<u32>(mesh.mId);
         // TODO
         assert_since(0x40);
-        const auto [nvtx, ntri] = computeVertTriCounts(mesh);
+        const auto [nvtx, ntri] = librii::gx::ComputeVertTriCounts(mesh);
         writer.write<u32>(nvtx);
         writer.write<u32>(ntri);
 

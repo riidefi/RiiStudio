@@ -10,7 +10,7 @@
 #include <plugins/g3d/util/NameTable.hpp>
 #include <string>
 
-static std::span<const u8> SliceStream(oishii::BinaryReader& reader) {
+inline std::span<const u8> SliceStream(oishii::BinaryReader& reader) {
   return {reader.getStreamStart() + reader.tell(),
           reader.endpos() - reader.tell()};
 }

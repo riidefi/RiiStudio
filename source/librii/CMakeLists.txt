@@ -83,4 +83,4 @@ add_library(librii
   "j3d/data/TextureData.hpp"
   "j3d/data/MaterialData.hpp"
   "j3d/data/ShapeData.hpp"
-)
+ "g3d/io/TextureIO.hpp" "g3d/io/TextureIO.cpp")
