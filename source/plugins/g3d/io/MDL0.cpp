@@ -1179,8 +1179,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
 
   const auto infoPos = reader.tell();
   reader.skip(8); // Ignore size, ofsMode
-  mdl.mScalingRule = static_cast<ScalingRule>(reader.read<u32>());
-  mdl.mTexMtxMode = static_cast<TextureMatrixMode>(reader.read<u32>());
+  mdl.mScalingRule = static_cast<librii::g3d::ScalingRule>(reader.read<u32>());
+  mdl.mTexMtxMode =
+      static_cast<librii::g3d::TextureMatrixMode>(reader.read<u32>());
 
   reader.readX<u32, 2>(); // number of vertices, number of triangles
   mdl.sourceLocation = readName(reader, infoPos);
@@ -1188,7 +1189,8 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
 
   // const auto [bMtxArray, bTexMtxArray, bBoundVolume] =
   reader.readX<u8, 3>();
-  mdl.mEvpMtxMode = static_cast<EnvelopeMatrixMode>(reader.read<u8>());
+  mdl.mEvpMtxMode =
+      static_cast<librii::g3d::EnvelopeMatrixMode>(reader.read<u8>());
 
   // const s32 ofsBoneTable =
   reader.read<s32>();
@@ -1294,8 +1296,8 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     reader.read<u8>();
     const auto indSt = reader.tell();
     for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
-      G3dIndConfig cfg;
-      cfg.method = static_cast<G3dIndMethod>(reader.read<u8>());
+      librii::g3d::G3dIndConfig cfg;
+      cfg.method = static_cast<librii::g3d::G3dIndMethod>(reader.read<u8>());
       cfg.normalMapLightRef = reader.peekAt<s8>(4);
       mat.indConfig.push_back(cfg);
     }

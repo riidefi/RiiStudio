@@ -72,8 +72,8 @@ void readSHP1(BMDOutputContext& ctx) {
     shape.id = ctx.shapeIdLut[si];
     // printf("Shape (index=%u, id=%u) {\n", si, shape.id);
     // shape.name = nameTable[si];
-    shape.mode = static_cast<ShapeData::Mode>(reader.read<u8>());
-    assert(shape.mode < ShapeData::Mode::Max);
+    shape.mode = static_cast<librii::j3d::ShapeData::Mode>(reader.read<u8>());
+    assert(shape.mode < librii::j3d::ShapeData::Mode::Max);
     reader.read<u8>();
     // Number of matrix primitives (mtxGrpCnt)
     auto num_matrix_prims = reader.read<u16>();

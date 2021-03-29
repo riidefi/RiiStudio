@@ -26,7 +26,7 @@ struct SwapSel {
 
 struct Tex {
   librii::gx::TextureFormat mFormat;
-  u8 bTransparent;
+  u8 transparency;
   u16 mWidth, mHeight;
   librii::gx::TextureWrapMode mWrapU, mWrapV;
   u8 mPaletteFormat;
@@ -48,7 +48,7 @@ struct Tex {
   s32 btiId = -1;
 
   bool operator==(const Tex& rhs) const {
-    return mFormat == rhs.mFormat && bTransparent == rhs.bTransparent &&
+    return mFormat == rhs.mFormat && transparency == rhs.transparency &&
            mWidth == rhs.mWidth && mHeight == rhs.mHeight &&
            mWrapU == rhs.mWrapU && mWrapV == rhs.mWrapV &&
            mPaletteFormat == rhs.mPaletteFormat && nPalette == rhs.nPalette &&
@@ -179,14 +179,14 @@ struct ModelData : public virtual kpi::IObject {
     Section<librii::gx::TevStage> tevStages;
     Section<SwapSel> swapModes;
     Section<librii::gx::SwapTableEntry> swapTables;
-    Section<Fog> fogs;
+    Section<librii::j3d::Fog> fogs;
 
     Section<librii::gx::AlphaComparison> alphaComparisons;
     Section<librii::gx::BlendMode> blendModes;
     Section<librii::gx::ZMode> zModes;
     Section<u8> zCompLocs;
     Section<u8> dithers;
-    Section<NBTScale> nbtScales;
+    Section<librii::j3d::NBTScale> nbtScales;
 
     void clear() { *this = MatCache{}; }
     template <typename T>

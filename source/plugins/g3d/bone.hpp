@@ -9,52 +9,12 @@
 #include <core/common.h>
 #include <librii/math/aabb.hpp>
 
+#include <librii/g3d/data/BoneData.hpp>
 #include <plugins/gc/Export/Bone.hpp>
 
 namespace riistudio::g3d {
 
-struct BoneData {
-  std::string mName = "Untitled Bone";
-
-  // Flags:
-  // SRT checks -- recompute
-  bool ssc = false;
-  // SSC parent - recompute
-  bool classicScale = true;
-  bool visible = true;
-  // display mtx - recompute
-  // bb ref recomputed
-
-  u32 matrixId = 0;
-  u32 billboardType = 0;
-
-  glm::vec3 mScaling{1.0f, 1.0f, 1.0f};
-  glm::vec3 mRotation{0.0f, 0.0f, 0.0f};
-  glm::vec3 mTranslation{0.0f, 0.0f, 0.0f};
-
-  librii::math::AABB mVolume;
-
-  s32 mParent = -1;
-  std::vector<s32> mChildren;
-
-  // TODO: userdata
-
-  struct DisplayCommand {
-    u32 mMaterial;
-    u32 mPoly;
-    u8 mPrio;
-
-    bool operator==(const DisplayCommand& rhs) const = default;
-  };
-  std::vector<DisplayCommand> mDisplayCommands;
-
-  std::array<f32, 3 * 4> modelMtx;
-  std::array<f32, 3 * 4> inverseModelMtx;
-
-  bool operator==(const BoneData& rhs) const = default;
-};
-
-inline u32 computeFlag(const BoneData& data) {
+inline u32 computeFlag(const librii::g3d::BoneData& data) {
   u32 flag = 0;
   if (data.mScaling.x == data.mScaling.y == data.mScaling.z) {
     flag |= 0x10;
@@ -81,7 +41,7 @@ inline u32 computeFlag(const BoneData& data) {
   return flag;
 }
 // Call this last
-inline void setFromFlag(BoneData& data, u32 flag) {
+inline void setFromFlag(librii::g3d::BoneData& data, u32 flag) {
   // TODO: Validate items
   data.ssc = (flag & 0x20) != 0;
   data.classicScale = (flag & 0x80) == 0;
@@ -89,7 +49,7 @@ inline void setFromFlag(BoneData& data, u32 flag) {
 }
 
 struct Bone : public libcube::IBoneDelegate,
-              public BoneData,
+              public librii::g3d::BoneData,
               public virtual kpi::IObject {
   std::string getName() const { return mName; }
   void setName(const std::string& name) override { mName = name; }

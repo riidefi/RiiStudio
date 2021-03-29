@@ -1,60 +1,17 @@
 #pragma once
 
+#include <core/3d/i3dmodel.hpp>
 #include <core/common.h>
 #include <glm/glm.hpp>
+#include <librii/j3d/data/JointData.hpp>
+#include <plugins/gc/Export/Bone.hpp>
 #include <string>
 #include <vector>
 
-#include <core/3d/i3dmodel.hpp>
-
-#include <plugins/gc/Export/Bone.hpp>
-
 namespace riistudio::j3d {
 
-template <typename T> using ID = int;
-struct Material;
-struct Shape;
-struct Joint;
-struct JointData {
-  // Four LSBs of flag; left is matrix type
-  enum class MatrixType : u16 { Standard = 0, Billboard, BillboardY };
-
-  std::string name = "root";
-
-  u16 flag = 1; // Unused four bits; default value in galaxy is 1
-  MatrixType bbMtxType = MatrixType::Standard;
-  bool mayaSSC = false; // 0xFF acts as false -- likely for compatibility
-
-  glm::vec3 scale{1.0f, 1.0f, 1.0f};
-  glm::vec3 rotate{0.0f, 0.0f, 0.0f};
-  glm::vec3 translate{0.0f, 0.0f, 0.0f};
-
-  f32 boundingSphereRadius = 100000.0f;
-  librii::math::AABB boundingBox{{-100000.0f, -100000.0f, -100000.0f},
-                          {100000.0f, 100000.0f, 100000.0f}};
-
-  // From INF1
-  ID<Joint> parentId = -1;
-  std::vector<ID<Joint>> children;
-
-  struct Display {
-    ID<Material> material;
-    ID<Shape> shape;
-
-    Display() = default;
-    Display(ID<Material> mat, ID<Shape> shp) : material(mat), shape(shp) {}
-    bool operator==(const Display& rhs) const = default;
-  };
-  std::vector<Display> displays;
-
-  // From EVP1
-  // glm::mat4x4
-  std::array<float, 12> inverseBindPoseMtx;
-
-  bool operator==(const JointData& rhs) const = default;
-};
 struct Joint : public libcube::IBoneDelegate,
-               public JointData,
+               public librii::j3d::JointData,
                public virtual kpi::IObject {
   // PX_TYPE_INFO_EX("J3D Joint", "j3d_joint", "J::Joint", ICON_FA_BONE,
   // ICON_FA_BONE);
@@ -62,8 +19,10 @@ struct Joint : public libcube::IBoneDelegate,
   std::string getName() const { return name; }
   void setName(const std::string& n) override { name = n; }
   s64 getId() override { return id; }
-  
-  librii::math::SRT3 getSRT() const override { return {scale, rotate, translate}; }
+
+  librii::math::SRT3 getSRT() const override {
+    return {scale, rotate, translate};
+  }
   void setSRT(const librii::math::SRT3& srt) override {
     scale = srt.scale;
     rotate = srt.rotation;
@@ -88,9 +47,7 @@ struct Joint : public libcube::IBoneDelegate,
     return old;
   }
   librii::math::AABB getAABB() const override { return boundingBox; }
-  void setAABB(const librii::math::AABB& aabb) override {
-    boundingBox = aabb;
-  }
+  void setAABB(const librii::math::AABB& aabb) override { boundingBox = aabb; }
   float getBoundingRadius() const override { return boundingSphereRadius; }
   void setBoundingRadius(float r) override { boundingSphereRadius = r; }
   bool getSSC() const override { return mayaSSC; }
@@ -98,11 +55,11 @@ struct Joint : public libcube::IBoneDelegate,
 
   Billboard getBillboard() const override {
     switch (bbMtxType) {
-    case MatrixType::Standard:
+    case librii::j3d::MatrixType::Standard:
       return Billboard::None;
-    case MatrixType::Billboard:
+    case librii::j3d::MatrixType::Billboard:
       return Billboard::J3D_XY;
-    case MatrixType::BillboardY:
+    case librii::j3d::MatrixType::BillboardY:
       return Billboard::J3D_Y;
     default:
       return Billboard::None;
@@ -111,13 +68,13 @@ struct Joint : public libcube::IBoneDelegate,
   void setBillboard(Billboard b) override {
     switch (b) {
     case Billboard::None:
-      bbMtxType = MatrixType::Standard;
+      bbMtxType = librii::j3d::MatrixType::Standard;
       break;
     case Billboard::J3D_XY:
-      bbMtxType = MatrixType::Billboard;
+      bbMtxType = librii::j3d::MatrixType::Billboard;
       break;
     case Billboard::J3D_Y:
-      bbMtxType = MatrixType::BillboardY;
+      bbMtxType = librii::j3d::MatrixType::BillboardY;
       return;
     default:
       break;

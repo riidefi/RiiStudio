@@ -7,29 +7,14 @@
 
 #include <core/kpi/Node.hpp>
 
+#include <librii/g3d/data/PolygonData.hpp>
+
 namespace riistudio::g3d {
 
 class Model;
 
 using MatrixPrimitive = librii::gx::MatrixPrimitive;
-struct PolygonData : public librii::gx::MeshData {
-  std::string mName;
-  u32 mId;
-
-  s16 mCurrentMatrix = -1; // Part of the polygon in G3D
-
-  bool currentMatrixEmbedded = false;
-  bool visible = true;
-
-  // For IDs, set to -1 in binary to not exist. Here, empty string
-  std::string mPositionBuffer;
-  std::string mNormalBuffer;
-  std::array<std::string, 2> mColorBuffer;
-  std::array<std::string, 8> mTexCoordBuffer;
-
-  bool operator==(const PolygonData& rhs) const = default;
-};
-struct Polygon : public PolygonData,
+struct Polygon : public librii::g3d::PolygonData,
                  public libcube::IndexedPolygon,
                  public virtual kpi::IObject {
   void setId(u32 id) override { mId = id; }

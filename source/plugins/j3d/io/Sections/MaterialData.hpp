@@ -176,13 +176,13 @@ template <> struct io_wrapper<gx::ColorS10> {
   }
 };
 
-template <> struct io_wrapper<NBTScale> {
-  static void onRead(oishii::BinaryReader& reader, NBTScale& c) {
+template <> struct io_wrapper<librii::j3d::NBTScale> {
+  static void onRead(oishii::BinaryReader& reader, librii::j3d::NBTScale& c) {
     c.enable = static_cast<bool>(reader.read<u8>());
     reader.skip(3);
     c.scale << reader;
   }
-  static void onWrite(oishii::Writer& writer, const NBTScale& in) {
+  static void onWrite(oishii::Writer& writer, const librii::j3d::NBTScale& in) {
     writer.write<u8>(in.enable);
     for (int i = 0; i < 3; ++i)
       writer.write<u8>(-1);
@@ -446,9 +446,9 @@ template <> struct io_wrapper<gx::TevStage> {
   }
 };
 
-template <> struct io_wrapper<Fog> {
-  static void onRead(oishii::BinaryReader& reader, Fog& f) {
-    f.type = static_cast<Fog::Type>(reader.read<u8>());
+template <> struct io_wrapper<librii::j3d::Fog> {
+  static void onRead(oishii::BinaryReader& reader, librii::j3d::Fog& f) {
+    f.type = static_cast<librii::j3d::Fog::Type>(reader.read<u8>());
     f.enabled = reader.read<u8>();
     f.center = reader.read<u16>();
     f.startZ = reader.read<f32>();
@@ -458,7 +458,7 @@ template <> struct io_wrapper<Fog> {
     io_wrapper<gx::Color>::onRead(reader, f.color);
     f.rangeAdjTable = reader.readX<u16, 10>();
   }
-  static void onWrite(oishii::Writer& writer, const Fog& in) {
+  static void onWrite(oishii::Writer& writer, const librii::j3d::Fog& in) {
     writer.write<u8>(static_cast<u8>(in.type));
     writer.write<u8>(in.enabled);
     writer.write<u16>(in.center);

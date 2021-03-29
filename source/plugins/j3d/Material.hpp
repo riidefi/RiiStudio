@@ -2,56 +2,16 @@
 
 #include <array>
 #include <core/common.h>
-#include <vector>
-
 #include <glm/glm.hpp>
 #include <librii/gx.h>
-
+#include <librii/j3d/data/MaterialData.hpp>
 #include <plugins/gc/Export/Material.hpp>
-
+#include <vector>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 namespace riistudio::j3d {
 
 class Model;
-
-template <typename T> using ID = int;
-
-// FIXME: This will exist in our scene and be referenced.
-// For now, for 1:1, just placed here..
-struct Fog {
-  enum class Type {
-    None,
-
-    PerspectiveLinear,
-    PerspectiveExponential,
-    PerspectiveQuadratic,
-    PerspectiveInverseExponential,
-    PerspectiveInverseQuadratic,
-
-    OrthographicLinear,
-    OrthographicExponential,
-    OrthographicQuadratic,
-    OrthographicInverseExponential,
-    OrthographicInverseQuadratic
-  };
-  Type type = Type::None;
-  bool enabled = false;
-  u16 center;
-  f32 startZ, endZ = 0.0f;
-  f32 nearZ, farZ = 0.0f;
-  librii::gx::Color color = librii::gx::Color(0xffffffff);
-  std::array<u16, 10> rangeAdjTable;
-
-  bool operator==(const Fog& rhs) const noexcept = default;
-};
-
-struct NBTScale {
-  bool enable = false;
-  glm::vec3 scale = {0.0f, 0.0f, 0.0f};
-
-  bool operator==(const NBTScale& rhs) const noexcept = default;
-};
 
 struct MaterialData : public libcube::GCMaterialData {
   using J3DSamplerData = SamplerData;
@@ -61,9 +21,9 @@ struct MaterialData : public libcube::GCMaterialData {
   bool indEnabled = false;
 
   // odd data
-  Fog fogInfo{};
+  librii::j3d::Fog fogInfo{};
   rsl::array_vector<librii::gx::Color, 8> lightColors;
-  NBTScale nbtScale{};
+  librii::j3d::NBTScale nbtScale{};
   // unused data
   // Note: postTexGens are inferred (only enabled counts)
   rsl::array_vector<TexMatrix, 20> postTexMatrices{};

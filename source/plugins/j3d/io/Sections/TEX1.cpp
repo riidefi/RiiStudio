@@ -8,7 +8,7 @@ void Tex::transfer(oishii::BinaryReader& stream) {
   oishii::DebugExpectSized dbg(stream, 0x20);
 
   mFormat = static_cast<librii::gx::TextureFormat>(stream.read<u8>());
-  bTransparent = stream.read<u8>();
+  transparency = stream.read<u8>();
   mWidth = stream.read<u16>();
   mHeight = stream.read<u16>();
   mWrapU = static_cast<librii::gx::TextureWrapMode>(stream.read<u8>());
@@ -41,7 +41,7 @@ void Tex::write(oishii::Writer& stream) const {
   oishii::DebugExpectSized dbg(stream, 0x20 - 4);
 
   stream.write<u8>(static_cast<u8>(mFormat));
-  stream.write<u8>(bTransparent);
+  stream.write<u8>(transparency);
   stream.write<u16>(mWidth);
   stream.write<u16>(mHeight);
   stream.write<u8>(static_cast<u8>(mWrapU));
@@ -67,7 +67,7 @@ void Tex::write(oishii::Writer& stream) const {
 Tex::Tex(const Texture& data,
          const libcube::GCMaterialData::SamplerData& sampl) {
   mFormat = static_cast<librii::gx::TextureFormat>(data.mFormat);
-  bTransparent = data.bTransparent;
+  transparency = static_cast<u8>(data.transparency);
   mWidth = data.mWidth;
   mHeight = data.mHeight;
   mWrapU = sampl.mWrapU;

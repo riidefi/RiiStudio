@@ -68,7 +68,19 @@ add_library(librii
   "rhst/RHST.cpp"
 
   "math/aabb.hpp"
+  "math/srt3.hpp"
 
   "kcol/SerializationProfile.hpp"
   "kcol/SerializationProfile.cpp"
- "math/srt3.hpp")
+
+  "g3d/data/TextureData.hpp"
+  "g3d/data/BoneData.hpp"
+  "g3d/data/MaterialData.hpp"
+  "g3d/data/PolygonData.hpp"
+  "g3d/data/ModelData.hpp"
+
+  "j3d/data/JointData.hpp"
+  "j3d/data/TextureData.hpp"
+  "j3d/data/MaterialData.hpp"
+  "j3d/data/ShapeData.hpp"
+)

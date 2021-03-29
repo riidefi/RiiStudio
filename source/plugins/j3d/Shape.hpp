@@ -2,6 +2,7 @@
 
 #include <core/common.h>
 #include <librii/gx.h>
+#include <librii/j3d/data/ShapeData.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <vector>
 
@@ -11,27 +12,7 @@ class Model;
 
 using MatrixPrimitive = librii::gx::MatrixPrimitive;
 
-struct ShapeData : public librii::gx::MeshData {
-  u32 id;
-  enum class Mode {
-    Normal,
-    Billboard_XY,
-    Billboard_Y,
-    Skinned,
-
-    Max
-  };
-  Mode mode = Mode::Normal;
-
-  f32 bsphere = 100000.0f;
-  librii::math::AABB bbox{{-100000.0f, -100000.0f, -100000.0f},
-                          {100000.0f, 100000.0f, 100000.0f}};
-
-  bool operator==(const ShapeData& rhs) const = default;
-
-  bool visible = true; // Editor-only
-};
-struct Shape : public ShapeData,
+struct Shape : public librii::j3d::ShapeData,
                public libcube::IndexedPolygon,
                public virtual kpi::IObject {
   void setId(u32 _id) override { id = _id; }
@@ -59,10 +40,12 @@ struct Shape : public ShapeData,
   bool isVisible() const override { return visible; }
   void init(bool skinned, librii::math::AABB* boundingBox) override {
     if (skinned)
-      mode = j3d::ShapeData::Mode::Skinned;
+      mode = librii::j3d::ShapeData::Mode::Skinned;
     if (boundingBox != nullptr)
       bbox = *boundingBox;
   }
+
+  bool visible = true; // Editor-only
 };
 
 } // namespace riistudio::j3d

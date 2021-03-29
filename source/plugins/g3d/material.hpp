@@ -6,6 +6,7 @@
 #include <glm/vec3.hpp>
 
 #include <core/common.h>
+#include <librii/g3d/data/MaterialData.hpp>
 #include <plugins/gc/Export/Material.hpp>
 
 namespace kpi {
@@ -14,40 +15,12 @@ class IDocumentNode;
 
 namespace riistudio::g3d {
 
-// Note: In G3D this is per-material; in J3D it is per-texmatrix
-enum class TexMatrixMode { Maya, XSI, Max };
-
-enum class G3dMappingMode {
-  Standard,
-  EnvCamera,
-  Projection,
-  EnvLight,
-  EnvSpec
-};
-
-enum class G3dIndMethod {
-  Warp,
-  NormalMap,
-  SpecNormalMap,
-  Fur,
-  Res0,
-  Res1,
-  User0,
-  User1
-};
-
-struct G3dIndConfig {
-  G3dIndMethod method{G3dIndMethod::Warp};
-  s8 normalMapLightRef{-1};
-
-  bool operator==(const G3dIndConfig& rhs) const = default;
-};
-
 struct G3dMaterialData : public libcube::GCMaterialData {
-  rsl::array_vector<G3dIndConfig, 4> indConfig;
+  rsl::array_vector<librii::g3d::G3dIndConfig, 4> indConfig;
   u32 flag = 0;
   u32 id; // Local
-  s8 lightSetIndex = -1, fogIndex = -1;
+  s8 lightSetIndex = -1;
+  s8 fogIndex = -1;
 
   bool operator==(const G3dMaterialData& rhs) const = default;
 };

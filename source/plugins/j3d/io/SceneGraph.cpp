@@ -137,7 +137,7 @@ struct SceneGraphNode : public oishii::Node {
     ++depth;
 
     if (!joint.displays.empty()) {
-      JointData::Display last = {-1, -1};
+      librii::j3d::JointData::Display last = {-1, -1};
       for (const auto& d : joint.displays) {
         if (d.material != last.material) {
           // s16 mid = -1;

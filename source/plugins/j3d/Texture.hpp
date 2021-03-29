@@ -2,37 +2,14 @@
 
 #include <core/common.h>
 #include <librii/gx.h>
-#include <vector>
-
+#include <librii/j3d/data/TextureData.hpp>
 #include <plugins/gc/Export/Texture.hpp>
-
+#include <vector>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 namespace riistudio::j3d {
 
-struct TextureData {
-  std::string mName; // For linking
-
-  librii::gx::TextureFormat mFormat = librii::gx::TextureFormat::I4;
-  bool bTransparent = false;
-  u16 mWidth = 32, mHeight = 32;
-
-  u8 mPaletteFormat;
-  // Not resolved or supported currently
-  u16 nPalette;
-  u32 ofsPalette;
-
-  s8 mMinLod;
-  s8 mMaxLod;
-  u8 mImageCount = 1;
-
-  std::vector<u8> mData = std::vector<u8>(
-      librii::gx::computeImageSize(mWidth, mHeight, mFormat, 1));
-
-  bool operator==(const TextureData& rhs) const = default;
-};
-
-struct Texture : public TextureData, public libcube::Texture {
+struct Texture : public librii::j3d::TextureData, public libcube::Texture {
   // PX_TYPE_INFO_EX("J3D Texture", "j3d_tex", "J::Texture", ICON_FA_IMAGES,
   // ICON_FA_IMAGE);
 
@@ -46,9 +23,7 @@ struct Texture : public TextureData, public libcube::Texture {
   void setTextureFormat(librii::gx::TextureFormat format) override {
     mFormat = format;
   }
-  u32 getImageCount() const override {
-    return mImageCount;
-  }
+  u32 getImageCount() const override { return mImageCount; }
   void setImageCount(u32 c) override { mImageCount = c; }
   const u8* getData() const override { return mData.data(); }
   u8* getData() override { return mData.data(); }

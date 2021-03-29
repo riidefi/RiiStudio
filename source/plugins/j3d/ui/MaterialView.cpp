@@ -10,6 +10,7 @@
 #include <plugins/j3d/Shape.hpp>
 
 #include <core/util/gui.hpp>
+#include <imcxx/Widgets.hpp>
 
 namespace riistudio::j3d::ui {
 
@@ -28,12 +29,13 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
   if (ImGui::CollapsingHeader("Fog", ImGuiTreeNodeFlags_DefaultOpen)) {
     auto& fog = delegate.getActive().fogInfo;
 
-    int orthoOrPersp = static_cast<int>(fog.type) >=
-                               static_cast<int>(Fog::Type::OrthographicLinear)
-                           ? 0
-                           : 1;
+    int orthoOrPersp =
+        static_cast<int>(fog.type) >=
+                static_cast<int>(librii::j3d::Fog::Type::OrthographicLinear)
+            ? 0
+            : 1;
     int fogType = static_cast<int>(fog.type);
-    if (fogType >= static_cast<int>(Fog::Type::OrthographicLinear))
+    if (fogType >= static_cast<int>(librii::j3d::Fog::Type::OrthographicLinear))
       fogType -= 5;
     ImGui::Combo("Projection", &orthoOrPersp, "Orthographic\0Perspective\0");
     ImGui::Combo("Function", &fogType,
@@ -42,7 +44,8 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
     int new_type = fogType;
     if (new_type != 0)
       new_type += (1 - orthoOrPersp) * 5;
-    KPI_PROPERTY_EX(delegate, fogInfo.type, static_cast<Fog::Type>(new_type));
+    KPI_PROPERTY_EX(delegate, fogInfo.type,
+                    static_cast<librii::j3d::Fog::Type>(new_type));
     bool enabled = fog.enabled;
     ImGui::Checkbox("Fog Enabled", &enabled);
     KPI_PROPERTY_EX(delegate, fogInfo.enabled, enabled);
@@ -120,10 +123,11 @@ void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
   ImGui::InputInt("Flag", &flag);
   KPI_PROPERTY_EX(delegate, flag, static_cast<u16>(flag));
 
-  int bbMtx = static_cast<int>(bone.bbMtxType);
-  ImGui::Combo("Billboard Matrix", &bbMtx, "Standard\0XY\0Y\0");
-  KPI_PROPERTY_EX(delegate, bbMtxType,
-                  static_cast<JointData::MatrixType>(bbMtx));
+  auto bbMtx = imcxx::Combo("Billboard Matrix", bone.bbMtxType,
+                            "Standard\0"
+                            "XY\0"
+                            "Y\0");
+  KPI_PROPERTY_EX(delegate, bbMtxType, bbMtx);
 
   auto boundingBox = bone.boundingBox;
   auto boundingSphereRadius = bone.boundingSphereRadius;
@@ -147,9 +151,12 @@ struct ShapeJ3DSurface final {
 void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
   auto& shape = dl.getActive();
 
-  int mode = static_cast<int>(shape.mode);
-  ImGui::Combo("Mode", &mode, "Standard\0Billboard XY\0Billboard Y\0Skinned\0");
-  KPI_PROPERTY_EX(dl, mode, static_cast<ShapeData::Mode>(mode));
+  auto mode = imcxx::Combo("Mode", shape.mode,
+                           "Standard\0"
+                           "Billboard XY\0"
+                           "Billboard Y\0"
+                           "Skinned\0");
+  KPI_PROPERTY_EX(dl, mode, mode);
 
   auto bbox = shape.bbox;
   auto bsphere = shape.bsphere;

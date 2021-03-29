@@ -2,6 +2,9 @@
 
 ## Libraries
 
+### librii::g3d
+BRRES support.
+
 ### librii::gfx
 C++ implementation of noclip's MegaState structure.
 
@@ -22,6 +25,9 @@ Abstractions of librii::gx structures.
 
 ### librii::image
 Supports encoding/decoding/resizing Wii images.
+
+### librii::j3d
+BMD/BDL support.
 
 ### librii::kcol
 Support for KCollision v1 (.kcl) files across several platforms (DS, Wii, 3DS).

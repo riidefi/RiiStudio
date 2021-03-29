@@ -3,20 +3,16 @@
 #include "bone.hpp"
 #include "material.hpp"
 #include "polygon.hpp"
+#include "texture.hpp"
 #include <core/kpi/Node2.hpp>
 #include <glm/vec2.hpp> // glm::vec2
 #include <glm/vec3.hpp> // glm::vec3
+#include <librii/g3d/data/ModelData.hpp>
 #include <librii/gx.h>
 #include <plugins/gc/Export/Scene.hpp>
 #include <tuple>
 
-#include "texture.hpp"
-
 namespace riistudio::g3d {
-
-enum class ScalingRule { Standard, XSI, Maya };
-enum class TextureMatrixMode { Maya, XSI, Max };
-enum class EnvelopeMatrixMode { Normal, Approximation, Precision };
 
 struct Quantization {
   librii::gx::VertexComponentCount mComp;
@@ -98,19 +94,8 @@ public:
   }
 };
 
-struct G3DModelDataData {
-  ScalingRule mScalingRule = ScalingRule::Standard;
-  TextureMatrixMode mTexMtxMode = TextureMatrixMode::Maya;
-  EnvelopeMatrixMode mEvpMtxMode = EnvelopeMatrixMode::Normal;
-  std::string sourceLocation;
-  librii::math::AABB aabb;
-
-  std::string mName = "course";
-
-  bool operator==(const G3DModelDataData& rhs) const = default;
-};
-
-struct G3DModelData : public G3DModelDataData, public virtual kpi::IObject {
+struct G3DModelData : public librii::g3d::G3DModelDataData,
+                      public virtual kpi::IObject {
   virtual ~G3DModelData() = default;
   // Shallow comparison
   bool operator==(const G3DModelData& rhs) const {

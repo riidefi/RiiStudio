@@ -56,7 +56,7 @@ void readJNT1(BMDOutputContext& ctx) {
     joint.name = nameTable[i];
     const u16 flag = reader.read<u16>();
     joint.flag = flag & 0xf;
-    joint.bbMtxType = static_cast<Joint::MatrixType>(flag >> 4);
+    joint.bbMtxType = static_cast<librii::j3d::MatrixType>(flag >> 4);
     const u8 mayaSSC = reader.read<u8>();
     // TODO -- keep track of this fallback behavior
     joint.mayaSSC = mayaSSC == 0xff ? false : mayaSSC;
