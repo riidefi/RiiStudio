@@ -50,9 +50,9 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: tests-binary
-        path: ${{github.workspace}}/build/source/tests
+        path: ${{github.workspace}}/build/source/tests/${{env.BUILD_TYPE}}
 
     - uses: actions/upload-artifact@v2
       with:
         name: riistudio-binary
-        path: ${{github.workspace}}/build/source/frontend
+        path: ${{github.workspace}}/build/source/frontend/${{env.BUILD_TYPE}}
