@@ -13,6 +13,8 @@
 
 #include "Common.hpp"
 
+#include <librii/g3d/io/TextureIO.hpp>
+
 namespace riistudio::g3d {
 
 // MDL0.cpp
@@ -23,7 +25,6 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
                const std::string& transaction_path);
 
 // TEX0.cpp
-bool readTexture(Texture& data, oishii::BinaryReader& reader);
 void writeTexture(const Texture& data, oishii::Writer& writer,
                   NameTable& names);
 
@@ -89,7 +90,8 @@ public:
 
           reader.seekSet(sub.mDataDestination);
           auto& tex = collection.getTextures().add();
-          const bool ok = readTexture(tex, reader);
+          const bool ok =
+              librii::g3d::ReadTexture(tex, SliceStream(reader), sub.mName);
 
           if (!ok) {
             transaction.callback(kpi::IOMessageClass::Warning,

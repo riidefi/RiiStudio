@@ -4,6 +4,7 @@
 
 namespace riistudio::g3d {
 
+
 void writeTexture(const Texture& data, oishii::Writer& writer,
                   NameTable& names) {
   const auto start = writer.tell();
@@ -30,40 +31,6 @@ void writeTexture(const Texture& data, oishii::Writer& writer,
   for (const u8* pData = data.getData();
        pData < data.getData() + data.getEncodedSize(true); ++pData)
     writer.write<u8>(*pData);
-}
-bool readTexture(Texture& data, oishii::BinaryReader& reader) {
-  const auto start = reader.tell();
-
-  if (!reader.expectMagic<'TEX0', false>()) {
-    return false;
-  }
-  reader.read<u32>(); // size
-  const u32 revision = reader.read<u32>();
-  if (revision != 1 && revision != 3) {
-    return false;
-  }
-  reader.read<s32>(); // BRRES offset
-  const s32 ofsTex = reader.read<s32>();
-  data.name = readName(reader, start);
-  // const u32 flag =
-  reader.read<u32>(); // TODO: Paletted textures
-  data.width = reader.read<u16>();
-  data.height = reader.read<u16>();
-  data.format = static_cast<librii::gx::TextureFormat>(reader.read<u32>());
-  data.number_of_images = reader.read<u32>();
-  data.minLod = reader.read<f32>();
-  data.maxLod = reader.read<f32>();
-  // data.custom_lod = data.minLod != 0.0f ||
-  //                   data.maxLod != static_cast<float>(data.mipLevel - 1);
-  data.sourcePath = readName(reader, start);
-  // Skip user data
-  reader.seekSet(start + ofsTex);
-  data.resizeData();
-  assert(reader.tell() + data.getEncodedSize(true) < reader.endpos());
-  memcpy(data.data.data(), reader.getStreamStart() + reader.tell(),
-         data.getEncodedSize(true));
-  reader.skip(data.getEncodedSize(true));
-  return true;
 }
 
 } // namespace riistudio::g3d

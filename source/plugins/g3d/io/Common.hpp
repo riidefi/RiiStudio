@@ -10,6 +10,11 @@
 #include <plugins/g3d/util/NameTable.hpp>
 #include <string>
 
+static std::span<const u8> SliceStream(oishii::BinaryReader& reader) {
+  return {reader.getStreamStart() + reader.tell(),
+          reader.endpos() - reader.tell()};
+}
+
 inline void operator<<(librii::gx::Color& out, oishii::BinaryReader& reader) {
   out = librii::gx::readColorComponents(
       reader, librii::gx::VertexBufferType::Color::rgba8);
