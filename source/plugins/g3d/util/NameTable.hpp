@@ -2,10 +2,11 @@
 
 #include <core/common.h>
 
+#include <algorithm>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
-#include <algorithm>
 
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
@@ -166,14 +167,15 @@ inline void writeNameForward(NameTable& table, oishii::Writer& writer,
   writer.write<u32>(
       table.reserve(name, streamOfsStart, writer, writer.tell(), nonvol));
 }
-inline std::string readName(oishii::BinaryReader& reader, std::size_t start) {
+inline std::string_view readName(oishii::BinaryReader& reader,
+                                 std::size_t start) {
   const auto ofs = reader.read<s32>();
 
-  return (ofs && ofs + start < reader.endpos() && ofs + start > 0)
-             ? std::string(
-                   reinterpret_cast<const char*>(reader.getStreamStart()) +
-                   start + ofs)
-             : "";
+  if (ofs && ofs + start < reader.endpos() && ofs + start > 0) {
+    return reinterpret_cast<const char*>(reader.getStreamStart()) + start + ofs;
+  } else {
+    return "";
+  }
 }
 
 } // namespace riistudio::g3d

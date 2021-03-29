@@ -1382,8 +1382,8 @@ bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader) {
   return true;
 }
 
-bool readBone(Bone& bone, oishii::BinaryReader& reader, u32 bone_id,
-              s32 data_destination) {
+bool readBone(librii::g3d::BoneData& bone, oishii::BinaryReader& reader,
+              u32 bone_id, s32 data_destination) {
   reader.skip(8); // skip size and mdl offset
   bone.mName = readName(reader, data_destination);
 
@@ -1416,6 +1416,30 @@ bool readBone(Bone& bone, oishii::BinaryReader& reader, u32 bone_id,
 
   setFromFlag(bone, bone_flag);
   return true;
+}
+
+void ReadModelInfo(oishii::BinaryReader& reader,
+                   librii::g3d::G3DModelDataData& mdl) {
+  const auto infoPos = reader.tell();
+  reader.skip(8); // Ignore size, ofsMode
+  mdl.mScalingRule = static_cast<librii::g3d::ScalingRule>(reader.read<u32>());
+  mdl.mTexMtxMode =
+      static_cast<librii::g3d::TextureMatrixMode>(reader.read<u32>());
+
+  reader.readX<u32, 2>(); // number of vertices, number of triangles
+  mdl.sourceLocation = readName(reader, infoPos);
+  reader.read<u32>(); // number of view matrices
+
+  // const auto [bMtxArray, bTexMtxArray, bBoundVolume] =
+  reader.readX<u8, 3>();
+  mdl.mEvpMtxMode =
+      static_cast<librii::g3d::EnvelopeMatrixMode>(reader.read<u8>());
+
+  // const s32 ofsBoneTable =
+  reader.read<s32>();
+
+  mdl.aabb.min << reader;
+  mdl.aabb.max << reader;
 }
 
 void readModel(Model& mdl, oishii::BinaryReader& reader,
@@ -1464,28 +1488,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
   for (auto& ofs : secOfsArr)
     ofs = reader.read<s32>();
 
-  mdl.setName(readName(reader, start));
+  mdl.mName = readName(reader, start);
 
-  const auto infoPos = reader.tell();
-  reader.skip(8); // Ignore size, ofsMode
-  mdl.mScalingRule = static_cast<librii::g3d::ScalingRule>(reader.read<u32>());
-  mdl.mTexMtxMode =
-      static_cast<librii::g3d::TextureMatrixMode>(reader.read<u32>());
-
-  reader.readX<u32, 2>(); // number of vertices, number of triangles
-  mdl.sourceLocation = readName(reader, infoPos);
-  reader.read<u32>(); // number of view matrices
-
-  // const auto [bMtxArray, bTexMtxArray, bBoundVolume] =
-  reader.readX<u8, 3>();
-  mdl.mEvpMtxMode =
-      static_cast<librii::g3d::EnvelopeMatrixMode>(reader.read<u8>());
-
-  // const s32 ofsBoneTable =
-  reader.read<s32>();
-
-  mdl.aabb.min << reader;
-  mdl.aabb.max << reader;
+  ReadModelInfo(reader, mdl);
 
   auto readDict = [&](u32 xofs, auto handler) {
     if (xofs) {

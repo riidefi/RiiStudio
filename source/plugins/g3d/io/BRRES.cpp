@@ -20,6 +20,7 @@ namespace riistudio::g3d {
 // MDL0.cpp
 void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
                 NameTable& names, std::size_t brres_start);
+void ReadModelInfo(oishii::BinaryReader& reader, riistudio::g3d::Model& mdl);
 void readModel(Model& mdl, oishii::BinaryReader& reader,
                kpi::IOTransaction& transaction,
                const std::string& transaction_path);

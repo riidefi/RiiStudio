@@ -12,9 +12,8 @@ struct Texture : public riistudio::lib3d::Texture {
   // PX_TYPE_INFO("GameCube Texture", "gc_tex", "GC::Texture");
 
   inline u32 getEncodedSize(bool mip) const override {
-    return librii::gx::computeImageSize(getWidth(), getHeight(),
-                                        getTextureFormat(),
-                                        mip ? getMipmapCount() + 1 : 0);
+    return librii::gx::computeImageSize(
+        getWidth(), getHeight(), getTextureFormat(), mip ? getImageCount() : 0);
   }
   inline void decode(std::vector<u8>& out, bool mip) const override {
     u32 size = getDecodedSize(mip);
