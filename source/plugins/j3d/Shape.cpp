@@ -94,7 +94,7 @@ std::vector<glm::mat4> Shape::getPosMtx(const libcube::Model& _mdl,
     // Rigid -- bone space
     if (drw.mWeights.size() == 1) {
       u32 boneID = drw.mWeights[0].boneId;
-      curMtx = mdl.getBones()[boneID].calcSrtMtx(mdl.getBones().toConst());
+      curMtx = calcSrtMtx(mdl.getBones()[boneID], mdl.getBones().toConst());
     } else {
       // curMtx = glm::mat4{ 0.0f };
       // for (const auto& w : drw.mWeights) {

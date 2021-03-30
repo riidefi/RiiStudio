@@ -17,11 +17,11 @@
 
 namespace riistudio::lib3d {
 
-glm::mat4 Bone::calcSrtMtx(const lib3d::Model* mdl) const {
+glm::mat4 calcSrtMtx(const Bone& bone, const lib3d::Model* mdl) {
   if (mdl == nullptr)
     return {};
 
-  return calcSrtMtx(mdl->getBones());
+  return calcSrtMtx(bone, mdl->getBones());
 }
 
 struct VertexBufferTenant {
@@ -149,7 +149,7 @@ void SceneImpl::prepare(SceneState& state, const kpi::INode& _host,
 librii::math::AABB CalcPolyBound(const lib3d::Polygon& poly,
                                  const lib3d::Bone& bone,
                                  const lib3d::Model& mdl) {
-  auto mdl_mtx = bone.calcSrtMtx(&mdl);
+  auto mdl_mtx = calcSrtMtx(bone, &mdl);
 
   auto nmax = mdl_mtx * glm::vec4(poly.getBounds().max, 0.0f);
   auto nmin = mdl_mtx * glm::vec4(poly.getBounds().min, 0.0f);

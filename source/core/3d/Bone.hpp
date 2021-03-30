@@ -47,17 +47,17 @@ struct Bone {
   virtual Display getDisplay(u64 idx) const = 0;
   virtual void addDisplay(const Display& d) = 0;
   virtual void setDisplay(u64 idx, const Display& d) = 0;
-
-  virtual glm::mat4
-  calcSrtMtx(kpi::ConstCollectionRange<lib3d::Bone> bones) const {
-    glm::mat4 mdl(1.0f);
-    const auto parent = getBoneParent();
-    if (parent >= 0 /* && parent != getId() */)
-      mdl = bones[parent].calcSrtMtx(bones);
-
-    return mdl * librii::math::calcXform(getSRT());
-  }
-  glm::mat4 calcSrtMtx(const lib3d::Model* mdl) const;
 };
+
+inline glm::mat4 calcSrtMtx(const Bone& bone,
+                            kpi::ConstCollectionRange<lib3d::Bone> bones) {
+  glm::mat4 mdl(1.0f);
+  const auto parent = bone.getBoneParent();
+  if (parent >= 0 /* && parent != getId() */)
+    mdl = calcSrtMtx(bones[parent], bones);
+
+  return mdl * librii::math::calcXform(bone.getSRT());
+}
+glm::mat4 calcSrtMtx(const Bone& bone, const lib3d::Model* mdl);
 
 } // namespace riistudio::lib3d

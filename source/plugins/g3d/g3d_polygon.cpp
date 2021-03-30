@@ -106,8 +106,8 @@ std::vector<glm::mat4> Polygon::getPosMtx(const libcube::Model& mdl,
     // Rigid -- bone space
     if (drw.mWeights.size() == 1) {
       u32 boneID = drw.mWeights[0].boneId;
-      curMtx = const_cast<Bone&>(mdl_ac.getBones()[boneID])
-                   .calcSrtMtx(mdl_ac.getBones());
+      auto& bone = const_cast<Bone&>(mdl_ac.getBones()[boneID]);
+      curMtx = calcSrtMtx(bone, mdl_ac.getBones());
     } else {
       // already world space
     }

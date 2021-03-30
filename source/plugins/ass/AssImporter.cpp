@@ -247,7 +247,7 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
       const auto& acting_influence =
           out_model->getBones()[wt->mWeights[0].boneId];
       pos = glm::vec4(pos, 0) *
-            glm::inverse(acting_influence.calcSrtMtx(out_model->getBones()));
+            glm::inverse(calcSrtMtx(acting_influence, out_model->getBones()));
     }
 
     return poly.addPos(*out_model, pos);
