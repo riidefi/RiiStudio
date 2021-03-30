@@ -22,11 +22,20 @@ std::pair<std::string, std::string> IGCMaterial::generateShaders() const {
   return {result->vertex, result->fragment};
 }
 
+static glm::mat4x4 arrayToMat4x4(const std::array<f32, 16>& m) {
+  return glm::mat4x4{
+	m[0], m[4], m[8], m[12],
+	m[1], m[5], m[9], m[13],
+	m[2], m[6], m[10], m[14],
+	m[3], m[7], m[11], m[15],
+  };
+}
+
 glm::mat4x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
                                                const glm::mat4& mvp) const {
   auto texsrt =
       librii::mtx::computeTexSrt(scale, rotate, translate, transformModel);
-  return librii::mtx::computeTexMtx(mdl, mvp, texsrt, method, option);
+  return librii::mtx::computeTexMtx(mdl, mvp, texsrt, arrayToMat4x4(effectMatrix), method, option);
 }
 void IGCMaterial::setMegaState(librii::gfx::MegaState& state) const {
   librii::gl::translateGfxMegaState(state, getMaterialData());
