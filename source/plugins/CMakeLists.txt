@@ -13,6 +13,7 @@ add_library(plugins
 	"g3d/g3d_material.cpp"
 	"g3d/g3d_polygon.cpp"
 	"g3d/io/BRRES.cpp"
+  "g3d/io/ReadModel.cpp"
 	"g3d/material.hpp"
 	"g3d/model.hpp"
 	"g3d/Node.h"

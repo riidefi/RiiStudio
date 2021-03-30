@@ -8,21 +8,14 @@
 
 namespace riistudio::frontend {
 
-Renderer::Renderer(lib3d::IDrawable* root) : mRoot(root) {}
+Renderer::Renderer(lib3d::IDrawable* root) : mRoot(root) {
+  root->dispatcher = &mRootDispatcher;
+}
 Renderer::~Renderer() {}
 
 void Renderer::render(u32 width, u32 height, bool& showCursor) {
-  // The root may set a flag to signal it is undergoing a mutation and is unsafe
-  // to be drawn.
-  if (mRoot->poisoned)
+  if (!mRootDispatcher.beginDraw())
     return;
-
-  // After the mutation occurs, the root will signal us to reinitialize our
-  // cache of it.
-  if (mRoot->reinit) {
-    mRoot->reinit = false;
-    // TODO: Regen VBOs and such
-  }
 
   drawMenuBar();
 
@@ -52,12 +45,14 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
   mCameraController.mCamera.calcMatrices(width, height, projMtx, viewMtx);
 
   mSceneState.invalidate();
-  mRoot->prepare(mSceneState, *dynamic_cast<kpi::INode*>(mRoot), projMtx,
-                 viewMtx);
+  mRootDispatcher.populate(*mRoot, mSceneState,
+                           *dynamic_cast<kpi::INode*>(mRoot), projMtx, viewMtx);
   mSceneState.buildUniformBuffers();
 
   clearGlScreen();
   mSceneState.draw();
+
+  mRootDispatcher.endDraw();
 }
 
 void Renderer::drawMenuBar() {

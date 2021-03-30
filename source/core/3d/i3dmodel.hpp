@@ -14,6 +14,8 @@ namespace riistudio::lib3d {
 struct SceneState;
 class Scene;
 
+class DrawableDispatcher;
+
 // Used for the root element
 struct IDrawable {
   virtual ~IDrawable() = default;
@@ -22,6 +24,42 @@ struct IDrawable {
   virtual void prepare(SceneState& state, const kpi::INode& root,
                        glm::mat4 v_mtx, glm::mat4 p_mtx) = 0;
 
+  DrawableDispatcher& getDispatcher() {
+    assert(dispatcher);
+    return *dispatcher;
+  }
+
+  DrawableDispatcher* dispatcher = nullptr;
+};
+
+class DrawableDispatcher {
+public:
+  void beginEdit() { poisoned = true; }
+  void endEdit() {
+    poisoned = false;
+    reinit = true;
+  }
+
+  void populate(IDrawable& drawable, SceneState& state, const kpi::INode& root,
+                glm::mat4 v_mtx, glm::mat4 p_mtx) {
+    assert(!poisoned);
+    assert(!reinit);
+    drawable.prepare(state, root, v_mtx, p_mtx);
+  }
+
+  bool beginDraw() {
+    if (poisoned)
+      return false;
+
+    // We don't have any initialization code yet
+    reinit = false;
+
+    return true;
+  }
+
+  void endDraw() {}
+
+private:
   bool poisoned = false;
   bool reinit = false;
 };

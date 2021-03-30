@@ -37,42 +37,20 @@ public:
                                ImGuiWindowFlags_AlwaysAutoResize)) {
       if (mImporter) {
         assert(mEd);
-        dynamic_cast<lib3d::IDrawable*>(model.childOf)->poisoned = true;
+        auto& dispatcher = dynamic_cast<lib3d::IDrawable*>(model.childOf)->getDispatcher();
+        dispatcher.beginEdit();
         if (mImporter->abort()) {
           mImporter.reset();
-          if (auto* drawable = dynamic_cast<lib3d::IDrawable*>(model.childOf);
-              drawable != nullptr) {
-            drawable->poisoned = false;
-            drawable->reinit = true;
-          }
+          dispatcher.endEdit();
           ImGui::CloseCurrentPopup();
 
           ImGui::EndPopup();
           return false;
         }
         if (mImporter->attachEditor()) {
-          // auto result = mImporter->takeResult();
-          // auto* arc = dynamic_cast<libcube::Scene*>(result.get());
-          // auto* mdl = dynamic_cast<g3d::Model*>(arc->getModels().at(0));
-          // auto* dest = dynamic_cast<g3d::Model*>(model.getModels().at(0));
-          // if (!arc || !mdl || !dest) {
-          //   mImporter.reset();
-          //   ImGui::CloseCurrentPopup();
-          //
-          //   ImGui::EndPopup();
-          //   return false;
-          // }
-          // dynamic_cast<lib3d::IDrawable*>(model.childOf)->poisoned = false;
-          // dynamic_cast<lib3d::IDrawable*>(model.childOf)->reinit = true;
           assert(mEd);
-          // if (mEd)
-          //   mEd->reinit();
 
-          if (auto* drawable = dynamic_cast<lib3d::IDrawable*>(model.childOf);
-              drawable != nullptr) {
-            drawable->poisoned = false;
-            drawable->reinit = true;
-          }
+		  dispatcher.endEdit();
 
           ImGui::CloseCurrentPopup();
 

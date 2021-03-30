@@ -33,6 +33,7 @@ private:
   lib3d::SceneState mSceneState;
 
   lib3d::IDrawable* mRoot = nullptr;
+  lib3d::DrawableDispatcher mRootDispatcher;
   CameraController mCameraController;
   CameraController::ControllerType combo_choice_cam =
       CameraController::ControllerType::WASD_Minecraft;
