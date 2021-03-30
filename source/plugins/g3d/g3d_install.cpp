@@ -1,5 +1,7 @@
 #include <core/common.h>
 #include <core/kpi/Node.hpp>
+#include <core/kpi/RichNameManager.hpp>
+#include <vendor/fa5/IconsFontAwesome5.h>
 
 #include "collection.hpp"
 #include "model.hpp"
@@ -17,6 +19,9 @@ kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
       .addType<g3d::ColorBuffer>()
       .addType<g3d::TextureCoordinateBuffer>()
       .addType<g3d::Polygon, libcube::IndexedPolygon>();
+
+  kpi::RichNameManager& rich = kpi::RichNameManager::getInstance();
+  rich.addRichName<g3d::ColorBuffer>((const char*)ICON_FA_BRUSH, "Vertex Color");
 });
 
 } // namespace riistudio::g3d
