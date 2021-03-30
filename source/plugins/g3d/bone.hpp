@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -14,9 +15,16 @@
 
 namespace riistudio::g3d {
 
+template <typename T> bool RangeIsHomogenous(const T& range) {
+  return std::adjacent_find(range.begin(), range.end(),
+                            std::not_equal_to<>()) == range.end();
+}
+
 inline u32 computeFlag(const librii::g3d::BoneData& data) {
   u32 flag = 0;
-  if (data.mScaling.x == data.mScaling.y == data.mScaling.z) {
+  const std::array<float, 3> scale{data.mScaling.x, data.mScaling.y,
+                                   data.mScaling.z};
+  if (RangeIsHomogenous(scale)) {
     flag |= 0x10;
     if (data.mScaling == glm::vec3{1.0f, 1.0f, 1.0f})
       flag |= 8;
