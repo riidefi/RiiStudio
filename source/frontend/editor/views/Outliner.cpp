@@ -12,15 +12,11 @@
 
 namespace riistudio::frontend {
 
-struct GenericCollectionOutliner : public StudioWindow {
-  GenericCollectionOutliner(kpi::INode& host, kpi::IObject*& active,
-                            EditorWindow& ed);
-
-  struct ImTFilter : public ImGuiTextFilter {
-    bool test(const std::string& str) const noexcept {
-      return PassFilter(str.c_str());
-    }
-  };
+struct ImTFilter : public ImGuiTextFilter {
+  bool test(const std::string& str) const noexcept {
+    return PassFilter(str.c_str());
+  }
+};
 #if 0
   struct RegexFilter {
     bool test(const std::string& str) const noexcept {
@@ -43,17 +39,46 @@ struct GenericCollectionOutliner : public StudioWindow {
     std::string mFilt;
   };
 #endif
-  using TFilter = ImTFilter;
+using TFilter = ImTFilter;
 
-  //! @brief Return the number of resources in the source that pass the filter.
-  //!
-  std::size_t calcNumFiltered(const kpi::ICollection& sampler,
-                              const TFilter* filter = nullptr) const noexcept;
+//! @brief Return the number of resources in the source that pass the filter.
+//!
+static std::size_t CalcNumFiltered(const kpi::ICollection& sampler,
+                                   const TFilter* filter) {
+  // If no data, empty
+  if (sampler.size() == 0)
+    return 0;
 
-  //! @brief Format the title in the "<header> (<number of resources>)" format.
-  //!
-  std::string formatTitle(const kpi::ICollection& sampler,
-                          const TFilter* filter = nullptr) const;
+  // If we don't have a filter, everything is included.
+  if (!filter)
+    return sampler.size();
+
+  std::size_t nPass = 0;
+
+  for (u32 i = 0; i < sampler.size(); ++i)
+    if (filter->test(sampler.atObject(i)->getName().c_str()))
+      ++nPass;
+
+  return nPass;
+}
+
+//! @brief Format the title in the "<header> (<number of resources>)" format.
+//!
+static std::string FormatTitle(const kpi::ICollection& sampler,
+                        const TFilter* filter) {
+  if (sampler.size() == 0)
+    return "";
+  const auto rich =
+      kpi::RichNameManager::getInstance().getRich(sampler.atObject(0));
+  const std::string icon_plural = rich.getIconPlural();
+  const std::string exposed_name = rich.getNamePlural();
+  return std::string(icon_plural + "  " + exposed_name + " (" +
+                     std::to_string(CalcNumFiltered(sampler, filter)) + ")");
+}
+
+struct GenericCollectionOutliner : public StudioWindow {
+  GenericCollectionOutliner(kpi::INode& host, kpi::IObject*& active,
+                            EditorWindow& ed);
 
   void drawFolder(kpi::ICollection& sampler, const kpi::INode& host,
                   const std::string& key) noexcept;
@@ -78,38 +103,6 @@ GenericCollectionOutliner::GenericCollectionOutliner(kpi::INode& host,
   setClosable(false);
 }
 
-std::size_t GenericCollectionOutliner::calcNumFiltered(
-    const kpi::ICollection& sampler, const TFilter* filter) const noexcept {
-  // If no data, empty
-  if (sampler.size() == 0)
-    return 0;
-
-  // If we don't have a filter, everything is included.
-  if (!filter)
-    return sampler.size();
-
-  std::size_t nPass = 0;
-
-  for (u32 i = 0; i < sampler.size(); ++i)
-    if (filter->test(sampler.atObject(i)->getName().c_str()))
-      ++nPass;
-
-  return nPass;
-}
-
-std::string
-GenericCollectionOutliner::formatTitle(const kpi::ICollection& sampler,
-                                       const TFilter* filter) const {
-  if (sampler.size() == 0)
-    return "";
-  const auto rich =
-      kpi::RichNameManager::getInstance().getRich(sampler.atObject(0));
-  const std::string icon_plural = rich.getIconPlural();
-  const std::string exposed_name = rich.getNamePlural();
-  return std::string(icon_plural + "  " + exposed_name + " (" +
-                     std::to_string(calcNumFiltered(sampler, filter)) + ")");
-}
-
 // For models and bones we disable "add new" functionality for some reason
 static bool CanCreateNew(std::string_view key) {
   return !key.ends_with("Model") && !key.ends_with("Bone");
@@ -125,7 +118,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
   if (!rich.hasEntry())
     return;
   ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-  const bool opened = ImGui::TreeNode(formatTitle(sampler, &mFilter).c_str());
+  const bool opened = ImGui::TreeNode(FormatTitle(sampler, &mFilter).c_str());
   if (CanCreateNew(key)) {
     const auto local_id = reinterpret_cast<u64>(&sampler);
     const auto id_str = std::string("MCtx") + std::to_string(local_id);
