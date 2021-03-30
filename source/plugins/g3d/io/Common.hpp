@@ -193,4 +193,73 @@ void writeDictionary(const std::string& name, T src_range, U handler,
   }
 };
 
+const std::array<u32, 16> shaderDlSizes{
+    160, //  0
+    160, //  1
+    192, //  2
+    192, //  3
+    256, //  4
+    256, //  5
+    288, //  6
+    288, //  7
+    352, //  8
+    352, //  9
+    384, // 10
+    384, // 11
+    448, // 12
+    448, // 13
+    480, // 14
+    480, // 15
+};
+
+
+struct DlHandle {
+  std::size_t tag_start;
+  std::size_t buf_size = 0;
+  std::size_t cmd_size = 0;
+  s32 ofs_buf = 0;
+  oishii::Writer* mWriter = nullptr;
+
+  void seekTo(oishii::BinaryReader& reader) {
+    reader.seekSet(tag_start + ofs_buf);
+  }
+  DlHandle(oishii::BinaryReader& reader) : tag_start(reader.tell()) {
+    buf_size = reader.read<u32>();
+    cmd_size = reader.read<u32>();
+    ofs_buf = reader.read<s32>();
+  }
+  DlHandle(oishii::Writer& writer)
+      : tag_start(writer.tell()), mWriter(&writer) {
+    mWriter->skip(4 * 3);
+  }
+  void write() {
+    assert(mWriter != nullptr);
+    mWriter->writeAt<u32>(buf_size, tag_start);
+    mWriter->writeAt<u32>(cmd_size, tag_start + 4);
+    mWriter->writeAt<u32>(ofs_buf, tag_start + 8);
+  }
+  // Buf size implied
+  void setCmdSize(std::size_t c) {
+    cmd_size = c;
+    buf_size = roundUp(c, 32);
+  }
+  void setBufSize(std::size_t c) { buf_size = c; }
+  void setBufAddr(s32 addr) { ofs_buf = addr - tag_start; }
+};
+
+
+enum class RenderCommand {
+  NoOp,
+  Return,
+
+  NodeDescendence,
+  NodeMixing,
+
+  Draw,
+
+  EnvelopeMatrix,
+  MatrixCopy
+};
+
+
 } // namespace riistudio::g3d
