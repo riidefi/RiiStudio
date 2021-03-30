@@ -188,8 +188,8 @@ static glm::mat4 computeInMtx(const glm::mat4& mdl, const glm::mat4& mvp,
 }
 
 glm::mat4 computeTexMtx(const glm::mat4& mdl, const glm::mat4& mvp,
-                        const glm::mat4& texsrt, CommonMappingMethod method,
-                        CommonMappingOption option) {
+                        const glm::mat4& texsrt, const glm::mat4& effectMatrix,
+						CommonMappingMethod method, CommonMappingOption option) {
   auto inmtx = computeInMtx(mdl, mvp, method);
   auto J3DGetTextureMtxOld = [](glm::mat4& dst, const glm::mat4& srt) {
     dst = srt;
@@ -284,8 +284,8 @@ glm::mat4 computeTexMtx(const glm::mat4& mdl, const glm::mat4& mvp,
 
       // Multiply the effect matrix by the inverse of the model matrix.
       // In Galaxy, this is done in ProjmapEffectMtxSetter.
-      // tmp1 = glm::inverse(mdl);
-      //... tmp1 = effectMatrix * tmp1;
+      tmp1 = glm::inverse(mdl);
+      tmp1 = effectMatrix * tmp1;
 
       tmp1 = tmp2 * tmp1;
       dst = tmp1 * dst;
