@@ -57,6 +57,7 @@ if (MSVC)
   add_compile_options(/wd4244 /wd4267 /wd4146 /wd4624 /wd4996)
   # Inherits via dominance (generated code)
   add_compile_options(/wd4250)
+  add_link_options(-debug)
 endif()
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/Configurations.cmake)
