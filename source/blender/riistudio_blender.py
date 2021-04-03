@@ -468,21 +468,21 @@ def all_meshes():
 
 def get_texture(mat):
 	if BLENDER_28:
-		return mat.node_tree.nodes.get('Image Texture')
+		for n in mat.node_tree.nodes:
+			if n.bl_idname == "ShaderNodeTexImage":
+				return n
 	
 	return mat.active_texture
 
 def all_tex_uses():
-	for Object in all_meshes():	
-		mat = Object.active_material
-		if not mat:
-			continue
-		
-		tex = get_texture(mat)
-		if not tex:
-			continue
-		
-		yield tex
+	for Object in all_meshes():
+		for slot in Object.material_slots:
+			mat = slot.material
+			tex = get_texture(mat)
+			if not tex:
+				continue
+			
+			yield tex
 
 def all_textures():
 	return set(all_tex_uses())
@@ -562,8 +562,8 @@ def export_mesh(
 		# TODO: manually assign priority in object attribs
 		texture_name = 'default_material'
 		if BLENDER_28:
-			if mat.node_tree.nodes.get('Image Texture'):
-				texture_name = get_filename_without_extension(mat.node_tree.nodes.get('Image Texture').image.name)
+			if get_texture(mat):
+				texture_name = get_filename_without_extension(get_texture(mat).image.name)
 		else:
 			if mat and mat.active_texture:
 				texture_name = mat.active_texture.name
