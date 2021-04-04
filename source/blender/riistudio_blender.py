@@ -509,6 +509,14 @@ def build_rs_mat(mat, texture_name):
 		'fog': mat.jres_fog_index
 	}
 
+def mesh_from_object(Object):
+	if BLENDER_28:
+		depsgraph = bpy.context.evaluated_depsgraph_get()
+		object_eval = Object.evaluated_get(depsgraph)
+		return bpy.data.meshes.new_from_object(object_eval)
+
+	return Object.to_mesh(context.scene, True, 'PREVIEW', calc_tessface=False, calc_undeformed=True)
+
 def export_mesh(
 	Object,
 	magnification,
@@ -519,7 +527,7 @@ def export_mesh(
 ):
 	triangulated = None
 	try:
-		triangulated = Object.to_mesh(preserve_all_data_layers=False) if BLENDER_28 else Object.to_mesh(context.scene, True, 'PREVIEW', calc_tessface=False, calc_undeformed=True)
+		triangulated = mesh_from_object(Object)
 	except:
 		print("Failed to triangulate object %s!" % Object.name)
 		return
