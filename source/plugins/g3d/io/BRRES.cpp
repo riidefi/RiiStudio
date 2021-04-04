@@ -13,6 +13,7 @@
 
 #include "Common.hpp"
 
+#include <librii/g3d/io/AnimIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
 
 namespace riistudio::g3d {
@@ -106,6 +107,23 @@ public:
                                  cnode.mName);
 
         printf("Unsupported folder: %s\n", cnode.mName.c_str());
+
+        if (cnode.mName == "AnmTexSrt(NW4R)") {
+          for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
+            const auto& sub = cdic.mNodes[j];
+
+            reader.seekSet(sub.mDataDestination);
+
+            librii::g3d::SrtAnimationArchive srt;
+            const bool ok = librii::g3d::ReadSrtFile(srt, SliceStream(reader));
+
+            if (!ok) {
+              transaction.callback(kpi::IOMessageClass::Warning,
+                                   "/" + cnode.mName,
+                                   "Failed to read SRT0: " + sub.mName);
+            }
+          }
+        }
       }
     }
   }
