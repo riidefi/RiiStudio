@@ -18,10 +18,14 @@ kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
       .addType<g3d::NormalBuffer>()
       .addType<g3d::ColorBuffer>()
       .addType<g3d::TextureCoordinateBuffer>()
-      .addType<g3d::Polygon, libcube::IndexedPolygon>();
+      .addType<g3d::Polygon, libcube::IndexedPolygon>()
+      .addType<g3d::SRT0>();
 
   kpi::RichNameManager& rich = kpi::RichNameManager::getInstance();
-  rich.addRichName<g3d::ColorBuffer>((const char*)ICON_FA_BRUSH, "Vertex Color");
+  rich.addRichName<g3d::ColorBuffer>((const char*)ICON_FA_BRUSH,
+                                     "Vertex Color");
+  rich.addRichName<g3d::SRT0>((const char*)ICON_FA_WAVE_SQUARE,
+                              "Texture Matrix Animation");
 });
 
 } // namespace riistudio::g3d

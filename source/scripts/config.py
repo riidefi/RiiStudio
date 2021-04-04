@@ -43,7 +43,9 @@ data = {
 	],
 	"riistudio::g3d::Collection*": [ "libcube::Scene", "",
 		[ "Model", "models" ],
-		[ "Texture", "textures" ]
+		[ "Texture", "textures" ],
+
+    [ "SRT0", "anim_srts"]
 	],
 
   # KMP

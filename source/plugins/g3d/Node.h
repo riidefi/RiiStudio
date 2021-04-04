@@ -180,25 +180,31 @@ public:
 
     kpi::MutCollectionRange<Model> getModels() { return { &mModels }; }
     kpi::MutCollectionRange<Texture> getTextures() { return { &mTextures }; }
+    kpi::MutCollectionRange<SRT0> getAnim_Srts() { return { &mAnim_Srts }; }
     kpi::ConstCollectionRange<Model> getModels() const { return { &mModels }; }
     kpi::ConstCollectionRange<Texture> getTextures() const { return { &mTextures }; }
+    kpi::ConstCollectionRange<SRT0> getAnim_Srts() const { return { &mAnim_Srts }; }
 
 protected:
     kpi::ICollection* v_getModels() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mModels)); }
     kpi::ICollection* v_getTextures() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mTextures)); }
+    kpi::ICollection* v_getAnim_Srts() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mAnim_Srts)); }
     void onRelocate() {
         mModels.onParentMoved(this);
         mTextures.onParentMoved(this);
+        mAnim_Srts.onParentMoved(this);
     }
     Collection(Collection&& rhs) {
         new (&mModels) decltype(mModels) (std::move(rhs.mModels));
         new (&mTextures) decltype(mTextures) (std::move(rhs.mTextures));
+        new (&mAnim_Srts) decltype(mAnim_Srts) (std::move(rhs.mAnim_Srts));
 
         onRelocate();
     }
     Collection(const Collection& rhs) {
         new (&mModels) decltype(mModels) (rhs.mModels);
         new (&mTextures) decltype(mTextures) (rhs.mTextures);
+        new (&mAnim_Srts) decltype(mAnim_Srts) (rhs.mAnim_Srts);
 
         onRelocate();
     }
@@ -216,13 +222,15 @@ protected:
 private:
     kpi::CollectionImpl<Model> mModels{this};
     kpi::CollectionImpl<Texture> mTextures{this};
+    kpi::CollectionImpl<SRT0> mAnim_Srts{this};
 
     // INode implementations
-    std::size_t numFolders() const override { return 2; }
+    std::size_t numFolders() const override { return 3; }
     const kpi::ICollection* folderAt(std::size_t index) const override {
         switch (index) {
         case 0: return &mModels;
         case 1: return &mTextures;
+        case 2: return &mAnim_Srts;
         default: return nullptr;
         }
     }
@@ -230,6 +238,7 @@ private:
         switch (index) {
         case 0: return &mModels;
         case 1: return &mTextures;
+        case 2: return &mAnim_Srts;
         default: return nullptr;
         }
     }
@@ -237,12 +246,14 @@ private:
         switch (index) {
         case 0: return typeid(Model).name();
         case 1: return typeid(Texture).name();
+        case 2: return typeid(SRT0).name();
         default: return nullptr;
         }
     }
     std::size_t fromId(const char* id) const override {
         if (!strcmp(id, typeid(Model).name())) return 0;
         if (!strcmp(id, typeid(Texture).name())) return 1;
+        if (!strcmp(id, typeid(SRT0).name())) return 2;
         return ~0;
     }
     virtual kpi::IDocData* getImmediateData() { return nullptr; }
@@ -252,10 +263,12 @@ public:
     struct _Memento : public kpi::IMemento {
         kpi::ConstPersistentVec<Model> mModels;
         kpi::ConstPersistentVec<Texture> mTextures;
+        kpi::ConstPersistentVec<SRT0> mAnim_Srts;
         template<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {
             const auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;
             kpi::nextFolder(this->mModels, _new.getModels(), old ? &old->mModels : nullptr);
             kpi::nextFolder(this->mTextures, _new.getTextures(), old ? &old->mTextures : nullptr);
+            kpi::nextFolder(this->mAnim_Srts, _new.getAnim_Srts(), old ? &old->mAnim_Srts : nullptr);
         }
     };
     std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const override {
@@ -266,6 +279,7 @@ public:
         assert(in);
         kpi::fromFolder(getModels(), in->mModels);
         kpi::fromFolder(getTextures(), in->mTextures);
+        kpi::fromFolder(getAnim_Srts(), in->mAnim_Srts);
     }
     template<typename T> void* operator=(const T& rhs) { from(rhs); return this; }
 };

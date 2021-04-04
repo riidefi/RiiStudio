@@ -12,6 +12,8 @@ template <typename TUnion> struct kawaiiUnionBase {
   TUnion& getType() { return mShape; }
   void setType(TUnion t) { mShape = t; }
 
+  bool operator==(const kawaiiUnionBase&) const = default;
+
 private:
   TUnion mShape;
 };
@@ -36,6 +38,8 @@ struct kawaiiUnion : public kawaiiUnionBase<TUnion>, T... {
 
     return *this;
   }
+
+  bool operator==(const kawaiiUnion&) const = default;
 };
 
 template <typename T, T tag> struct kawaiiTag {
@@ -43,6 +47,8 @@ template <typename T, T tag> struct kawaiiTag {
     return a->getType() == tag;
   }
   static T gettag() { return tag; }
+
+  bool operator==(const kawaiiTag&) const = default;
 };
 
 template <typename T, typename U> T* dyn_cast(U& base) {

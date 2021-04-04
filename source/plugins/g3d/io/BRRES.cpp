@@ -114,7 +114,7 @@ public:
 
             reader.seekSet(sub.mDataDestination);
 
-            librii::g3d::SrtAnimationArchive srt;
+            auto& srt = collection.getAnim_Srts().add();
             const bool ok = librii::g3d::ReadSrtFile(srt, SliceStream(reader));
 
             if (!ok) {

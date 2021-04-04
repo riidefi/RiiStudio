@@ -4,8 +4,8 @@
 #include <core/common.h>
 #include <llvm/ADT/SmallVector.h>
 #include <optional>
-#include <rsl/TaggedUnion.hpp>
 #include <rsl/SmallVector.hpp>
+#include <rsl/TaggedUnion.hpp>
 
 namespace librii::g3d {
 
@@ -18,11 +18,15 @@ struct KeyFrame {
   f32 frame;
   f32 value;
   f32 slope;
+
+  bool operator==(const KeyFrame&) const = default;
 };
 
 struct KeyFrameCollection {
   llvm::SmallVector<KeyFrame, 16> data;
   f32 step;
+
+  bool operator==(const KeyFrameCollection&) const = default;
 };
 
 constexpr f32 CalcStep(const KeyFrameCollection& collection) {
@@ -45,17 +49,23 @@ enum class StorageFormat { Animated, Fixed };
 struct FixedAnimation
     : public rsl::kawaiiTag<StorageFormat, StorageFormat::Fixed> {
   float value = 0.0f;
+
+  bool operator==(const FixedAnimation&) const = default;
 };
 
 struct AnimatedAnimation
     : public rsl::kawaiiTag<StorageFormat, StorageFormat::Animated> {
   KeyFrameCollection keys;
+
+  bool operator==(const AnimatedAnimation&) const = default;
 };
 
 struct Animation : public rsl::kawaiiUnion<StorageFormat, FixedAnimation,
                                            AnimatedAnimation> {
   Animation() : kawaiiUnion(FixedAnimation{.value = 0.0f}) {}
   using kawaiiUnion::kawaiiUnion;
+
+  bool operator==(const Animation&) const = default;
 };
 
 // SRT
@@ -80,6 +90,8 @@ struct SrtFlags {
   bool RotZero : 1 = true;
   bool TransZero : 1 = true;
   bool ScaleUniform : 1 = true;
+
+  bool operator==(const SrtFlags&) const = default;
 };
 
 constexpr bool IsSrtAttributeIncluded(const SrtFlags& flags,
@@ -103,6 +115,8 @@ struct SrtMatrixAnimation {
   SrtFlags flags;
 
   std::array<Animation, NumberOfSrtAttributes> animations;
+
+  bool operator==(const SrtMatrixAnimation&) const = default;
 };
 
 struct SrtMaterialAnimation {
@@ -110,6 +124,8 @@ struct SrtMaterialAnimation {
 
   std::array<std::optional<SrtMatrixAnimation>, 8> texture_srt;
   std::array<std::optional<SrtMatrixAnimation>, 3> indirect_srt;
+
+  bool operator==(const SrtMaterialAnimation&) const = default;
 };
 
 struct SrtAnimationArchive {
@@ -121,6 +137,8 @@ struct SrtAnimationArchive {
   AnimationWrapMode anim_wrap_mode = AnimationWrapMode::Repeat;
 
   rsl::small_vector<SrtMaterialAnimation, 3> mat_animations;
+
+  bool operator==(const SrtAnimationArchive&) const = default;
 };
 
 } // namespace librii::g3d

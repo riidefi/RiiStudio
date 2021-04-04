@@ -7,6 +7,7 @@
 #include <core/kpi/Node2.hpp>
 #include <glm/vec2.hpp> // glm::vec2
 #include <glm/vec3.hpp> // glm::vec3
+#include <librii/g3d/data/AnimData.hpp>
 #include <librii/g3d/data/ModelData.hpp>
 #include <librii/gx.h>
 #include <plugins/gc/Export/Scene.hpp>
@@ -108,6 +109,20 @@ struct G3DModelData : public librii::g3d::G3DModelDataData,
 
   std::string getName() const { return mName; }
   void setName(const std::string& name) { mName = name; }
+};
+
+struct SRT0 : public librii::g3d::SrtAnimationArchive,
+              public virtual kpi::IObject {
+  bool operator==(const SRT0& rhs) const {
+    return static_cast<const librii::g3d::SrtAnimationArchive&>(*this) == rhs;
+  }
+  SRT0& operator=(const SRT0& rhs) {
+    static_cast<librii::g3d::SrtAnimationArchive&>(*this) = rhs;
+    return *this;
+  }
+
+  std::string getName() const { return name; }
+  void setName(const std::string& _name) { name = _name; }
 };
 
 } // namespace riistudio::g3d
