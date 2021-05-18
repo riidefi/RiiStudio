@@ -4,7 +4,6 @@
 
 namespace riistudio::g3d {
 
-
 void writeTexture(const Texture& data, oishii::Writer& writer,
                   NameTable& names) {
   const auto start = writer.tell();
@@ -28,8 +27,9 @@ void writeTexture(const Texture& data, oishii::Writer& writer,
   writer.write<u32>(0); // user data
   writer.alignTo(32);   // Assumes already 32b aligned
   // TODO
-  for (const u8* pData = data.getData();
-       pData < data.getData() + data.getEncodedSize(true); ++pData)
+  const u8* begin = data.getData();
+  const u8* end = begin + data.getEncodedSize(true);
+  for (const u8* pData = begin; pData < end; ++pData)
     writer.write<u8>(*pData);
 }
 
