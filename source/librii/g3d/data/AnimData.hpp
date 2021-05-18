@@ -29,7 +29,7 @@ struct KeyFrameCollection {
   bool operator==(const KeyFrameCollection&) const = default;
 };
 
-constexpr f32 CalcStep(const KeyFrameCollection& collection) {
+inline f32 CalcStep(const KeyFrameCollection& collection) {
   if (collection.data.size() < 2) {
     return 0.0f;
   }
