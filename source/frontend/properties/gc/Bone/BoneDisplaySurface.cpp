@@ -1,5 +1,6 @@
 #include <core/kpi/PropertyView.hpp>
 #include <core/util/gui.hpp>
+#include <librii/g3d/data/BoneData.hpp>
 #include <plugins/gc/Export/Bone.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
@@ -18,6 +19,15 @@ auto BoneDisplaySurface =
                   ICON_FA_EXCLAMATION_TRIANGLE u8" Display Properties do not "
                                                u8"currently support "
                                                u8"multi-selection.");
+
+          if (ImGui::Button("Sort")) {
+            auto* gb = dynamic_cast<librii::g3d::BoneData*>(&bone);
+            if (gb) {
+              std::sort(gb->mDisplayCommands.begin(),
+                        gb->mDisplayCommands.end(),
+                        [](auto& l, auto& r) { return l.mPrio < r.mPrio; });
+            }
+          }
 
           auto folder_id_combo = [](const char* title, const auto& folder,
                                     int& active) {
@@ -43,7 +53,7 @@ auto BoneDisplaySurface =
           const auto entry_flags =
               ImGuiTableFlags_Borders | ImGuiTableFlags_Sortable |
               ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable;
-          if (ImGui::BeginTable("Entries", 3, entry_flags)) {
+          if (ImGui::BeginTable("Entries", 4, entry_flags)) {
             const riistudio::lib3d::Model* pMdl =
                 dynamic_cast<const riistudio::lib3d::Model*>(
                     dynamic_cast<const kpi::IObject*>(&bone)->childOf);
@@ -58,8 +68,8 @@ auto BoneDisplaySurface =
             ImGui::Text("Material");
             ImGui::TableSetColumnIndex(2);
             ImGui::Text("Polygon");
-            // ImGui::TableSetColumnIndex(3);
-            // ImGui::Text("Sorting Priority");
+            ImGui::TableSetColumnIndex(3);
+            ImGui::Text("Sorting Priority");
 
             for (int i = 0; i < bone.getNumDisplays(); ++i) {
               ImGui::TableNextRow();
@@ -80,10 +90,10 @@ auto BoneDisplaySurface =
               folder_id_combo("Polygon", polys, polyId);
               display.polyId = polyId;
 
-              // ImGui::TableSetColumnIndex(3);
-              // int prio = display.prio;
-              // ImGui::InputInt("Sorting Priority", &prio);
-              // display.prio = prio;
+              ImGui::TableSetColumnIndex(3);
+              int prio = display.prio;
+              ImGui::InputInt("Sorting Priority", &prio);
+              display.prio = prio;
 
               if (!(bone.getDisplay(i) == display)) {
                 bone.setDisplay(i, display);
