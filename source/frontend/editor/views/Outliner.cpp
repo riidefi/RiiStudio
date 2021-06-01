@@ -12,6 +12,29 @@
 
 namespace riistudio::frontend {
 
+std::string NameObject(const kpi::IObject* obj, int i) {
+  std::string base = obj->getName();
+
+  if (base == "TODO") {
+    const auto rich = kpi::RichNameManager::getInstance().getRich(obj);
+    if (rich.hasEntry())
+      base = rich.getNameSingular() + " #" + std::to_string(i);
+  }
+
+  std::string extra;
+
+  const libcube::IGCMaterial* mat =
+      dynamic_cast<const libcube::IGCMaterial*>(obj);
+  if (mat != nullptr) {
+    extra =
+        "  [#Stages=" + std::to_string(mat->getMaterialData().mStages.size()) +
+        ",#Samplers=" + std::to_string(mat->getMaterialData().samplers.size()) +
+        "]";
+  }
+
+  return base + extra;
+}
+
 struct ImTFilter : public ImGuiTextFilter {
   bool test(const std::string& str) const noexcept {
     return PassFilter(str.c_str());
@@ -56,7 +79,7 @@ static std::size_t CalcNumFiltered(const kpi::ICollection& sampler,
   std::size_t nPass = 0;
 
   for (u32 i = 0; i < sampler.size(); ++i)
-    if (filter->test(sampler.atObject(i)->getName().c_str()))
+    if (filter->test(NameObject(sampler.atObject(i), i)))
       ++nPass;
 
   return nPass;
@@ -65,7 +88,7 @@ static std::size_t CalcNumFiltered(const kpi::ICollection& sampler,
 //! @brief Format the title in the "<header> (<number of resources>)" format.
 //!
 static std::string FormatTitle(const kpi::ICollection& sampler,
-                        const TFilter* filter) {
+                               const TFilter* filter) {
   if (sampler.size() == 0)
     return "";
   const auto rich =
@@ -156,20 +179,19 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
   // Draw the tree
   for (int i = 0; i < sampler.size(); ++i) {
     auto& nodeAt = *sampler.atObject(i);
-    std::string cur_name = nodeAt.getName();
+    std::string cur_name = NameObject(&nodeAt, i);
 
     auto* as_host = dynamic_cast<kpi::INode*>(&nodeAt);
 
     if (as_host == nullptr && !mFilter.test(cur_name))
       continue;
 
-    const auto rich = kpi::RichNameManager::getInstance().getRich(&nodeAt);
+    {
+      // TODO: Do we still need this?
+      const auto rich = kpi::RichNameManager::getInstance().getRich(&nodeAt);
 
-    if (!rich.hasEntry())
-      continue;
-
-    if (cur_name == "TODO") {
-      cur_name = rich.getNameSingular() + " #" + std::to_string(i);
+      if (!rich.hasEntry())
+        continue;
     }
 
     filtered.push_back(i);
@@ -224,7 +246,6 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
                           rich.getIconSingular().c_str(), cur_name.c_str());
 
     if (treenode) {
-
       if (mat != nullptr) {
         for (int s = 0; s < mat->getMaterialData().samplers.size(); ++s) {
           auto& sampl = mat->getMaterialData().samplers[s];
