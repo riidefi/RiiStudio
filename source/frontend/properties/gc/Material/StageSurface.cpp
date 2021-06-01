@@ -305,7 +305,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   auto& stages = matData.mStages;
 
   if (ImGui::Button("Add a Stage")) {
-    stages.push_back({});
+    for (auto& mat : delegate.mAffected)
+      mat->getMaterialData().mStages.push_back({});
   }
 
   if (ImGui::BeginTabBar("Stages",
