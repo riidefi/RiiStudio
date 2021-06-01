@@ -450,7 +450,12 @@ def all_objects():
 	if BLENDER_28:
 		for Collection in bpy.data.collections:
 			for Object in Collection.objects:
-				yield Object
+				prio = 0
+				flags = list(Collection.name.split(':'))
+				if len(flags) > 1:
+					prio = int(flags[1])
+				print(prio)
+				yield Object, prio
 	else:
 		for Object in bpy.data.objects:
 			# Only objects in the leftmost layers are exported
@@ -458,26 +463,32 @@ def all_objects():
 			if not lxe:
 				print("Object %s excluded as not in left layers" % Object.name)
 				continue
-			
-			yield Object
+			prio = 0
+			yield Object, prio
 
 def all_meshes():
-	for obj in all_objects():
+	for obj, prio in all_objects():
 		if obj.type == 'MESH':
-			yield obj
+			yield obj, prio
 
 def get_texture(mat):
 	if BLENDER_28:
 		for n in mat.node_tree.nodes:
 			if n.bl_idname == "ShaderNodeTexImage":
 				return n
+
+		raise RuntimeError("Cannot find active texture for material %s" % mat.name)
 	
 	return mat.active_texture
 
 def all_tex_uses():
-	for Object in all_meshes():
+	for Object, prio in all_meshes():
 		for slot in Object.material_slots:
 			mat = slot.material
+			if mat is None:
+				print("Object %s does not have a material, skipping" % Object.name)
+				continue
+
 			tex = get_texture(mat)
 			if not tex:
 				continue
@@ -523,7 +534,8 @@ def export_mesh(
 	split_mesh_by_material,
 	add_dummy_colors,
 	context,
-	model
+	model,
+	prio
 ):
 	triangulated = None
 	try:
@@ -563,6 +575,9 @@ def export_mesh(
 		UVInputs[x] = 0
 
 	for mat_index, mat in enumerate(triangulated.materials):
+		if mat is None:
+			print("ERR: Object %s has materials with unassigned materials?" % Object.name)
+			continue
 		# for tri in triangulated.polygons:
 		# if tri.material_index == mat_index:
 		# Draw Calls format: [material_index, polygon_index, priority]
@@ -639,7 +654,7 @@ def export_mesh(
 		material_object = build_rs_mat(mat, texture_name)
 		mat_id = model.add_material(material_object)
 		
-		model.append_drawcall(mat_id, mesh_id, prio=0)
+		model.append_drawcall(mat_id, mesh_id, prio=prio)
 
 		# All mesh data will already be exported if not being split. This stops duplicate data
 		if not split_mesh_by_material:
@@ -741,14 +756,15 @@ def export_jres(context, params : RHSTExportParams):
 
 	model = Model(current_data)
 
-	for Object in all_meshes():
+	for Object, prio in all_meshes():
 		export_mesh(
 			Object,
 			params.magnification,
 			params.flags.split_mesh_by_material,
 			params.flags.add_dummy_colors,
 			context,
-			model
+			model,
+			prio
 		)
 
 	current_data['name'] = 'body'
@@ -947,7 +963,7 @@ class RHST_RNA:
 
 	def cleanup_rhst(self):
 		os.remove(self.get_rhst_path())
-		shutil.rmtree(self.get_textures_path())
+		# shutil.rmtree(self.get_textures_path())
 
 	def cleanup_if_enabled(self):
 		if not self.keep_build_artifacts:
