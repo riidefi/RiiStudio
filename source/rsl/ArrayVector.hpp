@@ -70,42 +70,4 @@ template <typename T, size_t N> using array_vector = array_vector_dynamic<T, N>;
 template <typename T, size_t N> using array_vector = array_vector_fixed<T, N>;
 #endif
 
-template <typename T, std::size_t size>
-struct copyable_polymorphic_array_vector
-    : public array_vector<std::unique_ptr<T>, size> {
-#if defined(_MSC_VER) && !defined(__clang__)
-  using super = array_vector;
-#else
-  // MSVC bug?
-  using super = array_vector<std::unique_ptr<T>, size>;
-#endif
-  copyable_polymorphic_array_vector&
-  operator=(const copyable_polymorphic_array_vector& rhs) {
-    this->resize(rhs.size());
-    for (std::size_t i = 0; i < this->size(); ++i) {
-      this->at(i) = nullptr;
-    }
-    for (std::size_t i = 0; i < rhs.size(); ++i) {
-      this->at(i) = rhs.at(i)->clone();
-    }
-    return *this;
-  }
-  bool operator==(const copyable_polymorphic_array_vector& rhs) const noexcept {
-    if (rhs.size() != this->size())
-      return false;
-    for (int i = 0; i < this->size(); ++i) {
-      const T& l = *this->at(i).get();
-      const T& r = *rhs.at(i).get();
-      if (!(l == r))
-        return false;
-    }
-    return true;
-  }
-  copyable_polymorphic_array_vector(
-      const copyable_polymorphic_array_vector& rhs) {
-    *this = rhs;
-  }
-  copyable_polymorphic_array_vector() = default;
-};
-
 } // namespace rsl
