@@ -166,7 +166,7 @@ public:
 
     skip(n - 1);
     write<u8>(0);
-    skip(-(n - 1));
+    skip(-n);
     assert(tell() == start);
 
     return start;

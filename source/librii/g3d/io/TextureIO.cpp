@@ -114,7 +114,7 @@ bool WriteTexture(std::span<u8> data, const TextureData& tex, s32 brres_ofs,
   const u8* end = begin + ComputeImageSize(tex);
 
   // Checked above
-  std::memcpy(data.subspan(64).data(), tex.data.data(), end - begin);
+  std::memcpy(data.subspan(64, end - begin).data(), tex.data.data(), end - begin);
 
   return true;
 }
