@@ -17,11 +17,29 @@
 #include <librii/g3d/io/TextureIO.hpp>
 
 namespace riistudio::g3d {
+void WriteTexMatrix(oishii::Writer& writer,
+                    const libcube::GCMaterialData::TexMatrix& mtx);
+void WriteTexMatrixIdentity(oishii::Writer& writer);
+void WriteTexMatrixEffect(oishii::Writer& writer,
+                          const libcube::GCMaterialData::TexMatrix& mtx,
+                          std::array<f32, 12Ui64>& ident34);
+void WriteTexMatrixEffectDefault(oishii::Writer& writer,
+                                 std::array<f32, 12Ui64>& ident34);
+void BuildTexMatrixFlags(const libcube::GCMaterialData::TexMatrix& mtx);
+void WriteMaterialMisc(oishii::Writer& writer,
+                       const riistudio::g3d::Material& mat);
+void WriteMaterialGenMode(oishii::Writer& writer,
+                          const riistudio::g3d::Material& mat);
+void WriteBone(riistudio::g3d::NameTable& names, oishii::Writer& writer,
+               const size_t& bone_start, const riistudio::g3d::Bone& bone,
+               const u32& bone_id);
 
+void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
+               const riistudio::g3d::Model& mdl, const size_t& mesh_start,
+               riistudio::g3d::NameTable& names);
 // MDL0.cpp
 void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
                 NameTable& names, std::size_t brres_start);
-void ReadModelInfo(oishii::BinaryReader& reader, riistudio::g3d::Model& mdl);
 void readModel(Model& mdl, oishii::BinaryReader& reader,
                kpi::IOTransaction& transaction,
                const std::string& transaction_path);
