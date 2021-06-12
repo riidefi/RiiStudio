@@ -17,6 +17,15 @@ template <typename T> static T load(byte_view data, unsigned offset) {
 }
 
 //! Unsafe API: Verify the operation before calling
+template <typename T>
+static void store(T obj, std::span<uint8_t> data, unsigned offset) {
+  assert(offset + sizeof(T) <= data.size_bytes());
+
+  *reinterpret_cast<T*>(data.data() + offset) =
+      llvm::sys::getSwappedBytes(obj);
+}
+
+//! Unsafe API: Verify the operation before calling
 //! (Writeback form)
 template <typename T> static T load_update(byte_view data, unsigned& offset) {
   const T result = load<T>(data, offset);

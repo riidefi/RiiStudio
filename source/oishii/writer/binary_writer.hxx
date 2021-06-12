@@ -157,6 +157,21 @@ public:
     seekSet(back);
   }
 
+  inline u32 reserveNext(s32 n) {
+    assert(n > 0);
+    if (n == 0)
+      return tell();
+
+    const auto start = tell();
+
+    skip(n - 1);
+    write<u8>(0);
+    skip(-(n - 1));
+    assert(tell() == start);
+
+    return start;
+  }
+
 private:
   std::endian mFileEndian = std::endian::big; // to swap
 };

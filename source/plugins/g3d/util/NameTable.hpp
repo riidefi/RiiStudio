@@ -11,6 +11,8 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
 
+#include <librii/g3d/io/CommonIO.hpp>
+
 namespace riistudio::g3d {
 
 // This class is a relic of the old tool.
@@ -155,6 +157,19 @@ private:
 public:
   std::vector<u8> mPool;
 };
+
+inline void ApplyGlobalRelocToOishii(NameTable& table, oishii::Writer& writer,
+                                     librii::g3d::NameReloc reloc) {
+  const NameTable::Handle handle =
+      table.reserve(reloc.name,                        // name
+                    reloc.offset_of_delta_reference,   // structPos
+                    writer,                            // writeStream
+                    reloc.offset_of_pointer_in_struct, // writePos
+                    reloc.non_volatile                 // nonvolatile
+      );
+
+  (void)handle;
+}
 
 inline void writeNameForward(NameTable& table, oishii::Writer& writer,
                              int streamOfsStart, const std::string& name,

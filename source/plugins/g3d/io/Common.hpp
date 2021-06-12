@@ -2,6 +2,7 @@
 
 #include <core/util/glm_io.hpp>
 #include <functional>
+#include <librii/g3d/io/TextureIO.hpp>
 #include <librii/gx.h>
 #include <llvm/ADT/SmallVector.h>
 #include <map>
@@ -212,7 +213,6 @@ const std::array<u32, 16> shaderDlSizes{
     480, // 15
 };
 
-
 struct DlHandle {
   std::size_t tag_start;
   std::size_t buf_size = 0;
@@ -247,7 +247,6 @@ struct DlHandle {
   void setBufAddr(s32 addr) { ofs_buf = addr - tag_start; }
 };
 
-
 enum class RenderCommand {
   NoOp,
   Return,
@@ -261,5 +260,34 @@ enum class RenderCommand {
   MatrixCopy
 };
 
+struct RelocationToApply {
+  RelocationToApply(NameTable& table, oishii::Writer& writer, u32 start)
+      : mTable(table), mWriter(writer), mStart(start) {}
+  ~RelocationToApply() { apply(); }
+
+  operator librii::g3d::NameReloc&() { return mReloc; }
+
+private:
+  void apply() {
+    mReloc.offset_of_delta_reference += mStart;
+    mReloc.offset_of_pointer_in_struct += mStart;
+    ApplyGlobalRelocToOishii(mTable, mWriter, mReloc);
+  }
+
+  NameTable& mTable;
+  oishii::Writer& mWriter;
+  u32 mStart;
+  librii::g3d::NameReloc mReloc;
+};
+
+inline std::pair<u32, std::span<u8>> HandleBlock(oishii::Writer& writer,
+                                                 librii::g3d::BlockData block) {
+  writer.alignTo(block.start_align);
+  const auto start_addr = writer.reserveNext(block.size);
+  writer.seekSet(start_addr + block.size);
+
+  std::span<u8> span(writer.getDataBlockStart() + start_addr, block.size);
+  return {start_addr, span};
+}
 
 } // namespace riistudio::g3d

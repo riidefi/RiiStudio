@@ -25,4 +25,9 @@ struct TextureData {
   bool operator==(const TextureData& rhs) const = default;
 };
 
+inline u32 ComputeImageSize(const TextureData& tex) {
+  return librii::gx::computeImageSize(tex.width, tex.height, tex.format,
+                                      tex.number_of_images);
+}
+
 } // namespace librii::g3d
