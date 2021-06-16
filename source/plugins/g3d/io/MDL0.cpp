@@ -301,7 +301,7 @@ void WriteCommonMappingMethod(
 }
 void WriteTexMatrixEffect(oishii::Writer& writer,
                           const libcube::GCMaterialData::TexMatrix& mtx,
-                          std::array<f32, 12Ui64>& ident34) {
+                          std::array<f32, 12>& ident34) {
   // printf("CamIdx: %i, LIdx: %i\n", (signed)mtx.camIdx,
   //        (signed)mtx.lightIdx);
   writer.write<s8>((s8)mtx.camIdx);
@@ -315,7 +315,7 @@ void WriteTexMatrixEffect(oishii::Writer& writer,
     writer.write<f32>(d);
 }
 void WriteTexMatrixEffectDefault(oishii::Writer& writer,
-                                 std::array<f32, 12Ui64>& ident34) {
+                                 std::array<f32, 12>& ident34) {
   writer.write<u8>(0xff); // cam
   writer.write<u8>(0xff); // light
   writer.write<u8>(0);    // map

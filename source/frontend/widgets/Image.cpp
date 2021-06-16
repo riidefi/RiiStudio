@@ -8,13 +8,16 @@ namespace riistudio::frontend {
 
 ImagePreview::ImagePreview() {}
 ImagePreview::~ImagePreview() {
+#ifdef RII_GL
   if (mTexUploaded) {
     glDeleteTextures(1, &mGpuTexId);
     mTexUploaded = false;
   }
+#endif
 }
 
 void ImagePreview::setFromImage(const lib3d::Texture& tex) {
+#ifdef RII_GL
   width = tex.getWidth();
   height = tex.getHeight();
   mNumMipMaps = tex.getMipmapCount();
@@ -49,6 +52,7 @@ void ImagePreview::setFromImage(const lib3d::Texture& tex) {
     slide += (tex.getWidth() >> i) * (tex.getHeight() >> i) * 4;
   }
   mDecodeBuf.clear();
+#endif
 }
 
 void ImagePreview::draw(float wd, float ht, bool mip_slider) {
@@ -57,6 +61,7 @@ void ImagePreview::draw(float wd, float ht, bool mip_slider) {
     return;
   }
 
+#ifdef RII_GL
   glBindTexture(GL_TEXTURE_2D, mGpuTexId);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, static_cast<f32>(mLod));
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, static_cast<f32>(mLod));
@@ -64,6 +69,7 @@ void ImagePreview::draw(float wd, float ht, bool mip_slider) {
   ImGui::Image(
       (void*)(intptr_t)mGpuTexId,
       ImVec2((wd > 0 ? wd : width) * mScale, (ht > 0 ? ht : height) * mScale));
+#endif
 
   if (ImGui::BeginPopupContextWindow()) {
     ImGui::SliderFloat("Image Preview Scale", &mScale, 0.0f, 10.0f);

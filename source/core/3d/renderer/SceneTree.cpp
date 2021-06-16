@@ -13,6 +13,7 @@
 namespace riistudio::lib3d {
 
 void useTexObj(const TextureObj& obj) {
+#ifdef RII_GL
   glActiveTexture(GL_TEXTURE0 + obj.active_id);
   glBindTexture(GL_TEXTURE_2D, obj.image_id);
 
@@ -20,11 +21,13 @@ void useTexObj(const TextureObj& obj) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, obj.glMagFilter);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, obj.glWrapU);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, obj.glWrapV);
+#endif
 }
 
 void drawReplacement(const SceneNode& node,
                      librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                      u32 draw_index) {
+#ifdef RII_GL
   librii::gl::setGlState(node.mega_state);
   glUseProgram(node.shader_id);
   glBindVertexArray(node.vao_id);
@@ -33,6 +36,7 @@ void drawReplacement(const SceneNode& node,
     useTexObj(obj);
   glDrawElements(node.glBeginMode, node.vertex_count, node.glVertexDataType,
                  node.indices);
+#endif
 }
 
 } // namespace riistudio::lib3d

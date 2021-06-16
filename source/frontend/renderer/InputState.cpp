@@ -1,7 +1,7 @@
 #include "InputState.hpp"
 #include <imgui/imgui.h>
 
-#ifndef _WIN32
+#ifdef __EMSCRIPTEN__
 #include <SDL.h>
 #include <SDL_opengles2.h>
 #endif
@@ -26,7 +26,7 @@ InputState buildInputState() {
     key_up = true;
   if (ImGui::IsKeyDown(340) || ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
     key_down = true;
-#else
+#elif defined(__EMSCRIPTEN__)
   const Uint8* keys = SDL_GetKeyboardState(NULL);
 
   if (keys[SDL_SCANCODE_W])

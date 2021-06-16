@@ -25,6 +25,7 @@ static std::array<u8, 128 * 128 * 4> scratch;
 static std::vector<u8> tmp;
 
 IconDatabase::Icon::Icon(lib3d::Texture& texture, u32 dimension) {
+#ifdef RII_GL
   glGenTextures(1, &glId);
 
   glBindTexture(GL_TEXTURE_2D, glId);
@@ -42,10 +43,13 @@ IconDatabase::Icon::Icon(lib3d::Texture& texture, u32 dimension) {
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dimension, dimension, 0, GL_RGBA,
                GL_UNSIGNED_BYTE, (void*)scratch.data());
+#endif
 }
 IconDatabase::Icon::~Icon() {
+#ifdef RII_GL
   if (glId != (u32)-1)
     glDeleteTextures(1, &glId);
+#endif
 }
 
 } // namespace riistudio

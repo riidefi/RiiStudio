@@ -35,8 +35,8 @@ template <typename T> static T load_update(byte_view data, unsigned& offset) {
 
 namespace pp {
 
-inline float_t lfs(byte_view data, unsigned offset) {
-  return load<float_t>(data, offset);
+inline float lfs(byte_view data, unsigned offset) {
+  return load<float>(data, offset);
 }
 inline uint32_t lwz(byte_view data, unsigned offset) {
   return load<uint32_t>(data, offset);

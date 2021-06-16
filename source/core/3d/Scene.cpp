@@ -187,9 +187,13 @@ void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
   out.shader_id = prog.getId();
 
   // draw
+#ifdef RII_GL
   out.glBeginMode = GL_TRIANGLES;
+#endif
   out.vertex_count = tenant.idx_size;
+#ifdef RII_GL
   out.glVertexDataType = GL_UNSIGNED_INT;
+#endif
   out.indices = reinterpret_cast<void*>(tenant.idx_ofs * 4);
 
   const libcube::GCMaterialData& gc_mat =
@@ -227,8 +231,10 @@ void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
     int query_min;
 
     for (u32 i = 0; i < 3; ++i) {
+#ifdef RII_GL
       glGetActiveUniformBlockiv(out.shader_id, i, GL_UNIFORM_BLOCK_DATA_SIZE,
                                 &query_min);
+#endif
       out.uniform_mins.push_back(
           {.binding_point = i, .min_size = static_cast<u32>(query_min)});
     }
@@ -302,10 +308,11 @@ void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
 #endif // __EMSCRIPTEN__
 
     const s32 samplerIds[] = {0, 1, 2, 3, 4, 5, 6, 7};
-
+#ifdef RII_GL
     glUseProgram(out.shader_id);
     u32 uTexLoc = glGetUniformLocation(out.shader_id, "u_Texture");
     glUniform1iv(uTexLoc, 8, samplerIds);
+#endif
   }
 }
 

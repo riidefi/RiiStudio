@@ -114,7 +114,7 @@ public:
     size_t mNumNodes;
   };
 
-#if __cpp_lib_concepts >= 201907L
+#if __cpp_lib_concepts >= 201907L && !defined(__GNUC__)
   template <std::input_iterator T> constexpr static bool IsInputIt() {
     return true;
   }

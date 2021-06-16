@@ -4,6 +4,7 @@
 
 namespace librii::glhelper {
 
+#ifdef RII_GL
 VBOBuilder::VBOBuilder() {
   glGenBuffers(1, &mPositionBuf);
   glGenBuffers(1, &mIndexBuf);
@@ -69,5 +70,6 @@ void VBOBuilder::build() {
 
 void VBOBuilder::bind() { glBindVertexArray(VAO); }
 void VBOBuilder::unbind() { glBindVertexArray(0); }
+#endif
 
 } // namespace librii::glhelper

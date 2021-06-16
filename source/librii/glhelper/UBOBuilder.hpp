@@ -3,6 +3,7 @@
 #include <core/common.h>
 #include <map>
 #include <memory>
+#include <string.h>
 #include <tuple>
 #include <vector>
 

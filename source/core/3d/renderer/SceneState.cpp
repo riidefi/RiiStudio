@@ -34,8 +34,10 @@ void SceneState::draw() {
   mTree.forEachNode(
       [&](SceneNode& node) { drawReplacement(node, mUboBuilder, i++); });
 
+#ifdef RII_GL
   glBindVertexArray(0);
   glUseProgram(0);
+#endif
 }
 
 } // namespace riistudio::lib3d

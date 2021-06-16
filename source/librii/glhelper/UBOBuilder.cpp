@@ -5,6 +5,7 @@
 
 namespace librii::glhelper {
 
+#ifdef RII_GL
 //
 // Basic UBOBuilder
 //
@@ -111,5 +112,6 @@ void DelegatedUBOBuilder::setBlockMin(u32 binding_point, u32 min) {
 
   assert(mMinSizes[binding_point] == roundUniformUp(min));
 }
+#endif
 
 } // namespace librii::glhelper

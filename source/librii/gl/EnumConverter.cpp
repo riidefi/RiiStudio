@@ -4,7 +4,7 @@
 namespace librii::gl {
 
 using namespace gx;
-
+#ifdef RII_GL
 u32 translateCullMode(gx::CullMode cullMode) {
   switch (cullMode) {
   case gx::CullMode::All:
@@ -166,6 +166,7 @@ void setGlState(const librii::gfx::MegaState& state) {
   glDepthMask(state.depthWrite ? GL_TRUE : GL_FALSE);
   glDepthFunc(state.depthCompare);
 }
+#endif
 
 gx::ColorSelChanApi getRasColorChannelID(gx::ColorSelChanApi v) {
   switch (v) {

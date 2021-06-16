@@ -4,6 +4,7 @@
 
 namespace librii::glhelper {
 
+#ifdef RII_GL
 bool checkShaderErrors(u32 id, std::string& error) {
   s32 success;
   char infoLog[512];
@@ -50,5 +51,6 @@ ShaderProgram::~ShaderProgram() {
     glDeleteProgram(mShaderProgram);
 #endif
 }
+#endif
 
 } // namespace librii::glhelper

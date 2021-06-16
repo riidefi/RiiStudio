@@ -173,7 +173,7 @@ void writeDictionary(const std::string& name, T src_range, U handler,
     _dict.mNodes[i + 1].setDataDestination(writer.tell());
     if constexpr (Named) {
       if constexpr (bMaterial)
-        _dict.mNodes[i + 1].setName(src_range[i].IGCMaterial::getName());
+        _dict.mNodes[i + 1].setName(src_range[i].name);
       else
         _dict.mNodes[i + 1].setName(src_range[i].getName());
     }

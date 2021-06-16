@@ -6,11 +6,14 @@
 namespace riistudio::lib3d {
 
 GlTexture::~GlTexture() {
+#ifdef RII_GL
   if (mGlId != ~0)
     glDeleteTextures(1, &mGlId);
+#endif
 }
 
 std::optional<GlTexture> GlTexture::makeTexture(const lib3d::Texture& tex) {
+#ifdef RII_GL
   static std::vector<u8> data(1024 * 1024 * 4 * 2);
 
   u32 gl_id;
@@ -35,6 +38,9 @@ std::optional<GlTexture> GlTexture::makeTexture(const lib3d::Texture& tex) {
   }
 
   return GlTexture{gl_id};
+#else
+  return std::nullopt;
+#endif
 }
 
 } // namespace riistudio::lib3d
