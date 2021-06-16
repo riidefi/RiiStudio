@@ -87,7 +87,7 @@ void RootWindow::draw() {
 
     if (ImGui::BeginMenuBar()) {
       if (ImGui::BeginMenu("File")) {
-#ifdef _WIN32
+#if !defined(__EMSCRIPTEN__)
         if (ImGui::MenuItem("Open")) {
           openFile();
         }
@@ -105,7 +105,7 @@ void RootWindow::draw() {
             printf("Cannot save.. nothing has been opened.\n");
           }
         }
-#ifdef _WIN32
+#if !defined(__EMSCRIPTEN__)
         if (ImGui::MenuItem("Save As")) {
           if (ed)
             saveAs();

@@ -12,6 +12,10 @@
          Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )
 */
 
+#ifdef __linux__
+#include <sys/stat.h>
+#endif
+
 
 #if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))
 #ifndef __USE_FILE_OFFSET64
@@ -92,7 +96,7 @@ uLong* dt; /* dostime */
     return ret;
 }
 #else
-#ifdef unix || __APPLE__
+#if defined(unix) || __APPLE__
 uLong filetime(f, tmzip, dt)
     char *f;               /* name of file to get info on */
     tm_zip *tmzip;         /* return value: access, modific. and creation times */

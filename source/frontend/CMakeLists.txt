@@ -102,7 +102,11 @@ if (MSVC)
 	  SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "/WHOLEARCHIVE:plugins")
   endif()
 else()
-  SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "--whole_archive")
+  if (UNIX)
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-ldl -lassimp -lglfw")
+  else()
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "--whole_archive")
+  endif()
   # TODO: Not functional (yet)
 	#add_link_options("-s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind")
 	#add_link_options("-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 --no-heap-copy --preload-file ./fonts@/fonts")
@@ -110,7 +114,7 @@ else()
 endif()
 
 # DLLs for windows
-# if (WINDOWS)
+if (WIN32)
 	add_custom_command(
 	  TARGET frontend 
 	  POST_BUILD
@@ -139,13 +143,6 @@ endif()
       ${PROJECT_SOURCE_DIR}/../vendor/msdia140.dll
       $<TARGET_FILE_DIR:frontend>/msdia140.dll
   )
-	add_custom_command(
-	  TARGET frontend 
-	  POST_BUILD
-	  COMMAND ${CMAKE_COMMAND} -E copy_directory
-		  ${PROJECT_SOURCE_DIR}/../../fonts
-		  $<TARGET_FILE_DIR:frontend>/fonts
-	)
   add_custom_command(
 	  TARGET frontend 
 	  POST_BUILD
@@ -153,13 +150,22 @@ endif()
 		  ${PROJECT_SOURCE_DIR}/../vendor/libcurl.dll
 		  $<TARGET_FILE_DIR:frontend>/libcurl.dll
   )
-  add_custom_command(
+endif()
+
+add_custom_command(
 	TARGET frontend 
 	POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy
-		${PROJECT_SOURCE_DIR}/rc/icon.png
-		$<TARGET_FILE_DIR:frontend>/icon.png
+	COMMAND ${CMAKE_COMMAND} -E copy_directory
+		${PROJECT_SOURCE_DIR}/../../fonts
+		$<TARGET_FILE_DIR:frontend>/fonts
 )
-# endif()
+
+add_custom_command(
+TARGET frontend 
+POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy
+	${PROJECT_SOURCE_DIR}/rc/icon.png
+	$<TARGET_FILE_DIR:frontend>/icon.png
+)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "RiiStudio")

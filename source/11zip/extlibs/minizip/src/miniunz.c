@@ -12,6 +12,10 @@
          Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )
 */
 
+#ifdef __linux__
+#include <sys/stat.h>
+#endif
+
 #if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))
 #ifndef __USE_FILE_OFFSET64
                 #define __USE_FILE_OFFSET64
@@ -99,7 +103,7 @@ tm_unz tmu_date;
     SetFileTime(hFile, &ftm, &ftLastAcc, &ftm);
     CloseHandle(hFile);
 #else
-#ifdef unix || __APPLE__
+#if defined(unix) || __APPLE__
   struct utimbuf ut;
   struct tm newdate;
   newdate.tm_sec = tmu_date.tm_sec;

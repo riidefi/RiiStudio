@@ -1,6 +1,12 @@
 #include "IndexedPolygon.hpp"
 #include <librii/gl/Compiler.hpp>
 
+// For some reason I cannot comprehend, we need this to fix linking on Linux:
+#ifdef __linux__
+#include <librii/gl/Compiler.cpp>
+#include <librii/mtx/TexMtx.cpp>
+#endif
+
 namespace libcube {
 
 bool IndexedPolygon::hasAttrib(SimpleAttrib attrib) const {

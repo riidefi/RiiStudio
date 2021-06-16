@@ -1,3 +1,5 @@
+#ifndef __linux__
+
 #include "Arc.hpp"
 
 namespace riistudio::arc {
@@ -120,3 +122,5 @@ Archive::FstNode& Archive::getEntry(const Path& path) {
 }
 
 } // namespace riistudio::arc
+
+#endif

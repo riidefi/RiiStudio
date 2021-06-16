@@ -1,3 +1,5 @@
+#ifndef __linux__
+
 #include "Arc.hpp"
 #include <core/common.h>
 
@@ -164,3 +166,5 @@ void readArchive(Archive& dst, oishii::BinaryReader& reader) {
 }
 
 } // namespace riistudio::arc::u8
+
+#endif
