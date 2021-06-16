@@ -178,27 +178,27 @@
 /* #undef HAVE_STRERROR_R */
 
 /* Define to 1 if you have the `sysconf' function. */
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
 #define HAVE_SYSCONF 1
 #endif
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
 #define HAVE_SYS_IOCTL_H  1
 #endif
 
 /* Define to 1 if you have the <sys/mman.h> header file. */
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
 #define HAVE_SYS_MMAN_H	 1
 #endif
 
 /* Define to 1 if you have the <sys/param.h> header file. */
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
 #define HAVE_SYS_PARAM_H 1
 #endif
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
 #define HAVE_SYS_RESOURCE_H 1
 #endif
 
@@ -206,7 +206,7 @@
 #define HAVE_SYS_STAT_H 1
 
 /* Define to 1 if you have the <sys/time.h> header file. */
-#ifdef __EMSCRIPTEN
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
 #define HAVE_SYS_TIME_H 1
 #endif
 
@@ -229,7 +229,7 @@
 /* #undef HAVE_TERMIOS_H */
 
 /* Define to 1 if you have the <unistd.h> header file. */
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
 #define HAVE_UNISTD_H 1
 #endif
 

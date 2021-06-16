@@ -3,7 +3,8 @@
 // Refer to the license.txt file included.
 
 #include "BitTest.hpp"
-#if (defined(ENVIRONMENT32) && !defined(ENVIRONMENT64)) || defined(RII_PLATFORM_EMSCRIPTEN)
+#if (defined(ENVIRONMENT32) && !defined(ENVIRONMENT64)) ||                     \
+    defined(RII_PLATFORM_EMSCRIPTEN) || defined(__linux__)
 #include <algorithm>
 #include <cmath>
 

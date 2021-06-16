@@ -4,7 +4,7 @@
 
 #include "BitTest.hpp"
 
-#ifdef ENVIRONMENT64
+#if defined(ENVIRONMENT64) !defined(__linux__)
 #include <algorithm>
 #include <cmath>
 #include <cstring>
