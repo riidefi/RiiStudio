@@ -46,6 +46,8 @@ struct Polygon : public virtual kpi::IObject {
   virtual librii::math::AABB getBounds() const = 0;
 
   bool is_xlu_import = false;
+  bool is_local_space = false;
+  bool is_mask = false;
 };
 
 } // namespace riistudio::lib3d

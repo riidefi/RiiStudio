@@ -21,7 +21,7 @@ static void ReadKeyFrame(KeyFrame& out, std::span<const u8> data) {
 }
 
 static void WriteKeyFrame(std::span<u8> data, const KeyFrame& in) {
-  assert(data.size_bytes() == KeyFrameBinSize);
+  assert(data.size_bytes() >= KeyFrameBinSize);
 
   rsl::store<f32>(in.frame, data, 0);
   rsl::store<f32>(in.value, data, 4);
