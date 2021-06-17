@@ -1,4 +1,4 @@
-#ifdef RII_BACKEND_SDL
+#if defined(RII_BACKEND_SDL) && defined(__EMSCRIPTEN__)
 
 #include <plate/gl.hpp>
 

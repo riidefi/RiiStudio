@@ -14,7 +14,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   add_compile_options("-Wno-error")
 endif()
 
-if (WIN32) # Windows + GLFW
+if (WIN32 OR UNIX) # Windows + GLFW
   # Windows.h annoyance
   add_compile_definitions(NOMINMAX)
 

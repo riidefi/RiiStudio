@@ -16,8 +16,10 @@ bool Viewport::begin(unsigned width, unsigned height) {
 
   createFbo(width, height);
 
+#ifdef RII_GL
   glViewport(0, 0, width, height);
   glBindFramebuffer(GL_FRAMEBUFFER, mFboId);
+#endif
 
   return true;
 }
@@ -34,11 +36,13 @@ void Viewport::end() {
   const auto vert_ratio = region.x / static_cast<float>(mLastWidth);
   const auto horiz_ratio = region.y / static_cast<float>(mLastHeight);
 
-  // TODO
+// TODO
+#ifdef RII_GL
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   ImGui::Image(reinterpret_cast<void*>(mImageBufId),
                {static_cast<float>(region.x), static_cast<float>(region.y)},
                {0.0f, horiz_ratio}, {vert_ratio, .0f});
+#endif
 }
 
 void Viewport::createFbo(unsigned width, unsigned height) {
@@ -50,6 +54,7 @@ void Viewport::createFbo(unsigned width, unsigned height) {
 
   destroyFbo();
 
+#ifdef RII_GL
   glGenFramebuffers(1, &mFboId);
   glBindFramebuffer(GL_FRAMEBUFFER, mFboId);
 
@@ -70,15 +75,18 @@ void Viewport::createFbo(unsigned width, unsigned height) {
 
   assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
   setFboLoaded(true);
+#endif
 }
 
 void Viewport::destroyFbo() {
   if (!isFboLoaded())
     return;
 
+#ifdef RII_GL
   glDeleteFramebuffers(1, &mFboId);
   glDeleteTextures(1, &mImageBufId);
   glDeleteRenderbuffers(1, &mRboId);
+#endif
 
   setFboLoaded(false);
 }
