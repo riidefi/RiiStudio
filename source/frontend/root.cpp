@@ -26,6 +26,10 @@
 #include <sanitizer/lsan_interface.h>
 #endif
 
+namespace llvm {
+int DisableABIBreakingChecks;
+} // namespace llvm
+
 namespace riistudio::frontend {
 
 RootWindow* RootWindow::spInstance;

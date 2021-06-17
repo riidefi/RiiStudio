@@ -72,7 +72,7 @@ if (WIN32)
   endif()
   
 	target_link_libraries(frontend PUBLIC ${LINK_LIBS})
-else()
+elseif (NOT UNIX)
 	target_link_libraries(frontend PUBLIC
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
 	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libIrrXML.a
