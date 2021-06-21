@@ -30,9 +30,15 @@ namespace llvm {
 int DisableABIBreakingChecks;
 } // namespace llvm
 
+
+static bool gIsAdvancedMode = false;
+
+bool IsAdvancedMode() { return gIsAdvancedMode; }
+
 namespace riistudio::frontend {
 
 RootWindow* RootWindow::spInstance;
+
 
 #ifdef _WIN32
 static void GlCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
@@ -134,6 +140,8 @@ void RootWindow::draw() {
 #ifdef BUILD_DEBUG
         ImGui::Checkbox("ImGui Demo", &bDemo);
 #endif
+
+		ImGui::Checkbox("Advanced Mode", &gIsAdvancedMode);
 
         ImGui::EndMenu();
       }

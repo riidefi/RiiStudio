@@ -10,6 +10,8 @@
 
 #include <plugins/gc/Export/Scene.hpp>
 
+bool IsAdvancedMode();
+
 namespace riistudio::frontend {
 
 std::string NameObject(const kpi::IObject* obj, int i) {
@@ -23,13 +25,15 @@ std::string NameObject(const kpi::IObject* obj, int i) {
 
   std::string extra;
 
-  const libcube::IGCMaterial* mat =
-      dynamic_cast<const libcube::IGCMaterial*>(obj);
-  if (mat != nullptr) {
-    extra =
-        "  [#Stages=" + std::to_string(mat->getMaterialData().mStages.size()) +
-        ",#Samplers=" + std::to_string(mat->getMaterialData().samplers.size()) +
-        "]";
+  if (IsAdvancedMode()) {
+    const libcube::IGCMaterial* mat =
+        dynamic_cast<const libcube::IGCMaterial*>(obj);
+    if (mat != nullptr) {
+      extra = "  [#Stages=" +
+              std::to_string(mat->getMaterialData().mStages.size()) +
+              ",#Samplers=" +
+              std::to_string(mat->getMaterialData().samplers.size()) + "]";
+    }
   }
 
   return base + extra;
