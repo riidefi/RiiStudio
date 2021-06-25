@@ -417,7 +417,7 @@ class JRESScenePanel(bpy.types.Panel):
 	"""
 	Currently for texture caching
 	"""
-	bl_label = "RiiStusio Scene Options"
+	bl_label = "RiiStudio Scene Options"
 	bl_idname = "SCENE_PT_rstudio"
 	bl_space_type = 'PROPERTIES'
 	bl_region_type = 'WINDOW'
@@ -1106,7 +1106,7 @@ classes = (
 
 	BRRESTexturePanel,
 	JRESMaterialPanel,
-	JRESScenePanel,
+	# JRESScenePanel,
 
 	RiidefiStudioPreferenceProperty,
 	OBJECT_OT_addon_prefs_example
@@ -1238,11 +1238,11 @@ def register():
 		name="Is cached? Uncheck when changes are made",
 		default=False
 	)
-	# Scene Cache
-	bpy.types.Scene.jres_cache_dir = StringProperty(
-		name="Cache Directory Subname",
-		subtype='DIR_PATH'
-	)
+	#	# Scene Cache
+	#	bpy.types.Scene.jres_cache_dir = StringProperty(
+	#		name="Cache Directory Subname",
+	#		subtype='DIR_PATH'
+	#	)
 
 	for c in classes:
 		bpy.utils.register_class(c)
