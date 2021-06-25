@@ -10,6 +10,15 @@ static bool IsCustomLodConfig(const librii::g3d::TextureData& tex) {
          tex.maxLod != static_cast<float>(tex.number_of_images - 1);
 }
 
+static float GetLodMinConfig(const librii::g3d::TextureData& tex) {
+  return tex.custom_lod ? tex.minLod : 0.0f;
+}
+
+static float GetLodMaxConfig(const librii::g3d::TextureData& tex) {
+  return tex.custom_lod ? tex.maxLod
+                        : static_cast<float>(tex.number_of_images - 1);
+}
+
 bool ReadTexture(librii::g3d::TextureData& tex, std::span<const u8> data,
                  std::string_view name) {
   // Verify reads up to +0x34
@@ -92,21 +101,15 @@ bool WriteTexture(std::span<u8> data, const TextureData& tex, s32 brres_ofs,
   rsl::store<u16>(tex.height, data, 30);
   rsl::store<u32>(static_cast<u32>(tex.format), data, 32);
   rsl::store<u32>(tex.number_of_images, data, 36);
-  rsl::store<f32>(tex.custom_lod ? tex.minLod : 0.0f, data, 40);
-  rsl::store<f32>(tex.custom_lod ? tex.maxLod
-                                 : static_cast<f32>(tex.number_of_images - 1),
-                  data, 44);
+  rsl::store<f32>(GetLodMinConfig(tex), data, 40);
+  rsl::store<f32>(GetLodMaxConfig(tex), data, 44);
 
-  // TODO: Trash data here in old version?
-  // 0x40 << 24 output.. sometimes
-  //
-  // This doesn't have that bug
-  rsl::store<u32>(0, data, 44); // src path
+  rsl::store<u32>(0, data, 48); // src path
 
-  rsl::store<u32>(0, data, 48); // user data
+  rsl::store<u32>(0, data, 52); // user data
 
   // align
-  for (int i = 52; i < 64; i += sizeof(u32)) {
+  for (int i = 56; i < 64; i += sizeof(u32)) {
     rsl::store<u32>(0, data, i);
   }
 
@@ -114,7 +117,8 @@ bool WriteTexture(std::span<u8> data, const TextureData& tex, s32 brres_ofs,
   const u8* end = begin + ComputeImageSize(tex);
 
   // Checked above
-  std::memcpy(data.subspan(64, end - begin).data(), tex.data.data(), end - begin);
+  std::memcpy(data.subspan(64, end - begin).data(), tex.data.data(),
+              end - begin);
 
   return true;
 }

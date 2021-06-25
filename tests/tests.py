@@ -24,7 +24,7 @@ TEST_DATA = {
 	'55af17739e1f02f9cc3fe0cdf79195a0': '55af17739e1f02f9cc3fe0cdf79195a0',
 
 	# luigi_circuit.brres
-	'b84346d8549d38f4ba75a47eb87e9ca6': '1a52772aaecc438cb753f9f6277ce129'
+	'b84346d8549d38f4ba75a47eb87e9ca6': 'aed1087d902ae25333d3f9ce9cc259b9'
 }
 
 def hash(path):
