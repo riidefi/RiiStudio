@@ -2629,7 +2629,7 @@ bool ImGui::SliderScalar(const char* label, ImGuiDataType data_type, void* p_dat
             SetFocusID(id, window);
             FocusWindow(window);
             g.ActiveIdUsingNavDirMask |= (1 << ImGuiDir_Left) | (1 << ImGuiDir_Right);
-            if (focus_requested || (clicked && g.IO.KeyCtrl) || g.NavInputId == id)
+            if (focus_requested || (clicked && g.IO.KeyCtrl) || g.NavInputId == id || (hovered && ImGui::IsMouseDoubleClicked(0)))
             {
                 temp_input_start = true;
                 FocusableItemUnregister(window);
