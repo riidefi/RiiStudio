@@ -6,6 +6,8 @@
 #include <string>
 #include <vendor/llvm/Support/InitLLVM.h>
 
+bool gIsAdvancedMode = false;
+
 void save(const std::string_view path, kpi::INode& root) {
   printf("Writing to %s\n", std::string(path).c_str());
   oishii::Writer writer(1024);

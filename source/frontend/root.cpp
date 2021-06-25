@@ -31,7 +31,7 @@ int DisableABIBreakingChecks;
 } // namespace llvm
 
 
-static bool gIsAdvancedMode = false;
+bool gIsAdvancedMode = false;
 
 bool IsAdvancedMode() { return gIsAdvancedMode; }
 

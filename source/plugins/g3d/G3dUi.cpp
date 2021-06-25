@@ -26,9 +26,31 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, G3DDataSurface) {
   KPI_PROPERTY_EX(delegate, fogIndex, static_cast<s8>(fog));
 }
 
+struct G3DTexDataSurface final {
+  static inline const char* name = "BRRES Data";
+  static inline const char* icon = (const char*)ICON_FA_BOXES;
+};
+
+void drawProperty(kpi::PropertyDelegate<Texture>& delegate, G3DTexDataSurface) {
+  bool custom_lod = delegate.getActive().custom_lod;
+  ImGui::Checkbox("Custom Quality Range", &custom_lod);
+  KPI_PROPERTY_EX(delegate, custom_lod, custom_lod);
+
+  riistudio::util::ConditionalActive g(custom_lod);
+
+  float min = delegate.getActive().minLod;
+  ImGui::InputFloat("Maximum mipmap quality", &min);
+  KPI_PROPERTY_EX(delegate, minLod, min);
+
+  float max = delegate.getActive().maxLod;
+  ImGui::InputFloat("Maximum mipmap quality", &max);
+  KPI_PROPERTY_EX(delegate, maxLod, max);
+}
+
 kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins&) {
   auto& inst = kpi::PropertyViewManager::getInstance();
   inst.addPropertyView<Material, G3DDataSurface>();
+  inst.addPropertyView<Texture, G3DTexDataSurface, true>();
 });
 
 } // namespace riistudio::g3d::ui

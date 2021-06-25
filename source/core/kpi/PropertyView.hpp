@@ -12,6 +12,8 @@ namespace riistudio::frontend {
 class EditorWindow;
 }
 
+extern bool gIsAdvancedMode;
+
 namespace kpi {
 
 class PropertyViewStateHolder;
@@ -219,13 +221,16 @@ struct StatefulTestB {
 };
 static_assert(!is_stateful_v<StatefulTestB>, "Detecting tag_stateful");
 
-template <typename T, typename U>
+template <typename T, typename U, bool Advanced>
 struct PropertyViewImpl final : public IPropertyView {
   struct ViewStateImpl : public IPropertyViewState {
     U value;
   };
 
   bool isInDomain(IObject* test) const override {
+    if (Advanced && !gIsAdvancedMode)
+      return false;
+
     return dynamic_cast<T*>(test) != nullptr;
   }
   const std::string_view getName() const override { return U::name; }
@@ -270,8 +275,8 @@ struct PropertyViewManager {
                        return left->getName()[0] < right->getName()[0];
                      });
   }
-  template <typename TDomain, typename TTag> void addPropertyView() {
-    addPropertyView(std::make_unique<PropertyViewImpl<TDomain, TTag>>());
+  template <typename TDomain, typename TTag, bool advanced=false> void addPropertyView() {
+    addPropertyView(std::make_unique<PropertyViewImpl<TDomain, TTag, advanced>>());
   }
 
   template <typename T> void forEachView(T func, kpi::IObject& active) {
