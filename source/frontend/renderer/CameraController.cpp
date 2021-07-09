@@ -1,5 +1,6 @@
 #include "CameraController.hpp"
 #include <algorithm>
+#include <core/common.h>
 #include <glm/gtx/euler_angles.hpp>
 #include <imgui/imgui.h>
 
@@ -79,12 +80,12 @@ void CameraController::move(float time_step, ControllerType controller_type,
 }
 
 void CameraController::drawOptions() {
-  ImGui::SliderFloat("Mouse Speed", &mMouseSpeed, 0.0f, .2f);
-  ImGui::SliderFloat("Camera Speed", &mSpeed, MIN_SPEED, MAX_SPEED);
+  ImGui::SliderFloat("Mouse Speed"_j, &mMouseSpeed, 0.0f, .2f);
+  ImGui::SliderFloat("Camera Speed"_j, &mSpeed, MIN_SPEED, MAX_SPEED);
   ImGui::SliderFloat("FOV", &mCamera.mFOV, 1.0f, 180.0f);
 
-  ImGui::InputFloat("Near Plane", &mCamera.mClipMin);
-  ImGui::InputFloat("Far Plane", &mCamera.mClipMax);
+  ImGui::InputFloat("Near Plane"_j, &mCamera.mClipMin);
+  ImGui::InputFloat("Far Plane"_j, &mCamera.mClipMax);
 
   ImGui::DragFloat("X", &mCamera.mEye.x, .01f, -10, 30);
   ImGui::DragFloat("Y", &mCamera.mEye.y, .01f, -10, 30);

@@ -2,6 +2,7 @@
 
 #include <oishii/options.hxx>
 #include <oishii/types.hxx>
+#include <string_view>
 
 #ifndef assert
 #include <cassert>
@@ -12,7 +13,6 @@
 #define RII_NATIVE_GL_WIREFRAME
 #elif defined(RII_PLATFORM_EMSCRIPTEN)
 #endif
-
 
 #define LIB_RII_TO_STRING(v) __LIB_RII_TO_STRING(v)
 #define __LIB_RII_TO_STRING(v) #v
@@ -50,9 +50,16 @@ constexpr u32 roundUp(u32 in, u32 align) {
 #define MODULE_PRIVATE public
 #define MODULE_PUBLIC public
 
-
 #ifdef __clang__
 #define MAYBE_UNUSED [[maybe_unused]]
 #else
 #define MAYBE_UNUSED
 #endif
+
+namespace riistudio {
+const char* translateString(std::string_view str);
+} // namespace riistudio
+
+inline const char* operator"" _j(const char* str, size_t len) {
+  return riistudio::translateString({str, len});
+}

@@ -8,6 +8,10 @@
 
 bool gIsAdvancedMode = false;
 
+namespace riistudio {
+const char* translateString(std::string_view str) { return str.data(); }
+} // namespace riistudio
+
 void save(const std::string_view path, kpi::INode& root) {
   printf("Writing to %s\n", std::string(path).c_str());
   oishii::Writer writer(1024);

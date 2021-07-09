@@ -21,12 +21,14 @@ auto PolyDescriptorSurface =
             ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() / 3);
 
             int type = static_cast<int>(attrib.first);
-            ImGui::Combo("Attribute Type", &type, vertexAttribNames);
+            ImGui::Combo("Attribute Type"_j, &type, vertexAttribNames);
             int format = static_cast<int>(attrib.second);
             ImGui::SameLine();
-            ImGui::Combo(
-                "Attribute Format", &format,
-                "None\0Direct\0U8 / 8-bit / 0-255\0U16 / 16-bit / 0-65535\0");
+            ImGui::Combo("Attribute Format"_j, &format,
+                         "None\0"
+                         "Direct\0"
+                         "U8 / 8-bit / 0-255\0"
+                         "U16 / 16-bit / 0-65535\0"_j);
 
             ImGui::PopItemWidth();
           }

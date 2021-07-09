@@ -104,23 +104,23 @@ void Updater::draw() {
 
   const auto wflags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
-  ImGui::OpenPopup("RiiStudio Update");
-  if (ImGui::BeginPopupModal("RiiStudio Update", nullptr, wflags)) {
+  ImGui::OpenPopup("RiiStudio Update"_j);
+  if (ImGui::BeginPopupModal("RiiStudio Update"_j, nullptr, wflags)) {
     if (mIsInUpdate) {
-      ImGui::Text("Installing Riistudio %s..", mLatestVer.c_str());
+      ImGui::Text("Installing Riistudio %s.."_j, mLatestVer.c_str());
       ImGui::ProgressBar(mUpdateProgress);
     } else {
       ImGui::Text("A new version of RiiStudio (%s) was found. Would you like "
-                  "to update?",
+                  "to update?"_j,
                   mLatestVer.c_str());
-      if (ImGui::Button("Yes", ImVec2(170, 0))) {
+      if (ImGui::Button("Yes"_j, ImVec2(170, 0))) {
         if (!InstallUpdate() && mNeedAdmin) {
           RetryAsAdmin();
           // (Never reached)
         }
       }
       ImGui::SameLine();
-      if (ImGui::Button("No", ImVec2(170, 0))) {
+      if (ImGui::Button("No"_j, ImVec2(170, 0))) {
         mShowUpdateDialog = false;
         ImGui::CloseCurrentPopup();
       }

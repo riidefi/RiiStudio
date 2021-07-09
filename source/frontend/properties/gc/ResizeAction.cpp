@@ -55,9 +55,9 @@ bool ResizeAction::resize_draw(Texture& data, bool* changed) {
     resize[1].value = 1024;
   }
 
-  resizealgo = imcxx::Combo("Algorithm", resizealgo,
+  resizealgo = imcxx::Combo("Algorithm"_j, resizealgo,
                             "Ultimate\0"
-                            "Lanczos\0");
+                            "Lanczos\0"_j);
 
   if (ImGui::Button((const char*)ICON_FA_CHECK u8" Resize")) {
     printf("Do the resizing..\n");
@@ -92,7 +92,7 @@ librii::gx::TextureFormat TexFormatCombo(librii::gx::TextureFormat format) {
   if (format_int == 14) // Temporarily set CMPR to 7 for UI convenience.
     format_int = 7;
 
-  ImGui::Combo("Texture Format", &format_int,
+  ImGui::Combo("Texture Format"_j, &format_int,
                "I4\0"
                "I8\0"
                "IA4\0"
@@ -100,7 +100,7 @@ librii::gx::TextureFormat TexFormatCombo(librii::gx::TextureFormat format) {
                "RGB565\0"
                "RGB5A3\0"
                "RGBA8\0"
-               "CMPR\0");
+               "CMPR\0"_j);
 
   if (format_int == 7)
     format_int = 14; // Set CMPR back to its respective ID.
@@ -115,7 +115,8 @@ bool ReformatAction::reformat_draw(Texture& data, bool* changed) {
   reformatOpt = static_cast<int>(
       TexFormatCombo(static_cast<librii::gx::TextureFormat>(reformatOpt)));
 
-  if (ImGui::Button((const char*)ICON_FA_CHECK u8" Okay")) {
+  const auto ok = std::string((const char*)ICON_FA_CHECK u8" ") + "Okay"_j;
+  if (ImGui::Button(ok.c_str())) {
     const auto oldFormat = data.getTextureFormat();
     data.setTextureFormat(static_cast<librii::gx::TextureFormat>(reformatOpt));
     data.resizeData();
@@ -131,7 +132,9 @@ bool ReformatAction::reformat_draw(Texture& data, bool* changed) {
   }
   ImGui::SameLine();
 
-  if (ImGui::Button((const char*)ICON_FA_TIMES u8" Cancel")) {
+  const auto cancel =
+      std::string((const char*)ICON_FA_TIMES u8" ") + "Cancel"_j;
+  if (ImGui::Button(cancel.c_str())) {
     return false;
   }
 

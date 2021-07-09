@@ -215,7 +215,7 @@ void AssReader::read(kpi::IOTransaction& transaction) {
 }
 
 void AssReader::render() {
-  if (ImGui::CollapsingHeader("Importing Settings",
+  if (ImGui::CollapsingHeader("Importing Settings"_j,
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     //
     // Never enabled:
@@ -258,21 +258,22 @@ void AssReader::render() {
     // aiProcess_SplitByBoneCount - ?
     // aiProcess_Debone - TODO
     // aiProcess_GlobalScale
-    ImGui::InputFloat("Model Scale", &mMagnification);
+    ImGui::InputFloat("Model Scale"_j, &mMagnification);
     // aiProcess_ForceGenNormals - TODO
     // aiProcess_DropNormals - TODO
 
     int import_config = 0;
-    ImGui::Combo("Import Config", &import_config, "World (single bone)\0\0");
+    ImGui::Combo("Import Config"_j, &import_config, "World (single bone)\0\0");
   }
 
   if (ImGui::CollapsingHeader((const char*)ICON_FA_IMAGES u8" Mip Maps",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
-    ImGui::Checkbox("Generate Mipmaps", &mGenerateMipMaps);
+    ImGui::Checkbox("Generate Mipmaps"_j, &mGenerateMipMaps);
     {
       util::ConditionalActive g(mGenerateMipMaps);
       ImGui::Indent(50);
-      ImGui::SliderInt("Minimum mipmap dimension.", &mMinMipDimension, 1, 512);
+      ImGui::SliderInt("Minimum mipmap dimension."_j, &mMinMipDimension, 1,
+                       512);
       // round down to last power of two
       const int old = mMinMipDimension;
       int res = 0;
@@ -283,7 +284,7 @@ void AssReader::render() {
       if ((mMinMipDimension << 1) - old < old - mMinMipDimension)
         mMinMipDimension <<= 1;
 
-      ImGui::SliderInt("Maximum number of mipmaps.", &mMaxMipCount, 0, 8);
+      ImGui::SliderInt("Maximum number of mipmaps."_j, &mMaxMipCount, 0, 8);
 
       ImGui::Indent(-50);
     }
@@ -291,31 +292,31 @@ void AssReader::render() {
   if (ImGui::CollapsingHeader((const char*)ICON_FA_BRUSH u8" Material Settings",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Checkbox(
-        "Detect transparent textures, and configure materials accordingly.",
+        "Detect transparent textures, and configure materials accordingly."_j,
         &mAutoTransparent);
-    ImGui::CheckboxFlags("Combine identical materials", &ass_flags,
+    ImGui::CheckboxFlags("Combine identical materials"_j, &ass_flags,
                          aiProcess_RemoveRedundantMaterials);
-    ImGui::CheckboxFlags("Bake UV coord scale/rotate/translate", &ass_flags,
+    ImGui::CheckboxFlags("Bake UV coord scale/rotate/translate"_j, &ass_flags,
                          aiProcess_TransformUVCoords);
-    ImGui::ColorEdit3("Model Tint", model_tint.data());
+    ImGui::ColorEdit3("Model Tint"_j, model_tint.data());
   }
   if (ImGui::CollapsingHeader(
           (const char*)ICON_FA_PROJECT_DIAGRAM u8" Mesh Settings",
           ImGuiTreeNodeFlags_DefaultOpen)) {
     // aiProcess_FindDegenerates - TODO
-    ImGui::CheckboxFlags("Remove degenerate triangles", &ass_flags,
+    ImGui::CheckboxFlags("Remove degenerate triangles"_j, &ass_flags,
                          aiProcess_FindDegenerates);
     // aiProcess_FindInvalidData - TODO
-    ImGui::CheckboxFlags("Remove invalid data", &ass_flags,
+    ImGui::CheckboxFlags("Remove invalid data"_j, &ass_flags,
                          aiProcess_FindInvalidData);
     // aiProcess_FixInfacingNormals
-    ImGui::CheckboxFlags("Fix flipped normals", &ass_flags,
+    ImGui::CheckboxFlags("Fix flipped normals"_j, &ass_flags,
                          aiProcess_FixInfacingNormals);
     // aiProcess_OptimizeMeshes
-    ImGui::CheckboxFlags("Optimize meshes", &ass_flags,
+    ImGui::CheckboxFlags("Optimize meshes"_j, &ass_flags,
                          aiProcess_OptimizeMeshes);
     // aiProcess_OptimizeGraph
-    ImGui::CheckboxFlags("Compress bones (for static scenes)", &ass_flags,
+    ImGui::CheckboxFlags("Compress bones (for static scenes)"_j, &ass_flags,
                          aiProcess_OptimizeGraph);
   }
   if (ImGui::CollapsingHeader(

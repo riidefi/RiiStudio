@@ -12,7 +12,7 @@
 namespace riistudio::g3d::ui {
 
 struct G3DDataSurface final {
-  static inline const char* name = "BRRES Data";
+  static inline const char* name() { return "BRRES Data"; }
   static inline const char* icon = (const char*)ICON_FA_BOXES;
 };
 
@@ -27,7 +27,7 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, G3DDataSurface) {
 }
 
 struct G3DTexDataSurface final {
-  static inline const char* name = "BRRES Data";
+  static inline const char* name() { return "BRRES Data"; }
   static inline const char* icon = (const char*)ICON_FA_BOXES;
 };
 

@@ -233,7 +233,7 @@ struct PropertyViewImpl final : public IPropertyView {
 
     return dynamic_cast<T*>(test) != nullptr;
   }
-  const std::string_view getName() const override { return U::name; }
+  const std::string_view getName() const override { return U::name(); }
   const std::string_view getIcon() const override { return U::icon; }
   // TODO - IconDelegate to replace ref EditorWindow
   void draw(kpi::IObject& active, std::vector<IObject*> affected,
@@ -312,7 +312,7 @@ struct StatelessPropertyViewImpl : public IPropertyView {
   bool isInDomain(IObject* test) const override {
     return dynamic_cast<T*>(test) != nullptr;
   }
-  const std::string_view getName() const override { return mName; }
+  const std::string_view getName() const override { return riistudio::translateString(mName); }
   const std::string_view getIcon() const override { return mIcon; }
   void draw(kpi::IObject& active, std::vector<kpi::IObject*> affected,
             kpi::History& history, kpi::INode& root,

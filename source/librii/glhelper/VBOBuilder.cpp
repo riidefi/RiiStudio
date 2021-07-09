@@ -39,8 +39,8 @@ void VBOBuilder::build() {
   auto vertexAttribPointer = [&](GLuint index, GLint size, GLenum type,
                                  GLboolean normalized, GLsizei stride,
                                  const void* pointer) {
-    DebugReport("Index: %u, size: %i, stride: %i, ofs: %u\n", index, size,
-                stride, (u32)pointer);
+    DebugReport("Index: %u, size: %i, stride: %i, ofs: %p\n", index, size,
+                stride, pointer);
 
     assert(stride != 0);
 

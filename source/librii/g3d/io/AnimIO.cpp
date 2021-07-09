@@ -33,6 +33,7 @@ static void WriteKeyFrame(std::span<u8> data, const KeyFrame& in) {
 #pragma region Key Frame Collection : Variable
 static bool ReadKeyFrameCollection(KeyFrameCollection& out,
                                    std::span<const u8> data) {
+  return false;
   constexpr u32 header_size = 8;
   if (data.size_bytes() < header_size)
     return false;
@@ -64,7 +65,8 @@ static u32 CalcKeyFrameCollectionSize(u32 num_keys) {
   return header_size + KeyFrameBinSize * num_keys;
 }
 
-static void WriteKeyFrameCollection(std::span<u8> data,
+[[maybe_unused]] static void
+WriteKeyFrameCollection(std::span<u8> data,
                                     const KeyFrameCollection& in) {
   assert(data.size_bytes() >= CalcKeyFrameCollectionSize(in.data.size()));
   rsl::store<u16>(in.data.size(), data, 0);
@@ -113,7 +115,8 @@ static SrtControl ReadSrtControl(std::span<const u8> data) {
                     .wrap_mode = ReadAnimationWrapMode(data.subspan(8))};
 }
 
-static void WriteSrtControl(std::span<u8> data, const SrtControl& control) {
+[[maybe_unused]] static void WriteSrtControl(std::span<u8> data,
+                                             const SrtControl& control) {
   assert(data.size_bytes() >= SrtControlBinSize);
 
   rsl::store<u16>(control.frame_duration, data, 0);
@@ -164,7 +167,7 @@ static SrtTexDataHeader ReadSrtTexDataHeader(std::span<const u8> data) {
   return SrtTexDataHeader{.flags = rsl::load<u32>(data, 0)};
 }
 
-static void WriteSrtTexDataHeader(std::span<u8> data,
+[[maybe_unused]] static void WriteSrtTexDataHeader(std::span<u8> data,
                                   const SrtTexDataHeader& header) {
   assert(data.size_bytes() >= SrtTexDataHeaderBinSize);
 
@@ -250,7 +253,7 @@ static u32 CalcNumSrtTexDataAnimProperties(const SrtFlags& flags) {
   return counter;
 }
 
-static u32 CalcSrtTexDataSize(const SrtTexDataEx& data) {
+[[maybe_unused]] static u32 CalcSrtTexDataSize(const SrtTexDataEx& data) {
   return SrtTexDataHeaderBinSize +
          sizeof(s32) * CalcNumSrtTexDataAnimProperties(data.flags);
 }

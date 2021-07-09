@@ -4,7 +4,7 @@
 namespace libcube::UI {
 
 struct SwapTableSurface final {
-  static inline const char* name = "Swap Tables";
+  static inline const char* name() { return "Swap Tables"_j; }
   static inline const char* icon = (const char*)ICON_FA_SWATCHBOOK;
 };
 
@@ -15,20 +15,20 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   const char* colors = "Sample from Red\0"
                        "Sample from Green\0"
                        "Sample from Blue\0"
-                       "Sample from Alpha\0";
-  ImGui::BeginTable("Swap Tables", 5, ImGuiTableFlags_Borders);
-  ImGui::TableSetupColumn("Table ID");
-  ImGui::TableSetupColumn("Red Destination");
-  ImGui::TableSetupColumn("Green Destination");
-  ImGui::TableSetupColumn("Blue Destination");
-  ImGui::TableSetupColumn("Alpha Destination");
+                       "Sample from Alpha\0"_j;
+  ImGui::BeginTable("Swap Tables"_j, 5, ImGuiTableFlags_Borders);
+  ImGui::TableSetupColumn("Table ID"_j);
+  ImGui::TableSetupColumn("Red Destination"_j);
+  ImGui::TableSetupColumn("Green Destination"_j);
+  ImGui::TableSetupColumn("Blue Destination"_j);
+  ImGui::TableSetupColumn("Alpha Destination"_j);
   ImGui::TableAutoHeaders();
   ImGui::TableNextRow();
   for (int i = 0; i < matData.mSwapTable.size(); ++i) {
     ImGui::PushID(i);
     auto& swap = matData.mSwapTable[i];
 
-    ImGui::Text("Swap %i", i);
+    ImGui::Text("Swap %i"_j, i);
     ImGui::TableNextCell();
 
     auto r = imcxx::Combo("##R", swap.r, colors);

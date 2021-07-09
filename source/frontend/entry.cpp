@@ -3,10 +3,14 @@
 #include <memory>
 #include <vendor/llvm/Support/InitLLVM.h>
 
+#include <frontend/Localization.hpp>
+
 struct RootHolder {
   void create(int& argc, const char**& argv) {
     printf("Initializing LLVM\n");
     initLlvm = std::make_unique<llvm::InitLLVM>(argc, argv);
+
+	riistudio::MarkLocaleAPIReady();
 
     window = std::make_unique<riistudio::frontend::RootWindow>();
   }

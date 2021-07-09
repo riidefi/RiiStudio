@@ -10,7 +10,7 @@
 namespace libcube::UI {
 
 struct ShaderSurface final {
-  static inline const char* name = "Pixel Shader";
+  static inline const char* name() { return "Pixel Shader"_j; };
   static inline const char* icon = (const char*)ICON_FA_CODE;
 
   // Mark this surface to be more than an IDL tag.
@@ -31,12 +31,12 @@ void drawProperty(kpi::PropertyDelegate<riistudio::lib3d::Material>& delegate,
   // Reset val (after applie to observers)
   mat.applyCacheAgain = false;
 
-  if (ImGui::Button("Apply")) {
+  if (ImGui::Button("Apply"_j)) {
     mat.applyCacheAgain = true;
     mat.notifyObservers();
   }
   ImGui::SameLine();
-  if (ImGui::Button("Reset")) {
+  if (ImGui::Button("Reset"_j)) {
     mat.notifyObservers();
     surface.matKey = nullptr;
   }
@@ -69,7 +69,7 @@ void drawProperty(kpi::PropertyDelegate<riistudio::lib3d::Material>& delegate,
   surface.editor.SetErrorMarkers(tmp);
 
   ImGui::SetWindowFontScale(1.2f);
-  surface.editor.Render("Pixel Shader", ImGui::GetContentRegionAvail());
+  surface.editor.Render("Pixel Shader"_j, ImGui::GetContentRegionAvail());
   ImGui::SetWindowFontScale(1.0f);
 
   if (auto text = surface.editor.GetText();

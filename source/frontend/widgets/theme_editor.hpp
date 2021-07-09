@@ -11,13 +11,13 @@ bool DrawThemeEditor(ThemeManager::BasicTheme& theme, float& fontGlobalScale,
   bool changed = false;
 
   if (show == nullptr ||
-      ImGui::Begin("Theme Editor", show, ImGuiWindowFlags_AlwaysAutoResize)) {
+      ImGui::Begin("Theme Editor"_j, show, ImGuiWindowFlags_AlwaysAutoResize)) {
     int sel = static_cast<int>(theme);
-    ImGui::Combo("Theme", &sel, ThemeManager::ThemeNames);
+    ImGui::Combo("Theme"_j, &sel, ThemeManager::ThemeNames);
     if (sel != static_cast<int>(theme))
       changed = true;
     theme = static_cast<ThemeManager::BasicTheme>(sel);
-    ImGui::InputFloat("Font Scale", &fontGlobalScale, 0.1f, 2.0f);
+    ImGui::InputFloat("Font Scale"_j, &fontGlobalScale, 0.1f, 2.0f);
 
     if (show != nullptr)
       ImGui::End();

@@ -57,7 +57,7 @@ void ImagePreview::setFromImage(const lib3d::Texture& tex) {
 
 void ImagePreview::draw(float wd, float ht, bool mip_slider) {
   if (!mTexUploaded) {
-    ImGui::Text("No image to display");
+    ImGui::Text("No image to display"_j);
     return;
   }
 
@@ -72,7 +72,7 @@ void ImagePreview::draw(float wd, float ht, bool mip_slider) {
 #endif
 
   if (ImGui::BeginPopupContextWindow()) {
-    ImGui::SliderFloat("Image Preview Scale", &mScale, 0.0f, 10.0f);
+    ImGui::SliderFloat("Image Preview Scale"_j, &mScale, 0.0f, 10.0f);
     ImGui::EndPopup();
   }
 

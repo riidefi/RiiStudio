@@ -1,14 +1,35 @@
 #pragma once
 
+#include <core/common.h>
+
 namespace libcube::UI {
 
-inline const char* vertexAttribNames =
-    "PositionNormalMatrixIndex\0Texture0MatrixIndex\0Texture1MatrixIndex\0Tex"
-    "ture2MatrixIndex\0Texture3MatrixIndex\0Texture4MatrixIndex\0Texture5Matr"
-    "ixIndex\0Texture6MatrixIndex\0Texture7MatrixIndex\0Position\0Normal\0Col"
-    "or0\0Color1\0TexCoord0\0TexCoord1\0TexCoord2\0TexCoord3\0TexCoord4\0TexC"
-    "oord5\0TexCoord6\0TexCoord7\0PositionMatrixArray\0NormalMatrixArray\0Tex"
-    "tureMatrixArray\0LightArray\0NormalBinormalTangent\0";
+inline const char* vertexAttribNames = "PositionNormalMatrixIndex\0"
+                                       "Texture0MatrixIndex\0"
+                                       "Texture1MatrixIndex\0"
+                                       "Texture2MatrixIndex\0"
+                                       "Texture3MatrixIndex\0"
+                                       "Texture4MatrixIndex\0"
+                                       "Texture5MatrixIndex\0"
+                                       "Texture6MatrixIndex\0"
+                                       "Texture7MatrixIndex\0"
+                                       "Position\0"
+                                       "Normal\0"
+                                       "Color0\0"
+                                       "Color1\0"
+                                       "TexCoord0\0"
+                                       "TexCoord1\0"
+                                       "TexCoord2\0"
+                                       "TexCoord3\0"
+                                       "TexCoord4\0"
+                                       "TexCoord5\0"
+                                       "TexCoord6\0"
+                                       "TexCoord7\0"
+                                       "PositionMatrixArray\0"
+                                       "NormalMatrixArray\0"
+                                       "TextureMatrixArray\0"
+                                       "LightArray\0"
+                                       "NormalBinormalTangent\0";
 
 inline const char* vertexAttribNamesArray[] = {"PositionNormalMatrixIndex",
                                                "Texture0MatrixIndex",

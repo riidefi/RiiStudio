@@ -3,6 +3,7 @@
 #include <core/api.hpp>
 #include <core/util/gui.hpp>
 #include <core/util/timestamp.hpp>
+#include <frontend/Localization.hpp>
 #include <frontend/editor/EditorWindow.hpp>
 #include <frontend/widgets/fps.hpp>
 #include <frontend/widgets/fullscreen.hpp>
@@ -12,6 +13,7 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
 #include <pfd/portable-file-dialogs.h>
+
 // Experimental conversion
 #include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/Scene.hpp>
@@ -30,7 +32,6 @@ namespace llvm {
 int DisableABIBreakingChecks;
 } // namespace llvm
 
-
 bool gIsAdvancedMode = false;
 
 bool IsAdvancedMode() { return gIsAdvancedMode; }
@@ -38,7 +39,6 @@ bool IsAdvancedMode() { return gIsAdvancedMode; }
 namespace riistudio::frontend {
 
 RootWindow* RootWindow::spInstance;
-
 
 #ifdef _WIN32
 static void GlCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
@@ -96,13 +96,13 @@ void RootWindow::draw() {
     assert(ed || !hasChildren());
 
     if (ImGui::BeginMenuBar()) {
-      if (ImGui::BeginMenu("File")) {
+      if (ImGui::BeginMenu("File"_j)) {
 #if !defined(__EMSCRIPTEN__)
-        if (ImGui::MenuItem("Open")) {
+        if (ImGui::MenuItem("Open"_j)) {
           openFile();
         }
 #endif
-        if (ImGui::MenuItem("Save")) {
+        if (ImGui::MenuItem("Save"_j)) {
 
           if (ed) {
             DebugReport("Attempting to save to %s\n",
@@ -112,7 +112,7 @@ void RootWindow::draw() {
             else
               saveAs();
           } else {
-            printf("Cannot save.. nothing has been opened.\n");
+            printf("Cannot save.. nothing has been opened.\n"_j);
           }
         }
 #if !defined(__EMSCRIPTEN__)
@@ -120,7 +120,7 @@ void RootWindow::draw() {
           if (ed)
             saveAs();
           else
-            printf("Cannot save.. nothing has been opened.\n");
+            printf("Cannot save.. nothing has been opened.\n"_j);
         }
 #endif
         ImGui::EndMenu();
@@ -128,7 +128,7 @@ void RootWindow::draw() {
 
       if (ImGui::BeginMenu("Settings")) {
         bool _vsync = vsync;
-        ImGui::Checkbox("VSync", &_vsync);
+        ImGui::Checkbox("VSync"_j, &_vsync);
 
         if (_vsync != vsync) {
           setVsync(_vsync);
@@ -141,7 +141,41 @@ void RootWindow::draw() {
         ImGui::Checkbox("ImGui Demo", &bDemo);
 #endif
 
-		ImGui::Checkbox("Advanced Mode", &gIsAdvancedMode);
+        ImGui::Checkbox("Advanced Mode"_j, &gIsAdvancedMode);
+
+        ImGui::EndMenu();
+      }
+
+      if (ImGui::BeginMenu("Language")) {
+        static int locale = 0;
+
+        int locale_opt = locale;
+        ImGui::RadioButton("English", &locale_opt, 0);
+        ImGui::RadioButton("日本", &locale_opt, 1);
+
+        if (locale_opt != locale) {
+          locale = locale_opt;
+
+          const char* id_str = "English";
+          switch (locale) {
+          default:
+          case 0:
+            id_str = "English";
+            break;
+          case 1:
+            id_str = "Japanese";
+            break;
+          }
+
+          riistudio::SetLocale(id_str);
+        }
+
+        if (ImGui::Button("Dump Untranslated Strings"_j)) {
+          riistudio::DebugDumpLocaleMisses();
+        }
+        if (ImGui::Button("Reload Language .csv Files"_j)) {
+          riistudio::DebugReloadLocales();
+		}
 
         ImGui::EndMenu();
       }
@@ -169,10 +203,10 @@ void RootWindow::draw() {
       } else {
         const auto wflags = ImGuiWindowFlags_NoCollapse;
 
-        ImGui::OpenPopup("Importer");
+        ImGui::OpenPopup("Importer"_j);
 
         ImGui::SetNextWindowSize({800.0f, 00.0f});
-        ImGui::BeginPopupModal("Importer", nullptr, wflags);
+        ImGui::BeginPopupModal("Importer"_j, nullptr, wflags);
         window.draw();
         ImGui::EndPopup();
       }
@@ -212,7 +246,8 @@ void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
   attachWindow(std::move(editor));
 }
 
-RootWindow::RootWindow() : Applet(std::string("RiiStudio ") + RII_TIME_STAMP) {
+RootWindow::RootWindow()
+    : Applet(std::string("RiiStudio "_j) + RII_TIME_STAMP) {
 #ifdef _WIN32
   glDebugMessageCallback(GlCallback, 0);
 #endif
@@ -248,17 +283,17 @@ void RootWindow::saveAs() {
   const kpi::INode* node = &ed->getDocument().getRoot();
 
   if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
-    filters.push_back("Binary Model Data (*.bmd)");
+    filters.push_back("Binary Model Data (*.bmd)"_j);
     filters.push_back("*.bmd");
   } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) != nullptr) {
-    filters.push_back("Binary Resource (*.brres)");
+    filters.push_back("Binary Resource (*.brres)"_j);
     filters.push_back("*.brres");
   }
 
   filters.push_back("All Files");
   filters.push_back("*");
 
-  auto results = pfd::save_file("Save File", "", filters).result();
+  auto results = pfd::save_file("Save File"_j, "", filters).result();
   if (results.empty())
     return;
 

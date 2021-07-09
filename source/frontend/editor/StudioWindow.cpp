@@ -10,7 +10,7 @@ StudioWindow::StudioWindow(const std::string& name, bool dockspace)
 }
 
 std::string StudioWindow::idIfy(std::string in) {
-  std::string out = in + "##";
+  std::string out = std::string(riistudio::translateString(in)) + "##";
   if (getParent() != nullptr &&
       dynamic_cast<StudioWindow*>(getParent()) != nullptr) {
     out += reinterpret_cast<StudioWindow*>(getParent())->mName;
@@ -18,7 +18,7 @@ std::string StudioWindow::idIfy(std::string in) {
   return out;
 }
 std::string StudioWindow::idIfyChild(std::string title) {
-  return title + "##" + mName;
+  return std::string(riistudio::translateString(title)) + "##" + mName;
 }
 void StudioWindow::draw() {
   StudioWindow* parent = dynamic_cast<StudioWindow*>(getParent());

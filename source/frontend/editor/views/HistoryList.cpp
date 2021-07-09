@@ -23,22 +23,40 @@ HistoryList::HistoryList(kpi::History& host, kpi::INode& root)
 
 HistoryList::~HistoryList() {}
 
+static bool replace(std::string& str, const std::string& from,
+                    const std::string& to) {
+  size_t start_pos = str.find(from);
+  if (start_pos == std::string::npos)
+    return false;
+  str.replace(start_pos, from.length(), to);
+  return true;
+}
+
+static std::string IconString(const char* base, const char* icon) {
+  std::string result = riistudio::translateString(base);
+  replace(result, "[ICON]", (char*)icon);
+  return result;
+}
+
 void HistoryList::draw_() {
-  if (ImGui::Button((const char*)u8"Commit " ICON_FA_SAVE)) {
+  std::string commit = IconString("Commit [ICON]", (char*)ICON_FA_SAVE);
+  if (ImGui::Button(commit.c_str())) {
     mHost.commit(mRoot);
   }
 
-  if (ImGui::SameLine(); ImGui::Button((const char*)u8"Undo " ICON_FA_UNDO)) {
+  std::string undo = IconString("Undo [ICON]", (char*)ICON_FA_UNDO);
+  if (ImGui::SameLine(); ImGui::Button(undo.c_str())) {
     mHost.undo(mRoot);
   }
 
-  if (ImGui::SameLine(); ImGui::Button((const char*)u8"Redo " ICON_FA_REDO)) {
+  std::string redo = IconString("Redo [ICON]", (char*)ICON_FA_REDO);
+  if (ImGui::SameLine(); ImGui::Button(redo.c_str())) {
     mHost.redo(mRoot);
   }
 
-  ImGui::BeginChild("Record List");
+  ImGui::BeginChild("Record List"_j);
   for (std::size_t i = 0; i < mHost.size(); ++i) {
-    ImGui::Text("(%s) History #%u", i == mHost.cursor() ? "X" : " ",
+    ImGui::Text("(%s) History #%u"_j, i == mHost.cursor() ? "X" : " ",
                 static_cast<u32>(i));
   }
   ImGui::EndChild();

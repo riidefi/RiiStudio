@@ -57,15 +57,15 @@ void Renderer::render(u32 width, u32 height, bool& showCursor) {
 
 void Renderer::drawMenuBar() {
   if (ImGui::BeginMenuBar()) {
-    if (ImGui::BeginMenu("Camera")) {
+    if (ImGui::BeginMenu("Camera"_j)) {
       mCameraController.drawOptions();
 
       ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu("Rendering")) {
-      ImGui::Checkbox("Render", &rend);
+    if (ImGui::BeginMenu("Rendering"_j)) {
+      ImGui::Checkbox("Render Scene?"_j, &rend);
 #ifdef RII_NATIVE_GL_WIREFRAME
-      ImGui::Checkbox("Wireframe", &wireframe);
+      ImGui::Checkbox("Wireframe Mode"_j, &wireframe);
 #endif
       ImGui::EndMenu();
     }

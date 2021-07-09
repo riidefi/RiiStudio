@@ -19,29 +19,29 @@ librii::gx::Color ColorEditU8(const char* name, librii::gx::Color clr) {
   return fclr;
 }
 struct ColorSurface final {
-  static inline const char* name = "Colors";
+  static inline const char* name() { return "Colors"_j; }
   static inline const char* icon = (const char*)ICON_FA_PAINT_BRUSH;
 };
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
   auto& matData = delegate.getActive().getMaterialData();
 
-  if (ImGui::CollapsingHeader("TEV Color Registers",
+  if (ImGui::CollapsingHeader("TEV Color Registers"_j,
                               ImGuiTreeNodeFlags_DefaultOpen)) {
 
     // TODO: Is CPREV default state accessible?
     for (std::size_t i = 0; i < 4; ++i) {
-      auto color_name = std::string("Color Register ") + std::to_string(i);
+      auto color_name = std::string("Color Register "_j) + std::to_string(i);
       auto sclr = ColorEditS10(color_name.c_str(), matData.tevColors[i]);
 
       AUTO_PROP(tevColors[i], sclr);
     }
   }
 
-  if (ImGui::CollapsingHeader("TEV Constant Colors",
+  if (ImGui::CollapsingHeader("TEV Constant Colors"_j,
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     for (std::size_t i = 0; i < 4; ++i) {
-      auto color_name = std::string("Constant Register ") + std::to_string(i);
+      auto color_name = std::string("Constant Register "_j) + std::to_string(i);
       auto uclr = ColorEditU8(color_name.c_str(), matData.tevKonstColors[i]);
 
       AUTO_PROP(tevKonstColors[i], uclr);

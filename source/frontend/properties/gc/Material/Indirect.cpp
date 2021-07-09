@@ -7,7 +7,7 @@ namespace libcube::UI {
 using namespace riistudio::util;
 
 struct IndirectSurface final {
-  static inline const char* name = "Displacement Mapping";
+  static inline const char* name() { return "Displacement Mapping"_j; }
   static inline const char* icon = (const char*)ICON_FA_WATER;
 };
 
@@ -22,20 +22,20 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
     std::array<bool, 4> opened{};
 
-    if (ImGui::Button("Add a Configuration")) {
+    if (ImGui::Button("Add a Configuration"_j)) {
       stages.push_back({});
       delegate.commit("Added Indirect Configuration");
     }
-    if (ImGui::BeginTabBar("Configurations",
+    if (ImGui::BeginTabBar("Configurations"_j,
                            ImGuiTabBarFlags_AutoSelectNewTabs |
                                ImGuiTabBarFlags_FittingPolicyResizeDown)) {
       for (int i = 0; i < stages.size(); ++i) {
         opened[i] = true;
-        auto title = std::string("Configuration ") + std::to_string(i);
+        auto title = std::string("Configuration "_j) + std::to_string(i);
         if (ImGui::BeginTabItem(title.c_str(), &opened[i])) {
           auto& conf = matData.indirectStages[i];
           if (conf.order.refCoord != conf.order.refMap) {
-            ImGui::Text("Invalid configuration");
+            ImGui::Text("Invalid configuration"_j);
           } else {
             const int texid =
                 SamplerCombo(conf.order.refMap, matData.samplers,
@@ -57,8 +57,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                     "1/128x\0"
                                     "1/256x\0";
 
-            auto u_scale = imcxx::Combo("U Scale", conf.scale.U, scale_opt);
-            auto v_scale = imcxx::Combo("V Scale", conf.scale.V, scale_opt);
+            auto u_scale = imcxx::Combo("U Scale"_j, conf.scale.U, scale_opt);
+            auto v_scale = imcxx::Combo("V Scale"_j, conf.scale.V, scale_opt);
 
             AUTO_PROP(indirectStages[i].scale.U, u_scale);
             AUTO_PROP(indirectStages[i].scale.V, v_scale);

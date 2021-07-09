@@ -40,7 +40,7 @@ auto PolyDataSurface =
 
           auto draw_mp = [&](int i) {
             auto& mprim = mesh_data.mMatrixPrimitives[i];
-            ImGui::Text("Default Matrix: %i", (int)mprim.mCurrentMatrix);
+            ImGui::Text("Default Matrix: %i"_j, (int)mprim.mCurrentMatrix);
 
             const int attrib_cnt = std::count_if(
                 desc.mAttributes.begin(), desc.mAttributes.end(),
@@ -52,14 +52,15 @@ auto PolyDataSurface =
                 ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
                 ImGuiTableFlags_Sortable;
-            if (ImGui::BeginTable("Vertex data", 2 + attrib_cnt, table_flags)) {
+            if (ImGui::BeginTable("Vertex data"_j, 2 + attrib_cnt,
+                                  table_flags)) {
               u32 q = 0;
               ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
               ImGui::TableSetColumnIndex(0);
-              ImGui::Text("Primitive Index");
+              ImGui::Text("Primitive Index"_j);
               ImGui::TableSetColumnIndex(1);
-              ImGui::Text("Vertex Index");
+              ImGui::Text("Vertex Index"_j);
               for (auto& e : poly.getVcd().mAttributes) {
                 if (e.second == gx::VertexAttributeType::None)
                   continue;
@@ -71,8 +72,9 @@ auto PolyDataSurface =
                 ++q;
               }
               static const std::array<std::string, 8> prim_types{
-                  "Quads",        "QuadStrips", "Triangles",  "TriangleStrips",
-                  "TriangleFans", "Lines",      "LineStrips", "Points"};
+                  "Quads"_j,          "QuadStrips"_j,   "Triangles"_j,
+                  "TriangleStrips"_j, "TriangleFans"_j, "Lines"_j,
+                  "LineStrips"_j,     "Points"_j};
 
               for (int j = 0;
                    j <
@@ -85,7 +87,8 @@ auto PolyDataSurface =
                     (std::string("#") + std::to_string(j) + " (" +
                      prim_types[static_cast<int>(poly.getMeshData()
                                                      .mMatrixPrimitives[i]
-                                                     .mPrimitives[j].mType)] +
+                                                     .mPrimitives[j]
+                                                     .mType)] +
                      ")")
                         .c_str(),
                     ImGuiTreeNodeFlags_SpanFullWidth |
@@ -100,11 +103,11 @@ auto PolyDataSurface =
             }
           };
 
-          if (ImGui::BeginTabBar("Matrix Primitives")) {
+          if (ImGui::BeginTabBar("Matrix Primitives"_j)) {
             for (int i = 0; i < poly.getMeshData().mMatrixPrimitives.size();
                  ++i) {
               if (ImGui::BeginTabItem(
-                      (std::string("Matrix Prim: ") + std::to_string(i))
+                      (std::string("Matrix Prim: "_j) + std::to_string(i))
                           .c_str())) {
                 draw_mp(i);
                 ImGui::EndTabItem();

@@ -35,7 +35,7 @@ void exportImage(const Texture& tex, u32 export_lod) {
   librii::STBImage imgType = librii::STBImage::PNG;
 
 #ifdef RII_PLATFORM_WINDOWS
-  auto results = pfd::save_file("Export image", "", StdImageFilters);
+  auto results = pfd::save_file("Export image"_j, "", StdImageFilters);
   if (results.result().empty())
     return;
   path = results.result();
@@ -63,7 +63,7 @@ void exportImage(const Texture& tex, u32 export_lod) {
 }
 
 void importImage(Texture& tex, u32 import_lod) {
-  auto result = pfd::open_file("Import image", "", StdImageFilters).result();
+  auto result = pfd::open_file("Import image"_j, "", StdImageFilters).result();
   if (!result.empty()) {
     const auto path = result[0];
     int width, height, channels;
@@ -97,16 +97,16 @@ class ImageActions : public kpi::ActionMenu<Texture, ImageActions>,
   // Return true if the state of obj was mutated (add to history)
 public:
   bool _context(Texture& tex) {
-    if (ImGui::MenuItem("Resize")) {
+    if (ImGui::MenuItem("Resize"_j)) {
       resize_reset();
       resize = true;
     }
-    if (ImGui::MenuItem("Reformat")) {
+    if (ImGui::MenuItem("Reformat"_j)) {
       reformat_reset();
       reformat = true;
     }
 
-    if (ImGui::BeginMenu("Export")) {
+    if (ImGui::BeginMenu("Export"_j)) {
       if (lastTex != &tex) {
         mImg.clear();
         mImg.resize(tex.getMipmapCount() + 1);
@@ -118,7 +118,7 @@ public:
       export_lod = -1;
 
       mImg[0].draw(75, 75, false);
-      if (ImGui::MenuItem("Base Image (LOD 0)")) {
+      if (ImGui::MenuItem("Base Image (LOD 0)"_j)) {
         export_lod = 0;
       }
       if (tex.getMipmapCount() > 0) {
@@ -135,7 +135,7 @@ public:
       ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu("Import")) {
+    if (ImGui::BeginMenu("Import"_j)) {
       if (lastTex != &tex) {
         mImg.clear();
         mImg.resize(tex.getMipmapCount() + 1);
@@ -147,7 +147,7 @@ public:
       import_lod = -1;
 
       mImg[0].draw(75, 75, false);
-      if (ImGui::MenuItem("Base Image (LOD 0)")) {
+      if (ImGui::MenuItem("Base Image (LOD 0)"_j)) {
         import_lod = 0;
       }
       if (tex.getMipmapCount() > 0) {
@@ -223,7 +223,7 @@ public:
 struct ImageSurface final : public riistudio::lib3d::Texture::IObserver,
                             public ResizeAction,
                             public ReformatAction {
-  static inline const char* name = "Image Data";
+  static inline const char* name() { return "Image Data"; }
   static inline const char* icon = (const char*)ICON_FA_IMAGE;
 
   // Mark this surface to be more than an IDL tag.

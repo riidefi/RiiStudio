@@ -21,7 +21,7 @@ auto BoneDisplaySurface =
                                                u8"currently support "
                                                u8"multi-selection.");
 
-          if (ImGui::Button("Sort")) {
+          if (ImGui::Button("Sort"_j)) {
             auto* gb = dynamic_cast<librii::g3d::BoneData*>(&bone);
             if (gb) {
               std::stable_sort(
@@ -31,7 +31,7 @@ auto BoneDisplaySurface =
             delegate.commit("Sorted");
           }
 
-          if (ImGui::Button("Make materials unique")) {
+          if (ImGui::Button("Make materials unique"_j)) {
             auto* gb = dynamic_cast<librii::g3d::BoneData*>(&bone);
             if (gb) {
               riistudio::lib3d::Model* pMdl =
@@ -76,7 +76,7 @@ auto BoneDisplaySurface =
             }
             delegate.commit("Material Unique Pass");
           }
-          if (ImGui::Button("Name Materials By Polygons")) {
+          if (ImGui::Button("Name Materials By Polygons"_j)) {
             auto* gb = dynamic_cast<librii::g3d::BoneData*>(&bone);
             if (gb) {
               riistudio::lib3d::Model* pMdl =
@@ -120,7 +120,7 @@ auto BoneDisplaySurface =
           const auto entry_flags =
               ImGuiTableFlags_Borders | ImGuiTableFlags_Sortable |
               ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable;
-          if (ImGui::BeginTable("Entries", 4, entry_flags)) {
+          if (ImGui::BeginTable("Entries"_j, 4, entry_flags)) {
             const riistudio::lib3d::Model* pMdl =
                 dynamic_cast<const riistudio::lib3d::Model*>(
                     dynamic_cast<const kpi::IObject*>(&bone)->childOf);
@@ -130,13 +130,13 @@ auto BoneDisplaySurface =
             ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
             ImGui::TableSetColumnIndex(0);
-            ImGui::Text("ID");
+            ImGui::Text("ID"_j);
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text("Material");
+            ImGui::Text("Material"_j);
             ImGui::TableSetColumnIndex(2);
-            ImGui::Text("Polygon");
+            ImGui::Text("Polygon"_j);
             ImGui::TableSetColumnIndex(3);
-            ImGui::Text("Sorting Priority");
+            ImGui::Text("Sorting Priority"_j);
 
             for (int i = 0; i < bone.getNumDisplays(); ++i) {
               ImGui::TableNextRow();
@@ -149,17 +149,17 @@ auto BoneDisplaySurface =
 
               ImGui::TableSetColumnIndex(1);
               int matId = display.matId;
-              folder_id_combo("Material", materials, matId);
+              folder_id_combo("Material"_j, materials, matId);
               display.matId = matId;
 
               ImGui::TableSetColumnIndex(2);
               int polyId = display.polyId;
-              folder_id_combo("Polygon", polys, polyId);
+              folder_id_combo("Polygon"_j, polys, polyId);
               display.polyId = polyId;
 
               ImGui::TableSetColumnIndex(3);
               int prio = display.prio;
-              ImGui::InputInt("Sorting Priority", &prio);
+              ImGui::InputInt("Sorting Priority"_j, &prio);
               display.prio = prio;
 
               if (!(bone.getDisplay(i) == display)) {

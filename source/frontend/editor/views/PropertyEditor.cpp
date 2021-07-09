@@ -88,10 +88,10 @@ void PropertyEditor::DrawTabWidget(bool compact) {
   if (compact)
     ImGui::PushItemWidth(150);
 
-  mMode = imcxx::Combo(compact ? "##Property Mode" : "Property Mode", mMode,
+  mMode = imcxx::Combo(compact ? "##Property Mode" : "Property Mode"_j, mMode,
                        "Tabs\0"
                        "Vertical Tabs\0"
-                       "Headers\0");
+                       "Headers\0"_j);
   if (compact)
     ImGui::PopItemWidth();
 }
@@ -99,7 +99,7 @@ void PropertyEditor::DrawTabWidget(bool compact) {
 void PropertyEditor::DrawHorizTabs(kpi::PropertyViewManager& manager,
                                    kpi::IPropertyView* activeTab,
                                    std::vector<kpi::IObject*>& selected) {
-  if (ImGui::BeginTabBar("Pane")) {
+  if (ImGui::BeginTabBar("Pane"_j)) {
     int i = 0;
     std::string title;
     manager.forEachView(
@@ -126,7 +126,7 @@ void PropertyEditor::DrawHorizTabs(kpi::PropertyViewManager& manager,
   if (activeTab == nullptr) {
     mActiveTab = 0;
 
-    ImGui::Text("Invalid Pane");
+    ImGui::Text("Invalid Pane"_j);
     return;
   }
 
@@ -165,7 +165,7 @@ void PropertyEditor::DrawVertTabs(kpi::PropertyViewManager& manager,
     if (activeTab == nullptr) {
       mActiveTab = 0;
 
-      ImGui::Text("Invalid Pane");
+      ImGui::Text("Invalid Pane"_j);
     } else {
       activeTab->draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
     }
@@ -233,7 +233,7 @@ void PropertyEditor::draw_() {
   auto& manager = kpi::PropertyViewManager::getInstance();
 
   if (mActive == nullptr) {
-    ImGui::Text("Nothing is selected.");
+    ImGui::Text("Nothing is selected."_j);
     return;
   }
 

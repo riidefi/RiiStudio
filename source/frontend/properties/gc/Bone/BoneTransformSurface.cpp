@@ -13,21 +13,21 @@ auto bone_transform_ui = [](kpi::PropertyDelegate<IBoneDelegate>& delegate) {
   glm::vec3 rot = srt.rotation;
   glm::vec3 pos = srt.translation;
 
-  ImGui::SliderFloat3("Scale", &scl.x, 0.01f, 100.0f);
+  ImGui::SliderFloat3("Scale"_j, &scl.x, 0.01f, 100.0f);
   delegate.property(
       bone.getScale(), scl, [](const auto& x) { return x.getScale(); },
       [](auto& x, const auto& y) { x.setScale(y); });
 
-  ImGui::SliderFloat3("Rotation", &rot.x, 0.0f, 360.0f);
+  ImGui::SliderFloat3("Rotation"_j, &rot.x, 0.0f, 360.0f);
   delegate.property(
       bone.getRotation(), rot, [](const auto& x) { return x.getRotation(); },
       [](auto& x, const auto& y) { x.setRotation(y); });
-  ImGui::SliderFloat3("Translation", &pos.x, -1000.0f, 1000.0f);
+  ImGui::SliderFloat3("Translation"_j, &pos.x, -1000.0f, 1000.0f);
   delegate.property(
       bone.getTranslation(), pos,
       [](const auto& x) { return x.getTranslation(); },
       [](auto& x, const auto& y) { x.setTranslation(y); });
-  ImGui::Text("Parent ID: %i", (int)bone.getBoneParent());
+  ImGui::Text("Parent ID: %i"_j, (int)bone.getBoneParent());
 };
 
 kpi::StatelessPropertyView<libcube::IBoneDelegate>

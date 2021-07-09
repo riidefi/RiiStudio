@@ -11,7 +11,7 @@ namespace libcube::UI {
 void addSampler(libcube::GCMaterialData& d) {
   if (d.texGens.size() != d.samplers.size() || d.texGens.size() == 10 ||
       d.samplers.size() == 8 || d.texMatrices.size() == 10) {
-    printf("[Warning] Cannot add sampler on material %s\n", d.name.c_str());
+    printf("[Warning] Cannot add sampler on material %s\n"_j, d.name.c_str());
     return;
   }
 
@@ -53,7 +53,7 @@ void addSampler(kpi::PropertyDelegate<libcube::IGCMaterial>& delegate) {
 using namespace riistudio::util;
 
 struct SamplerSurface final {
-  static inline const char* name = "Samplers";
+  static inline const char* name() { return "Samplers"_j; }
   static inline const char* icon = (const char*)ICON_FA_IMAGES;
 
   // Mark this surface to be more than an IDL tag.
@@ -75,7 +75,7 @@ void drawSamplerImage(const kpi::ConstCollectionRange<libcube::Texture>& mImgs,
   }
 
   if (curImg == nullptr) {
-    ImGui::Text("No valid image.");
+    ImGui::Text("No valid image."_j);
   } else {
     if (surface.mLastImg != curImg->getName()) {
       surface.mImg.setFromImage(*curImg);
@@ -101,7 +101,7 @@ librii::gx::AnisotropyLevel DrawAniso(librii::gx::AnisotropyLevel alvl) {
     break;
   }
 
-  ImGui::SliderInt("Anisotropic filtering level", &maxaniso, 1, 4);
+  ImGui::SliderInt("Anisotropic filtering level"_j, &maxaniso, 1, 4);
 
   switch (maxaniso) {
   default:
@@ -116,7 +116,7 @@ librii::gx::AnisotropyLevel DrawAniso(librii::gx::AnisotropyLevel alvl) {
 }
 
 librii::gx::TexGenSrc DrawTGSource(librii::gx::TexGenSrc source) {
-  return imcxx::Combo("Source data", source,
+  return imcxx::Combo("Source data"_j, source,
                       "Position\0"
                       "Normal\0"
                       "Binormal\0"
@@ -137,31 +137,31 @@ librii::gx::TexGenSrc DrawTGSource(librii::gx::TexGenSrc source) {
                       "Bump UV5\0"
                       "Bump UV6\0"
                       "Color Channel 0\0"
-                      "Color Channel 1\0");
+                      "Color Channel 1\0"_j);
 }
 
 librii::hx::BaseTexGenFunction
 DrawBaseTGFunc(librii::hx::BaseTexGenFunction func) {
-  return imcxx::Combo("Function", func,
+  return imcxx::Combo("Function"_j, func,
                       "Standard Texture Matrix\0"
                       "Bump Mapping: Use vertex lighting calculation result.\0"
                       "SRTG: Map R(ed) and G(reen) components of a color "
-                      "channel to U/V coordinates\0");
+                      "channel to U/V coordinates\0"_j);
 }
 
 libcube::GCMaterialData::CommonTransformModel
 DrawCommXModel(libcube::GCMaterialData::CommonTransformModel mdl, bool is_j3d) {
   int xfmodel = static_cast<int>(mdl);
   if (is_j3d) {
-    ImGui::Combo("Transform Model", &xfmodel,
+    ImGui::Combo("Transform Model"_j, &xfmodel,
                  "Basic (Not Recommended)\0"
-                 "Maya\0");
+                 "Maya\0"_j);
   } else {
     --xfmodel;
-    ImGui::Combo("Transform Model", &xfmodel,
+    ImGui::Combo("Transform Model"_j, &xfmodel,
                  "Maya\0"
                  "3DS Max\0"
-                 "Softimage XSI\0");
+                 "Softimage XSI\0"_j);
     ++xfmodel;
   }
 
@@ -194,14 +194,14 @@ auto DrawCommMapMethod(libcube::GCMaterialData::CommonMappingMethod method) {
     mapMethod = 6;
     break;
   }
-  ImGui::Combo("Mapping method", &mapMethod,
+  ImGui::Combo("Mapping method"_j, &mapMethod,
                "Standard Mapping\0"
                "Environment Mapping\0"
                "View Projection Mapping\0"
                "Manual Projection Mapping\0"
                "Environment Light Mapping\0"
                "Environment Specular Mapping\0"
-               "Manual Environment Mapping\0");
+               "Manual Environment Mapping\0"_j);
 
   using cmm = libcube::GCMaterialData::CommonMappingMethod;
   switch (mapMethod) {
@@ -225,10 +225,10 @@ auto DrawCommMapMethod(libcube::GCMaterialData::CommonMappingMethod method) {
 
 auto DrawCommMapMod(libcube::GCMaterialData::CommonMappingOption mod) {
   return imcxx::Combo(
-      "Option", mod,
+      "Option"_j, mod,
       "Standard\0"
       "J3D Basic: Don't remap into texture space (Keep -1..1 not 0...1)\0"
-      "J3D Old: Keep translation column.\0");
+      "J3D Old: Keep translation column.\0"_j);
 }
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
@@ -236,15 +236,15 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   auto& matData = delegate.getActive().getMaterialData();
 
   if (matData.texGens.size() != matData.samplers.size()) {
-    ImGui::Text("Cannot edit: source data is invalid!");
+    ImGui::Text("Cannot edit: source data is invalid!"_j);
     return;
   }
 
-  if (ImGui::Button("Add Sampler")) {
+  if (ImGui::Button("Add Sampler"_j)) {
     addSampler(delegate);
   }
 
-  if (ImGui::BeginTabBar("Textures")) {
+  if (ImGui::BeginTabBar("Textures"_j)) {
     llvm::SmallVector<bool, 16> open(matData.texGens.size(), true);
     for (std::size_t i = 0; i < matData.texGens.size(); ++i) {
       auto& tg = matData.texGens[i];
@@ -260,11 +260,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           dynamic_cast<const kpi::IObject*>(&delegate.getActive())
               ->childOf->childOf);
       const auto mImgs = delegate.getActive().getTextureSource(*pScn);
-      if (ImGui::BeginTabItem((std::string("Texture ") + std::to_string(i) +
+      if (ImGui::BeginTabItem((std::string("Texture "_j) + std::to_string(i) +
                                " [" + samp->mTexture + "]")
                                   .c_str(),
                               &open[i])) {
-        if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("Image"_j,
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
           if (auto result = TextureImageCombo(samp->mTexture.c_str(), mImgs,
                                               delegate.mEd);
               !result.empty()) {
@@ -274,14 +275,14 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           if (samp != nullptr)
             drawSamplerImage(mImgs, *samp, surface);
         }
-        if (ImGui::CollapsingHeader("Mapping",
+        if (ImGui::CollapsingHeader("Mapping"_j,
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (ImGui::BeginTabBar("Mapping")) {
-            if (ImGui::BeginTabItem("Standard")) {
+          if (ImGui::BeginTabBar("Mapping"_j)) {
+            if (ImGui::BeginTabItem("Standard"_j)) {
               ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Advanced")) {
-              if (ImGui::CollapsingHeader("Texture Coordinate Generator",
+            if (ImGui::BeginTabItem("Advanced"_j)) {
+              if (ImGui::CollapsingHeader("Texture Coordinate Generator"_j,
                                           ImGuiTreeNodeFlags_DefaultOpen)) {
                 librii::hx::TexGenType hx_tg =
                     librii::hx::elevateTexGenType(tg.func);
@@ -291,15 +292,15 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   ConditionalActive g(
                       hx_tg.basefunc ==
                       librii::hx::BaseTexGenFunction::TextureMatrix);
-                  ImGui::Combo("Matrix Size", &hx_tg.mtxtype,
+                  ImGui::Combo("Matrix Size"_j, &hx_tg.mtxtype,
                                "UV Matrix: 2x4\0"
-                               "UVW Matrix: 3x4\0");
+                               "UVW Matrix: 3x4\0"_j);
 
-                  ImGui::Checkbox("Identity Matrix", &identitymatrix);
+                  ImGui::Checkbox("Identity Matrix"_j, &identitymatrix);
                   ImGui::SameLine();
                   {
                     ConditionalActive g2(!identitymatrix);
-                    ImGui::SliderInt("Matrix ID", &texmatrixid, 0, 7);
+                    ImGui::SliderInt("Matrix ID"_j, &texmatrixid, 0, 7);
                   }
 
                   auto actual_matrix = static_cast<librii::gx::TexMatrix>(
@@ -314,7 +315,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 {
                   ConditionalActive g(hx_tg.basefunc ==
                                       librii::hx::BaseTexGenFunction::Bump);
-                  ImGui::SliderInt("Hardware light ID", &hx_tg.lightid, 0, 7);
+                  ImGui::SliderInt("Hardware light ID"_j, &hx_tg.lightid, 0, 7);
                 }
 
                 librii::gx::TexGenType newfunc =
@@ -325,7 +326,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 AUTO_PROP(texGens[i].sourceParam, src);
               }
               if (tm != nullptr &&
-                  ImGui::CollapsingHeader("Texture Coordinate Generator",
+                  ImGui::CollapsingHeader("Texture Coordinate Generator"_j,
                                           ImGuiTreeNodeFlags_DefaultOpen)) {
                 // TODO: Effect matrix
                 {
@@ -352,21 +353,21 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           if (tm == nullptr) {
             ImVec4 col{200.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f};
             ImGui::SetWindowFontScale(2.0f);
-            ImGui::TextColored(col, "No texture matrix is attached");
+            ImGui::TextColored(col, "No texture matrix is attached"_j);
             ImGui::SetWindowFontScale(1.0f);
           } else {
-            ImGui::Text("(Texture Matrix %u)", (u32)texmatrixid);
+            ImGui::Text("(Texture Matrix %u)"_j, (u32)texmatrixid);
           }
           if (tm != nullptr &&
-              ImGui::CollapsingHeader("Transformation",
+              ImGui::CollapsingHeader("Transformation"_j,
                                       ImGuiTreeNodeFlags_DefaultOpen)) {
             auto s = tm->scale;
             const auto rotate = glm::degrees(tm->rotate);
             auto r = rotate;
             auto t = tm->translate;
-            ImGui::SliderFloat2("Scale", &s.x, 0.0f, 10.0f);
-            ImGui::SliderFloat("Rotate", &r, 0.0f, 360.0f);
-            ImGui::SliderFloat2("Translate", &t.x, -10.0f, 10.0f);
+            ImGui::SliderFloat2("Scale"_j, &s.x, 0.0f, 10.0f);
+            ImGui::SliderFloat("Rotate"_j, &r, 0.0f, 360.0f);
+            ImGui::SliderFloat2("Translate"_j, &t.x, -10.0f, 10.0f);
             AUTO_PROP(texMatrices[texmatrixid].scale, s);
             if (r != rotate)
               AUTO_PROP(texMatrices[texmatrixid].rotate, glm::radians(r));
@@ -378,52 +379,54 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 #endif
           }
         }
-        if (ImGui::CollapsingHeader("Tiling", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("Tiling"_j,
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
           const char* wrap_modes = "Clamp\0"
                                    "Repeat\0"
-                                   "Mirror\0";
-          auto uTile = imcxx::Combo("U tiling", samp->mWrapU, wrap_modes);
-          auto vTile = imcxx::Combo("V tiling", samp->mWrapV, wrap_modes);
+                                   "Mirror\0"_j;
+          auto uTile = imcxx::Combo("U tiling"_j, samp->mWrapU, wrap_modes);
+          auto vTile = imcxx::Combo("V tiling"_j, samp->mWrapV, wrap_modes);
           AUTO_PROP(samplers[i].mWrapU, uTile);
           AUTO_PROP(samplers[i].mWrapV, vTile);
         }
-        if (ImGui::CollapsingHeader("Filtering",
+        if (ImGui::CollapsingHeader("Filtering"_j,
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
           auto magBase = samp->mMagFilter;
 
           auto min_filt = librii::hx::elevateTextureFilter(samp->mMinFilter);
 
           const char* linNear = "Nearest (no interpolation/pixelated)\0"
-                                "Linear (interpolated/blurry)\0";
+                                "Linear (interpolated/blurry)\0"_j;
 
           magBase =
-              imcxx::Combo("Interpolation when scaled up", magBase, linNear);
+              imcxx::Combo("Interpolation when scaled up"_j, magBase, linNear);
           AUTO_PROP(samplers[i].mMagFilter, magBase);
-          ImGui::Combo("Interpolation when scaled down", &min_filt.minBase,
+          ImGui::Combo("Interpolation when scaled down"_j, &min_filt.minBase,
                        linNear);
 
-          ImGui::Checkbox("Use mipmap", &min_filt.mip);
+          ImGui::Checkbox("Use mipmap"_j, &min_filt.mip);
 
           {
             ConditionalActive g(min_filt.mip);
 
-            if (ImGui::CollapsingHeader("Mipmapping",
+            if (ImGui::CollapsingHeader("Mipmapping"_j,
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
-              ImGui::Combo("Interpolation type", &min_filt.minMipBase, linNear);
+              ImGui::Combo("Interpolation type"_j, &min_filt.minMipBase,
+                           linNear);
 
               float lodbias = samp->mLodBias;
-              ImGui::SliderFloat("LOD bias", &lodbias, -4.0f, 3.99f);
+              ImGui::SliderFloat("LOD bias"_j, &lodbias, -4.0f, 3.99f);
               AUTO_PROP(samplers[i].mLodBias, lodbias);
 
               bool edgelod = samp->bEdgeLod;
-              ImGui::Checkbox("Edge LOD", &edgelod);
+              ImGui::Checkbox("Edge LOD"_j, &edgelod);
               AUTO_PROP(samplers[i].bEdgeLod, edgelod);
 
               {
                 ConditionalActive g(edgelod);
 
                 bool mipBiasClamp = samp->bBiasClamp;
-                ImGui::Checkbox("Bias clamp", &mipBiasClamp);
+                ImGui::Checkbox("Bias clamp"_j, &mipBiasClamp);
                 AUTO_PROP(samplers[i].bBiasClamp, mipBiasClamp);
 
                 auto alvl = DrawAniso(samp->mMaxAniso);

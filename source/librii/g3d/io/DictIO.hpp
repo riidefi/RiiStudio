@@ -118,7 +118,7 @@ public:
   template <std::input_iterator T> constexpr static bool IsInputIt() {
     return true;
   }
-  static_assert(IsInputIt<ConstIter>());
+  //static_assert(IsInputIt<ConstIter>());
 #endif
 
   ConstIter begin() const { return ConstIter(mWholeData, mStart, mTotalNodes); }

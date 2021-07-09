@@ -60,17 +60,25 @@ public:
 
   struct EntryDelegate {
     std::string getIconSingular() const {
-      return entry != nullptr ? entry->icon.getSingular() : "?";
+      return entry != nullptr
+                 ? riistudio::translateString(entry->icon.getSingular())
+                 : "?";
     }
     std::string getIconPlural() const {
-      return entry != nullptr ? entry->icon.getPlural() : "?";
+      return entry != nullptr
+                 ? riistudio::translateString(entry->icon.getPlural())
+                 : "?";
     }
 
     std::string getNameSingular() const {
-      return entry != nullptr ? entry->name.getSingular() : "?";
+      return entry != nullptr
+                 ? riistudio::translateString(entry->name.getSingular())
+                 : "?";
     }
     std::string getNamePlural() const {
-      return entry != nullptr ? entry->name.getPlural() : "?";
+      return entry != nullptr
+                 ? riistudio::translateString(entry->name.getPlural())
+                 : "?";
     }
 
     bool hasEntry() const { return entry != nullptr; }

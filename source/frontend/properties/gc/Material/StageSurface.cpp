@@ -10,7 +10,7 @@ namespace libcube::UI {
 using namespace riistudio::util;
 
 struct StageSurface final {
-  static inline const char* name = "Stage";
+  static inline const char* name() { return "Stage"_j; }
   static inline const char* icon = (const char*)ICON_FA_NETWORK_WIRED;
 
   // Mark this surface to be more than an IDL tag.
@@ -49,34 +49,34 @@ const char* alphaOpt = "Register 3 Alpha\0"
                        "\0";
 
 librii::gx::TevBias drawTevBias(librii::gx::TevBias bias) {
-  return imcxx::Combo("Bias", bias,
+  return imcxx::Combo("Bias"_j, bias,
                       "No bias\0"
                       "Add middle gray\0"
-                      "Subtract middle gray\0");
+                      "Subtract middle gray\0"_j);
 }
 librii::gx::TevScale drawTevScale(librii::gx::TevScale scale) {
-  return imcxx::Combo("Scale", scale,
+  return imcxx::Combo("Scale"_j, scale,
                       "100% brightness\0"
                       "200% brightness\0"
                       "400% brightness\0"
-                      "50% brightness\0");
+                      "50% brightness\0"_j);
 }
 librii::gx::TevReg drawOutRegister(librii::gx::TevReg out) {
-  return imcxx::Combo("Calculation Result Output Destionation", out,
+  return imcxx::Combo("Calculation Result Output Destination"_j, out,
                       "Register 3\0"
                       "Register 0\0"
                       "Register 1\0"
-                      "Register 2\0");
+                      "Register 2\0"_j);
 }
 gx::TevColorArg drawTevOp(const TevExpression& expression, const char* title,
                           gx::TevColorArg op, u32 op_mask) {
   ConditionalHighlight g(expression.isUsed(op_mask));
-  return imcxx::Combo(title, op, colorOpt);
+  return imcxx::Combo(title, op, riistudio::translateString(colorOpt));
 }
 gx::TevAlphaArg drawTevOp(const TevExpression& expression, const char* title,
                           gx::TevAlphaArg op, u32 op_mask) {
   ConditionalHighlight g(expression.isUsed(op_mask));
-  return imcxx::Combo(title, op, alphaOpt);
+  return imcxx::Combo(title, op, riistudio::translateString(alphaOpt));
 };
 
 template <typename T> T DrawKonstSel(T x) {
@@ -84,12 +84,12 @@ template <typename T> T DrawKonstSel(T x) {
 
   int k_type = ksel.k_constant ? 0 : 1;
   const int last_k_type = k_type;
-  ImGui::Combo("Konst Selection", &k_type,
+  ImGui::Combo("Konst Selection"_j, &k_type,
                "Constant\0"
-               "Uniform\0");
+               "Uniform\0"_j);
   if (k_type == 0) { // constant
     float k_frac = static_cast<float>(ksel.k_numerator) / 8.0f;
-    ImGui::SliderFloat("Constant Value", &k_frac, 0.0f, 1.0f);
+    ImGui::SliderFloat("Constant Value"_j, &k_frac, 0.0f, 1.0f);
     ksel.k_numerator = static_cast<int>(roundf(k_frac * 8.0f));
     ksel.k_numerator = std::max(ksel.k_numerator, 1);
   } else { // uniform
@@ -102,7 +102,7 @@ template <typename T> T DrawKonstSel(T x) {
                  "Constant Color 0\0"
                  "Constant Color 1\0"
                  "Constant Color 2\0"
-                 "Constant Color 3\0");
+                 "Constant Color 3\0"_j);
     ImGui::SameLine();
     if (std::is_same_v<T, gx::TevKColorSel>) {
       ImGui::Combo("Const Register##Subscript", &ksel.k_sub,
@@ -110,14 +110,14 @@ template <typename T> T DrawKonstSel(T x) {
                    "RRR\0"
                    "GGG\0"
                    "BBB\0"
-                   "AAA\0");
+                   "AAA\0"_j);
     } else {
       --ksel.k_sub;
       ImGui::Combo("Const Register##Subscript", &ksel.k_sub,
                    "R\0"
                    "G\0"
                    "B\0"
-                   "A\0");
+                   "A\0"_j);
       ++ksel.k_sub;
     }
     ImGui::PopItemWidth();
@@ -136,15 +136,15 @@ template <typename T> T drawSubStage(T stage) {
 
   stage.constantSelection = DrawKonstSel(stage.constantSelection);
 
-  stage.a = drawTevOp(expression, "Operand A", stage.a, A);
-  stage.b = drawTevOp(expression, "Operand B", stage.b, B);
-  stage.c = drawTevOp(expression, "Operand C", stage.c, C);
-  stage.d = drawTevOp(expression, "Operand D", stage.d, D);
+  stage.a = drawTevOp(expression, "Operand A"_j, stage.a, A);
+  stage.b = drawTevOp(expression, "Operand B"_j, stage.b, B);
+  stage.c = drawTevOp(expression, "Operand C"_j, stage.c, C);
+  stage.d = drawTevOp(expression, "Operand D"_j, stage.d, D);
 
   stage.bias = drawTevBias(stage.bias);
   stage.scale = drawTevScale(stage.scale);
 
-  ImGui::Checkbox("Clamp calculation to 0-255", &stage.clamp);
+  ImGui::Checkbox("Clamp calculation to 0-255"_j, &stage.clamp);
   stage.out = drawOutRegister(stage.out);
 
   return stage;
@@ -159,7 +159,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
   auto drawStage = [&](librii::gx::TevStage& stage, int i) {
 #define STAGE_PROP(a, b) AUTO_PROP(mStages[i].a, b)
-    if (ImGui::CollapsingHeader("Stage Setting",
+    if (ImGui::CollapsingHeader("Stage Setting"_j,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       // RasColor
       int rasId = [](gx::ColorSelChanApi sel) -> int {
@@ -183,12 +183,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         }
       }(stage.rasOrder);
       const int rasIdOld = rasId;
-      ImGui::Combo("Channel ID", &rasId,
+      ImGui::Combo("Channel ID"_j, &rasId,
                    "Channel 0\0"
                    "Channel 1\0"
                    "None\0"
                    "Indirect Alpha\0"
-                   "Normalized Indirect Alpha\0");
+                   "Normalized Indirect Alpha\0"_j);
 
       if (rasId != rasIdOld) {
         gx::ColorSelChanApi ras = [](int sel) -> gx::ColorSelChanApi {
@@ -218,7 +218,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         ImGui::PopItemWidth();
       }
       if (stage.texCoord != stage.texMap) {
-        ImGui::Text("TODO: TexCoord != TexMap: Not valid");
+        ImGui::Text("TODO: TexCoord != TexMap: Not valid"_j);
       } else {
         // TODO: Better selection here
         int texid = stage.texMap;
@@ -241,7 +241,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         ImGui::PopItemWidth();
       }
       if (stage.texMap >= matData.texGens.size()) {
-        ImGui::Text("No valid image.");
+        ImGui::Text("No valid image."_j);
       } else {
         const riistudio::lib3d::Texture* curImg = nullptr;
 
@@ -263,7 +263,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       }
     }
 
-    if (ImGui::CollapsingHeader("Color Stage",
+    if (ImGui::CollapsingHeader("Color Stage"_j,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       // TODO: Only add for now..
       if (stage.colorStage.formula == librii::gx::TevColorOp::add) {
@@ -280,7 +280,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         STAGE_PROP(colorStage.out, substage.out);
       }
     }
-    if (ImGui::CollapsingHeader("Alpha Stage",
+    if (ImGui::CollapsingHeader("Alpha Stage"_j,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       IDScope alphag("Alpha");
       if (stage.alphaStage.formula == librii::gx::TevAlphaOp::add) {
@@ -304,12 +304,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
   auto& stages = matData.mStages;
 
-  if (ImGui::Button("Add a Stage")) {
+  if (ImGui::Button("Add a Stage"_j)) {
     for (auto& mat : delegate.mAffected)
       mat->getMaterialData().mStages.push_back({});
   }
 
-  if (ImGui::BeginTabBar("Stages",
+  if (ImGui::BeginTabBar("Stages"_j,
                          ImGuiTabBarFlags_AutoSelectNewTabs |
                              ImGuiTabBarFlags_FittingPolicyResizeDown)) {
     for (std::size_t i = 0; i < stages.size(); ++i) {
@@ -317,9 +317,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
       opened[i] = true;
 
-      if (opened[i] && ImGui::BeginTabItem(
-                           (std::string("Stage ") + std::to_string(i)).c_str(),
-                           &opened[i], ImGuiTabItemFlags_NoPushId)) {
+      if (opened[i] &&
+          ImGui::BeginTabItem(
+              (std::string("Stage "_j) + std::to_string(i)).c_str(), &opened[i],
+              ImGuiTabItemFlags_NoPushId)) {
         drawStage(stage, i);
 
         ImGui::EndTabItem();

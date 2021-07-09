@@ -17,7 +17,7 @@ librii::gx::Color ColorEditU8(const char* name, librii::gx::Color clr) {
 }
 
 Quantization DrawColorQuantization(Quantization q) {
-  auto type = imcxx::Combo("Format", q.mType.color,
+  auto type = imcxx::Combo("Format"_j, q.mType.color,
                            "FORMAT_16B_565  [RGB565]\0"
                            "FORMAT_24B_888  [RGB8]\0"
                            "FORMAT_32B_888x [RGBX8]\0"
@@ -66,11 +66,11 @@ Quantization DrawColorQuantization(Quantization q) {
 }
 
 struct G3dVertexColorDataSurface {
-  static inline const char* name = "Data";
+  static inline const char* name() { return "Data"_j; }
   static inline const char* icon = (const char*)ICON_FA_PAINT_BRUSH;
 };
 struct G3dVertexColorQuantSurface {
-  static inline const char* name = "Format";
+  static inline const char* name() { return "Format"_j; }
   static inline const char* icon = (const char*)ICON_FA_COG;
 };
 

@@ -103,9 +103,10 @@ SamplerCombo(int current,
           curImg = &it;
         }
       }
-
-      if (IconSelectable(format(i).c_str(), selected, curImg, ed)) {
-        result = i;
+      if (curImg != nullptr) {
+        if (IconSelectable(format(i).c_str(), selected, curImg, ed)) {
+          result = i;
+        }
       }
       if (selected)
         ImGui::SetItemDefaultFocus();

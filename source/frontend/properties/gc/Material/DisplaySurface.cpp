@@ -5,14 +5,14 @@ namespace libcube::UI {
 
 librii::gx::CullMode DrawCullMode(librii::gx::CullMode cull_mode) {
   librii::hx::CullMode widget(cull_mode);
-  ImGui::Text("Show sides of faces:");
-  ImGui::Checkbox("Front", &widget.front);
-  ImGui::Checkbox("Back", &widget.back);
+  ImGui::Text("Show sides of faces:"_j);
+  ImGui::Checkbox("Front"_j, &widget.front);
+  ImGui::Checkbox("Back"_j, &widget.back);
   return widget.get();
 }
 
 struct DisplaySurface final {
-  static inline const char* name = "Surface Visibility";
+  static inline const char* name() { return "Surface Visibility"_j; }
   static inline const char* icon = (const char*)ICON_FA_GHOST;
 };
 

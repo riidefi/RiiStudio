@@ -7,7 +7,7 @@ void DrawChangeLog(bool* show, std::string markdownText) {
   if (show != nullptr && !*show)
     return;
 
-  if (ImGui::Begin("Changelog", show, ImGuiWindowFlags_AlwaysAutoResize)) {
+  if (ImGui::Begin("Changelog"_j, show, ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::SetWindowFontScale(1.3f);
     frontend::Markdown(markdownText);
     ImGui::End();
