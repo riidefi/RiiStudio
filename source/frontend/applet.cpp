@@ -17,24 +17,30 @@ void Markdown(const std::string& markdown_) {
   // fonts for, respectively, headings H1, H2, H3 and beyond
   ImGui::Markdown(markdown_.c_str(), markdown_.length(), mdConfig);
 }
-static bool loadFonts(float fontSize = 12.0f) {
+static bool loadFonts(float fontSize = 16.0f) {
   ImGuiIO& io = ImGui::GetIO();
   ImFontConfig fontcfg;
   fontcfg.OversampleH = 8;
   fontcfg.OversampleV = 8;
+  
 
 // #ifdef BUILD_DIST
 #define FONT_DIR "./fonts/"
-// #else
-// #define FONT_DIR "../../fonts/"
-// #endif
+  // #else
+  // #define FONT_DIR "../../fonts/"
+  // #endif
 
-  const char* default_font = FONT_DIR "Roboto-Medium.ttf";
+  // const char* default_font = FONT_DIR "Roboto-Medium.ttf";
   // const char* bold_font = FONT_DIR "Roboto-Bold.ttf";
   const char* icon_font = FONT_DIR FONT_ICON_FILE_NAME_FAS;
+
+  const char* jpn_font = FONT_DIR "NotoSansCJKjp-Black.otf";
 #undef FONT_DIR
 
-  io.Fonts->AddFontFromFileTTF(default_font, fontSize, &fontcfg);
+  //io.Fonts->AddFontFromFileTTF(default_font, fontSize, &fontcfg);
+
+  io.Fonts->AddFontFromFileTTF(jpn_font, fontSize, &fontcfg,
+                               io.Fonts->GetGlyphRangesJapanese());
 
   // mdConfig.headingFormats[0].font = io.Fonts->AddFontFromFileTTF(bold_font,
   // fontSize * 2 * 1.1f, &fontcfg); mdConfig.headingFormats[1].font =
