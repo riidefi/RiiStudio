@@ -76,7 +76,7 @@ static void DrawMaterialHeader(riistudio::lib3d::Material* mat) {
     ImGui::SetWindowFontScale(2.0f);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 0.0f, 0.0f, 1.0f});
     {
-      ImGui::TextUnformatted("[WARNING] Invalid shader!");
+      ImGui::TextUnformatted("[WARNING] Invalid shader!"_j);
       ImGui::TextUnformatted(mat->shaderError.c_str());
     }
     ImGui::PopStyleColor();

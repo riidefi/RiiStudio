@@ -17,23 +17,23 @@ void ImporterWindow::draw() {
   if (failed()) {
     ImGui::TextColored(error_col, "%s", describeError());
   } else if (succeeded()) {
-    ImGui::Text("Success");
+    ImGui::Text("Success"_j);
   } else {
     // Progress states
     switch (result) {
     case State::ConfigureProperties:
-      ImGui::Text("Configure Properties");
+      ImGui::Text("Configure Properties"_j);
       importerRender();
       break;
     case State::AmbiguousConstructible: {
-      ImGui::Text("Pick which file format to create.");
+      ImGui::Text("Pick which file format to create."_j);
       bool answered = false;
       for (auto& choice : choices) {
         const char* format = choice.c_str();
         if (choice.find("g3d") != std::string::npos)
-          format = "BRRES Model";
+          format = "BRRES Model"_j;
         else if (choice.find("j3d") != std::string::npos)
-          format = "BMD Model";
+          format = "BMD Model"_j;
         if (ImGui::Button(format,
                           ImVec2{ImGui::GetContentRegionAvailWidth(), 0.0f})) {
           data_id = choice;
@@ -65,11 +65,11 @@ void ImporterWindow::draw() {
       ImGui::TextColored(
           error_col,
           "Missing textures! Please drop the following textures into "
-          "this window.");
+          "this window."_j);
 
-      ImGui::Text("(%u Remaining)", num);
+      ImGui::Text("(%u Remaining)"_j, num);
       ImGui::SetWindowFontScale(1.0f);
-      if (ImGui::BeginTable("Missing Textures", 1)) {
+      if (ImGui::BeginTable("Missing Textures"_j, 1)) {
         for (int i = 0; i < transaction->unresolvedFiles.size(); ++i) {
           if (transaction->resolvedFiles[i].empty()) {
             ImGui::TableNextRow();
@@ -97,7 +97,7 @@ void ImporterWindow::draw() {
     }
   }
 
-  if (ImGui::Button(failed() ? "Quit" : "Next",
+  if (ImGui::Button(failed() ? "Quit"_j : "Next"_j,
                     ImVec2{ImGui::GetContentRegionAvailWidth(), 0.0f})) {
     if (finished) {
       mDone = true;

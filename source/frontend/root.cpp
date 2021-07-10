@@ -116,7 +116,7 @@ void RootWindow::draw() {
           }
         }
 #if !defined(__EMSCRIPTEN__)
-        if (ImGui::MenuItem("Save As")) {
+        if (ImGui::MenuItem("Save As"_j)) {
           if (ed)
             saveAs();
           else
@@ -151,7 +151,7 @@ void RootWindow::draw() {
 
         int locale_opt = locale;
         ImGui::RadioButton("English", &locale_opt, 0);
-        ImGui::RadioButton("日本", &locale_opt, 1);
+        ImGui::RadioButton("日本語", &locale_opt, 1);
 
         if (locale_opt != locale) {
           locale = locale_opt;

@@ -62,13 +62,13 @@ public:
   const char* describeError() const {
     switch (result) {
     case State::NotImportable:
-      return "Unknown file format.";
+      return "Unknown file format."_j;
     case State::NotConstructible:
-      return "The file format cannot be edited.";
+      return "The file format cannot be edited."_j;
     case State::InvalidData:
-      return "File data is corrupted and cannot be read.";
+      return "File data is corrupted and cannot be read."_j;
     case State::Canceled:
-      return "Operation was canceled by the user.";
+      return "Operation was canceled by the user."_j;
     default:
       return "The importer is not in a failure state";
     }
