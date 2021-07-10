@@ -20,33 +20,38 @@ struct StageSurface final {
   std::string mLastImg;
 };
 
-const char* colorOpt = "Register 3 Color\0"
-                       "Register 3 Alpha\0"
-                       "Register 0 Color\0"
-                       "Register 0 Alpha\0"
-                       "Register 1 Color\0"
-                       "Register 1 Alpha\0"
-                       "Register 2 Color\0"
-                       "Register 2 Alpha\0"
-                       "Texture Color\0"
-                       "Texture Alpha\0"
-                       "Raster Color\0"
-                       "Raster Alpha\0"
-                       "1.0\0"
-                       "0.5\0"
-                       "Constant Color Selection\0"
-                       "0.0\0"
-                       "\0";
+#define STATIC_STRVIEW(s)                                                      \
+  { s, sizeof(s) - 1 }
 
-const char* alphaOpt = "Register 3 Alpha\0"
-                       "Register 0 Alpha\0"
-                       "Register 1 Alpha\0"
-                       "Register 2 Alpha\0"
-                       "Texture Alpha\0"
-                       "Raster Alpha\0"
-                       "Constant Alpha Selection\0"
-                       "0.0\0"
-                       "\0";
+std::string_view colorOpt = STATIC_STRVIEW("Register 3 Color\0"
+                                           "Register 3 Alpha\0"
+                                           "Register 0 Color\0"
+                                           "Register 0 Alpha\0"
+                                           "Register 1 Color\0"
+                                           "Register 1 Alpha\0"
+                                           "Register 2 Color\0"
+                                           "Register 2 Alpha\0"
+                                           "Texture Color\0"
+                                           "Texture Alpha\0"
+                                           "Raster Color\0"
+                                           "Raster Alpha\0"
+                                           "1.0\0"
+                                           "0.5\0"
+                                           "Constant Color Selection\0"
+                                           "0.0\0"
+                                           "\0");
+
+std::string_view alphaOpt = STATIC_STRVIEW("Register 3 Alpha\0"
+                                           "Register 0 Alpha\0"
+                                           "Register 1 Alpha\0"
+                                           "Register 2 Alpha\0"
+                                           "Texture Alpha\0"
+                                           "Raster Alpha\0"
+                                           "Constant Alpha Selection\0"
+                                           "0.0\0"
+                                           "\0");
+
+#undef STATIC_STRVIEW
 
 librii::gx::TevBias drawTevBias(librii::gx::TevBias bias) {
   return imcxx::Combo("Bias"_j, bias,
