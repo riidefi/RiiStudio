@@ -218,7 +218,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         ImGui::PushItemWidth(50);
         int ras_swap = stage.rasSwap;
         ImGui::SameLine();
-        ImGui::SliderInt("Swap ID##Ras", &ras_swap, 0, 3);
+        auto sid = std::string("Swap ID"_j) + "##Ras";
+        ImGui::SliderInt(sid.c_str(), &ras_swap, 0, 3);
         STAGE_PROP(rasSwap, static_cast<u8>(ras_swap));
         ImGui::PopItemWidth();
       }
@@ -241,7 +242,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         ImGui::PushItemWidth(50);
         int tex_swap = stage.texMapSwap;
         ImGui::SameLine();
-        ImGui::SliderInt("Swap ID##Tex", &tex_swap, 0, 3);
+        auto sid = std::string("Swap ID"_j) + "##Tex";
+        ImGui::SliderInt(sid.c_str(), &tex_swap, 0, 3);
         STAGE_PROP(texMapSwap, static_cast<u8>(tex_swap));
         ImGui::PopItemWidth();
       }

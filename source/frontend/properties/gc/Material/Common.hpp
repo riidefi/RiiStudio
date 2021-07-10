@@ -77,16 +77,17 @@ SamplerCombo(int current,
 
   const auto format = [&](int id) -> std::string {
     if (id >= samplers.size())
-      return "No selection";
+      return "No selection"_j;
     return std::string("[") + std::to_string(id) + "] " + samplers[id].mTexture;
   };
 
-  if (ImGui::BeginCombo("Sampler ID##Img", samplers.empty()
-                                               ? "No Samplers"
+  auto sid = std::string("Sampler ID"_j) + "##Img";
+  if (ImGui::BeginCombo(sid.c_str(), samplers.empty()
+                                               ? "No Samplers"_j
                                                : format(current).c_str())) {
     if (allow_none) {
       bool selected = current = 0xff;
-      if (ImGui::Selectable("None", selected)) {
+      if (ImGui::Selectable("None"_j, selected)) {
         result = 0xff;
       }
       if (selected)

@@ -126,7 +126,7 @@ void RootWindow::draw() {
         ImGui::EndMenu();
       }
 
-      if (ImGui::BeginMenu("Settings")) {
+      if (ImGui::BeginMenu("Settings"_j)) {
         bool _vsync = vsync;
         ImGui::Checkbox("VSync"_j, &_vsync);
 
@@ -146,7 +146,7 @@ void RootWindow::draw() {
         ImGui::EndMenu();
       }
 
-      if (ImGui::BeginMenu("Language")) {
+      if (ImGui::BeginMenu("日本語")) {
         static int locale = 0;
 
         int locale_opt = locale;
