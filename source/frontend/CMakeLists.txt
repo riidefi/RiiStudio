@@ -161,6 +161,14 @@ add_custom_command(
 )
 
 add_custom_command(
+	TARGET frontend 
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_directory
+		${PROJECT_SOURCE_DIR}/../../lang
+		$<TARGET_FILE_DIR:frontend>/lang
+)
+
+add_custom_command(
 TARGET frontend 
 POST_BUILD
 COMMAND ${CMAKE_COMMAND} -E copy
