@@ -26,6 +26,11 @@ Assimp supported formats like FBX and DAE can be imported as BMD/BRRES*.
 
 \* With "fast" compression only.
 
+## Translations
+### Japanese Translation (日本語)
+Credit to @h0d22 on twitter for the translation
+https://twitter.com/h0d22
+
 ## Credits
  * Dear ImGui - "Bloat-free Immediate Mode Graphical User interface for C++ with minimal dependencies" - https://github.com/ocornut/imgui
  * GLFW, GLM, SDL 
