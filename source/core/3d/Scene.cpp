@@ -298,13 +298,13 @@ void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
   {
 
     // WebGL doesn't support binding=n in the shader
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(__APPLE__)
     glUniformBlockBinding(
-        shader_id, glGetUniformBlockIndex(shader_id, "ub_SceneParams"), 0);
+        out.shader_id, glGetUniformBlockIndex(out.shader_id, "ub_SceneParams"), 0);
     glUniformBlockBinding(
-        shader_id, glGetUniformBlockIndex(shader_id, "ub_MaterialParams"), 1);
+        out.shader_id, glGetUniformBlockIndex(out.shader_id, "ub_MaterialParams"), 1);
     glUniformBlockBinding(
-        shader_id, glGetUniformBlockIndex(shader_id, "ub_PacketParams"), 2);
+        out.shader_id, glGetUniformBlockIndex(out.shader_id, "ub_PacketParams"), 2);
 #endif // __EMSCRIPTEN__
 
     const s32 samplerIds[] = {0, 1, 2, 3, 4, 5, 6, 7};

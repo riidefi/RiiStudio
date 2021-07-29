@@ -44,10 +44,10 @@ static bool initWindow(GLFWwindow*& pWin, int width = 1280, int height = 720,
   return true;
 }
 
-static const char* glsl_version = "#version 130";
+static const char* glsl_version = "#version 100";
 
 #define GL_VERSION_MAJOR 4
-#define GL_VERSION_MINOR 4
+#define GL_VERSION_MINOR 1
 
 Platform::Platform(unsigned width, unsigned height, const std::string& pName)
     : mTitle(pName) {
@@ -60,6 +60,8 @@ Platform::Platform(unsigned width, unsigned height, const std::string& pName)
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_VERSION_MAJOR);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_VERSION_MINOR);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef BUILD_DEBUG
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 #endif

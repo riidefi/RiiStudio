@@ -53,7 +53,7 @@ getVertexAttribGenDef(VertexAttribute vtxAttrib) {
 }
 
 std::string generateBindingsDefinition(bool postTexMtxBlock, bool lightsBlock) {
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(__APPLE__)
   return std::string(R"(
 // Expected to be constant across the entire scene.
 layout(std140) uniform ub_SceneParams {
@@ -1462,8 +1462,10 @@ void main() {
     const auto bindingsDefinition =
         generateBindingsDefinition(hasPostTexMtxBlock, hasLightsBlock);
 
-#if __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__)
     const std::string version = "#version 300 es";
+#elif defined(__APPLE__)
+    const std::string version = "#version 400";
 #else
     const std::string version = "#version 440";
 #endif
