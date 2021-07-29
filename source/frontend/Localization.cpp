@@ -7,13 +7,17 @@
 #include <rsl/Crc32.hpp>
 #include <set>
 #include <span>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace riistudio {
 
 struct LocalEntry {
   u32 src_crc32;
   std::string dest_string;
+
+  LocalEntry(u32 hash, std::string d) : src_crc32(hash), dest_string(d) {}
 
   bool operator<(const LocalEntry& rhs) const {
     return src_crc32 < rhs.src_crc32;

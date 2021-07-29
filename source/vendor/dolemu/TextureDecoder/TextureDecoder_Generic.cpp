@@ -4,7 +4,7 @@
 
 #include "BitTest.hpp"
 #if (defined(ENVIRONMENT32) && !defined(ENVIRONMENT64)) ||                     \
-    defined(RII_PLATFORM_EMSCRIPTEN) || defined(__linux__)
+    defined(RII_PLATFORM_EMSCRIPTEN) || defined(__linux__) || defined(__APPLE__)
 #include <algorithm>
 #include <cmath>
 

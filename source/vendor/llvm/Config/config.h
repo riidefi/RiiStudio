@@ -122,6 +122,9 @@
 
 /* Define to 1 if you have the <mach/mach.h> header file. */
 /* #undef HAVE_MACH_MACH_H */
+#ifdef __APPLE__
+#define HAVE_MACH_MACH_H 1
+#endif
 
 /* Define to 1 if you have the `mallctl' function. */
 /* #undef HAVE_MALLCTL */
@@ -178,27 +181,27 @@
 /* #undef HAVE_STRERROR_R */
 
 /* Define to 1 if you have the `sysconf' function. */
-#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX) || defined(__APPLE__)
 #define HAVE_SYSCONF 1
 #endif
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
-#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX) || defined(__APPLE__)
 #define HAVE_SYS_IOCTL_H  1
 #endif
 
 /* Define to 1 if you have the <sys/mman.h> header file. */
-#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX) || defined(__APPLE__)
 #define HAVE_SYS_MMAN_H	 1
 #endif
 
 /* Define to 1 if you have the <sys/param.h> header file. */
-#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX) || defined(__APPLE__)
 #define HAVE_SYS_PARAM_H 1
 #endif
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
-#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX) || defined(__APPLE__)
 #define HAVE_SYS_RESOURCE_H 1
 #endif
 
@@ -206,7 +209,7 @@
 #define HAVE_SYS_STAT_H 1
 
 /* Define to 1 if you have the <sys/time.h> header file. */
-#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX) || defined(__APPLE__)
 #define HAVE_SYS_TIME_H 1
 #endif
 
@@ -229,7 +232,7 @@
 /* #undef HAVE_TERMIOS_H */
 
 /* Define to 1 if you have the <unistd.h> header file. */
-#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX)
+#if defined(__EMSCRIPTEN__) || defined(RII_PLATFORM_LINUX) || defined(__APPLE__)
 #define HAVE_UNISTD_H 1
 #endif
 

@@ -12,7 +12,7 @@
          Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )
 */
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include <sys/stat.h>
 #endif
 

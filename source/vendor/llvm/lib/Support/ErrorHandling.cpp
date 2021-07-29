@@ -114,8 +114,10 @@ void llvm::report_fatal_error(const Twine &Reason, bool GenCrashDiag) {
     raw_svector_ostream OS(Buffer);
     OS << "LLVM ERROR: " << Reason << "\n";
     StringRef MessageStr = OS.str();
+#ifndef __APPLE__
     ssize_t written = ::write(2, MessageStr.data(), MessageStr.size());
     (void)written; // If something went wrong, we deliberately just give up.
+#endif
   }
 
   // If we reached here, we are failing ungracefully. Run the interrupt handlers

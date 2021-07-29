@@ -31,7 +31,9 @@ if (WIN32)
   endif()
   
 	target_link_libraries(tests PUBLIC ${LINK_LIBS})
-else()
+elseif (APPLE)
+  	SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /opt/homebrew/Cellar/assimp/5.0.1/lib/libassimp.dylib /opt/homebrew/Cellar/glfw/3.3.4/lib/libglfw.dylib")
+elseif (UNIX)
 	target_link_libraries(tests PUBLIC
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
 	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libIrrXML.a
@@ -61,7 +63,10 @@ if (MSVC)
 	  SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "/WHOLEARCHIVE:plugins")
   endif()
 else()
-  SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "--whole_archive")
+	if (APPLE)
+	else()
+  	SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "--whole_archive")
+  endif()
 endif()
 
 # DLLs for windows

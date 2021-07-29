@@ -3,7 +3,7 @@
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #endif
 
