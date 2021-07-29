@@ -32,7 +32,8 @@ if (WIN32)
   
 	target_link_libraries(tests PUBLIC ${LINK_LIBS})
 elseif (APPLE)
-  	SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /opt/homebrew/Cellar/assimp/5.0.1/lib/libassimp.dylib /opt/homebrew/Cellar/glfw/3.3.4/lib/libglfw.dylib")
+  	SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /opt/homebrew/Cellar/assimp/5.0.1/lib/libassimp.dylib /opt/homebrew/Cellar/glfw/3.3.4/lib/libglfw.dylib")
+		#target_link_libraries(tests PUBLIC plugins "-Wl,-force_load source\\plugins\\libplugins.a")
 elseif (UNIX)
 	target_link_libraries(tests PUBLIC
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
@@ -93,6 +94,7 @@ endif()
 		  $<TARGET_FILE_DIR:tests>/fonts
 	)
 
+if (WINDOWS)
   add_custom_command(
 	  TARGET tests 
 	  POST_BUILD
@@ -101,4 +103,14 @@ endif()
 		  ${PROJECT_SOURCE_DIR}/../../tests/samples
       ${PROJECT_SOURCE_DIR}/../../tests/out
 	)
+else()
+  add_custom_command(
+	  TARGET tests 
+	  POST_BUILD
+	  COMMAND python3 ${PROJECT_SOURCE_DIR}/../../tests/tests.py
+		  $<TARGET_FILE_DIR:tests>/tests
+		  ${PROJECT_SOURCE_DIR}/../../tests/samples
+      ${PROJECT_SOURCE_DIR}/../../tests/out
+	)
+endif()
 # endif()
