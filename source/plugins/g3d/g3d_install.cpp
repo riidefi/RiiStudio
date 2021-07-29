@@ -8,7 +8,7 @@
 
 namespace riistudio::g3d {
 
-kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
+void InstallG3d(kpi::ApplicationPlugins& installer) {
   installer.addType<g3d::Bone, libcube::IBoneDelegate>()
       .addType<g3d::Texture, libcube::Texture>()
       .addType<g3d::Material, libcube::IGCMaterial>()
@@ -26,6 +26,6 @@ kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
                                      "Vertex Color");
   rich.addRichName<g3d::SRT0>((const char*)ICON_FA_WAVE_SQUARE,
                               "Texture Matrix Animation");
-});
+}
 
 } // namespace riistudio::g3d

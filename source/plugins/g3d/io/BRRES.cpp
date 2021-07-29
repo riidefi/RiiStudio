@@ -265,6 +265,10 @@ public:
   }
 };
 
-kpi::Register<ArchiveDeserializer, kpi::Reader | kpi::Writer> ArchiveInstaller;
-
 } // namespace riistudio::g3d
+
+void* sInstC;
+
+void InstallBRRES() {
+  sInstC = new kpi::Register<riistudio::g3d::ArchiveDeserializer, kpi::Reader | kpi::Writer>;
+}

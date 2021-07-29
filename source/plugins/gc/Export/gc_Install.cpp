@@ -13,7 +13,19 @@
 
 namespace libcube {
 
-kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
+
+
+kpi::ConstCollectionRange<Texture>
+IGCMaterial::getTextureSource(const libcube::Scene& scn) const {
+  return scn.getTextures();
+}
+
+} // namespace libcube
+
+using namespace libcube;
+
+void InstallGC () {
+  auto& installer = *kpi::ApplicationPlugins::getInstance();
   installer.registerParent<libcube::IBoneDelegate, riistudio::lib3d::Bone>()
       .registerParent<libcube::IGCMaterial, riistudio::lib3d::Material>()
       .registerParent<libcube::Texture, riistudio::lib3d::Texture>()
@@ -31,11 +43,4 @@ kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins& installer) {
                                             (const char*)ICON_FA_CUBES)
       .addRichName<riistudio::lib3d::Scene>((const char*)ICON_FA_SHAPES,
                                             "Scene");
-});
-
-kpi::ConstCollectionRange<Texture>
-IGCMaterial::getTextureSource(const libcube::Scene& scn) const {
-  return scn.getTextures();
 }
-
-} // namespace libcube

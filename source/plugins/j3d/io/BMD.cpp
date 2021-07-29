@@ -343,6 +343,10 @@ public:
   }
 };
 
-kpi::Register<BMD, kpi::Reader | kpi::Writer> BMDInstaller;
-
 } // namespace riistudio::j3d
+
+void* sInstB;
+
+void InstallBMD() {
+  sInstB = new kpi::Register<riistudio::j3d::BMD, kpi::Reader | kpi::Writer>;
+}

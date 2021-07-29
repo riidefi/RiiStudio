@@ -7,6 +7,19 @@
 #include <memory>
 #include <vector>
 
+
+extern void InstallGC();
+extern void InstallBRRES();
+extern void InstallBMD();
+
+namespace riistudio::g3d {
+void InstallG3d(kpi::ApplicationPlugins& installer);
+}
+
+namespace riistudio::j3d {
+void InstallJ3d(kpi::ApplicationPlugins& installer);
+}
+
 std::unique_ptr<kpi::IObject> SpawnState(const std::string& type) {
   return kpi::ApplicationPlugins::getInstance()->constructObject(type, nullptr);
 }
@@ -59,10 +72,21 @@ std::unique_ptr<kpi::IBinarySerializer> SpawnExporter(kpi::INode& node) {
 }
 
 void InitAPI() {
+  InstallGC();
+  InstallBRRES();
+  InstallBMD();
+
+  auto& installer = *kpi::ApplicationPlugins::getInstance();
+
+  riistudio::g3d::InstallG3d(installer);
+  riistudio::j3d::InstallJ3d(installer);
+
+  // TODO: Phase out this system
+
   // Register plugins
   for (auto* it = kpi::RegistrationLink::getHead(); it != nullptr;
        it = it->getLast()) {
-    it->exec(*kpi::ApplicationPlugins::getInstance());
+    it->exec(installer);
   }
 
   kpi::ReflectionMesh::getInstance()->getDataMesh().compute();
