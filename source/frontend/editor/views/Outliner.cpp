@@ -68,22 +68,58 @@ struct ImTFilter : public ImGuiTextFilter {
 #endif
 using TFilter = ImTFilter;
 
+struct Child {
+public:
+  kpi::IObject* obj;
+
+private:
+  // kpi::INode* node;
+
+public:
+  // Formatted, [#Stages=n]
+  std::string public_name;
+
+  // Rich name (Icon+Name of type, singular/plural)
+  bool is_rich = false;
+  kpi::RichNameManager::EntryDelegate rich;
+
+  struct Folder {
+    std::vector<std::optional<Child>> children;
+
+    // typename e.g. `class riistudio::g3d::Model`
+    std::string key;
+
+    // Still here for selection state
+    kpi::ICollection& sampler;
+  };
+
+  std::vector<Folder> folders;
+
+  // Potentially has sub-folders
+  bool is_container_ = false;
+
+  bool is_container() const {
+    // return node != nullptr;
+    return is_container_;
+  }
+};
+
 //! @brief Return the number of resources in the source that pass the filter.
 //!
-static std::size_t CalcNumFiltered(const kpi::ICollection& sampler,
+static std::size_t CalcNumFiltered(const Child::Folder& folder,
                                    const TFilter* filter) {
   // If no data, empty
-  if (sampler.size() == 0)
+  if (folder.children.size() == 0)
     return 0;
 
   // If we don't have a filter, everything is included.
-  if (!filter)
-    return sampler.size();
+  if (filter == nullptr)
+    return folder.children.size();
 
   std::size_t nPass = 0;
 
-  for (u32 i = 0; i < sampler.size(); ++i)
-    if (filter->test(NameObject(sampler.atObject(i), i)))
+  for (auto& c : folder.children)
+    if (filter->test(c->public_name))
       ++nPass;
 
   return nPass;
@@ -91,26 +127,24 @@ static std::size_t CalcNumFiltered(const kpi::ICollection& sampler,
 
 //! @brief Format the title in the "<header> (<number of resources>)" format.
 //!
-static std::string FormatTitle(const kpi::ICollection& sampler,
+static std::string FormatTitle(const Child::Folder& folder,
                                const TFilter* filter) {
-  if (sampler.size() == 0)
+  if (folder.children.size() == 0)
     return "";
-  const auto rich =
-      kpi::RichNameManager::getInstance().getRich(sampler.atObject(0));
+  const auto rich = folder.children[0]->rich;
   const std::string icon_plural = rich.getIconPlural();
   const std::string exposed_name = rich.getNamePlural();
   return std::string(icon_plural + "  " + exposed_name + " (" +
-                     std::to_string(CalcNumFiltered(sampler, filter)) + ")");
+                     std::to_string(CalcNumFiltered(folder, filter)) + ")");
 }
 
 struct GenericCollectionOutliner : public StudioWindow {
   GenericCollectionOutliner(kpi::INode& host, kpi::IObject*& active,
                             EditorWindow& ed);
 
-  void drawFolder(kpi::ICollection& sampler, const kpi::INode& host,
-                  const std::string& key) noexcept;
+  void drawFolder(Child::Folder& folder) noexcept;
 
-  void drawRecursive(kpi::INode& host) noexcept;
+  void drawRecursive(std::vector<Child::Folder> folders) noexcept;
 
 private:
   void draw_() noexcept override;
@@ -135,29 +169,85 @@ static bool CanCreateNew(std::string_view key) {
   return !key.ends_with("Model") && !key.ends_with("Bone");
 }
 
-void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
-                                           const kpi::INode& host,
-                                           const std::string& key) noexcept {
-  if (sampler.size() == 0)
-    return;
-  const auto rich =
-      kpi::RichNameManager::getInstance().getRich(sampler.atObject(0));
-  if (!rich.hasEntry())
-    return;
-  ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-  const bool opened = ImGui::TreeNode(FormatTitle(sampler, &mFilter).c_str());
-  if (CanCreateNew(key)) {
-    const auto local_id = reinterpret_cast<u64>(&sampler);
+std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler);
+auto GetGChildren(kpi::INode* node) {
+  std::vector<Child::Folder> grandchildren;
+
+  if (node != nullptr) {
+    for (int i = 0; i < node->numFolders(); ++i) {
+      auto children = GetChildren(*node->folderAt(i));
+      grandchildren.push_back(Child::Folder{.children = children,
+                                            .key = node->idAt(i),
+                                            .sampler = *node->folderAt(i)});
+    }
+  }
+
+  return grandchildren;
+}
+
+std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler) {
+  std::vector<std::optional<Child>> children(sampler.size());
+  for (int i = 0; i < children.size(); ++i) {
+    auto* node = dynamic_cast<kpi::INode*>(sampler.atObject(i));
+    auto public_name = NameObject(sampler.atObject(i), i);
+    auto rich =
+        kpi::RichNameManager::getInstance().getRich(sampler.atObject(i));
+    bool is_rich = kpi::RichNameManager::getInstance()
+                       .getRich(sampler.atObject(i))
+                       .hasEntry();
+
+    auto grandchildren = GetGChildren(node);
+
+    children[i] = Child{.obj = sampler.atObject(i),
+                        // .node = node,
+                        .public_name = public_name,
+                        .is_rich = is_rich,
+                        .rich = rich,
+                        .folders = grandchildren,
+                        .is_container_ = node != nullptr};
+  }
+
+  return children;
+}
+
+void DrawNodePic(EditorWindow& ed, kpi::IObject& nodeAt,
+                 const float& initial_pos_y, const int& icon_size) {
+  lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(&nodeAt);
+  libcube::IGCMaterial* mat = dynamic_cast<libcube::IGCMaterial*>(&nodeAt);
+  libcube::Scene* scn =
+      nodeAt.childOf && nodeAt.childOf->childOf
+          ? dynamic_cast<libcube::Scene*>(nodeAt.childOf->childOf)
+          : nullptr;
+  if (mat != nullptr) {
+    for (int s = 0; s < mat->getMaterialData().samplers.size(); ++s) {
+      auto& sampl = mat->getMaterialData().samplers[s];
+      const lib3d::Texture* curImg = mat->getTexture(*scn, sampl.mTexture);
+      ImGui::SameLine();
+      ImGui::SetCursorPosY(initial_pos_y);
+      ed.drawImageIcon(curImg, icon_size);
+    }
+  }
+  if (tex != nullptr) {
+    ImGui::SameLine();
+    ImGui::SetCursorPosY(initial_pos_y);
+    ed.drawImageIcon(tex, icon_size);
+  }
+}
+
+void AddNewCtxMenu(EditorWindow& ed, Child::Folder& folder) {
+  if (CanCreateNew(folder.key)) {
+    const auto local_id = reinterpret_cast<u64>(&folder.sampler);
     const auto id_str = std::string("MCtx") + std::to_string(local_id);
     if (ImGui::BeginPopupContextItem(id_str.c_str())) {
-      ImGui::TextUnformatted(
-          (rich.getIconPlural() + " " + rich.getNamePlural() + ": ").c_str());
+      ImGui::TextUnformatted((folder.children[0]->rich.getIconPlural() + " " +
+                              folder.children[0]->rich.getNamePlural() + ": ")
+                                 .c_str());
       ImGui::Separator();
 
       {
         // set activeModal for an actual gui
         if (ImGui::MenuItem("Add New")) {
-          sampler.add();
+          folder.sampler.add();
           ed.getDocument().commit();
         }
       }
@@ -165,6 +255,18 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
       ImGui::EndPopup();
     }
   }
+}
+
+void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
+  if (folder.children.size() == 0)
+    return;
+
+  if (!folder.children[0].has_value() || !folder.children[0]->is_rich)
+    return;
+
+  ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+  const bool opened = ImGui::TreeNode(FormatTitle(folder, &mFilter).c_str());
+  AddNewCtxMenu(ed, folder);
   if (!opened)
     return;
 
@@ -180,29 +282,29 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
   // Prevent resetting when SHIFT is unpressed with arrow keys.
   bool thereWasAClick = false;
 
+  auto& children = folder.children;
+
   // Draw the tree
-  for (int i = 0; i < sampler.size(); ++i) {
-    auto& nodeAt = *sampler.atObject(i);
-    std::string cur_name = NameObject(&nodeAt, i);
+  for (int i = 0; i < children.size(); ++i) {
+    if (!children[i].has_value()) {
+      continue;
+    }
 
-    auto* as_host = dynamic_cast<kpi::INode*>(&nodeAt);
+    auto& nodeAt = *children[i]->obj;
+    std::string cur_name = children[i]->public_name;
 
-    if (as_host == nullptr && !mFilter.test(cur_name))
+    if (!children[i]->is_container() && !mFilter.test(children[i]->public_name))
       continue;
 
-    {
-      // TODO: Do we still need this?
-      const auto rich = kpi::RichNameManager::getInstance().getRich(&nodeAt);
-
-      if (!rich.hasEntry())
-        continue;
-    }
+    // TODO: Do we still need this?
+    if (!children[i]->is_rich)
+      continue;
 
     filtered.push_back(i);
 
     // Whether or not this node is already selected.
     // Selections from other windows will carry over.
-    bool curNodeSelected = sampler.isSelected(i);
+    bool curNodeSelected = folder.sampler.isSelected(i);
 
     const int icon_size = 24;
 
@@ -210,16 +312,15 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
                       ImGuiSelectableFlags_None, {0, icon_size});
     if (ImGui::BeginPopupContextItem(("Ctx" + std::to_string(i)).c_str())) {
       activeModal = &nodeAt;
-      ImGui::TextUnformatted((rich.getIconSingular() + " " +
-                              rich.getNameSingular() + ": " + cur_name)
+      ImGui::TextUnformatted((children[i]->rich.getIconSingular() + " " +
+                              children[i]->rich.getNameSingular() + ": " +
+                              cur_name)
                                  .c_str());
       ImGui::Separator();
 
       {
         if (kpi::ActionMenuManager::get().drawContextMenus(nodeAt))
           ed.getDocument().commit();
-
-        // ImGui::PopID();
       }
 
       ImGui::EndPopup();
@@ -230,47 +331,26 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
     thereWasAClick = ImGui::IsItemClicked();
     bool focused = ImGui::IsItemFocused();
 
-    lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(&nodeAt);
-    libcube::IGCMaterial* mat = dynamic_cast<libcube::IGCMaterial*>(&nodeAt);
-    libcube::Scene* scn =
-        nodeAt.childOf && nodeAt.childOf->childOf
-            ? dynamic_cast<libcube::Scene*>(nodeAt.childOf->childOf)
-            : nullptr;
-
     u32 flags = ImGuiTreeNodeFlags_DefaultOpen;
-    if (as_host == nullptr)
+    if (!children[i]->is_container())
       flags |= ImGuiTreeNodeFlags_Leaf;
 
     const auto text_size = ImGui::CalcTextSize("T");
     const auto initial_pos_y = ImGui::GetCursorPosY();
     ImGui::SetCursorPosY(initial_pos_y + (icon_size - text_size.y) / 2);
 
-    const auto treenode =
-        ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s %s",
-                          rich.getIconSingular().c_str(), cur_name.c_str());
+    const auto treenode = ImGui::TreeNodeEx(
+        std::to_string(i).c_str(), flags, "%s %s",
+        children[i]->rich.getIconSingular().c_str(), cur_name.c_str());
 
     if (treenode) {
-      if (mat != nullptr) {
-        for (int s = 0; s < mat->getMaterialData().samplers.size(); ++s) {
-          auto& sampl = mat->getMaterialData().samplers[s];
-          const lib3d::Texture* curImg = mat->getTexture(*scn, sampl.mTexture);
-          ImGui::SameLine();
-          ImGui::SetCursorPosY(initial_pos_y);
-          ed.drawImageIcon(curImg, icon_size);
-        }
-      }
-      if (tex != nullptr) {
-        ImGui::SameLine();
-        ImGui::SetCursorPosY(initial_pos_y);
-        ed.drawImageIcon(tex, icon_size);
-      }
+      DrawNodePic(ed, nodeAt, initial_pos_y, icon_size);
     }
     ImGui::SetCursorPosY(initial_pos_y + icon_size);
     if (treenode) {
       // NodeDrawer::drawNode(*node.get());
 
-      if (as_host != nullptr)
-        drawRecursive(*as_host);
+      drawRecursive(children[i]->folders);
 
       // If there waas a click above, we need to ignore the focus below.
       // Assume only one item can be clicked.
@@ -296,10 +376,10 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
   // Since we use type-folders, this means only one folder can have selections.
   // We only need to clear the folder of the last active object.
   if (mActive != nullptr && mActive->collectionOf != nullptr &&
-      mActive->collectionOf != &sampler) {
+      mActive->collectionOf != &folder.sampler) {
     // Invalidate last selection, otherwise SHIFT anchors from the old folder
     // would carry over.
-    sampler.setActiveSelection(~0);
+    folder.sampler.setActiveSelection(~0);
     mActive->collectionOf->clearSelection();
   }
 
@@ -313,7 +393,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
     // Transform last selection index into filtered space.
     std::size_t lastSelectedFilteredIdx = -1;
     for (std::size_t i = 0; i < filtered.size(); ++i) {
-      if (filtered[i] == sampler.getActiveSelection())
+      if (filtered[i] == folder.sampler.getActiveSelection())
         lastSelectedFilteredIdx = i;
     }
     if (lastSelectedFilteredIdx == -1) {
@@ -330,7 +410,7 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
           std::max(justSelectedFilteredIdx, lastSelectedFilteredIdx);
 
       for (std::size_t i = a; i <= b; ++i)
-        sampler.select(filtered[i]);
+        folder.sampler.select(filtered[i]);
     }
   }
 
@@ -338,32 +418,36 @@ void GenericCollectionOutliner::drawFolder(kpi::ICollection& sampler,
   if (ctrlPressed && !shiftPressed) {
     // If already selected, no action necessary - just for id update.
     if (!justSelectedAlreadySelected)
-      sampler.select(justSelectedId);
+      folder.sampler.select(justSelectedId);
     else if (thereWasAClick)
-      sampler.deselect(justSelectedId);
+      folder.sampler.deselect(justSelectedId);
   } else if (!ctrlPressed && !shiftPressed &&
              (thereWasAClick ||
-              justSelectedId != sampler.getActiveSelection())) {
+              justSelectedId != folder.sampler.getActiveSelection())) {
     // Replace selection
-    sampler.clearSelection();
-    sampler.select(justSelectedId);
+    folder.sampler.clearSelection();
+    folder.sampler.select(justSelectedId);
   }
 
   // Set our last selection index, for shift clicks.
-  sampler.setActiveSelection(justSelectedId);
-  mActive = sampler.atObject(justSelectedId); // TODO -- removing the active
-                                              // node will cause issues here
+  folder.sampler.setActiveSelection(justSelectedId);
+  mActive =
+      folder.sampler.atObject(justSelectedId); // TODO -- removing the active
+                                               // node will cause issues here
 }
 
-void GenericCollectionOutliner::drawRecursive(kpi::INode& host) noexcept {
-  for (int i = 0; i < host.numFolders(); ++i)
-    drawFolder(*host.folderAt(i), host, host.idAt(i));
+void GenericCollectionOutliner::drawRecursive(
+    std::vector<Child::Folder> folders) noexcept {
+  for (auto& f : folders)
+    drawFolder(f);
 }
 
 void GenericCollectionOutliner::draw_() noexcept {
   // activeModal = nullptr;
   mFilter.Draw();
-  drawRecursive((kpi::INode&)mHost);
+  auto& _h = (kpi::INode&)mHost;
+  auto children = GetGChildren(&_h);
+  drawRecursive(children);
 
   if (activeModal != nullptr)
     if (kpi::ActionMenuManager::get().drawModals(*activeModal, &ed))

@@ -15,4 +15,5 @@ class StudioWindow;
 std::unique_ptr<StudioWindow>
 MakeOutliner(kpi::INode& host, kpi::IObject*& active, EditorWindow& ed);
 
+
 } // namespace riistudio::frontend
