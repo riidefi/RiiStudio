@@ -11,7 +11,9 @@
 namespace riistudio::frontend {
 
 static std::string getFileShort(const std::string& path) {
-  return path.substr(path.rfind("\\") + 1);
+  const auto path_ = path.substr(path.rfind("\\") + 1);
+
+  return path_.substr(path_.rfind("/") + 1);
 }
 
 void EditorWindow::init() {
