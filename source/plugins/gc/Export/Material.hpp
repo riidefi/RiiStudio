@@ -81,6 +81,37 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
   rsl::array_vector<SamplerData, 8> samplers;
 };
 
+inline void ConfigureSingleTex(GCMaterialData& mat, std::string tex_str) {
+  GCMaterialData::SamplerData sampler;
+  sampler.mTexture = tex_str;
+  // TODO: EdgeLod/BiasClamp
+  // TODO: MaxAniso, filter, bias
+  mat.samplers.push_back(std::move(sampler));
+  mat.samplers.resize(1);
+
+  mat.texGens.push_back(gx::TexCoordGen{
+      gx::TexGenType::Matrix3x4, gx::TexGenSrc::UV0, gx::TexMatrix::TexMatrix0,
+      false, gx::PostTexMatrix::Identity});
+  mat.texGens.resize(1);
+  GCMaterialData::TexMatrix mtx;
+  mtx.projection = gx::TexGenType::Matrix3x4;
+  mtx.scale = {1, 1};
+  mtx.rotate = 0;
+  mtx.translate = {0, 0};
+  mtx.effectMatrix = {0};
+  mtx.transformModel = GCMaterialData::CommonTransformModel::Maya;
+  mtx.method = GCMaterialData::CommonMappingMethod::Standard;
+  mtx.option = GCMaterialData::CommonMappingOption::NoSelection;
+
+  mat.texMatrices.push_back(std::move(mtx));
+  mat.texMatrices.resize(1);
+
+  mat.mStages[0].texMap = 0;
+  mat.mStages[0].texCoord = 0;
+  mat.mStages[0].colorStage.d = gx::TevColorArg::texc;
+  mat.mStages[0].alphaStage.d = gx::TevAlphaArg::texa;
+}
+
 struct IGCMaterial : public riistudio::lib3d::Material {
   virtual GCMaterialData& getMaterialData() = 0;
   virtual const GCMaterialData& getMaterialData() const = 0;
@@ -109,38 +140,7 @@ struct IGCMaterial : public riistudio::lib3d::Material {
     if (textures.empty())
       return;
 
-    const auto tex = textures[0];
-
-    auto& mat = getMaterialData();
-
-    GCMaterialData::SamplerData sampler;
-    sampler.mTexture = tex;
-    // TODO: EdgeLod/BiasClamp
-    // TODO: MaxAniso, filter, bias
-    mat.samplers.push_back(std::move(sampler));
-    mat.samplers.resize(1);
-
-    mat.texGens.push_back(gx::TexCoordGen{
-        gx::TexGenType::Matrix3x4, gx::TexGenSrc::UV0,
-        gx::TexMatrix::TexMatrix0, false, gx::PostTexMatrix::Identity});
-    mat.texGens.resize(1);
-    GCMaterialData::TexMatrix mtx;
-    mtx.projection = gx::TexGenType::Matrix3x4;
-    mtx.scale = {1, 1};
-    mtx.rotate = 0;
-    mtx.translate = {0, 0};
-    mtx.effectMatrix = {0};
-    mtx.transformModel = GCMaterialData::CommonTransformModel::Maya;
-    mtx.method = GCMaterialData::CommonMappingMethod::Standard;
-    mtx.option = GCMaterialData::CommonMappingOption::NoSelection;
-
-    mat.texMatrices.push_back(std::move(mtx));
-    mat.texMatrices.resize(1);
-
-    mat.mStages[0].texMap = 0;
-    mat.mStages[0].texCoord = 0;
-    mat.mStages[0].colorStage.d = gx::TevColorArg::texc;
-    mat.mStages[0].alphaStage.d = gx::TevAlphaArg::texa;
+    ConfigureSingleTex(getMaterialData(), textures[0]);    
   }
 };
 
