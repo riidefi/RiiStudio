@@ -83,11 +83,6 @@ add_library(plugins
 	"mk/KMP/Node.h"
 	"mk/KMP/io/KMP.hpp"
 
-	"arc/Arc.hpp"
-	"arc/Arc.cpp"
-	"arc/LinearFST.hpp"
-	"arc/U8.hpp"
-	"arc/U8.cpp"
 	"ass/Ass.cpp"
   "ass/AssImporter.cpp"
   "ass/AssImporter.hpp"
