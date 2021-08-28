@@ -28,9 +28,9 @@ int getEncodedSize(int width, int height, gx::TextureFormat format,
 void decode(u8* dst, const u8* src, int width, int height,
             gx::TextureFormat texformat, const u8* tlut,
             gx::PaletteFormat tlutformat) {
-  return TexDecoder_Decode(dst, src, width, height,
-                           static_cast<TextureFormat>(texformat), tlut,
-                           static_cast<TLUTFormat>(tlutformat));
+  TexDecoder_Decode(dst, src, width, height,
+                    static_cast<TextureFormat>(texformat), tlut,
+                    static_cast<TLUTFormat>(tlutformat));
 }
 
 struct rgba {

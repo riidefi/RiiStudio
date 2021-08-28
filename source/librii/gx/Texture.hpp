@@ -27,6 +27,18 @@ enum class TextureFormat {
   Extension_RawRGBA32 = 0xFF
 };
 
+inline bool IsPaletteFormat(TextureFormat format) {
+  switch (format) {
+  case librii::gx::TextureFormat::C4:
+  case librii::gx::TextureFormat::C8:
+  case librii::gx::TextureFormat::C14X2:
+    return true;
+  default:
+    return false;
+  }
+}
+
+
 enum class CopyTextureFormat {
   R4 = 0x0 | _CTF,
   RA4 = 0x2 | _CTF,

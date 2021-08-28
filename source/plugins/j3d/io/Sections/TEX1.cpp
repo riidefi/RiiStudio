@@ -124,6 +124,14 @@ void readTEX1(BMDOutputContext& ctx) {
     Tex tex;
     tex.btiId = i;
     tex.transfer(reader);
+
+    if (librii::gx::IsPaletteFormat(tex.mFormat)) {
+      ctx.transaction.callback(
+          kpi::IOMessageClass::Error, "TEX1",
+          "Texture \"" + nameTable[i] +
+              "\" uses a paletted format which is unsupported.");
+    }
+
     for (auto& mat : ctx.mdl.getMaterials()) {
       for (int k = 0; k < mat.samplers.size(); ++k) {
         auto& samp = mat.samplers[k];

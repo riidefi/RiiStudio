@@ -25,9 +25,14 @@ struct Texture : public riistudio::lib3d::Texture {
     if (out.size() < size) {
       out.resize(size);
     }
+
+    if (librii::gx::IsPaletteFormat(getTextureFormat())) {
+      // Palettes not supported
+      return;
+    }
+
     librii::image::transform(
-        out.data(), getWidth(), getHeight(),
-        static_cast<librii::gx::TextureFormat>(getTextureFormat()),
+        out.data(), getWidth(), getHeight(), getTextureFormat(),
         librii::gx::TextureFormat::Extension_RawRGBA32, getData(), getWidth(),
         getHeight(), mip ? getMipmapCount() : 0);
   }
