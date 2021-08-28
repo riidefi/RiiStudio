@@ -32,28 +32,7 @@ struct SelectionState {
   std::size_t activeSelectChild = 0;
 };
 
-struct ICollection {
-  virtual ~ICollection() = default;
-  virtual std::size_t size() const = 0;
-  // Collection of type T, return (void*)(T*)
-  virtual void* at(std::size_t) = 0;
-  virtual const void* at(std::size_t) const = 0;
-  virtual void resize(std::size_t) = 0;
-  // Class composed of T
-  virtual IObject* atObject(std::size_t) = 0;
-  virtual const IObject* atObject(std::size_t) const = 0;
-  virtual void add() = 0;
-
-  std::size_t indexOf(const std::string_view name) const {
-    const auto _size = size();
-    for (std::size_t i = 0; i < _size; ++i) {
-      const auto* obj = atObject(i);
-      if (obj->getName() == name)
-        return i;
-    }
-    return _size;
-  }
-
+struct SelectManager {
   SelectionState state;
 
   bool isSelected(std::size_t index) const {
@@ -87,6 +66,29 @@ struct ICollection {
     const std::size_t old = state.activeSelectChild;
     state.activeSelectChild = value;
     return old;
+  }
+};
+
+struct ICollection : public SelectManager {
+  virtual ~ICollection() = default;
+  virtual std::size_t size() const = 0;
+  // Collection of type T, return (void*)(T*)
+  virtual void* at(std::size_t) = 0;
+  virtual const void* at(std::size_t) const = 0;
+  virtual void resize(std::size_t) = 0;
+  // Class composed of T
+  virtual IObject* atObject(std::size_t) = 0;
+  virtual const IObject* atObject(std::size_t) const = 0;
+  virtual void add() = 0;
+
+  std::size_t indexOf(const std::string_view name) const {
+    const auto _size = size();
+    for (std::size_t i = 0; i < _size; ++i) {
+      const auto* obj = atObject(i);
+      if (obj->getName() == name)
+        return i;
+    }
+    return _size;
   }
 };
 

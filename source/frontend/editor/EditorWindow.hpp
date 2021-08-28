@@ -15,7 +15,13 @@ namespace riistudio::frontend {
 class EditorWindow : public StudioWindow, public EditorDocument {
 public:
   EditorWindow(std::unique_ptr<kpi::INode> state, const std::string& path);
+
+  EditorWindow(const EditorWindow&) = delete;
+
+private:
   EditorWindow(FileData&& data);
+
+public:
   ~EditorWindow() = default;
 
   ImGuiID buildDock(ImGuiID root_id) override;

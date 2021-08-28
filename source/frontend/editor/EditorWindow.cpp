@@ -20,6 +20,7 @@ void EditorWindow::init() {
   commit();
   mIconManager.propogateIcons(getRoot());
 
+  // mActive must be stable
   attachWindow(MakePropertyEditor(getHistory(), getRoot(), mActive, *this));
   attachWindow(MakeHistoryList(getHistory(), getRoot()));
   attachWindow(MakeOutliner(getRoot(), mActive, *this));
@@ -37,6 +38,7 @@ EditorWindow::EditorWindow(FileData&& data)
     : StudioWindow(getFileShort(data.mPath), true),
       EditorDocument(std::move(data)) {
   init();
+  // TODO: Outliner->mActive& becomes stale here, so disabled
 }
 ImGuiID EditorWindow::buildDock(ImGuiID root_id) {
   ImGuiID next = root_id;
@@ -78,7 +80,6 @@ void EditorWindow::draw_() {
       redo();
     }
   }
-
 }
 
 } // namespace riistudio::frontend
