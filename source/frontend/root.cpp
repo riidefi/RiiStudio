@@ -175,7 +175,7 @@ void RootWindow::draw() {
         }
         if (ImGui::Button("Reload Language .csv Files"_j)) {
           riistudio::DebugReloadLocales();
-		}
+        }
 
         ImGui::EndMenu();
       }
@@ -189,7 +189,7 @@ void RootWindow::draw() {
       ImGui::EndMenuBar();
     }
 
-    if (mCheckUpdate)
+    if (mCheckUpdate && mUpdater.IsOnline())
       mUpdater.draw();
 
     if (!mImportersQueue.empty()) {

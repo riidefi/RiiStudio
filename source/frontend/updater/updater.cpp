@@ -44,7 +44,10 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb,
 }
 
 Updater::Updater() {
-  InitRepoJSON();
+  if (!InitRepoJSON()) {
+    fprintf(stderr, "Cannot connect to Github\n");
+    return;
+  }
   if (mJSON->data.contains("name") && mJSON->data["name"].is_string())
     mLatestVer = mJSON->data["name"].get<std::string>();
 
@@ -80,6 +83,9 @@ Updater::Updater() {
 Updater::~Updater() {}
 
 void Updater::draw() {
+  if (mJSON == nullptr)
+    return;
+
   if (mJSON->data.contains("body") && mJSON->data["body"].is_string())
     DrawChangeLog(&mShowChangelog, mJSON->data["body"].get<std::string>());
 
@@ -131,11 +137,11 @@ void Updater::draw() {
   mFirstFrame = false;
 }
 
-void Updater::InitRepoJSON() {
+bool Updater::InitRepoJSON() {
   CURL* curl = curl_easy_init();
 
   if (curl == nullptr)
-    return;
+    return false;
 
   std::string rawJSON = "";
 
@@ -148,13 +154,18 @@ void Updater::InitRepoJSON() {
 
   if (res != CURLE_OK) {
     const char* str = curl_easy_strerror(res);
-    printf("libcurl said %s\n", str);
+    printf("[libcurl] %s\n", str);
   }
 
   curl_easy_cleanup(curl);
 
+  if (res != CURLE_OK) {
+    return false;
+  }
+
   mJSON = std::make_unique<JSON>();
   mJSON->data = nlohmann::json::parse(rawJSON);
+  return true;
 }
 
 std::string Updater::ExecutableFilename() {

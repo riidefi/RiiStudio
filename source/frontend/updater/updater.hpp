@@ -1,7 +1,7 @@
 #include <array>
+#include <core/util/timestamp.hpp>
 #include <memory>
 #include <string>
-#include <core/util/timestamp.hpp>
 
 namespace riistudio {
 
@@ -26,7 +26,7 @@ private:
   bool mForceUpdate = false;
   bool mFirstFrame = true;
 
-  void InitRepoJSON();
+  bool InitRepoJSON();
   bool InstallUpdate();
   std::string ExecutableFilename();
   void RetryAsAdmin();
@@ -36,6 +36,7 @@ public:
   void QueueLaunch(const std::string& path) { mLaunchPath = path; }
   void SetProgress(float progress) { mUpdateProgress = progress; }
   void SetForceUpdate(bool update) { mForceUpdate = update; }
+  bool IsOnline() const { return mJSON != nullptr; }
 };
 
 } // namespace riistudio
