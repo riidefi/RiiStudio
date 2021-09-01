@@ -130,13 +130,13 @@ auto BoneDisplaySurface =
             ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
             ImGui::TableSetColumnIndex(0);
-            ImGui::Text("ID"_j);
+            ImGui::TextUnformatted("ID"_j);
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text("Material"_j);
+            ImGui::TextUnformatted("Material"_j);
             ImGui::TableSetColumnIndex(2);
-            ImGui::Text("Polygon"_j);
+            ImGui::TextUnformatted("Polygon"_j);
             ImGui::TableSetColumnIndex(3);
-            ImGui::Text("Sorting Priority"_j);
+            ImGui::TextUnformatted("Sorting Priority"_j);
 
             for (int i = 0; i < bone.getNumDisplays(); ++i) {
               ImGui::TableNextRow();

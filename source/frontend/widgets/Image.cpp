@@ -57,7 +57,7 @@ void ImagePreview::setFromImage(const lib3d::Texture& tex) {
 
 void ImagePreview::draw(float wd, float ht, bool mip_slider) {
   if (!mTexUploaded) {
-    ImGui::Text("No image to display"_j);
+    ImGui::TextUnformatted("No image to display"_j);
     return;
   }
 

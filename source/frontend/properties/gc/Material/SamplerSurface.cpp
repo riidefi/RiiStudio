@@ -75,7 +75,7 @@ void drawSamplerImage(const kpi::ConstCollectionRange<libcube::Texture>& mImgs,
   }
 
   if (curImg == nullptr) {
-    ImGui::Text("No valid image."_j);
+    ImGui::TextUnformatted("No valid image."_j);
   } else {
     if (surface.mLastImg != curImg->getName()) {
       surface.mImg.setFromImage(*curImg);
@@ -236,7 +236,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   auto& matData = delegate.getActive().getMaterialData();
 
   if (matData.texGens.size() != matData.samplers.size()) {
-    ImGui::Text("Cannot edit: source data is invalid!"_j);
+    ImGui::TextUnformatted("Cannot edit: source data is invalid!"_j);
     return;
   }
 
@@ -353,7 +353,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           if (tm == nullptr) {
             ImVec4 col{200.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f};
             ImGui::SetWindowFontScale(2.0f);
-            ImGui::TextColored(col, "No texture matrix is attached"_j);
+            ImGui::TextColored(col, "%s", "No texture matrix is attached"_j);
             ImGui::SetWindowFontScale(1.0f);
           } else {
             ImGui::Text("(Texture Matrix %u)"_j, (u32)texmatrixid);

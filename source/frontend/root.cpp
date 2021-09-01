@@ -112,7 +112,7 @@ void RootWindow::draw() {
             else
               saveAs();
           } else {
-            printf("Cannot save.. nothing has been opened.\n"_j);
+            printf("%s", "Cannot save.. nothing has been opened.\n"_j);
           }
         }
 #if !defined(__EMSCRIPTEN__)
@@ -120,7 +120,7 @@ void RootWindow::draw() {
           if (ed)
             saveAs();
           else
-            printf("Cannot save.. nothing has been opened.\n"_j);
+            printf("%s", "Cannot save.. nothing has been opened.\n"_j);
         }
 #endif
         ImGui::EndMenu();

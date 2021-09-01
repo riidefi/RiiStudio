@@ -58,9 +58,9 @@ auto PolyDataSurface =
               ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
               ImGui::TableSetColumnIndex(0);
-              ImGui::Text("Primitive Index"_j);
+              ImGui::TextUnformatted("Primitive Index"_j);
               ImGui::TableSetColumnIndex(1);
-              ImGui::Text("Vertex Index"_j);
+              ImGui::TextUnformatted("Vertex Index"_j);
               for (auto& e : poly.getVcd().mAttributes) {
                 if (e.second == gx::VertexAttributeType::None)
                   continue;

@@ -17,16 +17,16 @@ void ImporterWindow::draw() {
   if (failed()) {
     ImGui::TextColored(error_col, "%s", describeError());
   } else if (succeeded()) {
-    ImGui::Text("Success"_j);
+    ImGui::TextUnformatted("Success"_j);
   } else {
     // Progress states
     switch (result) {
     case State::ConfigureProperties:
-      ImGui::Text("Configure Properties"_j);
+      ImGui::TextUnformatted("Configure Properties"_j);
       importerRender();
       break;
     case State::AmbiguousConstructible: {
-      ImGui::Text("Pick which file format to create."_j);
+      ImGui::TextUnformatted("Pick which file format to create."_j);
       bool answered = false;
       for (auto& choice : choices) {
         const char* format = choice.c_str();
@@ -63,7 +63,7 @@ void ImporterWindow::draw() {
 
       ImGui::SetWindowFontScale(2.0f);
       ImGui::TextColored(
-          error_col,
+          error_col, "%s",
           "Missing textures! Please drop the following textures into "
           "this window."_j);
 

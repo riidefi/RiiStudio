@@ -224,7 +224,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         ImGui::PopItemWidth();
       }
       if (stage.texCoord != stage.texMap) {
-        ImGui::Text("TODO: TexCoord != TexMap: Not valid"_j);
+        ImGui::TextUnformatted("TODO: TexCoord != TexMap: Not valid"_j);
       } else {
         // TODO: Better selection here
         int texid = stage.texMap;
@@ -248,7 +248,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         ImGui::PopItemWidth();
       }
       if (stage.texMap >= matData.texGens.size()) {
-        ImGui::Text("No valid image."_j);
+        ImGui::TextUnformatted("No valid image."_j);
       } else {
         const riistudio::lib3d::Texture* curImg = nullptr;
 

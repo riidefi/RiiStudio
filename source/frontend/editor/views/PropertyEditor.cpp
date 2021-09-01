@@ -126,7 +126,7 @@ void PropertyEditor::DrawHorizTabs(kpi::PropertyViewManager& manager,
   if (activeTab == nullptr) {
     mActiveTab = 0;
 
-    ImGui::Text("Invalid Pane"_j);
+    ImGui::TextUnformatted("Invalid Pane"_j);
     return;
   }
 
@@ -165,7 +165,7 @@ void PropertyEditor::DrawVertTabs(kpi::PropertyViewManager& manager,
     if (activeTab == nullptr) {
       mActiveTab = 0;
 
-      ImGui::Text("Invalid Pane"_j);
+      ImGui::TextUnformatted("Invalid Pane"_j);
     } else {
       activeTab->draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
     }
@@ -233,7 +233,7 @@ void PropertyEditor::draw_() {
   auto& manager = kpi::PropertyViewManager::getInstance();
 
   if (mActive == nullptr) {
-    ImGui::Text("Nothing is selected."_j);
+    ImGui::TextUnformatted("Nothing is selected."_j);
     return;
   }
 

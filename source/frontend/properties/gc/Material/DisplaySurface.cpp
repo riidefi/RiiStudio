@@ -5,7 +5,7 @@ namespace libcube::UI {
 
 librii::gx::CullMode DrawCullMode(librii::gx::CullMode cull_mode) {
   librii::hx::CullMode widget(cull_mode);
-  ImGui::Text("Show sides of faces:"_j);
+  ImGui::TextUnformatted("Show sides of faces:"_j);
   ImGui::Checkbox("Front"_j, &widget.front);
   ImGui::Checkbox("Back"_j, &widget.back);
   return widget.get();

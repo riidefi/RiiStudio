@@ -146,7 +146,7 @@ void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
           dynamic_cast<const kpi::IObject*>(&bone)->childOf);
   const auto mtx = calcSrtMtx(delegate.getActive(), pMdl);
 
-  ImGui::Text("Computed Matrix:"_j);
+  ImGui::TextUnformatted("Computed Matrix:"_j);
   Toolkit::Matrix44(mtx);
 }
 

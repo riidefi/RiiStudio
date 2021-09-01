@@ -35,7 +35,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         if (ImGui::BeginTabItem(title.c_str(), &opened[i])) {
           auto& conf = matData.indirectStages[i];
           if (conf.order.refCoord != conf.order.refMap) {
-            ImGui::Text("Invalid configuration"_j);
+            ImGui::TextUnformatted("Invalid configuration"_j);
           } else {
             const int texid =
                 SamplerCombo(conf.order.refMap, matData.samplers,

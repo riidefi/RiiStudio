@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <atomic>
 #include <core/common.h>
 #include <fstream>
 #include <memory>

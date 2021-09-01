@@ -23,7 +23,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
   if (colors.size() > controls.size() / 2 || controls.size() % 2 != 0 ||
       controls.size() == 0) {
-    ImGui::Text("Cannot edit this material's lighting data."_j);
+    ImGui::TextUnformatted("Cannot edit this material's lighting data."_j);
     return;
   }
 
@@ -96,7 +96,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     AUTO_PROP(colorChanControls[i].attenuationFn,
               static_cast<librii::gx::AttenuationFunction>(atten_fn));
 
-    ImGui::Text("Enabled Lights:"_j);
+    ImGui::TextUnformatted("Enabled Lights:"_j);
     auto light_mask = static_cast<u32>(ctrl.lightMask);
     ImGui::BeginTable("Light Mask"_j, 8, ImGuiTableFlags_Borders);
     for (int i = 0; i < 8; ++i) {

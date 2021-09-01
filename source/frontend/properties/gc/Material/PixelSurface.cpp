@@ -37,11 +37,12 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   const auto pix_mode_before = pix_mode;
   if (pix_mode == librii::hx::PIX_BBX_DEFAULT) {
     ImGui::SetWindowFontScale(1.2f);
-    ImGui::Text(
+    ImGui::TextUnformatted(
         "This material is currently in the default BrawlBox configuration."_j);
-    ImGui::Text("This is considerably less performant than the Opaque "
-                "configuration while being visually identical.\nIt is strongly "
-                "recommended that you convert the material."_j);
+    ImGui::TextUnformatted(
+        "This is considerably less performant than the Opaque "
+        "configuration while being visually identical.\nIt is strongly "
+        "recommended that you convert the material."_j);
     if (ImGui::Button("Convert Material"_j))
       pix_mode = librii::hx::PIX_DEFAULT_OPAQUE;
     ImGui::SetWindowFontScale(1.0f);
@@ -106,7 +107,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     if (alpha_test == librii::hx::ALPHA_TEST_DISABLED) {
       // ImGui::Text("There is no alpha test");
     } else if (alpha_test == librii::hx::ALPHA_TEST_STENCIL) {
-      ImGui::Text("Pixels are either fully transparent or fully opaque."_j);
+      ImGui::TextUnformatted(
+          "Pixels are either fully transparent or fully opaque."_j);
     } else {
       const char* compStr = "Always do not pass.\0"
                             "<\0"
@@ -119,7 +121,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       ImGui::PushItemWidth(100);
 
       {
-        ImGui::Text("( Pixel Alpha"_j);
+        ImGui::TextUnformatted("( Pixel Alpha"_j);
         ImGui::SameLine();
         const auto leftAlpha =
             imcxx::Combo("##l", matData.alphaCompare.compLeft, compStr);
@@ -132,7 +134,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         AUTO_PROP(alphaCompare.refLeft, static_cast<u8>(leftRef));
 
         ImGui::SameLine();
-        ImGui::Text(")");
+        ImGui::TextUnformatted(")");
       }
       {
         auto op = imcxx::Combo("##o", matData.alphaCompare.op,
@@ -143,7 +145,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         AUTO_PROP(alphaCompare.op, op);
       }
       {
-        ImGui::Text("( Pixel Alpha"_j);
+        ImGui::TextUnformatted("( Pixel Alpha"_j);
         ImGui::SameLine();
         const auto rightAlpha =
             imcxx::Combo("##r", matData.alphaCompare.compRight, compStr);
@@ -155,7 +157,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         AUTO_PROP(alphaCompare.refRight, (u8)rightRef);
 
         ImGui::SameLine();
-        ImGui::Text(")");
+        ImGui::TextUnformatted(")");
       }
       ImGui::PopItemWidth();
     }
@@ -205,7 +207,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     {
 
       ConditionalActive g(btype == librii::gx::BlendModeType::blend);
-      ImGui::Text("Blend calculation"_j);
+      ImGui::TextUnformatted("Blend calculation"_j);
 
       const char* blendOpts = "0\0"
                               "1\0"
@@ -223,14 +225,14 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                  "1 - Pixel Alpha\0"
                                  "EFB Alpha\0"
                                  "1 - EFB Alpha\0"_j;
-      ImGui::Text("( Pixel Color * "_j);
+      ImGui::TextUnformatted("( Pixel Color * "_j);
 
       ImGui::SameLine();
       auto srcFact = imcxx::Combo("##Src", matData.blendMode.source, blendOpts);
       AUTO_PROP(blendMode.source, srcFact);
 
       ImGui::SameLine();
-      ImGui::Text(") + ( EFB Color * "_j);
+      ImGui::TextUnformatted(") + ( EFB Color * "_j);
 
       ImGui::SameLine();
       auto dstFact =
@@ -238,11 +240,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       AUTO_PROP(blendMode.dest, dstFact);
 
       ImGui::SameLine();
-      ImGui::Text(")");
+      ImGui::TextUnformatted(")");
     }
     {
       ConditionalActive g(btype == librii::gx::BlendModeType::logic);
-      ImGui::Text("Logical Operations (Unsupported)"_j);
+      ImGui::TextUnformatted("Logical Operations (Unsupported)"_j);
     }
     ImGui::PopItemWidth();
   }
