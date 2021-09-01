@@ -102,9 +102,9 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: tests-binary-ubuntu
-        path: ${{github.workspace}}/build/source/tests/${{env.BUILD_TYPE}}
+        path: ${{github.workspace}}/build/source/tests
 
     - uses: actions/upload-artifact@v2
       with:
         name: riistudio-binary-ubuntu
-        path: ${{github.workspace}}/build/source/frontend/${{env.BUILD_TYPE}}
+        path: ${{github.workspace}}/build/source/frontend
