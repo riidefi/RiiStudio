@@ -105,7 +105,10 @@ else()
   if (APPLE)
   	SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /opt/homebrew/Cellar/assimp/5.0.1/lib/libassimp.dylib /opt/homebrew/Cellar/glfw/3.3.4/lib/libglfw.dylib")
   elseif (UNIX)
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-ldl -lassimp -lglfw")
+    # --start-group, --end-group allows circular dependencies among object files
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lstdc++ -lm")
+    # This is a hack to append a final link arg
+    target_link_libraries(frontend PUBLIC "-Wl,--end-group")
   else()
     SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "--whole_archive")
   endif()
