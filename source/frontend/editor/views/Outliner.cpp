@@ -88,8 +88,27 @@ public:
     // TODO: This function can produce stale references
     std::function<void()> add_new_fn;
 
-    // TODO: Old selection logic, selection is part of the data
-    kpi::SelectManager& sampler;
+    EditorWindow& ed_win;
+
+  public:
+    bool isSelected(size_t index) const {
+      return ed_win.isSelected(children[index]->obj);
+    }
+    void select(size_t index) { ed_win.select(children[index]->obj); }
+    void deselect(size_t index) { ed_win.deselect(children[index]->obj); }
+
+    size_t getActiveSelection() const {
+      auto* obj = ed_win.getActive();
+
+      for (int i = 0; i < children.size(); ++i)
+        if (children[i]->obj == obj)
+          return i;
+
+      return ~0;
+    }
+    void setActiveSelection(size_t index) {
+      ed_win.setActive(children[index]->obj);
+    }
   };
 
   std::vector<Folder> folders;
@@ -203,7 +222,8 @@ std::vector<const lib3d::Texture*> GetNodeIcons(kpi::IObject& nodeAt) {
   return icons;
 }
 
-std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler);
+std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler,
+                                              EditorWindow& ed);
 
 static void AddNew(kpi::ICollection* node) { node->add(); }
 
@@ -216,24 +236,25 @@ void DrawModalFor(kpi::IObject* nodeAt, EditorWindow& ed) {
     ed.getDocument().commit();
 }
 
-auto GetGChildren(kpi::INode* node) {
+auto GetGChildren(kpi::INode* node, EditorWindow& ed) {
   std::vector<Child::Folder> grandchildren;
 
   if (node != nullptr) {
     for (int i = 0; i < node->numFolders(); ++i) {
-      auto children = GetChildren(*node->folderAt(i));
+      auto children = GetChildren(*node->folderAt(i), ed);
       grandchildren.push_back(
           Child::Folder{.children = children,
                         .key = node->idAt(i),
                         .add_new_fn = std::bind(AddNew, node->folderAt(i)),
-                        .sampler = *node->folderAt(i)});
+                        .ed_win = ed});
     }
   }
 
   return grandchildren;
 }
 
-std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler) {
+std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler,
+                                              EditorWindow& ed) {
   std::vector<std::optional<Child>> children(sampler.size());
   for (int i = 0; i < children.size(); ++i) {
     auto* node = dynamic_cast<kpi::INode*>(sampler.atObject(i));
@@ -244,7 +265,7 @@ std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler) {
                        .getRich(sampler.atObject(i))
                        .hasEntry();
 
-    auto grandchildren = GetGChildren(node);
+    auto grandchildren = GetGChildren(node, ed);
 
     auto* obj = sampler.atObject(i);
     std::function<void(EditorWindow&)> ctx_draw = [=](EditorWindow& ed) {
@@ -281,7 +302,7 @@ void DrawNodePic(EditorWindow& ed, Child& child, float initial_pos_y,
 
 void AddNewCtxMenu(EditorWindow& ed, Child::Folder& folder) {
   if (CanCreateNew(folder.key)) {
-    const auto local_id = reinterpret_cast<u64>(&folder.sampler);
+    const auto local_id = reinterpret_cast<u64>(folder.key.data());
     const auto id_str = std::string("MCtx") + std::to_string(local_id);
     if (ImGui::BeginPopupContextItem(id_str.c_str())) {
       ImGui::TextUnformatted((folder.children[0]->rich.getIconPlural() + " " +
@@ -350,7 +371,7 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
 
     // Whether or not this node is already selected.
     // Selections from other windows will carry over.
-    bool curNodeSelected = folder.sampler.isSelected(i);
+    bool curNodeSelected = folder.isSelected(i);
 
     const int icon_size = 24;
 
@@ -425,8 +446,11 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
       mActiveClassId != folder.key) {
     // Invalidate last selection, otherwise SHIFT anchors from the old folder
     // would carry over.
-    folder.sampler.setActiveSelection(~0);
-    mActive->collectionOf->clearSelection();
+    folder.setActiveSelection(~0);
+
+    // TODO: Wrap this up
+    ed.selected.clear();
+    // mActive->collectionOf->clearSelection();
   }
   mActiveClassId = folder.key;
 
@@ -440,7 +464,7 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
     // Transform last selection index into filtered space.
     std::size_t lastSelectedFilteredIdx = -1;
     for (std::size_t i = 0; i < filtered.size(); ++i) {
-      if (filtered[i] == folder.sampler.getActiveSelection())
+      if (filtered[i] == folder.getActiveSelection())
         lastSelectedFilteredIdx = i;
     }
     if (lastSelectedFilteredIdx == -1) {
@@ -457,7 +481,7 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
           std::max(justSelectedFilteredIdx, lastSelectedFilteredIdx);
 
       for (std::size_t i = a; i <= b; ++i)
-        folder.sampler.select(filtered[i]);
+        folder.select(filtered[i]);
     }
   }
 
@@ -465,17 +489,23 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
   if (ctrlPressed && !shiftPressed) {
     // If already selected, no action necessary - just for id update.
     if (!justSelectedAlreadySelected)
-      folder.sampler.select(justSelectedId);
+      folder.select(justSelectedId);
     else if (thereWasAClick)
-      folder.sampler.deselect(justSelectedId);
+      folder.deselect(justSelectedId);
   }
 
   // Set our last selection index, for shift clicks.
-  folder.sampler.setActiveSelection(justSelectedId);
+  folder.setActiveSelection(justSelectedId);
 
   // This sets a member inside EditorWindow
   mActive = folder.children[justSelectedId]->obj; // TODO -- removing the active
                                                   // node will cause issues here
+
+  if (!ctrlPressed && !shiftPressed) {
+    ed.selected.clear();
+  }
+
+  ed.select(mActive);
 }
 
 void GenericCollectionOutliner::drawRecursive(
@@ -488,7 +518,7 @@ void GenericCollectionOutliner::draw_() noexcept {
   // activeModal = nullptr;
   mFilter.Draw();
   auto& _h = (kpi::INode&)mHost;
-  auto children = GetGChildren(&_h);
+  auto children = GetGChildren(&_h, ed);
   drawRecursive(children);
 
   if (activeModal.has_value())

@@ -43,6 +43,18 @@ public:
     init();
   }
 
+  std::set<kpi::IObject*> selected;
+
+  void select(kpi::IObject* obj) { selected.insert(obj); }
+  void deselect(kpi::IObject* obj) { selected.erase(obj); }
+
+  bool isSelected(kpi::IObject* obj) const { return selected.contains(obj); }
+
+  // std::vector<std::function<kpi::IObject*(kpi::INode*)>> selected;
+  // 
+  // size_t num_selected() const { return selected.size(); }
+  // kpi::IObject* selected_at(size_t idx) { return selected[idx](&getRoot()); }
+
 private:
   void init();
 

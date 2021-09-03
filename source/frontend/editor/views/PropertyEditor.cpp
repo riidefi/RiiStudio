@@ -44,18 +44,18 @@ private:
 };
 
 template <typename T>
-static void gatherSelected(std::set<kpi::IObject*>& tmp,
+static void gatherSelected(EditorWindow& ed, std::set<kpi::IObject*>& tmp,
                            kpi::ICollection& folder, T pred) {
   for (int i = 0; i < folder.size(); ++i) {
     auto* obj = folder.atObject(i);
-    if (folder.isSelected(i) && pred(obj)) {
+    if (ed.isSelected(obj) && pred(obj)) {
       tmp.emplace(obj);
     }
 
     auto* col = dynamic_cast<kpi::INode*>(obj);
     if (col != nullptr) {
       for (int j = 0; j < col->numFolders(); ++j) {
-        gatherSelected(tmp, *col->folderAt(i), pred);
+        gatherSelected(ed, tmp, *col->folderAt(i), pred);
       }
     }
   }
@@ -253,7 +253,7 @@ void PropertyEditor::draw_() {
 
   std::set<kpi::IObject*> _selected;
   for (int i = 0; i < mRoot.numFolders(); ++i) {
-    gatherSelected(_selected, *mRoot.folderAt(i), [&](kpi::IObject* node) {
+    gatherSelected(ed, _selected, *mRoot.folderAt(i), [&](kpi::IObject* node) {
       return node->collectionOf == mActive->collectionOf;
     });
   }

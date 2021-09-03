@@ -27,49 +27,8 @@ struct IObject {
   // The owner of the collection
   INode* childOf = nullptr;
 };
-struct SelectionState {
-  std::vector<std::size_t> selectedChildren;
-  std::size_t activeSelectChild = 0;
-};
 
-struct SelectManager {
-  SelectionState state;
-
-  bool isSelected(std::size_t index) const {
-    return std::find(state.selectedChildren.begin(),
-                     state.selectedChildren.end(),
-                     index) != state.selectedChildren.end();
-  }
-  bool select(std::size_t index) {
-    if (isSelected(index))
-      return true;
-
-    state.selectedChildren.push_back(index);
-    return false;
-  }
-  bool deselect(std::size_t index) {
-    auto it = std::find(state.selectedChildren.begin(),
-                        state.selectedChildren.end(), index);
-
-    if (it == state.selectedChildren.end())
-      return false;
-    state.selectedChildren.erase(it);
-    return true;
-  }
-  std::size_t clearSelection() {
-    std::size_t before = state.selectedChildren.size();
-    state.selectedChildren.clear();
-    return before;
-  }
-  std::size_t getActiveSelection() const { return state.activeSelectChild; }
-  std::size_t setActiveSelection(std::size_t value) {
-    const std::size_t old = state.activeSelectChild;
-    state.activeSelectChild = value;
-    return old;
-  }
-};
-
-struct ICollection : public SelectManager {
+struct ICollection {
   virtual ~ICollection() = default;
   virtual std::size_t size() const = 0;
   // Collection of type T, return (void*)(T*)
