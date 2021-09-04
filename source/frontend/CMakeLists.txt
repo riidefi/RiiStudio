@@ -46,7 +46,7 @@ add_executable(frontend
   "widgets/Image.cpp"
 
   ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc
- "renderer/InputState.hpp" "renderer/InputState.cpp" "properties/gc/Material/Indirect.cpp" "Localization.cpp" "Localization.hpp")
+ "renderer/InputState.hpp" "renderer/InputState.cpp" "properties/gc/Material/Indirect.cpp" "Localization.cpp" "Localization.hpp" "editor/views/OutlinerWidget.hpp" "editor/views/OutlinerWidget.cpp")
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
