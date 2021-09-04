@@ -295,62 +295,91 @@ private:
 };
 
 template <typename T>
-struct CollectionItemImpl final : public virtual IObject, public T {};
+struct CollectionItemImpl final : public virtual IObject, public T {
+  CollectionItemImpl(const CollectionItemImpl& rhs) : T(rhs) {
+    collectionOf = rhs.collectionOf;
+    childOf = rhs.childOf;
+  }
+  CollectionItemImpl(CollectionItemImpl&& rhs) noexcept : T(std::move(rhs)) {
+    collectionOf = rhs.collectionOf;
+    childOf = rhs.childOf;
+  }
+  CollectionItemImpl() : T() {
+    collectionOf = nullptr;
+    childOf = nullptr;
+  }
+};
 
 template <typename T> struct CollectionImpl final : public ICollection {
+  using element_type = CollectionItemImpl<T>;
+  using boxed_type = std::unique_ptr<element_type>;
+
   // Rationale: It's quite common to have a single bone (static pose) and a
   // single model (formats like BMD). Perhaps in the future, this should be
   // customized further.
 #ifndef BUILD_DEBUG
-  llvm::SmallVector<CollectionItemImpl<T>, 1> data;
+  llvm::SmallVector<boxed_type, 1> data;
 #else
-  std::vector<CollectionItemImpl<T>> data;
+  std::vector<boxed_type> data;
 #endif
   INode* parent = nullptr;
 
   std::size_t size() const override { return data.size(); }
   void* at(std::size_t i) override {
     assert(i < data.size());
-    return static_cast<T*>(&data[i]);
+    return static_cast<T*>(data[i].get());
   }
   const void* at(std::size_t i) const override {
     assert(i < data.size());
-    return static_cast<const T*>(&data[i]);
+    return static_cast<const T*>(data[i].get());
   }
-  IObject* atObject(std::size_t i) override { return &data[i]; }
-  const IObject* atObject(std::size_t i) const override { return &data[i]; }
+  IObject* atObject(std::size_t i) override { return data[i].get(); }
+  const IObject* atObject(std::size_t i) const override {
+    return data[i].get();
+  }
   void add() override {
-    auto& last = data.emplace_back();
-    last.collectionOf = this;
-    last.childOf = parent;
+    auto& last = data.emplace_back(std::make_unique<element_type>());
+    last->collectionOf = this;
+    last->childOf = parent;
   }
   void resize(std::size_t size) override {
+    auto old_size = data.size();
     data.resize(size);
+
+    if (size > old_size) {
+      for (size_t i = old_size; i < size; ++i) {
+        data[i] = std::make_unique<element_type>();
+      }
+    }
+
     for (auto& elem : data) {
-      elem.collectionOf = this;
-      elem.childOf = parent;
+      elem->collectionOf = this;
+      elem->childOf = parent;
     }
   }
   CollectionImpl(INode* _parent) : parent(_parent) {}
-  CollectionImpl(const CollectionImpl& rhs)
-      : data(rhs.data), parent(rhs.parent) {
+  CollectionImpl(const CollectionImpl& rhs) : parent(rhs.parent) {
+    data.resize(rhs.data.size());
+    size_t i = 0;
     for (auto& elem : data) {
-      elem.collectionOf = this;
-      elem.childOf = parent;
+      elem = std::make_unique<element_type>(*rhs.data[i++]);
+
+      elem->collectionOf = this;
+      elem->childOf = parent;
     }
   }
   CollectionImpl(CollectionImpl&& rhs)
       : data(std::move(rhs.data)), parent(rhs.parent) {
     for (auto& elem : data) {
-      elem.collectionOf = this;
-      elem.childOf = parent;
+      elem->collectionOf = this;
+      elem->childOf = parent;
     }
   }
 
   void onParentMoved(INode* _parent) {
     parent = _parent;
     for (auto& elem : data)
-      elem.childOf = _parent;
+      elem->childOf = _parent;
   }
 };
 

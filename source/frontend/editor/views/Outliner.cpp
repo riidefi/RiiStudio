@@ -302,8 +302,7 @@ void DrawNodePic(EditorWindow& ed, Child& child, float initial_pos_y,
 
 void AddNewCtxMenu(EditorWindow& ed, Child::Folder& folder) {
   if (CanCreateNew(folder.key)) {
-    const auto local_id = reinterpret_cast<u64>(folder.key.data());
-    const auto id_str = std::string("MCtx") + std::to_string(local_id);
+    const auto id_str = std::string("MCtx") + folder.key;
     if (ImGui::BeginPopupContextItem(id_str.c_str())) {
       ImGui::TextUnformatted((folder.children[0]->rich.getIconPlural() + " " +
                               folder.children[0]->rich.getNamePlural() + ": ")
