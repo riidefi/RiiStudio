@@ -76,8 +76,28 @@ public:
   std::string public_name;
 
   // Rich name (Icon+Name of type, singular/plural)
+  //
+  // Previously stored a RichName, now use type_icon, type_name
+  //
+  // If folder[0]->is_rich is NOT set, the folder will not be displayed.
   bool is_rich = false;
-  kpi::RichNameManager::EntryDelegate rich;
+
+  // Icons on the left of the text
+  //
+  // RichName::getIconSingular()
+  //
+  // Images can be used, with a special character that indexes the font sheet
+  // See: FontAwesome.h
+  std::string type_icon = "(?)";
+
+  // Used by context menu
+  //
+  // RichName::getNameSingular()
+  //
+  std::string type_name = "Unknown Thing";
+
+  // Icons on the right of the text
+  std::vector<const lib3d::Texture*> icons_right;
 
   struct Folder {
     std::vector<std::optional<Child>> children;
@@ -88,16 +108,24 @@ public:
     // TODO: This function can produce stale references
     std::function<void()> add_new_fn;
 
-    EditorWindow& ed_win;
+    // RichName::getIconPlural()
+    std::string type_icon_pl = "(?)";
+
+    // RichName::getIconPlural()
+    std::string type_name_pl = "Unknown Thing";
 
   public:
-    bool isSelected(size_t index) const {
+    bool isSelected(const EditorWindow& ed_win, size_t index) const {
       return ed_win.isSelected(children[index]->obj);
     }
-    void select(size_t index) { ed_win.select(children[index]->obj); }
-    void deselect(size_t index) { ed_win.deselect(children[index]->obj); }
+    void select(EditorWindow& ed_win, size_t index) const {
+      ed_win.select(children[index]->obj);
+    }
+    void deselect(EditorWindow& ed_win, size_t index) const {
+      ed_win.deselect(children[index]->obj);
+    }
 
-    size_t getActiveSelection() const {
+    size_t getActiveSelection(const EditorWindow& ed_win) const {
       auto* obj = ed_win.getActive();
 
       for (int i = 0; i < children.size(); ++i)
@@ -106,8 +134,11 @@ public:
 
       return ~0;
     }
-    void setActiveSelection(size_t index) {
-      ed_win.setActive(children[index]->obj);
+    void setActiveSelection(EditorWindow& ed_win, size_t index) const {
+      if (index == ~0)
+        ed_win.setActive(nullptr);
+      else
+        ed_win.setActive(children[index]->obj);
     }
   };
 
@@ -117,12 +148,7 @@ public:
   //
   // When this attribute is set, this object will always be shown even when the
   // name fails the search filter
-  bool is_container_ = false;
-
-  bool is_container() const { return is_container_; }
-
-  // Icons on the right of the text
-  std::vector<const lib3d::Texture*> icons_right;
+  bool is_container = false;
 
   std::function<void(EditorWindow&)> draw_context_menu_fn;
   // TODO: Replace with modal stack
@@ -156,9 +182,10 @@ static std::string FormatTitle(const Child::Folder& folder,
                                const TFilter* filter) {
   if (folder.children.size() == 0)
     return "";
-  const auto rich = folder.children[0]->rich;
-  const std::string icon_plural = rich.getIconPlural();
-  const std::string exposed_name = rich.getNamePlural();
+
+  const std::string& icon_plural = folder.type_icon_pl;
+  const std::string& exposed_name = folder.type_name_pl;
+
   return std::string(icon_plural + "  " + exposed_name + " (" +
                      std::to_string(CalcNumFiltered(folder, filter)) + ")");
 }
@@ -242,11 +269,24 @@ auto GetGChildren(kpi::INode* node, EditorWindow& ed) {
   if (node != nullptr) {
     for (int i = 0; i < node->numFolders(); ++i) {
       auto children = GetChildren(*node->folderAt(i), ed);
+
+      std::string icon_pl = "?";
+      std::string name_pl = "Unknowns";
+
+      // If no entry, we can't determine the rich name...
+      if (node->folderAt(i)->size() != 0) {
+        auto rich = kpi::RichNameManager::getInstance().getRich(
+            node->folderAt(i)->atObject(0));
+
+        icon_pl = rich.getIconPlural();
+        name_pl = rich.getNamePlural();
+      }
       grandchildren.push_back(
           Child::Folder{.children = children,
                         .key = node->idAt(i),
                         .add_new_fn = std::bind(AddNew, node->folderAt(i)),
-                        .ed_win = ed});
+                        .type_icon_pl = icon_pl,
+                        .type_name_pl = name_pl});
     }
   }
 
@@ -280,10 +320,11 @@ std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler,
                         // .node = node,
                         .public_name = public_name,
                         .is_rich = is_rich,
-                        .rich = rich,
-                        .folders = grandchildren,
-                        .is_container_ = node != nullptr,
+                        .type_icon = rich.getIconSingular(),
+                        .type_name = rich.getNameSingular(),
                         .icons_right = GetNodeIcons(*obj),
+                        .folders = grandchildren,
+                        .is_container = node != nullptr,
                         .draw_context_menu_fn = ctx_draw,
                         .draw_modal_fn = modal_draw};
   }
@@ -304,9 +345,8 @@ void AddNewCtxMenu(EditorWindow& ed, Child::Folder& folder) {
   if (CanCreateNew(folder.key)) {
     const auto id_str = std::string("MCtx") + folder.key;
     if (ImGui::BeginPopupContextItem(id_str.c_str())) {
-      ImGui::TextUnformatted((folder.children[0]->rich.getIconPlural() + " " +
-                              folder.children[0]->rich.getNamePlural() + ": ")
-                                 .c_str());
+      ImGui::TextUnformatted(
+          (folder.type_icon_pl + " " + folder.type_name_pl + ": ").c_str());
       ImGui::Separator();
 
       {
@@ -359,7 +399,7 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
     // auto& nodeAt = *children[i]->obj;
     std::string cur_name = children[i]->public_name;
 
-    if (!children[i]->is_container() && !mFilter.test(children[i]->public_name))
+    if (!children[i]->is_container && !mFilter.test(children[i]->public_name))
       continue;
 
     // TODO: Do we still need this?
@@ -370,7 +410,7 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
 
     // Whether or not this node is already selected.
     // Selections from other windows will carry over.
-    bool curNodeSelected = folder.isSelected(i);
+    bool curNodeSelected = folder.isSelected(ed, i);
 
     const int icon_size = 24;
 
@@ -381,9 +421,8 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
       activeModal = [draw_modal = children[i]->draw_modal_fn, ed = &ed]() {
         draw_modal(*ed);
       };
-      ImGui::TextUnformatted((children[i]->rich.getIconSingular() + " " +
-                              children[i]->rich.getNameSingular() + ": " +
-                              cur_name)
+      ImGui::TextUnformatted((children[i]->type_icon + " " +
+                              children[i]->type_name + ": " + cur_name)
                                  .c_str());
       ImGui::Separator();
 
@@ -398,16 +437,16 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
     bool focused = ImGui::IsItemFocused();
 
     u32 flags = ImGuiTreeNodeFlags_DefaultOpen;
-    if (!children[i]->is_container())
+    if (!children[i]->is_container)
       flags |= ImGuiTreeNodeFlags_Leaf;
 
     const auto text_size = ImGui::CalcTextSize("T");
     const auto initial_pos_y = ImGui::GetCursorPosY();
     ImGui::SetCursorPosY(initial_pos_y + (icon_size - text_size.y) / 2);
 
-    const auto treenode = ImGui::TreeNodeEx(
-        std::to_string(i).c_str(), flags, "%s %s",
-        children[i]->rich.getIconSingular().c_str(), cur_name.c_str());
+    const auto treenode =
+        ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s %s",
+                          children[i]->type_icon.c_str(), cur_name.c_str());
 
     if (treenode) {
       DrawNodePic(ed, *children[i], initial_pos_y, icon_size);
@@ -445,7 +484,7 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
       mActiveClassId != folder.key) {
     // Invalidate last selection, otherwise SHIFT anchors from the old folder
     // would carry over.
-    folder.setActiveSelection(~0);
+    folder.setActiveSelection(ed, ~0);
 
     // TODO: Wrap this up
     ed.selected.clear();
@@ -463,7 +502,7 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
     // Transform last selection index into filtered space.
     std::size_t lastSelectedFilteredIdx = -1;
     for (std::size_t i = 0; i < filtered.size(); ++i) {
-      if (filtered[i] == folder.getActiveSelection())
+      if (filtered[i] == folder.getActiveSelection(ed))
         lastSelectedFilteredIdx = i;
     }
     if (lastSelectedFilteredIdx == -1) {
@@ -480,7 +519,7 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
           std::max(justSelectedFilteredIdx, lastSelectedFilteredIdx);
 
       for (std::size_t i = a; i <= b; ++i)
-        folder.select(filtered[i]);
+        folder.select(ed, filtered[i]);
     }
   }
 
@@ -488,13 +527,13 @@ void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
   if (ctrlPressed && !shiftPressed) {
     // If already selected, no action necessary - just for id update.
     if (!justSelectedAlreadySelected)
-      folder.select(justSelectedId);
+      folder.select(ed, justSelectedId);
     else if (thereWasAClick)
-      folder.deselect(justSelectedId);
+      folder.deselect(ed, justSelectedId);
   }
 
   // Set our last selection index, for shift clicks.
-  folder.setActiveSelection(justSelectedId);
+  folder.setActiveSelection(ed, justSelectedId);
 
   // This sets a member inside EditorWindow
   mActive = folder.children[justSelectedId]->obj; // TODO -- removing the active
