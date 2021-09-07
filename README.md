@@ -26,6 +26,38 @@ Assimp supported formats like FBX and DAE can be imported as BMD/BRRES*.
 
 \* With "fast" compression only.
 
+## Building
+
+### Windows
+Open the CMakeLists.txt with Visual Studio, then click "Build".
+
+### Mac
+```sh
+git clone https://github.com/riidefi/RiiStudio
+cd RiiStudio
+mkdir build
+cd build
+
+brew install cmake assimp glfw
+
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .. --config Release
+```
+
+### Linux
+```sh
+git clone https://github.com/riidefi/RiiStudio
+cd RiiStudio
+mkdir build
+cd build
+
+sudo apt-get update --fix-missing
+sudo apt install -y cmake mesa-common-dev libglfw3-dev libassimp-dev g++-10
+
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-10
+cmake --build .. --config Release
+```
+
 ## Translations
 ### Japanese Translation (日本語)
 Credit to @h0d22 on twitter for the translation
