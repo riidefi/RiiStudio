@@ -6,9 +6,9 @@
 #include <frontend/Localization.hpp>
 #include <frontend/editor/EditorWindow.hpp>
 #include <frontend/widgets/fps.hpp>
-#include <frontend/widgets/fullscreen.hpp>
 #include <frontend/widgets/theme_editor.hpp>
 #include <fstream>
+#include <imcxx/Widgets.hpp>
 #include <imgui_markdown.h>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
@@ -55,7 +55,7 @@ void RootWindow::draw() {
   fileHostProcess();
 
   ImGui::PushID(0);
-  if (BeginFullscreenWindow("##RootWindow", getOpen())) {
+  if (imcxx::BeginFullscreenWindow("##RootWindow", getOpen())) {
     if (mThemeUpdated) {
       mTheme.setThemeEx(mCurTheme);
       mThemeUpdated = false;
@@ -214,7 +214,7 @@ void RootWindow::draw() {
     drawChildren();
   }
   // Handle popups
-  EndFullscreenWindow();
+  imcxx::EndFullscreenWindow();
   ImGui::PopID();
 
 #ifdef BUILD_ASAN
