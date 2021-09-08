@@ -48,7 +48,7 @@ static void gatherSelected(EditorWindow& ed, std::set<kpi::IObject*>& tmp,
                            kpi::ICollection& folder, T pred) {
   for (int i = 0; i < folder.size(); ++i) {
     auto* obj = folder.atObject(i);
-    if (ed.isSelected(obj) && pred(obj)) {
+    if (ed.isSelected(obj) && pred(&folder)) {
       tmp.emplace(obj);
     }
 
@@ -253,9 +253,10 @@ void PropertyEditor::draw_() {
 
   std::set<kpi::IObject*> _selected;
   for (int i = 0; i < mRoot.numFolders(); ++i) {
-    gatherSelected(ed, _selected, *mRoot.folderAt(i), [&](kpi::IObject* node) {
-      return node->collectionOf == mActive->collectionOf;
-    });
+    gatherSelected(ed, _selected, *mRoot.folderAt(i),
+                   [&](kpi::ICollection* folder) {
+                     return folder == mActive->collectionOf;
+                   });
   }
   // TODO: 7 objects per selection..?
 

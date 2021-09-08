@@ -1,4 +1,5 @@
 #include "root.hpp"
+#include "LeakDebug.hpp"
 #include <core/3d/gl.hpp>
 #include <core/api.hpp>
 #include <core/util/gui.hpp>
@@ -24,10 +25,6 @@
 #include <emscripten.h>
 #endif
 
-#ifdef BUILD_ASAN
-#include <sanitizer/lsan_interface.h>
-#endif
-
 namespace llvm {
 int DisableABIBreakingChecks;
 } // namespace llvm
@@ -38,191 +35,198 @@ bool IsAdvancedMode() { return gIsAdvancedMode; }
 
 namespace riistudio::frontend {
 
+void DrawLocaleMenu() {
+  static int locale = 0;
+
+  int locale_opt = locale;
+  ImGui::RadioButton("English", &locale_opt, 0);
+  ImGui::RadioButton("日本語", &locale_opt, 1);
+
+  if (locale_opt != locale) {
+    locale = locale_opt;
+
+    const char* id_str = "English";
+    switch (locale) {
+    default:
+    case 0:
+      id_str = "English";
+      break;
+    case 1:
+      id_str = "Japanese";
+      break;
+    }
+
+    riistudio::SetLocale(id_str);
+  }
+
+  if (ImGui::Button("Dump Untranslated Strings"_j)) {
+    riistudio::DebugDumpLocaleMisses();
+  }
+  if (ImGui::Button("Reload Language .csv Files"_j)) {
+    riistudio::DebugReloadLocales();
+  }
+}
+
 RootWindow* RootWindow::spInstance;
 
-#ifdef _WIN32
-static void GlCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
-                       GLsizei length, const GLchar* message,
-                       GLvoid* userParam) {
-  if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
-    return;
-
-  printf("%s\n", message);
-}
+void SetWindowIcon(void* platform_window, const char* path) {
+#ifdef RII_BACKEND_GLFW
+  GLFWwindow* window = reinterpret_cast<GLFWwindow*>(platform_window);
+  GLFWimage image;
+  image.pixels = stbi_load(path, &image.width, &image.height, 0, 4);
+  glfwSetWindowIcon(window, 1, &image);
+  stbi_image_free(image.pixels);
 #endif
+}
 
 void RootWindow::draw() {
+  DoLeakCheck();
   fileHostProcess();
 
-  ImGui::PushID(0);
+  ImGui::GetIO().FontGlobalScale = mFontGlobalScale;
+
+  if (mThemeUpdated) {
+    mTheme.setThemeEx(mCurTheme);
+    mThemeUpdated = false;
+  }
+
+  util::IDScope g(0);
+
   if (imcxx::BeginFullscreenWindow("##RootWindow", getOpen())) {
-    if (mThemeUpdated) {
-      mTheme.setThemeEx(mCurTheme);
-      mThemeUpdated = false;
-    }
-    ImGui::GetIO().FontGlobalScale = mFontGlobalScale;
+    drawStatusBar();
 
-    ImGui::SetWindowFontScale(1.1f);
-    if (!hasChildren()) {
-      ImGui::Text("Drop a file to edit.");
-    }
-    // ImGui::Text(
-    //     "Note: For this early alpha, file saving is temporarily disabled.");
-    ImGui::SetWindowFontScale(1.0f);
-    dockspace_id = ImGui::GetID("DockSpaceWidget");
-
-    // ImGuiID dock_main_id = dockspace_id;
-    while (mAttachEditorsQueue.size()) {
-      const std::string& ed_id = mAttachEditorsQueue.front();
-      (void)ed_id;
-
-      // ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing
-      // layout ImGui::DockBuilderAddNode(dockspace_id); // Add empty node
-      //
-      //
-      // ImGuiID dock_up_id = ImGui::DockBuilderSplitNode(dock_main_id,
-      // ImGuiDir_Up, 0.05f, nullptr, &dock_main_id);
-      // ImGui::DockBuilderDockWindow(ed_id.c_str(), dock_up_id);
-      //
-      //
-      // ImGui::DockBuilderFinish(dockspace_id);
-      mAttachEditorsQueue.pop();
-    }
+    const u32 dockspace_id = ImGui::GetID("DockSpaceWidget");
 
     ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), 0);
 
     EditorWindow* ed =
         getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
-    assert(ed || !hasChildren());
+    assert((ed || !hasChildren()) &&
+           "Either the active window must be an EditorWindow, or RootWindow "
+           "must have no children. This is a silly limitation, I think.");
 
-    if (ImGui::BeginMenuBar()) {
-      if (ImGui::BeginMenu("File"_j)) {
-#if !defined(__EMSCRIPTEN__)
-        if (ImGui::MenuItem("Open"_j)) {
-          openFile();
-        }
-#endif
-        if (ImGui::MenuItem("Save"_j)) {
+    drawMenuBar(ed);
 
-          if (ed) {
-            DebugReport("Attempting to save to %s\n",
-                        ed->getFilePath().c_str());
-            if (!ed->getFilePath().empty())
-              save(ed->getFilePath());
-            else
-              saveAs();
-          } else {
-            printf("%s", "Cannot save.. nothing has been opened.\n"_j);
-          }
-        }
-#if !defined(__EMSCRIPTEN__)
-        if (ImGui::MenuItem("Save As"_j)) {
-          if (ed)
-            saveAs();
-          else
-            printf("%s", "Cannot save.. nothing has been opened.\n"_j);
-        }
-#endif
-        ImGui::EndMenu();
-      }
-
-      if (ImGui::BeginMenu("Settings"_j)) {
-        bool _vsync = vsync;
-        ImGui::Checkbox("VSync"_j, &_vsync);
-
-        if (_vsync != vsync) {
-          setVsync(_vsync);
-          vsync = _vsync;
-        }
-
-        mThemeUpdated |= DrawThemeEditor(mCurTheme, mFontGlobalScale, nullptr);
-
-#ifdef BUILD_DEBUG
-        ImGui::Checkbox("ImGui Demo", &bDemo);
-#endif
-
-        ImGui::Checkbox("Advanced Mode"_j, &gIsAdvancedMode);
-
-        ImGui::EndMenu();
-      }
-
-      if (ImGui::BeginMenu("日本語")) {
-        static int locale = 0;
-
-        int locale_opt = locale;
-        ImGui::RadioButton("English", &locale_opt, 0);
-        ImGui::RadioButton("日本語", &locale_opt, 1);
-
-        if (locale_opt != locale) {
-          locale = locale_opt;
-
-          const char* id_str = "English";
-          switch (locale) {
-          default:
-          case 0:
-            id_str = "English";
-            break;
-          case 1:
-            id_str = "Japanese";
-            break;
-          }
-
-          riistudio::SetLocale(id_str);
-        }
-
-        if (ImGui::Button("Dump Untranslated Strings"_j)) {
-          riistudio::DebugDumpLocaleMisses();
-        }
-        if (ImGui::Button("Reload Language .csv Files"_j)) {
-          riistudio::DebugReloadLocales();
-        }
-
-        ImGui::EndMenu();
-      }
-
-      if (bDemo)
-        ImGui::ShowDemoWindow(&bDemo);
-
-      ImGui::SameLine(ImGui::GetWindowWidth() - 60);
-      DrawFps();
-
-      ImGui::EndMenuBar();
-    }
+    if (bDemo)
+      ImGui::ShowDemoWindow(&bDemo);
 
     if (mCheckUpdate && mUpdater.IsOnline())
       mUpdater.draw();
 
-    if (!mImportersQueue.empty()) {
-      auto& window = mImportersQueue.front();
-      if (window.attachEditor()) {
-        attachEditorWindow(std::make_unique<EditorWindow>(window.takeResult(),
-                                                          window.getPath()));
-        mImportersQueue.pop();
-      } else if (window.abort()) {
-        mImportersQueue.pop();
-      } else {
-        const auto wflags = ImGuiWindowFlags_NoCollapse;
-
-        ImGui::OpenPopup("Importer"_j);
-
-        ImGui::SetNextWindowSize({800.0f, 00.0f});
-        ImGui::BeginPopupModal("Importer"_j, nullptr, wflags);
-        window.draw();
-        ImGui::EndPopup();
-      }
-    }
+    processImportersQueue();
     drawChildren();
   }
-  // Handle popups
   imcxx::EndFullscreenWindow();
-  ImGui::PopID();
+}
+void RootWindow::drawStatusBar() {
+  ImGui::SetWindowFontScale(1.1f);
+  if (!hasChildren()) {
+    ImGui::TextUnformatted("Drop a file to edit."_j);
+  }
+  ImGui::SetWindowFontScale(1.0f);
+}
+void RootWindow::processImportersQueue() {
+  if (mImportersQueue.empty())
+    return;
 
-#ifdef BUILD_ASAN
-  __lsan_do_leak_check();
+  auto& window = mImportersQueue.front();
+
+  if (window.attachEditor()) {
+    attachEditorWindow(
+        std::make_unique<EditorWindow>(window.takeResult(), window.getPath()));
+    mImportersQueue.pop();
+    return;
+  }
+
+  if (window.abort()) {
+    mImportersQueue.pop();
+    return;
+  }
+
+  const auto wflags = ImGuiWindowFlags_NoCollapse;
+
+  ImGui::OpenPopup("Importer"_j);
+  {
+    ImGui::SetNextWindowSize({800.0f, 00.0f});
+    ImGui::BeginPopupModal("Importer"_j, nullptr, wflags);
+    window.draw();
+  }
+  ImGui::EndPopup();
+}
+void RootWindow::drawMenuBar(riistudio::frontend::EditorWindow* ed) {
+  // [File] [Settings] [Lang]   (---> WindowWidth-60) [FPS]
+  if (ImGui::BeginMenuBar()) {
+    drawFileMenu(ed);
+
+    drawSettingsMenu();
+
+    drawLangMenu();
+
+    ImGui::SameLine(ImGui::GetWindowWidth() - 60);
+    DrawFps();
+
+    ImGui::EndMenuBar();
+  }
+}
+void RootWindow::drawLangMenu() {
+  if (ImGui::BeginMenu("日本語")) {
+    DrawLocaleMenu();
+
+    ImGui::EndMenu();
+  }
+}
+void RootWindow::drawSettingsMenu() {
+  if (ImGui::BeginMenu("Settings"_j)) {
+    bool _vsync = vsync;
+    ImGui::Checkbox("VSync"_j, &_vsync);
+
+    if (_vsync != vsync) {
+      setVsync(_vsync);
+      vsync = _vsync;
+    }
+
+    mThemeUpdated |= DrawThemeEditor(mCurTheme, mFontGlobalScale, nullptr);
+
+#ifdef BUILD_DEBUG
+    ImGui::Checkbox("ImGui Demo", &bDemo);
 #endif
+
+    ImGui::Checkbox("Advanced Mode"_j, &gIsAdvancedMode);
+
+    ImGui::EndMenu();
+  }
+}
+void RootWindow::drawFileMenu(riistudio::frontend::EditorWindow* ed) {
+  if (ImGui::BeginMenu("File"_j)) {
+#if !defined(__EMSCRIPTEN__)
+    if (ImGui::MenuItem("Open"_j)) {
+      openFile();
+    }
+#endif
+    if (ImGui::MenuItem("Save"_j)) {
+      if (ed) {
+        DebugReport("Attempting to save to %s\n", ed->getFilePath().c_str());
+        if (!ed->getFilePath().empty())
+          save(ed->getFilePath());
+        else
+          saveAs();
+      } else {
+        DebugReport("%s", "Cannot save.. nothing has been opened.\n"_j);
+      }
+    }
+#if !defined(__EMSCRIPTEN__)
+    if (ImGui::MenuItem("Save As"_j)) {
+      if (ed)
+        saveAs();
+      else
+        DebugReport("%s", "Cannot save.. nothing has been opened.\n"_j);
+    }
+#endif
+    ImGui::EndMenu();
+  }
 }
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
-  printf("Opening file: %s\n", data.mPath.c_str());
+  DebugReport("Opening file: %s\n", data.mPath.c_str());
 
   if (mWantFile) {
     mReqData = std::move(data);
@@ -242,27 +246,21 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   mImportersQueue.emplace(std::move(data));
 }
 void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
-  mAttachEditorsQueue.push(editor->getName());
   attachWindow(std::move(editor));
 }
 
 RootWindow::RootWindow()
     : Applet(std::string("RiiStudio "_j) + RII_TIME_STAMP) {
-#ifdef _WIN32
-  glDebugMessageCallback(GlCallback, 0);
-#endif
   spInstance = this;
 
+  // Loads the plugins for file formats / importers
   InitAPI();
 
+  // Without this, clicking in the viewport with a mouse would move the window
+  // when undocked.
   ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
-#ifdef RII_BACKEND_GLFW
-  GLFWwindow* window = reinterpret_cast<GLFWwindow*>(getPlatformWindow());
-  GLFWimage image;
-  image.pixels = stbi_load("icon.png", &image.width, &image.height, 0, 4);
-  glfwSetWindowIcon(window, 1, &image);
-  stbi_image_free(image.pixels);
-#endif
+
+  SetWindowIcon(getPlatformWindow(), "icon.png");
 }
 RootWindow::~RootWindow() { DeinitAPI(); }
 

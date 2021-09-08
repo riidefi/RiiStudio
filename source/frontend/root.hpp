@@ -19,10 +19,17 @@ class RootWindow final : public Applet, public FileHost {
 public:
   static RootWindow* spInstance;
 
-
   RootWindow();
+  RootWindow(const RootWindow&) = delete;
+  RootWindow(RootWindow&&) = delete;
   ~RootWindow();
   void draw() override;
+  void drawStatusBar();
+  void processImportersQueue();
+  void drawMenuBar(riistudio::frontend::EditorWindow* ed);
+  void drawLangMenu();
+  void drawSettingsMenu();
+  void drawFileMenu(riistudio::frontend::EditorWindow* ed);
   void onFileOpen(FileData data, OpenFilePolicy policy) override;
 
   void vdropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len,
@@ -34,12 +41,11 @@ public:
   void saveAs();
 
 private:
-  u32 dockspace_id = 0;
   bool vsync = true;
   bool bDemo = false;
   float mFontGlobalScale = 1.0f;
 
-  std::queue<std::string> mAttachEditorsQueue;
+  // std::queue<std::string> mAttachEditorsQueue;
   ThemeManager mTheme;
   ThemeManager::BasicTheme mCurTheme = ThemeManager::BasicTheme::Raikiri;
   bool mThemeUpdated = true;

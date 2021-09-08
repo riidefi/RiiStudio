@@ -18,6 +18,22 @@ static void handleGlfwError(int err, const char* description) {
   fprintf(stderr, "GLFW Error: %d: %s\n", err, description);
 }
 
+static void GlCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
+                       GLsizei length, const GLchar* message,
+                       GLvoid* userParam) {
+  if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+    return;
+
+  printf("%s\n", message);
+}
+
+inline void AttachGlDebugPrinter() {
+  // TODO: Investigate enabling this on other platforms...
+#ifdef _WIN32
+  glDebugMessageCallback(GlCallback, 0);
+#endif
+}
+
 static void handleDrop(GLFWwindow* window, int count, const char** raw_paths) {
   Platform* glwin =
       reinterpret_cast<Platform*>(glfwGetWindowUserPointer(window));
@@ -69,6 +85,9 @@ Platform::Platform(unsigned width, unsigned height, const std::string& pName)
              this);
 
   gl3wInit();
+
+  // Print out GL errors
+  AttachGlDebugPrinter();
 
   // Defer init..
   IMGUI_CHECKVERSION();
