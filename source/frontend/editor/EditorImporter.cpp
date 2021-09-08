@@ -67,8 +67,12 @@ bool EditorImporter::process() {
     }
     // auto fn = std::bind(&EditorImporter::messageHandler, std::ref(*this));
     auto fn = [](...) {};
-    transaction.emplace(
-        kpi::IOTransaction{*fileState.get(), provider->slice(), fn});
+    transaction.emplace(kpi::IOTransaction{{
+                                               fn,
+                                               kpi::TransactionState::Complete,
+                                           },
+                                           *fileState.get(),
+                                           provider->slice()});
 
     // TODO: Move elsewhere..
     auto path = getPath();

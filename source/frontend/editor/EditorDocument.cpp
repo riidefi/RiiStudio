@@ -44,7 +44,8 @@ EditorDocument::EditorDocument(FileData&& data) {
     mMessages.emplace_back(message_class, std::string(domain),
                            std::string(message_body));
   };
-  kpi::IOTransaction transaction{getRoot(), provider.slice(), message_handler};
+  kpi::IOTransaction transaction{.node = getRoot(), .data = provider.slice()};
+  transaction.callback = message_handler;
   importer.second->read_(transaction);
 }
 EditorDocument::EditorDocument(std::unique_ptr<kpi::INode> state,

@@ -9,7 +9,6 @@
 
 
 extern void InstallGC();
-extern void InstallBRRES();
 extern void InstallBMD();
 
 namespace riistudio::g3d {
@@ -73,7 +72,6 @@ std::unique_ptr<kpi::IBinarySerializer> SpawnExporter(kpi::INode& node) {
 
 void InitAPI() {
   InstallGC();
-  InstallBRRES();
   InstallBMD();
 
   auto& installer = *kpi::ApplicationPlugins::getInstance();

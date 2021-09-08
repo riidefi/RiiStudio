@@ -39,11 +39,7 @@ enum class TransactionState {
   ResolveDependencies, //!< Interrupted: The entire point of this system!
 };
 
-struct IOTransaction {
-  // Caller -> Deserializer
-  kpi::INode& node;
-  oishii::ByteView data;
-
+struct LightIOTransaction {
   // Deserializer -> Caller
   std::function<void(IOMessageClass message_class,
                      const std::string_view domain,
@@ -51,6 +47,12 @@ struct IOTransaction {
       callback;
 
   TransactionState state = TransactionState::Complete;
+};
+
+struct IOTransaction : public LightIOTransaction {
+  // Caller -> Deserializer
+  kpi::INode& node;
+  oishii::ByteView data;
 
   // Unresolved
   llvm::SmallVector<std::string, 8> unresolvedFiles; // request

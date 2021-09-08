@@ -13,7 +13,7 @@ const char* translateString(std::string_view str) { return str.data(); }
 } // namespace riistudio
 
 namespace llvm {
-  int DisableABIBreakingChecks;
+int DisableABIBreakingChecks;
 } // namespace llvm
 
 void save(const std::string_view path, kpi::INode& root) {
@@ -63,7 +63,12 @@ std::unique_ptr<kpi::INode> open(const std::string_view path) {
     printf("Cannot spawn file state %s.\n", importer.first.c_str());
     return nullptr;
   }
-  kpi::IOTransaction transaction{*fileState, provider.slice(), [](...) {}};
+  kpi::IOTransaction transaction{{
+                                     [](...) {},
+                                     kpi::TransactionState::Complete,
+                                 },
+                                 *fileState,
+                                 provider.slice()};
   importer.second->read_(transaction);
 
   return fileState;

@@ -377,7 +377,7 @@ void ReadModelInfo(oishii::BinaryReader& reader,
 }
 
 void readModel(Model& mdl, oishii::BinaryReader& reader,
-               kpi::IOTransaction& transaction,
+               kpi::LightIOTransaction& transaction,
                const std::string& transaction_path) {
   const auto start = reader.tell();
   bool isValid = true;
