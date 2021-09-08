@@ -1,8 +1,5 @@
 #include <core/api.hpp>
-#include <fstream>
-#include <oishii/reader/binary_reader.hxx>
-#include <oishii/writer/binary_writer.hxx>
-#include <plate/Platform.hpp>
+#include <core/util/oishii.hpp>
 #include <string>
 #include <vendor/llvm/Support/InitLLVM.h>
 
@@ -16,30 +13,25 @@ namespace llvm {
 int DisableABIBreakingChecks;
 } // namespace llvm
 
-void save(const std::string_view path, kpi::INode& root) {
+void save(std::string_view path, kpi::INode& root) {
   printf("Writing to %s\n", std::string(path).c_str());
   oishii::Writer writer(1024);
 
   auto ex = SpawnExporter(root);
   ex->write_(root, writer);
 
-  plate::Platform::writeFile({writer.getDataBlockStart(), writer.getBufSize()},
-                             path);
+  OishiiFlushWriter(writer, path);
 }
 
-std::unique_ptr<kpi::INode> open(const std::string_view path) {
-  std::ifstream file(std::string(path), std::ios::binary | std::ios::ate);
-  std::vector<u8> vec(file.tellg());
-  file.seekg(0, std::ios::beg);
-
-  if (!file.read(reinterpret_cast<char*>(vec.data()), vec.size())) {
+std::unique_ptr<kpi::INode> open(std::string path) {
+  auto file = OishiiReadFile(path);
+  if (!file.has_value()) {
     std::cout << "Failed to read file!\n";
     return nullptr;
   }
 
-  oishii::DataProvider provider(std::move(vec), path);
-  oishii::BinaryReader reader(provider.slice());
-  auto importer = SpawnImporter(std::string(path), provider.slice());
+  oishii::BinaryReader reader(file->slice());
+  auto importer = SpawnImporter(std::string(path), file->slice());
 
   if (!importer.second) {
     printf("Cannot spawn importer..\n");
@@ -68,7 +60,7 @@ std::unique_ptr<kpi::INode> open(const std::string_view path) {
                                      kpi::TransactionState::Complete,
                                  },
                                  *fileState,
-                                 provider.slice()};
+                                 file->slice()};
   importer.second->read_(transaction);
 
   return fileState;
@@ -77,7 +69,7 @@ std::unique_ptr<kpi::INode> open(const std::string_view path) {
 // XXX: Hack, though we'll refactor all of this way soon
 extern std::string rebuild_dest;
 
-void rebuild(const std::string_view from, const std::string_view to) {
+void rebuild(std::string from, const std::string_view to) {
   rebuild_dest = to;
 
   auto data = open(from);
