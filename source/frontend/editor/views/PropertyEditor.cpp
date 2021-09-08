@@ -9,8 +9,8 @@ namespace riistudio::frontend {
 
 class PropertyEditor : public StudioWindow {
 public:
-  PropertyEditor(kpi::History& host, kpi::INode& root, kpi::IObject*& active,
-                 EditorWindow& ed);
+  PropertyEditor(kpi::History& host, kpi::INode& root,
+                 SelectionManager& selection, EditorWindow& ed);
   ~PropertyEditor();
 
 private:
@@ -38,13 +38,13 @@ private:
   EditorWindow& ed;
   kpi::History& mHost;
   kpi::INode& mRoot;
-  kpi::IObject*& mActive;
+  SelectionManager& mSelection;
 
   kpi::PropertyViewStateHolder state_holder;
 };
 
 template <typename T>
-static void gatherSelected(EditorWindow& ed, std::set<kpi::IObject*>& tmp,
+static void gatherSelected(SelectionManager& ed, std::set<kpi::IObject*>& tmp,
                            kpi::ICollection& folder, T pred) {
   for (int i = 0; i < folder.size(); ++i) {
     auto* obj = folder.atObject(i);
@@ -62,9 +62,9 @@ static void gatherSelected(EditorWindow& ed, std::set<kpi::IObject*>& tmp,
 }
 
 PropertyEditor::PropertyEditor(kpi::History& host, kpi::INode& root,
-                               kpi::IObject*& active, EditorWindow& ed)
+                               SelectionManager& selection, EditorWindow& ed)
     : StudioWindow("Property Editor"), ed(ed), mHost(host), mRoot(root),
-      mActive(active) {
+      mSelection(selection) {
   setWindowFlag(ImGuiWindowFlags_MenuBar);
   setClosable(false);
 }
@@ -119,7 +119,7 @@ void PropertyEditor::DrawHorizTabs(kpi::PropertyViewManager& manager,
 
           ++i;
         },
-        *mActive);
+        *mSelection.mActive);
     ImGui::EndTabBar();
   }
 
@@ -130,7 +130,8 @@ void PropertyEditor::DrawHorizTabs(kpi::PropertyViewManager& manager,
     return;
   }
 
-  activeTab->draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
+  activeTab->draw(*mSelection.mActive, selected, mHost, mRoot, state_holder,
+                  &ed);
 }
 
 void PropertyEditor::DrawVertTabs(kpi::PropertyViewManager& manager,
@@ -155,7 +156,7 @@ void PropertyEditor::DrawVertTabs(kpi::PropertyViewManager& manager,
 
         ++i;
       },
-      *mActive);
+      *mSelection.mActive);
   ImGui::EndChild();
 
   ImGui::SameLine();
@@ -167,7 +168,8 @@ void PropertyEditor::DrawVertTabs(kpi::PropertyViewManager& manager,
 
       ImGui::TextUnformatted("Invalid Pane"_j);
     } else {
-      activeTab->draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
+      activeTab->draw(*mSelection.mActive, selected, mHost, mRoot, state_holder,
+                      &ed);
     }
   }
   ImGui::EndChild();
@@ -178,7 +180,8 @@ void PropertyEditor::DrawHeaderTabs(kpi::PropertyViewManager& manager,
                                     std::vector<kpi::IObject*>& selected) {
   std::string title;
   int i = 0;
-  manager.forEachView([&](kpi::IPropertyView& view) { ++i; }, *mActive);
+  manager.forEachView([&](kpi::IPropertyView& view) { ++i; },
+                      *mSelection.mActive);
   const int num_headers = i;
 
   if (tab_filter.size() != num_headers) {
@@ -205,7 +208,7 @@ void PropertyEditor::DrawHeaderTabs(kpi::PropertyViewManager& manager,
 
         ++i;
       },
-      *mActive);
+      *mSelection.mActive);
   ImGui::EndTable();
   i = 0;
   manager.forEachView(
@@ -222,22 +225,23 @@ void PropertyEditor::DrawHeaderTabs(kpi::PropertyViewManager& manager,
         if (ImGui::CollapsingHeader((title + "##_TAB").c_str(),
                                     tab_filter.data() + i,
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-          view.draw(*mActive, selected, mHost, mRoot, state_holder, &ed);
+          view.draw(*mSelection.mActive, selected, mHost, mRoot, state_holder,
+                    &ed);
         }
         ++i;
       },
-      *mActive);
+      *mSelection.mActive);
 }
 
 void PropertyEditor::draw_() {
   auto& manager = kpi::PropertyViewManager::getInstance();
 
-  if (mActive == nullptr) {
+  if (mSelection.mActive == nullptr) {
     ImGui::TextUnformatted("Nothing is selected."_j);
     return;
   }
 
-  if (lib3d::Material* mat = dynamic_cast<lib3d::Material*>(mActive);
+  if (lib3d::Material* mat = dynamic_cast<lib3d::Material*>(mSelection.mActive);
       mat != nullptr) {
     DrawMaterialHeader(mat);
   }
@@ -253,9 +257,9 @@ void PropertyEditor::draw_() {
 
   std::set<kpi::IObject*> _selected;
   for (int i = 0; i < mRoot.numFolders(); ++i) {
-    gatherSelected(ed, _selected, *mRoot.folderAt(i),
+    gatherSelected(mSelection, _selected, *mRoot.folderAt(i),
                    [&](kpi::ICollection* folder) {
-                     return folder == mActive->collectionOf;
+                     return folder == mSelection.mActive->collectionOf;
                    });
   }
   // TODO: 7 objects per selection..?
@@ -266,9 +270,9 @@ void PropertyEditor::draw_() {
     ImGui::Text((const char*)ICON_FA_EXCLAMATION_TRIANGLE
                 " Active selection and multiselection desynced."
                 " This shouldn't happen.");
-    _selected.emplace(mActive);
+    _selected.emplace(mSelection.mActive);
   }
-  ImGui::Text("%s %s (%i)", mActive->getName().c_str(),
+  ImGui::Text("%s %s (%i)", mSelection.mActive->getName().c_str(),
               _selected.size() > 1 ? "..." : "",
               static_cast<int>(_selected.size()));
 
@@ -291,9 +295,9 @@ void PropertyEditor::draw_() {
 
 std::unique_ptr<StudioWindow> MakePropertyEditor(kpi::History& host,
                                                  kpi::INode& root,
-                                                 kpi::IObject*& active,
+                                                 SelectionManager& selection,
                                                  EditorWindow& ed) {
-  return std::make_unique<PropertyEditor>(host, root, active, ed);
+  return std::make_unique<PropertyEditor>(host, root, selection, ed);
 }
 
 } // namespace riistudio::frontend

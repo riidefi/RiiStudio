@@ -40,9 +40,8 @@ std::string NameObject(const kpi::IObject* obj, int i) {
   return base + extra;
 }
 
-
 struct GenericCollectionOutliner : public StudioWindow {
-  GenericCollectionOutliner(kpi::INode& host, kpi::IObject*& active,
+  GenericCollectionOutliner(kpi::INode& host, SelectionManager& selection,
                             EditorWindow& ed);
 
   void drawFolder(Child::Folder& folder) noexcept;
@@ -55,7 +54,7 @@ private:
   kpi::INode& mHost;
   TFilter mFilter;
   // This points inside EditorWindow, meh
-  kpi::IObject*& mActive;
+  SelectionManager& mSelection;
   // Describes the type of mActive, useful for differentiating type-disjoint
   // multiselections.
   std::string mActiveClassId;
@@ -64,10 +63,9 @@ private:
   std::optional<std::function<void()>> activeModal;
 };
 
-GenericCollectionOutliner::GenericCollectionOutliner(kpi::INode& host,
-                                                     kpi::IObject*& active,
-                                                     EditorWindow& ed)
-    : StudioWindow("Outliner"), mHost(host), mActive(active), ed(ed) {
+GenericCollectionOutliner::GenericCollectionOutliner(
+    kpi::INode& host, SelectionManager& selection, EditorWindow& ed)
+    : StudioWindow("Outliner"), mHost(host), mSelection(selection), ed(ed) {
   setClosable(false);
 }
 
@@ -178,15 +176,13 @@ std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler,
   return children;
 }
 
-
 void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
-  DrawFolder(folder, mFilter, ed, activeModal, mActive, mActiveClassId);
+  DrawFolder(folder, mFilter, ed, activeModal, mSelection.mActive,
+             mActiveClassId);
 }
 
 void GenericCollectionOutliner::drawRecursive(
-    std::vector<Child::Folder> folders) noexcept {
-  
-}
+    std::vector<Child::Folder> folders) noexcept {}
 
 void GenericCollectionOutliner::draw_() noexcept {
   // activeModal = nullptr;
@@ -201,8 +197,8 @@ void GenericCollectionOutliner::draw_() noexcept {
 }
 
 std::unique_ptr<StudioWindow>
-MakeOutliner(kpi::INode& host, kpi::IObject*& active, EditorWindow& ed) {
-  return std::make_unique<GenericCollectionOutliner>(host, active, ed);
+MakeOutliner(kpi::INode& host, SelectionManager& selection, EditorWindow& ed) {
+  return std::make_unique<GenericCollectionOutliner>(host, selection, ed);
 }
 
 } // namespace riistudio::frontend

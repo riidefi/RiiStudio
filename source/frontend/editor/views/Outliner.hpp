@@ -10,10 +10,10 @@ class IDocumentNode;
 namespace riistudio::frontend {
 
 class EditorWindow;
+struct SelectionManager;
 class StudioWindow;
 
 std::unique_ptr<StudioWindow>
-MakeOutliner(kpi::INode& host, kpi::IObject*& active, EditorWindow& ed);
-
+MakeOutliner(kpi::INode& host, SelectionManager& active, EditorWindow& ed);
 
 } // namespace riistudio::frontend

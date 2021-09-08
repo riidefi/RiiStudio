@@ -32,17 +32,18 @@ std::string FormatTitle(const NodeFolder& folder, const TFilter* filter) {
                      std::to_string(CalcNumFiltered(folder, filter)) + ")");
 }
 
-bool isSelected(const EditorWindow& ed_win, NodeFolder& nodes, size_t index) {
+bool isSelected(const SelectionManager& ed_win, NodeFolder& nodes,
+                size_t index) {
   return ed_win.isSelected(nodes.children[index]->obj);
 }
-void select(EditorWindow& ed_win, NodeFolder& nodes, size_t index) {
+void select(SelectionManager& ed_win, NodeFolder& nodes, size_t index) {
   ed_win.select(nodes.children[index]->obj);
 }
-void deselect(EditorWindow& ed_win, NodeFolder& nodes, size_t index) {
+void deselect(SelectionManager& ed_win, NodeFolder& nodes, size_t index) {
   ed_win.deselect(nodes.children[index]->obj);
 }
 
-size_t getActiveSelection(const EditorWindow& ed_win, NodeFolder& nodes) {
+size_t getActiveSelection(const SelectionManager& ed_win, NodeFolder& nodes) {
   auto* obj = ed_win.getActive();
 
   for (int i = 0; i < nodes.children.size(); ++i)
@@ -51,7 +52,8 @@ size_t getActiveSelection(const EditorWindow& ed_win, NodeFolder& nodes) {
 
   return ~0;
 }
-void setActiveSelection(EditorWindow& ed_win, NodeFolder& nodes, size_t index) {
+void setActiveSelection(SelectionManager& ed_win, NodeFolder& nodes,
+                        size_t index) {
   if (index == ~0)
     ed_win.setActive(nullptr);
   else
@@ -124,6 +126,8 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
 
   auto& children = folder.children;
 
+  auto& sel = ed.getSelection();
+
   // Draw the tree
   for (int i = 0; i < children.size(); ++i) {
     if (!children[i].has_value()) {
@@ -144,7 +148,7 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
 
     // Whether or not this node is already selected.
     // Selections from other windows will carry over.
-    bool curNodeSelected = isSelected(ed, folder, i);
+    bool curNodeSelected = isSelected(sel, folder, i);
 
     const int icon_size = 24;
 
@@ -220,10 +224,10 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
       mActiveClassId != folder.key) {
     // Invalidate last selection, otherwise SHIFT anchors from the old folder
     // would carry over.
-    setActiveSelection(ed, folder, ~0);
+    setActiveSelection(sel, folder, ~0);
 
     // TODO: Wrap this up
-    ed.selected.clear();
+    sel.selected.clear();
     // mActive->collectionOf->clearSelection();
   }
   mActiveClassId = folder.key;
@@ -238,7 +242,7 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
     // Transform last selection index into filtered space.
     std::size_t lastSelectedFilteredIdx = -1;
     for (std::size_t i = 0; i < filtered.size(); ++i) {
-      if (filtered[i] == getActiveSelection(ed, folder))
+      if (filtered[i] == getActiveSelection(sel, folder))
         lastSelectedFilteredIdx = i;
     }
     if (lastSelectedFilteredIdx == -1) {
@@ -255,7 +259,7 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
           std::max(justSelectedFilteredIdx, lastSelectedFilteredIdx);
 
       for (std::size_t i = a; i <= b; ++i)
-        select(ed, folder, filtered[i]);
+        select(sel, folder, filtered[i]);
     }
   }
 
@@ -263,23 +267,23 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
   if (ctrlPressed && !shiftPressed) {
     // If already selected, no action necessary - just for id update.
     if (!justSelectedAlreadySelected)
-      select(ed, folder, justSelectedId);
+      select(sel, folder, justSelectedId);
     else if (thereWasAClick)
-      deselect(ed, folder, justSelectedId);
+      deselect(sel, folder, justSelectedId);
   }
 
   // Set our last selection index, for shift clicks.
-  setActiveSelection(ed, folder, justSelectedId);
+  setActiveSelection(sel, folder, justSelectedId);
 
   // This sets a member inside EditorWindow
   mActive = folder.children[justSelectedId]->obj; // TODO -- removing the active
                                                   // node will cause issues here
 
   if (!ctrlPressed && !shiftPressed) {
-    ed.selected.clear();
+    sel.selected.clear();
   }
 
-  ed.select(mActive);
+  sel.select(mActive);
 }
 
 } // namespace riistudio::frontend

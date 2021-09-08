@@ -12,6 +12,20 @@
 
 namespace riistudio::frontend {
 
+struct SelectionManager {
+  kpi::IObject* getActive() { return mActive; }
+  const kpi::IObject* getActive() const { return mActive; }
+  void setActive(kpi::IObject* active) { mActive = active; }
+
+  void select(kpi::IObject* obj) { selected.insert(obj); }
+  void deselect(kpi::IObject* obj) { selected.erase(obj); }
+
+  bool isSelected(kpi::IObject* obj) const { return selected.contains(obj); }
+
+  std::set<kpi::IObject*> selected;
+  kpi::IObject* mActive = nullptr;
+};
+
 class EditorWindow : public StudioWindow, public EditorDocument {
 public:
   EditorWindow(std::unique_ptr<kpi::INode> state, const std::string& path);
@@ -34,33 +48,18 @@ public:
   EditorDocument& getDocument() { return *this; }
   const EditorDocument& getDocument() const { return *this; }
 
-  kpi::IObject* getActive() { return mActive; }
-  const kpi::IObject* getActive() const { return mActive; }
-  void setActive(kpi::IObject* active) { mActive = active; }
-
   void reinit() {
     detachAllChildren();
     init();
   }
 
-  std::set<kpi::IObject*> selected;
-
-  void select(kpi::IObject* obj) { selected.insert(obj); }
-  void deselect(kpi::IObject* obj) { selected.erase(obj); }
-
-  bool isSelected(kpi::IObject* obj) const { return selected.contains(obj); }
-
-  // std::vector<std::function<kpi::IObject*(kpi::INode*)>> selected;
-  // 
-  // size_t num_selected() const { return selected.size(); }
-  // kpi::IObject* selected_at(size_t idx) { return selected[idx](&getRoot()); }
+  SelectionManager& getSelection() { return mSelection; }
 
 private:
   void init();
 
   IconManager mIconManager;
-  kpi::IObject* mActive = nullptr;
-  // bool mShowMessages = true;
+  SelectionManager mSelection;
 };
 
 } // namespace riistudio::frontend

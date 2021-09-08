@@ -21,9 +21,9 @@ void EditorWindow::init() {
   mIconManager.propogateIcons(getRoot());
 
   // mActive must be stable
-  attachWindow(MakePropertyEditor(getHistory(), getRoot(), mActive, *this));
+  attachWindow(MakePropertyEditor(getHistory(), getRoot(), mSelection, *this));
   attachWindow(MakeHistoryList(getHistory(), getRoot()));
-  attachWindow(MakeOutliner(getRoot(), mActive, *this));
+  attachWindow(MakeOutliner(getRoot(), mSelection, *this));
   if (dynamic_cast<lib3d::Scene*>(&getRoot()) != nullptr)
     attachWindow(MakeViewportRenderer(getRoot()));
 }

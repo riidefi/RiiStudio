@@ -10,7 +10,7 @@ namespace riistudio::frontend {
 
 std::unique_ptr<StudioWindow> MakePropertyEditor(kpi::History& host,
                                                  kpi::INode& root,
-                                                 kpi::IObject*& active,
+                                                 SelectionManager& active,
                                                  EditorWindow& ed);
 
 } // namespace riistudio::frontend
