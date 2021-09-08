@@ -100,4 +100,4 @@ add_library(plugins
   "mk/BFG/FogView.cpp"
   "mk/BFG/Node.h"
   
- "rhst/RHSTImporter.cpp" "g3d/ui/G3dSrtView.cpp" "g3d/G3dUi.cpp"  "g3d/G3dIo.hpp")
+ "rhst/RHSTImporter.cpp" "g3d/ui/G3dSrtView.cpp" "g3d/G3dUi.cpp"  "g3d/G3dIo.hpp" "j3d/J3dIo.hpp")

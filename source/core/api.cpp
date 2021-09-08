@@ -9,7 +9,6 @@
 
 
 extern void InstallGC();
-extern void InstallBMD();
 
 namespace riistudio::g3d {
 void InstallG3d(kpi::ApplicationPlugins& installer);
@@ -72,7 +71,6 @@ std::unique_ptr<kpi::IBinarySerializer> SpawnExporter(kpi::INode& node) {
 
 void InitAPI() {
   InstallGC();
-  InstallBMD();
 
   auto& installer = *kpi::ApplicationPlugins::getInstance();
 
