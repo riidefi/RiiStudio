@@ -1,55 +1,12 @@
 #include "applet.hpp"
-#include <fa5/IconsFontAwesome5.h>
+#include "Fonts.hpp"
 #include <imgui/imgui.h>
-
 
 namespace riistudio::frontend {
 
-static bool loadFonts(float fontSize = 16.0f) {
-  ImGuiIO& io = ImGui::GetIO();
-  ImFontConfig fontcfg;
-  fontcfg.OversampleH = 8;
-  fontcfg.OversampleV = 8;
-  
-
-// #ifdef BUILD_DIST
-#define FONT_DIR "./fonts/"
-  // #else
-  // #define FONT_DIR "../../fonts/"
-  // #endif
-
-  // const char* default_font = FONT_DIR "Roboto-Medium.ttf";
-  // const char* bold_font = FONT_DIR "Roboto-Bold.ttf";
-  const char* icon_font = FONT_DIR FONT_ICON_FILE_NAME_FAS;
-
-  const char* jpn_font = FONT_DIR "NotoSansCJKjp-Black.otf";
-#undef FONT_DIR
-
-  //io.Fonts->AddFontFromFileTTF(default_font, fontSize, &fontcfg);
-
-  io.Fonts->AddFontFromFileTTF(jpn_font, fontSize, &fontcfg,
-                               io.Fonts->GetGlyphRangesJapanese());
-
-  // mdConfig.headingFormats[0].font = io.Fonts->AddFontFromFileTTF(bold_font,
-  // fontSize * 2 * 1.1f, &fontcfg); mdConfig.headingFormats[1].font =
-  // io.Fonts->AddFontFromFileTTF(bold_font, fontSize * 2, &fontcfg);
-  // mdConfig.headingFormats[2].font = mdConfig.headingFormats[1].font;
-
-  static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
-  ImFontConfig icons_config;
-  icons_config.MergeMode = true;
-  icons_config.PixelSnapH = true;
-  io.Fonts->AddFontFromFileTTF(icon_font, fontSize, &icons_config,
-                               icons_ranges);
-
-  return true;
-}
-
 Applet::Applet(const std::string& name) : plate::Platform(1280, 720, name) {
-
-  ImGuiStyle& style = ImGui::GetStyle();
-  ImGuiIO& io = ImGui::GetIO();
-  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    ImGuiStyle& style = ImGui::GetStyle();
     style.WindowRounding = 0.0f;
     style.Colors[ImGuiCol_WindowBg].w = 1.0f;
   }
@@ -57,6 +14,7 @@ Applet::Applet(const std::string& name) : plate::Platform(1280, 720, name) {
   if (!loadFonts()) {
     fprintf(stderr, "Failed to load fonts");
   }
+
 #ifdef RII_BACKEND_GLFW
   mpGlfwWindow = (GLFWwindow*)getPlatformWindow();
 #endif
