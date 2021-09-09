@@ -3,6 +3,7 @@
 #include <fstream>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
+#include <optional>
 #include <plate/Platform.hpp>
 
 inline std::optional<oishii::DataProvider> OishiiReadFile(std::string path) {

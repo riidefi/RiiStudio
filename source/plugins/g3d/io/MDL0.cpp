@@ -9,36 +9,12 @@
 #include <librii/gx.h>
 #include <plugins/g3d/util/Dictionary.hpp>
 
+#include <librii/g3d/io/TevIO.hpp>
+
 namespace riistudio::g3d {
 
-void readModel(Model& mdl, oishii::BinaryReader& reader,
-               kpi::IOTransaction& transaction,
-               const std::string& transaction_path);
-
-struct G3dShader {
-  bool operator==(const G3dShader&) const = default;
-
-  // Fixed-size DL
-  librii::gx::SwapTable mSwapTable;
-  rsl::array_vector<librii::gx::IndOrder, 4> mIndirectOrders;
-
-  // Variable-sized DL
-  rsl::array_vector<librii::gx::TevStage, 16> mStages;
-
-  G3dShader(const librii::gx::LowLevelGxMaterial& mat)
-      : mSwapTable(mat.mSwapTable) {
-    mIndirectOrders.resize(mat.indirectStages.size());
-    for (int i = 0; i < mIndirectOrders.size(); ++i)
-      mIndirectOrders[i] = mat.indirectStages[i].order;
-
-    mStages.resize(mat.mStages.size());
-    for (int i = 0; i < mat.mStages.size(); ++i)
-      mStages[i] = mat.mStages[i];
-  }
-};
-
 struct ShaderAllocator {
-  void alloc(const G3dShader& shader) {
+  void alloc(const librii::g3d::G3dShader& shader) {
     auto found = std::find(shaders.begin(), shaders.end(), shader);
     if (found == shaders.end()) {
       matToShaderMap.emplace_back(shaders.size());
@@ -48,7 +24,7 @@ struct ShaderAllocator {
     }
   }
 
-  int find(const G3dShader& shader) const {
+  int find(const librii::g3d::G3dShader& shader) const {
     if (const auto found = std::find(shaders.begin(), shaders.end(), shader);
         found != shaders.end()) {
       return std::distance(shaders.begin(), found);
@@ -59,13 +35,13 @@ struct ShaderAllocator {
 
   auto size() const { return shaders.size(); }
 
-  std::string getShaderIDName(const G3dShader& shader) const {
+  std::string getShaderIDName(const librii::g3d::G3dShader& shader) const {
     const int found = find(shader);
     assert(found >= 0);
     return "Shader" + std::to_string(found);
   }
 
-  std::vector<G3dShader> shaders;
+  std::vector<librii::g3d::G3dShader> shaders;
   std::vector<u32> matToShaderMap;
 };
 
@@ -398,95 +374,12 @@ void WriteRenderList(const riistudio::g3d::RenderList& list,
 }
 
 void WriteShader(RelocWriter& linker, oishii::Writer& writer,
-                 const G3dShader& shader, std::size_t shader_start,
+                 const librii::g3d::G3dShader& shader, std::size_t shader_start,
                  int shader_id) {
   DebugReport("Shader at %x\n", (unsigned)shader_start);
   linker.label("Shader" + std::to_string(shader_id), shader_start);
-  writer.write<u32>(shader_id);
-  writer.write<u8>(shader.mStages.size());
-  writer.skip(3);
-  // texgens and maps are coupled
-  std::array<u8, 8> genTexMapping;
-  std::fill(genTexMapping.begin(), genTexMapping.end(), 0xff);
-  for (auto& stage : shader.mStages)
-    if (stage.texCoord != 0xff && stage.texMap != 0xff)
-      genTexMapping[stage.texCoord] = stage.texMap;
-  for (auto& order : shader.mIndirectOrders)
-    if (order.refCoord != 0xff && order.refMap != 0xff)
-      genTexMapping[order.refCoord] = order.refMap;
-  for (auto e : genTexMapping)
-    writer.write<u8>(e);
-  writer.skip(8);
 
-  // DL
-  assert(writer.tell() - shader_start == 32);
-  librii::gpu::DLBuilder dl(writer);
-  for (int i = 0; i < 4; ++i)
-    dl.setTevSwapModeTable(i, shader.mSwapTable[i]);
-  auto ind_orders = shader.mIndirectOrders;
-  ind_orders.resize(4);
-  dl.setIndTexOrder(ind_orders[0].refCoord, ind_orders[0].refMap,
-                    ind_orders[1].refCoord, ind_orders[1].refMap,
-                    ind_orders[2].refCoord, ind_orders[2].refMap,
-                    ind_orders[3].refCoord, ind_orders[3].refMap);
-  dl.align(); // 11
-
-  assert(writer.tell() - shader_start == 32 + 0x60);
-
-  std::array<librii::gx::TevStage, 16> stages;
-  for (int i = 0; i < shader.mStages.size(); ++i)
-    stages[i] = shader.mStages[i];
-
-  const auto stages_count = shader.mStages.size();
-  const auto stages_count_rounded = roundUp(stages_count, 2);
-
-  for (unsigned i = 0; i < stages_count_rounded; i += 2) {
-    const auto& even_stage = stages[i];
-    const auto& odd_stage = stages[i + 1];
-
-    const auto couple_start = writer.tell();
-
-    dl.setTevKonstantSel(
-        i, even_stage.colorStage.constantSelection,
-        even_stage.alphaStage.constantSelection,
-        i + 1 < stages_count ? odd_stage.colorStage.constantSelection
-                             : librii::gx::TevKColorSel::const_8_8,
-        i + 1 < stages_count ? odd_stage.alphaStage.constantSelection
-                             : librii::gx::TevKAlphaSel::const_8_8);
-
-    dl.setTevOrder(i, even_stage, odd_stage);
-
-    dl.setTevColorCalc(i, even_stage.colorStage);
-    if (i + 1 < stages_count)
-      dl.setTevColorCalc(i + 1, odd_stage.colorStage);
-    else
-      writer.skip(5);
-
-    dl.setTevAlphaCalcAndSwap(i, even_stage.alphaStage, even_stage.rasSwap,
-                              even_stage.texMapSwap);
-    if (i + 1 < stages_count)
-      dl.setTevAlphaCalcAndSwap(i + 1, odd_stage.alphaStage, odd_stage.rasSwap,
-                                odd_stage.texMapSwap);
-    else
-      writer.skip(5);
-
-    dl.setTevIndirect(i, even_stage.indirectStage);
-    if (i + 1 < stages_count)
-      dl.setTevIndirect(i + 1, odd_stage.indirectStage);
-    else
-      writer.skip(5);
-
-    writer.skip(3); // 3
-
-    MAYBE_UNUSED const auto couple_len = writer.tell() - couple_start;
-    DebugReport("CoupleLen: %u\n", (unsigned)couple_len);
-    assert(couple_len == 48);
-  }
-  writer.skip(48 * (8 - stages_count_rounded / 2));
-
-  MAYBE_UNUSED const auto end = writer.tell();
-  MAYBE_UNUSED const auto shader_size = writer.tell() - shader_start;
-  assert(shader_size == 0x200);
+  librii::g3d::WriteTevBody(writer, shader_id, shader);
 }
 
 struct TextureSamplerMapping {
@@ -824,15 +717,8 @@ void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
   writer.alignTo(32);
   data.write();
 }
-void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
-                NameTable& names, std::size_t brres_start) {
-  const auto mdl_start = writer.tell();
-  int d_cursor = 0;
-
-  //
-  // Build render lists
-  //
-  std::vector<RenderList> renderLists;
+void BuildRenderLists(const riistudio::g3d::Model& mdl,
+                      std::vector<riistudio::g3d::RenderList>& renderLists) {
   RenderList nodeTree, drawOpa, drawXlu;
   nodeTree.name = "NodeTree";
   RenderList::DrawCmd root_bone_desc;
@@ -858,6 +744,17 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
     renderLists.push_back(drawOpa);
   if (!drawXlu.cmds.empty())
     renderLists.push_back(drawXlu);
+}
+void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
+                NameTable& names, std::size_t brres_start) {
+  const auto mdl_start = writer.tell();
+  int d_cursor = 0;
+
+  //
+  // Build render lists
+  //
+  std::vector<RenderList> renderLists;
+  BuildRenderLists(mdl, renderLists);
 
   //
   // Build shaders
@@ -865,7 +762,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
   ShaderAllocator shader_allocator;
   for (auto& mat : mdl.getMaterials()) {
-    G3dShader shader(mat.getMaterialData());
+    librii::g3d::G3dShader shader(mat.getMaterialData());
     shader_allocator.alloc(shader);
   }
 

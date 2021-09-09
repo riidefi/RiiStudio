@@ -3,6 +3,7 @@
 #include <plugins/g3d/util/NameTable.hpp>
 
 #include "Common.hpp"
+#include <librii/g3d/io/TevIO.hpp>
 #include <librii/gpu/DLBuilder.hpp>
 #include <librii/gpu/DLPixShader.hpp>
 #include <librii/gpu/GPUMaterial.hpp>
@@ -204,31 +205,8 @@ bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader) {
   }
 
   // TEV
-  reader.seekSet(start + ofsTev + 16);
-  std::array<u8, 8> coord_map_lut;
-  for (auto& e : coord_map_lut)
-    e = reader.read<u8>();
-  // printf(">>>>> Coord->Map LUT:\n");
-  // for (auto e : coord_map_lut)
-  //   printf("%u ", (unsigned)e);
-  // printf("\n");
-  bool error = false;
-  {
-    u8 last = 0;
-    for (auto e : coord_map_lut) {
-      error |= e <= last;
-      last = e;
-    }
-  }
-  // assert(!error && "Invalid sampler configuration");
-  reader.seekSet(start + ofsTev + 32);
-  {
-
-    librii::gpu::QDisplayListShaderHandler shaderHandler(mat,
-                                                         mat.mStages.size());
-    librii::gpu::RunDisplayList(reader, shaderHandler,
-                                shaderDlSizes[mat.mStages.size()]);
-  }
+  auto tev_addr = start + ofsTev;
+  librii::g3d::ReadTev(mat, reader, tev_addr);
 
   // Samplers
   reader.seekSet(start + ofsSamplers);

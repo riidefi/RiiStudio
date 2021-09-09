@@ -194,25 +194,6 @@ void writeDictionary(const std::string& name, T src_range, U handler,
   }
 };
 
-const std::array<u32, 16> shaderDlSizes{
-    160, //  0
-    160, //  1
-    192, //  2
-    192, //  3
-    256, //  4
-    256, //  5
-    288, //  6
-    288, //  7
-    352, //  8
-    352, //  9
-    384, // 10
-    384, // 11
-    448, // 12
-    448, // 13
-    480, // 14
-    480, // 15
-};
-
 struct DlHandle {
   std::size_t tag_start;
   std::size_t buf_size = 0;

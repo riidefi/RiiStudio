@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <librii/gx.h>
 
 namespace librii::g3d {
 
@@ -31,6 +32,30 @@ struct G3dIndConfig {
   s8 normalMapLightRef{-1};
 
   bool operator==(const G3dIndConfig& rhs) const = default;
+};
+
+// This doesn't exist outside of the binary format, and is split off as an
+// optimization (in J3D every material attribute is split off like this).
+struct G3dShader {
+  bool operator==(const G3dShader&) const = default;
+
+  // Fixed-size DL
+  librii::gx::SwapTable mSwapTable;
+  rsl::array_vector<librii::gx::IndOrder, 4> mIndirectOrders;
+
+  // Variable-sized DL
+  rsl::array_vector<librii::gx::TevStage, 16> mStages;
+
+  G3dShader(const librii::gx::LowLevelGxMaterial& mat)
+      : mSwapTable(mat.mSwapTable) {
+    mIndirectOrders.resize(mat.indirectStages.size());
+    for (int i = 0; i < mIndirectOrders.size(); ++i)
+      mIndirectOrders[i] = mat.indirectStages[i].order;
+
+    mStages.resize(mat.mStages.size());
+    for (int i = 0; i < mat.mStages.size(); ++i)
+      mStages[i] = mat.mStages[i];
+  }
 };
 
 } // namespace librii::g3d
