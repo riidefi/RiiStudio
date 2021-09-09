@@ -14,7 +14,4 @@ public:
   void rootDraw() override;
 };
 
-// TODO -- place more appropriately
-void Markdown(const std::string& markdown_);
-
 } // namespace riistudio::frontend

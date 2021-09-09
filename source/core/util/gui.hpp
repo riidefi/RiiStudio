@@ -7,7 +7,10 @@
 #include <string>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
+#include <imgui_markdown.h>
+
 namespace Toolkit {
+
 inline void BoundingVolume(librii::math::AABB* bbox, float* sphere = nullptr) {
   if (bbox != nullptr) {
     ImGui::InputFloat3("Minimum Point", &bbox->min.x);
@@ -75,5 +78,18 @@ struct IDScope {
   template <typename T> IDScope(T id) { ImGui::PushID(id); }
   ~IDScope() { ImGui::PopID(); }
 };
+
+// You can make your own Markdown function with your prefered string container
+// and markdown config.
+static ImGui::MarkdownConfig mdConfig{
+    nullptr,
+    nullptr,
+    reinterpret_cast<const char*>(ICON_FA_LINK),
+    {{NULL, true}, {NULL, true}, {NULL, false}}};
+
+inline void Markdown(const std::string& markdown_) {
+  // fonts for, respectively, headings H1, H2, H3 and beyond
+  ImGui::Markdown(markdown_.c_str(), markdown_.length(), mdConfig);
+}
 
 } // namespace riistudio::util

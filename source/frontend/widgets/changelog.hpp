@@ -1,5 +1,4 @@
 #include <core/util/gui.hpp>   // ImGui::Text
-#include <frontend/applet.hpp> // core::Markdown
 
 namespace riistudio {
 
@@ -9,7 +8,7 @@ void DrawChangeLog(bool* show, std::string markdownText) {
 
   if (ImGui::Begin("Changelog"_j, show, ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::SetWindowFontScale(1.3f);
-    frontend::Markdown(markdownText);
+    util::Markdown(markdownText);
     ImGui::End();
   }
 }

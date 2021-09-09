@@ -1,22 +1,10 @@
 #include "applet.hpp"
 #include <fa5/IconsFontAwesome5.h>
 #include <imgui/imgui.h>
-#include <imgui_markdown.h>
+
 
 namespace riistudio::frontend {
 
-// You can make your own Markdown function with your prefered string container
-// and markdown config.
-static ImGui::MarkdownConfig mdConfig{
-    nullptr,
-    nullptr,
-    reinterpret_cast<const char*>(ICON_FA_LINK),
-    {{NULL, true}, {NULL, true}, {NULL, false}}};
-
-void Markdown(const std::string& markdown_) {
-  // fonts for, respectively, headings H1, H2, H3 and beyond
-  ImGui::Markdown(markdown_.c_str(), markdown_.length(), mdConfig);
-}
 static bool loadFonts(float fontSize = 16.0f) {
   ImGuiIO& io = ImGui::GetIO();
   ImFontConfig fontcfg;
