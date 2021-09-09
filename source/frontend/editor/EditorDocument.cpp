@@ -1,57 +1,14 @@
 #include "EditorDocument.hpp"
-#include <core/api.hpp>                    // SpawnExporter
-#include <oishii/reader/binary_reader.hxx> // oishii::BinaryReader
-#include <oishii/writer/binary_writer.hxx> // oishii::Writer
-#include <plate/Platform.hpp>              // plate::Platform
+#include <core/api.hpp>         // SpawnExporter
+#include <core/util/oishii.hpp> // OishiiFlushWriter
+#include <plate/Platform.hpp>   // plate::Platform
 
 namespace riistudio::frontend {
 
-EditorDocument::EditorDocument(FileData&& data) {
-  // TODO: Not ideal..
-  std::vector<u8> vec(data.mLen);
-  memcpy(vec.data(), data.mData.get(), data.mLen);
-
-  oishii::DataProvider provider(std::move(vec), data.mPath);
-  oishii::BinaryReader reader(provider.slice());
-  auto importer = SpawnImporter(data.mPath, provider.slice());
-
-  if (!importer.second) {
-    printf("Cannot spawn importer..\n");
-    return;
-  }
-  if (!IsConstructible(importer.first)) {
-    printf("Non constructable state.. find parents\n");
-
-    const auto children = GetChildrenOfType(importer.first);
-    if (children.empty()) {
-      printf("No children. Cannot construct.\n");
-      return;
-    }
-    assert(/*children.size() == 1 &&*/ IsConstructible(children[0])); // TODO
-    importer.first = children[0];
-  }
-
-  std::unique_ptr<kpi::INode> fileState{
-      dynamic_cast<kpi::INode*>(SpawnState(importer.first).release())};
-  if (!fileState.get()) {
-    printf("Cannot spawn file state %s.\n", importer.first.c_str());
-    return;
-  }
-  setRoot(std::move(fileState));
-  auto message_handler = [&](kpi::IOMessageClass message_class,
-                             const std::string_view domain,
-                             const std::string_view message_body) {
-    mMessages.emplace_back(message_class, std::string(domain),
-                           std::string(message_body));
-  };
-  kpi::IOTransaction transaction{.node = getRoot(), .data = provider.slice()};
-  transaction.callback = message_handler;
-  importer.second->read_(transaction);
-}
 EditorDocument::EditorDocument(std::unique_ptr<kpi::INode> state,
                                const std::string_view path)
     : kpi::Document<kpi::INode>(std::move(state)), mFilePath(path) {}
-EditorDocument ::~EditorDocument() {}
+EditorDocument::~EditorDocument() {}
 
 void EditorDocument::save() { saveAs(mFilePath); }
 void EditorDocument::saveAs(const std::string_view _path) {
@@ -69,8 +26,7 @@ void EditorDocument::saveAs(const std::string_view _path) {
   }
   ex->write_(getRoot(), writer);
 
-  plate::Platform::writeFile({writer.getDataBlockStart(), writer.getBufSize()},
-                             path);
+  OishiiFlushWriter(writer, path);
 }
 
 } // namespace riistudio::frontend

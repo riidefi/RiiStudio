@@ -34,12 +34,6 @@ EditorWindow::EditorWindow(std::unique_ptr<kpi::INode> state,
       EditorDocument(std::move(state), path) {
   init();
 }
-EditorWindow::EditorWindow(FileData&& data)
-    : StudioWindow(getFileShort(data.mPath), true),
-      EditorDocument(std::move(data)) {
-  init();
-  // TODO: Outliner->mActive& becomes stale here, so disabled
-}
 ImGuiID EditorWindow::buildDock(ImGuiID root_id) {
   ImGuiID next = root_id;
   ImGuiID dock_right_id =

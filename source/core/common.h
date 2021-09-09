@@ -9,9 +9,10 @@
 #endif
 
 // Platform
-#if defined(RII_PLATFORM_WINDOWS)
+
+// WebGL doesn't support GL_WIREFRAME
+#if !defined(RII_PLATFORM_EMSCRIPTEN)
 #define RII_NATIVE_GL_WIREFRAME
-#elif defined(RII_PLATFORM_EMSCRIPTEN)
 #endif
 
 #define LIB_RII_TO_STRING(v) __LIB_RII_TO_STRING(v)

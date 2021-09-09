@@ -96,7 +96,6 @@ void RootWindow::draw() {
     drawStatusBar();
 
     const u32 dockspace_id = ImGui::GetID("DockSpaceWidget");
-
     ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), 0);
 
     EditorWindow* ed =

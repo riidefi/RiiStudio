@@ -21,6 +21,13 @@ inline std::optional<oishii::DataProvider> OishiiReadFile(std::string path) {
   return oishii::DataProvider{std::move(vec), path};
 }
 
+inline oishii::DataProvider OishiiReadFile(std::string display_path,
+                                           const u8* data, size_t len) {
+  std::vector<u8> vec(data, data + len);
+
+  return oishii::DataProvider{std::move(vec), display_path};
+}
+
 inline void OishiiFlushWriter(oishii::Writer& writer, std::string_view path) {
   // On the Web target, this will download a file to the user's browser
   plate::Platform::writeFile({writer.getDataBlockStart(), writer.getBufSize()},

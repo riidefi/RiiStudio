@@ -14,7 +14,6 @@ namespace riistudio::frontend {
 class EditorDocument : public kpi::Document<kpi::INode> {
 public:
   //! Open a file
-  EditorDocument(FileData&& data);
   EditorDocument(std::unique_ptr<kpi::INode> state,
                  const std::string_view path);
   //! Close a file
@@ -29,9 +28,6 @@ public:
 
 private:
   std::string mFilePath;
-
-protected:
-  llvm::SmallVector<Message, 16> mMessages;
 };
 
 } // namespace riistudio::frontend
