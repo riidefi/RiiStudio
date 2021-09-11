@@ -33,7 +33,7 @@ private:
   };
   Mode mMode = Mode::Tabs;
   int mActiveTab = 0;
-  llvm::SmallVector<bool, 16> tab_filter;
+  std::vector<bool> tab_filter;
 
   EditorWindow& ed;
   kpi::History& mHost;
@@ -99,29 +99,21 @@ void PropertyEditor::DrawTabWidget(bool compact) {
 void PropertyEditor::DrawHorizTabs(kpi::PropertyViewManager& manager,
                                    kpi::IPropertyView* activeTab,
                                    std::vector<kpi::IObject*>& selected) {
-  if (ImGui::BeginTabBar("Pane"_j)) {
-    int i = 0;
-    std::string title;
-    manager.forEachView(
-        [&](kpi::IPropertyView& view) {
-          // const bool sel = mActiveTab == i;
+  // Active as an input is not strictly needed for horiztabs because imgui
+  // caches that
+  imcxx::TabBar bar;
+  bar.active = mActiveTab;
+  manager.forEachView(
+      [&](kpi::IPropertyView& view) {
+        std::string title = std::string(view.getIcon()) + std::string(" ") +
+                            std::string(view.getName());
+        bar.tabs.push_back(title);
+      },
+      *mSelection.mActive);
 
-          title.clear();
-          title += view.getIcon();
-          title += " ";
-          title += view.getName();
-
-          if (ImGui::BeginTabItem(title.c_str())) {
-            mActiveTab = i;
-            activeTab = &view;
-            ImGui::EndTabItem();
-          }
-
-          ++i;
-        },
-        *mSelection.mActive);
-    ImGui::EndTabBar();
-  }
+  imcxx::DrawHorizTabBar(bar);
+  mActiveTab = bar.active;
+  activeTab = manager.getView(bar.active, *mSelection.mActive);
 
   if (activeTab == nullptr) {
     mActiveTab = 0;
@@ -138,25 +130,20 @@ void PropertyEditor::DrawVertTabs(kpi::PropertyViewManager& manager,
                                   kpi::IPropertyView* activeTab,
                                   std::vector<kpi::IObject*>& selected) {
   ImGui::BeginChild("Left", ImVec2(120, 0), true);
-  int i = 0;
-  std::string title;
+  imcxx::TabBar bar;
+  bar.active = mActiveTab;
   manager.forEachView(
       [&](kpi::IPropertyView& view) {
-        const bool sel = mActiveTab == i;
-
-        title.clear();
-        title += view.getIcon();
-        title += " ";
-        title += view.getName();
-
-        if (ImGui::Selectable(title.c_str(), sel) || sel) {
-          mActiveTab = i;
-          activeTab = &view;
-        }
-
-        ++i;
+        std::string title = std::string(view.getIcon()) + std::string(" ") +
+                            std::string(view.getName());
+        bar.tabs.push_back(title);
       },
       *mSelection.mActive);
+
+  imcxx::DrawVertTabBar(bar);
+  mActiveTab = bar.active;
+  activeTab = manager.getView(bar.active, *mSelection.mActive);
+
   ImGui::EndChild();
 
   ImGui::SameLine();
@@ -178,39 +165,22 @@ void PropertyEditor::DrawVertTabs(kpi::PropertyViewManager& manager,
 void PropertyEditor::DrawHeaderTabs(kpi::PropertyViewManager& manager,
                                     kpi::IPropertyView* activeTab,
                                     std::vector<kpi::IObject*>& selected) {
-  std::string title;
-  int i = 0;
-  manager.forEachView([&](kpi::IPropertyView& view) { ++i; },
-                      *mSelection.mActive);
-  const int num_headers = i;
-
-  if (tab_filter.size() != num_headers) {
-    tab_filter.resize(num_headers);
-    std::fill(tab_filter.begin(), tab_filter.end(), true);
-  }
-  ImGui::BeginTable("Checkboxes Widget", num_headers / 5 + 1);
-  ImGui::TableNextRow();
-  i = 0;
+  imcxx::CheckBoxTabBar bar;
+  bar.active = tab_filter;
   manager.forEachView(
       [&](kpi::IPropertyView& view) {
-        ImGui::TableSetColumnIndex(i / 5);
-
-        title.clear();
-        title += view.getIcon();
-        title += " ";
-        title += view.getName();
-        // TODO: >
-        bool tmp = tab_filter[i];
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
-        ImGui::Checkbox(title.c_str(), &tmp);
-        ImGui::PopStyleVar();
-        tab_filter[i] = tmp;
-
-        ++i;
+        std::string title = std::string(view.getIcon()) + std::string(" ") +
+                            std::string(view.getName());
+        bar.tabs.push_back(title);
       },
       *mSelection.mActive);
-  ImGui::EndTable();
-  i = 0;
+
+  imcxx::DrawCheckBoxTabBar(bar);
+  tab_filter = bar.active;
+
+  std::string title;
+
+  int i = 0;
   manager.forEachView(
       [&](kpi::IPropertyView& view) {
         if (!tab_filter[i]) {
@@ -218,16 +188,14 @@ void PropertyEditor::DrawHeaderTabs(kpi::PropertyViewManager& manager,
           return;
         }
 
-        title.clear();
-        title += view.getIcon();
-        title += " ";
-        title += view.getName();
-        if (ImGui::CollapsingHeader((title + "##_TAB").c_str(),
-                                    tab_filter.data() + i,
+        title = bar.tabs[i];
+        bool tmp = tab_filter[i];
+        if (ImGui::CollapsingHeader((title + "##_TAB").c_str(), &tmp,
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
           view.draw(*mSelection.mActive, selected, mHost, mRoot, state_holder,
                     &ed);
         }
+        tab_filter[i] = tmp;
         ++i;
       },
       *mSelection.mActive);

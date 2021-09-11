@@ -275,8 +275,10 @@ struct PropertyViewManager {
                        return left->getName()[0] < right->getName()[0];
                      });
   }
-  template <typename TDomain, typename TTag, bool advanced=false> void addPropertyView() {
-    addPropertyView(std::make_unique<PropertyViewImpl<TDomain, TTag, advanced>>());
+  template <typename TDomain, typename TTag, bool advanced = false>
+  void addPropertyView() {
+    addPropertyView(
+        std::make_unique<PropertyViewImpl<TDomain, TTag, advanced>>());
   }
 
   template <typename T> void forEachView(T func, kpi::IObject& active) {
@@ -286,6 +288,22 @@ struct PropertyViewManager {
 
       func(*it.get());
     }
+  }
+
+  IPropertyView* getView(size_t i, kpi::IObject& active) {
+    int j = 0;
+    for (auto& view : mViews) {
+      if (!view->isInDomain(&active))
+        continue;
+
+      if (j == i) {
+        return view.get();
+      }
+
+      ++j;
+    }
+
+    return nullptr;
   }
 
   static PropertyViewManager& getInstance() { return sInstance; }
@@ -312,7 +330,9 @@ struct StatelessPropertyViewImpl : public IPropertyView {
   bool isInDomain(IObject* test) const override {
     return dynamic_cast<T*>(test) != nullptr;
   }
-  const std::string_view getName() const override { return riistudio::translateString(mName); }
+  const std::string_view getName() const override {
+    return riistudio::translateString(mName);
+  }
   const std::string_view getIcon() const override { return mIcon; }
   void draw(kpi::IObject& active, std::vector<kpi::IObject*> affected,
             kpi::History& history, kpi::INode& root,
