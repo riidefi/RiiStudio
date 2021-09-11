@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/common.h>
-#include <core/kpi/Node.hpp>
 #include <core/kpi/Node2.hpp>
 #include <glm/glm.hpp>
 #include <librii/math/aabb.hpp>

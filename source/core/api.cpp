@@ -1,5 +1,5 @@
 #include "common.h"
-#include <core/kpi/Node.hpp>
+#include <core/kpi/Node2.hpp>
 #include <core/kpi/PropertyView.hpp>
 #include <core/kpi/RichNameManager.hpp>
 #include <oishii/reader/binary_reader.hxx>

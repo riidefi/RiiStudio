@@ -1,5 +1,6 @@
 #include <core/common.h>
-#include <core/kpi/Node.hpp>
+#include <core/kpi/Node2.hpp>
+#include <core/kpi/Plugins.hpp>
 
 #include "Bone.hpp"
 #include "IndexedPolygon.hpp"
@@ -13,8 +14,6 @@
 
 namespace libcube {
 
-
-
 kpi::ConstCollectionRange<Texture>
 IGCMaterial::getTextureSource(const libcube::Scene& scn) const {
   return scn.getTextures();
@@ -24,7 +23,7 @@ IGCMaterial::getTextureSource(const libcube::Scene& scn) const {
 
 using namespace libcube;
 
-void InstallGC () {
+void InstallGC() {
   auto& installer = *kpi::ApplicationPlugins::getInstance();
   installer.registerParent<libcube::IBoneDelegate, riistudio::lib3d::Bone>()
       .registerParent<libcube::IGCMaterial, riistudio::lib3d::Material>()
@@ -35,8 +34,8 @@ void InstallGC () {
   rich.addRichName<riistudio::lib3d::Bone>((const char*)ICON_FA_BONE, "Bone")
       .addRichName<riistudio::lib3d::Material>((const char*)ICON_FA_PAINT_BRUSH,
                                                "Material")
-      .addRichName<riistudio::lib3d::Texture>((const char*)ICON_FA_IMAGE,
-                                              "Texture", (const char*)ICON_FA_IMAGES)
+      .addRichName<riistudio::lib3d::Texture>(
+          (const char*)ICON_FA_IMAGE, "Texture", (const char*)ICON_FA_IMAGES)
       .addRichName<riistudio::lib3d::Polygon>((const char*)ICON_FA_DRAW_POLYGON,
                                               "Polygon")
       .addRichName<riistudio::lib3d::Model>((const char*)ICON_FA_CUBE, "Model",

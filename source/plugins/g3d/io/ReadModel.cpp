@@ -3,6 +3,7 @@
 #include <plugins/g3d/util/NameTable.hpp>
 
 #include "Common.hpp"
+#include <core/kpi/Plugins.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/gpu/DLBuilder.hpp>
 #include <librii/gpu/DLPixShader.hpp>

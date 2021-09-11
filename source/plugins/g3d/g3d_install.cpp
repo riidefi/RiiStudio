@@ -1,5 +1,6 @@
 #include <core/common.h>
-#include <core/kpi/Node.hpp>
+#include <core/kpi/Node2.hpp>
+#include <core/kpi/Plugins.hpp>
 #include <core/kpi/RichNameManager.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 

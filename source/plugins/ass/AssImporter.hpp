@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <core/kpi/Plugins.hpp>
 #include <glm/glm.hpp>
 #include <map>
 #include <plugins/gc/Export/IndexedPolygon.hpp>

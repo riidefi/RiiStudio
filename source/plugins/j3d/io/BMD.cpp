@@ -1,5 +1,5 @@
 #include <core/common.h>
-#include <core/kpi/Node.hpp>
+#include <core/kpi/Node2.hpp>
 
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>

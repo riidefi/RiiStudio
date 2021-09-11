@@ -1,6 +1,7 @@
 #pragma once
 
-#include <core/kpi/Node.hpp>
+#include <core/kpi/Node2.hpp>
+#include <core/kpi/Plugins.hpp>
 #include <string>
 #include <tuple>
 

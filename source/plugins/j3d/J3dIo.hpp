@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Scene.hpp"
+#include <core/kpi/Plugins.hpp>
 
 namespace riistudio::j3d {
 

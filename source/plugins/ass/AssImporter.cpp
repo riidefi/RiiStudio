@@ -1,6 +1,7 @@
 #include "AssImporter.hpp"
 #include "AssMaterial.hpp"
 #include "Utility.hpp"
+#include <core/kpi/Plugins.hpp>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>

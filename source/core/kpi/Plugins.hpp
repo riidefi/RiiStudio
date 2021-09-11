@@ -234,3 +234,5 @@ template <typename T, int flags> class Register : private RegistrationLink {
 };
 
 } // namespace kpi
+
+#include <core/kpi/detail/NodeDetail.hpp>

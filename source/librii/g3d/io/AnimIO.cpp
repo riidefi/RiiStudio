@@ -59,15 +59,14 @@ static bool ReadKeyFrameCollection(KeyFrameCollection& out,
   return true;
 }
 
-static u32 CalcKeyFrameCollectionSize(u32 num_keys) {
+[[maybe_unused]] static u32 CalcKeyFrameCollectionSize(u32 num_keys) {
   constexpr u32 header_size = 8;
 
   return header_size + KeyFrameBinSize * num_keys;
 }
 
 [[maybe_unused]] static void
-WriteKeyFrameCollection(std::span<u8> data,
-                                    const KeyFrameCollection& in) {
+WriteKeyFrameCollection(std::span<u8> data, const KeyFrameCollection& in) {
   assert(data.size_bytes() >= CalcKeyFrameCollectionSize(in.data.size()));
   rsl::store<u16>(in.data.size(), data, 0);
   rsl::store<u16>(0, data, 2); // Padding
@@ -167,8 +166,8 @@ static SrtTexDataHeader ReadSrtTexDataHeader(std::span<const u8> data) {
   return SrtTexDataHeader{.flags = rsl::load<u32>(data, 0)};
 }
 
-[[maybe_unused]] static void WriteSrtTexDataHeader(std::span<u8> data,
-                                  const SrtTexDataHeader& header) {
+[[maybe_unused]] static void
+WriteSrtTexDataHeader(std::span<u8> data, const SrtTexDataHeader& header) {
   assert(data.size_bytes() >= SrtTexDataHeaderBinSize);
 
   rsl::store<u32>(header.flags, data, 0);

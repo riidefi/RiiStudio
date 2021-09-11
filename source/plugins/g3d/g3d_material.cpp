@@ -1,6 +1,6 @@
 #include "material.hpp"
 
-#include <core/kpi/Node.hpp>
+#include <core/kpi/Node2.hpp>
 
 namespace riistudio::g3d {
 

@@ -5,7 +5,7 @@
 #include "Utility.hpp"
 #include <algorithm>
 #include <core/3d/i3dmodel.hpp>
-#include <core/kpi/Node.hpp>
+#include <core/kpi/Plugins.hpp>
 #include <core/util/gui.hpp>
 #include <map>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
@@ -181,8 +181,8 @@ void AssReader::read(kpi::IOTransaction& transaction) {
     }
     helper.emplace(pScene, &transaction.node);
     std::vector<std::string> mat_merge;
-    unresolved =
-        helper->PrepareAss(mGenerateMipMaps, mMinMipDimension, mMaxMipCount, path);
+    unresolved = helper->PrepareAss(mGenerateMipMaps, mMinMipDimension,
+                                    mMaxMipCount, path);
 
     state = State::WaitForTextureDependencies;
     // This step might be optional

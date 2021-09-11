@@ -3,7 +3,6 @@
 #include <string>
 #endif
 
-#include "Node.hpp"
 #include "Node2.hpp"
 #include "Plugins.hpp"
 #include <core/common.h>

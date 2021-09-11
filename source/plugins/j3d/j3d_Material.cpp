@@ -1,5 +1,5 @@
 #include "Material.hpp"
-#include <core/kpi/Node.hpp>
+#include <core/kpi/Plugins.hpp>
 #include <plugins/gc/Export/Scene.hpp>
 
 namespace riistudio::j3d {

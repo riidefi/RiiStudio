@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/kpi/History.hpp>             // kpi::History
-#include <core/kpi/Node.hpp>                // kpi::IDocumentNode
+#include <core/kpi/Node2.hpp>               // kpi::IDocumentNode
 #include <frontend/editor/StudioWindow.hpp> // StudioWindow
 
 namespace riistudio::frontend {

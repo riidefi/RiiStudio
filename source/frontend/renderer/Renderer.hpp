@@ -3,7 +3,7 @@
 #include <core/3d/i3dmodel.hpp>
 #include <core/3d/renderer/SceneState.hpp>
 #include <core/common.h>
-#include <core/kpi/Node.hpp>
+#include <core/kpi/Node2.hpp>
 #include <frontend/renderer/CameraController.hpp>
 #include <glm/mat4x4.hpp>
 #include <memory>

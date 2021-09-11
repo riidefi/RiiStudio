@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Node.hpp"
-#include "../Reflection.hpp"
+#include <core/kpi/Node2.hpp>
+#include <core/kpi/Reflection.hpp>
 
 namespace kpi {
 
