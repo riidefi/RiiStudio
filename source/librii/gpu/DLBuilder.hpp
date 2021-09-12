@@ -516,6 +516,18 @@ public:
 
     writeBp(BPAddress::BLENDMODE, cmode0.hex);
   }
+  void setColorAlphaMask(bool colorupdate, bool alphaupdate) {
+    const u32 colorupdate_shift = 3;
+    const u32 alphaupdate_shift = 4;
+    const u32 coloralphaupdate_mask =
+        (1 << colorupdate_shift) | (1 << alphaupdate_shift);
+    bpMask(coloralphaupdate_mask);
+
+    librii::gpu::CMODE0 cmode0;
+    cmode0.colorupdate = colorupdate;
+    cmode0.alphaupdate = alphaupdate;
+    writeBp(BPAddress::BLENDMODE, cmode0.hex);
+  }
   void setZMode(librii::gx::ZMode in) {
     librii::gpu::ZMode zmode;
     zmode.testenable = in.compare;
