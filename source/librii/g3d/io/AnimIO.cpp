@@ -33,7 +33,6 @@ static void WriteKeyFrame(std::span<u8> data, const KeyFrame& in) {
 #pragma region Key Frame Collection : Variable
 static bool ReadKeyFrameCollection(KeyFrameCollection& out,
                                    std::span<const u8> data) {
-  return false;
   constexpr u32 header_size = 8;
   if (data.size_bytes() < header_size)
     return false;
@@ -234,7 +233,7 @@ std::optional<SrtTexData> ReadSrtTexDataFixed(std::span<const u8> whole_data,
 
 // TODO: Need writing
 #pragma region SRT Tex Header + Data pointers : Variable
-struct SrtTexDataEx : public SrtTexData {
+struct SrtTexDataEx {
   SrtTexData data;
   std::array<std::optional<s32>, NumberOfSrtAttributes> anim_handles_offsets;
 };
@@ -254,7 +253,7 @@ static u32 CalcNumSrtTexDataAnimProperties(const SrtFlags& flags) {
 
 [[maybe_unused]] static u32 CalcSrtTexDataSize(const SrtTexDataEx& data) {
   return SrtTexDataHeaderBinSize +
-         sizeof(s32) * CalcNumSrtTexDataAnimProperties(data.flags);
+         sizeof(s32) * CalcNumSrtTexDataAnimProperties(data.data.flags);
 }
 
 static std::optional<SrtTexDataEx>
@@ -430,13 +429,13 @@ ReadTexSrtAnimation(std::span<const u8> data, unsigned texsrt_offset) {
   }
 
   SrtMatrixAnimation tex_out;
-  tex_out.flags = tex_desc->flags;
+  tex_out.flags = tex_desc->data.flags;
 
   for (int i = 0; i < NumberOfSrtAttributes; ++i) {
     if (!tex_desc->anim_handles_offsets[i].has_value())
       continue;
 
-    if (tex_desc->attributes_fixed[i]) {
+    if (tex_desc->data.attributes_fixed[i]) {
       const f32 fixed_val =
           rsl::load<f32>(data, *tex_desc->anim_handles_offsets[i]);
 
