@@ -3,10 +3,44 @@
 #include <llvm/Support/Endian.h>
 #include <span>
 #include <stdint.h>
+#include <type_traits>
 
 namespace rsl {
 
 using byte_view = std::span<const uint8_t>;
+
+template <typename T> static inline constexpr T GetFlipped(T v) {
+  return llvm::sys::getSwappedBytes(v);
+}
+
+template <typename T> struct endian_swapped_value {
+  static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>);
+
+  constexpr endian_swapped_value() : mData(T{}) {}
+  constexpr endian_swapped_value(T v) : mData(GetFlipped(v)) {}
+
+  constexpr operator T() const { return GetFlipped(mData); }
+  constexpr T operator*() const { return GetFlipped(mData); }
+
+private:
+  T mData;
+};
+
+using bu32 = endian_swapped_value<u32>;
+using bu16 = endian_swapped_value<u16>;
+using bf32 = endian_swapped_value<f32>;
+
+static_assert(sizeof(endian_swapped_value<u32>) == sizeof(u32));
+static_assert(sizeof(endian_swapped_value<u16>) == sizeof(u16));
+static_assert(sizeof(endian_swapped_value<f32>) == sizeof(f32));
+
+template <typename T, typename byte_view_t>
+static inline T* buffer_cast(byte_view_t data, unsigned offset = 0) {
+  if (offset + sizeof(T) > data.size_bytes())
+    return nullptr;
+
+  return reinterpret_cast<T*>(data.data());
+}
 
 //! Unsafe API: Verify the operation before calling
 template <typename T> static T load(byte_view data, unsigned offset) {
@@ -21,8 +55,7 @@ template <typename T>
 static void store(T obj, std::span<uint8_t> data, unsigned offset) {
   assert(offset + sizeof(T) <= data.size_bytes());
 
-  *reinterpret_cast<T*>(data.data() + offset) =
-      llvm::sys::getSwappedBytes(obj);
+  *reinterpret_cast<T*>(data.data() + offset) = llvm::sys::getSwappedBytes(obj);
 }
 
 //! Unsafe API: Verify the operation before calling
