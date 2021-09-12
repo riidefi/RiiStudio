@@ -82,7 +82,8 @@ public:
   //! @param[in] stream			  Stream to read/write to/from.
   //! @param[in] groupStartPosition Position of the Dictionary group in stream.
   //!
-  void write(oishii::Writer& stream, u32 groupStartPosition, NameTable& names) const;
+  void write(oishii::Writer& stream, u32 groupStartPosition,
+             NameTable& names) const;
   void read(oishii::BinaryReader& stream, u32 groupStartPosition);
 
   // Constructors/destructors
@@ -116,6 +117,7 @@ public:
   }
 
   void emplace(const std::string& name) { mNodes.emplace_back(name); }
+  void emplace(const QDictionaryNode& n) { mNodes.emplace_back(n); }
   QDictionaryNode* getAt(const std::string& str) const {
     auto it = std::find_if(
         mNodes.begin(), mNodes.end(),
@@ -146,5 +148,42 @@ public:
     return 8 + 16 * mNodes.size();
   }
 };
+
+struct BetterNode {
+  std::string name;
+  unsigned int stream_pos;
+};
+
+struct BetterDictionary {
+  std::vector<BetterNode> nodes;
+};
+
+inline int CalcDictionarySize(const BetterDictionary& dict) {
+  QDictionary tmp;
+  for (auto& n : dict.nodes)
+    tmp.emplace(n.name);
+
+  return tmp.computeSize();
+}
+inline int CalcDictionarySize(int num_nodes) {
+  if (num_nodes == 0)
+    return 0;
+  return 8 + 16 * (num_nodes + 1);
+}
+
+inline void WriteDictionary(const BetterDictionary& dict,
+                            oishii::Writer& writer, NameTable& names) {
+  QDictionary tmp;
+  for (auto& n : dict.nodes) {
+    QDictionaryNode tmp_node;
+    tmp_node.setName(n.name);
+    tmp_node.setDataDestination(n.stream_pos);
+    tmp.emplace(tmp_node);
+  }
+
+  // implicitly called by write
+  // tmp.calcNodes();
+  tmp.write(writer, names);
+}
 
 } // namespace riistudio::g3d

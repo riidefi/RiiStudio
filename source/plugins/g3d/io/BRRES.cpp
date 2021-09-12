@@ -141,44 +141,40 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
 
   struct RootDictionary {
     RootDictionary(Collection& collection, oishii::Writer& writer)
-        : mCollection(collection), mWriter(writer), write_pos(writer.tell()) {
-      if (hasModels())
-        rootDict.emplace("3DModels(NW4R)");
-      if (hasTextures())
-        rootDict.emplace("Textures(NW4R)");
-    }
+        : mCollection(collection), mWriter(writer), write_pos(writer.tell()) {}
+    BetterNode models{.name = "3DModels(NW4R)", .stream_pos = 0};
+    BetterNode textures{.name = "Textures(NW4R)", .stream_pos = 0};
     void setModels(u32 ofs) {
-      if (hasModels())
-        rootDict.mNodes[1].setDataDestination(ofs);
+      models.stream_pos = ofs;
     }
     void setTextures(u32 ofs) {
-      if (hasTextures())
-        rootDict.mNodes[1 + hasModels()].setDataDestination(ofs);
+      textures.stream_pos = ofs;
     }
-    bool hasModels() const {
-      return mCollection.getModels().begin() != mCollection.getModels().end();
-    }
-    bool hasTextures() const {
-      return mCollection.getTextures().begin() !=
-             mCollection.getTextures().end();
-    }
-    int numFolders() const {
-      return (hasModels() ? 1 : 0) + (hasTextures() ? 1 : 0);
-    }
-    int computeSize() const { return 8 + rootDict.computeSize(); }
+
+    bool hasModels() const { return mCollection.getModels().size(); }
+    bool hasTextures() const { return mCollection.getTextures().size(); }
+
+    int numFolders() const { return hasModels() + hasTextures(); }
+    int computeSize() const { return 8 + CalcDictionarySize(numFolders()); }
     void write(NameTable& table) {
       const auto back = mWriter.tell();
       mWriter.seekSet(write_pos);
 
-      rootDict.calcNodes();
       mWriter.write<u32>('root');
 
       auto tex = mCollection.getTextures();
       auto mdl = mCollection.getModels();
-      const auto mnodes_size = 8 + 16 * (mdl.size() ? 1 + mdl.size() : 0);
-      const auto tnodes_size = 8 + 16 * (tex.size() ? 1 + tex.size() : 0);
-      mWriter.write<u32>(rootDict.computeSize() + mnodes_size + tnodes_size);
-      rootDict.write(mWriter, table);
+      const auto mnodes_size = CalcDictionarySize(mdl.size());
+      const auto tnodes_size = CalcDictionarySize(tex.size());
+      mWriter.write<u32>(CalcDictionarySize(numFolders()) + mnodes_size +
+                         tnodes_size);
+
+      BetterDictionary tmp;
+      if (hasModels())
+        tmp.nodes.push_back(models);
+      if (hasTextures())
+        tmp.nodes.push_back(textures);
+      WriteDictionary(tmp, mWriter, table);
 
       mWriter.seekSet(back);
     }
@@ -186,7 +182,6 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
     Collection& mCollection;
     oishii::Writer& mWriter;
     u32 write_pos;
-    QDictionary rootDict;
   };
 
   // The root dictionary will remember its position in stream.
@@ -194,39 +189,44 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
   RootDictionary root_dict(collection, writer);
   writer.skip(root_dict.computeSize());
 
-  QDictionary models_dict, textures_dict;
-
-  for (auto& mdl : collection.getModels())
-    models_dict.emplace(mdl.getName());
-  for (auto& tex : collection.getTextures())
-    textures_dict.emplace(tex.getName());
+  BetterDictionary models_dict;
+  BetterDictionary textures_dict;
 
   const auto subdicts_pos = writer.tell();
-  if (root_dict.hasModels())
-    writer.skip(models_dict.computeSize());
-  if (root_dict.hasTextures())
-    writer.skip(textures_dict.computeSize());
+  writer.skip(CalcDictionarySize(collection.getModels().size()));
+  writer.skip(CalcDictionarySize(collection.getTextures().size()));
 
   for (int i = 0; i < collection.getModels().size(); ++i) {
+    auto& mdl = collection.getModels()[i];
+
     writer.alignTo(32);
-    models_dict.mNodes[i + 1].setDataDestination(writer.tell());
+
+    models_dict.nodes.push_back(
+        BetterNode{.name = mdl.getName(), .stream_pos = writer.tell()});
+
     auto mdl_linker = linker.sublet("Models/" + std::to_string(i));
-    writeModel(collection.getModels()[i], writer, mdl_linker, names, start);
+    writeModel(mdl, writer, mdl_linker, names, start);
   }
   for (int i = 0; i < collection.getTextures().size(); ++i) {
+    auto& tex = collection.getTextures()[i];
+
     writer.alignTo(32);
-    textures_dict.mNodes[i + 1].setDataDestination(writer.tell());
-    writeTexture(collection.getTextures()[i], writer, names);
+
+    textures_dict.nodes.push_back(
+        BetterNode{.name = tex.getName(), .stream_pos = writer.tell()});
+
+    writeTexture(tex, writer, names);
   }
   const auto end = writer.tell();
+
   writer.seekSet(subdicts_pos);
-  if (root_dict.hasModels()) {
+  if (collection.getModels().size()) {
     root_dict.setModels(writer.tell());
-    models_dict.write(writer, names);
+    WriteDictionary(models_dict, writer, names);
   }
-  if (root_dict.hasTextures()) {
+  if (collection.getTextures().size()) {
     root_dict.setTextures(writer.tell());
-    textures_dict.write(writer, names);
+    WriteDictionary(textures_dict, writer, names);
   }
   root_dict.write(names);
   {
