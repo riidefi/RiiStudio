@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <plugins/g3d/util/NameTable.hpp>
 #include <string>
 #include <vector>
 
@@ -10,8 +11,6 @@ class Writer;
 } // namespace oishii
 
 namespace riistudio::g3d {
-
-class NameTable;
 
 struct DictionaryNode {
   u16 mId = 0;
