@@ -1,9 +1,9 @@
-#include "Dictionary.hpp"
+#include "DictWriteIO.hpp"
+#include "CommonIO.hpp"
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
-#include <plugins/g3d/util/NameTable.hpp>
 
-namespace riistudio::g3d {
+namespace librii::g3d {
 
 // Based on wszst code on the wiki page
 static u16 get_highest_bit(u8 val) {
@@ -256,4 +256,4 @@ void QDictionary::write(oishii::Writer& writer, NameTable& names) {
   writer.writeAt<u32>(writer.tell() - ofsTotalSize, ofsTotalSize);
 }
 
-} // namespace riistudio::g3d
+} // namespace librii::g3d

@@ -2,12 +2,12 @@
 
 #include <core/util/glm_io.hpp>
 #include <functional>
+#include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
 #include <librii/gx.h>
 #include <llvm/ADT/SmallVector.h>
 #include <map>
 #include <oishii/writer/binary_writer.hxx>
-#include <plugins/g3d/util/Dictionary.hpp>
 #include <plugins/g3d/util/NameTable.hpp>
 #include <string>
 
@@ -155,7 +155,7 @@ void writeDictionary(const std::string& name, T src_range, U handler,
     return;
 
   u32 dict_ofs;
-  QDictionary _dict;
+  librii::g3d::QDictionary _dict;
   _dict.mNodes.resize(src_range.size() + 1);
 
   if (BetterMethod) {

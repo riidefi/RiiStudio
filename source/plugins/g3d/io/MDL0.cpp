@@ -1,15 +1,13 @@
-#include <core/common.h>
-#include <plugins/g3d/collection.hpp>
-#include <plugins/g3d/util/NameTable.hpp>
-
 #include "Common.hpp"
+#include <core/common.h>
+#include <librii/g3d/io/DictWriteIO.hpp>
+#include <librii/g3d/io/TevIO.hpp>
 #include <librii/gpu/DLBuilder.hpp>
 #include <librii/gpu/DLPixShader.hpp>
 #include <librii/gpu/GPUMaterial.hpp>
 #include <librii/gx.h>
-#include <plugins/g3d/util/Dictionary.hpp>
-
-#include <librii/g3d/io/TevIO.hpp>
+#include <plugins/g3d/collection.hpp>
+#include <plugins/g3d/util/NameTable.hpp>
 
 namespace riistudio::g3d {
 
@@ -933,7 +931,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       return;
 
     u32 dict_ofs = Dictionaries.at("Shaders");
-    QDictionary _dict;
+    librii::g3d::QDictionary _dict;
     _dict.mNodes.resize(mdl.getMaterials().size() + 1);
 
     for (std::size_t i = 0; i < shader_allocator.size(); ++i) {

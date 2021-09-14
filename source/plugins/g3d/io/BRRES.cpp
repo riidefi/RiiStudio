@@ -5,8 +5,8 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
 
+#include <librii/g3d/io/DictWriteIO.hpp>
 #include <plugins/g3d/collection.hpp>
-#include <plugins/g3d/util/Dictionary.hpp>
 #include <plugins/g3d/util/NameTable.hpp>
 
 #include <set>
@@ -56,13 +56,13 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
   reader.read<u32>();
   // Length of the section
   reader.read<u32>();
-  Dictionary rootDict(reader);
+  librii::g3d::Dictionary rootDict(reader);
 
   for (std::size_t i = 1; i < rootDict.mNodes.size(); ++i) {
     const auto& cnode = rootDict.mNodes[i];
 
     reader.seekSet(cnode.mDataDestination);
-    Dictionary cdic(reader);
+    librii::g3d::Dictionary cdic(reader);
 
     // TODO
     if (cnode.mName == "3DModels(NW4R)") {
@@ -142,20 +142,18 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
   struct RootDictionary {
     RootDictionary(Collection& collection, oishii::Writer& writer)
         : mCollection(collection), mWriter(writer), write_pos(writer.tell()) {}
-    BetterNode models{.name = "3DModels(NW4R)", .stream_pos = 0};
-    BetterNode textures{.name = "Textures(NW4R)", .stream_pos = 0};
-    void setModels(u32 ofs) {
-      models.stream_pos = ofs;
-    }
-    void setTextures(u32 ofs) {
-      textures.stream_pos = ofs;
-    }
+    librii::g3d::BetterNode models{.name = "3DModels(NW4R)", .stream_pos = 0};
+    librii::g3d::BetterNode textures{.name = "Textures(NW4R)", .stream_pos = 0};
+    void setModels(u32 ofs) { models.stream_pos = ofs; }
+    void setTextures(u32 ofs) { textures.stream_pos = ofs; }
 
     bool hasModels() const { return mCollection.getModels().size(); }
     bool hasTextures() const { return mCollection.getTextures().size(); }
 
     int numFolders() const { return hasModels() + hasTextures(); }
-    int computeSize() const { return 8 + CalcDictionarySize(numFolders()); }
+    int computeSize() const {
+      return 8 + librii::g3d::CalcDictionarySize(numFolders());
+    }
     void write(NameTable& table) {
       const auto back = mWriter.tell();
       mWriter.seekSet(write_pos);
@@ -164,12 +162,12 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
 
       auto tex = mCollection.getTextures();
       auto mdl = mCollection.getModels();
-      const auto mnodes_size = CalcDictionarySize(mdl.size());
-      const auto tnodes_size = CalcDictionarySize(tex.size());
-      mWriter.write<u32>(CalcDictionarySize(numFolders()) + mnodes_size +
-                         tnodes_size);
+      const auto mnodes_size = librii::g3d::CalcDictionarySize(mdl.size());
+      const auto tnodes_size = librii::g3d::CalcDictionarySize(tex.size());
+      mWriter.write<u32>(librii::g3d::CalcDictionarySize(numFolders()) +
+                         mnodes_size + tnodes_size);
 
-      BetterDictionary tmp;
+      librii::g3d::BetterDictionary tmp;
       if (hasModels())
         tmp.nodes.push_back(models);
       if (hasTextures())
@@ -189,12 +187,12 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
   RootDictionary root_dict(collection, writer);
   writer.skip(root_dict.computeSize());
 
-  BetterDictionary models_dict;
-  BetterDictionary textures_dict;
+  librii::g3d::BetterDictionary models_dict;
+  librii::g3d::BetterDictionary textures_dict;
 
   const auto subdicts_pos = writer.tell();
-  writer.skip(CalcDictionarySize(collection.getModels().size()));
-  writer.skip(CalcDictionarySize(collection.getTextures().size()));
+  writer.skip(librii::g3d::CalcDictionarySize(collection.getModels().size()));
+  writer.skip(librii::g3d::CalcDictionarySize(collection.getTextures().size()));
 
   for (int i = 0; i < collection.getModels().size(); ++i) {
     auto& mdl = collection.getModels()[i];
@@ -202,7 +200,7 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
     writer.alignTo(32);
 
     models_dict.nodes.push_back(
-        BetterNode{.name = mdl.getName(), .stream_pos = writer.tell()});
+        {.name = mdl.getName(), .stream_pos = writer.tell()});
 
     auto mdl_linker = linker.sublet("Models/" + std::to_string(i));
     writeModel(mdl, writer, mdl_linker, names, start);
@@ -213,7 +211,7 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
     writer.alignTo(32);
 
     textures_dict.nodes.push_back(
-        BetterNode{.name = tex.getName(), .stream_pos = writer.tell()});
+        {.name = tex.getName(), .stream_pos = writer.tell()});
 
     writeTexture(tex, writer, names);
   }

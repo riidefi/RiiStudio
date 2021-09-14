@@ -1,17 +1,14 @@
 #pragma once
 
 #include <core/common.h>
-#include <plugins/g3d/util/NameTable.hpp>
+#include <core/util/oishii.hpp>
+#include <librii/g3d/io/NameTableIO.hpp>
 #include <string>
 #include <vector>
 
-namespace oishii {
-class BinaryReader;
-class Writer;
-} // namespace oishii
+namespace librii::g3d {
 
-namespace riistudio::g3d {
-
+// Writing is broken, don't know why, don't use it
 struct DictionaryNode {
   u16 mId = 0;
   u16 mFlag = 0;
@@ -56,6 +53,7 @@ struct Dictionary {
   void emplace(const std::string& name) { mNodes.emplace_back(name); }
 };
 
+// It's bad, but it works. Don't use it.
 class QDictionaryNode {
   friend class QDictionary;
 
@@ -148,6 +146,7 @@ public:
   }
 };
 
+// Only exposes what you need. Use this.
 struct BetterNode {
   std::string name;
   unsigned int stream_pos;
@@ -185,4 +184,4 @@ inline void WriteDictionary(const BetterDictionary& dict,
   tmp.write(writer, names);
 }
 
-} // namespace riistudio::g3d
+} // namespace librii::g3d

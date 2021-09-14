@@ -20,8 +20,8 @@ add_library(plugins
 	"g3d/Node.h"
 	"g3d/polygon.hpp"
 	"g3d/texture.hpp"
-	"g3d/util/Dictionary.cpp"
-	"g3d/util/Dictionary.hpp"
+	
+	
 	"g3d/util/NameTable.hpp"
 	"gc/Export/Bone.hpp"
 	"gc/Export/gc_Install.cpp"

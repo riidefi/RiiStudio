@@ -1,15 +1,14 @@
-#include <core/common.h>
-#include <plugins/g3d/collection.hpp>
-#include <plugins/g3d/util/NameTable.hpp>
-
 #include "Common.hpp"
+#include <core/common.h>
 #include <core/kpi/Plugins.hpp>
+#include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/gpu/DLBuilder.hpp>
 #include <librii/gpu/DLPixShader.hpp>
 #include <librii/gpu/GPUMaterial.hpp>
 #include <librii/gx.h>
-#include <plugins/g3d/util/Dictionary.hpp>
+#include <plugins/g3d/collection.hpp>
+#include <plugins/g3d/util/NameTable.hpp>
 
 namespace riistudio::g3d {
 
@@ -408,7 +407,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
   auto readDict = [&](u32 xofs, auto handler) {
     if (xofs) {
       reader.seekSet(start + xofs);
-      Dictionary _dict(reader);
+      librii::g3d::Dictionary _dict(reader);
       for (std::size_t i = 1; i < _dict.mNodes.size(); ++i) {
         const auto& dnode = _dict.mNodes[i];
         assert(dnode.mDataDestination);
@@ -419,7 +418,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
   };
 
   u32 bone_id = 0;
-  readDict(secOfs.ofsBones, [&](const DictionaryNode& dnode) {
+  readDict(secOfs.ofsBones, [&](const librii::g3d::DictionaryNode& dnode) {
     auto& bone = mdl.getBones().add();
     if (!readBone(bone, reader, bone_id, dnode.mDataDestination)) {
       printf("Failed to read bone %s\n", dnode.mName.c_str());
@@ -436,21 +435,24 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
       mdl.getBones()[parent_id].mChildren.push_back(i);
     }
   }
-  readDict(secOfs.ofsBuffers.position, [&](const DictionaryNode& dnode) {
-    readGenericBuffer(mdl.getBuf_Pos().add(), reader);
-  });
-  readDict(secOfs.ofsBuffers.normal, [&](const DictionaryNode& dnode) {
-    readGenericBuffer(mdl.getBuf_Nrm().add(), reader);
-  });
-  readDict(secOfs.ofsBuffers.color, [&](const DictionaryNode& dnode) {
-    readGenericBuffer(mdl.getBuf_Clr().add(), reader);
-  });
-  readDict(secOfs.ofsBuffers.uv, [&](const DictionaryNode& dnode) {
+  readDict(secOfs.ofsBuffers.position,
+           [&](const librii::g3d::DictionaryNode& dnode) {
+             readGenericBuffer(mdl.getBuf_Pos().add(), reader);
+           });
+  readDict(secOfs.ofsBuffers.normal,
+           [&](const librii::g3d::DictionaryNode& dnode) {
+             readGenericBuffer(mdl.getBuf_Nrm().add(), reader);
+           });
+  readDict(secOfs.ofsBuffers.color,
+           [&](const librii::g3d::DictionaryNode& dnode) {
+             readGenericBuffer(mdl.getBuf_Clr().add(), reader);
+           });
+  readDict(secOfs.ofsBuffers.uv, [&](const librii::g3d::DictionaryNode& dnode) {
     readGenericBuffer(mdl.getBuf_Uv().add(), reader);
   });
   // TODO: Fur
 
-  readDict(secOfs.ofsMaterials, [&](const DictionaryNode& dnode) {
+  readDict(secOfs.ofsMaterials, [&](const librii::g3d::DictionaryNode& dnode) {
     auto& mat = mdl.getMaterials().add();
     const bool ok = readMaterial(mat, reader);
 
@@ -459,7 +461,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     }
   });
 
-  readDict(secOfs.ofsMeshes, [&](const DictionaryNode& dnode) {
+  readDict(secOfs.ofsMeshes, [&](const librii::g3d::DictionaryNode& dnode) {
     auto& poly = mdl.getMeshes().add();
     const auto start = reader.tell();
 
@@ -580,7 +582,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
   if (transaction.state == kpi::TransactionState::Failure)
     return;
 
-  readDict(secOfs.ofsRenderTree, [&](const DictionaryNode& dnode) {
+  readDict(secOfs.ofsRenderTree, [&](const librii::g3d::DictionaryNode& dnode) {
     enum class Tree { DrawOpa, DrawXlu, Node, Other } tree = Tree::Other;
     std::array<std::pair<std::string_view, Tree>, 3> type_lut{
         std::pair<std::string_view, Tree>{"DrawOpa", Tree::DrawOpa},
