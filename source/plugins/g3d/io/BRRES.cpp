@@ -17,15 +17,12 @@
 #include <librii/g3d/io/AnimIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
 
+namespace librii::g3d {
+using namespace bad;
+}
+
 namespace riistudio::g3d {
 
-void WriteBone(riistudio::g3d::NameTable& names, oishii::Writer& writer,
-               const size_t& bone_start, const riistudio::g3d::Bone& bone,
-               const u32& bone_id);
-
-void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
-               const riistudio::g3d::Model& mdl, const size_t& mesh_start,
-               riistudio::g3d::NameTable& names);
 // MDL0.cpp
 void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
                 NameTable& names, std::size_t brres_start);
@@ -95,29 +92,26 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
                                "Failed to read texture: " + sub.mName);
         }
       }
+    } else if (cnode.mName == "AnmTexSrt(NW4R)") {
+      for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
+        const auto& sub = cdic.mNodes[j];
+
+        reader.seekSet(sub.mDataDestination);
+
+        auto& srt = collection.getAnim_Srts().add();
+        const bool ok = librii::g3d::ReadSrtFile(srt, SliceStream(reader));
+
+        if (!ok) {
+          transaction.callback(kpi::IOMessageClass::Warning, "/" + cnode.mName,
+                               "Failed to read SRT0: " + sub.mName);
+        }
+      }
     } else {
       transaction.callback(kpi::IOMessageClass::Warning, "/" + cnode.mName,
                            "[WILL NOT BE SAVED] Unsupported folder: " +
                                cnode.mName);
 
       printf("Unsupported folder: %s\n", cnode.mName.c_str());
-
-      if (cnode.mName == "AnmTexSrt(NW4R)") {
-        for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
-          const auto& sub = cdic.mNodes[j];
-
-          reader.seekSet(sub.mDataDestination);
-
-          auto& srt = collection.getAnim_Srts().add();
-          const bool ok = librii::g3d::ReadSrtFile(srt, SliceStream(reader));
-
-          if (!ok) {
-            transaction.callback(kpi::IOMessageClass::Warning,
-                                 "/" + cnode.mName,
-                                 "Failed to read SRT0: " + sub.mName);
-          }
-        }
-      }
     }
   }
 }
@@ -137,20 +131,25 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
   linker.writeReloc<u32>("BRRES", "BRRES_END"); // filesize
   writer.write<u16>(0x10);                      // data offset
   writer.write<u16>(1 + collection.getModels().size() +
-                    collection.getTextures().size()); // section count
+                    collection.getTextures().size() +
+                    collection.getAnim_Srts().size()); // section count
 
   struct RootDictionary {
     RootDictionary(Collection& collection, oishii::Writer& writer)
         : mCollection(collection), mWriter(writer), write_pos(writer.tell()) {}
+
     librii::g3d::BetterNode models{.name = "3DModels(NW4R)", .stream_pos = 0};
     librii::g3d::BetterNode textures{.name = "Textures(NW4R)", .stream_pos = 0};
+    librii::g3d::BetterNode srts{.name = "AnmTexSrt(NW4R)", .stream_pos = 0};
+
     void setModels(u32 ofs) { models.stream_pos = ofs; }
     void setTextures(u32 ofs) { textures.stream_pos = ofs; }
 
     bool hasModels() const { return mCollection.getModels().size(); }
     bool hasTextures() const { return mCollection.getTextures().size(); }
+    bool hasSRTs() const { return mCollection.getAnim_Srts().size(); }
 
-    int numFolders() const { return hasModels() + hasTextures(); }
+    int numFolders() const { return hasModels() + hasTextures() + hasSRTs(); }
     int computeSize() const {
       return 8 + librii::g3d::CalcDictionarySize(numFolders());
     }
@@ -162,16 +161,18 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
 
       auto tex = mCollection.getTextures();
       auto mdl = mCollection.getModels();
-      const auto mnodes_size = librii::g3d::CalcDictionarySize(mdl.size());
-      const auto tnodes_size = librii::g3d::CalcDictionarySize(tex.size());
-      mWriter.write<u32>(librii::g3d::CalcDictionarySize(numFolders()) +
-                         mnodes_size + tnodes_size);
+      mWriter.write<u32>(
+          computeSize() + librii::g3d::CalcDictionarySize(mdl.size()) +
+          librii::g3d::CalcDictionarySize(tex.size()) +
+          librii::g3d::CalcDictionarySize(mCollection.getAnim_Srts().size()));
 
       librii::g3d::BetterDictionary tmp;
       if (hasModels())
         tmp.nodes.push_back(models);
       if (hasTextures())
         tmp.nodes.push_back(textures);
+      if (hasSRTs())
+        tmp.nodes.push_back(srts);
       WriteDictionary(tmp, mWriter, table);
 
       mWriter.seekSet(back);
@@ -189,10 +190,13 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
 
   librii::g3d::BetterDictionary models_dict;
   librii::g3d::BetterDictionary textures_dict;
+  librii::g3d::BetterDictionary srts_dict;
 
   const auto subdicts_pos = writer.tell();
   writer.skip(librii::g3d::CalcDictionarySize(collection.getModels().size()));
   writer.skip(librii::g3d::CalcDictionarySize(collection.getTextures().size()));
+  writer.skip(
+      librii::g3d::CalcDictionarySize(collection.getAnim_Srts().size()));
 
   for (int i = 0; i < collection.getModels().size(); ++i) {
     auto& mdl = collection.getModels()[i];
@@ -215,6 +219,17 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
 
     writeTexture(tex, writer, names);
   }
+  for (int i = 0; i < collection.getAnim_Srts().size(); ++i) {
+    auto& srt = collection.getAnim_Srts()[i];
+
+    // SRTs are not aligned
+    // writer.alignTo(32);
+
+    srts_dict.nodes.push_back(
+        {.name = srt.getName(), .stream_pos = writer.tell()});
+
+    librii::g3d::WriteSrtFile(writer, srt, names, start);
+  }
   const auto end = writer.tell();
 
   writer.seekSet(subdicts_pos);
@@ -225,6 +240,10 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
   if (collection.getTextures().size()) {
     root_dict.setTextures(writer.tell());
     WriteDictionary(textures_dict, writer, names);
+  }
+  if (collection.getAnim_Srts().size()) {
+    root_dict.srts.stream_pos = writer.tell();
+    WriteDictionary(srts_dict, writer, names);
   }
   root_dict.write(names);
   {

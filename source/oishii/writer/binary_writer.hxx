@@ -40,8 +40,9 @@ public:
     if (checkmatch && mDebugMatch.size() > tell() + sizeof(T)) {
       const auto before = *reinterpret_cast<integral_t*>(&mDebugMatch[tell()]);
       if (before != decoded && decoded != 0xcccccccc) {
-        printf("Matching violation at %x: writing %x where should be %x\n",
-               tell(), (u32)decoded, (u32)before);
+        fprintf(stderr,
+                "Matching violation at %x: writing %x where should be %x\n",
+                tell(), (u32)decoded, (u32)before);
         __debugbreak();
       }
     }
@@ -165,7 +166,7 @@ public:
     const auto start = tell();
 
     skip(n - 1);
-    write<u8>(0);
+    write<u8>(0, false);
     skip(-n);
     assert(tell() == start);
 

@@ -1,7 +1,10 @@
+#include "AnimIO.hpp"
+#include "DictWriteIO.hpp"
 #include "librii/g3d/data/AnimData.hpp"
 #include "librii/g3d/io/CommonIO.hpp"
 #include "librii/g3d/io/DictIO.hpp"
 #include <algorithm>
+#include <map>
 #include <rsl/SimpleReader.hpp>
 #include <span>
 #include <string_view>
@@ -335,8 +338,8 @@ static std::optional<SrtHeader> ReadSrtHeader(std::span<const u8> data) {
 #pragma region SRT Material Header : Fixed
 struct SrtMatDataHeader {
   std::string_view material_name;
-  u32 enabled_texsrts;
-  u32 enabled_indmtxs;
+  u32 enabled_texsrts = 0;
+  u32 enabled_indmtxs = 0;
 };
 
 constexpr u32 SrtMatDataHeaderBinSize = 12;
@@ -456,9 +459,18 @@ ReadTexSrtAnimation(std::span<const u8> data, unsigned texsrt_offset) {
 }
 #pragma endregion
 
+#if defined(BUILD_DEBUG) && defined(SRT_DEBUG)
+static std::vector<u8> sMatchData;
+#endif
+
 // TODO: Need writing
 // TODO: Need size calc
 bool ReadSrtFile(SrtAnimationArchive& arc, std::span<const u8> data) {
+#if defined(BUILD_DEBUG) && defined(SRT_DEBUG)
+  if (sMatchData.empty())
+    sMatchData = {data.data(), data.data() + data.size()};
+#endif
+
   const auto header = ReadSrtHeader(data);
   if (!header.has_value()) {
     return false;
@@ -531,6 +543,175 @@ bool ReadSrtFile(SrtAnimationArchive& arc, std::span<const u8> data) {
   }
 
   return true;
+}
+
+void WriteSrtFile(oishii::Writer& writer, const SrtAnimationArchive& arc,
+                  NameTable& names, u32 brres_pos) {
+#if defined(BUILD_DEBUG) && defined(SRT_DEBUG)
+  std::vector<u8> match_data(writer.tell() + sMatchData.size());
+  memcpy(match_data.data() + writer.tell(), sMatchData.data(),
+         sMatchData.size());
+  writer.attachDataForMatchingOutput(match_data);
+#endif
+
+  const u32 archive_start_pos = writer.tell();
+
+  // 1. SRT Header
+  //
+  //    A) Common Header
+  //       i. Stream chunk header
+  writer.write<u32>('SRT0'); // Fourcc
+  const u32 size_deferred = writer.tell();
+  writer.write<u32>(0, false); // Size
+  //       ii. Sub-node header
+  writer.write<u32>(5);                             // Revision
+  writer.write<s32>(brres_pos - archive_start_pos); // Parent dictionary
+  //    B) SRT-specific Header
+  //       i. Root settings
+  writer.write<u32>(SrtHeaderBinSize); // Offset to (2) SRT dictionary
+  writer.write<u32>(0);                // TODO: User data
+  writeNameForward(names, writer, archive_start_pos, arc.name);
+  writeNameForward(names, writer, archive_start_pos, arc.source);
+  //       ii. SRT Control
+  writer.write<u16>(arc.frame_duration);
+  assert(arc.mat_animations.size() < 0xFFFF);
+  writer.write<u16>(arc.mat_animations.size());
+  writer.write<u32>(static_cast<u32>(arc.xform_model));
+  writer.write<u32>(static_cast<u32>(arc.anim_wrap_mode));
+
+  // 2. Root Dictionary
+  //
+  const u32 dict_deferred = writer.tell();
+  BetterDictionary dict;
+  writer.skip(CalcDictionarySize(arc.mat_animations.size()));
+
+  // 3. Material animation array
+  //
+  const u32 mat_anim_start = writer.tell();
+  const u32 mat_anim_size = [&] {
+    u32 val = 0;
+    for (auto& m : arc.mat_animations) {
+      val += 12;
+      for (int i = 0; i < 8; ++i)
+        if (m.texture_srt[i].has_value())
+          val += 4;
+      for (int i = 0; i < 3; ++i)
+        if (m.indirect_srt[i].has_value())
+          val += 4;
+    }
+    return val;
+  }();
+  const u32 mat_anim_end = mat_anim_start + mat_anim_size;
+
+  u32 mat_value_cursor = mat_anim_end;
+  for (auto& anim : arc.mat_animations) {
+    dict.nodes.push_back(
+        BetterNode{.name = anim.material_name, .stream_pos = writer.tell()});
+    //    A) Header
+    //
+    const u32 anim_start = writer.tell();
+    SrtMatDataHeader header{.material_name = anim.material_name,
+                            .enabled_texsrts = 0,
+                            .enabled_indmtxs = 0};
+    for (int i = 0; i < 8; ++i)
+      header.enabled_texsrts |= (anim.texture_srt[i].has_value() << i);
+    for (int i = 0; i < 3; ++i)
+      header.enabled_indmtxs |= (anim.indirect_srt[i].has_value() << i);
+    writeNameForward(names, writer, anim_start,
+                     std::string(header.material_name));
+    writer.write<u32>(header.enabled_texsrts);
+    writer.write<u32>(header.enabled_indmtxs);
+
+    //    B) Body
+    //
+    for (auto& val : anim.texture_srt) {
+      if (!val.has_value())
+        continue;
+
+      writer.write<u32>(mat_value_cursor - anim_start);
+      mat_value_cursor += 4; // flags
+      for (int i = 0; i < static_cast<int>(SrtAttribute::_Max); ++i) {
+        if (!IsSrtAttributeIncluded(val->flags, static_cast<SrtAttribute>(i)))
+          continue;
+
+        if (val->animations[i].getType() == StorageFormat::Fixed) {
+          mat_value_cursor += 4;
+        } else {
+          mat_value_cursor += 4;
+        }
+      }
+    }
+  }
+
+  writer.seekSet(mat_anim_end);
+  u32 keyframe_cursor = mat_value_cursor;
+
+  SimpleMap<KeyFrameCollection, u32>
+      collection_array; // Maps a KeyFrameCollection to a stream pos
+
+  // 3. KeyFrameCollection array
+  //
+  for (auto& anim : arc.mat_animations) {
+    for (auto& val : anim.texture_srt) {
+      if (!val.has_value())
+        continue;
+
+      // auto kf_pos = writer.tell();
+      auto header = ConvertFromFlags(val->flags);
+      for (int i = 0; i < static_cast<int>(SrtAttribute::_Max); ++i) {
+        const bool not_included =
+            !IsSrtAttributeIncluded(val->flags, static_cast<SrtAttribute>(i));
+        const bool fixed_quant =
+            val->animations[i].getType() == StorageFormat::Fixed;
+
+        if (not_included || fixed_quant)
+          header.flags |= (0x20 << i);
+      }
+      writer.write<u32>(header.flags);
+
+      for (int i = 0; i < static_cast<int>(SrtAttribute::_Max); ++i) {
+        if (!IsSrtAttributeIncluded(val->flags, static_cast<SrtAttribute>(i)))
+          continue;
+
+        if (val->animations[i].getType() == StorageFormat::Fixed) {
+          writer.write<f32>(val->animations[i].value);
+        } else {
+          const auto& keys = val->animations[i].keys;
+
+          if (collection_array.contains(keys)) {
+            writer.write<s32>(collection_array[keys] - writer.tell());
+          } else {
+            writer.write<s32>(keyframe_cursor - writer.tell());
+            collection_array.emplace(keys, keyframe_cursor);
+
+            auto back = writer.tell();
+            writer.seekSet(keyframe_cursor);
+
+            const auto bin_size = CalcKeyFrameCollectionSize(keys.data.size());
+            writer.reserveNext(bin_size);
+            WriteKeyFrameCollection({writer.getDataBlockStart() + writer.tell(),
+                                     writer.getBufSize() - writer.tell()},
+                                    keys);
+            writer.skip(bin_size);
+            keyframe_cursor += bin_size;
+
+            writer.seekSet(back);
+          }
+        }
+      }
+    }
+  }
+  writer.seekSet(keyframe_cursor);
+
+  const u32 archive_end_pos = writer.tell();
+
+  writer.seekSet(size_deferred);
+  writer.write<u32>(archive_end_pos - archive_start_pos);
+
+  writer.seekSet(dict_deferred);
+  WriteDictionary(dict, writer, names);
+
+  writer.seekSet(archive_end_pos);
 }
 
 } // namespace librii::g3d

@@ -1,14 +1,14 @@
 #pragma once
 
+#include <algorithm>
 #include <core/common.h>
+#include <core/util/oishii.hpp>
 #include <optional>
 #include <rsl/SimpleReader.hpp>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <core/util/oishii.hpp>
 
 namespace librii::g3d {
 
@@ -123,6 +123,73 @@ struct Block {
   BlockData data;
 
   std::vector<BlockDistanceConstraint> constraints;
+};
+
+template <typename T> struct MergedDataAllocator {
+  size_t add(T x) {
+    auto it = std::find(data.begin(), data.end(), x);
+    if (it != data.end())
+      return it - data.begin();
+
+    data.push_back(x);
+    return data.size() - 1;
+  }
+
+  size_t find(T x) const {
+    auto it = std::find(data.begin(), data.end(), x);
+    if (it != data.end())
+      return it - data.begin();
+
+    assert(!"Cannot find T");
+    return 0;
+  }
+
+  std::vector<T> data;
+};
+
+// Only requires T == T
+//
+// O(n)
+template <typename K, typename V> struct SimpleMap {
+  static constexpr size_t npos = -1;
+
+  std::vector<K> keys;
+  std::vector<V> values;
+
+  size_t find(const K& x) const {
+    auto it = std::find(keys.begin(), keys.end(), x);
+    if (it != keys.end())
+      return it - keys.begin();
+
+    return npos;
+  }
+
+  std::optional<V> get(const K& key) const {
+    size_t pos = find(key);
+    if (pos != npos) {
+      return values[pos];
+    }
+    return std::nullopt;
+  }
+
+  void emplace(const K& key, const V& val) {
+    size_t pos = find(key);
+    if (pos != npos) {
+      values[pos] = val;
+      return;
+    }
+
+    keys.push_back(key);
+    values.push_back(val);
+  }
+
+  bool contains(const K& key) const { return find(key) != npos; }
+
+  V operator[](const K& key) const {
+    auto pos = find(key);
+    assert(pos != npos);
+    return values[pos];
+  }
 };
 
 } // namespace librii::g3d

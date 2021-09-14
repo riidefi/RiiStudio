@@ -5,6 +5,8 @@
 
 namespace librii::g3d {
 
+using namespace bad;
+
 // Based on wszst code on the wiki page
 static u16 get_highest_bit(u8 val) {
   u16 i = 7;

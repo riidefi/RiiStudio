@@ -15,7 +15,7 @@ int DisableABIBreakingChecks;
 
 void save(std::string_view path, kpi::INode& root) {
   printf("Writing to %s\n", std::string(path).c_str());
-  oishii::Writer writer(1024);
+  oishii::Writer writer(0);
 
   auto ex = SpawnExporter(root);
   ex->write_(root, writer);

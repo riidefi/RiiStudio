@@ -20,7 +20,8 @@ void writeNameForward(NameTable& table, oishii::Writer& writer,
   }
 
   writer.write<u32>(
-      table.reserve(name, streamOfsStart, writer, writer.tell(), nonvol));
+      table.reserve(name, streamOfsStart, writer, writer.tell(), nonvol),
+      false);
 }
 
 NameTable::Handle NameTable::reserve(const std::string& name, u32 structPos,

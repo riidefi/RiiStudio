@@ -10,6 +10,10 @@
 #include <plugins/g3d/collection.hpp>
 #include <plugins/g3d/util/NameTable.hpp>
 
+namespace librii::g3d {
+using namespace bad;
+}
+
 namespace riistudio::g3d {
 
 template <typename T, bool HasMinimum, bool HasDivisor,

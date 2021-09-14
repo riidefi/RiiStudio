@@ -8,6 +8,7 @@
 
 namespace librii::g3d {
 
+namespace bad {
 // Writing is broken, don't know why, don't use it
 struct DictionaryNode {
   u16 mId = 0;
@@ -52,6 +53,8 @@ struct Dictionary {
   std::size_t computeSize() const { return 8 + 16 * mNodes.size(); }
   void emplace(const std::string& name) { mNodes.emplace_back(name); }
 };
+
+} // namespace bad
 
 // It's bad, but it works. Don't use it.
 class QDictionaryNode {
@@ -154,6 +157,13 @@ struct BetterNode {
 
 struct BetterDictionary {
   std::vector<BetterNode> nodes;
+
+  BetterDictionary() = default;
+  BetterDictionary(const BetterDictionary&) = default;
+  BetterDictionary(BetterDictionary&&) = default;
+  BetterDictionary(size_t n) : nodes(n) {}
+
+  bool operator==(const BetterDictionary&) const = default;
 };
 
 inline int CalcDictionarySize(const BetterDictionary& dict) {
