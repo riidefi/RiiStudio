@@ -5,12 +5,15 @@
 
 namespace librii::szs {
 
-u32 getExpandedSize(const std::span<u8> src) {
+u32 getExpandedSize(std::span<const u8> src) {
+  if (src.size_bytes() < 8)
+    return 0;
+
   assert(src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0');
   return (src[4] << 24) | (src[5] << 16) | (src[6] << 8) | src[7];
 }
 
-llvm::Error decode(std::span<u8> dst, const std::span<u8> src) {
+llvm::Error decode(std::span<u8> dst, std::span<const u8> src) {
   assert(src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0');
   assert(dst.size() >= getExpandedSize(src));
 
@@ -79,7 +82,7 @@ llvm::Error decode(std::span<u8> dst, const std::span<u8> src) {
   return llvm::Error::success();
 }
 
-std::vector<u8> encodeFast(const std::span<u8> src) {
+std::vector<u8> encodeFast(std::span<const u8> src) {
   std::vector<u8> result(16 + roundUp(src.size(), 8) / 8 * 9 - 1);
 
   result[0] = 'Y';

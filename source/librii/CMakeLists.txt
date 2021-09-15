@@ -83,4 +83,4 @@ add_library(librii
   "j3d/data/TextureData.hpp"
   "j3d/data/MaterialData.hpp"
   "j3d/data/ShapeData.hpp"
- "g3d/io/TextureIO.hpp" "g3d/io/TextureIO.cpp" "g3d/data/AnimData.hpp" "g3d/io/AnimIO.cpp" "g3d/io/DictIO.hpp" "g3d/io/CommonIO.hpp" "g3d/io/AnimIO.hpp" "g3d/io/TevIO.hpp" "g3d/io/TevIO.cpp" "g3d/io/NameTableIO.cpp" "g3d/io/DictWriteIO.hpp" "g3d/io/DictWriteIO.cpp")
+ "g3d/io/TextureIO.hpp" "g3d/io/TextureIO.cpp" "g3d/data/AnimData.hpp" "g3d/io/AnimIO.cpp" "g3d/io/DictIO.hpp" "g3d/io/CommonIO.hpp" "g3d/io/AnimIO.hpp" "g3d/io/TevIO.hpp" "g3d/io/TevIO.cpp" "g3d/io/NameTableIO.cpp" "g3d/io/DictWriteIO.hpp" "g3d/io/DictWriteIO.cpp" "u8/U8.cpp" "u8/U8.hpp")

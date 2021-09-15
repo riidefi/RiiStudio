@@ -27,11 +27,15 @@ private:
 };
 
 using bu32 = endian_swapped_value<u32>;
+using bs32 = endian_swapped_value<s32>;
 using bu16 = endian_swapped_value<u16>;
+using bs16 = endian_swapped_value<s16>;
 using bf32 = endian_swapped_value<f32>;
 
 static_assert(sizeof(endian_swapped_value<u32>) == sizeof(u32));
+static_assert(sizeof(endian_swapped_value<s32>) == sizeof(s32));
 static_assert(sizeof(endian_swapped_value<u16>) == sizeof(u16));
+static_assert(sizeof(endian_swapped_value<s16>) == sizeof(s16));
 static_assert(sizeof(endian_swapped_value<f32>) == sizeof(f32));
 
 template <typename T, typename byte_view_t>
