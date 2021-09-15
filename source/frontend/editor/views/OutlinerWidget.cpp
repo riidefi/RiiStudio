@@ -58,7 +58,6 @@ void setActiveSelection(SelectionManager& ed_win, NodeFolder& nodes,
     ed_win.setActive(nullptr);
   else
     ed_win.setActive(nodes.children[index]->obj);
-  ed_win.setActive(nodes.children[index]->obj);
 }
 
 void DrawNodePic(EditorWindow& ed, Child& child, float initial_pos_y,

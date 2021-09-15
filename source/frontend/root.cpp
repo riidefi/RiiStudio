@@ -25,6 +25,8 @@
 #include <emscripten.h>
 #endif
 
+#include <frontend/level_editor/LevelEditor.hpp>
+
 namespace llvm {
 int DisableABIBreakingChecks;
 } // namespace llvm
@@ -100,9 +102,6 @@ void RootWindow::draw() {
 
     EditorWindow* ed =
         getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
-    assert((ed || !hasChildren()) &&
-           "Either the active window must be an EditorWindow, or RootWindow "
-           "must have no children. This is a silly limitation, I think.");
 
     drawMenuBar(ed);
 
@@ -226,6 +225,17 @@ void RootWindow::drawFileMenu(riistudio::frontend::EditorWindow* ed) {
 }
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   DebugReport("Opening file: %s\n", data.mPath.c_str());
+
+  if (data.mPath.ends_with("szs")) {
+    auto pWin = std::make_unique<lvl::LevelEditorWindow>();
+
+    pWin->openFile(
+        std::span<const u8>(data.mData.get(), data.mData.get() + data.mLen),
+        data.mPath);
+
+    attachWindow(std::move(pWin));
+    return;
+  }
 
   if (mWantFile) {
     mReqData = std::move(data);
