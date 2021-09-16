@@ -1,5 +1,3 @@
-#include <intrin.h>
-
 #include "color.h"
 
 COLOR ColorConvertToDS(unsigned long c) {

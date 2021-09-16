@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <wchar.h>
+
 typedef wchar_t* LPWSTR;
 
 #define CT_A3I5 1			/*can read and write*/

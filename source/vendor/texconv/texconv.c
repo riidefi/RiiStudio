@@ -2,10 +2,19 @@
 #include "color.h"
 #include "texconv.h"
 #include "analysis.h"
+#include <stdlib.h>
+#include <string.h>
 
 #include <math.h>
 
 int ilog2(int x);
+
+#ifndef _WIN32
+
+#define min(a, b) (a < b ? a : b)
+#define max(a, b) (a > b ? a : b)
+
+#endif
 
 int convertDirect(CREATEPARAMS *params) {
 	//convert to direct color.
@@ -201,9 +210,9 @@ DWORD blend(DWORD col1, int weight1, DWORD col2, int weight2) {
 	return r3 | (g3 << 8) | (b3 << 16);
 }
 
-volatile _globColors = 0;
-volatile _globFinal = 0;
-volatile _globFinished = 0;
+volatile int _globColors = 0;
+volatile int _globFinal = 0;
+volatile int _globFinished = 0;
 
 typedef struct {
 	BYTE rgb[64];

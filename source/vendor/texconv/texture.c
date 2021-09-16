@@ -3,7 +3,16 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#else
+typedef unsigned char BYTE;
+
+#define min(a, b) a < b ? a : b
+#define max(a, b) a > b ? a : b
 #endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 int getTexelSize(int width, int height, int texImageParam) {
 	int nPx = width * height;
@@ -216,10 +225,10 @@ void convertTexture(uint32_t* px, TEXELS* texels, PALETTE* palette, int flip) {
 	}
 	//flip upside down
 	if (flip) {
-		DWORD *tmp = calloc(width, 4);
+		uint32_t *tmp = calloc(width, 4);
 		for (int y = 0; y < height / 2; y++) {
-			DWORD *row1 = px + y * width;
-			DWORD *row2 = px + (height - 1 - y) * width;
+			uint32_t *row1 = px + y * width;
+			uint32_t *row2 = px + (height - 1 - y) * width;
 			memcpy(tmp, row1, width * 4);
 			memcpy(row1, row2, width * 4);
 			memcpy(row2, tmp, width * 4);

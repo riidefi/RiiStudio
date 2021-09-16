@@ -3,6 +3,13 @@
 
 #include <math.h>
 
+#ifndef _WIN32
+
+#define min(a, b) ((a < b) ? a : b)
+#define max(a, b) ((a > b) ? a : b)
+
+#endif
+
 DWORD getAverageColor(DWORD *colors, int nColors) {
 	int totalR = 0, totalG = 0, totalB = 0, nCounted = 0;
 	for (int i = 0; i < nColors; i++) {

@@ -1,6 +1,15 @@
 #include "palette.h"
 #include "analysis.h"
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#ifndef _WIN32
+
+#define min(a, b) a < b ? a : b
+#define max(a, b) a > b ? a : b
+#endif
 
 #define BIGINT unsigned long long
 
@@ -200,7 +209,7 @@ void createPaletteExact(DWORD *img, int width, int height, DWORD *pal, unsigned 
 					DWORD avg2 = b->avg;
 					if (avg2 != avg) continue;
 					//a match. Delete this bucket. Delete it.
-					MoveMemory(b, b + 1, (nBuckets - j - 1) * sizeof(BUCKET));
+					memmove(b, b + 1, (nBuckets - j - 1) * sizeof(BUCKET));
 					nBuckets--;
 					j--;
 				}
@@ -382,7 +391,7 @@ void createMultiPalettes(DWORD *blocks, int tilesX, int tilesY, int width, DWORD
 		for (int x = 0; x < tilesX; x++) {
 			int uses = closests[x + y * tilesX];
 			DWORD *block = groups[uses] + written[uses] * 64;
-			CopyMemory(block, blocks + 64 * (x + y * tilesX), 256);
+			memcpy(block, blocks + 64 * (x + y * tilesX), 256);
 			written[uses]++;
 		}
 	}
