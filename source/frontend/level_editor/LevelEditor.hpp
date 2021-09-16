@@ -8,6 +8,8 @@
 #include <span>
 #include <string>
 
+#include <plate/toolkit/Viewport.hpp>
+
 namespace riistudio::lvl {
 
 struct Archive {
@@ -31,6 +33,7 @@ public:
   void draw_() override;
 
   Level mLevel;
+  plate::tk::Viewport mViewport;
 };
 
 } // namespace riistudio::lvl

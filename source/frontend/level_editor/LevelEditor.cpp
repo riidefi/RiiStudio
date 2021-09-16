@@ -5,6 +5,8 @@
 #include <librii/u8/U8.hpp>
 #include <optional>
 
+#include <frontend/root.hpp>
+
 namespace riistudio::lvl {
 
 static std::optional<Archive> ReadArchive(std::span<const u8> buf) {
@@ -83,7 +85,9 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   mLevel.og_path = path;
 }
 
-static void GatherNodes(Archive& arc) {
+static std::optional<std::pair<std::string, std::vector<u8>>>
+GatherNodes(Archive& arc) {
+  std::optional<std::pair<std::string, std::vector<u8>>> clicked;
   for (auto& f : arc.folders) {
     if (ImGui::TreeNode((f.first + "/").c_str())) {
       GatherNodes(*f.second.get());
@@ -91,13 +95,39 @@ static void GatherNodes(Archive& arc) {
     }
   }
   for (auto& f : arc.files) {
-    ImGui::TextUnformatted(f.first.c_str());
+    if (ImGui::Selectable(f.first.c_str())) {
+      clicked = f;
+    }
   }
+
+  return clicked;
 }
 
 void LevelEditorWindow::draw_() {
   if (ImGui::Begin("Hi")) {
-    GatherNodes(mLevel.root_archive);
+    auto clicked = GatherNodes(mLevel.root_archive);
+    if (clicked.has_value()) {
+      // auto* pParent = dynamic_cast<frontend::RootWindow*>(getParent());
+      auto* pParent = frontend::RootWindow::spInstance;
+      if (pParent) {
+        auto ptr = std::make_unique<u8[]>(clicked->second.size());
+        std::memcpy(ptr.get(), clicked->second.data(), clicked->second.size());
+        pParent->dropDirect(std::move(ptr), clicked->second.size(),
+                            clicked->first);
+      }
+    }
+    ImGui::End();
+  }
+
+  if (ImGui::Begin("View")) {
+    auto bounds = ImGui::GetWindowSize();
+    if (mViewport.begin(static_cast<u32>(bounds.x),
+                        static_cast<u32>(bounds.y))) {
+      //mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y),
+      //                 showCursor);
+
+      mViewport.end();
+    }
     ImGui::End();
   }
 }
