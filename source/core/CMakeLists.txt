@@ -19,4 +19,4 @@ add_library(core
   "kpi/Reflection.cpp"
   "kpi/RichNameManager.cpp"
   "util/timestamp.cpp"
- "3d/renderer/GlTexture.hpp" "3d/renderer/GlTexture.cpp" "util/oishii.hpp")
+ "3d/renderer/GlTexture.hpp" "3d/renderer/GlTexture.cpp" "util/oishii.hpp" "util/net.hpp")
