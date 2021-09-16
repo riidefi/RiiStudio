@@ -57,8 +57,13 @@ target_link_libraries(frontend PUBLIC
   librii
 	plugins
 	vendor
-  elzip
 )
+
+if (WIN32)
+  target_link_libraries(frontend PUBLIC
+    elzip
+  )
+endif()
 
 if (WIN32)
   set(LINK_LIBS
@@ -103,7 +108,13 @@ if (MSVC)
   endif()
 else()
   if (APPLE)
-  	SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /opt/homebrew/Cellar/assimp/5.0.1/lib/libassimp.dylib /opt/homebrew/Cellar/glfw/3.3.4/lib/libglfw.dylib")
+    execute_process(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE)
+    message(STATUS "Architecture: ${ARCHITECTURE}")
+    if (${ARCHITECTURE} STREQUAL "arm64")
+  	  SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /opt/homebrew/Cellar/assimp/5.0.1/lib/libassimp.dylib /opt/homebrew/Cellar/glfw/3.3.4/lib/libglfw.dylib")
+    else()
+  	  SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /usr/local/Cellar/assimp/5.0.1/lib/libassimp.dylib /usr/local/Cellar/glfw/3.3.4/lib/libglfw.dylib")
+    endif()
   elseif (UNIX)
     # --start-group, --end-group allows circular dependencies among object files
     SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lstdc++ -lm")

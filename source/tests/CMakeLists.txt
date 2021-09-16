@@ -32,8 +32,13 @@ if (WIN32)
   
 	target_link_libraries(tests PUBLIC ${LINK_LIBS})
 elseif (APPLE)
-  	SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /opt/homebrew/Cellar/assimp/5.0.1/lib/libassimp.dylib /opt/homebrew/Cellar/glfw/3.3.4/lib/libglfw.dylib")
-		#target_link_libraries(tests PUBLIC plugins "-Wl,-force_load source\\plugins\\libplugins.a")
+    execute_process(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE)
+    message(STATUS "Architecture: ${ARCHITECTURE}")
+    if (${ARCHITECTURE} STREQUAL "arm64")
+  	  SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /opt/homebrew/Cellar/assimp/5.0.1/lib/libassimp.dylib /opt/homebrew/Cellar/glfw/3.3.4/lib/libglfw.dylib")
+    else()
+  	  SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /usr/local/Cellar/assimp/5.0.1/lib/libassimp.dylib /usr/local/Cellar/glfw/3.3.4/lib/libglfw.dylib")
+    endif()
 elseif (UNIX)
 	target_link_libraries(tests PUBLIC
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
@@ -65,7 +70,6 @@ if (MSVC)
   endif()
 else()
   if (APPLE)
-  	SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /opt/homebrew/Cellar/assimp/5.0.1/lib/libassimp.dylib /opt/homebrew/Cellar/glfw/3.3.4/lib/libglfw.dylib")
   elseif (UNIX)
     # --start-group, --end-group allows circular dependencies among object files
     SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lstdc++ -lm -lpthread")

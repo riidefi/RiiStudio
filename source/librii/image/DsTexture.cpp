@@ -83,8 +83,9 @@ std::unique_ptr<WrappedCreateParams> CreateConvertParams(
       .threshold = static_cast<int>(yuv_merge_threshhold * 97537.5f),
       .dest = &result->_internal_dest,
       .callback = nullptr,
-      .callbackParam = nullptr,
-      .pnam = "Wau"};
+      .callbackParam = nullptr};
+
+  strcpy(result->_internal.pnam, "Wau");
 
   return result;
 }
@@ -119,9 +120,10 @@ ConvertToDS(std::span<const u32> pixels, u32 width, u32 height, DsFormat format,
   assert(c_texels.texel);
   assert(c_texels.cmp);
   DsTexture tex{
-      .ds_param = c_texels.texImageParam,
       .pixel_data = {c_texels.texel, c_texels.texel + (width * height / 4)},
-      .index_data = {c_texels.cmp, c_texels.cmp + (width * height / 2)}};
+      .index_data = {c_texels.cmp, c_texels.cmp + (width * height / 2)},
+      .ds_param = c_texels.texImageParam,
+  };
 
   free(params->_internal_dest.texels.texel);
   free(params->_internal_dest.texels.cmp);

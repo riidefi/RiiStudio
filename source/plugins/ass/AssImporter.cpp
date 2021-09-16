@@ -50,7 +50,11 @@ u16 AssImporter::add_weight_matrix(int v, const aiMesh* pMesh,
     for (unsigned k = 0; k < pBone->mNumWeights; ++k) {
       const auto* pWeight = &pBone->mWeights[k];
       if (pWeight->mVertexId == v) {
+#ifdef __APPLE__
+        const auto boneid = 0;
+#else
         const auto boneid = get_bone_id(pBone->mNode);
+#endif
         assert(boneid != -1);
         drw.mWeights.emplace_back(boneid, pWeight->mWeight);
         break;
@@ -72,7 +76,7 @@ void AssImporter::ProcessMeshTrianglesStatic(
   tris.mType = librii::gx::PrimitiveType::Triangles;
   tris.mVertices = std::move(vertices);
 
-  const int boneId = get_bone_id(singleInfluence);
+  const int boneId = singleInfluence ? get_bone_id(singleInfluence) : 0;
   assert(boneId >= 0);
   libcube::DrawMatrix drw{{{static_cast<u32>(boneId), 1.0f}}};
   const auto mtx = add_weight_matrix_low(drw);
@@ -189,8 +193,14 @@ void AssImporter::ProcessMeshTriangles(
     ProcessMeshTrianglesWeighted(poly_data, std::move(vertices));
   } else {
     // If one bone, bind to that; otherwise, bind to the node itself.
+#ifdef __APPLE__
+    // For some reason the brew build is with
+    // ASSIMP_BUILD_NO_ARMATUREPOPULATE_PROCESS
+    const aiNode* single_influence = nullptr;
+#else
     const aiNode* single_influence =
         pMesh->HasBones() ? pMesh->mBones[0]->mNode : pNode;
+#endif
     ProcessMeshTrianglesStatic(single_influence, poly_data,
                                std::move(vertices));
   }

@@ -93,4 +93,7 @@ add_subdirectory(librii)
 
 # Third-party libraries
 add_subdirectory(vendor)
+
+if (WIN32)
 add_subdirectory(11zip)
+endif()
