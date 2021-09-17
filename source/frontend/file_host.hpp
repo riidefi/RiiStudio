@@ -2,9 +2,9 @@
 
 #include <memory>
 #include <queue>
-#include <string>
-
 #include <stdint.h>
+#include <string.h>
+#include <string>
 
 #include <core/common.h>
 
@@ -42,7 +42,7 @@ public:
                   const std::string& name);
   void dropDirect(std::vector<uint8_t> data, const std::string& name) {
     auto ptr = std::make_unique<uint8_t[]>(data.size());
-    std::memcpy(ptr.get(), data.data(), data.size());
+    memcpy(ptr.get(), data.data(), data.size());
     dropDirect(std::move(ptr), data.size(), name);
   }
 

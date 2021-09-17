@@ -24,10 +24,9 @@ public:
   // glm::vec3 up = glm::cross(right, direction);
   glm::vec3 getUp() const { return {0, 1, 0}; }
 
-private:
   // Camera settings
   float mClipMin = 1.0f;
-  float mClipMax = 50000.f;
+  float mClipMax = 50000.f * 4.0f;
   float mFOV = 90.0f;
   // Camera state
   glm::vec3 mEye{0.0f, 0.0f, 0.0f};
