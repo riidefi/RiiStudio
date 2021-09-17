@@ -261,20 +261,10 @@ glm::mat4 computeTexMtx(const glm::mat4& mdl, const glm::mat4& mvp,
   } else {
     switch (method) {
     case CommonMappingMethod::EnvironmentMapping:
+    case CommonMappingMethod::ViewProjectionMapping:
       J3DGetTextureMtx(tmp1, texsrt);
       buildEnvMtx(tmp2, flipYScale);
       tmp1 = tmp1 * tmp2;
-      dst = tmp1 * dst;
-      break;
-    case CommonMappingMethod::ViewProjectionMapping:
-      J3DGetTextureMtx(tmp2, texsrt);
-
-      // The effect matrix here is a GameCube projection matrix. Swap it out
-      // with out own. In Galaxy, this is done in ViewProjmapEffectMtxSetter.
-      // Replaces the effectMatrix. EnvMtx is built into this call, as well.
-      //... texProjCameraSceneTex(tmp1, camera, viewport, flipYScale);
-      tmp1 = mvp;
-      tmp1 = tmp2 * tmp1;
       dst = tmp1 * dst;
       break;
     case CommonMappingMethod::ProjectionMapping:
