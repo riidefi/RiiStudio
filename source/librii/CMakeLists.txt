@@ -63,6 +63,7 @@ add_library(librii
   "glhelper/ShaderProgram.cpp"
   "glhelper/UBOBuilder.cpp"
   "glhelper/VBOBuilder.cpp"
+  "glhelper/Util.cpp"
 
   "rhst/RHST.hpp"
   "rhst/RHST.cpp"

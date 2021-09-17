@@ -1,5 +1,6 @@
 #pragma once
 
+#include "MouseHider.hpp"
 #include <core/3d/i3dmodel.hpp>
 #include <core/3d/renderer/SceneState.hpp>
 #include <core/common.h>
@@ -12,21 +13,23 @@ namespace riistudio::frontend {
 
 struct SceneState;
 
+struct RenderSettings {
+  // The standard viewport controller
+  CameraController mCameraController;
+
+  bool rend = true;
+  bool wireframe = false;
+
+  void drawMenuBar();
+};
+
 class Renderer {
 public:
   Renderer(lib3d::IDrawable* root);
   ~Renderer();
-  void render(u32 width, u32 height, bool& hideCursor);
-  void prepare(const kpi::INode& host, glm::mat4 v_mtx, glm::mat4 p_mtx) {
-    mRoot->prepare(mSceneState, host, v_mtx, p_mtx);
-  }
+  void render(u32 width, u32 height);
 
-  Camera& getCamera() { return mCameraController.mCamera; }
-
-  void drawMenuBar();
-  void updateCameraController(const librii::math::AABB& bounding_box);
-  void setGlWireframe(bool wireframe) const;
-  void clearGlScreen() const;
+  Camera& getCamera() { return mSettings.mCameraController.mCamera; }
 
 private:
   // Scene state
@@ -34,14 +37,8 @@ private:
 
   lib3d::IDrawable* mRoot = nullptr;
   lib3d::DrawableDispatcher mRootDispatcher;
-  CameraController mCameraController;
-  CameraController::ControllerType combo_choice_cam =
-      CameraController::ControllerType::WASD_Minecraft;
 
-  // Render settings
-  bool rend = true;
-#ifdef RII_NATIVE_GL_WIREFRAME
-  bool wireframe = false;
-#endif
+  RenderSettings mSettings;
+  MouseHider mMouseHider;
 };
 } // namespace riistudio::frontend

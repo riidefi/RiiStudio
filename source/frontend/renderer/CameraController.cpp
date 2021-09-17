@@ -10,8 +10,7 @@ constexpr float MIN_SPEED = 10.0f;
 constexpr float MAX_SPEED = 1000.f;
 constexpr float SCROLL_SPEED = 10.0f;
 
-void CameraController::move(float time_step, ControllerType controller_type,
-                            InputState input) {
+void CameraController::move(float time_step, InputState input) {
   const auto pos = input.mouse.has_value() ? input.mouse->position
                                            : glm::vec2(mPrevX, mPrevY);
 
@@ -50,12 +49,12 @@ void CameraController::move(float time_step, ControllerType controller_type,
   mCamera.mDirection = glm::vec3(cos(mVerticalAngle) * sin(mHorizontalAngle),
                                  sin(mVerticalAngle),
                                  cos(mVerticalAngle) * cos(mHorizontalAngle));
-  const float y_movement = controller_type == ControllerType::WASD_Minecraft
+  const float y_movement = combo_choice_cam == ControllerType::WASD_Minecraft
                                ? 0.0f
                                : mCamera.mDirection.y;
 
   glm::vec3 mvmt_dir{mCamera.mDirection.x, y_movement, mCamera.mDirection.z};
-  if (controller_type == ControllerType::WASD_Minecraft)
+  if (combo_choice_cam == ControllerType::WASD_Minecraft)
     mvmt_dir = glm::normalize(mvmt_dir);
   glm::vec3 right =
       glm::vec3(sin(mHorizontalAngle - 1.57), 0, cos(mHorizontalAngle - 1.57));
@@ -90,6 +89,13 @@ void CameraController::drawOptions() {
   ImGui::DragFloat("X", &mCamera.mEye.x, .01f, -10, 30);
   ImGui::DragFloat("Y", &mCamera.mEye.y, .01f, -10, 30);
   ImGui::DragFloat("Z", &mCamera.mEye.z, .01f, -10, 30);
+
+  drawControllerTypeOption();
+}
+
+void CameraController::drawControllerTypeOption() {
+  ImGui::Combo("##Controls", (int*)&combo_choice_cam,
+               "WASD // FPS\0WASD // Plane\0");
 }
 
 } // namespace riistudio::frontend

@@ -1,3 +1,5 @@
+#include <core/common.h>
+
 // Include order matters
 #if defined(RII_BACKEND_GLFW)
 #include <GL/gl3w.h>

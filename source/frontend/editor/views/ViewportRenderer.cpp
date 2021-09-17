@@ -37,9 +37,8 @@ void RenderTest::draw_() {
 
   if (mViewport.begin(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y))) {
     // auto* parent = dynamic_cast<EditorWindow*>(mParent);
-    static bool showCursor = false; // TODO
-    mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y),
-                     showCursor);
+    
+    mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y));
 
     mViewport.end();
   }
