@@ -18,8 +18,9 @@ namespace riistudio::g3d {
 
 template <typename T, bool HasMinimum, bool HasDivisor,
           librii::gx::VertexBufferKind kind>
-void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
-                       oishii::BinaryReader& reader) {
+std::string
+readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
+                  oishii::BinaryReader& reader) {
   const auto start = reader.tell();
   out.mEntries.clear();
 
@@ -49,18 +50,31 @@ void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
   }
   const auto nComponents =
       librii::gx::computeComponentCount(kind, out.mQuantize.mComp);
-  assert((kind != librii::gx::VertexBufferKind::normal) ||
-         (!((int)out.mQuantize.divisor != 6 &&
-            out.mQuantize.mType.generic ==
-                librii::gx::VertexBufferType::Generic::s8) &&
-          !((int)out.mQuantize.divisor != 14 &&
-            out.mQuantize.mType.generic ==
-                librii::gx::VertexBufferType::Generic::s16)));
-  assert(kind != librii::gx::VertexBufferKind::normal ||
-         (out.mQuantize.mType.generic !=
-              librii::gx::VertexBufferType::Generic::u8 &&
-          out.mQuantize.mType.generic !=
-              librii::gx::VertexBufferType::Generic::u16));
+  if (kind == librii::gx::VertexBufferKind::normal) {
+    switch (out.mQuantize.mType.generic) {
+    case librii::gx::VertexBufferType::Generic::s8: {
+      if ((int)out.mQuantize.divisor != 6) {
+        return "Invalid divisor for S8 normal data";
+      }
+      break;
+    }
+    case librii::gx::VertexBufferType::Generic::s16: {
+      if ((int)out.mQuantize.divisor != 14) {
+        return "Invalid divisor for S16 normal data";
+      }
+      break;
+    }
+    case librii::gx::VertexBufferType::Generic::u8:
+      return "Invalid quantization for normal data: U8";
+    case librii::gx::VertexBufferType::Generic::u16:
+      return "Invalid quantization for normal data: U16";
+    case librii::gx::VertexBufferType::Generic::f32:
+      if ((int)out.mQuantize.divisor != 0) {
+        return "Misleading divisor for F32 normal data";
+      }
+      break;
+    }
+  }
 
   reader.seekSet(start + startOfs);
   // TODO: Recompute bounds
@@ -68,6 +82,8 @@ void readGenericBuffer(GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
     entry = librii::gx::readComponents<T>(reader, out.mQuantize.mType,
                                           nComponents, out.mQuantize.divisor);
   }
+
+  return ""; // Valid
 }
 
 bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader) {
@@ -441,19 +457,42 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
   }
   readDict(secOfs.ofsBuffers.position,
            [&](const librii::g3d::DictionaryNode& dnode) {
-             readGenericBuffer(mdl.getBuf_Pos().add(), reader);
+             auto err = readGenericBuffer(mdl.getBuf_Pos().add(), reader);
+             if (err.size()) {
+               transaction.callback(kpi::IOMessageClass::Error,
+                                    transaction_path, err);
+               transaction.state = kpi::TransactionState::Failure;
+             }
            });
   readDict(secOfs.ofsBuffers.normal,
            [&](const librii::g3d::DictionaryNode& dnode) {
-             readGenericBuffer(mdl.getBuf_Nrm().add(), reader);
+             auto err = readGenericBuffer(mdl.getBuf_Nrm().add(), reader);
+             if (err.size()) {
+               transaction.callback(kpi::IOMessageClass::Error,
+                                    transaction_path, err);
+               transaction.state = kpi::TransactionState::Failure;
+             }
            });
   readDict(secOfs.ofsBuffers.color,
            [&](const librii::g3d::DictionaryNode& dnode) {
-             readGenericBuffer(mdl.getBuf_Clr().add(), reader);
+             auto err = readGenericBuffer(mdl.getBuf_Clr().add(), reader);
+             if (err.size()) {
+               transaction.callback(kpi::IOMessageClass::Error,
+                                    transaction_path, err);
+               transaction.state = kpi::TransactionState::Failure;
+             }
            });
   readDict(secOfs.ofsBuffers.uv, [&](const librii::g3d::DictionaryNode& dnode) {
-    readGenericBuffer(mdl.getBuf_Uv().add(), reader);
+    auto err = readGenericBuffer(mdl.getBuf_Uv().add(), reader);
+    if (err.size()) {
+      transaction.callback(kpi::IOMessageClass::Error, transaction_path, err);
+      transaction.state = kpi::TransactionState::Failure;
+    }
   });
+
+  if (transaction.state == kpi::TransactionState::Failure)
+    return;
+
   // TODO: Fur
 
   readDict(secOfs.ofsMaterials, [&](const librii::g3d::DictionaryNode& dnode) {
@@ -530,7 +569,12 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
         const auto stat = vcdHandler.mGpuMesh.VCD.GetVertexArrayStatus(
             i - (u32)librii::gx::VertexAttribute::Position);
         const auto att = static_cast<librii::gx::VertexAttributeType>(stat);
-        assert(att != librii::gx::VertexAttributeType::None);
+        if (att == librii::gx::VertexAttributeType::None) {
+          transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                               "att == librii::gx::VertexAttributeType::None");
+          transaction.state = kpi::TransactionState::Failure;
+          return;
+        }
         poly.mVertexDescriptor.mAttributes[(librii::gx::VertexAttribute)i] =
             att;
       }
