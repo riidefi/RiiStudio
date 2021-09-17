@@ -9,6 +9,20 @@
 
 namespace riistudio::frontend {
 
+const char* GetGpuName() {
+  static std::string renderer =
+      reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+
+  return renderer.c_str();
+}
+
+const char* GetGlVersion() {
+  static std::string version =
+      reinterpret_cast<const char*>(glGetString(GL_VERSION));
+
+  return version.c_str();
+}
+
 void RenderSettings::drawMenuBar() {
   if (ImGui::BeginMenuBar()) {
     if (ImGui::BeginMenu("Camera"_j)) {
@@ -23,10 +37,27 @@ void RenderSettings::drawMenuBar() {
       ImGui::EndMenu();
     }
 
+    ImGui::SetNextItemWidth(300.0f);
     mCameraController.drawControllerTypeOption();
 
     if (librii::glhelper::IsGlWireframeSupported())
       ImGui::Checkbox("Wireframe", &wireframe);
+
+    {
+      util::ConditionalActive a(false);
+
+      {
+        //   util::ConditionalBold g(true);
+        ImGui::TextUnformatted("Backend:");
+      }
+      ImGui::Text("OpenGL %s", GetGlVersion());
+
+      {
+        //    util::ConditionalBold g(true);
+        ImGui::TextUnformatted("Device:");
+      }
+      ImGui::TextUnformatted(GetGpuName());
+    }
 
     ImGui::EndMenuBar();
   }
