@@ -40,6 +40,11 @@ public:
   void drop(const std::vector<std::string>& paths);
   void dropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len,
                   const std::string& name);
+  void dropDirect(std::vector<uint8_t> data, const std::string& name) {
+    auto ptr = std::make_unique<uint8_t[]>(data.size());
+    std::memcpy(ptr.get(), data.data(), data.size());
+    dropDirect(std::move(ptr), data.size(), name);
+  }
 
   // Drag and drop..
   std::queue<std::string> mDropQueue;

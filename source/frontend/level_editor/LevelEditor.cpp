@@ -104,32 +104,30 @@ GatherNodes(Archive& arc) {
 }
 
 void LevelEditorWindow::draw_() {
+  
   if (ImGui::Begin("Hi")) {
     auto clicked = GatherNodes(mLevel.root_archive);
     if (clicked.has_value()) {
-      // auto* pParent = dynamic_cast<frontend::RootWindow*>(getParent());
       auto* pParent = frontend::RootWindow::spInstance;
       if (pParent) {
-        auto ptr = std::make_unique<u8[]>(clicked->second.size());
-        std::memcpy(ptr.get(), clicked->second.data(), clicked->second.size());
-        pParent->dropDirect(std::move(ptr), clicked->second.size(),
-                            clicked->first);
+        pParent->dropDirect(clicked->second, clicked->first);
       }
     }
-    ImGui::End();
   }
+  ImGui::End();
 
   if (ImGui::Begin("View")) {
     auto bounds = ImGui::GetWindowSize();
     if (mViewport.begin(static_cast<u32>(bounds.x),
                         static_cast<u32>(bounds.y))) {
-      //mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y),
+      // mRenderer.render(static_cast<u32>(bounds.x),
+      // static_cast<u32>(bounds.y),
       //                 showCursor);
 
       mViewport.end();
     }
-    ImGui::End();
   }
+  ImGui::End();
 }
 
 } // namespace riistudio::lvl
