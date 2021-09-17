@@ -44,8 +44,14 @@ struct WrappedCreateParams {
   WrappedCreateParams(const WrappedCreateParams&) = delete;
   WrappedCreateParams(WrappedCreateParams&&) = delete;
 
+  ~WrappedCreateParams() {
+    // If the C API forgot to free it, let's handle that
+    if (custom_palette)
+      free(custom_palette);
+  }
+
   CREATEPARAMS _internal;
-  std::vector<COLOR> custom_palette;
+  COLOR* custom_palette = nullptr; // freed by C api with free()
 
   TEXTURE _internal_dest;
 };
@@ -63,7 +69,11 @@ std::unique_ptr<WrappedCreateParams> CreateConvertParams(
   auto result = std::make_unique<WrappedCreateParams>();
 
   if (custom_palette.has_value()) {
-    result->custom_palette.resize(custom_palette->size());
+    // The C code will free() this, so we use malloc
+    if (result->custom_palette)
+      free(result->custom_palette);
+    result->custom_palette = reinterpret_cast<COLOR*>(
+        malloc(sizeof(COLOR) * custom_palette->size()));
     for (size_t i = 0; i < custom_palette->size(); ++i) {
       result->custom_palette[i] = ColorConvertToDS((*custom_palette)[i]);
     }
@@ -79,7 +89,7 @@ std::unique_ptr<WrappedCreateParams> CreateConvertParams(
       .colorEntries = static_cast<int>(palette_size),
       .useFixedPalette = custom_palette.has_value() ? 1 : 0,
       .fixedPalette =
-          custom_palette.has_value() ? result->custom_palette.data() : nullptr,
+          custom_palette.has_value() ? result->custom_palette : nullptr,
       .threshold = static_cast<int>(yuv_merge_threshhold * 97537.5f),
       .dest = &result->_internal_dest,
       .callback = nullptr,
