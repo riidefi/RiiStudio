@@ -57,6 +57,7 @@ private:
   uint32_t mFboId = -1;
   uint32_t mRboId = -1;
 
+public:
   // Remember the last resolution.
   unsigned mLastWidth = 0;
   unsigned mLastHeight = 0;

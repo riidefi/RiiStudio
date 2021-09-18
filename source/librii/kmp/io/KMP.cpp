@@ -4,7 +4,6 @@
 #include <llvm/ADT/StringMap.h>
 #include <map>
 #include <numeric>
-#include <oishii/writer/binary_writer.hxx>
 #include <sstream>
 #include <tuple>
 #include <vector>

@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <frontend/editor/StudioWindow.hpp>
 #include <frontend/renderer/Renderer.hpp>
+#include <librii/kmp/CourseMap.hpp>
 #include <librii/u8/U8.hpp>
 #include <map>
 #include <memory>
@@ -70,6 +71,7 @@ public:
 
   std::unique_ptr<g3d::Collection> mCourseModel;
   std::unique_ptr<g3d::Collection> mVrcornModel;
+  std::unique_ptr<librii::kmp::CourseMap> mKmp;
 };
 
 } // namespace riistudio::lvl

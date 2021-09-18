@@ -1,6 +1,7 @@
 #include "applet.hpp"
 #include "Fonts.hpp"
 #include <imgui/imgui.h>
+#include <vendor/ImGuizmo.h>
 
 namespace riistudio::frontend {
 
@@ -24,6 +25,8 @@ Applet::~Applet() {}
 
 void Applet::rootDraw() {}
 void Applet::rootCalc() {
+  ImGuizmo::BeginFrame();
+  ImGuizmo::Enable(true);
   detachClosedChildren();
   draw(); // Call down to window manager
 }
