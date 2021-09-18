@@ -657,8 +657,30 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
         Bone::Display disp;
         disp.matId = reader.readUnaligned<u16>();
         disp.polyId = reader.readUnaligned<u16>();
-        const auto boneIdx = reader.readUnaligned<u16>();
+        auto boneIdx = reader.readUnaligned<u16>();
         disp.prio = reader.readUnaligned<u8>();
+
+        if (boneIdx > mdl.getBones().size()) {
+          transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                               "Invalid bone index in render command");
+          boneIdx = 0;
+          transaction.state = kpi::TransactionState::Failure;
+        }
+
+        if (disp.matId > mdl.getMeshes().size()) {
+          transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                               "Invalid material index in render command");
+          disp.matId = 0;
+          transaction.state = kpi::TransactionState::Failure;
+        }
+
+        if (disp.polyId > mdl.getMeshes().size()) {
+          transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                               "Invalid mesh index in render command");
+          disp.polyId = 0;
+          transaction.state = kpi::TransactionState::Failure;
+        }
+
         mdl.getBones()[boneIdx].addDisplay(disp);
 
         // While with this setup, materials could be XLU and OPA, in
