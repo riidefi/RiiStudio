@@ -56,9 +56,9 @@ static std::optional<Archive> ReadArchive(std::span<const u8> buf) {
 
     if (node.is_folder) {
       auto tmp = std::make_unique<Archive>();
-      auto& parent = n_path.back();
       n_path.push_back(
           Pair{.folder = tmp.get(), .sibling_next = node.folder.sibling_next});
+      auto& parent = n_path[n_path.size() - 2];
       parent.folder->folders.emplace(node.name, std::move(tmp));
     } else {
       const u32 start_pos = node.file.offset;
@@ -69,7 +69,7 @@ static std::optional<Archive> ReadArchive(std::span<const u8> buf) {
       n_path.back().folder->files.emplace(node.name, std::move(vec));
     }
 
-    while (i + 1 == n_path.back().sibling_next)
+    while (!n_path.empty() && i + 1 == n_path.back().sibling_next)
       n_path.resize(n_path.size() - 1);
   }
   assert(n_path.empty());
