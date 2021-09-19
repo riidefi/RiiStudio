@@ -79,6 +79,8 @@ void CameraController::move(float time_step, InputState input) {
 }
 
 void CameraController::drawOptions() {
+  drawProjectionOption();
+
   ImGui::SliderFloat("Mouse Speed"_j, &mMouseSpeed, 0.0f, .2f);
   ImGui::SliderFloat("Camera Speed"_j, &mSpeed, MIN_SPEED, MAX_SPEED);
   ImGui::SliderFloat("FOV", &mCamera.mFOV, 1.0f, 180.0f);
@@ -96,6 +98,11 @@ void CameraController::drawOptions() {
 void CameraController::drawControllerTypeOption() {
   ImGui::Combo("##Controls", (int*)&combo_choice_cam,
                "WASD // FPS\0WASD // Plane\0");
+}
+
+void CameraController::drawProjectionOption() {
+  ImGui::Combo("##Projection", (int*)&mCamera.mProjection,
+               "Perspective\0Orthographic (Parallel)\0");
 }
 
 } // namespace riistudio::frontend

@@ -9,6 +9,8 @@ class Camera {
   friend class CameraController;
 
 public:
+  enum class Projection : int { Perspective, Orthographic };
+
   void calcMatrices(float width, float height, glm::mat4& projMtx,
                     glm::mat4& viewMtx);
 
@@ -31,6 +33,7 @@ public:
   // Camera state
   glm::vec3 mEye{0.0f, 0.0f, 0.0f};
   glm::vec3 mDirection;
+  Projection mProjection = Projection::Perspective;
 };
 
 } // namespace riistudio::frontend

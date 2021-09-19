@@ -32,6 +32,7 @@ public:
   void move(float time_step, InputState input);
 
   void drawOptions();
+  void drawProjectionOption();
   void drawControllerTypeOption();
 
   Camera mCamera;
