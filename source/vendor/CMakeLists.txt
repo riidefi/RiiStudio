@@ -4,8 +4,8 @@ project(vendor)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Clang/Clang-Cl
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+# Clang/Clang-Cl/AppleClang
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
   add_compile_options("-Wno-error")
 endif()
 

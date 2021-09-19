@@ -45,7 +45,8 @@ else()
 endif()
 
 # Clang/Clang-Cl
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+# Match AppleClang
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
   add_compile_options("-Wno-inconsistent-missing-override")
   # LLVM
   add_compile_options("-Wno-ambiguous-reversed-operator")
