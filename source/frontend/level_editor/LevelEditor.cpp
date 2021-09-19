@@ -9,6 +9,7 @@
 #include <librii/math/srt3.hpp>
 #include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
+#include <math.h>
 #include <optional>
 #include <plugins/g3d/G3dIo.hpp>
 #include <vendor/ImGuizmo.h>
@@ -246,6 +247,21 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
   // TODO: LastWidth is moved to the right, not left -- bug?
   ImGuizmo::SetRect(pos.x, pos.y - shifted_y, mViewport.mLastWidth,
                     mViewport.mLastHeight);
+
+  auto tVm = viewMtx;
+  auto max = ImGui::GetContentRegionMaxAbs();
+  ImGuizmo::ViewManipulate(
+      glm::value_ptr(viewMtx), 20.0f, {max.x - 200.0f, max.y - 200.0f},
+      {200.0f, 200.0f},
+      ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_WindowBg]));
+
+  if (tVm != viewMtx) {
+    auto& cam = mRenderSettings.mCameraController;
+    auto cartesian = glm::vec3(glm::vec4(0.0f, 0.0f, -1.0f, 0.0f) * viewMtx);
+
+    cam.mHorizontalAngle = acosf(cartesian.z);
+    cam.mVerticalAngle = atan2f(cartesian.y, cartesian.x);
+  }
 
   glm::mat4 mx = glm::scale(glm::mat4(1.0f), glm::vec3(1'000));
   // float matrixTranslation[3], matrixRotation[3], matrixScale[3];
