@@ -61,7 +61,7 @@ void CameraController::move(float time_step, InputState input) {
 
   if (input.mouse.has_value()) {
     mSpeed += input.mouse->scroll * SCROLL_SPEED;
-    mSpeed = std::clamp(mSpeed, MIN_SPEED, MAX_SPEED);
+    // mSpeed = std::clamp(mSpeed, MIN_SPEED, MAX_SPEED);
   }
 
   if (input.forward)
