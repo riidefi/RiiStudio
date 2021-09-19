@@ -151,8 +151,9 @@ librii::math::AABB CalcPolyBound(const lib3d::Polygon& poly,
                                  const lib3d::Model& mdl) {
   auto mdl_mtx = calcSrtMtx(bone, &mdl);
 
-  auto nmax = mdl_mtx * glm::vec4(poly.getBounds().max, 0.0f);
-  auto nmin = mdl_mtx * glm::vec4(poly.getBounds().min, 0.0f);
+  librii::math::AABB bound = poly.getBounds();
+  auto nmax = mdl_mtx * glm::vec4(bound.max, 1.0f);
+  auto nmin = mdl_mtx * glm::vec4(bound.min, 1.0f);
 
   return {nmin, nmax};
 }

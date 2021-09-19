@@ -24,8 +24,8 @@ struct AABB {
 
   bool operator==(const AABB& rhs) const = default;
 
-  glm::vec3 min;
-  glm::vec3 max;
+  glm::vec3 min{0.0f};
+  glm::vec3 max{0.0f};
 };
 
 } // namespace librii::math
