@@ -54,7 +54,6 @@ if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
   add_compile_options("-Wno-deprecated-volatile")
   # Assimp
   add_compile_options("-Wno-pragma-pack")
-  add_compile_options("-Werror")
 
   if ("x${CMAKE_CXX_SIMULATE_ID}" STREQUAL "xMSVC")
     add_compile_options("/MT")
