@@ -244,7 +244,7 @@ void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
   {
     librii::gl::UniformSceneParams scene;
 
-    scene.projection = model_matrix * view_matrix * proj_matrix;
+    scene.projection = proj_matrix * view_matrix * model_matrix;
     scene.Misc0 = {};
 
     out.uniform_data.emplace_back(pushUniform(0, scene));
@@ -259,7 +259,7 @@ void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
 
     for (int i = 0; i < data.texMatrices.size(); ++i) {
       tmp.TexMtx[i] = glm::transpose(
-          data.texMatrices[i].compute(model_matrix, view_matrix * proj_matrix));
+          data.texMatrices[i].compute(model_matrix, proj_matrix * view_matrix));
     }
     for (int i = 0; i < data.samplers.size(); ++i) {
       if (data.samplers[i].mTexture.empty())
@@ -301,11 +301,14 @@ void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
     // WebGL doesn't support binding=n in the shader
 #if defined(__EMSCRIPTEN__) || defined(__APPLE__)
     glUniformBlockBinding(
-        out.shader_id, glGetUniformBlockIndex(out.shader_id, "ub_SceneParams"), 0);
+        out.shader_id, glGetUniformBlockIndex(out.shader_id, "ub_SceneParams"),
+        0);
     glUniformBlockBinding(
-        out.shader_id, glGetUniformBlockIndex(out.shader_id, "ub_MaterialParams"), 1);
+        out.shader_id,
+        glGetUniformBlockIndex(out.shader_id, "ub_MaterialParams"), 1);
     glUniformBlockBinding(
-        out.shader_id, glGetUniformBlockIndex(out.shader_id, "ub_PacketParams"), 2);
+        out.shader_id, glGetUniformBlockIndex(out.shader_id, "ub_PacketParams"),
+        2);
 #endif // __EMSCRIPTEN__
 
     const s32 samplerIds[] = {0, 1, 2, 3, 4, 5, 6, 7};

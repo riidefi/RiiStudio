@@ -98,7 +98,7 @@ void Renderer::render(u32 width, u32 height) {
 
   mSceneState.invalidate();
   mRootDispatcher.populate(*mRoot, mSceneState,
-                           *dynamic_cast<kpi::INode*>(mRoot), projMtx, viewMtx);
+                           *dynamic_cast<kpi::INode*>(mRoot), viewMtx, projMtx);
   mSceneState.buildUniformBuffers();
 
   librii::glhelper::ClearGlScreen();

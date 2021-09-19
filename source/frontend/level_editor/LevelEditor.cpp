@@ -224,10 +224,10 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
   {
     if (mVrcornModel) {
-      mVrcornModel->prepare(mSceneState, *mVrcornModel, projMtx, viewMtx);
+      mVrcornModel->prepare(mSceneState, *mVrcornModel, viewMtx, projMtx);
     }
     if (mCourseModel) {
-      mCourseModel->prepare(mSceneState, *mCourseModel, projMtx, viewMtx);
+      mCourseModel->prepare(mSceneState, *mCourseModel, viewMtx, projMtx);
     }
   }
 
