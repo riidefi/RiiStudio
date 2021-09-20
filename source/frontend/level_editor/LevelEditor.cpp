@@ -150,6 +150,16 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   if (course_kmp.has_value()) {
     mKmp = ReadKMP(*course_kmp, "course.kmp");
   }
+
+  auto& cam = mRenderSettings.mCameraController.mCamera;
+  cam.mClipMin = 200.0f;
+  cam.mClipMax = 1000000.0f;
+  mRenderSettings.mCameraController.mSpeed = 15'000.0f;
+
+  if (mKmp && !mKmp->mStartPoints.empty()) {
+    auto& start = mKmp->mStartPoints[0];
+    cam.mEye = start.position + glm::vec3(0.0f, 10'000.0f, 0.0f);
+  }
 }
 
 static std::optional<std::pair<std::string, std::vector<u8>>>
@@ -213,9 +223,13 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
   }
 
   // Only configure once we have stuff
-  if (mSceneState.getBuffers().opaque.nodes.size())
+  if (mSceneState.getBuffers().opaque.nodes.size()) {
     frontend::ConfigureCameraControllerByBounds(
         mRenderSettings.mCameraController, mSceneState.computeBounds());
+    auto& cam = mRenderSettings.mCameraController.mCamera;
+    cam.mClipMin = 200.0f;
+    cam.mClipMax = 1000000.0f;
+  }
 
   glm::mat4 projMtx, viewMtx;
   mRenderSettings.mCameraController.mCamera.calcMatrices(width, height, projMtx,
