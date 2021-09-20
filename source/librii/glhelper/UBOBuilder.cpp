@@ -79,7 +79,10 @@ void DelegatedUBOBuilder::use(u32 idx) const {
     const auto& ofs = mCoalescedOffsets[i];
 
     const auto range_offset = ofs.offset + ofs.stride * idx;
-    const auto range_size = ofs.stride * (mData[i].size() - idx);
+    const int range_size = ofs.stride * (mData[i].size() - idx);
+
+    if (range_size <= 0)
+      continue;
 
     assert(range_offset % getUniformAlignment() == 0);
     if (range_size == 0)
@@ -110,7 +113,8 @@ void DelegatedUBOBuilder::setBlockMin(u32 binding_point, u32 min) {
     mMinSizes[binding_point] = roundUniformUp(min);
   }
 
-  assert(mMinSizes[binding_point] == roundUniformUp(min));
+  // assert(mMinSizes[binding_point] == roundUniformUp(min) &&
+  //        "Likely shader compilation failed");
 }
 #endif
 
