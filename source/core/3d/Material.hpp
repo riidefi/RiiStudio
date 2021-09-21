@@ -1,11 +1,11 @@
 #pragma once
 
-#include "PixelOcclusion.hpp"             // PixelOcclusion
-#include <glm/glm.hpp>                    // glm::mat4
-#include <librii/gfx/MegaState.hpp>       // MegaState
-#include <map>                            // std::map<string, u32>
-#include <string>                         // std::string
-#include <tuple>                          // std::pair<string, string>
+#include <glm/glm.hpp>                   // glm::mat4
+#include <librii/gfx/MegaState.hpp>      // MegaState
+#include <librii/gfx/PixelOcclusion.hpp> // PixelOcclusion
+#include <map>                           // std::map<string, u32>
+#include <string>                        // std::string
+#include <tuple>                         // std::pair<string, string>
 
 namespace librii::glhelper {
 class DelegatedUBOBuilder;
@@ -40,7 +40,7 @@ struct Material : public virtual kpi::IObject {
   virtual std::pair<std::string, std::string> generateShaders() const = 0;
 
   virtual void setMegaState(librii::gfx::MegaState& state) const = 0;
-  virtual void configure(PixelOcclusion occlusion,
+  virtual void configure(librii::gfx::PixelOcclusion occlusion,
                          std::vector<std::string>& textures) = 0;
 
   // TODO: Better system..

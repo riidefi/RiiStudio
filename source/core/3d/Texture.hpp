@@ -1,8 +1,8 @@
 #pragma once
 
-#include "PixelOcclusion.hpp"
 #include <core/common.h>
 #include <core/kpi/Node2.hpp>
+#include <librii/gfx/PixelOcclusion.hpp>
 #include <string>
 #include <vector>
 
@@ -48,7 +48,7 @@ struct Texture : public virtual kpi::IObject {
   virtual u16 getHeight() const = 0;
   virtual void setHeight(u16 height) = 0;
 
-  using Occlusion = PixelOcclusion;
+  using Occlusion = librii::gfx::PixelOcclusion;
 
   //! @brief Set the image encoder based on the expression profile. Pixels are
   //!		 not recomputed immediately.

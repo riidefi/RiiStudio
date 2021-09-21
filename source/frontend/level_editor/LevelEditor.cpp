@@ -247,7 +247,7 @@ void PushCube(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
   };
 
   auto& uniforms =
-      cube.uniform_data.emplace_back(riistudio::lib3d::SceneNode::UniformData{
+      cube.uniform_data.emplace_back(librii::gfx::SceneNode::UniformData{
           .binding_point = UB_SCENEPARAMS_FOR_CUBE_ID,
           .raw_data = {sizeof(params)}});
 
@@ -263,7 +263,7 @@ void PushCube(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
                             GL_UNIFORM_BLOCK_DATA_SIZE, &query_min);
   // This conflicts with the previous min?
 
-  cube.uniform_mins.push_back(riistudio::lib3d::SceneNode::UniformMin{
+  cube.uniform_mins.push_back(librii::gfx::SceneNode::UniformMin{
       .binding_point = UB_SCENEPARAMS_FOR_CUBE_ID,
       .min_size = static_cast<u32>(query_min)});
 }

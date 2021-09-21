@@ -6,7 +6,8 @@
 #include <core/3d/gl.hpp>                  // glClearColor
 #include <core/3d/renderer/SceneState.hpp> // SceneState
 #include <core/3d/renderer/SceneTree.hpp>
-#include <core/util/gui.hpp>           // ImGui::GetStyle()
+#include <core/util/gui.hpp> // ImGui::GetStyle()
+#include <librii/gfx/SceneNode.hpp>
 #include <librii/gl/Compiler.hpp>      // PacketParams
 #include <librii/gl/EnumConverter.hpp> // setGlState
 #include <librii/glhelper/UBOBuilder.hpp>
@@ -166,13 +167,14 @@ struct Node {
   const lib3d::Polygon& poly;
 };
 template <typename T>
-SceneNode::UniformData pushUniform(u32 binding_point, const T& data) {
+librii::gfx::SceneNode::UniformData pushUniform(u32 binding_point,
+                                                const T& data) {
   const u8* pack_begin = reinterpret_cast<const u8*>(&data);
   const u8* pack_end = reinterpret_cast<const u8*>(pack_begin + sizeof(data));
 
-  return SceneNode::UniformData{.binding_point = binding_point,
-                                .raw_data = {pack_begin, pack_end}};
+  return {.binding_point = binding_point, .raw_data = {pack_begin, pack_end}};
 }
+using SceneNode = librii::gfx::SceneNode;
 void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
                    librii::glhelper::VBOBuilder& v,
                    const std::map<std::string, u32>& tex_id_map, Node node,
@@ -202,7 +204,7 @@ void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
   for (int i = 0; i < gc_mat.samplers.size(); ++i) {
     const auto& sampler = gc_mat.samplers[i];
 
-    TextureObj obj;
+    librii::gfx::TextureObj obj;
 
     if (sampler.mTexture.empty()) {
       // No textures specified
@@ -327,7 +329,7 @@ void pushDisplay(VertexBufferTenant& tenant,
                  librii::glhelper::ShaderProgram& shader, glm::mat4 v_mtx,
                  glm::mat4 p_mtx) {
 
-  SceneNode mnode;
+  librii::gfx::SceneNode mnode;
   MakeSceneNode(mnode, tenant, vbo_builder, tex_id_map, node, shader, mp_id,
                 v_mtx, p_mtx);
 

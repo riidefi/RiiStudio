@@ -64,7 +64,6 @@ private:
   bool reinit = false;
 };
 
-struct SceneNode;
 struct SceneBuffers;
 
 struct SceneImpl : public IDrawable {

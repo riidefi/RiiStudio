@@ -1,6 +1,6 @@
 #pragma once
 
-namespace riistudio::lib3d {
+namespace librii::gfx {
 
 enum class PixelOcclusion {
   //! The texture does not use alpha.
@@ -18,4 +18,4 @@ enum class PixelOcclusion {
   Translucent
 };
 
-} // namespace riistudio::lib3d
+} // namespace librii::gfx

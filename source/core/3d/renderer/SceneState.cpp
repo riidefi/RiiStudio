@@ -14,7 +14,8 @@ librii::math::AABB SceneState::computeBounds() {
   bound.min = {0.0f, 0.0f, 0.0f};
   bound.max = {0.0f, 0.0f, 0.0f};
 
-  mTree.forEachNode([&](SceneNode& node) { bound.expandBound(node.bound); });
+  mTree.forEachNode(
+      [&](librii::gfx::SceneNode& node) { bound.expandBound(node.bound); });
 
   return bound;
 }
@@ -22,8 +23,8 @@ librii::math::AABB SceneState::computeBounds() {
 void SceneState::buildUniformBuffers() {
   mUboBuilder.clear();
 
-  mTree.forEachNode([&](SceneNode& node) {
-    buildUniformBufferReplacement(node, mUboBuilder);
+  mTree.forEachNode([&](librii::gfx::SceneNode& node) {
+    librii::gfx::AddSceneNodeToUBO(node, mUboBuilder);
   });
 }
 
@@ -31,8 +32,9 @@ void SceneState::draw() {
   mUboBuilder.submit();
 
   u32 i = 0;
-  mTree.forEachNode(
-      [&](SceneNode& node) { drawReplacement(node, mUboBuilder, i++); });
+  mTree.forEachNode([&](librii::gfx::SceneNode& node) {
+    librii::gfx::DrawSceneNode(node, mUboBuilder, i++);
+  });
 
 #ifdef RII_GL
   glBindVertexArray(0);

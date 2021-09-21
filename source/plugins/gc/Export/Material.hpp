@@ -134,13 +134,13 @@ struct IGCMaterial : public riistudio::lib3d::Material {
 
   void setMegaState(librii::gfx::MegaState& state) const override;
 
-  void configure(riistudio::lib3d::PixelOcclusion occlusion,
+  void configure(librii::gfx::PixelOcclusion occlusion,
                  std::vector<std::string>& textures) override {
     // TODO
     if (textures.empty())
       return;
 
-    ConfigureSingleTex(getMaterialData(), textures[0]);    
+    ConfigureSingleTex(getMaterialData(), textures[0]);
   }
 };
 
