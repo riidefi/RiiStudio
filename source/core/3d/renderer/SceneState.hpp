@@ -1,6 +1,5 @@
 #pragma once
 
-#include <core/3d/renderer/GlTexture.hpp> // GlTexture
 #include <core/3d/renderer/SceneTree.hpp> // SceneBuffers
 #include <librii/glhelper/UBOBuilder.hpp> // DelegatedUBOBuilder
 #include <librii/glhelper/VBOBuilder.hpp> // VBOBuilder

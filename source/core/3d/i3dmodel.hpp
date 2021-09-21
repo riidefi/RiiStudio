@@ -4,7 +4,6 @@
 #include "Material.hpp"
 #include "Polygon.hpp"
 #include "Texture.hpp"
-#include <core/3d/renderer/GlTexture.hpp>
 #include <core/kpi/Node2.hpp> // kpi::Collection
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <memory> // std::shared_ptr

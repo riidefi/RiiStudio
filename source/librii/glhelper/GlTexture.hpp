@@ -4,14 +4,14 @@
 #include <core/common.h>
 #include <optional>
 
-namespace riistudio::lib3d {
+namespace librii::glhelper {
 
 class GlTexture {
 public:
   ~GlTexture();
   GlTexture(GlTexture&& old) : mGlId(old.mGlId) { old.mGlId = ~0; }
   GlTexture(const GlTexture&) = delete;
-  GlTexture(const lib3d::Texture& tex) {
+  GlTexture(const riistudio::lib3d::Texture& tex) {
     auto opt = makeTexture(tex);
     assert(opt.has_value());
     this->mGlId = opt->mGlId;
@@ -26,7 +26,8 @@ private:
   GlTexture(u32 gl_id) : mGlId(gl_id) {}
 
 public:
-  static std::optional<GlTexture> makeTexture(const lib3d::Texture& tex);
+  static std::optional<GlTexture>
+  makeTexture(const riistudio::lib3d::Texture& tex);
 };
 
-} // namespace riistudio::lib3d
+} // namespace librii::glhelper

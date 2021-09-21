@@ -10,6 +10,7 @@
 #include <librii/gfx/SceneNode.hpp>
 #include <librii/gl/Compiler.hpp>      // PacketParams
 #include <librii/gl/EnumConverter.hpp> // setGlState
+#include <librii/glhelper/GlTexture.hpp>
 #include <librii/glhelper/UBOBuilder.hpp>
 #include <librii/mtx/TexMtx.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
@@ -91,7 +92,7 @@ struct SceneImpl::Internal {
   // Maps mesh names -> slots of mVboBuilder
   std::unordered_map<MeshName, VertexBufferTenant, MeshHash> mTenants;
 
-  std::vector<GlTexture> mTextures;
+  std::vector<librii::glhelper::GlTexture> mTextures;
   // Maps texture names -> slots of mTextures
   std::map<std::string, u32> mTexIdMap;
 

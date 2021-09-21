@@ -3,7 +3,7 @@
 #include <core/3d/gl.hpp>
 #include <vector>
 
-namespace riistudio::lib3d {
+namespace librii::glhelper {
 
 GlTexture::~GlTexture() {
 #ifdef RII_GL
@@ -12,7 +12,7 @@ GlTexture::~GlTexture() {
 #endif
 }
 
-std::optional<GlTexture> GlTexture::makeTexture(const lib3d::Texture& tex) {
+std::optional<GlTexture> GlTexture::makeTexture(const riistudio::lib3d::Texture& tex) {
 #ifdef RII_GL
   static std::vector<u8> data(1024 * 1024 * 4 * 2);
 
@@ -43,4 +43,4 @@ std::optional<GlTexture> GlTexture::makeTexture(const lib3d::Texture& tex) {
 #endif
 }
 
-} // namespace riistudio::lib3d
+} // namespace librii::glhelper
