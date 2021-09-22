@@ -1,5 +1,6 @@
 #include "LevelEditor.hpp"
 #include <core/common.h>
+#include <core/util/gui.hpp>
 #include <core/util/oishii.hpp>
 #include <frontend/root.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -156,6 +157,8 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   auto course_kmp = FindFile(mLevel.root_archive, "course.kmp");
   if (course_kmp.has_value()) {
     mKmp = ReadKMP(*course_kmp, "course.kmp");
+
+    mKmpHistory.push_back(*mKmp);
   }
 
   auto& cam = mRenderSettings.mCameraController.mCamera;
@@ -268,6 +271,86 @@ void PushCube(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
       .min_size = static_cast<u32>(query_min)});
 }
 
+struct Manipulator {
+  bool dgui = true;
+  ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::ROTATE;
+  ImGuizmo::MODE mCurrentGizmoMode = ImGuizmo::WORLD;
+  bool useSnap = false;
+  float st[3];
+  float sr[3];
+  float ss[3];
+  float* snap = st;
+
+  void drawUi(glm::mat4& mx) {
+    if (ImGui::IsKeyPressed(65 + 'G' - 'A'))
+      mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+    if (ImGui::IsKeyPressed(65 + 'R' - 'A'))
+      mCurrentGizmoOperation = ImGuizmo::ROTATE;
+    if (ImGui::IsKeyPressed(65 + 'T' - 'A'))
+      mCurrentGizmoOperation = ImGuizmo::SCALE;
+    if (ImGui::RadioButton("Translate",
+                           mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
+      mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Rotate",
+                           mCurrentGizmoOperation == ImGuizmo::ROTATE))
+      mCurrentGizmoOperation = ImGuizmo::ROTATE;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Scale", mCurrentGizmoOperation == ImGuizmo::SCALE))
+      mCurrentGizmoOperation = ImGuizmo::SCALE;
+    float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+    ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(mx), matrixTranslation,
+                                          matrixRotation, matrixScale);
+    ImGui::InputFloat3("Tr", matrixTranslation, 3);
+    ImGui::InputFloat3("Rt", matrixRotation, 3);
+    ImGui::InputFloat3("Sc", matrixScale, 3);
+    ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation,
+                                            matrixScale, glm::value_ptr(mx));
+
+    if (mCurrentGizmoOperation != ImGuizmo::SCALE) {
+      if (ImGui::RadioButton("Local", mCurrentGizmoMode == ImGuizmo::LOCAL))
+        mCurrentGizmoMode = ImGuizmo::LOCAL;
+      ImGui::SameLine();
+      if (ImGui::RadioButton("World", mCurrentGizmoMode == ImGuizmo::WORLD))
+        mCurrentGizmoMode = ImGuizmo::WORLD;
+    }
+    if (ImGui::IsKeyPressed(83))
+      useSnap = !useSnap;
+    ImGui::Checkbox("", &useSnap);
+    ImGui::SameLine();
+    switch (mCurrentGizmoOperation) {
+    case ImGuizmo::TRANSLATE:
+      snap = st;
+      ImGui::InputFloat3("Snap", st);
+      break;
+    case ImGuizmo::ROTATE:
+      snap = sr;
+      ImGui::InputFloat("Angle Snap", sr);
+      break;
+    case ImGuizmo::SCALE:
+      snap = ss;
+      ImGui::InputFloat("Scale Snap", ss);
+      break;
+    default:
+      snap = st;
+    }
+  }
+
+  bool manipulate(glm::mat4& mx, const glm::mat4& viewMtx,
+                  const glm::mat4& projMtx) {
+    return ImGuizmo::Manipulate(glm::value_ptr(viewMtx),
+                                glm::value_ptr(projMtx), mCurrentGizmoOperation,
+                                mCurrentGizmoMode, glm::value_ptr(mx), NULL,
+                                useSnap ? snap : NULL);
+  }
+
+  void drawDebugCube(const glm::mat4& mx, const glm::mat4& viewMtx,
+                     const glm::mat4& projMtx) {
+    ImGuizmo::DrawCubes(glm::value_ptr(viewMtx), glm::value_ptr(projMtx),
+                        glm::value_ptr(mx), 1);
+  }
+};
+
 void LevelEditorWindow::drawScene(u32 width, u32 height) {
   mRenderSettings.drawMenuBar();
 
@@ -310,9 +393,6 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
     }
   }
 
-  // glm::mat4 modelMtx(1.0f);
-  // glm::scale(modelMtx, glm::vec3(10'000.0f));
-
   if (mKmp != nullptr) {
     for (auto& pt : mKmp->mRespawnPoints) {
       glm::mat4 modelMtx = librii::math::calcXform(
@@ -346,41 +426,23 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
       {200.0f, 200.0f},
       ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_WindowBg]));
 
+  auto& cam = mRenderSettings.mCameraController;
+  auto cartesian = glm::vec3(glm::vec4(0.0f, 0.0f, -1.0f, 0.0f) * viewMtx);
+  {
+    riistudio::util::ConditionalHighlight g(true);
+    ImGui::Text("Cartesian: %f, %f, %f", cartesian.x, cartesian.y, cartesian.z);
+  }
   if (tVm != viewMtx) {
-    auto& cam = mRenderSettings.mCameraController;
-    auto cartesian = glm::vec3(glm::vec4(0.0f, 0.0f, -1.0f, 0.0f) * viewMtx);
 
-    cam.mHorizontalAngle = acosf(cartesian.z);
+    auto d = glm::distance(cartesian, glm::vec3(0.0f, 0.0f, 0.0f));
+
+    cam.mHorizontalAngle = acosf(cartesian.z / d);
     cam.mVerticalAngle = atan2f(cartesian.y, cartesian.x);
   }
 
-  glm::mat4 mx = glm::scale(glm::mat4(1.0f), glm::vec3(1'000));
-  // float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-  // ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(mx),
-  // matrixTranslation,
-  //                                      matrixRotation, matrixScale);
-  // ImGui::InputFloat3("Tr", matrixTranslation, 3);
-  // ImGui::InputFloat3("Rt", matrixRotation, 3);
-  // ImGui::InputFloat3("Sc", matrixScale, 3);
-  // ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation,
-  //                                        matrixScale, glm::value_ptr(mx));
-  // mx = glm::transpose(mx);
-  // viewMtx = glm::transpose(viewMtx);
-  // projMtx = glm::transpose(projMtx);
-  // std::swap(viewMtx, projMtx);
-  ImGuizmo::DrawGrid(glm::value_ptr(viewMtx), glm::value_ptr(projMtx),
-                     glm::value_ptr(mx), 16);
+  static Manipulator manip;
 
   if (mKmp) {
-    if (0)
-      for (auto& area : mKmp->mAreas) {
-        glm::mat4 mx = librii::math::calcXform(
-            {.scale = glm::vec3(area.getModel().mScaling * (10000.0f / 2.0f)),
-             .rotation = area.getModel().mRotation,
-             .translation = area.getModel().mPosition});
-        ImGuizmo::DrawCubes(glm::value_ptr(viewMtx), glm::value_ptr(projMtx),
-                            glm::value_ptr(mx), 1);
-      }
 
     int q = 0;
     for (auto& pt : mKmp->mRespawnPoints) {
@@ -389,89 +451,44 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
                glm::vec3(std::max(std::min(pt.range * 50.0f, 1000.0f), 700.0f)),
            .rotation = pt.rotation,
            .translation = pt.position});
-      // ImGuizmo::DrawCubes(glm::value_ptr(viewMtx), glm::value_ptr(projMtx),
-      //                    glm::value_ptr(mx), 1);
       if (q++ == 0) {
-        static bool dgui = true;
-        static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
-        static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
-        static bool useSnap(false);
-        static float st[3];
-        static float sr[3];
-        static float ss[3];
-        float* snap = st;
-        if (dgui) {
 
-          if (ImGui::IsKeyPressed(65 + 'G' - 'A'))
-            mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-          if (ImGui::IsKeyPressed(65 + 'R' - 'A'))
-            mCurrentGizmoOperation = ImGuizmo::ROTATE;
-          if (ImGui::IsKeyPressed(65 + 'T' - 'A'))
-            mCurrentGizmoOperation = ImGuizmo::SCALE;
-          if (ImGui::RadioButton("Translate",
-                                 mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
-            mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-          ImGui::SameLine();
-          if (ImGui::RadioButton("Rotate",
-                                 mCurrentGizmoOperation == ImGuizmo::ROTATE))
-            mCurrentGizmoOperation = ImGuizmo::ROTATE;
-          ImGui::SameLine();
-          if (ImGui::RadioButton("Scale",
-                                 mCurrentGizmoOperation == ImGuizmo::SCALE))
-            mCurrentGizmoOperation = ImGuizmo::SCALE;
-          float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-          ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(mx),
-                                                matrixTranslation,
-                                                matrixRotation, matrixScale);
-          ImGui::InputFloat3("Tr", matrixTranslation, 3);
-          ImGui::InputFloat3("Rt", matrixRotation, 3);
-          ImGui::InputFloat3("Sc", matrixScale, 3);
-          ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation,
-                                                  matrixRotation, matrixScale,
-                                                  glm::value_ptr(mx));
+        manip.drawUi(mx);
+        if (manip.manipulate(mx, viewMtx, projMtx)) {
 
-          if (mCurrentGizmoOperation != ImGuizmo::SCALE) {
-            if (ImGui::RadioButton("Local",
-                                   mCurrentGizmoMode == ImGuizmo::LOCAL))
-              mCurrentGizmoMode = ImGuizmo::LOCAL;
-            ImGui::SameLine();
-            if (ImGui::RadioButton("World",
-                                   mCurrentGizmoMode == ImGuizmo::WORLD))
-              mCurrentGizmoMode = ImGuizmo::WORLD;
-          }
-          if (ImGui::IsKeyPressed(83))
-            useSnap = !useSnap;
-          ImGui::Checkbox("", &useSnap);
-          ImGui::SameLine();
-          switch (mCurrentGizmoOperation) {
-          case ImGuizmo::TRANSLATE:
-            snap = st;
-            ImGui::InputFloat3("Snap", st);
-            break;
-          case ImGuizmo::ROTATE:
-            snap = sr;
-            ImGui::InputFloat("Angle Snap", sr);
-            break;
-          case ImGuizmo::SCALE:
-            snap = ss;
-            ImGui::InputFloat("Scale Snap", ss);
-            break;
-          default:
-            snap = st;
-          }
+          glm::vec3 matrixTranslation, matrixRotation, matrixScale;
+          ImGuizmo::DecomposeMatrixToComponents(
+              glm::value_ptr(mx), glm::value_ptr(matrixTranslation),
+              glm::value_ptr(matrixRotation), glm::value_ptr(matrixScale));
+
+          pt.position = matrixTranslation;
+          pt.rotation = matrixRotation;
+
+          assert(pt == pt);
         }
-        ImGuizmo::Manipulate(glm::value_ptr(viewMtx), glm::value_ptr(projMtx),
-                             mCurrentGizmoOperation, mCurrentGizmoMode,
-                             glm::value_ptr(mx), NULL, useSnap ? snap : NULL);
-
-        glm::vec3 matrixTranslation, matrixRotation, matrixScale;
-        ImGuizmo::DecomposeMatrixToComponents(
-            glm::value_ptr(mx), glm::value_ptr(matrixTranslation),
-            glm::value_ptr(matrixRotation), glm::value_ptr(matrixScale));
-
-        pt.position = matrixTranslation;
-        pt.rotation = matrixRotation;
       }
+    }
+  }
+
+  if (!commit_posted && *mKmp != mKmpHistory[history_cursor]) {
+    commit_posted = true;
+  }
+
+  if (commit_posted && !ImGui::IsAnyMouseDown()) {
+    CommitHistory(history_cursor, mKmpHistory);
+    mKmpHistory.push_back(*mKmp);
+    assert(mKmpHistory.back() == *mKmp);
+    commit_posted = false;
+  }
+
+  // TODO: Only affect active window
+  if (ImGui::GetIO().KeyCtrl) {
+    if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
+      UndoHistory(history_cursor, mKmpHistory);
+      *mKmp = mKmpHistory[history_cursor];
+    } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
+      RedoHistory(history_cursor, mKmpHistory);
+      *mKmp = mKmpHistory[history_cursor];
     }
   }
 }

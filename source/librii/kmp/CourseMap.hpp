@@ -35,6 +35,9 @@ private:
 
 class CourseMap : public CourseMapData {
 public:
+  bool operator==(const CourseMap&) const = default;
+  bool operator!=(const CourseMap&) const = default;
+
   llvm::SmallVector<StartPoint, 1> mStartPoints;
   llvm::SmallVector<EnemyPath, 16> mEnemyPaths;
   llvm::SmallVector<ItemPath, 16> mItemPaths;

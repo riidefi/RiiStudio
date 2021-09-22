@@ -53,6 +53,24 @@ struct Level {
   std::string og_path;
 };
 
+inline void CommitHistory(size_t& cursor,
+                          std::vector<librii::kmp::CourseMap>& chain) {
+  chain.resize(cursor + 1);
+  cursor++;
+}
+inline void UndoHistory(size_t& cursor,
+                        std::vector<librii::kmp::CourseMap>& chain) {
+  if (cursor <= 0)
+    return;
+  --cursor;
+}
+inline void RedoHistory(size_t& cursor,
+                        std::vector<librii::kmp::CourseMap>& chain) {
+  if (cursor >= chain.size())
+    return;
+  ++cursor;
+}
+
 class LevelEditorWindow : public frontend::StudioWindow {
 public:
   LevelEditorWindow() : StudioWindow("Level Editor", true) {}
@@ -72,6 +90,9 @@ public:
   std::unique_ptr<g3d::Collection> mCourseModel;
   std::unique_ptr<g3d::Collection> mVrcornModel;
   std::unique_ptr<librii::kmp::CourseMap> mKmp;
+  std::vector<librii::kmp::CourseMap> mKmpHistory;
+  size_t history_cursor = 0;
+  bool commit_posted = false;
 };
 
 } // namespace riistudio::lvl
