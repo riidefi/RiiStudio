@@ -372,7 +372,7 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
   // Only configure once we have stuff
   if (mSceneState.getBuffers().opaque.nodes.size()) {
     frontend::ConfigureCameraControllerByBounds(
-        mRenderSettings.mCameraController, mSceneState.computeBounds());
+        mRenderSettings.mCameraController, mSceneState.computeBounds(), 1.0f);
     auto& cam = mRenderSettings.mCameraController.mCamera;
     cam.mClipMin = 200.0f;
     cam.mClipMax = 1000000.0f;

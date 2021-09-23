@@ -47,9 +47,15 @@ public:
 };
 
 inline void ConfigureCameraControllerByBounds(CameraController& controller,
-                                              const librii::math::AABB& bound) {
+                                              const librii::math::AABB& bound,
+                                              bool speed_factor = 0.0f) {
   const f32 dist = glm::distance(bound.min, bound.max);
-  controller.mSpeedFactor = dist == 0.0f ? 50.0f : dist / 1000.0f;
+
+  if (speed_factor != 0.0f) {
+    controller.mSpeedFactor = speed_factor;
+  } else {
+    controller.mSpeedFactor = dist == 0.0f ? 50.0f : dist / 1000.0f;
+  }
 
   if (controller.mCamera.getPosition() == glm::vec3{0.0f}) {
     const auto min = bound.min;
