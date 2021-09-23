@@ -24,7 +24,7 @@ public:
 
   // TODO: Enable for plane mode
   // glm::vec3 up = glm::cross(right, direction);
-  glm::vec3 getUp() const { return {0, 1, 0}; }
+  glm::vec3 getUp() const { return mUp; }
 
   // Camera settings
   float mClipMin = 1.0f;
@@ -33,6 +33,7 @@ public:
   // Camera state
   glm::vec3 mEye{0.0f, 0.0f, 0.0f};
   glm::vec3 mDirection;
+  glm::vec3 mUp{0, 1, 0};
   Projection mProjection = Projection::Perspective;
 };
 

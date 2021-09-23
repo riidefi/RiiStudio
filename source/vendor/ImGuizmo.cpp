@@ -2792,20 +2792,30 @@ namespace IMGUIZMO_NAMESPACE
                         interpolationDir = makeVect(1.f - cx, 1.f - cy, 1.f - cz);
                         interpolationDir.Normalize();
 
-                        if (fabsf(Dot(interpolationDir, referenceUp)) > 1.0f - 0.01f)
+                        if (fabsf(Dot(interpolationDir, referenceUp)) >
+                               1.0f - 0.01f)
                         {
-                           vec_t right = viewInverse.v.right;
-                           if (fabsf(right.x) > fabsf(right.z))
-                           {
-                              right.z = 0.f;
-                           }
-                           else
-                           {
-                              right.x = 0.f;
-                           }
-                           right.Normalize();
-                           interpolationUp = Cross(interpolationDir, right);
-                           interpolationUp.Normalize();
+							/*vec_t right = viewInverse.v.right;
+							if (fabsf(right.x) > fabsf(right.z))
+							{
+								right.z = 0.f;
+							}
+							else
+							{
+								right.x = 0.f;
+							}
+							right.Normalize();
+							interpolationUp = Cross(interpolationDir, right);
+							interpolationUp.Normalize();*/
+
+							// Nudge the direction vector ever-so-slightly,
+							// so that it doesn't point straight up or down,
+							// to avoid the problem with mVerticalAngle and
+							// asinf()'s singularities.
+							if (fabsf(viewInverse.v.dir.x) > fabsf(viewInverse.v.dir.z))
+								interpolationDir.x += (viewInverse.v.dir.x > 0 ? 1.f : -1.f) * 0.05f;
+							else
+								interpolationDir.z += (viewInverse.v.dir.z > 0 ? 1.f : -1.f) * 0.05f;
                         }
                         else
                         {
@@ -2830,10 +2840,11 @@ namespace IMGUIZMO_NAMESPACE
          newDir.Lerp(interpolationDir, 0.2f);
          newDir.Normalize();
 
-         vec_t newUp = viewInverse.v.up;
+         vec_t newUp = interpolationUp;
+         /*vec_t newUp = viewInverse.v.up;
          newUp.Lerp(interpolationUp, 0.3f);
-         newUp.Normalize();
-         newUp = interpolationUp;
+         newUp.Normalize();*/
+
          vec_t newEye = camTarget + newDir * length;
          LookAt(&newEye.x, &camTarget.x, &newUp.x, view);
       }
