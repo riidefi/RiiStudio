@@ -436,8 +436,8 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
     auto d = glm::distance(cartesian, glm::vec3(0.0f, 0.0f, 0.0f));
 
-    cam.mHorizontalAngle = acosf(cartesian.z / d);
-    cam.mVerticalAngle = atan2f(cartesian.y, cartesian.x);
+    cam.mHorizontalAngle = atan2f(cartesian.x, cartesian.z);
+    cam.mVerticalAngle = asinf(cartesian.y / d);
   }
 
   static Manipulator manip;
