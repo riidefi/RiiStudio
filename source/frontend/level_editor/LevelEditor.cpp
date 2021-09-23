@@ -421,10 +421,13 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
   auto tVm = viewMtx;
   auto max = ImGui::GetContentRegionMaxAbs();
-  ImGuizmo::ViewManipulate(
-      glm::value_ptr(viewMtx), 20.0f, {max.x - 200.0f, max.y - 200.0f},
-      {200.0f, 200.0f},
-      ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_WindowBg]));
+
+  const u32 viewcube_bg = 0;
+  // ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_WindowBg])
+
+  ImGuizmo::ViewManipulate(glm::value_ptr(viewMtx), 20.0f,
+                           {max.x - 200.0f, max.y - 200.0f}, {200.0f, 200.0f},
+                           viewcube_bg);
 
   auto& cam = mRenderSettings.mCameraController;
   auto cartesian = glm::vec3(glm::vec4(0.0f, 0.0f, -1.0f, 0.0f) * viewMtx);
