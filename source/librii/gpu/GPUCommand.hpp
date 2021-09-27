@@ -9,6 +9,11 @@ enum class CommandType {
   XF = 0x10,
   NOP = 0x0,
 
+  _20 = 0x20,
+  _28 = 0x28,
+  _30 = 0x30,
+  _38 = 0x38,
+
   // Not a real GPU command: terminator in context layout
   RET = 0xFF
 };

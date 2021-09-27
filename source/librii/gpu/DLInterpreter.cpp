@@ -45,6 +45,13 @@ void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler,
       handler.onCommandCP(cmd);
       break;
     }
+    case CommandType::_20:
+    case CommandType::_28:
+    case CommandType::_30:
+    case CommandType::_38: {
+      reader.skip(5);
+      break;
+    }
     default:
       if (static_cast<u32>(tag) & 0x80) {
         handler.onCommandDraw(
