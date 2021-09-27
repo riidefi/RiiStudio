@@ -84,7 +84,7 @@ static std::optional<Archive> ReadArchive(std::span<const u8> buf) {
   assert(n_path.empty());
 
   // Eliminate the period
-  if (n_arc.folders.begin()->first == ".") {
+  if (!n_arc.folders.empty() && n_arc.folders.begin()->first == ".") {
     return *n_arc.folders["."];
   }
 
