@@ -120,6 +120,10 @@ std::unique_ptr<g3d::Collection> ReadBRRES(const std::vector<u8>& buf,
   Reader reader(path, buf);
   g3d::ReadBRRES(*result, reader.mReader, trans.trans);
 
+  // Tentatively allow previewing models we can't rebuild
+  if (trans.trans.state == kpi::TransactionState::FailureToSave)
+    return result;
+
   if (!trans.success())
     return nullptr;
 

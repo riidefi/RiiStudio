@@ -102,6 +102,7 @@ bool EditorImporter::process() {
     result = State::ResolveDependencies;
     return StayAlive;
   case kpi::TransactionState::Failure:
+  case kpi::TransactionState::FailureToSave:
     result = State::InvalidData;
     return Die;
   }

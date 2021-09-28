@@ -745,7 +745,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
         "BRRES file was created with BrawlBox and is invalid. It is "
         "recommended you create BRRES files here by dropping a DAE/FBX file.");
     //
-    transaction.state = kpi::TransactionState::Failure;
+    transaction.state = kpi::TransactionState::FailureToSave;
   } else if (!isValid) {
     transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
                          "Note: BRRES file was saved with BrawlBox. Certain "

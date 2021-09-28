@@ -35,6 +35,7 @@ inline IOMessageClass operator|(const IOMessageClass lhs,
 enum class TransactionState {
   Complete,            //!< Operation has ended
   Failure,             //!< Exit
+  FailureToSave,       //!< Exit
   ConfigureProperties, //!< Configure + Interrupted
   ResolveDependencies, //!< Interrupted: The entire point of this system!
 };
