@@ -208,6 +208,10 @@ void AssReader::read(kpi::IOTransaction& transaction) {
     helper->ImportAss(additional_textures, mGenerateMipMaps, mMinMipDimension,
                       mMaxMipCount, mAutoTransparent,
                       glm::vec3(model_tint[0], model_tint[1], model_tint[2]));
+    if (transaction.state == kpi::TransactionState::Failure) {
+      state = State::Completed;
+      return;
+    }
     transaction.state = kpi::TransactionState::Complete;
     state = State::Completed;
     // And we die~

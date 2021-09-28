@@ -742,6 +742,8 @@ void AssImporter::ImportAss(
                                     std::to_string(tex->getWidth()) + "x" +
                                     std::to_string(tex->getHeight()) +
                                     ") are not powers of two.");
+          transaction->state = kpi::TransactionState::Failure;
+          return;
         }
       }
       if (!power_of_2(tex->getWidth())) {
