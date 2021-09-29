@@ -1,6 +1,8 @@
 #pragma once
 
+#include <array>
 #include <core/common.h>
+#include <glm/glm.hpp>
 #include <glm/vec3.hpp>
 #include <rsl/SimpleReader.hpp>
 #include <span>
@@ -44,6 +46,21 @@ struct KCollisionPrismData {
   rsl::bu16 attribute{0};
 };
 
+inline std::array<glm::vec3, 3> FromPrism(float height, const glm::vec3& pos,
+                                          const glm::vec3& fnrm,
+                                          const glm::vec3& enrm1,
+                                          const glm::vec3& enrm2,
+                                          const glm::vec3& enrm3) {
+  // Based on wiki
+  auto CrossA = glm::cross(enrm1, fnrm);
+  auto CrossB = glm::cross(enrm2, fnrm);
+  auto Vertex1 = pos;
+  auto Vertex2 = pos + CrossB * (height / glm::dot(CrossB, enrm3));
+  auto Vertex3 = pos + CrossA * (height / glm::dot(CrossA, enrm3));
+
+  return {Vertex1, Vertex2, Vertex3};
+}
+
 struct KCollisionData {
   std::vector<glm::vec3> pos_data;
   std::vector<glm::vec3> nrm_data;
@@ -65,5 +82,12 @@ struct KCollisionData {
 
 std::string ReadKCollisionData(KCollisionData& data, std::span<const u8> bytes,
                                u32 file_size);
+
+inline std::array<glm::vec3, 3> FromPrism(const KCollisionData& data,
+                                          const KCollisionPrismData& prism) {
+  return FromPrism(prism.height, data.pos_data[prism.pos_i],
+                   data.nrm_data[prism.fnrm_i], data.nrm_data[prism.enrm1_i],
+                   data.nrm_data[prism.enrm2_i], data.nrm_data[prism.enrm3_i]);
+}
 
 } // namespace librii::kcol

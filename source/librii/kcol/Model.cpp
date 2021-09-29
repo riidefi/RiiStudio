@@ -21,8 +21,8 @@ std::string ReadKCollisionData(KCollisionData& data, std::span<const u8> bytes,
                                                   header->area_min_pos.z},
 
                         .area_x_width_mask = header->area_x_width_mask,
-                        .area_y_width_mask = header->area_x_width_mask,
-                        .area_z_width_mask = header->area_x_width_mask,
+                        .area_y_width_mask = header->area_y_width_mask,
+                        .area_z_width_mask = header->area_z_width_mask,
 
                         .block_width_shift = header->block_width_shift,
                         .area_x_blocks_shift = header->area_x_blocks_shift,
@@ -93,8 +93,8 @@ std::string ReadKCollisionData(KCollisionData& data, std::span<const u8> bytes,
   data.prism_data.resize(prism_data_size / sizeof(KCollisionPrismData));
   for (size_t i = 0; i < data.prism_data.size(); ++i) {
     auto* prism = rsl::buffer_cast<const KCollisionPrismData>(
-        bytes, header->prism_data_offset - sizeof(KCollisionPrismData) +
-                   i * sizeof(KCollisionPrismData));
+        bytes,
+        header->prism_data_offset + (i + 1) * sizeof(KCollisionPrismData));
     if (prism == nullptr) {
       return "Bug in reading code";
     }
