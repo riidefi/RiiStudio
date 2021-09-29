@@ -43,7 +43,7 @@ static inline T* buffer_cast(byte_view_t data, unsigned offset = 0) {
   if (offset + sizeof(T) > data.size_bytes())
     return nullptr;
 
-  return reinterpret_cast<T*>(data.data());
+  return reinterpret_cast<T*>(data.data() + offset);
 }
 
 //! Unsafe API: Verify the operation before calling
