@@ -140,6 +140,22 @@ std::unique_ptr<librii::kmp::CourseMap> ReadKMP(const std::vector<u8>& buf,
   return result;
 }
 
+std::unique_ptr<librii::kcol::KCollisionData>
+ReadKCL(const std::vector<u8>& buf, std::string path) {
+  auto result = std::make_unique<librii::kcol::KCollisionData>();
+
+  Reader reader(path, buf);
+  auto res = librii::kcol::ReadKCollisionData(
+      *result, reader.mData.slice(), reader.mData.slice().size_bytes());
+
+  if (!res.empty()) {
+    printf("Error: %s\n", res.c_str());
+    return nullptr;
+  }
+
+  return result;
+}
+
 void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   auto root_arc = ReadArchive(buf);
   if (!root_arc.has_value())
@@ -156,6 +172,21 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   auto vrcorn_model_brres = FindFile(mLevel.root_archive, "vrcorn_model.brres");
   if (course_model_brres.has_value()) {
     mVrcornModel = ReadBRRES(*vrcorn_model_brres, "vrcorn_model.brres");
+  }
+
+  auto course_kcl = FindFile(mLevel.root_archive, "course.kcl");
+  if (course_kcl.has_value()) {
+    mCourseKcl = ReadKCL(*course_kcl, "course.kcl");
+  }
+
+  if (mCourseKcl) {
+    mKclTris.resize(mCourseKcl->prism_data.size());
+    for (size_t i = 0; i < mKclTris.size(); ++i) {
+      auto& prism = mCourseKcl->prism_data[i];
+
+      mKclTris[i] = {.attr = prism.attribute,
+                     .verts = librii::kcol::FromPrism(*mCourseKcl, prism)};
+    }
   }
 
   auto course_kmp = FindFile(mLevel.root_archive, "course.kmp");
@@ -236,6 +267,104 @@ void PushCube(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
 
   cube.glBeginMode = GL_TRIANGLES;
   cube.vertex_count = librii::glhelper::GetCubeNumVerts();
+  cube.glVertexDataType = GL_UNSIGNED_INT;
+  cube.indices = 0; // Offset in VAO
+
+  cube.bound = {};
+
+  glm::mat4 mvp = projMtx * viewMtx * modelMtx;
+  librii::gl::UniformSceneParams params{.projection = mvp,
+                                        .Misc0 = {69.0f, 0.0f, 0.0f, 0.0f}};
+
+  enum {
+    // So UBOBuilder requires the same UBO layout for every use of the same
+    // binding point. It also requires there to be 4x binding point 0, 4x
+    // binding point 1, etc.. except it doesn't break if we have extra on
+    // binding point 0. This is a mess
+    UB_SCENEPARAMS_FOR_CUBE_ID = 0
+  };
+
+  auto& uniforms =
+      cube.uniform_data.emplace_back(librii::gfx::SceneNode::UniformData{
+          .binding_point = UB_SCENEPARAMS_FOR_CUBE_ID,
+          .raw_data = {sizeof(params)}});
+
+  uniforms.raw_data.resize(sizeof(params));
+  memcpy(uniforms.raw_data.data(), &params, sizeof(params));
+
+  glUniformBlockBinding(
+      cube.shader_id, glGetUniformBlockIndex(cube.shader_id, "ub_SceneParams"),
+      UB_SCENEPARAMS_FOR_CUBE_ID);
+
+  int query_min = 1024;
+  glGetActiveUniformBlockiv(cube.shader_id, UB_SCENEPARAMS_FOR_CUBE_ID,
+                            GL_UNIFORM_BLOCK_DATA_SIZE, &query_min);
+  // This conflicts with the previous min?
+
+  cube.uniform_mins.push_back(librii::gfx::SceneNode::UniformMin{
+      .binding_point = UB_SCENEPARAMS_FOR_CUBE_ID,
+      .min_size = static_cast<u32>(query_min)});
+}
+
+const char* gTriShader = R"(
+#version 400
+
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec4 color;
+
+out vec4 fragmentColor;
+
+layout(std140) uniform ub_SceneParams {
+    mat4x4 u_Projection;
+    vec4 u_Misc0;
+};
+
+void main() {	
+  gl_Position = u_Projection * vec4(position, 1);
+  fragmentColor = color;
+}
+)";
+const char* gTriShaderFrag = R"(
+#version 330 core
+
+in vec4 fragmentColor;
+
+out vec4 color;
+
+void main() {
+  color = fragmentColor;
+}
+)";
+
+void PushTriangles(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
+                   glm::mat4 viewMtx, glm::mat4 projMtx, u32 tri_vao,
+                   u32 tri_vao_count) {
+  static const librii::glhelper::ShaderProgram tri_shader(gTriShader,
+                                                          gTriShaderFrag);
+
+  auto& cube = state.getBuffers().translucent.nodes.emplace_back();
+  static float poly_ofs = -100.0f;
+  // ImGui::InputFloat("Poly_ofs", &poly_ofs);
+  static float poly_fact = 0.0f;
+  // ImGui::InputFloat("Poly_fact", &poly_fact);
+  cube.mega_state = {.cullMode = (u32)-1 /* GL_BACK */,
+                     .depthWrite = GL_TRUE,
+                     .depthCompare = GL_LEQUAL /* GL_LEQUAL */,
+                     .frontFace = GL_CW,
+
+                     .blendMode = GL_FUNC_ADD,
+                     .blendSrcFactor = GL_SRC_ALPHA,
+                     .blendDstFactor = GL_ONE_MINUS_SRC_ALPHA,
+
+                     // Prevents z-fighting, always win
+                     .poly_offset_factor = poly_fact,
+                     .poly_offset_units = poly_ofs};
+  cube.shader_id = tri_shader.getId();
+  cube.vao_id = tri_vao;
+  cube.texture_objects.resize(0);
+
+  cube.glBeginMode = GL_TRIANGLES;
+  cube.vertex_count = tri_vao_count;
   cube.glVertexDataType = GL_UNSIGNED_INT;
   cube.indices = 0; // Offset in VAO
 
@@ -407,6 +536,39 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
       PushCube(mSceneState, modelMtx, viewMtx, projMtx);
     }
   }
+
+  static std::unique_ptr<librii::glhelper::VBOBuilder> tri_vbo = nullptr;
+
+  if (tri_vbo == nullptr) {
+    tri_vbo = std::make_unique<librii::glhelper::VBOBuilder>();
+
+    tri_vbo->mPropogating[0].descriptor =
+        librii::glhelper::VAOEntry{.binding_point = 0,
+                                   .name = "position",
+                                   .format = GL_FLOAT,
+                                   .size = sizeof(glm::vec3)};
+    tri_vbo->mPropogating[1].descriptor =
+        librii::glhelper::VAOEntry{.binding_point = 1,
+                                   .name = "color",
+                                   .format = GL_FLOAT,
+                                   .size = sizeof(glm::vec4)};
+
+    auto MakeColor = [](u16 attr) -> glm::vec4 {
+      return {((attr)&0b1111) / 15.0f, ((attr >> 4) & 0b1111) / 15.0f,
+              ((attr >> 8) & 0b1111) / 15.0f, ((attr >> 12) & 0b1111) / 15.0f};
+    };
+
+    for (int i = 0; i < 3 * mKclTris.size(); ++i) {
+      tri_vbo->mIndices.push_back(static_cast<u32>(tri_vbo->mIndices.size()));
+      tri_vbo->pushData(/*binding_point=*/0, mKclTris[i / 3].verts[i % 3]);
+      tri_vbo->pushData(/*binding_point=*/1, MakeColor(mKclTris[i / 3].attr));
+    }
+    tri_vbo->build();
+  }
+
+  PushTriangles(mSceneState, glm::mat4(1.0f), viewMtx, projMtx,
+                tri_vbo->getGlId(), 3 * mKclTris.size());
+
   mSceneState.buildUniformBuffers();
 
   librii::glhelper::ClearGlScreen();

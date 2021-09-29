@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <frontend/editor/StudioWindow.hpp>
 #include <frontend/renderer/Renderer.hpp>
+#include <librii/kcol/Model.hpp>
 #include <librii/kmp/CourseMap.hpp>
 #include <librii/u8/U8.hpp>
 #include <map>
@@ -89,6 +90,15 @@ public:
 
   std::unique_ptr<g3d::Collection> mCourseModel;
   std::unique_ptr<g3d::Collection> mVrcornModel;
+
+  std::unique_ptr<librii::kcol::KCollisionData> mCourseKcl;
+
+  struct Triangle {
+    u16 attr;
+    std::array<glm::vec3, 3> verts;
+  };
+  std::vector<Triangle> mKclTris;
+
   std::unique_ptr<librii::kmp::CourseMap> mKmp;
   std::vector<librii::kmp::CourseMap> mKmpHistory;
   size_t history_cursor = 0;
