@@ -153,6 +153,7 @@ void translateGfxMegaState(gfx::MegaState& megaState,
 void setGlState(const librii::gfx::MegaState& state) {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
+  glEnable(GL_POLYGON_OFFSET_FILL);
 
   glBlendFunc(state.blendSrcFactor, state.blendDstFactor);
   glBlendEquation(state.blendMode);
@@ -165,6 +166,8 @@ void setGlState(const librii::gfx::MegaState& state) {
   glFrontFace(state.frontFace);
   glDepthMask(state.depthWrite ? GL_TRUE : GL_FALSE);
   glDepthFunc(state.depthCompare);
+
+  glPolygonOffset(state.poly_offset_factor, state.poly_offset_units);
 }
 #endif
 

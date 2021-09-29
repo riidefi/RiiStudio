@@ -13,6 +13,9 @@ struct MegaState {
   u32 blendMode;
   u32 blendSrcFactor;
   u32 blendDstFactor;
+
+  float poly_offset_factor = 0.0f;
+  float poly_offset_units = 0.0f;
 };
 
 } // namespace librii::gfx
