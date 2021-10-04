@@ -212,7 +212,6 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     for (auto& prism : mCourseKcl->prism_data) {
       disp_opts.target_attr_all |= 1 << (prism.attribute & 31);
     }
-    disp_opts.attr_mask = 1;
   }
 
   auto course_kmp = FindFile(mLevel.root_archive, "course.kmp");
@@ -337,6 +336,7 @@ const char* gTriShader = R"(
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec4 color;
+layout(location = 2) in uint attr_id;
 
 out vec4 fragmentColor;
 
@@ -348,6 +348,21 @@ layout(std140) uniform ub_SceneParams {
 void main() {	
   gl_Position = u_Projection * vec4(position, 1);
   fragmentColor = color;
+
+  // Wire
+  bool is_wire = uint(u_Misc0[2]) == 1;
+  if (is_wire) {
+    fragmentColor = vec4(1, 1, 1, 1);
+  }
+
+  // Precision hack
+  uint low_bits = uint(u_Misc0[0]) & 0xFFFF;
+  uint high_bits = uint(u_Misc0[1]) << 16;
+  uint attr_mask = low_bits | high_bits;
+
+  if ((attr_id & attr_mask) == 0) {
+    fragmentColor.w = 0.0;
+  }
 }
 )";
 const char* gTriShaderFrag = R"(
@@ -358,25 +373,30 @@ in vec4 fragmentColor;
 out vec4 color;
 
 void main() {
+  if (fragmentColor.w == 0.0) discard;
+
   color = fragmentColor;
+
+  if (!gl_FrontFacing && color != vec4(1, 1, 1, 1))
+    color *= vec4(.5, .5, .5, 1.0);
 }
 )";
 
 void PushTriangles(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
                    glm::mat4 viewMtx, glm::mat4 projMtx, u32 tri_vao,
-                   u32 tri_vao_count) {
+                   u32 tri_vao_count, u32 attr_mask) {
   static const librii::glhelper::ShaderProgram tri_shader(gTriShader,
                                                           gTriShaderFrag);
 
   auto& cube = state.getBuffers().translucent.nodes.emplace_back();
-  static float poly_ofs = -100.0f;
+  static float poly_ofs = 0.0f;
   // ImGui::InputFloat("Poly_ofs", &poly_ofs);
   static float poly_fact = 0.0f;
   // ImGui::InputFloat("Poly_fact", &poly_fact);
   cube.mega_state = {.cullMode = (u32)-1 /* GL_BACK */,
                      .depthWrite = GL_TRUE,
                      .depthCompare = GL_LEQUAL /* GL_LEQUAL */,
-                     .frontFace = GL_CW,
+                     .frontFace = GL_CCW,
 
                      .blendMode = GL_FUNC_ADD,
                      .blendSrcFactor = GL_SRC_ALPHA,
@@ -397,8 +417,9 @@ void PushTriangles(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
   cube.bound = {};
 
   glm::mat4 mvp = projMtx * viewMtx * modelMtx;
-  librii::gl::UniformSceneParams params{.projection = mvp,
-                                        .Misc0 = {69.0f, 0.0f, 0.0f, 0.0f}};
+  librii::gl::UniformSceneParams params{
+      .projection = mvp,
+      .Misc0 = {attr_mask & 0xFFFF, attr_mask >> 16, 0.0f, 0.0f}};
 
   enum {
     // So UBOBuilder requires the same UBO layout for every use of the same
@@ -428,6 +449,14 @@ void PushTriangles(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
   cube.uniform_mins.push_back(librii::gfx::SceneNode::UniformMin{
       .binding_point = UB_SCENEPARAMS_FOR_CUBE_ID,
       .min_size = static_cast<u32>(query_min)});
+
+  auto& cube_wire = state.getBuffers().translucent.nodes.emplace_back(cube);
+
+  cube_wire.mega_state.fill = librii::gfx::PolygonMode::Line;
+
+  reinterpret_cast<librii::gl::UniformSceneParams*>(
+      cube_wire.uniform_data[0].raw_data.data())
+      ->Misc0[2] = 1.0f;
 }
 
 struct Manipulator {
@@ -583,22 +612,27 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
                                    .name = "color",
                                    .format = GL_FLOAT,
                                    .size = sizeof(glm::vec4)};
-
-    auto MakeColor = [](u16 attr) -> glm::vec4 {
-      return {((attr)&0b1111) / 15.0f, ((attr >> 4) & 0b1111) / 15.0f,
-              ((attr >> 8) & 0b1111) / 15.0f, ((attr >> 12) & 0b1111) / 15.0f};
-    };
+    tri_vbo->mPropogating[2].descriptor =
+        librii::glhelper::VAOEntry{.binding_point = 2,
+                                   .name = "attr_id",
+                                   .format = GL_UNSIGNED_INT,
+                                   .size = sizeof(u32)};
 
     for (int i = 0; i < 3 * mKclTris.size(); ++i) {
       tri_vbo->mIndices.push_back(static_cast<u32>(tri_vbo->mIndices.size()));
       tri_vbo->pushData(/*binding_point=*/0, mKclTris[i / 3].verts[i % 3]);
-      tri_vbo->pushData(/*binding_point=*/1, MakeColor(mKclTris[i / 3].attr));
+      tri_vbo->pushData(/*binding_point=*/1,
+                        glm::vec4(GetKCLColor(mKclTris[i / 3].attr), .5f));
+      tri_vbo->pushData(/*binding_point=*/2,
+                        static_cast<u32>(1 << (mKclTris[i / 3].attr & 31)));
     }
     tri_vbo->build();
   }
 
-  PushTriangles(mSceneState, glm::mat4(1.0f), viewMtx, projMtx,
-                tri_vbo->getGlId(), 3 * mKclTris.size());
+  if (disp_opts.show_kcl) {
+    PushTriangles(mSceneState, glm::mat4(1.0f), viewMtx, projMtx,
+                  tri_vbo->getGlId(), 3 * mKclTris.size(), disp_opts.attr_mask);
+  }
 
   mSceneState.buildUniformBuffers();
 
