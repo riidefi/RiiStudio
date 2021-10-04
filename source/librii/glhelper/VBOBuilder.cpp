@@ -55,7 +55,7 @@ void VBOBuilder::build() {
     // TODO: Hack
     if (attrib.first.name == nullptr)
       continue;
-    assert(attrib.first.format == GL_FLOAT);
+	
     vertexAttribPointer(attrib.first.binding_point, attrib.first.size / 4,
                         GL_FLOAT, GL_FALSE, attrib.first.size,
                         reinterpret_cast<void*>(attrib.second));
