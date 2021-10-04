@@ -16,11 +16,24 @@
 
 namespace riistudio::lvl {
 
+enum class XluMode { Fast, Fancy };
+
 struct RenderOptions {
   bool show_brres = true;
   bool show_kcl = true;
   u32 attr_mask = 0xc216f000; // KCL Flags to keep, default to walls
-  u32 target_attr_all = -1;   // ALl flags in the scene
+  u32 target_attr_all = -1;   // All flags in the scene
+
+  // Fancy -> enable per-triangle z-sorting
+  XluMode xlu_mode{
+#ifdef BUILD_DEBUG
+      XluMode::Fast // the std::sort is incredibly slow on debug builds
+#else
+      XluMode::Fancy
+#endif
+  };
+
+  float kcl_alpha = 0.5f;
 };
 
 struct Archive {
@@ -112,6 +125,11 @@ public:
   bool commit_posted = false;
 
   RenderOptions disp_opts;
+
+  // KCL triangle vertex buffer
+  std::unique_ptr<librii::glhelper::VBOBuilder> tri_vbo = nullptr;
+  // z_dist of every kcl triangle and the camera
+  std::vector<float> z_dist;
 };
 
 } // namespace riistudio::lvl

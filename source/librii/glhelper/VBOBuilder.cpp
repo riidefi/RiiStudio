@@ -27,10 +27,7 @@ void VBOBuilder::build() {
       push(e);
   }
 
-  glBindVertexArray(VAO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuf);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndices.size() * 4, mIndices.data(),
-               GL_STATIC_DRAW);
+  uploadIndexBuffer();
 
   glBindBuffer(GL_ARRAY_BUFFER, mPositionBuf);
   glBufferData(GL_ARRAY_BUFFER, mData.size(), mData.data(), GL_STATIC_DRAW);
@@ -55,7 +52,7 @@ void VBOBuilder::build() {
     // TODO: Hack
     if (attrib.first.name == nullptr)
       continue;
-	
+
     vertexAttribPointer(attrib.first.binding_point, attrib.first.size / 4,
                         GL_FLOAT, GL_FALSE, attrib.first.size,
                         reinterpret_cast<void*>(attrib.second));
@@ -64,8 +61,15 @@ void VBOBuilder::build() {
     glEnableVertexAttribArray(attrib.first.binding_point);
   }
 
-  mPropogating.clear();
+  // mPropogating.clear();
   glBindVertexArray(0);
+}
+
+void VBOBuilder::uploadIndexBuffer() {
+  glBindVertexArray(VAO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuf);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndices.size() * 4, mIndices.data(),
+               GL_DYNAMIC_DRAW /* GL_STATIC_DRAW */);
 }
 
 void VBOBuilder::bind() { glBindVertexArray(VAO); }

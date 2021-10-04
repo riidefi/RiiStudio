@@ -26,6 +26,10 @@
 
 #include "KclUtil.hpp"
 
+#include <glm/gtx/norm.hpp> // glm::distance2
+
+#include <imcxx/Widgets.hpp> // imcxx::Combo
+
 namespace riistudio::lvl {
 
 void DrawRenderOptions(RenderOptions& opt) {
@@ -43,6 +47,9 @@ void DrawRenderOptions(RenderOptions& opt) {
 
     ImGui::EndCombo();
   }
+
+  opt.xlu_mode = imcxx::Combo("Translucency", opt.xlu_mode, "Fast\0Fancy\0");
+  ImGui::SliderFloat("Collision Alpha", &opt.kcl_alpha, 0.0f, 1.0f);
 }
 
 static std::optional<Archive> ReadArchive(std::span<const u8> buf) {
@@ -339,6 +346,7 @@ layout(location = 1) in vec4 color;
 layout(location = 2) in uint attr_id;
 
 out vec4 fragmentColor;
+out float _is_wire;
 
 layout(std140) uniform ub_SceneParams {
     mat4x4 u_Projection;
@@ -352,13 +360,18 @@ void main() {
   // Wire
   bool is_wire = uint(u_Misc0[2]) == 1;
   if (is_wire) {
-    fragmentColor = vec4(1, 1, 1, 1);
+    // fragmentColor = vec4(1, 1, 1, 1);
+    fragmentColor = mix(normalize(color), vec4(1, 1, 1, 1), .5);
   }
+  _is_wire = is_wire ? 1.0 : 0.0;
+
 
   // Precision hack
   uint low_bits = uint(u_Misc0[0]) & 0xFFFF;
   uint high_bits = uint(u_Misc0[1]) << 16;
   uint attr_mask = low_bits | high_bits;
+
+  fragmentColor.w = u_Misc0[3];
 
   if ((attr_id & attr_mask) == 0) {
     fragmentColor.w = 0.0;
@@ -369,6 +382,7 @@ const char* gTriShaderFrag = R"(
 #version 330 core
 
 in vec4 fragmentColor;
+in float _is_wire;
 
 out vec4 color;
 
@@ -377,14 +391,19 @@ void main() {
 
   color = fragmentColor;
 
-  if (!gl_FrontFacing && color != vec4(1, 1, 1, 1))
+  // bool is_wire = color == vec4(1, 1, 1, 1);
+  bool is_wire = _is_wire != 0.0f;
+
+  if (!gl_FrontFacing && !is_wire)
     color *= vec4(.5, .5, .5, 1.0);
+
+  gl_FragDepth = gl_FragCoord.z * (is_wire ? .99991 : .99999);
 }
 )";
 
 void PushTriangles(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
                    glm::mat4 viewMtx, glm::mat4 projMtx, u32 tri_vao,
-                   u32 tri_vao_count, u32 attr_mask) {
+                   u32 tri_vao_count, u32 attr_mask, float alpha) {
   static const librii::glhelper::ShaderProgram tri_shader(gTriShader,
                                                           gTriShaderFrag);
 
@@ -394,7 +413,7 @@ void PushTriangles(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
   static float poly_fact = 0.0f;
   // ImGui::InputFloat("Poly_fact", &poly_fact);
   cube.mega_state = {.cullMode = (u32)-1 /* GL_BACK */,
-                     .depthWrite = GL_TRUE,
+                     .depthWrite = GL_FALSE,
                      .depthCompare = GL_LEQUAL /* GL_LEQUAL */,
                      .frontFace = GL_CCW,
 
@@ -419,7 +438,9 @@ void PushTriangles(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
   glm::mat4 mvp = projMtx * viewMtx * modelMtx;
   librii::gl::UniformSceneParams params{
       .projection = mvp,
-      .Misc0 = {attr_mask & 0xFFFF, attr_mask >> 16, 0.0f, 0.0f}};
+      .Misc0 = {/* attr_mask_lo */ attr_mask & 0xFFFF,
+                /* attr_mask_hi */ attr_mask >> 16,
+                /* is_wire */ 0.0f, /* alpha */ alpha}};
 
   enum {
     // So UBOBuilder requires the same UBO layout for every use of the same
@@ -597,8 +618,6 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
     }
   }
 
-  static std::unique_ptr<librii::glhelper::VBOBuilder> tri_vbo = nullptr;
-
   if (tri_vbo == nullptr) {
     tri_vbo = std::make_unique<librii::glhelper::VBOBuilder>();
 
@@ -621,8 +640,9 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
     for (int i = 0; i < 3 * mKclTris.size(); ++i) {
       tri_vbo->mIndices.push_back(static_cast<u32>(tri_vbo->mIndices.size()));
       tri_vbo->pushData(/*binding_point=*/0, mKclTris[i / 3].verts[i % 3]);
-      tri_vbo->pushData(/*binding_point=*/1,
-                        glm::vec4(GetKCLColor(mKclTris[i / 3].attr), .5f));
+      tri_vbo->pushData(
+          /*binding_point=*/1,
+          glm::vec4(GetKCLColor(mKclTris[i / 3].attr), 1.0f));
       tri_vbo->pushData(/*binding_point=*/2,
                         static_cast<u32>(1 << (mKclTris[i / 3].attr & 31)));
     }
@@ -630,8 +650,67 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
   }
 
   if (disp_opts.show_kcl) {
+    // Z sort
+    if (tri_vbo != nullptr && disp_opts.xlu_mode == XluMode::Fancy) {
+      struct index_tri {
+        u32 points[3];
+
+        const glm::vec3& get_point(librii::glhelper::VBOBuilder& tri_vbo,
+                                   u32 i) const {
+          return reinterpret_cast<const glm::vec3&>(
+              tri_vbo.mPropogating[0].data[points[i] * sizeof(glm::vec3)]);
+        }
+
+        float get_sphere_dist(librii::glhelper::VBOBuilder& tri_vbo, u32 i,
+                              const glm::vec3& eye) const {
+          // Don't sqrt
+          return glm::distance2(get_point(tri_vbo, i), eye);
+        }
+
+        float get_min_sphere_dist(librii::glhelper::VBOBuilder& tri_vbo,
+                                  const glm::vec3& view) const {
+          return std::min({get_sphere_dist(tri_vbo, 0, view),
+                           get_sphere_dist(tri_vbo, 1, view),
+                           get_sphere_dist(tri_vbo, 2, view)});
+        }
+
+        float get_plane_dist(librii::glhelper::VBOBuilder& tri_vbo, u32 i,
+                             const glm::mat4& view) const {
+          // We assume all points are closer, or all are further away
+          return (view * glm::vec4(get_point(tri_vbo, i), 1.0f)).z;
+        }
+
+        float get_min_plane_dist(librii::glhelper::VBOBuilder& tri_vbo,
+                                 const glm::mat4& view) const {
+          return std::max({get_plane_dist(tri_vbo, 0, view),
+                           get_plane_dist(tri_vbo, 1, view),
+                           get_plane_dist(tri_vbo, 2, view)});
+        }
+      };
+
+      index_tri* begin = reinterpret_cast<index_tri*>(tri_vbo->mIndices.data());
+      index_tri* end = begin + tri_vbo->mIndices.size() / 3;
+
+      z_dist.resize(end - begin);
+
+      // Assumes no vertex merging, uses first vertex as a key
+      for (int i = 0; i < end - begin; ++i) {
+        auto first_vtx = begin[i].points[0];
+        z_dist[first_vtx / 3] = begin[i].get_min_plane_dist(*tri_vbo, viewMtx);
+      }
+
+      std::sort(begin, end, [&](const index_tri& lhs, const index_tri& rhs) {
+        return z_dist[lhs.points[0] / 3] > z_dist[rhs.points[0] / 3];
+      });
+
+      std::reverse(begin, end);
+
+      tri_vbo->uploadIndexBuffer();
+    }
+
     PushTriangles(mSceneState, glm::mat4(1.0f), viewMtx, projMtx,
-                  tri_vbo->getGlId(), 3 * mKclTris.size(), disp_opts.attr_mask);
+                  tri_vbo->getGlId(), 3 * mKclTris.size(), disp_opts.attr_mask,
+                  disp_opts.kcl_alpha);
   }
 
   mSceneState.buildUniformBuffers();

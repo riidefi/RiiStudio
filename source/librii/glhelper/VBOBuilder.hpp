@@ -36,6 +36,8 @@ struct VBOBuilder {
 
   void build();
 
+  void uploadIndexBuffer();
+
   template <typename T> void pushData(u32 binding_point, const T& data) {
     auto& attrib_buf = mPropogating[binding_point];
     const std::size_t begin = attrib_buf.data.size();
