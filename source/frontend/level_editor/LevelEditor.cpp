@@ -22,7 +22,28 @@
 
 #include <librii/glhelper/Primitives.hpp>
 
+#include "ObjUtil.hpp"
+
+#include "KclUtil.hpp"
+
 namespace riistudio::lvl {
+
+void DrawRenderOptions(RenderOptions& opt) {
+  ImGui::Checkbox("Visual Model", &opt.show_brres);
+  ImGui::Checkbox("Collision Model", &opt.show_kcl);
+
+  if (ImGui::BeginCombo("Flags", "wau")) {
+    for (int i = 0; i < 32; ++i) {
+      if ((opt.target_attr_all & (1 << i)) == 0)
+        continue;
+
+      const auto& info = GetKCLType(i);
+      ImGui::CheckboxFlags(info.name.c_str(), &opt.attr_mask, 1 << i);
+    }
+
+    ImGui::EndCombo();
+  }
+}
 
 static std::optional<Archive> ReadArchive(std::span<const u8> buf) {
   auto expanded = librii::szs::getExpandedSize(buf);
@@ -187,6 +208,11 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
       mKclTris[i] = {.attr = prism.attribute,
                      .verts = librii::kcol::FromPrism(*mCourseKcl, prism)};
     }
+
+    for (auto& prism : mCourseKcl->prism_data) {
+      disp_opts.target_attr_all |= 1 << (prism.attribute & 31);
+    }
+    disp_opts.attr_mask = 1;
   }
 
   auto course_kmp = FindFile(mLevel.root_archive, "course.kmp");
@@ -487,6 +513,11 @@ struct Manipulator {
 void LevelEditorWindow::drawScene(u32 width, u32 height) {
   mRenderSettings.drawMenuBar();
 
+  // if (ImGui::BeginMenuBar()) {
+  DrawRenderOptions(disp_opts);
+  //   ImGui::EndMenuBar();
+  // }
+
   if (!mRenderSettings.rend)
     return;
 
@@ -517,7 +548,7 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
   mSceneState.invalidate();
 
-  {
+  if (disp_opts.show_brres) {
     if (mVrcornModel) {
       mVrcornModel->prepare(mSceneState, *mVrcornModel, viewMtx, projMtx);
     }

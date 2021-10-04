@@ -16,6 +16,13 @@
 
 namespace riistudio::lvl {
 
+struct RenderOptions {
+  bool show_brres = true;
+  bool show_kcl = true;
+  u32 attr_mask = 0xc216f000; // KCL Flags to keep, default to walls
+  u32 target_attr_all = -1;   // ALl flags in the scene
+};
+
 struct Archive {
   std::map<std::string, std::shared_ptr<Archive>> folders;
   std::map<std::string, std::vector<u8>> files;
@@ -103,6 +110,8 @@ public:
   std::vector<librii::kmp::CourseMap> mKmpHistory;
   size_t history_cursor = 0;
   bool commit_posted = false;
+
+  RenderOptions disp_opts;
 };
 
 } // namespace riistudio::lvl
