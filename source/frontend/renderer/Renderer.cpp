@@ -37,9 +37,9 @@ void RenderSettings::drawMenuBar() {
       ImGui::EndMenu();
     }
 
-    ImGui::SetNextItemWidth(300.0f);
+    ImGui::SetNextItemWidth(200.0f);
     mCameraController.drawControllerTypeOption();
-    ImGui::SetNextItemWidth(300.0f);
+    ImGui::SetNextItemWidth(200.0f);
     mCameraController.drawProjectionOption();
 
     if (librii::glhelper::IsGlWireframeSupported())

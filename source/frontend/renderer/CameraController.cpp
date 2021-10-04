@@ -18,13 +18,13 @@ void CameraController::move(float time_step, InputState input) {
   const float y_delta = pos.y - mPrevY;
   mPrevX = pos.x;
   mPrevY = pos.y;
-#ifdef BUILD_DEBUG
+#ifdef CAMERA_CONTROLLER_DEBUG
   ImGui::Text("Mouse position: %f %f. Last: %f %f. Delta: %f %f", pos.x, pos.y,
               mPrevX, mPrevY, x_delta, y_delta);
 #endif
   const float horiz_delta = mMouseSpeed * time_step * -x_delta;
   const float vert_delta = mMouseSpeed * time_step * -y_delta;
-#ifdef BUILD_DEBUG
+#ifdef CAMERA_CONTROLLER_DEBUG
   ImGui::Text("Horiz delta: %f (%f). Vert delta: %f (%f)", horiz_delta,
               glm::degrees(horiz_delta), vert_delta, glm::degrees(vert_delta));
   ImGui::Text("Horiz %f (%f degrees), Vert %f (%f degrees)", mHorizontalAngle,
@@ -39,7 +39,7 @@ void CameraController::move(float time_step, InputState input) {
     // direction
     mVerticalAngle = std::clamp(mVerticalAngle, -1.56f, 1.56f);
   }
-#ifdef BUILD_DEBUG
+#ifdef CAMERA_CONTROLLER_DEBUG
   ImGui::Text("Horiz %f (%f degrees), Vert %f (%f degrees)", mHorizontalAngle,
               glm::degrees(mHorizontalAngle), mVerticalAngle,
               glm::degrees(mVerticalAngle));

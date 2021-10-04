@@ -597,10 +597,13 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
   auto& cam = mRenderSettings.mCameraController;
   auto cartesian = glm::vec3(glm::vec4(0.0f, 0.0f, -1.0f, 0.0f) * viewMtx);
+
+#ifdef CAMERA_CONTROLLER_DEBUG
   {
     riistudio::util::ConditionalHighlight g(true);
     ImGui::Text("Cartesian: %f, %f, %f", cartesian.x, cartesian.y, cartesian.z);
   }
+#endif
   if (tVm != viewMtx) {
 
     auto d = glm::distance(cartesian, glm::vec3(0.0f, 0.0f, 0.0f));
