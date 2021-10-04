@@ -150,6 +150,18 @@ void translateGfxMegaState(gfx::MegaState& megaState,
   }
 }
 
+static u32 GetPolygonMode(librii::gfx::PolygonMode p) {
+  switch (p) {
+  case librii::gfx::PolygonMode::Point:
+    return GL_POINT;
+  case librii::gfx::PolygonMode::Line:
+    return GL_LINE;
+  default:
+  case librii::gfx::PolygonMode::Fill:
+    return GL_FILL;
+  }
+}
+
 void setGlState(const librii::gfx::MegaState& state) {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
@@ -168,6 +180,8 @@ void setGlState(const librii::gfx::MegaState& state) {
   glDepthFunc(state.depthCompare);
 
   glPolygonOffset(state.poly_offset_factor, state.poly_offset_units);
+
+  glPolygonMode(GL_FRONT_AND_BACK, GetPolygonMode(state.fill));
 }
 #endif
 
