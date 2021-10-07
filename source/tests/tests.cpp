@@ -3,6 +3,8 @@
 #include <string>
 #include <vendor/llvm/Support/InitLLVM.h>
 
+#include <librii/kmp/io/KMP.hpp>
+
 bool gIsAdvancedMode = false;
 
 namespace riistudio {
@@ -71,6 +73,25 @@ extern std::string rebuild_dest;
 
 void rebuild(std::string from, const std::string_view to) {
   rebuild_dest = to;
+
+  if (from.ends_with("kmp")) {
+    librii::kmp::CourseMap map;
+
+    auto file = OishiiReadFile(from);
+    if (!file.has_value()) {
+      printf("Cannot rebuild\n");
+      return;
+    }
+
+    librii::kmp::readKMP(map, file->slice());
+
+    printf("Writing to %s\n", std::string(to).c_str());
+    oishii::Writer writer(0);
+
+    librii::kmp::writeKMP(map, writer);
+    OishiiFlushWriter(writer, to);
+    return;
+  }
 
   auto data = open(from);
   if (!data) {
