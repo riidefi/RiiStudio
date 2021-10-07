@@ -10,7 +10,7 @@ add_executable(frontend
   "applet.cpp"
   "entry.cpp"
   "file_host.cpp"
-  "ModelActions.cpp"
+  
   "root.cpp"
   "editor/EditorDocument.cpp"
   "editor/EditorImporter.cpp"
