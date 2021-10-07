@@ -10,7 +10,7 @@
 #include <librii/kmp/data/MapRespawn.hpp>
 #include <librii/kmp/data/MapStage.hpp>
 #include <librii/kmp/data/MapStart.hpp>
-#include <llvm/ADT/SmallVector.h>
+#include <rsl/SmallVector.hpp>
 
 namespace librii::kmp {
 
@@ -38,18 +38,18 @@ public:
   bool operator==(const CourseMap&) const = default;
   bool operator!=(const CourseMap&) const = default;
 
-  llvm::SmallVector<StartPoint, 1> mStartPoints;
-  llvm::SmallVector<EnemyPath, 16> mEnemyPaths;
-  llvm::SmallVector<ItemPath, 16> mItemPaths;
-  llvm::SmallVector<CheckPath, 16> mCheckPaths;
-  llvm::SmallVector<Path, 32> mPaths;
-  llvm::SmallVector<GeoObj, 64> mGeoObjs;
-  llvm::SmallVector<Area, 16> mAreas;
-  llvm::SmallVector<Camera, 16> mCameras;
-  llvm::SmallVector<RespawnPoint, 32> mRespawnPoints;
-  llvm::SmallVector<Cannon, 8> mCannonPoints;
-  llvm::SmallVector<Stage, 1> mStages;
-  llvm::SmallVector<MissionPoint, 1> mMissionPoints;
+  rsl::small_vector<StartPoint, 1> mStartPoints;
+  rsl::small_vector<EnemyPath, 16> mEnemyPaths;
+  rsl::small_vector<ItemPath, 16> mItemPaths;
+  rsl::small_vector<CheckPath, 16> mCheckPaths;
+  rsl::small_vector<Path, 32> mPaths;
+  rsl::small_vector<GeoObj, 64> mGeoObjs;
+  rsl::small_vector<Area, 16> mAreas;
+  rsl::small_vector<Camera, 16> mCameras;
+  rsl::small_vector<RespawnPoint, 32> mRespawnPoints;
+  rsl::small_vector<Cannon, 8> mCannonPoints;
+  rsl::small_vector<Stage, 1> mStages;
+  rsl::small_vector<MissionPoint, 1> mMissionPoints;
 };
 
 } // namespace librii::kmp

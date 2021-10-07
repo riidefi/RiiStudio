@@ -114,6 +114,7 @@ public:
   auto end() const { return mPoints.end(); }
 
   void resize(std::size_t sz) { mPoints.resize(sz); }
+  std::size_t size() const { return mPoints.size(); }
 
 private:
   Interpolation mInterpolation;

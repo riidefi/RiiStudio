@@ -96,7 +96,7 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
     }
   }
 
-  const auto read_path_section = [&](u32 path_key, u32 point_key, auto sec,
+  const auto read_path_section = [&](u32 path_key, u32 point_key, auto& sec,
                                      u32 point_stride, auto read_point) {
     auto [pt_found, pt_num_entry, pt_user_data] = search(point_key);
     if (!pt_found)
@@ -544,10 +544,10 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
 
   reloc.writeReloc<s32>("KMP", "POTI", [&](oishii::Writer& stream) {
     stream.write<u32>('POTI');
-    stream.write<u16>(map.mGeoObjs.size());
+    stream.write<u16>(map.mPaths.size());
     u32 total_count = 0;
     for (auto& entry : map.mPaths)
-      total_count += std::distance(entry.begin(), entry.end());
+      total_count += entry.size();
     stream.write<u16>(total_count);
     for (auto& entry : map.mPaths) {
       stream.write<u16>(std::distance(entry.begin(), entry.end()));

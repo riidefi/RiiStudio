@@ -21,7 +21,7 @@ TEST_DATA = {
 
 	# luigi_circuit.kmp
 	# 1:1!
-	# '55af17739e1f02f9cc3fe0cdf79195a0': '55af17739e1f02f9cc3fe0cdf79195a0',
+	'55af17739e1f02f9cc3fe0cdf79195a0': '55af17739e1f02f9cc3fe0cdf79195a0',
 
 	# luigi_circuit.brres
 	'b84346d8549d38f4ba75a47eb87e9ca6': 'fd25b1a103b974f2cddf5008d6ce0b37',
