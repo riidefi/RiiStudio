@@ -86,6 +86,8 @@ static std::optional<Archive> ReadArchive(std::span<const u8> buf) {
   };
   std::vector<Pair> n_path;
 
+  assert(arc.nodes.size());
+
   n_path.push_back(
       Pair{.folder = &n_arc, .sibling_next = arc.nodes[0].folder.sibling_next});
   for (int i = 1; i < arc.nodes.size(); ++i) {
@@ -117,6 +119,45 @@ static std::optional<Archive> ReadArchive(std::span<const u8> buf) {
   }
 
   return n_arc;
+}
+
+static void ProcessArcs(const Archive* arc, std::string_view name,
+                        librii::U8::U8Archive& u8) {
+  const auto node_index = u8.nodes.size();
+
+  librii::U8::U8Archive::Node node{.is_folder = true,
+                                   .name = std::string(name)};
+  // Since we write folders first, the parent will always be behind us
+  node.folder.parent = u8.nodes.size() - 1;
+  node.folder.sibling_next = 0; // Filled in later
+  u8.nodes.push_back(node);
+
+  for (auto& data : arc->folders) {
+    ProcessArcs(data.second.get(), data.first, u8);
+  }
+
+  for (auto& [n, f] : arc->files) {
+    {
+      librii::U8::U8Archive::Node node{.is_folder = false,
+                                       .name = std::string(n)};
+      node.file.offset =
+          u8.file_data.size(); // Note: relative->abs translation handled later
+      node.file.size = f.size();
+      u8.nodes.push_back(node);
+      u8.file_data.insert(u8.file_data.end(), f.begin(), f.end());
+    }
+  }
+
+  u8.nodes[node_index].folder.sibling_next = u8.nodes.size();
+}
+
+static std::vector<u8> WriteArchive(const Archive& arc) {
+  librii::U8::U8Archive u8;
+  u8.watermark = {0};
+
+  ProcessArcs(&arc, ".", u8);
+
+  return librii::U8::SaveU8Archive(u8);
 }
 
 struct Reader {
@@ -166,6 +207,14 @@ std::unique_ptr<librii::kmp::CourseMap> ReadKMP(const std::vector<u8>& buf,
   librii::kmp::readKMP(*result, reader.mData.slice());
 
   return result;
+}
+
+std::vector<u8> WriteKMP(const librii::kmp::CourseMap& map) {
+  oishii::Writer writer(0);
+
+  librii::kmp::writeKMP(map, writer);
+
+  return writer.takeBuf();
 }
 
 std::unique_ptr<librii::kcol::KCollisionData>
@@ -239,6 +288,18 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   }
 }
 
+void LevelEditorWindow::saveFile(std::string path) {
+  // Update archive cache
+  if (mKmp != nullptr)
+    mLevel.root_archive.files["course.kmp"] = WriteKMP(*mKmp);
+
+  // Flush archive cache
+  auto u8_buf = WriteArchive(mLevel.root_archive);
+  auto szs_buf = librii::szs::encodeFast(u8_buf);
+
+  plate::Platform::writeFile(szs_buf, path);
+}
+
 static std::optional<std::pair<std::string, std::vector<u8>>>
 GatherNodes(Archive& arc) {
   std::optional<std::pair<std::string, std::vector<u8>>> clicked;
@@ -258,6 +319,13 @@ GatherNodes(Archive& arc) {
 }
 
 void LevelEditorWindow::draw_() {
+  if (ImGui::BeginMenuBar()) {
+    if (ImGui::Button("Save")) {
+      saveFile("umm.szs");
+    }
+
+    ImGui::EndMenuBar();
+  }
   if (ImGui::Begin("Hi")) {
     auto clicked = GatherNodes(mLevel.root_archive);
     if (clicked.has_value()) {
@@ -361,7 +429,7 @@ void main() {
   bool is_wire = uint(u_Misc0[2]) == 1;
   if (is_wire) {
     // fragmentColor = vec4(1, 1, 1, 1);
-    fragmentColor = mix(normalize(color), vec4(1, 1, 1, 1), .5);
+    fragmentColor = vec4(mix(normalize(vec3(color)) * sqrt(3), vec3(1, 1, 1), .5), 1);
   }
   _is_wire = is_wire ? 1.0 : 0.0;
 
@@ -786,25 +854,27 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
     }
   }
 
-  if (!commit_posted && *mKmp != mKmpHistory[history_cursor]) {
-    commit_posted = true;
-  }
+  if (mKmp != nullptr) {
+    if (!commit_posted && *mKmp != mKmpHistory[history_cursor]) {
+      commit_posted = true;
+    }
 
-  if (commit_posted && !ImGui::IsAnyMouseDown()) {
-    CommitHistory(history_cursor, mKmpHistory);
-    mKmpHistory.push_back(*mKmp);
-    assert(mKmpHistory.back() == *mKmp);
-    commit_posted = false;
-  }
+    if (commit_posted && !ImGui::IsAnyMouseDown()) {
+      CommitHistory(history_cursor, mKmpHistory);
+      mKmpHistory.push_back(*mKmp);
+      assert(mKmpHistory.back() == *mKmp);
+      commit_posted = false;
+    }
 
-  // TODO: Only affect active window
-  if (ImGui::GetIO().KeyCtrl) {
-    if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
-      UndoHistory(history_cursor, mKmpHistory);
-      *mKmp = mKmpHistory[history_cursor];
-    } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
-      RedoHistory(history_cursor, mKmpHistory);
-      *mKmp = mKmpHistory[history_cursor];
+    // TODO: Only affect active window
+    if (ImGui::GetIO().KeyCtrl) {
+      if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
+        UndoHistory(history_cursor, mKmpHistory);
+        *mKmp = mKmpHistory[history_cursor];
+      } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
+        RedoHistory(history_cursor, mKmpHistory);
+        *mKmp = mKmpHistory[history_cursor];
+      }
     }
   }
 }

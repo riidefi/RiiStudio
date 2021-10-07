@@ -94,9 +94,13 @@ inline void RedoHistory(size_t& cursor,
 
 class LevelEditorWindow : public frontend::StudioWindow {
 public:
-  LevelEditorWindow() : StudioWindow("Level Editor", true) {}
+  LevelEditorWindow() : StudioWindow("Level Editor", true) {
+    setWindowFlag(ImGuiWindowFlags_MenuBar);
+  }
 
   void openFile(std::span<const u8> buf, std::string path);
+
+  void saveFile(std::string path);
 
   void draw_() override;
 

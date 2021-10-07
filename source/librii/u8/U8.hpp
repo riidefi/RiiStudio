@@ -30,5 +30,6 @@ struct U8Archive {
 };
 
 bool LoadU8Archive(U8Archive& result, std::span<const u8> data);
+std::vector<u8> SaveU8Archive(const U8Archive& arc);
 
 } // namespace librii::U8

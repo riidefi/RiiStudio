@@ -1,6 +1,7 @@
 #include "U8.hpp"
 #include <core/common.h>
 #include <rsl/SimpleReader.hpp>
+#include <unordered_map>
 
 namespace librii::U8 {
 
@@ -106,7 +107,14 @@ bool LoadU8Archive(LowU8Archive& result, std::span<const u8> data) {
     return false;
 
   // For some reason the FD pointer is actually just the start of the file
-  fd_begin = data.data();
+  // fd_begin = data.data();
+  int fd_trans = fd_begin - data.data();
+
+  for (auto& node : result.nodes) {
+    if (!rvlArchiveNodeIsFolder(node)) {
+      node.file.offset = node.file.offset - fd_trans;
+    }
+  }
 
   result.file_data = {fd_begin, data.data() + data.size()};
 
@@ -136,6 +144,63 @@ bool LoadU8Archive(U8Archive& result, std::span<const u8> data) {
 
   result.file_data = std::move(low.file_data);
   return true;
+}
+
+std::vector<u8> SaveU8Archive(const U8Archive& arc) {
+  std::string strings;
+  std::unordered_map<std::string, std::size_t> strings_map;
+
+  for (auto& node : arc.nodes) {
+    strings_map[node.name] = strings.size();
+    strings += node.name + std::string("\0", 1);
+  }
+
+  rvlArchiveHeader header{.magic = 0x55aa382d, .watermark = arc.watermark};
+
+  header.nodes.offset = sizeof(rvlArchiveHeader);
+  auto string_ofs =
+      header.nodes.offset + sizeof(rvlArchiveNode) * arc.nodes.size();
+  header.nodes.size = string_ofs + strings.size();
+  header.files.offset = header.nodes.offset + header.nodes.size;
+
+  std::vector<rvlArchiveNode> nodes;
+  for (auto& node : arc.nodes) {
+    std::array<u8, sizeof(rvlArchiveHeader)> _null{};
+    rvlArchiveNode an = reinterpret_cast<rvlArchiveNode&>(_null);
+
+    an.packed_type_name =
+        (node.is_folder << 24) | (strings_map[node.name] & 0x00FF'FFFF);
+
+    if (node.is_folder) {
+      an.folder.parent = node.folder.parent;
+      an.folder.sibling_next = node.folder.sibling_next;
+    } else {
+      an.file.offset = header.files.offset + node.file.offset;
+      an.file.size = node.file.size;
+    }
+
+    nodes.push_back(an);
+  }
+
+  int total_file_size = 0;
+  for (auto& node : arc.nodes) {
+    if (!node.is_folder)
+      total_file_size += node.file.size;
+  }
+
+  assert(total_file_size == arc.file_data.size());
+
+  std::vector<u8> result(header.files.offset + total_file_size);
+
+  memcpy(&result[0], &header, sizeof(header));
+  memcpy(&result[header.nodes.offset], nodes.data(),
+         nodes.size() * sizeof(rvlArchiveNode));
+  memcpy(&result[string_ofs], strings.data(), strings.size());
+  memcpy(&result[header.files.offset], arc.file_data.data(),
+         arc.file_data.size());
+
+  assert(result.size() == header.files.offset + total_file_size);
+  return result;
 }
 
 } // namespace librii::U8

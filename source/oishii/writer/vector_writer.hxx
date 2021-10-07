@@ -30,6 +30,7 @@ public:
 
 protected:
   u32 mPos;
+
   std::vector<u8> mBuf;
 #ifndef NDEBUG
   std::vector<u8> mDebugMatch;
@@ -38,6 +39,8 @@ public:
   void resize(u32 sz) { mBuf.resize(sz); }
   u8* getDataBlockStart() { return mBuf.data(); }
   u32 getBufSize() { return (u32)mBuf.size(); }
+
+  std::vector<u8>&& takeBuf() { return std::move(mBuf); }
 };
 
 } // namespace oishii
