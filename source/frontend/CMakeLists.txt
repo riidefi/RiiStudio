@@ -46,7 +46,7 @@ add_executable(frontend
   "widgets/Image.cpp"
 
   ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc
- "renderer/InputState.hpp" "renderer/InputState.cpp" "properties/gc/Material/Indirect.cpp" "Localization.cpp" "Localization.hpp" "editor/views/OutlinerWidget.hpp" "editor/views/OutlinerWidget.cpp" "LeakDebug.hpp" "Fonts.hpp" "level_editor/LevelEditor.hpp" "level_editor/LevelEditor.cpp" "level_editor/ObjUtil.hpp" "level_editor/ObjUtil.cpp" "level_editor/ColorUtil.hpp" "level_editor/KclUtil.hpp" "level_editor/KclUtil.cpp")
+ "renderer/InputState.hpp" "renderer/InputState.cpp" "properties/gc/Material/Indirect.cpp" "Localization.cpp" "Localization.hpp" "editor/views/OutlinerWidget.hpp" "editor/views/OutlinerWidget.cpp" "LeakDebug.hpp" "Fonts.hpp" "level_editor/LevelEditor.hpp" "level_editor/LevelEditor.cpp" "level_editor/ObjUtil.hpp" "level_editor/ObjUtil.cpp" "level_editor/ColorUtil.hpp" "level_editor/KclUtil.hpp" "level_editor/KclUtil.cpp" "level_editor/Archive.hpp" "level_editor/Archive.cpp" "level_editor/IO.hpp" "level_editor/IO.cpp" "level_editor/Transform.cpp" "level_editor/Transform.hpp")
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 

@@ -1,34 +1,26 @@
 #include "LevelEditor.hpp"
+#include "IO.hpp"
+#include "KclUtil.hpp"
+#include "ObjUtil.hpp"
+#include "Transform.hpp"
+#include <bit>
+#include <core/3d/gl.hpp>
 #include <core/common.h>
 #include <core/util/gui.hpp>
 #include <core/util/oishii.hpp>
 #include <frontend/root.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
-#include <librii/glhelper/Util.hpp>
-#include <librii/kmp/io/KMP.hpp>
-#include <librii/math/srt3.hpp>
-#include <librii/szs/SZS.hpp>
-#include <librii/u8/U8.hpp>
-#include <math.h>
-#include <optional>
-#include <plugins/g3d/G3dIo.hpp>
-#include <vendor/ImGuizmo.h>
-
-#include <core/3d/gl.hpp>
-#include <librii/gl/Compiler.hpp>
-#include <librii/glhelper/ShaderProgram.hpp>
-#include <librii/glhelper/VBOBuilder.hpp>
-
-#include <librii/glhelper/Primitives.hpp>
-
-#include "ObjUtil.hpp"
-
-#include "KclUtil.hpp"
-
-#include <glm/gtx/norm.hpp> // glm::distance2
-
+#include <glm/gtx/norm.hpp>  // glm::distance2
 #include <imcxx/Widgets.hpp> // imcxx::Combo
+#include <librii/gl/Compiler.hpp>
+#include <librii/glhelper/Primitives.hpp>
+#include <librii/glhelper/ShaderProgram.hpp>
+#include <librii/glhelper/Util.hpp>
+#include <librii/glhelper/VBOBuilder.hpp>
+#include <librii/math/srt3.hpp>
+#include <rsl/Rna.hpp>
+#include <vendor/ImGuizmo.h>
 
 namespace riistudio::lvl {
 
@@ -36,7 +28,10 @@ void DrawRenderOptions(RenderOptions& opt) {
   ImGui::Checkbox("Visual Model", &opt.show_brres);
   ImGui::Checkbox("Collision Model", &opt.show_kcl);
 
-  if (ImGui::BeginCombo("Flags", "wau")) {
+  std::string desc = "(" + std::to_string(std::popcount(opt.attr_mask)) +
+                     ") Attributes Selected";
+
+  if (ImGui::BeginCombo("Flags", desc.c_str())) {
     for (int i = 0; i < 32; ++i) {
       if ((opt.target_attr_all & (1 << i)) == 0)
         continue;
@@ -50,187 +45,6 @@ void DrawRenderOptions(RenderOptions& opt) {
 
   opt.xlu_mode = imcxx::Combo("Translucency", opt.xlu_mode, "Fast\0Fancy\0");
   ImGui::SliderFloat("Collision Alpha", &opt.kcl_alpha, 0.0f, 1.0f);
-}
-
-static std::optional<Archive> ReadArchive(std::span<const u8> buf) {
-  auto expanded = librii::szs::getExpandedSize(buf);
-  if (expanded == 0) {
-    DebugReport("Failed to grab expanded size\n");
-    return std::nullopt;
-  }
-
-  std::vector<u8> decoded(expanded);
-  auto err = librii::szs::decode(decoded, buf);
-  if (err) {
-    DebugReport("Failed to decode SZS\n");
-    return std::nullopt;
-  }
-
-  if (decoded.size() < 4 || decoded[0] != 0x55 || decoded[1] != 0xaa ||
-      decoded[2] != 0x38 || decoded[3] != 0x2d) {
-    DebugReport("Not a valid archive\n");
-    return std::nullopt;
-  }
-
-  librii::U8::U8Archive arc;
-  if (!librii::U8::LoadU8Archive(arc, decoded)) {
-    DebugReport("Failed to read archive\n");
-    return std::nullopt;
-  }
-
-  Archive n_arc;
-
-  struct Pair {
-    Archive* folder;
-    u32 sibling_next;
-  };
-  std::vector<Pair> n_path;
-
-  assert(arc.nodes.size());
-
-  n_path.push_back(
-      Pair{.folder = &n_arc, .sibling_next = arc.nodes[0].folder.sibling_next});
-  for (int i = 1; i < arc.nodes.size(); ++i) {
-    auto& node = arc.nodes[i];
-
-    if (node.is_folder) {
-      auto tmp = std::make_unique<Archive>();
-      n_path.push_back(
-          Pair{.folder = tmp.get(), .sibling_next = node.folder.sibling_next});
-      auto& parent = n_path[n_path.size() - 2];
-      parent.folder->folders.emplace(node.name, std::move(tmp));
-    } else {
-      const u32 start_pos = node.file.offset;
-      const u32 end_pos = node.file.offset + node.file.size;
-      assert(node.file.offset + node.file.size <= arc.file_data.size());
-      std::vector<u8> vec(arc.file_data.data() + start_pos,
-                          arc.file_data.data() + end_pos);
-      n_path.back().folder->files.emplace(node.name, std::move(vec));
-    }
-
-    while (!n_path.empty() && i + 1 == n_path.back().sibling_next)
-      n_path.resize(n_path.size() - 1);
-  }
-  assert(n_path.empty());
-
-  // Eliminate the period
-  if (!n_arc.folders.empty() && n_arc.folders.begin()->first == ".") {
-    return *n_arc.folders["."];
-  }
-
-  return n_arc;
-}
-
-static void ProcessArcs(const Archive* arc, std::string_view name,
-                        librii::U8::U8Archive& u8) {
-  const auto node_index = u8.nodes.size();
-
-  librii::U8::U8Archive::Node node{.is_folder = true,
-                                   .name = std::string(name)};
-  // Since we write folders first, the parent will always be behind us
-  node.folder.parent = u8.nodes.size() - 1;
-  node.folder.sibling_next = 0; // Filled in later
-  u8.nodes.push_back(node);
-
-  for (auto& data : arc->folders) {
-    ProcessArcs(data.second.get(), data.first, u8);
-  }
-
-  for (auto& [n, f] : arc->files) {
-    {
-      librii::U8::U8Archive::Node node{.is_folder = false,
-                                       .name = std::string(n)};
-      node.file.offset =
-          u8.file_data.size(); // Note: relative->abs translation handled later
-      node.file.size = f.size();
-      u8.nodes.push_back(node);
-      u8.file_data.insert(u8.file_data.end(), f.begin(), f.end());
-    }
-  }
-
-  u8.nodes[node_index].folder.sibling_next = u8.nodes.size();
-}
-
-static std::vector<u8> WriteArchive(const Archive& arc) {
-  librii::U8::U8Archive u8;
-  u8.watermark = {0};
-
-  ProcessArcs(&arc, ".", u8);
-
-  return librii::U8::SaveU8Archive(u8);
-}
-
-struct Reader {
-  oishii::DataProvider mData;
-  oishii::BinaryReader mReader;
-
-  Reader(std::string path, const std::vector<u8>& data)
-      : mData(OishiiReadFile(path, data.data(), data.size())),
-        mReader(mData.slice()) {}
-};
-
-struct SimpleTransaction {
-  SimpleTransaction() {
-    trans.callback = [](...) {};
-  }
-
-  bool success() const {
-    return trans.state == kpi::TransactionState::Complete;
-  }
-
-  kpi::LightIOTransaction trans;
-};
-
-std::unique_ptr<g3d::Collection> ReadBRRES(const std::vector<u8>& buf,
-                                           std::string path) {
-  auto result = std::make_unique<g3d::Collection>();
-
-  SimpleTransaction trans;
-  Reader reader(path, buf);
-  g3d::ReadBRRES(*result, reader.mReader, trans.trans);
-
-  // Tentatively allow previewing models we can't rebuild
-  if (trans.trans.state == kpi::TransactionState::FailureToSave)
-    return result;
-
-  if (!trans.success())
-    return nullptr;
-
-  return result;
-}
-
-std::unique_ptr<librii::kmp::CourseMap> ReadKMP(const std::vector<u8>& buf,
-                                                std::string path) {
-  auto result = std::make_unique<librii::kmp::CourseMap>();
-
-  Reader reader(path, buf);
-  librii::kmp::readKMP(*result, reader.mData.slice());
-
-  return result;
-}
-
-std::vector<u8> WriteKMP(const librii::kmp::CourseMap& map) {
-  oishii::Writer writer(0);
-
-  librii::kmp::writeKMP(map, writer);
-
-  return writer.takeBuf();
-}
-
-std::unique_ptr<librii::kcol::KCollisionData>
-ReadKCL(const std::vector<u8>& buf, std::string path) {
-  auto result = std::make_unique<librii::kcol::KCollisionData>();
-
-  Reader reader(path, buf);
-  auto res = librii::kcol::ReadKCollisionData(
-      *result, reader.mData.slice(), reader.mData.slice().size_bytes());
-
-  if (!res.empty()) {
-    printf("Error: %s\n", res.c_str());
-    return nullptr;
-  }
-
-  return result;
 }
 
 void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
@@ -294,8 +108,7 @@ void LevelEditorWindow::saveFile(std::string path) {
     mLevel.root_archive.files["course.kmp"] = WriteKMP(*mKmp);
 
   // Flush archive cache
-  auto u8_buf = WriteArchive(mLevel.root_archive);
-  auto szs_buf = librii::szs::encodeFast(u8_buf);
+  auto szs_buf = WriteArchive(mLevel.root_archive);
 
   plate::Platform::writeFile(szs_buf, path);
 }
@@ -316,6 +129,94 @@ GatherNodes(Archive& arc) {
   }
 
   return clicked;
+}
+
+struct Property {
+  std::string name;
+
+  rsl::RNA type;
+  bool is_mutable = true;
+
+  size_t offset;
+  size_t size;
+};
+
+#define FLOAT_P(Name, Mem)                                                     \
+  Property {                                                                   \
+    .name = Name,                                                              \
+    .type = rsl::to_rna<decltype(librii::kmp::RespawnPoint::Mem)>,             \
+    .is_mutable = true, .offset = offsetof(librii::kmp::RespawnPoint, Mem),    \
+    .size = sizeof(librii::kmp::RespawnPoint::Mem)                             \
+  }
+
+std::array<Property, 8> respawn_properties = {
+    FLOAT_P("Position.x", position.x), FLOAT_P("Position.y", position.y),
+    FLOAT_P("Position.z", position.z), FLOAT_P("Rotation.x", rotation.x),
+    FLOAT_P("Rotation.y", rotation.y), FLOAT_P("Rotation.z", rotation.z),
+    FLOAT_P("Radius", range),          FLOAT_P("ID", id),
+};
+
+#undef FLOAT_P
+
+std::string to_json(const librii::kmp::RespawnPoint& r) {
+  std::string result = "{\n";
+  for (int i = 0; i < respawn_properties.size(); ++i) {
+    const auto& p = respawn_properties[i];
+    result += "  \"";
+    result += p.name;
+    result += "\": ";
+    result += std::to_string(
+        rsl::ReadAny(rsl::BytesOf(r).subspan(p.offset), p.type).value);
+    if (i + 1 != respawn_properties.size())
+      result += ",\n";
+  }
+
+  return result + "\n}";
+}
+
+void LevelEditorWindow::DrawRespawnTable() {
+  if (selection.size()) {
+    auto j = to_json(mKmp->mRespawnPoints[selection.begin()->index]);
+    ImGui::Text(j.c_str());
+  }
+  auto flags = ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable |
+               ImGuiTableFlags_NoSavedSettings;
+  if (ImGui::BeginTable("##TBL2", respawn_properties.size() + 2, flags)) {
+    ImGui::TableSetupColumn("Selected");
+    ImGui::TableSetupColumn("Index");
+    for (auto& p : respawn_properties)
+      ImGui::TableSetupColumn(p.name.c_str());
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < mKmp->mRespawnPoints.size(); ++i) {
+      auto& pt = mKmp->mRespawnPoints[i];
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      bool selected = isSelected(&mKmp->mRespawnPoints, i);
+      if (ImGui::Checkbox("##Selected", &selected)) {
+        selection.clear();
+        setSelected(&mKmp->mRespawnPoints, i, selected);
+      }
+      ImGui::TableNextCell();
+
+      ImGui::Text("%i", i);
+      ImGui::TableNextCell();
+
+      for (auto& p : respawn_properties) {
+        auto bytes = rsl::BytesOf(pt).subspan(p.offset);
+        auto any = rsl::ReadAny(bytes, p.type);
+
+        ImGui::InputDouble(p.name.c_str(), &any.value);
+
+        rsl::WriteAny(bytes, any);
+
+        ImGui::TableNextCell();
+      }
+    }
+    ImGui::EndTable();
+  }
 }
 
 void LevelEditorWindow::draw_() {
@@ -344,6 +245,81 @@ void LevelEditorWindow::draw_() {
       drawScene(bounds.x, bounds.y);
 
       mViewport.end();
+    }
+  }
+  ImGui::End();
+
+  if (ImGui::Begin("Tree", nullptr, ImGuiWindowFlags_MenuBar)) {
+    if (ImGui::TreeNodeEx("Start Positions", ImGuiTreeNodeFlags_Leaf)) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::StartPoints;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Enemy Paths")) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::EnemyPaths;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Item Paths")) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::ItemPaths;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Checkpoints")) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::CheckPaths;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Objects")) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::Objects;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Paths")) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::Paths;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNodeEx("Areas", ImGuiTreeNodeFlags_Leaf)) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::Areas;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNodeEx("Cameras", ImGuiTreeNodeFlags_Leaf)) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::Cameras;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNodeEx("Respawns", ImGuiTreeNodeFlags_Leaf)) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::Respawns;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNodeEx("Cannons", ImGuiTreeNodeFlags_Leaf)) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::Cannons;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNodeEx("Mission Points", ImGuiTreeNodeFlags_Leaf)) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::MissionPoints;
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNodeEx("Stages", ImGuiTreeNodeFlags_Leaf)) {
+      if (ImGui::IsItemClicked())
+        mPage = Page::Stages;
+      ImGui::TreePop();
+    }
+  }
+  ImGui::End();
+
+  if (ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_MenuBar)) {
+    switch (mPage) {
+    case Page::StartPoints:
+      break;
+    case Page::Respawns:
+      DrawRespawnTable();
+      break;
     }
   }
   ImGui::End();
@@ -677,11 +653,7 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
   if (mKmp != nullptr) {
     for (auto& pt : mKmp->mRespawnPoints) {
-      glm::mat4 modelMtx = librii::math::calcXform(
-          {.scale =
-               glm::vec3(std::max(std::min(pt.range * 50.0f, 1000.0f), 700.0f)),
-           .rotation = pt.rotation,
-           .translation = pt.position});
+      glm::mat4 modelMtx = MatrixOfPoint(pt.position, pt.rotation, pt.range);
       PushCube(mSceneState, modelMtx, viewMtx, projMtx);
     }
   }
@@ -717,9 +689,9 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
     tri_vbo->build();
   }
 
-  if (disp_opts.show_kcl) {
+  if (disp_opts.show_kcl && tri_vbo != nullptr) {
     // Z sort
-    if (tri_vbo != nullptr && disp_opts.xlu_mode == XluMode::Fancy) {
+    if (disp_opts.xlu_mode == XluMode::Fancy) {
       struct index_tri {
         u32 points[3];
 
@@ -808,48 +780,29 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
                            viewcube_bg);
 
   auto& cam = mRenderSettings.mCameraController;
-  auto cartesian = glm::vec3(glm::vec4(0.0f, 0.0f, -1.0f, 0.0f) * viewMtx);
-
-#ifdef CAMERA_CONTROLLER_DEBUG
-  {
-    riistudio::util::ConditionalHighlight g(true);
-    ImGui::Text("Cartesian: %f, %f, %f", cartesian.x, cartesian.y, cartesian.z);
-  }
-#endif
-  if (tVm != viewMtx) {
-
-    auto d = glm::distance(cartesian, glm::vec3(0.0f, 0.0f, 0.0f));
-
-    cam.mHorizontalAngle = atan2f(cartesian.x, cartesian.z);
-    cam.mVerticalAngle = asinf(cartesian.y / d);
-  }
+  if (tVm != viewMtx)
+    frontend::SetCameraControllerToMatrix(cam, viewMtx);
 
   static Manipulator manip;
 
   if (mKmp) {
+    for (int i = 0; i < mKmp->mRespawnPoints.size(); ++i) {
+      if (!isSelected(&mKmp->mRespawnPoints, i))
+        continue;
 
-    int q = 0;
-    for (auto& pt : mKmp->mRespawnPoints) {
-      glm::mat4 mx = librii::math::calcXform(
-          {.scale =
-               glm::vec3(std::max(std::min(pt.range * 50.0f, 1000.0f), 700.0f)),
-           .rotation = pt.rotation,
-           .translation = pt.position});
-      if (q++ == 0) {
+      auto& pt = mKmp->mRespawnPoints[i];
+      glm::mat4 mx = MatrixOfPoint(pt.position, pt.rotation, pt.range);
 
-        manip.drawUi(mx);
-        if (manip.manipulate(mx, viewMtx, projMtx)) {
+      manip.drawUi(mx);
+      if (manip.manipulate(mx, viewMtx, projMtx)) {
+        auto [pos, rot, range] = PointOfMatrix(mx);
 
-          glm::vec3 matrixTranslation, matrixRotation, matrixScale;
-          ImGuizmo::DecomposeMatrixToComponents(
-              glm::value_ptr(mx), glm::value_ptr(matrixTranslation),
-              glm::value_ptr(matrixRotation), glm::value_ptr(matrixScale));
+        pt.position = pos;
+        pt.rotation = rot;
+        pt.range = range;
 
-          pt.position = matrixTranslation;
-          pt.rotation = matrixRotation;
-
-          assert(pt == pt);
-        }
+        // This checks for NAN
+        assert(pt == pt);
       }
     }
   }

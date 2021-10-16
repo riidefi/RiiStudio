@@ -74,4 +74,7 @@ inline void ConfigureCameraControllerByBounds(CameraController& controller,
   }
 }
 
+void SetCameraControllerToMatrix(CameraController& controller,
+                                 const glm::mat4& view);
+
 } // namespace riistudio::frontend

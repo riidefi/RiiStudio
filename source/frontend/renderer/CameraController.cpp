@@ -105,4 +105,23 @@ void CameraController::drawProjectionOption() {
                "Perspective\0Orthographic (Parallel)\0");
 }
 
+void SetCameraControllerToMatrix(CameraController& controller,
+                                 const glm::mat4& view) {
+  auto cartesian = glm::vec3(glm::vec4(0.0f, 0.0f, -1.0f, 0.0f) * view);
+
+#ifdef CAMERA_CONTROLLER_DEBUG
+  {
+    riistudio::util::ConditionalHighlight g(true);
+    ImGui::Text("Cartesian: %f, %f, %f", cartesian.x, cartesian.y, cartesian.z);
+  }
+#endif
+   {
+
+    auto d = glm::distance(cartesian, glm::vec3(0.0f, 0.0f, 0.0f));
+
+    controller.mHorizontalAngle = atan2f(cartesian.x, cartesian.z);
+    controller.mVerticalAngle = asinf(cartesian.y / d);
+  }
+}
+
 } // namespace riistudio::frontend

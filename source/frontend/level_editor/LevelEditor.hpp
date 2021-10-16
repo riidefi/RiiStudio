@@ -1,18 +1,17 @@
 #pragma once
 
 #include <core/common.h>
-#include <filesystem>
 #include <frontend/editor/StudioWindow.hpp>
 #include <frontend/renderer/Renderer.hpp>
 #include <librii/kcol/Model.hpp>
 #include <librii/kmp/CourseMap.hpp>
-#include <librii/u8/U8.hpp>
-#include <map>
 #include <memory>
 #include <plate/toolkit/Viewport.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <span>
 #include <string>
+
+#include <frontend/level_editor/Archive.hpp>
 
 namespace riistudio::lvl {
 
@@ -35,37 +34,6 @@ struct RenderOptions {
 
   float kcl_alpha = 0.5f;
 };
-
-struct Archive {
-  std::map<std::string, std::shared_ptr<Archive>> folders;
-  std::map<std::string, std::vector<u8>> files;
-};
-
-inline std::optional<std::vector<u8>> FindFile(Archive& arc, std::string path) {
-  std::filesystem::path _path = path;
-  _path = _path.lexically_normal();
-
-  Archive* cur_arc = &arc;
-  for (auto& part : _path) {
-    {
-      auto it = cur_arc->folders.find(part.string());
-      if (it != cur_arc->folders.end()) {
-        cur_arc = it->second.get();
-        continue;
-      }
-    }
-    {
-      auto it = cur_arc->files.find(part.string());
-      if (it != cur_arc->files.end()) {
-        // TODO: This will ignore everything else in the path and accept invalid
-        // item e.g. source/file.txt/invalid/other would ignore invalid/other
-        return it->second;
-      }
-    }
-  }
-
-  return std::nullopt;
-}
 
 struct Level {
   // This is the original SZS file
@@ -106,6 +74,8 @@ public:
 
   void drawScene(u32 width, u32 height);
 
+  void DrawRespawnTable();
+
   Level mLevel;
   plate::tk::Viewport mViewport;
   frontend::RenderSettings mRenderSettings;
@@ -134,6 +104,56 @@ public:
   std::unique_ptr<librii::glhelper::VBOBuilder> tri_vbo = nullptr;
   // z_dist of every kcl triangle and the camera
   std::vector<float> z_dist;
+
+  struct SelectedPath {
+    void* vector_addr = nullptr;
+    size_t index = 0;
+
+    bool operator==(const SelectedPath&) const = default;
+    bool operator<(const SelectedPath& rhs) const {
+      return vector_addr < rhs.vector_addr || index < rhs.index;
+    }
+  };
+
+  std::set<SelectedPath> selection;
+
+  bool isSelected(void* vector_addr, size_t index) const {
+    auto path = SelectedPath{.vector_addr = vector_addr, .index = index};
+
+    return selection.contains(path);
+  }
+  void select(void* vector_addr, size_t index) {
+    auto path = SelectedPath{.vector_addr = vector_addr, .index = index};
+
+    selection.insert(path);
+  }
+  void deselect(void* vector_addr, size_t index) {
+    auto path = SelectedPath{.vector_addr = vector_addr, .index = index};
+
+    selection.erase(path);
+  }
+  void setSelected(void* vector_addr, size_t index, bool selected) {
+    if (selected)
+      select(vector_addr, index);
+    else
+      deselect(vector_addr, index);
+  }
+
+  enum class Page {
+    StartPoints,
+    EnemyPaths,
+    ItemPaths,
+    CheckPaths,
+    Objects,
+    Paths,
+    Areas,
+    Cameras,
+    Respawns,
+    Cannons,
+    MissionPoints,
+    Stages
+  };
+  Page mPage = Page::Respawns;
 };
 
 } // namespace riistudio::lvl
