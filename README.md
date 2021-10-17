@@ -41,7 +41,7 @@ cd build
 brew install cmake assimp glfw
 
 cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build .. --config Release
+cmake --build . --config Release
 ```
 
 ### Linux
@@ -55,7 +55,7 @@ sudo apt-get update --fix-missing
 sudo apt install -y cmake mesa-common-dev libglfw3-dev libassimp-dev g++-10
 
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-10
-cmake --build .. --config Release
+cmake --build . --config Release
 ```
 
 ## Translations
