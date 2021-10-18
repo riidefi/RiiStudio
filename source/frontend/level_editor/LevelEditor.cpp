@@ -26,6 +26,7 @@ namespace riistudio::lvl {
 void DrawRenderOptions(RenderOptions& opt) {
   ImGui::Checkbox("Visual Model", &opt.show_brres);
   ImGui::Checkbox("Collision Model", &opt.show_kcl);
+  ImGui::Checkbox("Map Model", &opt.show_map);
 
   std::string desc = "(" + std::to_string(opt.attr_mask.num_enabled()) +
                      ") Attributes Selected";
@@ -55,14 +56,27 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   mLevel.root_archive = std::move(*root_arc);
   mLevel.og_path = path;
 
-  auto course_model_brres = FindFile(mLevel.root_archive, "course_model.brres");
+  auto course_model_brres =
+      FindFile(mLevel.root_archive, "course_d_model.brres");
+  if (!course_model_brres.has_value()) {
+    course_model_brres = FindFile(mLevel.root_archive, "course_model.brres");
+  }
   if (course_model_brres.has_value()) {
     mCourseModel = ReadBRRES(*course_model_brres, "course_model.brres");
   }
 
-  auto vrcorn_model_brres = FindFile(mLevel.root_archive, "vrcorn_model.brres");
+  auto vrcorn_model_brres =
+      FindFile(mLevel.root_archive, "vrcorn_d_model.brres");
+  if (!vrcorn_model_brres.has_value()) {
+    vrcorn_model_brres = FindFile(mLevel.root_archive, "vrcorn_model.brres");
+  }
   if (course_model_brres.has_value()) {
     mVrcornModel = ReadBRRES(*vrcorn_model_brres, "vrcorn_model.brres");
+  }
+
+  auto map_model = FindFile(mLevel.root_archive, "map_model.brres");
+  if (map_model.has_value()) {
+    mMapModel = ReadBRRES(*map_model, "map_model.brres");
   }
 
   auto course_kcl = FindFile(mLevel.root_archive, "course.kcl");
@@ -774,6 +788,36 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
     mTriangleRenderer.draw(mSceneState, glm::mat4(1.0f), viewMtx, projMtx,
                            disp_opts.attr_mask.value, disp_opts.kcl_alpha);
+  }
+
+  if (disp_opts.show_map && mMapModel) {
+    auto& opa = mSceneState.getBuffers().opaque.nodes;
+    auto& xlu = mSceneState.getBuffers().translucent.nodes;
+    // TODO: This assumes the BRRES adds on to the end
+    const size_t begin_opa = opa.size();
+    const size_t begin_xlu = xlu.size();
+
+    ImGui::InputFloat("Minimap ScaleY", &mini_scale_y);
+
+    mMapModel->prepare(
+        mSceneState, *mMapModel,
+        viewMtx * glm::scale(glm::mat4(1.0f), glm::vec3(1, mini_scale_y, 1)),
+        projMtx);
+
+    // Transfer to XLU pass
+    xlu.insert(xlu.begin() + begin_xlu, opa.begin() + begin_opa, opa.end());
+    opa.resize(begin_opa);
+
+    std::vector<librii::gfx::SceneNode*> map_nodes;
+    for (size_t i = begin_xlu; i < xlu.size(); ++i)
+      map_nodes.push_back(&xlu[i]);
+
+    for (auto* node : map_nodes) {
+      node->mega_state.fill = librii::gfx::PolygonMode::Line;
+      node->mega_state.depthCompare = GL_ALWAYS;
+      node->mega_state.depthWrite = GL_TRUE;
+      node->mega_state.cullMode = -1;
+    }
   }
 
   mSceneState.buildUniformBuffers();

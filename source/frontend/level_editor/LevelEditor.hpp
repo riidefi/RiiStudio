@@ -34,8 +34,9 @@ struct AttributesBitmask {
 struct RenderOptions {
   bool show_brres = true;
   bool show_kcl = true;
+  bool show_map = true;
   AttributesBitmask attr_mask{
-      .value = 0xc216f000 // KCL Flags to keep, default to walls
+      .value = 0xc216f000 | 0xffff'ffff // KCL Flags to keep, default to walls
   };
   AttributesBitmask target_attr_all{
       .value = 0xffff'ffff // All flags in the scene
@@ -118,6 +119,8 @@ public:
 
   std::unique_ptr<g3d::Collection> mCourseModel;
   std::unique_ptr<g3d::Collection> mVrcornModel;
+  std::unique_ptr<g3d::Collection> mMapModel;
+  float mini_scale_y = 1.0f;
   std::unique_ptr<librii::kcol::KCollisionData> mCourseKcl;
   TriangleRenderer mTriangleRenderer;
 

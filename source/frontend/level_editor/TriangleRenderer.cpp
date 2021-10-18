@@ -30,7 +30,7 @@ void main() {
   bool is_wire = uint(u_Misc0[2]) == 1;
   if (is_wire) {
     // fragmentColor = vec4(1, 1, 1, 1);
-    fragmentColor = vec4(mix(normalize(vec3(color)) * sqrt(3), vec3(1, 1, 1), .5), 1);
+    fragmentColor = vec4(mix(normalize(vec3(color)) / sqrt(3), vec3(1, 1, 1), .2), 1);
   }
   _is_wire = is_wire ? 1.0 : 0.0;
 
@@ -66,7 +66,7 @@ void main() {
   if (!gl_FrontFacing && !is_wire)
     color *= vec4(.5, .5, .5, 1.0);
 
-  gl_FragDepth = gl_FragCoord.z * (is_wire ? .99991 : .99999);
+  gl_FragDepth = gl_FragCoord.z * (is_wire ? .99998 : .99999);
 }
 )";
 
@@ -82,7 +82,7 @@ void PushTriangles(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
   static float poly_fact = 0.0f;
   // ImGui::InputFloat("Poly_fact", &poly_fact);
   cube.mega_state = {.cullMode = (u32)-1 /* GL_BACK */,
-                     .depthWrite = GL_FALSE,
+                     .depthWrite = u32((alpha == 1.0f) ? GL_TRUE : GL_FALSE),
                      .depthCompare = GL_LEQUAL /* GL_LEQUAL */,
                      .frontFace = GL_CCW,
 
