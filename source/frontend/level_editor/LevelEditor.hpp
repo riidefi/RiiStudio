@@ -12,17 +12,34 @@
 #include <string>
 
 #include <frontend/level_editor/Archive.hpp>
+#include <frontend/level_editor/AutoHistory.hpp>
+#include <frontend/level_editor/TriangleRenderer.hpp>
 
 namespace riistudio::lvl {
 
 enum class XluMode { Fast, Fancy };
 
+struct AttributesBitmask {
+  u32 value = 0;
+
+  void enable(int i) { value |= 1 << i; }
+  int num_enabled() const { return std::popcount(value); }
+
+  bool is_enabled(int i) const { return value & (1 << i); }
+
+  // value |= get_flag(i) -> is_enabled(i) == true
+  u32 get_flag(int i) const { return 1 << i; }
+};
+
 struct RenderOptions {
   bool show_brres = true;
   bool show_kcl = true;
-  u32 attr_mask = 0xc216f000; // KCL Flags to keep, default to walls
-  u32 target_attr_all = -1;   // All flags in the scene
-
+  AttributesBitmask attr_mask{
+      .value = 0xc216f000 // KCL Flags to keep, default to walls
+  };
+  AttributesBitmask target_attr_all{
+      .value = 0xffff'ffff // All flags in the scene
+  };
   // Fancy -> enable per-triangle z-sorting
   XluMode xlu_mode{
 #ifdef BUILD_DEBUG
@@ -42,79 +59,17 @@ struct Level {
   std::string og_path;
 };
 
-inline void CommitHistory(size_t& cursor,
-                          std::vector<librii::kmp::CourseMap>& chain) {
-  chain.resize(cursor + 1);
-  cursor++;
-}
-inline void UndoHistory(size_t& cursor,
-                        std::vector<librii::kmp::CourseMap>& chain) {
-  if (cursor <= 0)
-    return;
-  --cursor;
-}
-inline void RedoHistory(size_t& cursor,
-                        std::vector<librii::kmp::CourseMap>& chain) {
-  if (cursor >= chain.size())
-    return;
-  ++cursor;
-}
+struct SelectedPath {
+  void* vector_addr = nullptr;
+  size_t index = 0;
 
-class LevelEditorWindow : public frontend::StudioWindow {
-public:
-  LevelEditorWindow() : StudioWindow("Level Editor", true) {
-    setWindowFlag(ImGuiWindowFlags_MenuBar);
+  bool operator==(const SelectedPath&) const = default;
+  bool operator<(const SelectedPath& rhs) const {
+    return vector_addr < rhs.vector_addr || index < rhs.index;
   }
+};
 
-  void openFile(std::span<const u8> buf, std::string path);
-
-  void saveFile(std::string path);
-
-  void draw_() override;
-
-  void drawScene(u32 width, u32 height);
-
-  void DrawRespawnTable();
-
-  Level mLevel;
-  plate::tk::Viewport mViewport;
-  frontend::RenderSettings mRenderSettings;
-  frontend::MouseHider mMouseHider;
-  lib3d::SceneState mSceneState;
-
-  std::unique_ptr<g3d::Collection> mCourseModel;
-  std::unique_ptr<g3d::Collection> mVrcornModel;
-
-  std::unique_ptr<librii::kcol::KCollisionData> mCourseKcl;
-
-  struct Triangle {
-    u16 attr;
-    std::array<glm::vec3, 3> verts;
-  };
-  std::vector<Triangle> mKclTris;
-
-  std::unique_ptr<librii::kmp::CourseMap> mKmp;
-  std::vector<librii::kmp::CourseMap> mKmpHistory;
-  size_t history_cursor = 0;
-  bool commit_posted = false;
-
-  RenderOptions disp_opts;
-
-  // KCL triangle vertex buffer
-  std::unique_ptr<librii::glhelper::VBOBuilder> tri_vbo = nullptr;
-  // z_dist of every kcl triangle and the camera
-  std::vector<float> z_dist;
-
-  struct SelectedPath {
-    void* vector_addr = nullptr;
-    size_t index = 0;
-
-    bool operator==(const SelectedPath&) const = default;
-    bool operator<(const SelectedPath& rhs) const {
-      return vector_addr < rhs.vector_addr || index < rhs.index;
-    }
-  };
-
+struct Selection {
   std::set<SelectedPath> selection;
 
   bool isSelected(void* vector_addr, size_t index) const {
@@ -138,10 +93,43 @@ public:
     else
       deselect(vector_addr, index);
   }
+};
+
+class LevelEditorWindow : public frontend::StudioWindow, private Selection {
+public:
+  LevelEditorWindow() : StudioWindow("Level Editor", true) {
+    setWindowFlag(ImGuiWindowFlags_MenuBar);
+  }
+
+  void openFile(std::span<const u8> buf, std::string path);
+  void saveFile(std::string path);
+
+  void draw_() override;
+
+  void drawScene(u32 width, u32 height);
+
+  void DrawRespawnTable();
+
+  Level mLevel;
+  plate::tk::Viewport mViewport;
+  frontend::RenderSettings mRenderSettings;
+  frontend::MouseHider mMouseHider;
+  lib3d::SceneState mSceneState;
+
+  std::unique_ptr<g3d::Collection> mCourseModel;
+  std::unique_ptr<g3d::Collection> mVrcornModel;
+  std::unique_ptr<librii::kcol::KCollisionData> mCourseKcl;
+  TriangleRenderer mTriangleRenderer;
+
+  std::unique_ptr<librii::kmp::CourseMap> mKmp;
+  AutoHistory<librii::kmp::CourseMap> mKmpHistory;
+
+  RenderOptions disp_opts;
 
   enum class Page {
     StartPoints,
     EnemyPaths,
+    EnemyPaths_Sub,
     ItemPaths,
     CheckPaths,
     Objects,
@@ -154,6 +142,7 @@ public:
     Stages
   };
   Page mPage = Page::Respawns;
+  int mSubPageID = 0; // For EnemyPaths_Sub
 };
 
 } // namespace riistudio::lvl

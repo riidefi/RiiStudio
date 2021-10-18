@@ -59,8 +59,8 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
     header_size = reader.read<u16>();
     g.require(header_size == 0x10 + num_sec * 4, "Spoopy header length");
 
-    map.setRevision(reader.read<u32>());
-    g.require(map.getRevision() == 2520, "Unusual revision");
+    map.mRevision = reader.read<u32>();
+    g.require(map.mRevision == 2520, "Unusual revision");
   }
 
   assert(num_sec < 32);
@@ -84,8 +84,7 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
     return {false, 0, 0};
   };
 
-  if (auto [found, num_entry, user_data] =
-          search('KTPT', map.getRevision() > 1830);
+  if (auto [found, num_entry, user_data] = search('KTPT', map.mRevision > 1830);
       found) {
     map.mStartPoints.resize(num_entry);
     for (auto& entry : map.mStartPoints) {
@@ -230,7 +229,7 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
       entry.getModel().setScaling(scratch);
 
       entry.mParameters = reader.readX<u16, 2>();
-      if (map.getRevision() >= 2200) {
+      if (map.mRevision >= 2200) {
         entry.mRailID = reader.read<u8>();
         entry.mEnemyLinkID = reader.read<u8>();
         entry.mPad = reader.readX<u8, 2>();
@@ -243,8 +242,8 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
   }
 
   if (auto [found, num_entry, user_data] = search('CAME'); found) {
-    map.setOpeningPanIndex(user_data >> 8);
-    map.setVideoPanIndex(user_data & 0xff);
+    map.mOpeningPanIndex = user_data >> 8;
+    map.mVideoPanIndex = user_data & 0xff;
     map.mCameras.resize(num_entry);
     for (auto& entry : map.mCameras) {
       entry.mType = static_cast<CameraType>(reader.read<u8>());
@@ -313,7 +312,7 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
       entry.mLensFlareOptions.g = reader.read<u8>();
       entry.mLensFlareOptions.b = reader.read<u8>();
 
-      if (map.getRevision() >= 2320) {
+      if (map.mRevision >= 2320) {
         entry.mUnk08 = reader.read<u8>();
         entry._ = reader.read<u8>();
         entry.mSpeedModifier = reader.read<u16>();
@@ -421,11 +420,11 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
   reloc.writeReloc<u32>("KMP_BEGIN", "KMP_END");
   writer.write<u16>(15);                      // 15 sections
   writer.write<u16>(15 * sizeof(u32) + 0x10); // header size
-  writer.write<u32>(map.getRevision());
+  writer.write<u32>(map.mRevision);
 
   reloc.writeReloc<s32>("KMP", "KTPT", [&](oishii::Writer& stream) {
     stream.write<u32>('KTPT');
-    if (map.getRevision() > 1830) {
+    if (map.mRevision > 1830) {
       stream.write<u16>(map.mStartPoints.size());
       stream.write<u16>(0); // user data
     }
@@ -575,7 +574,7 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
       entry.getModel().mScaling >> stream;
       for (auto p : entry.mParameters)
         stream.write<u16>(p);
-      if (map.getRevision() >= 2200) {
+      if (map.mRevision >= 2200) {
         stream.write<u8>(entry.mRailID);
         stream.write<u8>(entry.mEnemyLinkID);
         for (auto p : entry.mPad)
@@ -588,8 +587,8 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
     stream.write<u32>('CAME');
     stream.write<u16>(map.mCameras.size());
     // Ignored < 1920
-    stream.write<u8>(map.getOpeningPanIndex());
-    stream.write<u8>(map.getVideoPanIndex());
+    stream.write<u8>(map.mOpeningPanIndex);
+    stream.write<u8>(map.mVideoPanIndex);
     for (auto& entry : map.mCameras) {
       stream.write<u8>(static_cast<u8>(entry.mType));
       stream.write<u8>(entry.mNext);
@@ -659,7 +658,7 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
       stream.write<u8>(entry.mLensFlareOptions.g);
       stream.write<u8>(entry.mLensFlareOptions.b);
 
-      if (map.getRevision() >= 2320) {
+      if (map.mRevision >= 2320) {
         stream.write<u8>(entry.mUnk08);
         stream.write<u8>(entry._);
         stream.write<u16>(entry.mSpeedModifier);

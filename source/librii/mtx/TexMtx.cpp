@@ -14,11 +14,13 @@ static void calcTexMtx_Basic(glm::mat4& dst, float scaleS, float scaleT,
 
   dst[0][0] = scaleS * cosR;
   dst[1][0] = scaleS * -sinR;
-  dst[3][0] = translationS + centerS - (dst[0][0] * centerS + dst[1][0] * centerT);
+  dst[3][0] =
+      translationS + centerS - (dst[0][0] * centerS + dst[1][0] * centerT);
 
   dst[0][1] = scaleT * sinR;
   dst[1][1] = scaleT * cosR;
-  dst[3][1] = translationT + centerT - (dst[0][1] * centerS + dst[1][1] * centerT);
+  dst[3][1] =
+      translationT + centerT - (dst[0][1] * centerS + dst[1][1] * centerT);
 }
 static void computeMayaTexMtx(glm::mat4& dst, float scaleS, float scaleT,
                               float rotation, float translationS,
@@ -163,6 +165,10 @@ static glm::mat4 computeInMtx(const glm::mat4& mdl, const glm::mat4& mvp,
   switch (method) {
   case CommonMappingMethod::Standard:
     break;
+  case CommonMappingMethod::EnvironmentLightMapping:
+  case CommonMappingMethod::EnvironmentSpecularMapping:
+    // TODO: Support these
+    break;
   case CommonMappingMethod::EnvironmentMapping:
     // MVP Norrmal matrix
     computeNormalMatrix(inmtx, mvp, true);
@@ -189,7 +195,8 @@ static glm::mat4 computeInMtx(const glm::mat4& mdl, const glm::mat4& mvp,
 
 glm::mat4 computeTexMtx(const glm::mat4& mdl, const glm::mat4& mvp,
                         const glm::mat4& texsrt, const glm::mat4& effectMatrix,
-						CommonMappingMethod method, CommonMappingOption option) {
+                        CommonMappingMethod method,
+                        CommonMappingOption option) {
   auto inmtx = computeInMtx(mdl, mvp, method);
   auto J3DGetTextureMtxOld = [](glm::mat4& dst, const glm::mat4& srt) {
     dst = srt;

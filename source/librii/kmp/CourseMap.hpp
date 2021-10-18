@@ -18,16 +18,6 @@ class CourseMapData {
 public:
   bool operator==(const CourseMapData&) const = default;
 
-  u16 getRevision() const { return mRevision; }
-  void setRevision(u16 r) { mRevision = r; }
-
-  // Section user data
-  u8 getOpeningPanIndex() const { return mOpeningPanIndex; }
-  void setOpeningPanIndex(u8 i) { mOpeningPanIndex = i; }
-  u8 getVideoPanIndex() const { return mVideoPanIndex; }
-  void setVideoPanIndex(u8 i) { mVideoPanIndex = i; }
-
-private:
   u16 mRevision = 2520;
   u8 mOpeningPanIndex = 0;
   u8 mVideoPanIndex = 0;

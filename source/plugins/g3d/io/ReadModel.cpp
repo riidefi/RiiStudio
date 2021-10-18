@@ -572,8 +572,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
         if (att == librii::gx::VertexAttributeType::None) {
           transaction.callback(kpi::IOMessageClass::Error, transaction_path,
                                "att == librii::gx::VertexAttributeType::None");
-          transaction.state = kpi::TransactionState::Failure;
-          return;
+          poly.mVertexDescriptor.mBitfield ^= (1 << i);
+          // transaction.state = kpi::TransactionState::Failure;
+          // return;
         }
         poly.mVertexDescriptor.mAttributes[(librii::gx::VertexAttribute)i] =
             att;
@@ -752,9 +753,9 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
                          "materials may flicker during ghost replays.");
   } else if (mdl.getBones().size() > 1) {
     transaction.callback(kpi::IOMessageClass::Error, transaction_path,
-                         "Rigging support is not fully tested."
+                         "Rigging support is not fully tested. "
                          "Rejecting file to avoid potential corruption.");
-    transaction.state = kpi::TransactionState::Failure;
+    transaction.state = kpi::TransactionState::FailureToSave;
   }
 }
 
