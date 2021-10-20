@@ -92,4 +92,14 @@ inline void Markdown(const std::string& markdown_) {
   ImGui::Markdown(markdown_.c_str(), markdown_.length(), mdConfig);
 }
 
+inline void PushErrorSyle() {
+  ImGui::SetWindowFontScale(2.0f);
+  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 0.0f, 0.0f, 1.0f});
+}
+
+inline void PopErrorStyle() {
+  ImGui::PopStyleColor();
+  ImGui::SetWindowFontScale(1.0f);
+}
+
 } // namespace riistudio::util

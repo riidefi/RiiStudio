@@ -67,9 +67,12 @@ FindFileWithOverloads(const Archive& arc, std::vector<std::string> paths) {
 }
 
 void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
-  auto root_arc = ReadArchive(buf);
-  if (!root_arc.has_value())
+  std::string errc;
+  auto root_arc = ReadArchive(buf, errc);
+  if (!root_arc.has_value()) {
+    mErrDisp = errc;
     return;
+  }
 
   mLevel.root_archive = std::move(*root_arc);
   mLevel.og_path = path;
@@ -245,6 +248,13 @@ void LevelEditorWindow::DrawRespawnTable() {
 }
 
 void LevelEditorWindow::draw_() {
+  if (mErrDisp.size()) {
+    util::PushErrorSyle();
+    ImGui::Text("ERROR: %s", mErrDisp.c_str());
+    util::PopErrorStyle();
+    return;
+  }
+
   if (ImGui::BeginMenuBar()) {
     if (ImGui::Button("Save")) {
       saveFile("umm.szs");

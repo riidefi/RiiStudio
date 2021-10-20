@@ -161,6 +161,8 @@ public:
     }
   };
   SelectedObjectTransformEdit mSelectedObjectTransformEdit;
+
+  std::string mErrDisp;
 };
 
 } // namespace riistudio::lvl

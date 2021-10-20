@@ -1,5 +1,6 @@
 #include "PropertyEditor.hpp"
 #include <core/3d/Material.hpp>           // lib3d::Material
+#include <core/util/gui.hpp>              // PushErrorStyle
 #include <imcxx/Widgets.hpp>              // imcxx::Combo
 #include <imgui/imgui.h>                  // ImGui::Text
 #include <llvm/ADT/SmallVector.h>         // llvm::SmallVector
@@ -73,14 +74,12 @@ PropertyEditor::~PropertyEditor() { state_holder.garbageCollect(); }
 
 static void DrawMaterialHeader(riistudio::lib3d::Material* mat) {
   if (mat->isShaderError) {
-    ImGui::SetWindowFontScale(2.0f);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 0.0f, 0.0f, 1.0f});
+    util::PushErrorSyle();
     {
       ImGui::TextUnformatted("[WARNING] Invalid shader!"_j);
       ImGui::TextUnformatted(mat->shaderError.c_str());
     }
-    ImGui::PopStyleColor();
-    ImGui::SetWindowFontScale(1.0f);
+    util::PopErrorStyle();
   }
 }
 

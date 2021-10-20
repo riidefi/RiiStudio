@@ -6,10 +6,12 @@
 // For FindFile
 #include <filesystem>
 
-std::optional<Archive> ReadArchive(std::span<const u8> buf) {
+std::optional<Archive> ReadArchive(std::span<const u8> buf,
+                                   std::string& errcode) {
   auto expanded = librii::szs::getExpandedSize(buf);
   if (expanded == 0) {
     DebugReport("Failed to grab expanded size\n");
+    errcode = "Invalid .szs file";
     return std::nullopt;
   }
 
@@ -17,18 +19,21 @@ std::optional<Archive> ReadArchive(std::span<const u8> buf) {
   auto err = librii::szs::decode(decoded, buf);
   if (err) {
     DebugReport("Failed to decode SZS\n");
+    errcode = "Invalid .szs file";
     return std::nullopt;
   }
 
   if (decoded.size() < 4 || decoded[0] != 0x55 || decoded[1] != 0xaa ||
       decoded[2] != 0x38 || decoded[3] != 0x2d) {
     DebugReport("Not a valid archive\n");
+    errcode = "Not a U8 archive";
     return std::nullopt;
   }
 
   librii::U8::U8Archive arc;
   if (!librii::U8::LoadU8Archive(arc, decoded)) {
     DebugReport("Failed to read archive\n");
+    errcode = "Invalid U8 archive";
     return std::nullopt;
   }
 
@@ -68,7 +73,11 @@ std::optional<Archive> ReadArchive(std::span<const u8> buf) {
     while (!n_path.empty() && i + 1 == n_path.back().sibling_next)
       n_path.resize(n_path.size() - 1);
   }
-  assert(n_path.empty());
+  if (!n_path.empty()) {
+    DebugReport("Invalid U8 structure\n");
+    errcode = ".szs file was corrupted by BrawlBox";
+    return std::nullopt;
+  }
 
   // Eliminate the period
   if (!n_arc.folders.empty() && n_arc.folders.begin()->first == ".") {

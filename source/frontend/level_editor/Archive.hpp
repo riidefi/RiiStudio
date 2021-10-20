@@ -14,7 +14,7 @@ struct Archive {
 };
 
 //! Read a .szs/.carc file to a generic Archive
-std::optional<Archive> ReadArchive(std::span<const u8> buf);
+std::optional<Archive> ReadArchive(std::span<const u8> buf, std::string& errc);
 
 //! Write a .szs/.carc file from a generic Archive
 std::vector<u8> WriteArchive(const Archive& arc);
