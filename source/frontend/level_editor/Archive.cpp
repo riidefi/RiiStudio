@@ -120,11 +120,11 @@ std::vector<u8> WriteArchive(const Archive& arc) {
   return szs_buf;
 }
 
-std::optional<std::vector<u8>> FindFile(Archive& arc, std::string path) {
+std::optional<std::vector<u8>> FindFile(const Archive& arc, std::string path) {
   std::filesystem::path _path = path;
   _path = _path.lexically_normal();
 
-  Archive* cur_arc = &arc;
+  const Archive* cur_arc = &arc;
   for (auto& part : _path) {
     {
       auto it = cur_arc->folders.find(part.string());

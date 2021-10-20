@@ -24,4 +24,4 @@ FindFile(arc, "pictures/dogs/1.png");
 
 return arc.folders.find("pictures")?.folders.find("dogs")?.files.find("1.png");
 */
-std::optional<std::vector<u8>> FindFile(Archive& arc, std::string path);
+std::optional<std::vector<u8>> FindFile(const Archive& arc, std::string path);

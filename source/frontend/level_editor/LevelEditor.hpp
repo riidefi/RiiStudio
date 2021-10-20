@@ -146,6 +146,21 @@ public:
   };
   Page mPage = Page::Respawns;
   int mSubPageID = 0; // For EnemyPaths_Sub
+
+  
+  // Currently, only one manipulator is supported
+  struct SelectedObjectTransformEdit {
+    glm::mat4 matrix;
+    SelectedPath owned_by;
+    bool dirty = false; // OR'd if matrix changed. Can only be unset by other
+                        // code.
+                        // Manipulator will not be drawn until acknowledged.
+
+    bool isOwnedBy(const SelectedPath& owner) const {
+      return owned_by == owner;
+    }
+  };
+  SelectedObjectTransformEdit mSelectedObjectTransformEdit;
 };
 
 } // namespace riistudio::lvl

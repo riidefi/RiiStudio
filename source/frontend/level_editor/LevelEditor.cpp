@@ -48,6 +48,24 @@ void DrawRenderOptions(RenderOptions& opt) {
   ImGui::SliderFloat("Collision Alpha", &opt.kcl_alpha, 0.0f, 1.0f);
 }
 
+struct ResolveQuery {
+  std::vector<u8> file_data;
+  std::string resolved_path;
+};
+
+std::optional<ResolveQuery>
+FindFileWithOverloads(const Archive& arc, std::vector<std::string> paths) {
+  for (auto& path : paths) {
+    auto found = FindFile(arc, path);
+    if (found.has_value()) {
+      return ResolveQuery{.file_data = std::move(*found),
+                          .resolved_path = path};
+    }
+  }
+
+  return std::nullopt;
+}
+
 void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   auto root_arc = ReadArchive(buf);
   if (!root_arc.has_value())
@@ -56,22 +74,18 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   mLevel.root_archive = std::move(*root_arc);
   mLevel.og_path = path;
 
-  auto course_model_brres =
-      FindFile(mLevel.root_archive, "course_d_model.brres");
-  if (!course_model_brres.has_value()) {
-    course_model_brres = FindFile(mLevel.root_archive, "course_model.brres");
-  }
+  auto course_model_brres = FindFileWithOverloads(
+      mLevel.root_archive, {"course_d_model.brres", "course_model.brres"});
   if (course_model_brres.has_value()) {
-    mCourseModel = ReadBRRES(*course_model_brres, "course_model.brres");
+    mCourseModel = ReadBRRES(course_model_brres->file_data,
+                             course_model_brres->resolved_path);
   }
 
-  auto vrcorn_model_brres =
-      FindFile(mLevel.root_archive, "vrcorn_d_model.brres");
-  if (!vrcorn_model_brres.has_value()) {
-    vrcorn_model_brres = FindFile(mLevel.root_archive, "vrcorn_model.brres");
-  }
+  auto vrcorn_model_brres = FindFileWithOverloads(
+      mLevel.root_archive, {"vrcorn_d_model.brres", "vrcorn_model.brres"});
   if (course_model_brres.has_value()) {
-    mVrcornModel = ReadBRRES(*vrcorn_model_brres, "vrcorn_model.brres");
+    mVrcornModel = ReadBRRES(vrcorn_model_brres->file_data,
+                             vrcorn_model_brres->resolved_path);
   }
 
   auto map_model = FindFile(mLevel.root_archive, "map_model.brres");
@@ -732,11 +746,31 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
   }
 
   if (mKmp != nullptr) {
+    int i = 0;
     switch (mPage) {
     case Page::StartPoints:
       for (auto& pt : mKmp->mStartPoints) {
         glm::mat4 modelMtx = MatrixOfPoint(pt.position, pt.rotation, 1);
         PushCube(mSceneState, modelMtx, viewMtx, projMtx);
+
+        SelectedPath path{.vector_addr = &mKmp->mStartPoints,
+                          .index = (size_t)i++};
+        if (isSelected(path.vector_addr, path.index)) {
+          if (mSelectedObjectTransformEdit.owned_by == path) {
+            if (mSelectedObjectTransformEdit.dirty) {
+              auto [pos, rot, range] =
+                  PointOfMatrix(mSelectedObjectTransformEdit.matrix);
+
+              pt.position = pos;
+              pt.rotation = rot;
+
+              mSelectedObjectTransformEdit.dirty = false;
+            }
+          } else {
+            mSelectedObjectTransformEdit = {
+                .matrix = modelMtx, .owned_by = path, .dirty = false};
+          }
+        }
       }
       break;
     case Page::Objects:
@@ -762,6 +796,25 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
       for (auto& pt : mKmp->mRespawnPoints) {
         glm::mat4 modelMtx = MatrixOfPoint(pt.position, pt.rotation, pt.range);
         PushCube(mSceneState, modelMtx, viewMtx, projMtx);
+
+        SelectedPath path{.vector_addr = &mKmp->mRespawnPoints,
+                          .index = (size_t)i++};
+        if (isSelected(path.vector_addr, path.index)) {
+          if (mSelectedObjectTransformEdit.owned_by == path) {
+            if (mSelectedObjectTransformEdit.dirty) {
+              auto [pos, rot, range] =
+                  PointOfMatrix(mSelectedObjectTransformEdit.matrix);
+
+              pt.position = pos;
+              pt.rotation = rot;
+
+              mSelectedObjectTransformEdit.dirty = false;
+            }
+          } else {
+            mSelectedObjectTransformEdit = {
+                .matrix = modelMtx, .owned_by = path, .dirty = false};
+          }
+        }
       }
       break;
     case Page::Cannons:
@@ -852,28 +905,12 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
   static Manipulator manip;
 
-  if (mKmp) {
-    for (int i = 0; i < mKmp->mRespawnPoints.size(); ++i) {
-      if (!isSelected(&mKmp->mRespawnPoints, i))
-        continue;
-
-      auto& pt = mKmp->mRespawnPoints[i];
-      glm::mat4 mx = MatrixOfPoint(pt.position, pt.rotation, pt.range);
-
-      manip.drawUi(mx);
-      if (manip.manipulate(mx, viewMtx, projMtx)) {
-        auto [pos, rot, range] = PointOfMatrix(mx);
-
-        pt.position = pos;
-        pt.rotation = rot;
-        pt.range = range;
-
-        // This checks for NAN
-        // Assert not needed, as mKmpHistory.update will rollback if NaN
-        // detected
-        // assert(pt == pt);
-      }
-    }
+  if (!mSelectedObjectTransformEdit.dirty) {
+    manip.drawUi(mSelectedObjectTransformEdit.matrix);
+    auto backup = mSelectedObjectTransformEdit.matrix;
+    manip.manipulate(mSelectedObjectTransformEdit.matrix, viewMtx, projMtx);
+    mSelectedObjectTransformEdit.dirty |=
+        mSelectedObjectTransformEdit.matrix != backup;
   }
 
   if (mKmp != nullptr) {
