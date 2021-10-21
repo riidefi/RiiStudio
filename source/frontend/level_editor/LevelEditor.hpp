@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <core/common.h>
 #include <frontend/editor/StudioWindow.hpp>
 #include <frontend/renderer/Renderer.hpp>
@@ -13,6 +14,7 @@
 
 #include <frontend/level_editor/Archive.hpp>
 #include <frontend/level_editor/AutoHistory.hpp>
+#include <frontend/level_editor/DeltaTime.hpp>
 #include <frontend/level_editor/TriangleRenderer.hpp>
 
 namespace riistudio::lvl {
@@ -115,6 +117,8 @@ public:
   plate::tk::Viewport mViewport;
   frontend::RenderSettings mRenderSettings;
   frontend::MouseHider mMouseHider;
+
+  DeltaTimer mDeltaTimer;
   lib3d::SceneState mSceneState;
 
   std::unique_ptr<g3d::Collection> mCourseModel;
@@ -147,7 +151,6 @@ public:
   Page mPage = Page::Respawns;
   int mSubPageID = 0; // For EnemyPaths_Sub
 
-  
   // Currently, only one manipulator is supported
   struct SelectedObjectTransformEdit {
     glm::mat4 matrix;

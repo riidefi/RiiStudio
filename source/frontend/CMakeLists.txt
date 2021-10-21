@@ -57,7 +57,7 @@ add_executable(frontend
  "level_editor/Archive.hpp" "level_editor/Archive.cpp"
  "level_editor/IO.hpp" "level_editor/IO.cpp"
  "level_editor/Transform.cpp" "level_editor/Transform.hpp"
- "level_editor/TriangleRenderer.cpp" "level_editor/TriangleRenderer.hpp" "level_editor/AutoHistory.hpp")
+ "level_editor/TriangleRenderer.cpp" "level_editor/TriangleRenderer.hpp" "level_editor/AutoHistory.hpp" "level_editor/DeltaTime.hpp" "level_editor/DeltaTime.cpp")
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
