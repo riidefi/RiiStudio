@@ -3,11 +3,9 @@
 #include "KclUtil.hpp"
 #include "ObjUtil.hpp"
 #include "Transform.hpp"
-#include <bit>
 #include <core/3d/gl.hpp>
 #include <core/common.h>
 #include <core/util/gui.hpp>
-#include <core/util/oishii.hpp>
 #include <frontend/root.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
@@ -22,6 +20,52 @@
 #include <vendor/ImGuizmo.h>
 
 namespace riistudio::lvl {
+
+struct X {
+  static bool BeginCustomSelectable(bool sel) {
+    if (!sel) {
+      ImGui::Text("( )");
+      ImGui::SameLine();
+      return false;
+    }
+
+    ImGui::Text("(X)");
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 1.0f, 0.0f, 1.0f});
+    return true;
+  }
+  static void EndCustomSelectable(bool sel) {
+    if (!sel)
+      return;
+
+    ImGui::PopStyleColor();
+  }
+
+  struct Defer {
+    Defer(std::function<void()> f) : mF(f) {}
+    Defer(Defer&& rhs) : mF(rhs.mF) { rhs.mF = nullptr; }
+    ~Defer() {
+      if (mF)
+        mF();
+    }
+
+    std::function<void()> mF;
+  };
+
+  static Defer RAIICustomSelectable(bool sel) {
+    bool b = X::BeginCustomSelectable(sel);
+    return Defer{[b] { X::EndCustomSelectable(b); }};
+  }
+
+  static bool IsNodeSwitchedTo() {
+    return ImGui::IsItemClicked() || ImGui::IsItemFocused();
+  }
+
+  // Seems we don't need to care about the tree_node_ex_result
+  // static bool IsNodeSwitchedTo(bool tree_node_ex_result) {
+  //   return tree_node_ex_result && IsNodeSwitchedTo();
+  // }
+};
 
 void DrawRenderOptions(RenderOptions& opt) {
   ImGui::Checkbox("Visual Model", &opt.show_brres);
@@ -47,25 +91,6 @@ void DrawRenderOptions(RenderOptions& opt) {
   opt.xlu_mode = imcxx::Combo("Translucency", opt.xlu_mode, "Fast\0Fancy\0");
   ImGui::SliderFloat("Collision Alpha", &opt.kcl_alpha, 0.0f, 1.0f);
 }
-
-struct ResolveQuery {
-  std::vector<u8> file_data;
-  std::string resolved_path;
-};
-
-std::optional<ResolveQuery>
-FindFileWithOverloads(const Archive& arc, std::vector<std::string> paths) {
-  for (auto& path : paths) {
-    auto found = FindFile(arc, path);
-    if (found.has_value()) {
-      return ResolveQuery{.file_data = std::move(*found),
-                          .resolved_path = path};
-    }
-  }
-
-  return std::nullopt;
-}
-
 void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   std::string errc;
   auto root_arc = ReadArchive(buf, errc);
@@ -302,52 +327,6 @@ void LevelEditorWindow::draw_() {
       // ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed,
       //                        ImGui::GetFontSize() * 10);
       ImGui::TableAutoHeaders();
-
-      struct X {
-        static bool BeginCustomSelectable(bool sel) {
-          if (!sel) {
-            ImGui::Text("( )");
-            ImGui::SameLine();
-            return false;
-          }
-
-          ImGui::Text("(X)");
-          ImGui::SameLine();
-          ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 1.0f, 0.0f, 1.0f});
-          return true;
-        }
-        static void EndCustomSelectable(bool sel) {
-          if (!sel)
-            return;
-
-          ImGui::PopStyleColor();
-        }
-
-        struct Defer {
-          Defer(std::function<void()> f) : mF(f) {}
-          Defer(Defer&& rhs) : mF(rhs.mF) { rhs.mF = nullptr; }
-          ~Defer() {
-            if (mF)
-              mF();
-          }
-
-          std::function<void()> mF;
-        };
-
-        static Defer RAIICustomSelectable(bool sel) {
-          bool b = X::BeginCustomSelectable(sel);
-          return Defer{[b] { X::EndCustomSelectable(b); }};
-        }
-
-        static bool IsNodeSwitchedTo() {
-          return ImGui::IsItemClicked() || ImGui::IsItemFocused();
-        }
-
-        // Seems we don't need to care about the tree_node_ex_result
-        // static bool IsNodeSwitchedTo(bool tree_node_ex_result) {
-        //   return tree_node_ex_result && IsNodeSwitchedTo();
-        // }
-      };
 
       {
         ImGui::TableNextRow();

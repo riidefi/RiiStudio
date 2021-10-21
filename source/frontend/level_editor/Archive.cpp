@@ -154,3 +154,16 @@ std::optional<std::vector<u8>> FindFile(const Archive& arc, std::string path) {
 
   return std::nullopt;
 }
+
+std::optional<ResolveQuery>
+FindFileWithOverloads(const Archive& arc, std::vector<std::string> paths) {
+  for (auto& path : paths) {
+    auto found = FindFile(arc, path);
+    if (found.has_value()) {
+      return ResolveQuery{.file_data = std::move(*found),
+                          .resolved_path = path};
+    }
+  }
+
+  return std::nullopt;
+}

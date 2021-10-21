@@ -25,3 +25,12 @@ FindFile(arc, "pictures/dogs/1.png");
 return arc.folders.find("pictures")?.folders.find("dogs")?.files.find("1.png");
 */
 std::optional<std::vector<u8>> FindFile(const Archive& arc, std::string path);
+
+struct ResolveQuery {
+  std::vector<u8> file_data;
+  std::string resolved_path;
+};
+
+//! Check the first path, then the second, and so on
+std::optional<ResolveQuery>
+FindFileWithOverloads(const Archive& arc, std::vector<std::string> paths);
