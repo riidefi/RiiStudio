@@ -258,6 +258,8 @@ void TriangleRenderer::draw(riistudio::lib3d::SceneState& state,
                             const glm::mat4& modelMtx, const glm::mat4& viewMtx,
                             const glm::mat4& projMtx, u32 attr_mask,
                             float alpha) {
+  if (tri_vbo == nullptr)
+    return;
   PushTriangles(state, modelMtx, viewMtx, projMtx, tri_vbo->getGlId(),
                 3 * mKclTris.size(), attr_mask, alpha);
 }

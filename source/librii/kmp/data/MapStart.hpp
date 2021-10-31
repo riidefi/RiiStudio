@@ -11,8 +11,8 @@ public:
 
   glm::vec3 position;
   glm::vec3 rotation;
-  s16 player_index;
-  s16 _;
+  s16 player_index = 0;
+  s16 _ = 0;
 };
 
 } // namespace librii::kmp

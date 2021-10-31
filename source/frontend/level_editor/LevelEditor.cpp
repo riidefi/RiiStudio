@@ -3,6 +3,7 @@
 #include "KclUtil.hpp"
 #include "ObjUtil.hpp"
 #include "Transform.hpp"
+#include <bit>
 #include <core/3d/gl.hpp>
 #include <core/common.h>
 #include <core/util/gui.hpp>
@@ -92,63 +93,93 @@ void DrawRenderOptions(RenderOptions& opt) {
   ImGui::SliderFloat("Collision Alpha", &opt.kcl_alpha, 0.0f, 1.0f);
 }
 void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
-  std::string errc;
-  auto root_arc = ReadArchive(buf, errc);
-  if (!root_arc.has_value()) {
-    mErrDisp = errc;
-    return;
+  // Read .szs
+  {
+    std::string errc;
+    auto root_arc = ReadArchive(buf, errc);
+    if (!root_arc.has_value()) {
+      mErrDisp = errc;
+      return;
+    }
+
+    mLevel.root_archive = std::move(*root_arc);
+    mLevel.og_path = path;
   }
 
-  mLevel.root_archive = std::move(*root_arc);
-  mLevel.og_path = path;
+  setName("Level Editor: " + path);
 
-  auto course_model_brres = FindFileWithOverloads(
-      mLevel.root_archive, {"course_d_model.brres", "course_model.brres"});
-  if (course_model_brres.has_value()) {
-    mCourseModel = ReadBRRES(course_model_brres->file_data,
-                             course_model_brres->resolved_path);
-  }
-
-  auto vrcorn_model_brres = FindFileWithOverloads(
-      mLevel.root_archive, {"vrcorn_d_model.brres", "vrcorn_model.brres"});
-  if (course_model_brres.has_value()) {
-    mVrcornModel = ReadBRRES(vrcorn_model_brres->file_data,
-                             vrcorn_model_brres->resolved_path);
-  }
-
-  auto map_model = FindFile(mLevel.root_archive, "map_model.brres");
-  if (map_model.has_value()) {
-    mMapModel = ReadBRRES(*map_model, "map_model.brres");
-  }
-
-  auto course_kcl = FindFile(mLevel.root_archive, "course.kcl");
-  if (course_kcl.has_value()) {
-    mCourseKcl = ReadKCL(*course_kcl, "course.kcl");
-  }
-
-  if (mCourseKcl) {
-    mTriangleRenderer.init(*mCourseKcl);
-
-    for (auto& prism : mCourseKcl->prism_data) {
-      disp_opts.target_attr_all.enable(prism.attribute & 31);
+  // Read course_model.brres
+  {
+    auto course_model_brres = FindFileWithOverloads(
+        mLevel.root_archive, {"course_d_model.brres", "course_model.brres"});
+    if (course_model_brres.has_value()) {
+      mCourseModel = ReadBRRES(course_model_brres->file_data,
+                               course_model_brres->resolved_path);
     }
   }
 
-  auto course_kmp = FindFile(mLevel.root_archive, "course.kmp");
-  if (course_kmp.has_value()) {
-    mKmp = ReadKMP(*course_kmp, "course.kmp");
-
-    mKmpHistory.update(*mKmp);
+  // Read vrcorn_model.brres
+  {
+    auto vrcorn_model_brres = FindFileWithOverloads(
+        mLevel.root_archive, {"vrcorn_d_model.brres", "vrcorn_model.brres"});
+    if (vrcorn_model_brres.has_value()) {
+      mVrcornModel = ReadBRRES(vrcorn_model_brres->file_data,
+                               vrcorn_model_brres->resolved_path);
+    }
   }
 
-  auto& cam = mRenderSettings.mCameraController.mCamera;
-  cam.mClipMin = 200.0f;
-  cam.mClipMax = 1000000.0f;
-  mRenderSettings.mCameraController.mSpeed = 15'000.0f;
+  // Read map_model.brres
+  {
+    auto map_model =
+        FindFileWithOverloads(mLevel.root_archive, {"map_model.brres"});
+    if (map_model.has_value()) {
+      mMapModel = ReadBRRES(map_model->file_data, map_model->resolved_path);
+    }
+  }
 
-  if (mKmp && !mKmp->mStartPoints.empty()) {
-    auto& start = mKmp->mStartPoints[0];
-    cam.mEye = start.position + glm::vec3(0.0f, 10'000.0f, 0.0f);
+  // Read course.kcl
+  {
+    auto course_kcl =
+        FindFileWithOverloads(mLevel.root_archive, {"course.kcl"});
+    if (course_kcl.has_value()) {
+      mCourseKcl = ReadKCL(course_kcl->file_data, course_kcl->resolved_path);
+    }
+  }
+
+  // Init course.kcl
+  if (mCourseKcl) {
+    mTriangleRenderer.init(*mCourseKcl);
+    disp_opts.init(*mCourseKcl);
+  }
+
+  // Read course.kmp
+  {
+    auto course_kmp =
+        FindFileWithOverloads(mLevel.root_archive, {"course.kmp"});
+    if (course_kmp.has_value()) {
+      mKmp = ReadKMP(course_kmp->file_data, course_kmp->resolved_path);
+    }
+  }
+
+  // Init course.kmp
+  if (mKmp) {
+    mKmpHistory.init(*mKmp);
+
+    // Place the camera near the starting point, if it exists
+    auto& cam = mRenderSettings.mCameraController.mCamera;
+    if (!mKmp->mStartPoints.empty()) {
+      auto& start = mKmp->mStartPoints[0];
+      cam.mEye = start.position + glm::vec3(0.0f, 10'000.0f, 0.0f);
+    }
+  }
+
+  // Default camera values
+  {
+    auto& cam = mRenderSettings.mCameraController.mCamera;
+
+    cam.mClipMin = 200.0f;
+    cam.mClipMax = 1000000.0f;
+    mRenderSettings.mCameraController.mSpeed = 15'000.0f;
   }
 }
 
@@ -181,95 +212,1125 @@ GatherNodes(Archive& arc) {
   return clicked;
 }
 
-struct Property {
-  std::string name;
+static void SetupColumn(const char* name, u32 flags = 0,
+                        float init_width_or_weight = -1.0f) {
+  ImGui::TableSetupColumn(name, flags | ImGuiTableColumnFlags_WidthFixed,
+                          init_width_or_weight > 0 ? init_width_or_weight
+                                                   : ImGui::GetFontSize() * 6);
+}
 
-  rsl::RNA type;
-  bool is_mutable = true;
+static void DrawCoordinateCells(glm::vec3* position,
+                                glm::vec3* rotation = nullptr,
+                                glm::vec3* scale = nullptr) {
+  if (position != nullptr) {
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#PosX", &position->x);
 
-  size_t offset;
-  size_t size;
-};
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#PosY", &position->y);
 
-#define FLOAT_P(Name, Mem)                                                     \
-  Property {                                                                   \
-    .name = Name,                                                              \
-    .type = rsl::to_rna<decltype(librii::kmp::RespawnPoint::Mem)>,             \
-    .is_mutable = true, .offset = offsetof(librii::kmp::RespawnPoint, Mem),    \
-    .size = sizeof(librii::kmp::RespawnPoint::Mem)                             \
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#PosZ", &position->z);
   }
 
-std::array<Property, 8> respawn_properties = {
-    FLOAT_P("Position.x", position.x), FLOAT_P("Position.y", position.y),
-    FLOAT_P("Position.z", position.z), FLOAT_P("Rotation.x", rotation.x),
-    FLOAT_P("Rotation.y", rotation.y), FLOAT_P("Rotation.z", rotation.z),
-    FLOAT_P("Radius", range),          FLOAT_P("ID", id),
-};
+  if (rotation != nullptr) {
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#RotX", &rotation->x);
 
-#undef FLOAT_P
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#RotY", &rotation->y);
 
-std::string to_json(const librii::kmp::RespawnPoint& r) {
-  std::string result = "{\n";
-  for (int i = 0; i < respawn_properties.size(); ++i) {
-    const auto& p = respawn_properties[i];
-    result += "  \"";
-    result += p.name;
-    result += "\": ";
-    result += std::to_string(
-        rsl::ReadAny(rsl::BytesOf(r).subspan(p.offset), p.type).value);
-    if (i + 1 != respawn_properties.size())
-      result += ",\n";
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#RotZ", &rotation->z);
   }
 
-  return result + "\n}";
+  if (scale != nullptr) {
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#SclX", &scale->x);
+
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#SclY", &scale->y);
+
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#SclZ", &scale->z);
+  }
+}
+
+static void SetupCoordinateColumns(bool position, bool rotation, bool scaling,
+                                   bool show_coords,
+                                   bool show_coords_changed = true) {
+  // First time this is drawn, show_coords_changed will be false, so we rely
+  // on the flag
+  u32 coord_flags = show_coords ? 0 : ImGuiTableColumnFlags_DefaultHide;
+  {
+    auto set_vis = [&] {
+      // if (show_coords_changed)
+      util::SetNextColumnVisible(show_coords);
+    };
+
+    if (position) {
+      set_vis();
+      SetupColumn("Position.x", coord_flags);
+      set_vis();
+      SetupColumn("Position.y", coord_flags);
+      set_vis();
+      SetupColumn("Position.z", coord_flags);
+    }
+
+    if (rotation) {
+      set_vis();
+      SetupColumn("Rotation.x", coord_flags);
+      set_vis();
+      SetupColumn("Rotation.y", coord_flags);
+      set_vis();
+      SetupColumn("Rotation.z", coord_flags);
+    }
+
+    if (scaling) {
+      set_vis();
+      SetupColumn("Scale.x", coord_flags);
+      set_vis();
+      SetupColumn("Scale.y", coord_flags);
+      set_vis();
+      SetupColumn("Scale.z", coord_flags);
+    }
+  }
+}
+
+static int NumberOfCoordinateColumns(bool position, bool rotation,
+                                     bool scaling) {
+  return (static_cast<int>(position) + static_cast<int>(rotation) +
+          static_cast<int>(scaling)) *
+         3;
+}
+
+static void SetupJGPTColumns(bool show_coords) {
+  SetupCoordinateColumns(true, true, false, show_coords);
+  SetupColumn("ID");
+  SetupColumn("Radius");
+}
+
+static int NumJGPTColumns() {
+  return 2 + NumberOfCoordinateColumns(true, true, false);
+}
+
+static void DrawJGPTCells(librii::kmp::RespawnPoint& p) {
+  DrawCoordinateCells(&p.position, &p.rotation);
+
+  {
+    ImGui::TableNextCell();
+    int pli = p.id;
+    ImGui::InputInt("#Index", &pli);
+    p.id = pli;
+  }
+
+  {
+    ImGui::TableNextCell();
+    int pli = p.range;
+    ImGui::InputInt("#Radius", &pli);
+    p.range = pli;
+  }
 }
 
 void LevelEditorWindow::DrawRespawnTable() {
-  if (selection.size()) {
-    auto j = to_json(mKmp->mRespawnPoints[selection.begin()->index]);
-    ImGui::Text(j.c_str());
-  }
-  auto flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings |
-               ImGuiTableFlags_RowBg;
-  if (ImGui::BeginTable("##TBL2", respawn_properties.size() + 2, flags)) {
-    ImGui::TableSetupColumn("Selected");
-    ImGui::TableSetupColumn("Index");
-    for (auto& p : respawn_properties)
-      ImGui::TableSetupColumn(p.name.c_str());
+  bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      (0 * ImGuiTableFlags_Resizable) | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable |
+      ImGuiTableFlags_SizingPolicyFixedX;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##RespawnPoints", 3 + NumJGPTColumns(), flags)) {
+
+    // The first column will use the default _WidthStretch when ScrollX is Off
+    // and _WidthFixed when ScrollX is On
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide |
+                            ImGuiTableColumnFlags_WidthFixed);
+    SetupColumn("ID");
+    SetupJGPTColumns(show_coords);
+    SetupColumn("");
     ImGui::TableAutoHeaders();
 
     for (int i = 0; i < mKmp->mRespawnPoints.size(); ++i) {
-      auto& pt = mKmp->mRespawnPoints[i];
+      auto& p = mKmp->mRespawnPoints[i];
+
       util::IDScope g(i);
 
       ImGui::TableNextRow();
-      ImGui::PushStyleColor(ImGuiCol_FrameBg, 0);
 
-      bool selected = isSelected(&mKmp->mRespawnPoints, i);
-      if (ImGui::Checkbox("##Selected", &selected)) {
+      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mRespawnPoints, i));
+
+      auto str = "Respawn Point #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
         selection.clear();
-        setSelected(&mKmp->mRespawnPoints, i, selected);
+        select(&mKmp->mRespawnPoints, i);
       }
       ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
 
-      ImGui::Text("%i", i);
+      DrawJGPTCells(p);
+
       ImGui::TableNextCell();
-
-      for (auto& p : respawn_properties) {
-        auto bytes = rsl::BytesOf(pt).subspan(p.offset);
-        auto any = rsl::ReadAny(bytes, p.type);
-
-        ImGui::InputDouble(p.name.c_str(), &any.value);
-
-        rsl::WriteAny(bytes, any);
-
-        ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
       }
 
-      ImGui::PopStyleColor();
+      if (op)
+        ImGui::TreePop();
     }
+
     ImGui::EndTable();
   }
+  if (ImGui::Button("Add")) {
+    AddNewToList(mKmp->mRespawnPoints);
+  }
+  TryDeleteFromListAndUpdateSelection(mKmp->mRespawnPoints, delete_index);
+}
+
+static void SetupKTPTColumns(bool show_coords) {
+  SetupCoordinateColumns(true, true, false, show_coords);
+  SetupColumn("Player Index");
+}
+
+static int NumKTPTColumns() {
+  return 1 + NumberOfCoordinateColumns(true, true, false);
+}
+
+static void DrawKTPTCells(librii::kmp::StartPoint& p) {
+  DrawCoordinateCells(&p.position, &p.rotation);
+
+  {
+    ImGui::TableNextCell();
+    int pli = p.player_index;
+    ImGui::InputInt("#PlIdx", &pli);
+    p.player_index = pli;
+  }
+}
+
+void LevelEditorWindow::DrawStartPointTable() {
+  bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##StartPoints", 3 + NumKTPTColumns(), flags)) {
+
+    // The first column will use the default _WidthStretch when ScrollX is Off
+    // and _WidthFixed when ScrollX is On
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+    SetupKTPTColumns(show_coords);
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < mKmp->mStartPoints.size(); ++i) {
+      auto& p = mKmp->mStartPoints[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mStartPoints, i));
+
+      auto str = "Start Point #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
+        selection.clear();
+        select(&mKmp->mStartPoints, i);
+      }
+      ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
+
+      DrawKTPTCells(p);
+
+      ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
+      }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+  if (ImGui::Button("Add")) {
+    mKmp->mStartPoints.emplace_back();
+  }
+  if (delete_index >= 0) {
+    if (isSelected(&mKmp->mStartPoints, delete_index))
+      selection.clear();
+    mKmp->mStartPoints.erase(mKmp->mStartPoints.begin() + delete_index);
+  }
+}
+
+static void SetupAREAColumns(bool show_coords) {
+  SetupCoordinateColumns(true, true, true, show_coords);
+  SetupColumn("Type");
+  SetupColumn("Camera Index");
+  SetupColumn("Priority");
+  SetupColumn("Param[0]");
+  SetupColumn("Param[1]");
+  SetupColumn("RailID");
+  SetupColumn("EnemyLinkID");
+}
+
+static int NumAREAColumns() {
+  return 7 + NumberOfCoordinateColumns(true, true, true);
+}
+
+static void DrawAREACells(librii::kmp::Area& p) {
+  DrawCoordinateCells(&p.mModel.mPosition, &p.mModel.mRotation,
+                      &p.mModel.mScaling);
+
+  {
+    ImGui::TableNextCell();
+    const char* area_types = "Camera\0"
+                             "EffectController\0"
+                             "FogController\0"
+                             "PullController\0"
+                             "EnemyFall\0"
+                             "MapArea2D\0"
+                             "SoundController\0"
+                             "TeresaController\0"
+                             "ObjClipClassifier\0"
+                             "ObjClipDiscriminator\0"
+                             "PlayerBoundary\0"
+                             "[MK7]\0";
+    int tmp = static_cast<int>(p.mType);
+    ImGui::Combo("Type", &tmp, area_types);
+    p.mType = static_cast<librii::kmp::AreaType>(tmp);
+  }
+  {
+    ImGui::TableNextCell();
+
+    int cam_idx = p.mCameraIndex;
+    ImGui::InputInt("#CamIdx", &cam_idx);
+    p.mCameraIndex = cam_idx;
+  }
+
+  {
+    ImGui::TableNextCell();
+
+    int tmp = p.mPriority;
+    ImGui::InputInt("#Prio", &tmp);
+    p.mPriority = tmp;
+  }
+
+  {
+    ImGui::TableNextCell();
+
+    int tmp = p.mParameters[0];
+    ImGui::InputInt("#Param0", &tmp);
+    p.mParameters[0] = tmp;
+  }
+  {
+    ImGui::TableNextCell();
+
+    int tmp = p.mParameters[1];
+    ImGui::InputInt("#Param1", &tmp);
+    p.mParameters[1] = tmp;
+  }
+
+  {
+    ImGui::TableNextCell();
+
+    int tmp = p.mRailID;
+    ImGui::InputInt("#RailID", &tmp);
+    p.mRailID = tmp;
+  }
+
+  {
+    ImGui::TableNextCell();
+
+    int tmp = p.mEnemyLinkID;
+    ImGui::InputInt("#EnemyLinkID", &tmp);
+    p.mEnemyLinkID = tmp;
+  }
+}
+
+void LevelEditorWindow::DrawAreaTable() {
+  bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##AreaTable2", 2 + NumAREAColumns() + 1, flags)) {
+
+    // The first column will use the default _WidthStretch when ScrollX is Off
+    // and _WidthFixed when ScrollX is On
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+
+    SetupAREAColumns(show_coords);
+
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < mKmp->mAreas.size(); ++i) {
+      auto& p = mKmp->mAreas[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mAreas, i));
+
+      auto str = "Area #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
+        selection.clear();
+        select(&mKmp->mAreas, i);
+      }
+      ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
+
+      DrawAREACells(p);
+
+      ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
+      }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+  if (ImGui::Button("Add")) {
+    mKmp->mAreas.emplace_back();
+  }
+  if (delete_index >= 0) {
+    if (isSelected(&mKmp->mAreas, delete_index))
+      selection.clear();
+    mKmp->mAreas.erase(mKmp->mAreas.begin() + delete_index);
+  }
+}
+
+static void SetupCNPTColumns(bool show_coords) {
+  SetupCoordinateColumns(true, true, false, show_coords);
+  SetupColumn("Effect");
+}
+
+static int NumCNPTColumns() {
+  return 1 + NumberOfCoordinateColumns(true, true, false);
+}
+
+static void DrawCNPTCells(librii::kmp::Cannon& p) {
+  DrawCoordinateCells(&p.mPosition, &p.mRotation);
+
+  {
+    ImGui::TableNextCell();
+    const char* area_types = "Linear\0"
+                             "CurvedA\0"
+                             "CurvedB\0";
+    int tmp = static_cast<int>(p.mType);
+    ImGui::Combo("Effect", &tmp, area_types);
+    p.mType = static_cast<librii::kmp::CannonType>(tmp);
+  }
+}
+
+void LevelEditorWindow::DrawCannonTable() {
+  bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##CannonTable2", 2 + NumCNPTColumns() + 1, flags)) {
+    // The first column will use the default _WidthStretch when ScrollX is Off
+    // and _WidthFixed when ScrollX is On
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < mKmp->mCannonPoints.size(); ++i) {
+      auto& p = mKmp->mCannonPoints[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mCannonPoints, i));
+
+      auto str = "Cannon #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
+        selection.clear();
+        select(&mKmp->mCannonPoints, i);
+      }
+      ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
+
+      DrawCNPTCells(p);
+
+      ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
+      }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+
+  if (ImGui::Button("Add")) {
+    AddNewToList(mKmp->mCannonPoints);
+  }
+  TryDeleteFromListAndUpdateSelection(mKmp->mCannonPoints, delete_index);
+}
+
+static void SetupMSPTColumns(bool show_coords) {
+  SetupCoordinateColumns(true, true, false, show_coords);
+  SetupColumn("LowID");
+  SetupColumn("FieldB");
+}
+
+static int NumMSPTColumns() {
+  return 2 + NumberOfCoordinateColumns(true, true, false);
+}
+
+static void DrawMSPTCells(librii::kmp::MissionPoint& p) {
+  DrawCoordinateCells(&p.position, &p.rotation);
+
+  {
+    ImGui::TableNextCell();
+    int tmp = static_cast<int>(p.id);
+    ImGui::InputInt("ID", &tmp);
+    p.id = tmp;
+  }
+  {
+    ImGui::TableNextCell();
+    int tmp = static_cast<int>(p.unknown);
+    ImGui::InputInt("Unk", &tmp);
+    p.unknown = tmp;
+  }
+}
+
+void LevelEditorWindow::DrawMissionTable() {
+  bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##MissionTable2", NumMSPTColumns() + 3, flags)) {
+
+    // The first column will use the default _WidthStretch when ScrollX is Off
+    // and _WidthFixed when ScrollX is On
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+    SetupMSPTColumns(show_coords);
+
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < mKmp->mMissionPoints.size(); ++i) {
+      auto& p = mKmp->mMissionPoints[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mMissionPoints, i));
+
+      auto str = "Cannon #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
+        selection.clear();
+        select(&mKmp->mCannonPoints, i);
+      }
+      ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
+
+      DrawMSPTCells(p);
+
+      ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
+      }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+
+  if (ImGui::Button("Add")) {
+    AddNewToList(mKmp->mMissionPoints);
+  }
+  TryDeleteFromListAndUpdateSelection(mKmp->mMissionPoints, delete_index);
+}
+
+static void SetupSTGIColumns() {
+  SetupColumn("LapCount");
+  SetupColumn("Corner");
+  SetupColumn("StartPosition");
+  SetupColumn("FlareTobi");
+  SetupColumn("FlareColor");
+  SetupColumn("mUnk08");
+  SetupColumn("SpeedMod");
+}
+
+static int NumSTGIColumns() { return 7; }
+
+static void DrawSTGICells(librii::kmp::Stage& p) {
+  {
+    ImGui::TableNextCell();
+    int tmp = static_cast<int>(p.mLapCount);
+    ImGui::InputInt("LapCount", &tmp, 1, 2);
+    p.mLapCount = tmp;
+  }
+  {
+    ImGui::TableNextCell();
+    int tmp = static_cast<int>(p.mCorner);
+    const char* combo_opts = "Left\0"
+                             "Right\0";
+    ImGui::Combo("Corner", &tmp, combo_opts);
+    p.mCorner = static_cast<librii::kmp::Corner>(tmp);
+  }
+  {
+    ImGui::TableNextCell();
+    int tmp = static_cast<int>(p.mStartPosition);
+    const char* combo_opts = "Standard\0"
+                             "Near\0";
+    ImGui::Combo("StartPosition", &tmp, combo_opts);
+    p.mStartPosition = static_cast<librii::kmp::StartPosition>(tmp);
+  }
+  {
+    ImGui::TableNextCell();
+    bool tmp = static_cast<bool>(p.mFlareTobi);
+
+    if (ImGui::Checkbox("FlareTobi", &tmp))
+      p.mFlareTobi = tmp;
+  }
+  {
+    ImGui::TableNextCell();
+
+    auto tmp = librii::kmp::DecodeLensFlareOpts(p.mLensFlareOptions);
+
+    const u32 flags = ImGuiColorEditFlags_NoInputs |
+                      ImGuiColorEditFlags_AlphaBar |
+                      ImGuiColorEditFlags__OptionsDefault;
+    if (ImGui::ColorEdit4("FlareColor", tmp.data(), flags)) {
+      p.mLensFlareOptions = librii::kmp::EncodeLensFlareOpts(tmp);
+    }
+  }
+  {
+    ImGui::TableNextCell();
+    int tmp = p.mUnk08;
+
+    if (ImGui::InputInt("mUnk08", &tmp))
+      p.mUnk08 = tmp;
+  }
+  {
+    ImGui::TableNextCell();
+    float tmp = librii::kmp::DecodeTruncatedBigFloat(p.mSpeedModifier);
+
+    if (ImGui::InputFloat("SpeedMod", &tmp))
+      p.mSpeedModifier = librii::kmp::EncodeTruncatedBigFloat(tmp);
+  }
+}
+
+void LevelEditorWindow::DrawStages() {
+  // bool show_coords_changed = ImGui::Checkbox("Show coordinates?",
+  // &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##StageTable2", 2 + NumSTGIColumns() + 1, flags)) {
+
+    // The first column will use the default _WidthStretch when ScrollX is Off
+    // and _WidthFixed when ScrollX is On
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+    SetupSTGIColumns();
+
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < mKmp->mStages.size(); ++i) {
+      auto& p = mKmp->mStages[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mStages, i));
+
+      auto str = "Stage #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
+        selection.clear();
+        select(&mKmp->mStages, i);
+      }
+      ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
+
+      DrawSTGICells(p);
+
+      ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
+      }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+
+  if (ImGui::Button("Add")) {
+    AddNewToList(mKmp->mStages);
+  }
+  TryDeleteFromListAndUpdateSelection(mKmp->mStages, delete_index);
+}
+
+// NOTE: Reused for ITPH/CKPH
+static void SetupENPHColumns() {
+  for (int i = 0; i < 6; ++i) {
+    std::string str = "Pred #" + std::to_string(i);
+    SetupColumn(str.c_str(), 0, ImGui::GetFontSize() * 4);
+  }
+  for (int i = 0; i < 6; ++i) {
+    std::string str = "Succ #" + std::to_string(i);
+    SetupColumn(str.c_str(), 0, ImGui::GetFontSize() * 4);
+  }
+  for (int i = 0; i < 2; ++i) {
+    std::string str = "Misc #" + std::to_string(i);
+    SetupColumn(str.c_str(), 0, ImGui::GetFontSize() * 4);
+  }
+}
+
+// NOTE: Reused for ITPH/CKPH
+static int NumENPHColumns() { return 6 + 6 + 2; }
+
+// NOTE: Reused for ITPH/CKPH
+template <typename T>
+static void DrawENPHCells(librii::kmp::DirectedGraph<T>& p) {
+  for (int j = 0; j < 6; ++j) {
+    ImGui::TableNextCell();
+    util::IDScope g(j);
+    util::ConditionalHighlight g2(j < p.mPredecessors.size() &&
+                                  p.mPredecessors[j] != 0xFF);
+
+    int tmp = j >= p.mPredecessors.size() ? -1 : p.mPredecessors[j];
+    if (ImGui::InputInt("Pred", &tmp)) {
+      if (j >= p.mPredecessors.size())
+        p.mPredecessors.resize(j + 1);
+      p.mPredecessors[j] = tmp;
+    }
+  }
+
+  for (int j = 0; j < 6; ++j) {
+    ImGui::TableNextCell();
+    util::IDScope g(j);
+    util::ConditionalHighlight g2(j < p.mSuccessors.size() &&
+                                  p.mSuccessors[j] != 0xFF);
+
+    int tmp = j >= p.mSuccessors.size() ? -1 : p.mSuccessors[j];
+    if (ImGui::InputInt("Succ", &tmp)) {
+      if (j >= p.mSuccessors.size())
+        p.mSuccessors.resize(j + 1);
+      p.mSuccessors[j] = tmp;
+    }
+  }
+
+  for (int j = 0; j < 2; ++j) {
+    ImGui::TableNextCell();
+    util::IDScope g(j);
+
+    int tmp = p.misc[j];
+    if (ImGui::InputInt("UserData", &tmp))
+      p.misc[j] = tmp;
+  }
+}
+
+void LevelEditorWindow::DrawEnemyPathTable() {
+  // bool show_coords_changed = ImGui::Checkbox("Show coordinates?",
+  // &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##EnemyPathTable", NumENPHColumns() + 3, flags)) {
+
+    // The first column will use the default _WidthStretch when ScrollX is Off
+    // and _WidthFixed when ScrollX is On
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+
+    SetupENPHColumns();
+
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < mKmp->mEnemyPaths.size(); ++i) {
+      auto& p = mKmp->mEnemyPaths[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mEnemyPaths, i));
+
+      auto str = "EnemyPath #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
+        selection.clear();
+        select(&mKmp->mEnemyPaths, i);
+      }
+      ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
+
+      DrawENPHCells(p);
+
+      ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
+      }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+
+  if (ImGui::Button("Add")) {
+    AddNewToList(mKmp->mEnemyPaths);
+  }
+  TryDeleteFromListAndUpdateSelection(mKmp->mEnemyPaths, delete_index);
+}
+
+static void SetupITPHColumns() { SetupENPHColumns(); }
+static int NumITPHColumns() { return NumENPHColumns(); }
+static void DrawITPHCells(librii::kmp::ItemPath& p) { DrawENPHCells(p); }
+
+void LevelEditorWindow::DrawItemPathTable() {
+  // bool show_coords_changed = ImGui::Checkbox("Show coordinates?",
+  // &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##ItemPathTable", NumITPHColumns() + 3, flags)) {
+
+    // The first column will use the default _WidthStretch when ScrollX is Off
+    // and _WidthFixed when ScrollX is On
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+
+    SetupITPHColumns();
+
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < mKmp->mItemPaths.size(); ++i) {
+      auto& p = mKmp->mItemPaths[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mItemPaths, i));
+
+      auto str = "ItemPath #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
+        selection.clear();
+        select(&mKmp->mItemPaths, i);
+      }
+      ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
+
+      DrawITPHCells(p);
+
+      ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
+      }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+
+  if (ImGui::Button("Add")) {
+    AddNewToList(mKmp->mItemPaths);
+  }
+  TryDeleteFromListAndUpdateSelection(mKmp->mItemPaths, delete_index);
+}
+
+static void SetupCKPHColumns() { SetupENPHColumns(); }
+static int NumCKPHColumns() { return NumENPHColumns(); }
+static void DrawCKPHCells(librii::kmp::CheckPath& p) { DrawENPHCells(p); }
+
+void LevelEditorWindow::DrawCheckPathTable() {
+  // bool show_coords_changed = ImGui::Checkbox("Show coordinates?",
+  // &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##CheckPathTable", NumCKPHColumns() + 3, flags)) {
+
+    // The first column will use the default _WidthStretch when ScrollX is Off
+    // and _WidthFixed when ScrollX is On
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+
+    SetupCKPHColumns();
+
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < mKmp->mCheckPaths.size(); ++i) {
+      auto& p = mKmp->mCheckPaths[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mCheckPaths, i));
+
+      auto str = "CheckPaths #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
+        selection.clear();
+        select(&mKmp->mCheckPaths, i);
+      }
+      ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
+
+      DrawCKPHCells(p);
+
+      ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
+      }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+
+  if (ImGui::Button("Add")) {
+    AddNewToList(mKmp->mCheckPaths);
+  }
+  TryDeleteFromListAndUpdateSelection(mKmp->mCheckPaths, delete_index);
+}
+
+static void SetupENPTColumns(bool show_coords) {
+  SetupCoordinateColumns(true, false, false, show_coords);
+  SetupColumn("Radius");
+  SetupColumn("Param[0]");
+  SetupColumn("Param[1]");
+  SetupColumn("Param[2]");
+  SetupColumn("Param[3]");
+}
+
+static int NumENPTColumns() {
+  return NumberOfCoordinateColumns(true, false, false) + 5;
+}
+
+static void DrawENPTCells(librii::kmp::EnemyPoint& p) {
+  DrawCoordinateCells(&p.position);
+
+  {
+    ImGui::TableNextCell();
+    ImGui::InputFloat("Radius", &p.deviation);
+  }
+
+  for (int j = 0; j < 4; ++j) {
+    ImGui::TableNextCell();
+    util::IDScope g(j);
+
+    int tmp = static_cast<int>(p.param[j]);
+    if (ImGui::InputInt("Param", &tmp))
+      p.param[j] = tmp;
+  }
+}
+
+void LevelEditorWindow::DrawEnemyPointTable(librii::kmp::EnemyPath& path) {
+  bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##EnemyPointTable", 2 + NumENPTColumns() + 1, flags)) {
+
+    // The first column will use the default _WidthStretch when ScrollX is Off
+    // and _WidthFixed when ScrollX is On
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+
+    SetupENPTColumns(show_coords);
+
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < path.mPoints.size(); ++i) {
+      auto& p = path.mPoints[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      auto d = X::RAIICustomSelectable(isSelected(&path.mPoints, i));
+
+      auto str = "Point #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
+        selection.clear();
+        select(&path.mPoints, i);
+      }
+      ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
+
+      DrawENPTCells(p);
+
+      ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
+      }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+
+  if (ImGui::Button("Add")) {
+    AddNewToList(path.mPoints);
+  }
+  TryDeleteFromListAndUpdateSelection(path.mPoints, delete_index);
+}
+
+static void SetupITPTColumns(bool show_coords) {
+  SetupCoordinateColumns(true, false, false, show_coords);
+  SetupColumn("Radius");
+  SetupColumn("Param[0]");
+  SetupColumn("Param[1]");
+  SetupColumn("Param[2]");
+  SetupColumn("Param[3]");
+}
+
+static int NumITPTColumns() {
+  return NumberOfCoordinateColumns(true, false, false) + 5;
+}
+
+static void DrawITPTCells(librii::kmp::ItemPoint& p) {
+  DrawCoordinateCells(&p.position);
+
+  {
+    ImGui::TableNextCell();
+    ImGui::InputFloat("Radius", &p.deviation);
+  }
+
+  for (int j = 0; j < 4; ++j) {
+    ImGui::TableNextCell();
+    util::IDScope g(j);
+
+    int tmp = static_cast<int>(p.param[j]);
+    if (ImGui::InputInt("Param", &tmp))
+      p.param[j] = tmp;
+  }
+}
+
+void LevelEditorWindow::DrawItemPointTable(librii::kmp::ItemPath& path) {
+  bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##ItemPointTable", 2 + NumITPTColumns() + 1, flags)) {
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+    SetupENPTColumns(show_coords);
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < path.mPoints.size(); ++i) {
+      auto& p = path.mPoints[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      auto d = X::RAIICustomSelectable(isSelected(&path.mPoints, i));
+
+      auto str = "Point #" + std::to_string(i);
+      bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+      if (X::IsNodeSwitchedTo()) {
+        selection.clear();
+        select(&path.mPoints, i);
+      }
+      ImGui::TableNextCell();
+      ImGui::Text("%i", static_cast<int>(i));
+
+      DrawITPTCells(p);
+
+      ImGui::TableNextCell();
+      if (ImGui::Button("Delete")) {
+        delete_index = i;
+      }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+
+  if (ImGui::Button("Add")) {
+    AddNewToList(path.mPoints);
+  }
+  TryDeleteFromListAndUpdateSelection(path.mPoints, delete_index);
 }
 
 void LevelEditorWindow::draw_() {
@@ -287,7 +1348,7 @@ void LevelEditorWindow::draw_() {
 
     ImGui::EndMenuBar();
   }
-  if (ImGui::Begin("Hi")) {
+  if (Begin(".szs", nullptr, 0, this)) {
     auto clicked = GatherNodes(mLevel.root_archive);
     if (clicked.has_value()) {
       auto* pParent = frontend::RootWindow::spInstance;
@@ -298,7 +1359,7 @@ void LevelEditorWindow::draw_() {
   }
   ImGui::End();
 
-  if (ImGui::Begin("View", nullptr, ImGuiWindowFlags_MenuBar)) {
+  if (Begin("View", nullptr, ImGuiWindowFlags_MenuBar, this)) {
     auto bounds = ImGui::GetWindowSize();
     if (mViewport.begin(static_cast<u32>(bounds.x),
                         static_cast<u32>(bounds.y))) {
@@ -309,7 +1370,10 @@ void LevelEditorWindow::draw_() {
   }
   ImGui::End();
 
-  if (ImGui::Begin("Tree", nullptr, ImGuiWindowFlags_MenuBar)) {
+  if (mKmp == nullptr)
+    return;
+
+  if (Begin("Tree", nullptr, ImGuiWindowFlags_MenuBar, this)) {
     static ImGuiTableFlags flags =
         ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
         ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg;
@@ -321,10 +1385,9 @@ void LevelEditorWindow::draw_() {
     if (ImGui::BeginTable("##3ways", 2, flags)) {
       // The first column will use the default _WidthStretch when ScrollX is Off
       // and _WidthFixed when ScrollX is On
-      ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
-      ImGui::TableSetupColumn("Children", ImGuiTableColumnFlags_WidthFixed,
-                              ImGui::GetFontSize() * 6);
-      // ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed,
+      SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+      SetupColumn("ID");
+      // SetupColumn("Type", ImGuiTableColumnFlags_WidthFixed,
       //                        ImGui::GetFontSize() * 10);
       ImGui::TableAutoHeaders();
 
@@ -359,7 +1422,6 @@ void LevelEditorWindow::draw_() {
         }
 
         if (has_child) {
-
           for (int i = 0; i < mKmp->mEnemyPaths.size(); ++i) {
             ImGui::TableNextRow();
 
@@ -382,33 +1444,77 @@ void LevelEditorWindow::draw_() {
       }
 
       {
-        ImGui::TableNextRow();
+        bool has_child = false;
+        {
+          ImGui::TableNextRow();
+          auto d = X::RAIICustomSelectable(mPage == Page::ItemPaths);
 
-        bool b = X::BeginCustomSelectable(mPage == Page::ItemPaths);
-        if (ImGui::TreeNodeEx("Item Paths", ImGuiTreeNodeFlags_Leaf)) {
+          has_child = ImGui::TreeNodeEx("Item Paths", 0);
           if (X::IsNodeSwitchedTo()) {
             mPage = Page::ItemPaths;
           }
+
+          ImGui::TableNextCell();
+          ImGui::Text("%i", static_cast<int>(mKmp->mItemPaths.size()));
+        }
+
+        if (has_child) {
+          for (int i = 0; i < mKmp->mItemPaths.size(); ++i) {
+            ImGui::TableNextRow();
+
+            auto d = X::RAIICustomSelectable(mPage == Page::ItemPaths_Sub &&
+                                             mSubPageID == i);
+
+            std::string node_s = "Item Path #" + std::to_string(i);
+            if (ImGui::TreeNodeEx(node_s.c_str(), ImGuiTreeNodeFlags_Leaf)) {
+              ImGui::TreePop();
+            }
+
+            if (X::IsNodeSwitchedTo()) {
+              mPage = Page::ItemPaths_Sub;
+              mSubPageID = i;
+            }
+          }
+
           ImGui::TreePop();
         }
-        ImGui::TableNextCell();
-        ImGui::Text("%i", static_cast<int>(mKmp->mItemPaths.size()));
-        X::EndCustomSelectable(b);
       }
 
       {
-        ImGui::TableNextRow();
+        bool has_child = false;
+        {
+          ImGui::TableNextRow();
+          auto d = X::RAIICustomSelectable(mPage == Page::CheckPaths);
 
-        bool b = X::BeginCustomSelectable(mPage == Page::CheckPaths);
-        if (ImGui::TreeNodeEx("Checkpoints", ImGuiTreeNodeFlags_Leaf)) {
+          has_child = ImGui::TreeNodeEx("CheckPaths", 0);
           if (X::IsNodeSwitchedTo()) {
-            mPage = Page::CheckPaths;
+            mPage = Page::ItemPaths;
           }
+
+          ImGui::TableNextCell();
+          ImGui::Text("%i", static_cast<int>(mKmp->mCheckPaths.size()));
+        }
+
+        if (has_child) {
+          for (int i = 0; i < mKmp->mCheckPaths.size(); ++i) {
+            ImGui::TableNextRow();
+
+            auto d = X::RAIICustomSelectable(mPage == Page::CheckPaths_Sub &&
+                                             mSubPageID == i);
+
+            std::string node_s = "CheckPath #" + std::to_string(i);
+            if (ImGui::TreeNodeEx(node_s.c_str(), ImGuiTreeNodeFlags_Leaf)) {
+              ImGui::TreePop();
+            }
+
+            if (X::IsNodeSwitchedTo()) {
+              mPage = Page::CheckPaths_Sub;
+              mSubPageID = i;
+            }
+          }
+
           ImGui::TreePop();
         }
-        ImGui::TableNextCell();
-        ImGui::Text("%i", static_cast<int>(mKmp->mCheckPaths.size()));
-        X::EndCustomSelectable(b);
       }
 
       {
@@ -538,16 +1644,60 @@ void LevelEditorWindow::draw_() {
   }
   ImGui::End();
 
-  if (ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_MenuBar)) {
+  if (Begin("Properties", nullptr, ImGuiWindowFlags_MenuBar, this)) {
     switch (mPage) {
     case Page::StartPoints:
+      DrawStartPointTable();
+      break;
+    case Page::EnemyPaths:
+      DrawEnemyPathTable();
+      break;
+    case Page::EnemyPaths_Sub:
+      if (mKmp && mSubPageID >= 0 && mSubPageID < mKmp->mEnemyPaths.size()) {
+        DrawEnemyPointTable(mKmp->mEnemyPaths[mSubPageID]);
+      }
+      break;
+    case Page::ItemPaths:
+      DrawItemPathTable();
+      break;
+    case Page::CheckPaths:
+      DrawCheckPathTable();
+      break;
+    case Page::Areas:
+      DrawAreaTable();
       break;
     case Page::Respawns:
       DrawRespawnTable();
       break;
+    case Page::Cannons:
+      DrawCannonTable();
+      break;
+    case Page::MissionPoints:
+      DrawMissionTable();
+      break;
+    case Page::Stages:
+      DrawStages();
+      break;
     }
   }
   ImGui::End();
+}
+
+ImGuiID LevelEditorWindow::buildDock(ImGuiID root_id) {
+  ImGuiID next = root_id;
+  ImGuiID dock_right_id =
+      ImGui::DockBuilderSplitNode(next, ImGuiDir_Right, 0.4f, nullptr, &next);
+  ImGuiID dock_left_id =
+      ImGui::DockBuilderSplitNode(next, ImGuiDir_Left, 0.2f, nullptr, &next);
+  ImGuiID dock_right_down_id = ImGui::DockBuilderSplitNode(
+      dock_right_id, ImGuiDir_Down, 0.7f, nullptr, &dock_right_id);
+
+  ImGui::DockBuilderDockWindow(idIfyChild("Tree").c_str(), dock_right_id);
+  ImGui::DockBuilderDockWindow(idIfyChild("Properties").c_str(),
+                               dock_right_down_id);
+  ImGui::DockBuilderDockWindow(idIfyChild(".szs").c_str(), dock_left_id);
+  ImGui::DockBuilderDockWindow(idIfyChild("View").c_str(), next);
+  return next;
 }
 
 void PushCube(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
@@ -820,7 +1970,7 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
     }
   }
 
-  if (disp_opts.show_kcl) {
+  if (disp_opts.show_kcl && mCourseKcl) {
     // Z sort
     if (disp_opts.xlu_mode == XluMode::Fancy) {
       mTriangleRenderer.sortTriangles(viewMtx);

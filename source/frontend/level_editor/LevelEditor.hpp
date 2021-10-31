@@ -53,6 +53,12 @@ struct RenderOptions {
   };
 
   float kcl_alpha = 0.5f;
+
+  void init(librii::kcol::KCollisionData& kcl) {
+    for (const auto& prism : kcl.prism_data) {
+      target_attr_all.enable(prism.attribute & 31);
+    }
+  }
 };
 
 struct Level {
@@ -98,9 +104,18 @@ struct Selection {
   }
 };
 
+class KmpHistory {
+public:
+  void init(librii::kmp::CourseMap& map) { mLedger.update(map); }
+  void update(librii::kmp::CourseMap& map) { mLedger.update(map); }
+
+private:
+  AutoHistory<librii::kmp::CourseMap> mLedger;
+};
+
 class LevelEditorWindow : public frontend::StudioWindow, private Selection {
 public:
-  LevelEditorWindow() : StudioWindow("Level Editor", true) {
+  LevelEditorWindow() : StudioWindow("Level Editor: <unknown>", true) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
 
@@ -108,10 +123,26 @@ public:
   void saveFile(std::string path);
 
   void draw_() override;
+  ImGuiID buildDock(ImGuiID root_id) override;
 
   void drawScene(u32 width, u32 height);
 
   void DrawRespawnTable();
+  void DrawStartPointTable();
+  void DrawAreaTable();
+  void DrawCameraTable();
+  void DrawCannonTable();
+  void DrawMissionTable();
+  void DrawStages();
+
+  void DrawEnemyPathTable();
+  void DrawEnemyPointTable(librii::kmp::EnemyPath& path);
+
+  void DrawItemPathTable();
+  void DrawItemPointTable(librii::kmp::ItemPath& path);
+
+  void DrawCheckPathTable();
+  void DrawCheckPointTable(librii::kmp::CheckPath& path);
 
   Level mLevel;
   plate::tk::Viewport mViewport;
@@ -129,7 +160,7 @@ public:
   TriangleRenderer mTriangleRenderer;
 
   std::unique_ptr<librii::kmp::CourseMap> mKmp;
-  AutoHistory<librii::kmp::CourseMap> mKmpHistory;
+  KmpHistory mKmpHistory;
 
   RenderOptions disp_opts;
 
@@ -138,7 +169,9 @@ public:
     EnemyPaths,
     EnemyPaths_Sub,
     ItemPaths,
+    ItemPaths_Sub,
     CheckPaths,
+    CheckPaths_Sub,
     Objects,
     Paths,
     Areas,
@@ -166,6 +199,19 @@ public:
   SelectedObjectTransformEdit mSelectedObjectTransformEdit;
 
   std::string mErrDisp;
+
+  // For tables
+  bool show_coords = false;
+
+  template <typename T> void AddNewToList(T& t) { t.emplace_back(); }
+  template <typename T>
+  void TryDeleteFromListAndUpdateSelection(T& t, int delete_index) {
+    if (delete_index >= 0) {
+      if (isSelected(&t, delete_index))
+        selection.clear();
+      t.erase(t.begin() + delete_index);
+    }
+  }
 };
 
 } // namespace riistudio::lvl

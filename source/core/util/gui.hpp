@@ -102,4 +102,28 @@ inline void PopErrorStyle() {
   ImGui::SetWindowFontScale(1.0f);
 }
 
+inline ImGuiTableColumn* GetNextColumn() {
+  ImGuiContext& g = *ImGui::GetCurrentContext();
+  ImGuiTable* table = g.CurrentTable;
+  IM_ASSERT(table != NULL &&
+            "Need to call TableSetupColumn() after BeginTable()!");
+  IM_ASSERT(!table->IsLayoutLocked &&
+            "Need to call call TableSetupColumn() before first row!");
+  IM_ASSERT(table->DeclColumnsCount >= 0 &&
+            table->DeclColumnsCount < table->ColumnsCount &&
+            "Called TableSetupColumn() too many times!");
+
+  ImGuiTableColumn* column = &table->Columns[table->DeclColumnsCount];
+  IM_ASSERT(column);
+
+  return column;
+}
+
+inline void SetNextColumnVisible(bool shown) {
+  auto* column = GetNextColumn();
+
+  column->IsVisible = shown;
+  column->IsVisibleNextFrame = shown;
+}
+
 } // namespace riistudio::util
