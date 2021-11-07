@@ -117,6 +117,9 @@ class LevelEditorWindow : public frontend::StudioWindow, private Selection {
 public:
   LevelEditorWindow() : StudioWindow("Level Editor: <unknown>", true) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
+
+    mRenderSettings.mCameraController.combo_choice_cam =
+        frontend::CameraController::ControllerType::WASD_Plane;
   }
 
   void openFile(std::span<const u8> buf, std::string path);

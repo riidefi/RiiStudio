@@ -1838,7 +1838,7 @@ struct Manipulator {
 };
 
 void LevelEditorWindow::drawScene(u32 width, u32 height) {
-  mRenderSettings.drawMenuBar();
+  mRenderSettings.drawMenuBar(false, false);
 
   // if (ImGui::BeginMenuBar()) {
   DrawRenderOptions(disp_opts);

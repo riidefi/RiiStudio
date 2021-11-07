@@ -23,7 +23,7 @@ const char* GetGlVersion() {
   return version.c_str();
 }
 
-void RenderSettings::drawMenuBar() {
+void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
   if (ImGui::BeginMenuBar()) {
     if (ImGui::BeginMenu("Camera"_j)) {
       mCameraController.drawOptions();
@@ -32,18 +32,22 @@ void RenderSettings::drawMenuBar() {
     }
     if (ImGui::BeginMenu("Rendering"_j)) {
       ImGui::Checkbox("Render Scene?"_j, &rend);
-      if (librii::glhelper::IsGlWireframeSupported())
+      if (draw_wireframe && librii::glhelper::IsGlWireframeSupported())
         ImGui::Checkbox("Wireframe Mode"_j, &wireframe);
       ImGui::EndMenu();
     }
 
-    ImGui::SetNextItemWidth(200.0f);
-    mCameraController.drawControllerTypeOption();
+    if (draw_controller) {
+      ImGui::SetNextItemWidth(200.0f);
+      mCameraController.drawControllerTypeOption();
+    }
+
     ImGui::SetNextItemWidth(200.0f);
     mCameraController.drawProjectionOption();
 
-    if (librii::glhelper::IsGlWireframeSupported())
+    if (draw_wireframe && librii::glhelper::IsGlWireframeSupported()) {
       ImGui::Checkbox("Wireframe", &wireframe);
+    }
 
     {
       util::ConditionalActive a(false);

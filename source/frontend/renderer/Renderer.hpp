@@ -20,7 +20,7 @@ struct RenderSettings {
   bool rend = true;
   bool wireframe = false;
 
-  void drawMenuBar();
+  void drawMenuBar(bool draw_controller=true, bool draw_wireframe=true);
 };
 
 class Renderer {
