@@ -255,6 +255,33 @@ static void DrawCoordinateCells(glm::vec3* position,
     ImGui::InputFloat("#SclZ", &scale->z);
   }
 }
+static void DrawCoordinateCells(glm::vec2* position,
+                                glm::vec2* rotation = nullptr,
+                                glm::vec2* scale = nullptr) {
+  if (position != nullptr) {
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#PosX", &position->x);
+
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#PosY", &position->y);
+  }
+
+  if (rotation != nullptr) {
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#RotX", &rotation->x);
+
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#RotY", &rotation->y);
+  }
+
+  if (scale != nullptr) {
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#SclX", &scale->x);
+
+    ImGui::TableNextCell();
+    ImGui::InputFloat("#SclY", &scale->y);
+  }
+}
 
 static void SetupCoordinateColumns(bool position, bool rotation, bool scaling,
                                    bool show_coords,
@@ -297,11 +324,53 @@ static void SetupCoordinateColumns(bool position, bool rotation, bool scaling,
   }
 }
 
+static void SetupCoordinateColumns_vec2(bool position, bool rotation,
+                                        bool scaling, bool show_coords,
+                                        bool show_coords_changed = true) {
+  // First time this is drawn, show_coords_changed will be false, so we rely
+  // on the flag
+  u32 coord_flags = show_coords ? 0 : ImGuiTableColumnFlags_DefaultHide;
+  {
+    auto set_vis = [&] {
+      // if (show_coords_changed)
+      util::SetNextColumnVisible(show_coords);
+    };
+
+    if (position) {
+      set_vis();
+      SetupColumn("Position.x", coord_flags);
+      set_vis();
+      SetupColumn("Position.y", coord_flags);
+    }
+
+    if (rotation) {
+      set_vis();
+      SetupColumn("Rotation.x", coord_flags);
+      set_vis();
+      SetupColumn("Rotation.y", coord_flags);
+    }
+
+    if (scaling) {
+      set_vis();
+      SetupColumn("Scale.x", coord_flags);
+      set_vis();
+      SetupColumn("Scale.y", coord_flags);
+    }
+  }
+}
+
 static int NumberOfCoordinateColumns(bool position, bool rotation,
                                      bool scaling) {
   return (static_cast<int>(position) + static_cast<int>(rotation) +
           static_cast<int>(scaling)) *
          3;
+}
+
+static int NumberOfCoordinateColumns_vec2(bool position, bool rotation,
+                                          bool scaling) {
+  return (static_cast<int>(position) + static_cast<int>(rotation) +
+          static_cast<int>(scaling)) *
+         2;
 }
 
 static void SetupJGPTColumns(bool show_coords) {
@@ -910,8 +979,8 @@ void LevelEditorWindow::DrawStages() {
   TryDeleteFromListAndUpdateSelection(mKmp->mStages, delete_index);
 }
 
-// NOTE: Reused for ITPH/CKPH
-static void SetupENPHColumns() {
+// NOTE: Reused for ENPH/ITPH/CKPH
+static void SetupPathColumns() {
   for (int i = 0; i < 6; ++i) {
     std::string str = "Pred #" + std::to_string(i);
     SetupColumn(str.c_str(), 0, ImGui::GetFontSize() * 4);
@@ -926,12 +995,15 @@ static void SetupENPHColumns() {
   }
 }
 
-// NOTE: Reused for ITPH/CKPH
-static int NumENPHColumns() { return 6 + 6 + 2; }
+// NOTE: Reused for ENPH/ITPH/CKPH
+static int NumPathColumns() {
+  const int num_links = 6; // Higher in MK7
+  return num_links * 2 /* pred, succ */ + 2 /* user data */;
+}
 
-// NOTE: Reused for ITPH/CKPH
+// NOTE: Reused for ENPH/ITPH/CKPH
 template <typename T>
-static void DrawENPHCells(librii::kmp::DirectedGraph<T>& p) {
+static void DrawPathCells(librii::kmp::DirectedGraph<T>& p) {
   for (int j = 0; j < 6; ++j) {
     ImGui::TableNextCell();
     util::IDScope g(j);
@@ -969,6 +1041,10 @@ static void DrawENPHCells(librii::kmp::DirectedGraph<T>& p) {
       p.misc[j] = tmp;
   }
 }
+
+static void SetupENPHColumns() { SetupPathColumns(); }
+static int NumENPHColumns() { return NumPathColumns(); }
+static void DrawENPHCells(librii::kmp::EnemyPath& p) { DrawPathCells(p); }
 
 void LevelEditorWindow::DrawEnemyPathTable() {
   // bool show_coords_changed = ImGui::Checkbox("Show coordinates?",
@@ -1030,9 +1106,9 @@ void LevelEditorWindow::DrawEnemyPathTable() {
   TryDeleteFromListAndUpdateSelection(mKmp->mEnemyPaths, delete_index);
 }
 
-static void SetupITPHColumns() { SetupENPHColumns(); }
-static int NumITPHColumns() { return NumENPHColumns(); }
-static void DrawITPHCells(librii::kmp::ItemPath& p) { DrawENPHCells(p); }
+static void SetupITPHColumns() { SetupPathColumns(); }
+static int NumITPHColumns() { return NumPathColumns(); }
+static void DrawITPHCells(librii::kmp::ItemPath& p) { DrawPathCells(p); }
 
 void LevelEditorWindow::DrawItemPathTable() {
   // bool show_coords_changed = ImGui::Checkbox("Show coordinates?",
@@ -1094,9 +1170,9 @@ void LevelEditorWindow::DrawItemPathTable() {
   TryDeleteFromListAndUpdateSelection(mKmp->mItemPaths, delete_index);
 }
 
-static void SetupCKPHColumns() { SetupENPHColumns(); }
-static int NumCKPHColumns() { return NumENPHColumns(); }
-static void DrawCKPHCells(librii::kmp::CheckPath& p) { DrawENPHCells(p); }
+static void SetupCKPHColumns() { SetupPathColumns(); }
+static int NumCKPHColumns() { return NumPathColumns(); }
+static void DrawCKPHCells(librii::kmp::CheckPath& p) { DrawPathCells(p); }
 
 void LevelEditorWindow::DrawCheckPathTable() {
   // bool show_coords_changed = ImGui::Checkbox("Show coordinates?",
@@ -1291,7 +1367,7 @@ void LevelEditorWindow::DrawItemPointTable(librii::kmp::ItemPath& path) {
   if (ImGui::BeginTable("##ItemPointTable", 2 + NumITPTColumns() + 1, flags)) {
     SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
     SetupColumn("ID");
-    SetupENPTColumns(show_coords);
+    SetupITPTColumns(show_coords);
     SetupColumn("");
     ImGui::TableAutoHeaders();
 
@@ -1319,6 +1395,107 @@ void LevelEditorWindow::DrawItemPointTable(librii::kmp::ItemPath& path) {
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
+
+      if (op)
+        ImGui::TreePop();
+    }
+
+    ImGui::EndTable();
+  }
+
+  if (ImGui::Button("Add")) {
+    AddNewToList(path.mPoints);
+  }
+  TryDeleteFromListAndUpdateSelection(path.mPoints, delete_index);
+}
+
+static void SetupCKPTColumns(bool show_coords) {
+  SetupCoordinateColumns_vec2(true, false, false, show_coords);
+  SetupCoordinateColumns_vec2(true, false, false, show_coords);
+  SetupColumn("RespawnIndex");
+  SetupColumn("LapCheck");
+}
+
+static int NumCKPTColumns() {
+  return NumberOfCoordinateColumns_vec2(true, false, false) * 2 + 2;
+}
+
+static void DrawCKPTCells(librii::kmp::CheckPoint& p) {
+  DrawCoordinateCells(&p.mLeft);
+  DrawCoordinateCells(&p.mRight);
+
+  {
+    ImGui::TableNextCell();
+
+    int tmp = p.mRespawnIndex;
+    if (ImGui::InputInt("RespawnIndex", &tmp))
+      p.mRespawnIndex = tmp;
+  }
+
+  {
+    ImGui::TableNextCell();
+
+    int tmp = p.mLapCheck;
+    if (ImGui::InputInt("LapCheck", &tmp))
+      p.mLapCheck = tmp;
+  }
+}
+
+static void PushLapCheckStyle() {
+  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 0.0f, 0.0f, 1.0f});
+}
+static void PopLapCheckStyle() { ImGui::PopStyleColor(); }
+
+void LevelEditorWindow::DrawCheckPointTable(librii::kmp::CheckPath& path) {
+  bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
+
+  static ImGuiTableFlags flags =
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
+
+  int delete_index = -1;
+  if (ImGui::BeginTable("##CheckPointTable", 2 + NumCKPTColumns() + 1, flags)) {
+    SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+    SetupColumn("ID");
+    SetupCKPTColumns(show_coords);
+    SetupColumn("");
+    ImGui::TableAutoHeaders();
+
+    for (int i = 0; i < path.mPoints.size(); ++i) {
+      auto& p = path.mPoints[i];
+
+      util::IDScope g(i);
+
+      ImGui::TableNextRow();
+
+      const bool is_lapcheck = librii::kmp::IsLapCheck(p);
+
+      if (is_lapcheck)
+        PushLapCheckStyle();
+
+      bool op;
+      {
+        auto d = X::RAIICustomSelectable(isSelected(&path.mPoints, i));
+
+        auto str = "Point #" + std::to_string(i);
+        op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
+        if (X::IsNodeSwitchedTo()) {
+          selection.clear();
+          select(&path.mPoints, i);
+        }
+        ImGui::TableNextCell();
+        ImGui::Text("%i", static_cast<int>(i));
+
+        DrawCKPTCells(p);
+
+        ImGui::TableNextCell();
+        if (ImGui::Button("Delete")) {
+          delete_index = i;
+        }
+      }
+      if (is_lapcheck)
+        PopLapCheckStyle();
 
       if (op)
         ImGui::TreePop();
@@ -1486,9 +1663,9 @@ void LevelEditorWindow::draw_() {
           ImGui::TableNextRow();
           auto d = X::RAIICustomSelectable(mPage == Page::CheckPaths);
 
-          has_child = ImGui::TreeNodeEx("CheckPaths", 0);
+          has_child = ImGui::TreeNodeEx("Check Paths", 0);
           if (X::IsNodeSwitchedTo()) {
-            mPage = Page::ItemPaths;
+            mPage = Page::CheckPaths;
           }
 
           ImGui::TableNextCell();
@@ -1499,18 +1676,26 @@ void LevelEditorWindow::draw_() {
           for (int i = 0; i < mKmp->mCheckPaths.size(); ++i) {
             ImGui::TableNextRow();
 
-            auto d = X::RAIICustomSelectable(mPage == Page::CheckPaths_Sub &&
-                                             mSubPageID == i);
+            const bool is_lapcheck = IsLapCheck(mKmp->mCheckPaths[i]);
 
-            std::string node_s = "CheckPath #" + std::to_string(i);
-            if (ImGui::TreeNodeEx(node_s.c_str(), ImGuiTreeNodeFlags_Leaf)) {
-              ImGui::TreePop();
-            }
+            if (is_lapcheck)
+              PushLapCheckStyle();
+            {
+              auto d = X::RAIICustomSelectable(mPage == Page::CheckPaths_Sub &&
+                                               mSubPageID == i);
 
-            if (X::IsNodeSwitchedTo()) {
-              mPage = Page::CheckPaths_Sub;
-              mSubPageID = i;
+              std::string node_s = "Check Path #" + std::to_string(i);
+              if (ImGui::TreeNodeEx(node_s.c_str(), ImGuiTreeNodeFlags_Leaf)) {
+                ImGui::TreePop();
+              }
+
+              if (X::IsNodeSwitchedTo()) {
+                mPage = Page::CheckPaths_Sub;
+                mSubPageID = i;
+              }
             }
+            if (is_lapcheck)
+              PopLapCheckStyle();
           }
 
           ImGui::TreePop();
@@ -1660,8 +1845,18 @@ void LevelEditorWindow::draw_() {
     case Page::ItemPaths:
       DrawItemPathTable();
       break;
+    case Page::ItemPaths_Sub:
+      if (mKmp && mSubPageID >= 0 && mSubPageID < mKmp->mItemPaths.size()) {
+        DrawItemPointTable(mKmp->mItemPaths[mSubPageID]);
+      }
+      break;
     case Page::CheckPaths:
       DrawCheckPathTable();
+      break;
+    case Page::CheckPaths_Sub:
+      if (mKmp && mSubPageID >= 0 && mSubPageID < mKmp->mCheckPaths.size()) {
+        DrawCheckPointTable(mKmp->mCheckPaths[mSubPageID]);
+      }
       break;
     case Page::Areas:
       DrawAreaTable();
@@ -1847,8 +2042,6 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
   if (!mRenderSettings.rend)
     return;
-
-  librii::glhelper::SetGlWireframe(mRenderSettings.wireframe);
 
   const auto time_step = mDeltaTimer.tick();
   if (mMouseHider.begin_interaction(ImGui::IsWindowFocused())) {

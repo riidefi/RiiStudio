@@ -27,7 +27,7 @@ public:
   u8 getLapCheck() const { return mLapCheck; }
   void setLapCheck(u8 c) { mLapCheck = c; }
 
-private:
+public:
   glm::vec2 mLeft;
   glm::vec2 mRight;
 
@@ -123,5 +123,12 @@ private:
 };
 
 using Path = Rail;
+
+inline bool IsLapCheck(const CheckPoint& p) { return p.mLapCheck != 0xFF; }
+
+inline bool IsLapCheck(const CheckPath& p) {
+  return std::any_of(p.mPoints.begin(), p.mPoints.end(),
+                     [](const CheckPoint& p) { return IsLapCheck(p); });
+}
 
 } // namespace librii::kmp
