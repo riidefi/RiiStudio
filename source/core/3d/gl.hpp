@@ -10,7 +10,13 @@
 #endif
 
 #if defined(RII_BACKEND_GLFW)
+
+#if defined(__APPLE__)
+#include "GLFW/glfw3.h"
+#else
 #include "glfw/glfw3.h"
+#endif
+
 #elif defined(RII_BACKEND_SDL)
 #include <GLES3/gl3.h>
 #endif
