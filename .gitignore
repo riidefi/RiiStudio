@@ -414,3 +414,8 @@ dist/
 out/
 build/
 .vscode/
+
+# CMake Files
+**/CMakeFiles/
+*.cmake
+CMakeCache.txt
