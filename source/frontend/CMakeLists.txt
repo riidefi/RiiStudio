@@ -121,11 +121,17 @@ else()
   if (APPLE)
     execute_process(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE)
     message(STATUS "Architecture: ${ARCHITECTURE}")
+
     if (${ARCHITECTURE} STREQUAL "arm64")
-  	  SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /opt/homebrew/Cellar/assimp/5.1.0/lib/libassimp.dylib /opt/homebrew/Cellar/glfw/3.3.5/lib/libglfw.dylib")
+      set(HOMEBREW_CELLAR "/opt/homebrew/Cellar")
     else()
-  	  SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl /usr/local/Cellar/assimp/5.1.0/lib/libassimp.dylib /usr/local/Cellar/glfw/3.3.5/lib/libglfw.dylib")
+      set(HOMEBREW_CELLAR "/usr/local/Cellar")
     endif()
+
+    set(ASSIMP_VERSION "5.1.1")
+    set(GLFW_VERSION "3.3.5")
+
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib")
   elseif (UNIX)
     # --start-group, --end-group allows circular dependencies among object files
     SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lstdc++ -lm")
