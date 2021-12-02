@@ -1,5 +1,6 @@
 #include "InclusionMask.hpp"
 
+#include <stdio.h>
 #include <vendor/assimp/config.h>
 
 namespace riistudio::ass {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vendor/assimp/Logger.hpp>
 
 namespace riistudio::ass {
