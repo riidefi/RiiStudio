@@ -24,6 +24,9 @@ struct IdCounter {
 };
 class AssImporter {
 public:
+  AssImporter(const AssImporter&) = delete; // boneIdCtr is not stable
+  AssImporter(AssImporter&&) = delete;
+
   bool assimpSuccess() const {
     return pScene != nullptr && pScene->mRootNode != nullptr;
   }
@@ -48,7 +51,7 @@ private:
   const aiScene* pScene = nullptr;
   libcube::Scene* out_collection = nullptr;
   libcube::Model* out_model = nullptr;
-  aiNode* root;
+  aiNode* root = nullptr;
   std::vector<u8> scratch;
 
   int get_bone_id(const aiNode* pNode);

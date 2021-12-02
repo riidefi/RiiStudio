@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+#include <plugins/ass/Ass.hpp>
+
 
 extern void InstallGC();
 
@@ -76,6 +78,9 @@ void InitAPI() {
 
   riistudio::g3d::InstallG3d(installer);
   riistudio::j3d::InstallJ3d(installer);
+
+
+  installer.mReaders.push_back(riistudio::ass::CreatePlugin());
 
   // TODO: Phase out this system
 

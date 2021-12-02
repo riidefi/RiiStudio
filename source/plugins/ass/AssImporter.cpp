@@ -10,7 +10,8 @@
 #include <map>
 #include <plugins/g3d/model.hpp>
 #include <unordered_map>
-#include <vendor/stb_image.h>
+
+#include "ImportTexture.hpp"
 
 namespace riistudio::ass {
 
@@ -330,69 +331,6 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
   return true;
 }
 
-static bool importTexture(libcube::Texture& data, u8* image,
-                          std::vector<u8>& scratch, bool mip_gen, int min_dim,
-                          int max_mip, int width, int height, int channels) {
-  if (!image) {
-    data.setWidth(0);
-    data.setHeight(0);
-    return false;
-  }
-  assert(image);
-
-  int num_mip = 0;
-  if (mip_gen && power_of_2(width) && power_of_2(height)) {
-    while ((num_mip + 1) < max_mip && (width >> (num_mip + 1)) >= min_dim &&
-           (height >> (num_mip + 1)) >= min_dim)
-      ++num_mip;
-  }
-  data.setTextureFormat(librii::gx::TextureFormat::CMPR);
-  data.setWidth(width);
-  data.setHeight(height);
-  data.setMipmapCount(num_mip);
-  data.resizeData();
-  if (num_mip == 0) {
-    data.encode(image);
-  } else {
-    printf("Width: %u, Height: %u.\n", (unsigned)width, (unsigned)height);
-    u32 size = 0;
-    for (int i = 0; i <= num_mip; ++i) {
-      size += (width >> i) * (height >> i) * 4;
-      printf("Image %i: %u, %u. -> Total Size: %u\n", i, (unsigned)(width >> i),
-             (unsigned)(height >> i), size);
-    }
-    scratch.resize(size);
-
-    u32 slide = 0;
-    for (int i = 0; i <= num_mip; ++i) {
-      librii::image::resize(scratch.data() + slide, width >> i, height >> i,
-                            image, width, height, librii::image::Lanczos);
-      slide += (width >> i) * (height >> i) * 4;
-    }
-
-    data.encode(scratch.data());
-  }
-  stbi_image_free(image);
-  return true;
-}
-static bool importTexture(libcube::Texture& data, const u8* idata,
-                          const u32 isize, std::vector<u8>& scratch,
-                          bool mip_gen, int min_dim, int max_mip) {
-  int width, height, channels;
-  u8* image = stbi_load_from_memory(idata, isize, &width, &height, &channels,
-                                    STBI_rgb_alpha);
-  return importTexture(data, image, scratch, mip_gen, min_dim, max_mip, width,
-                       height, channels);
-}
-static bool importTexture(libcube::Texture& data, const char* path,
-                          std::vector<u8>& scratch, bool mip_gen, int min_dim,
-                          int max_mip) {
-  int width, height, channels;
-  u8* image = stbi_load(path, &width, &height, &channels, STBI_rgb_alpha);
-  return importTexture(data, image, scratch, mip_gen, min_dim, max_mip, width,
-                       height, channels);
-}
-
 void AssImporter::ImportNode(const aiNode* pNode, glm::vec3 tint, int parent) {
   // Create a bone (with name)
   const auto joint_id = out_model->getBones().size();
@@ -451,6 +389,126 @@ void AssImporter::ImportNode(const aiNode* pNode, glm::vec3 tint, int parent) {
   }
 }
 
+auto ConvertTextureType(aiTextureType tex_type) {
+  switch (tex_type) {
+  case aiTextureType_DIFFUSE:
+    return ImpTexType::Diffuse;
+    /** The texture is combined with the result of the specular
+     *  lighting equation.
+     */
+  case aiTextureType_SPECULAR:
+    return ImpTexType::Specular;
+    /** The texture is combined with the result of the ambient
+     *  lighting equation.
+     */
+  case aiTextureType_AMBIENT:
+    return ImpTexType::Ambient;
+    /** The texture is added to the result of the lighting
+     *  calculation. It isn't influenced by incoming light.
+     */
+  case aiTextureType_EMISSIVE:
+    return ImpTexType::Emissive;
+    /** The texture is a height map.
+     *
+     *  By convention, higher gray-scale values stand for
+     *  higher elevations from the base height.
+     */
+  case aiTextureType_HEIGHT:
+    return ImpTexType::Bump;
+    /** The texture is a (tangent space) normal-map.
+     *
+     *  Again, there are several conventions for tangent-space
+     *  normal maps. Assimp does (intentionally) not
+     *  distinguish here.
+     */
+  case aiTextureType_NORMALS:
+    return ImpTexType::Diffuse; // TODO
+    /** The texture defines the glossiness of the material.
+     *
+     *  The glossiness is in fact the exponent of the specular
+     *  (phong) lighting equation. Usually there is a conversion
+     *  function defined to map the linear color values in the
+     *  texture to a suitable exponent. Have fun.
+     */
+  case aiTextureType_SHININESS:
+    return ImpTexType::Diffuse; // TODO
+    /** The texture defines per-pixel opacity.
+     *
+     *  Usually 'white' means opaque and 'black' means
+     *  'transparency'. Or quite the opposite. Have fun.
+     */
+  case aiTextureType_OPACITY:
+    return ImpTexType::Opacity;
+    /** Displacement texture
+     *
+     *  The exact purpose and format is application-dependent.
+     *  Higher color values stand for higher vertex displacements.
+     */
+  case aiTextureType_DISPLACEMENT:
+    return ImpTexType::Displacement;
+    /** Lightmap texture (aka Ambient Occlusion)
+     *
+     *  Both 'Lightmaps' and dedicated 'ambient occlusion maps' are
+     *  covered by this material property. The texture contains a
+     *  scaling value for the final color value of a pixel. Its
+     *  intensity is not affected by incoming light.
+     */
+  case aiTextureType_LIGHTMAP:
+    return ImpTexType::Diffuse; // TODO
+    break;
+    /** Reflection texture
+     *
+     * Contains the color of a perfect mirror reflection.
+     * Rarely used, almost never for real-time applications.
+     */
+  case aiTextureType_REFLECTION:
+    return ImpTexType::Diffuse; // TODO
+    /** PBR Materials
+     * PBR definitions from maya and other modelling packages now use
+     * this standard. This was originally introduced around 2012.
+     * Support for this is in game engines like Godot, Unreal or
+     * Unity3D. Modelling packages which use this are very common now.
+     */
+  case aiTextureType_BASE_COLOR:
+    return ImpTexType::Diffuse;
+  case aiTextureType_NORMAL_CAMERA:
+    return ImpTexType::Diffuse; // TODO
+  case aiTextureType_EMISSION_COLOR:
+    return ImpTexType::Emissive;
+  case aiTextureType_METALNESS:
+    return ImpTexType::Diffuse; // TODO
+  case aiTextureType_DIFFUSE_ROUGHNESS:
+    return ImpTexType::Diffuse; // TODO
+  case aiTextureType_AMBIENT_OCCLUSION:
+    return ImpTexType::Diffuse; // LM
+    /** Unknown texture
+     *
+     *  A texture reference that does not match any of the definitions
+     *  above is considered to be 'unknown'. It is still imported,
+     *  but is excluded from any further post-processing.
+     */
+  case aiTextureType_UNKNOWN:
+    return ImpTexType::Diffuse;
+  default:
+    return ImpTexType::Diffuse;
+  }
+}
+
+auto ConvertWrapMode(aiTextureMapMode mapmode) {
+  switch (mapmode) {
+  case aiTextureMapMode_Decal:
+  case aiTextureMapMode_Clamp:
+    return librii::gx::TextureWrapMode::Clamp;
+  case aiTextureMapMode_Wrap:
+    return librii::gx::TextureWrapMode::Repeat;
+  case aiTextureMapMode_Mirror:
+    return librii::gx::TextureWrapMode::Mirror;
+  case _aiTextureMapMode_Force32Bit:
+  default:
+    return librii::gx::TextureWrapMode::Repeat;
+  }
+}
+
 std::set<std::pair<std::size_t, std::string>>
 AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip,
                         const std::string& model_path) {
@@ -505,149 +563,17 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip,
 
     for (unsigned t = aiTextureType_DIFFUSE; t <= aiTextureType_UNKNOWN; ++t) {
       for (unsigned j = 0; j < pMat->GetTextureCount((aiTextureType)t); ++j) {
-
         const auto [path, uvindex, mapmode] = GetTexture(pMat, t, j);
 
-        ImpTexType impTexType = ImpTexType::Diffuse;
+        const ImpTexType impTexType =
+            ConvertTextureType(static_cast<aiTextureType>(t));
+        const librii::gx::TextureWrapMode impWrapMode =
+            ConvertWrapMode(mapmode);
 
-        switch (t) {
-        case aiTextureType_DIFFUSE:
-          impTexType = ImpTexType::Diffuse;
-          break;
-          /** The texture is combined with the result of the specular
-           *  lighting equation.
-           */
-        case aiTextureType_SPECULAR:
-          impTexType = ImpTexType::Specular;
-          break;
-          /** The texture is combined with the result of the ambient
-           *  lighting equation.
-           */
-        case aiTextureType_AMBIENT:
-          impTexType = ImpTexType::Ambient;
-          break;
-          /** The texture is added to the result of the lighting
-           *  calculation. It isn't influenced by incoming light.
-           */
-        case aiTextureType_EMISSIVE:
-          impTexType = ImpTexType::Emissive;
-          break;
-          /** The texture is a height map.
-           *
-           *  By convention, higher gray-scale values stand for
-           *  higher elevations from the base height.
-           */
-        case aiTextureType_HEIGHT:
-          impTexType = ImpTexType::Bump;
-          break;
-          /** The texture is a (tangent space) normal-map.
-           *
-           *  Again, there are several conventions for tangent-space
-           *  normal maps. Assimp does (intentionally) not
-           *  distinguish here.
-           */
-        case aiTextureType_NORMALS:
-          impTexType = ImpTexType::Diffuse; // TODO
-          break;
-          /** The texture defines the glossiness of the material.
-           *
-           *  The glossiness is in fact the exponent of the specular
-           *  (phong) lighting equation. Usually there is a conversion
-           *  function defined to map the linear color values in the
-           *  texture to a suitable exponent. Have fun.
-           */
-        case aiTextureType_SHININESS:
-          impTexType = ImpTexType::Diffuse; // TODO
-          break;
-          /** The texture defines per-pixel opacity.
-           *
-           *  Usually 'white' means opaque and 'black' means
-           *  'transparency'. Or quite the opposite. Have fun.
-           */
-        case aiTextureType_OPACITY:
-          impTexType = ImpTexType::Opacity;
-          break;
-          /** Displacement texture
-           *
-           *  The exact purpose and format is application-dependent.
-           *  Higher color values stand for higher vertex displacements.
-           */
-        case aiTextureType_DISPLACEMENT:
-          impTexType = ImpTexType::Displacement;
-          break;
-          /** Lightmap texture (aka Ambient Occlusion)
-           *
-           *  Both 'Lightmaps' and dedicated 'ambient occlusion maps' are
-           *  covered by this material property. The texture contains a
-           *  scaling value for the final color value of a pixel. Its
-           *  intensity is not affected by incoming light.
-           */
-        case aiTextureType_LIGHTMAP:
-          impTexType = ImpTexType::Diffuse; // TODO
-          break;
-          /** Reflection texture
-           *
-           * Contains the color of a perfect mirror reflection.
-           * Rarely used, almost never for real-time applications.
-           */
-        case aiTextureType_REFLECTION:
-          impTexType = ImpTexType::Diffuse; // TODO
-          break;
-          /** PBR Materials
-           * PBR definitions from maya and other modelling packages now use
-           * this standard. This was originally introduced around 2012.
-           * Support for this is in game engines like Godot, Unreal or
-           * Unity3D. Modelling packages which use this are very common now.
-           */
-        case aiTextureType_BASE_COLOR:
-          impTexType = ImpTexType::Diffuse;
-          break;
-        case aiTextureType_NORMAL_CAMERA:
-          impTexType = ImpTexType::Diffuse; // TODO
-          break;
-        case aiTextureType_EMISSION_COLOR:
-          impTexType = ImpTexType::Emissive;
-          break;
-        case aiTextureType_METALNESS:
-          impTexType = ImpTexType::Diffuse; // TODO
-          break;
-        case aiTextureType_DIFFUSE_ROUGHNESS:
-          impTexType = ImpTexType::Diffuse; // TODO
-          break;
-        case aiTextureType_AMBIENT_OCCLUSION:
-          impTexType = ImpTexType::Diffuse; // LM
-          break;
-          /** Unknown texture
-           *
-           *  A texture reference that does not match any of the definitions
-           *  above is considered to be 'unknown'. It is still imported,
-           *  but is excluded from any further post-processing.
-           */
-        case aiTextureType_UNKNOWN:
-          impTexType = ImpTexType::Diffuse;
-
-          break;
-        }
-        librii::gx::TextureWrapMode impWrapMode =
-            librii::gx::TextureWrapMode::Repeat;
-        switch (mapmode) {
-        case aiTextureMapMode_Decal:
-        case aiTextureMapMode_Clamp:
-          impWrapMode = librii::gx::TextureWrapMode::Clamp;
-          break;
-        case aiTextureMapMode_Wrap:
-          impWrapMode = librii::gx::TextureWrapMode::Repeat;
-          break;
-        case aiTextureMapMode_Mirror:
-          impWrapMode = librii::gx::TextureWrapMode::Mirror;
-          break;
-        case _aiTextureMapMode_Force32Bit:
-        default:
-          break;
-        }
-
-        ImpSampler impSamp{impTexType, getFileShort(path.C_Str()), uvindex,
-                           impWrapMode};
+        ImpSampler impSamp{.type = impTexType,
+                           .path = getFileShort(path.C_Str()),
+                           .uv_channel = uvindex,
+                           .wrap = impWrapMode};
         impMat.samplers.push_back(impSamp);
       }
     }
@@ -834,6 +760,8 @@ void AssImporter::ImportAss(
       mat.getMaterialData().earlyZComparison = true;
     }
   }
+
+  transaction->state = kpi::TransactionState::Complete;
 }
 
 } // namespace riistudio::ass

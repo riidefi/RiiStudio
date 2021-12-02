@@ -64,3 +64,7 @@ const char* translateString(std::string_view str);
 inline const char* operator"" _j(const char* str, size_t len) {
   return riistudio::translateString({str, len});
 }
+
+#if defined(_WIN32)
+#define HAS_RANGES
+#endif
