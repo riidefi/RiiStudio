@@ -1467,7 +1467,8 @@ void main() {
 #elif defined(__APPLE__)
     const std::string version = "#version 400";
 #else
-    const std::string version = "#version 440";
+    // 420: layout(binding=n) for uniforms
+    const std::string version = "#version 420";
 #endif
 
     return version + "\n// " + mName + "\nprecision mediump float;\n" +
