@@ -52,8 +52,10 @@ enum PixMode : int {
   PIX_DEFAULT_OPAQUE,
   PIX_STENCIL,
   PIX_TRANSLUCENT,
+  PIX_HARRY_POTTER_STENCIL,
+  PIX_HARRY_POTTER_TRANSLUCENT,
   PIX_CUSTOM,
-  PIX_BBX_DEFAULT
+  PIX_BBX_DEFAULT,
 };
 
 inline PixMode classifyPixMode(const gx::AlphaComparison& alphaCompare,
@@ -68,12 +70,19 @@ inline PixMode classifyPixMode(const gx::AlphaComparison& alphaCompare,
   }
 
   if (alpha_test == ALPHA_TEST_STENCIL && zMode == normal_z &&
-      blendMode == no_blend && !xlu && !earlyZComparison) {
+      blendMode == no_blend && !xlu) {
+    // This is usually a bug--heavily draw-order dependent
+    if (earlyZComparison)
+      return PIX_HARRY_POTTER_STENCIL;
+
     return PIX_STENCIL;
   }
 
   if (alpha_test == ALPHA_TEST_DISABLED && zMode == blend_z &&
-      blendMode == yes_blend && xlu && earlyZComparison) {
+      blendMode == yes_blend && earlyZComparison) {
+    if (!xlu)
+      return PIX_HARRY_POTTER_TRANSLUCENT;
+
     return PIX_TRANSLUCENT;
   }
 
@@ -82,29 +91,29 @@ inline PixMode classifyPixMode(const gx::AlphaComparison& alphaCompare,
 
 // Handles OPAQUE, STENCIL, TRANSLUCENT
 inline bool configurePixMode(gx::LowLevelGxMaterial& o, PixMode pix_mode) {
-  if (pix_mode == PIX_DEFAULT_OPAQUE) {
+  if (pix_mode == PIX_DEFAULT_OPAQUE || pix_mode == PIX_BBX_DEFAULT) {
     o.alphaCompare = disabled_comparison;
     o.zMode = normal_z;
     o.blendMode = no_blend;
     o.xlu = false;
-    o.earlyZComparison = true;
+    o.earlyZComparison = (pix_mode == PIX_BBX_DEFAULT) ? false : true;
     return true;
   }
 
-  if (pix_mode == PIX_STENCIL) {
+  if (pix_mode == PIX_STENCIL || pix_mode == PIX_HARRY_POTTER_STENCIL) {
     o.alphaCompare = stencil_comparison;
     o.zMode = normal_z;
     o.blendMode = no_blend;
     o.xlu = false;
-    o.earlyZComparison = false;
+    o.earlyZComparison = (pix_mode == PIX_HARRY_POTTER_STENCIL) ? true : false;
     return true;
   }
 
-  if (pix_mode == PIX_TRANSLUCENT) {
+  if (pix_mode == PIX_TRANSLUCENT || pix_mode == PIX_HARRY_POTTER_TRANSLUCENT) {
     o.alphaCompare = disabled_comparison;
     o.zMode = blend_z;
     o.blendMode = yes_blend;
-    o.xlu = true;
+    o.xlu = (pix_mode == PIX_HARRY_POTTER_TRANSLUCENT) ? false : true;
     o.earlyZComparison = true;
     return true;
   }

@@ -51,6 +51,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                  "Opaque\0"
                  "Stencil Alpha\0"
                  "Translucent\0"
+                 "Harry Potter Effect: Stencil Variant\0"
+                 "Harry Potter Effect: Translucent Variant\0"
                  "Custom\0"_j);
   }
   if (pix_mode_before != pix_mode) {
