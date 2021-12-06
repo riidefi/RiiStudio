@@ -43,7 +43,7 @@ struct ExprAlloc {
   };
 
   // Maximum complexity of a tev stage
-  std::array<AnyExpr, 11> data;
+  std::array<AnyExpr, 11 * 8> data;
   std::size_t index = 0;
   AnyExpr* alloc() {
     assert(index < data.size());
@@ -194,6 +194,12 @@ static const char* printExpr(UnaryExpr& e) {
     return "1";
   case Zero:
     return "0";
+  case Half:
+    return "0.5";
+  case Two:
+    return "2";
+  case Four:
+    return "4";
   default:
     return "?";
   }
@@ -321,14 +327,28 @@ static Expr& solve_tev_stage_impl(const T& substage,
   const auto unary_c = make_unary(arg_to_state(C, substage.c, substage));
   const auto unary_d = make_unary(arg_to_state(D, substage.d, substage));
 
-  BinExpr& root = *make_binary(
-      ExprOp::Add, unary_d,
-      make_binary(
-          ExprOp::Add,
-          make_binary(ExprOp::Mul,
-                      make_binary(ExprOp::Sub, make_unary(One), unary_c),
-                      unary_a),
-          make_binary(ExprOp::Mul, unary_c, unary_b)));
+  BinExpr* root =
+      make_binary(ExprOp::Add, unary_d,
+                  make_binary(ExprOp::Add,
+                              make_binary(ExprOp::Mul,
+                                          make_binary(ExprOp::Sub,
+                                                      make_unary(One), unary_c),
+                                          unary_a),
+                              make_binary(ExprOp::Mul, unary_c, unary_b)));
+
+  // Bias
+  if (substage.bias == gx::TevBias::add_half)
+    root = make_binary(ExprOp::Add, root, make_unary(Half));
+  else if (substage.bias == gx::TevBias::sub_half)
+    root = make_binary(ExprOp::Sub, root, make_unary(Half));
+
+  // Scale
+  if (substage.scale == gx::TevScale::scale_2)
+    root = make_binary(ExprOp::Mul, root, make_unary(Two));
+  if (substage.scale == gx::TevScale::scale_4)
+    root = make_binary(ExprOp::Mul, root, make_unary(Four));
+  if (substage.scale == gx::TevScale::divide_2)
+    root = make_binary(ExprOp::Mul, root, make_unary(Half));
 
   // A + C(B-A)
   //
@@ -342,15 +362,15 @@ static Expr& solve_tev_stage_impl(const T& substage,
 
   auto print_inter = [&]() {
     if (do_print_inter)
-      printExprPoly(root, builder, true);
+      printExprPoly(*root, builder, true);
   };
 
   print_inter();
-  while (optimizeNode(root)) {
+  while (optimizeNode(*root)) {
     print_inter();
   }
 
-  return root;
+  return *root;
 };
 
 Expr& solveTevStage(const gx::TevStage::ColorStage& substage,

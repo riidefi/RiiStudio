@@ -19,6 +19,9 @@ enum RegEx {
   // Internal
   One = 1 << 4,
   Zero = 1 << 5,
+  Half = 1 << 6,
+  Two = 1 << 7,
+  Four = 1 << 8,
 };
 
 namespace impl {
@@ -27,8 +30,8 @@ bool optimizeNode(Expr& e);
 void printExprPoly(Expr& e, rsl::StringBuilder& builder, bool root = false);
 u32 computeUsed(const Expr& e);
 
-extern const u32 TevSolverWorkMemSize; // 448, 64-bit
-constexpr u32 TevSolverWorkMemSizeApprox = 512;
+extern const u32 TevSolverWorkMemSize; // 448*8, 64-bit
+constexpr u32 TevSolverWorkMemSizeApprox = 512 * 8;
 
 Expr& solveTevStage(const gx::TevStage::ColorStage& substage,
                     rsl::StringBuilder& builder, u8* workmem,
