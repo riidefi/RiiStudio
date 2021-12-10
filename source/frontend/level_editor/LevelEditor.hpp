@@ -206,6 +206,8 @@ public:
   // For tables
   bool show_coords = false;
 
+  bool mDrawDebug = true;
+
   template <typename T> void AddNewToList(T& t) { t.emplace_back(); }
   template <typename T>
   void TryDeleteFromListAndUpdateSelection(T& t, int delete_index) {

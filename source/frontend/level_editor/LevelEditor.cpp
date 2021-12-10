@@ -1,4 +1,5 @@
 #include "LevelEditor.hpp"
+#include "CppSupport.hpp"
 #include "IO.hpp"
 #include "KclUtil.hpp"
 #include "ObjUtil.hpp"
@@ -1556,6 +1557,14 @@ void LevelEditorWindow::draw_() {
     }
   }
   ImGui::End();
+
+  if (Begin("Debug Info", &mDrawDebug, 0, this)) {
+    DrawCppSupport();
+    // auto versions = GetCppSupport();
+    // ImGui::TextUnformatted(versions.data(), versions.data() +
+    // versions.size());
+  }
+  End();
 
   if (mKmp == nullptr)
     return;
