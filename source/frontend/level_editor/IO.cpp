@@ -12,6 +12,8 @@
 // KMP
 #include <librii/kmp/io/KMP.hpp>
 
+#include <iostream>
+
 namespace riistudio::lvl {
 
 struct Reader {
@@ -80,6 +82,11 @@ ReadKCL(const std::vector<u8>& buf, std::string path) {
   Reader reader(path, buf);
   auto res = librii::kcol::ReadKCollisionData(
       *result, reader.mData.slice(), reader.mData.slice().size_bytes());
+
+  {
+    const auto metadata = librii::kcol::InspectKclFile(reader.mData.slice());
+    std::cout << librii::kcol::GetKCLVersion(metadata) << std::endl;
+  }
 
   if (!res.empty()) {
     printf("Error: %s\n", res.c_str());

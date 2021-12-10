@@ -22,6 +22,16 @@
 
 namespace riistudio::lvl {
 
+struct VersionReport {
+  std::string course_kcl_version;
+};
+
+VersionReport MakeVersionReport(const librii::kcol::KCollisionData* kcl) {
+  return {
+      .course_kcl_version = kcl != nullptr ? kcl->version : "",
+  };
+}
+
 struct X {
   static bool BeginCustomSelectable(bool sel) {
     if (!sel) {
@@ -2037,6 +2047,8 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
   // if (ImGui::BeginMenuBar()) {
   DrawRenderOptions(disp_opts);
+  auto report = MakeVersionReport(mCourseKcl.get());
+  ImGui::Text("KCL: %s", report.course_kcl_version.c_str());
   //   ImGui::EndMenuBar();
   // }
 

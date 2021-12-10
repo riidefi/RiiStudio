@@ -9,6 +9,14 @@
 #include <string>
 #include <vector>
 
+#include <version>
+#ifdef __cpp_lib_format
+#include <format>
+#endif
+#include <variant>
+
+#include <core/util/timestamp.hpp>
+
 namespace librii::kcol {
 
 // Binary structure
@@ -61,6 +69,39 @@ inline std::array<glm::vec3, 3> FromPrism(float height, const glm::vec3& pos,
   return {Vertex1, Vertex2, Vertex3};
 }
 
+struct WiimmKclVersion {
+  // 2.26
+  int major_version = 2;
+  int minor_version = 26;
+};
+
+inline std::string FormatWiimmKclVersion(const WiimmKclVersion& ver) {
+#ifdef __cpp_lib_format
+  return std::format("WiimmSZS v{}.{}", ver.major_version, ver.minor_version);
+#else
+  return "WiimmSZS v" + std::to_string(ver.major_version) + "." +
+         std::to_string(ver.minor_version);
+#endif
+}
+
+struct UnknownKclVersion {};
+
+inline std::string FormatUnknownKclVersion(const UnknownKclVersion&) {
+  return "<Unknown KCL Encoder>";
+}
+
+struct InvalidKclVersion {};
+
+inline std::string FormatInvalidKclVersion(const InvalidKclVersion&) {
+  return "<Invalid KCL File>";
+}
+
+using KclVersion =
+    std::variant<WiimmKclVersion, UnknownKclVersion, InvalidKclVersion>;
+
+KclVersion InspectKclFile(std::span<const u8> kcl_file);
+std::string GetKCLVersion(KclVersion metadata);
+
 struct KCollisionData {
   std::vector<glm::vec3> pos_data;
   std::vector<glm::vec3> nrm_data;
@@ -78,6 +119,8 @@ struct KCollisionData {
   s32 area_xy_blocks_shift = 0;
 
   f32 sphere_radius = 250.0f;
+
+  std::string version = std::string("RiiStudio ") + std::string(GIT_TAG);
 };
 
 std::string ReadKCollisionData(KCollisionData& data, std::span<const u8> bytes,
