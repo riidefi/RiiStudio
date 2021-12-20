@@ -12,6 +12,8 @@
 extern bool gPointerLock;
 #endif
 
+#include <frontend/level_editor/ViewCube.hpp>
+
 namespace riistudio::frontend {
 
 struct RenderTest : public StudioWindow {
@@ -19,6 +21,7 @@ struct RenderTest : public StudioWindow {
 
 private:
   void draw_() override;
+  void drawViewCube();
 
   // Components
   plate::tk::Viewport mViewport;
@@ -37,11 +40,21 @@ void RenderTest::draw_() {
 
   if (mViewport.begin(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y))) {
     // auto* parent = dynamic_cast<EditorWindow*>(mParent);
-    
+
     mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y));
+
+    drawViewCube();
 
     mViewport.end();
   }
+}
+
+void RenderTest::drawViewCube() {
+  const bool view_updated = lvl::DrawViewCube(
+      mViewport.mLastWidth, mViewport.mLastHeight, mRenderer.mViewMtx);
+  auto& cam = mRenderer.mSettings.mCameraController;
+  if (view_updated)
+    frontend::SetCameraControllerToMatrix(cam, mRenderer.mViewMtx);
 }
 
 std::unique_ptr<StudioWindow> MakeViewportRenderer(const kpi::INode& host) {

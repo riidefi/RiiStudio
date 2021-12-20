@@ -4,6 +4,7 @@
 #include "KclUtil.hpp"
 #include "ObjUtil.hpp"
 #include "Transform.hpp"
+#include "ViewCube.hpp"
 #include <bit>
 #include <core/3d/gl.hpp>
 #include <core/common.h>
@@ -2229,29 +2230,10 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
   librii::glhelper::ClearGlScreen();
   mSceneState.draw();
 
-  auto pos = ImGui::GetCursorScreenPos();
-  // auto win = ImGui::GetWindowPos();
-  auto avail = ImGui::GetContentRegionAvail();
-
-  // int shifted_x = mViewport.mLastWidth - avail.x;
-  int shifted_y = mViewport.mLastHeight - avail.y;
-
-  // TODO: LastWidth is moved to the right, not left -- bug?
-  ImGuizmo::SetRect(pos.x, pos.y - shifted_y, mViewport.mLastWidth,
-                    mViewport.mLastHeight);
-
-  auto tVm = viewMtx;
-  auto max = ImGui::GetContentRegionMaxAbs();
-
-  const u32 viewcube_bg = 0;
-  // ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_WindowBg])
-
-  ImGuizmo::ViewManipulate(glm::value_ptr(viewMtx), 20.0f,
-                           {max.x - 200.0f, max.y - 200.0f}, {200.0f, 200.0f},
-                           viewcube_bg);
-
+  const bool view_updated =
+      DrawViewCube(mViewport.mLastWidth, mViewport.mLastHeight, viewMtx);
   auto& cam = mRenderSettings.mCameraController;
-  if (tVm != viewMtx)
+  if (view_updated)
     frontend::SetCameraControllerToMatrix(cam, viewMtx);
 
   static Manipulator manip;

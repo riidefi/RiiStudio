@@ -98,13 +98,13 @@ void Renderer::render(u32 width, u32 height) {
   ConfigureCameraControllerByBounds(mSettings.mCameraController,
                                     mSceneState.computeBounds());
 
-  glm::mat4 projMtx, viewMtx;
-  mSettings.mCameraController.mCamera.calcMatrices(width, height, projMtx,
-                                                   viewMtx);
+  mSettings.mCameraController.mCamera.calcMatrices(width, height, mProjMtx,
+                                                   mViewMtx);
 
   mSceneState.invalidate();
   mRootDispatcher.populate(*mRoot, mSceneState,
-                           *dynamic_cast<kpi::INode*>(mRoot), viewMtx, projMtx);
+                           *dynamic_cast<kpi::INode*>(mRoot), mViewMtx,
+                           mProjMtx);
   mSceneState.buildUniformBuffers();
 
   librii::glhelper::ClearGlScreen();

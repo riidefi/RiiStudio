@@ -20,7 +20,7 @@ struct RenderSettings {
   bool rend = true;
   bool wireframe = false;
 
-  void drawMenuBar(bool draw_controller=true, bool draw_wireframe=true);
+  void drawMenuBar(bool draw_controller = true, bool draw_wireframe = true);
 };
 
 class Renderer {
@@ -38,7 +38,13 @@ private:
   lib3d::IDrawable* mRoot = nullptr;
   lib3d::DrawableDispatcher mRootDispatcher;
 
+public:
   RenderSettings mSettings;
+
+  // Overwritten every frame
+  glm::mat4 mProjMtx, mViewMtx;
+
+private:
   MouseHider mMouseHider;
 };
 } // namespace riistudio::frontend
