@@ -1,9 +1,13 @@
 #include "InputState.hpp"
 #include <imgui/imgui.h>
 
-#ifdef __EMSCRIPTEN__
+#if defined(RII_BACKEND_SDL)
 #include <SDL.h>
 #include <SDL_opengles2.h>
+#endif
+
+#if defined(RII_BACKEND_GLFW)
+#include <glfw/glfw3.h>
 #endif
 
 namespace riistudio::frontend {
@@ -24,9 +28,11 @@ InputState buildInputState() {
     key_d = true;
   if (ImGui::IsKeyDown(' ') || ImGui::IsKeyDown('E'))
     key_up = true;
-  if (ImGui::IsKeyDown(340) || ImGui::IsKeyDown('Q')) // GLFW_KEY_LEFT_SHIFT
+  const bool l_shift = ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT);
+  if (l_shift || ImGui::IsKeyDown('Q'))
     key_down = true;
-#elif defined(__EMSCRIPTEN__)
+  const bool l_alt = ImGui::IsKeyDown(GLFW_KEY_LEFT_ALT);
+#elif defined(RII_BACKEND_SDL)
   const Uint8* keys = SDL_GetKeyboardState(NULL);
 
   if (keys[SDL_SCANCODE_W])
@@ -39,11 +45,23 @@ InputState buildInputState() {
     key_d = true;
   if (keys[SDL_SCANCODE_SPACE] || keys[SDL_SCANCODE_E])
     key_up = true;
-  if (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_Q])
+  const bool l_shift = keys[SDL_SCANCODE_LSHIFT];
+  if (l_shift || keys[SDL_SCANCODE_Q])
     key_down = true;
+  const bool l_alt = keys[SDL_SCANCODE_LALT]
 #endif
-  if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-    mouse_select = true;
+
+  // Left + !LAlt   -> Select
+  // Left + LAlt    -> Pan/Orbit
+  // Right | Middle -> Pan/Orbit
+  //
+  if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+    if (l_alt)
+      mouse_view = true;
+    else
+      mouse_select = true;
+  }
+
   if (ImGui::IsMouseDown(ImGuiMouseButton_Right) ||
       ImGui::IsMouseDown(ImGuiMouseButton_Middle))
     mouse_view = true;
