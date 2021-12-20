@@ -378,6 +378,10 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
   if (!newformat.has_value())
     newformat = oldformat;
 
+  if (!is_power_of_2(swidth) || !is_power_of_2(sheight) ||
+      !is_power_of_2(dwidth) || !is_power_of_2(dheight))
+    return;
+
   // Determine whether to decode this sublevel as an image or many sublvels.
   if (mipMapCount >= 1) {
     std::vector<u8> srcBuf(0);

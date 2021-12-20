@@ -48,6 +48,8 @@ constexpr u32 roundUp(u32 in, u32 align) {
   return align ? roundDown(in + (align - 1), align) : in;
 };
 
+constexpr bool is_power_of_2(u32 x) { return (x & (x - 1)) == 0; }
+
 #define MODULE_PRIVATE public
 #define MODULE_PUBLIC public
 
