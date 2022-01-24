@@ -11,7 +11,10 @@ namespace rsl {
 template <typename T, size_t N>
 struct array_vector_fixed : public std::array<T, N> {
   size_t size() const { return nElements; }
-  void resize(size_t n_elem) { nElements = n_elem; }
+  void resize(size_t n_elem) {
+    assert(n_elem <= N);
+    nElements = n_elem;
+  }
 
   size_t fixed_size() const { return N; }
 

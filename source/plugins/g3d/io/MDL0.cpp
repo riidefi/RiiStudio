@@ -316,12 +316,23 @@ void WriteMaterialMisc(oishii::Writer& writer,
   writer.write<u8>(mat.lightSetIndex);
   writer.write<u8>(mat.fogIndex);
   writer.write<u8>(0); // pad
+
+  // TODO: Properly set this in the UI
+  // 
+  auto indConfig = mat.indConfig;
+  if (mat.indirectStages.size() > indConfig.size()) {
+    DebugReport("[NOTE] mat.indirectStages.size() > indConfig.size(), will be "
+                "corrected on save.\n");
+    indConfig.resize(mat.indirectStages.size());
+  }
+
+  assert(mat.indirectStages.size() <= indConfig.size());
   for (u8 i = 0; i < mat.indirectStages.size(); ++i)
-    writer.write<u8>(static_cast<u8>(mat.indConfig[i].method));
+    writer.write<u8>(static_cast<u8>(indConfig[i].method));
   for (u8 i = mat.indirectStages.size(); i < 4; ++i)
     writer.write<u8>(0);
   for (u8 i = 0; i < mat.indirectStages.size(); ++i)
-    writer.write<u8>(mat.indConfig[i].normalMapLightRef);
+    writer.write<u8>(indConfig[i].normalMapLightRef);
   for (u8 i = mat.indirectStages.size(); i < 4; ++i)
     writer.write<u8>(0xff);
 }
