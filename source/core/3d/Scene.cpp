@@ -26,18 +26,44 @@ glm::mat4 calcSrtMtx(const Bone& bone, const lib3d::Model* mdl) {
   return calcSrtMtx(bone, mdl->getBones());
 }
 
+// Calculate the bounding box of a polygon
+librii::math::AABB CalcPolyBound(const lib3d::Polygon& poly,
+                                 const lib3d::Bone& bone,
+                                 const lib3d::Model& mdl) {
+  auto mdl_mtx = calcSrtMtx(bone, &mdl);
+
+  librii::math::AABB bound = poly.getBounds();
+  auto nmax = mdl_mtx * glm::vec4(bound.max, 1.0f);
+  auto nmin = mdl_mtx * glm::vec4(bound.min, 1.0f);
+
+  return {nmin, nmax};
+}
+
+struct IndexRange {
+  u32 start = 0;
+  u32 size = 0;
+};
+
+// Holds a range of indices in a vertex buffer
 struct VertexBufferTenant {
   VertexBufferTenant(librii::glhelper::VBOBuilder& vbo_builder,
                      const lib3d::Model& mdl,
                      const libcube::IndexedPolygon& poly, u32 mp_id) {
-    idx_ofs = static_cast<u32>(vbo_builder.mIndices.size());
+    vertex_indices.start = static_cast<u32>(vbo_builder.mIndices.size());
+    // Expand mIndices by adding vertices
     poly.propagate(mdl, mp_id, vbo_builder);
-    idx_size = static_cast<u32>(vbo_builder.mIndices.size()) - idx_ofs;
+    vertex_indices.size =
+        static_cast<u32>(vbo_builder.mIndices.size()) - vertex_indices.start;
   }
-  u32 idx_ofs;
-  u32 idx_size;
+  ~VertexBufferTenant() {
+    // We can't	remove mIndices in parts, as it would invalidate the rest.
+  }
+
+  IndexRange vertex_indices;
 };
 
+// Holds a ShaderProgram in a heap allocated box at a steady address; this
+// allows it to be attached to a material as a callback for updates.
 struct ShaderUser {
   ShaderUser(librii::glhelper::ShaderProgram&& shader) {
     mImpl = std::make_unique<Impl>(std::move(shader));
@@ -74,23 +100,32 @@ private:
   std::unique_ptr<Impl> mImpl;
 };
 
-struct MeshName {
-  std::string string;
-  u32 mprim_index = 0;
+//! Represents a unique path to a certain drawcall.
+//!
+//! Assumes names are unique
+struct DrawCallPath {
+  std::string model_name; // Model
+  std::string mesh_name;  // Mesh
+  u32 mprim_index = 0;    // Draw call
 
-  bool operator==(const MeshName&) const = default;
+  bool operator==(const DrawCallPath&) const = default;
 };
 
-class MeshHash {
+class DrawCallPathHash {
 public:
-  std::size_t operator()(const MeshName& name) const {
-    return std::hash<std::string>()(name.string) ^ name.mprim_index;
+  std::size_t operator()(const DrawCallPath& name) const {
+    return std::hash<std::string>()(name.model_name) ^
+           std::hash<std::string>()(name.mesh_name) ^ name.mprim_index;
   }
 };
+
+template <typename T>
+using DrawCallMap = std::unordered_map<DrawCallPath, T, DrawCallPathHash>;
+
 struct SceneImpl::Internal {
   librii::glhelper::VBOBuilder mVboBuilder;
-  // Maps mesh names -> slots of mVboBuilder
-  std::unordered_map<MeshName, VertexBufferTenant, MeshHash> mTenants;
+  // Maps a draw call -> slots of mVboBuilder
+  DrawCallMap<VertexBufferTenant> mTenants;
 
   std::vector<librii::glhelper::GlTexture> mTextures;
   // Maps texture names -> slots of mTextures
@@ -106,7 +141,9 @@ struct SceneImpl::Internal {
       auto& gc_mesh = reinterpret_cast<const libcube::IndexedPolygon&>(mesh);
 
       for (u32 i = 0; i < gc_mesh.getMeshData().mMatrixPrimitives.size(); ++i) {
-        const MeshName mesh_name{.string = mesh.getName(), .mprim_index = i};
+        const DrawCallPath mesh_name{.model_name = "TODO",
+                                     .mesh_name = mesh.getName(),
+                                     .mprim_index = i};
 
         if (mTenants.contains(mesh_name))
           continue;
@@ -148,18 +185,6 @@ void SceneImpl::prepare(SceneState& state, const kpi::INode& _host,
     gather(state.getBuffers(), model, host, v_mtx, p_mtx);
 }
 
-librii::math::AABB CalcPolyBound(const lib3d::Polygon& poly,
-                                 const lib3d::Bone& bone,
-                                 const lib3d::Model& mdl) {
-  auto mdl_mtx = calcSrtMtx(bone, &mdl);
-
-  librii::math::AABB bound = poly.getBounds();
-  auto nmax = mdl_mtx * glm::vec4(bound.max, 1.0f);
-  auto nmin = mdl_mtx * glm::vec4(bound.min, 1.0f);
-
-  return {nmin, nmax};
-}
-
 struct Node {
   const lib3d::Scene& scene;
   const lib3d::Model& model;
@@ -191,14 +216,11 @@ void MakeSceneNode(SceneNode& out, VertexBufferTenant& tenant,
   out.shader_id = prog.getId();
 
   // draw
-#ifdef RII_GL
-  out.glBeginMode = GL_TRIANGLES;
-#endif
-  out.vertex_count = tenant.idx_size;
-#ifdef RII_GL
-  out.glVertexDataType = GL_UNSIGNED_INT;
-#endif
-  out.indices = reinterpret_cast<void*>(tenant.idx_ofs * 4);
+  out.primitive_type = librii::gfx::PrimitiveType::Triangles;
+  out.vertex_count = tenant.vertex_indices.size;
+  out.vertex_data_type = librii::gfx::DataType::U32;
+  out.indices =
+      reinterpret_cast<void*>(tenant.vertex_indices.start * sizeof(u32));
 
   const libcube::GCMaterialData& gc_mat =
       reinterpret_cast<const libcube::IGCMaterial&>(node.mat).getMaterialData();
@@ -371,7 +393,8 @@ void SceneImpl::gatherBoneRecursive(SceneBuffers& output, u64 boneId,
       if (!poly.isVisible())
         continue;
 
-      MeshName mesh_name{.string = poly.getName(), .mprim_index = i};
+      DrawCallPath mesh_name{
+          .model_name = "TODO", .mesh_name = poly.getName(), .mprim_index = i};
       Node node{
           .scene = scene,
           .model = root,

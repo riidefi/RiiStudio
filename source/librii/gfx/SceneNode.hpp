@@ -11,6 +11,39 @@
 
 namespace librii::gfx {
 
+enum class PrimitiveType {
+  Triangles // GL_TRIANGLES
+};
+
+// Convert a PrimitiveType to OpenGL BeginMode
+u32 TranslateBeginMode(PrimitiveType t);
+
+enum class DataType {
+  Byte,          // GL_BYTE
+  UnsignedByte,  // GL_UNSIGNED_BYTE
+  Short,         // GL_SHORT
+  UnsignedShort, // GL_UNSIGNED_SHORT
+  Int,           // GL_INT
+  UnsignedInt,   // GL_UNSIGNED_INT
+  Float,         // GL_FLOAT
+  Double,        // GL_DOUBLE
+
+  S8 = Byte,
+  U8 = UnsignedByte,
+
+  S16 = Short,
+  U16 = UnsignedShort,
+
+  S32 = Int,
+  U32 = UnsignedInt,
+
+  F32 = Float,
+  F64 = Double,
+};
+
+// Convert a DataType to GL
+u32 TranslateDataType(DataType d);
+
 struct SceneNode {
   librii::gfx::MegaState mega_state;
   u32 shader_id;
@@ -18,9 +51,9 @@ struct SceneNode {
 
   rsl::array_vector<librii::gfx::TextureObj, 8> texture_objects;
 
-  u32 glBeginMode; // GL_TRIANGLES
+  PrimitiveType primitive_type = PrimitiveType::Triangles; // GL_TRIANGLES
   u32 vertex_count;
-  u32 glVertexDataType; // GL_UNSIGNED_INT
+  DataType vertex_data_type; // DataType::U32 (GL_UNSIGNED_INT)
   void* indices;
 
   // Expand an AABB with the current bounding box

@@ -1931,9 +1931,9 @@ void PushCube(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
   cube.vao_id = librii::glhelper::GetCubeVAO();
   cube.texture_objects.resize(0);
 
-  cube.glBeginMode = GL_TRIANGLES;
+  cube.primitive_type = librii::gfx::PrimitiveType::Triangles;
   cube.vertex_count = librii::glhelper::GetCubeNumVerts();
-  cube.glVertexDataType = GL_UNSIGNED_INT;
+  cube.vertex_data_type = librii::gfx::DataType::U32;
   cube.indices = 0; // Offset in VAO
 
   cube.bound = {};
