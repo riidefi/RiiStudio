@@ -17,6 +17,8 @@
 #include <frontend/level_editor/DeltaTime.hpp>
 #include <frontend/level_editor/TriangleRenderer.hpp>
 
+#include <librii/g3d/gfx/G3dGfx.hpp>
+
 namespace riistudio::lvl {
 
 enum class XluMode { Fast, Fancy };
@@ -113,6 +115,33 @@ private:
   AutoHistory<librii::kmp::CourseMap> mLedger;
 };
 
+struct RenderableBRRES {
+  RenderableBRRES(std::unique_ptr<g3d::Collection>&& collection)
+      : mCollection(std::move(collection)) {
+    assert(mCollection != nullptr);
+
+    invalidate();
+  }
+
+  // Append draw calls to a buffer
+  void addNodesToBuffer(riistudio::lib3d::SceneState& state, glm::mat4 v_mtx,
+                        glm::mat4 p_mtx) {
+    assert(mCollection != nullptr);
+    assert(mRenderData != nullptr);
+    librii::g3d::gfx::G3DSceneAddNodesToBuffer(state, *mCollection, v_mtx,
+                                               p_mtx, *mRenderData);
+  }
+
+  // Flush the cache and update the render data
+  void invalidate() {
+    mRenderData = librii::g3d::gfx::G3DSceneCreateRenderData(*mCollection);
+    assert(mRenderData != nullptr);
+  }
+
+  std::unique_ptr<g3d::Collection> mCollection;
+  std::unique_ptr<librii::g3d::gfx::G3dSceneRenderData> mRenderData;
+};
+
 class LevelEditorWindow : public frontend::StudioWindow, private Selection {
 public:
   LevelEditorWindow() : StudioWindow("Level Editor: <unknown>", true) {
@@ -155,9 +184,9 @@ public:
   DeltaTimer mDeltaTimer;
   lib3d::SceneState mSceneState;
 
-  std::unique_ptr<g3d::Collection> mCourseModel;
-  std::unique_ptr<g3d::Collection> mVrcornModel;
-  std::unique_ptr<g3d::Collection> mMapModel;
+  std::unique_ptr<RenderableBRRES> mCourseModel;
+  std::unique_ptr<RenderableBRRES> mVrcornModel;
+  std::unique_ptr<RenderableBRRES> mMapModel;
   float mini_scale_y = 1.0f;
   std::unique_ptr<librii::kcol::KCollisionData> mCourseKcl;
   TriangleRenderer mTriangleRenderer;

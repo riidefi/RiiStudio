@@ -46,6 +46,7 @@ struct Material : public virtual kpi::IObject {
   // TODO: Better system..
   void notifyObservers() {
     for (auto* it : observers) {
+      assert(it != nullptr);
       it->update(this);
     }
   }

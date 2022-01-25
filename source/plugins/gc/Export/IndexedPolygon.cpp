@@ -81,8 +81,13 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v) {
     break;
   }
 }
-void IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
-                               librii::glhelper::VBOBuilder& out) const {
+riistudio::lib3d::IndexRange
+IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
+                          librii::glhelper::VBOBuilder& out) const {
+  riistudio::lib3d::IndexRange vertex_indices;
+  vertex_indices.start = static_cast<u32>(out.mIndices.size());
+  // Expand mIndices by adding vertices
+
   const libcube::Model& gmdl = reinterpret_cast<const libcube::Model&>(mdl);
   u32 final_bitfield = 0;
 
@@ -214,5 +219,9 @@ void IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
                                    .format = def.first.format,
                                    .size = def.first.size * 4};
   }
+
+  vertex_indices.size =
+      static_cast<u32>(out.mIndices.size()) - vertex_indices.start;
+  return vertex_indices;
 }
 } // namespace libcube

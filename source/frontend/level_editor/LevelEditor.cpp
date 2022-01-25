@@ -125,8 +125,8 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto course_model_brres = FindFileWithOverloads(
         mLevel.root_archive, {"course_d_model.brres", "course_model.brres"});
     if (course_model_brres.has_value()) {
-      mCourseModel = ReadBRRES(course_model_brres->file_data,
-                               course_model_brres->resolved_path);
+      mCourseModel = std::make_unique<RenderableBRRES>(ReadBRRES(
+          course_model_brres->file_data, course_model_brres->resolved_path));
     }
   }
 
@@ -135,8 +135,8 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto vrcorn_model_brres = FindFileWithOverloads(
         mLevel.root_archive, {"vrcorn_d_model.brres", "vrcorn_model.brres"});
     if (vrcorn_model_brres.has_value()) {
-      mVrcornModel = ReadBRRES(vrcorn_model_brres->file_data,
-                               vrcorn_model_brres->resolved_path);
+      mVrcornModel = std::make_unique<RenderableBRRES>(ReadBRRES(
+          vrcorn_model_brres->file_data, vrcorn_model_brres->resolved_path));
     }
   }
 
@@ -145,7 +145,8 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto map_model =
         FindFileWithOverloads(mLevel.root_archive, {"map_model.brres"});
     if (map_model.has_value()) {
-      mMapModel = ReadBRRES(map_model->file_data, map_model->resolved_path);
+      mMapModel = std::make_unique<RenderableBRRES>(
+          ReadBRRES(map_model->file_data, map_model->resolved_path));
     }
   }
 
@@ -2090,10 +2091,10 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
   if (disp_opts.show_brres) {
     if (mVrcornModel) {
-      mVrcornModel->prepare(mSceneState, *mVrcornModel, viewMtx, projMtx);
+      mVrcornModel->addNodesToBuffer(mSceneState, viewMtx, projMtx);
     }
     if (mCourseModel) {
-      mCourseModel->prepare(mSceneState, *mCourseModel, viewMtx, projMtx);
+      mCourseModel->addNodesToBuffer(mSceneState, viewMtx, projMtx);
     }
   }
 
@@ -2204,8 +2205,8 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
     ImGui::InputFloat("Minimap ScaleY", &mini_scale_y);
 
-    mMapModel->prepare(
-        mSceneState, *mMapModel,
+    mMapModel->addNodesToBuffer(
+        mSceneState,
         viewMtx * glm::scale(glm::mat4(1.0f), glm::vec3(1, mini_scale_y, 1)),
         projMtx);
 
