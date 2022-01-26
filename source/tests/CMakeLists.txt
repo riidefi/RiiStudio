@@ -41,7 +41,7 @@ elseif (APPLE)
       set(HOMEBREW_CELLAR "/usr/local/Cellar")
     endif()
 
-    set(ASSIMP_VERSION "5.1.6")
+    set(ASSIMP_VERSION "5.2.0")
     set(GLFW_VERSION "3.3.6")
 
     SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib")
