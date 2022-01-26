@@ -78,12 +78,15 @@ struct Texture : public virtual kpi::IObject {
     virtual void update(const Texture* tex) {}
   };
 
-  void notifyObservers() const {
+  void notifyObservers() {
+    // We don't call nextGenerationId here as this is called when reverting from
+    // an undo
     for (auto* it : observers) {
       it->update(this);
     }
   }
   void onUpdate() {
+    nextGenerationId();
     // (for shader recompilation)
     notifyObservers();
   }
@@ -93,6 +96,19 @@ struct Texture : public virtual kpi::IObject {
     for (auto* it : observers)
       it->detach(this);
   }
+
+  // Updating this value will force a cache invalidation. However, perhaps not
+  // all changes warrant a cache invalidation. If you had the base type, you
+  // could hold onto a copy of the old texture to determine if said update is
+  // necessary; but in that case, you wouldn't need this system anyway.
+  //
+  // The other issue is that it's up to the user to update the generation ID.
+  // However, that is also not resolved by using the observer system.
+  //
+  virtual s32 getGenerationId() const { return mGenerationId; }
+  virtual void nextGenerationId() { ++mGenerationId; }
+
+  s32 mGenerationId = 0;
 };
 
 } // namespace riistudio::lib3d

@@ -92,7 +92,7 @@ class ImageActions : public kpi::ActionMenu<Texture, ImageActions>,
   int import_lod = -1;
 
   std::vector<riistudio::frontend::ImagePreview> mImg;
-  const Texture* lastTex = nullptr;
+  Texture* lastTex = nullptr;
 
   // Return true if the state of obj was mutated (add to history)
 public:
@@ -243,13 +243,22 @@ struct ImageSurface final : public riistudio::lib3d::Texture::IObserver,
     lastTex = nullptr;
   }
 
+  // More like InvalidateTextureCaches
   void unlisten() {
-    if (attached != nullptr && !attached->observers.empty())
+    if (attached != nullptr && !attached->observers.empty()) {
       attached->observers.erase(
           std::remove_if(attached->observers.begin(), attached->observers.end(),
                          [&](auto* x) { return x == this; }));
+    }
+
     attached = nullptr;
     lastTex = nullptr;
+  }
+  void invalidateTextureCaches() {
+    if (attached != nullptr)
+      attached->nextGenerationId();
+
+    unlisten();
   }
 
   ~ImageSurface() { unlisten(); }
@@ -287,8 +296,8 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
         data.resizeData();
         data.encode(image);
         stbi_image_free(image);
+        tex.invalidateTextureCaches();
         delegate.commit("Import Image");
-        tex.lastTex = nullptr;
       }
     }
     // ImGui::EndMenu();
@@ -315,7 +324,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
     const bool keep_alive = tex.reformat_draw(data, &changed);
 
     if (changed) {
-      tex.unlisten();
+      tex.invalidateTextureCaches();
       delegate.commit("Reformat Image");
     }
 
@@ -330,7 +339,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
     const bool keep_alive = tex.resize_draw(data, &changed);
 
     if (changed) {
-      tex.unlisten();
+      tex.invalidateTextureCaches();
       delegate.commit("Resize Image");
     }
 
@@ -341,7 +350,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
   }
 
   if (tex.lastTex != &data) {
-    tex.unlisten();
+    tex.invalidateTextureCaches();
     tex.lastTex = &data;
     tex.attached = &data;
     data.observers.push_back(&tex);

@@ -266,6 +266,9 @@ void G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
   // REASON FOR REMOVAL: User must manually initialize the render data
   // render_data.init(scene);
 
+  // Reupload changed textures
+  render_data.mTextureData.update(scene);
+
   for (auto& model : scene.getModels())
     gather(state.getBuffers(), model, scene, v_mtx, p_mtx, render_data);
 }
@@ -274,6 +277,9 @@ void Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
                                 const lib3d::Scene& scene, glm::mat4 v_mtx,
                                 glm::mat4 p_mtx,
                                 G3dSceneRenderData& render_data) {
+  // Reupload changed textures
+  render_data.mTextureData.update(scene);
+
   for (auto& model : scene.getModels())
     gather(state.getBuffers(), model, scene, v_mtx, p_mtx, render_data);
 }

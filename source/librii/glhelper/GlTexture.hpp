@@ -9,7 +9,8 @@ namespace librii::glhelper {
 class GlTexture {
 public:
   ~GlTexture();
-  GlTexture(GlTexture&& old) : mGlId(old.mGlId) { old.mGlId = ~0; }
+  GlTexture() : mGlId(~0) {}
+  GlTexture(GlTexture&& old) noexcept : mGlId(old.mGlId) { old.mGlId = ~0; }
   GlTexture(const GlTexture&) = delete;
   GlTexture(const riistudio::lib3d::Texture& tex) {
     auto opt = makeTexture(tex);
@@ -19,6 +20,13 @@ public:
   }
 
   u32 getGlId() const { return mGlId; }
+
+  GlTexture& operator=(GlTexture&& old) {
+    this->~GlTexture(); // Destroy old texture
+    mGlId = old.mGlId;
+    old.mGlId = ~0;
+    return *this;
+  }
 
 private:
   u32 mGlId;

@@ -29,30 +29,45 @@ AddPolygonToVBO(librii::glhelper::VBOBuilder& vbo_builder,
   return poly.propagate(mdl, mp_id, vbo_builder);
 }
 
+struct CompiledLib3dTexture {
+  CompiledLib3dTexture() = default;
+  CompiledLib3dTexture(const lib3d::Texture& tex)
+      : cached_gl_texture(tex), cached_generation_id(tex.getGenerationId()) {}
+
+  void forceInvalidate(const lib3d::Texture& tex) {
+    cached_gl_texture = librii::glhelper::GlTexture{tex};
+    cached_generation_id = tex.getGenerationId();
+  }
+
+  void update(const lib3d::Texture& tex) {
+    if (cached_generation_id != tex.getGenerationId())
+      forceInvalidate(tex);
+  }
+
+  u32 getGlId() const { return cached_gl_texture.getGlId(); }
+
+  librii::glhelper::GlTexture cached_gl_texture;
+  s32 cached_generation_id;
+};
+
 // Texture cache, by texture name alone
 struct G3dTextureCache {
-  std::vector<librii::glhelper::GlTexture> mTextures;
   // Maps texture names -> GL id
-  std::map<std::string, u32> mTexIdMap;
+  std::map<std::string, CompiledLib3dTexture> mTexIdMap;
 
   bool isCached(const lib3d::Texture& tex) const {
     return mTexIdMap.contains(tex.getName());
   }
 
-  void cache(const lib3d::Texture& tex) {
-    mTexIdMap[tex.getName()] = mTextures.emplace_back(tex).getGlId();
-  }
+  void cache(const lib3d::Texture& tex) { mTexIdMap[tex.getName()] = tex; }
 
-  void invalidate() {
-    mTextures.clear();
-    mTexIdMap.clear();
-  }
+  void invalidate() { mTexIdMap.clear(); }
 
   std::optional<u32> getCachedTexture(const std::string& tex) {
     if (!mTexIdMap.contains(tex))
       return std::nullopt;
 
-    return mTexIdMap.at(tex);
+    return mTexIdMap.at(tex).getGlId();
   }
 
   u32 getCachedTexture(const lib3d::Texture& tex) {
@@ -60,13 +75,15 @@ struct G3dTextureCache {
       cache(tex);
 
     assert(isCached(tex));
-    return mTexIdMap[tex.getName()];
+    return mTexIdMap[tex.getName()].getGlId();
   }
 
-  void init(const lib3d::Scene& host) {
+  void update(const lib3d::Scene& host) {
     for (auto& tex : host.getTextures()) {
       if (isCached(tex)) {
-        // Overwriting existing item
+        // Possibly reupload data if the generation ID has changed.
+        mTexIdMap[tex.getName()].update(tex);
+        continue;
       }
 
       cache(tex);
@@ -287,7 +304,7 @@ struct G3dSceneRenderData {
 
   void init(const lib3d::Scene& host) {
     mVertexRenderData.init(host);
-    mTextureData.init(host);
+    mTextureData.update(host);
     // Shaders will be generated the first time the scene is drawn
   }
 };
