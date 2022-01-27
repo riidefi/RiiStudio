@@ -17,6 +17,7 @@ struct ShaderProgram {
   ~ShaderProgram();
 
   ShaderProgram& operator=(ShaderProgram&& rhs) {
+    this->~ShaderProgram(); // Free old shader
     mErrorDesc = rhs.mErrorDesc;
     mShaderProgram = rhs.mShaderProgram;
     bError = rhs.bError;
