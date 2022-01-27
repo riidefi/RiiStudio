@@ -81,6 +81,7 @@ struct AssimpContext {
   std::optional<AssImporter> helper = std::nullopt;
   std::set<std::pair<std::size_t, std::string>> unresolved;
   std::vector<std::pair<std::size_t, std::vector<u8>>> additional_textures;
+  std::vector<std::size_t> requestedUnresolvedToID;
 
   u32 ass_flags = AlwaysFlags | DefaultFlags;
   float mMagnification = 1.0f;
@@ -304,8 +305,10 @@ public:
       transaction.state = kpi::TransactionState::ResolveDependencies;
       transaction.resolvedFiles.resize(mContext->unresolved.size());
       transaction.unresolvedFiles.reserve(mContext->unresolved.size());
-      for (auto& missing : mContext->unresolved)
+      for (auto& missing : mContext->unresolved) {
         transaction.unresolvedFiles.push_back(missing.second);
+        mContext->requestedUnresolvedToID.push_back(missing.first);
+      }
     }
   }
 
@@ -315,7 +318,11 @@ public:
         auto& found = transaction.resolvedFiles[i];
         if (found.empty())
           continue;
-        mContext->additional_textures.emplace_back(i, std::move(found));
+
+        // Without this we would replace texture 0, even if texture 7 is the one
+        // missing.
+        const auto tex_index = mContext->requestedUnresolvedToID[i];
+        mContext->additional_textures.emplace_back(tex_index, std::move(found));
       }
     }
     mContext->helper->SetTransaction(transaction);
