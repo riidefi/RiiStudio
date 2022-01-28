@@ -8,8 +8,41 @@
 
 namespace riistudio::lib3d {
 
-struct Texture : public virtual kpi::IObject {
 
+struct GenerationIDTracked {
+  using GenerationID = s32;
+
+  // Updating this value will force a cache invalidation. However, perhaps not
+  // all changes warrant a cache invalidation. If you had the base type, you
+  // could hold onto a copy of the old texture to determine if said update is
+  // necessary; but in that case, you wouldn't need this system anyway.
+  //
+  // The other issue is that it's up to the user to update the generation ID.
+  // However, that is also not resolved by using the observer system.
+  //
+  virtual GenerationID getGenerationId() const { return mGenerationId; }
+  virtual void nextGenerationId() { ++mGenerationId; }
+
+  // TODO: We could make this per-thread
+  GenerationID mGenerationId = GetGlobalObjectID();
+
+  void onUpdate() {
+    nextGenerationId();
+    // notifyObservers();
+  }
+
+  static GenerationID GetGlobalObjectID() {
+    assert(gObjectCounter < 0xffff && "Too many objects");
+
+    const GenerationID id = (gObjectCounter << 16);
+    ++gObjectCounter;
+    return id;
+  }
+
+  static inline GenerationID gObjectCounter = 0;
+};
+
+struct Texture : public virtual kpi::IObject, public GenerationIDTracked {
   virtual std::string getName() const { return "Untitled Texture"; }
   virtual void setName(const std::string& name) = 0;
   virtual s64 getId() const { return -1; }
@@ -71,44 +104,6 @@ struct Texture : public virtual kpi::IObject {
   //!				  include all additional mip levels.
   //!
   virtual void encode(const u8* rawRGBA) = 0;
-
-  struct IObserver {
-    virtual ~IObserver() = default;
-    virtual void detach(const Texture* tex) {}
-    virtual void update(const Texture* tex) {}
-  };
-
-  void notifyObservers() {
-    // We don't call nextGenerationId here as this is called when reverting from
-    // an undo
-    for (auto* it : observers) {
-      it->update(this);
-    }
-  }
-  void onUpdate() {
-    nextGenerationId();
-    // (for shader recompilation)
-    notifyObservers();
-  }
-  mutable std::vector<IObserver*> observers;
-
-  virtual ~Texture() {
-    for (auto* it : observers)
-      it->detach(this);
-  }
-
-  // Updating this value will force a cache invalidation. However, perhaps not
-  // all changes warrant a cache invalidation. If you had the base type, you
-  // could hold onto a copy of the old texture to determine if said update is
-  // necessary; but in that case, you wouldn't need this system anyway.
-  //
-  // The other issue is that it's up to the user to update the generation ID.
-  // However, that is also not resolved by using the observer system.
-  //
-  virtual s32 getGenerationId() const { return mGenerationId; }
-  virtual void nextGenerationId() { ++mGenerationId; }
-
-  s32 mGenerationId = 0;
 };
 
 } // namespace riistudio::lib3d

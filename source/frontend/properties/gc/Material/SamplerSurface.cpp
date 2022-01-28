@@ -1,5 +1,5 @@
 #include "Common.hpp"
-#include <frontend/widgets/Image.hpp> // for ImagePreview
+#include <frontend/widgets/Lib3dImage.hpp> // for Lib3dCachedImagePreview
 #include <imcxx/Widgets.hpp>
 #include <librii/hx/TexGenType.hpp>
 #include <librii/hx/TextureFilter.hpp>
@@ -59,8 +59,7 @@ struct SamplerSurface final {
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;
 
-  riistudio::frontend::ImagePreview mImg; // In mat sampler
-  std::string mLastImg;
+  riistudio::frontend::Lib3dCachedImagePreview mImg; // In mat sampler
 };
 
 void drawSamplerImage(const kpi::ConstCollectionRange<libcube::Texture>& mImgs,
@@ -77,13 +76,9 @@ void drawSamplerImage(const kpi::ConstCollectionRange<libcube::Texture>& mImgs,
   if (curImg == nullptr) {
     ImGui::TextUnformatted("No valid image."_j);
   } else {
-    if (surface.mLastImg != curImg->getName()) {
-      surface.mImg.setFromImage(*curImg);
-      surface.mLastImg = curImg->getName();
-    }
     const auto aspect_ratio = static_cast<f32>(curImg->getWidth()) /
                               static_cast<f32>(curImg->getHeight());
-    surface.mImg.draw(128.0f * aspect_ratio, 128.0f);
+    surface.mImg.draw(*curImg, 128.0f * aspect_ratio, 128.0f);
   }
 }
 

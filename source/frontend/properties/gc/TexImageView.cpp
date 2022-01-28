@@ -7,6 +7,7 @@
 #include <core/kpi/PropertyView.hpp>
 #include <core/util/gui.hpp>
 #include <frontend/widgets/Image.hpp>
+#include <frontend/widgets/Lib3dImage.hpp>
 #include <librii/image/TextureExport.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
@@ -180,7 +181,7 @@ public:
       all_changed = true;
       import_lod = -1;
       if (lastTex != nullptr)
-        lastTex->notifyObservers();
+        lastTex->onUpdate();
       lastTex = nullptr;
     }
 
@@ -220,52 +221,26 @@ public:
   }
 };
 
-struct ImageSurface final : public riistudio::lib3d::Texture::IObserver,
-                            public ResizeAction,
-                            public ReformatAction {
+struct ImageSurface final : public ResizeAction, public ReformatAction {
   static inline const char* name() { return "Image Data"; }
   static inline const char* icon = (const char*)ICON_FA_IMAGE;
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;
 
-  Texture* lastTex = nullptr;
   Texture* attached = nullptr;
-  riistudio::frontend::ImagePreview mImg;
+  riistudio::frontend::Lib3dCachedImagePreview mImg;
 
-  void update(const riistudio::lib3d::Texture* tex) override {
-    if (tex == lastTex)
-      lastTex = nullptr;
-  }
-
-  void detach(const riistudio::lib3d::Texture* tex) override {
-    attached = nullptr;
-    lastTex = nullptr;
-  }
-
-  // More like InvalidateTextureCaches
-  void unlisten() {
-    if (attached != nullptr && !attached->observers.empty()) {
-      attached->observers.erase(
-          std::remove_if(attached->observers.begin(), attached->observers.end(),
-                         [&](auto* x) { return x == this; }));
-    }
-
-    attached = nullptr;
-    lastTex = nullptr;
-  }
   void invalidateTextureCaches() {
     if (attached != nullptr)
       attached->nextGenerationId();
-
-    unlisten();
   }
-
-  ~ImageSurface() { unlisten(); }
 };
 
 void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
   auto& data = delegate.getActive();
+
+  tex.attached = &data;
 
   bool resizeAction = false;
   bool reformatOption = false;
@@ -349,14 +324,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
     ImGui::EndPopup();
   }
 
-  if (tex.lastTex != &data) {
-    tex.invalidateTextureCaches();
-    tex.lastTex = &data;
-    tex.attached = &data;
-    data.observers.push_back(&tex);
-    tex.mImg.setFromImage(data);
-  }
-  tex.mImg.draw();
+  tex.mImg.draw(data);
 
 #ifdef BUILD_DEBUG
   if (ImGui::CollapsingHeader("DEBUG")) {
