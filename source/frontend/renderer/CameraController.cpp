@@ -59,8 +59,16 @@ void CameraController::move(float time_step, InputState input) {
   glm::vec3 right =
       glm::vec3(sin(mHorizontalAngle - 1.57), 0, cos(mHorizontalAngle - 1.57));
 
-  if (input.mouse.has_value()) {
+  // NOTE: Only scroll if clicked. This prevents scrolls from outside the
+  // viewport affecting the speed accidentally.
+  // TODO: Check if we're hovering over the window, rather than just check
+  // clicking.
+  if (input.mouse.has_value() && input.clickView) {
     mSpeed += input.mouse->scroll * SCROLL_SPEED;
+
+    // Prevents inversion of controls when speed is negative.
+    if (mSpeed <= 0.f)
+      mSpeed = 0.f;
     // mSpeed = std::clamp(mSpeed, MIN_SPEED, MAX_SPEED);
   }
 
@@ -115,7 +123,7 @@ void SetCameraControllerToMatrix(CameraController& controller,
     ImGui::Text("Cartesian: %f, %f, %f", cartesian.x, cartesian.y, cartesian.z);
   }
 #endif
-   {
+  {
 
     auto d = glm::distance(cartesian, glm::vec3(0.0f, 0.0f, 0.0f));
 
