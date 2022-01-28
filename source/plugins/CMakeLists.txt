@@ -78,6 +78,11 @@ add_library(plugins
   "g3d/io/MDL0.cpp"
   "g3d/io/Common.hpp"
   "g3d/io/Common.cpp"
-
+  "mk/BFG/io/BFG.hpp"
+  "mk/BFG/io/BFG.cpp"
+  "mk/BFG/Fog.hpp"
+  "mk/BFG/FogEntry.hpp"
+  "mk/BFG/FogView.cpp"
+  "mk/BFG/Node.h"
   
  "rhst/RHSTImporter.cpp" "g3d/ui/G3dSrtView.cpp" "g3d/G3dUi.cpp"  "g3d/G3dIo.hpp" "j3d/J3dIo.hpp" "ass/Ass.hpp" "ass/SupportedFiles.hpp" "ass/SupportedFiles.cpp" "ass/InclusionMask.hpp" "ass/InclusionMask.cpp" "ass/LogScope.hpp" "ass/LogScope.cpp" "ass/ImportTexture.hpp" "ass/ImportTexture.cpp")
