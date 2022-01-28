@@ -1,6 +1,5 @@
 #include "timestamp.hpp"
 
-
 #if defined(__VERSION__)
 #define __CC __VERSION__
 #elif defined(_MSC_VER)
@@ -12,7 +11,7 @@
 #endif
 
 // Must match release on Github
-const char GIT_TAG[] = "Alpha 5.4.3";
+const char GIT_TAG[] = "Alpha 5.4.4";
 
 // Must be exactly 16 bytes long
 const char VERSION_SHORT[] = "RiiStudio: A-5.4";
@@ -24,7 +23,7 @@ static_assert(sizeof(VERSION_SHORT) - 1 == 16,
 #elif defined(BUILD_RELEASE)
 #define __BUILD "Alpha Release"
 #elif defined(BUILD_DIST)
-#define __BUILD "Alpha 5.4.3"
+#define __BUILD "Alpha 5.4.4"
 #else
 #define __BUILD "Custom"
 #endif
