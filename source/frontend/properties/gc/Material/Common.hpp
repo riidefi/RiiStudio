@@ -11,7 +11,7 @@
       before, after, [&](const auto& x) { return x.val; },                     \
       [&](auto& x, auto& y) {                                                  \
         x.val = y;                                                             \
-        x.notifyObservers();                                                   \
+        x.onUpdate();                                                          \
       })
 
 #define AUTO_PROP(before, after)                                               \
@@ -83,8 +83,8 @@ SamplerCombo(int current,
 
   auto sid = std::string("Sampler ID"_j) + "##Img";
   if (ImGui::BeginCombo(sid.c_str(), samplers.empty()
-                                               ? "No Samplers"_j
-                                               : format(current).c_str())) {
+                                         ? "No Samplers"_j
+                                         : format(current).c_str())) {
     if (allow_none) {
       bool selected = current = 0xff;
       if (ImGui::Selectable("None"_j, selected)) {

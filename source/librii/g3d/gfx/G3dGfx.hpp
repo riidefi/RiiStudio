@@ -29,6 +29,27 @@ AddPolygonToVBO(librii::glhelper::VBOBuilder& vbo_builder,
   return poly.propagate(mdl, mp_id, vbo_builder);
 }
 
+struct ShaderCompileError {
+  std::string desc;
+};
+
+inline std::variant<librii::glhelper::ShaderProgram, ShaderCompileError>
+CompileMaterial(const lib3d::Material& _mat) {
+  DebugReport("Compiling shader for %s..\n", _mat.getName().c_str());
+  const auto shader_sources = _mat.generateShaders();
+  librii::glhelper::ShaderProgram new_shader(
+      shader_sources.first,
+      _mat.applyCacheAgain ? _mat.cachedPixelShader : shader_sources.second);
+  if (new_shader.getError()) {
+    _mat.isShaderError = true;
+    _mat.shaderError = new_shader.getErrorDesc();
+    return ShaderCompileError{.desc = _mat.shaderError};
+  }
+  _mat.isShaderError = false;
+
+  return new_shader;
+}
+
 struct CompiledLib3dTexture {
   CompiledLib3dTexture() = default;
   CompiledLib3dTexture(const lib3d::Texture& tex)
@@ -100,7 +121,7 @@ struct ObservableShader {
 
   auto& getProgram() { return mImpl->mProgram; }
   void attachToMaterial(const lib3d::Material& mat) {
-    mat.observers.push_back(mImpl.get());
+    mImpl->subscribe(mat.observers);
   }
 
 private:
@@ -112,18 +133,18 @@ private:
     librii::glhelper::ShaderProgram mProgram;
 
     void update(lib3d::Material* _mat) final {
-      DebugReport("Recompiling shader for %s..\n", _mat->getName().c_str());
-      const auto shader_sources = _mat->generateShaders();
-      librii::glhelper::ShaderProgram new_shader(
-          shader_sources.first, _mat->applyCacheAgain ? _mat->cachedPixelShader
-                                                      : shader_sources.second);
-      if (new_shader.getError()) {
-        _mat->isShaderError = true;
-        _mat->shaderError = new_shader.getErrorDesc();
+      assert(_mat != nullptr);
+
+      auto result = CompileMaterial(*_mat);
+      if (auto* shader = std::get_if<librii::glhelper::ShaderProgram>(&result);
+          shader != nullptr) {
+        mProgram = std::move(*shader);
         return;
       }
-      mProgram = std::move(new_shader);
-      _mat->isShaderError = false;
+
+      if (auto* err = std::get_if<ShaderCompileError>(&result);
+          err != nullptr) {
+      }
     }
   };
   std::unique_ptr<Impl> mImpl;
@@ -160,27 +181,6 @@ struct GenericShaderCache_WithObserverUpdates {
   }
 };
 
-struct ShaderCompileError {
-  std::string desc;
-};
-
-inline std::variant<librii::glhelper::ShaderProgram, ShaderCompileError>
-CompileMaterial(const lib3d::Material* _mat) {
-  DebugReport("Compiling shader for %s..\n", _mat->getName().c_str());
-  const auto shader_sources = _mat->generateShaders();
-  librii::glhelper::ShaderProgram new_shader(
-      shader_sources.first,
-      _mat->applyCacheAgain ? _mat->cachedPixelShader : shader_sources.second);
-  if (new_shader.getError()) {
-    _mat->isShaderError = true;
-    _mat->shaderError = new_shader.getErrorDesc();
-    return ShaderCompileError{.desc = _mat->shaderError};
-  }
-  _mat->isShaderError = false;
-
-  return new_shader;
-}
-
 struct G3dShaderCache_WithUnusableHashingMechanism {
   using MatData = riistudio::g3d::G3dMaterialData;
 
@@ -203,7 +203,7 @@ struct G3dShaderCache_WithUnusableHashingMechanism {
     if (it != data.end())
       return *it->second;
 
-    auto result = CompileMaterial(&mat);
+    auto result = CompileMaterial(mat);
 
     if (auto* shader = std::get_if<librii::glhelper::ShaderProgram>(&result);
         shader != nullptr) {

@@ -7,6 +7,8 @@
 #include <string>                        // std::string
 #include <tuple>                         // std::pair<string, string>
 
+#include <rsl/PubSub.hpp>
+
 namespace librii::glhelper {
 class DelegatedUBOBuilder;
 }
@@ -17,15 +19,12 @@ struct Material;
 class Scene;
 class Model;
 
-struct IObserver {
-  virtual ~IObserver() = default;
-  // TODO: Detach
-  virtual void update(Material* mat) {}
-
-  IObserver() = default;
-  IObserver(const IObserver&) = delete;
-  IObserver(IObserver&&) = delete;
+struct MaterialEvents {
+  virtual void update(Material* mat) = 0;
 };
+
+using IObserver = typename rsl::Subscriber<MaterialEvents>;
+
 struct Polygon;
 struct Material : public virtual kpi::IObject {
   virtual ~Material() = default;
@@ -44,13 +43,10 @@ struct Material : public virtual kpi::IObject {
                          std::vector<std::string>& textures) = 0;
 
   // TODO: Better system..
-  void notifyObservers() {
-    for (auto* it : observers) {
-      assert(it != nullptr);
-      it->update(this);
-    }
-  }
+  void notifyObservers() { observers.publish(&MaterialEvents::update, this); }
   void onUpdate() {
+    nextGenerationId();
+
     // (for shader recompilation)
     notifyObservers();
   }
@@ -62,12 +58,25 @@ struct Material : public virtual kpi::IObject {
     applyCacheAgain = rhs.applyCacheAgain;
     return *this;
   }
-  mutable std::vector<IObserver*> observers;
+  mutable rsl::PubSubChannel<MaterialEvents> observers;
 
   mutable std::string cachedPixelShader;
   mutable bool isShaderError = false;
   mutable std::string shaderError;
   mutable bool applyCacheAgain = false;
+
+  // Updating this value will force a cache invalidation. However, perhaps not
+  // all changes warrant a cache invalidation. If you had the base type, you
+  // could hold onto a copy of the old texture to determine if said update is
+  // necessary; but in that case, you wouldn't need this system anyway.
+  //
+  // The other issue is that it's up to the user to update the generation ID.
+  // However, that is also not resolved by using the observer system.
+  //
+  virtual s32 getGenerationId() const { return mGenerationId; }
+  virtual void nextGenerationId() { ++mGenerationId; }
+
+  s32 mGenerationId = 0;
 };
 
 } // namespace riistudio::lib3d
