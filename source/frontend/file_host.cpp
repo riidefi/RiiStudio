@@ -40,21 +40,27 @@ void FileHost::openFile(OpenFilePolicy policy) {
   auto file = results[0];
   openFile(file, policy);
 }
-void FileHost::openFile(const std::string& path, OpenFilePolicy policy) {
+std::optional<FileData> ReadFileData(const std::string& path) {
   std::ifstream stream(path, std::ios::binary | std::ios::ate);
 
   if (!stream)
-    return;
+    return std::nullopt;
 
   const auto size = stream.tellg();
   stream.seekg(0, std::ios::beg);
 
   std::unique_ptr<u8[]> data = std::make_unique<u8[]>(size);
   if (!stream.read(reinterpret_cast<char*>(data.get()), size))
+    return std::nullopt;
+
+  return FileData{std::move(data), static_cast<std::size_t>(size), path};
+}
+void FileHost::openFile(const std::string& path, OpenFilePolicy policy) {
+  auto drop = ReadFileData(path);
+  if (!drop)
     return;
 
-  FileData drop{std::move(data), static_cast<std::size_t>(size), path};
-  mDataDropQueue.emplace(std::move(drop));
+  mDataDropQueue.emplace(std::move(*drop));
 }
 
 // Call from dropper

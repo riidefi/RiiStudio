@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <queue>
 #include <stdint.h>
 #include <string.h>
@@ -20,6 +21,8 @@ struct FileData {
       : mData(std::move(data)), mLen(len), mPath(path) {}
   FileData() = default;
 };
+
+std::optional<FileData> ReadFileData(const std::string& path);
 
 enum class OpenFilePolicy { NewEditor, ReplaceEditorIfMatching, ReplaceEditor };
 

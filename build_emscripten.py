@@ -209,6 +209,7 @@ def build_project(name, type, config, proj=None):
 			link_cmd += " -g4 --source-map-base ../ "
 		link_cmd += "  -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 --no-heap-copy --preload-file ./fonts@/fonts "
 		link_cmd += " --preload-file ./lang@/lang"
+		link_cmd += " --preload-file ./samp@/samp"
 		with open(bin_int_dir + "link_cmd.txt", 'w') as lc:
 			lc.write(link_cmd)
 		system_cmd("em++ @" + bin_int_dir + "link_cmd.txt")
