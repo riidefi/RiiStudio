@@ -26,6 +26,8 @@
 
 #include <frontend/level_editor/LevelEditor.hpp>
 
+#include <frontend/Fonts.hpp>
+
 namespace llvm {
 int DisableABIBreakingChecks;
 } // namespace llvm
@@ -168,7 +170,8 @@ void RootWindow::drawMenuBar(riistudio::frontend::EditorWindow* ed) {
 
     drawSettingsMenu();
 
-    drawLangMenu();
+    if (Fonts::IsJapaneseSupported())
+      drawLangMenu();
 
     ImGui::SameLine(ImGui::GetWindowWidth() - 60);
     DrawFps();
