@@ -7,7 +7,6 @@
 #include <frontend/Localization.hpp>
 #include <frontend/editor/EditorWindow.hpp>
 #include <frontend/widgets/fps.hpp>
-#include <frontend/widgets/theme_editor.hpp>
 #include <fstream>
 #include <imcxx/Widgets.hpp>
 #include <imgui_markdown.h>
@@ -85,11 +84,22 @@ void RootWindow::draw() {
   DoLeakCheck();
   fileHostProcess();
 
-  ImGui::GetIO().FontGlobalScale = mFontGlobalScale;
+  auto& io = ImGui::GetIO();
+#ifdef RETINA_DEBUG
+  ImGui::Text("DEBUG: Display: %f, %f", io.DisplaySize.x, io.DisplaySize.y);
+  ImGui::Text("DEBUG: Apple Retina scaling: %f, %f",
+              io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+#endif
+
+  io.FontGlobalScale = mThemeData.mFontGlobalScale;
 
   if (mThemeUpdated) {
-    mTheme.setThemeEx(mCurTheme);
+    // Reset theme; otherwise scale factors could compound later
+    ImGui::GetStyle() = {};
+    mTheme.setThemeEx(mThemeData.mTheme);
     mThemeUpdated = false;
+
+    ImGui::GetStyle().ScaleAllSizes(mThemeData.mGlobalScale);
   }
 
   util::IDScope g(0);
@@ -183,7 +193,7 @@ void RootWindow::drawSettingsMenu() {
       vsync = _vsync;
     }
 
-    mThemeUpdated |= DrawThemeEditor(mCurTheme, mFontGlobalScale, nullptr);
+    mThemeUpdated |= DrawThemeEditor(mThemeData, nullptr);
 
 #ifdef BUILD_DEBUG
     ImGui::Checkbox("ImGui Demo", &bDemo);

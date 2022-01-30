@@ -149,7 +149,7 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
     // Selections from other windows will carry over.
     bool curNodeSelected = isSelected(sel, folder, i);
 
-    const int icon_size = 24;
+    const float icon_size = 24.0f * ImGui::GetIO().FontGlobalScale;
 
     ImGui::Selectable(std::to_string(i).c_str(), curNodeSelected,
                       ImGuiSelectableFlags_None, {0, icon_size});

@@ -38,11 +38,11 @@ void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
     }
 
     if (draw_controller) {
-      ImGui::SetNextItemWidth(200.0f);
+      ImGui::SetNextItemWidth(120.0f * ImGui::GetIO().FontGlobalScale);
       mCameraController.drawControllerTypeOption();
     }
 
-    ImGui::SetNextItemWidth(200.0f);
+    ImGui::SetNextItemWidth(120.0f * ImGui::GetIO().FontGlobalScale);
     mCameraController.drawProjectionOption();
 
     if (draw_wireframe && librii::glhelper::IsGlWireframeSupported()) {

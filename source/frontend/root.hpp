@@ -10,6 +10,7 @@
 
 #include <frontend/editor/ImporterWindow.hpp>
 #include <frontend/updater/updater.hpp>
+#include <frontend/widgets/theme_editor.hpp>
 
 namespace riistudio::frontend {
 
@@ -43,11 +44,11 @@ public:
 private:
   bool vsync = true;
   bool bDemo = false;
-  float mFontGlobalScale = 1.0f;
+
+  ThemeData mThemeData;
 
   // std::queue<std::string> mAttachEditorsQueue;
   ThemeManager mTheme;
-  ThemeManager::BasicTheme mCurTheme = ThemeManager::BasicTheme::Raikiri;
   bool mThemeUpdated = true;
 
   std::queue<ImporterWindow> mImportersQueue;
