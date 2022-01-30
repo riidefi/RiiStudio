@@ -59,8 +59,23 @@ private:
 
 public:
   // Remember the last resolution.
-  unsigned mLastWidth = 0;
-  unsigned mLastHeight = 0;
+  struct ResolutionData {
+    unsigned width = 0;
+    unsigned height = 0;
+
+    float retina_x = 1.0f;
+    float retina_y = 1.0f;
+
+    // Adjust for Retina display
+    unsigned computeGlWidth() const { return width * retina_x; }
+    // Adjust for Retina display
+    unsigned computeGlHeight() const { return height * retina_y; }
+
+    bool operator==(const ResolutionData&) const = default;
+  };
+  ResolutionData queryResolution(unsigned width, unsigned height) const;
+
+  ResolutionData mLastResolution;
 };
 
 } // namespace plate::tk

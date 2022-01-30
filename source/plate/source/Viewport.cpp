@@ -5,7 +5,7 @@
 
 namespace plate::tk {
 
-Viewport::Viewport() {}
+Viewport::Viewport() = default;
 Viewport::~Viewport() { destroyFbo(); }
 
 bool Viewport::begin(unsigned width, unsigned height) {
@@ -17,7 +17,11 @@ bool Viewport::begin(unsigned width, unsigned height) {
   createFbo(width, height);
 
 #ifdef RII_GL
-  glViewport(0, 0, width, height);
+  // Retina scaling: Convert width to pixels
+  const ResolutionData cur_resolution = queryResolution(width, height);
+
+  glViewport(0, 0, cur_resolution.computeGlWidth(),
+             cur_resolution.computeGlHeight());
   glBindFramebuffer(GL_FRAMEBUFFER, mFboId);
 #endif
 
@@ -33,8 +37,9 @@ void Viewport::end() {
   // We do these calculations now, as the user may have used ImGui within the
   // viewport, making our actual region smaller than our framebuffer.
   const auto region = ImGui::GetContentRegionAvail();
-  const auto vert_ratio = region.x / static_cast<float>(mLastWidth);
-  const auto horiz_ratio = region.y / static_cast<float>(mLastHeight);
+  const auto vert_ratio = region.x / static_cast<float>(mLastResolution.width);
+  const auto horiz_ratio =
+      region.y / static_cast<float>(mLastResolution.height);
 
 // TODO
 #ifdef RII_GL
@@ -46,11 +51,10 @@ void Viewport::end() {
 }
 
 void Viewport::createFbo(unsigned width, unsigned height) {
-  if (width == mLastWidth && height == mLastHeight)
+  const ResolutionData cur_resolution = queryResolution(width, height);
+  if (mLastResolution == cur_resolution)
     return;
-
-  mLastWidth = width;
-  mLastHeight = height;
+  mLastResolution = cur_resolution;
 
   destroyFbo();
 
@@ -60,8 +64,9 @@ void Viewport::createFbo(unsigned width, unsigned height) {
 
   glGenTextures(1, &mImageBufId);
   glBindTexture(GL_TEXTURE_2D, mImageBufId);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-               GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cur_resolution.computeGlWidth(),
+               cur_resolution.computeGlHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE,
+               NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
@@ -69,7 +74,9 @@ void Viewport::createFbo(unsigned width, unsigned height) {
 
   glGenRenderbuffers(1, &mRboId);
   glBindRenderbuffer(GL_RENDERBUFFER, mRboId);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8,
+                        cur_resolution.computeGlWidth(),
+                        cur_resolution.computeGlHeight());
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
                             GL_RENDERBUFFER, mRboId);
 
@@ -89,6 +96,16 @@ void Viewport::destroyFbo() {
 #endif
 
   setFboLoaded(false);
+}
+
+Viewport::ResolutionData Viewport::queryResolution(unsigned width,
+                                                   unsigned height) const {
+  const auto& io = ImGui::GetIO();
+
+  return {.width = width,
+          .height = height,
+          .retina_x = io.DisplayFramebufferScale.x,
+          .retina_y = io.DisplayFramebufferScale.y};
 }
 
 } // namespace plate::tk

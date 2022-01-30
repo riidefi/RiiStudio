@@ -2232,7 +2232,8 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
   mSceneState.draw();
 
   const bool view_updated =
-      DrawViewCube(mViewport.mLastWidth, mViewport.mLastHeight, viewMtx);
+      DrawViewCube(mViewport.mLastResolution.width,
+                   mViewport.mLastResolution.height, viewMtx);
   auto& cam = mRenderSettings.mCameraController;
   if (view_updated)
     frontend::SetCameraControllerToMatrix(cam, viewMtx);

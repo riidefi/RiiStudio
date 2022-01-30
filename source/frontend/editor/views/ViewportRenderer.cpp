@@ -50,8 +50,9 @@ void RenderTest::draw_() {
 }
 
 void RenderTest::drawViewCube() {
-  const bool view_updated = lvl::DrawViewCube(
-      mViewport.mLastWidth, mViewport.mLastHeight, mRenderer.mViewMtx);
+  const bool view_updated =
+      lvl::DrawViewCube(mViewport.mLastResolution.width,
+                        mViewport.mLastResolution.height, mRenderer.mViewMtx);
   auto& cam = mRenderer.mSettings.mCameraController;
   if (view_updated)
     frontend::SetCameraControllerToMatrix(cam, mRenderer.mViewMtx);
