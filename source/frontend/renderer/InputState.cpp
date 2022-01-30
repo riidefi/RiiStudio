@@ -48,7 +48,7 @@ InputState buildInputState() {
   const bool l_shift = keys[SDL_SCANCODE_LSHIFT];
   if (l_shift || keys[SDL_SCANCODE_Q])
     key_down = true;
-  const bool l_alt = keys[SDL_SCANCODE_LALT]
+  const bool l_alt = keys[SDL_SCANCODE_LALT];
 #endif
 
   // Left + !LAlt   -> Select

@@ -684,7 +684,11 @@ public:
       * @return The name of the material.
       */
     // -------------------------------------------------------------------
+#ifdef __EMSCRIPTEN__
+    aiString GetName() const;
+#else
     aiString GetName();
+#endif
 
     // -------------------------------------------------------------------
     /** @brief Retrieve an array of Type values with a specific key

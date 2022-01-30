@@ -141,13 +141,19 @@ def compile(source, int_dir, debug, config):
 		args += " -D" + d
 	for incl in INCLUDES:
 		args += " -I./" + incl + " "
-	args += " -Wall -D\"__debugbreak()\"=\"\""
+	args += " -Wall"
+	#args += " -D\"__debugbreak()\"=\"\""
 	args += " -s USE_SDL=2 "
 	if debug:
 		args += " -g4 -O0 "
 	else:
 		args += " -O3 -flto" 
-	args += " -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 -c -o"
+	#args += " -s WASM=1"
+	#args += " -s ALLOW_MEMORY_GROWTH=1"
+	#args += " -s NO_EXIT_RUNTIME=0"
+	#args += " -s ASSERTIONS=1"
+
+	args += " -c -o"
 	dst = format_out(source, int_dir)
 	args += " " + dst + " " + source
 	system_cmd(args)
@@ -202,6 +208,7 @@ def build_project(name, type, config, proj=None):
 		if debug:
 			link_cmd += " -g4 --source-map-base ../ "
 		link_cmd += "  -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 --no-heap-copy --preload-file ./fonts@/fonts "
+		link_cmd += " --preload-file ./lang@/lang"
 		with open(bin_int_dir + "link_cmd.txt", 'w') as lc:
 			lc.write(link_cmd)
 		system_cmd("em++ @" + bin_int_dir + "link_cmd.txt")

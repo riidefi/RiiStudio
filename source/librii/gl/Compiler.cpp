@@ -1412,10 +1412,12 @@ out vec4 fragOut;
 
     std::array<char, 1024 * 64> frag_buf;
     StringBuilder frag(frag_buf.data(), frag_buf.size());
+#if !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
     if (mMaterial.earlyZComparison) {
       // https://www.khronos.org/opengl/wiki/Early_Fragment_Test#Explicit_specification
       frag += "layout(early_fragment_tests) in;\n";
     }
+#endif
     frag += varying_frag;
     frag += generateTexCoordGetters();
     frag += R"(

@@ -20,3 +20,8 @@
 #elif defined(RII_BACKEND_SDL)
 #include <GLES3/gl3.h>
 #endif
+
+
+#ifdef __EMSCRIPTEN__
+#include <GL/gl.h>
+#endif

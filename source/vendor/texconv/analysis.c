@@ -2,6 +2,7 @@
 #include "palette.h"
 
 #include <math.h>
+#include <stdlib.h>
 
 #ifndef _WIN32
 

@@ -181,7 +181,10 @@ void setGlState(const librii::gfx::MegaState& state) {
 
   glPolygonOffset(state.poly_offset_factor, state.poly_offset_units);
 
+  // WebGL doesn't support glPolygonMode
+#ifndef __EMSCRIPTEN__
   glPolygonMode(GL_FRONT_AND_BACK, GetPolygonMode(state.fill));
+#endif
 }
 #endif
 
