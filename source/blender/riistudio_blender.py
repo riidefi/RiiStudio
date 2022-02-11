@@ -29,7 +29,9 @@ import subprocess
 import mmap
 import cProfile
 
-BLENDER_28 = bpy.app.version[1] >= 80
+BLENDER_30 = bpy.app.version[0] >= 3
+BLENDER_28 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 80) \
+	or BLENDER_30
 
 def get_user_prefs(context):
 	return context.preferences if BLENDER_28 else context.user_preferences			
@@ -792,6 +794,8 @@ class RHST_RNA:
 		default="float",
 		items=quantize_types
 	)
+	if BLENDER_30: position_quantize : position_quantize
+
 	normal_quantize = EnumProperty(
 		name="Normal",
 		default="float",
@@ -801,11 +805,15 @@ class RHST_RNA:
 			("fixed6", "fixed6", "Lowest precision")
 		)
 	)
+	if BLENDER_30: normal_quantize : normal_quantize
+
 	uv_quantize = EnumProperty(
 		name="UV",
 		default="float",
 		items=quantize_types
 	)
+	if BLENDER_30: uv_quantize : uv_quantize
+
 	color_quantize = EnumProperty(
 		name="Color",
 		default='rgb8',
@@ -817,6 +825,8 @@ class RHST_RNA:
 			('rgb565', "rgb565", "5-bit RB channels (32 levels), and 6-bit G channel (64 levels)")
 		)
 	)
+	if BLENDER_30: color_quantize : color_quantize
+
 	root_transform_scale_x = FloatProperty(name="X", default=1)
 	root_transform_scale_y = FloatProperty(name="Y", default=1)
 	root_transform_scale_z = FloatProperty(name="Z", default=1)
@@ -826,11 +836,26 @@ class RHST_RNA:
 	root_transform_translate_x = FloatProperty(name="X", default=0)
 	root_transform_translate_y = FloatProperty(name="Y", default=0)
 	root_transform_translate_z = FloatProperty(name="Z", default=0)
+	if BLENDER_30:
+		root_transform_scale_x : root_transform_scale_x
+		root_transform_scale_y : root_transform_scale_y
+		root_transform_scale_z : root_transform_scale_z
+		root_transform_rotate_x : root_transform_rotate_x
+		root_transform_rotate_y : root_transform_rotate_y
+		root_transform_rotate_z : root_transform_rotate_z
+		root_transform_translate_x : root_transform_translate_x
+		root_transform_translate_y : root_transform_translate_y
+		root_transform_translate_z : root_transform_translate_z
+
 	magnification = FloatProperty(
 		name="Magnification",
 		default=1000
 	)
+	if BLENDER_30: magnification : magnification
+
 	split_mesh_by_material = BoolProperty(name="Split Mesh by Material", default=True)
+	if BLENDER_30: split_mesh_by_material : split_mesh_by_material
+	
 	mesh_conversion_mode = EnumProperty(
 		name="Mesh Conversion Mode",
 		default='PREVIEW',
@@ -839,22 +864,28 @@ class RHST_RNA:
 			('RENDER', "Render", "Render settings"),
 		)
 	)
+	if BLENDER_30: mesh_conversion_mode : mesh_conversion_mode
+
 	add_dummy_colors = BoolProperty(
 		name="Add Dummy Vertex Colors",
 		description="Allows for polygons without assigned vertex colors to use the same materials as polygons with assigned vertex colors",
 		default=True
 	)
+	if BLENDER_30: add_dummy_colors : add_dummy_colors
+
 	ignore_cache = BoolProperty(
 		name="Ignore Cache",
 		default=False,
 		description="Ignore the cache and rebuild every texture"
 	)
+	if BLENDER_30: ignore_cache : ignore_cache
 
 	keep_build_artifacts = BoolProperty(
 		name="Keep Build Artifacts",
 		default=False,
 		description="Don't delete .rhst and .png files"
 	)
+	if BLENDER_30: keep_build_artifacts : keep_build_artifacts
 
 	def get_root_transform(self):
 		root_scale     = [self.root_transform_scale_x,     self.root_transform_scale_y,     self.root_transform_scale_z]
@@ -983,6 +1014,7 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 		options={'HIDDEN'},
 		maxlen=255,  # Max internal buffer length, longer would be clamped.
 	)
+	if BLENDER_30: filter_glob : filter_glob
 
 	def draw(self, context):
 		box = self.layout.box()
@@ -1021,6 +1053,7 @@ class ExportBMD(Operator, ExportHelper, RHST_RNA):
 		options={'HIDDEN'},
 		maxlen=255,  # Max internal buffer length, longer would be clamped.
 	)
+	if BLENDER_30: filter_glob : filter_glob
 
 	def draw(self, context):
 		box = self.layout.box()
@@ -1070,6 +1103,7 @@ class RiidefiStudioPreferenceProperty(bpy.types.AddonPreferences):
 		update = lambda s,c: make_rs_path_absolute(),
 		default=""
 	)
+	if BLENDER_30: riistudio_directory : riistudio_directory
 
 	def draw(self, context):
 		layout = self.layout
