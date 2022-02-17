@@ -41,6 +41,13 @@ struct BoneData {
     u8 mPrio;
 
     bool operator==(const DisplayCommand& rhs) const = default;
+    bool operator<(const DisplayCommand& rhs) const {
+      if (mPrio != rhs.mPrio)
+        return mPrio < rhs.mPrio;
+      if (mPoly != rhs.mPoly)
+        return mPoly < rhs.mPoly;
+      return mMaterial < rhs.mMaterial;
+    }
   };
   std::vector<DisplayCommand> mDisplayCommands;
 

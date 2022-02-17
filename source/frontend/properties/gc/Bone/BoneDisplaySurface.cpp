@@ -31,6 +31,19 @@ auto BoneDisplaySurface =
             delegate.commit("Sorted");
           }
 
+          if (ImGui::Button("Remove duplicate drawcalls"_j)) {
+            auto* gb = dynamic_cast<librii::g3d::BoneData*>(&bone);
+            if (gb) {
+              std::stable_sort(gb->mDisplayCommands.begin(),
+                               gb->mDisplayCommands.end());
+              gb->mDisplayCommands.erase(
+                  std::unique(gb->mDisplayCommands.begin(),
+                              gb->mDisplayCommands.end()),
+                  gb->mDisplayCommands.end());
+            }
+            delegate.commit("Deduplicated");
+          }
+
           if (ImGui::Button("Make materials unique"_j)) {
             auto* gb = dynamic_cast<librii::g3d::BoneData*>(&bone);
             if (gb) {
