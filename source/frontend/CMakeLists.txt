@@ -128,8 +128,8 @@ else()
       set(HOMEBREW_CELLAR "/usr/local/Cellar")
     endif()
 
-    set(ASSIMP_VERSION "5.2.0")
-    set(GLFW_VERSION "3.3.6")
+    set(ASSIMP_VERSION "5.2.3")
+    set(GLFW_VERSION "3.3.7")
 
     SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib")
   elseif (UNIX)
