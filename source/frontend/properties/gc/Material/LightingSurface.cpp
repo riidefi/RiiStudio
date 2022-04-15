@@ -104,7 +104,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       header[0] = '0' + i;
       ImGui::TableSetupColumn(header);
     }
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
     ImGui::TableNextRow();
     for (int i = 0; i < 8; ++i) {
       bool light_enabled = (static_cast<u32>(ctrl.lightMask) & (1 << i)) != 0;

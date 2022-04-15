@@ -236,35 +236,35 @@ static void DrawCoordinateCells(glm::vec3* position,
                                 glm::vec3* rotation = nullptr,
                                 glm::vec3* scale = nullptr) {
   if (position != nullptr) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#PosX", &position->x);
 
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#PosY", &position->y);
 
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#PosZ", &position->z);
   }
 
   if (rotation != nullptr) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#RotX", &rotation->x);
 
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#RotY", &rotation->y);
 
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#RotZ", &rotation->z);
   }
 
   if (scale != nullptr) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#SclX", &scale->x);
 
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#SclY", &scale->y);
 
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#SclZ", &scale->z);
   }
 }
@@ -272,26 +272,26 @@ static void DrawCoordinateCells(glm::vec2* position,
                                 glm::vec2* rotation = nullptr,
                                 glm::vec2* scale = nullptr) {
   if (position != nullptr) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#PosX", &position->x);
 
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#PosY", &position->y);
   }
 
   if (rotation != nullptr) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#RotX", &rotation->x);
 
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#RotY", &rotation->y);
   }
 
   if (scale != nullptr) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#SclX", &scale->x);
 
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("#SclY", &scale->y);
   }
 }
@@ -400,14 +400,14 @@ static void DrawJGPTCells(librii::kmp::RespawnPoint& p) {
   DrawCoordinateCells(&p.position, &p.rotation);
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     int pli = p.id;
     ImGui::InputInt("#Index", &pli);
     p.id = pli;
   }
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     int pli = p.range;
     ImGui::InputInt("#Radius", &pli);
     p.range = pli;
@@ -418,10 +418,10 @@ void LevelEditorWindow::DrawRespawnTable() {
   bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       (0 * ImGuiTableFlags_Resizable) | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable |
-      ImGuiTableFlags_SizingPolicyFixedX;
+      ImGuiTableFlags_SizingFixedFit;
 
   int delete_index = -1;
   if (ImGui::BeginTable("##RespawnPoints", 3 + NumJGPTColumns(), flags)) {
@@ -433,7 +433,7 @@ void LevelEditorWindow::DrawRespawnTable() {
     SetupColumn("ID");
     SetupJGPTColumns(show_coords);
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < mKmp->mRespawnPoints.size(); ++i) {
       auto& p = mKmp->mRespawnPoints[i];
@@ -450,12 +450,12 @@ void LevelEditorWindow::DrawRespawnTable() {
         selection.clear();
         select(&mKmp->mRespawnPoints, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawJGPTCells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -485,7 +485,7 @@ static void DrawKTPTCells(librii::kmp::StartPoint& p) {
   DrawCoordinateCells(&p.position, &p.rotation);
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     int pli = p.player_index;
     ImGui::InputInt("#PlIdx", &pli);
     p.player_index = pli;
@@ -496,7 +496,7 @@ void LevelEditorWindow::DrawStartPointTable() {
   bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -509,7 +509,7 @@ void LevelEditorWindow::DrawStartPointTable() {
     SetupColumn("ID");
     SetupKTPTColumns(show_coords);
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < mKmp->mStartPoints.size(); ++i) {
       auto& p = mKmp->mStartPoints[i];
@@ -526,12 +526,12 @@ void LevelEditorWindow::DrawStartPointTable() {
         selection.clear();
         select(&mKmp->mStartPoints, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawKTPTCells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -572,7 +572,7 @@ static void DrawAREACells(librii::kmp::Area& p) {
                       &p.mModel.mScaling);
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     const char* area_types = "Camera\0"
                              "EffectController\0"
                              "FogController\0"
@@ -590,7 +590,7 @@ static void DrawAREACells(librii::kmp::Area& p) {
     p.mType = static_cast<librii::kmp::AreaType>(tmp);
   }
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     int cam_idx = p.mCameraIndex;
     ImGui::InputInt("#CamIdx", &cam_idx);
@@ -598,7 +598,7 @@ static void DrawAREACells(librii::kmp::Area& p) {
   }
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     int tmp = p.mPriority;
     ImGui::InputInt("#Prio", &tmp);
@@ -606,14 +606,14 @@ static void DrawAREACells(librii::kmp::Area& p) {
   }
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     int tmp = p.mParameters[0];
     ImGui::InputInt("#Param0", &tmp);
     p.mParameters[0] = tmp;
   }
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     int tmp = p.mParameters[1];
     ImGui::InputInt("#Param1", &tmp);
@@ -621,7 +621,7 @@ static void DrawAREACells(librii::kmp::Area& p) {
   }
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     int tmp = p.mRailID;
     ImGui::InputInt("#RailID", &tmp);
@@ -629,7 +629,7 @@ static void DrawAREACells(librii::kmp::Area& p) {
   }
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     int tmp = p.mEnemyLinkID;
     ImGui::InputInt("#EnemyLinkID", &tmp);
@@ -641,7 +641,7 @@ void LevelEditorWindow::DrawAreaTable() {
   bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -656,7 +656,7 @@ void LevelEditorWindow::DrawAreaTable() {
     SetupAREAColumns(show_coords);
 
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < mKmp->mAreas.size(); ++i) {
       auto& p = mKmp->mAreas[i];
@@ -673,12 +673,12 @@ void LevelEditorWindow::DrawAreaTable() {
         selection.clear();
         select(&mKmp->mAreas, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawAREACells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -712,7 +712,7 @@ static void DrawCNPTCells(librii::kmp::Cannon& p) {
   DrawCoordinateCells(&p.mPosition, &p.mRotation);
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     const char* area_types = "Linear\0"
                              "CurvedA\0"
                              "CurvedB\0";
@@ -726,7 +726,7 @@ void LevelEditorWindow::DrawCannonTable() {
   bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -738,7 +738,7 @@ void LevelEditorWindow::DrawCannonTable() {
     SetupColumn("ID");
 
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < mKmp->mCannonPoints.size(); ++i) {
       auto& p = mKmp->mCannonPoints[i];
@@ -755,12 +755,12 @@ void LevelEditorWindow::DrawCannonTable() {
         selection.clear();
         select(&mKmp->mCannonPoints, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawCNPTCells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -792,13 +792,13 @@ static void DrawMSPTCells(librii::kmp::MissionPoint& p) {
   DrawCoordinateCells(&p.position, &p.rotation);
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     int tmp = static_cast<int>(p.id);
     ImGui::InputInt("ID", &tmp);
     p.id = tmp;
   }
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     int tmp = static_cast<int>(p.unknown);
     ImGui::InputInt("Unk", &tmp);
     p.unknown = tmp;
@@ -809,7 +809,7 @@ void LevelEditorWindow::DrawMissionTable() {
   bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -823,7 +823,7 @@ void LevelEditorWindow::DrawMissionTable() {
     SetupMSPTColumns(show_coords);
 
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < mKmp->mMissionPoints.size(); ++i) {
       auto& p = mKmp->mMissionPoints[i];
@@ -840,12 +840,12 @@ void LevelEditorWindow::DrawMissionTable() {
         selection.clear();
         select(&mKmp->mCannonPoints, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawMSPTCells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -877,13 +877,13 @@ static int NumSTGIColumns() { return 7; }
 
 static void DrawSTGICells(librii::kmp::Stage& p) {
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     int tmp = static_cast<int>(p.mLapCount);
     ImGui::InputInt("LapCount", &tmp, 1, 2);
     p.mLapCount = tmp;
   }
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     int tmp = static_cast<int>(p.mCorner);
     const char* combo_opts = "Left\0"
                              "Right\0";
@@ -891,7 +891,7 @@ static void DrawSTGICells(librii::kmp::Stage& p) {
     p.mCorner = static_cast<librii::kmp::Corner>(tmp);
   }
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     int tmp = static_cast<int>(p.mStartPosition);
     const char* combo_opts = "Standard\0"
                              "Near\0";
@@ -899,33 +899,33 @@ static void DrawSTGICells(librii::kmp::Stage& p) {
     p.mStartPosition = static_cast<librii::kmp::StartPosition>(tmp);
   }
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     bool tmp = static_cast<bool>(p.mFlareTobi);
 
     if (ImGui::Checkbox("FlareTobi", &tmp))
       p.mFlareTobi = tmp;
   }
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     auto tmp = librii::kmp::DecodeLensFlareOpts(p.mLensFlareOptions);
 
     const u32 flags = ImGuiColorEditFlags_NoInputs |
                       ImGuiColorEditFlags_AlphaBar |
-                      ImGuiColorEditFlags__OptionsDefault;
+                      ImGuiColorEditFlags_DefaultOptions_;
     if (ImGui::ColorEdit4("FlareColor", tmp.data(), flags)) {
       p.mLensFlareOptions = librii::kmp::EncodeLensFlareOpts(tmp);
     }
   }
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     int tmp = p.mUnk08;
 
     if (ImGui::InputInt("mUnk08", &tmp))
       p.mUnk08 = tmp;
   }
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     float tmp = librii::kmp::DecodeTruncatedBigFloat(p.mSpeedModifier);
 
     if (ImGui::InputFloat("SpeedMod", &tmp))
@@ -938,7 +938,7 @@ void LevelEditorWindow::DrawStages() {
   // &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -952,7 +952,7 @@ void LevelEditorWindow::DrawStages() {
     SetupSTGIColumns();
 
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < mKmp->mStages.size(); ++i) {
       auto& p = mKmp->mStages[i];
@@ -969,12 +969,12 @@ void LevelEditorWindow::DrawStages() {
         selection.clear();
         select(&mKmp->mStages, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawSTGICells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -1018,7 +1018,7 @@ static int NumPathColumns() {
 template <typename T>
 static void DrawPathCells(librii::kmp::DirectedGraph<T>& p) {
   for (int j = 0; j < 6; ++j) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     util::IDScope g(j);
     util::ConditionalHighlight g2(j < p.mPredecessors.size() &&
                                   p.mPredecessors[j] != 0xFF);
@@ -1032,7 +1032,7 @@ static void DrawPathCells(librii::kmp::DirectedGraph<T>& p) {
   }
 
   for (int j = 0; j < 6; ++j) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     util::IDScope g(j);
     util::ConditionalHighlight g2(j < p.mSuccessors.size() &&
                                   p.mSuccessors[j] != 0xFF);
@@ -1046,7 +1046,7 @@ static void DrawPathCells(librii::kmp::DirectedGraph<T>& p) {
   }
 
   for (int j = 0; j < 2; ++j) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     util::IDScope g(j);
 
     int tmp = p.misc[j];
@@ -1064,7 +1064,7 @@ void LevelEditorWindow::DrawEnemyPathTable() {
   // &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -1079,7 +1079,7 @@ void LevelEditorWindow::DrawEnemyPathTable() {
     SetupENPHColumns();
 
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < mKmp->mEnemyPaths.size(); ++i) {
       auto& p = mKmp->mEnemyPaths[i];
@@ -1096,12 +1096,12 @@ void LevelEditorWindow::DrawEnemyPathTable() {
         selection.clear();
         select(&mKmp->mEnemyPaths, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawENPHCells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -1128,7 +1128,7 @@ void LevelEditorWindow::DrawItemPathTable() {
   // &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -1143,7 +1143,7 @@ void LevelEditorWindow::DrawItemPathTable() {
     SetupITPHColumns();
 
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < mKmp->mItemPaths.size(); ++i) {
       auto& p = mKmp->mItemPaths[i];
@@ -1160,12 +1160,12 @@ void LevelEditorWindow::DrawItemPathTable() {
         selection.clear();
         select(&mKmp->mItemPaths, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawITPHCells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -1192,7 +1192,7 @@ void LevelEditorWindow::DrawCheckPathTable() {
   // &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -1207,7 +1207,7 @@ void LevelEditorWindow::DrawCheckPathTable() {
     SetupCKPHColumns();
 
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < mKmp->mCheckPaths.size(); ++i) {
       auto& p = mKmp->mCheckPaths[i];
@@ -1224,12 +1224,12 @@ void LevelEditorWindow::DrawCheckPathTable() {
         selection.clear();
         select(&mKmp->mCheckPaths, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawCKPHCells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -1264,12 +1264,12 @@ static void DrawENPTCells(librii::kmp::EnemyPoint& p) {
   DrawCoordinateCells(&p.position);
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("Radius", &p.deviation);
   }
 
   for (int j = 0; j < 4; ++j) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     util::IDScope g(j);
 
     int tmp = static_cast<int>(p.param[j]);
@@ -1282,7 +1282,7 @@ void LevelEditorWindow::DrawEnemyPointTable(librii::kmp::EnemyPath& path) {
   bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -1297,7 +1297,7 @@ void LevelEditorWindow::DrawEnemyPointTable(librii::kmp::EnemyPath& path) {
     SetupENPTColumns(show_coords);
 
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < path.mPoints.size(); ++i) {
       auto& p = path.mPoints[i];
@@ -1314,12 +1314,12 @@ void LevelEditorWindow::DrawEnemyPointTable(librii::kmp::EnemyPath& path) {
         selection.clear();
         select(&path.mPoints, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawENPTCells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -1354,12 +1354,12 @@ static void DrawITPTCells(librii::kmp::ItemPoint& p) {
   DrawCoordinateCells(&p.position);
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     ImGui::InputFloat("Radius", &p.deviation);
   }
 
   for (int j = 0; j < 4; ++j) {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     util::IDScope g(j);
 
     int tmp = static_cast<int>(p.param[j]);
@@ -1372,7 +1372,7 @@ void LevelEditorWindow::DrawItemPointTable(librii::kmp::ItemPath& path) {
   bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -1382,7 +1382,7 @@ void LevelEditorWindow::DrawItemPointTable(librii::kmp::ItemPath& path) {
     SetupColumn("ID");
     SetupITPTColumns(show_coords);
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < path.mPoints.size(); ++i) {
       auto& p = path.mPoints[i];
@@ -1399,12 +1399,12 @@ void LevelEditorWindow::DrawItemPointTable(librii::kmp::ItemPath& path) {
         selection.clear();
         select(&path.mPoints, i);
       }
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::Text("%i", static_cast<int>(i));
 
       DrawITPTCells(p);
 
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       if (ImGui::Button("Delete")) {
         delete_index = i;
       }
@@ -1438,7 +1438,7 @@ static void DrawCKPTCells(librii::kmp::CheckPoint& p) {
   DrawCoordinateCells(&p.mRight);
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     int tmp = p.mRespawnIndex;
     if (ImGui::InputInt("RespawnIndex", &tmp))
@@ -1446,7 +1446,7 @@ static void DrawCKPTCells(librii::kmp::CheckPoint& p) {
   }
 
   {
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     int tmp = p.mLapCheck;
     if (ImGui::InputInt("LapCheck", &tmp))
@@ -1463,7 +1463,7 @@ void LevelEditorWindow::DrawCheckPointTable(librii::kmp::CheckPath& path) {
   bool show_coords_changed = ImGui::Checkbox("Show coordinates?", &show_coords);
 
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable;
 
@@ -1473,7 +1473,7 @@ void LevelEditorWindow::DrawCheckPointTable(librii::kmp::CheckPath& path) {
     SetupColumn("ID");
     SetupCKPTColumns(show_coords);
     SetupColumn("");
-    ImGui::TableAutoHeaders();
+    ImGui::TableHeadersRow();
 
     for (int i = 0; i < path.mPoints.size(); ++i) {
       auto& p = path.mPoints[i];
@@ -1497,12 +1497,12 @@ void LevelEditorWindow::DrawCheckPointTable(librii::kmp::CheckPath& path) {
           selection.clear();
           select(&path.mPoints, i);
         }
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(i));
 
         DrawCKPTCells(p);
 
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         if (ImGui::Button("Delete")) {
           delete_index = i;
         }
@@ -1573,7 +1573,7 @@ void LevelEditorWindow::draw_() {
 
   if (Begin("Tree", nullptr, ImGuiWindowFlags_MenuBar, this)) {
     static ImGuiTableFlags flags =
-        ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+        ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
         ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg;
     // ImGui::CheckboxFlags("ImGuiTableFlags_Scroll", (unsigned int*)&flags,
     // ImGuiTableFlags_Scroll);
@@ -1587,7 +1587,7 @@ void LevelEditorWindow::draw_() {
       SetupColumn("ID");
       // SetupColumn("Type", ImGuiTableColumnFlags_WidthFixed,
       //                        ImGui::GetFontSize() * 10);
-      ImGui::TableAutoHeaders();
+      ImGui::TableHeadersRow();
 
       {
         ImGui::TableNextRow();
@@ -1600,7 +1600,7 @@ void LevelEditorWindow::draw_() {
         if (X::IsNodeSwitchedTo()) {
           mPage = Page::StartPoints;
         }
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mStartPoints.size()));
       }
 
@@ -1615,7 +1615,7 @@ void LevelEditorWindow::draw_() {
             mPage = Page::EnemyPaths;
           }
 
-          ImGui::TableNextCell();
+          ImGui::TableNextColumn();
           ImGui::Text("%i", static_cast<int>(mKmp->mEnemyPaths.size()));
         }
 
@@ -1652,7 +1652,7 @@ void LevelEditorWindow::draw_() {
             mPage = Page::ItemPaths;
           }
 
-          ImGui::TableNextCell();
+          ImGui::TableNextColumn();
           ImGui::Text("%i", static_cast<int>(mKmp->mItemPaths.size()));
         }
 
@@ -1689,7 +1689,7 @@ void LevelEditorWindow::draw_() {
             mPage = Page::CheckPaths;
           }
 
-          ImGui::TableNextCell();
+          ImGui::TableNextColumn();
           ImGui::Text("%i", static_cast<int>(mKmp->mCheckPaths.size()));
         }
 
@@ -1733,7 +1733,7 @@ void LevelEditorWindow::draw_() {
           }
           ImGui::TreePop();
         }
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mGeoObjs.size()));
         X::EndCustomSelectable(b);
       }
@@ -1748,7 +1748,7 @@ void LevelEditorWindow::draw_() {
           }
           ImGui::TreePop();
         }
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mPaths.size()));
         X::EndCustomSelectable(b);
       }
@@ -1763,7 +1763,7 @@ void LevelEditorWindow::draw_() {
           }
           ImGui::TreePop();
         }
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mAreas.size()));
         X::EndCustomSelectable(b);
       }
@@ -1778,7 +1778,7 @@ void LevelEditorWindow::draw_() {
           }
           ImGui::TreePop();
         }
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mCameras.size()));
         X::EndCustomSelectable(b);
       }
@@ -1793,7 +1793,7 @@ void LevelEditorWindow::draw_() {
           }
           ImGui::TreePop();
         }
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mRespawnPoints.size()));
         X::EndCustomSelectable(b);
       }
@@ -1808,7 +1808,7 @@ void LevelEditorWindow::draw_() {
           }
           ImGui::TreePop();
         }
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mCannonPoints.size()));
         X::EndCustomSelectable(b);
       }
@@ -1823,7 +1823,7 @@ void LevelEditorWindow::draw_() {
           }
           ImGui::TreePop();
         }
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mMissionPoints.size()));
         X::EndCustomSelectable(b);
       }
@@ -1838,7 +1838,7 @@ void LevelEditorWindow::draw_() {
           }
           ImGui::TreePop();
         }
-        ImGui::TableNextCell();
+        ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mStages.size()));
         X::EndCustomSelectable(b);
       }
@@ -2003,9 +2003,9 @@ struct Manipulator {
     float matrixTranslation[3], matrixRotation[3], matrixScale[3];
     ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(mx), matrixTranslation,
                                           matrixRotation, matrixScale);
-    ImGui::InputFloat3("Tr", matrixTranslation, 3);
-    ImGui::InputFloat3("Rt", matrixRotation, 3);
-    ImGui::InputFloat3("Sc", matrixScale, 3);
+    ImGui::InputFloat3("Tr", matrixTranslation);
+    ImGui::InputFloat3("Rt", matrixRotation);
+    ImGui::InputFloat3("Sc", matrixScale);
     ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation,
                                             matrixScale, glm::value_ptr(mx));
 
@@ -2018,7 +2018,7 @@ struct Manipulator {
     }
     if (ImGui::IsKeyPressed(83))
       useSnap = !useSnap;
-    ImGui::Checkbox("", &useSnap);
+    ImGui::Checkbox("SNAP", &useSnap);
     ImGui::SameLine();
     switch (mCurrentGizmoOperation) {
     case ImGuizmo::TRANSLATE:

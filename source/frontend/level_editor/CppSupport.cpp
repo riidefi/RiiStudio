@@ -29,17 +29,17 @@ std::string_view GetCppSupport() {
 
 void DrawCppSupport() {
   static ImGuiTableFlags flags =
-      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter |
+      ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
       (0 * ImGuiTableFlags_Resizable) | ImGuiTableFlags_RowBg |
       ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Hideable |
-      ImGuiTableFlags_SizingPolicyFixedX;
+      ImGuiTableFlags_SizingFixedFit;
 
   ImGui::TextUnformatted("Timestamp macros");
   if (ImGui::BeginTable("Macros", 2, flags)) {
     auto DrawMacro = [](const char* k, const char* v) {
       ImGui::TableNextRow();
       ImGui::TextUnformatted(k);
-      ImGui::TableNextCell();
+      ImGui::TableNextColumn();
       ImGui::TextUnformatted(v);
     };
 

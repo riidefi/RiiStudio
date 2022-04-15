@@ -18,7 +18,7 @@ auto PolyDescriptorSurface =
           for (auto& attrib : desc.mAttributes) {
             riistudio::util::IDScope g(i++);
 
-            ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() / 3);
+            ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / 3);
 
             int type = static_cast<int>(attrib.first);
             ImGui::Combo("Attribute Type"_j, &type, vertexAttribNames);

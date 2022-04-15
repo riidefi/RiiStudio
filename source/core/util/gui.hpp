@@ -122,8 +122,9 @@ inline ImGuiTableColumn* GetNextColumn() {
 inline void SetNextColumnVisible(bool shown) {
   auto* column = GetNextColumn();
 
-  column->IsVisible = shown;
-  column->IsVisibleNextFrame = shown;
+  column->IsVisibleX = shown;
+  column->IsVisibleY = shown;
+  // column->IsVisibleNextFrame = shown;
 }
 
 } // namespace riistudio::util

@@ -22,23 +22,23 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   ImGui::TableSetupColumn("Green Destination"_j);
   ImGui::TableSetupColumn("Blue Destination"_j);
   ImGui::TableSetupColumn("Alpha Destination"_j);
-  ImGui::TableAutoHeaders();
+  ImGui::TableHeadersRow();
   ImGui::TableNextRow();
   for (int i = 0; i < matData.mSwapTable.size(); ++i) {
     ImGui::PushID(i);
     auto& swap = matData.mSwapTable[i];
 
     ImGui::Text("Swap %i"_j, i);
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     auto r = imcxx::Combo("##R", swap.r, colors);
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     auto g = imcxx::Combo("##G", swap.g, colors);
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     auto b = imcxx::Combo("##B", swap.b, colors);
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
     auto a = imcxx::Combo("##A", swap.a, colors);
-    ImGui::TableNextCell();
+    ImGui::TableNextColumn();
 
     AUTO_PROP(mSwapTable[i].r, r);
     AUTO_PROP(mSwapTable[i].g, g);

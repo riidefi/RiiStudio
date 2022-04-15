@@ -176,6 +176,8 @@ public:
   void DrawCheckPathTable();
   void DrawCheckPointTable(librii::kmp::CheckPath& path);
 
+  glm::mat4 getFrame(int frame);
+
   Level mLevel;
   plate::tk::Viewport mViewport;
   frontend::RenderSettings mRenderSettings;

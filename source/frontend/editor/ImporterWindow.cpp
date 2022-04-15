@@ -35,7 +35,7 @@ void ImporterWindow::draw() {
         else if (choice.find("j3d") != std::string::npos)
           format = "BMD Model"_j;
         if (ImGui::Button(format,
-                          ImVec2{ImGui::GetContentRegionAvailWidth(), 0.0f})) {
+                          ImVec2{ImGui::GetContentRegionAvail().x, 0.0f})) {
           data_id = choice;
           result = State::Constructible;
           answered = true;
@@ -98,7 +98,7 @@ void ImporterWindow::draw() {
   }
 
   if (ImGui::Button(failed() ? "Quit"_j : "Next"_j,
-                    ImVec2{ImGui::GetContentRegionAvailWidth(), 0.0f})) {
+                    ImVec2{ImGui::GetContentRegionAvail().x, 0.0f})) {
     if (finished) {
       mDone = true;
       return;
@@ -115,10 +115,10 @@ void ImporterWindow::drawMessages() {
                            ImGuiTableFlags_Reorderable;
 
   if (ImGui::BeginTable("Body", 3, entry_flags)) {
-    ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_None, .1f);
-    ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_None, .3f);
-    ImGui::TableSetupColumn("Body", ImGuiTableColumnFlags_None, .6f);
-    ImGui::TableAutoHeaders();
+    ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthStretch, .1f);
+    ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_WidthStretch, .3f);
+    ImGui::TableSetupColumn("Body", ImGuiTableColumnFlags_WidthStretch, .6f);
+    ImGui::TableHeadersRow();
     for (auto& msg : mMessages) {
       ImGui::TableNextRow();
       ImGui::TableSetColumnIndex(0);
