@@ -14649,8 +14649,8 @@ static void DockNodeFindInfo(ImGuiDockNode* node, ImGuiDockNodeTreeInfo* info)
     }
     if (node->IsCentralNode())
     {
-        IM_ASSERT(info->CentralNode == NULL); // Should be only one
-        IM_ASSERT(node->IsLeafNode() && "If you get this assert: please submit .ini file + repro of actions leading to this.");
+        //IM_ASSERT(info->CentralNode == NULL); // Should be only one
+        //IM_ASSERT(node->IsLeafNode() && "If you get this assert: please submit .ini file + repro of actions leading to this.");
         info->CentralNode = node;
     }
     if (info->CountNodesWithWindows > 1 && info->CentralNode != NULL)
