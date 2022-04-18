@@ -1476,7 +1476,66 @@ void LevelEditorWindow::DrawCheckPointTable(librii::kmp::CheckPath& path) {
   }
   TryDeleteFromListAndUpdateSelection(path.mPoints, delete_index);
 }
+struct IDTable {
+  // Returns: has_child
+  bool addRow(std::string name, size_t size, bool& selected, bool leaf) {
+    ImGui::TableNextRow();
+    auto d = util::RAIICustomSelectable(selected);
+    ImGui::TableNextColumn();
+    const bool has_child =
+        ImGui::TreeNodeEx(name.c_str(), leaf ? ImGuiTreeNodeFlags_Leaf : 0);
+    if (has_child && leaf) {
+      ImGui::TreePop();
+    }
+    if (util::IsNodeSwitchedTo()) {
 
+      selected = true;
+    }
+    ImGui::TableNextColumn();
+    ImGui::Text("%i", static_cast<int>(size));
+    return has_child;
+  }
+  bool autoRow(std::string name, size_t sz, LevelEditorWindow::Page page,
+               bool leaf) {
+    bool selected = mpWin->mPage == page;
+    bool has_child = addRow(name, sz, selected, leaf);
+    if (selected) {
+      mpWin->mPage = page;
+    }
+    return has_child;
+  }
+  bool autoRow(std::string name, const auto& points,
+               LevelEditorWindow::Page page, bool leaf) {
+    return autoRow(name, points.size(), page, leaf);
+  }
+  bool autoRowSub(std::string name, LevelEditorWindow::Page page, bool leaf,
+                  size_t subindex) {
+    bool selected = mpWin->mPage == page && mpWin->mSubPageID == subindex;
+    bool has_child = addRow(name, 0, selected, leaf);
+    if (selected) {
+      mpWin->mPage = page;
+      mpWin->mSubPageID = subindex;
+    }
+    return has_child;
+  }
+  void endRow() { ImGui::TreePop(); }
+
+  bool Begin() {
+    ImGuiTableFlags flags = ImGuiTableFlags_BordersV |
+                            ImGuiTableFlags_BordersOuterH |
+                            ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg;
+    const bool b = ImGui::BeginTable("##3ways", 2, flags);
+    if (b) {
+      SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+      SetupColumn("ID");
+      ImGui::TableHeadersRow();
+    }
+    return b;
+  }
+  void End() { ImGui::EndTable(); }
+
+  LevelEditorWindow* mpWin;
+};
 void LevelEditorWindow::draw_() {
   if (mErrDisp.size()) {
     util::PushErrorSyle();
@@ -1525,281 +1584,51 @@ void LevelEditorWindow::draw_() {
   if (mKmp == nullptr)
     return;
 
+  IDTable table;
+  table.mpWin = this;
+
   if (Begin("Tree", nullptr, ImGuiWindowFlags_MenuBar, this)) {
-    static ImGuiTableFlags flags =
-        ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersOuterH |
-        ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg;
-    // ImGui::CheckboxFlags("ImGuiTableFlags_Scroll", (unsigned int*)&flags,
-    // ImGuiTableFlags_Scroll);
-    // ImGui::CheckboxFlags("ImGuiTableFlags_ScrollFreezeLeftColumn", (unsigned
-    // int*)&flags, ImGuiTableFlags_ScrollFreezeLeftColumn);
 
-    if (ImGui::BeginTable("##3ways", 2, flags)) {
-      // The first column will use the default _WidthStretch when ScrollX is Off
-      // and _WidthFixed when ScrollX is On
-      SetupColumn("Name", ImGuiTableColumnFlags_NoHide);
-      SetupColumn("ID");
-      // SetupColumn("Type", ImGuiTableColumnFlags_WidthFixed,
-      //                        ImGui::GetFontSize() * 10);
-      ImGui::TableHeadersRow();
+    if (table.Begin()) {
+      table.autoRow("Start Points", mKmp->mStartPoints, Page::StartPoints,
+                    true);
 
-      {
-        ImGui::TableNextRow();
-
-        auto d = util::RAIICustomSelectable(mPage == Page::StartPoints);
-
-        if (ImGui::TreeNodeEx("Start Points", ImGuiTreeNodeFlags_Leaf)) {
-          ImGui::TreePop();
+      if (table.autoRow("Enemy Paths", mKmp->mEnemyPaths, Page::EnemyPaths,
+                        false)) {
+        for (int i = 0; i < mKmp->mEnemyPaths.size(); ++i) {
+          table.autoRowSub("Enemy Path #" + std::to_string(i),
+                           Page::EnemyPaths_Sub, true, i);
         }
-        if (util::IsNodeSwitchedTo()) {
-          mPage = Page::StartPoints;
+        table.endRow();
+      }
+      if (table.autoRow("Item Paths", mKmp->mItemPaths, Page::ItemPaths,
+                        false)) {
+        for (int i = 0; i < mKmp->mItemPaths.size(); ++i) {
+          table.autoRowSub("Item Path #" + std::to_string(i),
+                           Page::ItemPaths_Sub, true, i);
         }
-        ImGui::TableNextColumn();
-        ImGui::Text("%i", static_cast<int>(mKmp->mStartPoints.size()));
+        table.endRow();
+      }
+      if (table.autoRow("Check Paths", mKmp->mCheckPaths, Page::CheckPaths,
+                        false)) {
+        for (int i = 0; i < mKmp->mCheckPaths.size(); ++i) {
+          table.autoRowSub("Check Path #" + std::to_string(i),
+                           Page::CheckPaths_Sub, true, i);
+        }
+        table.endRow();
       }
 
-      {
-        bool has_child = false;
-        {
-          ImGui::TableNextRow();
-          auto d = util::RAIICustomSelectable(mPage == Page::EnemyPaths);
+      table.autoRow("Objects", mKmp->mGeoObjs, Page::Objects, true);
+      table.autoRow("Paths", mKmp->mPaths, Page::Paths, true);
+      table.autoRow("Areas", mKmp->mAreas, Page::Areas, true);
+      table.autoRow("Cameras", mKmp->mCameras, Page::Cameras, true);
+      table.autoRow("Respawns", mKmp->mRespawnPoints, Page::Respawns, true);
+      table.autoRow("Cannons", mKmp->mCannonPoints, Page::Cannons, true);
+      table.autoRow("Mission Points", mKmp->mMissionPoints, Page::MissionPoints,
+                    true);
+      table.autoRow("Stages", mKmp->mStages, Page::Stages, true);
 
-          has_child = ImGui::TreeNodeEx("Enemy Paths", 0);
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::EnemyPaths;
-          }
-
-          ImGui::TableNextColumn();
-          ImGui::Text("%i", static_cast<int>(mKmp->mEnemyPaths.size()));
-        }
-
-        if (has_child) {
-          for (int i = 0; i < mKmp->mEnemyPaths.size(); ++i) {
-            ImGui::TableNextRow();
-
-            auto d = util::RAIICustomSelectable(mPage == Page::EnemyPaths_Sub &&
-                                                mSubPageID == i);
-
-            std::string node_s = "Enemy Path #" + std::to_string(i);
-            if (ImGui::TreeNodeEx(node_s.c_str(), ImGuiTreeNodeFlags_Leaf)) {
-              ImGui::TreePop();
-            }
-
-            if (util::IsNodeSwitchedTo()) {
-              mPage = Page::EnemyPaths_Sub;
-              mSubPageID = i;
-            }
-          }
-
-          ImGui::TreePop();
-        }
-      }
-
-      {
-        bool has_child = false;
-        {
-          ImGui::TableNextRow();
-          auto d = util::RAIICustomSelectable(mPage == Page::ItemPaths);
-
-          has_child = ImGui::TreeNodeEx("Item Paths", 0);
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::ItemPaths;
-          }
-
-          ImGui::TableNextColumn();
-          ImGui::Text("%i", static_cast<int>(mKmp->mItemPaths.size()));
-        }
-
-        if (has_child) {
-          for (int i = 0; i < mKmp->mItemPaths.size(); ++i) {
-            ImGui::TableNextRow();
-
-            auto d = util::RAIICustomSelectable(mPage == Page::ItemPaths_Sub &&
-                                                mSubPageID == i);
-
-            std::string node_s = "Item Path #" + std::to_string(i);
-            if (ImGui::TreeNodeEx(node_s.c_str(), ImGuiTreeNodeFlags_Leaf)) {
-              ImGui::TreePop();
-            }
-
-            if (util::IsNodeSwitchedTo()) {
-              mPage = Page::ItemPaths_Sub;
-              mSubPageID = i;
-            }
-          }
-
-          ImGui::TreePop();
-        }
-      }
-
-      {
-        bool has_child = false;
-        {
-          ImGui::TableNextRow();
-          auto d = util::RAIICustomSelectable(mPage == Page::CheckPaths);
-
-          has_child = ImGui::TreeNodeEx("Check Paths", 0);
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::CheckPaths;
-          }
-
-          ImGui::TableNextColumn();
-          ImGui::Text("%i", static_cast<int>(mKmp->mCheckPaths.size()));
-        }
-
-        if (has_child) {
-          for (int i = 0; i < mKmp->mCheckPaths.size(); ++i) {
-            ImGui::TableNextRow();
-
-            const bool is_lapcheck = IsLapCheck(mKmp->mCheckPaths[i]);
-
-            if (is_lapcheck)
-              PushLapCheckStyle();
-            {
-              auto d = util::RAIICustomSelectable(
-                  mPage == Page::CheckPaths_Sub && mSubPageID == i);
-
-              std::string node_s = "Check Path #" + std::to_string(i);
-              if (ImGui::TreeNodeEx(node_s.c_str(), ImGuiTreeNodeFlags_Leaf)) {
-                ImGui::TreePop();
-              }
-
-              if (util::IsNodeSwitchedTo()) {
-                mPage = Page::CheckPaths_Sub;
-                mSubPageID = i;
-              }
-            }
-            if (is_lapcheck)
-              PopLapCheckStyle();
-          }
-
-          ImGui::TreePop();
-        }
-      }
-
-      {
-        ImGui::TableNextRow();
-
-        bool b = util::BeginCustomSelectable(mPage == Page::Objects);
-        if (ImGui::TreeNodeEx("Objects", ImGuiTreeNodeFlags_Leaf)) {
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::Objects;
-          }
-          ImGui::TreePop();
-        }
-        ImGui::TableNextColumn();
-        ImGui::Text("%i", static_cast<int>(mKmp->mGeoObjs.size()));
-        util::EndCustomSelectable(b);
-      }
-
-      {
-        ImGui::TableNextRow();
-
-        bool b = util::BeginCustomSelectable(mPage == Page::Paths);
-        if (ImGui::TreeNodeEx("Paths", ImGuiTreeNodeFlags_Leaf)) {
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::Paths;
-          }
-          ImGui::TreePop();
-        }
-        ImGui::TableNextColumn();
-        ImGui::Text("%i", static_cast<int>(mKmp->mPaths.size()));
-        util::EndCustomSelectable(b);
-      }
-
-      {
-        ImGui::TableNextRow();
-
-        bool b = util::BeginCustomSelectable(mPage == Page::Areas);
-        if (ImGui::TreeNodeEx("Areas", ImGuiTreeNodeFlags_Leaf)) {
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::Areas;
-          }
-          ImGui::TreePop();
-        }
-        ImGui::TableNextColumn();
-        ImGui::Text("%i", static_cast<int>(mKmp->mAreas.size()));
-        util::EndCustomSelectable(b);
-      }
-
-      {
-        ImGui::TableNextRow();
-
-        bool b = util::BeginCustomSelectable(mPage == Page::Cameras);
-        if (ImGui::TreeNodeEx("Cameras", ImGuiTreeNodeFlags_Leaf)) {
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::Cameras;
-          }
-          ImGui::TreePop();
-        }
-        ImGui::TableNextColumn();
-        ImGui::Text("%i", static_cast<int>(mKmp->mCameras.size()));
-        util::EndCustomSelectable(b);
-      }
-
-      {
-        ImGui::TableNextRow();
-
-        bool b = util::BeginCustomSelectable(mPage == Page::Respawns);
-        if (ImGui::TreeNodeEx("Respawns", ImGuiTreeNodeFlags_Leaf)) {
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::Respawns;
-          }
-          ImGui::TreePop();
-        }
-        ImGui::TableNextColumn();
-        ImGui::Text("%i", static_cast<int>(mKmp->mRespawnPoints.size()));
-        util::EndCustomSelectable(b);
-      }
-
-      {
-        ImGui::TableNextRow();
-
-        bool b = util::BeginCustomSelectable(mPage == Page::Cannons);
-        if (ImGui::TreeNodeEx("Cannons", ImGuiTreeNodeFlags_Leaf)) {
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::Cannons;
-          }
-          ImGui::TreePop();
-        }
-        ImGui::TableNextColumn();
-        ImGui::Text("%i", static_cast<int>(mKmp->mCannonPoints.size()));
-        util::EndCustomSelectable(b);
-      }
-
-      {
-        ImGui::TableNextRow();
-
-        bool b = util::BeginCustomSelectable(mPage == Page::MissionPoints);
-        if (ImGui::TreeNodeEx("Mission Points", ImGuiTreeNodeFlags_Leaf)) {
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::MissionPoints;
-          }
-          ImGui::TreePop();
-        }
-        ImGui::TableNextColumn();
-        ImGui::Text("%i", static_cast<int>(mKmp->mMissionPoints.size()));
-        util::EndCustomSelectable(b);
-      }
-
-      {
-        ImGui::TableNextRow();
-
-        bool b = util::BeginCustomSelectable(mPage == Page::Stages);
-        if (ImGui::TreeNodeEx("Stages", ImGuiTreeNodeFlags_Leaf)) {
-          if (util::IsNodeSwitchedTo()) {
-            mPage = Page::Stages;
-          }
-          ImGui::TreePop();
-        }
-        ImGui::TableNextColumn();
-        ImGui::Text("%i", static_cast<int>(mKmp->mStages.size()));
-        util::EndCustomSelectable(b);
-      }
-
-      ImGui::TableNextRow();
-
-      ImGui::EndTable();
+      table.End();
     }
   }
   ImGui::End();
