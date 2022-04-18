@@ -1,60 +1,26 @@
 #include "InputState.hpp"
 #include <imgui/imgui.h>
 
-#if defined(RII_BACKEND_SDL)
-#include <SDL.h>
-#include <SDL_opengles2.h>
-#endif
-
-#if defined(RII_BACKEND_GLFW)
-#include <glfw/glfw3.h>
-#endif
-
 namespace riistudio::frontend {
 
 InputState buildInputState() {
-  bool key_w = false, key_s = false, key_a = false, key_d = false,
-       key_up = false, key_down = false, mouse_select = false,
-       mouse_view = false;
+  const bool key_w = ImGui::IsKeyDown(ImGuiKey_W);
+  const bool key_a = ImGui::IsKeyDown(ImGuiKey_A);
+  const bool key_s = ImGui::IsKeyDown(ImGuiKey_S);
+  const bool key_d = ImGui::IsKeyDown(ImGuiKey_D);
 
-#ifdef RII_BACKEND_GLFW
-  if (ImGui::IsKeyDown('W'))
-    key_w = true;
-  if (ImGui::IsKeyDown('A'))
-    key_a = true;
-  if (ImGui::IsKeyDown('S'))
-    key_s = true;
-  if (ImGui::IsKeyDown('D'))
-    key_d = true;
-  if (ImGui::IsKeyDown(' ') || ImGui::IsKeyDown('E'))
-    key_up = true;
-  const bool l_shift = ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT);
-  if (l_shift || ImGui::IsKeyDown('Q'))
-    key_down = true;
-  const bool l_alt = ImGui::IsKeyDown(GLFW_KEY_LEFT_ALT);
-#elif defined(RII_BACKEND_SDL)
-  const Uint8* keys = SDL_GetKeyboardState(NULL);
-
-  if (keys[SDL_SCANCODE_W])
-    key_w = true;
-  if (keys[SDL_SCANCODE_A])
-    key_a = true;
-  if (keys[SDL_SCANCODE_S])
-    key_s = true;
-  if (keys[SDL_SCANCODE_D])
-    key_d = true;
-  if (keys[SDL_SCANCODE_SPACE] || keys[SDL_SCANCODE_E])
-    key_up = true;
-  const bool l_shift = keys[SDL_SCANCODE_LSHIFT];
-  if (l_shift || keys[SDL_SCANCODE_Q])
-    key_down = true;
-  const bool l_alt = keys[SDL_SCANCODE_LALT];
-#endif
+  const bool key_up =
+      ImGui::IsKeyDown(ImGuiKey_Space) || ImGui::IsKeyDown(ImGuiKey_E);
+  const bool key_down =
+      ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_Q);
+  const bool l_alt = ImGui::IsKeyDown(ImGuiKey_LeftAlt);
 
   // Left + !LAlt   -> Select
   // Left + LAlt    -> Pan/Orbit
   // Right | Middle -> Pan/Orbit
   //
+  bool mouse_view = false;
+  bool mouse_select = false;
   if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
     if (l_alt)
       mouse_view = true;
