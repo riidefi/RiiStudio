@@ -32,21 +32,8 @@ inline void Matrix44(const glm::mat4& mtx) {
 namespace riistudio::util {
 
 struct ConditionalActive {
-  ConditionalActive(bool pred, bool flag = true) : bPred(pred), bFlag(flag) {
-    if (!bPred) {
-      if (bFlag)
-        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-    }
-  }
-  ~ConditionalActive() {
-    if (!bPred) {
-      if (bFlag)
-        ImGui::PopItemFlag();
-      ImGui::PopStyleVar();
-    }
-  }
-  bool bPred = false, bFlag = true;
+  ConditionalActive(bool pred) { ImGui::BeginDisabled(!pred); }
+  ~ConditionalActive() { ImGui::EndDisabled(); }
 };
 struct ConditionalBold {
   ConditionalBold(bool pred) : bPred(pred) {
@@ -59,7 +46,7 @@ struct ConditionalBold {
       ImGui::PopStyleColor();
     }
   }
-  bool bPred = false, bFlag = true;
+  bool bPred = false;
 };
 struct ConditionalHighlight {
   ConditionalHighlight(bool pred) : bPred(pred) {
