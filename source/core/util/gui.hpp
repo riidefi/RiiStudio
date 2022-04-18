@@ -1,13 +1,24 @@
 #pragma once
 
+#include <functional>
 #include <glm/mat4x4.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+#include <imgui_markdown.h>
 #include <librii/math/aabb.hpp>
 #include <string>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
-#include <imgui_markdown.h>
+struct Defer {
+  Defer(std::function<void()> f) : mF(f) {}
+  Defer(Defer&& rhs) : mF(rhs.mF) { rhs.mF = nullptr; }
+  ~Defer() {
+    if (mF)
+      mF();
+  }
+
+  std::function<void()> mF;
+};
 
 namespace Toolkit {
 
@@ -65,6 +76,38 @@ struct IDScope {
   template <typename T> IDScope(T id) { ImGui::PushID(id); }
   ~IDScope() { ImGui::PopID(); }
 };
+static inline bool IsNodeSwitchedTo() {
+  return ImGui::IsItemClicked() || ImGui::IsItemFocused();
+}
+
+static inline bool BeginCustomSelectable(bool sel) {
+  if (!sel) {
+    ImGui::Text("( )");
+    ImGui::SameLine();
+    return false;
+  }
+
+  ImGui::Text("(X)");
+  ImGui::SameLine();
+  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 1.0f, 0.0f, 1.0f});
+  return true;
+}
+static inline void EndCustomSelectable(bool sel) {
+  if (!sel)
+    return;
+
+  ImGui::PopStyleColor();
+}
+
+static inline Defer RAIICustomSelectable(bool sel) {
+  bool b = BeginCustomSelectable(sel);
+  return Defer{[b] { EndCustomSelectable(b); }};
+}
+
+// Seems we don't need to care about the tree_node_ex_result
+// static bool IsNodeSwitchedTo(bool tree_node_ex_result) {
+//   return tree_node_ex_result && IsNodeSwitchedTo();
+// }
 
 // You can make your own Markdown function with your prefered string container
 // and markdown config.

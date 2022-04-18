@@ -34,52 +34,6 @@ VersionReport MakeVersionReport(const librii::kcol::KCollisionData* kcl) {
   };
 }
 
-struct X {
-  static bool BeginCustomSelectable(bool sel) {
-    if (!sel) {
-      ImGui::Text("( )");
-      ImGui::SameLine();
-      return false;
-    }
-
-    ImGui::Text("(X)");
-    ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0f, 1.0f, 0.0f, 1.0f});
-    return true;
-  }
-  static void EndCustomSelectable(bool sel) {
-    if (!sel)
-      return;
-
-    ImGui::PopStyleColor();
-  }
-
-  struct Defer {
-    Defer(std::function<void()> f) : mF(f) {}
-    Defer(Defer&& rhs) : mF(rhs.mF) { rhs.mF = nullptr; }
-    ~Defer() {
-      if (mF)
-        mF();
-    }
-
-    std::function<void()> mF;
-  };
-
-  static Defer RAIICustomSelectable(bool sel) {
-    bool b = X::BeginCustomSelectable(sel);
-    return Defer{[b] { X::EndCustomSelectable(b); }};
-  }
-
-  static bool IsNodeSwitchedTo() {
-    return ImGui::IsItemClicked() || ImGui::IsItemFocused();
-  }
-
-  // Seems we don't need to care about the tree_node_ex_result
-  // static bool IsNodeSwitchedTo(bool tree_node_ex_result) {
-  //   return tree_node_ex_result && IsNodeSwitchedTo();
-  // }
-};
-
 void DrawRenderOptions(RenderOptions& opt) {
   ImGui::Checkbox("Visual Model", &opt.show_brres);
   ImGui::Checkbox("Collision Model", &opt.show_kcl);
@@ -442,11 +396,11 @@ void LevelEditorWindow::DrawRespawnTable() {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mRespawnPoints, i));
+      auto d = util::RAIICustomSelectable(isSelected(&mKmp->mRespawnPoints, i));
 
       auto str = "Respawn Point #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&mKmp->mRespawnPoints, i);
       }
@@ -518,11 +472,11 @@ void LevelEditorWindow::DrawStartPointTable() {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mStartPoints, i));
+      auto d = util::RAIICustomSelectable(isSelected(&mKmp->mStartPoints, i));
 
       auto str = "Start Point #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&mKmp->mStartPoints, i);
       }
@@ -665,11 +619,11 @@ void LevelEditorWindow::DrawAreaTable() {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mAreas, i));
+      auto d = util::RAIICustomSelectable(isSelected(&mKmp->mAreas, i));
 
       auto str = "Area #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&mKmp->mAreas, i);
       }
@@ -747,11 +701,11 @@ void LevelEditorWindow::DrawCannonTable() {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mCannonPoints, i));
+      auto d = util::RAIICustomSelectable(isSelected(&mKmp->mCannonPoints, i));
 
       auto str = "Cannon #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&mKmp->mCannonPoints, i);
       }
@@ -832,11 +786,11 @@ void LevelEditorWindow::DrawMissionTable() {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mMissionPoints, i));
+      auto d = util::RAIICustomSelectable(isSelected(&mKmp->mMissionPoints, i));
 
       auto str = "Cannon #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&mKmp->mCannonPoints, i);
       }
@@ -961,11 +915,11 @@ void LevelEditorWindow::DrawStages() {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mStages, i));
+      auto d = util::RAIICustomSelectable(isSelected(&mKmp->mStages, i));
 
       auto str = "Stage #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&mKmp->mStages, i);
       }
@@ -1088,11 +1042,11 @@ void LevelEditorWindow::DrawEnemyPathTable() {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mEnemyPaths, i));
+      auto d = util::RAIICustomSelectable(isSelected(&mKmp->mEnemyPaths, i));
 
       auto str = "EnemyPath #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&mKmp->mEnemyPaths, i);
       }
@@ -1152,11 +1106,11 @@ void LevelEditorWindow::DrawItemPathTable() {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mItemPaths, i));
+      auto d = util::RAIICustomSelectable(isSelected(&mKmp->mItemPaths, i));
 
       auto str = "ItemPath #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&mKmp->mItemPaths, i);
       }
@@ -1216,11 +1170,11 @@ void LevelEditorWindow::DrawCheckPathTable() {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&mKmp->mCheckPaths, i));
+      auto d = util::RAIICustomSelectable(isSelected(&mKmp->mCheckPaths, i));
 
       auto str = "CheckPaths #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&mKmp->mCheckPaths, i);
       }
@@ -1306,11 +1260,11 @@ void LevelEditorWindow::DrawEnemyPointTable(librii::kmp::EnemyPath& path) {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&path.mPoints, i));
+      auto d = util::RAIICustomSelectable(isSelected(&path.mPoints, i));
 
       auto str = "Point #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&path.mPoints, i);
       }
@@ -1391,11 +1345,11 @@ void LevelEditorWindow::DrawItemPointTable(librii::kmp::ItemPath& path) {
 
       ImGui::TableNextRow();
 
-      auto d = X::RAIICustomSelectable(isSelected(&path.mPoints, i));
+      auto d = util::RAIICustomSelectable(isSelected(&path.mPoints, i));
 
       auto str = "Point #" + std::to_string(i);
       bool op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-      if (X::IsNodeSwitchedTo()) {
+      if (util::IsNodeSwitchedTo()) {
         selection.clear();
         select(&path.mPoints, i);
       }
@@ -1489,11 +1443,11 @@ void LevelEditorWindow::DrawCheckPointTable(librii::kmp::CheckPath& path) {
 
       bool op;
       {
-        auto d = X::RAIICustomSelectable(isSelected(&path.mPoints, i));
+        auto d = util::RAIICustomSelectable(isSelected(&path.mPoints, i));
 
         auto str = "Point #" + std::to_string(i);
         op = ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_Leaf);
-        if (X::IsNodeSwitchedTo()) {
+        if (util::IsNodeSwitchedTo()) {
           selection.clear();
           select(&path.mPoints, i);
         }
@@ -1592,12 +1546,12 @@ void LevelEditorWindow::draw_() {
       {
         ImGui::TableNextRow();
 
-        auto d = X::RAIICustomSelectable(mPage == Page::StartPoints);
+        auto d = util::RAIICustomSelectable(mPage == Page::StartPoints);
 
         if (ImGui::TreeNodeEx("Start Points", ImGuiTreeNodeFlags_Leaf)) {
           ImGui::TreePop();
         }
-        if (X::IsNodeSwitchedTo()) {
+        if (util::IsNodeSwitchedTo()) {
           mPage = Page::StartPoints;
         }
         ImGui::TableNextColumn();
@@ -1608,10 +1562,10 @@ void LevelEditorWindow::draw_() {
         bool has_child = false;
         {
           ImGui::TableNextRow();
-          auto d = X::RAIICustomSelectable(mPage == Page::EnemyPaths);
+          auto d = util::RAIICustomSelectable(mPage == Page::EnemyPaths);
 
           has_child = ImGui::TreeNodeEx("Enemy Paths", 0);
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::EnemyPaths;
           }
 
@@ -1623,15 +1577,15 @@ void LevelEditorWindow::draw_() {
           for (int i = 0; i < mKmp->mEnemyPaths.size(); ++i) {
             ImGui::TableNextRow();
 
-            auto d = X::RAIICustomSelectable(mPage == Page::EnemyPaths_Sub &&
-                                             mSubPageID == i);
+            auto d = util::RAIICustomSelectable(mPage == Page::EnemyPaths_Sub &&
+                                                mSubPageID == i);
 
             std::string node_s = "Enemy Path #" + std::to_string(i);
             if (ImGui::TreeNodeEx(node_s.c_str(), ImGuiTreeNodeFlags_Leaf)) {
               ImGui::TreePop();
             }
 
-            if (X::IsNodeSwitchedTo()) {
+            if (util::IsNodeSwitchedTo()) {
               mPage = Page::EnemyPaths_Sub;
               mSubPageID = i;
             }
@@ -1645,10 +1599,10 @@ void LevelEditorWindow::draw_() {
         bool has_child = false;
         {
           ImGui::TableNextRow();
-          auto d = X::RAIICustomSelectable(mPage == Page::ItemPaths);
+          auto d = util::RAIICustomSelectable(mPage == Page::ItemPaths);
 
           has_child = ImGui::TreeNodeEx("Item Paths", 0);
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::ItemPaths;
           }
 
@@ -1660,15 +1614,15 @@ void LevelEditorWindow::draw_() {
           for (int i = 0; i < mKmp->mItemPaths.size(); ++i) {
             ImGui::TableNextRow();
 
-            auto d = X::RAIICustomSelectable(mPage == Page::ItemPaths_Sub &&
-                                             mSubPageID == i);
+            auto d = util::RAIICustomSelectable(mPage == Page::ItemPaths_Sub &&
+                                                mSubPageID == i);
 
             std::string node_s = "Item Path #" + std::to_string(i);
             if (ImGui::TreeNodeEx(node_s.c_str(), ImGuiTreeNodeFlags_Leaf)) {
               ImGui::TreePop();
             }
 
-            if (X::IsNodeSwitchedTo()) {
+            if (util::IsNodeSwitchedTo()) {
               mPage = Page::ItemPaths_Sub;
               mSubPageID = i;
             }
@@ -1682,10 +1636,10 @@ void LevelEditorWindow::draw_() {
         bool has_child = false;
         {
           ImGui::TableNextRow();
-          auto d = X::RAIICustomSelectable(mPage == Page::CheckPaths);
+          auto d = util::RAIICustomSelectable(mPage == Page::CheckPaths);
 
           has_child = ImGui::TreeNodeEx("Check Paths", 0);
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::CheckPaths;
           }
 
@@ -1702,15 +1656,15 @@ void LevelEditorWindow::draw_() {
             if (is_lapcheck)
               PushLapCheckStyle();
             {
-              auto d = X::RAIICustomSelectable(mPage == Page::CheckPaths_Sub &&
-                                               mSubPageID == i);
+              auto d = util::RAIICustomSelectable(
+                  mPage == Page::CheckPaths_Sub && mSubPageID == i);
 
               std::string node_s = "Check Path #" + std::to_string(i);
               if (ImGui::TreeNodeEx(node_s.c_str(), ImGuiTreeNodeFlags_Leaf)) {
                 ImGui::TreePop();
               }
 
-              if (X::IsNodeSwitchedTo()) {
+              if (util::IsNodeSwitchedTo()) {
                 mPage = Page::CheckPaths_Sub;
                 mSubPageID = i;
               }
@@ -1726,121 +1680,121 @@ void LevelEditorWindow::draw_() {
       {
         ImGui::TableNextRow();
 
-        bool b = X::BeginCustomSelectable(mPage == Page::Objects);
+        bool b = util::BeginCustomSelectable(mPage == Page::Objects);
         if (ImGui::TreeNodeEx("Objects", ImGuiTreeNodeFlags_Leaf)) {
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::Objects;
           }
           ImGui::TreePop();
         }
         ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mGeoObjs.size()));
-        X::EndCustomSelectable(b);
+        util::EndCustomSelectable(b);
       }
 
       {
         ImGui::TableNextRow();
 
-        bool b = X::BeginCustomSelectable(mPage == Page::Paths);
+        bool b = util::BeginCustomSelectable(mPage == Page::Paths);
         if (ImGui::TreeNodeEx("Paths", ImGuiTreeNodeFlags_Leaf)) {
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::Paths;
           }
           ImGui::TreePop();
         }
         ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mPaths.size()));
-        X::EndCustomSelectable(b);
+        util::EndCustomSelectable(b);
       }
 
       {
         ImGui::TableNextRow();
 
-        bool b = X::BeginCustomSelectable(mPage == Page::Areas);
+        bool b = util::BeginCustomSelectable(mPage == Page::Areas);
         if (ImGui::TreeNodeEx("Areas", ImGuiTreeNodeFlags_Leaf)) {
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::Areas;
           }
           ImGui::TreePop();
         }
         ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mAreas.size()));
-        X::EndCustomSelectable(b);
+        util::EndCustomSelectable(b);
       }
 
       {
         ImGui::TableNextRow();
 
-        bool b = X::BeginCustomSelectable(mPage == Page::Cameras);
+        bool b = util::BeginCustomSelectable(mPage == Page::Cameras);
         if (ImGui::TreeNodeEx("Cameras", ImGuiTreeNodeFlags_Leaf)) {
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::Cameras;
           }
           ImGui::TreePop();
         }
         ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mCameras.size()));
-        X::EndCustomSelectable(b);
+        util::EndCustomSelectable(b);
       }
 
       {
         ImGui::TableNextRow();
 
-        bool b = X::BeginCustomSelectable(mPage == Page::Respawns);
+        bool b = util::BeginCustomSelectable(mPage == Page::Respawns);
         if (ImGui::TreeNodeEx("Respawns", ImGuiTreeNodeFlags_Leaf)) {
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::Respawns;
           }
           ImGui::TreePop();
         }
         ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mRespawnPoints.size()));
-        X::EndCustomSelectable(b);
+        util::EndCustomSelectable(b);
       }
 
       {
         ImGui::TableNextRow();
 
-        bool b = X::BeginCustomSelectable(mPage == Page::Cannons);
+        bool b = util::BeginCustomSelectable(mPage == Page::Cannons);
         if (ImGui::TreeNodeEx("Cannons", ImGuiTreeNodeFlags_Leaf)) {
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::Cannons;
           }
           ImGui::TreePop();
         }
         ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mCannonPoints.size()));
-        X::EndCustomSelectable(b);
+        util::EndCustomSelectable(b);
       }
 
       {
         ImGui::TableNextRow();
 
-        bool b = X::BeginCustomSelectable(mPage == Page::MissionPoints);
+        bool b = util::BeginCustomSelectable(mPage == Page::MissionPoints);
         if (ImGui::TreeNodeEx("Mission Points", ImGuiTreeNodeFlags_Leaf)) {
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::MissionPoints;
           }
           ImGui::TreePop();
         }
         ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mMissionPoints.size()));
-        X::EndCustomSelectable(b);
+        util::EndCustomSelectable(b);
       }
 
       {
         ImGui::TableNextRow();
 
-        bool b = X::BeginCustomSelectable(mPage == Page::Stages);
+        bool b = util::BeginCustomSelectable(mPage == Page::Stages);
         if (ImGui::TreeNodeEx("Stages", ImGuiTreeNodeFlags_Leaf)) {
-          if (X::IsNodeSwitchedTo()) {
+          if (util::IsNodeSwitchedTo()) {
             mPage = Page::Stages;
           }
           ImGui::TreePop();
         }
         ImGui::TableNextColumn();
         ImGui::Text("%i", static_cast<int>(mKmp->mStages.size()));
-        X::EndCustomSelectable(b);
+        util::EndCustomSelectable(b);
       }
 
       ImGui::TableNextRow();
