@@ -13,6 +13,8 @@ namespace riistudio::frontend {
 inline void DefaultWindowSize() {
   // Set window size to 1/4th of parent region
   auto avail = ImGui::GetContentRegionAvail();
+  // TODO: Why is avail.y -4.0f?
+  avail.y = (9.0f / 16.0f) * avail.x;
   ImGui::SetNextWindowSize(ImVec2{avail.x / 2, avail.y / 2}, ImGuiCond_Once);
 }
 

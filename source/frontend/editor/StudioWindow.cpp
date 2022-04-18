@@ -48,7 +48,7 @@ void StudioWindow::drawDockspace() {
 
     ImGui::DockBuilderFinish(dockspaceId);
   }
-  ImGui::DockSpace(dockspaceId, {}, ImGuiDockNodeFlags_CentralNode,
+  ImGui::DockSpace(dockspaceId, {}, ImGuiDockNodeFlags_PassthruCentralNode,
                    getWindowClass());
 }
 
