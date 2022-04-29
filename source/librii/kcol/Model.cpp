@@ -191,6 +191,7 @@ std::string GetKCLVersion(KclVersion metadata) {
                  std::get_if<librii::kcol::InvalidKclVersion>(&metadata)) {
     return FormatInvalidKclVersion(*as_invalid);
   }
+  return "";
 }
 
 } // namespace librii::kcol

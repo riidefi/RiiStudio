@@ -374,6 +374,118 @@ void ReadModelInfo(oishii::BinaryReader& reader,
   mdl.aabb.max << reader;
 }
 
+static void ReadRenderTree(const librii::g3d::DictionaryNode& dnode,
+                           oishii::BinaryReader& reader, g3d::Model& mdl,
+                           kpi::LightIOTransaction& transaction,
+                           const std::string& transaction_path) {
+  enum class Tree { DrawOpa, DrawXlu, Node, Other } tree = Tree::Other;
+  std::array<std::pair<std::string_view, Tree>, 3> type_lut{
+      std::pair<std::string_view, Tree>{"DrawOpa", Tree::DrawOpa},
+      std::pair<std::string_view, Tree>{"DrawXlu", Tree::DrawXlu},
+      std::pair<std::string_view, Tree>{"NodeTree", Tree::Node}};
+
+  if (const auto it = std::find_if(
+          type_lut.begin(), type_lut.end(),
+          [&](const auto& tuple) { return tuple.first == dnode.mName; });
+      it != type_lut.end()) {
+    tree = it->second;
+  }
+  int base_matrix_id = -1;
+
+  // printf("digraph {\n");
+  while (reader.tell() < reader.endpos()) {
+    const auto cmd = static_cast<RenderCommand>(reader.read<u8>());
+    switch (cmd) {
+    case RenderCommand::NoOp:
+      break;
+    case RenderCommand::Return:
+      return;
+    case RenderCommand::Draw: {
+      Bone::Display disp;
+      disp.matId = reader.readUnaligned<u16>();
+      disp.polyId = reader.readUnaligned<u16>();
+      auto boneIdx = reader.readUnaligned<u16>();
+      disp.prio = reader.readUnaligned<u8>();
+
+      if (boneIdx > mdl.getBones().size()) {
+        transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                             "Invalid bone index in render command");
+        boneIdx = 0;
+        transaction.state = kpi::TransactionState::Failure;
+      }
+
+      if (disp.matId > mdl.getMeshes().size()) {
+        transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                             "Invalid material index in render command");
+        disp.matId = 0;
+        transaction.state = kpi::TransactionState::Failure;
+      }
+
+      if (disp.polyId > mdl.getMeshes().size()) {
+        transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                             "Invalid mesh index in render command");
+        disp.polyId = 0;
+        transaction.state = kpi::TransactionState::Failure;
+      }
+
+      mdl.getBones()[boneIdx].addDisplay(disp);
+
+      // While with this setup, materials could be XLU and OPA, in
+      // practice, they're not.
+      auto& mat = mdl.getMaterials()[disp.matId];
+      const bool xlu_mat = mat.flag & 0x80000000;
+      auto& poly = mdl.getMeshes()[disp.polyId];
+
+      if ((tree == Tree::DrawOpa && xlu_mat) ||
+          (tree == Tree::DrawXlu && !xlu_mat)) {
+        char warn_msg[1024]{};
+        const auto mat_name = ((riistudio::lib3d::Material&)mat).getName();
+        snprintf(warn_msg, sizeof(warn_msg),
+                 "Material %u \"%s\" is rendered in the %s pass (with mesh "
+                 "%u \"%s\"), but is marked as %s.",
+                 disp.matId, mat_name.c_str(),
+                 xlu_mat ? "Opaue" : "Translucent", disp.polyId,
+                 poly.getName().c_str(), !xlu_mat ? "Opaque" : "Translucent");
+        reader.warnAt(warn_msg, reader.tell() - 8, reader.tell());
+        transaction.callback(kpi::IOMessageClass::Warning,
+                             transaction_path + "materials/" + mat_name,
+                             warn_msg);
+      }
+      mat.setXluPass(tree == Tree::DrawXlu);
+    } break;
+    case RenderCommand::NodeDescendence: {
+      const auto boneIdx = reader.readUnaligned<u16>();
+      // const auto parentMtxIdx =
+      reader.readUnaligned<u16>();
+
+      const auto& bone = mdl.getBones()[boneIdx];
+      const auto matrixId = bone.matrixId;
+
+      // Hack: Base matrix is first copied to end, first instruction
+      if (base_matrix_id == -1) {
+        base_matrix_id = matrixId;
+      } else {
+        auto& drws = mdl.mDrawMatrices;
+        if (drws.size() <= matrixId) {
+          drws.resize(matrixId + 1);
+        }
+        // TODO: Start at 100?
+        drws[matrixId].mWeights.emplace_back(boneIdx, 1.0f);
+      }
+      // printf("BoneIdx: %u (MatrixIdx: %u), ParentMtxIdx: %u\n",
+      // (u32)boneIdx,
+      //        (u32)matrixId, (u32)parentMtxIdx);
+      // printf("\"Matrix %u\" -> \"Matrix %u\" [label=\"parent\"];\n",
+      //        (u32)matrixId, (u32)parentMtxIdx);
+    } break;
+    default:
+      // TODO
+      break;
+    }
+  }
+  // printf("}\n");
+}
+
 void readModel(Model& mdl, oishii::BinaryReader& reader,
                kpi::LightIOTransaction& transaction,
                const std::string& transaction_path) {
@@ -632,112 +744,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     return;
 
   readDict(secOfs.ofsRenderTree, [&](const librii::g3d::DictionaryNode& dnode) {
-    enum class Tree { DrawOpa, DrawXlu, Node, Other } tree = Tree::Other;
-    std::array<std::pair<std::string_view, Tree>, 3> type_lut{
-        std::pair<std::string_view, Tree>{"DrawOpa", Tree::DrawOpa},
-        std::pair<std::string_view, Tree>{"DrawXlu", Tree::DrawXlu},
-        std::pair<std::string_view, Tree>{"NodeTree", Tree::Node}};
-
-    if (const auto it = std::find_if(
-            type_lut.begin(), type_lut.end(),
-            [&](const auto& tuple) { return tuple.first == dnode.mName; });
-        it != type_lut.end()) {
-      tree = it->second;
-    }
-    int base_matrix_id = -1;
-
-    // printf("digraph {\n");
-    while (reader.tell() < reader.endpos()) {
-      const auto cmd = static_cast<RenderCommand>(reader.read<u8>());
-      switch (cmd) {
-      case RenderCommand::NoOp:
-        break;
-      case RenderCommand::Return:
-        return;
-      case RenderCommand::Draw: {
-        Bone::Display disp;
-        disp.matId = reader.readUnaligned<u16>();
-        disp.polyId = reader.readUnaligned<u16>();
-        auto boneIdx = reader.readUnaligned<u16>();
-        disp.prio = reader.readUnaligned<u8>();
-
-        if (boneIdx > mdl.getBones().size()) {
-          transaction.callback(kpi::IOMessageClass::Error, transaction_path,
-                               "Invalid bone index in render command");
-          boneIdx = 0;
-          transaction.state = kpi::TransactionState::Failure;
-        }
-
-        if (disp.matId > mdl.getMeshes().size()) {
-          transaction.callback(kpi::IOMessageClass::Error, transaction_path,
-                               "Invalid material index in render command");
-          disp.matId = 0;
-          transaction.state = kpi::TransactionState::Failure;
-        }
-
-        if (disp.polyId > mdl.getMeshes().size()) {
-          transaction.callback(kpi::IOMessageClass::Error, transaction_path,
-                               "Invalid mesh index in render command");
-          disp.polyId = 0;
-          transaction.state = kpi::TransactionState::Failure;
-        }
-
-        mdl.getBones()[boneIdx].addDisplay(disp);
-
-        // While with this setup, materials could be XLU and OPA, in
-        // practice, they're not.
-        auto& mat = mdl.getMaterials()[disp.matId];
-        const bool xlu_mat = mat.flag & 0x80000000;
-        auto& poly = mdl.getMeshes()[disp.polyId];
-
-        if ((tree == Tree::DrawOpa && xlu_mat) ||
-            (tree == Tree::DrawXlu && !xlu_mat)) {
-          char warn_msg[1024]{};
-          const auto mat_name = ((riistudio::lib3d::Material&)mat).getName();
-          snprintf(warn_msg, sizeof(warn_msg),
-                   "Material %u \"%s\" is rendered in the %s pass (with mesh "
-                   "%u \"%s\"), but is marked as %s.",
-                   disp.matId, mat_name.c_str(),
-                   xlu_mat ? "Opaue" : "Translucent", disp.polyId,
-                   poly.getName().c_str(), !xlu_mat ? "Opaque" : "Translucent");
-          reader.warnAt(warn_msg, reader.tell() - 8, reader.tell());
-          transaction.callback(kpi::IOMessageClass::Warning,
-                               transaction_path + "materials/" + mat_name,
-                               warn_msg);
-        }
-        mat.setXluPass(tree == Tree::DrawXlu);
-      } break;
-      case RenderCommand::NodeDescendence: {
-        const auto boneIdx = reader.readUnaligned<u16>();
-        // const auto parentMtxIdx =
-        reader.readUnaligned<u16>();
-
-        const auto& bone = mdl.getBones()[boneIdx];
-        const auto matrixId = bone.matrixId;
-
-        // Hack: Base matrix is first copied to end, first instruction
-        if (base_matrix_id == -1) {
-          base_matrix_id = matrixId;
-        } else {
-          auto& drws = mdl.mDrawMatrices;
-          if (drws.size() <= matrixId) {
-            drws.resize(matrixId + 1);
-          }
-          // TODO: Start at 100?
-          drws[matrixId].mWeights.emplace_back(boneIdx, 1.0f);
-        }
-        // printf("BoneIdx: %u (MatrixIdx: %u), ParentMtxIdx: %u\n",
-        // (u32)boneIdx,
-        //        (u32)matrixId, (u32)parentMtxIdx);
-        // printf("\"Matrix %u\" -> \"Matrix %u\" [label=\"parent\"];\n",
-        //        (u32)matrixId, (u32)parentMtxIdx);
-      } break;
-      default:
-        // TODO
-        break;
-      }
-    }
-    // printf("}\n");
+    ReadRenderTree(dnode, reader, mdl, transaction, transaction_path);
   });
 
   if (!isValid && mdl.getBones().size() > 1) {

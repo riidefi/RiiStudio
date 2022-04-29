@@ -24,7 +24,7 @@ static void GlCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
   if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
     return;
 
-  printf("%s\n", message);
+  printf("[GL] %s\n", message);
 }
 
 inline void AttachGlDebugPrinter() {

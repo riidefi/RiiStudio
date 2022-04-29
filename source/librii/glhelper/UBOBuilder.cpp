@@ -16,6 +16,10 @@ UBOBuilder::UBOBuilder() {
 #else
   glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformStride);
   printf("UBOBuilder: Buffer offset alignment: %i\n", uniformStride);
+
+  int maxBlockSize;
+  glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxBlockSize);
+  printf("UBOBuilder: Max block size: %i\n", maxBlockSize);
 #endif
 
 #ifdef DEBUG

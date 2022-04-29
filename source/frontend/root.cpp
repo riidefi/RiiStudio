@@ -306,6 +306,12 @@ RootWindow::RootWindow()
     if (brres)
       dropDirect(std::move(*brres), "./samples/luigi_circuit.brres");
   }
+
+  #if 0
+  // IOS has 3:1 DPI
+  mThemeData.mGlobalScale = .534f;
+  mThemeData.mFontGlobalScale = .534f;
+  #endif
 }
 RootWindow::~RootWindow() { DeinitAPI(); }
 

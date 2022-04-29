@@ -20,11 +20,14 @@ bool checkShaderErrors(u32 id, std::string& error) {
 }
 
 ShaderProgram::ShaderProgram(const char* vtx, const char* frag) {
-  u32 vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  assert(vtx != nullptr && *vtx != '\0');
+  assert(frag != nullptr && *frag != '\0');
+
+  const u32 vertexShader = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vertexShader, 1, &vtx, NULL);
   glCompileShader(vertexShader);
 
-  u32 fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  const u32 fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fragmentShader, 1, &frag, NULL);
   glCompileShader(fragmentShader);
 
