@@ -42,6 +42,8 @@ include_directories(${PROJECT_SOURCE_DIR}/vendor)
 file(GLOB_RECURSE VENDOR_SRC_FILES
 	${PROJECT_SOURCE_DIR}/vendor/*.cpp
 	${PROJECT_SOURCE_DIR}/vendor/*.c
+
+  ${PROJECT_SOURCE_DIR}/vendor/imgui/misc/freetype/imgui_freetype.cpp
 )
 file(GLOB_RECURSE VENDOR_HDR_FILES
 	${PROJECT_SOURCE_DIR}/vendor/*.hpp

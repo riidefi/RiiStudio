@@ -25,6 +25,7 @@ if (WIN32)
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
 		opengl32.lib
+		${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
 	)
   if (ASAN)
     set(LINK_LIBS ${LINK_LIBS} "C:\\Program Files\\LLVM\\lib\\clang\\10.0.0\\lib\\windows\\clang_rt.asan-x86_64.lib")
@@ -109,7 +110,13 @@ endif()
 		  ${PROJECT_SOURCE_DIR}/../../fonts
 		  $<TARGET_FILE_DIR:tests>/fonts
 	)
-
+  add_custom_command(
+	  TARGET tests 
+	  POST_BUILD
+	  COMMAND ${CMAKE_COMMAND} -E copy_directory
+		  ${PROJECT_SOURCE_DIR}/../vendor/dll
+		  $<TARGET_FILE_DIR:tests>
+  )
 if (WINDOWS)
   add_custom_command(
 	  TARGET tests 
