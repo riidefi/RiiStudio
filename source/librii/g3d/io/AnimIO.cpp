@@ -368,7 +368,7 @@ constexpr size_t CalcNumAnimations(const SrtMatDataHeader& header) {
     total += IsTexAnimated(header, i) ? 1 : 0;
 
   for (int i = 0; i < 3; ++i)
-    total += IsTexAnimated(header, i) ? 1 : 0;
+    total += IsIndAnimated(header, i) ? 1 : 0;
 
   return total;
 }
