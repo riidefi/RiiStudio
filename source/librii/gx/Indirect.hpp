@@ -1,7 +1,7 @@
 #pragma once
 
 namespace librii::gx {
-	
+
 enum class IndTexFormat {
   _8bit,
   _5bit,
@@ -10,6 +10,26 @@ enum class IndTexFormat {
 };
 
 enum class IndTexBiasSel { none, s, t, st, u, su, tu, stu };
+struct IndTexBiasSel_H {
+  bool s = false;
+  bool t = false;
+  bool u = false;
+
+  IndTexBiasSel_H(IndTexBiasSel x) {
+    int raw = static_cast<int>(x);
+    assert(raw >= 0b000 && raw <= 0b111);
+    s = raw & 0b001;
+    t = raw & 0b010;
+    u = raw & 0b100;
+  }
+  operator IndTexBiasSel() const {
+    int raw = 0;
+    raw += s ? 1 : 0;
+    raw += t ? 2 : 0;
+    raw += u ? 4 : 0;
+    return static_cast<IndTexBiasSel>(raw);
+  }
+};
 enum class IndTexAlphaSel { off, s, t, u };
 enum class IndTexMtxID {
   off,
@@ -92,5 +112,5 @@ struct IndOrder {
 
   bool operator==(const IndOrder& rhs) const = default;
 };
-	
-} // namepace librii::gx
+
+} // namespace librii::gx
