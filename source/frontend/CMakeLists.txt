@@ -204,4 +204,35 @@ COMMAND ${CMAKE_COMMAND} -E copy
 	$<TARGET_FILE_DIR:frontend>/icon.png
 )
 
+# Copy Blender plugin
+add_custom_command(
+TARGET frontend 
+POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy
+	${PROJECT_SOURCE_DIR}/../blender/riistudio_blender.py
+	$<TARGET_FILE_DIR:frontend>/riistudio_blender.py
+)
+
+# Ensure tests is built first
+add_dependencies(frontend tests)
+
+add_custom_command(
+TARGET frontend 
+POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy
+	$<TARGET_FILE:tests>
+	$<TARGET_FILE_DIR:frontend>/
+)
+
+# Windows: Copy .pdb with debug info
+if (WIN32)
+  add_custom_command(
+  TARGET frontend 
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+	  $<TARGET_FILE_DIR:tests>/tests.pdb
+	  $<TARGET_FILE_DIR:frontend>/tests.pdb
+  )
+endif()
+
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "RiiStudio")
