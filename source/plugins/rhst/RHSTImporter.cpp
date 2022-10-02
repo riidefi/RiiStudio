@@ -67,6 +67,10 @@ void compileMaterial(libcube::IGCMaterial& out,
     sampler.mWrapU = compileWrap(in.wrap_u);
     sampler.mWrapV = compileWrap(in.wrap_v);
 
+    // NOTE: As textures are loaded on separate threads, the min filter will be
+    // corrected then.
+    sampler.mMinFilter = librii::gx::TextureFilter::Linear;
+
     compileCullMode(data, in.show_front, in.show_back);
     // TODO: lightset, fog indices
     compileAlphaMode(data, in.alpha_mode);
@@ -416,6 +420,36 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
 
   for (auto& f : futures) {
     f.get();
+  }
+
+  // Now that all textures are loaded, correct sampler settings
+  for (auto& mat : mdl.getMaterials()) {
+    for (auto& sampler : mat.getMaterialData().samplers) {
+      const auto* tex = mat.getTexture(scene, sampler.mTexture);
+      if (tex == nullptr) {
+        continue;
+      }
+      // Correction: Wrapping hardware only operates on power-of-two inputs.
+      const auto clamp = librii::gx::TextureWrapMode::Clamp;
+      if (!power_of_2(tex->getWidth()) && sampler.mWrapU != clamp) {
+        transaction.callback(
+            kpi::IOMessageClass::Information, mat.getName(),
+            "Texture is not a power of two in the U direction, Repeat/Mirror "
+            "wrapping is unsupported.");
+        sampler.mWrapU = clamp;
+      }
+      if (!power_of_2(tex->getHeight()) && sampler.mWrapV != clamp) {
+        transaction.callback(
+            kpi::IOMessageClass::Information, mat.getName(),
+            "Texture is not a power of two in the V direction, Repeat/Mirror "
+            "wrapping is unsupported.");
+        sampler.mWrapV = clamp;
+      }
+      // Correction: Intermediate format doesn't specify texture filtering.
+      if (tex->getMipmapCount() > 0) {
+        sampler.mMinFilter = librii::gx::TextureFilter::lin_mip_lin;
+      }
+    }
   }
 
   transaction.state = kpi::TransactionState::Complete;
