@@ -32,7 +32,7 @@ public:
   float mFOV = 90.0f;
   // Camera state
   glm::vec3 mEye{0.0f, 0.0f, 0.0f};
-  glm::vec3 mDirection;
+  glm::vec3 mDirection{1.0f, 0.0f, 0.0f};
   glm::vec3 mUp{0, 1, 0};
   Projection mProjection = Projection::Perspective;
 };

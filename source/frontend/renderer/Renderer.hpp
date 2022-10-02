@@ -42,7 +42,7 @@ public:
   RenderSettings mSettings;
 
   // Overwritten every frame
-  glm::mat4 mProjMtx, mViewMtx;
+  glm::mat4 mProjMtx{1}, mViewMtx{1};
 
 private:
   MouseHider mMouseHider;

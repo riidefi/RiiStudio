@@ -31,10 +31,14 @@ void CameraController::move(float time_step, InputState input) {
               glm::degrees(mHorizontalAngle), mVerticalAngle,
               glm::degrees(mVerticalAngle));
 #endif
-
+  if (std::isnan(mHorizontalAngle) || std::isnan(mVerticalAngle)) {
+    mHorizontalAngle = 3.14f;
+    mVerticalAngle = 0.0f;
+  }
   if (input.clickView) {
     mHorizontalAngle += horiz_delta;
     mVerticalAngle += vert_delta;
+
     // Slightly less than pi/2 prevents weird behavior when parallel with up
     // direction
     mVerticalAngle = std::clamp(mVerticalAngle, -1.56f, 1.56f);
@@ -116,6 +120,8 @@ void CameraController::drawProjectionOption() {
 void SetCameraControllerToMatrix(CameraController& controller,
                                  const glm::mat4& view) {
   auto cartesian = glm::vec3(glm::vec4(0.0f, 0.0f, -1.0f, 0.0f) * view);
+  assert(!std::isnan(cartesian.x) && !std::isnan(cartesian.y) &&
+         !std::isnan(cartesian.z));
 
 #ifdef CAMERA_CONTROLLER_DEBUG
   {

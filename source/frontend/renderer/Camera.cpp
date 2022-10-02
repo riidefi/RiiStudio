@@ -22,7 +22,9 @@ void Camera::calcMatrices(float width, float height, glm::mat4& projMtx,
     projMtx =
         glm::perspective(glm::radians(mFOV), aspect_ratio, mClipMin, mClipMax);
   }
-  viewMtx = glm::lookAt(mEye, mEye + mDirection, getUp());
+  if (glm::length(mDirection) == 1.0f) {
+    viewMtx = glm::lookAt(mEye, mEye + mDirection, getUp());
+  }
 }
 
 } // namespace riistudio::frontend
