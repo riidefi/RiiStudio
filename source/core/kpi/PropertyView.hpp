@@ -144,9 +144,14 @@ public:
   static constexpr int lifetime_grace_period = 30; // Duration of 0.5 seconds
 
   void garbageCollect() {
+    for (auto& it : states) {
+      auto& [key, value] = it;
+      auto& last_used = value.second;
+      ++last_used;
+	}
     std::erase_if(states, [&](auto& it) {
       auto& [key, value] = it;
-      if (auto& last_used = value.second; last_used++ > lifetime_grace_period) {
+      if (auto last_used = value.second; last_used >= lifetime_grace_period) {
         DebugReport("[PropertyViewStateHolder] Destroying state for: %s.\n",
                     std::string(key.id).c_str());
         return true;
