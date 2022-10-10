@@ -352,8 +352,8 @@ inline void writeComponents<gx::Color>(oishii::Writer& writer,
 struct VQuantization {
   librii::gx::VertexComponentCount comp = librii::gx::VertexComponentCount(
       librii::gx::VertexComponentCount::Position::xyz);
-  librii::gx::VertexBufferType type = librii::gx::VertexBufferType(
-      librii::gx::VertexBufferType::Generic::f32);
+  librii::gx::VertexBufferType type =
+      librii::gx::VertexBufferType(librii::gx::VertexBufferType::Generic::f32);
   u8 divisor = 0;
   u8 bad_divisor = 0; //!< Accommodation for a bug on N's part
   u8 stride = 12;
@@ -419,8 +419,7 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
       for (const auto& d : mData)
         writeBufferEntryGeneric(writer, d);
     } else if constexpr (kind == VBufferKind::normal) {
-      if (mQuant.comp.normal !=
-          librii::gx::VertexComponentCount::Normal::xyz) {
+      if (mQuant.comp.normal != librii::gx::VertexComponentCount::Normal::xyz) {
         assert(!"Buffer: NBT Vectors.");
         return false;
       }
@@ -441,7 +440,7 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
         writeBufferEntryGeneric(writer, d);
     }
 
-	return true;
+    return true;
   }
 
   VertexBuffer() {}

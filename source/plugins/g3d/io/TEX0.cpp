@@ -4,7 +4,7 @@
 
 namespace riistudio::g3d {
 
-void writeTexture(const g3d::Texture& data, oishii::Writer& writer,
+void writeTexture(const librii::g3d::TextureData& data, oishii::Writer& writer,
                   NameTable& names) {
   const auto [start, span] =
       HandleBlock(writer, librii::g3d::CalcTextureBlockData(data));

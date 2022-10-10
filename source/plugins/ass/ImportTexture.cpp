@@ -6,7 +6,6 @@
 
 namespace riistudio::ass {
 
-const auto power_of_2 = [](u32 x) { return (x & (x - 1)) == 0; };
 
 bool importTexture(libcube::Texture& data, u8* image, std::vector<u8>& scratch,
                    bool mip_gen, int min_dim, int max_mip, int width,
@@ -19,7 +18,7 @@ bool importTexture(libcube::Texture& data, u8* image, std::vector<u8>& scratch,
   assert(image);
 
   int num_mip = 0;
-  if (mip_gen && power_of_2(width) && power_of_2(height)) {
+  if (mip_gen && is_power_of_2(width) && is_power_of_2(height)) {
     while ((num_mip + 1) < max_mip && (width >> (num_mip + 1)) >= min_dim &&
            (height >> (num_mip + 1)) >= min_dim)
       ++num_mip;

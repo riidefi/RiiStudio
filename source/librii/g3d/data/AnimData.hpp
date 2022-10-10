@@ -2,7 +2,6 @@
 
 #include <array>
 #include <core/common.h>
-#include <llvm/ADT/SmallVector.h>
 #include <optional>
 #include <rsl/SmallVector.hpp>
 #include <rsl/TaggedUnion.hpp>
@@ -23,7 +22,7 @@ struct KeyFrame {
 };
 
 struct KeyFrameCollection {
-  llvm::SmallVector<KeyFrame, 16> data;
+  rsl::small_vector<KeyFrame, 16> data;
   f32 step;
 
   bool operator==(const KeyFrameCollection&) const = default;

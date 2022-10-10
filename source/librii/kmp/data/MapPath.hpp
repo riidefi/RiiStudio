@@ -7,7 +7,7 @@
 #include <core/common.h>          // u32
 #include <glm/vec2.hpp>           // glm::vec2
 #include <glm/vec3.hpp>           // glm::vec3
-#include <llvm/ADT/SmallVector.h> // llvm::SmallVector
+#include <rsl/SmallVector.hpp> // rsl::small_vector
 
 namespace librii::kmp {
 
@@ -38,11 +38,11 @@ public:
 template <typename PointT> struct DirectedGraph {
   bool operator==(const DirectedGraph&) const = default;
 
-  llvm::SmallVector<PointT, 16> mPoints;
+  rsl::small_vector<PointT, 16> mPoints;
 
   // Over 6 cannot be serialized
-  llvm::SmallVector<u8, 6> mPredecessors;
-  llvm::SmallVector<u8, 6> mSuccessors;
+  rsl::small_vector<u8, 6> mPredecessors;
+  rsl::small_vector<u8, 6> mSuccessors;
   std::array<u8, 2> misc;
 };
 
@@ -119,7 +119,7 @@ public:
 private:
   Interpolation mInterpolation;
   LoopPolicy mPolicy;
-  llvm::SmallVector<Point, 16> mPoints;
+  rsl::small_vector<Point, 16> mPoints;
 };
 
 using Path = Rail;

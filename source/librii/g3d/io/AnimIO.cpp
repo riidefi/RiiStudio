@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <map>
 #include <rsl/SimpleReader.hpp>
+#include <rsl/SimpleMap.hpp>
 #include <span>
 #include <string_view>
 
@@ -646,7 +647,7 @@ void WriteSrtFile(oishii::Writer& writer, const SrtAnimationArchive& arc,
   writer.seekSet(mat_anim_end);
   u32 keyframe_cursor = mat_value_cursor;
 
-  SimpleMap<KeyFrameCollection, u32>
+  rsl::SimpleMap<KeyFrameCollection, u32>
       collection_array; // Maps a KeyFrameCollection to a stream pos
 
   // 3. KeyFrameCollection array

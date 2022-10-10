@@ -4,8 +4,8 @@
 #include <librii/gfx/MegaState.hpp>
 #include <librii/gfx/TextureObj.hpp>
 #include <librii/math/aabb.hpp>
-#include <llvm/ADT/SmallVector.h>
 #include <rsl/ArrayVector.hpp>
+#include <rsl/SmallVector.hpp>
 
 #include <librii/glhelper/UBOBuilder.hpp>
 
@@ -67,10 +67,10 @@ struct SceneNode {
 
     //! Raw data to store there
     //! Note: sizeof(UniformMaterialParams) == 1536
-    llvm::SmallVector<u8, 2048> raw_data;
+    rsl::small_vector<u8, 2048> raw_data;
   };
 
-  llvm::SmallVector<UniformData, 4> uniform_data;
+  rsl::small_vector<UniformData, 4> uniform_data;
 
   // TODO: We don't need to set these every draw, just every shader?
   struct UniformMin {
@@ -78,7 +78,7 @@ struct SceneNode {
     u32 min_size;
   };
 
-  llvm::SmallVector<UniformMin, 4> uniform_mins;
+  rsl::small_vector<UniformMin, 4> uniform_mins;
 };
 
 void DrawSceneNode(const librii::gfx::SceneNode& node,

@@ -397,8 +397,8 @@ private:
   oishii::Writer& mWriter;
   std::map<std::string, std::size_t> mLabels;
 
-  llvm::SmallVector<Reloc, 64> mRelocs;
-  llvm::SmallVector<
+  rsl::small_vector<Reloc, 64> mRelocs;
+  rsl::small_vector<
       std::pair<std::string, std::function<void(oishii::Writer&)>>, 16>
       mChildren;
 };

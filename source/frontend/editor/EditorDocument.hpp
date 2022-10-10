@@ -7,7 +7,6 @@
 #include <memory>                        // std::unique_ptr
 #include <string>                        // std::string
 #include <string_view>                   // std::string_view
-#include <vendor/llvm/ADT/SmallVector.h> // llvm::SmallVector
 
 namespace riistudio::frontend {
 

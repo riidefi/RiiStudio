@@ -5,6 +5,7 @@
 #include <librii/hx/TextureFilter.hpp>
 #include <plugins/gc/Export/Scene.hpp>
 #include <plugins/j3d/Material.hpp>
+#include <rsl/SmallVector.hpp>
 
 namespace libcube::UI {
 

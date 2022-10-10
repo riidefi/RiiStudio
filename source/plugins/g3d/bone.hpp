@@ -15,46 +15,6 @@
 
 namespace riistudio::g3d {
 
-template <typename T> bool RangeIsHomogenous(const T& range) {
-  return std::adjacent_find(range.begin(), range.end(),
-                            std::not_equal_to<>()) == range.end();
-}
-
-inline u32 computeFlag(const librii::g3d::BoneData& data) {
-  u32 flag = 0;
-  const std::array<float, 3> scale{data.mScaling.x, data.mScaling.y,
-                                   data.mScaling.z};
-  if (RangeIsHomogenous(scale)) {
-    flag |= 0x10;
-    if (data.mScaling == glm::vec3{1.0f, 1.0f, 1.0f})
-      flag |= 8;
-  }
-  if (data.mRotation == glm::vec3{0.0f, 0.0f, 0.0f})
-    flag |= 4;
-  if (data.mTranslation == glm::vec3{0.0f, 0.0f, 0.0f})
-    flag |= 2;
-  if (flag & (2 | 4 | 8))
-    flag |= 1;
-  // TODO: Flag 0x40
-  if (data.ssc)
-    flag |= 0x20;
-  if (!data.classicScale)
-    flag |= 0x80;
-  if (data.visible)
-    flag |= 0x100;
-  // TODO: Check children?
-  if (!data.mDisplayCommands.empty())
-    flag |= 0x200;
-  // TODO: 0x400 check parents
-  return flag;
-}
-// Call this last
-inline void setFromFlag(librii::g3d::BoneData& data, u32 flag) {
-  // TODO: Validate items
-  data.ssc = (flag & 0x20) != 0;
-  data.classicScale = (flag & 0x80) == 0;
-  data.visible = (flag & 0x100) != 0;
-}
 
 struct Bone : public libcube::IBoneDelegate,
               public librii::g3d::BoneData,

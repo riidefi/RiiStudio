@@ -3,7 +3,7 @@
 #include "Indirect.hpp"
 #include <array>
 #include <core/common.h>
-#include <llvm/ADT/SmallVector.h>
+#include <rsl/SmallVector.hpp>
 #include <vector>
 
 namespace librii::gx {

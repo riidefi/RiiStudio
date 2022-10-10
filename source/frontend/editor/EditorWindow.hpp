@@ -7,7 +7,6 @@
 #include <core/kpi/Node2.hpp>               // kpi::INode
 #include <core/kpi/Plugins.hpp>             // kpi::IOTransaction
 #include <frontend/widgets/IconManager.hpp> // IconManager
-#include <llvm/ADT/SmallVector.h>           // llvm::SmallVector
 #include <string_view>                      // std::string_view
 
 namespace riistudio::frontend {

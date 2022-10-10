@@ -273,8 +273,6 @@ static inline std::string getFileShort(const std::string& path) {
   return tmp;
 }
 
-const auto power_of_2 = [](u32 x) { return (x & (x - 1)) == 0; };
-
 static bool importTexture(libcube::Texture& data, u8* image,
                           std::vector<u8>& scratch, bool mip_gen, int min_dim,
                           int max_mip, int width, int height, int channels) {
@@ -286,7 +284,7 @@ static bool importTexture(libcube::Texture& data, u8* image,
   assert(image);
 
   int num_mip = 0;
-  if (mip_gen && power_of_2(width) && power_of_2(height)) {
+  if (mip_gen && is_power_of_2(width) && is_power_of_2(height)) {
     while ((num_mip + 1) < max_mip && (width >> (num_mip + 1)) >= min_dim &&
            (height >> (num_mip + 1)) >= min_dim)
       ++num_mip;
@@ -431,14 +429,14 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
       }
       // Correction: Wrapping hardware only operates on power-of-two inputs.
       const auto clamp = librii::gx::TextureWrapMode::Clamp;
-      if (!power_of_2(tex->getWidth()) && sampler.mWrapU != clamp) {
+      if (!is_power_of_2(tex->getWidth()) && sampler.mWrapU != clamp) {
         transaction.callback(
             kpi::IOMessageClass::Information, mat.getName(),
             "Texture is not a power of two in the U direction, Repeat/Mirror "
             "wrapping is unsupported.");
         sampler.mWrapU = clamp;
       }
-      if (!power_of_2(tex->getHeight()) && sampler.mWrapV != clamp) {
+      if (!is_power_of_2(tex->getHeight()) && sampler.mWrapV != clamp) {
         transaction.callback(
             kpi::IOMessageClass::Information, mat.getName(),
             "Texture is not a power of two in the V direction, Repeat/Mirror "

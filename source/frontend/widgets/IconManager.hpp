@@ -1,7 +1,7 @@
 #pragma once
 
-#include <frontend/widgets/IconDatabase.hpp> // IconDatabase
-#include <vendor/llvm/ADT/DenseMap.h>        // llvm::DenseMap
+#include <frontend/widgets/IconDatabase.hpp>
+#include <rsl/DenseMap.hpp>
 
 namespace riistudio {
 
@@ -16,7 +16,7 @@ public:
 
 private:
   IconDatabase mIconManager;
-  llvm::DenseMap<const lib3d::Texture*, IconDatabase::Key> mImageIcons;
+  rsl::dense_map<const lib3d::Texture*, IconDatabase::Key> mImageIcons;
 };
 
 } // namespace riistudio

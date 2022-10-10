@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <core/common.h>
 #include <core/util/oishii.hpp>
 #include <librii/g3d/io/NameTableIO.hpp>

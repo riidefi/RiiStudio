@@ -3,7 +3,6 @@
 #include <core/util/gui.hpp>              // PushErrorStyle
 #include <imcxx/Widgets.hpp>              // imcxx::Combo
 #include <imgui/imgui.h>                  // ImGui::Text
-#include <llvm/ADT/SmallVector.h>         // llvm::SmallVector
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_EXCLAMATION_TRIANGLE
 
 namespace riistudio::frontend {

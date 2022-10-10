@@ -1,11 +1,11 @@
 #pragma once
 
-#include <core/kpi/Plugins.hpp>          // kpi::IOMessageClass
-#include <frontend/file_host.hpp>        // FileData
-#include <memory>                        // std::unique_ptr
-#include <optional>                      // std::optional
-#include <string_view>                   // std::string_view
-#include <vendor/llvm/ADT/SmallVector.h> // llvm::SmallVector
+#include <core/kpi/Plugins.hpp>   // kpi::IOMessageClass
+#include <frontend/file_host.hpp> // FileData
+#include <memory>                 // std::unique_ptr
+#include <optional>               // std::optional
+#include <rsl/SmallVector.hpp>    // rsl::small_vector
+#include <string_view>            // std::string_view
 
 namespace riistudio::frontend {
 
@@ -122,7 +122,7 @@ private:
   std::string mPath;
 
 public:
-  llvm::SmallVector<Message, 16> mMessages;
+  rsl::small_vector<Message, 16> mMessages;
 };
 
 } // namespace riistudio::frontend

@@ -8,6 +8,7 @@
 #include "binary_writer.hxx"
 #include "node.hxx"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 

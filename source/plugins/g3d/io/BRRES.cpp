@@ -31,7 +31,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
                const std::string& transaction_path);
 
 // TEX0.cpp
-void writeTexture(const Texture& data, oishii::Writer& writer,
+void writeTexture(const librii::g3d::TextureData& data, oishii::Writer& writer,
                   NameTable& names);
 
 void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
@@ -116,6 +116,42 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
   }
 }
 
+struct BRRESHeader {
+  u32 magic;
+  u16 bom;
+  u16 revision;
+  std::string filesize_reloc_a, filesize_reloc_b;
+  u16 data_offset;
+  u16 section_count;
+  void write(oishii::Writer& writer, RelocWriter& linker) {
+    writer.write<u32>(magic);                                   // magic
+    writer.write<u16>(bom);                                     // bom
+    writer.write<u16>(revision);                                // revision
+    linker.writeReloc<u32>(filesize_reloc_a, filesize_reloc_b); // filesize
+    writer.write<u16>(data_offset);                             // data offset
+    writer.write<u16>(section_count);                           // section count
+  }
+};
+
+struct Folder {
+  Folder(const auto& collection) : m_numEntries(collection.size()) {
+    m_impl.nodes.resize(collection.size());
+  }
+  void skipSize(oishii::Writer& writer) {
+    writer.skip(librii::g3d::CalcDictionarySize(m_numEntries));
+  }
+  u32 computeSize() { return librii::g3d::CalcDictionarySize(m_numEntries); }
+  void insert(size_t i, const std::string& name, u32 stream_pos) {
+    librii::g3d::BetterNode node{.name = name, .stream_pos = stream_pos};
+    m_impl.nodes[i] = node;
+  }
+  void write(oishii::Writer& writer, NameTable& names) {
+    WriteDictionary(m_impl, writer, names);
+  }
+  int m_numEntries = 0;
+  librii::g3d::BetterDictionary m_impl;
+};
+
 void WriteBRRES(Collection& collection, oishii::Writer& writer) {
   writer.setEndian(std::endian::big);
 
@@ -124,15 +160,19 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
 
   const auto start = writer.tell();
   linker.label("BRRES");
-
-  writer.write<u32>('bres');                    // magic
-  writer.write<u16>(0xfeff);                    // bom
-  writer.write<u16>(0);                         // revision
-  linker.writeReloc<u32>("BRRES", "BRRES_END"); // filesize
-  writer.write<u16>(0x10);                      // data offset
-  writer.write<u16>(1 + collection.getModels().size() +
-                    collection.getTextures().size() +
-                    collection.getAnim_Srts().size()); // section count
+  {
+    BRRESHeader header;
+    header.magic = 'bres';
+    header.bom = 0xfeff;
+    header.revision = 0;
+    header.filesize_reloc_a = "BRRES";
+    header.filesize_reloc_b = "BRRES_END";
+    header.data_offset = 0x10;
+    header.section_count = 1 + collection.getModels().size() +
+                           collection.getTextures().size() +
+                           collection.getAnim_Srts().size();
+    header.write(writer, linker);
+  }
 
   struct RootDictionary {
     RootDictionary(Collection& collection, oishii::Writer& writer)
@@ -188,23 +228,21 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
   RootDictionary root_dict(collection, writer);
   writer.skip(root_dict.computeSize());
 
-  librii::g3d::BetterDictionary models_dict;
-  librii::g3d::BetterDictionary textures_dict;
-  librii::g3d::BetterDictionary srts_dict;
+  Folder models_dict(collection.getModels());
+  Folder textures_dict(collection.getTextures());
+  Folder srts_dict(collection.getAnim_Srts());
 
   const auto subdicts_pos = writer.tell();
-  writer.skip(librii::g3d::CalcDictionarySize(collection.getModels().size()));
-  writer.skip(librii::g3d::CalcDictionarySize(collection.getTextures().size()));
-  writer.skip(
-      librii::g3d::CalcDictionarySize(collection.getAnim_Srts().size()));
+  writer.skip(models_dict.computeSize());
+  writer.skip(textures_dict.computeSize());
+  writer.skip(srts_dict.computeSize());
 
   for (int i = 0; i < collection.getModels().size(); ++i) {
     auto& mdl = collection.getModels()[i];
 
     writer.alignTo(32);
 
-    models_dict.nodes.push_back(
-        {.name = mdl.getName(), .stream_pos = writer.tell()});
+    models_dict.insert(i, mdl.getName(), writer.tell());
 
     auto mdl_linker = linker.sublet("Models/" + std::to_string(i));
     writeModel(mdl, writer, mdl_linker, names, start);
@@ -214,8 +252,7 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
 
     writer.alignTo(32);
 
-    textures_dict.nodes.push_back(
-        {.name = tex.getName(), .stream_pos = writer.tell()});
+    textures_dict.insert(i, tex.getName(), writer.tell());
 
     writeTexture(tex, writer, names);
   }
@@ -225,8 +262,7 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
     // SRTs are not aligned
     // writer.alignTo(32);
 
-    srts_dict.nodes.push_back(
-        {.name = srt.getName(), .stream_pos = writer.tell()});
+    srts_dict.insert(i, srt.getName(), writer.tell());
 
     librii::g3d::WriteSrtFile(writer, srt, names, start);
   }
@@ -235,15 +271,15 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
   writer.seekSet(subdicts_pos);
   if (collection.getModels().size()) {
     root_dict.setModels(writer.tell());
-    WriteDictionary(models_dict, writer, names);
+    models_dict.write(writer, names);
   }
   if (collection.getTextures().size()) {
     root_dict.setTextures(writer.tell());
-    WriteDictionary(textures_dict, writer, names);
+    textures_dict.write(writer, names);
   }
   if (collection.getAnim_Srts().size()) {
     root_dict.srts.stream_pos = writer.tell();
-    WriteDictionary(srts_dict, writer, names);
+    srts_dict.write(writer, names);
   }
   root_dict.write(names);
   {
