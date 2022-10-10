@@ -684,7 +684,7 @@ public:
       * @return The name of the material.
       */
     // -------------------------------------------------------------------
-#ifdef __EMSCRIPTEN__
+#if !defined(_MSC_VER)
     aiString GetName() const;
 #else
     aiString GetName();

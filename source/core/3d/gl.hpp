@@ -12,7 +12,7 @@
 #if defined(RII_BACKEND_GLFW)
 
 #if defined(__APPLE__)
-#include "GLFW/glfw3.h"
+#include "glfw/glfw3.h"
 #else
 #include "glfw/glfw3.h"
 #endif

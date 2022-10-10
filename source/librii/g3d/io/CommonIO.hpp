@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <core/common.h>
 #include <core/util/oishii.hpp>
+#include <limits>
 #include <optional>
 #include <rsl/SimpleReader.hpp>
 #include <span>

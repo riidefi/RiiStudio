@@ -1,4 +1,5 @@
 #include "Reflection.hpp"
+#include <algorithm>
 #include <assert.h>
 
 namespace kpi {
