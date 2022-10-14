@@ -196,7 +196,7 @@ def build_project(name, type, config, proj=None):
 		gPool.join()
 		print("LINKING")
 
-		link_cmd = " -o " + bin_dir + "out.html -s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind"
+		link_cmd = " -o " + bin_dir + "out.html -s USE_SDL=2 -s USE_FREETYPE=1 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind"
 		link_cmd += "  --shell-file " + bin_dir + "/shell_minimal.html "
 		objs = locals_objs
 		for lib in PROJECTS:
