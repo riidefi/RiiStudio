@@ -19,12 +19,6 @@ struct Material;
 class Scene;
 class Model;
 
-struct MaterialEvents {
-  virtual void update(Material* mat) = 0;
-};
-
-using IObserver = typename rsl::Subscriber<MaterialEvents>;
-
 struct Polygon;
 struct Material : public virtual kpi::IObject {
   virtual ~Material() = default;
@@ -42,23 +36,17 @@ struct Material : public virtual kpi::IObject {
   virtual void configure(librii::gfx::PixelOcclusion occlusion,
                          std::vector<std::string>& textures) = 0;
 
-  // TODO: Better system..
-  void notifyObservers() { observers.publish(&MaterialEvents::update, this); }
-  void onUpdate() {
-    nextGenerationId();
-
-    // (for shader recompilation)
-    notifyObservers();
-  }
+  void onUpdate() { nextGenerationId(); }
+  // Necessary for kpi::set_concrete_element
+  void notifyObservers() { nextGenerationId(); }
   lib3d::Material& operator=(const lib3d::Material& rhs) {
-    // Observers intentionally omitted
+    mGenerationId = rhs.mGenerationId;
     cachedPixelShader = rhs.cachedPixelShader;
     isShaderError = rhs.isShaderError;
     shaderError = rhs.shaderError;
     applyCacheAgain = rhs.applyCacheAgain;
     return *this;
   }
-  mutable rsl::PubSubChannel<MaterialEvents> observers;
 
   mutable std::string cachedPixelShader;
   mutable bool isShaderError = false;

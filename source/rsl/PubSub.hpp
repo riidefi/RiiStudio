@@ -8,11 +8,7 @@ namespace rsl {
 // Based on rsl::IObservable
 template <typename Events> struct PubSubChannel {
   PubSubChannel() = default;
-  // PubSubChannel(const PubSubChannel&) = delete;
-  // TODO: Needed for materials
-  PubSubChannel(const PubSubChannel&) {
-    // Do not copy observers
-  }
+  PubSubChannel(const PubSubChannel&) = delete;
   PubSubChannel(PubSubChannel&&) = delete;
 
   struct IObserver : public Events {

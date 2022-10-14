@@ -63,7 +63,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         librii::hx::configurePixMode(
             pO->getMaterialData(), static_cast<librii::hx::PixMode>(pix_mode));
 
-        pO->notifyObservers();
+        pO->onUpdate();
       }
       delegate.commit("Updated pixel config");
 
@@ -85,7 +85,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       [&](const auto& x) { return x.isXluPass(); },
       [&](auto& x, bool y) {
         x.setXluPass(y);
-        x.notifyObservers();
+        x.onUpdate();
       });
 
   if (ImGui::CollapsingHeader("Alpha Comparison"_j,

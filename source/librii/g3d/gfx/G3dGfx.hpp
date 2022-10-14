@@ -120,20 +120,22 @@ struct ObservableShader {
   }
 
   auto& getProgram() { return mImpl->mProgram; }
-  void attachToMaterial(const lib3d::Material& mat) {
-    mImpl->subscribe(mat.observers);
-  }
+  void syncWithMaterial(const lib3d::Material& mat) { mImpl->update(&mat); }
 
 private:
   // IObservers should be heap allocated
-  struct Impl : public lib3d::IObserver {
+  struct Impl {
     Impl(librii::glhelper::ShaderProgram&& program)
         : mProgram(std::move(program)) {}
 
     librii::glhelper::ShaderProgram mProgram;
+    s32 mLastId = 0xFFFF'FFFF;
 
-    void update(lib3d::Material* _mat) final {
+    void update(const lib3d::Material* _mat) {
       assert(_mat != nullptr);
+      if (mLastId == _mat->getGenerationId())
+        return;
+      mLastId = _mat->getGenerationId();
 
       auto result = CompileMaterial(*_mat);
       if (auto* shader = std::get_if<librii::glhelper::ShaderProgram>(&result);
@@ -168,7 +170,7 @@ struct GenericShaderCache_WithObserverUpdates {
     mMatToShader.emplace(
         mat.getName(), librii::glhelper::ShaderProgram{shader_sources.first,
                                                        shader_sources.second});
-    mMatToShader.at(mat.getName()).attachToMaterial(mat);
+    mMatToShader.at(mat.getName()).syncWithMaterial(mat);
   }
 
   // TODO: We could do this all with just a map type
@@ -177,6 +179,7 @@ struct GenericShaderCache_WithObserverUpdates {
       cacheShader(mat);
 
     assert(isShaderCached(mat));
+    mMatToShader.at(mat.getName()).syncWithMaterial(mat);
     return mMatToShader.at(mat.getName()).getProgram();
   }
 };
@@ -222,8 +225,7 @@ struct G3dShaderCache_WithUnusableHashingMechanism {
   }
 };
 
-// GenericShaderCache_WithObserverUpdates: Uses IObserver updates to recompile
-// shader as the material is updated
+// GenericShaderCache_WithObserverUpdates: Hashmap ShaderData -> Shader; only latest version kept in-memory
 // G3dShaderCache_WithUnusableHashingMechanism: Uses hashmap to store a mapping
 // of ShaderData -> Shader
 

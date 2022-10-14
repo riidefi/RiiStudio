@@ -33,11 +33,11 @@ void drawProperty(kpi::PropertyDelegate<riistudio::lib3d::Material>& delegate,
 
   if (ImGui::Button("Apply"_j)) {
     mat.applyCacheAgain = true;
-    mat.notifyObservers();
+    mat.onUpdate();
   }
   ImGui::SameLine();
   if (ImGui::Button("Reset"_j)) {
-    mat.notifyObservers();
+    mat.onUpdate();
     surface.matKey = nullptr;
   }
 
