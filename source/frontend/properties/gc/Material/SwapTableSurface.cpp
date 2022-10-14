@@ -4,7 +4,7 @@
 namespace libcube::UI {
 
 struct SwapTableSurface final {
-  static inline const char* name() { return "Swap Tables"_j; }
+  static inline const char* name() { return "Swizzling"_j; }
   static inline const char* icon = (const char*)ICON_FA_SWATCHBOOK;
 };
 
@@ -12,10 +12,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SwapTableSurface) {
   auto& matData = delegate.getActive().getMaterialData();
 
-  const char* colors = "Sample from Red\0"
-                       "Sample from Green\0"
-                       "Sample from Blue\0"
-                       "Sample from Alpha\0"_j;
+  const char* colors = "Red\0"
+                       "Green\0"
+                       "Blue\0"
+                       "Alpha\0"_j;
   ImGui::BeginTable("Swap Tables"_j, 5, ImGuiTableFlags_Borders);
   ImGui::TableSetupColumn("Table ID"_j);
   ImGui::TableSetupColumn("Red Destination"_j);
@@ -28,16 +28,25 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     ImGui::PushID(i);
     auto& swap = matData.mSwapTable[i];
 
+    ImGui::TableNextColumn();
     ImGui::Text("Swap %i"_j, i);
     ImGui::TableNextColumn();
 
+	ImGui::PushItemWidth(ImGui::GetColumnWidth());
     auto r = imcxx::Combo("##R", swap.r, colors);
+    ImGui::PopItemWidth();
     ImGui::TableNextColumn();
+    ImGui::PushItemWidth(ImGui::GetColumnWidth());
     auto g = imcxx::Combo("##G", swap.g, colors);
+    ImGui::PopItemWidth();
     ImGui::TableNextColumn();
+    ImGui::PushItemWidth(ImGui::GetColumnWidth());
     auto b = imcxx::Combo("##B", swap.b, colors);
+    ImGui::PopItemWidth();
     ImGui::TableNextColumn();
+    ImGui::PushItemWidth(ImGui::GetColumnWidth());
     auto a = imcxx::Combo("##A", swap.a, colors);
+    ImGui::PopItemWidth();
     ImGui::TableNextColumn();
 
     AUTO_PROP(mSwapTable[i].r, r);
