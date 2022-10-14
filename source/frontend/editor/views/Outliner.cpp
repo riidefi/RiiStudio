@@ -100,11 +100,11 @@ static void AddNew(kpi::ICollection* node) { node->add(); }
 
 void DrawCtxMenuFor(kpi::IObject* nodeAt, EditorWindow& ed) {
   if (kpi::ActionMenuManager::get().drawContextMenus(*nodeAt))
-    ed.getDocument().commit();
+    ed.getDocument().commit(ed.getSelection(), false);
 }
 void DrawModalFor(kpi::IObject* nodeAt, EditorWindow& ed) {
   if (kpi::ActionMenuManager::get().drawModals(*nodeAt, &ed))
-    ed.getDocument().commit();
+    ed.getDocument().commit(ed.getSelection(), false);
 }
 
 auto GetGChildren(kpi::INode* node, EditorWindow& ed) {

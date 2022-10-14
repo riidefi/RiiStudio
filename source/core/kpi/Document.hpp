@@ -29,11 +29,13 @@ public:
   const History& getHistory() const { return mHistory; }
 
   //! Commit the transient root to history.
-  void commit() { mHistory.commit(*mState.get()); }
+  void commit(SelectionManager& sel, bool needs_sel_reset) {
+    mHistory.commit(*mState.get(), &sel, needs_sel_reset);
+  }
   //! Undo a commit
-  void undo() { mHistory.undo(*mState.get()); }
+  void undo(SelectionManager& sel) { mHistory.undo(*mState.get(), sel); }
   //! Redo a commit
-  void redo() { mHistory.redo(*mState.get()); }
+  void redo(SelectionManager& sel) { mHistory.redo(*mState.get(), sel); }
   //! Get the number of commits past the original state.
   std::size_t cursor() const { return mHistory.cursor(); }
   //! Get the total number of commits stored. With calls to `undo`, this may be

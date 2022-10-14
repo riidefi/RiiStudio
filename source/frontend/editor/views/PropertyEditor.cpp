@@ -38,13 +38,13 @@ private:
   EditorWindow& ed;
   kpi::History& mHost;
   kpi::INode& mRoot;
-  SelectionManager& mSelection;
+  kpi::SelectionManager& mSelection;
 
   kpi::PropertyViewStateHolder state_holder;
 };
 
 template <typename T>
-static void gatherSelected(SelectionManager& ed, std::set<kpi::IObject*>& tmp,
+static void gatherSelected(kpi::SelectionManager& ed, std::set<kpi::IObject*>& tmp,
                            kpi::ICollection& folder, T pred) {
   for (int i = 0; i < folder.size(); ++i) {
     auto* obj = folder.atObject(i);
@@ -62,7 +62,7 @@ static void gatherSelected(SelectionManager& ed, std::set<kpi::IObject*>& tmp,
 }
 
 PropertyEditor::PropertyEditor(kpi::History& host, kpi::INode& root,
-                               SelectionManager& selection, EditorWindow& ed)
+                               kpi::SelectionManager& selection, EditorWindow& ed)
     : StudioWindow("Property Editor"), ed(ed), mHost(host), mRoot(root),
       mSelection(selection) {
   setWindowFlag(ImGuiWindowFlags_MenuBar);

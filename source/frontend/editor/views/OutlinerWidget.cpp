@@ -87,7 +87,9 @@ void AddNewCtxMenu(EditorWindow& ed, Child::Folder& folder) {
         if (ImGui::MenuItem("Add New")) {
           folder.add_new_fn();
           // TODO: Move commit inside?
-          ed.getDocument().commit();
+
+		  // Selection must be reset
+          ed.getDocument().commit(ed.getSelection(), true);
         }
       }
 

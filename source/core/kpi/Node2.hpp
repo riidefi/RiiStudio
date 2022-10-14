@@ -475,7 +475,7 @@ void fromFolder(OutT&& out /*rvalue range*/, const InT& in) {
   } else if (in.size() > out.size()) {
     const auto added = in.size() - out.size();
     out.resize(in.size());
-    for (int i = in.size() - added; i <= in.size(); ++i) {
+    for (int i = in.size() - added; i < in.size(); ++i) {
       out[i] = *in[i];
       // Observers are not notified here.
       // Rationale: New objects likely do not have observers.

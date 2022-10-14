@@ -17,12 +17,13 @@ static std::string getFileShort(const std::string& path) {
 }
 
 void EditorWindow::init() {
-  commit();
+  // Don't require selection reset on first element
+  commit(mSelection, false);
   mIconManager.propogateIcons(getRoot());
 
   // mActive must be stable
   attachWindow(MakePropertyEditor(getHistory(), getRoot(), mSelection, *this));
-  attachWindow(MakeHistoryList(getHistory(), getRoot()));
+  attachWindow(MakeHistoryList(getHistory(), getRoot(), mSelection));
   attachWindow(MakeOutliner(getRoot(), mSelection, *this));
   if (dynamic_cast<lib3d::Scene*>(&getRoot()) != nullptr)
     attachWindow(MakeViewportRenderer(getRoot()));
@@ -69,9 +70,9 @@ void EditorWindow::draw_() {
   // TODO: Only affect active window
   if (ImGui::GetIO().KeyCtrl) {
     if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
-      undo();
+      undo(mSelection);
     } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
-      redo();
+      redo(mSelection);
     }
   }
 }

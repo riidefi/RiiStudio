@@ -7,6 +7,7 @@
 namespace riistudio::frontend {
 
 std::unique_ptr<StudioWindow> MakeHistoryList(kpi::History& host,
-                                              kpi::INode& root);
+                                              kpi::INode& root,
+                                              kpi::SelectionManager& sel);
 
 } // namespace riistudio::frontend

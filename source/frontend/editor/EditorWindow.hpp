@@ -11,19 +11,7 @@
 
 namespace riistudio::frontend {
 
-struct SelectionManager {
-  kpi::IObject* getActive() { return mActive; }
-  const kpi::IObject* getActive() const { return mActive; }
-  void setActive(kpi::IObject* active) { mActive = active; }
-
-  void select(kpi::IObject* obj) { selected.insert(obj); }
-  void deselect(kpi::IObject* obj) { selected.erase(obj); }
-
-  bool isSelected(kpi::IObject* obj) const { return selected.contains(obj); }
-
-  std::set<kpi::IObject*> selected;
-  kpi::IObject* mActive = nullptr;
-};
+using SelectionManager = kpi::SelectionManager;
 
 class EditorWindow : public StudioWindow, public EditorDocument {
 public:
