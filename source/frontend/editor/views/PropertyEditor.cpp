@@ -31,7 +31,7 @@ private:
     VertTabs, //!< Tree of tabs on the left
     Headers   //!< Use collapsing headers
   };
-  Mode mMode = Mode::Tabs;
+  Mode mMode = Mode::VertTabs;
   int mActiveTab = 0;
   std::vector<bool> tab_filter;
 

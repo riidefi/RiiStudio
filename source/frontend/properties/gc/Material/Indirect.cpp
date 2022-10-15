@@ -7,7 +7,7 @@ namespace libcube::UI {
 using namespace riistudio::util;
 
 struct IndirectSurface final {
-  static inline const char* name() { return "Displacement Mapping"_j; }
+  static inline const char* name() { return "Displacement"_j; }
   static inline const char* icon = (const char*)ICON_FA_WATER;
 };
 
