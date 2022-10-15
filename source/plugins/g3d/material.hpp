@@ -15,17 +15,7 @@ class IDocumentNode;
 
 namespace riistudio::g3d {
 
-struct G3dMaterialData : public libcube::GCMaterialData {
-  rsl::array_vector<librii::g3d::G3dIndConfig, 4> indConfig;
-  u32 flag = 0;
-  u32 id; // Local
-  s8 lightSetIndex = -1;
-  s8 fogIndex = -1;
-
-  bool operator==(const G3dMaterialData& rhs) const = default;
-};
-
-struct Material : public G3dMaterialData,
+struct Material : public librii::g3d::G3dMaterialData,
                   public libcube::IGCMaterial,
                   public virtual kpi::IObject {
   GCMaterialData& getMaterialData() override { return *this; }

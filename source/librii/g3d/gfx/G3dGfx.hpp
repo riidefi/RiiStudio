@@ -185,7 +185,7 @@ struct GenericShaderCache_WithObserverUpdates {
 };
 
 struct G3dShaderCache_WithUnusableHashingMechanism {
-  using MatData = riistudio::g3d::G3dMaterialData;
+  using MatData = librii::g3d::G3dMaterialData;
 
   class MatDataHash {
   public:

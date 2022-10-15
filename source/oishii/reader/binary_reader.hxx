@@ -6,6 +6,7 @@
 #include <array>
 #include <bit>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -260,6 +261,11 @@ private:
     --mStack.mSize;
   }
 };
+
+inline std::span<const u8> SliceStream(oishii::BinaryReader& reader) {
+  return {reader.getStreamStart() + reader.tell(),
+          reader.endpos() - reader.tell()};
+}
 
 } // namespace oishii
 

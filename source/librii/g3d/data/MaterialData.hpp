@@ -58,4 +58,14 @@ struct G3dShader {
   }
 };
 
+struct G3dMaterialData : public librii::gx::GCMaterialData {
+  rsl::array_vector<librii::g3d::G3dIndConfig, 4> indConfig;
+  u32 flag = 0;
+  u32 id; // Local
+  s8 lightSetIndex = -1;
+  s8 fogIndex = -1;
+
+  bool operator==(const G3dMaterialData& rhs) const = default;
+};
+
 } // namespace librii::g3d

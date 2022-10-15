@@ -1,6 +1,8 @@
 #include "Common.hpp"
 #include <core/common.h>
+#include <librii/g3d/io/BoneIO.hpp>
 #include <librii/g3d/io/DictWriteIO.hpp>
+#include <librii/g3d/io/MatIO.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/gpu/DLBuilder.hpp>
 #include <librii/gpu/DLPixShader.hpp>
@@ -10,55 +12,6 @@
 #include <plugins/g3d/util/NameTable.hpp>
 
 namespace riistudio::g3d {
-
-struct ShaderAllocator {
-  void alloc(const librii::g3d::G3dShader& shader) {
-    auto found = std::find(shaders.begin(), shaders.end(), shader);
-    if (found == shaders.end()) {
-      matToShaderMap.emplace_back(shaders.size());
-      shaders.emplace_back(shader);
-    } else {
-      matToShaderMap.emplace_back(found - shaders.begin());
-    }
-  }
-
-  int find(const librii::g3d::G3dShader& shader) const {
-    if (const auto found = std::find(shaders.begin(), shaders.end(), shader);
-        found != shaders.end()) {
-      return std::distance(shaders.begin(), found);
-    }
-
-    return -1;
-  }
-
-  auto size() const { return shaders.size(); }
-
-  std::string getShaderIDName(const librii::g3d::G3dShader& shader) const {
-    const int found = find(shader);
-    assert(found >= 0);
-    return "Shader" + std::to_string(found);
-  }
-
-  std::vector<librii::g3d::G3dShader> shaders;
-  std::vector<u32> matToShaderMap;
-};
-
-void WriteCommonTransformModel(oishii::Writer& writer,
-                               librii::mtx::CommonTransformModel mdl) {
-  switch (mdl) {
-  case librii::mtx::CommonTransformModel::Default:
-  case librii::mtx::CommonTransformModel::Maya:
-  default:
-    writer.write<u32>(0);
-    break;
-  case librii::mtx::CommonTransformModel::XSI:
-    writer.write<u32>(1);
-    break;
-  case librii::mtx::CommonTransformModel::Max:
-    writer.write<u32>(2);
-    break;
-  }
-}
 
 struct RenderList {
   struct DrawCmd {
@@ -90,10 +43,10 @@ struct RenderList {
 template <typename T, bool HasMinimum, bool HasDivisor,
           librii::gx::VertexBufferKind kind>
 void writeGenericBuffer(
-    const GenericBuffer<T, HasMinimum, HasDivisor, kind>& buf,
+    const librii::g3d::GenericBuffer<T, HasMinimum, HasDivisor, kind>& buf,
     oishii::Writer& writer, u32 header_start, NameTable& names) {
   const auto backpatch_array_ofs = writePlaceholder(writer);
-  writeNameForward(names, writer, header_start, buf.getName());
+  writeNameForward(names, writer, header_start, buf.mName);
   writer.write<u32>(buf.mId);
   writer.write<u32>(static_cast<u32>(buf.mQuantize.mComp.position));
   writer.write<u32>(static_cast<u32>(buf.mQuantize.mType.generic));
@@ -137,57 +90,6 @@ void writeGenericBuffer(
   writer.alignTo(32);
 } // namespace riistudio::g3d
 
-static void writeMaterialDisplayList(const libcube::GCMaterialData& mat,
-                                     oishii::Writer& writer) {
-  MAYBE_UNUSED const auto dl_start = writer.tell();
-  DebugReport("Mat dl start: %x\n", (unsigned)writer.tell());
-  librii::gpu::DLBuilder dl(writer);
-  {
-    dl.setAlphaCompare(mat.alphaCompare);
-    dl.setZMode(mat.zMode);
-    dl.setBlendMode(mat.blendMode);
-    dl.setDstAlpha(false, 0); // TODO
-    dl.align();
-  }
-  assert(writer.tell() - dl_start == 0x20);
-  {
-    for (int i = 0; i < 3; ++i)
-      dl.setTevColor(i + 1, mat.tevColors[i + 1]);
-    dl.align(); // pad 4
-    for (int i = 0; i < 4; ++i)
-      dl.setTevKColor(i, mat.tevKonstColors[i]);
-    dl.align(); // 24
-  }
-  assert(writer.tell() - dl_start == 0xa0);
-  {
-    std::array<librii::gx::IndirectTextureScalePair, 4> scales;
-    for (int i = 0; i < mat.indirectStages.size(); ++i)
-      scales[i] = mat.indirectStages[i].scale;
-    dl.setIndTexCoordScale(0, scales[0], scales[1]);
-    dl.setIndTexCoordScale(2, scales[2], scales[3]);
-
-    const auto write_ind_mtx = [&](std::size_t i) {
-      if (mat.mIndMatrices.size() > i)
-        dl.setIndTexMtx(i, mat.mIndMatrices[i]);
-      else
-        writer.skip(5 * 3);
-    };
-    write_ind_mtx(0);
-    dl.align(); // 7
-    write_ind_mtx(1);
-    write_ind_mtx(2);
-    dl.align();
-  }
-  assert(writer.tell() - dl_start == 0xe0);
-  {
-    for (int i = 0; i < mat.texGens.size(); ++i)
-      dl.setTexCoordGen(i, mat.texGens[i]);
-    writer.skip(18 * (8 - mat.texGens.size()));
-    dl.align();
-  }
-  assert(writer.tell() - dl_start == 0x180);
-}
-
 void writeVertexDataDL(const libcube::IndexedPolygon& poly,
                        const MatrixPrimitive& mp, oishii::Writer& writer) {
   using VATAttrib = librii::gx::VertexAttribute;
@@ -228,153 +130,7 @@ void writeVertexDataDL(const libcube::IndexedPolygon& poly,
   while (writer.tell() % 32)
     writer.write<u8>(0);
 }
-void WriteTexMatrix(oishii::Writer& writer,
-                    const libcube::GCMaterialData::TexMatrix& mtx) {
-  writer.write<f32>(mtx.scale.x);
-  writer.write<f32>(mtx.scale.y);
-  writer.write<f32>(glm::degrees(mtx.rotate));
-  writer.write<f32>(mtx.translate.x);
-  writer.write<f32>(mtx.translate.y);
-}
-void WriteTexMatrixIdentity(oishii::Writer& writer) {
-  writer.write<f32>(1.0f);
-  writer.write<f32>(1.0f);
-  writer.write<f32>(0.0f);
-  writer.write<f32>(0.0f);
-  writer.write<f32>(0.0f);
-}
-void WriteCommonMappingMethod(
-    libcube::GCMaterialData::CommonMappingMethod method,
-    oishii::Writer& writer) {
-  using CommonMappingMethod = libcube::GCMaterialData::CommonMappingMethod;
-  switch (method) {
-  case CommonMappingMethod::Standard:
-  default:
-    writer.write<u8>(0);
-    break;
-  case CommonMappingMethod::EnvironmentMapping:
-  case CommonMappingMethod::ManualEnvironmentMapping: // In G3D, Light/Specular
-                                                      // are used; in J3D, it'd
-                                                      // be to the game
-    writer.write<u8>(1);
-    break;
-  case CommonMappingMethod::ViewProjectionMapping:
-    writer.write<u8>(2);
-    break;
-    // EGG extension
-  case CommonMappingMethod::ProjectionMapping:
-    writer.write<u8>(5);
-    break;
-  case CommonMappingMethod::EnvironmentLightMapping:
-    writer.write<u8>(3);
-    break;
-  case CommonMappingMethod::EnvironmentSpecularMapping:
-    writer.write<u8>(4);
-    break;
-  }
-}
-void WriteTexMatrixEffect(oishii::Writer& writer,
-                          const libcube::GCMaterialData::TexMatrix& mtx,
-                          std::array<f32, 12>& ident34) {
-  // printf("CamIdx: %i, LIdx: %i\n", (signed)mtx.camIdx,
-  //        (signed)mtx.lightIdx);
-  writer.write<s8>((s8)mtx.camIdx);
-  writer.write<s8>((s8)mtx.lightIdx);
 
-  WriteCommonMappingMethod(mtx.method, writer);
-  // No effect matrix support yet
-  writer.write<u8>(1);
-
-  for (auto d : ident34)
-    writer.write<f32>(d);
-}
-void WriteTexMatrixEffectDefault(oishii::Writer& writer,
-                                 std::array<f32, 12>& ident34) {
-  writer.write<u8>(0xff); // cam
-  writer.write<u8>(0xff); // light
-  writer.write<u8>(0);    // map
-  writer.write<u8>(1);    // flag
-
-  for (auto d : ident34)
-    writer.write<f32>(d);
-}
-u32 BuildTexMatrixFlags(const libcube::GCMaterialData::TexMatrix& mtx) {
-  // TODO: Float equality
-  const u32 identity_scale = mtx.scale == glm::vec2{1.0f, 1.0f};
-  const u32 identity_rotate = mtx.rotate == 0.0f;
-  const u32 identity_translate = mtx.translate == glm::vec2{0.0f, 0.0f};
-  // printf("identity_scale: %u, identity_rotate: %u,
-  // identity_translate: "
-  //        "%u\n",
-  //        identity_scale, identity_rotate, identity_translate);
-  return 1 | (identity_scale << 1) | (identity_rotate << 2) |
-         (identity_translate << 3);
-}
-void WriteMaterialMisc(oishii::Writer& writer,
-                       const riistudio::g3d::Material& mat) {
-  writer.write<u8>(mat.earlyZComparison);
-  writer.write<u8>(mat.lightSetIndex);
-  writer.write<u8>(mat.fogIndex);
-  writer.write<u8>(0); // pad
-
-  // TODO: Properly set this in the UI
-  // 
-  auto indConfig = mat.indConfig;
-  if (mat.indirectStages.size() > indConfig.size()) {
-    DebugReport("[NOTE] mat.indirectStages.size() > indConfig.size(), will be "
-                "corrected on save.\n");
-    indConfig.resize(mat.indirectStages.size());
-  }
-
-  assert(mat.indirectStages.size() <= indConfig.size());
-  for (u8 i = 0; i < mat.indirectStages.size(); ++i)
-    writer.write<u8>(static_cast<u8>(indConfig[i].method));
-  for (u8 i = mat.indirectStages.size(); i < 4; ++i)
-    writer.write<u8>(0);
-  for (u8 i = 0; i < mat.indirectStages.size(); ++i)
-    writer.write<u8>(indConfig[i].normalMapLightRef);
-  for (u8 i = mat.indirectStages.size(); i < 4; ++i)
-    writer.write<u8>(0xff);
-}
-void WriteMaterialGenMode(oishii::Writer& writer,
-                          const riistudio::g3d::Material& mat) {
-  writer.write<u8>(static_cast<u8>(mat.texGens.size()));
-  writer.write<u8>(static_cast<u8>(mat.chanData.size()));
-  writer.write<u8>(static_cast<u8>(mat.mStages.size()));
-  writer.write<u8>(static_cast<u8>(mat.indirectStages.size()));
-  writer.write<u32>(static_cast<u32>(mat.cullMode));
-}
-void WriteBone(riistudio::g3d::NameTable& names, oishii::Writer& writer,
-               const size_t& bone_start, const riistudio::g3d::Bone& bone,
-               u32& bone_id) {
-  writeNameForward(names, writer, bone_start, bone.getName());
-  writer.write<u32>(bone_id++);
-  writer.write<u32>(bone.matrixId);
-  writer.write<u32>(computeFlag(bone));
-  writer.write<u32>(bone.billboardType);
-  writer.write<u32>(0); // TODO: ref
-  bone.mScaling >> writer;
-  bone.mRotation >> writer;
-  bone.mTranslation >> writer;
-  bone.mVolume.min >> writer;
-  bone.mVolume.max >> writer;
-
-  // Parent, Child, Left, Right
-  writer.write<s32>(0);
-  writer.write<s32>(0);
-  writer.write<s32>(0);
-  writer.write<s32>(0);
-
-  writer.write<u32>(0); // user data
-
-  // Recomputed on runtime?
-  // Mtx + Inverse, 3x4 f32
-  std::array<f32, 2 * 3 * 4> matrix_data{
-      1.0, 0.0,  0.0, 0.0, 0.0,  1.0, 0.0,  0.0, 0.0, 0.0,  1.0, 0.0,
-      1.0, -0.0, 0.0, 0.0, -0.0, 1.0, -0.0, 0.0, 0.0, -0.0, 1.0, 0.0};
-  for (auto d : matrix_data)
-    writer.write<f32>(d);
-}
 void WriteRenderList(const riistudio::g3d::RenderList& list,
                      oishii::Writer& writer) {
   for (auto& cmd : list.cmds)
@@ -391,183 +147,6 @@ void WriteShader(RelocWriter& linker, oishii::Writer& writer,
   librii::g3d::WriteTevBody(writer, shader_id, shader);
 }
 
-struct TextureSamplerMapping {
-  TextureSamplerMapping() = default;
-  TextureSamplerMapping(std::string n, u32 pos) : name(n) {
-    entries.emplace_back(pos);
-  }
-
-  const std::string& getName() const { return name; }
-  std::string name;
-  llvm::SmallVector<u32, 1> entries; // stream position
-};
-struct TextureSamplerMappingManager {
-  void add_entry(const std::string& name, const Material* mat,
-                 int mat_sampl_index) {
-    if (auto found = std::find_if(entries.begin(), entries.end(),
-                                  [name](auto& e) { return e.name == name; });
-        found != entries.end()) {
-      matMap[{mat, mat_sampl_index}] = {found - entries.begin(),
-                                        found->entries.size()};
-      found->entries.emplace_back(0);
-      return;
-    }
-    matMap[{mat, mat_sampl_index}] = {entries.size(), 0};
-    entries.emplace_back(name, 0);
-  }
-  std::pair<u32, u32> from_mat(const Material* mat, int sampl_idx) {
-    std::pair key{mat, sampl_idx};
-    if (!matMap.contains(key)) {
-      // TODO: Invalid tex ref.
-      return {0, 0};
-    }
-    assert(matMap.contains(key));
-    const auto [entry_n, sub_n] = matMap.at(key);
-    const auto entry_ofs = entries[entry_n].entries[sub_n];
-    return {entry_ofs, entry_ofs - sub_n * 8 - 4};
-  }
-  std::vector<TextureSamplerMapping> entries;
-  std::map<std::pair<const Material*, int>, std::pair<int, int>> matMap;
-
-  auto begin() { return entries.begin(); }
-  auto end() { return entries.end(); }
-  std::size_t size() const { return entries.size(); }
-  TextureSamplerMapping& operator[](std::size_t i) { return entries[i]; }
-  const TextureSamplerMapping& operator[](std::size_t i) const {
-    return entries[i];
-  }
-};
-
-void WriteMaterial(const size_t& mat_start, oishii::Writer& writer,
-                   riistudio::g3d::NameTable& names,
-                   const riistudio::g3d::Material& mat, u32& mat_idx,
-                   riistudio::g3d::RelocWriter& linker,
-                   const ShaderAllocator& shader_allocator,
-                   TextureSamplerMappingManager& tex_sampler_mappings) {
-  DebugReport("MAT_START %x\n", (u32)mat_start);
-  DebugReport("MAT_NAME %x\n", writer.tell());
-  writeNameForward(names, writer, mat_start, mat.IGCMaterial::getName());
-  DebugReport("MATIDAT %x\n", writer.tell());
-  writer.write<u32>(mat_idx++);
-  u32 flag = mat.flag;
-  flag = (flag & ~0x80000000) | (mat.xlu ? 0x80000000 : 0);
-  writer.write<u32>(flag);
-  WriteMaterialGenMode(writer, mat);
-  // Misc
-  WriteMaterialMisc(writer, mat);
-  linker.writeReloc<s32>("Mat" + std::to_string(mat_start),
-                         shader_allocator.getShaderIDName(mat));
-  writer.write<u32>(mat.samplers.size());
-  u32 sampler_offset = 0;
-  if (mat.samplers.size()) {
-    sampler_offset = writePlaceholder(writer);
-  } else {
-    writer.write<s32>(0); // no samplers
-    printf(">> Mat %s has no samplers.\n", mat.name.c_str());
-  }
-  writer.write<s32>(0); // fur
-  writer.write<s32>(0); // ud
-  const auto dl_offset = writePlaceholder(writer);
-
-  // Texture and palette objects are set on runtime.
-  writer.skip((4 + 8 * 12) + (4 + 8 * 32));
-
-  // Texture transformations
-
-  u32 tex_flags = 0;
-  for (int i = mat.texMatrices.size() - 1; i >= 0; --i) {
-    tex_flags = (tex_flags << 4) | BuildTexMatrixFlags(mat.texMatrices[i]);
-  }
-  writer.write<u32>(tex_flags);
-  // Unlike J3D, only one texmatrix mode per material
-  using CommonTransformModel = libcube::GCMaterialData::CommonTransformModel;
-  CommonTransformModel texmtx_mode = CommonTransformModel::Default;
-  for (int i = 0; i < mat.texMatrices.size(); ++i) {
-    texmtx_mode = mat.texMatrices[i].transformModel;
-  }
-
-  WriteCommonTransformModel(writer, texmtx_mode);
-  for (int i = 0; i < mat.texMatrices.size(); ++i) {
-    auto& mtx = mat.texMatrices[i];
-
-    WriteTexMatrix(writer, mtx);
-  }
-  for (int i = mat.texMatrices.size(); i < 8; ++i) {
-    WriteTexMatrixIdentity(writer);
-  }
-  std::array<f32, 3 * 4> ident34{1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-                                 0.0, 0.0, 0.0, 0.0, 1.0, 0.0};
-  for (int i = 0; i < mat.texMatrices.size(); ++i) {
-    auto& mtx = mat.texMatrices[i];
-
-    WriteTexMatrixEffect(writer, mtx, ident34);
-  }
-  for (int i = mat.texMatrices.size(); i < 8; ++i) {
-    WriteTexMatrixEffectDefault(writer, ident34);
-  }
-
-  for (u8 i = 0; i < mat.chanData.size(); ++i) {
-    // TODO: flag
-    writer.write<u32>(0x3f);
-    mat.chanData[i].matColor >> writer;
-    mat.chanData[i].ambColor >> writer;
-
-    librii::gpu::LitChannel clr, alpha;
-
-    clr.from(mat.colorChanControls[i]);
-    alpha.from(mat.colorChanControls[i + 1]);
-
-    writer.write<u32>(clr.hex);
-    writer.write<u32>(alpha.hex);
-  }
-  for (u8 i = mat.chanData.size(); i < 2; ++i) {
-    writer.write<u32>(0x3f); // TODO: flag, reset on runtime
-    writer.write<u32>(0);    // mclr
-    writer.write<u32>(0);    // aclr
-    writer.write<u32>(0);    // clr
-    writer.write<u32>(0);    // alph
-  }
-
-  // Not written if no samplers..
-  if (sampler_offset != 0) {
-    writeOffsetBackpatch(writer, sampler_offset, mat_start);
-    for (int i = 0; i < mat.samplers.size(); ++i) {
-      const auto s_start = writer.tell();
-      const auto& sampler = mat.samplers[i];
-
-      {
-        const auto [entry_start, struct_start] =
-            tex_sampler_mappings.from_mat(&mat, i);
-        DebugReport("<material=\"%s\" sampler=%u>\n",
-                    mat.IGCMaterial::getName().c_str(), i);
-        DebugReport("\tentry_start=%x, struct_start=%x\n",
-                    (unsigned)entry_start, (unsigned)struct_start);
-        oishii::Jump<oishii::Whence::Set, oishii::Writer> sg(writer,
-                                                             entry_start);
-        writer.write<s32>(mat_start - struct_start);
-        writer.write<s32>(s_start - struct_start);
-      }
-
-      writeNameForward(names, writer, s_start, sampler.mTexture);
-      writeNameForward(names, writer, s_start, sampler.mPalette);
-      writer.skip(8);       // runtime pointers
-      writer.write<u32>(i); // gpu texture slot
-      writer.write<u32>(i); // no palette support
-      writer.write<u32>(static_cast<u32>(sampler.mWrapU));
-      writer.write<u32>(static_cast<u32>(sampler.mWrapV));
-      writer.write<u32>(static_cast<u32>(sampler.mMinFilter));
-      writer.write<u32>(static_cast<u32>(sampler.mMagFilter));
-      writer.write<f32>(sampler.mLodBias);
-      writer.write<u32>(static_cast<u32>(sampler.mMaxAniso));
-      writer.write<u8>(sampler.bBiasClamp);
-      writer.write<u8>(sampler.bEdgeLod);
-      writer.skip(2);
-    }
-  }
-  writer.alignTo(32);
-  writeOffsetBackpatch(writer, dl_offset, mat_start);
-  writeMaterialDisplayList(mat.getMaterialData(), writer);
-}
 void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
                const riistudio::g3d::Model& mdl, const size_t& mesh_start,
                riistudio::g3d::NameTable& names) {
@@ -769,7 +348,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   // Build shaders
   //
 
-  ShaderAllocator shader_allocator;
+  librii::g3d::ShaderAllocator shader_allocator;
   for (auto& mat : mdl.getMaterials()) {
     librii::g3d::G3dShader shader(mat.getMaterialData());
     shader_allocator.alloc(shader);
@@ -883,7 +462,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   }
   writer.skip(dicts_size);
 
-  TextureSamplerMappingManager tex_sampler_mappings;
+  librii::g3d::TextureSamplerMappingManager tex_sampler_mappings;
 
   // for (auto& mat : mdl.getMaterials()) {
   //   for (int s = 0; s < mat.samplers.size(); ++s) {
@@ -901,7 +480,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   int sm_i = 0;
   write_dict(
       "TexSamplerMap", tex_sampler_mappings,
-      [&](TextureSamplerMapping& map, std::size_t start) {
+      [&](librii::g3d::TextureSamplerMapping& map, std::size_t start) {
         writer.write<u32>(map.entries.size());
         for (int i = 0; i < map.entries.size(); ++i) {
           tex_sampler_mappings.entries[sm_i].entries[i] = writer.tell();
@@ -923,7 +502,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   write_dict("Bones", mdl.getBones(),
              [&](const Bone& bone, std::size_t bone_start) {
                DebugReport("Bone at %x\n", (unsigned)bone_start);
-               WriteBone(names, writer, bone_start, bone, bone_id);
+               librii::g3d::WriteBone(names, writer, bone_start, bone, bone_id);
              });
 
   u32 mat_idx = 0;
@@ -931,8 +510,9 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       "Materials", mdl.getMaterials(),
       [&](const Material& mat, std::size_t mat_start) {
         linker.label("Mat" + std::to_string(mat_start), mat_start);
-        WriteMaterial(mat_start, writer, names, mat, mat_idx, linker,
-                      shader_allocator, tex_sampler_mappings);
+        librii::g3d::WriteMaterial(mat_start, writer, names, mat, mat_idx,
+                                   linker, shader_allocator,
+                                   tex_sampler_mappings);
       },
       false, 4);
 

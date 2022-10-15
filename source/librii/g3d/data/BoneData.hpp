@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <core/common.h>
 #include <glm/vec3.hpp>
@@ -56,7 +57,6 @@ struct BoneData {
 
   bool operator==(const BoneData& rhs) const = default;
 };
-
 
 template <typename T> bool RangeIsHomogenous(const T& range) {
   return std::adjacent_find(range.begin(), range.end(),

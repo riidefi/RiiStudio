@@ -16,7 +16,7 @@ librii::gx::Color ColorEditU8(const char* name, librii::gx::Color clr) {
   return fclr;
 }
 
-Quantization DrawColorQuantization(Quantization q) {
+librii::g3d::Quantization DrawColorQuantization(librii::g3d::Quantization q) {
   auto type = imcxx::Combo("Format"_j, q.mType.color,
                            "FORMAT_16B_565  [RGB565]\0"
                            "FORMAT_24B_888  [RGB8]\0"
@@ -28,7 +28,7 @@ Quantization DrawColorQuantization(Quantization q) {
   if (type == q.mType.color)
     return q;
 
-  Quantization result = q;
+  librii::g3d::Quantization result = q;
 
   result.mType.color = type;
 

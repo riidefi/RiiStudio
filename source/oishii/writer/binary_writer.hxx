@@ -177,4 +177,16 @@ private:
   std::endian mFileEndian = std::endian::big; // to swap
 };
 
+inline auto writePlaceholder(oishii::Writer& writer) {
+  writer.write<s32>(0);
+  return writer.tell() - 4;
+}
+inline void writeOffsetBackpatch(oishii::Writer& w, std::size_t pointer,
+                                 std::size_t from) {
+  auto old = w.tell();
+  w.seekSet(pointer);
+  w.write<s32>(old - from);
+  w.seekSet(old);
+}
+
 } // namespace oishii
