@@ -108,13 +108,11 @@ void ApplyDrawCallToModel(librii::g3d::ByteCodeLists::Draw* draw,
   mat.xlu = method.name == "DrawXlu";
 }
 
-void readModel(Model& mdl, oishii::BinaryReader& reader,
-               kpi::LightIOTransaction& transaction,
-               const std::string& transaction_path) {
+void processModel(librii::g3d::BinaryModel& binary_model,
+                  kpi::LightIOTransaction& transaction,
+                  const std::string& transaction_path,
+                  riistudio::g3d::Model& mdl) {
   using namespace librii::g3d;
-  librii::g3d::BinaryModel binary_model;
-  bool isValid = true;
-  binary_model.read(reader, transaction, transaction_path, isValid);
   if (transaction.state == kpi::TransactionState::Failure) {
     return;
   }
@@ -169,24 +167,7 @@ void readModel(Model& mdl, oishii::BinaryReader& reader,
     }
     // printf("}\n");
   }
-
-  if (!isValid && binary_model.bones.size() > 1) {
-    transaction.callback(
-        kpi::IOMessageClass::Error, transaction_path,
-        "BRRES file was created with BrawlBox and is invalid. It is "
-        "recommended you create BRRES files here by dropping a DAE/FBX file.");
-    //
-    transaction.state = kpi::TransactionState::FailureToSave;
-  } else if (!isValid) {
-    transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
-                         "Note: BRRES file was saved with BrawlBox. Certain "
-                         "materials may flicker during ghost replays.");
-  } else if (binary_model.bones.size() > 1) {
-    transaction.callback(kpi::IOMessageClass::Error, transaction_path,
-                         "Rigging support is not fully tested. "
-                         "Rejecting file to avoid potential corruption.");
-    transaction.state = kpi::TransactionState::FailureToSave;
-  }
 }
+
 
 } // namespace riistudio::g3d

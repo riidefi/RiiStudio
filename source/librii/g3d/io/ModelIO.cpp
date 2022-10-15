@@ -447,6 +447,24 @@ void BinaryModel::read(oishii::BinaryReader& reader,
     ByteCodeMethod c{dnode.mName, commands};
     bytecodes.emplace_back(c);
   });
+
+  if (!isValid && bones.size() > 1) {
+    transaction.callback(
+        kpi::IOMessageClass::Error, transaction_path,
+        "BRRES file was created with BrawlBox and is invalid. It is "
+        "recommended you create BRRES files here by dropping a DAE/FBX file.");
+    //
+    transaction.state = kpi::TransactionState::FailureToSave;
+  } else if (!isValid) {
+    transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
+                         "Note: BRRES file was saved with BrawlBox. Certain "
+                         "materials may flicker during ghost replays.");
+  } else if (bones.size() > 1) {
+    transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+                         "Rigging support is not fully tested. "
+                         "Rejecting file to avoid potential corruption.");
+    transaction.state = kpi::TransactionState::FailureToSave;
+  }
 }
 
 } // namespace librii::g3d
