@@ -40,6 +40,8 @@ struct ICollection {
   virtual const IObject* atObject(std::size_t) const = 0;
   virtual void add() = 0;
 
+  virtual void swap(std::size_t, std::size_t) = 0;
+
   std::size_t indexOf(const std::string_view name) const {
     const auto _size = size();
     for (std::size_t i = 0; i < _size; ++i) {
@@ -356,6 +358,9 @@ template <typename T> struct CollectionImpl final : public ICollection {
       elem->collectionOf = this;
       elem->childOf = parent;
     }
+  }
+  void swap(std::size_t a, std::size_t b) override{
+    std::swap(data[a], data[b]);
   }
   CollectionImpl(INode* _parent) : parent(_parent) {}
   CollectionImpl(const CollectionImpl& rhs) : parent(rhs.parent) {

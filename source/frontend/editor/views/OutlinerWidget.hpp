@@ -54,6 +54,7 @@ public:
 
     // TODO: This function can produce stale references
     std::function<void()> add_new_fn;
+    std::function<void(size_t)> delete_child_fn;
 
     // RichName::getIconPlural()
     std::string type_icon_pl = "(?)";
@@ -73,6 +74,9 @@ public:
   std::function<void(EditorWindow&)> draw_context_menu_fn;
   // TODO: Replace with modal stack
   std::function<void(EditorWindow&)> draw_modal_fn;
+
+  // TODO
+  bool mark_to_delete = false;
 };
 
 using NodeFolder = Child::Folder;

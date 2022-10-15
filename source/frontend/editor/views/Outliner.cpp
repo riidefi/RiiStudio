@@ -60,6 +60,7 @@ private:
   std::string mActiveClassId;
   EditorWindow& ed;
 
+public:
   std::optional<std::function<void()>> activeModal;
 };
 
@@ -93,10 +94,21 @@ std::vector<const lib3d::Texture*> GetNodeIcons(kpi::IObject& nodeAt) {
   return icons;
 }
 
-std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler,
-                                              EditorWindow& ed);
+std::vector<std::optional<Child>>
+GetChildren(kpi::ICollection& sampler, EditorWindow& ed,
+            GenericCollectionOutliner* outliner);
 
 static void AddNew(kpi::ICollection* node) { node->add(); }
+static void DeleteChild(kpi::ICollection* node, size_t index) {
+  if (node->size() < 1 || index >= node->size()) {
+    return;
+  }
+  int end = static_cast<int>(node->size()) - 1;
+  for (int i = index; i < end; ++i) {
+    node->swap(i, i + 1);
+  }
+  node->resize(end);
+}
 
 void DrawCtxMenuFor(kpi::IObject* nodeAt, EditorWindow& ed) {
   if (kpi::ActionMenuManager::get().drawContextMenus(*nodeAt))
@@ -107,12 +119,13 @@ void DrawModalFor(kpi::IObject* nodeAt, EditorWindow& ed) {
     ed.getDocument().commit(ed.getSelection(), false);
 }
 
-auto GetGChildren(kpi::INode* node, EditorWindow& ed) {
+auto GetGChildren(kpi::INode* node, EditorWindow& ed,
+                  GenericCollectionOutliner* outliner) {
   std::vector<Child::Folder> grandchildren;
 
   if (node != nullptr) {
     for (int i = 0; i < node->numFolders(); ++i) {
-      auto children = GetChildren(*node->folderAt(i), ed);
+      auto children = GetChildren(*node->folderAt(i), ed, outliner);
 
       std::string icon_pl = "?";
       std::string name_pl = "Unknowns";
@@ -125,10 +138,16 @@ auto GetGChildren(kpi::INode* node, EditorWindow& ed) {
         icon_pl = rich.getIconPlural();
         name_pl = rich.getNamePlural();
       }
+      std::function<void(size_t)> delete_child_fn =
+          [node = node->folderAt(i), outliner = outliner](size_t i) {
+            DeleteChild(node, i);
+            outliner->activeModal = {};
+          };
       grandchildren.push_back(
           Child::Folder{.children = children,
                         .key = node->idAt(i),
                         .add_new_fn = std::bind(AddNew, node->folderAt(i)),
+                        .delete_child_fn = delete_child_fn,
                         .type_icon_pl = icon_pl,
                         .type_name_pl = name_pl});
     }
@@ -137,8 +156,9 @@ auto GetGChildren(kpi::INode* node, EditorWindow& ed) {
   return grandchildren;
 }
 
-std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler,
-                                              EditorWindow& ed) {
+std::vector<std::optional<Child>>
+GetChildren(kpi::ICollection& sampler, EditorWindow& ed,
+            GenericCollectionOutliner* outliner) {
   std::vector<std::optional<Child>> children(sampler.size());
   for (int i = 0; i < children.size(); ++i) {
     auto* node = dynamic_cast<kpi::INode*>(sampler.atObject(i));
@@ -149,7 +169,7 @@ std::vector<std::optional<Child>> GetChildren(kpi::ICollection& sampler,
                        .getRich(sampler.atObject(i))
                        .hasEntry();
 
-    auto grandchildren = GetGChildren(node, ed);
+    auto grandchildren = GetGChildren(node, ed, outliner);
 
     auto* obj = sampler.atObject(i);
     std::function<void(EditorWindow&)> ctx_draw = [=](EditorWindow& ed) {
@@ -188,7 +208,7 @@ void GenericCollectionOutliner::draw_() noexcept {
   // activeModal = nullptr;
   mFilter.Draw();
   auto& _h = (kpi::INode&)mHost;
-  auto children = GetGChildren(&_h, ed);
+  auto children = GetGChildren(&_h, ed, this);
   for (auto& f : children)
     drawFolder(f);
 

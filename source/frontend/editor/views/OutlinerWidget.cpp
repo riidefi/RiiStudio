@@ -167,6 +167,11 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
 
       children[i]->draw_context_menu_fn(ed);
 
+      // set activeModal for an actual gui
+      if (ImGui::MenuItem("Delete")) {
+        children[i]->mark_to_delete = true;
+      }
+
       ImGui::EndPopup();
     }
 
@@ -186,7 +191,6 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
     const auto treenode =
         ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s %s",
                           children[i]->type_icon.c_str(), cur_name.c_str());
-
     if (treenode) {
       DrawNodePic(ed, *children[i], initial_pos_y, icon_size);
     }
@@ -213,6 +217,19 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
     }
   }
   ImGui::TreePop();
+
+  
+  for (int i = 0; i < children.size(); ++i) {
+    if (!children[i]->mark_to_delete)
+      continue;
+    folder.delete_child_fn(i);
+    folder.children.erase(folder.children.begin() + i);
+    // Selection must be reset
+    ed.getDocument().commit(ed.getSelection(), true);
+    justSelectedId = -1;
+    return;
+  }
+
 
   // If nothing new was selected, no new processing needs to occur.
   if (justSelectedId == -1)
