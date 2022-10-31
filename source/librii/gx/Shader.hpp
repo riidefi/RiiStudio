@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Indirect.hpp"
+#include <algorithm>
 #include <array>
 #include <core/common.h>
 #include <rsl/SmallVector.hpp>
@@ -55,7 +56,77 @@ enum class TevColorOp {
   comp_bgr24_gt,
   comp_bgr24_eq,
   comp_rgb8_gt,
-  comp_rgb8_eq
+  comp_rgb8_eq,
+};
+struct TevColorOp_H {
+  enum Op {
+    Add,      // A + B
+    Subtract, // A - B
+    Mask,     // op(A[x], B[x]) ? C : 0
+              // (0-(A[x] == B[x])) & C
+  };
+  Op op = Add;
+  enum MaskOp {
+    Gt,
+    Eq,
+  };
+  MaskOp maskOp = Gt;
+  enum MaskSrc {
+    r8,
+    gr16,
+    bgr24,
+    rgb8, // Special: individual channels
+  };
+  MaskSrc maskSrc = r8;
+
+  TevColorOp_H(TevColorOp x) {
+    int raw = static_cast<int>(x);
+    assert(raw < 2 || raw >= 8);
+    assert(raw >= 0 && raw <= 15);
+    // operation       xyzw
+    // add                0
+    // subtract           1
+    // comp_r8_gt      1000
+    // comp_r8_eq      1001
+    // comp_gr16_gt    1010
+    // comp_gr16_eq    1011
+    // comp_bgr24_gt   1100
+    // comp_bgr24_eq   1101
+    // comp_rgb8_gt    1110
+    // comp_rgb8_eq    1111
+    //
+    // x = isCompare
+    // yz = compareSrc
+    // z = function
+    const bool isCompare = raw & 0b1000;
+    const int compareSrc = (raw >> 1) & 0b11;
+    const bool function = raw & 1;
+
+    if (isCompare) {
+      op = Op::Mask;
+      maskSrc = static_cast<MaskSrc>(compareSrc);
+      maskOp = static_cast<MaskOp>(function);
+    } else {
+      op = static_cast<Op>(function);
+      maskSrc = MaskSrc::r8;
+      maskOp = MaskOp::Gt;
+    }
+    // This is implemented in hardware as GX_MAX_TEVBIAS, that is:
+    // 0b00: GX_TB_ZERO
+    // 0b01: GX_TB_ADDHALF
+    // 0b10: GX_TB_SUBHALF
+    // 0b11: * Special: Enable compare mode.
+    //
+    // In compare mode, the "compareSrc" field is encoded as the scale. The
+    // function mode does not differ (still lowest bit).
+  }
+  operator TevColorOp() const {
+    int raw = 0;
+    raw |= (op == Op::Mask) ? 0b1000 : 0;
+    raw |= (op == Op::Mask) ? static_cast<int>(maskSrc) << 1 : 0;
+    raw |= (op == Op::Mask) ? static_cast<int>(maskOp) : static_cast<int>(op);
+    return static_cast<TevColorOp>(raw);
+  }
 };
 
 enum class TevScale { scale_1, scale_2, scale_4, divide_2 };
@@ -176,6 +247,8 @@ struct TevStage {
   u8 texMapSwap = 0;
 
   struct ColorStage {
+    using OpType = TevColorOp;
+
     // KSEL
     TevKColorSel constantSelection = TevKColorSel::k0;
     // COLOR_ENV
@@ -192,6 +265,8 @@ struct TevStage {
     bool operator==(const ColorStage& rhs) const noexcept = default;
   } colorStage;
   struct AlphaStage {
+    using OpType = TevAlphaOp;
+
     TevAlphaArg a = TevAlphaArg::zero;
     TevAlphaArg b = TevAlphaArg::zero;
     TevAlphaArg c = TevAlphaArg::zero;

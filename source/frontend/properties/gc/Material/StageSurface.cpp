@@ -132,6 +132,26 @@ template <typename T> T DrawKonstSel(T x) {
   return librii::hx::lowerKonstSel<T>(ksel);
 }
 
+template <typename T> T drawTevOperation(T formula) {
+  librii::gx::TevColorOp_H h(static_cast<librii::gx::TevColorOp>(formula));
+  h.op = imcxx::Combo("Formula", h.op,
+                      "X + Y\0"
+                      "X - Y\0"
+                      "X ? Y : 0\0");
+  if (h.op == librii::gx::TevColorOp_H::Mask) {
+    h.maskOp = imcxx::Combo("Function", h.maskOp,
+                            "(A > B ? C : 0) + D\0"
+                            "(A == B ? C : 0) + D\0");
+    h.maskSrc = imcxx::Combo("Input", h.maskSrc,
+                             "Red (8-bit)\0"
+                             "Green, Red (16-bit)\0"
+                             "Blue, Green, Red (24-bit)\0"
+                             "Compare each commponent individually (8-bit)\0");
+  }
+  auto x = static_cast<librii::gx::TevColorOp>(h);
+  return static_cast<T>(x);
+}
+
 template <typename T> T drawSubStage(T stage) {
   TevExpression expression(stage);
 
@@ -141,13 +161,20 @@ template <typename T> T drawSubStage(T stage) {
 
   stage.constantSelection = DrawKonstSel(stage.constantSelection);
 
+  stage.formula = drawTevOperation(stage.formula);
+
   stage.a = drawTevOp(expression, "Operand A"_j, stage.a, A);
   stage.b = drawTevOp(expression, "Operand B"_j, stage.b, B);
   stage.c = drawTevOp(expression, "Operand C"_j, stage.c, C);
   stage.d = drawTevOp(expression, "Operand D"_j, stage.d, D);
 
-  stage.bias = drawTevBias(stage.bias);
-  stage.scale = drawTevScale(stage.scale);
+  if (stage.formula == T::OpType::add || stage.formula == T::OpType::subtract) {
+    stage.bias = drawTevBias(stage.bias);
+    stage.scale = drawTevScale(stage.scale);
+  } else {
+    stage.bias = librii::gx::TevBias::zero;
+    stage.scale = librii::gx::TevScale::scale_1;
+  }
 
   ImGui::Checkbox("Clamp calculation to 0-255"_j, &stage.clamp);
   stage.out = drawOutRegister(stage.out);
@@ -337,38 +364,35 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
     if (ImGui::CollapsingHeader("Color Stage"_j,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
-      // TODO: Only add for now..
-      if (stage.colorStage.formula == librii::gx::TevColorOp::add) {
-        librii::gx::TevStage::ColorStage substage =
-            drawSubStage(stage.colorStage);
-        STAGE_PROP(colorStage.constantSelection, substage.constantSelection);
-        STAGE_PROP(colorStage.a, substage.a);
-        STAGE_PROP(colorStage.b, substage.b);
-        STAGE_PROP(colorStage.c, substage.c);
-        STAGE_PROP(colorStage.d, substage.d);
-        STAGE_PROP(colorStage.clamp, substage.clamp);
-        STAGE_PROP(colorStage.bias, substage.bias);
-        STAGE_PROP(colorStage.scale, substage.scale);
-        STAGE_PROP(colorStage.out, substage.out);
-      }
+      librii::gx::TevStage::ColorStage substage =
+          drawSubStage(stage.colorStage);
+      STAGE_PROP(colorStage.constantSelection, substage.constantSelection);
+      STAGE_PROP(colorStage.formula, substage.formula);
+      STAGE_PROP(colorStage.a, substage.a);
+      STAGE_PROP(colorStage.b, substage.b);
+      STAGE_PROP(colorStage.c, substage.c);
+      STAGE_PROP(colorStage.d, substage.d);
+      STAGE_PROP(colorStage.clamp, substage.clamp);
+      STAGE_PROP(colorStage.bias, substage.bias);
+      STAGE_PROP(colorStage.scale, substage.scale);
+      STAGE_PROP(colorStage.out, substage.out);
     }
     if (ImGui::CollapsingHeader("Alpha Stage"_j,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
       IDScope alphag("Alpha");
-      if (stage.alphaStage.formula == librii::gx::TevAlphaOp::add) {
-        librii::gx::TevStage::AlphaStage substage =
-            drawSubStage(stage.alphaStage);
+      librii::gx::TevStage::AlphaStage substage =
+          drawSubStage(stage.alphaStage);
 
-        STAGE_PROP(alphaStage.constantSelection, substage.constantSelection);
-        STAGE_PROP(alphaStage.a, substage.a);
-        STAGE_PROP(alphaStage.b, substage.b);
-        STAGE_PROP(alphaStage.c, substage.c);
-        STAGE_PROP(alphaStage.d, substage.d);
-        STAGE_PROP(alphaStage.clamp, substage.clamp);
-        STAGE_PROP(alphaStage.bias, substage.bias);
-        STAGE_PROP(alphaStage.scale, substage.scale);
-        STAGE_PROP(alphaStage.out, substage.out);
-      }
+      STAGE_PROP(alphaStage.constantSelection, substage.constantSelection);
+      STAGE_PROP(alphaStage.formula, substage.formula);
+      STAGE_PROP(alphaStage.a, substage.a);
+      STAGE_PROP(alphaStage.b, substage.b);
+      STAGE_PROP(alphaStage.c, substage.c);
+      STAGE_PROP(alphaStage.d, substage.d);
+      STAGE_PROP(alphaStage.clamp, substage.clamp);
+      STAGE_PROP(alphaStage.bias, substage.bias);
+      STAGE_PROP(alphaStage.scale, substage.scale);
+      STAGE_PROP(alphaStage.out, substage.out);
     }
     if (ImGui::CollapsingHeader("Indirect Stage"_j,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {

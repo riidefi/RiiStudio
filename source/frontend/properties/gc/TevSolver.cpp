@@ -3,7 +3,15 @@
 
 namespace libcube::UI {
 
-enum class ExprOp : u32 { Add, Sub, Mul };
+enum class ExprOp : u32 {
+  Add,    // L + R
+  Sub,    // L - R
+  Mul,    // L * R
+  Select, // L ? R.L : R.R where R is a Pair
+  Pair,   // (L, R)
+  Gt,     // (L > R) ? 1 : 0
+  Eq,     // (L == R) ? 1 :0
+};
 struct Expr {
   enum Type : u32 { Unary, Binary };
   Type type;
@@ -111,6 +119,49 @@ static bool optimizeNodeBinary(BinExpr& e) {
   const bool right_zero = right_un != nullptr && right_un->val == Zero;
   const bool right_one = right_un != nullptr && right_un->val == One;
 
+  // (A == A) = true
+  if (e.op == ExprOp::Eq) {
+    // Does not recursively compare*
+    // Only supports unary values*
+    if (left_un != nullptr && right_un != nullptr &&
+        left_un->val == right_un->val) {
+      to_unary(One);
+      return true;
+    }
+  }
+
+  // (A > A) = false
+  if (e.op == ExprOp::Gt) {
+    // Does not recursively compare*
+    // Only supports unary values*
+    if (left_un != nullptr && right_un != nullptr &&
+        left_un->val == right_un->val) {
+      to_unary(Zero);
+      return true;
+    }
+  }
+
+  // (1 > 0) = true
+  // (1 > 0.5) = true
+  // (0 > 1) = false
+  // (0 > 0.5) = false
+  std::array<RegEx, 5> ordering{
+      Zero,
+      Half,
+      One,
+      // Following two not expected in TEV inputs
+      Two,
+      Four,
+  };
+  if (e.op == ExprOp::Gt && left_un != nullptr && right_un != nullptr) {
+    auto left_it = std::find(ordering.begin(), ordering.end(), left_un->val);
+    auto right_it = std::find(ordering.begin(), ordering.end(), right_un->val);
+    if (left_it != ordering.end() && right_it != ordering.end()) {
+      to_unary(left_it > right_it ? One : Zero);
+      return true;
+    }
+  }
+
   // Zero product
   // 0 * A = 0
   // A * 0 = 0
@@ -163,6 +214,30 @@ static bool optimizeNodeBinary(BinExpr& e) {
   if (e.op == ExprOp::Sub && left_one && right_one) {
     to_unary(Zero);
     return true;
+  }
+
+  if (e.op == ExprOp::Select) {
+    // Logical resolution
+    // (A ? B : B) = B
+    // Not recursive*
+    if (right_bin->left->type == Expr::Unary &&
+        right_bin->right->type == Expr::Unary &&
+        reinterpret_cast<UnaryExpr*>(right_bin->left)->val ==
+            reinterpret_cast<UnaryExpr*>(right_bin->right)->val) {
+      to_unary(reinterpret_cast<UnaryExpr*>(right_bin->left)->val);
+    }
+    // Modus Ponens
+    // (true ? A : B) = A
+    if (left_one) {
+      to_expr(*right_bin->left);
+      return true;
+    }
+    // Disjunctive syllogism
+    // (false ? A : B) = B
+    if (left_zero) {
+      to_expr(*right_bin->right);
+      return true;
+    }
   }
 
   // Process children
@@ -237,6 +312,19 @@ static void printExpr(BinExpr& e, rsl::StringBuilder& builder,
   case ExprOp::Sub:
     builder.append(" - ");
     break;
+  case ExprOp::Select:
+    builder.append(" ? ");
+    break;
+  case ExprOp::Pair:
+    // Assume Pair is a child of a Select*
+    builder.append(" : ");
+    break;
+  case ExprOp::Gt:
+    builder.append(" > ");
+    break;
+  case ExprOp::Eq:
+    builder.append(" == ");
+    break;
   }
 
   if (right_bin != nullptr)
@@ -289,9 +377,13 @@ static Expr& solve_tev_stage_impl(const T& substage,
         return Zero;
       case gx::TevColorArg::one:
         return One;
+      case gx::TevColorArg::half:
+        return Half;
       case gx::TevColorArg::konst:
         if (substage.constantSelection == gx::TevKColorSel::const_8_8)
           return One;
+        if (substage.constantSelection == gx::TevKColorSel::const_4_8)
+          return Half;
         return id;
       default:
         return id;
@@ -303,6 +395,8 @@ static Expr& solve_tev_stage_impl(const T& substage,
       case gx::TevAlphaArg::konst:
         if (substage.constantSelection == gx::TevKAlphaSel::const_8_8)
           return One;
+        if (substage.constantSelection == gx::TevKAlphaSel::const_4_8)
+          return Half;
         return id;
       default:
         return id;
@@ -326,29 +420,43 @@ static Expr& solve_tev_stage_impl(const T& substage,
   const auto unary_b = make_unary(arg_to_state(B, substage.b, substage));
   const auto unary_c = make_unary(arg_to_state(C, substage.c, substage));
   const auto unary_d = make_unary(arg_to_state(D, substage.d, substage));
+  librii::gx::TevColorOp_H h(
+      static_cast<librii::gx::TevColorOp>(substage.formula));
 
-  BinExpr* root =
-      make_binary(ExprOp::Add, unary_d,
-                  make_binary(ExprOp::Add,
-                              make_binary(ExprOp::Mul,
-                                          make_binary(ExprOp::Sub,
-                                                      make_unary(One), unary_c),
-                                          unary_a),
-                              make_binary(ExprOp::Mul, unary_c, unary_b)));
+  BinExpr* root = nullptr;
 
-  // Bias
-  if (substage.bias == gx::TevBias::add_half)
-    root = make_binary(ExprOp::Add, root, make_unary(Half));
-  else if (substage.bias == gx::TevBias::sub_half)
-    root = make_binary(ExprOp::Sub, root, make_unary(Half));
+  if (h.op != librii::gx::TevColorOp_H::Mask) {
+    const auto op =
+        h.op == librii::gx::TevColorOp_H::Add ? ExprOp::Add : ExprOp::Sub;
+    root = make_binary(
+        op, unary_d,
+        make_binary(
+            ExprOp::Add,
+            make_binary(ExprOp::Mul,
+                        make_binary(ExprOp::Sub, make_unary(One), unary_c),
+                        unary_a),
+            make_binary(ExprOp::Mul, unary_c, unary_b)));
+    // Bias
+    if (substage.bias == gx::TevBias::add_half)
+      root = make_binary(ExprOp::Add, root, make_unary(Half));
+    else if (substage.bias == gx::TevBias::sub_half)
+      root = make_binary(ExprOp::Sub, root, make_unary(Half));
 
-  // Scale
-  if (substage.scale == gx::TevScale::scale_2)
-    root = make_binary(ExprOp::Mul, root, make_unary(Two));
-  if (substage.scale == gx::TevScale::scale_4)
-    root = make_binary(ExprOp::Mul, root, make_unary(Four));
-  if (substage.scale == gx::TevScale::divide_2)
-    root = make_binary(ExprOp::Mul, root, make_unary(Half));
+    // Scale
+    if (substage.scale == gx::TevScale::scale_2)
+      root = make_binary(ExprOp::Mul, root, make_unary(Two));
+    if (substage.scale == gx::TevScale::scale_4)
+      root = make_binary(ExprOp::Mul, root, make_unary(Four));
+    if (substage.scale == gx::TevScale::divide_2)
+      root = make_binary(ExprOp::Mul, root, make_unary(Half));
+  } else {
+    const auto op =
+        h.maskOp == librii::gx::TevColorOp_H::Gt ? ExprOp::Gt : ExprOp::Eq;
+    root = make_binary(
+        ExprOp::Add, unary_d,
+        make_binary(ExprOp::Select, make_binary(op, unary_a, unary_b),
+                    make_binary(ExprOp::Pair, unary_c, make_unary(Zero))));
+  }
 
   // A + C(B-A)
   //

@@ -1,3 +1,4 @@
+#include <format>
 #include <glfw/glfw3.h>
 #include <librii/gl/Compiler.hpp>
 #include <llvm/Support/Error.h>
@@ -964,9 +965,9 @@ public:
       return "((TevPack24(t_TevA.rgb) == TevPack24(t_TevB.rgb)) ? " + c +
              " : " + zero + ") + " + d;
     case gx::TevColorOp::comp_rgb8_gt:
-      return "(TevPerCompGT(${a}, ${b}) * ${c}) + ${d}";
+      return std::format("(TevPerCompGT({0}, {1}) * {2}) + {3}", a, b, c, d);
     case gx::TevColorOp::comp_rgb8_eq:
-      return "(TevPerCompEQ(${a}, ${b}) * ${c}) + ${d}";
+      return std::format("(TevPerCompEQ({0}, {1}) * {2}) + {3}", a, b, c, d);
     default:
       return "INVALID";
     }
