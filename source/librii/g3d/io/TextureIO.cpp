@@ -42,7 +42,12 @@ bool ReadTexture(librii::g3d::TextureData& tex, std::span<const u8> data,
     }
     cursor += 4; // SKIP: BRRES offset
     cursor += 4; // DELAY: ofs_tex
-    cursor += 4; // SKIP: Name offset
+    if (tex.name.empty()) {
+      tex.name = ReadStringPointer(data, cursor, 0);
+      cursor += 4;
+    } else {
+      cursor += 4; // SKIP: Name offset
+    }
     cursor += 4; // SKIP: Flag
     tex.width = lhzu(data, cursor);
     tex.height = lhzu(data, cursor);

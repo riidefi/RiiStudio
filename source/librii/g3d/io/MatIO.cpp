@@ -1,5 +1,3 @@
-#pragma once
-
 #include "MatIO.hpp"
 #include <librii/gpu/DLBuilder.hpp>
 #include <librii/gpu/DLPixShader.hpp>
@@ -199,7 +197,7 @@ static void writeMaterialDisplayList(const gx::GCMaterialData& mat,
   assert(writer.tell() - dl_start == 0x180);
 }
 
-bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader) {
+bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader, bool ignore_tev) {
   const auto start = reader.tell();
 
   reader.read<u32>(); // size
@@ -340,8 +338,10 @@ bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader) {
   }
 
   // TEV
-  auto tev_addr = start + ofsTev;
-  librii::g3d::ReadTev(mat, reader, tev_addr);
+  if (!ignore_tev) {
+    auto tev_addr = start + ofsTev;
+    librii::g3d::ReadTev(mat, reader, tev_addr);
+  }
 
   // Samplers
   reader.seekSet(start + ofsSamplers);

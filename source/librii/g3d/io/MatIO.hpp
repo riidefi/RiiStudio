@@ -3,10 +3,10 @@
 #include <core/common.h>
 #include <core/util/oishii.hpp>
 #include <librii/g3d/data/MaterialData.hpp>
-#include <librii/g3d/io/TevIO.hpp>
 #include <librii/g3d/io/CommonIO.hpp>
-#include <rsl/SmallVector.hpp>
 #include <librii/g3d/io/NameTableIO.hpp>
+#include <librii/g3d/io/TevIO.hpp>
+#include <rsl/SmallVector.hpp>
 
 namespace librii::g3d {
 
@@ -57,7 +57,6 @@ struct TextureSamplerMappingManager {
   }
 };
 
-
 struct ShaderAllocator {
   void alloc(const librii::g3d::G3dShader& shader) {
     auto found = std::find(shaders.begin(), shaders.end(), shader);
@@ -90,14 +89,12 @@ struct ShaderAllocator {
   std::vector<u32> matToShaderMap;
 };
 
-
-bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader);
+bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
+                  bool ignore_tev = false);
 
 void WriteMaterial(const size_t& mat_start, oishii::Writer& writer,
-                   NameTable& names,
-                   const G3dMaterialData& mat, u32& mat_idx,
-                   RelocWriter& linker,
-                   const ShaderAllocator& shader_allocator,
+                   NameTable& names, const G3dMaterialData& mat, u32& mat_idx,
+                   RelocWriter& linker, const ShaderAllocator& shader_allocator,
                    TextureSamplerMappingManager& tex_sampler_mappings);
 
 } // namespace librii::g3d

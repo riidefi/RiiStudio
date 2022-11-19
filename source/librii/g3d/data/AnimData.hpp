@@ -5,6 +5,7 @@
 #include <optional>
 #include <rsl/SmallVector.hpp>
 #include <rsl/TaggedUnion.hpp>
+#include <string>
 
 namespace librii::g3d {
 

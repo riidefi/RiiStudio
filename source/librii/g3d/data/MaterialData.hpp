@@ -46,6 +46,8 @@ struct G3dShader {
   // Variable-sized DL
   rsl::array_vector<librii::gx::TevStage, 16> mStages;
 
+  G3dShader() = default;
+
   G3dShader(const librii::gx::LowLevelGxMaterial& mat)
       : mSwapTable(mat.mSwapTable) {
     mIndirectOrders.resize(mat.indirectStages.size());

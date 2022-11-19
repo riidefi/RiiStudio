@@ -113,4 +113,7 @@ struct IndOrder {
   bool operator==(const IndOrder& rhs) const = default;
 };
 
+static inline constexpr IndOrder NullOrder =
+    IndOrder{.refMap = 0xFF, .refCoord = 0xFF};
+
 } // namespace librii::gx

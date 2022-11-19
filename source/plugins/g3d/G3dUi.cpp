@@ -53,4 +53,5 @@ kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins&) {
   inst.addPropertyView<Texture, G3DTexDataSurface, true>();
 });
 
+
 } // namespace riistudio::g3d::ui

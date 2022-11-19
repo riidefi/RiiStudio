@@ -27,7 +27,13 @@ const std::array<u32, 16> shaderDlSizes{
 };
 
 void ReadTev(librii::gx::LowLevelGxMaterial& mat, oishii::BinaryReader& reader,
-             unsigned int tev_addr) {
+             unsigned int tev_addr, bool trust_stagecount, bool brawlbox_bug) {
+  if (trust_stagecount) {
+    reader.seekSet(tev_addr + 4);
+    const u8 num_stages = reader.read<u8>();
+    assert(num_stages <= 16);
+    mat.mStages.resize(num_stages);
+  }
   reader.seekSet(tev_addr + 16);
   std::array<u8, 8> coord_map_lut;
   for (auto& e : coord_map_lut)
@@ -45,7 +51,14 @@ void ReadTev(librii::gx::LowLevelGxMaterial& mat, oishii::BinaryReader& reader,
     }
   }
   // assert(!error && "Invalid sampler configuration");
-  reader.seekSet(tev_addr + 32);
+  if (!brawlbox_bug) {
+    reader.seekSet(tev_addr + 32);
+  } else {
+    // BrawlBox Behavior (and part of every .mdl0shade file)
+    // It aligns to 32B in absolute terms, so we are actually +24 when we
+    // consider the custom header.
+    reader.seekSet(tev_addr + 24);
+  }
   {
 
     librii::gpu::QDisplayListShaderHandler shaderHandler(mat,
