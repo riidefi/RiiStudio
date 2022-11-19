@@ -472,6 +472,10 @@ public:
             return readInt(material.fog_index);
           }
 
+          if (key == "preset_path_mdl0mat") {
+            return readString(material.preset_path_mdl0mat);
+          }
+
           return Failure("Unexpected key");
         });
 

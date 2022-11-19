@@ -1,13 +1,12 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
-#include <glm/vec3.hpp>
-
 #include <core/common.h>
+#include <filesystem>
+#include <glm/vec3.hpp>
 #include <librii/g3d/data/MaterialData.hpp>
 #include <plugins/gc/Export/Material.hpp>
+#include <string>
+#include <vector>
 
 namespace kpi {
 class IDocumentNode;
@@ -34,5 +33,9 @@ struct Material : public librii::g3d::G3dMaterialData,
     return *this;
   }
 };
+
+std::string
+ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
+                           const std::filesystem::path& preset_folder);
 
 } // namespace riistudio::g3d

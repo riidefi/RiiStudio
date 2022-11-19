@@ -7,7 +7,7 @@
 
 namespace librii::crate {
 
-std::variant<g3d::G3dMaterialData, std::string>
+rsl::expected<g3d::G3dMaterialData, std::string>
 ReadMDL0Mat(std::span<const u8> file) {
   std::vector<u8> bruh;
   oishii::DataProvider provider(std::move(bruh));
@@ -17,13 +17,13 @@ ReadMDL0Mat(std::span<const u8> file) {
   g3d::G3dMaterialData mat;
   const bool ok = g3d::readMaterial(mat, reader, /* ignore_tev */ true);
   if (!ok) {
-    return "Failed to read MDL0Mat file";
+    return std::string("Failed to read MDL0Mat file");
   }
 
   return mat;
 }
 
-std::variant<g3d::G3dShader, std::string>
+rsl::expected<g3d::G3dShader, std::string>
 ReadMDL0Shade(std::span<const u8> file) {
   // Skip first 8 bytes
   // TODO: Clean this up
@@ -59,28 +59,28 @@ ReadMDL0Shade(std::span<const u8> file) {
   return shader;
 }
 
-std::variant<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file) {
+rsl::expected<g3d::TextureData, std::string>
+ReadTEX0(std::span<const u8> file) {
   g3d::TextureData tex;
   // TODO: We trust the .tex0-file provided name to be correct
   const bool ok = g3d::ReadTexture(tex, file, "");
   if (!ok) {
-    return "Failed to parse";
+    return std::string("Failed to parse TEX0: g3d::ReadTexture returned false");
   }
   return tex;
 }
 
-std::variant<g3d::SrtAnimationArchive, std::string>
+rsl::expected<g3d::SrtAnimationArchive, std::string>
 ReadSRT0(std::span<const u8> file) {
-  // Good API!
   g3d::SrtAnimationArchive arc;
   const bool ok = g3d::ReadSrtFile(arc, file);
   if (!ok) {
-    return "Failed to parse";
+    return std::string("Failed to parse SRT0: g3d::ReadSrtFile returned false");
   }
   return arc;
 }
 
-std::variant<g3d::G3dMaterialData, std::string>
+rsl::expected<g3d::G3dMaterialData, std::string>
 ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
                          const g3d::G3dShader& tev) {
   const size_t num_istage = mat.indirectStages.size();
@@ -114,7 +114,7 @@ static std::string FormatRange(auto&& range, auto&& functor) {
   return tmp;
 }
 
-std::variant<CrateAnimationPaths, std::string>
+rsl::expected<CrateAnimationPaths, std::string>
 ScanCrateAnimationFolder(std::filesystem::path path) {
   assert(std::filesystem::is_directory(path));
   CrateAnimationPaths tmp;
@@ -123,12 +123,12 @@ ScanCrateAnimationFolder(std::filesystem::path path) {
     const auto extension = entry.path().extension();
     if (extension == ".mdl0mat") {
       if (!tmp.mdl0mat.empty()) {
-        return "Rejecting: Multiple .mdl0mat files in folder";
+        return std::string("Rejecting: Multiple .mdl0mat files in folder");
       }
       tmp.mdl0mat = entry.path();
     } else if (extension == ".mdl0shade") {
       if (!tmp.mdl0shade.empty()) {
-        return "Rejecting: Multiple .mdl0shade files in folder";
+        return std::string("Rejecting: Multiple .mdl0shade files in folder");
       }
       tmp.mdl0shade = entry.path();
     } else if (extension == ".srt0") {
@@ -139,15 +139,15 @@ ScanCrateAnimationFolder(std::filesystem::path path) {
     // Ignore other extensions
   }
   if (tmp.mdl0mat.empty()) {
-    return "Missing .mdl0mat definition";
+    return std::string("Missing .mdl0mat definition");
   }
   if (tmp.mdl0shade.empty()) {
-    return "Missing .mdl0shade definition";
+    return std::string("Missing .mdl0shade definition");
   }
   return tmp;
 }
 
-std::variant<CrateAnimation, std::string>
+rsl::expected<CrateAnimation, std::string>
 ReadCrateAnimation(const CrateAnimationPaths& paths) {
   auto mdl0mat = OishiiReadFile(paths.mdl0mat.string());
   if (!mdl0mat) {
@@ -174,47 +174,46 @@ ReadCrateAnimation(const CrateAnimationPaths& paths) {
     srt0s.push_back(std::move(*srt0));
   }
   auto mat = ReadMDL0Mat(mdl0mat->slice());
-  if (auto* err = std::get_if<std::string>(&mat); err != nullptr) {
+  if (!mat.has_value()) {
     return "Failed to parse material at \"" + paths.mdl0mat.string() +
-           "\": " + *err;
+           "\": " + mat.error();
   }
   auto shade = ReadMDL0Shade(mdl0shade->slice());
-  if (auto* err = std::get_if<std::string>(&shade); err != nullptr) {
+  if (!shade.has_value()) {
     return "Failed to parse shader at \"" + paths.mdl0shade.string() +
-           "\": " + *err;
+           "\": " + shade.error();
   }
   CrateAnimation tmp;
   for (size_t i = 0; i < tex0s.size(); ++i) {
     auto tex = ReadTEX0(tex0s[i].slice());
-    if (auto* err = std::get_if<std::string>(&tex); err != nullptr) {
+    if (!tex.has_value()) {
       if (i >= paths.tex0.size()) {
-        return *err;
+        return tex.error();
       }
       return "Failed to parse TEX0 at \"" + paths.tex0[i].string() +
-             "\": " + *err;
+             "\": " + tex.error();
     }
-    tmp.tex.push_back(*std::get_if<g3d::TextureData>(&tex));
+    tmp.tex.push_back(*tex);
   }
   for (size_t i = 0; i < srt0s.size(); ++i) {
     auto srt = ReadSRT0(srt0s[i].slice());
-    if (auto* err = std::get_if<std::string>(&srt); err != nullptr) {
+    if (!srt.has_value()) {
       if (i >= paths.srt0.size()) {
-        return *err;
+        return srt.error();
       }
       return "Failed to parse SRT0 at \"" + paths.srt0[i].string() +
-             "\": " + *err;
+             "\": " + srt.error();
     }
-    tmp.srt.push_back(*std::get_if<g3d::SrtAnimationArchive>(&srt));
+    tmp.srt.push_back(*srt);
   }
 
-  auto raw_mat = *std::get_if<g3d::G3dMaterialData>(&mat);
-  auto raw_shade = *std::get_if<g3d::G3dShader>(&shade);
-
-  auto merged = ApplyG3dShaderToMaterial(raw_mat, raw_shade);
-  if (auto* err = std::get_if<std::string>(&merged); err != nullptr) {
-    return "Failed to combine material + shader: " + *err;
+  {
+    auto merged = ApplyG3dShaderToMaterial(*mat, *shade);
+    if (!merged.has_value()) {
+      return "Failed to combine material + shader: " + merged.error();
+    }
+    tmp.mat = *merged;
   }
-  tmp.mat = *std::get_if<g3d::G3dMaterialData>(&merged);
   tmp.mat.name = paths.preset_name;
   return tmp;
 }

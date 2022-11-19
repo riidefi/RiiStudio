@@ -154,6 +154,15 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
   rsl::array_vector<SamplerData, 8> samplers;
 };
 
+static inline void TryRenameSampler(GCMaterialData& mat, const std::string& old_name,
+	const std::string& new_name) {
+  for (auto& s : mat.samplers) {
+    if (s.mTexture == old_name) {
+      s.mTexture = new_name;
+    }
+  }
+}
+
 static inline glm::mat4x4 arrayToMat4x4(const std::array<f32, 16>& m) {
   return glm::mat4x4{
       m[0], m[4], m[8],  m[12], m[1], m[5], m[9],  m[13],

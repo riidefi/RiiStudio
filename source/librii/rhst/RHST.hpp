@@ -33,6 +33,8 @@ struct Material {
 
   s32 lightset_index = -1;
   s32 fog_index = -1;
+
+  std::string preset_path_mdl0mat;
 };
 
 struct DrawCall {

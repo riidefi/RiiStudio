@@ -450,6 +450,24 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
     }
   }
 
+  // Handle material presets
+  if (auto* gmdl = dynamic_cast<g3d::Model*>(&mdl); gmdl != nullptr) {
+    for (auto& mat : result->materials) {
+      if (mat.preset_path_mdl0mat.empty()) {
+        continue;
+      }
+      auto* gmat = gmdl->getMaterials().findByName(mat.name);
+      DebugReport("Applying .mdl0mat preset to material %s from path %s\n",
+                  mat.name.c_str(), mat.preset_path_mdl0mat.c_str());
+      auto err = ApplyCratePresetToMaterial(*gmat, mat.preset_path_mdl0mat);
+      if (err.size()) {
+        DebugReport("...Error: %s\n", err.c_str());
+      } else {
+        DebugReport("...Sucess\n");
+      }
+    }
+  }
+
   transaction.state = kpi::TransactionState::Complete;
 }
 

@@ -413,6 +413,11 @@ class JRESMaterialPanel(bpy.types.Panel):
 		row.prop(mat, "jres_wrap_u")
 		row.prop(mat, "jres_wrap_v")
 
+		# Material Preset
+		box = layout.box()
+		box.label(text="Material Presets (Experimental)", icon='ERROR')
+		box.row().prop(mat, 'preset_path_mdl0mat')
+
 # src\panels\JRESScenePanel.py
 
 class JRESScenePanel(bpy.types.Panel):
@@ -519,7 +524,8 @@ def build_rs_mat(mat, texture_name):
 		'display_back': mat.jres_display_back,
 		'pe': mat.jres_pe_mode,
 		'lightset': mat.jres_lightset_index,
-		'fog': mat.jres_fog_index
+		'fog': mat.jres_fog_index,
+		'preset_path_mdl0mat': mat.preset_path_mdl0mat,
 	}
 
 def mesh_from_object(Object):
@@ -1256,6 +1262,12 @@ def register_mat():
 		name="V",
 		items=UV_WRAP_MODES,
 		default='repeat'
+	)
+
+	# Presets
+	bpy.types.Material.preset_path_mdl0mat = StringProperty(
+		name="Preset Path",
+		subtype='DIR_PATH',
 	)
 
 def register():

@@ -4,6 +4,7 @@
 #include <librii/g3d/data/AnimData.hpp>
 #include <librii/g3d/data/MaterialData.hpp>
 #include <librii/g3d/data/TextureData.hpp>
+#include <rsl/Expected.hpp>
 #include <variant>
 
 namespace librii::crate {
@@ -14,7 +15,7 @@ namespace librii::crate {
 //! mStages/mIndirectStages[...].indOrder will be set to default values; their
 //! size will be valid, though.
 //
-std::variant<g3d::G3dMaterialData, std::string>
+rsl::expected<g3d::G3dMaterialData, std::string>
 ReadMDL0Mat(std::span<const u8> file);
 
 //! BrawlCrate-generated TEV definition. Includes Swap/Indirect Orders too.
@@ -23,7 +24,7 @@ ReadMDL0Mat(std::span<const u8> file);
 //! to know how many are actually used. Also, the stage count in the shader is
 //! trusted here, although it may be unused by the game/runtime library.
 //!
-std::variant<g3d::G3dShader, std::string>
+rsl::expected<g3d::G3dShader, std::string>
 ReadMDL0Shade(std::span<const u8> file);
 
 //! Applies the three fields in G3dShader to G3dMaterialData.
@@ -35,19 +36,19 @@ ReadMDL0Shade(std::span<const u8> file);
 //! Likewise, the number of indirectStages in the material determines the number
 //! of indirectOrders pulled from the G3dShader.
 //!
-std::variant<g3d::G3dMaterialData, std::string>
+rsl::expected<g3d::G3dMaterialData, std::string>
 ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
                          const g3d::G3dShader& tev);
 
 //! A "TEX0" file is effectively a .brtex archive without the enclosing
 //! structure.
 //!
-std::variant<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file);
+rsl::expected<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file);
 
 //! A "SRT0" file is effectively a .brtsa archive without the enclosing
 //! structure.
 //!
-std::variant<g3d::SrtAnimationArchive, std::string>
+rsl::expected<g3d::SrtAnimationArchive, std::string>
 ReadSRT0(std::span<const u8> file);
 
 struct CrateAnimationPaths {
@@ -65,9 +66,9 @@ struct CrateAnimation {
   std::vector<g3d::SrtAnimationArchive> srt; // All valid .srt archives
 };
 
-std::variant<CrateAnimationPaths, std::string>
+rsl::expected<CrateAnimationPaths, std::string>
 ScanCrateAnimationFolder(std::filesystem::path path);
-std::variant<CrateAnimation, std::string>
+rsl::expected<CrateAnimation, std::string>
 ReadCrateAnimation(const CrateAnimationPaths& paths);
 
 //! Animations targets materials by name; rename each SRT animation target to
