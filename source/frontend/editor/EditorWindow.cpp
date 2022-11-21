@@ -19,7 +19,7 @@ static std::string getFileShort(const std::string& path) {
 void EditorWindow::init() {
   // Don't require selection reset on first element
   commit(mSelection, false);
-  mIconManager.propogateIcons(getRoot());
+  mIconManager.propagateIcons(getRoot());
 
   // mActive must be stable
   attachWindow(MakePropertyEditor(getHistory(), getRoot(), mSelection, *this));
@@ -35,6 +35,7 @@ EditorWindow::EditorWindow(std::unique_ptr<kpi::INode> state,
       EditorDocument(std::move(state), path) {
   init();
 }
+EditorWindow::~EditorWindow() = default;
 ImGuiID EditorWindow::buildDock(ImGuiID root_id) {
   ImGuiID next = root_id;
   ImGuiID dock_right_id =

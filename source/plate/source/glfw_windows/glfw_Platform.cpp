@@ -189,6 +189,8 @@ void Platform::enter() {
   }
 }
 
+bool Platform::supportsFileDialogues() { return true; }
+
 void Platform::writeFile(const std::span<uint8_t> data,
                          const std::string_view path) {
   std::ofstream stream(std::string(path), std::ios::binary | std::ios::out);

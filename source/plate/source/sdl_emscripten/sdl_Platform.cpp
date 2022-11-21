@@ -171,6 +171,8 @@ void Platform::enter() {
   emscripten_set_click_callback(0, 0, 1, EmscriptenMouseCallback);
 }
 
+bool Platform::supportsFileDialogues() { return false; }
+
 void Platform::writeFile(const std::span<uint8_t> data,
                          const std::string_view path) {
   static_assert(sizeof(void*) == sizeof(uint32_t), "emscripten pointer size");

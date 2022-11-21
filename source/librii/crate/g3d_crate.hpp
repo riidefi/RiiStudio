@@ -45,6 +45,8 @@ ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
 //!
 rsl::expected<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file);
 
+std::vector<u8> WriteTEX0(const g3d::TextureData& tex);
+
 //! A "SRT0" file is effectively a .brtsa archive without the enclosing
 //! structure.
 //!

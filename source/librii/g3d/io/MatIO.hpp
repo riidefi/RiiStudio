@@ -92,9 +92,9 @@ struct ShaderAllocator {
 bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
                   bool ignore_tev = false);
 
-void WriteMaterial(const size_t& mat_start, oishii::Writer& writer,
-                   NameTable& names, const G3dMaterialData& mat, u32& mat_idx,
-                   RelocWriter& linker, const ShaderAllocator& shader_allocator,
+void WriteMaterial(size_t mat_start, oishii::Writer& writer, NameTable& names,
+                   const G3dMaterialData& mat, u32 mat_idx, RelocWriter& linker,
+                   const ShaderAllocator& shader_allocator,
                    TextureSamplerMappingManager& tex_sampler_mappings);
 
 } // namespace librii::g3d

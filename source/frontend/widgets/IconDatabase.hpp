@@ -13,7 +13,7 @@ public:
   IconDatabase(u32 iconDimension = 64);
   ~IconDatabase();
 
-  Key addIcon(lib3d::Texture& texture);
+  Key addIcon(const lib3d::Texture& texture);
   void drawIcon(Key id, int wd, int ht) const;
 
 private:
@@ -22,7 +22,7 @@ private:
     u32 glId;
 
     Icon(Icon&& rhs) : glId(rhs.glId) { rhs.glId = -1; }
-    Icon(lib3d::Texture& texture, u32 dimension);
+    Icon(const lib3d::Texture& texture, u32 dimension);
     ~Icon();
   };
 

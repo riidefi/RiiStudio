@@ -71,6 +71,8 @@ public:
   virtual void vdropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len,
                            const std::string& name) {}
 
+  static bool supportsFileDialogues();
+
   /**
    * @brief Write a file to disc. On the web backend, the file will
    * instead be supplied as a download.

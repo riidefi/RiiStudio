@@ -10,7 +10,7 @@ IconDatabase::IconDatabase(u32 iconDimension) : mIconDim(iconDimension) {
   mIcons.reserve(256);
 }
 IconDatabase::~IconDatabase() {}
-IconDatabase::Key IconDatabase::addIcon(lib3d::Texture& texture) {
+IconDatabase::Key IconDatabase::addIcon(const lib3d::Texture& texture) {
   Key id = mIcons.size();
   mIcons.emplace_back(texture, mIconDim);
   return id;
@@ -24,7 +24,7 @@ void IconDatabase::drawIcon(Key id, int wd, int ht) const {
 static std::array<u8, 128 * 128 * 4> scratch;
 static std::vector<u8> tmp;
 
-IconDatabase::Icon::Icon(lib3d::Texture& texture, u32 dimension) {
+IconDatabase::Icon::Icon(const lib3d::Texture& texture, u32 dimension) {
 #ifdef RII_GL
   glGenTextures(1, &glId);
 

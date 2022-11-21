@@ -10,13 +10,15 @@ public:
   IconManager() = default;
   ~IconManager() = default;
 
-  void propogateIcons(kpi::ICollection& folder);
-  void propogateIcons(kpi::INode& node);
-  void drawImageIcon(const lib3d::Texture* tex, u32 dim) const;
+  void propagateIcons(kpi::ICollection& folder);
+  void propagateIcons(kpi::INode& node);
+  // Will upload if missing
+  void drawImageIcon(const lib3d::Texture* tex, u32 dim);
 
 private:
   IconDatabase mIconManager;
-  rsl::dense_map<const lib3d::Texture*, IconDatabase::Key> mImageIcons;
+  rsl::dense_map<lib3d::GenerationIDTracked::GenerationID, IconDatabase::Key>
+      mImageIcons;
 };
 
 } // namespace riistudio

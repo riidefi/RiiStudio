@@ -429,20 +429,19 @@ bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader, bool ignor
   return true;
 }
 
-void WriteMaterial(const size_t& mat_start, oishii::Writer& writer,
-                   NameTable& names, const G3dMaterialData& mat, u32& mat_idx,
+void WriteMaterial(size_t mat_start, oishii::Writer& writer,
+                   NameTable& names, const G3dMaterialData& mat, u32 mat_idx,
                    RelocWriter& linker, const ShaderAllocator& shader_allocator,
                    TextureSamplerMappingManager& tex_sampler_mappings) {
   DebugReport("MAT_START %x\n", (u32)mat_start);
   DebugReport("MAT_NAME %x\n", writer.tell());
   writeNameForward(names, writer, mat_start, mat.name);
   DebugReport("MATIDAT %x\n", writer.tell());
-  writer.write<u32>(mat_idx++);
+  writer.write<u32>(mat_idx);
   u32 flag = mat.flag;
   flag = (flag & ~0x80000000) | (mat.xlu ? 0x80000000 : 0);
   writer.write<u32>(flag);
   WriteMaterialGenMode(writer, mat);
-  // Misc
   WriteMaterialMisc(writer, mat);
   linker.writeReloc<s32>("Mat" + std::to_string(mat_start),
                          shader_allocator.getShaderIDName(mat));

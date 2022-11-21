@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Memento.hpp"
+#include <functional>
 #include <memory>
+#include <set>
 #include <vector>
 
 namespace kpi {
@@ -18,8 +20,18 @@ struct SelectionManager {
 
   bool isSelected(kpi::IObject* obj) const { return selected.contains(obj); }
 
+  void onUndoRedo_ResetSelection() {
+    selected = {};
+    mActive = nullptr;
+
+    for (auto& cb : mUndoRedoCbs) {
+      cb.second();
+    }
+  }
+
   std::set<kpi::IObject*> selected;
   kpi::IObject* mActive = nullptr;
+  std::vector<std::pair<void*, std::function<void(void)>>> mUndoRedoCbs;
 };
 
 class History {
@@ -33,7 +45,7 @@ public:
         doc, root_history.empty() ? nullptr : root_history.back().get()));
     needs_select_reset.push_back(select_reset);
     if (select_reset && sel != nullptr) {
-      *sel = {};
+      sel->onUndoRedo_ResetSelection();
     }
     ++history_cursor;
   }
@@ -41,7 +53,7 @@ public:
     if (history_cursor <= 0)
       return;
     if (needs_select_reset[history_cursor])
-      sel = {};
+      sel.onUndoRedo_ResetSelection();
     --history_cursor;
     rollbackTo(doc, history_cursor);
   }
@@ -50,7 +62,7 @@ public:
       return;
     ++history_cursor;
     if (needs_select_reset[history_cursor])
-      sel = {};
+      sel.onUndoRedo_ResetSelection();
     rollbackTo(doc, history_cursor);
   }
   std::size_t cursor() const { return history_cursor; }

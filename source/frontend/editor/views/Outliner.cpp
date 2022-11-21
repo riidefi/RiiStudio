@@ -43,12 +43,18 @@ std::string NameObject(const kpi::IObject* obj, int i) {
 struct GenericCollectionOutliner : public StudioWindow {
   GenericCollectionOutliner(kpi::INode& host, SelectionManager& selection,
                             EditorWindow& ed);
+  ~GenericCollectionOutliner();
 
   void drawFolder(Child::Folder& folder) noexcept;
 
   void drawRecursive(std::vector<Child::Folder> folders) noexcept;
 
+  void onUndoRedo() noexcept { activeModal = std::nullopt; }
+
 private:
+  // To be able to remove from set
+  std::shared_ptr<std::function<void(void)>> mCallback;
+
   void draw_() noexcept override;
 
   kpi::INode& mHost;
@@ -68,6 +74,16 @@ GenericCollectionOutliner::GenericCollectionOutliner(
     kpi::INode& host, SelectionManager& selection, EditorWindow& ed)
     : StudioWindow("Outliner"), mHost(host), mSelection(selection), ed(ed) {
   setClosable(false);
+  mSelection.mUndoRedoCbs.push_back(
+      {this, [outliner = this] { outliner->onUndoRedo(); }});
+}
+GenericCollectionOutliner::~GenericCollectionOutliner() {
+  auto it = std::find_if(mSelection.mUndoRedoCbs.begin(),
+                         mSelection.mUndoRedoCbs.end(),
+                         [&](const auto& x) { return x.first == this; });
+  if (it != mSelection.mUndoRedoCbs.end()) {
+    mSelection.mUndoRedoCbs.erase(it);
+  }
 }
 
 std::vector<const lib3d::Texture*> GetNodeIcons(kpi::IObject& nodeAt) {

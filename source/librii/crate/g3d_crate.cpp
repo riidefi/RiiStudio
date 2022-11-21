@@ -70,6 +70,54 @@ ReadTEX0(std::span<const u8> file) {
   return tex;
 }
 
+class SimpleRelocApplier {
+public:
+  SimpleRelocApplier(std::vector<u8>& buf) : mBuf(buf) {}
+  ~SimpleRelocApplier() = default;
+
+  void apply(g3d::NameReloc reloc, u32 structure_offset) {
+    // Transform from structure-space to buffer-space
+    reloc = g3d::RebasedNameReloc(reloc, structure_offset);
+    // Write to end of mBuffer
+    const u32 string_location = writeName(reloc.name);
+    mBuf.resize(roundUp(mBuf.size(), 4));
+	// Resolve pointer
+    writePointer(reloc, string_location);
+  }
+
+private:
+  void writePointer(g3d::NameReloc& reloc, u32 string_location) {
+    const u32 pointer_location = reloc.offset_of_pointer_in_struct;
+    const u32 structure_location = reloc.offset_of_delta_reference;
+    rsl::store<s32>(string_location - structure_location, mBuf,
+                    pointer_location);
+  }
+  u32 writeName(std::string_view name) {
+    const u32 sz = name.size();
+    mBuf.push_back((sz & 0xff000000) >> 24);
+    mBuf.push_back((sz & 0x00ff0000) >> 16);
+    mBuf.push_back((sz & 0x0000ff00) >> 8);
+    mBuf.push_back((sz & 0x000000ff) >> 0);
+    const u32 string_location = mBuf.size();
+    mBuf.insert(mBuf.end(), name.begin(), name.end());
+    mBuf.push_back(0);
+    return string_location;
+  }
+  std::vector<u8> &mBuf;
+};
+
+std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
+  auto memory_request = g3d::CalcTextureBlockData(tex);
+  std::vector<u8> buffer(memory_request.size);
+
+  g3d::NameReloc reloc;
+  g3d::WriteTexture(buffer, tex, 0, reloc);
+  SimpleRelocApplier applier(buffer);
+  applier.apply(reloc, 0 /* structure offset */);
+
+  return buffer;
+}
+
 rsl::expected<g3d::SrtAnimationArchive, std::string>
 ReadSRT0(std::span<const u8> file) {
   g3d::SrtAnimationArchive arc;

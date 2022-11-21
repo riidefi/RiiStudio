@@ -21,11 +21,11 @@ public:
   EditorWindow(EditorWindow&&) = delete;
 
 public:
-  ~EditorWindow() = default;
+  ~EditorWindow();
 
   ImGuiID buildDock(ImGuiID root_id) override;
   void draw_() override;
-  void drawImageIcon(const lib3d::Texture* tex, u32 dim) const {
+  void drawImageIcon(const lib3d::Texture* tex, u32 dim) {
     mIconManager.drawImageIcon(tex, dim);
   }
 
