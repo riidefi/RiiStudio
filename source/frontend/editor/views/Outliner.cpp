@@ -52,9 +52,6 @@ struct GenericCollectionOutliner : public StudioWindow {
   void onUndoRedo() noexcept { activeModal = std::nullopt; }
 
 private:
-  // To be able to remove from set
-  std::shared_ptr<std::function<void(void)>> mCallback;
-
   void draw_() noexcept override;
 
   kpi::INode& mHost;

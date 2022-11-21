@@ -230,6 +230,7 @@ struct ImageSurface final : public ResizeAction, public ReformatAction {
 
   Texture* attached = nullptr;
   riistudio::frontend::Lib3dCachedImagePreview mImg;
+  std::vector<char> nameBuf;
 
   void invalidateTextureCaches() {
     if (attached != nullptr)
@@ -325,6 +326,17 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
   }
 
   tex.mImg.draw(data);
+
+  const auto name = data.getName();
+  tex.nameBuf.clear();
+  tex.nameBuf.resize(name.size() * 2 + 1 /* null terminator */);
+  tex.nameBuf.insert(tex.nameBuf.begin(), name.begin(), name.end());
+  ImGui::InputText("Name", tex.nameBuf.data(), tex.nameBuf.size());
+  if (strcmp(tex.nameBuf.data(), name.data())) {
+    data.setName(tex.nameBuf.data());
+    data.onUpdate();
+    delegate.commit("Rename");
+  }
 
 #ifdef BUILD_DEBUG
   if (ImGui::CollapsingHeader("DEBUG")) {

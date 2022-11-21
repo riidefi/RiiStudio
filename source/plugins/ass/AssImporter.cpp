@@ -639,8 +639,7 @@ void AssImporter::ImportAss(
     tex.setHeight(dummy_height);
     scratch.resize(dummy_width * dummy_height * 4);
     // Make a basic checkerboard
-    librii::image::generateCheckerboard(scratch.data(), dummy_width,
-                                        dummy_height);
+    librii::image::generateCheckerboard(scratch, dummy_width, dummy_height);
     tex.setMipmapCount(0);
     tex.setTextureFormat(librii::gx::TextureFormat::CMPR);
     tex.encode(scratch.data());

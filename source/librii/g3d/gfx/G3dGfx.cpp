@@ -3,6 +3,8 @@
 // OPENGL
 #include <core/3d/gl.hpp>
 
+#include <librii/image/CheckerBoard.hpp>
+
 namespace librii::g3d::gfx {
 
 using namespace riistudio;
@@ -27,6 +29,14 @@ librii::gfx::SceneNode::UniformData pushUniform(u32 binding_point,
   return {.binding_point = binding_point, .raw_data = {pack_begin, pack_end}};
 }
 using SceneNode = librii::gfx::SceneNode;
+
+static constexpr librii::image::NullTextureData<64, 64> NullCheckerboard;
+struct MyDefTex : public librii::image::NullTexture<64, 64> {
+  using NullTexture::NullTexture;
+  std::string getName() const override { return "<DEFAULT TEXTURE>"; }
+};
+static MyDefTex DefaultTex(NullCheckerboard);
+
 void MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
                    librii::glhelper::VBOBuilder& v, G3dTextureCache& tex_id_map,
                    Node node, librii::glhelper::ShaderProgram& prog, u32 mp_id,
@@ -62,11 +72,15 @@ void MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
       const auto found = tex_id_map.getCachedTexture(sampler.mTexture);
       if (!found) {
         printf("Invalid texture link.\n");
-        continue;
+        if (!tex_id_map.isCached(DefaultTex)) {
+          tex_id_map.cache(DefaultTex);
+        }
+        obj.active_id = i;
+        obj.image_id = tex_id_map.getCachedTexture(DefaultTex);
+      } else {
+        obj.active_id = i;
+        obj.image_id = *found;
       }
-
-      obj.active_id = i;
-      obj.image_id = *found;
     }
 
     obj.glMinFilter = librii::gl::gxFilterToGl(sampler.mMinFilter);

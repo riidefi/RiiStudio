@@ -1,12 +1,16 @@
 #pragma once
 
+#include <array>
+#include <core/3d/Texture.hpp>
 #include <core/common.h>
+#include <span>
 
 namespace librii::image {
 
-inline void generateCheckerboard(u8* scratch, int width, int height,
-                                 u32 fg = 0xff'00'dc'ff,
-                                 u32 bg = 0x00'00'00'ff) {
+static inline constexpr void generateCheckerboard(std::span<u8> scratch,
+                                                  int width, int height,
+                                                  u32 fg = 0xff'00'dc'ff,
+                                                  u32 bg = 0x00'00'00'ff) {
   for (int i = 0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
       const auto px_offset = i * width * 4 + j * 4;
@@ -19,5 +23,42 @@ inline void generateCheckerboard(u8* scratch, int width, int height,
     }
   }
 }
+
+template <u32 W, u32 H> struct NullTextureData {
+  std::array<u8, W * H * 4> pixels_rgba32raw;
+  u32 width;
+  u32 height;
+
+  constexpr NullTextureData() : width(W), height(H) {
+    librii::image::generateCheckerboard(pixels_rgba32raw, width, height);
+  }
+};
+
+template <u32 W, u32 H> struct NullTexture : public riistudio::lib3d::Texture {
+  const NullTextureData<W, H>& data;
+  NullTexture(const NullTextureData<W, H>& data_) : data(data_) {}
+
+  u32 getEncodedSize(bool mip) const override {
+    return data.pixels_rgba32raw.size();
+  }
+  void decode(std::vector<u8>& out, bool mip) const override {
+    out.insert(out.begin(), data.pixels_rgba32raw.begin(),
+               data.pixels_rgba32raw.end());
+  }
+
+  u32 getImageCount() const override { return 1; }
+
+  u16 getWidth() const override { return data.width; }
+  u16 getHeight() const override { return data.height; }
+
+  // Unimplemented
+  void setName(const std::string& name) override {}
+  void setImageCount(u32 c) override {}
+  void setWidth(u16 width) override {}
+  void setHeight(u16 height) override {}
+  void setEncoder(bool optimizeForSize, bool color,
+                  Occlusion occlusion) override {}
+  void encode(const u8* rawRGBA) override {}
+};
 
 } // namespace librii::image

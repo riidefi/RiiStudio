@@ -3,7 +3,6 @@
 #include "Memento.hpp"
 #include <functional>
 #include <memory>
-#include <set>
 #include <vector>
 
 namespace kpi {

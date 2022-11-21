@@ -7,7 +7,7 @@ namespace riistudio {
 
 class IconManager {
 public:
-  IconManager() = default;
+  IconManager();
   ~IconManager() = default;
 
   void propagateIcons(kpi::ICollection& folder);
@@ -19,6 +19,7 @@ private:
   IconDatabase mIconManager;
   rsl::dense_map<lib3d::GenerationIDTracked::GenerationID, IconDatabase::Key>
       mImageIcons;
+  std::unique_ptr<lib3d::Texture> mNullIcon;
 };
 
 } // namespace riistudio

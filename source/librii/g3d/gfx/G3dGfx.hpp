@@ -100,7 +100,9 @@ struct G3dTextureCache {
   }
 
   void update(const lib3d::Scene& host) {
+    std::set<std::string> updated;
     for (auto& tex : host.getTextures()) {
+      updated.emplace(tex.getName());
       if (isCached(tex)) {
         // Possibly reupload data if the generation ID has changed.
         mTexIdMap[tex.getName()].update(tex);
@@ -108,6 +110,17 @@ struct G3dTextureCache {
       }
 
       cache(tex);
+    }
+
+    // Bust old data from cache
+    std::vector<std::string> old;
+    for (auto& entry : mTexIdMap) {
+      if (!updated.contains(entry.first)) {
+        old.push_back(entry.first);
+      }
+    }
+    for (auto& entry : old) {
+      mTexIdMap.erase(entry);
     }
   }
 };
@@ -225,9 +238,9 @@ struct G3dShaderCache_WithUnusableHashingMechanism {
   }
 };
 
-// GenericShaderCache_WithObserverUpdates: Hashmap ShaderData -> Shader; only latest version kept in-memory
-// G3dShaderCache_WithUnusableHashingMechanism: Uses hashmap to store a mapping
-// of ShaderData -> Shader
+// GenericShaderCache_WithObserverUpdates: Hashmap ShaderData -> Shader; only
+// latest version kept in-memory G3dShaderCache_WithUnusableHashingMechanism:
+// Uses hashmap to store a mapping of ShaderData -> Shader
 
 using G3dShaderCache = GenericShaderCache_WithObserverUpdates;
 // using G3dShaderCache = G3dShaderCache_WithUnusableHashingMechanism;
