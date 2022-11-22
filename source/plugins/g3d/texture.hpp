@@ -28,6 +28,11 @@ struct Texture : public librii::g3d::TextureData,
   void setWidth(u16 w) override { width = w; }
   u16 getHeight() const override { return height; }
   void setHeight(u16 h) override { height = h; }
+  void setLod(bool custom, f32 min_, f32 max_) override {
+    custom_lod = custom;
+    minLod = min_;
+    maxLod = max_;
+  }
 
   bool operator==(const Texture& rhs) const {
     return TextureData::operator==(static_cast<const TextureData&>(rhs));

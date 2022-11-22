@@ -4,12 +4,12 @@
 #include <frontend/editor/StudioWindow.hpp> // StudioWindow
 #include <plugins/gc/Export/Material.hpp>   // libcube::IGCMaterial
 //#include <regex>                          // std::regex_search
+#include "OutlinerWidget.hpp"
 #include <core/kpi/ActionMenu.hpp> // kpi::ActionMenuManager
+#include <filesystem>
 #include <functional>
 #include <plugins/gc/Export/Scene.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_SEARCH
-
-#include "OutlinerWidget.hpp"
 
 bool IsAdvancedMode();
 
@@ -129,8 +129,9 @@ void DrawCtxMenuFor(kpi::IObject* nodeAt, EditorWindow& ed) {
 }
 void DrawModalFor(kpi::IObject* nodeAt, EditorWindow& ed) {
   auto sel = kpi::ActionMenuManager::get().drawModals(*nodeAt, &ed);
-  if (sel)
-    ed.getDocument().commit(ed.getSelection(), static_cast<int>(sel) > 1);
+  if (sel != kpi::NO_CHANGE) {
+    ed.getDocument().commit(ed.getSelection(), sel == kpi::CHANGE_NEED_RESET);
+  }
 }
 
 auto GetGChildren(kpi::INode* node, EditorWindow& ed,
@@ -232,10 +233,11 @@ void GenericCollectionOutliner::draw_() noexcept {
   };
   auto root = Child{
       .obj = &mHost,
-      .public_name = "Root",
+      .public_name =
+          std::filesystem::path(ed.getFilePath()).filename().string(),
       .is_rich = true,
-      .type_icon = "X",
-      .type_name = "XX",
+      .type_icon = (const char*)ICON_FA_SHAPES,
+      .type_name = "Scene",
       .icons_right = GetNodeIcons(mHost),
       .folders = children,
       .is_container = true,
@@ -247,8 +249,8 @@ void GenericCollectionOutliner::draw_() noexcept {
       .key = "ROOT",
       .add_new_fn = nullptr,
       .delete_child_fn = nullptr,
-      .type_icon_pl = "X",
-      .type_name_pl = "XX",
+      .type_icon_pl = (const char*)ICON_FA_SHAPES,
+      .type_name_pl = "Scenes",
   };
   drawFolder(root_folder);
 

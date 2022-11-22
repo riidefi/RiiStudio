@@ -88,7 +88,7 @@ void AddNewCtxMenu(EditorWindow& ed, Child::Folder& folder) {
           folder.add_new_fn();
           // TODO: Move commit inside?
 
-		  // Selection must be reset
+          // Selection must be reset
           ed.getDocument().commit(ed.getSelection(), true);
         }
       }
@@ -107,11 +107,15 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
   if (!folder.children[0].has_value() || !folder.children[0]->is_rich)
     return;
 
-  ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-  const bool opened = ImGui::TreeNode(FormatTitle(folder, &mFilter).c_str());
-  AddNewCtxMenu(ed, folder);
-  if (!opened)
-    return;
+  bool opened = false;
+
+  if (folder.key != "ROOT") {
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    opened = ImGui::TreeNode(FormatTitle(folder, &mFilter).c_str());
+    AddNewCtxMenu(ed, folder);
+    if (!opened)
+      return;
+  }
 
   // A filter tree for multi selection. Prevents inclusion of unfiltered data
   // with SHIFT clicks.
@@ -168,7 +172,7 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
       children[i]->draw_context_menu_fn(ed);
 
       // set activeModal for an actual gui
-      if (ImGui::MenuItem("Delete")) {
+      if (folder.delete_child_fn != nullptr && ImGui::MenuItem("Delete")) {
         children[i]->mark_to_delete = true;
       }
 
@@ -216,9 +220,10 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
       ImGui::TreePop();
     }
   }
-  ImGui::TreePop();
+  if (folder.key != "ROOT") {
+    ImGui::TreePop();
+  }
 
-  
   for (int i = 0; i < children.size(); ++i) {
     if (!children[i]->mark_to_delete)
       continue;
@@ -229,7 +234,6 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
     justSelectedId = -1;
     return;
   }
-
 
   // If nothing new was selected, no new processing needs to occur.
   if (justSelectedId == -1)

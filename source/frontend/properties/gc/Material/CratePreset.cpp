@@ -7,6 +7,7 @@
 #include <librii/crate/g3d_crate.hpp>
 #include <librii/image/TextureExport.hpp>
 #include <plate/Platform.hpp>
+#include <plugins/ass/ImportTexture.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <rsl/FsDialog.hpp>
 #include <vendor/stb_image.h>
@@ -215,7 +216,7 @@ public:
   }
 };
 
-std::string tryImportMany(riistudio::g3d::Collection& scn) {
+std::string tryImportMany(libcube::Scene& scn) {
   const auto files = rsl::ReadManyFile("Import Path"_j, "",
                                        {
                                            "Image files",
@@ -240,13 +241,26 @@ std::string tryImportMany(riistudio::g3d::Collection& scn) {
   for (const auto& file : *files) {
     const auto& path = file.path.string();
     if (path.ends_with(".tex0")) {
-      auto replacement = librii::crate::ReadTEX0(file.data);
-      if (!replacement) {
+      auto rep = librii::crate::ReadTEX0(file.data);
+      if (!rep) {
         return "Failed to read .tex0 at \"" + std::string(path) + "\"\n" +
-               replacement.error();
+               rep.error();
       }
-      static_cast<librii::g3d::TextureData&>(scn.getTextures().add()) =
-          *replacement;
+      auto& tex = scn.getTextures().add();
+
+      // Using more general approach to support J3D too
+      // static_cast<librii::g3d::TextureData&>(scn.getTextures().add()) =
+      //     *replacement;
+
+      tex.setName(rep->name);
+      tex.setTextureFormat(rep->format);
+      tex.setWidth(rep->width);
+      tex.setHeight(rep->height);
+      tex.setImageCount(rep->number_of_images);
+      tex.setLod(rep->custom_lod, rep->minLod, rep->maxLod);
+      memcpy(tex.getData(), rep->data.data(),
+             std::min<u32>(tex.getEncodedSize(true), rep->data.size()));
+
       continue;
     }
 
@@ -268,40 +282,28 @@ std::string tryImportMany(riistudio::g3d::Collection& scn) {
     if (!is_power_of_2(height)) {
       return "Height " + std::to_string(height) + " is not a power of 2.";
     }
-
-    librii::g3d::TextureData data{
-        .name = path,
-        .format = librii::gx::TextureFormat::CMPR,
-        .width = static_cast<u32>(width),
-        .height = static_cast<u32>(height),
-        .number_of_images = 1,
-        .custom_lod = false,
-        .minLod = 0.0f,
-        .maxLod = 1.0f,
-        .sourcePath = path,
-        .data = {},
-    };
-    data.data.resize(librii::gx::computeImageSize(width, height, data.format,
-                                                  data.number_of_images));
-    librii::image::transform(data.data.data(), data.width, data.height,
-                             gx::TextureFormat::Extension_RawRGBA32,
-                             data.format, image, width, height);
-
-    static_cast<librii::g3d::TextureData&>(scn.getTextures().add()) = data;
+    std::vector<u8> scratch;
+    auto& tex = scn.getTextures().add();
+    const bool ok = riistudio::ass::importTexture(tex, image, scratch, true, 64,
+                                                  4, width, height, channels);
+    if (!ok) {
+      return "Failed to import texture";
+    }
+    tex.setName(file.path.stem().string());
   }
 
   return {};
 }
 
 class ImportTexturesAction
-    : public kpi::ActionMenu<riistudio::g3d::Collection, ImportTexturesAction> {
+    : public kpi::ActionMenu<libcube::Scene, ImportTexturesAction> {
   bool m_import = false;
   ErrorState m_errorState{"Textures Import Error"};
 
 public:
   static bool IsSupported() { return plate::Platform::supportsFileDialogues(); }
 
-  bool _context(riistudio::g3d::Collection&) {
+  bool _context(libcube::Scene&) {
     if (ImGui::MenuItem("Import textures"_j)) {
       m_import = true;
     }
@@ -309,7 +311,7 @@ public:
     return false;
   }
 
-  kpi::ChangeType _modal(riistudio::g3d::Collection& scn) {
+  kpi::ChangeType _modal(libcube::Scene& scn) {
     m_errorState.modal();
 
     if (m_import) {

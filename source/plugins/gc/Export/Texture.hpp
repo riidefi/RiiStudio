@@ -76,6 +76,8 @@ struct Texture : public riistudio::lib3d::Texture {
                              getTextureFormat(), rawRGBA, getWidth(),
                              getHeight(), getMipmapCount());
   }
+
+  virtual void setLod(bool custom, f32 min_, f32 max_) = 0;
 };
 
 } // namespace libcube

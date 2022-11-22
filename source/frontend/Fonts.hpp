@@ -28,7 +28,7 @@ constexpr const char* sTextFont = sEnUsFont;
 constexpr const char* sTextFont = sJpnFont;
 #endif
 
-inline bool IsJapaneseSupported() { return sTextFont == sJpnFont; }
+inline bool IsJapaneseSupported() { return !strcmp(sTextFont, sJpnFont); }
 
 } // namespace Fonts
 

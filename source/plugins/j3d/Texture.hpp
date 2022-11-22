@@ -36,6 +36,11 @@ struct Texture : public librii::j3d::TextureData, public libcube::Texture {
   void setWidth(u16 width) override { mWidth = width; }
   u16 getHeight() const override { return mHeight; }
   void setHeight(u16 height) override { mHeight = height; }
+
+  void setLod(bool custom, f32 min_, f32 max_) override {
+    mMinLod = min_;
+    mMaxLod = max_;
+  }
 };
 
 } // namespace riistudio::j3d

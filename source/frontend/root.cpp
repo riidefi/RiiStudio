@@ -154,11 +154,16 @@ void RootWindow::processImportersQueue() {
     return;
   }
 
-  const auto wflags = ImGuiWindowFlags_NoCollapse;
+  const auto wflags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                      ImGuiWindowFlags_AlwaysAutoResize;
 
   ImGui::OpenPopup("Importer"_j);
   {
-    ImGui::SetNextWindowSize({800.0f, 00.0f});
+    auto pos = ImGui::GetWindowPos();
+    pos.x += (ImGui::GetWindowWidth() - 800.0f) / 2;
+    pos.y += (ImGui::GetWindowHeight() - 600.0f) / 2;
+    ImGui::SetNextWindowPos(pos);
+    ImGui::SetNextWindowSizeConstraints({800.0f, 0.0f}, {800.0f, 600.0f});
     ImGui::BeginPopupModal("Importer"_j, nullptr, wflags);
     window.draw();
   }
