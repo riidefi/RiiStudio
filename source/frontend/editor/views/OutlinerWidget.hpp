@@ -36,6 +36,8 @@ public:
   // Images can be used, with a special character that indexes the font sheet
   // See: FontAwesome.h
   std::string type_icon = "(?)";
+  ImVec4 type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f};
+
 
   // Used by context menu
   //
@@ -58,6 +60,9 @@ public:
 
     // RichName::getIconPlural()
     std::string type_icon_pl = "(?)";
+
+	ImVec4 type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f};
+
 
     // RichName::getIconPlural()
     std::string type_name_pl = "Unknown Things";

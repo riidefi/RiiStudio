@@ -35,6 +35,15 @@ public:
   }
 };
 
+static ImVec4 Clr(u32 x) {
+  return ImVec4{
+      static_cast<float>(x >> 16) / 255.0f,
+      static_cast<float>((x >> 8) & 0xff) / 255.0f,
+      static_cast<float>(x & 0xff) / 255.0f,
+      1.0f,
+  };
+}
+
 void InstallG3d(kpi::ApplicationPlugins& installer) {
   installer.addType<g3d::Bone, libcube::IBoneDelegate>()
       .addType<g3d::Texture, libcube::Texture>()
@@ -52,7 +61,8 @@ void InstallG3d(kpi::ApplicationPlugins& installer) {
   rich.addRichName<g3d::ColorBuffer>((const char*)ICON_FA_BRUSH,
                                      "Vertex Color");
   rich.addRichName<g3d::SRT0>((const char*)ICON_FA_WAVE_SQUARE,
-                              "Texture Matrix Animation");
+                              "Texture Matrix Animation", "", "",
+                              Clr(0xFF595E));
 
   installer.addDeserializer<BRRES_IO>();
   installer.addSerializer<BRRES_IO>();

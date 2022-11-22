@@ -144,6 +144,7 @@ auto GetGChildren(kpi::INode* node, EditorWindow& ed,
 
       std::string icon_pl = "?";
       std::string name_pl = "Unknowns";
+      ImVec4 icon_color = {1.0f, 1.0f, 1.0f, 1.0f};
 
       // If no entry, we can't determine the rich name...
       if (node->folderAt(i)->size() != 0) {
@@ -152,6 +153,7 @@ auto GetGChildren(kpi::INode* node, EditorWindow& ed,
 
         icon_pl = rich.getIconPlural();
         name_pl = rich.getNamePlural();
+        icon_color = rich.getIconColor();
       }
       std::function<void(size_t)> delete_child_fn =
           [node = node->folderAt(i), outliner = outliner](size_t i) {
@@ -164,6 +166,7 @@ auto GetGChildren(kpi::INode* node, EditorWindow& ed,
                         .add_new_fn = std::bind(AddNew, node->folderAt(i)),
                         .delete_child_fn = delete_child_fn,
                         .type_icon_pl = icon_pl,
+                        .type_icon_color = icon_color,
                         .type_name_pl = name_pl});
     }
   }
@@ -200,6 +203,7 @@ GetChildren(kpi::ICollection& sampler, EditorWindow& ed,
                         .public_name = public_name,
                         .is_rich = is_rich,
                         .type_icon = rich.getIconSingular(),
+                        .type_icon_color = rich.getIconColor(),
                         .type_name = rich.getNameSingular(),
                         .icons_right = GetNodeIcons(*obj),
                         .folders = grandchildren,
@@ -237,6 +241,7 @@ void GenericCollectionOutliner::draw_() noexcept {
           std::filesystem::path(ed.getFilePath()).filename().string(),
       .is_rich = true,
       .type_icon = (const char*)ICON_FA_SHAPES,
+      .type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f},
       .type_name = "Scene",
       .icons_right = GetNodeIcons(mHost),
       .folders = children,
@@ -250,6 +255,7 @@ void GenericCollectionOutliner::draw_() noexcept {
       .add_new_fn = nullptr,
       .delete_child_fn = nullptr,
       .type_icon_pl = (const char*)ICON_FA_SHAPES,
+      .type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f},
       .type_name_pl = "Scenes",
   };
   drawFolder(root_folder);

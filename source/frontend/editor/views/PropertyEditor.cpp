@@ -1,5 +1,6 @@
 #include "PropertyEditor.hpp"
-#include <core/3d/Material.hpp>           // lib3d::Material
+#include <core/3d/Material.hpp> // lib3d::Material
+#include <core/kpi/RichNameManager.hpp>
 #include <core/util/gui.hpp>              // PushErrorStyle
 #include <imcxx/Widgets.hpp>              // imcxx::Combo
 #include <imgui/imgui.h>                  // ImGui::Text
@@ -44,7 +45,8 @@ private:
 };
 
 template <typename T>
-static void gatherSelected(kpi::SelectionManager& ed, std::set<kpi::IObject*>& tmp,
+static void gatherSelected(kpi::SelectionManager& ed,
+                           std::set<kpi::IObject*>& tmp,
                            kpi::ICollection& folder, T pred) {
   for (int i = 0; i < folder.size(); ++i) {
     auto* obj = folder.atObject(i);
@@ -62,7 +64,8 @@ static void gatherSelected(kpi::SelectionManager& ed, std::set<kpi::IObject*>& t
 }
 
 PropertyEditor::PropertyEditor(kpi::History& host, kpi::INode& root,
-                               kpi::SelectionManager& selection, EditorWindow& ed)
+                               kpi::SelectionManager& selection,
+                               EditorWindow& ed)
     : StudioWindow("Property Editor"), ed(ed), mHost(host), mRoot(root),
       mSelection(selection) {
   setWindowFlag(ImGuiWindowFlags_MenuBar);
@@ -238,9 +241,25 @@ void PropertyEditor::draw_() {
                 " This shouldn't happen.");
     _selected.emplace(mSelection.mActive);
   }
+  if (auto rich =
+          kpi::RichNameManager::getInstance().getRich(mSelection.mActive);
+      rich.hasEntry()) {
+    ImGui::TextColored(
+        rich.getIconColor(),
+        (_selected.size() > 1 ? rich.getIconPlural() : rich.getIconSingular())
+            .c_str());
+    ImGui::SameLine();
+    ImGui::TextUnformatted((" " +
+                            (_selected.size() > 1 ? rich.getNamePlural()
+                                                  : rich.getNameSingular()) +
+                            ": ")
+                               .c_str());
+    ImGui::SameLine();
+  }
   ImGui::Text("%s %s (%i)", mSelection.mActive->getName().c_str(),
               _selected.size() > 1 ? "..." : "",
               static_cast<int>(_selected.size()));
+  ImGui::Separator();
 
   std::vector<kpi::IObject*> selected(_selected.size());
   selected.resize(0);

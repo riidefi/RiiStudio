@@ -6,6 +6,8 @@
 #include <string_view>
 #include <vector>
 
+#include <imgui/imgui.h> // ImVec4
+
 namespace kpi {
 
 class RichNameManager {
@@ -24,6 +26,7 @@ class RichNameManager {
     };
     Component<false> icon;
     Component<true> name;
+    ImVec4 color;
 
     virtual bool isInDomain(const IObject* node) const = 0;
   };
@@ -33,9 +36,11 @@ class RichNameManager {
     bool isInDomain(const IObject* node) const override {
       return dynamic_cast<const T*>(node) != nullptr;
     }
-    EntryImpl(const std::string_view icon_, const std::string_view name_) {
+    EntryImpl(const std::string_view icon_, const std::string_view name_,
+              ImVec4 color_) {
       icon.sg = icon_;
       name.sg = name_;
+      color = color_;
     }
   };
 
@@ -45,11 +50,12 @@ public:
   static inline RichNameManager& getInstance() { return sInstance; }
 
   template <typename T>
-  inline RichNameManager& addRichName(const std::string_view icon,
-                                      const std::string_view name,
-                                      const std::string_view icon_pl = "",
-                                      const std::string_view name_pl = "") {
-    auto entry = std::make_unique<EntryImpl<T>>(icon, name);
+  inline RichNameManager&
+  addRichName(const std::string_view icon, const std::string_view name,
+              const std::string_view icon_pl = "",
+              const std::string_view name_pl = "",
+              ImVec4 icon_color = {1.0f, 1.0f, 1.0f, 1.0f}) {
+    auto entry = std::make_unique<EntryImpl<T>>(icon, name, icon_color);
     if (!icon_pl.empty())
       entry->icon.pl = icon_pl;
     if (!name_pl.empty())
@@ -79,6 +85,10 @@ public:
       return entry != nullptr
                  ? riistudio::translateString(entry->name.getPlural())
                  : "?";
+    }
+
+    ImVec4 getIconColor() const {
+      return entry != nullptr ? entry->color : ImVec4{1.0f, 1.0f, 1.0f, 1.0f};
     }
 
     bool hasEntry() const { return entry != nullptr; }

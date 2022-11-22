@@ -1,5 +1,6 @@
 #include "OutlinerWidget.hpp"
 #include <frontend/editor/EditorWindow.hpp>
+#include <vendor/fa5/IconsFontAwesome5.h>
 
 namespace riistudio::frontend {
 
@@ -25,10 +26,9 @@ std::string FormatTitle(const NodeFolder& folder, const TFilter* filter) {
   if (folder.children.size() == 0)
     return "";
 
-  const std::string& icon_plural = folder.type_icon_pl;
   const std::string& exposed_name = folder.type_name_pl;
 
-  return std::string(icon_plural + "  " + exposed_name + " (" +
+  return std::string(exposed_name + " (" +
                      std::to_string(CalcNumFiltered(folder, filter)) + ")");
 }
 
@@ -78,8 +78,8 @@ void AddNewCtxMenu(EditorWindow& ed, Child::Folder& folder) {
   if (CanCreateNew(folder.key)) {
     const auto id_str = std::string("MCtx") + folder.key;
     if (ImGui::BeginPopupContextItem(id_str.c_str())) {
-      ImGui::TextUnformatted(
-          (folder.type_icon_pl + " " + folder.type_name_pl + ": ").c_str());
+      ImGui::TextColored(folder.type_icon_color, folder.type_icon_pl.c_str());
+      ImGui::TextUnformatted((" " + folder.type_name_pl + ": ").c_str());
       ImGui::Separator();
 
       {
@@ -98,6 +98,17 @@ void AddNewCtxMenu(EditorWindow& ed, Child::Folder& folder) {
   }
 }
 
+bool ShouldBeDefaultOpen(const NodeFolder& folder) {
+  // Polygons
+  if (folder.type_icon_pl == (const char*)ICON_FA_DRAW_POLYGON)
+    return false;
+  // Vertex Colors
+  if (folder.type_icon_pl == (const char*)ICON_FA_BRUSH)
+    return false;
+
+  return true;
+}
+
 void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
                 std::optional<std::function<void()>>& activeModal,
                 kpi::IObject*& mActive, std::string& mActiveClassId) {
@@ -107,14 +118,20 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
   if (!folder.children[0].has_value() || !folder.children[0]->is_rich)
     return;
 
-  bool opened = false;
-
   if (folder.key != "ROOT") {
-    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-    opened = ImGui::TreeNode(FormatTitle(folder, &mFilter).c_str());
+    if (ShouldBeDefaultOpen(folder)) {
+      ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    }
+    ImGui::PushStyleColor(ImGuiCol_Text, folder.type_icon_color);
+    bool opened = ImGui::CollapsingHeader(folder.type_icon_pl.c_str());
+    ImGui::PopStyleColor();
+    ImGui::SameLine();
+    ImGui::TextUnformatted(FormatTitle(folder, &mFilter).c_str());
     AddNewCtxMenu(ed, folder);
-    if (!opened)
+    if (!opened) {
       return;
+    }
+    ImGui::PushID(folder.key.c_str());
   }
 
   // A filter tree for multi selection. Prevents inclusion of unfiltered data
@@ -160,13 +177,14 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
     ImGui::Selectable(std::to_string(i).c_str(), curNodeSelected,
                       ImGuiSelectableFlags_None, {0, icon_size});
     if (ImGui::BeginPopupContextItem(("Ctx" + std::to_string(i)).c_str())) {
-
       activeModal = [draw_modal = children[i]->draw_modal_fn, ed = &ed]() {
         draw_modal(*ed);
       };
-      ImGui::TextUnformatted((children[i]->type_icon + " " +
-                              children[i]->type_name + ": " + cur_name)
-                                 .c_str());
+      ImGui::TextColored(children[i]->type_icon_color,
+                         children[i]->type_icon.c_str());
+      ImGui::SameLine();
+      ImGui::TextUnformatted(
+          (" " + children[i]->type_name + ": " + cur_name).c_str());
       ImGui::Separator();
 
       children[i]->draw_context_menu_fn(ed);
@@ -192,9 +210,12 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
     const auto initial_pos_y = ImGui::GetCursorPosY();
     ImGui::SetCursorPosY(initial_pos_y + (icon_size - text_size.y) / 2);
 
-    const auto treenode =
-        ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s %s",
-                          children[i]->type_icon.c_str(), cur_name.c_str());
+    ImGui::PushStyleColor(ImGuiCol_Text, children[i]->type_icon_color);
+    const auto treenode = ImGui::TreeNodeEx(
+        std::to_string(i).c_str(), flags, "%s", children[i]->type_icon.c_str());
+    ImGui::PopStyleColor();
+    ImGui::SameLine();
+    ImGui::TextUnformatted(cur_name.c_str());
     if (treenode) {
       DrawNodePic(ed, *children[i], initial_pos_y, icon_size);
     }
@@ -221,7 +242,7 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
     }
   }
   if (folder.key != "ROOT") {
-    ImGui::TreePop();
+    ImGui::PopID();
   }
 
   for (int i = 0; i < children.size(); ++i) {
