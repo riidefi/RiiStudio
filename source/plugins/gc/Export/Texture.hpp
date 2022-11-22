@@ -4,7 +4,7 @@
 #include <core/3d/i3dmodel.hpp>
 #include <librii/gx/Texture.hpp>
 #include <librii/image/ImagePlatform.hpp>
-#include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
+#include <string_view>
 
 namespace libcube {
 
@@ -78,6 +78,10 @@ struct Texture : public riistudio::lib3d::Texture {
   }
 
   virtual void setLod(bool custom, f32 min_, f32 max_) = 0;
+  virtual void setSourcePath(std::string_view) = 0;
+  virtual f32 getMinLod() const = 0;
+  virtual f32 getMaxLod() const = 0;
+  virtual std::string getSourcePath() const = 0;
 };
 
 } // namespace libcube

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <core/util/timestamp.hpp>
 #include <librii/gx.h>
 #include <librii/j3d/data/TextureData.hpp>
 #include <plugins/gc/Export/Texture.hpp>
@@ -40,6 +41,12 @@ struct Texture : public librii::j3d::TextureData, public libcube::Texture {
   void setLod(bool custom, f32 min_, f32 max_) override {
     mMinLod = min_;
     mMaxLod = max_;
+  }
+  void setSourcePath(std::string_view) override {}
+  f32 getMinLod() const override { return mMinLod; }
+  f32 getMaxLod() const override { return mMaxLod; }
+  std::string getSourcePath() const override {
+    return std::string(RII_TIME_STAMP) + "; J3D Export";
   }
 };
 

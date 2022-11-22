@@ -4,6 +4,7 @@
 
 #include <core/kpi/ActionMenu.hpp>
 #include <core/util/oishii.hpp>
+#include <core/util/timestamp.hpp>
 #include <librii/crate/g3d_crate.hpp>
 #include <librii/image/TextureExport.hpp>
 #include <plate/Platform.hpp>
@@ -13,6 +14,24 @@
 #include <vendor/stb_image.h>
 
 namespace libcube::UI {
+
+void OverwriteWithG3dTex(libcube::Texture& tex,
+                         const librii::g3d::TextureData& rep) {
+  // Using more general approach to support J3D too
+  // static_cast<librii::g3d::TextureData&>(scn.getTextures().add()) =
+  //     *replacement;
+
+  tex.setName(rep.name);
+  tex.setTextureFormat(rep.format);
+  tex.setWidth(rep.width);
+  tex.setHeight(rep.height);
+  tex.setImageCount(rep.number_of_images);
+  tex.setLod(rep.custom_lod, rep.minLod, rep.maxLod);
+  tex.setSourcePath(rep.sourcePath);
+  tex.resizeData();
+  memcpy(tex.getData(), rep.data.data(),
+         std::min<u32>(tex.getEncodedSize(true), rep.data.size()));
+}
 
 static rsl::expected<librii::g3d::TextureData, std::string>
 ImportTex0(std::string_view path) {
@@ -105,12 +124,12 @@ private:
 };
 
 class CrateTEX0Action
-    : public kpi::ActionMenu<riistudio::g3d::Texture, CrateTEX0Action> {
+    : public kpi::ActionMenu<libcube::Texture, CrateTEX0Action> {
   bool m_export = false;
   ErrorState m_errorState{"TEX0 Export Error"};
 
-  std::string tryExport(const riistudio::g3d::Texture& tex) {
-    std::string path = tex.name + ".tex0";
+  std::string tryExport(const libcube::Texture& tex) {
+    std::string path = tex.getName() + ".tex0";
 
     // Web version does not
     if (plate::Platform::supportsFileDialogues()) {
@@ -125,7 +144,22 @@ class CrateTEX0Action
       }
     }
 
-    auto buf = librii::crate::WriteTEX0(tex);
+    librii::g3d::TextureData tex0{
+        .name = tex.getName(),
+        .format = tex.getTextureFormat(),
+        .width = tex.getWidth(),
+        .height = tex.getHeight(),
+        .number_of_images = tex.getImageCount(),
+        .custom_lod = true,
+        .minLod = tex.getMinLod(),
+        .maxLod = tex.getMaxLod(),
+        .sourcePath = tex.getSourcePath(),
+        .data = {},
+    };
+    tex0.data.resize(tex.getEncodedSize(true));
+    memcpy(tex0.data.data(), tex.getData(),
+           std::min<u32>(tex.getEncodedSize(true), tex0.data.size()));
+    auto buf = librii::crate::WriteTEX0(tex0);
     if (buf.empty()) {
       return "librii::crate::WriteTEX0 failed";
     }
@@ -135,7 +169,7 @@ class CrateTEX0Action
   }
 
 public:
-  bool _context(riistudio::g3d::Texture&) {
+  bool _context(libcube::Texture&) {
     if (ImGui::MenuItem("Save as .tex0"_j)) {
       m_export = true;
     }
@@ -143,7 +177,7 @@ public:
     return false;
   }
 
-  bool _modal(riistudio::g3d::Texture& tex) {
+  bool _modal(libcube::Texture& tex) {
     m_errorState.modal();
 
     if (m_export) {
@@ -159,11 +193,11 @@ public:
 };
 
 class CrateTEX0ActionImport
-    : public kpi::ActionMenu<riistudio::g3d::Texture, CrateTEX0ActionImport> {
+    : public kpi::ActionMenu<libcube::Texture, CrateTEX0ActionImport> {
   bool m_import = false;
   ErrorState m_errorState{"TEX0 Import Error"};
 
-  std::string tryImport(riistudio::g3d::Texture& tex) {
+  std::string tryImport(libcube::Texture& tex) {
     const auto paths = pfd::open_file("Import Path"_j, "",
                                       {
                                           "TEX0 texture",
@@ -181,9 +215,9 @@ class CrateTEX0ActionImport
       return replacement.error();
     }
 
-    auto name = tex.name;
-    static_cast<librii::g3d::TextureData&>(tex) = *replacement;
-    tex.name = name;
+    auto name = tex.getName();
+    OverwriteWithG3dTex(tex, *replacement);
+    tex.setName(name);
     tex.onUpdate();
 
     return {};
@@ -192,7 +226,7 @@ class CrateTEX0ActionImport
 public:
   static bool IsSupported() { return plate::Platform::supportsFileDialogues(); }
 
-  bool _context(riistudio::g3d::Texture&) {
+  bool _context(libcube::Texture&) {
     if (ImGui::MenuItem("Replace with .tex0"_j)) {
       m_import = true;
     }
@@ -200,7 +234,7 @@ public:
     return false;
   }
 
-  bool _modal(riistudio::g3d::Texture& tex) {
+  bool _modal(libcube::Texture& tex) {
     m_errorState.modal();
 
     if (m_import) {
@@ -246,20 +280,7 @@ std::string tryImportMany(libcube::Scene& scn) {
         return "Failed to read .tex0 at \"" + std::string(path) + "\"\n" +
                rep.error();
       }
-      auto& tex = scn.getTextures().add();
-
-      // Using more general approach to support J3D too
-      // static_cast<librii::g3d::TextureData&>(scn.getTextures().add()) =
-      //     *replacement;
-
-      tex.setName(rep->name);
-      tex.setTextureFormat(rep->format);
-      tex.setWidth(rep->width);
-      tex.setHeight(rep->height);
-      tex.setImageCount(rep->number_of_images);
-      tex.setLod(rep->custom_lod, rep->minLod, rep->maxLod);
-      memcpy(tex.getData(), rep->data.data(),
-             std::min<u32>(tex.getEncodedSize(true), rep->data.size()));
+      OverwriteWithG3dTex(scn.getTextures().add(), *rep);
 
       continue;
     }

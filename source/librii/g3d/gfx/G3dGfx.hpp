@@ -68,7 +68,7 @@ struct CompiledLib3dTexture {
   u32 getGlId() const { return cached_gl_texture.getGlId(); }
 
   librii::glhelper::GlTexture cached_gl_texture;
-  s32 cached_generation_id;
+  lib3d::GenerationIDTracked::GenerationID cached_generation_id;
 };
 
 // Texture cache, by texture name alone

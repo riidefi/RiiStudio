@@ -33,6 +33,12 @@ struct Texture : public librii::g3d::TextureData,
     minLod = min_;
     maxLod = max_;
   }
+  void setSourcePath(std::string_view path) override {
+    sourcePath = std::string(path);
+  }
+  f32 getMinLod() const override { return minLod; }
+  f32 getMaxLod() const override { return maxLod; }
+  std::string getSourcePath() const override { return sourcePath; }
 
   bool operator==(const Texture& rhs) const {
     return TextureData::operator==(static_cast<const TextureData&>(rhs));

@@ -5,6 +5,7 @@
 #include <librii/hx/PixMode.hpp>
 #include <librii/rhst/RHST.hpp>
 #include <oishii/reader/binary_reader.hxx>
+#include <plugins/ass/ImportTexture.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <plugins/gc/Export/Scene.hpp>
 #include <plugins/j3d/Material.hpp>
@@ -273,60 +274,6 @@ static inline std::string getFileShort(const std::string& path) {
   return tmp;
 }
 
-static bool importTexture(libcube::Texture& data, u8* image,
-                          std::vector<u8>& scratch, bool mip_gen, int min_dim,
-                          int max_mip, int width, int height, int channels) {
-  if (!image) {
-    data.setWidth(0);
-    data.setHeight(0);
-    return false;
-  }
-  assert(image);
-
-  int num_mip = 0;
-  if (mip_gen && is_power_of_2(width) && is_power_of_2(height)) {
-    while ((num_mip + 1) < max_mip && (width >> (num_mip + 1)) >= min_dim &&
-           (height >> (num_mip + 1)) >= min_dim)
-      ++num_mip;
-  }
-  data.setTextureFormat(librii::gx::TextureFormat::CMPR);
-  data.setWidth(width);
-  data.setHeight(height);
-  data.setMipmapCount(num_mip);
-  data.resizeData();
-  if (num_mip == 0) {
-    data.encode(image);
-  } else {
-    printf("Width: %u, Height: %u.\n", (unsigned)width, (unsigned)height);
-    u32 size = 0;
-    for (int i = 0; i <= num_mip; ++i) {
-      size += (width >> i) * (height >> i) * 4;
-      printf("Image %i: %u, %u. -> Total Size: %u\n", i, (unsigned)(width >> i),
-             (unsigned)(height >> i), size);
-    }
-    scratch.resize(size);
-
-    u32 slide = 0;
-    for (int i = 0; i <= num_mip; ++i) {
-      librii::image::resize(scratch.data() + slide, width >> i, height >> i,
-                            image, width, height, librii::image::Lanczos);
-      slide += (width >> i) * (height >> i) * 4;
-    }
-
-    data.encode(scratch.data());
-  }
-  stbi_image_free(image);
-  return true;
-}
-static bool importTexture(libcube::Texture& data, const char* path,
-                          std::vector<u8>& scratch, bool mip_gen, int min_dim,
-                          int max_mip) {
-  int width, height, channels;
-  u8* image = stbi_load(path, &width, &height, &channels, STBI_rgb_alpha);
-  return importTexture(data, image, scratch, mip_gen, min_dim, max_mip, width,
-                       height, channels);
-}
-
 void import_texture(std::string tex, libcube::Texture* pdata,
                     std::filesystem::path file_path) {
   libcube::Texture& data = *pdata;
@@ -335,17 +282,19 @@ void import_texture(std::string tex, libcube::Texture* pdata,
   u32 min_dim = 64;
   u32 max_mip = 3;
 
-  const auto alt_path =
-      (file_path.parent_path() / "textures" / (tex + ".png")).string();
+  std::vector<std::filesystem::path> search_paths;
+  search_paths.push_back(file_path);
+  search_paths.push_back(file_path.parent_path() / "textures" / (tex + ".png"));
 
-  if (!importTexture(data, tex.c_str(), scratch, mip_gen, min_dim, max_mip)) {
-    if (!importTexture(data, alt_path.c_str(), scratch, mip_gen, min_dim,
-                       max_mip)) {
-      printf("Cannot find texture %s\n", tex.c_str());
-      // unresolved.emplace(i, tex);
+  for (const auto& path : search_paths) {
+    if (riistudio::ass::importTexture(data, path.string().c_str(), scratch,
+                                      mip_gen, min_dim, max_mip)) {
+      return;
     }
   }
-};
+  printf("Cannot find texture %s\n", tex.c_str());
+  // unresolved.emplace(i, tex);
+}
 
 void RHSTReader::read(kpi::IOTransaction& transaction) {
   std::string error_msg;
