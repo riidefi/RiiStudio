@@ -124,6 +124,7 @@ void readTEX1(BMDOutputContext& ctx) {
     Tex tex;
     tex.btiId = i;
     tex.transfer(reader);
+    printf(":: (%d) %s\n", i, nameTable[i].c_str());
 
     if (librii::gx::IsPaletteFormat(tex.mFormat)) {
       ctx.transaction.callback(
@@ -242,6 +243,9 @@ struct TEX1Node final : public oishii::Node {
 
       for (int i = 0; i < mMdl.mTexCache.size(); ++i)
         names.push_back(mCol.getTextures()[mMdl.mTexCache[i].btiId].getName());
+      for (int i = 0; i < names.size(); ++i) {
+        printf(":: (%i) %s\n", i, names[i].c_str());
+      }
       writeNameTable(writer, names);
       writer.alignTo(32);
       return {};
@@ -277,8 +281,9 @@ struct TEX1Node final : public oishii::Node {
 
     Result gatherChildren(NodeDelegate& d) const noexcept override {
       u32 id = 0;
-      for (auto& tex : mMdl.mTexCache)
+      for (auto& tex : mMdl.mTexCache) {
         d.addNode(std::make_unique<TexHeaderEntryLink>(tex, id++, tex.btiId));
+      }
       return {};
     }
 

@@ -469,17 +469,17 @@ void readMAT3(BMDOutputContext& ctx) {
   // FIXME: Generalize this code
   reader.seekSet(g.start + ofsRemapTable);
 
-  bool sorted = true;
+  bool strictlyIncreasing = true;
   for (int i = 0; i < size; ++i) {
     ctx.materialIdLut[i] = reader.read<u16>();
 
     if (ctx.materialIdLut[i] != i)
-      sorted = false;
+      strictlyIncreasing = false;
   }
 
-  if (!sorted) {
+  if (!strictlyIncreasing) {
     ctx.transaction.callback(kpi::IOMessageClass::Warning, "MAT3",
-                             "Materials data is compressed.");
+                             "Material data is compressed.");
   }
 
   reader.seekSet(ofsStringTable + g.start);
@@ -849,14 +849,9 @@ void io_wrapper<SerializableMaterial>::onWrite(
   //		writer.write<s16>(-1);
 
   dbg.assertSince(0x084);
-  rsl::array_vector<Material::J3DSamplerData, 8> samplers;
-  samplers.resize(m.samplers.size());
   for (int i = 0; i < m.samplers.size(); ++i)
-    samplers[i] = m.samplers[i];
-  dbg.assertSince(0x084);
-  for (int i = 0; i < samplers.size(); ++i)
-    writer.write<u16>(samplers[i].btiId);
-  for (int i = samplers.size(); i < 8; ++i)
+    writer.write<u16>(find(cache.samplers, m.samplers[i]));
+  for (int i = m.samplers.size(); i < 8; ++i)
     writer.write<u16>(~0);
   dbg.assertSince(0x094);
 

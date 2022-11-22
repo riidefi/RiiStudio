@@ -7,9 +7,9 @@ import os
 
 # "input_hash": "output_hash", # course_model0.brres
 TEST_DATA = {
-	'2539da38cadc7e525a8f7b922296721c': '69c30402e669ff3e3e726347fb593a2f', # ReverseGravity2DDossunPlanet.bdl
-	'09d487932c00b616b40179c03807cf81': '5332a8384573f5175bd96df3d14afc0c', # ReverseGravity2DLiftPlanet.bdl
-	'2b2941acaea433d202d9e6d6d2754efb': '37591d6941f51a415256e8687ac3e8bd', # ReverseGravity2DRoofActionPlanet.bdl
+	'2539da38cadc7e525a8f7b922296721c': '6929b95c454b15435452593c5a0c3faa', # ReverseGravity2DDossunPlanet.bdl
+	'09d487932c00b616b40179c03807cf81': '3560c5e7fe68cd08130b0f61697a7195', # ReverseGravity2DLiftPlanet.bdl
+	'2b2941acaea433d202d9e6d6d2754efb': '8bf818621c766ab48ad93ff8ee4b9dfd', # ReverseGravity2DRoofActionPlanet.bdl
 
 	# Resaved variants
 	'69c30402e669ff3e3e726347fb593a2f': '393bb1ad4f6db5740c9cd95bc2d4c03f',
@@ -17,7 +17,7 @@ TEST_DATA = {
 	'37591d6941f51a415256e8687ac3e8bd': 'ab5d81430e5daedd7ea8fed9a5343664',
 
 	# Mario.bdl
-	'5ef11e53f6c94c4f00e9d256309d0a38': '9024b847a55b58cf246d4adabfff10f4',
+	'5ef11e53f6c94c4f00e9d256309d0a38': '87d77fb62b4c3b94068f93c840d74416',
 
 	# luigi_circuit.kmp
 	# 1:1!

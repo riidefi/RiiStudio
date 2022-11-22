@@ -201,7 +201,7 @@ struct ModelData : public virtual kpi::IObject {
         update_section(sec, source[i]);
       }
     }
-    void propogate(Material& mat);
+    void propagate(Material& mat);
   } mMatCache;
 
   mutable std::vector<Tex> mTexCache;

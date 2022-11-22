@@ -93,26 +93,46 @@ void processModelForWrite(j3d::Collection& collection, j3d::Model& model,
   texCache.clear();
   matCache.clear();
 
-  for (auto& mat : model.getMaterials()) {
-    for (int i = 0; i < mat.samplers.size(); ++i) {
-      auto* samp = &mat.samplers[i];
+  libcube::GCMaterialData::SamplerData samp;
 
-      assert(!samp->mTexture.empty());
-      if (!samp->mTexture.empty()) {
-        const auto btiId = texNameMap.at(samp->mTexture);
-        Tex tmp(collection.getTextures()[btiId], *samp);
-        tmp.btiId = btiId;
+  for (size_t i = 0; i < collection.getTextures().size(); ++i) {
+    auto& tex = collection.getTextures()[i];
+    std::vector<libcube::GCMaterialData::SamplerData*> its;
+    for (auto& mat : model.getMaterials()) {
+      for (int i = 0; i < mat.samplers.size(); ++i) {
+        auto& csamp = mat.samplers[i];
+        assert(!csamp.mTexture.empty());
 
-        auto found = std::find(texCache.begin(), texCache.end(), tmp);
-        if (found == texCache.end()) {
-          texCache.push_back(tmp);
-          samp->btiId = texCache.size() - 1;
-        } else {
-          samp->btiId = found - texCache.begin();
+        if (csamp.mTexture == tex.mName) {
+          its.push_back(&csamp);
         }
       }
     }
-    matCache.propogate(mat);
+	// Include unused textures
+    if (its.empty()) {
+      its.push_back(nullptr);
+	}
+    for (auto* it : its) {
+      if (it != nullptr) {
+        samp = *it;
+      }
+      Tex tmp(tex, samp);
+      tmp.btiId = i;
+
+      auto found = std::find(texCache.begin(), texCache.end(), tmp);
+      if (found == texCache.end()) {
+        texCache.push_back(tmp);
+        if (it)
+          it->btiId = texCache.size() - 1;
+      } else {
+        if (it)
+          it->btiId = found - texCache.begin();
+      }
+    }
+  }
+
+  for (auto& mat : model.getMaterials()) {
+    matCache.propagate(mat);
   }
 }
 
