@@ -41,7 +41,16 @@ public:
   void save(const std::string& path);
   void saveAs();
 
+  enum class UnsavedProgressResult {
+    Save,
+    DontSave,
+    CancelClose,
+  };
+  UnsavedProgressResult unsavedProgressBox();
+
 private:
+  bool shouldClose() override;
+
   bool vsync = true;
   bool bDemo = false;
 

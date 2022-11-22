@@ -83,6 +83,8 @@ public:
    */
   static void writeFile(const std::span<uint8_t> data, const std::string_view path);
 
+  virtual bool shouldClose() { return true; }
+
   void hideMouse();
   void showMouse();
 

@@ -140,7 +140,15 @@ void Platform::enter() {
     mDataDropQueue.emplace(std::move(drop));
   };
 
-  while (!glfwWindowShouldClose((GLFWwindow*)mPlatformWindow)) {
+  while (true) {
+    if (glfwWindowShouldClose(reinterpret_cast<GLFWwindow*>(mPlatformWindow))) {
+      if (shouldClose()) {
+        break;
+      } else {
+        glfwSetWindowShouldClose(reinterpret_cast<GLFWwindow*>(mPlatformWindow),
+                                 0);
+      }
+    }
     glfwPollEvents();
 
     while (!mDropQueue.empty()) {

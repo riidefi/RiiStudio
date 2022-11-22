@@ -307,11 +307,11 @@ RootWindow::RootWindow()
       dropDirect(std::move(*brres), "./samples/luigi_circuit.brres");
   }
 
-  #if 0
+#if 0
   // IOS has 3:1 DPI
   mThemeData.mGlobalScale = .534f;
   mThemeData.mFontGlobalScale = .534f;
-  #endif
+#endif
 }
 RootWindow::~RootWindow() { DeinitAPI(); }
 
@@ -355,6 +355,51 @@ void RootWindow::saveAs() {
   }
 
   save(results);
+}
+
+RootWindow::UnsavedProgressResult RootWindow::unsavedProgressBox() {
+  auto box = pfd::message("Unsaved Files",
+                          "Do you want to save the current "
+                          "document before closing the application?",
+                          pfd::choice::yes_no_cancel, pfd::icon::warning);
+
+  switch (box.result()) {
+  case pfd::button::yes:
+    return UnsavedProgressResult::Save;
+  case pfd::button::no:
+    return UnsavedProgressResult::DontSave;
+  case pfd::button::cancel:
+  default:
+    return UnsavedProgressResult::CancelClose;
+  }
+}
+
+bool RootWindow::shouldClose() {
+  if (!hasChildren()) {
+    return true;
+  }
+  auto choice = unsavedProgressBox();
+
+  if (choice == UnsavedProgressResult::CancelClose) {
+    return false;
+  }
+
+  if (choice == UnsavedProgressResult::Save) {
+    EditorWindow* ed =
+        getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
+    if (ed == nullptr) {
+      pfd::message("Error", "Current editor failed to save.", pfd::choice::ok);
+      return false;
+    }
+    DebugReport("Attempting to save to %s\n", ed->getFilePath().c_str());
+    if (!ed->getFilePath().empty()) {
+      save(ed->getFilePath());
+    } else {
+      saveAs();
+    }
+
+    return true;
+  }
 }
 
 } // namespace riistudio::frontend
