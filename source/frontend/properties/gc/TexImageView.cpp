@@ -1,5 +1,3 @@
-#include <vendor/FileDialogues.hpp>
-//
 #include "ResizeAction.hpp"
 #include <algorithm>
 #include <core/3d/i3dmodel.hpp>
@@ -11,6 +9,7 @@
 #include <librii/image/TextureExport.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
+#include <rsl/FsDialog.hpp>
 #include <vendor/stb_image.h>
 
 namespace libcube::UI {
@@ -25,6 +24,7 @@ struct PopupOpener {
 
   const char* name = nullptr;
 };
+
 static const std::vector<std::string> StdImageFilters = {
     "PNG Files", "*.png",     "TGA Files", "*.tga",     "JPG Files",
     "*.jpg",     "BMP Files", "*.bmp",     "All Files", "*",
@@ -35,21 +35,21 @@ void exportImage(const Texture& tex, u32 export_lod) {
       tex.getName() + " Mip Level " + std::to_string(export_lod) + ".png";
   librii::STBImage imgType = librii::STBImage::PNG;
 
-#ifdef RII_PLATFORM_WINDOWS
-  auto results = pfd::save_file("Export image"_j, "", StdImageFilters);
-  if (results.result().empty())
-    return;
-  path = results.result();
-  if (path.ends_with(".png")) {
-    imgType = librii::STBImage::PNG;
-  } else if (path.ends_with(".bmp")) {
-    imgType = librii::STBImage::BMP;
-  } else if (path.ends_with(".tga")) {
-    imgType = librii::STBImage::TGA;
-  } else if (path.ends_with(".jpg")) {
-    imgType = librii::STBImage::JPG;
+  if (rsl::FileDialogsSupported()) {
+    auto results = rsl::SaveOneFile("Export image"_j, "", StdImageFilters);
+    if (!results)
+      return;
+    path = results->string();
+    if (path.ends_with(".png")) {
+      imgType = librii::STBImage::PNG;
+    } else if (path.ends_with(".bmp")) {
+      imgType = librii::STBImage::BMP;
+    } else if (path.ends_with(".tga")) {
+      imgType = librii::STBImage::TGA;
+    } else if (path.ends_with(".jpg")) {
+      imgType = librii::STBImage::JPG;
+    }
   }
-#endif
 
   std::vector<u8> data;
   tex.decode(data, true);
@@ -64,24 +64,24 @@ void exportImage(const Texture& tex, u32 export_lod) {
 }
 
 void importImage(Texture& tex, u32 import_lod) {
-  auto result = pfd::open_file("Import image"_j, "", StdImageFilters).result();
-  if (!result.empty()) {
-    const auto path = result[0];
-    int width, height, channels;
-    unsigned char* image =
-        stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-    assert(image);
-    const auto fmt = tex.getTextureFormat();
-    const auto offset =
-        import_lod == 0
-            ? 0
-            : librii::image::getEncodedSize(tex.getWidth(), tex.getHeight(),
-                                            fmt, import_lod - 1);
-    librii::image::transform(
-        tex.getData() + offset, tex.getWidth() >> import_lod,
-        tex.getHeight() >> import_lod, gx::TextureFormat::Extension_RawRGBA32,
-        fmt, image, width, height);
+  auto path = rsl::OpenOneFile("Import image"_j, "", StdImageFilters);
+  if (!path) {
+    return;
   }
+  int width, height, channels;
+  unsigned char* image = stbi_load(path->string().c_str(), &width, &height,
+                                   &channels, STBI_rgb_alpha);
+  assert(image);
+  const auto fmt = tex.getTextureFormat();
+  const auto offset =
+      import_lod == 0
+          ? 0
+          : librii::image::getEncodedSize(tex.getWidth(), tex.getHeight(), fmt,
+                                          import_lod - 1);
+  librii::image::transform(tex.getData() + offset, tex.getWidth() >> import_lod,
+                           tex.getHeight() >> import_lod,
+                           gx::TextureFormat::Extension_RawRGBA32, fmt, image,
+                           width, height);
 }
 
 class ImageActions : public kpi::ActionMenu<Texture, ImageActions>,
@@ -258,13 +258,11 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
       exportImage(data, 0);
     }
     if (ImGui::Button((const char*)ICON_FA_FILE u8" Import")) {
-      auto result =
-          pfd::open_file("Import image", "", StdImageFilters).result();
-      if (!result.empty()) {
-        const auto path = result[0];
+      auto path = rsl::OpenOneFile("Import image", "", StdImageFilters);
+      if (path) {
         int width, height, channels;
-        unsigned char* image =
-            stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+        unsigned char* image = stbi_load(path->string().c_str(), &width,
+                                         &height, &channels, STBI_rgb_alpha);
         assert(image);
         data.setWidth(width);
         data.setHeight(height);

@@ -92,7 +92,7 @@ add_subdirectory(tests)
 # My libraries
 add_subdirectory(oishii)
 add_subdirectory(plate)
-
+add_subdirectory(rsl)
 add_subdirectory(librii)
 
 # Third-party libraries

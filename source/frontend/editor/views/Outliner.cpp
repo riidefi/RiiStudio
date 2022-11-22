@@ -128,8 +128,9 @@ void DrawCtxMenuFor(kpi::IObject* nodeAt, EditorWindow& ed) {
     ed.getDocument().commit(ed.getSelection(), false);
 }
 void DrawModalFor(kpi::IObject* nodeAt, EditorWindow& ed) {
-  if (kpi::ActionMenuManager::get().drawModals(*nodeAt, &ed))
-    ed.getDocument().commit(ed.getSelection(), false);
+  auto sel = kpi::ActionMenuManager::get().drawModals(*nodeAt, &ed);
+  if (sel)
+    ed.getDocument().commit(ed.getSelection(), static_cast<int>(sel) > 1);
 }
 
 auto GetGChildren(kpi::INode* node, EditorWindow& ed,
@@ -222,8 +223,34 @@ void GenericCollectionOutliner::draw_() noexcept {
   mFilter.Draw();
   auto& _h = (kpi::INode&)mHost;
   auto children = GetGChildren(&_h, ed, this);
-  for (auto& f : children)
-    drawFolder(f);
+  std::function<void(EditorWindow&)> ctx_draw = [=](EditorWindow& ed) {
+    DrawCtxMenuFor(&mHost, ed);
+  };
+
+  std::function<void(EditorWindow&)> modal_draw = [=](EditorWindow& ed) {
+    DrawModalFor(&mHost, ed);
+  };
+  auto root = Child{
+      .obj = &mHost,
+      .public_name = "Root",
+      .is_rich = true,
+      .type_icon = "X",
+      .type_name = "XX",
+      .icons_right = GetNodeIcons(mHost),
+      .folders = children,
+      .is_container = true,
+      .draw_context_menu_fn = ctx_draw,
+      .draw_modal_fn = modal_draw,
+  };
+  auto root_folder = Child::Folder{
+      .children = {root},
+      .key = "ROOT",
+      .add_new_fn = nullptr,
+      .delete_child_fn = nullptr,
+      .type_icon_pl = "X",
+      .type_name_pl = "XX",
+  };
+  drawFolder(root_folder);
 
   if (activeModal.has_value())
     (*activeModal)();

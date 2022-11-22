@@ -5,8 +5,10 @@
 #include <oishii/writer/binary_writer.hxx>
 #include <optional>
 #include <plate/Platform.hpp>
+#include <rsl/Expected.hpp>
 
-inline std::optional<oishii::DataProvider> OishiiReadFile(std::string path) {
+inline std::optional<oishii::DataProvider>
+OishiiReadFile(std::string_view path) {
   std::ifstream file(std::string(path), std::ios::binary | std::ios::ate);
   if (!file)
     return std::nullopt;
@@ -19,6 +21,16 @@ inline std::optional<oishii::DataProvider> OishiiReadFile(std::string path) {
   }
 
   return oishii::DataProvider{std::move(vec), path};
+}
+inline rsl::expected<std::vector<u8>, std::string> ReadFile(std::string_view path) {
+  auto buf = OishiiReadFile(path);
+  if (!buf) {
+    return "Failed to read file at \"" + std::string(path) + "\"";
+  }
+  // Cannot directly access vector
+  auto slice = buf->slice();
+  std::vector<u8> bruh(slice.begin(), slice.end());
+  return bruh;
 }
 
 inline oishii::DataProvider OishiiReadFile(std::string display_path,

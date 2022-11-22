@@ -66,6 +66,7 @@ target_link_libraries(frontend PUBLIC
 	oishii
 	plate
   librii
+  rsl
 	plugins
 	vendor
 )

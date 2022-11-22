@@ -4,6 +4,12 @@
 
 namespace kpi {
 
+enum ChangeType {
+  NO_CHANGE,
+  CHANGE,
+  CHANGE_NEED_RESET,
+};
+
 // Simple design: only one may exist at once, as an exclusive modal.
 //
 struct IActionMenu {
@@ -12,7 +18,7 @@ struct IActionMenu {
 
   // Return true if the state of obj was mutated (add to history)
   virtual bool context(kpi::IObject& obj) = 0;
-  virtual bool modal(kpi::IObject& obj) = 0;
+  virtual ChangeType modal(kpi::IObject& obj) = 0;
 
   virtual void set_ed(void* ed) {}
 };
@@ -28,10 +34,13 @@ struct ActionMenu : public IActionMenu {
     assert(pObj);
     return get_self().TDerived::_context(*pObj);
   }
-  bool modal(kpi::IObject& obj) override {
+  ChangeType modal(kpi::IObject& obj) override {
     T* pObj = dynamic_cast<T*>(&obj);
     assert(pObj);
-    return get_self().TDerived::_modal(*pObj);
+    const auto res = get_self().TDerived::_modal(*pObj);
+    static_assert(std::is_same_v<decltype(res), const bool> ||
+                  std::is_same_v<decltype(res), const ChangeType>);
+    return static_cast<ChangeType>(res);
   }
 };
 
@@ -52,16 +61,16 @@ public:
     return changed;
   }
 
-  // Returns if obj was mutated
-  bool drawModals(kpi::IObject& obj, void* user) const {
-    bool changed = false;
+  // Returns CHANGE if obj was mutated, CHANGE_NEED_RESET if strongly mutated
+  ChangeType drawModals(kpi::IObject& obj, void* user) const {
+    int changed = NO_CHANGE;
     for (auto& menu : menus) {
       if (menu->in_domain(obj)) {
         menu->set_ed(user);
-        changed |= menu->modal(obj);
+        changed = std::max(changed, static_cast<int>(menu->modal(obj)));
       }
     }
-    return changed;
+    return static_cast<ChangeType>(changed);
   }
 
 private:
