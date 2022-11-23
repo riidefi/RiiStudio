@@ -23,6 +23,58 @@ ReadMDL0Mat(std::span<const u8> file) {
   return mat;
 }
 
+std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
+  oishii::Writer writer(0);
+
+  g3d::NameTable names;
+  g3d::RelocWriter linker(writer);
+  librii::g3d::ShaderAllocator shader_allocator;
+  {
+    librii::g3d::G3dShader shader(mat);
+    shader_allocator.alloc(shader);
+  }
+  g3d::TextureSamplerMappingManager tex_sampler_mappings;
+  // This doesn't match the final output order; that is by the order in the
+  // textures folder. But it means we don't need to depend on a textures folder
+  // to determine this order.
+  for (int s = 0; s < mat.samplers.size(); ++s) {
+    if (tex_sampler_mappings.contains(mat.samplers[s].mTexture))
+      continue;
+    tex_sampler_mappings.add_entry(mat.samplers[s].mTexture, &mat, s);
+  }
+  #if 0
+  for (int sm_i = 0; sm_i < tex_sampler_mappings.size(); ++sm_i) {
+    auto& map = tex_sampler_mappings[sm_i];
+    for (int i = 0; i < map.entries.size(); ++i) {
+      tex_sampler_mappings.entries[sm_i].entries[i] = writer.tell();
+      writer.write<s32>(0);
+      writer.write<s32>(0);
+    }
+  }
+  #endif
+  // NOTE: tex_sampler_mappings will point to garbage
+  linker.label("here");
+  linker.writeReloc<s32>("here", "end"); // size
+  writer.write<s32>(0); // mdl offset
+  // Differences:
+  // - Crate outputs the BRRES offset and mat index here
+  g3d::WriteMaterialBody(0, writer, names, mat, 0, linker, shader_allocator,
+                     tex_sampler_mappings);
+  const auto end = writer.tell();
+  {
+    names.poolNames();
+    names.resolve(end);
+    writer.seekSet(end);
+    for (auto p : names.mPool)
+      writer.write<u8>(p);
+  }
+  linker.label("end");
+  writer.alignTo(64);
+  linker.resolve();
+  linker.printLabels();
+  return writer.takeBuf();
+}
+
 rsl::expected<g3d::G3dShader, std::string>
 ReadMDL0Shade(std::span<const u8> file) {
   // Skip first 8 bytes
@@ -57,6 +109,36 @@ ReadMDL0Shade(std::span<const u8> file) {
   shader.mStages = gx_mat.mStages;
 
   return shader;
+}
+
+std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat) {
+  oishii::Writer writer(0);
+
+  g3d::NameTable names;
+  g3d::RelocWriter linker(writer);
+
+  librii::g3d::G3dShader shader(mat);
+  librii::g3d::ShaderAllocator shader_allocator;
+
+  linker.label("here");
+  linker.writeReloc<s32>("here", "end"); // size
+  writer.write<s32>(0);                  // mdl offset
+  // Differences:
+  // - Crate outputs the BRRES offset and index here
+  g3d::WriteTevBody(writer, 0, shader);
+  const auto end = writer.tell();
+  {
+    names.poolNames();
+    names.resolve(end);
+    writer.seekSet(end);
+    for (auto p : names.mPool)
+      writer.write<u8>(p);
+  }
+  linker.label("end");
+  writer.alignTo(4);
+  linker.resolve();
+  linker.printLabels();
+  return writer.takeBuf();
 }
 
 rsl::expected<g3d::TextureData, std::string>

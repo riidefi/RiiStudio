@@ -18,6 +18,8 @@ namespace librii::crate {
 rsl::expected<g3d::G3dMaterialData, std::string>
 ReadMDL0Mat(std::span<const u8> file);
 
+std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat);
+
 //! BrawlCrate-generated TEV definition. Includes Swap/Indirect Orders too.
 //!
 //! There will always be 4 indirectOrders provided; use the material's GEN_MODE
@@ -26,6 +28,8 @@ ReadMDL0Mat(std::span<const u8> file);
 //!
 rsl::expected<g3d::G3dShader, std::string>
 ReadMDL0Shade(std::span<const u8> file);
+
+std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat);
 
 //! Applies the three fields in G3dShader to G3dMaterialData.
 //!

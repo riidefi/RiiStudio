@@ -227,6 +227,71 @@ public:
   }
 };
 
+class SaveAsMDL0MatShade
+    : public kpi::ActionMenu<riistudio::g3d::Material, SaveAsMDL0MatShade> {
+  bool m_export = false;
+  ErrorState m_errorState{"SaveAsMDL0MatShade Export Error"};
+
+  std::string tryExport(const librii::g3d::G3dMaterialData& mat) {
+    std::string path = mat.name + ".mdl0mat";
+
+    // Web version does not
+    if (rsl::FileDialogsSupported()) {
+      auto choice = rsl::SaveOneFile("Export Path"_j, "",
+                                     {
+                                         "MDL0Mat file (*.mdl0mat)",
+                                         "*.mdl0mat",
+                                     });
+      if (!choice) {
+        return choice.error();
+      }
+      path = choice->string();
+    }
+
+    auto buf = librii::crate::WriteMDL0Mat(mat);
+    if (buf.empty()) {
+      return "librii::crate::WriteMDL0Mat failed";
+    }
+    plate::Platform::writeFile(buf, path);
+
+    {
+      auto fs_path = std::filesystem::path(path);
+      auto shade =
+          fs_path.replace_filename(fs_path.stem().string() + ".mdl0shade");
+      auto buf = librii::crate::WriteMDL0Shade(mat);
+      if (buf.empty()) {
+        return "librii::crate::WriteMDL0Shade failed";
+      }
+      plate::Platform::writeFile(buf, shade.string());
+    }
+
+    return {};
+  }
+
+public:
+  bool _context(riistudio::g3d::Material&) {
+    if (ImGui::MenuItem("Save as .mdl0mat/.mdl0shade"_j)) {
+      m_export = true;
+    }
+
+    return false;
+  }
+
+  bool _modal(riistudio::g3d::Material& srt) {
+    m_errorState.modal();
+
+    if (m_export) {
+      m_export = false;
+      auto err = tryExport(srt);
+      if (!err.empty()) {
+        m_errorState.enter(std::move(err));
+      }
+    }
+
+    return false;
+  }
+};
+
 class ReplaceWithTEX0
     : public kpi::ActionMenu<libcube::Texture, ReplaceWithTEX0> {
   bool m_import = false;
@@ -482,6 +547,7 @@ kpi::DecentralizedInstaller CrateReplaceInstaller([](kpi::ApplicationPlugins&
                                                          installer) {
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsTEX0>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsSRT0>());
+  kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsMDL0MatShade>());
   if (rsl::FileDialogsSupported()) {
     kpi::ActionMenuManager::get().addMenu(
         std::make_unique<CrateReplaceAction>());

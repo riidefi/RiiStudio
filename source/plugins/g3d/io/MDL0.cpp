@@ -510,9 +510,9 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       "Materials", mdl.getMaterials(),
       [&](const Material& mat, std::size_t mat_start) {
         linker.label("Mat" + std::to_string(mat_start), mat_start);
-        librii::g3d::WriteMaterial(mat_start, writer, names, mat, mat_idx++,
-                                   linker, shader_allocator,
-                                   tex_sampler_mappings);
+        librii::g3d::WriteMaterialBody(mat_start, writer, names, mat, mat_idx++,
+                                       linker, shader_allocator,
+                                       tex_sampler_mappings);
       },
       false, 4);
 

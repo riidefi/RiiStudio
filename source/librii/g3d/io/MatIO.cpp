@@ -197,7 +197,8 @@ static void writeMaterialDisplayList(const gx::GCMaterialData& mat,
   assert(writer.tell() - dl_start == 0x180);
 }
 
-bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader, bool ignore_tev) {
+bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
+                  bool ignore_tev) {
   const auto start = reader.tell();
 
   reader.read<u32>(); // size
@@ -429,10 +430,11 @@ bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader, bool ignor
   return true;
 }
 
-void WriteMaterial(size_t mat_start, oishii::Writer& writer,
-                   NameTable& names, const G3dMaterialData& mat, u32 mat_idx,
-                   RelocWriter& linker, const ShaderAllocator& shader_allocator,
-                   TextureSamplerMappingManager& tex_sampler_mappings) {
+void WriteMaterialBody(size_t mat_start, oishii::Writer& writer,
+                       NameTable& names, const G3dMaterialData& mat,
+                       u32 mat_idx, RelocWriter& linker,
+                       const ShaderAllocator& shader_allocator,
+                       TextureSamplerMappingManager& tex_sampler_mappings) {
   DebugReport("MAT_START %x\n", (u32)mat_start);
   DebugReport("MAT_NAME %x\n", writer.tell());
   writeNameForward(names, writer, mat_start, mat.name);

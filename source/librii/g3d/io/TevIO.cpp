@@ -159,7 +159,9 @@ void WriteTevBody(oishii::Writer& writer, u32 tev_id, const G3dShader& tev) {
     DebugReport("CoupleLen: %u\n", (unsigned)couple_len);
     assert(couple_len == 48);
   }
-  writer.skip(48 * (8 - stages_count_rounded / 2));
+  auto blank_dl = 48 * (8 - stages_count_rounded / 2);
+  writer.reserveNext(blank_dl);
+  writer.skip(blank_dl);
 
   MAYBE_UNUSED const auto end = writer.tell();
   MAYBE_UNUSED const auto tev_size = writer.tell() - tev_start;

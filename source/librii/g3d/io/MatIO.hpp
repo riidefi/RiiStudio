@@ -34,6 +34,11 @@ struct TextureSamplerMappingManager {
     matMap[{mat, mat_sampl_index}] = {entries.size(), 0};
     entries.emplace_back(name, 0);
   }
+  bool contains(const std::string& name) const {
+    auto found = std::find_if(entries.begin(), entries.end(),
+                              [name](auto& e) { return e.name == name; });
+    return found != entries.end();
+  }
   std::pair<u32, u32> from_mat(const G3dMaterialData* mat, int sampl_idx) {
     std::pair key{mat, sampl_idx};
     if (!matMap.contains(key)) {
@@ -92,9 +97,10 @@ struct ShaderAllocator {
 bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
                   bool ignore_tev = false);
 
-void WriteMaterial(size_t mat_start, oishii::Writer& writer, NameTable& names,
-                   const G3dMaterialData& mat, u32 mat_idx, RelocWriter& linker,
-                   const ShaderAllocator& shader_allocator,
-                   TextureSamplerMappingManager& tex_sampler_mappings);
+void WriteMaterialBody(size_t mat_start, oishii::Writer& writer,
+                       NameTable& names, const G3dMaterialData& mat,
+                       u32 mat_idx, RelocWriter& linker,
+                       const ShaderAllocator& shader_allocator,
+                       TextureSamplerMappingManager& tex_sampler_mappings);
 
 } // namespace librii::g3d
