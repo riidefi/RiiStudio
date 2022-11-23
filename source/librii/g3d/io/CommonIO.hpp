@@ -5,10 +5,10 @@
 #include <core/util/oishii.hpp>
 #include <functional>
 #include <limits>
-#include <llvm/ADT/SmallVector.h>
 #include <map>
 #include <optional>
 #include <rsl/SimpleReader.hpp>
+#include <rsl/SmallVector.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -228,13 +228,15 @@ public:
   void resolve() {
     for (auto& reloc : mRelocs)
       resolve(reloc);
-    mRelocs.erase(
-        std::remove_if(mRelocs.begin(), mRelocs.end(), [&](auto& reloc) {
-          const auto from = mLabels.find(reloc.from);
-          const auto to = mLabels.find(reloc.to);
+    auto it = std::remove_if(mRelocs.begin(), mRelocs.end(), [&](auto& reloc) {
+      const auto from = mLabels.find(reloc.from);
+      const auto to = mLabels.find(reloc.to);
 
-          return from != mLabels.end() && to != mLabels.end();
-        }));
+      return from != mLabels.end() && to != mLabels.end();
+    });
+    if (it != mRelocs.end()) {
+      mRelocs.erase(it);
+    }
   }
 
   auto& getLabels() const { return mLabels; }
@@ -251,8 +253,8 @@ private:
   oishii::Writer& mWriter;
   std::map<std::string, std::size_t> mLabels;
 
-  llvm::SmallVector<Reloc, 64> mRelocs;
-  llvm::SmallVector<
+  rsl::small_vector<Reloc, 64> mRelocs;
+  rsl::small_vector<
       std::pair<std::string, std::function<void(oishii::Writer&)>>, 16>
       mChildren;
 };

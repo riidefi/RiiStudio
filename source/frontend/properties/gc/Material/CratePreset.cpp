@@ -32,22 +32,6 @@ void OverwriteWithG3dTex(libcube::Texture& tex,
   memcpy(tex.getData(), rep.data.data(),
          std::min<u32>(tex.getEncodedSize(true), rep.data.size()));
 }
-
-static rsl::expected<librii::g3d::TextureData, std::string>
-ImportTex0(std::string_view path) {
-  auto buf = ReadFile(path);
-  if (!buf) {
-    return buf.error();
-  }
-  auto replacement = librii::crate::ReadTEX0(*buf);
-  if (!replacement) {
-    return "Failed to read .tex0 at \"" + std::string(path) + "\"\n" +
-           replacement.error();
-  }
-
-  return replacement;
-}
-
 struct ErrorState {
   std::string mTitle;
   std::string mError;
@@ -123,8 +107,7 @@ private:
   }
 };
 
-class CrateTEX0Action
-    : public kpi::ActionMenu<libcube::Texture, CrateTEX0Action> {
+class SaveAsTEX0 : public kpi::ActionMenu<libcube::Texture, SaveAsTEX0> {
   bool m_export = false;
   ErrorState m_errorState{"TEX0 Export Error"};
 
@@ -191,28 +174,77 @@ public:
     return false;
   }
 };
+class SaveAsSRT0 : public kpi::ActionMenu<riistudio::g3d::SRT0, SaveAsSRT0> {
+  bool m_export = false;
+  ErrorState m_errorState{"SRT0 Export Error"};
 
-class CrateTEX0ActionImport
-    : public kpi::ActionMenu<libcube::Texture, CrateTEX0ActionImport> {
+  std::string tryExport(const librii::g3d::SrtAnimationArchive& arc) {
+    std::string path = arc.name + ".srt0";
+
+    // Web version does not
+    if (rsl::FileDialogsSupported()) {
+      auto choice = rsl::SaveOneFile("Export Path"_j, "",
+                                     {
+                                         "SRT0 file (*.srt0)",
+                                         "*.srt0",
+                                     });
+      if (!choice) {
+        return choice.error();
+      }
+      path = choice->string();
+    }
+
+    auto buf = librii::crate::WriteSRT0(arc);
+    if (buf.empty()) {
+      return "librii::crate::WriteSRT0 failed";
+    }
+
+    plate::Platform::writeFile(buf, path);
+    return {};
+  }
+
+public:
+  bool _context(riistudio::g3d::SRT0&) {
+    if (ImGui::MenuItem("Save as .srt0"_j)) {
+      m_export = true;
+    }
+
+    return false;
+  }
+
+  bool _modal(riistudio::g3d::SRT0& srt) {
+    m_errorState.modal();
+
+    if (m_export) {
+      m_export = false;
+      auto err = tryExport(srt);
+      if (!err.empty()) {
+        m_errorState.enter(std::move(err));
+      }
+    }
+
+    return false;
+  }
+};
+
+class ReplaceWithTEX0
+    : public kpi::ActionMenu<libcube::Texture, ReplaceWithTEX0> {
   bool m_import = false;
   ErrorState m_errorState{"TEX0 Import Error"};
 
   std::string tryImport(libcube::Texture& tex) {
-    const auto paths = pfd::open_file("Import Path"_j, "",
-                                      {
-                                          "TEX0 texture",
-                                          "*.tex0",
-                                      })
-                           .result();
-    if (paths.empty()) {
-      return "No file was selected";
+    const auto file = rsl::ReadOneFile("Import Path"_j, "",
+                                       {
+                                           "TEX0 texture",
+                                           "*.tex0",
+                                       });
+    if (!file) {
+      return file.error();
     }
-    if (paths.size() != 1) {
-      return "Too many files were selected";
-    }
-    auto replacement = ImportTex0(paths[0]);
+    auto replacement = librii::crate::ReadTEX0(file->data);
     if (!replacement) {
-      return replacement.error();
+      return "Failed to read .tex0 at \"" + file->path.string() + "\"\n" +
+             replacement.error();
     }
 
     auto name = tex.getName();
@@ -224,8 +256,6 @@ class CrateTEX0ActionImport
   }
 
 public:
-  static bool IsSupported() { return plate::Platform::supportsFileDialogues(); }
-
   bool _context(libcube::Texture&) {
     if (ImGui::MenuItem("Replace with .tex0"_j)) {
       m_import = true;
@@ -240,6 +270,52 @@ public:
     if (m_import) {
       m_import = false;
       auto err = tryImport(tex);
+      if (!err.empty()) {
+        m_errorState.enter(std::move(err));
+      }
+      return true;
+    }
+
+    return false;
+  }
+};
+class ReplaceWithSRT0
+    : public kpi::ActionMenu<riistudio::g3d::SRT0, ReplaceWithSRT0> {
+  bool m_import = false;
+  ErrorState m_errorState{"SRT0 Import Error"};
+
+  std::string tryImport(riistudio::g3d::SRT0& srt) {
+    const auto file = rsl::ReadOneFile("Import Path"_j, "",
+                                       {
+                                           "SRT0 Animation",
+                                           "*.srt0",
+                                       });
+    if (!file) {
+      return file.error();
+    }
+    auto replacement = librii::crate::ReadSRT0(file->data);
+    auto name = srt.getName();
+    static_cast<librii::g3d::SrtAnimationArchive&>(srt) = *replacement;
+    srt.setName(name);
+
+    return {};
+  }
+
+public:
+  bool _context(riistudio::g3d::SRT0&) {
+    if (ImGui::MenuItem("Replace with .srt0"_j)) {
+      m_import = true;
+    }
+
+    return false;
+  }
+
+  bool _modal(riistudio::g3d::SRT0& srt) {
+    m_errorState.modal();
+
+    if (m_import) {
+      m_import = false;
+      auto err = tryImport(srt);
       if (!err.empty()) {
         m_errorState.enter(std::move(err));
       }
@@ -316,14 +392,38 @@ std::string tryImportMany(libcube::Scene& scn) {
   return {};
 }
 
+std::string tryImportManySrt(riistudio::g3d::Collection& scn) {
+  const auto files = rsl::ReadManyFile("Import Path"_j, "",
+                                       {
+                                           "SRT0 Animations",
+                                           "*.srt0",
+                                       });
+  if (!files) {
+    return files.error();
+  }
+
+  for (const auto& file : *files) {
+    const auto& path = file.path.string();
+    if (path.ends_with(".srt0")) {
+      auto rep = librii::crate::ReadSRT0(file.data);
+      if (!rep) {
+        return "Failed to read .srt0 at \"" + std::string(path) + "\"\n" +
+               rep.error();
+      }
+      static_cast<librii::g3d::SrtAnimationArchive&>(scn.getAnim_Srts().add()) =
+          *rep;
+    }
+  }
+
+  return {};
+}
+
 class ImportTexturesAction
     : public kpi::ActionMenu<libcube::Scene, ImportTexturesAction> {
   bool m_import = false;
   ErrorState m_errorState{"Textures Import Error"};
 
 public:
-  static bool IsSupported() { return plate::Platform::supportsFileDialogues(); }
-
   bool _context(libcube::Scene&) {
     if (ImGui::MenuItem("Import textures"_j)) {
       m_import = true;
@@ -348,20 +448,49 @@ public:
   }
 };
 
-kpi::DecentralizedInstaller
-    CrateReplaceInstaller([](kpi::ApplicationPlugins& installer) {
-      kpi::ActionMenuManager::get().addMenu(
-          std::make_unique<CrateReplaceAction>());
-      kpi::ActionMenuManager::get().addMenu(
-          std::make_unique<CrateTEX0Action>());
-      if (CrateTEX0ActionImport::IsSupported()) {
-        kpi::ActionMenuManager::get().addMenu(
-            std::make_unique<CrateTEX0ActionImport>());
+class ImportSRTAction
+    : public kpi::ActionMenu<riistudio::g3d::Collection, ImportSRTAction> {
+  bool m_import = false;
+  ErrorState m_errorState{"SRT Import Error"};
+
+public:
+  bool _context(riistudio::g3d::Collection&) {
+    if (ImGui::MenuItem("Import Texture SRT Animations"_j)) {
+      m_import = true;
+    }
+
+    return false;
+  }
+
+  kpi::ChangeType _modal(riistudio::g3d::Collection& scn) {
+    m_errorState.modal();
+
+    if (m_import) {
+      m_import = false;
+      auto err = tryImportManySrt(scn);
+      if (!err.empty()) {
+        m_errorState.enter(std::move(err));
       }
-      if (ImportTexturesAction::IsSupported()) {
-        kpi::ActionMenuManager::get().addMenu(
-            std::make_unique<ImportTexturesAction>());
-      }
-    });
+      return kpi::CHANGE_NEED_RESET;
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
+
+kpi::DecentralizedInstaller CrateReplaceInstaller([](kpi::ApplicationPlugins&
+                                                         installer) {
+  kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsTEX0>());
+  kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsSRT0>());
+  if (rsl::FileDialogsSupported()) {
+    kpi::ActionMenuManager::get().addMenu(
+        std::make_unique<CrateReplaceAction>());
+    kpi::ActionMenuManager::get().addMenu(std::make_unique<ReplaceWithTEX0>());
+    kpi::ActionMenuManager::get().addMenu(std::make_unique<ReplaceWithSRT0>());
+    kpi::ActionMenuManager::get().addMenu(
+        std::make_unique<ImportTexturesAction>());
+    kpi::ActionMenuManager::get().addMenu(std::make_unique<ImportSRTAction>());
+  }
+});
 
 } // namespace libcube::UI

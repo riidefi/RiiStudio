@@ -61,7 +61,7 @@ rsl::expected<File, std::string> ReadOneFile(std::filesystem::path path) {
   };
 }
 rsl::expected<File, std::string> ReadOneFile(std::string_view title,
-                                             std::string default_path,
+                                             std::string_view default_path,
                                              std::vector<std::string> filters) {
   auto path = OpenOneFile(title, default_path, filters);
   if (!path) {

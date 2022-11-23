@@ -245,7 +245,7 @@ void PropertyEditor::draw_() {
           kpi::RichNameManager::getInstance().getRich(mSelection.mActive);
       rich.hasEntry()) {
     ImGui::TextColored(
-        rich.getIconColor(),
+        rich.getIconColor(), "%s",
         (_selected.size() > 1 ? rich.getIconPlural() : rich.getIconSingular())
             .c_str());
     ImGui::SameLine();

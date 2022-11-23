@@ -81,7 +81,7 @@ public:
     // Write to end of mBuffer
     const u32 string_location = writeName(reloc.name);
     mBuf.resize(roundUp(mBuf.size(), 4));
-	// Resolve pointer
+    // Resolve pointer
     writePointer(reloc, string_location);
   }
 
@@ -103,7 +103,7 @@ private:
     mBuf.push_back(0);
     return string_location;
   }
-  std::vector<u8> &mBuf;
+  std::vector<u8>& mBuf;
 };
 
 std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
@@ -126,6 +126,27 @@ ReadSRT0(std::span<const u8> file) {
     return std::string("Failed to parse SRT0: g3d::ReadSrtFile returned false");
   }
   return arc;
+}
+
+std::vector<u8> WriteSRT0(const g3d::SrtAnimationArchive& arc) {
+  oishii::Writer writer(0);
+
+  g3d::NameTable names;
+  // g3d::RelocWriter linker(writer);
+
+  g3d::WriteSrtFile(writer, arc, names, 0);
+  const auto end = writer.tell();
+  {
+    names.poolNames();
+    names.resolve(end);
+    writer.seekSet(end);
+    for (auto p : names.mPool)
+      writer.write<u8>(p);
+  }
+  writer.alignTo(4);
+  // linker.resolve();
+  // linker.printLabels();
+  return writer.takeBuf();
 }
 
 rsl::expected<g3d::G3dMaterialData, std::string>

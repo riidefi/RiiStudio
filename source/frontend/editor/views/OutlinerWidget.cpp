@@ -78,7 +78,8 @@ void AddNewCtxMenu(EditorWindow& ed, Child::Folder& folder) {
   if (CanCreateNew(folder.key)) {
     const auto id_str = std::string("MCtx") + folder.key;
     if (ImGui::BeginPopupContextItem(id_str.c_str())) {
-      ImGui::TextColored(folder.type_icon_color, folder.type_icon_pl.c_str());
+      ImGui::TextColored(folder.type_icon_color, "%s",
+                         folder.type_icon_pl.c_str());
       ImGui::TextUnformatted((" " + folder.type_name_pl + ": ").c_str());
       ImGui::Separator();
 
@@ -180,7 +181,7 @@ void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
       activeModal = [draw_modal = children[i]->draw_modal_fn, ed = &ed]() {
         draw_modal(*ed);
       };
-      ImGui::TextColored(children[i]->type_icon_color,
+      ImGui::TextColored(children[i]->type_icon_color, "%s",
                          children[i]->type_icon.c_str());
       ImGui::SameLine();
       ImGui::TextUnformatted(

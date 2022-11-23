@@ -53,6 +53,8 @@ std::vector<u8> WriteTEX0(const g3d::TextureData& tex);
 rsl::expected<g3d::SrtAnimationArchive, std::string>
 ReadSRT0(std::span<const u8> file);
 
+std::vector<u8> WriteSRT0(const g3d::SrtAnimationArchive& arc);
+
 struct CrateAnimationPaths {
   std::string preset_name; // For sake of preset name
   std::filesystem::path mdl0mat;

@@ -688,6 +688,7 @@ void WriteSrtFile(oishii::Writer& writer, const SrtAnimationArchive& arc,
             auto back = writer.tell();
             writer.seekSet(keyframe_cursor);
 
+			// TODO: Our order of outputting KeyFrameCollections differs from that of source data.
             const auto bin_size = CalcKeyFrameCollectionSize(keys.data.size());
             writer.reserveNext(bin_size);
             WriteKeyFrameCollection({writer.getDataBlockStart() + writer.tell(),

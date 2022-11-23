@@ -363,9 +363,8 @@ void RootWindow::saveAs() {
 }
 
 RootWindow::UnsavedProgressResult RootWindow::unsavedProgressBox() {
-  auto box = pfd::message("Unsaved Files",
-                          "Do you want to save the current "
-                          "document before closing the application?",
+  auto box = pfd::message("Unsaved Files", //
+                          "Do you want to save before closing?",
                           pfd::choice::yes_no_cancel, pfd::icon::warning);
 
   switch (box.result()) {
@@ -402,9 +401,9 @@ bool RootWindow::shouldClose() {
     } else {
       saveAs();
     }
-
-    return true;
   }
+
+  return true;
 }
 
 } // namespace riistudio::frontend
