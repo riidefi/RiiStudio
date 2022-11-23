@@ -97,8 +97,11 @@ void WriteTevBody(oishii::Writer& writer, u32 tev_id, const G3dShader& tev) {
   librii::gpu::DLBuilder dl(writer);
   for (int i = 0; i < 4; ++i)
     dl.setTevSwapModeTable(i, tev.mSwapTable[i]);
-  auto ind_orders = tev.mIndirectOrders;
+  rsl::array_vector<gx::IndOrder, 4> ind_orders;
   ind_orders.resize(4);
+  std::fill(ind_orders.begin(), ind_orders.end(), gx::NullOrder);
+  std::copy(tev.mIndirectOrders.begin(), tev.mIndirectOrders.end(),
+            ind_orders.begin());
   dl.setIndTexOrder(ind_orders[0].refCoord, ind_orders[0].refMap,
                     ind_orders[1].refCoord, ind_orders[1].refMap,
                     ind_orders[2].refCoord, ind_orders[2].refMap,
