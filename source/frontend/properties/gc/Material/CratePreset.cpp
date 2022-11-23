@@ -703,12 +703,12 @@ kpi::DecentralizedInstaller CrateReplaceInstaller([](kpi::ApplicationPlugins&
   kpi::ActionMenuManager::get().addMenu(std::make_unique<RenameNode>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsTEX0>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsSRT0>());
-  kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsMDL0MatShade>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<MakeRsPreset>());
+  kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsMDL0MatShade>());
   if (rsl::FileDialogsSupported()) {
+    kpi::ActionMenuManager::get().addMenu(std::make_unique<ApplyRsPreset>());
     kpi::ActionMenuManager::get().addMenu(
         std::make_unique<CrateReplaceAction>());
-    kpi::ActionMenuManager::get().addMenu(std::make_unique<ApplyRsPreset>());
     kpi::ActionMenuManager::get().addMenu(std::make_unique<ReplaceWithTEX0>());
     kpi::ActionMenuManager::get().addMenu(std::make_unique<ReplaceWithSRT0>());
     kpi::ActionMenuManager::get().addMenu(
