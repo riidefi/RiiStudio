@@ -28,6 +28,7 @@
 
 #include <frontend/Fonts.hpp>
 #include <librii/szs/SZS.hpp>
+#include <rsl/FsDialog.hpp>
 
 namespace llvm {
 int DisableABIBreakingChecks;
@@ -336,30 +337,35 @@ void RootWindow::saveAs() {
 
   const kpi::INode* node = &ed->getDocument().getRoot();
 
+  auto default_filename = std::filesystem::path(ed->getFilePath()).filename();
   if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
     filters.push_back("Binary Model Data (*.bmd)"_j);
     filters.push_back("*.bmd");
+    default_filename.replace_extension(".bmd");
   } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) != nullptr) {
     filters.push_back("Binary Resource (*.brres)"_j);
     filters.push_back("*.brres");
+    default_filename.replace_extension(".brres");
   }
 
   filters.push_back("All Files");
   filters.push_back("*");
 
-  auto results = pfd::save_file("Save File"_j, "", filters).result();
-  if (results.empty())
+  auto results =
+      rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
+  if (!results)
     return;
+  auto path = results->string();
 
   if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
-    if (!results.ends_with(".bmd"))
-      results.append(".bmd");
+    if (!path.ends_with(".bmd"))
+      path.append(".bmd");
   } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) != nullptr) {
-    if (!results.ends_with(".brres"))
-      results.append(".brres");
+    if (!path.ends_with(".brres"))
+      path.append(".brres");
   }
 
-  save(results);
+  save(path);
 }
 
 RootWindow::UnsavedProgressResult RootWindow::unsavedProgressBox() {

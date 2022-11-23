@@ -91,14 +91,36 @@ ReadManyFile(std::string_view title, std::string_view default_path,
 rsl::expected<std::filesystem::path, std::string>
 SaveOneFile(std::string_view title, std::string_view default_path,
             std::vector<std::string> filters) {
+  int filter_index = -1;
   const auto path =
       pfd::save_file(std::string(title), std::string(default_path), filters,
-                     /* confirm_overwrite */ true)
+                     /* confirm_overwrite */ true, &filter_index)
           .result();
   if (path.empty()) {
     return std::string("No file was selected");
   }
-  return std::filesystem::path(path);
+  auto result = std::filesystem::path(path);
+  if (filter_index != -1) {
+    if (filter_index >= filters.size()) {
+      return std::string(
+          "Internal error: file dialog component returned invalid filter ID");
+    }
+    auto& filter = filters[filter_index];
+    // We only care about the first filter
+    auto f = filter.substr(0, filter.find_first_of(";"));
+    auto filter_path = std::filesystem::path(f);
+    // We also are ignoring everything before the format
+    if (!filter_path.has_extension()) {
+      return std::string(
+          "Internal error: file dialog supplied invalid filter " + filter +
+          ". Cannot determine extension.");
+    }
+    // Note: for now just add it if missing. Can correct it also.
+    if (!result.has_extension()) {
+      result.replace_extension(filter_path.extension());
+    }
+  }
+  return result;
 }
 
 } // namespace rsl

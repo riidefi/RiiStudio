@@ -10,6 +10,13 @@
 //  See http://www.wtfpl.net/ for more details.
 //
 
+//
+// Modified by riidefi Nov 22, 2022
+// - Windows: Added filterIndex out-var to determine which filter was selected.
+// - Windows: Fixed broken default filename feature.
+// - Windows: Fixed stuttering on dialogbox open by pre-loading comdlg32.dll.
+//
+
 #pragma once
 
 #if _WIN32
@@ -343,7 +350,7 @@ private:
 
 class platform
 {
-protected:
+public:
 #if _WIN32
     // Helper class around LoadLibraryA() and GetProcAddress() with some safety
     class dll
@@ -558,6 +565,12 @@ protected:
     std::shared_ptr<executor> m_async;
 };
 
+#if _WIN32
+static inline platform::dll comdlg32("comdlg32.dll");
+static inline platform::dll::proc<BOOL WINAPI(LPOPENFILENAMEW)>
+    get_save_file_name(comdlg32, "GetSaveFileNameW");
+#endif
+
 class file_dialog : public dialog
 {
 protected:
@@ -573,7 +586,8 @@ protected:
                 std::string const &default_path = "",
                 std::vector<std::string> filters = {},
                 bool allow_multiselect = false,
-                bool confirm_overwrite = true)
+                bool confirm_overwrite = true,
+				int *filterIndex = nullptr)
     {
 #if _WIN32
         std::string filter_list;
@@ -585,8 +599,8 @@ protected:
         }
         filter_list += '\0';
 
-        m_async->start([this, in_type, title, default_path, filter_list,
-                        allow_multiselect, confirm_overwrite](int *exit_code) -> std::string
+        m_async->start([this, in_type, title, default_path, filter_list, allow_multiselect,
+             confirm_overwrite, filterIndex](int* exit_code) -> std::string
         {
             (void)exit_code;
             m_wtitle = internal::str2wstr(title);
@@ -651,6 +665,8 @@ protected:
             ofn.lpstrFilter = wfilter_list.c_str();
 
             auto woutput = std::wstring(MAX_PATH * 256, L'\0');
+            woutput.insert(woutput.begin(), m_wdefault_path.begin(),
+                           m_wdefault_path.end());
             ofn.lpstrFile = (LPWSTR)woutput.data();
             ofn.nMaxFile = (DWORD)woutput.size();
             if (!m_wdefault_path.empty())
@@ -664,7 +680,6 @@ protected:
             ofn.lpstrTitle = m_wtitle.c_str();
             ofn.Flags = OFN_NOCHANGEDIR | OFN_EXPLORER;
 
-            dll comdlg32("comdlg32.dll");
 
             if (in_type == type::save)
             {
@@ -674,9 +689,10 @@ protected:
                 // using set context to apply new visual style (required for windows XP)
                 new_style_context ctx;
 
-                dll::proc<BOOL WINAPI (LPOPENFILENAMEW )> get_save_file_name(comdlg32, "GetSaveFileNameW");
                 if (get_save_file_name(&ofn) == 0)
                     return "";
+                if (filterIndex != nullptr)
+					*filterIndex = ofn.nFilterIndex;
                 return internal::wstr2str(woutput.c_str());
             }
 
@@ -1264,9 +1280,10 @@ public:
     save_file(std::string const &title,
               std::string const &default_path = "",
               std::vector<std::string> filters = { "All Files", "*" },
-              bool confirm_overwrite = true)
-      : file_dialog(type::save, title, default_path,
-                    filters, false, confirm_overwrite)
+              bool confirm_overwrite = true,
+		      int *filterIndex = nullptr)
+      : file_dialog(type::save, title, default_path, filters, false,
+                    confirm_overwrite, filterIndex)
     {
     }
 

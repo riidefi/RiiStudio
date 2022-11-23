@@ -1,5 +1,3 @@
-#include <vendor/FileDialogues.hpp>
-
 #include "Common.hpp"
 
 #include <core/kpi/ActionMenu.hpp>
@@ -116,15 +114,15 @@ class SaveAsTEX0 : public kpi::ActionMenu<libcube::Texture, SaveAsTEX0> {
 
     // Web version does not
     if (plate::Platform::supportsFileDialogues()) {
-      path = pfd::save_file("Export Path"_j, "",
-                            {
-                                "TEX0 texture",
-                                "*.tex0",
-                            })
-                 .result();
-      if (path.empty()) {
-        return "No file was selected";
+      auto rep = rsl::SaveOneFile("Export Path"_j, path,
+                                  {
+                                      "TEX0 texture (*.tex0)",
+                                      "*.tex0",
+                                  });
+      if (!rep) {
+        return rep.error();
       }
+      path = rep->string();
     }
 
     librii::g3d::TextureData tex0{
@@ -183,7 +181,7 @@ class SaveAsSRT0 : public kpi::ActionMenu<riistudio::g3d::SRT0, SaveAsSRT0> {
 
     // Web version does not
     if (rsl::FileDialogsSupported()) {
-      auto choice = rsl::SaveOneFile("Export Path"_j, "",
+      auto choice = rsl::SaveOneFile("Export Path"_j, path,
                                      {
                                          "SRT0 file (*.srt0)",
                                          "*.srt0",
@@ -237,7 +235,7 @@ class SaveAsMDL0MatShade
 
     // Web version does not
     if (rsl::FileDialogsSupported()) {
-      auto choice = rsl::SaveOneFile("Export Path"_j, "",
+      auto choice = rsl::SaveOneFile("Export Path"_j, path,
                                      {
                                          "MDL0Mat file (*.mdl0mat)",
                                          "*.mdl0mat",
