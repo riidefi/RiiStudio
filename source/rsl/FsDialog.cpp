@@ -92,6 +92,10 @@ rsl::expected<std::filesystem::path, std::string>
 SaveOneFile(std::string_view title, std::string_view default_path,
             std::vector<std::string> filters) {
   int filter_index = -1;
+  // Disable for now, this breaks the dialog silently..
+#ifdef __APPLE__
+  default_path = "";
+#endif
   const auto path =
       pfd::save_file(std::string(title), std::string(default_path), filters,
                      /* confirm_overwrite */ true, &filter_index)
