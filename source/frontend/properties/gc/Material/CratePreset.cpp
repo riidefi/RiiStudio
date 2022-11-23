@@ -8,6 +8,7 @@
 #include <plate/Platform.hpp>
 #include <plugins/ass/ImportTexture.hpp>
 #include <plugins/g3d/collection.hpp>
+#include <rsl/Defer.hpp>
 #include <rsl/FsDialog.hpp>
 #include <vendor/stb_image.h>
 
@@ -541,8 +542,68 @@ public:
   }
 };
 
+class RenameNode : public kpi::ActionMenu<kpi::IObject, RenameNode> {
+  bool m_rename = false;
+  std::vector<char> m_buffer;
+
+public:
+  bool _context(kpi::IObject& obj) {
+    // Really silly way to determine if an object can be renamed
+    auto name = obj.getName();
+    obj.setName(obj.getName() + "_");
+    bool can_rename = obj.getName() != name;
+    obj.setName(name);
+
+    if (can_rename && ImGui::MenuItem("Rename"_j)) {
+      m_rename = true;
+      m_buffer.resize(name.size() + 1024);
+      std::fill(m_buffer.begin(), m_buffer.end(), '\0');
+      m_buffer.insert(m_buffer.begin(), name.begin(), name.end());
+    }
+
+    return false;
+  }
+
+  kpi::ChangeType _modal(kpi::IObject& obj) {
+    if (m_rename) {
+      m_rename = false;
+      ImGui::OpenPopup("Rename");
+    }
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter());
+    const auto wflags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                        ImGuiWindowFlags_AlwaysAutoResize;
+    bool open = true;
+    if (ImGui::BeginPopupModal("Rename", &open, wflags)) {
+      RSL_DEFER(ImGui::EndPopup());
+      const auto name = obj.getName();
+      auto new_name = std::string(m_buffer.data());
+      bool ok = ImGui::InputText(
+          name != new_name ? "Name*###Name" : "Name###Name", m_buffer.data(),
+          m_buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+      new_name = std::string(m_buffer.data());
+      if (ImGui::Button("Rename") || ok) {
+        if (name == new_name) {
+          ImGui::CloseCurrentPopup();
+          return kpi::NO_CHANGE;
+        }
+        obj.setName(new_name);
+        ImGui::CloseCurrentPopup();
+        return kpi::CHANGE;
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel") || !open) {
+        ImGui::CloseCurrentPopup();
+        return kpi::NO_CHANGE;
+      }
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
+
 kpi::DecentralizedInstaller CrateReplaceInstaller([](kpi::ApplicationPlugins&
                                                          installer) {
+  kpi::ActionMenuManager::get().addMenu(std::make_unique<RenameNode>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsTEX0>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsSRT0>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsMDL0MatShade>());

@@ -21,6 +21,7 @@ struct IObject {
   virtual ~IObject() = default;
 
   virtual std::string getName() const { return "TODO"; }
+  virtual void setName(const std::string& name) {}
 
   // For now, at least, all objects exist in collections
   ICollection* collectionOf = nullptr;
@@ -359,7 +360,7 @@ template <typename T> struct CollectionImpl final : public ICollection {
       elem->childOf = parent;
     }
   }
-  void swap(std::size_t a, std::size_t b) override{
+  void swap(std::size_t a, std::size_t b) override {
     std::swap(data[a], data[b]);
   }
   CollectionImpl(INode* _parent) : parent(_parent) {}
