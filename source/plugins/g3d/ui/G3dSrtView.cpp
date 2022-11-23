@@ -61,6 +61,30 @@ void drawProperty(kpi::PropertyDelegate<SRT0>& dl, G3dSrtOptionsSurface) {
   KPI_PROPERTY_EX(dl, frame_duration, edited.frame_duration);
   KPI_PROPERTY_EX(dl, xform_model, edited.xform_model);
   KPI_PROPERTY_EX(dl, anim_wrap_mode, edited.anim_wrap_mode);
+
+  std::vector<uint8_t> is_open(
+      srt.mat_animations.size()); // Since vector<bool> isn't aliasable by bool*
+  std::fill(is_open.begin(), is_open.end(), true);
+  static_assert(sizeof(*&is_open[0]) == sizeof(bool));
+  if (ImGui::BeginTabBar("Animations")) {
+    for (size_t i = 0; i < srt.mat_animations.size(); ++i) {
+      auto& anim = srt.mat_animations[i];
+      char buf[64];
+      snprintf(buf, sizeof(buf), "Animation %u => targets Material %s",
+               static_cast<u32>(i), anim.material_name.c_str());
+      if (ImGui::BeginTabItem(buf, reinterpret_cast<bool*>(&is_open[i]))) {
+        ImGui::EndTabItem();
+      }
+    }
+    ImGui::EndTabBar();
+  }
+  for (size_t i = 0; i < srt.mat_animations.size(); ++i) {
+    if (!is_open[i]) {
+      srt.mat_animations.erase(srt.mat_animations.begin() + i);
+      dl.commit("Deleted SRT animation");
+      break;
+    }
+  }
 }
 
 kpi::DecentralizedInstaller VColorInstaller([](kpi::ApplicationPlugins&) {
