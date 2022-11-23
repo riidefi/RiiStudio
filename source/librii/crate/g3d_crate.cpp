@@ -5,6 +5,10 @@
 #include <librii/g3d/io/TextureIO.hpp>
 #include <set>
 
+// For g3d IO, since its not part of librii yet
+#include <core/kpi/Plugins.hpp>
+#include <plugins/g3d/G3dIo.hpp>
+
 namespace librii::crate {
 
 rsl::expected<g3d::G3dMaterialData, std::string>
@@ -42,7 +46,7 @@ std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
       continue;
     tex_sampler_mappings.add_entry(mat.samplers[s].mTexture, &mat, s);
   }
-  #if 0
+#if 0
   for (int sm_i = 0; sm_i < tex_sampler_mappings.size(); ++sm_i) {
     auto& map = tex_sampler_mappings[sm_i];
     for (int i = 0; i < map.entries.size(); ++i) {
@@ -51,15 +55,15 @@ std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
       writer.write<s32>(0);
     }
   }
-  #endif
+#endif
   // NOTE: tex_sampler_mappings will point to garbage
   linker.label("here");
   linker.writeReloc<s32>("here", "end"); // size
-  writer.write<s32>(0); // mdl offset
+  writer.write<s32>(0);                  // mdl offset
   // Differences:
   // - Crate outputs the BRRES offset and mat index here
   g3d::WriteMaterialBody(0, writer, names, mat, 0, linker, shader_allocator,
-                     tex_sampler_mappings);
+                         tex_sampler_mappings);
   const auto end = writer.tell();
   {
     names.poolNames();
@@ -403,6 +407,103 @@ std::string RetargetCrateAnimation(CrateAnimation& preset) {
   }
 
   return {};
+}
+
+struct Reader {
+  oishii::DataProvider mData;
+  oishii::BinaryReader mReader;
+
+  Reader(std::string path, const std::vector<u8>& data)
+      : mData(OishiiReadFile(path, data.data(), data.size())),
+        mReader(mData.slice()) {}
+};
+
+struct SimpleTransaction {
+  SimpleTransaction() {
+    trans.callback = [](...) {};
+  }
+
+  bool success() const {
+    return trans.state == kpi::TransactionState::Complete;
+  }
+
+  kpi::LightIOTransaction trans;
+};
+
+std::unique_ptr<riistudio::g3d::Collection>
+ReadBRRES(const std::vector<u8>& buf, std::string path) {
+  auto result = std::make_unique<riistudio::g3d::Collection>();
+
+  SimpleTransaction trans;
+  Reader reader(path, buf);
+  riistudio::g3d::ReadBRRES(*result, reader.mReader, trans.trans);
+
+  if (!trans.success())
+    return nullptr;
+
+  return result;
+}
+
+rsl::expected<CrateAnimation, std::string>
+ReadRSPreset(std::span<const u8> file) {
+  using namespace std::string_literals;
+
+  std::vector<u8> buf(file.begin(), file.end());
+  auto brres = ReadBRRES(buf, "<rs preset>");
+  if (!brres) {
+    return "Failed to parse .rspreset file"s;
+  }
+  if (brres->getModels().size() != 1) {
+    return "Failed to parse .rspreset file"s;
+  }
+  auto& mdl = brres->getModels()[0];
+  if (mdl.getMaterials().size() != 1) {
+    return "Failed to parse .rspreset file"s;
+  }
+  auto mat = mdl.getMaterials()[0];
+  for (auto& tex : mat.samplers) {
+    if (brres->getTextures().findByName(tex.mTexture) == nullptr) {
+      return "Preset is missing texture "s + tex.mTexture;
+    }
+  }
+  for (auto& srt : brres->getAnim_Srts()) {
+    for (auto& anim : srt.mat_animations) {
+      if (anim.material_name != mat.name) {
+        return "Extraneous animations included"s;
+      }
+    }
+  }
+
+  const std::string metadata =
+      mdl.getBones().empty() ? "" : mdl.getBones()[0].mName;
+
+  return CrateAnimation{
+      .mat = mat,
+      .tex = std::vector<g3d::TextureData>(brres->getTextures().begin(),
+                                           brres->getTextures().end()),
+      .srt = std::vector<g3d::SrtAnimationArchive>(
+          brres->getAnim_Srts().begin(), brres->getAnim_Srts().end()),
+      .metadata = metadata,
+  };
+}
+std::vector<u8> WriteRSPreset(const CrateAnimation& preset) {
+  riistudio::g3d::Collection collection;
+  auto& mdl = collection.getModels().add();
+  static_cast<g3d::G3dMaterialData&>(mdl.getMaterials().add()) = preset.mat;
+  for (auto& tex : preset.tex) {
+    static_cast<g3d::TextureData&>(collection.getTextures().add()) = tex;
+  }
+  for (auto& srt : preset.srt) {
+    static_cast<g3d::SrtAnimationArchive&>(collection.getAnim_Srts().add()) =
+        srt;
+  }
+
+  // This is required for some reason
+  mdl.getBones().add().mName = preset.metadata;
+
+  oishii::Writer writer(0);
+  riistudio::g3d::WriteBRRES(collection, writer);
+  return writer.takeBuf();
 }
 
 } // namespace librii::crate

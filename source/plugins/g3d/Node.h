@@ -178,6 +178,8 @@ public:
     Collection() = default;
     virtual ~Collection() = default;
 
+	std::string path;
+
     kpi::MutCollectionRange<Model> getModels() { return { &mModels }; }
     kpi::MutCollectionRange<Texture> getTextures() { return { &mTextures }; }
     kpi::MutCollectionRange<SRT0> getAnim_Srts() { return { &mAnim_Srts }; }

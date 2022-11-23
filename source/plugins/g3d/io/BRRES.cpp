@@ -39,10 +39,10 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
                kpi::LightIOTransaction& transaction) {
   librii::g3d::BinaryArchive archive;
   archive.read(reader, transaction);
+  collection.path = reader.getFile();
   for (auto& mdl : archive.models) {
     auto& editor_mdl = collection.getModels().add();
-    processModel(mdl, transaction, "MDL0 " + mdl.info.mName,
-                 editor_mdl);
+    processModel(mdl, transaction, "MDL0 " + mdl.info.mName, editor_mdl);
   }
   for (auto& tex : archive.textures) {
     static_cast<librii::g3d::TextureData&>(collection.getTextures().add()) =

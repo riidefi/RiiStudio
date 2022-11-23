@@ -72,6 +72,8 @@ struct CrateAnimation {
   g3d::G3dMaterialData mat;                  // MDL0Mat + MDL0Shade combined
   std::vector<g3d::TextureData> tex;         // All valid .tex0s
   std::vector<g3d::SrtAnimationArchive> srt; // All valid .srt archives
+
+  std::string metadata;
 };
 
 rsl::expected<CrateAnimationPaths, std::string>
@@ -82,5 +84,8 @@ ReadCrateAnimation(const CrateAnimationPaths& paths);
 //! Animations targets materials by name; rename each SRT animation target to
 //! the name of `mat`. We assert that only one material target is defined.
 std::string RetargetCrateAnimation(CrateAnimation& preset);
+
+rsl::expected<CrateAnimation, std::string> ReadRSPreset(std::span<const u8> file);
+std::vector<u8> WriteRSPreset(const CrateAnimation& preset);
 
 } // namespace librii::crate
