@@ -20,7 +20,7 @@ import bpy, bmesh
 import os, shutil
 import mathutils
 from bpy_extras.io_utils import axis_conversion
-from bpy_extras.io_utils import ExportHelper
+from bpy_extras.io_utils import ImportHelper, ExportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty, IntProperty
 from bpy.types import Operator
 from collections import OrderedDict
@@ -32,6 +32,39 @@ import cProfile
 BLENDER_30 = bpy.app.version[0] >= 3
 BLENDER_28 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 80) \
 	or BLENDER_30
+
+# Adapted from
+# https://blender.stackexchange.com/questions/7890/add-a-filter-for-the-extension-of-a-file-in-the-file-browser
+class FilteredFiledialog(bpy.types.Operator, ImportHelper):
+	bl_idname = "pathload.test"
+	bl_label = 'Select .rspreset'
+	filename_ext = '.rspreset'
+	filter_glob = StringProperty(
+		default="*.rspreset",
+		options={'HIDDEN'},
+		maxlen=255,  # Max internal buffer length, longer would be clamped.
+	)
+	if BLENDER_30: filter_glob : filter_glob
+
+	def execute(self, context):
+		setattr(self.string_prop_namespace, self.string_prop_name, bpy.path.relpath(self.filepath))
+		return {'FINISHED'}
+
+	def invoke(self, context, event):
+		return super().invoke(context, event)
+
+	@classmethod
+	def add(cls, layout, string_prop_namespace, string_prop_name):
+		cls.string_prop_namespace = string_prop_namespace
+		cls.string_prop_name = string_prop_name
+		col = layout.split(factor=.33)
+		col.label(text=string_prop_namespace.bl_rna.properties[string_prop_name].name)
+		row = col.row(align=True)
+		if string_prop_namespace.bl_rna.properties[string_prop_name].subtype != 'NONE':
+			row.label(text="ERROR: Change subtype of {} property to 'NONE'".format(string_prop_name), icon='ERROR')
+		else:
+			row.prop(string_prop_namespace, string_prop_name, icon_only=True)
+			row.operator(cls.bl_idname, icon='FILE_TICK' if BLENDER_28 else 'FILESEL')
 
 def get_user_prefs(context):
 	return context.preferences if BLENDER_28 else context.user_preferences			
@@ -56,8 +89,8 @@ RHST_DATA_END_ARRAY  = 5
 RHST_DATA_END_ARRAY_DYNAMIC = 6
 
 RHST_DATA_STRING = 7
-RHST_DATA_S32    = 8
-RHST_DATA_F32    = 9
+RHST_DATA_S32	= 8
+RHST_DATA_F32	= 9
 
 DEBUG = False
 
@@ -238,9 +271,9 @@ texture_format_items = (
 )
 
 def get_filename_without_extension(file_path):
-    file_basename = os.path.basename(file_path)
-    filename_without_extension = file_basename.split('.')[0]
-    return filename_without_extension
+	file_basename = os.path.basename(file_path)
+	filename_without_extension = file_basename.split('.')[0]
+	return filename_without_extension
 
 # src\helpers\export_tex.py
 
@@ -416,7 +449,11 @@ class JRESMaterialPanel(bpy.types.Panel):
 		# Material Preset
 		box = layout.box()
 		box.label(text="Material Presets (Experimental)", icon='ERROR')
-		box.row().prop(mat, 'preset_path_mdl0mat')
+		box.row().label(text="Create .rspreset files in RiiStudio by right clicking on a material > Create Preset.")
+		box.row().label(text="These files will contain animations, too.")
+		# box.row().prop(mat, 'preset_path_mdl0mat_or_rspreset')
+		FilteredFiledialog.add(box.row(), mat, 'preset_path_mdl0mat_or_rspreset')
+
 
 # src\panels\JRESScenePanel.py
 
@@ -525,7 +562,9 @@ def build_rs_mat(mat, texture_name):
 		'pe': mat.jres_pe_mode,
 		'lightset': mat.jres_lightset_index,
 		'fog': mat.jres_fog_index,
-		'preset_path_mdl0mat': mat.preset_path_mdl0mat,
+		# For compatibility, this field is not changed in RHST
+		# It can specify mdl0mat OR rspreset
+		'preset_path_mdl0mat': bpy.path.abspath(mat.preset_path_mdl0mat_or_rspreset),
 	}
 
 def mesh_from_object(Object):
@@ -894,8 +933,8 @@ class RHST_RNA:
 	if BLENDER_30: keep_build_artifacts : keep_build_artifacts
 
 	def get_root_transform(self):
-		root_scale     = [self.root_transform_scale_x,     self.root_transform_scale_y,     self.root_transform_scale_z]
-		root_rotate    = [self.root_transform_rotate_x,    self.root_transform_rotate_y,    self.root_transform_rotate_z]
+		root_scale	 = [self.root_transform_scale_x,	 self.root_transform_scale_y,	 self.root_transform_scale_z]
+		root_rotate	= [self.root_transform_rotate_x,	self.root_transform_rotate_y,	self.root_transform_rotate_z]
 		root_translate = [self.root_transform_translate_x, self.root_transform_translate_y, self.root_transform_translate_z]
 
 		return SRT(root_scale, root_rotate, root_translate)
@@ -936,7 +975,7 @@ class RHST_RNA:
 			quantization   = quantization,
 			root_transform = root_transform,
 			magnification  = self.magnification,
-			flags          = converter_flags
+			flags		  = converter_flags
 		)
 
 	def draw_rhst_options(self, context):
@@ -1141,6 +1180,7 @@ class OBJECT_OT_addon_prefs_example(bpy.types.Operator):
 # src\base.py
 
 classes = (
+	FilteredFiledialog,
 	ExportBRRES,
 	ExportBMD,
 
@@ -1265,9 +1305,19 @@ def register_mat():
 	)
 
 	# Presets
-	bpy.types.Material.preset_path_mdl0mat = StringProperty(
+	#
+	# This field can specify:
+	# 1) a .mdl0mat preset (path of a FOLDER with .mdl0mat/.mdl0shade/.tex0*/.srt0*
+	# 2) or a .rsmat preset (path of a FILE with all included)
+	#
+	# For now it only selects .rspreset files, but should be trivial to support .mdl0mat too
+	# -> `subtype='DIR_PATH'` will instruct blender to select a folder. 
+	#
+	# Perhaps ideally we'd configure a presets folder and have a drop-down.
+	# 
+	bpy.types.Material.preset_path_mdl0mat_or_rspreset = StringProperty(
 		name="Preset Path",
-		subtype='DIR_PATH',
+		subtype='NONE', # Custom FilteredFiledialog
 	)
 
 def register():

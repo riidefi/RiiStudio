@@ -10,10 +10,16 @@
 #include <plugins/gc/Export/Scene.hpp>
 #include <plugins/j3d/Material.hpp>
 #include <plugins/j3d/Scene.hpp>
+#include <rsl/FsDialog.hpp>
 #include <set>
 #include <stb_image.h>
 #include <string>
 #include <vendor/thread_pool.hpp>
+
+// Enable debug reporting on release builds
+#undef DebugReport
+#define DebugReport(...)                                                       \
+  printf("[" __FILE__ ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__)
 
 // XXX: Hack, though we'll refactor all of this way soon
 std::string rebuild_dest;
@@ -406,13 +412,29 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
         continue;
       }
       auto* gmat = gmdl->getMaterials().findByName(mat.name);
-      DebugReport("Applying .mdl0mat preset to material %s from path %s\n",
-                  mat.name.c_str(), mat.preset_path_mdl0mat.c_str());
-      auto err = ApplyCratePresetToMaterial(*gmat, mat.preset_path_mdl0mat);
-      if (err.size()) {
-        DebugReport("...Error: %s\n", err.c_str());
+      if (mat.preset_path_mdl0mat.ends_with(".rspreset")) {
+        DebugReport("Applying .rspreset preset to material %s from path %s\n",
+                    mat.name.c_str(), mat.preset_path_mdl0mat.c_str());
+        auto file = rsl::ReadOneFile(mat.preset_path_mdl0mat);
+        if (!file) {
+          DebugReport("...Error: %s\n", file.error().c_str());
+          continue;
+        }
+        auto err = ApplyRSPresetToMaterial(*gmat, file->data);
+        if (err.size()) {
+          DebugReport("...Error: %s\n", err.c_str());
+        } else {
+          DebugReport("...Sucess\n");
+        }
       } else {
-        DebugReport("...Sucess\n");
+        DebugReport("Applying .mdl0mat preset to material %s from path %s\n",
+                    mat.name.c_str(), mat.preset_path_mdl0mat.c_str());
+        auto err = ApplyCratePresetToMaterial(*gmat, mat.preset_path_mdl0mat);
+        if (err.size()) {
+          DebugReport("...Error: %s\n", err.c_str());
+        } else {
+          DebugReport("...Sucess\n");
+        }
       }
     }
   }
