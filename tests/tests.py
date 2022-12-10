@@ -33,6 +33,9 @@ TEST_DATA = {
 	# srt.brres
 	# 1:1!
 	'82c63889be2251623cde52d8c2c06604': '82c63889be2251623cde52d8c2c06604',
+	
+	# rPB.brres
+	'0f1c62ebc592e943e4bf483dd75cfe9f': 'f49606cca3a0967f17aa4f75324e9d7d',
 }
 
 def hash(path):

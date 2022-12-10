@@ -289,6 +289,7 @@ void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
 
   writer.alignTo(32);
   setup.setBufAddr(writer.tell());
+  // TODO: rPB has this as 0x80 (32 fewer)
   setup.setCmdSize(0xa0);
   setup.setBufSize(0xe0); // 0xa0 is already 32b aligned
   setup.write();

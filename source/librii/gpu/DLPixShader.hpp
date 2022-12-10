@@ -94,6 +94,7 @@ class QDisplayListVertexSetupHandler : public QDisplayListHandler {
 public:
   void onCommandBP(const QBPCommand& token) override;
   void onCommandCP(const QCPCommand& token) override;
+  void onCommandXF(const QXFCommand& token) override;
   void onStreamEnd() override;
 
   GPUMesh mGpuMesh;

@@ -67,6 +67,7 @@ std::string readGenericBuffer(
   }
   out.mEntries.resize(reader.read<u16>());
   T minEnt, maxEnt;
+  // TODO: Min/Max are not re-quantized by official tooling it seems.
   if (HasMinimum) {
     minEnt << reader;
     maxEnt << reader;

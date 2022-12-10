@@ -847,12 +847,14 @@ private:
     mWriter.writeUnaligned<u32>(val);
   }
   void writeBp(BPAddress reg, u32 val) { writeBp(static_cast<u8>(reg), val); }
+  // 9 bytes
   void writeXf(u16 reg, u32 val) {
     mWriter.writeUnaligned<u8>(static_cast<u8>(Command::XF));
     mWriter.writeUnaligned<u16>(0);
     mWriter.writeUnaligned<u16>(reg);
     mWriter.writeUnaligned<u32>(val);
   }
+  // 6 bytes
   void writeCp(u8 reg, u32 val) {
     mWriter.writeUnaligned<u8>(static_cast<u8>(Command::CP));
     mWriter.writeUnaligned<u8>(reg);

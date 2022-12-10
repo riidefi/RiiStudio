@@ -403,6 +403,10 @@ void QDisplayListVertexSetupHandler::onCommandCP(const QCPCommand& token) {
     break;
   }
 }
+void QDisplayListVertexSetupHandler::onCommandXF(const QXFCommand& token) {
+  // TODO: Validate XF_INVTXSPEC_ID
+}
+
 void QDisplayListVertexSetupHandler::onStreamEnd() {}
 
 } // namespace librii::gpu
