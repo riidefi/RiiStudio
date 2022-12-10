@@ -118,8 +118,15 @@ void WriteTevBody(oishii::Writer& writer, u32 tev_id, const G3dShader& tev) {
   const auto stages_count_rounded = roundUp(stages_count, 2);
 
   for (unsigned i = 0; i < stages_count_rounded; i += 2) {
-    const auto& even_stage = stages[i];
-    const auto& odd_stage = stages[i + 1];
+    const librii::gx::TevStage even_stage = stages[i];
+    librii::gx::TevStage odd_stage;
+    odd_stage.texCoord = 7;
+    odd_stage.texMap = 0xFF; // map = 0, enable = 0
+    odd_stage.rasOrder = librii::gx::ColorSelChanApi::null;
+
+    if (i + 1 < tev.mStages.size()) {
+      odd_stage = stages[i + 1];
+    }
 
     const auto couple_start = writer.tell();
 

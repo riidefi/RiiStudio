@@ -129,6 +129,20 @@ void QDisplayListShaderHandler::onStreamEnd() {
 
   mMaterial.mStages.resize(mNumStages);
 
+#ifndef NDEBUG
+  if (mNumStages % 2) {
+    printf("Extra TREF data\n");
+    auto tref = mGpuShader.tref[mNumStages / 2];
+    auto coord = tref.getTexCoord(1);
+    auto chan = tref.getColorChan(1);
+    auto enable = tref.getEnable(1);
+    auto map = tref.getTexMap(1);
+
+    printf("coord, chan, enable, map: %u, %u, %u, %u\n", coord, chan, enable,
+           map);
+  }
+#endif
+
   for (int i = 0; i < mNumStages; i++) // evenStageId
   {
     auto& stage = mMaterial.mStages[i];
