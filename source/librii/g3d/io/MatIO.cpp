@@ -313,7 +313,7 @@ bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
   // reader.seek((8 - nTex)* (4 + (4 * 4 * sizeof(f32))));
   reader.seekSet(start + 0x3f0);
   mat.chanData.resize(0);
-  for (u8 i = 0; i < nColorChan; ++i) {
+  for (u8 i = 0; i < 2; ++i) {
     // skip runtime flag
     const auto flag = reader.read<u32>();
     (void)flag;
@@ -337,6 +337,8 @@ bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
     tmp.hex = reader.read<u32>();
     mat.colorChanControls.push_back(tmp);
   }
+  // Ugly hack. Rely on array_vector not downsizing behavior
+  mat.chanData.resize(nColorChan);
 
   // TEV
   if (!ignore_tev) {
@@ -495,27 +497,66 @@ void WriteMaterialBody(size_t mat_start, oishii::Writer& writer,
   for (int i = mat.texMatrices.size(); i < 8; ++i) {
     WriteTexMatrixEffectDefault(writer, ident34);
   }
+  auto chanData = mat.chanData;
+  auto colorChanControls = mat.colorChanControls;
+  while (chanData.size() < 2) {
+    // HACK: These are stored in uncleared memory by array-vector
+    chanData.resize(chanData.size() + 1);
+    if (colorChanControls.size() != (chanData.size() - 1) * 2) {
+      continue;
+    }
+    colorChanControls.push_back(librii::gx::ChannelControl{
+        .enabled = false,
+        .Ambient = gx::ColorSource::Register,
+        .Material = gx::ColorSource::Register,
+        .lightMask = gx::LightID::None,
+        .diffuseFn = gx::DiffuseFunction::None,
+        .attenuationFn = gx::AttenuationFunction::Specular, // ID 0
+    });
+    colorChanControls.push_back(librii::gx::ChannelControl{
+        .enabled = false,
+        .Ambient = gx::ColorSource::Register,
+        .Material = gx::ColorSource::Register,
+        .lightMask = gx::LightID::None,
+        .diffuseFn = gx::DiffuseFunction::None,
+        .attenuationFn = gx::AttenuationFunction::Specular, // ID 0
+    });
+  }
 
-  for (u8 i = 0; i < mat.chanData.size(); ++i) {
-    // TODO: flag
-    writer.write<u32>(0x3f);
-    mat.chanData[i].matColor >> writer;
-    mat.chanData[i].ambColor >> writer;
+  for (u8 i = 0; i < 2; ++i) {
+    enum {
+      GDSetChanMatColor_COLOR0 = 0x1,
+      GDSetChanMatColor_ALPHA0 = 0x2,
+      GDSetChanAmbColor_COLOR0 = 0x4,
+      GDSetChanAmbColor_ALPHA0 = 0x8,
+      GDSetChanCtrl_COLOR0 = 0x10,
+      GDSetChanCtrl_ALPHA0 = 0x20,
+    };
+    u32 flag = GDSetChanMatColor_COLOR0 | GDSetChanMatColor_ALPHA0 |
+               GDSetChanAmbColor_COLOR0 | GDSetChanAmbColor_ALPHA0;
+    if (i < mat.chanData.size()) {
+      flag |= GDSetChanCtrl_COLOR0;
+      flag |= GDSetChanCtrl_ALPHA0;
+    }
+
+    writer.write<u32>(flag);
+    chanData[i].matColor >> writer;
+    chanData[i].ambColor >> writer;
 
     librii::gpu::LitChannel clr, alpha;
+    clr.hex = 0;
+    alpha.hex = 0;
 
-    clr.from(mat.colorChanControls[i]);
-    alpha.from(mat.colorChanControls[i + 1]);
+    // It's impossible to get the hex 0 we see by calling this function, as
+    // attnEnable is enabled when attenuationFn != None, and attnSelect when
+    // attenuationFn != Specular.
+    if (i < mat.chanData.size()) {
+      clr.from(colorChanControls[i * 2]);
+      alpha.from(colorChanControls[i * 2 + 1]);
+    }
 
     writer.write<u32>(clr.hex);
     writer.write<u32>(alpha.hex);
-  }
-  for (u8 i = mat.chanData.size(); i < 2; ++i) {
-    writer.write<u32>(0x3f); // TODO: flag, reset on runtime
-    writer.write<u32>(0);    // mclr
-    writer.write<u32>(0);    // aclr
-    writer.write<u32>(0);    // clr
-    writer.write<u32>(0);    // alph
   }
 
   // Not written if no samplers..
