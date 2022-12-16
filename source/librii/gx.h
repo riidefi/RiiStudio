@@ -58,7 +58,7 @@ struct LowLevelGxMaterial {
 
   CullMode cullMode = CullMode::Back;
 
-  rsl::array_vector<ChannelData, 2> chanData{};
+  rsl::array_vector_fixed<ChannelData, 2> chanData{};
   // Color0, Alpha0, Color1, Alpha1
   rsl::array_vector<ChannelControl, 4> colorChanControls{};
 
