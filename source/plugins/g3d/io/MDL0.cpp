@@ -38,10 +38,15 @@ void writeGenericBuffer(
   writer.write<u16>(buf.mEntries.size());
   // TODO: min/max
   if constexpr (HasMinimum) {
-    auto [min, max] = librii::g3d::ComputeMinMax(buf);
+    auto mm = librii::g3d::ComputeMinMax(buf);
 
-    min >> writer;
-    max >> writer;
+    // Necessary for matching as it is not re-quantized in original files.
+    if (buf.mCachedMinMax.has_value()) {
+      mm = *buf.mCachedMinMax;
+    }
+
+    mm.min >> writer;
+    mm.max >> writer;
   }
 
   writer.alignTo(32);
@@ -237,8 +242,23 @@ std::string WriteMesh(oishii::Writer& writer,
     // ---
 
     dl.setVtxAttrFmtv(0, desc);
-    writer.skip(12 * 12); // array pointers set on runtime
-    dl.align();           // 30
+    u32 texcoord0 = static_cast<u32>(librii::gx::VertexAttribute::TexCoord0);
+    u32 size = 12 * 12;
+    {
+      u32 vcd = mesh.mVertexDescriptor.mBitfield;
+      if ((vcd & (0b111111 << (texcoord0 + 2))) == 0) {
+        size = 48;
+      } else if ((vcd & (0b111 << (texcoord0 + 5))) == 0) {
+        size = 80;
+      } else if ((vcd & (0b1 << (texcoord0 + 7))) == 0) {
+        size = 112;
+      } else {
+        size = 144;
+      }
+    }
+    writer.skip(size - 1); // array pointers set on runtime
+    writer.write<u8>(0);
+    dl.align();
     return "";
   };
   const auto assert_since = [&](u32 ofs) {
@@ -258,7 +278,6 @@ std::string WriteMesh(oishii::Writer& writer,
 
   assert_since(24);
   DlHandle setup(writer);
-
   DlHandle data(writer);
 
   auto vcd = mesh.mVertexDescriptor;
@@ -315,16 +334,17 @@ std::string WriteMesh(oishii::Writer& writer,
   }
 
   writer.alignTo(32);
+  auto setup_ba = writer.tell();
   setup.setBufAddr(writer.tell());
-  // TODO: rPB has this as 0x80 (32 fewer)
-  setup.setCmdSize(0xa0);
-  setup.setBufSize(0xe0); // 0xa0 is already 32b aligned
-  setup.write();
   auto dlerror = build_dlsetup();
   if (!dlerror.empty()) {
     return dlerror;
   }
-
+  setup.setCmdSize(writer.tell() - setup_ba);
+  while (writer.tell() != setup_ba + 0xe0)
+    writer.write<u8>(0);
+  setup.setBufSize(0xe0);
+  setup.write();
   writer.alignTo(32);
   data.setBufAddr(writer.tell());
   const auto data_start = writer.tell();

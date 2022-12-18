@@ -68,9 +68,11 @@ std::string readGenericBuffer(
   out.mEntries.resize(reader.read<u16>());
   T minEnt, maxEnt;
   // TODO: Min/Max are not re-quantized by official tooling it seems.
-  if (HasMinimum) {
+  if constexpr (HasMinimum) {
     minEnt << reader;
     maxEnt << reader;
+
+    out.mCachedMinMax = MinMax<T>{.min = minEnt, .max = maxEnt};
   }
   const auto nComponents =
       librii::gx::computeComponentCount(kind, out.mQuantize.mComp);
@@ -105,6 +107,14 @@ std::string readGenericBuffer(
   for (auto& entry : out.mEntries) {
     entry = librii::gx::readComponents<T>(reader, out.mQuantize.mType,
                                           nComponents, out.mQuantize.divisor);
+  }
+
+  if constexpr (HasMinimum) {
+    // Unset if not needed
+    if (out.mCachedMinMax.has_value() &&
+        librii::g3d::ComputeMinMax(out) == *out.mCachedMinMax) {
+      out.mCachedMinMax = std::nullopt;
+    }
   }
 
   return ""; // Valid

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <librii/gx/Vertex.hpp>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,13 @@ struct Quantization {
   }
 };
 
+template <typename T> struct MinMax {
+  T min;
+  T max;
+
+  bool operator==(const MinMax&) const = default;
+};
+
 template <typename T, bool HasMinimum, bool HasDivisor,
           librii::gx::VertexBufferKind kind>
 struct GenericBuffer {
@@ -32,14 +40,12 @@ struct GenericBuffer {
   Quantization mQuantize;
   std::vector<T> mEntries;
 
+  // Min/Max are not re-quantized by official tooling it seems.
+  std::optional<MinMax<T>> mCachedMinMax;
+
   std::string getName() const { return mName; }
 
   bool operator==(const GenericBuffer& rhs) const = default;
-};
-
-template <typename T> struct MinMax {
-  T min;
-  T max;
 };
 
 template <typename T, bool m, bool d, librii::gx::VertexBufferKind kind>

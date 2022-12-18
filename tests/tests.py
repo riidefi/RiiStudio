@@ -24,7 +24,7 @@ TEST_DATA = {
 	'55af17739e1f02f9cc3fe0cdf79195a0': '55af17739e1f02f9cc3fe0cdf79195a0',
 
 	# luigi_circuit.brres
-	'b84346d8549d38f4ba75a47eb87e9ca6': '23dc2328a072422a934d94ade01f49db',
+	'b84346d8549d38f4ba75a47eb87e9ca6': '20628828bbbafc3253bca171536faad9',
 
 	# sea.brres
 	# 1:1!
@@ -35,7 +35,8 @@ TEST_DATA = {
 	'82c63889be2251623cde52d8c2c06604': '82c63889be2251623cde52d8c2c06604',
 	
 	# rPB.brres
-	'0f1c62ebc592e943e4bf483dd75cfe9f': 'f49606cca3a0967f17aa4f75324e9d7d',
+	# 1:1
+	'0f1c62ebc592e943e4bf483dd75cfe9f': '0f1c62ebc592e943e4bf483dd75cfe9f',
 
 	# human_walk.brres
 	# 1:1
