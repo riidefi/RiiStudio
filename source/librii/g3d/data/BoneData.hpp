@@ -5,6 +5,7 @@
 #include <core/common.h>
 #include <glm/vec3.hpp>
 #include <librii/math/aabb.hpp>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -65,7 +66,7 @@ template <typename T> bool RangeIsHomogenous(const T& range) {
                             std::not_equal_to<>()) == range.end();
 }
 
-inline u32 computeFlag(const BoneData& data) {
+inline u32 computeFlag(const BoneData& data, std::span<const BoneData> all, bool display_matrix) {
   u32 flag = 0;
   const std::array<float, 3> scale{data.mScaling.x, data.mScaling.y,
                                    data.mScaling.z};
@@ -78,9 +79,28 @@ inline u32 computeFlag(const BoneData& data) {
     flag |= 4;
   if (data.mTranslation == glm::vec3{0.0f, 0.0f, 0.0f})
     flag |= 2;
-  if (flag & (2 | 4 | 8))
+  if ((flag & (2 | 4 | 8)) == (2 | 4 | 8))
     flag |= 1;
-  // TODO: Flag 0x40
+  bool has_ssc_below = false;
+  {
+    std::vector<s32> stack;
+    for (auto c : data.mChildren)
+      stack.push_back(c);
+    while (!stack.empty()) {
+      auto& elem = all[stack.back()];
+      stack.resize(stack.size() - 1);
+      if (elem.ssc) {
+        has_ssc_below = true;
+      }
+	  // It seems it's not actually a recursive flag?
+	   
+      // for (auto c : elem.mChildren)
+      //   stack.push_back(c);
+    }
+    if (has_ssc_below) {
+      flag |= 0x40;
+    }
+  }
   if (data.ssc)
     flag |= 0x20;
   if (!data.classicScale)
@@ -88,7 +108,9 @@ inline u32 computeFlag(const BoneData& data) {
   if (data.visible)
     flag |= 0x100;
   // TODO: Check children?
-  if (!data.mDisplayCommands.empty())
+  if (!data.mDisplayCommands.empty() /* TODO: Might need to check if any display
+                                        command has currentMtx set */
+      || display_matrix)
     flag |= 0x200;
   // TODO: 0x400 check parents
   return flag;

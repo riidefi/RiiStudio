@@ -35,16 +35,27 @@ struct ByteCodeLists {
     u16 boneId;
     u16 parentMtxId;
   };
-  // TODO: NodeMix
+  struct NodeMix {
+    u16 mtxId;
+    struct BlendMtx {
+      u16 mtxId;
+      f32 ratio;
+    };
+    std::vector<BlendMtx> blendMatrices;
+  };
   struct Draw {
     u16 matId;
     u16 polyId;
     u16 boneId;
     u8 prio;
   };
-  // TODO: EnvelopeMatrix
+  struct EnvelopeMatrix {
+    u16 mtxId;
+    u16 nodeId;
+  };
   // TODO: MatrixDuplicate
-  using Command = std::variant<NoOp, Draw, NodeDescendence>;
+  using Command =
+      std::variant<NoOp, Draw, NodeDescendence, EnvelopeMatrix, NodeMix>;
 
   static std::vector<Command> ParseStream(oishii::BinaryReader& reader,
                                           bool keep_nops = false) {
@@ -76,6 +87,26 @@ struct ByteCodeLists {
         NodeDescendence desc;
         desc.boneId = reader.readUnaligned<u16>();
         desc.parentMtxId = reader.readUnaligned<u16>();
+        commands.push_back(desc);
+        break;
+      }
+      case RenderCommand::EnvelopeMatrix: {
+        EnvelopeMatrix evp;
+        evp.mtxId = reader.readUnaligned<u16>();
+        evp.nodeId = reader.readUnaligned<u16>();
+        commands.push_back(evp);
+        break;
+      }
+      case RenderCommand::NodeMixing: {
+        NodeMix mix;
+        mix.mtxId = reader.readUnaligned<u16>();
+        auto numBlend = reader.readUnaligned<u8>();
+        mix.blendMatrices.resize(numBlend);
+        for (u8 i = 0; i < numBlend; ++i) {
+          mix.blendMatrices[i].mtxId = reader.readUnaligned<u16>();
+          mix.blendMatrices[i].ratio = reader.readUnaligned<f32>();
+        }
+        commands.push_back(mix);
         break;
       }
       }
@@ -97,6 +128,20 @@ struct ByteCodeLists {
             static_cast<u8>(RenderCommand::NodeDescendence));
         writer.writeUnaligned<u16>(draw->boneId);
         writer.writeUnaligned<u16>(draw->parentMtxId);
+      }
+      if (auto* evp = std::get_if<EnvelopeMatrix>(&cmd)) {
+        writer.writeUnaligned<u8>(
+            static_cast<u8>(RenderCommand::EnvelopeMatrix));
+        writer.writeUnaligned<u16>(evp->mtxId);
+        writer.writeUnaligned<u16>(evp->nodeId);
+      } else if (auto* mix = std::get_if<NodeMix>(&cmd)) {
+        writer.writeUnaligned<u8>(static_cast<u8>(RenderCommand::NodeMixing));
+        writer.writeUnaligned<u16>(mix->mtxId);
+        writer.writeUnaligned<u8>(static_cast<u16>(mix->blendMatrices.size()));
+        for (const auto& blend : mix->blendMatrices) {
+          writer.writeUnaligned<u16>(blend.mtxId);
+          writer.writeUnaligned<f32>(blend.ratio);
+        }
       } else if (auto* draw = std::get_if<NoOp>(&cmd)) {
         writer.writeUnaligned<u8>(static_cast<u8>(RenderCommand::NoOp));
       } else {

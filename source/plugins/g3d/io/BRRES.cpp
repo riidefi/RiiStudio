@@ -228,7 +228,7 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
       writer.write<u8>(p);
   }
 
-  writer.alignTo(64);
+  writer.alignTo(128);
   linker.label("BRRES_END");
 
   linker.resolve();

@@ -45,11 +45,16 @@ void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler,
       handler.onCommandCP(cmd);
       break;
     }
-    case CommandType::_20:
-    case CommandType::_28:
-    case CommandType::_30:
-    case CommandType::_38: {
-      reader.skip(5);
+    case CommandType::LOAD_INDX_A: // Position matrices - Start at 0, len=12 (3x4)
+    case CommandType::LOAD_INDX_B: // Normal matrices - Start at 1024, len=9 (3x3)
+    case CommandType::LOAD_INDX_C: // Postmatrices - ??
+    case CommandType::LOAD_INDX_D: // Lights - ??
+	{
+      u32 val = reader.readUnaligned<u32>();
+      u16 index = val >> 16;
+      u16 addr = val & 0x0FFF;
+      u8 len = ((val >> 12) & 0xF) + 1;
+      handler.onCommandIndexedLoad(static_cast<u8>(tag), index, addr, len);
       break;
     }
     default:
@@ -57,7 +62,7 @@ void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler,
         handler.onCommandDraw(
             reader,
             librii::gx::DecodeDrawPrimitiveCommand(static_cast<u32>(tag)),
-            reader.readUnaligned<u16>());
+            reader.readUnaligned<u16>(), start + dlSize);
       }
       // TODO
       break;

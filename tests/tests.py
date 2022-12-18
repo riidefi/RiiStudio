@@ -24,7 +24,7 @@ TEST_DATA = {
 	'55af17739e1f02f9cc3fe0cdf79195a0': '55af17739e1f02f9cc3fe0cdf79195a0',
 
 	# luigi_circuit.brres
-	'b84346d8549d38f4ba75a47eb87e9ca6': '5b6e5566f4bc1ba014da105cf906b8da',
+	'b84346d8549d38f4ba75a47eb87e9ca6': '23dc2328a072422a934d94ade01f49db',
 
 	# sea.brres
 	# 1:1!
@@ -36,6 +36,10 @@ TEST_DATA = {
 	
 	# rPB.brres
 	'0f1c62ebc592e943e4bf483dd75cfe9f': 'f49606cca3a0967f17aa4f75324e9d7d',
+
+	# human_walk.brres
+	# 1:1
+	'bbd05488abd1dd21ac2cb21077d8ccdc': 'bbd05488abd1dd21ac2cb21077d8ccdc',
 }
 
 def hash(path):
@@ -76,7 +80,6 @@ def run_test(test_exec, path, out_path):
 	if md5 not in TEST_DATA:
 		print("Warning: %s is not part of the testing set" % pretty_path(path))
 		print("--> Input Hash: %s" % md5)
-		return
 	else:
 		expected = TEST_DATA[md5]
 
@@ -88,6 +91,10 @@ def run_test(test_exec, path, out_path):
 		return
 
 	actual = hash(rebuild_path)
+
+	if expected == "<None>":
+		print("--> Output Hash: %s" % actual)
+		return
 
 	if expected != actual:
 		print("Error: %s: Rebuild does not match!" % pretty_path(path))

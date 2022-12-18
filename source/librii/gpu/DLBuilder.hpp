@@ -830,6 +830,46 @@ public:
     writeCp(0x90 + fmtIdx, group2.Hex);
   }
 
+  enum {
+    XF_MEMORY_POS_MTX = 0,
+    XF_MEMORY_NRM_MTX = 0x400,
+    XF_MEMORY_PTT_MTX = 0x500,
+  };
+
+  // GX matrix IDs are specified in units of rows, such that the same ID can
+  // be used for both 3x4 position and 3x3 normal matrices.
+  static u16 XFPosMtx(u32 row) { return XF_MEMORY_POS_MTX + row * 4; }
+  // Texture and position matrices exist in the same space
+  static u16 XFTexMtx(u32 row) { return XFPosMtx(row); }
+  // Normal matrices exist in a parallel space
+  static u16 XFNrmMtx(u32 row) { return XF_MEMORY_NRM_MTX + row * 3; }
+  // Post-transform texture matrices exist in a sequestered address space,
+  // however would seem to the user to exist in the same space as
+  // texture/position matrices.
+  static u16 XPTTMtx(u32 row) {
+    return XF_MEMORY_PTT_MTX +
+           (row - static_cast<u32>(librii::gx::PostTexMatrix::Matrix0)) * 4;
+  }
+
+  void loadPosMtxIndx(u16 from_idx, u32 to_idx) {
+    writeXfIdxA(XFPosMtx(to_idx), 3 * 4, from_idx);
+  }
+
+  void loadNrmMtxIndx3x3(u16 from_idx, u32 to_idx) {
+    writeXfIdxB(XFNrmMtx(to_idx), 3 * 3, from_idx);
+  }
+
+  void loadTexMtxIndx(u16 from_idx, u32 to_idx, librii::gx::TexGenType type) {
+    if (to_idx >= static_cast<u32>(librii::gx::PostTexMatrix::Matrix0)) {
+      assert(type == librii::gx::TexGenType::Matrix3x4);
+      writeXfIdxC(XPTTMtx(to_idx), 3 * 4, from_idx);
+    } else {
+      writeXfIdxC(XFTexMtx(to_idx),
+                  type == librii::gx::TexGenType::Matrix2x4 ? 2 * 4 : 3 * 4,
+                  from_idx);
+    }
+  }
+
   void align() {
     while (mWriter.tell() % 32)
       mWriter.write<u8>(0);
@@ -837,7 +877,15 @@ public:
   void bpMask(u32 mask) { writeBp(BPAddress::BP_MASK, mask); }
 
 private:
-  enum class Command { BP = 0x61, XF = 0x10, CP = 0x08 };
+  enum class Command {
+    BP = 0x61,
+    XF = 0x10,
+    CP = 0x08,
+    XF_IDX_A = 0x20,
+    XF_IDX_B = 0x28,
+    XF_IDX_C = 0x30,
+    XF_IDX_D = 0x38,
+  };
 
   void writeBp(u8 reg, u32 val) {
     val &= static_cast<u32>((1 << 24) - 1); // 24-bit
@@ -853,6 +901,38 @@ private:
     mWriter.writeUnaligned<u16>(0);
     mWriter.writeUnaligned<u16>(reg);
     mWriter.writeUnaligned<u32>(val);
+  }
+  // 5 bytes
+  void writeXfIdxA(u16 reg, u8 len, u16 index) {
+    assert(index <= 0x0fff);
+    assert((len - 1) <= 0xf);
+    mWriter.writeUnaligned<u8>(static_cast<u8>(Command::XF_IDX_A));
+    mWriter.writeUnaligned<u16>(index);
+    mWriter.writeUnaligned<u16>((reg & 0x0fff) | (((len - 1) & 0xf) << 12));
+  }
+  // 5 bytes
+  void writeXfIdxB(u16 reg, u8 len, u16 index) {
+    assert(index <= 0x0fff);
+    assert((len - 1) <= 0xf);
+    mWriter.writeUnaligned<u8>(static_cast<u8>(Command::XF_IDX_B));
+    mWriter.writeUnaligned<u16>(index);
+    mWriter.writeUnaligned<u16>((reg & 0x0fff) | (((len - 1) & 0xf) << 12));
+  }
+  // 5 bytes
+  void writeXfIdxC(u16 reg, u8 len, u16 index) {
+    assert(index <= 0x0fff);
+    assert((len - 1) <= 0xf);
+    mWriter.writeUnaligned<u8>(static_cast<u8>(Command::XF_IDX_C));
+    mWriter.writeUnaligned<u16>(index);
+    mWriter.writeUnaligned<u16>((reg & 0x0fff) | (((len - 1) & 0xf) << 12));
+  }
+  // 5 bytes
+  void writeXfIdxD(u16 reg, u8 len, u16 index) {
+    assert(index <= 0x0fff);
+    assert((len - 1) <= 0xf);
+    mWriter.writeUnaligned<u8>(static_cast<u8>(Command::XF_IDX_D));
+    mWriter.writeUnaligned<u16>(index);
+    mWriter.writeUnaligned<u16>((reg & 0x0fff) | (((len - 1) & 0xf) << 12));
   }
   // 6 bytes
   void writeCp(u8 reg, u32 val) {

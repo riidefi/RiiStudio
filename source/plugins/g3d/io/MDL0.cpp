@@ -38,18 +38,7 @@ void writeGenericBuffer(
   writer.write<u16>(buf.mEntries.size());
   // TODO: min/max
   if constexpr (HasMinimum) {
-    T min;
-    T max;
-    for (int c = 0; c < T::length(); ++c) {
-      min[c] = +1'000'000'000.0f;
-      max[c] = -1'000'000'000.0f;
-    }
-    for (auto& elem : buf.mEntries) {
-      for (int c = 0; c < elem.length(); ++c) {
-        min[c] = std::min(elem[c], min[c]);
-        max[c] = std::max(elem[c], max[c]);
-      }
-    }
+    auto [min, max] = librii::g3d::ComputeMinMax(buf);
 
     min >> writer;
     max >> writer;
@@ -74,9 +63,40 @@ std::string writeVertexDataDL(const librii::g3d::PolygonData& poly,
   using VATAttrib = librii::gx::VertexAttribute;
   using VATType = librii::gx::VertexAttributeType;
 
+  if (poly.mCurrentMatrix == -1) {
+    librii::gpu::DLBuilder builder(writer);
+    if (poly.needsTextureMtx()) {
+      for (size_t i = 0; i < mp.mDrawMatrixIndices.size(); ++i) {
+        if (mp.mDrawMatrixIndices[i] == -1) {
+          continue;
+        }
+        // TODO: Get this from the material?
+        builder.loadTexMtxIndx(mp.mDrawMatrixIndices[i], i * 3,
+                               librii::gx::TexGenType::Matrix3x4);
+      }
+    }
+    if (poly.needsPositionMtx()) {
+      for (size_t i = 0; i < mp.mDrawMatrixIndices.size(); ++i) {
+        if (mp.mDrawMatrixIndices[i] == -1) {
+          continue;
+        }
+        builder.loadPosMtxIndx(mp.mDrawMatrixIndices[i], i * 3);
+      }
+    }
+    if (poly.needsNormalMtx()) {
+      for (size_t i = 0; i < mp.mDrawMatrixIndices.size(); ++i) {
+        if (mp.mDrawMatrixIndices[i] == -1) {
+          continue;
+        }
+        builder.loadNrmMtxIndx3x3(mp.mDrawMatrixIndices[i], i * 3);
+      }
+    }
+  }
+
   for (auto& prim : mp.mPrimitives) {
-    writer.write<u8>(librii::gx::EncodeDrawPrimitiveCommand(prim.mType));
-    writer.write<u16>(prim.mVertices.size());
+    writer.writeUnaligned<u8>(
+        librii::gx::EncodeDrawPrimitiveCommand(prim.mType));
+    writer.writeUnaligned<u16>(prim.mVertices.size());
     for (const auto& v : prim.mVertices) {
       for (int a = 0; a < (int)VATAttrib::Max; ++a) {
         VATAttrib attr = static_cast<VATAttrib>(a);
@@ -86,16 +106,18 @@ std::string writeVertexDataDL(const librii::g3d::PolygonData& poly,
         case VATType::None:
           break;
         case VATType::Byte:
-          writer.write<u8>(v[attr]);
+          writer.writeUnaligned<u8>(v[attr]);
           break;
         case VATType::Short:
-          writer.write<u16>(v[attr]);
+          writer.writeUnaligned<u16>(v[attr]);
           break;
         case VATType::Direct:
-          if (attr != VATAttrib::PositionNormalMatrixIndex) {
+          if (attr != VATAttrib::PositionNormalMatrixIndex &&
+              ((u32)attr > (u32)VATAttrib::Texture7MatrixIndex &&
+               (u32)attr < (u32)VATAttrib::Texture0MatrixIndex)) {
             return "Direct vertex data is unsupported.";
           }
-          writer.write<u8>(v[attr]);
+          writer.writeUnaligned<u8>(v[attr]);
           break;
         default:
           return "!Unknown vertex attribute format.";
@@ -103,10 +125,6 @@ std::string writeVertexDataDL(const librii::g3d::PolygonData& poly,
       }
     }
   }
-
-  // DL pad
-  while (writer.tell() % 32)
-    writer.write<u8>(0);
 
   return "";
 }
@@ -277,9 +295,24 @@ std::string WriteMesh(oishii::Writer& writer,
   writer.write<s16>(-1); // fur
   assert_since(0x64);
   writer.write<s32>(0x68); // msu, directly follows
-  // TODO
-  writer.write<u32>(0);
-  writer.write<u32>(0);
+
+  std::set<s16> used;
+  for (auto& mp : mesh.mMatrixPrimitives) {
+    for (auto& w : mp.mDrawMatrixIndices) {
+      if (w == -1) {
+        continue;
+      }
+      used.insert(w);
+    }
+  }
+  writer.write<u32>(used.size());
+  if (used.size() == 0) {
+    writer.write<u32>(0);
+  } else {
+    for (const auto& matrix : used) {
+      writer.write<u16>(matrix);
+    }
+  }
 
   writer.alignTo(32);
   setup.setBufAddr(writer.tell());
@@ -302,6 +335,10 @@ std::string WriteMesh(oishii::Writer& writer,
         return err;
       }
     }
+    // DL pad
+    while (writer.tell() % 32) {
+      writer.write<u8>(0);
+    }
   }
   data.setCmdSize(writer.tell() - data_start);
   writer.alignTo(32);
@@ -311,6 +348,7 @@ std::string WriteMesh(oishii::Writer& writer,
 void BuildRenderLists(const Model& mdl,
                       std::vector<riistudio::g3d::RenderList>& renderLists) {
   librii::g3d::ByteCodeMethod nodeTree{.name = "NodeTree"};
+  librii::g3d::ByteCodeMethod nodeMix{.name = "NodeMix"};
   librii::g3d::ByteCodeMethod drawOpa{.name = "DrawOpa"};
   librii::g3d::ByteCodeMethod drawXlu{.name = "DrawXlu"};
 
@@ -326,7 +364,6 @@ void BuildRenderLists(const Model& mdl,
                  mdl.getMaterials()[draw.mMaterial].xlu;
       (xlu ? &drawXlu : &drawOpa)->commands.push_back(cmd);
     }
-    // TODO: This is speculation, not validated for multi-bone setups yet
     auto parent = mdl.getBones()[i].mParent;
     assert(parent < std::ssize(mdl.getBones()));
     librii::g3d::ByteCodeLists::NodeDescendence desc{
@@ -337,7 +374,62 @@ void BuildRenderLists(const Model& mdl,
     nodeTree.commands.push_back(desc);
   }
 
+  auto write_drw = [&](const libcube::DrawMatrix& drw, size_t i) {
+    if (drw.mWeights.size() > 1) {
+      librii::g3d::ByteCodeLists::NodeMix mix{
+          .mtxId = static_cast<u16>(i),
+      };
+      for (auto& weight : drw.mWeights) {
+        assert(weight.boneId < mdl.getBones().size());
+        mix.blendMatrices.push_back(
+            librii::g3d::ByteCodeLists::NodeMix::BlendMtx{
+                .mtxId =
+                    static_cast<u16>(mdl.getBones()[weight.boneId].matrixId),
+                .ratio = weight.weight,
+            });
+      }
+      nodeMix.commands.push_back(mix);
+    } else {
+      assert(drw.mWeights[0].boneId < mdl.getBones().size());
+      librii::g3d::ByteCodeLists::EnvelopeMatrix evp{
+          .mtxId = static_cast<u16>(i),
+          .nodeId = static_cast<u16>(drw.mWeights[0].boneId),
+      };
+      nodeMix.commands.push_back(evp);
+    }
+  };
+
+  // TODO: Better heuristic. When do we *need* NodeMix? Presumably when at least
+  // one bone is weighted to a matrix that is not a bone directly? Or when that
+  // bone is influenced by another bone?
+  bool needs_nodemix = false;
+  for (auto& mtx : mdl.mDrawMatrices) {
+    if (mtx.mWeights.size() > 1) {
+      needs_nodemix = true;
+      break;
+    }
+  }
+
+  if (needs_nodemix) {
+    // Bones come first
+    for (auto& bone : mdl.getBones()) {
+      auto& drw = mdl.mDrawMatrices[bone.matrixId];
+      write_drw(drw, bone.matrixId);
+    }
+    for (size_t i = 0; i < mdl.mDrawMatrices.size(); ++i) {
+      auto& drw = mdl.mDrawMatrices[i];
+      if (drw.mWeights.size() == 1) {
+        // Written in pre-pass
+        continue;
+      }
+      write_drw(drw, i);
+    }
+  }
+
   renderLists.push_back(RenderList{nodeTree});
+  if (!nodeMix.commands.empty()) {
+    renderLists.push_back(RenderList{nodeMix});
+  }
   if (!drawOpa.commands.empty()) {
     renderLists.push_back(RenderList{drawOpa});
   }
@@ -364,6 +456,28 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   for (auto& mat : mdl.getMaterials()) {
     librii::g3d::G3dShader shader(mat.getMaterialData());
     shader_allocator.alloc(shader);
+  }
+
+  //
+  // Build display matrix index (subset of mDrawMatrices)
+  //
+  std::set<s16> displayMatrices;
+  for (auto& mesh : mdl.getMeshes()) {
+    // TODO: Do we need to check currentMatrixEmbedded flag?
+    if (mesh.mCurrentMatrix != -1) {
+      displayMatrices.insert(mesh.mCurrentMatrix);
+      continue;
+    }
+    // TODO: Presumably mCurrentMatrix (envelope mode) precludes blended weight
+    // mode?
+    for (auto& mp : mesh.mMatrixPrimitives) {
+      for (auto& w : mp.mDrawMatrixIndices) {
+        if (w == -1) {
+          continue;
+        }
+        displayMatrices.insert(w);
+      }
+    }
   }
 
   std::map<std::string, u32> Dictionaries;
@@ -426,22 +540,33 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
     writer.write<u32>(0); // mdl.sourceLocation
 
-    // TODO Bad assumption, nViewMtx
-    writer.write<u32>(mdl.getBones().size());
-    // TODO bMtxArray, bTexMtxArray, bBoundVolume
-    writer.write<u8>(1);
-    writer.write<u8>(0);
-    writer.write<u8>(0);
+    writer.write<u32>(displayMatrices.size());
+    // bNrmMtxArray, bTexMtxArray
+    writer.write<u8>(std::any_of(mdl.getMeshes().begin(), mdl.getMeshes().end(),
+                                 [](auto& m) { return m.needsNormalMtx(); }));
+    writer.write<u8>(std::any_of(mdl.getMeshes().begin(), mdl.getMeshes().end(),
+                                 [](auto& m) { return m.needsTextureMtx(); }));
+    writer.write<u8>(0); // bBoundVolume
 
     writer.write<u8>(static_cast<u8>(mdl.mEvpMtxMode));
     writer.write<u32>(0x40); // offset to bone table, effectively header size
     mdl.aabb.min >> writer;
     mdl.aabb.max >> writer;
-    // Bone table
-    // TODO: -1 for non-singlebound? Out of current scope for now
-    writer.write<u32>(mdl.getBones().size());
-    for (int i = 0; i < mdl.getBones().size(); ++i)
-      writer.write<u32>(i);
+    // Matrix -> Bone LUT
+    writer.write<u32>(mdl.mDrawMatrices.size());
+    for (size_t i = 0; i < mdl.mDrawMatrices.size(); ++i) {
+      auto& mtx = mdl.mDrawMatrices[i];
+      bool multi_influence = mtx.mWeights.size() > 1;
+      u32 boneId = 0xFFFF'FFFF;
+      if (!multi_influence) {
+        auto it = std::find_if(mdl.getBones().begin(), mdl.getBones().end(),
+                               [i](auto& bone) { return bone.matrixId == i; });
+        if (it != mdl.getBones().end()) {
+          boneId = it - mdl.getBones().begin();
+        }
+      }
+      writer.write<u32>(boneId);
+    }
   }
 
   d_cursor = writer.tell();
@@ -510,11 +635,15 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       },
       true, 1);
 
+  std::vector<librii::g3d::BoneData> bones(mdl.getBones().begin(),
+                                           mdl.getBones().end());
+
   u32 bone_id = 0;
   write_dict("Bones", mdl.getBones(),
              [&](const librii::g3d::BoneData& bone, std::size_t bone_start) {
                DebugReport("Bone at %x\n", (unsigned)bone_start);
-               librii::g3d::WriteBone(names, writer, bone_start, bone, bone_id);
+               librii::g3d::WriteBone(names, writer, bone_start, bone, bones,
+                                      bone_id++, displayMatrices);
              });
 
   u32 mat_idx = 0;

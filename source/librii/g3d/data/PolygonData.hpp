@@ -24,6 +24,21 @@ struct PolygonData : public librii::gx::MeshData {
 
   std::string getName() const { return mName; }
 
+  bool needsPositionMtx() const {
+    // TODO: Do we need to check currentMatrixEmbedded?
+    return mCurrentMatrix == -1;
+  }
+  bool needsNormalMtx() const {
+    // TODO: Do we need to check currentMatrixEmbedded?
+    return mVertexDescriptor[gx::VertexAttribute::Normal];
+  }
+  bool needsTextureMtx() const {
+    // TODO: Do we need to check currentMatrixEmbedded?
+    return mVertexDescriptor.mBitfield &
+           (0b1111'1111 << static_cast<u32>(
+                gx::VertexAttribute::Texture0MatrixIndex));
+  }
+
   bool operator==(const PolygonData& rhs) const = default;
 };
 

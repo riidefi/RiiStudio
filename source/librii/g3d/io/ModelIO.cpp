@@ -232,32 +232,46 @@ void ReadMesh(
   librii::gpu::RunDisplayList(reader, vcdHandler, primitiveSetup.buf_size);
 
   for (u32 i = 0; i < (u32)librii::gx::VertexAttribute::Max; ++i) {
-    if (poly.mVertexDescriptor.mBitfield & (1 << i)) {
-      if (i == 0) {
-        transaction.callback(kpi::IOMessageClass::Error, transaction_path,
-                             "Unsuported attribute");
-        transaction.state = kpi::TransactionState::Failure;
-        return;
-      }
+    if ((poly.mVertexDescriptor.mBitfield & (1 << i)) == 0)
+      continue;
+    auto att = static_cast<librii::gx::VertexAttribute>(i);
+
+    if (att == librii::gx::VertexAttribute::PositionNormalMatrixIndex ||
+        att == librii::gx::VertexAttribute::Texture0MatrixIndex ||
+        att == librii::gx::VertexAttribute::Texture1MatrixIndex ||
+        att == librii::gx::VertexAttribute::Texture2MatrixIndex) {
+      poly.mVertexDescriptor.mAttributes[att] =
+          librii::gx::VertexAttributeType::Direct;
+    } else if (i >= (u32)librii::gx::VertexAttribute::Position &&
+               i <= (u32)librii::gx::VertexAttribute::TexCoord7) {
       const auto stat = vcdHandler.mGpuMesh.VCD.GetVertexArrayStatus(
           i - (u32)librii::gx::VertexAttribute::Position);
-      const auto att = static_cast<librii::gx::VertexAttributeType>(stat);
-      if (att == librii::gx::VertexAttributeType::None) {
+      const auto encoding = static_cast<librii::gx::VertexAttributeType>(stat);
+      if (encoding == librii::gx::VertexAttributeType::None) {
         transaction.callback(kpi::IOMessageClass::Error, transaction_path,
                              "att == librii::gx::VertexAttributeType::None");
         poly.mVertexDescriptor.mBitfield ^= (1 << i);
         // transaction.state = kpi::TransactionState::Failure;
         // return;
       }
-      poly.mVertexDescriptor.mAttributes[(librii::gx::VertexAttribute)i] = att;
+      poly.mVertexDescriptor.mAttributes[att] = encoding;
+    } else {
+      assert(!"Unrecognized attribute");
     }
   }
   struct QDisplayListMeshHandler final
       : public librii::gpu::QDisplayListHandler {
     void onCommandDraw(oishii::BinaryReader& reader,
-                       librii::gx::PrimitiveType type, u16 nverts) override {
+                       librii::gx::PrimitiveType type, u16 nverts,
+                       u32 stream_end) override {
       if (mErr)
         return;
+
+      assert(reader.tell() < stream_end);
+
+      mLoadingMatrices = 0;
+      mLoadingNrmMatrices = 0;
+      mLoadingTexMatrices = 0;
 
       if (mPoly.mMatrixPrimitives.empty())
         mPoly.mMatrixPrimitives.push_back(librii::gx::MatrixPrimitive{});
@@ -272,6 +286,15 @@ void ReadMesh(
             const auto attr = static_cast<librii::gx::VertexAttribute>(i);
             switch (mPoly.mVertexDescriptor.mAttributes[attr]) {
             case librii::gx::VertexAttributeType::Direct:
+              if (attr ==
+                      librii::gx::VertexAttribute::PositionNormalMatrixIndex ||
+                  ((u32)attr >=
+                       (u32)librii::gx::VertexAttribute::Texture0MatrixIndex &&
+                   (u32)attr <=
+                       (u32)librii::gx::VertexAttribute::Texture7MatrixIndex)) {
+                vert[attr] = reader.readUnaligned<u8>();
+                break;
+              }
               mErr = true;
               return;
             case librii::gx::VertexAttributeType::None:
@@ -287,8 +310,44 @@ void ReadMesh(
         }
       }
     }
+    void onCommandIndexedLoad(u32 cmd, u32 index, u16 address,
+                              u8 size) override {
+      // Expect IDX_A (position matrix) commands to be in sequence then IDX_B
+      // (normal matrix) commands to follow.
+      if (cmd == 0x20) {
+        assert(address == mLoadingMatrices * 12);
+        assert(size == 12);
+        ++mLoadingMatrices;
+      } else if (cmd == 0x28) {
+        assert(address == 1024 + mLoadingNrmMatrices * 9);
+        assert(size == 9);
+        ++mLoadingNrmMatrices;
+      } else if (cmd == 0x30) {
+        assert(address == 120 + mLoadingTexMatrices * 12);
+        assert(size == 12);
+        ++mLoadingTexMatrices;
+      } else {
+        assert(!"Unknown matrix command");
+      }
+
+      // NOTE: Normal-matrix-only models would be ignored currently
+      if (cmd != 0x20) {
+        return;
+      }
+      if (mLoadingMatrices == 1) {
+        mPoly.mMatrixPrimitives.emplace_back();
+      }
+      auto& mp = mPoly.mMatrixPrimitives.back();
+
+      mp.mDrawMatrixIndices.push_back(index);
+      // This is a J3D-only field, but we can fill it out anyway
+      mp.mCurrentMatrix = mPoly.mCurrentMatrix;
+    }
     QDisplayListMeshHandler(librii::g3d::PolygonData& poly) : mPoly(poly) {}
     bool mErr = false;
+    int mLoadingMatrices = 0;
+    int mLoadingNrmMatrices = 0;
+    int mLoadingTexMatrices = 0;
     librii::g3d::PolygonData& mPoly;
   } meshHandler(poly);
   primitiveData.seekTo(reader);
@@ -462,9 +521,7 @@ void BinaryModel::read(oishii::BinaryReader& reader,
                          "materials may flicker during ghost replays.");
   } else if (bones.size() > 1) {
     transaction.callback(kpi::IOMessageClass::Error, transaction_path,
-                         "Rigging support is not fully tested. "
-                         "Rejecting file to avoid potential corruption.");
-    transaction.state = kpi::TransactionState::FailureToSave;
+                         "Rigging support is not fully tested.");
   }
 }
 

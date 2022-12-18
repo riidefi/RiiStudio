@@ -31,7 +31,9 @@ public:
   virtual void onCommandCP(const QCPCommand& token) {}
   virtual void onCommandXF(const QXFCommand& token) {}
   virtual void onCommandDraw(oishii::BinaryReader& reader,
-                             librii::gx::PrimitiveType type, u16 nverts) {}
+                             librii::gx::PrimitiveType type, u16 nverts,
+                             u32 stream_end) {}
+  virtual void onCommandIndexedLoad(u32 cmd, u32 index, u16 address, u8 size) {}
 
   virtual void onStreamBegin() {}
   virtual void onStreamEnd() {}

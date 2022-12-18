@@ -16,30 +16,6 @@
 
 namespace riistudio::g3d {
 
-void ApplyBytecodeToDrawMatrices(
-    riistudio::g3d::Model& mdl,
-    librii::g3d::ByteCodeLists::NodeDescendence* desc, int& base_matrix_id) {
-  const auto& bone = mdl.getBones()[desc->boneId];
-  const auto matrixId = bone.matrixId;
-
-  // Hack: Base matrix is first copied to end, first instruction
-  if (base_matrix_id == -1) {
-    base_matrix_id = matrixId;
-  } else {
-    auto& drws = mdl.mDrawMatrices;
-    if (drws.size() <= matrixId) {
-      drws.resize(matrixId + 1);
-    }
-    // TODO: Start at 100?
-    drws[matrixId].mWeights.emplace_back(desc->boneId, 1.0f);
-  }
-  // printf("BoneIdx: %u (MatrixIdx: %u), ParentMtxIdx: %u\n",
-  // (u32)boneIdx,
-  //        (u32)matrixId, (u32)parentMtxIdx);
-  // printf("\"Matrix %u\" -> \"Matrix %u\" [label=\"parent\"];\n",
-  //        (u32)matrixId, (u32)parentMtxIdx);
-}
-
 void CheckMaterialXluFlag(riistudio::g3d::Material& mat,
                           librii::g3d::ByteCodeMethod& method,
                           riistudio::g3d::Bone::Display& disp,
@@ -151,23 +127,71 @@ void processModel(librii::g3d::BinaryModel& binary_model,
   // Process bytecode: Apply to materials/bones/draw matrices
 
   for (auto& method : binary_model.bytecodes) {
-    int base_matrix_id = -1; // Modified by ApplyBytecodeToDrawMatrices
-
-    // printf("digraph {\n");
     for (auto& command : method.commands) {
-      if (auto* draw = std::get_if<ByteCodeLists::Draw>(&command);
-          draw != nullptr) {
+      if (auto* draw = std::get_if<ByteCodeLists::Draw>(&command)) {
         ApplyDrawCallToModel(draw, mdl, transaction, transaction_path, method);
       } else if (auto* desc =
-                     std::get_if<ByteCodeLists::NodeDescendence>(&command);
-                 desc != nullptr) {
-        ApplyBytecodeToDrawMatrices(mdl, desc, base_matrix_id);
+                     std::get_if<ByteCodeLists::NodeDescendence>(&command)) {
+        auto& bone = mdl.getBones()[desc->boneId];
+        const auto matrixId = bone.matrixId;
+
+        // TODO: Accelerate with bone table for constant-time lookup?
+        auto it = std::find_if(
+            binary_model.bones.begin(), binary_model.bones.end(),
+            [desc](auto& bone) { return bone.matrixId == desc->parentMtxId; });
+
+        if (bone.mParent != -1 && it != binary_model.bones.end()) {
+          bone.mParent = it - binary_model.bones.begin();
+        }
+
+        if (matrixId >= mdl.mDrawMatrices.size()) {
+          mdl.mDrawMatrices.resize(matrixId + 1);
+          mdl.mDrawMatrices[matrixId].mWeights.emplace_back(desc->boneId, 1.0f);
+        }
+      }
+      // Either-or: A matrix is either single-bound (EVP) or multi-influence
+      // (NODEMIX)
+      else if (auto* evp =
+                   std::get_if<ByteCodeLists::EnvelopeMatrix>(&command)) {
+        auto& drws = mdl.mDrawMatrices;
+        if (drws.size() <= evp->mtxId) {
+          drws.resize(evp->mtxId + 1);
+        }
+        drws[evp->mtxId].mWeights.clear();
+        drws[evp->mtxId].mWeights.emplace_back(evp->nodeId, 1.0f);
+      } else if (auto* mix = std::get_if<ByteCodeLists::NodeMix>(&command)) {
+        auto& drws = mdl.mDrawMatrices;
+        if (drws.size() <= mix->mtxId) {
+          drws.resize(mix->mtxId + 1);
+        }
+        drws[mix->mtxId].mWeights.clear();
+        drws[mix->mtxId].mWeights.resize(mix->blendMatrices.size());
+        for (u16 i = 0; i < mix->blendMatrices.size(); ++i) {
+          auto& blend = mix->blendMatrices[i];
+
+          // TODO: Accelerate with bone table for constant-time lookup?
+          auto it = std::find_if(
+              binary_model.bones.begin(), binary_model.bones.end(),
+              [blend](auto& bone) { return bone.matrixId == blend.mtxId; });
+          assert(it != binary_model.bones.end());
+
+          drws[mix->mtxId].mWeights[i] = libcube::DrawMatrix::MatrixWeight(
+              static_cast<u32>(it - binary_model.bones.begin()), blend.ratio);
+        }
       }
       // TODO: Other bytecodes
     }
-    // printf("}\n");
+  }
+
+  // Recompute parent-child relationships
+  for (size_t i = 0; i < mdl.getBones().size(); ++i) {
+    auto& bone = mdl.getBones()[i];
+    if (bone.mParent == -1) {
+      continue;
+    }
+    auto& parent = mdl.getBones()[bone.mParent];
+    parent.mChildren.push_back(i);
   }
 }
-
 
 } // namespace riistudio::g3d
