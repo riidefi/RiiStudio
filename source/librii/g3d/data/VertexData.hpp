@@ -32,6 +32,8 @@ struct GenericBuffer {
   Quantization mQuantize;
   std::vector<T> mEntries;
 
+  std::string getName() const { return mName; }
+
   bool operator==(const GenericBuffer& rhs) const = default;
 };
 

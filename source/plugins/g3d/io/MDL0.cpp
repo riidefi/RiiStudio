@@ -3,6 +3,7 @@
 #include <librii/g3d/io/BoneIO.hpp>
 #include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/MatIO.hpp>
+#include <librii/g3d/io/ModelIO.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/gpu/DLBuilder.hpp>
 #include <librii/gpu/DLPixShader.hpp>
@@ -13,30 +14,7 @@
 
 namespace riistudio::g3d {
 
-struct RenderList {
-  struct DrawCmd {
-    u16 matIdx;
-    u16 polyIdx;
-    u16 boneIdx;
-    u8 prio;
-
-    RenderCommand type = RenderCommand::Draw;
-
-    void write(oishii::Writer& writer) const {
-      writer.writeUnaligned<u8>(static_cast<u8>(type));
-      if (type == RenderCommand::Draw) {
-        writer.writeUnaligned<u16>(matIdx);
-        writer.writeUnaligned<u16>(polyIdx);
-        writer.writeUnaligned<u16>(boneIdx);
-        writer.writeUnaligned<u8>(prio);
-      } else if (type == RenderCommand::NodeDescendence) {
-        // Hack: Only for single-bone setups
-        writer.writeUnaligned<u32>(0); // 0 : 0
-      }
-    }
-  };
-  std::vector<DrawCmd> cmds;
-  std::string name;
+struct RenderList : public librii::g3d::ByteCodeMethod {
   std::string getName() const { return name; }
 };
 // Does not write size or mdl0 offset
@@ -90,8 +68,9 @@ void writeGenericBuffer(
   writer.alignTo(32);
 } // namespace riistudio::g3d
 
-void writeVertexDataDL(const libcube::IndexedPolygon& poly,
-                       const MatrixPrimitive& mp, oishii::Writer& writer) {
+std::string writeVertexDataDL(const librii::g3d::PolygonData& poly,
+                              const MatrixPrimitive& mp,
+                              oishii::Writer& writer) {
   using VATAttrib = librii::gx::VertexAttribute;
   using VATType = librii::gx::VertexAttributeType;
 
@@ -100,27 +79,26 @@ void writeVertexDataDL(const libcube::IndexedPolygon& poly,
     writer.write<u16>(prim.mVertices.size());
     for (const auto& v : prim.mVertices) {
       for (int a = 0; a < (int)VATAttrib::Max; ++a) {
-        if (poly.getVcd()[(VATAttrib)a]) {
-          switch (poly.getVcd().mAttributes.at((VATAttrib)a)) {
-          case VATType::None:
-            break;
-          case VATType::Byte:
-            writer.write<u8>(v[(VATAttrib)a]);
-            break;
-          case VATType::Short:
-            writer.write<u16>(v[(VATAttrib)a]);
-            break;
-          case VATType::Direct:
-            if (((VATAttrib)a) != VATAttrib::PositionNormalMatrixIndex) {
-              assert(!"Direct vertex data is unsupported.");
-              abort();
-            }
-            writer.write<u8>(v[(VATAttrib)a]);
-            break;
-          default:
-            assert("!Unknown vertex attribute format.");
-            abort();
+        VATAttrib attr = static_cast<VATAttrib>(a);
+        if (!poly.mVertexDescriptor[attr])
+          continue;
+        switch (poly.mVertexDescriptor.mAttributes.at(attr)) {
+        case VATType::None:
+          break;
+        case VATType::Byte:
+          writer.write<u8>(v[attr]);
+          break;
+        case VATType::Short:
+          writer.write<u16>(v[attr]);
+          break;
+        case VATType::Direct:
+          if (attr != VATAttrib::PositionNormalMatrixIndex) {
+            return "Direct vertex data is unsupported.";
           }
+          writer.write<u8>(v[attr]);
+          break;
+        default:
+          return "!Unknown vertex attribute format.";
         }
       }
     }
@@ -129,13 +107,8 @@ void writeVertexDataDL(const libcube::IndexedPolygon& poly,
   // DL pad
   while (writer.tell() % 32)
     writer.write<u8>(0);
-}
 
-void WriteRenderList(const riistudio::g3d::RenderList& list,
-                     oishii::Writer& writer) {
-  for (auto& cmd : list.cmds)
-    cmd.write(writer);
-  writer.writeUnaligned<u8>(1); // terminator
+  return "";
 }
 
 void WriteShader(RelocWriter& linker, oishii::Writer& writer,
@@ -147,9 +120,11 @@ void WriteShader(RelocWriter& linker, oishii::Writer& writer,
   librii::g3d::WriteTevBody(writer, shader_id, shader);
 }
 
-void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
-               const riistudio::g3d::Model& mdl, const size_t& mesh_start,
-               riistudio::g3d::NameTable& names) {
+std::string WriteMesh(oishii::Writer& writer,
+                      const librii::g3d::PolygonData& mesh,
+                      const riistudio::g3d::Model& mdl,
+                      const size_t& mesh_start,
+                      riistudio::g3d::NameTable& names) {
   const auto build_dlcache = [&]() {
     librii::gpu::DLBuilder dl(writer);
     writer.skip(5 * 2); // runtime
@@ -157,7 +132,7 @@ void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
     writer.write<u8>(0);
     // dl.align(); // 1
   };
-  const auto build_dlsetup = [&]() {
+  const auto build_dlsetup = [&]() -> std::string {
     build_dlcache();
     librii::gpu::DLBuilder dl(writer);
 
@@ -166,7 +141,7 @@ void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
     std::vector<
         std::pair<librii::gx::VertexAttribute, librii::gx::VQuantization>>
         desc;
-    for (auto [attr, type] : mesh.getVcd().mAttributes) {
+    for (auto [attr, type] : mesh.mVertexDescriptor.mAttributes) {
       if (type == librii::gx::VertexAttributeType::None)
         continue;
       librii::gx::VQuantization quant;
@@ -183,19 +158,25 @@ void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
       switch (attr) {
       case VA::Position: {
         const auto* buf = mdl.getBuf_Pos().findByName(mesh.mPositionBuffer);
-        assert(buf);
+        if (!buf) {
+          return "Cannot find position buffer " + mesh.mPositionBuffer;
+        }
         set_quant(buf->mQuantize);
         break;
       }
       case VA::Color0: {
         const auto* buf = mdl.getBuf_Clr().findByName(mesh.mColorBuffer[0]);
-        assert(buf);
+        if (!buf) {
+          return "Cannot find color buffer " + mesh.mColorBuffer[0];
+        }
         set_quant(buf->mQuantize);
         break;
       }
       case VA::Color1: {
         const auto* buf = mdl.getBuf_Clr().findByName(mesh.mColorBuffer[1]);
-        assert(buf);
+        if (!buf) {
+          return "Cannot find color buffer " + mesh.mColorBuffer[1];
+        }
         set_quant(buf->mQuantize);
         break;
       }
@@ -212,14 +193,18 @@ void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
 
         const auto* buf =
             mdl.getBuf_Uv().findByName(mesh.mTexCoordBuffer[chan]);
-        assert(buf);
+        if (!buf) {
+          return "Cannot find texcoord buffer " + mesh.mTexCoordBuffer[chan];
+        }
         set_quant(buf->mQuantize);
         break;
       }
       case VA::Normal:
       case VA::NormalBinormalTangent: {
         const auto* buf = mdl.getBuf_Nrm().findByName(mesh.mNormalBuffer);
-        assert(buf);
+        if (!buf) {
+          return "Cannot find normal buffer " + mesh.mNormalBuffer;
+        }
         set_quant(buf->mQuantize);
         break;
       }
@@ -236,6 +221,7 @@ void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
     dl.setVtxAttrFmtv(0, desc);
     writer.skip(12 * 12); // array pointers set on runtime
     dl.align();           // 30
+    return "";
   };
   const auto assert_since = [&](u32 ofs) {
     MAYBE_UNUSED const auto since = writer.tell() - mesh_start;
@@ -262,7 +248,7 @@ void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
   assert_since(0x30);
   writer.write<u32>(vcd.mBitfield);
   writer.write<u32>(static_cast<u32>(mesh.currentMatrixEmbedded) +
-                    (static_cast<u32>(!mesh.isVisible()) << 1));
+                    (static_cast<u32>(!mesh.visible) << 1));
   writeNameForward(names, writer, mesh_start, mesh.getName());
   writer.write<u32>(mesh.mId);
   // TODO
@@ -272,13 +258,21 @@ void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
   writer.write<u32>(ntri);
 
   assert_since(0x48);
-  const auto pos_idx = mdl.getBuf_Pos().indexOf(mesh.mPositionBuffer);
+
+  auto indexOf = [](const auto& x, const auto& y) -> int {
+    int index = std::find_if(x.begin(), x.end(),
+                             [y](auto& f) { return f.getName() == y; }) -
+                x.begin();
+    return index >= x.size() ? -1 : index;
+  };
+
+  const auto pos_idx = indexOf(mdl.getBuf_Pos(), mesh.mPositionBuffer);
   writer.write<s16>(pos_idx);
-  writer.write<s16>(mdl.getBuf_Nrm().indexOf(mesh.mNormalBuffer));
+  writer.write<s16>(indexOf(mdl.getBuf_Nrm(), mesh.mNormalBuffer));
   for (int i = 0; i < 2; ++i)
-    writer.write<s16>(mdl.getBuf_Clr().indexOf(mesh.mColorBuffer[i]));
+    writer.write<s16>(indexOf(mdl.getBuf_Clr(), mesh.mColorBuffer[i]));
   for (int i = 0; i < 8; ++i)
-    writer.write<s16>(mdl.getBuf_Uv().indexOf(mesh.mTexCoordBuffer[i]));
+    writer.write<s16>(indexOf(mdl.getBuf_Uv(), mesh.mTexCoordBuffer[i]));
   writer.write<s16>(-1); // fur
   writer.write<s16>(-1); // fur
   assert_since(0x64);
@@ -293,46 +287,63 @@ void WriteMesh(oishii::Writer& writer, const riistudio::g3d::Polygon& mesh,
   setup.setCmdSize(0xa0);
   setup.setBufSize(0xe0); // 0xa0 is already 32b aligned
   setup.write();
-  build_dlsetup();
+  auto dlerror = build_dlsetup();
+  if (!dlerror.empty()) {
+    return dlerror;
+  }
 
   writer.alignTo(32);
   data.setBufAddr(writer.tell());
   const auto data_start = writer.tell();
   {
-    for (auto& mp : mesh.mMatrixPrimitives)
-      writeVertexDataDL(mesh, mp, writer);
+    for (auto& mp : mesh.mMatrixPrimitives) {
+      auto err = writeVertexDataDL(mesh, mp, writer);
+      if (!err.empty()) {
+        return err;
+      }
+    }
   }
   data.setCmdSize(writer.tell() - data_start);
   writer.alignTo(32);
   data.write();
+  return "";
 }
-void BuildRenderLists(const riistudio::g3d::Model& mdl,
+void BuildRenderLists(const Model& mdl,
                       std::vector<riistudio::g3d::RenderList>& renderLists) {
-  RenderList nodeTree, drawOpa, drawXlu;
-  nodeTree.name = "NodeTree";
-  RenderList::DrawCmd root_bone_desc;
-  root_bone_desc.type = RenderCommand::NodeDescendence;
-  nodeTree.cmds.push_back(root_bone_desc);
-  drawOpa.name = "DrawOpa";
-  drawXlu.name = "DrawXlu";
+  librii::g3d::ByteCodeMethod nodeTree{.name = "NodeTree"};
+  librii::g3d::ByteCodeMethod drawOpa{.name = "DrawOpa"};
+  librii::g3d::ByteCodeMethod drawXlu{.name = "DrawXlu"};
 
-  // Only supports one bone
-  for (auto& draw : mdl.getBones()[0].mDisplayCommands) {
-    RenderList::DrawCmd cmd;
-    cmd.matIdx = draw.mMaterial;
-    cmd.polyIdx = draw.mPoly;
-    cmd.boneIdx = 0;
-    cmd.prio = draw.mPrio;
-    if (mdl.getMaterials()[draw.mMaterial].isXluPass())
-      drawXlu.cmds.push_back(cmd);
-    else
-      drawOpa.cmds.push_back(cmd);
+  for (size_t i = 0; i < mdl.getBones().size(); ++i) {
+    for (const auto& draw : mdl.getBones()[i].mDisplayCommands) {
+      librii::g3d::ByteCodeLists::Draw cmd{
+          .matId = static_cast<u16>(draw.mMaterial),
+          .polyId = static_cast<u16>(draw.mPoly),
+          .boneId = static_cast<u16>(i),
+          .prio = draw.mPrio,
+      };
+      bool xlu = draw.mMaterial < std::size(mdl.getMaterials()) &&
+                 mdl.getMaterials()[draw.mMaterial].xlu;
+      (xlu ? &drawXlu : &drawOpa)->commands.push_back(cmd);
+    }
+    // TODO: This is speculation, not validated for multi-bone setups yet
+    auto parent = mdl.getBones()[i].mParent;
+    assert(parent < std::ssize(mdl.getBones()));
+    librii::g3d::ByteCodeLists::NodeDescendence desc{
+        .boneId = static_cast<u16>(i),
+        .parentMtxId =
+            static_cast<u16>(parent >= 0 ? mdl.getBones()[parent].matrixId : 0),
+    };
+    nodeTree.commands.push_back(desc);
   }
-  renderLists.push_back(nodeTree);
-  if (!drawOpa.cmds.empty())
-    renderLists.push_back(drawOpa);
-  if (!drawXlu.cmds.empty())
-    renderLists.push_back(drawXlu);
+
+  renderLists.push_back(RenderList{nodeTree});
+  if (!drawOpa.commands.empty()) {
+    renderLists.push_back(RenderList{drawOpa});
+  }
+  if (!drawXlu.commands.empty()) {
+    renderLists.push_back(RenderList{drawXlu});
+  }
 }
 void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
                 NameTable& names, std::size_t brres_start) {
@@ -495,13 +506,13 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   write_dict(
       "RenderTree", renderLists,
       [&](const RenderList& list, std::size_t) {
-        WriteRenderList(list, writer);
+        librii::g3d::ByteCodeLists::WriteStream(writer, list.commands);
       },
       true, 1);
 
   u32 bone_id = 0;
   write_dict("Bones", mdl.getBones(),
-             [&](const Bone& bone, std::size_t bone_start) {
+             [&](const librii::g3d::BoneData& bone, std::size_t bone_start) {
                DebugReport("Bone at %x\n", (unsigned)bone_start);
                librii::g3d::WriteBone(names, writer, bone_start, bone, bone_id);
              });
@@ -509,7 +520,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   u32 mat_idx = 0;
   write_dict_mat(
       "Materials", mdl.getMaterials(),
-      [&](const Material& mat, std::size_t mat_start) {
+      [&](const librii::g3d::G3dMaterialData& mat, std::size_t mat_start) {
         linker.label("Mat" + std::to_string(mat_start), mat_start);
         librii::g3d::WriteMaterialBody(mat_start, writer, names, mat, mat_idx++,
                                        linker, shader_allocator,
@@ -531,8 +542,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       for (int j = 0; j < shader_allocator.matToShaderMap.size(); ++j) {
         if (shader_allocator.matToShaderMap[j] == i) {
           _dict.mNodes[j + 1].setDataDestination(writer.tell());
-          _dict.mNodes[j + 1].setName(
-              mdl.getMaterials()[j].IGCMaterial::getName());
+          _dict.mNodes[j + 1].setName(mdl.getMaterials()[j].name);
         }
       }
       const auto backpatch = writePlaceholder(writer); // size
@@ -548,32 +558,37 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   }
   write_dict(
       "Meshes", mdl.getMeshes(),
-      [&](const g3d::Polygon& mesh, std::size_t mesh_start) {
-        WriteMesh(writer, mesh, mdl, mesh_start, names);
+      [&](const librii::g3d::PolygonData& mesh, std::size_t mesh_start) {
+        auto err = WriteMesh(writer, mesh, mdl, mesh_start, names);
+        if (!err.empty()) {
+          fprintf(stderr, "Error: %s\n", err.c_str());
+          abort();
+        }
       },
       false, 32);
 
   write_dict(
       "Buffer_Position", mdl.getBuf_Pos(),
-      [&](const PositionBuffer& buf, std::size_t buf_start) {
+      [&](const librii::g3d::PositionBuffer& buf, std::size_t buf_start) {
         writeGenericBuffer(buf, writer, buf_start, names);
       },
       false, 32);
   write_dict(
       "Buffer_Normal", mdl.getBuf_Nrm(),
-      [&](const NormalBuffer& buf, std::size_t buf_start) {
+      [&](const librii::g3d::NormalBuffer& buf, std::size_t buf_start) {
         writeGenericBuffer(buf, writer, buf_start, names);
       },
       false, 32);
   write_dict(
       "Buffer_Color", mdl.getBuf_Clr(),
-      [&](const ColorBuffer& buf, std::size_t buf_start) {
+      [&](const librii::g3d::ColorBuffer& buf, std::size_t buf_start) {
         writeGenericBuffer(buf, writer, buf_start, names);
       },
       false, 32);
   write_dict(
       "Buffer_UV", mdl.getBuf_Uv(),
-      [&](const TextureCoordinateBuffer& buf, std::size_t buf_start) {
+      [&](const librii::g3d::TextureCoordinateBuffer& buf,
+          std::size_t buf_start) {
         writeGenericBuffer(buf, writer, buf_start, names);
       },
       false, 32);
@@ -581,6 +596,6 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   linker.writeChildren();
   linker.label("MDL0_END");
   linker.resolve();
-} // namespace riistudio::g3d
+}
 
 } // namespace riistudio::g3d

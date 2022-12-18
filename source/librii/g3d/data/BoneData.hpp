@@ -55,6 +55,8 @@ struct BoneData {
   std::array<f32, 3 * 4> modelMtx;
   std::array<f32, 3 * 4> inverseModelMtx;
 
+  std::string getName() const { return mName; }
+
   bool operator==(const BoneData& rhs) const = default;
 };
 

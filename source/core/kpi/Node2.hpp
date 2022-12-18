@@ -75,6 +75,9 @@ template <typename T> struct CollectionIterator {
     tmp.i++;
     return tmp;
   }
+  std::ptrdiff_t operator-(const CollectionIterator& rhs) const {
+    return i - rhs.i;
+  }
   bool operator==(const CollectionIterator& rhs) const = default;
   bool operator!=(const CollectionIterator& rhs) const {
     return !(*this == rhs);

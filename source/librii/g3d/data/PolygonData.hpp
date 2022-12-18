@@ -22,6 +22,8 @@ struct PolygonData : public librii::gx::MeshData {
   std::array<std::string, 2> mColorBuffer;
   std::array<std::string, 8> mTexCoordBuffer;
 
+  std::string getName() const { return mName; }
+
   bool operator==(const PolygonData& rhs) const = default;
 };
 

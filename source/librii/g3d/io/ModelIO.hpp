@@ -16,7 +16,7 @@
 
 namespace librii::g3d {
 
-enum class RenderCommand {
+enum class RenderCommand : u8 {
   NoOp,
   Return,
 
@@ -31,7 +31,6 @@ enum class RenderCommand {
 
 struct ByteCodeLists {
   struct NoOp {};
-  struct Return {};
   struct NodeDescendence {
     u16 boneId;
     u16 parentMtxId;
@@ -45,19 +44,24 @@ struct ByteCodeLists {
   };
   // TODO: EnvelopeMatrix
   // TODO: MatrixDuplicate
-  using Command = std::variant<NoOp, Return, Draw, NodeDescendence>;
+  using Command = std::variant<NoOp, Draw, NodeDescendence>;
 
-  static std::vector<Command> ParseStream(oishii::BinaryReader& reader) {
+  static std::vector<Command> ParseStream(oishii::BinaryReader& reader,
+                                          bool keep_nops = false) {
     std::vector<Command> commands;
     while (reader.tell() < reader.endpos()) {
       const auto cmd = static_cast<RenderCommand>(reader.read<u8>());
       switch (cmd) {
       case RenderCommand::NoOp:
+        if (keep_nops) {
+          commands.push_back(NoOp{});
+        }
         break;
       default:
         assert(!"Unexpected bytecode token");
         return commands;
       case RenderCommand::Return:
+        // NOTE: Not captured in stream
         return commands;
       case RenderCommand::Draw: {
         Draw draw;
@@ -78,6 +82,30 @@ struct ByteCodeLists {
     }
     assert(!"Reached end of file");
     return {};
+  }
+  static void WriteStream(oishii::Writer& writer,
+                          std::span<const Command> commands) {
+    for (const auto& cmd : commands) {
+      if (auto* draw = std::get_if<Draw>(&cmd)) {
+        writer.writeUnaligned<u8>(static_cast<u8>(RenderCommand::Draw));
+        writer.writeUnaligned<u16>(draw->matId);
+        writer.writeUnaligned<u16>(draw->polyId);
+        writer.writeUnaligned<u16>(draw->boneId);
+        writer.writeUnaligned<u8>(draw->prio);
+      } else if (auto* draw = std::get_if<NodeDescendence>(&cmd)) {
+        writer.writeUnaligned<u8>(
+            static_cast<u8>(RenderCommand::NodeDescendence));
+        writer.writeUnaligned<u16>(draw->boneId);
+        writer.writeUnaligned<u16>(draw->parentMtxId);
+      } else if (auto* draw = std::get_if<NoOp>(&cmd)) {
+        writer.writeUnaligned<u8>(static_cast<u8>(RenderCommand::NoOp));
+      } else {
+        // TODO: Ignored
+      }
+    }
+
+    // NOTE: Not captured in stream
+    writer.writeUnaligned<u8>(static_cast<u8>(RenderCommand::Return));
   }
 };
 struct ByteCodeMethod {
