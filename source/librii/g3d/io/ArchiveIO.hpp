@@ -16,6 +16,7 @@ struct BinaryArchive {
   std::vector<librii::g3d::SrtAnimationArchive> srts;
 
   void read(oishii::BinaryReader& reader, kpi::LightIOTransaction& transaction);
+  void write(oishii::Writer& writer);
 };
 
 } // namespace librii::g3d
