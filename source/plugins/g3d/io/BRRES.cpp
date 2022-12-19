@@ -24,8 +24,7 @@ using namespace bad;
 namespace riistudio::g3d {
 
 // MDL0.cpp
-void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
-                NameTable& names, std::size_t brres_start);
+librii::g3d::BinaryModel toBinaryModel(const Model& mdl);
 void processModel(librii::g3d::BinaryModel& binary_model,
                   kpi::LightIOTransaction& transaction,
                   const std::string& transaction_path,
@@ -175,6 +174,9 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
   writer.skip(textures_dict.computeSize());
   writer.skip(srts_dict.computeSize());
 
+  auto texRange = collection.getTextures();
+  std::vector<librii::g3d::TextureData> textures(texRange.begin(),
+                                                 texRange.end());
   for (int i = 0; i < collection.getModels().size(); ++i) {
     auto& mdl = collection.getModels()[i];
 
@@ -183,7 +185,8 @@ void WriteBRRES(Collection& collection, oishii::Writer& writer) {
     models_dict.insert(i, mdl.getName(), writer.tell());
 
     auto mdl_linker = linker.sublet("Models/" + std::to_string(i));
-    writeModel(mdl, writer, mdl_linker, names, start);
+    auto bin = toBinaryModel(mdl);
+    bin.write(writer, linker, names, start, textures);
   }
   for (int i = 0; i < collection.getTextures().size(); ++i) {
     auto& tex = collection.getTextures()[i];

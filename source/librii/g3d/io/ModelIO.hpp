@@ -16,6 +16,8 @@
 
 // readName
 #include <librii/g3d/io/CommonIO.hpp>
+// NameTable
+#include <librii/g3d/io/NameTableIO.hpp>
 
 namespace librii::g3d {
 
@@ -285,6 +287,10 @@ public:
 
   void read(oishii::BinaryReader& reader, kpi::LightIOTransaction& transaction,
             const std::string& transaction_path, bool& isValid);
+  void write(oishii::Writer& writer, RelocWriter& linker, NameTable& names,
+             std::size_t brres_start,
+             // For order of texture name -> TexPlttInfo LUT
+             std::span<const librii::g3d::TextureData> textures);
 };
 
 } // namespace librii::g3d

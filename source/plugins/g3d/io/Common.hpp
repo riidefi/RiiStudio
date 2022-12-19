@@ -72,7 +72,7 @@ void writeDictionary(const std::string& name, T&& src_range, U handler,
     linker.label(name);
     _dict.write(writer, names);
   }
-};
+}
 
 struct DlHandle {
   std::size_t tag_start;
