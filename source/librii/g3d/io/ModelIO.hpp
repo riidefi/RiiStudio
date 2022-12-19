@@ -14,6 +14,9 @@
 // Regrettably, for kpi::LightIOTransaction
 #include <core/kpi/Plugins.hpp>
 
+// readName
+#include <librii/g3d/io/CommonIO.hpp>
+
 namespace librii::g3d {
 
 enum class RenderCommand : u8 {
@@ -156,11 +159,117 @@ struct ByteCodeLists {
 struct ByteCodeMethod {
   std::string name; // These have special meanings
   std::vector<ByteCodeLists::Command> commands;
+
+  std::string getName() const { return name; }
+};
+
+struct BinaryModelInfo {
+  librii::g3d::ScalingRule scalingRule = ScalingRule::Maya;
+  librii::g3d::TextureMatrixMode texMtxMode = TextureMatrixMode::Maya;
+  u32 numVerts = 0;
+  u32 numTris = 0;
+  std::string sourceLocation;
+  u32 numViewMtx = 0;
+  bool normalMtxArray = false;
+  bool texMtxArray = false;
+  bool boundVolume = false;
+  librii::g3d::EnvelopeMatrixMode evpMtxMode = EnvelopeMatrixMode::Normal;
+  glm::vec3 min{0.0f, 0.0f, 0.0f};
+  glm::vec3 max{0.0f, 0.0f, 0.0f};
+
+  struct MtxToBoneLUT {
+    std::vector<s32> mtxIdToBoneId;
+    std::string readAt(oishii::BinaryReader& reader, u32 pos) {
+      auto count = reader.tryGetAt<u32>(pos);
+      if (!count) {
+        return count.error();
+      }
+      if (pos + *count * 4 >= reader.endpos()) {
+        return "mtxIdToBoneId LUT size exceeds filesize";
+      }
+      mtxIdToBoneId.resize(*count);
+      for (u32 i = 0; i < *count; ++i) {
+        auto entry = reader.tryGetAt<s32>(pos + 4 + i * 4);
+        if (!entry) {
+          return entry.error();
+        }
+        mtxIdToBoneId[i] = *entry;
+      }
+
+      return {};
+    }
+    void write(oishii::Writer& writer) {
+      writer.write<u32>(mtxIdToBoneId.size());
+      for (const auto id : mtxIdToBoneId) {
+        writer.write<s32>(id);
+      }
+    }
+  };
+
+  MtxToBoneLUT mtxToBoneLUT;
+
+  void read(oishii::BinaryReader& reader) {
+    auto infoPos = reader.tell();
+    // Ignore size
+    reader.read<u32>();
+    // Ignore ofsModel
+    reader.read<s32>();
+    scalingRule = static_cast<librii::g3d::ScalingRule>(reader.read<u32>());
+    texMtxMode =
+        static_cast<librii::g3d::TextureMatrixMode>(reader.read<u32>());
+    numVerts = reader.read<u32>();
+    numTris = reader.read<u32>();
+    sourceLocation = readName(reader, infoPos);
+    numViewMtx = reader.read<u32>();
+    normalMtxArray = reader.read<u8>();
+    texMtxArray = reader.read<u8>();
+    boundVolume = reader.read<u8>();
+    evpMtxMode =
+        static_cast<librii::g3d::EnvelopeMatrixMode>(reader.read<u8>());
+    // This is not customizable
+    u32 ofsMtxToBoneLUT = reader.read<s32>();
+    min.x = reader.read<f32>();
+    min.y = reader.read<f32>();
+    min.z = reader.read<f32>();
+    max.x = reader.read<f32>();
+    max.y = reader.read<f32>();
+    max.z = reader.read<f32>();
+    mtxToBoneLUT.readAt(reader, infoPos + ofsMtxToBoneLUT);
+  }
+  void write(oishii::Writer& writer, u32 mdl0Pos) {
+    u32 pos = writer.tell();
+    u32 size = 0x40;
+    u32 ofsMtxToBoneLUT = size;
+
+    writer.write<u32>(size);
+    writer.write<s32>(mdl0Pos - pos);
+    writer.write<u32>(static_cast<u32>(scalingRule));
+    writer.write<u32>(static_cast<u32>(texMtxMode));
+    writer.write<u32>(numVerts);
+    writer.write<u32>(numTris);
+    // TODO: Support sourceLocation
+    writer.write<u32>(0);
+    writer.write<u32>(numViewMtx);
+    writer.write<u8>(normalMtxArray);
+    writer.write<u8>(texMtxArray);
+    writer.write<u8>(boundVolume);
+    writer.write<u8>(static_cast<u8>(evpMtxMode));
+    writer.write<u32>(ofsMtxToBoneLUT);
+    writer.write<f32>(min.x);
+    writer.write<f32>(min.y);
+    writer.write<f32>(min.z);
+    writer.write<f32>(max.x);
+    writer.write<f32>(max.y);
+    writer.write<f32>(max.z);
+    writer.seekSet(pos + ofsMtxToBoneLUT);
+    mtxToBoneLUT.write(writer);
+  }
 };
 
 class BinaryModel {
 public:
-  librii::g3d::G3DModelDataData info = {};
+  std::string name;
+  librii::g3d::BinaryModelInfo info = {};
   std::vector<librii::g3d::BoneData> bones;
 
   std::vector<librii::g3d::PositionBuffer> positions;

@@ -143,9 +143,22 @@ void WriteShader(RelocWriter& linker, oishii::Writer& writer,
   librii::g3d::WriteTevBody(writer, shader_id, shader);
 }
 
+auto indexOf = [](const auto& x, const auto& y) -> int {
+  int index = std::find_if(x.begin(), x.end(),
+                           [y](auto& f) { return f.getName() == y; }) -
+              x.begin();
+  return index >= x.size() ? -1 : index;
+};
+auto findByName = [](const auto& x, const auto& y) {
+  int index = std::find_if(x.begin(), x.end(),
+                           [y](auto& f) { return f.getName() == y; }) -
+              x.begin();
+  return index >= x.size() ? nullptr : &x[index];
+};
+
 std::string WriteMesh(oishii::Writer& writer,
                       const librii::g3d::PolygonData& mesh,
-                      const riistudio::g3d::Model& mdl,
+                      const librii::g3d::BinaryModel& mdl,
                       const size_t& mesh_start,
                       riistudio::g3d::NameTable& names) {
   const auto build_dlcache = [&]() {
@@ -180,7 +193,7 @@ std::string WriteMesh(oishii::Writer& writer,
       using VA = librii::gx::VertexAttribute;
       switch (attr) {
       case VA::Position: {
-        const auto* buf = mdl.getBuf_Pos().findByName(mesh.mPositionBuffer);
+        const auto* buf = findByName(mdl.positions, mesh.mPositionBuffer);
         if (!buf) {
           return "Cannot find position buffer " + mesh.mPositionBuffer;
         }
@@ -188,7 +201,7 @@ std::string WriteMesh(oishii::Writer& writer,
         break;
       }
       case VA::Color0: {
-        const auto* buf = mdl.getBuf_Clr().findByName(mesh.mColorBuffer[0]);
+        const auto* buf = findByName(mdl.colors, mesh.mColorBuffer[0]);
         if (!buf) {
           return "Cannot find color buffer " + mesh.mColorBuffer[0];
         }
@@ -196,7 +209,7 @@ std::string WriteMesh(oishii::Writer& writer,
         break;
       }
       case VA::Color1: {
-        const auto* buf = mdl.getBuf_Clr().findByName(mesh.mColorBuffer[1]);
+        const auto* buf = findByName(mdl.colors, mesh.mColorBuffer[1]);
         if (!buf) {
           return "Cannot find color buffer " + mesh.mColorBuffer[1];
         }
@@ -214,8 +227,7 @@ std::string WriteMesh(oishii::Writer& writer,
         const auto chan =
             static_cast<int>(attr) - static_cast<int>(VA::TexCoord0);
 
-        const auto* buf =
-            mdl.getBuf_Uv().findByName(mesh.mTexCoordBuffer[chan]);
+        const auto* buf = findByName(mdl.texcoords, mesh.mTexCoordBuffer[chan]);
         if (!buf) {
           return "Cannot find texcoord buffer " + mesh.mTexCoordBuffer[chan];
         }
@@ -224,7 +236,7 @@ std::string WriteMesh(oishii::Writer& writer,
       }
       case VA::Normal:
       case VA::NormalBinormalTangent: {
-        const auto* buf = mdl.getBuf_Nrm().findByName(mesh.mNormalBuffer);
+        const auto* buf = findByName(mdl.normals, mesh.mNormalBuffer);
         if (!buf) {
           return "Cannot find normal buffer " + mesh.mNormalBuffer;
         }
@@ -296,20 +308,13 @@ std::string WriteMesh(oishii::Writer& writer,
 
   assert_since(0x48);
 
-  auto indexOf = [](const auto& x, const auto& y) -> int {
-    int index = std::find_if(x.begin(), x.end(),
-                             [y](auto& f) { return f.getName() == y; }) -
-                x.begin();
-    return index >= x.size() ? -1 : index;
-  };
-
-  const auto pos_idx = indexOf(mdl.getBuf_Pos(), mesh.mPositionBuffer);
+  const auto pos_idx = indexOf(mdl.positions, mesh.mPositionBuffer);
   writer.write<s16>(pos_idx);
-  writer.write<s16>(indexOf(mdl.getBuf_Nrm(), mesh.mNormalBuffer));
+  writer.write<s16>(indexOf(mdl.normals, mesh.mNormalBuffer));
   for (int i = 0; i < 2; ++i)
-    writer.write<s16>(indexOf(mdl.getBuf_Clr(), mesh.mColorBuffer[i]));
+    writer.write<s16>(indexOf(mdl.colors, mesh.mColorBuffer[i]));
   for (int i = 0; i < 8; ++i)
-    writer.write<s16>(indexOf(mdl.getBuf_Uv(), mesh.mTexCoordBuffer[i]));
+    writer.write<s16>(indexOf(mdl.texcoords, mesh.mTexCoordBuffer[i]));
   writer.write<s16>(-1); // fur
   writer.write<s16>(-1); // fur
   assert_since(0x64);
@@ -366,7 +371,7 @@ std::string WriteMesh(oishii::Writer& writer,
   return "";
 }
 void BuildRenderLists(const Model& mdl,
-                      std::vector<riistudio::g3d::RenderList>& renderLists) {
+                      std::vector<librii::g3d::ByteCodeMethod>& renderLists) {
   librii::g3d::ByteCodeMethod nodeTree{.name = "NodeTree"};
   librii::g3d::ByteCodeMethod nodeMix{.name = "NodeMix"};
   librii::g3d::ByteCodeMethod drawOpa{.name = "DrawOpa"};
@@ -457,47 +462,20 @@ void BuildRenderLists(const Model& mdl,
     renderLists.push_back(RenderList{drawXlu});
   }
 }
-void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
-                NameTable& names, std::size_t brres_start) {
+
+void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
+                RelocWriter& linker, NameTable& names, std::size_t brres_start,
+                std::span<const librii::g3d::TextureData> textures) {
   const auto mdl_start = writer.tell();
   int d_cursor = 0;
-
-  //
-  // Build render lists
-  //
-  std::vector<RenderList> renderLists;
-  BuildRenderLists(mdl, renderLists);
-
   //
   // Build shaders
   //
 
   librii::g3d::ShaderAllocator shader_allocator;
-  for (auto& mat : mdl.getMaterials()) {
-    librii::g3d::G3dShader shader(mat.getMaterialData());
+  for (auto& mat : bin.materials) {
+    librii::g3d::G3dShader shader(mat);
     shader_allocator.alloc(shader);
-  }
-
-  //
-  // Build display matrix index (subset of mDrawMatrices)
-  //
-  std::set<s16> displayMatrices;
-  for (auto& mesh : mdl.getMeshes()) {
-    // TODO: Do we need to check currentMatrixEmbedded flag?
-    if (mesh.mCurrentMatrix != -1) {
-      displayMatrices.insert(mesh.mCurrentMatrix);
-      continue;
-    }
-    // TODO: Presumably mCurrentMatrix (envelope mode) precludes blended weight
-    // mode?
-    for (auto& mp : mesh.mMatrixPrimitives) {
-      for (auto& w : mp.mDrawMatrixIndices) {
-        if (w == -1) {
-          continue;
-        }
-        displayMatrices.insert(w);
-      }
-    }
   }
 
   std::map<std::string, u32> Dictionaries;
@@ -509,7 +487,7 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
     writeDictionary<true, false>(name, src_range, handler, linker, writer,
                                  mdl_start, names, &d_pos, raw, align);
   };
-  const auto write_dict_mat = [&](const std::string& name, auto src_range,
+  const auto write_dict_mat = [&](const std::string& name, auto& src_range,
                                   auto handler, bool raw = false,
                                   u32 align = 4) {
     if (src_range.end() == src_range.begin())
@@ -545,48 +523,11 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
     linker.writeReloc<s32>("MDL0", "TexSamplerMap");
     writer.write<s32>(0); // PaletteSamplerMap
     writer.write<s32>(0); // UserData
-    writeNameForward(names, writer, mdl_start, mdl.mName, true);
+    writeNameForward(names, writer, mdl_start, bin.name, true);
   }
   {
     linker.label("MDL0_INFO");
-    writer.write<u32>(0x40); // Header size
-    linker.writeReloc<s32>("MDL0_INFO", "MDL0");
-    writer.write<u32>(static_cast<u32>(mdl.mScalingRule));
-    writer.write<u32>(static_cast<u32>(mdl.mTexMtxMode));
-
-    const auto [nVert, nTri] = computeVertTriCounts(mdl);
-    writer.write<u32>(nVert);
-    writer.write<u32>(nTri);
-
-    writer.write<u32>(0); // mdl.sourceLocation
-
-    writer.write<u32>(displayMatrices.size());
-    // bNrmMtxArray, bTexMtxArray
-    writer.write<u8>(std::any_of(mdl.getMeshes().begin(), mdl.getMeshes().end(),
-                                 [](auto& m) { return m.needsNormalMtx(); }));
-    writer.write<u8>(std::any_of(mdl.getMeshes().begin(), mdl.getMeshes().end(),
-                                 [](auto& m) { return m.needsTextureMtx(); }));
-    writer.write<u8>(0); // bBoundVolume
-
-    writer.write<u8>(static_cast<u8>(mdl.mEvpMtxMode));
-    writer.write<u32>(0x40); // offset to bone table, effectively header size
-    mdl.aabb.min >> writer;
-    mdl.aabb.max >> writer;
-    // Matrix -> Bone LUT
-    writer.write<u32>(mdl.mDrawMatrices.size());
-    for (size_t i = 0; i < mdl.mDrawMatrices.size(); ++i) {
-      auto& mtx = mdl.mDrawMatrices[i];
-      bool multi_influence = mtx.mWeights.size() > 1;
-      u32 boneId = 0xFFFF'FFFF;
-      if (!multi_influence) {
-        auto it = std::find_if(mdl.getBones().begin(), mdl.getBones().end(),
-                               [i](auto& bone) { return bone.matrixId == i; });
-        if (it != mdl.getBones().end()) {
-          boneId = it - mdl.getBones().begin();
-        }
-      }
-      writer.write<u32>(boneId);
-    }
+    bin.info.write(writer, mdl_start);
   }
 
   d_cursor = writer.tell();
@@ -598,17 +539,17 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
     Dictionaries.emplace(str, dicts_size + d_cursor);
     dicts_size += 24 + 16 * dict.size();
   };
-  tally_dict("RenderTree", renderLists);
-  tally_dict("Bones", mdl.getBones());
-  tally_dict("Buffer_Position", mdl.getBuf_Pos());
-  tally_dict("Buffer_Normal", mdl.getBuf_Nrm());
-  tally_dict("Buffer_Color", mdl.getBuf_Clr());
-  tally_dict("Buffer_UV", mdl.getBuf_Uv());
-  tally_dict("Materials", mdl.getMaterials());
-  tally_dict("Shaders", mdl.getMaterials());
-  tally_dict("Meshes", mdl.getMeshes());
+  tally_dict("RenderTree", bin.bytecodes);
+  tally_dict("Bones", bin.bones);
+  tally_dict("Buffer_Position", bin.positions);
+  tally_dict("Buffer_Normal", bin.normals);
+  tally_dict("Buffer_Color", bin.colors);
+  tally_dict("Buffer_UV", bin.texcoords);
+  tally_dict("Materials", bin.materials);
+  tally_dict("Shaders", bin.materials);
+  tally_dict("Meshes", bin.meshes);
   u32 n_samplers = 0;
-  for (auto& mat : mdl.getMaterials())
+  for (auto& mat : bin.materials)
     n_samplers += mat.samplers.size();
   if (n_samplers) {
     Dictionaries.emplace("TexSamplerMap", dicts_size + d_cursor);
@@ -621,6 +562,14 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
   librii::g3d::TextureSamplerMappingManager tex_sampler_mappings;
 
+  //
+  // NOTE: A raw ref to materials is taken here
+  //
+  // A spurious copy of the `materials` array was breaking it!
+  //
+  // #define MATERIALS (mdl.getMaterials())
+  // #define MATERIALS bin.materials
+
   // for (auto& mat : mdl.getMaterials()) {
   //   for (int s = 0; s < mat.samplers.size(); ++s) {
   //     auto& samp = *mat.samplers[s];
@@ -628,11 +577,11 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   //   }
   // }
   // Matching order..
-  for (auto& tex : dynamic_cast<const Collection*>(mdl.childOf)->getTextures())
-    for (auto& mat : mdl.getMaterials())
+  for (auto& tex : textures)
+    for (auto& mat : bin.materials)
       for (int s = 0; s < mat.samplers.size(); ++s)
-        if (mat.samplers[s].mTexture == tex.getName())
-          tex_sampler_mappings.add_entry(tex.getName(), &mat, s);
+        if (mat.samplers[s].mTexture == tex.name)
+          tex_sampler_mappings.add_entry(tex.name, &mat, s);
 
   int sm_i = 0;
   write_dict(
@@ -649,26 +598,25 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       true, 4);
 
   write_dict(
-      "RenderTree", renderLists,
-      [&](const RenderList& list, std::size_t) {
+      "RenderTree", bin.bytecodes,
+      [&](const librii::g3d::ByteCodeMethod& list, std::size_t) {
         librii::g3d::ByteCodeLists::WriteStream(writer, list.commands);
       },
       true, 1);
 
-  std::vector<librii::g3d::BoneData> bones(mdl.getBones().begin(),
-                                           mdl.getBones().end());
-
+  std::set<s16> displayMatrices =
+      librii::gx::computeDisplayMatricesSubset(bin.meshes);
   u32 bone_id = 0;
-  write_dict("Bones", mdl.getBones(),
+  write_dict("Bones", bin.bones,
              [&](const librii::g3d::BoneData& bone, std::size_t bone_start) {
                DebugReport("Bone at %x\n", (unsigned)bone_start);
-               librii::g3d::WriteBone(names, writer, bone_start, bone, bones,
-                                      bone_id++, displayMatrices);
+               librii::g3d::WriteBone(names, writer, bone_start, bone,
+                                      bin.bones, bone_id++, displayMatrices);
              });
 
   u32 mat_idx = 0;
   write_dict_mat(
-      "Materials", mdl.getMaterials(),
+      "Materials", bin.materials,
       [&](const librii::g3d::G3dMaterialData& mat, std::size_t mat_start) {
         linker.label("Mat" + std::to_string(mat_start), mat_start);
         librii::g3d::WriteMaterialBody(mat_start, writer, names, mat, mat_idx++,
@@ -684,14 +632,14 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
 
     u32 dict_ofs = Dictionaries.at("Shaders");
     librii::g3d::QDictionary _dict;
-    _dict.mNodes.resize(mdl.getMaterials().size() + 1);
+    _dict.mNodes.resize(bin.materials.size() + 1);
 
     for (std::size_t i = 0; i < shader_allocator.size(); ++i) {
       writer.alignTo(32); //
       for (int j = 0; j < shader_allocator.matToShaderMap.size(); ++j) {
         if (shader_allocator.matToShaderMap[j] == i) {
           _dict.mNodes[j + 1].setDataDestination(writer.tell());
-          _dict.mNodes[j + 1].setName(mdl.getMaterials()[j].name);
+          _dict.mNodes[j + 1].setName(bin.materials[j].name);
         }
       }
       const auto backpatch = writePlaceholder(writer); // size
@@ -706,9 +654,9 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
     }
   }
   write_dict(
-      "Meshes", mdl.getMeshes(),
+      "Meshes", bin.meshes,
       [&](const librii::g3d::PolygonData& mesh, std::size_t mesh_start) {
-        auto err = WriteMesh(writer, mesh, mdl, mesh_start, names);
+        auto err = WriteMesh(writer, mesh, bin, mesh_start, names);
         if (!err.empty()) {
           fprintf(stderr, "Error: %s\n", err.c_str());
           abort();
@@ -717,25 +665,25 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
       false, 32);
 
   write_dict(
-      "Buffer_Position", mdl.getBuf_Pos(),
+      "Buffer_Position", bin.positions,
       [&](const librii::g3d::PositionBuffer& buf, std::size_t buf_start) {
         writeGenericBuffer(buf, writer, buf_start, names);
       },
       false, 32);
   write_dict(
-      "Buffer_Normal", mdl.getBuf_Nrm(),
+      "Buffer_Normal", bin.normals,
       [&](const librii::g3d::NormalBuffer& buf, std::size_t buf_start) {
         writeGenericBuffer(buf, writer, buf_start, names);
       },
       false, 32);
   write_dict(
-      "Buffer_Color", mdl.getBuf_Clr(),
+      "Buffer_Color", bin.colors,
       [&](const librii::g3d::ColorBuffer& buf, std::size_t buf_start) {
         writeGenericBuffer(buf, writer, buf_start, names);
       },
       false, 32);
   write_dict(
-      "Buffer_UV", mdl.getBuf_Uv(),
+      "Buffer_UV", bin.texcoords,
       [&](const librii::g3d::TextureCoordinateBuffer& buf,
           std::size_t buf_start) {
         writeGenericBuffer(buf, writer, buf_start, names);
@@ -745,6 +693,69 @@ void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
   linker.writeChildren();
   linker.label("MDL0_END");
   linker.resolve();
+}
+void writeModel(const Model& mdl, oishii::Writer& writer, RelocWriter& linker,
+                NameTable& names, std::size_t brres_start) {
+  librii::g3d::BinaryModel bin;
+
+  bin.bones = {mdl.getBones().begin(), mdl.getBones().end()};
+  bin.materials = {mdl.getMaterials().begin(), mdl.getMaterials().end()};
+  bin.meshes = {mdl.getMeshes().begin(), mdl.getMeshes().end()};
+  bin.positions = {mdl.getBuf_Pos().begin(), mdl.getBuf_Pos().end()};
+  bin.normals = {mdl.getBuf_Nrm().begin(), mdl.getBuf_Nrm().end()};
+  bin.colors = {mdl.getBuf_Clr().begin(), mdl.getBuf_Clr().end()};
+  bin.texcoords = {mdl.getBuf_Uv().begin(), mdl.getBuf_Uv().end()};
+  // Compute ModelInfo
+  {
+    std::set<s16> displayMatrices =
+        librii::gx::computeDisplayMatricesSubset(mdl.getMeshes());
+    const auto [nVert, nTri] = computeVertTriCounts(mdl);
+    bool nrmMtx = std::any_of(mdl.getMeshes().begin(), mdl.getMeshes().end(),
+                              [](auto& m) { return m.needsNormalMtx(); });
+    bool texMtx = std::any_of(mdl.getMeshes().begin(), mdl.getMeshes().end(),
+                              [](auto& m) { return m.needsTextureMtx(); });
+    librii::g3d::BinaryModelInfo info{
+        .scalingRule = mdl.mScalingRule,
+        .texMtxMode = mdl.mTexMtxMode,
+        .numVerts = nVert,
+        .numTris = nTri,
+        .sourceLocation = mdl.sourceLocation,
+        .numViewMtx = static_cast<u32>(displayMatrices.size()),
+        .normalMtxArray = nrmMtx,
+        .texMtxArray = texMtx,
+        .boundVolume = false,
+        .evpMtxMode = mdl.mEvpMtxMode,
+        .min = mdl.aabb.min,
+        .max = mdl.aabb.max,
+    };
+    {
+      // Matrix -> Bone LUT
+      auto& lut = info.mtxToBoneLUT.mtxIdToBoneId;
+      lut.resize(mdl.mDrawMatrices.size());
+      for (size_t i = 0; i < mdl.mDrawMatrices.size(); ++i) {
+        auto& mtx = mdl.mDrawMatrices[i];
+        bool multi_influence = mtx.mWeights.size() > 1;
+        s32 boneId = -1;
+        if (!multi_influence) {
+          auto it =
+              std::find_if(mdl.getBones().begin(), mdl.getBones().end(),
+                           [i](auto& bone) { return bone.matrixId == i; });
+          if (it != mdl.getBones().end()) {
+            boneId = it - mdl.getBones().begin();
+          }
+        }
+        lut[i] = boneId;
+      }
+    }
+    bin.info = info;
+  }
+  bin.name = mdl.mName;
+  BuildRenderLists(mdl, bin.bytecodes);
+
+  auto texRange = dynamic_cast<const Collection*>(mdl.childOf)->getTextures();
+  std::vector<librii::g3d::TextureData> textures(texRange.begin(),
+                                                 texRange.end());
+  writeModel(bin, writer, linker, names, brres_start, textures);
 }
 
 } // namespace riistudio::g3d

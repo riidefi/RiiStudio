@@ -91,6 +91,37 @@ static inline Quantization TexCoord = {
 
 } // namespace Default
 
+inline std::string ValidateQuantize(librii::gx::VertexBufferKind kind,
+                                    const Quantization& quant) {
+  if (kind == librii::gx::VertexBufferKind::normal) {
+    switch (quant.mType.generic) {
+    case librii::gx::VertexBufferType::Generic::s8: {
+      if ((int)quant.divisor != 6) {
+        return "Invalid divisor for S8 normal data";
+      }
+      break;
+    }
+    case librii::gx::VertexBufferType::Generic::s16: {
+      if ((int)quant.divisor != 14) {
+        return "Invalid divisor for S16 normal data";
+      }
+      break;
+    }
+    case librii::gx::VertexBufferType::Generic::u8:
+      return "Invalid quantization for normal data: U8";
+    case librii::gx::VertexBufferType::Generic::u16:
+      return "Invalid quantization for normal data: U16";
+    case librii::gx::VertexBufferType::Generic::f32:
+      if ((int)quant.divisor != 0) {
+        return "Misleading divisor for F32 normal data";
+      }
+      break;
+    }
+  }
+
+  return "";
+}
+
 class PositionBuffer
     : public GenericBuffer<glm::vec3, true, true,
                            librii::gx::VertexBufferKind::position> {

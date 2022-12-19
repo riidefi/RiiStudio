@@ -3,6 +3,7 @@
 #include <array>
 #include <librii/gx/Vertex.hpp>
 #include <map>
+#include <span>
 #include <tuple>
 #include <vector>
 
@@ -125,6 +126,43 @@ inline std::pair<u32, u32> ComputeVertTriCounts(const MeshData& mesh) {
   }
 
   return {nVert, nTri};
+}
+
+inline std::pair<u32, u32> computeVertTriCounts(const auto& meshes) {
+  u32 nVert = 0, nTri = 0;
+
+  for (const auto& mesh : meshes) {
+    const auto [vert, tri] = librii::gx::ComputeVertTriCounts(mesh);
+    nVert += vert;
+    nTri += tri;
+  }
+
+  return {nVert, nTri};
+}
+
+//
+// Build display matrix index (subset of mDrawMatrices)
+//
+inline std::set<s16> computeDisplayMatricesSubset(const auto& meshes) {
+  std::set<s16> displayMatrices;
+  for (const auto& mesh : meshes) {
+    // TODO: Do we need to check currentMatrixEmbedded flag?
+    if (mesh.mCurrentMatrix != -1) {
+      displayMatrices.insert(mesh.mCurrentMatrix);
+      continue;
+    }
+    // TODO: Presumably mCurrentMatrix (envelope mode) precludes blended weight
+    // mode?
+    for (auto& mp : mesh.mMatrixPrimitives) {
+      for (auto& w : mp.mDrawMatrixIndices) {
+        if (w == -1) {
+          continue;
+        }
+        displayMatrices.insert(w);
+      }
+    }
+  }
+  return displayMatrices;
 }
 
 } // namespace librii::gx

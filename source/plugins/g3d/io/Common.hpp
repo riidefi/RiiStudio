@@ -27,7 +27,7 @@ namespace riistudio::g3d {
 using RelocWriter = librii::g3d::RelocWriter;
 
 template <bool Named, bool bMaterial, typename T, typename U>
-void writeDictionary(const std::string& name, T src_range, U handler,
+void writeDictionary(const std::string& name, T&& src_range, U handler,
                      RelocWriter& linker, oishii::Writer& writer, u32 mdl_start,
                      NameTable& names, int* d_cursor, bool raw = false,
                      u32 align = 4, bool BetterMethod = false) {

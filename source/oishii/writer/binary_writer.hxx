@@ -23,7 +23,11 @@ public:
   template <typename T, EndianSelect E = EndianSelect::Current>
   void write(T val, bool checkmatch = true) {
     using integral_t = integral_of_equal_size_t<T>;
-
+    if (tell() > 200'000'000) {
+      fprintf(stderr, "File size is astronomical");
+      rsl::debug_break();
+      abort();
+    }
     while (tell() + sizeof(T) > mBuf.size())
       mBuf.push_back(0);
 
@@ -59,6 +63,11 @@ public:
   }
   template <EndianSelect E = EndianSelect::Current>
   void writeN(std::size_t sz, u32 val) {
+    if (tell() > 200'000'000) {
+      fprintf(stderr, "File size is astronomical");
+      rsl::debug_break();
+      abort();
+    }
     while (tell() + sz > mBuf.size())
       mBuf.push_back(0);
 

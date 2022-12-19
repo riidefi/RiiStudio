@@ -65,10 +65,13 @@ std::string readGenericBuffer(
     out.mQuantize.stride = reader.read<u8>();
     reader.read<u8>();
   }
+  auto err = ValidateQuantize(kind, out.mQuantize);
+  if (!err.empty()) {
+    return err;
+  }
   out.mEntries.resize(reader.read<u16>());
-  T minEnt, maxEnt;
-  // TODO: Min/Max are not re-quantized by official tooling it seems.
   if constexpr (HasMinimum) {
+    T minEnt, maxEnt;
     minEnt << reader;
     maxEnt << reader;
 
@@ -76,34 +79,8 @@ std::string readGenericBuffer(
   }
   const auto nComponents =
       librii::gx::computeComponentCount(kind, out.mQuantize.mComp);
-  if (kind == librii::gx::VertexBufferKind::normal) {
-    switch (out.mQuantize.mType.generic) {
-    case librii::gx::VertexBufferType::Generic::s8: {
-      if ((int)out.mQuantize.divisor != 6) {
-        return "Invalid divisor for S8 normal data";
-      }
-      break;
-    }
-    case librii::gx::VertexBufferType::Generic::s16: {
-      if ((int)out.mQuantize.divisor != 14) {
-        return "Invalid divisor for S16 normal data";
-      }
-      break;
-    }
-    case librii::gx::VertexBufferType::Generic::u8:
-      return "Invalid quantization for normal data: U8";
-    case librii::gx::VertexBufferType::Generic::u16:
-      return "Invalid quantization for normal data: U16";
-    case librii::gx::VertexBufferType::Generic::f32:
-      if ((int)out.mQuantize.divisor != 0) {
-        return "Misleading divisor for F32 normal data";
-      }
-      break;
-    }
-  }
 
   reader.seekSet(start + startOfs);
-  // TODO: Recompute bounds
   for (auto& entry : out.mEntries) {
     entry = librii::gx::readComponents<T>(reader, out.mQuantize.mType,
                                           nComponents, out.mQuantize.divisor);
@@ -118,30 +95,6 @@ std::string readGenericBuffer(
   }
 
   return ""; // Valid
-}
-
-void ReadModelInfo(oishii::BinaryReader& reader,
-                   librii::g3d::G3DModelDataData& mdl) {
-  const auto infoPos = reader.tell();
-  reader.skip(8); // Ignore size, ofsMode
-  mdl.mScalingRule = static_cast<librii::g3d::ScalingRule>(reader.read<u32>());
-  mdl.mTexMtxMode =
-      static_cast<librii::g3d::TextureMatrixMode>(reader.read<u32>());
-
-  reader.readX<u32, 2>(); // number of vertices, number of triangles
-  mdl.sourceLocation = readName(reader, infoPos);
-  reader.read<u32>(); // number of view matrices
-
-  // const auto [bMtxArray, bTexMtxArray, bBoundVolume] =
-  reader.readX<u8, 3>();
-  mdl.mEvpMtxMode =
-      static_cast<librii::g3d::EnvelopeMatrixMode>(reader.read<u8>());
-
-  // const s32 ofsBoneTable =
-  reader.read<s32>();
-
-  mdl.aabb.min << reader;
-  mdl.aabb.max << reader;
 }
 
 // TODO: Move to own files
@@ -415,9 +368,8 @@ void BinaryModel::read(oishii::BinaryReader& reader,
   for (auto& ofs : secOfsArr)
     ofs = reader.read<s32>();
 
-  info.mName = readName(reader, start);
-
-  ReadModelInfo(reader, info);
+  name = readName(reader, start);
+  info.read(reader);
 
   auto readDict = [&](u32 xofs, auto handler) {
     if (xofs) {
@@ -524,7 +476,6 @@ void BinaryModel::read(oishii::BinaryReader& reader,
         "BRRES file was created with BrawlBox and is invalid. It is "
         "recommended you create BRRES files here by dropping a DAE/FBX file.");
     //
-    transaction.state = kpi::TransactionState::FailureToSave;
   } else if (!isValid) {
     transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
                          "Note: BRRES file was saved with BrawlBox. Certain "

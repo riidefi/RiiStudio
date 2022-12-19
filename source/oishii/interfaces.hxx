@@ -4,6 +4,7 @@
 #include "types.hxx"
 #include <cstdio>
 #include <iostream>
+#include <rsl/DebugBreak.hpp>
 #include <set>
 #include <vector>
 
@@ -40,6 +41,11 @@ private:
 
 public:
   void breakPointProcess(u32 size) {
+    if (derived().tell() > 200'000'000) {
+      fprintf(stderr, "File size is astronomical");
+      rsl::debug_break();
+      abort();
+    }
 #ifndef NDEBUG
     for (const auto& bp : mBreakPoints) {
       if (derived().tell() >= bp.offset &&
@@ -47,9 +53,7 @@ public:
         printf("Writing to %04u (0x%04x) sized %u\n", derived().tell(),
                derived().tell(), size);
         // warnAt("Breakpoint hit", tell(), tell() + sizeof(T));
-#ifdef _MSC_VER
-        __debugbreak();
-#endif
+        rsl::debug_break();
       }
     }
 #endif

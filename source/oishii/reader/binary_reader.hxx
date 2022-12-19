@@ -10,6 +10,9 @@
 #include <string>
 #include <vector>
 
+#include <rsl/DebugBreak.hpp>
+#include <rsl/Expected.hpp>
+
 namespace oishii {
 
 // Trait
@@ -120,6 +123,9 @@ public:
   template <typename T, EndianSelect E = EndianSelect::Current,
             bool unaligned = false>
   T peekAt(int trans);
+  template <typename T, EndianSelect E = EndianSelect::Current,
+            bool unaligned = false>
+  rsl::expected<T, std::string> tryGetAt(int trans);
   //	template <typename T, EndianSelect E = EndianSelect::Current>
   //	T readAt();
   template <typename T, EndianSelect E = EndianSelect::Current,
@@ -233,9 +239,7 @@ private:
               " is not " + std::to_string(size) + " byte aligned.")
                  .c_str(),
              at, at + size, true);
-#ifdef RII_PLATFORM_WINDOWS
-      __debugbreak();
-#endif
+      rsl::debug_break();
     }
   }
   void alignmentCheck(u32 size) { alignmentCheck(size, tell()); }

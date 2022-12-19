@@ -55,12 +55,42 @@ T BinaryReader::peekAt(int trans) {
       printf("Reading from %04u (0x%04x) sized %u\n", (u32)tell() + trans,
              (u32)tell() + trans, (u32)sizeof(T));
       warnAt("Breakpoint hit", tell() + trans, tell() + trans + sizeof(T));
-      __debugbreak();
+      rsl::debug_break();
     }
   }
 #endif
   T decoded = endianDecode<T, E>(
       *reinterpret_cast<T*>(getStreamStart() + tell() + trans));
+
+  return decoded;
+}
+template <typename T, EndianSelect E, bool unaligned>
+rsl::expected<T, std::string> BinaryReader::tryGetAt(int trans) {
+  if (!unaligned && (trans % sizeof(T))) {
+    rsl::debug_break();
+    return std::string("Alignment error: ") + std::to_string(tell()) +
+           " is not " + std::to_string(sizeof(T)) + " byte aligned.";
+  }
+
+  if (trans < 0 || trans + sizeof(T) >= endpos()) {
+    rsl::debug_break();
+    return std::string("Bounds error: Writing ") + std::to_string(sizeof(T)) +
+           "bytes to " + std::to_string(tell()) + " exceeds buffer size of " +
+           std::to_string(endpos());
+  }
+
+#ifndef NDEBUG
+  for (const auto& bp : mBreakPoints) {
+    if (trans >= bp.offset && trans + sizeof(T) <= bp.offset + bp.size) {
+      printf("Reading from %04u (0x%04x) sized %u\n", trans, trans,
+             (unsigned)sizeof(T));
+      warnAt("Breakpoint hit", trans, trans + sizeof(T));
+      rsl::debug_break();
+    }
+  }
+#endif
+  T decoded =
+      endianDecode<T, E>(*reinterpret_cast<T*>(getStreamStart() + trans));
 
   return decoded;
 }

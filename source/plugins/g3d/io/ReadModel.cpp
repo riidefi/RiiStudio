@@ -16,6 +16,48 @@
 
 namespace riistudio::g3d {
 
+struct IOContext {
+  std::string path;
+  kpi::LightIOTransaction& transaction;
+
+  auto sublet(const std::string& dir) {
+    return IOContext(path + "/" + dir, transaction);
+  }
+
+  void callback(kpi::IOMessageClass mclass, std::string_view message) {
+    transaction.callback(mclass, path, message);
+  }
+
+  void inform(std::string_view message) {
+    callback(kpi::IOMessageClass::Information, message);
+  }
+  void warn(std::string_view message) {
+    callback(kpi::IOMessageClass::Warning, message);
+  }
+  void error(std::string_view message) {
+    callback(kpi::IOMessageClass::Error, message);
+  }
+  void request(bool cond, std::string_view message) {
+    if (!cond)
+      warn(message);
+  }
+  void require(bool cond, std::string_view message) {
+    if (!cond)
+      error(message);
+  }
+
+  template <typename... T>
+  void request(bool cond, std::string_view f_, T&&... args) {
+    // TODO: Use basic_format_string
+    auto msg = std::vformat(f_, std::make_format_args(args...));
+    request(cond, msg);
+  }
+
+  IOContext(std::string&& p, kpi::LightIOTransaction& t)
+      : path(std::move(p)), transaction(t) {}
+  IOContext(kpi::LightIOTransaction& t) : transaction(t) {}
+};
+
 void CheckMaterialXluFlag(riistudio::g3d::Material& mat,
                           librii::g3d::ByteCodeMethod& method,
                           riistudio::g3d::Bone::Display& disp,
@@ -92,8 +134,86 @@ void processModel(librii::g3d::BinaryModel& binary_model,
   if (transaction.state == kpi::TransactionState::Failure) {
     return;
   }
+  IOContext ctx("MDL0 " + binary_model.name, transaction);
+
+  mdl.mName = binary_model.name;
   // Assign info
-  static_cast<librii::g3d::G3DModelDataData&>(mdl) = binary_model.info;
+  {
+    const auto& info = binary_model.info;
+    mdl.mScalingRule = info.scalingRule;
+    mdl.mTexMtxMode = info.texMtxMode;
+    // Validate numVerts, numTris
+    {
+      auto [computedNumVerts, computedNumTris] =
+          librii::gx::computeVertTriCounts(binary_model.meshes);
+      ctx.request(
+          computedNumVerts == info.numVerts,
+          "Model header specifies {} vertices, but the file only has {}.",
+          info.numVerts, computedNumVerts);
+      ctx.request(
+          computedNumTris == info.numTris,
+          "Model header specifies {} triangles, but the file only has {}.",
+          info.numTris, computedNumTris);
+    }
+    mdl.sourceLocation = info.sourceLocation;
+    {
+      auto displayMatrices =
+          librii::gx::computeDisplayMatricesSubset(binary_model.meshes);
+      ctx.request(info.numViewMtx == displayMatrices.size(),
+                  "Model header specifies {} display matrices, but the mesh "
+                  "data only references {} display matrices.",
+                  info.numViewMtx, displayMatrices.size());
+    }
+    {
+      auto needsNormalMtx =
+          std::any_of(binary_model.meshes.begin(), binary_model.meshes.end(),
+                      [](auto& m) { return m.needsNormalMtx(); });
+      ctx.request(
+          info.normalMtxArray == needsNormalMtx,
+          needsNormalMtx
+              ? "Model header unecessarily burdens the runtime library "
+                "with bone-normal-matrix computation"
+              : "Model header does not tell the runtime library to maintain "
+                "bone normal matrix arrays, although some meshes need it");
+    }
+    {
+      auto needsTexMtx =
+          std::any_of(binary_model.meshes.begin(), binary_model.meshes.end(),
+                      [](auto& m) { return m.needsTextureMtx(); });
+      ctx.request(
+          info.texMtxArray == needsTexMtx,
+          needsTexMtx
+              ? "Model header unecessarily burdens the runtime library "
+                "with bone-texture-matrix computation"
+              : "Model header does not tell the runtime library to maintain "
+                "bone texture matrix arrays, although some meshes need it");
+    }
+    ctx.request(!info.boundVolume,
+                "Model specifies bounding data should be used");
+    mdl.mEvpMtxMode = info.evpMtxMode;
+    mdl.aabb.min = info.min;
+    mdl.aabb.max = info.max;
+    // Validate mtxToBoneLUT
+    {
+      const auto& lut = info.mtxToBoneLUT.mtxIdToBoneId;
+      for (size_t i = 0; i < binary_model.bones.size(); ++i) {
+        const auto& bone = binary_model.bones[i];
+        if (bone.matrixId > lut.size()) {
+          ctx.error(
+              std::format("Bone {} specifies a matrix ID of {}, but the matrix "
+                          "LUT only specifies {} matrices total.",
+                          bone.mName, bone.matrixId, lut.size()));
+          continue;
+        }
+        ctx.request(lut[bone.matrixId] == i,
+                    "Bone {} (#{}) declares ownership of Matrix{}. However, "
+                    "Matrix{} does not register this bone as its owner. "
+                    "Rather, it specifies an owner ID of {}.",
+                    bone.mName, i, bone.matrixId, bone.matrixId,
+                    lut[bone.matrixId]);
+      }
+    }
+  }
 
   mdl.getBones().resize(binary_model.bones.size());
   for (size_t i = 0; i < binary_model.bones.size(); ++i) {
@@ -135,13 +255,10 @@ void processModel(librii::g3d::BinaryModel& binary_model,
         auto& bone = mdl.getBones()[desc->boneId];
         const auto matrixId = bone.matrixId;
 
-        // TODO: Accelerate with bone table for constant-time lookup?
-        auto it = std::find_if(
-            binary_model.bones.begin(), binary_model.bones.end(),
-            [desc](auto& bone) { return bone.matrixId == desc->parentMtxId; });
-
-        if (bone.mParent != -1 && it != binary_model.bones.end()) {
-          bone.mParent = it - binary_model.bones.begin();
+        auto parent_id =
+            binary_model.info.mtxToBoneLUT.mtxIdToBoneId[desc->parentMtxId];
+        if (bone.mParent != -1 && parent_id >= 0) {
+          bone.mParent = parent_id;
         }
 
         if (matrixId >= mdl.mDrawMatrices.size()) {
