@@ -277,8 +277,7 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
 
     models_dict.insert(i, mdl.name, writer.tell());
 
-    auto mdl_linker = linker.sublet("Models/" + std::to_string(i));
-    mdl.write(writer, linker, names, start, arc.textures);
+    mdl.write(writer, names, start, arc.textures);
   }
   for (int i = 0; i < arc.textures.size(); ++i) {
     auto& tex = arc.textures[i];

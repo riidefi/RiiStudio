@@ -445,27 +445,11 @@ void BinaryModel::read(oishii::BinaryReader& reader,
     }
   };
 
-  {
-    u32 bone_id = 0;
-    readDict(secOfs.ofsBones, [&](const librii::g3d::DictionaryNode& dnode) {
-      auto& bone = bones.emplace_back();
-      if (!librii::g3d::readBone(bone, reader, bone_id,
-                                 dnode.mDataDestination)) {
-        printf("Failed to read bone %s\n", dnode.mName.c_str());
-      }
-      bone_id++;
-    });
-  }
-  // Compute children
-  for (int i = 0; i < bones.size(); ++i) {
-    if (const auto parent_id = bones[i].mParent; parent_id >= 0) {
-      if (parent_id >= bones.size()) {
-        printf("Invalidly large parent index..\n");
-        break;
-      }
-      bones[parent_id].mChildren.push_back(i);
-    }
-  }
+  readDict(secOfs.ofsBones, [&](const librii::g3d::DictionaryNode& dnode) {
+    auto& bone = bones.emplace_back();
+    reader.seekSet(dnode.mDataDestination);
+    bone.read(reader);
+  });
 
   // Read Vertex data
   readDict(secOfs.ofsBuffers.position,
@@ -893,10 +877,12 @@ std::string WriteMesh(oishii::Writer& writer,
 }
 
 void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
-                RelocWriter& linker, NameTable& names, std::size_t brres_start,
+                NameTable& names, std::size_t brres_start,
                 std::span<const librii::g3d::TextureData> textures) {
   const auto mdl_start = writer.tell();
   int d_cursor = 0;
+
+  RelocWriter linker(writer);
   //
   // Build shaders
   //
@@ -1033,15 +1019,13 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
       },
       true, 1);
 
-  std::set<s16> displayMatrices =
-      librii::gx::computeDisplayMatricesSubset(bin.meshes);
-  u32 bone_id = 0;
-  write_dict("Bones", bin.bones,
-             [&](const librii::g3d::BoneData& bone, std::size_t bone_start) {
-               DebugReport("Bone at %x\n", (unsigned)bone_start);
-               librii::g3d::WriteBone(names, writer, bone_start, bone,
-                                      bin.bones, bone_id++, displayMatrices);
-             });
+  write_dict_mat(
+      "Bones", bin.bones,
+      [&](const librii::g3d::BinaryBoneData& bone, std::size_t bone_start) {
+        DebugReport("Bone at %x\n", (unsigned)bone_start);
+        writer.seekSet(bone_start);
+        bone.write(names, writer, mdl_start);
+      });
 
   u32 mat_idx = 0;
   write_dict_mat(
@@ -1126,10 +1110,10 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
 
 } // namespace
 
-void BinaryModel::write(oishii::Writer& writer, RelocWriter& linker,
-                        NameTable& names, std::size_t brres_start,
+void BinaryModel::write(oishii::Writer& writer, NameTable& names,
+                        std::size_t brres_start,
                         std::span<const librii::g3d::TextureData> textures) {
-  writeModel(*this, writer, linker, names, brres_start, textures);
+  writeModel(*this, writer, names, brres_start, textures);
 }
 
 } // namespace librii::g3d

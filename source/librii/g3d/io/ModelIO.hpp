@@ -272,7 +272,7 @@ class BinaryModel {
 public:
   std::string name;
   librii::g3d::BinaryModelInfo info = {};
-  std::vector<librii::g3d::BoneData> bones;
+  std::vector<librii::g3d::BinaryBoneData> bones;
 
   std::vector<librii::g3d::PositionBuffer> positions;
   std::vector<librii::g3d::NormalBuffer> normals;
@@ -287,8 +287,7 @@ public:
 
   void read(oishii::BinaryReader& reader, kpi::LightIOTransaction& transaction,
             const std::string& transaction_path, bool& isValid);
-  void write(oishii::Writer& writer, RelocWriter& linker, NameTable& names,
-             std::size_t brres_start,
+  void write(oishii::Writer& writer, NameTable& names, std::size_t brres_start,
              // For order of texture name -> TexPlttInfo LUT
              std::span<const librii::g3d::TextureData> textures);
 };

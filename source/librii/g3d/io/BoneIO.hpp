@@ -7,7 +7,7 @@
 namespace librii::g3d {
 
 bool readBone(librii::g3d::BoneData& bone, oishii::BinaryReader& reader,
-              u32 bone_id, s32 data_destination);
+              u32 bone_id);
 
 void WriteBone(NameTable& names, oishii::Writer& writer, size_t bone_start,
                const BoneData& bone, std::span<const BoneData> bones,

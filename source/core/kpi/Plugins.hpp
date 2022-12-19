@@ -2,6 +2,7 @@
 
 #include "Node2.hpp"
 #include "Reflection.hpp"
+#include <format>
 #include <functional>
 #include <map>
 #include <memory>
@@ -48,6 +49,48 @@ struct LightIOTransaction {
       callback;
 
   TransactionState state = TransactionState::Complete;
+};
+
+struct IOContext {
+  std::string path;
+  kpi::LightIOTransaction& transaction;
+
+  auto sublet(const std::string& dir) {
+    return IOContext(path + "/" + dir, transaction);
+  }
+
+  void callback(kpi::IOMessageClass mclass, std::string_view message) {
+    transaction.callback(mclass, path, message);
+  }
+
+  void inform(std::string_view message) {
+    callback(kpi::IOMessageClass::Information, message);
+  }
+  void warn(std::string_view message) {
+    callback(kpi::IOMessageClass::Warning, message);
+  }
+  void error(std::string_view message) {
+    callback(kpi::IOMessageClass::Error, message);
+  }
+  void request(bool cond, std::string_view message) {
+    if (!cond)
+      warn(message);
+  }
+  void require(bool cond, std::string_view message) {
+    if (!cond)
+      error(message);
+  }
+
+  template <typename... T>
+  void request(bool cond, std::string_view f_, T&&... args) {
+    // TODO: Use basic_format_string
+    auto msg = std::vformat(f_, std::make_format_args(args...));
+    request(cond, msg);
+  }
+
+  IOContext(std::string&& p, kpi::LightIOTransaction& t)
+      : path(std::move(p)), transaction(t) {}
+  IOContext(kpi::LightIOTransaction& t) : transaction(t) {}
 };
 
 struct IOTransaction : public LightIOTransaction {

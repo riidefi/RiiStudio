@@ -9,19 +9,44 @@
 #include <string>
 #include <vector>
 
+#include <oishii/reader/binary_reader.hxx>
+#include <oishii/writer/binary_writer.hxx>
+
 namespace librii::g3d {
+
+class NameTable;
+
+struct BoneData;
+
+struct BinaryBoneData {
+  std::string name;
+  u32 flag = 0;
+  u32 id = 0;
+  u32 matrixId = 0;
+  u32 billboardType = 0;
+  u32 ancestorBillboardBone = 0;
+  glm::vec3 scale{1.0f, 1.0f, 1.0f};
+  glm::vec3 rotate{0.0f, 0.0f, 0.0f};
+  glm::vec3 translate{0.0f, 0.0f, 0.0f};
+  librii::math::AABB aabb;
+  int parent_id = -1;
+  int child_first_id = -1;
+  // Non-cyclic linked-list
+  int sibling_right_id = -1;
+  int sibling_left_id = -1;
+  std::array<f32, 3 * 4> modelMtx;
+  std::array<f32, 3 * 4> inverseModelMtx;
+
+  void read(oishii::BinaryReader& reader);
+  void write(NameTable& names, oishii::Writer& writer, u32 mdl_start) const;
+};
 
 struct BoneData {
   std::string mName = "Untitled Bone";
 
-  // Flags:
-  // SRT checks -- recompute
   bool ssc = false;
-  // SSC parent - recompute
   bool classicScale = true;
   bool visible = true;
-  // display mtx - recompute
-  // bb ref recomputed
 
   u32 matrixId = 0;
   u32 billboardType = 0;
@@ -60,67 +85,5 @@ struct BoneData {
 
   bool operator==(const BoneData& rhs) const = default;
 };
-
-template <typename T> bool RangeIsHomogenous(const T& range) {
-  return std::adjacent_find(range.begin(), range.end(),
-                            std::not_equal_to<>()) == range.end();
-}
-
-inline u32 computeFlag(const BoneData& data, std::span<const BoneData> all, bool display_matrix) {
-  u32 flag = 0;
-  const std::array<float, 3> scale{data.mScaling.x, data.mScaling.y,
-                                   data.mScaling.z};
-  if (RangeIsHomogenous(scale)) {
-    flag |= 0x10;
-    if (data.mScaling == glm::vec3{1.0f, 1.0f, 1.0f})
-      flag |= 8;
-  }
-  if (data.mRotation == glm::vec3{0.0f, 0.0f, 0.0f})
-    flag |= 4;
-  if (data.mTranslation == glm::vec3{0.0f, 0.0f, 0.0f})
-    flag |= 2;
-  if ((flag & (2 | 4 | 8)) == (2 | 4 | 8))
-    flag |= 1;
-  bool has_ssc_below = false;
-  {
-    std::vector<s32> stack;
-    for (auto c : data.mChildren)
-      stack.push_back(c);
-    while (!stack.empty()) {
-      auto& elem = all[stack.back()];
-      stack.resize(stack.size() - 1);
-      if (elem.ssc) {
-        has_ssc_below = true;
-      }
-	  // It seems it's not actually a recursive flag?
-	   
-      // for (auto c : elem.mChildren)
-      //   stack.push_back(c);
-    }
-    if (has_ssc_below) {
-      flag |= 0x40;
-    }
-  }
-  if (data.ssc)
-    flag |= 0x20;
-  if (!data.classicScale)
-    flag |= 0x80;
-  if (data.visible)
-    flag |= 0x100;
-  // TODO: Check children?
-  if (!data.mDisplayCommands.empty() /* TODO: Might need to check if any display
-                                        command has currentMtx set */
-      || display_matrix)
-    flag |= 0x200;
-  // TODO: 0x400 check parents
-  return flag;
-}
-// Call this last
-inline void setFromFlag(BoneData& data, u32 flag) {
-  // TODO: Validate items
-  data.ssc = (flag & 0x20) != 0;
-  data.classicScale = (flag & 0x80) == 0;
-  data.visible = (flag & 0x100) != 0;
-}
 
 } // namespace librii::g3d

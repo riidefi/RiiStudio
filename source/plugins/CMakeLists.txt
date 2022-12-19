@@ -13,7 +13,7 @@ add_library(plugins
 	"g3d/g3d_material.cpp"
 	"g3d/g3d_polygon.cpp"
 	"g3d/io/BRRES.cpp"
-  "g3d/io/ReadModel.cpp"
+  
   "g3d/ui/G3dVertexColorView.cpp"
 	"g3d/material.hpp"
 	"g3d/model.hpp"
@@ -22,7 +22,7 @@ add_library(plugins
 	"g3d/texture.hpp"
 	
 	
-	"g3d/util/NameTable.hpp"
+	
 	"gc/Export/Bone.hpp"
 	"gc/Export/gc_Install.cpp"
 	"gc/Export/IndexedPolygon.cpp"
@@ -74,9 +74,9 @@ add_library(plugins
   "ass/AssLogger.hpp"
   "ass/Utility.hpp"
   "ass/AssMaterial.hpp"
-  "g3d/io/TEX0.cpp"
-  "g3d/io/MDL0.cpp"
-  "g3d/io/Common.hpp"
+  
+  
+  
   "mk/BFG/io/BFG.hpp"
   "mk/BFG/io/BFG.cpp"
   "mk/BFG/Fog.hpp"
