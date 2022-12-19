@@ -54,25 +54,26 @@ struct ICollection {
   }
 };
 
-template <typename T> struct CollectionIterator {
+template <typename T, typename Derived> struct CollectionIterator {
   CollectionIterator(ICollection* data, std::size_t i) : data(data), i(i) {}
   CollectionIterator(const CollectionIterator& src) {
     i = src.i;
     data = src.data;
   }
+  CollectionIterator() : data(nullptr), i(0) {}
   ~CollectionIterator() = default;
   CollectionIterator& operator=(const CollectionIterator& rhs) {
     i = rhs.i;
     data = rhs.data;
     return *this;
   }
-  CollectionIterator& operator++() { // pre
+  Derived& operator++() { // pre
     ++i;
-    return *this;
+    return static_cast<Derived&>(*this);
   }
-  CollectionIterator operator++(int) { // post
-    CollectionIterator tmp(*this);
-    tmp.i++;
+  Derived operator++(int) { // post
+    Derived tmp(static_cast<Derived&>(*this));
+    ++tmp.i;
     return tmp;
   }
   std::ptrdiff_t operator-(const CollectionIterator& rhs) const {
@@ -86,7 +87,8 @@ template <typename T> struct CollectionIterator {
   std::size_t i = 0;
 };
 
-template <typename T> struct MutCollectionIterator : CollectionIterator<T> {
+template <typename T>
+struct MutCollectionIterator : CollectionIterator<T, MutCollectionIterator<T>> {
   typedef MutCollectionIterator<T> self_type;
   typedef T value_type;
   typedef T& reference;
@@ -94,7 +96,7 @@ template <typename T> struct MutCollectionIterator : CollectionIterator<T> {
   typedef std::forward_iterator_tag iterator_category;
   typedef std::ptrdiff_t difference_type;
 
-  using CollectionIterator<T>::CollectionIterator;
+  using CollectionIterator<T, MutCollectionIterator<T>>::CollectionIterator;
 
   T& operator*() const {
     return *reinterpret_cast<T*>(this->data->at(this->i));
@@ -103,7 +105,9 @@ template <typename T> struct MutCollectionIterator : CollectionIterator<T> {
     return reinterpret_cast<T*>(this->data->at(this->i));
   }
 };
-template <typename T> struct ConstCollectionIterator : CollectionIterator<T> {
+template <typename T>
+struct ConstCollectionIterator
+    : CollectionIterator<T, ConstCollectionIterator<T>> {
   typedef ConstCollectionIterator<T> self_type;
   typedef T value_type;
   typedef const T& reference;
@@ -111,10 +115,11 @@ template <typename T> struct ConstCollectionIterator : CollectionIterator<T> {
   typedef std::forward_iterator_tag iterator_category;
   typedef std::ptrdiff_t difference_type;
 
-  using CollectionIterator<T>::CollectionIterator;
+  using CollectionIterator<T, ConstCollectionIterator<T>>::CollectionIterator;
 
   ConstCollectionIterator(const ICollection* data, std::size_t i)
-      : CollectionIterator<T>(const_cast<ICollection*>(data), i) {}
+      : CollectionIterator<T, ConstCollectionIterator<T>>(
+            const_cast<ICollection*>(data), i) {}
 
   const T& operator*() const {
     return *reinterpret_cast<const T*>(this->data->at(this->i));

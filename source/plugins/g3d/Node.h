@@ -39,7 +39,9 @@ protected:
         mBuf_Clr.onParentMoved(this);
         mBuf_Uv.onParentMoved(this);
     }
-    Model(Model&& rhs) {
+
+public:
+    Model(Model&& rhs) noexcept {
         new (&mMaterials) decltype(mMaterials) (std::move(rhs.mMaterials));
         new (&mBones) decltype(mBones) (std::move(rhs.mBones));
         new (&mMeshes) decltype(mMeshes) (std::move(rhs.mMeshes));
