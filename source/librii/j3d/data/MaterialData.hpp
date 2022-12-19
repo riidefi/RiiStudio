@@ -10,22 +10,7 @@ namespace librii::j3d {
 // FIXME: This will exist in our scene and be referenced.
 // For now, for 1:1, just placed here..
 struct Fog {
-  enum class Type {
-    None,
-
-    PerspectiveLinear,
-    PerspectiveExponential,
-    PerspectiveQuadratic,
-    PerspectiveInverseExponential,
-    PerspectiveInverseQuadratic,
-
-    OrthographicLinear,
-    OrthographicExponential,
-    OrthographicQuadratic,
-    OrthographicInverseExponential,
-    OrthographicInverseQuadratic
-  };
-  Type type = Type::None;
+  librii::gx::FogType type = librii::gx::FogType::None;
   bool enabled = false;
   u16 center;
   f32 startZ, endZ = 0.0f;

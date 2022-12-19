@@ -448,7 +448,7 @@ template <> struct io_wrapper<gx::TevStage> {
 
 template <> struct io_wrapper<librii::j3d::Fog> {
   static void onRead(oishii::BinaryReader& reader, librii::j3d::Fog& f) {
-    f.type = static_cast<librii::j3d::Fog::Type>(reader.read<u8>());
+    f.type = static_cast<librii::gx::FogType>(reader.read<u8>());
     f.enabled = reader.read<u8>();
     f.center = reader.read<u16>();
     f.startZ = reader.read<f32>();

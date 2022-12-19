@@ -31,11 +31,11 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
 
     int orthoOrPersp =
         static_cast<int>(fog.type) >=
-                static_cast<int>(librii::j3d::Fog::Type::OrthographicLinear)
+                static_cast<int>(librii::gx::FogType::OrthographicLinear)
             ? 0
             : 1;
     int fogType = static_cast<int>(fog.type);
-    if (fogType >= static_cast<int>(librii::j3d::Fog::Type::OrthographicLinear))
+    if (fogType >= static_cast<int>(librii::gx::FogType::OrthographicLinear))
       fogType -= 5;
     ImGui::Combo("Projection"_j, &orthoOrPersp,
                  "Orthographic\0"
@@ -51,7 +51,7 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
     if (new_type != 0)
       new_type += (1 - orthoOrPersp) * 5;
     KPI_PROPERTY_EX(delegate, fogInfo.type,
-                    static_cast<librii::j3d::Fog::Type>(new_type));
+                    static_cast<librii::gx::FogType>(new_type));
     bool enabled = fog.enabled;
     ImGui::Checkbox("Fog Enabled"_j, &enabled);
     KPI_PROPERTY_EX(delegate, fogInfo.enabled, enabled);

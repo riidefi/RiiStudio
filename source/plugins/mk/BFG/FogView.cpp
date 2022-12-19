@@ -22,11 +22,12 @@ auto fogEntry =
           auto& fog = delegate.getActive();
           int orthoOrPersp =
               static_cast<int>(fog.mType) >=
-                      static_cast<int>(FogType::OrthographicLinear)
+                      static_cast<int>(librii::gx::FogType::OrthographicLinear)
                   ? 0
                   : 1;
           int fogType = static_cast<int>(fog.mType);
-          if (fogType >= static_cast<int>(FogType::OrthographicLinear))
+          if (fogType >=
+              static_cast<int>(librii::gx::FogType::OrthographicLinear))
             fogType -= 5;
           ImGui::Combo("Projection", &orthoOrPersp,
                        "Orthographic\0Perspective\0");
@@ -36,7 +37,8 @@ auto fogEntry =
           int new_type = fogType;
           if (new_type != 0)
             new_type += (1 - orthoOrPersp) * 5;
-          KPI_PROPERTY_EX(delegate, mType, static_cast<FogType>(new_type));
+          KPI_PROPERTY_EX(delegate, mType,
+                          static_cast<librii::gx::FogType>(new_type));
 
           bool enabled = fog.mEnabled;
           ImGui::Checkbox("Fog Enabled", &enabled);

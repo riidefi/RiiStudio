@@ -8,50 +8,15 @@
 
 namespace riistudio::mk {
 
-struct IOContext {
-  std::string path;
-  kpi::IOTransaction& transaction;
-
-  auto sublet(const std::string& dir) {
-    return IOContext(path + "/" + dir, transaction);
-  }
-
-  void callback(kpi::IOMessageClass mclass, const std::string_view message) {
-    transaction.callback(mclass, path, message);
-  }
-
-  void inform(const std::string_view message) {
-    callback(kpi::IOMessageClass::Information, message);
-  }
-  void warn(const std::string_view message) {
-    callback(kpi::IOMessageClass::Warning, message);
-  }
-  void error(const std::string_view message) {
-    callback(kpi::IOMessageClass::Error, message);
-  }
-  void request(bool cond, const std::string_view message) {
-    if (!cond)
-      warn(message);
-  }
-  void require(bool cond, const std::string_view message) {
-    if (!cond)
-      error(message);
-  }
-
-  IOContext(std::string&& p, kpi::IOTransaction& t)
-      : path(std::move(p)), transaction(t) {}
-  IOContext(kpi::IOTransaction& t) : transaction(t) {}
-};
-
 void BFG::read(kpi::IOTransaction& transaction) const {
   BinaryFog& fog = static_cast<BinaryFog&>(transaction.node);
   oishii::BinaryReader reader(std::move(transaction.data));
-  IOContext ctx("bfg", transaction);
+  kpi::IOContext ctx("bfg", transaction);
 
   auto entries = fog.getFogEntries();
   entries.resize(4); // Always 4 sections?
   for (auto& entry : entries) {
-    entry.mType = static_cast<FogType>(reader.read<u32>());
+    entry.mType = static_cast<librii::gx::FogType>(reader.read<u32>());
     entry.mStartZ = reader.read<f32>();
     entry.mEndZ = reader.read<f32>();
     entry.mColor.r = reader.read<u8>();

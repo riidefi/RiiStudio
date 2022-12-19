@@ -21,6 +21,23 @@ enum class DisplaySurface { Both, Back, Front, Neither };
 inline DisplaySurface cullModeToDisplaySurfacee(CullMode c) {
   return static_cast<DisplaySurface>(4 - static_cast<int>(c));
 }
+
+enum class FogType {
+  None,
+
+  PerspectiveLinear,
+  PerspectiveExponential,
+  PerspectiveQuadratic,
+  PerspectiveInverseExponential,
+  PerspectiveInverseQuadratic,
+
+  OrthographicLinear,
+  OrthographicExponential,
+  OrthographicQuadratic,
+  OrthographicInverseExponential,
+  OrthographicInverseQuadratic,
+};
+
 } // namespace librii::gx
 
 #include <librii/gx/AlphaCompare.hpp>
@@ -154,8 +171,9 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
   rsl::array_vector<SamplerData, 8> samplers;
 };
 
-static inline void TryRenameSampler(GCMaterialData& mat, const std::string& old_name,
-	const std::string& new_name) {
+static inline void TryRenameSampler(GCMaterialData& mat,
+                                    const std::string& old_name,
+                                    const std::string& new_name) {
   for (auto& s : mat.samplers) {
     if (s.mTexture == old_name) {
       s.mTexture = new_name;
@@ -170,8 +188,9 @@ static inline glm::mat4x4 arrayToMat4x4(const std::array<f32, 16>& m) {
   };
 }
 
-inline glm::mat4x4 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
-                                               const glm::mat4& mvp) const {
+inline glm::mat4x4
+GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
+                                   const glm::mat4& mvp) const {
   auto texsrt =
       librii::mtx::computeTexSrt(scale, rotate, translate, transformModel);
   return librii::mtx::computeTexMtx(
