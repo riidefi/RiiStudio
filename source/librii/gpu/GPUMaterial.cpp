@@ -125,7 +125,7 @@ XF_TEXTURE::operator gx::TexCoordGen() {
     return tmp;
   }
 }
-LitChannel::operator gx::ChannelControl() {
+LitChannel::operator gx::ChannelControl() const {
   auto diffuse_fn = gx::DiffuseFunction::None;
   auto attn_fn = gx::AttenuationFunction::None;
 

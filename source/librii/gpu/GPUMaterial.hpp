@@ -354,7 +354,7 @@ union LitChannel {
   }
 
   void from(const librii::gx::ChannelControl& ctrl);
-  operator librii::gx::ChannelControl();
+  operator librii::gx::ChannelControl() const;
 };
 union TevKSel {
   BitField<0, 2, u32> swaprb;

@@ -19,6 +19,9 @@
 // NameTable
 #include <librii/g3d/io/NameTableIO.hpp>
 
+// BinaryMaterial
+#include <librii/g3d/io/MatIO.hpp>
+
 namespace librii::g3d {
 
 enum class RenderCommand : u8 {
@@ -279,7 +282,12 @@ public:
   std::vector<librii::g3d::ColorBuffer> colors;
   std::vector<librii::g3d::TextureCoordinateBuffer> texcoords;
 
-  std::vector<librii::g3d::G3dMaterialData> materials;
+  std::vector<librii::g3d::BinaryMaterial> materials;
+  // This is the collapsed list, at least for now.
+  // That is, tevs[mat.id] isn't valid; you must use tev[mat.tevId] which is
+  // generated from mat.tevOffset
+  std::vector<librii::g3d::BinaryTev> tevs;
+
   std::vector<librii::g3d::PolygonData> meshes;
 
   // This has yet to be applied to the bones/draw matrices

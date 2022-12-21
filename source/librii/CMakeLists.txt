@@ -91,7 +91,7 @@ add_library(librii
   "g3d/io/AnimIO.cpp"
   "g3d/io/DictIO.hpp"
   "g3d/io/CommonIO.hpp"
-  "g3d/io/AnimIO.hpp" "g3d/io/TevIO.hpp" "g3d/io/TevIO.cpp" "g3d/io/NameTableIO.cpp" "g3d/io/DictWriteIO.hpp" "g3d/io/DictWriteIO.cpp" "u8/U8.cpp" "u8/U8.hpp" "image/DsTexture.hpp" "image/DsTexture.cpp" "gfx/PixelOcclusion.hpp" "gfx/TextureObj.hpp" "gfx/TextureObj.cpp" "gfx/SceneNode.hpp" "gfx/SceneNode.cpp" "glhelper/GlTexture.hpp" "glhelper/GlTexture.cpp" "kcol/Model.hpp" "kcol/Model.cpp" "g3d/gfx/G3dGfx.hpp" "g3d/gfx/G3dGfx.cpp" "g3d/io/MatIO.cpp" "g3d/io/MatIO.hpp" "g3d/io/BoneIO.hpp" "g3d/io/BoneIO.cpp" "g3d/data/VertexData.hpp" "g3d/io/ModelIO.hpp" "g3d/io/ModelIO.cpp" "g3d/io/ArchiveIO.hpp"
+  "g3d/io/AnimIO.hpp" "g3d/io/TevIO.hpp" "g3d/io/TevIO.cpp" "g3d/io/NameTableIO.cpp" "g3d/io/DictWriteIO.hpp" "g3d/io/DictWriteIO.cpp" "u8/U8.cpp" "u8/U8.hpp" "image/DsTexture.hpp" "image/DsTexture.cpp" "gfx/PixelOcclusion.hpp" "gfx/TextureObj.hpp" "gfx/TextureObj.cpp" "gfx/SceneNode.hpp" "gfx/SceneNode.cpp" "glhelper/GlTexture.hpp" "glhelper/GlTexture.cpp" "kcol/Model.hpp" "kcol/Model.cpp" "g3d/gfx/G3dGfx.hpp" "g3d/gfx/G3dGfx.cpp" "g3d/io/MatIO.cpp" "g3d/io/MatIO.hpp" "g3d/io/BoneIO.cpp" "g3d/data/VertexData.hpp" "g3d/io/ModelIO.hpp" "g3d/io/ModelIO.cpp" "g3d/io/ArchiveIO.hpp"
   "g3d/io/ArchiveIO.cpp"
   
   "crate/g3d_crate.cpp"

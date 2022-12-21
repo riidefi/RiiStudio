@@ -1,7 +1,6 @@
 #include "ModelIO.hpp"
 
 #include "CommonIO.hpp"
-#include <librii/g3d/io/BoneIO.hpp>
 // XXX: Must not include DictIO.hpp when using DictWriteIO.hpp
 #include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/MatIO.hpp>
@@ -90,15 +89,6 @@ void writeDictionary(const std::string& name, T&& src_range, U handler,
 
 ///// Bring body of glm_io.hpp into namespace (without headers)
 #include <core/util/glm_io.hpp>
-inline void operator<<(librii::gx::Color& out, oishii::BinaryReader& reader) {
-  out = librii::gx::readColorComponents(
-      reader, librii::gx::VertexBufferType::Color::rgba8);
-}
-
-inline void operator>>(const librii::gx::Color& out, oishii::Writer& writer) {
-  librii::gx::writeColorComponents(writer, out,
-                                   librii::gx::VertexBufferType::Color::rgba8);
-}
 
 template <typename T, bool HasMinimum, bool HasDivisor,
           librii::gx::VertexBufferKind kind>
@@ -494,8 +484,8 @@ void BinaryModel::read(oishii::BinaryReader& reader,
 
   readDict(secOfs.ofsMaterials, [&](const librii::g3d::DictionaryNode& dnode) {
     auto& mat = materials.emplace_back();
-    const bool ok = readMaterial(mat, reader);
-
+    mat.read(reader, nullptr);
+    const bool ok = true;
     if (!ok) {
       printf("Failed to read material %s\n", dnode.mName.c_str());
     }
@@ -654,12 +644,12 @@ std::string writeVertexDataDL(const librii::g3d::PolygonData& poly,
 }
 
 void WriteShader(RelocWriter& linker, oishii::Writer& writer,
-                 const librii::g3d::G3dShader& shader, std::size_t shader_start,
+                 const BinaryTev& tev, std::size_t shader_start,
                  int shader_id) {
   DebugReport("Shader at %x\n", (unsigned)shader_start);
   linker.label("Shader" + std::to_string(shader_id), shader_start);
 
-  librii::g3d::WriteTevBody(writer, shader_id, shader);
+  tev.writeBody(writer);
 }
 
 std::string WriteMesh(oishii::Writer& writer,
@@ -887,12 +877,6 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
   // Build shaders
   //
 
-  librii::g3d::ShaderAllocator shader_allocator;
-  for (auto& mat : bin.materials) {
-    librii::g3d::G3dShader shader(mat);
-    shader_allocator.alloc(shader);
-  }
-
   std::map<std::string, u32> Dictionaries;
   const auto write_dict = [&](const std::string& name, auto src_range,
                               auto handler, bool raw = false, u32 align = 4) {
@@ -977,14 +961,6 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
 
   librii::g3d::TextureSamplerMappingManager tex_sampler_mappings;
 
-  //
-  // NOTE: A raw ref to materials is taken here
-  //
-  // A spurious copy of the `materials` array was breaking it!
-  //
-  // #define MATERIALS (mdl.getMaterials())
-  // #define MATERIALS bin.materials
-
   // for (auto& mat : mdl.getMaterials()) {
   //   for (int s = 0; s < mat.samplers.size(); ++s) {
   //     auto& samp = *mat.samplers[s];
@@ -995,8 +971,8 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
   for (auto& tex : textures)
     for (auto& mat : bin.materials)
       for (int s = 0; s < mat.samplers.size(); ++s)
-        if (mat.samplers[s].mTexture == tex.name)
-          tex_sampler_mappings.add_entry(tex.name, &mat, s);
+        if (mat.samplers[s].texture == tex.name)
+          tex_sampler_mappings.add_entry(tex.name, mat.name, s);
 
   int sm_i = 0;
   write_dict(
@@ -1028,37 +1004,34 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
         bone.write(names, writer, mdl_start);
       });
 
-  u32 mat_idx = 0;
   write_dict_mat(
       "Materials", bin.materials,
-      [&](const librii::g3d::G3dMaterialData& mat, std::size_t mat_start) {
+      [&](const librii::g3d::BinaryMaterial& mat, std::size_t mat_start) {
         linker.label("Mat" + std::to_string(mat_start), mat_start);
-        librii::g3d::WriteMaterialBody(mat_start, writer, names, mat, mat_idx++,
-                                       linker, shader_allocator,
-                                       tex_sampler_mappings);
+        mat.writeBody(writer, mat_start, names, linker, tex_sampler_mappings);
       },
       false, 4);
 
   // Shaders
   {
-    if (shader_allocator.size() == 0)
+    if (bin.tevs.size() == 0)
       return;
 
     u32 dict_ofs = Dictionaries.at("Shaders");
     librii::g3d::QDictionary _dict;
     _dict.mNodes.resize(bin.materials.size() + 1);
 
-    for (std::size_t i = 0; i < shader_allocator.size(); ++i) {
+    for (std::size_t i = 0; i < bin.tevs.size(); ++i) {
       writer.alignTo(32); //
-      for (int j = 0; j < shader_allocator.matToShaderMap.size(); ++j) {
-        if (shader_allocator.matToShaderMap[j] == i) {
+      for (int j = 0; j < bin.materials.size(); ++j) {
+        if (bin.materials[j].tevId == i) {
           _dict.mNodes[j + 1].setDataDestination(writer.tell());
           _dict.mNodes[j + 1].setName(bin.materials[j].name);
         }
       }
       const auto backpatch = writePlaceholder(writer); // size
       writer.write<s32>(mdl_start - backpatch);        // mdl0 offset
-      WriteShader(linker, writer, shader_allocator.shaders[i], backpatch, i);
+      WriteShader(linker, writer, bin.tevs[i], backpatch, i);
       writeOffsetBackpatch(writer, backpatch, backpatch);
     }
     {

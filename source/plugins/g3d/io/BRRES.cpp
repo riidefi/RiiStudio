@@ -13,6 +13,7 @@
 
 #include <librii/g3d/io/AnimIO.hpp>
 #include <librii/g3d/io/ArchiveIO.hpp>
+#include <librii/g3d/io/MatIO.hpp>
 
 #include <rsl/Ranges.hpp>
 
@@ -394,7 +395,8 @@ void processModel(librii::g3d::BinaryModel& binary_model,
   // TODO: Fura
 
   for (auto& mat : binary_model.materials) {
-    static_cast<librii::g3d::G3dMaterialData&>(mdl.getMaterials().add()) = mat;
+    static_cast<librii::g3d::G3dMaterialData&>(mdl.getMaterials().add()) =
+        librii::g3d::fromBinMat(mat, &mat.tev);
   }
   for (auto& mesh : binary_model.meshes) {
     static_cast<librii::g3d::PolygonData&>(mdl.getMeshes().add()) = mesh;
@@ -527,13 +529,62 @@ void BuildRenderLists(const Model& mdl,
     renderLists.push_back(drawXlu);
   }
 }
+
+
+struct ShaderAllocator {
+  void alloc(const librii::g3d::G3dShader& shader) {
+    auto found = std::find(shaders.begin(), shaders.end(), shader);
+    if (found == shaders.end()) {
+      matToShaderMap.emplace_back(shaders.size());
+      shaders.emplace_back(shader);
+    } else {
+      matToShaderMap.emplace_back(found - shaders.begin());
+    }
+  }
+
+  int find(const librii::g3d::G3dShader& shader) const {
+    if (const auto found = std::find(shaders.begin(), shaders.end(), shader);
+        found != shaders.end()) {
+      return std::distance(shaders.begin(), found);
+    }
+
+    return -1;
+  }
+
+  auto size() const { return shaders.size(); }
+
+  std::string getShaderIDName(const librii::g3d::G3dShader& shader) const {
+    const int found = find(shader);
+    assert(found >= 0);
+    return "Shader" + std::to_string(found);
+  }
+
+  std::vector<librii::g3d::G3dShader> shaders;
+  std::vector<u32> matToShaderMap;
+};
+
 librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
   std::set<s16> displayMatrices =
       librii::gx::computeDisplayMatricesSubset(mdl.getMeshes());
+
+  ShaderAllocator shader_allocator;
+  for (auto& mat : mdl.getMaterials()) {
+    librii::g3d::G3dShader shader(mat);
+    shader_allocator.alloc(shader);
+  }
+  std::vector<librii::g3d::BinaryTev> tevs;
+  for (size_t i = 0; i < shader_allocator.shaders.size(); ++i) {
+    tevs.push_back(toBinaryTev(shader_allocator.shaders[i], i));
+  }
+
   auto bones = mdl.getBones() | rsl::ToList<librii::g3d::BoneData>();
   auto to_binary_bone = [&](auto tuple) {
     auto [index, value] = tuple;
     return toBinaryBone(value, bones, index, displayMatrices);
+  };
+  auto to_binary_mat = [&](auto tuple) {
+    auto [index, value] = tuple;
+    return librii::g3d::toBinMat(value, index);
   };
   librii::g3d::BinaryModel bin{
       .name = mdl.mName,
@@ -547,10 +598,17 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
       .colors = mdl.getBuf_Clr() | rsl::ToList<librii::g3d::ColorBuffer>(),
       .texcoords =
           mdl.getBuf_Uv() | rsl::ToList<librii::g3d::TextureCoordinateBuffer>(),
-      .materials =
-          mdl.getMaterials() | rsl::ToList<librii::g3d::G3dMaterialData>(),
+      .materials = mdl.getMaterials()                     //
+                   | rsl::enumerate()                     //
+                   | std::views::transform(to_binary_mat) //
+                   | rsl::ToList(),
+      .tevs = tevs,
       .meshes = mdl.getMeshes() | rsl::ToList<librii::g3d::PolygonData>(),
   };
+
+  for (size_t i = 0; i < shader_allocator.matToShaderMap.size(); ++i) {
+    bin.materials[i].tevId = shader_allocator.matToShaderMap[i];
+  }
 
   // Compute ModelInfo
   {

@@ -1,6 +1,8 @@
-#include "BoneIO.hpp"
-
 #include <core/util/glm_io.hpp>
+
+#include "CommonIO.hpp"
+#include "NameTableIO.hpp"
+#include <librii/g3d/data/BoneData.hpp>
 
 namespace librii::g3d {
 

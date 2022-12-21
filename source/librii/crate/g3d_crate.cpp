@@ -32,11 +32,6 @@ std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
 
   g3d::NameTable names;
   g3d::RelocWriter linker(writer);
-  librii::g3d::ShaderAllocator shader_allocator;
-  {
-    librii::g3d::G3dShader shader(mat);
-    shader_allocator.alloc(shader);
-  }
   g3d::TextureSamplerMappingManager tex_sampler_mappings;
   // This doesn't match the final output order; that is by the order in the
   // textures folder. But it means we don't need to depend on a textures folder
@@ -44,7 +39,7 @@ std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
   for (int s = 0; s < mat.samplers.size(); ++s) {
     if (tex_sampler_mappings.contains(mat.samplers[s].mTexture))
       continue;
-    tex_sampler_mappings.add_entry(mat.samplers[s].mTexture, &mat, s);
+    tex_sampler_mappings.add_entry(mat.samplers[s].mTexture, mat.name, s);
   }
 #if 0
   for (int sm_i = 0; sm_i < tex_sampler_mappings.size(); ++sm_i) {
@@ -62,7 +57,7 @@ std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
   writer.write<s32>(0);                  // mdl offset
   // Differences:
   // - Crate outputs the BRRES offset and mat index here
-  g3d::WriteMaterialBody(0, writer, names, mat, 0, linker, shader_allocator,
+  g3d::WriteMaterialBody(0, writer, names, mat, 0, linker,
                          tex_sampler_mappings);
   const auto end = writer.tell();
   {
@@ -122,7 +117,6 @@ std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat) {
   g3d::RelocWriter linker(writer);
 
   librii::g3d::G3dShader shader(mat);
-  librii::g3d::ShaderAllocator shader_allocator;
 
   linker.label("here");
   linker.writeReloc<s32>("here", "end"); // size

@@ -1,106 +1,9 @@
 #include "MatIO.hpp"
 #include <librii/gpu/DLBuilder.hpp>
-#include <librii/gpu/DLPixShader.hpp>
+#include <rsl/Ranges.hpp>
 
 namespace librii::g3d {
 
-inline void operator<<(librii::gx::Color& out, oishii::BinaryReader& reader) {
-  out = librii::gx::readColorComponents(
-      reader, librii::gx::VertexBufferType::Color::rgba8);
-}
-
-inline void operator>>(const librii::gx::Color& out, oishii::Writer& writer) {
-  librii::gx::writeColorComponents(writer, out,
-                                   librii::gx::VertexBufferType::Color::rgba8);
-}
-
-void WriteCommonTransformModel(oishii::Writer& writer,
-                               librii::mtx::CommonTransformModel mdl) {
-  switch (mdl) {
-  case librii::mtx::CommonTransformModel::Default:
-  case librii::mtx::CommonTransformModel::Maya:
-  default:
-    writer.write<u32>(0);
-    break;
-  case librii::mtx::CommonTransformModel::XSI:
-    writer.write<u32>(1);
-    break;
-  case librii::mtx::CommonTransformModel::Max:
-    writer.write<u32>(2);
-    break;
-  }
-}
-
-void WriteTexMatrix(oishii::Writer& writer,
-                    const librii::gx::GCMaterialData::TexMatrix& mtx) {
-  writer.write<f32>(mtx.scale.x);
-  writer.write<f32>(mtx.scale.y);
-  writer.write<f32>(glm::degrees(mtx.rotate));
-  writer.write<f32>(mtx.translate.x);
-  writer.write<f32>(mtx.translate.y);
-}
-void WriteTexMatrixIdentity(oishii::Writer& writer) {
-  writer.write<f32>(1.0f);
-  writer.write<f32>(1.0f);
-  writer.write<f32>(0.0f);
-  writer.write<f32>(0.0f);
-  writer.write<f32>(0.0f);
-}
-void WriteCommonMappingMethod(
-    librii::gx::GCMaterialData::CommonMappingMethod method,
-    oishii::Writer& writer) {
-  using CommonMappingMethod = librii::gx::GCMaterialData::CommonMappingMethod;
-  switch (method) {
-  case CommonMappingMethod::Standard:
-  default:
-    writer.write<u8>(0);
-    break;
-  case CommonMappingMethod::EnvironmentMapping:
-  case CommonMappingMethod::ManualEnvironmentMapping: // In G3D, Light/Specular
-                                                      // are used; in J3D, it'd
-                                                      // be to the game
-    writer.write<u8>(1);
-    break;
-  case CommonMappingMethod::ViewProjectionMapping:
-    writer.write<u8>(2);
-    break;
-    // EGG extension
-  case CommonMappingMethod::ProjectionMapping:
-    writer.write<u8>(5);
-    break;
-  case CommonMappingMethod::EnvironmentLightMapping:
-    writer.write<u8>(3);
-    break;
-  case CommonMappingMethod::EnvironmentSpecularMapping:
-    writer.write<u8>(4);
-    break;
-  }
-}
-void WriteTexMatrixEffect(oishii::Writer& writer,
-                          const librii::gx::GCMaterialData::TexMatrix& mtx,
-                          std::array<f32, 12>& ident34) {
-  // printf("CamIdx: %i, LIdx: %i\n", (signed)mtx.camIdx,
-  //        (signed)mtx.lightIdx);
-  writer.write<s8>((s8)mtx.camIdx);
-  writer.write<s8>((s8)mtx.lightIdx);
-
-  WriteCommonMappingMethod(mtx.method, writer);
-  // No effect matrix support yet
-  writer.write<u8>(1);
-
-  for (auto d : ident34)
-    writer.write<f32>(d);
-}
-void WriteTexMatrixEffectDefault(oishii::Writer& writer,
-                                 std::array<f32, 12>& ident34) {
-  writer.write<u8>(0xff); // cam
-  writer.write<u8>(0xff); // light
-  writer.write<u8>(0);    // map
-  writer.write<u8>(1);    // flag
-
-  for (auto d : ident34)
-    writer.write<f32>(d);
-}
 u32 BuildTexMatrixFlags(const librii::gx::GCMaterialData::TexMatrix& mtx) {
   // TODO: Float equality
   const u32 identity_scale = mtx.scale == glm::vec2{1.0f, 1.0f};
@@ -113,71 +16,35 @@ u32 BuildTexMatrixFlags(const librii::gx::GCMaterialData::TexMatrix& mtx) {
   return 1 | (identity_scale << 1) | (identity_rotate << 2) |
          (identity_translate << 3);
 }
-void WriteMaterialMisc(oishii::Writer& writer, const G3dMaterialData& mat) {
-  writer.write<u8>(mat.earlyZComparison);
-  writer.write<u8>(mat.lightSetIndex);
-  writer.write<u8>(mat.fogIndex);
-  writer.write<u8>(0); // pad
 
-  // TODO: Properly set this in the UI
-  //
-  auto indConfig = mat.indConfig;
-  if (mat.indirectStages.size() > indConfig.size()) {
-    DebugReport("[NOTE] mat.indirectStages.size() > indConfig.size(), will be "
-                "corrected on save.\n");
-    indConfig.resize(mat.indirectStages.size());
-  }
-
-  assert(mat.indirectStages.size() <= indConfig.size());
-  for (u8 i = 0; i < mat.indirectStages.size(); ++i)
-    writer.write<u8>(static_cast<u8>(indConfig[i].method));
-  for (u8 i = mat.indirectStages.size(); i < 4; ++i)
-    writer.write<u8>(0);
-  for (u8 i = 0; i < mat.indirectStages.size(); ++i)
-    writer.write<u8>(indConfig[i].normalMapLightRef);
-  for (u8 i = mat.indirectStages.size(); i < 4; ++i)
-    writer.write<u8>(0xff);
-}
-void WriteMaterialGenMode(oishii::Writer& writer, const G3dMaterialData& mat) {
-  writer.write<u8>(static_cast<u8>(mat.texGens.size()));
-  writer.write<u8>(static_cast<u8>(mat.chanData.size()));
-  writer.write<u8>(static_cast<u8>(mat.mStages.size()));
-  writer.write<u8>(static_cast<u8>(mat.indirectStages.size()));
-  writer.write<u32>(static_cast<u32>(mat.cullMode));
-}
-
-static void writeMaterialDisplayList(const gx::GCMaterialData& mat,
-                                     oishii::Writer& writer) {
+void BinaryMatDL::write(oishii::Writer& writer) const {
   MAYBE_UNUSED const auto dl_start = writer.tell();
   DebugReport("Mat dl start: %x\n", (unsigned)writer.tell());
   librii::gpu::DLBuilder dl(writer);
   {
-    dl.setAlphaCompare(mat.alphaCompare);
-    dl.setZMode(mat.zMode);
-    dl.setBlendMode(mat.blendMode);
+    dl.setAlphaCompare(alphaCompare);
+    dl.setZMode(zMode);
+    dl.setBlendMode(blendMode);
     dl.setDstAlpha(false, 0); // TODO
     dl.align();
   }
   assert(writer.tell() - dl_start == 0x20);
   {
     for (int i = 0; i < 3; ++i)
-      dl.setTevColor(i + 1, mat.tevColors[i + 1]);
+      dl.setTevColor(i + 1, tevColors[i]);
     dl.align(); // pad 4
     for (int i = 0; i < 4; ++i)
-      dl.setTevKColor(i, mat.tevKonstColors[i]);
+      dl.setTevKColor(i, tevKonstColors[i]);
     dl.align(); // 24
   }
   assert(writer.tell() - dl_start == 0xa0);
   {
-    std::array<librii::gx::IndirectTextureScalePair, 4> scales;
-    for (int i = 0; i < mat.indirectStages.size(); ++i)
-      scales[i] = mat.indirectStages[i].scale;
     dl.setIndTexCoordScale(0, scales[0], scales[1]);
     dl.setIndTexCoordScale(2, scales[2], scales[3]);
 
     const auto write_ind_mtx = [&](std::size_t i) {
-      if (mat.mIndMatrices.size() > i)
-        dl.setIndTexMtx(i, mat.mIndMatrices[i]);
+      if (indMatrices.size() > i)
+        dl.setIndTexMtx(i, indMatrices[i]);
       else
         writer.skip(5 * 3);
     };
@@ -189,314 +56,491 @@ static void writeMaterialDisplayList(const gx::GCMaterialData& mat,
   }
   assert(writer.tell() - dl_start == 0xe0);
   {
-    for (int i = 0; i < mat.texGens.size(); ++i)
-      dl.setTexCoordGen(i, mat.texGens[i]);
-    writer.skip(18 * (8 - mat.texGens.size()));
+    for (int i = 0; i < texGens.size(); ++i)
+      dl.setTexCoordGen(i, texGens[i]);
+    writer.skip(18 * (8 - texGens.size()));
     dl.align();
   }
   assert(writer.tell() - dl_start == 0x180);
 }
+void BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
+                        u32 numTexGens) {
+  gx::LowLevelGxMaterial mat;
+  librii::gpu::QDisplayListMaterialHandler matHandler(mat);
 
-bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
-                  bool ignore_tev) {
+  // Pixel data
+  librii::gpu::RunDisplayList(reader, matHandler, 32);
+  alphaCompare = matHandler.mGpuMat.mPixel.mAlphaCompare;
+  zMode = matHandler.mGpuMat.mPixel.mZMode;
+  blendMode = matHandler.mGpuMat.mPixel.mBlendMode;
+  // TODO: Dst alpha
+
+  // Uniform data
+  librii::gpu::RunDisplayList(reader, matHandler, 128);
+  for (int i = 0; i < 3; ++i) {
+    tevColors[i] = matHandler.mGpuMat.mShaderColor.Registers[i + 1];
+  }
+  for (int i = 0; i < 4; ++i) {
+    tevKonstColors[i] = matHandler.mGpuMat.mShaderColor.Konstants[i];
+  }
+
+  // Indirect data
+  librii::gpu::RunDisplayList(reader, matHandler, 64);
+  for (u8 i = 0; i < numIndStages; ++i) {
+    const auto& curScale =
+        matHandler.mGpuMat.mIndirect.mIndTexScales[i > 1 ? i - 2 : i];
+    scales[i] = librii::gx::IndirectTextureScalePair{
+        static_cast<librii::gx::IndirectTextureScalePair::Selection>(
+            curScale.ss0),
+        static_cast<librii::gx::IndirectTextureScalePair::Selection>(
+            curScale.ss1)};
+
+    indMatrices.push_back(matHandler.mGpuMat.mIndirect.mIndMatrices[i]);
+  }
+
+  const std::array<u32, 9> texGenDlSizes{
+      0,        // 0
+      32,       // 1
+      64,  64,  // 2, 3
+      96,  96,  // 4, 5
+      128, 128, // 6, 7
+      160       // 8
+  };
+  assert(numTexGens < 9);
+  texGens.resize(numTexGens);
+  librii::gpu::RunDisplayList(reader, matHandler, texGenDlSizes[numTexGens]);
+  for (u8 i = 0; i < numTexGens; ++i) {
+    texGens[i] = matHandler.mGpuMat.mTexture[i];
+  }
+}
+
+void BinaryMaterial::read(oishii::BinaryReader& reader,
+                          gx::LowLevelGxMaterial* outShader) {
   const auto start = reader.tell();
 
   reader.read<u32>(); // size
   reader.read<s32>(); // mdl offset
-  mat.name = readName(reader, start);
-  mat.id = reader.read<u32>();
-  mat.flag = reader.read<u32>();
+  name = readName(reader, start);
+  id = reader.read<u32>();
+  flag = reader.read<u32>();
 
-  // Gen info
-  mat.texGens.resize(reader.read<u8>());
-  auto nColorChan = reader.read<u8>();
-  if (nColorChan >= 2)
-    nColorChan = 2;
-  mat.mStages.resize(reader.read<u8>());
-  mat.indirectStages.resize(reader.read<u8>());
-  mat.cullMode = static_cast<librii::gx::CullMode>(reader.read<u32>());
-
-  // Misc
-  mat.earlyZComparison = reader.read<u8>();
-  mat.lightSetIndex = reader.read<s8>();
-  mat.fogIndex = reader.read<s8>();
-  reader.read<u8>();
-  const auto indSt = reader.tell();
-  for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
-    librii::g3d::G3dIndConfig cfg;
-    cfg.method = static_cast<librii::g3d::G3dIndMethod>(reader.read<u8>());
-    cfg.normalMapLightRef = reader.peekAt<s8>(4);
-    mat.indConfig.push_back(cfg);
+  // GenMode
+  {
+    genMode.read(reader);
+    // TODO: Why?
+    if (genMode.numChannels >= 2)
+      genMode.numChannels = 2;
   }
-  reader.seekSet(indSt + 4 + 4);
+  // Misc
+  { //
+    misc.read(reader);
+  }
 
   const auto ofsTev = reader.read<s32>();
   const auto nTex = reader.read<u32>();
-  if (nTex > 8) {
-    return false;
-  }
+  assert(nTex <= 8);
   const auto [ofsSamplers, ofsFur, ofsUserData, ofsDisplayLists] =
       reader.readX<s32, 4>();
-  if (ofsFur || ofsUserData)
+  if (ofsFur || ofsUserData) {
     printf("Warning: Material %s uses Fur or UserData which is unsupported!\n",
-           mat.name.c_str());
+           name.c_str());
+  }
 
   using GCMaterialData = librii::gx::GCMaterialData;
+  for (auto& e : texPlttRuntimeObjs)
+    e = reader.read<u8>();
 
-  // Texture and palette objects are set on runtime.
-  reader.skip((4 + 8 * 12) + (4 + 8 * 32));
+  texSrtData.read(reader);
 
-  // Texture transformations
-  reader.read<u32>(); // skip flag, TODO: verify
-  const u32 mtxMode = reader.read<u32>();
-  const std::array<GCMaterialData::CommonTransformModel, 3> cvtMtx{
-      GCMaterialData::CommonTransformModel::Maya,
-      GCMaterialData::CommonTransformModel::XSI,
-      GCMaterialData::CommonTransformModel::Max};
-  const auto xfModel = cvtMtx[mtxMode];
-
-  for (u8 i = 0; i < nTex; ++i) {
-    GCMaterialData::TexMatrix mtx;
-    mtx.scale.x = reader.read<f32>();
-    mtx.scale.y = reader.read<f32>();
-    mtx.rotate = glm::radians(reader.read<f32>());
-    mtx.translate.x = reader.read<f32>();
-    mtx.translate.y = reader.read<f32>();
-    mat.texMatrices.push_back(mtx);
+  // ChanData
+  {
+    reader.seekSet(start + 0x3f0);
+    chan.read(reader);
   }
-  reader.seekSet(start + 0x250);
-  for (u8 i = 0; i < nTex; ++i) {
-    auto* mtx = &mat.texMatrices[i];
-
-    mtx->camIdx = reader.read<s8>();
-    mtx->lightIdx = reader.read<s8>();
-    // printf("[read] CamIDX: %i, LIDX:%i\n", (signed)mtx->camIdx,
-    //        (signed)mtx->lightIdx);
-    const u8 mapMode = reader.read<u8>();
-
-    mtx->transformModel = xfModel;
-    mtx->option = GCMaterialData::CommonMappingOption::NoSelection;
-    // Projection needs to be copied from texgen
-
-    switch (mapMode) {
-    default:
-    case 0:
-      mtx->method = GCMaterialData::CommonMappingMethod::Standard;
-      break;
-    case 1:
-      mtx->method = GCMaterialData::CommonMappingMethod::EnvironmentMapping;
-      break;
-    case 2:
-      mtx->method = GCMaterialData::CommonMappingMethod::ViewProjectionMapping;
-      break;
-    case 3:
-      mtx->method =
-          GCMaterialData::CommonMappingMethod::EnvironmentLightMapping;
-      break;
-    case 4:
-      mtx->method =
-          GCMaterialData::CommonMappingMethod::EnvironmentSpecularMapping;
-      break;
-    // EGG
-    case 5:
-      mtx->method =
-          GCMaterialData::CommonMappingMethod::ManualProjectionMapping;
-      break;
-    }
-
-    reader.read<u8>(); // effect mtx flag
-    // G3D effectmatrix is 3x4. J3D is 4x4
-    reader.skip(3 * 4 * sizeof(f32));
-    // for (auto& f : mtx->effectMatrix)
-    //   f = reader.read<f32>();
-  }
-  // reader.seek((8 - nTex)* (4 + (4 * 4 * sizeof(f32))));
-  reader.seekSet(start + 0x3f0);
-  mat.chanData.resize(0);
-  for (u8 i = 0; i < 2; ++i) {
-    // skip runtime flag
-    const auto flag = reader.read<u32>();
-    (void)flag;
-    librii::gx::Color matClr, ambClr;
-    matClr.r = reader.read<u8>();
-    matClr.g = reader.read<u8>();
-    matClr.b = reader.read<u8>();
-    matClr.a = reader.read<u8>();
-
-    ambClr.r = reader.read<u8>();
-    ambClr.g = reader.read<u8>();
-    ambClr.b = reader.read<u8>();
-    ambClr.a = reader.read<u8>();
-
-    mat.chanData.push_back({matClr, ambClr});
-    librii::gpu::LitChannel tmp;
-    // Color
-    tmp.hex = reader.read<u32>();
-    mat.colorChanControls.push_back(tmp);
-    // Alpha
-    tmp.hex = reader.read<u32>();
-    mat.colorChanControls.push_back(tmp);
-  }
-  // Ugly hack. Rely on array_vector not downsizing behavior
-  mat.chanData.resize(nColorChan);
 
   // TEV
-  if (!ignore_tev) {
+  {
     auto tev_addr = start + ofsTev;
-    librii::g3d::ReadTev(mat, reader, tev_addr);
+    tev.indirectStages.resize(genMode.numIndStages);
+    tev.mStages.resize(genMode.numTevStages);
+    librii::g3d::ReadTev(tev, reader, tev_addr);
+
+    if (outShader != nullptr) {
+      *outShader = tev;
+    }
   }
 
   // Samplers
-  reader.seekSet(start + ofsSamplers);
-  if (mat.texGens.size() != nTex) {
-    return false;
-  }
-  for (u8 i = 0; i < nTex; ++i) {
-    GCMaterialData::SamplerData sampler;
-
-    const auto sampStart = reader.tell();
-    sampler.mTexture = readName(reader, sampStart);
-    sampler.mPalette = readName(reader, sampStart);
-    reader.skip(8);     // skip runtime pointers
-    reader.read<u32>(); // skip tex id for now
-    reader.read<u32>(); // skip tlut id for now
-    sampler.mWrapU =
-        static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
-    sampler.mWrapV =
-        static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
-    sampler.mMinFilter =
-        static_cast<librii::gx::TextureFilter>(reader.read<u32>());
-    sampler.mMagFilter =
-        static_cast<librii::gx::TextureFilter>(reader.read<u32>());
-    sampler.mLodBias = reader.read<f32>();
-    sampler.mMaxAniso =
-        static_cast<librii::gx::AnisotropyLevel>(reader.read<u32>());
-    sampler.bBiasClamp = reader.read<u8>();
-    sampler.bEdgeLod = reader.read<u8>();
-    reader.skip(2);
-    mat.samplers.push_back(std::move(sampler));
+  {
+    reader.seekSet(start + ofsSamplers);
+    assert(genMode.numTexGens == nTex);
+    samplers.resize(nTex);
+    for (auto& s : samplers)
+      s.read(reader);
   }
 
   // Display Lists
-  reader.seekSet(start + ofsDisplayLists);
   {
-    librii::gpu::QDisplayListMaterialHandler matHandler(mat);
-
-    // Pixel data
-    librii::gpu::RunDisplayList(reader, matHandler, 32);
-    mat.alphaCompare = matHandler.mGpuMat.mPixel.mAlphaCompare;
-    mat.zMode = matHandler.mGpuMat.mPixel.mZMode;
-    mat.blendMode = matHandler.mGpuMat.mPixel.mBlendMode;
-    // TODO: Dst alpha
-
-    // Uniform data
-    librii::gpu::RunDisplayList(reader, matHandler, 128);
-    mat.tevColors[0] = {0xff, 0xff, 0xff, 0xff};
-    for (int i = 0; i < 3; ++i) {
-      mat.tevColors[i + 1] = matHandler.mGpuMat.mShaderColor.Registers[i + 1];
-    }
-    for (int i = 0; i < 4; ++i) {
-      mat.tevKonstColors[i] = matHandler.mGpuMat.mShaderColor.Konstants[i];
-    }
-
-    // Indirect data
-    librii::gpu::RunDisplayList(reader, matHandler, 64);
-    for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
-      const auto& curScale =
-          matHandler.mGpuMat.mIndirect.mIndTexScales[i > 1 ? i - 2 : i];
-      mat.indirectStages[i].scale = librii::gx::IndirectTextureScalePair{
-          static_cast<librii::gx::IndirectTextureScalePair::Selection>(
-              curScale.ss0),
-          static_cast<librii::gx::IndirectTextureScalePair::Selection>(
-              curScale.ss1)};
-
-      mat.mIndMatrices.push_back(matHandler.mGpuMat.mIndirect.mIndMatrices[i]);
-    }
-
-    const std::array<u32, 9> texGenDlSizes{
-        0,        // 0
-        32,       // 1
-        64,  64,  // 2, 3
-        96,  96,  // 4, 5
-        128, 128, // 6, 7
-        160       // 8
-    };
-    librii::gpu::RunDisplayList(reader, matHandler,
-                                texGenDlSizes[mat.texGens.size()]);
-    for (u8 i = 0; i < mat.texGens.size(); ++i) {
-      mat.texGens[i] = matHandler.mGpuMat.mTexture[i];
-      mat.texMatrices[i].projection = mat.texGens[i].func;
-    }
+    reader.seekSet(start + ofsDisplayLists);
+    dl.parse(reader, std::min<u32>(genMode.numIndStages, 4),
+             std::min<u32>(genMode.numTexGens, 8));
   }
-
-  return true;
 }
-
-void WriteMaterialBody(size_t mat_start, oishii::Writer& writer,
-                       NameTable& names, const G3dMaterialData& mat,
-                       u32 mat_idx, RelocWriter& linker,
-                       const ShaderAllocator& shader_allocator,
-                       TextureSamplerMappingManager& tex_sampler_mappings) {
-  DebugReport("MAT_START %x\n", (u32)mat_start);
-  DebugReport("MAT_NAME %x\n", writer.tell());
-  writeNameForward(names, writer, mat_start, mat.name);
-  DebugReport("MATIDAT %x\n", writer.tell());
-  writer.write<u32>(mat_idx);
-  u32 flag = mat.flag;
-  flag = (flag & ~0x80000000) | (mat.xlu ? 0x80000000 : 0);
+// TODO: Reduce dependencies
+void BinaryMaterial::writeBody(
+    oishii::Writer& writer, u32 mat_start, NameTable& names,
+    RelocWriter& linker,
+    TextureSamplerMappingManager& tex_sampler_mappings) const {
+  writeNameForward(names, writer, mat_start, name);
+  writer.write<u32>(id);
   writer.write<u32>(flag);
-  WriteMaterialGenMode(writer, mat);
-  WriteMaterialMisc(writer, mat);
+  genMode.write(writer);
+  misc.write(writer);
   linker.writeReloc<s32>("Mat" + std::to_string(mat_start),
-                         shader_allocator.getShaderIDName(mat));
-  writer.write<u32>(mat.samplers.size());
+                         "Shader" + std::to_string(tevId));
+  writer.write<u32>(samplers.size());
   u32 sampler_offset = 0;
-  if (mat.samplers.size()) {
+  if (samplers.size()) {
     sampler_offset = writePlaceholder(writer);
   } else {
     writer.write<s32>(0); // no samplers
-    printf(">> Mat %s has no samplers.\n", mat.name.c_str());
   }
   writer.write<s32>(0); // fur
   writer.write<s32>(0); // ud
   const auto dl_offset = writePlaceholder(writer);
+  for (auto& e : texPlttRuntimeObjs)
+    writer.write<u8>(e);
+  texSrtData.write(writer);
+  chan.write(writer);
 
-  // Texture and palette objects are set on runtime.
-  writer.skip((4 + 8 * 12) + (4 + 8 * 32));
+  // Not written if no samplers..
+  if (sampler_offset != 0) {
+    writeOffsetBackpatch(writer, sampler_offset, mat_start);
+    for (int i = 0; i < samplers.size(); ++i) {
+      const auto s_start = writer.tell();
 
-  // Texture transformations
+      {
+        const auto [entry_start, struct_start] =
+            tex_sampler_mappings.from_mat(name, i);
+        DebugReport("<material=\"%s\" sampler=%u>\n", name.c_str(), i);
+        DebugReport("\tentry_start=%x, struct_start=%x\n",
+                    (unsigned)entry_start, (unsigned)struct_start);
+        oishii::Jump<oishii::Whence::Set, oishii::Writer> sg(writer,
+                                                             entry_start);
+        writer.write<s32>(mat_start - struct_start);
+        writer.write<s32>(s_start - struct_start);
+      }
+
+      samplers[i].write(writer, names, s_start);
+    }
+  }
+  writer.alignTo(32);
+  writeOffsetBackpatch(writer, dl_offset, mat_start);
+  dl.write(writer);
+}
+
+G3dMaterialData fromBinMat(const BinaryMaterial& bin,
+                           gx::LowLevelGxMaterial* smat) {
+  G3dMaterialData mat;
+  mat.name = bin.name;
+  mat.id = bin.id;
+  mat.flag = bin.flag;
+
+  // GenMode
+  {
+    mat.texGens.resize(bin.genMode.numTexGens);
+    mat.mStages.resize(bin.genMode.numTevStages);
+    mat.indirectStages.resize(bin.genMode.numIndStages);
+    mat.cullMode = bin.genMode.cullMode;
+  }
+
+  // Misc
+  {
+    mat.earlyZComparison = bin.misc.earlyZComparison;
+    mat.lightSetIndex = bin.misc.lightSetIndex;
+    mat.fogIndex = bin.misc.fogIndex;
+    // Ignore reserved
+
+    for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
+      librii::g3d::G3dIndConfig cfg;
+      cfg.method = bin.misc.indMethod[i];
+      cfg.normalMapLightRef = bin.misc.normalMapLightIndices[i];
+      mat.indConfig.push_back(cfg);
+    }
+  }
+
+  // TEV
+  {
+    if (smat != nullptr) {
+      mat.mSwapTable = smat->mSwapTable;
+      for (int i = 0; i < mat.indirectStages.size(); ++i) {
+        mat.indirectStages[i].order.refMap =
+            smat->indirectStages[i].order.refMap;
+        mat.indirectStages[i].order.refCoord =
+            smat->indirectStages[i].order.refCoord;
+      }
+      mat.mStages = smat->mStages;
+    }
+  }
+
+  // Samplers
+  {
+    for (const auto& bs : bin.samplers) {
+      librii::gx::GCMaterialData::SamplerData sampler = {
+          .mTexture = bs.texture,
+          .mPalette = bs.palette,
+          // Ignore: RT ptrs
+          // Ignore: texid/tlutid
+          .mWrapU = bs.wrapU,
+          .mWrapV = bs.wrapV,
+          .bEdgeLod = bs.edgeLod,
+          .bBiasClamp = bs.biasClamp,
+          .mMaxAniso = bs.maxAniso,
+          .mMinFilter = bs.minFilter,
+          .mMagFilter = bs.magFilter,
+          .mLodBias = bs.lodBias,
+          // Ignore: reserved
+      };
+      mat.samplers.push_back(std::move(sampler));
+    }
+  }
+
+  // DL
+  {
+    mat.alphaCompare = bin.dl.alphaCompare;
+    mat.zMode = bin.dl.zMode;
+    mat.blendMode = bin.dl.blendMode;
+    // TODO: Dst alpha
+
+    mat.tevColors[0] = {0xFF, 0xFF, 0xFF, 0xFF};
+    for (int i = 0; i < 3; ++i)
+      mat.tevColors[i + 1] = bin.dl.tevColors[i];
+    mat.tevKonstColors = bin.dl.tevKonstColors;
+
+    // TODO: Ensure safe
+    mat.indirectStages.resize(4);
+    for (int i = 0; i < bin.dl.scales.size(); ++i) {
+      mat.indirectStages[i].scale = bin.dl.scales[i];
+    }
+    mat.indirectStages.resize(bin.genMode.numIndStages);
+    mat.mIndMatrices.resize(bin.genMode.numIndStages); // TODO
+    for (int i = 0; i < bin.dl.indMatrices.size(); ++i) {
+      mat.mIndMatrices[i] = bin.dl.indMatrices[i];
+    }
+
+    for (int i = 0; i < mat.texGens.size(); ++i) {
+      mat.texGens[i] = bin.dl.texGens[i];
+    }
+  }
+
+  // TexSrtData
+  {
+    // TODO: Ignores flag
+    const std::array<gx::GCMaterialData::CommonTransformModel, 3> cvtMtx{
+        gx::GCMaterialData::CommonTransformModel::Maya,
+        gx::GCMaterialData::CommonTransformModel::XSI,
+        gx::GCMaterialData::CommonTransformModel::Max};
+    const BinaryTexSrtData& sd = bin.texSrtData;
+    const auto xfModel = cvtMtx[static_cast<u32>(sd.texMtxMode)];
+    for (u8 i = 0; i < bin.samplers.size(); ++i) {
+      gx::GCMaterialData::TexMatrix mtx;
+      mtx.scale = sd.srt[i].scale;
+      mtx.rotate = glm::radians(sd.srt[i].rotate_degrees);
+      mtx.translate = sd.srt[i].translate;
+      const BinaryTexMtxEffect& effect = sd.effect[i];
+      mtx.camIdx = effect.camIdx;
+      mtx.lightIdx = effect.lightIdx;
+      mtx.transformModel = xfModel;
+      mtx.option = gx::GCMaterialData::CommonMappingOption::NoSelection;
+      // TODO: Are we necessarily loading the correct texgen?
+      mtx.projection = mat.texGens[i].func;
+
+      switch (effect.mapMode) {
+      default:
+      case 0:
+        mtx.method = gx::GCMaterialData::CommonMappingMethod::Standard;
+        break;
+      case 1:
+        mtx.method =
+            gx::GCMaterialData::CommonMappingMethod::EnvironmentMapping;
+        break;
+      case 2:
+        mtx.method =
+            gx::GCMaterialData::CommonMappingMethod::ViewProjectionMapping;
+        break;
+      case 3:
+        mtx.method =
+            gx::GCMaterialData::CommonMappingMethod::EnvironmentLightMapping;
+        break;
+      case 4:
+        mtx.method =
+            gx::GCMaterialData::CommonMappingMethod::EnvironmentSpecularMapping;
+        break;
+      // EGG
+      case 5:
+        mtx.method =
+            gx::GCMaterialData::CommonMappingMethod::ManualProjectionMapping;
+        break;
+      }
+      // Ignored: flag, effectMtx
+      mat.texMatrices.push_back(mtx);
+    }
+  }
+
+  // ChanData
+  {
+    mat.chanData.resize(0);
+    for (auto& chan : bin.chan.chan) {
+      // Ignore flag
+      mat.chanData.push_back({chan.material, chan.ambient});
+      mat.colorChanControls.push_back(chan.xfCntrlColor);
+      mat.colorChanControls.push_back(chan.xfCntrlAlpha);
+    }
+    // Ugly hack. Rely on array_vector not downsizing behavior
+    mat.chanData.resize(bin.genMode.numChannels);
+  }
+  return mat;
+}
+
+BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
+  BinaryMaterial bin;
+
+  bin.name = mat.name;
+  bin.id = mat_idx;
+  bin.flag = (mat.flag & ~0x80000000) | (mat.xlu ? 0x80000000 : 0);
+
+  bin.genMode = {.numTexGens = static_cast<u8>(mat.texGens.size()),
+                 .numChannels = static_cast<u8>(mat.chanData.size()),
+                 .numTevStages = static_cast<u8>(mat.mStages.size()),
+                 .numIndStages = static_cast<u8>(mat.indirectStages.size()),
+                 .cullMode = mat.cullMode};
+  // TODO: Properly set this in the UI
+  //
+  auto indConfig = mat.indConfig;
+  if (mat.indirectStages.size() > indConfig.size()) {
+    DebugReport("[NOTE] mat.indirectStages.size() > indConfig.size(), will be "
+                "corrected on save.\n");
+    indConfig.resize(mat.indirectStages.size());
+  }
+  bin.misc = {
+      .earlyZComparison = mat.earlyZComparison,
+      .lightSetIndex = mat.lightSetIndex,
+      .fogIndex = mat.fogIndex,
+      .reserved = 0,
+      .indMethod = indConfig |
+                   std::views::transform([](auto& x) { return x.method; }) |
+                   rsl::ToArray<4>(),
+      .normalMapLightIndices =
+          std::array{0, 1, 2, 3} |
+          std::views::transform([indConfig](size_t idx) -> s8 {
+            return idx < indConfig.size() ? indConfig[idx].normalMapLightRef
+                                          : -1;
+          }) |
+          rsl::ToArray<4>(),
+  };
+
+  // TODO: Only copy fields needed
+  bin.tev = mat;
+
+  bin.samplers = rsl::enumerate(mat.samplers | rsl::ToList()) //
+                 | std::views::transform([](const auto& x) {
+                     const auto& [i, sampler] = x;
+                     return BinarySampler{
+                         .texture = sampler.mTexture,
+                         .palette = sampler.mPalette,
+                         .runtimeTexPtr = 0,
+                         .runtimePlttPtr = 0,
+                         .texMapId = static_cast<u32>(i),
+                         .tlutId = static_cast<u32>(i),
+                         .wrapU = sampler.mWrapU,
+                         .wrapV = sampler.mWrapV,
+                         .minFilter = sampler.mMinFilter,
+                         .magFilter = sampler.mMagFilter,
+                         .lodBias = sampler.mLodBias,
+                         .maxAniso = sampler.mMaxAniso,
+                         .biasClamp = sampler.bBiasClamp,
+                         .edgeLod = sampler.bEdgeLod,
+                         .reserved = 0,
+                     };
+                   }) //
+                 | rsl::ToList();
 
   u32 tex_flags = 0;
   for (int i = mat.texMatrices.size() - 1; i >= 0; --i) {
     tex_flags = (tex_flags << 4) | BuildTexMatrixFlags(mat.texMatrices[i]);
   }
-  writer.write<u32>(tex_flags);
+
   // Unlike J3D, only one texmatrix mode per material
   using CommonTransformModel = librii::gx::GCMaterialData::CommonTransformModel;
   CommonTransformModel texmtx_mode = CommonTransformModel::Default;
   for (int i = 0; i < mat.texMatrices.size(); ++i) {
     texmtx_mode = mat.texMatrices[i].transformModel;
   }
+  auto g3dTm = librii::g3d::TexMatrixMode::Maya;
+  switch (texmtx_mode) {
+  case librii::mtx::CommonTransformModel::Default:
+  case librii::mtx::CommonTransformModel::Maya:
+  default:
+    g3dTm = librii::g3d::TexMatrixMode::Maya;
+    break;
+  case librii::mtx::CommonTransformModel::XSI:
+    g3dTm = librii::g3d::TexMatrixMode::XSI;
+    break;
+  case librii::mtx::CommonTransformModel::Max:
+    g3dTm = librii::g3d::TexMatrixMode::Max;
+    break;
+  }
+  auto mapModeCvt = [](const auto& method) -> u8 {
+    using CommonMappingMethod = librii::gx::GCMaterialData::CommonMappingMethod;
+    switch (method) {
+    case CommonMappingMethod::Standard:
+    default:
+      return 0;
+    // In G3D, Light/Specular are used; in J3D, it'd be to the game
+    case CommonMappingMethod::EnvironmentMapping:
+    case CommonMappingMethod::ManualEnvironmentMapping:
+      return 1;
+    case CommonMappingMethod::ViewProjectionMapping:
+      return 2;
+    // EGG extension
+    case CommonMappingMethod::ProjectionMapping:
+      return 5;
+    case CommonMappingMethod::EnvironmentLightMapping:
+      return 3;
+    case CommonMappingMethod::EnvironmentSpecularMapping:
+      return 4;
+    }
+  };
+  bin.texSrtData = {
+      .flag = tex_flags,
+      .texMtxMode = g3dTm,
+      .srt = mat.texMatrices       //
+             | std::views::take(8) //
+             | std::views::transform(
+                   [](const librii::gx::GCMaterialData::TexMatrix& mtx) {
+                     return BinaryTexSrt{
+                         .scale = mtx.scale,
+                         .rotate_degrees = glm::degrees(mtx.rotate),
+                         .translate = mtx.translate,
+                     };
+                   }) //
+             | rsl::ToArray<8>(),
+      .effect =
+          mat.texMatrices       //
+          | std::views::take(8) //
+          | std::views::transform(
+                [mapModeCvt](const librii::gx::GCMaterialData::TexMatrix& mtx) {
+                  return BinaryTexMtxEffect{
+                      .camIdx = mtx.camIdx,
+                      .lightIdx = mtx.lightIdx,
+                      .mapMode = mapModeCvt(mtx.method),
+                      .flag = BinaryTexMtxEffect::EFFECT_MTX_IDENTITY,
+                      .effectMtx = glm::mat3x4(1.0f),
+                  };
+                }) //
+          | rsl::ToArray<8>(),
+  };
 
-  WriteCommonTransformModel(writer, texmtx_mode);
-  for (int i = 0; i < mat.texMatrices.size(); ++i) {
-    auto& mtx = mat.texMatrices[i];
-
-    WriteTexMatrix(writer, mtx);
-  }
-  for (int i = mat.texMatrices.size(); i < 8; ++i) {
-    WriteTexMatrixIdentity(writer);
-  }
-  std::array<f32, 3 * 4> ident34{1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-                                 0.0, 0.0, 0.0, 0.0, 1.0, 0.0};
-  for (int i = 0; i < mat.texMatrices.size(); ++i) {
-    auto& mtx = mat.texMatrices[i];
-
-    WriteTexMatrixEffect(writer, mtx, ident34);
-  }
-  for (int i = mat.texMatrices.size(); i < 8; ++i) {
-    WriteTexMatrixEffectDefault(writer, ident34);
-  }
   auto chanData = mat.chanData;
   auto colorChanControls = mat.colorChanControls;
   while (chanData.size() < 2) {
@@ -522,81 +566,59 @@ void WriteMaterialBody(size_t mat_start, oishii::Writer& writer,
         .attenuationFn = gx::AttenuationFunction::Specular, // ID 0
     });
   }
-
   for (u8 i = 0; i < 2; ++i) {
-    enum {
-      GDSetChanMatColor_COLOR0 = 0x1,
-      GDSetChanMatColor_ALPHA0 = 0x2,
-      GDSetChanAmbColor_COLOR0 = 0x4,
-      GDSetChanAmbColor_ALPHA0 = 0x8,
-      GDSetChanCtrl_COLOR0 = 0x10,
-      GDSetChanCtrl_ALPHA0 = 0x20,
-    };
-    u32 flag = GDSetChanMatColor_COLOR0 | GDSetChanMatColor_ALPHA0 |
-               GDSetChanAmbColor_COLOR0 | GDSetChanAmbColor_ALPHA0;
+    BinaryChannelData::Channel& chan = bin.chan.chan[i];
+    chan.flag = BinaryChannelData::GDSetChanMatColor_COLOR0 |
+                BinaryChannelData::GDSetChanMatColor_ALPHA0 |
+                BinaryChannelData::GDSetChanAmbColor_COLOR0 |
+                BinaryChannelData::GDSetChanAmbColor_ALPHA0;
     if (i < mat.chanData.size()) {
-      flag |= GDSetChanCtrl_COLOR0;
-      flag |= GDSetChanCtrl_ALPHA0;
+      chan.flag |= BinaryChannelData::GDSetChanCtrl_COLOR0;
+      chan.flag |= BinaryChannelData::GDSetChanCtrl_ALPHA0;
     }
 
-    writer.write<u32>(flag);
-    chanData[i].matColor >> writer;
-    chanData[i].ambColor >> writer;
-
-    librii::gpu::LitChannel clr, alpha;
-    clr.hex = 0;
-    alpha.hex = 0;
+    chan.material = chanData[i].matColor;
+    chan.ambient = chanData[i].ambColor;
 
     // It's impossible to get the hex 0 we see by calling this function, as
     // attnEnable is enabled when attenuationFn != None, and attnSelect when
     // attenuationFn != Specular.
     if (i < mat.chanData.size()) {
-      clr.from(colorChanControls[i * 2]);
-      alpha.from(colorChanControls[i * 2 + 1]);
-    }
-
-    writer.write<u32>(clr.hex);
-    writer.write<u32>(alpha.hex);
-  }
-
-  // Not written if no samplers..
-  if (sampler_offset != 0) {
-    writeOffsetBackpatch(writer, sampler_offset, mat_start);
-    for (int i = 0; i < mat.samplers.size(); ++i) {
-      const auto s_start = writer.tell();
-      const auto& sampler = mat.samplers[i];
-
-      {
-        const auto [entry_start, struct_start] =
-            tex_sampler_mappings.from_mat(&mat, i);
-        DebugReport("<material=\"%s\" sampler=%u>\n", mat.name.c_str(), i);
-        DebugReport("\tentry_start=%x, struct_start=%x\n",
-                    (unsigned)entry_start, (unsigned)struct_start);
-        oishii::Jump<oishii::Whence::Set, oishii::Writer> sg(writer,
-                                                             entry_start);
-        writer.write<s32>(mat_start - struct_start);
-        writer.write<s32>(s_start - struct_start);
-      }
-
-      writeNameForward(names, writer, s_start, sampler.mTexture);
-      writeNameForward(names, writer, s_start, sampler.mPalette);
-      writer.skip(8);       // runtime pointers
-      writer.write<u32>(i); // gpu texture slot
-      writer.write<u32>(i); // no palette support
-      writer.write<u32>(static_cast<u32>(sampler.mWrapU));
-      writer.write<u32>(static_cast<u32>(sampler.mWrapV));
-      writer.write<u32>(static_cast<u32>(sampler.mMinFilter));
-      writer.write<u32>(static_cast<u32>(sampler.mMagFilter));
-      writer.write<f32>(sampler.mLodBias);
-      writer.write<u32>(static_cast<u32>(sampler.mMaxAniso));
-      writer.write<u8>(sampler.bBiasClamp);
-      writer.write<u8>(sampler.bEdgeLod);
-      writer.skip(2);
+      chan.xfCntrlColor.from(colorChanControls[i * 2]);
+      chan.xfCntrlAlpha.from(colorChanControls[i * 2 + 1]);
     }
   }
-  writer.alignTo(32);
-  writeOffsetBackpatch(writer, dl_offset, mat_start);
-  writeMaterialDisplayList(mat, writer);
+
+  bin.dl.alphaCompare = mat.alphaCompare;
+  bin.dl.zMode = mat.zMode;
+  bin.dl.blendMode = mat.blendMode;
+
+  bin.dl.tevColors = mat.tevColors | std::views::drop(1) | rsl::ToArray<3>();
+  bin.dl.tevKonstColors = mat.tevKonstColors;
+
+  for (int i = 0; i < mat.indirectStages.size(); ++i)
+    bin.dl.scales[i] = mat.indirectStages[i].scale;
+  bin.dl.indMatrices = mat.mIndMatrices;
+
+  bin.dl.texGens = mat.texGens;
+  return bin;
+}
+
+bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
+                  bool ignore_tev) {
+  BinaryMaterial bin;
+  gx::LowLevelGxMaterial smat;
+  bin.read(reader, ignore_tev ? nullptr : &smat);
+  mat = fromBinMat(bin, ignore_tev ? nullptr : &smat);
+  return true;
+}
+
+void WriteMaterialBody(size_t mat_start, oishii::Writer& writer,
+                       NameTable& names, const G3dMaterialData& mat,
+                       u32 mat_idx, RelocWriter& linker,
+                       TextureSamplerMappingManager& tex_sampler_mappings) {
+  auto bin = toBinMat(mat, mat_idx);
+  bin.writeBody(writer, mat_start, names, linker, tex_sampler_mappings);
 }
 
 } // namespace librii::g3d
