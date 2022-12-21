@@ -9,16 +9,7 @@ template <u32 m> struct MagicInvalidity;
 template <typename T, EndianSelect E, bool unaligned> T BinaryReader::peek() {
   boundsCheck(sizeof(T));
 
-#ifndef NDEBUG
-  for (const auto& bp : mBreakPoints) {
-    if (tell() >= bp.offset && tell() + sizeof(T) <= bp.offset + bp.size) {
-      printf("Reading from %04u (0x%04x) sized %u\n", tell(), tell(),
-             (u32)sizeof(T));
-      warnAt("Breakpoint hit", tell(), tell() + sizeof(T));
-      __debugbreak();
-    }
-  }
-#endif
+  readerBpCheck(sizeof(T));
 
   if (!unaligned)
     alignmentCheck(sizeof(T));
@@ -79,16 +70,7 @@ rsl::expected<T, std::string> BinaryReader::tryGetAt(int trans) {
            std::to_string(endpos());
   }
 
-#ifndef NDEBUG
-  for (const auto& bp : mBreakPoints) {
-    if (trans >= bp.offset && trans + sizeof(T) <= bp.offset + bp.size) {
-      printf("Reading from %04u (0x%04x) sized %u\n", trans, trans,
-             (unsigned)sizeof(T));
-      warnAt("Breakpoint hit", trans, trans + sizeof(T));
-      rsl::debug_break();
-    }
-  }
-#endif
+  readerBpCheck(sizeof(T));
   T decoded =
       endianDecode<T, E>(*reinterpret_cast<T*>(getStreamStart() + trans));
 

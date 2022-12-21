@@ -113,6 +113,8 @@ struct IBinaryDeserializer {
   virtual void read_(IOTransaction& transaction) = 0;
   //! For config UIs. Given ImGui control.
   virtual void render() = 0;
+  //! Debugging
+  virtual void addBp(u32 addr) {}
 };
 //! A writer: Do not inherit from this type directly
 struct IBinarySerializer {

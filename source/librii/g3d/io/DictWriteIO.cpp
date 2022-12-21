@@ -249,7 +249,7 @@ void QDictionary::write(oishii::Writer& writer, NameTable& names) {
   u32 grpStart = writer.tell();
 
   auto ofsTotalSize = writer.tell();
-  writer.write<u32>(0);
+  writer.write<u32>(0, /* checkmatch */ false);
   writer.write<u32>(mNodes.size() - 1); // nEntry
 
   for (auto& node : mNodes)

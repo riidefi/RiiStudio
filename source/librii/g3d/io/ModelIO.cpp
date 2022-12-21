@@ -1005,8 +1005,9 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
         writer.write<u32>(map.entries.size());
         for (int i = 0; i < map.entries.size(); ++i) {
           tex_sampler_mappings.entries[sm_i].entries[i] = writer.tell();
-          writer.write<s32>(0);
-          writer.write<s32>(0);
+          // These are placeholders
+          writer.write<s32>(0, /* checkmatch */ false);
+          writer.write<s32>(0, /* checkmatch */ false);
         }
         ++sm_i;
       },

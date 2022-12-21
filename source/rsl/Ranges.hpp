@@ -11,9 +11,14 @@ template <typename T> static bool RangeIsHomogenous(const T& range) {
 }
 
 template <typename T> struct Collector {};
+template <size_t N, typename T> struct ArrayCollector {};
 
 // A-la C#
 template <typename T = void> static auto ToList() { return Collector<T>{}; }
+template <size_t N, typename T = void> static auto ToArray() {
+  return ArrayCollector<N, T>{};
+}
+
 } // namespace rsl
 
 template <typename T> static auto operator|(auto&& range, rsl::Collector<T>&&) {
@@ -23,6 +28,21 @@ template <typename T> static auto operator|(auto&& range, rsl::Collector<T>&&) {
   constexpr bool IsCustomValueT = !std::is_void_v<T>;
   using ValueT = std::conditional_t<IsCustomValueT, T, FallbackValueT>;
   return std::vector<ValueT>{range.begin(), range.end()};
+}
+template <size_t N, typename T>
+static auto operator|(auto&& range, rsl::ArrayCollector<N, T>&&) {
+  // Value of each item in the range
+  using FallbackValueT = typename decltype(range.begin())::value_type;
+  // If the typename T overload is picked, use it; otherwise default
+  constexpr bool IsCustomValueT = !std::is_void_v<T>;
+  using ValueT = std::conditional_t<IsCustomValueT, T, FallbackValueT>;
+
+  auto size = std::ranges::size(range);
+  std::array<ValueT, N> arr;
+  std::copy_n(range.begin(), std::min(size, arr.size()), arr.begin());
+  ValueT dv{};
+  std::fill(arr.begin() + std::min(size, arr.size()), arr.end(), dv);
+  return arr;
 }
 
 namespace rsl {

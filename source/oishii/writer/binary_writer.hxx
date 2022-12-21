@@ -45,8 +45,9 @@ public:
       const auto before = *reinterpret_cast<integral_t*>(&mDebugMatch[tell()]);
       if (before != decoded && decoded != 0xcccccccc) {
         fprintf(stderr,
-                "Matching violation at %x: writing %x where should be %x\n",
+                "Matching violation at 0x%x: writing %x where should be %x\n",
                 tell(), (u32)decoded, (u32)before);
+
         __debugbreak();
       }
     }
@@ -187,7 +188,7 @@ private:
 };
 
 inline auto writePlaceholder(oishii::Writer& writer) {
-  writer.write<s32>(0);
+  writer.write<s32>(0, /* checkmatch */ false);
   return writer.tell() - 4;
 }
 inline void writeOffsetBackpatch(oishii::Writer& w, std::size_t pointer,

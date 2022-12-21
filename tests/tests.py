@@ -43,6 +43,10 @@ TEST_DATA = {
 	'bbd05488abd1dd21ac2cb21077d8ccdc': 'bbd05488abd1dd21ac2cb21077d8ccdc',
 }
 
+BREAKPOINTS = {
+  '8e882b37c306c0f98f3f08363ba61e31': [ ]
+}
+
 def hash(path):
 	from hashlib import md5
 	with open(path, "rb") as file:
@@ -56,7 +60,7 @@ def add_to_name(path, suffix):
 def pretty_path(path):
 	return os.path.basename(path)
 
-def rebuild(test_exec, input_path, output_path):
+def rebuild(test_exec, input_path, output_path, check, bps):
 	'''
 	Rebuild a file
 	Throw an error if the program faults, returning the stacktrace.
@@ -66,8 +70,8 @@ def rebuild(test_exec, input_path, output_path):
 	# Remove the old file
 	if os.path.isfile(output_path):
 		os.remove(output_path)
-
-	process = Popen([test_exec, input_path, output_path], stdout=PIPE)
+	args = [test_exec, input_path, output_path] + (["check"] if check else [""]) + list(str(x) for x in bps)
+	process = Popen(args, stdout=PIPE)
 	(output, err) = process.communicate()
 	exit_code = process.wait()
 
@@ -85,7 +89,10 @@ def run_test(test_exec, path, out_path):
 		expected = TEST_DATA[md5]
 
 	rebuild_path = out_path
-	rebuild(test_exec, path, rebuild_path)
+	bps = []
+	if md5 in BREAKPOINTS:
+		bps = BREAKPOINTS[md5]
+	rebuild(test_exec, path, rebuild_path, md5 == expected, bps)
 
 	if not os.path.isfile(rebuild_path):
 		print("Error: %s Rebuilding did not produce any file" % pretty_path(path))

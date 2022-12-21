@@ -264,6 +264,19 @@ private:
 
     --mStack.mSize;
   }
+
+  void readerBpCheck(u32 size) {
+#ifndef NDEBUG
+    for (const auto& bp : mBreakPoints) {
+      if (tell() >= bp.offset && tell() + size <= bp.offset + bp.size) {
+        fprintf(stderr, "Reading from %04u (0x%04x) sized %u\n", tell(), tell(),
+                size);
+        warnAt("Breakpoint hit", tell(), tell() + size);
+        __debugbreak();
+      }
+    }
+#endif
+  }
 };
 
 inline std::span<const u8> SliceStream(oishii::BinaryReader& reader) {

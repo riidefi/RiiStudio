@@ -176,7 +176,7 @@ public:
   void writeReloc(const std::string& from, const std::string& to) {
     mRelocs.emplace_back(
         Reloc{.from = from, .to = to, .ofs = mWriter.tell(), .sz = sizeof(T)});
-    mWriter.write<T>(static_cast<T>(0));
+    mWriter.write<T>(static_cast<T>(0), /* checkmatch */ false);
   }
   // Write a relocation, with an associated child frame to be written by
   // writeChildren()

@@ -18,6 +18,17 @@ public:
   enum { value = sizeof(test<Q>(0)) == sizeof(YesType) };
 };
 
+template <typename Q> class has_add_bp {
+  typedef char YesType[1];
+  typedef char NoType[2];
+
+  template <typename C> static YesType& test(decltype(&C::addBp));
+  template <typename C> static NoType& test(...);
+
+public:
+  enum { value = sizeof(test<Q>(0)) == sizeof(YesType) };
+};
+
 struct ApplicationPluginsImpl {
   // Requires TypeIdResolvable<T>, DefaultConstructible<T>
   template <typename T>
@@ -47,6 +58,11 @@ struct ApplicationPluginsImpl {
     void render() override {
       if constexpr (has_render<T>::value)
         T::render();
+    }
+
+    void addBp(u32 addr) override {
+      if constexpr (has_add_bp<T>::value)
+        T::addBp(addr);
     }
   };
   //! Requires methods:

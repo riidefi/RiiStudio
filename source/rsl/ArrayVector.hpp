@@ -10,6 +10,7 @@ namespace rsl {
 // Much faster than a vector for the many static sized arrays in materials
 template <typename T, size_t N>
 struct array_vector_fixed : public std::array<T, N> {
+  using base_t = std::array<T, N>;
   size_t size() const { return nElements; }
   void resize(size_t n_elem) {
     assert(n_elem <= N);
@@ -43,10 +44,10 @@ struct array_vector_fixed : public std::array<T, N> {
   }
 
 #if 1
-  const T* begin() const { return &this->at(0); }
-  const T* end() const { return &this->at(0) + this->size(); }
-  T* begin() { return &this->at(0); }
-  T* end() { return &this->at(0) + this->size(); }
+  const auto begin() const { return base_t::cbegin(); }
+  const auto end() const { return base_t::cbegin() + this->size(); }
+  auto begin() { return base_t::begin(); }
+  auto end() { return base_t::begin() + this->size(); }
 #else
   void begin() const {}
 #endif

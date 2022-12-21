@@ -21,6 +21,8 @@ public:
 
     Collection& collection = *dynamic_cast<Collection*>(&transaction.node);
     oishii::BinaryReader reader(std::move(transaction.data));
+    for (auto& bp : reader_bps)
+      reader.add_bp<u32>(bp);
 
     ReadBRRES(collection, reader, transaction);
   }
@@ -33,6 +35,9 @@ public:
 
     WriteBRRES(collection, writer);
   }
+  void addBp(u32 addr) { reader_bps.push_back(addr); }
+
+  std::vector<u32> reader_bps;
 };
 
 static ImVec4 Clr(u32 x) {
