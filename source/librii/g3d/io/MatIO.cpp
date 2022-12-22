@@ -403,15 +403,28 @@ G3dMaterialData fromBinMat(const BinaryMaterial& bin,
 
   // ChanData
   {
-    mat.chanData.resize(0);
+    bool seen_missing = false;
+    size_t written_contiguously = 0;
     for (auto& chan : bin.chan.chan) {
-      // Ignore flag
       mat.chanData.push_back({chan.material, chan.ambient});
-      mat.colorChanControls.push_back(chan.xfCntrlColor);
-      mat.colorChanControls.push_back(chan.xfCntrlAlpha);
+      if (chan.flag & BinaryChannelData::GDSetChanCtrl_COLOR0) {
+        if (!seen_missing)
+          ++written_contiguously;
+        mat.colorChanControls.push_back(chan.xfCntrlColor);
+      } else {
+        seen_missing = true;
+      }
+      if (chan.flag & BinaryChannelData::GDSetChanCtrl_ALPHA0) {
+        if (!seen_missing)
+          ++written_contiguously;
+        mat.colorChanControls.push_back(chan.xfCntrlAlpha);
+      } else {
+        seen_missing = true;
+      }
     }
-    // Ugly hack. Rely on array_vector not downsizing behavior
-    mat.chanData.resize(bin.genMode.numChannels);
+    // Very unlikely
+    assert(written_contiguously == mat.colorChanControls.size() &&
+           "Discontiguous channel configurations are unsupported");
   }
   return mat;
 }
@@ -423,8 +436,12 @@ BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
   bin.id = mat_idx;
   bin.flag = (mat.flag & ~0x80000000) | (mat.xlu ? 0x80000000 : 0);
 
+  // Since we assume contiguity
+  const u8 numChannels =
+      static_cast<u8>((mat.colorChanControls.size() + 1) / 2);
+
   bin.genMode = {.numTexGens = static_cast<u8>(mat.texGens.size()),
-                 .numChannels = static_cast<u8>(mat.chanData.size()),
+                 .numChannels = numChannels,
                  .numTevStages = static_cast<u8>(mat.mStages.size()),
                  .numIndStages = static_cast<u8>(mat.indirectStages.size()),
                  .cullMode = mat.cullMode};
@@ -582,14 +599,23 @@ BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
         .attenuationFn = gx::AttenuationFunction::Specular, // ID 0
     });
   }
+
+  // TODO: Individually addressible channels
+  //
+  // Right now we generate contiguous COLOR0, ALPHA0, COLOR1, ALPHA1. Therefore
+  // COLOR0 + COLOR1 + ALPHA1 would not be possible.
+  //
+
   for (u8 i = 0; i < 2; ++i) {
     BinaryChannelData::Channel& chan = bin.chan.chan[i];
     chan.flag = BinaryChannelData::GDSetChanMatColor_COLOR0 |
                 BinaryChannelData::GDSetChanMatColor_ALPHA0 |
                 BinaryChannelData::GDSetChanAmbColor_COLOR0 |
                 BinaryChannelData::GDSetChanAmbColor_ALPHA0;
-    if (i < mat.chanData.size()) {
+    if (i * 2 < mat.colorChanControls.size()) {
       chan.flag |= BinaryChannelData::GDSetChanCtrl_COLOR0;
+    }
+    if (i * 2 + 1 < mat.colorChanControls.size()) {
       chan.flag |= BinaryChannelData::GDSetChanCtrl_ALPHA0;
     }
 
@@ -599,8 +625,10 @@ BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
     // It's impossible to get the hex 0 we see by calling this function, as
     // attnEnable is enabled when attenuationFn != None, and attnSelect when
     // attenuationFn != Specular.
-    if (i < mat.chanData.size()) {
+    if (i * 2 < mat.colorChanControls.size()) {
       chan.xfCntrlColor.from(colorChanControls[i * 2]);
+    }
+    if (i * 2 + 1 < mat.colorChanControls.size()) {
       chan.xfCntrlAlpha.from(colorChanControls[i * 2 + 1]);
     }
   }
