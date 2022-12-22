@@ -71,6 +71,19 @@ struct IndirectMatrix {
 
   int quant = 1; // Exponent selection
 
+  enum Method {
+    Warp,
+    // G3D only:
+    NormalMap,
+    NormalMapSpec,
+    Fur,
+  };
+
+  Method method = Method::Warp;
+
+  // G3D Only:
+  s8 refLight = -1; // For normal maps
+
   bool operator==(const IndirectMatrix& rhs) const noexcept = default;
   // TODO: Verify with glm decompose
   glm::mat3x2 compute() const {

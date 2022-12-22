@@ -261,12 +261,7 @@ G3dMaterialData fromBinMat(const BinaryMaterial& bin,
     mat.fogIndex = bin.misc.fogIndex;
     // Ignore reserved
 
-    for (u8 i = 0; i < mat.indirectStages.size(); ++i) {
-      librii::g3d::G3dIndConfig cfg;
-      cfg.method = bin.misc.indMethod[i];
-      cfg.normalMapLightRef = bin.misc.normalMapLightIndices[i];
-      mat.indConfig.push_back(cfg);
-    }
+    assert(bin.misc.indMethod.size() >= bin.dl.indMatrices.size());
   }
 
   // TEV
@@ -326,6 +321,25 @@ G3dMaterialData fromBinMat(const BinaryMaterial& bin,
     mat.mIndMatrices.resize(bin.genMode.numIndStages); // TODO
     for (int i = 0; i < bin.dl.indMatrices.size(); ++i) {
       mat.mIndMatrices[i] = bin.dl.indMatrices[i];
+      mat.mIndMatrices[i].method = [](auto x) {
+        switch (x) {
+        case G3dIndMethod::Warp:
+          return gx::IndirectMatrix::Method::Warp;
+        case G3dIndMethod::NormalMap:
+          return gx::IndirectMatrix::Method::NormalMap;
+        case G3dIndMethod::SpecNormalMap:
+          return gx::IndirectMatrix::Method::NormalMapSpec;
+        case G3dIndMethod::Fur:
+          return gx::IndirectMatrix::Method::Fur;
+        case G3dIndMethod::Res0:
+        case G3dIndMethod::Res1:
+        case G3dIndMethod::User0:
+        case G3dIndMethod::User1:
+          assert(!"Unexpected indirect method");
+          return gx::IndirectMatrix::Method::Warp;
+        }
+      }(bin.misc.indMethod[i]);
+      mat.mIndMatrices[i].refLight = bin.misc.normalMapLightIndices[i];
     }
 
     for (int i = 0; i < mat.texGens.size(); ++i) {
@@ -353,7 +367,7 @@ G3dMaterialData fromBinMat(const BinaryMaterial& bin,
       mtx.transformModel = xfModel;
       mtx.option = gx::GCMaterialData::CommonMappingOption::NoSelection;
       // TODO: Are we necessarily loading the correct texgen?
-      mtx.projection = mat.texGens[i].func;
+      mtx.projection = bin.dl.texGens[i].func;
 
       switch (effect.mapMode) {
       default:
@@ -414,28 +428,30 @@ BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
                  .numTevStages = static_cast<u8>(mat.mStages.size()),
                  .numIndStages = static_cast<u8>(mat.indirectStages.size()),
                  .cullMode = mat.cullMode};
-  // TODO: Properly set this in the UI
-  //
-  auto indConfig = mat.indConfig;
-  if (mat.indirectStages.size() > indConfig.size()) {
-    DebugReport("[NOTE] mat.indirectStages.size() > indConfig.size(), will be "
-                "corrected on save.\n");
-    indConfig.resize(mat.indirectStages.size());
-  }
+
+  auto toIndMethod = [](const librii::gx::IndirectMatrix& mtx) {
+    switch (mtx.method) {
+    case gx::IndirectMatrix::Method::Warp:
+      return G3dIndMethod::Warp;
+    case gx::IndirectMatrix::Method::NormalMap:
+      return G3dIndMethod::NormalMap;
+    case gx::IndirectMatrix::Method::NormalMapSpec:
+      return G3dIndMethod::SpecNormalMap;
+    case gx::IndirectMatrix::Method::Fur:
+      return G3dIndMethod::Fur;
+    }
+  };
+
   bin.misc = {
       .earlyZComparison = mat.earlyZComparison,
       .lightSetIndex = mat.lightSetIndex,
       .fogIndex = mat.fogIndex,
       .reserved = 0,
-      .indMethod = indConfig |
-                   std::views::transform([](auto& x) { return x.method; }) |
+      .indMethod = mat.mIndMatrices | std::views::transform(toIndMethod) |
                    rsl::ToArray<4>(),
       .normalMapLightIndices =
-          std::array{0, 1, 2, 3} |
-          std::views::transform([indConfig](size_t idx) -> s8 {
-            return idx < indConfig.size() ? indConfig[idx].normalMapLightRef
-                                          : -1;
-          }) |
+          mat.mIndMatrices | rsl::ToArray<4>() |
+          std::views::transform([](auto& x) { return x.refLight; }) |
           rsl::ToArray<4>(),
   };
 

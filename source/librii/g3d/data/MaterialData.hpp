@@ -27,13 +27,6 @@ enum class G3dIndMethod {
   User1
 };
 
-struct G3dIndConfig {
-  G3dIndMethod method{G3dIndMethod::Warp};
-  s8 normalMapLightRef{-1};
-
-  bool operator==(const G3dIndConfig& rhs) const = default;
-};
-
 // This doesn't exist outside of the binary format, and is split off as an
 // optimization (in J3D every material attribute is split off like this).
 struct G3dShader {
@@ -61,7 +54,6 @@ struct G3dShader {
 };
 
 struct G3dMaterialData : public librii::gx::GCMaterialData {
-  rsl::array_vector<librii::g3d::G3dIndConfig, 4> indConfig;
   u32 flag = 0;
   u32 id; // Local
   s8 lightSetIndex = -1;
