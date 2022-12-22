@@ -1459,8 +1459,13 @@ void main() {
     frag += "    vec4 t_PixelOut = TevOverflow(t_TevOutput);\n";
     llvm::cantFail(generateAlphaTest(frag));
     frag += generateFog();
-    frag += "    fragOut = t_PixelOut;\n"
-            "}\n";
+    frag += "    fragOut = t_PixelOut;\n";
+    if (mMaterial.dstAlpha.enabled) {
+      frag +=
+          std::format("fragOut.a = {};\n",
+                      static_cast<float>(mMaterial.dstAlpha.alpha) / 255.0f);
+    }
+    frag += "}\n";
 
     return frag_buf.data();
   }

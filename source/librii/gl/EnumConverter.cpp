@@ -132,9 +132,7 @@ void translateGfxMegaState(gfx::MegaState& megaState,
 
   const auto blendMode = matdata.blendMode;
   if (blendMode.type == gx::BlendModeType::none) {
-    megaState.blendMode = GL_FUNC_ADD;
-    megaState.blendSrcFactor = GL_ONE;
-    megaState.blendDstFactor = GL_ZERO;
+    megaState.blendMode = 0;
   } else if (blendMode.type == gx::BlendModeType::blend) {
     megaState.blendMode = GL_FUNC_ADD;
     megaState.blendSrcFactor =
@@ -163,12 +161,14 @@ static u32 GetPolygonMode(librii::gfx::PolygonMode p) {
 }
 
 void setGlState(const librii::gfx::MegaState& state) {
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND);
-  glEnable(GL_POLYGON_OFFSET_FILL);
-
-  glBlendFunc(state.blendSrcFactor, state.blendDstFactor);
-  glBlendEquation(state.blendMode);
+  if (state.blendMode != 0) {
+    glEnable(GL_BLEND);
+    glBlendEquation(state.blendMode);
+    glBlendFunc(state.blendSrcFactor, state.blendDstFactor);
+  } else {
+    glDisable(GL_BLEND);
+  }
+  
   if (state.cullMode == -1) {
     glDisable(GL_CULL_FACE);
   } else {
@@ -176,9 +176,12 @@ void setGlState(const librii::gfx::MegaState& state) {
     glCullFace(state.cullMode);
   }
   glFrontFace(state.frontFace);
+  
+  glEnable(GL_DEPTH_TEST);
   glDepthMask(state.depthWrite ? GL_TRUE : GL_FALSE);
   glDepthFunc(state.depthCompare);
 
+  glEnable(GL_POLYGON_OFFSET_FILL);
   glPolygonOffset(state.poly_offset_factor, state.poly_offset_units);
 
   // WebGL doesn't support glPolygonMode

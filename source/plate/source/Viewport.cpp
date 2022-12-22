@@ -64,8 +64,8 @@ void Viewport::createFbo(unsigned width, unsigned height) {
 
   glGenTextures(1, &mImageBufId);
   glBindTexture(GL_TEXTURE_2D, mImageBufId);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cur_resolution.computeGlWidth(),
-               cur_resolution.computeGlHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, cur_resolution.computeGlWidth(),
+               cur_resolution.computeGlHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE,
                NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
