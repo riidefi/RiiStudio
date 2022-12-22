@@ -117,6 +117,7 @@ struct LowLevelGxMaterial {
   ZMode zMode;
   AlphaComparison alphaCompare;
   BlendMode blendMode;
+  DstAlpha dstAlpha;   // G3D only (though could embed it in a J3D DL)
   bool dither = false; // Only seen in J3D normally,
                        // though we could support it for G3D.
   bool xlu = false;

@@ -1,7 +1,7 @@
 #pragma once
 
 namespace librii::gx {
-	
+
 enum class BlendModeType { none, blend, logic, subtract };
 
 enum class BlendModeFactor {
@@ -43,5 +43,12 @@ struct BlendMode {
 
   bool operator==(const BlendMode& rhs) const = default;
 };
-	
-} // namepace librii::gx
+// CMODE1
+struct DstAlpha {
+  bool enabled = false;
+  u8 alpha = 0;
+
+  bool operator==(const DstAlpha&) const = default;
+};
+
+} // namespace librii::gx

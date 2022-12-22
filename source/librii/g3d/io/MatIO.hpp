@@ -197,6 +197,7 @@ struct BinaryMatDL {
   gx::AlphaComparison alphaCompare{};
   gx::ZMode zMode{};
   gx::BlendMode blendMode{};
+  gx::DstAlpha dstAlpha{};
 
   // TEV Color
   std::array<gx::ColorS10, 3> tevColors{}; // Skip CPREV/APREV

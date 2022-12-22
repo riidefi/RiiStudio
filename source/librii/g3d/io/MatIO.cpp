@@ -25,7 +25,7 @@ void BinaryMatDL::write(oishii::Writer& writer) const {
     dl.setAlphaCompare(alphaCompare);
     dl.setZMode(zMode);
     dl.setBlendMode(blendMode);
-    dl.setDstAlpha(false, 0); // TODO
+    dl.setDstAlpha(dstAlpha.enabled, dstAlpha.alpha);
     dl.align();
   }
   assert(writer.tell() - dl_start == 0x20);
@@ -73,7 +73,7 @@ void BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
   alphaCompare = matHandler.mGpuMat.mPixel.mAlphaCompare;
   zMode = matHandler.mGpuMat.mPixel.mZMode;
   blendMode = matHandler.mGpuMat.mPixel.mBlendMode;
-  // TODO: Dst alpha
+  dstAlpha = matHandler.mGpuMat.mPixel.mDstAlpha;
 
   // Uniform data
   librii::gpu::RunDisplayList(reader, matHandler, 128);
@@ -305,7 +305,7 @@ G3dMaterialData fromBinMat(const BinaryMaterial& bin,
     mat.alphaCompare = bin.dl.alphaCompare;
     mat.zMode = bin.dl.zMode;
     mat.blendMode = bin.dl.blendMode;
-    // TODO: Dst alpha
+    mat.dstAlpha = bin.dl.dstAlpha;
 
     mat.tevColors[0] = {0xFF, 0xFF, 0xFF, 0xFF};
     for (int i = 0; i < 3; ++i)
@@ -636,6 +636,7 @@ BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
   bin.dl.alphaCompare = mat.alphaCompare;
   bin.dl.zMode = mat.zMode;
   bin.dl.blendMode = mat.blendMode;
+  bin.dl.dstAlpha = mat.dstAlpha;
 
   bin.dl.tevColors = mat.tevColors | std::views::drop(1) | rsl::ToArray<3>();
   bin.dl.tevKonstColors = mat.tevKonstColors;

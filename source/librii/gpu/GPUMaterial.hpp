@@ -165,7 +165,7 @@ union CMODE0 {
 
   bool UseLogicOp() const;
 
-  operator librii::gx::BlendMode() {
+  operator librii::gx::BlendMode() const {
     using namespace librii::gx;
     BlendMode tmp;
 
@@ -188,6 +188,11 @@ union CMODE1 {
   BitField<0, 8, u32> alpha;
   BitField<8, 1, u32> enable;
   u32 hex = 0;
+
+  operator gx::DstAlpha() const {
+    return {.enabled = enable.Value() != 0,
+            .alpha = static_cast<u8>(alpha.Value())};
+  }
 };
 union ras1_ss {
   struct {
