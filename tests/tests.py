@@ -41,6 +41,10 @@ TEST_DATA = {
 	# human_walk.brres
 	# 1:1
 	'bbd05488abd1dd21ac2cb21077d8ccdc': 'bbd05488abd1dd21ac2cb21077d8ccdc',
+
+	# default.blight
+	# 1:1
+	'9c128977ba86c285c74b21cb22c96b2a': '9c128977ba86c285c74b21cb22c96b2a',
 }
 
 BREAKPOINTS = {

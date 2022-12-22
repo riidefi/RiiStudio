@@ -1,5 +1,6 @@
 #include <core/api.hpp>
 #include <core/util/oishii.hpp>
+#include <librii/egg/Blight.hpp>
 #include <librii/kmp/io/KMP.hpp>
 #include <rsl/Ranges.hpp>
 #include <string>
@@ -86,21 +87,26 @@ void rebuild(std::string from, const std::string_view to, bool check,
              std::span<const s32> bps) {
   rebuild_dest = to;
 
-  if (from.ends_with("kmp")) {
-    librii::kmp::CourseMap map;
-
+  if (from.ends_with("kmp") || from.ends_with("blight")) {
     auto file = OishiiReadFile(from);
     if (!file.has_value()) {
       printf("Cannot rebuild\n");
       return;
     }
 
-    librii::kmp::readKMP(map, file->slice());
-
-    printf("Writing to %s\n", std::string(to).c_str());
     oishii::Writer writer(0);
-
-    librii::kmp::writeKMP(map, writer);
+    if (from.ends_with("kmp")) {
+      librii::kmp::CourseMap map;
+      librii::kmp::readKMP(map, file->slice());
+      printf("Writing to %s\n", std::string(to).c_str());
+      librii::kmp::writeKMP(map, writer);
+    } else if (from.ends_with("blight")) {
+      writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
+      oishii::BinaryReader reader(file->slice());
+      librii::egg::Blight lights(reader);
+      printf("Writing to %s\n", std::string(to).c_str());
+      lights.save(writer);
+    }
     OishiiFlushWriter(writer, to);
     return;
   }

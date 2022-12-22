@@ -38,6 +38,35 @@ enum class FogType {
   OrthographicInverseQuadratic,
 };
 
+enum class DiffuseFn {
+  None,
+  Sign,
+  Clamp,
+};
+
+enum class AttnFn {
+  Spec,
+  Spot, // distance attenuation
+  None,
+};
+
+enum class SpotFn {
+  Off,
+  Flat,
+  Cos,
+  Cos2,
+  Sharp,
+  Ring1,
+  Ring2,
+};
+
+enum class DistAttnFn {
+  Off,
+  Gentle,
+  Medium,
+  Steep,
+};
+
 } // namespace librii::gx
 
 #include <librii/gx/AlphaCompare.hpp>
