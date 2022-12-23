@@ -53,6 +53,10 @@ TEST_DATA = {
 	# smooth_rcla.brres
 	# 1:1
 	'1bc299896d721a2a0da4a036157e5a73': '1bc299896d721a2a0da4a036157e5a73',
+
+	# brvia.brres
+	# 1:1
+	'9e1def46194780251d3d3d180a396340': '9e1def46194780251d3d3d180a396340',
 }
 
 BREAKPOINTS = {

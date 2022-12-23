@@ -105,6 +105,14 @@ void BinaryArchive::read(oishii::BinaryReader& reader,
                                "Failed to read SRT0: " + sub.mName);
         }
       }
+    } else if (cnode.mName == "AnmVis(NW4R)") {
+      for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
+        const auto& sub = cdic.mNodes[j];
+        reader.seekSet(sub.mDataDestination);
+
+        auto& vis = viss.emplace_back();
+        vis.read(reader);
+      }
     } else {
       transaction.callback(kpi::IOMessageClass::Warning, "/" + cnode.mName,
                            "[WILL NOT BE SAVED] Unsupported folder: " +
@@ -218,7 +226,8 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
     header.filesize_reloc_b = "BRRES_END";
     header.data_offset = 0x10;
     header.section_count = 1 + arc.models.size() + arc.textures.size() +
-                           arc.clrs.size() + arc.pats.size() + arc.srts.size();
+                           arc.clrs.size() + arc.pats.size() + arc.srts.size() +
+                           arc.viss.size();
     header.write(writer, linker);
   }
 
@@ -232,6 +241,7 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
     librii::g3d::BetterNode clrs{.name = "AnmClr(NW4R)", .stream_pos = 0};
     librii::g3d::BetterNode pats{.name = "AnmTexPat(NW4R)", .stream_pos = 0};
     librii::g3d::BetterNode srts{.name = "AnmTexSrt(NW4R)", .stream_pos = 0};
+    librii::g3d::BetterNode viss{.name = "AnmVis(NW4R)", .stream_pos = 0};
 
     void setModels(u32 ofs) { models.stream_pos = ofs; }
     void setTextures(u32 ofs) { textures.stream_pos = ofs; }
@@ -241,9 +251,11 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
     bool hasCLRs() const { return mCollection.clrs.size(); }
     bool hasPATs() const { return mCollection.pats.size(); }
     bool hasSRTs() const { return mCollection.srts.size(); }
+    bool hasVISs() const { return mCollection.viss.size(); }
 
     int numFolders() const {
-      return hasModels() + hasTextures() + hasSRTs() + hasPATs() + hasCLRs();
+      return (int)hasModels() + (int)hasTextures() + (int)hasSRTs() +
+             (int)hasPATs() + (int)hasCLRs() + (int)hasVISs();
     }
     int computeSize() const {
       return 8 + librii::g3d::CalcDictionarySize(numFolders());
@@ -261,7 +273,8 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
           librii::g3d::CalcDictionarySize(tex.size()) +
           librii::g3d::CalcDictionarySize(mCollection.clrs.size()) +
           librii::g3d::CalcDictionarySize(mCollection.pats.size()) +
-          librii::g3d::CalcDictionarySize(mCollection.srts.size()));
+          librii::g3d::CalcDictionarySize(mCollection.srts.size()) +
+          librii::g3d::CalcDictionarySize(mCollection.viss.size()));
 
       librii::g3d::BetterDictionary tmp;
       if (hasModels())
@@ -274,6 +287,8 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
         tmp.nodes.push_back(pats);
       if (hasSRTs())
         tmp.nodes.push_back(srts);
+      if (hasVISs())
+        tmp.nodes.push_back(viss);
       WriteDictionary(tmp, mWriter, table);
 
       mWriter.seekSet(back);
@@ -294,6 +309,7 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
   Folder clrs_dict(arc.clrs);
   Folder pats_dict(arc.pats);
   Folder srts_dict(arc.srts);
+  Folder viss_dict(arc.viss);
 
   const auto subdicts_pos = writer.tell();
   writer.skip(models_dict.computeSize());
@@ -301,6 +317,7 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
   writer.skip(clrs_dict.computeSize());
   writer.skip(pats_dict.computeSize());
   writer.skip(srts_dict.computeSize());
+  writer.skip(viss_dict.computeSize());
 
   for (int i = 0; i < arc.models.size(); ++i) {
     auto& mdl = arc.models[i];
@@ -344,6 +361,13 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
 
     librii::g3d::WriteSrtFile(writer, srt, names, start);
   }
+  for (int i = 0; i < arc.viss.size(); ++i) {
+    auto& vis = arc.viss[i];
+
+    viss_dict.insert(i, vis.name, writer.tell());
+
+    vis.write(writer, names, start);
+  }
   const auto end = writer.tell();
 
   writer.seekSet(subdicts_pos);
@@ -366,6 +390,10 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
   if (arc.srts.size()) {
     root_dict.srts.stream_pos = writer.tell();
     srts_dict.write(writer, names);
+  }
+  if (arc.viss.size()) {
+    root_dict.viss.stream_pos = writer.tell();
+    viss_dict.write(writer, names);
   }
   root_dict.write(names);
   {

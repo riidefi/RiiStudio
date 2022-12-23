@@ -667,6 +667,7 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
   }
   collection.clrs = archive.clrs;
   collection.pats = archive.pats;
+  collection.viss = archive.viss;
 }
 
 void WriteBRRES(Collection& scn, oishii::Writer& writer) {
@@ -678,6 +679,7 @@ void WriteBRRES(Collection& scn, oishii::Writer& writer) {
       .pats = scn.pats,
 	  .srts =
           scn.getAnim_Srts() | rsl::ToList<librii::g3d::SrtAnimationArchive>(),
+	  .viss = scn.viss,
 	  
   };
   arc.write(writer);

@@ -2,6 +2,7 @@
 
 #include <librii/g3d/io/AnimClrIO.hpp>
 #include <librii/g3d/io/AnimTexPatIO.hpp>
+#include <librii/g3d/io/AnimVisIO.hpp>
 
 namespace riistudio::g3d {
 
@@ -181,6 +182,7 @@ namespace riistudio::g3d {
 struct SceneData {
     std::vector<librii::g3d::BinaryClr> clrs;
     std::vector<librii::g3d::BinaryTexPat> pats;
+    std::vector<librii::g3d::BinaryVis> viss;
     std::string path;
 
 	bool operator==(const SceneData&) const = default;
