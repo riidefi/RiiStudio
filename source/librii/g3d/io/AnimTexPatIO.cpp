@@ -125,7 +125,6 @@ void BinaryTexPat::read(oishii::BinaryReader& reader) {
 void BinaryTexPat::write(oishii::Writer& writer, NameTable& names,
                          u32 addrBrres) const {
   auto start = writer.tell();
-  fprintf(stderr, "START: %u\n", start);
   writer.write<u32>('PAT0');
   writer.write<u32>(0, false);
   writer.write<u32>(4);
@@ -152,8 +151,7 @@ void BinaryTexPat::write(oishii::Writer& writer, NameTable& names,
   BetterDictionary dict;
 
   std::vector<u32> track_addresses;
-  u32 accum =
-      start + 0x2c /* header */ + CalcDictionarySize(materials.size() + 1);
+  u32 accum = start + 0x3c /* header */ + CalcDictionarySize(materials.size());
   for (auto& mat : materials) {
     dict.nodes.push_back(BetterNode{.name = mat.name, .stream_pos = accum});
     accum += 8 + 4 * mat.samplers.size();

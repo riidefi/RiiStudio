@@ -95,4 +95,4 @@ add_library(librii
   "g3d/io/ArchiveIO.cpp"
   
   "crate/g3d_crate.cpp"
-   "egg/Blight.cpp" "g3d/io/AnimTexPatIO.cpp")
+   "egg/Blight.cpp" "g3d/io/AnimTexPatIO.cpp" "g3d/io/AnimClrIO.cpp")

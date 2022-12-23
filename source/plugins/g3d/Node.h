@@ -1,5 +1,6 @@
 // This is a generated file
 
+#include <librii/g3d/io/AnimClrIO.hpp>
 #include <librii/g3d/io/AnimTexPatIO.hpp>
 
 namespace riistudio::g3d {
@@ -178,6 +179,7 @@ public:
 namespace riistudio::g3d {
 
 struct SceneData {
+    std::vector<librii::g3d::BinaryClr> clrs;
     std::vector<librii::g3d::BinaryTexPat> pats;
     std::string path;
 

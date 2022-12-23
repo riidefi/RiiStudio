@@ -75,6 +75,22 @@ void BinaryArchive::read(oishii::BinaryReader& reader,
                                "Failed to read texture: " + sub.mName);
         }
       }
+    } else if (cnode.mName == "AnmClr(NW4R)") {
+      for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
+        const auto& sub = cdic.mNodes[j];
+        reader.seekSet(sub.mDataDestination);
+
+        auto& clr = clrs.emplace_back();
+        clr.read(reader);
+      }
+    } else if (cnode.mName == "AnmTexPat(NW4R)") {
+      for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
+        const auto& sub = cdic.mNodes[j];
+        reader.seekSet(sub.mDataDestination);
+
+        auto& pat = pats.emplace_back();
+        pat.read(reader);
+      }
     } else if (cnode.mName == "AnmTexSrt(NW4R)") {
       for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
         const auto& sub = cdic.mNodes[j];
@@ -88,14 +104,6 @@ void BinaryArchive::read(oishii::BinaryReader& reader,
           transaction.callback(kpi::IOMessageClass::Warning, "/" + cnode.mName,
                                "Failed to read SRT0: " + sub.mName);
         }
-      }
-    } else if (cnode.mName == "AnmTexPat(NW4R)") {
-      for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
-        const auto& sub = cdic.mNodes[j];
-        reader.seekSet(sub.mDataDestination);
-
-        auto& pat = pats.emplace_back();
-        pat.read(reader);
       }
     } else {
       transaction.callback(kpi::IOMessageClass::Warning, "/" + cnode.mName,
@@ -210,7 +218,7 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
     header.filesize_reloc_b = "BRRES_END";
     header.data_offset = 0x10;
     header.section_count = 1 + arc.models.size() + arc.textures.size() +
-                           arc.srts.size() + arc.pats.size();
+                           arc.clrs.size() + arc.pats.size() + arc.srts.size();
     header.write(writer, linker);
   }
 
@@ -221,19 +229,21 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
 
     librii::g3d::BetterNode models{.name = "3DModels(NW4R)", .stream_pos = 0};
     librii::g3d::BetterNode textures{.name = "Textures(NW4R)", .stream_pos = 0};
-    librii::g3d::BetterNode srts{.name = "AnmTexSrt(NW4R)", .stream_pos = 0};
+    librii::g3d::BetterNode clrs{.name = "AnmClr(NW4R)", .stream_pos = 0};
     librii::g3d::BetterNode pats{.name = "AnmTexPat(NW4R)", .stream_pos = 0};
+    librii::g3d::BetterNode srts{.name = "AnmTexSrt(NW4R)", .stream_pos = 0};
 
     void setModels(u32 ofs) { models.stream_pos = ofs; }
     void setTextures(u32 ofs) { textures.stream_pos = ofs; }
 
     bool hasModels() const { return mCollection.models.size(); }
     bool hasTextures() const { return mCollection.textures.size(); }
-    bool hasSRTs() const { return mCollection.srts.size(); }
+    bool hasCLRs() const { return mCollection.clrs.size(); }
     bool hasPATs() const { return mCollection.pats.size(); }
+    bool hasSRTs() const { return mCollection.srts.size(); }
 
     int numFolders() const {
-      return hasModels() + hasTextures() + hasSRTs() + hasPATs();
+      return hasModels() + hasTextures() + hasSRTs() + hasPATs() + hasCLRs();
     }
     int computeSize() const {
       return 8 + librii::g3d::CalcDictionarySize(numFolders());
@@ -249,18 +259,21 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
       mWriter.write<u32>(
           computeSize() + librii::g3d::CalcDictionarySize(mdl.size()) +
           librii::g3d::CalcDictionarySize(tex.size()) +
-          librii::g3d::CalcDictionarySize(mCollection.srts.size()) +
-          librii::g3d::CalcDictionarySize(mCollection.pats.size()));
+          librii::g3d::CalcDictionarySize(mCollection.clrs.size()) +
+          librii::g3d::CalcDictionarySize(mCollection.pats.size()) +
+          librii::g3d::CalcDictionarySize(mCollection.srts.size()));
 
       librii::g3d::BetterDictionary tmp;
       if (hasModels())
         tmp.nodes.push_back(models);
       if (hasTextures())
         tmp.nodes.push_back(textures);
-      if (hasSRTs())
-        tmp.nodes.push_back(srts);
+      if (hasCLRs())
+        tmp.nodes.push_back(clrs);
       if (hasPATs())
         tmp.nodes.push_back(pats);
+      if (hasSRTs())
+        tmp.nodes.push_back(srts);
       WriteDictionary(tmp, mWriter, table);
 
       mWriter.seekSet(back);
@@ -278,14 +291,16 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
 
   Folder models_dict(arc.models);
   Folder textures_dict(arc.textures);
-  Folder srts_dict(arc.srts);
+  Folder clrs_dict(arc.clrs);
   Folder pats_dict(arc.pats);
+  Folder srts_dict(arc.srts);
 
   const auto subdicts_pos = writer.tell();
   writer.skip(models_dict.computeSize());
   writer.skip(textures_dict.computeSize());
-  writer.skip(srts_dict.computeSize());
+  writer.skip(clrs_dict.computeSize());
   writer.skip(pats_dict.computeSize());
+  writer.skip(srts_dict.computeSize());
 
   for (int i = 0; i < arc.models.size(); ++i) {
     auto& mdl = arc.models[i];
@@ -305,6 +320,20 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
 
     writeTexture(tex, writer, names);
   }
+  for (int i = 0; i < arc.clrs.size(); ++i) {
+    auto& clr = arc.clrs[i];
+
+    clrs_dict.insert(i, clr.name, writer.tell());
+
+    clr.write(writer, names, start);
+  }
+  for (int i = 0; i < arc.pats.size(); ++i) {
+    auto& pat = arc.pats[i];
+
+    pats_dict.insert(i, pat.name, writer.tell());
+
+    pat.write(writer, names, start);
+  }
   for (int i = 0; i < arc.srts.size(); ++i) {
     auto& srt = arc.srts[i];
 
@@ -314,13 +343,6 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
     srts_dict.insert(i, srt.name, writer.tell());
 
     librii::g3d::WriteSrtFile(writer, srt, names, start);
-  }
-  for (int i = 0; i < arc.pats.size(); ++i) {
-    auto& pat = arc.pats[i];
-
-    pats_dict.insert(i, pat.name, writer.tell());
-
-    pat.write(writer, names, start);
   }
   const auto end = writer.tell();
 
@@ -333,13 +355,17 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
     root_dict.setTextures(writer.tell());
     textures_dict.write(writer, names);
   }
-  if (arc.srts.size()) {
-    root_dict.srts.stream_pos = writer.tell();
-    srts_dict.write(writer, names);
+  if (arc.clrs.size()) {
+    root_dict.clrs.stream_pos = writer.tell();
+    clrs_dict.write(writer, names);
   }
   if (arc.pats.size()) {
     root_dict.pats.stream_pos = writer.tell();
     pats_dict.write(writer, names);
+  }
+  if (arc.srts.size()) {
+    root_dict.srts.stream_pos = writer.tell();
+    srts_dict.write(writer, names);
   }
   root_dict.write(names);
   {
