@@ -31,9 +31,13 @@ void readEVP1DRW1(BMDOutputContext& ctx) {
         const auto num = reader.peekAt<u8>(ofsMatrixSize + i);
 
         for (int j = 0; j < num; ++j) {
-          const auto index = reader.peekAt<u16>(ofsMatrixIndex + mtxId * 2);
+          // TODO: Validate this. Is this wrong? Why are these misaligned?
+          const auto index =
+              reader.getAt<u16, oishii::EndianSelect::Current, true>(
+                  g.start + ofsMatrixIndex + mtxId * 2);
           const auto influence =
-              reader.peekAt<f32>(ofsMatrixWeight + mtxId * 4);
+              reader.getAt<f32, oishii::EndianSelect::Current, true>(
+                  g.start + ofsMatrixWeight + mtxId * 4);
 
           envelopes[i].mWeights.emplace_back(index, influence);
 

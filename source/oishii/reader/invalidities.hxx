@@ -11,14 +11,15 @@ template <u32 m> struct MagicInvalidity : public Invalidity {
     c2 = (m & 0x0000ff00) >> 8,
     c3 = (m & 0x000000ff),
 
-    magic_big = MAKE_BE32(m)
+    magic_big = _BSWAP_32(m)
   };
 
   static void warn(BinaryReader& reader, u32 sz) {
     char tmp[] =
         "File identification magic mismatch: expecting XXXX, instead saw YYYY.";
     *(u32*)&tmp[46] = magic_big;
-    *(u32*)&tmp[64] = *(u32*)(reader.getStreamStart() + reader.tell() - 4);
+    *(u32*)&tmp[64] =
+        *(u32*)(reader.getStreamStart() + reader.tell() - 4);
     reader.warnAt(tmp, reader.tell() - sz, reader.tell());
   }
 };

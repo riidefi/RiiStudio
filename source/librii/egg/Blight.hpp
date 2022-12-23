@@ -100,10 +100,7 @@ struct Blight {
   //! \brief Background color
   librii::gx::Color backColor{0, 0, 0, 0xFF};
 
-  Blight(oishii::BinaryReader& stream) {
-    oishii::BinaryReader reader(stream);
-    read(reader);
-  }
+  Blight(oishii::BinaryReader& stream) { read(stream); }
 
   void save(oishii::Writer& stream) {
     auto& writer = stream;

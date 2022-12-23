@@ -17,7 +17,8 @@ inline void operator>>(const librii::gx::Color& out, oishii::Writer& writer) {
 
 void Blight::read(oishii::BinaryReader& reader) {
   reader.setEndian(std::endian::big);
-  reader.read<u32>();          // LGHT
+
+  reader.expectMagic<'LGHT', false>();
   reader.read<u32>();          // file size 0x5A8
   version = reader.read<u8>(); // 2
   assert(version == 2);        // The runtime supports older versions; we do not

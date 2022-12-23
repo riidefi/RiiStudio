@@ -14,8 +14,8 @@ template <typename T, EndianSelect E, bool unaligned> T BinaryReader::peek() {
   if (!unaligned)
     alignmentCheck(sizeof(T));
 
-  const T* native_elem = reinterpret_cast<T*>(getStreamStart() + tell());
-  return endianDecode<T, E>(*native_elem);
+  const T* native_elem = reinterpret_cast<const T*>(getStreamStart() + tell());
+  return endianDecode<T, E>(*native_elem, mFileEndian);
 }
 template <typename T, EndianSelect E, bool unaligned> T BinaryReader::read() {
   T decoded = peek<T, E, unaligned>();
@@ -36,22 +36,14 @@ std::array<T, num> BinaryReader::readX() {
 // TODO: Can rewrite read/peek to use peekAt
 template <typename T, EndianSelect E, bool unaligned>
 T BinaryReader::peekAt(int trans) {
+  boundsCheck(sizeof(T), tell() + trans);
   if (!unaligned)
-    boundsCheck(sizeof(T), tell() + trans);
+    alignmentCheck(sizeof(T), tell() + trans);
 
-#ifndef NDEBUG
-  for (const auto& bp : mBreakPoints) {
-    if (tell() + trans >= bp.offset &&
-        tell() + trans + sizeof(T) <= bp.offset + bp.size) {
-      printf("Reading from %04u (0x%04x) sized %u\n", (u32)tell() + trans,
-             (u32)tell() + trans, (u32)sizeof(T));
-      warnAt("Breakpoint hit", tell() + trans, tell() + trans + sizeof(T));
-      rsl::debug_break();
-    }
-  }
-#endif
+  readerBpCheck(sizeof(T), trans);
   T decoded = endianDecode<T, E>(
-      *reinterpret_cast<T*>(getStreamStart() + tell() + trans));
+      *reinterpret_cast<const T*>(getStreamStart() + tell() + trans),
+      mFileEndian);
 
   return decoded;
 }
@@ -70,9 +62,9 @@ rsl::expected<T, std::string> BinaryReader::tryGetAt(int trans) {
            std::to_string(endpos());
   }
 
-  readerBpCheck(sizeof(T));
-  T decoded =
-      endianDecode<T, E>(*reinterpret_cast<T*>(getStreamStart() + trans));
+  readerBpCheck(sizeof(T), trans - tell());
+  T decoded = endianDecode<T, E>(
+      *reinterpret_cast<const T*>(getStreamStart() + trans), mFileEndian);
 
   return decoded;
 }

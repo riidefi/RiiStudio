@@ -99,6 +99,24 @@ inline const char* operator"" _j(const char* str, size_t len) {
   return riistudio::translateString({str, len});
 }
 
-#if defined(_WIN32)
 #define HAS_RANGES
+
+#ifdef __clang__
+#define TRY(x)                                                                 \
+  ({                                                                           \
+    auto y = x;                                                                \
+    if (!y.has_value()) {                                                      \
+      return y.error();                                                        \
+    }                                                                          \
+    *y;                                                                        \
+  })
+#else
+inline auto DoTry(auto x) {
+  if (!x.has_value()) {
+    fprintf(stderr, "Fatal error: %s", x.error().c_str());
+    abort();
+  }
+  return *x;
+}
+#define TRY(x) DoTry(x)
 #endif

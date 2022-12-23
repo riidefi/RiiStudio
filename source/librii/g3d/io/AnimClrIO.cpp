@@ -21,6 +21,22 @@ struct CLROffsets {
   }
 };
 
+class SafeReader {
+public:
+  SafeReader(oishii::BinaryReader& reader) : mReader(reader) {}
+
+  auto U32() { return mReader.tryRead<u32>(); }
+  auto U16() { return mReader.tryRead<u16>(); }
+  template <typename E> rsl::expected<E, std::string> Enum32() {
+    auto u = TRY(mReader.tryRead<u32>());
+    // TODO: magic_enum validate values
+    return static_cast<E>(u);
+  }
+
+private:
+  oishii::BinaryReader& mReader;
+};
+
 struct BinaryClrInfo {
   std::string name;
   std::string sourcePath;
@@ -28,12 +44,14 @@ struct BinaryClrInfo {
   u16 materialCount{};
   AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
 
-  void read(oishii::BinaryReader& reader, u32 pat0) {
+  std::string read(oishii::BinaryReader& reader, u32 pat0) {
+    SafeReader safe(reader);
     name = readName(reader, pat0);
     sourcePath = readName(reader, pat0);
-    frameDuration = reader.read<u16>();
-    materialCount = reader.read<u16>();
-    wrapMode = static_cast<AnimationWrapMode>(reader.read<u32>());
+    frameDuration = TRY(safe.U16());
+    materialCount = TRY(safe.U16());
+    wrapMode = TRY(safe.Enum32<AnimationWrapMode>());
+    return {};
   }
   void write(oishii::Writer& writer, NameTable& names, u32 pat0) const {
     writeNameForward(names, writer, pat0, name, true);
@@ -45,7 +63,7 @@ struct BinaryClrInfo {
 };
 
 void BinaryClr::read(oishii::BinaryReader& reader) {
-  auto start = reader.tell();
+  auto clr0 = reader.createScoped("CLR0");
   reader.expectMagic<'CLR0', false>();
   reader.read<u32>(); // size
   auto ver = reader.read<u32>();
@@ -55,7 +73,7 @@ void BinaryClr::read(oishii::BinaryReader& reader) {
   offsets.read(reader);
 
   BinaryClrInfo info;
-  info.read(reader, start);
+  info.read(reader, clr0.start);
   name = info.name;
   sourcePath = info.sourcePath;
   frameDuration = info.frameDuration;
@@ -76,7 +94,7 @@ void BinaryClr::read(oishii::BinaryReader& reader) {
     return tracks.size() - 1;
   };
 
-  reader.seekSet(start + offsets.ofsMatDict);
+  reader.seekSet(clr0.start + offsets.ofsMatDict);
   auto slice = reader.slice();
   DictionaryRange matDict(slice, reader.tell(), info.materialCount + 1);
 
@@ -107,7 +125,6 @@ void BinaryClr::write(oishii::Writer& writer, NameTable& names,
   };
   info.write(writer, names, start);
 
-  const u32 dict_deferred = writer.tell();
   BetterDictionary dict;
 
   std::vector<u32> track_addresses;
