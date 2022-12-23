@@ -52,9 +52,10 @@ void VBOBuilder::build() {
     if (attrib.first.name == nullptr)
       continue;
 
-    vertexAttribPointer(attrib.first.binding_point, attrib.first.size / 4,
-                        GL_FLOAT, GL_FALSE, attrib.first.size,
-                        reinterpret_cast<void*>(attrib.second));
+    vertexAttribPointer(
+        attrib.first.binding_point, attrib.first.size / 4, GL_FLOAT, GL_FALSE,
+        attrib.first.size,
+        reinterpret_cast<void*>(static_cast<std::uintptr_t>(attrib.second)));
     // glVertexAttribPointer(attrib.first.binding_point, attrib.first.size,
     // attrib.first.format, GL_FALSE, attrib.first.size, (void*)attrib.second);
     glEnableVertexAttribArray(attrib.first.binding_point);
