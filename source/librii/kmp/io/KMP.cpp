@@ -483,11 +483,13 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
     };
 
     reloc.writeReloc<s32>("KMP", stringifyId(pt_key),
-                          std::bind(point_impl, std::placeholders::_1, pt_key,
-                                    paths, write_point));
+                          [=](oishii::Writer& writer) {
+                            point_impl(writer, pt_key, paths, write_point);
+                          });
+
     reloc.writeReloc<s32>(
         "KMP", stringifyId(ph_key),
-        std::bind(path_impl, std::placeholders::_1, ph_key, paths));
+        [=](oishii::Writer& writer) { path_impl(writer, ph_key, paths); });
   };
 
   const auto write_enpt = [](const EnemyPoint& point, oishii::Writer& writer) {
