@@ -41,8 +41,9 @@ struct DictionaryNode {
 
 constexpr u32 DictionaryNodeBinSize = 16;
 
-DictionaryNode ReadDictionaryNode(std::span<const u8> whole_data,
-                                  unsigned collection_offset, unsigned index) {
+static DictionaryNode ReadDictionaryNode(std::span<const u8> whole_data,
+                                         unsigned collection_offset,
+                                         unsigned index) {
   const unsigned data_start = collection_offset + DictionaryHeaderBinSize +
                               DictionaryNodeBinSize * index;
   auto data = whole_data.subspan(data_start);
@@ -118,7 +119,7 @@ public:
   template <std::input_iterator T> constexpr static bool IsInputIt() {
     return true;
   }
-  //static_assert(IsInputIt<ConstIter>());
+  // static_assert(IsInputIt<ConstIter>());
 #endif
 
   ConstIter begin() const { return ConstIter(mWholeData, mStart, mTotalNodes); }

@@ -530,7 +530,6 @@ void BuildRenderLists(const Model& mdl,
   }
 }
 
-
 struct ShaderAllocator {
   void alloc(const librii::g3d::G3dShader& shader) {
     auto found = std::find(shaders.begin(), shaders.end(), shader);
@@ -666,6 +665,7 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
     static_cast<librii::g3d::SrtAnimationArchive&>(
         collection.getAnim_Srts().add()) = srt;
   }
+  collection.pats = archive.pats;
 }
 
 void WriteBRRES(Collection& scn, oishii::Writer& writer) {
@@ -675,6 +675,7 @@ void WriteBRRES(Collection& scn, oishii::Writer& writer) {
       .textures = scn.getTextures() | rsl::ToList<librii::g3d::TextureData>(),
       .srts =
           scn.getAnim_Srts() | rsl::ToList<librii::g3d::SrtAnimationArchive>(),
+      .pats = scn.pats,
   };
   arc.write(writer);
 }

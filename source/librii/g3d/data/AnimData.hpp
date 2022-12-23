@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cmath> // std::nextafter
 #include <core/common.h>
 #include <optional>
 #include <rsl/SmallVector.hpp>
@@ -13,6 +14,14 @@ enum class AnimationWrapMode {
   Clamp,  // One-shot
   Repeat, // Loop
 };
+
+static inline float CalcStep(float begin, float end) {
+  float interval = end - begin;
+  while ((1.0f / interval) * (end - begin) >= 1.0f) {
+    interval = std::nextafter(interval, std::numeric_limits<float>::max());
+  }
+  return (1.0f / interval);
+}
 
 struct KeyFrame {
   f32 frame;
@@ -37,11 +46,7 @@ inline f32 CalcStep(const KeyFrameCollection& collection) {
   const float first_frame = collection.data.front().frame;
   const float last_frame = collection.data.back().frame;
 
-  if (first_frame == last_frame) {
-    return 0.0f;
-  }
-
-  return 1.0f / (last_frame - first_frame);
+  return CalcStep(first_frame, last_frame);
 }
 
 enum class StorageFormat { Animated, Fixed };

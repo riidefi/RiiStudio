@@ -24,7 +24,7 @@ TEST_DATA = {
 	'55af17739e1f02f9cc3fe0cdf79195a0': '55af17739e1f02f9cc3fe0cdf79195a0',
 
 	# luigi_circuit.brres
-	'b84346d8549d38f4ba75a47eb87e9ca6': '20628828bbbafc3253bca171536faad9',
+	'b84346d8549d38f4ba75a47eb87e9ca6': '0f6c8710623a81a2b1559a003630b5f6',
 
 	# sea.brres
 	# 1:1!
@@ -45,6 +45,10 @@ TEST_DATA = {
 	# default.blight
 	# 1:1
 	'9c128977ba86c285c74b21cb22c96b2a': '9c128977ba86c285c74b21cb22c96b2a',
+
+	# smooth_rtpa.brres
+	# 1:1
+	'36ff91451748e356dfd0d5c680effb6c': '36ff91451748e356dfd0d5c680effb6c',
 }
 
 BREAKPOINTS = {

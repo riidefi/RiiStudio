@@ -80,6 +80,8 @@ public:
 
   bool isInBounds(u32 pos) { return mView.isInBounds(pos); }
 
+  std::span<const u8> slice() { return mView; }
+
 private:
   u32 mPos = 0;
   ByteView mView;

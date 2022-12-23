@@ -1,5 +1,7 @@
 // This is a generated file
 
+#include <librii/g3d/io/AnimTexPatIO.hpp>
+
 namespace riistudio::g3d {
 
 class Model : public libcube::Model, public kpi::TDocData<riistudio::g3d::G3DModelData>, public kpi::INode {
@@ -175,12 +177,19 @@ public:
 
 namespace riistudio::g3d {
 
-class Collection : public libcube::Scene, public kpi::INode {
-public:
+struct SceneData {
+    std::vector<librii::g3d::BinaryTexPat> pats;
+    std::string path;
+
+	bool operator==(const SceneData&) const = default;
+};
+
+class Collection
+    : public libcube::Scene,
+      public kpi::TDocData<SceneData>, public kpi::INode {
+  public:
     Collection() = default;
     virtual ~Collection() = default;
-
-	std::string path;
 
     kpi::MutCollectionRange<Model> getModels() { return { &mModels }; }
     kpi::MutCollectionRange<Texture> getTextures() { return { &mTextures }; }

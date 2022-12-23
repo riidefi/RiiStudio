@@ -12,20 +12,21 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
   if (checkStack) // TODO, unintuitive limitation
   {
     // TODO: Warn class
-    printf("%s:0x%02X: ", getFile(), selectBegin);
+    fprintf(stderr, "%s:0x%02X: ", getFile(), selectBegin);
     {
       ScopedFormatter fmt(0xe);
-      printf("warning: ");
+      fprintf(stderr, "warning: ");
     }
 
-    printf("%s\n", msg);
+    fprintf(stderr, "%s\n", msg);
   } else
-    printf("\t\t");
+    fprintf(stderr, "\t\t");
   // Selection
-  printf("\tOffset\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n\t");
+  fprintf(stderr,
+          "\tOffset\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n\t");
 
   if (!checkStack)
-    printf("\t\t");
+    fprintf(stderr, "\t\t");
 
   // We write it at 16 bit lines, a selection may go over multiple lines, so
   // this may not be the best approach
@@ -34,51 +35,53 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
 
   // Write hex lines
   for (u32 i = lineBegin; i < lineEnd; ++i) {
-    printf("%06X\t", i * 16);
+    fprintf(stderr, "%06X\t", i * 16);
 
     for (int j = 0; j < 16; ++j)
-      printf("%02X ", *reinterpret_cast<u8*>(getStreamStart() + i * 16 + j));
+      fprintf(stderr, "%02X ",
+              *reinterpret_cast<u8*>(getStreamStart() + i * 16 + j));
 
     for (int j = 0; j < 16; ++j) {
       const u8 c = *(getStreamStart() + lineBegin * 16 + j);
-      printf("%c", isprint(c) ? c : '.');
+      fprintf(stderr, "%c", isprint(c) ? c : '.');
     }
 
-    printf("\n\t");
-    printf("      \t");
+    fprintf(stderr, "\n\t");
+    fprintf(stderr, "      \t");
   }
 
   if (!checkStack)
-    printf("\t\t");
+    fprintf(stderr, "\t\t");
 
   for (u32 i = lineBegin * 16; i < selectBegin; ++i)
-    printf("   ");
+    fprintf(stderr, "   ");
 
   {
     ScopedFormatter fmt(0xa);
 
-    printf(selectEnd - selectBegin == 0 ? "^ "
-                                        : "^~"); // one less, one over below
+    fprintf(stderr, selectEnd - selectBegin == 0
+                        ? "^ "
+                        : "^~"); // one less, one over below
     for (u32 i = selectBegin + 1; i < selectEnd; ++i)
-      printf("~~~");
+      fprintf(stderr, "~~~");
   }
 
   for (u32 i = selectEnd; i < lineEnd * 16; ++i)
-    printf("   ");
+    fprintf(stderr, "   ");
 
-  printf(" ");
+  fprintf(stderr, " ");
 
   for (u32 i = lineBegin * 16; i < selectBegin; ++i)
-    putchar(' ');
+    fprintf(stderr, " ");
 
   {
     ScopedFormatter fmt(0xa);
 
-    putchar('^');
+    fprintf(stderr, "^");
     for (u32 i = selectBegin + 1; i < selectEnd; ++i)
-      putchar('~');
+      fprintf(stderr, "~");
   }
-  putchar('\n');
+  fprintf(stderr, "\n");
 
   // Stack trace
 
