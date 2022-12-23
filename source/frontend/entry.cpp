@@ -1,9 +1,10 @@
 #include "root.hpp"
-#include <filesystem>
-#include <memory>
 #include <vendor/llvm/Support/InitLLVM.h>
 
 #include <frontend/Localization.hpp>
+
+import std.filesystem;
+import std.memory;
 
 struct RootHolder {
   void create(int& argc, const char**& argv) {

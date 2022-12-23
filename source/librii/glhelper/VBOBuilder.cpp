@@ -1,5 +1,4 @@
 #include "VBOBuilder.hpp"
-#include <algorithm>
 #include <core/3d/gl.hpp>
 
 namespace librii::glhelper {

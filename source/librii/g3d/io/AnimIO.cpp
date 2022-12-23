@@ -3,12 +3,10 @@
 #include "librii/g3d/data/AnimData.hpp"
 #include "librii/g3d/io/CommonIO.hpp"
 #include "librii/g3d/io/DictIO.hpp"
-#include <algorithm>
-#include <map>
 #include <rsl/SimpleReader.hpp>
 #include <rsl/SimpleMap.hpp>
-#include <span>
-#include <string_view>
+
+import std.core;
 
 namespace librii::g3d {
 

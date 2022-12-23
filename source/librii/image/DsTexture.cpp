@@ -1,15 +1,14 @@
 #include "DsTexture.hpp"
-#include <array>
 #include <glm/gtc/type_ptr.hpp>
-#include <memory>
-#include <mutex>
-#include <vector>
 
 extern "C" {
 #include <vendor/texconv/analysis.h>
 #include <vendor/texconv/color.h>
 #include <vendor/texconv/texconv.h>
 }
+
+import std.core;
+import std.threading;
 
 namespace librii::image {
 

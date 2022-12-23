@@ -1,6 +1,7 @@
 #include "ShaderProgram.hpp"
 #include <core/3d/gl.hpp>
-#include <iostream>
+
+import std.core;
 
 namespace librii::glhelper {
 

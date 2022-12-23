@@ -16,14 +16,15 @@ class JSON {};
 #include <core/util/gui.hpp>
 #include <curl/curl.h>
 #include <elzip/elzip.hpp>
-#include <filesystem>
 #include <frontend/applet.hpp>
 #include <frontend/widgets/changelog.hpp>
 #include <io.h>
 #include <nlohmann/json.hpp>
-#include <thread>
 
-#include <iostream>
+
+import std.core;
+import std.filesystem;
+import std.threading;
 
 namespace riistudio {
 

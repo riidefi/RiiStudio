@@ -1,8 +1,9 @@
 #include "IconManager.hpp"
-#include <array>          // for std::array
 #include <core/3d/gl.hpp> // for glGenTextures
 #include <imgui/imgui.h>  // for ImGui::Image
 #include <librii/image/ImagePlatform.hpp>
+
+import std.core;
 
 namespace riistudio {
 

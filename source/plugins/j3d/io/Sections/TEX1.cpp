@@ -1,6 +1,4 @@
 #include "../Sections.hpp"
-#include <map>
-#include <string.h>
 
 namespace riistudio::j3d {
 

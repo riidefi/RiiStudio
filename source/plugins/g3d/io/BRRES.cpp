@@ -8,14 +8,13 @@
 #include <librii/g3d/io/DictWriteIO.hpp>
 #include <plugins/g3d/collection.hpp>
 
-#include <set>
-#include <string>
-
 #include <librii/g3d/io/AnimIO.hpp>
 #include <librii/g3d/io/ArchiveIO.hpp>
 #include <librii/g3d/io/MatIO.hpp>
 
 #include <rsl/Ranges.hpp>
+
+import std.core;
 
 namespace librii::g3d {
 using namespace bad;

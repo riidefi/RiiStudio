@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <vendor/assimp/config.h>
 
+import std.core;
+
 namespace riistudio::ass {
 
 void DebugPrintExclusionMask(u32 exclusion_mask) {

@@ -1,10 +1,8 @@
 #include "BFG.hpp"
 #include <core/util/glm_io.hpp>
-#include <functional>
-#include <llvm/ADT/StringMap.h>
-#include <numeric>
 #include <oishii/writer/binary_writer.hxx>
-#include <sstream>
+
+import std.core;
 
 namespace riistudio::mk {
 

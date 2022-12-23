@@ -1,5 +1,6 @@
 #include "TevSolver.hpp"
-#include <array> // for std::array
+
+import std.core;
 
 namespace libcube::UI {
 

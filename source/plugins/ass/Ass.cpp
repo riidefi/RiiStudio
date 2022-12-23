@@ -4,15 +4,11 @@
 #include "AssImporter.hpp"
 #include "AssLogger.hpp"
 #include "Utility.hpp"
-#include <algorithm>
 #include <core/3d/i3dmodel.hpp>
 #include <core/kpi/Plugins.hpp>
 #include <core/util/gui.hpp>
-#include <map>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/j3d/Scene.hpp>
-#include <span>
-#include <unordered_map>
 #include <vendor/assimp/DefaultLogger.hpp>
 #include <vendor/assimp/Importer.hpp>
 #include <vendor/assimp/postprocess.h>
@@ -23,6 +19,8 @@
 #include "InclusionMask.hpp"
 #include "LogScope.hpp"
 #include "SupportedFiles.hpp"
+
+import std.core;
 
 namespace riistudio::ass {
 

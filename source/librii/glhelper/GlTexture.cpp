@@ -1,7 +1,7 @@
 #include "GlTexture.hpp"
-#include <array>
 #include <core/3d/gl.hpp>
-#include <vector>
+
+import std.core;
 
 namespace librii::glhelper {
 

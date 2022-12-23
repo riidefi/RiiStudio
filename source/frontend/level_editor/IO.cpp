@@ -3,8 +3,6 @@
 #include <core/common.h>
 #include <core/kpi/Plugins.hpp> // kpi::LightIOTransaction
 #include <core/util/oishii.hpp>
-#include <string>
-#include <vector>
 
 // BRRES
 #include <plugins/g3d/G3dIo.hpp>
@@ -12,7 +10,7 @@
 // KMP
 #include <librii/kmp/io/KMP.hpp>
 
-#include <iostream>
+import std.core;
 
 namespace riistudio::lvl {
 

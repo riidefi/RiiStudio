@@ -6,10 +6,11 @@
 //#include <regex>                          // std::regex_search
 #include "OutlinerWidget.hpp"
 #include <core/kpi/ActionMenu.hpp> // kpi::ActionMenuManager
-#include <filesystem>
-#include <functional>
 #include <plugins/gc/Export/Scene.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_SEARCH
+
+import std.core;
+import std.filesystem;
 
 bool IsAdvancedMode();
 

@@ -1,13 +1,13 @@
 #include "CppSupport.hpp"
 #include <rsl/versions.hpp>
-#include <string>
-
 #include <core/util/timestamp.hpp>
 // extern const char GIT_TAG[];
 // extern const char VERSION_SHORT[];
 // extern const char RII_TIME_STAMP[];
 
 #include <imgui/imgui.h>
+
+import std.core;
 
 std::string_view GetCppSupport() {
   static std::string sVersions;

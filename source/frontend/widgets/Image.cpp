@@ -1,8 +1,9 @@
 #include "Image.hpp"
-#include <algorithm>
 #include <core/3d/gl.hpp>
 #include <imgui/imgui.h>
 #undef min
+
+import std.core;
 
 namespace riistudio::frontend {
 

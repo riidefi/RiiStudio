@@ -1,7 +1,7 @@
 #include "Model.hpp"
-#include <algorithm>
-#include <array>
 #include <math.h>
+
+import std.core;
 
 namespace librii::kcol {
 

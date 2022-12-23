@@ -1,7 +1,8 @@
 #include "U8.hpp"
 #include <core/common.h>
 #include <rsl/SimpleReader.hpp>
-#include <unordered_map>
+
+import std.core;
 
 namespace librii::U8 {
 

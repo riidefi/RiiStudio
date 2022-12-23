@@ -5,8 +5,6 @@
 #include <oishii/writer/binary_writer.hxx>
 #include <oishii/writer/linker.hxx>
 
-#include <string>
-
 #include <plugins/j3d/Scene.hpp>
 
 #include "Sections.hpp"
@@ -14,6 +12,8 @@
 #include <librii/gx/validate/MaterialValidate.hpp>
 
 #include <core/util/timestamp.hpp>
+
+import std.core;
 
 bool gTestMode = false;
 

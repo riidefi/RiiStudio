@@ -3,8 +3,9 @@
 #include <librii/egg/Blight.hpp>
 #include <librii/kmp/io/KMP.hpp>
 #include <rsl/Ranges.hpp>
-#include <string>
 #include <vendor/llvm/Support/InitLLVM.h>
+
+import std.core;
 
 bool gIsAdvancedMode = false;
 

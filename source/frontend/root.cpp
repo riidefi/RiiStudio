@@ -7,7 +7,6 @@
 #include <frontend/Localization.hpp>
 #include <frontend/editor/EditorWindow.hpp>
 #include <frontend/widgets/fps.hpp>
-#include <fstream>
 #include <imcxx/Widgets.hpp>
 #include <imgui_markdown.h>
 #include <oishii/reader/binary_reader.hxx>
@@ -29,6 +28,8 @@
 #include <frontend/Fonts.hpp>
 #include <librii/szs/SZS.hpp>
 #include <rsl/FsDialog.hpp>
+
+import std.core;
 
 namespace llvm {
 int DisableABIBreakingChecks;

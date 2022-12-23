@@ -1,8 +1,8 @@
 #include "FsDialog.hpp"
-#include <fstream>
 #include <plate/Platform.hpp>
-#include <ranges>
 #include <vendor/FileDialogues.hpp>
+
+import std.core;
 
 namespace rsl {
 

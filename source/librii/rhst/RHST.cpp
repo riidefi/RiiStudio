@@ -1,7 +1,8 @@
 #include "RHST.hpp"
-#include <cstring> // memcpy
 #include <oishii/reader/binary_reader.hxx>
 #include <rsl/TaggedUnion.hpp>
+
+import std.core;
 
 namespace librii::rhst {
 

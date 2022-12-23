@@ -3,11 +3,12 @@
 #include <librii/g3d/io/MatIO.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
-#include <set>
 
 // For g3d IO, since its not part of librii yet
 #include <core/kpi/Plugins.hpp>
 #include <plugins/g3d/G3dIo.hpp>
+
+import std.core;
 
 namespace librii::crate {
 

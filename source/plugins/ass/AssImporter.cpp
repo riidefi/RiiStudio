@@ -2,16 +2,15 @@
 #include "AssMaterial.hpp"
 #include "Utility.hpp"
 #include <core/kpi/Plugins.hpp>
-#include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <librii/image/CheckerBoard.hpp>
 #include <llvm/ADT/BitVector.h>
-#include <map>
 #include <plugins/g3d/model.hpp>
-#include <unordered_map>
 
 #include "ImportTexture.hpp"
+
+import std.core;
 
 namespace riistudio::ass {
 

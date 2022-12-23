@@ -1,6 +1,5 @@
 #include <core/3d/i3dmodel.hpp>
 #include <core/kpi/Plugins.hpp>
-#include <filesystem>
 #include <librii/hx/CullMode.hpp>
 #include <librii/hx/PixMode.hpp>
 #include <librii/rhst/RHST.hpp>
@@ -11,10 +10,10 @@
 #include <plugins/j3d/Material.hpp>
 #include <plugins/j3d/Scene.hpp>
 #include <rsl/FsDialog.hpp>
-#include <set>
 #include <stb_image.h>
-#include <string>
 #include <vendor/thread_pool.hpp>
+
+import std.core;
 
 // Enable debug reporting on release builds
 #undef DebugReport

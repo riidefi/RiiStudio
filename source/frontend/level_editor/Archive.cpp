@@ -4,7 +4,7 @@
 #include <librii/u8/U8.hpp>
 
 // For FindFile
-#include <filesystem>
+import std.filesystem;
 
 std::optional<Archive> ReadArchive(std::span<const u8> buf,
                                    std::string& errcode) {

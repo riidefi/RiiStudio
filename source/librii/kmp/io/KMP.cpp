@@ -1,12 +1,8 @@
 #include "KMP.hpp"
 #include <core/util/glm_io.hpp>
-#include <functional>
 #include <llvm/ADT/StringMap.h>
-#include <map>
-#include <numeric>
-#include <sstream>
-#include <tuple>
-#include <vector>
+
+import std.core;
 
 namespace librii::kmp {
 

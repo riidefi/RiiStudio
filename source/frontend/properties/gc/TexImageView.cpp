@@ -1,5 +1,4 @@
 #include "ResizeAction.hpp"
-#include <algorithm>
 #include <core/3d/i3dmodel.hpp>
 #include <core/kpi/ActionMenu.hpp>
 #include <core/kpi/PropertyView.hpp>
@@ -11,6 +10,8 @@
 #include <plugins/gc/Export/Texture.hpp>
 #include <rsl/FsDialog.hpp>
 #include <vendor/stb_image.h>
+
+import std.core;
 
 namespace libcube::UI {
 

@@ -1,9 +1,9 @@
-#include <format>
 #include <glfw/glfw3.h>
 #include <librii/gl/Compiler.hpp>
 #include <llvm/Support/Error.h>
 #include <rsl/StringBuilder.hpp>
-#include <string_view>
+
+import std.core;
 
 namespace librii::gl {
 

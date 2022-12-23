@@ -2,10 +2,11 @@
 
 #include "CmprEncoder.hpp"
 #include <librii/gx.h>
-#include <span>
 #include <vendor/avir/avir.h>
 #include <vendor/avir/lancir.h>
 #include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
+
+import std.core;
 
 namespace librii::image {
 

@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <core/3d/gl.hpp>
 #include <librii/gl/Compiler.hpp>
 #include <librii/gl/EnumConverter.hpp>
@@ -6,6 +5,8 @@
 #include <librii/mtx/TexMtx.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
+
+import std.core;
 
 namespace libcube {
 

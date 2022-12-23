@@ -1,7 +1,6 @@
 #include "ImportTexture.hpp"
 
 #include <plugins/gc/Export/Texture.hpp>
-#include <vector>
 #include <vendor/stb_image.h>
 
 namespace riistudio::ass {

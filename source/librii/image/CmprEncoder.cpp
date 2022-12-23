@@ -5,10 +5,9 @@
 
 #include <core/common.h>
 
-#include <cstdlib>
-#include <string.h>
-
 #include <oishii/util/util.hxx>
+
+import std.core;
 
 namespace librii::image {
 

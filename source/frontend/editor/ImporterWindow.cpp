@@ -1,7 +1,8 @@
 #include "ImporterWindow.hpp"
-#include <algorithm>
 #include <imgui/imgui.h>
 #include <vendor/fa5/IconsFontAwesome5.h>
+
+import std.core;
 
 namespace riistudio::frontend {
 

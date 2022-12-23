@@ -1,16 +1,8 @@
-#include <algorithm>
-#include <atomic>
 #include <core/common.h>
-#include <fstream>
-#include <memory>
-#include <mutex>
-#include <optional>
 #include <rsl/Crc32.hpp>
-#include <set>
-#include <span>
-#include <string>
-#include <unordered_map>
-#include <vector>
+
+import std.core;
+import std.threading;
 
 namespace riistudio {
 

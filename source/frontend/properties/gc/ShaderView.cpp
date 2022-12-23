@@ -1,11 +1,10 @@
-#include <algorithm>
 #include <core/3d/i3dmodel.hpp>
 #include <core/util/gui.hpp>
 #include <core/kpi/PropertyView.hpp>
 
 #include <vendor/ImGuiColorTextEdit/TextEditor.h>
 
-#include <sstream>
+import std.core;
 
 namespace libcube::UI {
 

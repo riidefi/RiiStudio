@@ -3,7 +3,6 @@
 #include <core/kpi/Plugins.hpp>
 #include <oishii/reader/binary_reader.hxx>
 #include <plugins/mk/BFG/Fog.hpp>
-#include <string>
 
 namespace riistudio::mk {
 

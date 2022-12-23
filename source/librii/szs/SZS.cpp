@@ -1,7 +1,8 @@
 #include "SZS.hpp"
-#include <algorithm>
 #include <llvm/Support/raw_ostream.h>
 #include <oishii/writer/binary_writer.hxx>
+
+import std.core;
 
 namespace librii::szs {
 

@@ -5,7 +5,6 @@
 #include "ObjUtil.hpp"
 #include "Transform.hpp"
 #include "ViewCube.hpp"
-#include <bit>
 #include <core/3d/gl.hpp>
 #include <core/common.h>
 #include <core/util/gui.hpp>
@@ -21,6 +20,8 @@
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <librii/math/srt3.hpp>
 #include <rsl/Rna.hpp>
+
+import std.core;
 
 namespace riistudio::lvl {
 
