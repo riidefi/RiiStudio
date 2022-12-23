@@ -1,11 +1,12 @@
 #include "TevIO.hpp"
-#include <algorithm>
-#include <array>
 #include <librii/gpu/DLBuilder.hpp>
 #include <librii/gpu/DLInterpreter.hpp>
 #include <librii/gpu/DLPixShader.hpp>
 
 #include "MatIO.hpp"
+
+// Note: C++23 specifies just `import std;`
+import std.core;
 
 namespace librii::g3d {
 

@@ -83,7 +83,7 @@ public:
       return mPath;
     assert(provider != nullptr);
     if (provider == nullptr)
-      return nullptr;
+      return {};
     return std::string(provider->getFilePath());
   }
   void setPath(const std::string& path) { mPath = path; }

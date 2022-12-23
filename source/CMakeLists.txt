@@ -1,6 +1,6 @@
 # Require C++20
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED False)
 
 if (WIN32)
   # Windows + GLFW
@@ -80,6 +80,10 @@ if (MSVC)
   # Inherits via dominance (generated code)
   add_compile_options(/wd4250)
   add_link_options(-debug)
+  # Modules support
+  add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/experimental:module>)
+  # Standard modules are compiled with this
+  string( REPLACE "/std:c++20" "/std:c++latest" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} )
 endif()
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/Configurations.cmake)
