@@ -17,14 +17,18 @@
 #include <map>
 #include <memory>
 #include <numeric> // accumulate is here for some reason
-#include <ranges>
 #include <set>
+#include <span>
 #include <string>
 #include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+#if __cplusplus > 201703L
+#include <ranges>
+#endif
 
 // When clang-cl `import std` support, switch to these and remove above includes
 // from this header
@@ -111,7 +115,7 @@ inline const char* operator"" _j(const char* str, size_t len) {
     *y;                                                                        \
   })
 #else
-inline auto DoTry(auto x) {
+template <typename T> inline auto DoTry(T&& x) {
   if (!x.has_value()) {
     fprintf(stderr, "Fatal error: %s", x.error().c_str());
     abort();

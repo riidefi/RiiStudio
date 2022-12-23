@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binary_reader.hxx"
+#include <format>
 
 namespace oishii {
 
