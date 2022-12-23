@@ -48,18 +48,18 @@ T BinaryReader::peekAt(int trans) {
   return decoded;
 }
 template <typename T, EndianSelect E, bool unaligned>
-rsl::expected<T, std::string> BinaryReader::tryGetAt(int trans) {
+std::expected<T, std::string> BinaryReader::tryGetAt(int trans) {
   if (!unaligned && (trans % sizeof(T))) {
     rsl::debug_break();
-    return std::string("Alignment error: ") + std::to_string(tell()) +
-           " is not " + std::to_string(sizeof(T)) + " byte aligned.";
+    return std::unexpected(std::format(
+        "Alignment error: {} is not {}-byte aligned.", tell(), sizeof(T)));
   }
 
   if (trans < 0 || trans + sizeof(T) >= endpos()) {
     rsl::debug_break();
-    return std::string("Bounds error: Writing ") + std::to_string(sizeof(T)) +
-           "bytes to " + std::to_string(tell()) + " exceeds buffer size of " +
-           std::to_string(endpos());
+    return std::unexpected(std::format(
+        "Bounds error: Reading {} bytes from {} exceeds buffer size of {}",
+        sizeof(T), trans, endpos()));
   }
 
   readerBpCheck(sizeof(T), trans - tell());

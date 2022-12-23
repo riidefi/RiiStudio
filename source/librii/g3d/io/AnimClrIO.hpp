@@ -8,6 +8,7 @@
 #include <map>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
+#include <rsl/SafeReader.hpp>
 #include <string>
 #include <variant>
 #include <vector>
@@ -26,10 +27,11 @@ struct CLR0Track {
 
   bool operator==(const CLR0Track&) const = default;
 
-  void read(oishii::BinaryReader& reader, u32 numFrames) {
+  std::expected<void, std::string> read(rsl::SafeReader& safe, u32 numFrames) {
     for (u32 i = 0; i < numFrames; ++i) {
-      keyframes.push_back(CLR0KeyFrame{.data = reader.read<u32>()});
+      keyframes.push_back(CLR0KeyFrame{.data = TRY(safe.U32())});
     }
+    return {};
   }
   void write(oishii::Writer& writer) const {
     for (auto data : keyframes) {
@@ -72,10 +74,11 @@ struct CLR0Material {
 
   bool operator==(const CLR0Material&) const = default;
 
-  void read(oishii::BinaryReader& reader, auto&& trackAddressToIndex) {
-    auto start = reader.tell();
-    name = readName(reader, start);
-    flags = reader.read<u32>();
+  std::expected<void, std::string> read(rsl::SafeReader& safe,
+                                        auto&& trackAddressToIndex) {
+    auto material = safe.scoped("CLR0Material");
+    name = TRY(safe.StringOfs32(material.start));
+    flags = TRY(safe.U32());
     u32 num_targets = 0;
     for (u32 i = 0; i < static_cast<u32>(TargetId::Count); ++i) {
       if (flags & (FLAG_ENABLED << (i * 2))) {
@@ -83,22 +86,23 @@ struct CLR0Material {
       }
     }
     for (u32 i = 0; i < num_targets; ++i) {
-      u32 mask = reader.read<u32>();
+      u32 mask = TRY(safe.U32());
       if (flags & (FLAG_CONSTANT << (i * 2))) {
         CLR0KeyFrame constFrame;
-        constFrame.data = reader.read<u32>();
+        constFrame.data = TRY(safe.U32());
         targets.emplace_back(
             CLR0Target{.notAnimatedMask = mask, .data = constFrame});
       } else {
-        auto ofs = reader.read<s32>();
+        auto ofs = TRY(safe.S32());
         // For some reason it's relative to the array entry? In PAT0 it's
         // relative to section start. Suppose IndexedArray and Indexed<Custom>
         // are implemented differently.
-        u32 index = trackAddressToIndex(reader.tell() + ofs - 4);
+        u32 index = TRY(trackAddressToIndex(safe.tell() + ofs - 4));
         targets.emplace_back(
             CLR0Target{.notAnimatedMask = mask, .data = index});
       }
     }
+    return {};
   }
   void write(oishii::Writer& writer, NameTable& names,
              auto&& trackIndexToAddress) const {
@@ -134,7 +138,7 @@ struct BinaryClr {
 
   bool operator==(const BinaryClr&) const = default;
 
-  std::string read(oishii::BinaryReader& reader);
+  std::expected<void, std::string> read(oishii::BinaryReader& reader);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
 };
 

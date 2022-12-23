@@ -5,13 +5,13 @@
 #include "../util/util.hxx"
 #include <array>
 #include <bit>
+#include <expected>
 #include <memory>
 #include <span>
 #include <string>
 #include <vector>
 
 #include <rsl/DebugBreak.hpp>
-#include <rsl/Expected.hpp>
 
 namespace oishii {
 
@@ -109,7 +109,7 @@ public:
 
   template <typename T, EndianSelect E = EndianSelect::Current,
             bool unaligned = false>
-  rsl::expected<T, std::string> tryRead() {
+  std::expected<T, std::string> tryRead() {
     auto result = tryGetAt<T, E, unaligned>(tell());
     if (result.has_value()) {
       // Only advance stream on success
@@ -138,7 +138,7 @@ public:
   T peekAt(int trans);
   template <typename T, EndianSelect E = EndianSelect::Current,
             bool unaligned = false>
-  rsl::expected<T, std::string> tryGetAt(int trans);
+  std::expected<T, std::string> tryGetAt(int trans);
   //	template <typename T, EndianSelect E = EndianSelect::Current>
   //	T readAt();
   template <typename T, EndianSelect E = EndianSelect::Current,

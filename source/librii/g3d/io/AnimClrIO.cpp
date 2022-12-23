@@ -1,7 +1,5 @@
 #include "AnimClrIO.hpp"
 
-#include <rsl/SafeReader.hpp>
-
 namespace librii::g3d {
 
 struct CLROffsets {
@@ -11,10 +9,12 @@ struct CLROffsets {
 
   static constexpr size_t size_bytes() { return 3 * 4; }
 
-  void read(oishii::BinaryReader& reader) {
-    ofsBrres = reader.read<s32>();
-    ofsMatDict = reader.read<s32>();
-    ofsUserData = reader.read<s32>();
+  std::expected<void, std::string> read(oishii::BinaryReader& reader) {
+    rsl::SafeReader safe(reader);
+    ofsBrres = TRY(safe.S32());
+    ofsMatDict = TRY(safe.S32());
+    ofsUserData = TRY(safe.S32());
+    return {};
   }
   void write(oishii::Writer& writer) {
     writer.write<s32>(ofsBrres);
@@ -30,10 +30,11 @@ struct BinaryClrInfo {
   u16 materialCount{};
   AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
 
-  std::string read(oishii::BinaryReader& reader, u32 pat0) {
+  std::expected<void, std::string> read(oishii::BinaryReader& reader,
+                                        u32 pat0) {
     rsl::SafeReader safe(reader);
-    name = readName(reader, pat0);
-    sourcePath = readName(reader, pat0);
+    name = TRY(safe.StringOfs32(pat0));
+    sourcePath = TRY(safe.StringOfs32(pat0));
     frameDuration = TRY(safe.U16());
     materialCount = TRY(safe.U16());
     wrapMode = TRY(safe.Enum32<AnimationWrapMode>());
@@ -48,29 +49,32 @@ struct BinaryClrInfo {
   }
 };
 
-std::string BinaryClr::read(oishii::BinaryReader& reader) {
-  auto clr0 = reader.createScoped("CLR0");
+std::expected<void, std::string> BinaryClr::read(oishii::BinaryReader& reader) {
+  rsl::SafeReader safe(reader);
+  auto clr0 = safe.scoped("CLR0");
   reader.expectMagic<'CLR0', false>();
   reader.read<u32>(); // size
-  auto ver = reader.read<u32>();
-  if (ver != 4)
-    return std::format("Unsupported version {}. Only supports version 4.", ver);
+  auto ver = TRY(safe.U32());
+  if (ver != 4) {
+    return std::unexpected(
+        std::format("Unsupported version {}. Only supports version 4.", ver));
+  }
   CLROffsets offsets;
-  offsets.read(reader);
+  TRY(offsets.read(reader));
 
   BinaryClrInfo info;
-  info.read(reader, clr0.start);
+  TRY(info.read(reader, clr0.start));
   name = info.name;
   sourcePath = info.sourcePath;
   frameDuration = info.frameDuration;
   wrapMode = info.wrapMode;
 
-  auto track_addr_to_index = [&](u32 addr) -> u32 {
-    auto back = reader.tell();
+  auto track_addr_to_index = [&](u32 addr) -> std::expected<u32, std::string> {
+    auto back = safe.tell();
     reader.seekSet(addr);
     CLR0Track track;
     // This is inclusive uppper bound because ????
-    track.read(reader, info.frameDuration + 1);
+    TRY(track.read(safe, info.frameDuration + 1));
     reader.seekSet(back);
     auto it = std::find(tracks.begin(), tracks.end(), track);
     if (it != tracks.end()) {
@@ -82,12 +86,15 @@ std::string BinaryClr::read(oishii::BinaryReader& reader) {
 
   reader.seekSet(clr0.start + offsets.ofsMatDict);
   auto slice = reader.slice();
+  if (slice.empty()) {
+    return std::unexpected("Unable to read dictionary");
+  }
   DictionaryRange matDict(slice, reader.tell(), info.materialCount + 1);
 
   for (const auto& node : matDict) {
     auto& mat = materials.emplace_back();
     reader.seekSet(node.abs_data_ofs);
-    mat.read(reader, track_addr_to_index);
+    TRY(mat.read(safe, track_addr_to_index));
   }
   return {};
 }

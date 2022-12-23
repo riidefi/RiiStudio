@@ -6,6 +6,8 @@
 #include <librii/g3d/io/AnimTexPatIO.hpp>
 #include <librii/g3d/io/AnimVisIO.hpp>
 #include <librii/g3d/io/ModelIO.hpp>
+
+#include <expected>
 #include <vector>
 
 // Regrettably, for kpi::LightIOTransaction
@@ -21,7 +23,8 @@ struct BinaryArchive {
   std::vector<librii::g3d::SrtAnimationArchive> srts;
   std::vector<librii::g3d::BinaryVis> viss;
 
-  void read(oishii::BinaryReader& reader, kpi::LightIOTransaction& transaction);
+  std::expected<void, std::string> read(oishii::BinaryReader& reader,
+                                        kpi::LightIOTransaction& transaction);
   void write(oishii::Writer& writer);
 };
 

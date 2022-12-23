@@ -15,8 +15,9 @@ using namespace bad;
 
 namespace librii::g3d {
 
-void BinaryArchive::read(oishii::BinaryReader& reader,
-                         kpi::LightIOTransaction& transaction) {
+std::expected<void, std::string>
+BinaryArchive::read(oishii::BinaryReader& reader,
+                    kpi::LightIOTransaction& transaction) {
   // Magic
   reader.read<u32>();
   // byte order
@@ -45,11 +46,9 @@ void BinaryArchive::read(oishii::BinaryReader& reader,
     // TODO
     if (cnode.mName == "3DModels(NW4R)") {
       if (cdic.mNodes.size() > 2) {
-        transaction.callback(
-            kpi::IOMessageClass::Error, cnode.mName,
+        return std::unexpected(
             "This file has multiple MDL0 files within it. "
             "Only single-MDL0 BRRES files are currently supported.");
-        transaction.state = kpi::TransactionState::Failure;
       }
       for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
         const auto& sub = cdic.mNodes[j];
@@ -81,7 +80,7 @@ void BinaryArchive::read(oishii::BinaryReader& reader,
         reader.seekSet(sub.mDataDestination);
 
         auto& clr = clrs.emplace_back();
-        clr.read(reader);
+        TRY(clr.read(reader));
       }
     } else if (cnode.mName == "AnmTexPat(NW4R)") {
       for (std::size_t j = 1; j < cdic.mNodes.size(); ++j) {
@@ -101,8 +100,7 @@ void BinaryArchive::read(oishii::BinaryReader& reader,
         const bool ok = librii::g3d::ReadSrtFile(srt, SliceStream(reader));
 
         if (!ok) {
-          transaction.callback(kpi::IOMessageClass::Warning, "/" + cnode.mName,
-                               "Failed to read SRT0: " + sub.mName);
+          return std::unexpected("Failed to read SRT0: " + sub.mName);
         }
       }
     } else if (cnode.mName == "AnmVis(NW4R)") {
@@ -121,6 +119,8 @@ void BinaryArchive::read(oishii::BinaryReader& reader,
       fprintf(stderr, "Unsupported folder: %s\n", cnode.mName.c_str());
     }
   }
+
+  return {};
 }
 
 namespace {

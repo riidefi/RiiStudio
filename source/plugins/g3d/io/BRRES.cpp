@@ -650,7 +650,11 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
 void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
                kpi::LightIOTransaction& transaction) {
   librii::g3d::BinaryArchive archive;
-  archive.read(reader, transaction);
+  if (auto r = archive.read(reader, transaction); !r) {
+    transaction.callback(kpi::IOMessageClass::Error, "BRRES", r.error());
+    transaction.state = kpi::TransactionState::Failure;
+    return;
+  }
   collection.path = reader.getFile();
   for (auto& mdl : archive.models) {
     auto& editor_mdl = collection.getModels().add();
@@ -674,12 +678,12 @@ void WriteBRRES(Collection& scn, oishii::Writer& writer) {
       .models = scn.getModels() | std::views::transform(toBinaryModel) |
                 rsl::ToList(),
       .textures = scn.getTextures() | rsl::ToList<librii::g3d::TextureData>(),
-	  .clrs = scn.clrs,
+      .clrs = scn.clrs,
       .pats = scn.pats,
-	  .srts =
+      .srts =
           scn.getAnim_Srts() | rsl::ToList<librii::g3d::SrtAnimationArchive>(),
-	  .viss = scn.viss,
-	  
+      .viss = scn.viss,
+
   };
   arc.write(writer);
 }

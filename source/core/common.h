@@ -105,8 +105,8 @@ inline const char* operator"" _j(const char* str, size_t len) {
 #define TRY(x)                                                                 \
   ({                                                                           \
     auto y = x;                                                                \
-    if (!y.has_value()) {                                                      \
-      return y.error();                                                        \
+    if (!y) {                                                                  \
+      return std::unexpected(y.error());                                       \
     }                                                                          \
     *y;                                                                        \
   })
