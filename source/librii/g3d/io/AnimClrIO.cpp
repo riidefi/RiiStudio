@@ -1,5 +1,7 @@
 #include "AnimClrIO.hpp"
 
+#include <rsl/SafeReader.hpp>
+
 namespace librii::g3d {
 
 struct CLROffsets {
@@ -21,22 +23,6 @@ struct CLROffsets {
   }
 };
 
-class SafeReader {
-public:
-  SafeReader(oishii::BinaryReader& reader) : mReader(reader) {}
-
-  auto U32() { return mReader.tryRead<u32>(); }
-  auto U16() { return mReader.tryRead<u16>(); }
-  template <typename E> rsl::expected<E, std::string> Enum32() {
-    auto u = TRY(mReader.tryRead<u32>());
-    // TODO: magic_enum validate values
-    return static_cast<E>(u);
-  }
-
-private:
-  oishii::BinaryReader& mReader;
-};
-
 struct BinaryClrInfo {
   std::string name;
   std::string sourcePath;
@@ -45,7 +31,7 @@ struct BinaryClrInfo {
   AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
 
   std::string read(oishii::BinaryReader& reader, u32 pat0) {
-    SafeReader safe(reader);
+    rsl::SafeReader safe(reader);
     name = readName(reader, pat0);
     sourcePath = readName(reader, pat0);
     frameDuration = TRY(safe.U16());
@@ -62,13 +48,13 @@ struct BinaryClrInfo {
   }
 };
 
-void BinaryClr::read(oishii::BinaryReader& reader) {
+std::string BinaryClr::read(oishii::BinaryReader& reader) {
   auto clr0 = reader.createScoped("CLR0");
   reader.expectMagic<'CLR0', false>();
   reader.read<u32>(); // size
   auto ver = reader.read<u32>();
   if (ver != 4)
-    return;
+    return std::format("Unsupported version {}. Only supports version 4.", ver);
   CLROffsets offsets;
   offsets.read(reader);
 
@@ -103,6 +89,7 @@ void BinaryClr::read(oishii::BinaryReader& reader) {
     reader.seekSet(node.abs_data_ofs);
     mat.read(reader, track_addr_to_index);
   }
+  return {};
 }
 
 void BinaryClr::write(oishii::Writer& writer, NameTable& names,

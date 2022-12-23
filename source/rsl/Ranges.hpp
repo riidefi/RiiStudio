@@ -91,3 +91,25 @@ constexpr static Enumerator enumerate() { return {}; }
 static auto operator|(auto&& range, rsl::Enumerator&&) {
   return rsl::enumerate(std::move(range));
 }
+
+namespace rsl {
+
+// Adapted from
+// https://www.techiedelight.com/implode-a-vector-of-strings-into-a-comma-separated-string-in-cpp/
+//
+// - Take strings by const ref, making it actually compile
+// - Operate on any range, not just std::vector<std::string>
+//
+// Until we get ranges printing in the STL
+constexpr inline std::string join(auto&& strings, std::string delim) {
+  std::string s;
+  return std::accumulate(strings.begin(), strings.end(), s,
+                         [&delim](const std::string& x, const std::string& y) {
+                           if (x.empty()) {
+                             return y;
+                           }
+                           return x + delim + y;
+                         });
+}
+
+} // namespace rsl

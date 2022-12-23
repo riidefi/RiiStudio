@@ -134,7 +134,7 @@ struct BinaryClr {
 
   bool operator==(const BinaryClr&) const = default;
 
-  void read(oishii::BinaryReader& reader);
+  std::string read(oishii::BinaryReader& reader);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
 };
 
