@@ -6,7 +6,7 @@
 #include <rsl/SimpleReader.hpp>
 #include <rsl/SimpleMap.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::g3d {
 

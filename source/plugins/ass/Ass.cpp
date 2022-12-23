@@ -20,7 +20,7 @@
 #include "LogScope.hpp"
 #include "SupportedFiles.hpp"
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio::ass {
 

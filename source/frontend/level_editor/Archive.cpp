@@ -3,8 +3,7 @@
 #include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
 
-// For FindFile
-import std.filesystem;
+IMPORT_STD;
 
 std::optional<Archive> ReadArchive(std::span<const u8> buf,
                                    std::string& errcode) {

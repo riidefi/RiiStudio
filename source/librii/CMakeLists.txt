@@ -5,7 +5,6 @@ include_directories(${PROJECT_SOURCE_DIR}/../vendor)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
-
 add_library(librii
   "gl/Compiler.hpp"
   "gl/Compiler.cpp"
@@ -96,3 +95,8 @@ add_library(librii
   
   "crate/g3d_crate.cpp"
    "egg/Blight.cpp" "g3d/io/AnimTexPatIO.cpp" "g3d/io/AnimClrIO.cpp" "g3d/io/AnimVisIO.cpp")
+
+target_precompile_headers(librii
+  PUBLIC
+    ../core/common.h
+)

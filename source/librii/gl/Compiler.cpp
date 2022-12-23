@@ -3,7 +3,7 @@
 #include <llvm/Support/Error.h>
 #include <rsl/StringBuilder.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::gl {
 

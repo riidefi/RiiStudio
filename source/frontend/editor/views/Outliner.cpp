@@ -9,8 +9,7 @@
 #include <plugins/gc/Export/Scene.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_SEARCH
 
-import std.core;
-import std.filesystem;
+IMPORT_STD;
 
 bool IsAdvancedMode();
 

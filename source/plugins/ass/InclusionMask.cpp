@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <vendor/assimp/config.h>
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio::ass {
 

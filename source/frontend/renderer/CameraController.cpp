@@ -3,7 +3,7 @@
 #include <glm/gtx/euler_angles.hpp>
 #include <imgui/imgui.h>
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio::frontend {
 

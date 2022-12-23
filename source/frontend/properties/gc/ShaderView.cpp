@@ -4,7 +4,7 @@
 
 #include <vendor/ImGuiColorTextEdit/TextEditor.h>
 
-import std.core;
+IMPORT_STD;
 
 namespace libcube::UI {
 

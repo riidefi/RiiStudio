@@ -10,7 +10,7 @@
 // KMP
 #include <librii/kmp/io/KMP.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio::lvl {
 

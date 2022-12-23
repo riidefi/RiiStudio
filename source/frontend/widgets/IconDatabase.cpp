@@ -3,7 +3,7 @@
 #include <imgui/imgui.h>  // for ImGui::Image
 #include <librii/image/ImagePlatform.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio {
 

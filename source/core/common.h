@@ -2,10 +2,41 @@
 
 #include <oishii/options.hxx>
 #include <oishii/types.hxx>
-#include <string_view>
 
 #ifndef assert
 #include <cassert>
+#endif
+
+// Fine as its a PCH
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <bitset>
+#include <cstdio>
+#include <filesystem>
+#include <map>
+#include <memory>
+#include <numeric> // accumulate is here for some reason
+#include <ranges>
+#include <set>
+#include <string>
+#include <string_view>
+#include <thread>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+// When clang-cl `import std` support, switch to these and remove above includes
+// from this header
+#if 1
+#define IMPORT_STD                                                             \
+  namespace {}
+
+#else
+#define IMPORT_STD                                                             \
+import std.core;                                                             \
+import std.threading;                                                        \
+import std.filesystem
 #endif
 
 // Platform
@@ -18,12 +49,13 @@
 #define LIB_RII_TO_STRING(v) __LIB_RII_TO_STRING(v)
 #define __LIB_RII_TO_STRING(v) #v
 
-#ifdef DEBUG
 #ifdef __cplusplus
 #include <cstdio>
 #else
 #include <stdio.h>
 #endif
+
+#ifdef DEBUG
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>

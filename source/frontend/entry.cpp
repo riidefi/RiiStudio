@@ -3,8 +3,7 @@
 
 #include <frontend/Localization.hpp>
 
-import std.filesystem;
-import std.memory;
+IMPORT_STD;
 
 struct RootHolder {
   void create(int& argc, const char**& argv) {

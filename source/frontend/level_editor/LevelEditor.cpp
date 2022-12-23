@@ -21,7 +21,7 @@
 #include <librii/math/srt3.hpp>
 #include <rsl/Rna.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio::lvl {
 

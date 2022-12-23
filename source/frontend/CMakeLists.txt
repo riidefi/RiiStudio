@@ -238,3 +238,8 @@ if (WIN32)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "RiiStudio")
+
+target_precompile_headers(frontend
+  PUBLIC
+    ../core/common.h
+)

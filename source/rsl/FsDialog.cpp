@@ -2,7 +2,9 @@
 #include <plate/Platform.hpp>
 #include <vendor/FileDialogues.hpp>
 
-import std.core;
+IMPORT_STD;
+
+#include <fstream>
 
 namespace rsl {
 

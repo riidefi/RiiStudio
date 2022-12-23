@@ -2,7 +2,8 @@
 
 #include <pfd/portable-file-dialogs.h>
 
-import std.core;
+IMPORT_STD;
+#include <fstream>
 
 namespace riistudio::frontend {
 

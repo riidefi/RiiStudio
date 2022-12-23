@@ -8,7 +8,7 @@
 #include <core/kpi/Plugins.hpp>
 #include <plugins/g3d/G3dIo.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::crate {
 

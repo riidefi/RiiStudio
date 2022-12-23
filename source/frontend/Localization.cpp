@@ -1,8 +1,8 @@
 #include <core/common.h>
 #include <rsl/Crc32.hpp>
 
-import std.core;
-import std.threading;
+IMPORT_STD;
+#include <fstream>
 
 namespace riistudio {
 

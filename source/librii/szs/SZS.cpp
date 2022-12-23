@@ -2,7 +2,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <oishii/writer/binary_writer.hxx>
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::szs {
 

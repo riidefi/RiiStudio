@@ -2,7 +2,7 @@
 #include <core/common.h>
 #include <rsl/SimpleReader.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::U8 {
 

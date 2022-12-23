@@ -7,7 +7,7 @@
 
 #include <oishii/util/util.hxx>
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::image {
 

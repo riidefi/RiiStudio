@@ -14,7 +14,7 @@
 
 #include <rsl/Ranges.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::g3d {
 using namespace bad;

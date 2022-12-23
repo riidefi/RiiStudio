@@ -6,7 +6,7 @@
 #include "MatIO.hpp"
 
 // Note: C++23 specifies just `import std;`
-import std.core;
+IMPORT_STD;
 
 namespace librii::g3d {
 

@@ -6,7 +6,7 @@
 #include <vendor/avir/lancir.h>
 #include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::image {
 

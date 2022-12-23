@@ -22,9 +22,8 @@ class JSON {};
 #include <nlohmann/json.hpp>
 
 
-import std.core;
-import std.filesystem;
-import std.threading;
+IMPORT_STD;
+#include <iostream>
 
 namespace riistudio {
 

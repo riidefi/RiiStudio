@@ -1,6 +1,6 @@
 #include "TexMtx.hpp"
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::mtx {
 

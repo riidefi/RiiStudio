@@ -10,7 +10,7 @@
 
 #include "ImportTexture.hpp"
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio::ass {
 

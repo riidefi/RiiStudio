@@ -133,7 +133,7 @@ private:
   std::size_t mTotalNodes;
 };
 
-static std::optional<DictionaryRange>
+inline std::optional<DictionaryRange>
 ReadDictionary(std::span<const u8> whole_data, size_t offset) {
   const auto data = whole_data.subspan(offset);
 

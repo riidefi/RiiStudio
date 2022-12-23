@@ -13,7 +13,7 @@
 
 #include <core/util/timestamp.hpp>
 
-import std.core;
+IMPORT_STD;
 
 bool gTestMode = false;
 

@@ -3,7 +3,7 @@
 #include <imgui/imgui.h>
 #undef min
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio::frontend {
 

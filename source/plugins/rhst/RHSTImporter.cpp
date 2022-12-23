@@ -13,7 +13,7 @@
 #include <stb_image.h>
 #include <vendor/thread_pool.hpp>
 
-import std.core;
+IMPORT_STD;
 
 // Enable debug reporting on release builds
 #undef DebugReport

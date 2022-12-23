@@ -11,7 +11,7 @@
 #include <rsl/FsDialog.hpp>
 #include <vendor/stb_image.h>
 
-import std.core;
+IMPORT_STD;
 
 namespace libcube::UI {
 

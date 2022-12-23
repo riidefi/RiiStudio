@@ -5,7 +5,7 @@
 #include <rsl/Ranges.hpp>
 #include <vendor/llvm/Support/InitLLVM.h>
 
-import std.core;
+IMPORT_STD;
 
 bool gIsAdvancedMode = false;
 

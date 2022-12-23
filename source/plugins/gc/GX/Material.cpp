@@ -6,7 +6,7 @@
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Material.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace libcube {
 

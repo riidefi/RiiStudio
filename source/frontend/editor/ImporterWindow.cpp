@@ -2,7 +2,7 @@
 #include <imgui/imgui.h>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio::frontend {
 

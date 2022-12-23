@@ -1,6 +1,6 @@
 #include "KclUtil.hpp"
 
-import std.core;
+IMPORT_STD;
 
 static std::array<KclType, 32> KclTypes = {
     KclType{.id = 0x00, .form = Form::Standard, .name = "/*0x00*/ [WIKI] Road"},

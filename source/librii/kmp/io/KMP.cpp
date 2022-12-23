@@ -2,7 +2,7 @@
 #include <core/util/glm_io.hpp>
 #include <llvm/ADT/StringMap.h>
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::kmp {
 

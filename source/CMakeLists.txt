@@ -81,7 +81,9 @@ if (MSVC)
   add_compile_options(/wd4250)
   add_link_options(-debug)
   # Modules support
-  add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/experimental:module>)
+  if (NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/experimental:module>)
+  endif()
   # Standard modules are compiled with this
   string( REPLACE "/std:c++20" "/std:c++latest" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} )
 endif()

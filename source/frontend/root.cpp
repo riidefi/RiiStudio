@@ -29,7 +29,7 @@
 #include <librii/szs/SZS.hpp>
 #include <rsl/FsDialog.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace llvm {
 int DisableABIBreakingChecks;

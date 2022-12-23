@@ -1,11 +1,8 @@
 #include "LogScope.hpp"
-
+#include <core/common.h>
 #include <vendor/assimp/DefaultLogger.hpp>
 
-#include <assert.h>
-
-import std.core;
-import std.threading;
+IMPORT_STD;
 
 namespace riistudio::ass {
 

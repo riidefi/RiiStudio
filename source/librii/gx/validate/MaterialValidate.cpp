@@ -1,6 +1,6 @@
 #include "MaterialValidate.hpp"
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::gx {
 

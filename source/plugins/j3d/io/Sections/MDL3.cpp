@@ -1,7 +1,7 @@
 #include "../Sections.hpp"
 #include <librii/gpu/DLBuilder.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio::j3d {
 

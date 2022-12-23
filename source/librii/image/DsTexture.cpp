@@ -7,8 +7,7 @@ extern "C" {
 #include <vendor/texconv/texconv.h>
 }
 
-import std.core;
-import std.threading;
+IMPORT_STD;
 
 namespace librii::image {
 

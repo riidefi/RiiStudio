@@ -1,7 +1,7 @@
 #include "SupportedFiles.hpp"
 #include <core/common.h>
 
-import std.core;
+IMPORT_STD;
 
 namespace riistudio::ass {
 

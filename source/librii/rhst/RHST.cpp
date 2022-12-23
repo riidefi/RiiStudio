@@ -2,7 +2,7 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <rsl/TaggedUnion.hpp>
 
-import std.core;
+IMPORT_STD;
 
 namespace librii::rhst {
 
