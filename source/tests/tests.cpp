@@ -4,6 +4,7 @@
 #include <librii/kmp/io/KMP.hpp>
 #include <rsl/Ranges.hpp>
 #include <vendor/llvm/Support/InitLLVM.h>
+#include <librii/egg/LTEX.hpp>
 
 IMPORT_STD;
 
@@ -88,7 +89,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
              std::span<const s32> bps) {
   rebuild_dest = to;
 
-  if (from.ends_with("kmp") || from.ends_with("blight")) {
+  if (from.ends_with("kmp") || from.ends_with("blight") || from.ends_with("blmap")) {
     auto file = OishiiReadFile(from);
     if (!file.has_value()) {
       printf("Cannot rebuild\n");
@@ -107,7 +108,15 @@ void rebuild(std::string from, const std::string_view to, bool check,
       librii::egg::Blight lights(reader);
       printf("Writing to %s\n", std::string(to).c_str());
       lights.save(writer);
-    }
+    } else if (from.ends_with("blmap")) {
+      writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
+      oishii::BinaryReader reader(file->slice());
+      librii::egg::LightMap lmap;
+      rsl::SafeReader safe(reader);
+	  lmap.read(safe);
+      printf("Writing to %s\n", std::string(to).c_str());
+      lmap.write(writer);
+	}
     OishiiFlushWriter(writer, to);
     return;
   }

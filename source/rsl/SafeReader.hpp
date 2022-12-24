@@ -43,20 +43,53 @@ public:
   void seekSet(u32 pos) { mReader.seekSet(pos); }
   auto tell() const -> u32 { return mReader.tell(); }
 
+  auto F32() -> Result<f32> { return mReader.tryRead<f32>(); }
   auto U32() -> Result<u32> { return mReader.tryRead<u32>(); }
   auto S32() -> Result<s32> { return mReader.tryRead<s32>(); }
   auto U16() -> Result<u16> { return mReader.tryRead<u16>(); }
-  template <typename E> auto Enum32() -> Result<E> {
-    auto u = TRY(mReader.tryRead<u32>());
+  auto S16() -> Result<s16> { return mReader.tryRead<s16>(); }
+  auto U8() -> Result<u8> { return mReader.tryRead<u8>(); }
+  auto S8() -> Result<s8> { return mReader.tryRead<s8>(); }
+
+  template <typename T, typename E> auto Enum() -> Result<E> {
+    static_assert(std::is_integral_v<T>);
+    static_assert(sizeof(T) <= sizeof(u32));
+
+    auto u = TRY(mReader.tryRead<T>());
     auto as_enum = magic_enum::enum_cast<E>(u);
     if (!as_enum.has_value()) {
-      // TODO: Allow warn-at to return a string
       auto values = magic_enum::enum_entries<E>();
       auto msg = EnumError(u, values);
-      mReader.warnAt(msg.c_str(), mReader.tell() - 4, mReader.tell());
+      mReader.warnAt(msg.c_str(), mReader.tell() - sizeof(T), mReader.tell());
       return std::unexpected(msg);
     }
     return static_cast<E>(u);
+  }
+
+  template <typename E> auto Enum32() -> Result<E> { return Enum<u32, E>(); }
+  template <typename E> auto Enum8() -> Result<E> { return Enum<u8, E>(); }
+
+  template <size_t size> auto U8Buffer() -> Result<std::array<u8, size>> {
+    auto buf = TRY(mReader.tryReadBuffer<u8>(size));
+    return buf | rsl::ToArray<size>();
+  }
+  template <size_t size> auto CharBuffer() -> Result<std::array<char, size>> {
+    auto buf = TRY(mReader.tryReadBuffer<char>(size));
+    return buf | rsl::ToArray<size>();
+  }
+
+  auto Magic(std::string_view ident) -> Result<std::string_view> {
+    auto buf = TRY(mReader.tryReadBuffer<char>(ident.size()));
+    if (!std::ranges::equal(buf, ident)) {
+      auto buf_s = std::string(buf.begin(), buf.end());
+      auto msg =
+          std::format("Expected magic identifier {} at {}. Instead saw {}.",
+                      ident, mReader.tell() - ident.size(), buf_s);
+      mReader.warnAt(msg.c_str(), mReader.tell() - ident.size(),
+                     mReader.tell());
+      return std::unexpected(msg);
+    }
+    return ident;
   }
 
   inline Result<std::string> StringOfs32(u32 relative);

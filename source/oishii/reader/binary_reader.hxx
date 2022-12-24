@@ -207,6 +207,27 @@ public:
     mPos += size;
   }
 
+  template <typename T>
+  std::expected<std::vector<T>, std::string> tryReadBuffer(u32 size, u32 addr) {
+    static_assert(sizeof(T) == 1);
+    if (addr + size > endpos()) {
+      rsl::debug_break();
+      return std::unexpected("Buffer read exceeds file length");
+    }
+    std::vector<T> out(size);
+    std::copy_n(mView.begin() + addr, size, out.begin());
+    return out;
+  }
+  template <typename T>
+  std::expected<std::vector<T>, std::string> tryReadBuffer(u32 size) {
+    auto buf = tryReadBuffer<T>(size, tell());
+    if (!buf) {
+      return std::unexpected(buf.error());
+    }
+    seekSet(tell() + size);
+    return *buf;
+  }
+
 private:
   std::endian mFileEndian = std::endian::big;
 

@@ -57,6 +57,10 @@ TEST_DATA = {
 	# brvia.brres
 	# 1:1
 	'9e1def46194780251d3d3d180a396340': '9e1def46194780251d3d3d180a396340',
+
+	# default.blmap
+	# 1:1
+	'e98edea25b4ed1088967e81cc2e214c7': 'e98edea25b4ed1088967e81cc2e214c7',
 }
 
 BREAKPOINTS = {
