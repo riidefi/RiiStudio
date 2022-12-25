@@ -208,6 +208,10 @@ void gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
   auto polys = root.getMeshes();
   auto mats = root.getMaterials();
 
+  if (boneId >= bones.size()) {
+    printf("Invalid bone id\n");
+    return;
+  }
   const auto& pBone = bones[boneId];
   const u64 nDisplay = pBone.getNumDisplays();
 

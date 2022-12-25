@@ -698,8 +698,42 @@ public:
   }
 };
 
+struct AddChild : public kpi::ActionMenu<riistudio::g3d::Bone, AddChild> {
+  bool m_do = false;
+  bool _context(riistudio::g3d::Bone&) {
+    if (ImGui::MenuItem("Add child"_j)) {
+      m_do = true;
+    }
+
+    return false;
+  }
+
+  kpi::ChangeType _modal(riistudio::g3d::Bone& bone) {
+    if (m_do) {
+      m_do = false;
+      auto* col = bone.collectionOf;
+      col->add();
+      auto childId = col->size() - 1;
+      auto* child = dynamic_cast<riistudio::g3d::Bone*>(col->atObject(childId));
+      assert(child);
+      child->id = childId;
+      child->mParent = bone.id;
+      auto* mdl = dynamic_cast<riistudio::g3d::Model*>(bone.childOf);
+      assert(mdl);
+      child->matrixId = mdl->mDrawMatrices.size();
+      libcube::DrawMatrix mtx{.mWeights = {{static_cast<u32>(childId), 1.0f}}};
+      mdl->mDrawMatrices.push_back(mtx);
+      bone.mChildren.push_back(childId);
+      return kpi::CHANGE_NEED_RESET;
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
+
 kpi::DecentralizedInstaller CrateReplaceInstaller([](kpi::ApplicationPlugins&
                                                          installer) {
+  kpi::ActionMenuManager::get().addMenu(std::make_unique<AddChild>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<RenameNode>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsTEX0>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsSRT0>());
