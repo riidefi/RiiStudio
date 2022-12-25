@@ -22,9 +22,10 @@ enum class cPttrn : u8 {
 };
 
 struct DrawSetting {
-  f32 normEffectScale{};
-  cPttrn pattern{};
-  std::array<u8, 3> unk{};
+  f32 normEffectScale{1.0f};
+  cPttrn pattern{cPttrn::Linear32_64};
+  // Stack junk: Entries past first 2 usually have this set to nonzero bytes
+  std::array<u8, 3> stackjunk{};
 
   bool operator==(const DrawSetting&) const = default;
 };
@@ -47,9 +48,9 @@ struct LightTexture {
 };
 
 struct LightMap {
-  std::array<u8, 7> reserved0;
-  std::vector<LightTexture> textures;
-  std::array<u8, 14> reserved1;
+  std::array<u8, 7> reserved0{};
+  std::vector<LightTexture> textures{};
+  std::array<u8, 14> reserved1{};
 
   bool operator==(const LightMap&) const = default;
 

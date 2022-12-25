@@ -25,7 +25,7 @@ std::expected<void, std::string> LightTexture::read(rsl::SafeReader& reader) {
   for (auto& setting : drawSettings) {
     setting.normEffectScale = TRY(reader.F32());
     setting.pattern = TRY(reader.Enum8<cPttrn>());
-    setting.unk = TRY(reader.U8Buffer<3>());
+    setting.stackjunk = TRY(reader.U8Buffer<3>());
   }
 
   return {};
@@ -49,7 +49,7 @@ void LightTexture::write(oishii::Writer& writer) const {
   for (const auto& setting : drawSettings) {
     writer.write<f32>(setting.normEffectScale);
     writer.write<u8>(static_cast<u8>(setting.pattern));
-    for (auto e : setting.unk)
+    for (auto e : setting.stackjunk)
       writer.write<u8>(e);
   }
 }

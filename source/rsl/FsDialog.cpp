@@ -116,13 +116,13 @@ SaveOneFile(std::string_view title, std::string_view default_path,
     auto f = filter.substr(0, filter.find_first_of(";"));
     auto filter_path = std::filesystem::path(f);
     // We also are ignoring everything before the format
-    if (!filter_path.has_extension()) {
+    if (!filter_path.has_extension() && filter_path != "*") {
       return std::string(
           "Internal error: file dialog supplied invalid filter " + filter +
           ". Cannot determine extension.");
     }
     // Note: for now just add it if missing. Can correct it also.
-    if (!result.has_extension()) {
+    if (!result.has_extension() && filter_path.has_extension()) {
       result.replace_extension(filter_path.extension());
     }
   }

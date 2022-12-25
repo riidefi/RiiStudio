@@ -57,7 +57,8 @@ static void gatherSelected(kpi::SelectionManager& ed,
     auto* col = dynamic_cast<kpi::INode*>(obj);
     if (col != nullptr) {
       for (int j = 0; j < col->numFolders(); ++j) {
-        gatherSelected(ed, tmp, *col->folderAt(i), pred);
+        if (col->folderAt(i) != nullptr)
+          gatherSelected(ed, tmp, *col->folderAt(i), pred);
       }
     }
   }

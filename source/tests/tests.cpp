@@ -1,10 +1,10 @@
 #include <core/api.hpp>
 #include <core/util/oishii.hpp>
 #include <librii/egg/Blight.hpp>
+#include <librii/egg/LTEX.hpp>
 #include <librii/kmp/io/KMP.hpp>
 #include <rsl/Ranges.hpp>
 #include <vendor/llvm/Support/InitLLVM.h>
-#include <librii/egg/LTEX.hpp>
 
 IMPORT_STD;
 
@@ -89,7 +89,8 @@ void rebuild(std::string from, const std::string_view to, bool check,
              std::span<const s32> bps) {
   rebuild_dest = to;
 
-  if (from.ends_with("kmp") || from.ends_with("blight") || from.ends_with("blmap")) {
+  if (from.ends_with("kmp") || from.ends_with("blight") ||
+      from.ends_with("blmap")) {
     auto file = OishiiReadFile(from);
     if (!file.has_value()) {
       printf("Cannot rebuild\n");
@@ -97,6 +98,11 @@ void rebuild(std::string from, const std::string_view to, bool check,
     }
 
     oishii::Writer writer(0);
+    for (auto bp : bps) {
+      if (bp > 0) {
+        writer.add_bp<u32>(bp);
+      }
+    }
     if (from.ends_with("kmp")) {
       librii::kmp::CourseMap map;
       librii::kmp::readKMP(map, file->slice());
@@ -111,12 +117,16 @@ void rebuild(std::string from, const std::string_view to, bool check,
     } else if (from.ends_with("blmap")) {
       writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
       oishii::BinaryReader reader(file->slice());
+      for (auto bp : bps) {
+        if (bp < 0)
+          reader.add_bp<u32>(-bp);
+      }
       librii::egg::LightMap lmap;
       rsl::SafeReader safe(reader);
-	  lmap.read(safe);
+      lmap.read(safe);
       printf("Writing to %s\n", std::string(to).c_str());
       lmap.write(writer);
-	}
+    }
     OishiiFlushWriter(writer, to);
     return;
   }

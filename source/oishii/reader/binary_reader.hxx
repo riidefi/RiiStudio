@@ -214,6 +214,7 @@ public:
       rsl::debug_break();
       return std::unexpected("Buffer read exceeds file length");
     }
+    readerBpCheck(size, addr - tell());
     std::vector<T> out(size);
     std::copy_n(mView.begin() + addr, size, out.begin());
     return out;

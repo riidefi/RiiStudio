@@ -1,5 +1,7 @@
 #include "Common.hpp"
 
+#include <imcxx/Widgets.hpp>
+
 namespace libcube::UI {
 
 using namespace riistudio::util;
@@ -21,8 +23,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   // ImGui::Text("Number of colors:   %u", colors.size());
   // ImGui::Text("Number of controls: %u", controls.size());
 
-  if (colors.size() > controls.size() / 2 || controls.size() % 2 != 0 ||
-      controls.size() == 0) {
+  if (controls.size() % 2 != 0 || controls.size() == 0) {
     ImGui::TextUnformatted("Cannot edit this material's lighting data."_j);
     return;
   }

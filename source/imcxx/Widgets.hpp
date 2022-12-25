@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 #include <string>
 #include <vector>
+#include <vendor/magic_enum/magic_enum.hpp>
 
 namespace imcxx {
 
@@ -14,9 +15,32 @@ inline int Combo(const std::string& label, const int current_item,
 }
 
 template <typename T>
-inline T Combo(const std::string& label, const T current_item,
-               const char* options) {
+inline T Combo(const std::string& label, T current_item, const char* options) {
   return static_cast<T>(Combo(label, static_cast<int>(current_item), options));
+}
+
+template <typename T>
+inline T EnumCombo(const std::string& label, T currentItem) {
+  static_assert(magic_enum::enum_entries<T>().size() >= 1);
+  std::string options;
+  auto entries = magic_enum::enum_entries<T>();
+  for (auto& [e, name] : entries) {
+    options.append(name);
+    options.resize(options.size() + 1); // Add null terminator
+  }
+  // Let the library decide between a linear / binary search / switch / etc
+  auto idx = magic_enum::enum_index<T>(currentItem);
+  if (!idx.has_value()) {
+    ImGui::Text("%s: Invalid enum value %u", label.c_str(),
+                static_cast<u32>(currentItem));
+    return currentItem;
+  }
+  auto cur = *idx;
+  auto result = Combo(label, cur, options.c_str());
+  if (result >= entries.size() || result < 0) {
+    return entries[0].first;
+  }
+  return entries[result].first;
 }
 
 inline bool BeginFullscreenWindow(const char* label, bool* open) {
