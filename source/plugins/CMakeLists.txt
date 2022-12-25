@@ -84,7 +84,7 @@ add_library(plugins
   "mk/BFG/FogView.cpp"
   "mk/BFG/Node.h"
   
- "rhst/RHSTImporter.cpp" "g3d/ui/G3dSrtView.cpp" "g3d/G3dUi.cpp"  "g3d/G3dIo.hpp" "j3d/J3dIo.hpp" "ass/Ass.hpp" "ass/SupportedFiles.hpp" "ass/SupportedFiles.cpp" "ass/InclusionMask.hpp" "ass/InclusionMask.cpp" "ass/LogScope.hpp" "ass/LogScope.cpp" "ass/ImportTexture.hpp" "ass/ImportTexture.cpp" "mk/LTEX.cpp")
+ "rhst/RHSTImporter.cpp" "g3d/ui/G3dSrtView.cpp" "g3d/G3dUi.cpp"  "g3d/G3dIo.hpp" "j3d/J3dIo.hpp" "ass/Ass.hpp" "ass/SupportedFiles.hpp" "ass/SupportedFiles.cpp" "ass/InclusionMask.hpp" "ass/InclusionMask.cpp" "ass/LogScope.hpp" "ass/LogScope.cpp" "ass/ImportTexture.hpp" "ass/ImportTexture.cpp" "mk/LTEX.cpp" "mk/LIGHT.cpp")
 
  target_precompile_headers(plugins
   PUBLIC

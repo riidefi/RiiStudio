@@ -52,7 +52,7 @@ void Blight::read(oishii::BinaryReader& reader) {
     obj.specularColor << reader;
     obj.spotCutoffAngle = reader.read<f32>();
     obj.refDist = reader.read<f32>();
-    obj.refBrightness = reader.read<f32>();
+    obj.refBright = reader.read<f32>();
     reader.read<u32>();
     obj.snapTargetIndex = reader.read<u16>();
     reader.read<u16>();
@@ -99,7 +99,7 @@ void Blight::write(oishii::Writer& writer) {
     obj.specularColor >> writer;
     writer.write<f32>(obj.spotCutoffAngle);
     writer.write<f32>(obj.refDist);
-    writer.write<f32>(obj.refBrightness);
+    writer.write<f32>(obj.refBright);
     writer.write<u32>(0);
     writer.write<u16>(obj.snapTargetIndex);
     writer.write<u16>(0);
