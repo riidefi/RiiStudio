@@ -61,6 +61,10 @@ TEST_DATA = {
 	# default.blmap
 	# 1:1
 	'e98edea25b4ed1088967e81cc2e214c7': 'e98edea25b4ed1088967e81cc2e214c7',
+
+	# map_model.brres
+	# 1:1
+	'b5a3663ec86a2f96e53d811af8775b9a': 'b5a3663ec86a2f96e53d811af8775b9a',
 }
 
 BREAKPOINTS = {

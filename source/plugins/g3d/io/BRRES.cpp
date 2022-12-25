@@ -25,8 +25,7 @@ namespace riistudio::g3d {
 #pragma region Bones
 
 u32 computeFlag(const librii::g3d::BoneData& data,
-                std::span<const librii::g3d::BoneData> all,
-                bool display_matrix) {
+                std::span<const librii::g3d::BoneData> all) {
   u32 flag = 0;
   const std::array<float, 3> scale{data.mScaling.x, data.mScaling.y,
                                    data.mScaling.z};
@@ -68,9 +67,8 @@ u32 computeFlag(const librii::g3d::BoneData& data,
   if (data.visible)
     flag |= 0x100;
   // TODO: Check children?
-  if (!data.mDisplayCommands.empty() /* TODO: Might need to check if any display
-                                        command has currentMtx set */
-      || display_matrix)
+
+  if (data.displayMatrix)
     flag |= 0x200;
   // TODO: 0x400 check parents
   return flag;
@@ -81,6 +79,8 @@ void setFromFlag(librii::g3d::BoneData& data, u32 flag) {
   data.ssc = (flag & 0x20) != 0;
   data.classicScale = (flag & 0x80) == 0;
   data.visible = (flag & 0x100) != 0;
+  // Just trust it at this point
+  data.displayMatrix = (flag & 0x200) != 0;
 }
 
 librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin) {
@@ -114,7 +114,7 @@ toBinaryBone(const librii::g3d::BoneData& bone,
 
   // TODO: Fix
   bool is_display = displayMatrices.contains(bone.matrixId) || true;
-  bin.flag = computeFlag(bone, bones, is_display);
+  bin.flag = computeFlag(bone, bones);
   bin.id = bone_id;
 
   bin.billboardType = bone.billboardType;
@@ -302,8 +302,8 @@ void processModel(librii::g3d::BinaryModel& binary_model,
     }
     mdl.sourceLocation = info.sourceLocation;
     {
-      auto displayMatrices =
-          librii::gx::computeDisplayMatricesSubset(binary_model.meshes);
+      auto displayMatrices = librii::gx::computeDisplayMatricesSubset(
+          binary_model.meshes, binary_model.bones);
       ctx.request(info.numViewMtx == displayMatrices.size(),
                   "Model header specifies {} display matrices, but the mesh "
                   "data only references {} display matrices.",
@@ -362,19 +362,9 @@ void processModel(librii::g3d::BinaryModel& binary_model,
 
   mdl.getBones().resize(binary_model.bones.size());
   for (size_t i = 0; i < binary_model.bones.size(); ++i) {
+    assert(binary_model.bones[i].id == i);
     static_cast<librii::g3d::BoneData&>(mdl.getBones()[i]) =
         fromBinaryBone(binary_model.bones[i]);
-  }
-
-  // Compute children
-  for (int i = 0; i < mdl.getBones().size(); ++i) {
-    if (const auto parent_id = mdl.getBones()[i].mParent; parent_id >= 0) {
-      if (parent_id >= mdl.getBones().size()) {
-        printf("Invalidly large parent index..\n");
-        break;
-      }
-      mdl.getBones()[parent_id].mChildren.push_back(i);
-    }
   }
 
   for (auto& pos : binary_model.positions) {
@@ -563,7 +553,7 @@ struct ShaderAllocator {
 
 librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
   std::set<s16> displayMatrices =
-      librii::gx::computeDisplayMatricesSubset(mdl.getMeshes());
+      librii::gx::computeDisplayMatricesSubset(mdl.getMeshes(), mdl.getBones());
 
   ShaderAllocator shader_allocator;
   for (auto& mat : mdl.getMaterials()) {

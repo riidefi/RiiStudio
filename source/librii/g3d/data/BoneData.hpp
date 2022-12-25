@@ -39,6 +39,8 @@ struct BinaryBoneData {
 
   void read(oishii::BinaryReader& reader);
   void write(NameTable& names, oishii::Writer& writer, u32 mdl_start) const;
+
+  bool isDisplayMatrix() const { return flag & 0x200; }
 };
 
 struct BoneData {
@@ -60,6 +62,7 @@ struct BoneData {
   s32 mParent = -1;
   std::vector<s32> mChildren;
 
+  bool displayMatrix = true;
   // TODO: userdata
 
   struct DisplayCommand {
@@ -82,6 +85,7 @@ struct BoneData {
   std::array<f32, 3 * 4> inverseModelMtx;
 
   std::string getName() const { return mName; }
+  bool isDisplayMatrix() const { return displayMatrix; }
 
   bool operator==(const BoneData& rhs) const = default;
 };

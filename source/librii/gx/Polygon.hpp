@@ -143,7 +143,8 @@ inline std::pair<u32, u32> computeVertTriCounts(const auto& meshes) {
 //
 // Build display matrix index (subset of mDrawMatrices)
 //
-inline std::set<s16> computeDisplayMatricesSubset(const auto& meshes) {
+inline std::set<s16> computeDisplayMatricesSubset(const auto& meshes,
+                                                  const auto& bones) {
   std::set<s16> displayMatrices;
   for (const auto& mesh : meshes) {
     // TODO: Do we need to check currentMatrixEmbedded flag?
@@ -160,6 +161,12 @@ inline std::set<s16> computeDisplayMatricesSubset(const auto& meshes) {
         }
         displayMatrices.insert(w);
       }
+    }
+  }
+  for (const auto& bone : bones) {
+    // This is ignored?
+    if (bone.isDisplayMatrix() || true) {
+      displayMatrices.insert(bone.matrixId);
     }
   }
   return displayMatrices;
