@@ -31,9 +31,32 @@ bool DrawViewCube(float last_width, float last_height, glm::mat4& view_mtx,
   auto tVm = view_mtx;
   auto max = ImGui::GetContentRegionMaxAbs();
 
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      auto& f = view_mtx[i][j];
+      assert(!std::isnan(f));
+    }
+  }
+
   ImGuizmo::ViewManipulate(glm::value_ptr(view_mtx), 20.0f,
                            {max.x - 200.0f, max.y - 200.0f}, {200.0f, 200.0f},
                            viewcube_bg);
+
+  bool broken = false;
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      auto& f = view_mtx[i][j];
+	  // assert(!std::isnan(f));
+      if (std::isnan(f)) {
+        broken = true;
+        break;
+	  }
+    }
+  }
+
+  if (broken) {
+    view_mtx = tVm;
+  }
 
   return tVm != view_mtx;
 }
