@@ -232,8 +232,8 @@ public:
 
     if (matrixId >= mdl.mDrawMatrices.size()) {
       mdl.mDrawMatrices.resize(matrixId + 1);
-      mdl.mDrawMatrices[matrixId].mWeights.emplace_back(desc.boneId, 1.0f);
     }
+    mdl.mDrawMatrices[matrixId].mWeights.emplace_back(desc.boneId, 1.0f);
   }
 
   // Either-or: A matrix is either single-bound (EVP) or multi-influence

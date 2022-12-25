@@ -287,8 +287,12 @@ void ReadMesh(
       mLoadingNrmMatrices = 0;
       mLoadingTexMatrices = 0;
 
-      if (mPoly.mMatrixPrimitives.empty())
+      if (mPoly.mMatrixPrimitives.empty()) {
         mPoly.mMatrixPrimitives.push_back(librii::gx::MatrixPrimitive{});
+
+        // This is a J3D-only field, but we can fill it out anyway
+        mPoly.mMatrixPrimitives.back().mCurrentMatrix = mPoly.mCurrentMatrix;
+      }
       auto& prim = mPoly.mMatrixPrimitives.back().mPrimitives.emplace_back(
           librii::gx::IndexedPrimitive{});
       prim.mType = type;
