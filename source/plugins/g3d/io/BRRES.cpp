@@ -625,6 +625,7 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
       lut.resize(mdl.mDrawMatrices.size());
       std::ranges::fill(lut, -1);
       for (const auto& [i, bone] : rsl::enumerate(bin.bones)) {
+        assert(bone.matrixId < lut.size());
         lut[bone.matrixId] = i;
       }
     }

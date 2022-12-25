@@ -493,6 +493,8 @@ std::vector<u8> WriteRSPreset(const CrateAnimation& preset) {
         srt;
   }
 
+  mdl.mDrawMatrices.push_back(libcube::DrawMatrix{.mWeights = {{0, 1.0f}}});
+
   // This is required for some reason
   mdl.getBones().add().mName = preset.metadata;
 
