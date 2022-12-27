@@ -12,6 +12,8 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
 
+#include <glm/mat4x3.hpp>
+
 namespace librii::g3d {
 
 class NameTable;
@@ -34,13 +36,16 @@ struct BinaryBoneData {
   // Non-cyclic linked-list
   int sibling_right_id = -1;
   int sibling_left_id = -1;
-  std::array<f32, 3 * 4> modelMtx;
-  std::array<f32, 3 * 4> inverseModelMtx;
+
+  // 3 columns 4 rows (Mtx34 in-game)
+  glm::mat4x3 modelMtx;
+  glm::mat4x3 inverseModelMtx;
 
   void read(oishii::BinaryReader& reader);
   void write(NameTable& names, oishii::Writer& writer, u32 mdl_start) const;
 
   bool isDisplayMatrix() const { return flag & 0x200; }
+  bool hasChildren() const { return child_first_id != -1; }
 };
 
 struct BoneData {
@@ -56,6 +61,8 @@ struct BoneData {
   glm::vec3 mScaling{1.0f, 1.0f, 1.0f};
   glm::vec3 mRotation{0.0f, 0.0f, 0.0f};
   glm::vec3 mTranslation{0.0f, 0.0f, 0.0f};
+
+  glm::mat4x3 invModelMtx; // Until we can match their inversion algorithm
 
   librii::math::AABB mVolume;
 
@@ -81,11 +88,9 @@ struct BoneData {
   };
   std::vector<DisplayCommand> mDisplayCommands;
 
-  std::array<f32, 3 * 4> modelMtx;
-  std::array<f32, 3 * 4> inverseModelMtx;
-
   std::string getName() const { return mName; }
   bool isDisplayMatrix() const { return displayMatrix; }
+  bool hasChildren() const { return !mChildren.empty(); }
 
   bool operator==(const BoneData& rhs) const = default;
 };

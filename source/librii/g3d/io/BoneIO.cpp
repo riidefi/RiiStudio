@@ -28,8 +28,11 @@ void BinaryBoneData::read(oishii::BinaryReader& reader) {
     if (ofs == 0)
       return -1;
     // skip to id
-    oishii::Jump<oishii::Whence::Set>(reader, start + ofs + 12);
-    return static_cast<s32>(reader.read<u32>());
+    auto back = reader.tell();
+    reader.seekSet(start + ofs + 12);
+    auto id = reader.read<s32>();
+    reader.seekSet(back);
+    return id;
   };
   parent_id = readHierarchyElement();
   child_first_id = readHierarchyElement();
@@ -38,10 +41,14 @@ void BinaryBoneData::read(oishii::BinaryReader& reader) {
   // Skip sibling and child links -- we recompute it all
   // Skip user data offset
   reader.seekSet(start + 0x70);
-  for (auto& d : modelMtx)
-    d = reader.read<f32>();
-  for (auto& d : inverseModelMtx)
-    d = reader.read<f32>();
+
+  // glm matrices are column-major
+  for (int i = 0; i < 3; ++i)
+    for (int j = 0; j < 4; ++j)
+      modelMtx[j][i] = reader.read<f32>();
+  for (int i = 0; i < 3; ++i)
+    for (int j = 0; j < 4; ++j)
+      inverseModelMtx[j][i] = reader.read<f32>();
 }
 void BinaryBoneData::write(NameTable& names, oishii::Writer& writer,
                            u32 mdl_start) const {
@@ -69,10 +76,13 @@ void BinaryBoneData::write(NameTable& names, oishii::Writer& writer,
 
   writer.write<u32>(0); // user data
 
-  for (auto d : modelMtx)
-    writer.write<f32>(d);
-  for (auto d : inverseModelMtx)
-    writer.write<f32>(d);
+  // glm matrices are column-major
+  for (int i = 0; i < 3; ++i)
+    for (int j = 0; j < 4; ++j)
+      writer.write<f32>(modelMtx[j][i]);
+  for (int i = 0; i < 3; ++i)
+    for (int j = 0; j < 4; ++j)
+      writer.write<f32>(inverseModelMtx[j][i]);
 }
 
 } // namespace librii::g3d

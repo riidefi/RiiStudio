@@ -163,9 +163,16 @@ inline std::set<s16> computeDisplayMatricesSubset(const auto& meshes,
       }
     }
   }
+  const size_t len = displayMatrices.size();
   for (const auto& bone : bones) {
-    // This is ignored?
-    if (bone.isDisplayMatrix() || true) {
+    // isDisplayMatrix is ignored?
+    if ((bone.isDisplayMatrix() || true) &&
+        !displayMatrices.contains(bone.matrixId)) {
+      // Assume non-view matrices are appended to end
+      // HACK: Permit leaves to match map_model.brres
+      if (bone.matrixId >= len && bone.hasChildren()) {
+        continue;
+      }
       displayMatrices.insert(bone.matrixId);
     }
   }

@@ -40,6 +40,7 @@ TEST_DATA = {
 
 	# human_walk.brres
 	# 1:1
+	'996b45501b13c14e3f4136eb4fb3efba': '996b45501b13c14e3f4136eb4fb3efba',
 	'bbd05488abd1dd21ac2cb21077d8ccdc': 'bbd05488abd1dd21ac2cb21077d8ccdc',
 
 	# default.blight
@@ -65,6 +66,7 @@ TEST_DATA = {
 	# map_model.brres
 	# 1:1
 	'b5a3663ec86a2f96e53d811af8775b9a': 'b5a3663ec86a2f96e53d811af8775b9a',
+	'b7fac9238095c5294730910b87d69910': 'b7fac9238095c5294730910b87d69910', # farm_course
 }
 
 BREAKPOINTS = {

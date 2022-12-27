@@ -14,6 +14,10 @@
 
 #include <rsl/Ranges.hpp>
 
+#include <glm/gtc/type_ptr.hpp>
+
+#include <librii/g3d/io/WiiTrig.hpp>
+
 IMPORT_STD;
 
 namespace librii::g3d {
@@ -83,9 +87,123 @@ void setFromFlag(librii::g3d::BoneData& data, u32 flag) {
   data.displayMatrix = (flag & 0x200) != 0;
 }
 
-librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin) {
+librii::math::SRT3 getSrt(const librii::g3d::BinaryBoneData& bone) {
+  return {
+      .scale = bone.scale,
+      .rotation = bone.rotate,
+      .translation = bone.translate,
+  };
+}
+librii::math::SRT3 getSrt(const librii::g3d::BoneData& bone) {
+  return {
+      .scale = bone.mScaling,
+      .rotation = bone.mRotation,
+      .translation = bone.mTranslation,
+  };
+}
+
+s32 parentOf(const librii::g3d::BinaryBoneData& bone) { return bone.parent_id; }
+s32 parentOf(const librii::g3d::BoneData& bone) { return bone.mParent; }
+
+s32 ssc(const librii::g3d::BinaryBoneData& bone) { return bone.flag & 0x20; }
+s32 ssc(const librii::g3d::BoneData& bone) { return bone.ssc; }
+
+using WiiFloat = f64;
+
+// COLUMN-MAJOR IMPLEMENTATION
+void CalcEnvelopeContribution(glm::mat4& thisMatrix, glm::vec3& thisScale,
+                              const auto& node,
+                              const glm::mat4& parentMtx,
+                              const glm::vec3& parentScale,
+                              librii::g3d::ScalingRule scalingRule) {
+  auto srt = getSrt(node);
+  if (ssc(node)) {
+    librii::g3d::Mtx_makeRotateDegrees(/*out*/ thisMatrix, srt.rotation.x,
+                                       srt.rotation.y, srt.rotation.z);
+    thisMatrix[3][0] = (WiiFloat)srt.translation.x * (WiiFloat)parentScale.x;
+    thisMatrix[3][1] = (WiiFloat)srt.translation.y * (WiiFloat)parentScale.y;
+    thisMatrix[3][2] = (WiiFloat)srt.translation.z * (WiiFloat)parentScale.z;
+    // PSMTXConcat(parentMtx, &thisMatrix, /*out*/ &thisMatrix);
+    // thisMatrix = parentMtx * thisMatrix;
+    thisMatrix = librii::g3d::MTXConcat(parentMtx, thisMatrix);
+    thisScale.x = srt.scale.x;
+    thisScale.y = srt.scale.y;
+    thisScale.z = srt.scale.z;
+  } else if (scalingRule ==
+             librii::g3d::ScalingRule::XSI) { // CLASSIC_SCALE_OFF
+    librii::g3d::Mtx_makeRotateDegrees(/*out*/ thisMatrix, srt.rotation.x,
+                                       srt.rotation.y, srt.rotation.z);
+    thisMatrix[3][0] = (WiiFloat)srt.translation.x * (WiiFloat)parentScale.x;
+    thisMatrix[3][1] = (WiiFloat)srt.translation.y * (WiiFloat)parentScale.y;
+    thisMatrix[3][2] = (WiiFloat)srt.translation.z * (WiiFloat)parentScale.z;
+    // PSMTXConcat(parentMtx, &thisMatrix, /*out*/ &thisMatrix);
+    // thisMatrix = parentMtx * thisMatrix;
+    thisMatrix = librii::g3d::MTXConcat(parentMtx, thisMatrix);
+    thisScale.x = (WiiFloat)srt.scale.x * (WiiFloat)parentScale.x;
+    thisScale.y = (WiiFloat)srt.scale.y * (WiiFloat)parentScale.y;
+    thisScale.z = (WiiFloat)srt.scale.z * (WiiFloat)parentScale.z;
+  } else {
+    glm::mat4x3 scratch;
+    // Mtx_scale(/*out*/ &scratch, parentMtx, parentScale);
+    librii::g3d::Mtx_scale(/*out*/ scratch, parentMtx, parentScale);
+    // scratch = glm::scale(parentMtx, parentScale);
+    librii::g3d::Mtx_makeRotateDegrees(/*out*/ thisMatrix, srt.rotation.x,
+                                       srt.rotation.y, srt.rotation.z);
+    thisMatrix[3][0] = srt.translation.x;
+    thisMatrix[3][1] = srt.translation.y;
+    thisMatrix[3][2] = srt.translation.z;
+    // PSMTXConcat(scratch, &thisMatrix, /*out*/ &thisMatrix);
+    // thisMatrix = scratch * thisMatrix;
+    thisMatrix = librii::g3d::MTXConcat(scratch, thisMatrix);
+    thisScale.x = srt.scale.x;
+    thisScale.y = srt.scale.y;
+    thisScale.z = srt.scale.z;
+  }
+}
+
+// SLOW IMPLEMENTATION
+inline glm::mat4 calcSrtMtx(const auto& bone, auto&& bones,
+                            librii::g3d::ScalingRule scalingRule) {
+  std::vector<s32> path;
+  auto* it = &bone;
+  while (true) {
+    s32 parentIndex = parentOf(*it);
+    if (parentIndex < 0 || parentIndex >= std::ranges::size(bones)) {
+      break;
+    }
+    path.push_back(parentIndex);
+    it = &bones[parentIndex];
+  }
+
+  glm::mat4 mat(1.0f);
+  glm::vec3 scl(1.0f, 1.0f, 1.0f);
+  for (int i = 0; i < path.size(); ++i) {
+    auto index = path[path.size() - 1 - i];
+    auto& thisBone = bones[index];
+
+    glm::mat4 thisMatrix(1.0f);
+    glm::vec3 thisScale(1.0f, 1.0f, 1.0f);
+    CalcEnvelopeContribution(/*out*/ thisMatrix, /*out*/ thisScale, thisBone,
+                             mat, scl, scalingRule);
+    mat = thisMatrix;
+    scl = thisScale;
+  }
+  glm::mat4 thisMatrix(1.0f);
+  glm::vec3 thisScale(1.0f, 1.0f, 1.0f);
+  {
+    CalcEnvelopeContribution(/*out*/ thisMatrix, /*out*/ thisScale, bone, mat,
+                             scl, scalingRule);
+  }
+  // return glm::scale(thisMatrix, thisScale);
+  glm::mat4x3 tmp;
+  librii::g3d::Mtx_scale(tmp, thisMatrix, thisScale);
+  return tmp;
+}
+librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
+                                     auto&& bones) {
   librii::g3d::BoneData bone;
   bone.mName = bin.name;
+  printf("%s\n", bone.mName.c_str());
   bone.matrixId = bin.matrixId;
   bone.billboardType = bin.billboardType;
   // TODO: refId
@@ -97,8 +215,29 @@ librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin) {
 
   bone.mParent = bin.parent_id;
   // Skip sibling and child links -- we recompute it all
-  bone.modelMtx = bin.modelMtx;
-  bone.inverseModelMtx = bin.inverseModelMtx;
+
+  auto modelMtx =
+      calcSrtMtx(bin, bones, librii::g3d::ScalingRule::Maya /* TODO */);
+  auto modelMtx34 = glm::mat4x3(modelMtx);
+#if 0
+  for (int col = 0; col < 4; ++col) {
+    for (int row = 0; row < 3; ++row) {
+      if (std::abs(modelMtx34[col][row]) <
+          std::numeric_limits<f32>::epsilon()) {
+        modelMtx34[col][row] = 0.0f;
+      }
+    }
+  }
+#endif
+
+  // auto invModelMtx = glm::inverse(modelMtx);
+  // auto invModelMtx34 = glm::mat4x3(invModelMtx);
+
+  assert(bin.modelMtx == modelMtx34);
+  // assert(bin.inverseModelMtx == invModelMtx34);
+
+  // Until we match their algorithm
+  bone.invModelMtx = bin.inverseModelMtx;
 
   setFromFlag(bone, bin.flag);
   return bone;
@@ -141,8 +280,13 @@ toBinaryBone(const librii::g3d::BoneData& bone,
     bin.sibling_left_id = it == siblings.begin() ? -1 : *(it - 1);
     bin.sibling_right_id = it == siblings.end() - 1 ? -1 : *(it + 1);
   }
-  bin.modelMtx = bone.modelMtx;
-  bin.inverseModelMtx = bone.inverseModelMtx;
+
+  auto modelMtx =
+      calcSrtMtx(bone, bones, librii::g3d::ScalingRule::Maya /* TODO */);
+  auto modelMtx34 = glm::mat4x3(modelMtx);
+
+  bin.modelMtx = modelMtx34;
+  bin.inverseModelMtx = bone.invModelMtx;
   return bin;
 }
 
@@ -364,7 +508,7 @@ void processModel(librii::g3d::BinaryModel& binary_model,
   for (size_t i = 0; i < binary_model.bones.size(); ++i) {
     assert(binary_model.bones[i].id == i);
     static_cast<librii::g3d::BoneData&>(mdl.getBones()[i]) =
-        fromBinaryBone(binary_model.bones[i]);
+        fromBinaryBone(binary_model.bones[i], binary_model.bones);
   }
 
   for (auto& pos : binary_model.positions) {
