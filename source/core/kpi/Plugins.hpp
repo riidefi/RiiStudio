@@ -88,8 +88,16 @@ struct IOContext {
     request(cond, msg);
   }
 
+  template <typename... T>
+  void require(bool cond, std::string_view f_, T&&... args) {
+    // TODO: Use basic_format_string
+    auto msg = std::vformat(f_, std::make_format_args(args...));
+    require(cond, msg);
+  }
+
   IOContext(std::string&& p, kpi::LightIOTransaction& t)
       : path(std::move(p)), transaction(t) {}
+  IOContext(kpi::IOContext& c) : path(c.path), transaction(c.transaction) {}
   IOContext(kpi::LightIOTransaction& t) : transaction(t) {}
 };
 

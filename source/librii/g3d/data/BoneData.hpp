@@ -52,7 +52,8 @@ struct BoneData {
   std::string mName = "Untitled Bone";
 
   bool ssc = false;
-  bool classicScale = true;
+  // Instead refer to scalingRule != SOFTIMAGE
+  // bool classicScale = true;
   bool visible = true;
 
   u32 matrixId = 0;
@@ -61,8 +62,6 @@ struct BoneData {
   glm::vec3 mScaling{1.0f, 1.0f, 1.0f};
   glm::vec3 mRotation{0.0f, 0.0f, 0.0f};
   glm::vec3 mTranslation{0.0f, 0.0f, 0.0f};
-
-  glm::mat4x3 invModelMtx; // Until we can match their inversion algorithm
 
   librii::math::AABB mVolume;
 

@@ -29,7 +29,8 @@ namespace riistudio::g3d {
 #pragma region Bones
 
 u32 computeFlag(const librii::g3d::BoneData& data,
-                std::span<const librii::g3d::BoneData> all) {
+                std::span<const librii::g3d::BoneData> all,
+                librii::g3d::ScalingRule scalingRule) {
   u32 flag = 0;
   const std::array<float, 3> scale{data.mScaling.x, data.mScaling.y,
                                    data.mScaling.z};
@@ -66,7 +67,7 @@ u32 computeFlag(const librii::g3d::BoneData& data,
   }
   if (data.ssc)
     flag |= 0x20;
-  if (!data.classicScale)
+  if (scalingRule == librii::g3d::ScalingRule::XSI)
     flag |= 0x80;
   if (data.visible)
     flag |= 0x100;
@@ -81,7 +82,10 @@ u32 computeFlag(const librii::g3d::BoneData& data,
 void setFromFlag(librii::g3d::BoneData& data, u32 flag) {
   // TODO: Validate items
   data.ssc = (flag & 0x20) != 0;
-  data.classicScale = (flag & 0x80) == 0;
+
+  // Instead refer to scalingRule == SOFTIMAGE
+  // data.classicScale = (flag & 0x80) == 0;
+
   data.visible = (flag & 0x100) != 0;
   // Just trust it at this point
   data.displayMatrix = (flag & 0x200) != 0;
@@ -112,8 +116,7 @@ using WiiFloat = f64;
 
 // COLUMN-MAJOR IMPLEMENTATION
 void CalcEnvelopeContribution(glm::mat4& thisMatrix, glm::vec3& thisScale,
-                              const auto& node,
-                              const glm::mat4& parentMtx,
+                              const auto& node, const glm::mat4& parentMtx,
                               const glm::vec3& parentScale,
                               librii::g3d::ScalingRule scalingRule) {
   auto srt = getSrt(node);
@@ -199,8 +202,43 @@ inline glm::mat4 calcSrtMtx(const auto& bone, auto&& bones,
   librii::g3d::Mtx_scale(tmp, thisMatrix, thisScale);
   return tmp;
 }
+
+// Compute the Kullback-Leibler divergence between p and q
+double kl_divergence(const glm::highp_dmat4x3& p, const glm::highp_dmat4x3& q) {
+  double divergence = 0;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 3; j++) {
+      double pi = p[i][j];
+      double qi = q[i][j];
+      if (pi == 0.0 || qi == 0.0)
+        continue;
+      divergence += pi * std::log(pi / qi);
+    }
+  }
+  return divergence;
+}
+double jensen_shannon_divergence(const glm::mat4x3& lowp_p,
+                                 const glm::mat4x3& lowp_q) {
+  auto p = glm::highp_dmat4x3(lowp_p);
+  auto q = glm::highp_dmat4x3(lowp_q);
+
+  // Calculate average distribution
+  auto m = (p + q) / 2.0;
+
+  // Calculate KL divergence between p and m
+  auto kl1 = kl_divergence(p, m);
+
+  // Calculate KL divergence between q and m
+  auto kl2 = kl_divergence(q, m);
+
+  // Calculate JS divergence
+  return (kl1 + kl2) / 2;
+}
+
 librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
-                                     auto&& bones) {
+                                     auto&& bones, kpi::IOContext& ctx_,
+                                     librii::g3d::ScalingRule scalingRule) {
+  auto ctx = ctx_.sublet("Bone " + bin.name);
   librii::g3d::BoneData bone;
   bone.mName = bin.name;
   printf("%s\n", bone.mName.c_str());
@@ -216,29 +254,31 @@ librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
   bone.mParent = bin.parent_id;
   // Skip sibling and child links -- we recompute it all
 
-  auto modelMtx =
-      calcSrtMtx(bin, bones, librii::g3d::ScalingRule::Maya /* TODO */);
+  auto modelMtx = calcSrtMtx(bin, bones, scalingRule);
   auto modelMtx34 = glm::mat4x3(modelMtx);
-#if 0
-  for (int col = 0; col < 4; ++col) {
-    for (int row = 0; row < 3; ++row) {
-      if (std::abs(modelMtx34[col][row]) <
-          std::numeric_limits<f32>::epsilon()) {
-        modelMtx34[col][row] = 0.0f;
-      }
-    }
-  }
-#endif
 
-  // auto invModelMtx = glm::inverse(modelMtx);
-  // auto invModelMtx34 = glm::mat4x3(invModelMtx);
+  auto invModelMtx =
+      librii::g3d::MTXInverse(modelMtx).value_or(glm::mat4(0.0f));
+  auto invModelMtx34 = glm::mat4x3(invModelMtx);
 
-  assert(bin.modelMtx == modelMtx34);
+  // auto test = jensen_shannon_divergence(bin.modelMtx, bin.inverseModelMtx);
+  // auto test2 = jensen_shannon_divergence(bin.modelMtx, glm::mat4(1.0f));
+  auto divergeM = jensen_shannon_divergence(bin.modelMtx, modelMtx34);
+  auto divergeI = jensen_shannon_divergence(bin.inverseModelMtx, invModelMtx34);
+  // assert(bin.modelMtx == modelMtx34);
   // assert(bin.inverseModelMtx == invModelMtx34);
-
-  // Until we match their algorithm
-  bone.invModelMtx = bin.inverseModelMtx;
-
+  ctx.require(bin.modelMtx == modelMtx34,
+              "Incorrect envelope matrix (Jensen-Shannon divergence: {})",
+              divergeM);
+  ctx.require(bin.inverseModelMtx == invModelMtx34,
+              "Incorrect inverse model matrix (Jensen-Shannon divergence: {})",
+              divergeI);
+  bool classic = !static_cast<bool>(bin.flag & 0x80);
+  if (classic != (scalingRule != librii::g3d::ScalingRule::XSI)) {
+    ctx.error(std::format("Bone is configured as {} but model is {}",
+                          !classic ? "XSI" : "non-XSI",
+                          magic_enum::enum_name(scalingRule)));
+  }
   setFromFlag(bone, bin.flag);
   return bone;
 }
@@ -246,14 +286,15 @@ librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
 librii::g3d::BinaryBoneData
 toBinaryBone(const librii::g3d::BoneData& bone,
              std::span<const librii::g3d::BoneData> bones, u32 bone_id,
-             const std::set<s16>& displayMatrices) {
+             const std::set<s16>& displayMatrices,
+             librii::g3d::ScalingRule scalingRule) {
   librii::g3d::BinaryBoneData bin;
   bin.name = bone.mName;
   bin.matrixId = bone.matrixId;
 
   // TODO: Fix
   bool is_display = displayMatrices.contains(bone.matrixId) || true;
-  bin.flag = computeFlag(bone, bones);
+  bin.flag = computeFlag(bone, bones, scalingRule);
   bin.id = bone_id;
 
   bin.billboardType = bone.billboardType;
@@ -281,12 +322,12 @@ toBinaryBone(const librii::g3d::BoneData& bone,
     bin.sibling_right_id = it == siblings.end() - 1 ? -1 : *(it + 1);
   }
 
-  auto modelMtx =
-      calcSrtMtx(bone, bones, librii::g3d::ScalingRule::Maya /* TODO */);
+  auto modelMtx = calcSrtMtx(bone, bones, scalingRule);
   auto modelMtx34 = glm::mat4x3(modelMtx);
 
   bin.modelMtx = modelMtx34;
-  bin.inverseModelMtx = bone.invModelMtx;
+  bin.inverseModelMtx =
+      librii::g3d::MTXInverse(modelMtx34).value_or(glm::mat4x3(0.0f));
   return bin;
 }
 
@@ -508,7 +549,8 @@ void processModel(librii::g3d::BinaryModel& binary_model,
   for (size_t i = 0; i < binary_model.bones.size(); ++i) {
     assert(binary_model.bones[i].id == i);
     static_cast<librii::g3d::BoneData&>(mdl.getBones()[i]) =
-        fromBinaryBone(binary_model.bones[i], binary_model.bones);
+        fromBinaryBone(binary_model.bones[i], binary_model.bones, ctx,
+                       binary_model.info.scalingRule);
   }
 
   for (auto& pos : binary_model.positions) {
@@ -712,7 +754,7 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
   auto bones = mdl.getBones() | rsl::ToList<librii::g3d::BoneData>();
   auto to_binary_bone = [&](auto tuple) {
     auto [index, value] = tuple;
-    return toBinaryBone(value, bones, index, displayMatrices);
+    return toBinaryBone(value, bones, index, displayMatrices, mdl.mScalingRule);
   };
   auto to_binary_mat = [&](auto tuple) {
     auto [index, value] = tuple;
