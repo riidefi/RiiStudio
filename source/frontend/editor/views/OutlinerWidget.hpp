@@ -14,20 +14,17 @@ namespace riistudio::frontend {
 
 struct OutlinerWidget;
 
-struct Child {
-public:
-  // Only here for EditorWindow::mActive
-  kpi::IObject* obj;
+enum NodeType {
+  NODE_OBJECT,
+  NODE_FOLDER,
 
-  // Formatted, [#Stages=n]
-  std::string public_name;
+  // Internal. Do not use.
+  NODE_OBJECT_POP,
+  NODE_FOLDER_POP,
+};
 
-  // Rich name (Icon+Name of type, singular/plural)
-  //
-  // Previously stored a RichName, now use type_icon, type_name
-  //
-  // If folder[0]->is_rich is NOT set, the folder will not be displayed.
-  bool is_rich = false;
+struct Node {
+  NodeType nodeType = NODE_OBJECT;
 
   // Icons on the left of the text
   //
@@ -44,29 +41,36 @@ public:
   //
   std::string type_name = "Unknown Thing";
 
+  ///////////////////////////////////////////////////////
+  // FOLDER ONLY
+  ///////////////////////////////////////////////////////
+
+  // TODO: These functions can produce stale references
+  std::function<void()> add_new_fn;
+  std::function<void(size_t)> delete_child_fn;
+  // typename e.g. `class riistudio::g3d::Model`
+  std::string key;
+
+  ///////////////////////////////////////////////////////
+  // FILE ONLY (for now)
+  ///////////////////////////////////////////////////////
+
+  // Not supported by folders (yet)
+  bool mark_to_delete = false;
+
   // Icons on the right of the text
   std::vector<const lib3d::Texture*> icons_right;
 
-  struct Folder {
-    std::vector<std::optional<Child>> children;
+  // These are not supported by folders (yet)
+  std::function<void(OutlinerWidget*)> draw_context_menu_fn;
+  // TODO: Replace with modal stack
+  std::function<void(OutlinerWidget*)> draw_modal_fn;
 
-    // typename e.g. `class riistudio::g3d::Model`
-    std::string key;
+  // Formatted, [#Stages=n]
+  std::string public_name;
 
-    // TODO: This function can produce stale references
-    std::function<void()> add_new_fn;
-    std::function<void(size_t)> delete_child_fn;
-
-    // RichName::getIconPlural()
-    std::string type_icon_pl = "(?)";
-
-    ImVec4 type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f};
-
-    // RichName::getIconPlural()
-    std::string type_name_pl = "Unknown Things";
-  };
-
-  std::vector<Folder> folders;
+  // Only here for EditorWindow::mActive
+  kpi::IObject* obj;
 
   // Potentially has sub-folders
   //
@@ -75,16 +79,24 @@ public:
   bool is_container = false;
 
   // This should only increase or decrease by one per node
-  // Not the most amazing way to implement recursive folders, since it requires
-  // DFS layout of nodes.
+  //
+  // FOR NOW, THIS IS RELATIVE TO THE CHILD NODE
   int indent = 0;
 
-  std::function<void(OutlinerWidget*)> draw_context_menu_fn;
-  // TODO: Replace with modal stack
-  std::function<void(OutlinerWidget*)> draw_modal_fn;
+  // Rich name (Icon+Name of type, singular/plural)
+  //
+  // Previously stored a RichName, now use type_icon, type_name
+  //
+  // If folder[0]->is_rich is NOT set, the folder will not be displayed.
+  bool is_rich = false;
+};
 
-  // TODO
-  bool mark_to_delete = false;
+struct Child : public Node {
+public:
+  struct Folder : public Node {
+    std::vector<std::optional<Child>> children;
+  };
+  std::vector<Folder> folders;
 };
 
 using NodeFolder = Child::Folder;
@@ -98,7 +110,6 @@ using TFilter = ImTFilter;
 
 struct OutlinerWidget {
   std::size_t CalcNumFiltered(const NodeFolder& folder, const TFilter* filter);
-  std::string FormatTitle(const NodeFolder& folder, const TFilter* filter);
 
   void DrawNodePic(Child& child, float initial_pos_y, int icon_size);
 
@@ -119,7 +130,10 @@ struct OutlinerWidget {
   virtual void clearSelection() = 0;
 
 private:
-  void AddNewCtxMenu(Child::Folder& folder);
+  void AddNewCtxMenu(Node& folder);
+
+  bool PushFolder(Child::Folder& folder, TFilter& filter);
+  void PopFolder(Child::Folder& folder);
 };
 
 } // namespace riistudio::frontend

@@ -198,14 +198,18 @@ auto GetGChildren(kpi::INode* node, EditorWindow& ed,
             DeleteChild(node, i);
             outliner->activeModal = {};
           };
-      grandchildren.push_back(
-          Child::Folder{.children = children,
-                        .key = node->idAt(i),
-                        .add_new_fn = std::bind(AddNew, node->folderAt(i)),
-                        .delete_child_fn = delete_child_fn,
-                        .type_icon_pl = icon_pl,
-                        .type_icon_color = icon_color,
-                        .type_name_pl = name_pl});
+      grandchildren.push_back(Child::Folder{
+          {
+              .nodeType = NODE_FOLDER,
+              .type_icon = icon_pl,
+              .type_icon_color = icon_color,
+              .type_name = name_pl,
+              .add_new_fn = std::bind(AddNew, node->folderAt(i)),
+              .delete_child_fn = delete_child_fn,
+              .key = node->idAt(i),
+          },
+          .children = children,
+      });
     }
   }
 
@@ -240,18 +244,22 @@ GetChildren(kpi::ICollection& sampler, EditorWindow& ed,
           DrawModalFor(obj, ed);
         };
 
-    children[i] = Child{.obj = obj,
-                        // .node = node,
-                        .public_name = public_name,
-                        .is_rich = is_rich,
-                        .type_icon = rich.getIconSingular(),
-                        .type_icon_color = rich.getIconColor(),
-                        .type_name = rich.getNameSingular(),
-                        .icons_right = GetNodeIcons(*obj),
-                        .folders = grandchildren,
-                        .is_container = node != nullptr,
-                        .draw_context_menu_fn = ctx_draw,
-                        .draw_modal_fn = modal_draw};
+    children[i] = Child{
+        {
+            .nodeType = NODE_OBJECT,
+            .type_icon = rich.getIconSingular(),
+            .type_icon_color = rich.getIconColor(),
+            .type_name = rich.getNameSingular(),
+            .draw_context_menu_fn = ctx_draw,
+            .draw_modal_fn = modal_draw,
+            .obj = obj,
+            .public_name = public_name,
+            .is_rich = is_rich,
+            .icons_right = GetNodeIcons(*obj),
+            .is_container = node != nullptr,
+        },
+        .folders = grandchildren,
+    };
     if (auto* bone = dynamic_cast<riistudio::lib3d::Bone*>(obj)) {
       auto parent = bone->getBoneParent();
       int depth = 0;
@@ -291,27 +299,33 @@ void GenericCollectionOutliner::draw_() noexcept {
         DrawModalFor(&mHost, ed);
       };
   auto root = Child{
-      .obj = &mHost,
-      .public_name =
-          std::filesystem::path(ed.getFilePath()).filename().string(),
-      .is_rich = true,
-      .type_icon = (const char*)ICON_FA_SHAPES,
-      .type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f},
-      .type_name = "Scene",
-      .icons_right = GetNodeIcons(mHost),
+      {
+          .nodeType = NODE_OBJECT,
+          .type_icon = (const char*)ICON_FA_SHAPES,
+          .type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f},
+          .type_name = "Scene",
+          .draw_context_menu_fn = ctx_draw,
+          .draw_modal_fn = modal_draw,
+          .obj = &mHost,
+          .public_name =
+              std::filesystem::path(ed.getFilePath()).filename().string(),
+          .is_rich = true,
+          .icons_right = GetNodeIcons(mHost),
+          .is_container = true,
+      },
       .folders = children,
-      .is_container = true,
-      .draw_context_menu_fn = ctx_draw,
-      .draw_modal_fn = modal_draw,
   };
   auto root_folder = Child::Folder{
+      {
+          .nodeType = NODE_FOLDER,
+          .type_icon = (const char*)ICON_FA_SHAPES,
+          .type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f},
+          .type_name = "Scenes",
+          .add_new_fn = nullptr,
+          .delete_child_fn = nullptr,
+          .key = "ROOT",
+      },
       .children = {root},
-      .key = "ROOT",
-      .add_new_fn = nullptr,
-      .delete_child_fn = nullptr,
-      .type_icon_pl = (const char*)ICON_FA_SHAPES,
-      .type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f},
-      .type_name_pl = "Scenes",
   };
   drawFolder(root_folder);
 
