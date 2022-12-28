@@ -152,8 +152,8 @@ texture_format_items = (
 
 def get_filename_without_extension(file_path):
 	file_basename = os.path.basename(file_path)
-	filename_without_extension = file_basename.split('.')[0]
-	return filename_without_extension
+	# filename_without_extension = file_basename.split('.')[0]
+	return file_basename
 
 # src\helpers\export_tex.py
 
