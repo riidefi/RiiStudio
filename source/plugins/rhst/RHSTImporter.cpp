@@ -258,11 +258,16 @@ kpi::Register<RHSTReader, kpi::Reader> RHSTInstaller;
 
 std::string RHSTReader::canRead(const std::string& file,
                                 oishii::BinaryReader& reader) const {
+  // Since we support JSON as well now
+  if (!file.ends_with(".rhst"))
+    return "";
+#if 0
   if (reader.read<u32, oishii::EndianSelect::Big>() != 'RHST')
     return "";
 
   if (reader.read<u32, oishii::EndianSelect::Little>() != 1)
     return "";
+#endif
 
   if (rebuild_dest.ends_with(".brres"))
     return typeid(g3d::Collection).name();

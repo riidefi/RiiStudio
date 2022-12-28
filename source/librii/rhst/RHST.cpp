@@ -1,6 +1,8 @@
 #include "RHST.hpp"
 #include <oishii/reader/binary_reader.hxx>
 #include <rsl/TaggedUnion.hpp>
+#include <vendor/magic_enum/magic_enum.hpp>
+#include <vendor/nlohmann/json.hpp>
 
 IMPORT_STD;
 
@@ -767,20 +769,247 @@ private:
   SceneTree mBuilding;
 };
 
+class JsonSceneTreeReader {
+public:
+  JsonSceneTreeReader(const std::string& data)
+      : json(nlohmann::json::parse(data)) {}
+  SceneTree&& takeResult() { return std::move(out); }
+  std::expected<void, std::string> read() {
+    if (json.contains("head")) {
+      auto head = json["head"];
+      out.meta_data.exporter =
+          get<std::string>(head, "generator").value_or("?");
+      out.meta_data.format = get<std::string>(head, "type").value_or("?");
+      if (out.meta_data.format != "JMDL2") {
+        return std::unexpected("Blender plugin out of date. Please update.");
+      }
+      out.meta_data.exporter_version =
+          get<std::string>(head, "version").value_or("?");
+    }
+    if (json.contains("body")) {
+      auto body = json["body"];
+      // Ignored: name
+      if (body.contains("bones") && body["bones"].is_array()) {
+        auto bones = body["bones"];
+        for (auto& bone : bones) {
+          auto& b = out.bones.emplace_back();
+          b.name = get<std::string>(bone, "name").value_or("?");
+          // Ignored: billboard
+          b.parent = get<s32>(bone, "parent").value_or(-1);
+          b.child = get<s32>(bone, "child").value_or(-1);
+          b.scale = getVec3(bone, "scale").value_or(glm::vec3(1.0f));
+          b.rotate = getVec3(bone, "rotate").value_or(glm::vec3(0.0f));
+          b.translate = getVec3(bone, "translate").value_or(glm::vec3(0.0f));
+          b.min = getVec3(bone, "min").value_or(glm::vec3(0.0f));
+          b.max = getVec3(bone, "max").value_or(glm::vec3(0.0f));
+          if (bone.contains("draws") && bone["draws"].is_array()) {
+            auto draws = bone["draws"];
+            for (auto& draw : draws) {
+              int mat = draw[0].get<int>();
+              int poly = draw[1].get<int>();
+              int prio = draw[2].get<int>();
+              b.draw_calls.push_back(
+                  DrawCall{.mat_index = mat, .poly_index = poly, .prio = prio});
+            }
+          }
+        }
+      }
+      if (body.contains("polygons") && body["polygons"].is_array()) {
+        auto polygons = body["polygons"];
+        for (auto& poly : polygons) {
+          auto& b = out.meshes.emplace_back();
+          b.name = get<std::string>(poly, "name").value_or("?");
+          // Ignored: primitive_type
+          b.current_matrix = get<s32>(poly, "current_matrix").value_or(-1);
+          auto f = poly["facepoint_format"];
+          b.vertex_descriptor = 0;
+          for (s32 i = 0; i < 21; ++i) {
+            b.vertex_descriptor |= f[i].get<s32>() ? (1 << i) : 0;
+          }
+
+          if (poly.contains("matrix_primitives") &&
+              poly["matrix_primitives"].is_array()) {
+            auto mps = poly["matrix_primitives"];
+            for (auto& mp : mps) {
+              auto& c = b.matrix_primitives.emplace_back();
+              // Ignore name
+              int i = 0;
+              for (auto x : mp["matrix"]) {
+                c.draw_matrices[i++] = x.get<s32>();
+              }
+              for (auto x : mp["primitives"]) {
+                auto& d = c.primitives.emplace_back();
+                // Ignore name
+                auto t =
+                    get<std::string>(x, "primitive_type").value_or("triangles");
+                if (t == "triangles") {
+                  d.topology = Topology::Triangles;
+                } else if (t == "triangle_strips") {
+                  d.topology = Topology::TriangleStrip;
+                } else if (t == "triangle_fans") {
+                  d.topology = Topology::TriangleFan;
+                } else {
+                  return std::unexpected(std::format("Unknown topology {}", t));
+                }
+                for (auto& v : x["facepoints"]) {
+                  auto& e = d.vertices.emplace_back();
+                  int vcd_cursor = 0; // LSB
+                  int P = 0;
+                  for (auto _ : v) {
+                    while ((b.vertex_descriptor & (1 << vcd_cursor)) == 0) {
+                      ++vcd_cursor;
+
+                      if (vcd_cursor >= 21) {
+                        return std::unexpected("Missing vertex data");
+                      }
+                    }
+                    const int cur_attr = vcd_cursor;
+                    ++vcd_cursor;
+
+                    if (cur_attr == 9) {
+                      e.position = getVec3(v, P).value_or(glm::vec3{});
+                    } else if (cur_attr == 10) {
+                      e.normal = getVec3(v, P).value_or(glm::vec3{});
+                    } else if (cur_attr >= 11 && cur_attr <= 12) {
+                      const int color_index = cur_attr - 11;
+                      // note this is a fixed-size vector, so resizing is free
+                      if (e.colors.size() <= color_index)
+                        e.colors.resize(color_index + 1);
+                      e.colors[color_index] =
+                          getVec4(v, P).value_or(glm::vec4{});
+                    } else if (cur_attr >= 13 && cur_attr <= 20) {
+                      const int uv_index = cur_attr - 13;
+                      if (e.uvs.size() <= uv_index)
+                        e.uvs.resize(uv_index + 1);
+                      e.uvs[uv_index] = getVec2(v, P).value_or(glm::vec2{});
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      if (body.contains("weights") && body["weights"].is_array()) {
+        auto weights = body["weights"];
+        for (auto weight : weights) {
+          auto& b = out.weights.emplace_back();
+          for (auto influence : weight) {
+            auto& c = b.weights.emplace_back();
+            c.bone_index = influence[0].get<s32>();
+            c.influence = influence[0].get<s32>();
+          }
+        }
+      }
+      if (body.contains("materials") && body["materials"].is_array()) {
+        auto materials = body["materials"];
+        for (auto mat : materials) {
+          auto& b = out.materials.emplace_back();
+          b.name = get<std::string>(mat, "name").value_or("?");
+          b.texture_name = get<std::string>(mat, "texture").value_or("?");
+          b.wrap_u =
+              magic_enum::enum_cast<WrapMode>(
+                  cap(get<std::string>(mat, "wrap_u").value_or("Repeat")))
+                  .value_or(WrapMode::Repeat);
+          b.wrap_v =
+              magic_enum::enum_cast<WrapMode>(
+                  cap(get<std::string>(mat, "wrap_v").value_or("Repeat")))
+                  .value_or(WrapMode::Repeat);
+          b.show_front = get<bool>(mat, "display_front").value_or(true);
+          b.show_back = get<bool>(mat, "display_back").value_or(false);
+          b.alpha_mode =
+              magic_enum::enum_cast<AlphaMode>(
+                  cap(get<std::string>(mat, "pe").value_or("Opaque")))
+                  .value_or(AlphaMode::Opaque);
+          b.lightset_index = get<s32>(mat, "lightset").value_or(-1);
+          b.fog_index = get<s32>(mat, "fog").value_or(0);
+          b.preset_path_mdl0mat =
+              get<std::string>(mat, "preset_path_mdl0mat").value_or("");
+        }
+      }
+    }
+    return {};
+  }
+
+private:
+  std::string cap(std::string s) {
+    if (s.empty())
+      return s;
+    s[0] = toupper(s[0]);
+    return s;
+  }
+
+  template <typename T>
+  std::optional<T> get(auto& j, const std::string& name) {
+    auto it = j.find(name);
+    if (it == j.end()) {
+      return std::nullopt;
+    }
+    return it->template get<T>();
+  }
+  std::optional<glm::vec3> getVec3(auto& j, const std::string& name) {
+    auto it = j.find(name);
+    if (it == j.end()) {
+      return std::nullopt;
+    }
+    auto x = (*it)[0].template get<f32>();
+    auto y = (*it)[1].template get<f32>();
+    auto z = (*it)[2].template get<f32>();
+    return glm::vec3(x, y, z);
+  }
+  std::optional<glm::vec2> getVec2(auto& jj, int& i) {
+    auto j = jj[i++];
+    auto x = (j)[0].template get<f32>();
+    auto y = (j)[1].template get<f32>();
+    return glm::vec2(x, y);
+  }
+  std::optional<glm::vec3> getVec3(auto& jj, int& i) {
+    auto j = jj[i++];
+	auto x = (j)[0].template get<f32>();
+    auto y = (j)[1].template get<f32>();
+    auto z = (j)[2].template get<f32>();
+    return glm::vec3(x, y, z);
+  }
+  std::optional<glm::vec4> getVec4(auto& jj, int& i) {
+    auto j = jj[i++];
+    auto x = (j)[0].template get<f32>();
+    auto y = (j)[1].template get<f32>();
+    auto z = (j)[2].template get<f32>();
+    auto w = (j)[3].template get<f32>();
+    return glm::vec4(x, y, z, w);
+  }
+
+  nlohmann::json json;
+  SceneTree out;
+};
+
 std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
                                        std::string& error_message) {
-  std::vector<u8> data_vec(file_data.size());
-  memcpy(data_vec.data(), file_data.data(), data_vec.size());
-  oishii::DataProvider provider(std::move(data_vec));
+  if (file_data[0] == 'R' && file_data[1] == 'H' && file_data[2] == 'S' &&
+      file_data[3] == 'T') {
+    std::vector<u8> data_vec(file_data.size());
+    memcpy(data_vec.data(), file_data.data(), data_vec.size());
+    oishii::DataProvider provider(std::move(data_vec));
 
-  RHSTReader reader(provider.slice());
+    RHSTReader reader(provider.slice());
 
-  SceneTreeReader scn_reader(reader);
+    SceneTreeReader scn_reader(reader);
 
-  if (!scn_reader.read())
+    if (!scn_reader.read())
+      return std::nullopt;
+
+    return std::move(scn_reader.getResult());
+  }
+  std::string tmp(
+      reinterpret_cast<const char*>(file_data.data()),
+      reinterpret_cast<const char*>(file_data.data() + file_data.size()));
+  JsonSceneTreeReader scn_reader(tmp);
+  auto result = scn_reader.read();
+  if (!result) {
+    fprintf(stderr, "JSON PARSE ERORR: %s", result.error().c_str());
     return std::nullopt;
-
-  return std::move(scn_reader.getResult());
+  }
+  return std::move(scn_reader.takeResult());
 }
 
 } // namespace librii::rhst

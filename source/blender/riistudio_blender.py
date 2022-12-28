@@ -28,6 +28,7 @@ from time import perf_counter
 import subprocess
 import mmap
 import cProfile
+import json
 
 BLENDER_30 = bpy.app.version[0] >= 3
 BLENDER_28 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 80) \
@@ -104,127 +105,6 @@ class Timer:
 		delta = stop - self.start
 
 		print("[%s] Elapsed %s seconds (%s ms)" % (self.name, delta, delta * 1000))
-
-gOpenStreams = []
-
-# RHST (Rii Hierarchical Scene Tree) is a high-throughput,
-# multipurpose bitstream format I thought of the other day.
-class RHSTWriter:
-	class RHSTStream:
-		def __init__(self, capacity, path):
-			self.__pos = 0
-			self.__max_size = 0
-			with open(path, 'wb') as file:
-				file.truncate(0)
-			self.__file = open(path, "r+b")
-			self.__buffer = mmap.mmap(self.__file.fileno(), capacity, access=mmap.ACCESS_WRITE)
-
-			gOpenStreams.append(self)
-
-		def write(self, data, size):
-			self.__buffer[self.__pos : self.__pos + size] = data
-			self.__pos += size
-			
-		#	def seek(self, position, whence):
-		#		assert whence == 0
-		#		self.__pos = position
-
-		def tell(self):
-			return self.__pos
-
-		def close(self):
-			self.__buffer.close()
-			self.__file.close()
-
-			gOpenStreams.remove(self)
-			
-	def __init__(self, path):
-		self.__stream = self.RHSTStream(100 * 1000 * 1000, path)
-
-		# Write header
-		self.__write_bytes("RHST")
-		self.__write_s32(1)
-
-	def close(self):
-		self.__write_s32(RHST_DATA_NULL)
-		self.__stream.close()
-		
-	def __write_s32(self, val):
-		self.__stream.write(struct.pack("<i", val), 4)
-
-	def __write_f32(self, val):
-		self.__stream.write(struct.pack("<f", val), 4)
-
-	def __write_bytes(self, string):
-		for val in string:
-			self.__stream.write(struct.pack("<c", bytes(val, 'ascii')), 1)
-
-	def __align(self, alignment):
-		while self.__stream.tell() % alignment:
-			self.__stream.write(bytes([0]), 1)
-
-	def __write_inline_string(self, name):
-		self.__write_s32(len(name))
-		self.__write_bytes(name)
-		self.__align(4)
-
-	def write_s32(self, num):
-		self.__stream.write(struct.pack("<ii", RHST_DATA_S32, num), 8)
-		
-	def write_f32(self, num):
-		self.__stream.write(struct.pack("<if", RHST_DATA_F32, num), 8)
-
-	def write_string(self, string):
-		self.__stream.write(struct.pack("<ii", RHST_DATA_STRING, len(string)), 8)
-		self.__write_bytes(string)
-		self.__align(4)
-
-	def begin_object(self, name, size):
-		self.__stream.write(struct.pack("<iii", RHST_DATA_DICT, size, len(name)), 12)
-		self.__write_bytes(name)
-		self.__align(4)
-
-		return True
-
-	def end_object(self):
-		self.__stream.write(struct.pack("<i", RHST_DATA_END_DICT), 4)
-
-	def begin_array(self, size, type):
-		self.__stream.write(struct.pack("<iii", RHST_DATA_ARRAY, size, type), 12)
-
-		return True
-
-	def end_array(self):
-		self.__stream.write(struct.pack("<i", RHST_DATA_END_ARRAY), 4)
-		
-	def from_py(self, obj):
-		x = type(obj)
-
-		if x == float:
-			self.write_f32(obj)
-		elif x == int:
-			self.write_s32(obj)
-		elif x == str:
-			self.write_string(obj)
-		elif x == list or x == tuple:
-			self.begin_array(len(obj), 0)
-			for item in obj:
-				self.from_py(item)
-			self.end_array()
-		elif x == dict or x == OrderedDict:
-			#print(obj['name'])
-			self.begin_object(obj['name'], len(obj))
-			for k, v in obj.items():
-				#assert isinstance(k, str)
-				self.begin_object(k, 1)
-				self.from_py(v)
-				self.end_object()
-			self.end_object()
-		elif x == bool:
-			self.write_s32(obj)
-		else:
-			print(type(obj))
-			raise RuntimeError("Invalid type!")
 
 # src\helpers\best_tex_format.py
 
@@ -625,6 +505,7 @@ def export_mesh(
 		if mat is None:
 			print("ERR: Object %s has materials with unassigned materials?" % Object.name)
 			continue
+		print("Exporting Polygon of materials #%s = %s" % (mat_index, mat))
 		# for tri in triangulated.polygons:
 		# if tri.material_index == mat_index:
 		# Draw Calls format: [material_index, polygon_index, priority]
@@ -637,6 +518,7 @@ def export_mesh(
 		else:
 			if mat and mat.active_texture:
 				texture_name = mat.active_texture.name
+		print(" -> texture_name = %s" % texture_name)
 
 		vcd_set = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 		polygon_object = OrderedDict({
@@ -743,12 +625,6 @@ class RHSTExportParams:
 
 
 def export_jres(context, params : RHSTExportParams):
-	rhst = RHSTWriter(params.dest_path)
-
-	rhst.begin_object("root", 2)
-
-	rhst.from_py({'name': "head", 'generator': "RiiStudio Blender", 'type': "JMDL", 'version': "Beta 1"})
-
 	current_data = {
 		"materials": [],
 		"polygons": [],
@@ -791,8 +667,9 @@ def export_jres(context, params : RHSTExportParams):
 		def add_material(self, mat):
 			materials = self.current_data["materials"]
 			tex_name = mat["texture"]
-
+			print("Adding material (name=%s, tex=%s)" % (mat['name'], tex_name))
 			if tex_name in self.material_remap:
+				print("-> Referencing existing entry")
 				return self.material_remap[tex_name]
 			
 			new_mi = len(materials)
@@ -814,15 +691,16 @@ def export_jres(context, params : RHSTExportParams):
 			prio
 		)
 
-	current_data['name'] = 'body'
 
 	start = perf_counter()
 
-	rhst.from_py(current_data)
-	#cProfile.runctx("rhst.from_py(current_data)", globals(), locals())
-	
-	rhst.end_object() # "root"
-	rhst.close()
+	obj = {
+		'head': {'generator': "RiiStudio Blender", 'type': "JMDL2", 'version': "Beta 1", },
+		'body': current_data,
+	}
+	print(params.dest_path)
+	with open(params.dest_path, 'w') as file:
+		file.write(json.dumps(obj))
 
 	end = perf_counter()
 	delta = end - start
@@ -1019,23 +897,19 @@ class RHST_RNA:
 		row.prop(self, "root_transform_translate_z")
 
 	def export_rhst(self, context, dump_pngs=True):
-		try:
-			timer = Timer("RHST Generation")
+		timer = Timer("RHST Generation")
 
-			export_jres(
-				context,
-				self.get_export_params()
-			)
+		export_jres(
+			context,
+			self.get_export_params()
+		)
+		timer.dump()
+
+		if dump_pngs:
+			# Dump .PNG images
+			timer = Timer("PNG Dumping")
+			export_textures(self.get_textures_path())
 			timer.dump()
-
-			if dump_pngs:
-				# Dump .PNG images
-				timer = Timer("PNG Dumping")
-				export_textures(self.get_textures_path())
-				timer.dump()
-		finally:
-			for stream in gOpenStreams:
-				stream.close()
 
 	def cleanup_rhst(self):
 		os.remove(self.get_rhst_path())
