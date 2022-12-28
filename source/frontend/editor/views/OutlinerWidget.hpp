@@ -79,9 +79,9 @@ public:
   // DFS layout of nodes.
   int indent = 0;
 
-  std::function<void(OutlinerWidget&)> draw_context_menu_fn;
+  std::function<void(OutlinerWidget*)> draw_context_menu_fn;
   // TODO: Replace with modal stack
-  std::function<void(OutlinerWidget&)> draw_modal_fn;
+  std::function<void(OutlinerWidget*)> draw_modal_fn;
 
   // TODO
   bool mark_to_delete = false;

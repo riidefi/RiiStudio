@@ -228,15 +228,15 @@ GetChildren(kpi::ICollection& sampler, EditorWindow& ed,
     auto grandchildren = GetGChildren(node, ed, outliner);
 
     auto* obj = sampler.atObject(i);
-    std::function<void(OutlinerWidget&)> ctx_draw =
-        [=](OutlinerWidget& widget) {
-          auto& ed = dynamic_cast<GenericCollectionOutliner*>(&widget)->ed;
+    std::function<void(OutlinerWidget*)> ctx_draw =
+        [DrawCtxMenuFor = DrawCtxMenuFor, obj = obj](OutlinerWidget* widget) {
+          auto& ed = ((GenericCollectionOutliner*)(widget))->ed;
           DrawCtxMenuFor(obj, ed);
         };
 
-    std::function<void(OutlinerWidget&)> modal_draw =
-        [=](OutlinerWidget& widget) {
-          auto& ed = dynamic_cast<GenericCollectionOutliner*>(&widget)->ed;
+    std::function<void(OutlinerWidget*)> modal_draw =
+        [DrawModalFor = DrawModalFor, obj = obj](OutlinerWidget* widget) {
+          auto& ed = ((GenericCollectionOutliner*)(widget))->ed;
           DrawModalFor(obj, ed);
         };
 
@@ -252,6 +252,17 @@ GetChildren(kpi::ICollection& sampler, EditorWindow& ed,
                         .is_container = node != nullptr,
                         .draw_context_menu_fn = ctx_draw,
                         .draw_modal_fn = modal_draw};
+    if (auto* bone = dynamic_cast<riistudio::lib3d::Bone*>(obj)) {
+      auto parent = bone->getBoneParent();
+      int depth = 0;
+      while (parent >= 0) {
+        bone = dynamic_cast<riistudio::lib3d::Bone*>(
+            obj->collectionOf->atObject(parent));
+        parent = bone->getBoneParent();
+        ++depth;
+      }
+      children[i]->indent = depth;
+    }
   }
 
   return children;
@@ -269,14 +280,14 @@ void GenericCollectionOutliner::draw_() noexcept {
   mFilter.Draw();
   auto& _h = (kpi::INode&)mHost;
   auto children = GetGChildren(&_h, ed, this);
-  std::function<void(OutlinerWidget&)> ctx_draw = [=](OutlinerWidget& widget) {
-    auto& ed = dynamic_cast<GenericCollectionOutliner*>(&widget)->ed;
+  std::function<void(OutlinerWidget*)> ctx_draw = [=](OutlinerWidget* widget) {
+    auto& ed = ((GenericCollectionOutliner*)(widget))->ed;
     DrawCtxMenuFor(&mHost, ed);
   };
 
-  std::function<void(OutlinerWidget&)> modal_draw =
-      [=](OutlinerWidget& widget) {
-        auto& ed = dynamic_cast<GenericCollectionOutliner*>(&widget)->ed;
+  std::function<void(OutlinerWidget*)> modal_draw =
+      [=](OutlinerWidget* widget) {
+        auto& ed = ((GenericCollectionOutliner*)(widget))->ed;
         DrawModalFor(&mHost, ed);
       };
   auto root = Child{

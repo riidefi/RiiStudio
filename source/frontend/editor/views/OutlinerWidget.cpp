@@ -123,6 +123,8 @@ void OutlinerWidget::DrawFolder(
 
   auto& children = folder.children;
 
+  int depth = 0;
+
   // Draw the tree
   for (int i = 0; i < children.size(); ++i) {
     if (!children[i].has_value()) {
@@ -140,6 +142,8 @@ void OutlinerWidget::DrawFolder(
       continue;
 
     filtered.push_back(i);
+    bool has_child = i + 1 < children.size() &&
+                     children[i + 1]->indent > children[i]->indent;
 
     // Whether or not this node is already selected.
     // Selections from other windows will carry over.
@@ -147,36 +151,39 @@ void OutlinerWidget::DrawFolder(
 
     const float icon_size = 24.0f * ImGui::GetIO().FontGlobalScale;
 
-    ImGui::Selectable(std::to_string(i).c_str(), curNodeSelected,
-                      ImGuiSelectableFlags_None, {0, icon_size});
-    if (ImGui::BeginPopupContextItem(("Ctx" + std::to_string(i)).c_str())) {
-      activeModal = [draw_modal = children[i]->draw_modal_fn, f = this]() {
-        draw_modal(*f);
-      };
-      ImGui::TextColored(children[i]->type_icon_color, "%s",
-                         children[i]->type_icon.c_str());
-      ImGui::SameLine();
-      ImGui::TextUnformatted(
-          (" " + children[i]->type_name + ": " + cur_name).c_str());
-      ImGui::Separator();
+    // if (!has_child)
+    {
+      ImGui::Selectable(std::to_string(i).c_str(), curNodeSelected,
+                        ImGuiSelectableFlags_None, {0, icon_size});
+      if (ImGui::BeginPopupContextItem(("Ctx" + std::to_string(i)).c_str())) {
+        activeModal = [draw_modal = children[i]->draw_modal_fn, f = this]() {
+          draw_modal(f);
+        };
+        ImGui::TextColored(children[i]->type_icon_color, "%s",
+                           children[i]->type_icon.c_str());
+        ImGui::SameLine();
+        ImGui::TextUnformatted(
+            (" " + children[i]->type_name + ": " + cur_name).c_str());
+        ImGui::Separator();
 
-      children[i]->draw_context_menu_fn(*this);
+        children[i]->draw_context_menu_fn(this);
 
-      // set activeModal for an actual gui
-      if (folder.delete_child_fn != nullptr && ImGui::MenuItem("Delete")) {
-        children[i]->mark_to_delete = true;
+        // set activeModal for an actual gui
+        if (folder.delete_child_fn != nullptr && ImGui::MenuItem("Delete")) {
+          children[i]->mark_to_delete = true;
+        }
+
+        ImGui::EndPopup();
       }
 
-      ImGui::EndPopup();
+      ImGui::SameLine();
     }
-
-    ImGui::SameLine();
 
     thereWasAClick = ImGui::IsItemClicked();
     bool focused = ImGui::IsItemFocused();
 
     u32 flags = ImGuiTreeNodeFlags_DefaultOpen;
-    if (!children[i]->is_container)
+    if (!children[i]->is_container && !has_child)
       flags |= ImGuiTreeNodeFlags_Leaf;
 
     const auto text_size = ImGui::CalcTextSize("T");
@@ -186,6 +193,8 @@ void OutlinerWidget::DrawFolder(
     ImGui::PushStyleColor(ImGuiCol_Text, children[i]->type_icon_color);
     const auto treenode = ImGui::TreeNodeEx(
         std::to_string(i).c_str(), flags, "%s", children[i]->type_icon.c_str());
+    if (treenode)
+      depth++;
     ImGui::PopStyleColor();
     ImGui::SameLine();
     ImGui::TextUnformatted(cur_name.c_str());
@@ -210,19 +219,34 @@ void OutlinerWidget::DrawFolder(
         justSelectedId = i;
         justSelectedFilteredIdx = filtered.size() - 1;
       }
-
-      // TODO: Assert has_value?
-      int next;
-      if (i + 1 >= children.size()) {
-        next = 0;
-      } else {
-        next = children[i + 1]->indent;
-      }
-      for (int l = 0; l <= children[i]->indent - next; ++l) {
-        ImGui::TreePop();
+    }
+    int next;
+    if (i + 1 >= children.size()) {
+      next = 0;
+    } else {
+      next = children[i + 1]->indent;
+    }
+    if (!treenode) {
+      int indent = children[i]->indent;
+      if (next > indent) {
+        ++i;
+        while (i < children.size() && children[i]->indent > indent) {
+          ++i;
+        }
+        if (i + 1 >= children.size()) {
+          next = 0;
+        } else {
+          next = children[i]->indent;
+        }
+        --i;
       }
     }
+    for (int j = depth; j > next; --j) {
+      ImGui::TreePop();
+      --depth;
+    }
   }
+  assert(depth == 0);
   if (folder.key != "ROOT") {
     ImGui::PopID();
   }
