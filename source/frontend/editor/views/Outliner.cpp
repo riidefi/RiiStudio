@@ -3,7 +3,7 @@
 #include <frontend/editor/EditorWindow.hpp> // EditorWindow
 #include <frontend/editor/StudioWindow.hpp> // StudioWindow
 #include <plugins/gc/Export/Material.hpp>   // libcube::IGCMaterial
-//#include <regex>                          // std::regex_search
+// #include <regex>                          // std::regex_search
 #include "OutlinerWidget.hpp"
 #include <core/kpi/ActionMenu.hpp> // kpi::ActionMenuManager
 #include <plugins/gc/Export/Scene.hpp>
@@ -40,7 +40,7 @@ std::string NameObject(const kpi::IObject* obj, int i) {
   return base + extra;
 }
 
-struct GenericCollectionOutliner : public StudioWindow {
+struct GenericCollectionOutliner : public StudioWindow, private OutlinerWidget {
   GenericCollectionOutliner(kpi::INode& host, SelectionManager& selection,
                             EditorWindow& ed);
   ~GenericCollectionOutliner();
@@ -51,7 +51,7 @@ struct GenericCollectionOutliner : public StudioWindow {
 
   void onUndoRedo() noexcept { activeModal = std::nullopt; }
 
-private:
+public:
   void draw_() noexcept override;
 
   kpi::INode& mHost;
@@ -62,6 +62,44 @@ private:
   // multiselections.
   std::string mActiveClassId;
   EditorWindow& ed;
+
+  // OutlinerWidget
+  bool isSelected(NodeFolder& f, size_t i) const override {
+    return mSelection.isSelected(f.children[i]->obj);
+  }
+  void select(NodeFolder& nodes, size_t index) override {
+    mSelection.select(nodes.children[index]->obj);
+  }
+  void deselect(NodeFolder& nodes, size_t index) override {
+    mSelection.deselect(nodes.children[index]->obj);
+  }
+  void clearSelection() override { mSelection.selected.clear(); }
+  size_t getActiveSelection(NodeFolder& nodes) const override {
+    auto* obj = mSelection.getActive();
+
+    for (int i = 0; i < nodes.children.size(); ++i)
+      if (nodes.children[i]->obj == obj)
+        return i;
+
+    return ~0;
+  }
+  void setActiveSelection(NodeFolder& nodes, size_t index) override {
+    if (index == ~0)
+      mSelection.setActive(nullptr);
+    else
+      mSelection.setActive(nodes.children[index]->obj);
+  }
+  bool hasActiveSelection() const override {
+    return mSelection.getActive() != nullptr;
+  }
+  void postAddNew() override {
+    // Commit the changes
+    ed.getDocument().commit(ed.getSelection(), true);
+  }
+  void drawImageIcon(const riistudio::lib3d::Texture* pImg,
+                     int icon_size) override {
+    ed.drawImageIcon(pImg, icon_size);
+  }
 
 public:
   std::optional<std::function<void()>> activeModal;
@@ -190,13 +228,17 @@ GetChildren(kpi::ICollection& sampler, EditorWindow& ed,
     auto grandchildren = GetGChildren(node, ed, outliner);
 
     auto* obj = sampler.atObject(i);
-    std::function<void(EditorWindow&)> ctx_draw = [=](EditorWindow& ed) {
-      DrawCtxMenuFor(obj, ed);
-    };
+    std::function<void(OutlinerWidget&)> ctx_draw =
+        [=](OutlinerWidget& widget) {
+          auto& ed = dynamic_cast<GenericCollectionOutliner*>(&widget)->ed;
+          DrawCtxMenuFor(obj, ed);
+        };
 
-    std::function<void(EditorWindow&)> modal_draw = [=](EditorWindow& ed) {
-      DrawModalFor(obj, ed);
-    };
+    std::function<void(OutlinerWidget&)> modal_draw =
+        [=](OutlinerWidget& widget) {
+          auto& ed = dynamic_cast<GenericCollectionOutliner*>(&widget)->ed;
+          DrawModalFor(obj, ed);
+        };
 
     children[i] = Child{.obj = obj,
                         // .node = node,
@@ -216,8 +258,7 @@ GetChildren(kpi::ICollection& sampler, EditorWindow& ed,
 }
 
 void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
-  DrawFolder(folder, mFilter, ed, activeModal, mSelection.mActive,
-             mActiveClassId);
+  DrawFolder(folder, mFilter, activeModal, mActiveClassId);
 }
 
 void GenericCollectionOutliner::drawRecursive(
@@ -228,13 +269,16 @@ void GenericCollectionOutliner::draw_() noexcept {
   mFilter.Draw();
   auto& _h = (kpi::INode&)mHost;
   auto children = GetGChildren(&_h, ed, this);
-  std::function<void(EditorWindow&)> ctx_draw = [=](EditorWindow& ed) {
+  std::function<void(OutlinerWidget&)> ctx_draw = [=](OutlinerWidget& widget) {
+    auto& ed = dynamic_cast<GenericCollectionOutliner*>(&widget)->ed;
     DrawCtxMenuFor(&mHost, ed);
   };
 
-  std::function<void(EditorWindow&)> modal_draw = [=](EditorWindow& ed) {
-    DrawModalFor(&mHost, ed);
-  };
+  std::function<void(OutlinerWidget&)> modal_draw =
+      [=](OutlinerWidget& widget) {
+        auto& ed = dynamic_cast<GenericCollectionOutliner*>(&widget)->ed;
+        DrawModalFor(&mHost, ed);
+      };
   auto root = Child{
       .obj = &mHost,
       .public_name =

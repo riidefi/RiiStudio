@@ -12,7 +12,7 @@
 
 namespace riistudio::frontend {
 
-class EditorWindow;
+struct OutlinerWidget;
 
 struct Child {
 public:
@@ -38,7 +38,6 @@ public:
   std::string type_icon = "(?)";
   ImVec4 type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f};
 
-
   // Used by context menu
   //
   // RichName::getNameSingular()
@@ -61,8 +60,7 @@ public:
     // RichName::getIconPlural()
     std::string type_icon_pl = "(?)";
 
-	ImVec4 type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f};
-
+    ImVec4 type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f};
 
     // RichName::getIconPlural()
     std::string type_name_pl = "Unknown Things";
@@ -76,9 +74,14 @@ public:
   // name fails the search filter
   bool is_container = false;
 
-  std::function<void(EditorWindow&)> draw_context_menu_fn;
+  // This should only increase or decrease by one per node
+  // Not the most amazing way to implement recursive folders, since it requires
+  // DFS layout of nodes.
+  int indent = 0;
+
+  std::function<void(OutlinerWidget&)> draw_context_menu_fn;
   // TODO: Replace with modal stack
-  std::function<void(EditorWindow&)> draw_modal_fn;
+  std::function<void(OutlinerWidget&)> draw_modal_fn;
 
   // TODO
   bool mark_to_delete = false;
@@ -91,43 +94,32 @@ struct ImTFilter : public ImGuiTextFilter {
     return PassFilter(str.c_str());
   }
 };
-#if 0
-  struct RegexFilter {
-    bool test(const std::string& str) const noexcept {
-      try {
-        std::regex match(mFilt);
-        return std::regex_search(str, match);
-      } catch (std::exception e) {
-        return false;
-      }
-    }
-    void Draw() {
-#ifdef _WIN32
-      char buf[128]{};
-      memcpy_s(buf, 128, mFilt.c_str(), mFilt.length());
-      ImGui::InputText((const char*)ICON_FA_SEARCH " (regex)", buf, 128);
-      mFilt = buf;
-#endif
-    }
-
-    std::string mFilt;
-  };
-#endif
 using TFilter = ImTFilter;
 
-//! @brief Return the number of resources in the source that pass the filter.
-//!
-std::size_t CalcNumFiltered(const NodeFolder& folder, const TFilter* filter);
+struct OutlinerWidget {
+  std::size_t CalcNumFiltered(const NodeFolder& folder, const TFilter* filter);
+  std::string FormatTitle(const NodeFolder& folder, const TFilter* filter);
 
-//! @brief Format the title in the "<header> (<number of resources>)" format.
-//!
-std::string FormatTitle(const NodeFolder& folder, const TFilter* filter);
+  void DrawNodePic(Child& child, float initial_pos_y, int icon_size);
 
-void DrawNodePic(EditorWindow& ed, Child& child, float initial_pos_y,
-                 int icon_size);
+  void DrawFolder(NodeFolder& folder, TFilter& mFilter,
+                  std::optional<std::function<void()>>& activeModal,
+                  std::string& mActiveClassId);
 
-void DrawFolder(NodeFolder& folder, TFilter& mFilter, EditorWindow& ed,
-                std::optional<std::function<void()>>& activeModal,
-                kpi::IObject*& mActive, std::string& mActiveClassId);
+  virtual bool isSelected(NodeFolder& f, size_t i) const = 0;
+  virtual void select(NodeFolder& f, size_t i) = 0;
+  virtual void deselect(NodeFolder& f, size_t i) = 0;
+  virtual bool hasActiveSelection() const = 0;
+  virtual size_t getActiveSelection(NodeFolder& nodes) const = 0;
+  virtual void setActiveSelection(NodeFolder& nodes, size_t index) = 0;
+
+  virtual void postAddNew() = 0;
+  virtual void drawImageIcon(const riistudio::lib3d::Texture* pImg,
+                             int icon_size) = 0;
+  virtual void clearSelection() = 0;
+
+private:
+  void AddNewCtxMenu(Child::Folder& folder);
+};
 
 } // namespace riistudio::frontend
