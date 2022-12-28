@@ -720,9 +720,6 @@ struct AddChild : public kpi::ActionMenu<riistudio::g3d::Bone, AddChild> {
       child->mParent = bone.id;
       auto* mdl = dynamic_cast<riistudio::g3d::Model*>(bone.childOf);
       assert(mdl);
-      child->matrixId = mdl->mDrawMatrices.size();
-      libcube::DrawMatrix mtx{.mWeights = {{static_cast<u32>(childId), 1.0f}}};
-      mdl->mDrawMatrices.push_back(mtx);
       bone.mChildren.push_back(childId);
       return kpi::CHANGE_NEED_RESET;
     }

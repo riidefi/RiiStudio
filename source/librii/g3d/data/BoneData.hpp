@@ -56,7 +56,8 @@ struct BoneData {
   // bool classicScale = true;
   bool visible = true;
 
-  u32 matrixId = 0;
+  // Recomputed
+  // u32 matrixId = 0;
   u32 billboardType = 0;
 
   glm::vec3 mScaling{1.0f, 1.0f, 1.0f};

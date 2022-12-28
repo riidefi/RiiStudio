@@ -143,13 +143,12 @@ inline std::pair<u32, u32> computeVertTriCounts(const auto& meshes) {
 //
 // Build display matrix index (subset of mDrawMatrices)
 //
-inline std::set<s16> computeDisplayMatricesSubset(const auto& meshes,
-                                                  const auto& bones) {
-  std::set<s16> displayMatrices;
+inline std::set<s16> computeShapeMtxRef(const auto& meshes) {
+  std::set<s16> shapeRefMtx;
   for (const auto& mesh : meshes) {
     // TODO: Do we need to check currentMatrixEmbedded flag?
     if (mesh.mCurrentMatrix != -1) {
-      displayMatrices.insert(mesh.mCurrentMatrix);
+      shapeRefMtx.insert(mesh.mCurrentMatrix);
       continue;
     }
     // TODO: Presumably mCurrentMatrix (envelope mode) precludes blended weight
@@ -159,21 +158,28 @@ inline std::set<s16> computeDisplayMatricesSubset(const auto& meshes,
         if (w == -1) {
           continue;
         }
-        displayMatrices.insert(w);
+        shapeRefMtx.insert(w);
       }
     }
   }
+  return shapeRefMtx;
+}
+inline std::set<s16> computeDisplayMatricesSubset(
+    const auto& meshes, const auto& bones,
+    auto getMatrixId = [](auto& x) { return x.matrixId; }) {
+  std::set<s16> displayMatrices = computeShapeMtxRef(meshes);
   const size_t len = displayMatrices.size();
-  for (const auto& bone : bones) {
+  for (int i = 0; i < bones.size(); ++i) {
+    const auto& bone = bones[i];
     // isDisplayMatrix is ignored?
     if ((bone.isDisplayMatrix() || true) &&
-        !displayMatrices.contains(bone.matrixId)) {
+        !displayMatrices.contains(getMatrixId(bone, i))) {
       // Assume non-view matrices are appended to end
       // HACK: Permit leaves to match map_model.brres
-      if (bone.matrixId >= len && bone.hasChildren()) {
+      if (getMatrixId(bone, i) >= len && bone.hasChildren()) {
         continue;
       }
-      displayMatrices.insert(bone.matrixId);
+      displayMatrices.insert(getMatrixId(bone, i));
     }
   }
   return displayMatrices;

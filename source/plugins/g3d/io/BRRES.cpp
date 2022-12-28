@@ -242,7 +242,7 @@ librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
   librii::g3d::BoneData bone;
   bone.mName = bin.name;
   printf("%s\n", bone.mName.c_str());
-  bone.matrixId = bin.matrixId;
+  // TODO: Verify matrixId
   bone.billboardType = bin.billboardType;
   // TODO: refId
   bone.mScaling = bin.scale;
@@ -287,13 +287,13 @@ librii::g3d::BinaryBoneData
 toBinaryBone(const librii::g3d::BoneData& bone,
              std::span<const librii::g3d::BoneData> bones, u32 bone_id,
              const std::set<s16>& displayMatrices,
-             librii::g3d::ScalingRule scalingRule) {
+             librii::g3d::ScalingRule scalingRule, s32 matrixId) {
   librii::g3d::BinaryBoneData bin;
   bin.name = bone.mName;
-  bin.matrixId = bone.matrixId;
+  bin.matrixId = matrixId;
 
   // TODO: Fix
-  bool is_display = displayMatrices.contains(bone.matrixId) || true;
+  bool is_display = displayMatrices.contains(matrixId) || true;
   bin.flag = computeFlag(bone, bones, scalingRule);
   bin.id = bone_id;
 
@@ -406,8 +406,9 @@ public:
   }
 
   void onNodeDesc(const B::NodeDescendence& desc) {
+    auto& bin = binary_mdl.bones[desc.boneId];
     auto& bone = mdl.getBones()[desc.boneId];
-    const auto matrixId = bone.matrixId;
+    const auto matrixId = bin.matrixId;
 
     auto parent_id =
         binary_mdl.info.mtxToBoneLUT.mtxIdToBoneId[desc.parentMtxId];
@@ -467,6 +468,8 @@ void processModel(librii::g3d::BinaryModel& binary_model,
                      transaction);
 
   mdl.mName = binary_model.name;
+
+  u32 numDisplayMatrices = 1;
   // Assign info
   {
     const auto& info = binary_model.info;
@@ -488,11 +491,14 @@ void processModel(librii::g3d::BinaryModel& binary_model,
     mdl.sourceLocation = info.sourceLocation;
     {
       auto displayMatrices = librii::gx::computeDisplayMatricesSubset(
-          binary_model.meshes, binary_model.bones);
+          binary_model.meshes, binary_model.bones,
+          [](auto& x, int i) { return x.matrixId; });
       ctx.request(info.numViewMtx == displayMatrices.size(),
                   "Model header specifies {} display matrices, but the mesh "
                   "data only references {} display matrices.",
                   info.numViewMtx, displayMatrices.size());
+      auto ref = librii::gx::computeShapeMtxRef(binary_model.meshes);
+      numDisplayMatrices = ref.size();
     }
     {
       auto needsNormalMtx =
@@ -597,6 +603,12 @@ void processModel(librii::g3d::BinaryModel& binary_model,
     }
   }
 
+  // Assumes all display matrices contiguously precede non-display matrices.
+  // Trim non-display matrices to reach numViewMtx.
+  // Can't trust the header -- BrawlBox doesn't properly set it.
+  assert(numDisplayMatrices <= mdl.mDrawMatrices.size());
+  mdl.mDrawMatrices.resize(numDisplayMatrices);
+
   // Recompute parent-child relationships
   for (size_t i = 0; i < mdl.getBones().size(); ++i) {
     auto& bone = mdl.getBones()[i];
@@ -613,7 +625,11 @@ void processModel(librii::g3d::BinaryModel& binary_model,
 #pragma region Editor->librii
 
 void BuildRenderLists(const Model& mdl,
-                      std::vector<librii::g3d::ByteCodeMethod>& renderLists) {
+                      std::vector<librii::g3d::ByteCodeMethod>& renderLists,
+                      // Expanded to fit non-draw bone matrices
+                      std::span<const libcube::DrawMatrix> drawMatrices,
+                      // Maps bones to above drawMatrix span
+                      std::span<const u32> boneToMatrix) {
   librii::g3d::ByteCodeMethod nodeTree{.name = "NodeTree"};
   librii::g3d::ByteCodeMethod nodeMix{.name = "NodeMix"};
   librii::g3d::ByteCodeMethod drawOpa{.name = "DrawOpa"};
@@ -635,8 +651,7 @@ void BuildRenderLists(const Model& mdl,
     assert(parent < std::ssize(mdl.getBones()));
     librii::g3d::ByteCodeLists::NodeDescendence desc{
         .boneId = static_cast<u16>(i),
-        .parentMtxId =
-            static_cast<u16>(parent >= 0 ? mdl.getBones()[parent].matrixId : 0),
+        .parentMtxId = static_cast<u16>(parent >= 0 ? boneToMatrix[parent] : 0),
     };
     nodeTree.commands.push_back(desc);
   }
@@ -650,8 +665,7 @@ void BuildRenderLists(const Model& mdl,
         assert(weight.boneId < mdl.getBones().size());
         mix.blendMatrices.push_back(
             librii::g3d::ByteCodeLists::NodeMix::BlendMtx{
-                .mtxId =
-                    static_cast<u16>(mdl.getBones()[weight.boneId].matrixId),
+                .mtxId = static_cast<u16>(boneToMatrix[weight.boneId]),
                 .ratio = weight.weight,
             });
       }
@@ -670,7 +684,7 @@ void BuildRenderLists(const Model& mdl,
   // one bone is weighted to a matrix that is not a bone directly? Or when that
   // bone is influenced by another bone?
   bool needs_nodemix = false;
-  for (auto& mtx : mdl.mDrawMatrices) {
+  for (auto& mtx : drawMatrices) {
     if (mtx.mWeights.size() > 1) {
       needs_nodemix = true;
       break;
@@ -679,12 +693,12 @@ void BuildRenderLists(const Model& mdl,
 
   if (needs_nodemix) {
     // Bones come first
-    for (auto& bone : mdl.getBones()) {
-      auto& drw = mdl.mDrawMatrices[bone.matrixId];
-      write_drw(drw, bone.matrixId);
+    for (size_t i = 0; i < mdl.getBones().size(); ++i) {
+      auto& drw = drawMatrices[boneToMatrix[i]];
+      write_drw(drw, boneToMatrix[i]);
     }
     for (size_t i = 0; i < mdl.mDrawMatrices.size(); ++i) {
-      auto& drw = mdl.mDrawMatrices[i];
+      auto& drw = drawMatrices[i];
       if (drw.mWeights.size() == 1) {
         // Written in pre-pass
         continue;
@@ -738,8 +752,30 @@ struct ShaderAllocator {
 };
 
 librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
-  std::set<s16> displayMatrices =
-      librii::gx::computeDisplayMatricesSubset(mdl.getMeshes(), mdl.getBones());
+  std::set<s16> shapeRefMtx = computeShapeMtxRef(mdl.getMeshes());
+  assert(shapeRefMtx.size() == mdl.mDrawMatrices.size());
+  std::vector<libcube::DrawMatrix> drawMatrices = mdl.mDrawMatrices;
+  std::vector<u32> boneToMatrix;
+  for (size_t i = 0; i < mdl.getBones().size(); ++i) {
+    int it = -1;
+    for (size_t j = 0; j < mdl.mDrawMatrices.size(); ++j) {
+      auto& mtx = mdl.mDrawMatrices[j];
+      if (mtx.mWeights.size() == 1 && mtx.mWeights[0].boneId == i) {
+        it = j;
+        break;
+      }
+    }
+    if (it == -1) {
+      boneToMatrix.push_back(drawMatrices.size());
+      libcube::DrawMatrix mtx{.mWeights = {{static_cast<u32>(i), 1.0f}}};
+      drawMatrices.push_back(mtx);
+    } else {
+      boneToMatrix.push_back(it);
+    }
+  }
+  std::set<s16> displayMatrices = librii::gx::computeDisplayMatricesSubset(
+      mdl.getMeshes(), mdl.getBones(),
+      [&](auto& x, int i) { return boneToMatrix[i]; });
 
   ShaderAllocator shader_allocator;
   for (auto& mat : mdl.getMaterials()) {
@@ -754,7 +790,8 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
   auto bones = mdl.getBones() | rsl::ToList<librii::g3d::BoneData>();
   auto to_binary_bone = [&](auto tuple) {
     auto [index, value] = tuple;
-    return toBinaryBone(value, bones, index, displayMatrices, mdl.mScalingRule);
+    return toBinaryBone(value, bones, index, displayMatrices, mdl.mScalingRule,
+                        boneToMatrix[index]);
   };
   auto to_binary_mat = [&](auto tuple) {
     auto [index, value] = tuple;
@@ -808,7 +845,7 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
     {
       // Matrix -> Bone LUT
       auto& lut = info.mtxToBoneLUT.mtxIdToBoneId;
-      lut.resize(mdl.mDrawMatrices.size());
+      lut.resize(drawMatrices.size());
       std::ranges::fill(lut, -1);
       for (const auto& [i, bone] : rsl::enumerate(bin.bones)) {
         assert(bone.matrixId < lut.size());
@@ -817,7 +854,7 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
     }
     bin.info = info;
   }
-  BuildRenderLists(mdl, bin.bytecodes);
+  BuildRenderLists(mdl, bin.bytecodes, drawMatrices, boneToMatrix);
 
   return bin;
 }
