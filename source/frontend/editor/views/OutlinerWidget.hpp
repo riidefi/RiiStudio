@@ -10,6 +10,8 @@
 
 #include <imgui/imgui.h> // ImGuiTextFilter
 
+#include <frontend/widgets/ContiguousSelection.hpp>
+
 namespace riistudio::frontend {
 
 struct OutlinerWidget;
@@ -19,7 +21,6 @@ enum NodeType {
   NODE_FOLDER,
 
   // Internal. Do not use.
-  NODE_OBJECT_POP,
   NODE_FOLDER_POP,
 };
 
@@ -111,29 +112,38 @@ using TFilter = ImTFilter;
 struct OutlinerWidget {
   std::size_t CalcNumFiltered(const NodeFolder& folder, const TFilter* filter);
 
-  void DrawNodePic(Child& child, float initial_pos_y, int icon_size);
+  void DrawNodePic(Node& child, float initial_pos_y, int icon_size);
 
-  void DrawFolder(NodeFolder& folder, TFilter& mFilter,
-                  std::optional<std::function<void()>>& activeModal,
-                  std::string& mActiveClassId);
+  void DrawFolder(NodeFolder& folder, TFilter& mFilter);
 
-  virtual bool isSelected(NodeFolder& f, size_t i) const = 0;
-  virtual void select(NodeFolder& f, size_t i) = 0;
-  virtual void deselect(NodeFolder& f, size_t i) = 0;
+  virtual bool isSelected(const Node& n) const = 0;
+  virtual void select(const Node& n) = 0;
+  virtual void deselect(const Node& n) = 0;
   virtual bool hasActiveSelection() const = 0;
-  virtual size_t getActiveSelection(NodeFolder& nodes) const = 0;
-  virtual void setActiveSelection(NodeFolder& nodes, size_t index) = 0;
+  virtual bool isActiveSelection(const Node& n) const = 0;
+  virtual void setActiveSelection(const Node* node = nullptr) = 0;
 
   virtual void postAddNew() = 0;
   virtual void drawImageIcon(const riistudio::lib3d::Texture* pImg,
                              int icon_size) = 0;
   virtual void clearSelection() = 0;
+  virtual void setActiveModal(const Node* = nullptr) = 0;
+
+  struct SelUpdate {
+    ContiguousSelection::SelectMode mode = ContiguousSelection::SELECT_NONE;
+    bool alreadySelected = false;
+  };
+  bool DrawObject(Child& child, size_t i, bool hasChildren, SelUpdate& update,
+                  NodeFolder& folder);
 
 private:
   void AddNewCtxMenu(Node& folder);
 
   bool PushFolder(Child::Folder& folder, TFilter& filter);
   void PopFolder(Child::Folder& folder);
+  // Describes the type of mActive, useful for differentiating type-disjoint
+  // multiselections.
+  std::string mActiveClassId;
 };
 
 } // namespace riistudio::frontend

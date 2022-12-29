@@ -58,36 +58,30 @@ public:
   TFilter mFilter;
   // This points inside EditorWindow, meh
   SelectionManager& mSelection;
-  // Describes the type of mActive, useful for differentiating type-disjoint
-  // multiselections.
-  std::string mActiveClassId;
   EditorWindow& ed;
 
   // OutlinerWidget
-  bool isSelected(NodeFolder& f, size_t i) const override {
-    return mSelection.isSelected(f.children[i]->obj);
+  bool isSelected(const Node& n) const override {
+    assert(n.obj != nullptr);
+    return mSelection.isSelected(n.obj);
   }
-  void select(NodeFolder& nodes, size_t index) override {
-    mSelection.select(nodes.children[index]->obj);
+  void select(const Node& n) override {
+    assert(n.obj != nullptr);
+    mSelection.select(n.obj);
   }
-  void deselect(NodeFolder& nodes, size_t index) override {
-    mSelection.deselect(nodes.children[index]->obj);
+  void deselect(const Node& n) override {
+    assert(n.obj != nullptr);
+    mSelection.deselect(n.obj);
   }
   void clearSelection() override { mSelection.selected.clear(); }
-  size_t getActiveSelection(NodeFolder& nodes) const override {
-    auto* obj = mSelection.getActive();
-
-    for (int i = 0; i < nodes.children.size(); ++i)
-      if (nodes.children[i]->obj == obj)
-        return i;
-
-    return ~0;
+  bool isActiveSelection(const Node& n) const override {
+    return n.obj == mSelection.getActive();
   }
-  void setActiveSelection(NodeFolder& nodes, size_t index) override {
-    if (index == ~0)
+  void setActiveSelection(const Node* n) override {
+    if (n == nullptr)
       mSelection.setActive(nullptr);
     else
-      mSelection.setActive(nodes.children[index]->obj);
+      mSelection.setActive(n->obj);
   }
   bool hasActiveSelection() const override {
     return mSelection.getActive() != nullptr;
@@ -99,6 +93,15 @@ public:
   void drawImageIcon(const riistudio::lib3d::Texture* pImg,
                      int icon_size) override {
     ed.drawImageIcon(pImg, icon_size);
+  }
+  void setActiveModal(const Node* n) {
+    if (n == nullptr) {
+      activeModal = std::nullopt;
+    } else {
+      activeModal = [draw_modal = n->draw_modal_fn, f = this]() {
+        draw_modal(f);
+      };
+    }
   }
 
 public:
@@ -277,7 +280,7 @@ GetChildren(kpi::ICollection& sampler, EditorWindow& ed,
 }
 
 void GenericCollectionOutliner::drawFolder(Child::Folder& folder) noexcept {
-  DrawFolder(folder, mFilter, activeModal, mActiveClassId);
+  DrawFolder(folder, mFilter);
 }
 
 void GenericCollectionOutliner::drawRecursive(
