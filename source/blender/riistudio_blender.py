@@ -3,7 +3,7 @@
 bl_info = {
 	"name": "RiiStudio Blender Exporter",
 	"author": "riidefi",
-	"version": (1, 0),
+	"version": (0, 5, 7),
 	"blender": (2, 80, 0),
 	"location": "File > Export",
 	"description": "Export to BRRES/BMD files.",
