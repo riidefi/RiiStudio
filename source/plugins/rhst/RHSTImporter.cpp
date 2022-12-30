@@ -2,6 +2,7 @@
 #include <core/kpi/Plugins.hpp>
 #include <librii/hx/CullMode.hpp>
 #include <librii/hx/PixMode.hpp>
+#include <librii/hx/TextureFilter.hpp>
 #include <librii/rhst/RHST.hpp>
 #include <oishii/reader/binary_reader.hxx>
 #include <plugins/ass/ImportTexture.hpp>
@@ -73,16 +74,25 @@ void compileMaterial(libcube::IGCMaterial& out,
     sampler.mWrapU = compileWrap(in.wrap_u);
     sampler.mWrapV = compileWrap(in.wrap_v);
 
-    // NOTE: As textures are loaded on separate threads, the min filter will be
-    // corrected then.
-    sampler.mMinFilter = librii::gx::TextureFilter::Linear;
+    sampler.mLodBias = in.lod_bias;
+
+    sampler.mMagFilter = in.mag_filter ? librii::gx::TextureFilter::Linear
+                                       : librii::gx::TextureFilter::Near;
+    librii::hx::TextureFilter filter;
+    filter.minBase = in.min_filter;
+    filter.minMipBase = in.mip_filter;
+    filter.mip = in.enable_mip;
+    sampler.mMinFilter = lowerTextureFilter(filter);
 
     compileCullMode(data, in.show_front, in.show_back);
-    // TODO: lightset, fog indices
     compileAlphaMode(data, in.alpha_mode);
 
     data.texMatrices.push_back(j3d::Material::TexMatrix{});
     data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
+  }
+  if (auto* g3dmat = dynamic_cast<riistudio::g3d::Material*>(&out)) {
+    g3dmat->lightSetIndex = in.lightset_index;
+    g3dmat->fogIndex = in.fog_index;
   }
 
   librii::gx::TevStage wip;
@@ -403,9 +413,6 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
         sampler.mWrapV = clamp;
       }
       // Correction: Intermediate format doesn't specify texture filtering.
-      if (tex->getMipmapCount() > 0) {
-        sampler.mMinFilter = librii::gx::TextureFilter::lin_mip_lin;
-      }
     }
   }
 

@@ -334,6 +334,26 @@ class JRESMaterialPanel(bpy.types.Panel):
 		# box.row().prop(mat, 'preset_path_mdl0mat_or_rspreset')
 		FilteredFiledialog.add(box.row(), mat, 'preset_path_mdl0mat_or_rspreset')
 
+		# Texture Filtering
+		box = layout.box()
+		box.label(text="Texture Filtering", icon='TEXTURE_DATA')
+		row = box.row()
+		row.label(text="Zoom-out", icon='FULLSCREEN_ENTER')
+		row.prop(mat, "jres_filter_min", expand=True)
+		row = box.row()
+		row.label(text="Zoom-in", icon='FULLSCREEN_EXIT')
+		row.prop(mat, "jres_filter_mag", expand=True)
+
+		# Mip-mapping
+		layout.prop(mat, "jres_use_mip")
+		box = layout.box()
+		box.enabled = mat.jres_use_mip
+		box.label(text="Mip Mapping", icon='MOD_OPACITY')
+		row = box.row()
+		row.label(text="Transitions")
+		row.prop(mat, "jres_filter_mip", expand=True)
+		box.row().prop(mat, "jres_lod_bias")
+
 
 # src\panels\JRESScenePanel.py
 
@@ -445,6 +465,11 @@ def build_rs_mat(mat, texture_name):
 		# For compatibility, this field is not changed in RHST
 		# It can specify mdl0mat OR rspreset
 		'preset_path_mdl0mat': bpy.path.abspath(mat.preset_path_mdl0mat_or_rspreset),
+		'min_filter': mat.jres_filter_min == 'linear',
+		'mag_filter': mat.jres_filter_mag == 'linear',
+		'use_mip': mat.jres_use_mip,
+		'mip_filter': mat.jres_filter_mip == 'linear',
+		'lod_bias': mat.jres_lod_bias,
 	}
 
 def mesh_from_object(Object):
@@ -1071,6 +1096,14 @@ UV_WRAP_MODES = (
 	('mirror', "Mirror", "Mirrored-Repeated texture; requires texture be ^2"),
 	('clamp',  "Clamp",  "Clamped texture; does not require texture be ^2")
 )
+FILTER_MODES = (
+	('near', "Pixelated", "Nearest (no interpolation/pixelated)"),
+	('linear', "Blurry", "Linear (interpolated/blurry)"),
+)
+FILTER_MODES_MIP = (
+	('near', "Sudden", "Nearest (no interpolation/pixelated)"),
+	('linear', "Smooth", "Linear (interpolated/blurry)"),
+)
 
 
 def register_tex():
@@ -1192,6 +1225,32 @@ def register_mat():
 	bpy.types.Material.preset_path_mdl0mat_or_rspreset = StringProperty(
 		name="Preset Path",
 		subtype='NONE', # Custom FilteredFiledialog
+	)
+
+	# Texture Filtering
+	bpy.types.Material.jres_filter_min = EnumProperty(
+		name="Zoom-in",
+		items=FILTER_MODES,
+		default='linear',
+	)
+	bpy.types.Material.jres_filter_mag = EnumProperty(
+		name="Zoom-out",
+		items=FILTER_MODES,
+		default='linear',
+	)
+	# Mip Mapping
+	bpy.types.Material.jres_use_mip = BoolProperty(
+		name="Use mipmap",
+		default=True,
+	)
+	bpy.types.Material.jres_filter_mip = EnumProperty(
+		name="Transitions",
+		items=FILTER_MODES_MIP,
+		default='linear',
+	)
+	bpy.types.Material.jres_lod_bias = FloatProperty(
+		name="LOD Bias",
+		default=-1.0,
 	)
 
 def register():

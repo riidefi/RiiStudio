@@ -925,6 +925,11 @@ public:
           b.fog_index = get<s32>(mat, "fog").value_or(0);
           b.preset_path_mdl0mat =
               get<std::string>(mat, "preset_path_mdl0mat").value_or("");
+          b.min_filter = get<bool>(mat, "min_filter").value_or(true);
+          b.mag_filter = get<bool>(mat, "mag_filter").value_or(true);
+          b.enable_mip = get<bool>(mat, "enable_mip").value_or(true);
+          b.mip_filter = get<bool>(mat, "mip_filter").value_or(true);
+          b.lod_bias = get<f32>(mat, "lod_bias").value_or(-1.0f);
         }
       }
     }
@@ -939,8 +944,7 @@ private:
     return s;
   }
 
-  template <typename T>
-  std::optional<T> get(auto& j, const std::string& name) {
+  template <typename T> std::optional<T> get(auto& j, const std::string& name) {
     auto it = j.find(name);
     if (it == j.end()) {
       return std::nullopt;
@@ -965,7 +969,7 @@ private:
   }
   std::optional<glm::vec3> getVec3(auto& jj, int& i) {
     auto j = jj[i++];
-	auto x = (j)[0].template get<f32>();
+    auto x = (j)[0].template get<f32>();
     auto y = (j)[1].template get<f32>();
     auto z = (j)[2].template get<f32>();
     return glm::vec3(x, y, z);

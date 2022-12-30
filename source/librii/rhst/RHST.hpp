@@ -35,6 +35,12 @@ struct Material {
   s32 fog_index = -1;
 
   std::string preset_path_mdl0mat;
+
+  bool min_filter = true;
+  bool mag_filter = true;
+  bool enable_mip = true;
+  bool mip_filter = true;
+  float lod_bias = -1.0f;
 };
 
 struct DrawCall {
