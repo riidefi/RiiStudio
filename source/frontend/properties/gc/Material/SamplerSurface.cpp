@@ -271,170 +271,168 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           if (samp != nullptr)
             drawSamplerImage(mImgs, *samp, surface);
         }
-        if (ImGui::CollapsingHeader("Mapping"_j,
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          if (ImGui::BeginTabBar("Mapping"_j)) {
-            if (ImGui::BeginTabItem("Standard"_j)) {
-              ImGui::EndTabItem();
+        if (ImGui::BeginTabBar("Mapping"_j)) {
+          if (ImGui::BeginTabItem("Standard"_j)) {
+            if (tm == nullptr) {
+              ImVec4 col{200.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f};
+              ImGui::SetWindowFontScale(2.0f);
+              ImGui::TextColored(col, "%s", "No texture matrix is attached"_j);
+              ImGui::SetWindowFontScale(1.0f);
+            } else {
+              ImGui::Text("(Texture Matrix %u)"_j, (u32)texmatrixid);
             }
-            if (ImGui::BeginTabItem("Advanced"_j)) {
-              if (ImGui::CollapsingHeader("Texture Coordinate Generator"_j,
-                                          ImGuiTreeNodeFlags_DefaultOpen)) {
-                librii::hx::TexGenType hx_tg =
-                    librii::hx::elevateTexGenType(tg.func);
-
-                hx_tg.basefunc = DrawBaseTGFunc(hx_tg.basefunc);
-                {
-                  ConditionalActive g(
-                      hx_tg.basefunc ==
-                      librii::hx::BaseTexGenFunction::TextureMatrix);
-                  ImGui::Combo("Matrix Size"_j, &hx_tg.mtxtype,
-                               "UV Matrix: 2x4\0"
-                               "UVW Matrix: 3x4\0"_j);
-
-                  ImGui::Checkbox("Identity Matrix"_j, &identitymatrix);
-                  ImGui::SameLine();
-                  {
-                    ConditionalActive g2(!identitymatrix);
-                    ImGui::SliderInt("Matrix ID"_j, &texmatrixid, 0, 7);
-                  }
-
-                  auto actual_matrix = static_cast<librii::gx::TexMatrix>(
-                      static_cast<int>(librii::gx::TexMatrix::TexMatrix0) +
-                      std::max(0, texmatrixid) * 3);
-
-                  librii::gx::TexMatrix newtexmatrix =
-                      identitymatrix ? librii::gx::TexMatrix::Identity
-                                     : actual_matrix;
-                  AUTO_PROP(texGens[i].matrix, newtexmatrix);
-                }
-                {
-                  ConditionalActive g(hx_tg.basefunc ==
-                                      librii::hx::BaseTexGenFunction::Bump);
-                  ImGui::SliderInt("Hardware light ID"_j, &hx_tg.lightid, 0, 7);
-                }
-
-                librii::gx::TexGenType newfunc =
-                    librii::hx::lowerTexGenType(hx_tg);
-                AUTO_PROP(texGens[i].func, newfunc);
-
-                auto src = DrawTGSource(tg.sourceParam);
-                AUTO_PROP(texGens[i].sourceParam, src);
-              }
-              if (tm != nullptr &&
-                  ImGui::CollapsingHeader("Texture Coordinate Generator"_j,
-                                          ImGuiTreeNodeFlags_DefaultOpen)) {
-                // TODO: Effect matrix
-                {
-                  bool is_j3d = dynamic_cast<const riistudio::j3d::Material*>(
-                      &delegate.getActive());
-
-                  auto xfmodel = DrawCommXModel(tm->transformModel, is_j3d);
-                  AUTO_PROP(texMatrices[texmatrixid].transformModel, xfmodel);
-                }
-                {
-                  // TODO: Not all backends support all modes..
-                  auto newMapMethod = DrawCommMapMethod(tm->method);
-                  AUTO_PROP(texMatrices[texmatrixid].method, newMapMethod);
-                }
-                {
-                  auto mod = DrawCommMapMod(tm->option);
-                  AUTO_PROP(texMatrices[texmatrixid].option, mod);
-                }
-              }
-              ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
-          }
-          if (tm == nullptr) {
-            ImVec4 col{200.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f};
-            ImGui::SetWindowFontScale(2.0f);
-            ImGui::TextColored(col, "%s", "No texture matrix is attached"_j);
-            ImGui::SetWindowFontScale(1.0f);
-          } else {
-            ImGui::Text("(Texture Matrix %u)"_j, (u32)texmatrixid);
-          }
-          if (tm != nullptr &&
-              ImGui::CollapsingHeader("Transformation"_j,
-                                      ImGuiTreeNodeFlags_DefaultOpen)) {
-            auto s = tm->scale;
-            const auto rotate = glm::degrees(tm->rotate);
-            auto r = rotate;
-            auto t = tm->translate;
-            ImGui::SliderFloat2("Scale"_j, &s.x, 0.0f, 10.0f);
-            ImGui::SliderFloat("Rotate"_j, &r, 0.0f, 360.0f);
-            ImGui::SliderFloat2("Translate"_j, &t.x, -10.0f, 10.0f);
-            AUTO_PROP(texMatrices[texmatrixid].scale, s);
-            if (r != rotate)
-              AUTO_PROP(texMatrices[texmatrixid].rotate, glm::radians(r));
-            AUTO_PROP(texMatrices[texmatrixid].translate, t);
+            if (tm != nullptr &&
+                ImGui::CollapsingHeader("Transformation"_j,
+                                        ImGuiTreeNodeFlags_DefaultOpen)) {
+              auto s = tm->scale;
+              const auto rotate = glm::degrees(tm->rotate);
+              auto r = rotate;
+              auto t = tm->translate;
+              ImGui::SliderFloat2("Scale"_j, &s.x, 0.0f, 10.0f);
+              ImGui::SliderFloat("Rotate"_j, &r, 0.0f, 360.0f);
+              ImGui::SliderFloat2("Translate"_j, &t.x, -10.0f, 10.0f);
+              AUTO_PROP(texMatrices[texmatrixid].scale, s);
+              if (r != rotate)
+                AUTO_PROP(texMatrices[texmatrixid].rotate, glm::radians(r));
+              AUTO_PROP(texMatrices[texmatrixid].translate, t);
 
 #ifdef BUILD_DEBUG
-            const auto computed = glm::transpose(tm->compute({}, {}));
-            Toolkit::Matrix44(computed);
+              const auto computed = glm::transpose(tm->compute({}, {}));
+              Toolkit::Matrix44(computed);
 #endif
-          }
-        }
-        if (ImGui::CollapsingHeader("Tiling"_j,
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          const char* wrap_modes = "Clamp\0"
-                                   "Repeat\0"
-                                   "Mirror\0"_j;
-          auto uTile = imcxx::Combo("U tiling"_j, samp->mWrapU, wrap_modes);
-          auto vTile = imcxx::Combo("V tiling"_j, samp->mWrapV, wrap_modes);
-          AUTO_PROP(samplers[i].mWrapU, uTile);
-          AUTO_PROP(samplers[i].mWrapV, vTile);
-        }
-        if (ImGui::CollapsingHeader("Filtering"_j,
-                                    ImGuiTreeNodeFlags_DefaultOpen)) {
-          auto magBase = samp->mMagFilter;
-
-          auto min_filt = librii::hx::elevateTextureFilter(samp->mMinFilter);
-
-          const char* linNear = "Nearest (no interpolation/pixelated)\0"
-                                "Linear (interpolated/blurry)\0"_j;
-
-          magBase =
-              imcxx::Combo("Interpolation when scaled up"_j, magBase, linNear);
-          AUTO_PROP(samplers[i].mMagFilter, magBase);
-          ImGui::Combo("Interpolation when scaled down"_j, &min_filt.minBase,
-                       linNear);
-
-          ImGui::Checkbox("Use mipmap"_j, &min_filt.mip);
-
-          {
-            ConditionalActive g(min_filt.mip);
-
-            if (ImGui::CollapsingHeader("Mipmapping"_j,
+            }
+            if (ImGui::CollapsingHeader("Tiling"_j,
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
-              ImGui::Combo("Interpolation type"_j, &min_filt.minMipBase,
-                           linNear);
+              const char* wrap_modes = "Clamp\0"
+                                       "Repeat\0"
+                                       "Mirror\0"_j;
+              auto uTile = imcxx::Combo("U tiling"_j, samp->mWrapU, wrap_modes);
+              auto vTile = imcxx::Combo("V tiling"_j, samp->mWrapV, wrap_modes);
+              AUTO_PROP(samplers[i].mWrapU, uTile);
+              AUTO_PROP(samplers[i].mWrapV, vTile);
+            }
+            if (ImGui::CollapsingHeader("Filtering"_j,
+                                        ImGuiTreeNodeFlags_DefaultOpen)) {
+              auto magBase = samp->mMagFilter;
 
-              float lodbias = samp->mLodBias;
-              ImGui::SliderFloat("LOD bias"_j, &lodbias, -4.0f, 3.99f);
-              AUTO_PROP(samplers[i].mLodBias, lodbias);
+              auto min_filt =
+                  librii::hx::elevateTextureFilter(samp->mMinFilter);
 
-              bool edgelod = samp->bEdgeLod;
-              ImGui::Checkbox("Edge LOD"_j, &edgelod);
-              AUTO_PROP(samplers[i].bEdgeLod, edgelod);
+              const char* linNear = "Nearest (no interpolation/pixelated)\0"
+                                    "Linear (interpolated/blurry)\0"_j;
+
+              magBase = imcxx::Combo("Interpolation when scaled up"_j, magBase,
+                                     linNear);
+              AUTO_PROP(samplers[i].mMagFilter, magBase);
+              ImGui::Combo("Interpolation when scaled down"_j,
+                           &min_filt.minBase, linNear);
+
+              ImGui::Checkbox("Use mipmap"_j, &min_filt.mip);
 
               {
-                ConditionalActive g(edgelod);
+                ConditionalActive g(min_filt.mip);
 
-                bool mipBiasClamp = samp->bBiasClamp;
-                ImGui::Checkbox("Bias clamp"_j, &mipBiasClamp);
-                AUTO_PROP(samplers[i].bBiasClamp, mipBiasClamp);
+                if (ImGui::CollapsingHeader("Mipmapping"_j,
+                                            ImGuiTreeNodeFlags_DefaultOpen)) {
+                  ImGui::Combo("Interpolation type"_j, &min_filt.minMipBase,
+                               linNear);
 
-                auto alvl = DrawAniso(samp->mMaxAniso);
-                AUTO_PROP(samplers[i].mMaxAniso, alvl);
+                  float lodbias = samp->mLodBias;
+                  ImGui::SliderFloat("LOD bias"_j, &lodbias, -4.0f, 3.99f);
+                  AUTO_PROP(samplers[i].mLodBias, lodbias);
+
+                  bool edgelod = samp->bEdgeLod;
+                  ImGui::Checkbox("Edge LOD"_j, &edgelod);
+                  AUTO_PROP(samplers[i].bEdgeLod, edgelod);
+
+                  {
+                    ConditionalActive g(edgelod);
+
+                    bool mipBiasClamp = samp->bBiasClamp;
+                    ImGui::Checkbox("Bias clamp"_j, &mipBiasClamp);
+                    AUTO_PROP(samplers[i].bBiasClamp, mipBiasClamp);
+
+                    auto alvl = DrawAniso(samp->mMaxAniso);
+                    AUTO_PROP(samplers[i].mMaxAniso, alvl);
+                  }
+                }
+              }
+
+              librii::gx::TextureFilter computedMin =
+                  librii::hx::lowerTextureFilter(min_filt);
+
+              AUTO_PROP(samplers[i].mMinFilter, computedMin);
+            }
+            ImGui::EndTabItem();
+          }
+          if (ImGui::BeginTabItem("Advanced"_j)) {
+            if (ImGui::CollapsingHeader("Texture Coordinate Generator"_j,
+                                        ImGuiTreeNodeFlags_DefaultOpen)) {
+              librii::hx::TexGenType hx_tg =
+                  librii::hx::elevateTexGenType(tg.func);
+
+              hx_tg.basefunc = DrawBaseTGFunc(hx_tg.basefunc);
+              {
+                ConditionalActive g(
+                    hx_tg.basefunc ==
+                    librii::hx::BaseTexGenFunction::TextureMatrix);
+                ImGui::Combo("Matrix Size"_j, &hx_tg.mtxtype,
+                             "UV Matrix: 2x4\0"
+                             "UVW Matrix: 3x4\0"_j);
+
+                ImGui::Checkbox("Identity Matrix"_j, &identitymatrix);
+                ImGui::SameLine();
+                {
+                  ConditionalActive g2(!identitymatrix);
+                  ImGui::SliderInt("Matrix ID"_j, &texmatrixid, 0, 7);
+                }
+
+                auto actual_matrix = static_cast<librii::gx::TexMatrix>(
+                    static_cast<int>(librii::gx::TexMatrix::TexMatrix0) +
+                    std::max(0, texmatrixid) * 3);
+
+                librii::gx::TexMatrix newtexmatrix =
+                    identitymatrix ? librii::gx::TexMatrix::Identity
+                                   : actual_matrix;
+                AUTO_PROP(texGens[i].matrix, newtexmatrix);
+              }
+              {
+                ConditionalActive g(hx_tg.basefunc ==
+                                    librii::hx::BaseTexGenFunction::Bump);
+                ImGui::SliderInt("Hardware light ID"_j, &hx_tg.lightid, 0, 7);
+              }
+
+              librii::gx::TexGenType newfunc =
+                  librii::hx::lowerTexGenType(hx_tg);
+              AUTO_PROP(texGens[i].func, newfunc);
+
+              auto src = DrawTGSource(tg.sourceParam);
+              AUTO_PROP(texGens[i].sourceParam, src);
+            }
+            if (tm != nullptr &&
+                ImGui::CollapsingHeader("Texture Coordinate Generator"_j,
+                                        ImGuiTreeNodeFlags_DefaultOpen)) {
+              // TODO: Effect matrix
+              {
+                bool is_j3d = dynamic_cast<const riistudio::j3d::Material*>(
+                    &delegate.getActive());
+
+                auto xfmodel = DrawCommXModel(tm->transformModel, is_j3d);
+                AUTO_PROP(texMatrices[texmatrixid].transformModel, xfmodel);
+              }
+              {
+                // TODO: Not all backends support all modes..
+                auto newMapMethod = DrawCommMapMethod(tm->method);
+                AUTO_PROP(texMatrices[texmatrixid].method, newMapMethod);
+              }
+              {
+                auto mod = DrawCommMapMod(tm->option);
+                AUTO_PROP(texMatrices[texmatrixid].option, mod);
               }
             }
+            ImGui::EndTabItem();
           }
-
-          librii::gx::TextureFilter computedMin =
-              librii::hx::lowerTextureFilter(min_filt);
-
-          AUTO_PROP(samplers[i].mMinFilter, computedMin);
+          ImGui::EndTabBar();
         }
         ImGui::EndTabItem();
       }
