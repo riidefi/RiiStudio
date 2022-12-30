@@ -28,8 +28,7 @@ void DrawRichSelection(kpi::IObject* active, int numSelected) {
 }
 
 std::string GetTitle(kpi::IPropertyView& view) {
-  return std::string(view.getIcon()) + std::string(" ") +
-         std::string(view.getName());
+  return std::format("{} {}", view.getIcon(), view.getName());
 }
 class PropertyEditor : public StudioWindow, private PropertyEditorWidget {
 public:
@@ -96,8 +95,6 @@ static void gatherSelected(kpi::SelectionManager& ed,
 }
 
 void PropertyEditor::draw_() {
-  auto& manager = kpi::PropertyViewManager::getInstance();
-
   if (mSelection.mActive == nullptr) {
     ImGui::TextUnformatted("Nothing is selected."_j);
     return;

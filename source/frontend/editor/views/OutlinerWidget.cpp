@@ -7,78 +7,6 @@
 
 namespace riistudio::frontend {
 
-class FlattenedTree {
-public:
-  void FromFolder(NodeFolder& folder, int depth,
-                  std::invocable<const NodeFolder&> auto&& filterFolder,
-                  std::invocable<const Child&> auto&& filterChild) {
-    if (!filterFolder(folder)) {
-      return;
-    }
-    if (folder.key != "ROOT") {
-      auto& node = mNodes.emplace_back(folder);
-      node.indent = depth;
-      node.nodeType = NODE_FOLDER;
-      node.__numChildren = folder.children.size();
-      ++depth;
-    }
-    for (auto& child : folder.children) {
-      assert(child.has_value());
-      FromChild(*child, depth, filterFolder, filterChild);
-    }
-    return;
-  }
-  void FromChild(Child& child, int depth,
-                 std::invocable<const NodeFolder&> auto&& filterFolder,
-                 std::invocable<const Child&> auto&& filterChild) {
-    if (!filterChild(child)) {
-      return;
-    }
-    auto& node = mNodes.emplace_back(child);
-    node.indent += depth;
-    node.nodeType = NODE_OBJECT;
-    for (auto& folder : child.folders) {
-      FromFolder(folder, depth + 1, filterFolder, filterChild);
-    }
-  }
-  std::vector<Node>&& TakeResult() { return std::move(mNodes); }
-
-  static std::vector<Node>
-  Flatten(NodeFolder& root,
-          std::invocable<const NodeFolder&> auto&& filterFolder,
-          std::invocable<const Child&> auto&& filterChild) {
-    FlattenedTree instance;
-    instance.FromFolder(root, 0, filterFolder, filterChild);
-    return instance.TakeResult();
-  }
-
-  static Node* getFolderOfObject(std::ranges::random_access_range auto&& nodes,
-                                 std::ptrdiff_t nodeIndex)
-    requires std::same_as<std::ranges::range_value_t<decltype(nodes)>, Node>
-  {
-    assert(nodeIndex < std::ranges::size(nodes));
-    while (nodeIndex >= 0 && nodes[nodeIndex].nodeType != NODE_FOLDER) {
-      --nodeIndex;
-    }
-    return nodeIndex >= 0 ? &nodes[nodeIndex] : nullptr;
-  }
-  static std::optional<std::ptrdiff_t>
-  getNextSiblingOrParent(std::ranges::random_access_range auto&& nodes,
-                         std::ptrdiff_t nodeIndex)
-    requires std::same_as<std::ranges::range_value_t<decltype(nodes)>, Node>
-  {
-    assert(nodeIndex < std::ranges::size(nodes));
-    const auto indent = nodes[nodeIndex].indent;
-    while (nodeIndex >= 0 && nodes[nodeIndex].indent > indent) {
-      --nodeIndex;
-    }
-    return nodeIndex >= 0 ? std::optional{nodeIndex} : std::nullopt;
-  }
-
-private:
-  std::vector<Node> mNodes;
-};
-
 bool FancyFolderNode(ImVec4 color, const char* icon,
                      std::string_view unitPlural, size_t numEntries) {
   ImGui::PushStyleColor(ImGuiCol_Text, color);
@@ -108,7 +36,7 @@ bool FancyObject(Node& child, size_t i, bool hasChild, bool curNodeSelected,
                  std::function<void(const lib3d::Texture*, float)> drawIcon) {
   const float icon_size = 24.0f * ImGui::GetIO().FontGlobalScale;
 
-  auto id = std::format("{}", i);
+  auto id = std::format("{}", child.display_id_relative_to_parent);
   {
     ImGui::Selectable(id.c_str(), curNodeSelected, ImGuiSelectableFlags_None,
                       {0, icon_size});
@@ -145,28 +73,6 @@ bool FancyObject(Node& child, size_t i, bool hasChild, bool curNodeSelected,
   }
   ImGui::SetCursorPosY(initial_pos_y + icon_size);
   return treenode;
-}
-
-bool FilterFolder(const NodeFolder& folder) {
-  // Do not show empty folders
-  if (folder.children.size() == 0)
-    return false;
-
-  // Do not display folders without rich type info (at the first child)
-  if (!folder.children[0].has_value() || !folder.children[0]->is_rich)
-    return false;
-
-  return true;
-}
-bool FilterChild(const Child& child, TFilter& filter) {
-  if (!child.is_container && !filter.test(child.public_name))
-    return false;
-
-  // We rely on rich type info to infer icons
-  if (!child.is_rich)
-    return false;
-
-  return true;
 }
 
 void OutlinerWidget::AddNewCtxMenu(Node& folder) {
@@ -251,15 +157,8 @@ bool OutlinerWidget::DrawObject(Node& child, size_t i, bool hasChildren,
   return treenode;
 }
 
-void OutlinerWidget::DrawFolder(NodeFolder& folder, TFilter& mFilter) {
-  if (!FilterFolder(folder))
-    return;
-
-  auto flat = FlattenedTree::Flatten(folder, FilterFolder, [&](auto& child) {
-    return FilterChild(child, mFilter);
-  });
-
-  struct MyIndentedTreeWidget : private IndentedTreeWidget {
+void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
+  struct MyIndentedTreeWidget final : private IndentedTreeWidget {
   public:
     MyIndentedTreeWidget(OutlinerWidget& outliner, std::vector<Node>& nodes,
                          Node& folder)
@@ -319,7 +218,7 @@ void OutlinerWidget::DrawFolder(NodeFolder& folder, TFilter& mFilter) {
     Node* mpFolder{};
   };
 
-  MyIndentedTreeWidget tree(*this, flat, folder);
+  MyIndentedTreeWidget tree(*this, flat, firstFolder);
   tree.Draw();
 
   for (int i = 0; i < flat.size(); ++i) {
@@ -337,23 +236,41 @@ void OutlinerWidget::DrawFolder(NodeFolder& folder, TFilter& mFilter) {
   if (tree.selectMode == ContiguousSelection::SELECT_NONE)
     return;
 
+// Allow disjoint selections
+#if 0
   // Unique selection model: No selections of different types.
   // Since we use type-folders, this means only one folder can have selections.
   // We only need to clear the folder of the last active object.
-  if (hasActiveSelection() && !mActiveClassId.empty() &&
-      mActiveClassId != folder.key) {
-    // Invalidate last selection, otherwise SHIFT anchors from the old folder
-    // would carry over.
-    setActiveSelection(nullptr);
-    clearSelection();
+  Node* folder = nullptr;
+  if (hasActiveSelection() && !mActiveClassId.empty()) {
+    s32 it = -1;
+    for (s32 i = 0; i < flat.size(); ++i) {
+      if (isActiveSelection(flat[i])) {
+        it = i;
+        break;
+      }
+    }
+    assert(it != -1);
+
+    folder = FlattenedTree::getFolderOfObject(flat, it);
+    assert(folder);
+    if (mActiveClassId != folder->key) {
+      // Invalidate last selection, otherwise SHIFT anchors from the old
+      // folder would carry over.
+      setActiveSelection(nullptr);
+      clearSelection();
+    }
   }
-  mActiveClassId = folder.key;
+  if (folder != nullptr) {
+    mActiveClassId = folder->key;
+  }
+#endif
 
   //
   // Calculation must occur in filtered space to prevent selection
   // of occluded nodes.
   //
-  class MyContiguousSelection : public ContiguousSelection {
+  class MyContiguousSelection final : public ContiguousSelection {
   public:
     MyContiguousSelection(OutlinerWidget& outliner, std::span<Node> flat,
                           std::vector<s32>&& filtered)

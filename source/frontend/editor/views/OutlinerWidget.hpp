@@ -24,8 +24,6 @@ enum NodeType {
 struct Node {
   NodeType nodeType = NODE_OBJECT;
   // This should only increase or decrease by one per node
-  //
-  // FOR NOW, THIS IS RELATIVE TO THE CHILD NODE
   int indent = 0;
 
   // Images can be used, with a special character that indexes the font sheet
@@ -85,29 +83,39 @@ struct Node {
   ///////////////////////////////////////////////////////
   // INTERNAL
   ///////////////////////////////////////////////////////
-  int __numChildren = 0;
+  int __numChildren = 0; // Folder
+  int display_id_relative_to_parent = 0; // File
 };
 
-struct Child : public Node {
+class FlattenedTree {
 public:
-  struct Folder : public Node {
-    std::vector<std::optional<Child>> children;
-  };
-  std::vector<Folder> folders;
-};
-
-using NodeFolder = Child::Folder;
-
-struct ImTFilter : public ImGuiTextFilter {
-  bool test(const std::string& str) const noexcept {
-    return PassFilter(str.c_str());
+  static Node* getFolderOfObject(std::ranges::random_access_range auto&& nodes,
+                                 std::ptrdiff_t nodeIndex)
+    requires std::same_as<std::ranges::range_value_t<decltype(nodes)>, Node>
+  {
+    assert(nodeIndex < std::ranges::size(nodes));
+    while (nodeIndex >= 0 && nodes[nodeIndex].nodeType != NODE_FOLDER) {
+      --nodeIndex;
+    }
+    return nodeIndex >= 0 ? &nodes[nodeIndex] : nullptr;
+  }
+  static std::optional<std::ptrdiff_t>
+  getNextSiblingOrParent(std::ranges::random_access_range auto&& nodes,
+                         std::ptrdiff_t nodeIndex)
+    requires std::same_as<std::ranges::range_value_t<decltype(nodes)>, Node>
+  {
+    assert(nodeIndex < std::ranges::size(nodes));
+    const auto indent = nodes[nodeIndex].indent;
+    while (nodeIndex >= 0 && nodes[nodeIndex].indent > indent) {
+      --nodeIndex;
+    }
+    return nodeIndex >= 0 ? std::optional{nodeIndex} : std::nullopt;
   }
 };
-using TFilter = ImTFilter;
 
 class OutlinerWidget {
 public:
-  void DrawFolder(NodeFolder& folder, TFilter& mFilter);
+  void DrawFolder(std::vector<Node>&& nodes, Node& firstFolder);
 
   virtual bool isSelected(const Node& n) const = 0;
   virtual void select(const Node& n) = 0;

@@ -80,7 +80,8 @@ public:
     if (!ctrl && !shift) {
       DeselectAll();
     }
-    SetActiveSelection(index);
+    if (!IsActiveSelection(index))
+       SetActiveSelection(index);
     if (!wasAlreadySelected)
       Select(index);
   }
