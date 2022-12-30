@@ -25,27 +25,6 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, G3DDataSurface) {
   ImGui::InputInt("Fog channel (-1 == OFF)", &fog);
   KPI_PROPERTY_EX(delegate, fogIndex, static_cast<s8>(fog));
 
-  bool dstAlphaEnabled = delegate.getActive().dstAlpha.enabled;
-  int dstAlphaValue = delegate.getActive().dstAlpha.alpha;
-
-  if (ImGui::CollapsingHeader("Destination Alpha",
-                              ImGuiTreeNodeFlags_DefaultOpen)) {
-    ImGui::Checkbox("Enabled", &dstAlphaEnabled);
-    {
-      util::ConditionalActive c(dstAlphaEnabled);
-
-      ImGui::InputInt("Value", &dstAlphaValue);
-    }
-	// Force shader recompilation
-    for (auto& mat : delegate.mAffected) {
-      if (mat->dstAlpha.enabled != dstAlphaEnabled ||
-          mat->dstAlpha.alpha != dstAlphaValue) {
-        mat->nextGenerationId();
-	  }
-	}
-    KPI_PROPERTY_EX(delegate, dstAlpha.enabled, dstAlphaEnabled);
-    KPI_PROPERTY_EX(delegate, dstAlpha.alpha, static_cast<u8>(dstAlphaValue));
-  }
 }
 
 struct G3DTexDataSurface final {

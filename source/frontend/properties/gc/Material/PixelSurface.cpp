@@ -2,6 +2,9 @@
 #include <imcxx/Widgets.hpp>
 #include <librii/hx/PixMode.hpp>
 
+#include <core/util/gui.hpp>
+#include <plugins/g3d/collection.hpp>
+
 namespace libcube::UI {
 
 using namespace riistudio::util;
@@ -73,7 +76,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 
   if (pix_mode != librii::hx::PIX_CUSTOM)
-    return;
+    goto DstAlpha;
   if (ImGui::CollapsingHeader("Scenegraph"_j, ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Combo("Render Pass"_j, &xlu_mode,
                  "Pass 0: Opaque objects, no order\0"
@@ -249,6 +252,32 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
       ImGui::TextUnformatted("Logical Operations (Unsupported)"_j);
     }
     ImGui::PopItemWidth();
+  }
+DstAlpha:
+  if (auto* gm =
+          dynamic_cast<riistudio::g3d::Material*>(&delegate.getActive())) {
+    bool dstAlphaEnabled = gm->dstAlpha.enabled;
+    int dstAlphaValue = gm->dstAlpha.alpha;
+
+    if (ImGui::CollapsingHeader("Destination Alpha",
+                                ImGuiTreeNodeFlags_DefaultOpen)) {
+      ImGui::Checkbox("Enabled", &dstAlphaEnabled);
+      {
+        riistudio::util::ConditionalActive c(dstAlphaEnabled);
+
+        ImGui::InputInt("Value", &dstAlphaValue);
+      }
+      // Force shader recompilation
+      for (auto& mat : delegate.mAffected) {
+        assert(mat);
+        if (mat->getMaterialData().dstAlpha.enabled != dstAlphaEnabled ||
+            mat->getMaterialData().dstAlpha.alpha != dstAlphaValue) {
+          mat->nextGenerationId();
+        }
+      }
+      AUTO_PROP(dstAlpha.enabled, dstAlphaEnabled);
+      AUTO_PROP(dstAlpha.alpha, static_cast<u8>(dstAlphaValue));
+    }
   }
 }
 
