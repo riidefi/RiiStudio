@@ -1,6 +1,7 @@
 #include "Common.hpp"
 
 #include <imcxx/Widgets.hpp>
+#include <plugins/g3d/collection.hpp>
 
 namespace libcube::UI {
 
@@ -97,32 +98,35 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     AUTO_PROP(colorChanControls[i].attenuationFn,
               static_cast<librii::gx::AttenuationFunction>(atten_fn));
 
-    ImGui::TextUnformatted("Enabled Lights:"_j);
-    auto light_mask = static_cast<u32>(ctrl.lightMask);
-    ImGui::BeginTable("Light Mask"_j, 8, ImGuiTableFlags_Borders);
-    for (int i = 0; i < 8; ++i) {
-      char header[2]{0};
-      header[0] = '0' + i;
-      ImGui::TableSetupColumn(header);
-    }
-    ImGui::TableHeadersRow();
-    ImGui::TableNextRow();
-    for (int i = 0; i < 8; ++i) {
-      bool light_enabled = (static_cast<u32>(ctrl.lightMask) & (1 << i)) != 0;
-      ImGui::TableSetColumnIndex(i);
-      ImGui::PushID(i);
-      ImGui::Checkbox("###TableLightMask", &light_enabled);
-      ImGui::PopID();
-
-      if (light_enabled) {
-        light_mask |= (1 << i);
-      } else {
-        light_mask &= ~(1 << i);
+    auto* gm = dynamic_cast<riistudio::g3d::Material*>(&delegate.getActive());
+    if (gm == nullptr) {
+      ImGui::TextUnformatted("Enabled Lights:"_j);
+      auto light_mask = static_cast<u32>(ctrl.lightMask);
+      ImGui::BeginTable("Light Mask"_j, 8, ImGuiTableFlags_Borders);
+      for (int i = 0; i < 8; ++i) {
+        char header[2]{0};
+        header[0] = '0' + i;
+        ImGui::TableSetupColumn(header);
       }
+      ImGui::TableHeadersRow();
+      ImGui::TableNextRow();
+      for (int i = 0; i < 8; ++i) {
+        bool light_enabled = (static_cast<u32>(ctrl.lightMask) & (1 << i)) != 0;
+        ImGui::TableSetColumnIndex(i);
+        ImGui::PushID(i);
+        ImGui::Checkbox("###TableLightMask", &light_enabled);
+        ImGui::PopID();
+
+        if (light_enabled) {
+          light_mask |= (1 << i);
+        } else {
+          light_mask &= ~(1 << i);
+        }
+      }
+      ImGui::EndTable();
+      AUTO_PROP(colorChanControls[i].lightMask,
+                static_cast<librii::gx::LightID>(light_mask));
     }
-    ImGui::EndTable();
-    AUTO_PROP(colorChanControls[i].lightMask,
-              static_cast<librii::gx::LightID>(light_mask));
   };
 
   for (int i = 0; i < controls.size(); i += 2) {
