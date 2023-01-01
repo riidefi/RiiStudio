@@ -102,9 +102,14 @@ void Renderer::render(u32 width, u32 height) {
                                                    mViewMtx);
 
   mSceneState.invalidate();
-  mRootDispatcher.populate(*mRoot, mSceneState,
-                           *dynamic_cast<kpi::INode*>(mRoot), mViewMtx,
-                           mProjMtx);
+  auto ok = mRootDispatcher.populate(*mRoot, mSceneState,
+                                     *dynamic_cast<kpi::INode*>(mRoot),
+                                     mViewMtx, mProjMtx);
+  if (!ok.has_value()) {
+    ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_NavHighlight],
+                       "Renderer error during populate(): %s",
+                       ok.error().c_str());
+  }
   mSceneState.buildUniformBuffers();
 
   librii::glhelper::ClearGlScreen();

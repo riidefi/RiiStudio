@@ -1,13 +1,10 @@
 #pragma once
 
+#include <core/common.h>
+#include <expected>
 #include <glm/glm.hpp>                   // glm::mat4
 #include <librii/gfx/MegaState.hpp>      // MegaState
 #include <librii/gfx/PixelOcclusion.hpp> // PixelOcclusion
-#include <map>                           // std::map<string, u32>
-#include <string>                        // std::string
-#include <tuple>                         // std::pair<string, string>
-
-#include <rsl/PubSub.hpp>
 
 namespace librii::glhelper {
 class DelegatedUBOBuilder;
@@ -30,9 +27,10 @@ struct Material : public virtual kpi::IObject {
   virtual bool isXluPass() const { return false; }
   virtual void setXluPass(bool b) = 0;
 
-  virtual std::pair<std::string, std::string> generateShaders() const = 0;
+  virtual std::expected<std::pair<std::string, std::string>, std::string>
+  generateShaders() const = 0;
 
-  virtual void setMegaState(librii::gfx::MegaState& state) const = 0;
+  [[nodiscard]] virtual Result<librii::gfx::MegaState> setMegaState() const = 0;
   virtual void configure(librii::gfx::PixelOcclusion occlusion,
                          std::vector<std::string>& textures) = 0;
 

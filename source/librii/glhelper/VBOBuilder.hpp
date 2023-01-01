@@ -34,7 +34,7 @@ struct VBOBuilder {
   // binding_point : data
   std::map<u32, VertexArray> mPropogating;
 
-  void build();
+  [[nodiscard]] Result<void> build();
 
   void uploadIndexBuffer();
 

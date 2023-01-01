@@ -168,18 +168,19 @@ void BinaryTev::writeBody(oishii::Writer& writer) const {
   dl.write(writer);
 }
 
-void ReadTev(librii::gx::LowLevelGxMaterial& mat, oishii::BinaryReader& reader,
-             unsigned int tev_addr, bool trust_stagecount, bool brawlbox_bug) {
+Result<void> ReadTev(librii::gx::LowLevelGxMaterial& mat,
+                     oishii::BinaryReader& reader, unsigned int tev_addr,
+                     bool trust_stagecount, bool brawlbox_bug) {
   if (trust_stagecount) {
     reader.seekSet(tev_addr + 4);
-    const u8 num_stages = reader.read<u8>();
-    assert(num_stages <= 16);
+    const u8 num_stages = TRY(reader.tryRead<u8>());
+    EXPECT(num_stages <= 16);
     mat.mStages.resize(num_stages);
   }
   reader.seekSet(tev_addr + 16);
   std::array<u8, 8> coord_map_lut;
   for (auto& e : coord_map_lut)
-    e = reader.read<u8>();
+    e = TRY(reader.tryRead<u8>());
   bool error = false;
   {
     u8 last = 0;
@@ -201,9 +202,11 @@ void ReadTev(librii::gx::LowLevelGxMaterial& mat, oishii::BinaryReader& reader,
   {
     librii::gpu::QDisplayListShaderHandler shaderHandler(mat,
                                                          mat.mStages.size());
-    librii::gpu::RunDisplayList(reader, shaderHandler,
-                                shaderDlSizes[mat.mStages.size()]);
+    TRY(librii::gpu::RunDisplayList(reader, shaderHandler,
+                                    shaderDlSizes[mat.mStages.size()]));
   }
+
+  return {};
 }
 
 void WriteTevBody(oishii::Writer& writer, u32 tev_id, const G3dShader& tev) {

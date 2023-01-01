@@ -5,7 +5,7 @@ namespace librii::gpu {
 // This is always BE
 constexpr oishii::EndianSelect CmdProcEndian = oishii::EndianSelect::Big;
 
-static llvm::Expected<u16> ProcessAttr(
+static std::expected<u16, std::string> ProcessAttr(
     oishii::BinaryReader& reader,
     const std::map<gx::VertexAttribute, gx::VertexAttributeType>& attribstypes,
     gx::VertexAttribute a, u32 vi) {
@@ -15,39 +15,37 @@ static llvm::Expected<u16> ProcessAttr(
   case gx::VertexAttributeType::None:
     break;
   case gx::VertexAttributeType::Byte:
-    val = reader.read<u8, CmdProcEndian, true>();
-    assert(val != 0xff);
+    val = TRY(reader.tryRead<u8, CmdProcEndian, true>());
+    EXPECT(val != 0xff);
     break;
   case gx::VertexAttributeType::Short:
-    val = reader.read<u16, CmdProcEndian, true>();
+    val = TRY(reader.tryRead<u16, CmdProcEndian, true>());
     if (val == 0xffff) {
       printf("Index: %u, Attribute: %x\n", vi, (u32)a);
       reader.warnAt("Disabled vertex", reader.tell() - 2, reader.tell());
     }
-    assert(val != 0xffff);
+    EXPECT(val != 0xffff);
     break;
   case gx::VertexAttributeType::Direct:
     if (a != gx::VertexAttribute::PositionNormalMatrixIndex &&
         a != gx::VertexAttribute::Texture0MatrixIndex &&
         a != gx::VertexAttribute::Texture1MatrixIndex) {
 
-      return llvm::createStringError(std::errc::executable_format_error,
-                                     "Direct vertex data is unsupported.");
+      return std::unexpected("Direct vertex data is unsupported.");
     }
     // As PNM indices are always direct, we
     // still use them in an all-indexed vertex
-    val = reader.read<u8, CmdProcEndian, true>();
-    assert(val != 0xff);
+    val = TRY(reader.tryRead<u8, CmdProcEndian, true>());
+    EXPECT(val != 0xff);
     break;
   default:
-    return llvm::createStringError(std::errc::executable_format_error,
-                                   "Unknown vertex attribute format.");
+    return std::unexpected("Unknown vertex attribute format.");
   }
 
   return val;
 }
 
-llvm::Error
+Result<void>
 DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
                       IMeshDLDelegate& delegate,
                       const librii::gx::VertexDescriptor& descriptor,
@@ -56,19 +54,17 @@ DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
 
   const u32 end = reader.tell() + size;
   while (reader.tell() < end) {
-    const u8 tag = reader.readUnaligned<u8>();
+    const u8 tag = TRY(reader.tryRead<u8, CmdProcEndian, true>());
 
     // NOP
     if (tag == 0)
       continue;
 
     if ((tag & 0x80) == 0) {
-      return llvm::createStringError(
-          std::errc::executable_format_error,
-          "Unexpected command in mesh display list.");
+      return std::unexpected("Unexpected command in mesh display list.");
     }
 
-    u16 nVerts = reader.readUnaligned<u16, CmdProcEndian>();
+    u16 nVerts = TRY(reader.tryRead<u16, CmdProcEndian, true>());
     auto& prim = delegate.addIndexedPrimitive(
         gx::DecodeDrawPrimitiveCommand(tag), nVerts);
 
@@ -78,12 +74,8 @@ DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
           const auto attr = static_cast<gx::VertexAttribute>(a);
           const auto attr_buf = static_cast<gx::VertexBufferAttribute>(a);
 
-          auto valOrErr = ProcessAttr(reader, descriptor.mAttributes, attr, vi);
-          if (auto e = valOrErr.takeError())
-            return e;
-
-          const u16 val = *valOrErr;
-
+          const u16 val =
+              TRY(ProcessAttr(reader, descriptor.mAttributes, attr, vi));
           prim.mVertices[vi][attr] = val;
 
           if (optUsageMap && (*optUsageMap)[attr_buf] <= val)
@@ -93,7 +85,7 @@ DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
     }
   }
 
-  return llvm::Error::success();
+  return {};
 }
 
 } // namespace librii::gpu

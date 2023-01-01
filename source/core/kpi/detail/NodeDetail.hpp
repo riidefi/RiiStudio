@@ -54,7 +54,18 @@ struct ApplicationPluginsImpl {
                          oishii::BinaryReader& reader) const override {
       return T::canRead(file, reader);
     }
-    void read_(IOTransaction& transaction) override { T::read(transaction); }
+    void read_(IOTransaction& transaction) override {
+#if !defined(HAS_RUST_TRY)
+      try {
+#endif // !defined(HAS_RUST_TRY)
+        T::read(transaction);
+#if !defined(HAS_RUST_TRY)
+      } catch (std::string s) {
+        transaction.callback(IOMessageClass::Error, "MSVC hack", s);
+        transaction.state = TransactionState::Failure;
+      }
+#endif // !defined(HAS_RUST_TRY)
+    }
     void render() override {
       if constexpr (has_render<T>::value)
         T::render();

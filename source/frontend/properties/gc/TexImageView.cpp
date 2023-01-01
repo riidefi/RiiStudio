@@ -112,7 +112,7 @@ public:
       if (lastTex != &tex) {
         mImg.clear();
         mImg.resize(tex.getMipmapCount() + 1);
-        for (int i = 0; i <= tex.getMipmapCount(); ++i)
+        for (u32 i = 0; i <= tex.getMipmapCount(); ++i)
           mImg[i].setFromImage(tex);
         lastTex = &tex;
       }
@@ -141,7 +141,7 @@ public:
       if (lastTex != &tex) {
         mImg.clear();
         mImg.resize(tex.getMipmapCount() + 1);
-        for (int i = 0; i <= tex.getMipmapCount(); ++i)
+        for (u32 i = 0; i <= tex.getMipmapCount(); ++i)
           mImg[i].setFromImage(tex);
         lastTex = &tex;
       }

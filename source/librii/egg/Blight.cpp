@@ -1,13 +1,17 @@
 #include "Blight.hpp"
+#include <rsl/SafeReader.hpp>
 
 namespace librii::egg {
 
 // Bring into namespace
 #include <core/util/glm_io.hpp>
 
-inline void operator<<(librii::gx::Color& out, oishii::BinaryReader& reader) {
-  out = librii::gx::readColorComponents(
-      reader, librii::gx::VertexBufferType::Color::rgba8);
+static Result<gx::Color> readColor(rsl::SafeReader& reader) {
+  auto r = TRY(reader.U8());
+  auto g = TRY(reader.U8());
+  auto b = TRY(reader.U8());
+  auto a = TRY(reader.U8());
+  return gx::Color(r, g, b, a);
 }
 
 inline void operator>>(const librii::gx::Color& out, oishii::Writer& writer) {
@@ -15,54 +19,56 @@ inline void operator>>(const librii::gx::Color& out, oishii::Writer& writer) {
                                    librii::gx::VertexBufferType::Color::rgba8);
 }
 
-void Blight::read(oishii::BinaryReader& reader) {
-  reader.setEndian(std::endian::big);
+Result<void> Blight::read(oishii::BinaryReader& unsafeReader) {
+  unsafeReader.setEndian(std::endian::big);
+  rsl::SafeReader reader(unsafeReader);
 
-  reader.expectMagic<'LGHT', false>();
-  reader.read<u32>();          // file size 0x5A8
-  version = reader.read<u8>(); // 2
-  assert(version == 2);        // The runtime supports older versions; we do not
+  TRY(reader.Magic("LGHT"));
+  TRY(reader.U32());          // file size 0x5A8
+  version = TRY(reader.U8()); // 2
+  EXPECT(version == 2);       // The runtime supports older versions; we do not
   for (auto& e : reserved) {
-    e = reader.read<u8>();
+    e = TRY(reader.U8());
   }
-  auto lightObjectCount = reader.read<u16>();
-  auto ambientObjectCount = reader.read<u16>();
-  backColor << reader;
-  reader.skip(16);
+  auto lightObjectCount = TRY(reader.U16());
+  auto ambientObjectCount = TRY(reader.U16());
+  backColor = TRY(readColor(reader));
+  unsafeReader.skip(16);
 
   reader.seekSet(0x28);
   for (u16 i = 0; i < lightObjectCount; i++) {
     LightObject& obj = lightObjects.emplace_back();
 
-    reader.expectMagic<'LOBJ'>();
-    auto size = reader.read<u32>();
-    obj.version = reader.read<u8>();
-    reader.skip(3);
-    reader.read<u32>();
-    obj.spotFunction = (gx::SpotFn)reader.read<u8>();
-    obj.distAttnFunction = (gx::DistAttnFn)reader.read<u8>();
-    obj.coordSpace = (CoordinateSpace)reader.read<u8>();
-    obj.lightType = (LightType)reader.read<u8>();
-    obj.ambientLightIndex = reader.read<u16>();
-    obj.flags = reader.read<u16>();
-    obj.position << reader;
-    obj.aim << reader;
-    obj.intensity = reader.read<f32>();
-    obj.color << reader;
-    obj.specularColor << reader;
-    obj.spotCutoffAngle = reader.read<f32>();
-    obj.refDist = reader.read<f32>();
-    obj.refBright = reader.read<f32>();
-    reader.read<u32>();
-    obj.snapTargetIndex = reader.read<u16>();
-    reader.read<u16>();
+    reader.Magic("LOBJ");
+    auto size = TRY(reader.U32());
+    obj.version = TRY(reader.U8());
+    unsafeReader.skip(3);
+    TRY(reader.U32());
+    obj.spotFunction = TRY(reader.Enum8<gx::SpotFn>());
+    obj.distAttnFunction = TRY(reader.Enum8<gx::DistAttnFn>());
+    obj.coordSpace = TRY(reader.Enum8<CoordinateSpace>());
+    obj.lightType = TRY(reader.Enum8<LightType>());
+    obj.ambientLightIndex = TRY(reader.U16());
+    obj.flags = TRY(reader.U16());
+    obj.position << unsafeReader;
+    obj.aim << unsafeReader;
+    obj.intensity = TRY(reader.F32());
+    obj.color = TRY(readColor(reader));
+    obj.specularColor = TRY(readColor(reader));
+    obj.spotCutoffAngle = TRY(reader.F32());
+    obj.refDist = TRY(reader.F32());
+    obj.refBright = TRY(reader.F32());
+    TRY(reader.U32());
+    obj.snapTargetIndex = TRY(reader.U16());
+    TRY(reader.U16());
   }
   for (u16 i = 0; i < ambientObjectCount; i++) {
     AmbientObject& obj = ambientObjects.emplace_back();
-    obj.color << reader;
+    obj.color = TRY(readColor(reader));
     for (auto& e : obj.reserved)
-      e = reader.read<u8>();
+      e = TRY(reader.U8());
   }
+  return {};
 }
 
 void Blight::write(oishii::Writer& writer) {

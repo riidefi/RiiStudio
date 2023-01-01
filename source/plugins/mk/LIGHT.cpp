@@ -171,7 +171,15 @@ public:
     LGHT& light = static_cast<LGHT&>(transaction.node);
     oishii::BinaryReader reader(std::move(transaction.data));
     reader.setEndian(std::endian::big);
-    librii::egg::Blight bin(reader);
+    librii::egg::Blight bin;
+    {
+      auto ok = bin.read(reader);
+      if (!ok) {
+        ctx.error(ok.error());
+        transaction.state = kpi::TransactionState::Failure;
+        return;
+      }
+    }
     librii::egg::LightSet set;
     auto ok = set.from(bin);
     if (!ok) {
@@ -220,10 +228,10 @@ kpi::DecentralizedInstaller
       installer.addType<LGHT>();
       kpi::RichNameManager::getInstance().addRichName<LGHTEntry>(
           (const char*)ICON_FA_LIGHTBULB, "Light",
-          (const char*)ICON_FA_LIGHTBULB, "Lights", ImVec4(.7, .2, .3, 1.));
+          (const char*)ICON_FA_LIGHTBULB, "Lights", ImVec4(.7f, .2f, .3f, 1.f));
       kpi::RichNameManager::getInstance().addRichName<Ambient>(
           (const char*)ICON_FA_FILL, "Ambient Color", (const char*)ICON_FA_FILL,
-          "Ambient Colors", ImVec4(.5, .2, .4, 1.));
+          "Ambient Colors", ImVec4(.5f, .2f, .4f, 1.f));
       kpi::RichNameManager::getInstance().addRichName<LGHT>(
           (const char*)ICON_FA_LIGHTBULB, "Light Set",
           (const char*)ICON_FA_LIGHTBULB, "Light Sets");
@@ -322,6 +330,9 @@ void Draw(LGHTEntry& cfg_, auto&& ambs, bool& amb_updated) {
   {
     int amb = cfg.ambientLightIndex;
     ImGui::InputInt("Ambient Light Index", &amb);
+    if (amb < 0 || amb >= ambs.size()) {
+      amb = cfg.ambientLightIndex;
+    }
     librii::gx::ColorF32 fc = ambs[amb].color;
     ImGui::ColorEdit4("Ambient Color (at that index)", fc,
                       ImGuiColorEditFlags_NoOptions |

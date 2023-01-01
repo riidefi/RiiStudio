@@ -11,14 +11,15 @@ struct BinaryTexPatInfo {
   u16 paletteCount{};
   AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
 
-  void read(oishii::BinaryReader& reader, u32 pat0) {
-    name = readName(reader, pat0);
-    sourcePath = readName(reader, pat0);
-    frameDuration = reader.read<u16>();
-    materialCount = reader.read<u16>();
-    textureCount = reader.read<u16>();
-    paletteCount = reader.read<u16>();
-    wrapMode = static_cast<AnimationWrapMode>(reader.read<u32>());
+  Result<void> read(rsl::SafeReader& reader, u32 pat0) {
+    name = TRY(reader.StringOfs(pat0));
+    sourcePath = TRY(reader.StringOfs(pat0));
+    frameDuration = TRY(reader.U16());
+    materialCount = TRY(reader.U16());
+    textureCount = TRY(reader.U16());
+    paletteCount = TRY(reader.U16());
+    wrapMode = TRY(reader.Enum32<AnimationWrapMode>());
+    return {};
   }
   void write(oishii::Writer& writer, NameTable& names, u32 pat0) const {
     writeNameForward(names, writer, pat0, name, true);
@@ -42,14 +43,15 @@ struct PATOffsets {
 
   static constexpr size_t size_bytes() { return 7 * 4; }
 
-  void read(oishii::BinaryReader& reader) {
-    ofsBrres = reader.read<s32>();
-    ofsMatDict = reader.read<s32>();
-    ofsTexNames = reader.read<s32>();
-    ofsPlltNames = reader.read<s32>();
-    ofsRuntimeTex = reader.read<s32>();
-    ofsRuntimePltt = reader.read<s32>();
-    ofsUserData = reader.read<s32>();
+  Result<void> read(rsl::SafeReader& reader) {
+    ofsBrres = TRY(reader.S32());
+    ofsMatDict = TRY(reader.S32());
+    ofsTexNames = TRY(reader.S32());
+    ofsPlltNames = TRY(reader.S32());
+    ofsRuntimeTex = TRY(reader.S32());
+    ofsRuntimePltt = TRY(reader.S32());
+    ofsUserData = TRY(reader.S32());
+    return {};
   }
   void write(oishii::Writer& writer) {
     writer.write<s32>(ofsBrres);
@@ -62,13 +64,16 @@ struct PATOffsets {
   }
 };
 
-void BinaryTexPat::read(oishii::BinaryReader& reader) {
+Result<void> BinaryTexPat::read(oishii::BinaryReader& unsafeReader) {
+  rsl::SafeReader reader(unsafeReader);
   auto start = reader.tell();
-  reader.expectMagic<'PAT0', false>();
-  reader.read<u32>(); // size
-  auto ver = reader.read<u32>();
-  if (ver != 4)
-    return;
+  TRY(reader.Magic("PAT0"));
+  TRY(reader.U32()); // size
+  auto ver = TRY(reader.U32());
+  if (ver != 4) {
+    return std::unexpected(std::format(
+        "Unsupported PAT0 version {}. Only version 4 is supported", ver));
+  }
   PATOffsets offsets;
   offsets.read(reader);
 
@@ -106,20 +111,23 @@ void BinaryTexPat::read(oishii::BinaryReader& reader) {
   // Assume numNames == numRuntimePtrs
   reader.seekSet(start + offsets.ofsTexNames);
   for (u16 i = 0; i < info.textureCount; ++i) {
-    textureNames.emplace_back(readName(reader, start + offsets.ofsTexNames));
+    textureNames.emplace_back(
+        TRY(reader.StringOfs(start + offsets.ofsTexNames)));
   }
   reader.seekSet(start + offsets.ofsPlltNames);
   for (u16 i = 0; i < info.paletteCount; ++i) {
-    paletteNames.emplace_back(readName(reader, start + offsets.ofsPlltNames));
+    paletteNames.emplace_back(
+        TRY(reader.StringOfs(start + offsets.ofsPlltNames)));
   }
   reader.seekSet(start + offsets.ofsRuntimeTex);
   for (u16 i = 0; i < info.textureCount; ++i) {
-    runtimeTextures.push_back(reader.read<u32>());
+    runtimeTextures.push_back(TRY(reader.U32()));
   }
   reader.seekSet(start + offsets.ofsRuntimePltt);
   for (u16 i = 0; i < info.paletteCount; ++i) {
-    runtimePalettes.push_back(reader.read<u32>());
+    runtimePalettes.push_back(TRY(reader.U32()));
   }
+  return {};
 }
 
 void BinaryTexPat::write(oishii::Writer& writer, NameTable& names,

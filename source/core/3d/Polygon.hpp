@@ -45,7 +45,7 @@ struct Polygon : public virtual kpi::IObject {
   virtual void setAttrib(SimpleAttrib attrib, bool v) = 0;
 
   // For now... (slow api)
-  virtual lib3d::IndexRange
+  virtual std::expected<riistudio::lib3d::IndexRange, std::string>
   propagate(const Model& mdl, u32 mp_id,
             librii::glhelper::VBOBuilder& out) const = 0;
 

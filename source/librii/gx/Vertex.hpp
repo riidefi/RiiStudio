@@ -145,8 +145,9 @@ inline gx::VertexAttribute operator+(gx::VertexAttribute attr, u64 i) {
 
 enum class VertexBufferKind { position, normal, color, textureCoordinate };
 
-inline std::size_t computeComponentCount(gx::VertexBufferKind kind,
-                                         gx::VertexComponentCount count) {
+inline Result<std::size_t>
+computeComponentCount(gx::VertexBufferKind kind,
+                      gx::VertexComponentCount count) {
   switch (kind) {
   case VertexBufferKind::position:
     return static_cast<std::size_t>(count.position) + 2; // xy -> 2; xyz -> 3
@@ -156,111 +157,110 @@ inline std::size_t computeComponentCount(gx::VertexBufferKind kind,
     return static_cast<std::size_t>(count.color) + 3; // rgb -> 3; rgba -> 4
   case VertexBufferKind::textureCoordinate:
     return static_cast<std::size_t>(count.texcoord) + 1; // s -> 1, st -> 2
-  default:
-    assert(!"Invalid component count!");
-    break;
   }
+  EXPECT(false, "Invalid component count!");
 }
 
-inline f32 readGenericComponentSingle(oishii::BinaryReader& reader,
-                                      gx::VertexBufferType::Generic type,
-                                      u32 divisor = 0) {
+inline Result<f32>
+readGenericComponentSingle(oishii::BinaryReader& reader,
+                           gx::VertexBufferType::Generic type,
+                           u32 divisor = 0) {
   switch (type) {
   case gx::VertexBufferType::Generic::u8:
-    return static_cast<f32>(reader.read<u8>()) /
+    return static_cast<f32>(TRY(reader.tryRead<u8>())) /
            static_cast<f32>((1 << divisor));
   case gx::VertexBufferType::Generic::s8:
-    return static_cast<f32>(reader.read<s8>()) /
+    return static_cast<f32>(TRY(reader.tryRead<s8>())) /
            static_cast<f32>((1 << divisor));
   case gx::VertexBufferType::Generic::u16:
-    return static_cast<f32>(reader.read<u16>()) /
+    return static_cast<f32>(TRY(reader.tryRead<u16>())) /
            static_cast<f32>((1 << divisor));
   case gx::VertexBufferType::Generic::s16:
-    return static_cast<f32>(reader.read<s16>()) /
+    return static_cast<f32>(TRY(reader.tryRead<s16>())) /
            static_cast<f32>((1 << divisor));
   case gx::VertexBufferType::Generic::f32:
-    return reader.read<f32>();
-  default:
-    return 0.0f;
+    return TRY(reader.tryRead<f32>());
   }
+  EXPECT(false, "Invalid VertexBufferType::Generic");
 }
-inline gx::Color readColorComponents(oishii::BinaryReader& reader,
-                                     gx::VertexBufferType::Color type) {
+inline Result<gx::Color> readColorComponents(oishii::BinaryReader& reader,
+                                             gx::VertexBufferType::Color type) {
   gx::Color result; // TODO: Default color
 
   switch (type) {
   case gx::VertexBufferType::Color::rgb565: {
-    const u16 c = reader.read<u16>();
+    const u16 c = TRY(reader.tryRead<u16>());
     result.r = static_cast<float>((c & 0xF800) >> 11) * (255.0f / 31.0f);
     result.g = static_cast<float>((c & 0x07E0) >> 5) * (255.0f / 63.0f);
     result.b = static_cast<float>(c & 0x001F) * (255.0f / 31.0f);
-    break;
+    return result;
   }
   case gx::VertexBufferType::Color::rgb8:
-    result.r = reader.read<u8>();
-    result.g = reader.read<u8>();
-    result.b = reader.read<u8>();
-    break;
+    result.r = TRY(reader.tryRead<u8>());
+    result.g = TRY(reader.tryRead<u8>());
+    result.b = TRY(reader.tryRead<u8>());
+    return result;
   case gx::VertexBufferType::Color::rgbx8:
-    result.r = reader.read<u8>();
-    result.g = reader.read<u8>();
-    result.b = reader.read<u8>();
+    result.r = TRY(reader.tryRead<u8>());
+    result.g = TRY(reader.tryRead<u8>());
+    result.b = TRY(reader.tryRead<u8>());
     reader.skip(1);
-    break;
+    return result;
   case gx::VertexBufferType::Color::rgba4: {
-    const u16 c = reader.read<u16>();
+    const u16 c = TRY(reader.tryRead<u16>());
     result.r = ((c & 0xF000) >> 12) * 17;
     result.g = ((c & 0x0F00) >> 8) * 17;
     result.b = ((c & 0x00F0) >> 4) * 17;
     result.a = (c & 0x000F) * 17;
-    break;
+    return result;
   }
   case gx::VertexBufferType::Color::rgba6: {
     u32 c = 0;
-    c |= reader.read<u8>() << 16;
-    c |= reader.read<u8>() << 8;
-    c |= reader.read<u8>();
+    c |= TRY(reader.tryRead<u8>()) << 16;
+    c |= TRY(reader.tryRead<u8>()) << 8;
+    c |= TRY(reader.tryRead<u8>());
     result.r = static_cast<float>((c & 0xFC0000) >> 18) * (255.0f / 63.0f);
     result.g = static_cast<float>((c & 0x03F000) >> 12) * (255.0f / 63.0f);
     result.b = static_cast<float>((c & 0x000FC0) >> 6) * (255.0f / 63.0f);
     result.a = static_cast<float>(c & 0x00003F) * (255.0f / 63.0f);
-    break;
+    return result;
   }
   case gx::VertexBufferType::Color::rgba8:
-    result.r = reader.read<u8>();
-    result.g = reader.read<u8>();
-    result.b = reader.read<u8>();
-    result.a = reader.read<u8>();
-    break;
+    result.r = TRY(reader.tryRead<u8>());
+    result.g = TRY(reader.tryRead<u8>());
+    result.b = TRY(reader.tryRead<u8>());
+    result.a = TRY(reader.tryRead<u8>());
+    return result;
   };
-
-  return result;
+  EXPECT(false, "Invalid VertexBufferType::Color");
 }
 
 template <typename T>
-inline T readGenericComponents(oishii::BinaryReader& reader,
-                               gx::VertexBufferType::Generic type,
-                               std::size_t true_count, u32 divisor = 0) {
-  assert(true_count <= 3 && true_count >= 1);
+inline Result<T> readGenericComponents(oishii::BinaryReader& reader,
+                                       gx::VertexBufferType::Generic type,
+                                       std::size_t true_count,
+                                       u32 divisor = 0) {
+  EXPECT(true_count <= 3 && true_count >= 1);
   T out{};
 
   for (std::size_t i = 0; i < true_count; ++i) {
-    *(((f32*)&out.x) + i) = readGenericComponentSingle(reader, type, divisor);
+    ((f32*)&out.x)[i] = TRY(readGenericComponentSingle(reader, type, divisor));
   }
 
   return out;
 }
 
 template <typename T>
-inline T readComponents(oishii::BinaryReader& reader, gx::VertexBufferType type,
-                        std::size_t true_count, u32 divisor = 0) {
+inline Result<T> readComponents(oishii::BinaryReader& reader,
+                                gx::VertexBufferType type,
+                                std::size_t true_count, u32 divisor = 0) {
   return readGenericComponents<T>(reader, type.generic, true_count, divisor);
 }
 template <>
-inline gx::Color readComponents<gx::Color>(oishii::BinaryReader& reader,
-                                           gx::VertexBufferType type,
-                                           std::size_t true_count,
-                                           u32 divisor) {
+inline Result<gx::Color> readComponents<gx::Color>(oishii::BinaryReader& reader,
+                                                   gx::VertexBufferType type,
+                                                   std::size_t true_count,
+                                                   u32 divisor) {
   return readColorComponents(reader, type.color);
 }
 
@@ -372,26 +372,31 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
   VQuantization mQuant;
   std::vector<TB> mData;
 
-  int ComputeComponentCount() const {
+  Result<std::size_t> ComputeComponentCount() const {
     return computeComponentCount(kind, mQuant.comp);
   }
 
   template <int n, typename T, glm::qualifier q>
-  void readBufferEntryGeneric(oishii::BinaryReader& reader,
-                              glm::vec<n, T, q>& result) {
-    result = readGenericComponents<glm::vec<n, T, q>>(
-        reader, mQuant.type.generic, ComputeComponentCount(), mQuant.divisor);
+  Result<void> readBufferEntryGeneric(oishii::BinaryReader& reader,
+                                      glm::vec<n, T, q>& result) {
+    result = TRY(readGenericComponents<glm::vec<n, T, q>>(
+        reader, mQuant.type.generic, TRY(ComputeComponentCount()),
+        mQuant.divisor));
+    return {};
   }
-  void readBufferEntryColor(oishii::BinaryReader& reader,
-                            librii::gx::Color& result) {
-    result = readColorComponents(reader, mQuant.type.color);
+  Result<void> readBufferEntryColor(oishii::BinaryReader& reader,
+                                    librii::gx::Color& result) {
+    result = TRY(readColorComponents(reader, mQuant.type.color));
+    return {};
   }
 
   template <int n, typename T, glm::qualifier q>
   void writeBufferEntryGeneric(oishii::Writer& writer,
                                const glm::vec<n, T, q>& v) const {
-    writeGenericComponents(writer, v, mQuant.type.generic,
-                           ComputeComponentCount(), mQuant.divisor);
+    auto count = ComputeComponentCount();
+    assert(count.has_value() && "ComputeComponentCount()");
+    writeGenericComponents(writer, v, mQuant.type.generic, *count,
+                           mQuant.divisor);
   }
   void writeBufferEntryColor(oishii::Writer& writer,
                              const librii::gx::Color& c) const {

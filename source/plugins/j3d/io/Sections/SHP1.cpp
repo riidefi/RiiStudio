@@ -155,19 +155,12 @@ void readSHP1(BMDOutputContext& ctx) {
       private:
         MatrixPrimitive& mprim;
       } mprim_del(mprim);
-      auto err = DecodeMeshDisplayList(reader, g.start + ofsDL + dlOfs, dlSz,
-                                       mprim_del, shape.mVertexDescriptor,
-                                       &ctx.mVertexBufferMaxIndices);
+      auto ok = DecodeMeshDisplayList(reader, g.start + ofsDL + dlOfs, dlSz,
+                                      mprim_del, shape.mVertexDescriptor,
+                                      &ctx.mVertexBufferMaxIndices);
 
-      if (err) {
-        printf("Invalid mesh display list..\n");
-
-        std::string buf;
-        llvm::raw_string_ostream stream(buf);
-        stream << err;
-        printf("%s\n", buf.c_str());
-
-        llvm::consumeError(std::move(err));
+      if (!ok) {
+        printf("Invalid mesh display list: %s\n", ok.error().c_str());
       }
     }
   }

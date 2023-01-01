@@ -16,6 +16,7 @@ struct array_vector_fixed : public std::array<T, N> {
     assert(n_elem <= N);
     nElements = n_elem;
   }
+  bool empty() const { return nElements == 0; }
 
   size_t fixed_size() const { return N; }
 

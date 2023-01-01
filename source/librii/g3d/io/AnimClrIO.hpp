@@ -27,7 +27,7 @@ struct CLR0Track {
 
   bool operator==(const CLR0Track&) const = default;
 
-  std::expected<void, std::string> read(rsl::SafeReader& safe, u32 numFrames) {
+  Result<void> read(rsl::SafeReader& safe, u32 numFrames) {
     for (u32 i = 0; i < numFrames; ++i) {
       keyframes.push_back(CLR0KeyFrame{.data = TRY(safe.U32())});
     }
@@ -74,8 +74,7 @@ struct CLR0Material {
 
   bool operator==(const CLR0Material&) const = default;
 
-  std::expected<void, std::string> read(rsl::SafeReader& safe,
-                                        auto&& trackAddressToIndex) {
+  Result<void> read(rsl::SafeReader& safe, auto&& trackAddressToIndex) {
     auto material = safe.scoped("CLR0Material");
     name = TRY(safe.StringOfs32(material.start));
     flags = TRY(safe.U32());
@@ -138,7 +137,7 @@ struct BinaryClr {
 
   bool operator==(const BinaryClr&) const = default;
 
-  std::expected<void, std::string> read(oishii::BinaryReader& reader);
+  Result<void> read(oishii::BinaryReader& reader);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
 };
 

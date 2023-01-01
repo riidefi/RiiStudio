@@ -57,17 +57,6 @@ inline std::string_view ReadStringPointer(std::span<const u8> bytes,
   return "";
 }
 
-inline std::string_view readName(oishii::BinaryReader& reader,
-                                 std::size_t start) {
-  const auto ofs = reader.read<s32>();
-
-  if (ofs && ofs + start < reader.endpos() && ofs + start > 0) {
-    return reinterpret_cast<const char*>(reader.getStreamStart()) + start + ofs;
-  } else {
-    return "";
-  }
-}
-
 // { 0, 4 } -> Struct+04 is a string pointer relative to struct start
 // { 4, 8 } -> Struct+08 is a string pointer relative to Struct+04
 struct NameReloc {

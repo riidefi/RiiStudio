@@ -8,6 +8,7 @@
 #include <map>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
+#include <rsl/SafeReader.hpp>
 #include <string>
 #include <variant>
 #include <vector>
@@ -20,9 +21,10 @@ struct PAT0KeyFrame {
 
   bool operator==(const PAT0KeyFrame&) const = default;
 
-  void read(oishii::BinaryReader& reader) {
-    texture = reader.read<u16>();
-    palette = reader.read<u16>();
+  Result<void> read(rsl::SafeReader& reader) {
+    texture = TRY(reader.U16());
+    palette = TRY(reader.U16());
+    return {};
   }
   void write(oishii::Writer& writer) const {
     writer.write<u16>(texture);
@@ -37,16 +39,17 @@ struct PAT0Track {
 
   bool operator==(const PAT0Track&) const = default;
 
-  void read(oishii::BinaryReader& reader) {
-    auto count = reader.read<u16>();
-    reserved = reader.read<u16>();
-    progressPerFrame = reader.read<f32>();
+  Result<void> read(rsl::SafeReader& reader) {
+    auto count = TRY(reader.U16());
+    reserved = TRY(reader.U16());
+    progressPerFrame = TRY(reader.F32());
     for (u16 i = 0; i < count; ++i) {
-      auto frame = reader.read<f32>();
+      auto frame = TRY(reader.F32());
       PAT0KeyFrame data;
-      data.read(reader);
+      TRY(data.read(reader));
       keyframes.emplace(frame, data);
     }
+    return {};
   }
   void write(oishii::Writer& writer) const {
     writer.write<u16>(keyframes.size());
@@ -76,10 +79,10 @@ struct PAT0Material {
 
   bool operator==(const PAT0Material&) const = default;
 
-  void read(oishii::BinaryReader& reader, auto&& trackAddressToIndex) {
+  Result<void> read(rsl::SafeReader& reader, auto&& trackAddressToIndex) {
     auto start = reader.tell();
-    name = readName(reader, start);
-    flags = reader.read<u32>();
+    name = TRY(reader.StringOfs(start));
+    flags = TRY(reader.U32());
     u32 num_samplers = 0;
     for (u32 i = 0; i < 8; ++i) {
       if (flags & (FLAG_ENABLED << (i * 4))) {
@@ -89,14 +92,15 @@ struct PAT0Material {
     for (u32 i = 0; i < num_samplers; ++i) {
       if (flags & (FLAG_CONSTANT << (i * 4))) {
         PAT0KeyFrame constant;
-        constant.read(reader);
+        TRY(constant.read(reader));
         samplers.emplace_back(constant);
       } else {
-        auto ofs = reader.read<s32>();
+        auto ofs = TRY(reader.S32());
         u32 index = trackAddressToIndex(start + ofs);
         samplers.emplace_back(index);
       }
     }
+    return {};
   }
   void write(oishii::Writer& writer, NameTable& names,
              auto&& trackIndexToAddress) const {
@@ -132,7 +136,7 @@ struct BinaryTexPat {
 
   bool operator==(const BinaryTexPat&) const = default;
 
-  void read(oishii::BinaryReader& reader);
+  Result<void> read(oishii::BinaryReader& reader);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
 };
 

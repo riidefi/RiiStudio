@@ -12,12 +12,6 @@
 #include <librii/gpu/GPUMaterial.hpp>
 #include <librii/gx.h>
 
-// Enable DictWriteIO (which is half broken: it works for reading, but not
-// writing)
-namespace librii::g3d {
-using namespace bad;
-}
-
 ///// Headers of glm_io.hpp
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
@@ -48,27 +42,27 @@ void writeDictionary(const std::string& name, T&& src_range, U handler,
     return;
 
   u32 dict_ofs;
-  librii::g3d::QDictionary _dict;
-  _dict.mNodes.resize(src_range.size() + 1);
+  librii::g3d::BetterDictionary _dict;
+  _dict.nodes.resize(src_range.size());
 
   if (BetterMethod) {
     dict_ofs = writer.tell();
   } else {
     dict_ofs = *d_cursor;
-    *d_cursor += _dict.computeSize();
+    *d_cursor += CalcDictionarySize(_dict);
   }
 
   if (BetterMethod)
-    writer.skip(_dict.computeSize());
+    writer.skip(CalcDictionarySize(_dict));
 
   for (std::size_t i = 0; i < src_range.size(); ++i) {
     writer.alignTo(align); //
-    _dict.mNodes[i + 1].setDataDestination(writer.tell());
+    _dict.nodes[i].stream_pos = writer.tell();
     if constexpr (Named) {
       if constexpr (bMaterial)
-        _dict.mNodes[i + 1].setName(src_range[i].name);
+        _dict.nodes[i].name = src_range[i].name;
       else
-        _dict.mNodes[i + 1].setName(src_range[i].getName());
+        _dict.nodes[i].name = src_range[i].getName();
     }
 
     if (!raw) {
@@ -83,7 +77,7 @@ void writeDictionary(const std::string& name, T&& src_range, U handler,
   {
     oishii::Jump<oishii::Whence::Set, oishii::Writer> d(writer, dict_ofs);
     linker.label(name);
-    _dict.write(writer, names);
+    WriteDictionary(_dict, writer, names);
   }
 }
 
@@ -92,49 +86,49 @@ void writeDictionary(const std::string& name, T&& src_range, U handler,
 
 template <typename T, bool HasMinimum, bool HasDivisor,
           librii::gx::VertexBufferKind kind>
-std::string readGenericBuffer(
+Result<void> readGenericBuffer(
     librii::g3d::GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
-    oishii::BinaryReader& reader) {
+    rsl::SafeReader& reader) {
   const auto start = reader.tell();
   out.mEntries.clear();
 
-  reader.read<u32>(); // size
-  reader.read<u32>(); // mdl0 offset
-  const auto startOfs = reader.read<s32>();
-  out.mName = readName(reader, start);
-  out.mId = reader.read<u32>();
+  TRY(reader.U32()); // size
+  TRY(reader.U32()); // mdl0 offset
+  const auto startOfs = TRY(reader.S32());
+  out.mName = TRY(reader.StringOfs(start));
+  out.mId = TRY(reader.U32());
   out.mQuantize.mComp = librii::gx::VertexComponentCount(
-      static_cast<librii::gx::VertexComponentCount::Normal>(
-          reader.read<u32>()));
+      static_cast<librii::gx::VertexComponentCount::Normal>(TRY(reader.U32())));
   out.mQuantize.mType = librii::gx::VertexBufferType(
-      static_cast<librii::gx::VertexBufferType::Color>(reader.read<u32>()));
+      static_cast<librii::gx::VertexBufferType::Color>(TRY(reader.U32())));
   if (HasDivisor) {
-    out.mQuantize.divisor = reader.read<u8>();
-    out.mQuantize.stride = reader.read<u8>();
+    out.mQuantize.divisor = TRY(reader.U8());
+    out.mQuantize.stride = TRY(reader.U8());
   } else {
     out.mQuantize.divisor = 0;
-    out.mQuantize.stride = reader.read<u8>();
-    reader.read<u8>();
+    out.mQuantize.stride = TRY(reader.U8());
+    TRY(reader.U8());
   }
   auto err = ValidateQuantize(kind, out.mQuantize);
   if (!err.empty()) {
-    return err;
+    return std::unexpected(err);
   }
-  out.mEntries.resize(reader.read<u16>());
+  out.mEntries.resize(TRY(reader.U16()));
   if constexpr (HasMinimum) {
     T minEnt, maxEnt;
-    minEnt << reader;
-    maxEnt << reader;
+    minEnt << reader.getUnsafe();
+    maxEnt << reader.getUnsafe();
 
     out.mCachedMinMax = MinMax<T>{.min = minEnt, .max = maxEnt};
   }
   const auto nComponents =
-      librii::gx::computeComponentCount(kind, out.mQuantize.mComp);
+      TRY(librii::gx::computeComponentCount(kind, out.mQuantize.mComp));
 
   reader.seekSet(start + startOfs);
   for (auto& entry : out.mEntries) {
-    entry = librii::gx::readComponents<T>(reader, out.mQuantize.mType,
-                                          nComponents, out.mQuantize.divisor);
+    entry = TRY(librii::gx::readComponents<T>(reader.getUnsafe(),
+                                              out.mQuantize.mType, nComponents,
+                                              out.mQuantize.divisor));
   }
 
   if constexpr (HasMinimum) {
@@ -145,26 +139,28 @@ std::string readGenericBuffer(
     }
   }
 
-  return ""; // Valid
+  return {};
 }
 
 // TODO: Move to own files
 
 struct DlHandle {
-  std::size_t tag_start;
+  std::size_t tag_start{}; // reader.tell()
   std::size_t buf_size = 0;
   std::size_t cmd_size = 0;
   s32 ofs_buf = 0;
   oishii::Writer* mWriter = nullptr;
 
-  void seekTo(oishii::BinaryReader& reader) {
-    reader.seekSet(tag_start + ofs_buf);
+  void seekTo(rsl::SafeReader& reader) { reader.seekSet(tag_start + ofs_buf); }
+  static Result<DlHandle> make(rsl::SafeReader& reader) {
+    DlHandle tmp;
+    tmp.tag_start = reader.tell();
+    tmp.buf_size = TRY(reader.U32());
+    tmp.cmd_size = TRY(reader.U32());
+    tmp.ofs_buf = TRY(reader.S32());
+    return tmp;
   }
-  DlHandle(oishii::BinaryReader& reader) : tag_start(reader.tell()) {
-    buf_size = reader.read<u32>();
-    cmd_size = reader.read<u32>();
-    ofs_buf = reader.read<s32>();
-  }
+  DlHandle() = default;
   DlHandle(oishii::Writer& writer)
       : tag_start(writer.tell()), mWriter(&writer) {
     mWriter->skip(4 * 3);
@@ -184,66 +180,67 @@ struct DlHandle {
   void setBufAddr(s32 addr) { ofs_buf = addr - tag_start; }
 };
 
-void ReadMesh(
-    librii::g3d::PolygonData& poly, oishii::BinaryReader& reader, bool& isValid,
+Result<void>
+ReadMesh(librii::g3d::PolygonData& poly, rsl::SafeReader& reader, bool& isValid,
 
-    const std::vector<librii::g3d::PositionBuffer>& positions,
-    const std::vector<librii::g3d::NormalBuffer>& normals,
-    const std::vector<librii::g3d::ColorBuffer>& colors,
-    const std::vector<librii::g3d::TextureCoordinateBuffer>& texcoords,
+         const std::vector<librii::g3d::PositionBuffer>& positions,
+         const std::vector<librii::g3d::NormalBuffer>& normals,
+         const std::vector<librii::g3d::ColorBuffer>& colors,
+         const std::vector<librii::g3d::TextureCoordinateBuffer>& texcoords,
 
-    kpi::LightIOTransaction& transaction, const std::string& transaction_path) {
+         kpi::LightIOTransaction& transaction,
+         const std::string& transaction_path) {
   const auto start = reader.tell();
 
-  isValid &= reader.read<u32>() != 0; // size
-  isValid &= reader.read<s32>() < 0;  // mdl offset
+  isValid &= TRY(reader.U32()) != 0; // size
+  isValid &= TRY(reader.S32()) < 0;  // mdl offset
 
-  poly.mCurrentMatrix = reader.read<s32>();
-  reader.skip(12); // cache
+  poly.mCurrentMatrix = TRY(reader.S32());
+  reader.getUnsafe().skip(12); // cache
 
-  DlHandle primitiveSetup(reader);
-  DlHandle primitiveData(reader);
+  DlHandle primitiveSetup = TRY(DlHandle::make(reader));
+  DlHandle primitiveData = TRY(DlHandle::make(reader));
 
-  poly.mVertexDescriptor.mBitfield = reader.read<u32>();
-  const u32 flag = reader.read<u32>();
+  poly.mVertexDescriptor.mBitfield = TRY(reader.U32());
+  const u32 flag = TRY(reader.U32());
   poly.currentMatrixEmbedded = flag & 1;
   if (poly.currentMatrixEmbedded) {
     // TODO (should be caught later)
   }
   poly.visible = !(flag & 2);
 
-  poly.mName = readName(reader, start);
-  poly.mId = reader.read<u32>();
+  poly.mName = TRY(reader.StringOfs(start));
+  poly.mId = TRY(reader.U32());
   // TODO: Verify / cache
-  isValid &= reader.read<u32>() > 0; // nVert
-  isValid &= reader.read<u32>() > 0; // nPoly
+  isValid &= TRY(reader.U32()) > 0; // nVert
+  isValid &= TRY(reader.U32()) > 0; // nPoly
 
-  auto readBufHandle = [&](std::string& out, auto ifExist) {
-    const auto hid = reader.read<s16>();
+  auto readBufHandle = [&](auto ifExist) -> Result<std::string> {
+    const auto hid = TRY(reader.S16());
     if (hid < 0)
-      out = "";
-    else
-      out = ifExist(hid);
+      return "";
+    return ifExist(hid);
   };
 
-  readBufHandle(poly.mPositionBuffer,
-                [&](s16 hid) { return positions[hid].mName; });
-  readBufHandle(poly.mNormalBuffer,
-                [&](s16 hid) { return normals[hid].mName; });
+  poly.mPositionBuffer =
+      TRY(readBufHandle([&](s16 hid) { return positions[hid].mName; }));
+  poly.mNormalBuffer =
+      TRY(readBufHandle([&](s16 hid) { return normals[hid].mName; }));
   for (int i = 0; i < 2; ++i) {
-    readBufHandle(poly.mColorBuffer[i],
-                  [&](s16 hid) { return colors[hid].mName; });
+    poly.mColorBuffer[i] =
+        TRY(readBufHandle([&](s16 hid) { return colors[hid].mName; }));
   }
   for (int i = 0; i < 8; ++i) {
-    readBufHandle(poly.mTexCoordBuffer[i],
-                  [&](s16 hid) { return texcoords[hid].mName; });
+    poly.mTexCoordBuffer[i] =
+        TRY(readBufHandle([&](s16 hid) { return texcoords[hid].mName; }));
   }
-  isValid &= reader.read<s32>() == -1; // fur
-  reader.read<s32>();                  // matrix usage
+  isValid &= TRY(reader.S32()) == -1; // fur
+  TRY(reader.S32());                  // matrix usage
 
   primitiveSetup.seekTo(reader);
   librii::gpu::QDisplayListVertexSetupHandler vcdHandler;
-  librii::gpu::RunDisplayList(reader, vcdHandler, primitiveSetup.buf_size);
+  TRY(librii::gpu::RunDisplayList(reader.getUnsafe(), vcdHandler,
+                                  primitiveSetup.buf_size));
 
   for (u32 i = 0; i < (u32)librii::gx::VertexAttribute::Max; ++i) {
     if ((poly.mVertexDescriptor.mBitfield & (1 << i)) == 0)
@@ -270,18 +267,18 @@ void ReadMesh(
       }
       poly.mVertexDescriptor.mAttributes[att] = encoding;
     } else {
-      assert(!"Unrecognized attribute");
+      EXPECT(false, "Unrecognized attribute");
     }
   }
   struct QDisplayListMeshHandler final
       : public librii::gpu::QDisplayListHandler {
-    void onCommandDraw(oishii::BinaryReader& reader,
-                       librii::gx::PrimitiveType type, u16 nverts,
-                       u32 stream_end) override {
+    Result<void> onCommandDraw(oishii::BinaryReader& reader,
+                               librii::gx::PrimitiveType type, u16 nverts,
+                               u32 stream_end) override {
       if (mErr)
-        return;
+        return {};
 
-      assert(reader.tell() < stream_end);
+      EXPECT(reader.tell() < stream_end);
 
       mLoadingMatrices = 0;
       mLoadingNrmMatrices = 0;
@@ -314,7 +311,7 @@ void ReadMesh(
                 break;
               }
               mErr = true;
-              return;
+              return {};
             case librii::gx::VertexAttributeType::None:
               break;
             case librii::gx::VertexAttributeType::Byte:
@@ -327,30 +324,31 @@ void ReadMesh(
           }
         }
       }
+      return {};
     }
-    void onCommandIndexedLoad(u32 cmd, u32 index, u16 address,
-                              u8 size) override {
+    Result<void> onCommandIndexedLoad(u32 cmd, u32 index, u16 address,
+                                      u8 size) override {
       // Expect IDX_A (position matrix) commands to be in sequence then IDX_B
       // (normal matrix) commands to follow.
       if (cmd == 0x20) {
-        assert(address == mLoadingMatrices * 12);
-        assert(size == 12);
+        EXPECT(address == mLoadingMatrices * 12, "");
+        EXPECT(size == 12, "");
         ++mLoadingMatrices;
       } else if (cmd == 0x28) {
-        assert(address == 1024 + mLoadingNrmMatrices * 9);
-        assert(size == 9);
+        EXPECT(address == 1024 + mLoadingNrmMatrices * 9, "");
+        EXPECT(size == 9, "");
         ++mLoadingNrmMatrices;
       } else if (cmd == 0x30) {
-        assert(address == 120 + mLoadingTexMatrices * 12);
-        assert(size == 12);
+        EXPECT(address == 120 + mLoadingTexMatrices * 12, "");
+        EXPECT(size == 12, "");
         ++mLoadingTexMatrices;
       } else {
-        assert(!"Unknown matrix command");
+        EXPECT(false, "Unknown matrix command");
       }
 
       // NOTE: Normal-matrix-only models would be ignored currently
       if (cmd != 0x20) {
-        return;
+        return {};
       }
       if (mLoadingMatrices == 1) {
         mPoly.mMatrixPrimitives.emplace_back();
@@ -360,6 +358,7 @@ void ReadMesh(
       mp.mDrawMatrixIndices.push_back(index);
       // This is a J3D-only field, but we can fill it out anyway
       mp.mCurrentMatrix = mPoly.mCurrentMatrix;
+      return {};
     }
     QDisplayListMeshHandler(librii::g3d::PolygonData& poly) : mPoly(poly) {}
     bool mErr = false;
@@ -369,35 +368,32 @@ void ReadMesh(
     librii::g3d::PolygonData& mPoly;
   } meshHandler(poly);
   primitiveData.seekTo(reader);
-  librii::gpu::RunDisplayList(reader, meshHandler, primitiveData.buf_size);
+  TRY(librii::gpu::RunDisplayList(reader.getUnsafe(), meshHandler,
+                                  primitiveData.buf_size));
   if (meshHandler.mErr) {
     transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
                          "Mesh unsupported.");
     transaction.state = kpi::TransactionState::Failure;
+    return {};
   }
+  return {};
 }
 
-void BinaryModel::read(oishii::BinaryReader& reader,
-                       kpi::LightIOTransaction& transaction,
-                       const std::string& transaction_path, bool& isValid) {
+Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
+                               kpi::LightIOTransaction& transaction,
+                               const std::string& transaction_path,
+                               bool& isValid) {
+  rsl::SafeReader reader(unsafeReader);
   const auto start = reader.tell();
-
-  if (!reader.expectMagic<'MDL0', false>()) {
-    transaction.state = kpi::TransactionState::Failure;
-    return;
-  }
-
-  MAYBE_UNUSED const u32 fileSize = reader.read<u32>();
-  const u32 revision = reader.read<u32>();
+  TRY(reader.Magic("MDL0"));
+  MAYBE_UNUSED const u32 fileSize = TRY(reader.U32());
+  const u32 revision = TRY(reader.U32());
   if (revision != 11) {
-    transaction.callback(kpi::IOMessageClass::Error, transaction_path,
-                         "MDL0 is version " + std::to_string(revision) +
-                             ". Only MDL0 version 11 is supported.");
-    transaction.state = kpi::TransactionState::Failure;
-    return;
+    return std::unexpected(std::format(
+        "MDL0 is version {}. Only MDL0 version 11 is supported.", revision));
   }
 
-  reader.read<s32>(); // ofsBRRES
+  TRY(reader.S32()); // ofsBRRES
 
   union {
     struct {
@@ -421,93 +417,72 @@ void BinaryModel::read(oishii::BinaryReader& reader,
     std::array<s32, 14> secOfsArr;
   };
   for (auto& ofs : secOfsArr)
-    ofs = reader.read<s32>();
+    ofs = TRY(reader.S32());
 
-  name = readName(reader, start);
+  name = TRY(reader.StringOfs(start));
   info.read(reader);
 
-  auto readDict = [&](u32 xofs, auto handler) {
-    if (xofs) {
-      reader.seekSet(start + xofs);
-      librii::g3d::Dictionary _dict(reader);
-      for (std::size_t i = 1; i < _dict.mNodes.size(); ++i) {
-        const auto& dnode = _dict.mNodes[i];
-        assert(dnode.mDataDestination);
-        reader.seekSet(dnode.mDataDestination);
-        handler(dnode);
-      }
+  auto readDict = [&](u32 xofs, auto handler) -> Result<void> {
+    if (!xofs) {
+      return {};
     }
+    reader.seekSet(start + xofs);
+    auto dict = TRY(ReadDictionary(reader));
+    for (auto& node : dict.nodes) {
+      EXPECT(node.stream_pos);
+      reader.seekSet(node.stream_pos);
+      TRY(handler(node));
+    }
+    return {};
   };
 
-  readDict(secOfs.ofsBones, [&](const librii::g3d::DictionaryNode& dnode) {
+  TRY(readDict(secOfs.ofsBones, [&](const librii::g3d::BetterNode& dnode) {
     auto& bone = bones.emplace_back();
-    reader.seekSet(dnode.mDataDestination);
-    bone.read(reader);
-  });
+    return bone.read(unsafeReader);
+  }));
 
   // Read Vertex data
-  readDict(secOfs.ofsBuffers.position,
-           [&](const librii::g3d::DictionaryNode& dnode) {
-             auto err = readGenericBuffer(positions.emplace_back(), reader);
-             if (err.size()) {
-               transaction.callback(kpi::IOMessageClass::Error,
-                                    transaction_path, err);
-               transaction.state = kpi::TransactionState::Failure;
-             }
-           });
-  readDict(secOfs.ofsBuffers.normal,
-           [&](const librii::g3d::DictionaryNode& dnode) {
-             auto err = readGenericBuffer(normals.emplace_back(), reader);
-             if (err.size()) {
-               transaction.callback(kpi::IOMessageClass::Error,
-                                    transaction_path, err);
-               transaction.state = kpi::TransactionState::Failure;
-             }
-           });
-  readDict(secOfs.ofsBuffers.color,
-           [&](const librii::g3d::DictionaryNode& dnode) {
-             auto err = readGenericBuffer(colors.emplace_back(), reader);
-             if (err.size()) {
-               transaction.callback(kpi::IOMessageClass::Error,
-                                    transaction_path, err);
-               transaction.state = kpi::TransactionState::Failure;
-             }
-           });
-  readDict(secOfs.ofsBuffers.uv, [&](const librii::g3d::DictionaryNode& dnode) {
-    auto err = readGenericBuffer(texcoords.emplace_back(), reader);
-    if (err.size()) {
-      transaction.callback(kpi::IOMessageClass::Error, transaction_path, err);
-      transaction.state = kpi::TransactionState::Failure;
-    }
-  });
+  TRY(readDict(secOfs.ofsBuffers.position,
+               [&](const librii::g3d::BetterNode& dnode) {
+                 return readGenericBuffer(positions.emplace_back(), reader);
+               }));
+  TRY(readDict(secOfs.ofsBuffers.normal,
+               [&](const librii::g3d::BetterNode& dnode) {
+                 return readGenericBuffer(normals.emplace_back(), reader);
+               }));
+  TRY(readDict(secOfs.ofsBuffers.color,
+               [&](const librii::g3d::BetterNode& dnode) {
+                 return readGenericBuffer(colors.emplace_back(), reader);
+               }));
+  TRY(readDict(secOfs.ofsBuffers.uv, [&](const librii::g3d::BetterNode& dnode) {
+    return readGenericBuffer(texcoords.emplace_back(), reader);
+  }));
 
   if (transaction.state == kpi::TransactionState::Failure)
-    return;
+    return {};
 
   // TODO: Fur
 
-  readDict(secOfs.ofsMaterials, [&](const librii::g3d::DictionaryNode& dnode) {
+  TRY(readDict(secOfs.ofsMaterials, [&](const librii::g3d::BetterNode& dnode) {
     auto& mat = materials.emplace_back();
-    mat.read(reader, nullptr);
-    const bool ok = true;
-    if (!ok) {
-      printf("Failed to read material %s\n", dnode.mName.c_str());
-    }
-  });
-  readDict(secOfs.ofsMeshes, [&](const librii::g3d::DictionaryNode& dnode) {
+    return mat.read(unsafeReader, nullptr);
+  }));
+  TRY(readDict(secOfs.ofsMeshes, [&](const librii::g3d::BetterNode& dnode) {
     auto& poly = meshes.emplace_back();
-    ReadMesh(poly, reader, isValid, positions, normals, colors, texcoords,
-             transaction, transaction_path);
-  });
+    return ReadMesh(poly, reader, isValid, positions, normals, colors,
+                    texcoords, transaction, transaction_path);
+  }));
 
   if (transaction.state == kpi::TransactionState::Failure)
-    return;
+    return {};
 
-  readDict(secOfs.ofsRenderTree, [&](const librii::g3d::DictionaryNode& dnode) {
-    auto commands = ByteCodeLists::ParseStream(reader);
-    ByteCodeMethod c{dnode.mName, commands};
-    bytecodes.emplace_back(c);
-  });
+  TRY(readDict(secOfs.ofsRenderTree,
+               [&](const librii::g3d::BetterNode& dnode) -> Result<void> {
+                 auto commands = TRY(ByteCodeLists::ParseStream(unsafeReader));
+                 ByteCodeMethod c{dnode.name, commands};
+                 bytecodes.emplace_back(c);
+                 return {};
+               }));
 
   if (!isValid && bones.size() > 1) {
     transaction.callback(
@@ -523,6 +498,7 @@ void BinaryModel::read(oishii::BinaryReader& reader,
     transaction.callback(kpi::IOMessageClass::Error, transaction_path,
                          "Rigging support is not fully tested.");
   }
+  return {};
 }
 
 //
@@ -567,13 +543,14 @@ void writeGenericBuffer(
 
   const auto nComponents =
       librii::gx::computeComponentCount(kind, buf.mQuantize.mComp);
+  assert(nComponents.has_value());
 
   for (auto& entry : buf.mEntries) {
-    librii::gx::writeComponents(writer, entry, buf.mQuantize.mType, nComponents,
-                                buf.mQuantize.divisor);
+    librii::gx::writeComponents(writer, entry, buf.mQuantize.mType,
+                                *nComponents, buf.mQuantize.divisor);
   }
   writer.alignTo(32);
-} // namespace riistudio::g3d
+}
 
 std::string writeVertexDataDL(const librii::g3d::PolygonData& poly,
                               const librii::gx::MatrixPrimitive& mp,
@@ -1022,15 +999,15 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
       return;
 
     u32 dict_ofs = Dictionaries.at("Shaders");
-    librii::g3d::QDictionary _dict;
-    _dict.mNodes.resize(bin.materials.size() + 1);
+    librii::g3d::BetterDictionary _dict;
+    _dict.nodes.resize(bin.materials.size());
 
     for (std::size_t i = 0; i < bin.tevs.size(); ++i) {
       writer.alignTo(32); //
       for (int j = 0; j < bin.materials.size(); ++j) {
         if (bin.materials[j].tevId == i) {
-          _dict.mNodes[j + 1].setDataDestination(writer.tell());
-          _dict.mNodes[j + 1].setName(bin.materials[j].name);
+          _dict.nodes[j].stream_pos = writer.tell();
+          _dict.nodes[j].name = bin.materials[j].name;
         }
       }
       const auto backpatch = writePlaceholder(writer); // size
@@ -1041,7 +1018,7 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
     {
       oishii::Jump<oishii::Whence::Set, oishii::Writer> d(writer, dict_ofs);
       linker.label("Shaders");
-      _dict.write(writer, names);
+      WriteDictionary(_dict, writer, names);
     }
   }
   write_dict(

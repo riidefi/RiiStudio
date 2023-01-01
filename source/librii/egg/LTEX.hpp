@@ -43,7 +43,7 @@ struct LightTexture {
 
   u32 fileSize() const { return 0x3C + 8 * drawSettings.size(); }
 
-  std::expected<void, std::string> read(rsl::SafeReader& reader);
+  Result<void> read(rsl::SafeReader& reader);
   void write(oishii::Writer& writer) const;
 };
 
@@ -60,7 +60,7 @@ struct LightMap {
         [](u32 accum, auto& tex) { return accum + tex.fileSize(); });
   }
 
-  std::expected<void, std::string> read(rsl::SafeReader& reader);
+  Result<void> read(rsl::SafeReader& reader);
   void write(oishii::Writer& writer) const;
 };
 

@@ -1,3 +1,5 @@
+#include <vendor/FileDialogues.hpp>
+
 #include "Common.hpp"
 #include <frontend/widgets/Lib3dImage.hpp> // for Lib3dCachedImagePreview
 #include <imcxx/Widgets.hpp>
@@ -9,11 +11,11 @@
 
 namespace libcube::UI {
 
-void addSampler(libcube::GCMaterialData& d) {
+[[nodiscard]] Result<void> addSampler(libcube::GCMaterialData& d) {
   if (d.texGens.size() != d.samplers.size() || d.texGens.size() == 10 ||
       d.samplers.size() == 8 || d.texMatrices.size() == 10) {
-    printf("[Warning] Cannot add sampler on material %s\n"_j, d.name.c_str());
-    return;
+    return std::unexpected(
+        std::format("[Warning] Cannot add sampler on material {}\n", d.name));
   }
 
   gx::TexCoordGen gen;
@@ -21,12 +23,14 @@ void addSampler(libcube::GCMaterialData& d) {
   d.texGens.push_back(gen);
   d.texMatrices.push_back(GCMaterialData::TexMatrix{});
   d.samplers.push_back(GCMaterialData::SamplerData{});
+  return {};
 }
 
-void deleteSampler(libcube::GCMaterialData& matData, size_t i) {
+[[nodiscard]] Result<void> deleteSampler(libcube::GCMaterialData& matData,
+                                         size_t i) {
   // Only one may be deleted at a time
   matData.samplers.erase(i);
-  assert(matData.texGens[i].getMatrixIndex() == i);
+  EXPECT(matData.texGens[i].getMatrixIndex() == i);
   matData.texGens.erase(i);
   matData.texMatrices.erase(i);
 
@@ -42,13 +46,26 @@ void deleteSampler(libcube::GCMaterialData& matData, size_t i) {
       }
     }
   }
+  return {};
 }
 
-void addSampler(kpi::PropertyDelegate<libcube::IGCMaterial>& delegate) {
+[[nodiscard]] Result<void>
+addSampler(kpi::PropertyDelegate<libcube::IGCMaterial>& delegate) {
+  std::vector<Result<void>> results;
   for (auto* obj : delegate.mAffected) {
-    addSampler(obj->getMaterialData());
+    results.push_back(addSampler(obj->getMaterialData()));
+  }
+  std::string errors;
+  for (auto& result : results) {
+    if (!result) {
+      errors += result.error() + "\n";
+    }
   }
   delegate.commit("Added sampler");
+  if (errors.size()) {
+    return std::unexpected(errors);
+  }
+  return {};
 }
 
 using namespace riistudio::util;
@@ -237,7 +254,13 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 
   if (ImGui::Button("Add Sampler"_j)) {
-    addSampler(delegate);
+    auto ok = addSampler(delegate);
+    if (!ok) {
+      pfd::message("Error", //
+                   "Could not add sampler to some selected materials:\n" +
+                       ok.error(),
+                   pfd::choice::ok, pfd::icon::warning);
+    }
   }
 
   if (ImGui::BeginTabBar("Textures"_j)) {
@@ -297,7 +320,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
               AUTO_PROP(texMatrices[texmatrixid].translate, t);
 
 #ifdef BUILD_DEBUG
-              const auto computed = glm::transpose(tm->compute({}, {}));
+              const auto computed =
+                  glm::transpose(tm->compute({}, {}).value_or(glm::mat4{0.0f}));
               Toolkit::Matrix44(computed);
 #endif
             }
@@ -440,8 +464,14 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
     for (std::size_t i = 0; i < matData.texGens.size(); ++i) {
       if (!open[i]) {
-        deleteSampler(matData, i);
-        delegate.commit("Erased a sampler");
+        auto ok = deleteSampler(matData, i);
+        if (ok) {
+          delegate.commit("Erased a sampler");
+        } else {
+          pfd::message("Error", //
+                       "Could not delete sampler: " + ok.error(),
+                       pfd::choice::ok, pfd::icon::warning);
+        }
         break;
       }
     }

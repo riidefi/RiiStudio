@@ -226,7 +226,7 @@ void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
       continue;
     auto* it = FlattenedTree::getFolderOfObject(flat, i);
     assert(it);
-    it->delete_child_fn(i);
+    it->delete_child_fn(&flat[i] - it - 1);
     // Selection must be reset
     postAddNew();
     return;

@@ -48,8 +48,8 @@ constexpr u8 luminosity(const rgba& rgba) {
 }
 
 void encodeI4(u8* dst, const u32* src, u32 width, u32 height) {
-  for (int y = 0; y < height; y += 8) {
-    for (int x = 0; x < width; x += 8) {
+  for (u32 y = 0; y < height; y += 8) {
+    for (u32 x = 0; x < width; x += 8) {
       // Encode the 8x8 block
       // There are 8 rows (4 bits wide) and 4 columns
 
@@ -72,8 +72,8 @@ void encodeI4(u8* dst, const u32* src, u32 width, u32 height) {
   }
 }
 void encodeI8(u8* dst, const u32* src, u32 width, u32 height) {
-  for (int y = 0; y < height; y += 4) {
-    for (int x = 0; x < width; x += 8) {
+  for (u32 y = 0; y < height; y += 4) {
+    for (u32 x = 0; x < width; x += 8) {
       // Encode the 4x8 block
       // There are 4 rows (8 bits wide) and 4 columns
       // Same block size as I4
@@ -89,8 +89,8 @@ void encodeI8(u8* dst, const u32* src, u32 width, u32 height) {
   }
 }
 void encodeIA4(u8* dst, const u32* src, u32 width, u32 height) {
-  for (int y = 0; y < height; y += 4) {
-    for (int x = 0; x < width; x += 8) {
+  for (u32 y = 0; y < height; y += 4) {
+    for (u32 x = 0; x < width; x += 8) {
       // Encode the 4x8 block
       // There are 4 rows (8 bits wide) and 4 columns
       // Same block size as I4
@@ -106,8 +106,8 @@ void encodeIA4(u8* dst, const u32* src, u32 width, u32 height) {
   }
 }
 void encodeIA8(u8* dst, const u32* src, u32 width, u32 height) {
-  for (int y = 0; y < height; y += 4) {
-    for (int x = 0; x < width; x += 4) {
+  for (u32 y = 0; y < height; y += 4) {
+    for (u32 x = 0; x < width; x += 4) {
 
       for (int row = 0; row < 4; ++row) {
         for (int column = 0; column < 4; ++column) {
@@ -122,8 +122,8 @@ void encodeIA8(u8* dst, const u32* src, u32 width, u32 height) {
 }
 
 void encodeRGB565(u8* dst, const u32* src, u32 width, u32 height) {
-  for (int y = 0; y < height; y += 4) {
-    for (int x = 0; x < width; x += 4) {
+  for (u32 y = 0; y < height; y += 4) {
+    for (u32 x = 0; x < width; x += 4) {
 
       for (int row = 0; row < 4; ++row) {
         for (int column = 0; column < 4; ++column) {
@@ -140,8 +140,8 @@ void encodeRGB565(u8* dst, const u32* src, u32 width, u32 height) {
 }
 
 void encodeRGB5A3(u8* dst, const u32* src, u32 width, u32 height) {
-  for (int y = 0; y < height; y += 4) {
-    for (int x = 0; x < width; x += 4) {
+  for (u32 y = 0; y < height; y += 4) {
+    for (u32 x = 0; x < width; x += 4) {
 
       for (int row = 0; row < 4; ++row) {
         for (int column = 0; column < 4; ++column) {

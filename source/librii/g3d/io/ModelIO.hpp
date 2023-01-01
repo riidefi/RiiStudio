@@ -65,62 +65,61 @@ struct ByteCodeLists {
   using Command =
       std::variant<NoOp, Draw, NodeDescendence, EnvelopeMatrix, NodeMix>;
 
-  static std::vector<Command> ParseStream(oishii::BinaryReader& reader,
-                                          bool keep_nops = false) {
+  static Result<std::vector<Command>>
+  ParseStream(oishii::BinaryReader& unsafeReader, bool keep_nops = false) {
+    rsl::SafeReader reader(unsafeReader);
     std::vector<Command> commands;
-    while (reader.tell() < reader.endpos()) {
-      const auto cmd = static_cast<RenderCommand>(reader.read<u8>());
+    while (reader.tell() < unsafeReader.endpos()) {
+      const auto cmd = TRY(reader.Enum8<RenderCommand>());
       switch (cmd) {
       case RenderCommand::NoOp:
         if (keep_nops) {
           commands.push_back(NoOp{});
         }
-        break;
-      default:
-        assert(!"Unexpected bytecode token");
-        return commands;
+        continue;
       case RenderCommand::Return:
         // NOTE: Not captured in stream
         return commands;
       case RenderCommand::Draw: {
         Draw draw;
-        draw.matId = reader.readUnaligned<u16>();
-        draw.polyId = reader.readUnaligned<u16>();
-        draw.boneId = reader.readUnaligned<u16>();
-        draw.prio = reader.readUnaligned<u8>();
+        draw.matId = TRY(reader.U16NoAlign());
+        draw.polyId = TRY(reader.U16NoAlign());
+        draw.boneId = TRY(reader.U16NoAlign());
+        draw.prio = TRY(reader.U8NoAlign());
         commands.push_back(draw);
-        break;
+        continue;
       }
       case RenderCommand::NodeDescendence: {
         NodeDescendence desc;
-        desc.boneId = reader.readUnaligned<u16>();
-        desc.parentMtxId = reader.readUnaligned<u16>();
+        desc.boneId = TRY(reader.U16NoAlign());
+        desc.parentMtxId = TRY(reader.U16NoAlign());
         commands.push_back(desc);
-        break;
+        continue;
       }
       case RenderCommand::EnvelopeMatrix: {
         EnvelopeMatrix evp;
-        evp.mtxId = reader.readUnaligned<u16>();
-        evp.nodeId = reader.readUnaligned<u16>();
+        evp.mtxId = TRY(reader.U16NoAlign());
+        evp.nodeId = TRY(reader.U16NoAlign());
         commands.push_back(evp);
-        break;
+        continue;
       }
       case RenderCommand::NodeMixing: {
         NodeMix mix;
-        mix.mtxId = reader.readUnaligned<u16>();
-        auto numBlend = reader.readUnaligned<u8>();
+        mix.mtxId = TRY(reader.U16NoAlign());
+        auto numBlend = TRY(reader.U8NoAlign());
         mix.blendMatrices.resize(numBlend);
         for (u8 i = 0; i < numBlend; ++i) {
-          mix.blendMatrices[i].mtxId = reader.readUnaligned<u16>();
-          mix.blendMatrices[i].ratio = reader.readUnaligned<f32>();
+          mix.blendMatrices[i].mtxId = TRY(reader.U16NoAlign());
+          mix.blendMatrices[i].ratio = TRY(reader.F32NoAlign());
         }
         commands.push_back(mix);
-        break;
+        continue;
       }
       }
+      EXPECT(false, "Unexpected bytecode token in stream. (We shouldn't even "
+                    "reach here as Enum8<RenderCommand> should validate cmd.)");
     }
-    assert(!"Reached end of file");
-    return {};
+    EXPECT(false, "End of file");
   }
   static void WriteStream(oishii::Writer& writer,
                           std::span<const Command> commands) {
@@ -184,23 +183,16 @@ struct BinaryModelInfo {
 
   struct MtxToBoneLUT {
     std::vector<s32> mtxIdToBoneId;
-    std::string readAt(oishii::BinaryReader& reader, u32 pos) {
-      auto count = reader.tryGetAt<u32>(pos);
-      if (!count) {
-        return count.error();
+    Result<void> readAt(oishii::BinaryReader& reader, u32 pos) {
+      auto count = TRY(reader.tryGetAt<u32>(pos));
+      if (pos + count * 4 >= reader.endpos()) {
+        return std::unexpected("mtxIdToBoneId LUT size exceeds filesize");
       }
-      if (pos + *count * 4 >= reader.endpos()) {
-        return "mtxIdToBoneId LUT size exceeds filesize";
+      mtxIdToBoneId.resize(count);
+      for (u32 i = 0; i < count; ++i) {
+        auto entry = TRY(reader.tryGetAt<s32>(pos + 4 + i * 4));
+        mtxIdToBoneId[i] = entry;
       }
-      mtxIdToBoneId.resize(*count);
-      for (u32 i = 0; i < *count; ++i) {
-        auto entry = reader.tryGetAt<s32>(pos + 4 + i * 4);
-        if (!entry) {
-          return entry.error();
-        }
-        mtxIdToBoneId[i] = *entry;
-      }
-
       return {};
     }
     void write(oishii::Writer& writer) {
@@ -213,33 +205,32 @@ struct BinaryModelInfo {
 
   MtxToBoneLUT mtxToBoneLUT;
 
-  void read(oishii::BinaryReader& reader) {
+  Result<void> read(rsl::SafeReader& reader) {
     auto infoPos = reader.tell();
     // Ignore size
-    reader.read<u32>();
+    TRY(reader.U32());
     // Ignore ofsModel
-    reader.read<s32>();
-    scalingRule = static_cast<librii::g3d::ScalingRule>(reader.read<u32>());
-    texMtxMode =
-        static_cast<librii::g3d::TextureMatrixMode>(reader.read<u32>());
-    numVerts = reader.read<u32>();
-    numTris = reader.read<u32>();
-    sourceLocation = readName(reader, infoPos);
-    numViewMtx = reader.read<u32>();
-    normalMtxArray = reader.read<u8>();
-    texMtxArray = reader.read<u8>();
-    boundVolume = reader.read<u8>();
-    evpMtxMode =
-        static_cast<librii::g3d::EnvelopeMatrixMode>(reader.read<u8>());
+    TRY(reader.S32());
+    scalingRule = TRY(reader.Enum32<librii::g3d::ScalingRule>());
+    texMtxMode = TRY(reader.Enum32<librii::g3d::TextureMatrixMode>());
+    numVerts = TRY(reader.U32());
+    numTris = TRY(reader.U32());
+    sourceLocation = TRY(reader.StringOfs(infoPos));
+    numViewMtx = TRY(reader.U32());
+    normalMtxArray = TRY(reader.U8());
+    texMtxArray = TRY(reader.U8());
+    boundVolume = TRY(reader.U8());
+    evpMtxMode = TRY(reader.Enum8<librii::g3d::EnvelopeMatrixMode>());
     // This is not customizable
-    u32 ofsMtxToBoneLUT = reader.read<s32>();
-    min.x = reader.read<f32>();
-    min.y = reader.read<f32>();
-    min.z = reader.read<f32>();
-    max.x = reader.read<f32>();
-    max.y = reader.read<f32>();
-    max.z = reader.read<f32>();
-    mtxToBoneLUT.readAt(reader, infoPos + ofsMtxToBoneLUT);
+    u32 ofsMtxToBoneLUT = TRY(reader.S32());
+    min.x = TRY(reader.F32());
+    min.y = TRY(reader.F32());
+    min.z = TRY(reader.F32());
+    max.x = TRY(reader.F32());
+    max.y = TRY(reader.F32());
+    max.z = TRY(reader.F32());
+    TRY(mtxToBoneLUT.readAt(reader.getUnsafe(), infoPos + ofsMtxToBoneLUT));
+    return {};
   }
   void write(oishii::Writer& writer, u32 mdl0Pos) {
     u32 pos = writer.tell();
@@ -293,8 +284,9 @@ public:
   // This has yet to be applied to the bones/draw matrices
   std::vector<ByteCodeMethod> bytecodes;
 
-  void read(oishii::BinaryReader& reader, kpi::LightIOTransaction& transaction,
-            const std::string& transaction_path, bool& isValid);
+  Result<void> read(oishii::BinaryReader& reader,
+                    kpi::LightIOTransaction& transaction,
+                    const std::string& transaction_path, bool& isValid);
   void write(oishii::Writer& writer, NameTable& names, std::size_t brres_start,
              // For order of texture name -> TexPlttInfo LUT
              std::span<const librii::g3d::TextureData> textures);

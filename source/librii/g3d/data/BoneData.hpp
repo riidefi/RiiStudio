@@ -41,7 +41,7 @@ struct BinaryBoneData {
   glm::mat4x3 modelMtx;
   glm::mat4x3 inverseModelMtx;
 
-  void read(oishii::BinaryReader& reader);
+  Result<void> read(oishii::BinaryReader& reader);
   void write(NameTable& names, oishii::Writer& writer, u32 mdl_start) const;
 
   bool isDisplayMatrix() const { return flag & 0x200; }

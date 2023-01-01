@@ -9,8 +9,8 @@ void DrawChangeLog(bool* show, std::string markdownText) {
   if (ImGui::Begin("Changelog"_j, show, ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::SetWindowFontScale(1.3f);
     util::Markdown(markdownText);
-    ImGui::End();
   }
+  ImGui::End();
 }
 
 } // namespace riistudio

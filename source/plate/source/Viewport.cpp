@@ -51,7 +51,7 @@ void Viewport::end() {
   // Unbind
   glColorMask(/*r*/ TRUE, /*g*/ TRUE, /*b*/ TRUE, /*a*/ TRUE);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  ImGui::Image(reinterpret_cast<void*>(mImageBufId),
+  ImGui::Image(reinterpret_cast<void*>(static_cast<uintptr_t>(mImageBufId)),
                {static_cast<float>(region.x), static_cast<float>(region.y)},
                {0.0f, horiz_ratio}, {vert_ratio, .0f});
 #endif

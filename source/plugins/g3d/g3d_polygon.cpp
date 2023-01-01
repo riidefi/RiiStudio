@@ -21,21 +21,21 @@ glm::vec4 Polygon::getClr(const libcube::Model& mdl, u64 chan, u64 id) const {
   assert(id < buf->mEntries.size());
   return static_cast<librii::gx::ColorF32>(buf->mEntries[id]);
 }
-glm::vec3 Polygon::getPos(const libcube::Model& mdl, u64 id) const {
+std::span<const glm::vec3> Polygon::getPos(const libcube::Model& mdl) const {
   const auto* buf = reinterpret_cast<const Model&>(mdl).getBuf_Pos().findByName(
       mPositionBuffer);
-  assert(buf);
-  if (id >= buf->mEntries.size())
+  if (!buf) {
     return {};
-  assert(id < buf->mEntries.size());
-  return buf->mEntries[id];
+  }
+  return buf->mEntries;
 }
-glm::vec3 Polygon::getNrm(const libcube::Model& mdl, u64 id) const {
+std::span<const glm::vec3> Polygon::getNrm(const libcube::Model& mdl) const {
   const auto* buf = reinterpret_cast<const Model&>(mdl).getBuf_Nrm().findByName(
       mNormalBuffer);
-  assert(buf);
-  assert(id < buf->mEntries.size());
-  return buf->mEntries[id];
+  if (!buf) {
+    return {};
+  }
+  return buf->mEntries;
 }
 
 template <typename X, typename Y>

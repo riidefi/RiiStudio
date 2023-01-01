@@ -9,6 +9,7 @@
 #include <map>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
+#include <rsl/SafeReader.hpp>
 #include <string>
 #include <variant>
 #include <vector>
@@ -28,10 +29,11 @@ struct VIS0Track {
 
   bool operator==(const VIS0Track&) const = default;
 
-  void read(oishii::BinaryReader& reader, u32 numFrames) {
+  Result<void> read(rsl::SafeReader& reader, u32 numFrames) {
     for (u32 i = 0; i < numFrames; ++i) {
-      keyframes.push_back(VIS0KeyFrame{.data = reader.read<u32>()});
+      keyframes.push_back(VIS0KeyFrame{.data = TRY(reader.U32())});
     }
+    return {};
   }
   void write(oishii::Writer& writer) const {
     for (auto data : keyframes) {
@@ -56,19 +58,20 @@ struct VIS0Bone {
   bool operator==(const VIS0Bone&) const = default;
 
   // realNumKeyFrames = roundUp(header.numFrames + 1, 32) // 32
-  void read(oishii::BinaryReader& reader, u32 realNumKeyFrames) {
+  Result<void> read(rsl::SafeReader& reader, u32 realNumKeyFrames) {
     auto start = reader.tell();
-    name = readName(reader, start);
-    flags = reader.read<u32>();
+    name = TRY(reader.StringOfs(start));
+    flags = TRY(reader.U32());
     if (flags & (FLAG_CONSTANT << (0 * 2))) {
       // Value is not stored, refer to FLAG_CONSTANT_IS_VISIBLE
     } else {
       // Rather than specifying a track offset, it's simply inlined in VIS0. No
       // clue why. Super inconsistent.
       VIS0Track track;
-      track.read(reader, realNumKeyFrames);
+      TRY(track.read(reader, realNumKeyFrames));
       target.emplace(track);
     }
+    return {};
   }
   void write(oishii::Writer& writer, NameTable& names) const {
     auto start = writer.tell();
@@ -94,7 +97,7 @@ struct BinaryVis {
 
   bool operator==(const BinaryVis&) const = default;
 
-  void read(oishii::BinaryReader& reader);
+  Result<void> read(oishii::BinaryReader& reader);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
 };
 

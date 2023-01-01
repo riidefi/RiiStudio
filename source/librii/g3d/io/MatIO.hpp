@@ -7,6 +7,7 @@
 #include <librii/g3d/io/NameTableIO.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/gpu/DLPixShader.hpp>
+#include <rsl/SafeReader.hpp>
 #include <rsl/SmallVector.hpp>
 
 namespace librii::g3d {
@@ -77,11 +78,6 @@ void WriteMaterialBody(size_t mat_start, oishii::Writer& writer,
 // Bring into namespace
 #include <core/util/glm_io.hpp>
 
-inline void operator<<(librii::gx::Color& out, oishii::BinaryReader& reader) {
-  out = librii::gx::readColorComponents(
-      reader, librii::gx::VertexBufferType::Color::rgba8);
-}
-
 inline void operator>>(const librii::gx::Color& out, oishii::Writer& writer) {
   librii::gx::writeColorComponents(writer, out,
                                    librii::gx::VertexBufferType::Color::rgba8);
@@ -93,12 +89,13 @@ struct BinaryGenMode {
   u8 numIndStages = 0;
   librii::gx::CullMode cullMode = librii::gx::CullMode::None;
 
-  void read(oishii::BinaryReader& reader) {
-    numTexGens = reader.read<u8>();
-    numChannels = reader.read<u8>();
-    numTevStages = reader.read<u8>();
-    numIndStages = reader.read<u8>();
-    cullMode = static_cast<librii::gx::CullMode>(reader.read<u32>());
+  Result<void> read(rsl::SafeReader& reader) {
+    numTexGens = TRY(reader.U8());
+    numChannels = TRY(reader.U8());
+    numTevStages = TRY(reader.U8());
+    numIndStages = TRY(reader.U8());
+    cullMode = TRY(reader.Enum32<librii::gx::CullMode>());
+    return {};
   }
   void write(oishii::Writer& writer) const {
     writer.write<u8>(numTexGens);
@@ -116,15 +113,16 @@ struct BinaryMatMisc {
   u8 reserved = 0;
   std::array<librii::g3d::G3dIndMethod, 4> indMethod{};
   std::array<s8, 4> normalMapLightIndices{-1, -1, -1, -1};
-  void read(oishii::BinaryReader& reader) {
-    earlyZComparison = reader.read<u8>();
-    lightSetIndex = reader.read<s8>();
-    fogIndex = reader.read<s8>();
-    reserved = reader.read<u8>();
+  Result<void> read(rsl::SafeReader& reader) {
+    earlyZComparison = TRY(reader.U8());
+    lightSetIndex = TRY(reader.S8());
+    fogIndex = TRY(reader.S8());
+    reserved = TRY(reader.U8());
     for (auto& m : indMethod)
-      m = static_cast<librii::g3d::G3dIndMethod>(reader.read<u8>());
+      m = TRY(reader.Enum8<librii::g3d::G3dIndMethod>());
     for (auto& n : normalMapLightIndices)
-      n = reader.read<s8>();
+      n = TRY(reader.S8());
+    return {};
   }
   void write(oishii::Writer& writer) const {
     writer.write<u8>(earlyZComparison ? 1 : 0);
@@ -155,23 +153,24 @@ struct BinarySampler {
   bool edgeLod = false;
   u16 reserved = 0;
 
-  void read(oishii::BinaryReader& reader) {
+  Result<void> read(rsl::SafeReader& reader) {
     const auto sampStart = reader.tell();
-    texture = readName(reader, sampStart);
-    palette = readName(reader, sampStart);
-    runtimeTexPtr = reader.read<u32>();
-    runtimePlttPtr = reader.read<u32>();
-    texMapId = reader.read<u32>();
-    tlutId = reader.read<u32>();
-    wrapU = static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
-    wrapV = static_cast<librii::gx::TextureWrapMode>(reader.read<u32>());
-    minFilter = static_cast<librii::gx::TextureFilter>(reader.read<u32>());
-    magFilter = static_cast<librii::gx::TextureFilter>(reader.read<u32>());
-    lodBias = reader.read<f32>();
-    maxAniso = static_cast<librii::gx::AnisotropyLevel>(reader.read<u32>());
-    biasClamp = reader.read<u8>();
-    edgeLod = reader.read<u8>();
-    reserved = reader.read<u16>();
+    texture = TRY(reader.StringOfs(sampStart));
+    palette = TRY(reader.StringOfs(sampStart));
+    runtimeTexPtr = TRY(reader.U32());
+    runtimePlttPtr = TRY(reader.U32());
+    texMapId = TRY(reader.U32());
+    tlutId = TRY(reader.U32());
+    wrapU = TRY(reader.Enum32<librii::gx::TextureWrapMode>());
+    wrapV = TRY(reader.Enum32<librii::gx::TextureWrapMode>());
+    minFilter = TRY(reader.Enum32<librii::gx::TextureFilter>());
+    magFilter = TRY(reader.Enum32<librii::gx::TextureFilter>());
+    lodBias = TRY(reader.F32());
+    maxAniso = TRY(reader.Enum32<librii::gx::AnisotropyLevel>());
+    biasClamp = TRY(reader.U8());
+    edgeLod = TRY(reader.U8());
+    reserved = TRY(reader.U16());
+    return {};
   }
   void write(oishii::Writer& writer, NameTable& names, u32 nameOfs) const {
     writeNameForward(names, writer, nameOfs, texture);
@@ -213,7 +212,8 @@ struct BinaryMatDL {
   // Writes in the standard, fixed order
   void write(oishii::Writer& writer) const;
   // Actually parses the display list commands in a GPU emulator.
-  void parse(oishii::BinaryReader& reader, u32 numIndStages, u32 numTexGens);
+  Result<void> parse(oishii::BinaryReader& reader, u32 numIndStages,
+                     u32 numTexGens);
 };
 
 struct BinaryTexSrt {
@@ -221,10 +221,13 @@ struct BinaryTexSrt {
   f32 rotate_degrees = 0.0f;
   glm::vec2 translate = glm::vec2(0.0f, 0.0f);
 
-  void read(oishii::BinaryReader& reader) {
-    scale << reader;
-    rotate_degrees = reader.read<f32>();
-    translate << reader;
+  Result<void> read(rsl::SafeReader& reader) {
+    scale.x = TRY(reader.F32());
+    scale.y = TRY(reader.F32());
+    rotate_degrees = TRY(reader.F32());
+    translate.x = TRY(reader.F32());
+    translate.y = TRY(reader.F32());
+    return {};
   }
   void write(oishii::Writer& writer) const {
     scale >> writer;
@@ -245,14 +248,15 @@ struct BinaryTexMtxEffect {
   // G3D effectmatrix is 3x4. J3D is 4x4
   glm::mat3x4 effectMtx{1.0f};
 
-  void read(oishii::BinaryReader& reader) {
-    camIdx = reader.read<s8>();
-    lightIdx = reader.read<s8>();
-    mapMode = reader.read<u8>();
-    flag = reader.read<u8>();
+  Result<void> read(rsl::SafeReader& reader) {
+    camIdx = TRY(reader.S8());
+    lightIdx = TRY(reader.S8());
+    mapMode = TRY(reader.U8());
+    flag = TRY(reader.U8());
     for (size_t i = 0; i < 3; ++i)
       for (size_t j = 0; j < 4; ++j)
-        effectMtx[i][j] = reader.read<f32>();
+        effectMtx[i][j] = TRY(reader.F32());
+    return {};
   }
   void write(oishii::Writer& writer) const {
     writer.write<s8>(camIdx);
@@ -271,13 +275,14 @@ struct BinaryTexSrtData {
   std::array<BinaryTexSrt, 8> srt{};
   std::array<BinaryTexMtxEffect, 8> effect{};
 
-  void read(oishii::BinaryReader& reader) {
-    flag = reader.read<u32>();
-    texMtxMode = static_cast<librii::g3d::TexMatrixMode>(reader.read<u32>());
+  Result<void> read(rsl::SafeReader& reader) {
+    flag = TRY(reader.U32());
+    texMtxMode = TRY(reader.Enum32<librii::g3d::TexMatrixMode>());
     for (auto& s : srt)
-      s.read(reader);
+      TRY(s.read(reader));
     for (auto& e : effect)
-      e.read(reader);
+      TRY(e.read(reader));
+    return {};
   }
   void write(oishii::Writer& writer) const {
     writer.write<u32>(flag);
@@ -305,12 +310,19 @@ struct BinaryChannelData {
     librii::gpu::LitChannel xfCntrlColor;
     librii::gpu::LitChannel xfCntrlAlpha;
 
-    void read(oishii::BinaryReader& reader) {
-      flag = reader.read<u32>();
-      material << reader;
-      ambient << reader;
-      xfCntrlColor.hex = reader.read<u32>();
-      xfCntrlAlpha.hex = reader.read<u32>();
+    Result<void> read(rsl::SafeReader& reader) {
+      flag = TRY(reader.U32());
+      material.r = TRY(reader.U8());
+      material.g = TRY(reader.U8());
+      material.b = TRY(reader.U8());
+      material.a = TRY(reader.U8());
+      ambient.r = TRY(reader.U8());
+      ambient.g = TRY(reader.U8());
+      ambient.b = TRY(reader.U8());
+      ambient.a = TRY(reader.U8());
+      xfCntrlColor.hex = TRY(reader.U32());
+      xfCntrlAlpha.hex = TRY(reader.U32());
+      return {};
     }
 
     void write(oishii::Writer& writer) const {
@@ -324,10 +336,11 @@ struct BinaryChannelData {
 
   std::array<Channel, 2> chan;
 
-  void read(oishii::BinaryReader& reader) {
+  Result<void> read(rsl::SafeReader& reader) {
     for (auto& c : chan) {
-      c.read(reader);
+      TRY(c.read(reader));
     }
+    return {};
   }
   void write(oishii::Writer& reader) const {
     for (auto& c : chan) {
@@ -356,15 +369,16 @@ struct BinaryMaterial {
   // HACK: Until BinaryTev
   gx::LowLevelGxMaterial tev;
 
-  void read(oishii::BinaryReader& reader, gx::LowLevelGxMaterial* outShader);
+  Result<void> read(oishii::BinaryReader& reader,
+                    gx::LowLevelGxMaterial* outShader);
   // TODO: Reduce dependencies
   void writeBody(oishii::Writer& writer, u32 mat_start, NameTable& names,
                  RelocWriter& linker,
                  TextureSamplerMappingManager& tex_sampler_mappings) const;
 };
 
-G3dMaterialData fromBinMat(const BinaryMaterial& bin,
-                           gx::LowLevelGxMaterial* shader);
+Result<G3dMaterialData> fromBinMat(const BinaryMaterial& bin,
+                                   gx::LowLevelGxMaterial* shader);
 BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx);
 
 } // namespace librii::g3d

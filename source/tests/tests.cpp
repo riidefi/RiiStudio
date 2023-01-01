@@ -68,8 +68,16 @@ open(std::string path, std::span<const u32> bps = {}) {
     printf("Cannot spawn file state %s.\n", importer.first.c_str());
     return std::nullopt;
   }
+  std::vector<std::string> logs;
+  const auto add_log = [&logs](kpi::IOMessageClass message_class,
+                               const std::string_view domain,
+                               const std::string_view message_body) {
+    logs.push_back(std::format("{}: {} (in {})\n",
+                               magic_enum::enum_name(message_class),
+                               message_body, domain));
+  };
   kpi::IOTransaction transaction{{
-                                     [](...) {},
+                                     add_log,
                                      kpi::TransactionState::Complete,
                                  },
                                  *fileState,
@@ -78,6 +86,12 @@ open(std::string path, std::span<const u32> bps = {}) {
     importer.second->addBp(bp);
   }
   importer.second->read_(transaction);
+
+  if (transaction.state == kpi::TransactionState::Failure) {
+    for (auto& log : logs) {
+      fprintf(stderr, "%s", log.c_str());
+    }
+  }
 
   return std::make_pair(std::move(fileState), file->slice() | rsl::ToList());
 }
@@ -111,7 +125,11 @@ void rebuild(std::string from, const std::string_view to, bool check,
     } else if (from.ends_with("blight")) {
       writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
       oishii::BinaryReader reader(file->slice());
-      librii::egg::Blight lights(reader);
+      librii::egg::Blight lights;
+      auto ok = lights.read(reader);
+      if (!ok) {
+        fprintf(stderr, "Err: %s", ok.error().c_str());
+      }
       printf("Writing to %s\n", std::string(to).c_str());
       lights.save(writer);
     } else if (from.ends_with("blmap")) {

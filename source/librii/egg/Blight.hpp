@@ -105,14 +105,13 @@ struct Blight {
   librii::gx::Color backColor{0, 0, 0, 0xFF};
 
   Blight() = default;
-  Blight(oishii::BinaryReader& stream) { read(stream); }
 
   void save(oishii::Writer& stream) {
     auto& writer = stream;
     write(writer);
   }
 
-  void read(oishii::BinaryReader& reader);
+  Result<void> read(oishii::BinaryReader& reader);
 
   void write(oishii::Writer& writer);
 };
@@ -181,8 +180,7 @@ struct Light {
       ~(librii::egg::Blight::FLAG_4 | librii::egg::Blight::FLAG_8 |
         librii::egg::Blight::FLAG_16);
 
-  std::expected<void, std::string>
-  from(const librii::egg::Blight::LightObject& lobj) {
+  Result<void> from(const librii::egg::Blight::LightObject& lobj) {
     enable_calc = lobj.flags & librii::egg::Blight::FLAG_ENABLED;
     enable_sendToGpu = lobj.flags & librii::egg::Blight::FLAG_ENABLED_2;
     lightType = lobj.lightType;
@@ -258,7 +256,7 @@ struct LightSet {
 
   bool operator==(const LightSet&) const = default;
 
-  std::expected<void, std::string> from(const librii::egg::Blight& manager) {
+  Result<void> from(const librii::egg::Blight& manager) {
     backColor = manager.backColor;
     ambientColors = manager.ambientObjects |
                     std::views::transform([](auto& x) { return x.color; }) |

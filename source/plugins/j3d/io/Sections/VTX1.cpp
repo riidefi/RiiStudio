@@ -179,16 +179,20 @@ void readVTX1(BMDOutputContext& ctx) {
         auto pos = reinterpret_cast<decltype(ctx.mdl.mBufs.pos)*>(buf);
 
         pos->mData.resize(ensize);
-        for (int i = 0; i < ensize; ++i)
-          pos->readBufferEntryGeneric(reader, pos->mData[i]);
+        for (int i = 0; i < ensize; ++i) {
+          auto ok = pos->readBufferEntryGeneric(reader, pos->mData[i]);
+          assert(ok);
+        }
         break;
       }
       case VBufferKind::normal: {
         auto nrm = reinterpret_cast<decltype(ctx.mdl.mBufs.norm)*>(buf);
 
         nrm->mData.resize(ensize);
-        for (int i = 0; i < ensize; ++i)
-          nrm->readBufferEntryGeneric(reader, nrm->mData[i]);
+        for (int i = 0; i < ensize; ++i) {
+          auto ok = nrm->readBufferEntryGeneric(reader, nrm->mData[i]);
+          assert(ok);
+        }
         break;
       }
       case VBufferKind::color: {
@@ -196,8 +200,10 @@ void readVTX1(BMDOutputContext& ctx) {
             reinterpret_cast<decltype(ctx.mdl.mBufs.color)::value_type*>(buf);
 
         clr->mData.resize(ensize);
-        for (int i = 0; i < ensize; ++i)
-          clr->readBufferEntryColor(reader, clr->mData[i]);
+        for (int i = 0; i < ensize; ++i) {
+          auto ok = clr->readBufferEntryColor(reader, clr->mData[i]);
+          assert(ok);
+        }
         break;
       }
       case VBufferKind::textureCoordinate: {
@@ -205,8 +211,10 @@ void readVTX1(BMDOutputContext& ctx) {
             reinterpret_cast<decltype(ctx.mdl.mBufs.uv)::value_type*>(buf);
 
         uv->mData.resize(ensize);
-        for (int i = 0; i < ensize; ++i)
-          uv->readBufferEntryGeneric(reader, uv->mData[i]);
+        for (int i = 0; i < ensize; ++i) {
+          auto ok = uv->readBufferEntryGeneric(reader, uv->mData[i]);
+          assert(ok);
+        }
         break;
       }
       }

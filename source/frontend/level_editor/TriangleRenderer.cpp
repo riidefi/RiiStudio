@@ -188,7 +188,10 @@ void TriangleRenderer::buildVertexBuffer() {
     tri_vbo->pushData(/*binding_point=*/2,
                       static_cast<u32>(1 << (mKclTris[i / 3].attr & 31)));
   }
-  tri_vbo->build();
+  auto ok = tri_vbo->build();
+  if (!ok) {
+    fprintf(stderr, "VBO Error: %s\n", ok.error().c_str());
+  }
 }
 
 void TriangleRenderer::init(const librii::kcol::KCollisionData& mCourseKcl) {

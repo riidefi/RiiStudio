@@ -85,7 +85,8 @@ void DrawSceneNode(const librii::gfx::SceneNode& node,
                    librii::glhelper::DelegatedUBOBuilder& ubo_builder,
                    u32 draw_index);
 
-void AddSceneNodeToUBO(librii::gfx::SceneNode& node,
-                       librii::glhelper::DelegatedUBOBuilder& ubo_builder);
+Result<void>
+AddSceneNodeToUBO(librii::gfx::SceneNode& node,
+                  librii::glhelper::DelegatedUBOBuilder& ubo_builder);
 
 } // namespace librii::gfx

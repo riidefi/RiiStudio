@@ -34,8 +34,8 @@ public:
                             int numStages);
   ~QDisplayListShaderHandler();
 
-  void onCommandBP(const QBPCommand& token) override;
-  void onStreamEnd() override;
+  Result<void> onCommandBP(const QBPCommand& token) override;
+  Result<void> onStreamEnd() override;
 
   gx::LowLevelGxMaterial& mMaterial;
   int mNumStages;
@@ -82,9 +82,8 @@ public:
   QDisplayListMaterialHandler(gx::LowLevelGxMaterial& mat);
   ~QDisplayListMaterialHandler();
 
-  void onCommandBP(const QBPCommand& token) override;
-  void onCommandXF(const QXFCommand& token) override;
-  void onStreamEnd() override;
+  Result<void> onCommandBP(const QBPCommand& token) override;
+  Result<void> onCommandXF(const QXFCommand& token) override;
 
   gx::LowLevelGxMaterial& mMat;
   GPUMaterial mGpuMat;
@@ -92,10 +91,9 @@ public:
 
 class QDisplayListVertexSetupHandler : public QDisplayListHandler {
 public:
-  void onCommandBP(const QBPCommand& token) override;
-  void onCommandCP(const QCPCommand& token) override;
-  void onCommandXF(const QXFCommand& token) override;
-  void onStreamEnd() override;
+  Result<void> onCommandBP(const QBPCommand& token) override;
+  Result<void> onCommandCP(const QCPCommand& token) override;
+  Result<void> onCommandXF(const QXFCommand& token) override;
 
   GPUMesh mGpuMesh;
 };

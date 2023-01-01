@@ -31,7 +31,7 @@ public:
 
 private:
   SceneBuffers mTree;
-
+  std::vector<bool> mUploaded;
   librii::glhelper::DelegatedUBOBuilder mUboBuilder;
 };
 

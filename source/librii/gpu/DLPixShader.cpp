@@ -5,9 +5,9 @@ namespace librii::gpu {
 QDisplayListShaderHandler::QDisplayListShaderHandler(
     gx::LowLevelGxMaterial& material, int numStages)
     : mMaterial(material), mNumStages(numStages) {}
-QDisplayListShaderHandler::~QDisplayListShaderHandler() {}
+QDisplayListShaderHandler::~QDisplayListShaderHandler() = default;
 
-void QDisplayListShaderHandler::onCommandBP(const QBPCommand& token) {
+Result<void> QDisplayListShaderHandler::onCommandBP(const QBPCommand& token) {
   switch ((u32)token.reg) {
   case (u32)BPAddress::TEV_KSEL + (0 * 2):
   case (u32)BPAddress::TEV_KSEL + (0 * 2) + 1:
@@ -100,13 +100,15 @@ void QDisplayListShaderHandler::onCommandBP(const QBPCommand& token) {
     mGpuShader.mMask = 0xff000000 | (token.val & 0x00ffffff);
     break;
   default:
-    break;
+    return std::unexpected(std::format("Unexpected BP command: 0x{:x}",
+                                       static_cast<u32>(token.reg)));
   }
   // If mask has expired, reset it
   if (mGpuShader.mMask != 0xffffffff && token.reg != (u32)BPAddress::BP_MASK)
     mGpuShader.mMask = 0xffffffff;
+  return {};
 }
-void QDisplayListShaderHandler::onStreamEnd() {
+Result<void> QDisplayListShaderHandler::onStreamEnd() {
   bool corrupt = false;
 
   // four swap tables and indirect stages
@@ -255,14 +257,16 @@ void QDisplayListShaderHandler::onStreamEnd() {
   if (corrupt) {
     // throw std::runtime_error("Corrupt model data");
   }
+
+  return {};
 }
 
 QDisplayListMaterialHandler::QDisplayListMaterialHandler(
     gx::LowLevelGxMaterial& mat)
     : mMat(mat) {}
-QDisplayListMaterialHandler::~QDisplayListMaterialHandler() {}
+QDisplayListMaterialHandler::~QDisplayListMaterialHandler() = default;
 enum RegType { TEV_COLOR_REG = 0, TEV_KONSTANT_REG = 1 };
-void QDisplayListMaterialHandler::onCommandXF(const QXFCommand& token) {
+Result<void> QDisplayListMaterialHandler::onCommandXF(const QXFCommand& token) {
   switch (token.reg) {
   case XF_TEX0_ID:
   case XF_TEX0_ID + 1:
@@ -273,7 +277,7 @@ void QDisplayListMaterialHandler::onCommandXF(const QXFCommand& token) {
   case XF_TEX0_ID + 6:
   case XF_TEX0_ID + 7:
     mGpuMat.mTexture[token.reg - XF_TEX0_ID].tex.hex = token.val;
-    break;
+    return {};
   case XF_DUALTEX0_ID:
   case XF_DUALTEX0_ID + 1:
   case XF_DUALTEX0_ID + 2:
@@ -283,10 +287,13 @@ void QDisplayListMaterialHandler::onCommandXF(const QXFCommand& token) {
   case XF_DUALTEX0_ID + 6:
   case XF_DUALTEX0_ID + 7:
     mGpuMat.mTexture[token.reg - XF_DUALTEX0_ID].dualTex.hex = token.val;
-    break;
+    return {};
   }
+
+  return std::unexpected(std::format("Unexpected XF command: 0x{:x}",
+                                     static_cast<u32>(token.reg)));
 }
-void QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
+Result<void> QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
   switch ((u32)token.reg) {
   case BPAddress::ALPHACOMPARE:
     mGpuMat.setReg(mGpuMat.mPixel.mAlphaCompare, token);
@@ -379,34 +386,42 @@ void QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
         token);
     break;
   default: {
-    printf("[Warning] DisplayList: Unknown register 0x%x.\n", token.reg);
-    break;
+    return std::unexpected(std::format("Unexpected BP command: 0x{:x}",
+                                       static_cast<u32>(token.reg)));
   }
   }
   // If mask has expired, reset it
   if (mGpuMat.mMask != 0xffffffff && token.reg != (u32)BPAddress::BP_MASK)
     mGpuMat.mMask = 0xffffffff;
+  return {};
 }
-void QDisplayListMaterialHandler::onStreamEnd() {}
-void QDisplayListVertexSetupHandler::onCommandBP(const QBPCommand& token) {
+Result<void>
+QDisplayListVertexSetupHandler::onCommandBP(const QBPCommand& token) {
   // TODO: Ignores cull mode repeat
+  return {};
 }
-void QDisplayListVertexSetupHandler::onCommandCP(const QCPCommand& token) {
+Result<void>
+QDisplayListVertexSetupHandler::onCommandCP(const QCPCommand& token) {
   switch (token.reg) {
   case 0x50:
     mGpuMesh.VCD.Hex = token.val;
-    break;
+    return {};
   case 0x60:
     mGpuMesh.VCD.Hex |= (token.val << 17);
-    break;
-  default:
-    break;
+    return {};
+  case 0x70:
+  case 0x80:
+  case 0x90:
+    // TODO: we encounter these but simply ignore them.
+    return {};
   }
+  return std::unexpected(
+      std::format("Unexpected command in display list: 0x{:x}", token.reg));
 }
-void QDisplayListVertexSetupHandler::onCommandXF(const QXFCommand& token) {
+Result<void>
+QDisplayListVertexSetupHandler::onCommandXF(const QXFCommand& token) {
   // TODO: Validate XF_INVTXSPEC_ID
+  return {};
 }
-
-void QDisplayListVertexSetupHandler::onStreamEnd() {}
 
 } // namespace librii::gpu

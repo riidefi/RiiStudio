@@ -35,18 +35,20 @@ struct SceneImpl::Internal {
 SceneImpl::SceneImpl() = default;
 SceneImpl::~SceneImpl() = default;
 
-void SceneImpl::prepare(SceneState& state, const kpi::INode& _host,
-                        glm::mat4 v_mtx, glm::mat4 p_mtx) {
+Result<void> SceneImpl::prepare(SceneState& state,
+                                                    const kpi::INode& _host,
+                                                    glm::mat4 v_mtx,
+                                                    glm::mat4 p_mtx) {
   auto& host = *dynamic_cast<const Scene*>(&_host);
 
   if (mImpl == nullptr) {
-    mImpl = std::make_unique<Internal>();
-
-    mImpl->render_data.init(host);
+    auto impl = std::make_unique<Internal>();
+    TRY(impl->render_data.init(host));
+    mImpl = std::move(impl);
   }
 
-  librii::g3d::gfx::Any3DSceneAddNodesToBuffer(state, host, v_mtx, p_mtx,
-                                               mImpl->render_data);
+  return librii::g3d::gfx::Any3DSceneAddNodesToBuffer(state, host, v_mtx, p_mtx,
+                                                      mImpl->render_data);
 }
 
 } // namespace riistudio::lib3d

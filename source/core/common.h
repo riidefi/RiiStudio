@@ -13,6 +13,7 @@
 #include <atomic>
 #include <bitset>
 #include <cstdio>
+#include <expected>
 #include <filesystem>
 #include <map>
 #include <memory>
@@ -59,6 +60,12 @@ import std.filesystem
 #include <stdio.h>
 #endif
 
+// clang: Merged May 16 2019, Clang 9
+// GCC:   Merged May 20 2021, GCC 12 (likely to release April 2022)
+#ifndef __FILE_NAME__
+#define __FILE_NAME__ __FILE__
+#endif
+
 #ifdef DEBUG
 
 #if defined(__EMSCRIPTEN__)
@@ -66,12 +73,12 @@ import std.filesystem
 
 #define DebugReport(...)                                                       \
   emscripten_log(EM_LOG_NO_PATHS | EM_LOG_CONSOLE,                             \
-                 "[" __FILE__                                                  \
+                 "[" __FILE_NAME__                                             \
                  ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__)
 
 #else
 #define DebugReport(...)                                                       \
-  printf("[" __FILE__ ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__)
+  printf("[" __FILE_NAME__ ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__)
 #endif
 #else
 #define DebugReport(...)
@@ -105,22 +112,44 @@ inline const char* operator"" _j(const char* str, size_t len) {
 
 #define HAS_RANGES
 
-#ifdef __clang__
-#define TRY(x)                                                                 \
+#if defined(__clang__) || defined(__gcc__)
+#define HAS_RUST_TRY
+#define TRY(...)                                                               \
   ({                                                                           \
-    auto y = x;                                                                \
+    auto y = (__VA_ARGS__);                                                    \
     if (!y) {                                                                  \
       return std::unexpected(y.error());                                       \
     }                                                                          \
     *y;                                                                        \
   })
+#define BEGINTRY
+#define ENDTRY
 #else
 template <typename T> inline auto DoTry(T&& x) {
   if (!x.has_value()) {
     fprintf(stderr, "Fatal error: %s", x.error().c_str());
-    abort();
+    throw x.error();
   }
   return *x;
 }
-#define TRY(x) DoTry(x)
+#define TRY(...) DoTry(__VA_ARGS__)
+#define BEGINTRY try {
+#define ENDTRY                                                                 \
+  }                                                                            \
+  catch (std::string s) {                                                      \
+    return std::unexpected(s);                                                 \
+  }
+#endif
+
+#define EXPECT(expr, ...)                                                      \
+  if (!(expr)) {                                                               \
+    return std::unexpected("[" __FILE_NAME__ ":" LIB_RII_TO_STRING(            \
+        __LINE__) "] " __VA_ARGS__ "[Internal: " #expr "]");                   \
+  }
+
+#if defined(__cpp_lib_expected)
+#if __cpp_lib_expected >= 202202L
+template <typename T, typename E = std::string>
+using Result = std::expected<T, E>;
+#endif
 #endif

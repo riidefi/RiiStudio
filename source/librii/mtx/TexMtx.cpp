@@ -160,8 +160,9 @@ glm::mat4 computeTexSrt(const glm::vec2& scale, f32 rotate,
   return texsrt;
 }
 
-static glm::mat4 computeInMtx(const glm::mat4& mdl, const glm::mat4& mvp,
-                              CommonMappingMethod method) {
+static std::expected<glm::mat4, std::string>
+computeInMtx(const glm::mat4& mdl, const glm::mat4& mvp,
+             CommonMappingMethod method) {
   glm::mat4 inmtx(1.0f);
   switch (method) {
   case CommonMappingMethod::Standard:
@@ -188,17 +189,17 @@ static glm::mat4 computeInMtx(const glm::mat4& mdl, const glm::mat4& mvp,
     computeNormalMatrix(inmtx, mdl, true);
     break;
   default:
-    assert(!"Unsupported mapping method!");
+    EXPECT(false, "Unsupported mapping method!");
     break;
   }
   return inmtx;
 }
 
-glm::mat4 computeTexMtx(const glm::mat4& mdl, const glm::mat4& mvp,
-                        const glm::mat4& texsrt, const glm::mat4& effectMatrix,
-                        CommonMappingMethod method,
-                        CommonMappingOption option) {
-  auto inmtx = computeInMtx(mdl, mvp, method);
+std::expected<glm::mat4, std::string>
+computeTexMtx(const glm::mat4& mdl, const glm::mat4& mvp,
+              const glm::mat4& texsrt, const glm::mat4& effectMatrix,
+              CommonMappingMethod method, CommonMappingOption option) {
+  auto inmtx = TRY(computeInMtx(mdl, mvp, method));
   auto J3DGetTextureMtxOld = [](glm::mat4& dst, const glm::mat4& srt) {
     dst = srt;
   };

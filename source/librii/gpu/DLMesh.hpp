@@ -12,7 +12,7 @@ struct IMeshDLDelegate {
                                                     u16 nVerts) = 0;
 };
 
-llvm::Error
+Result<void>
 DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
                       IMeshDLDelegate& delegate,
                       const gx::VertexDescriptor& descriptor,

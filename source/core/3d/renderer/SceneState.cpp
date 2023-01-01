@@ -22,9 +22,15 @@ librii::math::AABB SceneState::computeBounds() {
 
 void SceneState::buildUniformBuffers() {
   mUboBuilder.clear();
-
+  mUploaded.clear();
   mTree.forEachNode([&](librii::gfx::SceneNode& node) {
-    librii::gfx::AddSceneNodeToUBO(node, mUboBuilder);
+    auto ok = librii::gfx::AddSceneNodeToUBO(node, mUboBuilder);
+    if (!ok) {
+      fprintf(stderr, "ubo_builder.push error: %s\n", ok.error().c_str());
+      mUploaded.push_back(false);
+    } else {
+      mUploaded.push_back(true);
+    }
   });
 }
 
@@ -33,7 +39,9 @@ void SceneState::draw() {
 
   u32 i = 0;
   mTree.forEachNode([&](librii::gfx::SceneNode& node) {
-    librii::gfx::DrawSceneNode(node, mUboBuilder, i++);
+    if (!mUploaded[i++])
+      return;
+    librii::gfx::DrawSceneNode(node, mUboBuilder, i - 1);
   });
 
 #ifdef RII_GL

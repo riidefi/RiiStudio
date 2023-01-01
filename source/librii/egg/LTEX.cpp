@@ -2,7 +2,7 @@
 
 namespace librii::egg {
 
-std::expected<void, std::string> LightTexture::read(rsl::SafeReader& reader) {
+Result<void> LightTexture::read(rsl::SafeReader& reader) {
   TRY(reader.Magic("LTEX"));
   auto fileSize = TRY(reader.U32());
   if (fileSize != 0x13C) {
@@ -54,7 +54,7 @@ void LightTexture::write(oishii::Writer& writer) const {
   }
 }
 
-std::expected<void, std::string> LightMap::read(rsl::SafeReader& reader) {
+Result<void> LightMap::read(rsl::SafeReader& reader) {
   TRY(reader.Magic("LMAP"));
   auto fileSize = TRY(reader.U32());
   auto revision = TRY(reader.U8());

@@ -22,7 +22,7 @@ using namespace riistudio;
 // - Assumes poly.propagate(...) adds to the end of the VBO.
 //
 // TODO: poly.propagate is a hot path
-inline lib3d::IndexRange
+inline std::expected<lib3d::IndexRange, std::string>
 AddPolygonToVBO(librii::glhelper::VBOBuilder& vbo_builder,
                 const riistudio::lib3d::Model& mdl,
                 const libcube::IndexedPolygon& poly, u32 mp_id) {
@@ -36,13 +36,20 @@ struct ShaderCompileError {
 inline std::variant<librii::glhelper::ShaderProgram, ShaderCompileError>
 CompileMaterial(const lib3d::Material& _mat) {
   DebugReport("Compiling shader for %s..\n", _mat.getName().c_str());
-  const auto shader_sources = _mat.generateShaders();
+  const auto shader_sources_ = _mat.generateShaders();
+  if (!shader_sources_.has_value()) {
+    _mat.isShaderError = true;
+    _mat.shaderError =
+        std::format("ShaderGen Error: {}", shader_sources_.error());
+    return ShaderCompileError{.desc = _mat.shaderError};
+  }
+  auto shader_sources = *shader_sources_;
   librii::glhelper::ShaderProgram new_shader(
       shader_sources.first,
       _mat.applyCacheAgain ? _mat.cachedPixelShader : shader_sources.second);
   if (new_shader.getError()) {
     _mat.isShaderError = true;
-    _mat.shaderError = new_shader.getErrorDesc();
+    _mat.shaderError = std::format("GLSL Error: {}", new_shader.getErrorDesc());
     return ShaderCompileError{.desc = _mat.shaderError};
   }
   _mat.isShaderError = false;
@@ -80,7 +87,10 @@ struct G3dTextureCache {
     return mTexIdMap.contains(tex.getName());
   }
 
-  void cache(const lib3d::Texture& tex) { mTexIdMap[tex.getName()] = tex; }
+  Result<void> cache(const lib3d::Texture& tex) {
+    mTexIdMap[tex.getName()] = tex;
+    return {};
+  }
 
   void invalidate() { mTexIdMap.clear(); }
 
@@ -91,11 +101,12 @@ struct G3dTextureCache {
     return mTexIdMap.at(tex).getGlId();
   }
 
-  u32 getCachedTexture(const lib3d::Texture& tex) {
+  std::expected<u32, std::string> getCachedTexture(const lib3d::Texture& tex) {
     if (!isCached(tex))
-      cache(tex);
+      TRY(cache(tex));
 
-    assert(isCached(tex));
+    assert(isCached(tex) && "Internal logic error. cache() should either "
+                            "succeed or return unexpected");
     return mTexIdMap[tex.getName()].getGlId();
   }
 
@@ -132,7 +143,12 @@ struct ObservableShader {
     mImpl = std::make_unique<Impl>(std::move(shader));
   }
 
-  auto& getProgram() { return mImpl->mProgram; }
+  std::expected<librii::glhelper::ShaderProgram*, std::string> getProgram() {
+    if (mImpl->mErr.size()) {
+      return std::unexpected(mImpl->mErr);
+    }
+    return &mImpl->mProgram;
+  }
   void syncWithMaterial(const lib3d::Material& mat) { mImpl->update(&mat); }
 
 private:
@@ -143,6 +159,7 @@ private:
 
     librii::glhelper::ShaderProgram mProgram;
     s32 mLastId = 0xFFFF'FFFF;
+    std::string mErr;
 
     void update(const lib3d::Material* _mat) {
       assert(_mat != nullptr);
@@ -154,11 +171,13 @@ private:
       if (auto* shader = std::get_if<librii::glhelper::ShaderProgram>(&result);
           shader != nullptr) {
         mProgram = std::move(*shader);
+        mErr = {};
         return;
       }
 
       if (auto* err = std::get_if<ShaderCompileError>(&result);
           err != nullptr) {
+        mErr = err->desc;
       }
     }
   };
@@ -177,23 +196,30 @@ struct GenericShaderCache_WithObserverUpdates {
     return mMatToShader.contains(mat.getName());
   }
 
-  void cacheShader(const lib3d::Material& mat) {
-    const auto shader_sources = mat.generateShaders();
+  Result<void> cacheShader(const lib3d::Material& mat) {
+    const auto shader_sources = TRY(mat.generateShaders());
 
     mMatToShader.emplace(
         mat.getName(), librii::glhelper::ShaderProgram{shader_sources.first,
                                                        shader_sources.second});
     mMatToShader.at(mat.getName()).syncWithMaterial(mat);
+    return {};
   }
 
   // TODO: We could do this all with just a map type
-  librii::glhelper::ShaderProgram& getCachedShader(const lib3d::Material& mat) {
-    if (!isShaderCached(mat))
-      cacheShader(mat);
+  std::expected<librii::glhelper::ShaderProgram*, std::string>
+  getCachedShader(const lib3d::Material& mat) {
+    if (!isShaderCached(mat)) {
+      TRY(cacheShader(mat));
+    }
 
     assert(isShaderCached(mat));
     mMatToShader.at(mat.getName()).syncWithMaterial(mat);
-    return mMatToShader.at(mat.getName()).getProgram();
+    auto program = mMatToShader.at(mat.getName()).getProgram();
+    if (!program) {
+      return std::unexpected(program.error());
+    }
+    return program;
   }
 };
 
@@ -212,29 +238,27 @@ struct G3dShaderCache_WithUnusableHashingMechanism {
                      MatDataHash>
       data;
 
-  librii::glhelper::ShaderProgram&
+  Result<librii::glhelper::ShaderProgram*>
   getCachedShader(const riistudio::g3d::Material& mat) {
     // TODO: This could be more optimized
     auto it = data.find(mat);
     if (it != data.end())
-      return *it->second;
+      return &*it->second;
 
     auto result = CompileMaterial(mat);
 
     if (auto* shader = std::get_if<librii::glhelper::ShaderProgram>(&result);
         shader != nullptr) {
-      return *(data[mat] = std::move(*shader));
+      return &*(data[mat] = std::move(*shader));
     }
 
     // Compilation failed, so give up and pick a different shader
     if (data.size()) {
-      return *data.begin()->second;
+      return &*data.begin()->second;
     }
 
-    // We can't do anything, crash
-    assert(!"Failed to compile shader");
-    abort();
-    return *data.begin()->second;
+    // We can't do anything
+    return std::unexpected("Shader compiler error and no other shader to use");
   }
 };
 
@@ -275,11 +299,17 @@ struct G3dVertexRenderData {
   // Maps a draw call -> ranges of mVboBuilder
   DrawCallMap<lib3d::IndexRange> mTenants;
 
-  lib3d::IndexRange getDrawCallVertices(const DrawCallPath& path) const {
+  std::expected<lib3d::IndexRange, std::string>
+  getDrawCallVertices(const DrawCallPath& path) const {
+    if (!mTenants.contains(path)) {
+      return std::unexpected(
+          std::format("mTenants does not contain (model:{}, mesh:{}, mprim:{})",
+                      path.model_name, path.mesh_name, path.mprim_index));
+    }
     return mTenants.at(path);
   }
 
-  void buildVertexBuffer(const lib3d::Model& model) {
+  Result<void> buildVertexBuffer(const lib3d::Model& model) {
     for (auto& mesh : model.getMeshes()) {
       auto& gc_mesh = reinterpret_cast<const libcube::IndexedPolygon&>(mesh);
 
@@ -292,17 +322,20 @@ struct G3dVertexRenderData {
           continue;
 
         const auto index_range =
-            AddPolygonToVBO(mVboBuilder, model, gc_mesh, i);
+            TRY(AddPolygonToVBO(mVboBuilder, model, gc_mesh, i));
         mTenants.emplace(mesh_name, index_range);
       }
     }
+    return {};
   }
 
-  void init(const lib3d::Scene& host) {
-    for (auto& model : host.getModels())
-      buildVertexBuffer(model);
+  Result<void> init(const lib3d::Scene& host) {
+    for (auto& model : host.getModels()) {
+      TRY(buildVertexBuffer(model));
+    }
 
-    mVboBuilder.build();
+    TRY(mVboBuilder.build());
+    return {};
   }
 };
 
@@ -317,10 +350,11 @@ struct G3dSceneRenderData {
   G3dTextureCache mTextureData;
   G3dShaderCache mMaterialData;
 
-  void init(const lib3d::Scene& host) {
-    mVertexRenderData.init(host);
+  Result<void> init(const lib3d::Scene& host) {
+    TRY(mVertexRenderData.init(host));
     mTextureData.update(host);
     // Shaders will be generated the first time the scene is drawn
+    return {};
   }
 };
 
@@ -329,14 +363,14 @@ struct G3dSceneRenderData {
 std::unique_ptr<G3dSceneRenderData>
 G3DSceneCreateRenderData(riistudio::g3d::Collection& scene);
 
-void G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
-                              const riistudio::g3d::Collection& scene,
-                              glm::mat4 v_mtx, glm::mat4 p_mtx,
-                              G3dSceneRenderData& render_data);
+Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
+                                      const riistudio::g3d::Collection& scene,
+                                      glm::mat4 v_mtx, glm::mat4 p_mtx,
+                                      G3dSceneRenderData& render_data);
 
-void Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
-                                const lib3d::Scene& scene, glm::mat4 v_mtx,
-                                glm::mat4 p_mtx,
-                                G3dSceneRenderData& render_data);
+Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
+                                        const lib3d::Scene& scene,
+                                        glm::mat4 v_mtx, glm::mat4 p_mtx,
+                                        G3dSceneRenderData& render_data);
 
 } // namespace librii::g3d::gfx

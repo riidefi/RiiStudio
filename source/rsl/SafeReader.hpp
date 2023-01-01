@@ -51,6 +51,19 @@ public:
   auto U8() -> Result<u8> { return mReader.tryRead<u8>(); }
   auto S8() -> Result<s8> { return mReader.tryRead<s8>(); }
 
+  // TODO: Maybe some subletting system for unaligned contexts?
+private:
+  static inline constexpr auto Cur = oishii::EndianSelect::Current;
+
+public:
+  auto F32NoAlign() -> Result<f32> { return mReader.tryRead<f32, Cur, true>(); }
+  auto U32NoAlign() -> Result<u32> { return mReader.tryRead<u32, Cur, true>(); }
+  auto S32NoAlign() -> Result<s32> { return mReader.tryRead<s32, Cur, true>(); }
+  auto U16NoAlign() -> Result<u16> { return mReader.tryRead<u16, Cur, true>(); }
+  auto S16NoAlign() -> Result<s16> { return mReader.tryRead<s16, Cur, true>(); }
+  auto U8NoAlign() -> Result<u8> { return mReader.tryRead<u8, Cur, true>(); }
+  auto S8NoAlign() -> Result<s8> { return mReader.tryRead<s8, Cur, true>(); }
+
   template <typename T, typename E> auto Enum() -> Result<E> {
     static_assert(std::is_integral_v<T>);
     static_assert(sizeof(T) <= sizeof(u32));
@@ -93,10 +106,13 @@ public:
   }
 
   inline Result<std::string> StringOfs32(u32 relative);
+  Result<std::string> StringOfs(u32 relative) { return StringOfs32(relative); }
 
   auto scoped(std::string&& name) {
     return mReader.createScoped(std::move(name));
   }
+
+  oishii::BinaryReader& getUnsafe() { return mReader; }
 
 private:
   oishii::BinaryReader& mReader;

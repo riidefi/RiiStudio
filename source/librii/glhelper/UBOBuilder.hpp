@@ -72,12 +72,14 @@ public:
   // Use the data at each binding point
   void use(u32 idx) const;
 
-  void push(u32 binding_point, const std::vector<u8>& data);
+  [[nodiscard]] Result<void> push(u32 binding_point,
+                                  const std::vector<u8>& data);
 
-  template <typename T> void tpush(u32 binding_point, const T& data) {
+  template <typename T>
+  [[nodiscard]] Result<void> tpush(u32 binding_point, const T& data) {
     std::vector<u8> tmp(sizeof(T));
     *reinterpret_cast<T*>(tmp.data()) = data;
-    push(binding_point, tmp);
+    return push(binding_point, tmp);
   }
   void reset(u32 binding_point) {
     // Check if the binding point has been set
@@ -108,8 +110,8 @@ private:
   std::vector<CoalescedEntry> mCoalescedOffsets;
 
   std::vector<Blob>& getTempData(u32 binding_point) {
-    if (binding_point >= mData.size())
-      return mData.emplace_back();
+    while (binding_point >= mData.size())
+      mData.emplace_back();
 
     return mData[binding_point];
   }

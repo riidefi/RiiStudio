@@ -3,6 +3,9 @@
 #include "binary_reader.hxx"
 #include <format>
 
+// HACK
+extern bool gTestMode;
+
 namespace oishii {
 
 template <u32 m> struct MagicInvalidity;
@@ -51,13 +54,19 @@ T BinaryReader::peekAt(int trans) {
 template <typename T, EndianSelect E, bool unaligned>
 std::expected<T, std::string> BinaryReader::tryGetAt(int trans) {
   if (!unaligned && (trans % sizeof(T))) {
-    rsl::debug_break();
+    // In test mode, the formatted error below is more useful
+    if (!gTestMode) {
+      rsl::debug_break();
+    }
     return std::unexpected(std::format(
         "Alignment error: {} is not {}-byte aligned.", tell(), sizeof(T)));
   }
 
-  if (trans < 0 || trans + sizeof(T) >= endpos()) {
-    rsl::debug_break();
+  if (trans < 0 || trans + sizeof(T) > endpos()) {
+    // In test mode, the formatted error below is more useful
+    if (!gTestMode) {
+      rsl::debug_break();
+    }
     return std::unexpected(std::format(
         "Bounds error: Reading {} bytes from {} exceeds buffer size of {}",
         sizeof(T), trans, endpos()));

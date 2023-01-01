@@ -20,10 +20,6 @@
 
 IMPORT_STD;
 
-namespace librii::g3d {
-using namespace bad;
-}
-
 namespace riistudio::g3d {
 
 #pragma region Bones
@@ -429,18 +425,22 @@ public:
     drw.mWeights = {{evp.nodeId, 1.0f}};
   }
 
-  void onNodeMix(const B::NodeMix& mix) {
+  Result<void> onNodeMix(const B::NodeMix& mix) {
     auto& drw = insertMatrix(mix.mtxId);
     auto range =
         mix.blendMatrices |
         std::views::transform([&](const B::NodeMix::BlendMtx& blend)
-                                  -> libcube::DrawMatrix::MatrixWeight {
+                                  -> Result<libcube::DrawMatrix::MatrixWeight> {
           int boneIndex =
               binary_mdl.info.mtxToBoneLUT.mtxIdToBoneId[blend.mtxId];
-          assert(boneIndex != -1);
-          return {static_cast<u32>(boneIndex), blend.ratio};
+          EXPECT(boneIndex != -1);
+          return libcube::DrawMatrix::MatrixWeight{static_cast<u32>(boneIndex),
+                                                   blend.ratio};
         });
-    drw.mWeights = {range.begin(), range.end()};
+    for (auto&& w : range) {
+      drw.mWeights.push_back(TRY(w));
+    }
+    return {};
   }
 
 private:
@@ -456,13 +456,13 @@ private:
   kpi::IOContext& ctx;
 };
 
-void processModel(librii::g3d::BinaryModel& binary_model,
-                  kpi::LightIOTransaction& transaction,
-                  const std::string& transaction_path,
-                  riistudio::g3d::Model& mdl) {
+Result<void> processModel(librii::g3d::BinaryModel& binary_model,
+                          kpi::LightIOTransaction& transaction,
+                          const std::string& transaction_path,
+                          riistudio::g3d::Model& mdl) {
   using namespace librii::g3d;
   if (transaction.state == kpi::TransactionState::Failure) {
-    return;
+    return {};
   }
   kpi::IOContext ctx(transaction_path + "//MDL0 " + binary_model.name,
                      transaction);
@@ -553,7 +553,7 @@ void processModel(librii::g3d::BinaryModel& binary_model,
 
   mdl.getBones().resize(binary_model.bones.size());
   for (size_t i = 0; i < binary_model.bones.size(); ++i) {
-    assert(binary_model.bones[i].id == i);
+    EXPECT(binary_model.bones[i].id == i);
     static_cast<librii::g3d::BoneData&>(mdl.getBones()[i]) =
         fromBinaryBone(binary_model.bones[i], binary_model.bones, ctx,
                        binary_model.info.scalingRule);
@@ -576,8 +576,8 @@ void processModel(librii::g3d::BinaryModel& binary_model,
   // TODO: Fura
 
   for (auto& mat : binary_model.materials) {
-    static_cast<librii::g3d::G3dMaterialData&>(mdl.getMaterials().add()) =
-        librii::g3d::fromBinMat(mat, &mat.tev);
+    auto ok = TRY(librii::g3d::fromBinMat(mat, &mat.tev));
+    static_cast<librii::g3d::G3dMaterialData&>(mdl.getMaterials().add()) = ok;
   }
   for (auto& mesh : binary_model.meshes) {
     static_cast<librii::g3d::PolygonData&>(mdl.getMeshes().add()) = mesh;
@@ -597,16 +597,18 @@ void processModel(librii::g3d::BinaryModel& binary_model,
                      std::get_if<ByteCodeLists::EnvelopeMatrix>(&command)) {
         helper.onEvpMtx(*evp);
       } else if (auto* mix = std::get_if<ByteCodeLists::NodeMix>(&command)) {
-        helper.onNodeMix(*mix);
+        TRY(helper.onNodeMix(*mix));
+      } else {
+        // TODO: Other bytecodes
+        EXPECT(false, "Unexpected bytecode");
       }
-      // TODO: Other bytecodes
     }
   }
 
   // Assumes all display matrices contiguously precede non-display matrices.
   // Trim non-display matrices to reach numViewMtx.
   // Can't trust the header -- BrawlBox doesn't properly set it.
-  assert(numDisplayMatrices <= mdl.mDrawMatrices.size());
+  EXPECT(numDisplayMatrices <= mdl.mDrawMatrices.size());
   mdl.mDrawMatrices.resize(numDisplayMatrices);
 
   // Recompute parent-child relationships
@@ -618,6 +620,7 @@ void processModel(librii::g3d::BinaryModel& binary_model,
     auto& parent = mdl.getBones()[bone.mParent];
     parent.mChildren.push_back(i);
   }
+  return {};
 }
 
 #pragma endregion
@@ -872,7 +875,14 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
   collection.path = reader.getFile();
   for (auto& mdl : archive.models) {
     auto& editor_mdl = collection.getModels().add();
-    processModel(mdl, transaction, "MDL0 " + mdl.name, editor_mdl);
+    auto ok = processModel(mdl, transaction, "MDL0 " + mdl.name, editor_mdl);
+    if (!ok) {
+      transaction.callback(
+          kpi::IOMessageClass::Error, std::format("MDL0 {}", mdl.name),
+          std::format("Could not read MDL0 {}: {}", mdl.name, ok.error()));
+      transaction.state = kpi::TransactionState::Failure;
+      return;
+    }
   }
   for (auto& tex : archive.textures) {
     static_cast<librii::g3d::TextureData&>(collection.getTextures().add()) =

@@ -140,13 +140,14 @@ std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat) {
   return writer.takeBuf();
 }
 
-rsl::expected<g3d::TextureData, std::string>
+std::expected<g3d::TextureData, std::string>
 ReadTEX0(std::span<const u8> file) {
   g3d::TextureData tex;
   // TODO: We trust the .tex0-file provided name to be correct
   const bool ok = g3d::ReadTexture(tex, file, "");
   if (!ok) {
-    return std::string("Failed to parse TEX0: g3d::ReadTexture returned false");
+    return std::unexpected(
+        "Failed to parse TEX0: g3d::ReadTexture returned false");
   }
   return tex;
 }
@@ -230,11 +231,11 @@ std::vector<u8> WriteSRT0(const g3d::SrtAnimationArchive& arc) {
   return writer.takeBuf();
 }
 
-rsl::expected<g3d::G3dMaterialData, std::string>
+std::expected<g3d::G3dMaterialData, std::string>
 ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
                          const g3d::G3dShader& tev) {
   const size_t num_istage = mat.indirectStages.size();
-  assert(tev.mIndirectOrders.size() >= num_istage &&
+  EXPECT(tev.mIndirectOrders.size() >= num_istage,
          "Material and shader were built for a different number of indirect "
          "stages.");
 
@@ -264,21 +265,23 @@ static std::string FormatRange(auto&& range, auto&& functor) {
   return tmp;
 }
 
-rsl::expected<CrateAnimationPaths, std::string>
+std::expected<CrateAnimationPaths, std::string>
 ScanCrateAnimationFolder(std::filesystem::path path) {
-  assert(std::filesystem::is_directory(path));
+  EXPECT(std::filesystem::is_directory(path),
+         "ScanCrateAnimationFolder takes in a folder, not a file.");
   CrateAnimationPaths tmp;
   tmp.preset_name = path.stem().string();
   for (const auto& entry : std::filesystem::directory_iterator{path}) {
     const auto extension = entry.path().extension();
     if (extension == ".mdl0mat") {
       if (!tmp.mdl0mat.empty()) {
-        return std::string("Rejecting: Multiple .mdl0mat files in folder");
+        return std::unexpected("Rejecting: Multiple .mdl0mat files in folder");
       }
       tmp.mdl0mat = entry.path();
     } else if (extension == ".mdl0shade") {
       if (!tmp.mdl0shade.empty()) {
-        return std::string("Rejecting: Multiple .mdl0shade files in folder");
+        return std::unexpected(
+            "Rejecting: Multiple .mdl0shade files in folder");
       }
       tmp.mdl0shade = entry.path();
     } else if (extension == ".srt0") {
@@ -289,10 +292,10 @@ ScanCrateAnimationFolder(std::filesystem::path path) {
     // Ignore other extensions
   }
   if (tmp.mdl0mat.empty()) {
-    return std::string("Missing .mdl0mat definition");
+    return std::unexpected("Missing .mdl0mat definition");
   }
   if (tmp.mdl0shade.empty()) {
-    return std::string("Missing .mdl0shade definition");
+    return std::unexpected("Missing .mdl0shade definition");
   }
   return tmp;
 }

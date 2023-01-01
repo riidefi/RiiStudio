@@ -16,11 +16,11 @@ struct IndexedPolygon : public riistudio::lib3d::Polygon {
 
   bool hasAttrib(SimpleAttrib attrib) const override;
   void setAttrib(SimpleAttrib attrib, bool v) override;
-  riistudio::lib3d::IndexRange
+  std::expected<riistudio::lib3d::IndexRange, std::string>
   propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
             librii::glhelper::VBOBuilder& out) const override;
-  virtual glm::vec3 getPos(const Model& mdl, u64 id) const = 0;
-  virtual glm::vec3 getNrm(const Model& mdl, u64 id) const = 0;
+  virtual std::span<const glm::vec3> getPos(const Model& mdl) const = 0;
+  virtual std::span<const glm::vec3> getNrm(const Model& mdl) const = 0;
   virtual glm::vec4 getClr(const Model& mdl, u64 chan, u64 id) const = 0;
   virtual glm::vec2 getUv(const Model& mdl, u64 chan, u64 id) const = 0;
 

@@ -98,16 +98,16 @@ void DelegatedUBOBuilder::use(u32 idx) const {
   }
 }
 
-void DelegatedUBOBuilder::push(u32 binding_point, const std::vector<u8>& data) {
+Result<void> DelegatedUBOBuilder::push(u32 binding_point, const std::vector<u8>& data) {
   auto& bound_data = getTempData(binding_point).emplace_back(data);
 
   assert(mMinSizes.size() > binding_point);
   if (mMinSizes[binding_point] > 1024 * 1024 * 1024) {
-    assert(!"Invalid minimum size. Likely a shader compilation error earlier.");
-    abort();
+    return std::unexpected("Invalid minimum size. Likely a shader compilation error earlier.");
   }
   if (bound_data.size() < mMinSizes[binding_point])
     bound_data.resize(mMinSizes[binding_point]);
+  return {};
 }
 void DelegatedUBOBuilder::clear() { mData.clear(); }
 

@@ -27,19 +27,24 @@ struct QCPCommand {
 class QDisplayListHandler {
 public:
   virtual ~QDisplayListHandler() {}
-  virtual void onCommandBP(const QBPCommand& token) {}
-  virtual void onCommandCP(const QCPCommand& token) {}
-  virtual void onCommandXF(const QXFCommand& token) {}
-  virtual void onCommandDraw(oishii::BinaryReader& reader,
-                             librii::gx::PrimitiveType type, u16 nverts,
-                             u32 stream_end) {}
-  virtual void onCommandIndexedLoad(u32 cmd, u32 index, u16 address, u8 size) {}
+  virtual Result<void> onCommandBP(const QBPCommand& token) { return {}; }
+  virtual Result<void> onCommandCP(const QCPCommand& token) { return {}; }
+  virtual Result<void> onCommandXF(const QXFCommand& token) { return {}; }
+  virtual Result<void> onCommandDraw(oishii::BinaryReader& reader,
+                                     librii::gx::PrimitiveType type, u16 nverts,
+                                     u32 stream_end) {
+    return {};
+  }
+  virtual Result<void> onCommandIndexedLoad(u32 cmd, u32 index, u16 address,
+                                            u8 size) {
+    return {};
+  }
 
-  virtual void onStreamBegin() {}
-  virtual void onStreamEnd() {}
+  virtual Result<void> onStreamBegin() { return {}; }
+  virtual Result<void> onStreamEnd() { return {}; }
 };
 
-void RunDisplayList(oishii::BinaryReader& reader, QDisplayListHandler& handler,
-                    u32 dlSize);
+Result<void> RunDisplayList(oishii::BinaryReader& reader,
+                            QDisplayListHandler& handler, u32 dlSize);
 
 } // namespace librii::gpu

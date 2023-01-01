@@ -16,7 +16,7 @@ VBOBuilder::~VBOBuilder() {
 
   glDeleteVertexArrays(1, &VAO);
 }
-void VBOBuilder::build() {
+Result<void> VBOBuilder::build() {
   std::vector<std::pair<VAOEntry, u32>> mAttribStack; // desc : offset
 
   for (const auto& bind : mPropogating) {
@@ -34,7 +34,7 @@ void VBOBuilder::build() {
 
   auto vertexAttribPointer = [&](GLuint index, GLint size, GLenum type,
                                  GLboolean normalized, GLsizei stride,
-                                 const void* pointer) {
+                                 const void* pointer) -> Result<void> {
     DebugReport("Index: %u, size: %i, stride: %i, ofs: %p\n", index, size,
                 stride, pointer);
 
@@ -42,9 +42,15 @@ void VBOBuilder::build() {
 
     glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 
-    assert(glGetError() == GL_NO_ERROR);
-    if (glGetError() != GL_NO_ERROR)
-      exit(1);
+    std::string errors;
+    while (glGetError() != GL_NO_ERROR) {
+      errors += std::format("{}, ", glGetError());
+    }
+    if (errors.size() > 2) {
+      errors.resize(errors.size() - 2);
+      return std::unexpected(std::format("OpenGL Errors: {}", errors));
+    }
+    return {};
   };
 
   for (const auto& attrib : mAttribStack) {
@@ -52,10 +58,10 @@ void VBOBuilder::build() {
     if (attrib.first.name == nullptr)
       continue;
 
-    vertexAttribPointer(
+    TRY(vertexAttribPointer(
         attrib.first.binding_point, attrib.first.size / 4, GL_FLOAT, GL_FALSE,
         attrib.first.size,
-        reinterpret_cast<void*>(static_cast<std::uintptr_t>(attrib.second)));
+        reinterpret_cast<void*>(static_cast<std::uintptr_t>(attrib.second))));
     // glVertexAttribPointer(attrib.first.binding_point, attrib.first.size,
     // attrib.first.format, GL_FALSE, attrib.first.size, (void*)attrib.second);
     glEnableVertexAttribArray(attrib.first.binding_point);
@@ -63,6 +69,7 @@ void VBOBuilder::build() {
 
   // mPropogating.clear();
   glBindVertexArray(0);
+  return {};
 }
 
 void VBOBuilder::uploadIndexBuffer() {

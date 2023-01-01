@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <expected>
 
 namespace librii::gx {
 
@@ -168,7 +169,8 @@ struct GCMaterialData : public gx::LowLevelGxMaterial {
              method == CommonMappingMethod::Standard;
     }
 
-    glm::mat4x4 compute(const glm::mat4& mdl, const glm::mat4& mvp) const;
+    std::expected<glm::mat4, std::string> compute(const glm::mat4& mdl,
+                                                  const glm::mat4& mvp) const;
     // TODO: Support / restriction
 
     bool operator==(const TexMatrix& rhs) const = default;
@@ -218,7 +220,7 @@ static inline glm::mat4x4 arrayToMat4x4(const std::array<f32, 16>& m) {
   };
 }
 
-inline glm::mat4x4
+inline std::expected<glm::mat4, std::string>
 GCMaterialData::TexMatrix::compute(const glm::mat4& mdl,
                                    const glm::mat4& mvp) const {
   auto texsrt =

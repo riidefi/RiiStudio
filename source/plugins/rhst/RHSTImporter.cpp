@@ -35,6 +35,7 @@ void compileCullMode(librii::gx::LowLevelGxMaterial& mat, bool show_front,
 librii::gx::TextureWrapMode compileWrap(librii::rhst::WrapMode in) {
   switch (in) {
   case librii::rhst::WrapMode::Clamp:
+  default: // TODO
     return librii::gx::TextureWrapMode::Clamp;
   case librii::rhst::WrapMode::Repeat:
     return librii::gx::TextureWrapMode::Repeat;

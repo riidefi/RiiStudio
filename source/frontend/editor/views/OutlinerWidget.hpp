@@ -83,7 +83,7 @@ struct Node {
   ///////////////////////////////////////////////////////
   // INTERNAL
   ///////////////////////////////////////////////////////
-  int __numChildren = 0; // Folder
+  int __numChildren = 0;                 // Folder
   int display_id_relative_to_parent = 0; // File
 };
 
@@ -93,7 +93,7 @@ public:
                                  std::ptrdiff_t nodeIndex)
     requires std::same_as<std::ranges::range_value_t<decltype(nodes)>, Node>
   {
-    assert(nodeIndex < std::ranges::size(nodes));
+    assert(nodeIndex < std::ranges::ssize(nodes));
     while (nodeIndex >= 0 && nodes[nodeIndex].nodeType != NODE_FOLDER) {
       --nodeIndex;
     }
@@ -104,7 +104,7 @@ public:
                          std::ptrdiff_t nodeIndex)
     requires std::same_as<std::ranges::range_value_t<decltype(nodes)>, Node>
   {
-    assert(nodeIndex < std::ranges::size(nodes));
+    assert(nodeIndex < std::ranges::ssize(nodes));
     const auto indent = nodes[nodeIndex].indent;
     while (nodeIndex >= 0 && nodes[nodeIndex].indent > indent) {
       --nodeIndex;

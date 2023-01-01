@@ -13,7 +13,7 @@ namespace libcube {
 class Scene;
 class Model;
 
-using GCMaterialData= librii::gx::GCMaterialData;
+using GCMaterialData = librii::gx::GCMaterialData;
 
 struct IGCMaterial : public riistudio::lib3d::Material {
   virtual GCMaterialData& getMaterialData() = 0;
@@ -23,7 +23,8 @@ struct IGCMaterial : public riistudio::lib3d::Material {
   void setXluPass(bool b) override final { getMaterialData().xlu = b; }
 
   virtual const libcube::Model* getParent() const { return nullptr; }
-  std::pair<std::string, std::string> generateShaders() const override;
+  std::expected<std::pair<std::string, std::string>, std::string>
+  generateShaders() const override;
 
   virtual kpi::ConstCollectionRange<Texture>
   getTextureSource(const libcube::Scene& scn) const;
@@ -35,7 +36,7 @@ struct IGCMaterial : public riistudio::lib3d::Material {
     getMaterialData().name = name;
   }
 
-  void setMegaState(librii::gfx::MegaState& state) const override;
+  [[nodiscard]] Result<librii::gfx::MegaState> setMegaState() const override;
 
   void configure(librii::gfx::PixelOcclusion occlusion,
                  std::vector<std::string>& textures) override {

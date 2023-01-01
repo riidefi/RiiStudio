@@ -81,7 +81,24 @@ void IndexedPolygon::setAttrib(SimpleAttrib attrib, bool v) {
     break;
   }
 }
-riistudio::lib3d::IndexRange
+
+template <typename T> struct SafeIndexer {
+  SafeIndexer(std::span<T> s) : span(s) {}
+  std::expected<T, std::string> get(ptrdiff_t index) {
+    if (index >= std::ssize(span)) [[unlikely]] {
+      return std::unexpected(std::format("Index {} exceeds buffer size of {}",
+                                         index, span.size()));
+    }
+    if (index < 0) [[unlikely]] {
+      return std::unexpected(std::format("Index {} is subzero", index));
+    }
+    return span[index];
+  }
+  auto operator[](ptrdiff_t index) { return get(index); }
+  std::span<T> span;
+};
+
+std::expected<riistudio::lib3d::IndexRange, std::string>
 IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
                           librii::glhelper::VBOBuilder& out) const {
   riistudio::lib3d::IndexRange vertex_indices;
@@ -91,10 +108,13 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
   const libcube::Model& gmdl = reinterpret_cast<const libcube::Model&>(mdl);
   u32 final_bitfield = 0;
 
-  auto propVtx = [&](const librii::gx::IndexedVertex& vtx) {
+  SafeIndexer positions(getPos(gmdl));
+  SafeIndexer normals(getNrm(gmdl));
+
+  auto propVtx = [&](const librii::gx::IndexedVertex& vtx) -> Result<void> {
     const auto& vcd = getVcd();
     out.mIndices.push_back(static_cast<u32>(out.mIndices.size()));
-    assert(final_bitfield == 0 || final_bitfield == vcd.mBitfield);
+    EXPECT(final_bitfield == 0 || final_bitfield == vcd.mBitfield);
     final_bitfield |= vcd.mBitfield;
     // HACK:
     if (!(vcd.mBitfield &
@@ -127,7 +147,7 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
       case gx::VertexAttribute::Texture7MatrixIndex:
         break;
       case gx::VertexAttribute::Position:
-        out.pushData(0, getPos(gmdl, vtx[gx::VertexAttribute::Position]));
+        out.pushData(0, TRY(positions[vtx[gx::VertexAttribute::Position]]));
         break;
       case gx::VertexAttribute::Color0:
         out.pushData(5, getClr(gmdl, 0, vtx[gx::VertexAttribute::Color0]));
@@ -150,58 +170,59 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
         break;
       }
       case gx::VertexAttribute::Normal:
-        out.pushData(4, getNrm(gmdl, vtx[gx::VertexAttribute::Normal]));
+        out.pushData(4, TRY(normals[vtx[gx::VertexAttribute::Normal]]));
         break;
       case gx::VertexAttribute::NormalBinormalTangent:
         break;
       default:
-        assert(!"Invalid vtx attrib");
-        break;
+        EXPECT(false, "Invalid vtx attrib");
       }
     }
+    return {};
   };
 
-  auto propPrim = [&](const librii::gx::IndexedPrimitive& idx) {
-    auto propV = [&](int id) { propVtx(idx.mVertices[id]); };
+  auto propPrim = [&](const librii::gx::IndexedPrimitive& idx) -> Result<void> {
+    auto propV = [&](int id) -> Result<void> {
+      TRY(propVtx(idx.mVertices[id]));
+      return {};
+    };
     if (idx.mVertices.empty())
-      return;
+      return {};
     switch (idx.mType) {
     case gx::PrimitiveType::TriangleStrip: {
       for (int v = 0; v < 3; ++v) {
-        propV(v);
+        TRY(propV(v));
       }
       for (int v = 3; v < idx.mVertices.size(); ++v) {
-        propV(v - ((v & 1) ? 1 : 2));
-        propV(v - ((v & 1) ? 2 : 1));
-        propV(v);
+        TRY(propV(v - ((v & 1) ? 1 : 2)));
+        TRY(propV(v - ((v & 1) ? 2 : 1)));
+        TRY(propV(v));
       }
-      break;
+      return {};
     }
     case gx::PrimitiveType::Triangles:
       for (const auto& v : idx.mVertices) {
-        propVtx(v);
+        TRY(propVtx(v));
       }
-      break;
+      return {};
     case gx::PrimitiveType::TriangleFan: {
       for (int v = 0; v < 3; ++v) {
-        propV(v);
+        TRY(propV(v));
       }
       for (int v = 3; v < idx.mVertices.size(); ++v) {
-        propV(0);
-        propV(v - 1);
-        propV(v);
+        TRY(propV(0));
+        TRY(propV(v - 1));
+        TRY(propV(v));
       }
-      break;
+      return {};
     }
-    default:
-      assert(!"TODO");
-      return;
     }
+    EXPECT(false, "Unexpected primitive type");
   };
 
   auto& mprims = getMeshData().mMatrixPrimitives;
   for (auto& idx : mprims[mp_id].mPrimitives)
-    propPrim(idx);
+    TRY(propPrim(idx));
 
   for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i) {
     if (!(final_bitfield & (1 << i)) &&
@@ -211,8 +232,9 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
     if (i == (int)gx::VertexAttribute::NormalBinormalTangent)
       continue;
 
-    const auto def = librii::gl::getVertexAttribGenDef((gx::VertexAttribute)i);
-    assert(def.first.name != nullptr);
+    const auto def =
+        TRY(librii::gl::getVertexAttribGenDef((gx::VertexAttribute)i));
+    EXPECT(def.first.name != nullptr);
     out.mPropogating[def.second].descriptor =
         librii::glhelper::VAOEntry{.binding_point = (u32)def.second,
                                    .name = def.first.name,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <expected>
 #include <filesystem>
 #include <librii/g3d/data/AnimData.hpp>
 #include <librii/g3d/data/MaterialData.hpp>
@@ -40,14 +41,14 @@ std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat);
 //! Likewise, the number of indirectStages in the material determines the number
 //! of indirectOrders pulled from the G3dShader.
 //!
-rsl::expected<g3d::G3dMaterialData, std::string>
+std::expected<g3d::G3dMaterialData, std::string>
 ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
                          const g3d::G3dShader& tev);
 
 //! A "TEX0" file is effectively a .brtex archive without the enclosing
 //! structure.
 //!
-rsl::expected<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file);
+std::expected<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file);
 
 std::vector<u8> WriteTEX0(const g3d::TextureData& tex);
 
@@ -76,7 +77,7 @@ struct CrateAnimation {
   std::string metadata;
 };
 
-rsl::expected<CrateAnimationPaths, std::string>
+std::expected<CrateAnimationPaths, std::string>
 ScanCrateAnimationFolder(std::filesystem::path path);
 rsl::expected<CrateAnimation, std::string>
 ReadCrateAnimation(const CrateAnimationPaths& paths);
@@ -85,7 +86,8 @@ ReadCrateAnimation(const CrateAnimationPaths& paths);
 //! the name of `mat`. We assert that only one material target is defined.
 std::string RetargetCrateAnimation(CrateAnimation& preset);
 
-rsl::expected<CrateAnimation, std::string> ReadRSPreset(std::span<const u8> file);
+rsl::expected<CrateAnimation, std::string>
+ReadRSPreset(std::span<const u8> file);
 std::vector<u8> WriteRSPreset(const CrateAnimation& preset);
 
 } // namespace librii::crate

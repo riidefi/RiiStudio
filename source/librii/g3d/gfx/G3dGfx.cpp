@@ -37,17 +37,19 @@ struct MyDefTex : public librii::image::NullTexture<64, 64> {
 };
 static MyDefTex DefaultTex(NullCheckerboard);
 
-void MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
-                   librii::glhelper::VBOBuilder& v, G3dTextureCache& tex_id_map,
-                   Node node, librii::glhelper::ShaderProgram& prog, u32 mp_id,
-                   glm::mat4 view_matrix, glm::mat4 proj_matrix) {
+Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
+                           librii::glhelper::VBOBuilder& v,
+                           G3dTextureCache& tex_id_map, Node node,
+                           librii::glhelper::ShaderProgram& prog, u32 mp_id,
+                           glm::mat4 view_matrix, glm::mat4 proj_matrix,
+                           std::string& err) {
   glm::mat4 model_matrix{1.0f};
 
   out.vao_id = v.getGlId();
   out.bound = lib3d::CalcPolyBound(node.poly, node.bone, node.model);
 
   //
-  node.mat.setMegaState(out.mega_state);
+  out.mega_state = TRY(node.mat.setMegaState());
   out.shader_id = prog.getId();
 
   // draw
@@ -71,12 +73,12 @@ void MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
     {
       const auto found = tex_id_map.getCachedTexture(sampler.mTexture);
       if (!found) {
-        printf("Invalid texture link.\n");
+        err = std::format("Cannot find texture \"{}\"", sampler.mTexture);
         if (!tex_id_map.isCached(DefaultTex)) {
           tex_id_map.cache(DefaultTex);
         }
         obj.active_id = i;
-        obj.image_id = tex_id_map.getCachedTexture(DefaultTex);
+        obj.image_id = TRY(tex_id_map.getCachedTexture(DefaultTex));
       } else {
         obj.active_id = i;
         obj.image_id = *found;
@@ -121,8 +123,8 @@ void MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
     librii::gl::setUniformsFromMaterial(tmp, data);
 
     for (int i = 0; i < data.texMatrices.size(); ++i) {
-      tmp.TexMtx[i] = glm::transpose(
-          data.texMatrices[i].compute(model_matrix, proj_matrix * view_matrix));
+      tmp.TexMtx[i] = glm::transpose(TRY(data.texMatrices[i].compute(
+          model_matrix, proj_matrix * view_matrix)));
     }
     for (int i = 0; i < data.samplers.size(); ++i) {
       if (data.samplers[i].mTexture.empty())
@@ -146,7 +148,10 @@ void MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
     for (auto& p : pack.posMtx)
       p = glm::transpose(glm::mat4{1.0f});
 
-    assert(dynamic_cast<const libcube::IndexedPolygon*>(&node.poly) != nullptr);
+    if (dynamic_cast<const libcube::IndexedPolygon*>(&node.poly) == nullptr) {
+      return std::unexpected(
+          "Polygon does not derive from libcube::IndexedPolygon");
+    }
     const auto& ipoly =
         reinterpret_cast<const libcube::IndexedPolygon&>(node.poly);
 
@@ -181,6 +186,8 @@ void MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
     glUniform1iv(uTexLoc, 8, samplerIds);
 #endif
   }
+
+  return {};
 }
 
 void pushDisplay(lib3d::IndexRange tenant,
@@ -188,11 +195,15 @@ void pushDisplay(lib3d::IndexRange tenant,
                  riistudio::lib3d::SceneBuffers& output, u32 mp_id,
                  G3dTextureCache& tex_id_map,
                  librii::glhelper::ShaderProgram& shader, glm::mat4 v_mtx,
-                 glm::mat4 p_mtx) {
+                 glm::mat4 p_mtx, std::string& err) {
 
   librii::gfx::SceneNode mnode;
-  MakeSceneNode(mnode, tenant, vbo_builder, tex_id_map, node, shader, mp_id,
-                v_mtx, p_mtx);
+  auto err_ = MakeSceneNode(mnode, tenant, vbo_builder, tex_id_map, node,
+                            shader, mp_id, v_mtx, p_mtx, err);
+  if (!err_.has_value()) {
+    err = err + "\n" + err_.error();
+    return;
+  }
 
   auto& nodebuf = node.mat.isXluPass() ? output.translucent : output.opaque;
 
@@ -200,25 +211,29 @@ void pushDisplay(lib3d::IndexRange tenant,
 }
 
 template <typename ModelType>
-void gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
-                         const ModelType& root, const lib3d::Scene& scene,
-                         glm::mat4 v_mtx, glm::mat4 p_mtx,
-                         G3dSceneRenderData& render_data) {
+Result<void>
+gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
+                    const ModelType& root, const lib3d::Scene& scene,
+                    glm::mat4 v_mtx, glm::mat4 p_mtx,
+                    G3dSceneRenderData& render_data, std::string& err) {
   auto bones = root.getBones();
   auto polys = root.getMeshes();
   auto mats = root.getMaterials();
 
   if (boneId >= bones.size()) {
-    printf("Invalid bone id\n");
-    return;
+    return std::unexpected("Invalid bone id");
   }
   const auto& pBone = bones[boneId];
   const u64 nDisplay = pBone.getNumDisplays();
 
   for (u64 i = 0; i < nDisplay; ++i) {
     const auto display = pBone.getDisplay(i);
-    assert(display.matId < mats.size());
-    assert(display.polyId < polys.size());
+    if (display.matId >= mats.size()) {
+      return std::unexpected("Invalid material ID");
+    }
+    if (display.polyId >= polys.size()) {
+      return std::unexpected("Invalid polygon ID");
+    }
     const auto& mat = mats[display.matId];
     const auto& poly =
         reinterpret_cast<const libcube::IndexedPolygon&>(polys[display.polyId]);
@@ -242,28 +257,57 @@ void gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
           .mat = mat,
           .poly = poly,
       };
-      pushDisplay(render_data.mVertexRenderData.getDrawCallVertices(mesh_name),
-                  render_data.mVertexRenderData.mVboBuilder, node, output, i,
-                  render_data.mTextureData,
-                  render_data.mMaterialData.getCachedShader(mat), v_mtx, p_mtx);
+      auto shader = render_data.mMaterialData.getCachedShader(mat);
+      if (!shader) {
+        err += std::format("\nInvalid shader for material {}: {}",
+                           mat.getName(), shader.error());
+        continue;
+      }
+      assert(*shader && "getCachedShader() should never return nullptr");
+      std::string _err;
+      pushDisplay(
+          TRY(render_data.mVertexRenderData.getDrawCallVertices(mesh_name)),
+          render_data.mVertexRenderData.mVboBuilder, node, output, i,
+          render_data.mTextureData, **shader, v_mtx, p_mtx, _err);
+      if (_err.size()) {
+        err = err + "\n" + _err;
+      }
     }
   }
 
-  for (u64 i = 0; i < pBone.getNumChildren(); ++i)
-    gatherBoneRecursive(output, pBone.getChild(i), root, scene, v_mtx, p_mtx,
-                        render_data);
+  for (u64 i = 0; i < pBone.getNumChildren(); ++i) {
+    std::string _err;
+    auto err = gatherBoneRecursive(output, pBone.getChild(i), root, scene,
+                                   v_mtx, p_mtx, render_data, _err);
+    auto err2 = err.has_value() ? "" : err.error();
+    if (_err.size()) {
+      err2 = err2 + "\n" + _err;
+    }
+    if (err2.size()) {
+      return std::unexpected(err2);
+    }
+  }
+
+  return {};
 }
 
 template <typename ModelType>
-void gather(lib3d::SceneBuffers& output, const ModelType& root,
-            const lib3d::Scene& scene, glm::mat4 v_mtx, glm::mat4 p_mtx,
-            G3dSceneRenderData& render_data) {
+std::string gather(lib3d::SceneBuffers& output, const ModelType& root,
+                   const lib3d::Scene& scene, glm::mat4 v_mtx, glm::mat4 p_mtx,
+                   G3dSceneRenderData& render_data) {
   if (root.getMaterials().empty() || root.getMeshes().empty() ||
       root.getBones().empty())
-    return;
+    return {};
 
   // Assumes root at zero
-  gatherBoneRecursive(output, 0, root, scene, v_mtx, p_mtx, render_data);
+  std::string _err;
+  auto err = gatherBoneRecursive(output, 0, root, scene, v_mtx, p_mtx,
+                                 render_data, _err);
+  auto err2 = err.has_value() ? "" : err.error();
+  if (_err.size()) {
+    err2 = err2 + "\n" + _err;
+  }
+  return err2;
 }
 
 std::unique_ptr<G3dSceneRenderData>
@@ -274,10 +318,10 @@ G3DSceneCreateRenderData(riistudio::g3d::Collection& scene) {
 }
 
 // This code is shared between J3D and G3D right now
-void G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
-                              const riistudio::g3d::Collection& scene,
-                              glm::mat4 v_mtx, glm::mat4 p_mtx,
-                              G3dSceneRenderData& render_data) {
+Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
+                                      const riistudio::g3d::Collection& scene,
+                                      glm::mat4 v_mtx, glm::mat4 p_mtx,
+                                      G3dSceneRenderData& render_data) {
   // REASON FOR REMOVAL: Using the renderer in this file, now
   // scene.prepare(state, scene, v_mtx, p_mtx);
 
@@ -287,19 +331,32 @@ void G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
   // Reupload changed textures
   render_data.mTextureData.update(scene);
 
-  for (auto& model : scene.getModels())
-    gather(state.getBuffers(), model, scene, v_mtx, p_mtx, render_data);
+  std::string _err;
+  for (auto& model : scene.getModels()) {
+    auto err =
+        gather(state.getBuffers(), model, scene, v_mtx, p_mtx, render_data);
+    if (err.size()) {
+      _err = _err + "\n" + err;
+    }
+  }
+  return std::unexpected(_err);
 }
 
-void Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
-                                const lib3d::Scene& scene, glm::mat4 v_mtx,
-                                glm::mat4 p_mtx,
-                                G3dSceneRenderData& render_data) {
+Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
+                                        const lib3d::Scene& scene,
+                                        glm::mat4 v_mtx, glm::mat4 p_mtx,
+                                        G3dSceneRenderData& render_data) {
   // Reupload changed textures
   render_data.mTextureData.update(scene);
 
-  for (auto& model : scene.getModels())
-    gather(state.getBuffers(), model, scene, v_mtx, p_mtx, render_data);
+  for (auto& model : scene.getModels()) {
+    auto err =
+        gather(state.getBuffers(), model, scene, v_mtx, p_mtx, render_data);
+    if (err.size()) {
+      return std::unexpected(err);
+    }
+  }
+  return {};
 }
 
 } // namespace librii::g3d::gfx

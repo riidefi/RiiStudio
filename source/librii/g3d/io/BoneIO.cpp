@@ -3,41 +3,50 @@
 #include "CommonIO.hpp"
 #include "NameTableIO.hpp"
 #include <librii/g3d/data/BoneData.hpp>
+#include <rsl/SafeReader.hpp>
 
 namespace librii::g3d {
 
-void BinaryBoneData::read(oishii::BinaryReader& reader) {
+Result<glm::vec3> readVec3(rsl::SafeReader& safe) {
+  auto x = TRY(safe.F32());
+  auto y = TRY(safe.F32());
+  auto z = TRY(safe.F32());
+  return glm::vec3(x, y, z);
+}
+
+Result<void> BinaryBoneData::read(oishii::BinaryReader& unsafeReader) {
+  rsl::SafeReader reader(unsafeReader);
   auto start = reader.tell();
-  reader.skip(8); // skip size and mdl offset
-  name = readName(reader, start);
+  unsafeReader.skip(8); // skip size and mdl offset
+  name = TRY(reader.StringOfs(start));
 
-  id = reader.read<u32>();
-  matrixId = reader.read<u32>();
-  flag = reader.read<u32>();
-  billboardType = reader.read<u32>();
-  ancestorBillboardBone = reader.read<u32>(); // refId
-  scale << reader;
-  rotate << reader;
-  translate << reader;
+  id = TRY(reader.U32());
+  matrixId = TRY(reader.U32());
+  flag = TRY(reader.U32());
+  billboardType = TRY(reader.U32());
+  ancestorBillboardBone = TRY(reader.U32()); // refId
+  scale = TRY(readVec3(reader));
+  rotate = TRY(readVec3(reader));
+  translate = TRY(readVec3(reader));
 
-  aabb.min << reader;
-  aabb.max << reader;
+  aabb.min = TRY(readVec3(reader));
+  aabb.max = TRY(readVec3(reader));
 
-  auto readHierarchyElement = [&]() {
-    const auto ofs = reader.read<s32>();
+  auto readHierarchyElement = [&]() -> Result<s32> {
+    const auto ofs = TRY(reader.S32());
     if (ofs == 0)
       return -1;
     // skip to id
     auto back = reader.tell();
     reader.seekSet(start + ofs + 12);
-    auto id = reader.read<s32>();
+    auto id = TRY(reader.S32());
     reader.seekSet(back);
     return id;
   };
-  parent_id = readHierarchyElement();
-  child_first_id = readHierarchyElement();
-  sibling_right_id = readHierarchyElement();
-  sibling_left_id = readHierarchyElement();
+  parent_id = TRY(readHierarchyElement());
+  child_first_id = TRY(readHierarchyElement());
+  sibling_right_id = TRY(readHierarchyElement());
+  sibling_left_id = TRY(readHierarchyElement());
   // Skip sibling and child links -- we recompute it all
   // Skip user data offset
   reader.seekSet(start + 0x70);
@@ -45,10 +54,11 @@ void BinaryBoneData::read(oishii::BinaryReader& reader) {
   // glm matrices are column-major
   for (int i = 0; i < 3; ++i)
     for (int j = 0; j < 4; ++j)
-      modelMtx[j][i] = reader.read<f32>();
+      modelMtx[j][i] = TRY(reader.F32());
   for (int i = 0; i < 3; ++i)
     for (int j = 0; j < 4; ++j)
-      inverseModelMtx[j][i] = reader.read<f32>();
+      inverseModelMtx[j][i] = TRY(reader.F32());
+  return {};
 }
 void BinaryBoneData::write(NameTable& names, oishii::Writer& writer,
                            u32 mdl_start) const {

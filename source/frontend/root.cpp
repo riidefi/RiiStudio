@@ -85,6 +85,29 @@ void SetWindowIcon(void* platform_window, const char* path) {
 #endif
 }
 
+static void MSVCWarningWindow() {
+#if !defined(HAS_RUST_TRY)
+  ImGui::SetNextItemWidth(400);
+  if (ImGui::Begin("Warning", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    auto back = ImGui::GetCurrentWindow()->FontWindowScale;
+    ImGui::SetWindowFontScale(1.3f);
+    util::Markdown(
+        "Warning: This version of RiiStudio is built with Microsoft's Visual\n"
+        "C++ Compiler (MSVC). MSVC does not support a C++ language extention\n"
+        "called \"Statement Expressions\" that RiiStudio depends on. As such,\n"
+        "error handling is severely hampered and some features may just not\n"
+        "work. It's recommended you compile with the Clang compiler on\n"
+        "Windows. In Visual Studio: Tools > Get Tools and Features. On the\n"
+        "right-hand panel check \"C++ Clang tools for Windows\" and click\n"
+        "\"Install while downloading.\" When installed, at the top bar switch\n"
+        "the preset from msvc-x64-Debug to Clang-x64-debug (or clang-x64-DIST\n"
+        "for a final build).");
+    ImGui::SetWindowFontScale(back);
+  }
+  ImGui::End();
+#endif // !defined(HAS_RUST_TRY)
+}
+
 void RootWindow::draw() {
   DoLeakCheck();
   fileHostProcess();
@@ -119,6 +142,8 @@ void RootWindow::draw() {
         getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
 
     drawMenuBar(ed);
+
+    MSVCWarningWindow();
 
     if (bDemo)
       ImGui::ShowDemoWindow(&bDemo);

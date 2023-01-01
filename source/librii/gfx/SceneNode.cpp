@@ -57,8 +57,9 @@ void DrawSceneNode(const librii::gfx::SceneNode& node,
 #endif
 }
 
-void AddSceneNodeToUBO(librii::gfx::SceneNode& node,
-                       librii::glhelper::DelegatedUBOBuilder& ubo_builder) {
+Result<void>
+AddSceneNodeToUBO(librii::gfx::SceneNode& node,
+                  librii::glhelper::DelegatedUBOBuilder& ubo_builder) {
   for (auto& command : node.uniform_mins) {
     ubo_builder.setBlockMin(command.binding_point, command.min_size);
   }
@@ -69,8 +70,10 @@ void AddSceneNodeToUBO(librii::gfx::SceneNode& node,
     scratch.resize(command.raw_data.size());
     memcpy(scratch.data(), command.raw_data.data(), scratch.size());
 
-    ubo_builder.push(command.binding_point, scratch);
+    TRY(ubo_builder.push(command.binding_point, scratch));
   }
+
+  return {};
 }
 
 } // namespace librii::gfx

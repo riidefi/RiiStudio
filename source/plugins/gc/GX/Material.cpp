@@ -10,20 +10,15 @@ IMPORT_STD;
 
 namespace libcube {
 
-std::pair<std::string, std::string> IGCMaterial::generateShaders() const {
-  auto result = librii::gl::compileShader(getMaterialData(), getName());
-
-  assert(result);
-  if (!result) {
-    return {"Invalid", "Invalid"};
-  }
-
+std::expected<std::pair<std::string, std::string>, std::string>
+IGCMaterial::generateShaders() const {
+  auto result = TRY(librii::gl::compileShader(getMaterialData(), getName()));
   if (!applyCacheAgain)
-    cachedPixelShader = result->fragment + "\n\n // End of shader";
-  return {result->vertex, result->fragment};
+    cachedPixelShader = result.fragment + "\n\n // End of shader";
+  return std::pair<std::string, std::string>{result.vertex, result.fragment};
 }
 
-void IGCMaterial::setMegaState(librii::gfx::MegaState& state) const {
-  librii::gl::translateGfxMegaState(state, getMaterialData());
+Result<librii::gfx::MegaState> IGCMaterial::setMegaState() const {
+  return librii::gl::translateGfxMegaState(getMaterialData());
 }
 } // namespace libcube

@@ -309,6 +309,7 @@ struct SwapTableEntry {
   ColorComponent lookup(ColorComponent other) const {
     switch (other) {
     case ColorComponent::r:
+    default: // TODO
       return r;
     case ColorComponent::g:
       return g;

@@ -28,7 +28,15 @@ void Applet::rootCalc() {
   ImGuizmo::BeginFrame();
   ImGuizmo::Enable(true);
   detachClosedChildren();
-  draw(); // Call down to window manager
+#if !defined(HAS_RUST_TRY)
+  try {
+#endif // HAS_RUST_TRY
+    draw(); // Call down to window manager
+#if !defined(HAS_RUST_TRY)
+  } catch (std::string err) {
+    fprintf(stderr, "Catching unhandled exception: %s\n", err.c_str());
+  }
+#endif // HAS_RUST_TRY
 }
 
 } // namespace riistudio::frontend

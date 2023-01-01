@@ -20,8 +20,10 @@ struct IDrawable {
   virtual ~IDrawable() = default;
 
   //! Prepare a scene based on the resource data.
-  virtual void prepare(SceneState& state, const kpi::INode& root,
-                       glm::mat4 v_mtx, glm::mat4 p_mtx) = 0;
+  virtual Result<void> prepare(SceneState& state,
+                                                   const kpi::INode& root,
+                                                   glm::mat4 v_mtx,
+                                                   glm::mat4 p_mtx) = 0;
 
   DrawableDispatcher& getDispatcher() {
     assert(dispatcher);
@@ -39,11 +41,13 @@ public:
     reinit = true;
   }
 
-  void populate(IDrawable& drawable, SceneState& state, const kpi::INode& root,
-                glm::mat4 v_mtx, glm::mat4 p_mtx) {
+  Result<void> populate(IDrawable& drawable,
+                                            SceneState& state,
+                                            const kpi::INode& root,
+                                            glm::mat4 v_mtx, glm::mat4 p_mtx) {
     assert(!poisoned);
     assert(!reinit);
-    drawable.prepare(state, root, v_mtx, p_mtx);
+    return drawable.prepare(state, root, v_mtx, p_mtx);
   }
 
   bool beginDraw() {
@@ -69,8 +73,10 @@ struct SceneImpl : public IDrawable {
   virtual ~SceneImpl();
   SceneImpl();
 
-  void prepare(SceneState& state, const kpi::INode& host, glm::mat4 v_mtx,
-               glm::mat4 p_mtx) override;
+  Result<void> prepare(SceneState& state,
+                                           const kpi::INode& host,
+                                           glm::mat4 v_mtx,
+                                           glm::mat4 p_mtx) override;
 
   void gatherBoneRecursive(SceneBuffers& output, u64 boneId,
                            const lib3d::Model& root, const lib3d::Scene& scn,

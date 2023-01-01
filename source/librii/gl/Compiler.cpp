@@ -1,6 +1,5 @@
 #include <glfw/glfw3.h>
 #include <librii/gl/Compiler.hpp>
-#include <llvm/Support/Error.h>
 #include <rsl/StringBuilder.hpp>
 
 IMPORT_STD;
@@ -36,7 +35,7 @@ const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs{
     VertexAttributeGenDef{VertexAttribute::TexCoord6, "Tex6", GL_FLOAT, 2},
     VertexAttributeGenDef{VertexAttribute::TexCoord7, "Tex7", GL_FLOAT, 2}};
 
-std::pair<const VertexAttributeGenDef&, std::size_t>
+Result<std::pair<const VertexAttributeGenDef&, std::size_t>>
 getVertexAttribGenDef(VertexAttribute vtxAttrib) {
   if (vtxAttrib == VertexAttribute::Texture1MatrixIndex ||
       vtxAttrib == VertexAttribute::Texture2MatrixIndex ||
@@ -48,9 +47,9 @@ getVertexAttribGenDef(VertexAttribute vtxAttrib) {
                      return def.attrib == vtxAttrib;
                    });
 
-  assert(it != vtxAttributeGenDefs.end());
+  EXPECT(it != vtxAttributeGenDefs.end());
 
-  return {*it, it - vtxAttributeGenDefs.begin()};
+  return std::pair{*it, it - vtxAttributeGenDefs.begin()};
 }
 
 std::string generateBindingsDefinition(bool postTexMtxBlock, bool lightsBlock) {
@@ -133,8 +132,8 @@ public:
       : mMaterial(mat), mName(name) {}
   ~GXProgram() = default;
 
-  llvm::Error generateMaterialSource(StringBuilder& builder,
-                                     const gx::ChannelControl& chan, int i) {
+  Result<void> generateMaterialSource(StringBuilder& builder,
+                                      const gx::ChannelControl& chan, int i) {
     switch (chan.Material) {
     case ColorSource::Vertex:
       builder += "a_Color";
@@ -146,11 +145,11 @@ public:
       builder += "]";
       break;
     }
-    return llvm::Error::success();
+    return {};
   }
 
-  llvm::Error generateAmbientSource(StringBuilder& builder,
-                                    const gx::ChannelControl& chan, int i) {
+  Result<void> generateAmbientSource(StringBuilder& builder,
+                                     const gx::ChannelControl& chan, int i) {
     switch (chan.Ambient) {
     case ColorSource::Vertex:
       builder += "a_Color";
@@ -162,12 +161,12 @@ public:
       builder += "]";
       break;
     }
-    return llvm::Error::success();
+    return {};
   }
 
-  llvm::Error generateLightDiffFn(StringBuilder& builder,
-                                  const gx::ChannelControl& chan,
-                                  const std::string& lightName) {
+  Result<void> generateLightDiffFn(StringBuilder& builder,
+                                   const gx::ChannelControl& chan,
+                                   const std::string& lightName) {
     const char* NdotL = "dot(t_Normal, t_LightDeltaDir)";
 
     switch (chan.diffuseFn) {
@@ -184,11 +183,11 @@ public:
       builder += ", 0.0f)";
       break;
     }
-    return llvm::Error::success();
+    return {};
   }
-  llvm::Error generateLightAttnFn(StringBuilder& builder,
-                                  const gx::ChannelControl& chan,
-                                  const std::string& lightName) {
+  Result<void> generateLightAttnFn(StringBuilder& builder,
+                                   const gx::ChannelControl& chan,
+                                   const std::string& lightName) {
     if (chan.attenuationFn == AttenuationFunction::None) {
       builder += "t_Attenuation = 1.0;";
     } else if (chan.attenuationFn == AttenuationFunction::Spotlight) {
@@ -224,23 +223,23 @@ public:
       builder += distAttn;
       builder += ";";
     } else {
-      return llvm::createStringError(llvm::inconvertibleErrorCode(),
-                                     "Invalid attenuation function");
+      return std::unexpected("Invalid attenuation function");
     }
 
-    return llvm::Error::success();
+    return {};
   }
-  llvm::Error generateColorChannel(StringBuilder& builder,
-                                   const gx::ChannelControl& chan,
-                                   const std::string& outputName, int i) {
+  Result<void> generateColorChannel(StringBuilder& builder,
+                                    const gx::ChannelControl& chan,
+                                    const std::string& outputName, int i) {
 
     if (chan.enabled) {
       builder += "t_LightAccum = ";
-      llvm::cantFail(generateAmbientSource(builder, chan, i));
+      TRY(generateAmbientSource(builder, chan, i));
       builder += ";\n";
 
       if (chan.lightMask != LightID::None) {
-        assert(hasLightsBlock);
+        EXPECT(hasLightsBlock, "Channel has a non-empty lightmask yet the "
+                               "shader does not contain the lights block");
       }
 
       for (int j = 0; j < 8; j++) {
@@ -257,13 +256,9 @@ public:
                    "    t_LightDeltaDist = sqrt(t_LightDeltaDist2);\n"
                    "    t_LightDeltaDir = t_LightDelta / t_LightDeltaDist;\n";
 
-        if (auto err = generateLightAttnFn(builder, chan, lightName)) {
-          return err;
-        }
+        TRY(generateLightAttnFn(builder, chan, lightName));
         builder += "    t_LightAccum += ";
-        if (auto err = generateLightDiffFn(builder, chan, lightName)) {
-          return err;
-        }
+        TRY(generateLightDiffFn(builder, chan, lightName));
         builder += " * t_Attenuation * " + lightName + ".Color;\n";
       }
     } else {
@@ -274,33 +269,33 @@ public:
     builder += "    ";
     builder += outputName;
     builder += " = ";
-    llvm::cantFail(generateMaterialSource(builder, chan, i));
+    TRY(generateMaterialSource(builder, chan, i));
     builder += " * clamp(t_LightAccum, 0.0, 1.0);\n";
 
-    return llvm::Error::success();
+    return {};
   }
 
-  llvm::Error generateLightChannel(StringBuilder& builder,
-                                   const LightingChannelControl& lightChannel,
-                                   const std::string& outputName, int i) {
+  Result<void> generateLightChannel(StringBuilder& builder,
+                                    const LightingChannelControl& lightChannel,
+                                    const std::string& outputName, int i) {
     if (lightChannel.colorChannel == lightChannel.alphaChannel) {
       // TODO
       builder += "    ";
-      llvm::cantFail(generateColorChannel(builder, lightChannel.colorChannel,
-                                          outputName, i));
+      TRY(generateColorChannel(builder, lightChannel.colorChannel, outputName,
+                               i));
     } else {
-      llvm::cantFail(generateColorChannel(builder, lightChannel.colorChannel,
-                                          "t_ColorChanTemp", i));
+      TRY(generateColorChannel(builder, lightChannel.colorChannel,
+                               "t_ColorChanTemp", i));
       builder += "\n" + outputName + ".rgb = t_ColorChanTemp.rgb;\n";
-      llvm::cantFail(generateColorChannel(builder, lightChannel.alphaChannel,
-                                          "t_ColorChanTemp", i));
+      TRY(generateColorChannel(builder, lightChannel.alphaChannel,
+                               "t_ColorChanTemp", i));
       builder += "\n" + outputName + ".a = t_ColorChanTemp.a;\n";
     }
 
-    return llvm::Error::success();
+    return {};
   }
 
-  llvm::Error generateLightChannels(StringBuilder& builder) {
+  Result<void> generateLightChannels(StringBuilder& builder) {
     const auto& src = mMaterial.colorChanControls;
 
     std::array<LightingChannelControl, 2> ctrl;
@@ -316,25 +311,25 @@ public:
 
     int i = 0;
     for (const auto& chan : ctrl) {
-      llvm::cantFail(generateLightChannel(builder, chan,
-                                          "v_Color" + std::to_string(i), i));
+      TRY(generateLightChannel(builder, chan, "v_Color" + std::to_string(i),
+                               i));
       builder += "\n";
       ++i;
     }
 
-    return llvm::Error::success();
+    return {};
   }
 
   // Matrix
-  llvm::Error generateMulPntMatrixStatic(StringBuilder& builder,
-                                         gx::PostTexMatrix pnt,
-                                         const std::string& src) {
+  Result<void> generateMulPntMatrixStatic(StringBuilder& builder,
+                                          gx::PostTexMatrix pnt,
+                                          const std::string& src) {
     // TODO
     if (pnt == gx::PostTexMatrix::Identity ||
         (int)pnt == (int)gx::TexMatrix::Identity) {
       builder += src;
       builder += ".xyz";
-      return llvm::Error::success();
+      return {};
     }
 
     if (pnt >= gx::PostTexMatrix::Matrix0) {
@@ -344,7 +339,7 @@ public:
       builder += "] * ";
       builder += src;
       builder += ")";
-      return llvm::Error::success();
+      return {};
     }
 
     if ((int)pnt >= (int)gx::TexMatrix::TexMatrix0) {
@@ -354,11 +349,10 @@ public:
       builder += "] * ";
       builder += src;
       builder += ")";
-      return llvm::Error::success();
+      return {};
     }
 
-    return llvm::createStringError(llvm::inconvertibleErrorCode(),
-                                   "Invalid posttexmatrix");
+    return std::unexpected("Invalid posttexmatrix");
   }
   // Output is a vec3, src is a vec4.
   std::string generateMulPntMatrixDynamic(const std::string& attrStr,
@@ -393,7 +387,7 @@ public:
   // TexGen
 
   // Output is a vec4.
-  //#if 0
+  // #if 0
   std::string generateTexGenSource(gx::TexGenSrc src) {
     switch (src) {
     case gx::TexGenSrc::Position:
@@ -457,8 +451,9 @@ public:
     }
   }
   // Output is a vec3, src is a vec3.
-  std::string generateTexGenMatrixMult(const gx::TexCoordGen& texCoordGen,
-                                       int id, const std::string& src) {
+  std::expected<std::string, std::string>
+  generateTexGenMatrixMult(const gx::TexCoordGen& texCoordGen, int id,
+                           const std::string& src) {
     // TODO: Will ID ever be different from index?
 
     // Dynamic TexMtxIdx is off by default.
@@ -469,26 +464,25 @@ public:
       // TODO: Verify
       std::array<char, 256> buf{};
       StringBuilder builder(buf.data(), buf.size());
-      auto err = generateMulPntMatrixStatic(
+      TRY(generateMulPntMatrixStatic(
           builder, static_cast<librii::gx::PostTexMatrix>(texCoordGen.matrix),
-          src);
-      if (err)
-        return "INVALID"; // TODO
+          src));
       return buf.data();
     }
   }
 
   // Output is a vec3, src is a vec4.
-  std::string generateTexGenType(const gx::TexCoordGen& texCoordGen, int id,
-                                 const std::string& src) {
+  std::expected<std::string, std::string>
+  generateTexGenType(const gx::TexCoordGen& texCoordGen, int id,
+                     const std::string& src) {
     switch (texCoordGen.func) {
     case gx::TexGenType::SRTG:
       return "vec3(" + src + ".xy, 1.0)";
     case gx::TexGenType::Matrix2x4:
-      return "vec3(" + generateTexGenMatrixMult(texCoordGen, id, src) +
-             ".xy, 1.0)";
+      return std::format("vec3({}.xy, 1.0)",
+                         TRY(generateTexGenMatrixMult(texCoordGen, id, src)));
     case gx::TexGenType::Matrix3x4:
-      return generateTexGenMatrixMult(texCoordGen, id, src);
+      return TRY(generateTexGenMatrixMult(texCoordGen, id, src));
     case gx::TexGenType::Bump0:
     case gx::TexGenType::Bump1:
     case gx::TexGenType::Bump2:
@@ -499,22 +493,25 @@ public:
     case gx::TexGenType::Bump7:
       return "vec3(0.5, 0.5, 0.5)";
     default:
-      return "INVALID";
+      return std::unexpected(std::format("Invalid TexGenType: {}",
+                                         static_cast<u32>(texCoordGen.func)));
     }
   }
 
   // Output is a vec3.
-  std::string generateTexGenNrm(const gx::TexCoordGen& texCoordGen, int id) {
+  std::expected<std::string, std::string>
+  generateTexGenNrm(const gx::TexCoordGen& texCoordGen, int id) {
     const auto src = generateTexGenSource(texCoordGen.sourceParam);
-    const auto type = generateTexGenType(texCoordGen, id, src);
+    const auto type = TRY(generateTexGenType(texCoordGen, id, src));
     if (texCoordGen.normalize)
       return "normalize(" + type + ")";
     else
       return type;
   }
   // Output is a vec3.
-  std::string generateTexGenPost(const gx::TexCoordGen& texCoordGen, int id) {
-    const auto src = generateTexGenNrm(texCoordGen, id);
+  std::expected<std::string, std::string>
+  generateTexGenPost(const gx::TexCoordGen& texCoordGen, int id) {
+    const auto src = TRY(generateTexGenNrm(texCoordGen, id));
     // TODO
     if (true || texCoordGen.postMatrix == gx::PostTexMatrix::Identity)
       return src;
@@ -523,16 +520,17 @@ public:
                                           "vec4(" + src + ", 1.0)");
   }
 
-  std::string generateTexGen(const gx::TexCoordGen& texCoordGen, int id) {
+  std::expected<std::string, std::string>
+  generateTexGen(const gx::TexCoordGen& texCoordGen, int id) {
     return "v_TexCoord" + std::to_string(/*texCoordGen.*/ id) + " = " +
-           generateTexGenPost(texCoordGen, id) + ";\n";
+           TRY(generateTexGenPost(texCoordGen, id)) + ";\n";
   }
 
-  std::string generateTexGens() {
+  std::expected<std::string, std::string> generateTexGens() {
     std::string out;
     const auto& tgs = mMaterial.texGens;
     for (int i = 0; i < tgs.size(); ++i)
-      out += generateTexGen(tgs[i], i);
+      out += TRY(generateTexGen(tgs[i], i));
     return out;
   }
 
@@ -547,7 +545,7 @@ public:
   }
 
   // IndTex
-  std::string
+  Result<std::string>
   generateIndTexStageScaleN(gx::IndirectTextureScalePair::Selection scale) {
     switch (scale) {
     case gx::IndirectTextureScalePair::Selection::x_1:
@@ -569,9 +567,10 @@ public:
     case gx::IndirectTextureScalePair::Selection::x_256:
       return "1.0/256.0";
     }
+    EXPECT(false, "Invalid IndTexScale");
   }
 
-  std::string
+  Result<std::string>
   generateIndTexStageScale(const gx::TevStage::IndirectStage& stage,
                            const gx::IndirectTextureScalePair& scale,
                            const gx::IndOrder& mIndOrder) {
@@ -582,8 +581,9 @@ public:
         scale.V == gx::IndirectTextureScalePair::Selection::x_1)
       return baseCoord;
     else
-      return baseCoord + " * vec2(" + generateIndTexStageScaleN(scale.U) +
-             ", " + generateIndTexStageScaleN(scale.V) + ")";
+      return std::format("{} * vec2({}, {})", baseCoord,
+                         TRY(generateIndTexStageScaleN(scale.U)),
+                         TRY(generateIndTexStageScaleN(scale.V)));
   }
 
   std::string generateTextureSample(u32 index, const std::string& coord) {
@@ -592,7 +592,8 @@ public:
            ", TextureLODBias(" + idx_str + "))";
   }
 
-  void generateIndTexStage(std::string& out, u32 indTexStageIndex) {
+  [[nodiscard]] Result<void> generateIndTexStage(std::string& out,
+                                                 u32 indTexStageIndex) {
     const auto& stage = mMaterial.mStages[indTexStageIndex].indirectStage;
 
     const auto scale = indTexStageIndex >= mMaterial.indirectStages.size()
@@ -607,12 +608,13 @@ public:
     out += " = ";
 
     out += "255.0 * ";
-    out += generateTextureSample(order.refMap,
-                                 generateIndTexStageScale(stage, scale, order));
+    out += generateTextureSample(
+        order.refMap, TRY(generateIndTexStageScale(stage, scale, order)));
     out += ".abg;\n";
+    return {};
   }
 
-  std::string generateIndTexStages() {
+  Result<std::string> generateIndTexStages() {
     std::string out;
     auto& matData = mMaterial;
 
@@ -622,13 +624,13 @@ public:
       // if (matData.indirectStages[i].order.refMap >= matData.samplers.size())
       //   continue;
 
-      generateIndTexStage(out, i);
+      TRY(generateIndTexStage(out, i));
     }
     return out;
   }
 
   // TEV
-  std::string generateKonstColorSel(gx::TevKColorSel konstColor) {
+  Result<std::string> generateKonstColorSel(gx::TevKColorSel konstColor) {
     switch (konstColor) {
     case gx::TevKColorSel::const_8_8:
       return "vec3(8.0/8.0)";
@@ -687,9 +689,10 @@ public:
     case gx::TevKColorSel::k3_a:
       return "s_kColor3.aaa";
     }
+    EXPECT(false, "Invalid TevKColorSel");
   }
 
-  std::string generateKonstAlphaSel(gx::TevKAlphaSel konstAlpha) {
+  Result<std::string> generateKonstAlphaSel(gx::TevKAlphaSel konstAlpha) {
     switch (konstAlpha) {
     default: // k0/k1/k2/k3 not valid for alpha
     case gx::TevKAlphaSel::const_8_8:
@@ -741,9 +744,11 @@ public:
     case gx::TevKAlphaSel::k3_a:
       return "s_kColor3.a";
     }
+    EXPECT(false, "Invalid TevKAlphaSel");
   }
 
-  std::string generateRas(const gx::TevStage& stage) {
+  std::expected<std::string, std::string>
+  generateRas(const gx::TevStage& stage) {
     switch (stage.rasOrder) {
     case gx::ColorSelChanApi::color0: // For custom files..
     case gx::ColorSelChanApi::alpha0:
@@ -756,10 +761,9 @@ public:
     case gx::ColorSelChanApi::zero:
     case gx::ColorSelChanApi::null:
       return "vec4(0, 0, 0, 0)";
-    default:
-      assert(!"Invalid ras sel");
-      return "v_Color0";
     }
+    return std::unexpected(std::format("Invalid TEV rasOrder: {}",
+                                       static_cast<u32>(stage.rasOrder)));
   }
 
   std::string generateTexAccess(const gx::TevStage& stage) {
@@ -802,8 +806,8 @@ public:
     }
   }
 
-  std::string generateColorIn(const gx::TevStage& stage,
-                              gx::TevColorArg colorIn) {
+  std::expected<std::string, std::string>
+  generateColorIn(const gx::TevStage& stage, gx::TevColorArg colorIn) {
     switch (colorIn) {
     case gx::TevColorArg::cprev:
       return "t_ColorPrev.rgb";
@@ -830,15 +834,13 @@ public:
              generateColorSwizzle(&mMaterial.mSwapTable[stage.texMapSwap],
                                   colorIn);
     case gx::TevColorArg::rasc:
-      return "TevSaturate(" + generateRas(stage) + "." +
-             generateColorSwizzle(&mMaterial.mSwapTable[stage.rasSwap],
-                                  colorIn) +
-             ")";
+      return std::format(
+          "TevSaturate({}.{})", TRY(generateRas(stage)),
+          generateColorSwizzle(&mMaterial.mSwapTable[stage.rasSwap], colorIn));
     case gx::TevColorArg::rasa:
-      return "TevSaturate(" + generateRas(stage) + "." +
-             generateColorSwizzle(&mMaterial.mSwapTable[stage.rasSwap],
-                                  colorIn) +
-             ")";
+      return std::format(
+          "TevSaturate({}.{})", TRY(generateRas(stage)),
+          generateColorSwizzle(&mMaterial.mSwapTable[stage.rasSwap], colorIn));
     case gx::TevColorArg::one:
       return "vec3(1)";
     case gx::TevColorArg::half:
@@ -848,10 +850,11 @@ public:
     case gx::TevColorArg::zero:
       return "vec3(0)";
     }
+    EXPECT(false, "Invalid TevColorArg");
   }
 
-  std::string generateAlphaIn(const gx::TevStage& stage,
-                              gx::TevAlphaArg alphaIn) {
+  std::expected<std::string, std::string>
+  generateAlphaIn(const gx::TevStage& stage, gx::TevAlphaArg alphaIn) {
     switch (alphaIn) {
     case gx::TevAlphaArg::aprev:
       return "t_ColorPrev.a";
@@ -866,44 +869,48 @@ public:
              generateComponentSwizzle(&mMaterial.mSwapTable[stage.texMapSwap],
                                       gx::ColorComponent::a);
     case gx::TevAlphaArg::rasa:
-      return "TevSaturate(" + generateRas(stage) + "." +
-             generateComponentSwizzle(&mMaterial.mSwapTable[stage.rasSwap],
-                                      gx::ColorComponent::a) +
-             ")";
+      return std::format(
+          "TevSaturate({}.{})", TRY(generateRas(stage)),
+          generateComponentSwizzle(&mMaterial.mSwapTable[stage.rasSwap],
+                                   gx::ColorComponent::a));
     case gx::TevAlphaArg::konst:
       return generateKonstAlphaSel(stage.alphaStage.constantSelection);
     case gx::TevAlphaArg::zero:
       return "0.0";
     }
+    EXPECT(false, "Invalid TevAlphaArg");
   }
 
-  std::string generateTevInputs(const gx::TevStage& stage) {
+  std::expected<std::string, std::string>
+  generateTevInputs(const gx::TevStage& stage) {
     return R"(
     t_TevA = TevOverflow(vec4()"
            "\n        " +
-           generateColorIn(stage, stage.colorStage.a) + ",\n        " +
-           generateAlphaIn(stage, stage.alphaStage.a) +
+           TRY(generateColorIn(stage, stage.colorStage.a)) + ",\n        " +
+           TRY(generateAlphaIn(stage, stage.alphaStage.a)) +
            "\n    "
            R"());
     t_TevB = TevOverflow(vec4()"
            "\n        " +
-           generateColorIn(stage, stage.colorStage.b) + ",\n        " +
-           generateAlphaIn(stage, stage.alphaStage.b) +
+           TRY(generateColorIn(stage, stage.colorStage.b)) + ",\n        " +
+           TRY(generateAlphaIn(stage, stage.alphaStage.b)) +
            "\n    "
            R"());
     t_TevC = TevOverflow(vec4()"
            "\n        " +
-           generateColorIn(stage, stage.colorStage.c) + ",\n        " +
-           generateAlphaIn(stage, stage.alphaStage.c) +
+           TRY(generateColorIn(stage, stage.colorStage.c)) + ",\n        " +
+           TRY(generateAlphaIn(stage, stage.alphaStage.c)) +
            "\n    "
            R"());
     t_TevD = vec4()"
            "\n        " +
-           generateColorIn(stage, stage.colorStage.d) + ",\n        " +
-           generateAlphaIn(stage, stage.alphaStage.d) + "\n    );\n"; //.trim();
+           TRY(generateColorIn(stage, stage.colorStage.d)) + ",\n        " +
+           TRY(generateAlphaIn(stage, stage.alphaStage.d)) +
+           "\n    );\n"; //.trim();
   }
 
-  std::string generateTevRegister(gx::TevReg regId) {
+  std::expected<std::string, std::string>
+  generateTevRegister(gx::TevReg regId) {
     switch (regId) {
     case gx::TevReg::prev:
       return "t_ColorPrev";
@@ -914,6 +921,8 @@ public:
     case gx::TevReg::reg2:
       return "t_Color2";
     }
+    return std::unexpected(
+        std::format("Invalid TEV register id {}", static_cast<u32>(regId)));
   }
 
   std::string generateTevOpBiasScaleClamp(const std::string& value,
@@ -936,10 +945,11 @@ public:
     return v;
   }
 
-  std::string generateTevOp(gx::TevColorOp op, gx::TevBias bias,
-                            gx::TevScale scale, const std::string& a,
-                            const std::string& b, const std::string& c,
-                            const std::string& d, const std::string& zero) {
+  std::expected<std::string, std::string>
+  generateTevOp(gx::TevColorOp op, gx::TevBias bias, gx::TevScale scale,
+                const std::string& a, const std::string& b,
+                const std::string& c, const std::string& d,
+                const std::string& zero) {
     switch (op) {
     case gx::TevColorOp::add:
     case gx::TevColorOp::subtract: {
@@ -968,19 +978,17 @@ public:
       return std::format("(TevPerCompGT({0}, {1}) * {2}) + {3}", a, b, c, d);
     case gx::TevColorOp::comp_rgb8_eq:
       return std::format("(TevPerCompEQ({0}, {1}) * {2}) + {3}", a, b, c, d);
-    default:
-      return "INVALID";
     }
-
-    return "";
+    return std::unexpected(
+        std::format("Invalid TevColorOp{}", static_cast<u32>(op)));
   }
 
-  std::string generateTevOpValue(gx::TevColorOp op, gx::TevBias bias,
-                                 gx::TevScale scale, bool clamp,
-                                 const std::string& a, const std::string& b,
-                                 const std::string& c, const std::string& d,
-                                 const std::string& zero) {
-    const auto expr = generateTevOp(op, bias, scale, a, b, c, d, zero);
+  std::expected<std::string, std::string>
+  generateTevOpValue(gx::TevColorOp op, gx::TevBias bias, gx::TevScale scale,
+                     bool clamp, const std::string& a, const std::string& b,
+                     const std::string& c, const std::string& d,
+                     const std::string& zero) {
+    const auto expr = TRY(generateTevOp(op, bias, scale, a, b, c, d, zero));
 
     if (clamp)
       return "TevSaturate(" + expr + ")";
@@ -988,29 +996,31 @@ public:
       return expr;
   }
 
-  std::string generateColorOp(const gx::TevStage& stage) {
+  std::expected<std::string, std::string>
+  generateColorOp(const gx::TevStage& stage) {
     const auto a = "t_TevA.rgb", b = "t_TevB.rgb", c = "t_TevC.rgb",
                d = "t_TevD.rgb", zero = "vec3(0)";
-    const auto value = generateTevOpValue(
+    const auto value = TRY(generateTevOpValue(
         stage.colorStage.formula, stage.colorStage.bias, stage.colorStage.scale,
-        stage.colorStage.clamp, a, b, c, d, zero);
-    return std::string("    ") + generateTevRegister(stage.colorStage.out) +
-           ".rgb = " + value + ";\n";
+        stage.colorStage.clamp, a, b, c, d, zero));
+    return std::format("    {}.rgb = {};\n",
+                       TRY(generateTevRegister(stage.colorStage.out)), value);
   }
 
-  std::string generateAlphaOp(const gx::TevStage& stage) {
+  std::expected<std::string, std::string>
+  generateAlphaOp(const gx::TevStage& stage) {
     const auto a = "t_TevA.a", b = "t_TevB.a", c = "t_TevC.a", d = "t_TevD.a",
                zero = "0.0";
-    const auto value = generateTevOpValue(
+    const auto value = TRY(generateTevOpValue(
         static_cast<gx::TevColorOp>(stage.alphaStage.formula),
         stage.alphaStage.bias, stage.alphaStage.scale, stage.alphaStage.clamp,
-        a, b, c, d, zero);
-    return std::string("    ") + generateTevRegister(stage.alphaStage.out) +
-           ".a = " + value + ";\n";
+        a, b, c, d, zero));
+    return std::format("    {}.a = {};\n",
+                       TRY(generateTevRegister(stage.alphaStage.out)), value);
   }
 
-  std::string generateTevTexCoordWrapN(const std::string& texCoord,
-                                       gx::IndTexWrap wrap) {
+  std::expected<std::string, std::string>
+  generateTevTexCoordWrapN(const std::string& texCoord, gx::IndTexWrap wrap) {
     switch (wrap) {
     case gx::IndTexWrap::off:
       return texCoord;
@@ -1027,9 +1037,11 @@ public:
     case gx::IndTexWrap::_16:
       return "mod(" + texCoord + ", 16.0)";
     }
+    EXPECT(false, "Invalid enum");
   }
 
-  std::string generateTevTexCoordWrap(const gx::TevStage& stage) {
+  std::expected<std::string, std::string>
+  generateTevTexCoordWrap(const gx::TevStage& stage) {
     const int lastTexGenId = mMaterial.texGens.size() - 1;
     int texGenId = stage.texCoord;
 
@@ -1044,15 +1056,16 @@ public:
       return baseCoord;
     else
       return "vec2(" +
-             generateTevTexCoordWrapN(baseCoord + ".x",
-                                      stage.indirectStage.wrapU) +
+             TRY(generateTevTexCoordWrapN(baseCoord + ".x",
+                                          stage.indirectStage.wrapU)) +
              ", " +
-             generateTevTexCoordWrapN(baseCoord + ".y",
-                                      stage.indirectStage.wrapV) +
+             TRY(generateTevTexCoordWrapN(baseCoord + ".y",
+                                          stage.indirectStage.wrapV)) +
              ")";
   }
 
-  std::string generateTevTexCoordIndTexCoordBias(const gx::TevStage& stage) {
+  std::expected<std::string, std::string>
+  generateTevTexCoordIndTexCoordBias(const gx::TevStage& stage) {
     const std::string bias =
         (stage.indirectStage.format == gx::IndTexFormat::_8bit) ? "-128.0"
                                                                 : "1.0";
@@ -1075,24 +1088,26 @@ public:
     case gx::IndTexBiasSel::stu:
       return " + vec3(" + bias + ")";
     }
+    EXPECT(false, "Invalid enum");
   }
 
-  std::string generateTevTexCoordIndTexCoord(const gx::TevStage& stage) {
+  std::expected<std::string, std::string>
+  generateTevTexCoordIndTexCoord(const gx::TevStage& stage) {
     const auto baseCoord = "(t_IndTexCoord" +
                            std::to_string(stage.indirectStage.indStageSel) +
                            ")";
     switch (stage.indirectStage.format) {
     case gx::IndTexFormat::_8bit:
       return baseCoord;
-    default:
-      printf("Warning: Unsupported IndTexFmt\n");
-      return baseCoord;
     }
+    EXPECT(false, "Unsupported IndTexFmt");
   }
 
-  std::string generateTevTexCoordIndirectMtx(const gx::TevStage& stage) {
-    const auto indTevCoord = "(" + generateTevTexCoordIndTexCoord(stage) +
-                             generateTevTexCoordIndTexCoordBias(stage) + ")";
+  std::expected<std::string, std::string>
+  generateTevTexCoordIndirectMtx(const gx::TevStage& stage) {
+    const auto indTevCoord = "(" + TRY(generateTevTexCoordIndTexCoord(stage)) +
+                             TRY(generateTevTexCoordIndTexCoordBias(stage)) +
+                             ")";
 
     switch (stage.indirectStage.matrix) {
     case gx::IndTexMtxID::_0:
@@ -1101,34 +1116,36 @@ public:
       return "(u_IndTexMtx[1] * vec4(" + indTevCoord + ", 0.0))";
     case gx::IndTexMtxID::_2:
       return "(u_IndTexMtx[2] * vec4(" + indTevCoord + ", 0.0))";
-    default:
-      printf("Unimplemented indTexMatrix mode: %u\n",
-             (u32)stage.indirectStage.matrix);
-      return indTevCoord + ".xy";
     }
+    return std::unexpected(
+        std::format("Unimplemented indTexMatrix mode: {}",
+                    static_cast<u32>(stage.indirectStage.matrix)));
   }
 
-  std::string
+  std::expected<std::string, std::string>
   generateTevTexCoordIndirectTranslation(const gx::TevStage& stage) {
-    return "(" + generateTevTexCoordIndirectMtx(stage) + " * TextureInvScale(" +
-           std::to_string(stage.texMap) + "))";
+    return "(" + TRY(generateTevTexCoordIndirectMtx(stage)) +
+           " * TextureInvScale(" + std::to_string(stage.texMap) + "))";
   }
 
-  std::string generateTevTexCoordIndirect(const gx::TevStage& stage) {
-    const auto baseCoord = generateTevTexCoordWrap(stage);
+  std::expected<std::string, std::string>
+  generateTevTexCoordIndirect(const gx::TevStage& stage) {
+    const auto baseCoord = TRY(generateTevTexCoordWrap(stage));
 
     if (stage.indirectStage.matrix != gx::IndTexMtxID::off &&
         stage.indirectStage.indStageSel < mMaterial.mStages.size())
-      return baseCoord + " + " + generateTevTexCoordIndirectTranslation(stage);
+      return baseCoord + " + " +
+             TRY(generateTevTexCoordIndirectTranslation(stage));
     else
       return baseCoord;
   }
 
-  std::string generateTevTexCoord(const gx::TevStage& stage) {
+  std::expected<std::string, std::string>
+  generateTevTexCoord(const gx::TevStage& stage) {
     if (stage.texCoord == 0xff)
       return "";
 
-    const auto finalCoord = generateTevTexCoordIndirect(stage);
+    const auto finalCoord = TRY(generateTevTexCoordIndirect(stage));
     if (stage.indirectStage.addPrev) {
       return "    t_TexCoord += " + finalCoord + ";\n";
     } else {
@@ -1136,34 +1153,33 @@ public:
     }
   }
 
-  llvm::Error generateTevStage(StringBuilder& builder, u32 tevStageIndex) {
+  Result<void> generateTevStage(StringBuilder& builder, u32 tevStageIndex) {
     const auto& stage = mMaterial.mStages[tevStageIndex];
 
     builder += "\n\n    //\n    // TEV Stage ";
     builder += std::to_string(tevStageIndex);
     builder += "\n    //\n";
-    builder += generateTevTexCoord(stage);
-    builder += generateTevInputs(stage);
-    builder += generateColorOp(stage);
-    builder += generateAlphaOp(stage);
+    builder += TRY(generateTevTexCoord(stage));
+    builder += TRY(generateTevInputs(stage));
+    builder += TRY(generateColorOp(stage));
+    builder += TRY(generateAlphaOp(stage));
 
-    return llvm::Error::success();
+    return {};
   }
 
-  llvm::Error generateTevStages(StringBuilder& builder) {
-    for (int i = 0; i < mMaterial.mStages.size(); ++i)
-      if (auto err = generateTevStage(builder, i))
-        return err;
-
-    return llvm::Error::success();
+  Result<void> generateTevStages(StringBuilder& builder) {
+    for (int i = 0; i < mMaterial.mStages.size(); ++i) {
+      TRY(generateTevStage(builder, i));
+    }
+    return {};
   }
 
-  llvm::Error generateTevStagesLastMinuteFixup(StringBuilder& builder) {
+  Result<void> generateTevStagesLastMinuteFixup(StringBuilder& builder) {
     const auto& tevStages = mMaterial.mStages;
-
+    EXPECT(!tevStages.empty());
     const auto& lastTevStage = tevStages[tevStages.size() - 1];
-    const auto colorReg = generateTevRegister(lastTevStage.colorStage.out);
-    const auto alphaReg = generateTevRegister(lastTevStage.alphaStage.out);
+    const auto colorReg = TRY(generateTevRegister(lastTevStage.colorStage.out));
+    const auto alphaReg = TRY(generateTevRegister(lastTevStage.alphaStage.out));
 
     if (colorReg == alphaReg) {
       builder += "    vec4 t_TevOutput = " + colorReg + ";\n";
@@ -1172,12 +1188,12 @@ public:
                  alphaReg + ".a);\n";
     }
 
-    return llvm::Error::success();
+    return {};
   }
 
-  llvm::Error generateAlphaTestCompare(StringBuilder& builder,
-                                       gx::Comparison compare,
-                                       float reference) {
+  Result<void> generateAlphaTestCompare(StringBuilder& builder,
+                                        gx::Comparison compare,
+                                        float reference) {
     const auto ref = std::to_string(static_cast<f32>(reference));
     switch (compare) {
     case gx::Comparison::NEVER:
@@ -1211,10 +1227,10 @@ public:
       builder += "true";
       break;
     }
-    return llvm::Error::success();
+    return {};
   }
 
-  llvm::Error generateAlphaTestOp(StringBuilder& builder, gx::AlphaOp op) {
+  Result<void> generateAlphaTestOp(StringBuilder& builder, gx::AlphaOp op) {
     switch (op) {
     case gx::AlphaOp::_and:
       builder += "t_AlphaTestA && t_AlphaTestB";
@@ -1229,26 +1245,26 @@ public:
       builder += "t_AlphaTestA == t_AlphaTestB";
       break;
     }
-    return llvm::Error::success();
+    return {};
   }
-  llvm::Error generateAlphaTest(StringBuilder& builder) {
+  Result<void> generateAlphaTest(StringBuilder& builder) {
     const auto alphaTest = mMaterial.alphaCompare;
     builder += "\n	bool t_AlphaTestA = ";
-    llvm::cantFail(generateAlphaTestCompare(
-        builder, alphaTest.compLeft,
-        static_cast<float>(alphaTest.refLeft) / 255.0f));
+    TRY(generateAlphaTestCompare(builder, alphaTest.compLeft,
+                                 static_cast<float>(alphaTest.refLeft) /
+                                     255.0f));
     builder += ";\n";
     builder += "	bool t_AlphaTestB = ";
-    llvm::cantFail(generateAlphaTestCompare(
-        builder, alphaTest.compRight,
-        static_cast<float>(alphaTest.refRight) / 255.0f));
+    TRY(generateAlphaTestCompare(builder, alphaTest.compRight,
+                                 static_cast<float>(alphaTest.refRight) /
+                                     255.0f));
     builder += ";\n";
     builder += "	if (!(";
-    llvm::cantFail(generateAlphaTestOp(builder, alphaTest.op));
+    TRY(generateAlphaTestOp(builder, alphaTest.op));
     builder += "))\n";
     builder += "		discard; \n";
 
-    return llvm::Error::success();
+    return {};
   }
   std::string generateFogZCoord() { return ""; }
   std::string generateFogBase() { return ""; }
@@ -1258,8 +1274,8 @@ public:
   std::string generateFogFunc(const std::string& base) { return ""; }
 
   std::string generateFog() { return ""; }
-  llvm::Error generateAttributeStorageType(StringBuilder& builder, u32 glFormat,
-                                           u32 count) {
+  Result<void> generateAttributeStorageType(StringBuilder& builder,
+                                            u32 glFormat, u32 count) {
     // assert(glFormat == GL_FLOAT && "Invalid format");
 
     switch (count) {
@@ -1276,14 +1292,14 @@ public:
       builder += "vec4";
       break;
     default:
-      assert(!"Invalid count");
+      EXPECT(false, "Invalid count");
       break;
     }
 
-    return llvm::Error::success();
+    return {};
   }
 
-  llvm::Error generateVertAttributeDefs(StringBuilder& builder) {
+  Result<void> generateVertAttributeDefs(StringBuilder& builder) {
     int i = 0;
     for (const auto& attr : vtxAttributeGenDefs) {
       // if (attr.format != GL_FLOAT) continue;
@@ -1292,43 +1308,40 @@ public:
       builder += ")";
 
       builder += " in ";
-      llvm::cantFail(
-          generateAttributeStorageType(builder, attr.format, attr.size));
+      TRY(generateAttributeStorageType(builder, attr.format, attr.size));
       builder += " a_";
       builder += attr.name;
       builder += ";\n";
       ++i;
     }
 
-    return llvm::Error::success();
+    return {};
   }
-  llvm::Error generateMulPos(StringBuilder& builder) {
+  Result<void> generateMulPos(StringBuilder& builder) {
     // Default to using pnmtxidx.
     const auto src = "vec4(a_Position, 1.0)";
     if (usePnMtxIdx) {
       builder += generateMulPntMatrixDynamic("uint(a_PnMtxIdx)", src);
     } else {
-      if (auto err = generateMulPntMatrixStatic(
-              builder, gx::PostTexMatrix::Matrix0, src))
-        return err;
+      TRY(generateMulPntMatrixStatic(builder, gx::PostTexMatrix::Matrix0, src));
     }
 
-    return llvm::Error::success();
+    return {};
   }
 
-  llvm::Error generateMulNrm(StringBuilder& builder) {
+  Result<void> generateMulNrm(StringBuilder& builder) {
     // Default to using pnmtxidx.
     const auto src = "vec4(a_Normal, 0.0)";
     if (usePnMtxIdx)
       builder += generateMulPntMatrixDynamic("uint(a_PnMtxIdx)", src);
-    else if (auto err = generateMulPntMatrixStatic(
-                 builder, gx::PostTexMatrix::Matrix0, src))
-      return err;
+    else {
+      TRY(generateMulPntMatrixStatic(builder, gx::PostTexMatrix::Matrix0, src));
+    }
 
-    return llvm::Error::success();
+    return {};
   }
 
-  llvm::Expected<std::string> generateVert() {
+  std::expected<std::string, std::string> generateVert() {
     const std::string_view varying_vert =
         R"(out vec3 v_Position;
 out vec4 v_Color0;
@@ -1346,8 +1359,7 @@ out vec3 v_TexCoord7;
     std::array<char, 1024 * 64> vert_buf;
     StringBuilder vert(vert_buf.data(), vert_buf.size());
     vert += varying_vert;
-    if (auto err = generateVertAttributeDefs(vert); err)
-      return std::move(err);
+    TRY(generateVertAttributeDefs(vert));
     vert += "mat4x3 GetPosTexMatrix(uint t_MtxIdx) {\n"
             "    if (t_MtxIdx == " +
             std::to_string((int)gx::TexMatrix::Identity) +
@@ -1370,15 +1382,13 @@ float ApplyAttenuation(vec3 t_Coeff, float t_Value) {
     vert += "void main() {\n";
 
     vert += "    vec3 t_Position = ";
-    if (auto err = generateMulPos(vert); err)
-      return std::move(err);
+    TRY(generateMulPos(vert));
     vert += ";\n";
 
     vert += "    v_Position = t_Position;\n";
 
     vert += "    vec3 t_Normal = ";
-    if (auto err = generateMulNrm(vert); err)
-      return std::move(err);
+    TRY(generateMulNrm(vert));
     vert += ";\n";
 
     vert += "    vec4 t_LightAccum;\n"
@@ -1386,16 +1396,15 @@ float ApplyAttenuation(vec3 t_Coeff, float t_Value) {
             "    float t_LightDeltaDist2, t_LightDeltaDist, t_Attenuation;\n"
             "    vec4 t_ColorChanTemp;\n"
             "    v_Color0 = a_Color0;\n";
-    if (auto err = generateLightChannels(vert); err)
-      return std::move(err);
-    vert += generateTexGens();
+    TRY(generateLightChannels(vert));
+    vert += TRY(generateTexGens());
     vert += "gl_Position = (u_Projection * vec4(t_Position, 1.0));\n"
             "}\n";
 
     return vert_buf.data();
   }
 
-  llvm::Expected<std::string> generateFrag() {
+  std::expected<std::string, std::string> generateFrag() {
     constexpr std::string_view varying_frag =
         R"(in vec3 v_Position;
 in vec4 v_Color0;
@@ -1449,15 +1458,15 @@ void main() {
     vec4 t_Color1    = u_Color[2];
     vec4 t_Color2    = u_Color[3];
 )";
-    frag += generateIndTexStages();
+    frag += TRY(generateIndTexStages());
     frag +=
         R"(
     vec2 t_TexCoord = vec2(0.0, 0.0);
     vec4 t_TevA, t_TevB, t_TevC, t_TevD;)";
-    llvm::cantFail(generateTevStages(frag));
-    llvm::cantFail(generateTevStagesLastMinuteFixup(frag));
+    TRY(generateTevStages(frag));
+    TRY(generateTevStagesLastMinuteFixup(frag));
     frag += "    vec4 t_PixelOut = TevOverflow(t_TevOutput);\n";
-    llvm::cantFail(generateAlphaTest(frag));
+    TRY(generateAlphaTest(frag));
     frag += generateFog();
     frag += "    fragOut = t_PixelOut;\n";
     if (mMaterial.dstAlpha.enabled) {
@@ -1470,7 +1479,7 @@ void main() {
     return frag_buf.data();
   }
 
-  std::string generateBoth() {
+  std::expected<std::string, std::string> generateBoth() {
     const auto bindingsDefinition =
         generateBindingsDefinition(hasPostTexMtxBlock, hasLightsBlock);
 
@@ -1487,18 +1496,13 @@ void main() {
            bindingsDefinition;
   }
 
-  std::optional<std::pair<std::string, std::string>> generateShaders() {
-    auto both = generateBoth();
+  std::expected<std::pair<std::string, std::string>, std::string>
+  generateShaders() {
+    auto both = TRY(generateBoth());
+    auto vert = TRY(generateVert());
+    auto frag = TRY(generateFrag());
 
-    auto vert = generateVert();
-    if (auto err = vert.takeError(); err)
-      return std::nullopt;
-
-    auto frag = generateFrag();
-    if (auto err = frag.takeError(); err)
-      return std::nullopt;
-
-    return std::pair<std::string, std::string>{both + *vert, both + *frag};
+    return std::pair<std::string, std::string>{both + vert, both + frag};
   }
 
   const gx::LowLevelGxMaterial& mMaterial;
@@ -1520,13 +1524,11 @@ void main() {
   std::string mName;
 };
 
-std::optional<GlShaderPair> compileShader(const gx::LowLevelGxMaterial& mat,
-                                          std::string_view name) {
+std::expected<GlShaderPair, std::string>
+compileShader(const gx::LowLevelGxMaterial& mat, std::string_view name) {
   GXProgram program(mat, name);
-  auto compiled = program.generateShaders();
-  if (!compiled)
-    return std::nullopt;
-  return GlShaderPair{compiled->first, compiled->second};
+  auto compiled = TRY(program.generateShaders());
+  return GlShaderPair{compiled.first, compiled.second};
 }
 
 } // namespace librii::gl

@@ -29,9 +29,9 @@ struct BinaryTev {
 
 BinaryTev toBinaryTev(const G3dShader& sh, u32 tev_id);
 
-void ReadTev(librii::gx::LowLevelGxMaterial& mat, oishii::BinaryReader& reader,
-             unsigned int tev_addr, bool trust_stagecount = false,
-             bool brawlbox_bug = false);
+Result<void> ReadTev(librii::gx::LowLevelGxMaterial& mat,
+                     oishii::BinaryReader& reader, unsigned int tev_addr,
+                     bool trust_stagecount = false, bool brawlbox_bug = false);
 
 void WriteTevBody(oishii::Writer& writer, u32 tev_id, const G3dShader& tev);
 

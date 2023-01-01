@@ -16,7 +16,7 @@ struct VertexAttributeGenDef {
   u32 size;
 };
 
-std::pair<const VertexAttributeGenDef&, std::size_t>
+Result<std::pair<const VertexAttributeGenDef&, std::size_t>>
 getVertexAttribGenDef(gx::VertexAttribute vtxAttrib);
 
 // For communicating with your shader:
@@ -108,7 +108,7 @@ struct GlShaderPair {
   std::string fragment;
 };
 
-std::optional<GlShaderPair> compileShader(const gx::LowLevelGxMaterial& mat,
-                                          std::string_view name);
+std::expected<GlShaderPair, std::string>
+compileShader(const gx::LowLevelGxMaterial& mat, std::string_view name);
 
 } // namespace librii::gl

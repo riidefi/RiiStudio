@@ -9,7 +9,7 @@ struct CLROffsets {
 
   static constexpr size_t size_bytes() { return 3 * 4; }
 
-  std::expected<void, std::string> read(oishii::BinaryReader& reader) {
+  Result<void> read(oishii::BinaryReader& reader) {
     rsl::SafeReader safe(reader);
     ofsBrres = TRY(safe.S32());
     ofsMatDict = TRY(safe.S32());
@@ -30,8 +30,7 @@ struct BinaryClrInfo {
   u16 materialCount{};
   AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
 
-  std::expected<void, std::string> read(oishii::BinaryReader& reader,
-                                        u32 pat0) {
+  Result<void> read(oishii::BinaryReader& reader, u32 pat0) {
     rsl::SafeReader safe(reader);
     name = TRY(safe.StringOfs32(pat0));
     sourcePath = TRY(safe.StringOfs32(pat0));
@@ -49,15 +48,15 @@ struct BinaryClrInfo {
   }
 };
 
-std::expected<void, std::string> BinaryClr::read(oishii::BinaryReader& reader) {
+Result<void> BinaryClr::read(oishii::BinaryReader& reader) {
   rsl::SafeReader safe(reader);
   auto clr0 = safe.scoped("CLR0");
-  reader.expectMagic<'CLR0', false>();
-  reader.read<u32>(); // size
+  TRY(safe.Magic("CLR0"));
+  TRY(safe.U32()); // size
   auto ver = TRY(safe.U32());
   if (ver != 4) {
-    return std::unexpected(
-        std::format("Unsupported version {}. Only supports version 4.", ver));
+    return std::unexpected(std::format(
+        "Unsupported CLR0 version {}. Only version 4 is supported.", ver));
   }
   CLROffsets offsets;
   TRY(offsets.read(reader));

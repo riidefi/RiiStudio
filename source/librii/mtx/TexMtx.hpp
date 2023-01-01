@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <expected>
 #include <glm/glm.hpp>
 
 namespace librii::mtx {
@@ -37,8 +38,9 @@ enum class CommonTransformModel { Default, Maya, Max, XSI };
 glm::mat4 computeTexSrt(const glm::vec2& scale, f32 rotate,
                         const glm::vec2& translate, CommonTransformModel xform);
 
-glm::mat4 computeTexMtx(const glm::mat4& mdl, const glm::mat4& mvp,
-                        const glm::mat4& texsrt, const glm::mat4& effectMatrix,
-						CommonMappingMethod method, CommonMappingOption option);
+std::expected<glm::mat4, std::string>
+computeTexMtx(const glm::mat4& mdl, const glm::mat4& mvp,
+              const glm::mat4& texsrt, const glm::mat4& effectMatrix,
+              CommonMappingMethod method, CommonMappingOption option);
 
 } // namespace librii::mtx

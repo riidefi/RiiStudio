@@ -9,10 +9,11 @@ struct VISOffsets {
 
   static constexpr size_t size_bytes() { return 3 * 4; }
 
-  void read(oishii::BinaryReader& reader) {
-    ofsBrres = reader.read<s32>();
-    ofsBoneDict = reader.read<s32>();
-    ofsUserData = reader.read<s32>();
+  Result<void> read(rsl::SafeReader& reader) {
+    ofsBrres = TRY(reader.S32());
+    ofsBoneDict = TRY(reader.S32());
+    ofsUserData = TRY(reader.S32());
+    return {};
   }
   void write(oishii::Writer& writer) {
     writer.write<s32>(ofsBrres);
@@ -28,12 +29,13 @@ struct BinaryVisInfo {
   u16 boneCount{};
   AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
 
-  void read(oishii::BinaryReader& reader, u32 pat0) {
-    name = readName(reader, pat0);
-    sourcePath = readName(reader, pat0);
-    frameDuration = reader.read<u16>();
-    boneCount = reader.read<u16>();
-    wrapMode = static_cast<AnimationWrapMode>(reader.read<u32>());
+  Result<void> read(rsl::SafeReader& reader, u32 pat0) {
+    name = TRY(reader.StringOfs(pat0));
+    sourcePath = TRY(reader.StringOfs(pat0));
+    frameDuration = TRY(reader.U16());
+    boneCount = TRY(reader.U16());
+    wrapMode = TRY(reader.Enum32<AnimationWrapMode>());
+    return {};
   }
   void write(oishii::Writer& writer, NameTable& names, u32 pat0) const {
     writeNameForward(names, writer, pat0, name, true);
@@ -44,18 +46,21 @@ struct BinaryVisInfo {
   }
 };
 
-void BinaryVis::read(oishii::BinaryReader& reader) {
+Result<void> BinaryVis::read(oishii::BinaryReader& unsafeReader) {
+  rsl::SafeReader reader(unsafeReader);
   auto start = reader.tell();
-  reader.expectMagic<'VIS0', false>();
-  reader.read<u32>(); // size
-  auto ver = reader.read<u32>();
-  if (ver != 4)
-    return;
+  TRY(reader.Magic("VIS0"));
+  TRY(reader.U32()); // size
+  auto ver = TRY(reader.U32());
+  if (ver != 4) {
+    return std::unexpected(std::format(
+        "Unsupported VIS0 version {}. Only version 4 is supported.", ver));
+  }
   VISOffsets offsets;
-  offsets.read(reader);
+  TRY(offsets.read(reader));
 
   BinaryVisInfo info;
-  info.read(reader, start);
+  TRY(info.read(reader, start));
   name = info.name;
   sourcePath = info.sourcePath;
   frameDuration = info.frameDuration;
@@ -70,8 +75,10 @@ void BinaryVis::read(oishii::BinaryReader& reader) {
   for (const auto& node : boneDict) {
     auto& bone = bones.emplace_back();
     reader.seekSet(node.abs_data_ofs);
-    bone.read(reader, realNumKeyFrames);
+    TRY(bone.read(reader, realNumKeyFrames));
   }
+
+  return {};
 }
 
 void BinaryVis::write(oishii::Writer& writer, NameTable& names,
@@ -94,7 +101,6 @@ void BinaryVis::write(oishii::Writer& writer, NameTable& names,
   };
   info.write(writer, names, start);
 
-  const u32 dict_deferred = writer.tell();
   BetterDictionary dict;
 
   std::vector<u32> track_addresses;

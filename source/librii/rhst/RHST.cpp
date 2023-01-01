@@ -774,7 +774,7 @@ public:
   JsonSceneTreeReader(const std::string& data)
       : json(nlohmann::json::parse(data)) {}
   SceneTree&& takeResult() { return std::move(out); }
-  std::expected<void, std::string> read() {
+  Result<void> read() {
     if (json.contains("head")) {
       auto head = json["head"];
       out.meta_data.exporter =

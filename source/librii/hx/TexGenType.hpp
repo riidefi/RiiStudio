@@ -53,6 +53,7 @@ inline TexGenType elevateTexGenType(gx::TexGenType func) {
 inline gx::TexGenType lowerTexGenType(hx::TexGenType tg) {
   switch (tg.basefunc) {
   case hx::BaseTexGenFunction::TextureMatrix:
+  default: // TODO
     return tg.mtxtype ? gx::TexGenType::Matrix3x4 : gx::TexGenType::Matrix2x4;
   case hx::BaseTexGenFunction::Bump:
     return static_cast<gx::TexGenType>(static_cast<int>(gx::TexGenType::Bump0) +

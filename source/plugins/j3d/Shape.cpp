@@ -13,13 +13,13 @@ glm::vec2 Shape::getUv(const libcube::Model& mdl, u64 chan, u64 idx) const {
     return {};
   return mMdl.mBufs.uv[chan].mData[idx];
 }
-glm::vec3 Shape::getPos(const libcube::Model& mdl, u64 idx) const {
+std::span<const glm::vec3> Shape::getPos(const libcube::Model& mdl) const {
   auto& mMdl = reinterpret_cast<const Model&>(mdl);
-  return mMdl.mBufs.pos.mData[idx];
+  return mMdl.mBufs.pos.mData;
 }
-glm::vec3 Shape::getNrm(const libcube::Model& mdl, u64 idx) const {
+std::span<const glm::vec3> Shape::getNrm(const libcube::Model& mdl) const {
   auto& mMdl = reinterpret_cast<const Model&>(mdl);
-  return mMdl.mBufs.norm.mData[idx];
+  return mMdl.mBufs.norm.mData;
 }
 glm::vec4 Shape::getClr(const libcube::Model& mdl, u64 chan, u64 idx) const {
   auto& mMdl = reinterpret_cast<const Model&>(mdl);

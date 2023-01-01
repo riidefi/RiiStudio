@@ -5,7 +5,7 @@ namespace librii::gl {
 
 using namespace gx;
 #ifdef RII_GL
-u32 translateCullMode(gx::CullMode cullMode) {
+Result<u32> translateCullMode(gx::CullMode cullMode) {
   switch (cullMode) {
   case gx::CullMode::All:
     return GL_FRONT_AND_BACK;
@@ -15,13 +15,12 @@ u32 translateCullMode(gx::CullMode cullMode) {
     return GL_BACK;
   case gx::CullMode::None:
     return -1;
-  default:
-    // printf("Invalid cull mode!\n");
-    return GL_BACK;
   }
+  return std::unexpected(
+      std::format("Invalid cull mode: {}", static_cast<u32>(cullMode)));
 }
 
-u32 translateBlendFactorCommon(gx::BlendModeFactor factor) {
+Result<u32> translateBlendFactorCommon(gx::BlendModeFactor factor) {
   switch (factor) {
   case gx::BlendModeFactor::zero:
     return GL_ZERO;
@@ -35,13 +34,12 @@ u32 translateBlendFactorCommon(gx::BlendModeFactor factor) {
     return GL_DST_ALPHA;
   case gx::BlendModeFactor::inv_dst_a:
     return GL_ONE_MINUS_DST_ALPHA;
-  default:
-    assert(!"Invalid blend mode");
-    return ~0;
   }
+  EXPECT(false, "Invalid blend mode");
+  return ~0;
 }
 
-u32 translateBlendSrcFactor(gx::BlendModeFactor factor) {
+Result<u32> translateBlendSrcFactor(gx::BlendModeFactor factor) {
   switch (factor) {
   case gx::BlendModeFactor::src_c:
     return GL_DST_COLOR;
@@ -52,7 +50,7 @@ u32 translateBlendSrcFactor(gx::BlendModeFactor factor) {
   }
 }
 
-u32 translateBlendDstFactor(gx::BlendModeFactor factor) {
+Result<u32> translateBlendDstFactor(gx::BlendModeFactor factor) {
   switch (factor) {
   case gx::BlendModeFactor::src_c:
     return GL_SRC_COLOR;
@@ -115,9 +113,10 @@ u32 gxTileToGl(gx::TextureWrapMode wrap) {
   }
 }
 
-void translateGfxMegaState(gfx::MegaState& megaState,
-                           const gx::LowLevelGxMaterial& matdata) {
-  megaState.cullMode = librii::gl::translateCullMode(matdata.cullMode);
+Result<gfx::MegaState>
+translateGfxMegaState(const gx::LowLevelGxMaterial& matdata) {
+  gfx::MegaState megaState;
+  megaState.cullMode = TRY(librii::gl::translateCullMode(matdata.cullMode));
   // TODO: If compare is false, is depth masked?
   megaState.depthWrite = matdata.zMode.update;
   // TODO: zmode "compare" part no reference
@@ -135,17 +134,16 @@ void translateGfxMegaState(gfx::MegaState& megaState,
     megaState.blendMode = 0;
   } else if (blendMode.type == gx::BlendModeType::blend) {
     megaState.blendMode = GL_FUNC_ADD;
-    megaState.blendSrcFactor =
-        librii::gl::translateBlendSrcFactor(blendMode.source);
-    megaState.blendDstFactor =
-        librii::gl::translateBlendDstFactor(blendMode.dest);
+    megaState.blendSrcFactor = TRY(translateBlendSrcFactor(blendMode.source));
+    megaState.blendDstFactor = TRY(translateBlendDstFactor(blendMode.dest));
   } else if (blendMode.type == gx::BlendModeType::subtract) {
     megaState.blendMode = GL_FUNC_REVERSE_SUBTRACT;
     megaState.blendSrcFactor = GL_ONE;
     megaState.blendDstFactor = GL_ONE;
   } else if (blendMode.type == gx::BlendModeType::logic) {
-    printf("LOGIC mode is unsupported.\n");
+    return std::unexpected("LOGIC mode is unsupported.\n");
   }
+  return megaState;
 }
 
 static u32 GetPolygonMode(librii::gfx::PolygonMode p) {
@@ -168,7 +166,7 @@ void setGlState(const librii::gfx::MegaState& state) {
   } else {
     glDisable(GL_BLEND);
   }
-  
+
   if (state.cullMode == -1) {
     glDisable(GL_CULL_FACE);
   } else {
@@ -176,7 +174,7 @@ void setGlState(const librii::gfx::MegaState& state) {
     glCullFace(state.cullMode);
   }
   glFrontFace(state.frontFace);
-  
+
   glEnable(GL_DEPTH_TEST);
   glDepthMask(state.depthWrite ? GL_TRUE : GL_FALSE);
   glDepthFunc(state.depthCompare);
@@ -191,7 +189,7 @@ void setGlState(const librii::gfx::MegaState& state) {
 }
 #endif
 
-gx::ColorSelChanApi getRasColorChannelID(gx::ColorSelChanApi v) {
+Result<gx::ColorSelChanApi> getRasColorChannelID(gx::ColorSelChanApi v) {
   switch (v) {
   case gx::ColorSelChanApi::color0:
   case gx::ColorSelChanApi::alpha0:
@@ -208,10 +206,8 @@ gx::ColorSelChanApi getRasColorChannelID(gx::ColorSelChanApi v) {
   case gx::ColorSelChanApi::zero:
   case gx::ColorSelChanApi::null:
     return gx::ColorSelChanApi::zero;
-  default:
-    assert(!"Invalid color channel selection");
-    return gx::ColorSelChanApi::zero;
   }
+  EXPECT(false, "Invalid color channel selection");
 }
 
 } // namespace librii::gl

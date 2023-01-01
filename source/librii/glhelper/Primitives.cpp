@@ -69,12 +69,13 @@ struct CubeDL {
                                    .format = GL_FLOAT,
                                    .size = sizeof(glm::vec3)};
     mNumVerts = sizeof(g_vertex_buffer_data) / (sizeof(glm::vec3));
-    for (int i = 0; i < mNumVerts; ++i) {
+    for (u32 i = 0; i < mNumVerts; ++i) {
       mVbo.mIndices.push_back(static_cast<u32>(mVbo.mIndices.size()));
       mVbo.pushData(/*binding_point=*/0,
                     (glm::vec3&)g_vertex_buffer_data[i * 3]);
     }
-    mVbo.build();
+    auto ok = mVbo.build();
+    assert(ok.has_value());
   }
 };
 

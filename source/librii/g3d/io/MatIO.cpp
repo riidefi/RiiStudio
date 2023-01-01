@@ -63,20 +63,20 @@ void BinaryMatDL::write(oishii::Writer& writer) const {
   }
   assert(writer.tell() - dl_start == 0x180);
 }
-void BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
-                        u32 numTexGens) {
+Result<void> BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
+                                u32 numTexGens) {
   gx::LowLevelGxMaterial mat;
   librii::gpu::QDisplayListMaterialHandler matHandler(mat);
 
   // Pixel data
-  librii::gpu::RunDisplayList(reader, matHandler, 32);
+  TRY(librii::gpu::RunDisplayList(reader, matHandler, 32));
   alphaCompare = matHandler.mGpuMat.mPixel.mAlphaCompare;
   zMode = matHandler.mGpuMat.mPixel.mZMode;
   blendMode = matHandler.mGpuMat.mPixel.mBlendMode;
   dstAlpha = matHandler.mGpuMat.mPixel.mDstAlpha;
 
   // Uniform data
-  librii::gpu::RunDisplayList(reader, matHandler, 128);
+  TRY(librii::gpu::RunDisplayList(reader, matHandler, 128));
   for (int i = 0; i < 3; ++i) {
     tevColors[i] = matHandler.mGpuMat.mShaderColor.Registers[i + 1];
   }
@@ -85,7 +85,7 @@ void BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
   }
 
   // Indirect data
-  librii::gpu::RunDisplayList(reader, matHandler, 64);
+  TRY(librii::gpu::RunDisplayList(reader, matHandler, 64));
   for (u8 i = 0; i < numIndStages; ++i) {
     const auto& curScale =
         matHandler.mGpuMat.mIndirect.mIndTexScales[i > 1 ? i - 2 : i];
@@ -106,23 +106,27 @@ void BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
       128, 128, // 6, 7
       160       // 8
   };
-  assert(numTexGens < 9);
+  EXPECT(numTexGens < 9);
   texGens.resize(numTexGens);
-  librii::gpu::RunDisplayList(reader, matHandler, texGenDlSizes[numTexGens]);
+  TRY(librii::gpu::RunDisplayList(reader, matHandler,
+                                  texGenDlSizes[numTexGens]));
   for (u8 i = 0; i < numTexGens; ++i) {
     texGens[i] = matHandler.mGpuMat.mTexture[i];
   }
+
+  return {};
 }
 
-void BinaryMaterial::read(oishii::BinaryReader& reader,
-                          gx::LowLevelGxMaterial* outShader) {
+Result<void> BinaryMaterial::read(oishii::BinaryReader& unsafeReader,
+                                  gx::LowLevelGxMaterial* outShader) {
+  rsl::SafeReader reader(unsafeReader);
   const auto start = reader.tell();
 
-  reader.read<u32>(); // size
-  reader.read<s32>(); // mdl offset
-  name = readName(reader, start);
-  id = reader.read<u32>();
-  flag = reader.read<u32>();
+  TRY(reader.U32()); // size
+  TRY(reader.S32()); // mdl offset
+  name = TRY(reader.StringOfs(start));
+  id = TRY(reader.U32());
+  flag = TRY(reader.U32());
 
   // GenMode
   {
@@ -136,26 +140,28 @@ void BinaryMaterial::read(oishii::BinaryReader& reader,
     misc.read(reader);
   }
 
-  const auto ofsTev = reader.read<s32>();
-  const auto nTex = reader.read<u32>();
-  assert(nTex <= 8);
-  const auto [ofsSamplers, ofsFur, ofsUserData, ofsDisplayLists] =
-      reader.readX<s32, 4>();
+  const auto ofsTev = TRY(reader.S32());
+  const auto nTex = TRY(reader.U32());
+  EXPECT(nTex <= 8);
+  const auto ofsSamplers = TRY(reader.S32());
+  const auto ofsFur = TRY(reader.S32());
+  const auto ofsUserData = TRY(reader.S32());
+  const auto ofsDisplayLists = TRY(reader.S32());
   if (ofsFur || ofsUserData) {
-    printf("Warning: Material %s uses Fur or UserData which is unsupported!\n",
-           name.c_str());
+    return std::unexpected(std::format(
+        "Warning: Material {} uses Fur or UserData which is unsupported!",
+        name));
   }
 
-  using GCMaterialData = librii::gx::GCMaterialData;
   for (auto& e : texPlttRuntimeObjs)
-    e = reader.read<u8>();
+    e = TRY(reader.U8());
 
-  texSrtData.read(reader);
+  TRY(texSrtData.read(reader));
 
   // ChanData
   {
     reader.seekSet(start + 0x3f0);
-    chan.read(reader);
+    TRY(chan.read(reader));
   }
 
   // TEV
@@ -163,7 +169,7 @@ void BinaryMaterial::read(oishii::BinaryReader& reader,
     auto tev_addr = start + ofsTev;
     tev.indirectStages.resize(genMode.numIndStages);
     tev.mStages.resize(genMode.numTevStages);
-    librii::g3d::ReadTev(tev, reader, tev_addr);
+    TRY(librii::g3d::ReadTev(tev, unsafeReader, tev_addr));
 
     if (outShader != nullptr) {
       *outShader = tev;
@@ -173,18 +179,20 @@ void BinaryMaterial::read(oishii::BinaryReader& reader,
   // Samplers
   {
     reader.seekSet(start + ofsSamplers);
-    assert(genMode.numTexGens == nTex);
+    EXPECT(genMode.numTexGens == nTex);
     samplers.resize(nTex);
     for (auto& s : samplers)
-      s.read(reader);
+      TRY(s.read(reader));
   }
 
   // Display Lists
   {
     reader.seekSet(start + ofsDisplayLists);
-    dl.parse(reader, std::min<u32>(genMode.numIndStages, 4),
-             std::min<u32>(genMode.numTexGens, 8));
+    TRY(dl.parse(unsafeReader, std::min<u32>(genMode.numIndStages, 4),
+                 std::min<u32>(genMode.numTexGens, 8)));
   }
+
+  return {};
 }
 // TODO: Reduce dependencies
 void BinaryMaterial::writeBody(
@@ -239,8 +247,8 @@ void BinaryMaterial::writeBody(
   dl.write(writer);
 }
 
-G3dMaterialData fromBinMat(const BinaryMaterial& bin,
-                           gx::LowLevelGxMaterial* smat) {
+Result<G3dMaterialData> fromBinMat(const BinaryMaterial& bin,
+                                   gx::LowLevelGxMaterial* smat) {
   G3dMaterialData mat;
   mat.name = bin.name;
   mat.id = bin.id;
@@ -261,7 +269,7 @@ G3dMaterialData fromBinMat(const BinaryMaterial& bin,
     mat.fogIndex = bin.misc.fogIndex;
     // Ignore reserved
 
-    assert(bin.misc.indMethod.size() >= bin.dl.indMatrices.size());
+    EXPECT(bin.misc.indMethod.size() >= bin.dl.indMatrices.size());
   }
 
   // TEV
@@ -321,24 +329,26 @@ G3dMaterialData fromBinMat(const BinaryMaterial& bin,
     mat.mIndMatrices.resize(bin.genMode.numIndStages); // TODO
     for (int i = 0; i < bin.dl.indMatrices.size(); ++i) {
       mat.mIndMatrices[i] = bin.dl.indMatrices[i];
-      mat.mIndMatrices[i].method = [](auto x) {
-        switch (x) {
-        case G3dIndMethod::Warp:
-          return gx::IndirectMatrix::Method::Warp;
-        case G3dIndMethod::NormalMap:
-          return gx::IndirectMatrix::Method::NormalMap;
-        case G3dIndMethod::SpecNormalMap:
-          return gx::IndirectMatrix::Method::NormalMapSpec;
-        case G3dIndMethod::Fur:
-          return gx::IndirectMatrix::Method::Fur;
-        case G3dIndMethod::Res0:
-        case G3dIndMethod::Res1:
-        case G3dIndMethod::User0:
-        case G3dIndMethod::User1:
-          assert(!"Unexpected indirect method");
-          return gx::IndirectMatrix::Method::Warp;
-        }
-      }(bin.misc.indMethod[i]);
+      mat.mIndMatrices[i].method =
+          TRY([](auto x) -> Result<gx::IndirectMatrix::Method> {
+            switch (x) {
+            case G3dIndMethod::Warp:
+              return gx::IndirectMatrix::Method::Warp;
+            case G3dIndMethod::NormalMap:
+              return gx::IndirectMatrix::Method::NormalMap;
+            case G3dIndMethod::SpecNormalMap:
+              return gx::IndirectMatrix::Method::NormalMapSpec;
+            case G3dIndMethod::Fur:
+              return gx::IndirectMatrix::Method::Fur;
+            case G3dIndMethod::Res0:
+            case G3dIndMethod::Res1:
+            case G3dIndMethod::User0:
+            case G3dIndMethod::User1:
+              EXPECT(false, "Unexpected indirect method");
+              return gx::IndirectMatrix::Method::Warp;
+            }
+            EXPECT(false, "Invalid indirect method");
+          }(bin.misc.indMethod[i]));
       mat.mIndMatrices[i].refLight = bin.misc.normalMapLightIndices[i];
     }
 
@@ -423,7 +433,7 @@ G3dMaterialData fromBinMat(const BinaryMaterial& bin,
       }
     }
     // Very unlikely
-    assert(written_contiguously == mat.colorChanControls.size() &&
+    EXPECT(written_contiguously == mat.colorChanControls.size(),
            "Discontiguous channel configurations are unsupported");
   }
   return mat;
@@ -449,6 +459,7 @@ BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
   auto toIndMethod = [](const librii::gx::IndirectMatrix& mtx) {
     switch (mtx.method) {
     case gx::IndirectMatrix::Method::Warp:
+    default: // TODO
       return G3dIndMethod::Warp;
     case gx::IndirectMatrix::Method::NormalMap:
       return G3dIndMethod::NormalMap;
@@ -654,7 +665,11 @@ bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
   BinaryMaterial bin;
   gx::LowLevelGxMaterial smat;
   bin.read(reader, ignore_tev ? nullptr : &smat);
-  mat = fromBinMat(bin, ignore_tev ? nullptr : &smat);
+  auto ok = fromBinMat(bin, ignore_tev ? nullptr : &smat);
+  if (!ok.has_value()) {
+    return false;
+  }
+  mat = *ok;
   return true;
 }
 
