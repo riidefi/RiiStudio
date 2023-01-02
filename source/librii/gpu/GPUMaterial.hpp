@@ -241,7 +241,7 @@ struct IND_MTX {
   IND_MTXC col2;
 
   operator glm::mat4();
-  operator librii::gx::IndirectMatrix();
+  operator Result<librii::gx::IndirectMatrix>();
 };
 union GPUTevReg {
   enum RegType { REGISTER, KONSTANT };
@@ -336,7 +336,7 @@ struct XF_TEXTURE {
   TexMtxInfo tex;
   PostMtxInfo dualTex;
 
-  operator librii::gx::TexCoordGen();
+  operator Result<librii::gx::TexCoordGen>();
 };
 
 union LitChannel {

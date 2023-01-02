@@ -95,7 +95,9 @@ Result<void> BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
         static_cast<librii::gx::IndirectTextureScalePair::Selection>(
             curScale.ss1)};
 
-    indMatrices.push_back(matHandler.mGpuMat.mIndirect.mIndMatrices[i]);
+    Result<librii::gx::IndirectMatrix> m =
+        matHandler.mGpuMat.mIndirect.mIndMatrices[i];
+    indMatrices.push_back(TRY(m));
   }
 
   const std::array<u32, 9> texGenDlSizes{
@@ -111,7 +113,8 @@ Result<void> BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
   TRY(librii::gpu::RunDisplayList(reader, matHandler,
                                   texGenDlSizes[numTexGens]));
   for (u8 i = 0; i < numTexGens; ++i) {
-    texGens[i] = matHandler.mGpuMat.mTexture[i];
+    texGens[i] = TRY(static_cast<Result<librii::gx::TexCoordGen>>(
+        matHandler.mGpuMat.mTexture[i]));
   }
 
   return {};

@@ -1,7 +1,7 @@
+#include "GPUMaterial.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
-
-#include "GPUMaterial.hpp"
+#include <numbers>
 
 namespace librii::gpu {
 
@@ -38,32 +38,46 @@ IND_MTX::operator glm::mat4() {
   return m;
 }
 
-IND_MTX::operator gx::IndirectMatrix() {
+IND_MTX::operator Result<gx::IndirectMatrix>() {
   gx::IndirectMatrix tmp;
 
-  const glm::mat4 transformation = *this;
+  glm::mat3x2 M = glm::mat4(*this);
 
-  glm::vec3 scale;
-  glm::quat rotation;
-  glm::vec3 translation;
-  glm::vec3 skew;
-  glm::vec4 perspective;
-  glm::decompose(transformation, scale, rotation, translation, skew,
-                 perspective);
-  // rotation = glm::conjugate(rotation);
+  f64 rotate{atan2(M[0][1], M[0][0])};
+  f64 shear{atan2(M[1][1], M[1][0]) - std::numbers::pi_v<double> / 2.0 -
+            rotate};
+  glm::vec2 scale{sqrt(M[0][0] * M[0][0] + M[0][1] * M[0][1]),
+                  sqrt(M[1][0] * M[1][0] + M[1][1] * M[1][1]) * cos(shear)};
+  glm::vec2 translate{M[2][0], M[2][1]};
 
-  tmp.scale[0] = scale.x;
-  tmp.scale[1] = scale.y;
+  tmp.scale = scale;
+  tmp.rotate = rotate * (180.0 / std::numbers::pi_v<double>);
+  tmp.trans = translate;
+  // f64 sheardeg = shear * (180.0 / std::numbers::pi_v<double>);
 
-  tmp.rotate = glm::degrees(glm::eulerAngles(rotation).z);
-
-  tmp.trans[0] = translation.x;
-  tmp.trans[1] = translation.y;
+  // Debug check; this is too lenient and doesn't quantize the way IndMtx with a
+  // floating point.
+  glm::mat3x2 computed = tmp.compute();
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      // Flush denormals
+      if (abs(computed[i][j]) < 0.00001f) {
+        computed[i][j] = 0.0f;
+      }
+      // Quantize to 2 decimals
+      float quant = 100.0f;
+      computed[i][j] = static_cast<int>(computed[i][j] * quant) / quant;
+      M[i][j] = static_cast<int>(M[i][j] * quant) / quant;
+    }
+  }
+  if (computed != M) {
+    return std::unexpected("Failed to decompose indirect matrix");
+  }
 
   return tmp;
 }
 
-XF_TEXTURE::operator gx::TexCoordGen() {
+XF_TEXTURE::operator Result<gx::TexCoordGen>() {
   gx::TexCoordGen tmp;
 
   tmp.matrix = static_cast<librii::gx::TexMatrix>(30 + id * 3);
@@ -103,7 +117,7 @@ XF_TEXTURE::operator gx::TexCoordGen() {
           tex.sourcerow - XF_TEX0_INROW + (u32)gx::TexGenSrc::UV0);
       break;
     default:
-      //assert(!"Invalid texgen");
+      EXPECT(false, "Invalid texgen");
       break;
     }
 
@@ -124,6 +138,7 @@ XF_TEXTURE::operator gx::TexCoordGen() {
                                                  (u32)gx::TexGenSrc::UV0);
     return tmp;
   }
+  EXPECT(false, "Invalid texgentype");
 }
 LitChannel::operator gx::ChannelControl() const {
   auto diffuse_fn = gx::DiffuseFunction::None;
