@@ -123,10 +123,10 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
         reader.seekSet(sub.stream_pos);
 
         auto& srt = srts.emplace_back();
-        const bool ok = librii::g3d::ReadSrtFile(srt, SliceStream(reader));
-
+        auto ok = srt.read(reader);
         if (!ok) {
-          return std::unexpected("Failed to read SRT0: " + sub.name);
+          return std::unexpected(
+              std::format("Failed to read SRT0 {}: {}", sub.name, ok.error()));
         }
       }
     } else if (node.name == "AnmVis(NW4R)") {
@@ -372,7 +372,7 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
 
     srts_dict.insert(i, srt.name, writer.tell());
 
-    librii::g3d::WriteSrtFile(writer, srt, names, start);
+    srt.write(writer, names, start);
   }
   for (int i = 0; i < arc.viss.size(); ++i) {
     auto& vis = arc.viss[i];

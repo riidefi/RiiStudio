@@ -133,6 +133,7 @@ struct SrtMaterialAnimation {
   bool operator==(const SrtMaterialAnimation&) const = default;
 };
 
+#if 0
 struct SrtAnimationArchive {
   std::string name;
   std::string source;
@@ -145,5 +146,6 @@ struct SrtAnimationArchive {
 
   bool operator==(const SrtAnimationArchive&) const = default;
 };
+#endif
 
 } // namespace librii::g3d

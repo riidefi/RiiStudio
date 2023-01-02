@@ -127,12 +127,12 @@ CreatePresetFromMaterial(const riistudio::g3d::Material& mat,
   for (auto& srt : scene->getAnim_Srts()) {
     librii::g3d::SrtAnimationArchive mut = srt;
     auto it =
-        std::remove_if(mut.mat_animations.begin(), mut.mat_animations.end(),
-                       [&](auto& m) { return m.material_name != mat.name; });
-    if (it != mut.mat_animations.end()) {
-      mut.mat_animations.erase(it, mut.mat_animations.end());
+        std::remove_if(mut.materials.begin(), mut.materials.end(),
+                       [&](auto& m) { return m.name != mat.name; });
+    if (it != mut.materials.end()) {
+      mut.materials.erase(it, mut.materials.end());
     }
-    if (!mut.mat_animations.empty()) {
+    if (!mut.materials.empty()) {
       result.srt.push_back(mut);
     }
   }

@@ -203,9 +203,11 @@ std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
 rsl::expected<g3d::SrtAnimationArchive, std::string>
 ReadSRT0(std::span<const u8> file) {
   g3d::SrtAnimationArchive arc;
-  const bool ok = g3d::ReadSrtFile(arc, file);
+  oishii::DataProvider cringe(file | rsl::ToList());
+  oishii::BinaryReader reader(cringe.slice());
+  auto ok = arc.read(reader);
   if (!ok) {
-    return std::string("Failed to parse SRT0: g3d::ReadSrtFile returned false");
+    return "Failed to parse SRT0: g3d::ReadSrtFile returned " + ok.error();
   }
   return arc;
 }
@@ -216,7 +218,7 @@ std::vector<u8> WriteSRT0(const g3d::SrtAnimationArchive& arc) {
   g3d::NameTable names;
   // g3d::RelocWriter linker(writer);
 
-  g3d::WriteSrtFile(writer, arc, names, 0);
+  arc.write(writer, names, 0);
   const auto end = writer.tell();
   {
     names.poolNames();
@@ -374,8 +376,8 @@ ReadCrateAnimation(const CrateAnimationPaths& paths) {
 std::string RetargetCrateAnimation(CrateAnimation& preset) {
   std::set<std::string> mat_targets;
   for (const auto& srt : preset.srt) {
-    for (const auto& mat : srt.mat_animations) {
-      mat_targets.emplace(mat.material_name);
+    for (const auto& mat : srt.materials) {
+      mat_targets.emplace(mat.name);
     }
   }
 
@@ -399,8 +401,8 @@ std::string RetargetCrateAnimation(CrateAnimation& preset) {
 
   // Map mat_targets[0] -> mat.name
   for (auto& srt : preset.srt) {
-    for (auto& mat : srt.mat_animations) {
-      mat.material_name = preset.mat.name;
+    for (auto& mat : srt.materials) {
+      mat.name = preset.mat.name;
     }
   }
 
@@ -465,8 +467,8 @@ ReadRSPreset(std::span<const u8> file) {
     }
   }
   for (auto& srt : brres->getAnim_Srts()) {
-    for (auto& anim : srt.mat_animations) {
-      if (anim.material_name != mat.name) {
+    for (auto& anim : srt.materials) {
+      if (anim.name != mat.name) {
         return "Extraneous animations included"s;
       }
     }

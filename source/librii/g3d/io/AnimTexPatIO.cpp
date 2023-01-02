@@ -155,7 +155,6 @@ void BinaryTexPat::write(oishii::Writer& writer, NameTable& names,
   };
   info.write(writer, names, start);
 
-  const u32 dict_deferred = writer.tell();
   BetterDictionary dict;
 
   std::vector<u32> track_addresses;

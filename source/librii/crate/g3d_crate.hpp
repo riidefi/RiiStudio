@@ -2,9 +2,9 @@
 
 #include <expected>
 #include <filesystem>
-#include <librii/g3d/data/AnimData.hpp>
 #include <librii/g3d/data/MaterialData.hpp>
 #include <librii/g3d/data/TextureData.hpp>
+#include <librii/g3d/io/AnimIO.hpp>
 #include <rsl/Expected.hpp>
 #include <variant>
 

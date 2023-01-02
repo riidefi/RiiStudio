@@ -54,22 +54,24 @@ T BinaryReader::peekAt(int trans) {
 template <typename T, EndianSelect E, bool unaligned>
 std::expected<T, std::string> BinaryReader::tryGetAt(int trans) {
   if (!unaligned && (trans % sizeof(T))) {
-    // In test mode, the formatted error below is more useful
-    if (!gTestMode) {
+    auto err = std::format("Alignment error: {} is not {}-byte aligned.",
+                           tell(), sizeof(T));
+    if (gTestMode) {
+      fprintf(stderr, "%s\n", err.c_str());
       rsl::debug_break();
     }
-    return std::unexpected(std::format(
-        "Alignment error: {} is not {}-byte aligned.", tell(), sizeof(T)));
+    return std::unexpected(err);
   }
 
   if (trans < 0 || trans + sizeof(T) > endpos()) {
-    // In test mode, the formatted error below is more useful
-    if (!gTestMode) {
+    auto err = std::format(
+        "Bounds error: Reading {} bytes from {} exceeds buffer size of {}",
+        sizeof(T), trans, endpos());
+    if (gTestMode) {
+      fprintf(stderr, "%s\n", err.c_str());
       rsl::debug_break();
     }
-    return std::unexpected(std::format(
-        "Bounds error: Reading {} bytes from {} exceeds buffer size of {}",
-        sizeof(T), trans, endpos()));
+    return std::unexpected(err);
   }
 
   readerBpCheck(sizeof(T), trans - tell());
