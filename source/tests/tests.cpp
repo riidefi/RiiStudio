@@ -87,7 +87,7 @@ open(std::string path, std::span<const u32> bps = {}) {
   }
   importer.second->read_(transaction);
 
-  if (transaction.state == kpi::TransactionState::Failure) {
+  {
     for (auto& log : logs) {
       fprintf(stderr, "%s", log.c_str());
     }

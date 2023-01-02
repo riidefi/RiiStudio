@@ -71,6 +71,8 @@ Result<void> BinarySrt::read(oishii::BinaryReader& reader) {
   frameDuration = info.frameDuration;
   wrapMode = info.wrapMode;
 
+  std::vector<u32> debugOfsToTrack;
+
   auto track_addr_to_index = [&](u32 addr) -> Result<u32> {
     auto back = safe.tell();
     reader.seekSet(addr);
@@ -82,6 +84,7 @@ Result<void> BinarySrt::read(oishii::BinaryReader& reader) {
       return it - tracks.begin();
     }
     tracks.push_back(track);
+    debugOfsToTrack.push_back(addr);
     return tracks.size() - 1;
   };
 
@@ -97,6 +100,33 @@ Result<void> BinarySrt::read(oishii::BinaryReader& reader) {
     reader.seekSet(node.abs_data_ofs);
     TRY(mat.read(safe, track_addr_to_index));
   }
+
+  // Reorder tracks based on initial ordering.
+  // TODO: Figure out the initial sorting algorithm here.
+  std::set<u32> sorted(debugOfsToTrack.begin(), debugOfsToTrack.end());
+  std::vector<u32> fromToOperation(debugOfsToTrack.size());
+  for (size_t i = 0; i < tracks.size(); ++i) {
+    auto it = sorted.find(debugOfsToTrack[i]);
+    EXPECT(it != sorted.end());
+    fromToOperation[i] = std::distance(sorted.begin(), it);
+  }
+
+  std::vector<SRT0Track> tmp;
+  for (auto index : fromToOperation) {
+    tmp.push_back(tracks[index]);
+  }
+  tracks = tmp;
+
+  for (auto& mat : materials) {
+    for (auto& x : mat.matrices) {
+      for (auto& t : x.targets) {
+        if (auto* u = std::get_if<u32>(&t.data)) {
+          *u = fromToOperation[*u];
+        }
+      }
+    }
+  }
+
   return {};
 }
 
@@ -213,16 +243,12 @@ SRT0Matrix::read(rsl::SafeReader& safe,
                  std::function<Result<u32>(u32)> trackAddressToIndex) {
   auto matrix = safe.scoped("SRT0Matrix");
   flags = TRY(safe.U32());
-  fprintf(stderr, "Flags: %u (0x%x)\n", flags, flags);
   for (u32 i = 0; i < static_cast<u32>(TargetId::Count); ++i) {
     if (0 == (flags & (FLAG_ENABLED << (i * 0)))) {
       continue;
     }
     bool included = IsSrtAttributeIncluded(flags, static_cast<TargetId>(i));
     bool fixed = isFixed(static_cast<TargetId>(i), flags);
-    fprintf(stderr, "MatrixId: %s %s [%s]\n",
-            magic_enum::enum_name(static_cast<TargetId>(i)).data(),
-            fixed ? "FIXED" : "ANIM", included ? "INCLUDED" : "OMITTED");
     if (!included) {
       continue;
     }
@@ -231,12 +257,11 @@ SRT0Matrix::read(rsl::SafeReader& safe,
       targets.emplace_back(SRT0Target{.data = constFrame});
     } else {
       auto base = safe.tell();
-      safe.getUnsafe().warnAt("Bruh", base, base + 4);
       auto ofs = TRY(safe.S32());
-      fprintf(stderr, "base 0x%x ofs %d\n", (u32)base, (int)ofs);
       // For some reason it's relative to the entry entry in SRT0. In
       // PAT0 it's relative to section start.
-      u32 index = TRY(trackAddressToIndex(base + ofs));
+      u32 addr = base + ofs;
+      u32 index = TRY(trackAddressToIndex(addr));
       targets.emplace_back(SRT0Target{.data = index});
     }
   }
@@ -322,7 +347,6 @@ void SRT0Material::write(oishii::Writer& writer, NameTable& names,
 
   for (u32 i = 0; i < count; ++i) {
     u32 addr = matrixAddrs[i];
-    fprintf(stderr, "Target: %x\n", addr);
     auto ofs = addr - start;
     writer.write<s32>(ofs);
   }

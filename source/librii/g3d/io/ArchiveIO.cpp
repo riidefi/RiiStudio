@@ -339,7 +339,7 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
 
     models_dict.insert(i, mdl.name, writer.tell());
 
-    mdl.write(writer, names, start, arc.textures);
+    mdl.write(writer, names, start);
   }
   for (int i = 0; i < arc.textures.size(); ++i) {
     auto& tex = arc.textures[i];

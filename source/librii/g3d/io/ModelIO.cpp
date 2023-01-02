@@ -484,18 +484,13 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
                  return {};
                }));
 
-  if (!isValid && bones.size() > 1) {
-    transaction.callback(
-        kpi::IOMessageClass::Error, transaction_path,
-        "BRRES file was created with BrawlBox and is invalid. It is "
-        "recommended you create BRRES files here by dropping a DAE/FBX file.");
-    //
-  } else if (!isValid) {
+  if (!isValid) {
     transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
                          "Note: BRRES file was saved with BrawlBox. Certain "
                          "materials may flicker during ghost replays.");
-  } else if (bones.size() > 1) {
-    transaction.callback(kpi::IOMessageClass::Error, transaction_path,
+  }
+  if (bones.size() > 1) {
+    transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
                          "Rigging support is not fully tested.");
   }
   return {};
@@ -848,8 +843,7 @@ std::string WriteMesh(oishii::Writer& writer,
 }
 
 void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
-                NameTable& names, std::size_t brres_start,
-                std::span<const librii::g3d::TextureData> textures) {
+                NameTable& names, std::size_t brres_start) {
   const auto mdl_start = writer.tell();
   int d_cursor = 0;
 
@@ -928,32 +922,28 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
   tally_dict("Materials", bin.materials);
   tally_dict("Shaders", bin.materials);
   tally_dict("Meshes", bin.meshes);
-  u32 n_samplers = 0;
-  for (auto& mat : bin.materials)
-    n_samplers += mat.samplers.size();
-  if (n_samplers) {
+
+  librii::g3d::TextureSamplerMappingManager tex_sampler_mappings;
+
+  std::set<std::string> bruh;
+  for (auto& mat : bin.materials) {
+    for (auto& s : mat.samplers) {
+      bruh.emplace(s.texture);
+    }
+  }
+  for (auto& tex : bruh)
+    for (auto& mat : bin.materials)
+      for (int s = 0; s < mat.samplers.size(); ++s)
+        if (mat.samplers[s].texture == tex)
+          tex_sampler_mappings.add_entry(tex, mat.name, s);
+  if (tex_sampler_mappings.size()) {
     Dictionaries.emplace("TexSamplerMap", dicts_size + d_cursor);
-    dicts_size += 24 + 16 * n_samplers;
+    dicts_size += 24 + 16 * tex_sampler_mappings.size();
   }
   for (auto [key, val] : Dictionaries) {
     DebugReport("%s: %x\n", key.c_str(), (unsigned)val);
   }
   writer.skip(dicts_size);
-
-  librii::g3d::TextureSamplerMappingManager tex_sampler_mappings;
-
-  // for (auto& mat : mdl.getMaterials()) {
-  //   for (int s = 0; s < mat.samplers.size(); ++s) {
-  //     auto& samp = *mat.samplers[s];
-  //     tex_sampler_mappings.add_entry(samp.mTexture);
-  //   }
-  // }
-  // Matching order..
-  for (auto& tex : textures)
-    for (auto& mat : bin.materials)
-      for (int s = 0; s < mat.samplers.size(); ++s)
-        if (mat.samplers[s].texture == tex.name)
-          tex_sampler_mappings.add_entry(tex.name, mat.name, s);
 
   int sm_i = 0;
   write_dict(
@@ -1066,9 +1056,8 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
 } // namespace
 
 void BinaryModel::write(oishii::Writer& writer, NameTable& names,
-                        std::size_t brres_start,
-                        std::span<const librii::g3d::TextureData> textures) {
-  writeModel(*this, writer, names, brres_start, textures);
+                        std::size_t brres_start) {
+  writeModel(*this, writer, names, brres_start);
 }
 
 } // namespace librii::g3d

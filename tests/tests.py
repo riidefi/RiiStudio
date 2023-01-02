@@ -24,7 +24,7 @@ TEST_DATA = {
 	'55af17739e1f02f9cc3fe0cdf79195a0': '55af17739e1f02f9cc3fe0cdf79195a0',
 
 	# luigi_circuit.brres
-	'b84346d8549d38f4ba75a47eb87e9ca6': '0b0de5730e303b497f605dd7af1edeeb',
+	'b84346d8549d38f4ba75a47eb87e9ca6': 'b84346d8549d38f4ba75a47eb87e9ca6',
 
 	# sea.brres
 	# 1:1!
