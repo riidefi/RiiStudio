@@ -440,4 +440,34 @@ void BinaryArchive::write(oishii::Writer& writer) {
   WriteBRRES(*this, writer);
 }
 
+//
+// Intermediate
+//
+Result<Archive> Archive::from(const BinaryArchive& archive,
+                              kpi::LightIOTransaction& transaction) {
+  Archive tmp;
+  for (auto& mdl : archive.models) {
+    tmp.models.emplace_back(
+        TRY(Model::from(mdl, transaction, "MDL0 " + mdl.name)));
+  }
+  tmp.textures = archive.textures;
+  tmp.clrs = archive.clrs;
+  tmp.pats = archive.pats;
+  tmp.srts = archive.srts;
+  tmp.viss = archive.viss;
+  return tmp;
+}
+Result<BinaryArchive> Archive::binary() const {
+  BinaryArchive tmp;
+  for (auto& mdl : models) {
+    tmp.models.emplace_back(TRY(mdl.binary()));
+  }
+  tmp.textures = textures;
+  tmp.clrs = clrs;
+  tmp.pats = pats;
+  tmp.srts = srts;
+  tmp.viss = viss;
+  return tmp;
+}
+
 } // namespace librii::g3d

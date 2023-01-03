@@ -18,6 +18,10 @@
 #include <vendor/glm/vec2.hpp>
 #include <vendor/glm/vec3.hpp>
 
+#include <librii/g3d/io/WiiTrig.hpp>
+#include <librii/math/mtx.hpp>
+#include <librii/math/srt3.hpp>
+
 auto indexOf = [](const auto& x, const auto& y) -> int {
   int index = std::find_if(x.begin(), x.end(),
                            [y](auto& f) { return f.getName() == y; }) -
@@ -1059,5 +1063,828 @@ void BinaryModel::write(oishii::Writer& writer, NameTable& names,
                         std::size_t brres_start) {
   writeModel(*this, writer, names, brres_start);
 }
+
+//
+//
+// Intermediate model
+//
+//
+
+#pragma region Bones
+
+u32 computeFlag(const librii::g3d::BoneData& data,
+                std::span<const librii::g3d::BoneData> all,
+                librii::g3d::ScalingRule scalingRule) {
+  u32 flag = 0;
+  const std::array<float, 3> scale{data.mScaling.x, data.mScaling.y,
+                                   data.mScaling.z};
+  if (rsl::RangeIsHomogenous(scale)) {
+    flag |= 0x10;
+    if (data.mScaling == glm::vec3{1.0f, 1.0f, 1.0f})
+      flag |= 8;
+  }
+  if (data.mRotation == glm::vec3{0.0f, 0.0f, 0.0f})
+    flag |= 4;
+  if (data.mTranslation == glm::vec3{0.0f, 0.0f, 0.0f})
+    flag |= 2;
+  if ((flag & (2 | 4 | 8)) == (2 | 4 | 8))
+    flag |= 1;
+  bool has_ssc_below = false;
+  {
+    std::vector<s32> stack;
+    for (auto c : data.mChildren)
+      stack.push_back(c);
+    while (!stack.empty()) {
+      auto& elem = all[stack.back()];
+      stack.resize(stack.size() - 1);
+      if (elem.ssc) {
+        has_ssc_below = true;
+      }
+      // It seems it's not actually a recursive flag?
+
+      // for (auto c : elem.mChildren)
+      //   stack.push_back(c);
+    }
+    if (has_ssc_below) {
+      flag |= 0x40;
+    }
+  }
+  if (data.ssc)
+    flag |= 0x20;
+  if (scalingRule == librii::g3d::ScalingRule::XSI)
+    flag |= 0x80;
+  if (data.visible)
+    flag |= 0x100;
+  // TODO: Check children?
+
+  if (data.displayMatrix)
+    flag |= 0x200;
+  // TODO: 0x400 check parents
+  return flag;
+}
+// Call this last
+void setFromFlag(librii::g3d::BoneData& data, u32 flag) {
+  // TODO: Validate items
+  data.ssc = (flag & 0x20) != 0;
+
+  // Instead refer to scalingRule == SOFTIMAGE
+  // data.classicScale = (flag & 0x80) == 0;
+
+  data.visible = (flag & 0x100) != 0;
+  // Just trust it at this point
+  data.displayMatrix = (flag & 0x200) != 0;
+}
+
+librii::math::SRT3 getSrt(const librii::g3d::BinaryBoneData& bone) {
+  return {
+      .scale = bone.scale,
+      .rotation = bone.rotate,
+      .translation = bone.translate,
+  };
+}
+librii::math::SRT3 getSrt(const librii::g3d::BoneData& bone) {
+  return {
+      .scale = bone.mScaling,
+      .rotation = bone.mRotation,
+      .translation = bone.mTranslation,
+  };
+}
+
+s32 parentOf(const librii::g3d::BinaryBoneData& bone) { return bone.parent_id; }
+s32 parentOf(const librii::g3d::BoneData& bone) { return bone.mParent; }
+
+s32 ssc(const librii::g3d::BinaryBoneData& bone) { return bone.flag & 0x20; }
+s32 ssc(const librii::g3d::BoneData& bone) { return bone.ssc; }
+
+using WiiFloat = f64;
+
+// COLUMN-MAJOR IMPLEMENTATION
+void CalcEnvelopeContribution(glm::mat4& thisMatrix, glm::vec3& thisScale,
+                              const auto& node, const glm::mat4& parentMtx,
+                              const glm::vec3& parentScale,
+                              librii::g3d::ScalingRule scalingRule) {
+  auto srt = getSrt(node);
+  if (ssc(node)) {
+    librii::g3d::Mtx_makeRotateDegrees(/*out*/ thisMatrix, srt.rotation.x,
+                                       srt.rotation.y, srt.rotation.z);
+    thisMatrix[3][0] = (WiiFloat)srt.translation.x * (WiiFloat)parentScale.x;
+    thisMatrix[3][1] = (WiiFloat)srt.translation.y * (WiiFloat)parentScale.y;
+    thisMatrix[3][2] = (WiiFloat)srt.translation.z * (WiiFloat)parentScale.z;
+    // PSMTXConcat(parentMtx, &thisMatrix, /*out*/ &thisMatrix);
+    // thisMatrix = parentMtx * thisMatrix;
+    thisMatrix = librii::g3d::MTXConcat(parentMtx, thisMatrix);
+    thisScale.x = srt.scale.x;
+    thisScale.y = srt.scale.y;
+    thisScale.z = srt.scale.z;
+  } else if (scalingRule ==
+             librii::g3d::ScalingRule::XSI) { // CLASSIC_SCALE_OFF
+    librii::g3d::Mtx_makeRotateDegrees(/*out*/ thisMatrix, srt.rotation.x,
+                                       srt.rotation.y, srt.rotation.z);
+    thisMatrix[3][0] = (WiiFloat)srt.translation.x * (WiiFloat)parentScale.x;
+    thisMatrix[3][1] = (WiiFloat)srt.translation.y * (WiiFloat)parentScale.y;
+    thisMatrix[3][2] = (WiiFloat)srt.translation.z * (WiiFloat)parentScale.z;
+    // PSMTXConcat(parentMtx, &thisMatrix, /*out*/ &thisMatrix);
+    // thisMatrix = parentMtx * thisMatrix;
+    thisMatrix = librii::g3d::MTXConcat(parentMtx, thisMatrix);
+    thisScale.x = (WiiFloat)srt.scale.x * (WiiFloat)parentScale.x;
+    thisScale.y = (WiiFloat)srt.scale.y * (WiiFloat)parentScale.y;
+    thisScale.z = (WiiFloat)srt.scale.z * (WiiFloat)parentScale.z;
+  } else {
+    glm::mat4x3 scratch;
+    // Mtx_scale(/*out*/ &scratch, parentMtx, parentScale);
+    librii::g3d::Mtx_scale(/*out*/ scratch, parentMtx, parentScale);
+    // scratch = glm::scale(parentMtx, parentScale);
+    librii::g3d::Mtx_makeRotateDegrees(/*out*/ thisMatrix, srt.rotation.x,
+                                       srt.rotation.y, srt.rotation.z);
+    thisMatrix[3][0] = srt.translation.x;
+    thisMatrix[3][1] = srt.translation.y;
+    thisMatrix[3][2] = srt.translation.z;
+    // PSMTXConcat(scratch, &thisMatrix, /*out*/ &thisMatrix);
+    // thisMatrix = scratch * thisMatrix;
+    thisMatrix = librii::g3d::MTXConcat(scratch, thisMatrix);
+    thisScale.x = srt.scale.x;
+    thisScale.y = srt.scale.y;
+    thisScale.z = srt.scale.z;
+  }
+}
+
+// SLOW IMPLEMENTATION
+inline glm::mat4 calcSrtMtx(const auto& bone, auto&& bones,
+                            librii::g3d::ScalingRule scalingRule) {
+  std::vector<s32> path;
+  auto* it = &bone;
+  while (true) {
+    s32 parentIndex = parentOf(*it);
+    if (parentIndex < 0 || parentIndex >= std::ranges::size(bones)) {
+      break;
+    }
+    path.push_back(parentIndex);
+    it = &bones[parentIndex];
+  }
+
+  glm::mat4 mat(1.0f);
+  glm::vec3 scl(1.0f, 1.0f, 1.0f);
+  for (int i = 0; i < path.size(); ++i) {
+    auto index = path[path.size() - 1 - i];
+    auto& thisBone = bones[index];
+
+    glm::mat4 thisMatrix(1.0f);
+    glm::vec3 thisScale(1.0f, 1.0f, 1.0f);
+    CalcEnvelopeContribution(/*out*/ thisMatrix, /*out*/ thisScale, thisBone,
+                             mat, scl, scalingRule);
+    mat = thisMatrix;
+    scl = thisScale;
+  }
+  glm::mat4 thisMatrix(1.0f);
+  glm::vec3 thisScale(1.0f, 1.0f, 1.0f);
+  {
+    CalcEnvelopeContribution(/*out*/ thisMatrix, /*out*/ thisScale, bone, mat,
+                             scl, scalingRule);
+  }
+  // return glm::scale(thisMatrix, thisScale);
+  glm::mat4x3 tmp;
+  librii::g3d::Mtx_scale(tmp, thisMatrix, thisScale);
+  return tmp;
+}
+
+librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
+                                     auto&& bones, kpi::IOContext& ctx_,
+                                     librii::g3d::ScalingRule scalingRule) {
+  auto ctx = ctx_.sublet("Bone " + bin.name);
+  librii::g3d::BoneData bone;
+  bone.mName = bin.name;
+  printf("%s\n", bone.mName.c_str());
+  // TODO: Verify matrixId
+  bone.billboardType = bin.billboardType;
+  // TODO: refId
+  bone.mScaling = bin.scale;
+  bone.mRotation = bin.rotate;
+  bone.mTranslation = bin.translate;
+
+  bone.mVolume = bin.aabb;
+
+  bone.mParent = bin.parent_id;
+  // Skip sibling and child links -- we recompute it all
+
+  auto modelMtx = calcSrtMtx(bin, bones, scalingRule);
+  auto modelMtx34 = glm::mat4x3(modelMtx);
+
+  auto invModelMtx =
+      librii::g3d::MTXInverse(modelMtx).value_or(glm::mat4(0.0f));
+  auto invModelMtx34 = glm::mat4x3(invModelMtx);
+
+  // auto test = jensen_shannon_divergence(bin.modelMtx, bin.inverseModelMtx);
+  // auto test2 = jensen_shannon_divergence(bin.modelMtx, glm::mat4(1.0f));
+  auto divergeM =
+      librii::math::jensen_shannon_divergence(bin.modelMtx, modelMtx34);
+  auto divergeI = librii::math::jensen_shannon_divergence(bin.inverseModelMtx,
+                                                          invModelMtx34);
+  // assert(bin.modelMtx == modelMtx34);
+  // assert(bin.inverseModelMtx == invModelMtx34);
+  ctx.require(bin.modelMtx == modelMtx34,
+              "Incorrect envelope matrix (Jensen-Shannon divergence: {})",
+              divergeM);
+  ctx.require(bin.inverseModelMtx == invModelMtx34,
+              "Incorrect inverse model matrix (Jensen-Shannon divergence: {})",
+              divergeI);
+  bool classic = !static_cast<bool>(bin.flag & 0x80);
+  if (classic != (scalingRule != librii::g3d::ScalingRule::XSI)) {
+    ctx.error(std::format("Bone is configured as {} but model is {}",
+                          !classic ? "XSI" : "non-XSI",
+                          magic_enum::enum_name(scalingRule)));
+  }
+  setFromFlag(bone, bin.flag);
+  return bone;
+}
+
+librii::g3d::BinaryBoneData
+toBinaryBone(const librii::g3d::BoneData& bone,
+             std::span<const librii::g3d::BoneData> bones, u32 bone_id,
+             librii::g3d::ScalingRule scalingRule, s32 matrixId) {
+  librii::g3d::BinaryBoneData bin;
+  bin.name = bone.mName;
+  bin.matrixId = matrixId;
+
+  // TODO: Fix
+  bin.flag = computeFlag(bone, bones, scalingRule);
+  bin.id = bone_id;
+
+  bin.billboardType = bone.billboardType;
+  bin.ancestorBillboardBone = 0; // TODO: ref
+  bin.scale = bone.mScaling;
+  bin.rotate = bone.mRotation;
+  bin.translate = bone.mTranslation;
+  bin.aabb = bone.mVolume;
+
+  // Parent, Child, Left, Right
+  bin.parent_id = bone.mParent;
+  bin.child_first_id = -1;
+  bin.sibling_left_id = -1;
+  bin.sibling_right_id = -1;
+
+  if (bone.mChildren.size()) {
+    bin.child_first_id = bone.mChildren[0];
+  }
+  if (bone.mParent != -1) {
+    auto& siblings = bones[bone.mParent].mChildren;
+    auto it = std::find(siblings.begin(), siblings.end(), bone_id);
+    assert(it != siblings.end());
+    // Not a cyclic linked list
+    bin.sibling_left_id = it == siblings.begin() ? -1 : *(it - 1);
+    bin.sibling_right_id = it == siblings.end() - 1 ? -1 : *(it + 1);
+  }
+
+  auto modelMtx = calcSrtMtx(bone, bones, scalingRule);
+  auto modelMtx34 = glm::mat4x3(modelMtx);
+
+  bin.modelMtx = modelMtx34;
+  bin.inverseModelMtx =
+      librii::g3d::MTXInverse(modelMtx34).value_or(glm::mat4x3(0.0f));
+  return bin;
+}
+
+#pragma endregion
+
+#pragma region librii->Editor
+
+// Handles all incoming bytecode on a method and applies it to the model.
+//
+// clang-format off
+//
+// - DrawOpa(material, bone, mesh) -> assert(material.xlu) && bone.addDrawCall(material, mesh)
+// - DrawXlu(material, bone, mesh) -> assert(!material.xlu) && bone.addDrawCall(material, mesh)
+// - EvpMtx(mtxId, boneId) -> model.insertDrawMatrix(mtxId, { .bone = boneId, .weight = 100% })
+// - NodeMix(mtxId, [(mtxId, ratio)]) -> model.insertDrawMatrix(mtxId, ... { .bone = LUT[mtxId], .ratio = ratio })
+//
+// clang-format on
+class ByteCodeHelper {
+  using B = librii::g3d::ByteCodeLists;
+
+public:
+  ByteCodeHelper(const ByteCodeMethod& method_, Model& mdl_,
+                 const BinaryModel& bmdl_, kpi::IOContext& ctx_)
+      : method(method_), mdl(mdl_), binary_mdl(bmdl_), ctx(ctx_) {}
+
+  void onDraw(const B::Draw& draw) {
+    BoneData::DisplayCommand disp{
+        .mMaterial = static_cast<u32>(draw.matId),
+        .mPoly = static_cast<u32>(draw.polyId),
+        .mPrio = draw.prio,
+    };
+    auto boneIdx = draw.boneId;
+    if (boneIdx > mdl.bones.size()) {
+      ctx.error("Invalid bone index in render command");
+      boneIdx = 0;
+      ctx.transaction.state = kpi::TransactionState::Failure;
+    }
+
+    if (disp.mMaterial > mdl.meshes.size()) {
+      ctx.error("Invalid material index in render command");
+      disp.mMaterial = 0;
+      ctx.transaction.state = kpi::TransactionState::Failure;
+    }
+
+    if (disp.mPoly > mdl.meshes.size()) {
+      ctx.error("Invalid mesh index in render command");
+      disp.mPoly = 0;
+      ctx.transaction.state = kpi::TransactionState::Failure;
+    }
+
+    mdl.bones[boneIdx].mDisplayCommands.push_back(disp);
+
+    // While with this setup, materials could be XLU and OPA, in
+    // practice, they're not.
+    //
+    // Warn the user if a material is flagged as OPA/XLU but doesn't exist
+    // in the corresponding draw list.
+    auto& mat = mdl.materials[disp.mMaterial];
+    auto& poly = mdl.meshes[disp.mPoly];
+    {
+      const bool xlu_mat = mat.flag & 0x80000000;
+      if ((method.name == "DrawOpa" && xlu_mat) ||
+          (method.name == "DrawXlu" && !xlu_mat)) {
+        kpi::IOContext mc = ctx.sublet("materials").sublet(mat.name);
+        mc.request(
+            false,
+            "Material {} (#{}) is rendered in the {} pass (with mesh {} #{}), "
+            "but is marked as {}",
+            mat.name, disp.mMaterial, xlu_mat ? "Opaque" : "Translucent",
+            disp.mPoly, poly.mName, !xlu_mat ? "Opaque" : "Translucent");
+      }
+    }
+    // And ultimately reset the flag to its proper value.
+    mat.xlu = method.name == "DrawXlu";
+  }
+
+  void onNodeDesc(const B::NodeDescendence& desc) {
+    auto& bin = binary_mdl.bones[desc.boneId];
+    auto& bone = mdl.bones[desc.boneId];
+    const auto matrixId = bin.matrixId;
+
+    auto parent_id =
+        binary_mdl.info.mtxToBoneLUT.mtxIdToBoneId[desc.parentMtxId];
+    if (bone.mParent != -1 && parent_id >= 0) {
+      bone.mParent = parent_id;
+    }
+
+    if (matrixId >= mdl.matrices.size()) {
+      mdl.matrices.resize(matrixId + 1);
+    }
+    mdl.matrices[matrixId].mWeights.emplace_back(desc.boneId, 1.0f);
+  }
+
+  // Either-or: A matrix is either single-bound (EVP) or multi-influence
+  // (NODEMIX)
+  void onEvpMtx(const B::EnvelopeMatrix& evp) {
+    auto& drw = insertMatrix(evp.mtxId);
+    drw.mWeights = {{evp.nodeId, 1.0f}};
+  }
+
+  Result<void> onNodeMix(const B::NodeMix& mix) {
+    auto& drw = insertMatrix(mix.mtxId);
+    auto range = mix.blendMatrices |
+                 std::views::transform([&](const B::NodeMix::BlendMtx& blend)
+                                           -> Result<DrawMatrix::MatrixWeight> {
+                   int boneIndex =
+                       binary_mdl.info.mtxToBoneLUT.mtxIdToBoneId[blend.mtxId];
+                   EXPECT(boneIndex != -1);
+                   return DrawMatrix::MatrixWeight{static_cast<u32>(boneIndex),
+                                                   blend.ratio};
+                 });
+    for (auto&& w : range) {
+      drw.mWeights.push_back(TRY(w));
+    }
+    return {};
+  }
+
+private:
+  DrawMatrix& insertMatrix(std::size_t index) {
+    if (mdl.matrices.size() <= index) {
+      mdl.matrices.resize(index + 1);
+    }
+    return mdl.matrices[index];
+  }
+  const ByteCodeMethod& method;
+  Model& mdl;
+  const BinaryModel& binary_mdl;
+  kpi::IOContext& ctx;
+};
+
+Result<void> processModel(const BinaryModel& binary_model,
+                          kpi::LightIOTransaction& transaction,
+                          std::string_view transaction_path, Model& mdl) {
+  using namespace librii::g3d;
+  if (transaction.state == kpi::TransactionState::Failure) {
+    return {};
+  }
+  kpi::IOContext ctx(std::string(transaction_path) + "//MDL0 " +
+                         binary_model.name,
+                     transaction);
+
+  mdl.name = binary_model.name;
+
+  u32 numDisplayMatrices = 1;
+  // Assign info
+  {
+    const auto& info = binary_model.info;
+    mdl.info.scalingRule = info.scalingRule;
+    mdl.info.texMtxMode = info.texMtxMode;
+    // Validate numVerts, numTris
+    {
+      auto [computedNumVerts, computedNumTris] =
+          librii::gx::computeVertTriCounts(binary_model.meshes);
+      ctx.request(
+          computedNumVerts == info.numVerts,
+          "Model header specifies {} vertices, but the file only has {}.",
+          info.numVerts, computedNumVerts);
+      ctx.request(
+          computedNumTris == info.numTris,
+          "Model header specifies {} triangles, but the file only has {}.",
+          info.numTris, computedNumTris);
+    }
+    mdl.info.sourceLocation = info.sourceLocation;
+    {
+      auto displayMatrices = librii::gx::computeDisplayMatricesSubset(
+          binary_model.meshes, binary_model.bones,
+          [](auto& x, int i) { return x.matrixId; });
+      ctx.request(info.numViewMtx == displayMatrices.size(),
+                  "Model header specifies {} display matrices, but the mesh "
+                  "data only references {} display matrices.",
+                  info.numViewMtx, displayMatrices.size());
+      auto ref = librii::gx::computeShapeMtxRef(binary_model.meshes);
+      numDisplayMatrices = ref.size();
+    }
+    {
+      auto needsNormalMtx =
+          std::any_of(binary_model.meshes.begin(), binary_model.meshes.end(),
+                      [](auto& m) { return m.needsNormalMtx(); });
+      ctx.request(
+          info.normalMtxArray == needsNormalMtx,
+          needsNormalMtx
+              ? "Model header unecessarily burdens the runtime library "
+                "with bone-normal-matrix computation"
+              : "Model header does not tell the runtime library to maintain "
+                "bone normal matrix arrays, although some meshes need it");
+    }
+    {
+      auto needsTexMtx =
+          std::any_of(binary_model.meshes.begin(), binary_model.meshes.end(),
+                      [](auto& m) { return m.needsTextureMtx(); });
+      ctx.request(
+          info.texMtxArray == needsTexMtx,
+          needsTexMtx
+              ? "Model header unecessarily burdens the runtime library "
+                "with bone-texture-matrix computation"
+              : "Model header does not tell the runtime library to maintain "
+                "bone texture matrix arrays, although some meshes need it");
+    }
+    ctx.request(!info.boundVolume,
+                "Model specifies bounding data should be used");
+    mdl.info.evpMtxMode = info.evpMtxMode;
+    mdl.info.min = info.min;
+    mdl.info.max = info.max;
+    // Validate mtxToBoneLUT
+    {
+      const auto& lut = info.mtxToBoneLUT.mtxIdToBoneId;
+      for (size_t i = 0; i < binary_model.bones.size(); ++i) {
+        const auto& bone = binary_model.bones[i];
+        if (bone.matrixId > lut.size()) {
+          ctx.error(
+              std::format("Bone {} specifies a matrix ID of {}, but the matrix "
+                          "LUT only specifies {} matrices total.",
+                          bone.name, bone.matrixId, lut.size()));
+          continue;
+        }
+        ctx.request(lut[bone.matrixId] == i,
+                    "Bone {} (#{}) declares ownership of Matrix{}. However, "
+                    "Matrix{} does not register this bone as its owner. "
+                    "Rather, it specifies an owner ID of {}.",
+                    bone.name, i, bone.matrixId, bone.matrixId,
+                    lut[bone.matrixId]);
+      }
+    }
+  }
+
+  mdl.bones.resize(0);
+  for (size_t i = 0; i < binary_model.bones.size(); ++i) {
+    EXPECT(binary_model.bones[i].id == i);
+    mdl.bones.emplace_back() =
+        fromBinaryBone(binary_model.bones[i], binary_model.bones, ctx,
+                       binary_model.info.scalingRule);
+  }
+
+  mdl.positions = binary_model.positions;
+  mdl.normals = binary_model.normals;
+  mdl.colors = binary_model.colors;
+  mdl.texcoords = binary_model.texcoords;
+  // TODO: Fur
+  for (auto& mat : binary_model.materials) {
+    auto ok = TRY(librii::g3d::fromBinMat(mat, &mat.tev));
+    mdl.materials.emplace_back() = ok;
+  }
+  mdl.meshes = binary_model.meshes;
+  // Process bytecode: Apply to materials/bones/draw matrices
+  for (auto& method : binary_model.bytecodes) {
+    ByteCodeHelper helper(method, mdl, binary_model, ctx);
+    for (auto& command : method.commands) {
+      if (auto* draw = std::get_if<ByteCodeLists::Draw>(&command)) {
+        helper.onDraw(*draw);
+      } else if (auto* desc =
+                     std::get_if<ByteCodeLists::NodeDescendence>(&command)) {
+        helper.onNodeDesc(*desc);
+      } else if (auto* evp =
+                     std::get_if<ByteCodeLists::EnvelopeMatrix>(&command)) {
+        helper.onEvpMtx(*evp);
+      } else if (auto* mix = std::get_if<ByteCodeLists::NodeMix>(&command)) {
+        TRY(helper.onNodeMix(*mix));
+      } else {
+        // TODO: Other bytecodes
+        EXPECT(false, "Unexpected bytecode");
+      }
+    }
+  }
+
+  // Assumes all display matrices contiguously precede non-display matrices.
+  // Trim non-display matrices to reach numViewMtx.
+  // Can't trust the header -- BrawlBox doesn't properly set it.
+  EXPECT(numDisplayMatrices <= mdl.matrices.size());
+  mdl.matrices.resize(numDisplayMatrices);
+
+  // Recompute parent-child relationships
+  for (size_t i = 0; i < mdl.bones.size(); ++i) {
+    auto& bone = mdl.bones[i];
+    if (bone.mParent == -1) {
+      continue;
+    }
+    auto& parent = mdl.bones[bone.mParent];
+    parent.mChildren.push_back(i);
+  }
+  return {};
+}
+
+#pragma endregion
+
+#pragma region Editor->librii
+
+void BuildRenderLists(const Model& mdl,
+                      std::vector<librii::g3d::ByteCodeMethod>& renderLists,
+                      // Expanded to fit non-draw bone matrices
+                      std::span<const DrawMatrix> drawMatrices,
+                      // Maps bones to above drawMatrix span
+                      std::span<const u32> boneToMatrix) {
+  librii::g3d::ByteCodeMethod nodeTree{.name = "NodeTree"};
+  librii::g3d::ByteCodeMethod nodeMix{.name = "NodeMix"};
+  librii::g3d::ByteCodeMethod drawOpa{.name = "DrawOpa"};
+  librii::g3d::ByteCodeMethod drawXlu{.name = "DrawXlu"};
+
+  for (size_t i = 0; i < mdl.bones.size(); ++i) {
+    for (const auto& draw : mdl.bones[i].mDisplayCommands) {
+      librii::g3d::ByteCodeLists::Draw cmd{
+          .matId = static_cast<u16>(draw.mMaterial),
+          .polyId = static_cast<u16>(draw.mPoly),
+          .boneId = static_cast<u16>(i),
+          .prio = draw.mPrio,
+      };
+      bool xlu = draw.mMaterial < std::size(mdl.materials) &&
+                 mdl.materials[draw.mMaterial].xlu;
+      (xlu ? &drawXlu : &drawOpa)->commands.push_back(cmd);
+    }
+    auto parent = mdl.bones[i].mParent;
+    assert(parent < std::ssize(mdl.bones));
+    librii::g3d::ByteCodeLists::NodeDescendence desc{
+        .boneId = static_cast<u16>(i),
+        .parentMtxId = static_cast<u16>(parent >= 0 ? boneToMatrix[parent] : 0),
+    };
+    nodeTree.commands.push_back(desc);
+  }
+
+  auto write_drw = [&](const DrawMatrix& drw, size_t i) {
+    if (drw.mWeights.size() > 1) {
+      librii::g3d::ByteCodeLists::NodeMix mix{
+          .mtxId = static_cast<u16>(i),
+      };
+      for (auto& weight : drw.mWeights) {
+        assert(weight.boneId < mdl.bones.size());
+        mix.blendMatrices.push_back(
+            librii::g3d::ByteCodeLists::NodeMix::BlendMtx{
+                .mtxId = static_cast<u16>(boneToMatrix[weight.boneId]),
+                .ratio = weight.weight,
+            });
+      }
+      nodeMix.commands.push_back(mix);
+    } else {
+      assert(drw.mWeights[0].boneId < mdl.bones.size());
+      librii::g3d::ByteCodeLists::EnvelopeMatrix evp{
+          .mtxId = static_cast<u16>(i),
+          .nodeId = static_cast<u16>(drw.mWeights[0].boneId),
+      };
+      nodeMix.commands.push_back(evp);
+    }
+  };
+
+  // TODO: Better heuristic. When do we *need* NodeMix? Presumably when at least
+  // one bone is weighted to a matrix that is not a bone directly? Or when that
+  // bone is influenced by another bone?
+  bool needs_nodemix = false;
+  for (auto& mtx : drawMatrices) {
+    if (mtx.mWeights.size() > 1) {
+      needs_nodemix = true;
+      break;
+    }
+  }
+
+  if (needs_nodemix) {
+    // Bones come first
+    for (size_t i = 0; i < mdl.bones.size(); ++i) {
+      auto& drw = drawMatrices[boneToMatrix[i]];
+      write_drw(drw, boneToMatrix[i]);
+    }
+    for (size_t i = 0; i < mdl.matrices.size(); ++i) {
+      auto& drw = drawMatrices[i];
+      if (drw.mWeights.size() == 1) {
+        // Written in pre-pass
+        continue;
+      }
+      write_drw(drw, i);
+    }
+  }
+
+  renderLists.push_back(nodeTree);
+  if (!nodeMix.commands.empty()) {
+    renderLists.push_back(nodeMix);
+  }
+  if (!drawOpa.commands.empty()) {
+    renderLists.push_back(drawOpa);
+  }
+  if (!drawXlu.commands.empty()) {
+    renderLists.push_back(drawXlu);
+  }
+}
+
+struct ShaderAllocator {
+  void alloc(const librii::g3d::G3dShader& shader) {
+    auto found = std::find(shaders.begin(), shaders.end(), shader);
+    if (found == shaders.end()) {
+      matToShaderMap.emplace_back(shaders.size());
+      shaders.emplace_back(shader);
+    } else {
+      matToShaderMap.emplace_back(found - shaders.begin());
+    }
+  }
+
+  int find(const librii::g3d::G3dShader& shader) const {
+    if (const auto found = std::find(shaders.begin(), shaders.end(), shader);
+        found != shaders.end()) {
+      return std::distance(shaders.begin(), found);
+    }
+
+    return -1;
+  }
+
+  auto size() const { return shaders.size(); }
+
+  std::string getShaderIDName(const librii::g3d::G3dShader& shader) const {
+    const int found = find(shader);
+    assert(found >= 0);
+    return "Shader" + std::to_string(found);
+  }
+
+  std::vector<librii::g3d::G3dShader> shaders;
+  std::vector<u32> matToShaderMap;
+};
+
+librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
+  std::set<s16> shapeRefMtx = computeShapeMtxRef(mdl.meshes);
+  DebugPrint("shapeRefMtx: {}, Before: {}", shapeRefMtx.size(),
+             mdl.matrices.size());
+  assert(shapeRefMtx.size() == mdl.matrices.size());
+  std::vector<DrawMatrix> drawMatrices = mdl.matrices;
+  std::vector<u32> boneToMatrix;
+  DebugPrint("# Bones = {}", mdl.bones.size());
+  for (size_t i = 0; i < mdl.bones.size(); ++i) {
+    int it = -1;
+    for (size_t j = 0; j < mdl.matrices.size(); ++j) {
+      auto& mtx = mdl.matrices[j];
+      if (mtx.mWeights.size() == 1 && mtx.mWeights[0].boneId == i) {
+        it = j;
+        break;
+      }
+    }
+    if (it == -1) {
+      boneToMatrix.push_back(drawMatrices.size());
+      DrawMatrix mtx{.mWeights = {{static_cast<u32>(i), 1.0f}}};
+      DebugPrint("Adding drawmtx {} for bone {} since no singlebound found",
+                 drawMatrices.size(), i);
+      drawMatrices.push_back(mtx);
+    } else {
+      boneToMatrix.push_back(it);
+    }
+  }
+  auto getMatrixId = [&](auto& x, int i) { return boneToMatrix[i]; };
+  std::set<s16> displayMatrices =
+      gx::computeDisplayMatricesSubset(mdl.meshes, mdl.bones, getMatrixId);
+  DebugPrint("boneToMatrix: {}, displayMatrices: {}, drawMatrices: {}",
+             boneToMatrix.size(), displayMatrices.size(), drawMatrices.size());
+
+  ShaderAllocator shader_allocator;
+  for (auto& mat : mdl.materials) {
+    librii::g3d::G3dShader shader(mat);
+    shader_allocator.alloc(shader);
+  }
+  std::vector<librii::g3d::BinaryTev> tevs;
+  for (size_t i = 0; i < shader_allocator.shaders.size(); ++i) {
+    tevs.push_back(toBinaryTev(shader_allocator.shaders[i], i));
+  }
+
+  auto bones = mdl.bones | rsl::ToList<librii::g3d::BoneData>();
+  auto to_binary_bone = [&](auto tuple) -> BinaryBoneData {
+    auto [index, value] = tuple;
+    return toBinaryBone(value, bones, index, mdl.info.scalingRule,
+                        boneToMatrix[index]);
+  };
+  auto to_binary_mat = [&](auto tuple) {
+    auto [index, value] = tuple;
+    return librii::g3d::toBinMat(value, index);
+  };
+  librii::g3d::BinaryModel bin{
+      .name = mdl.name,
+      .bones = mdl.bones          // Start with the bones
+               | rsl::enumerate() // Convert to [i, bone] tuples
+
+               // Needed for some reason
+               | rsl::ToList()
+               //
+
+               | std::views::transform(to_binary_bone) // Convert to BinaryBone
+               | rsl::ToList<BinaryBoneData>(),        // And back to vector
+      .positions = mdl.positions,
+      .normals = mdl.normals,
+      .colors = mdl.colors,
+      .texcoords = mdl.texcoords,
+      .materials = mdl.materials      //
+                   | rsl::enumerate() //
+
+                   // Needed for some reason
+                   | rsl::ToList()
+                   //
+
+                   | std::views::transform(to_binary_mat) //
+                   | rsl::ToList(),
+      .tevs = tevs,
+      .meshes = mdl.meshes,
+  };
+
+  for (size_t i = 0; i < shader_allocator.matToShaderMap.size(); ++i) {
+    bin.materials[i].tevId = shader_allocator.matToShaderMap[i];
+  }
+
+  // Compute ModelInfo
+  {
+    const auto [nVert, nTri] = librii::gx::computeVertTriCounts(mdl.meshes);
+    bool nrmMtx = std::ranges::any_of(
+        mdl.meshes, [](auto& m) { return m.needsNormalMtx(); });
+    bool texMtx = std::ranges::any_of(
+        mdl.meshes, [](auto& m) { return m.needsTextureMtx(); });
+    librii::g3d::BinaryModelInfo info{
+        .scalingRule = mdl.info.scalingRule,
+        .texMtxMode = mdl.info.texMtxMode,
+        .numVerts = nVert,
+        .numTris = nTri,
+        .sourceLocation = mdl.info.sourceLocation,
+        .numViewMtx = static_cast<u32>(displayMatrices.size()),
+        .normalMtxArray = nrmMtx,
+        .texMtxArray = texMtx,
+        .boundVolume = false,
+        .evpMtxMode = mdl.info.evpMtxMode,
+        .min = mdl.info.min,
+        .max = mdl.info.max,
+    };
+    {
+      // Matrix -> Bone LUT
+      auto& lut = info.mtxToBoneLUT.mtxIdToBoneId;
+      lut.resize(drawMatrices.size());
+      std::ranges::fill(lut, -1);
+      for (const auto& [i, bone] : rsl::enumerate(bin.bones)) {
+        assert(bone.matrixId < lut.size());
+        lut[bone.matrixId] = i;
+      }
+    }
+    bin.info = info;
+  }
+  BuildRenderLists(mdl, bin.bytecodes, drawMatrices, boneToMatrix);
+
+  return bin;
+}
+
+#pragma endregion
+
+Result<Model> Model::from(const BinaryModel& model,
+                          kpi::LightIOTransaction& transaction,
+                          std::string_view transaction_path) {
+  Model tmp{};
+  TRY(processModel(model, transaction, transaction_path, tmp));
+  return tmp;
+}
+Result<BinaryModel> Model::binary() const { return toBinaryModel(*this); }
 
 } // namespace librii::g3d

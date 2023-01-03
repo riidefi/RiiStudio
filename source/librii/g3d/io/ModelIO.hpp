@@ -266,20 +266,20 @@ class BinaryModel {
 public:
   std::string name;
   librii::g3d::BinaryModelInfo info = {};
-  std::vector<librii::g3d::BinaryBoneData> bones;
+  std::vector<BinaryBoneData> bones;
 
-  std::vector<librii::g3d::PositionBuffer> positions;
-  std::vector<librii::g3d::NormalBuffer> normals;
-  std::vector<librii::g3d::ColorBuffer> colors;
-  std::vector<librii::g3d::TextureCoordinateBuffer> texcoords;
+  std::vector<PositionBuffer> positions;
+  std::vector<NormalBuffer> normals;
+  std::vector<ColorBuffer> colors;
+  std::vector<TextureCoordinateBuffer> texcoords;
 
-  std::vector<librii::g3d::BinaryMaterial> materials;
+  std::vector<BinaryMaterial> materials;
   // This is the collapsed list, at least for now.
   // That is, tevs[mat.id] isn't valid; you must use tev[mat.tevId] which is
   // generated from mat.tevOffset
-  std::vector<librii::g3d::BinaryTev> tevs;
+  std::vector<BinaryTev> tevs;
 
-  std::vector<librii::g3d::PolygonData> meshes;
+  std::vector<PolygonData> meshes;
 
   // This has yet to be applied to the bones/draw matrices
   std::vector<ByteCodeMethod> bytecodes;
@@ -288,6 +288,56 @@ public:
                     kpi::LightIOTransaction& transaction,
                     const std::string& transaction_path, bool& isValid);
   void write(oishii::Writer& writer, NameTable& names, std::size_t brres_start);
+};
+
+struct ModelInfo {
+  librii::g3d::ScalingRule scalingRule = ScalingRule::Maya;
+  librii::g3d::TextureMatrixMode texMtxMode = TextureMatrixMode::Maya;
+  // numVerts: recomputed
+  // numTris: recomputed
+  std::string sourceLocation;
+  // numViewMtx: recomputed
+  // normalMtxArray: recomputed
+  // texMtxArray: recomputed
+  // boundVolume: not supported
+  librii::g3d::EnvelopeMatrixMode evpMtxMode = EnvelopeMatrixMode::Normal;
+  glm::vec3 min{0.0f, 0.0f, 0.0f};
+  glm::vec3 max{0.0f, 0.0f, 0.0f};
+};
+struct DrawMatrix {
+  struct MatrixWeight {
+    u32 boneId;
+    f32 weight;
+
+    MatrixWeight() : boneId(-1), weight(0.0f) {}
+    MatrixWeight(u32 b, f32 w) : boneId(b), weight(w) {}
+
+    bool operator==(const MatrixWeight& rhs) const = default;
+  };
+
+  std::vector<MatrixWeight> mWeights; // 1 weight -> singlebound, no envelope
+
+  bool operator==(const DrawMatrix& rhs) const = default;
+};
+struct Model {
+  std::string name;
+  ModelInfo info;
+  std::vector<BoneData> bones;
+  std::vector<PositionBuffer> positions;
+  std::vector<NormalBuffer> normals;
+  std::vector<ColorBuffer> colors;
+  std::vector<TextureCoordinateBuffer> texcoords;
+  std::vector<G3dMaterialData> materials;
+  // BinaryTevs: included in materials
+  std::vector<PolygonData> meshes;
+  // bytecodes: Applied to bones; remainder goes here (bone matrices are
+  // excluded)
+  std::vector<DrawMatrix> matrices;
+
+  static Result<Model> from(const BinaryModel& model,
+                            kpi::LightIOTransaction& transaction,
+                            std::string_view transaction_path);
+  Result<BinaryModel> binary() const;
 };
 
 } // namespace librii::g3d

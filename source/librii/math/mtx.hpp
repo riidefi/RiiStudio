@@ -7,8 +7,8 @@
 namespace librii::math {
 
 // Compute the Kullback-Leibler divergence between p and q
-constexpr double kl_divergence(const glm::highp_dmat4x3& p,
-                               const glm::highp_dmat4x3& q) {
+static inline double kl_divergence(const glm::highp_dmat4x3& p,
+                                   const glm::highp_dmat4x3& q) {
   double divergence = 0;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 3; j++) {
@@ -22,8 +22,8 @@ constexpr double kl_divergence(const glm::highp_dmat4x3& p,
   return divergence;
 }
 
-constexpr double jensen_shannon_divergence(const glm::mat4x3& lowp_p,
-                                           const glm::mat4x3& lowp_q) {
+static inline double jensen_shannon_divergence(const glm::mat4x3& lowp_p,
+                                               const glm::mat4x3& lowp_q) {
   auto p = glm::highp_dmat4x3(lowp_p);
   auto q = glm::highp_dmat4x3(lowp_q);
 

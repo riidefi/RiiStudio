@@ -28,5 +28,17 @@ struct BinaryArchive {
                     kpi::LightIOTransaction& transaction);
   void write(oishii::Writer& writer);
 };
+struct Archive {
+  std::vector<Model> models;
+  std::vector<TextureData> textures;
+  std::vector<BinaryClr> clrs;
+  std::vector<BinaryTexPat> pats;
+  std::vector<librii::g3d::BinarySrt> srts;
+  std::vector<librii::g3d::BinaryVis> viss;
+
+  static Result<Archive> from(const BinaryArchive& model,
+                            kpi::LightIOTransaction& transaction);
+  Result<BinaryArchive> binary() const;
+};
 
 } // namespace librii::g3d

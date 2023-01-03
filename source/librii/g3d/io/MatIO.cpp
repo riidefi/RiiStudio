@@ -251,7 +251,7 @@ void BinaryMaterial::writeBody(
 }
 
 Result<G3dMaterialData> fromBinMat(const BinaryMaterial& bin,
-                                   gx::LowLevelGxMaterial* smat) {
+                                   const gx::LowLevelGxMaterial* smat) {
   G3dMaterialData mat;
   mat.name = bin.name;
   mat.id = bin.id;

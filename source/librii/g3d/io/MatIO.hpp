@@ -378,7 +378,7 @@ struct BinaryMaterial {
 };
 
 Result<G3dMaterialData> fromBinMat(const BinaryMaterial& bin,
-                                   gx::LowLevelGxMaterial* shader);
+                                   const gx::LowLevelGxMaterial* shader);
 BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx);
 
 } // namespace librii::g3d
