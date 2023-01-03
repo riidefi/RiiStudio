@@ -17,6 +17,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <librii/g3d/io/WiiTrig.hpp>
+#include <librii/math/mtx.hpp>
 
 IMPORT_STD;
 
@@ -199,38 +200,6 @@ inline glm::mat4 calcSrtMtx(const auto& bone, auto&& bones,
   return tmp;
 }
 
-// Compute the Kullback-Leibler divergence between p and q
-double kl_divergence(const glm::highp_dmat4x3& p, const glm::highp_dmat4x3& q) {
-  double divergence = 0;
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 3; j++) {
-      double pi = p[i][j];
-      double qi = q[i][j];
-      if (pi == 0.0 || qi == 0.0)
-        continue;
-      divergence += pi * std::log(pi / qi);
-    }
-  }
-  return divergence;
-}
-double jensen_shannon_divergence(const glm::mat4x3& lowp_p,
-                                 const glm::mat4x3& lowp_q) {
-  auto p = glm::highp_dmat4x3(lowp_p);
-  auto q = glm::highp_dmat4x3(lowp_q);
-
-  // Calculate average distribution
-  auto m = (p + q) / 2.0;
-
-  // Calculate KL divergence between p and m
-  auto kl1 = kl_divergence(p, m);
-
-  // Calculate KL divergence between q and m
-  auto kl2 = kl_divergence(q, m);
-
-  // Calculate JS divergence
-  return (kl1 + kl2) / 2;
-}
-
 librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
                                      auto&& bones, kpi::IOContext& ctx_,
                                      librii::g3d::ScalingRule scalingRule) {
@@ -259,8 +228,8 @@ librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
 
   // auto test = jensen_shannon_divergence(bin.modelMtx, bin.inverseModelMtx);
   // auto test2 = jensen_shannon_divergence(bin.modelMtx, glm::mat4(1.0f));
-  auto divergeM = jensen_shannon_divergence(bin.modelMtx, modelMtx34);
-  auto divergeI = jensen_shannon_divergence(bin.inverseModelMtx, invModelMtx34);
+  auto divergeM = librii::math::jensen_shannon_divergence(bin.modelMtx, modelMtx34);
+  auto divergeI = librii::math::jensen_shannon_divergence(bin.inverseModelMtx, invModelMtx34);
   // assert(bin.modelMtx == modelMtx34);
   // assert(bin.inverseModelMtx == invModelMtx34);
   ctx.require(bin.modelMtx == modelMtx34,
