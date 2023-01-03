@@ -64,7 +64,7 @@ struct SRT0Matrix {
     TransV,
     Count,
   };
-  static constexpr bool isFixed(TargetId target, u32 flags) {
+  static bool isFixed(TargetId target, u32 flags) {
     switch (target) {
     case TargetId::ScaleU:
       return flags & FLAG_SCL_U_FIXED;
@@ -76,6 +76,22 @@ struct SRT0Matrix {
       return flags & FLAG_TRANS_U_FIXED;
     case TargetId::TransV:
       return flags & FLAG_TRANS_V_FIXED;
+    case TargetId::Count:
+      break; // Not a valid enum value
+    }
+    return false;
+  }
+  static bool isAttribIncluded(SRT0Matrix::TargetId attribute, u32 flags) {
+    switch (attribute) {
+    case TargetId::ScaleU:
+      return (flags & FLAG_SCL_ONE) == 0;
+    case TargetId::ScaleV:
+      return (flags & FLAG_SCL_ISOTROPIC) == 0;
+    case TargetId::Rotate:
+      return (flags & FLAG_ROT_ZERO) == 0;
+    case TargetId::TransU:
+    case TargetId::TransV:
+      return (flags & FLAG_TRANS_ZERO) == 0;
     case TargetId::Count:
       break; // Not a valid enum value
     }
@@ -128,6 +144,130 @@ struct BinarySrt {
 
   Result<void> read(oishii::BinaryReader& reader);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
+};
+
+// XML-suitable variant
+struct SrtAnim {
+  using Track = std::variant<f32, std::vector<SRT0KeyFrame>>;
+  struct Mtx {
+    Track scaleX{};
+    Track scaleY{};
+    Track rot{};
+    Track transX{};
+    Track transY{};
+  };
+  struct Mat {
+    std::string name{};
+    std::array<std::optional<Mtx>, 8> texsrts{};
+    std::array<std::optional<Mtx>, 3> indsrts{};
+  };
+  std::vector<Mat> materials{};
+  std::string name{};
+  std::string sourcePath{};
+  u16 frameDuration{};
+  u32 xformModel{};
+  AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
+
+  static Result<SrtAnim> read(const BinarySrt& srt,
+                              std::function<void(std::string_view)> warn) {
+    SrtAnim tmp{};
+    tmp.name = srt.name;
+    tmp.sourcePath = srt.sourcePath;
+    tmp.frameDuration = srt.frameDuration;
+    tmp.xformModel = srt.xformModel;
+    tmp.wrapMode = srt.wrapMode;
+    for (auto& m : srt.materials) {
+      auto& x = tmp.materials.emplace_back();
+      x.name = m.name;
+      size_t j = 0;
+      for (size_t i = 0; i < 8; ++i) {
+        if (m.enabled_texsrts & (1 << i)) {
+          x.texsrts[i] = TRY(readMatrix(srt, m.matrices[j++], warn));
+        }
+      }
+      for (size_t i = 0; i < 3; ++i) {
+        if (m.enabled_indsrts & (1 << i)) {
+          x.indsrts[i] = TRY(readMatrix(srt, m.matrices[j++], warn));
+        }
+      }
+    }
+    return tmp;
+  }
+
+private:
+  static Result<Mtx> readMatrix(const BinarySrt& srt, const SRT0Matrix& mtx,
+                                std::function<void(std::string_view)> warn) {
+    size_t k = 0;
+    Mtx y{};
+    if (!mtx.isAttribIncluded(SRT0Matrix::TargetId::ScaleU, mtx.flags)) {
+      y.scaleX = 1.0f;
+    } else {
+      y.scaleX = TRY(readTrack(srt.tracks, mtx.targets[k++], warn));
+    }
+    if (!mtx.isAttribIncluded(SRT0Matrix::TargetId::ScaleV, mtx.flags)) {
+      y.scaleY = 1.0f;
+    } else {
+      y.scaleY = TRY(readTrack(srt.tracks, mtx.targets[k++], warn));
+    }
+    if (!mtx.isAttribIncluded(SRT0Matrix::TargetId::Rotate, mtx.flags)) {
+      y.rot = 0.0f;
+    } else {
+      y.rot = TRY(readTrack(srt.tracks, mtx.targets[k++], warn));
+    }
+    if (!mtx.isAttribIncluded(SRT0Matrix::TargetId::TransU, mtx.flags)) {
+      y.transX = 0.0f;
+    } else {
+      y.transX = TRY(readTrack(srt.tracks, mtx.targets[k++], warn));
+    }
+    if (!mtx.isAttribIncluded(SRT0Matrix::TargetId::TransV, mtx.flags)) {
+      y.transY = 0.0f;
+    } else {
+      y.transY = TRY(readTrack(srt.tracks, mtx.targets[k++], warn));
+    }
+    return y;
+  }
+  static Result<Track> readTrack(std::span<const SRT0Track> tracks,
+                                 const SRT0Target& target,
+                                 std::function<void(std::string_view)> warn) {
+    if (auto* fixed = std::get_if<f32>(&target.data)) {
+      return Track{TRY(checkFloat(*fixed))};
+    } else {
+      assert(std::get_if<u32>(&target.data));
+      auto& track = tracks[*std::get_if<u32>(&target.data)];
+      EXPECT(track.reserved[0] == 0 && track.reserved[1] == 0);
+      EXPECT(tracks.size() >= 1);
+      for (auto& f : track.keyframes) {
+        TRY(checkFloat(f.frame));
+        TRY(checkFloat(f.value));
+        TRY(checkFloat(f.tangent));
+      }
+      auto strictly_increasing =
+          std::ranges::adjacent_find(track.keyframes, [](auto& x, auto& y) {
+            return x.frame >= y.frame;
+          }) == track.keyframes.end();
+      EXPECT(strictly_increasing,
+             "SRT0 track keyframes must be strictly increasing");
+      f32 begin = track.keyframes[0].frame;
+      f32 end = track.keyframes.back().frame;
+      auto step = CalcStep(begin, end);
+      if (track.step != step) {
+        warn("Frame interval not properly computed");
+      }
+      return Track{track.keyframes};
+    }
+  }
+
+  static Result<f32> checkFloat(f32 in) {
+    if (std::isinf(in)) {
+      return in > 0.0f ? std::unexpected("Float is set to INFINITY")
+                       : std::unexpected("Float is set to -INFINITY");
+    }
+    if (std::isnan(in)) {
+      return in > 0.0f ? std::unexpected("Float is set to NAN")
+                       : std::unexpected("Float is set to -NAN");
+    }
+    return in;
+  }
 };
 
 using SrtAnimationArchive = BinarySrt;

@@ -222,22 +222,7 @@ u32 SRT0Matrix::computeSize() const {
   }
   return accum;
 }
-static bool IsSrtAttributeIncluded(u32 flags, SRT0Matrix::TargetId attribute) {
-  switch (attribute) {
-  case SRT0Matrix::TargetId::ScaleU:
-    return (flags & SRT0Matrix::FLAG_SCL_ONE) == 0;
-  case SRT0Matrix::TargetId::ScaleV:
-    return (flags & SRT0Matrix::FLAG_SCL_ISOTROPIC) == 0;
-  case SRT0Matrix::TargetId::Rotate:
-    return (flags & SRT0Matrix::FLAG_ROT_ZERO) == 0;
-  case SRT0Matrix::TargetId::TransU:
-  case SRT0Matrix::TargetId::TransV:
-    return (flags & SRT0Matrix::FLAG_TRANS_ZERO) == 0;
-  default: // Count
-    break;
-  }
-  return false;
-}
+
 Result<void>
 SRT0Matrix::read(rsl::SafeReader& safe,
                  std::function<Result<u32>(u32)> trackAddressToIndex) {
@@ -247,8 +232,9 @@ SRT0Matrix::read(rsl::SafeReader& safe,
     if (0 == (flags & (FLAG_ENABLED << (i * 0)))) {
       continue;
     }
-    bool included = IsSrtAttributeIncluded(flags, static_cast<TargetId>(i));
-    bool fixed = isFixed(static_cast<TargetId>(i), flags);
+    auto attrib = static_cast<TargetId>(i);
+    bool included = isAttribIncluded(attrib, flags);
+    bool fixed = isFixed(attrib, flags);
     if (!included) {
       continue;
     }

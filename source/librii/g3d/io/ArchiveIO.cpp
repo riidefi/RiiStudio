@@ -128,6 +128,11 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
           return std::unexpected(
               std::format("Failed to read SRT0 {}: {}", sub.name, ok.error()));
         }
+        SrtAnim json{};
+        TRY(json.read(srt, [&](std::string_view msg) {
+          transaction.callback(kpi::IOMessageClass::Warning,
+                               std::format("SRT0 {}", sub.name), msg);
+        }));
       }
     } else if (node.name == "AnmVis(NW4R)") {
       for (auto& sub : cdic.nodes) {
