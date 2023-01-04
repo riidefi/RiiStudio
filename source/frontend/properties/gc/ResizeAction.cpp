@@ -1,5 +1,4 @@
 #include "ResizeAction.hpp"
-#include <core/util/gui.hpp>
 #include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/Texture.hpp>
 

@@ -1,6 +1,6 @@
 #include "EditorImporter.hpp"
-#include <core/api.hpp>
 #include <oishii/data_provider.hxx>
+#include <plugins/api.hpp>
 
 // TODO
 #include <plugins/j3d/Scene.hpp>

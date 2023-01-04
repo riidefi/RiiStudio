@@ -322,12 +322,6 @@ Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
                                       const riistudio::g3d::Collection& scene,
                                       glm::mat4 v_mtx, glm::mat4 p_mtx,
                                       G3dSceneRenderData& render_data) {
-  // REASON FOR REMOVAL: Using the renderer in this file, now
-  // scene.prepare(state, scene, v_mtx, p_mtx);
-
-  // REASON FOR REMOVAL: User must manually initialize the render data
-  // render_data.init(scene);
-
   // Reupload changed textures
   render_data.mTextureData.update(scene);
 

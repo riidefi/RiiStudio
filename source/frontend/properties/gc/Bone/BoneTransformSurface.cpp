@@ -1,5 +1,5 @@
 #include <core/kpi/PropertyView.hpp>
-#include <core/util/gui.hpp>
+#include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/Bone.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 

@@ -1,6 +1,6 @@
 #include "Common.hpp"
 #include <core/kpi/PropertyView.hpp>
-#include <core/util/gui.hpp>
+#include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 
 namespace libcube::UI {

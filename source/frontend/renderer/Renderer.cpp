@@ -2,9 +2,9 @@
 #define NOMINMAX
 #endif
 #include "Renderer.hpp"
-#include <core/3d/gl.hpp>           // glPolygonMode
-#include <core/util/gui.hpp>        // ImGui::BeginMenuBar
-#include <frontend/root.hpp>        // RootWindow
+#include <core/3d/gl.hpp>    // glPolygonMode
+#include <frontend/root.hpp> // RootWindow
+#include <imcxx/Widgets.hpp>
 #include <librii/glhelper/Util.hpp> // librii::glhelper::SetGlWireframe
 
 namespace riistudio::frontend {
@@ -69,7 +69,8 @@ void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
   }
 }
 
-Renderer::Renderer(lib3d::IDrawable* root) : mRoot(root) {
+Renderer::Renderer(lib3d::IDrawable* root, const lib3d::Scene* node)
+    : mRoot(root), mData(node) {
   root->dispatcher = &mRootDispatcher;
 }
 Renderer::~Renderer() {}
@@ -102,9 +103,9 @@ void Renderer::render(u32 width, u32 height) {
                                                    mViewMtx);
 
   mSceneState.invalidate();
-  auto ok = mRootDispatcher.populate(*mRoot, mSceneState,
-                                     *dynamic_cast<kpi::INode*>(mRoot),
-                                     mViewMtx, mProjMtx);
+  assert(mData != nullptr);
+  auto ok =
+      mRootDispatcher.populate(*mRoot, mSceneState, *mData, mViewMtx, mProjMtx);
   if (!ok.has_value()) {
     ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_NavHighlight],
                        "Renderer error during populate(): %s",

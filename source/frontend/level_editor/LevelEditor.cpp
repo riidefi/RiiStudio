@@ -7,7 +7,6 @@
 #include "ViewCube.hpp"
 #include <core/3d/gl.hpp>
 #include <core/common.h>
-#include <core/util/gui.hpp>
 #include <frontend/root.hpp>
 #include <frontend/widgets/Manipulator.hpp>
 #include <glm/gtc/type_ptr.hpp>

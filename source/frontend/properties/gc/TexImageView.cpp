@@ -2,9 +2,9 @@
 #include <core/3d/i3dmodel.hpp>
 #include <core/kpi/ActionMenu.hpp>
 #include <core/kpi/PropertyView.hpp>
-#include <core/util/gui.hpp>
 #include <frontend/widgets/Image.hpp>
 #include <frontend/widgets/Lib3dImage.hpp>
+#include <imcxx/Widgets.hpp>
 #include <librii/image/TextureExport.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>

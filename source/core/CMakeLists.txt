@@ -5,13 +5,10 @@ include_directories(${PROJECT_SOURCE_DIR}/../vendor)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
-add_library(core
-  "api.cpp"
+add_library(core STATIC
   "common.h"
   "3d/Node.h"
-  "3d/Scene.cpp"
-  "3d/renderer/SceneState.cpp"
-  "3d/renderer/SceneTree.cpp"
+  
   "kpi/ActionMenu.cpp"
   "kpi/Memento.cpp"
   "kpi/Plugins.cpp"
@@ -19,4 +16,4 @@ add_library(core
   "kpi/Reflection.cpp"
   "kpi/RichNameManager.cpp"
   "util/timestamp.cpp"
-   "util/oishii.hpp" "util/net.hpp")
+   "util/oishii.hpp")

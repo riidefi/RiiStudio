@@ -1,5 +1,5 @@
 #include <core/kpi/PropertyView.hpp>
-#include <core/util/gui.hpp>
+#include <imcxx/Widgets.hpp>
 #include <librii/g3d/data/BoneData.hpp>
 #include <plugins/g3d/material.hpp>
 #include <plugins/gc/Export/Bone.hpp>

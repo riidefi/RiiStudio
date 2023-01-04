@@ -1,6 +1,5 @@
 #include <core/kpi/Node2.hpp>
 #include <core/kpi/PropertyView.hpp>
-#include <core/util/gui.hpp>
 #include <imcxx/Widgets.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>

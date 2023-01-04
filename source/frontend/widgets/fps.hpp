@@ -1,5 +1,5 @@
-#include <core/util/gui.hpp> // ImGui::Text
-#include <numeric>           // roundf
+#include <imcxx/Widgets.hpp>
+#include <numeric> // roundf
 
 namespace riistudio {
 

@@ -1,7 +1,6 @@
 #include <core/kpi/Plugins.hpp>
 #include <core/kpi/PropertyView.hpp>
 #include <core/kpi/RichNameManager.hpp>
-#include <core/util/gui.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imcxx/Widgets.hpp>
 #include <librii/egg/Blight.hpp>

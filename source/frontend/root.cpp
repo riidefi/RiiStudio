@@ -1,8 +1,6 @@
 #include "root.hpp"
 #include "LeakDebug.hpp"
 #include <core/3d/gl.hpp>
-#include <core/api.hpp>
-#include <core/util/gui.hpp>
 #include <core/util/timestamp.hpp>
 #include <frontend/Localization.hpp>
 #include <frontend/editor/EditorWindow.hpp>
@@ -12,6 +10,7 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
 #include <pfd/portable-file-dialogs.h>
+#include <plugins/api.hpp>
 
 // Experimental conversion
 #include <plugins/g3d/collection.hpp>

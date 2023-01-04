@@ -4,6 +4,7 @@
 #include <core/3d/gl.hpp>
 #include <glm/gtx/norm.hpp> // glm::distance2
 #include <librii/gl/Compiler.hpp>
+#include <librii/glhelper/ShaderProgram.hpp>
 
 namespace riistudio::lvl {
 

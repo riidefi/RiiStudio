@@ -6,6 +6,6 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
 
-add_library(rsl
+add_library(rsl STATIC
   "FsDialog.cpp"
  "Defer.hpp" "DebugBreak.hpp" "Ranges.hpp")

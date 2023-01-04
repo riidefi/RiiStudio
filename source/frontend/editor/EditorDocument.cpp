@@ -1,7 +1,7 @@
 #include "EditorDocument.hpp"
-#include <core/api.hpp>         // SpawnExporter
 #include <core/util/oishii.hpp> // OishiiFlushWriter
 #include <plate/Platform.hpp>   // plate::Platform
+#include <plugins/api.hpp>      // SpawnExporter
 
 namespace riistudio::frontend {
 

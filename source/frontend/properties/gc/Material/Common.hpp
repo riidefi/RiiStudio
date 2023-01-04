@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/kpi/PropertyView.hpp>
-#include <core/util/gui.hpp>
+#include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/Material.hpp> // for GCMaterialData
 // TODO: Awful interdependency. Fix this when icon system is stable
 #include <frontend/editor/EditorWindow.hpp>

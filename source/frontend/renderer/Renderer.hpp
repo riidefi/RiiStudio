@@ -2,11 +2,11 @@
 
 #include "MouseHider.hpp"
 #include <core/3d/i3dmodel.hpp>
-#include <core/3d/renderer/SceneState.hpp>
 #include <core/common.h>
 #include <core/kpi/Node2.hpp>
 #include <frontend/renderer/CameraController.hpp>
 #include <glm/mat4x4.hpp>
+#include <librii/gfx/SceneState.hpp>
 #include <memory>
 
 namespace riistudio::frontend {
@@ -25,7 +25,7 @@ struct RenderSettings {
 
 class Renderer {
 public:
-  Renderer(lib3d::IDrawable* root);
+  Renderer(lib3d::IDrawable* root, const lib3d::Scene* data);
   ~Renderer();
   void render(u32 width, u32 height);
 
@@ -36,6 +36,7 @@ private:
   lib3d::SceneState mSceneState;
 
   lib3d::IDrawable* mRoot = nullptr;
+  const lib3d::Scene* mData = nullptr;
   lib3d::DrawableDispatcher mRootDispatcher;
 
 public:

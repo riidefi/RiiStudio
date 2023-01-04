@@ -14,7 +14,7 @@ file(GLOB_RECURSE HDR_FILES
 	${PROJECT_SOURCE_DIR}/*.h
 )
 
-add_library(oishii
+add_library(oishii STATIC
 	${SRC_FILES}
 	${HDR_FILES}
 )

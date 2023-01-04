@@ -4,7 +4,7 @@
 #include <librii/math/srt3.hpp>
 
 // This has to be included first
-#include <core/util/gui.hpp>
+#include <imcxx/Widgets.hpp>
 //
 #include <vendor/ImGuizmo.h>
 

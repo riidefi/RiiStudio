@@ -1,7 +1,6 @@
 #include "PropertyEditor.hpp"
 #include <core/3d/Material.hpp> // lib3d::Material
 #include <core/kpi/RichNameManager.hpp>
-#include <core/util/gui.hpp> // PushErrorStyle
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <imcxx/Widgets.hpp>              // imcxx::Combo
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_EXCLAMATION_TRIANGLE

@@ -1,5 +1,5 @@
-#include <core/util/gui.hpp>         // ImGui::Begin
 #include <frontend/ThemeManager.hpp> // ThemeManager
+#include <imcxx/Widgets.hpp>         // ImGui::Begin
 
 namespace riistudio {
 

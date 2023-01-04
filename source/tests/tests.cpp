@@ -1,8 +1,8 @@
-#include <core/api.hpp>
 #include <core/util/oishii.hpp>
 #include <librii/egg/Blight.hpp>
 #include <librii/egg/LTEX.hpp>
 #include <librii/kmp/io/KMP.hpp>
+#include <plugins/api.hpp>
 #include <rsl/Ranges.hpp>
 #include <vendor/llvm/Support/InitLLVM.h>
 

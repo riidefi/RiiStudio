@@ -13,14 +13,13 @@ class JSON {};
 // #include <securitybaseapi.h>
 
 #include <Libloaderapi.h>
-#include <core/util/gui.hpp>
 #include <curl/curl.h>
 #include <elzip/elzip.hpp>
 #include <frontend/applet.hpp>
 #include <frontend/widgets/changelog.hpp>
+#include <imcxx/Widgets.hpp>
 #include <io.h>
 #include <nlohmann/json.hpp>
-
 
 IMPORT_STD;
 #include <iostream>

@@ -24,7 +24,7 @@ protected:
 
 namespace riistudio::lib3d {
 
-class Scene : public SceneImpl {
+class Scene {
 public:
     Scene() = default;
     virtual ~Scene() = default;

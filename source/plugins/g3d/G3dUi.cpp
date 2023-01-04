@@ -6,7 +6,6 @@
 
 #include <plugins/g3d/collection.hpp>
 
-#include <core/util/gui.hpp>
 #include <imcxx/Widgets.hpp>
 
 namespace riistudio::g3d::ui {

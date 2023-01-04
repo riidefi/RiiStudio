@@ -8,7 +8,7 @@ if (NOT WIN32)
     list(REMOVE_ITEM MZIP_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/iowin32.c)
 ENDIF()
 
-add_library(minizip ${MZIP_HEADERS} ${MZIP_SOURCES})
+add_library(minizip STATIC ${MZIP_HEADERS} ${MZIP_SOURCES})
 
 if (BUILD_ANDROID)
     target_compile_definitions(minizip PRIVATE USE_FILE32API)

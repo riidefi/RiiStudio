@@ -20,10 +20,8 @@ struct IDrawable {
   virtual ~IDrawable() = default;
 
   //! Prepare a scene based on the resource data.
-  virtual Result<void> prepare(SceneState& state,
-                                                   const kpi::INode& root,
-                                                   glm::mat4 v_mtx,
-                                                   glm::mat4 p_mtx) = 0;
+  virtual Result<void> prepare(SceneState& state, const Scene& root,
+                               glm::mat4 v_mtx, glm::mat4 p_mtx) = 0;
 
   DrawableDispatcher& getDispatcher() {
     assert(dispatcher);
@@ -41,10 +39,9 @@ public:
     reinit = true;
   }
 
-  Result<void> populate(IDrawable& drawable,
-                                            SceneState& state,
-                                            const kpi::INode& root,
-                                            glm::mat4 v_mtx, glm::mat4 p_mtx) {
+  Result<void> populate(IDrawable& drawable, SceneState& state,
+                        const lib3d::Scene& root, glm::mat4 v_mtx,
+                        glm::mat4 p_mtx) {
     assert(!poisoned);
     assert(!reinit);
     return drawable.prepare(state, root, v_mtx, p_mtx);
@@ -68,27 +65,6 @@ private:
 };
 
 struct SceneBuffers;
-
-struct SceneImpl : public IDrawable {
-  virtual ~SceneImpl();
-  SceneImpl();
-
-  Result<void> prepare(SceneState& state,
-                                           const kpi::INode& host,
-                                           glm::mat4 v_mtx,
-                                           glm::mat4 p_mtx) override;
-
-  void gatherBoneRecursive(SceneBuffers& output, u64 boneId,
-                           const lib3d::Model& root, const lib3d::Scene& scn,
-                           glm::mat4 v_mtx, glm::mat4 p_mtx);
-
-  void gather(SceneBuffers& output, const lib3d::Model& root,
-              const lib3d::Scene& scene, glm::mat4 v_mtx, glm::mat4 p_mtx);
-
-private:
-  struct Internal;
-  std::unique_ptr<Internal> mImpl;
-};
 
 } // namespace riistudio::lib3d
 

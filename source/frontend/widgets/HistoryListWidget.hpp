@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/common.h>                  // for u32
-#include <core/util/gui.hpp>              // for ImGui::Button
+#include <core/common.h> // for u32
+#include <imcxx/Widgets.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h> // for ICON_FA_SAVE
 
 namespace riistudio::frontend {

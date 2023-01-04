@@ -4,8 +4,7 @@
 #include <memory>
 #include <plugins/g3d/collection.hpp>
 
-#include <core/3d/renderer/SceneState.hpp>
-#include <core/3d/renderer/SceneTree.hpp>
+#include <librii/gfx/SceneState.hpp>
 #include <librii/gl/Compiler.hpp>
 #include <librii/gl/EnumConverter.hpp>
 #include <librii/glhelper/GlTexture.hpp>

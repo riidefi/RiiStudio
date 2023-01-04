@@ -1,7 +1,7 @@
 #include <core/kpi/Plugins.hpp>
 #include <core/kpi/PropertyView.hpp>
 #include <core/kpi/RichNameManager.hpp>
-#include <core/util/gui.hpp>
+#include <imcxx/Widgets.hpp>
 #include <llvm/Support/Casting.h>
 #include <plugins/gc/Export/Material.hpp>
 #include <plugins/mk/BFG/Fog.hpp>

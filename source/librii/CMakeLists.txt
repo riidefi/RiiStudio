@@ -5,7 +5,7 @@ include_directories(${PROJECT_SOURCE_DIR}/../vendor)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
-add_library(librii
+add_library(librii STATIC
   "gl/Compiler.hpp"
   "gl/Compiler.cpp"
   "gl/EnumConverter.hpp"
@@ -56,7 +56,7 @@ add_library(librii
   "hx/KonstSel.hpp"
 
   "gfx/MegaState.hpp"
-
+  "gfx/SceneState.cpp"
   
   "glhelper/ShaderCache.cpp"
   "glhelper/ShaderProgram.cpp"
@@ -90,13 +90,38 @@ add_library(librii
   "g3d/io/AnimIO.cpp"
   "g3d/io/DictIO.hpp"
   "g3d/io/CommonIO.hpp"
-  "g3d/io/AnimIO.hpp" "g3d/io/TevIO.hpp" "g3d/io/TevIO.cpp" "g3d/io/NameTableIO.cpp" "g3d/io/DictWriteIO.hpp" "g3d/io/DictWriteIO.cpp" "u8/U8.cpp" "u8/U8.hpp" "image/DsTexture.hpp" "image/DsTexture.cpp" "gfx/PixelOcclusion.hpp" "gfx/TextureObj.hpp" "gfx/TextureObj.cpp" "gfx/SceneNode.hpp" "gfx/SceneNode.cpp" "glhelper/GlTexture.hpp" "glhelper/GlTexture.cpp" "kcol/Model.hpp" "kcol/Model.cpp" "g3d/gfx/G3dGfx.hpp" "g3d/gfx/G3dGfx.cpp" "g3d/io/MatIO.cpp" "g3d/io/MatIO.hpp" "g3d/io/BoneIO.cpp" "g3d/data/VertexData.hpp" "g3d/io/ModelIO.hpp" "g3d/io/ModelIO.cpp" "g3d/io/ArchiveIO.hpp"
+  "g3d/io/AnimIO.hpp"
+  "g3d/io/TevIO.hpp"
+  "g3d/io/TevIO.cpp"
+  "g3d/io/NameTableIO.cpp"
+  "g3d/io/DictWriteIO.hpp"
+  "g3d/io/DictWriteIO.cpp"
+  "u8/U8.cpp" "u8/U8.hpp"
+  "image/DsTexture.hpp" "image/DsTexture.cpp"
+  "gfx/PixelOcclusion.hpp"
+  "gfx/TextureObj.hpp" "gfx/TextureObj.cpp"
+  "gfx/SceneNode.hpp" "gfx/SceneNode.cpp"
+  "glhelper/GlTexture.hpp" "glhelper/GlTexture.cpp"
+  "kcol/Model.hpp" "kcol/Model.cpp"
+  "g3d/gfx/G3dGfx.hpp" "g3d/gfx/G3dGfx.cpp"
+  "g3d/io/MatIO.cpp" "g3d/io/MatIO.hpp"
+  "g3d/io/BoneIO.cpp"
+  "g3d/data/VertexData.hpp"
+  "g3d/io/ModelIO.hpp"
+  "g3d/io/ModelIO.cpp"
+  "g3d/io/ArchiveIO.hpp"
   "g3d/io/ArchiveIO.cpp"
-  
   "crate/g3d_crate.cpp"
-   "egg/Blight.cpp" "g3d/io/AnimTexPatIO.cpp" "g3d/io/AnimClrIO.cpp" "g3d/io/AnimVisIO.cpp" "egg/LTEX.cpp" "g3d/io/WiiTrig.cpp")
+  "egg/Blight.cpp"
+  "g3d/io/AnimTexPatIO.cpp"
+  "g3d/io/AnimClrIO.cpp"
+  "g3d/io/AnimVisIO.cpp"
+  "egg/LTEX.cpp"
+  "g3d/io/WiiTrig.cpp"
+)
 
 target_precompile_headers(librii
-  PUBLIC
-    ../core/common.h
+PUBLIC
+  ../core/common.h
 )
+target_link_libraries(librii core)

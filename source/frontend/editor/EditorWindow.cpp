@@ -1,12 +1,12 @@
 #include "EditorWindow.hpp"
-#include <core/3d/i3dmodel.hpp>                  // lib3d::Scene
-#include <core/util/gui.hpp>                     // ImGui::DockBuilderDockWindow
-#include <frontend/applet.hpp>                   // core::Applet
-#include <frontend/editor/views/HistoryList.hpp> // MakePropertyEditor
-#include <frontend/editor/views/Outliner.hpp>    // MakeHistoryList
+#include <core/3d/i3dmodel.hpp>                       // lib3d::Scene
+#include <frontend/applet.hpp>                        // core::Applet
+#include <frontend/editor/views/HistoryList.hpp>      // MakePropertyEditor
+#include <frontend/editor/views/Outliner.hpp>         // MakeHistoryList
 #include <frontend/editor/views/PropertyEditor.hpp>   // MakeOutliner
 #include <frontend/editor/views/ViewportRenderer.hpp> // MakeViewportRenderer
-#include <vendor/fa5/IconsFontAwesome5.h>             // ICON_FA_TIMES
+#include <imcxx/Widgets.hpp>
+#include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_TIMES
 
 namespace riistudio::frontend {
 
@@ -25,8 +25,8 @@ void EditorWindow::init() {
   attachWindow(MakePropertyEditor(getHistory(), getRoot(), mSelection, *this));
   attachWindow(MakeHistoryList(getHistory(), getRoot(), mSelection));
   attachWindow(MakeOutliner(getRoot(), mSelection, *this));
-  if (dynamic_cast<lib3d::Scene*>(&getRoot()) != nullptr)
-    attachWindow(MakeViewportRenderer(getRoot()));
+  if (auto* scene = dynamic_cast<lib3d::Scene*>(&getRoot()))
+    attachWindow(MakeViewportRenderer(*scene));
 }
 
 EditorWindow::EditorWindow(std::unique_ptr<kpi::INode> state,

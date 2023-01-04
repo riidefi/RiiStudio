@@ -1,8 +1,6 @@
 #include "Common.hpp"
 #include <imcxx/Widgets.hpp>
 #include <librii/hx/PixMode.hpp>
-
-#include <core/util/gui.hpp>
 #include <plugins/g3d/collection.hpp>
 
 namespace libcube::UI {

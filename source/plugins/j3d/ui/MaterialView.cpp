@@ -9,7 +9,6 @@
 #include <plugins/j3d/Scene.hpp>
 #include <plugins/j3d/Shape.hpp>
 
-#include <core/util/gui.hpp>
 #include <imcxx/Widgets.hpp>
 
 namespace riistudio::j3d::ui {

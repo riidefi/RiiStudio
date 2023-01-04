@@ -1,7 +1,6 @@
 #include <core/kpi/Plugins.hpp>
 #include <core/kpi/PropertyView.hpp>
 #include <core/kpi/RichNameManager.hpp>
-#include <core/util/gui.hpp>
 #include <imcxx/Widgets.hpp>
 #include <librii/egg/LTEX.hpp>
 #include <oishii/reader/binary_reader.hxx>

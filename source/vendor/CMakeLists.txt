@@ -28,7 +28,7 @@ file(GLOB_RECURSE HDR_FILES
 
 list(FILTER SRC_FILES EXCLUDE REGEX ".*pybind11.*$")
 
-add_library(vendor
+add_library(vendor STATIC
 	${SRC_FILES}
 	${HDR_FILES}
 

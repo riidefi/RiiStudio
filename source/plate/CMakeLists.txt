@@ -50,7 +50,7 @@ file(GLOB_RECURSE VENDOR_HDR_FILES
 	${PROJECT_SOURCE_DIR}/vendor/*.h
 )
 
-add_library(plate
+add_library(plate STATIC
   ${PLATE_SOURCES}
 	${VENDOR_SRC_FILES}
 	${VENDOR_HDR_FILES}

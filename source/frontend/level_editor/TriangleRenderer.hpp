@@ -7,7 +7,7 @@
 #include <librii/kcol/Model.hpp>
 #include <vector>
 
-#include <core/3d/renderer/SceneState.hpp>
+#include <librii/gfx/SceneState.hpp>
 #include <librii/glhelper/VBOBuilder.hpp>
 
 namespace riistudio::lvl {
