@@ -4,7 +4,7 @@
 #include "../Sections.hpp"
 #include <core/util/glm_io.hpp>
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 using namespace libcube;
 
@@ -187,4 +187,4 @@ std::unique_ptr<oishii::Node> makeJNT1Node(BMDExportContext& ctx) {
   return std::make_unique<JNT1Node>(ctx.mdl);
 }
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

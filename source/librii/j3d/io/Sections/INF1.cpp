@@ -1,8 +1,8 @@
-#include "../../Scene.hpp"
 #include "../OutputCtx.hpp"
 #include "../SceneGraph.hpp"
 #include "../Sections.hpp"
-namespace riistudio::j3d {
+
+namespace librii::j3d {
 
 Result<void> readINF1(BMDOutputContext& ctx) {
   auto& reader = ctx.reader;
@@ -19,8 +19,7 @@ Result<void> readINF1(BMDOutputContext& ctx) {
     // u32 nVertex =
     reader.read<u32>();
 
-    ctx.mdl.scalingRule =
-        static_cast<Model::Information::ScalingRule>(flag & 0xf);
+    ctx.mdl.scalingRule = static_cast<ScalingRule>(flag & 0xf);
     // FIXME
     // assert((flag & ~0xf) == 0);
     reader.seekSet(g.start + reader.read<s32>());
@@ -67,4 +66,4 @@ std::unique_ptr<oishii::Node> makeINF1Node(BMDExportContext& ctx) {
   return std::make_unique<LinkNode<INF1Node>>(ctx);
 }
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

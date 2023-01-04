@@ -2,7 +2,7 @@
 #include <core/util/glm_io.hpp>
 #include <librii/gpu/DLMesh.hpp>
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 using namespace libcube;
 
@@ -141,7 +141,7 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
 
       // Mtx Prim Data
       MatrixData mtxPrimHdr = readMatrixData();
-      MatrixPrimitive& mprim = shape.mMatrixPrimitives.emplace_back(
+      gx::MatrixPrimitive& mprim = shape.mMatrixPrimitives.emplace_back(
           mtxPrimHdr.current_matrix, mtxPrimHdr.matrixList);
 
       struct SHP1_MPrim : librii::gpu::IMeshDLDelegate {
@@ -149,10 +149,10 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
         addIndexedPrimitive(gx::PrimitiveType type, u16 nVerts) override {
           return mprim.mPrimitives.emplace_back(type, nVerts);
         }
-        SHP1_MPrim(MatrixPrimitive& mp) : mprim(mp) {}
+        SHP1_MPrim(gx::MatrixPrimitive& mp) : mprim(mp) {}
 
       private:
-        MatrixPrimitive& mprim;
+        gx::MatrixPrimitive& mprim;
       } mprim_del(mprim);
       TRY(DecodeMeshDisplayList(reader, g.start + ofsDL + dlOfs, dlSz,
                                 mprim_del, shape.mVertexDescriptor,
@@ -611,4 +611,4 @@ std::unique_ptr<oishii::Node> makeSHP1Node(BMDExportContext& ctx) {
   return std::make_unique<SHP1Node>(ctx.mdl);
 }
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

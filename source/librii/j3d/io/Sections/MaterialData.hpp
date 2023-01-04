@@ -6,9 +6,10 @@
 
 #include <core/util/glm_io.hpp>
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 using namespace libcube;
+using Material = riistudio::j3d::Material;
 
 template <typename T> struct io_wrapper {
   //	template<typename C>
@@ -212,7 +213,7 @@ template <> struct io_wrapper<gx::TexCoordGen> {
   }
 };
 struct J3DMappingMethodDecl {
-  using Method = Material::CommonMappingMethod;
+  using Method = libcube::GCMaterialData::CommonMappingMethod;
   enum class Class { Standard, Basic, Old };
 
   Method _method;
@@ -345,13 +346,14 @@ template <> struct io_wrapper<Material::TexMatrix> {
       writer.write<f32>(f);
   }
 };
-template <> struct io_wrapper<SwapSel> {
-  static void onRead(oishii::BinaryReader& reader, SwapSel& c) {
+template <> struct io_wrapper<riistudio::j3d::SwapSel> {
+  static void onRead(oishii::BinaryReader& reader, riistudio::j3d::SwapSel& c) {
     c.colorChanSel = reader.read<u8>();
     c.texSel = reader.read<u8>();
     reader.read<u16>();
   }
-  static void onWrite(oishii::Writer& writer, const SwapSel& in) {
+  static void onWrite(oishii::Writer& writer,
+                      const riistudio::j3d::SwapSel& in) {
     writer.write<u8>(in.colorChanSel);
     writer.write<u8>(in.texSel);
     writer.write<u16>(-1);
@@ -372,14 +374,16 @@ template <> struct io_wrapper<gx::SwapTableEntry> {
   }
 };
 
-template <> struct io_wrapper<TevOrder> {
-  static void onRead(oishii::BinaryReader& reader, TevOrder& c) {
+template <> struct io_wrapper<riistudio::j3d::TevOrder> {
+  static void onRead(oishii::BinaryReader& reader,
+                     riistudio::j3d::TevOrder& c) {
     c.texCoord = reader.read<u8>();
     c.texMap = reader.read<u8>();
     c.rasOrder = static_cast<gx::ColorSelChanApi>(reader.read<u8>());
     reader.read<u8>();
   }
-  static void onWrite(oishii::Writer& writer, const TevOrder& in) {
+  static void onWrite(oishii::Writer& writer,
+                      const riistudio::j3d::TevOrder& in) {
     writer.write<u8>(in.texCoord);
     writer.write<u8>(in.texMap);
     writer.write<u8>(static_cast<u8>(in.rasOrder));
@@ -483,8 +487,9 @@ template <> struct io_wrapper<Material::J3DSamplerData> {
     writer.write<u16>(sampler.btiId);
   }
 };
-template <> struct io_wrapper<Model::Indirect> {
-  static void onRead(oishii::BinaryReader& reader, Model::Indirect& c) {
+template <> struct io_wrapper<riistudio::j3d::Model::Indirect> {
+  static void onRead(oishii::BinaryReader& reader,
+                     riistudio::j3d::Model::Indirect& c) {
     const auto enabled = reader.read<u8>();
     c.enabled = enabled != 0;
     c.nIndStage = reader.read<u8>();
@@ -552,7 +557,8 @@ template <> struct io_wrapper<Model::Indirect> {
       ++i;
     }
   }
-  static void onWrite(oishii::Writer& writer, const Model::Indirect& c) {
+  static void onWrite(oishii::Writer& writer,
+                      const riistudio::j3d::Model::Indirect& c) {
     writer.write<u8>(c.enabled);
     writer.write<u8>(c.nIndStage);
     writer.write<u16>(-1);
@@ -622,4 +628,4 @@ template <> struct io_wrapper<gx::CullMode> {
     writer.write<u32>(static_cast<u32>(cm));
   }
 };
-} // namespace riistudio::j3d
+} // namespace librii::j3d

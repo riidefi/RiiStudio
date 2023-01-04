@@ -1,7 +1,7 @@
 #include "SceneGraph.hpp"
 #include <oishii/writer/node.hxx>
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 enum class ByteCodeOp : s16 {
   Terminate,
@@ -188,4 +188,4 @@ struct SceneGraphNode : public oishii::Node {
 std::unique_ptr<oishii::Node> SceneGraph::getLinkerNode(const J3dModel& mdl) {
   return std::make_unique<SceneGraphNode>(mdl);
 }
-} // namespace riistudio::j3d
+} // namespace librii::j3d

@@ -1,6 +1,6 @@
 #include "MaterialData.hpp"
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 using namespace libcube;
 
@@ -218,7 +218,7 @@ void readMatEntry(librii::j3d::MaterialData& mat, MatLoader& loader,
     };
 
     dbg.assertSince(0x0BC);
-    rsl::array_vector<TevOrder, 16> tevOrderInfos;
+    rsl::array_vector<riistudio::j3d::TevOrder, 16> tevOrderInfos;
     loader.indexedContainer<u16>(tevOrderInfos, MatSec::TevOrderInfo, 4);
     rsl::array_vector<gx::ColorS10, 4> tevColors;
     tevColors.resize(0);
@@ -249,7 +249,7 @@ void readMatEntry(librii::j3d::MaterialData& mat, MatLoader& loader,
     }
 
     dbg.assertSince(0x104);
-    rsl::array_vector<SwapSel, 16> swapSels;
+    rsl::array_vector<riistudio::j3d::SwapSel, 16> swapSels;
     loader.indexedContainer<u16>(swapSels, MatSec::TevSwapModeInfo, 4);
     for (int i = 0; i < mat.mStages.size(); ++i) {
       mat.mStages[i].texMapSwap = swapSels[i].texSel;
@@ -276,9 +276,9 @@ void readMatEntry(librii::j3d::MaterialData& mat, MatLoader& loader,
 
   if (loader.mSections[(u32)MatSec::IndirectTexturingInfo] &&
       loader.mSections[(u32)MatSec::IndirectTexturingInfo] != ofsStringTable) {
-    Model::Indirect ind{};
-    loader.indexedContained<Model::Indirect>(ind, MatSec::IndirectTexturingInfo,
-                                             0x138, idx);
+    riistudio::j3d::Model::Indirect ind{};
+    loader.indexedContained<riistudio::j3d::Model::Indirect>(
+        ind, MatSec::IndirectTexturingInfo, 0x138, idx);
 
     mat.indEnabled = ind.enabled;
     mat.indirectStages.resize(ind.nIndStage);
@@ -626,7 +626,7 @@ struct MAT3Node : public oishii::Node {
   const J3dModel& mMdl;
   bool hasIndirect = false;
   EntrySection mEntries;
-  const Model::MatCache& mCache;
+  const riistudio::j3d::Model::MatCache& mCache;
 
   gx::TexCoordGen postTexGen(const gx::TexCoordGen& gen) const noexcept {
     return gx::TexCoordGen{// gen.id,
@@ -886,8 +886,9 @@ void io_wrapper<SerializableMaterial>::onWrite(
   dbg.assertSince(0x0bc);
   for (int i = 0; i < m.mStages.size(); ++i)
     writer.write<u16>(
-        find(cache.orders, TevOrder{m.mStages[i].rasOrder, m.mStages[i].texMap,
-                                    m.mStages[i].texCoord}));
+        find(cache.orders, riistudio::j3d::TevOrder{m.mStages[i].rasOrder,
+                                                    m.mStages[i].texMap,
+                                                    m.mStages[i].texCoord}));
   for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u16>(-1);
 
@@ -914,8 +915,9 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   dbg.assertSince(0x104);
   for (int i = 0; i < m.mStages.size(); ++i)
-    writer.write<u16>(find(cache.swapModes, SwapSel{m.mStages[i].rasSwap,
-                                                    m.mStages[i].texMapSwap}));
+    writer.write<u16>(find(cache.swapModes,
+                           riistudio::j3d::SwapSel{m.mStages[i].rasSwap,
+                                                   m.mStages[i].texMapSwap}));
   for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u16>(-1);
 
@@ -936,4 +938,4 @@ std::unique_ptr<oishii::Node> makeMAT3Node(BMDExportContext& ctx) {
   return std::make_unique<MAT3Node>(ctx);
 }
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

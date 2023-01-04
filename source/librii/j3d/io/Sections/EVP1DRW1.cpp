@@ -1,7 +1,7 @@
 #include "../OutputCtx.hpp"
 #include "../Sections.hpp"
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 Result<void> readEVP1DRW1(BMDOutputContext& ctx) {
   auto& reader = ctx.reader;
@@ -317,4 +317,4 @@ std::unique_ptr<oishii::Node> makeEVP1Node(BMDExportContext& ctx) {
 std::unique_ptr<oishii::Node> makeDRW1Node(BMDExportContext& ctx) {
   return std::make_unique<LinkNode<DRW1Node>>(ctx);
 }
-} // namespace riistudio::j3d
+} // namespace librii::j3d

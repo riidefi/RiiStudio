@@ -8,7 +8,7 @@ namespace oishii {
 class Node;
 }
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 struct SceneGraph {
   static constexpr const char name[] = "SceneGraph";
@@ -18,4 +18,4 @@ struct SceneGraph {
   getLinkerNode(const J3dModel& mdl);
 };
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

@@ -5,25 +5,12 @@
 
 #include <rsl/Ranges.hpp>
 
+#include <librii/j3d/J3dIo.hpp>
+
 namespace riistudio::j3d {
 
-struct J3dModel {
-  ScalingRule scalingRule = ScalingRule::Basic;
-  bool isBDL = false;
-  riistudio::j3d::Bufs vertexData;
-  std::vector<libcube::DrawMatrix> drawMatrices;
-  std::vector<librii::j3d::MaterialData> materials;
-  std::vector<librii::j3d::JointData> joints;
-  std::vector<u32> jointIds;
-  std::vector<librii::j3d::ShapeData> shapes;
-  std::vector<librii::j3d::TextureData> textures;
-
-  static Result<J3dModel> read(oishii::BinaryReader& reader,
-                               kpi::LightIOTransaction& tx);
-  Result<void> write(oishii::Writer& writer);
-};
-
-inline void readJ3dMdl(J3dModel& m, const riistudio::j3d::Model& editor,
+inline void readJ3dMdl(librii::j3d::J3dModel& m,
+                       const riistudio::j3d::Model& editor,
                        riistudio::j3d::Collection& c) {
   m.scalingRule = editor.info.mScalingRule;
   m.isBDL = editor.isBDL;
@@ -43,7 +30,7 @@ inline void readJ3dMdl(J3dModel& m, const riistudio::j3d::Model& editor,
     m.textures.emplace_back(tex);
   }
 }
-inline void toEditorMdl(riistudio::j3d::Collection& s, const J3dModel& m) {
+inline void toEditorMdl(riistudio::j3d::Collection& s, const librii::j3d::J3dModel& m) {
   riistudio::j3d::Model& tmp = s.getModels().add();
   tmp.info.mScalingRule = m.scalingRule;
   tmp.isBDL = m.isBDL;
@@ -65,14 +52,14 @@ inline void toEditorMdl(riistudio::j3d::Collection& s, const J3dModel& m) {
 
 inline Result<void> WriteBMD(riistudio::j3d::Collection& collection,
                              oishii::Writer& writer) {
-  J3dModel tmp;
+  librii::j3d::J3dModel tmp;
   readJ3dMdl(tmp, collection.getModels()[0], collection);
   return tmp.write(writer);
 }
 inline Result<void> ReadBMD(riistudio::j3d::Collection& collection,
                             oishii::BinaryReader& reader,
                             kpi::LightIOTransaction& transaction) {
-  auto tmp = TRY(J3dModel::read(reader, transaction));
+  auto tmp = TRY(librii::j3d::J3dModel::read(reader, transaction));
   toEditorMdl(collection, tmp);
   collection.onRelocate();
   collection.getModels()[0].onRelocate();

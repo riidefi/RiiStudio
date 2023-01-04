@@ -1,6 +1,6 @@
 #include "../Sections.hpp"
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 using namespace libcube;
 
@@ -403,4 +403,4 @@ std::unique_ptr<oishii::Node> makeVTX1Node(BMDExportContext& ctx) {
   return std::make_unique<LinkNode<VTX1Node>>(ctx);
 }
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

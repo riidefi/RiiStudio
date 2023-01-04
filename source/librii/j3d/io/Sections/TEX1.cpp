@@ -1,6 +1,6 @@
 #include "../Sections.hpp"
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 void Tex::transfer(oishii::BinaryReader& stream) {
   oishii::DebugExpectSized dbg(stream, 0x20);
@@ -109,7 +109,7 @@ Result<void> readTEX1(BMDOutputContext& ctx) {
   ctx.mTexCache.clear();
 
   struct RawTexture {
-    Texture data;
+    TextureData data;
     u32 absolute_file_offset;
     u32 byte_size;
 
@@ -345,4 +345,4 @@ std::unique_ptr<oishii::Node> makeTEX1Node(BMDExportContext& ctx) {
   return std::make_unique<TEX1Node>(ctx);
 }
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

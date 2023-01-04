@@ -10,13 +10,18 @@
 #include <plugins/j3d/Scene.hpp>
 #include <vector>
 
-namespace riistudio::j3d {
+#include <plugins/j3d/Scene.hpp>
+
+namespace librii::j3d {
+
+using MatCache = riistudio::j3d::ModelData::MatCache;
+using Tex = riistudio::j3d::Tex;
 
 struct BMDOutputContext {
   J3dModel& mdl;
 
   // We forget these by default
-  ModelData::MatCache mMatCache;
+  MatCache mMatCache;
   std::vector<Tex> mTexCache;
 
   oishii::BinaryReader& reader;
@@ -152,7 +157,7 @@ struct LinkNode final : public T, public oishii::Node {
 struct BMDExportContext {
   J3dModel& mdl;
   // We forget these by default
-  ModelData::MatCache mMatCache;
+  MatCache mMatCache;
   std::vector<Tex> mTexCache;
   // Collection& col;
   /*
@@ -160,4 +165,4 @@ struct BMDExportContext {
   */
 };
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

@@ -5,7 +5,7 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/node.hxx>
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 Result<void> readINF1(BMDOutputContext& ctx);
 Result<void> readVTX1(BMDOutputContext& ctx);
@@ -25,4 +25,4 @@ std::unique_ptr<oishii::Node> makeMAT3Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::Node> makeMDL3Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::Node> makeTEX1Node(BMDExportContext& ctx);
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

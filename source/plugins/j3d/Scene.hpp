@@ -24,85 +24,11 @@ struct SwapSel {
   bool operator==(const SwapSel& rhs) const noexcept = default;
 };
 
-struct Tex {
-  librii::gx::TextureFormat mFormat;
-  u8 transparency;
-  u16 mWidth, mHeight;
-  librii::gx::TextureWrapMode mWrapU, mWrapV;
-  u8 mPaletteFormat;
-  u16 nPalette;
-  u32 ofsPalette = 0;
-  u8 bMipMap;
-  u8 bEdgeLod;
-  u8 bBiasClamp;
-  librii::gx::AnisotropyLevel mMaxAniso;
-  librii::gx::TextureFilter mMinFilter;
-  librii::gx::TextureFilter mMagFilter;
-  s8 mMinLod;
-  s8 mMaxLod;
-  u8 mMipmapLevel;
-  s16 mLodBias;
-  u32 ofsTex = 0;
+using Tex = librii::j3d::Tex;
 
-  // Not written, tracked
-  s32 btiId = -1;
-
-  bool operator==(const Tex& rhs) const {
-    return mFormat == rhs.mFormat && transparency == rhs.transparency &&
-           mWidth == rhs.mWidth && mHeight == rhs.mHeight &&
-           mWrapU == rhs.mWrapU && mWrapV == rhs.mWrapV &&
-           mPaletteFormat == rhs.mPaletteFormat && nPalette == rhs.nPalette &&
-           ofsPalette == rhs.ofsPalette && bMipMap == rhs.bMipMap &&
-           bEdgeLod == rhs.bEdgeLod && bBiasClamp == rhs.bBiasClamp &&
-           mMaxAniso == rhs.mMaxAniso && mMinFilter == rhs.mMinFilter &&
-           mMagFilter == rhs.mMagFilter && mMinLod == rhs.mMinLod &&
-           mMaxLod == rhs.mMaxLod && mMipmapLevel == rhs.mMipmapLevel &&
-           mLodBias == rhs.mLodBias && btiId == rhs.btiId; // ofsTex not checked
-  }
-
-  void transfer(oishii::BinaryReader& stream);
-  void write(oishii::Writer& stream) const;
-  Tex() = default;
-  Tex(const librii::j3d::TextureData& data,
-      const libcube::GCMaterialData::SamplerData& sampler);
-};
-
-enum class ScalingRule { Basic, XSI, Maya };
-
-struct Bufs {
-  static inline VertexBuffer<librii::gx::Color, VBufferKind::color> C = {
-      VQuantization{librii::gx::VertexComponentCount(
-                        librii::gx::VertexComponentCount::Color::rgba),
-                    librii::gx::VertexBufferType(
-                        librii::gx::VertexBufferType::Color::FORMAT_32B_8888),
-                    0, 0, 4}};
-  static inline VertexBuffer<glm::vec2, VBufferKind::textureCoordinate> U = {
-      VQuantization{
-          librii::gx::VertexComponentCount(
-              librii::gx::VertexComponentCount::TextureCoordinate::st),
-          librii::gx::VertexBufferType(
-              librii::gx::VertexBufferType::Generic::f32),
-          0, 0, 8}};
-
-  // FIXME: Good default values
-  VertexBuffer<glm::vec3, VBufferKind::position> pos{VQuantization{
-      librii::gx::VertexComponentCount(
-          librii::gx::VertexComponentCount::Position::xyz),
-      librii::gx::VertexBufferType(librii::gx::VertexBufferType::Generic::f32),
-      0, 0, 12}};
-  VertexBuffer<glm::vec3, VBufferKind::normal> norm{VQuantization{
-      librii::gx::VertexComponentCount(
-          librii::gx::VertexComponentCount::Normal::xyz),
-      librii::gx::VertexBufferType(librii::gx::VertexBufferType::Generic::f32),
-      0, 0, 12}};
-  std::array<VertexBuffer<librii::gx::Color, VBufferKind::color>, 2> color{C,
-                                                                           C};
-  std::array<VertexBuffer<glm::vec2, VBufferKind::textureCoordinate>, 8> uv{
-      U, U, U, U, U, U, U, U};
-};
 struct ModelData_ {
   struct Information {
-	  using ScalingRule = riistudio::j3d::ScalingRule;
+    using ScalingRule = librii::j3d::ScalingRule;
     // For texmatrix calculations
 
     ScalingRule mScalingRule = ScalingRule::Basic;
@@ -112,7 +38,7 @@ struct ModelData_ {
   };
   Information info;
   bool isBDL = false;
-  using Bufs = riistudio::j3d::Bufs;
+  using Bufs = librii::j3d::Bufs;
   Bufs mBufs;
 
   struct Indirect {
@@ -207,7 +133,7 @@ struct ModelData : public virtual kpi::IObject, public ModelData_ {
 
   std::string getName() const { return "Model"; }
 
-  using Bufs = riistudio::j3d::Bufs;
+  using Bufs = librii::j3d::Bufs;
   using MatCache = ModelData_::MatCache;
 };
 

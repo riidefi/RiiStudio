@@ -14,11 +14,13 @@
 #include <plugins/j3d/J3dIo.hpp>
 #include <vendor/magic_enum/magic_enum.hpp>
 
+#include <librii/j3d/J3dIo.hpp>
+
 IMPORT_STD;
 
 bool gTestMode = false;
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 using namespace libcube;
 
@@ -303,8 +305,9 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
       }
       break;
     }
-    case (gx::VertexBufferAttribute)
-        gx::VertexAttribute::PositionNormalMatrixIndex:
+      // clang-format off
+    case (gx::VertexBufferAttribute)gx::VertexAttribute::PositionNormalMatrixIndex:
+      // clang-format on
       break;
     default:
       return std::unexpected(std::format(
@@ -350,14 +353,15 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
   return {};
 }
 
-Result<J3dModel> J3dModel::read(oishii::BinaryReader& reader,
-                                kpi::LightIOTransaction& tx) {
-  J3dModel out;
+Result<librii::j3d::J3dModel>
+librii::j3d::J3dModel::read(oishii::BinaryReader& reader,
+                            kpi::LightIOTransaction& tx) {
+  librii::j3d::J3dModel out;
   TRY(detailReadBMD(out, reader, tx));
   return out;
 }
-Result<void> J3dModel::write(oishii::Writer& writer) {
+Result<void> librii::j3d::J3dModel::write(oishii::Writer& writer) {
   return detailWriteBMD(*this, writer);
 }
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

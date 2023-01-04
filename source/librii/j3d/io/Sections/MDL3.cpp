@@ -3,7 +3,7 @@
 
 IMPORT_STD;
 
-namespace riistudio::j3d {
+namespace librii::j3d {
 
 using DLBuilder = librii::gpu::DLBuilder;
 
@@ -198,4 +198,4 @@ std::unique_ptr<oishii::Node> makeMDL3Node(BMDExportContext& ctx) {
   return std::make_unique<MDL3Node>(ctx);
 }
 
-} // namespace riistudio::j3d
+} // namespace librii::j3d

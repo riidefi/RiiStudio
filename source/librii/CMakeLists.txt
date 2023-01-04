@@ -118,6 +118,21 @@ add_library(librii STATIC
   "g3d/io/AnimVisIO.cpp"
   "egg/LTEX.cpp"
   "g3d/io/WiiTrig.cpp"
+
+  "j3d/io/BMD.cpp"
+	"j3d/io/OutputCtx.hpp"
+	"j3d/io/SceneGraph.cpp"
+	"j3d/io/SceneGraph.hpp"
+	"j3d/io/Sections/EVP1DRW1.cpp"
+	"j3d/io/Sections/INF1.cpp"
+	"j3d/io/Sections/JNT1.cpp"
+	"j3d/io/Sections/MAT3.cpp"
+	"j3d/io/Sections/MaterialData.hpp"
+	"j3d/io/Sections/MDL3.cpp"
+	"j3d/io/Sections/SHP1.cpp"
+	"j3d/io/Sections/TEX1.cpp"
+	"j3d/io/Sections/VTX1.cpp"
+	"j3d/io/Sections.hpp"
 )
 
 target_precompile_headers(librii
