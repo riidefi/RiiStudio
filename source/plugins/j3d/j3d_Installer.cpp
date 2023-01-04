@@ -20,7 +20,8 @@ public:
     assert(dynamic_cast<Collection*>(&node) != nullptr);
     Collection& collection = *dynamic_cast<Collection*>(&node);
 
-    WriteBMD(collection, writer);
+    auto ok = WriteBMD(collection, writer);
+    assert(ok);
   }
 
   void read(kpi::IOTransaction& transaction) const {
@@ -29,11 +30,14 @@ public:
 
     assert(dynamic_cast<Collection*>(&node) != nullptr);
     auto& collection = *dynamic_cast<Collection*>(&node);
-    auto& mdl = collection.getModels().add();
 
     oishii::BinaryReader reader(std::move(data));
 
-    ReadBMD(mdl, collection, reader, transaction);
+    auto ok = ReadBMD(collection, reader, transaction);
+    if (!ok) {
+      transaction.callback(kpi::IOMessageClass::Error, "J3D: Error",
+                           ok.error());
+    }
   }
 };
 

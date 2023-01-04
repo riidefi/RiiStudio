@@ -4,7 +4,7 @@
 #include "../Sections.hpp"
 namespace riistudio::j3d {
 
-void readINF1(BMDOutputContext& ctx) {
+Result<void> readINF1(BMDOutputContext& ctx) {
   auto& reader = ctx.reader;
   if (enterSection(ctx, 'INF1')) {
     ScopedSection g(reader, "Information");
@@ -19,13 +19,15 @@ void readINF1(BMDOutputContext& ctx) {
     // u32 nVertex =
     reader.read<u32>();
 
-    ctx.mdl.info.mScalingRule =
+    ctx.mdl.scalingRule =
         static_cast<Model::Information::ScalingRule>(flag & 0xf);
     // FIXME
     // assert((flag & ~0xf) == 0);
     reader.seekSet(g.start + reader.read<s32>());
     SceneGraph::onRead(reader, ctx);
   }
+
+  return {};
 }
 
 struct INF1Node {
@@ -41,15 +43,15 @@ struct INF1Node {
         oishii::Hook(getSelf()),
         oishii::Hook("VTX1" /*getSelf(), oishii::Hook::EndOfChildren*/)});
 
-    writer.write<u16>(static_cast<u16>(mdl->info.mScalingRule) & 0xf);
+    writer.write<u16>(static_cast<u16>(mdl->scalingRule) & 0xf);
     writer.write<u16>(-1);
     // Matrix primitive count
     u64 num_mprim = 0;
-    for (auto& shp : mdl->getMeshes())
-      num_mprim += shp.getMeshData().mMatrixPrimitives.size();
+    for (auto& shp : mdl->shapes)
+      num_mprim += shp.mMatrixPrimitives.size();
     writer.write<u32>(num_mprim);
     // Vertex position count
-    writer.write<u32>((u32)mdl->mBufs.pos.mData.size());
+    writer.write<u32>((u32)mdl->vertexData.pos.mData.size());
 
     writer.writeLink<s32>(
         oishii::Link{oishii::Hook(getSelf()), oishii::Hook("SceneGraph")});
@@ -59,7 +61,7 @@ struct INF1Node {
     out.addNode(SceneGraph::getLinkerNode(*mdl));
   }
   INF1Node(BMDExportContext& ctx) : mdl(&ctx.mdl) {}
-  Model* mdl{nullptr};
+  J3dModel* mdl{nullptr};
 };
 std::unique_ptr<oishii::Node> makeINF1Node(BMDExportContext& ctx) {
   return std::make_unique<LinkNode<INF1Node>>(ctx);

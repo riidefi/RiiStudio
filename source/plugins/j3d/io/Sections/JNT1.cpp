@@ -8,17 +8,16 @@ namespace riistudio::j3d {
 
 using namespace libcube;
 
-void readJNT1(BMDOutputContext& ctx) {
+Result<void> readJNT1(BMDOutputContext& ctx) {
   auto& reader = ctx.reader;
   if (!enterSection(ctx, 'JNT1'))
-    return;
+    return std::unexpected("Couldn't find JNT1 section");
 
   ScopedSection g(ctx.reader, "Joints");
 
   u16 size = reader.read<u16>();
 
-  for (u32 i = 0; i < size; ++i)
-    ctx.mdl.getBones().add();
+  ctx.mdl.joints.resize(size);
   ctx.jointIdLut.resize(size);
   reader.read<u16>();
 
@@ -50,9 +49,9 @@ void readJNT1(BMDOutputContext& ctx) {
   const auto nameTable = readNameTable(reader);
 
   int i = 0;
-  for (auto& joint : ctx.mdl.getBones()) {
+  for (auto& joint : ctx.mdl.joints) {
     reader.seekSet(g.start + ofsJointData + ctx.jointIdLut[i] * 0x40);
-    joint.id = ctx.jointIdLut[i]; // TODO
+    ctx.mdl.jointIds.push_back(ctx.jointIdLut[i]); // TODO
     joint.name = nameTable[i];
     const u16 flag = reader.read<u16>();
     joint.flag = flag & 0xf;
@@ -77,23 +76,25 @@ void readJNT1(BMDOutputContext& ctx) {
     joint.boundingBox.max << reader;
     ++i;
   }
+
+  return {};
 }
 
 struct JNT1Node final : public oishii::Node {
-  JNT1Node(const Model& model) : mModel(model) {
+  JNT1Node(const J3dModel& model) : mModel(model) {
     mId = "JNT1";
     mLinkingRestriction.alignment = 32;
   }
 
   struct JointData : public oishii::Node {
-    JointData(const Model& mdl) : mMdl(mdl) {
+    JointData(const J3dModel& mdl) : mMdl(mdl) {
       mId = "JointData";
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 4;
     }
 
     Result write(oishii::Writer& writer) const noexcept {
-      for (auto& jnt : mMdl.getBones()) {
+      for (auto& jnt : mMdl.joints) {
         writer.write<u16>((jnt.flag & 0xf) |
                           (static_cast<u32>(jnt.bbMtxType) << 4));
         writer.write<u8>(jnt.mayaSSC);
@@ -115,50 +116,50 @@ struct JNT1Node final : public oishii::Node {
       return {};
     }
 
-    const Model& mMdl;
+    const J3dModel& mMdl;
   };
   struct JointLUT : public oishii::Node {
-    JointLUT(const Model& mdl) : mMdl(mdl) {
+    JointLUT(const J3dModel& mdl) : mMdl(mdl) {
       mId = "JointLUT";
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 2;
     }
 
     Result write(oishii::Writer& writer) const noexcept {
-      for (u16 i = 0; i < mMdl.getBones().size(); ++i)
+      for (u16 i = 0; i < mMdl.joints.size(); ++i)
         writer.write<u16>(i);
 
       return {};
     }
 
-    const Model& mMdl;
+    const J3dModel& mMdl;
   };
   struct JointNames : public oishii::Node {
-    JointNames(const Model& mdl) : mMdl(mdl) {
+    JointNames(const J3dModel& mdl) : mMdl(mdl) {
       mId = "JointNames";
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 4;
     }
 
     Result write(oishii::Writer& writer) const noexcept {
-      auto bones = mMdl.getBones();
+      auto& bones = mMdl.joints;
 
       std::vector<std::string> names(bones.size());
 
       for (int i = 0; i < bones.size(); ++i)
-        names[i] = mMdl.getBones()[i].name;
+        names[i] = mMdl.joints[i].name;
       writeNameTable(writer, names);
 
       return {};
     }
 
-    const Model& mMdl;
+    const J3dModel& mMdl;
   };
   Result write(oishii::Writer& writer) const noexcept override {
     writer.write<u32, oishii::EndianSelect::Big>('JNT1');
     writer.writeLink<s32>({*this}, {"SHP1"});
 
-    writer.write<u16>(mModel.getBones().size());
+    writer.write<u16>(mModel.joints.size());
     writer.write<u16>(-1);
 
     // TODO: We don't compress joints. I haven't seen this out in the wild yet.
@@ -179,7 +180,7 @@ struct JNT1Node final : public oishii::Node {
   }
 
 private:
-  const Model& mModel;
+  const J3dModel& mModel;
 };
 
 std::unique_ptr<oishii::Node> makeJNT1Node(BMDExportContext& ctx) {

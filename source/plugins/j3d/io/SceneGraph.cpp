@@ -63,7 +63,7 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
   std::vector<ByteCodeOp> hierarchy_stack;
   std::vector<u16> joint_stack;
 
-  auto joints = ctx.mdl.getBones();
+  auto& joints = ctx.mdl.joints;
 
   for (ByteCodeCmd cmd(reader); cmd.op != ByteCodeOp::Terminate;
        cmd.transfer(reader)) {
@@ -84,8 +84,9 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
       const auto newId = cmd.idx;
 
       if (!joint_stack.empty()) {
-        joints[joint_stack.back()].children.emplace_back(joints[newId].id);
-        joints[newId].parentId = joints[joint_stack.back()].id;
+        joints[joint_stack.back()].children.emplace_back(
+            ctx.mdl.jointIds[newId]);
+        joints[newId].parentId = ctx.mdl.jointIds[joint_stack.back()];
       }
       joint = newId;
       break;
@@ -94,7 +95,7 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
       mat = cmd.idx;
       break;
     case ByteCodeOp::Shape: {
-      assert(mat < ctx.mdl.getMaterials().size());
+      assert(mat < ctx.mdl.materials.size());
       auto& displays = joints[joint].displays;
       displays.emplace_back(mat, cmd.idx);
     } break;
@@ -109,26 +110,27 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
   }
 }
 struct SceneGraphNode : public oishii::Node {
-  SceneGraphNode(const Model& mdl) : Node("SceneGraph"), mdl(mdl) {
+  SceneGraphNode(const J3dModel& mdl) : Node("SceneGraph"), mdl(mdl) {
     getLinkingRestriction().setLeaf();
   }
 
   Result write(oishii::Writer& writer) const noexcept {
     u32 depth = 0;
 
-    writeBone(writer, mdl.getBones()[0], mdl, depth); // Assume root 0
+    // Assume root 0
+    writeBone(writer, mdl.joints[0], mdl.jointIds[0], mdl, depth);
 
     ByteCodeCmd(ByteCodeOp::Terminate).transfer(writer);
     return eResult::Success;
   }
 
-  void writeBone(oishii::Writer& writer, const Joint& joint, const Model& mdl,
-                 u32& depth) const {
+  void writeBone(oishii::Writer& writer, const librii::j3d::JointData& joint,
+                 u32 jointId, const J3dModel& mdl, u32& depth) const {
     u32 startDepth = depth;
 
     s16 id = -1;
-    for (int i = 0; i < mdl.getBones().size(); ++i) {
-      if (mdl.getBones()[i].id == joint.id)
+    for (int i = 0; i < mdl.joints.size(); ++i) {
+      if (mdl.jointIds[i] == jointId)
         id = i;
     }
     assert(id != -1);
@@ -165,7 +167,7 @@ struct SceneGraphNode : public oishii::Node {
     }
 
     for (const auto d : joint.children) {
-      writeBone(writer, mdl.getBones()[d], mdl, depth);
+      writeBone(writer, mdl.joints[d], mdl.jointIds[d], mdl, depth);
     }
     if (depth != startDepth) {
       // If last is an open, overwrite it
@@ -181,9 +183,9 @@ struct SceneGraphNode : public oishii::Node {
     }
   }
 
-  const Model& mdl;
+  const J3dModel& mdl;
 };
-std::unique_ptr<oishii::Node> SceneGraph::getLinkerNode(const Model& mdl) {
+std::unique_ptr<oishii::Node> SceneGraph::getLinkerNode(const J3dModel& mdl) {
   return std::make_unique<SceneGraphNode>(mdl);
 }
 } // namespace riistudio::j3d

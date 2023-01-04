@@ -12,28 +12,9 @@
 namespace riistudio::j3d {
 
 class Model;
-
-struct MaterialData : public libcube::GCMaterialData {
-  using J3DSamplerData = SamplerData;
-
-  u8 flag = 1;
-
-  bool indEnabled = false;
-
-  // odd data
-  librii::j3d::Fog fogInfo{};
-  rsl::array_vector<librii::gx::Color, 8> lightColors;
-  librii::j3d::NBTScale nbtScale{};
-  // unused data
-  // Note: postTexGens are inferred (only enabled counts)
-  rsl::array_vector<TexMatrix, 20> postTexMatrices{};
-  std::array<u8, 24> stackTrash{}; //!< We have to remember this for 1:1
-
-  bool operator==(const MaterialData& rhs) const = default;
-};
 struct Texture;
 
-struct Material : public MaterialData,
+struct Material : public librii::j3d::MaterialData,
                   public libcube::IGCMaterial,
                   public virtual kpi::IObject {
   // PX_TYPE_INFO_EX("J3D Material", "j3d_material", "J::Material",

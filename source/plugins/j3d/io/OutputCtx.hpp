@@ -5,6 +5,7 @@
 #include <map>
 #include <oishii/writer/binary_writer.hxx>
 #include <oishii/writer/node.hxx>
+#include <plugins/j3d/J3dIo.hpp>
 #include <plugins/j3d/Model.hpp>
 #include <plugins/j3d/Scene.hpp>
 #include <vector>
@@ -12,8 +13,11 @@
 namespace riistudio::j3d {
 
 struct BMDOutputContext {
-  Model& mdl;
-  Collection& col;
+  J3dModel& mdl;
+
+  // We forget these by default
+  ModelData::MatCache mMatCache;
+  std::vector<Tex> mTexCache;
 
   oishii::BinaryReader& reader;
   kpi::LightIOTransaction& transaction;
@@ -146,8 +150,11 @@ struct LinkNode final : public T, public oishii::Node {
 };
 
 struct BMDExportContext {
-  Model& mdl;
-  Collection& col;
+  J3dModel& mdl;
+  // We forget these by default
+  ModelData::MatCache mMatCache;
+  std::vector<Tex> mTexCache;
+  // Collection& col;
   /*
   We need to associate Samplers and TexData
   */

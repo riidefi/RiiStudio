@@ -9,9 +9,10 @@
 
 #include "Sections.hpp"
 
-#include <librii/gx/validate/MaterialValidate.hpp>
-
 #include <core/util/timestamp.hpp>
+#include <librii/gx/validate/MaterialValidate.hpp>
+#include <plugins/j3d/J3dIo.hpp>
+#include <vendor/magic_enum/magic_enum.hpp>
 
 IMPORT_STD;
 
@@ -20,6 +21,8 @@ bool gTestMode = false;
 namespace riistudio::j3d {
 
 using namespace libcube;
+
+void processCollectionForWrite(BMDExportContext& collection);
 
 struct BMDFile : public oishii::Node {
   static const char* getNameId() { return "JSystem Binary Model Data"; }
@@ -50,7 +53,9 @@ struct BMDFile : public oishii::Node {
     return {};
   }
   Result gatherChildren(oishii::Node::NodeDelegate& ctx) const {
-    BMDExportContext exp{mCollection->getModels()[0], *mCollection};
+    pExp = std::make_unique<BMDExportContext>(BMDExportContext{*mCollection});
+    auto& exp = *pExp;
+    processCollectionForWrite(exp);
 
     auto addNode = [&](std::unique_ptr<oishii::Node> node) {
       node->getLinkingRestriction().alignment = 32;
@@ -70,9 +75,11 @@ struct BMDFile : public oishii::Node {
     return {};
   }
 
-  j3d::Collection* mCollection;
+  std::unique_ptr<J3dModel> mCollection;
   bool bBDL = true;
   bool bMimic = true;
+
+  mutable std::unique_ptr<BMDExportContext> pExp;
 };
 void BMD_Pad(char* dst, u32 len) {
   const char* pad_str = "This is padding data to alignment.....";
@@ -86,7 +93,7 @@ void BMD_Pad(char* dst, u32 len) {
     memset(dst, 0, len);
 }
 
-void processModelForWrite(j3d::Collection& collection, j3d::Model& model,
+void processModelForWrite(BMDExportContext& model,
                           const std::map<std::string, u32>& texNameMap) {
   auto& texCache = model.mTexCache;
   auto& matCache = model.mMatCache;
@@ -95,10 +102,10 @@ void processModelForWrite(j3d::Collection& collection, j3d::Model& model,
 
   libcube::GCMaterialData::SamplerData samp;
 
-  for (size_t i = 0; i < collection.getTextures().size(); ++i) {
-    auto& tex = collection.getTextures()[i];
+  for (size_t i = 0; i < model.mdl.textures.size(); ++i) {
+    auto& tex = model.mdl.textures[i];
     std::vector<libcube::GCMaterialData::SamplerData*> its;
-    for (auto& mat : model.getMaterials()) {
+    for (auto& mat : model.mdl.materials) {
       for (int i = 0; i < mat.samplers.size(); ++i) {
         auto& csamp = mat.samplers[i];
         assert(!csamp.mTexture.empty());
@@ -108,10 +115,10 @@ void processModelForWrite(j3d::Collection& collection, j3d::Model& model,
         }
       }
     }
-	// Include unused textures
+    // Include unused textures
     if (its.empty()) {
       its.push_back(nullptr);
-	}
+    }
     for (auto* it : its) {
       if (it != nullptr) {
         samp = *it;
@@ -131,46 +138,43 @@ void processModelForWrite(j3d::Collection& collection, j3d::Model& model,
     }
   }
 
-  for (auto& mat : model.getMaterials()) {
+  for (auto& mat : model.mdl.materials) {
     matCache.propagate(mat);
   }
 }
 
 // Recompute cache
-void processCollectionForWrite(j3d::Collection& collection) {
+void processCollectionForWrite(BMDExportContext& collection) {
   std::map<std::string, u32> texNameMap;
-  for (int i = 0; i < collection.getTextures().size(); ++i) {
-    texNameMap[collection.getTextures()[i].getName()] = i;
+  for (int i = 0; i < collection.mdl.textures.size(); ++i) {
+    texNameMap[collection.mdl.textures[i].mName] = i;
   }
 
-  for (auto& model : collection.getModels()) {
-    processModelForWrite(collection, model, texNameMap);
-  }
+  processModelForWrite(collection, texNameMap);
 }
 
-void WriteBMD(riistudio::j3d::Collection& collection, oishii::Writer& writer) {
+Result<void> detailWriteBMD(const J3dModel& model_, oishii::Writer& writer) {
+  auto model = std::make_unique<J3dModel>(model_);
   oishii::Linker linker;
 
   auto bmd = std::make_unique<BMDFile>();
-  bmd->bBDL = collection.getModels()[0].isBDL;
+  bmd->bBDL = model->isBDL;
   bmd->bMimic = true;
-  bmd->mCollection = &collection;
+  bmd->mCollection = std::move(model);
 
   linker.mUserPad = &BMD_Pad;
   writer.mUserPad = &BMD_Pad;
-
-  processCollectionForWrite(collection);
 
   // writer.add_bp(0x37b2c, 4);
 
   linker.gather(std::move(bmd), "");
   linker.write(writer);
+  return {};
 }
 
-void ReadBMD(riistudio::j3d::Model& mdl, riistudio::j3d::Collection& collection,
-             oishii::BinaryReader& reader,
-             kpi::LightIOTransaction& transaction) {
-  BMDOutputContext ctx{mdl, collection, reader, transaction};
+Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
+                           kpi::LightIOTransaction& transaction) {
+  BMDOutputContext ctx{mdl, {}, {}, reader, transaction};
 
   reader.setEndian(std::endian::big);
   const auto magic = reader.read<u32>();
@@ -179,8 +183,7 @@ void ReadBMD(riistudio::j3d::Model& mdl, riistudio::j3d::Collection& collection,
   } else if (magic == '2D3J') {
     reader.setEndian(std::endian::little);
   } else {
-    // Invalid file
-    return;
+    return std::unexpected(std::format("Unexpected file magic: 0x{:x}", magic));
   }
 
   mdl.isBDL = false;
@@ -193,8 +196,8 @@ void ReadBMD(riistudio::j3d::Model& mdl, riistudio::j3d::Collection& collection,
 #endif
   } else {
     reader.signalInvalidityLast<u32, oishii::MagicInvalidity<'bmd3'>>();
-    // error = true;
-    return;
+    return std::unexpected(
+        std::format("Unsupporte BMD version 0x{:x}", bmdVer));
   }
 
   // TODO: Validate file size.
@@ -233,32 +236,32 @@ void ReadBMD(riistudio::j3d::Model& mdl, riistudio::j3d::Collection& collection,
     }
   }
   // Read vertex data
-  readVTX1(ctx);
+  TRY(readVTX1(ctx));
 
   // Read joints
-  readJNT1(ctx);
+  TRY(readJNT1(ctx));
 
   // Read envelopes and draw matrices
-  readEVP1DRW1(ctx);
+  TRY(readEVP1DRW1(ctx));
 
   // Read shapes
-  readSHP1(ctx);
+  TRY(readSHP1(ctx));
 
   for (const auto& e : ctx.mVertexBufferMaxIndices) {
     switch (e.first) {
     case gx::VertexBufferAttribute::Position:
-      if (ctx.mdl.mBufs.pos.mData.size() != e.second + 1) {
+      if (ctx.mdl.vertexData.pos.mData.size() != e.second + 1) {
         DebugReport(
             "The position vertex buffer currently has %u greedily-claimed "
             "entries due to 32B padding; %u are used.\n",
-            (u32)ctx.mdl.mBufs.pos.mData.size(), e.second + 1);
-        ctx.mdl.mBufs.pos.mData.resize(e.second + 1);
+            (u32)ctx.mdl.vertexData.pos.mData.size(), e.second + 1);
+        ctx.mdl.vertexData.pos.mData.resize(e.second + 1);
       }
       break;
     case gx::VertexBufferAttribute::Color0:
     case gx::VertexBufferAttribute::Color1: {
       auto& buf =
-          ctx.mdl.mBufs
+          ctx.mdl.vertexData
               .color[(int)e.first - (int)gx::VertexBufferAttribute::Color0];
       if (buf.mData.size() != e.second + 1) {
         DebugReport(
@@ -270,7 +273,7 @@ void ReadBMD(riistudio::j3d::Model& mdl, riistudio::j3d::Collection& collection,
       break;
     }
     case gx::VertexBufferAttribute::Normal: {
-      auto& buf = ctx.mdl.mBufs.norm;
+      auto& buf = ctx.mdl.vertexData.norm;
       if (buf.mData.size() != e.second + 1) {
         DebugReport(
             "The normal buffer currently has %u greedily-claimed entries "
@@ -289,7 +292,7 @@ void ReadBMD(riistudio::j3d::Model& mdl, riistudio::j3d::Collection& collection,
     case gx::VertexBufferAttribute::TexCoord6:
     case gx::VertexBufferAttribute::TexCoord7: {
       auto& buf =
-          ctx.mdl.mBufs
+          ctx.mdl.vertexData
               .uv[(int)e.first - (int)gx::VertexBufferAttribute::TexCoord0];
       if (buf.mData.size() != e.second + 1) {
         DebugReport(
@@ -298,17 +301,23 @@ void ReadBMD(riistudio::j3d::Model& mdl, riistudio::j3d::Collection& collection,
             (u32)buf.mData.size(), e.second + 1);
         buf.mData.resize(e.second + 1);
       }
+      break;
     }
+    case (gx::VertexBufferAttribute)
+        gx::VertexAttribute::PositionNormalMatrixIndex:
+      break;
     default:
-      break; // TODO
+      return std::unexpected(std::format(
+          "Unsupported VertexBufAttribute {} ({})", static_cast<int>(e.first),
+          magic_enum::enum_name(e.first)));
     }
   }
 
   // Read materials
-  readMAT3(ctx);
+  TRY(readMAT3(ctx));
 
   // fixup identity matrix optimization for editor
-  for (auto& mat : ctx.mdl.getMaterials()) {
+  for (auto& mat : ctx.mdl.materials) {
     if (mat.texGens.size() != mat.texMatrices.size())
       continue;
 
@@ -332,12 +341,23 @@ void ReadBMD(riistudio::j3d::Model& mdl, riistudio::j3d::Collection& collection,
   }
 
   // Read TEX1
-  readTEX1(ctx);
+  TRY(readTEX1(ctx));
 
   // Read INF1
-  readINF1(ctx);
+  TRY(readINF1(ctx));
 
   // Read MDL3
+  return {};
+}
+
+Result<J3dModel> J3dModel::read(oishii::BinaryReader& reader,
+                                kpi::LightIOTransaction& tx) {
+  J3dModel out;
+  TRY(detailReadBMD(out, reader, tx));
+  return out;
+}
+Result<void> J3dModel::write(oishii::Writer& writer) {
+  return detailWriteBMD(*this, writer);
 }
 
 } // namespace riistudio::j3d

@@ -363,7 +363,7 @@ struct VQuantization {
       : comp(c), type(t), divisor(d), bad_divisor(bad_d), stride(s) {}
   VQuantization(const VQuantization& other)
       : comp(other.comp), type(other.type), divisor(other.divisor),
-        stride(other.stride) {}
+        bad_divisor(other.bad_divisor), stride(other.stride) {}
   VQuantization() = default;
 };
 using VBufferKind = VertexBufferKind;

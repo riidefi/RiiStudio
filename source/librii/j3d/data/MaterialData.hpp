@@ -28,4 +28,23 @@ struct NBTScale {
   bool operator==(const NBTScale& rhs) const noexcept = default;
 };
 
+struct MaterialData : public librii::gx::GCMaterialData {
+  using J3DSamplerData = SamplerData;
+
+  u8 flag = 1;
+
+  bool indEnabled = false;
+
+  // odd data
+  librii::j3d::Fog fogInfo{};
+  rsl::array_vector<librii::gx::Color, 8> lightColors{};
+  librii::j3d::NBTScale nbtScale{};
+  // unused data
+  // Note: postTexGens are inferred (only enabled counts)
+  rsl::array_vector<TexMatrix, 20> postTexMatrices{};
+  std::array<u8, 24> stackTrash{}; //!< We have to remember this for 1:1
+
+  bool operator==(const MaterialData& rhs) const = default;
+};
+
 } // namespace librii::j3d

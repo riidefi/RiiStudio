@@ -7,14 +7,13 @@
 
 namespace riistudio::j3d {
 
-void readINF1(BMDOutputContext& ctx);
-
-void readVTX1(BMDOutputContext& ctx);
-void readEVP1DRW1(BMDOutputContext& ctx);
-void readJNT1(BMDOutputContext& ctx);
-void readMAT3(BMDOutputContext& ctx);
-void readSHP1(BMDOutputContext& ctx);
-void readTEX1(BMDOutputContext& ctx);
+Result<void> readINF1(BMDOutputContext& ctx);
+Result<void> readVTX1(BMDOutputContext& ctx);
+Result<void> readEVP1DRW1(BMDOutputContext& ctx);
+Result<void> readJNT1(BMDOutputContext& ctx);
+Result<void> readMAT3(BMDOutputContext& ctx);
+Result<void> readSHP1(BMDOutputContext& ctx);
+Result<void> readTEX1(BMDOutputContext& ctx);
 
 std::unique_ptr<oishii::Node> makeINF1Node(BMDExportContext& ctx);
 std::unique_ptr<oishii::Node> makeVTX1Node(BMDExportContext& ctx);

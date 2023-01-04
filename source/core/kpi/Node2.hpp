@@ -315,7 +315,7 @@ struct CollectionItemImpl final : public virtual IObject, public T {
     collectionOf = rhs.collectionOf;
     childOf = rhs.childOf;
   }
-  CollectionItemImpl() : T() {
+  CollectionItemImpl() {
     collectionOf = nullptr;
     childOf = nullptr;
   }
@@ -392,8 +392,10 @@ template <typename T> struct CollectionImpl final : public ICollection {
 
   void onParentMoved(INode* _parent) {
     parent = _parent;
-    for (auto& elem : data)
+    for (auto& elem : data) {
+      elem->collectionOf = this;
       elem->childOf = _parent;
+    }
   }
 };
 

@@ -4,10 +4,10 @@ namespace riistudio::j3d {
 
 using namespace libcube;
 
-void readVTX1(BMDOutputContext& ctx) {
+Result<void> readVTX1(BMDOutputContext& ctx) {
   auto& reader = ctx.reader;
   if (!enterSection(ctx, 'VTX1'))
-    return;
+    return std::unexpected("Failed to find VTX1 section");
 
   ScopedSection g(reader, "Vertex Buffers");
 
@@ -23,16 +23,15 @@ void readVTX1(BMDOutputContext& ctx) {
     const auto data = reader.read<u32>();
     const auto gen_data = static_cast<gx::VertexBufferType::Generic>(data);
     const auto gen_comp_size =
-        (gen_data == gx::VertexBufferType::Generic::f32)
-            ? 4
-            : (gen_data == gx::VertexBufferType::Generic::u16 ||
-               gen_data == gx::VertexBufferType::Generic::s16)
-                  ? 2
-                  : 1;
+        (gen_data == gx::VertexBufferType::Generic::f32) ? 4
+        : (gen_data == gx::VertexBufferType::Generic::u16 ||
+           gen_data == gx::VertexBufferType::Generic::s16)
+            ? 2
+            : 1;
     const auto shift = reader.read<u8>();
     reader.skip(3);
 
-    assert(0 <= shift && shift <= 31);
+    EXPECT(0 <= shift && shift <= 31);
 
     auto estride = 0;
     // FIXME: type punning
@@ -42,33 +41,33 @@ void readVTX1(BMDOutputContext& ctx) {
 
     switch (type) {
     case gx::VertexBufferAttribute::Position:
-      buf = &ctx.mdl.mBufs.pos;
+      buf = &ctx.mdl.vertexData.pos;
       bufkind = VBufferKind::position;
-      ctx.mdl.mBufs.pos.mQuant = VQuantization(
+      ctx.mdl.vertexData.pos.mQuant = VQuantization(
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::Position>(comp)),
           gx::VertexBufferType(gen_data),
           gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0, shift,
           (comp + 2) * gen_comp_size);
-      estride = ctx.mdl.mBufs.pos.mQuant.stride;
+      estride = ctx.mdl.vertexData.pos.mQuant.stride;
       break;
     case gx::VertexBufferAttribute::Normal:
-      buf = &ctx.mdl.mBufs.norm;
+      buf = &ctx.mdl.vertexData.norm;
       bufkind = VBufferKind::normal;
-      ctx.mdl.mBufs.norm.mQuant = VQuantization(
+      ctx.mdl.vertexData.norm.mQuant = VQuantization(
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::Normal>(comp)),
           gx::VertexBufferType(gen_data),
-          gen_data == gx::VertexBufferType::Generic::s8
-              ? 6
-              : gen_data == gx::VertexBufferType::Generic::s16 ? 14 : 0,
+          gen_data == gx::VertexBufferType::Generic::s8    ? 6
+          : gen_data == gx::VertexBufferType::Generic::s16 ? 14
+                                                           : 0,
           shift, 3 * gen_comp_size);
-      estride = ctx.mdl.mBufs.norm.mQuant.stride;
+      estride = ctx.mdl.vertexData.norm.mQuant.stride;
       break;
     case gx::VertexBufferAttribute::Color0:
     case gx::VertexBufferAttribute::Color1: {
       auto& clr =
-          ctx.mdl.mBufs
+          ctx.mdl.vertexData
               .color[static_cast<size_t>(type) -
                      static_cast<size_t>(gx::VertexBufferAttribute::Color0)];
       buf = &clr;
@@ -106,7 +105,7 @@ void readVTX1(BMDOutputContext& ctx) {
     case gx::VertexBufferAttribute::TexCoord6:
     case gx::VertexBufferAttribute::TexCoord7: {
       auto& uv =
-          ctx.mdl.mBufs
+          ctx.mdl.vertexData
               .uv[static_cast<size_t>(type) -
                   static_cast<size_t>(gx::VertexBufferAttribute::TexCoord0)];
       buf = &uv;
@@ -121,12 +120,13 @@ void readVTX1(BMDOutputContext& ctx) {
       break;
     }
     default:
-      assert(false);
+      EXPECT(false, "Unsupported VertexBufferAttribute");
     }
 
-    assert(estride);
+    EXPECT(estride);
 
-    const auto getDataIndex = [&](gx::VertexBufferAttribute attr) {
+    const auto getDataIndex =
+        [&](gx::VertexBufferAttribute attr) -> Result<int> {
       static const constexpr std::array<
           s8, static_cast<size_t>(
                   gx::VertexBufferAttribute::NormalBinormalTangent) +
@@ -144,12 +144,12 @@ void readVTX1(BMDOutputContext& ctx) {
 
       const auto attr_i = static_cast<size_t>(attr);
 
-      assert(attr_i < lut.size());
+      EXPECT(attr_i < lut.size());
 
       return attr_i < lut.size() ? lut[attr_i] : -1;
     };
 
-    const auto idx = getDataIndex(type);
+    const auto idx = TRY(getDataIndex(type));
     const auto ofs = g.start + ofsData[idx];
     {
       oishii::Jump<oishii::Whence::Set> g_bufdata(reader, ofs);
@@ -165,64 +165,63 @@ void readVTX1(BMDOutputContext& ctx) {
       if (!size)
         size = g.size - ofsData[idx];
 
-      assert(size > 0);
+      EXPECT(size > 0);
 
       // Desirable to round down
       const auto ensize = (size /*+ estride*/) / estride;
       //	assert(size % estride == 0);
-      assert(ensize < u32(u16(-1)) * 3);
+      EXPECT(ensize < u32(u16(-1)) * 3);
 
       // FIXME: Alignment padding trim
 
       switch (bufkind) {
       case VBufferKind::position: {
-        auto pos = reinterpret_cast<decltype(ctx.mdl.mBufs.pos)*>(buf);
+        auto pos = reinterpret_cast<decltype(ctx.mdl.vertexData.pos)*>(buf);
 
         pos->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i) {
-          auto ok = pos->readBufferEntryGeneric(reader, pos->mData[i]);
-          assert(ok);
+          TRY(pos->readBufferEntryGeneric(reader, pos->mData[i]));
         }
         break;
       }
       case VBufferKind::normal: {
-        auto nrm = reinterpret_cast<decltype(ctx.mdl.mBufs.norm)*>(buf);
+        auto nrm = reinterpret_cast<decltype(ctx.mdl.vertexData.norm)*>(buf);
 
         nrm->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i) {
-          auto ok = nrm->readBufferEntryGeneric(reader, nrm->mData[i]);
-          assert(ok);
+          TRY(nrm->readBufferEntryGeneric(reader, nrm->mData[i]));
         }
         break;
       }
       case VBufferKind::color: {
         auto clr =
-            reinterpret_cast<decltype(ctx.mdl.mBufs.color)::value_type*>(buf);
+            reinterpret_cast<decltype(ctx.mdl.vertexData.color)::value_type*>(
+                buf);
 
         clr->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i) {
-          auto ok = clr->readBufferEntryColor(reader, clr->mData[i]);
-          assert(ok);
+          TRY(clr->readBufferEntryColor(reader, clr->mData[i]));
         }
         break;
       }
       case VBufferKind::textureCoordinate: {
         auto uv =
-            reinterpret_cast<decltype(ctx.mdl.mBufs.uv)::value_type*>(buf);
+            reinterpret_cast<decltype(ctx.mdl.vertexData.uv)::value_type*>(buf);
 
         uv->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i) {
-          auto ok = uv->readBufferEntryGeneric(reader, uv->mData[i]);
-          assert(ok);
+          TRY(uv->readBufferEntryGeneric(reader, uv->mData[i]));
         }
         break;
       }
       }
     }
   }
+
+  return {};
 }
 struct FormatDecl : public oishii::Node {
-  FormatDecl(Model* m) : mdl(m) { mId = "Format"; }
+  FormatDecl(J3dModel* m) : mdl(m) { mId = "Format"; }
   struct Entry {
     gx::VertexBufferAttribute attrib;
     u32 cnt = 1;
@@ -241,16 +240,16 @@ struct FormatDecl : public oishii::Node {
 
   Result write(oishii::Writer& writer) const noexcept {
     // Positions
-    if (!mdl->mBufs.pos.mData.empty()) {
-      const auto& q = mdl->mBufs.pos.mQuant;
+    if (!mdl->vertexData.pos.mData.empty()) {
+      const auto& q = mdl->vertexData.pos.mQuant;
       Entry{gx::VertexBufferAttribute::Position,
             static_cast<u32>(q.comp.position), static_cast<u32>(q.type.generic),
             q.bad_divisor}
           .write(writer);
     }
     // Normals
-    if (!mdl->mBufs.norm.mData.empty()) {
-      const auto& q = mdl->mBufs.norm.mQuant;
+    if (!mdl->vertexData.norm.mData.empty()) {
+      const auto& q = mdl->vertexData.norm.mQuant;
       Entry{gx::VertexBufferAttribute::Normal, static_cast<u32>(q.comp.normal),
             static_cast<u32>(q.type.generic), q.bad_divisor}
           .write(writer);
@@ -258,7 +257,7 @@ struct FormatDecl : public oishii::Node {
     // Colors
     {
       int i = 0;
-      for (const auto& buf : mdl->mBufs.color) {
+      for (const auto& buf : mdl->vertexData.color) {
         if (!buf.mData.empty()) {
           const auto& q = buf.mQuant;
           Entry{gx::VertexBufferAttribute(
@@ -273,7 +272,7 @@ struct FormatDecl : public oishii::Node {
     // UVs
     {
       int i = 0;
-      for (const auto& buf : mdl->mBufs.uv) {
+      for (const auto& buf : mdl->vertexData.uv) {
         if (!buf.mData.empty()) {
           const auto& q = buf.mQuant;
           Entry{gx::VertexBufferAttribute(
@@ -288,7 +287,7 @@ struct FormatDecl : public oishii::Node {
     Entry{gx::VertexBufferAttribute::Terminate}.write(writer);
     return {};
   }
-  Model* mdl;
+  J3dModel* mdl;
 };
 
 struct VTX1Node {
@@ -298,15 +297,15 @@ struct VTX1Node {
   int computeNumOfs() const {
     int numOfs = 0;
     if (mdl) {
-      if (!mdl->mBufs.pos.mData.empty())
+      if (!mdl->vertexData.pos.mData.empty())
         ++numOfs;
-      if (!mdl->mBufs.norm.mData.empty())
+      if (!mdl->vertexData.norm.mData.empty())
         ++numOfs;
       for (int i = 0; i < 2; ++i)
-        if (!mdl->mBufs.color[i].mData.empty())
+        if (!mdl->vertexData.color[i].mData.empty())
           ++numOfs;
       for (int i = 0; i < 8; ++i)
-        if (!mdl->mBufs.uv[i].mData.empty())
+        if (!mdl->vertexData.uv[i].mData.empty())
           ++numOfs;
     }
     return numOfs;
@@ -337,19 +336,19 @@ struct VTX1Node {
         writeBufLink();
     };
 
-    writeOptBufLink(mdl->mBufs.pos);
-    writeOptBufLink(mdl->mBufs.norm);
+    writeOptBufLink(mdl->vertexData.pos);
+    writeOptBufLink(mdl->vertexData.norm);
     writer.write<s32>(0); // NBT
 
-    for (const auto& c : mdl->mBufs.color)
+    for (const auto& c : mdl->vertexData.color)
       writeOptBufLink(c);
 
-    for (const auto& u : mdl->mBufs.uv)
+    for (const auto& u : mdl->vertexData.uv)
       writeOptBufLink(u);
   }
 
   template <typename T> struct VertexAttribBuf : public oishii::Node {
-    VertexAttribBuf(const Model& m, const std::string& id, const T& data)
+    VertexAttribBuf(const J3dModel& m, const std::string& id, const T& data)
         : Node(id), mdl(m), mData(data) {
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 32;
@@ -362,7 +361,7 @@ struct VTX1Node {
       return eResult::Fatal;
     }
 
-    const Model& mdl;
+    const J3dModel& mdl;
     const T& mData;
   };
 
@@ -378,26 +377,26 @@ struct VTX1Node {
     };
 
     // Positions
-    if (!mdl->mBufs.pos.mData.empty())
-      push_buf(mdl->mBufs.pos);
+    if (!mdl->vertexData.pos.mData.empty())
+      push_buf(mdl->vertexData.pos);
 
     // Normals
-    if (!mdl->mBufs.norm.mData.empty())
-      push_buf(mdl->mBufs.norm);
+    if (!mdl->vertexData.norm.mData.empty())
+      push_buf(mdl->vertexData.norm);
 
     // Colors
-    for (auto& c : mdl->mBufs.color)
+    for (auto& c : mdl->vertexData.color)
       if (!c.mData.empty())
         push_buf(c);
 
     // UV
-    for (auto& c : mdl->mBufs.uv)
+    for (auto& c : mdl->vertexData.uv)
       if (!c.mData.empty())
         push_buf(c);
   }
 
   VTX1Node(BMDExportContext& ctx) : mdl(&ctx.mdl) {}
-  Model* mdl = nullptr;
+  J3dModel* mdl = nullptr;
 };
 
 std::unique_ptr<oishii::Node> makeVTX1Node(BMDExportContext& ctx) {

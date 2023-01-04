@@ -15,7 +15,7 @@ struct SceneGraph {
 
   static void onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx);
   static std::unique_ptr<oishii::Node>
-  getLinkerNode(const Model& mdl);
+  getLinkerNode(const J3dModel& mdl);
 };
 
 } // namespace riistudio::j3d

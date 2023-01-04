@@ -12,7 +12,7 @@ static gx::TexCoordGen postTexGen(const gx::TexCoordGen& gen) {
                          static_cast<gx::TexMatrix>(gen.postMatrix), false,
                          gen.postMatrix};
 }
-void Model::MatCache::propagate(Material& mat) {
+void Model::MatCache::propagate(librii::j3d::MaterialData& mat) {
   Indirect _ind(mat);
   indirectInfos.push_back(mat); // one per mat
   update_section(cullModes, mat.cullMode);

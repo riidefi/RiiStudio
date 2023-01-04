@@ -3,7 +3,7 @@
 
 namespace riistudio::j3d {
 
-void readEVP1DRW1(BMDOutputContext& ctx) {
+Result<void> readEVP1DRW1(BMDOutputContext& ctx) {
   auto& reader = ctx.reader;
   // We infer DRW1 -- one bone -> singlebound, else create envelope
   std::vector<libcube::DrawMatrix> envelopes;
@@ -50,8 +50,8 @@ void readEVP1DRW1(BMDOutputContext& ctx) {
         }
       }
 
-      for (int i = 0; i < ctx.mdl.getBones().size(); ++i) {
-        auto& mtx = ctx.mdl.getBones()[i].inverseBindPoseMtx;
+      for (int i = 0; i < ctx.mdl.joints.size(); ++i) {
+        auto& mtx = ctx.mdl.joints[i].inverseBindPoseMtx;
 
         for (int j = 0; j < 12; ++j) {
           mtx[j] = reader.getAt<f32>(g.start + ofsMatrixInvBind + (i * 0x30) +
@@ -65,8 +65,8 @@ void readEVP1DRW1(BMDOutputContext& ctx) {
   if (enterSection(ctx, 'DRW1')) {
     ScopedSection g(reader, "Vertex Draw Matrix");
 
-    ctx.mdl.mDrawMatrices.clear();
-    ctx.mdl.mDrawMatrices.resize(
+    ctx.mdl.drawMatrices.clear();
+    ctx.mdl.drawMatrices.resize(
         reader.read<u16>() -
         envelopes.size()); // Bug in N's tooling corrected on runtime
     reader.read<u16>();
@@ -76,7 +76,7 @@ void readEVP1DRW1(BMDOutputContext& ctx) {
     reader.seekSet(g.start);
 
     int i = 0;
-    for (auto& mtx : ctx.mdl.mDrawMatrices) {
+    for (auto& mtx : ctx.mdl.drawMatrices) {
 
       const auto multipleInfluences =
           reader.peekAt<u8>(ofsPartialWeighting + i);
@@ -93,6 +93,8 @@ void readEVP1DRW1(BMDOutputContext& ctx) {
       i++;
     }
   }
+
+  return {};
 }
 
 struct EVP1Node {
@@ -125,7 +127,7 @@ struct EVP1Node {
     SimpleEvpNode(const std::vector<libcube::DrawMatrix>& from,
                   const std::vector<int>& toWrite,
                   const std::vector<float>& weightPool,
-                  const Model* mdl = nullptr)
+                  const J3dModel* mdl = nullptr)
         : mFrom(from), mToWrite(toWrite), mWeightPool(weightPool), mMdl(mdl) {
       getLinkingRestriction().setLeaf();
     }
@@ -133,11 +135,11 @@ struct EVP1Node {
     const std::vector<libcube::DrawMatrix>& mFrom;
     const std::vector<int>& mToWrite;
     const std::vector<float>& mWeightPool;
-    const Model* mMdl;
+    const J3dModel* mMdl;
   };
   struct MatrixSizeTable : public SimpleEvpNode {
     MatrixSizeTable(const EVP1Node& node)
-        : SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite,
+        : SimpleEvpNode(node.mdl.drawMatrices, node.envelopesToWrite,
                         node.weightPool) {
       mId = "MatrixSizeTable";
     }
@@ -149,7 +151,7 @@ struct EVP1Node {
   };
   struct MatrixIndexTable : public SimpleEvpNode {
     MatrixIndexTable(const EVP1Node& node)
-        : SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite,
+        : SimpleEvpNode(node.mdl.drawMatrices, node.envelopesToWrite,
                         node.weightPool) {
       mId = "MatrixIndexTable";
     }
@@ -164,7 +166,7 @@ struct EVP1Node {
   };
   struct MatrixWeightTable : public SimpleEvpNode {
     MatrixWeightTable(const EVP1Node& node)
-        : SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite,
+        : SimpleEvpNode(node.mdl.drawMatrices, node.envelopesToWrite,
                         node.weightPool) {
       mId = "MatrixWeightTable";
       mLinkingRestriction.alignment = 8;
@@ -176,13 +178,13 @@ struct EVP1Node {
     }
   };
   struct MatrixInvBindTable : public SimpleEvpNode {
-    MatrixInvBindTable(const EVP1Node& node, const Model& md)
-        : SimpleEvpNode(node.mdl.mDrawMatrices, node.envelopesToWrite,
+    MatrixInvBindTable(const EVP1Node& node, const J3dModel& md)
+        : SimpleEvpNode(node.mdl.drawMatrices, node.envelopesToWrite,
                         node.weightPool, &md) {
       mId = "MatrixInvBindTable";
     }
     Result write(oishii::Writer& writer) const noexcept {
-      for (const auto& joint : mMdl->getBones()) {
+      for (const auto& joint : mMdl->joints) {
         for (const auto f : joint.inverseBindPoseMtx)
           writer.write(f);
       }
@@ -199,12 +201,12 @@ struct EVP1Node {
   }
 
   EVP1Node(BMDExportContext& e) : mdl(e.mdl) {
-    for (int i = 0; i < mdl.mDrawMatrices.size(); ++i) {
-      if (mdl.mDrawMatrices[i].mWeights.size() <= 1) {
-        assert(mdl.mDrawMatrices[i].mWeights[0].weight == 1.0f);
+    for (int i = 0; i < mdl.drawMatrices.size(); ++i) {
+      if (mdl.drawMatrices[i].mWeights.size() <= 1) {
+        assert(mdl.drawMatrices[i].mWeights[0].weight == 1.0f);
       } else {
         envelopesToWrite.push_back(i);
-        for (const auto& it : mdl.mDrawMatrices[i].mWeights) {
+        for (const auto& it : mdl.drawMatrices[i].mWeights) {
           // if (std::find(weightPool.begin(), weightPool.end(), it.weight) ==
           // weightPool.end())
           weightPool.push_back(it.weight);
@@ -214,7 +216,7 @@ struct EVP1Node {
   }
   std::vector<f32> weightPool;
   std::vector<int> envelopesToWrite;
-  const Model& mdl;
+  const J3dModel& mdl;
 };
 
 struct DRW1Node {
@@ -228,11 +230,11 @@ struct DRW1Node {
                      oishii::Hook(getSelf(), oishii::Hook::EndOfChildren)});
 
     u32 evp = 0;
-    for (const auto& drw : mdl.mDrawMatrices)
+    for (const auto& drw : mdl.drawMatrices)
       if (drw.mWeights.size() > 1)
         evp += 1;
 
-    writer.write<u16>(mdl.mDrawMatrices.size() + evp);
+    writer.write<u16>(mdl.drawMatrices.size() + evp);
     writer.write<u16>(-1);
     writer.writeLink<s32>(
         oishii::Link{oishii::Hook(getSelf()), oishii::Hook("MatrixTypeTable")});
@@ -240,22 +242,24 @@ struct DRW1Node {
         oishii::Link{oishii::Hook(getSelf()), oishii::Hook("DataTable")});
   }
   struct MatrixTypeTable : public oishii::Node {
-    MatrixTypeTable(const Model& mdl) : mMdl(mdl) { mId = "MatrixTypeTable"; }
+    MatrixTypeTable(const J3dModel& mdl) : mMdl(mdl) {
+      mId = "MatrixTypeTable";
+    }
 
     Result write(oishii::Writer& writer) const noexcept {
-      for (const auto& drw : mMdl.mDrawMatrices)
+      for (const auto& drw : mMdl.drawMatrices)
         writer.write<u8>(drw.mWeights.size() > 1);
       // Nintendo's bug
-      for (const auto& drw : mMdl.mDrawMatrices)
+      for (const auto& drw : mMdl.drawMatrices)
         if (drw.mWeights.size() > 1)
           writer.write<u8>(1);
       return {};
     }
 
-    const Model& mMdl;
+    const J3dModel& mMdl;
   };
   struct DataTable : public oishii::Node {
-    DataTable(const Model& mdl) : mMdl(mdl) {
+    DataTable(const J3dModel& mdl) : mMdl(mdl) {
       mId = "DataTable";
       getLinkingRestriction().alignment = 2;
     }
@@ -263,16 +267,16 @@ struct DRW1Node {
     Result write(oishii::Writer& writer) const noexcept {
       // TODO -- we can do much better
       std::vector<int> envelopesToWrite;
-      for (int i = 0; i < mMdl.mDrawMatrices.size(); ++i) {
-        if (mMdl.mDrawMatrices[i].mWeights.size() <= 1) {
-          assert(mMdl.mDrawMatrices[i].mWeights[0].weight == 1.0f);
+      for (int i = 0; i < mMdl.drawMatrices.size(); ++i) {
+        if (mMdl.drawMatrices[i].mWeights.size() <= 1) {
+          assert(mMdl.drawMatrices[i].mWeights[0].weight == 1.0f);
         } else {
           envelopesToWrite.push_back(i);
         }
       }
 
       int i = 0;
-      for (const auto& drw : mMdl.mDrawMatrices) {
+      for (const auto& drw : mMdl.drawMatrices) {
         assert(!drw.mWeights.empty());
         writer.write<u16>(drw.mWeights.size() > 1
                               ? std::find(envelopesToWrite.begin(),
@@ -284,7 +288,7 @@ struct DRW1Node {
 
       // Bug in nintendo's code corrected on runtime we need to accomodate for!
       i = 0;
-      for (const auto& drw : mMdl.mDrawMatrices) {
+      for (const auto& drw : mMdl.drawMatrices) {
         assert(!drw.mWeights.empty());
         if (drw.mWeights.size() > 1)
           writer.write<u16>(
@@ -296,7 +300,7 @@ struct DRW1Node {
       return {};
     }
 
-    const Model& mMdl;
+    const J3dModel& mMdl;
   };
   void gatherChildren(oishii::Node::NodeDelegate& ctx) const {
     ctx.addNode(std::make_unique<MatrixTypeTable>(mdl));
@@ -304,7 +308,7 @@ struct DRW1Node {
   }
 
   DRW1Node(BMDExportContext& e) : mdl(e.mdl) {}
-  Model& mdl;
+  J3dModel& mdl;
 };
 
 std::unique_ptr<oishii::Node> makeEVP1Node(BMDExportContext& ctx) {

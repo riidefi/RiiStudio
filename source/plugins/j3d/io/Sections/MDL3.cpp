@@ -22,14 +22,13 @@ template <typename T> static void writeAtS16(T& stream, u32 pos, s16 val) {
 
 // TODO
 struct MDL3Node final : public oishii::Node {
-  MDL3Node(const Model& model, const Collection& col)
-      : mModel(model), mCol(col) {
+  MDL3Node(const BMDExportContext& model) : mModel(model) {
     mId = "MDL3";
     mLinkingRestriction.alignment = 32;
   }
 
   Result write(oishii::Writer& writer) const noexcept override {
-    const auto& mats = mModel.getMaterials();
+    const auto& mats = mModel.mdl.materials;
     MAYBE_UNUSED const auto start = writer.tell();
 
     writer.write<u32, oishii::EndianSelect::Big>('MDL3');
@@ -65,7 +64,7 @@ struct MDL3Node final : public oishii::Node {
 
     // const auto dlDataOfs = writer.tell();
     for (int i = 0; i < mats.size(); ++i) {
-      const auto& mat = mModel.getMaterials()[i];
+      const auto& mat = mModel.mdl.materials[i];
       const auto dl_start = writer.tell();
       writeAt(writer, dlHandlesOfs + 8 * i + 0,
               writer.tell() - dlHandlesOfs * 8 + i);
@@ -99,7 +98,7 @@ struct MDL3Node final : public oishii::Node {
           }
         }
 
-        const auto& stages = mat.getMaterialData().mStages;
+        const auto& stages = mat.mStages;
         for (int i = 0; i < stages.size(); ++i) {
           const auto& stage = stages[i];
           (void)stage;
@@ -192,12 +191,11 @@ struct MDL3Node final : public oishii::Node {
   }
 
 private:
-  const Model& mModel;
-  MAYBE_UNUSED const Collection& mCol;
+  BMDExportContext mModel;
 };
 
 std::unique_ptr<oishii::Node> makeMDL3Node(BMDExportContext& ctx) {
-  return std::make_unique<MDL3Node>(ctx.mdl, ctx.col);
+  return std::make_unique<MDL3Node>(ctx);
 }
 
 } // namespace riistudio::j3d

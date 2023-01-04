@@ -6,17 +6,16 @@ namespace riistudio::j3d {
 
 using namespace libcube;
 
-void readSHP1(BMDOutputContext& ctx) {
+Result<void> readSHP1(BMDOutputContext& ctx) {
   auto& reader = ctx.reader;
 
   if (!enterSection(ctx, 'SHP1'))
-    return;
+    return std::unexpected("Failed to find SHP1 section");
 
   ScopedSection g(reader, "Shapes");
 
   u16 size = reader.read<u16>();
-  for (int i = 0; i < size; ++i)
-    ctx.mdl.getMeshes().add();
+  ctx.mdl.shapes.resize(size);
 
   ctx.shapeIdLut.resize(size);
   reader.read<u16>();
@@ -67,13 +66,13 @@ void readSHP1(BMDOutputContext& ctx) {
 
   std::array<s16, 10> mtxListLast;
   for (int si = 0; si < size; ++si) {
-    auto& shape = ctx.mdl.getMeshes()[si];
+    auto& shape = ctx.mdl.shapes[si];
     reader.seekSet(g.start + ofsShapeData + ctx.shapeIdLut[si] * 0x28);
     shape.id = ctx.shapeIdLut[si];
     // printf("Shape (index=%u, id=%u) {\n", si, shape.id);
     // shape.name = nameTable[si];
     shape.mode = static_cast<librii::j3d::ShapeData::Mode>(reader.read<u8>());
-    assert(shape.mode < librii::j3d::ShapeData::Mode::Max);
+    EXPECT(shape.mode < librii::j3d::ShapeData::Mode::Max);
     reader.read<u8>();
     // Number of matrix primitives (mtxGrpCnt)
     auto num_matrix_prims = reader.read<u16>();
@@ -86,7 +85,7 @@ void readSHP1(BMDOutputContext& ctx) {
     // "Packet" or mtx prim summary (accessor) idx
     auto first_mtx_prim_idx = reader.read<u16>();
     // printf("   first_mtx_prim_idx=%u\n", (u32)first_mtx_prim_idx);
-    assert(first_matrix_list == first_mtx_prim_idx);
+    EXPECT(first_matrix_list == first_mtx_prim_idx);
     reader.read<u16>();
     shape.bsphere = reader.read<f32>();
     shape.bbox.min << reader;
@@ -155,15 +154,13 @@ void readSHP1(BMDOutputContext& ctx) {
       private:
         MatrixPrimitive& mprim;
       } mprim_del(mprim);
-      auto ok = DecodeMeshDisplayList(reader, g.start + ofsDL + dlOfs, dlSz,
-                                      mprim_del, shape.mVertexDescriptor,
-                                      &ctx.mVertexBufferMaxIndices);
-
-      if (!ok) {
-        printf("Invalid mesh display list: %s\n", ok.error().c_str());
-      }
+      TRY(DecodeMeshDisplayList(reader, g.start + ofsDL + dlOfs, dlSz,
+                                mprim_del, shape.mVertexDescriptor,
+                                &ctx.mVertexBufferMaxIndices));
     }
   }
+
+  return {};
 }
 
 template <typename T, u32 bodyAlign = 1, u32 entryAlign = 1,
@@ -259,11 +256,11 @@ struct WriteableMatrixList : public std::vector<s16> {
   }
 };
 struct SHP1Node final : public oishii::Node {
-  SHP1Node(const Model& model) : mModel(model) {
+  SHP1Node(const J3dModel& model) : mModel(model) {
     mId = "SHP1";
     mLinkingRestriction.alignment = 32;
 
-    for (const auto& shp : mModel.getMeshes()) {
+    for (const auto& shp : mModel.shapes) {
       mVcdPool.append(shp.mVertexDescriptor);
       for (const auto& mp : shp.mMatrixPrimitives)
         mMtxListPool.append(mp.mDrawMatrixIndices);
@@ -293,7 +290,7 @@ struct SHP1Node final : public oishii::Node {
     writer.write<u32, oishii::EndianSelect::Big>('SHP1');
     writer.writeLink<s32>({*this}, {*this, oishii::Hook::EndOfChildren});
 
-    writer.write<u16>(mModel.getMeshes().size());
+    writer.write<u16>(mModel.shapes.size());
     writer.write<u16>(-1);
 
     writer.writeLink<u32>({*this}, {"ShapeData"});
@@ -337,7 +334,7 @@ struct SHP1Node final : public oishii::Node {
   };
   struct SubNode : public oishii::Node {
     const SHP1Node& mParent;
-    SubNode(const Model& mdl, SubNodeID id, const SHP1Node& parent,
+    SubNode(const J3dModel& mdl, SubNodeID id, const SHP1Node& parent,
             int polyId = -1, int MPrimId = -1)
         : mParent(parent), mMdl(mdl), mSID(id), mPolyId(polyId),
           mMpId(MPrimId) {
@@ -408,8 +405,8 @@ struct SHP1Node final : public oishii::Node {
     Result write(oishii::Writer& writer) const noexcept {
       switch (mSID) {
       case SubNodeID::ShapeData: {
-        for (int i = 0; i < mMdl.getMeshes().size(); ++i) {
-          const auto& shp = mMdl.getMeshes()[i];
+        for (int i = 0; i < mMdl.shapes.size(); ++i) {
+          const auto& shp = mMdl.shapes[i];
 
           writer.write<u8>(static_cast<u8>(shp.mode));
           writer.write<u8>(0xff);
@@ -421,7 +418,7 @@ struct SHP1Node final : public oishii::Node {
           // TODO -- we don't support compression..
           int mpi = 0;
           for (int j = 0; j < i; ++j) {
-            mpi += mMdl.getMeshes()[j].mMatrixPrimitives.size();
+            mpi += mMdl.shapes[j].mMatrixPrimitives.size();
           }
           writer.write<u16>(mpi); // Matrix list index of this prim
           writer.write<u16>(mpi); // Matrix primitive index
@@ -436,7 +433,7 @@ struct SHP1Node final : public oishii::Node {
       }
       case SubNodeID::LUT:
         // TODO...
-        for (int i = 0; i < mMdl.getMeshes().size(); ++i)
+        for (int i = 0; i < mMdl.shapes.size(); ++i)
           writer.write<u16>(i);
         break;
       case SubNodeID::NameTable:
@@ -460,7 +457,7 @@ struct SHP1Node final : public oishii::Node {
       case SubNodeID::_DLChild:
         break; // MPrims write..
       case SubNodeID::_DLChildMPrim: {
-        const auto& poly = mMdl.getMeshes()[mPolyId];
+        const auto& poly = mMdl.shapes[mPolyId];
         for (auto& prim : poly.mMatrixPrimitives[mMpId].mPrimitives) {
           writer.write<u8>(gx::EncodeDrawPrimitiveCommand(prim.mType));
           writer.write<u16>(prim.mVertices.size());
@@ -504,10 +501,10 @@ struct SHP1Node final : public oishii::Node {
 
         u32 num = 0;
         for (int j = 0; j < mPolyId; ++j)
-          for (auto& mp : mMdl.getMeshes()[j].mMatrixPrimitives)
+          for (auto& mp : mMdl.shapes[j].mMatrixPrimitives)
             num += mp.mDrawMatrixIndices.size();
         int i = 0;
-        for (const auto& x : mMdl.getMeshes()[mPolyId].mMatrixPrimitives) {
+        for (const auto& x : mMdl.shapes[mPolyId].mMatrixPrimitives) {
           writer.write<u16>(x.mCurrentMatrix);
           // listSize, listStartIndex
           writer.write<u16>(x.mDrawMatrixIndices.size());
@@ -529,7 +526,7 @@ struct SHP1Node final : public oishii::Node {
       case SubNodeID::MTXGrpHdr:
         break; // Children write
       case SubNodeID::_MTXGrpChild:
-        for (int i = 0; i < mMdl.getMeshes()[mPolyId].mMatrixPrimitives.size();
+        for (int i = 0; i < mMdl.shapes[mPolyId].mMatrixPrimitives.size();
              ++i) {
           std::string front =
               std::string("SHP1::DLData::") + std::to_string(mPolyId) + "::";
@@ -558,23 +555,22 @@ struct SHP1Node final : public oishii::Node {
       case SubNodeID::_MTXDataChild:
         break;
       case SubNodeID::DLData:
-        for (int i = 0; i < mMdl.getMeshes().size(); ++i)
+        for (int i = 0; i < mMdl.shapes.size(); ++i)
           d.addNode(
               std::make_unique<SubNode>(mMdl, SubNodeID::_DLChild, mParent, i));
         break;
       case SubNodeID::MTXData:
-        for (int i = 0; i < mMdl.getMeshes().size(); ++i)
+        for (int i = 0; i < mMdl.shapes.size(); ++i)
           d.addNode(std::make_unique<SubNode>(mMdl, SubNodeID::_MTXDataChild,
                                               mParent, i));
         break;
       case SubNodeID::MTXGrpHdr:
-        for (int i = 0; i < mMdl.getMeshes().size(); ++i)
+        for (int i = 0; i < mMdl.shapes.size(); ++i)
           d.addNode(std::make_unique<SubNode>(mMdl, SubNodeID::_MTXGrpChild,
                                               mParent, i));
         break;
       case SubNodeID::_DLChild:
-        for (int i = 0; i < mMdl.getMeshes()[mPolyId].mMatrixPrimitives.size();
-             ++i)
+        for (int i = 0; i < mMdl.shapes[mPolyId].mMatrixPrimitives.size(); ++i)
           d.addNode(std::make_unique<SubNode>(mMdl, SubNodeID::_DLChildMPrim,
                                               mParent, mPolyId, i));
         break;
@@ -585,7 +581,7 @@ struct SHP1Node final : public oishii::Node {
       return eResult::Success;
     }
 
-    const Model& mMdl;
+    const J3dModel& mMdl;
     const SubNodeID mSID;
     int mPolyId = -1;
     int mMpId = -1;
@@ -608,7 +604,7 @@ struct SHP1Node final : public oishii::Node {
     addSubNode(SubNodeID::MTXGrpHdr);
     return {};
   }
-  const Model& mModel;
+  const J3dModel& mModel;
 };
 
 std::unique_ptr<oishii::Node> makeSHP1Node(BMDExportContext& ctx) {

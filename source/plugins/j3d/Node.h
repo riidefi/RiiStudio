@@ -18,7 +18,9 @@ protected:
     kpi::ICollection* v_getMaterials() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mMaterials)); }
     kpi::ICollection* v_getBones() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mBones)); }
     kpi::ICollection* v_getMeshes() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mMeshes)); }
-    void onRelocate() {
+
+public:
+	void onRelocate() {
         mMaterials.onParentMoved(this);
         mBones.onParentMoved(this);
         mMeshes.onParentMoved(this);
@@ -34,6 +36,9 @@ protected:
         new (&mMaterials) decltype(mMaterials) (rhs.mMaterials);
         new (&mBones) decltype(mBones) (rhs.mBones);
         new (&mMeshes) decltype(mMeshes) (rhs.mMeshes);
+
+		static_cast<riistudio::j3d::ModelData&>(*this) = rhs;
+        static_cast<libcube::ModelData&>(*this) = rhs;
 
         onRelocate();
     }
@@ -130,7 +135,8 @@ public:
 protected:
     kpi::ICollection* v_getModels() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mModels)); }
     kpi::ICollection* v_getTextures() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mTextures)); }
-    void onRelocate() {
+public:
+	void onRelocate() {
         mModels.onParentMoved(this);
         mTextures.onParentMoved(this);
     }

@@ -62,7 +62,7 @@ void Tex::write(oishii::Writer& stream) const {
   stream.write<s16>(mLodBias);
   // stream.transfer(ofsTex);
 }
-Tex::Tex(const Texture& data,
+Tex::Tex(const librii::j3d::TextureData& data,
          const libcube::GCMaterialData::SamplerData& sampl) {
   mFormat = static_cast<librii::gx::TextureFormat>(data.mFormat);
   transparency = static_cast<u8>(data.transparency);
@@ -86,10 +86,11 @@ Tex::Tex(const Texture& data,
   mLodBias = roundf(sampl.mLodBias * 100.0f);
   ofsTex = -1;
 }
-void readTEX1(BMDOutputContext& ctx) {
+Result<void> readTEX1(BMDOutputContext& ctx) {
   auto& reader = ctx.reader;
   if (!enterSection(ctx, 'TEX1'))
-    return;
+    return std::unexpected(
+        "Failed to find TEX1 section -- this may not be an error");
 
   ScopedSection g(ctx.reader, "Textures");
 
@@ -105,7 +106,7 @@ void readTEX1(BMDOutputContext& ctx) {
     nameTable = readNameTable(reader);
   }
 
-  ctx.mdl.mTexCache.clear();
+  ctx.mTexCache.clear();
 
   struct RawTexture {
     Texture data;
@@ -125,13 +126,11 @@ void readTEX1(BMDOutputContext& ctx) {
     printf(":: (%d) %s\n", i, nameTable[i].c_str());
 
     if (librii::gx::IsPaletteFormat(tex.mFormat)) {
-      ctx.transaction.callback(
-          kpi::IOMessageClass::Error, "TEX1",
-          "Texture \"" + nameTable[i] +
-              "\" uses a paletted format which is unsupported.");
+      return std::unexpected("Texture \"" + nameTable[i] +
+                             "\" uses a paletted format which is unsupported.");
     }
 
-    for (auto& mat : ctx.mdl.getMaterials()) {
+    for (auto& mat : ctx.mdl.materials) {
       for (int k = 0; k < mat.samplers.size(); ++k) {
         auto& samp = mat.samplers[k];
         if (samp.btiId == i) {
@@ -148,7 +147,7 @@ void readTEX1(BMDOutputContext& ctx) {
         }
       }
     }
-    for (auto& samp : ctx.mdl.mMatCache.samplers) {
+    for (auto& samp : ctx.mMatCache.samplers) {
       if (samp.btiId == i) {
         samp.mTexture = nameTable[i];
         samp.mWrapU = tex.mWrapU;
@@ -162,7 +161,7 @@ void readTEX1(BMDOutputContext& ctx) {
         samp.mLodBias = static_cast<f32>(tex.mLodBias) / 100.0f;
       }
     }
-    ctx.mdl.mTexCache.push_back(tex);
+    ctx.mTexCache.push_back(tex);
     auto& inf = texRaw.emplace_back();
     auto& data = inf.data;
 
@@ -206,31 +205,32 @@ void readTEX1(BMDOutputContext& ctx) {
     auto& texpair = texRaw[it.bti_index];
     reader.readBuffer(texpair.data.mData, texpair.byte_size,
                       texpair.absolute_file_offset);
-    ctx.col.getTextures().add() = texpair.data;
+    ctx.mdl.textures.emplace_back() = texpair.data;
 
     ++i;
   }
 
-  for (auto& mat : ctx.mdl.getMaterials()) {
+  for (auto& mat : ctx.mdl.materials) {
     for (int k = 0; k < mat.samplers.size(); ++k) {
       auto& samp = mat.samplers[k];
       if (samp.mTexture.empty()) {
-        printf("Material %s: Sampler %u is invalid.\n", mat.getName().c_str(),
+        printf("Material %s: Sampler %u is invalid.\n", mat.name.c_str(),
                (u32)i);
-        assert(!samp.mTexture.empty());
+        EXPECT(!samp.mTexture.empty());
       }
     }
   }
+
+  return {};
 }
 struct TEX1Node final : public oishii::Node {
-  TEX1Node(const Model& model, const Collection& col)
-      : mModel(model), mCol(col) {
+  TEX1Node(const BMDExportContext& model) : mModel(model) {
     mId = "TEX1";
     mLinkingRestriction.alignment = 32;
   }
 
   struct TexNames : public oishii::Node {
-    TexNames(const Model& mdl, const Collection& col) : mMdl(mdl), mCol(col) {
+    TexNames(const BMDExportContext& mdl) : mMdl(mdl) {
       mId = "TexNames";
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 4;
@@ -240,7 +240,7 @@ struct TEX1Node final : public oishii::Node {
       std::vector<std::string> names;
 
       for (int i = 0; i < mMdl.mTexCache.size(); ++i)
-        names.push_back(mCol.getTextures()[mMdl.mTexCache[i].btiId].getName());
+        names.push_back(mMdl.mdl.textures[mMdl.mTexCache[i].btiId].mName);
       for (int i = 0; i < names.size(); ++i) {
         printf(":: (%i) %s\n", i, names[i].c_str());
       }
@@ -249,12 +249,11 @@ struct TEX1Node final : public oishii::Node {
       return {};
     }
 
-    const Model& mMdl;
-    const Collection& mCol;
+    const BMDExportContext mMdl;
   };
 
   struct TexHeaders : public oishii::Node {
-    TexHeaders(const Model& mdl, const Collection& col) : mMdl(mdl), mCol(col) {
+    TexHeaders(const BMDExportContext& mdl) : mMdl(mdl) {
       mId = "TexHeaders";
       getLinkingRestriction().alignment = 32;
     }
@@ -285,19 +284,17 @@ struct TEX1Node final : public oishii::Node {
       return {};
     }
 
-    const Model& mMdl;
-    const Collection& mCol;
+    const BMDExportContext mMdl;
   };
   struct TexEntry : public oishii::Node {
-    TexEntry(const Model& mdl, const Collection& col, u32 texIdx)
-        : mMdl(mdl), mCol(col), mIdx(texIdx) {
+    TexEntry(const J3dModel& mdl, u32 texIdx) : mMdl(mdl), mIdx(texIdx) {
       mId = std::to_string(texIdx);
       getLinkingRestriction().setLeaf();
       getLinkingRestriction().alignment = 32;
     }
 
     Result write(oishii::Writer& writer) const noexcept {
-      const auto& tex = mCol.getTextures()[mIdx];
+      const auto& tex = mMdl.textures[mIdx];
       const auto before = writer.tell();
 
       writer.skip(tex.mData.size() - 1);
@@ -312,8 +309,7 @@ struct TEX1Node final : public oishii::Node {
       return {};
     }
 
-    const Model& mMdl;
-    const Collection& mCol;
+    const J3dModel& mMdl;
     const u32 mIdx;
   };
   Result write(oishii::Writer& writer) const noexcept override {
@@ -331,23 +327,22 @@ struct TEX1Node final : public oishii::Node {
 
   Result gatherChildren(NodeDelegate& d) const noexcept override {
 
-    d.addNode(std::make_unique<TexHeaders>(mModel, mCol));
+    d.addNode(std::make_unique<TexHeaders>(mModel));
 
-    for (int i = 0; i < mCol.getTextures().size(); ++i)
-      d.addNode(std::make_unique<TexEntry>(mModel, mCol, i));
+    for (int i = 0; i < mModel.mdl.textures.size(); ++i)
+      d.addNode(std::make_unique<TexEntry>(mModel.mdl, i));
 
-    d.addNode(std::make_unique<TexNames>(mModel, mCol));
+    d.addNode(std::make_unique<TexNames>(mModel));
 
     return {};
   }
 
 private:
-  const Model& mModel;
-  const Collection& mCol;
+  const BMDExportContext mModel;
 };
 
 std::unique_ptr<oishii::Node> makeTEX1Node(BMDExportContext& ctx) {
-  return std::make_unique<TEX1Node>(ctx.mdl, ctx.col);
+  return std::make_unique<TEX1Node>(ctx);
 }
 
 } // namespace riistudio::j3d

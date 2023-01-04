@@ -12,14 +12,14 @@
 namespace riistudio::j3d {
 
 struct TevOrder {
-  librii::gx::ColorSelChanApi rasOrder;
-  u8 texMap, texCoord;
+  librii::gx::ColorSelChanApi rasOrder = librii::gx::ColorSelChanApi::null;
+  u8 texMap = 0xFF, texCoord = 0xFF;
 
   bool operator==(const TevOrder& rhs) const noexcept = default;
 };
 
 struct SwapSel {
-  u8 colorChanSel, texSel;
+  u8 colorChanSel = 0, texSel = 0;
 
   bool operator==(const SwapSel& rhs) const noexcept = default;
 };
@@ -63,72 +63,61 @@ struct Tex {
   void transfer(oishii::BinaryReader& stream);
   void write(oishii::Writer& stream) const;
   Tex() = default;
-  Tex(const Texture& data, const libcube::GCMaterialData::SamplerData& sampler);
+  Tex(const librii::j3d::TextureData& data,
+      const libcube::GCMaterialData::SamplerData& sampler);
 };
 
-struct ModelData : public virtual kpi::IObject {
-  virtual ~ModelData() = default;
-  // Shallow comparison
-  bool operator==(const ModelData& rhs) const {
-    // TODO: Check bufs
-    return info.mScalingRule == rhs.info.mScalingRule;
-  }
+enum class ScalingRule { Basic, XSI, Maya };
+
+struct Bufs {
+  static inline VertexBuffer<librii::gx::Color, VBufferKind::color> C = {
+      VQuantization{librii::gx::VertexComponentCount(
+                        librii::gx::VertexComponentCount::Color::rgba),
+                    librii::gx::VertexBufferType(
+                        librii::gx::VertexBufferType::Color::FORMAT_32B_8888),
+                    0, 0, 4}};
+  static inline VertexBuffer<glm::vec2, VBufferKind::textureCoordinate> U = {
+      VQuantization{
+          librii::gx::VertexComponentCount(
+              librii::gx::VertexComponentCount::TextureCoordinate::st),
+          librii::gx::VertexBufferType(
+              librii::gx::VertexBufferType::Generic::f32),
+          0, 0, 8}};
+
+  // FIXME: Good default values
+  VertexBuffer<glm::vec3, VBufferKind::position> pos{VQuantization{
+      librii::gx::VertexComponentCount(
+          librii::gx::VertexComponentCount::Position::xyz),
+      librii::gx::VertexBufferType(librii::gx::VertexBufferType::Generic::f32),
+      0, 0, 12}};
+  VertexBuffer<glm::vec3, VBufferKind::normal> norm{VQuantization{
+      librii::gx::VertexComponentCount(
+          librii::gx::VertexComponentCount::Normal::xyz),
+      librii::gx::VertexBufferType(librii::gx::VertexBufferType::Generic::f32),
+      0, 0, 12}};
+  std::array<VertexBuffer<librii::gx::Color, VBufferKind::color>, 2> color{C,
+                                                                           C};
+  std::array<VertexBuffer<glm::vec2, VBufferKind::textureCoordinate>, 8> uv{
+      U, U, U, U, U, U, U, U};
+};
+struct ModelData_ {
   struct Information {
+	  using ScalingRule = riistudio::j3d::ScalingRule;
     // For texmatrix calculations
-    enum class ScalingRule { Basic, XSI, Maya };
 
     ScalingRule mScalingRule = ScalingRule::Basic;
     // nPacket, nVtx
 
     // Hierarchy data is included in joints.
   };
-
-  std::string getName() const { return "Model"; }
-
   Information info;
-
-  struct Bufs {
-    // FIXME: Good default values
-    VertexBuffer<glm::vec3, VBufferKind::position> pos{
-        VQuantization{librii::gx::VertexComponentCount(
-                          librii::gx::VertexComponentCount::Position::xyz),
-                      librii::gx::VertexBufferType(
-                          librii::gx::VertexBufferType::Generic::f32),
-                      0, 0, 12}};
-    VertexBuffer<glm::vec3, VBufferKind::normal> norm{
-        VQuantization{librii::gx::VertexComponentCount(
-                          librii::gx::VertexComponentCount::Normal::xyz),
-                      librii::gx::VertexBufferType(
-                          librii::gx::VertexBufferType::Generic::f32),
-                      0, 0, 12}};
-    std::array<VertexBuffer<librii::gx::Color, VBufferKind::color>, 2> color;
-    std::array<VertexBuffer<glm::vec2, VBufferKind::textureCoordinate>, 8> uv;
-
-    Bufs() {
-      for (auto& clr : color) {
-        clr = {VQuantization{
-            librii::gx::VertexComponentCount(
-                librii::gx::VertexComponentCount::Color::rgba),
-            librii::gx::VertexBufferType(
-                librii::gx::VertexBufferType::Color::FORMAT_32B_8888),
-            0, 0, 4}};
-      }
-      for (auto& uv_ : uv) {
-        uv_ = {VQuantization{
-            librii::gx::VertexComponentCount(
-                librii::gx::VertexComponentCount::TextureCoordinate::st),
-            librii::gx::VertexBufferType(
-                librii::gx::VertexBufferType::Generic::f32),
-            0, 0, 8}};
-      }
-    }
-  } mBufs = Bufs();
-
   bool isBDL = false;
+  using Bufs = riistudio::j3d::Bufs;
+  Bufs mBufs;
 
   struct Indirect {
-    bool enabled;
-    u8 nIndStage;
+    bool enabled = false;
+    u8 nIndStage = 0;
 
     std::array<librii::gx::IndOrder, 4> tevOrder;
     std::array<librii::gx::IndirectMatrix, 3> texMtx;
@@ -136,7 +125,7 @@ struct ModelData : public virtual kpi::IObject {
     std::array<librii::gx::TevStage::IndirectStage, 16> tevStage;
 
     Indirect() = default;
-    Indirect(const MaterialData& mat) {
+    Indirect(const librii::j3d::MaterialData& mat) {
       enabled = mat.indEnabled;
       nIndStage = mat.indirectStages.size();
 
@@ -156,7 +145,7 @@ struct ModelData : public virtual kpi::IObject {
 
     bool operator==(const Indirect& rhs) const noexcept = default;
   };
-  mutable struct MatCache {
+  struct MatCache {
     template <typename T> using Section = std::vector<T>;
     Section<Indirect> indirectInfos;
     Section<librii::gx::CullMode> cullModes;
@@ -201,10 +190,25 @@ struct ModelData : public virtual kpi::IObject {
         update_section(sec, source[i]);
       }
     }
-    void propagate(Material& mat);
-  } mMatCache;
+    void propagate(librii::j3d::MaterialData& mat);
+  };
 
-  mutable std::vector<Tex> mTexCache;
+  MatCache mMatCache;
+  std::vector<Tex> mTexCache;
+};
+
+struct ModelData : public virtual kpi::IObject, public ModelData_ {
+  virtual ~ModelData() = default;
+  // Shallow comparison
+  bool operator==(const ModelData& rhs) const {
+    // TODO: Check bufs
+    return info.mScalingRule == rhs.info.mScalingRule;
+  }
+
+  std::string getName() const { return "Model"; }
+
+  using Bufs = riistudio::j3d::Bufs;
+  using MatCache = ModelData_::MatCache;
 };
 
 } // namespace riistudio::j3d
