@@ -11,19 +11,34 @@
 namespace riistudio::g3d::ui {
 
 struct G3DDataSurface final {
-  static inline const char* name() { return "BRRES Data"; }
-  static inline const char* icon = (const char*)ICON_FA_BOXES;
+  static inline const char* name() { return "Fog"; }
+  static inline const char* icon = (const char*)ICON_FA_SHIP;
 };
 
 void drawProperty(kpi::PropertyDelegate<Material>& delegate, G3DDataSurface) {
-  int lightset = delegate.getActive().lightSetIndex;
-  ImGui::InputInt("Light channel (-1 == OFF)", &lightset);
-  KPI_PROPERTY_EX(delegate, lightSetIndex, static_cast<s8>(lightset));
-
-  int fog = delegate.getActive().fogIndex;
-  ImGui::InputInt("Fog channel (-1 == OFF)", &fog);
-  KPI_PROPERTY_EX(delegate, fogIndex, static_cast<s8>(fog));
-
+  auto* gm = &delegate.getActive();
+  bool used = gm->fogIndex >= 0;
+  bool input = ImGui::Checkbox("Use scene fog?", &used);
+  riistudio::util::ConditionalActive ca(used);
+  int fog = std::max<int>(0, gm->fogIndex);
+  if (!used) {
+    fog = -1;
+  }
+  ImGui::SameLine();
+  input |= ImGui::InputInt("index", &fog);
+  fog = std::min<int>(127, fog);
+  if (!used) {
+    fog = -1;
+  }
+  if (input && gm->fogIndex != fog) {
+    for (auto& a : delegate.mAffected) {
+      if (auto* g = dynamic_cast<riistudio::g3d::Material*>(a)) {
+        g->fogIndex = fog;
+        g->onUpdate();
+      }
+    }
+    delegate.commit("Fog update");
+  }
 }
 
 struct G3DTexDataSurface final {

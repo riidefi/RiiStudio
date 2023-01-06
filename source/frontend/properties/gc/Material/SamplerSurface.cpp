@@ -243,10 +243,289 @@ auto DrawCommMapMod(libcube::GCMaterialData::CommonMappingOption mod) {
       "J3D Basic: Don't remap into texture space (Keep -1..1 not 0...1)\0"
       "J3D Old: Keep translation column.\0"_j);
 }
+struct Mapping {
+  struct UV {
+    u8 channel = 0;
+    bool operator==(const UV&) const = default;
+  };
+  struct Env {
+    bool operator==(const Env&) const = default;
+  };
+  struct LightEnv {
+    s8 lightId = -1;
+    bool operator==(const LightEnv&) const = default;
+  };
+  struct SpecEnv {
+    s8 lightId = -1;
+    bool operator==(const SpecEnv&) const = default;
+  };
+  struct Project {
+    s8 camId = -1;
+    bool operator==(const Project&) const = default;
+  };
+  struct Advanced {
+    bool operator==(const Advanced&) const = default;
+  };
+};
+using Mappings =
+    std::variant<Mapping::UV, Mapping::Env, Mapping::LightEnv, Mapping::SpecEnv,
+                 Mapping::Project, Mapping::Advanced>;
+
+Mappings DrawMappings(Mappings map) {
+  int id = 0;
+  int uv = 0;
+  int lightId = -1;
+  int camId = -1;
+  if (auto* x = std::get_if<Mapping::UV>(&map)) {
+    id = 0;
+    uv = x->channel;
+  } else if (auto* x = std::get_if<Mapping::Env>(&map)) {
+    id = 1;
+  } else if (auto* x = std::get_if<Mapping::LightEnv>(&map)) {
+    id = 2;
+    lightId = x->lightId;
+  } else if (auto* x = std::get_if<Mapping::SpecEnv>(&map)) {
+    id = 3;
+    lightId = x->lightId;
+  } else if (auto* x = std::get_if<Mapping::Project>(&map)) {
+    id = 4;
+    camId = x->camId;
+  } else if (auto* x = std::get_if<Mapping::Advanced>(&map)) {
+    id = 5;
+  }
+  ImGui::Combo("Method", &id,
+               "UV Mapping\0"
+               "Environment Mapping\0"
+               "Light Environment Mapping\0"
+               "Specular Environment Mapping\0"
+               "Projection Mapping\0");
+  switch (id) {
+  case 0:
+    ImGui::InputInt("UV Channel", &uv);
+    break;
+  case 2:
+  case 3:
+    ImGui::InputInt("Light ID", &lightId);
+    break;
+  case 4:
+    ImGui::InputInt("Camera ID", &camId);
+    break;
+  }
+  switch (id) {
+  case 1:
+  case 2:
+  case 3: {
+    // Source: Wikipedia
+    ImGui::TextWrapped(
+        "%s",
+        "Sphere mapping (or spherical environment mapping) is a type of "
+        "reflection mapping that approximates reflective surfaces by "
+        "considering the environment to be an infinitely far-away spherical "
+        "wall. This environment is stored as a texture depicting what a "
+        "mirrored sphere would look like if it were placed into the "
+        "environment, using an orthographic projection (as opposed to one with "
+        "perspective). This texture contains reflective data for the entire "
+        "environment, except for the spot directly behind the sphere. (For one "
+        "example of such an object, see Escher's drawing Hand with Reflecting "
+        "Sphere.)"_j);
+    [&]() {
+      switch (id) {
+      case 1:
+        ImGui::TextWrapped(
+            "%s",
+            "This setting models a perfectly reflective surface. A perfectly "
+            "reflective reflects all incoming light with perfect accuracy, "
+            "without absorbing any of it. This would create a mirror-like "
+            "appearance, where the surface appears to be a perfect reflection "
+            "of its surroundings. Perfectly reflective materials are not found "
+            "in nature, but they can be simulated using computer graphics and "
+            "special coatings.");
+        break;
+      case 2:
+        ImGui::TextWrapped(
+            "%s",
+            "This setting models a perfectly diffuse surface affected only by "
+            "the light specified above. A diffuse surface scatters light "
+            "evenly in all directions. When light hits a diffuse surface, it "
+            "is absorbed and then reflected in many directions, giving the "
+            "surface a matte or non-shiny appearance. Common examples of "
+            "diffuse materials include paper, cloth, and most types of paint."_j);
+        break;
+      case 3:
+        ImGui::TextWrapped(
+            "%s",
+            "This setting models a perfectly diffuse surface affected only by "
+            "the light specified above. A specular surface reflects light in a "
+            "concentrated way, creating a shiny or glossy appearance. When "
+            "light hits a specular surface, it is reflected in a single "
+            "direction, creating a highlight or specular reflection. Examples "
+            "of specular materials include metal, glass, and most types of "
+            "plastic."_j);
+        break;
+      }
+    }();
+    break;
+  }
+  case 4:
+    ImGui::TextWrapped(
+        "%s", "Draws a 2D image on a 3D surface from the camera's "
+              "POV. Appears as if there is a projector behind the "
+              "camera shining the image onto objects with this material."_j);
+    break;
+  }
+
+  switch (id) {
+  case 0:
+    return Mapping::UV{.channel = static_cast<u8>(uv)};
+  case 1:
+    return Mapping::Env{};
+  case 2:
+    return Mapping::LightEnv{.lightId = static_cast<s8>(lightId)};
+  case 3:
+    return Mapping::SpecEnv{.lightId = static_cast<s8>(lightId)};
+  case 4:
+    return Mapping::Project{.camId = static_cast<s8>(camId)};
+  case 5:
+  default:
+    return Mapping::Advanced{};
+  }
+}
+
+Mappings Mappings_from(const libcube::GCMaterialData::TexMatrix& m,
+                       const librii::gx::TexCoordGen& g) {
+  using cmm = libcube::GCMaterialData::CommonMappingMethod;
+  switch (m.method) {
+  case cmm::Standard: {
+    if (g.func != librii::gx::TexGenType::Matrix2x4) {
+      break;
+    }
+    using sp = librii::gx::TexGenSrc;
+    switch (g.sourceParam) {
+    case sp::UV0:
+      return Mapping::UV{.channel = 0};
+    case sp::UV1:
+      return Mapping::UV{.channel = 1};
+    case sp::UV2:
+      return Mapping::UV{.channel = 2};
+    case sp::UV3:
+      return Mapping::UV{.channel = 3};
+    case sp::UV4:
+      return Mapping::UV{.channel = 4};
+    case sp::UV5:
+      return Mapping::UV{.channel = 5};
+    case sp::UV6:
+      return Mapping::UV{.channel = 6};
+    case sp::UV7:
+      return Mapping::UV{.channel = 7};
+    default:
+      break;
+    }
+  }
+  case cmm::EnvironmentMapping: {
+    if (g.func != librii::gx::TexGenType::Matrix3x4) {
+      break;
+    }
+    if (g.sourceParam != librii::gx::TexGenSrc::Normal) {
+      break;
+    }
+    return Mapping::Env{};
+  }
+  case cmm::EnvironmentLightMapping: {
+    if (g.func != librii::gx::TexGenType::Matrix3x4) {
+      break;
+    }
+    if (g.sourceParam != librii::gx::TexGenSrc::Normal) {
+      break;
+    }
+    return Mapping::LightEnv{.lightId = m.lightIdx};
+  }
+  case cmm::EnvironmentSpecularMapping: {
+    if (g.func != librii::gx::TexGenType::Matrix3x4) {
+      break;
+    }
+    if (g.sourceParam != librii::gx::TexGenSrc::Normal) {
+      break;
+    }
+    return Mapping::SpecEnv{.lightId = m.lightIdx};
+  }
+  case cmm::ViewProjectionMapping: {
+    if (g.func != librii::gx::TexGenType::Matrix3x4) {
+      break;
+    }
+    if (g.sourceParam != librii::gx::TexGenSrc::Position) {
+      break;
+    }
+    return Mapping::Project{.camId = m.camIdx};
+  }
+  default:
+    break;
+  }
+
+  return Mapping::Advanced{};
+}
+void Mappings_to(Mappings map, libcube::GCMaterialData::TexMatrix& m,
+                 librii::gx::TexCoordGen& g) {
+  using cmm = libcube::GCMaterialData::CommonMappingMethod;
+  using sp = librii::gx::TexGenSrc;
+
+  if (auto* x = std::get_if<Mapping::UV>(&map)) {
+    m.method = cmm::Standard;
+    g.func = librii::gx::TexGenType::Matrix2x4;
+    switch (x->channel) {
+    case 0:
+      g.sourceParam = sp::UV0;
+      break;
+    case 1:
+      g.sourceParam = sp::UV1;
+      break;
+    case 2:
+      g.sourceParam = sp::UV2;
+      break;
+    case 3:
+      g.sourceParam = sp::UV3;
+      break;
+    case 4:
+      g.sourceParam = sp::UV4;
+      break;
+    case 5:
+      g.sourceParam = sp::UV5;
+      break;
+    case 6:
+      g.sourceParam = sp::UV6;
+      break;
+    case 7:
+      g.sourceParam = sp::UV7;
+      break;
+    default:
+      break;
+    }
+  } else if (auto* x = std::get_if<Mapping::Env>(&map)) {
+    m.method = cmm::EnvironmentMapping;
+    g.func = librii::gx::TexGenType::Matrix3x4;
+    g.sourceParam = librii::gx::TexGenSrc::Normal;
+  } else if (auto* x = std::get_if<Mapping::LightEnv>(&map)) {
+    m.method = cmm::EnvironmentLightMapping;
+    g.func = librii::gx::TexGenType::Matrix3x4;
+    g.sourceParam = librii::gx::TexGenSrc::Normal;
+    m.lightIdx = x->lightId;
+  } else if (auto* x = std::get_if<Mapping::SpecEnv>(&map)) {
+    m.method = cmm::EnvironmentSpecularMapping;
+    g.func = librii::gx::TexGenType::Matrix3x4;
+    g.sourceParam = librii::gx::TexGenSrc::Normal;
+    m.lightIdx = x->lightId;
+  } else if (auto* x = std::get_if<Mapping::Project>(&map)) {
+    m.method = cmm::ViewProjectionMapping;
+    g.func = librii::gx::TexGenType::Matrix3x4;
+    g.sourceParam = librii::gx::TexGenSrc::Position;
+    m.camIdx = x->camId;
+  }
+}
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   SamplerSurface& surface) {
   auto& matData = delegate.getActive().getMaterialData();
+  const bool is_j3d =
+      dynamic_cast<const riistudio::j3d::Material*>(&delegate.getActive());
 
   if (matData.texGens.size() != matData.samplers.size()) {
     ImGui::TextUnformatted("Cannot edit: source data is invalid!"_j);
@@ -342,8 +621,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
               auto min_filt =
                   librii::hx::elevateTextureFilter(samp->mMinFilter);
 
-              const char* linNear = "Nearest (no interpolation/pixelated)\0"
-                                    "Linear (interpolated/blurry)\0"_j;
+              const char* linNear = "Pixelated\0"
+                                    "Blurry\0"_j;
 
               magBase = imcxx::Combo("Interpolation when scaled up"_j, magBase,
                                      linNear);
@@ -359,7 +638,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                 if (ImGui::CollapsingHeader("Mipmapping"_j,
                                             ImGuiTreeNodeFlags_DefaultOpen)) {
                   ImGui::Combo("Interpolation type"_j, &min_filt.minMipBase,
-                               linNear);
+                               "Sudden\0"
+                               "Smooth\0"_j);
 
                   float lodbias = samp->mLodBias;
                   ImGui::SliderFloat("LOD bias"_j, &lodbias, -4.0f, 3.99f);
@@ -389,7 +669,23 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
             }
             ImGui::EndTabItem();
           }
-          if (ImGui::BeginTabItem("Advanced"_j)) {
+          if (ImGui::BeginTabItem("Mapping"_j)) {
+            const auto map_before = Mappings_from(
+                matData.texMatrices[texmatrixid], matData.texGens[i]);
+            auto map = map_before;
+
+            map = DrawMappings(map);
+
+            if (map != map_before) {
+              auto mtx = matData.texMatrices[texmatrixid];
+              auto gen = matData.texGens[i];
+              Mappings_to(map, mtx, gen);
+              AUTO_PROP(texMatrices[texmatrixid], mtx);
+              AUTO_PROP(texGens[i], gen);
+            }
+            ImGui::EndTabItem();
+          }
+          if (ImGui::BeginTabItem("Mapping (Advanced Version)"_j)) {
             if (ImGui::CollapsingHeader("Texture Coordinate Generator"_j,
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
               librii::hx::TexGenType hx_tg =
@@ -438,18 +734,14 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                         ImGuiTreeNodeFlags_DefaultOpen)) {
               // TODO: Effect matrix
               {
-                bool is_j3d = dynamic_cast<const riistudio::j3d::Material*>(
-                    &delegate.getActive());
-
                 auto xfmodel = DrawCommXModel(tm->transformModel, is_j3d);
                 AUTO_PROP(texMatrices[texmatrixid].transformModel, xfmodel);
               }
               {
-                // TODO: Not all backends support all modes..
                 auto newMapMethod = DrawCommMapMethod(tm->method);
                 AUTO_PROP(texMatrices[texmatrixid].method, newMapMethod);
               }
-              {
+              if (is_j3d) {
                 auto mod = DrawCommMapMod(tm->option);
                 AUTO_PROP(texMatrices[texmatrixid].option, mod);
               }

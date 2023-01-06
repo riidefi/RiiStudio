@@ -1,6 +1,7 @@
 #include "Common.hpp"
 
 #include <imcxx/Widgets.hpp>
+#include <plugins/g3d/Material.hpp>
 #include <plugins/g3d/collection.hpp>
 
 namespace libcube::UI {
@@ -15,6 +16,7 @@ struct LightingSurface final {
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                   LightingSurface) {
   auto& matData = delegate.getActive().getMaterialData();
+  auto* gm = dynamic_cast<riistudio::g3d::Material*>(&delegate.getActive());
 
   // Color0Alpha0, Color1Alpha1
   auto& colors = matData.chanData;
@@ -27,6 +29,31 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   if (controls.size() % 2 != 0 || controls.size() == 0) {
     ImGui::TextUnformatted("Cannot edit this material's lighting data."_j);
     return;
+  }
+
+  if (gm != nullptr) {
+    bool used = gm->lightSetIndex >= 0;
+    bool input = ImGui::Checkbox("Link to scene lights?", &used);
+    riistudio::util::ConditionalActive ca(used);
+    int lightset = std::max<int>(0, gm->lightSetIndex);
+    if (!used) {
+      lightset = -1;
+    }
+    ImGui::SameLine();
+    input |= ImGui::InputInt("index", &lightset);
+    lightset = std::min<int>(127, lightset);
+    if (!used) {
+      lightset = -1;
+    }
+    if (input && gm->lightSetIndex != lightset) {
+      for (auto& a : delegate.mAffected) {
+        if (auto* g = dynamic_cast<riistudio::g3d::Material*>(a)) {
+          g->lightSetIndex = lightset;
+          g->onUpdate();
+        }
+      }
+      delegate.commit("Lightset update");
+    }
   }
 
   const auto draw_color_channel = [&](int i) {
@@ -98,7 +125,6 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     AUTO_PROP(colorChanControls[i].attenuationFn,
               static_cast<librii::gx::AttenuationFunction>(atten_fn));
 
-    auto* gm = dynamic_cast<riistudio::g3d::Material*>(&delegate.getActive());
     if (gm == nullptr) {
       ImGui::TextUnformatted("Enabled Lights:"_j);
       auto light_mask = static_cast<u32>(ctrl.lightMask);
