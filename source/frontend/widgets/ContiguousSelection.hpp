@@ -23,7 +23,7 @@ public:
   virtual void SetActiveSelection(std::optional<size_t> i) = 0;
   virtual void Select(size_t i) = 0;
   virtual void Deselect(size_t i) = 0;
-  virtual void DeselectAll() = 0;
+  virtual void DeselectAllExcept(std::optional<size_t> i) = 0;
   // A folder. Prevents disjoint selections across this boundary.
   virtual bool IsSelectionBarrier(size_t i) const = 0;
   // Say a folder. Will not act as a barrier by itself, but will not attempt to
@@ -78,10 +78,10 @@ public:
       }
     }
     if (!ctrl && !shift) {
-      DeselectAll();
+      DeselectAllExcept(index);
     }
     if (!IsActiveSelection(index))
-       SetActiveSelection(index);
+      SetActiveSelection(index);
     if (!wasAlreadySelected)
       Select(index);
   }

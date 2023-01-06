@@ -300,9 +300,14 @@ void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
       assert(flat.nodeType == NODE_OBJECT);
       mOutliner.deselect(flat);
     }
-    void DeselectAll() override {
-      mOutliner.setActiveSelection(nullptr);
-      mOutliner.clearSelection();
+    void DeselectAllExcept(std::optional<size_t> i) override {
+      if (!i.has_value()) {
+        mOutliner.clearSelectionExcept(nullptr);
+      } else {
+        auto& flat = getFlat(*i);
+        assert(flat.nodeType == NODE_OBJECT);
+        mOutliner.clearSelectionExcept(&flat);
+      }
     }
     bool IsSelectionBarrier(size_t i) const override {
       // For now, folders act as barriers

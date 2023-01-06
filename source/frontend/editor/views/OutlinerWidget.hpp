@@ -126,7 +126,7 @@ public:
   virtual void postAddNew() = 0;
   virtual void drawImageIcon(const riistudio::lib3d::Texture* pImg,
                              int icon_size) = 0;
-  virtual void clearSelection() = 0;
+  virtual void clearSelectionExcept(const Node* node = nullptr) = 0;
   virtual void setActiveModal(const Node* = nullptr) = 0;
   struct SelUpdate {
     ContiguousSelection::SelectMode mode = ContiguousSelection::SELECT_NONE;

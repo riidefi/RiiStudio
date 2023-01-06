@@ -136,7 +136,14 @@ public:
     assert(n.obj != nullptr);
     mSelection.deselect(n.obj);
   }
-  void clearSelection() override { mSelection.selected.clear(); }
+  void clearSelectionExcept(const Node* node = nullptr) override {
+    if (node == nullptr || node->obj == nullptr) {
+      mSelection.selected.clear();
+      return;
+    }
+    std::erase_if(mSelection.selected,
+                  [&](const auto& x) { return x != node->obj; });
+  }
   bool isActiveSelection(const Node& n) const override {
     return n.obj == mSelection.getActive();
   }

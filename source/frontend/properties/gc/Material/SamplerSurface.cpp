@@ -558,10 +558,11 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           dynamic_cast<const kpi::IObject*>(&delegate.getActive())
               ->childOf->childOf);
       const auto mImgs = delegate.getActive().getTextureSource(*pScn);
-      if (ImGui::BeginTabItem((std::string("Texture "_j) + std::to_string(i) +
-                               " [" + samp->mTexture + "]")
-                                  .c_str(),
-                              &open[i])) {
+      if (ImGui::BeginTabItem(
+              std::format("Sampler {} [{}]###<internal_id=texture_{}>", i,
+                          samp->mTexture, i)
+                  .c_str(),
+              &open[i])) {
         if (ImGui::CollapsingHeader("Image"_j,
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
           if (auto result = TextureImageCombo(samp->mTexture.c_str(), mImgs,
