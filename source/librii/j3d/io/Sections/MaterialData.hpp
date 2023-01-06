@@ -392,10 +392,7 @@ template <> struct io_wrapper<TevOrder> {
     c.texCoord = TRY(reader.U8());
     c.texMap = TRY(reader.U8());
     auto t = reader.Enum8<gx::ColorSelChanApi>();
-    if (gTestMode) {
-      // TODO: Hack for resaved_ReverseGravity2DDossunPlanet.bdl
-      t = t.value_or(gx::ColorSelChanApi::null);
-    }
+    t = t.value_or(gx::ColorSelChanApi::null);
     c.rasOrder = TRY(t);
     TRY(reader.U8());
     return {};

@@ -298,17 +298,18 @@ Mappings DrawMappings(Mappings map) {
                "Environment Mapping\0"
                "Light Environment Mapping\0"
                "Specular Environment Mapping\0"
-               "Projection Mapping\0");
+               "Projection Mapping\0"
+               "Advanced (...)\0"_j);
   switch (id) {
   case 0:
-    ImGui::InputInt("UV Channel", &uv);
+    ImGui::InputInt("UV Channel"_j, &uv);
     break;
   case 2:
   case 3:
-    ImGui::InputInt("Light ID", &lightId);
+    ImGui::InputInt("Light ID"_j, &lightId);
     break;
   case 4:
-    ImGui::InputInt("Camera ID", &camId);
+    ImGui::InputInt("Camera ID"_j, &camId);
     break;
   }
   switch (id) {
@@ -339,7 +340,7 @@ Mappings DrawMappings(Mappings map) {
             "appearance, where the surface appears to be a perfect reflection "
             "of its surroundings. Perfectly reflective materials are not found "
             "in nature, but they can be simulated using computer graphics and "
-            "special coatings.");
+            "special coatings."_j);
         break;
       case 2:
         ImGui::TextWrapped(
@@ -535,8 +536,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   if (ImGui::Button("Add Sampler"_j)) {
     auto ok = addSampler(delegate);
     if (!ok) {
-      pfd::message("Error", //
-                   "Could not add sampler to some selected materials:\n" +
+      pfd::message("Error"_j, //
+                   "Could not add sampler to some selected materials:\n"_j +
                        ok.error(),
                    pfd::choice::ok, pfd::icon::warning);
     }
@@ -762,7 +763,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           delegate.commit("Erased a sampler");
         } else {
           pfd::message("Error", //
-                       "Could not delete sampler: " + ok.error(),
+                       "Could not delete sampler: "_j + ok.error(),
                        pfd::choice::ok, pfd::icon::warning);
         }
         break;
