@@ -21,11 +21,6 @@ template <typename T, EndianSelect E, bool unaligned> T BinaryReader::peek() {
   const T* native_elem = reinterpret_cast<const T*>(getStreamStart() + tell());
   return endianDecode<T, E>(*native_elem, mFileEndian);
 }
-template <typename T, EndianSelect E, bool unaligned> T BinaryReader::read() {
-  T decoded = peek<T, E, unaligned>();
-  seek<Whence::Current>(sizeof(T));
-  return decoded;
-}
 
 template <typename T, int num, EndianSelect E, bool unaligned>
 std::array<T, num> BinaryReader::readX() {

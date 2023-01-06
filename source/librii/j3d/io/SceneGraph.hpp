@@ -1,8 +1,8 @@
 #pragma once
 
+#include "OutputCtx.hpp"
 #include "oishii/types.hxx"
 #include <oishii/reader/binary_reader.hxx>
-#include "OutputCtx.hpp"
 
 namespace oishii {
 class Node;
@@ -13,9 +13,9 @@ namespace librii::j3d {
 struct SceneGraph {
   static constexpr const char name[] = "SceneGraph";
 
-  static void onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx);
-  static std::unique_ptr<oishii::Node>
-  getLinkerNode(const J3dModel& mdl);
+  [[nodiscard]] static Result<void> onRead(rsl::SafeReader& reader,
+                                           BMDOutputContext& ctx);
+  static std::unique_ptr<oishii::Node> getLinkerNode(const J3dModel& mdl);
 };
 
 } // namespace librii::j3d

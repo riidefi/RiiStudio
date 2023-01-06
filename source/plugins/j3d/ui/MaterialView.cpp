@@ -194,13 +194,13 @@ struct ModelJ3DSurface {
 void drawProperty(kpi::PropertyDelegate<j3d::Model>& dl, ModelJ3DSurface) {
   auto& mdl = dl.getActive();
 
-  int sclRule = static_cast<int>(mdl.info.mScalingRule);
+  int sclRule = static_cast<int>(mdl.mScalingRule);
   ImGui::Combo("Scaling Rule"_j, &sclRule,
                "Basic\0"
                "XSI\0"
                "Maya\0"_j);
-  KPI_PROPERTY_EX(dl, info.mScalingRule,
-                  static_cast<Model::Information::ScalingRule>(sclRule));
+  KPI_PROPERTY_EX(dl, mScalingRule,
+                  static_cast<librii::j3d::ScalingRule>(sclRule));
 
   if (ImGui::CollapsingHeader("Draw Matrices / Envelopes"_j,
                               ImGuiTreeNodeFlags_DefaultOpen) &&

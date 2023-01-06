@@ -28,34 +28,16 @@ struct ByteCodeCmd {
   template <typename T> void transfer(T& stream) {
     stream.template transfer<ByteCodeOp>(op);
     stream.template transfer<s16>(idx);
-
-#if 0
-    DebugReport(
-        "Op: %s, Id: %u\n",
-        [](ByteCodeOp o) -> const char* {
-          switch (o) {
-          case ByteCodeOp::Terminate:
-            return "Terminate";
-          case ByteCodeOp::Open:
-            return "Open";
-          case ByteCodeOp::Close:
-            return "Close";
-          case ByteCodeOp::Joint:
-            return "Joint";
-          case ByteCodeOp::Material:
-            return "Material";
-          case ByteCodeOp::Shape:
-            return "Shape";
-          default:
-            return "?";
-          }
-        }(op),
-        (u32)idx);
-#endif
+  }
+  Result<void> read(rsl::SafeReader& reader) {
+    op = TRY(reader.Enum16<ByteCodeOp>());
+    idx = TRY(reader.S16());
+    return {};
   }
 };
 
-void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
+Result<void> SceneGraph::onRead(rsl::SafeReader& reader,
+                                BMDOutputContext& ctx) {
   // FIXME: Algorithm can be significantly improved
   u16 mat = 0, joint = 0;
   auto lastType = ByteCodeOp::Unitialized;
@@ -65,11 +47,12 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
 
   auto& joints = ctx.mdl.joints;
 
-  for (ByteCodeCmd cmd(reader); cmd.op != ByteCodeOp::Terminate;
-       cmd.transfer(reader)) {
+  ByteCodeCmd cmd;
+  TRY(cmd.read(reader));
+  for (; cmd.op != ByteCodeOp::Terminate; TRY(cmd.read(reader))) {
     switch (cmd.op) {
     case ByteCodeOp::Terminate:
-      return;
+      return {};
     case ByteCodeOp::Open:
       if (lastType == ByteCodeOp::Joint)
         joint_stack.push_back(joint);
@@ -95,19 +78,21 @@ void SceneGraph::onRead(oishii::BinaryReader& reader, BMDOutputContext& ctx) {
       mat = cmd.idx;
       break;
     case ByteCodeOp::Shape: {
-      assert(mat < ctx.mdl.materials.size());
+      EXPECT(mat < ctx.mdl.materials.size());
       auto& displays = joints[joint].displays;
       displays.emplace_back(mat, cmd.idx);
     } break;
     case ByteCodeOp::Unitialized:
     default:
-      assert(!"Invalid bytecode op");
+      EXPECT(false, "Invalid bytecode op");
       break;
     }
 
     if (cmd.op != ByteCodeOp::Open && cmd.op != ByteCodeOp::Close)
       lastType = cmd.op;
   }
+
+  return {};
 }
 struct SceneGraphNode : public oishii::Node {
   SceneGraphNode(const J3dModel& mdl) : Node("SceneGraph"), mdl(mdl) {

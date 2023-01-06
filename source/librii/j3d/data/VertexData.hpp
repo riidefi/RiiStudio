@@ -31,6 +31,7 @@ struct Bufs {
   std::array<VertexBuffer<gx::Color, VBufferKind::color>, 2> color{C, C};
   std::array<VertexBuffer<glm::vec2, VBufferKind::textureCoordinate>, 8> uv{
       U, U, U, U, U, U, U, U};
+  bool operator==(const Bufs&) const = default;
 };
 
 } // namespace librii::j3d

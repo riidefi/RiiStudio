@@ -25,12 +25,17 @@ librii::math::AABB CalcPolyBound(const lib3d::Polygon& poly,
 
 Result<void> SceneImpl::prepare(SceneState& state, const Scene& host,
                                 glm::mat4 v_mtx, glm::mat4 p_mtx) {
-  if (!uploaded) {
-    uploaded = true;
-    TRY(render_data.init(host));
+  if (auto* lc = dynamic_cast<const libcube::Scene*>(&host)) {
+    if (!uploaded) {
+      uploaded = true;
+      TRY(render_data.init(*lc));
+    }
+    return librii::g3d::gfx::Any3DSceneAddNodesToBuffer(state, *lc, v_mtx,
+                                                        p_mtx, render_data);
+  } else {
+    return std::unexpected(
+        "Cannot render scn; does not inherit from libcube::Scene");
   }
-  return librii::g3d::gfx::Any3DSceneAddNodesToBuffer(state, host, v_mtx, p_mtx,
-                                                      render_data);
 }
 
 } // namespace riistudio::lib3d

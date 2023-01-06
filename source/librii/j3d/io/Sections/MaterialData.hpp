@@ -6,14 +6,17 @@
 
 #include <core/util/glm_io.hpp>
 
+#include <rsl/SafeReader.hpp>
+
 namespace librii::j3d {
 
 using namespace libcube;
-using Material = riistudio::j3d::Material;
+
+using Material = MaterialData;
 
 template <typename T> struct io_wrapper {
   //	template<typename C>
-  //	static void onRead(oishii::BinaryReader&, C&)
+  //	static Result<void> onRead(rsl::SafeReader&, C&)
   //	{
   //		DebugReport("Unimplemented IO wrapper called.\n");
   //	}
@@ -26,20 +29,21 @@ template <typename T> struct io_wrapper {
   template <typename C = T,
             typename _ = typename std::enable_if<
                 sizeof(T) <= 4 && std::is_integral<T>::value>::type>
-  static void onRead(oishii::BinaryReader& reader, T& c) {
+  static Result<void> onRead(rsl::SafeReader& reader, T& c) {
     switch (sizeof(T)) {
     case 1:
-      c = static_cast<T>(reader.read<u8>());
+      c = static_cast<T>(TRY(reader.U8()));
       break;
     case 2:
-      c = static_cast<T>(reader.read<u16>());
+      c = static_cast<T>(TRY(reader.U16()));
       break;
     case 4:
-      c = static_cast<T>(reader.read<u32>());
+      c = static_cast<T>(TRY(reader.U32()));
       break;
     default:
       break;
     }
+    return {};
   }
   template <typename C = T,
             typename _ = typename std::enable_if<
@@ -63,11 +67,12 @@ template <typename T> struct io_wrapper {
 
 #pragma region IO
 template <> struct io_wrapper<gx::ZMode> {
-  static void onRead(oishii::BinaryReader& reader, gx::ZMode& out) {
-    out.compare = reader.read<u8>();
-    out.function = static_cast<gx::Comparison>(reader.read<u8>());
-    out.update = reader.read<u8>();
-    reader.read<u8>();
+  static Result<void> onRead(rsl::SafeReader& reader, gx::ZMode& out) {
+    out.compare = TRY(reader.U8());
+    out.function = TRY(reader.Enum8<gx::Comparison>());
+    out.update = TRY(reader.U8());
+    TRY(reader.U8());
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const gx::ZMode& in) {
     writer.write<u8>(in.compare);
@@ -78,13 +83,14 @@ template <> struct io_wrapper<gx::ZMode> {
 };
 
 template <> struct io_wrapper<gx::AlphaComparison> {
-  static void onRead(oishii::BinaryReader& reader, gx::AlphaComparison& c) {
-    c.compLeft = static_cast<gx::Comparison>(reader.read<u8>());
-    c.refLeft = reader.read<u8>();
-    c.op = static_cast<gx::AlphaOp>(reader.read<u8>());
-    c.compRight = static_cast<gx::Comparison>(reader.read<u8>());
-    c.refRight = reader.read<u8>();
-    reader.skip(3);
+  static Result<void> onRead(rsl::SafeReader& reader, gx::AlphaComparison& c) {
+    c.compLeft = TRY(reader.Enum8<gx::Comparison>());
+    c.refLeft = TRY(reader.U8());
+    c.op = TRY(reader.Enum8<gx::AlphaOp>());
+    c.compRight = TRY(reader.Enum8<gx::Comparison>());
+    c.refRight = TRY(reader.U8());
+    reader.getUnsafe().skip(3);
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const gx::AlphaComparison& in) {
     writer.write<u8>(static_cast<u8>(in.compLeft));
@@ -98,11 +104,12 @@ template <> struct io_wrapper<gx::AlphaComparison> {
 };
 
 template <> struct io_wrapper<gx::BlendMode> {
-  static void onRead(oishii::BinaryReader& reader, gx::BlendMode& c) {
-    c.type = static_cast<gx::BlendModeType>(reader.read<u8>());
-    c.source = static_cast<gx::BlendModeFactor>(reader.read<u8>());
-    c.dest = static_cast<gx::BlendModeFactor>(reader.read<u8>());
-    c.logic = static_cast<gx::LogicOp>(reader.read<u8>());
+  static Result<void> onRead(rsl::SafeReader& reader, gx::BlendMode& c) {
+    c.type = TRY(reader.Enum8<gx::BlendModeType>());
+    c.source = TRY(reader.Enum8<gx::BlendModeFactor>());
+    c.dest = TRY(reader.Enum8<gx::BlendModeFactor>());
+    c.logic = TRY(reader.Enum8<gx::LogicOp>());
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const gx::BlendMode& in) {
     writer.write<u8>(static_cast<u8>(in.type));
@@ -113,11 +120,12 @@ template <> struct io_wrapper<gx::BlendMode> {
 };
 
 template <> struct io_wrapper<gx::Color> {
-  static void onRead(oishii::BinaryReader& reader, gx::Color& out) {
-    out.r = reader.read<u8>();
-    out.g = reader.read<u8>();
-    out.b = reader.read<u8>();
-    out.a = reader.read<u8>();
+  static Result<void> onRead(rsl::SafeReader& reader, gx::Color& out) {
+    out.r = TRY(reader.U8());
+    out.g = TRY(reader.U8());
+    out.b = TRY(reader.U8());
+    out.a = TRY(reader.U8());
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const gx::Color& in) {
     writer.write<u8>(in.r);
@@ -128,21 +136,22 @@ template <> struct io_wrapper<gx::Color> {
 };
 
 template <> struct io_wrapper<gx::ChannelControl> {
-  static void onRead(oishii::BinaryReader& reader, gx::ChannelControl& out) {
-    out.enabled = reader.read<u8>();
-    out.Material = static_cast<gx::ColorSource>(reader.read<u8>());
-    out.lightMask = static_cast<gx::LightID>(reader.read<u8>());
-    out.diffuseFn = static_cast<gx::DiffuseFunction>(reader.read<u8>());
+  static Result<void> onRead(rsl::SafeReader& reader, gx::ChannelControl& out) {
+    out.enabled = TRY(reader.U8());
+    out.Material = static_cast<gx::ColorSource>(TRY(reader.U8()));
+    out.lightMask = static_cast<gx::LightID>(TRY(reader.U8()));
+    out.diffuseFn = static_cast<gx::DiffuseFunction>(TRY(reader.U8()));
     // TODO Data loss?
     constexpr const std::array<gx::AttenuationFunction, 4> cvt = {
         gx::AttenuationFunction::None, gx::AttenuationFunction::Specular,
         gx::AttenuationFunction::None2, gx::AttenuationFunction::Spotlight};
-    const auto in = reader.read<u8>();
+    const auto in = TRY(reader.U8());
     out.attenuationFn =
         in < cvt.size() ? cvt[in] : (gx::AttenuationFunction)(in);
-    out.Ambient = static_cast<gx::ColorSource>(reader.read<u8>());
+    out.Ambient = static_cast<gx::ColorSource>(TRY(reader.U8()));
 
-    reader.read<u16>();
+    TRY(reader.U16());
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const gx::ChannelControl& in) {
     writer.write<u8>(in.enabled);
@@ -163,11 +172,12 @@ template <> struct io_wrapper<gx::ChannelControl> {
   }
 };
 template <> struct io_wrapper<gx::ColorS10> {
-  static void onRead(oishii::BinaryReader& reader, gx::ColorS10& out) {
-    out.r = reader.read<s16>();
-    out.g = reader.read<s16>();
-    out.b = reader.read<s16>();
-    out.a = reader.read<s16>();
+  static Result<void> onRead(rsl::SafeReader& reader, gx::ColorS10& out) {
+    out.r = TRY(reader.S16());
+    out.g = TRY(reader.S16());
+    out.b = TRY(reader.S16());
+    out.a = TRY(reader.S16());
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const gx::ColorS10& in) {
     writer.write<s16>(in.r);
@@ -178,10 +188,12 @@ template <> struct io_wrapper<gx::ColorS10> {
 };
 
 template <> struct io_wrapper<librii::j3d::NBTScale> {
-  static void onRead(oishii::BinaryReader& reader, librii::j3d::NBTScale& c) {
-    c.enable = static_cast<bool>(reader.read<u8>());
-    reader.skip(3);
-    c.scale << reader;
+  static Result<void> onRead(rsl::SafeReader& reader,
+                             librii::j3d::NBTScale& c) {
+    c.enable = static_cast<bool>(TRY(reader.U8()));
+    reader.getUnsafe().skip(3);
+    c.scale = TRY(readVec3(reader));
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const librii::j3d::NBTScale& in) {
     writer.write<u8>(in.enable);
@@ -195,15 +207,16 @@ template <> struct io_wrapper<librii::j3d::NBTScale> {
 
 // J3D specific
 template <> struct io_wrapper<gx::TexCoordGen> {
-  static void onRead(oishii::BinaryReader& reader, gx::TexCoordGen& ctx) {
-    ctx.func = static_cast<gx::TexGenType>(reader.read<u8>());
-    ctx.sourceParam = static_cast<gx::TexGenSrc>(reader.read<u8>());
+  static Result<void> onRead(rsl::SafeReader& reader, gx::TexCoordGen& ctx) {
+    ctx.func = static_cast<gx::TexGenType>(TRY(reader.U8()));
+    ctx.sourceParam = static_cast<gx::TexGenSrc>(TRY(reader.U8()));
 
-    ctx.matrix = static_cast<gx::TexMatrix>(reader.read<u8>());
-    reader.read<u8>();
+    ctx.matrix = static_cast<gx::TexMatrix>(TRY(reader.U8()));
+    TRY(reader.U8());
     // Assume no postmatrix
     ctx.normalize = false;
     ctx.postMatrix = gx::PostTexMatrix::Identity;
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const gx::TexCoordGen& in) {
     writer.write<u8>(static_cast<u8>(in.func));
@@ -251,14 +264,14 @@ static std::array<J3DMappingMethodDecl, 12> J3DMappingMethods{
                          J3DMappingMethodDecl::Class::Standard} // b
 };
 
-template <> struct io_wrapper<Material::TexMatrix> {
-  static void onRead(oishii::BinaryReader& reader, Material::TexMatrix& c) {
-    c.projection = static_cast<gx::TexGenType>(reader.read<u8>());
+template <> struct io_wrapper<MaterialData::TexMatrix> {
+  static Result<void> onRead(rsl::SafeReader& reader, Material::TexMatrix& c) {
+    c.projection = TRY(reader.Enum8<gx::TexGenType>());
     // FIXME:
     //	assert(c.projection == gx::TexGenType::Matrix2x4 || c.projection ==
     // gx::TexGenType::Matrix3x4);
 
-    u8 mappingMethod = reader.read<u8>();
+    u8 mappingMethod = TRY(reader.U8());
     bool maya = mappingMethod & 0x80;
     mappingMethod &= ~0x80;
 
@@ -266,13 +279,15 @@ template <> struct io_wrapper<Material::TexMatrix> {
                             : Material::CommonTransformModel::Default;
 
     if (mappingMethod >= J3DMappingMethods.size()) {
-      reader.warnAt("Invalid mapping method: Enumeration ends at 0xB.",
-                    reader.tell() - 1, reader.tell());
+      reader.getUnsafe().warnAt(
+          "Invalid mapping method: Enumeration ends at 0xB.", reader.tell() - 1,
+          reader.tell());
       mappingMethod = 0;
     } else if (mappingMethod == 4 || mappingMethod == 5) {
-      reader.warnAt("This mapping method has yet to be seen in the wild: "
-                    "Enumeration ends at 0xB.",
-                    reader.tell() - 1, reader.tell());
+      reader.getUnsafe().warnAt(
+          "This mapping method has yet to be seen in the wild: "
+          "Enumeration ends at 0xB.",
+          reader.tell() - 1, reader.tell());
     }
 
     const auto& method_decl = J3DMappingMethods[mappingMethod];
@@ -288,21 +303,18 @@ template <> struct io_wrapper<Material::TexMatrix> {
     }
 
     c.method = method_decl._method;
+    TRY(reader.U16());
+    glm::vec3 origin = TRY(readVec3(reader));
+    EXPECT(origin == glm::vec3(0.5f, 0.5f, 0.5f));
 
-    reader.read<u16>();
-
-    glm::vec3 origin;
-    origin << reader;
-
-    // TODO -- Assert
-
-    c.scale << reader;
+    c.scale = TRY(readVec2(reader));
     c.rotate =
-        static_cast<f32>(reader.read<s16>()) * glm::pi<f32>() / (f32)0x7FFF;
-    reader.read<u16>();
-    c.translate << reader;
+        static_cast<f32>(TRY(reader.S16())) * glm::pi<f32>() / (f32)0x7FFF;
+    TRY(reader.U16());
+    c.translate = TRY(readVec2(reader));
     for (auto& f : c.effectMatrix)
-      f = reader.read<f32>();
+      f = TRY(reader.F32());
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const Material::TexMatrix& in) {
     writer.write<u8>(static_cast<u8>(in.projection));
@@ -346,25 +358,26 @@ template <> struct io_wrapper<Material::TexMatrix> {
       writer.write<f32>(f);
   }
 };
-template <> struct io_wrapper<riistudio::j3d::SwapSel> {
-  static void onRead(oishii::BinaryReader& reader, riistudio::j3d::SwapSel& c) {
-    c.colorChanSel = reader.read<u8>();
-    c.texSel = reader.read<u8>();
-    reader.read<u16>();
+template <> struct io_wrapper<SwapSel> {
+  static Result<void> onRead(rsl::SafeReader& reader, SwapSel& c) {
+    c.colorChanSel = TRY(reader.U8());
+    c.texSel = TRY(reader.U8());
+    TRY(reader.U16());
+    return {};
   }
-  static void onWrite(oishii::Writer& writer,
-                      const riistudio::j3d::SwapSel& in) {
+  static void onWrite(oishii::Writer& writer, const SwapSel& in) {
     writer.write<u8>(in.colorChanSel);
     writer.write<u8>(in.texSel);
     writer.write<u16>(-1);
   }
 };
 template <> struct io_wrapper<gx::SwapTableEntry> {
-  static void onRead(oishii::BinaryReader& reader, gx::SwapTableEntry& c) {
-    c.r = static_cast<gx::ColorComponent>(reader.read<u8>());
-    c.g = static_cast<gx::ColorComponent>(reader.read<u8>());
-    c.b = static_cast<gx::ColorComponent>(reader.read<u8>());
-    c.a = static_cast<gx::ColorComponent>(reader.read<u8>());
+  static Result<void> onRead(rsl::SafeReader& reader, gx::SwapTableEntry& c) {
+    c.r = TRY(reader.Enum8<gx::ColorComponent>());
+    c.g = TRY(reader.Enum8<gx::ColorComponent>());
+    c.b = TRY(reader.Enum8<gx::ColorComponent>());
+    c.a = TRY(reader.Enum8<gx::ColorComponent>());
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const gx::SwapTableEntry& in) {
     writer.write<u8>(static_cast<u8>(in.r));
@@ -374,16 +387,20 @@ template <> struct io_wrapper<gx::SwapTableEntry> {
   }
 };
 
-template <> struct io_wrapper<riistudio::j3d::TevOrder> {
-  static void onRead(oishii::BinaryReader& reader,
-                     riistudio::j3d::TevOrder& c) {
-    c.texCoord = reader.read<u8>();
-    c.texMap = reader.read<u8>();
-    c.rasOrder = static_cast<gx::ColorSelChanApi>(reader.read<u8>());
-    reader.read<u8>();
+template <> struct io_wrapper<TevOrder> {
+  static Result<void> onRead(rsl::SafeReader& reader, TevOrder& c) {
+    c.texCoord = TRY(reader.U8());
+    c.texMap = TRY(reader.U8());
+    auto t = reader.Enum8<gx::ColorSelChanApi>();
+    if (gTestMode) {
+      // TODO: Hack for resaved_ReverseGravity2DDossunPlanet.bdl
+      t = t.value_or(gx::ColorSelChanApi::null);
+    }
+    c.rasOrder = TRY(t);
+    TRY(reader.U8());
+    return {};
   }
-  static void onWrite(oishii::Writer& writer,
-                      const riistudio::j3d::TevOrder& in) {
+  static void onWrite(oishii::Writer& writer, const TevOrder& in) {
     writer.write<u8>(in.texCoord);
     writer.write<u8>(in.texMap);
     writer.write<u8>(static_cast<u8>(in.rasOrder));
@@ -392,36 +409,37 @@ template <> struct io_wrapper<riistudio::j3d::TevOrder> {
 };
 
 template <> struct io_wrapper<gx::TevStage> {
-  static void onRead(oishii::BinaryReader& reader, gx::TevStage& c) {
-    const auto unk1 = reader.read<u8>();
+  static Result<void> onRead(rsl::SafeReader& reader, gx::TevStage& c) {
+    const auto unk1 = TRY(reader.U8());
     // Assumed to be TevOp (see attributedlandmeteoritec.bmd)
     (void)unk1;
     // assert(unk1 == 0xff);
-    c.colorStage.a = static_cast<gx::TevColorArg>(reader.read<u8>());
-    c.colorStage.b = static_cast<gx::TevColorArg>(reader.read<u8>());
-    c.colorStage.c = static_cast<gx::TevColorArg>(reader.read<u8>());
-    c.colorStage.d = static_cast<gx::TevColorArg>(reader.read<u8>());
+    c.colorStage.a = TRY(reader.Enum8<gx::TevColorArg>());
+    c.colorStage.b = TRY(reader.Enum8<gx::TevColorArg>());
+    c.colorStage.c = TRY(reader.Enum8<gx::TevColorArg>());
+    c.colorStage.d = TRY(reader.Enum8<gx::TevColorArg>());
 
-    c.colorStage.formula = static_cast<gx::TevColorOp>(reader.read<u8>());
-    c.colorStage.bias = static_cast<gx::TevBias>(reader.read<u8>());
-    c.colorStage.scale = static_cast<gx::TevScale>(reader.read<u8>());
-    c.colorStage.clamp = reader.read<u8>();
-    c.colorStage.out = static_cast<gx::TevReg>(reader.read<u8>());
+    c.colorStage.formula = TRY(reader.Enum8<gx::TevColorOp>());
+    c.colorStage.bias = TRY(reader.Enum8<gx::TevBias>());
+    c.colorStage.scale = TRY(reader.Enum8<gx::TevScale>());
+    c.colorStage.clamp = TRY(reader.Bool8());
+    c.colorStage.out = TRY(reader.Enum8<gx::TevReg>());
 
-    c.alphaStage.a = static_cast<gx::TevAlphaArg>(reader.read<u8>());
-    c.alphaStage.b = static_cast<gx::TevAlphaArg>(reader.read<u8>());
-    c.alphaStage.c = static_cast<gx::TevAlphaArg>(reader.read<u8>());
-    c.alphaStage.d = static_cast<gx::TevAlphaArg>(reader.read<u8>());
+    c.alphaStage.a = TRY(reader.Enum8<gx::TevAlphaArg>());
+    c.alphaStage.b = TRY(reader.Enum8<gx::TevAlphaArg>());
+    c.alphaStage.c = TRY(reader.Enum8<gx::TevAlphaArg>());
+    c.alphaStage.d = TRY(reader.Enum8<gx::TevAlphaArg>());
 
-    c.alphaStage.formula = static_cast<gx::TevAlphaOp>(reader.read<u8>());
-    c.alphaStage.bias = static_cast<gx::TevBias>(reader.read<u8>());
-    c.alphaStage.scale = static_cast<gx::TevScale>(reader.read<u8>());
-    c.alphaStage.clamp = reader.read<u8>();
-    c.alphaStage.out = static_cast<gx::TevReg>(reader.read<u8>());
+    c.alphaStage.formula = TRY(reader.Enum8<gx::TevAlphaOp>());
+    c.alphaStage.bias = TRY(reader.Enum8<gx::TevBias>());
+    c.alphaStage.scale = TRY(reader.Enum8<gx::TevScale>());
+    c.alphaStage.clamp = TRY(reader.Bool8());
+    c.alphaStage.out = TRY(reader.Enum8<gx::TevReg>());
 
-    const auto unk2 = reader.read<u8>();
+    const auto unk2 = TRY(reader.U8());
     (void)unk2;
-    assert(unk2 == 0xff);
+    EXPECT(unk2 == 0xff);
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const gx::TevStage& in) {
     writer.write<u8>(0xff);
@@ -451,16 +469,18 @@ template <> struct io_wrapper<gx::TevStage> {
 };
 
 template <> struct io_wrapper<librii::j3d::Fog> {
-  static void onRead(oishii::BinaryReader& reader, librii::j3d::Fog& f) {
-    f.type = static_cast<librii::gx::FogType>(reader.read<u8>());
-    f.enabled = reader.read<u8>();
-    f.center = reader.read<u16>();
-    f.startZ = reader.read<f32>();
-    f.endZ = reader.read<f32>();
-    f.nearZ = reader.read<f32>();
-    f.farZ = reader.read<f32>();
+  static Result<void> onRead(rsl::SafeReader& reader, librii::j3d::Fog& f) {
+    f.type = TRY(reader.Enum8<librii::gx::FogType>());
+    f.enabled = TRY(reader.U8());
+    f.center = TRY(reader.U16());
+    f.startZ = TRY(reader.F32());
+    f.endZ = TRY(reader.F32());
+    f.nearZ = TRY(reader.F32());
+    f.farZ = TRY(reader.F32());
     io_wrapper<gx::Color>::onRead(reader, f.color);
-    f.rangeAdjTable = reader.readX<u16, 10>();
+    for (auto& e : f.rangeAdjTable)
+      e = TRY(reader.F32());
+    return {};
   }
   static void onWrite(oishii::Writer& writer, const librii::j3d::Fog& in) {
     writer.write<u8>(static_cast<u8>(in.type));
@@ -476,47 +496,48 @@ template <> struct io_wrapper<librii::j3d::Fog> {
   }
 };
 
-template <> struct io_wrapper<Material::J3DSamplerData> {
-  static void onRead(oishii::BinaryReader& reader,
-                     GCMaterialData::SamplerData& sampler) {
-    reinterpret_cast<Material::J3DSamplerData&>(sampler).btiId =
-        reader.read<u16>();
+template <> struct io_wrapper<MaterialData::J3DSamplerData> {
+  static Result<void> onRead(rsl::SafeReader& reader,
+                             Material::J3DSamplerData& sampler) {
+    sampler.btiId = TRY(reader.U16());
+    return {};
   }
   static void onWrite(oishii::Writer& writer,
                       const Material::J3DSamplerData& sampler) {
     writer.write<u16>(sampler.btiId);
   }
 };
-template <> struct io_wrapper<riistudio::j3d::Model::Indirect> {
-  static void onRead(oishii::BinaryReader& reader,
-                     riistudio::j3d::Model::Indirect& c) {
-    const auto enabled = reader.read<u8>();
+template <> struct io_wrapper<Indirect> {
+  [[nodiscard]] static Result<void> onRead(rsl::SafeReader& reader,
+                                           Indirect& c) {
+    const auto enabled = TRY(reader.U8());
     c.enabled = enabled != 0;
-    c.nIndStage = reader.read<u8>();
+    c.nIndStage = TRY(reader.U8());
     if (c.nIndStage > 4)
-      reader.warnAt("Invalid stage count", reader.tell() - 1, reader.tell());
-    reader.read<u16>();
+      reader.getUnsafe().warnAt("Invalid stage count", reader.tell() - 1,
+                                reader.tell());
+    TRY(reader.U16());
 
-    assert(enabled <= 1 && c.nIndStage <= 4);
-    assert(!c.enabled || c.nIndStage);
+    EXPECT(enabled <= 1 && c.nIndStage <= 4);
+    EXPECT(!c.enabled || c.nIndStage);
 
     for (auto& e : c.tevOrder) {
       // TODO: Switched? Confirm this
-      e.refCoord = reader.read<u8>();
-      e.refMap = reader.read<u8>();
-      reader.read<u16>();
+      e.refCoord = TRY(reader.U8());
+      e.refMap = TRY(reader.U8());
+      TRY(reader.U16());
     }
     for (auto& e : c.texMtx) {
       glm::mat2x3 m_raw;
 
-      m_raw[0][0] = reader.read<f32>();
-      m_raw[0][1] = reader.read<f32>();
-      m_raw[0][2] = reader.read<f32>();
-      m_raw[1][0] = reader.read<f32>();
-      m_raw[1][1] = reader.read<f32>();
-      m_raw[1][2] = reader.read<f32>();
-      e.quant = reader.read<u8>();
-      reader.skip(3);
+      m_raw[0][0] = TRY(reader.F32());
+      m_raw[0][1] = TRY(reader.F32());
+      m_raw[0][2] = TRY(reader.F32());
+      m_raw[1][0] = TRY(reader.F32());
+      m_raw[1][1] = TRY(reader.F32());
+      m_raw[1][2] = TRY(reader.F32());
+      e.quant = TRY(reader.U8());
+      reader.getUnsafe().skip(3);
 
       glm::vec3 scale;
       glm::quat rotation;
@@ -534,31 +555,31 @@ template <> struct io_wrapper<riistudio::j3d::Model::Indirect> {
     }
     for (auto& e : c.texScale) {
       e.U = static_cast<gx::IndirectTextureScalePair::Selection>(
-          reader.read<u8>());
+          TRY(reader.U8()));
       e.V = static_cast<gx::IndirectTextureScalePair::Selection>(
-          reader.read<u8>());
-      reader.skip(2);
+          TRY(reader.U8()));
+      reader.getUnsafe().skip(2);
     }
     int i = 0;
     for (auto& e : c.tevStage) {
-      u8 id = reader.read<u8>();
+      u8 id = TRY(reader.U8());
       (void)id;
       // assert(id == i || i >= c.nIndStage);
-      e.format = static_cast<gx::IndTexFormat>(reader.read<u8>());
-      e.bias = static_cast<gx::IndTexBiasSel>(reader.read<u8>());
-      e.matrix = static_cast<gx::IndTexMtxID>(reader.read<u8>());
-      e.wrapU = static_cast<gx::IndTexWrap>(reader.read<u8>());
-      e.wrapV = static_cast<gx::IndTexWrap>(reader.read<u8>());
-      e.addPrev = reader.read<u8>();
-      e.utcLod = reader.read<u8>();
-      e.alpha = static_cast<gx::IndTexAlphaSel>(reader.read<u8>());
-      reader.skip(3);
+      e.format = static_cast<gx::IndTexFormat>(TRY(reader.U8()));
+      e.bias = static_cast<gx::IndTexBiasSel>(TRY(reader.U8()));
+      e.matrix = static_cast<gx::IndTexMtxID>(TRY(reader.U8()));
+      e.wrapU = static_cast<gx::IndTexWrap>(TRY(reader.U8()));
+      e.wrapV = static_cast<gx::IndTexWrap>(TRY(reader.U8()));
+      e.addPrev = TRY(reader.U8());
+      e.utcLod = TRY(reader.U8());
+      e.alpha = static_cast<gx::IndTexAlphaSel>(TRY(reader.U8()));
+      reader.getUnsafe().skip(3);
 
       ++i;
     }
+    return {};
   }
-  static void onWrite(oishii::Writer& writer,
-                      const riistudio::j3d::Model::Indirect& c) {
+  static void onWrite(oishii::Writer& writer, const Indirect& c) {
     writer.write<u8>(c.enabled);
     writer.write<u8>(c.nIndStage);
     writer.write<u16>(-1);
@@ -572,14 +593,13 @@ template <> struct io_wrapper<riistudio::j3d::Model::Indirect> {
     for (const auto& e : c.texMtx) {
       glm::mat4 out(1.0f);
 
-      // TODO: Are we applying the order here wrong..?
-      out = glm::translate(out, {e.trans.x, e.trans.y, 0.0f});
-      out = glm::rotate(out, e.rotate, {0.0f, 1.0f, 0.0f});
       out = glm::scale(out, {
                                 e.scale.x,
                                 e.scale.y,
                                 1.0f,
                             });
+      out = glm::rotate(out, e.rotate, {0.0f, 1.0f, 0.0f});
+      out = glm::translate(out, {e.trans.x, e.trans.y, 0.0f});
 
       f32 aa = out[0][0];
       f32 ab = out[0][1];
@@ -621,8 +641,9 @@ template <> struct io_wrapper<riistudio::j3d::Model::Indirect> {
 };
 
 template <> struct io_wrapper<gx::CullMode> {
-  static void onRead(oishii::BinaryReader& reader, gx::CullMode& out) {
-    out = static_cast<gx::CullMode>(reader.read<u32>());
+  static Result<void> onRead(rsl::SafeReader& reader, gx::CullMode& out) {
+    out = TRY(reader.Enum32<gx::CullMode>());
+    return {};
   }
   static void onWrite(oishii::Writer& writer, gx::CullMode cm) {
     writer.write<u32>(static_cast<u32>(cm));

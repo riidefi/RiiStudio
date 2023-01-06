@@ -91,26 +91,46 @@ public:
 
     return SecOfsEntry<u8>{reader, secOfsEntryRaw(sec, idx, stride)};
   }
-
-  template <typename TIdx, typename T>
-  void indexedContained(T& out, MatSec sec, u32 stride) {
+  struct IRead {
+    virtual Result<void> onRead(rsl::SafeReader& reader, void* out) = 0;
+  };
+  template <typename TIdx>
+  [[nodiscard]] Result<void> indexedContained_VOIDPTR(void* out, MatSec sec,
+                                                      u32 stride, IRead& dyn) {
     if (const auto ofs = indexed<TIdx>(sec, stride).ofs) {
       oishii::Jump<oishii::Whence::Set> g(reader, ofs);
 
-      io_wrapper<T>::onRead(reader, out);
+      rsl::SafeReader safe(reader);
+      TRY(dyn.onRead(safe, out));
     }
-  }
-  template <typename T>
-  void indexedContained(T& out, MatSec sec, u32 stride, u32 idx) {
-    if (const auto ofs = indexed(sec, stride, idx).ofs) {
-      oishii::Jump<oishii::Whence::Set> g(reader, ofs);
-
-      io_wrapper<T>::onRead(reader, out);
-    }
+    return {};
   }
 
   template <typename TIdx, typename T>
-  void indexedContainer(T& out, MatSec sec, u32 stride) {
+  [[nodiscard]] Result<void> indexedContained(T& out, MatSec sec, u32 stride) {
+    struct MyRead : public IRead {
+      Result<void> onRead(rsl::SafeReader& reader, void* out) {
+        return io_wrapper<T>::onRead(reader, *reinterpret_cast<T*>(out));
+      }
+    };
+    MyRead myRead;
+    return indexedContained_VOIDPTR<TIdx>(reinterpret_cast<void*>(&out), sec,
+                                          stride, myRead);
+  }
+  template <typename T>
+  [[nodiscard]] Result<void> indexedContained(T& out, MatSec sec, u32 stride,
+                                              u32 idx) {
+    if (const auto ofs = indexed(sec, stride, idx).ofs) {
+      oishii::Jump<oishii::Whence::Set> g(reader, ofs);
+
+      rsl::SafeReader safe(reader);
+      TRY(io_wrapper<T>::onRead(safe, out));
+    }
+    return {};
+  }
+
+  template <typename TIdx, typename T>
+  [[nodiscard]] Result<void> indexedContainer(T& out, MatSec sec, u32 stride) {
     // Big assumption: Entries are contiguous
 
     oishii::JumpOut g(reader, out.fixed_size() * sizeof(TIdx));
@@ -125,64 +145,63 @@ public:
       // oishii::BinaryReader::ScopedRegion n(reader,
       // io_wrapper<T::value_type>::getName());
       out.resize(i + 1);
-      io_wrapper<typename T::value_type>::onRead(reader, out[i]);
+      rsl::SafeReader safe(reader);
+      TRY(io_wrapper<typename T::value_type>::onRead(safe, out[i]));
     }
+    return {};
   }
 };
-void readMatEntry(librii::j3d::MaterialData& mat, MatLoader& loader,
-                  oishii::BinaryReader& reader, u32 ofsStringTable, u32 idx) {
-  oishii::DebugExpectSized dbg(reader, 332);
-  oishii::BinaryReader::ScopedRegion g(reader, "Material");
+[[nodiscard]] Result<void> readMatEntry(librii::j3d::MaterialData& mat,
+                                        MatLoader& loader,
+                                        rsl::SafeReader& reader,
+                                        u32 ofsStringTable, u32 idx) {
+  oishii::DebugExpectSized dbg(reader.getUnsafe(), 332);
+  auto g = reader.scoped("Material");
 
-  assert(reader.tell() % 4 == 0);
-  mat.flag = reader.read<u8>();
+  EXPECT(reader.tell() % 4 == 0);
+  mat.flag = TRY(reader.U8());
   mat.xlu = mat.flag & 4;
   auto cmx = loader.indexed<u8, u32>(MatSec::CullModeInfo);
-  u32 cullMode = cmx.raw<u32>();
-  if (cullMode > static_cast<u32>(librii::gx::CullMode::All)) {
-    reader.warnAt("Invalid cull mode (Valid range: [0, 3])", cmx.ofs,
-                  cmx.ofs + 4);
-    cullMode = 0;
-  }
-  mat.cullMode = static_cast<gx::CullMode>(cullMode);
+  mat.cullMode = TRY(rsl::enum_cast<gx::CullMode>(cmx.raw<u32>()));
   const u8 nColorChan = loader.indexed<u8>(MatSec::NumColorChannels).raw();
   const u8 num_tg = loader.indexed<u8>(MatSec::NumTexGens).raw();
   const u8 num_stage = loader.indexed<u8>(MatSec::NumTevStages).raw();
   mat.earlyZComparison =
       loader.indexed<u8>(MatSec::ZCompareInfo).as<bool, u8>();
-  loader.indexedContained<u8>(mat.zMode, MatSec::ZModeInfo, 4);
+  TRY(loader.indexedContained<u8>(mat.zMode, MatSec::ZModeInfo, 4));
   mat.dither = loader.indexed<u8>(MatSec::DitherInfo).as<bool, u8>();
 
   dbg.assertSince(8);
   rsl::array_vector<gx::Color, 2> matColors;
-  loader.indexedContainer<u16>(matColors, MatSec::MaterialColors, 4);
+  TRY(loader.indexedContainer<u16>(matColors, MatSec::MaterialColors, 4));
   dbg.assertSince(0xc);
 
-  loader.indexedContainer<u16>(mat.colorChanControls, MatSec::ColorChannelInfo,
-                               8);
+  TRY(loader.indexedContainer<u16>(mat.colorChanControls,
+                                   MatSec::ColorChannelInfo, 8));
   mat.colorChanControls.resize(nColorChan * 2);
   rsl::array_vector<gx::Color, 2> ambColors;
 
-  loader.indexedContainer<u16>(ambColors, MatSec::AmbientColors, 4);
+  TRY(loader.indexedContainer<u16>(ambColors, MatSec::AmbientColors, 4));
   mat.chanData.resize(0);
   for (int i = 0; i < matColors.size(); ++i)
     mat.chanData.push_back({matColors[i], ambColors[i]});
 
-  loader.indexedContainer<u16>(mat.lightColors, MatSec::LightInfo, 4);
+  TRY(loader.indexedContainer<u16>(mat.lightColors, MatSec::LightInfo, 4));
 
   dbg.assertSince(0x28);
-  loader.indexedContainer<u16>(mat.texGens, MatSec::TexGenInfo, 4);
+  TRY(loader.indexedContainer<u16>(mat.texGens, MatSec::TexGenInfo, 4));
   if (mat.texGens.size() != num_tg) {
-    reader.warnAt("Number of TexGens does not match GenInfo count",
-                  reader.tell() - 20, reader.tell());
+    reader.getUnsafe().warnAt("Number of TexGens does not match GenInfo count",
+                              reader.tell() - 20, reader.tell());
   }
-  MAYBE_UNUSED const auto post_tg = reader.readX<u16, 8>();
+  MAYBE_UNUSED const auto post_tg = reader.getUnsafe().readX<u16, 8>();
   // TODO: Validate assumptions here
 
   dbg.assertSince(0x48);
   rsl::array_vector<Material::TexMatrix, 10> texMatrices;
-  loader.indexedContainer<u16>(texMatrices, MatSec::TexMatrixInfo, 100);
-  reader.seek<oishii::Whence::Current>(sizeof(u16) * 20); // Unused..
+  TRY(loader.indexedContainer<u16>(texMatrices, MatSec::TexMatrixInfo, 100));
+  reader.getUnsafe().seek<oishii::Whence::Current>(sizeof(u16) *
+                                                   20); // Unused..
   // loader.indexedContainer<u16>(mat.postTexMatrices,
   // MatSec::PostTexMatrixInfo, 100);
 
@@ -192,7 +211,7 @@ void readMatEntry(librii::j3d::MaterialData& mat, MatLoader& loader,
   dbg.assertSince(0x84);
 
   rsl::array_vector<Material::J3DSamplerData, 8> samplers;
-  loader.indexedContainer<u16>(samplers, MatSec::TextureRemapTable, 2);
+  TRY(loader.indexedContainer<u16>(samplers, MatSec::TextureRemapTable, 2));
   mat.samplers.resize(samplers.size());
   for (int i = 0; i < samplers.size(); ++i)
     mat.samplers[i] = samplers[i];
@@ -201,28 +220,29 @@ void readMatEntry(librii::j3d::MaterialData& mat, MatLoader& loader,
     dbg.assertSince(0x094);
     rsl::array_vector<gx::Color, 4> tevKonstColors;
     tevKonstColors.resize(0);
-    loader.indexedContainer<u16>(tevKonstColors, MatSec::TevKonstColors, 4);
+    TRY(loader.indexedContainer<u16>(tevKonstColors, MatSec::TevKonstColors,
+                                     4));
     dbg.assertSince(0x09C);
 
     for (int i = 0; i < tevKonstColors.size(); ++i)
       mat.tevKonstColors[i] = tevKonstColors[i];
 
-    const auto kc_sels = reader.readX<u8, 16>();
-    const auto ka_sels = reader.readX<u8, 16>();
+    const auto kc_sels = reader.getUnsafe().readX<u8, 16>();
+    const auto ka_sels = reader.getUnsafe().readX<u8, 16>();
 
     const auto get_kc = [&](size_t i) {
-      return static_cast<gx::TevKColorSel>(kc_sels[i]);
+      return rsl::enum_cast<gx::TevKColorSel>(kc_sels[i]);
     };
     const auto get_ka = [&](size_t i) {
-      return static_cast<gx::TevKAlphaSel>(ka_sels[i]);
+      return rsl::enum_cast<gx::TevKAlphaSel>(ka_sels[i]);
     };
 
     dbg.assertSince(0x0BC);
-    rsl::array_vector<riistudio::j3d::TevOrder, 16> tevOrderInfos;
-    loader.indexedContainer<u16>(tevOrderInfos, MatSec::TevOrderInfo, 4);
+    rsl::array_vector<TevOrder, 16> tevOrderInfos;
+    TRY(loader.indexedContainer<u16>(tevOrderInfos, MatSec::TevOrderInfo, 4));
     rsl::array_vector<gx::ColorS10, 4> tevColors;
     tevColors.resize(0);
-    loader.indexedContainer<u16>(tevColors, MatSec::TevColors, 8);
+    TRY(loader.indexedContainer<u16>(tevColors, MatSec::TevColors, 8));
     for (int i = 0; i < tevColors.size(); ++i)
       mat.tevColors[i] = tevColors[i];
     // HW 0 is API CPREV/APREV
@@ -231,11 +251,12 @@ void readMatEntry(librii::j3d::MaterialData& mat, MatLoader& loader,
 
     // FIXME: Directly read into material
     rsl::array_vector<gx::TevStage, 16> tevStageInfos;
-    loader.indexedContainer<u16>(tevStageInfos, MatSec::TevStageInfo, 20);
+    TRY(loader.indexedContainer<u16>(tevStageInfos, MatSec::TevStageInfo, 20));
 
     if (tevStageInfos.size() != num_stage) {
-      reader.warnAt("Number of TEV Stages does not match GenInfo count",
-                    reader.tell() - 32, reader.tell());
+      reader.getUnsafe().warnAt(
+          "Number of TEV Stages does not match GenInfo count",
+          reader.tell() - 32, reader.tell());
     }
 
     mat.mStages.resize(tevStageInfos.size());
@@ -244,13 +265,13 @@ void readMatEntry(librii::j3d::MaterialData& mat, MatLoader& loader,
       mat.mStages[i].texCoord = tevOrderInfos[i].texCoord;
       mat.mStages[i].texMap = tevOrderInfos[i].texMap;
       mat.mStages[i].rasOrder = tevOrderInfos[i].rasOrder;
-      mat.mStages[i].colorStage.constantSelection = get_kc(i);
-      mat.mStages[i].alphaStage.constantSelection = get_ka(i);
+      mat.mStages[i].colorStage.constantSelection = TRY(get_kc(i));
+      mat.mStages[i].alphaStage.constantSelection = TRY(get_ka(i));
     }
 
     dbg.assertSince(0x104);
-    rsl::array_vector<riistudio::j3d::SwapSel, 16> swapSels;
-    loader.indexedContainer<u16>(swapSels, MatSec::TevSwapModeInfo, 4);
+    rsl::array_vector<SwapSel, 16> swapSels;
+    TRY(loader.indexedContainer<u16>(swapSels, MatSec::TevSwapModeInfo, 4));
     for (int i = 0; i < mat.mStages.size(); ++i) {
       mat.mStages[i].texMapSwap = swapSels[i].texSel;
       mat.mStages[i].rasSwap = swapSels[i].colorChanSel;
@@ -258,27 +279,28 @@ void readMatEntry(librii::j3d::MaterialData& mat, MatLoader& loader,
 
     // TODO: We can't use a std::array as indexedContainer relies on nEntries
     rsl::array_vector<gx::SwapTableEntry, 4> swap;
-    loader.indexedContainer<u16>(swap, MatSec::TevSwapModeTableInfo, 4);
+    TRY(loader.indexedContainer<u16>(swap, MatSec::TevSwapModeTableInfo, 4));
     for (int i = 0; i < swap.size(); ++i)
       mat.mSwapTable[i] = swap[i];
 
     for (auto& e : mat.stackTrash)
-      e = reader.read<u8>();
+      e = TRY(reader.U8());
   }
   dbg.assertSince(0x144);
-  loader.indexedContained<u16>(mat.fogInfo, MatSec::FogInfo, 44);
+  TRY(loader.indexedContained<u16>(mat.fogInfo, MatSec::FogInfo, 44));
   dbg.assertSince(0x146);
-  loader.indexedContained<u16>(mat.alphaCompare, MatSec::AlphaCompareInfo, 8);
+  TRY(loader.indexedContained<u16>(mat.alphaCompare, MatSec::AlphaCompareInfo,
+                                   8));
   dbg.assertSince(0x148);
-  loader.indexedContained<u16>(mat.blendMode, MatSec::BlendModeInfo, 4);
+  TRY(loader.indexedContained<u16>(mat.blendMode, MatSec::BlendModeInfo, 4));
   dbg.assertSince(0x14a);
-  loader.indexedContained<u16>(mat.nbtScale, MatSec::NBTScaleInfo, 16);
+  TRY(loader.indexedContained<u16>(mat.nbtScale, MatSec::NBTScaleInfo, 16));
 
   if (loader.mSections[(u32)MatSec::IndirectTexturingInfo] &&
       loader.mSections[(u32)MatSec::IndirectTexturingInfo] != ofsStringTable) {
-    riistudio::j3d::Model::Indirect ind{};
-    loader.indexedContained<riistudio::j3d::Model::Indirect>(
-        ind, MatSec::IndirectTexturingInfo, 0x138, idx);
+    Indirect ind{};
+    TRY(loader.indexedContained<Indirect>(ind, MatSec::IndirectTexturingInfo,
+                                          0x138, idx));
 
     mat.indEnabled = ind.enabled;
     mat.indirectStages.resize(ind.nIndStage);
@@ -293,29 +315,33 @@ void readMatEntry(librii::j3d::MaterialData& mat, MatLoader& loader,
     for (int i = 0; i < mat.mStages.size(); ++i)
       mat.mStages[i].indirectStage = ind.tevStage[i];
   }
+
+  return {};
 }
 
-template <typename T> void operator<<(T& lhs, oishii::BinaryReader& rhs) {
-  io_wrapper<T>::onRead(rhs, lhs);
+template <typename T>
+[[nodiscard]] Result<void> operator<<(T& lhs, oishii::BinaryReader& rhs) {
+  rsl::SafeReader safe(rhs);
+  return io_wrapper<T>::onRead(safe, lhs);
 }
 
 Result<void> readMAT3(BMDOutputContext& ctx) {
-  auto& reader = ctx.reader;
+  rsl::SafeReader reader(ctx.reader);
   if (!enterSection(ctx, 'MAT3'))
     return std::unexpected("Failed to find MAT3 section");
 
-  ScopedSection g(reader, "Materials");
+  ScopedSection g(reader.getUnsafe(), "Materials");
 
-  u16 size = reader.read<u16>();
-
+  u16 size = TRY(reader.U16());
   ctx.mdl.materials.resize(size);
   ctx.materialIdLut.resize(size);
-  reader.read<u16>();
+  TRY(reader.U16());
 
   const auto [ofsMatData, ofsRemapTable, ofsStringTable] =
-      reader.readX<s32, 3>();
-  MatLoader loader{reader.readX<s32, static_cast<u32>(MatSec::Max)>(), g.start,
-                   reader};
+      reader.getUnsafe().readX<s32, 3>();
+  MatLoader loader{
+      reader.getUnsafe().readX<s32, static_cast<u32>(MatSec::Max)>(), g.start,
+      reader.getUnsafe()};
 
   {
     // Read cache
@@ -347,7 +373,8 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
       if (size <= 0)
         continue;
 
-      auto readCacheEntry = [&](auto& out, std::size_t entry_size) {
+      auto readCacheEntry = [&](auto& out,
+                                std::size_t entry_size) -> Result<void> {
         const auto nInferred = size / entry_size;
         out.resize(nInferred);
 
@@ -365,97 +392,98 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
         std::size_t _it = 0;
         for (auto& e : out) {
           reader.seekSet(begin + g.start + _it * entry_size);
-          if (pad_check(reader, entry_size)) {
+          if (pad_check(reader.getUnsafe(), entry_size)) {
             break;
           }
           reader.seekSet(begin + g.start + _it * entry_size);
-          e << reader;
+          TRY(e << reader.getUnsafe());
           ++_it;
         }
         out.resize(_it);
+        return {};
       };
 
       switch ((MatSec)i) {
       case MatSec::IndirectTexturingInfo:
-        readCacheEntry(cache.indirectInfos, 312);
+        TRY(readCacheEntry(cache.indirectInfos, 312));
         break;
       case MatSec::CullModeInfo:
-        readCacheEntry(cache.cullModes, 4);
+        TRY(readCacheEntry(cache.cullModes, 4));
         break;
       case MatSec::MaterialColors:
-        readCacheEntry(cache.matColors, 4);
+        TRY(readCacheEntry(cache.matColors, 4));
         break;
       case MatSec::NumColorChannels:
-        readCacheEntry(cache.nColorChan, 1);
+        TRY(readCacheEntry(cache.nColorChan, 1));
         break;
       case MatSec::ColorChannelInfo:
-        readCacheEntry(cache.colorChans, 8);
+        TRY(readCacheEntry(cache.colorChans, 8));
         break;
       case MatSec::AmbientColors:
-        readCacheEntry(cache.ambColors, 4);
+        TRY(readCacheEntry(cache.ambColors, 4));
         break;
       case MatSec::LightInfo:
-        readCacheEntry(cache.lightColors, 4);
+        TRY(readCacheEntry(cache.lightColors, 4));
         break;
       case MatSec::NumTexGens:
-        readCacheEntry(cache.nTexGens, 1);
+        TRY(readCacheEntry(cache.nTexGens, 1));
         break;
       case MatSec::TexGenInfo:
-        readCacheEntry(cache.texGens, 4);
+        TRY(readCacheEntry(cache.texGens, 4));
         break;
       case MatSec::PostTexGenInfo:
-        readCacheEntry(cache.posTexGens, 4);
+        TRY(readCacheEntry(cache.posTexGens, 4));
         break;
       case MatSec::TexMatrixInfo:
-        readCacheEntry(cache.texMatrices, 100);
+        TRY(readCacheEntry(cache.texMatrices, 100));
         break;
       case MatSec::PostTexMatrixInfo:
-        readCacheEntry(cache.postTexMatrices, 100);
+        TRY(readCacheEntry(cache.postTexMatrices, 100));
         break;
       case MatSec::TextureRemapTable:
-        readCacheEntry(cache.samplers, 2);
+        TRY(readCacheEntry(cache.samplers, 2));
         break;
       case MatSec::TevOrderInfo:
-        readCacheEntry(cache.orders, 4);
+        TRY(readCacheEntry(cache.orders, 4));
         break;
       case MatSec::TevColors:
-        readCacheEntry(cache.tevColors, 8);
+        TRY(readCacheEntry(cache.tevColors, 8));
         break;
       case MatSec::TevKonstColors:
-        readCacheEntry(cache.konstColors, 4);
+        TRY(readCacheEntry(cache.konstColors, 4));
         break;
       case MatSec::NumTevStages:
-        readCacheEntry(cache.nTevStages, 1);
+        TRY(readCacheEntry(cache.nTevStages, 1));
         break;
       case MatSec::TevStageInfo:
-        readCacheEntry(cache.tevStages, 20);
+        TRY(readCacheEntry(cache.tevStages, 20));
         break;
       case MatSec::TevSwapModeInfo:
-        readCacheEntry(cache.swapModes, 4);
+        TRY(readCacheEntry(cache.swapModes, 4));
         break;
       case MatSec::TevSwapModeTableInfo:
-        readCacheEntry(cache.swapTables, 4);
+        TRY(readCacheEntry(cache.swapTables, 4));
         break;
       case MatSec::FogInfo:
-        readCacheEntry(cache.fogs, 44);
+        TRY(readCacheEntry(cache.fogs, 44));
         break;
       case MatSec::AlphaCompareInfo:
-        readCacheEntry(cache.alphaComparisons, 8);
+        TRY(readCacheEntry(cache.alphaComparisons, 8));
         break;
       case MatSec::BlendModeInfo:
-        readCacheEntry(cache.blendModes, 4);
+        TRY(readCacheEntry(cache.blendModes, 4));
         break;
       case MatSec::ZModeInfo:
-        readCacheEntry(cache.zModes, 4);
+        TRY(readCacheEntry(cache.zModes, 4));
         break;
       case MatSec::ZCompareInfo:
-        readCacheEntry(cache.zCompLocs, 1);
+        TRY(readCacheEntry(cache.zCompLocs, 1));
         break;
       case MatSec::DitherInfo:
-        readCacheEntry(cache.dithers, 1);
+        TRY(readCacheEntry(cache.dithers, 1));
         break;
       case MatSec::NBTScaleInfo:
-        readCacheEntry(cache.nbtScales, 16);
+        TRY(readCacheEntry(cache.nbtScales, 16));
         break;
       default: // Warnings for MatSec::Max
         break;
@@ -471,7 +499,7 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
   // (and contiguous)
   bool strictlyIncreasing = true;
   for (int i = 0; i < size; ++i) {
-    ctx.materialIdLut[i] = reader.read<u16>();
+    ctx.materialIdLut[i] = TRY(reader.U16());
 
     if (ctx.materialIdLut[i] != i)
       strictlyIncreasing = false;
@@ -483,7 +511,7 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
   }
 
   reader.seekSet(ofsStringTable + g.start);
-  const auto nameTable = readNameTable(reader);
+  const auto nameTable = readNameTable(reader.getUnsafe());
 
   for (int i = 0; i < size; ++i) {
     auto& mat = ctx.mdl.materials[i];
@@ -492,7 +520,7 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
     // mat.id = ctx.materialIdLut[i];
     mat.name = nameTable[i];
 
-    readMatEntry(mat, loader, reader, ofsStringTable, i);
+    TRY(readMatEntry(mat, loader, reader, ofsStringTable, i));
   }
 
   return {};
@@ -626,7 +654,7 @@ struct MAT3Node : public oishii::Node {
   const J3dModel& mMdl;
   bool hasIndirect = false;
   EntrySection mEntries;
-  const riistudio::j3d::Model::MatCache& mCache;
+  const MatCache& mCache;
 
   gx::TexCoordGen postTexGen(const gx::TexCoordGen& gen) const noexcept {
     return gx::TexCoordGen{// gen.id,
@@ -886,9 +914,8 @@ void io_wrapper<SerializableMaterial>::onWrite(
   dbg.assertSince(0x0bc);
   for (int i = 0; i < m.mStages.size(); ++i)
     writer.write<u16>(
-        find(cache.orders, riistudio::j3d::TevOrder{m.mStages[i].rasOrder,
-                                                    m.mStages[i].texMap,
-                                                    m.mStages[i].texCoord}));
+        find(cache.orders, TevOrder{m.mStages[i].rasOrder, m.mStages[i].texMap,
+                                    m.mStages[i].texCoord}));
   for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u16>(-1);
 
@@ -915,9 +942,8 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   dbg.assertSince(0x104);
   for (int i = 0; i < m.mStages.size(); ++i)
-    writer.write<u16>(find(cache.swapModes,
-                           riistudio::j3d::SwapSel{m.mStages[i].rasSwap,
-                                                   m.mStages[i].texMapSwap}));
+    writer.write<u16>(find(cache.swapModes, SwapSel{m.mStages[i].rasSwap,
+                                                    m.mStages[i].texMapSwap}));
   for (int i = m.mStages.size(); i < 16; ++i)
     writer.write<u16>(-1);
 

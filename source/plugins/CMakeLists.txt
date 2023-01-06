@@ -35,7 +35,7 @@ add_library(plugins STATIC
 	"j3d/Material.hpp"
 	"j3d/Model.hpp"
 	"j3d/Node.h"
-	"j3d/Scene.cpp"
+	
 	"j3d/Scene.hpp"
 	"j3d/Shape.cpp"
 	"j3d/Shape.hpp"

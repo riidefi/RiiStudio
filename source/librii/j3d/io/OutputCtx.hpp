@@ -14,9 +14,6 @@
 
 namespace librii::j3d {
 
-using MatCache = riistudio::j3d::ModelData::MatCache;
-using Tex = riistudio::j3d::Tex;
-
 struct BMDOutputContext {
   J3dModel& mdl;
 
@@ -43,6 +40,22 @@ struct BMDOutputContext {
   };
   std::map<u32, SectionEntry> mSections;
 };
+
+inline Result<glm::vec2> readVec2(rsl::SafeReader& safe) {
+  auto x = TRY(safe.F32());
+  auto y = TRY(safe.F32());
+  return glm::vec2(x, y);
+}
+inline Result<glm::vec3> readVec3(rsl::SafeReader& safe) {
+  auto x = TRY(safe.F32());
+  auto y = TRY(safe.F32());
+  auto z = TRY(safe.F32());
+  return glm::vec3(x, y, z);
+}
+
+inline float fidxToF32(s16 fidx) {
+  return static_cast<f32>(fidx) * (180.0f / static_cast<f32>(0x7fff));
+}
 
 template <typename T, u32 r, u32 c, typename TM, glm::qualifier qM>
 inline void transferMatrix(glm::mat<r, c, TM, qM>& mat, T& stream) {

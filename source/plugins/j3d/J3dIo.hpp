@@ -12,7 +12,7 @@ namespace riistudio::j3d {
 inline void readJ3dMdl(librii::j3d::J3dModel& m,
                        const riistudio::j3d::Model& editor,
                        riistudio::j3d::Collection& c) {
-  m.scalingRule = editor.info.mScalingRule;
+  m.scalingRule = editor.mScalingRule;
   m.isBDL = editor.isBDL;
   m.vertexData = editor.mBufs;
   m.drawMatrices = editor.mDrawMatrices;
@@ -32,7 +32,7 @@ inline void readJ3dMdl(librii::j3d::J3dModel& m,
 }
 inline void toEditorMdl(riistudio::j3d::Collection& s, const librii::j3d::J3dModel& m) {
   riistudio::j3d::Model& tmp = s.getModels().add();
-  tmp.info.mScalingRule = m.scalingRule;
+  tmp.mScalingRule = m.scalingRule;
   tmp.isBDL = m.isBDL;
   tmp.mBufs = m.vertexData;
   tmp.mDrawMatrices = m.drawMatrices;

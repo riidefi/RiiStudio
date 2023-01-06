@@ -5,31 +5,32 @@ namespace librii::j3d {
 using namespace libcube;
 
 Result<void> readVTX1(BMDOutputContext& ctx) {
-  auto& reader = ctx.reader;
+  rsl::SafeReader reader(ctx.reader);
   if (!enterSection(ctx, 'VTX1'))
     return std::unexpected("Failed to find VTX1 section");
 
-  ScopedSection g(reader, "Vertex Buffers");
+  ScopedSection g(reader.getUnsafe(), "Vertex Buffers");
 
-  const auto ofsFmt = reader.read<s32>();
-  const auto ofsData = reader.readX<s32, 13>();
+  const auto ofsFmt = TRY(reader.S32());
+  const auto ofsData = reader.getUnsafe().readX<s32, 13>();
 
   reader.seekSet(g.start + ofsFmt);
-  for (gx::VertexBufferAttribute type =
-           reader.read<gx::VertexBufferAttribute>();
-       type != gx::VertexBufferAttribute::Terminate;
-       type = reader.read<gx::VertexBufferAttribute>()) {
-    const auto comp = reader.read<u32>();
-    const auto data = reader.read<u32>();
-    const auto gen_data = static_cast<gx::VertexBufferType::Generic>(data);
+  gx::VertexBufferAttribute type =
+      static_cast<gx::VertexBufferAttribute>(TRY(reader.U32()));
+  for (; type != gx::VertexBufferAttribute::Terminate;
+       type = static_cast<gx::VertexBufferAttribute>(TRY(reader.U32()))) {
+    const auto comp = TRY(reader.U32());
+    const auto data = TRY(reader.U32());
+    // May fail
+    const auto gen_data = rsl::enum_cast<gx::VertexBufferType::Generic>(data);
     const auto gen_comp_size =
         (gen_data == gx::VertexBufferType::Generic::f32) ? 4
         : (gen_data == gx::VertexBufferType::Generic::u16 ||
            gen_data == gx::VertexBufferType::Generic::s16)
             ? 2
             : 1;
-    const auto shift = reader.read<u8>();
-    reader.skip(3);
+    const auto shift = TRY(reader.U8());
+    reader.getUnsafe().skip(3);
 
     EXPECT(0 <= shift && shift <= 31);
 
@@ -43,25 +44,30 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
     case gx::VertexBufferAttribute::Position:
       buf = &ctx.mdl.vertexData.pos;
       bufkind = VBufferKind::position;
-      ctx.mdl.vertexData.pos.mQuant = VQuantization(
+      ctx.mdl.vertexData.pos.mQuant = VQuantization{
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::Position>(comp)),
-          gx::VertexBufferType(gen_data),
-          gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0, shift,
-          (comp + 2) * gen_comp_size);
+          gx::VertexBufferType(TRY(gen_data)),
+          static_cast<u8>(gen_data != gx::VertexBufferType::Generic::f32 ? shift
+                                                                         : 0),
+          shift,
+          static_cast<u8>((comp + 2) * gen_comp_size),
+      };
       estride = ctx.mdl.vertexData.pos.mQuant.stride;
       break;
     case gx::VertexBufferAttribute::Normal:
       buf = &ctx.mdl.vertexData.norm;
       bufkind = VBufferKind::normal;
-      ctx.mdl.vertexData.norm.mQuant = VQuantization(
+      ctx.mdl.vertexData.norm.mQuant = VQuantization{
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::Normal>(comp)),
-          gx::VertexBufferType(gen_data),
-          gen_data == gx::VertexBufferType::Generic::s8    ? 6
-          : gen_data == gx::VertexBufferType::Generic::s16 ? 14
-                                                           : 0,
-          shift, 3 * gen_comp_size);
+          gx::VertexBufferType(TRY(gen_data)),
+          static_cast<u8>(gen_data == gx::VertexBufferType::Generic::s8    ? 6
+                          : gen_data == gx::VertexBufferType::Generic::s16 ? 14
+                                                                           : 0),
+          shift,
+          static_cast<u8>(3 * gen_comp_size),
+      };
       estride = ctx.mdl.vertexData.norm.mQuant.stride;
       break;
     case gx::VertexBufferAttribute::Color0:
@@ -72,11 +78,13 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
                      static_cast<size_t>(gx::VertexBufferAttribute::Color0)];
       buf = &clr;
       bufkind = VBufferKind::color;
-      clr.mQuant = VQuantization(
+      clr.mQuant = VQuantization{
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::Color>(comp)),
           gx::VertexBufferType(static_cast<gx::VertexBufferType::Color>(data)),
-          0, shift, [](gx::VertexBufferType::Color c) {
+          0,
+          shift,
+          TRY([](gx::VertexBufferType::Color c) -> Result<u8> {
             using ct = gx::VertexBufferType::Color;
             switch (c) {
             case ct::FORMAT_16B_4444:
@@ -89,10 +97,12 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
             case ct::FORMAT_32B_888x:
               return 4;
             default:
-              assert(!"Invalid color data type.");
+              EXPECT(false, "Invalid color data type.");
               return 4;
             }
-          }(static_cast<gx::VertexBufferType::Color>(data)));
+            return {};
+          }(static_cast<gx::VertexBufferType::Color>(data))),
+      };
       estride = clr.mQuant.stride;
       break;
     }
@@ -110,12 +120,15 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
                   static_cast<size_t>(gx::VertexBufferAttribute::TexCoord0)];
       buf = &uv;
       bufkind = VBufferKind::textureCoordinate;
-      uv.mQuant = VQuantization(
+      uv.mQuant = VQuantization{
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::TextureCoordinate>(comp)),
-          gx::VertexBufferType(gen_data),
-          gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0, shift,
-          (comp + 1) * gen_comp_size);
+          gx::VertexBufferType(TRY(gen_data)),
+          static_cast<u8>(gen_data != gx::VertexBufferType::Generic::f32 ? shift
+                                                                         : 0),
+          shift,
+          static_cast<u8>((comp + 1) * gen_comp_size),
+      };
       estride = uv.mQuant.stride;
       break;
     }
@@ -152,7 +165,7 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
     const auto idx = TRY(getDataIndex(type));
     const auto ofs = g.start + ofsData[idx];
     {
-      oishii::Jump<oishii::Whence::Set> g_bufdata(reader, ofs);
+      oishii::Jump<oishii::Whence::Set> g_bufdata(reader.getUnsafe(), ofs);
       s32 size = 0;
 
       for (int i = idx + 1; i < ofsData.size(); ++i) {
@@ -180,7 +193,7 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
 
         pos->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i) {
-          TRY(pos->readBufferEntryGeneric(reader, pos->mData[i]));
+          TRY(pos->readBufferEntryGeneric(reader.getUnsafe(), pos->mData[i]));
         }
         break;
       }
@@ -189,7 +202,7 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
 
         nrm->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i) {
-          TRY(nrm->readBufferEntryGeneric(reader, nrm->mData[i]));
+          TRY(nrm->readBufferEntryGeneric(reader.getUnsafe(), nrm->mData[i]));
         }
         break;
       }
@@ -200,7 +213,7 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
 
         clr->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i) {
-          TRY(clr->readBufferEntryColor(reader, clr->mData[i]));
+          TRY(clr->readBufferEntryColor(reader.getUnsafe(), clr->mData[i]));
         }
         break;
       }
@@ -210,7 +223,7 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
 
         uv->mData.resize(ensize);
         for (int i = 0; i < ensize; ++i) {
-          TRY(uv->readBufferEntryGeneric(reader, uv->mData[i]));
+          TRY(uv->readBufferEntryGeneric(reader.getUnsafe(), uv->mData[i]));
         }
         break;
       }

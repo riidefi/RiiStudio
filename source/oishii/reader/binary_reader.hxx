@@ -109,14 +109,7 @@ public:
 
   template <typename T, EndianSelect E = EndianSelect::Current,
             bool unaligned = false>
-  std::expected<T, std::string> tryRead() {
-    auto result = tryGetAt<T, E, unaligned>(tell());
-    if (result.has_value()) {
-      // Only advance stream on success
-      seekSet(tell() + sizeof(T));
-    }
-    return result;
-  }
+  std::expected<T, std::string> tryRead();
 
   template <typename T, EndianSelect E = EndianSelect::Current>
   inline T readUnaligned() {

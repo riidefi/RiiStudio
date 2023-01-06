@@ -7,6 +7,8 @@
 #include <sstream>
 #include <vendor/magic_enum/magic_enum.hpp>
 
+#include <stacktrace>
+
 namespace rsl {
 
 inline std::string EnumError(u32 bad, auto&& good) {
@@ -21,6 +23,18 @@ inline std::string EnumError(u32 bad, auto&& good) {
       "Invalid enum value. Expected one of ({}). Instead saw {} (0x{:x}).",
       values_printed, bad, bad);
 }
+
+template <typename E>
+inline std::expected<E, std::string> enum_cast(u32 candidate) {
+  auto as_enum = magic_enum::enum_cast<E>(candidate);
+  if (!as_enum.has_value()) {
+    auto values = magic_enum::enum_entries<E>();
+    auto msg = EnumError(candidate, values);
+    return std::unexpected(msg);
+  }
+  return *as_enum;
+}
+
 class SafeReader {
 public:
   template <typename T> using Result = std::expected<T, std::string>;
@@ -69,18 +83,33 @@ public:
     static_assert(sizeof(T) <= sizeof(u32));
 
     auto u = TRY(mReader.tryRead<T>());
-    auto as_enum = magic_enum::enum_cast<E>(u);
+    auto as_enum = enum_cast<E>(u);
     if (!as_enum.has_value()) {
-      auto values = magic_enum::enum_entries<E>();
-      auto msg = EnumError(u, values);
-      mReader.warnAt(msg.c_str(), mReader.tell() - sizeof(T), mReader.tell());
-      return std::unexpected(msg);
+      mReader.warnAt(as_enum.error().c_str(), mReader.tell() - sizeof(T),
+                     mReader.tell());
+      auto cur = std::stacktrace::current();
+      return std::unexpected(
+          std::format("{}\nStacktrace:\n{}", as_enum.error(), std::to_string(cur)));
     }
-    return static_cast<E>(u);
+    return *as_enum;
   }
 
   template <typename E> auto Enum32() -> Result<E> { return Enum<u32, E>(); }
+  template <typename E> auto Enum16() -> Result<E> { return Enum<u16, E>(); }
   template <typename E> auto Enum8() -> Result<E> { return Enum<u8, E>(); }
+
+  auto Bool8() -> Result<bool> {
+    auto u = TRY(mReader.tryRead<u8>());
+    switch (u) {
+    case 0:
+      return false;
+    case 1:
+      return true;
+    default:
+      return std::unexpected(
+          std::format("Expected bool value (0 or 1); instead saw {}", u));
+    }
+  }
 
   template <size_t size> auto U8Buffer() -> Result<std::array<u8, size>> {
     auto buf = TRY(mReader.tryReadBuffer<u8>(size));

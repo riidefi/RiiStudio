@@ -92,7 +92,11 @@ template <typename T, bool HasMinimum, bool HasDivisor,
           librii::gx::VertexBufferKind kind>
 Result<void> readGenericBuffer(
     librii::g3d::GenericBuffer<T, HasMinimum, HasDivisor, kind>& out,
-    rsl::SafeReader& reader) {
+    rsl::SafeReader& reader, auto&& vcc, auto&& vbt) {
+  // librii::gx::VertexComponentCount::Color
+  using VCC = std::remove_cvref_t<decltype(vcc)>;
+  // librii::gx::VertexBufferType::Color
+  using VBT = std::remove_cvref_t<decltype(vbt)>;
   const auto start = reader.tell();
   out.mEntries.clear();
 
@@ -101,10 +105,10 @@ Result<void> readGenericBuffer(
   const auto startOfs = TRY(reader.S32());
   out.mName = TRY(reader.StringOfs(start));
   out.mId = TRY(reader.U32());
-  out.mQuantize.mComp = librii::gx::VertexComponentCount(
-      static_cast<librii::gx::VertexComponentCount::Normal>(TRY(reader.U32())));
-  out.mQuantize.mType = librii::gx::VertexBufferType(
-      static_cast<librii::gx::VertexBufferType::Color>(TRY(reader.U32())));
+  out.mQuantize.mComp =
+      librii::gx::VertexComponentCount(static_cast<VCC>(TRY(reader.U32())));
+  out.mQuantize.mType =
+      librii::gx::VertexBufferType(static_cast<VBT>(TRY(reader.U32())));
   if (HasDivisor) {
     out.mQuantize.divisor = TRY(reader.U8());
     out.mQuantize.stride = TRY(reader.U8());
@@ -446,20 +450,29 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
   }));
 
   // Read Vertex data
-  TRY(readDict(secOfs.ofsBuffers.position,
-               [&](const librii::g3d::BetterNode& dnode) {
-                 return readGenericBuffer(positions.emplace_back(), reader);
-               }));
-  TRY(readDict(secOfs.ofsBuffers.normal,
-               [&](const librii::g3d::BetterNode& dnode) {
-                 return readGenericBuffer(normals.emplace_back(), reader);
-               }));
-  TRY(readDict(secOfs.ofsBuffers.color,
-               [&](const librii::g3d::BetterNode& dnode) {
-                 return readGenericBuffer(colors.emplace_back(), reader);
-               }));
+  TRY(readDict(
+      secOfs.ofsBuffers.position, [&](const librii::g3d::BetterNode& dnode) {
+        return readGenericBuffer(positions.emplace_back(), reader,
+                                 librii::gx::VertexComponentCount::Position{},
+                                 librii::gx::VertexBufferType::Generic{});
+      }));
+  TRY(readDict(
+      secOfs.ofsBuffers.normal, [&](const librii::g3d::BetterNode& dnode) {
+        return readGenericBuffer(normals.emplace_back(), reader,
+                                 librii::gx::VertexComponentCount::Normal{},
+                                 librii::gx::VertexBufferType::Generic{});
+      }));
+  TRY(readDict(
+      secOfs.ofsBuffers.color, [&](const librii::g3d::BetterNode& dnode) {
+        return readGenericBuffer(colors.emplace_back(), reader,
+                                 librii::gx::VertexComponentCount::Color{},
+                                 librii::gx::VertexBufferType::Color{});
+      }));
   TRY(readDict(secOfs.ofsBuffers.uv, [&](const librii::g3d::BetterNode& dnode) {
-    return readGenericBuffer(texcoords.emplace_back(), reader);
+    return readGenericBuffer(
+        texcoords.emplace_back(), reader,
+        librii::gx::VertexComponentCount::TextureCoordinate{},
+        librii::gx::VertexBufferType::Generic{});
   }));
 
   if (transaction.state == kpi::TransactionState::Failure)
@@ -510,12 +523,13 @@ template <typename T, bool HasMinimum, bool HasDivisor,
           librii::gx::VertexBufferKind kind>
 void writeGenericBuffer(
     const librii::g3d::GenericBuffer<T, HasMinimum, HasDivisor, kind>& buf,
-    oishii::Writer& writer, u32 header_start, NameTable& names) {
+    oishii::Writer& writer, u32 header_start, NameTable& names, auto&& vc,
+    auto&& vt) {
   const auto backpatch_array_ofs = writePlaceholder(writer);
   writeNameForward(names, writer, header_start, buf.mName);
   writer.write<u32>(buf.mId);
-  writer.write<u32>(static_cast<u32>(buf.mQuantize.mComp.position));
-  writer.write<u32>(static_cast<u32>(buf.mQuantize.mType.generic));
+  writer.write<u32>(static_cast<u32>(vc));
+  writer.write<u32>(static_cast<u32>(vt));
   if constexpr (HasDivisor) {
     writer.write<u8>(buf.mQuantize.divisor);
     writer.write<u8>(buf.mQuantize.stride);
@@ -1029,26 +1043,34 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
   write_dict(
       "Buffer_Position", bin.positions,
       [&](const librii::g3d::PositionBuffer& buf, std::size_t buf_start) {
-        writeGenericBuffer(buf, writer, buf_start, names);
+        writeGenericBuffer(buf, writer, buf_start, names,
+                           buf.mQuantize.mComp.position,
+                           buf.mQuantize.mType.generic);
       },
       false, 32);
   write_dict(
       "Buffer_Normal", bin.normals,
       [&](const librii::g3d::NormalBuffer& buf, std::size_t buf_start) {
-        writeGenericBuffer(buf, writer, buf_start, names);
+        writeGenericBuffer(buf, writer, buf_start, names,
+                           buf.mQuantize.mComp.normal,
+                           buf.mQuantize.mType.generic);
       },
       false, 32);
   write_dict(
       "Buffer_Color", bin.colors,
       [&](const librii::g3d::ColorBuffer& buf, std::size_t buf_start) {
-        writeGenericBuffer(buf, writer, buf_start, names);
+        writeGenericBuffer(buf, writer, buf_start, names,
+                           buf.mQuantize.mComp.color,
+                           buf.mQuantize.mType.color);
       },
       false, 32);
   write_dict(
       "Buffer_UV", bin.texcoords,
       [&](const librii::g3d::TextureCoordinateBuffer& buf,
           std::size_t buf_start) {
-        writeGenericBuffer(buf, writer, buf_start, names);
+        writeGenericBuffer(buf, writer, buf_start, names,
+                           buf.mQuantize.mComp.texcoord,
+                           buf.mQuantize.mType.generic);
       },
       false, 32);
 

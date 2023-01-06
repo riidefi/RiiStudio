@@ -2,44 +2,48 @@
 
 namespace librii::j3d {
 
-void Tex::transfer(oishii::BinaryReader& stream) {
-  oishii::DebugExpectSized dbg(stream, 0x20);
+Result<void> Tex::transfer(rsl::SafeReader& stream) {
+  auto block = stream.scoped("Tex");
 
-  mFormat = static_cast<librii::gx::TextureFormat>(stream.read<u8>());
-  transparency = stream.read<u8>();
-  mWidth = stream.read<u16>();
-  mHeight = stream.read<u16>();
-  mWrapU = static_cast<librii::gx::TextureWrapMode>(stream.read<u8>());
-  mWrapV = static_cast<librii::gx::TextureWrapMode>(stream.read<u8>());
-  stream.skip(1);
-  stream.transfer(mPaletteFormat);
-  stream.transfer(nPalette);
-  stream.transfer(ofsPalette);
-  // assert(ofsPalette == 0 && "No palette support..");
-  stream.transfer(bMipMap);
-  stream.transfer(bEdgeLod);
-  stream.transfer(bBiasClamp);
-  mMaxAniso = static_cast<librii::gx::AnisotropyLevel>(stream.read<u8>());
-  mMinFilter = static_cast<librii::gx::TextureFilter>(stream.read<u8>());
-  mMagFilter = static_cast<librii::gx::TextureFilter>(stream.read<u8>());
-  stream.transfer<s8>(mMinLod);
-  stream.transfer<s8>(mMaxLod);
-  stream.transfer<u8>(mMipmapLevel);
+  mFormat = TRY(stream.Enum8<librii::gx::TextureFormat>());
+  transparency = stream.Enum8<JUTTransparency>().value_or(
+      static_cast<JUTTransparency>(0xCC));
+  mWidth = TRY(stream.U16());
+  mHeight = TRY(stream.U16());
+  mWrapU = TRY(stream.Enum8<gx::TextureWrapMode>());
+  mWrapV = TRY(stream.Enum8<gx::TextureWrapMode>());
+  stream.getUnsafe().skip(1);
+  mPaletteFormat = TRY(stream.U8());
+  nPalette = TRY(stream.U16());
+  ofsPalette = TRY(stream.U32());
+  // EXPECT(ofsPalette == 0, "No palette support..");
+  bMipMap = TRY(stream.U8());
+  bEdgeLod = TRY(stream.U8());
+  bBiasClamp = TRY(stream.U8());
+  mMaxAniso = TRY(stream.Enum8<librii::gx::AnisotropyLevel>());
+  mMinFilter = TRY(stream.Enum8<librii::gx::TextureFilter>());
+  mMagFilter = TRY(stream.Enum8<librii::gx::TextureFilter>());
+  mMinLod = TRY(stream.S8());
+  mMaxLod = TRY(stream.S8());
+  mMipmapLevel = TRY(stream.U8());
   if (mMipmapLevel == 0) {
-    stream.warnAt("Invalid LOD: 0. Valid range: [1, 6]", stream.tell() - 1,
-                  stream.tell());
+    stream.getUnsafe().warnAt("Invalid LOD: 0. Valid range: [1, 6]",
+                              stream.tell() - 1, stream.tell());
     mMipmapLevel = 1;
   }
   // assert(mMipmapLevel);
-  stream.skip(1);
-  stream.transfer(mLodBias);
-  stream.transfer(ofsTex);
+  stream.getUnsafe().skip(1);
+  mLodBias = TRY(stream.S16());
+  ofsTex = TRY(stream.U32());
+
+  EXPECT(stream.tell() - block.start == 0x20);
+  return {};
 }
 void Tex::write(oishii::Writer& stream) const {
   oishii::DebugExpectSized dbg(stream, 0x20 - 4);
 
   stream.write<u8>(static_cast<u8>(mFormat));
-  stream.write<u8>(transparency);
+  stream.write<u8>(static_cast<u8>(transparency));
   stream.write<u16>(mWidth);
   stream.write<u16>(mHeight);
   stream.write<u8>(static_cast<u8>(mWrapU));
@@ -64,8 +68,8 @@ void Tex::write(oishii::Writer& stream) const {
 }
 Tex::Tex(const librii::j3d::TextureData& data,
          const libcube::GCMaterialData::SamplerData& sampl) {
-  mFormat = static_cast<librii::gx::TextureFormat>(data.mFormat);
-  transparency = static_cast<u8>(data.transparency);
+  mFormat = data.mFormat;
+  transparency = data.transparency;
   mWidth = data.mWidth;
   mHeight = data.mHeight;
   mWrapU = sampl.mWrapU;
@@ -122,7 +126,8 @@ Result<void> readTEX1(BMDOutputContext& ctx) {
   for (int i = 0; i < size; ++i) {
     Tex tex;
     tex.btiId = i;
-    tex.transfer(reader);
+    rsl::SafeReader safe(reader);
+    TRY(tex.transfer(safe));
     printf(":: (%d) %s\n", i, nameTable[i].c_str());
 
     if (librii::gx::IsPaletteFormat(tex.mFormat)) {

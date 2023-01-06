@@ -16,7 +16,7 @@ struct VertexAttributeGenDef {
   u32 size;
 };
 
-Result<std::pair<const VertexAttributeGenDef&, std::size_t>>
+Result<std::pair<const VertexAttributeGenDef*, std::size_t>>
 getVertexAttribGenDef(gx::VertexAttribute vtxAttrib);
 
 // For communicating with your shader:

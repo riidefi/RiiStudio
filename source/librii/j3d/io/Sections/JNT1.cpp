@@ -9,20 +9,21 @@ namespace librii::j3d {
 using namespace libcube;
 
 Result<void> readJNT1(BMDOutputContext& ctx) {
-  auto& reader = ctx.reader;
+  rsl::SafeReader reader(ctx.reader);
   if (!enterSection(ctx, 'JNT1'))
     return std::unexpected("Couldn't find JNT1 section");
 
   ScopedSection g(ctx.reader, "Joints");
 
-  u16 size = reader.read<u16>();
+  u16 size = TRY(reader.U16());
 
   ctx.mdl.joints.resize(size);
   ctx.jointIdLut.resize(size);
-  reader.read<u16>();
+  TRY(reader.U16());
 
-  const auto [ofsJointData, ofsRemapTable, ofsStringTable] =
-      reader.readX<s32, 3>();
+  auto ofsJointData = TRY(reader.S32());
+  auto ofsRemapTable = TRY(reader.S32());
+  auto ofsStringTable = TRY(reader.S32());
   reader.seekSet(g.start);
 
   // Compressible resources in J3D have a relocation table (necessary for
@@ -32,7 +33,7 @@ Result<void> readJNT1(BMDOutputContext& ctx) {
 
   bool sorted = true;
   for (int i = 0; i < size; ++i) {
-    ctx.jointIdLut[i] = reader.read<u16>();
+    ctx.jointIdLut[i] = TRY(reader.U16());
 
     if (ctx.jointIdLut[i] != i)
       sorted = false;
@@ -46,34 +47,31 @@ Result<void> readJNT1(BMDOutputContext& ctx) {
 
   // FIXME: unnecessary allocation of a vector.
   reader.seekSet(ofsStringTable + g.start);
-  const auto nameTable = readNameTable(reader);
+  const auto nameTable = readNameTable(reader.getUnsafe());
 
   int i = 0;
   for (auto& joint : ctx.mdl.joints) {
     reader.seekSet(g.start + ofsJointData + ctx.jointIdLut[i] * 0x40);
     ctx.mdl.jointIds.push_back(ctx.jointIdLut[i]); // TODO
     joint.name = nameTable[i];
-    const u16 flag = reader.read<u16>();
+    const u16 flag = TRY(reader.U16());
     joint.flag = flag & 0xf;
     joint.bbMtxType = static_cast<librii::j3d::MatrixType>(flag >> 4);
-    const u8 mayaSSC = reader.read<u8>();
+    const u8 mayaSSC = TRY(reader.U8());
     // TODO -- keep track of this fallback behavior
     joint.mayaSSC = mayaSSC == 0xff ? false : mayaSSC;
-    const auto pad = reader.read<u8>(); // pad
+    const auto pad = TRY(reader.U8()); // pad
     (void)pad;
-    assert(pad == 0xff);
-    joint.scale << reader;
-    joint.rotate.x =
-        static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
-    joint.rotate.y =
-        static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
-    joint.rotate.z =
-        static_cast<f32>(reader.read<s16>()) / f32(0x7fff) * 180.0f;
-    reader.read<u16>();
-    joint.translate << reader;
-    joint.boundingSphereRadius = reader.read<f32>();
-    joint.boundingBox.min << reader;
-    joint.boundingBox.max << reader;
+    EXPECT(pad == 0xff);
+    joint.scale = TRY(readVec3(reader));
+    joint.rotate.x = fidxToF32(TRY(reader.S16()));
+    joint.rotate.y = fidxToF32(TRY(reader.S16()));
+    joint.rotate.z = fidxToF32(TRY(reader.S16()));
+    TRY(reader.U16());
+    joint.translate = TRY(readVec3(reader));
+    joint.boundingSphereRadius = TRY(reader.F32());
+    joint.boundingBox.min = TRY(readVec3(reader));
+    joint.boundingBox.max = TRY(readVec3(reader));
     ++i;
   }
 

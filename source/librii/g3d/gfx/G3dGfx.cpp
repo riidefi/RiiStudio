@@ -14,11 +14,11 @@ using namespace riistudio;
 //
 
 struct Node {
-  const lib3d::Scene& scene;
-  const lib3d::Model& model;
+  const libcube::Scene& scene;
+  const libcube::Model& model;
   const lib3d::Bone& bone;
-  const lib3d::Material& mat;
-  const lib3d::Polygon& poly;
+  const libcube::IGCMaterial& mat;
+  const libcube::IndexedPolygon& poly;
 };
 template <typename T>
 librii::gfx::SceneNode::UniformData pushUniform(u32 binding_point,
@@ -58,8 +58,7 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
   out.vertex_data_type = librii::gfx::DataType::U32;
   out.indices = reinterpret_cast<void*>(tenant.start * sizeof(u32));
 
-  const libcube::GCMaterialData& gc_mat =
-      reinterpret_cast<const libcube::IGCMaterial&>(node.mat).getMaterialData();
+  const libcube::GCMaterialData& gc_mat = node.mat.getMaterialData();
   for (int i = 0; i < gc_mat.samplers.size(); ++i) {
     const auto& sampler = gc_mat.samplers[i];
 
@@ -116,8 +115,7 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
   }
 
   {
-    const auto& data = reinterpret_cast<const libcube::IGCMaterial&>(node.mat)
-                           .getMaterialData();
+    const auto& data = node.mat.getMaterialData();
 
     librii::gl::UniformMaterialParams tmp{};
     librii::gl::setUniformsFromMaterial(tmp, data);
@@ -130,9 +128,7 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
       if (data.samplers[i].mTexture.empty())
         continue;
       const auto* texData =
-          reinterpret_cast<const libcube::IGCMaterial&>(node.mat).getTexture(
-              reinterpret_cast<const libcube::Scene&>(node.scene),
-              data.samplers[i].mTexture);
+          node.mat.getTexture(node.scene, data.samplers[i].mTexture);
       if (texData == nullptr)
         continue;
       tmp.TexParams[i] = glm::vec4{texData->getWidth(), texData->getHeight(), 0,
@@ -148,15 +144,9 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
     for (auto& p : pack.posMtx)
       p = glm::transpose(glm::mat4{1.0f});
 
-    if (dynamic_cast<const libcube::IndexedPolygon*>(&node.poly) == nullptr) {
-      return std::unexpected(
-          "Polygon does not derive from libcube::IndexedPolygon");
-    }
-    const auto& ipoly =
-        reinterpret_cast<const libcube::IndexedPolygon&>(node.poly);
+    const auto& ipoly = node.poly;
 
-    const auto mtx = ipoly.getPosMtx(
-        reinterpret_cast<const libcube::Model&>(node.model), mp_id);
+    const auto mtx = ipoly.getPosMtx(node.model, mp_id);
     for (int p = 0; p < std::min<std::size_t>(10, mtx.size()); ++p) {
       pack.posMtx[p] = glm::transpose(mtx[p]);
     }
@@ -213,7 +203,7 @@ void pushDisplay(lib3d::IndexRange tenant,
 template <typename ModelType>
 Result<void>
 gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
-                    const ModelType& root, const lib3d::Scene& scene,
+                    const ModelType& root, const libcube::Scene& scene,
                     glm::mat4 v_mtx, glm::mat4 p_mtx,
                     G3dSceneRenderData& render_data, std::string& err) {
   auto bones = root.getBones();
@@ -235,8 +225,7 @@ gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
       return std::unexpected("Invalid polygon ID");
     }
     const auto& mat = mats[display.matId];
-    const auto& poly =
-        reinterpret_cast<const libcube::IndexedPolygon&>(polys[display.polyId]);
+    const auto& poly = polys[display.polyId];
 
     // REASON FOR REMOVAL: We will already create the shader if we cache miss
     //
@@ -293,8 +282,8 @@ gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
 
 template <typename ModelType>
 std::string gather(lib3d::SceneBuffers& output, const ModelType& root,
-                   const lib3d::Scene& scene, glm::mat4 v_mtx, glm::mat4 p_mtx,
-                   G3dSceneRenderData& render_data) {
+                   const libcube::Scene& scene, glm::mat4 v_mtx,
+                   glm::mat4 p_mtx, G3dSceneRenderData& render_data) {
   if (root.getMaterials().empty() || root.getMeshes().empty() ||
       root.getBones().empty())
     return {};
@@ -337,7 +326,7 @@ Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
 }
 
 Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
-                                        const lib3d::Scene& scene,
+                                        const libcube::Scene& scene,
                                         glm::mat4 v_mtx, glm::mat4 p_mtx,
                                         G3dSceneRenderData& render_data) {
   // Reupload changed textures

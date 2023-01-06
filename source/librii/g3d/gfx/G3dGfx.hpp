@@ -301,16 +301,17 @@ struct G3dVertexRenderData {
   std::expected<lib3d::IndexRange, std::string>
   getDrawCallVertices(const DrawCallPath& path) const {
     if (!mTenants.contains(path)) {
-      return std::unexpected(
-          std::format("mTenants does not contain (model:{}, mesh:{}, mprim:{})",
-                      path.model_name, path.mesh_name, path.mprim_index));
+      return std::unexpected(std::format(
+          "mTenants does not contain (model:{}, mesh:{}, mprim:{}); "
+          "mTenants.size() == {}",
+          path.model_name, path.mesh_name, path.mprim_index, mTenants.size()));
     }
     return mTenants.at(path);
   }
 
-  Result<void> buildVertexBuffer(const lib3d::Model& model) {
+  Result<void> buildVertexBuffer(const libcube::Model& model) {
     for (auto& mesh : model.getMeshes()) {
-      auto& gc_mesh = reinterpret_cast<const libcube::IndexedPolygon&>(mesh);
+      auto& gc_mesh = mesh;
 
       for (u32 i = 0; i < gc_mesh.getMeshData().mMatrixPrimitives.size(); ++i) {
         const DrawCallPath mesh_name{.model_name = "TODO",
@@ -328,7 +329,7 @@ struct G3dVertexRenderData {
     return {};
   }
 
-  Result<void> init(const lib3d::Scene& host) {
+  Result<void> init(const libcube::Scene& host) {
     for (auto& model : host.getModels()) {
       TRY(buildVertexBuffer(model));
     }
@@ -349,7 +350,7 @@ struct G3dSceneRenderData {
   G3dTextureCache mTextureData;
   G3dShaderCache mMaterialData;
 
-  Result<void> init(const lib3d::Scene& host) {
+  Result<void> init(const libcube::Scene& host) {
     TRY(mVertexRenderData.init(host));
     mTextureData.update(host);
     // Shaders will be generated the first time the scene is drawn
@@ -368,7 +369,7 @@ Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
                                       G3dSceneRenderData& render_data);
 
 Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
-                                        const lib3d::Scene& scene,
+                                        const libcube::Scene& scene,
                                         glm::mat4 v_mtx, glm::mat4 p_mtx,
                                         G3dSceneRenderData& render_data);
 

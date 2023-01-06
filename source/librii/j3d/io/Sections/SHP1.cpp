@@ -7,18 +7,17 @@ namespace librii::j3d {
 using namespace libcube;
 
 Result<void> readSHP1(BMDOutputContext& ctx) {
-  auto& reader = ctx.reader;
+  rsl::SafeReader reader(ctx.reader);
 
   if (!enterSection(ctx, 'SHP1'))
     return std::unexpected("Failed to find SHP1 section");
 
-  ScopedSection g(reader, "Shapes");
+  ScopedSection g(reader.getUnsafe(), "Shapes");
 
-  u16 size = reader.read<u16>();
+  u16 size = TRY(reader.U16());
   ctx.mdl.shapes.resize(size);
-
   ctx.shapeIdLut.resize(size);
-  reader.read<u16>();
+  TRY(reader.U16());
 
   const auto [ofsShapeData, ofsShapeLut, ofsStringTable,
               // Describes the vertex buffers: GX_VA_POS, GX_INDEX16
@@ -42,7 +41,7 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
               // size + offset?
               // matrix primitive splits
               ofsMtxPrimAccessor // "mtx grp"
-  ] = reader.readX<s32, 8>();
+  ] = reader.getUnsafe().readX<s32, 8>();
   reader.seekSet(g.start);
 
   // Compressible resources in J3D have a relocation table (necessary for
@@ -51,14 +50,15 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
 
   bool sorted = true;
   for (int i = 0; i < size; ++i) {
-    ctx.shapeIdLut[i] = reader.read<u16>();
+    ctx.shapeIdLut[i] = TRY(reader.U16());
 
     if (ctx.shapeIdLut[i] != i)
       sorted = false;
   }
 
-  if (!sorted)
+  if (!sorted) {
     DebugReport("Shape IDS are remapped.\n");
+  }
 
   // Unused
   // reader.seekSet(ofsStringTable + g.start);
@@ -71,34 +71,34 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
     shape.id = ctx.shapeIdLut[si];
     // printf("Shape (index=%u, id=%u) {\n", si, shape.id);
     // shape.name = nameTable[si];
-    shape.mode = static_cast<librii::j3d::ShapeData::Mode>(reader.read<u8>());
-    EXPECT(shape.mode < librii::j3d::ShapeData::Mode::Max);
-    reader.read<u8>();
+    shape.mode = TRY(reader.Enum8<ShapeData::Mode>());
+    TRY(reader.U8());
     // Number of matrix primitives (mtxGrpCnt)
-    auto num_matrix_prims = reader.read<u16>();
+    auto num_matrix_prims = TRY(reader.U16());
     // printf("   num_matrix_prims=%u\n", (u32)num_matrix_prims);
-    auto ofs_vcd_list = reader.read<u16>();
+    auto ofs_vcd_list = TRY(reader.U16());
     // printf("   ofs_vcd_list=%u\n", (u32)ofs_vcd_list);
     // current mtx/mtx list
-    auto first_matrix_list = reader.read<u16>();
+    auto first_matrix_list = TRY(reader.U16());
     // printf("   first_matrix_list=%u\n", (u32)first_matrix_list);
     // "Packet" or mtx prim summary (accessor) idx
-    auto first_mtx_prim_idx = reader.read<u16>();
+    auto first_mtx_prim_idx = TRY(reader.U16());
     // printf("   first_mtx_prim_idx=%u\n", (u32)first_mtx_prim_idx);
     EXPECT(first_matrix_list == first_mtx_prim_idx);
-    reader.read<u16>();
-    shape.bsphere = reader.read<f32>();
-    shape.bbox.min << reader;
-    shape.bbox.max << reader;
+    TRY(reader.U16());
+    shape.bsphere = TRY(reader.F32());
+    shape.bbox.min = TRY(readVec3(reader));
+    shape.bbox.max = TRY(readVec3(reader));
     // printf("}\n");
 
     // Read VCD attributes
     reader.seekSet(g.start + ofsVcdList + ofs_vcd_list);
     gx::VertexAttribute attr = gx::VertexAttribute::Undefined;
-    while ((attr = reader.read<gx::VertexAttribute>()) !=
-           gx::VertexAttribute::Terminate)
+    while ((attr = static_cast<gx::VertexAttribute>(TRY(reader.U32()))) !=
+           gx::VertexAttribute::Terminate) {
       shape.mVertexDescriptor.mAttributes[attr] =
-          reader.read<gx::VertexAttributeType>();
+          TRY(reader.Enum32<gx::VertexAttributeType>());
+    }
 
     // Calculate the VCD bitfield
     shape.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
@@ -109,27 +109,28 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
     for (u16 i = 0; i < num_matrix_prims; ++i) {
       const u32 prim_idx = first_mtx_prim_idx + i;
       reader.seekSet(g.start + ofsMtxPrimAccessor + prim_idx * 8);
-      const auto [dlSz, dlOfs] = reader.readX<u32, 2>();
+      const auto [dlSz, dlOfs] = reader.getUnsafe().readX<u32, 2>();
 
       struct MatrixData {
         s16 current_matrix;
         std::vector<s16> matrixList; // DRW1
       };
       auto readMatrixData = [&, ofsDrwIndices = ofsDrwIndices,
-                             ofsMtxData = ofsMtxData]() {
+                             ofsMtxData = ofsMtxData]() -> Result<MatrixData> {
         // Assumption: Indexed by raw index *not* potentially remapped ID
-        oishii::Jump<oishii::Whence::Set> j(
-            reader, g.start + ofsMtxData + (first_matrix_list + i) * 8);
+        oishii::Jump<oishii::Whence::Set> j(reader.getUnsafe(),
+                                            g.start + ofsMtxData +
+                                                (first_matrix_list + i) * 8);
         MatrixData out;
-        out.current_matrix = reader.read<s16>();
-        u16 list_size = reader.read<u16>();
-        s32 list_start = reader.read<s32>();
+        out.current_matrix = TRY(reader.S16());
+        u16 list_size = TRY(reader.U16());
+        s32 list_start = TRY(reader.S32());
         out.matrixList.resize(list_size);
         {
-          oishii::Jump<oishii::Whence::Set> d(reader, g.start + ofsDrwIndices +
-                                                          list_start * 2);
+          oishii::Jump<oishii::Whence::Set> d(
+              reader.getUnsafe(), g.start + ofsDrwIndices + list_start * 2);
           for (u16 i = 0; i < list_size; ++i) {
-            out.matrixList[i] = reader.read<s16>();
+            out.matrixList[i] = TRY(reader.S16());
             if (out.matrixList[i] == -1)
               out.matrixList[i] = mtxListLast[i];
             else
@@ -140,7 +141,7 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
       };
 
       // Mtx Prim Data
-      MatrixData mtxPrimHdr = readMatrixData();
+      MatrixData mtxPrimHdr = TRY(readMatrixData());
       gx::MatrixPrimitive& mprim = shape.mMatrixPrimitives.emplace_back(
           mtxPrimHdr.current_matrix, mtxPrimHdr.matrixList);
 
@@ -154,8 +155,8 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
       private:
         gx::MatrixPrimitive& mprim;
       } mprim_del(mprim);
-      TRY(DecodeMeshDisplayList(reader, g.start + ofsDL + dlOfs, dlSz,
-                                mprim_del, shape.mVertexDescriptor,
+      TRY(DecodeMeshDisplayList(reader.getUnsafe(), g.start + ofsDL + dlOfs,
+                                dlSz, mprim_del, shape.mVertexDescriptor,
                                 &ctx.mVertexBufferMaxIndices));
     }
   }
@@ -255,6 +256,7 @@ struct WriteableMatrixList : public std::vector<s16> {
     //		writer.write<u8>(0);
   }
 };
+
 struct SHP1Node final : public oishii::Node {
   SHP1Node(const J3dModel& model) : mModel(model) {
     mId = "SHP1";

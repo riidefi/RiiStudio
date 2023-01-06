@@ -7,6 +7,8 @@
 #include <librii/mtx/TexMtx.cpp>
 #endif
 
+#include <vendor/magic_enum/magic_enum.hpp>
+
 namespace libcube {
 
 bool IndexedPolygon::hasAttrib(SimpleAttrib attrib) const {
@@ -225,6 +227,7 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
     TRY(propPrim(idx));
 
   for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i) {
+    auto attr = (gx::VertexAttribute)i;
     if (!(final_bitfield & (1 << i)) &&
         i != (int)gx::VertexAttribute::PositionNormalMatrixIndex)
       continue;
@@ -232,14 +235,18 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
     if (i == (int)gx::VertexAttribute::NormalBinormalTangent)
       continue;
 
-    const auto def =
-        TRY(librii::gl::getVertexAttribGenDef((gx::VertexAttribute)i));
-    EXPECT(def.first.name != nullptr);
+    const auto def = TRY(librii::gl::getVertexAttribGenDef(attr));
+    EXPECT(def.first != nullptr && "Internal logic error");
+    if (def.first->name == nullptr) {
+      return std::unexpected(
+          std::format("Failed to get VertexAttributeGenDef for {} ({})",
+                      magic_enum::enum_name(attr), i));
+    }
     out.mPropogating[def.second].descriptor =
         librii::glhelper::VAOEntry{.binding_point = (u32)def.second,
-                                   .name = def.first.name,
-                                   .format = def.first.format,
-                                   .size = def.first.size * 4};
+                                   .name = def.first->name,
+                                   .format = def.first->format,
+                                   .size = def.first->size * 4};
   }
 
   vertex_indices.size =

@@ -7,31 +7,52 @@
 
 namespace librii::gx {
 
-union VertexComponentCount {
-
-  enum class Position { xy, xyz } position;
+struct VCC {
+  enum class Position { xy, xyz };
   enum class Normal {
     xyz,
     nbt, // index NBT triplets
     nbt3 // index N/B/T individually
-  } normal;
-  enum class Color { rgb, rgba } color;
+  };
+  enum class Color { rgb, rgba };
   enum class TextureCoordinate {
     s,
     st,
 
     u = s,
     uv = st
-  } texcoord;
+  };
+
+  template <typename T> static constexpr T Default();
+  template <> constexpr Position Default<Position>() { return Position::xyz; }
+  template <> constexpr Normal Default<Normal>() { return Normal::xyz; }
+  template <> constexpr Color Default<Color>() { return Color::rgba; }
+  template <> constexpr TextureCoordinate Default<TextureCoordinate>() {
+    return TextureCoordinate::st;
+  }
+};
+
+struct VertexComponentCount {
+  using Position = VCC::Position;
+  using Normal = VCC::Normal;
+  using Color = VCC::Color;
+  using TextureCoordinate = VCC::TextureCoordinate;
+
+  Position position{VCC::Default<Position>()};
+  Normal normal{VCC::Default<Normal>()};
+  Color color{VCC::Default<Color>()};
+  TextureCoordinate texcoord{VCC::Default<TextureCoordinate>()};
 
   explicit VertexComponentCount(Position p) : position(p) {}
   explicit VertexComponentCount(Normal n) : normal(n) {}
   explicit VertexComponentCount(Color c) : color(c) {}
   explicit VertexComponentCount(TextureCoordinate u) : texcoord(u) {}
   VertexComponentCount() {}
+
+  bool operator==(const VertexComponentCount&) const = default;
 };
 
-union VertexBufferType {
+struct VertexBufferType {
   enum class Generic { u8, s8, u16, s16, f32 } generic;
   enum class Color {
     rgb565, //!< R5G6B5
@@ -52,6 +73,7 @@ union VertexBufferType {
   explicit VertexBufferType(Generic g) : generic(g) {}
   explicit VertexBufferType(Color c) : color(c) {}
   VertexBufferType() {}
+  bool operator==(const VertexBufferType&) const = default;
 };
 enum class VertexAttribute : u32 {
   PositionNormalMatrixIndex = 0,
@@ -358,13 +380,7 @@ struct VQuantization {
   u8 bad_divisor = 0; //!< Accommodation for a bug on N's part
   u8 stride = 12;
 
-  VQuantization(librii::gx::VertexComponentCount c,
-                librii::gx::VertexBufferType t, u8 d, u8 bad_d, u8 s)
-      : comp(c), type(t), divisor(d), bad_divisor(bad_d), stride(s) {}
-  VQuantization(const VQuantization& other)
-      : comp(other.comp), type(other.type), divisor(other.divisor),
-        bad_divisor(other.bad_divisor), stride(other.stride) {}
-  VQuantization() = default;
+  bool operator==(const VQuantization&) const = default;
 };
 using VBufferKind = VertexBufferKind;
 
@@ -450,6 +466,7 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
 
   VertexBuffer() {}
   VertexBuffer(VQuantization q) : mQuant(q) {}
+  bool operator==(const VertexBuffer&) const = default;
 };
 
 } // namespace librii::gx

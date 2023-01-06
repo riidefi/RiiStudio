@@ -203,4 +203,60 @@ BinaryReader::BinaryReader(ByteView&& view)
     : ErrorEmitter(*view.getProvider()), mView(std::move(view)) {}
 BinaryReader ::~BinaryReader() = default;
 
+template <typename T, EndianSelect E = EndianSelect::Current,
+          bool unaligned = false>
+std::expected<T, std::string> tryReadImpl(oishii::BinaryReader& reader) {
+  auto result = reader.tryGetAt<T, E, unaligned>(reader.tell());
+  if (result.has_value()) {
+    // Only advance stream on success
+    reader.seekSet(reader.tell() + sizeof(T));
+  }
+  return result;
+}
+
+#define FOR_OISHII_TYPES(F_)                                                   \
+  F_(u8)                                                                       \
+  F_(s8)                                                                       \
+  F_(u16)                                                                      \
+  F_(s16)                                                                      \
+  F_(u32)                                                                      \
+  F_(s32)                                                                      \
+  F_(f32)
+
+#define TRY_READ_IMPL_TEU(T_, E_, U_)                                          \
+  template <>                                                                  \
+  std::expected<T_, std::string> BinaryReader::tryRead<T_, E_, U_>() {         \
+    return tryReadImpl<T_, E_, U_>(*this);                                     \
+  }
+#define TRY_READ_IMPL_T(T)                                                     \
+  TRY_READ_IMPL_TEU(T, EndianSelect::Current, false)                           \
+  TRY_READ_IMPL_TEU(T, EndianSelect::Current, true)                            \
+  TRY_READ_IMPL_TEU(T, EndianSelect::Big, false)                               \
+  TRY_READ_IMPL_TEU(T, EndianSelect::Big, true)                                \
+  TRY_READ_IMPL_TEU(T, EndianSelect::Little, false)                            \
+  TRY_READ_IMPL_TEU(T, EndianSelect::Little, true)
+
+FOR_OISHII_TYPES(TRY_READ_IMPL_T)
+
+template <typename T, EndianSelect E, bool unaligned>
+T readImpl(oishii::BinaryReader& reader) {
+  T decoded = reader.peek<T, E, unaligned>();
+  reader.seek<Whence::Current>(sizeof(T));
+  return decoded;
+}
+
+#define READ_IMPL_TEU(T_, E_, U_)                                              \
+  template <> T_ BinaryReader::read<T_, E_, U_>() {                            \
+    return readImpl<T_, E_, U_>(*this);                                        \
+  }
+#define READ_IMPL_T(T)                                                         \
+  READ_IMPL_TEU(T, EndianSelect::Current, false)                               \
+  READ_IMPL_TEU(T, EndianSelect::Current, true)                                \
+  READ_IMPL_TEU(T, EndianSelect::Big, false)                                   \
+  READ_IMPL_TEU(T, EndianSelect::Big, true)                                    \
+  READ_IMPL_TEU(T, EndianSelect::Little, false)                                \
+  READ_IMPL_TEU(T, EndianSelect::Little, true)
+
+FOR_OISHII_TYPES(READ_IMPL_T)
+
 } // namespace oishii

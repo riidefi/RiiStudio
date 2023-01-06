@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <rsl/SafeReader.hpp>
+
 namespace librii::j3d {
 
 // Amusingly EGG uses this JUT-named enum directly for BTI
@@ -33,10 +35,9 @@ struct TextureData {
   bool operator==(const TextureData&) const = default;
 };
 
-	
 struct Tex {
   librii::gx::TextureFormat mFormat;
-  u8 transparency;
+  JUTTransparency transparency;
   u16 mWidth, mHeight;
   librii::gx::TextureWrapMode mWrapU, mWrapV;
   u8 mPaletteFormat;
@@ -70,7 +71,7 @@ struct Tex {
            mLodBias == rhs.mLodBias && btiId == rhs.btiId; // ofsTex not checked
   }
 
-  void transfer(oishii::BinaryReader& stream);
+  [[nodiscard]] Result<void> transfer(rsl::SafeReader& stream);
   void write(oishii::Writer& stream) const;
   Tex() = default;
   Tex(const librii::j3d::TextureData& data,
