@@ -22,7 +22,8 @@ void Camera::calcMatrices(float width, float height, glm::mat4& projMtx,
     projMtx =
         glm::perspective(glm::radians(mFOV), aspect_ratio, mClipMin, mClipMax);
   }
-  if (glm::length(mDirection) == 1.0f) {
+  float len = glm::length(mDirection);
+  if (glm::abs(1.0f - len) <= std::numeric_limits<float>::epsilon()) {
     viewMtx = glm::lookAt(mEye, mEye + mDirection, getUp());
   }
 }

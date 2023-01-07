@@ -86,10 +86,8 @@ void Renderer::render(u32 width, u32 height) {
 
   librii::glhelper::SetGlWireframe(mSettings.wireframe);
 
+  const auto time_step = mDeltaTimer.tick();
   if (mMouseHider.begin_interaction(ImGui::IsWindowFocused())) {
-    // TODO: This time step is a rolling average so is not quite accurate
-    // frame-by-frame.
-    const auto time_step = 1.0f / ImGui::GetIO().Framerate;
     const auto input_state = buildInputState();
     mSettings.mCameraController.move(time_step, input_state);
 

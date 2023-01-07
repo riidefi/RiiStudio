@@ -4,6 +4,7 @@
 #include <core/3d/i3dmodel.hpp>
 #include <core/common.h>
 #include <core/kpi/Node2.hpp>
+#include <frontend/level_editor/DeltaTime.hpp>
 #include <frontend/renderer/CameraController.hpp>
 #include <glm/mat4x4.hpp>
 #include <librii/gfx/SceneState.hpp>
@@ -47,5 +48,6 @@ public:
 
 private:
   MouseHider mMouseHider;
+  lvl::DeltaTimer mDeltaTimer;
 };
 } // namespace riistudio::frontend

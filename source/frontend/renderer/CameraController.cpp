@@ -51,9 +51,9 @@ void CameraController::move(float time_step, InputState input) {
 #endif
 
   // Direction : Spherical coordinates to Cartesian coordinates conversion
-  mCamera.mDirection = glm::vec3(cos(mVerticalAngle) * sin(mHorizontalAngle),
-                                 sin(mVerticalAngle),
-                                 cos(mVerticalAngle) * cos(mHorizontalAngle));
+  mCamera.mDirection = glm::normalize(glm::vec3(
+      cos(mVerticalAngle) * sin(mHorizontalAngle), sin(mVerticalAngle),
+      cos(mVerticalAngle) * cos(mHorizontalAngle)));
   const float y_movement = combo_choice_cam == ControllerType::WASD_Minecraft
                                ? 0.0f
                                : mCamera.mDirection.y;

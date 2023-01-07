@@ -46,7 +46,8 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
   glm::mat4 model_matrix{1.0f};
 
   out.vao_id = v.getGlId();
-  out.bound = lib3d::CalcPolyBound(node.poly, node.bone, node.model);
+  out.bound = {};
+  //lib3d::CalcPolyBound(node.poly, node.bone, node.model);
 
   //
   out.mega_state = TRY(node.mat.setMegaState());
@@ -314,6 +315,9 @@ Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
   // Reupload changed textures
   render_data.mTextureData.update(scene);
 
+
+  state.getBuffers().opaque.nodes.reserve(256);
+  state.getBuffers().translucent.nodes.reserve(256);
   std::string _err;
   for (auto& model : scene.getModels()) {
     auto err =
