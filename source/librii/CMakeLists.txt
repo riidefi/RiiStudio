@@ -127,12 +127,12 @@ add_library(librii STATIC
 	"j3d/io/Sections/INF1.cpp"
 	"j3d/io/Sections/JNT1.cpp"
 	"j3d/io/Sections/MAT3.cpp"
-	"j3d/io/Sections/MaterialData.hpp"
 	"j3d/io/Sections/MDL3.cpp"
 	"j3d/io/Sections/SHP1.cpp"
 	"j3d/io/Sections/TEX1.cpp"
 	"j3d/io/Sections/VTX1.cpp"
 	"j3d/io/Sections.hpp"
+	"j3d/io/Sections/MaterialData.cpp"
 )
 
 target_precompile_headers(librii

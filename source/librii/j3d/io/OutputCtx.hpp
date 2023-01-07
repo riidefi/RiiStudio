@@ -41,6 +41,15 @@ struct BMDOutputContext {
   std::map<u32, SectionEntry> mSections;
 };
 
+using namespace libcube;
+
+using Material = MaterialData;
+
+template <typename T> struct io_wrapper {
+  static Result<void> onRead(rsl::SafeReader& reader, T& c);
+  static void onWrite(oishii::Writer& writer, const T& c);
+};
+
 inline Result<glm::vec2> readVec2(rsl::SafeReader& safe) {
   auto x = TRY(safe.F32());
   auto y = TRY(safe.F32());

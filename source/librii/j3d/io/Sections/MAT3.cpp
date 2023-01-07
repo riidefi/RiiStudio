@@ -1,4 +1,4 @@
-#include "MaterialData.hpp"
+#include <librii/j3d/io/OutputCtx.hpp>
 
 namespace librii::j3d {
 

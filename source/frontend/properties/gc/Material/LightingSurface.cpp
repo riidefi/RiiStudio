@@ -1,7 +1,7 @@
 #include "Common.hpp"
 
 #include <imcxx/Widgets.hpp>
-#include <plugins/g3d/Material.hpp>
+#include <plugins/g3d/material.hpp>
 #include <plugins/g3d/collection.hpp>
 
 namespace libcube::UI {
