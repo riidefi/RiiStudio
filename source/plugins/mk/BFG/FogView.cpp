@@ -70,6 +70,9 @@ auto fogEntry =
 kpi::DecentralizedInstaller
     TypeInstaller([](kpi::ApplicationPlugins& installer) {
       installer.addType<BinaryFog>();
+      kpi::RichNameManager::getInstance().addRichName<mk::BinaryFog>(
+          (const char*)ICON_FA_CLOUD, "Fogs", (const char*)ICON_FA_CLOUD,
+          "BFG");
       kpi::RichNameManager::getInstance().addRichName<mk::FogEntry>(
           (const char*)ICON_FA_CLOUD, "Fog Entry", (const char*)ICON_FA_CLOUD,
           "Fog Entries");

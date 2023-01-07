@@ -306,10 +306,10 @@ private:
     for (size_t i = 0; i < folder.size(); ++i) {
       auto* child = folder.atObject(i);
       assert(child != nullptr);
-      FromChild(*child, depth, filterFolder, filterChild);
+      FromChild(*child, i, depth, filterFolder, filterChild);
     }
   }
-  void FromChild(kpi::IObject& child, int depth,
+  void FromChild(kpi::IObject& child, size_t i, int depth,
                  std::function<bool(const kpi::ICollection&)> filterFolder,
                  std::function<bool(const kpi::IObject&)> filterChild) {
     if (!filterChild(child)) {
@@ -317,8 +317,6 @@ private:
     }
     Node tmp;
     assert(child.collectionOf);
-    int i = child.collectionOf->indexOf(child.getName());
-    assert(i >= 0);
     assert(mEditor != nullptr);
     assert(mOutliner != nullptr);
     SetNodeFromKpiObj(tmp, *child.collectionOf, *mEditor, i, mOutliner);
@@ -408,8 +406,10 @@ void GenericCollectionOutliner::draw_() noexcept {
   auto* back = mHost.collectionOf;
   mHost.collectionOf = &root;
   auto nodes = MyTreeFlattener::Flatten(root, mFilter, *this, ed);
-  Node bruh = nodes[0];
-  DrawFolder(std::move(nodes), bruh);
+  if (!nodes.empty()) {
+    Node bruh = nodes[0];
+    DrawFolder(std::move(nodes), bruh);
+  }
   mHost.collectionOf = back;
 
   if (activeModal.has_value())
