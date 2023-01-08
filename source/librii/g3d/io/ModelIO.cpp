@@ -573,14 +573,15 @@ std::string writeVertexDataDL(const librii::g3d::PolygonData& poly,
 
   if (poly.mCurrentMatrix == -1) {
     librii::gpu::DLBuilder builder(writer);
-    if (poly.needsTextureMtx()) {
-      for (size_t i = 0; i < mp.mDrawMatrixIndices.size(); ++i) {
-        if (mp.mDrawMatrixIndices[i] == -1) {
-          continue;
+    for (u32 i = 0; i < 8; ++i) {
+      if (poly.needsTextureMtx(i)) {
+        for (size_t i = 0; i < mp.mDrawMatrixIndices.size(); ++i) {
+          if (mp.mDrawMatrixIndices[i] == -1) {
+            continue;
+          }
+          builder.loadTexMtxIndx(mp.mDrawMatrixIndices[i], 30 + i * 3,
+                                 librii::gx::TexGenType::Matrix3x4);
         }
-        // TODO: Get this from the material?
-        builder.loadTexMtxIndx(mp.mDrawMatrixIndices[i], i * 3,
-                               librii::gx::TexGenType::Matrix3x4);
       }
     }
     if (poly.needsPositionMtx()) {
@@ -1178,7 +1179,6 @@ s32 parentOf(const librii::g3d::BoneData& bone) { return bone.mParent; }
 s32 ssc(const librii::g3d::BinaryBoneData& bone) { return bone.flag & 0x20; }
 s32 ssc(const librii::g3d::BoneData& bone) { return bone.ssc; }
 
-
 librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
                                      auto&& bones, kpi::IOContext& ctx_,
                                      librii::g3d::ScalingRule scalingRule) {
@@ -1461,7 +1461,7 @@ Result<void> processModel(const BinaryModel& binary_model,
     {
       auto needsTexMtx =
           std::any_of(binary_model.meshes.begin(), binary_model.meshes.end(),
-                      [](auto& m) { return m.needsTextureMtx(); });
+                      [](auto& m) { return m.needsAnyTextureMtx(); });
       ctx.request(
           info.texMtxArray == needsTexMtx,
           needsTexMtx
@@ -1776,7 +1776,7 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
     bool nrmMtx = std::ranges::any_of(
         mdl.meshes, [](auto& m) { return m.needsNormalMtx(); });
     bool texMtx = std::ranges::any_of(
-        mdl.meshes, [](auto& m) { return m.needsTextureMtx(); });
+        mdl.meshes, [](auto& m) { return m.needsAnyTextureMtx(); });
     librii::g3d::BinaryModelInfo info{
         .scalingRule = mdl.info.scalingRule,
         .texMtxMode = mdl.info.texMtxMode,

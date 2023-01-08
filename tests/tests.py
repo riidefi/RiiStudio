@@ -42,6 +42,9 @@ TEST_DATA = {
 	# 1:1
 	'996b45501b13c14e3f4136eb4fb3efba': '996b45501b13c14e3f4136eb4fb3efba',
 	'bbd05488abd1dd21ac2cb21077d8ccdc': 'bbd05488abd1dd21ac2cb21077d8ccdc',
+	'9808950ca2a5972a8720ac90366711d3': '9808950ca2a5972a8720ac90366711d3', # With non-uniform ENV
+	'3888ad1a22003ff93c6b9734689eb393': '3888ad1a22003ff93c6b9734689eb393', # With uniform ENV
+
 
 	# default.blight
 	# 1:1

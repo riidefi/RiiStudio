@@ -32,11 +32,16 @@ struct PolygonData : public librii::gx::MeshData {
     // TODO: Do we need to check currentMatrixEmbedded?
     return mVertexDescriptor[gx::VertexAttribute::Normal];
   }
-  bool needsTextureMtx() const {
+  bool needsAnyTextureMtx() const {
     // TODO: Do we need to check currentMatrixEmbedded?
-    return mVertexDescriptor.mBitfield &
-           (0b1111'1111 << static_cast<u32>(
-                gx::VertexAttribute::Texture0MatrixIndex));
+    u32 tex0idx = static_cast<u32>(gx::VertexAttribute::Texture0MatrixIndex);
+    return mVertexDescriptor.mBitfield & (0b1111'1111 << tex0idx);
+  }
+  bool needsTextureMtx(u32 i) const {
+    // TODO: Do we need to check currentMatrixEmbedded?
+    assert(i < 8);
+    u32 tex0idx = static_cast<u32>(gx::VertexAttribute::Texture0MatrixIndex);
+    return mVertexDescriptor.mBitfield & (1 << (tex0idx + i));
   }
 
   bool operator==(const PolygonData& rhs) const = default;
