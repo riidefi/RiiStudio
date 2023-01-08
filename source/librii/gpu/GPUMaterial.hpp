@@ -241,7 +241,7 @@ struct IND_MTX {
   IND_MTXC col2;
 
   operator glm::mat4();
-  operator Result<librii::gx::IndirectMatrix>();
+  Result<librii::gx::IndirectMatrix> lift(std::vector<std::string>& warnings);
 };
 union GPUTevReg {
   enum RegType { REGISTER, KONSTANT };

@@ -95,8 +95,12 @@ Result<void> BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
         static_cast<librii::gx::IndirectTextureScalePair::Selection>(
             curScale.ss1)};
 
+    std::vector<std::string> _warnings;
     Result<librii::gx::IndirectMatrix> m =
-        matHandler.mGpuMat.mIndirect.mIndMatrices[i];
+        matHandler.mGpuMat.mIndirect.mIndMatrices[i].lift(_warnings);
+    for (auto& warning : _warnings) {
+      reader.warnAt(warning.c_str(), reader.tell() - 4, reader.tell());
+    }
     indMatrices.push_back(TRY(m));
   }
 

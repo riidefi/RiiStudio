@@ -1,6 +1,7 @@
 #include "GPUMaterial.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <librii/math/mtx.hpp>
 #include <numbers>
 
 namespace librii::gpu {
@@ -38,7 +39,7 @@ IND_MTX::operator glm::mat4() {
   return m;
 }
 
-IND_MTX::operator Result<gx::IndirectMatrix>() {
+Result<gx::IndirectMatrix> IND_MTX::lift(std::vector<std::string>& warnings) {
   gx::IndirectMatrix tmp;
 
   glm::mat3x2 M = glm::mat4(*this);
@@ -71,7 +72,10 @@ IND_MTX::operator Result<gx::IndirectMatrix>() {
     }
   }
   if (computed != M) {
-    return std::unexpected("Failed to decompose indirect matrix");
+    auto warn = std::format(
+        "Failed to decompose indirect matrix. Jensen-Shannon divergence: {}",
+        librii::math::jensen_shannon_divergence(computed, M));
+    warnings.push_back(warn);
   }
 
   return tmp;
