@@ -24,8 +24,6 @@ struct Polygon : public librii::g3d::PolygonData,
   MeshData& getMeshData() override { return *this; }
   const MeshData& getMeshData() const { return *this; }
   librii::math::AABB getBounds() const override { return bounds; }
-  std::vector<glm::mat4> getPosMtx(const libcube::Model& mdl,
-                                   u64 mpId) const override;
 
   glm::vec2 getUv(const libcube::Model& mdl, u64 chan, u64 id) const override;
   glm::vec4 getClr(const libcube::Model& mdl, u64 chan, u64 id) const override;

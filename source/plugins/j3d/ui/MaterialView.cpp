@@ -143,7 +143,7 @@ void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
   const riistudio::lib3d::Model* pMdl =
       dynamic_cast<const riistudio::lib3d::Model*>(
           dynamic_cast<const kpi::IObject*>(&bone)->childOf);
-  const auto mtx = calcSrtMtx(delegate.getActive(), pMdl);
+  const auto mtx = calcSrtMtxSimple(delegate.getActive(), pMdl);
 
   ImGui::TextUnformatted("Computed Matrix:"_j);
   Toolkit::Matrix44(mtx);
@@ -176,6 +176,7 @@ void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
   for (auto& mp : shape.mMatrixPrimitives) {
     ImGui::Text("Matrix Primitive: %i"_j, i);
 
+#if 0
     const auto matrices =
         shape.getPosMtx(*dynamic_cast<libcube::Model*>(shape.childOf), i);
     int j = 0;
@@ -185,6 +186,7 @@ void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
       ++j;
     }
     ++i;
+#endif
   }
 }
 struct ModelJ3DSurface {

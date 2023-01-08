@@ -92,45 +92,6 @@ glm::mat4 computeBoneMdl(u32 id, kpi::ConstCollectionRange<lib3d::Bone> bones) {
   return mdl * librii::math::calcXform(bone.getSRT());
 }
 
-std::vector<glm::mat4> Polygon::getPosMtx(const libcube::Model& mdl,
-                                          u64 mpid) const {
-  std::vector<glm::mat4> out;
-
-  const auto& mp = mMatrixPrimitives[mpid];
-
-  const g3d::Model& mdl_ac = reinterpret_cast<const Model&>(mdl);
-
-  const auto handle_drw = [&](const libcube::DrawMatrix& drw) {
-    glm::mat4x4 curMtx(1.0f);
-
-    // Rigid -- bone space
-    if (drw.mWeights.size() == 1) {
-      u32 boneID = drw.mWeights[0].boneId;
-      auto& bone = const_cast<Bone&>(mdl_ac.getBones()[boneID]);
-      curMtx = calcSrtMtx(bone, mdl_ac.getBones());
-    } else {
-      // already world space
-    }
-    out.push_back(curMtx);
-  };
-
-  if (mp.mDrawMatrixIndices.empty()) {
-    if (mdl_ac.mDrawMatrices.size() > mCurrentMatrix) {
-      handle_drw(mdl_ac.mDrawMatrices[mCurrentMatrix]);
-    } else {
-      // todo: is there really no rigging info here..?
-      libcube::DrawMatrix tmp;
-      tmp.mWeights.emplace_back(0, 1.0f);
-      handle_drw(tmp);
-    }
-  } else {
-    for (const auto it : mp.mDrawMatrixIndices) {
-      handle_drw(mdl_ac.mDrawMatrices[it]);
-    }
-  }
-  return out;
-}
-
 using namespace librii;
 
 void Polygon::initBufsFromVcd(lib3d::Model& _mdl) {

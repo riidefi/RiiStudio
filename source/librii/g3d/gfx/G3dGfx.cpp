@@ -5,6 +5,17 @@
 
 #include <librii/image/CheckerBoard.hpp>
 
+// TRAITS FOR WIITRIG
+librii::math::SRT3 getSrt(const libcube::IBoneDelegate& bone) {
+  return bone.getSRT();
+}
+s32 parentOf(const libcube::IBoneDelegate& bone) {
+  return bone.getBoneParent();
+}
+bool ssc(const libcube::IBoneDelegate& bone) { return bone.getSSC(); }
+
+#include <librii/g3d/io/WiiTrig.hpp>
+
 namespace librii::g3d::gfx {
 
 using namespace riistudio;
@@ -14,8 +25,7 @@ using namespace riistudio;
 //
 
 struct Node {
-  const libcube::Scene& scene;
-  const libcube::Model& model;
+  ModelView model;
   const lib3d::Bone& bone;
   const libcube::IGCMaterial& mat;
   const libcube::IndexedPolygon& poly;
@@ -37,6 +47,57 @@ struct MyDefTex : public librii::image::NullTexture<64, 64> {
 };
 static MyDefTex DefaultTex(NullCheckerboard);
 
+Result<std::vector<glm::mat4>> getPosMtx(const libcube::IndexedPolygon& p,
+                                         ModelView model, u64 mpid) {
+  std::vector<glm::mat4> out;
+
+  const auto& mp = p.getMeshData().mMatrixPrimitives[mpid];
+
+  struct Bones_ {
+    size_t size() const { return m.bones.size(); }
+    libcube::IBoneDelegate& operator[](size_t i) {
+      return const_cast<libcube::IBoneDelegate&>(*m.bones[i]);
+    }
+    ModelView m;
+  };
+  Bones_ bones{model};
+
+  const auto handle_drw = [&](const libcube::DrawMatrix& drw) -> Result<void> {
+    glm::mat4x4 curMtx(0.0f);
+
+    // Rigid -- bone space
+    if (drw.mWeights.size() == 1) {
+      u32 boneID = drw.mWeights[0].boneId;
+      EXPECT(boneID < model.bones.size());
+      curMtx = calcSrtMtx(*model.bones[boneID], bones,
+                          librii::g3d::ScalingRule::Maya);
+    } else {
+      // already world space
+      curMtx = glm::mat4x4(1.0f);
+    }
+    out.push_back(curMtx);
+    return {};
+  };
+
+  if (mp.mDrawMatrixIndices.empty()) {
+    // TODO: For G3D this isn't configurable per-mp
+    if (model.drawMatrices.size() > mp.mCurrentMatrix) {
+      TRY(handle_drw(model.drawMatrices[mp.mCurrentMatrix]));
+    } else {
+      // todo: is there really no rigging info here..?
+      libcube::DrawMatrix tmp;
+      tmp.mWeights.emplace_back(0, 1.0f);
+      TRY(handle_drw(tmp));
+    }
+  } else {
+    for (const auto it : mp.mDrawMatrixIndices) {
+      EXPECT(it < model.drawMatrices.size());
+      TRY(handle_drw(model.drawMatrices[it]));
+    }
+  }
+  return out;
+}
+
 Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
                            librii::glhelper::VBOBuilder& v,
                            G3dTextureCache& tex_id_map, Node node,
@@ -47,7 +108,7 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
 
   out.vao_id = v.getGlId();
   out.bound = {};
-  //lib3d::CalcPolyBound(node.poly, node.bone, node.model);
+  // lib3d::CalcPolyBound(node.poly, node.bone, node.model);
 
   //
   out.mega_state = TRY(node.mat.setMegaState());
@@ -128,8 +189,14 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
     for (int i = 0; i < data.samplers.size(); ++i) {
       if (data.samplers[i].mTexture.empty())
         continue;
-      const auto* texData =
-          node.mat.getTexture(node.scene, data.samplers[i].mTexture);
+      auto tex = data.samplers[i].mTexture;
+      const libcube::Texture* texData = nullptr;
+      for (auto* x : node.model.textures) {
+        if (x->getName() == tex) {
+          texData = x;
+          break;
+        }
+      }
       if (texData == nullptr)
         continue;
       tmp.TexParams[i] = glm::vec4{texData->getWidth(), texData->getHeight(), 0,
@@ -145,9 +212,7 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
     for (auto& p : pack.posMtx)
       p = glm::transpose(glm::mat4{1.0f});
 
-    const auto& ipoly = node.poly;
-
-    const auto mtx = ipoly.getPosMtx(node.model, mp_id);
+    const auto mtx = TRY(getPosMtx(node.poly, node.model, mp_id));
     for (int p = 0; p < std::min<std::size_t>(10, mtx.size()); ++p) {
       pack.posMtx[p] = glm::transpose(mtx[p]);
     }
@@ -201,32 +266,27 @@ void pushDisplay(lib3d::IndexRange tenant,
   nodebuf.nodes.push_back(std::move(mnode));
 }
 
-template <typename ModelType>
-Result<void>
-gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
-                    const ModelType& root, const libcube::Scene& scene,
-                    glm::mat4 v_mtx, glm::mat4 p_mtx,
-                    G3dSceneRenderData& render_data, std::string& err) {
-  auto bones = root.getBones();
-  auto polys = root.getMeshes();
-  auto mats = root.getMaterials();
-
-  if (boneId >= bones.size()) {
+Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
+                                 ModelView view, glm::mat4 v_mtx,
+                                 glm::mat4 p_mtx,
+                                 G3dSceneRenderData& render_data,
+                                 std::string& err) {
+  if (boneId >= view.bones.size()) {
     return std::unexpected("Invalid bone id");
   }
-  const auto& pBone = bones[boneId];
+  const auto& pBone = *view.bones[boneId];
   const u64 nDisplay = pBone.getNumDisplays();
 
   for (u64 i = 0; i < nDisplay; ++i) {
     const auto display = pBone.getDisplay(i);
-    if (display.matId >= mats.size()) {
+    if (display.matId >= view.mats.size()) {
       return std::unexpected("Invalid material ID");
     }
-    if (display.polyId >= polys.size()) {
+    if (display.polyId >= view.polys.size()) {
       return std::unexpected("Invalid polygon ID");
     }
-    const auto& mat = mats[display.matId];
-    const auto& poly = polys[display.polyId];
+    const auto& mat = *view.mats[display.matId];
+    const auto& poly = *view.polys[display.polyId];
 
     // REASON FOR REMOVAL: We will already create the shader if we cache miss
     //
@@ -238,11 +298,11 @@ gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
       if (!poly.isVisible())
         continue;
 
-      DrawCallPath mesh_name{
-          .model_name = "TODO", .mesh_name = poly.getName(), .mprim_index = i};
+      DrawCallPath mesh_name{.model_name = std::to_string(view.model_id),
+                             .mesh_name = poly.getName(),
+                             .mprim_index = i};
       Node node{
-          .scene = scene,
-          .model = root,
+          .model = view,
           .bone = pBone,
           .mat = mat,
           .poly = poly,
@@ -267,8 +327,8 @@ gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
 
   for (u64 i = 0; i < pBone.getNumChildren(); ++i) {
     std::string _err;
-    auto err = gatherBoneRecursive(output, pBone.getChild(i), root, scene,
-                                   v_mtx, p_mtx, render_data, _err);
+    auto err = gatherBoneRecursive(output, pBone.getChild(i), view, v_mtx,
+                                   p_mtx, render_data, _err);
     auto err2 = err.has_value() ? "" : err.error();
     if (_err.size()) {
       err2 = err2 + "\n" + _err;
@@ -281,18 +341,15 @@ gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
   return {};
 }
 
-template <typename ModelType>
-std::string gather(lib3d::SceneBuffers& output, const ModelType& root,
-                   const libcube::Scene& scene, glm::mat4 v_mtx,
+std::string gather(lib3d::SceneBuffers& output, ModelView view, glm::mat4 v_mtx,
                    glm::mat4 p_mtx, G3dSceneRenderData& render_data) {
-  if (root.getMaterials().empty() || root.getMeshes().empty() ||
-      root.getBones().empty())
+  if (view.mats.empty() || view.polys.empty() || view.bones.empty())
     return {};
 
   // Assumes root at zero
   std::string _err;
-  auto err = gatherBoneRecursive(output, 0, root, scene, v_mtx, p_mtx,
-                                 render_data, _err);
+  auto err =
+      gatherBoneRecursive(output, 0, view, v_mtx, p_mtx, render_data, _err);
   auto err2 = err.has_value() ? "" : err.error();
   if (_err.size()) {
     err2 = err2 + "\n" + _err;
@@ -315,13 +372,14 @@ Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
   // Reupload changed textures
   render_data.mTextureData.update(scene);
 
-
   state.getBuffers().opaque.nodes.reserve(256);
   state.getBuffers().translucent.nodes.reserve(256);
   std::string _err;
+  int i = 0;
   for (auto& model : scene.getModels()) {
-    auto err =
-        gather(state.getBuffers(), model, scene, v_mtx, p_mtx, render_data);
+    ModelView view(model, scene);
+    view.model_id = i++;
+    auto err = gather(state.getBuffers(), view, v_mtx, p_mtx, render_data);
     if (err.size()) {
       _err = _err + "\n" + err;
     }
@@ -336,9 +394,11 @@ Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
   // Reupload changed textures
   render_data.mTextureData.update(scene);
 
+  int i = 0;
   for (auto& model : scene.getModels()) {
-    auto err =
-        gather(state.getBuffers(), model, scene, v_mtx, p_mtx, render_data);
+    ModelView view(model, scene);
+    view.model_id = i++;
+    auto err = gather(state.getBuffers(), view, v_mtx, p_mtx, render_data);
     if (err.size()) {
       return std::unexpected(err);
     }

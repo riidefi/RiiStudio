@@ -73,40 +73,5 @@ glm::mat4 computeBoneMdl(u32 id, kpi::ConstCollectionRange<lib3d::Bone> bones) {
 
   return mdl * librii::math::calcXform(bone.getSRT());
 }
-std::vector<glm::mat4> Shape::getPosMtx(const libcube::Model& _mdl,
-                                        u64 mpid) const {
-  std::vector<glm::mat4> out;
-
-  const auto& mp = mMatrixPrimitives[mpid];
-
-  auto& mdl = reinterpret_cast<const Model&>(_mdl);
-  // if (!(getVcd().mBitfield &
-  //       (1 << (int)librii::gx::VertexAttribute::PositionNormalMatrixIndex)))
-  //       {
-  //   return {
-  //       mdl_ac.getJoint(0 /* DEBUG
-  //       */).get().calcSrtMtx(&mdl_ac.getJoints())};
-  // }
-  for (const auto it : mp.mDrawMatrixIndices) {
-    const auto& drw = mdl.mDrawMatrices[it];
-    glm::mat4x4 curMtx(1.0f);
-
-    // Rigid -- bone space
-    if (drw.mWeights.size() == 1) {
-      u32 boneID = drw.mWeights[0].boneId;
-      curMtx = calcSrtMtx(mdl.getBones()[boneID], mdl.getBones().toConst());
-    } else {
-      // curMtx = glm::mat4{ 0.0f };
-      // for (const auto& w : drw.mWeights) {
-      //  const auto bindMtx = computeBoneMdl(w.boneId, &mdl_ac.getJoints());
-      //  auto wInv = glm::inverse(bindMtx) * w.weight;
-      //  curMtx = curMtx + wInv;
-      //}
-    }
-    out.push_back(curMtx);
-  }
-
-  return out;
-}
 
 } // namespace riistudio::j3d

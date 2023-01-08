@@ -40,11 +40,6 @@ struct IndexedPolygon : public riistudio::lib3d::Polygon {
     return getMeshData().mVertexDescriptor;
   }
 
-  virtual std::vector<glm::mat4> getPosMtx(const libcube::Model& mdl,
-                                           u64 mpId) const {
-    return {};
-  }
-
   virtual void init(bool skinned, librii::math::AABB* boundingBox) = 0;
   virtual void initBufsFromVcd(riistudio::lib3d::Model&) {}
 };

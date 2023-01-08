@@ -34,9 +34,6 @@ struct Shape : public librii::j3d::ShapeData,
   u64 addClr(libcube::Model& mdl, u64 chan, const glm::vec4& v) override;
   u64 addUv(libcube::Model& mdl, u64 chan, const glm::vec2& v) override;
 
-  std::vector<glm::mat4> getPosMtx(const libcube::Model& mdl,
-                                   u64 mpid) const override;
-
   bool isVisible() const override { return visible; }
   void init(bool skinned, librii::math::AABB* boundingBox) override {
     if (skinned)

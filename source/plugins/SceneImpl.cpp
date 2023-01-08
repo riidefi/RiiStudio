@@ -3,18 +3,18 @@
 namespace riistudio::lib3d {
 
 // PUBLIC FUNCTION
-glm::mat4 calcSrtMtx(const lib3d::Bone& bone, const lib3d::Model* mdl) {
+glm::mat4 calcSrtMtxSimple(const lib3d::Bone& bone, const lib3d::Model* mdl) {
   if (mdl == nullptr)
     return {};
 
-  return calcSrtMtx(bone, mdl->getBones());
+  return calcSrtMtxSimple(bone, mdl->getBones());
 }
 
 // Calculate the bounding box of a polygon
 librii::math::AABB CalcPolyBound(const lib3d::Polygon& poly,
                                  const lib3d::Bone& bone,
                                  const lib3d::Model& mdl) {
-  auto mdl_mtx = lib3d::calcSrtMtx(bone, &mdl);
+  auto mdl_mtx = lib3d::calcSrtMtxSimple(bone, &mdl);
 
   librii::math::AABB bound = poly.getBounds();
   auto nmax = mdl_mtx * glm::vec4(bound.max, 1.0f);

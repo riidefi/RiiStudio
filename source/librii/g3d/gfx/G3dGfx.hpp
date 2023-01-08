@@ -309,12 +309,12 @@ struct G3dVertexRenderData {
     return mTenants.at(path);
   }
 
-  Result<void> buildVertexBuffer(const libcube::Model& model) {
+  Result<void> buildVertexBuffer(const libcube::Model& model, int model_id) {
     for (auto& mesh : model.getMeshes()) {
       auto& gc_mesh = mesh;
 
       for (u32 i = 0; i < gc_mesh.getMeshData().mMatrixPrimitives.size(); ++i) {
-        const DrawCallPath mesh_name{.model_name = "TODO",
+        const DrawCallPath mesh_name{.model_name = std::to_string(model_id),
                                      .mesh_name = mesh.getName(),
                                      .mprim_index = i};
 
@@ -330,8 +330,9 @@ struct G3dVertexRenderData {
   }
 
   Result<void> init(const libcube::Scene& host) {
+    int i = 0;
     for (auto& model : host.getModels()) {
-      TRY(buildVertexBuffer(model));
+      TRY(buildVertexBuffer(model, i++));
     }
 
     TRY(mVboBuilder.build());
@@ -362,6 +363,31 @@ struct G3dSceneRenderData {
 //
 std::unique_ptr<G3dSceneRenderData>
 G3DSceneCreateRenderData(riistudio::g3d::Collection& scene);
+
+struct ModelView {
+  int model_id = 0;
+  std::vector<const libcube::IBoneDelegate*> bones;
+  std::vector<const libcube::IndexedPolygon*> polys;
+  std::vector<const libcube::IGCMaterial*> mats;
+  std::vector<const libcube::Texture*> textures;
+  std::vector<libcube::DrawMatrix> drawMatrices;
+
+  ModelView(const libcube::Model& model, const libcube::Scene& scene) {
+    for (auto& x : model.getBones()) {
+      bones.push_back(&x);
+    }
+    for (auto& x : model.getMeshes()) {
+      polys.push_back(&x);
+    }
+    for (auto& x : model.getMaterials()) {
+      mats.push_back(&x);
+    }
+    for (auto& x : scene.getTextures()) {
+      textures.push_back(&x);
+    }
+    drawMatrices = model.mDrawMatrices;
+  }
+};
 
 Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
                                       const riistudio::g3d::Collection& scene,
