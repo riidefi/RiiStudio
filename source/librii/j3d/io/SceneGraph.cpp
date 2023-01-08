@@ -99,18 +99,20 @@ struct SceneGraphNode : public oishii::Node {
     getLinkingRestriction().setLeaf();
   }
 
-  Result write(oishii::Writer& writer) const noexcept {
+  std::expected<void, std::string>
+  write2(oishii::Writer& writer) const noexcept {
     u32 depth = 0;
 
     // Assume root 0
-    writeBone(writer, mdl.joints[0], mdl.jointIds[0], mdl, depth);
+    TRY(writeBone(writer, mdl.joints[0], mdl.jointIds[0], mdl, depth));
 
     ByteCodeCmd(ByteCodeOp::Terminate).transfer(writer);
-    return eResult::Success;
+    return {};
   }
 
-  void writeBone(oishii::Writer& writer, const librii::j3d::JointData& joint,
-                 u32 jointId, const J3dModel& mdl, u32& depth) const {
+  std::expected<void, std::string>
+  writeBone(oishii::Writer& writer, const librii::j3d::JointData& joint,
+            u32 jointId, const J3dModel& mdl, u32& depth) const {
     u32 startDepth = depth;
 
     s16 id = -1;
@@ -118,7 +120,7 @@ struct SceneGraphNode : public oishii::Node {
       if (mdl.jointIds[i] == jointId)
         id = i;
     }
-    assert(id != -1);
+    EXPECT(id != -1);
     ByteCodeCmd(ByteCodeOp::Joint, id).transfer(writer);
     ByteCodeCmd(ByteCodeOp::Open).transfer(writer);
     ++depth;
@@ -166,6 +168,8 @@ struct SceneGraphNode : public oishii::Node {
       }
       depth = startDepth;
     }
+
+    return {};
   }
 
   const J3dModel& mdl;

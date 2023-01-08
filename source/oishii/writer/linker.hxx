@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <expected>
 #include <memory>
 #include <string>
 #include <vector>
@@ -54,7 +55,8 @@ public:
   //!
   //! @param[in] writer The output stream.
   //!
-  void write(Writer& writer, bool shuffle = false);
+  [[nodiscard]] std::expected<void, std::string> write(Writer& writer,
+                                                       bool shuffle = false);
 
   using PadFunction = void (*)(char* dst, u32 size);
   PadFunction mUserPad = nullptr;

@@ -87,8 +87,9 @@ struct ApplicationPluginsImpl {
     bool canWrite_(kpi::INode& node) const override {
       return T::canWrite(node);
     }
-    void write_(kpi::INode& node, oishii::Writer& writer) const override {
-      T::write(node, writer);
+    Result<void> write_(kpi::INode& node,
+                        oishii::Writer& writer) const override {
+      return T::write(node, writer);
     }
   };
   //! Requires: `::write(doc_node_t, oishii::Writer& writer, X*_=nullptr)`
@@ -102,7 +103,8 @@ struct ApplicationPluginsImpl {
     bool canWrite_(kpi::INode& node) const override {
       return dynamic_cast<T*>(&node) != nullptr;
     }
-    void write_(kpi::INode& node, oishii::Writer& writer) const override {
+    Result<void> write_(kpi::INode& node,
+                        oishii::Writer& writer) const override {
       write(node, writer, static_cast<T*>(nullptr));
     }
   };

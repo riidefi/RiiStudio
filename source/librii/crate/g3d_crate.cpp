@@ -10,10 +10,16 @@
 
 IMPORT_STD;
 
+template <>
+struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
+  auto format(std::filesystem::path p, format_context& ctx) {
+    return formatter<string>::format(std::format("{}", p.string()), ctx);
+  }
+};
+
 namespace librii::crate {
 
-rsl::expected<g3d::G3dMaterialData, std::string>
-ReadMDL0Mat(std::span<const u8> file) {
+Result<g3d::G3dMaterialData> ReadMDL0Mat(std::span<const u8> file) {
   std::vector<u8> bruh;
   oishii::DataProvider provider(std::move(bruh));
   oishii::ByteView view(file, provider, "MDL0Mat");
@@ -22,7 +28,7 @@ ReadMDL0Mat(std::span<const u8> file) {
   g3d::G3dMaterialData mat;
   const bool ok = g3d::readMaterial(mat, reader, /* ignore_tev */ true);
   if (!ok) {
-    return std::string("Failed to read MDL0Mat file");
+    return std::unexpected("Failed to read MDL0Mat file");
   }
 
   return mat;
@@ -75,8 +81,7 @@ std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
   return writer.takeBuf();
 }
 
-rsl::expected<g3d::G3dShader, std::string>
-ReadMDL0Shade(std::span<const u8> file) {
+Result<g3d::G3dShader> ReadMDL0Shade(std::span<const u8> file) {
   // Skip first 8 bytes
   // TODO: Clean this up
   file = file.subspan(8);
@@ -140,8 +145,7 @@ std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat) {
   return writer.takeBuf();
 }
 
-std::expected<g3d::TextureData, std::string>
-ReadTEX0(std::span<const u8> file) {
+Result<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file) {
   g3d::TextureData tex;
   // TODO: We trust the .tex0-file provided name to be correct
   const bool ok = g3d::ReadTexture(tex, file, "");
@@ -200,25 +204,26 @@ std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
   return buffer;
 }
 
-rsl::expected<g3d::SrtAnimationArchive, std::string>
+Result<g3d::SrtAnimationArchive, std::string>
 ReadSRT0(std::span<const u8> file) {
   g3d::SrtAnimationArchive arc;
   oishii::DataProvider cringe(file | rsl::ToList());
   oishii::BinaryReader reader(cringe.slice());
   auto ok = arc.read(reader);
   if (!ok) {
-    return "Failed to parse SRT0: g3d::ReadSrtFile returned " + ok.error();
+    return std::unexpected("Failed to parse SRT0: g3d::ReadSrtFile returned " +
+                           ok.error());
   }
   return arc;
 }
 
-std::vector<u8> WriteSRT0(const g3d::SrtAnimationArchive& arc) {
+Result<std::vector<u8>> WriteSRT0(const g3d::SrtAnimationArchive& arc) {
   oishii::Writer writer(0);
 
   g3d::NameTable names;
   // g3d::RelocWriter linker(writer);
 
-  arc.write(writer, names, 0);
+  TRY(arc.write(writer, names, 0));
   const auto end = writer.tell();
   {
     names.poolNames();
@@ -233,7 +238,7 @@ std::vector<u8> WriteSRT0(const g3d::SrtAnimationArchive& arc) {
   return writer.takeBuf();
 }
 
-std::expected<g3d::G3dMaterialData, std::string>
+Result<g3d::G3dMaterialData>
 ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
                          const g3d::G3dShader& tev) {
   const size_t num_istage = mat.indirectStages.size();
@@ -267,7 +272,7 @@ static std::string FormatRange(auto&& range, auto&& functor) {
   return tmp;
 }
 
-std::expected<CrateAnimationPaths, std::string>
+Result<CrateAnimationPaths>
 ScanCrateAnimationFolder(std::filesystem::path path) {
   EXPECT(std::filesystem::is_directory(path),
          "ScanCrateAnimationFolder takes in a folder, not a file.");
@@ -302,21 +307,22 @@ ScanCrateAnimationFolder(std::filesystem::path path) {
   return tmp;
 }
 
-rsl::expected<CrateAnimation, std::string>
-ReadCrateAnimation(const CrateAnimationPaths& paths) {
+Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   auto mdl0mat = OishiiReadFile(paths.mdl0mat.string());
   if (!mdl0mat) {
-    return "Failed to read .mdl0mat at \"" + paths.mdl0mat.string() + "\"";
+    return std::unexpected(
+        std::format("Failed to read .mdl0mat at \"{}\"", paths.mdl0mat));
   }
   auto mdl0shade = OishiiReadFile(paths.mdl0shade.string());
   if (!mdl0shade) {
-    return "Failed to read .mdl0shade at \"" + paths.mdl0shade.string() + "\"";
+    return std::unexpected(
+        std::format("Failed to read .mdl0shade at \"{}\"", paths.mdl0shade));
   }
   std::vector<oishii::DataProvider> tex0s;
   for (auto& x : paths.tex0) {
     auto tex0 = OishiiReadFile(x.string());
     if (!tex0) {
-      return "Failed to read .tex0 at \"" + x.string() + "\"";
+      return std::unexpected(std::format("Failed to read .tex0 at \"{}\"", x));
     }
     tex0s.push_back(std::move(*tex0));
   }
@@ -324,29 +330,29 @@ ReadCrateAnimation(const CrateAnimationPaths& paths) {
   for (auto& x : paths.srt0) {
     auto srt0 = OishiiReadFile(x.string());
     if (!srt0) {
-      return "Failed to read .srt0 at \"" + x.string() + "\"";
+      return std::unexpected(std::format("Failed to read .srt0 at \"{}\"", x));
     }
     srt0s.push_back(std::move(*srt0));
   }
   auto mat = ReadMDL0Mat(mdl0mat->slice());
   if (!mat.has_value()) {
-    return "Failed to parse material at \"" + paths.mdl0mat.string() +
-           "\": " + mat.error();
+    return std::unexpected(std::format("Failed to parse material at \"{}\": {}",
+                                       paths.mdl0mat, mat.error()));
   }
   auto shade = ReadMDL0Shade(mdl0shade->slice());
   if (!shade.has_value()) {
-    return "Failed to parse shader at \"" + paths.mdl0shade.string() +
-           "\": " + shade.error();
+    return std::unexpected(std::format("Failed to parse shader at \"{}\": {}",
+                                       paths.mdl0shade, shade.error()));
   }
   CrateAnimation tmp;
   for (size_t i = 0; i < tex0s.size(); ++i) {
     auto tex = ReadTEX0(tex0s[i].slice());
     if (!tex.has_value()) {
       if (i >= paths.tex0.size()) {
-        return tex.error();
+        return std::unexpected(tex.error());
       }
-      return "Failed to parse TEX0 at \"" + paths.tex0[i].string() +
-             "\": " + tex.error();
+      return std::unexpected(std::format("Failed to parse TEX0 at \"{}\": {}",
+                                         paths.tex0[i], tex.error()));
     }
     tmp.tex.push_back(*tex);
   }
@@ -354,10 +360,10 @@ ReadCrateAnimation(const CrateAnimationPaths& paths) {
     auto srt = ReadSRT0(srt0s[i].slice());
     if (!srt.has_value()) {
       if (i >= paths.srt0.size()) {
-        return srt.error();
+        return std::unexpected(srt.error());
       }
-      return "Failed to parse SRT0 at \"" + paths.srt0[i].string() +
-             "\": " + srt.error();
+      return std::unexpected(std::format("Failed to parse SRT0 at \"{}\": {}",
+                                         paths.srt0[i], srt.error()));
     }
     tmp.srt.push_back(*srt);
   }
@@ -365,7 +371,8 @@ ReadCrateAnimation(const CrateAnimationPaths& paths) {
   {
     auto merged = ApplyG3dShaderToMaterial(*mat, *shade);
     if (!merged.has_value()) {
-      return "Failed to combine material + shader: " + merged.error();
+      return std::unexpected(std::format(
+          "Failed to combine material + shader: {}", merged.error()));
     }
     tmp.mat = *merged;
   }
@@ -463,46 +470,45 @@ ReadBRRES(const std::vector<u8>& buf, std::string path) {
   return result;
 }
 
-rsl::expected<CrateAnimation, std::string>
-ReadRSPreset(std::span<const u8> file) {
+Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
   using namespace std::string_literals;
 
   std::vector<u8> buf(file.begin(), file.end());
   auto brres = ReadBRRES(buf, "<rs preset>");
   if (!brres) {
-    return "Failed to parse .rspreset file"s;
+    return std::unexpected("Failed to parse .rspreset file"s);
   }
   if (brres->getModels().size() != 1) {
-    return "Failed to parse .rspreset file"s;
+    return std::unexpected("Failed to parse .rspreset file"s);
   }
   auto& mdl = brres->getModels()[0];
   if (mdl.getMaterials().size() != 1) {
-    return "Failed to parse .rspreset file"s;
+    return std::unexpected("Failed to parse .rspreset file"s);
   }
   auto mat = mdl.getMaterials()[0];
   for (auto& tex : mat.samplers) {
     if (brres->getTextures().findByName(tex.mTexture) == nullptr) {
-      return "Preset is missing texture "s + tex.mTexture;
+      return std::unexpected("Preset is missing texture "s + tex.mTexture);
     }
   }
   for (auto& srt : brres->getAnim_Srts()) {
     for (auto& anim : srt.materials) {
       if (anim.name != mat.name) {
-        return "Extraneous SRT0 animations included"s;
+        return std::unexpected("Extraneous SRT0 animations included"s);
       }
     }
   }
   for (auto& clr : brres->clrs) {
     for (auto& anim : clr.materials) {
       if (anim.name != mat.name) {
-        return "Extraneous CLR0 animations included"s;
+        return std::unexpected("Extraneous CLR0 animations included"s);
       }
     }
   }
   for (auto& pat : brres->pats) {
     for (auto& anim : pat.materials) {
       if (anim.name != mat.name) {
-        return "Extraneous PAT0 animations included"s;
+        return std::unexpected("Extraneous PAT0 animations included"s);
       }
     }
   }

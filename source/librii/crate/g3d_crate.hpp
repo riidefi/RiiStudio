@@ -18,10 +18,10 @@ namespace librii::crate {
 //! mStages/mIndirectStages[...].indOrder will be set to default values; their
 //! size will be valid, though.
 //
-rsl::expected<g3d::G3dMaterialData, std::string>
+[[nodiscard]] Result<g3d::G3dMaterialData>
 ReadMDL0Mat(std::span<const u8> file);
 
-std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat);
+[[nodiscard]] std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat);
 
 //! BrawlCrate-generated TEV definition. Includes Swap/Indirect Orders too.
 //!
@@ -29,10 +29,9 @@ std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat);
 //! to know how many are actually used. Also, the stage count in the shader is
 //! trusted here, although it may be unused by the game/runtime library.
 //!
-rsl::expected<g3d::G3dShader, std::string>
-ReadMDL0Shade(std::span<const u8> file);
+[[nodiscard]] Result<g3d::G3dShader> ReadMDL0Shade(std::span<const u8> file);
 
-std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat);
+[[nodiscard]] std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat);
 
 //! Applies the three fields in G3dShader to G3dMaterialData.
 //!
@@ -43,24 +42,25 @@ std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat);
 //! Likewise, the number of indirectStages in the material determines the number
 //! of indirectOrders pulled from the G3dShader.
 //!
-std::expected<g3d::G3dMaterialData, std::string>
+[[nodiscard]] Result<g3d::G3dMaterialData>
 ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
                          const g3d::G3dShader& tev);
 
 //! A "TEX0" file is effectively a .brtex archive without the enclosing
 //! structure.
 //!
-std::expected<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file);
+[[nodiscard]] Result<g3d::TextureData> ReadTEX0(std::span<const u8> file);
 
-std::vector<u8> WriteTEX0(const g3d::TextureData& tex);
+[[nodiscard]] std::vector<u8> WriteTEX0(const g3d::TextureData& tex);
 
 //! A "SRT0" file is effectively a .brtsa archive without the enclosing
 //! structure.
 //!
-rsl::expected<g3d::SrtAnimationArchive, std::string>
+[[nodiscard]] Result<g3d::SrtAnimationArchive>
 ReadSRT0(std::span<const u8> file);
 
-std::vector<u8> WriteSRT0(const g3d::SrtAnimationArchive& arc);
+[[nodiscard]] Result<std::vector<u8>>
+WriteSRT0(const g3d::SrtAnimationArchive& arc);
 
 struct CrateAnimationPaths {
   std::string preset_name; // For sake of preset name
@@ -81,17 +81,17 @@ struct CrateAnimation {
   std::string metadata;
 };
 
-std::expected<CrateAnimationPaths, std::string>
+[[nodiscard]] Result<CrateAnimationPaths>
 ScanCrateAnimationFolder(std::filesystem::path path);
-rsl::expected<CrateAnimation, std::string>
+[[nodiscard]] Result<CrateAnimation>
 ReadCrateAnimation(const CrateAnimationPaths& paths);
 
 //! Animations targets materials by name; rename each SRT animation target to
 //! the name of `mat`. We assert that only one material target is defined.
-std::string RetargetCrateAnimation(CrateAnimation& preset);
+[[nodiscard]] std::string RetargetCrateAnimation(CrateAnimation& preset);
 
-rsl::expected<CrateAnimation, std::string>
-ReadRSPreset(std::span<const u8> file);
-std::vector<u8> WriteRSPreset(const CrateAnimation& preset);
+[[nodiscard]] Result<CrateAnimation> ReadRSPreset(std::span<const u8> file);
+
+[[nodiscard]] std::vector<u8> WriteRSPreset(const CrateAnimation& preset);
 
 } // namespace librii::crate

@@ -43,7 +43,11 @@ bool ReadTexture(librii::g3d::TextureData& tex, std::span<const u8> data,
     cursor += 4; // SKIP: BRRES offset
     cursor += 4; // DELAY: ofs_tex
     if (tex.name.empty()) {
-      tex.name = ReadStringPointer(data, cursor, 0);
+      auto name = ReadStringPointer(data, cursor, 0);
+      if (!name) {
+        return false;
+      }
+      tex.name = *name;
       cursor += 4;
     } else {
       cursor += 4; // SKIP: Name offset

@@ -17,7 +17,7 @@ u32 BuildTexMatrixFlags(const librii::gx::GCMaterialData::TexMatrix& mtx) {
          (identity_translate << 3);
 }
 
-void BinaryMatDL::write(oishii::Writer& writer) const {
+Result<void> BinaryMatDL::write(oishii::Writer& writer) const {
   MAYBE_UNUSED const auto dl_start = writer.tell();
   DebugReport("Mat dl start: %x\n", (unsigned)writer.tell());
   librii::gpu::DLBuilder dl(writer);
@@ -28,7 +28,7 @@ void BinaryMatDL::write(oishii::Writer& writer) const {
     dl.setDstAlpha(dstAlpha.enabled, dstAlpha.alpha);
     dl.align();
   }
-  assert(writer.tell() - dl_start == 0x20);
+  EXPECT(writer.tell() - dl_start == 0x20);
   {
     for (int i = 0; i < 3; ++i)
       dl.setTevColor(i + 1, tevColors[i]);
@@ -37,7 +37,7 @@ void BinaryMatDL::write(oishii::Writer& writer) const {
       dl.setTevKColor(i, tevKonstColors[i]);
     dl.align(); // 24
   }
-  assert(writer.tell() - dl_start == 0xa0);
+  EXPECT(writer.tell() - dl_start == 0xa0);
   {
     dl.setIndTexCoordScale(0, scales[0], scales[1]);
     dl.setIndTexCoordScale(2, scales[2], scales[3]);
@@ -54,14 +54,15 @@ void BinaryMatDL::write(oishii::Writer& writer) const {
     write_ind_mtx(2);
     dl.align();
   }
-  assert(writer.tell() - dl_start == 0xe0);
+  EXPECT(writer.tell() - dl_start == 0xe0);
   {
     for (int i = 0; i < texGens.size(); ++i)
       dl.setTexCoordGen(i, texGens[i]);
     writer.skip(18 * (8 - texGens.size()));
     dl.align();
   }
-  assert(writer.tell() - dl_start == 0x180);
+  EXPECT(writer.tell() - dl_start == 0x180);
+  return {};
 }
 Result<void> BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
                                 u32 numTexGens) {
@@ -202,7 +203,7 @@ Result<void> BinaryMaterial::read(oishii::BinaryReader& unsafeReader,
   return {};
 }
 // TODO: Reduce dependencies
-void BinaryMaterial::writeBody(
+Result<void> BinaryMaterial::writeBody(
     oishii::Writer& writer, u32 mat_start, NameTable& names,
     RelocWriter& linker,
     TextureSamplerMappingManager& tex_sampler_mappings) const {
@@ -251,7 +252,8 @@ void BinaryMaterial::writeBody(
   }
   writer.alignTo(32);
   writeOffsetBackpatch(writer, dl_offset, mat_start);
-  dl.write(writer);
+  TRY(dl.write(writer));
+  return {};
 }
 
 Result<G3dMaterialData> fromBinMat(const BinaryMaterial& bin,
@@ -671,7 +673,9 @@ bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
                   bool ignore_tev) {
   BinaryMaterial bin;
   gx::LowLevelGxMaterial smat;
-  bin.read(reader, ignore_tev ? nullptr : &smat);
+  if (!bin.read(reader, ignore_tev ? nullptr : &smat)) {
+    return false;
+  }
   auto ok = fromBinMat(bin, ignore_tev ? nullptr : &smat);
   if (!ok.has_value()) {
     return false;

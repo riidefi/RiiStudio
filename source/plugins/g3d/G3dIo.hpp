@@ -6,6 +6,6 @@ namespace riistudio::g3d {
 
 void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
                kpi::LightIOTransaction& transaction);
-void WriteBRRES(Collection& collection, oishii::Writer& writer);
+Result<void> WriteBRRES(Collection& collection, oishii::Writer& writer);
 
 } // namespace riistudio::g3d

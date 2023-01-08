@@ -151,7 +151,7 @@ librii::g3d::Model toBinaryModel(const Model& mdl) {
   return intermediate;
 }
 
-void WriteBRRES(Collection& scn, oishii::Writer& writer) {
+Result<void> WriteBRRES(Collection& scn, oishii::Writer& writer) {
   librii::g3d::Archive arc{
       .models = scn.getModels() | std::views::transform(toBinaryModel) |
                 rsl::ToList(),
@@ -163,9 +163,8 @@ void WriteBRRES(Collection& scn, oishii::Writer& writer) {
       .viss = scn.viss,
 
   };
-  auto ok = arc.binary();
-  assert(ok);
-  ok->write(writer);
+  auto ok = TRY(arc.binary());
+  return ok.write(writer);
 }
 
 } // namespace riistudio::g3d

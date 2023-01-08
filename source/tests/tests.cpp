@@ -31,7 +31,11 @@ void save(std::string_view path, kpi::INode& root,
   }
 
   auto ex = SpawnExporter(root);
-  ex->write_(root, writer);
+  auto ok = ex->write_(root, writer);
+  if (!ok) {
+    fprintf(stderr, "Error writing file: %s\n", ok.error().c_str());
+    return;
+  }
 
   OishiiFlushWriter(writer, path);
 }

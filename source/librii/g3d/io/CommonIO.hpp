@@ -38,10 +38,10 @@ inline std::optional<CommonHeader> ReadCommonHeader(std::span<const u8> data) {
 
 // The in-file pointer will be validated. `pointer_location` must be validated
 // by the user
-inline std::string_view ReadStringPointer(std::span<const u8> bytes,
-                                          size_t pointer_location,
-                                          size_t addend) {
-  assert(pointer_location < bytes.size_bytes());
+inline Result<std::string_view> ReadStringPointer(std::span<const u8> bytes,
+                                                  size_t pointer_location,
+                                                  size_t addend) {
+  EXPECT(pointer_location < bytes.size_bytes());
   const s32 rel_pointer_value = rsl::load<s32>(bytes, pointer_location);
 
   if (rel_pointer_value == 0) {

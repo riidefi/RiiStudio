@@ -173,7 +173,7 @@ Result<void> detailWriteBMD(const J3dModel& model_, oishii::Writer& writer) {
   // writer.add_bp(0x37b2c, 4);
 
   linker.gather(std::move(bmd), "");
-  linker.write(writer);
+  TRY(linker.write(writer));
   return {};
 }
 

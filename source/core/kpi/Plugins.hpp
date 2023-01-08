@@ -127,9 +127,10 @@ struct IBinaryDeserializer {
 //! A writer: Do not inherit from this type directly
 struct IBinarySerializer {
   virtual ~IBinarySerializer() = default;
-  virtual std::unique_ptr<IBinarySerializer> clone() const = 0;
-  virtual bool canWrite_(kpi::INode& node) const = 0;
-  virtual void write_(kpi::INode& node, oishii::Writer& writer) const = 0;
+  [[nodiscard]] virtual std::unique_ptr<IBinarySerializer> clone() const = 0;
+  [[nodiscard]] virtual bool canWrite_(kpi::INode& node) const = 0;
+  [[nodiscard]] virtual Result<void> write_(kpi::INode& node,
+                                            oishii::Writer& writer) const = 0;
 };
 
 // Part of the application state itself. Not part of the persistent document.

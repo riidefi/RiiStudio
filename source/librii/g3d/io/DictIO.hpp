@@ -10,6 +10,8 @@
 
 namespace librii::g3d {
 
+#if 0
+
 struct DictionaryHeader {
   u32 filesize;
   u32 leaf_nodes_count;
@@ -154,5 +156,7 @@ ReadDictionary(std::span<const u8> whole_data, size_t offset) {
 
   return DictionaryRange(whole_data, offset, total_nodes);
 }
+
+#endif
 
 } // namespace librii::g3d

@@ -4,13 +4,7 @@
 
 namespace librii::gfx {
 
-#define RII_UNREACHABLE(...)                                                   \
-  do {                                                                         \
-    assert(!"Unreachable");                                                    \
-    abort();                                                                   \
-  } while (0);
-
-u32 TranslateDataType(DataType d) {
+Result<u32> TranslateDataType(DataType d) {
   switch (d) {
   case DataType::Byte:
     return GL_BYTE;
@@ -30,21 +24,21 @@ u32 TranslateDataType(DataType d) {
     return GL_DOUBLE;
   }
 
-  RII_UNREACHABLE();
+  EXPECT(false, "Unknown DataType");
 }
 
-u32 TranslateBeginMode(PrimitiveType t) {
+Result<u32> TranslateBeginMode(PrimitiveType t) {
   switch (t) {
   case PrimitiveType::Triangles:
     return GL_TRIANGLES;
   }
 
-  RII_UNREACHABLE();
+  EXPECT(false, "Unknown PrimitiveType");
 }
 
-void DrawSceneNode(const librii::gfx::SceneNode& node,
-                   librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-                   u32 draw_index) {
+Result<void> DrawSceneNode(const librii::gfx::SceneNode& node,
+                           librii::glhelper::DelegatedUBOBuilder& ubo_builder,
+                           u32 draw_index) {
 #ifdef RII_GL
   librii::gl::setGlState(node.mega_state);
   glUseProgram(node.shader_id);
@@ -52,9 +46,11 @@ void DrawSceneNode(const librii::gfx::SceneNode& node,
   ubo_builder.use(draw_index);
   for (auto& obj : node.texture_objects)
     librii::gfx::UseTexObj(obj);
-  glDrawElements(TranslateBeginMode(node.primitive_type), node.vertex_count,
-                 TranslateDataType(node.vertex_data_type), node.indices);
+  glDrawElements(TRY(TranslateBeginMode(node.primitive_type)),
+                 node.vertex_count,
+                 TRY(TranslateDataType(node.vertex_data_type)), node.indices);
 #endif
+  return {};
 }
 
 Result<void>

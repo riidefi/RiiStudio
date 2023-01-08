@@ -30,7 +30,8 @@ inline void readJ3dMdl(librii::j3d::J3dModel& m,
     m.textures.emplace_back(tex);
   }
 }
-inline void toEditorMdl(riistudio::j3d::Collection& s, const librii::j3d::J3dModel& m) {
+inline void toEditorMdl(riistudio::j3d::Collection& s,
+                        const librii::j3d::J3dModel& m) {
   riistudio::j3d::Model& tmp = s.getModels().add();
   tmp.mScalingRule = m.scalingRule;
   tmp.isBDL = m.isBDL;
@@ -50,15 +51,15 @@ inline void toEditorMdl(riistudio::j3d::Collection& s, const librii::j3d::J3dMod
     static_cast<librii::j3d::TextureData&>(s.getTextures().add()) = t;
 }
 
-inline Result<void> WriteBMD(riistudio::j3d::Collection& collection,
-                             oishii::Writer& writer) {
+[[nodiscard]] inline Result<void>
+WriteBMD(riistudio::j3d::Collection& collection, oishii::Writer& writer) {
   librii::j3d::J3dModel tmp;
   readJ3dMdl(tmp, collection.getModels()[0], collection);
   return tmp.write(writer);
 }
-inline Result<void> ReadBMD(riistudio::j3d::Collection& collection,
-                            oishii::BinaryReader& reader,
-                            kpi::LightIOTransaction& transaction) {
+[[nodiscard]] inline Result<void>
+ReadBMD(riistudio::j3d::Collection& collection, oishii::BinaryReader& reader,
+        kpi::LightIOTransaction& transaction) {
   auto tmp = TRY(librii::j3d::J3dModel::read(reader, transaction));
   toEditorMdl(collection, tmp);
   collection.onRelocate();

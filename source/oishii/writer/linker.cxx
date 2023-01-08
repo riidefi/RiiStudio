@@ -163,7 +163,7 @@ void Linker::shuffle() {
 
 void Linker::enforceRestrictions() {}
 
-void Linker::write(Writer& writer, bool doShuffle) {
+Result<void> Linker::write(Writer& writer, bool doShuffle) {
   if (doShuffle) {
     shuffle();
     enforceRestrictions();
@@ -188,7 +188,12 @@ void Linker::write(Writer& writer, bool doShuffle) {
     // Write
     writer.mNameSpace = entry.mNamespace;
     writer.mBlockName = entry.mNode->getId();
-    entry.mNode->write(writer);
+    auto ok = entry.mNode->write2(writer);
+    if (!ok) {
+      return std::unexpected(
+          std::format("Linker failure: {} while writing node {}::{}",
+                      ok.error(), entry.mNamespace, entry.mNode->getId()));
+    }
     // Set ending position
     mMap[mMap.size() - 1].end = writer.tell();
 
@@ -224,7 +229,7 @@ void Linker::write(Writer& writer, bool doShuffle) {
     std::string fromBlockSymbol;
     std::string toBlockSymbol;
 
-    //#ifdef BUILD_DEBUG
+    // #ifdef BUILD_DEBUG
     const std::string& nameSpace =
         reserve.nameSpace.empty() ? "" : reserve.nameSpace + "::";
 
@@ -241,8 +246,8 @@ void Linker::write(Writer& writer, bool doShuffle) {
             ? *link.to.mBlock
             : *LinkerHelper::findNamespacedID(*this, link.to.mId, nameSpace,
                                               reserve.blockName, toBlockSymbol);
-    //#endif
-    // TODO: Generalize all of these from/to methods
+    // #endif
+    //  TODO: Generalize all of these from/to methods
     if (link.from.mBlock) {
       bool bSuccess = false;
       for (const auto& entry : mLayout) {
@@ -289,22 +294,24 @@ void Linker::write(Writer& writer, bool doShuffle) {
     // writer.writeN(reserve.TSize, dif);
     switch (reserve.TSize) {
     case 1:
-      assert(dif < (u8)-1 && "Overflow error.");
+      EXPECT(dif < (u8)-1 && "Overflow error.");
       writer.write<u8>(dif);
       break;
     case 2:
-      assert(dif < (u16)-1 && "Overflow error.");
+      EXPECT(dif < (u16)-1 && "Overflow error.");
       writer.write<u16>(dif);
       break;
     case 4:
-      assert(dif < (u32)-1 && "Overflow error.");
+      EXPECT(dif < (u32)-1 && "Overflow error.");
       writer.write<u32>(dif);
       break;
     default:
-      assert(!"Invalid write size.");
+      EXPECT(!"Invalid write size.");
       break;
     }
   }
+
+  return {};
 }
 
 } // namespace oishii

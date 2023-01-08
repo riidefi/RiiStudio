@@ -287,7 +287,8 @@ public:
   Result<void> read(oishii::BinaryReader& reader,
                     kpi::LightIOTransaction& transaction,
                     const std::string& transaction_path, bool& isValid);
-  void write(oishii::Writer& writer, NameTable& names, std::size_t brres_start);
+  Result<void> write(oishii::Writer& writer, NameTable& names,
+                     std::size_t brres_start);
 };
 
 struct ModelInfo {

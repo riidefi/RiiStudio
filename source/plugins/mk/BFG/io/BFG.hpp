@@ -17,7 +17,7 @@ public:
   bool canWrite(kpi::INode& node) const {
     return dynamic_cast<BinaryFog*>(&node) != nullptr;
   }
-  void write(kpi::INode& node, oishii::Writer& writer) const;
+  Result<void> write(kpi::INode& node, oishii::Writer& writer) const;
 };
 
 } // namespace riistudio::mk

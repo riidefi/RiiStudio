@@ -67,14 +67,14 @@ Result<void> BinaryVis::read(oishii::BinaryReader& unsafeReader) {
   wrapMode = info.wrapMode;
 
   reader.seekSet(start + offsets.ofsBoneDict);
-  auto slice = reader.slice();
-  DictionaryRange boneDict(slice, reader.tell(), info.boneCount + 1);
+  auto boneDict = TRY(ReadDictionary(reader));
+  EXPECT(boneDict.nodes.size() == info.boneCount);
 
   auto realNumKeyFrames = roundUp(info.frameDuration + 1, 32) / 32;
 
-  for (const auto& node : boneDict) {
+  for (const auto& node : boneDict.nodes) {
     auto& bone = bones.emplace_back();
-    reader.seekSet(node.abs_data_ofs);
+    reader.seekSet(node.stream_pos);
     TRY(bone.read(reader, realNumKeyFrames));
   }
 

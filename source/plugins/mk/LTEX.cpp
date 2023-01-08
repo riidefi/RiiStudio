@@ -287,7 +287,7 @@ public:
   bool canWrite(kpi::INode& node) const {
     return dynamic_cast<LMAP*>(&node) != nullptr;
   }
-  void write(kpi::INode& node, oishii::Writer& writer) const {
+  Result<void> write(kpi::INode& node, oishii::Writer& writer) const {
     LMAP& lmap = static_cast<LMAP&>(node);
     writer.setEndian(std::endian::big);
     librii::egg::LightMap bin;
@@ -313,6 +313,7 @@ public:
     }
 
     bin.write(writer);
+    return {};
   }
 };
 

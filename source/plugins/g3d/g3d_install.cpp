@@ -29,11 +29,11 @@ public:
   bool canWrite(kpi::INode& node) const {
     return dynamic_cast<Collection*>(&node) != nullptr;
   }
-  void write(kpi::INode& node, oishii::Writer& writer) const {
+  Result<void> write(kpi::INode& node, oishii::Writer& writer) const {
     assert(dynamic_cast<Collection*>(&node) != nullptr);
     Collection& collection = *dynamic_cast<Collection*>(&node);
 
-    WriteBRRES(collection, writer);
+    return WriteBRRES(collection, writer);
   }
   void addBp(u32 addr) { reader_bps.push_back(addr); }
 

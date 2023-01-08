@@ -16,12 +16,11 @@ public:
     return dynamic_cast<Collection*>(&node) != nullptr;
   }
 
-  void write(kpi::INode& node, oishii::Writer& writer) const {
+  Result<void> write(kpi::INode& node, oishii::Writer& writer) const {
     assert(dynamic_cast<Collection*>(&node) != nullptr);
     Collection& collection = *dynamic_cast<Collection*>(&node);
 
-    auto ok = WriteBMD(collection, writer);
-    assert(ok);
+    return WriteBMD(collection, writer);
   }
 
   void read(kpi::IOTransaction& transaction) const {
@@ -37,6 +36,7 @@ public:
     if (!ok) {
       transaction.callback(kpi::IOMessageClass::Error, "J3D: Error",
                            ok.error());
+      transaction.state = kpi::TransactionState::Failure;
     }
   }
 };

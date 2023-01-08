@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../types.hxx"
+#include <expected>
 #include <memory>
 #include <string>
 #include <vector>
@@ -59,6 +60,13 @@ public:
 
     operator eResult() const { return _e; }
 
+    operator std::expected<void, std::string>() const {
+      if (_e != eResult::Success) {
+        return std::unexpected("Node error");
+      }
+      return {};
+    }
+
     eResult _e;
   };
 
@@ -110,6 +118,10 @@ public:
   //! blocks from writing.
   //!
   virtual Result write(Writer& writer) const noexcept { return {}; }
+  virtual std::expected<void, std::string>
+  write2(Writer& writer) const noexcept {
+    return write(writer);
+  }
 
 public:
   struct NodeDelegate {

@@ -38,12 +38,13 @@ auto findByName = [](const auto& x, const auto& y) {
 namespace librii::g3d {
 
 template <bool Named, bool bMaterial, typename T, typename U>
-void writeDictionary(const std::string& name, T&& src_range, U handler,
-                     RelocWriter& linker, oishii::Writer& writer, u32 mdl_start,
-                     NameTable& names, int* d_cursor, bool raw = false,
-                     u32 align = 4, bool BetterMethod = false) {
+Result<void> writeDictionary(const std::string& name, T&& src_range, U handler,
+                             RelocWriter& linker, oishii::Writer& writer,
+                             u32 mdl_start, NameTable& names, int* d_cursor,
+                             bool raw = false, u32 align = 4,
+                             bool BetterMethod = false) {
   if (src_range.size() == 0)
-    return;
+    return {};
 
   u32 dict_ofs;
   librii::g3d::BetterDictionary _dict;
@@ -72,10 +73,10 @@ void writeDictionary(const std::string& name, T&& src_range, U handler,
     if (!raw) {
       const auto backpatch = writePlaceholder(writer); // size
       writer.write<s32>(mdl_start - backpatch);        // mdl0 offset
-      handler(src_range[i], backpatch);
+      TRY(handler(src_range[i], backpatch));
       writeOffsetBackpatch(writer, backpatch, backpatch);
     } else {
-      handler(src_range[i], writer.tell());
+      TRY(handler(src_range[i], writer.tell()));
     }
   }
   {
@@ -83,6 +84,8 @@ void writeDictionary(const std::string& name, T&& src_range, U handler,
     linker.label(name);
     WriteDictionary(_dict, writer, names);
   }
+
+  return {};
 }
 
 ///// Bring body of glm_io.hpp into namespace (without headers)
@@ -521,7 +524,7 @@ namespace {
 // Does not write size or mdl0 offset
 template <typename T, bool HasMinimum, bool HasDivisor,
           librii::gx::VertexBufferKind kind>
-void writeGenericBuffer(
+[[nodiscard]] Result<void> writeGenericBuffer(
     const librii::g3d::GenericBuffer<T, HasMinimum, HasDivisor, kind>& buf,
     oishii::Writer& writer, u32 header_start, NameTable& names, auto&& vc,
     auto&& vt) {
@@ -556,13 +559,14 @@ void writeGenericBuffer(
 
   const auto nComponents =
       librii::gx::computeComponentCount(kind, buf.mQuantize.mComp);
-  assert(nComponents.has_value());
+  EXPECT(nComponents.has_value());
 
   for (auto& entry : buf.mEntries) {
     librii::gx::writeComponents(writer, entry, buf.mQuantize.mType,
                                 *nComponents, buf.mQuantize.divisor);
   }
   writer.alignTo(32);
+  return {};
 }
 
 std::string writeVertexDataDL(const librii::g3d::PolygonData& poly,
@@ -861,8 +865,8 @@ std::string WriteMesh(oishii::Writer& writer,
   return "";
 }
 
-void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
-                NameTable& names, std::size_t brres_start) {
+Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
+                        NameTable& names, std::size_t brres_start) {
   const auto mdl_start = writer.tell();
   int d_cursor = 0;
 
@@ -873,21 +877,23 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
 
   std::map<std::string, u32> Dictionaries;
   const auto write_dict = [&](const std::string& name, auto src_range,
-                              auto handler, bool raw = false, u32 align = 4) {
+                              auto handler, bool raw = false,
+                              u32 align = 4) -> Result<void> {
     if (src_range.end() == src_range.begin())
-      return;
+      return {};
     int d_pos = Dictionaries.at(name);
-    writeDictionary<true, false>(name, src_range, handler, linker, writer,
-                                 mdl_start, names, &d_pos, raw, align);
+    return writeDictionary<true, false>(name, src_range, handler, linker,
+                                        writer, mdl_start, names, &d_pos, raw,
+                                        align);
   };
   const auto write_dict_mat = [&](const std::string& name, auto& src_range,
                                   auto handler, bool raw = false,
-                                  u32 align = 4) {
+                                  u32 align = 4) -> Result<void> {
     if (src_range.end() == src_range.begin())
-      return;
+      return {};
     int d_pos = Dictionaries.at(name);
-    writeDictionary<true, true>(name, src_range, handler, linker, writer,
-                                mdl_start, names, &d_pos, raw, align);
+    return writeDictionary<true, true>(name, src_range, handler, linker, writer,
+                                       mdl_start, names, &d_pos, raw, align);
   };
 
   {
@@ -965,9 +971,10 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
   writer.skip(dicts_size);
 
   int sm_i = 0;
-  write_dict(
+  TRY(write_dict(
       "TexSamplerMap", tex_sampler_mappings,
-      [&](librii::g3d::TextureSamplerMapping& map, std::size_t start) {
+      [&](librii::g3d::TextureSamplerMapping& map,
+          std::size_t start) -> Result<void> {
         writer.write<u32>(map.entries.size());
         for (int i = 0; i < map.entries.size(); ++i) {
           tex_sampler_mappings.entries[sm_i].entries[i] = writer.tell();
@@ -976,36 +983,43 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
           writer.write<s32>(0, /* checkmatch */ false);
         }
         ++sm_i;
+        return {};
       },
-      true, 4);
+      true, 4));
 
-  write_dict(
+  TRY(write_dict(
       "RenderTree", bin.bytecodes,
-      [&](const librii::g3d::ByteCodeMethod& list, std::size_t) {
+      [&](const librii::g3d::ByteCodeMethod& list,
+          std::size_t) -> Result<void> {
         librii::g3d::ByteCodeLists::WriteStream(writer, list.commands);
+        return {};
       },
-      true, 1);
+      true, 1));
 
-  write_dict_mat(
-      "Bones", bin.bones,
-      [&](const librii::g3d::BinaryBoneData& bone, std::size_t bone_start) {
-        DebugReport("Bone at %x\n", (unsigned)bone_start);
-        writer.seekSet(bone_start);
-        bone.write(names, writer, mdl_start);
-      });
+  TRY(write_dict_mat("Bones", bin.bones,
+                     [&](const librii::g3d::BinaryBoneData& bone,
+                         std::size_t bone_start) -> Result<void> {
+                       DebugReport("Bone at %x\n", (unsigned)bone_start);
+                       writer.seekSet(bone_start);
+                       bone.write(names, writer, mdl_start);
+                       return {};
+                     }));
 
-  write_dict_mat(
+  TRY(write_dict_mat(
       "Materials", bin.materials,
-      [&](const librii::g3d::BinaryMaterial& mat, std::size_t mat_start) {
+      [&](const librii::g3d::BinaryMaterial& mat,
+          std::size_t mat_start) -> Result<void> {
         linker.label("Mat" + std::to_string(mat_start), mat_start);
-        mat.writeBody(writer, mat_start, names, linker, tex_sampler_mappings);
+        TRY(mat.writeBody(writer, mat_start, names, linker,
+                          tex_sampler_mappings));
+        return {};
       },
-      false, 4);
+      false, 4));
 
   // Shaders
   {
     if (bin.tevs.size() == 0)
-      return;
+      return {};
 
     u32 dict_ofs = Dictionaries.at("Shaders");
     librii::g3d::BetterDictionary _dict;
@@ -1030,61 +1044,64 @@ void writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
       WriteDictionary(_dict, writer, names);
     }
   }
-  write_dict(
+  TRY(write_dict(
       "Meshes", bin.meshes,
-      [&](const librii::g3d::PolygonData& mesh, std::size_t mesh_start) {
+      [&](const librii::g3d::PolygonData& mesh,
+          std::size_t mesh_start) -> Result<void> {
         auto err = WriteMesh(writer, mesh, bin, mesh_start, names);
         if (!err.empty()) {
-          fprintf(stderr, "Error: %s\n", err.c_str());
-          abort();
+          return std::unexpected(err);
         }
+        return {};
       },
-      false, 32);
+      false, 32));
 
-  write_dict(
+  TRY(write_dict(
       "Buffer_Position", bin.positions,
       [&](const librii::g3d::PositionBuffer& buf, std::size_t buf_start) {
-        writeGenericBuffer(buf, writer, buf_start, names,
-                           buf.mQuantize.mComp.position,
-                           buf.mQuantize.mType.generic);
+        return writeGenericBuffer(buf, writer, buf_start, names,
+                                  buf.mQuantize.mComp.position,
+                                  buf.mQuantize.mType.generic);
       },
-      false, 32);
-  write_dict(
+      false, 32));
+  TRY(write_dict(
       "Buffer_Normal", bin.normals,
       [&](const librii::g3d::NormalBuffer& buf, std::size_t buf_start) {
-        writeGenericBuffer(buf, writer, buf_start, names,
-                           buf.mQuantize.mComp.normal,
-                           buf.mQuantize.mType.generic);
+        return writeGenericBuffer(buf, writer, buf_start, names,
+                                  buf.mQuantize.mComp.normal,
+                                  buf.mQuantize.mType.generic);
       },
-      false, 32);
-  write_dict(
+      false, 32));
+  TRY(write_dict(
       "Buffer_Color", bin.colors,
       [&](const librii::g3d::ColorBuffer& buf, std::size_t buf_start) {
-        writeGenericBuffer(buf, writer, buf_start, names,
-                           buf.mQuantize.mComp.color,
-                           buf.mQuantize.mType.color);
+        return writeGenericBuffer(buf, writer, buf_start, names,
+                                  buf.mQuantize.mComp.color,
+                                  buf.mQuantize.mType.color);
       },
-      false, 32);
-  write_dict(
+      false, 32));
+  TRY(write_dict(
       "Buffer_UV", bin.texcoords,
       [&](const librii::g3d::TextureCoordinateBuffer& buf,
           std::size_t buf_start) {
-        writeGenericBuffer(buf, writer, buf_start, names,
-                           buf.mQuantize.mComp.texcoord,
-                           buf.mQuantize.mType.generic);
+        return writeGenericBuffer(buf, writer, buf_start, names,
+                                  buf.mQuantize.mComp.texcoord,
+                                  buf.mQuantize.mType.generic);
       },
-      false, 32);
+      false, 32));
 
   linker.writeChildren();
   linker.label("MDL0_END");
   linker.resolve();
+
+  return {};
 }
 
 } // namespace
 
-void BinaryModel::write(oishii::Writer& writer, NameTable& names,
-                        std::size_t brres_start) {
-  writeModel(*this, writer, names, brres_start);
+Result<void> BinaryModel::write(oishii::Writer& writer, NameTable& names,
+                                std::size_t brres_start) {
+  return writeModel(*this, writer, names, brres_start);
 }
 
 //
@@ -1229,7 +1246,7 @@ librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
   return bone;
 }
 
-librii::g3d::BinaryBoneData
+Result<librii::g3d::BinaryBoneData>
 toBinaryBone(const librii::g3d::BoneData& bone,
              std::span<const librii::g3d::BoneData> bones, u32 bone_id,
              librii::g3d::ScalingRule scalingRule, s32 matrixId) {
@@ -1260,7 +1277,7 @@ toBinaryBone(const librii::g3d::BoneData& bone,
   if (bone.mParent != -1) {
     auto& siblings = bones[bone.mParent].mChildren;
     auto it = std::find(siblings.begin(), siblings.end(), bone_id);
-    assert(it != siblings.end());
+    EXPECT(it != siblings.end());
     // Not a cyclic linked list
     bin.sibling_left_id = it == siblings.begin() ? -1 : *(it - 1);
     bin.sibling_right_id = it == siblings.end() - 1 ? -1 : *(it + 1);
@@ -1558,12 +1575,13 @@ Result<void> processModel(const BinaryModel& binary_model,
 
 #pragma region Editor->librii
 
-void BuildRenderLists(const Model& mdl,
-                      std::vector<librii::g3d::ByteCodeMethod>& renderLists,
-                      // Expanded to fit non-draw bone matrices
-                      std::span<const DrawMatrix> drawMatrices,
-                      // Maps bones to above drawMatrix span
-                      std::span<const u32> boneToMatrix) {
+[[nodiscard]] Result<void>
+BuildRenderLists(const Model& mdl,
+                 std::vector<librii::g3d::ByteCodeMethod>& renderLists,
+                 // Expanded to fit non-draw bone matrices
+                 std::span<const DrawMatrix> drawMatrices,
+                 // Maps bones to above drawMatrix span
+                 std::span<const u32> boneToMatrix) {
   librii::g3d::ByteCodeMethod nodeTree{.name = "NodeTree"};
   librii::g3d::ByteCodeMethod nodeMix{.name = "NodeMix"};
   librii::g3d::ByteCodeMethod drawOpa{.name = "DrawOpa"};
@@ -1582,7 +1600,7 @@ void BuildRenderLists(const Model& mdl,
       (xlu ? &drawXlu : &drawOpa)->commands.push_back(cmd);
     }
     auto parent = mdl.bones[i].mParent;
-    assert(parent < std::ssize(mdl.bones));
+    EXPECT(parent < std::ssize(mdl.bones));
     librii::g3d::ByteCodeLists::NodeDescendence desc{
         .boneId = static_cast<u16>(i),
         .parentMtxId = static_cast<u16>(parent >= 0 ? boneToMatrix[parent] : 0),
@@ -1590,13 +1608,13 @@ void BuildRenderLists(const Model& mdl,
     nodeTree.commands.push_back(desc);
   }
 
-  auto write_drw = [&](const DrawMatrix& drw, size_t i) {
+  auto write_drw = [&](const DrawMatrix& drw, size_t i) -> Result<void> {
     if (drw.mWeights.size() > 1) {
       librii::g3d::ByteCodeLists::NodeMix mix{
           .mtxId = static_cast<u16>(i),
       };
       for (auto& weight : drw.mWeights) {
-        assert(weight.boneId < mdl.bones.size());
+        EXPECT(weight.boneId < mdl.bones.size());
         mix.blendMatrices.push_back(
             librii::g3d::ByteCodeLists::NodeMix::BlendMtx{
                 .mtxId = static_cast<u16>(boneToMatrix[weight.boneId]),
@@ -1605,13 +1623,14 @@ void BuildRenderLists(const Model& mdl,
       }
       nodeMix.commands.push_back(mix);
     } else {
-      assert(drw.mWeights[0].boneId < mdl.bones.size());
+      EXPECT(drw.mWeights[0].boneId < mdl.bones.size());
       librii::g3d::ByteCodeLists::EnvelopeMatrix evp{
           .mtxId = static_cast<u16>(i),
           .nodeId = static_cast<u16>(drw.mWeights[0].boneId),
       };
       nodeMix.commands.push_back(evp);
     }
+    return {};
   };
 
   // TODO: Better heuristic. When do we *need* NodeMix? Presumably when at least
@@ -1629,7 +1648,7 @@ void BuildRenderLists(const Model& mdl,
     // Bones come first
     for (size_t i = 0; i < mdl.bones.size(); ++i) {
       auto& drw = drawMatrices[boneToMatrix[i]];
-      write_drw(drw, boneToMatrix[i]);
+      TRY(write_drw(drw, boneToMatrix[i]));
     }
     for (size_t i = 0; i < mdl.matrices.size(); ++i) {
       auto& drw = drawMatrices[i];
@@ -1637,7 +1656,7 @@ void BuildRenderLists(const Model& mdl,
         // Written in pre-pass
         continue;
       }
-      write_drw(drw, i);
+      TRY(write_drw(drw, i));
     }
   }
 
@@ -1651,6 +1670,8 @@ void BuildRenderLists(const Model& mdl,
   if (!drawXlu.commands.empty()) {
     renderLists.push_back(drawXlu);
   }
+
+  return {};
 }
 
 struct ShaderAllocator {
@@ -1685,12 +1706,12 @@ struct ShaderAllocator {
   std::vector<u32> matToShaderMap;
 };
 
-librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
+Result<librii::g3d::BinaryModel> toBinaryModel(const Model& mdl) {
   std::set<s16> shapeRefMtx = computeShapeMtxRef(mdl.meshes);
   DebugPrint("shapeRefMtx: {}, Before: {}", shapeRefMtx.size(),
              mdl.matrices.size());
   if (!mdl.meshes.empty()) {
-    assert(shapeRefMtx.size() == mdl.matrices.size());
+    EXPECT(shapeRefMtx.size() == mdl.matrices.size());
   }
   std::vector<DrawMatrix> drawMatrices = mdl.matrices;
   std::vector<u32> boneToMatrix;
@@ -1731,26 +1752,12 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
   }
 
   auto bones = mdl.bones | rsl::ToList<librii::g3d::BoneData>();
-  auto to_binary_bone = [&](auto tuple) -> BinaryBoneData {
-    auto [index, value] = tuple;
-    return toBinaryBone(value, bones, index, mdl.info.scalingRule,
-                        boneToMatrix[index]);
-  };
   auto to_binary_mat = [&](auto tuple) {
     auto [index, value] = tuple;
     return librii::g3d::toBinMat(value, index);
   };
   librii::g3d::BinaryModel bin{
       .name = mdl.name,
-      .bones = mdl.bones          // Start with the bones
-               | rsl::enumerate() // Convert to [i, bone] tuples
-
-               // Needed for some reason
-               | rsl::ToList()
-               //
-
-               | std::views::transform(to_binary_bone) // Convert to BinaryBone
-               | rsl::ToList<BinaryBoneData>(),        // And back to vector
       .positions = mdl.positions,
       .normals = mdl.normals,
       .colors = mdl.colors,
@@ -1767,6 +1774,11 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
       .tevs = tevs,
       .meshes = mdl.meshes,
   };
+  for (auto&& [index, value] : rsl::enumerate(mdl.bones)) {
+    auto bb = toBinaryBone(value, bones, index, mdl.info.scalingRule,
+                           boneToMatrix[index]);
+    bin.bones.emplace_back(TRY(bb));
+  }
 
   for (size_t i = 0; i < shader_allocator.matToShaderMap.size(); ++i) {
     bin.materials[i].tevId = shader_allocator.matToShaderMap[i];
@@ -1799,13 +1811,13 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
       lut.resize(drawMatrices.size());
       std::ranges::fill(lut, -1);
       for (const auto& [i, bone] : rsl::enumerate(bin.bones)) {
-        assert(bone.matrixId < lut.size());
+        EXPECT(bone.matrixId < lut.size());
         lut[bone.matrixId] = i;
       }
     }
     bin.info = info;
   }
-  BuildRenderLists(mdl, bin.bytecodes, drawMatrices, boneToMatrix);
+  TRY(BuildRenderLists(mdl, bin.bytecodes, drawMatrices, boneToMatrix));
 
   return bin;
 }

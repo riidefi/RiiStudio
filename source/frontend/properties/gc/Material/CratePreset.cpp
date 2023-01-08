@@ -194,11 +194,14 @@ class SaveAsSRT0 : public kpi::ActionMenu<riistudio::g3d::SRT0, SaveAsSRT0> {
     }
 
     auto buf = librii::crate::WriteSRT0(arc);
-    if (buf.empty()) {
+    if (!buf) {
+      return "librii::crate::WriteSRT0 failed: " + buf.error();
+    }
+    if (buf->empty()) {
       return "librii::crate::WriteSRT0 failed";
     }
 
-    plate::Platform::writeFile(buf, path);
+    plate::Platform::writeFile(*buf, path);
     return {};
   }
 

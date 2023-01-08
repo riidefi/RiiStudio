@@ -203,7 +203,7 @@ public:
   bool canWrite(kpi::INode& node) const {
     return dynamic_cast<LGHT*>(&node) != nullptr;
   }
-  void write(kpi::INode& node, oishii::Writer& writer) const {
+  Result<void> write(kpi::INode& node, oishii::Writer& writer) const {
     LGHT& light = static_cast<LGHT&>(node);
     writer.setEndian(std::endian::big);
     librii::egg::LightSet set;
@@ -217,6 +217,7 @@ public:
     librii::egg::Blight blight;
     set.to(blight);
     blight.write(writer);
+    return {};
   }
 };
 

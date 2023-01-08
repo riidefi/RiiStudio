@@ -37,7 +37,10 @@ void SceneState::draw() {
   mTree.forEachNode([&](librii::gfx::SceneNode& node) {
     if (!mUploaded[i++])
       return;
-    librii::gfx::DrawSceneNode(node, mUboBuilder, i - 1);
+    auto ok = librii::gfx::DrawSceneNode(node, mUboBuilder, i - 1);
+    if (!ok) {
+      fprintf(stderr, "DrawSceneNode failed: %s\n", ok.error().c_str());
+    }
   });
 
 #ifdef RII_GL

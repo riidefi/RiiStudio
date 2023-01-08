@@ -75,10 +75,10 @@ Result<void> BinarySrt::read(oishii::BinaryReader& reader) {
 
   auto track_addr_to_index = [&](u32 addr) -> Result<u32> {
     auto back = safe.tell();
-    reader.seekSet(addr);
+    safe.seekSet(addr);
     SRT0Track track;
     TRY(track.read(safe));
-    reader.seekSet(back);
+    safe.seekSet(back);
     auto it = std::find(tracks.begin(), tracks.end(), track);
     if (it != tracks.end()) {
       return it - tracks.begin();
@@ -88,16 +88,13 @@ Result<void> BinarySrt::read(oishii::BinaryReader& reader) {
     return tracks.size() - 1;
   };
 
-  reader.seekSet(srt0.start + offsets.ofsMatDict);
-  auto slice = reader.slice();
-  if (slice.empty()) {
-    return std::unexpected("Unable to read dictionary");
-  }
-  DictionaryRange matDict(slice, reader.tell(), info.materialCount + 1);
+  safe.seekSet(srt0.start + offsets.ofsMatDict);
+  auto matDict = TRY(ReadDictionary(safe));
+  EXPECT(matDict.nodes.size() == info.materialCount);
 
-  for (const auto& node : matDict) {
+  for (const auto& node : matDict.nodes) {
     auto& mat = materials.emplace_back();
-    reader.seekSet(node.abs_data_ofs);
+    safe.seekSet(node.stream_pos);
     TRY(mat.read(safe, track_addr_to_index));
   }
 
@@ -130,8 +127,8 @@ Result<void> BinarySrt::read(oishii::BinaryReader& reader) {
   return {};
 }
 
-void BinarySrt::write(oishii::Writer& writer, NameTable& names,
-                      u32 addrBrres) const {
+Result<void> BinarySrt::write(oishii::Writer& writer, NameTable& names,
+                              u32 addrBrres) const {
   auto start = writer.tell();
   writer.write<u32>('SRT0');
   writer.write<u32>(0, false);
@@ -170,7 +167,7 @@ void BinarySrt::write(oishii::Writer& writer, NameTable& names,
   offsets.ofsMatDict = writer.tell() - start;
   WriteDictionary(dict, writer, names);
   for (auto& mat : materials) {
-    mat.write(writer, names, track_index_to_addr);
+    TRY(mat.write(writer, names, track_index_to_addr));
   }
   for (auto& track : tracks) {
     track.write(writer);
@@ -182,6 +179,8 @@ void BinarySrt::write(oishii::Writer& writer, NameTable& names,
   writer.seekSet(start + 4);
   writer.write<u32>(back - start);
   writer.seekSet(back);
+
+  return {};
 }
 
 u32 SRT0Track::computeSize() const { return 8 + keyframes.size() * 12; }
@@ -315,15 +314,16 @@ SRT0Material::read(rsl::SafeReader& reader,
   }
   return {};
 }
-void SRT0Material::write(oishii::Writer& writer, NameTable& names,
-                         std::function<u32(u32)> trackIndexToAddress) const {
+Result<void>
+SRT0Material::write(oishii::Writer& writer, NameTable& names,
+                    std::function<u32(u32)> trackIndexToAddress) const {
   auto start = writer.tell();
   writeNameForward(names, writer, start, name, true);
   writer.write<u32>(enabled_texsrts);
   writer.write<u32>(enabled_indsrts);
 
   u32 count = std::popcount(enabled_texsrts) + std::popcount(enabled_indsrts);
-  assert(count == matrices.size());
+  EXPECT(count == matrices.size());
   u32 accum = start + 12 + count * 4;
   std::vector<u32> matrixAddrs;
   for (u32 i = 0; i < count; ++i) {
@@ -339,6 +339,7 @@ void SRT0Material::write(oishii::Writer& writer, NameTable& names,
   for (auto& mtx : matrices) {
     mtx.write(writer, trackIndexToAddress);
   }
-  assert(writer.tell() == accum);
+  EXPECT(writer.tell() == accum);
+  return {};
 }
 } // namespace librii::g3d

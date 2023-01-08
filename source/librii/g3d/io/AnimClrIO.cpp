@@ -84,15 +84,12 @@ Result<void> BinaryClr::read(oishii::BinaryReader& reader) {
   };
 
   reader.seekSet(clr0.start + offsets.ofsMatDict);
-  auto slice = reader.slice();
-  if (slice.empty()) {
-    return std::unexpected("Unable to read dictionary");
-  }
-  DictionaryRange matDict(slice, reader.tell(), info.materialCount + 1);
+  auto matDict = TRY(ReadDictionary(safe));
+  EXPECT(matDict.nodes.size() == info.materialCount);
 
-  for (const auto& node : matDict) {
+  for (const auto& node : matDict.nodes) {
     auto& mat = materials.emplace_back();
-    reader.seekSet(node.abs_data_ofs);
+    reader.seekSet(node.stream_pos);
     TRY(mat.read(safe, track_addr_to_index));
   }
   return {};

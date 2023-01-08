@@ -26,7 +26,7 @@ struct BinaryArchive {
 
   Result<void> read(oishii::BinaryReader& reader,
                     kpi::LightIOTransaction& transaction);
-  void write(oishii::Writer& writer);
+  Result<void> write(oishii::Writer& writer);
 };
 struct Archive {
   std::vector<Model> models;
@@ -37,7 +37,7 @@ struct Archive {
   std::vector<librii::g3d::BinaryVis> viss;
 
   static Result<Archive> from(const BinaryArchive& model,
-                            kpi::LightIOTransaction& transaction);
+                              kpi::LightIOTransaction& transaction);
   Result<BinaryArchive> binary() const;
 };
 

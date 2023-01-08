@@ -16,7 +16,7 @@ enum class PrimitiveType {
 };
 
 // Convert a PrimitiveType to OpenGL BeginMode
-u32 TranslateBeginMode(PrimitiveType t);
+[[nodiscard]] Result<u32> TranslateBeginMode(PrimitiveType t);
 
 enum class DataType {
   Byte,          // GL_BYTE
@@ -42,7 +42,7 @@ enum class DataType {
 };
 
 // Convert a DataType to GL
-u32 TranslateDataType(DataType d);
+[[nodiscard]] Result<u32> TranslateDataType(DataType d);
 
 struct SceneNode {
   librii::gfx::MegaState mega_state;
@@ -81,11 +81,12 @@ struct SceneNode {
   rsl::small_vector<UniformMin, 4> uniform_mins;
 };
 
-void DrawSceneNode(const librii::gfx::SceneNode& node,
-                   librii::glhelper::DelegatedUBOBuilder& ubo_builder,
-                   u32 draw_index);
+[[nodiscard]] Result<void>
+DrawSceneNode(const librii::gfx::SceneNode& node,
+              librii::glhelper::DelegatedUBOBuilder& ubo_builder,
+              u32 draw_index);
 
-Result<void>
+[[nodiscard]] Result<void>
 AddSceneNodeToUBO(librii::gfx::SceneNode& node,
                   librii::glhelper::DelegatedUBOBuilder& ubo_builder);
 

@@ -404,7 +404,8 @@ struct SHP1Node final : public oishii::Node {
       getLinkingRestriction().alignment = align;
     }
 
-    Result write(oishii::Writer& writer) const noexcept {
+    std::expected<void, std::string>
+    write2(oishii::Writer& writer) const noexcept {
       switch (mSID) {
       case SubNodeID::ShapeData: {
         for (int i = 0; i < mMdl.shapes.size(); ++i) {
@@ -479,14 +480,12 @@ struct SHP1Node final : public oishii::Node {
                 case gx::VertexAttributeType::Direct:
                   if (((gx::VertexAttribute)a) !=
                       gx::VertexAttribute::PositionNormalMatrixIndex) {
-                    assert(!"Direct vertex data is unsupported.");
-                    abort();
+                    EXPECT(!"Direct vertex data is unsupported.");
                   }
                   writer.write<u8>(v[(gx::VertexAttribute)a]);
                   break;
                 default:
-                  assert("!Unknown vertex attribute format.");
-                  abort();
+                  EXPECT("!Unknown vertex attribute format.");
                 }
               }
             }
@@ -580,7 +579,7 @@ struct SHP1Node final : public oishii::Node {
         break;
       }
 
-      return eResult::Success;
+      return {};
     }
 
     const J3dModel& mMdl;

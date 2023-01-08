@@ -84,11 +84,11 @@ Result<void> BinaryTexPat::read(oishii::BinaryReader& unsafeReader) {
   frameDuration = info.frameDuration;
   wrapMode = info.wrapMode;
 
-  auto track_addr_to_index = [&](u32 addr) -> u32 {
+  auto track_addr_to_index = [&](u32 addr) -> Result<u32> {
     auto back = reader.tell();
     reader.seekSet(addr);
     PAT0Track track;
-    track.read(reader);
+    TRY(track.read(reader));
     reader.seekSet(back);
     auto it = std::find(tracks.begin(), tracks.end(), track);
     if (it != tracks.end()) {
@@ -99,13 +99,13 @@ Result<void> BinaryTexPat::read(oishii::BinaryReader& unsafeReader) {
   };
 
   reader.seekSet(start + offsets.ofsMatDict);
-  auto slice = reader.slice();
-  DictionaryRange matDict(slice, reader.tell(), info.materialCount + 1);
+  auto matDict = TRY(ReadDictionary(reader));
+  EXPECT(matDict.nodes.size() == info.materialCount);
 
-  for (const auto& node : matDict) {
+  for (const auto& node : matDict.nodes) {
     auto& mat = materials.emplace_back();
-    reader.seekSet(node.abs_data_ofs);
-    mat.read(reader, track_addr_to_index);
+    reader.seekSet(node.stream_pos);
+    TRY(mat.read(reader, track_addr_to_index));
   }
 
   // Assume numNames == numRuntimePtrs
@@ -130,8 +130,8 @@ Result<void> BinaryTexPat::read(oishii::BinaryReader& unsafeReader) {
   return {};
 }
 
-void BinaryTexPat::write(oishii::Writer& writer, NameTable& names,
-                         u32 addrBrres) const {
+Result<void> BinaryTexPat::write(oishii::Writer& writer, NameTable& names,
+                                 u32 addrBrres) const {
   auto start = writer.tell();
   writer.write<u32>('PAT0');
   writer.write<u32>(0, false);
@@ -141,8 +141,8 @@ void BinaryTexPat::write(oishii::Writer& writer, NameTable& names,
   offsets.ofsBrres = addrBrres - start;
   writer.skip(offsets.size_bytes());
 
-  assert(runtimeTextures.size() == textureNames.size());
-  assert(runtimePalettes.size() == paletteNames.size());
+  EXPECT(runtimeTextures.size() == textureNames.size());
+  EXPECT(runtimePalettes.size() == paletteNames.size());
 
   BinaryTexPatInfo info{
       .name = name,
@@ -202,6 +202,8 @@ void BinaryTexPat::write(oishii::Writer& writer, NameTable& names,
   writer.seekSet(start + 4);
   writer.write<u32>(back - start);
   writer.seekSet(back);
+
+  return {};
 }
 
 } // namespace librii::g3d

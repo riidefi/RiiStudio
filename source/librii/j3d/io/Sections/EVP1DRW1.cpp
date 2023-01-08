@@ -264,12 +264,12 @@ struct DRW1Node {
       getLinkingRestriction().alignment = 2;
     }
 
-    Result write(oishii::Writer& writer) const noexcept {
+    std::expected<void, std::string> write2(oishii::Writer& writer) const noexcept {
       // TODO -- we can do much better
       std::vector<int> envelopesToWrite;
       for (int i = 0; i < mMdl.drawMatrices.size(); ++i) {
         if (mMdl.drawMatrices[i].mWeights.size() <= 1) {
-          assert(mMdl.drawMatrices[i].mWeights[0].weight == 1.0f);
+          EXPECT(mMdl.drawMatrices[i].mWeights[0].weight == 1.0f);
         } else {
           envelopesToWrite.push_back(i);
         }
@@ -277,7 +277,7 @@ struct DRW1Node {
 
       int i = 0;
       for (const auto& drw : mMdl.drawMatrices) {
-        assert(!drw.mWeights.empty());
+        EXPECT(!drw.mWeights.empty());
         writer.write<u16>(drw.mWeights.size() > 1
                               ? std::find(envelopesToWrite.begin(),
                                           envelopesToWrite.end(), i) -
@@ -289,7 +289,7 @@ struct DRW1Node {
       // Bug in nintendo's code corrected on runtime we need to accomodate for!
       i = 0;
       for (const auto& drw : mMdl.drawMatrices) {
-        assert(!drw.mWeights.empty());
+        EXPECT(!drw.mWeights.empty());
         if (drw.mWeights.size() > 1)
           writer.write<u16>(
               std::find(envelopesToWrite.begin(), envelopesToWrite.end(), i) -

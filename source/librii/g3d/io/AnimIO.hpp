@@ -124,10 +124,12 @@ struct SRT0Material {
   bool operator==(const SRT0Material&) const = default;
 
   u32 computeSize() const;
-  Result<void> read(rsl::SafeReader& reader,
-                    std::function<Result<u32>(u32)> trackAddressToIndex);
-  void write(oishii::Writer& writer, NameTable& names,
-             std::function<u32(u32)> trackIndexToAddress) const;
+  [[nodiscard]] Result<void>
+  read(rsl::SafeReader& reader,
+       std::function<Result<u32>(u32)> trackAddressToIndex);
+  [[nodiscard]] Result<void>
+  write(oishii::Writer& writer, NameTable& names,
+        std::function<u32(u32)> trackIndexToAddress) const;
 };
 
 struct BinarySrt {
@@ -142,8 +144,9 @@ struct BinarySrt {
 
   bool operator==(const BinarySrt&) const = default;
 
-  Result<void> read(oishii::BinaryReader& reader);
-  void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
+  [[nodiscard]] Result<void> read(oishii::BinaryReader& reader);
+  [[nodiscard]] Result<void> write(oishii::Writer& writer, NameTable& names,
+                                   u32 addrBrres) const;
 };
 
 // XML-suitable variant

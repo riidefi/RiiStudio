@@ -286,9 +286,9 @@ inline Result<gx::Color> readComponents<gx::Color>(oishii::BinaryReader& reader,
   return readColorComponents(reader, type.color);
 }
 
-inline void writeColorComponents(oishii::Writer& writer,
-                                 const librii::gx::Color& c,
-                                 VertexBufferType::Color colort) {
+[[nodiscard]] inline Result<void>
+writeColorComponents(oishii::Writer& writer, const librii::gx::Color& c,
+                     VertexBufferType::Color colort) {
   switch (colort) {
   case librii::gx::VertexBufferType::Color::rgb565:
     writer.write<u16>(((c.r & 0xf8) << 8) | ((c.g & 0xfc) << 3) |
@@ -324,16 +324,17 @@ inline void writeColorComponents(oishii::Writer& writer,
     writer.write<u8>(c.a);
     break;
   default:
-    assert(!"Invalid buffer type!");
+    EXPECT(false, "Invalid buffer type!");
     break;
   };
+  return {};
 }
 
 template <int n, typename T, glm::qualifier q>
-inline void writeGenericComponents(oishii::Writer& writer,
-                                   const glm::vec<n, T, q>& v,
-                                   librii::gx::VertexBufferType::Generic g,
-                                   u32 real_component_count, u32 divisor) {
+[[nodiscard]] inline Result<void>
+writeGenericComponents(oishii::Writer& writer, const glm::vec<n, T, q>& v,
+                       librii::gx::VertexBufferType::Generic g,
+                       u32 real_component_count, u32 divisor) {
   for (u32 i = 0; i < real_component_count; ++i) {
     switch (g) {
     case librii::gx::VertexBufferType::Generic::u8:
@@ -352,22 +353,23 @@ inline void writeGenericComponents(oishii::Writer& writer,
       writer.write<f32>(v[i]);
       break;
     default:
-      assert(!"Invalid buffer type!");
+      EXPECT(false, "Invalid buffer type!");
       break;
     }
   }
+  return {};
 }
 template <typename T>
-inline void writeComponents(oishii::Writer& writer, const T& d,
-                            gx::VertexBufferType type, std::size_t true_count,
-                            u32 divisor = 0) {
+inline Result<void> writeComponents(oishii::Writer& writer, const T& d,
+                                    gx::VertexBufferType type,
+                                    std::size_t true_count, u32 divisor = 0) {
   return writeGenericComponents(writer, d, type.generic, true_count, divisor);
 }
 template <>
-inline void writeComponents<gx::Color>(oishii::Writer& writer,
-                                       const gx::Color& c,
-                                       gx::VertexBufferType type,
-                                       std::size_t true_count, u32 divisor) {
+inline Result<void>
+writeComponents<gx::Color>(oishii::Writer& writer, const gx::Color& c,
+                           gx::VertexBufferType type, std::size_t true_count,
+                           u32 divisor) {
   return writeColorComponents(writer, c, type.color);
 }
 
@@ -407,61 +409,66 @@ template <typename TB, VBufferKind kind> struct VertexBuffer {
   }
 
   template <int n, typename T, glm::qualifier q>
-  void writeBufferEntryGeneric(oishii::Writer& writer,
-                               const glm::vec<n, T, q>& v) const {
+  [[nodiscard]] Result<void>
+  writeBufferEntryGeneric(oishii::Writer& writer,
+                          const glm::vec<n, T, q>& v) const {
     auto count = ComputeComponentCount();
-    assert(count.has_value() && "ComputeComponentCount()");
-    writeGenericComponents(writer, v, mQuant.type.generic, *count,
-                           mQuant.divisor);
+    EXPECT(count.has_value() && "ComputeComponentCount()");
+    return writeGenericComponents(writer, v, mQuant.type.generic, *count,
+                                  mQuant.divisor);
   }
-  void writeBufferEntryColor(oishii::Writer& writer,
-                             const librii::gx::Color& c) const {
-    writeColorComponents(writer, c, mQuant.type.color);
+  [[nodiscard]] Result<void>
+  writeBufferEntryColor(oishii::Writer& writer,
+                        const librii::gx::Color& c) const {
+    return writeColorComponents(writer, c, mQuant.type.color);
   }
   // For dead cases
   template <int n, typename T, glm::qualifier q>
-  void writeBufferEntryColor(oishii::Writer& writer,
-                             const glm::vec<n, T, q>& v) const {
-    assert(!"Invalid kind/type template match!");
+  [[nodiscard]] Result<void>
+  writeBufferEntryColor(oishii::Writer& writer,
+                        const glm::vec<n, T, q>& v) const {
+    EXPECT(false, "Invalid kind/type template match!");
   }
-  void writeBufferEntryGeneric(oishii::Writer& writer,
-                               const librii::gx::Color& c) const {
-    assert(!"Invalid kind/type template match!");
+  [[nodiscard]] Result<void>
+  writeBufferEntryGeneric(oishii::Writer& writer,
+                          const librii::gx::Color& c) const {
+    EXPECT(false, "Invalid kind/type template match!");
   }
 
-  [[nodiscard]] bool writeData(oishii::Writer& writer) const {
+  [[nodiscard]] Result<void> writeData(oishii::Writer& writer) const {
     if constexpr (kind == VBufferKind::position) {
       if (mQuant.comp.position ==
           librii::gx::VertexComponentCount::Position::xy) {
-        assert(!"Buffer: XY Pos Component count.");
-        return false;
+        EXPECT(false, "Buffer: XY Pos Component count.");
       }
 
-      for (const auto& d : mData)
-        writeBufferEntryGeneric(writer, d);
+      for (const auto& d : mData) {
+        TRY(writeBufferEntryGeneric(writer, d));
+      }
     } else if constexpr (kind == VBufferKind::normal) {
       if (mQuant.comp.normal != librii::gx::VertexComponentCount::Normal::xyz) {
-        assert(!"Buffer: NBT Vectors.");
-        return false;
+        EXPECT(false, "Buffer: NBT Vectors.");
       }
 
-      for (const auto& d : mData)
-        writeBufferEntryGeneric(writer, d);
+      for (const auto& d : mData) {
+        TRY(writeBufferEntryGeneric(writer, d));
+      }
     } else if constexpr (kind == VBufferKind::color) {
-      for (const auto& d : mData)
-        writeBufferEntryColor(writer, d);
+      for (const auto& d : mData) {
+        TRY(writeBufferEntryColor(writer, d));
+      }
     } else if constexpr (kind == VBufferKind::textureCoordinate) {
       if (mQuant.comp.texcoord ==
           librii::gx::VertexComponentCount::TextureCoordinate::s) {
-        assert(!"Buffer: Single component texcoord vectors.");
-        return false;
+        EXPECT(false, "Buffer: Single component texcoord vectors.");
       }
 
-      for (const auto& d : mData)
-        writeBufferEntryGeneric(writer, d);
+      for (const auto& d : mData) {
+        TRY(writeBufferEntryGeneric(writer, d));
+      }
     }
 
-    return true;
+    return {};
   }
 
   VertexBuffer() {}

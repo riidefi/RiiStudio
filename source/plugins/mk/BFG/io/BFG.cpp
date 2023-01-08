@@ -29,7 +29,7 @@ void BFG::read(kpi::IOTransaction& transaction) const {
   }
 }
 
-void BFG::write(kpi::INode& node, oishii::Writer& writer) const {
+Result<void> BFG::write(kpi::INode& node, oishii::Writer& writer) const {
   const BinaryFog& fog = *dynamic_cast<BinaryFog*>(&node);
   writer.setEndian(std::endian::big);
 
@@ -48,6 +48,8 @@ void BFG::write(kpi::INode& node, oishii::Writer& writer) const {
     writer.write<u16>(entry.mUnk18);
     writer.write<u16>(entry.mUnk1A);
   }
+
+  return {};
 }
 
 } // namespace riistudio::mk

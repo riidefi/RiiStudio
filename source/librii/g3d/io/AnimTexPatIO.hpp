@@ -21,7 +21,7 @@ struct PAT0KeyFrame {
 
   bool operator==(const PAT0KeyFrame&) const = default;
 
-  Result<void> read(rsl::SafeReader& reader) {
+  [[nodiscard]] Result<void> read(rsl::SafeReader& reader) {
     texture = TRY(reader.U16());
     palette = TRY(reader.U16());
     return {};
@@ -39,7 +39,7 @@ struct PAT0Track {
 
   bool operator==(const PAT0Track&) const = default;
 
-  Result<void> read(rsl::SafeReader& reader) {
+  [[nodiscard]] Result<void> read(rsl::SafeReader& reader) {
     auto count = TRY(reader.U16());
     reserved = TRY(reader.U16());
     progressPerFrame = TRY(reader.F32());
@@ -79,7 +79,8 @@ struct PAT0Material {
 
   bool operator==(const PAT0Material&) const = default;
 
-  Result<void> read(rsl::SafeReader& reader, auto&& trackAddressToIndex) {
+  [[nodiscard]] Result<void> read(rsl::SafeReader& reader,
+                                  auto&& trackAddressToIndex) {
     auto start = reader.tell();
     name = TRY(reader.StringOfs(start));
     flags = TRY(reader.U32());
@@ -96,7 +97,7 @@ struct PAT0Material {
         samplers.emplace_back(constant);
       } else {
         auto ofs = TRY(reader.S32());
-        u32 index = trackAddressToIndex(start + ofs);
+        u32 index = TRY(trackAddressToIndex(start + ofs));
         samplers.emplace_back(index);
       }
     }
@@ -136,8 +137,9 @@ struct BinaryTexPat {
 
   bool operator==(const BinaryTexPat&) const = default;
 
-  Result<void> read(oishii::BinaryReader& reader);
-  void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
+  [[nodiscard]] Result<void> read(oishii::BinaryReader& reader);
+  [[nodiscard]] Result<void> write(oishii::Writer& writer, NameTable& names,
+                                   u32 addrBrres) const;
 };
 
 } // namespace librii::g3d

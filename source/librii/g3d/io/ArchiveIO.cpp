@@ -227,7 +227,8 @@ void writeTexture(const librii::g3d::TextureData& data, oishii::Writer& writer,
                             RelocationToApply{names, writer, start});
 }
 
-void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
+Result<void> WriteBRRES(librii::g3d::BinaryArchive& arc,
+                        oishii::Writer& writer) {
   writer.setEndian(std::endian::big);
 
   RelocWriter linker(writer);
@@ -344,7 +345,7 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
 
     models_dict.insert(i, mdl.name, writer.tell());
 
-    mdl.write(writer, names, start);
+    TRY(mdl.write(writer, names, start));
   }
   for (int i = 0; i < arc.textures.size(); ++i) {
     auto& tex = arc.textures[i];
@@ -367,7 +368,7 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
 
     pats_dict.insert(i, pat.name, writer.tell());
 
-    pat.write(writer, names, start);
+    TRY(pat.write(writer, names, start));
   }
   for (int i = 0; i < arc.srts.size(); ++i) {
     auto& srt = arc.srts[i];
@@ -377,7 +378,7 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
 
     srts_dict.insert(i, srt.name, writer.tell());
 
-    srt.write(writer, names, start);
+    TRY(srt.write(writer, names, start));
   }
   for (int i = 0; i < arc.viss.size(); ++i) {
     auto& vis = arc.viss[i];
@@ -431,13 +432,15 @@ void WriteBRRES(librii::g3d::BinaryArchive& arc, oishii::Writer& writer) {
   writer.seekSet(0);
   writer.write<u32>('bres'); // magic
   writer.write<u16>(0xfeff); // bom
+
+  return {};
 }
 
 } // namespace
 
-void BinaryArchive::write(oishii::Writer& writer) {
+Result<void> BinaryArchive::write(oishii::Writer& writer) {
   //
-  WriteBRRES(*this, writer);
+  return WriteBRRES(*this, writer);
 }
 
 //
