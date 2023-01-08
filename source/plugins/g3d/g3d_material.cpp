@@ -8,6 +8,14 @@
 
 namespace riistudio::g3d {
 
+auto findByName = [](auto&& c, auto&& name) {
+  auto it = std::ranges::find_if(c, [&](auto& x) { return x.name == name; });
+  if (it == std::ranges::end(c)) {
+    return (decltype(&*it))nullptr;
+  }
+  return &*it;
+};
+
 const libcube::Texture* Material::getTexture(const libcube::Scene& scn,
                                              const std::string& id) const {
   const auto textures = getTextureSource(scn);
@@ -61,6 +69,18 @@ std::string ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
     auto& t = scene->getAnim_Srts().add();
     static_cast<librii::g3d::SrtAnimationArchive&>(t) = new_srt;
   }
+  for (auto& new_clr : anim.clr) {
+    if (auto* x = findByName(scene->clrs, new_clr.name)) {
+      new_clr.name += "_" + std::to_string(std::rand());
+    }
+    scene->clrs.emplace_back(new_clr);
+  }
+  for (auto& new_pat : anim.pat) {
+    if (auto* x = findByName(scene->pats, new_pat.name)) {
+      new_pat.name += "_" + std::to_string(std::rand());
+    }
+    scene->pats.emplace_back(new_pat);
+  }
   return {};
 }
 
@@ -88,19 +108,19 @@ std::string ApplyRSPresetToMaterial(riistudio::g3d::Material& mat,
   return ApplyCratePresetToMaterial(mat, *anim);
 }
 
-rsl::expected<librii::crate::CrateAnimation, std::string>
+std::expected<librii::crate::CrateAnimation, std::string>
 CreatePresetFromMaterial(const riistudio::g3d::Material& mat,
                          std::string_view metadata) {
   if (!mat.childOf) {
-    return std::string("Material is an orphan; needs to belong to a scene");
+    return std::unexpected("Material is an orphan; needs to belong to a scene");
   }
   if (!mat.childOf->childOf) {
-    return std::string("Model is an orphan; needs to belong to a scene");
+    return std::unexpected("Model is an orphan; needs to belong to a scene");
   }
   // Model -> Scene
   auto* scene = dynamic_cast<riistudio::g3d::Collection*>(mat.childOf->childOf);
   if (!scene) {
-    return std::string(
+    return std::unexpected(
         "Internal: This scene type does not support .rsmat presets. "
         "Not a BRRES file?");
   }
@@ -120,20 +140,65 @@ CreatePresetFromMaterial(const riistudio::g3d::Material& mat,
     tex_names.emplace(tex);
     auto* data = scene->getTextures().findByName(tex);
     if (data == nullptr) {
-      return std::string("Failed to find referenced textures ") + tex;
+      return std::unexpected(
+          std::string("Failed to find referenced textures ") + tex);
     }
     result.tex.push_back(*data);
   }
   for (auto& srt : scene->getAnim_Srts()) {
     librii::g3d::SrtAnimationArchive mut = srt;
-    auto it =
-        std::remove_if(mut.materials.begin(), mut.materials.end(),
-                       [&](auto& m) { return m.name != mat.name; });
-    if (it != mut.materials.end()) {
-      mut.materials.erase(it, mut.materials.end());
-    }
+    std::erase_if(mut.materials, [&](auto& m) { return m.name != mat.name; });
     if (!mut.materials.empty()) {
       result.srt.push_back(mut);
+    }
+  }
+  for (auto& clr : scene->clrs) {
+    librii::g3d::BinaryClr mut = clr;
+    std::erase_if(mut.materials, [&](auto& m) { return m.name != mat.name; });
+    if (!mut.materials.empty()) {
+      result.clr.push_back(mut);
+    }
+  }
+  for (auto& pat : scene->pats) {
+    librii::g3d::BinaryTexPat mut = pat;
+    std::erase_if(mut.materials, [&](auto& m) { return m.name != mat.name; });
+
+    std::vector<u32> referenced;
+    for (auto& mat : mut.materials) {
+      for (auto& s : mat.samplers) {
+        if (auto* u = std::get_if<u32>(&s)) {
+          EXPECT(*u < mut.tracks.size());
+          auto& track = mut.tracks[*u];
+          for (auto& [idx, f] : track.keyframes) {
+            EXPECT(f.palette == 0, "Palettes are not supported");
+            EXPECT(f.texture < mut.textureNames.size());
+            referenced.emplace_back(f.texture);
+          }
+        } else if (auto* f = std::get_if<librii::g3d::PAT0KeyFrame>(&s)) {
+          EXPECT(f->palette == 0, "Palettes are not supported");
+          referenced.emplace_back(f->texture);
+        } else {
+          return std::unexpected("Invalid PAT0");
+        }
+      }
+    }
+
+    for (auto u : referenced) {
+      EXPECT(u < mut.textureNames.size());
+      auto& tex = mut.textureNames[u];
+      if (findByName(result.tex, tex)) {
+        continue;
+      }
+      auto* data = scene->getTextures().findByName(tex);
+      if (data == nullptr) {
+        return std::unexpected(
+            std::format("Failed to find referenced texture {}", tex));
+      }
+      result.tex.push_back(*data);
+    }
+
+    if (!mut.materials.empty()) {
+      result.pat.push_back(mut);
     }
   }
   return result;

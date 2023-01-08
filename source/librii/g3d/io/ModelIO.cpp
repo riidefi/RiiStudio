@@ -1689,7 +1689,9 @@ librii::g3d::BinaryModel toBinaryModel(const Model& mdl) {
   std::set<s16> shapeRefMtx = computeShapeMtxRef(mdl.meshes);
   DebugPrint("shapeRefMtx: {}, Before: {}", shapeRefMtx.size(),
              mdl.matrices.size());
-  assert(shapeRefMtx.size() == mdl.matrices.size());
+  if (!mdl.meshes.empty()) {
+    assert(shapeRefMtx.size() == mdl.matrices.size());
+  }
   std::vector<DrawMatrix> drawMatrices = mdl.matrices;
   std::vector<u32> boneToMatrix;
   DebugPrint("# Bones = {}", mdl.bones.size());

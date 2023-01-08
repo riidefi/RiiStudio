@@ -147,7 +147,7 @@ template <typename T> inline auto DoTry(T&& x) {
 #endif
 
 #define EXPECT(expr, ...)                                                      \
-  if (!(expr)) {                                                               \
+  if (!(expr)) [[unlikely]] {                                                  \
     return std::unexpected("[" __FILE_NAME__ ":" LIB_RII_TO_STRING(            \
         __LINE__) "] " __VA_ARGS__ "[Internal: " #expr "]");                   \
   }

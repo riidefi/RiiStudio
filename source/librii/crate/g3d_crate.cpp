@@ -375,8 +375,18 @@ ReadCrateAnimation(const CrateAnimationPaths& paths) {
 
 std::string RetargetCrateAnimation(CrateAnimation& preset) {
   std::set<std::string> mat_targets;
-  for (const auto& srt : preset.srt) {
-    for (const auto& mat : srt.materials) {
+  for (const auto& x : preset.srt) {
+    for (const auto& mat : x.materials) {
+      mat_targets.emplace(mat.name);
+    }
+  }
+  for (const auto& x : preset.clr) {
+    for (const auto& mat : x.materials) {
+      mat_targets.emplace(mat.name);
+    }
+  }
+  for (const auto& x : preset.pat) {
+    for (const auto& mat : x.materials) {
       mat_targets.emplace(mat.name);
     }
   }
@@ -388,20 +398,29 @@ std::string RetargetCrateAnimation(CrateAnimation& preset) {
     const std::string mat_names =
         FormatRange(mat_targets, [](auto& x) { return x; });
 
-    return "Invalid single material preset. We expect one material per preset. "
-           "Here, we scanned " +
-           std::to_string(preset.srt.size()) + " SRT0 files (" + srt_names +
-           ") and saw references to more than "
-           "just one material. In particular, the materials (" +
-           mat_names +
-           ") were referenced. "
-           "It's not clear which SRT0 animations to keep and which to discard "
-           "here, so the material preset is rejected as being invalid.";
+    return std::format(
+        "Invalid single material preset. We expect one material per preset. "
+        "Here, we scanned {} SRT0+CLR0+PAT0 files ({}) and saw references to "
+        "more than just one material. In particular, the materials ({}) were "
+        "referenced. It's not clear which SRT0/CLR0/PAT0 animations to keep "
+        "and which to discard here, so the material preset is rejected as "
+        "being invalid. Remove the extraneous data and try again.",
+        preset.srt.size(), srt_names, mat_names);
   }
 
   // Map mat_targets[0] -> mat.name
-  for (auto& srt : preset.srt) {
-    for (auto& mat : srt.materials) {
+  for (auto& x : preset.srt) {
+    for (auto& mat : x.materials) {
+      mat.name = preset.mat.name;
+    }
+  }
+  for (auto& x : preset.clr) {
+    for (auto& mat : x.materials) {
+      mat.name = preset.mat.name;
+    }
+  }
+  for (auto& x : preset.pat) {
+    for (auto& mat : x.materials) {
       mat.name = preset.mat.name;
     }
   }
@@ -469,7 +488,21 @@ ReadRSPreset(std::span<const u8> file) {
   for (auto& srt : brres->getAnim_Srts()) {
     for (auto& anim : srt.materials) {
       if (anim.name != mat.name) {
-        return "Extraneous animations included"s;
+        return "Extraneous SRT0 animations included"s;
+      }
+    }
+  }
+  for (auto& clr : brres->clrs) {
+    for (auto& anim : clr.materials) {
+      if (anim.name != mat.name) {
+        return "Extraneous CLR0 animations included"s;
+      }
+    }
+  }
+  for (auto& pat : brres->pats) {
+    for (auto& anim : pat.materials) {
+      if (anim.name != mat.name) {
+        return "Extraneous PAT0 animations included"s;
       }
     }
   }
@@ -483,6 +516,8 @@ ReadRSPreset(std::span<const u8> file) {
                                            brres->getTextures().end()),
       .srt = std::vector<g3d::SrtAnimationArchive>(
           brres->getAnim_Srts().begin(), brres->getAnim_Srts().end()),
+      .clr = brres->clrs,
+      .pat = brres->pats,
       .metadata = metadata,
   };
 }
@@ -497,6 +532,8 @@ std::vector<u8> WriteRSPreset(const CrateAnimation& preset) {
     static_cast<g3d::SrtAnimationArchive&>(collection.getAnim_Srts().add()) =
         srt;
   }
+  collection.clrs = preset.clr;
+  collection.pats = preset.pat;
 
   mdl.mDrawMatrices.push_back(libcube::DrawMatrix{.mWeights = {{0, 1.0f}}});
 

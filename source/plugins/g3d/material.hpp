@@ -42,7 +42,7 @@ ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
 std::string ApplyRSPresetToMaterial(riistudio::g3d::Material& mat,
                                     std::span<const u8> file);
 
-rsl::expected<librii::crate::CrateAnimation, std::string>
+std::expected<librii::crate::CrateAnimation, std::string>
 CreatePresetFromMaterial(const riistudio::g3d::Material& mat,
                          std::string_view metadata = "");
 

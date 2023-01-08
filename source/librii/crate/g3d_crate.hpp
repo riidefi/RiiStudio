@@ -4,7 +4,9 @@
 #include <filesystem>
 #include <librii/g3d/data/MaterialData.hpp>
 #include <librii/g3d/data/TextureData.hpp>
+#include <librii/g3d/io/AnimClrIO.hpp>
 #include <librii/g3d/io/AnimIO.hpp>
+#include <librii/g3d/io/AnimTexPatIO.hpp>
 #include <rsl/Expected.hpp>
 #include <variant>
 
@@ -73,6 +75,8 @@ struct CrateAnimation {
   g3d::G3dMaterialData mat;                  // MDL0Mat + MDL0Shade combined
   std::vector<g3d::TextureData> tex;         // All valid .tex0s
   std::vector<g3d::SrtAnimationArchive> srt; // All valid .srt archives
+  std::vector<g3d::BinaryClr> clr;           // .clr0
+  std::vector<g3d::BinaryTexPat> pat;        // .pat0
 
   std::string metadata;
 };
