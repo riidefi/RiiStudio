@@ -1,3 +1,5 @@
+#include <vendor/FileDialogues.hpp>
+
 #include "Common.hpp"
 
 #include <core/kpi/ActionMenu.hpp>
@@ -643,6 +645,23 @@ public:
     return kpi::NO_CHANGE;
   }
 };
+
+std::string tryExportRsPresetMat(std::string path,
+                                 const riistudio::g3d::Material& mat) {
+  auto anim = CreatePresetFromMaterial(mat);
+  if (!anim) {
+    return "Failed to create preset bundle: " + anim.error();
+  }
+
+  auto buf = librii::crate::WriteRSPreset(*anim);
+  if (buf.empty()) {
+    return "librii::crate::WriteRSPreset failed";
+  }
+
+  plate::Platform::writeFile(buf, path);
+  return {};
+}
+
 std::string tryExportRsPreset(const riistudio::g3d::Material& mat) {
   std::string path = mat.name + ".rspreset";
   // Web version doesn't support this
@@ -657,20 +676,34 @@ std::string tryExportRsPreset(const riistudio::g3d::Material& mat) {
     }
     path = file->string();
   }
+  return tryExportRsPresetMat(path, mat);
+}
 
-  auto anim = CreatePresetFromMaterial(mat);
-  if (!anim) {
-    return "Failed to create preset bundle: " + anim.error();
+std::string tryExportRsPresetALL(auto&& mats) {
+  if (!rsl::FileDialogsSupported()) {
+    return "File dialogues unsupported on this platform";
   }
-
-  auto buf = librii::crate::WriteRSPreset(*anim);
-  if (buf.empty()) {
-    return "librii::crate::WriteRSPreset failed";
+  const auto folder = pfd::select_folder("Output folder"_j, "").result();
+  if (folder.empty()) {
+    return folder;
   }
-
-  plate::Platform::writeFile(buf, path);
+  auto path = std::filesystem::path(folder);
+  if (!std::filesystem::exists(path)) {
+    return "Folder doesn't exist";
+  }
+  if (!std::filesystem::is_directory(path)) {
+    return "Not a folder";
+  }
+  for (auto& mat : mats) {
+    auto ok =
+        tryExportRsPresetMat((path / (mat.name + ".rspreset")).string(), mat);
+    if (ok.size()) {
+      return ok;
+    }
+  }
   return {};
 }
+
 class MakeRsPreset
     : public kpi::ActionMenu<riistudio::g3d::Material, MakeRsPreset> {
   bool m_import = false;
@@ -691,6 +724,35 @@ public:
     if (m_import) {
       m_import = false;
       auto err = tryExportRsPreset(mat);
+      if (!err.empty()) {
+        m_errorState.enter(std::move(err));
+      }
+      return kpi::CHANGE_NEED_RESET;
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
+
+class MakeRsPresetALL
+    : public kpi::ActionMenu<riistudio::g3d::Model, MakeRsPresetALL> {
+  bool m_import = false;
+  ErrorState m_errorState{"RSPreset Export Error"};
+
+public:
+  bool _context(riistudio::g3d::Model&) {
+    if (ImGui::MenuItem("Export all materials as presets")) {
+      m_import = true;
+    }
+    return false;
+  }
+
+  kpi::ChangeType _modal(riistudio::g3d::Model& model) {
+    m_errorState.modal();
+
+    if (m_import) {
+      m_import = false;
+      auto err = tryExportRsPresetALL(model.getMaterials());
       if (!err.empty()) {
         m_errorState.enter(std::move(err));
       }
@@ -738,6 +800,7 @@ kpi::DecentralizedInstaller CrateReplaceInstaller([](kpi::ApplicationPlugins&
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsTEX0>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsSRT0>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<MakeRsPreset>());
+  kpi::ActionMenuManager::get().addMenu(std::make_unique<MakeRsPresetALL>());
   kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsMDL0MatShade>());
   if (rsl::FileDialogsSupported()) {
     kpi::ActionMenuManager::get().addMenu(std::make_unique<ApplyRsPreset>());
