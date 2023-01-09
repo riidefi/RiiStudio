@@ -9,17 +9,25 @@
 #include <vector>
 #include <vendor/assimp/scene.h>
 
+#include <librii/rhst/RHST.hpp>
+
+// TODO
+#include <plugins/ass/Ass.hpp>
+
 namespace riistudio::ass {
 
-constexpr librii::gx::VertexAttribute PNM =
-    librii::gx::VertexAttribute::PositionNormalMatrixIndex;
+class IdCounter {
+public:
+  void setConvertedMaterial(u32 aiIndex, u32 matIndex) {
+    matIdToMatIdMap[aiIndex] = matIndex;
+  }
+  Result<u32> getConvertedMaterial(u32 aiIndex) const {
+    auto it = matIdToMatIdMap.find(aiIndex);
+    EXPECT(it != matIdToMatIdMap.end());
+    return it->second;
+  }
 
-struct IdCounter {
-  u32 boneId = 0;
-  u32 meshId = 0;
-  u32 matId = 0;
-
-  std::map<const aiNode*, u32> nodeToBoneIdMap;
+private:
   std::map<u32, u32> matIdToMatIdMap;
 };
 class AssImporter {
@@ -31,49 +39,31 @@ public:
     return pScene != nullptr && pScene->mRootNode != nullptr;
   }
 
-  AssImporter(const aiScene* scene, kpi::INode* mdl);
-
-  std::set<std::pair<std::size_t, std::string>>
-  PrepareAss(bool mip_gen, int min_dim, int max_mip,
-             const std::string& model_path);
-  void
-  ImportAss(const std::vector<std::pair<std::size_t, std::vector<u8>>>& data,
-            bool mip_gen, int min_dim, int max_mip, bool auto_outline,
-            glm::vec3 tint);
+  AssImporter(const aiScene* scene);
+  [[nodiscard]] Result<librii::rhst::SceneTree>
+  Import(const Settings& settings);
 
   void SetTransaction(kpi::IOTransaction& t) { transaction = &t; }
 
 private:
   kpi::IOTransaction* transaction = nullptr;
   IdCounter ctr;
-  IdCounter* boneIdCtr = &ctr;
 
   const aiScene* pScene = nullptr;
-  libcube::Scene* out_collection = nullptr;
-  libcube::Model* out_model = nullptr;
   aiNode* root = nullptr;
-  std::vector<u8> scratch;
+  void ProcessMeshTrianglesStatic(librii::rhst::Mesh& poly_data,
+                                  std::vector<librii::rhst::Vertex>&& vertices);
 
-  int get_bone_id(const aiNode* pNode);
-  // Only call if weighted
-  u16 add_weight_matrix_low(const libcube::DrawMatrix& drw);
-  u16 add_weight_matrix(int v, const aiMesh* pMesh,
-                        libcube::DrawMatrix* pDrwOut = nullptr);
+  void ProcessMeshTriangles(librii::rhst::Mesh& poly_data, const aiMesh* pMesh,
+                            const aiNode* pNode,
+                            std::vector<librii::rhst::Vertex>&& vertices);
 
-  void
-  ProcessMeshTrianglesStatic(const aiNode* singleInfluence,
-                             libcube::IndexedPolygon& poly_data,
-                             std::vector<librii::gx::IndexedVertex>&& vertices);
-  void ProcessMeshTrianglesWeighted(
-      libcube::IndexedPolygon& poly_data,
-      std::vector<librii::gx::IndexedVertex>&& vertices);
-
-  void ProcessMeshTriangles(libcube::IndexedPolygon& poly_data,
-                            const aiMesh* pMesh, const aiNode* pNode,
-                            std::vector<librii::gx::IndexedVertex>&& vertices);
-
-  bool ImportMesh(const aiMesh* pMesh, const aiNode* pNode, glm::vec3 tint);
-  void ImportNode(const aiNode* pNode, glm::vec3 tint, int parent = -1);
+  [[nodiscard]] Result<void> ImportMesh(librii::rhst::SceneTree& out_model,
+                                        const aiMesh* pMesh,
+                                        const aiNode* pNode, glm::vec3 tint);
+  [[nodiscard]] Result<void> ImportNode(librii::rhst::SceneTree& out_model,
+                                        const aiNode* pNode, glm::vec3 tint,
+                                        int parent = -1);
 };
 
 } // namespace riistudio::ass

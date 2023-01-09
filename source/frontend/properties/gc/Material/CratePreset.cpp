@@ -8,10 +8,11 @@
 #include <librii/crate/g3d_crate.hpp>
 #include <librii/image/TextureExport.hpp>
 #include <plate/Platform.hpp>
-#include <plugins/ass/ImportTexture.hpp>
 #include <plugins/g3d/collection.hpp>
+#include <plugins/rhst/RHSTImporter.hpp>
 #include <rsl/Defer.hpp>
 #include <rsl/FsDialog.hpp>
+#include <rsl/Stb.hpp>
 #include <vendor/stb_image.h>
 
 namespace libcube::UI {
@@ -430,30 +431,19 @@ std::string tryImportMany(libcube::Scene& scn) {
       continue;
     }
 
-    int width, height, channels;
-    unsigned char* image =
-        stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    auto image = rsl::stb::load(path);
     if (!image) {
-      return "STB failed to parse image. Unsupported file format?";
-    }
-    if (width > 1024) {
-      return "Width " + std::to_string(width) + " exceeds maximum of 1024";
-    }
-    if (height > 1024) {
-      return "Height " + std::to_string(height) + " exceeds maximum of 1024";
-    }
-    if (!is_power_of_2(width)) {
-      return "Width " + std::to_string(width) + " is not a power of 2.";
-    }
-    if (!is_power_of_2(height)) {
-      return "Height " + std::to_string(height) + " is not a power of 2.";
+      return std::format("Failed to import texture {}: stb_image didn't "
+                         "recognize it or didn't exist.",
+                         path);
     }
     std::vector<u8> scratch;
     auto& tex = scn.getTextures().add();
-    const bool ok = riistudio::ass::importTexture(tex, image, scratch, true, 64,
-                                                  4, width, height, channels);
+    const auto ok = riistudio::rhst::importTexture(
+        tex, image->data.data(), scratch, true, 64, 4, image->width,
+        image->height, image->channels);
     if (!ok) {
-      return "Failed to import texture";
+      return std::format("Failed to import texture {}: {}", path, ok.error());
     }
     tex.setName(file.path.stem().string());
   }

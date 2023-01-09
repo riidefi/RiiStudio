@@ -2,44 +2,20 @@
 #include "Ass.hpp"
 
 #include "AssImporter.hpp"
-#include "AssLogger.hpp"
+#include "LogScope.hpp"
+#include "Logger.hpp"
+#include "SupportedFiles.hpp"
 #include "Utility.hpp"
-#include <core/3d/i3dmodel.hpp>
 #include <core/kpi/Plugins.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <imcxx/Widgets.hpp>
-#include <plugins/gc/Export/IndexedPolygon.hpp>
-#include <plugins/j3d/Scene.hpp>
+#include <plugins/rhst/RHSTImporter.hpp>
 #include <vendor/assimp/DefaultLogger.hpp>
 #include <vendor/assimp/Importer.hpp>
-#include <vendor/assimp/postprocess.h>
 #include <vendor/assimp/scene.h>
 #include <vendor/fa5/IconsFontAwesome5.h>
-#undef min
-
-#include "InclusionMask.hpp"
-#include "LogScope.hpp"
-#include "SupportedFiles.hpp"
-
-IMPORT_STD;
 
 namespace riistudio::ass {
-
-static constexpr u32 DefaultFlags =
-    aiProcess_GenSmoothNormals | aiProcess_RemoveRedundantMaterials |
-    aiProcess_FindDegenerates | aiProcess_FindInvalidData |
-    aiProcess_OptimizeMeshes | aiProcess_Debone | aiProcess_OptimizeGraph |
-    aiProcess_RemoveComponent;
-
-static constexpr u32 AlwaysFlags =
-    aiProcess_JoinIdenticalVertices   // Merge doubles
-    | aiProcess_ValidateDataStructure //
-    | aiProcess_Triangulate // We only accept triangles, everything else is
-                            // rejected
-    | aiProcess_SortByPType // For filtering out non-triangles
-    | aiProcess_PopulateArmatureData // Used by bones
-    | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes | aiProcess_FlipUVs //
-    | aiProcess_FlipWindingOrder                                             //
-    ;
 
 // TODO
 u32 ClampMipMapDimension(u32 x) {
@@ -60,8 +36,6 @@ enum class State {
   Unengaged,
   // send settings request, set mode to
   WaitForSettings,
-  // Special step: Determine what to keep and what to discard
-  WaitForReplace,
   // check for texture dependencies
   // tell the importer to fix them or abort
   WaitForTextureDependencies,
@@ -71,32 +45,17 @@ enum class State {
 };
 struct AssimpContext {
   State state = State::Unengaged;
+  const aiScene* mScene = nullptr;
+  Settings mSettings;
+
   // Hack (we know importer will not be copied):
   // Won't be necessary when IBinaryDeserializable is split into Factory and
   // Instance, and Instance does not require copyable.
   std::shared_ptr<Assimp::Importer> importer =
       std::make_shared<Assimp::Importer>();
-  std::optional<AssImporter> helper = std::nullopt;
-  std::set<std::pair<std::size_t, std::string>> unresolved;
-  std::vector<std::pair<std::size_t, std::vector<u8>>> additional_textures;
-  std::vector<std::size_t> requestedUnresolvedToID;
-
-  u32 ass_flags = AlwaysFlags | DefaultFlags;
-  float mMagnification = 1.0f;
-  std::array<f32, 3> model_tint = {1.0f, 1.0f, 1.0f};
-
-  // if mGenerateMipMaps, create mip levels until < mMinMipDimension or >
-  // mMaxMipCount
-  bool mGenerateMipMaps = true;
-  int mMinMipDimension = 32;
-  int mMaxMipCount = 5;
-  // Set stencil outline if alpha
-  bool mAutoTransparent = true;
-  //
-  u32 data_to_include = DefaultInclusionMask();
 };
 
-void RenderContextSettings(AssimpContext& ctx) {
+void RenderContextSettings(Settings& ctx) {
   if (ImGui::CollapsingHeader("Importing Settings"_j,
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     //
@@ -132,7 +91,7 @@ void RenderContextSettings(AssimpContext& ctx) {
     // aiProcess_LimitBoneWeights - TODO
     // aiProcess_ImproveCacheLocality
     // TODO
-    // ImGui::CheckboxFlags("Cache Locality Optimization", &ass_flags,
+    // ImGui::CheckboxFlags("Cache Locality Optimization", &mAiFlags,
     //                      aiProcess_ImproveCacheLocality);
 
     // aiProcess_FindInstances - TODO
@@ -168,29 +127,29 @@ void RenderContextSettings(AssimpContext& ctx) {
     ImGui::Checkbox(
         "Detect transparent textures, and configure materials accordingly."_j,
         &ctx.mAutoTransparent);
-    ImGui::CheckboxFlags("Combine identical materials"_j, &ctx.ass_flags,
+    ImGui::CheckboxFlags("Combine identical materials"_j, &ctx.mAiFlags,
                          aiProcess_RemoveRedundantMaterials);
     ImGui::CheckboxFlags("Bake UV coord scale/rotate/translate"_j,
-                         &ctx.ass_flags, aiProcess_TransformUVCoords);
-    ImGui::ColorEdit3("Model Tint"_j, ctx.model_tint.data());
+                         &ctx.mAiFlags, aiProcess_TransformUVCoords);
+    ImGui::ColorEdit3("Model Tint"_j, glm::value_ptr(ctx.mModelTint));
   }
   if (ImGui::CollapsingHeader(
           (const char*)ICON_FA_PROJECT_DIAGRAM u8" Mesh Settings",
           ImGuiTreeNodeFlags_DefaultOpen)) {
     // aiProcess_FindDegenerates - TODO
-    ImGui::CheckboxFlags("Remove degenerate triangles"_j, &ctx.ass_flags,
+    ImGui::CheckboxFlags("Remove degenerate triangles"_j, &ctx.mAiFlags,
                          aiProcess_FindDegenerates);
     // aiProcess_FindInvalidData - TODO
-    ImGui::CheckboxFlags("Remove invalid data"_j, &ctx.ass_flags,
+    ImGui::CheckboxFlags("Remove invalid data"_j, &ctx.mAiFlags,
                          aiProcess_FindInvalidData);
     // aiProcess_FixInfacingNormals
-    ImGui::CheckboxFlags("Fix flipped normals"_j, &ctx.ass_flags,
+    ImGui::CheckboxFlags("Fix flipped normals"_j, &ctx.mAiFlags,
                          aiProcess_FixInfacingNormals);
     // aiProcess_OptimizeMeshes
-    ImGui::CheckboxFlags("Optimize meshes"_j, &ctx.ass_flags,
+    ImGui::CheckboxFlags("Optimize meshes"_j, &ctx.mAiFlags,
                          aiProcess_OptimizeMeshes);
     // aiProcess_OptimizeGraph
-    ImGui::CheckboxFlags("Compress bones (for static scenes)"_j, &ctx.ass_flags,
+    ImGui::CheckboxFlags("Compress bones (for static scenes)"_j, &ctx.mAiFlags,
                          aiProcess_OptimizeGraph);
   }
   if (ImGui::CollapsingHeader(
@@ -198,23 +157,82 @@ void RenderContextSettings(AssimpContext& ctx) {
           ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::CheckboxFlags(
         (const char*)ICON_FA_SORT_AMOUNT_UP u8" Vertex Normals",
-        &ctx.data_to_include, aiComponent_NORMALS);
+        &ctx.mDataToInclude, aiComponent_NORMALS);
     // aiComponent_TANGENTS_AND_BITANGENTS: Unsupported
     ImGui::CheckboxFlags((const char*)ICON_FA_PALETTE u8" Vertex Colors",
-                         &ctx.data_to_include, aiComponent_COLORS);
+                         &ctx.mDataToInclude, aiComponent_COLORS);
     ImGui::CheckboxFlags((const char*)ICON_FA_GLOBE u8" UV Maps",
-                         &ctx.data_to_include, aiComponent_TEXCOORDS);
+                         &ctx.mDataToInclude, aiComponent_TEXCOORDS);
     ImGui::CheckboxFlags((const char*)ICON_FA_BONE u8" Bone Weights",
-                         &ctx.data_to_include, aiComponent_BONEWEIGHTS);
+                         &ctx.mDataToInclude, aiComponent_BONEWEIGHTS);
     // aiComponent_ANIMATIONS: Unsupported
     // TODO: aiComponent_TEXTURES: Unsupported
     // aiComponent_LIGHTS: Unsupported
     // aiComponent_CAMERAS: Unsupported
     ImGui::CheckboxFlags((const char*)ICON_FA_PROJECT_DIAGRAM u8" Meshes",
-                         &ctx.data_to_include, aiComponent_MESHES);
+                         &ctx.mDataToInclude, aiComponent_MESHES);
     ImGui::CheckboxFlags((const char*)ICON_FA_PAINT_BRUSH u8" Materials",
-                         &ctx.data_to_include, aiComponent_MATERIALS);
+                         &ctx.mDataToInclude, aiComponent_MATERIALS);
   }
+}
+
+// Lifetime is tied to that of importer
+const aiScene* ReadScene(kpi::IOTransaction& transaction, std::string path,
+                         const Settings& settings, Assimp::Importer& importer) {
+  AssimpLoggerScope g_assimplogger(
+      std::make_unique<AssimpLogger>(transaction.callback, getFileShort(path)));
+
+  // Only include components we asked for
+  {
+    const u32 exclusion_mask = FlipExclusionMask(settings.mDataToInclude);
+    DebugPrintExclusionMask(exclusion_mask);
+    importer.SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS, exclusion_mask);
+  }
+  u32 aiFlags = settings.mAiFlags;
+  if (settings.mMagnification != 1.0f) {
+    aiFlags |= aiProcess_GlobalScale;
+    importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
+                              settings.mMagnification);
+  }
+
+  importer.ReadFileFromMemory(transaction.data.data(), transaction.data.size(),
+                              aiProcess_PreTransformVertices, path.c_str());
+  auto* pScene = importer.ApplyPostProcessing(aiFlags);
+
+  if (!pScene) {
+    return nullptr;
+  }
+  double unit_scale = 0.0;
+  pScene->mMetaData->Get("UnitScaleFactor", unit_scale);
+
+  // Handle custom units
+  if (unit_scale != 0.0) {
+    // FBX-only property: internally in centimeters
+    importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
+                              (1.0 / unit_scale) / 100.0);
+    importer.ApplyPostProcessing(aiProcess_GlobalScale);
+  }
+  return pScene;
+}
+
+Result<librii::rhst::SceneTree> ToSceneTree(const aiScene* scene,
+                                            kpi::IOTransaction& transaction,
+                                            const Settings& settings) {
+  AssImporter importer(scene);
+  importer.SetTransaction(transaction);
+  return importer.Import(settings);
+}
+
+// Export-only
+Result<librii::rhst::SceneTree> DoImport(std::string path,
+                                         kpi::IOTransaction& transaction,
+                                         const Settings& settings) {
+  Assimp::Importer importer;
+  auto* pScene = ReadScene(transaction, path, settings, importer);
+  if (!pScene) {
+    return std::unexpected("Assimp failed to read scene");
+  }
+  return ToSceneTree(pScene, transaction, settings);
 }
 
 class AssimpPlugin {
@@ -243,93 +261,31 @@ public:
   void StateWaitForSettings(kpi::IOTransaction& transaction) {
     std::string path(transaction.data.getProvider()->getFilePath());
 
-    {
-      AssimpLoggerScope g_assimplogger(std::make_unique<AssLogger>(
-          transaction.callback, getFileShort(path)));
-
-      // Only include components we asked for
-      {
-        const u32 exclusion_mask = FlipExclusionMask(mContext->data_to_include);
-        DebugPrintExclusionMask(exclusion_mask);
-        mContext->importer->SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS,
-                                               exclusion_mask);
-      }
-
-      if (mContext->mMagnification != 1.0f) {
-        mContext->ass_flags |= aiProcess_GlobalScale;
-        mContext->importer->SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
-                                             mContext->mMagnification);
-      }
-
-      mContext->importer->ReadFileFromMemory(
-          transaction.data.data(), transaction.data.size(),
-          aiProcess_PreTransformVertices, path.c_str());
-      const auto* pScene =
-          mContext->importer->ApplyPostProcessing(mContext->ass_flags);
-
-      if (!pScene) {
-        transaction.state = kpi::TransactionState::Failure;
-        return;
-      }
-      double unit_scale = 0.0;
-      pScene->mMetaData->Get("UnitScaleFactor", unit_scale);
-
-      // Handle custom units
-      if (unit_scale != 0.0) {
-        // FBX-only property: internally in centimeters
-        mContext->importer->SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
-                                             (1.0 / unit_scale) / 100.0);
-        mContext->importer->ApplyPostProcessing(aiProcess_GlobalScale);
-      }
-      if (pScene == nullptr) {
-        // We will never be called again..
-        // transaction.callback(kpi::IOMessageClass::Error, getFileShort(path),
-        //                      importer->GetErrorString());
-        transaction.state = kpi::TransactionState::Failure;
-        return;
-      }
-
-      mContext->helper.emplace(pScene, &transaction.node);
+    mContext->mScene =
+        ReadScene(transaction, path, mContext->mSettings, *mContext->importer);
+    if (!mContext->mScene) {
+      transaction.state = kpi::TransactionState::Failure;
+      return;
     }
-
-    std::vector<std::string> mat_merge;
-    mContext->unresolved = mContext->helper->PrepareAss(
-        mContext->mGenerateMipMaps, mContext->mMinMipDimension,
-        mContext->mMaxMipCount, path);
-
-    mContext->state = State::WaitForTextureDependencies;
-    // This step might be optional
-    if (!mContext->unresolved.empty()) {
-      transaction.state = kpi::TransactionState::ResolveDependencies;
-      transaction.resolvedFiles.resize(mContext->unresolved.size());
-      transaction.unresolvedFiles.reserve(mContext->unresolved.size());
-      for (auto& missing : mContext->unresolved) {
-        transaction.unresolvedFiles.push_back(missing.second);
-        mContext->requestedUnresolvedToID.push_back(missing.first);
-      }
-    }
+    GotoNextState();
   }
 
   void StateWaitForTextureDependencies(kpi::IOTransaction& transaction) {
-    if (!mContext->unresolved.empty()) {
-      for (std::size_t i = 0; i < transaction.resolvedFiles.size(); ++i) {
-        auto& found = transaction.resolvedFiles[i];
-        if (found.empty())
-          continue;
-
-        // Without this we would replace texture 0, even if texture 7 is the one
-        // missing.
-        const auto tex_index = mContext->requestedUnresolvedToID[i];
-        mContext->additional_textures.emplace_back(tex_index, std::move(found));
-      }
+    auto sceneTree =
+        ToSceneTree(mContext->mScene, transaction, mContext->mSettings);
+    if (!sceneTree) {
+      transaction.callback(kpi::IOMessageClass::Error, "Assimp Importer",
+                           sceneTree.error());
+      transaction.state = kpi::TransactionState::Failure;
+      GotoExitState();
+      return;
     }
-    mContext->helper->SetTransaction(transaction);
-    mContext->helper->ImportAss(
-        mContext->additional_textures, mContext->mGenerateMipMaps,
-        mContext->mMinMipDimension, mContext->mMaxMipCount,
-        mContext->mAutoTransparent,
-        glm::vec3(mContext->model_tint[0], mContext->model_tint[1],
-                  mContext->model_tint[2]));
+    transaction.state = kpi::TransactionState::Complete;
+
+    if (transaction.state == kpi::TransactionState::Complete) {
+      transaction.state = kpi::TransactionState::Failure;
+      riistudio::rhst::CompileRHST(*sceneTree, transaction);
+    }
 
     switch (transaction.state) {
     case kpi::TransactionState::Failure:
@@ -382,9 +338,6 @@ void AssimpPlugin::read(kpi::IOTransaction& transaction) {
   }
   if (mContext->state == State::WaitForSettings) {
     StateWaitForSettings(transaction);
-    if (!mContext->unresolved.empty()) {
-      return;
-    }
     // There are no textures, so fallthrough to final state
   }
   if (mContext->state == State::WaitForTextureDependencies) {
@@ -395,7 +348,7 @@ void AssimpPlugin::read(kpi::IOTransaction& transaction) {
 
 void AssimpPlugin::render() {
   if (mContext) {
-    RenderContextSettings(*mContext);
+    RenderContextSettings(mContext->mSettings);
   } else {
     ImGui::Text("There is no context");
   }

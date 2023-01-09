@@ -30,6 +30,7 @@
 
 #if __cplusplus > 201703L
 #include <ranges>
+#include <stacktrace>
 #endif
 
 // When clang-cl `import std` support, switch to these and remove above includes
@@ -148,8 +149,12 @@ template <typename T> inline auto DoTry(T&& x) {
 
 #define EXPECT(expr, ...)                                                      \
   if (!(expr)) [[unlikely]] {                                                  \
-    return std::unexpected("[" __FILE_NAME__ ":" LIB_RII_TO_STRING(            \
-        __LINE__) "] " __VA_ARGS__ "[Internal: " #expr "]");                   \
+    auto cur = std::stacktrace::current();                                     \
+    return std::unexpected("[" __FILE_NAME__                                   \
+                           ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__    \
+                                                           "[Internal: " #expr \
+                                                           "]\n" +             \
+                           std::to_string(cur));                               \
   }
 
 #if defined(__cpp_lib_expected)

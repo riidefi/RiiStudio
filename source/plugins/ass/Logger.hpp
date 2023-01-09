@@ -8,24 +8,25 @@
 
 namespace riistudio::ass {
 
-struct AssLogger : public Assimp::Logger {
-  AssLogger(std::function<void(kpi::IOMessageClass message_class,
-                               const std::string_view domain,
-                               const std::string_view message_body)>& callback,
-            const std::string& _domain)
+struct AssimpLogger : public Assimp::Logger {
+  AssimpLogger(
+      std::function<void(kpi::IOMessageClass message_class,
+                         const std::string_view domain,
+                         const std::string_view message_body)>& callback,
+      const std::string& _domain)
       : mCallback(callback), domain(_domain) {
     m_Severity = static_cast<LogSeverity>(Debugging | Info | Warn | Err);
   }
   void OnDebug(const char* message) override {
 #ifdef BUILD_DEBUG
-    //mCallback(kpi::IOMessageClass::Information, domain, message);
+    // mCallback(kpi::IOMessageClass::Information, domain, message);
 #endif
   }
   void OnInfo(const char* message) override {
-    //mCallback(kpi::IOMessageClass::Information, domain, message);
+    // mCallback(kpi::IOMessageClass::Information, domain, message);
   }
   void OnWarn(const char* message) override {
-    //mCallback(kpi::IOMessageClass::Warning, domain, message);
+    // mCallback(kpi::IOMessageClass::Warning, domain, message);
   }
   void OnError(const char* message) override {
     mCallback(kpi::IOMessageClass::Error, domain, message);
