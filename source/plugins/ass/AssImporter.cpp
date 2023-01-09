@@ -1,325 +1,93 @@
 #include "AssImporter.hpp"
-#include "AssMaterial.hpp"
+#include "Material.hpp"
 #include "Utility.hpp"
 #include <core/kpi/Plugins.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
-#include <librii/image/CheckerBoard.hpp>
-#include <llvm/ADT/BitVector.h>
-#include <plugins/g3d/model.hpp>
-
-#include "ImportTexture.hpp"
 
 IMPORT_STD;
 
 namespace riistudio::ass {
 
-const auto power_of_2 = [](u32 x) { return (x & (x - 1)) == 0; };
-
-AssImporter::AssImporter(const aiScene* scene, kpi::INode* mdl)
-    : pScene(scene) {
-  out_collection = dynamic_cast<libcube::Scene*>(mdl);
-  assert(out_collection != nullptr);
-  out_model = out_collection->getModels().empty()
-                  ? &out_collection->getModels().add()
-                  : &out_collection->getModels()[0];
-}
-int AssImporter::get_bone_id(const aiNode* pNode) {
-  return boneIdCtr->nodeToBoneIdMap.find(pNode) !=
-                 boneIdCtr->nodeToBoneIdMap.end()
-             ? boneIdCtr->nodeToBoneIdMap[pNode]
-             : -1;
-}
-// Only call if weighted
-u16 AssImporter::add_weight_matrix_low(const libcube::DrawMatrix& drw) {
-  const auto found = std::find(out_model->mDrawMatrices.begin(),
-                               out_model->mDrawMatrices.end(), drw);
-  if (found != out_model->mDrawMatrices.end()) {
-    return found - out_model->mDrawMatrices.begin();
-  } else {
-    out_model->mDrawMatrices.push_back(drw);
-    return out_model->mDrawMatrices.size() - 1;
-  }
-}
-u16 AssImporter::add_weight_matrix(int v, const aiMesh* pMesh,
-                                   libcube::DrawMatrix* pDrwOut) {
-  libcube::DrawMatrix drw;
-  for (unsigned j = 0; j < pMesh->mNumBones; ++j) {
-    const auto* pBone = pMesh->mBones[j];
-
-    for (unsigned k = 0; k < pBone->mNumWeights; ++k) {
-      const auto* pWeight = &pBone->mWeights[k];
-      if (pWeight->mVertexId == v) {
-#ifdef __APPLE__
-        const auto boneid = 0;
-#else
-        const auto boneid = get_bone_id(pBone->mNode);
-#endif
-        assert(boneid != -1);
-        drw.mWeights.emplace_back(boneid, pWeight->mWeight);
-        break;
-      }
-    }
-  }
-  if (pDrwOut != nullptr)
-    *pDrwOut = drw;
-  return add_weight_matrix_low(drw);
-};
-
+AssImporter::AssImporter(const aiScene* scene) : pScene(scene) {}
 void AssImporter::ProcessMeshTrianglesStatic(
-    const aiNode* singleInfluence, libcube::IndexedPolygon& poly_data,
-    std::vector<librii::gx::IndexedVertex>&& vertices) {
-  auto& mp = poly_data.getMeshData().mMatrixPrimitives.emplace_back();
-  // Copy triangle data
-  // We will do triangle-stripping in a post-process
-  auto& tris = mp.mPrimitives.emplace_back();
-  tris.mType = librii::gx::PrimitiveType::Triangles;
-  tris.mVertices = std::move(vertices);
-
-  const int boneId = singleInfluence ? get_bone_id(singleInfluence) : 0;
-  assert(boneId >= 0);
-  libcube::DrawMatrix drw{{{static_cast<u32>(boneId), 1.0f}}};
-  const auto mtx = add_weight_matrix_low(drw);
-  mp.mCurrentMatrix = mtx;
-  mp.mDrawMatrixIndices.push_back(mtx);
-}
-void AssImporter::ProcessMeshTrianglesWeighted(
-    libcube::IndexedPolygon& poly_data,
-    std::vector<librii::gx::IndexedVertex>&& vertices) {
-
-  // At this point, the mtx index of vertices is global.
-  // We need to convert it to a local palette index.
-  // Tolerence should be implemented here, eventually.
-
-  std::vector<u16> matrix_indices;
-
-  for (auto& v : vertices) {
-    const auto mtx_idx = v[PNM];
-
-    // Hack: We will come across data as such (assume 3-wide sweep)
-    // (A B B) (C A D)
-    // To prevent this transforming into
-    // (A B C) (D)
-    // Where references to A in the second sweep will fail,
-    // we simply don't compress across sweeps:
-    // (A B B) (C A D)
-    // (A B C) (A D)
-    // It's far from optimal, but the current choice:
-    const std::size_t sweep_id = matrix_indices.size() / 10;
-    const std::size_t sweep_begin = sweep_id * 10;
-    const std::size_t sweep_end =
-        std::min(matrix_indices.size(), (sweep_id + 1) * 10);
-    const auto found = std::find(matrix_indices.begin() + sweep_begin,
-                                 matrix_indices.begin() + sweep_end, mtx_idx);
-
-    if (found == matrix_indices.end()) {
-      matrix_indices.push_back(mtx_idx);
-    }
-  }
-
-  auto vertex_sweep_index = [&](int v, int sweep) -> int {
-    const auto found = std::find(
-        matrix_indices.begin() + sweep * 10,
-        matrix_indices.begin() +
-            std::min(static_cast<int>(matrix_indices.size()), (sweep + 1) * 10),
-        vertices[v][PNM]);
-
-    if (found == matrix_indices.end())
-      return -1;
-    const auto idx = std::distance(matrix_indices.begin(), found);
-    // Old code not based on sweep-specific search
-    // if (idx >= sweep * 10 && idx < (sweep + 1) * 10) {
-    //   // We're inside the sweep;
-    //   return idx - sweep * 10;
-    // }
-    // We're outside the sweep:
-    // return -1;
-    return idx;
-  };
-  assert(vertices.size() % 3 == 0);
-  int sweep_wave = 0;
-  bool reversed = false;
-  int last_sweep_vtx = 0;
-  for (int f = 0; f < vertices.size() / 3; ++f) {
-    const int v0 = f * 3 + 0;
-    const int v1 = f * 3 + 1;
-    const int v2 = f * 3 + 2;
-
-    const int s0 = vertex_sweep_index(v0, sweep_wave);
-    const int s1 = vertex_sweep_index(v1, sweep_wave);
-    const int s2 = vertex_sweep_index(v2, sweep_wave);
-
-    if (s0 < 0 || s1 < 0 || s2 < 0) {
-      assert(s0 != -2 && s1 != -2 && s2 != -2 &&
-             "matrix_indices has not been properly filled");
-
-      // But submit what we have so far, first:
-      auto& mp = poly_data.getMeshData().mMatrixPrimitives.emplace_back();
-      auto& tris = mp.mPrimitives.emplace_back();
-      tris.mType = librii::gx::PrimitiveType::Triangles;
-      std::copy(vertices.begin() + last_sweep_vtx, vertices.begin() + v0,
-                std::back_inserter(tris.mVertices));
-      last_sweep_vtx = v0;
-      mp.mCurrentMatrix = -1;
-      const auto sweep_begin = sweep_wave * 10;
-      const auto sweep_end = std::min((sweep_wave + 1) * 10,
-                                      static_cast<int>(matrix_indices.size()));
-
-      std::copy(matrix_indices.begin() + sweep_begin,
-                matrix_indices.begin() + sweep_end,
-                std::back_inserter(mp.mDrawMatrixIndices));
-
-      // Reverse one step, but in the next wave:
-      assert(!reversed && "matrix_indices is unsorted");
-      --f;
-      ++sweep_wave;
-      reversed = true;
-
-      continue;
-    }
-
-    reversed = false;
-    vertices[v0][PNM] = s0;
-    vertices[v0][PNM] = s1;
-    vertices[v0][PNM] = s2;
-  }
+    librii::rhst::Mesh& poly_data,
+    std::vector<librii::rhst::Vertex>&& vertices) {
+  auto& mp = poly_data.matrix_primitives.emplace_back();
+  auto& tris = mp.primitives.emplace_back();
+  tris.topology = librii::rhst::Topology::Triangles;
+  tris.vertices = std::move(vertices);
 }
 
 void AssImporter::ProcessMeshTriangles(
-    libcube::IndexedPolygon& poly_data, const aiMesh* pMesh,
-    const aiNode* pNode, std::vector<librii::gx::IndexedVertex>&& vertices) {
-  // Determine if we need to do matrix processing
-  if (poly_data.getVcd().mBitfield & (1 << (int)PNM)) {
-    ProcessMeshTrianglesWeighted(poly_data, std::move(vertices));
-  } else {
-    // If one bone, bind to that; otherwise, bind to the node itself.
-#ifdef __APPLE__
-    // For some reason the brew build is with
-    // ASSIMP_BUILD_NO_ARMATUREPOPULATE_PROCESS
-    const aiNode* single_influence = nullptr;
-#else
-    const aiNode* single_influence =
-        pMesh->HasBones() ? pMesh->mBones[0]->mNode : pNode;
-#endif
-    ProcessMeshTrianglesStatic(single_influence, poly_data,
-                               std::move(vertices));
-  }
+    librii::rhst::Mesh& poly_data, const aiMesh* pMesh, const aiNode* pNode,
+    std::vector<librii::rhst::Vertex>&& vertices) {
+  ProcessMeshTrianglesStatic(poly_data, std::move(vertices));
 }
 
-bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
-                             glm::vec3 tint) {
+Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
+                                     const aiMesh* pMesh, const aiNode* pNode,
+                                     glm::vec3 tint) {
   // Ignore points and lines
-  if (pMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
-    return false;
+  if (pMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE) {
+    return std::unexpected("Mesh has denegerate triangles or points/lines");
+  }
 
-  auto& poly = out_model->getMeshes().add();
-  poly.setName(pMesh->mName.C_Str());
-  auto& data = poly.getMeshData();
-  auto& vcd = data.mVertexDescriptor;
+  auto& poly = out_model.meshes.emplace_back();
+  poly.name = pMesh->mName.C_Str();
+  auto& vcd = poly.vertex_descriptor;
 
-  librii::math::AABB bbox;
-  bbox.min = {pMesh->mAABB.mMin.x, pMesh->mAABB.mMin.y, pMesh->mAABB.mMin.z};
-  bbox.max = {pMesh->mAABB.mMax.x, pMesh->mAABB.mMax.y, pMesh->mAABB.mMax.z};
-  // TODO: Should the skinning flag always be set?
-  poly.init(/* skinned */ true, &bbox);
-  // TODO: Sphere
   auto add_attribute = [&](auto type, bool direct = false) {
-    vcd.mAttributes[type] = direct ? librii::gx::VertexAttributeType::Direct
-                                   : librii::gx::VertexAttributeType::Short;
+    vcd |= (1 << static_cast<int>(type));
   };
   add_attribute(librii::gx::VertexAttribute::Position);
-  if (pMesh->HasNormals())
+  if (pMesh->HasNormals()) {
     add_attribute(librii::gx::VertexAttribute::Normal);
+  }
 
   for (int j = 0; j < 2; ++j) {
-    if (pMesh->HasVertexColors(j))
+    if (pMesh->HasVertexColors(j)) {
       add_attribute(librii::gx::VertexAttribute::Color0 + j);
+    }
   }
 
   // Force Color0 for materials
-  if (!pMesh->HasVertexColors(0))
+  if (!pMesh->HasVertexColors(0)) {
     add_attribute(librii::gx::VertexAttribute::Color0);
+  }
 
   for (int j = 0; j < 8; ++j) {
     if (pMesh->HasTextureCoords(j)) {
       add_attribute(librii::gx::VertexAttribute::TexCoord0 + j);
 
-      assert(pMesh->mNumUVComponents[j] == 2);
+      EXPECT(pMesh->mNumUVComponents[j] == 2);
     }
   }
 
-  auto add_position = [&](int v, const libcube::DrawMatrix* wt = nullptr) {
-    glm::vec3 pos = getVec(pMesh->mVertices[v]);
-
-    // If rigid, transform into bone-space
-    // This assumes that meshes will not be influenced by their children? This
-    // could be a bad assumption..
-    if (wt != nullptr && wt->mWeights.size() == 1) {
-      const auto& acting_influence =
-          out_model->getBones()[wt->mWeights[0].boneId];
-      pos = glm::vec4(pos, 0) * glm::inverse(calcSrtMtxSimple(
-                                    acting_influence, out_model->getBones()));
-    }
-
-    return poly.addPos(*out_model, pos);
-  };
-  auto add_normal = [&](int v) {
-    const auto nrm = getVec(pMesh->mNormals[v]);
-    return poly.addNrm(*out_model, nrm);
-  };
-  auto add_color = [&](int v, unsigned j) {
-    const auto clr = j >= pMesh->GetNumColorChannels()
-                         ? librii::gx::Color{0xff, 0xff, 0xff, 0xff}
-                         : getClr(pMesh->mColors[j][v]);
-    if (clr.a != 0xFF)
-      poly.is_xlu_import = true;
-    librii::gx::ColorF32 fclr(clr);
-    auto tclr =
-        glm::vec4(fclr.r, fclr.g, fclr.b, fclr.a) * glm::vec4(tint, 1.0f);
-    fclr = {.r = tclr.x, .g = tclr.y, .b = tclr.z, .a = tclr.w};
-    return poly.addClr(*out_model, j, fclr);
-  };
-  auto add_uv = [&](int v, int j) {
-    const auto uv = getVec2(pMesh->mTextureCoords[j][v]);
-    return poly.addUv(*out_model, j, uv);
-  };
-
-  // More than one bone -> Assume multi mtx, unless zero influence
-  // With one weight, must be singlebound! no partial / null weight
-
-  bool multi_mtx = pMesh->HasBones() && pMesh->mNumBones > 1;
-
-  if (multi_mtx)
-    add_attribute(PNM);
-
-  vcd.calcVertexDescriptorFromAttributeList();
-  poly.initBufsFromVcd(*out_model);
-
-  std::vector<librii::gx::IndexedVertex> vertices;
+  std::vector<librii::rhst::Vertex> vertices;
 
   for (unsigned f = 0; f < pMesh->mNumFaces; ++f) {
     for (int fv = 0; fv < 3; ++fv) {
       const auto v = pMesh->mFaces[f].mIndices[fv];
 
-      librii::gx::IndexedVertex vtx{};
-      libcube::DrawMatrix drw;
-      const auto weightInfo =
-          pMesh->HasBones() ? add_weight_matrix(v, pMesh, &drw) : 0;
-
-      if (multi_mtx) {
-        vtx[PNM] = weightInfo * 3;
+      librii::rhst::Vertex vtx{};
+      vtx.position = getVec(pMesh->mVertices[v]);
+      if (pMesh->HasNormals()) {
+        vtx.normal = getVec(pMesh->mNormals[v]);
       }
-
-      vtx[librii::gx::VertexAttribute::Position] = add_position(v, &drw);
-      if (pMesh->HasNormals())
-        vtx[librii::gx::VertexAttribute::Normal] = add_normal(v);
       for (int j = 0; j < 2; ++j) {
-        if (pMesh->HasVertexColors(j) || j == 0)
-          vtx[librii::gx::VertexAttribute::Color0 + j] = add_color(v, j);
+        if (pMesh->HasVertexColors(j)) {
+          auto clr = pMesh->mColors[j][v];
+          vtx.colors[j] = {clr.r, clr.g, clr.b, clr.a};
+          vtx.colors[j] *= glm::vec4(tint, 1.0f);
+        }
+      }
+      if (!pMesh->HasVertexColors(0)) {
+        vtx.colors[0] = glm::vec4(tint, 1.0f);
       }
       for (int j = 0; j < 8; ++j) {
         if (pMesh->HasTextureCoords(j)) {
-          vtx[librii::gx::VertexAttribute::TexCoord0 + j] = add_uv(v, j);
+          vtx.uvs[j] = getVec2(pMesh->mTextureCoords[j][v]);
         }
       }
       vertices.push_back(vtx);
@@ -327,14 +95,16 @@ bool AssImporter::ImportMesh(const aiMesh* pMesh, const aiNode* pNode,
   }
 
   ProcessMeshTriangles(poly, pMesh, pNode, std::move(vertices));
-  return true;
+  return {};
 }
 
-void AssImporter::ImportNode(const aiNode* pNode, glm::vec3 tint, int parent) {
+Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
+                                     const aiNode* pNode, glm::vec3 tint,
+                                     int parent) {
   // Create a bone (with name)
-  const auto joint_id = out_model->getBones().size();
-  auto& joint = out_model->getBones().add();
-  joint.setName(pNode->mName.C_Str());
+  const auto joint_id = out_model.bones.size();
+  auto& joint = out_model.bones.emplace_back();
+  joint.name = pNode->mName.C_Str();
   const glm::mat4 xf = getMat4(pNode->mTransformation);
 
   librii::math::SRT3 srt;
@@ -346,17 +116,14 @@ void AssImporter::ImportNode(const aiNode* pNode, glm::vec3 tint, int parent) {
   srt.rotation = {glm::degrees(glm::eulerAngles(rotation).x),
                   glm::degrees(glm::eulerAngles(rotation).y),
                   glm::degrees(glm::eulerAngles(rotation).z)};
-  joint.setSRT(srt);
+  joint.scale = srt.scale;
+  joint.rotate = srt.rotation;
+  joint.translate = srt.translation;
 
-  IdCounter localBoneIdCtr;
-  if (boneIdCtr == nullptr)
-    boneIdCtr = &localBoneIdCtr;
-  joint.id = boneIdCtr->boneId++;
-  boneIdCtr->nodeToBoneIdMap[pNode] = joint.id;
-
-  joint.setBoneParent(parent);
-  if (parent != -1)
-    out_model->getBones()[parent].addChild(joint.getId());
+  joint.parent = parent;
+  if (parent != -1) {
+    out_model.bones[parent].child = out_model.bones.size() - 1;
+  }
 
   librii::math::AABB aabb{{FLT_MAX, FLT_MAX, FLT_MAX},
                           {FLT_MIN, FLT_MIN, FLT_MIN}};
@@ -366,131 +133,34 @@ void AssImporter::ImportNode(const aiNode* pNode, glm::vec3 tint, int parent) {
     // Can these be duplicated?
     const auto* pMesh = pScene->mMeshes[pNode->mMeshes[i]];
 
-    assert(boneIdCtr->matIdToMatIdMap.find(pMesh->mMaterialIndex) !=
-           boneIdCtr->matIdToMatIdMap.end());
-    const auto matId = boneIdCtr->matIdToMatIdMap[pMesh->mMaterialIndex];
-
-    if (ImportMesh(pMesh, pNode, tint)) {
-      const auto bounds = out_model->getMeshes()[boneIdCtr->meshId].getBounds();
-      aabb.expandBound(bounds);
-      joint.addDisplay({matId, boneIdCtr->meshId++, 0});
-    } else {
-      printf("Mesh has denegerate triangles or points/lines\n");
+    auto matId = TRY(ctr.getConvertedMaterial(pMesh->mMaterialIndex));
+    auto ok = ImportMesh(out_model, pMesh, pNode, tint);
+    if (!ok) {
+      transaction->callback(kpi::IOMessageClass::Warning, pMesh->mName.C_Str(),
+                            ok.error());
+      continue;
     }
+    aabb.expandBound(librii::math::AABB{
+        .min = getVec(pMesh->mAABB.mMin),
+        .max = getVec(pMesh->mAABB.mMax),
+    });
+    s32 meshId = out_model.meshes.size() - 1;
+    joint.draw_calls.emplace_back(
+        librii::rhst::DrawCall{static_cast<s32>(matId), meshId, 0});
   }
 
-  joint.setAABB(aabb);
-  // TODO: Not accurate..
-  joint.setBoundingRadius(glm::length(aabb.max - aabb.max));
+  joint.min = aabb.min;
+  joint.max = aabb.max;
 
   for (unsigned i = 0; i < pNode->mNumChildren; ++i) {
-    ImportNode(pNode->mChildren[i], tint, joint_id);
+    auto ok = ImportNode(out_model, pNode->mChildren[i], tint, joint_id);
+    if (!ok) {
+      transaction->callback(kpi::IOMessageClass::Warning,
+                            pNode->mChildren[i]->mName.C_Str(), ok.error());
+      continue;
+    }
   }
-}
-
-auto ConvertTextureType(aiTextureType tex_type) {
-  switch (tex_type) {
-  case aiTextureType_DIFFUSE:
-    return ImpTexType::Diffuse;
-    /** The texture is combined with the result of the specular
-     *  lighting equation.
-     */
-  case aiTextureType_SPECULAR:
-    return ImpTexType::Specular;
-    /** The texture is combined with the result of the ambient
-     *  lighting equation.
-     */
-  case aiTextureType_AMBIENT:
-    return ImpTexType::Ambient;
-    /** The texture is added to the result of the lighting
-     *  calculation. It isn't influenced by incoming light.
-     */
-  case aiTextureType_EMISSIVE:
-    return ImpTexType::Emissive;
-    /** The texture is a height map.
-     *
-     *  By convention, higher gray-scale values stand for
-     *  higher elevations from the base height.
-     */
-  case aiTextureType_HEIGHT:
-    return ImpTexType::Bump;
-    /** The texture is a (tangent space) normal-map.
-     *
-     *  Again, there are several conventions for tangent-space
-     *  normal maps. Assimp does (intentionally) not
-     *  distinguish here.
-     */
-  case aiTextureType_NORMALS:
-    return ImpTexType::Diffuse; // TODO
-    /** The texture defines the glossiness of the material.
-     *
-     *  The glossiness is in fact the exponent of the specular
-     *  (phong) lighting equation. Usually there is a conversion
-     *  function defined to map the linear color values in the
-     *  texture to a suitable exponent. Have fun.
-     */
-  case aiTextureType_SHININESS:
-    return ImpTexType::Diffuse; // TODO
-    /** The texture defines per-pixel opacity.
-     *
-     *  Usually 'white' means opaque and 'black' means
-     *  'transparency'. Or quite the opposite. Have fun.
-     */
-  case aiTextureType_OPACITY:
-    return ImpTexType::Opacity;
-    /** Displacement texture
-     *
-     *  The exact purpose and format is application-dependent.
-     *  Higher color values stand for higher vertex displacements.
-     */
-  case aiTextureType_DISPLACEMENT:
-    return ImpTexType::Displacement;
-    /** Lightmap texture (aka Ambient Occlusion)
-     *
-     *  Both 'Lightmaps' and dedicated 'ambient occlusion maps' are
-     *  covered by this material property. The texture contains a
-     *  scaling value for the final color value of a pixel. Its
-     *  intensity is not affected by incoming light.
-     */
-  case aiTextureType_LIGHTMAP:
-    return ImpTexType::Diffuse; // TODO
-    break;
-    /** Reflection texture
-     *
-     * Contains the color of a perfect mirror reflection.
-     * Rarely used, almost never for real-time applications.
-     */
-  case aiTextureType_REFLECTION:
-    return ImpTexType::Diffuse; // TODO
-    /** PBR Materials
-     * PBR definitions from maya and other modelling packages now use
-     * this standard. This was originally introduced around 2012.
-     * Support for this is in game engines like Godot, Unreal or
-     * Unity3D. Modelling packages which use this are very common now.
-     */
-  case aiTextureType_BASE_COLOR:
-    return ImpTexType::Diffuse;
-  case aiTextureType_NORMAL_CAMERA:
-    return ImpTexType::Diffuse; // TODO
-  case aiTextureType_EMISSION_COLOR:
-    return ImpTexType::Emissive;
-  case aiTextureType_METALNESS:
-    return ImpTexType::Diffuse; // TODO
-  case aiTextureType_DIFFUSE_ROUGHNESS:
-    return ImpTexType::Diffuse; // TODO
-  case aiTextureType_AMBIENT_OCCLUSION:
-    return ImpTexType::Diffuse; // LM
-    /** Unknown texture
-     *
-     *  A texture reference that does not match any of the definitions
-     *  above is considered to be 'unknown'. It is still imported,
-     *  but is excluded from any further post-processing.
-     */
-  case aiTextureType_UNKNOWN:
-    return ImpTexType::Diffuse;
-  default:
-    return ImpTexType::Diffuse;
-  }
+  return {};
 }
 
 auto ConvertWrapMode(aiTextureMapMode mapmode) {
@@ -508,28 +178,11 @@ auto ConvertWrapMode(aiTextureMapMode mapmode) {
   }
 }
 
-std::set<std::pair<std::size_t, std::string>>
-AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip,
-                        const std::string& model_path) {
+Result<librii::rhst::SceneTree> AssImporter::Import(const Settings& settings) {
   root = pScene->mRootNode;
-  assert(root != nullptr);
-
-  std::set<std::string> texturesToImport;
-  std::map<std::string, std::unique_ptr<g3d::Material>> old_materials;
-
-  if (auto* gmdl = dynamic_cast<g3d::Model*>(out_model); gmdl != nullptr) {
-    for (auto& mat : gmdl->getMaterials())
-      old_materials.emplace(mat.libcube::IGCMaterial::getName(),
-                            std::make_unique<g3d::Material>(mat));
-
-    gmdl->getBuf_Clr().resize(0);
-    gmdl->getBuf_Nrm().resize(0);
-    gmdl->getBuf_Uv().resize(0);
-    gmdl->getBuf_Pos().resize(0);
-  }
+  librii::rhst::SceneTree out_model;
 
   std::vector<std::string> new_mats;
-  std::vector<bool> replaces;
 
   for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
     auto* pMat = pScene->mMaterials[i];
@@ -539,24 +192,13 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip,
       name += std::to_string(i);
     }
     new_mats.push_back(name);
-    replaces.push_back(old_materials.contains(name));
   }
-  out_model->getMaterials().resize(0);
-
-  out_model->getBones().resize(0);
-  out_model->getMeshes().resize(0);
 
   for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
     auto* pMat = pScene->mMaterials[i];
-    auto& mr = out_model->getMaterials().add();
-    mr.setName(new_mats[i]);
-    boneIdCtr->matIdToMatIdMap[i] = i;
-
-    if (replaces[i]) {
-      reinterpret_cast<riistudio::g3d::Material&>(mr) =
-          *old_materials[new_mats[i]];
-      continue;
-    }
+    auto& mr = out_model.materials.emplace_back();
+    mr.name = new_mats[i];
+    ctr.setConvertedMaterial(i, i);
 
     ImpMaterial impMat;
 
@@ -564,202 +206,74 @@ AssImporter::PrepareAss(bool mip_gen, int min_dim, int max_mip,
       for (unsigned j = 0; j < pMat->GetTextureCount((aiTextureType)t); ++j) {
         const auto [path, uvindex, mapmode] = GetTexture(pMat, t, j);
 
-        const ImpTexType impTexType =
-            ConvertTextureType(static_cast<aiTextureType>(t));
         const librii::gx::TextureWrapMode impWrapMode =
             ConvertWrapMode(mapmode);
 
-        ImpSampler impSamp{.type = impTexType,
-                           .path = getFileShort(path.C_Str()),
+        ImpSampler impSamp{.path = getFileShort(path.C_Str()),
                            .uv_channel = uvindex,
                            .wrap = impWrapMode};
         impMat.samplers.push_back(impSamp);
       }
     }
 
-    CompileMaterial(mr, impMat, texturesToImport);
-  }
-
-  std::set<std::pair<std::size_t, std::string>> unresolved;
-
-  for (auto& tex : texturesToImport) {
-    printf("Importing texture: %s\n", tex.c_str());
-
-    const int i = out_collection->getTextures().size();
-    auto& data = out_collection->getTextures().add();
-    data.setName(getFileShort(tex));
-
-    if (!importTexture(data, tex.c_str(), scratch, mip_gen, min_dim, max_mip)) {
-      // Favor PNG, and the current directory
-      if (!importTexture(
-              data,
-              (std::filesystem::path(model_path).parent_path() / (tex + ".png"))
-                  .string()
-                  .c_str(),
-              scratch, mip_gen, min_dim, max_mip)) {
-        printf("Cannot find texture %s\n", tex.c_str());
-        unresolved.emplace(i, tex);
-      }
+    if (impMat.samplers.size() > 0) {
+      mr.texture_name = impMat.samplers[0].path;
     }
   }
 
-  return unresolved;
-}
-
-void AssImporter::ImportAss(
-    const std::vector<std::pair<std::size_t, std::vector<u8>>>& data,
-    bool mip_gen, int min_dim, int max_mip, bool auto_outline, glm::vec3 tint) {
-  for (auto& [idx, idata] : data) {
-    auto& data = out_collection->getTextures()[idx];
-    bool imported = importTexture(data, idata.data(), idata.size(), scratch,
-                                  mip_gen, min_dim, max_mip);
-    (void)imported;
-    assert(imported);
-  }
-  std::unordered_map<std::string, libcube::Texture*> tex_lut;
-  for (auto& tex : out_collection->getTextures())
-    tex_lut.emplace(tex.getName(), &tex);
-
-  // llvm::BitVector default_textures(out_collection->getTextures().size());
-
-  // Handle uninitialized textures
-  for (u16 tex_idx = 0; tex_idx < out_collection->getTextures().size();
-       ++tex_idx) {
-    auto& tex = out_collection->getTextures()[tex_idx];
-    const bool tex_valid = tex.getWidth() != 0 && tex.getHeight() != 0;
-    if (tex_valid)
-      continue;
-    // default_textures[tex_idx] = true;
-
-    // 32x32 (32bpp)
-    const auto dummy_width = 32;
-    const auto dummy_height = 32;
-    tex.setWidth(dummy_width);
-    tex.setHeight(dummy_height);
-    scratch.resize(dummy_width * dummy_height * 4);
-    // Make a basic checkerboard
-    librii::image::generateCheckerboard(scratch, dummy_width, dummy_height);
-    tex.setMipmapCount(0);
-    tex.setTextureFormat(librii::gx::TextureFormat::CMPR);
-    tex.encode(scratch.data());
-    tex.setWidth(0); // hack..
+  // TODO: Handle material limitations for samplers..
+  for (auto& mat : out_model.materials) {
+    mat.enable_mip = true;
+    mat.mip_filter = true;
+    mat.min_filter = true;
+    mat.mag_filter = true;
   }
 
-  // Handle material limitations for samplers..
-  for (auto& mat : out_model->getMaterials()) {
-    auto& mdata = mat.getMaterialData();
-    for (int i = 0; i < mdata.samplers.size(); ++i) {
-      auto* sampler = &mdata.samplers[i];
-      if (sampler == nullptr)
-        continue;
-      auto* tex = tex_lut[sampler->mTexture]; // TODO
-      // assert(tex != nullptr);
-      if (tex == nullptr)
-        continue;
-
-      assert(power_of_2(64));
-      assert(!power_of_2(65));
-      if (!power_of_2(tex->getWidth()) || !power_of_2(tex->getHeight())) {
-        if (transaction != nullptr) {
-          transaction->callback(kpi::IOMessageClass::Warning, tex->getName(),
-                                std::string("Texture dimensions (") +
-                                    std::to_string(tex->getWidth()) + "x" +
-                                    std::to_string(tex->getHeight()) +
-                                    ") are not powers of two.");
-          transaction->state = kpi::TransactionState::Failure;
-          return;
-        }
-      }
-      if (!power_of_2(tex->getWidth())) {
-        sampler->mWrapU = librii::gx::TextureWrapMode::Clamp;
-      }
-      if (!power_of_2(tex->getHeight())) {
-        sampler->mWrapV = librii::gx::TextureWrapMode::Clamp;
-      }
-      if (tex->getMipmapCount() > 0)
-        sampler->mMinFilter = librii::gx::TextureFilter::lin_mip_lin;
-      if (tex->getWidth() == 0) {
-        sampler->mMagFilter = librii::gx::TextureFilter::Near;
-        tex->setWidth(32);
-      }
-      if (auto_outline) {
-        bool transparent = false;
-        const auto decoded_size = tex->getDecodedSize(true);
-
-        if (decoded_size == 0) {
-          assert(!"Invalid texture");
-          continue;
-        } else {
-          scratch.resize(decoded_size);
-          tex->decode(scratch, true);
-        }
-        for (u32 i = 0; i < decoded_size; i += 4) {
-          if (scratch[i] != 0xff) {
-            transparent = true;
-            break;
-          }
-        }
-        if (transparent) {
-          mdata.alphaCompare = {.compLeft = librii::gx::Comparison::GEQUAL,
-                                .refLeft = 128,
-                                .op = librii::gx::AlphaOp::_and,
-                                .compRight = librii::gx::Comparison::LEQUAL,
-                                .refRight = 255};
-          mdata.earlyZComparison = false;
-        }
-      }
-    }
-  }
-
-  ImportNode(root, tint);
-
-  if (auto* gmdl = dynamic_cast<g3d::Model*>(out_model); gmdl != nullptr)
-    gmdl->aabb = gmdl->getBones()[0].getAABB();
-
-  // Assign IDs
-  for (int i = 0; i < out_model->getMeshes().size(); ++i) {
-    auto& mesh = out_model->getMeshes()[i];
-    mesh.setId(i);
+  auto ok = ImportNode(out_model, root, settings.mModelTint);
+  if (!ok) {
+    return std::unexpected(
+        std::format("Failed to import root node {}", ok.error()));
   }
 
   // Vertex alpha default
-  // TODO: Material may be used by different meshes that still satisfy the
-  // requirements.
-  std::vector<u8> material_uses(out_model->getMaterials().size());
-  std::vector<u8> material_meshes(out_model->getMaterials().size());
-  for (auto& bone : out_model->getBones()) {
-    for (int i = 0; i < bone.getNumDisplays(); ++i) {
-      const auto& d = bone.getDisplay(i);
-      if (material_uses[d.matId] == 0)
-        material_meshes[d.matId] = d.polyId;
-      ++material_uses[d.matId];
+  for (auto& bone : out_model.bones) {
+    for (auto& draw : bone.draw_calls) {
+      EXPECT(draw.mat_index < out_model.materials.size());
+      auto& mat = out_model.materials[draw.mat_index];
+      EXPECT(draw.poly_index < out_model.meshes.size());
+      auto& poly = out_model.meshes[draw.poly_index];
+      const bool has_vertex_colors =
+          poly.vertex_descriptor &
+          (1 << static_cast<u32>(librii::gx::VertexAttribute::Color0));
+      if (!has_vertex_colors) {
+        continue;
+      }
+      bool has_vertex_alpha = false;
+      for (auto& mprim : poly.matrix_primitives) {
+        for (auto& primitive : mprim.primitives) {
+          for (auto& vtx : primitive.vertices) {
+            if (std::fabs(vtx.colors[0].a - 1.0f) >
+                std::numeric_limits<f32>::epsilon()) {
+              has_vertex_alpha = true;
+              goto mprim_loop_end;
+            }
+          }
+        }
+      }
+    mprim_loop_end:
+      if (has_vertex_alpha) {
+        mat.alpha_mode = librii::rhst::AlphaMode::Translucent;
+      }
     }
   }
 
-  for (int i = 0; i < out_model->getMaterials().size(); ++i) {
-    if (material_uses[i] > 1)
-      continue;
-    auto& mat = out_model->getMaterials()[i];
-    auto& mesh = out_model->getMeshes()[material_meshes[i]];
-
-    if (mesh.is_xlu_import) {
-      mat.getMaterialData().zMode = gx::ZMode{
-          .compare = true, .function = gx::Comparison::LEQUAL, .update = false};
-      mat.getMaterialData().blendMode = {.type = gx::BlendModeType::blend,
-                                         .source = gx::BlendModeFactor::src_a,
-                                         .dest = gx::BlendModeFactor::inv_src_a,
-                                         .logic = gx::LogicOp::_copy};
-      mat.getMaterialData().alphaCompare = {.compLeft = gx::Comparison::ALWAYS,
-                                            .refLeft = 0,
-                                            .op = gx::AlphaOp::_and,
-                                            .compRight = gx::Comparison::ALWAYS,
-                                            .refRight = 0};
-      mat.setXluPass(true);
-      mat.getMaterialData().earlyZComparison = true;
-    }
-  }
-
-  transaction->state = kpi::TransactionState::Complete;
+  // Add dummy weight
+  librii::rhst::WeightMatrix mtx{.weights = {librii::rhst::Weight{
+                                     .bone_index = 0,
+                                     .influence = 100,
+                                 }}};
+  out_model.weights.push_back(mtx);
+  return out_model;
 }
 
 } // namespace riistudio::ass

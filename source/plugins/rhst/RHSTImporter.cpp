@@ -1,17 +1,22 @@
 #include <core/3d/i3dmodel.hpp>
 #include <core/kpi/Plugins.hpp>
+
 #include <librii/hx/CullMode.hpp>
 #include <librii/hx/PixMode.hpp>
 #include <librii/hx/TextureFilter.hpp>
+#include <librii/image/CheckerBoard.hpp>
 #include <librii/rhst/RHST.hpp>
+
 #include <oishii/reader/binary_reader.hxx>
-#include <plugins/ass/ImportTexture.hpp>
+
 #include <plugins/g3d/collection.hpp>
 #include <plugins/gc/Export/Scene.hpp>
 #include <plugins/j3d/Material.hpp>
 #include <plugins/j3d/Scene.hpp>
+
 #include <rsl/FsDialog.hpp>
-#include <stb_image.h>
+#include <rsl/Stb.hpp>
+
 #include <vendor/thread_pool.hpp>
 
 IMPORT_STD;
@@ -294,6 +299,81 @@ static inline std::string getFileShort(const std::string& path) {
   // tmp = tmp.substr(0, tmp.rfind("."));
   return tmp;
 }
+Result<void> importTexture(libcube::Texture& data, u8* image,
+                           std::vector<u8>& scratch, bool mip_gen, int min_dim,
+                           int max_mip, int width, int height, int channels) {
+  if (!image) {
+    return std::unexpected(
+        "STB failed to parse image. Unsupported file format?");
+  }
+  if (width > 1024) {
+    return std::unexpected(
+        std::format("Width {} exceeds maximum of 1024", width));
+  }
+  if (height > 1024) {
+    return std::unexpected(
+        std::format("Height {} exceeds maximum of 1024", height));
+  }
+  if (!is_power_of_2(width)) {
+    return std::unexpected(std::format("Width {} is not a power of 2.", width));
+  }
+  if (!is_power_of_2(height)) {
+    return std::unexpected(
+        std::format("Height {} is not a power of 2.", height));
+  }
+
+  int num_mip = 0;
+  if (mip_gen && is_power_of_2(width) && is_power_of_2(height)) {
+    while ((num_mip + 1) < max_mip && (width >> (num_mip + 1)) >= min_dim &&
+           (height >> (num_mip + 1)) >= min_dim)
+      ++num_mip;
+  }
+  data.setTextureFormat(librii::gx::TextureFormat::CMPR);
+  data.setWidth(width);
+  data.setHeight(height);
+  data.setMipmapCount(num_mip);
+  data.setLod(false, 0.0f, static_cast<f32>(data.getImageCount()));
+  data.resizeData();
+  if (num_mip == 0) {
+    data.encode(image);
+  } else {
+    printf("Width: %u, Height: %u.\n", (unsigned)width, (unsigned)height);
+    u32 size = 0;
+    for (int i = 0; i <= num_mip; ++i) {
+      size += (width >> i) * (height >> i) * 4;
+      printf("Image %i: %u, %u. -> Total Size: %u\n", i, (unsigned)(width >> i),
+             (unsigned)(height >> i), size);
+    }
+    scratch.resize(size);
+
+    u32 slide = 0;
+    for (int i = 0; i <= num_mip; ++i) {
+      librii::image::resize(scratch.data() + slide, width >> i, height >> i,
+                            image, width, height, librii::image::Lanczos);
+      slide += (width >> i) * (height >> i) * 4;
+    }
+
+    data.encode(scratch.data());
+  }
+  return {};
+}
+
+Result<void> importTextureFromMemory(libcube::Texture& data,
+                                     std::span<const u8> span,
+                                     std::vector<u8>& scratch, bool mip_gen,
+                                     int min_dim, int max_mip) {
+  auto image = TRY(rsl::stb::load_from_memory(span));
+  return importTexture(data, image.data.data(), scratch, mip_gen, min_dim,
+                       max_mip, image.width, image.height, image.channels);
+}
+Result<void> importTextureFromFile(libcube::Texture& data,
+                                   std::string_view path,
+                                   std::vector<u8>& scratch, bool mip_gen,
+                                   int min_dim, int max_mip) {
+  auto image = TRY(rsl::stb::load(path));
+  return importTexture(data, image.data.data(), scratch, mip_gen, min_dim,
+                       max_mip, image.width, image.height, image.channels);
+}
 
 void import_texture(std::string tex, libcube::Texture* pdata,
                     std::filesystem::path file_path) {
@@ -305,26 +385,32 @@ void import_texture(std::string tex, libcube::Texture* pdata,
 
   std::vector<std::filesystem::path> search_paths;
   search_paths.push_back(file_path);
+  search_paths.push_back(file_path.parent_path() / (tex + ".png"));
   search_paths.push_back(file_path.parent_path() / "textures" / (tex + ".png"));
 
   for (const auto& path : search_paths) {
-    if (riistudio::ass::importTexture(data, path.string().c_str(), scratch,
-                                      mip_gen, min_dim, max_mip)) {
+    if (importTextureFromFile(data, path.string().c_str(), scratch, mip_gen,
+                              min_dim, max_mip)) {
       return;
     }
   }
   printf("Cannot find texture %s\n", tex.c_str());
+  // 32x32 (32bpp)
+  const auto dummy_width = 32;
+  const auto dummy_height = 32;
+  data.setWidth(dummy_width);
+  data.setHeight(dummy_height);
+  scratch.resize(dummy_width * dummy_height * 4);
+  // Make a basic checkerboard
+  librii::image::generateCheckerboard(scratch, dummy_width, dummy_height);
+  data.setMipmapCount(0);
+  data.setTextureFormat(librii::gx::TextureFormat::CMPR);
+  data.encode(scratch.data());
   // unresolved.emplace(i, tex);
 }
 
-void RHSTReader::read(kpi::IOTransaction& transaction) {
-  std::string error_msg;
-  auto result = librii::rhst::ReadSceneTree(transaction.data, error_msg);
-
-  if (!result.has_value()) {
-    transaction.state = kpi::TransactionState::Failure;
-    return;
-  }
+void CompileRHST(librii::rhst::SceneTree& rhst,
+                 kpi::IOTransaction& transaction) {
   int hw_threads = std::thread::hardware_concurrency();
   // Account for the main thread
   if (hw_threads > 1)
@@ -333,7 +419,7 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
 
   std::set<std::string> textures_needed;
 
-  for (auto& mat : result->materials) {
+  for (auto& mat : rhst.materials) {
     if (!mat.texture_name.empty())
       textures_needed.emplace(mat.texture_name);
   }
@@ -344,10 +430,10 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
 
   libcube::Model& mdl = scene.getModels().add();
 
-  for (auto& mat : result->materials) {
+  for (auto& mat : rhst.materials) {
     compileMaterial(mdl.getMaterials().add(), mat);
   }
-  for (auto& bone : result->bones) {
+  for (auto& bone : rhst.bones) {
     compileBone(mdl.getBones().add(), bone);
   }
 
@@ -371,11 +457,11 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
   }
 
   int i = 0;
-  for (auto& mesh : result->meshes) {
+  for (auto& mesh : rhst.meshes) {
     compileMesh(mdl.getMeshes().add(), mesh, i++, mdl);
   }
 
-  for (auto& weight : result->weights) {
+  for (auto& weight : rhst.weights) {
     auto& bweightgroup = mdl.mDrawMatrices.emplace_back();
 
     for (auto& influence : weight.weights) {
@@ -419,7 +505,7 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
 
   // Handle material presets
   if (auto* gmdl = dynamic_cast<g3d::Model*>(&mdl); gmdl != nullptr) {
-    for (auto& mat : result->materials) {
+    for (auto& mat : rhst.materials) {
       if (mat.preset_path_mdl0mat.empty()) {
         continue;
       }
@@ -452,6 +538,17 @@ void RHSTReader::read(kpi::IOTransaction& transaction) {
   }
 
   transaction.state = kpi::TransactionState::Complete;
+}
+
+void RHSTReader::read(kpi::IOTransaction& transaction) {
+  std::string error_msg;
+  auto result = librii::rhst::ReadSceneTree(transaction.data, error_msg);
+
+  if (!result.has_value()) {
+    transaction.state = kpi::TransactionState::Failure;
+    return;
+  }
+  CompileRHST(*result, transaction);
 }
 
 } // namespace riistudio::rhst
