@@ -9,6 +9,7 @@
 #include <librii/g3d/io/AnimTexPatIO.hpp>
 #include <rsl/Expected.hpp>
 #include <variant>
+#include <vendor/nlohmann/json.hpp>
 
 namespace librii::crate {
 
@@ -79,7 +80,37 @@ struct CrateAnimation {
   std::vector<g3d::BinaryTexPat> pat;        // .pat0
 
   std::string metadata;
+  nlohmann::json metadata_json{
+      {"author", "??"},
+      {"date_created", "??"},
+      {"comment", "??"},
+      {"tool", "??"},
+  };
 };
+
+inline std::optional<std::string> GetStringField(const CrateAnimation& crate,
+                                                 const std::string& field) {
+  if (!crate.metadata_json.contains(field)) {
+    return std::nullopt;
+  }
+  if (!crate.metadata_json[field].is_string()) {
+    return std::nullopt;
+  }
+  return crate.metadata_json[field].get<std::string>();
+}
+
+inline std::optional<std::string> GetAuthor(const CrateAnimation& crate) {
+  return GetStringField(crate, "author");
+}
+inline std::optional<std::string> GetDateCreated(const CrateAnimation& crate) {
+  return GetStringField(crate, "date_created");
+}
+inline std::optional<std::string> GetComment(const CrateAnimation& crate) {
+  return GetStringField(crate, "comment");
+}
+inline std::optional<std::string> GetTool(const CrateAnimation& crate) {
+  return GetStringField(crate, "tool");
+}
 
 [[nodiscard]] Result<CrateAnimationPaths>
 ScanCrateAnimationFolder(std::filesystem::path path);
