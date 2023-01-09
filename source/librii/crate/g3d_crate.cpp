@@ -8,6 +8,8 @@
 #include <core/kpi/Plugins.hpp>
 #include <plugins/g3d/G3dIo.hpp>
 
+#include <core/util/timestamp.hpp>
+
 IMPORT_STD;
 
 template <>
@@ -513,8 +515,18 @@ Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
     }
   }
 
-  const std::string metadata =
-      mdl.getBones().empty() ? "" : mdl.getBones()[0].mName;
+  const std::string s = mdl.getBones().empty() ? "" : mdl.getBones()[0].mName;
+
+  auto old_meta = s.substr(0, s.find("{BEGIN_STRUCTURED_DATA}"));
+  auto new_meta = s.substr(old_meta.size());
+  if (new_meta.size() > 23) {
+    new_meta = new_meta.substr(23);
+  }
+  auto as_json = nlohmann::json::parse(new_meta, nullptr, false);
+  if (as_json.is_discarded()) {
+    fprintf(stderr, "Can't read json block");
+    as_json = nlohmann::json();
+  }
 
   return CrateAnimation{
       .mat = mat,
@@ -524,7 +536,8 @@ Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
           brres->getAnim_Srts().begin(), brres->getAnim_Srts().end()),
       .clr = brres->clrs,
       .pat = brres->pats,
-      .metadata = metadata,
+      .metadata = old_meta,
+      .metadata_json = as_json,
   };
 }
 std::vector<u8> WriteRSPreset(const CrateAnimation& preset) {
@@ -543,8 +556,15 @@ std::vector<u8> WriteRSPreset(const CrateAnimation& preset) {
 
   mdl.mDrawMatrices.push_back(libcube::DrawMatrix{.mWeights = {{0, 1.0f}}});
 
-  // This is required for some reason
-  mdl.getBones().add().mName = preset.metadata;
+  auto json = preset.metadata_json;
+  // Fill in date field
+  const auto now = std::chrono::system_clock::now();
+  json["date_created"] = std::format("{:%B %d, %Y}", now);
+  json["tool"] = std::format("RiiStudio {}", GIT_TAG);
+
+  // A bone is required for some reason
+  mdl.getBones().add().mName = preset.metadata + "{BEGIN_STRUCTURED_DATA}" +
+                               nlohmann::to_string(json);
 
   oishii::Writer writer(0);
   riistudio::g3d::WriteBRRES(collection, writer);

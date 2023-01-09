@@ -88,6 +88,10 @@ if (MSVC)
   string( REPLACE "/std:c++20" "/std:c++latest" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} )
 endif()
 
+if (ASAN)
+  add_compile_definitions(_DISABLE_VECTOR_ANNOTATION=1 _DISABLE_STRING_ANNOTATION=1)
+endif()
+
 include(${CMAKE_CURRENT_SOURCE_DIR}/Configurations.cmake)
 
 add_subdirectory(core)

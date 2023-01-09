@@ -8,6 +8,8 @@ namespace riistudio {
 class IconManager {
 public:
   IconManager();
+  IconManager(const IconManager&) = delete;
+  IconManager(IconManager&&) = delete;
   ~IconManager() = default;
 
   void propagateIcons(kpi::ICollection& folder);
@@ -15,7 +17,10 @@ public:
   // Will upload if missing
   void drawImageIcon(const lib3d::Texture* tex, u32 dim);
 
+  static IconManager* get() { return sInstance; }
+
 private:
+  static IconManager* sInstance;
   IconDatabase mIconManager;
   rsl::dense_map<lib3d::GenerationIDTracked::GenerationID, IconDatabase::Key>
       mImageIcons;

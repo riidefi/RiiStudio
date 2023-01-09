@@ -5,9 +5,12 @@ namespace riistudio {
 
 static constexpr librii::image::NullTextureData<64, 64> NullCheckerboard;
 
+IconManager* IconManager::sInstance;
+
 IconManager::IconManager() {
   mNullIcon =
       std::make_unique<librii::image::NullTexture<64, 64>>(NullCheckerboard);
+  sInstance = this;
 }
 
 void IconManager::propagateIcons(kpi::ICollection& folder) {

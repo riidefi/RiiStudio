@@ -3,8 +3,10 @@
 #include "Common.hpp"
 
 #include <core/kpi/ActionMenu.hpp>
+#include <core/kpi/RichNameManager.hpp>
 #include <core/util/oishii.hpp>
 #include <core/util/timestamp.hpp>
+#include <frontend/widgets/IconManager.hpp>
 #include <librii/crate/g3d_crate.hpp>
 #include <librii/image/TextureExport.hpp>
 #include <plate/Platform.hpp>
@@ -476,6 +478,481 @@ std::string tryImportManySrt(riistudio::g3d::Collection& scn) {
 
   return {};
 }
+Result<std::vector<librii::crate::CrateAnimation>> tryImportManyRsPreset() {
+  const auto files =
+      TRY(rsl::ReadManyFile("Import Path"_j, "",
+                            {
+                                ".rspreset Material/Animation presets",
+                                "*.rspreset",
+                            }));
+
+  std::vector<librii::crate::CrateAnimation> presets;
+
+  for (const auto& file : files) {
+    const auto& path = file.path.string();
+    if (!path.ends_with(".rspreset")) {
+      continue;
+    }
+    auto rep = librii::crate::ReadRSPreset(file.data);
+    if (!rep) {
+      return std::unexpected(std::format(
+          "Failed to read .rspreset at \"{}\"\n{}", path, rep.error()));
+    }
+    presets.push_back(*rep);
+  }
+
+  return presets;
+}
+
+struct MergeAction {
+  riistudio::g3d::Model* target_model;
+  std::vector<librii::crate::CrateAnimation> source;
+  // target_selection.size() == target_model->getMaterials().size()
+  std::vector<std::optional<size_t>> source_selection;
+
+  [[nodiscard]] Result<void>
+  Populate(riistudio::g3d::Model* target_model_,
+           std::vector<librii::crate::CrateAnimation>&& source_) {
+    target_model = target_model_;
+    source = std::move(source_);
+    source_selection.clear();
+    source_selection.resize(target_model->getMaterials().size());
+    return RestoreDefaults();
+  }
+
+  [[nodiscard]] Result<void> MergeNothing() {
+    EXPECT(target_model != nullptr);
+    EXPECT(source_selection.size() == target_model->getMaterials().size());
+    std::ranges::fill(source_selection, std::nullopt);
+    return {};
+  }
+
+  [[nodiscard]] Result<void> RestoreDefaults() {
+    EXPECT(target_model != nullptr);
+    EXPECT(source_selection.size() == target_model->getMaterials().size());
+    std::unordered_map<std::string, size_t> lut;
+    for (auto&& [idx, preset] : rsl::enumerate(source)) {
+      lut[preset.mat.name] = idx;
+    }
+    // TODO: rsl::ToList() is a hack
+    for (auto&& [target_idx, target] :
+         rsl::enumerate(target_model->getMaterials() | rsl::ToList())) {
+      auto it = lut.find(target.name);
+      if (it != lut.end()) {
+        size_t source_idx = it->second;
+        EXPECT(source_idx < source.size());
+        source_selection[target_idx] = source_idx;
+      } else {
+        source_selection[target_idx] = std::nullopt;
+      }
+    }
+    return {};
+  }
+
+  [[nodiscard]] Result<void>
+  SetMergeSelection(size_t target_index, std::optional<size_t> source_index) {
+    EXPECT(target_model != nullptr);
+    EXPECT(source_selection.size() == target_model->getMaterials().size());
+    EXPECT(target_index < target_model->getMaterials().size());
+    if (source_index.has_value()) {
+      EXPECT(*source_index < source.size());
+      source_selection[target_index] = *source_index;
+    } else {
+      source_selection[target_index] = std::nullopt;
+    }
+    return {};
+  }
+
+  [[nodiscard]] Result<void> DontMerge(size_t target_index) {
+    EXPECT(target_model != nullptr);
+    EXPECT(source_selection.size() == target_model->getMaterials().size());
+    EXPECT(target_index < target_model->getMaterials().size());
+    source_selection[target_index] = std::nullopt;
+    return {};
+  }
+
+  [[nodiscard]] Result<void> RestoreDefault(size_t target_index) {
+    EXPECT(target_model != nullptr);
+    EXPECT(source_selection.size() == target_model->getMaterials().size());
+    EXPECT(target_index < target_model->getMaterials().size());
+    auto name = target_model->getMaterials()[target_index].name;
+    // Since later entries in LUT will override previous ones, we need to
+    // iterate backwards
+    std::optional<size_t> source_index = std::nullopt;
+    // TODO: rsl::ToList() is a hack
+    for (auto& [idx, source] :
+         std::views::reverse(rsl::enumerate(source) | rsl::ToList())) {
+      if (source.mat.name == name) {
+        source_index = idx;
+        break;
+      }
+    }
+    source_selection[target_index] = source_index;
+    return {};
+  }
+
+  [[nodiscard]] Result<std::vector<std::string>> PerformMerge() {
+    EXPECT(target_model != nullptr);
+    EXPECT(source_selection.size() == target_model->getMaterials().size());
+    std::vector<std::string> logs;
+    for (size_t i = 0; i < target_model->getMaterials().size(); ++i) {
+      auto source_index = source_selection[i];
+      if (!source_index.has_value()) {
+        continue;
+      }
+      auto& target_mat = target_model->getMaterials()[i];
+      auto& source_mat = source[*source_index];
+      auto err =
+          riistudio::g3d::ApplyCratePresetToMaterial(target_mat, source_mat);
+      if (err.size()) {
+        logs.push_back(
+            std::format("Attempted to merge {} into {}. Failed with error: {}",
+                        source_mat.mat.name, target_mat.name, err));
+      }
+    }
+    return logs;
+  }
+};
+
+void DrawComboSourceMat(MergeAction& action, int& item) {
+  if (item >= std::ssize(action.source)) {
+    item = 0;
+  }
+  char buf[128];
+  if (item < 0) {
+    snprintf(buf, sizeof(buf), "(None)");
+  } else {
+    snprintf(buf, sizeof(buf), "Preset: %s %s",
+             (const char*)ICON_FA_PAINT_BRUSH,
+             action.source[item].mat.name.c_str());
+  }
+
+  if (ImGui::BeginCombo("##combo", buf)) {
+    for (int i = -1; i < static_cast<int>(action.source.size()); ++i) {
+      bool selected = i == item;
+      if (i < 0) {
+        snprintf(buf, sizeof(buf), "(None)");
+      } else {
+        snprintf(buf, sizeof(buf), "Preset: %s %s",
+                 (const char*)ICON_FA_PAINT_BRUSH,
+                 action.source[i].mat.name.c_str());
+      }
+      if (ImGui::Selectable(buf, &selected)) {
+        item = i;
+      }
+      if (selected) {
+        ImGui::SetItemDefaultFocus();
+      }
+    }
+    ImGui::EndCombo();
+  }
+}
+void DrawComboSourceMat(MergeAction& action, std::optional<size_t>& item) {
+  int sel = item.value_or(-1);
+  DrawComboSourceMat(action, sel);
+  if (sel < 0) {
+    item = std::nullopt;
+  } else if (sel <= action.source.size()) {
+    item = sel;
+  }
+}
+
+struct MergeUIResult {
+  struct None {};
+  struct OK {
+    std::vector<std::string> logs;
+  };
+  struct Cancel {};
+  enum {
+    None_i,
+    OK_i,
+    Cancel_i,
+  };
+};
+using MergeUIResult_t =
+    std::variant<MergeUIResult::None, MergeUIResult::OK, MergeUIResult::Cancel>;
+
+[[nodiscard]] Result<MergeUIResult_t> DrawMergeActionUI(MergeAction& action) {
+  static size_t selected_row = 0;
+  if (selected_row >= action.source_selection.size()) {
+    selected_row = 0;
+  }
+
+  // Child 1: no border, enable horizontal scrollbar
+  {
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_HorizontalScrollbar;
+    ImGui::BeginChild("ChildL",
+                      ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 400),
+                      false, window_flags);
+    if (ImGui::BeginTable("split", 2,
+                          ImGuiTableFlags_Resizable |
+                              ImGuiTableFlags_NoSavedSettings |
+                              ImGuiTableFlags_PadOuterX)) {
+      ImGui::TableSetupColumn("Target Material");
+      ImGui::TableSetupColumn("Preset to apply");
+      ImGui::TableHeadersRow();
+      for (size_t i = 0; i < action.source_selection.size(); i++) {
+        ImGui::TableNextRow();
+        char buf[128]{};
+        snprintf(buf, sizeof(buf), "%s %s", (const char*)ICON_FA_PAINT_BRUSH,
+                 action.target_model->getMaterials()[i].name.c_str());
+        ImGui::TableSetColumnIndex(0);
+        bool selected = i == selected_row;
+        // Grab arrow keys with |=
+        selected |= ImGui::Selectable(buf, &selected,
+                                      ImGuiSelectableFlags_SpanAllColumns);
+        if (selected || ImGui::IsItemFocused()) {
+          selected_row = i;
+        }
+        ImGui::TableSetColumnIndex(1);
+        auto sel = action.source_selection[i];
+        if (!sel.has_value() || *sel >= action.source.size()) {
+          ImGui::TextUnformatted("(None)");
+        } else {
+          ImGui::TextUnformatted((const char*)ICON_FA_LONG_ARROW_ALT_LEFT);
+          ImGui::SameLine();
+          riistudio::g3d::Material tmp;
+          ImGui::PushStyleColor(
+              ImGuiCol_Text,
+              kpi::RichNameManager::getInstance().getRich(&tmp).getIconColor());
+          ImGui::TextUnformatted((const char*)ICON_FA_PAINT_BRUSH);
+          ImGui::PopStyleColor();
+          ImGui::SameLine();
+          ImGui::TextUnformatted(
+              (const char*)action.source[*sel].mat.name.c_str());
+        }
+      }
+      ImGui::EndTable();
+    }
+    ImGui::EndChild();
+  }
+
+  ImGui::SameLine();
+
+  // Child 2: rounded border
+  {
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
+    ImGui::BeginChild("ChildR", ImVec2(0, 400), true, window_flags);
+    RSL_DEFER(ImGui::EndChild());
+
+    ImGui::Text("Merge Material Selection:");
+    EXPECT(selected_row < action.source_selection.size());
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+    DrawComboSourceMat(action, action.source_selection[selected_row]);
+
+    auto button = ImVec2{ImGui::GetContentRegionAvail().x / 2.0f, 0};
+    if (ImGui::Button("Do not merge", button)) {
+      TRY(action.DontMerge(selected_row));
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Restore selection", button)) {
+      TRY(action.RestoreDefault(selected_row));
+    }
+
+    auto sel = action.source_selection[selected_row];
+    if (sel.has_value()) {
+      EXPECT(*sel < action.source.size());
+      auto& p = action.source[*sel];
+
+      // TODO: We shouldn't need a singleton
+      auto* icons = riistudio::IconManager::get();
+      EXPECT(icons != nullptr);
+      int it = 0;
+      for (auto& samp : p.mat.samplers) {
+        if (it++ != 0) {
+          ImGui::SameLine();
+        }
+        auto tex = std::ranges::find_if(
+            p.tex, [&](auto& x) { return x.name == samp.mTexture; });
+        EXPECT(tex != p.tex.end());
+        // TODO: This burns through generation IDs
+        riistudio::g3d::Texture dyn;
+        auto path = p.mat.name + tex->name;
+        auto hash = std::hash<std::string>()(path);
+        static_cast<librii::g3d::TextureData&>(dyn) = *tex;
+        dyn.mGenerationId = hash;
+        icons->drawImageIcon(&dyn, 64);
+      }
+
+      if (ImGui::BeginTable("Info", 2, ImGuiTableFlags_PadOuterX)) {
+        ImGui::TableSetupColumn("Field");
+        ImGui::TableSetupColumn("Value");
+        ImGui::TableHeadersRow();
+
+        auto DrawRow = [&](const char* desc, const char* val) {
+          ImGui::TableNextRow();
+          ImGui::TableSetColumnIndex(0);
+          ImGui::TextUnformatted(desc);
+          ImGui::TableSetColumnIndex(1);
+          ImGui::TextUnformatted(val);
+        };
+        DrawRow("Author", librii::crate::GetAuthor(p).value_or("?").c_str());
+        DrawRow("Date", librii::crate::GetDateCreated(p).value_or("?").c_str());
+        DrawRow("Comment", librii::crate::GetComment(p).value_or("?").c_str());
+        DrawRow("Tool", librii::crate::GetTool(p).value_or("?").c_str());
+        ImGui::EndTable();
+      }
+      ImGui::PushStyleColor(ImGuiCol_TableRowBgAlt,
+                            ImGui::GetStyleColorVec4(ImGuiCol_TableRowBg));
+      RSL_DEFER(ImGui::PopStyleColor());
+
+      if (ImGui::BeginTable("Animations", 2,
+                            ImGuiTableFlags_PadOuterX |
+                                ImGuiTableFlags_RowBg)) {
+        ImGui::TableSetupColumn("Type");
+        ImGui::TableSetupColumn("Included?");
+        ImGui::TableHeadersRow();
+
+        auto DrawRow = [&](const char* desc, size_t count) {
+          bool included = count > 0;
+
+          ImGui::TableNextRow();
+          ImGui::TableSetColumnIndex(0);
+          if (included) {
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg,
+                                   IM_COL32(0, 255, 0, 50));
+          } else {
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg,
+                                   IM_COL32(255, 0, 0, 50));
+          }
+
+          ImGui::TextUnformatted(desc);
+          ImGui::TableSetColumnIndex(1);
+          if (included) {
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg,
+                                   IM_COL32(0, 255, 0, 50));
+          } else {
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg,
+                                   IM_COL32(255, 0, 0, 50));
+          }
+          ImGui::Text("%s", included ? "Yes" : "No");
+        };
+        DrawRow("Texture SRT animation", p.srt.size());
+        DrawRow("Texture pattern animation", p.pat.size());
+        DrawRow("Shader color animation", p.clr.size());
+        ImGui::EndTable();
+      }
+    }
+    ImGui::SetCursorPosY(ImGui::GetWindowContentRegionMax().y - 48.0f);
+    auto wide = ImVec2{ImGui::GetContentRegionAvail().x, 0};
+    if (ImGui::Button("Merge nothing", wide)) {
+      TRY(action.MergeNothing());
+    }
+    if (ImGui::Button("Restore defaults", wide)) {
+      TRY(action.RestoreDefaults());
+    }
+  }
+  ImGui::Separator();
+
+  auto button = ImVec2{75, 0};
+  ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - button.x * 2);
+  {
+    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 255, 0, 100));
+    RSL_DEFER(ImGui::PopStyleColor());
+    if (ImGui::Button("OK", button)) {
+      auto logs = TRY(action.PerformMerge());
+      return MergeUIResult::OK{std::move(logs)};
+    }
+  }
+  ImGui::SameLine();
+  {
+    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 0, 0, 100));
+    RSL_DEFER(ImGui::PopStyleColor());
+    if (ImGui::Button("Cancel", button)) {
+      return MergeUIResult::Cancel{};
+    }
+  }
+  return MergeUIResult::None{};
+}
+
+class ImportPresetsAction
+    : public kpi::ActionMenu<riistudio::g3d::Model, ImportPresetsAction> {
+  struct State {
+    struct None {};
+    struct ImportDialog {};
+    struct MergeDialog {
+      MergeAction m_action;
+    };
+    struct Error : public ErrorState {
+      Error(std::string&& err) : ErrorState("Preset Import Error") {
+        ErrorState::enter(std::move(err));
+      }
+    };
+  };
+  std::variant<State::None, State::ImportDialog, State::MergeDialog,
+               State::Error>
+      m_state{State::None{}};
+
+public:
+  bool _context(riistudio::g3d::Model&) {
+    if (ImGui::MenuItem("Import multiple presets"_j)) {
+      m_state = State::ImportDialog{};
+    }
+
+    return false;
+  }
+
+  kpi::ChangeType _modal(riistudio::g3d::Model& mdl) {
+    if (m_state.index() == 3) {
+      State::Error& error = *std::get_if<State::Error>(&m_state);
+      error.enter(std::move(error.mError));
+      error.modal();
+      if (error.mError.empty()) {
+        m_state = State::None{};
+      }
+      return kpi::NO_CHANGE;
+    }
+
+    if (m_state.index() == 1) {
+      auto presets = tryImportManyRsPreset();
+      if (!presets) {
+        m_state = State::Error{std::move(presets.error())};
+        return kpi::NO_CHANGE;
+      }
+      MergeAction action;
+      auto ok = action.Populate(&mdl, std::move(*presets));
+      if (!ok) {
+        m_state = State::Error{std::move(presets.error())};
+        return kpi::NO_CHANGE;
+      }
+      m_state = State::MergeDialog{std::move(action)};
+    }
+    if (m_state.index() == 2) {
+      auto& merge = *std::get_if<State::MergeDialog>(&m_state);
+      ImGui::OpenPopup("Merge");
+      ImGui::SetNextWindowSize(ImVec2{800.0f, 446.0f});
+      if (ImGui::BeginPopup("Merge")) {
+        RSL_DEFER(ImGui::EndPopup());
+        auto ok = DrawMergeActionUI(merge.m_action);
+        if (!ok) {
+          m_state = State::Error{std::move(ok.error())};
+          return kpi::NO_CHANGE;
+        }
+        switch (ok->index()) {
+        case MergeUIResult::OK_i: {
+          auto logs = std::move(std::get_if<MergeUIResult::OK>(&*ok)->logs);
+          if (logs.size()) {
+            auto err = std::format("The following errors were encountered:\n{}",
+                                   rsl::join(logs, "\n"));
+            m_state = State::Error{std::move(err)};
+            return kpi::CHANGE;
+          } else {
+            m_state = State::None{};
+            return kpi::CHANGE_NEED_RESET;
+          }
+        }
+        case MergeUIResult::Cancel_i:
+          m_state = State::None{};
+          return kpi::NO_CHANGE;
+        case MergeUIResult::None_i:
+          return kpi::NO_CHANGE;
+        }
+      }
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
 
 class ImportTexturesAction
     : public kpi::ActionMenu<libcube::Scene, ImportTexturesAction> {
@@ -537,9 +1014,29 @@ public:
   }
 };
 
+struct TextEdit {
+  std::vector<char> m_buffer;
+
+  void Reset(const std::string& name) {
+    m_buffer.resize(name.size() + 1024);
+    std::fill(m_buffer.begin(), m_buffer.end(), '\0');
+    m_buffer.insert(m_buffer.begin(), name.begin(), name.end());
+  }
+
+  bool Modal(const std::string& name) {
+    auto new_name = std::string(m_buffer.data());
+    bool ok = ImGui::InputText(
+        name != new_name ? "Name*###Name" : "Name###Name", m_buffer.data(),
+        m_buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+    return ok;
+  }
+
+  std::string String() const { return std::string(m_buffer.data()); }
+};
+
 class RenameNode : public kpi::ActionMenu<kpi::IObject, RenameNode> {
   bool m_rename = false;
-  std::vector<char> m_buffer;
+  TextEdit m_textEdit;
 
 public:
   bool _context(kpi::IObject& obj) {
@@ -551,9 +1048,7 @@ public:
 
     if (can_rename && ImGui::MenuItem("Rename"_j)) {
       m_rename = true;
-      m_buffer.resize(name.size() + 1024);
-      std::fill(m_buffer.begin(), m_buffer.end(), '\0');
-      m_buffer.insert(m_buffer.begin(), name.begin(), name.end());
+      m_textEdit.Reset(name);
     }
 
     return false;
@@ -571,12 +1066,9 @@ public:
     if (ImGui::BeginPopupModal("Rename", &open, wflags)) {
       RSL_DEFER(ImGui::EndPopup());
       const auto name = obj.getName();
-      auto new_name = std::string(m_buffer.data());
-      bool ok = ImGui::InputText(
-          name != new_name ? "Name*###Name" : "Name###Name", m_buffer.data(),
-          m_buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
-      new_name = std::string(m_buffer.data());
+      bool ok = m_textEdit.Modal(name);
       if (ImGui::Button("Rename") || ok) {
+        const auto new_name = m_textEdit.String();
         if (name == new_name) {
           ImGui::CloseCurrentPopup();
           return kpi::NO_CHANGE;
@@ -783,25 +1275,25 @@ struct AddChild : public kpi::ActionMenu<riistudio::g3d::Bone, AddChild> {
   }
 };
 
-kpi::DecentralizedInstaller CrateReplaceInstaller([](kpi::ApplicationPlugins&
-                                                         installer) {
-  kpi::ActionMenuManager::get().addMenu(std::make_unique<AddChild>());
-  kpi::ActionMenuManager::get().addMenu(std::make_unique<RenameNode>());
-  kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsTEX0>());
-  kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsSRT0>());
-  kpi::ActionMenuManager::get().addMenu(std::make_unique<MakeRsPreset>());
-  kpi::ActionMenuManager::get().addMenu(std::make_unique<MakeRsPresetALL>());
-  kpi::ActionMenuManager::get().addMenu(std::make_unique<SaveAsMDL0MatShade>());
-  if (rsl::FileDialogsSupported()) {
-    kpi::ActionMenuManager::get().addMenu(std::make_unique<ApplyRsPreset>());
-    kpi::ActionMenuManager::get().addMenu(
-        std::make_unique<CrateReplaceAction>());
-    kpi::ActionMenuManager::get().addMenu(std::make_unique<ReplaceWithTEX0>());
-    kpi::ActionMenuManager::get().addMenu(std::make_unique<ReplaceWithSRT0>());
-    kpi::ActionMenuManager::get().addMenu(
-        std::make_unique<ImportTexturesAction>());
-    kpi::ActionMenuManager::get().addMenu(std::make_unique<ImportSRTAction>());
-  }
-});
+kpi::DecentralizedInstaller
+    CrateReplaceInstaller([](kpi::ApplicationPlugins& installer) {
+      auto& action_menu = kpi::ActionMenuManager::get();
+      action_menu.addMenu(std::make_unique<AddChild>());
+      action_menu.addMenu(std::make_unique<RenameNode>());
+      action_menu.addMenu(std::make_unique<SaveAsTEX0>());
+      action_menu.addMenu(std::make_unique<SaveAsSRT0>());
+      action_menu.addMenu(std::make_unique<MakeRsPreset>());
+      action_menu.addMenu(std::make_unique<MakeRsPresetALL>());
+      action_menu.addMenu(std::make_unique<ImportPresetsAction>());
+      action_menu.addMenu(std::make_unique<SaveAsMDL0MatShade>());
+      if (rsl::FileDialogsSupported()) {
+        action_menu.addMenu(std::make_unique<ApplyRsPreset>());
+        action_menu.addMenu(std::make_unique<CrateReplaceAction>());
+        action_menu.addMenu(std::make_unique<ReplaceWithTEX0>());
+        action_menu.addMenu(std::make_unique<ReplaceWithSRT0>());
+        action_menu.addMenu(std::make_unique<ImportTexturesAction>());
+        action_menu.addMenu(std::make_unique<ImportSRTAction>());
+      }
+    });
 
 } // namespace libcube::UI

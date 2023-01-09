@@ -10,7 +10,7 @@ namespace riistudio::lib3d {
 
 
 struct GenerationIDTracked {
-  using GenerationID = s32;
+  using GenerationID = s64;
 
   // Updating this value will force a cache invalidation. However, perhaps not
   // all changes warrant a cache invalidation. If you had the base type, you
@@ -32,9 +32,9 @@ struct GenerationIDTracked {
   }
 
   static GenerationID GetGlobalObjectID() {
-    assert(gObjectCounter < 0xffff && "Too many objects");
+    assert(gObjectCounter < 0xffff'ffff && "Too many objects");
 
-    const GenerationID id = (gObjectCounter << 16);
+    const GenerationID id = (gObjectCounter << 32);
     ++gObjectCounter;
     return id;
   }
