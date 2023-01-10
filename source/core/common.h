@@ -147,9 +147,15 @@ template <typename T> inline auto DoTry(T&& x) {
   }
 #endif
 
+#ifdef __clang__
+#define STACK_TRACE std::stacktrace::current()
+#else
+#define STACK_TRACE 0
+#endif
+
 #define EXPECT(expr, ...)                                                      \
   if (!(expr)) [[unlikely]] {                                                  \
-    auto cur = std::stacktrace::current();                                     \
+    auto cur = STACK_TRACE;                                     \
     return std::unexpected("[" __FILE_NAME__                                   \
                            ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__    \
                                                            "[Internal: " #expr \

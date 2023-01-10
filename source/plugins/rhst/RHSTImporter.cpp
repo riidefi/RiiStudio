@@ -1,3 +1,5 @@
+#include "RHSTImporter.hpp"
+
 #include <core/3d/i3dmodel.hpp>
 #include <core/kpi/Plugins.hpp>
 
@@ -299,10 +301,47 @@ static inline std::string getFileShort(const std::string& path) {
   // tmp = tmp.substr(0, tmp.rfind("."));
   return tmp;
 }
-Result<void> importTexture(libcube::Texture& data, u8* image,
+Result<void> importTextureImpl(libcube::Texture& data, std::span<u8> image,
+                               std::vector<u8>& scratch, int num_mip, int width,
+                               int height, int source_w, int source_h,
+                               librii::gx::TextureFormat fmt,
+                               librii::image::ResizingAlgorithm resize) {
+  data.setTextureFormat(fmt);
+  data.setWidth(width);
+  data.setHeight(height);
+  data.setMipmapCount(num_mip);
+  data.setLod(false, 0.0f, static_cast<f32>(data.getImageCount()));
+  data.resizeData();
+  if (num_mip == 0) {
+    std::vector<u8> scratch(4 * width * height);
+    librii::image::resize(scratch, width, height, image, source_w, source_h,
+                          resize);
+    TRY(data.encode(scratch));
+  } else {
+    printf("Width: %u, Height: %u.\n", (unsigned)width, (unsigned)height);
+    u32 size = 0;
+    for (int i = 0; i <= num_mip; ++i) {
+      size += (width >> i) * (height >> i) * 4;
+      printf("Image %i: %u, %u. -> Total Size: %u\n", i, (unsigned)(width >> i),
+             (unsigned)(height >> i), size);
+    }
+    scratch.resize(size);
+
+    u32 slide = 0;
+    for (int i = 0; i <= num_mip; ++i) {
+      librii::image::resize(std::span(scratch).subspan(slide), width >> i,
+                            height >> i, image, source_w, source_h, resize);
+      slide += (width >> i) * (height >> i) * 4;
+    }
+
+    TRY(data.encode(scratch));
+  }
+  return {};
+}
+Result<void> importTexture(libcube::Texture& data, std::span<u8> image,
                            std::vector<u8>& scratch, bool mip_gen, int min_dim,
                            int max_mip, int width, int height, int channels) {
-  if (!image) {
+  if (image.empty()) {
     return std::unexpected(
         "STB failed to parse image. Unsupported file format?");
   }
@@ -328,34 +367,9 @@ Result<void> importTexture(libcube::Texture& data, u8* image,
            (height >> (num_mip + 1)) >= min_dim)
       ++num_mip;
   }
-  data.setTextureFormat(librii::gx::TextureFormat::CMPR);
-  data.setWidth(width);
-  data.setHeight(height);
-  data.setMipmapCount(num_mip);
-  data.setLod(false, 0.0f, static_cast<f32>(data.getImageCount()));
-  data.resizeData();
-  if (num_mip == 0) {
-    data.encode(image);
-  } else {
-    printf("Width: %u, Height: %u.\n", (unsigned)width, (unsigned)height);
-    u32 size = 0;
-    for (int i = 0; i <= num_mip; ++i) {
-      size += (width >> i) * (height >> i) * 4;
-      printf("Image %i: %u, %u. -> Total Size: %u\n", i, (unsigned)(width >> i),
-             (unsigned)(height >> i), size);
-    }
-    scratch.resize(size);
 
-    u32 slide = 0;
-    for (int i = 0; i <= num_mip; ++i) {
-      librii::image::resize(scratch.data() + slide, width >> i, height >> i,
-                            image, width, height, librii::image::Lanczos);
-      slide += (width >> i) * (height >> i) * 4;
-    }
-
-    data.encode(scratch.data());
-  }
-  return {};
+  return importTextureImpl(data, image, scratch, num_mip, width, height, width,
+                           height, librii::gx::TextureFormat::CMPR);
 }
 
 Result<void> importTextureFromMemory(libcube::Texture& data,
@@ -363,16 +377,16 @@ Result<void> importTextureFromMemory(libcube::Texture& data,
                                      std::vector<u8>& scratch, bool mip_gen,
                                      int min_dim, int max_mip) {
   auto image = TRY(rsl::stb::load_from_memory(span));
-  return importTexture(data, image.data.data(), scratch, mip_gen, min_dim,
-                       max_mip, image.width, image.height, image.channels);
+  return importTexture(data, image.data, scratch, mip_gen, min_dim, max_mip,
+                       image.width, image.height, image.channels);
 }
 Result<void> importTextureFromFile(libcube::Texture& data,
                                    std::string_view path,
                                    std::vector<u8>& scratch, bool mip_gen,
                                    int min_dim, int max_mip) {
   auto image = TRY(rsl::stb::load(path));
-  return importTexture(data, image.data.data(), scratch, mip_gen, min_dim,
-                       max_mip, image.width, image.height, image.channels);
+  return importTexture(data, image.data, scratch, mip_gen, min_dim, max_mip,
+                       image.width, image.height, image.channels);
 }
 
 void import_texture(std::string tex, libcube::Texture* pdata,
@@ -405,7 +419,7 @@ void import_texture(std::string tex, libcube::Texture* pdata,
   librii::image::generateCheckerboard(scratch, dummy_width, dummy_height);
   data.setMipmapCount(0);
   data.setTextureFormat(librii::gx::TextureFormat::CMPR);
-  data.encode(scratch.data());
+  data.encode(scratch);
   // unresolved.emplace(i, tex);
 }
 

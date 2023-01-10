@@ -79,10 +79,11 @@ void importImage(Texture& tex, u32 import_lod) {
           ? 0
           : librii::image::getEncodedSize(tex.getWidth(), tex.getHeight(), fmt,
                                           import_lod - 1);
-  librii::image::transform(tex.getData() + offset, tex.getWidth() >> import_lod,
-                           tex.getHeight() >> import_lod,
-                           gx::TextureFormat::Extension_RawRGBA32, fmt, image,
-                           width, height);
+  librii::image::transform(
+      tex.getData().subspan(offset), tex.getWidth() >> import_lod,
+      tex.getHeight() >> import_lod, gx::TextureFormat::Extension_RawRGBA32,
+      fmt, {image, image + width * height * 4}, width, height);
+  stbi_image_free(image);
 }
 
 class ImageActions : public kpi::ActionMenu<Texture, ImageActions>,
@@ -269,10 +270,11 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
         data.setHeight(height);
         data.setMipmapCount(0);
         data.resizeData();
-        data.encode(image);
+        data.encode({image, static_cast<size_t>(width * height * 4)});
         stbi_image_free(image);
         tex.invalidateTextureCaches();
         delegate.commit("Import Image");
+        stbi_image_free(image);
       }
     }
     // ImGui::EndMenu();

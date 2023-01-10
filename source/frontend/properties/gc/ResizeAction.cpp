@@ -68,6 +68,8 @@ bool ResizeAction::resize_draw(Texture& data, bool* changed) {
     data.setHeight(resize[1].value);
     data.resizeData();
 
+	auto size = data.getEncodedSize(true);
+
     librii::image::transform(data.getData(), resize[0].value, resize[1].value,
                              data.getTextureFormat(), std::nullopt,
                              data.getData(), oldWidth, oldHeight,

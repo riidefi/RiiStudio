@@ -41,9 +41,10 @@ template <u32 W, u32 H> struct NullTexture : public riistudio::lib3d::Texture {
   u32 getEncodedSize(bool mip) const override {
     return data.pixels_rgba32raw.size();
   }
-  void decode(std::vector<u8>& out, bool mip) const override {
+  Result<void> decode(std::vector<u8>& out, bool mip) const override {
     out.insert(out.begin(), data.pixels_rgba32raw.begin(),
                data.pixels_rgba32raw.end());
+    return {};
   }
 
   u32 getImageCount() const override { return 1; }
@@ -58,7 +59,7 @@ template <u32 W, u32 H> struct NullTexture : public riistudio::lib3d::Texture {
   void setHeight(u16 height) override {}
   void setEncoder(bool optimizeForSize, bool color,
                   Occlusion occlusion) override {}
-  void encode(const u8* rawRGBA) override {}
+  Result<void> encode(std::span<const u8> rawRGBA) override { return {}; }
 };
 
 } // namespace librii::image

@@ -1,11 +1,21 @@
 #pragma once
 
 #include <core/kpi/Plugins.hpp>
+#include <librii/image/ImagePlatform.hpp>
 #include <librii/rhst/RHST.hpp>
+#include <plugins/gc/Export/Texture.hpp>
 
 namespace riistudio::rhst {
 
-[[nodiscard]] Result<void> importTexture(libcube::Texture& data, u8* image,
+[[nodiscard]] Result<void>
+importTextureImpl(libcube::Texture& data, std::span<u8> image,
+                  std::vector<u8>& scratch, int num_mip, int width, int height,
+                  int first_w, int first_h, librii::gx::TextureFormat fmt,
+                  librii::image::ResizingAlgorithm resize =
+                      librii::image::ResizingAlgorithm::Lanczos);
+
+[[nodiscard]] Result<void> importTexture(libcube::Texture& data,
+                                         std::span<u8> image,
                                          std::vector<u8>& scratch, bool mip_gen,
                                          int min_dim, int max_mip, int width,
                                          int height, int channels);

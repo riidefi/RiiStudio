@@ -15,10 +15,10 @@ struct Texture : public riistudio::lib3d::Texture {
     return librii::gx::computeImageSize(
         getWidth(), getHeight(), getTextureFormat(), mip ? getImageCount() : 0);
   }
-  inline void decode(std::vector<u8>& out, bool mip) const override {
+  Result<void> decode(std::vector<u8>& out, bool mip) const override {
     u32 size = getDecodedSize(mip);
     if (size == 0)
-      return;
+      return std::unexpected("Decoded size is 0");
     size = std::max(size, u32(1024 * 1024 * 4));
     // assert(size);
 
@@ -28,19 +28,19 @@ struct Texture : public riistudio::lib3d::Texture {
 
     if (librii::gx::IsPaletteFormat(getTextureFormat())) {
       // Palettes not supported
-      return;
+      return std::unexpected("CI formats are unsupported");
     }
 
-    librii::image::transform(
-        out.data(), getWidth(), getHeight(), getTextureFormat(),
+    return librii::image::transform(
+        out, getWidth(), getHeight(), getTextureFormat(),
         librii::gx::TextureFormat::Extension_RawRGBA32, getData(), getWidth(),
         getHeight(), mip ? getMipmapCount() : 0);
   }
 
   virtual librii::gx::TextureFormat getTextureFormat() const = 0;
   virtual void setTextureFormat(librii::gx::TextureFormat format) = 0;
-  virtual const u8* getData() const = 0;
-  virtual u8* getData() = 0;
+  virtual std::span<const u8> getData() const = 0;
+  virtual std::span<u8> getData() = 0;
   virtual void resizeData() = 0;
   virtual const u8* getPaletteData() const = 0;
   virtual u32 getPaletteFormat() const = 0;
@@ -68,13 +68,13 @@ struct Texture : public riistudio::lib3d::Texture {
   //!				- If mipmaps are configured, this must also
   //! include all additional mip levels.
   //!
-  void encode(const u8* rawRGBA) override {
+  Result<void> encode(std::span<const u8> rawRGBA) override {
     resizeData();
 
-    librii::image::transform(getData(), getWidth(), getHeight(),
-                             gx::TextureFormat::Extension_RawRGBA32,
-                             getTextureFormat(), rawRGBA, getWidth(),
-                             getHeight(), getMipmapCount());
+    return librii::image::transform(getData(), getWidth(), getHeight(),
+                                    gx::TextureFormat::Extension_RawRGBA32,
+                                    getTextureFormat(), rawRGBA, getWidth(),
+                                    getHeight(), getMipmapCount());
   }
 
   virtual void setLod(bool custom, f32 min_, f32 max_) = 0;

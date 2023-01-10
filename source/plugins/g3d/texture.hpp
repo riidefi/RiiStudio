@@ -19,8 +19,8 @@ struct Texture : public librii::g3d::TextureData,
   void setTextureFormat(librii::gx::TextureFormat f) override { format = f; }
   u32 getImageCount() const override { return number_of_images; }
   void setImageCount(u32 c) override { number_of_images = c; }
-  const u8* getData() const override { return data.data(); }
-  u8* getData() override { return data.data(); }
+  std::span<const u8> getData() const override { return data; }
+  std::span<u8> getData() override { return data; }
   void resizeData() override { data.resize(getEncodedSize(true)); }
   const u8* getPaletteData() const override { return nullptr; }
   u32 getPaletteFormat() const override { return 0; }
