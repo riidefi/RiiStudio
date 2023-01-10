@@ -62,6 +62,7 @@ void ImagePreview::draw(float wd, float ht, bool mip_slider) {
     return;
   }
 
+
 #ifdef RII_GL
   glBindTexture(GL_TEXTURE_2D, mGpuTexId);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, static_cast<f32>(mLod));
@@ -77,7 +78,8 @@ void ImagePreview::draw(float wd, float ht, bool mip_slider) {
     ImGui::EndPopup();
   }
 
-  if (mip_slider && mNumMipMaps > 0)
+  if (mip_slider && mNumMipMaps > 0) {
     ImGui::SliderInt("LOD", &mLod, 0, mNumMipMaps);
+  }
 }
 } // namespace riistudio::frontend

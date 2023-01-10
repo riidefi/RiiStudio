@@ -26,8 +26,8 @@ struct Texture : public librii::j3d::TextureData, public libcube::Texture {
   }
   u32 getImageCount() const override { return mImageCount; }
   void setImageCount(u32 c) override { mImageCount = c; }
-  const u8* getData() const override { return mData.data(); }
-  u8* getData() override { return mData.data(); }
+  std::span<const u8> getData() const override { return mData; }
+  std::span<u8> getData() override { return mData; }
   void resizeData() override { mData.resize(getEncodedSize(true)); }
 
   const u8* getPaletteData() const override { return nullptr; }

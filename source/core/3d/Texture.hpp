@@ -8,7 +8,6 @@
 
 namespace riistudio::lib3d {
 
-
 struct GenerationIDTracked {
   using GenerationID = s64;
 
@@ -64,7 +63,7 @@ struct Texture : public virtual kpi::IObject, public GenerationIDTracked {
     }
   }
   virtual u32 getEncodedSize(bool mip) const = 0;
-  virtual void decode(std::vector<u8>& out, bool mip) const = 0;
+  virtual Result<void> decode(std::vector<u8>& out, bool mip) const = 0;
 
   virtual u32 getImageCount() const = 0;
   virtual void setImageCount(u32 c) = 0;
@@ -103,7 +102,7 @@ struct Texture : public virtual kpi::IObject, public GenerationIDTracked {
   //!				- If mipmaps are configured, this must also
   //!				  include all additional mip levels.
   //!
-  virtual void encode(const u8* rawRGBA) = 0;
+  virtual Result<void> encode(std::span<const u8> rawRGBA) = 0;
 };
 
 } // namespace riistudio::lib3d

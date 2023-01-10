@@ -7,7 +7,9 @@
 #include <core/util/oishii.hpp>
 #include <core/util/timestamp.hpp>
 #include <frontend/widgets/IconManager.hpp>
+#include <frontend/widgets/Lib3dImage.hpp>
 #include <librii/crate/g3d_crate.hpp>
+#include <librii/image/ImagePlatform.hpp>
 #include <librii/image/TextureExport.hpp>
 #include <plate/Platform.hpp>
 #include <plugins/g3d/collection.hpp>
@@ -33,7 +35,7 @@ void OverwriteWithG3dTex(libcube::Texture& tex,
   tex.setLod(rep.custom_lod, rep.minLod, rep.maxLod);
   tex.setSourcePath(rep.sourcePath);
   tex.resizeData();
-  memcpy(tex.getData(), rep.data.data(),
+  memcpy(tex.getData().data(), rep.data.data(),
          std::min<u32>(tex.getEncodedSize(true), rep.data.size()));
 }
 struct ErrorState {
@@ -144,7 +146,7 @@ class SaveAsTEX0 : public kpi::ActionMenu<libcube::Texture, SaveAsTEX0> {
         .data = {},
     };
     tex0.data.resize(tex.getEncodedSize(true));
-    memcpy(tex0.data.data(), tex.getData(),
+    memcpy(tex0.data.data(), tex.getData().data(),
            std::min<u32>(tex.getEncodedSize(true), tex0.data.size()));
     auto buf = librii::crate::WriteTEX0(tex0);
     if (buf.empty()) {
@@ -398,6 +400,37 @@ public:
   }
 };
 
+Result<librii::g3d::TextureData> ReadTexture(const rsl::File& file) {
+  const auto& path = file.path.string();
+  if (path.ends_with(".tex0")) {
+    auto rep = librii::crate::ReadTEX0(file.data);
+    if (!rep) {
+      return std::unexpected("Failed to read .tex0 at \"" + std::string(path) +
+                             "\"\n" + rep.error());
+    }
+    return rep;
+  }
+
+  auto image = rsl::stb::load(path);
+  if (!image) {
+    return std::unexpected(
+        std::format("Failed to import texture {}: stb_image didn't "
+                    "recognize it or didn't exist.",
+                    path));
+  }
+  std::vector<u8> scratch;
+  riistudio::g3d::Texture tex;
+  const auto ok = riistudio::rhst::importTexture(
+      tex, image->data, scratch, true, 64, 4, image->width, image->height,
+      image->channels);
+  if (!ok) {
+    return std::unexpected(
+        std::format("Failed to import texture {}: {}", path, ok.error()));
+  }
+  tex.setName(file.path.stem().string());
+  return tex;
+}
+
 std::string tryImportMany(libcube::Scene& scn) {
   const auto files = rsl::ReadManyFile("Import Path"_j, "",
                                        {
@@ -421,33 +454,11 @@ std::string tryImportMany(libcube::Scene& scn) {
   }
 
   for (const auto& file : *files) {
-    const auto& path = file.path.string();
-    if (path.ends_with(".tex0")) {
-      auto rep = librii::crate::ReadTEX0(file.data);
-      if (!rep) {
-        return "Failed to read .tex0 at \"" + std::string(path) + "\"\n" +
-               rep.error();
-      }
-      OverwriteWithG3dTex(scn.getTextures().add(), *rep);
-
-      continue;
+    auto tex = ReadTexture(file);
+    if (!tex) {
+      return tex.error();
     }
-
-    auto image = rsl::stb::load(path);
-    if (!image) {
-      return std::format("Failed to import texture {}: stb_image didn't "
-                         "recognize it or didn't exist.",
-                         path);
-    }
-    std::vector<u8> scratch;
-    auto& tex = scn.getTextures().add();
-    const auto ok = riistudio::rhst::importTexture(
-        tex, image->data.data(), scratch, true, 64, 4, image->width,
-        image->height, image->channels);
-    if (!ok) {
-      return std::format("Failed to import texture {}: {}", path, ok.error());
-    }
-    tex.setName(file.path.stem().string());
+    OverwriteWithG3dTex(scn.getTextures().add(), *tex);
   }
 
   return {};
@@ -865,6 +876,360 @@ using MergeUIResult_t =
   return MergeUIResult::None{};
 }
 
+struct AdvancedTextureConverter {
+  librii::gx::TextureFormat format{librii::gx::TextureFormat::CMPR};
+  int mip_levels{1}; // [1, 10]
+  int width{};       // [1, 1024]
+  int height{};      // [1, 1024]
+  bool constrain{true};
+  // For constraint
+  int first_width{};
+  int first_height{};
+  // For encoding -- just the first MIP level
+  std::vector<u8> source_data;
+  //
+  riistudio::g3d::Texture dst_encoded;
+
+  riistudio::frontend::Lib3dCachedImagePreview dst_preview;
+
+  librii::image::ResizingAlgorithm resizer{
+      librii::image::ResizingAlgorithm::Lanczos};
+
+  [[nodiscard]] Result<void> Populate(const libcube::Texture& tex) {
+    format = tex.getTextureFormat();
+    mip_levels = tex.getMipmapCount() + 1;
+    width = tex.getWidth();
+    height = tex.getHeight();
+    constrain = true;
+    first_width = width;
+    first_height = height;
+    source_data.clear();
+    tex.decode(source_data, false);
+    return ReEncode();
+  }
+
+  struct Info {
+    u32 size_bytes{};
+  };
+  [[nodiscard]] Result<Info> GetInfo() {
+    EXPECT(width >= 1 && width <= 1024);
+    EXPECT(height >= 1 && height <= 1024);
+    EXPECT(mip_levels >= 1 && mip_levels <= 10);
+    u32 size =
+        librii::image::getEncodedSize(width, height, format, mip_levels - 1);
+    return Info{
+        .size_bytes = size,
+    };
+  }
+
+  [[nodiscard]] Result<void> SetMipLevels(int x) {
+    EXPECT(x >= 1 && x <= 10);
+    auto old = mip_levels;
+    mip_levels = x;
+    auto ok = ReEncode();
+    if (!ok) {
+      mip_levels = old;
+      (void)ReEncode();
+    }
+    return ok;
+  }
+
+  [[nodiscard]] Result<void> SetWidth(int x) {
+    EXPECT(x >= 1 && x <= 1024);
+    auto old_h = height;
+    auto old_w = width;
+    if (constrain) {
+      float ratio =
+          static_cast<float>(first_height) / static_cast<float>(first_width);
+      auto maybe_height = static_cast<int>(roundf(x * ratio));
+      EXPECT(maybe_height >= 1 && maybe_height <= 1024);
+      height = maybe_height;
+    }
+    width = x;
+
+    auto ok = ReEncode();
+    if (!ok) {
+      width = old_w;
+      height = old_h;
+      (void)ReEncode();
+    }
+
+    return ok;
+  }
+  [[nodiscard]] Result<void> SetHeight(int x) {
+    EXPECT(x >= 1 && x <= 1024);
+    auto old_h = height;
+    auto old_w = width;
+    if (constrain) {
+      float ratio =
+          static_cast<float>(first_width) / static_cast<float>(first_height);
+      auto maybe_width = static_cast<int>(roundf(x * ratio));
+      EXPECT(maybe_width >= 1 && maybe_width <= 1024);
+      width = maybe_width;
+    }
+    height = x;
+    auto ok = ReEncode();
+    if (!ok) {
+      width = old_w;
+      height = old_h;
+      (void)ReEncode();
+    }
+    return ok;
+  }
+
+  // On any setting change
+  [[nodiscard]] Result<void> ReEncode() {
+    EXPECT(width >= 1 && width <= 1024);
+    EXPECT(height >= 1 && height <= 1024);
+    EXPECT(mip_levels >= 1 && mip_levels <= 10);
+    u32 src_size = first_width * first_height * 4;
+    // If mips are also sent, just ignore
+    EXPECT(source_data.size() >= src_size);
+    std::vector<u8> scratch;
+    TRY(riistudio::rhst::importTextureImpl(
+        dst_encoded, source_data, scratch, mip_levels - 1, width, height,
+        first_width, first_height, format, resizer));
+    // Bust cache
+    dst_encoded.nextGenerationId();
+    return {};
+  }
+
+  [[nodiscard]] Result<void> SetConstrain(bool c) {
+    if (c && !constrain) {
+      TRY(SetWidth(first_width));
+      TRY(SetHeight(first_height));
+      constrain = true;
+    } else if (!c && constrain) {
+      constrain = false;
+    }
+    return {};
+  }
+};
+enum class TCResult {
+  None,
+  OK,
+  Cancel,
+};
+Result<TCResult> DrawAdvTexConv(AdvancedTextureConverter& action) {
+  // Child 1: no border, enable horizontal scrollbar
+  {
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_HorizontalScrollbar;
+    ImGui::BeginChild("ChildL",
+                      ImVec2(ImGui::GetContentRegionAvail().x - 350.0f,
+                             ImGui::GetContentRegionAvail().y - 46.0f),
+                      false, window_flags);
+    float w = 30.0f;
+    float h = 30.0f;
+    f32 aspect = (static_cast<f32>(action.dst_encoded.width) /
+                  static_cast<f32>(action.dst_encoded.height));
+    auto avail = ImGui::GetContentRegionAvail();
+    // For LOD slider
+    if (action.mip_levels > 1) {
+      avail.y -= 50.0f;
+    }
+    if (aspect >= 1.0f) {
+      h = avail.y;
+      w = h * aspect;
+    } else {
+      w = avail.x;
+      h = w / aspect;
+    }
+    f32 x_offset = (avail.x - w) / 2.0f;
+    f32 y_offset = (avail.y - h) / 2.0f;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + x_offset);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + y_offset);
+    action.dst_preview.draw(action.dst_encoded, w, h);
+    ImGui::EndChild();
+  }
+
+  ImGui::SameLine();
+
+  // Child 2: rounded border
+  {
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
+    ImGui::BeginChild("ChildR",
+                      ImVec2(0, ImGui::GetContentRegionAvail().y - 46.0f), true,
+                      window_flags);
+    RSL_DEFER(ImGui::EndChild());
+
+    auto info = TRY(action.GetInfo());
+    ImGui::Text("Filesize: %u", info.size_bytes);
+
+    auto fmt =
+        imcxx::EnumCombo<librii::gx::TextureFormat>("Format", action.format);
+    if (fmt != action.format &&
+        fmt == librii::gx::TextureFormat::Extension_RawRGBA32) {
+      pfd::message(
+          "Error"_j, //
+          "Warning: Extension_RawRGBA32 is not a real format; it tells "
+          "RiiStudio's renderer to pass the raw texture data directly to "
+          "the host GPU skipping encoding as a GC texture. This can be "
+          "useful for determining if the GC texture codec is at fault for a "
+          "bug, but should not be used in actual files.",
+          pfd::choice::ok, pfd::icon::warning);
+    }
+    if (fmt != action.format) {
+      action.format = fmt;
+      TRY(action.ReEncode());
+    }
+    int mip = action.mip_levels;
+    ImGui::InputInt("Mip Levels", &mip);
+    if (mip != action.mip_levels) {
+      TRY(action.SetMipLevels(mip));
+    }
+    auto button = ImVec2{ImGui::GetContentRegionAvail().x / 2.2f, 0};
+    int w = action.width;
+    ImGui::SetNextItemWidth(button.x);
+    ImGui::InputInt("W", &w);
+    int h = action.height;
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(button.x);
+    ImGui::InputInt("H", &h);
+    if (w != action.width) {
+      TRY(action.SetWidth(w));
+    } else if (h != action.height) {
+      TRY(action.SetHeight(h));
+    }
+    // ImGui::SameLine();
+    // if (ImGui::Button("Apply", button)) {
+    //   TRY(action.ReEncode());
+    // }
+    bool aspect = action.constrain;
+    ImGui::Checkbox("Constrain?", &aspect);
+    if (aspect != action.constrain) {
+      TRY(action.SetConstrain(aspect));
+    }
+    action.resizer = imcxx::EnumCombo("Resizing algorithm", action.resizer);
+  }
+  ImGui::Separator();
+
+  auto button = ImVec2{75, 0};
+  ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - button.x * 2);
+  {
+    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 255, 0, 100));
+    RSL_DEFER(ImGui::PopStyleColor());
+    if (ImGui::Button("OK", button)) {
+      return TCResult::OK;
+    }
+  }
+  ImGui::SameLine();
+  {
+    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 0, 0, 100));
+    RSL_DEFER(ImGui::PopStyleColor());
+    if (ImGui::Button("Cancel", button)) {
+      return TCResult::Cancel;
+    }
+  }
+
+  return TCResult::None;
+}
+class AdvTexConvAction
+    : public kpi::ActionMenu<libcube::Texture, AdvTexConvAction> {
+  struct State {
+    struct None {};
+    struct Edit {
+      AdvancedTextureConverter m_cvtr;
+    };
+  };
+  std::variant<State::None, State::Edit> m_state{State::None{}};
+
+  void error(const std::string& msg) {
+    pfd::message("Error"_j, //
+                 msg, pfd::choice::ok, pfd::icon::warning);
+  }
+
+public:
+  bool _context(libcube::Texture& tex) {
+    if (ImGui::BeginMenu("Advanced texture editor"_j)) {
+      RSL_DEFER(ImGui::EndMenu());
+      if (ImGui::MenuItem("Edit")) {
+        AdvancedTextureConverter cvtr{};
+        auto ok = cvtr.Populate(tex);
+        if (!ok) {
+          error("Cannot open advanced texture editor:\n"_j + ok.error());
+          return false;
+        }
+        m_state = State::Edit{std::move(cvtr)};
+      }
+      if (ImGui::MenuItem("Replace")) {
+        AdvancedTextureConverter cvtr{};
+        const auto file = rsl::ReadOneFile("Import Path"_j, "",
+                                           {
+                                               "Image files",
+                                               "*.tex0;*.png;*.tga;*.jpg;*.bmp",
+                                               "TEX0 Files",
+                                               "*.tex0",
+                                               "PNG Files",
+                                               "*.png",
+                                               "TGA Files",
+                                               "*.tga",
+                                               "JPG Files",
+                                               "*.jpg",
+                                               "BMP Files",
+                                               "*.bmp",
+                                               "All Files",
+                                               "*",
+                                           });
+        if (!file) {
+          error(file.error());
+          return false;
+        }
+
+        auto new_tex = ReadTexture(*file);
+        if (!new_tex) {
+          error(new_tex.error());
+          return false;
+        }
+        riistudio::g3d::Texture dyn;
+        static_cast<librii::g3d::TextureData&>(dyn) = *new_tex;
+        auto ok = cvtr.Populate(dyn);
+        if (!ok) {
+          error("Cannot open advanced texture editor:\n"_j + ok.error());
+          return false;
+        }
+        m_state = State::Edit{std::move(cvtr)};
+      }
+    }
+
+    return false;
+  }
+
+  kpi::ChangeType _modal(libcube::Texture& tex) {
+    if (m_state.index() == 1) {
+      auto& cvtr = std::get_if<State::Edit>(&m_state)->m_cvtr;
+
+      auto id = ImGui::GetID("Texture Editor");
+      ImGui::OpenPopup(id);
+      ImGui::SetNextWindowSize(ImVec2{800.0f, 446.0f}, ImGuiCond_Once);
+      if (ImGui::BeginPopupEx(id, ImGuiWindowFlags_NoSavedSettings)) {
+        RSL_DEFER(ImGui::EndPopup());
+        auto ok = DrawAdvTexConv(cvtr);
+        if (!ok) {
+          error(ok.error());
+          return kpi::CHANGE;
+        }
+        switch (*ok) {
+        case TCResult::None:
+          return kpi::NO_CHANGE;
+        case TCResult::OK:
+          if (auto ok = cvtr.ReEncode(); !ok) {
+            error(ok.error());
+            return kpi::CHANGE;
+          }
+          cvtr.dst_encoded.name = tex.getName();
+          OverwriteWithG3dTex(tex, cvtr.dst_encoded);
+          m_state = State::None{};
+          return kpi::CHANGE;
+        case TCResult::Cancel:
+          m_state = State::None{};
+          return kpi::NO_CHANGE;
+        }
+      }
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
 class ImportPresetsAction
     : public kpi::ActionMenu<riistudio::g3d::Model, ImportPresetsAction> {
   struct State {
@@ -1286,6 +1651,7 @@ kpi::DecentralizedInstaller
       action_menu.addMenu(std::make_unique<MakeRsPresetALL>());
       action_menu.addMenu(std::make_unique<ImportPresetsAction>());
       action_menu.addMenu(std::make_unique<SaveAsMDL0MatShade>());
+      action_menu.addMenu(std::make_unique<AdvTexConvAction>());
       if (rsl::FileDialogsSupported()) {
         action_menu.addMenu(std::make_unique<ApplyRsPreset>());
         action_menu.addMenu(std::make_unique<CrateReplaceAction>());

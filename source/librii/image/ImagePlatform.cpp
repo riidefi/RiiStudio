@@ -6,6 +6,8 @@
 #include <vendor/avir/lancir.h>
 #include <vendor/dolemu/TextureDecoder/TextureDecoder.h>
 
+#include <rsl/Ranges.hpp>
+
 IMPORT_STD;
 
 namespace librii::image {
@@ -215,129 +217,126 @@ void encodeRGBA8(u8* dst, const u32* src4, u32 width, u32 height) {
 }
 
 // raw 8-bit RGBA -> X
-void encode(u8* dst, const u8* src, int width, int height,
-            gx::TextureFormat texformat) {
+Result<void> encode(u8* dst, const u8* src, int width, int height,
+                    gx::TextureFormat texformat) {
   if (texformat == gx::TextureFormat::CMPR) {
     EncodeDXT1(dst, src, width, height);
-    return;
+    return {};
   }
 
   if (texformat == gx::TextureFormat::I4) {
     encodeI4(dst, (const u32*)src, width, height);
-    return;
+    return {};
   }
 
   if (texformat == gx::TextureFormat::I8) {
     encodeI8(dst, (const u32*)src, width, height);
-    return;
+    return {};
   }
 
   if (texformat == gx::TextureFormat::IA4) {
     encodeIA4(dst, (const u32*)src, width, height);
-    return;
+    return {};
   }
 
   if (texformat == gx::TextureFormat::IA8) {
     encodeIA8(dst, (const u32*)src, width, height);
-    return;
+    return {};
   }
 
   if (texformat == gx::TextureFormat::RGB565) {
     encodeRGB565(dst, (const u32*)src, width, height);
-    return;
+    return {};
   }
 
   if (texformat == gx::TextureFormat::RGB5A3) {
     encodeRGB5A3(dst, (const u32*)src, width, height);
-    return;
+    return {};
   }
 
   if (texformat == gx::TextureFormat::RGBA8) {
     encodeRGBA8(dst, (const u32*)src, width, height);
-    return;
+    return {};
   }
 
   // No palette support
-  assert(false);
+  return std::unexpected("No palette support");
 }
 // Change format, no resizing
-void reencode(u8* dst, const u8* src, int width, int height,
-              gx::TextureFormat oldFormat, gx::TextureFormat newFormat) {
-  std::vector<u8> tmp(width * height * 4);
+Result<void> reencode(u8* dst, const u8* src, int width, int height,
+                      gx::TextureFormat oldFormat,
+                      gx::TextureFormat newFormat) {
+  std::vector<u8> tmp(width * height * 4 + 1024 /* Bias for SIMD */);
   decode(tmp.data(), src, width, height, oldFormat);
-  encode(dst, tmp.data(), width, height, newFormat);
+  return encode(dst, tmp.data(), width, height, newFormat);
 }
 
-void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy,
-            ResizingAlgorithm type) {
-  bool dstSrcTmp = dst == src;
-  u8* realDst = nullptr;
-  std::vector<u8> tmp(0);
-
-  assert(dst != nullptr);
-  if (dst == nullptr) {
-    return;
-  } else if (src == nullptr) {
-    src = dst;
-  }
-
-  if (dstSrcTmp) {
-    tmp.resize(dx * dy * 4);
-    realDst = dst;
-    dst = tmp.data();
-  }
+void resize(std::span<u8> dst, int dx, int dy, std::span<const u8> src, int sx,
+            int sy, ResizingAlgorithm type) {
+  std::vector<u8> src_(src.begin(), src.end());
+  std::vector<u8> dst_(dst.begin(), dst.end());
   if (type == ResizingAlgorithm::AVIR) {
-
     avir::CImageResizer<> Avir8BitImageResizer(8);
     // TODO: Allow more customization (args, k)
-    Avir8BitImageResizer.resizeImage(src, sx, sy, 0, dst, dx, dy, 4, 0);
-    // assert((sx == dx && sy == dy) || memcmp(src, dst, sx * sy * 4));
+    Avir8BitImageResizer.resizeImage(src_.data(), sx, sy, 0, dst_.data(), dx,
+                                     dy, 4, 0);
   } else {
     avir::CLancIR AvirLanczos;
-    AvirLanczos.resizeImage(src, sx, sy, 0, dst, dx, dy, 4, 0);
+    AvirLanczos.resizeImage(src_.data(), sx, sy, 0, dst_.data(), dx, dy, 4, 0);
   }
 
-  if (dstSrcTmp) {
-    assert(realDst);
-    memcpy(realDst, dst, tmp.size());
+  for (size_t i = 0; i < dst_.size(); ++i) {
+    dst[i] = dst_[i];
   }
 }
 
 struct RGBA32ImageSource {
-  RGBA32ImageSource(const u8* buf, int w, int h, gx::TextureFormat fmt)
-      : mBuf(buf), mW(w), mH(h), mFmt(fmt) {
-    if (mFmt == gx::TextureFormat::Extension_RawRGBA32) {
-      mDecoded = buf;
+  static Result<RGBA32ImageSource> make(std::span<const u8> buf, int w, int h,
+                                        gx::TextureFormat fmt) {
+    RGBA32ImageSource tmp;
+    tmp.mBuf = buf | rsl::ToList();
+    tmp.mW = w;
+    tmp.mH = h;
+    tmp.mFmt = fmt;
+    if (tmp.mFmt == gx::TextureFormat::Extension_RawRGBA32) {
+      tmp.mDecoded = buf | rsl::ToList();
     } else {
-      mTmp.resize(w * h * 4);
-      decode(mTmp.data(), mBuf, w, h, mFmt);
-      mDecoded = mTmp.data();
+      tmp.mTmp.resize(roundUp(w, 32) * roundUp(h, 32) *
+                      4 /* Round up for SIMD */);
+      EXPECT(tmp.mBuf.size() >= getEncodedSize(w, h, tmp.mFmt));
+      decode(tmp.mTmp.data(), tmp.mBuf.data(), w, h, tmp.mFmt);
+      tmp.mDecoded = tmp.mTmp;
     }
+    return tmp;
   }
 
-  std::span<const u8> get() const { return {mDecoded, size()}; }
+  std::span<const u8> get() const { return mDecoded; }
   u32 size() const { return mW * mH * 4; }
   int width() const { return mW; }
   int height() const { return mH; }
 
 private:
-  std::vector<u8> mTmp;
-  const u8* mDecoded = nullptr;
-  const u8* mBuf;
-  int mW;
-  int mH;
-  gx::TextureFormat mFmt;
+  std::vector<u8> mTmp = {};
+  std::vector<u8> mDecoded = {};
+  std::vector<u8> mBuf = {};
+  int mW = {};
+  int mH = {};
+  gx::TextureFormat mFmt = {gx::TextureFormat::Extension_RawRGBA32};
 };
 struct RGBA32ImageTarget {
   RGBA32ImageTarget(int w, int h) : mW(w), mH(h) {
     mTmp.resize(roundUp(w, 32) * roundUp(h, 32) * 4);
   }
-  void copyTo(u8* dst, gx::TextureFormat fmt) {
+  [[nodiscard]] Result<void> copyTo(std::span<u8> dst, gx::TextureFormat fmt) {
     if (fmt == gx::TextureFormat::Extension_RawRGBA32) {
-      memcpy(dst, mTmp.data(), mTmp.size());
+      EXPECT(dst.size() >= mTmp.size());
+      memcpy(dst.data(), mTmp.data(), mTmp.size());
     } else {
-      encode(dst, mTmp.data(), mW, mH, fmt);
+      EXPECT(dst.size() >= getEncodedSize(mW, mH, fmt));
+      EXPECT(mTmp.size() >= mW * mH * 4);
+      return encode(dst.data(), mTmp.data(), mW, mH, fmt);
     }
+    return {};
   }
   void fromOtherSized(std::span<const u8> src, u32 ow, u32 oh,
                       ResizingAlgorithm al) {
@@ -346,7 +345,7 @@ struct RGBA32ImageTarget {
     if (ow == mW && oh == mH) {
       memcpy(mTmp.data(), src.data(), mTmp.size());
     } else {
-      resize(mTmp.data(), mW, mH, src.data(), ow, oh, al);
+      resize(mTmp, mW, mH, src, ow, oh, al);
     }
   }
   void fromOtherSized(const RGBA32ImageSource& source, ResizingAlgorithm al) {
@@ -361,42 +360,38 @@ private:
   int mW;
   int mH;
 };
-void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
-               std::optional<gx::TextureFormat> newformat, const u8* src,
-               int swidth, int sheight, u32 mipMapCount,
-               ResizingAlgorithm algorithm) {
+[[nodiscard]] Result<void> transform(std::span<u8> dst_, int dwidth,
+                                     int dheight, gx::TextureFormat oldformat,
+                                     std::optional<gx::TextureFormat> newformat,
+                                     std::span<const u8> src_, int swidth,
+                                     int sheight, u32 mipMapCount,
+                                     ResizingAlgorithm algorithm) {
+  std::vector<u8> dst(dst_.begin(), dst_.end());
+  std::vector<u8> src(src_.begin(), src_.end());
   printf(
       "Transform: Dest={%p, w:%i, h:%i}, Source={%p, w:%i, h:%i}, NumMip=%u\n",
-      dst, dwidth, dheight, src, swidth, sheight, mipMapCount);
-  assert(dst);
-  assert(dwidth > 0 && dheight > 0);
+      dst.data(), dwidth, dheight, src.data(), swidth, sheight, mipMapCount);
+  EXPECT(!dst.empty());
+  EXPECT(!src.empty());
+  EXPECT(dwidth > 0 && dheight > 0);
   if (swidth <= 0)
     swidth = dwidth;
   if (sheight <= 0)
     sheight = dheight;
-  if (src == nullptr)
+  if (src.empty())
     src = dst;
   if (!newformat.has_value())
     newformat = oldformat;
 
-  if (!is_power_of_2(swidth) || !is_power_of_2(sheight) ||
-      !is_power_of_2(dwidth) || !is_power_of_2(dheight))
-    return;
-
   // Determine whether to decode this sublevel as an image or many sublvels.
   if (mipMapCount >= 1) {
-    std::vector<u8> srcBuf(0);
-    const u8* pSrc = nullptr;
-    if (dst == src) {
-      srcBuf.resize(getEncodedSize(swidth, sheight, oldformat, mipMapCount));
-      memcpy(srcBuf.data(), src, srcBuf.size());
-      pSrc = srcBuf.data();
-    } else {
-      pSrc = src;
+    if (!is_power_of_2(swidth) || !is_power_of_2(sheight) ||
+        !is_power_of_2(dwidth) || !is_power_of_2(dheight)) {
+      return std::unexpected(
+          "It is a GPU hardware requirement that mipmaps be powers of two");
     }
-    assert(pSrc);
-    transform(dst, dwidth, dheight, oldformat, newformat, pSrc, swidth, sheight,
-              0, algorithm);
+    TRY(transform(dst, dwidth, dheight, oldformat, newformat, src, swidth,
+                  sheight, 0, algorithm));
     for (u32 i = 1; i <= mipMapCount; ++i) {
       const auto src_lod_ofs =
           getEncodedSize(swidth, sheight, oldformat, i - 1);
@@ -407,23 +402,31 @@ void transform(u8* dst, int dwidth, int dheight, gx::TextureFormat oldformat,
       auto dst_lod_x = dwidth >> i;
       auto dst_lod_y = dheight >> i;
 
-      transform(dst + dst_lod_ofs, dst_lod_x, dst_lod_y, oldformat,
-                newformat.value(), pSrc + src_lod_ofs, src_lod_x, src_lod_y, 0,
-                algorithm);
+      TRY(transform(std::span(dst).subspan(dst_lod_ofs), dst_lod_x, dst_lod_y,
+                    oldformat, newformat.value(),
+                    std::span(src).subspan(src_lod_ofs), src_lod_x, src_lod_y,
+                    0, algorithm));
     }
-  } else if (swidth > 4 && sheight > 4) {
-    RGBA32ImageSource source(src, swidth, sheight, oldformat);
-    assert(source.get().data());
+  } else {
+    EXPECT(swidth > 0 && sheight > 0);
+    auto source = TRY(RGBA32ImageSource::make(src, swidth, sheight, oldformat));
+    EXPECT(source.get().size());
 
     // TODO: We don't always need to allocate this
     RGBA32ImageTarget target(dwidth, dheight);
-    assert(target.get().data());
+    EXPECT(target.get().size());
 
     target.fromOtherSized(source, algorithm);
 
     // TODO: A copy here can be prevented
-    target.copyTo(dst, newformat.value());
+    TRY(target.copyTo(dst, newformat.value()));
   }
+
+  EXPECT(dst_.size() == dst.size());
+  for (size_t i = 0; i < dst_.size(); ++i) {
+    dst_[i] = dst[i];
+  }
+  return {};
 }
 
 } // namespace librii::image

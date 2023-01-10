@@ -64,8 +64,8 @@ void decode(u8* dst, const u8* src, int width, int height,
 //! @pre For efficiency reasons, this method does not handle the case where dst
 //! == src.
 //!
-void encode(u8* dst, const u8* src, int width, int height,
-            gx::TextureFormat texformat);
+[[nodiscard]] Result<void> encode(u8* dst, const u8* src, int width, int height,
+                                  gx::TextureFormat texformat);
 
 //! @brief Specifies an algorithm for downscaling/upscaling an image.
 //!
@@ -83,8 +83,8 @@ enum ResizingAlgorithm { AVIR, Lanczos };
 //! @param[in] sy   Height of the source image in pixels.
 //! @param[in] type Algorithm to utilize for upscaling/downscaling.
 //!
-void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy,
-            ResizingAlgorithm type = ResizingAlgorithm::AVIR);
+void resize(std::span<u8> dst, int dx, int dy, std::span<const u8> src, int sx,
+            int sy, ResizingAlgorithm type = ResizingAlgorithm::Lanczos);
 
 //! @brief Perform a composite transformation on image data, with mipmap
 //! support.
@@ -109,11 +109,12 @@ void resize(u8* dst, int dx, int dy, const u8* src, int sx, int sy,
 //! first image. Zero corresponds to the base image--no mipmapping.
 //! @param[in] algorithm	Algorithm to utilize for upscaling/downscaling.
 //!
-void transform(
-    u8* dst, int dx, int dy,
-    gx::TextureFormat oldformat = gx::TextureFormat::Extension_RawRGBA32,
-    std::optional<gx::TextureFormat> newformat = std::nullopt,
-    const u8* src = nullptr, int sx = -1, int sy = -1, u32 mipMapCount = 0,
-    ResizingAlgorithm algorithm = ResizingAlgorithm::AVIR);
+[[nodiscard]] Result<void>
+transform(std::span<u8> dst, int dwidth, int dheight,
+          gx::TextureFormat oldformat = gx::TextureFormat::Extension_RawRGBA32,
+          std::optional<gx::TextureFormat> newformat = std::nullopt,
+          std::span<const u8> src = {}, int sx = -1, int sy = -1,
+          u32 mipMapCount = 0,
+          ResizingAlgorithm algorithm = ResizingAlgorithm::Lanczos);
 
 } // namespace librii::image

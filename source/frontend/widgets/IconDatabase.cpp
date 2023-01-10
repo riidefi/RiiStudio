@@ -38,9 +38,8 @@ IconDatabase::Icon::Icon(const lib3d::Texture& texture, u32 dimension) {
 
   assert(dimension <= 128);
   texture.decode(tmp, false);
-  librii::image::resize(scratch.data(), dimension, dimension, tmp.data(),
-                        texture.getWidth(), texture.getHeight(),
-                        librii::image::Lanczos);
+  librii::image::resize(scratch, dimension, dimension, tmp, texture.getWidth(),
+                        texture.getHeight(), librii::image::Lanczos);
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dimension, dimension, 0, GL_RGBA,
                GL_UNSIGNED_BYTE, (void*)scratch.data());
