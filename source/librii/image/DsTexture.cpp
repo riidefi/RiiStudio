@@ -7,6 +7,7 @@ extern "C" {
 #include <vendor/texconv/texconv.h>
 }
 
+#include <mutex>
 IMPORT_STD;
 
 namespace librii::image {

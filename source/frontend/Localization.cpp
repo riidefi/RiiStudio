@@ -3,6 +3,7 @@
 
 IMPORT_STD;
 #include <fstream>
+#include <mutex>
 
 namespace riistudio {
 

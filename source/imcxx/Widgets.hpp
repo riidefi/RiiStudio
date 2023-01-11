@@ -1,9 +1,9 @@
 #pragma once
 
+#include <core/common.h>
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
-#include <string>
-#include <vector>
 #include <vendor/magic_enum/magic_enum.hpp>
 
 #include <glm/mat4x4.hpp>
@@ -11,7 +11,6 @@
 #include <librii/math/aabb.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
-#include <functional>
 
 namespace imcxx {
 

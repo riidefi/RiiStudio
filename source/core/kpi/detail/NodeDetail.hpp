@@ -105,7 +105,7 @@ struct ApplicationPluginsImpl {
     }
     Result<void> write_(kpi::INode& node,
                         oishii::Writer& writer) const override {
-      write(node, writer, static_cast<T*>(nullptr));
+      return write(node, writer, static_cast<T*>(nullptr));
     }
   };
 };

@@ -19,28 +19,31 @@ template <size_t N, typename T = void> static auto ToArray() {
   return ArrayCollector<N, T>{};
 }
 
+template<typename T>
+using element_type_t = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
+
 } // namespace rsl
 
-template <typename T> static auto operator|(auto&& range, rsl::Collector<T>&&) {
+template <typename R, typename T> static auto operator|(R&& range, rsl::Collector<T>&&) {
   // Value of each item in the range
-  using FallbackValueT = typename decltype(range.begin())::value_type;
+  using FallbackValueT = rsl::element_type_t<R>;
   // If the typename T overload is picked, use it; otherwise default
   constexpr bool IsCustomValueT = !std::is_void_v<T>;
   using ValueT = std::conditional_t<IsCustomValueT, T, FallbackValueT>;
-  return std::vector<ValueT>{range.begin(), range.end()};
+  return std::vector<std::remove_cvref_t<ValueT>>(range.begin(), range.end());
 }
-template <size_t N, typename T>
-static auto operator|(auto&& range, rsl::ArrayCollector<N, T>&&) {
+template <typename R, size_t N, typename T>
+static auto operator|(R&& range, rsl::ArrayCollector<N, T>&&) {
   // Value of each item in the range
-  using FallbackValueT = typename decltype(range.begin())::value_type;
+  using FallbackValueT = rsl::element_type_t<R>;
   // If the typename T overload is picked, use it; otherwise default
   constexpr bool IsCustomValueT = !std::is_void_v<T>;
   using ValueT = std::conditional_t<IsCustomValueT, T, FallbackValueT>;
 
   auto size = std::ranges::size(range);
-  std::array<ValueT, N> arr;
+  std::array<std::remove_cvref_t<ValueT>, N> arr;
   std::copy_n(range.begin(), std::min(size, arr.size()), arr.begin());
-  ValueT dv{};
+  std::remove_cvref_t<ValueT> dv{};
   std::fill(arr.begin() + std::min(size, arr.size()), arr.end(), dv);
   return arr;
 }

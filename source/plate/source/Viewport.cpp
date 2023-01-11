@@ -45,11 +45,11 @@ void Viewport::end() {
 #ifdef RII_GL
   // Clear alpha channel
   glBindFramebuffer(GL_FRAMEBUFFER, mFboId);
-  glColorMask(/*r*/ FALSE, /*g*/ FALSE, /*b*/ FALSE, /*a*/ TRUE);
+  glColorMask(/*r*/ GL_FALSE, /*g*/ GL_FALSE, /*b*/ GL_FALSE, /*a*/ GL_TRUE);
   glClearColor(0, 0, 0, 0xFF);
   glClear(GL_COLOR_BUFFER_BIT);
   // Unbind
-  glColorMask(/*r*/ TRUE, /*g*/ TRUE, /*b*/ TRUE, /*a*/ TRUE);
+  glColorMask(/*r*/ GL_TRUE, /*g*/ GL_TRUE, /*b*/ GL_TRUE, /*a*/ GL_TRUE);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   ImGui::Image(reinterpret_cast<void*>(static_cast<uintptr_t>(mImageBufId)),
                {static_cast<float>(region.x), static_cast<float>(region.y)},

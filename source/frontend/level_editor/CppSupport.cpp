@@ -7,8 +7,6 @@
 
 #include <imgui/imgui.h>
 
-IMPORT_STD;
-
 std::string_view GetCppSupport() {
   static std::string sVersions;
 

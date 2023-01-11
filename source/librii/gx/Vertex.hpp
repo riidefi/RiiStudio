@@ -7,7 +7,7 @@
 
 namespace librii::gx {
 
-struct VCC {
+namespace VCC {
   enum class Position { xy, xyz };
   enum class Normal {
     xyz,
