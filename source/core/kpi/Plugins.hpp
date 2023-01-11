@@ -2,13 +2,7 @@
 
 #include "Node2.hpp"
 #include "Reflection.hpp"
-#include <format>
-#include <functional>
-#include <map>
-#include <memory>
 #include <oishii/data_provider.hxx>
-#include <string>
-#include <vector>
 
 namespace oishii {
 class BinaryReader;

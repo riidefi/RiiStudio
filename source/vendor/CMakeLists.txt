@@ -34,3 +34,5 @@ add_library(vendor STATIC
 
   "ImGuizmo.cpp"
 )
+
+target_link_libraries(vendor core)

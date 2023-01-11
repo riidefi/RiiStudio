@@ -17,3 +17,5 @@ add_library(core STATIC
   "kpi/RichNameManager.cpp"
   "util/timestamp.cpp"
    "util/oishii.hpp")
+
+target_link_libraries(core fmt)

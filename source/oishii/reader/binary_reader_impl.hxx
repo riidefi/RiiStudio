@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binary_reader.hxx"
-#include <format>
 
 // HACK
 extern bool gTestMode;

@@ -419,3 +419,10 @@ build/
 **/CMakeFiles/
 *.cmake
 CMakeCache.txt
+# CPM
+_deps
+# Make
+Makefile
+
+# MacOS
+.DS_Store

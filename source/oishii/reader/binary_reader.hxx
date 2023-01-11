@@ -3,14 +3,8 @@
 #include "../data_provider.hxx"
 #include "../interfaces.hxx"
 #include "../util/util.hxx"
-#include <array>
-#include <bit>
-#include <expected>
-#include <memory>
-#include <span>
-#include <string>
-#include <vector>
 
+#include <core/common.h>
 #include <rsl/DebugBreak.hpp>
 
 namespace oishii {

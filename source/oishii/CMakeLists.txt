@@ -18,3 +18,4 @@ add_library(oishii STATIC
 	${SRC_FILES}
 	${HDR_FILES}
 )
+target_link_libraries(oishii core)

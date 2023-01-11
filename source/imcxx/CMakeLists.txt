@@ -8,4 +8,6 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
 add_library(imcxx
 
-  )
+)
+
+target_link_libraries(imcxx core)

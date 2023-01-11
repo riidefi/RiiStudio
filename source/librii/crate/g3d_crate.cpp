@@ -15,7 +15,7 @@ IMPORT_STD;
 template <>
 struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
   auto format(std::filesystem::path p, format_context& ctx) {
-    return formatter<string>::format(std::format("{}", p.string()), ctx);
+    return formatter<std::string>::format(std::format("{}", p.string()), ctx);
   }
 };
 
@@ -559,8 +559,10 @@ std::vector<u8> WriteRSPreset(const CrateAnimation& preset) {
   auto json = preset.metadata_json;
   // Fill in date field
   const auto now = std::chrono::system_clock::now();
+#ifndef __APPLE__
   json["date_created"] = std::format("{:%B %d, %Y}", now);
   json["tool"] = std::format("RiiStudio {}", GIT_TAG);
+#endif
 
   // A bone is required for some reason
   mdl.getBones().add().mName = preset.metadata + "{BEGIN_STRUCTURED_DATA}" +

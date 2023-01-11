@@ -55,3 +55,4 @@ add_library(plate STATIC
 	${VENDOR_SRC_FILES}
 	${VENDOR_HDR_FILES}
 )
+target_link_libraries(plate core)

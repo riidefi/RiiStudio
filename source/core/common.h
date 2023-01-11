@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <expected>
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <memory>
 #include <numbers> // pi
@@ -31,6 +32,15 @@
 #if __cplusplus > 201703L
 #include <ranges>
 #include <stacktrace>
+#endif
+
+#if defined(__APPLE__) || defined(__GCC__)
+#include <fmt/format.h>
+namespace std {
+using namespace fmt;
+}
+#else
+#include <format>
 #endif
 
 // When clang-cl `import std` support, switch to these and remove above includes
@@ -88,6 +98,7 @@ import std.filesystem
 #else
 #define DebugReport(...)
 #define DebugPrint(...)
+
 #endif
 
 constexpr u32 roundDown(u32 in, u32 align) {
@@ -118,7 +129,7 @@ inline const char* operator"" _j(const char* str, size_t len) {
 
 #define HAS_RANGES
 
-#if defined(__clang__) || defined(__gcc__)
+#if defined(__clang__) || defined(__GCC__) || defined(__APPLE__)
 #define HAS_RUST_TRY
 #define TRY(...)                                                               \
   ({                                                                           \
@@ -155,7 +166,7 @@ template <typename T> inline auto DoTry(T&& x) {
 
 #define EXPECT(expr, ...)                                                      \
   if (!(expr)) [[unlikely]] {                                                  \
-    auto cur = STACK_TRACE;                                     \
+    auto cur = STACK_TRACE;                                                    \
     return std::unexpected("[" __FILE_NAME__                                   \
                            ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__    \
                                                            "[Internal: " #expr \

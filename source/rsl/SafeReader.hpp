@@ -1,12 +1,9 @@
 #pragma once
 
-#include <expected>
-#include <format>
+#include <core/common.h>
 #include <oishii/reader/binary_reader.hxx>
 #include <rsl/Ranges.hpp>
-#include <sstream>
 #include <vendor/magic_enum/magic_enum.hpp>
-
 #include <stacktrace>
 
 namespace rsl {
@@ -87,7 +84,11 @@ public:
     if (!as_enum.has_value()) {
       mReader.warnAt(as_enum.error().c_str(), mReader.tell() - sizeof(T),
                      mReader.tell());
+#ifndef __APPLE__
       auto cur = std::stacktrace::current();
+#else
+      auto cur = 0;
+#endif
       return std::unexpected(
           std::format("{}\nStacktrace:\n{}", as_enum.error(), std::to_string(cur)));
     }
