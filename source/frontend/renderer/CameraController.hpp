@@ -35,6 +35,8 @@ public:
   void drawProjectionOption();
   void drawControllerTypeOption();
 
+  void calc();
+
   Camera mCamera;
   float mMouseSpeed = 0.2f;
   float mSpeed = 150.0f;
@@ -44,6 +46,7 @@ public:
   float mPrevX = 0.0f;
   float mPrevY = 0.0f;
   ControllerType combo_choice_cam = ControllerType::WASD_Minecraft;
+  bool mSync = false;
 };
 
 inline void ConfigureCameraControllerByBounds(CameraController& controller,

@@ -11,6 +11,9 @@ constexpr float MIN_SPEED = 10.0f;
 constexpr float MAX_SPEED = 1000.f;
 constexpr float SCROLL_SPEED = 10.0f;
 
+// If mSync is enabled
+static CameraController s_controller;
+
 void CameraController::move(float time_step, InputState input) {
   const auto pos = input.mouse.has_value() ? input.mouse->position
                                            : glm::vec2(mPrevX, mPrevY);
@@ -89,6 +92,17 @@ void CameraController::move(float time_step, InputState input) {
     mCamera.mEye += mCamera.getUp() * time_step * mSpeed * mSpeedFactor;
   if (input.down)
     mCamera.mEye -= mCamera.getUp() * time_step * mSpeed * mSpeedFactor;
+
+  if (mSync) {
+    s_controller = *this;
+  }
+}
+
+void CameraController::calc() {
+  if (mSync) {
+    s_controller.mSync = true;
+    *this = s_controller;
+  }
 }
 
 void CameraController::drawOptions() {
@@ -106,6 +120,11 @@ void CameraController::drawOptions() {
   ImGui::DragFloat("Z", &mCamera.mEye.z, .01f, -10, 30);
 
   drawControllerTypeOption();
+
+  ImGui::Checkbox("Sync with other windows", &mSync);
+  if (mSync) {
+    s_controller = *this;
+  }
 }
 
 void CameraController::drawControllerTypeOption() {

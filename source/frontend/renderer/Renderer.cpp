@@ -97,6 +97,7 @@ void Renderer::render(u32 width, u32 height) {
   ConfigureCameraControllerByBounds(mSettings.mCameraController,
                                     mSceneState.computeBounds());
 
+  mSettings.mCameraController.calc();
   mSettings.mCameraController.mCamera.calcMatrices(width, height, mProjMtx,
                                                    mViewMtx);
 
