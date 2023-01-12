@@ -222,23 +222,30 @@ void compilePrim(librii::gx::IndexedPrimitive& dst,
   }
 }
 
-void compileMatrixPrim(librii::gx::MatrixPrimitive& dst,
-                       const librii::rhst::MatrixPrimitive& src,
-                       s32 current_matrix, libcube::IndexedPolygon& poly,
-                       libcube::Model& model) {
+[[nodiscard]] Result<void>
+compileMatrixPrim(librii::gx::MatrixPrimitive& dst,
+                  const librii::rhst::MatrixPrimitive& src, s32 current_matrix,
+                  libcube::IndexedPolygon& poly, libcube::Model& model) {
   dst.mCurrentMatrix = current_matrix;
   dst.mDrawMatrixIndices.push_back(current_matrix);
   // TODO: Support these
   // std::copy(src.draw_matrices.begin(), src.draw_matrices.end(),
   //           std::back_inserter(dst.mDrawMatrixIndices));
 
-  for (auto& prim : src.primitives) {
+  // Convert to tristrips
+  librii::rhst::MatrixPrimitive tmp = src;
+  TRY(librii::rhst::StripifyTriangles(tmp));
+
+  for (auto& prim : tmp.primitives) {
     compilePrim(dst.mPrimitives.emplace_back(), prim, poly, model);
   }
+
+  return {};
 }
 
-void compileMesh(libcube::IndexedPolygon& dst, const librii::rhst::Mesh& src,
-                 int id, libcube::Model& model) {
+[[nodiscard]] Result<void> compileMesh(libcube::IndexedPolygon& dst,
+                                       const librii::rhst::Mesh& src, int id,
+                                       libcube::Model& model) {
   dst.setName(src.name);
   dst.setId(id);
 
@@ -246,6 +253,7 @@ void compileMesh(libcube::IndexedPolygon& dst, const librii::rhst::Mesh& src,
   dst.init(false, nullptr);
   auto& data = dst.getMeshData();
 
+  fprintf(stderr, "Compiling %s \n", src.name.c_str());
   for (int i = 0; i < static_cast<int>(librii::gx::VertexAttribute::Max); ++i) {
     if ((src.vertex_descriptor & (1 << i)) == 0)
       continue;
@@ -261,9 +269,11 @@ void compileMesh(libcube::IndexedPolygon& dst, const librii::rhst::Mesh& src,
   dst.initBufsFromVcd(model);
 
   for (auto& matrix_prim : src.matrix_primitives) {
-    compileMatrixPrim(data.mMatrixPrimitives.emplace_back(), matrix_prim, 0,
-                      dst, model);
+    TRY(compileMatrixPrim(data.mMatrixPrimitives.emplace_back(), matrix_prim, 0,
+                          dst, model));
   }
+
+  return {};
 }
 
 struct RHSTReader {
@@ -447,8 +457,14 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
   for (auto& mat : rhst.materials) {
     compileMaterial(mdl.getMaterials().add(), mat);
   }
+  librii::math::AABB aabb{{FLT_MAX, FLT_MAX, FLT_MAX},
+                          {FLT_MIN, FLT_MIN, FLT_MIN}};
   for (auto& bone : rhst.bones) {
     compileBone(mdl.getBones().add(), bone);
+    aabb.expandBound(librii::math::AABB{bone.min, bone.max});
+  }
+  if (auto* g = dynamic_cast<riistudio::g3d::Model*>(&mdl)) {
+    g->aabb = aabb;
   }
 
   for (auto& tex : textures_needed) {
@@ -472,7 +488,12 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
 
   int i = 0;
   for (auto& mesh : rhst.meshes) {
-    compileMesh(mdl.getMeshes().add(), mesh, i++, mdl);
+    auto ok = compileMesh(mdl.getMeshes().add(), mesh, i++, mdl);
+    if (!ok) {
+      fprintf(stderr, "ERROR: Failed to compile mesh: %s\n",
+              ok.error().c_str());
+      continue;
+    }
   }
 
   for (auto& weight : rhst.weights) {
@@ -550,6 +571,11 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
       }
     }
   }
+
+  u64 ms = librii::rhst::totalStrippingMs;
+
+  fprintf(stderr, "Stripping took, in total, %f seconds (%llu ms)\n",
+          static_cast<float>(ms) / 1000.0f, ms);
 
   transaction.state = kpi::TransactionState::Complete;
 }

@@ -100,6 +100,7 @@ if (MSVC)
   endif()
   # Standard modules are compiled with this
   string( REPLACE "/std:c++20" "/std:c++latest" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} )
+  set(CMAKE_EXE_LINKER_FLAGS_DIST CMAKE_EXE_LINKER_FLAGS)
 endif()
 
 if (ASAN)
@@ -108,5 +109,10 @@ endif()
 
 add_compile_definitions(FMT_EXCEPTIONS=0)
 CPMAddPackage("gh:fmtlib/fmt#9.1.0")
+CPMAddPackage("gh:zeux/meshoptimizer#v0.18")
+
+set(DRACO_BACKWARDS_COMPATIBILITY OFF)
+set(DRACO_POINT_CLOUD_COMPRESSION OFF)
+CPMAddPackage("gh:google/draco#1.5.5")
 
 add_subdirectory(source)

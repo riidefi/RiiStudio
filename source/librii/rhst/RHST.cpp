@@ -987,8 +987,11 @@ private:
   SceneTree out;
 };
 
+u64 totalStrippingMs = 0;
+
 std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
                                        std::string& error_message) {
+  totalStrippingMs = 0;
   if (file_data[0] == 'R' && file_data[1] == 'H' && file_data[2] == 'S' &&
       file_data[3] == 'T') {
     std::vector<u8> data_vec(file_data.size());

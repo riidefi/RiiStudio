@@ -52,6 +52,11 @@ struct array_vector_fixed : public std::array<T, N> {
 #else
   void begin() const {}
 #endif
+  bool operator<(const array_vector_fixed<T, N>& other) const {
+    return std::lexicographical_compare(this->begin(), this->end(),
+                                        other.begin(), other.end());
+  }
+
 protected:
   size_t nElements = 0;
 };
@@ -67,9 +72,14 @@ struct array_vector_dynamic : public std::vector<T> {
     }
     this->resize(this->size() - 1);
   }
+
+  bool operator<(const array_vector_dynamic<T, N>& other) const {
+    return std::lexicographical_compare(this->begin(), this->end(),
+                                        other.begin(), other.end());
+  }
 };
 
-#ifndef BUILD_DEBUG
+#ifdef BUILD_DEBUG
 template <typename T, size_t N> using array_vector = array_vector_dynamic<T, N>;
 #else
 template <typename T, size_t N> using array_vector = array_vector_fixed<T, N>;

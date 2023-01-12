@@ -368,9 +368,11 @@ private:
                                      ResizingAlgorithm algorithm) {
   std::vector<u8> dst(dst_.begin(), dst_.end());
   std::vector<u8> src(src_.begin(), src_.end());
+#ifdef IMAGE_DEBUG
   printf(
       "Transform: Dest={%p, w:%i, h:%i}, Source={%p, w:%i, h:%i}, NumMip=%u\n",
       dst.data(), dwidth, dheight, src.data(), swidth, sheight, mipMapCount);
+#endif // IMAGE_DEBUG
   EXPECT(!dst.empty());
   EXPECT(!src.empty());
   EXPECT(dwidth > 0 && dheight > 0);

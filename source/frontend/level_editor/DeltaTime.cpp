@@ -3,7 +3,7 @@
 namespace riistudio::lvl {
 
 float DeltaTimer::tick() {
-  auto now = std::chrono::high_resolution_clock{}.now();
+  auto now = std::chrono::steady_clock{}.now();
   auto then = last_time;
 
   if (!has_time) {

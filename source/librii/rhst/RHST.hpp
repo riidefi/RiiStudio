@@ -5,11 +5,57 @@
 #include <glm/vec2.hpp>            // glm::vec3
 #include <glm/vec3.hpp>            // glm::vec3
 #include <glm/vec4.hpp>            // glm::vec4
-#include <optional>
-#include <rsl/ArrayVector.hpp> // rsl::array_vector
-#include <span>
-#include <string>
-#include <vector>
+#include <rsl/ArrayVector.hpp>     // rsl::array_vector
+#include <rsl/Timer.hpp>
+#include <vendor/magic_enum/magic_enum.hpp>
+
+inline std::partial_ordering operator<=>(const glm::vec4& l,
+                                         const glm::vec4& r) {
+  if (auto cmp = l.x <=> r.x; cmp != 0) {
+    return cmp;
+  }
+  if (auto cmp = l.y <=> r.y; cmp != 0) {
+    return cmp;
+  }
+  if (auto cmp = l.z <=> r.z; cmp != 0) {
+    return cmp;
+  }
+  return l.w <=> r.w;
+}
+inline std::partial_ordering operator<=>(const glm::vec2& l,
+                                         const glm::vec2& r) {
+  if (auto cmp = l.x <=> r.x; cmp != 0) {
+    return cmp;
+  }
+  return l.y <=> r.y;
+}
+
+inline std::partial_ordering operator<=>(const std::vector<glm::vec4>& l,
+                                         const std::vector<glm::vec4>& r) {
+  return std::lexicographical_compare_three_way(
+      l.begin(), l.end(), r.begin(), r.end(), [](auto& l, auto& r) {
+        if (auto cmp = l.x <=> r.x; cmp != 0) {
+          return cmp;
+        }
+        if (auto cmp = l.y <=> r.y; cmp != 0) {
+          return cmp;
+        }
+        if (auto cmp = l.z <=> r.z; cmp != 0) {
+          return cmp;
+        }
+        return l.w <=> r.w;
+      });
+}
+inline std::partial_ordering operator<=>(const std::vector<glm::vec2>& l,
+                                         const std::vector<glm::vec2>& r) {
+  return std::lexicographical_compare_three_way(
+      l.begin(), l.end(), r.begin(), r.end(), [](auto& l, auto& r) {
+        if (auto cmp = l.x <=> r.x; cmp != 0) {
+          return cmp;
+        }
+        return l.y <=> r.y;
+      });
+}
 
 namespace librii::rhst {
 
@@ -66,8 +112,12 @@ struct Vertex {
   glm::vec3 position{0.0f, 0.0f, 0.0f};
   glm::vec3 normal{0.0f, 0.0f, 0.0f};
 
-  rsl::array_vector<glm::vec2, 8> uvs;
-  rsl::array_vector<glm::vec4, 2> colors;
+  template <typename T, size_t N> using array_vector = std::vector<T>;
+
+  std::vector<glm::vec2 /* , 8 */> uvs;
+  std::vector<glm::vec4 /*, 2 */> colors;
+
+  auto operator<=>(const Vertex& rhs) const = default;
 };
 
 enum class Topology { Triangles, TriangleStrip, TriangleFan };
@@ -114,6 +164,103 @@ struct SceneTree {
   std::vector<Mesh> meshes;
   std::vector<Material> materials;
 };
+
+// Uses zeux/meshoptimizer
+Result<void> StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim);
+
+// Uses GPSnoopy/TriStripper
+Result<void> StripifyTrianglesTriStripper(MatrixPrimitive& prim);
+
+// Uses amorilia/tristrip's port of NVTriStrip w/o cache support (fine, our
+// target doesn't have a post-TnL cache)
+// - Removed use of boost
+// - Replaced throw() with assertions
+Result<void> StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim);
+
+// C++ port of jellees/nns-blender-plugin
+Result<void> StripifyTrianglesHaroohie(MatrixPrimitive& prim);
+
+Result<void> StripifyTrianglesDraco(MatrixPrimitive& prim, bool allow_degen);
+
+extern u64 totalStrippingMs;
+
+enum class Algo {
+  MeshOptimizer,
+  TriStripper,
+  Haroohie,
+  Draco,
+  DracoDegen,
+  NvTriStrip,
+};
+
+inline Result<void> StripifyTrianglesAlgo(MatrixPrimitive& prim, Algo algo) {
+  fprintf(stderr, "%s :", magic_enum::enum_name(algo).data());
+  rsl::Timer timer;
+  switch (algo) {
+  case Algo::MeshOptimizer:
+    StripifyTrianglesMeshOptimizer(prim);
+    break;
+  case Algo::TriStripper:
+    StripifyTrianglesTriStripper(prim);
+    break;
+  case Algo::NvTriStrip:
+    StripifyTrianglesNvTriStripPort(prim);
+    break;
+  case Algo::Haroohie:
+    StripifyTrianglesHaroohie(prim);
+    break;
+  case Algo::Draco:
+    StripifyTrianglesDraco(prim, false);
+    break;
+  case Algo::DracoDegen:
+    StripifyTrianglesDraco(prim, true);
+    break;
+  }
+  totalStrippingMs += timer.elapsed();
+  u32 face = 0;
+  for (auto& p : prim.primitives) {
+    if (p.topology == Topology::Triangles) {
+      face += p.vertices.size() / 3;
+    } else if (p.topology == Topology::TriangleStrip) {
+      face += p.vertices.size() - 2;
+    }
+  }
+  fprintf(stderr, " -> faces: %u\n", face);
+  return {};
+}
+
+inline Result<void> StripifyTrianglesD(MatrixPrimitive& prim) {
+  rsl::Timer timer;
+  StripifyTrianglesMeshOptimizer(prim);
+  totalStrippingMs += timer.elapsed();
+  return {};
+}
+inline Result<void> StripifyTriangles(MatrixPrimitive& prim) {
+  std::vector<MatrixPrimitive> results;
+  for (auto e : magic_enum::enum_values<Algo>()) {
+    MatrixPrimitive tmp = prim;
+    TRY(StripifyTrianglesAlgo(tmp, e));
+    results.push_back(std::move(tmp));
+  }
+  u32 best_score = std::numeric_limits<u32>::max();
+  u32 best_index = 0;
+  for (size_t i = 0; i < results.size(); ++i) {
+    u32 score = 0;
+    for (auto& p : results[i].primitives) {
+      score += p.vertices.size();
+    }
+    if (score < best_score) {
+      best_score = score;
+      best_index = i;
+    }
+  }
+  fprintf(stderr, "%s\n\n",
+          std::format("{} won",
+                      magic_enum::enum_name(static_cast<Algo>(best_index)))
+              .c_str());
+  prim = std::move(results[best_index]);
+  return {};
+}
 
 std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
                                        std::string& error_message);
