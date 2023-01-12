@@ -33,10 +33,10 @@ u32 computeUsed(const Expr& e);
 extern const u32 TevSolverWorkMemSize; // 448*8, 64-bit
 constexpr u32 TevSolverWorkMemSizeApprox = 512 * 8;
 
-Expr& solveTevStage(const gx::TevStage::ColorStage& substage,
+Expr& solveTevStage(const librii::gx::TevStage::ColorStage& substage,
                     rsl::StringBuilder& builder, u8* workmem,
                     std::size_t workmem_size, bool do_print_inter = true);
-Expr& solveTevStage(const gx::TevStage::AlphaStage& substage,
+Expr& solveTevStage(const librii::gx::TevStage::AlphaStage& substage,
                     rsl::StringBuilder& builder, u8* workmem,
                     std::size_t workmem_size, bool do_print_inter = true);
 } // namespace impl
@@ -45,7 +45,7 @@ Expr& solveTevStage(const gx::TevStage::AlphaStage& substage,
 //! We may call `solveTevStage()` several times per frame.
 class TevExpression {
 public:
-  TevExpression(const gx::TevStage::ColorStage& substage,
+  TevExpression(const librii::gx::TevStage::ColorStage& substage,
                 bool do_print_inter = true) {
     rsl::StringBuilder builder{getStringData(), sizeof(char) * 1024};
     mExpr = &impl::solveTevStage(substage, builder, mWorkMem.data(),
@@ -53,7 +53,7 @@ public:
                                  do_print_inter);
     mUsed = impl::computeUsed(*mExpr);
   }
-  TevExpression(const gx::TevStage::AlphaStage& substage,
+  TevExpression(const librii::gx::TevStage::AlphaStage& substage,
                 bool do_print_inter = true) {
     rsl::StringBuilder builder{getStringData(), sizeof(char) * 1024};
     mExpr = &impl::solveTevStage(substage, builder, mWorkMem.data(),

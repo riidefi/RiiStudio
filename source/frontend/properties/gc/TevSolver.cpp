@@ -4,6 +4,8 @@ IMPORT_STD;
 
 namespace libcube::UI {
 
+using namespace librii;
+
 enum class ExprOp : u32 {
   Add,    // L + R
   Sub,    // L - R

@@ -30,7 +30,7 @@ static void GlCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
 inline void AttachGlDebugPrinter() {
   // TODO: Investigate enabling this on other platforms...
 #ifdef _WIN32
-  glDebugMessageCallback(GlCallback, 0);
+  glDebugMessageCallback(GlCallback, nullptr);
 #endif
 }
 
@@ -47,7 +47,7 @@ static void handleDrop(GLFWwindow* window, int count, const char** raw_paths) {
 static bool initWindow(GLFWwindow*& pWin, int width = 1280, int height = 720,
                        const char* pName = "Untitled Window",
                        Platform* user = nullptr) {
-  pWin = glfwCreateWindow(width, height, pName, NULL, NULL);
+  pWin = glfwCreateWindow(width, height, pName, nullptr, nullptr);
   if (!pWin)
     return false;
 
@@ -65,6 +65,8 @@ static const char* glsl_version = "#version 100";
 #define GL_VERSION_MAJOR 4
 #define GL_VERSION_MINOR 1
 
+#define GET_GLFW_WINDOW() reinterpret_cast<GLFWwindow*>(mPlatformWindow)
+
 Platform::Platform(unsigned width, unsigned height, const std::string& pName)
     : mTitle(pName) {
   if (!glfwInit()) {
@@ -81,8 +83,8 @@ Platform::Platform(unsigned width, unsigned height, const std::string& pName)
 #ifdef BUILD_DEBUG
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 #endif
-  initWindow(*(GLFWwindow**)&mPlatformWindow, width, height, mTitle.c_str(),
-             this);
+  initWindow(reinterpret_cast<GLFWwindow*&>(mPlatformWindow), width, height,
+             mTitle.c_str(), this);
 
   gl3wInit();
 
@@ -98,18 +100,16 @@ Platform::Platform(unsigned width, unsigned height, const std::string& pName)
                     ImGuiConfigFlags_DockingEnable |
                     ImGuiConfigFlags_ViewportsEnable;
 
-  ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)mPlatformWindow, true);
+  ImGui_ImplGlfw_InitForOpenGL(GET_GLFW_WINDOW(), true);
 
   ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
 void Platform::showMouse() {
-  glfwSetInputMode((GLFWwindow*)mPlatformWindow, GLFW_CURSOR,
-                   GLFW_CURSOR_NORMAL);
+  glfwSetInputMode(GET_GLFW_WINDOW(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 void Platform::hideMouse() {
-  glfwSetInputMode((GLFWwindow*)mPlatformWindow, GLFW_CURSOR,
-                   GLFW_CURSOR_DISABLED);
+  glfwSetInputMode(GET_GLFW_WINDOW(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 void Platform::setVsync(bool v) { glfwSwapInterval(v ? 1 : 0); }
 
@@ -141,12 +141,11 @@ void Platform::enter() {
   };
 
   while (true) {
-    if (glfwWindowShouldClose(reinterpret_cast<GLFWwindow*>(mPlatformWindow))) {
+    if (glfwWindowShouldClose(GET_GLFW_WINDOW())) {
       if (shouldClose()) {
         break;
       } else {
-        glfwSetWindowShouldClose(reinterpret_cast<GLFWwindow*>(mPlatformWindow),
-                                 0);
+        glfwSetWindowShouldClose(GET_GLFW_WINDOW(), 0);
       }
     }
     glfwPollEvents();
@@ -172,8 +171,7 @@ void Platform::enter() {
     ImGui::Render();
 
     int display_w, display_h;
-    glfwGetFramebufferSize((GLFWwindow*)mPlatformWindow, &display_w,
-                           &display_h);
+    glfwGetFramebufferSize(GET_GLFW_WINDOW(), &display_w, &display_h);
     glViewport(0, 0, display_w, display_h);
     // glClearColor(window.clear_color.x, window.clear_color.y,
     // window.clear_color.z, window.clear_color.w);
@@ -193,7 +191,7 @@ void Platform::enter() {
       ImGui::RenderPlatformWindowsDefault();
       glfwMakeContextCurrent(backup_current_context);
     }
-    glfwSwapBuffers((GLFWwindow*)mPlatformWindow);
+    glfwSwapBuffers(GET_GLFW_WINDOW());
   }
 }
 

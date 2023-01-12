@@ -7,7 +7,7 @@ namespace librii::gfx {
 enum PolygonMode { Point, Line, Fill };
 
 struct MegaState {
-  u32 cullMode = -1;
+  u32 cullMode = ~static_cast<u32>(0);
   u32 depthWrite;
   u32 depthCompare;
   u32 frontFace;

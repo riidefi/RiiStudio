@@ -11,6 +11,8 @@
 
 namespace libcube {
 
+using namespace librii;
+
 bool IndexedPolygon::hasAttrib(SimpleAttrib attrib) const {
   switch (attrib) {
   case SimpleAttrib::EnvelopeIndex:
@@ -218,6 +220,14 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
       }
       return {};
     }
+    case gx::PrimitiveType::Quads:
+    case gx::PrimitiveType::Quads2:
+    case gx::PrimitiveType::Lines:
+    case gx::PrimitiveType::LineStrip:
+    case gx::PrimitiveType::Points:
+      break;
+    case gx::PrimitiveType::Max:
+      return std::unexpected("::Max is not a valid gx::PrimitiveType");
     }
     EXPECT(false, "Unexpected primitive type");
   };

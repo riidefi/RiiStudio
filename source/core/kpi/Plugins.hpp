@@ -116,7 +116,7 @@ struct IBinaryDeserializer {
   //! For config UIs. Given ImGui control.
   virtual void render() = 0;
   //! Debugging
-  virtual void addBp(u32 addr) {}
+  virtual void addBp(u32 addr) { (void)addr; }
 };
 //! A writer: Do not inherit from this type directly
 struct IBinarySerializer {
@@ -236,9 +236,9 @@ public:
     last = gRegistrationChain;
     gRegistrationChain = this;
   }
-  explicit RegistrationLink(RegistrationLink* last)
-      : next(nullptr), last(last) {}
-  virtual void exec(ApplicationPlugins& registrar) {}
+  explicit RegistrationLink(RegistrationLink* last_)
+      : next(nullptr), last(last_) {}
+  virtual void exec(ApplicationPlugins& registrar) { (void)registrar; }
 
   static RegistrationLink* getHead() { return gRegistrationChain; }
   RegistrationLink* getLast() { return last; }

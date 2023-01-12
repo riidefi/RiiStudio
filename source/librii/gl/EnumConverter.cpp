@@ -34,6 +34,9 @@ Result<u32> translateBlendFactorCommon(gx::BlendModeFactor factor) {
     return GL_DST_ALPHA;
   case gx::BlendModeFactor::inv_dst_a:
     return GL_ONE_MINUS_DST_ALPHA;
+  case gx::BlendModeFactor::src_c:
+  case gx::BlendModeFactor::inv_src_c:
+    break;
   }
   EXPECT(false, "Invalid blend mode");
   return ~0;

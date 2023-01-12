@@ -176,6 +176,7 @@ void drawProperty(kpi::PropertyDelegate<Shape>& dl, ShapeJ3DSurface) {
   for (auto& mp : shape.mMatrixPrimitives) {
     ImGui::Text("Matrix Primitive: %i"_j, i);
 
+    (void)mp;
 #if 0
     const auto matrices =
         shape.getPosMtx(*dynamic_cast<libcube::Model*>(shape.childOf), i);

@@ -761,6 +761,10 @@ public:
     case gx::ColorSelChanApi::zero:
     case gx::ColorSelChanApi::null:
       return "vec4(0, 0, 0, 0)";
+    case gx::ColorSelChanApi::ind_alpha:
+      return std::unexpected("ind_alpha is not supported");
+    case gx::ColorSelChanApi::normalized_ind_alpha:
+      return std::unexpected("normalized_ind_alpha is not supported");
     }
     return std::unexpected(std::format("Invalid TEV rasOrder: {}",
                                        static_cast<u32>(stage.rasOrder)));
@@ -1099,6 +1103,12 @@ public:
     switch (stage.indirectStage.format) {
     case gx::IndTexFormat::_8bit:
       return baseCoord;
+    case gx::IndTexFormat::_5bit:
+      return std::unexpected("IndTexFmt: 5bit is unsupported");
+    case gx::IndTexFormat::_4bit:
+      return std::unexpected("IndTexFmt: 4bit is unsupported");
+    case gx::IndTexFormat::_3bit:
+      return std::unexpected("IndTexFmt: 3bit is unsupported");
     }
     EXPECT(false, "Unsupported IndTexFmt");
   }
@@ -1116,6 +1126,18 @@ public:
       return "(u_IndTexMtx[1] * vec4(" + indTevCoord + ", 0.0))";
     case gx::IndTexMtxID::_2:
       return "(u_IndTexMtx[2] * vec4(" + indTevCoord + ", 0.0))";
+    case gx::IndTexMtxID::off:
+      return std::unexpected("IndTexMtxID: off is not supported");
+    case gx::IndTexMtxID::s0:
+      return std::unexpected("IndTexMtxID: s0 is not supported");
+    case gx::IndTexMtxID::s1:
+      return std::unexpected("IndTexMtxID: s1 is not supported");
+    case gx::IndTexMtxID::s2:
+      return std::unexpected("IndTexMtxID: s2 is not supported");
+    case gx::IndTexMtxID::t0:
+    case gx::IndTexMtxID::t1:
+    case gx::IndTexMtxID::t2:
+      break;
     }
     return std::unexpected(
         std::format("Unimplemented indTexMatrix mode: {}",

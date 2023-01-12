@@ -72,6 +72,8 @@ struct ByteCodeLists {
     while (reader.tell() < unsafeReader.endpos()) {
       const auto cmd = TRY(reader.Enum8<RenderCommand>());
       switch (cmd) {
+      case RenderCommand::MatrixCopy:
+        return std::unexpected("RenderCommand::MatrixCopy is unsupported.");
       case RenderCommand::NoOp:
         if (keep_nops) {
           commands.push_back(NoOp{});
@@ -144,7 +146,7 @@ struct ByteCodeLists {
       } else if (auto* mix = std::get_if<NodeMix>(&cmd)) {
         writer.writeUnaligned<u8>(static_cast<u8>(RenderCommand::NodeMixing));
         writer.writeUnaligned<u16>(mix->mtxId);
-        writer.writeUnaligned<u8>(static_cast<u16>(mix->blendMatrices.size()));
+        writer.writeUnaligned<u8>(static_cast<u8>(mix->blendMatrices.size()));
         for (const auto& blend : mix->blendMatrices) {
           writer.writeUnaligned<u16>(blend.mtxId);
           writer.writeUnaligned<f32>(blend.ratio);

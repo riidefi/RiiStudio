@@ -5,6 +5,8 @@
 
 namespace libcube::UI {
 
+using namespace librii;
+
 auto PolyDataSurface =
     kpi::StatelessPropertyView<libcube::IndexedPolygon>()
         .setTitle("Index Data")

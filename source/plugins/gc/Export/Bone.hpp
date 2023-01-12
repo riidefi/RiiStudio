@@ -51,9 +51,6 @@ struct IBoneDelegate : public riistudio::lib3d::Bone {
   };
   virtual Billboard getBillboard() const = 0;
   virtual void setBillboard(Billboard b) = 0;
-  // For extendeds
-  virtual s64 getBillboardAncestor() const { return -1; }
-  virtual void setBillboardAncestor(s64 ancestor_id) {}
 
   glm::vec3 getScale() const { return getSRT().scale; }
   glm::vec3 getRotation() const { return getSRT().rotation; }

@@ -117,7 +117,9 @@ public:
   //! @return The result of the operation. Returning fatal will not stop other
   //! blocks from writing.
   //!
-  virtual Result write(Writer& writer) const noexcept { return {}; }
+  virtual Result write([[maybe_unused]] Writer& writer) const noexcept {
+    return {};
+  }
   virtual std::expected<void, std::string>
   write2(Writer& writer) const noexcept {
     return write(writer);

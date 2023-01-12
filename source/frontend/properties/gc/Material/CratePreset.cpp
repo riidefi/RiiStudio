@@ -257,7 +257,11 @@ class SaveAsMDL0MatShade
       path = choice->string();
     }
 
-    auto buf = librii::crate::WriteMDL0Mat(mat);
+    auto buf_ = librii::crate::WriteMDL0Mat(mat);
+    if (!buf_) {
+      return "librii::crate::WriteMDL0Mat failed: " + buf_.error();
+	}
+    auto buf(std::move(*buf_));
     if (buf.empty()) {
       return "librii::crate::WriteMDL0Mat failed";
     }

@@ -38,7 +38,9 @@ struct InternalClassMirror {
     const std::string parent;
     int translation;
 
-    void* cast(void* base) const { return (char*)base + translation; }
+    void* cast(void* base) const {
+      return reinterpret_cast<char*>(base) + translation;
+    }
   };
   std::vector<Entry> mParents;
   std::vector<std::string> mChildren;
@@ -73,34 +75,34 @@ public:
         return "";
       return mMirror->derived;
     }
-    int getNumParents() const {
+    size_t getNumParents() const {
       if (!valid())
         return 0;
-      return static_cast<int>(mMirror->mParents.size());
+      return mMirror->mParents.size();
     }
-    ReflectionInfoHandle getParent(int index) const {
-      if (!valid() || index > mMirror->mParents.size())
+    ReflectionInfoHandle getParent(size_t index) const {
+      if (!valid() || index > std::size(mMirror->mParents))
         return {};
       return ReflectionInfoHandle(mMesh, mMirror->mParents[index].parent);
     }
-    int getNumChildren() const {
+    size_t getNumChildren() const {
       if (!valid())
         return 0;
-      return static_cast<int>(mMirror->mChildren.size());
+      return mMirror->mChildren.size();
     }
-    ReflectionInfoHandle getChild(int index) const {
+    ReflectionInfoHandle getChild(size_t index) const {
       if (!valid() || index > mMirror->mChildren.size())
         return {};
       return ReflectionInfoHandle(mMesh, mMirror->mChildren[index]);
     }
-    int getTranslationForParent(int index) const {
+    int getTranslationForParent(size_t index) const {
       // TODO
       assert(valid() && index <= mMirror->mParents.size());
 
       return mMirror->mParents[index].translation;
     }
     void* castToImmediateParentRaw(void* in, int index) {
-      char* p = (char*)in;
+      char* p = reinterpret_cast<char*>(in);
       p += getTranslationForParent(index);
       return p;
     }

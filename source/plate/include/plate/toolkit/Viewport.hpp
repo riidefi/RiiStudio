@@ -53,9 +53,9 @@ private:
   void setInBegin(bool v) { mFlags.inBegin = v; }
 
   // GL handles
-  uint32_t mImageBufId = -1;
-  uint32_t mFboId = -1;
-  uint32_t mRboId = -1;
+  uint32_t mImageBufId = ~static_cast<uint32_t>(0);
+  uint32_t mFboId = ~static_cast<uint32_t>(0);
+  uint32_t mRboId = ~static_cast<uint32_t>(0);
 
 public:
   // Remember the last resolution.
@@ -67,9 +67,13 @@ public:
     float retina_y = 1.0f;
 
     // Adjust for Retina display
-    unsigned computeGlWidth() const { return width * retina_x; }
+    int computeGlWidth() const {
+      return static_cast<int>(static_cast<float>(width) * retina_x);
+    }
     // Adjust for Retina display
-    unsigned computeGlHeight() const { return height * retina_y; }
+    int computeGlHeight() const {
+      return static_cast<int>(static_cast<float>(height) * retina_y);
+    }
 
     bool operator==(const ResolutionData&) const = default;
   };

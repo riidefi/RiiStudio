@@ -23,3 +23,6 @@ target_include_directories(minizip
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/minizip>
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+  target_compile_options(minizip PRIVATE "-Wno-error")
+endif()

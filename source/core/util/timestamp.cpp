@@ -1,13 +1,13 @@
 #include "timestamp.hpp"
 
 #if defined(__VERSION__)
-#define __CC __VERSION__
+#define RII_CC __VERSION__
 #elif defined(_MSC_VER)
 #define STRINGIZE(x) STRINGIZE_(x)
 #define STRINGIZE_(x) #x
-#define __CC "MSVC " STRINGIZE(_MSC_VER)
+#define RII_CC "MSVC " STRINGIZE(_MSC_VER)
 #else
-#define __CC "Unknown"
+#define RII_CC "Unknown"
 #endif
 
 // Must match release on Github
@@ -19,18 +19,18 @@ static_assert(sizeof(VERSION_SHORT) - 1 == 16,
               "VERSION_SHORT must be 16 bytes long");
 
 #if defined(BUILD_DEBUG)
-#define __BUILD "Alpha Debug"
+#define RII_BUILD "Alpha Debug"
 #elif defined(BUILD_RELEASE)
-#define __BUILD "Alpha Release"
+#define RII_BUILD "Alpha Release"
 #elif defined(BUILD_DIST)
-#define __BUILD "Alpha 5.8 (Hotfix 1)"
+#define RII_BUILD "Alpha 5.8 (Hotfix 1)"
 #else
-#define __BUILD "Custom"
+#define RII_BUILD "Custom"
 #endif
 
 #if defined(BUILD_DIST) && defined(__EMSCRIPTEN__)
-const char RII_TIME_STAMP[] = __BUILD;
+const char RII_TIME_STAMP[] = RII__BUILD;
 #else
 const char RII_TIME_STAMP[] =
-    __BUILD " (Built " __DATE__ " at " __TIME__ ", " __CC ")";
+    RII_BUILD " (Built " __DATE__ " at " __TIME__ ", " RII_CC ")";
 #endif // defined(BUILD_DIST) && defined(__EMSCRIPTEN__)

@@ -546,8 +546,9 @@ Result<void> io_wrapper<Indirect>::onRead(rsl::SafeReader& reader,
   int i = 0;
   for (auto& e : c.tevStage) {
     u8 id = TRY(reader.U8());
-    (void)id;
-    // assert(id == i || i >= c.nIndStage);
+    if (i < c.nIndStage) {
+      EXPECT(id == i);
+    }
     e.format = static_cast<gx::IndTexFormat>(TRY(reader.U8()));
     e.bias = static_cast<gx::IndTexBiasSel>(TRY(reader.U8()));
     e.matrix = static_cast<gx::IndTexMtxID>(TRY(reader.U8()));

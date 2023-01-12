@@ -22,7 +22,8 @@ namespace librii::crate {
 [[nodiscard]] Result<g3d::G3dMaterialData>
 ReadMDL0Mat(std::span<const u8> file);
 
-[[nodiscard]] std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat);
+[[nodiscard]] Result<std::vector<u8>>
+WriteMDL0Mat(const g3d::G3dMaterialData& mat);
 
 //! BrawlCrate-generated TEV definition. Includes Swap/Indirect Orders too.
 //!

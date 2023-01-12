@@ -288,6 +288,8 @@ public:
     }
 
     switch (transaction.state) {
+	case kpi::TransactionState::Complete:
+      return;
     case kpi::TransactionState::Failure:
       transaction.state = kpi::TransactionState::Failure;
       GotoExitState();

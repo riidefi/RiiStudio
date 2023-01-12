@@ -12,6 +12,7 @@ namespace riistudio::lib3d {
 class Model;
 
 struct Bone {
+  virtual ~Bone() = default;
   virtual s64 getId() { return -1; }
   virtual void setName(const std::string& name) = 0;
 
@@ -51,7 +52,7 @@ struct Bone {
 inline glm::mat4 calcSrtMtxSimple(const Bone& bone, auto&& bones) {
   glm::mat4 mdl(1.0f);
   const auto parent = bone.getBoneParent();
-  if (parent >= 0 && (size_t)parent < bones.size() /* && parent != getId() */)
+  if (parent >= 0 && parent < std::ssize(bones))
     mdl = calcSrtMtxSimple(bones[parent], bones);
 
   return mdl * librii::math::calcXform(bone.getSRT());

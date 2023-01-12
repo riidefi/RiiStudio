@@ -15,8 +15,10 @@ static Result<gx::Color> readColor(rsl::SafeReader& reader) {
 }
 
 inline void operator>>(const librii::gx::Color& out, oishii::Writer& writer) {
-  librii::gx::writeColorComponents(writer, out,
-                                   librii::gx::VertexBufferType::Color::rgba8);
+  writer.write<u8>(out.r);
+  writer.write<u8>(out.g);
+  writer.write<u8>(out.b);
+  writer.write<u8>(out.a);
 }
 
 Result<void> Blight::read(oishii::BinaryReader& unsafeReader) {
@@ -41,6 +43,7 @@ Result<void> Blight::read(oishii::BinaryReader& unsafeReader) {
 
     reader.Magic("LOBJ");
     auto size = TRY(reader.U32());
+    EXPECT(size == 0x50);
     obj.version = TRY(reader.U8());
     unsafeReader.skip(3);
     TRY(reader.U32());

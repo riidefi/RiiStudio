@@ -22,7 +22,7 @@ struct Polygon : public virtual kpi::IObject {
   virtual ~Polygon() = default;
 
   virtual bool isVisible() const { return true; }
-  virtual std::string getName() const { return "TODO"; }
+  virtual std::string getName() const override { return "TODO"; }
   virtual void setName(const std::string& name) = 0;
 
   enum class SimpleAttrib {

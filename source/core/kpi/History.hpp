@@ -1,9 +1,7 @@
 #pragma once
 
 #include "Memento.hpp"
-#include <functional>
-#include <memory>
-#include <vector>
+#include <core/common.h>
 
 namespace kpi {
 
@@ -51,13 +49,14 @@ public:
   void undo(IMementoOriginator& doc, SelectionManager& sel) {
     if (history_cursor <= 0)
       return;
-    if (needs_select_reset[history_cursor])
+    assert(history_cursor < std::ssize(needs_select_reset));
+    if (needs_select_reset[static_cast<size_t>(history_cursor)])
       sel.onUndoRedo_ResetSelection();
     --history_cursor;
     rollbackTo(doc, history_cursor);
   }
   void redo(IMementoOriginator& doc, SelectionManager& sel) {
-    if (history_cursor + 1 >= root_history.size())
+    if (history_cursor + 1 >= std::ssize(root_history))
       return;
     ++history_cursor;
     if (needs_select_reset[history_cursor])

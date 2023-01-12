@@ -101,7 +101,7 @@ ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
 
 std::string ApplyRSPresetToMaterial(riistudio::g3d::Material& mat,
                                     std::span<const u8> file) {
-  auto anim = crate::ReadRSPreset(file);
+  auto anim = librii::crate::ReadRSPreset(file);
   if (!anim) {
     return anim.error();
   }

@@ -82,7 +82,7 @@ public:
   u32 tell() const { return mPos; }
   void seekSet(u32 ofs) { mPos = ofs; }
   u32 startpos() const { return 0; }
-  u32 endpos() const { return mView.size(); }
+  u32 endpos() const { return static_cast<u32>(mView.size()); }
   const u8* getStreamStart() const { return mView.data(); }
 
   bool isInBounds(u32 pos) const { return mView.isInBounds(pos); }

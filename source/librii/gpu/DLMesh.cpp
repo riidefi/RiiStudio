@@ -78,8 +78,11 @@ DecodeMeshDisplayList(oishii::BinaryReader& reader, u32 start, u32 size,
               TRY(ProcessAttr(reader, descriptor.mAttributes, attr, vi));
           prim.mVertices[vi][attr] = val;
 
-          if (optUsageMap && (*optUsageMap)[attr_buf] <= val)
-            (*optUsageMap)[attr_buf] = val;
+		  // TODO: Probably don't validate this here
+		  if (a != (int)gx::VertexAttribute::PositionNormalMatrixIndex) {
+            if (optUsageMap && (*optUsageMap)[attr_buf] <= val)
+              (*optUsageMap)[attr_buf] = val;
+          }
         }
       }
     }

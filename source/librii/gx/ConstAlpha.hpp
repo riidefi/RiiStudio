@@ -1,7 +1,6 @@
 #pragma once
 
 namespace librii::gx {
-	
 
 struct ConstantAlpha {
   bool enable = false;
@@ -9,5 +8,5 @@ struct ConstantAlpha {
 
   // void operator=(const GPU::CMODE1& reg);
 };
-	
-} // namepace librii::gx
+
+} // namespace librii::gx

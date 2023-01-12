@@ -1,11 +1,12 @@
 #include "Common.hpp"
 
 #include <imcxx/Widgets.hpp>
-#include <plugins/g3d/material.hpp>
 #include <plugins/g3d/collection.hpp>
+#include <plugins/g3d/material.hpp>
 
 namespace libcube::UI {
 
+using namespace librii;
 using namespace riistudio::util;
 
 struct LightingSurface final {

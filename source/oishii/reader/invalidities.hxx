@@ -6,12 +6,7 @@ namespace oishii {
 
 template <u32 m> struct MagicInvalidity : public Invalidity {
   enum {
-    c0 = (m & 0xff000000) >> 24,
-    c1 = (m & 0x00ff0000) >> 16,
-    c2 = (m & 0x0000ff00) >> 8,
-    c3 = (m & 0x000000ff),
-
-    magic_big = _BSWAP_32(m)
+    magic_big = std::byteswap(m)
   };
 
   static void warn(BinaryReader& reader, u32 sz) {

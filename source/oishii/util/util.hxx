@@ -5,20 +5,18 @@
 
 #pragma once
 
-// Clang on windows fails here
-#ifdef _MSC_EXTENSIONS
-#undef _MSC_EXTENSIONS
-#endif
+#include <bit>
+static_assert(__cpp_lib_byteswap >= 202110L, "Depends on std::byteswap");
 
-#include "../options.hxx"
-#include "../types.hxx"
+#include <oishii/options.hxx>
+#include <oishii/types.hxx>
 
 namespace oishii {
 // Console colors
 
 #ifdef _MSC_VER
 #define IF_WIN(x) x
-#include <windows.h>
+#include <Windows.h>
 #else
 #define IF_WIN(x)
 #endif
@@ -79,33 +77,13 @@ template <typename T1, typename T2> union enumCastHelper {
   enumCastHelper(T1 _) : _t(_) {}
 };
 
-static inline u32 swap32(u32 v);
-static inline u16 swap16(u16 v);
-
-#define _BSWAP_16(v) (((v & 0xff00) >> 8) | ((v & 0x00ff) << 8))
-
-#define _BSWAP_32(v)                                                           \
-  (((v & 0xff000000) >> 24) | ((v & 0x00ff0000) >> 8) |                        \
-   ((v & 0x0000ff00) << 8) | ((v & 0x000000ff) << 24))
 
 #if OISHII_PLATFORM_LE == 1
-#define MAKE_BE32(x) _BSWAP_32(x)
+#define MAKE_BE32(x) std::byteswap(x)
 #define MAKE_LE32(x) x
 #else
 #define MAKE_BE32(x) x
-#define MAKE_LE32(x) _BSWAP_32(x)
-#endif
-
-#if defined(__llvm__) || (defined(__GNUC__) && !defined(__ICC))
-static inline u32 swap32(u32 v) { return __builtin_bswap32(v); }
-static inline u16 swap16(u16 v) { return _BSWAP_16(v); }
-#elif defined(_MSC_VER)
-#include <stdlib.h>
-static inline u32 swap32(u32 v) { return _byteswap_ulong(v); }
-static inline u16 swap16(u16 v) { return _byteswap_ushort(v); }
-#else
-static inline u32 swap32(u32 v) { return _BSWAP_32(v); }
-static inline u16 swap16(u16 v) { return _BSWAP_16(v); }
+#define MAKE_LE32(x) std::byteswap(x)
 #endif
 
 //! @brief Fast endian swapping.
@@ -120,12 +98,12 @@ template <typename T> inline T swapEndian(T v) {
   switch (sizeof(T)) {
   case 4: {
     enumCastHelper<T, u32> tmp(v);
-    tmp._u = swap32(tmp._u);
+    tmp._u = std::byteswap(tmp._u);
     return tmp._t;
   }
   case 2: {
     enumCastHelper<T, u16> tmp(v);
-    tmp._u = swap16(tmp._u);
+    tmp._u = std::byteswap(tmp._u);
     return tmp._t;
   }
   case 1: {

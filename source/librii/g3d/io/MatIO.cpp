@@ -684,12 +684,12 @@ bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
   return true;
 }
 
-void WriteMaterialBody(size_t mat_start, oishii::Writer& writer,
-                       NameTable& names, const G3dMaterialData& mat,
-                       u32 mat_idx, RelocWriter& linker,
-                       TextureSamplerMappingManager& tex_sampler_mappings) {
+Result<void>
+WriteMaterialBody(size_t mat_start, oishii::Writer& writer, NameTable& names,
+                  const G3dMaterialData& mat, u32 mat_idx, RelocWriter& linker,
+                  TextureSamplerMappingManager& tex_sampler_mappings) {
   auto bin = toBinMat(mat, mat_idx);
-  bin.writeBody(writer, mat_start, names, linker, tex_sampler_mappings);
+  return bin.writeBody(writer, mat_start, names, linker, tex_sampler_mappings);
 }
 
 } // namespace librii::g3d

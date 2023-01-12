@@ -71,6 +71,8 @@ Result<void> LightMap::read(rsl::SafeReader& reader) {
     TRY(tex.read(reader));
   }
 
+  EXPECT(fileSize == this->fileSize());
+
   return {};
 }
 void LightMap::write(oishii::Writer& writer) const {

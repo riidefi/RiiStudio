@@ -326,7 +326,7 @@ writeColorComponents(oishii::Writer& writer, const librii::gx::Color& c,
   default:
     EXPECT(false, "Invalid buffer type!");
     break;
-  };
+  }
   return {};
 }
 

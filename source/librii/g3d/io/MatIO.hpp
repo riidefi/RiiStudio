@@ -70,10 +70,10 @@ struct TextureSamplerMappingManager {
 bool readMaterial(G3dMaterialData& mat, oishii::BinaryReader& reader,
                   bool ignore_tev = false);
 
-void WriteMaterialBody(size_t mat_start, oishii::Writer& writer,
-                       NameTable& names, const G3dMaterialData& mat,
-                       u32 mat_idx, RelocWriter& linker,
-                       TextureSamplerMappingManager& tex_sampler_mappings);
+[[nodiscard]] Result<void>
+WriteMaterialBody(size_t mat_start, oishii::Writer& writer, NameTable& names,
+                  const G3dMaterialData& mat, u32 mat_idx, RelocWriter& linker,
+                  TextureSamplerMappingManager& tex_sampler_mappings);
 
 // Bring into namespace
 #include <core/util/glm_io.hpp>

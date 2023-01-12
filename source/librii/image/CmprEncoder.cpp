@@ -78,7 +78,7 @@ extern const u8 cc86[256]; // convert 8-bit color to 6-bit color
 enum { CMPR_MAX_COL = 16, CMPR_DATA_SIZE = 4 * CMPR_MAX_COL };
 
 inline void write_be16(void* dest, u16 val) {
-  *reinterpret_cast<u16*>(dest) = oishii::swap16(val);
+  *reinterpret_cast<u16*>(dest) = std::byteswap(val);
 }
 
 struct cmpr_info_t {

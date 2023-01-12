@@ -462,7 +462,6 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
       stream.write<u32>(pt_key);
       stream.write<u16>(paths.size());
       stream.write<u16>(0); // user data
-      int i = 0;
       u8 ph_start_index = 0;
       for (auto& path : paths) {
         stream.write<u8>(ph_start_index);
@@ -478,7 +477,6 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
           stream.write<u8>(0xff);
         for (auto p : path.misc)
           stream.write<u8>(p);
-        ++i;
       }
     };
 

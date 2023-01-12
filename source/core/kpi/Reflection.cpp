@@ -64,12 +64,13 @@ void ReflectionMesh::findParentOfType(std::vector<void*>& out, void* in,
                                       const std::string& key) {
   auto hnd = ReflectionInfoHandle(&getDataMesh(), info);
 
-  for (int i = 0; i < hnd.getNumParents(); ++i) {
+  for (size_t i = 0; i < hnd.getNumParents(); ++i) {
     auto parent = hnd.getParent(i);
     assert(hnd.getName() != parent.getName());
     if (parent.getName() == key) {
       char* new_ = reinterpret_cast<char*>(in) + hnd.getTranslationForParent(i);
-      if (std::find(out.begin(), out.end(), (void*)new_) == out.end())
+      if (std::find(out.begin(), out.end(), reinterpret_cast<void*>(new_)) ==
+          out.end())
         out.push_back(new_);
     } else
       findParentOfType(

@@ -28,7 +28,7 @@ struct array_vector_fixed : public std::array<T, N> {
   bool operator==(const array_vector_fixed& rhs) const noexcept {
     if (rhs.nElements != nElements)
       return false;
-    for (int i = 0; i < nElements; ++i) {
+    for (size_t i = 0; i < nElements; ++i) {
       const T& l = this->at(i);
       const T& r = rhs.at(i);
       if (!(l == r))

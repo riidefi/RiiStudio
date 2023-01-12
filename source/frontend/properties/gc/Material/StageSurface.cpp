@@ -7,6 +7,7 @@
 
 namespace libcube::UI {
 
+using namespace librii;
 using namespace riistudio::util;
 
 struct StageSurface final {

@@ -19,12 +19,14 @@ template <size_t N, typename T = void> static auto ToArray() {
   return ArrayCollector<N, T>{};
 }
 
-template<typename T>
-using element_type_t = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
+template <typename T>
+using element_type_t =
+    std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
 
 } // namespace rsl
 
-template <typename R, typename T> static auto operator|(R&& range, rsl::Collector<T>&&) {
+template <typename R, typename T>
+static auto operator|(R&& range, rsl::Collector<T>&&) {
   // Value of each item in the range
   using FallbackValueT = rsl::element_type_t<R>;
   // If the typename T overload is picked, use it; otherwise default
@@ -55,12 +57,13 @@ template <typename T, typename TIter = decltype(std::begin(std::declval<T>())),
           typename = decltype(std::end(std::declval<T>()))>
 constexpr static auto enumerate(T&& iterable) {
   struct iterator {
-    typedef iterator self_type;
-    typedef std::tuple<size_t, typename TIter::value_type> value_type;
-    typedef value_type& reference;
-    typedef value_type* pointer;
-    typedef std::forward_iterator_tag iterator_category;
-    typedef std::ptrdiff_t difference_type;
+    using self_type [[maybe_unused]] = iterator;
+    using value_type [[maybe_unused]] =
+        std::tuple<size_t, typename TIter::value_type>;
+    using reference [[maybe_unused]] = value_type&;
+    using pointer [[maybe_unused]] = value_type*;
+    using iterator_category [[maybe_unused]] = std::forward_iterator_tag;
+    using difference_type [[maybe_unused]] = std::ptrdiff_t;
     size_t i;
     TIter iter;
     bool operator==(const iterator& other) const { return iter == other.iter; }

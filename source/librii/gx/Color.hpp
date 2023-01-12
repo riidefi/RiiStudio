@@ -17,7 +17,7 @@ struct ColorF32 {
   inline void clamp(f32 min, f32 max) {
 #undef min
 #undef max
-    auto clampEach = [&](auto r) { return std::max(std::min(r, max), min); };
+    auto clampEach = [&](auto x) { return std::max(std::min(x, max), min); };
     r = clampEach(r);
     g = clampEach(g);
     b = clampEach(b);
@@ -63,12 +63,15 @@ struct ColorS10 {
   }
 };
 inline ColorF32::operator Color() const {
-  return {(u8)roundf(r * 255.0f), (u8)roundf(g * 255.0f),
-          (u8)roundf(b * 255.0f), (u8)roundf(a * 255.0f)};
+  return {
+      static_cast<u8>(roundf(r * 255.0f)), static_cast<u8>(roundf(g * 255.0f)),
+      static_cast<u8>(roundf(b * 255.0f)), static_cast<u8>(roundf(a * 255.0f))};
 }
 inline ColorF32::operator ColorS10() const {
-  return {(s16)roundf(r * 255.0f), (s16)roundf(g * 255.0f),
-          (s16)roundf(b * 255.0f), (s16)roundf(a * 255.0f)};
+  return {static_cast<s16>(roundf(r * 255.0f)),
+          static_cast<s16>(roundf(g * 255.0f)),
+          static_cast<s16>(roundf(b * 255.0f)),
+          static_cast<s16>(roundf(a * 255.0f))};
 }
 
 } // namespace librii::gx

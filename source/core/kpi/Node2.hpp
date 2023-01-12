@@ -21,7 +21,7 @@ struct IObject {
   virtual ~IObject() = default;
 
   virtual std::string getName() const { return "TODO"; }
-  virtual void setName(const std::string& name) {}
+  virtual void setName(const std::string& name) { (void)name; }
 
   // For now, at least, all objects exist in collections
   ICollection* collectionOf = nullptr;
@@ -55,7 +55,7 @@ struct ICollection {
 };
 
 template <typename T, typename Derived> struct CollectionIterator {
-  CollectionIterator(ICollection* data, std::size_t i) : data(data), i(i) {}
+  CollectionIterator(ICollection* data_, std::size_t i_) : data(data_), i(i_) {}
   CollectionIterator(const CollectionIterator& src) {
     i = src.i;
     data = src.data;
@@ -117,9 +117,9 @@ struct ConstCollectionIterator
 
   using CollectionIterator<T, ConstCollectionIterator<T>>::CollectionIterator;
 
-  ConstCollectionIterator(const ICollection* data, std::size_t i)
+  ConstCollectionIterator(const ICollection* data_, std::size_t i_)
       : CollectionIterator<T, ConstCollectionIterator<T>>(
-            const_cast<ICollection*>(data), i) {}
+            const_cast<ICollection*>(data_), i_) {}
 
   const T& operator*() const {
     return *reinterpret_cast<const T*>(this->data->at(this->i));
@@ -137,11 +137,11 @@ struct IDocData {
 
 template <typename T> struct TDocData : public IDocData, public T {
   virtual IDocData& operator=(const IDocData& rhs) const {
-    *(T*)this = *(T*)(TDocData<T>*)&rhs;
+    *(T*)this = *(const T*)(const TDocData<T>*)&rhs;
     return *(IDocData*)this;
   }
   virtual bool operator==(const IDocData& rhs) const {
-    return *(T*)this == *(T*)(TDocData<T>*)&rhs;
+    return *(T*)this == *(const T*)(const TDocData<T>*)&rhs;
   }
   virtual std::unique_ptr<IDocData> clone() const {
     return std::make_unique<TDocData<T>>(*this);
@@ -179,7 +179,7 @@ struct INode : public ITypeFolderManager,
                public virtual IObject // TODO: Global factories require this.
                                       // But we don't need them?
 {
-  virtual ~INode() = default;
+  virtual ~INode() override = default;
 
   // virtual std::unique_ptr<INode> clone() const = 0;
 };
@@ -444,7 +444,7 @@ void nextFolder(OutT& out, const InT& in, const OldT* old) {
   if (old != nullptr) {
     auto& last = *old;
     out.resize(in.size());
-    for (int i = 0; i < in.size(); ++i) {
+    for (size_t i = 0; i < in.size(); ++i) {
       if (i < last.size() && should_set(last[i].get(), &in[i])) {
         out[i] = set_m<record_t>(last[i].get(), in[i]);
       } else {
@@ -453,7 +453,7 @@ void nextFolder(OutT& out, const InT& in, const OldT* old) {
     }
   } else {
     out.resize(in.size());
-    for (int i = 0; i < in.size(); ++i) {
+    for (size_t i = 0; i < in.size(); ++i) {
       out[i] = std::make_shared<const record_t>(in[i]);
     }
   }
@@ -481,7 +481,7 @@ void set_concrete_element(CType& out, const MType& memento) {
 template <typename InT, typename OutT>
 void fromFolder(OutT&& out /*rvalue range*/, const InT& in) {
   const auto both = std::min(in.size(), out.size());
-  for (int i = 0; i < both; ++i) {
+  for (size_t i = 0; i < both; ++i) {
     if (should_set(&out[i], in[i].get())) {
       set_concrete_element(out[i], *in[i].get());
     }

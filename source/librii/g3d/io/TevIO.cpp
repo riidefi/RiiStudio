@@ -189,7 +189,9 @@ Result<void> ReadTev(librii::gx::LowLevelGxMaterial& mat,
       last = e;
     }
   }
-  // assert(!error && "Invalid sampler configuration");
+  if (error) {
+    fprintf(stderr, "Invalid sampler configuration?\n");
+  }
 
   if (!brawlbox_bug) {
     reader.seekSet(tev_addr + 32);

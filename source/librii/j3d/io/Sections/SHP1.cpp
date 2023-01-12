@@ -504,7 +504,6 @@ struct SHP1Node final : public oishii::Node {
         for (int j = 0; j < mPolyId; ++j)
           for (auto& mp : mMdl.shapes[j].mMatrixPrimitives)
             num += mp.mDrawMatrixIndices.size();
-        int i = 0;
         for (const auto& x : mMdl.shapes[mPolyId].mMatrixPrimitives) {
           writer.write<u16>(x.mCurrentMatrix);
           // listSize, listStartIndex
@@ -520,7 +519,6 @@ struct SHP1Node final : public oishii::Node {
             writer.write<u32>(num);
             num += x.mDrawMatrixIndices.size();
           }
-          ++i;
         }
         break;
       }

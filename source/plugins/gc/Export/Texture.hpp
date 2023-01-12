@@ -72,7 +72,7 @@ struct Texture : public riistudio::lib3d::Texture {
     resizeData();
 
     return librii::image::transform(getData(), getWidth(), getHeight(),
-                                    gx::TextureFormat::Extension_RawRGBA32,
+                                    librii::gx::TextureFormat::Extension_RawRGBA32,
                                     getTextureFormat(), rawRGBA, getWidth(),
                                     getHeight(), getMipmapCount());
   }

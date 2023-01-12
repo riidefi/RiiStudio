@@ -36,4 +36,8 @@ add_library(vendor STATIC
   "ImGuizmo.cpp"
 )
 
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+  target_compile_options(vendor PRIVATE "-Wno-error")
+endif()
+
 target_link_libraries(vendor core minizip)

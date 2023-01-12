@@ -297,7 +297,7 @@ struct PropertyViewManager {
   }
 
   IPropertyView* getView(size_t i, kpi::IObject& active) {
-    int j = 0;
+    size_t j = 0;
     for (auto& view : mViews) {
       if (!view->isInDomain(&active))
         continue;

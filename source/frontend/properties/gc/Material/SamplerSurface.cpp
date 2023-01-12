@@ -10,6 +10,8 @@
 
 namespace libcube::UI {
 
+using namespace librii;
+
 [[nodiscard]] Result<void> addSampler(libcube::GCMaterialData& d) {
   if (d.texGens.size() != d.samplers.size() || d.texGens.size() == 10 ||
       d.samplers.size() == 8 || d.texMatrices.size() == 10) {

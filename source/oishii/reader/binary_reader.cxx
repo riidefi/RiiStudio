@@ -25,8 +25,9 @@ void BinaryReader::readerBpCheck(u32 size, s32 trans) {
   for (const auto& bp : mBreakPoints) {
     if (tell() + trans >= bp.offset &&
         tell() + trans + size <= bp.offset + bp.size) {
-      printf("Reading from %04u (0x%04x) sized %u\n", (u32)tell() + trans,
-             (u32)tell() + trans, (u32)size);
+      printf("Reading from %04u (0x%04x) sized %u\n",
+             static_cast<u32>(tell() + trans), static_cast<u32>(tell() + trans),
+             static_cast<u32>(size));
       warnAt("Breakpoint hit", tell() + trans, tell() + trans + size);
       rsl::debug_break();
     }
@@ -63,28 +64,28 @@ void BinaryReader::enterRegion(std::string&& name, u32& jump_save,
     mStack = std::make_unique<DispatchStack>();
   }
 
-  auto& mStack = *this->mStack;
+  auto& stack = *this->mStack;
 
   //_ASSERT(mStack.mSize < 16);
-  mStack.push_entry(start, name, start);
+  stack.push_entry(start, name, start);
 
   // Jump is owned by past block
-  if (mStack.mSize > 1) {
-    jump_save = mStack.mStack[mStack.mSize - 2].jump;
-    jump_size_save = mStack.mStack[mStack.mSize - 2].jump_sz;
-    mStack.mStack[mStack.mSize - 2].jump = start;
-    mStack.mStack[mStack.mSize - 2].jump_sz = size;
+  if (stack.mSize > 1) {
+    jump_save = stack.mStack[stack.mSize - 2].jump;
+    jump_size_save = stack.mStack[stack.mSize - 2].jump_sz;
+    stack.mStack[stack.mSize - 2].jump = start;
+    stack.mStack[stack.mSize - 2].jump_sz = size;
   }
 }
 void BinaryReader::exitRegion(u32 jump_save, u32 jump_size_save) {
   assert(mStack != nullptr);
-  auto& mStack = *this->mStack;
-  if (mStack.mSize > 1) {
-    mStack.mStack[mStack.mSize - 2].jump = jump_save;
-    mStack.mStack[mStack.mSize - 2].jump_sz = jump_size_save;
+  auto& stack = *this->mStack;
+  if (stack.mSize > 1) {
+    stack.mStack[stack.mSize - 2].jump = jump_save;
+    stack.mStack[stack.mSize - 2].jump_sz = jump_size_save;
   }
 
-  --mStack.mSize;
+  --stack.mSize;
 }
 
 //
@@ -190,7 +191,8 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
                                                     : "?");
 
         if (entry.jump != selectBegin &&
-            (i == mStack.mSize - 1 || mStack.mStack[i + 1].jump != entry.jump))
+            (i == static_cast<s32>(mStack.mSize) - 1 ||
+             mStack.mStack[i + 1].jump != entry.jump))
           warnAt("STACK TRACE", entry.jump, entry.jump + entry.jump_sz, false);
       }
     }

@@ -87,8 +87,6 @@ enum class DistAttnFn {
 
 #include <librii/mtx/TexMtx.hpp>
 
-using namespace librii;
-
 namespace librii::gx {
 
 struct IndirectStage {

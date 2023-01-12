@@ -20,7 +20,7 @@ struct IActionMenu {
   virtual bool context(kpi::IObject& obj) = 0;
   virtual ChangeType modal(kpi::IObject& obj) = 0;
 
-  virtual void set_ed(void* ed) {}
+  virtual void set_ed(void* ed) { (void)ed; }
 };
 
 template <typename T, typename TDerived>

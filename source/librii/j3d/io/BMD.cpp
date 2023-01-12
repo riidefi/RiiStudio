@@ -308,10 +308,10 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
       }
       break;
     }
-      // clang-format off
-    case (gx::VertexBufferAttribute)gx::VertexAttribute::PositionNormalMatrixIndex:
-      // clang-format on
-      break;
+//      // clang-format off
+//    case (gx::VertexBufferAttribute)(int)gx::VertexAttribute::PositionNormalMatrixIndex:
+//      // clang-format on
+//      break;
     default:
       return std::unexpected(std::format(
           "Unsupported VertexBufAttribute {} ({})", static_cast<int>(e.first),

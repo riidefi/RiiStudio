@@ -144,10 +144,11 @@ public:
 
   constexpr u32 roundDown(u32 in, u32 align) {
     return align ? in & ~(align - 1) : in;
-  };
+  }
   constexpr u32 roundUp(u32 in, u32 align) {
     return align ? roundDown(in + (align - 1), align) : in;
-  };
+  }
+
   void alignTo(u32 alignment) {
     auto pad_begin = tell();
     auto pad_end = roundUp(tell(), alignment);
@@ -156,7 +157,8 @@ public:
     for (u32 i = 0; i < pad_end - pad_begin; ++i)
       this->write<u8>(0);
     if (mUserPad)
-      mUserPad((char*)getDataBlockStart() + pad_begin, pad_end - pad_begin);
+      mUserPad(reinterpret_cast<char*>(getDataBlockStart()) + pad_begin,
+               pad_end - pad_begin);
   }
   using PadFunction = void (*)(char* dst, u32 size);
   PadFunction mUserPad = nullptr;

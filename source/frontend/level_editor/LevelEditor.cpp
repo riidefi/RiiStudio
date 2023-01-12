@@ -458,6 +458,15 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
   if (mKmp != nullptr) {
     int i = 0;
     switch (mPage) {
+    case Page::EnemyPaths:
+    case Page::EnemyPaths_Sub:
+    case Page::ItemPaths:
+    case Page::ItemPaths_Sub:
+    case Page::CheckPaths:
+    case Page::CheckPaths_Sub:
+    case Page::Paths:
+    case Page::Stages:
+      break;
     case Page::StartPoints:
       for (auto& pt : mKmp->mStartPoints) {
         glm::mat4 modelMtx = MatrixOfPoint(pt.position, pt.rotation, 1);

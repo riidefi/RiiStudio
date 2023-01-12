@@ -17,5 +17,4 @@ struct AlphaComparison {
   bool operator==(const AlphaComparison& rhs) const = default;
 };
 
-	
 } // namepace librii::gx

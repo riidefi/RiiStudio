@@ -74,10 +74,11 @@ void exportImage(const Texture& tex, u32 export_lod) {
           ? 0
           : librii::image::getEncodedSize(tex.getWidth(), tex.getHeight(), fmt,
                                           import_lod - 1);
-  TRY(librii::image::transform(
-      tex.getData().subspan(offset), tex.getWidth() >> import_lod,
-      tex.getHeight() >> import_lod, gx::TextureFormat::Extension_RawRGBA32,
-      fmt, image.data, image.width, image.height));
+  TRY(librii::image::transform(tex.getData().subspan(offset),
+                               tex.getWidth() >> import_lod,
+                               tex.getHeight() >> import_lod,
+                               librii::gx::TextureFormat::Extension_RawRGBA32,
+                               fmt, image.data, image.width, image.height));
   return {};
 }
 

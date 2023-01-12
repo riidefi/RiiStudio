@@ -36,7 +36,7 @@ Result<g3d::G3dMaterialData> ReadMDL0Mat(std::span<const u8> file) {
   return mat;
 }
 
-std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
+Result<std::vector<u8>> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
   oishii::Writer writer(0);
 
   g3d::NameTable names;
@@ -66,8 +66,8 @@ std::vector<u8> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
   writer.write<s32>(0);                  // mdl offset
   // Differences:
   // - Crate outputs the BRRES offset and mat index here
-  g3d::WriteMaterialBody(0, writer, names, mat, 0, linker,
-                         tex_sampler_mappings);
+  TRY(g3d::WriteMaterialBody(0, writer, names, mat, 0, linker,
+                             tex_sampler_mappings));
   const auto end = writer.tell();
   {
     names.poolNames();
@@ -565,8 +565,8 @@ std::vector<u8> WriteRSPreset(const CrateAnimation& preset) {
 #endif
 
   // A bone is required for some reason
-  mdl.getBones().add().mName = preset.metadata + "{BEGIN_STRUCTURED_DATA}" +
-                               nlohmann::to_string(json);
+  mdl.getBones().add().mName =
+      preset.metadata + "{BEGIN_STRUCTURED_DATA}" + nlohmann::to_string(json);
 
   oishii::Writer writer(0);
   riistudio::g3d::WriteBRRES(collection, writer);

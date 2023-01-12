@@ -3,8 +3,8 @@
 #include <core/common.h>
 #include <oishii/reader/binary_reader.hxx>
 #include <rsl/Ranges.hpp>
-#include <vendor/magic_enum/magic_enum.hpp>
 #include <stacktrace>
+#include <vendor/magic_enum/magic_enum.hpp>
 
 namespace rsl {
 
@@ -89,8 +89,8 @@ public:
 #else
       auto cur = 0;
 #endif
-      return std::unexpected(
-          std::format("{}\nStacktrace:\n{}", as_enum.error(), std::to_string(cur)));
+      return std::unexpected(std::format("{}\nStacktrace:\n{}", as_enum.error(),
+                                         std::to_string(cur)));
     }
     return *as_enum;
   }
@@ -156,7 +156,8 @@ SafeReader::Result<std::string> SafeReader::StringOfs32(u32 relative) {
     return "";
   }
 
-  [[unlikely]] if (relative + ofs >= mReader.endpos() || relative + ofs < 0) {
+  [[unlikely]] if (relative + ofs >= mReader.endpos() ||
+                   static_cast<s32>(relative) + ofs < 0) {
     return std::unexpected(
         std::format("Invalid string offset {}. Out of file bounds [0, {})",
                     ofs + relative, mReader.endpos()));

@@ -20,7 +20,6 @@ public:
                      const glm::mat4& projMtx);
 
 private:
-  bool dgui = true;
   ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::ROTATE;
   ImGuizmo::MODE mCurrentGizmoMode = ImGuizmo::WORLD;
   bool useSnap = false;
