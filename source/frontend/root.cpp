@@ -423,7 +423,7 @@ bool RootWindow::shouldClose() {
     EditorWindow* ed =
         getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
     if (ed == nullptr) {
-      pfd::message("Error", "Current editor failed to save.", pfd::choice::ok);
+      rsl::ErrorDialog("Current editor failed to save.");
       return false;
     }
     DebugReport("Attempting to save to %s\n", ed->getFilePath().c_str());

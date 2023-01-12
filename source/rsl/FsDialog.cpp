@@ -129,4 +129,8 @@ SaveOneFile(std::string_view title, std::string_view default_path,
   return result;
 }
 
+void ErrorDialog(const std::string& message) {
+  pfd::message("Error"_j, message, pfd::choice::ok, pfd::icon::warning);
+}
+
 } // namespace rsl

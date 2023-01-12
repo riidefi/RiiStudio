@@ -1,6 +1,7 @@
 #include "ResizeAction.hpp"
 #include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/Texture.hpp>
+#include <rsl/FsDialog.hpp>
 
 namespace libcube::UI {
 
@@ -68,12 +69,13 @@ bool ResizeAction::resize_draw(Texture& data, bool* changed) {
     data.setHeight(resize[1].value);
     data.resizeData();
 
-	auto size = data.getEncodedSize(true);
-
-    librii::image::transform(data.getData(), resize[0].value, resize[1].value,
-                             data.getTextureFormat(), std::nullopt,
-                             data.getData(), oldWidth, oldHeight,
-                             data.getMipmapCount(), resizealgo);
+    auto ok = librii::image::transform(
+        data.getData(), resize[0].value, resize[1].value,
+        data.getTextureFormat(), std::nullopt, data.getData(), oldWidth,
+        oldHeight, data.getMipmapCount(), resizealgo);
+    if (!ok) {
+      rsl::ErrorDialogFmt("Failed to resize\n {}", ok.error());
+    }
     if (changed != nullptr)
       *changed = true;
 
@@ -122,10 +124,13 @@ bool ReformatAction::reformat_draw(Texture& data, bool* changed) {
     data.setTextureFormat(static_cast<librii::gx::TextureFormat>(reformatOpt));
     data.resizeData();
 
-    librii::image::transform(
+    auto t_ok = librii::image::transform(
         data.getData(), data.getWidth(), data.getHeight(), oldFormat,
         static_cast<librii::gx::TextureFormat>(reformatOpt), data.getData(),
         data.getWidth(), data.getHeight(), data.getMipmapCount());
+    if (!t_ok) {
+      rsl::ErrorDialogFmt("Failed to resize\n {}", t_ok.error());
+    }
 
     if (changed != nullptr)
       *changed = true;

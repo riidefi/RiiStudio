@@ -9,6 +9,7 @@
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
 #include <rsl/FsDialog.hpp>
+#include <rsl/Stb.hpp>
 #include <vendor/stb_image.h>
 
 IMPORT_STD;
@@ -64,26 +65,20 @@ void exportImage(const Texture& tex, u32 export_lod) {
                             data.data() + offset);
 }
 
-void importImage(Texture& tex, u32 import_lod) {
-  auto path = rsl::OpenOneFile("Import image"_j, "", StdImageFilters);
-  if (!path) {
-    return;
-  }
-  int width, height, channels;
-  unsigned char* image = stbi_load(path->string().c_str(), &width, &height,
-                                   &channels, STBI_rgb_alpha);
-  assert(image);
+[[nodiscard]] Result<void> importImage(Texture& tex, u32 import_lod) {
+  auto path = TRY(rsl::OpenOneFile("Import image"_j, "", StdImageFilters));
+  auto image = TRY(rsl::stb::load(path.string()));
   const auto fmt = tex.getTextureFormat();
   const auto offset =
       import_lod == 0
           ? 0
           : librii::image::getEncodedSize(tex.getWidth(), tex.getHeight(), fmt,
                                           import_lod - 1);
-  librii::image::transform(
+  TRY(librii::image::transform(
       tex.getData().subspan(offset), tex.getWidth() >> import_lod,
       tex.getHeight() >> import_lod, gx::TextureFormat::Extension_RawRGBA32,
-      fmt, {image, image + width * height * 4}, width, height);
-  stbi_image_free(image);
+      fmt, image.data, image.width, image.height));
+  return {};
 }
 
 class ImageActions : public kpi::ActionMenu<Texture, ImageActions>,
@@ -179,7 +174,10 @@ public:
     }
 
     if (import_lod != -1) {
-      importImage(tex, import_lod);
+      auto ok = importImage(tex, import_lod);
+      if (!ok) {
+        rsl::ErrorDialogFmt("Failed to import image: {}", ok.error());
+      }
       all_changed = true;
       import_lod = -1;
       if (lastTex != nullptr)

@@ -1059,14 +1059,12 @@ Result<TCResult> DrawAdvTexConv(AdvancedTextureConverter& action) {
         imcxx::EnumCombo<librii::gx::TextureFormat>("Format", action.format);
     if (fmt != action.format &&
         fmt == librii::gx::TextureFormat::Extension_RawRGBA32) {
-      pfd::message(
-          "Error"_j, //
+      rsl::ErrorDialog(
           "Warning: Extension_RawRGBA32 is not a real format; it tells "
           "RiiStudio's renderer to pass the raw texture data directly to "
           "the host GPU skipping encoding as a GC texture. This can be "
           "useful for determining if the GC texture codec is at fault for a "
-          "bug, but should not be used in actual files.",
-          pfd::choice::ok, pfd::icon::warning);
+          "bug, but should not be used in actual files.");
     }
     if (fmt != action.format) {
       action.format = fmt;
@@ -1133,10 +1131,7 @@ class AdvTexConvAction
   };
   std::variant<State::None, State::Edit> m_state{State::None{}};
 
-  void error(const std::string& msg) {
-    pfd::message("Error"_j, //
-                 msg, pfd::choice::ok, pfd::icon::warning);
-  }
+  void error(const std::string& msg) { rsl::ErrorDialog(msg); }
 
 public:
   bool _context(libcube::Texture& tex) {

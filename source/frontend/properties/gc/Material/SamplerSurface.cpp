@@ -1,5 +1,3 @@
-#include <vendor/FileDialogues.hpp>
-
 #include "Common.hpp"
 #include <frontend/widgets/Lib3dImage.hpp> // for Lib3dCachedImagePreview
 #include <imcxx/Widgets.hpp>
@@ -7,6 +5,7 @@
 #include <librii/hx/TextureFilter.hpp>
 #include <plugins/gc/Export/Scene.hpp>
 #include <plugins/j3d/Material.hpp>
+#include <rsl/FsDialog.hpp>
 #include <rsl/SmallVector.hpp>
 
 namespace libcube::UI {
@@ -536,10 +535,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   if (ImGui::Button("Add Sampler"_j)) {
     auto ok = addSampler(delegate);
     if (!ok) {
-      pfd::message("Error"_j, //
-                   "Could not add sampler to some selected materials:\n"_j +
-                       ok.error(),
-                   pfd::choice::ok, pfd::icon::warning);
+      rsl::ErrorDialog("Could not add sampler to some selected materials:\n"_j +
+                       ok.error());
     }
   }
 
@@ -762,9 +759,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         if (ok) {
           delegate.commit("Erased a sampler");
         } else {
-          pfd::message("Error", //
-                       "Could not delete sampler: "_j + ok.error(),
-                       pfd::choice::ok, pfd::icon::warning);
+          rsl::ErrorDialog("Could not delete sampler: "_j + ok.error());
         }
         break;
       }
