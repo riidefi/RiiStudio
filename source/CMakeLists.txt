@@ -11,10 +11,7 @@ add_subdirectory(librii)
 
 # Third-party libraries
 add_subdirectory(vendor)
-
-if (WIN32)
-add_subdirectory(11zip)
-endif()
+add_subdirectory(minizip)
 
 add_subdirectory(tests)
 add_subdirectory(frontend)

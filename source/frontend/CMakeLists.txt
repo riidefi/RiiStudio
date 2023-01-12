@@ -72,12 +72,6 @@ target_link_libraries(frontend PUBLIC
 )
 
 if (WIN32)
-  target_link_libraries(frontend PUBLIC
-    elzip
-  )
-endif()
-
-if (WIN32)
   set(LINK_LIBS
     ${LINK_LIBS}
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib

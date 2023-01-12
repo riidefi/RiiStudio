@@ -12,6 +12,7 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/../)
 include_directories(${PROJECT_SOURCE_DIR}/../vendor)
+include_directories(${PROJECT_SOURCE_DIR}/../minizip/include)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
@@ -35,4 +36,4 @@ add_library(vendor STATIC
   "ImGuizmo.cpp"
 )
 
-target_link_libraries(vendor core)
+target_link_libraries(vendor core minizip)

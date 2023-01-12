@@ -1,11 +1,10 @@
+#include "zipper.hpp"
+
+#include <minizip/zlib.h>
 
 #include <algorithm>
 #include <sstream>
 #include <ctime>
-
-#include <minizip/zlib.h>
-
-#include <zipper.hpp>
 
 namespace ziputils
 {
