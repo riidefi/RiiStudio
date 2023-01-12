@@ -4,6 +4,9 @@
 #include <vendor/TriStripper/tri_stripper.h>
 #include <vendor/tristrip/tristrip.hpp>
 
+#include <fmt/color.h>
+#include <rsl/Ranges.hpp>
+
 namespace librii::rhst {
 
 template <typename T = u32> struct IndexBuffer {
@@ -27,6 +30,15 @@ template <typename T = u32> struct IndexBuffer {
   std::vector<T> index_data;
 };
 
+static void LogDone(u32 index_count, u32 real_size) {
+  fmt::print(stderr, "\t\tBefore \t{} After \t{}. \tReduction of ", index_count,
+             real_size);
+  fmt::print(stderr, fmt::fg(fmt::color::red), "{}",
+             100.0f * (1.0f - static_cast<float>(real_size) /
+                                  static_cast<float>(index_count)));
+  fmt::print(stderr, "\tpercent\n");
+}
+
 Result<void> StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim) {
   auto buf = TRY(IndexBuffer<u32>::create(prim));
   std::vector<Vertex> vertices = std::move(buf.vertices);
@@ -44,12 +56,7 @@ Result<void> StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim) {
       ++real_size;
     }
   }
-  auto msg =
-      std::format("Stripped: Before {} After {}. Reduction of {} percent",
-                  index_count, real_size,
-                  100.0f * (1.0f - static_cast<float>(real_size) /
-                                       static_cast<float>(index_count)));
-  fprintf(stderr, "%s\n", msg.c_str());
+  LogDone(index_count, real_size);
 
   std::vector<Primitive> prims;
   Primitive* p = nullptr;
@@ -103,12 +110,7 @@ Result<void> StripifyTrianglesTriStripper(MatrixPrimitive& prim) {
   for (auto& p : out) {
     real_size += p.Indices.size();
   }
-  auto msg =
-      std::format("Stripped: Before {} After {}. Reduction of {} percent",
-                  index_count, real_size,
-                  100.0f * (1.0f - static_cast<float>(real_size) /
-                                       static_cast<float>(index_count)));
-  fprintf(stderr, "%s\n", msg.c_str());
+  LogDone(index_count, real_size);
 
   prim.primitives.clear();
   for (auto& x : out) {
@@ -150,12 +152,7 @@ Result<void> StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim) {
   for (auto& p : strips) {
     real_size += p.size();
   }
-  auto msg =
-      std::format("Stripped: Before {} After {}. Reduction of {} percent",
-                  index_count, real_size,
-                  100.0f * (1.0f - static_cast<float>(real_size) /
-                                       static_cast<float>(index_count)));
-  fprintf(stderr, "%s\n", msg.c_str());
+  LogDone(index_count, real_size);
 
   prim.primitives.clear();
   for (auto& x : strips) {
@@ -493,12 +490,7 @@ Result<void> StripifyTrianglesHaroohie(MatrixPrimitive& prim) {
   for (auto& p : strips) {
     real_size += p.size();
   }
-  auto msg =
-      std::format("Stripped: Before {} After {}. Reduction of {} percent",
-                  index_count, real_size,
-                  100.0f * (1.0f - static_cast<float>(real_size) /
-                                       static_cast<float>(index_count)));
-  fprintf(stderr, "%s\n", msg.c_str());
+  LogDone(index_count, real_size);
 
   prim.primitives.clear();
   for (auto& x : strips) {
@@ -574,12 +566,7 @@ Result<void> StripifyTrianglesDraco(MatrixPrimitive& prim, bool degen) {
       ++real_size;
     }
   }
-  auto msg =
-      std::format("Stripped: Before {} After {}. Reduction of {} percent",
-                  index_count, real_size,
-                  100.0f * (1.0f - static_cast<float>(real_size) /
-                                       static_cast<float>(index_count)));
-  fprintf(stderr, "%s\n", msg.c_str());
+  LogDone(index_count, real_size);
 
   std::vector<Primitive> prims;
   Primitive* p = nullptr;
@@ -616,6 +603,82 @@ Result<void> StripifyTrianglesDraco(MatrixPrimitive& prim, bool degen) {
   if (v_new.vertices.size() == 0) {
     prim.primitives.resize(prim.primitives.size() - 1);
   }
+  return {};
+}
+
+Result<void> StripifyTrianglesAlgo(MatrixPrimitive& prim, Algo algo) {
+  fmt::print(stderr, "[");
+  fmt::print(stderr, fmt::fg(fmt::color::red), "{}",
+             magic_enum::enum_name(algo));
+  fmt::print(stderr, "]  ");
+  rsl::Timer timer;
+  switch (algo) {
+  case Algo::MeshOptmzr:
+    StripifyTrianglesMeshOptimizer(prim);
+    break;
+  case Algo::TriStripper:
+    StripifyTrianglesTriStripper(prim);
+    break;
+  case Algo::NvTriStrip:
+    StripifyTrianglesNvTriStripPort(prim);
+    break;
+  case Algo::Haroohie:
+    StripifyTrianglesHaroohie(prim);
+    break;
+  case Algo::Draco:
+    StripifyTrianglesDraco(prim, false);
+    break;
+  case Algo::DracoDegen:
+    StripifyTrianglesDraco(prim, true);
+    break;
+  }
+  totalStrippingMs += timer.elapsed();
+  u32 face = 0;
+  for (auto& p : prim.primitives) {
+    if (p.topology == Topology::Triangles) {
+      face += p.vertices.size() / 3;
+    } else if (p.topology == Topology::TriangleStrip) {
+      face += p.vertices.size() - 2;
+    }
+  }
+  fmt::print(stderr, " -> faces: {}\n", face);
+  return {};
+}
+
+// Brute-force every algorithm
+Result<void> StripifyTriangles(MatrixPrimitive& prim) {
+  std::vector<MatrixPrimitive> results;
+  for (auto e : magic_enum::enum_values<Algo>()) {
+    MatrixPrimitive tmp = prim;
+    TRY(StripifyTrianglesAlgo(tmp, e));
+    results.push_back(std::move(tmp));
+  }
+  u32 best_score = std::numeric_limits<u32>::max();
+  u32 best_index = 0;
+  for (size_t i = 0; i < results.size(); ++i) {
+    u32 score = 0;
+    for (auto& p : results[i].primitives) {
+      score += p.vertices.size();
+    }
+    if (score < best_score) {
+      best_score = score;
+      best_index = i;
+    }
+  }
+  std::vector<std::string_view> winners;
+  for (u32 i = 0; i < results.size(); ++i) {
+    u32 score = 0;
+    for (auto& p : results[i].primitives) {
+      score += p.vertices.size();
+    }
+    if (score == best_score) {
+      winners.push_back(magic_enum::enum_name(static_cast<Algo>(i)));
+    }
+  }
+  fmt::print(stderr, fmt::fg(fmt::color::red), "{}", rsl::join(winners, ", "));
+  fmt::print(stderr, " won\n\n");
+
+  prim = std::move(results[best_index]);
   return {};
 }
 

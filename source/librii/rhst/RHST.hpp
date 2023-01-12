@@ -185,82 +185,17 @@ Result<void> StripifyTrianglesDraco(MatrixPrimitive& prim, bool allow_degen);
 extern u64 totalStrippingMs;
 
 enum class Algo {
-  MeshOptimizer,
-  TriStripper,
-  Haroohie,
-  Draco,
-  DracoDegen,
   NvTriStrip,
+  Draco,
+  Haroohie,
+  TriStripper,
+  MeshOptmzr,
+  DracoDegen,
 };
+Result<void> StripifyTrianglesAlgo(MatrixPrimitive& prim, Algo algo);
 
-inline Result<void> StripifyTrianglesAlgo(MatrixPrimitive& prim, Algo algo) {
-  fprintf(stderr, "%s :", magic_enum::enum_name(algo).data());
-  rsl::Timer timer;
-  switch (algo) {
-  case Algo::MeshOptimizer:
-    StripifyTrianglesMeshOptimizer(prim);
-    break;
-  case Algo::TriStripper:
-    StripifyTrianglesTriStripper(prim);
-    break;
-  case Algo::NvTriStrip:
-    StripifyTrianglesNvTriStripPort(prim);
-    break;
-  case Algo::Haroohie:
-    StripifyTrianglesHaroohie(prim);
-    break;
-  case Algo::Draco:
-    StripifyTrianglesDraco(prim, false);
-    break;
-  case Algo::DracoDegen:
-    StripifyTrianglesDraco(prim, true);
-    break;
-  }
-  totalStrippingMs += timer.elapsed();
-  u32 face = 0;
-  for (auto& p : prim.primitives) {
-    if (p.topology == Topology::Triangles) {
-      face += p.vertices.size() / 3;
-    } else if (p.topology == Topology::TriangleStrip) {
-      face += p.vertices.size() - 2;
-    }
-  }
-  fprintf(stderr, " -> faces: %u\n", face);
-  return {};
-}
-
-inline Result<void> StripifyTrianglesD(MatrixPrimitive& prim) {
-  rsl::Timer timer;
-  StripifyTrianglesMeshOptimizer(prim);
-  totalStrippingMs += timer.elapsed();
-  return {};
-}
-inline Result<void> StripifyTriangles(MatrixPrimitive& prim) {
-  std::vector<MatrixPrimitive> results;
-  for (auto e : magic_enum::enum_values<Algo>()) {
-    MatrixPrimitive tmp = prim;
-    TRY(StripifyTrianglesAlgo(tmp, e));
-    results.push_back(std::move(tmp));
-  }
-  u32 best_score = std::numeric_limits<u32>::max();
-  u32 best_index = 0;
-  for (size_t i = 0; i < results.size(); ++i) {
-    u32 score = 0;
-    for (auto& p : results[i].primitives) {
-      score += p.vertices.size();
-    }
-    if (score < best_score) {
-      best_score = score;
-      best_index = i;
-    }
-  }
-  fprintf(stderr, "%s\n\n",
-          std::format("{} won",
-                      magic_enum::enum_name(static_cast<Algo>(best_index)))
-              .c_str());
-  prim = std::move(results[best_index]);
-  return {};
-}
+// Brute-force every algorithm
+Result<void> StripifyTriangles(MatrixPrimitive& prim);
 
 std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
                                        std::string& error_message);

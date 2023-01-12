@@ -109,13 +109,14 @@ namespace rsl {
 // Until we get ranges printing in the STL
 constexpr inline std::string join(auto&& strings, std::string delim) {
   std::string s;
-  return std::accumulate(strings.begin(), strings.end(), s,
-                         [&delim](const std::string& x, const std::string& y) {
-                           if (x.empty()) {
-                             return y;
-                           }
-                           return x + delim + y;
-                         });
+  return std::accumulate(
+      strings.begin(), strings.end(), s,
+      [&delim](const std::string& x, const auto& y) -> std::string {
+        if (x.empty()) {
+          return std::string(y);
+        }
+        return x + delim + std::string(y);
+      });
 }
 
 } // namespace rsl
