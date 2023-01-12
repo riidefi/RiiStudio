@@ -270,7 +270,7 @@ Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
                                  ModelView view, glm::mat4 v_mtx,
                                  glm::mat4 p_mtx,
                                  G3dSceneRenderData& render_data,
-                                 std::string& err) {
+                                 std::string& err, lib3d::RenderType type) {
   if (boneId >= view.bones.size()) {
     return std::unexpected("Invalid bone id");
   }
@@ -307,7 +307,7 @@ Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
           .mat = mat,
           .poly = poly,
       };
-      auto shader = render_data.mMaterialData.getCachedShader(mat);
+      auto shader = render_data.mMaterialData.getCachedShader(mat, type);
       if (!shader) {
         err += std::format("\nInvalid shader for material {}: {}",
                            mat.getName(), shader.error());
@@ -328,7 +328,7 @@ Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
   for (u64 i = 0; i < pBone.getNumChildren(); ++i) {
     std::string _err;
     auto err = gatherBoneRecursive(output, pBone.getChild(i), view, v_mtx,
-                                   p_mtx, render_data, _err);
+                                   p_mtx, render_data, _err, type);
     auto err2 = err.has_value() ? "" : err.error();
     if (_err.size()) {
       err2 = err2 + "\n" + _err;
@@ -342,14 +342,15 @@ Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
 }
 
 std::string gather(lib3d::SceneBuffers& output, ModelView view, glm::mat4 v_mtx,
-                   glm::mat4 p_mtx, G3dSceneRenderData& render_data) {
+                   glm::mat4 p_mtx, G3dSceneRenderData& render_data,
+                   lib3d::RenderType type = lib3d::RenderType::Preview) {
   if (view.mats.empty() || view.polys.empty() || view.bones.empty())
     return {};
 
   // Assumes root at zero
   std::string _err;
-  auto err =
-      gatherBoneRecursive(output, 0, view, v_mtx, p_mtx, render_data, _err);
+  auto err = gatherBoneRecursive(output, 0, view, v_mtx, p_mtx, render_data,
+                                 _err, type);
   auto err2 = err.has_value() ? "" : err.error();
   if (_err.size()) {
     err2 = err2 + "\n" + _err;
@@ -390,7 +391,8 @@ Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
 Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
                                         const libcube::Scene& scene,
                                         glm::mat4 v_mtx, glm::mat4 p_mtx,
-                                        G3dSceneRenderData& render_data) {
+                                        G3dSceneRenderData& render_data,
+                                        lib3d::RenderType type) {
   // Reupload changed textures
   render_data.mTextureData.update(scene);
 
@@ -398,7 +400,8 @@ Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
   for (auto& model : scene.getModels()) {
     ModelView view(model, scene);
     view.model_id = i++;
-    auto err = gather(state.getBuffers(), view, v_mtx, p_mtx, render_data);
+    auto err =
+        gather(state.getBuffers(), view, v_mtx, p_mtx, render_data, type);
     if (err.size()) {
       return std::unexpected(err);
     }

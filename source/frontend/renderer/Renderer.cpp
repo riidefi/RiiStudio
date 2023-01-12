@@ -34,6 +34,7 @@ void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
       ImGui::Checkbox("Render Scene?"_j, &rend);
       if (draw_wireframe && librii::glhelper::IsGlWireframeSupported())
         ImGui::Checkbox("Wireframe Mode"_j, &wireframe);
+      mRenderType = imcxx::EnumCombo("##mRenderType", mRenderType);
       ImGui::EndMenu();
     }
 
@@ -44,10 +45,6 @@ void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
 
     ImGui::SetNextItemWidth(120.0f * ImGui::GetIO().FontGlobalScale);
     mCameraController.drawProjectionOption();
-
-    if (draw_wireframe && librii::glhelper::IsGlWireframeSupported()) {
-      ImGui::Checkbox("Wireframe", &wireframe);
-    }
 
     {
       util::ConditionalActive a(false);
@@ -103,8 +100,8 @@ void Renderer::render(u32 width, u32 height) {
 
   mSceneState.invalidate();
   assert(mData != nullptr);
-  auto ok =
-      mRootDispatcher.populate(*mRoot, mSceneState, *mData, mViewMtx, mProjMtx);
+  auto ok = mRootDispatcher.populate(*mRoot, mSceneState, *mData, mViewMtx,
+                                     mProjMtx, mSettings.mRenderType);
   if (!ok.has_value()) {
     ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_NavHighlight],
                        "Renderer error during populate(): %s",

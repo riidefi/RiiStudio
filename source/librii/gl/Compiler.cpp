@@ -15,7 +15,7 @@ using StringBuilder = rsl::StringBuilder;
 
 using namespace librii::gx;
 
-const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs{
+const std::array<VertexAttributeGenDef, 16> vtxAttributeGenDefs{
     VertexAttributeGenDef{VertexAttribute::Position, "Position", GL_FLOAT, 3},
     VertexAttributeGenDef{VertexAttribute::PositionNormalMatrixIndex,
                           "PnMtxIdx", GL_FLOAT, 1},
@@ -33,7 +33,9 @@ const std::array<VertexAttributeGenDef, 15> vtxAttributeGenDefs{
     VertexAttributeGenDef{VertexAttribute::TexCoord4, "Tex4", GL_FLOAT, 2},
     VertexAttributeGenDef{VertexAttribute::TexCoord5, "Tex5", GL_FLOAT, 2},
     VertexAttributeGenDef{VertexAttribute::TexCoord6, "Tex6", GL_FLOAT, 2},
-    VertexAttributeGenDef{VertexAttribute::TexCoord7, "Tex7", GL_FLOAT, 2}};
+    VertexAttributeGenDef{VertexAttribute::TexCoord7, "Tex7", GL_FLOAT, 2},
+    VertexAttributeGenDef{VertexAttribute::Max, "PrimID", GL_FLOAT, 4},
+};
 
 Result<std::pair<const VertexAttributeGenDef*, std::size_t>>
 getVertexAttribGenDef(VertexAttribute vtxAttrib) {
@@ -1302,7 +1304,9 @@ public:
 
     switch (count) {
     case 1:
-      builder += "float";
+      builder += glFormat == GL_FLOAT          ? "float"
+                 : glFormat == GL_UNSIGNED_INT ? "uint"
+                                               : "?";
       break;
     case 2:
       builder += "vec2";
@@ -1376,6 +1380,7 @@ out vec3 v_TexCoord4;
 out vec3 v_TexCoord5;
 out vec3 v_TexCoord6;
 out vec3 v_TexCoord7;
+out vec4 v_PrimID;
 )";
 
     std::array<char, 1024 * 64> vert_buf;
@@ -1408,6 +1413,7 @@ float ApplyAttenuation(vec3 t_Coeff, float t_Value) {
     vert += ";\n";
 
     vert += "    v_Position = t_Position;\n";
+    vert += "    v_PrimID = a_PrimID;";
 
     vert += "    vec3 t_Normal = ";
     TRY(generateMulNrm(vert));
@@ -1439,6 +1445,7 @@ in vec3 v_TexCoord4;
 in vec3 v_TexCoord5;
 in vec3 v_TexCoord6;
 in vec3 v_TexCoord7;
+in vec4 v_PrimID;
 out vec4 fragOut;
 )";
 
@@ -1491,6 +1498,8 @@ void main() {
     TRY(generateAlphaTest(frag));
     frag += generateFog();
     frag += "    fragOut = t_PixelOut;\n";
+    if (vis_prim)
+      frag += "   fragOut = v_PrimID;\n";
     if (mMaterial.dstAlpha.enabled) {
       frag +=
           std::format("fragOut.a = {};\n",
@@ -1544,11 +1553,14 @@ void main() {
     return size;
   }
   std::string mName;
+  bool vis_prim = false;
 };
 
 std::expected<GlShaderPair, std::string>
-compileShader(const gx::LowLevelGxMaterial& mat, std::string_view name) {
+compileShader(const gx::LowLevelGxMaterial& mat, std::string_view name,
+              bool vis_prim) {
   GXProgram program(mat, name);
+  program.vis_prim = vis_prim;
   auto compiled = TRY(program.generateShaders());
   return GlShaderPair{compiled.first, compiled.second};
 }

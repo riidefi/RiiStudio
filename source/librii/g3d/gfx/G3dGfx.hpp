@@ -33,9 +33,9 @@ struct ShaderCompileError {
 };
 
 inline std::variant<librii::glhelper::ShaderProgram, ShaderCompileError>
-CompileMaterial(const lib3d::Material& _mat) {
+CompileMaterial(const lib3d::Material& _mat, lib3d::RenderType type) {
   DebugReport("Compiling shader for %s..\n", _mat.getName().c_str());
-  const auto shader_sources_ = _mat.generateShaders();
+  const auto shader_sources_ = _mat.generateShaders(type);
   if (!shader_sources_.has_value()) {
     _mat.isShaderError = true;
     _mat.shaderError =
@@ -148,7 +148,9 @@ struct ObservableShader {
     }
     return &mImpl->mProgram;
   }
-  void syncWithMaterial(const lib3d::Material& mat) { mImpl->update(&mat); }
+  void syncWithMaterial(const lib3d::Material& mat, lib3d::RenderType type) {
+    mImpl->update(&mat, type);
+  }
 
 private:
   // IObservers should be heap allocated
@@ -160,13 +162,13 @@ private:
     s32 mLastId = 0xFFFF'FFFF;
     std::string mErr;
 
-    void update(const lib3d::Material* _mat) {
+    void update(const lib3d::Material* _mat, lib3d::RenderType type) {
       assert(_mat != nullptr);
       if (mLastId == _mat->getGenerationId())
         return;
       mLastId = _mat->getGenerationId();
 
-      auto result = CompileMaterial(*_mat);
+      auto result = CompileMaterial(*_mat, type);
       if (auto* shader = std::get_if<librii::glhelper::ShaderProgram>(&result);
           shader != nullptr) {
         mProgram = std::move(*shader);
@@ -190,31 +192,35 @@ struct GenericShaderCache_WithObserverUpdates {
   // references.
   std::map<std::string, ObservableShader> mMatToShader;
 
-  // TOOD: Better approach than observers
-  bool isShaderCached(const lib3d::Material& mat) {
-    return mMatToShader.contains(mat.getName());
+  std::string key(const lib3d::Material& mat, lib3d::RenderType type) const {
+    return mat.getName() + "###" + std::to_string(static_cast<int>(type));
   }
 
-  Result<void> cacheShader(const lib3d::Material& mat) {
-    const auto shader_sources = TRY(mat.generateShaders());
+  // TOOD: Better approach than observers
+  bool isShaderCached(const lib3d::Material& mat, lib3d::RenderType type) {
+    return mMatToShader.contains(key(mat, type));
+  }
+
+  Result<void> cacheShader(const lib3d::Material& mat, lib3d::RenderType type) {
+    const auto shader_sources = TRY(mat.generateShaders(type));
 
     mMatToShader.emplace(
-        mat.getName(), librii::glhelper::ShaderProgram{shader_sources.first,
-                                                       shader_sources.second});
-    mMatToShader.at(mat.getName()).syncWithMaterial(mat);
+        key(mat, type), librii::glhelper::ShaderProgram{shader_sources.first,
+                                                        shader_sources.second});
+    mMatToShader.at(key(mat, type)).syncWithMaterial(mat, type);
     return {};
   }
 
   // TODO: We could do this all with just a map type
   std::expected<librii::glhelper::ShaderProgram*, std::string>
-  getCachedShader(const lib3d::Material& mat) {
-    if (!isShaderCached(mat)) {
-      TRY(cacheShader(mat));
+  getCachedShader(const lib3d::Material& mat, lib3d::RenderType type) {
+    if (!isShaderCached(mat, type)) {
+      TRY(cacheShader(mat, type));
     }
 
-    assert(isShaderCached(mat));
-    mMatToShader.at(mat.getName()).syncWithMaterial(mat);
-    auto program = mMatToShader.at(mat.getName()).getProgram();
+    assert(isShaderCached(mat, type));
+    mMatToShader.at(key(mat, type)).syncWithMaterial(mat, type);
+    auto program = mMatToShader.at(key(mat, type)).getProgram();
     if (!program) {
       return std::unexpected(program.error());
     }
@@ -222,6 +228,7 @@ struct GenericShaderCache_WithObserverUpdates {
   }
 };
 
+#if 0
 struct G3dShaderCache_WithUnusableHashingMechanism {
   using MatData = librii::g3d::G3dMaterialData;
 
@@ -260,6 +267,7 @@ struct G3dShaderCache_WithUnusableHashingMechanism {
     return std::unexpected("Shader compiler error and no other shader to use");
   }
 };
+#endif
 
 // GenericShaderCache_WithObserverUpdates: Hashmap ShaderData -> Shader; only
 // latest version kept in-memory G3dShaderCache_WithUnusableHashingMechanism:
@@ -397,6 +405,7 @@ Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
 Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
                                         const libcube::Scene& scene,
                                         glm::mat4 v_mtx, glm::mat4 p_mtx,
-                                        G3dSceneRenderData& render_data);
+                                        G3dSceneRenderData& render_data,
+                                        lib3d::RenderType type);
 
 } // namespace librii::g3d::gfx

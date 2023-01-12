@@ -12,7 +12,7 @@ public:
   virtual ~SceneImpl() = default;
 
   Result<void> prepare(SceneState& state, const Scene& host, glm::mat4 v_mtx,
-                       glm::mat4 p_mtx) override;
+                       glm::mat4 p_mtx, RenderType type) override;
 
   void gatherBoneRecursive(SceneBuffers& output, u64 boneId,
                            const lib3d::Model& root, const lib3d::Scene& scn,

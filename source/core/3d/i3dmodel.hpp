@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Bone.hpp"
-#include "Material.hpp"
-#include "Polygon.hpp"
-#include "Texture.hpp"
+#include <core/3d/Bone.hpp>
+#include <core/3d/Material.hpp>
+#include <core/3d/Polygon.hpp>
+#include <core/3d/Texture.hpp>
 #include <core/kpi/Node2.hpp> // kpi::Collection
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <memory> // std::shared_ptr
@@ -21,7 +21,8 @@ struct IDrawable {
 
   //! Prepare a scene based on the resource data.
   virtual Result<void> prepare(SceneState& state, const Scene& root,
-                               glm::mat4 v_mtx, glm::mat4 p_mtx) = 0;
+                               glm::mat4 v_mtx, glm::mat4 p_mtx,
+                               RenderType type) = 0;
 
   DrawableDispatcher& getDispatcher() {
     assert(dispatcher);
@@ -41,10 +42,10 @@ public:
 
   Result<void> populate(IDrawable& drawable, SceneState& state,
                         const lib3d::Scene& root, glm::mat4 v_mtx,
-                        glm::mat4 p_mtx) {
+                        glm::mat4 p_mtx, RenderType type) {
     assert(!poisoned);
     assert(!reinit);
-    return drawable.prepare(state, root, v_mtx, p_mtx);
+    return drawable.prepare(state, root, v_mtx, p_mtx, type);
   }
 
   bool beginDraw() {

@@ -12,6 +12,11 @@ class DelegatedUBOBuilder;
 
 namespace riistudio::lib3d {
 
+enum class RenderType {
+  Preview,
+  Topology,
+};
+
 struct Material;
 class Scene;
 class Model;
@@ -28,7 +33,7 @@ struct Material : public virtual kpi::IObject {
   virtual void setXluPass(bool b) = 0;
 
   virtual std::expected<std::pair<std::string, std::string>, std::string>
-  generateShaders() const = 0;
+  generateShaders(lib3d::RenderType type) const = 0;
 
   [[nodiscard]] virtual Result<librii::gfx::MegaState> setMegaState() const = 0;
   virtual void configure(librii::gfx::PixelOcclusion occlusion,

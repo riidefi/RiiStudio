@@ -115,6 +115,13 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
   SafeIndexer positions(getPos(gmdl));
   SafeIndexer normals(getNrm(gmdl));
 
+  glm::vec4 prim_id(1.0f, 1.0f, 1.0f, 1.0f);
+  auto randId = [&]() {
+    prim_id.r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    prim_id.g = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    prim_id.b = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+  };
+
   auto propVtx = [&](const librii::gx::IndexedVertex& vtx) -> Result<void> {
     const auto& vcd = getVcd();
     out.mIndices.push_back(static_cast<u32>(out.mIndices.size()));
@@ -136,6 +143,7 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
       if (!(vcd.mBitfield & (1 << i)))
         continue;
 
+      out.pushData(15, prim_id);
       switch (static_cast<gx::VertexAttribute>(i)) {
       case gx::VertexAttribute::PositionNormalMatrixIndex:
         out.pushData(
@@ -194,6 +202,7 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
       return {};
     switch (idx.mType) {
     case gx::PrimitiveType::TriangleStrip: {
+      randId();
       for (int v = 0; v < 3; ++v) {
         TRY(propV(v));
       }
@@ -205,8 +214,12 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
       return {};
     }
     case gx::PrimitiveType::Triangles:
-      for (const auto& v : idx.mVertices) {
-        TRY(propVtx(v));
+      EXPECT(idx.mVertices.size() % 3 == 0);
+      for (size_t i = 0; i < idx.mVertices.size(); i += 3) {
+        randId();
+        TRY(propVtx(idx.mVertices[i]));
+        TRY(propVtx(idx.mVertices[i + 1]));
+        TRY(propVtx(idx.mVertices[i + 2]));
       }
       return {};
     case gx::PrimitiveType::TriangleFan: {
@@ -236,14 +249,16 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
   for (auto& idx : mprims[mp_id].mPrimitives)
     TRY(propPrim(idx));
 
-  for (int i = 0; i < (int)gx::VertexAttribute::Max; ++i) {
+  for (int i = 0; i <= (int)gx::VertexAttribute::Max; ++i) {
     auto attr = (gx::VertexAttribute)i;
-    if (!(final_bitfield & (1 << i)) &&
-        i != (int)gx::VertexAttribute::PositionNormalMatrixIndex)
-      continue;
-    // For now, we just skip it
-    if (i == (int)gx::VertexAttribute::NormalBinormalTangent)
-      continue;
+    if (attr != gx::VertexAttribute::Max) {
+      if (!(final_bitfield & (1 << i)) &&
+          i != (int)gx::VertexAttribute::PositionNormalMatrixIndex)
+        continue;
+      // For now, we just skip it
+      if (i == (int)gx::VertexAttribute::NormalBinormalTangent)
+        continue;
+    }
 
     const auto def = TRY(librii::gl::getVertexAttribGenDef(attr));
     EXPECT(def.first != nullptr && "Internal logic error");

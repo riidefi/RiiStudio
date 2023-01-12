@@ -24,7 +24,7 @@ struct IGCMaterial : public riistudio::lib3d::Material {
 
   virtual const libcube::Model* getParent() const { return nullptr; }
   std::expected<std::pair<std::string, std::string>, std::string>
-  generateShaders() const override;
+  generateShaders(riistudio::lib3d::RenderType type) const override;
 
   virtual kpi::ConstCollectionRange<Texture>
   getTextureSource(const libcube::Scene& scn) const;

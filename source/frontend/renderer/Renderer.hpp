@@ -20,6 +20,7 @@ struct RenderSettings {
 
   bool rend = true;
   bool wireframe = false;
+  lib3d::RenderType mRenderType{lib3d::RenderType::Preview};
 
   void drawMenuBar(bool draw_controller = true, bool draw_wireframe = true);
 };

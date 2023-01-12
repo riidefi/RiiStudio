@@ -109,6 +109,7 @@ struct GlShaderPair {
 };
 
 std::expected<GlShaderPair, std::string>
-compileShader(const gx::LowLevelGxMaterial& mat, std::string_view name);
+compileShader(const gx::LowLevelGxMaterial& mat, std::string_view name,
+              bool vis_prim = false);
 
 } // namespace librii::gl
