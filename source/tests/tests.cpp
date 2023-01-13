@@ -89,7 +89,19 @@ open(std::string path, std::span<const u32> bps = {}) {
   for (u32 bp : bps) {
     importer.second->addBp(bp);
   }
-  importer.second->read_(transaction);
+  do {
+    if (transaction.state == kpi::TransactionState::ResolveDependencies) {
+      fprintf(stderr, "Cannot resolve dependencies in test mode.\n");
+      return std::nullopt;
+    }
+    if (transaction.state == kpi::TransactionState::ConfigureProperties) {
+      transaction.state = kpi::TransactionState::Complete;
+    }
+
+    importer.second->read_(transaction);
+  } while (transaction.state != kpi::TransactionState::Failure &&
+           transaction.state != kpi::TransactionState::FailureToSave &&
+           transaction.state != kpi::TransactionState::Complete);
 
   {
     for (auto& log : logs) {

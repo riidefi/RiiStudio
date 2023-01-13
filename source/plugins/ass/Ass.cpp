@@ -288,7 +288,7 @@ public:
     }
 
     switch (transaction.state) {
-	case kpi::TransactionState::Complete:
+    case kpi::TransactionState::Complete:
       return;
     case kpi::TransactionState::Failure:
       transaction.state = kpi::TransactionState::Failure;
@@ -336,7 +336,9 @@ void AssimpPlugin::read(kpi::IOTransaction& transaction) {
   // Ask for properties
   if (mContext->state == State::Unengaged) {
     StateUnengaged(transaction);
-    return;
+    if (transaction.state == kpi::TransactionState::ConfigureProperties) {
+      return;
+    }
   }
   if (mContext->state == State::WaitForSettings) {
     StateWaitForSettings(transaction);
