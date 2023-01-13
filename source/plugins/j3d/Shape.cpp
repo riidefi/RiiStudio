@@ -6,12 +6,12 @@
 
 namespace riistudio::j3d {
 
-glm::vec2 Shape::getUv(const libcube::Model& mdl, u64 chan, u64 idx) const {
+std::span<const glm::vec2> Shape::getUv(const libcube::Model& mdl,
+                                        u64 chan) const {
   auto& mMdl = reinterpret_cast<const Model&>(mdl);
-
-  if (idx > mMdl.mBufs.uv[chan].mData.size())
+  if (chan > mMdl.mBufs.uv.size())
     return {};
-  return mMdl.mBufs.uv[chan].mData[idx];
+  return mMdl.mBufs.uv[chan].mData;
 }
 std::span<const glm::vec3> Shape::getPos(const libcube::Model& mdl) const {
   auto& mMdl = reinterpret_cast<const Model&>(mdl);
@@ -21,15 +21,12 @@ std::span<const glm::vec3> Shape::getNrm(const libcube::Model& mdl) const {
   auto& mMdl = reinterpret_cast<const Model&>(mdl);
   return mMdl.mBufs.norm.mData;
 }
-glm::vec4 Shape::getClr(const libcube::Model& mdl, u64 chan, u64 idx) const {
+std::span<const librii::gx::Color> Shape::getClr(const libcube::Model& mdl,
+                                                 u64 chan) const {
   auto& mMdl = reinterpret_cast<const Model&>(mdl);
-  if (idx >= mMdl.mBufs.color[chan].mData.size())
-    return {1, 1, 1, 1};
-
-  auto raw = static_cast<librii::gx::ColorF32>(
-      (librii::gx::Color)mMdl.mBufs.color[chan].mData[idx]);
-
-  return {raw.r, raw.g, raw.b, raw.a};
+  if (chan > mMdl.mBufs.color.size())
+    return {};
+  return mMdl.mBufs.color[chan].mData;
 }
 
 template <typename X, typename Y>

@@ -3,23 +3,23 @@
 
 namespace riistudio::g3d {
 
-glm::vec2 Polygon::getUv(const libcube::Model& mdl, u64 chan, u64 id) const {
+std::span<const glm::vec2> Polygon::getUv(const libcube::Model& mdl,
+                                          u64 chan) const {
   const auto* buf = reinterpret_cast<const Model&>(mdl).getBuf_Uv().findByName(
       mTexCoordBuffer[chan]);
-  assert(buf);
-  if (id >= buf->mEntries.size())
+  if (!buf) {
     return {};
-  assert(id < buf->mEntries.size());
-  return buf->mEntries[id];
+  }
+  return buf->mEntries;
 }
-glm::vec4 Polygon::getClr(const libcube::Model& mdl, u64 chan, u64 id) const {
+std::span<const librii::gx::Color> Polygon::getClr(const libcube::Model& mdl,
+                                                   u64 chan) const {
   const auto* buf = reinterpret_cast<const Model&>(mdl).getBuf_Clr().findByName(
       mColorBuffer[chan]);
-  assert(buf);
-  if (id >= buf->mEntries.size())
+  if (!buf) {
     return {};
-  assert(id < buf->mEntries.size());
-  return static_cast<librii::gx::ColorF32>(buf->mEntries[id]);
+  }
+  return buf->mEntries;
 }
 std::span<const glm::vec3> Polygon::getPos(const libcube::Model& mdl) const {
   const auto* buf = reinterpret_cast<const Model&>(mdl).getBuf_Pos().findByName(

@@ -128,10 +128,10 @@ inline std::pair<u32, u32> ComputeVertTriCounts(const MeshData& mesh) {
   return {nVert, nTri};
 }
 
-inline std::pair<u32, u32> computeVertTriCounts(const auto& meshes) {
+inline std::pair<u32, u32> computeVertTriCounts(auto&& meshes) {
   u32 nVert = 0, nTri = 0;
 
-  for (const auto& mesh : meshes) {
+  for (auto&& mesh : meshes) {
     const auto [vert, tri] = librii::gx::ComputeVertTriCounts(mesh);
     nVert += vert;
     nTri += tri;
@@ -143,9 +143,9 @@ inline std::pair<u32, u32> computeVertTriCounts(const auto& meshes) {
 //
 // Build display matrix index (subset of mDrawMatrices)
 //
-inline std::set<s16> computeShapeMtxRef(const auto& meshes) {
+inline std::set<s16> computeShapeMtxRef(auto&& meshes) {
   std::set<s16> shapeRefMtx;
-  for (const auto& mesh : meshes) {
+  for (auto&& mesh : meshes) {
     // TODO: Do we need to check currentMatrixEmbedded flag?
     if (mesh.mCurrentMatrix != -1) {
       shapeRefMtx.insert(mesh.mCurrentMatrix);

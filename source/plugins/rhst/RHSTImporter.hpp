@@ -3,6 +3,7 @@
 #include <core/kpi/Plugins.hpp>
 #include <librii/image/ImagePlatform.hpp>
 #include <librii/rhst/RHST.hpp>
+#include <plugins/gc/Export/Scene.hpp>
 #include <plugins/gc/Export/Texture.hpp>
 
 namespace riistudio::rhst {
@@ -32,5 +33,13 @@ importTextureImpl(libcube::Texture& data, std::span<u8> image,
 
 void CompileRHST(librii::rhst::SceneTree& rhst,
                  kpi::IOTransaction& transaction);
+
+[[nodiscard]] Result<librii::rhst::Mesh>
+decompileMesh(const libcube::IndexedPolygon& src, const libcube::Model& mdl);
+[[nodiscard]] Result<void> compileMesh(libcube::IndexedPolygon& dst,
+                                       const librii::rhst::Mesh& src, int id,
+                                       libcube::Model& model,
+                                       bool optimize = true,
+                                       bool reinit_bufs = true);
 
 } // namespace riistudio::rhst

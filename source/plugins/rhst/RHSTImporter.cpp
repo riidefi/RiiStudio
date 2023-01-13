@@ -12,7 +12,6 @@
 #include <oishii/reader/binary_reader.hxx>
 
 #include <plugins/g3d/collection.hpp>
-#include <plugins/gc/Export/Scene.hpp>
 #include <plugins/j3d/Material.hpp>
 #include <plugins/j3d/Scene.hpp>
 
@@ -225,16 +224,34 @@ void compilePrim(librii::gx::IndexedPrimitive& dst,
 [[nodiscard]] Result<void>
 compileMatrixPrim(librii::gx::MatrixPrimitive& dst,
                   const librii::rhst::MatrixPrimitive& src, s32 current_matrix,
-                  libcube::IndexedPolygon& poly, libcube::Model& model) {
+                  libcube::IndexedPolygon& poly, libcube::Model& model,
+                  bool optimize) {
   dst.mCurrentMatrix = current_matrix;
-  dst.mDrawMatrixIndices.push_back(current_matrix);
-  // TODO: Support these
-  // std::copy(src.draw_matrices.begin(), src.draw_matrices.end(),
-  //           std::back_inserter(dst.mDrawMatrixIndices));
+  std::array<s32, 10> empty{
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  };
+  dst.mDrawMatrixIndices.clear();
+  if (src.draw_matrices == empty) {
+    dst.mDrawMatrixIndices.push_back(current_matrix);
+  } else {
+    bool done = false;
+    for (s32 d : src.draw_matrices) {
+      if (done) {
+        EXPECT(d < 0 && "Non-contiguous draw-matrix indices are unsupported");
+      }
+      if (d < 0) {
+        done = true;
+        continue;
+      }
+      dst.mDrawMatrixIndices.push_back(d);
+    }
+  }
 
   // Convert to tristrips
   librii::rhst::MatrixPrimitive tmp = src;
-  TRY(librii::rhst::StripifyTriangles(tmp));
+  if (optimize) {
+    TRY(librii::rhst::StripifyTriangles(tmp));
+  }
 
   for (auto& prim : tmp.primitives) {
     compilePrim(dst.mPrimitives.emplace_back(), prim, poly, model);
@@ -243,15 +260,116 @@ compileMatrixPrim(librii::gx::MatrixPrimitive& dst,
   return {};
 }
 
-[[nodiscard]] Result<void> compileMesh(libcube::IndexedPolygon& dst,
-                                       const librii::rhst::Mesh& src, int id,
-                                       libcube::Model& model) {
+Result<librii::rhst::Mesh> decompileMesh(const libcube::IndexedPolygon& src,
+                                         const libcube::Model& mdl) {
+  std::optional<s32> current_mtx;
+  for (auto& m : src.getMeshData().mMatrixPrimitives) {
+    if (!current_mtx) {
+      current_mtx = m.mCurrentMatrix;
+      continue;
+    }
+    if (m.mCurrentMatrix != *current_mtx) {
+      return std::unexpected("Cannot encode as RHST; meshes are only allowed "
+                             "one `current_matrix`. This is only possible with "
+                             "a .bmd/.bdl model.");
+    }
+  }
+  if (!current_mtx) {
+    return std::unexpected("Mesh is empty");
+  }
+
+  librii::rhst::Mesh tmp{.name = src.getName(),
+                         .current_matrix = *current_mtx,
+                         .vertex_descriptor =
+                             src.getMeshData().mVertexDescriptor.mBitfield};
+  auto vcd = src.getMeshData().mVertexDescriptor;
+  using VA = librii::gx::VertexAttribute;
+
+  u32 allowed = 0;
+  allowed |= 1 << static_cast<int>(VA::Position);
+  allowed |= 1 << static_cast<int>(VA::Normal);
+  for (size_t i = 0; i < 2; ++i) {
+    allowed |= 1 << static_cast<int>(librii::gx::ColorN(i));
+  }
+  for (size_t i = 0; i < 8; ++i) {
+    allowed |= 1 << static_cast<int>(librii::gx::TexCoordN(i));
+  }
+  u32 unsupported = vcd.mBitfield & ~allowed;
+  if (unsupported != 0) {
+    std::vector<std::string_view> bad;
+    for (size_t i = 0; i < static_cast<size_t>(VA::Max); ++i) {
+      if (unsupported & (1 << i)) {
+        bad.push_back(magic_enum::enum_name(static_cast<VA>(i)));
+      }
+    }
+    return std::unexpected(std::format("Mesh has unsupported attributes: {}",
+                                       rsl::join(bad, ", ")));
+  }
+
+  if (!vcd[librii::gx::VertexAttribute::Position]) {
+    return std::unexpected("Position attribute is required");
+  }
+  libcube::PolyIndexer indexer(src, mdl);
+  for (auto& x : src.getMeshData().mMatrixPrimitives) {
+    librii::rhst::MatrixPrimitive& mp = tmp.matrix_primitives.emplace_back();
+    for (size_t i = 0; i < x.mDrawMatrixIndices.size(); ++i) {
+      EXPECT(i < 10 && "Mesh has too many draw matrices");
+      mp.draw_matrices[i] = x.mDrawMatrixIndices[i];
+    }
+    for (auto& y : x.mPrimitives) {
+      auto& p = mp.primitives.emplace_back();
+      switch (y.mType) {
+      case librii::gx::PrimitiveType::Triangles:
+        p.topology = librii::rhst::Topology::Triangles;
+        break;
+      case librii::gx::PrimitiveType::TriangleStrip:
+        p.topology = librii::rhst::Topology::TriangleStrip;
+        break;
+      case librii::gx::PrimitiveType::TriangleFan:
+        p.topology = librii::rhst::Topology::TriangleFan;
+        break;
+      default:
+        return std::unexpected(
+            std::format("Unexpected topology {}. Expected Tris/Strips/Fans.",
+                        magic_enum::enum_name(y.mType)));
+      }
+      for (auto& z : y.mVertices) {
+        auto& v = p.vertices.emplace_back();
+
+        v.position = TRY(indexer.positions[z[VA::Position]]);
+        if (librii::rhst::hasNormal(vcd.mBitfield)) {
+          v.normal = TRY(indexer.normals[z[VA::Normal]]);
+        }
+        for (size_t i = 0; i < 2; ++i) {
+          if (librii::rhst::hasColor(vcd.mBitfield, i)) {
+            auto clr = TRY(indexer.colors[i][z[librii::gx::ColorN(i)]]);
+            auto fc = static_cast<librii::gx::ColorF32>(clr);
+            v.colors[i] = {fc.r, fc.g, fc.b, fc.a};
+          }
+        }
+        for (size_t i = 0; i < 8; ++i) {
+          if (librii::rhst::hasTexCoord(vcd.mBitfield, i)) {
+            auto uv = TRY(indexer.uvs[i][z[librii::gx::TexCoordN(i)]]);
+            v.uvs[i] = uv;
+          }
+        }
+      }
+    }
+  }
+  return tmp;
+}
+
+Result<void> compileMesh(libcube::IndexedPolygon& dst,
+                         const librii::rhst::Mesh& src, int id,
+                         libcube::Model& model, bool optimize,
+                         bool reinit_bufs) {
   dst.setName(src.name);
   dst.setId(id);
 
   // No skinning/BB
   dst.init(false, nullptr);
   auto& data = dst.getMeshData();
+  data.mMatrixPrimitives.clear();
 
   fprintf(stderr, "Compiling %s \n", src.name.c_str());
   for (int i = 0; i < static_cast<int>(librii::gx::VertexAttribute::Max); ++i) {
@@ -265,12 +383,14 @@ compileMatrixPrim(librii::gx::MatrixPrimitive& dst,
 
   data.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
 
-  assert(data.mVertexDescriptor.mBitfield == src.vertex_descriptor);
-  dst.initBufsFromVcd(model);
+  EXPECT(data.mVertexDescriptor.mBitfield == src.vertex_descriptor);
+  if (reinit_bufs) {
+    dst.initBufsFromVcd(model);
+  }
 
   for (auto& matrix_prim : src.matrix_primitives) {
     TRY(compileMatrixPrim(data.mMatrixPrimitives.emplace_back(), matrix_prim, 0,
-                          dst, model));
+                          dst, model, optimize));
   }
 
   return {};
@@ -386,17 +506,21 @@ Result<void> importTextureFromMemory(libcube::Texture& data,
                                      std::span<const u8> span,
                                      std::vector<u8>& scratch, bool mip_gen,
                                      int min_dim, int max_mip) {
+  BEGINTRY
   auto image = TRY(rsl::stb::load_from_memory(span));
   return importTexture(data, image.data, scratch, mip_gen, min_dim, max_mip,
                        image.width, image.height, image.channels);
+  ENDTRY
 }
 Result<void> importTextureFromFile(libcube::Texture& data,
                                    std::string_view path,
                                    std::vector<u8>& scratch, bool mip_gen,
                                    int min_dim, int max_mip) {
+  BEGINTRY
   auto image = TRY(rsl::stb::load(path));
   return importTexture(data, image.data, scratch, mip_gen, min_dim, max_mip,
                        image.width, image.height, image.channels);
+  ENDTRY
 }
 
 void import_texture(std::string tex, libcube::Texture* pdata,
@@ -413,10 +537,12 @@ void import_texture(std::string tex, libcube::Texture* pdata,
   search_paths.push_back(file_path.parent_path() / "textures" / (tex + ".png"));
 
   for (const auto& path : search_paths) {
+#ifdef __clang__
     if (importTextureFromFile(data, path.string().c_str(), scratch, mip_gen,
                               min_dim, max_mip)) {
       return;
     }
+#endif
   }
   printf("Cannot find texture %s\n", tex.c_str());
   // 32x32 (32bpp)

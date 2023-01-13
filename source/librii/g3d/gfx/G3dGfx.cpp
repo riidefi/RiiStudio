@@ -395,6 +395,7 @@ Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
                                         lib3d::RenderType type) {
   // Reupload changed textures
   render_data.mTextureData.update(scene);
+  TRY(render_data.mVertexRenderData.update(scene));
 
   int i = 0;
   for (auto& model : scene.getModels()) {

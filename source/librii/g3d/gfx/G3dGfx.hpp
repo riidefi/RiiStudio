@@ -305,6 +305,7 @@ struct G3dVertexRenderData {
   librii::glhelper::VBOBuilder mVboBuilder;
   // Maps a draw call -> ranges of mVboBuilder
   DrawCallMap<lib3d::IndexRange> mTenants;
+  DrawCallMap<u32> mPolygonLastVerId;
 
   std::expected<lib3d::IndexRange, std::string>
   getDrawCallVertices(const DrawCallPath& path) const {
@@ -332,6 +333,7 @@ struct G3dVertexRenderData {
         const auto index_range =
             TRY(AddPolygonToVBO(mVboBuilder, model, gc_mesh, i));
         mTenants.emplace(mesh_name, index_range);
+        mPolygonLastVerId.emplace(mesh_name, mesh.getGenerationId());
       }
     }
     return {};
@@ -344,6 +346,40 @@ struct G3dVertexRenderData {
     }
 
     TRY(mVboBuilder.build());
+    return {};
+  }
+  Result<void> update(const libcube::Scene& host) {
+    // Not the most sophisticated approach. If we detect any change, resubmit
+    // everything.
+    int i = 0;
+    bool any_change = false;
+    for (auto& model : host.getModels()) {
+      for (auto& poly : model.getMeshes()) {
+        auto ver = poly.getGenerationId();
+        for (auto j = 0; j < poly.getMeshData().mMatrixPrimitives.size(); ++j) {
+          DrawCallPath path{
+              .model_name = std::to_string(i),
+              .mesh_name = poly.getName(),
+              .mprim_index = static_cast<u32>(j),
+          };
+          if (mPolygonLastVerId[path] != ver) {
+            any_change = true;
+            goto ANY_CHANGE;
+          }
+        }
+      }
+      ++i;
+    }
+  ANY_CHANGE:
+    if (any_change) {
+      mVboBuilder.mData.clear();
+      mVboBuilder.mIndices.clear();
+      mVboBuilder.mPropogating.clear();
+      mTenants.clear();
+      mPolygonLastVerId.clear();
+      TRY(init(host));
+    }
+
     return {};
   }
 };

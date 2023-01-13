@@ -8,29 +8,29 @@
 namespace librii::gx {
 
 namespace VCC {
-  enum class Position { xy, xyz };
-  enum class Normal {
-    xyz,
-    nbt, // index NBT triplets
-    nbt3 // index N/B/T individually
-  };
-  enum class Color { rgb, rgba };
-  enum class TextureCoordinate {
-    s,
-    st,
-
-    u = s,
-    uv = st
-  };
-
-  template <typename T> static constexpr T Default();
-  template <> constexpr Position Default<Position>() { return Position::xyz; }
-  template <> constexpr Normal Default<Normal>() { return Normal::xyz; }
-  template <> constexpr Color Default<Color>() { return Color::rgba; }
-  template <> constexpr TextureCoordinate Default<TextureCoordinate>() {
-    return TextureCoordinate::st;
-  }
+enum class Position { xy, xyz };
+enum class Normal {
+  xyz,
+  nbt, // index NBT triplets
+  nbt3 // index N/B/T individually
 };
+enum class Color { rgb, rgba };
+enum class TextureCoordinate {
+  s,
+  st,
+
+  u = s,
+  uv = st
+};
+
+template <typename T> static constexpr T Default();
+template <> constexpr Position Default<Position>() { return Position::xyz; }
+template <> constexpr Normal Default<Normal>() { return Normal::xyz; }
+template <> constexpr Color Default<Color>() { return Color::rgba; }
+template <> constexpr TextureCoordinate Default<TextureCoordinate>() {
+  return TextureCoordinate::st;
+}
+}; // namespace VCC
 
 struct VertexComponentCount {
   using Position = VCC::Position;
@@ -107,8 +107,17 @@ enum class VertexAttribute : u32 {
 
   Undefined = 0xff - 1,
   Terminate = 0xff,
-
 };
+inline VertexAttribute ColorN(u32 n) {
+  assert(n < 2);
+  return static_cast<VertexAttribute>(
+      static_cast<int>(VertexAttribute::Color0) + n);
+}
+inline VertexAttribute TexCoordN(u32 n) {
+  assert(n < 8);
+  return static_cast<VertexAttribute>(
+      static_cast<int>(VertexAttribute::TexCoord0) + n);
+}
 // Subset of vertex attributes valid for a buffer.
 enum class VertexBufferAttribute : u32 {
   Position = 9,

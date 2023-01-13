@@ -664,14 +664,9 @@ public:
         return readVec3(out.normal);
       } else if (cur_attr >= 11 && cur_attr <= 12) {
         const int color_index = cur_attr - 11;
-        // note this is a fixed-size vector, so resizing is free
-        if (out.colors.size() <= color_index)
-          out.colors.resize(color_index + 1);
         return readVec4(out.colors[color_index]);
       } else if (cur_attr >= 13 && cur_attr <= 20) {
         const int uv_index = cur_attr - 13;
-        if (out.uvs.size() <= uv_index)
-          out.uvs.resize(uv_index + 1);
         return readVec2(out.uvs[uv_index]);
       }
 
@@ -872,15 +867,10 @@ public:
                       e.normal = getVec3(v, P).value_or(glm::vec3{});
                     } else if (cur_attr >= 11 && cur_attr <= 12) {
                       const int color_index = cur_attr - 11;
-                      // note this is a fixed-size vector, so resizing is free
-                      if (e.colors.size() <= color_index)
-                        e.colors.resize(color_index + 1);
                       e.colors[color_index] =
                           getVec4(v, P).value_or(glm::vec4{});
                     } else if (cur_attr >= 13 && cur_attr <= 20) {
                       const int uv_index = cur_attr - 13;
-                      if (e.uvs.size() <= uv_index)
-                        e.uvs.resize(uv_index + 1);
                       e.uvs[uv_index] = getVec2(v, P).value_or(glm::vec2{});
                     }
                   }

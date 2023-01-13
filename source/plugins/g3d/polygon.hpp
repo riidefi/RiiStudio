@@ -25,8 +25,10 @@ struct Polygon : public librii::g3d::PolygonData,
   const MeshData& getMeshData() const { return *this; }
   librii::math::AABB getBounds() const override { return bounds; }
 
-  glm::vec2 getUv(const libcube::Model& mdl, u64 chan, u64 id) const override;
-  glm::vec4 getClr(const libcube::Model& mdl, u64 chan, u64 id) const override;
+  std::span<const glm::vec2> getUv(const libcube::Model& mdl,
+                                   u64 chan) const override;
+  std::span<const librii::gx::Color> getClr(const libcube::Model& mdl,
+                                            u64 chan) const override;
   std::span<const glm::vec3> getPos(const libcube::Model& mdl) const override;
   std::span<const glm::vec3> getNrm(const libcube::Model& mdl) const override;
   u64 addPos(libcube::Model& mdl, const glm::vec3& v) override;

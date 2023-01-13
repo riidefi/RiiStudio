@@ -194,21 +194,25 @@ protected:                                                                     \
                                                                                \
 private:
 
-auto indexOf = [](const auto& x, const auto& y) -> int {
+#if __cpp_lib_expected >= 202202L
+namespace {
+auto indexOf(auto&& x, auto&& y) -> int {
   int index = std::find_if(x.begin(), x.end(),
                            [y](auto& f) { return f.getName() == y; }) -
               x.begin();
   return index >= x.size() ? -1 : index;
 };
-auto findByName = [](const auto& x, const auto& y) {
+auto findByName = [](auto&& x, auto&& y) {
   int index = std::find_if(x.begin(), x.end(),
                            [y](auto& f) { return f.getName() == y; }) -
               x.begin();
   return index >= x.size() ? nullptr : &x[index];
 };
-auto findByName2 = [](const auto& x, const auto& y) {
+auto findByName2 = [](auto&& x, auto&& y) {
   int index =
       std::find_if(x.begin(), x.end(), [y](auto& f) { return f.name == y; }) -
       x.begin();
   return index >= x.size() ? nullptr : &x[index];
 };
+} // namespace
+#endif

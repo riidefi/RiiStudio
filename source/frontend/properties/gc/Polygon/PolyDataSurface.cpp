@@ -2,6 +2,7 @@
 #include <core/kpi/PropertyView.hpp>
 #include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
+#include <random>
 
 namespace libcube::UI {
 
@@ -16,16 +17,36 @@ auto PolyDataSurface =
           auto& desc = poly.getVcd();
           auto& mesh_data = poly.getMeshData();
 
+          glm::vec4 prim_id(1.0f, 1.0f, 1.0f, 1.0f);
+
+          using rng = std::mt19937;
+          std::uniform_int_distribution<rng::result_type> u24dist(0, 0xFF'FFFF);
+          rng generator;
+
+          auto randId = [&]() {
+            u32 clr = u24dist(generator);
+            prim_id.r = static_cast<float>((clr >> 16) & 0xff) / 255.0f;
+            prim_id.g = static_cast<float>((clr >> 8) & 0xff) / 255.0f;
+            prim_id.b = static_cast<float>((clr >> 0) & 0xff) / 255.0f;
+          };
+
           auto draw_p = [&](int i, int j) {
             auto prim = poly.getMeshData().mMatrixPrimitives[i].mPrimitives[j];
             u32 k = 0;
+            randId();
             for (auto& v : prim.mVertices) {
               ImGui::TableNextRow();
 
               riistudio::util::IDScope v_s(k);
 
               ImGui::TableSetColumnIndex(1);
-              ImGui::Text("%u", k);
+
+			  if (prim.mType == librii::gx::PrimitiveType::Triangles && k % 3 == 0 && k >= 3) {
+                randId();
+			  }
+
+			  ImVec4 clr(prim_id.r, prim_id.g, prim_id.b, 1.0f);
+              ImGui::TextColored(clr, "%u", k);
 
               u32 q = 0;
               for (auto& e : poly.getVcd().mAttributes) {
@@ -33,7 +54,7 @@ auto PolyDataSurface =
                   continue;
                 ImGui::TableSetColumnIndex(2 + q);
                 int data = v.operator[](e.first);
-                ImGui::Text("%i", data);
+                ImGui::TextColored(clr, "%i", data);
                 ++q;
               }
               ++k;

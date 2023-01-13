@@ -115,4 +115,34 @@ set(DRACO_BACKWARDS_COMPATIBILITY OFF)
 set(DRACO_POINT_CLOUD_COMPRESSION OFF)
 CPMAddPackage("gh:google/draco#1.5.5")
 
+# Doesn't work OOB -- requires exceptions
+if (FALSE)
+  CPMAddPackage(
+    NAME cppcoro
+    GIT_REPOSITORY https://github.com/lewissbaker/cppcoro
+    GIT_TAG master
+    DOWNLOAD_ONLY YES
+  )
+  if (cppcoro_ADDED)
+    FILE(GLOB cppcoro_sources ${cppcoro_SOURCE_DIR}/lib/*.cpp)
+    add_library(cppcoro STATIC ${cppcoro_sources})
+    target_include_directories(cppcoro
+    PUBLIC
+      $<BUILD_INTERFACE:${cppcoro_SOURCE_DIR}/include>
+    )
+  endif()
+endif()
+
+# Doesn't work OOB -- they explicitly block Clang
+if (FALSE)
+  set(LIBCORO_BUILD_TESTS OFF)
+  set(LIBCORO_CODE_COVERAGE OFF)
+  set(LIBCORO_BUILD_EXAMPLES OFF)
+  CPMAddPackage("gh:jbaldwin/libcoro#main")
+  target_include_directories(libcoro
+  PUBLIC
+    $<BUILD_INTERFACE:${libcoro_SOURCE_DIR}/inc>
+  )
+endif()
+
 add_subdirectory(source)

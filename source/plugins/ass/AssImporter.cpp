@@ -79,13 +79,9 @@ Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
         vtx.normal = getVec(pMesh->mNormals[v]);
       }
       // We always have at least one pair
-      vtx.colors.resize(1);
       for (int j = 0; j < 2; ++j) {
         if (pMesh->HasVertexColors(j)) {
           auto clr = pMesh->mColors[j][v];
-          if (j >= vtx.colors.size()) {
-            vtx.colors.resize(j + 1);
-          }
           vtx.colors[j] = {clr.r, clr.g, clr.b, clr.a};
           vtx.colors[j] *= glm::vec4(tint, 1.0f);
         }
@@ -95,9 +91,6 @@ Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
       }
       for (int j = 0; j < 8; ++j) {
         if (pMesh->HasTextureCoords(j)) {
-          if (j >= vtx.uvs.size()) {
-            vtx.uvs.resize(j + 1);
-          }
           vtx.uvs[j] = getVec2(pMesh->mTextureCoords[j][v]);
         }
       }

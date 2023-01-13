@@ -1640,6 +1640,59 @@ struct AddChild : public kpi::ActionMenu<riistudio::g3d::Bone, AddChild> {
   }
 };
 
+[[nodiscard]] Result<void> optimizeMesh(libcube::IndexedPolygon& mesh) {
+  if (!mesh.childOf) {
+    return std::unexpected("Mesh is an orphan");
+  }
+  auto* mdl = dynamic_cast<libcube::Model*>(mesh.childOf);
+  if (!mdl) {
+    return std::unexpected("Mesh is not a parent of a model");
+  }
+
+  auto c = mdl->getMeshes();
+  int i = indexOf(c, mesh.getName());
+  if (i < 0 || i > std::ssize(mdl->getMeshes())) {
+    return std::unexpected("Failed to get mesh ID");
+  }
+
+  auto imd = TRY(riistudio::rhst::decompileMesh(mesh, *mdl));
+  imd = TRY(librii::rhst::TriangulateMesh(imd));
+  for (auto& mp : imd.matrix_primitives) {
+    TRY(librii::rhst::StripifyTriangles(mp));
+  }
+  TRY(riistudio::rhst::compileMesh(mesh, imd, i, *mdl, false, false));
+
+  return {};
+}
+
+struct OptimizeMesh
+    : public kpi::ActionMenu<libcube::IndexedPolygon, OptimizeMesh> {
+  bool m_do = false;
+  bool _context(libcube::IndexedPolygon&) {
+    if (ImGui::MenuItem("Optimize mesh"_j)) {
+      m_do = true;
+    }
+
+    return false;
+  }
+
+  kpi::ChangeType _modal(libcube::IndexedPolygon& mesh) {
+    if (m_do) {
+      m_do = false;
+
+      auto ok = optimizeMesh(mesh);
+      mesh.nextGenerationId();
+      if (!ok) {
+        rsl::ErrorDialogFmt("Failed to optimize mesh: {}", ok.error());
+      }
+
+      return kpi::CHANGE_NEED_RESET;
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
+
 kpi::DecentralizedInstaller
     CrateReplaceInstaller([](kpi::ApplicationPlugins& installer) {
       auto& action_menu = kpi::ActionMenuManager::get();
@@ -1652,6 +1705,7 @@ kpi::DecentralizedInstaller
       action_menu.addMenu(std::make_unique<ImportPresetsAction>());
       action_menu.addMenu(std::make_unique<SaveAsMDL0MatShade>());
       action_menu.addMenu(std::make_unique<AdvTexConvAction>());
+      action_menu.addMenu(std::make_unique<OptimizeMesh>());
       if (rsl::FileDialogsSupported()) {
         action_menu.addMenu(std::make_unique<ApplyRsPreset>());
         action_menu.addMenu(std::make_unique<CrateReplaceAction>());

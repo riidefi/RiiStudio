@@ -25,25 +25,6 @@ struct Polygon : public virtual kpi::IObject {
   virtual std::string getName() const override { return "TODO"; }
   virtual void setName(const std::string& name) = 0;
 
-  enum class SimpleAttrib {
-    EnvelopeIndex, // u8
-    Position,      // vec3
-    Normal,        // vec3
-    Color0,        // rgba8
-    Color1,
-    TexCoord0, // vec2
-    TexCoord1,
-    TexCoord2,
-    TexCoord3,
-    TexCoord4,
-    TexCoord5,
-    TexCoord6,
-    TexCoord7,
-    Max
-  };
-  virtual bool hasAttrib(SimpleAttrib attrib) const = 0;
-  virtual void setAttrib(SimpleAttrib attrib, bool v) = 0;
-
   // For now... (slow api)
   virtual std::expected<riistudio::lib3d::IndexRange, std::string>
   propagate(const Model& mdl, u32 mp_id,
@@ -57,6 +38,11 @@ struct Polygon : public virtual kpi::IObject {
   bool is_xlu_import = false;
   bool is_local_space = false;
   bool is_mask = false;
+
+  virtual s32 getGenerationId() const { return mGenerationId; }
+  virtual void nextGenerationId() { ++mGenerationId; }
+
+  s32 mGenerationId = 0;
 };
 
 // Calculates a *transformed* version of the polygon's bounding box, accounting

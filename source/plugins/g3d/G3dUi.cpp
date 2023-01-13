@@ -61,9 +61,21 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, G3DTexDataSurface) {
   ImGui::InputFloat("Maximum mipmap quality", &max);
   KPI_PROPERTY_EX(delegate, maxLod, max);
 }
+struct G3DMdlDataSurface final {
+  static inline const char* name() { return "BRRES Data"; }
+  static inline const char* icon = (const char*)ICON_FA_BOXES;
+};
+
+void drawProperty(kpi::PropertyDelegate<Model>& delegate, G3DMdlDataSurface) {
+  auto& active = delegate.getActive();
+  auto [nVert, nTri] = librii::gx::computeVertTriCounts(active.getMeshes());
+  ImGui::Text("Number of facepoints: %u\n", nVert);
+  ImGui::Text("Number of faces: %u\n", nTri);
+}
 
 kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins&) {
   auto& inst = kpi::PropertyViewManager::getInstance();
+  inst.addPropertyView<Model, G3DMdlDataSurface>();
   inst.addPropertyView<Material, G3DDataSurface>();
   inst.addPropertyView<Texture, G3DTexDataSurface, true>();
 });

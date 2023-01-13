@@ -9,6 +9,8 @@
 #include <rsl/Timer.hpp>
 #include <vendor/magic_enum/magic_enum.hpp>
 
+#include <coro/generator.hpp>
+
 inline std::partial_ordering operator<=>(const glm::vec4& l,
                                          const glm::vec4& r) {
   if (auto cmp = l.x <=> r.x; cmp != 0) {
@@ -30,8 +32,8 @@ inline std::partial_ordering operator<=>(const glm::vec2& l,
   return l.y <=> r.y;
 }
 
-inline std::partial_ordering operator<=>(const std::vector<glm::vec4>& l,
-                                         const std::vector<glm::vec4>& r) {
+inline std::partial_ordering operator<=>(const std::array<glm::vec4, 2>& l,
+                                         const std::array<glm::vec4, 2>& r) {
   return std::lexicographical_compare_three_way(
       l.begin(), l.end(), r.begin(), r.end(), [](auto& l, auto& r) {
         if (auto cmp = l.x <=> r.x; cmp != 0) {
@@ -46,8 +48,8 @@ inline std::partial_ordering operator<=>(const std::vector<glm::vec4>& l,
         return l.w <=> r.w;
       });
 }
-inline std::partial_ordering operator<=>(const std::vector<glm::vec2>& l,
-                                         const std::vector<glm::vec2>& r) {
+inline std::partial_ordering operator<=>(const std::array<glm::vec2, 8>& l,
+                                         const std::array<glm::vec2, 8>& r) {
   return std::lexicographical_compare_three_way(
       l.begin(), l.end(), r.begin(), r.end(), [](auto& l, auto& r) {
         if (auto cmp = l.x <=> r.x; cmp != 0) {
@@ -114,8 +116,8 @@ struct Vertex {
 
   template <typename T, size_t N> using array_vector = std::vector<T>;
 
-  std::vector<glm::vec2 /* , 8 */> uvs;
-  std::vector<glm::vec4 /*, 2 */> colors;
+  std::array<glm::vec2, 8> uvs{};
+  std::array<glm::vec4, 2> colors{};
 
   auto operator<=>(const Vertex& rhs) const = default;
 };
@@ -140,6 +142,15 @@ struct Mesh {
 
   std::vector<MatrixPrimitive> matrix_primitives;
 };
+
+inline bool hasPosition(u32 vcd) { return vcd & (1 << 9); }
+inline bool hasNormal(u32 vcd) { return vcd & (1 << 10); }
+inline bool hasColor(u32 vcd, u32 chan) {
+  return chan < 2 && vcd & (1 << (11 + chan));
+}
+inline bool hasTexCoord(u32 vcd, u32 chan) {
+  return chan < 8 && vcd & (1 << (13 + chan));
+}
 
 struct MetaData {
   std::string format = "JMDL";
@@ -196,6 +207,14 @@ Result<void> StripifyTrianglesAlgo(MatrixPrimitive& prim, Algo algo);
 
 // Brute-force every algorithm
 Result<void> StripifyTriangles(MatrixPrimitive& prim);
+
+coro::generator<Result<Vertex>>
+AsTriangles(std::span<const Primitive> primitives);
+
+[[nodiscard]] Result<MatrixPrimitive>
+TriangulateMPrim(const MatrixPrimitive& prim);
+
+[[nodiscard]] Result<Mesh> TriangulateMesh(const Mesh& mesh);
 
 std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
                                        std::string& error_message);
