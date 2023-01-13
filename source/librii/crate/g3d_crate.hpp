@@ -1,14 +1,12 @@
 #pragma once
 
-#include <expected>
-#include <filesystem>
+#include <core/common.h>
 #include <librii/g3d/data/MaterialData.hpp>
 #include <librii/g3d/data/TextureData.hpp>
 #include <librii/g3d/io/AnimClrIO.hpp>
 #include <librii/g3d/io/AnimIO.hpp>
 #include <librii/g3d/io/AnimTexPatIO.hpp>
-#include <rsl/Expected.hpp>
-#include <variant>
+#include <librii/g3d/io/ArchiveIO.hpp>
 #include <vendor/nlohmann/json.hpp>
 
 namespace librii::crate {
@@ -58,11 +56,9 @@ ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
 //! A "SRT0" file is effectively a .brtsa archive without the enclosing
 //! structure.
 //!
-[[nodiscard]] Result<g3d::SrtAnimationArchive>
-ReadSRT0(std::span<const u8> file);
+[[nodiscard]] Result<g3d::BinarySrt> ReadSRT0(std::span<const u8> file);
 
-[[nodiscard]] Result<std::vector<u8>>
-WriteSRT0(const g3d::SrtAnimationArchive& arc);
+[[nodiscard]] Result<std::vector<u8>> WriteSRT0(const g3d::BinarySrt& arc);
 
 struct CrateAnimationPaths {
   std::string preset_name; // For sake of preset name
@@ -124,6 +120,11 @@ ReadCrateAnimation(const CrateAnimationPaths& paths);
 
 [[nodiscard]] Result<CrateAnimation> ReadRSPreset(std::span<const u8> file);
 
-[[nodiscard]] std::vector<u8> WriteRSPreset(const CrateAnimation& preset);
+[[nodiscard]] Result<std::vector<u8>>
+WriteRSPreset(const CrateAnimation& preset);
+
+[[nodiscard]] Result<CrateAnimation>
+CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
+                         const g3d::Archive* scene, std::string_view metadata);
 
 } // namespace librii::crate

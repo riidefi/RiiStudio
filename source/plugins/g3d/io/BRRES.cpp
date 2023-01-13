@@ -151,18 +151,22 @@ librii::g3d::Model toBinaryModel(const Model& mdl) {
   return intermediate;
 }
 
-Result<void> WriteBRRES(Collection& scn, oishii::Writer& writer) {
+librii::g3d::Archive Collection::toLibRii() const {
   librii::g3d::Archive arc{
-      .models = scn.getModels() | std::views::transform(toBinaryModel) |
-                rsl::ToList(),
-      .textures = scn.getTextures() | rsl::ToList<librii::g3d::TextureData>(),
-      .clrs = scn.clrs,
-      .pats = scn.pats,
-      .srts =
-          scn.getAnim_Srts() | rsl::ToList<librii::g3d::SrtAnimationArchive>(),
-      .viss = scn.viss,
+      .models =
+          getModels() | std::views::transform(toBinaryModel) | rsl::ToList(),
+      .textures = getTextures() | rsl::ToList<librii::g3d::TextureData>(),
+      .clrs = clrs,
+      .pats = pats,
+      .srts = getAnim_Srts() | rsl::ToList<librii::g3d::SrtAnimationArchive>(),
+      .viss = viss,
 
   };
+  return arc;
+}
+
+Result<void> WriteBRRES(Collection& scn, oishii::Writer& writer) {
+  auto arc = scn.toLibRii();
   auto ok = TRY(arc.binary());
   return ok.write(writer);
 }

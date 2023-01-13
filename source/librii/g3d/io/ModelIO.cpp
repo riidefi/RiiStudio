@@ -22,19 +22,6 @@
 #include <librii/math/mtx.hpp>
 #include <librii/math/srt3.hpp>
 
-auto indexOf = [](const auto& x, const auto& y) -> int {
-  int index = std::find_if(x.begin(), x.end(),
-                           [y](auto& f) { return f.getName() == y; }) -
-              x.begin();
-  return index >= x.size() ? -1 : index;
-};
-auto findByName = [](const auto& x, const auto& y) {
-  int index = std::find_if(x.begin(), x.end(),
-                           [y](auto& f) { return f.getName() == y; }) -
-              x.begin();
-  return index >= x.size() ? nullptr : &x[index];
-};
-
 namespace librii::g3d {
 
 template <bool Named, bool bMaterial, typename T, typename U>

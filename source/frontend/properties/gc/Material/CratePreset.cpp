@@ -260,7 +260,7 @@ class SaveAsMDL0MatShade
     auto buf_ = librii::crate::WriteMDL0Mat(mat);
     if (!buf_) {
       return "librii::crate::WriteMDL0Mat failed: " + buf_.error();
-	}
+    }
     auto buf(std::move(*buf_));
     if (buf.empty()) {
       return "librii::crate::WriteMDL0Mat failed";
@@ -1500,11 +1500,14 @@ std::string tryExportRsPresetMat(std::string path,
   }
 
   auto buf = librii::crate::WriteRSPreset(*anim);
-  if (buf.empty()) {
+  if (!buf) {
+    return "Failed to write RSPreset";
+  }
+  if (buf->empty()) {
     return "librii::crate::WriteRSPreset failed";
   }
 
-  plate::Platform::writeFile(buf, path);
+  plate::Platform::writeFile(*buf, path);
   return {};
 }
 
@@ -1629,8 +1632,6 @@ struct AddChild : public kpi::ActionMenu<riistudio::g3d::Bone, AddChild> {
       assert(child);
       child->id = childId;
       child->mParent = bone.id;
-      auto* mdl = dynamic_cast<riistudio::g3d::Model*>(bone.childOf);
-      assert(mdl);
       bone.mChildren.push_back(childId);
       return kpi::CHANGE_NEED_RESET;
     }

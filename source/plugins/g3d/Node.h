@@ -3,6 +3,7 @@
 #include <librii/g3d/io/AnimClrIO.hpp>
 #include <librii/g3d/io/AnimTexPatIO.hpp>
 #include <librii/g3d/io/AnimVisIO.hpp>
+#include <librii/g3d/io/ArchiveIO.hpp>
 
 namespace riistudio::g3d {
 
@@ -201,6 +202,8 @@ class Collection
     kpi::ConstCollectionRange<Model> getModels() const { return { &mModels }; }
     kpi::ConstCollectionRange<Texture> getTextures() const { return { &mTextures }; }
     kpi::ConstCollectionRange<SRT0> getAnim_Srts() const { return { &mAnim_Srts }; }
+
+	librii::g3d::Archive toLibRii() const;
 
 protected:
     kpi::ICollection* v_getModels() const { return const_cast<kpi::ICollection*>(static_cast<const kpi::ICollection*>(&mModels)); }

@@ -1,14 +1,9 @@
 #include "g3d_crate.hpp"
+#include <core/util/timestamp.hpp>
 #include <librii/g3d/io/AnimIO.hpp>
 #include <librii/g3d/io/MatIO.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
-
-// For g3d IO, since its not part of librii yet
-#include <core/kpi/Plugins.hpp>
-#include <plugins/g3d/G3dIo.hpp>
-
-#include <core/util/timestamp.hpp>
 
 IMPORT_STD;
 
@@ -206,8 +201,7 @@ std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
   return buffer;
 }
 
-Result<g3d::SrtAnimationArchive, std::string>
-ReadSRT0(std::span<const u8> file) {
+Result<g3d::BinarySrt, std::string> ReadSRT0(std::span<const u8> file) {
   g3d::SrtAnimationArchive arc;
   oishii::DataProvider cringe(file | rsl::ToList());
   oishii::BinaryReader reader(cringe.slice());
@@ -458,18 +452,28 @@ struct SimpleTransaction {
   kpi::LightIOTransaction trans;
 };
 
-std::unique_ptr<riistudio::g3d::Collection>
-ReadBRRES(const std::vector<u8>& buf, std::string path) {
-  auto result = std::make_unique<riistudio::g3d::Collection>();
-
+std::unique_ptr<librii::g3d::Archive> ReadBRRES(const std::vector<u8>& buf,
+                                                std::string path) {
   SimpleTransaction trans;
   Reader reader(path, buf);
-  riistudio::g3d::ReadBRRES(*result, reader.mReader, trans.trans);
-
-  if (!trans.success())
+  librii::g3d::BinaryArchive bin;
+  auto ok = bin.read(reader.mReader, trans.trans);
+  if (!ok) {
     return nullptr;
+  }
+  if (!trans.success()) {
+    return nullptr;
+  }
 
-  return result;
+  auto arc = librii::g3d::Archive::from(bin, trans.trans);
+  if (!trans.success()) {
+    return nullptr;
+  }
+  if (!arc) {
+    return nullptr;
+  }
+
+  return std::make_unique<librii::g3d::Archive>(std::move(*arc));
 }
 
 Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
@@ -480,20 +484,20 @@ Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
   if (!brres) {
     return std::unexpected("Failed to parse .rspreset file"s);
   }
-  if (brres->getModels().size() != 1) {
+  if (brres->models.size() != 1) {
     return std::unexpected("Failed to parse .rspreset file"s);
   }
-  auto& mdl = brres->getModels()[0];
-  if (mdl.getMaterials().size() != 1) {
+  auto& mdl = brres->models[0];
+  if (mdl.materials.size() != 1) {
     return std::unexpected("Failed to parse .rspreset file"s);
   }
-  auto mat = mdl.getMaterials()[0];
+  auto mat = mdl.materials[0];
   for (auto& tex : mat.samplers) {
-    if (brres->getTextures().findByName(tex.mTexture) == nullptr) {
+    if (findByName2(brres->textures, tex.mTexture) == nullptr) {
       return std::unexpected("Preset is missing texture "s + tex.mTexture);
     }
   }
-  for (auto& srt : brres->getAnim_Srts()) {
+  for (auto& srt : brres->srts) {
     for (auto& anim : srt.materials) {
       if (anim.name != mat.name) {
         return std::unexpected("Extraneous SRT0 animations included"s);
@@ -515,7 +519,7 @@ Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
     }
   }
 
-  const std::string s = mdl.getBones().empty() ? "" : mdl.getBones()[0].mName;
+  const std::string s = mdl.bones.empty() ? "" : mdl.bones[0].mName;
 
   auto old_meta = s.substr(0, s.find("{BEGIN_STRUCTURED_DATA}"));
   auto new_meta = s.substr(old_meta.size());
@@ -530,47 +534,128 @@ Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
 
   return CrateAnimation{
       .mat = mat,
-      .tex = std::vector<g3d::TextureData>(brres->getTextures().begin(),
-                                           brres->getTextures().end()),
-      .srt = std::vector<g3d::SrtAnimationArchive>(
-          brres->getAnim_Srts().begin(), brres->getAnim_Srts().end()),
+      .tex = brres->textures,
+      .srt = brres->srts,
       .clr = brres->clrs,
       .pat = brres->pats,
       .metadata = old_meta,
       .metadata_json = as_json,
   };
 }
-std::vector<u8> WriteRSPreset(const CrateAnimation& preset) {
-  riistudio::g3d::Collection collection;
-  auto& mdl = collection.getModels().add();
-  static_cast<g3d::G3dMaterialData&>(mdl.getMaterials().add()) = preset.mat;
-  for (auto& tex : preset.tex) {
-    static_cast<g3d::TextureData&>(collection.getTextures().add()) = tex;
-  }
-  for (auto& srt : preset.srt) {
-    static_cast<g3d::SrtAnimationArchive&>(collection.getAnim_Srts().add()) =
-        srt;
-  }
+Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset) {
+  librii::g3d::Archive collection;
+  auto& mdl = collection.models.emplace_back();
+  mdl.materials.push_back(preset.mat);
+  collection.textures = preset.tex;
+  collection.srts = preset.srt;
   collection.clrs = preset.clr;
   collection.pats = preset.pat;
 
-  mdl.mDrawMatrices.push_back(libcube::DrawMatrix{.mWeights = {{0, 1.0f}}});
+  mdl.matrices.push_back(librii::g3d::DrawMatrix{.mWeights = {{0, 1.0f}}});
 
   auto json = preset.metadata_json;
   // Fill in date field
   const auto now = std::chrono::system_clock::now();
 #ifndef __APPLE__
   json["date_created"] = std::format("{:%B %d, %Y}", now);
-  json["tool"] = std::format("RiiStudio {}", GIT_TAG);
 #endif
+  json["tool"] = std::format("RiiStudio {}", GIT_TAG);
 
   // A bone is required for some reason
-  mdl.getBones().add().mName =
+  mdl.bones.emplace_back().mName =
       preset.metadata + "{BEGIN_STRUCTURED_DATA}" + nlohmann::to_string(json);
 
   oishii::Writer writer(0);
-  riistudio::g3d::WriteBRRES(collection, writer);
+  TRY(collection.binary()).write(writer);
   return writer.takeBuf();
+}
+
+Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
+                                                const g3d::Archive* scene,
+                                                std::string_view metadata) {
+  if (!scene) {
+    return std::unexpected(
+        "Internal: This scene type does not support .rsmat presets. "
+        "Not a BRRES file?");
+  }
+  std::set<std::string> tex_names, srt_names;
+  librii::crate::CrateAnimation result;
+  result.mat = mat;
+  result.metadata = metadata;
+  if (metadata.empty()) {
+    result.metadata =
+        "RiiStudio " + std::string(RII_TIME_STAMP) + ";Source " + "scene->path";
+  }
+  for (auto& sampler : mat.samplers) {
+    auto& tex = sampler.mTexture;
+    if (tex_names.contains(tex)) {
+      continue;
+    }
+    tex_names.emplace(tex);
+    auto* data = findByName2(scene->textures, tex);
+    if (data == nullptr) {
+      return std::unexpected(
+          std::string("Failed to find referenced textures ") + tex);
+    }
+    result.tex.push_back(*data);
+  }
+  for (auto& srt : scene->srts) {
+    librii::g3d::SrtAnimationArchive mut = srt;
+    std::erase_if(mut.materials, [&](auto& m) { return m.name != mat.name; });
+    if (!mut.materials.empty()) {
+      result.srt.push_back(mut);
+    }
+  }
+  for (auto& clr : scene->clrs) {
+    librii::g3d::BinaryClr mut = clr;
+    std::erase_if(mut.materials, [&](auto& m) { return m.name != mat.name; });
+    if (!mut.materials.empty()) {
+      result.clr.push_back(mut);
+    }
+  }
+  for (auto& pat : scene->pats) {
+    librii::g3d::BinaryTexPat mut = pat;
+    std::erase_if(mut.materials, [&](auto& m) { return m.name != mat.name; });
+
+    std::vector<u32> referenced;
+    for (auto& mat : mut.materials) {
+      for (auto& s : mat.samplers) {
+        if (auto* u = std::get_if<u32>(&s)) {
+          EXPECT(*u < mut.tracks.size());
+          auto& track = mut.tracks[*u];
+          for (auto& [idx, f] : track.keyframes) {
+            EXPECT(f.palette == 0, "Palettes are not supported");
+            EXPECT(f.texture < mut.textureNames.size());
+            referenced.emplace_back(f.texture);
+          }
+        } else if (auto* f = std::get_if<librii::g3d::PAT0KeyFrame>(&s)) {
+          EXPECT(f->palette == 0, "Palettes are not supported");
+          referenced.emplace_back(f->texture);
+        } else {
+          return std::unexpected("Invalid PAT0");
+        }
+      }
+    }
+
+    for (auto u : referenced) {
+      EXPECT(u < mut.textureNames.size());
+      auto& tex = mut.textureNames[u];
+      if (findByName2(result.tex, tex)) {
+        continue;
+      }
+      auto* data = findByName2(scene->textures, tex);
+      if (data == nullptr) {
+        return std::unexpected(
+            std::format("Failed to find referenced texture {}", tex));
+      }
+      result.tex.push_back(*data);
+    }
+
+    if (!mut.materials.empty()) {
+      result.pat.push_back(mut);
+    }
+  }
+  return result;
 }
 
 } // namespace librii::crate

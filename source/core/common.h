@@ -193,3 +193,22 @@ protected:                                                                     \
   T& operator=(T&&) noexcept = default;                                        \
                                                                                \
 private:
+
+auto indexOf = [](const auto& x, const auto& y) -> int {
+  int index = std::find_if(x.begin(), x.end(),
+                           [y](auto& f) { return f.getName() == y; }) -
+              x.begin();
+  return index >= x.size() ? -1 : index;
+};
+auto findByName = [](const auto& x, const auto& y) {
+  int index = std::find_if(x.begin(), x.end(),
+                           [y](auto& f) { return f.getName() == y; }) -
+              x.begin();
+  return index >= x.size() ? nullptr : &x[index];
+};
+auto findByName2 = [](const auto& x, const auto& y) {
+  int index =
+      std::find_if(x.begin(), x.end(), [y](auto& f) { return f.name == y; }) -
+      x.begin();
+  return index >= x.size() ? nullptr : &x[index];
+};
