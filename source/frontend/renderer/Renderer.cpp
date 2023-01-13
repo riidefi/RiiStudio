@@ -34,14 +34,11 @@ void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
       ImGui::Checkbox("Render Scene?"_j, &rend);
       if (draw_wireframe && librii::glhelper::IsGlWireframeSupported())
         ImGui::Checkbox("Wireframe Mode"_j, &wireframe);
-      mRenderType = imcxx::EnumCombo("##mRenderType", mRenderType);
       ImGui::EndMenu();
     }
 
-    if (draw_controller) {
-      ImGui::SetNextItemWidth(120.0f * ImGui::GetIO().FontGlobalScale);
-      mCameraController.drawControllerTypeOption();
-    }
+    ImGui::SetNextItemWidth(120.0f * ImGui::GetIO().FontGlobalScale);
+    mRenderType = imcxx::EnumCombo("##mRenderType", mRenderType);
 
     ImGui::SetNextItemWidth(120.0f * ImGui::GetIO().FontGlobalScale);
     mCameraController.drawProjectionOption();

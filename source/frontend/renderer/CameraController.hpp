@@ -45,7 +45,7 @@ public:
   float mVerticalAngle = 0.0f;
   float mPrevX = 0.0f;
   float mPrevY = 0.0f;
-  ControllerType combo_choice_cam = ControllerType::WASD_Minecraft;
+  ControllerType combo_choice_cam = ControllerType::WASD_Plane;
   bool mSync = false;
 };
 
