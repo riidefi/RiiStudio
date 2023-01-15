@@ -72,7 +72,7 @@ TEST_DATA = {
 	'b7fac9238095c5294730910b87d69910': 'b7fac9238095c5294730910b87d69910', # farm_course
 
 	# Assimp importer test
-	'a42db34b7d7e02bdab0157a14cf3d4d7': '3fa5d2ccdf829a6dd6898ed642c1cf5c', # beginner_course
+	'a42db34b7d7e02bdab0157a14cf3d4d7': '9ee49ffbe9e3103d738c5ad8526a7bab', # beginner_course
 }
 
 BREAKPOINTS = {

@@ -682,6 +682,8 @@ private:
 struct TriFanOptions {
   // Should never go lower, as a 3-triangle fan is also a strip.
   u32 min_fan_size = 4;
+  //
+  size_t max_runs{std::numeric_limits<size_t>::max()};
 };
 
 // Class that generates triangle fans from a provided indexed triangle mesh
@@ -766,6 +768,7 @@ private:
       ++valence_cache_[vertex];
     }
     min_fan_size_ = options.min_fan_size;
+    max_runs_ = options.max_runs;
     return true;
   }
 
@@ -824,6 +827,7 @@ private:
 
   // Options
   int min_fan_size_{};
+  size_t max_runs_{std::numeric_limits<size_t>::max()};
 };
 
 template <typename OutputIteratorT, typename IndexTypeT>
@@ -834,7 +838,8 @@ bool TriFanMeshOptimizer::GenerateTriangleFansWithPrimitiveRestart(
     return false;
   }
 
-  for (size_t i = 0; i < num_vertices_; ++i) {
+  size_t num_runs = std::min<size_t>(num_vertices_, max_runs_);
+  for (size_t i = 0; i < num_runs; ++i) {
     auto max = std::max_element(valence_cache_.begin(), valence_cache_.end());
     assert(max != valence_cache_.end());
     size_t center = max - valence_cache_.begin();
@@ -881,12 +886,13 @@ SplitByPrimitiveRestart(std::span<const IndexTypeT> mesh,
   }
 }
 
-Result<void> ToFanTriangles(MatrixPrimitive& prim) {
+Result<void> ToFanTriangles(MatrixPrimitive& prim, u32 min_len,
+                            size_t max_runs) {
   auto buf = TRY(IndexBuffer<u32>::create(prim));
 
   TriFanMeshOptimizer fan_pass;
   std::vector<u32> fans;
-  TriFanOptions options{};
+  TriFanOptions options{min_len, max_runs};
   bool ok = fan_pass.GenerateTriangleFansWithPrimitiveRestart(
       buf.index_data, ~0u, std::back_inserter(fans), options);
   EXPECT(ok);
@@ -928,6 +934,31 @@ Result<void> ToFanTriangles(MatrixPrimitive& prim) {
     score += p.vertices.size();
   }
   LogDone(buf.index_data.size(), score);
+  return {};
+}
+
+Result<void> ToFanTriangles2(MatrixPrimitive& prim) {
+  auto vc = VertexCount(prim);
+  std::array<size_t, 6> depths = {vc, 5, 10, 20, 40, 80};
+
+  std::vector<MatrixPrimitive> ps;
+  u32 best = std::numeric_limits<u32>::max();
+  u32 best_idx = 0;
+  u32 i = 0;
+  for (auto& d : depths) {
+    auto tmp = prim;
+    TRY(ToFanTriangles(tmp, 4, d));
+    auto score = VertexCount(tmp);
+    if (score < best) {
+      best = score;
+      best_idx = i;
+    }
+    ps.push_back(tmp);
+    ++i;
+  }
+
+  fmt::print(stderr, "SELECTED {} ({})\n", best_idx, depths[best_idx]);
+  prim = ps[best_idx];
   return {};
 }
 
@@ -1047,22 +1078,26 @@ Result<void> StripifyTrianglesAlgo(MatrixPrimitive& prim, Algo algo) {
     TRY(StripifyTrianglesMeshOptimizer(prim));
     break;
   case Algo::TriStripper:
-    TRY(StripifyTrianglesTriStripper(prim));
+    // Disabled for now: Doesn't seem to win.
+    // TRY(StripifyTrianglesTriStripper(prim));
     break;
   case Algo::NvTriStrip:
     TRY(StripifyTrianglesNvTriStripPort(prim));
     break;
   case Algo::Haroohie:
-    TRY(StripifyTrianglesHaroohie(prim));
+    // Disabled for now: The slowest but not with the best results to show.
+    // TRY(StripifyTrianglesHaroohie(prim));
     break;
   case Algo::Draco:
     TRY(StripifyTrianglesDraco(prim, false));
     break;
   case Algo::DracoDegen:
-    TRY(StripifyTrianglesDraco(prim, true));
+    // Disabled for now. Unusable output.
+    // TRY(StripifyTrianglesDraco(prim, true));
     break;
   case Algo::RiiFans:
-    TRY(ToFanTriangles(prim));
+    // This calls everything else on result. Usually wins
+    TRY(ToFanTriangles2(prim));
     break;
   }
   totalStrippingMs += timer.elapsed();
@@ -1070,7 +1105,8 @@ Result<void> StripifyTrianglesAlgo(MatrixPrimitive& prim, Algo algo) {
   for (auto& p : prim.primitives) {
     if (p.topology == Topology::Triangles) {
       face += p.vertices.size() / 3;
-    } else if (p.topology == Topology::TriangleStrip) {
+    } else if (p.topology == Topology::TriangleStrip ||
+               p.topology == Topology::TriangleFan) {
       face += p.vertices.size() - 2;
     }
   }

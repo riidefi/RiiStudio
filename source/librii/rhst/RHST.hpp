@@ -201,7 +201,9 @@ Result<void> StripifyTrianglesHaroohie(MatrixPrimitive& prim);
 
 Result<void> StripifyTrianglesDraco(MatrixPrimitive& prim, bool allow_degen);
 
-Result<void> ToFanTriangles(MatrixPrimitive& prim);
+Result<void>
+ToFanTriangles(MatrixPrimitive& prim, u32 min_len = 4,
+               size_t max_runs = std::numeric_limits<size_t>::max());
 
 extern u64 totalStrippingMs;
 
