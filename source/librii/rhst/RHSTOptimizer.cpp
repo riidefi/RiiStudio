@@ -538,12 +538,24 @@ static bool TriangleArrayHoldsDuplicates(std::span<const u32> index_data) {
 
 // Splits a mesh containing a central vertex into many sub-graphs of "islands"
 // such that each could be a valid trifan.
+// It is a non-greedy algorithm that appends the triangle to the first island
+// that it can join.
 class TriangleFanSplitter {
 public:
-  TriangleFanSplitter(std::span<const u32> mesh, u32 center)
-      : mesh_(mesh), center_(center) {}
+  TriangleFanSplitter() = default;
+  ~TriangleFanSplitter() = default;
 
-  std::vector<std::set<size_t>> ConvertToFans() {
+  // Generate a list of islands (specified by their face index) from the subset
+  // of |mesh| (indexed vertex data in triangle form) such that each triangle is
+  // adjacent to vertex |center|.
+  //
+  // The triangle can be retrieved from the face index as
+  //    [ mesh[face], mesh[face+1], mesh[face_2] ]
+  //
+  std::vector<std::set<size_t>> ConvertToFans(std::span<const u32> mesh,
+                                              u32 center) {
+    mesh_ = mesh;
+    center_ = center;
     islands_.clear();
     // Stores the first vertex of the face
     std::set<size_t> candidate_faces;
@@ -658,6 +670,7 @@ private:
   std::vector<std::set<size_t>> islands_{};
 };
 
+// Options for TriFanMeshOptimizer
 struct TriFanOptions {
   // Should never go lower, as a 3-triangle fan is also a strip.
   u32 min_fan_size = 4;
@@ -665,19 +678,77 @@ struct TriFanOptions {
 
 // Class that generates triangle fans from a provided indexed triangle mesh
 // array. The fans represent a more memory-efficient storage of triangle
-// connectivity that can be used directly on the GPU. In general, a mesh needs
-// to be represented by several triangle fans/strips. The algorithm here is
-// basic.
-class TriFanPass {
+// connectivity that can be used directly on the GPU. (See
+// https://en.wikipedia.org/wiki/Triangle_fan). Usually, triangle strips are
+// more versaitile representations of a scene, so algorithm will output trifans
+// if there is a really good topological match (fan of 4). This class is
+// intended to be used as a pre-pass before triangle stripping; it is very
+// unlikely an entire mesh can be well-described as triangle fans.
+//
+// This class's public API is based on draco::MeshStripifier.
+//
+// The algorithm TriFanPass uses follows:
+//
+// 1) Compute degree of all vertices.
+// 2) Starting with the highest degree vertex: (this will be the candidate
+// "center" vertex)
+//    A) Collect all adjacent triangles and sequester them into "islands" of
+//    connectivity by the non-center vetex
+//       -> for each existing island, allow an additional triangle to be added
+//       iff there is a non-center connecting vertex with subgraph degree 2 (not
+//       connected to an additional triangle)
+//    B) Discard islands with #triangles < some threshhold (4 usually).
+//    C) Dor each island, extract all edges not containing center and perform a
+//    topological sort. Output this as a triangle fan.
+//    D) Mark these triangles as visited and adjust vertex degree cache.
+//    E) Loop to the next highest degree vertex if possible.
+// 3) For all non-visited triangles, output as simple triangles.
+//
+// Some flaws with the algorithm:
+//   - A vertex having a high degree doesn't necessarily mean it's going to
+//   begin the largest triangle fan. Winding order and odd topology can cause
+//   "false positives to appear". We are potentially "stealing" triangles from
+//   larger fans when we encounter false postiives. Notwithstanding, this
+//   heuristic seems to work really well in practice; usually fans are distinct
+//   objects in the scene and are unlikely to compete for resources.
+//
+//   - [TODO] When we split a vertex connected to many triangles into multiple
+//   strips, we do not perform a greedy search but just pick the first fan that
+//   fits. In practice this may not be problematic, but it could introduce an
+//   issue where a single fan is uncessarily split into several sub-fans.
+//
+//   - Perf: When constructing a fan from an island, we invoke the very general
+//   RingIterator which assumes nothing and performs a topological sort. This
+//   may be uncessary, as we've already calculated connectivity information when
+//   determining if it is valid to append to a strip.
+//
+//   - We have no insight into the triangle stripping post-pass that will
+//   follow. A more complete approach that combines triangle strips and fans may
+//   better be able to find the global minimum.
+//
+class TriFanMeshOptimizer {
 public:
-  TriFanPass() = default;
-  ~TriFanPass() = default;
+  TriFanMeshOptimizer() = default;
+  ~TriFanMeshOptimizer() = default;
 
+  // Generate triangle fans for a given mesh and output them to the output
+  // iterator |out_it|. In most cases |out_it| stores the values in a buffer
+  // that can be used directly on the GPU. Note that the algorithm can generate
+  // multiple fans to represent the whole mesh. In such cases multiple strips
+  // are separated using a so-called primitive restart index, specified by
+  // |primtive_restart_index| (usually defined as the maximum allowed value for
+  // the given type).
+  // https://www.khronos.org/opengl/wiki/Vertex_Rendering#Primitive_Restart
   template <typename OutputIteratorT, typename IndexTypeT>
   bool GenerateTriangleFansWithPrimitiveRestart(
       std::span<const u32> mesh, IndexTypeT primitive_restart_index,
       OutputIteratorT out_it, TriFanOptions options = {});
 
+  // Returns the number of fans generated by the last call of the
+  // GenerateTriangleFansWithPrimitiveRestart() methods.
+  int num_fans() const { return num_fans_; }
+
+private:
   bool Prepare(std::span<const u32> mesh, const TriFanOptions& options) {
     assert(mesh.size() % 3 == 0);
     assert(!TriangleArrayHoldsDuplicates(mesh) && "Duplicate triangles");
@@ -724,12 +795,9 @@ public:
 
   std::vector<std::vector<u32>>
   FindFansFromCenter(u32 center, u32 primitive_restart_index, auto&& out_it) {
-#if LIBRII_RINGITERATOR_DEBUG
-    fmt::print(stderr, "Center: {} (valency={})\n", center, *max);
-#endif
     // Break candidates up into islands sharing at least two vertices.
-    TriangleFanSplitter splitter(mesh_, center);
-    auto islands = splitter.ConvertToFans();
+    TriangleFanSplitter splitter;
+    auto islands = splitter.ConvertToFans(mesh_, center);
 
     std::vector<std::vector<u32>> fans;
     for (auto& island : islands) {
@@ -754,8 +822,9 @@ public:
   // Options
   int min_fan_size_{};
 };
+
 template <typename OutputIteratorT, typename IndexTypeT>
-bool TriFanPass::GenerateTriangleFansWithPrimitiveRestart(
+bool TriFanMeshOptimizer::GenerateTriangleFansWithPrimitiveRestart(
     std::span<const u32> mesh, IndexTypeT primitive_restart_index,
     OutputIteratorT out_it, TriFanOptions options) {
   if (!Prepare(mesh, options)) {
@@ -792,10 +861,13 @@ bool TriFanPass::GenerateTriangleFansWithPrimitiveRestart(
   return true;
 }
 
+// Splits a list of indices |mesh| by a delimeter |primitive_restart_index|.
+// https://www.khronos.org/opengl/wiki/Vertex_Rendering#Primitive_Restart
 template <typename IndexTypeT>
 coro::generator<std::span<const IndexTypeT>>
 SplitByPrimitiveRestart(std::span<const IndexTypeT> mesh,
                         IndexTypeT primitive_restart_index) {
+  // TODO: Assumes trailing index
   size_t last = 0;
   for (size_t i = 0; i < mesh.size(); ++i) {
     if (mesh[i] == primitive_restart_index) {
@@ -809,7 +881,7 @@ SplitByPrimitiveRestart(std::span<const IndexTypeT> mesh,
 Result<void> ToFanTriangles(MatrixPrimitive& prim) {
   auto buf = TRY(IndexBuffer<u32>::create(prim));
 
-  TriFanPass fan_pass;
+  TriFanMeshOptimizer fan_pass;
   std::vector<u32> fans;
   TriFanOptions options{};
   bool ok = fan_pass.GenerateTriangleFansWithPrimitiveRestart(
@@ -855,7 +927,6 @@ Result<void> ToFanTriangles(MatrixPrimitive& prim) {
   LogDone(buf.index_data.size(), score);
   return {};
 }
-
 
 struct DracoMesh {
   std::shared_ptr<draco::Mesh> mesh{};
