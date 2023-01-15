@@ -538,8 +538,6 @@ static bool TriangleArrayHoldsDuplicates(std::span<const u32> index_data) {
 
 // Splits a mesh containing a central vertex into many sub-graphs of "islands"
 // such that each could be a valid trifan.
-// It is a non-greedy algorithm that appends the triangle to the first island
-// that it can join.
 class TriangleFanSplitter {
 public:
   TriangleFanSplitter() = default;
@@ -570,22 +568,32 @@ public:
           mesh_[cand_face + 1],
           mesh_[cand_face + 2],
       };
-      std::set<size_t>* it = nullptr;
+      std::vector<std::set<size_t>*> its;
       for (auto& island : islands_) {
         if (CanAddToFan(island, cand_face_indices)) {
-          it = &island;
-          break;
+          its.push_back(&island);
         }
       }
-      if (it == nullptr) {
+
+      if (its.empty()) {
         // No existing island: create a new one
         std::set<size_t> island;
         island.insert(cand_face);
         islands_.push_back(island);
+      } else if (its.size() == 2) {
+        // Merge the two
+        its[0]->insert(cand_face);
+        for (size_t f : *its[1]) {
+          its[0]->insert(f);
+        }
+        std::erase(islands_, *its[1]);
       } else {
-        it->insert(cand_face);
+        // It's fairly unlikely, but possible, the triangle could connect to
+        // multiple fans. For now, just don't bother.
+        its[0]->insert(cand_face);
       }
     }
+
     return islands_;
   }
 
@@ -705,17 +713,12 @@ struct TriFanOptions {
 // 3) For all non-visited triangles, output as simple triangles.
 //
 // Some flaws with the algorithm:
-//   - A vertex having a high degree doesn't necessarily mean it's going to
-//   begin the largest triangle fan. Winding order and odd topology can cause
-//   "false positives to appear". We are potentially "stealing" triangles from
-//   larger fans when we encounter false postiives. Notwithstanding, this
-//   heuristic seems to work really well in practice; usually fans are distinct
-//   objects in the scene and are unlikely to compete for resources.
-//
-//   - [TODO] When we split a vertex connected to many triangles into multiple
-//   strips, we do not perform a greedy search but just pick the first fan that
-//   fits. In practice this may not be problematic, but it could introduce an
-//   issue where a single fan is uncessarily split into several sub-fans.
+//   - A vertex having a high degree doesn't necessarily mean it will begin the
+//   longest triangle fan. Winding order and odd topology can cause false
+//   positives to appear. We are potentially "stealing" triangles from larger
+//   fans when we encounter false postiives. Notwithstanding, this heuristic
+//   seems to work really well in practice; usually fans are distinct objects in
+//   the scene and are unlikely to compete for resources.
 //
 //   - Perf: When constructing a fan from an island, we invoke the very general
 //   RingIterator which assumes nothing and performs a topological sort. This
