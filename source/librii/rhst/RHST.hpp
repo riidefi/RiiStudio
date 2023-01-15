@@ -135,6 +135,14 @@ struct MatrixPrimitive {
   std::vector<Primitive> primitives;
 };
 
+inline size_t VertexCount(const MatrixPrimitive& mp) {
+  size_t score = 0;
+  for (auto& p : mp.primitives) {
+    score += p.vertices.size();
+  }
+  return score;
+}
+
 struct Mesh {
   std::string name = "Untitled Mesh";
   s32 current_matrix = 0;
@@ -193,6 +201,8 @@ Result<void> StripifyTrianglesHaroohie(MatrixPrimitive& prim);
 
 Result<void> StripifyTrianglesDraco(MatrixPrimitive& prim, bool allow_degen);
 
+Result<void> ToFanTriangles(MatrixPrimitive& prim);
+
 extern u64 totalStrippingMs;
 
 enum class Algo {
@@ -202,11 +212,13 @@ enum class Algo {
   TriStripper,
   MeshOptmzr,
   DracoDegen,
+  RiiFans,
 };
 Result<void> StripifyTrianglesAlgo(MatrixPrimitive& prim, Algo algo);
 
 // Brute-force every algorithm
-Result<void> StripifyTriangles(MatrixPrimitive& prim);
+Result<void> StripifyTriangles(MatrixPrimitive& prim,
+                               std::optional<Algo> except = std::nullopt);
 
 coro::generator<Result<Vertex>>
 AsTriangles(std::span<const Primitive> primitives);
