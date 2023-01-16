@@ -145,4 +145,6 @@ if (FALSE)
   )
 endif()
 
+CPMAddPackage("gh:seleznevae/libfort@0.4.2")
+
 add_subdirectory(source)

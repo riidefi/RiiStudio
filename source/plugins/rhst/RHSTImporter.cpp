@@ -371,7 +371,9 @@ Result<void> compileMesh(libcube::IndexedPolygon& dst,
   auto& data = dst.getMeshData();
   data.mMatrixPrimitives.clear();
 
+#if 0
   fprintf(stderr, "Compiling %s \n", src.name.c_str());
+#endif
   for (int i = 0; i < static_cast<int>(librii::gx::VertexAttribute::Max); ++i) {
     if ((src.vertex_descriptor & (1 << i)) == 0)
       continue;
@@ -612,9 +614,42 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
     futures.push_back(pool.submit(task));
   }
 
+  // Optimize meshes
+  {
+    rsl::Timer timer;
+    for (auto& mesh : rhst.meshes) {
+      auto task = [](librii::rhst::Mesh* mesh) {
+        assert(mesh != nullptr);
+        int i = 0;
+        for (auto& mp : mesh->matrix_primitives) {
+          auto ok = librii::rhst::StripifyTriangles(
+              mp, std::nullopt,
+              mesh->matrix_primitives.size() > 1
+                  ? std::format("{}::{}", mesh->name, i)
+                  : mesh->name);
+          ++i;
+          if (!ok) {
+            fmt::print(stderr, "Error: Failed to stripify mesh {}. {}\n",
+                       mesh->name, ok.error());
+          }
+        }
+      };
+      futures.push_back(pool.submit(std::bind(task, &mesh)));
+    }
+
+    for (auto& f : futures) {
+      f.get();
+    }
+    fmt::print(stderr,
+               "Elapsed stripping time (multicore) (or texture import time if "
+               "greater): {}ms\n",
+               timer.elapsed());
+  }
+
   int i = 0;
   for (auto& mesh : rhst.meshes) {
-    auto ok = compileMesh(mdl.getMeshes().add(), mesh, i++, mdl);
+    // Already optimized
+    auto ok = compileMesh(mdl.getMeshes().add(), mesh, i++, mdl, false);
     if (!ok) {
       fprintf(stderr, "ERROR: Failed to compile mesh: %s\n",
               ok.error().c_str());
@@ -631,10 +666,6 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
       bweight.boneId = influence.bone_index;
       bweight.weight = static_cast<float>(influence.influence) / 100.0f;
     }
-  }
-
-  for (auto& f : futures) {
-    f.get();
   }
 
   // Now that all textures are loaded, correct sampler settings
@@ -697,11 +728,6 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
       }
     }
   }
-
-  u64 ms = librii::rhst::totalStrippingMs;
-
-  fprintf(stderr, "Stripping took, in total, %f seconds (%llu ms)\n",
-          static_cast<float>(ms) / 1000.0f, ms);
 
   transaction.state = kpi::TransactionState::Complete;
 }

@@ -133,7 +133,7 @@ add_library(librii STATIC
 	"j3d/io/Sections/VTX1.cpp"
 	"j3d/io/Sections.hpp"
 	"j3d/io/Sections/MaterialData.cpp"
- "rhst/RHSTOptimizer.cpp")
+ "rhst/RHSTOptimizer.cpp" "rhst/MeshUtils.cpp" "rhst/TriangleFanSplitter.cpp" "rhst/HaroohieTriStripifier.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
 if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
@@ -143,7 +143,7 @@ if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "
   )
 endif()
 
-target_link_libraries(librii core meshoptimizer draco::draco)
+target_link_libraries(librii PUBLIC core PRIVATE meshoptimizer draco::draco fort)
 
 target_include_directories(librii
   PRIVATE

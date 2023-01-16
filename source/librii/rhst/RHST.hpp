@@ -24,6 +24,17 @@ inline std::partial_ordering operator<=>(const glm::vec4& l,
   }
   return l.w <=> r.w;
 }
+inline std::partial_ordering operator<=>(const glm::vec3& l,
+                                         const glm::vec3& r) {
+  if (auto cmp = l.x <=> r.x; cmp != 0) {
+    return cmp;
+  }
+  if (auto cmp = l.y <=> r.y; cmp != 0) {
+    return cmp;
+  }
+  return l.z <=> r.z;
+}
+
 inline std::partial_ordering operator<=>(const glm::vec2& l,
                                          const glm::vec2& r) {
   if (auto cmp = l.x <=> r.x; cmp != 0) {
@@ -142,6 +153,18 @@ inline size_t VertexCount(const MatrixPrimitive& mp) {
   }
   return score;
 }
+inline size_t FaceCount(const MatrixPrimitive& mp) {
+  u32 face = 0;
+  for (auto& p : mp.primitives) {
+    if (p.topology == Topology::Triangles) {
+      face += p.vertices.size() / 3;
+    } else if (p.topology == Topology::TriangleStrip ||
+               p.topology == Topology::TriangleFan) {
+      face += p.vertices.size() - 2;
+    }
+  }
+  return face;
+}
 
 struct Mesh {
   std::string name = "Untitled Mesh";
@@ -184,28 +207,44 @@ struct SceneTree {
   std::vector<Material> materials;
 };
 
+struct MeshOptimizerStats {
+  // Number of "facepoints"
+  u32 before_indices{};
+  u32 after_indices{};
+
+  // This includes degenerates
+  u32 before_faces{};
+  u32 after_faces{};
+
+  // For this algorithm
+  u32 ms_elapsed{};
+
+  std::string comment;
+};
+
 // Uses zeux/meshoptimizer
-Result<void> StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim);
+Result<MeshOptimizerStats>
+StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim);
 
 // Uses GPSnoopy/TriStripper
-Result<void> StripifyTrianglesTriStripper(MatrixPrimitive& prim);
+Result<MeshOptimizerStats> StripifyTrianglesTriStripper(MatrixPrimitive& prim);
 
 // Uses amorilia/tristrip's port of NVTriStrip w/o cache support (fine, our
 // target doesn't have a post-TnL cache)
 // - Removed use of boost
 // - Replaced throw() with assertions
-Result<void> StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim);
+Result<MeshOptimizerStats>
+StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim);
 
 // C++ port of jellees/nns-blender-plugin
-Result<void> StripifyTrianglesHaroohie(MatrixPrimitive& prim);
+Result<MeshOptimizerStats> StripifyTrianglesHaroohie(MatrixPrimitive& prim);
 
-Result<void> StripifyTrianglesDraco(MatrixPrimitive& prim, bool allow_degen);
+Result<MeshOptimizerStats> StripifyTrianglesDraco(MatrixPrimitive& prim,
+                                                  bool allow_degen);
 
-Result<void>
+Result<MeshOptimizerStats>
 ToFanTriangles(MatrixPrimitive& prim, u32 min_len = 4,
                size_t max_runs = std::numeric_limits<size_t>::max());
-
-extern u64 totalStrippingMs;
 
 enum class Algo {
   NvTriStrip,
@@ -216,19 +255,13 @@ enum class Algo {
   DracoDegen,
   RiiFans,
 };
-Result<void> StripifyTrianglesAlgo(MatrixPrimitive& prim, Algo algo);
+Result<MeshOptimizerStats> StripifyTrianglesAlgo(MatrixPrimitive& prim,
+                                                 Algo algo);
 
 // Brute-force every algorithm
-Result<void> StripifyTriangles(MatrixPrimitive& prim,
-                               std::optional<Algo> except = std::nullopt);
-
-coro::generator<Result<Vertex>>
-AsTriangles(std::span<const Primitive> primitives);
-
-[[nodiscard]] Result<MatrixPrimitive>
-TriangulateMPrim(const MatrixPrimitive& prim);
-
-[[nodiscard]] Result<Mesh> TriangulateMesh(const Mesh& mesh);
+Result<Algo> StripifyTriangles(MatrixPrimitive& prim,
+                               std::optional<Algo> except = std::nullopt,
+                               std::string_view debug_name = "?");
 
 std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
                                        std::string& error_message);

@@ -43,6 +43,28 @@ OpenManyFiles(std::string_view title, std::string_view default_path,
   }
   return result;
 }
+
+Result<std::filesystem::path> OpenFolder(std::string_view title,
+                                         std::string_view default_path) {
+  if (!FileDialogsSupported()) {
+    return std::unexpected("File dialogues unsupported on this platform");
+  }
+  const auto folder =
+      pfd::select_folder(std::string(title), std::string(default_path))
+          .result();
+  if (folder.empty()) {
+    return std::unexpected("No folder was selected");
+  }
+  auto path = std::filesystem::path(folder);
+  if (!std::filesystem::exists(path)) {
+    return std::unexpected("Folder doesn't exist");
+  }
+  if (!std::filesystem::is_directory(path)) {
+    return std::unexpected("Not a folder");
+  }
+  return path;
+}
+
 rsl::expected<File, std::string> ReadOneFile(std::filesystem::path path) {
   std::ifstream file(path.string(), std::ios::binary | std::ios::ate);
   if (!file) {

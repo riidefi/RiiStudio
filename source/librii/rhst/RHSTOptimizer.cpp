@@ -1,5 +1,8 @@
+#include "HaroohieTriStripifier.hpp"
+#include "IndexBuffer.hpp"
+#include "MeshUtils.hpp"
 #include "RHST.hpp"
-#include "RingIterator.hpp"
+#include "TriFanMeshOptimizer.hpp"
 
 #include <draco/mesh/mesh_stripifier.h>
 #include <meshoptimizer.h>
@@ -7,41 +10,418 @@
 #include <vendor/tristrip/tristrip.hpp>
 
 #include <fmt/color.h>
+#define throw
+#include <fort.hpp>
+#undef throw
 #include <rsl/Ranges.hpp>
 
 namespace librii::rhst {
 
-template <typename T = u32> struct IndexBuffer {
-  static Result<IndexBuffer<T>> create(const MatrixPrimitive& prim) {
-    EXPECT(prim.primitives.size() == 1);
-    EXPECT(prim.primitives[0].topology == Topology::Triangles);
-    IndexBuffer<T> tmp;
-    for (auto& v : prim.primitives[0].vertices) {
-      auto it = std::find(tmp.vertices.begin(), tmp.vertices.end(), v);
-      if (it != tmp.vertices.end()) {
-        tmp.index_data.push_back(it - tmp.vertices.begin());
+// Validates that an optimization pass did not damage the model itself.
+// - Duplicates are allowed
+// - Degenerates are stripped
+class TriList {
+public:
+  Result<void> SetFromMPrim(const MatrixPrimitive& prim) {
+    for (auto it :
+         MeshUtils::AsTriangles(prim.primitives) | std::views::chunk(3)) {
+      std::array<Vertex, 3> tri;
+      size_t i = 0;
+      for (auto& x : it) {
+        if (!x.has_value()) {
+          return std::unexpected(x.error());
+        }
+        tri[i++] = *x;
+      }
+      // Discard degenerate triangles
+      if (tri[0] == tri[1] || tri[0] == tri[2] || tri[1] == tri[2] ||
+          tri[0] == tri[2]) {
         continue;
       }
-      tmp.index_data.push_back(static_cast<T>(tmp.vertices.size()));
-      tmp.vertices.push_back(v);
-      EXPECT(tmp.vertices[tmp.vertices.size() - 1] == v);
+      // Sort triangle
+      if (tri[0] > tri[1]) {
+        std::swap(tri[0], tri[1]);
+      }
+      if (tri[1] > tri[2]) {
+        std::swap(tri[1], tri[2]);
+      }
+      if (tri[0] > tri[1]) {
+        std::swap(tri[0], tri[1]);
+      }
+      InsertTriangle(tri[0], tri[1], tri[2]);
     }
-    return tmp;
+    return {};
   }
-  std::vector<Vertex> vertices;
-  std::vector<T> index_data;
+
+  bool operator==(const TriList& rhs) const = default;
+
+private:
+  struct Tri {
+    Vertex a{}, b{}, c{};
+    std::partial_ordering operator<=>(const Tri& rhs) const {
+      if (auto cmp = a <=> rhs.a; cmp != 0)
+        return cmp;
+      if (auto cmp = b <=> rhs.b; cmp != 0)
+        return cmp;
+      return c <=> rhs.c;
+    }
+    bool operator==(const Tri&) const = default;
+  };
+
+  // Insert a triangle into the list using a binary search. Thus, the complexity
+  // is bounded by O(nlog(n)
+  void InsertTriangle(const Vertex& a, const Vertex& b, const Vertex& c) {
+    Tri tri{a, b, c};
+    auto it = std::lower_bound(triangles_.begin(), triangles_.end(), tri);
+    triangles_.insert(it, tri);
+  }
+
+public:
+  // Sorted, duplicates allowed
+  std::vector<Tri> triangles_;
 };
 
-static void LogDone(u32 index_count, u32 real_size) {
-  fmt::print(stderr, "\t\tBefore \t{} After \t{}. \tReduction of ", index_count,
-             real_size);
-  fmt::print(stderr, fmt::fg(fmt::color::red), "{}",
-             100.0f * (1.0f - static_cast<float>(real_size) /
-                                  static_cast<float>(index_count)));
-  fmt::print(stderr, "\tpercent\n");
+Result<void> ValidateMeshesEqualImpl(const TriList& ll, const TriList& rl) {
+  if (ll.triangles_.size() != rl.triangles_.size()) {
+    return std::unexpected(
+        std::format("Number of triangles does not match (l: {}, r: {})",
+                    ll.triangles_.size(), rl.triangles_.size()));
+  }
+  for (size_t i = 0; i < ll.triangles_.size(); ++i) {
+    auto a = ll.triangles_[i];
+    auto b = rl.triangles_[i];
+    if (a != b) {
+#ifndef NDEBUG
+      auto test = a.a.position <=> b.a.position;
+      bool ok_a = a.a == b.a;
+      bool ok_b = a.b == b.b;
+#endif
+      bool ok_c = a.c == b.c;
+      return std::unexpected(std::format("Mismatch at triangle {}/{}", i,
+                                         ll.triangles_.size() - 1));
+    }
+  }
+  return {};
+}
+Result<void> ValidateMeshesEqual(const MatrixPrimitive& l,
+                                 const MatrixPrimitive& r) {
+  TriList ll, rl;
+  if (auto ok = ll.SetFromMPrim(l); !ok) {
+    return std::unexpected("Failed to validate. Initial mprim is invalid: " +
+                           ok.error());
+  }
+  if (auto ok = rl.SetFromMPrim(r); !ok) {
+    return std::unexpected("Failed to validate. New mprim is invalid: " +
+                           ok.error());
+  }
+  return ValidateMeshesEqualImpl(ll, rl);
 }
 
-Result<void> StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim) {
+// Instruments collection of Optimizer stats of a certain primitive encoding
+// algorithm like triangle stripification.
+class MeshOptimizerStatsCollector {
+public:
+  MeshOptimizerStatsCollector(const MatrixPrimitive& prim) {
+    prim_ = &prim;
+    stats_.before_indices = VertexCount(*prim_);
+    stats_.before_faces = FaceCount(*prim_);
+    timer_.reset();
+#ifndef NDEBUG
+    backup_ = *prim_;
+#endif
+  }
+
+  // Ends the session and returns the results.
+  MeshOptimizerStats End() {
+    stats_.after_indices = VertexCount(*prim_);
+    stats_.after_faces = FaceCount(*prim_);
+    stats_.ms_elapsed = timer_.elapsed();
+#ifndef NDEBUG
+    auto ok = ValidateMeshesEqual(backup_, *prim_);
+    // assert(ok);
+#endif
+    return stats_;
+  }
+
+  void SetComment(std::string&& comment) {
+    stats_.comment = std::move(comment);
+  }
+
+#ifndef NDEBUG
+  void Verify() {
+    auto ok = ValidateMeshesEqual(backup_, *prim_);
+    // assert(ok);
+  }
+#endif
+
+private:
+  const MatrixPrimitive* prim_{};
+  MeshOptimizerStats stats_{};
+  rsl::Timer timer_{};
+#ifndef NDEBUG
+  MatrixPrimitive backup_;
+#endif
+};
+
+// Test bench for a variety of "experiments -- different ways to encode a set of
+// Primitives. Experiments are scored by vertex count; only the winning
+// experiment will be selected for actual output.
+template <typename KeyT> class MeshOptimizerExperimentHolder {
+public:
+  MeshOptimizerExperimentHolder(const MatrixPrimitive& baseline)
+      : baseline_(baseline) {}
+
+  // Creates an experiment with the specified index |key| based on the baseline.
+  MatrixPrimitive& CreateExperiment(KeyT key) {
+    // unordered_map guarantees reference stability
+    // operator[] constructs elements as necessary
+    return (experiments_[key] = baseline_);
+  }
+
+  const MatrixPrimitive& GetExperiment(KeyT key) const {
+    assert(experiments_.contains(key));
+    return experiments_.at(key);
+  }
+
+  [[nodiscard]] Result<void> ValidateExperimentWithBaseline(KeyT key) const {
+    assert(experiments_.contains(key));
+    // Constructing a TriList is sufficiently expensive to warrant caching.
+    if (!baselineList_) {
+      TriList list;
+      TRY(list.SetFromMPrim(baseline_));
+      baselineList_ = std::move(list);
+    }
+    TriList ref;
+    TRY(ref.SetFromMPrim(experiments_.at(key)));
+    return ValidateMeshesEqualImpl(*baselineList_, ref);
+  }
+
+  [[nodiscard]] Result<void> ValidateAllWithBaseline() const {
+    if (!baselineList_) {
+      TriList list;
+      TRY(list.SetFromMPrim(baseline_));
+      baselineList_ = std::move(list);
+    }
+    for (auto& [key, experiment] : experiments_) {
+      TriList ref;
+      TRY(ref.SetFromMPrim(experiments_.at(key)));
+      auto ok = ValidateMeshesEqualImpl(*baselineList_, ref);
+      if (!ok) {
+        return std::unexpected(
+            std::format("({}) -> {}", static_cast<int>(key), ok.error()));
+      }
+    }
+    return {};
+  }
+
+  void SetStats(KeyT key, MeshOptimizerStats stats) { stats_[key] = stats; }
+  std::optional<MeshOptimizerStats> GetStats(KeyT key) const {
+    if (!stats_.contains(key)) {
+      return std::nullopt;
+    }
+    return stats_.at(key);
+  }
+
+  // Compute the experiments that yielded the best result (lowest vertex count)
+  coro::generator<KeyT> CalcWinners() const {
+    u32 best_score = std::numeric_limits<u32>::max();
+    for (auto& [_, experiment] : experiments_) {
+      u32 score = VertexCount(experiment);
+      if (score < best_score) {
+        best_score = score;
+      }
+    }
+    for (auto& [key, experiment] : experiments_) {
+      if (VertexCount(experiment) == best_score) {
+        co_yield static_cast<KeyT>(key);
+      }
+    }
+  }
+
+  const MatrixPrimitive& GetFirstWinner() const {
+    for (KeyT winner : CalcWinners()) {
+      return experiments_.at(winner);
+    }
+    assert(!"No experiments were added");
+    std::unreachable();
+  }
+  const KeyT GetFirstWinnerAlgo() const {
+    for (KeyT winner : CalcWinners()) {
+      return winner;
+    }
+    assert(!"No experiments were added");
+    std::unreachable();
+  }
+
+  u32 GetBaselineScore() const { return VertexCount(baseline_); }
+  u32 GetBaselineFaceCount() const { return FaceCount(baseline_); }
+
+  struct Score {
+    KeyT key{};
+    u32 score{};
+    std::optional<MeshOptimizerStats> stats{};
+  };
+
+  coro::generator<Score> Scores() const {
+    std::optional<MeshOptimizerStats> no_stats{};
+    for (auto& [key, experiment] : experiments_) {
+      co_yield Score{
+          .key = static_cast<KeyT>(key),
+          .score = static_cast<u32>(VertexCount(experiment)),
+          .stats = stats_.contains(key)
+                       ? std::optional<MeshOptimizerStats>{stats_.at(key)}
+                       : no_stats,
+      };
+    }
+  }
+
+private:
+  // Const as baseLineList may be generated based on this within a const
+  // function.
+  const MatrixPrimitive baseline_{};
+  // For validation. Mutable so ValidateExperimentWithBaseline can remain const.
+  mutable std::optional<TriList> baselineList_;
+  std::unordered_map<KeyT, MatrixPrimitive> experiments_{};
+  std::unordered_map<KeyT, MeshOptimizerStats> stats_{};
+};
+
+// Get a thousands-separated string e.g. "10,000" from a number |x|.
+std::string ToEnUsString(auto&& x) {
+  std::ostringstream ss;
+  ss.imbue(std::locale("en_US.UTF-8"));
+  ss << x;
+  return ss.str();
+}
+
+// Print the results of a `MeshOptimizerExperimentHolder` run as a formatted
+// table.
+template <typename KeyT>
+[[nodiscard]] std::string
+PrintScoresOfExperiment(const MeshOptimizerExperimentHolder<KeyT>& holder) {
+  struct Score {
+    std::string_view name;
+    u32 score;
+    std::optional<MeshOptimizerStats> stats{};
+  };
+  std::vector<Score> scores;
+  for (auto x : holder.Scores()) {
+    Score s;
+    s.name = magic_enum::enum_name(x.key);
+    s.score = x.score;
+    s.stats = x.stats;
+    scores.push_back(s);
+  }
+  Score before;
+  before.name = "No Optimization";
+  before.score = holder.GetBaselineScore();
+  before.stats = MeshOptimizerStats{
+      .after_faces = holder.GetBaselineFaceCount(),
+  };
+  scores.push_back(before);
+
+  fort::char_table table;
+  table << fort::header << "Rank"
+        << "Algo"
+        << "Number of vertices"
+        << "Reduction"
+        << "Execution Time"
+        << "Number of faces (incl. degens)"
+        << "Comment" << fort::endr;
+
+  // Sort
+  std::ranges::sort(scores,
+                    [](auto&& l, auto&& r) { return l.score < r.score; });
+
+  std::set<u32> ranks;
+  for (auto [_, score, _2] : scores) {
+    ranks.insert(score);
+  }
+
+  for (auto [name, score, stats] : scores) {
+    auto rank = std::distance(ranks.begin(), ranks.find(score));
+    std::string time = stats ? std::format("{}ms", stats->ms_elapsed) : "?";
+    std::string faces = stats ? ToEnUsString(stats->after_faces) : "?";
+    auto reduction =
+        100.0f * (1.0f - static_cast<float>(score) /
+                             static_cast<float>(holder.GetBaselineScore()));
+    table << std::format("#{}", rank + 1);
+    table << name;
+    table << ToEnUsString(score);
+    table << fmt::format("{}%", reduction);
+    table << time;
+    table << faces;
+    table << std::string(stats ? stats->comment : std::string{});
+    table << fort::endr;
+  }
+
+  return table.to_string();
+}
+
+// Class for managing index buffers of TriangleFan and TriangleStrip data. Joins
+// all simple strips/fans (size=3) into a single TRIANGLES buffer at the end.
+class PrimitiveRestartSplitter {
+public:
+  PrimitiveRestartSplitter(Topology topology, std::span<const Vertex> vertices,
+                           u32 primitive_restart_index)
+      : topology_(topology), vertices_(vertices),
+        primitive_restart_index_(primitive_restart_index) {}
+
+  // Reserve memory in the index buffer for faster OutputIterator use based on
+  // an upper bound calculated from |triangle_indices_count|.
+  void Reserve(u32 triangle_indices_count) {
+    indices_.reserve(meshopt_stripifyBound(triangle_indices_count));
+  }
+
+  // Construct an output iterator to the list of indices for consumption from
+  // TriFanMeshOptimizer.
+  auto OutputIterator() { return std::back_inserter(indices_); }
+
+  // Move in an existing index buffer |indices| for use with MeshOptimizer.
+  void SetIndices(std::vector<u32>&& indices) { indices_ = std::move(indices); }
+
+  // Convert cached index buffer into a list of RHST primitives.
+  coro::generator<Primitive> Primitives() const;
+
+private:
+  Topology topology_{};
+  std::span<const Vertex> vertices_{};
+  u32 primitive_restart_index_{~0u};
+  std::vector<u32> indices_{};
+};
+
+coro::generator<Primitive> PrimitiveRestartSplitter::Primitives() const {
+  Primitive triangles{};
+  triangles.topology = Topology::Triangles;
+  for (auto strip : MeshUtils::SplitByPrimitiveRestart<unsigned int>(
+           indices_, primitive_restart_index_)) {
+    assert(strip.size() >= 3);
+    Primitive* p{};
+    Primitive tmp;
+    // Triangle Fans and Triangle Strips of length 3 are just triangles.
+    if (strip.size() == 3) {
+      p = &triangles;
+    } else {
+      p = &tmp;
+      p->topology = topology_;
+    }
+    for (auto u : strip) {
+      assert(u != primitive_restart_index_);
+      assert(u < vertices_.size());
+      p->vertices.push_back(vertices_[u]);
+    }
+    if (strip.size() > 3) {
+      co_yield *p;
+    }
+  }
+  if (!triangles.vertices.empty()) {
+    co_yield triangles;
+  }
+}
+
+Result<MeshOptimizerStats>
+StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim) {
+  MeshOptimizerStatsCollector stats(prim);
+
   auto buf = TRY(IndexBuffer<u32>::create(prim));
   std::vector<Vertex> vertices = std::move(buf.vertices);
   std::vector<u32> index_data = std::move(buf.index_data);
@@ -52,67 +432,26 @@ Result<void> StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim) {
   unsigned int restart_index = ~0u;
   size_t strip_size = meshopt_stripify(
       &strip[0], index_data.data(), index_count, vertex_count, restart_index);
-  u32 real_size = 0;
-  for (u32 i = 0; i < strip_size; ++i) {
-    if (strip[i] != ~0u) {
-      ++real_size;
-    }
-  }
-  LogDone(index_count, real_size);
+  strip.resize(strip_size);
 
-  std::vector<Primitive> prims;
-  Primitive* p = nullptr;
-  for (u32 i = 0; i < strip_size; ++i) {
-    u32 idx = strip[i];
-    if (i == 0 || idx == ~0u) {
-      p = nullptr;
-      prims.emplace_back();
-      p = &prims[prims.size() - 1];
-      p->topology = Topology::TriangleStrip;
-      if (idx == ~0u) {
-        continue;
-      }
-    }
-    EXPECT(idx < vertices.size());
-    p->vertices.push_back(vertices[idx]);
-  }
+  PrimitiveRestartSplitter splitter(Topology::TriangleStrip, vertices, ~0u);
+  splitter.SetIndices(std::move(strip));
   prim.primitives.clear();
-  for (auto& x : prims) {
-    EXPECT(x.vertices.size() >= 3);
-    if (x.vertices.size() > 3) {
-      prim.primitives.push_back(x);
-    }
+  for (Primitive& p : splitter.Primitives()) {
+    prim.primitives.push_back(std::move(p));
   }
-  auto& v_new = prim.primitives.emplace_back();
-  v_new.topology = Topology::Triangles;
-  for (auto& x : prims) {
-    if (x.vertices.size() == 3) {
-      for (auto& y : x.vertices) {
-        v_new.vertices.push_back(y);
-      }
-    }
-  }
-  if (v_new.vertices.size() == 0) {
-    prim.primitives.resize(prim.primitives.size() - 1);
-  }
-  return {};
+
+  return stats.End();
 }
-Result<void> StripifyTrianglesTriStripper(MatrixPrimitive& prim) {
+Result<MeshOptimizerStats> StripifyTrianglesTriStripper(MatrixPrimitive& prim) {
+  MeshOptimizerStatsCollector stats(prim);
   auto buf = TRY(IndexBuffer<size_t>::create(prim));
   std::vector<Vertex> vertices = std::move(buf.vertices);
   std::vector<size_t> index_data = std::move(buf.index_data);
 
-  size_t index_count = index_data.size();
-
   triangle_stripper::tri_stripper stripper(index_data);
   triangle_stripper::primitive_vector out;
   stripper.Strip(&out);
-
-  size_t real_size = 0;
-  for (auto& p : out) {
-    real_size += p.Indices.size();
-  }
-  LogDone(index_count, real_size);
 
   prim.primitives.clear();
   for (auto& x : out) {
@@ -130,9 +469,11 @@ Result<void> StripifyTrianglesTriStripper(MatrixPrimitive& prim) {
     }
   }
 
-  return {};
+  return stats.End();
 }
-Result<void> StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim) {
+Result<MeshOptimizerStats>
+StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim) {
+  MeshOptimizerStatsCollector stats(prim);
   auto buf = TRY(IndexBuffer<u32>::create(prim));
   std::vector<Vertex> vertices = std::move(buf.vertices);
   std::vector<u32> index_data = std::move(buf.index_data);
@@ -146,16 +487,8 @@ Result<void> StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim) {
     tri.push_back(index_data[i + 2]);
     mesh.push_back(std::move(tri));
   }
-  size_t index_count = index_data.size();
-
   auto strips = stripify(mesh);
 
-  size_t real_size = 0;
-  for (auto& p : strips) {
-    real_size += p.size();
-  }
-  LogDone(index_count, real_size);
-
   prim.primitives.clear();
   for (auto& x : strips) {
     EXPECT(x.size() >= 3);
@@ -180,786 +513,90 @@ Result<void> StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim) {
     prim.primitives.resize(prim.primitives.size() - 1);
   }
 
-  return {};
+  return stats.End();
 }
 
-namespace HaroohiePals {
-
-class Primitive {
-public:
-  std::string type = "triangles";
-  bool processed = false;
-  int next_candidate_count;
-  std::vector<int> next_candidates{-1, -1, -1, -1};
-
-  std::vector<int> vertex_indices;
-  void add_vtx(Primitive& primitive, int i) {
-    vertex_indices.push_back(primitive.vertex_indices[i]);
-  }
-
-public:
-  bool is_extra_data_equal(int a, const Primitive& other, int b) const {
-    return vertex_indices[a] == other.vertex_indices[b];
-  }
-  bool is_suitable_tstrip_candidate(const Primitive& candidate) {
-    int equal_count = 0;
-    int first_i = 0;
-    int first_j = 0;
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        if (!is_extra_data_equal(i, candidate, j)) {
-          continue;
-        }
-        if (equal_count == 0) {
-          first_i = i;
-          first_j = j;
-        } else if (equal_count == 1) {
-          if (first_i == 0 && i == 2) {
-            return first_j < j || (first_j == 2 && j == 0);
-          }
-          return first_j > j || (first_j == 0 && j == 2);
-        }
-        equal_count++;
-      }
-    }
-    return false;
-  }
-  bool is_suitable_tstrip_candidate_edge(const Primitive& candidate, int a,
-                                         int b) {
-    int equal_count = 0;
-    for (int i = 0; i < 3; i++) {
-      if (is_extra_data_equal(a, candidate, i)) {
-        equal_count++;
-      }
-      if (is_extra_data_equal(b, candidate, i)) {
-        equal_count++;
-      }
-    }
-    return equal_count == 2;
-  }
-};
-class TriStripper {
-public:
-  std::pair<int, int> get_previous_tri_edge(int a, int b) {
-    if (b == 0) {
-      return {2 - (a == 1 ? 0 : 1), a};
-    }
-    if (b == 1) {
-      return {a == 2 ? 0 : 2, a};
-    }
-    return {a == 0 ? 1 : 0, a};
-  }
-  int try_strip_in_direction(std::vector<Primitive>& tris, int tri_idx,
-                             int vtxa, int vtxb) {
-    std::vector<bool> processed_tmp;
-    for (const auto& tri : tris) {
-      processed_tmp.push_back(tri.processed);
-    }
-    processed_tmp[tri_idx] = true;
-    Primitive tri = tris[tri_idx];
-    std::tie(vtxb, vtxa) = get_previous_tri_edge(vtxb, vtxa);
-    int tri_count = 1;
-    while (true) {
-      int i = -1;
-      while (i < 3) {
-        i++;
-        if (i >= 3) {
-          break;
-        }
-        if (tri.next_candidates[i] == -1) {
-          continue;
-        }
-        Primitive& candidate = tris[tri.next_candidates[i]];
-        if (processed_tmp[tri.next_candidates[i]]) {
-          continue;
-        }
-        if (!tri.is_suitable_tstrip_candidate_edge(candidate, vtxa, vtxb)) {
-          continue;
-        }
-        // TODO: Just use position vector?
-        auto pos_a = tri.vertex_indices[vtxa];
-        vtxa = 0;
-        while (vtxa < 3) {
-          if (candidate.vertex_indices[vtxa] == pos_a) {
-            break;
-          }
-          vtxa++;
-        }
-        auto pos_b = tri.vertex_indices[vtxb];
-        vtxb = 0;
-        while (vtxb < 3) {
-          if (candidate.vertex_indices[vtxb] == pos_b) {
-            break;
-          }
-          vtxb++;
-        }
-        if (vtxa != 3 && vtxb != 3) {
-          std::tie(vtxb, vtxa) = get_previous_tri_edge(vtxb, vtxa);
-          processed_tmp[tri.next_candidates[i]] = true;
-          tri_count++;
-          tri = candidate;
-          break;
-        }
-      }
-      if (i == 3) {
-        break;
-      }
-    }
-    return tri_count;
-  }
-  Primitive make_tstrip_primitive(std::vector<Primitive>& tris, int tri_idx,
-                                  int vtxa, int vtxb) {
-    Primitive result;
-    result.type = "triangle_strip";
-    Primitive tri = tris[tri_idx];
-    tris[tri_idx].processed = true;
-    result.add_vtx(tri, vtxa);
-    result.add_vtx(tri, vtxb);
-    std::tie(vtxb, vtxa) = get_previous_tri_edge(vtxb, vtxa);
-    result.add_vtx(tri, vtxb);
-    while (true) {
-      int i = -1;
-      while (i < 3) {
-        i++;
-        if (i >= 3) {
-          break;
-        }
-        if (tri.next_candidates[i] == -1) {
-          continue;
-        }
-        Primitive& candidate = tris[tri.next_candidates[i]];
-        if (candidate.processed) {
-          continue;
-        }
-        if (!tri.is_suitable_tstrip_candidate_edge(candidate, vtxa, vtxb)) {
-          continue;
-        }
-        // TODO: Just check positions?
-        auto pos_a = tri.vertex_indices[vtxa];
-        vtxa = 0;
-        while (vtxa < 3) {
-          if (candidate.vertex_indices[vtxa] == pos_a) {
-            break;
-          }
-          vtxa++;
-        }
-        auto pos_b = tri.vertex_indices[vtxb];
-        vtxb = 0;
-        while (vtxb < 3) {
-          if (candidate.vertex_indices[vtxb] == pos_b) {
-            break;
-          }
-          vtxb++;
-        }
-        if (vtxa != 3 && vtxb != 3) {
-          std::tie(vtxb, vtxa) = get_previous_tri_edge(vtxb, vtxa);
-          result.add_vtx(candidate, vtxb);
-          candidate.processed = true;
-          tri = candidate;
-          break;
-        }
-      }
-      if (i == 3) {
-        break;
-      }
-    }
-    return result;
-  }
-  std::vector<Primitive> process(std::vector<Primitive> primitives) {
-    std::vector<Primitive> result;
-    std::vector<Primitive> tris;
-    for (Primitive& tri : primitives) {
-      if (tri.type == "triangles") {
-        tri.processed = false;
-        tris.push_back(tri);
-      }
-    }
-    for (Primitive& tri : tris) {
-      tri.next_candidate_count = 0;
-      tri.next_candidates = {-1, -1, -1, -1};
-      for (int i = 0; i < tris.size(); i++) {
-        Primitive& candidate = tris[i];
-        if (!tri.is_suitable_tstrip_candidate(candidate)) {
-          continue;
-        }
-        tri.next_candidates[tri.next_candidate_count] = i;
-        tri.next_candidate_count++;
-        if (tri.next_candidate_count >= 3) {
-          break;
-        }
-      }
-    }
-    while (true) {
-      int count = 0;
-      for (Primitive& tri : tris) {
-        if (tri.processed) {
-          continue;
-        }
-        count++;
-        if (tri.next_candidate_count > 0) {
-          int cand_count = 0;
-          for (auto& c : tri.next_candidates) {
-            if (c != -1 && !tris[c].processed) {
-              ++cand_count;
-            }
-          }
-          tri.next_candidate_count = cand_count;
-        }
-      }
-      if (count == 0) {
-        break;
-      }
-      int min_cand_count_idx = -1;
-      int min_cand_count = std::numeric_limits<int>::max();
-      for (int i = 0; i < tris.size(); i++) {
-        Primitive& tri = tris[i];
-        if (tri.processed) {
-          continue;
-        }
-        if (tri.next_candidate_count < min_cand_count) {
-          min_cand_count = tri.next_candidate_count;
-          min_cand_count_idx = i;
-          if (min_cand_count <= 1) {
-            break;
-          }
-        }
-      }
-      int max_tris = 0;
-      int max_tris_vtx0 = -1;
-      int max_tris_vtx1 = -1;
-      for (int i = 0; i < 3; i++) {
-        int vtx0 = i;
-        int vtx1 = (i == 2) ? 0 : i + 1;
-        int tri_count =
-            try_strip_in_direction(tris, min_cand_count_idx, vtx0, vtx1);
-        if (tri_count > max_tris) {
-          max_tris = tri_count;
-          max_tris_vtx0 = vtx0;
-          max_tris_vtx1 = vtx1;
-        }
-      }
-      if (max_tris <= 1) {
-        Primitive& tri = tris[min_cand_count_idx];
-        tri.processed = true;
-        result.push_back(tri);
-      } else {
-        result.push_back(make_tstrip_primitive(tris, min_cand_count_idx,
-                                               max_tris_vtx0, max_tris_vtx1));
-      }
-    }
-    // Grab existing strips (none)
-    for (auto primitive : primitives) {
-      if (primitive.type != "triangles") {
-        result.push_back(primitive);
-      }
-    }
-    return result;
-  }
-};
-
-// If indices.size() == 3 -> TRIANGLES; else TRIANGLE_STRIP. No quad support.
-std::vector<std::vector<int>> TriangleStrip(std::span<const int> indices) {
-  assert(indices.size() % 3 == 0);
-  std::vector<Primitive> primitives;
-  for (size_t i = 0; i < indices.size(); i += 3) {
-    Primitive prim{};
-    prim.vertex_indices.push_back(indices[i]);
-    prim.vertex_indices.push_back(indices[i + 1]);
-    prim.vertex_indices.push_back(indices[i + 2]);
-    primitives.push_back(std::move(prim));
-  }
-  TriStripper stripper;
-  auto processed = stripper.process(primitives);
-  std::vector<std::vector<int>> result;
-  for (auto& prim : processed) {
-    result.push_back(prim.vertex_indices);
-  }
-  return result;
-}
-} // namespace HaroohiePals
-
-Result<void> StripifyTrianglesHaroohie(MatrixPrimitive& prim) {
-  auto buf = TRY(IndexBuffer<int>::create(prim));
-  std::vector<Vertex> vertices = std::move(buf.vertices);
-  std::vector<int> index_data = std::move(buf.index_data);
-
-  EXPECT(index_data.size() % 3 == 0);
-  size_t index_count = index_data.size();
-
-  auto strips = HaroohiePals::TriangleStrip(index_data);
-
-  size_t real_size = 0;
-  for (auto& p : strips) {
-    real_size += p.size();
-  }
-  LogDone(index_count, real_size);
-
-  prim.primitives.clear();
-  for (auto& x : strips) {
-    EXPECT(x.size() >= 3);
-    if (x.size() <= 3)
-      continue;
-    auto& to = prim.primitives.emplace_back();
-    to.topology = Topology::TriangleStrip;
-    for (int idx : x) {
-      to.vertices.push_back(vertices[idx]);
-    }
-  }
-  auto& v_new = prim.primitives.emplace_back();
-  v_new.topology = Topology::Triangles;
-  for (auto& x : strips) {
-    if (x.size() == 3) {
-      for (int y : x) {
-        v_new.vertices.push_back(vertices[y]);
-      }
-    }
-  }
-  if (v_new.vertices.size() == 0) {
-    prim.primitives.resize(prim.primitives.size() - 1);
-  }
-
-  return {};
-}
-
-static bool TriangleArrayHoldsDuplicates(std::span<const u32> index_data) {
-  std::vector<std::array<size_t, 3>> cache;
-  for (size_t i = 0; i < index_data.size(); i += 3) {
-    std::array<size_t, 3> cand{index_data[i], index_data[i + 1],
-                               index_data[i + 2]};
-    auto it = std::ranges::find(cache, cand);
-    if (it == cache.end()) {
-      cache.push_back(cand);
-      continue;
-    }
-    return true;
-  }
-  return false;
-}
-
-// Splits a mesh containing a central vertex into many sub-graphs of "islands"
-// such that each could be a valid trifan.
-class TriangleFanSplitter {
-public:
-  TriangleFanSplitter() = default;
-  ~TriangleFanSplitter() = default;
-
-  // Generate a list of islands (specified by their face index) from the subset
-  // of |mesh| (indexed vertex data in triangle form) such that each triangle is
-  // adjacent to vertex |center|.
-  //
-  // The triangle can be retrieved from the face index as
-  //    [ mesh[face], mesh[face+1], mesh[face_2] ]
-  //
-  std::vector<std::set<size_t>> ConvertToFans(std::span<const u32> mesh,
-                                              u32 center) {
-    mesh_ = mesh;
-    center_ = center;
-    islands_.clear();
-    // Stores the first vertex of the face
-    std::set<size_t> candidate_faces;
-    for (size_t i = 0; i < mesh_.size(); ++i) {
-      if (mesh_[i] == center_) {
-        candidate_faces.insert((i / 3) * 3);
-      }
-    }
-    for (size_t cand_face : candidate_faces) {
-      std::array<size_t, 3> cand_face_indices = {
-          mesh_[cand_face],
-          mesh_[cand_face + 1],
-          mesh_[cand_face + 2],
-      };
-      std::vector<std::set<size_t>*> its;
-      for (auto& island : islands_) {
-        if (CanAddToFan(island, cand_face_indices)) {
-          its.push_back(&island);
-        }
-      }
-
-      if (its.empty()) {
-        // No existing island: create a new one
-        std::set<size_t> island;
-        island.insert(cand_face);
-        islands_.push_back(island);
-      } else if (its.size() == 2) {
-        // Merge the two
-        its[0]->insert(cand_face);
-        for (size_t f : *its[1]) {
-          its[0]->insert(f);
-        }
-        std::erase(islands_, *its[1]);
-      } else {
-        // It's fairly unlikely, but possible, the triangle could connect to
-        // multiple fans. For now, just don't bother.
-        its[0]->insert(cand_face);
-      }
-    }
-
-    return islands_;
-  }
-
-private:
-  bool CanAddToFan(const std::set<size_t>& island,
-                   std::span<const size_t, 3> face) {
-    // Subgraph degree/2 by index_data[...]
-    // TODO: Precompute
-    std::unordered_map<std::size_t, std::size_t> valence_cache;
-    for (auto& island_face : island) {
-      ++valence_cache[mesh_[island_face]];
-      ++valence_cache[mesh_[island_face + 1]];
-      ++valence_cache[mesh_[island_face + 2]];
-    }
-    for (auto& island_face : island) {
-      std::array<size_t, 3> island_face_indices = {
-          mesh_[island_face],
-          mesh_[island_face + 1],
-          mesh_[island_face + 2],
-      };
-      for (int i = 0; i < 3; ++i) {
-        int cand_edge_from = face[(i + 2) % 3];
-        int cand_vert = face[i];
-        int cand_edge_to = face[(i + 1) % 3];
-        for (int j = 0; j < 3; ++j) {
-          int island_edge_from = island_face_indices[(j + 2) % 3];
-          int island_vert = island_face_indices[j];
-          int island_edge_to = island_face_indices[(j + 1) % 3];
-          if (cand_vert == island_vert) {
-            // The center will always match
-            if (cand_vert == center_) {
-              continue;
-            }
-            // Check the winding order actually matches
-            if (cand_edge_from != island_edge_to &&
-                cand_edge_to != island_edge_from) {
-#if LIBRII_RINGITERATOR_DEBUG
-              fmt::print(stderr,
-                         "Candidate {} is incorrect winding order (island "
-                         "tri: ({} -> {} -> {}) cand tri ({} -> {} -> {})\n",
-                         cand_vert, island_edge_from, island_vert,
-                         island_edge_to, cand_edge_from, cand_vert,
-                         cand_edge_to);
-              // assert(false);
-#endif
-              continue;
-            }
-
-            if (valence_cache[cand_vert] >= 2) {
-              // Basically this diagram. We can't add to island in this
-              // case.
-              //
-              // https://cdn.discordapp.com/attachments/337714434262827008/1063549172357283920/image.png
-              //
-#if LIBRII_RINGITERATOR_DEBUG
-              fmt::print(stderr,
-                         "Weird modeling thing. Valence of {} attempting to "
-                         "add another\n",
-                         island_valency[cand_vert]);
-#endif
-              continue;
-            }
-#if LIBRII_RINGITERATOR_DEBUG
-            fmt::print(stderr,
-                       "Cand {}: Match found (island "
-                       "tri: ({} -> {} -> {}) cand tri ({} -> {} -> {})\n",
-                       cand_vert, island_edge_from, island_vert, island_edge_to,
-                       cand_edge_from, cand_vert, cand_edge_to);
-#endif
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
-  }
-
-  std::span<const u32> mesh_{};
-  u32 center_{};
-
-  std::vector<std::set<size_t>> islands_{};
-};
-
-// Options for TriFanMeshOptimizer
-struct TriFanOptions {
-  // Should never go lower, as a 3-triangle fan is also a strip.
-  u32 min_fan_size = 4;
-  //
-  size_t max_runs{std::numeric_limits<size_t>::max()};
-};
-
-// Class that generates triangle fans from a provided indexed triangle mesh
-// array. The fans represent a more memory-efficient storage of triangle
-// connectivity that can be used directly on the GPU. (See
-// https://en.wikipedia.org/wiki/Triangle_fan). Usually, triangle strips are
-// more versaitile representations of a scene, so algorithm will output trifans
-// if there is a really good topological match (fan of 4). This class is
-// intended to be used as a pre-pass before triangle stripping; it is very
-// unlikely an entire mesh can be well-described as triangle fans.
-//
-// This class's public API is based on draco::MeshStripifier.
-//
-// The algorithm TriFanPass uses follows:
-//
-// 1) Compute degree of all vertices.
-// 2) Starting with the highest degree vertex: (this will be the candidate
-// "center" vertex)
-//    A) Collect all adjacent triangles and sequester them into "islands" of
-//    connectivity by the non-center vetex
-//       -> for each existing island, allow an additional triangle to be added
-//       iff there is a non-center connecting vertex with subgraph degree 2 (not
-//       connected to an additional triangle)
-//    B) Discard islands with #triangles < some threshhold (4 usually).
-//    C) Dor each island, extract all edges not containing center and perform a
-//    topological sort. Output this as a triangle fan.
-//    D) Mark these triangles as visited and adjust vertex degree cache.
-//    E) Loop to the next highest degree vertex if possible.
-// 3) For all non-visited triangles, output as simple triangles.
-//
-// Some flaws with the algorithm:
-//   - A vertex having a high degree doesn't necessarily mean it will begin the
-//   longest triangle fan. Winding order and odd topology can cause false
-//   positives to appear. We are potentially "stealing" triangles from larger
-//   fans when we encounter false postiives. Notwithstanding, this heuristic
-//   seems to work really well in practice; usually fans are distinct objects in
-//   the scene and are unlikely to compete for resources.
-//
-//   - Perf: When constructing a fan from an island, we invoke the very general
-//   RingIterator which assumes nothing and performs a topological sort. This
-//   may be uncessary, as we've already calculated connectivity information when
-//   determining if it is valid to append to a strip.
-//
-//   - We have no insight into the triangle stripping post-pass that will
-//   follow. A more complete approach that combines triangle strips and fans may
-//   better be able to find the global minimum.
-//
-class TriFanMeshOptimizer {
-public:
-  TriFanMeshOptimizer() = default;
-  ~TriFanMeshOptimizer() = default;
-
-  // Generate triangle fans for a given mesh and output them to the output
-  // iterator |out_it|. In most cases |out_it| stores the values in a buffer
-  // that can be used directly on the GPU. Note that the algorithm can generate
-  // multiple fans to represent the whole mesh. In such cases multiple strips
-  // are separated using a so-called primitive restart index, specified by
-  // |primtive_restart_index| (usually defined as the maximum allowed value for
-  // the given type).
-  // https://www.khronos.org/opengl/wiki/Vertex_Rendering#Primitive_Restart
-  template <typename OutputIteratorT, typename IndexTypeT>
-  bool GenerateTriangleFansWithPrimitiveRestart(
-      std::span<const u32> mesh, IndexTypeT primitive_restart_index,
-      OutputIteratorT out_it, TriFanOptions options = {});
-
-  // Returns the number of fans generated by the last call of the
-  // GenerateTriangleFansWithPrimitiveRestart() methods.
-  int num_fans() const { return num_fans_; }
-
-private:
-  bool Prepare(std::span<const u32> mesh, const TriFanOptions& options) {
-    assert(mesh.size() % 3 == 0);
-    assert(!TriangleArrayHoldsDuplicates(mesh) && "Duplicate triangles");
-    mesh_ = mesh;
-    face_visited_.clear();
-    face_visited_.resize(mesh.size() / 3);
-    std::set<u32> verts(mesh.begin(), mesh.end());
-    num_vertices_ = verts.size();
-    valence_cache_.clear();
-    valence_cache_.resize(num_vertices_);
-    for (u32 vertex : mesh_) {
-      ++valence_cache_[vertex];
-    }
-    min_fan_size_ = options.min_fan_size;
-    max_runs_ = options.max_runs;
-    return true;
-  }
-
-  template <typename OutputIteratorT>
-  void StoreFan(size_t center, std::span<const u32> fan,
-                OutputIteratorT out_it) {
-    ++num_fans_;
-    std::vector<size_t> island_;
-    for (size_t face : fan) {
-      face_visited_[face / 3] = true;
-      island_.push_back(mesh_[face]);
-      island_.push_back(mesh_[face + 1]);
-      island_.push_back(mesh_[face + 2]);
-    }
-
-    // Update valence cache
-    for (size_t vert : island_) {
-      --valence_cache_[vert];
-    }
-
-    // TODO: Debugging: Enable to skip RingIterator and just assess islands
-    // TODO: assert(fan.vertices.size() == island_.size() / 3 + 2);
-    *out_it++ = center;
-
-    RingIterator<size_t> ring_iterator(center, island_);
-    for (auto vtx : ring_iterator) {
-      *out_it++ = vtx;
-    }
-  }
-
-  std::vector<std::vector<u32>>
-  FindFansFromCenter(u32 center, u32 primitive_restart_index, auto&& out_it) {
-    // Break candidates up into islands sharing at least two vertices.
-    TriangleFanSplitter splitter;
-    auto islands = splitter.ConvertToFans(mesh_, center);
-
-    std::vector<std::vector<u32>> fans;
-    for (auto& island : islands) {
-      // Only care about islands >= 4 in length (3 just becomes a strip)
-      if (island.size() < min_fan_size_) {
-        continue;
-      }
-      std::vector<u32> tmp(island.begin(), island.end());
-      fans.push_back(tmp);
-    }
-    return fans;
-  }
-
-  std::span<const u32> mesh_{};
-  int num_vertices_{};
-  std::vector<bool> face_visited_{};
-
-  // Holds twice the degree of each vertex N
-  std::vector<int> valence_cache_{};
-  int num_fans_{};
-
-  // Options
-  int min_fan_size_{};
-  size_t max_runs_{std::numeric_limits<size_t>::max()};
-};
-
-template <typename OutputIteratorT, typename IndexTypeT>
-bool TriFanMeshOptimizer::GenerateTriangleFansWithPrimitiveRestart(
-    std::span<const u32> mesh, IndexTypeT primitive_restart_index,
-    OutputIteratorT out_it, TriFanOptions options) {
-  if (!Prepare(mesh, options)) {
-    return false;
-  }
-
-  size_t num_runs = std::min<size_t>(num_vertices_, max_runs_);
-  for (size_t i = 0; i < num_runs; ++i) {
-    auto max = std::max_element(valence_cache_.begin(), valence_cache_.end());
-    assert(max != valence_cache_.end());
-    size_t center = max - valence_cache_.begin();
-    // We've considered every vertex
-    if (*max < min_fan_size_) {
-      break;
-    }
-    // Effectively kill this vertex from our subgraph moving forward
-    valence_cache_[center] = 0;
-    auto fans = FindFansFromCenter(center, primitive_restart_index, out_it);
-    for (auto& fan : fans) {
-      StoreFan(center, fan, out_it);
-      *out_it++ = primitive_restart_index;
-    }
-  }
-
-  // Output remaining triangles in bulk
-  for (size_t i = 0; i < face_visited_.size(); ++i) {
-    if (!face_visited_[i]) {
-      *out_it++ = mesh[i * 3];
-      *out_it++ = mesh[i * 3 + 1];
-      *out_it++ = mesh[i * 3 + 2];
-      *out_it++ = primitive_restart_index;
-    }
-  }
-
-  return true;
-}
-
-// Splits a list of indices |mesh| by a delimeter |primitive_restart_index|.
-// https://www.khronos.org/opengl/wiki/Vertex_Rendering#Primitive_Restart
-template <typename IndexTypeT>
-coro::generator<std::span<const IndexTypeT>>
-SplitByPrimitiveRestart(std::span<const IndexTypeT> mesh,
-                        IndexTypeT primitive_restart_index) {
-  // TODO: Assumes trailing index
-  size_t last = 0;
-  for (size_t i = 0; i < mesh.size(); ++i) {
-    if (mesh[i] == primitive_restart_index) {
-      co_yield mesh.subspan(last, i - last);
-      last = i + 1;
-      continue;
-    }
-  }
-}
-
-Result<void> ToFanTriangles(MatrixPrimitive& prim, u32 min_len,
-                            size_t max_runs) {
+Result<MeshOptimizerStats> StripifyTrianglesHaroohie(MatrixPrimitive& prim) {
+  MeshOptimizerStatsCollector stats(prim);
   auto buf = TRY(IndexBuffer<u32>::create(prim));
+  std::vector<Vertex> vertices = std::move(buf.vertices);
+  std::vector<u32> index_data = std::move(buf.index_data);
+  EXPECT(index_data.size() % 3 == 0);
 
-  TriFanMeshOptimizer fan_pass;
-  std::vector<u32> fans;
-  TriFanOptions options{min_len, max_runs};
-  bool ok = fan_pass.GenerateTriangleFansWithPrimitiveRestart(
-      buf.index_data, ~0u, std::back_inserter(fans), options);
+  PrimitiveRestartSplitter splitter(Topology::TriangleStrip, vertices, ~0u);
+  splitter.Reserve(buf.index_data.size());
+
+  HaroohiePals::TriangleStripifier stripifier;
+  auto ok = stripifier.GenerateTriangleStripsWithPrimitiveRestart(
+      index_data, ~0u, splitter.OutputIterator());
   EXPECT(ok);
 
-  Primitive triangles;
-  triangles.topology = Topology::Triangles;
-  for (auto fan_i : SplitByPrimitiveRestart<u32>(fans, ~0u)) {
-    assert(fan_i.size() >= 3);
-    auto fan_v = fan_i | std::views::transform([&](u32 idx) -> Vertex {
-                   assert(idx != ~0u);
-                   assert(idx < buf.vertices.size());
-                   return buf.vertices[idx];
-                 });
-    if (fan_i.size() == 3) {
-      triangles.vertices.insert(triangles.vertices.end(), fan_v.begin(),
-                                fan_v.end());
-    } else {
-      auto& p = prim.primitives.emplace_back();
-      p.topology = Topology::TriangleFan;
-      p.vertices.insert(p.vertices.end(), fan_v.begin(), fan_v.end());
-    }
+  prim.primitives.clear();
+  for (Primitive& p : splitter.Primitives()) {
+    prim.primitives.push_back(std::move(p));
   }
-  // Initial triangles
-  prim.primitives.erase(prim.primitives.begin());
 
-  if (!triangles.vertices.empty()) {
-    fprintf(stderr, "-> Running all other algos on remainder\n");
-    MatrixPrimitive tmp;
-    tmp.draw_matrices = prim.draw_matrices;
-    tmp.primitives.push_back(triangles);
-    TRY(StripifyTriangles(tmp, Algo::RiiFans));
-    for (auto& x : tmp.primitives) {
-      prim.primitives.push_back(x);
-    }
-  }
-  fmt::print(stderr, ":: In summation, ");
-  u32 score = 0;
-  for (auto& p : prim.primitives) {
-    score += p.vertices.size();
-  }
-  LogDone(buf.index_data.size(), score);
-  return {};
+  return stats.End();
 }
 
-Result<void> ToFanTriangles2(MatrixPrimitive& prim) {
+Result<MeshOptimizerStats> ToFanTriangles(MatrixPrimitive& prim, u32 min_len,
+                                          size_t max_runs) {
+  MeshOptimizerStatsCollector stats(prim);
+  auto buf = TRY(IndexBuffer<u32>::create(prim));
+
+  PrimitiveRestartSplitter splitter(Topology::TriangleFan, buf.vertices, ~0u);
+  splitter.Reserve(buf.index_data.size());
+  TriFanMeshOptimizer fan_pass;
+  TriFanOptions options{min_len, max_runs};
+  bool ok = fan_pass.GenerateTriangleFansWithPrimitiveRestart(
+      buf.index_data, ~0u, splitter.OutputIterator(), options);
+  EXPECT(ok);
+
+  prim.primitives.clear();
+  for (Primitive& p : splitter.Primitives()) {
+    prim.primitives.push_back(std::move(p));
+  }
+#ifndef NDEBUG
+  stats.Verify();
+#endif
+  // PrimitiveRestartSplitter puts a batch of triangles at the very end if
+  // there remain any.
+  if (prim.primitives.size() > 0) {
+    auto& triangles = prim.primitives[prim.primitives.size() - 1];
+    if (triangles.topology == Topology::Triangles) {
+      MatrixPrimitive tmp;
+      tmp.draw_matrices = prim.draw_matrices;
+      tmp.primitives.push_back(triangles);
+      auto algo = TRY(StripifyTriangles(tmp, Algo::RiiFans));
+      prim.primitives.resize(prim.primitives.size() - 1);
+      for (auto& x : tmp.primitives) {
+        prim.primitives.push_back(x);
+      }
+      stats.SetComment(std::format("min_len: {}, max_runs: {}, stripifier: {}",
+                                   min_len, max_runs,
+                                   magic_enum::enum_name(algo)));
+    }
+  }
+  return stats.End();
+}
+
+Result<MeshOptimizerStats> ToFanTriangles2(MatrixPrimitive& prim) {
+  MeshOptimizerStatsCollector stats(prim);
   auto vc = VertexCount(prim);
   std::array<size_t, 6> depths = {vc, 5, 10, 20, 40, 80};
 
-  std::vector<MatrixPrimitive> ps;
-  u32 best = std::numeric_limits<u32>::max();
-  u32 best_idx = 0;
-  u32 i = 0;
+  MeshOptimizerExperimentHolder<size_t> experiments(prim);
   for (auto& d : depths) {
-    auto tmp = prim;
-    TRY(ToFanTriangles(tmp, 4, d));
-    auto score = VertexCount(tmp);
-    if (score < best) {
-      best = score;
-      best_idx = i;
-    }
-    ps.push_back(tmp);
-    ++i;
+    auto& tmp = experiments.CreateExperiment(d);
+    auto stats = TRY(ToFanTriangles(tmp, 4, d));
+    experiments.SetStats(d, stats);
   }
-
-  fmt::print(stderr, "SELECTED {} ({})\n", best_idx, depths[best_idx]);
-  prim = ps[best_idx];
-  return {};
+  // TRY(experiments.ValidateAllWithBaseline());
+  prim = experiments.GetFirstWinner();
+  stats.SetComment(experiments.GetStats(experiments.GetFirstWinnerAlgo())
+                       .value_or(MeshOptimizerStats{})
+                       .comment);
+  return stats.End();
 }
 
 struct DracoMesh {
@@ -1006,305 +643,108 @@ Result<DracoMesh> ToDraco(const MatrixPrimitive& prim) {
   };
 }
 
-Result<void> StripifyTrianglesDraco(MatrixPrimitive& prim, bool degen) {
+Result<MeshOptimizerStats> StripifyTrianglesDraco(MatrixPrimitive& prim,
+                                                  bool degen) {
+  MeshOptimizerStatsCollector stats(prim);
   auto draco_mesh = TRY(ToDraco(prim));
   auto& [mesh, buf, index_count, vertex_count] = draco_mesh;
+
+  PrimitiveRestartSplitter splitter(Topology::TriangleStrip, buf.vertices, ~0u);
+  splitter.Reserve(buf.index_data.size());
   draco::MeshStripifier stripifier;
-  std::vector<u32> strip;
   bool ok = false;
   if (degen) {
     ok = stripifier.GenerateTriangleStripsWithDegenerateTriangles(
-        *mesh, std::back_inserter(strip));
+        *mesh, splitter.OutputIterator());
   } else {
     ok = stripifier.GenerateTriangleStripsWithPrimitiveRestart(
-        *mesh, ~0u, std::back_inserter(strip));
+        *mesh, ~0u, splitter.OutputIterator());
   }
   EXPECT(ok);
-  u32 strip_size = strip.size();
-  u32 real_size = 0;
-  for (u32 i = 0; i < strip_size; ++i) {
-    if (strip[i] != ~0u) {
-      ++real_size;
-    }
-  }
-  LogDone(index_count, real_size);
-
-  std::vector<Primitive> prims;
-  Primitive* p = nullptr;
-  for (u32 i = 0; i < strip_size; ++i) {
-    u32 idx = strip[i];
-    if (i == 0 || idx == ~0u) {
-      p = nullptr;
-      prims.emplace_back();
-      p = &prims[prims.size() - 1];
-      p->topology = Topology::TriangleStrip;
-      if (idx == ~0u) {
-        continue;
-      }
-    }
-    EXPECT(idx < buf.vertices.size());
-    p->vertices.push_back(buf.vertices[idx]);
-  }
   prim.primitives.clear();
-  for (auto& x : prims) {
-    EXPECT(x.vertices.size() >= 3);
-    if (x.vertices.size() > 3) {
-      prim.primitives.push_back(x);
-    }
+  for (Primitive& p : splitter.Primitives()) {
+    prim.primitives.push_back(std::move(p));
   }
-  auto& v_new = prim.primitives.emplace_back();
-  v_new.topology = Topology::Triangles;
-  for (auto& x : prims) {
-    if (x.vertices.size() == 3) {
-      for (auto& y : x.vertices) {
-        v_new.vertices.push_back(y);
-      }
-    }
-  }
-  if (v_new.vertices.size() == 0) {
-    prim.primitives.resize(prim.primitives.size() - 1);
-  }
-  return {};
+  return stats.End();
 }
 
-Result<void> StripifyTrianglesAlgo(MatrixPrimitive& prim, Algo algo) {
-  fmt::print(stderr, "[");
-  fmt::print(stderr, fmt::fg(fmt::color::red), "{}",
-             magic_enum::enum_name(algo));
-  fmt::print(stderr, "]  ");
-  rsl::Timer timer;
+Result<MeshOptimizerStats> StripifyTrianglesAlgo(MatrixPrimitive& prim,
+                                                 Algo algo) {
   switch (algo) {
   case Algo::MeshOptmzr:
-    TRY(StripifyTrianglesMeshOptimizer(prim));
-    break;
+    return StripifyTrianglesMeshOptimizer(prim);
   case Algo::TriStripper:
-    // Disabled for now: Doesn't seem to win.
-    // TRY(StripifyTrianglesTriStripper(prim));
-    break;
+    return StripifyTrianglesTriStripper(prim);
   case Algo::NvTriStrip:
-    TRY(StripifyTrianglesNvTriStripPort(prim));
-    break;
+    return StripifyTrianglesNvTriStripPort(prim);
   case Algo::Haroohie:
-    // Disabled for now: The slowest but not with the best results to show.
-    // TRY(StripifyTrianglesHaroohie(prim));
-    break;
+    return StripifyTrianglesHaroohie(prim);
   case Algo::Draco:
-    TRY(StripifyTrianglesDraco(prim, false));
-    break;
+    return StripifyTrianglesDraco(prim, false);
   case Algo::DracoDegen:
-    // Disabled for now. Unusable output.
-    // TRY(StripifyTrianglesDraco(prim, true));
-    break;
+    return StripifyTrianglesDraco(prim, true);
   case Algo::RiiFans:
-    // This calls everything else on result. Usually wins
-    TRY(ToFanTriangles2(prim));
-    break;
+    // This calls everything else on result.
+    return ToFanTriangles2(prim);
   }
-  totalStrippingMs += timer.elapsed();
-  u32 face = 0;
-  for (auto& p : prim.primitives) {
-    if (p.topology == Topology::Triangles) {
-      face += p.vertices.size() / 3;
-    } else if (p.topology == Topology::TriangleStrip ||
-               p.topology == Topology::TriangleFan) {
-      face += p.vertices.size() - 2;
-    }
-  }
-  fmt::print(stderr, " -> faces: {}\n", face);
-  return {};
 }
 
 // Brute-force every algorithm
-Result<void> StripifyTriangles(MatrixPrimitive& prim,
-                               std::optional<Algo> except) {
-  std::vector<MatrixPrimitive> results;
+Result<Algo> StripifyTriangles(MatrixPrimitive& prim,
+                               std::optional<Algo> except,
+                               std::string_view debug_name) {
+  MeshOptimizerExperimentHolder<Algo> experiments(prim);
+  u32 ms_on_validate = 0;
   for (auto e : magic_enum::enum_values<Algo>()) {
-    MatrixPrimitive tmp = prim;
-    if (!except || *except != e) {
-      TRY(StripifyTrianglesAlgo(tmp, e));
+    if (except && *except == e) {
+      // Disabled by user input
+      continue;
     }
-    results.push_back(std::move(tmp));
-  }
-  u32 best_score = std::numeric_limits<u32>::max();
-  u32 best_index = 0;
-  for (size_t i = 0; i < results.size(); ++i) {
-    u32 score = VertexCount(results[i]);
-    if (score < best_score) {
-      best_score = score;
-      best_index = i;
+    if (e == Algo::Haroohie) {
+      // Disabled for now: The slowest but not with the best results to show.
+      continue;
     }
+    if (e == Algo::DracoDegen) {
+      // Disabled for now. Unusable output.
+      continue;
+    }
+    if (e == Algo::TriStripper) {
+      // This almost *never* wins, and is quite slow at that, but is here so we
+      // can never possibly lose to BrawlBox.
+    }
+    auto& tmp = experiments.CreateExperiment(e);
+    auto results = StripifyTrianglesAlgo(tmp, e);
+    if (!results) {
+      experiments.CreateExperiment(e);
+      experiments.SetStats(e, {.comment = results.error()});
+      continue;
+    }
+    // If invalid, reset and comment the error
+    rsl::Timer timer;
+    auto ok = experiments.ValidateExperimentWithBaseline(e);
+    ms_on_validate += timer.elapsed();
+    if (!ok) {
+      experiments.CreateExperiment(e);
+      experiments.SetStats(e, {.comment = ok.error()});
+      continue;
+    }
+    experiments.SetStats(e, *results);
   }
   std::vector<std::string_view> winners;
-  for (u32 i = 0; i < results.size(); ++i) {
-    u32 score = 0;
-    for (auto& p : results[i].primitives) {
-      score += p.vertices.size();
-    }
-    if (score == best_score) {
-      winners.push_back(magic_enum::enum_name(static_cast<Algo>(i)));
-    }
+  for (Algo e : experiments.CalcWinners()) {
+    winners.push_back(magic_enum::enum_name(e));
   }
-  fmt::print(stderr, fmt::fg(fmt::color::red), "{}", rsl::join(winners, ", "));
-  fmt::print(stderr, " won\n\n");
-
-  prim = std::move(results[best_index]);
-  return {};
-}
-
-static coro::generator<Result<size_t>> AsTrianglesIdx(const Primitive& prim) {
-  switch (prim.topology) {
-  case Topology::TriangleStrip: {
-    //
-    // TRIANGLE STRIPS
-    //
-    // A) Vertices [0, 2]. Define the initial triangle:
-    //      v0--v2
-    //      |  /
-    //      | /
-    //      v1
-    //
-    if (prim.vertices.size() < 3) {
-      co_yield std::unexpected("Invalid triangle strip size");
-    }
-    for (size_t v = 0; v < 3; ++v) {
-      co_yield v;
-    }
-    // B) Every next vertex n. Define a subsequent triangle:
-    //      v0--v2
-    //      |  / \
-    //      | /   \
-    //      v1-----v3
-    //
-    //      v0--v2----v4
-    //      |  / \   /
-    //      | /   \ /
-    //      v1-----v3
-    //
-    //      v0--v2---v4
-    //      |  / \   /\
-    //      | /   \ /  \
-    //      v1-----v3--v5
-    //
-    for (size_t v = 3; v < prim.vertices.size(); ++v) {
-      co_yield v - ((v & 1) ? 1 : 2);
-      co_yield v - ((v & 1) ? 2 : 1);
-      co_yield v;
-    }
-    co_return;
+  if (!except) {
+    auto table = PrintScoresOfExperiment(experiments);
+    std::stringstream thread_id;
+    thread_id << std::this_thread::get_id();
+    fmt::print(stderr,
+               "----\n| Compiling {} on thread {}\n{}| Spent {}ms on "
+               "validation\n---\n",
+               debug_name, thread_id.str(), table, ms_on_validate);
   }
-  case Topology::TriangleFan: {
-    //
-    // TRIANGLE FANS
-    //
-    // A) Vertices [0, 2]. Define the initial triangle:
-    //      v0--v2
-    //      | /
-    //      |/
-    //      v1
-    //
-    if (prim.vertices.size() < 3) {
-      co_yield std::unexpected("Invalid triangle fan size");
-    }
-    for (size_t v = 0; v < 3; ++v) {
-      co_yield v;
-    }
-    // B) Every next vertex n. Define a subsequent triangle:
-    //         v3
-    //        / |
-    //       /  |
-    //      v0--v2
-    //      |  /
-    //      | /
-    //      v1
-    //
-    //   v4----v3
-    //     \  / |
-    //      \/  |
-    //      v0--v2
-    //      |  /
-    //      | /
-    //      v1
-    //
-    //  v4-----v3
-    //   | \  / |
-    //   |  \/  |
-    //  v5--v0--v2
-    //      |  /
-    //      | /
-    //      v1
-    //
-    for (size_t v = 3; v < prim.vertices.size(); ++v) {
-      co_yield 0;
-      co_yield v - 1;
-      co_yield v;
-    }
-    co_return;
-  }
-  case Topology::Triangles:
-    //
-    // TRIANGLES
-    //
-    // A) Vertices [n, n+2]. Define a triangle:
-    //      v0--v2
-    //      |  /
-    //      | /
-    //      v1
-    //
-    //      v0--v2  v4--v5
-    //      |  /     \  |
-    //      | /       \ |
-    //      v1         v4
-    //
-    //      v0--v2  v4--v3        v6
-    //      |  /     \  |        / |
-    //      | /       \ |       /  |
-    //      v1         v5     v7--v8
-    //
-    if (prim.vertices.size() % 3 != 0) {
-      co_yield std::unexpected("Invalid triangle size");
-    }
-    for (size_t i = 0; i < prim.vertices.size(); i += 3) {
-      co_yield i;
-      co_yield i + 1;
-      co_yield i + 2;
-    }
-    co_return;
-  default:
-    break;
-  }
-  co_yield std::unexpected("Unexpected primitive type");
-}
-
-coro::generator<Result<Vertex>>
-AsTriangles(std::span<const Primitive> primitives) {
-  for (auto& prim : primitives) {
-    for (auto idx : AsTrianglesIdx(prim)) {
-      if (!idx.has_value()) {
-        co_yield std::unexpected(idx.error());
-        co_return;
-      }
-      co_yield prim.vertices[*idx];
-    }
-  }
-}
-
-Result<MatrixPrimitive> TriangulateMPrim(const MatrixPrimitive& prim) {
-  MatrixPrimitive result = prim;
-  result.primitives.clear();
-  auto& tris = result.primitives.emplace_back();
-  tris.topology = Topology::Triangles;
-  for (auto vert : AsTriangles(prim.primitives)) {
-    tris.vertices.push_back(TRY(vert));
-  }
-  return result;
-}
-Result<Mesh> TriangulateMesh(const Mesh& mesh) {
-  Mesh result = mesh;
-  result.matrix_primitives.clear();
-  for (auto& mprim : mesh.matrix_primitives) {
-    result.matrix_primitives.push_back(TRY(TriangulateMPrim(mprim)));
-  }
-  return result;
+  prim = experiments.GetFirstWinner();
+  return experiments.GetFirstWinnerAlgo();
 }
 
 } // namespace librii::rhst

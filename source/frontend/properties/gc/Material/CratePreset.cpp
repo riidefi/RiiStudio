@@ -1,23 +1,26 @@
-#include <vendor/FileDialogues.hpp>
-
 #include "Common.hpp"
 
 #include <core/kpi/ActionMenu.hpp>
 #include <core/kpi/RichNameManager.hpp>
 #include <core/util/oishii.hpp>
 #include <core/util/timestamp.hpp>
+
 #include <frontend/widgets/IconManager.hpp>
 #include <frontend/widgets/Lib3dImage.hpp>
+
 #include <librii/crate/g3d_crate.hpp>
 #include <librii/image/ImagePlatform.hpp>
 #include <librii/image/TextureExport.hpp>
+#include <librii/rhst/MeshUtils.hpp>
+
 #include <plate/Platform.hpp>
+
 #include <plugins/g3d/collection.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
+
 #include <rsl/Defer.hpp>
 #include <rsl/FsDialog.hpp>
 #include <rsl/Stb.hpp>
-#include <vendor/stb_image.h>
 
 namespace libcube::UI {
 
@@ -1528,26 +1531,13 @@ std::string tryExportRsPreset(const riistudio::g3d::Material& mat) {
   return tryExportRsPresetMat(path, mat);
 }
 
-std::string tryExportRsPresetALL(auto&& mats) {
-  if (!rsl::FileDialogsSupported()) {
-    return "File dialogues unsupported on this platform";
-  }
-  const auto folder = pfd::select_folder("Output folder"_j, "").result();
-  if (folder.empty()) {
-    return folder;
-  }
-  auto path = std::filesystem::path(folder);
-  if (!std::filesystem::exists(path)) {
-    return "Folder doesn't exist";
-  }
-  if (!std::filesystem::is_directory(path)) {
-    return "Not a folder";
-  }
+Result<void> tryExportRsPresetALL(auto&& mats) {
+  const auto path = TRY(rsl::OpenFolder("Output folder"_j, ""));
   for (auto& mat : mats) {
     auto ok =
         tryExportRsPresetMat((path / (mat.name + ".rspreset")).string(), mat);
     if (ok.size()) {
-      return ok;
+      return std::unexpected(ok);
     }
   }
   return {};
@@ -1601,9 +1591,9 @@ public:
 
     if (m_import) {
       m_import = false;
-      auto err = tryExportRsPresetALL(model.getMaterials());
-      if (!err.empty()) {
-        m_errorState.enter(std::move(err));
+      auto ok = tryExportRsPresetALL(model.getMaterials());
+      if (!ok) {
+        m_errorState.enter(std::move(ok.error()));
       }
       return kpi::CHANGE_NEED_RESET;
     }
@@ -1656,7 +1646,7 @@ struct AddChild : public kpi::ActionMenu<riistudio::g3d::Bone, AddChild> {
   }
 
   auto imd = TRY(riistudio::rhst::decompileMesh(mesh, *mdl));
-  imd = TRY(librii::rhst::TriangulateMesh(imd));
+  imd = TRY(librii::rhst::MeshUtils::TriangulateMesh(imd));
   for (auto& mp : imd.matrix_primitives) {
     TRY(librii::rhst::StripifyTriangles(mp));
   }
