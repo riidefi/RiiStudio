@@ -108,8 +108,14 @@ struct GlShaderPair {
   std::string fragment;
 };
 
+enum class VisType {
+  None,
+  PrimID,
+  PrimType,
+};
+
 std::expected<GlShaderPair, std::string>
 compileShader(const gx::LowLevelGxMaterial& mat, std::string_view name,
-              bool vis_prim = false);
+              VisType vis_prim = VisType::None);
 
 } // namespace librii::gl

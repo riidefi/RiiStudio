@@ -27,6 +27,7 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
   PolyIndexer indexer(*this, gmdl);
 
   glm::vec4 prim_id(1.0f, 1.0f, 1.0f, 1.0f);
+  glm::vec4 prim_clr(1.0f, 1.0f, 1.0f, 1.0f);
 
   using rng = std::mt19937;
   std::uniform_int_distribution<rng::result_type> u24dist(0, 0xFF'FFFF);
@@ -128,6 +129,7 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
     switch (idx.mType) {
     case gx::PrimitiveType::TriangleStrip: {
       randId();
+      prim_clr = {0.0f, 1.0f, 0.0f, 1.0f};
       for (int v = 0; v < 3; ++v) {
         TRY(propV(v));
       }
@@ -139,6 +141,8 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
       return {};
     }
     case gx::PrimitiveType::Triangles:
+      randId();
+      prim_clr = {1.0f, 0.0f, 0.0f, 0.0f};
       EXPECT(idx.mVertices.size() % 3 == 0);
       for (size_t i = 0; i < idx.mVertices.size(); i += 3) {
         randId();
@@ -149,6 +153,7 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
       return {};
     case gx::PrimitiveType::TriangleFan: {
       randId();
+      prim_clr = {0.0f, 0.0f, 1.0f, 1.0f};
       for (int v = 0; v < 3; ++v) {
         TRY(propV(v));
       }

@@ -1501,7 +1501,7 @@ void main() {
     TRY(generateAlphaTest(frag));
     frag += generateFog();
     frag += "    fragOut = t_PixelOut;\n";
-    if (vis_prim)
+    if (vis_prim == VisType::PrimID)
       frag += "   fragOut = v_PrimID;\n";
     if (mMaterial.dstAlpha.enabled) {
       frag +=
@@ -1556,12 +1556,12 @@ void main() {
     return size;
   }
   std::string mName;
-  bool vis_prim = false;
+  VisType vis_prim = VisType::None;
 };
 
 std::expected<GlShaderPair, std::string>
 compileShader(const gx::LowLevelGxMaterial& mat, std::string_view name,
-              bool vis_prim) {
+              VisType vis_prim) {
   GXProgram program(mat, name);
   program.vis_prim = vis_prim;
   auto compiled = TRY(program.generateShaders());

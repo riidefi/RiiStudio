@@ -15,8 +15,10 @@
 #undef throw
 #include <rsl/Ranges.hpp>
 
+#ifdef __APPLE__
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/chunk.hpp>
+#endif
 
 namespace librii::rhst {
 

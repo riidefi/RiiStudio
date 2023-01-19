@@ -104,6 +104,7 @@ enum class VertexAttribute : u32 {
   LightArray,
   NormalBinormalTangent,
   Max,
+  PrimType, // TODO: Hack for renderer
 
   Undefined = 0xff - 1,
   Terminate = 0xff,

@@ -14,7 +14,8 @@ namespace riistudio::lib3d {
 
 enum class RenderType {
   Preview,
-  Topology,
+  Topology_RandomColorPerPrimitive,
+  Topology_ColorByPrimitiveType,
 };
 
 struct Material;
