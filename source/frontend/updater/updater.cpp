@@ -183,7 +183,7 @@ static size_t write_data(void* ptr, size_t size, size_t nmemb, FILE* stream) {
   return written;
 }
 
-static std::thread sThread;
+static std::jthread sThread;
 
 bool Updater::InstallUpdate() {
   const auto current_exe = ExecutableFilename();
@@ -221,7 +221,7 @@ bool Updater::InstallUpdate() {
       };
 
   mIsInUpdate = true;
-  sThread = std::thread(
+  sThread = std::jthread(
       [=](Updater* updater) {
         CURL* curl = curl_easy_init();
         assert(curl);

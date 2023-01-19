@@ -42,7 +42,6 @@ int main(int argc, const char** argv) {
       sRootHolder.getRoot().setForceUpdate(true);
     } else {
       printf("File: %s\n", argv[1]);
-      sRootHolder.getRoot().setCheckUpdate(false);
       sRootHolder.getRoot().openFile(argv[1]);
     }
   }
