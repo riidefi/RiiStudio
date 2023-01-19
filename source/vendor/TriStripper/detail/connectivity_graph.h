@@ -8,10 +8,10 @@
 #ifndef TRI_STRIPPER_HEADER_GUARD_CONNECTIVITY_GRAPH_H
 #define TRI_STRIPPER_HEADER_GUARD_CONNECTIVITY_GRAPH_H
 
-#include "public_types.h"
+#include <vendor/TriStripper/public_types.h>
 
-#include "graph_array.h"
-#include "types.h"
+#include <vendor/TriStripper/detail/graph_array.h>
+#include <vendor/TriStripper/detail/types.h>
 
 
 

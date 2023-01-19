@@ -9,7 +9,7 @@ public:
   float tick();
 
 private:
-  std::chrono::high_resolution_clock::time_point last_time;
+  std::chrono::steady_clock::time_point last_time;
   bool has_time = false;
 };
 

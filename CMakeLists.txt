@@ -147,4 +147,7 @@ endif()
 
 CPMAddPackage("gh:seleznevae/libfort@0.4.2")
 
+# Apple doesn't support views::chunk yet
+CPMAddPackage("gh:ericniebler/range-v3#0.12.0")
+
 add_subdirectory(source)

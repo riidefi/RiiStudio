@@ -15,6 +15,9 @@
 #undef throw
 #include <rsl/Ranges.hpp>
 
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/chunk.hpp>
+
 namespace librii::rhst {
 
 // Validates that an optimization pass did not damage the model itself.
@@ -23,8 +26,14 @@ namespace librii::rhst {
 class TriList {
 public:
   Result<void> SetFromMPrim(const MatrixPrimitive& prim) {
+#ifdef __APPLE__
+    auto verts =
+        ranges::to<std::vector>(MeshUtils::AsTriangles(prim.primitives));
+    for (auto it : verts | ranges::views::chunk(3)) {
+#else
     for (auto it :
          MeshUtils::AsTriangles(prim.primitives) | std::views::chunk(3)) {
+#endif
       std::array<Vertex, 3> tri;
       size_t i = 0;
       for (auto& x : it) {
@@ -262,17 +271,20 @@ public:
     std::optional<MeshOptimizerStats> stats{};
   };
 
-  coro::generator<Score> Scores() const {
+  std::vector<Score> Scores() const {
+    std::vector<Score> result;
     std::optional<MeshOptimizerStats> no_stats{};
     for (auto& [key, experiment] : experiments_) {
-      co_yield Score{
+      auto s = Score{
           .key = static_cast<KeyT>(key),
           .score = static_cast<u32>(VertexCount(experiment)),
           .stats = stats_.contains(key)
                        ? std::optional<MeshOptimizerStats>{stats_.at(key)}
                        : no_stats,
       };
+      result.push_back(s);
     }
+    return result;
   }
 
 private:
@@ -287,10 +299,15 @@ private:
 
 // Get a thousands-separated string e.g. "10,000" from a number |x|.
 std::string ToEnUsString(auto&& x) {
+// Locale throws an exception for some reason.
+#ifdef __APPLE__
+  return std::to_string(x);
+#else
   std::ostringstream ss;
   ss.imbue(std::locale("en_US.UTF-8"));
   ss << x;
   return ss.str();
+#endif
 }
 
 // Print the results of a `MeshOptimizerExperimentHolder` run as a formatted
@@ -304,7 +321,7 @@ PrintScoresOfExperiment(const MeshOptimizerExperimentHolder<KeyT>& holder) {
     std::optional<MeshOptimizerStats> stats{};
   };
   std::vector<Score> scores;
-  for (auto x : holder.Scores()) {
+  for (auto&& x : holder.Scores()) {
     Score s;
     s.name = magic_enum::enum_name(x.key);
     s.score = x.score;
@@ -687,6 +704,7 @@ Result<MeshOptimizerStats> StripifyTrianglesAlgo(MatrixPrimitive& prim,
     // This calls everything else on result.
     return ToFanTriangles2(prim);
   }
+  return std::unexpected("Invalid mesh algorithm");
 }
 
 // Brute-force every algorithm
