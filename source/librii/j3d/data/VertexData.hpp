@@ -27,7 +27,7 @@ struct Bufs {
       gx::VertexBufferType(gx::VertexBufferType::Generic::f32), 0, 0, 12}};
   VertexBuffer<glm::vec3, VBufferKind::normal> norm{gx::VQuantization{
       gx::VertexComponentCount(gx::VertexComponentCount::Normal::xyz),
-      gx::VertexBufferType(gx::VertexBufferType::Generic::f32), 0, 0, 12}};
+      gx::VertexBufferType(gx::VertexBufferType::Generic::s16), 14, 14, 6}};
   std::array<VertexBuffer<gx::Color, VBufferKind::color>, 2> color{C, C};
   std::array<VertexBuffer<glm::vec2, VBufferKind::textureCoordinate>, 8> uv{
       U, U, U, U, U, U, U, U};
