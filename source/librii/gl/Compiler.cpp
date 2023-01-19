@@ -871,10 +871,13 @@ public:
     case gx::TevAlphaArg::a2:
       return "t_Color2.a";
     case gx::TevAlphaArg::texa:
-      return generateTexAccess(stage) + "." +
-             generateComponentSwizzle(&mMaterial.mSwapTable[stage.texMapSwap],
-                                      gx::ColorComponent::a);
+      EXPECT(stage.texMapSwap < mMaterial.mSwapTable.size());
+      return std::format(
+          "{}.{}", generateTexAccess(stage),
+          generateComponentSwizzle(&mMaterial.mSwapTable[stage.texMapSwap],
+                                   gx::ColorComponent::a));
     case gx::TevAlphaArg::rasa:
+      EXPECT(stage.rasSwap < mMaterial.mSwapTable.size());
       return std::format(
           "TevSaturate({}.{})", TRY(generateRas(stage)),
           generateComponentSwizzle(&mMaterial.mSwapTable[stage.rasSwap],
