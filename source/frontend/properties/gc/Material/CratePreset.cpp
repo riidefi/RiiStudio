@@ -1559,6 +1559,8 @@ public:
       m_import = false;
       auto err = tryExportRsPreset(mat);
       if (!err.empty()) {
+        rsl::ErrorDialogFmt("Failed to export preset for material {}: {}",
+                            mat.name, err);
         m_errorState.enter(std::move(err));
       }
       return kpi::CHANGE_NEED_RESET;

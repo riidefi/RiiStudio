@@ -624,12 +624,14 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
           EXPECT(*u < mut.tracks.size());
           auto& track = mut.tracks[*u];
           for (auto& [idx, f] : track.keyframes) {
-            EXPECT(f.palette == 0, "Palettes are not supported");
+            EXPECT(f.palette == 0, "PAT0: Palettes are not supported; each "
+                                   "keyframe should have paletteIdx of 0");
             EXPECT(f.texture < mut.textureNames.size());
             referenced.emplace_back(f.texture);
           }
         } else if (auto* f = std::get_if<librii::g3d::PAT0KeyFrame>(&s)) {
-          EXPECT(f->palette == 0, "Palettes are not supported");
+          EXPECT(f->palette == 0, "PAT0: Palettes are not supported; each "
+                                  "keyframe should have paletteIdx of 0");
           referenced.emplace_back(f->texture);
         } else {
           return std::unexpected("Invalid PAT0");
