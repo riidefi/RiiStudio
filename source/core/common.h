@@ -239,7 +239,8 @@ protected:                                                                     \
                                                                                \
 private:
 
-#if __cplusplus > 201703L
+#if (defined(__APPLE__) && __cplusplus > 201703L) ||                           \
+    (!defined(__APPLE__) && __cpp_lib_expected >= 202202L)
 namespace {
 template <typename A, typename B> int indexOf(A&& x, B&& y) {
   int index = std::find_if(x.begin(), x.end(),
