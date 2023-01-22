@@ -796,7 +796,7 @@ class RHST_RNA:
 		root_transform_translate_z : root_transform_translate_z
 
 	selection_only = BoolProperty(
-		name="Export Only Selection",
+		name="Export Selection Only",
 		default=False
 	)
 	
