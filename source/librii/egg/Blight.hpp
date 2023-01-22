@@ -10,6 +10,7 @@ namespace librii::egg {
 
 //! \brief Coordinate spaces for the light
 enum class CoordinateSpace {
+  _0,
   //! \brief World coordinate space
   World,
   //! \brief View coordinate space
