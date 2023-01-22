@@ -1501,8 +1501,16 @@ void main() {
     TRY(generateAlphaTest(frag));
     frag += generateFog();
     frag += "    fragOut = t_PixelOut;\n";
-    if (vis_prim == VisType::PrimID)
-      frag += "   fragOut = v_PrimID;\n";
+    if (vis_prim == VisType::PrimID) {
+      frag += "   fragOut = vec4(v_PrimID.rgb, 1.0);\n";
+    } else if (vis_prim == VisType::PrimType) {
+      frag +=
+          "   if (v_PrimID.a == 0.0f) fragOut = vec4(1.0, 0.0, 0.0, 1.0);\n";
+      frag +=
+          "   if (v_PrimID.a == 1.0f) fragOut = vec4(0.0, 1.0, 0.0, 1.0);\n";
+      frag +=
+          "   if (v_PrimID.a == 2.0f) fragOut = vec4(0.0, 0.0, 1.0, 1.0);\n";
+    }
     if (mMaterial.dstAlpha.enabled) {
       frag +=
           std::format("fragOut.a = {};\n",
