@@ -727,6 +727,34 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
         }
       }
     }
+
+    // Remove unused textures
+    // NOTE: This *must* be done on concrete types, as copy ctors are invalid
+    // for interface types.
+    auto* gscn = dynamic_cast<g3d::Collection*>(&scene);
+    assert(gscn);
+    std::unordered_set<std::string> usedTextures;
+    for (auto& mat : mdl.getMaterials()) {
+      for (auto& sampler : mat.getMaterialData().samplers) {
+        usedTextures.insert(sampler.mTexture);
+      }
+    }
+    std::vector<std::string> unused_names;
+    size_t n = std::distance(
+        gscn->getTextures().begin(),
+        std::remove_if(gscn->getTextures().begin(), gscn->getTextures().end(),
+                       [&](auto&& tex) {
+                         bool unused = !usedTextures.contains(tex.name);
+                         if (unused) {
+                           unused_names.push_back(
+                               std::format("\"{}\"", tex.name));
+                         }
+                         return unused;
+                       }));
+
+    fmt::print(stderr, "Removing {} unreferenced textures: {}.\n",
+               gscn->getTextures().size() - n, rsl::join(unused_names, ","));
+    gscn->getTextures().resize(n);
   }
 
   transaction.state = kpi::TransactionState::Complete;
