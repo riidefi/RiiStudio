@@ -3,7 +3,7 @@
 bl_info = {
 	"name": "RiiStudio Blender Exporter",
 	"author": "riidefi",
-	"version": (0, 5, 7),
+	"version": (0, 5, 9),
 	"blender": (2, 80, 0),
 	"location": "File > Export",
 	"description": "Export to BRRES/BMD files.",
@@ -78,20 +78,6 @@ def invoke_converter(context, source, dest):
 	tests_exe = os.path.join(bin_root, "tests.exe")
 	
 	subprocess.call([tests_exe, source, dest])
-
-RHST_DATA_NULL   = 0
-
-RHST_DATA_DICT   = 1
-RHST_DATA_ARRAY  = 2
-RHST_DATA_ARRAY_DYNAMIC = 3
-
-RHST_DATA_END_DICT   = 4
-RHST_DATA_END_ARRAY  = 5
-RHST_DATA_END_ARRAY_DYNAMIC = 6
-
-RHST_DATA_STRING = 7
-RHST_DATA_S32	= 8
-RHST_DATA_F32	= 9
 
 DEBUG = False
 
@@ -392,14 +378,13 @@ def vec4(x):
 
 def all_objects():
 	if BLENDER_28:
-		for Collection in bpy.data.collections:
-			for Object in Collection.objects:
-				prio = 0
-				flags = list(Collection.name.split(':'))
-				if len(flags) > 1:
-					prio = int(flags[1])
-				print(prio)
-				yield Object, prio
+		for obj in bpy.data.objects:
+			# Returns immediate parent
+			# If root, "Scene Collection"
+			collection = obj.users_collection[0]
+			flags = list(collection.name.split(':'))
+			prio = int(flags[1]) if len(flags) > 1 else 0
+			yield obj, prio
 	else:
 		for Object in bpy.data.objects:
 			# Only objects in the leftmost layers are exported
@@ -480,6 +465,20 @@ def mesh_from_object(Object):
 
 	return Object.to_mesh(context.scene, True, 'PREVIEW', calc_tessface=False, calc_undeformed=True)
 
+def triangulate_mesh(triangulated):
+	bm = bmesh.new()
+	bm.from_mesh(triangulated)
+	bmesh.ops.triangulate(bm, faces=bm.faces)
+	bm.to_mesh(triangulated)
+	bm.free()
+
+VCD_POSITION = 9
+VCD_NORMAL = 10
+VCD_COLOR0 = 11
+VCD_COLOR1 = 12
+VCD_UV0 = 13
+VCD_UV7 = 20
+
 def export_mesh(
 	Object,
 	magnification,
@@ -493,14 +492,10 @@ def export_mesh(
 	try:
 		triangulated = mesh_from_object(Object)
 	except:
-		print("Failed to triangulate object %s!" % Object.name)
+		print("Failed to get mesh of object %s!" % Object.name)
 		return
-	# Triangulate:
-	bm = bmesh.new()
-	bm.from_mesh(triangulated)
-	bmesh.ops.triangulate(bm, faces=bm.faces)
-	bm.to_mesh(triangulated)
-	bm.free()
+
+	triangulate_mesh(triangulated)
 
 	axis = axis_conversion(to_forward='-Z', to_up='Y',).to_4x4()
 	global_matrix = (mathutils.Matrix.Scale(magnification, 4) @ axis) if BLENDER_28 else (mathutils.Matrix.Scale(magnification, 4) * axis)
@@ -545,6 +540,11 @@ def export_mesh(
 				texture_name = mat.active_texture.name
 		print(" -> texture_name = %s" % texture_name)
 
+		if not get_texture(mat):
+			print("No texture: skipping")
+			continue
+
+
 		vcd_set = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 		polygon_object = OrderedDict({
 			"name": "%s___%s" % (Object.name, texture_name),
@@ -553,22 +553,24 @@ def export_mesh(
 			"facepoint_format": vcd_set})
 		polygon_object["matrix_primitives"] = []
 
-		vcd_set[9] = vcd_set[10] = 1
-		vcd_set[11:13] = [int(i > -1) for i in ColorInputs] if has_vcolors else [int(add_dummy_colors), 0]
-		vcd_set[13:21] = [int(i > -1) for i in UVInputs]
+		vcd_set[VCD_POSITION] = 1
+		vcd_set[VCD_NORMAL] = 1
+		vcd_set[VCD_COLOR0:VCD_COLOR1+1] = [int(i > -1) for i in ColorInputs]
+		vcd_set[VCD_UV0:VCD_UV7+1] = [int(i > -1) for i in UVInputs]
+
+		# Single channel of pure white
+		if add_dummy_colors:
+			vcd_set[11] = 1
 
 		# we'll worry about this when we have to, 1 primitive array should be fine for now.
 		facepoints = [] # [ [ V, N, C0, C1, U0, U1, U2, U3, U4, U5, U6, U7 ], ... ]
 		num_verts = len(triangulated.polygons) * 3
 		for idx, tri in zip(range(0, num_verts, 3), triangulated.polygons):
-			#print(idx)
-			#print(tri)
 			if tri.material_index != mat_index and split_mesh_by_material:
 				# print("Skipped because tri mat: %u, target: %u" % (tri.material_index, mat_index))
 				continue
-			for global_index, fpVerticeIndex in enumerate(tri.vertices, idx):
-				#print(global_index, fpVerticeIndex)
-				blender_vertex = triangulated.vertices[fpVerticeIndex]
+			for global_index, fpVertexIndex in enumerate(tri.vertices, idx):
+				blender_vertex = triangulated.vertices[fpVertexIndex]
 				gvertex = [vec3(blender_vertex.co), vec3(blender_vertex.normal)]
 				if has_vcolors:
 					for layer in triangulated.vertex_colors[:2]:
@@ -579,6 +581,7 @@ def export_mesh(
 					gvertex += [[1.0, 1.0, 1.0, 1.0]]
 				for layer in triangulated.uv_layers[:8]:
 					raw_uv = vec2(layer.data[global_index].uv)
+					# Transform into BRRES-space
 					gvertex += [(raw_uv[0], 1 - raw_uv[1])]
 				facepoints.append(gvertex)		
 
@@ -586,21 +589,11 @@ def export_mesh(
 			print("No vertices: skipping")
 			continue
 
-		if not mat:
-			print("No material: skipping")
-			continue
-
-		if not get_texture(mat):
-			print("No texture: skipping")
-			continue
-
 		polygon_object["matrix_primitives"].append({
-			"name": "N/A",
 			"matrix": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
 			"primitives": [{
-				"name": "N/A",
 				"primitive_type": "triangles",
-				"facepoints": facepoints
+				"facepoints": facepoints,
 			}]
 		})
 		mesh_id = model.add_mesh(polygon_object)
