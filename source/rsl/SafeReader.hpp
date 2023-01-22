@@ -3,7 +3,9 @@
 #include <core/common.h>
 #include <oishii/reader/binary_reader.hxx>
 #include <rsl/Ranges.hpp>
+#ifndef __APPLE__
 #include <stacktrace>
+#endif
 #include <vendor/magic_enum/magic_enum.hpp>
 
 namespace rsl {
@@ -153,7 +155,7 @@ SafeReader::Result<std::string> SafeReader::StringOfs32(u32 relative) {
 
   // semi-likely
   if (ofs == 0) {
-    return "";
+    return std::string("");
   }
 
   [[unlikely]] if (relative + ofs >= mReader.endpos() ||

@@ -1,10 +1,10 @@
 #pragma once
 
+#include <core/common.h>
 #include <librii/gx.h>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
 #include <rsl/Ranges.hpp>
-#include <vector>
 
 namespace librii::egg {
 

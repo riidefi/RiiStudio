@@ -2,6 +2,10 @@
 #include <librii/gpu/DLBuilder.hpp>
 #include <rsl/Ranges.hpp>
 
+#ifdef __APPLE__
+#include <range/v3/range/conversion.hpp>
+#endif
+
 namespace librii::g3d {
 
 u32 BuildTexMatrixFlags(const librii::gx::GCMaterialData::TexMatrix& mtx) {
@@ -485,38 +489,44 @@ BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
       .fogIndex = mat.fogIndex,
       .reserved = 0,
       .indMethod = mat.mIndMatrices | std::views::transform(toIndMethod) |
+
+#ifdef __APPLE__
+                   ranges::to<std::vector>() |
+#endif
+
                    rsl::ToArray<4>(),
-      .normalMapLightIndices =
-          mat.mIndMatrices | rsl::ToArray<4>() |
-          std::views::transform([](auto& x) { return x.refLight; }) |
-          rsl::ToArray<4>(),
   };
+  for (size_t i = 0; i < 4; ++i) {
+    bin.misc.normalMapLightIndices[i] = -1;
+  }
+  assert(mat.mIndMatrices.size() <= 4);
+  for (size_t i = 0; i < mat.mIndMatrices.size(); ++i) {
+    bin.misc.normalMapLightIndices[i] = mat.mIndMatrices[i].refLight;
+  }
 
   // TODO: Only copy fields needed
   bin.tev = mat;
 
-  bin.samplers = rsl::enumerate(mat.samplers | rsl::ToList()) //
-                 | std::views::transform([](const auto& x) {
-                     const auto& [i, sampler] = x;
-                     return BinarySampler{
-                         .texture = sampler.mTexture,
-                         .palette = sampler.mPalette,
-                         .runtimeTexPtr = 0,
-                         .runtimePlttPtr = 0,
-                         .texMapId = static_cast<u32>(i),
-                         .tlutId = static_cast<u32>(i),
-                         .wrapU = sampler.mWrapU,
-                         .wrapV = sampler.mWrapV,
-                         .minFilter = sampler.mMinFilter,
-                         .magFilter = sampler.mMagFilter,
-                         .lodBias = sampler.mLodBias,
-                         .maxAniso = sampler.mMaxAniso,
-                         .biasClamp = sampler.bBiasClamp,
-                         .edgeLod = sampler.bEdgeLod,
-                         .reserved = 0,
-                     };
-                   }) //
-                 | rsl::ToList();
+  for (auto [i, sampler] : rsl::enumerate(mat.samplers | rsl::ToList())) {
+    BinarySampler s{
+        .texture = sampler.mTexture,
+        .palette = sampler.mPalette,
+        .runtimeTexPtr = 0,
+        .runtimePlttPtr = 0,
+        .texMapId = static_cast<u32>(i),
+        .tlutId = static_cast<u32>(i),
+        .wrapU = sampler.mWrapU,
+        .wrapV = sampler.mWrapV,
+        .minFilter = sampler.mMinFilter,
+        .magFilter = sampler.mMagFilter,
+        .lodBias = sampler.mLodBias,
+        .maxAniso = sampler.mMaxAniso,
+        .biasClamp = sampler.bBiasClamp,
+        .edgeLod = sampler.bEdgeLod,
+        .reserved = 0,
+    };
+    bin.samplers.push_back(s);
+  }
 
   u32 tex_flags = 0;
   for (int i = mat.texMatrices.size() - 1; i >= 0; --i) {

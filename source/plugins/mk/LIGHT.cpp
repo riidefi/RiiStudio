@@ -208,12 +208,12 @@ public:
     writer.setEndian(std::endian::big);
     librii::egg::LightSet set;
     set.backColor = light.backColor;
-    set.lights = light.getEntries() |
-                 std::views::transform([](auto& x) { return x.light; }) |
-                 rsl::ToList();
-    set.ambientColors = light.getAmbs() |
-                        std::views::transform([](auto& x) { return x.color; }) |
-                        rsl::ToList();
+    for (auto& x : light.getEntries()) {
+      set.lights.push_back(x.light);
+    }
+    for (auto& x : light.getAmbs()) {
+      set.ambientColors.push_back(x.color);
+    }
     librii::egg::Blight blight;
     set.to(blight);
     blight.write(writer);

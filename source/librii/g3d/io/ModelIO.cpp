@@ -1739,28 +1739,18 @@ Result<librii::g3d::BinaryModel> toBinaryModel(const Model& mdl) {
   }
 
   auto bones = mdl.bones | rsl::ToList<librii::g3d::BoneData>();
-  auto to_binary_mat = [&](auto tuple) {
-    auto [index, value] = tuple;
-    return librii::g3d::toBinMat(value, index);
-  };
   librii::g3d::BinaryModel bin{
       .name = mdl.name,
       .positions = mdl.positions,
       .normals = mdl.normals,
       .colors = mdl.colors,
       .texcoords = mdl.texcoords,
-      .materials = mdl.materials      //
-                   | rsl::enumerate() //
-
-                   // Needed for some reason
-                   | rsl::ToList()
-                   //
-
-                   | std::views::transform(to_binary_mat) //
-                   | rsl::ToList(),
       .tevs = tevs,
       .meshes = mdl.meshes,
   };
+  for (auto [index, value] : rsl::enumerate(mdl.materials)) {
+    bin.materials.push_back(librii::g3d::toBinMat(value, index));
+  }
   for (auto&& [index, value] : rsl::enumerate(mdl.bones)) {
     auto bb = toBinaryBone(value, bones, index, mdl.info.scalingRule,
                            boneToMatrix[index]);

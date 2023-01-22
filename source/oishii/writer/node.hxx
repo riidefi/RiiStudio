@@ -6,10 +6,7 @@
 #pragma once
 
 #include "../types.hxx"
-#include <expected>
-#include <memory>
-#include <string>
-#include <vector>
+#include <core/common.h>
 
 namespace oishii {
 

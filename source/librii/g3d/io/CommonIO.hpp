@@ -45,16 +45,17 @@ inline Result<std::string_view> ReadStringPointer(std::span<const u8> bytes,
   const s32 rel_pointer_value = rsl::load<s32>(bytes, pointer_location);
 
   if (rel_pointer_value == 0) {
-    return "";
+    return std::string_view("");
   }
 
   const size_t pointer_value = addend + rel_pointer_value;
 
   if (pointer_value < bytes.size_bytes() && pointer_value >= 0) {
-    return reinterpret_cast<const char*>(bytes.data() + pointer_value);
+    auto* c = reinterpret_cast<const char*>(bytes.data() + pointer_value);
+    return std::string_view(c);
   }
 
-  return "";
+  return std::string_view("");
 }
 
 // { 0, 4 } -> Struct+04 is a string pointer relative to struct start

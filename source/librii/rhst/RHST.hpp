@@ -43,9 +43,33 @@ inline std::partial_ordering operator<=>(const glm::vec2& l,
   return l.y <=> r.y;
 }
 
+#ifdef __APPLE__
+template <class I1, class I2, class Cmp>
+constexpr auto lexicographical_compare_three_way(I1 f1, I1 l1, I2 f2, I2 l2,
+                                                 Cmp comp)
+    -> decltype(comp(*f1, *f2)) {
+  using ret_t = decltype(comp(*f1, *f2));
+  static_assert(std::disjunction_v<std::is_same<ret_t, std::strong_ordering>,
+                                   std::is_same<ret_t, std::weak_ordering>,
+                                   std::is_same<ret_t, std::partial_ordering>>,
+                "The return type must be a comparison category type.");
+
+  bool exhaust1 = (f1 == l1);
+  bool exhaust2 = (f2 == l2);
+  for (; !exhaust1 && !exhaust2;
+       exhaust1 = (++f1 == l1), exhaust2 = (++f2 == l2))
+    if (auto c = comp(*f1, *f2); c != 0)
+      return c;
+
+  return !exhaust1   ? std::strong_ordering::greater
+         : !exhaust2 ? std::strong_ordering::less
+                     : std::strong_ordering::equal;
+}
+#endif
+
 inline std::partial_ordering operator<=>(const std::array<glm::vec4, 2>& l,
                                          const std::array<glm::vec4, 2>& r) {
-  return std::lexicographical_compare_three_way(
+  return lexicographical_compare_three_way(
       l.begin(), l.end(), r.begin(), r.end(), [](auto& l, auto& r) {
         if (auto cmp = l.x <=> r.x; cmp != 0) {
           return cmp;
@@ -61,7 +85,7 @@ inline std::partial_ordering operator<=>(const std::array<glm::vec4, 2>& l,
 }
 inline std::partial_ordering operator<=>(const std::array<glm::vec2, 8>& l,
                                          const std::array<glm::vec2, 8>& r) {
-  return std::lexicographical_compare_three_way(
+  return lexicographical_compare_three_way(
       l.begin(), l.end(), r.begin(), r.end(), [](auto& l, auto& r) {
         if (auto cmp = l.x <=> r.x; cmp != 0) {
           return cmp;

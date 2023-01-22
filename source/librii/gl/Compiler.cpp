@@ -1,9 +1,6 @@
 #include <glfw/glfw3.h>
 #include <librii/gl/Compiler.hpp>
 #include <rsl/StringBuilder.hpp>
-
-IMPORT_STD;
-
 namespace librii::gl {
 
 struct LightingChannelControl {
@@ -51,7 +48,7 @@ getVertexAttribGenDef(VertexAttribute vtxAttrib) {
 
   EXPECT(it != vtxAttributeGenDefs.end());
 
-  return std::pair{&*it, it - vtxAttributeGenDefs.begin()};
+  return std::pair{&*it, static_cast<size_t>(it - vtxAttributeGenDefs.begin())};
 }
 
 std::string generateBindingsDefinition(bool postTexMtxBlock, bool lightsBlock) {
@@ -469,7 +466,7 @@ public:
       TRY(generateMulPntMatrixStatic(
           builder, static_cast<librii::gx::PostTexMatrix>(texCoordGen.matrix),
           src));
-      return buf.data();
+      return std::string(buf.data());
     }
   }
 
@@ -493,7 +490,7 @@ public:
     case gx::TexGenType::Bump5:
     case gx::TexGenType::Bump6:
     case gx::TexGenType::Bump7:
-      return "vec3(0.5, 0.5, 0.5)";
+      return std::string("vec3(0.5, 0.5, 0.5)");
     default:
       return std::unexpected(std::format("Invalid TexGenType: {}",
                                          static_cast<u32>(texCoordGen.func)));

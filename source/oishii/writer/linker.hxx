@@ -6,10 +6,7 @@
 
 #pragma once
 
-#include <expected>
-#include <memory>
-#include <string>
-#include <vector>
+#include <core/common.h>
 
 #include "../types.hxx"
 

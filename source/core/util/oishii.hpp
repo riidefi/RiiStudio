@@ -22,10 +22,12 @@ OishiiReadFile(std::string_view path) {
 
   return oishii::DataProvider{std::move(vec), path};
 }
-inline rsl::expected<std::vector<u8>, std::string> ReadFile(std::string_view path) {
+inline std::expected<std::vector<u8>, std::string>
+ReadFile(std::string_view path) {
   auto buf = OishiiReadFile(path);
   if (!buf) {
-    return "Failed to read file at \"" + std::string(path) + "\"";
+    return std::unexpected("Failed to read file at \"" + std::string(path) +
+                           "\"");
   }
   // Cannot directly access vector
   auto slice = buf->slice();

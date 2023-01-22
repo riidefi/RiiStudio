@@ -13,7 +13,9 @@
 #include <atomic>
 #include <bitset>
 #include <cstdio>
+#ifndef __APPLE__
 #include <expected>
+#endif
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -29,9 +31,52 @@
 #include <unordered_set>
 #include <vector>
 
+// No <expected> yet
+#ifdef __APPLE__
+#include <rsl/Expected.hpp>
+namespace std {
+template <typename T, typename E> using expected = rsl::expected<T, E>;
+template <typename T> rsl::unexpected<std::string> unexpected(T&& x) {
+  // Using std::string directly over std::remove_cvref_t<decltype(x)> +
+  // conversion magic is a hack.
+  return rsl::unexpected<std::string>(x);
+}
+} // namespace std
+#define __cpp_lib_expected 202202L
+#endif
+
 #if __cplusplus > 201703L
 #include <ranges>
+#ifndef __APPLE__
 #include <stacktrace>
+#endif
+#endif
+
+// No <ranges> yet
+#ifdef __APPLE__
+#include <range/v3/algorithm/adjacent_find.hpp>
+#include <range/v3/algorithm/any_of.hpp>
+#include <range/v3/algorithm/count.hpp>
+#include <range/v3/algorithm/equal.hpp>
+#include <range/v3/algorithm/fill.hpp>
+#include <range/v3/algorithm/find.hpp>
+#include <range/v3/algorithm/find_if.hpp>
+#include <range/v3/algorithm/max_element.hpp>
+#include <range/v3/algorithm/min_element.hpp>
+#include <range/v3/algorithm/sort.hpp>
+#include <range/v3/view/drop.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <range/v3/view/take.hpp>
+#include <range/v3/view/transform.hpp>
+namespace std {
+namespace views {
+using namespace ::ranges::views;
+}
+namespace ranges {
+using namespace ::ranges;
+}
+} // namespace std
 #endif
 
 #if defined(__APPLE__) || defined(__GCC__)
@@ -158,7 +203,7 @@ template <typename T> inline auto DoTry(T&& x) {
   }
 #endif
 
-#ifdef __clang__
+#if defined(__clang__) && !defined(__APPLE__)
 #define STACK_TRACE std::stacktrace::current()
 #else
 #define STACK_TRACE 0
@@ -194,9 +239,9 @@ protected:                                                                     \
                                                                                \
 private:
 
-#if __cpp_lib_expected >= 202202L
+#if __cplusplus > 201703L
 namespace {
-auto indexOf(auto&& x, auto&& y) -> int {
+template <typename A, typename B> int indexOf(A&& x, B&& y) {
   int index = std::find_if(x.begin(), x.end(),
                            [y](auto& f) { return f.getName() == y; }) -
               x.begin();

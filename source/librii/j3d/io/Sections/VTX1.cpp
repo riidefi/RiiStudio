@@ -23,12 +23,15 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
     const auto data = TRY(reader.U32());
     // May fail
     const auto gen_data = rsl::enum_cast<gx::VertexBufferType::Generic>(data);
-    const auto gen_comp_size =
-        (gen_data == gx::VertexBufferType::Generic::f32) ? 4
-        : (gen_data == gx::VertexBufferType::Generic::u16 ||
-           gen_data == gx::VertexBufferType::Generic::s16)
-            ? 2
-            : 1;
+    int gen_comp_size = 0;
+    if (gen_data.has_value()) {
+      auto x = *gen_data;
+      gen_comp_size = (x == gx::VertexBufferType::Generic::f32) ? 4
+                      : (x == gx::VertexBufferType::Generic::u16 ||
+                         x == gx::VertexBufferType::Generic::s16)
+                          ? 2
+                          : 1;
+    }
     const auto shift = TRY(reader.U8());
     reader.getUnsafe().skip(3);
 
@@ -48,8 +51,8 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::Position>(comp)),
           gx::VertexBufferType(TRY(gen_data)),
-          static_cast<u8>(gen_data != gx::VertexBufferType::Generic::f32 ? shift
-                                                                         : 0),
+          static_cast<u8>(
+              *gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0),
           shift,
           static_cast<u8>((comp + 2) * gen_comp_size),
       };
@@ -62,9 +65,10 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::Normal>(comp)),
           gx::VertexBufferType(TRY(gen_data)),
-          static_cast<u8>(gen_data == gx::VertexBufferType::Generic::s8    ? 6
-                          : gen_data == gx::VertexBufferType::Generic::s16 ? 14
-                                                                           : 0),
+          static_cast<u8>(*gen_data == gx::VertexBufferType::Generic::s8 ? 6
+                          : *gen_data == gx::VertexBufferType::Generic::s16
+                              ? 14
+                              : 0),
           shift,
           static_cast<u8>(3 * gen_comp_size),
       };
@@ -124,8 +128,8 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
           gx::VertexComponentCount(
               static_cast<gx::VertexComponentCount::TextureCoordinate>(comp)),
           gx::VertexBufferType(TRY(gen_data)),
-          static_cast<u8>(gen_data != gx::VertexBufferType::Generic::f32 ? shift
-                                                                         : 0),
+          static_cast<u8>(
+              *gen_data != gx::VertexBufferType::Generic::f32 ? shift : 0),
           shift,
           static_cast<u8>((comp + 1) * gen_comp_size),
       };

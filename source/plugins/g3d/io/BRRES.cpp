@@ -16,7 +16,6 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-IMPORT_STD;
 
 namespace riistudio::g3d {
 
@@ -153,15 +152,15 @@ librii::g3d::Model toBinaryModel(const Model& mdl) {
 
 librii::g3d::Archive Collection::toLibRii() const {
   librii::g3d::Archive arc{
-      .models =
-          getModels() | std::views::transform(toBinaryModel) | rsl::ToList(),
       .textures = getTextures() | rsl::ToList<librii::g3d::TextureData>(),
       .clrs = clrs,
       .pats = pats,
       .srts = getAnim_Srts() | rsl::ToList<librii::g3d::SrtAnimationArchive>(),
       .viss = viss,
-
   };
+  for (auto& mdl : getModels()) {
+    arc.models.push_back(toBinaryModel(mdl));
+  }
   return arc;
 }
 

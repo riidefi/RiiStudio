@@ -6,10 +6,10 @@
 namespace librii::gl {
 
 // Converts to GL
-Result<u32> translateCullMode(gx::CullMode cullMode);
-Result<u32> translateBlendSrcFactor(gx::BlendModeFactor factor);
-Result<u32> translateBlendDstFactor(gx::BlendModeFactor factor);
-u32 translateCompareType(gx::Comparison compareType);
+Result<int> translateCullMode(gx::CullMode cullMode);
+Result<int> translateBlendSrcFactor(gx::BlendModeFactor factor);
+Result<int> translateBlendDstFactor(gx::BlendModeFactor factor);
+int translateCompareType(gx::Comparison compareType);
 
 u32 gxFilterToGl(gx::TextureFilter filter);
 u32 gxTileToGl(gx::TextureWrapMode wrap);

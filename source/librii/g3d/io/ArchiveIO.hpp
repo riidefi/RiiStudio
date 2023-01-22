@@ -8,9 +8,6 @@
 #include <librii/g3d/io/AnimVisIO.hpp>
 #include <librii/g3d/io/ModelIO.hpp>
 
-#include <expected>
-#include <vector>
-
 // Regrettably, for kpi::LightIOTransaction
 #include <core/kpi/Plugins.hpp>
 

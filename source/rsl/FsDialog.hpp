@@ -9,11 +9,11 @@ namespace rsl {
 
 bool FileDialogsSupported();
 
-rsl::expected<std::filesystem::path, std::string>
+[[nodiscard]] std::expected<std::filesystem::path, std::string>
 OpenOneFile(std::string_view title, std::string_view default_path,
             std::vector<std::string> filters);
 
-rsl::expected<std::vector<std::filesystem::path>, std::string>
+[[nodiscard]] std::expected<std::vector<std::filesystem::path>, std::string>
 OpenManyFiles(std::string_view title, std::string_view default_path,
               std::vector<std::string> filters);
 
@@ -26,16 +26,16 @@ struct File {
   std::vector<u8> data;
 };
 
-rsl::expected<File, std::string> ReadOneFile(std::filesystem::path path);
-rsl::expected<File, std::string> ReadOneFile(std::string_view title,
+std::expected<File, std::string> ReadOneFile(std::filesystem::path path);
+std::expected<File, std::string> ReadOneFile(std::string_view title,
                                              std::string_view default_path,
                                              std::vector<std::string> filters);
 
-rsl::expected<std::vector<File>, std::string>
+std::expected<std::vector<File>, std::string>
 ReadManyFile(std::string_view title, std::string_view default_path,
              std::vector<std::string> filters);
 
-rsl::expected<std::filesystem::path, std::string>
+std::expected<std::filesystem::path, std::string>
 SaveOneFile(std::string_view title, std::string_view default_path,
             std::vector<std::string> filters);
 

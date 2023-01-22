@@ -5,7 +5,7 @@ namespace librii::gl {
 
 using namespace gx;
 #ifdef RII_GL
-Result<u32> translateCullMode(gx::CullMode cullMode) {
+Result<int> translateCullMode(gx::CullMode cullMode) {
   switch (cullMode) {
   case gx::CullMode::All:
     return GL_FRONT_AND_BACK;
@@ -20,7 +20,7 @@ Result<u32> translateCullMode(gx::CullMode cullMode) {
       std::format("Invalid cull mode: {}", static_cast<u32>(cullMode)));
 }
 
-Result<u32> translateBlendFactorCommon(gx::BlendModeFactor factor) {
+Result<int> translateBlendFactorCommon(gx::BlendModeFactor factor) {
   switch (factor) {
   case gx::BlendModeFactor::zero:
     return GL_ZERO;
@@ -42,7 +42,7 @@ Result<u32> translateBlendFactorCommon(gx::BlendModeFactor factor) {
   return ~0;
 }
 
-Result<u32> translateBlendSrcFactor(gx::BlendModeFactor factor) {
+Result<int> translateBlendSrcFactor(gx::BlendModeFactor factor) {
   switch (factor) {
   case gx::BlendModeFactor::src_c:
     return GL_DST_COLOR;
@@ -53,7 +53,7 @@ Result<u32> translateBlendSrcFactor(gx::BlendModeFactor factor) {
   }
 }
 
-Result<u32> translateBlendDstFactor(gx::BlendModeFactor factor) {
+Result<int> translateBlendDstFactor(gx::BlendModeFactor factor) {
   switch (factor) {
   case gx::BlendModeFactor::src_c:
     return GL_SRC_COLOR;
@@ -64,7 +64,7 @@ Result<u32> translateBlendDstFactor(gx::BlendModeFactor factor) {
   }
 }
 
-u32 translateCompareType(gx::Comparison compareType) {
+int translateCompareType(gx::Comparison compareType) {
   switch (compareType) {
   case gx::Comparison::NEVER:
     return GL_NEVER;

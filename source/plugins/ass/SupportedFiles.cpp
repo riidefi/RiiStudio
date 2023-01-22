@@ -19,10 +19,10 @@ std::string to_lower(std::string_view file) {
 bool IsExtensionSupported(std::string_view path) {
   const auto lower_file = to_lower(path);
 
-  return std::ranges::any_of(supported_endings,
-                             [&](const std::string_view& ending) {
-                               return lower_file.ends_with(ending);
-                             });
+  return std::any_of(supported_endings.begin(), supported_endings.end(),
+                     [&](const std::string_view& ending) {
+                       return lower_file.ends_with(ending);
+                     });
 }
 
 } // namespace riistudio::ass

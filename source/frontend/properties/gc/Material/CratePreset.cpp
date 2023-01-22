@@ -595,8 +595,9 @@ struct MergeAction {
     // iterate backwards
     std::optional<size_t> source_index = std::nullopt;
     // TODO: rsl::ToList() is a hack
-    for (auto& [idx, source] :
-         std::views::reverse(rsl::enumerate(source) | rsl::ToList())) {
+    std::vector<std::tuple<size_t, librii::crate::CrateAnimation>> _tmp =
+        rsl::enumerate(source) | rsl::ToList();
+    for (auto& [idx, source] : std::views::reverse(_tmp)) {
       if (source.mat.name == name) {
         source_index = idx;
         break;
@@ -866,7 +867,7 @@ using MergeUIResult_t =
     RSL_DEFER(ImGui::PopStyleColor());
     if (ImGui::Button("OK", button)) {
       auto logs = TRY(action.PerformMerge());
-      return MergeUIResult::OK{std::move(logs)};
+      return MergeUIResult_t{MergeUIResult::OK{std::move(logs)}};
     }
   }
   ImGui::SameLine();
@@ -874,10 +875,10 @@ using MergeUIResult_t =
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 0, 0, 100));
     RSL_DEFER(ImGui::PopStyleColor());
     if (ImGui::Button("Cancel", button)) {
-      return MergeUIResult::Cancel{};
+      return MergeUIResult_t{MergeUIResult::Cancel{}};
     }
   }
-  return MergeUIResult::None{};
+  return MergeUIResult_t{MergeUIResult::None{}};
 }
 
 struct AdvancedTextureConverter {

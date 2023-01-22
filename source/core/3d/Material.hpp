@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/common.h>
-#include <expected>
 #include <glm/glm.hpp>                   // glm::mat4
 #include <librii/gfx/MegaState.hpp>      // MegaState
 #include <librii/gfx/PixelOcclusion.hpp> // PixelOcclusion

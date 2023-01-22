@@ -133,7 +133,7 @@ std::optional<std::vector<u8>> FindFile(const Archive& arc, std::string path) {
   _path = _path.lexically_normal();
 
   const Archive* cur_arc = &arc;
-  for (auto& part : _path) {
+  for (auto&& part : _path) {
     {
       auto it = cur_arc->folders.find(part.string());
       if (it != cur_arc->folders.end()) {

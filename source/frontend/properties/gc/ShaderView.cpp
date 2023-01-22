@@ -1,10 +1,10 @@
 #include <core/3d/i3dmodel.hpp>
-#include <imcxx/Widgets.hpp>
 #include <core/kpi/PropertyView.hpp>
+#include <imcxx/Widgets.hpp>
 
 #include <vendor/ImGuiColorTextEdit/TextEditor.h>
 
-IMPORT_STD;
+#include <sstream>
 
 namespace libcube::UI {
 

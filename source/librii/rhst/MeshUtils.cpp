@@ -86,7 +86,7 @@ MeshUtils::AsTrianglesIdx(const Primitive& prim) {
     //      v1
     //
     for (size_t v = 3; v < prim.vertices.size(); ++v) {
-      co_yield 0;
+      co_yield static_cast<size_t>(0);
       co_yield v - 1;
       co_yield v;
     }
