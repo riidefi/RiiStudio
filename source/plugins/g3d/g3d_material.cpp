@@ -19,36 +19,46 @@ const libcube::Texture* Material::getTexture(const libcube::Scene& scn,
 
   return nullptr;
 }
-std::string ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
-                                       librii::crate::CrateAnimation anim) {
+Result<void> ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
+                                        librii::crate::CrateAnimation anim,
+                                        bool overwrite_tex_same_name) {
   anim.mat.name = mat.name;
   auto ret_err = RetargetCrateAnimation(anim);
   if (ret_err.size()) {
-    return ret_err;
+    return std::unexpected(ret_err);
   }
 
   static_cast<librii::g3d::G3dMaterialData&>(mat) = anim.mat;
   mat.onUpdate(); // Update viewport
   if (!mat.childOf) {
-    return "Material is an orphan; needs to belong to a scene";
+    return std::unexpected("Material is an orphan; needs to belong to a scene");
   }
   if (!mat.childOf->childOf) {
-    return "Model is an orphan; needs to belong to a scene";
+    return std::unexpected("Model is an orphan; needs to belong to a scene");
   }
   // Model -> Scene
   auto* scene = dynamic_cast<riistudio::g3d::Collection*>(mat.childOf->childOf);
   if (!scene) {
-    return "Internal: This scene type does not support .mdl0mat presets. "
-           "Not a BRRES file?";
+    return std::unexpected(
+        "Internal: This scene type does not support .mdl0mat presets. "
+        "Not a BRRES file?");
   }
   // TODO: Texture replacement mode? Delete old textures?
   // TODO: Old animations may cause issues and aren't deleted automatically
   // (stale dependency)
   for (auto& new_tex : anim.tex) {
-    if (auto* x = scene->getTextures().findByName(new_tex.name); x != nullptr) {
-      std::string old_name = new_tex.name;
-      new_tex.name += "_" + std::to_string(std::rand());
-      TryRenameSampler(mat, old_name, new_tex.name);
+    if (!overwrite_tex_same_name) {
+      if (auto* x = scene->getTextures().findByName(new_tex.name);
+          x != nullptr) {
+        std::string old_name = new_tex.name;
+        new_tex.name += "_" + std::to_string(std::rand());
+        TryRenameSampler(mat, old_name, new_tex.name);
+      }
+    }
+
+    if (auto* x = scene->getTextures().findByName(new_tex.name)) {
+      static_cast<librii::g3d::TextureData&>(*x) = new_tex;
+      continue;
     }
     auto& t = scene->getTextures().add();
     static_cast<librii::g3d::TextureData&>(t) = new_tex;
@@ -76,31 +86,21 @@ std::string ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
   return {};
 }
 
-std::string
+Result<void>
 ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
                            const std::filesystem::path& preset_folder) {
-  auto paths = librii::crate::ScanCrateAnimationFolder(preset_folder);
-  if (!paths) {
-    return paths.error();
-  }
-
-  auto anim = ReadCrateAnimation(*paths);
-  if (!anim) {
-    return anim.error();
-  }
-  return ApplyCratePresetToMaterial(mat, *anim);
+  auto paths = TRY(librii::crate::ScanCrateAnimationFolder(preset_folder));
+  auto anim = TRY(ReadCrateAnimation(paths));
+  return ApplyCratePresetToMaterial(mat, anim);
 }
 
-std::string ApplyRSPresetToMaterial(riistudio::g3d::Material& mat,
-                                    std::span<const u8> file) {
-  auto anim = librii::crate::ReadRSPreset(file);
-  if (!anim) {
-    return anim.error();
-  }
-  return ApplyCratePresetToMaterial(mat, *anim);
+Result<void> ApplyRSPresetToMaterial(riistudio::g3d::Material& mat,
+                                     std::span<const u8> file) {
+  auto anim = TRY(librii::crate::ReadRSPreset(file));
+  return ApplyCratePresetToMaterial(mat, anim);
 }
 
-std::expected<librii::crate::CrateAnimation, std::string>
+Result<librii::crate::CrateAnimation>
 CreatePresetFromMaterial(const riistudio::g3d::Material& mat,
                          std::string_view metadata) {
   if (!mat.childOf) {

@@ -710,18 +710,18 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
           DebugReport("...Error: %s\n", file.error().c_str());
           continue;
         }
-        auto err = ApplyRSPresetToMaterial(*gmat, file->data);
-        if (err.size()) {
-          DebugReport("...Error: %s\n", err.c_str());
+        auto ok = ApplyRSPresetToMaterial(*gmat, file->data);
+        if (!ok) {
+          DebugReport("...Error: %s\n", ok.error().c_str());
         } else {
           DebugReport("...Sucess\n");
         }
       } else {
         DebugReport("Applying .mdl0mat preset to material %s from path %s\n",
                     mat.name.c_str(), mat.preset_path_mdl0mat.c_str());
-        auto err = ApplyCratePresetToMaterial(*gmat, mat.preset_path_mdl0mat);
-        if (err.size()) {
-          DebugReport("...Error: %s\n", err.c_str());
+        auto ok = ApplyCratePresetToMaterial(*gmat, mat.preset_path_mdl0mat);
+        if (!ok) {
+          DebugReport("...Error: %s\n", ok.error().c_str());
         } else {
           DebugReport("...Sucess\n");
         }

@@ -34,15 +34,18 @@ struct Material : public librii::g3d::G3dMaterialData,
     return *this;
   }
 };
-std::string ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
-                                       librii::crate::CrateAnimation anim);
-std::string
+[[nodiscard]] Result<void>
+ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
+                                        librii::crate::CrateAnimation anim,
+                                        bool overwrite_tex_same_name = true);
+[[nodiscard]] Result<void>
 ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
                            const std::filesystem::path& preset_folder);
-std::string ApplyRSPresetToMaterial(riistudio::g3d::Material& mat,
-                                    std::span<const u8> file);
+[[nodiscard]] Result<void>
+ApplyRSPresetToMaterial(riistudio::g3d::Material& mat,
+                                     std::span<const u8> file);
 
-std::expected<librii::crate::CrateAnimation, std::string>
+[[nodiscard]] Result<librii::crate::CrateAnimation>
 CreatePresetFromMaterial(const riistudio::g3d::Material& mat,
                          std::string_view metadata = "");
 

@@ -88,9 +88,9 @@ public:
 
     if (replace) {
       replace = false;
-      auto err = tryReplace(mat);
-      if (err.size()) {
-        err = "Cannot apply preset. " + err;
+      auto ok = tryReplace(mat);
+      if (!ok) {
+        std::string err = "Cannot apply preset. " + ok.error();
         mErrorState.enter(std::move(err));
         // We still return true, since this could've left us in a partially
         // mutated state
@@ -102,16 +102,13 @@ public:
   }
 
 private:
-  std::string tryReplace(riistudio::g3d::Material& mat) {
-    const auto path = rsl::OpenOneFile("Select preset"_j, "",
-                                       {
-                                           "MDL0Mat Files",
-                                           "*.mdl0mat",
-                                       });
-    if (!path) {
-      return path.error();
-    }
-    const auto preset = path->parent_path();
+  Result<void> tryReplace(riistudio::g3d::Material& mat) {
+    const auto path = TRY(rsl::OpenOneFile("Select preset"_j, "",
+                                           {
+                                               "MDL0Mat Files",
+                                               "*.mdl0mat",
+                                           }));
+    const auto preset = path.parent_path();
     return ApplyCratePresetToMaterial(mat, preset);
   }
 };
@@ -620,12 +617,12 @@ struct MergeAction {
       }
       auto& target_mat = target_model->getMaterials()[i];
       auto& source_mat = source[*source_index];
-      auto err =
+      auto ok =
           riistudio::g3d::ApplyCratePresetToMaterial(target_mat, source_mat);
-      if (err.size()) {
+      if (!ok) {
         logs.push_back(
             std::format("Attempted to merge {} into {}. Failed with error: {}",
-                        source_mat.mat.name, target_mat.name, err));
+                        source_mat.mat.name, target_mat.name, ok.error()));
       }
     }
     return logs;
@@ -1454,16 +1451,13 @@ public:
     return kpi::NO_CHANGE;
   }
 };
-std::string tryImportRsPreset(riistudio::g3d::Material& mat) {
-  const auto file = rsl::ReadOneFile("Select preset"_j, "",
-                                     {
-                                         "rspreset Files",
-                                         "*.rspreset",
-                                     });
-  if (!file) {
-    return file.error();
-  }
-  return ApplyRSPresetToMaterial(mat, file->data);
+Result<void> tryImportRsPreset(riistudio::g3d::Material& mat) {
+  const auto file = TRY(rsl::ReadOneFile("Select preset"_j, "",
+                                         {
+                                             "rspreset Files",
+                                             "*.rspreset",
+                                         }));
+  return ApplyRSPresetToMaterial(mat, file.data);
 }
 class ApplyRsPreset
     : public kpi::ActionMenu<riistudio::g3d::Material, ApplyRsPreset> {
@@ -1484,9 +1478,9 @@ public:
 
     if (m_import) {
       m_import = false;
-      auto err = tryImportRsPreset(mat);
-      if (!err.empty()) {
-        m_errorState.enter(std::move(err));
+      auto ok = tryImportRsPreset(mat);
+      if (!ok) {
+        m_errorState.enter(std::move(ok.error()));
       }
       return kpi::CHANGE_NEED_RESET;
     }
