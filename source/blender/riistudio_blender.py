@@ -395,10 +395,16 @@ def all_objects():
 			prio = 0
 			yield Object, prio
 
-def all_meshes():
+def all_meshes(selection=False):
 	for obj, prio in all_objects():
 		if obj.type == 'MESH':
-			yield obj, prio
+			if BLENDER_28:
+				if obj.select_get() or not selection:
+					yield obj, prio
+			else:
+				if obj.select or not selection:
+					yield obj, prio
+
 
 def get_texture(mat):
 	if BLENDER_28:
@@ -410,8 +416,8 @@ def get_texture(mat):
 	
 	return mat.active_texture
 
-def all_tex_uses():
-	for Object, prio in all_meshes():
+def all_tex_uses(selection):
+	for Object, prio in all_meshes(selection=selection):
 		for slot in Object.material_slots:
 			mat = slot.material
 			if mat is None:
@@ -424,14 +430,14 @@ def all_tex_uses():
 			
 			yield tex
 
-def all_textures():
-	return set(all_tex_uses())
+def all_textures(selection=False):
+	return set(all_tex_uses(selection))
 
-def export_textures(textures_path):
+def export_textures(textures_path,selection):
 	if not os.path.exists(textures_path):
 		os.makedirs(textures_path)
 
-	for tex in all_textures():
+	for tex in all_textures(selection):
 		export_tex(tex, textures_path)
 
 def build_rs_mat(mat, texture_name):
@@ -634,12 +640,13 @@ class ConverterFlags:
 
 class RHSTExportParams:
 	def __init__(self, dest_path, quantization=Quantization(), root_transform = SRT(),
-				magnification=1000, flags = ConverterFlags()):
+				magnification=1000, flags = ConverterFlags(), selection=False):
 		self.dest_path = dest_path
 		self.quantization = quantization
 		self.root_transform = root_transform
 		self.magnification = magnification
 		self.flags = flags
+		self.selection = selection
 
 
 def export_jres(context, params : RHSTExportParams):
@@ -698,7 +705,7 @@ def export_jres(context, params : RHSTExportParams):
 
 	model = Model(current_data)
 
-	for Object, prio in all_meshes():
+	for Object, prio in all_meshes(selection=params.selection):
 		export_mesh(
 			Object,
 			params.magnification,
@@ -788,11 +795,19 @@ class RHST_RNA:
 		root_transform_translate_y : root_transform_translate_y
 		root_transform_translate_z : root_transform_translate_z
 
+	selection_only = BoolProperty(
+		name="Export Only Selection",
+		default=False
+	)
+	
+	if BLENDER_30: selection_only : selection_only
+
 	magnification = FloatProperty(
 		name="Magnification",
-		default=1000
+		default=100
 	)
 	if BLENDER_30: magnification : magnification
+	
 
 	split_mesh_by_material = BoolProperty(name="Split Mesh by Material", default=True)
 	if BLENDER_30: split_mesh_by_material : split_mesh_by_material
@@ -860,9 +875,12 @@ class RHST_RNA:
 	def get_dest_path(self):
 		return self.filepath
 
+	def get_selection_only(self):
+		return self.selection_only
+
 	def get_export_params(self):
 		tmp_path = self.get_rhst_path()
-
+		selection_only = self.get_selection_only()
 		root_transform = self.get_root_transform()
 		quantization = self.get_quantization()
 		converter_flags = self.get_converter_flags()
@@ -871,7 +889,8 @@ class RHST_RNA:
 			quantization   = quantization,
 			root_transform = root_transform,
 			magnification  = self.magnification,
-			flags		  = converter_flags
+			flags		  = converter_flags,
+			selection	=	selection_only
 		)
 
 	def draw_rhst_options(self, context):
@@ -880,6 +899,7 @@ class RHST_RNA:
 		box = layout.box()
 		box.label(text="PMesh", icon='MESH_DATA')
 		box.prop(self, "magnification", icon='VIEWZOOM' if BLENDER_28 else 'MAN_SCALE')
+		box.prop(self, "selection_only")
 		box.prop(self, "split_mesh_by_material")
 		box.prop(self, "mesh_conversion_mode")
 		box.prop(self, 'add_dummy_colors')
@@ -926,7 +946,7 @@ class RHST_RNA:
 		if dump_pngs:
 			# Dump .PNG images
 			timer = Timer("PNG Dumping")
-			export_textures(self.get_textures_path())
+			export_textures(self.get_textures_path(),self.get_selection_only())
 			timer.dump()
 
 	def cleanup_rhst(self):
