@@ -1084,10 +1084,18 @@ Result<TCResult> DrawAdvTexConv(AdvancedTextureConverter& action) {
     int w = action.width;
     ImGui::SetNextItemWidth(button.x);
     ImGui::InputInt("W", &w);
+    if (w < 1)
+      w = 1;
+    if (w > 1024)
+      w = 1024;
     int h = action.height;
     ImGui::SameLine();
     ImGui::SetNextItemWidth(button.x);
     ImGui::InputInt("H", &h);
+    if (h < 1)
+      h = 1;
+    if (h > 1024)
+      h = 1024;
     if (w != action.width) {
       TRY(action.SetWidth(w));
     } else if (h != action.height) {
@@ -1686,6 +1694,9 @@ kpi::DecentralizedInstaller
       action_menu.addMenu(std::make_unique<AddChild>());
       action_menu.addMenu(std::make_unique<RenameNode>());
       action_menu.addMenu(std::make_unique<SaveAsTEX0>());
+      if (rsl::FileDialogsSupported()) {
+        action_menu.addMenu(std::make_unique<ReplaceWithTEX0>());
+      }
       action_menu.addMenu(std::make_unique<SaveAsSRT0>());
       action_menu.addMenu(std::make_unique<MakeRsPreset>());
       action_menu.addMenu(std::make_unique<MakeRsPresetALL>());
@@ -1696,7 +1707,6 @@ kpi::DecentralizedInstaller
       if (rsl::FileDialogsSupported()) {
         action_menu.addMenu(std::make_unique<ApplyRsPreset>());
         action_menu.addMenu(std::make_unique<CrateReplaceAction>());
-        action_menu.addMenu(std::make_unique<ReplaceWithTEX0>());
         action_menu.addMenu(std::make_unique<ReplaceWithSRT0>());
         action_menu.addMenu(std::make_unique<ImportTexturesAction>());
         action_menu.addMenu(std::make_unique<ImportSRTAction>());

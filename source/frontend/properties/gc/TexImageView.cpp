@@ -96,16 +96,16 @@ class ImageActions : public kpi::ActionMenu<Texture, ImageActions>,
   // Return true if the state of obj was mutated (add to history)
 public:
   bool _context(Texture& tex) {
-    if (ImGui::MenuItem("Resize"_j)) {
+    if (ImGui::MenuItem("Resize (Keeping custom mipmaps)"_j)) {
       resize_reset();
       resize = true;
     }
-    if (ImGui::MenuItem("Reformat"_j)) {
+    if (ImGui::MenuItem("Reformat (Keeping custom mipmaps)"_j)) {
       reformat_reset();
       reformat = true;
     }
 
-    if (ImGui::BeginMenu("Export"_j)) {
+    if (ImGui::BeginMenu("Export Mipmap"_j)) {
       if (lastTex != &tex) {
         mImg.clear();
         mImg.resize(tex.getMipmapCount() + 1);
@@ -134,7 +134,7 @@ public:
       ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu("Import"_j)) {
+    if (ImGui::BeginMenu("Import Mipmap"_j)) {
       if (lastTex != &tex) {
         mImg.clear();
         mImg.resize(tex.getMipmapCount() + 1);
