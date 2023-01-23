@@ -10,7 +10,13 @@
 namespace librii::j3d {
 
 // Amusingly EGG uses this JUT-named enum directly for BTI
-enum class JUTTransparency { Opaque, Clip, Translucent };
+enum class JUTTransparency {
+  Opaque,
+  Clip,
+  Translucent,
+  // Mario.bdl has this
+  MSVC_UNITIALIZED_HEAP_VALUE = 0xCC,
+};
 
 struct TextureData {
   std::string mName; // For linking

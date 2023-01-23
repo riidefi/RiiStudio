@@ -22,7 +22,7 @@ Result<void> BinaryBoneData::read(oishii::BinaryReader& unsafeReader) {
 
   id = TRY(reader.U32());
   matrixId = TRY(reader.U32());
-  DebugPrint("matrixId = {}", matrixId);
+  // DebugPrint("matrixId = {}", matrixId);
   flag = TRY(reader.U32());
   billboardType = TRY(reader.U32());
   ancestorBillboardBone = TRY(reader.U32()); // refId

@@ -185,7 +185,7 @@ Result<void> ReadTev(librii::gx::LowLevelGxMaterial& mat,
   {
     u8 last = 0;
     for (auto e : coord_map_lut) {
-      error |= e <= last;
+      error |= e < last;
       last = e;
     }
   }
