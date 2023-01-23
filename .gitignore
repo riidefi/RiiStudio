@@ -426,3 +426,6 @@ Makefile
 
 # MacOS
 .DS_Store
+
+cmake-build-*/
+.idea/
