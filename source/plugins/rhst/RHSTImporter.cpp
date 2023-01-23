@@ -395,6 +395,27 @@ Result<void> compileMesh(libcube::IndexedPolygon& dst,
                           dst, model, optimize));
   }
 
+  for (auto& [attr, format] : data.mVertexDescriptor.mAttributes) {
+    if (format != librii::gx::VertexAttributeType::Short) {
+      continue;
+    }
+    u16 max = 0;
+    for (auto& mp : data.mMatrixPrimitives) {
+      for (auto& p : mp.mPrimitives) {
+        for (auto& v : p.mVertices) {
+          // TODO: Checked
+          u16 i = v[attr];
+          if (i > max) {
+            max = i;
+          }
+        }
+      }
+    }
+    if (max <= std::numeric_limits<u8>::max()) {
+      format = librii::gx::VertexAttributeType::Byte;
+    }
+  }
+
   return {};
 }
 
