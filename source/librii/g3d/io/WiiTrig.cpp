@@ -312,14 +312,59 @@ std::optional<glm::mat4x3> MTXInverse(const glm::mat4x3& mtx) {
   }
   f32 coeff = 1.0f / determinant;
   // clang-format off
+
   out[0][0] =  ((WiiFloat)mtx[1][1] * (WiiFloat)mtx[2][2] - (WiiFloat)mtx[1][2] * (WiiFloat)mtx[2][1]) * coeff;
+#ifdef __APPLE__
+  {
+    WiiFloat a = (WiiFloat)mtx[1][0] * (WiiFloat)mtx[2][2];
+    WiiFloat b = (WiiFloat)mtx[1][2] * (WiiFloat)mtx[2][0];
+    WiiFloat c = a-b;
+    WiiFloat d = -c;
+    WiiFloat e = d * coeff;
+    out[1][0] = e;
+  }
+#else
   out[1][0] = -((WiiFloat)mtx[1][0] * (WiiFloat)mtx[2][2] - (WiiFloat)mtx[1][2] * (WiiFloat)mtx[2][0]) * coeff;
+#endif
   out[2][0] =  ((WiiFloat)mtx[1][0] * (WiiFloat)mtx[2][1] - (WiiFloat)mtx[1][1] * (WiiFloat)mtx[2][0]) * coeff;
+#ifdef __APPLE__
+  {
+    WiiFloat a = (WiiFloat)mtx[0][1] * (WiiFloat)mtx[2][2];
+    WiiFloat b = (WiiFloat)mtx[0][2] * (WiiFloat)mtx[2][1];
+    WiiFloat c = a-b;
+    WiiFloat d = -c;
+    WiiFloat e = d * coeff;
+    out[0][1] = e;
+  }
+#else
   out[0][1] = -((WiiFloat)mtx[0][1] * (WiiFloat)mtx[2][2] - (WiiFloat)mtx[0][2] * (WiiFloat)mtx[2][1]) * coeff;
+#endif
   out[1][1] =  ((WiiFloat)mtx[0][0] * (WiiFloat)mtx[2][2] - (WiiFloat)mtx[0][2] * (WiiFloat)mtx[2][0]) * coeff;
+#ifdef __APPLE__
+  {
+    WiiFloat a = (WiiFloat)mtx[0][0] * (WiiFloat)mtx[2][1];
+    WiiFloat b = (WiiFloat)mtx[0][1] * (WiiFloat)mtx[2][0];
+    WiiFloat c = a-b;
+    WiiFloat d = -c;
+    WiiFloat e = d * coeff;
+    out[2][1] = e;
+  }
+#else
   out[2][1] = -((WiiFloat)mtx[0][0] * (WiiFloat)mtx[2][1] - (WiiFloat)mtx[0][1] * (WiiFloat)mtx[2][0]) * coeff;
+#endif
   out[0][2] =  ((WiiFloat)mtx[0][1] * (WiiFloat)mtx[1][2] - (WiiFloat)mtx[0][2] * (WiiFloat)mtx[1][1]) * coeff;
+#ifdef __APPLE__
+  {
+    WiiFloat a = (WiiFloat)mtx[0][0] * (WiiFloat)mtx[1][2];
+    WiiFloat b = (WiiFloat)mtx[0][2] * (WiiFloat)mtx[1][0];
+    WiiFloat c = a-b;
+    WiiFloat d = -c;
+    WiiFloat e = d * coeff;
+    out[1][2] = e;
+  }
+#else
   out[1][2] = -((WiiFloat)mtx[0][0] * (WiiFloat)mtx[1][2] - (WiiFloat)mtx[0][2] * (WiiFloat)mtx[1][0]) * coeff;
+#endif
   out[2][2] =  ((WiiFloat)mtx[0][0] * (WiiFloat)mtx[1][1] - (WiiFloat)mtx[0][1] * (WiiFloat)mtx[1][0]) * coeff;
   out[3][0] = -out[0][0] * (WiiFloat)mtx[3][0] - (WiiFloat)out[1][0] * (WiiFloat)mtx[3][1] - (WiiFloat)out[2][0] * (WiiFloat)mtx[3][2];
   out[3][1] = -out[0][1] * (WiiFloat)mtx[3][0] - (WiiFloat)out[1][1] * (WiiFloat)mtx[3][1] - (WiiFloat)out[2][1] * (WiiFloat)mtx[3][2];

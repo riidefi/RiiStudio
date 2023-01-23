@@ -48,7 +48,7 @@ public:
                 "Matching violation at 0x%x: writing %x where should be %x\n",
                 tell(), (u32)decoded, (u32)before);
 
-        __debugbreak();
+        rsl::debug_break();
       }
     }
 #endif
@@ -84,7 +84,7 @@ public:
 				if (before != decoded >> (8 * i))
 				{
 					printf("Matching violation at %x: writing %x where should be %x\n", tell(), decoded, before);
-					__debugbreak();
+					rsl::debug_break();
 				}
 			}
 		}

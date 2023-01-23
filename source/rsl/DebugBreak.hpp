@@ -1,17 +1,9 @@
 #pragma once
 
-#ifndef _WIN32
-#include <signal.h>
-#endif
+#include <imgui/imgui_internal.h>
 
 namespace rsl {
 
-static inline void debug_break() {
-#ifdef _WIN32
-  __debugbreak();
-#else
-  raise(SIGTRAP);
-#endif
-}
+static inline void debug_break() { IM_DEBUG_BREAK(); }
 
 } // namespace rsl
