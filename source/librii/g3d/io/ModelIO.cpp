@@ -178,6 +178,89 @@ struct DlHandle {
   void setBufAddr(s32 addr) { ofs_buf = addr - tag_start; }
 };
 
+struct BinaryPolygon {
+  s32 currentMatrix{};
+  std::array<u32, 3> vtxDescvCache{};
+
+  u32 vcdBitfield{};
+  enum {
+    FLAG_CUR_MTX_INCLUDED = (1 << 0),
+    FLAG_INVISIBLE = (1 << 1),
+  };
+  u32 flag{};
+  std::string name{};
+  u32 id{};
+  u32 vtxCount{};
+  u32 triCount{};
+
+  s16 posIdx{};
+  s16 nrmIdx{};
+  std::array<s16, 2> clrIdx{};
+  std::array<s16, 8> uvIdx{};
+  s16 furVecIdx{};
+  s16 furPosIdx{};
+  std::vector<u16> used; // matrix IDs
+
+  void write(oishii::Writer& w) {
+    w.write(currentMatrix);
+    w.write(vtxDescvCache[0]);
+    w.write(vtxDescvCache[1]);
+    w.write(vtxDescvCache[2]);
+  }
+  Result<void> read(rsl::SafeReader& r) {
+    currentMatrix = TRY(r.S32());
+    for (auto& u : vtxDescvCache) {
+      u = TRY(r.U32());
+    }
+    return {};
+  }
+  void write2(oishii::Writer& w, NameTable& names, u32 mesh_start) {
+    w.write(vcdBitfield);
+    w.write(flag);
+    writeNameForward(names, w, mesh_start, name);
+    w.write(id);
+    w.write(vtxCount);
+    w.write(triCount);
+    w.write(posIdx);
+    w.write(nrmIdx);
+    for (size_t i = 0; i < 2; ++i)
+      w.write(clrIdx[i]);
+    for (size_t i = 0; i < 8; ++i)
+      w.write(uvIdx[i]);
+    w.write(furVecIdx);
+    w.write(furPosIdx);
+    w.write<s32>(0x68); // msu, directly follows
+    w.write<u32>(used.size());
+    if (used.size() == 0) {
+      w.write<u32>(0);
+    } else {
+      for (const auto& matrix : used) {
+        w.write<u16>(matrix);
+      }
+    }
+  }
+  Result<void> read2(rsl::SafeReader& reader, u32 start) {
+    vcdBitfield = TRY(reader.U32());
+    flag = TRY(reader.U32());
+    name = TRY(reader.StringOfs(start));
+    id = TRY(reader.U32());
+    vtxCount = TRY(reader.U32());
+    triCount = TRY(reader.U32());
+    posIdx = TRY(reader.S16());
+    nrmIdx = TRY(reader.S16());
+
+    for (size_t i = 0; i < 2; ++i)
+      clrIdx[i] = TRY(reader.S16());
+    for (size_t i = 0; i < 8; ++i)
+      uvIdx[i] = TRY(reader.S16());
+    furVecIdx = TRY(reader.S16());
+    furPosIdx = TRY(reader.S16());
+    TRY(reader.S32()); // matrix usage
+                       // TODO: The actual table is ignored
+    return {};
+  }
+};
+
 Result<void>
 ReadMesh(librii::g3d::PolygonData& poly, rsl::SafeReader& reader, bool& isValid,
 
@@ -187,53 +270,53 @@ ReadMesh(librii::g3d::PolygonData& poly, rsl::SafeReader& reader, bool& isValid,
          const std::vector<librii::g3d::TextureCoordinateBuffer>& texcoords,
 
          kpi::LightIOTransaction& transaction,
-         const std::string& transaction_path) {
+         const std::string& transaction_path,
+
+         u32 id) {
   const auto start = reader.tell();
 
   isValid &= TRY(reader.U32()) != 0; // size
   isValid &= TRY(reader.S32()) < 0;  // mdl offset
 
-  poly.mCurrentMatrix = TRY(reader.S32());
-  reader.getUnsafe().skip(12); // cache
+  BinaryPolygon bin;
+  TRY(bin.read(reader));
+  poly.mCurrentMatrix = bin.currentMatrix;
+  // TODO: Check cache
 
   DlHandle primitiveSetup = TRY(DlHandle::make(reader));
   DlHandle primitiveData = TRY(DlHandle::make(reader));
 
-  poly.mVertexDescriptor.mBitfield = TRY(reader.U32());
-  const u32 flag = TRY(reader.U32());
+  TRY(bin.read2(reader, start));
+
+  poly.mVertexDescriptor.mBitfield = bin.vcdBitfield;
+  const u32 flag = bin.flag;
   poly.currentMatrixEmbedded = flag & 1;
-  if (poly.currentMatrixEmbedded) {
-    // TODO (should be caught later)
-  }
   poly.visible = !(flag & 2);
 
-  poly.mName = TRY(reader.StringOfs(start));
-  poly.mId = TRY(reader.U32());
+  poly.mName = bin.name;
+  EXPECT(bin.id == id);
   // TODO: Verify / cache
-  isValid &= TRY(reader.U32()) > 0; // nVert
-  isValid &= TRY(reader.U32()) > 0; // nPoly
-
-  auto readBufHandle = [&](auto ifExist) -> Result<std::string> {
-    const auto hid = TRY(reader.S16());
-    if (hid < 0)
-      return "";
-    return ifExist(hid);
-  };
-
-  poly.mPositionBuffer =
-      TRY(readBufHandle([&](s16 hid) { return positions[hid].mName; }));
-  poly.mNormalBuffer =
-      TRY(readBufHandle([&](s16 hid) { return normals[hid].mName; }));
-  for (int i = 0; i < 2; ++i) {
-    poly.mColorBuffer[i] =
-        TRY(readBufHandle([&](s16 hid) { return colors[hid].mName; }));
+  isValid &= bin.vtxCount > 0; // nVert
+  isValid &= bin.triCount > 0; // nPoly
+  if (bin.posIdx >= 0) {
+    poly.mPositionBuffer = positions[bin.posIdx].mName;
   }
-  for (int i = 0; i < 8; ++i) {
-    poly.mTexCoordBuffer[i] =
-        TRY(readBufHandle([&](s16 hid) { return texcoords[hid].mName; }));
+  if (bin.nrmIdx >= 0) {
+    poly.mNormalBuffer = normals[bin.nrmIdx].mName;
   }
-  isValid &= TRY(reader.S32()) == -1; // fur
-  TRY(reader.S32());                  // matrix usage
+  for (size_t i = 0; i < 2; ++i) {
+    if (bin.clrIdx[i] >= 0) {
+      poly.mColorBuffer[i] = colors[bin.clrIdx[i]].mName;
+    }
+  }
+  for (size_t i = 0; i < 8; ++i) {
+    if (bin.uvIdx[i] >= 0) {
+      poly.mTexCoordBuffer[i] = texcoords[bin.uvIdx[i]].mName;
+    }
+  }
+  if (bin.furVecIdx != -1 || bin.furPosIdx != -1) {
+    return std::unexpected("Mesh uses fur, which is unsupported");
+  }
 
   primitiveSetup.seekTo(reader);
   librii::gpu::QDisplayListVertexSetupHandler vcdHandler;
@@ -474,10 +557,11 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
     auto& mat = materials.emplace_back();
     return mat.read(unsafeReader, nullptr);
   }));
+  u32 i = 0;
   TRY(readDict(secOfs.ofsMeshes, [&](const librii::g3d::BetterNode& dnode) {
     auto& poly = meshes.emplace_back();
     return ReadMesh(poly, reader, isValid, positions, normals, colors,
-                    texcoords, transaction, transaction_path);
+                    texcoords, transaction, transaction_path, i++);
   }));
 
   if (transaction.state == kpi::TransactionState::Failure)
@@ -556,9 +640,9 @@ template <typename T, bool HasMinimum, bool HasDivisor,
   return {};
 }
 
-std::string writeVertexDataDL(const librii::g3d::PolygonData& poly,
-                              const librii::gx::MatrixPrimitive& mp,
-                              oishii::Writer& writer) {
+Result<void> writeVertexDataDL(const librii::g3d::PolygonData& poly,
+                               const librii::gx::MatrixPrimitive& mp,
+                               oishii::Writer& writer) {
   using VATAttrib = librii::gx::VertexAttribute;
   using VATType = librii::gx::VertexAttributeType;
 
@@ -615,18 +699,18 @@ std::string writeVertexDataDL(const librii::g3d::PolygonData& poly,
           if (attr != VATAttrib::PositionNormalMatrixIndex &&
               ((u32)attr > (u32)VATAttrib::Texture7MatrixIndex &&
                (u32)attr < (u32)VATAttrib::Texture0MatrixIndex)) {
-            return "Direct vertex data is unsupported.";
+            return std::unexpected("Direct vertex data is unsupported.");
           }
           writer.writeUnaligned<u8>(v[attr]);
           break;
         default:
-          return "!Unknown vertex attribute format.";
+          return std::unexpected("Unknown vertex attribute format.");
         }
       }
     }
   }
 
-  return "";
+  return {};
 }
 
 void WriteShader(RelocWriter& linker, oishii::Writer& writer,
@@ -638,10 +722,10 @@ void WriteShader(RelocWriter& linker, oishii::Writer& writer,
   tev.writeBody(writer);
 }
 
-std::string WriteMesh(oishii::Writer& writer,
-                      const librii::g3d::PolygonData& mesh,
-                      const librii::g3d::BinaryModel& mdl,
-                      const size_t& mesh_start, NameTable& names) {
+Result<void> WriteMesh(oishii::Writer& writer,
+                       const librii::g3d::PolygonData& mesh,
+                       const librii::g3d::BinaryModel& mdl,
+                       const size_t& mesh_start, NameTable& names, u32 id) {
   const auto build_dlcache = [&]() {
     librii::gpu::DLBuilder dl(writer);
     writer.skip(5 * 2); // runtime
@@ -754,77 +838,62 @@ std::string WriteMesh(oishii::Writer& writer,
     dl.align();
     return "";
   };
-  const auto assert_since = [&](u32 ofs) {
-    MAYBE_UNUSED const auto since = writer.tell() - mesh_start;
-    assert(since == ofs);
-  };
 
-  assert_since(8);
-  writer.write<s32>(mesh.mCurrentMatrix);
-
-  assert_since(12);
+  BinaryPolygon bin;
+  bin.currentMatrix = mesh.mCurrentMatrix;
   const auto [c_a, c_b, c_c] =
       librii::gpu::DLBuilder::calcVtxDescv(mesh.mVertexDescriptor);
-  writer.write<u32>(c_a);
-  writer.write<u32>(c_b);
-  writer.write<u32>(c_c);
+  bin.vtxDescvCache[0] = c_a;
+  bin.vtxDescvCache[1] = c_b;
+  bin.vtxDescvCache[2] = c_c;
+  bin.write(writer);
 
-  assert_since(24);
   DlHandle setup(writer);
   DlHandle data(writer);
 
   auto vcd = mesh.mVertexDescriptor;
   vcd.calcVertexDescriptorFromAttributeList();
-  assert_since(0x30);
-  writer.write<u32>(vcd.mBitfield);
-  writer.write<u32>(static_cast<u32>(mesh.currentMatrixEmbedded) +
-                    (static_cast<u32>(!mesh.visible) << 1));
-  writeNameForward(names, writer, mesh_start, mesh.getName());
-  writer.write<u32>(mesh.mId);
-  // TODO
-  assert_since(0x40);
+  bin.vcdBitfield = vcd.mBitfield;
+  bin.flag = 0;
+  if (mesh.currentMatrixEmbedded) {
+    bin.flag |= BinaryPolygon::FLAG_CUR_MTX_INCLUDED;
+  }
+  if (!mesh.visible) {
+    bin.flag |= BinaryPolygon::FLAG_INVISIBLE;
+  }
+  bin.name = mesh.getName();
+  bin.id = id;
   const auto [nvtx, ntri] = librii::gx::ComputeVertTriCounts(mesh);
-  writer.write<u32>(nvtx);
-  writer.write<u32>(ntri);
+  bin.vtxCount = nvtx;
+  bin.triCount = ntri;
 
-  assert_since(0x48);
+  bin.posIdx = indexOf(mdl.positions, mesh.mPositionBuffer);
+  bin.nrmIdx = indexOf(mdl.normals, mesh.mNormalBuffer);
+  for (size_t i = 0; i < 2; ++i)
+    bin.clrIdx[i] = indexOf(mdl.colors, mesh.mColorBuffer[i]);
+  for (size_t i = 0; i < 8; ++i)
+    bin.uvIdx[i] = indexOf(mdl.texcoords, mesh.mTexCoordBuffer[i]);
+  bin.furVecIdx = -1;
+  bin.furPosIdx = -1;
 
-  const auto pos_idx = indexOf(mdl.positions, mesh.mPositionBuffer);
-  writer.write<s16>(pos_idx);
-  writer.write<s16>(indexOf(mdl.normals, mesh.mNormalBuffer));
-  for (int i = 0; i < 2; ++i)
-    writer.write<s16>(indexOf(mdl.colors, mesh.mColorBuffer[i]));
-  for (int i = 0; i < 8; ++i)
-    writer.write<s16>(indexOf(mdl.texcoords, mesh.mTexCoordBuffer[i]));
-  writer.write<s16>(-1); // fur
-  writer.write<s16>(-1); // fur
-  assert_since(0x64);
-  writer.write<s32>(0x68); // msu, directly follows
-
-  std::set<s16> used;
+  std::set<u16> used;
   for (auto& mp : mesh.mMatrixPrimitives) {
     for (auto& w : mp.mDrawMatrixIndices) {
-      if (w == -1) {
+      if (w < 0) {
         continue;
       }
-      used.insert(w);
+      used.insert(static_cast<u16>(w));
     }
   }
-  writer.write<u32>(used.size());
-  if (used.size() == 0) {
-    writer.write<u32>(0);
-  } else {
-    for (const auto& matrix : used) {
-      writer.write<u16>(matrix);
-    }
-  }
+  bin.used = {used.begin(), used.end()};
+  bin.write2(writer, names, mesh_start);
 
   writer.alignTo(32);
   auto setup_ba = writer.tell();
   setup.setBufAddr(writer.tell());
   auto dlerror = build_dlsetup();
   if (!dlerror.empty()) {
-    return dlerror;
+    return std::unexpected(dlerror);
   }
   setup.setCmdSize(writer.tell() - setup_ba);
   while (writer.tell() != setup_ba + 0xe0)
@@ -836,10 +905,7 @@ std::string WriteMesh(oishii::Writer& writer,
   const auto data_start = writer.tell();
   {
     for (auto& mp : mesh.mMatrixPrimitives) {
-      auto err = writeVertexDataDL(mesh, mp, writer);
-      if (!err.empty()) {
-        return err;
-      }
+      TRY(writeVertexDataDL(mesh, mp, writer));
     }
     // DL pad
     while (writer.tell() % 32) {
@@ -849,7 +915,7 @@ std::string WriteMesh(oishii::Writer& writer,
   data.setCmdSize(writer.tell() - data_start);
   writer.alignTo(32);
   data.write();
-  return "";
+  return {};
 }
 
 Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
@@ -858,9 +924,6 @@ Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
   int d_cursor = 0;
 
   RelocWriter linker(writer);
-  //
-  // Build shaders
-  //
 
   std::map<std::string, u32> Dictionaries;
   const auto write_dict = [&](const std::string& name, auto src_range,
@@ -1031,15 +1094,12 @@ Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
       WriteDictionary(_dict, writer, names);
     }
   }
+  u32 i = 0;
   TRY(write_dict(
       "Meshes", bin.meshes,
       [&](const librii::g3d::PolygonData& mesh,
           std::size_t mesh_start) -> Result<void> {
-        auto err = WriteMesh(writer, mesh, bin, mesh_start, names);
-        if (!err.empty()) {
-          return std::unexpected(err);
-        }
-        return {};
+        return WriteMesh(writer, mesh, bin, mesh_start, names, i++);
       },
       false, 32));
 

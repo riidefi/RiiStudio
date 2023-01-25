@@ -1644,18 +1644,12 @@ struct AddChild : public kpi::ActionMenu<riistudio::g3d::Bone, AddChild> {
     return std::unexpected("Mesh is not a parent of a model");
   }
 
-  auto c = mdl->getMeshes();
-  int i = indexOf(c, mesh.getName());
-  if (i < 0 || i > std::ssize(mdl->getMeshes())) {
-    return std::unexpected("Failed to get mesh ID");
-  }
-
   auto imd = TRY(riistudio::rhst::decompileMesh(mesh, *mdl));
   imd = TRY(librii::rhst::MeshUtils::TriangulateMesh(imd));
   for (auto& mp : imd.matrix_primitives) {
     TRY(librii::rhst::StripifyTriangles(mp));
   }
-  TRY(riistudio::rhst::compileMesh(mesh, imd, i, *mdl, false, false));
+  TRY(riistudio::rhst::compileMesh(mesh, imd, *mdl, false, false));
 
   return {};
 }

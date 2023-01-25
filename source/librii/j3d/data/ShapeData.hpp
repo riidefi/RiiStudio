@@ -6,7 +6,6 @@
 namespace librii::j3d {
 
 struct ShapeData : public librii::gx::MeshData {
-  u32 id;
   enum class Mode {
     Normal,
     Billboard_XY,

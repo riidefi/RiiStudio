@@ -4,7 +4,7 @@
 
 IMPORT_STD;
 
-namespace riistudio::ass {
+namespace riistudio::assimp {
 
 static std::atomic<bool> IsAnyLoggerAttached = false;
 
@@ -32,4 +32,4 @@ void DetachAssimpLogger() {
   IsAnyLoggerAttached = false;
 }
 
-} // namespace riistudio::ass
+} // namespace riistudio::assimp

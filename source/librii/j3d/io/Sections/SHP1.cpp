@@ -68,7 +68,6 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
   for (int si = 0; si < size; ++si) {
     auto& shape = ctx.mdl.shapes[si];
     reader.seekSet(g.start + ofsShapeData + ctx.shapeIdLut[si] * 0x28);
-    shape.id = ctx.shapeIdLut[si];
     // printf("Shape (index=%u, id=%u) {\n", si, shape.id);
     // shape.name = nameTable[si];
     shape.mode = TRY(reader.Enum8<ShapeData::Mode>());

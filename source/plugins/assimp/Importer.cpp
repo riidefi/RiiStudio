@@ -1,4 +1,4 @@
-#include "AssImporter.hpp"
+#include "Importer.hpp"
 #include "Material.hpp"
 #include "Utility.hpp"
 #include <core/kpi/Plugins.hpp>
@@ -7,7 +7,7 @@
 
 IMPORT_STD;
 
-namespace riistudio::ass {
+namespace riistudio::assimp {
 
 AssImporter::AssImporter(const aiScene* scene) : pScene(scene) {}
 void AssImporter::ProcessMeshTrianglesStatic(
@@ -280,4 +280,4 @@ Result<librii::rhst::SceneTree> AssImporter::Import(const Settings& settings) {
   return out_model;
 }
 
-} // namespace riistudio::ass
+} // namespace riistudio::assimp

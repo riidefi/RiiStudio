@@ -8,5 +8,5 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
 add_library(rsl STATIC
   "FsDialog.cpp"
- "Defer.hpp" "DebugBreak.hpp" "Ranges.hpp" "Stb.cpp")
+ "Defer.hpp" "DebugBreak.hpp" "Ranges.hpp" "Stb.cpp" "SafeReader.cpp")
 target_link_libraries(rsl core range-v3)

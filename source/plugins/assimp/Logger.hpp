@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vendor/assimp/Logger.hpp>
 
-namespace riistudio::ass {
+namespace riistudio::assimp {
 
 struct AssimpLogger : public Assimp::Logger {
   AssimpLogger(
@@ -49,4 +49,4 @@ private:
   std::string domain;
 };
 
-} // namespace riistudio::ass
+} // namespace riistudio::assimp

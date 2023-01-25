@@ -360,11 +360,9 @@ Result<librii::rhst::Mesh> decompileMesh(const libcube::IndexedPolygon& src,
 }
 
 Result<void> compileMesh(libcube::IndexedPolygon& dst,
-                         const librii::rhst::Mesh& src, int id,
-                         libcube::Model& model, bool optimize,
-                         bool reinit_bufs) {
+                         const librii::rhst::Mesh& src, libcube::Model& model,
+                         bool optimize, bool reinit_bufs) {
   dst.setName(src.name);
-  dst.setId(id);
 
   // No skinning/BB
   dst.init(false, nullptr);
@@ -667,10 +665,9 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
                timer.elapsed());
   }
 
-  int i = 0;
   for (auto& mesh : rhst.meshes) {
     // Already optimized
-    auto ok = compileMesh(mdl.getMeshes().add(), mesh, i++, mdl, false);
+    auto ok = compileMesh(mdl.getMeshes().add(), mesh, mdl, false);
     if (!ok) {
       fprintf(stderr, "ERROR: Failed to compile mesh: %s\n",
               ok.error().c_str());

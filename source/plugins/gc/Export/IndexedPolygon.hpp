@@ -9,8 +9,6 @@ namespace libcube {
 class Model;
 
 struct IndexedPolygon : public riistudio::lib3d::Polygon {
-  virtual void setId(u32 id) = 0;
-
   virtual librii::gx::MeshData& getMeshData() = 0;
   virtual const librii::gx::MeshData& getMeshData() const = 0;
 

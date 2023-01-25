@@ -9,7 +9,6 @@ namespace librii::g3d {
 
 struct PolygonData : public librii::gx::MeshData {
   std::string mName;
-  u32 mId;
 
   s16 mCurrentMatrix = -1; // Part of the polygon in G3D
 

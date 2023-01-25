@@ -3,7 +3,7 @@
 #include <memory>
 #include <vendor/assimp/Logger.hpp>
 
-namespace riistudio::ass {
+namespace riistudio::assimp {
 
 void AttachAssimpLogger(std::unique_ptr<Assimp::Logger> logger);
 void DetachAssimpLogger();
@@ -15,4 +15,4 @@ struct AssimpLoggerScope {
   ~AssimpLoggerScope() { DetachAssimpLogger(); }
 };
 
-} // namespace riistudio::ass
+} // namespace riistudio::assimp

@@ -12,9 +12,9 @@
 #include <librii/rhst/RHST.hpp>
 
 // TODO
-#include <plugins/ass/Ass.hpp>
+#include <plugins/assimp/Assimp.hpp>
 
-namespace riistudio::ass {
+namespace riistudio::assimp {
 
 class IdCounter {
 public:
@@ -66,4 +66,4 @@ private:
                                         int parent = -1);
 };
 
-} // namespace riistudio::ass
+} // namespace riistudio::assimp

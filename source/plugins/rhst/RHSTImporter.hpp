@@ -37,7 +37,7 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
 [[nodiscard]] Result<librii::rhst::Mesh>
 decompileMesh(const libcube::IndexedPolygon& src, const libcube::Model& mdl);
 [[nodiscard]] Result<void> compileMesh(libcube::IndexedPolygon& dst,
-                                       const librii::rhst::Mesh& src, int id,
+                                       const librii::rhst::Mesh& src,
                                        libcube::Model& model,
                                        bool optimize = true,
                                        bool reinit_bufs = true);

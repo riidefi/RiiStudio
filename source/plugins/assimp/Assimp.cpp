@@ -1,7 +1,7 @@
 // Assimp importer.
-#include "Ass.hpp"
+#include "Assimp.hpp"
 
-#include "AssImporter.hpp"
+#include "Importer.hpp"
 #include "LogScope.hpp"
 #include "Logger.hpp"
 #include "SupportedFiles.hpp"
@@ -15,7 +15,7 @@
 #include <vendor/assimp/scene.h>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
-namespace riistudio::ass {
+namespace riistudio::assimp {
 
 // TODO
 u32 ClampMipMapDimension(u32 x) {
@@ -358,4 +358,4 @@ void AssimpPlugin::render() {
   }
 }
 
-} // namespace riistudio::ass
+} // namespace riistudio::assimp

@@ -1,11 +1,11 @@
-#include "AssImporter.hpp"
+#include "Importer.hpp"
 #include "Utility.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <unordered_map>
 #include <vendor/stb_image.h>
 
-namespace riistudio::ass {
+namespace riistudio::assimp {
 
 
 struct ImpSampler {
@@ -36,4 +36,4 @@ GetTexture(aiMaterial* pMat, int t, int j) {
   return {path, uvindex, (aiTextureMapMode)mapmode};
 }
 
-} // namespace riistudio::ass
+} // namespace riistudio::assimp

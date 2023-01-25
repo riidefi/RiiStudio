@@ -4,10 +4,10 @@
 #include <glm/vec3.hpp>
 #include <librii/rhst/RHST.hpp>
 #include <memory>
-#include <plugins/ass/InclusionMask.hpp>
+#include <plugins/assimp/InclusionMask.hpp>
 #include <vendor/assimp/postprocess.h>
 
-namespace riistudio::ass {
+namespace riistudio::assimp {
 
 static constexpr u32 DefaultFlags =
     aiProcess_GenSmoothNormals | aiProcess_RemoveRedundantMaterials |
@@ -51,4 +51,4 @@ Result<librii::rhst::SceneTree> DoImport(std::string path,
 
 std::unique_ptr<kpi::IBinaryDeserializer> CreatePlugin();
 
-} // namespace riistudio::ass
+} // namespace riistudio::assimp
