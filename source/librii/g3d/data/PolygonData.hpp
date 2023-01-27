@@ -23,6 +23,7 @@ struct PolygonData : public librii::gx::MeshData {
 
   std::string getName() const { return mName; }
 
+  // SYNC with BinaryPolygon
   bool needsPositionMtx() const {
     // TODO: Do we need to check currentMatrixEmbedded?
     return mCurrentMatrix == -1;

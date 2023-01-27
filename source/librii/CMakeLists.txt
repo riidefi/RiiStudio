@@ -133,7 +133,7 @@ add_library(librii STATIC
 	"j3d/io/Sections/VTX1.cpp"
 	"j3d/io/Sections.hpp"
 	"j3d/io/Sections/MaterialData.cpp"
- "rhst/RHSTOptimizer.cpp" "rhst/MeshUtils.cpp" "rhst/TriangleFanSplitter.cpp" "rhst/HaroohieTriStripifier.cpp")
+ "rhst/RHSTOptimizer.cpp" "rhst/MeshUtils.cpp" "rhst/TriangleFanSplitter.cpp" "rhst/HaroohieTriStripifier.cpp" "g3d/io/PolygonIO.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
 if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
