@@ -154,6 +154,11 @@ struct Vertex {
   std::array<glm::vec2, 8> uvs{};
   std::array<glm::vec4, 2> colors{};
 
+  // In HW, this is a row index, so multiply by 3
+  // Only relevant for rigged models
+  // Index into MatrixPrimitive::draw_matrices
+  s8 matrix_index{-1};
+
   auto operator<=>(const Vertex& rhs) const = default;
 };
 

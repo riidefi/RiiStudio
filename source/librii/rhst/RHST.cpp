@@ -861,7 +861,12 @@ public:
                     const int cur_attr = vcd_cursor;
                     ++vcd_cursor;
 
-                    if (cur_attr == 9) {
+                    // PNMIDX
+                    if (cur_attr == 0) {
+                      e.matrix_index = v[P].get<s8>();
+                    }
+                    // TEXNMTXIDX are implicitly added by binary converter
+                    else if (cur_attr == 9) {
                       e.position = getVec3(v, P).value_or(glm::vec3{});
                     } else if (cur_attr == 10) {
                       e.normal = getVec3(v, P).value_or(glm::vec3{});

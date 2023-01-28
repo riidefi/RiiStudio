@@ -175,6 +175,11 @@ void compileVert(librii::gx::IndexedVertex& dst,
     const int cur_attr = vcd_cursor;
     ++vcd_cursor;
 
+    if (cur_attr == 0) {
+      dst[librii::gx::VertexAttribute::PositionNormalMatrixIndex] =
+          src.matrix_index * 3;
+      continue;
+    }
     if (cur_attr == 9) {
       dst[librii::gx::VertexAttribute::Position] =
           poly.addPos(mdl, src.position);
@@ -286,6 +291,7 @@ Result<librii::rhst::Mesh> decompileMesh(const libcube::IndexedPolygon& src,
   using VA = librii::gx::VertexAttribute;
 
   u32 allowed = 0;
+  allowed |= 1 << static_cast<int>(VA::PositionNormalMatrixIndex);
   allowed |= 1 << static_cast<int>(VA::Position);
   allowed |= 1 << static_cast<int>(VA::Normal);
   for (size_t i = 0; i < 2; ++i) {
@@ -337,6 +343,11 @@ Result<librii::rhst::Mesh> decompileMesh(const libcube::IndexedPolygon& src,
         auto& v = p.vertices.emplace_back();
 
         v.position = TRY(indexer.positions[z[VA::Position]]);
+        if (vcd[VA::PositionNormalMatrixIndex]) {
+          auto cand = z[VA::PositionNormalMatrixIndex];
+          EXPECT(cand % 3 == 0);
+          v.matrix_index = cand / 3;
+        }
         if (librii::rhst::hasNormal(vcd.mBitfield)) {
           v.normal = TRY(indexer.normals[z[VA::Normal]]);
         }
@@ -376,9 +387,11 @@ Result<void> compileMesh(libcube::IndexedPolygon& dst,
     if ((src.vertex_descriptor & (1 << i)) == 0)
       continue;
 
+    // PNMTXIDX is direct u8
+    auto fmt = i == 0 ? librii::gx::VertexAttributeType::Direct
+                      : librii::gx::VertexAttributeType::Short;
     data.mVertexDescriptor.mAttributes.emplace(
-        static_cast<librii::gx::VertexAttribute>(i),
-        librii::gx::VertexAttributeType::Short);
+        static_cast<librii::gx::VertexAttribute>(i), fmt);
   }
 
   data.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
