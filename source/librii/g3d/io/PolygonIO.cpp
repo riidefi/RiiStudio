@@ -180,6 +180,140 @@ struct DLSetup {
   }
 };
 
+static Result<std::vector<librii::gx::MatrixPrimitive>>
+ReadMPrims(rsl::SafeReader& reader, u32 buf_size,
+           const librii::gx::VertexDescriptor& desc, int currentMatrix = -1) {
+  std::vector<librii::gx::MatrixPrimitive> result;
+  struct QDisplayListMeshHandler final
+      : public librii::gpu::QDisplayListHandler {
+    Result<void> onCommandDraw(oishii::BinaryReader& reader,
+                               librii::gx::PrimitiveType type, u16 nverts,
+                               u32 stream_end) override {
+      EXPECT(reader.tell() < stream_end);
+
+      mLoadingMatrices = 0;
+      mLoadingNrmMatrices = 0;
+      mLoadingTexMatrices = 0;
+
+      if (mPoly.mMatrixPrimitives.empty()) {
+        mPoly.mMatrixPrimitives.push_back(librii::gx::MatrixPrimitive{});
+
+        // This is a J3D-only field, but we can fill it out anyway
+        mPoly.mMatrixPrimitives.back().mCurrentMatrix = mCurrentMatrix;
+      }
+      auto& prim = mPoly.mMatrixPrimitives.back().mPrimitives.emplace_back(
+          librii::gx::IndexedPrimitive{});
+      prim.mType = type;
+      prim.mVertices.resize(nverts);
+      for (auto& vert : prim.mVertices) {
+        for (u32 i = 0; i < static_cast<u32>(librii::gx::VertexAttribute::Max);
+             ++i) {
+          if (mPoly.mVertexDescriptor.mBitfield & (1 << i)) {
+            const auto attr = static_cast<librii::gx::VertexAttribute>(i);
+            switch (mPoly.mVertexDescriptor.mAttributes[attr]) {
+            case librii::gx::VertexAttributeType::Direct:
+              if (attr ==
+                      librii::gx::VertexAttribute::PositionNormalMatrixIndex ||
+                  ((u32)attr >=
+                       (u32)librii::gx::VertexAttribute::Texture0MatrixIndex &&
+                   (u32)attr <=
+                       (u32)librii::gx::VertexAttribute::Texture7MatrixIndex)) {
+                vert[attr] = reader.readUnaligned<u8>();
+                break;
+              }
+              return std::unexpected("Mesh unsupported");
+            case librii::gx::VertexAttributeType::None:
+              break;
+            case librii::gx::VertexAttributeType::Byte:
+              vert[attr] = reader.readUnaligned<u8>();
+              break;
+            case librii::gx::VertexAttributeType::Short:
+              vert[attr] = reader.readUnaligned<u16>();
+              break;
+            }
+          }
+        }
+      }
+      return {};
+    }
+    Result<void> onCommandIndexedLoad(u32 cmd, u32 index, u16 address,
+                                      u8 size) override {
+      // Expect IDX_A (position matrix) commands to be in sequence then IDX_B
+      // (normal matrix) commands to follow.
+      if (cmd == 0x20) {
+        EXPECT(address == mLoadingMatrices * 12, "");
+        EXPECT(size == 12, "");
+        ++mLoadingMatrices;
+      } else if (cmd == 0x28) {
+        EXPECT(address == 1024 + mLoadingNrmMatrices * 9, "");
+        EXPECT(size == 9, "");
+        ++mLoadingNrmMatrices;
+      } else if (cmd == 0x30) {
+        EXPECT(address == 120 + mLoadingTexMatrices * 12, "");
+        EXPECT(size == 12, "");
+        ++mLoadingTexMatrices;
+      } else {
+        EXPECT(false, "Unknown matrix command");
+      }
+
+      // NOTE: Normal-matrix-only models would be ignored currently
+      if (cmd != 0x20) {
+        return {};
+      }
+      if (mLoadingMatrices == 1) {
+        mPoly.mMatrixPrimitives.emplace_back();
+      }
+      auto& mp = mPoly.mMatrixPrimitives.back();
+
+      mp.mDrawMatrixIndices.push_back(index);
+      // This is a J3D-only field, but we can fill it out anyway
+      mp.mCurrentMatrix = mCurrentMatrix;
+      return {};
+    }
+    int mLoadingMatrices = 0;
+    int mLoadingNrmMatrices = 0;
+    int mLoadingTexMatrices = 0;
+    librii::gx::MeshData mPoly;
+    int mCurrentMatrix = -1;
+  } meshHandler;
+  meshHandler.mPoly.mVertexDescriptor = desc;
+  meshHandler.mCurrentMatrix = currentMatrix;
+  TRY(librii::gpu::RunDisplayList(reader.getUnsafe(), meshHandler, buf_size));
+  return meshHandler.mPoly.mMatrixPrimitives;
+}
+
+static Result<librii::gx::VertexDescriptor>
+BuildVCD(rsl::SafeReader& reader, u32 buf_size, u32 bitfield) {
+  librii::gx::VertexDescriptor result;
+  librii::gpu::QDisplayListVertexSetupHandler vcdHandler;
+  TRY(librii::gpu::RunDisplayList(reader.getUnsafe(), vcdHandler, buf_size));
+  for (u32 i = 0; i < (u32)librii::gx::VertexAttribute::Max; ++i) {
+    // TODO: We probably don't need this bitfield
+    if ((bitfield & (1 << i)) == 0)
+      continue;
+    auto att = static_cast<librii::gx::VertexAttribute>(i);
+
+    if (att == librii::gx::VertexAttribute::PositionNormalMatrixIndex ||
+        att == librii::gx::VertexAttribute::Texture0MatrixIndex ||
+        att == librii::gx::VertexAttribute::Texture1MatrixIndex ||
+        att == librii::gx::VertexAttribute::Texture2MatrixIndex) {
+      result.mAttributes[att] = librii::gx::VertexAttributeType::Direct;
+    } else if (i >= (u32)librii::gx::VertexAttribute::Position &&
+               i <= (u32)librii::gx::VertexAttribute::TexCoord7) {
+      const auto stat = vcdHandler.mGpuMesh.VCD.GetVertexArrayStatus(
+          i - (u32)librii::gx::VertexAttribute::Position);
+      const auto encoding = static_cast<librii::gx::VertexAttributeType>(stat);
+      if (encoding == librii::gx::VertexAttributeType::None) {
+        return std::unexpected("att == librii::gx::VertexAttributeType::None");
+      }
+      result.mAttributes[att] = encoding;
+    } else {
+      return std::unexpected("Unrecognized attribute");
+    }
+  }
+  return result;
+}
+
 struct BinaryPolygon {
   s32 currentMatrix{};
   std::array<u32, 3> vtxDescvCache{};
@@ -203,9 +337,10 @@ struct BinaryPolygon {
   s16 furPosIdx{};
   std::vector<u16> used; // matrix IDs
 
-  // Write-only
+  // NOTE: On read, only, only `.cache` is configured. `.desc` is not. Ideally
+  // this won't be the case much longer.
   DLSetup dl_setup;
-  // Write-only (DLVertexData)
+
   std::vector<librii::gx::MatrixPrimitive> matrixPrims;
 
   void writeA(oishii::Writer& w) {
@@ -214,7 +349,7 @@ struct BinaryPolygon {
     w.write(vtxDescvCache[1]);
     w.write(vtxDescvCache[2]);
   }
-  Result<void> read(rsl::SafeReader& r) {
+  Result<void> readA(rsl::SafeReader& r) {
     currentMatrix = TRY(r.S32());
     for (auto& u : vtxDescvCache) {
       u = TRY(r.U32());
@@ -246,7 +381,7 @@ struct BinaryPolygon {
       }
     }
   }
-  Result<void> read2(rsl::SafeReader& reader, u32 start) {
+  Result<void> readB(rsl::SafeReader& reader, u32 start) {
     vcdBitfield = TRY(reader.U32());
     flag = TRY(reader.U32());
     name = TRY(reader.StringOfs(start));
@@ -411,7 +546,42 @@ struct BinaryPolygon {
     }
     return {};
   }
+
+  Result<void> read(rsl::SafeReader& reader, u32 start) {
+    // Read-only
+    TRY(readA(reader));
+    // TODO: Check cache
+
+    DlHandle primitiveSetup = TRY(DlHandle::make(reader));
+    DlHandle primitiveData = TRY(DlHandle::make(reader));
+
+    TRY(readB(reader, start));
+
+    // Read primitiveSetup
+    primitiveSetup.seekTo(reader);
+    auto desc = TRY(BuildVCD(reader, primitiveSetup.buf_size, vcdBitfield));
+    desc.calcVertexDescriptorFromAttributeList();
+    EXPECT(desc.mBitfield == vcdBitfield);
+    dl_setup.cache.descv = desc;
+    // TODO: dl_setup is not properly setup for save directly
+
+    // Read primitiveData
+    primitiveData.seekTo(reader);
+    matrixPrims =
+        TRY(ReadMPrims(reader, primitiveData.buf_size, desc, vcdBitfield));
+
+    return {};
+  }
 };
+
+std::optional<u8> asTexNMtx(gx::VertexAttribute attr) {
+  u32 u = static_cast<u32>(attr);
+  if (u >= static_cast<u32>(gx::VertexAttribute::Texture0MatrixIndex) &&
+      u <= static_cast<u32>(gx::VertexAttribute::Texture7MatrixIndex)) {
+    return u - static_cast<u32>(gx::VertexAttribute::Texture0MatrixIndex);
+  }
+  return std::nullopt;
+}
 
 Result<void>
 ReadMesh(librii::g3d::PolygonData& poly, rsl::SafeReader& reader, bool& isValid,
@@ -431,26 +601,40 @@ ReadMesh(librii::g3d::PolygonData& poly, rsl::SafeReader& reader, bool& isValid,
   isValid &= TRY(reader.S32()) < 0;  // mdl offset
 
   BinaryPolygon bin;
-  // Read-only
-  librii::gpu::QDisplayListVertexSetupHandler vcdHandler;
-  TRY(bin.read(reader));
+  TRY(bin.read(reader, start));
+
+  EXPECT((bin.flag & BinaryPolygon::FLAG_CUR_MTX_INCLUDED) == false);
+#if 0
+  EXPECT((bin.flag & BinaryPolygon::FLAG_CUR_MTX_INCLUDED) ==
+         (bin.dl_setup.cache
+              .descv[gx::VertexAttribute::PositionNormalMatrixIndex] &&
+          bin.matrixPrims.size() > 1));
+#endif
+
+  // Take out TexNMtxIdx
+  //
+  // Right now, we don't check and simply purge the data, trusting that it will
+  // be added back properly.
+  auto& desc = bin.dl_setup.cache.descv;
+  std::bitset<8> texmtx_specified;
+  for (auto& attr : desc.mAttributes) {
+    auto texn = asTexNMtx(attr.first);
+    if (texn.has_value()) {
+      EXPECT(*texn < texmtx_specified.size());
+      texmtx_specified[*texn] = true;
+    }
+  }
+  std::erase_if(desc.mAttributes, [](auto& attr) -> bool {
+    auto t = asTexNMtx(attr.first);
+    return t.has_value();
+  });
+  desc.calcVertexDescriptorFromAttributeList();
+  // Because of the way IndexedVertex works, we don't have to touch the actual
+  // vertex arrays
+
   poly.mCurrentMatrix = bin.currentMatrix;
-  // TODO: Check cache
-
-  DlHandle primitiveSetup = TRY(DlHandle::make(reader));
-  DlHandle primitiveData = TRY(DlHandle::make(reader));
-
-  TRY(bin.read2(reader, start));
-  // Read primitiveSetup
-  primitiveSetup.seekTo(reader);
-  TRY(librii::gpu::RunDisplayList(reader.getUnsafe(), vcdHandler,
-                                  primitiveSetup.buf_size));
-
-  poly.mVertexDescriptor.mBitfield = bin.vcdBitfield;
-  const u32 flag = bin.flag;
-  poly.currentMatrixEmbedded = flag & 1;
-  poly.visible = !(flag & 2);
-
+  poly.mVertexDescriptor = bin.dl_setup.cache.descv;
+  poly.visible = !(bin.flag & BinaryPolygon::FLAG_INVISIBLE);
   poly.mName = bin.name;
   EXPECT(bin.id == id);
   // TODO: Verify / cache
@@ -475,148 +659,22 @@ ReadMesh(librii::g3d::PolygonData& poly, rsl::SafeReader& reader, bool& isValid,
   if (bin.furVecIdx != -1 || bin.furPosIdx != -1) {
     return std::unexpected("Mesh uses fur, which is unsupported");
   }
-
-  for (u32 i = 0; i < (u32)librii::gx::VertexAttribute::Max; ++i) {
-    if ((poly.mVertexDescriptor.mBitfield & (1 << i)) == 0)
-      continue;
-    auto att = static_cast<librii::gx::VertexAttribute>(i);
-
-    if (att == librii::gx::VertexAttribute::PositionNormalMatrixIndex ||
-        att == librii::gx::VertexAttribute::Texture0MatrixIndex ||
-        att == librii::gx::VertexAttribute::Texture1MatrixIndex ||
-        att == librii::gx::VertexAttribute::Texture2MatrixIndex) {
-      poly.mVertexDescriptor.mAttributes[att] =
-          librii::gx::VertexAttributeType::Direct;
-    } else if (i >= (u32)librii::gx::VertexAttribute::Position &&
-               i <= (u32)librii::gx::VertexAttribute::TexCoord7) {
-      const auto stat = vcdHandler.mGpuMesh.VCD.GetVertexArrayStatus(
-          i - (u32)librii::gx::VertexAttribute::Position);
-      const auto encoding = static_cast<librii::gx::VertexAttributeType>(stat);
-      if (encoding == librii::gx::VertexAttributeType::None) {
-        transaction.callback(kpi::IOMessageClass::Error, transaction_path,
-                             "att == librii::gx::VertexAttributeType::None");
-        poly.mVertexDescriptor.mBitfield ^= (1 << i);
-        continue;
-      }
-      poly.mVertexDescriptor.mAttributes[att] = encoding;
-    } else {
-      EXPECT(false, "Unrecognized attribute");
-    }
-  }
-  struct QDisplayListMeshHandler final
-      : public librii::gpu::QDisplayListHandler {
-    Result<void> onCommandDraw(oishii::BinaryReader& reader,
-                               librii::gx::PrimitiveType type, u16 nverts,
-                               u32 stream_end) override {
-      EXPECT(reader.tell() < stream_end);
-
-      mLoadingMatrices = 0;
-      mLoadingNrmMatrices = 0;
-      mLoadingTexMatrices = 0;
-
-      if (mPoly.mMatrixPrimitives.empty()) {
-        mPoly.mMatrixPrimitives.push_back(librii::gx::MatrixPrimitive{});
-
-        // This is a J3D-only field, but we can fill it out anyway
-        mPoly.mMatrixPrimitives.back().mCurrentMatrix = mPoly.mCurrentMatrix;
-      }
-      auto& prim = mPoly.mMatrixPrimitives.back().mPrimitives.emplace_back(
-          librii::gx::IndexedPrimitive{});
-      prim.mType = type;
-      prim.mVertices.resize(nverts);
-      for (auto& vert : prim.mVertices) {
-        for (u32 i = 0; i < static_cast<u32>(librii::gx::VertexAttribute::Max);
-             ++i) {
-          if (mPoly.mVertexDescriptor.mBitfield & (1 << i)) {
-            const auto attr = static_cast<librii::gx::VertexAttribute>(i);
-            switch (mPoly.mVertexDescriptor.mAttributes[attr]) {
-            case librii::gx::VertexAttributeType::Direct:
-              if (attr ==
-                      librii::gx::VertexAttribute::PositionNormalMatrixIndex ||
-                  ((u32)attr >=
-                       (u32)librii::gx::VertexAttribute::Texture0MatrixIndex &&
-                   (u32)attr <=
-                       (u32)librii::gx::VertexAttribute::Texture7MatrixIndex)) {
-                vert[attr] = reader.readUnaligned<u8>();
-                break;
-              }
-              return std::unexpected("Mesh unsupported");
-            case librii::gx::VertexAttributeType::None:
-              break;
-            case librii::gx::VertexAttributeType::Byte:
-              vert[attr] = reader.readUnaligned<u8>();
-              break;
-            case librii::gx::VertexAttributeType::Short:
-              vert[attr] = reader.readUnaligned<u16>();
-              break;
-            }
-          }
-        }
-      }
-      return {};
-    }
-    Result<void> onCommandIndexedLoad(u32 cmd, u32 index, u16 address,
-                                      u8 size) override {
-      // Expect IDX_A (position matrix) commands to be in sequence then IDX_B
-      // (normal matrix) commands to follow.
-      if (cmd == 0x20) {
-        EXPECT(address == mLoadingMatrices * 12, "");
-        EXPECT(size == 12, "");
-        ++mLoadingMatrices;
-      } else if (cmd == 0x28) {
-        EXPECT(address == 1024 + mLoadingNrmMatrices * 9, "");
-        EXPECT(size == 9, "");
-        ++mLoadingNrmMatrices;
-      } else if (cmd == 0x30) {
-        EXPECT(address == 120 + mLoadingTexMatrices * 12, "");
-        EXPECT(size == 12, "");
-        ++mLoadingTexMatrices;
-      } else {
-        EXPECT(false, "Unknown matrix command");
-      }
-
-      // NOTE: Normal-matrix-only models would be ignored currently
-      if (cmd != 0x20) {
-        return {};
-      }
-      if (mLoadingMatrices == 1) {
-        mPoly.mMatrixPrimitives.emplace_back();
-      }
-      auto& mp = mPoly.mMatrixPrimitives.back();
-
-      mp.mDrawMatrixIndices.push_back(index);
-      // This is a J3D-only field, but we can fill it out anyway
-      mp.mCurrentMatrix = mPoly.mCurrentMatrix;
-      return {};
-    }
-    QDisplayListMeshHandler(librii::g3d::PolygonData& poly) : mPoly(poly) {}
-    int mLoadingMatrices = 0;
-    int mLoadingNrmMatrices = 0;
-    int mLoadingTexMatrices = 0;
-    librii::g3d::PolygonData& mPoly;
-  } meshHandler(poly);
-  primitiveData.seekTo(reader);
-  TRY(librii::gpu::RunDisplayList(reader.getUnsafe(), meshHandler,
-                                  primitiveData.buf_size));
+  poly.mMatrixPrimitives = bin.matrixPrims;
   return {};
 }
 
 Result<BinaryPolygon> toBinPoly(const librii::g3d::PolygonData& mesh,
-                                const librii::g3d::BinaryModel& mdl, u32 id) {
+                                const librii::g3d::BinaryModel& mdl, u32 id,
+                                std::bitset<8> texmtx_needed) {
   BinaryPolygon bin;
   bin.currentMatrix = mesh.mCurrentMatrix;
-  const auto [c_a, c_b, c_c] =
-      librii::gpu::DLBuilder::calcVtxDescv(mesh.mVertexDescriptor);
-  bin.vtxDescvCache[0] = c_a;
-  bin.vtxDescvCache[1] = c_b;
-  bin.vtxDescvCache[2] = c_c;
-  auto vcd = mesh.mVertexDescriptor;
-  vcd.calcVertexDescriptorFromAttributeList();
-  bin.vcdBitfield = vcd.mBitfield;
   bin.flag = 0;
-  if (mesh.currentMatrixEmbedded) {
+#if 0
+  if (mesh.mVertexDescriptor[gx::VertexAttribute::PositionNormalMatrixIndex] &&
+      bin.matrixPrims.size() > 1) {
     bin.flag |= BinaryPolygon::FLAG_CUR_MTX_INCLUDED;
   }
+#endif
   if (!mesh.visible) {
     bin.flag |= BinaryPolygon::FLAG_INVISIBLE;
   }
@@ -645,17 +703,63 @@ Result<BinaryPolygon> toBinPoly(const librii::g3d::PolygonData& mesh,
     }
   }
   bin.used = {used.begin(), used.end()};
-  TRY(bin.dl_setup.Build(mesh, mdl));
 
-  bin.matrixPrims = mesh.mMatrixPrimitives;
+  // Add TEXNMTX to VCD
+  auto tmp = mesh;
+  if (tmp.mVertexDescriptor.mAttributes.contains(
+          gx::VertexAttribute::PositionNormalMatrixIndex)) {
+    for (size_t i = 0; i < 8; ++i) {
+      bool needed = texmtx_needed[i];
+      if (!needed)
+        continue;
+      librii::gx::VertexAttribute f = static_cast<librii::gx::VertexAttribute>(
+          static_cast<int>(librii::gx::VertexAttribute::Texture0MatrixIndex) +
+          i);
+      tmp.mVertexDescriptor.mAttributes[f] = gx::VertexAttributeType::Direct;
+      tmp.mVertexDescriptor.mBitfield |= 2 << i;
+    }
+  }
+  auto& vcd = tmp.mVertexDescriptor;
+  vcd.calcVertexDescriptorFromAttributeList();
+  bin.vcdBitfield = vcd.mBitfield;
+
+  const auto [c_a, c_b, c_c] = librii::gpu::DLBuilder::calcVtxDescv(vcd);
+  bin.vtxDescvCache[0] = c_a;
+  bin.vtxDescvCache[1] = c_b;
+  bin.vtxDescvCache[2] = c_c;
+
+  TRY(bin.dl_setup.Build(tmp, mdl));
+
+  bin.matrixPrims = tmp.mMatrixPrimitives;
+
+  // Add TEXNMTX to VERTEX DATA
+  if (tmp.mVertexDescriptor[gx::VertexAttribute::PositionNormalMatrixIndex]) {
+    for (size_t i = 0; i < 8; ++i) {
+      bool needed = texmtx_needed[i];
+      if (!needed)
+        continue;
+      librii::gx::VertexAttribute f = static_cast<librii::gx::VertexAttribute>(
+          static_cast<int>(librii::gx::VertexAttribute::Texture0MatrixIndex) +
+          i);
+      for (auto& mp : bin.matrixPrims) {
+        for (auto& p : mp.mPrimitives) {
+          for (auto& v : p.mVertices) {
+            v[f] = v[gx::VertexAttribute::PositionNormalMatrixIndex] + 30;
+          }
+        }
+      }
+    }
+  }
+
   return bin;
 }
 
 Result<void> WriteMesh(oishii::Writer& writer,
                        const librii::g3d::PolygonData& mesh,
                        const librii::g3d::BinaryModel& mdl,
-                       const size_t& mesh_start, NameTable& names, u32 id) {
-  auto bin = TRY(toBinPoly(mesh, mdl, id));
+                       const size_t& mesh_start, NameTable& names, u32 id,
+                       std::bitset<8> texmtx_needed) {
+  auto bin = TRY(toBinPoly(mesh, mdl, id, texmtx_needed));
   return bin.write(writer, names, mesh_start);
 }
 

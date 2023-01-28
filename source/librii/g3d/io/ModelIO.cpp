@@ -330,6 +330,50 @@ void WriteShader(RelocWriter& linker, oishii::Writer& writer,
 
 Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
                         NameTable& names, std::size_t brres_start) {
+
+  // index: polygon
+  std::map<u32, std::bitset<8>> mesh_texmtx;
+  bool any_texmtx = false;
+  for (auto& bc : bin.bytecodes) {
+    if (bc.name != "DrawOpa" && bc.name != "DrawXlu")
+      continue;
+    for (auto& draw : bc.commands) {
+      if (auto* x = std::get_if<ByteCodeLists::Draw>(&draw)) {
+        u32 matId = x->matId;
+        EXPECT(matId < bin.materials.size());
+        auto& mat = bin.materials[matId];
+        u32 polyId = x->polyId;
+        EXPECT(polyId < bin.meshes.size());
+        auto& poly = bin.meshes[polyId];
+        if (!poly.mVertexDescriptor
+                 [gx::VertexAttribute::PositionNormalMatrixIndex]) {
+          // We only care for the rigged case
+          continue;
+        }
+        for (size_t i = 0; i < mat.dl.texGens.size(); ++i) {
+          auto& tg = mat.dl.texGens[i];
+          auto src = tg.sourceParam;
+          bool rigged_tg_need_texmtx = false;
+          switch (src) {
+          case gx::TexGenSrc::Position:
+          case gx::TexGenSrc::Normal:
+          case gx::TexGenSrc::Binormal:
+          case gx::TexGenSrc::Tangent:
+            // This way be way too lenient. We may not need these in the
+            // Position case, for example.
+            rigged_tg_need_texmtx = true;
+            break;
+          }
+          mesh_texmtx[polyId][i] =
+              mesh_texmtx[polyId][i] || rigged_tg_need_texmtx;
+          any_texmtx |= rigged_tg_need_texmtx;
+        }
+      }
+    }
+  }
+  // TODO: This is a hack
+  bin.info.texMtxArray = any_texmtx;
+
   const auto mdl_start = writer.tell();
   int d_cursor = 0;
 
@@ -504,12 +548,15 @@ Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
       WriteDictionary(_dict, writer, names);
     }
   }
+
   u32 i = 0;
   TRY(write_dict(
       "Meshes", bin.meshes,
       [&](const librii::g3d::PolygonData& mesh,
           std::size_t mesh_start) -> Result<void> {
-        return WriteMesh(writer, mesh, bin, mesh_start, names, i++);
+        std::bitset<8> texmtx_needed = mesh_texmtx[i];
+        return WriteMesh(writer, mesh, bin, mesh_start, names, i++,
+                         texmtx_needed);
       },
       false, 32));
 

@@ -26,6 +26,7 @@ Result<void> WriteMesh(oishii::Writer& writer,
                        const librii::g3d::PolygonData& mesh,
                        // TODO: Should not need BinaryModel
                        const librii::g3d::BinaryModel& mdl,
-                       const size_t& mesh_start, NameTable& names, u32 id);
+                       const size_t& mesh_start, NameTable& names, u32 id,
+                       std::bitset<8> texmtx_needed);
 
 } // namespace librii::g3d

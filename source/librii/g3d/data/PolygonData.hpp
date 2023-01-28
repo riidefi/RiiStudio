@@ -12,7 +12,6 @@ struct PolygonData : public librii::gx::MeshData {
 
   s16 mCurrentMatrix = -1; // Part of the polygon in G3D
 
-  bool currentMatrixEmbedded = false;
   bool visible = true;
 
   // For IDs, set to -1 in binary to not exist. Here, empty string
