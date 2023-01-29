@@ -676,6 +676,20 @@ BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
   bin.dl.indMatrices = mat.mIndMatrices;
 
   bin.dl.texGens = mat.texGens;
+
+  // Sync PostTexMtx to TexMtx; not visible in UI and should be an okay
+  // simplification.
+  for (auto& tg : bin.dl.texGens) {
+    if (tg.matrix == gx::TexMatrix::Identity) {
+      tg.postMatrix = gx::PostTexMatrix::Identity;
+      continue;
+    }
+    int idx = static_cast<int>(tg.matrix) -
+              static_cast<int>(gx::TexMatrix::TexMatrix0);
+    tg.postMatrix = static_cast<gx::PostTexMatrix>(
+        static_cast<int>(gx::PostTexMatrix::Matrix0) + idx);
+  }
+
   return bin;
 }
 
