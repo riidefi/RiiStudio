@@ -656,8 +656,11 @@ ReadMesh(librii::g3d::PolygonData& poly, rsl::SafeReader& reader, bool& isValid,
       poly.mTexCoordBuffer[i] = texcoords[bin.uvIdx[i]].mName;
     }
   }
+  // BrawlCrate sets this erroneously
   if (bin.furVecIdx != -1 || bin.furPosIdx != -1) {
-    return std::unexpected("Mesh uses fur, which is unsupported");
+    transaction.callback(kpi::IOMessageClass::Warning, "Polygon: " + bin.name,
+                         "Mesh specifies it has fur, which is unsupported. "
+                         "Likely erroneously set by BrawlBox.");
   }
   poly.mMatrixPrimitives = bin.matrixPrims;
   return {};
