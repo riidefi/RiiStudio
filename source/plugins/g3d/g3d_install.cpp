@@ -1,7 +1,7 @@
 #include <core/common.h>
-#include <core/kpi/Node2.hpp>
-#include <core/kpi/Plugins.hpp>
-#include <core/kpi/RichNameManager.hpp>
+#include <LibBadUIFramework/Node2.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
+#include <LibBadUIFramework/RichNameManager.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 #include "G3dIo.hpp"

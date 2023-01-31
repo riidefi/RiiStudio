@@ -7,7 +7,8 @@
 #include <vendor/assimp/Importer.hpp>
 #include <vendor/assimp/postprocess.h>
 
-#include <core/kpi/Plugins.hpp>
+// TODO: Should not depend on this
+#include <LibBadUIFramework/Plugins.hpp>
 
 namespace librii::assimp2rhst {
 

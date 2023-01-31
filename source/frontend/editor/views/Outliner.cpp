@@ -1,11 +1,11 @@
 #include "Outliner.hpp"
-#include <core/kpi/RichNameManager.hpp>     // kpi::RichNameManager
+#include <LibBadUIFramework/RichNameManager.hpp>     // kpi::RichNameManager
 #include <frontend/editor/EditorWindow.hpp> // EditorWindow
 #include <frontend/editor/StudioWindow.hpp> // StudioWindow
 #include <plugins/gc/Export/Material.hpp>   // libcube::IGCMaterial
 // #include <regex>                          // std::regex_search
 #include "OutlinerWidget.hpp"
-#include <core/kpi/ActionMenu.hpp> // kpi::ActionMenuManager
+#include <LibBadUIFramework/ActionMenu.hpp> // kpi::ActionMenuManager
 #include <plugins/gc/Export/Scene.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_SEARCH
 

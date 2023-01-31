@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/kpi/History.hpp>             // kpi::History
-#include <core/kpi/Node2.hpp>               // kpi::IDocumentNode
-#include <core/kpi/PropertyView.hpp>        // PropertyViewStateHolder
+#include <LibBadUIFramework/History.hpp>             // kpi::History
+#include <LibBadUIFramework/Node2.hpp>               // kpi::IDocumentNode
+#include <LibBadUIFramework/PropertyView.hpp>        // PropertyViewStateHolder
 #include <frontend/editor/EditorWindow.hpp> // EditorWindow
 #include <frontend/editor/StudioWindow.hpp> // StudioWindow
 

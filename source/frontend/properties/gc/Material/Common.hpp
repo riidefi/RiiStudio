@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/kpi/PropertyView.hpp>
+#include <LibBadUIFramework/PropertyView.hpp>
 #include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/Material.hpp> // for GCMaterialData
 // TODO: Awful interdependency. Fix this when icon system is stable

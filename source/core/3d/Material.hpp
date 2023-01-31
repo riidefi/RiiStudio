@@ -5,6 +5,8 @@
 #include <librii/gfx/MegaState.hpp>      // MegaState
 #include <librii/gfx/PixelOcclusion.hpp> // PixelOcclusion
 
+#include <LibBadUIFramework/Node2.hpp>
+
 namespace librii::glhelper {
 class DelegatedUBOBuilder;
 }

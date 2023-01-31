@@ -65,4 +65,4 @@ if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "
     ../core/common.h
   )
 endif()
-target_link_libraries(plugins PUBLIC core PRIVATE range-v3)
+target_link_libraries(plugins PUBLIC core LibBadUIFramework PRIVATE range-v3)

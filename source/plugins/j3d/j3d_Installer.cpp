@@ -1,6 +1,6 @@
 #include "J3dIo.hpp"
 #include "Scene.hpp"
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 
 namespace riistudio::j3d {
 

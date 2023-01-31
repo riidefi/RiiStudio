@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/kpi/Node2.hpp> // kpi::INode
+#include <LibBadUIFramework/Node2.hpp> // kpi::INode
 #include <memory>             // std::unique_ptr
 
 namespace kpi {

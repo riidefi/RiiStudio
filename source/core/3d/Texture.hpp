@@ -1,10 +1,13 @@
 #pragma once
 
 #include <core/common.h>
-#include <core/kpi/Node2.hpp>
 #include <librii/gfx/PixelOcclusion.hpp>
 #include <string>
 #include <vector>
+
+// kpi::IObject
+#include <LibBadUIFramework/Node2.hpp>
+
 
 namespace riistudio::lib3d {
 

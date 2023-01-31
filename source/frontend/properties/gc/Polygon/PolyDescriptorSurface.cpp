@@ -1,5 +1,5 @@
 #include "Common.hpp"
-#include <core/kpi/PropertyView.hpp>
+#include <LibBadUIFramework/PropertyView.hpp>
 #include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 

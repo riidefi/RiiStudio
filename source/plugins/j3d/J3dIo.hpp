@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Scene.hpp"
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 
 #include <rsl/Ranges.hpp>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 
 namespace riistudio::assimp {
 

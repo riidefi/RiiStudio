@@ -3,9 +3,9 @@
 #include "EditorDocument.hpp"               // EditorDocument
 #include "StudioWindow.hpp"                 // StudioWindow
 #include <core/3d/Texture.hpp>              // lib3d::Texture
-#include <core/kpi/Document.hpp>            // kpi::Document
-#include <core/kpi/Node2.hpp>               // kpi::INode
-#include <core/kpi/Plugins.hpp>             // kpi::IOTransaction
+#include <LibBadUIFramework/Document.hpp>            // kpi::Document
+#include <LibBadUIFramework/Node2.hpp>               // kpi::INode
+#include <LibBadUIFramework/Plugins.hpp>             // kpi::IOTransaction
 #include <frontend/widgets/IconManager.hpp> // IconManager
 #include <string_view>                      // std::string_view
 

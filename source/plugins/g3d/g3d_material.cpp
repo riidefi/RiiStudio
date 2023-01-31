@@ -1,6 +1,6 @@
 #include "material.hpp"
 
-#include <core/kpi/Node2.hpp>
+#include <LibBadUIFramework/Node2.hpp>
 
 #include <core/util/timestamp.hpp>
 #include <librii/crate/g3d_crate.hpp>

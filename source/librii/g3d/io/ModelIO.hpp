@@ -12,7 +12,7 @@
 #include <vector>
 
 // Regrettably, for kpi::LightIOTransaction
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 
 // readName
 #include <librii/g3d/io/CommonIO.hpp>

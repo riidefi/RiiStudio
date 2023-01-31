@@ -1,13 +1,13 @@
 #include <core/common.h>
-#include <core/kpi/Node2.hpp>
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Node2.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 
 #include "Bone.hpp"
 #include "IndexedPolygon.hpp"
 #include "Material.hpp"
 #include "Texture.hpp"
 
-#include <core/kpi/RichNameManager.hpp>
+#include <LibBadUIFramework/RichNameManager.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 #include "Scene.hpp"

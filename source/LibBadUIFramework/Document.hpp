@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/kpi/History.hpp> // History
-#include <core/kpi/Node2.hpp>   // INode
+#include <LibBadUIFramework/History.hpp> // History
+#include <LibBadUIFramework/Node2.hpp>   // INode
 #include <memory>               // std::unique_ptr
 
 namespace kpi {

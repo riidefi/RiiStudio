@@ -1,6 +1,6 @@
 #include <core/common.h>
-#include <core/kpi/Node2.hpp>
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Node2.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>

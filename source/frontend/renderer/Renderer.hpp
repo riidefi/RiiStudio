@@ -3,7 +3,7 @@
 #include "MouseHider.hpp"
 #include <core/3d/i3dmodel.hpp>
 #include <core/common.h>
-#include <core/kpi/Node2.hpp>
+#include <LibBadUIFramework/Node2.hpp>
 #include <frontend/level_editor/DeltaTime.hpp>
 #include <frontend/renderer/CameraController.hpp>
 #include <glm/mat4x4.hpp>

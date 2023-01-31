@@ -69,6 +69,7 @@ target_link_libraries(frontend PUBLIC
   rsl
 	plugins
 	vendor
+  LibBadUIFramework
 )
 
 if (WIN32)

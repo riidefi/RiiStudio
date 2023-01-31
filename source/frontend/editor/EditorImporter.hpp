@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/kpi/Plugins.hpp>   // kpi::IOMessageClass
+#include <LibBadUIFramework/Plugins.hpp>   // kpi::IOMessageClass
 #include <frontend/file_host.hpp> // FileData
 #include <memory>                 // std::unique_ptr
 #include <optional>               // std::optional

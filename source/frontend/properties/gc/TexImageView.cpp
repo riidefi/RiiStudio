@@ -1,7 +1,7 @@
 #include "ResizeAction.hpp"
 #include <core/3d/i3dmodel.hpp>
-#include <core/kpi/ActionMenu.hpp>
-#include <core/kpi/PropertyView.hpp>
+#include <LibBadUIFramework/ActionMenu.hpp>
+#include <LibBadUIFramework/PropertyView.hpp>
 #include <frontend/widgets/Image.hpp>
 #include <frontend/widgets/Lib3dImage.hpp>
 #include <imcxx/Widgets.hpp>

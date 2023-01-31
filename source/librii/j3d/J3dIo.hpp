@@ -6,7 +6,7 @@
 #include <librii/j3d/data/TextureData.hpp>
 #include <librii/j3d/data/VertexData.hpp>
 
-#include <core/kpi/Plugins.hpp> // LightIOTransaction
+#include <LibBadUIFramework/Plugins.hpp> // LightIOTransaction
 
 namespace librii::j3d {
 

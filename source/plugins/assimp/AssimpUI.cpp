@@ -1,5 +1,5 @@
 #include "AssimpUI.hpp"
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imcxx/Widgets.hpp>
 #include <librii/assimp2rhst/Assimp.hpp>

@@ -2,11 +2,13 @@
 
 #include <array>
 #include <core/common.h>
-#include <core/kpi/Node2.hpp>
 #include <glm/glm.hpp>
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <librii/math/aabb.hpp>
 #include <string>
+
+
+#include <LibBadUIFramework/Node2.hpp>
 
 namespace riistudio::lib3d {
 

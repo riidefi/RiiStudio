@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/kpi/Node2.hpp>
+#include <LibBadUIFramework/Node2.hpp>
 
 namespace kpi {
 

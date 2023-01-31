@@ -6,7 +6,7 @@
 #include <vector>     // std::vector
 
 #include <core/3d/Texture.hpp> // lib3d::Texture*
-#include <core/kpi/Node2.hpp>  // kpi::IObject*
+#include <LibBadUIFramework/Node2.hpp>  // kpi::IObject*
 
 #include <imgui/imgui.h> // ImGuiTextFilter
 

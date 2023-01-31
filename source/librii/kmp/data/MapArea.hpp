@@ -3,7 +3,7 @@
 #include <algorithm>          // std::max_element
 #include <array>              // std::array
 #include <core/common.h>      // u32
-#include <core/kpi/Node2.hpp> // kpi::IObject
+#include <LibBadUIFramework/Node2.hpp> // kpi::IObject
 #include <glm/vec3.hpp>       // glm::vec3
 
 namespace librii::kmp {

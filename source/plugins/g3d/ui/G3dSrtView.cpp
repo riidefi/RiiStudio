@@ -1,5 +1,5 @@
-#include <core/kpi/Node2.hpp>
-#include <core/kpi/PropertyView.hpp>
+#include <LibBadUIFramework/Node2.hpp>
+#include <LibBadUIFramework/PropertyView.hpp>
 #include <imcxx/Widgets.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>

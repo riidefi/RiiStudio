@@ -159,7 +159,7 @@ if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "
   )
 endif()
 
-target_link_libraries(librii PUBLIC core PRIVATE meshoptimizer draco::draco fort range-v3)
+target_link_libraries(librii PUBLIC core LibBadUIFramework PRIVATE meshoptimizer draco::draco fort range-v3)
 
 target_include_directories(librii
   PRIVATE

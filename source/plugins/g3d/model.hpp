@@ -4,7 +4,7 @@
 #include "material.hpp"
 #include "polygon.hpp"
 #include "texture.hpp"
-#include <core/kpi/Node2.hpp>
+#include <LibBadUIFramework/Node2.hpp>
 #include <glm/vec2.hpp> // glm::vec2
 #include <glm/vec3.hpp> // glm::vec3
 #include <librii/g3d/data/AnimData.hpp>

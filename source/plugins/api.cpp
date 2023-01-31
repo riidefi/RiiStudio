@@ -1,7 +1,7 @@
 #include <core/common.h>
-#include <core/kpi/Node2.hpp>
-#include <core/kpi/PropertyView.hpp>
-#include <core/kpi/RichNameManager.hpp>
+#include <LibBadUIFramework/Node2.hpp>
+#include <LibBadUIFramework/PropertyView.hpp>
+#include <LibBadUIFramework/RichNameManager.hpp>
 #include <oishii/reader/binary_reader.hxx>
 
 #include <memory>

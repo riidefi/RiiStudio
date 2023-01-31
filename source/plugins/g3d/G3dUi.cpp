@@ -1,4 +1,4 @@
-#include <core/kpi/PropertyView.hpp>
+#include <LibBadUIFramework/PropertyView.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <plugins/gc/Export/Material.hpp>

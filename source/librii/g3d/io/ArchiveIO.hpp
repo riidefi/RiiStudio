@@ -9,7 +9,7 @@
 #include <librii/g3d/io/ModelIO.hpp>
 
 // Regrettably, for kpi::LightIOTransaction
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 
 namespace librii::g3d {
 

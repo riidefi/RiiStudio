@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 #include <librii/image/ImagePlatform.hpp>
 #include <librii/rhst/RHST.hpp>
 #include <plugins/gc/Export/Scene.hpp>

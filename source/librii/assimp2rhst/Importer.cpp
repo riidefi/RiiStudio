@@ -1,7 +1,7 @@
 #include "Importer.hpp"
 #include "Material.hpp"
 #include "Utility.hpp"
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <librii/math/aabb.hpp>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 #include <oishii/reader/binary_reader.hxx>
 #include <plugins/mk/BFG/Fog.hpp>
 

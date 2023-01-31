@@ -1,8 +1,8 @@
 #pragma once
 
 #include "EditorImporter.hpp"
-#include <core/kpi/Document.hpp>         // kpi::Document, kpi::INode
-#include <core/kpi/Plugins.hpp>          // kpi::IOMessageClass
+#include <LibBadUIFramework/Document.hpp>         // kpi::Document, kpi::INode
+#include <LibBadUIFramework/Plugins.hpp>          // kpi::IOMessageClass
 #include <frontend/file_host.hpp>        // FileData
 #include <memory>                        // std::unique_ptr
 #include <string>                        // std::string

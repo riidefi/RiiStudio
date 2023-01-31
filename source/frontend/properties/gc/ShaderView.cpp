@@ -1,5 +1,5 @@
 #include <core/3d/i3dmodel.hpp>
-#include <core/kpi/PropertyView.hpp>
+#include <LibBadUIFramework/PropertyView.hpp>
 #include <imcxx/Widgets.hpp>
 
 #include <vendor/ImGuiColorTextEdit/TextEditor.h>

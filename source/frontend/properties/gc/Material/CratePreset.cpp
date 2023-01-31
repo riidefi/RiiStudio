@@ -1,7 +1,7 @@
 #include "Common.hpp"
 
-#include <core/kpi/ActionMenu.hpp>
-#include <core/kpi/RichNameManager.hpp>
+#include <LibBadUIFramework/ActionMenu.hpp>
+#include <LibBadUIFramework/RichNameManager.hpp>
 #include <core/util/oishii.hpp>
 #include <core/util/timestamp.hpp>
 

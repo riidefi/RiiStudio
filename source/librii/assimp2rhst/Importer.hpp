@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/common.h>
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 #include <glm/glm.hpp>
 #include <librii/rhst/RHST.hpp>
 #include <vendor/assimp/scene.h>

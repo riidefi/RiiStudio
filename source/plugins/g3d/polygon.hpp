@@ -5,7 +5,7 @@
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <vector>
 
-#include <core/kpi/Node2.hpp>
+#include <LibBadUIFramework/Node2.hpp>
 
 #include <librii/g3d/data/PolygonData.hpp>
 

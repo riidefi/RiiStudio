@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/common.h>
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 #include <map>
 #include <oishii/writer/binary_writer.hxx>
 #include <oishii/writer/node.hxx>

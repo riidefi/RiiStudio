@@ -14,5 +14,5 @@ struct NullClass {};
 
 } // namespace riistudio::mk
 
-#include <core/kpi/Node2.hpp>
+#include <LibBadUIFramework/Node2.hpp>
 #include <plugins/mk/BFG/Node.h>

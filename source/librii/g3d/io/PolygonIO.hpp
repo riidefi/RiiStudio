@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/common.h>
-#include <core/kpi/Plugins.hpp>
+#include <LibBadUIFramework/Plugins.hpp>
 #include <librii/g3d/data/PolygonData.hpp>
 #include <librii/g3d/data/VertexData.hpp>
 #include <librii/g3d/io/ModelIO.hpp>
