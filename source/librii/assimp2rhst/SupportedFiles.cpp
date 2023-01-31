@@ -3,7 +3,7 @@
 
 IMPORT_STD;
 
-namespace riistudio::assimp {
+namespace librii::assimp2rhst {
 
 static constexpr std::array<std::string_view, 4> supported_endings = {
     ".dae", ".obj", ".fbx", ".smd"};
@@ -25,4 +25,4 @@ bool IsExtensionSupported(std::string_view path) {
                      });
 }
 
-} // namespace riistudio::assimp
+} // namespace librii::assimp2rhst

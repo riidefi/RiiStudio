@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-#include <plugins/assimp/Assimp.hpp>
+#include <plugins/assimp/AssimpUI.hpp>
 
 extern void InstallGC();
 

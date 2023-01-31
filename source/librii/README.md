@@ -84,6 +84,9 @@ Support for Mario Kart Wii's .kmp files.
 ### librii::rhst
 Interchange format designed specifically for GC/Wii. My blender exporter can produce these files.
 
+### librii::assimp2rhst
+Produces rhst files from an Assimp library mesh. Assimp supports reading dozens of formats including .dae, .fbx, etc.
+
 ### librii::szs
 Support for compressing/decompressing SZS files.
 

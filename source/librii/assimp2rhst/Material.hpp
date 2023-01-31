@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vendor/stb_image.h>
 
-namespace riistudio::assimp {
+namespace librii::assimp2rhst {
 
 
 struct ImpSampler {
@@ -36,4 +36,4 @@ GetTexture(aiMaterial* pMat, int t, int j) {
   return {path, uvindex, (aiTextureMapMode)mapmode};
 }
 
-} // namespace riistudio::assimp
+} // namespace librii::assimp2rhst

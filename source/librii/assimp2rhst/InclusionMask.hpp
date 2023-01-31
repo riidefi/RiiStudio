@@ -2,7 +2,7 @@
 
 #include <core/common.h>
 
-namespace riistudio::assimp {
+namespace librii::assimp2rhst {
 
 // Print an exclusion mask
 void DebugPrintExclusionMask(u32 exclusion_mask);
@@ -14,4 +14,4 @@ u32 FlipExclusionMask(u32 exclusion_mask);
 u32 DefaultInclusionMask();
 
 
-} // namespace riistudio::assimp
+} // namespace librii::assimp2rhst

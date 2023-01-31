@@ -1,13 +1,15 @@
 #pragma once
 
-#include <core/kpi/Plugins.hpp>
 #include <glm/vec3.hpp>
+#include <librii/assimp2rhst/InclusionMask.hpp>
 #include <librii/rhst/RHST.hpp>
 #include <memory>
-#include <plugins/assimp/InclusionMask.hpp>
+#include <vendor/assimp/Importer.hpp>
 #include <vendor/assimp/postprocess.h>
 
-namespace riistudio::assimp {
+#include <core/kpi/Plugins.hpp>
+
+namespace librii::assimp2rhst {
 
 static constexpr u32 DefaultFlags =
     aiProcess_GenSmoothNormals | aiProcess_RemoveRedundantMaterials |
@@ -42,13 +44,39 @@ struct Settings {
   u32 mDataToInclude = DefaultInclusionMask();
 };
 
-// Builtin-in ImGui UI for `Settings`
-void RenderContextSettings(Settings& ctx);
+enum class State {
+  Unengaged,
+  // send settings request, set mode to
+  WaitForSettings,
+  // check for texture dependencies
+  // tell the importer to fix them or abort
+  WaitForTextureDependencies,
+  // Now we actually import!
+  // And we're done:
+  Completed
+};
+struct AssimpContext {
+  State state = State::Unengaged;
+  const aiScene* mScene = nullptr;
+  Settings mSettings;
+
+  // Hack (we know importer will not be copied):
+  // Won't be necessary when IBinaryDeserializable is split into Factory and
+  // Instance, and Instance does not require copyable.
+  std::shared_ptr<Assimp::Importer> importer =
+      std::make_shared<Assimp::Importer>();
+};
+
+// Lifetime is tied to that of importer
+const aiScene* ReadScene(kpi::IOTransaction& transaction, std::string path,
+                         const Settings& settings, Assimp::Importer& importer);
+
+Result<librii::rhst::SceneTree> ToSceneTree(const aiScene* scene,
+                                            kpi::IOTransaction& transaction,
+                                            const Settings& settings);
 
 Result<librii::rhst::SceneTree> DoImport(std::string path,
                                          kpi::IOTransaction& transaction,
                                          const Settings& settings);
 
-std::unique_ptr<kpi::IBinaryDeserializer> CreatePlugin();
-
-} // namespace riistudio::assimp
+} // namespace librii::assimp2rhst

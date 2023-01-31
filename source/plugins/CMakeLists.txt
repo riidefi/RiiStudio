@@ -42,19 +42,6 @@ add_library(plugins STATIC
 	"j3d/Texture.hpp"
 	"j3d/ui/MaterialView.cpp"
 	"j3d/VertexBuffer.hpp"
-	"assimp/Assimp.cpp"
-  "assimp/Importer.cpp"
-  "assimp/Importer.hpp"
-  "assimp/Logger.hpp"
-  "assimp/Utility.hpp"
-  "assimp/Material.hpp"
-  "assimp/Assimp.hpp"
-  "assimp/SupportedFiles.hpp"
-  "assimp/SupportedFiles.cpp"
-  "assimp/InclusionMask.hpp"
-  "assimp/InclusionMask.cpp"
-  "assimp/LogScope.hpp"
-  "assimp/LogScope.cpp"
   "mk/BFG/io/BFG.hpp"
   "mk/BFG/io/BFG.cpp"
   "mk/BFG/Fog.hpp"
@@ -69,7 +56,7 @@ add_library(plugins STATIC
   "api.hpp"
   "api.cpp"
   "SceneImpl.cpp"
-)
+ "assimp/AssimpUI.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
 if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))

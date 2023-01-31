@@ -2,8 +2,8 @@
 
 #include <string_view>
 
-namespace riistudio::assimp {
+namespace librii::assimp2rhst {
 
 bool IsExtensionSupported(std::string_view path);
 
-} // namespace riistudio::assimp
+} // namespace librii::assimp2rhst

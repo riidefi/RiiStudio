@@ -3,18 +3,12 @@
 #include <core/common.h>
 #include <core/kpi/Plugins.hpp>
 #include <glm/glm.hpp>
-#include <map>
-#include <plugins/gc/Export/IndexedPolygon.hpp>
-#include <plugins/j3d/Scene.hpp>
-#include <vector>
-#include <vendor/assimp/scene.h>
-
 #include <librii/rhst/RHST.hpp>
-
+#include <vendor/assimp/scene.h>
 // TODO
-#include <plugins/assimp/Assimp.hpp>
+#include <librii/assimp2rhst/Assimp.hpp>
 
-namespace riistudio::assimp {
+namespace librii::assimp2rhst {
 
 class IdCounter {
 public:
@@ -66,4 +60,4 @@ private:
                                         int parent = -1);
 };
 
-} // namespace riistudio::assimp
+} // namespace librii::assimp2rhst

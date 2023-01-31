@@ -5,7 +5,7 @@
 
 IMPORT_STD;
 
-namespace riistudio::assimp {
+namespace librii::assimp2rhst {
 
 void DebugPrintExclusionMask(u32 exclusion_mask) {
   if (exclusion_mask & aiComponent_NORMALS)
@@ -41,4 +41,4 @@ u32 DefaultInclusionMask() {
          aiComponent_TEXTURES | aiComponent_MESHES | aiComponent_MATERIALS;
 }
 
-} // namespace riistudio::assimp
+} // namespace librii::assimp2rhst

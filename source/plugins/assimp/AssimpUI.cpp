@@ -1,14 +1,9 @@
-// Assimp importer.
-#include "Assimp.hpp"
-
-#include "Importer.hpp"
-#include "LogScope.hpp"
-#include "Logger.hpp"
-#include "SupportedFiles.hpp"
-#include "Utility.hpp"
+#include "AssimpUI.hpp"
 #include <core/kpi/Plugins.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imcxx/Widgets.hpp>
+#include <librii/assimp2rhst/Assimp.hpp>
+#include <librii/assimp2rhst/SupportedFiles.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
 #include <vendor/assimp/DefaultLogger.hpp>
 #include <vendor/assimp/Importer.hpp>
@@ -32,28 +27,12 @@ u32 ClampMipMapDimension(u32 x) {
   return x;
 }
 
-enum class State {
-  Unengaged,
-  // send settings request, set mode to
-  WaitForSettings,
-  // check for texture dependencies
-  // tell the importer to fix them or abort
-  WaitForTextureDependencies,
-  // Now we actually import!
-  // And we're done:
-  Completed
-};
-struct AssimpContext {
-  State state = State::Unengaged;
-  const aiScene* mScene = nullptr;
-  Settings mSettings;
+using State = librii::assimp2rhst::State;
+using Settings = librii::assimp2rhst::Settings;
+using AssimpContext = librii::assimp2rhst::AssimpContext;
 
-  // Hack (we know importer will not be copied):
-  // Won't be necessary when IBinaryDeserializable is split into Factory and
-  // Instance, and Instance does not require copyable.
-  std::shared_ptr<Assimp::Importer> importer =
-      std::make_shared<Assimp::Importer>();
-};
+// Builtin-in ImGui UI for `Settings`
+void RenderContextSettings(Settings& ctx);
 
 void RenderContextSettings(Settings& ctx) {
   if (ImGui::CollapsingHeader("Importing Settings"_j,
@@ -176,65 +155,6 @@ void RenderContextSettings(Settings& ctx) {
   }
 }
 
-// Lifetime is tied to that of importer
-const aiScene* ReadScene(kpi::IOTransaction& transaction, std::string path,
-                         const Settings& settings, Assimp::Importer& importer) {
-  AssimpLoggerScope g_assimplogger(
-      std::make_unique<AssimpLogger>(transaction.callback, getFileShort(path)));
-
-  // Only include components we asked for
-  {
-    const u32 exclusion_mask = FlipExclusionMask(settings.mDataToInclude);
-    DebugPrintExclusionMask(exclusion_mask);
-    importer.SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS, exclusion_mask);
-  }
-  u32 aiFlags = settings.mAiFlags;
-  if (settings.mMagnification != 1.0f) {
-    aiFlags |= aiProcess_GlobalScale;
-    importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
-                              settings.mMagnification);
-  }
-
-  importer.ReadFileFromMemory(transaction.data.data(), transaction.data.size(),
-                              aiProcess_PreTransformVertices, path.c_str());
-  auto* pScene = importer.ApplyPostProcessing(aiFlags);
-
-  if (!pScene) {
-    return nullptr;
-  }
-  double unit_scale = 0.0;
-  pScene->mMetaData->Get("UnitScaleFactor", unit_scale);
-
-  // Handle custom units
-  if (unit_scale != 0.0) {
-    // FBX-only property: internally in centimeters
-    importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
-                              (1.0 / unit_scale) / 100.0);
-    importer.ApplyPostProcessing(aiProcess_GlobalScale);
-  }
-  return pScene;
-}
-
-Result<librii::rhst::SceneTree> ToSceneTree(const aiScene* scene,
-                                            kpi::IOTransaction& transaction,
-                                            const Settings& settings) {
-  AssImporter importer(scene);
-  importer.SetTransaction(transaction);
-  return importer.Import(settings);
-}
-
-// Export-only
-Result<librii::rhst::SceneTree> DoImport(std::string path,
-                                         kpi::IOTransaction& transaction,
-                                         const Settings& settings) {
-  Assimp::Importer importer;
-  auto* pScene = ReadScene(transaction, path, settings, importer);
-  if (!pScene) {
-    return std::unexpected("Assimp failed to read scene");
-  }
-  return ToSceneTree(pScene, transaction, settings);
-}
-
 class AssimpPlugin {
 public:
   std::string canRead(const std::string& file,
@@ -321,7 +241,7 @@ std::unique_ptr<kpi::IBinaryDeserializer> CreatePlugin() {
 
 std::string AssimpPlugin::canRead(const std::string& file,
                                   oishii::BinaryReader& reader) const {
-  if (!IsExtensionSupported(file)) {
+  if (!librii::assimp2rhst::IsExtensionSupported(file)) {
     return "";
   }
 

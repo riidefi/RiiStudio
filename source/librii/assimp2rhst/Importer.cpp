@@ -4,10 +4,10 @@
 #include <core/kpi/Plugins.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <librii/math/aabb.hpp>
+#include <librii/math/srt3.hpp>
 
-IMPORT_STD;
-
-namespace riistudio::assimp {
+namespace librii::assimp2rhst {
 
 AssImporter::AssImporter(const aiScene* scene) : pScene(scene) {}
 void AssImporter::ProcessMeshTrianglesStatic(
@@ -280,4 +280,4 @@ Result<librii::rhst::SceneTree> AssImporter::Import(const Settings& settings) {
   return out_model;
 }
 
-} // namespace riistudio::assimp
+} // namespace librii::assimp2rhst

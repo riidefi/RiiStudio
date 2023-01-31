@@ -8,7 +8,7 @@
 #include <librii/gx.h>
 #include <string>
 
-namespace riistudio::assimp {
+namespace librii::assimp2rhst {
 
 static inline std::string getFileShort(const std::string& path) {
   auto tmp = path.substr(path.rfind("\\") + 1);
@@ -47,4 +47,4 @@ static inline glm::mat4 getMat4(const aiMatrix4x4& mtx) {
   return out;
 }
 
-} // namespace riistudio::assimp
+} // namespace librii::assimp2rhst
