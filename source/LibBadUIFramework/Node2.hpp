@@ -35,7 +35,7 @@ struct INamed {
 };
 
 template <typename T> std::unique_ptr<INamed> DynNamed(const T& data) {
-  struct Impl : public IDebugString {
+  struct Impl : public INamed {
     std::string getName() const override { return m_data->getName(); }
     void setName(const std::string& name) { m_data->setName(name); }
     Impl(T& data) : m_data(&data) {}

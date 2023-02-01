@@ -9,13 +9,13 @@ class JSON {};
 } // namespace riistudio
 #else
 
-#include <elzip/elzip.hpp>
 #include <frontend/applet.hpp>
 #include <frontend/widgets/changelog.hpp>
 #include <imcxx/Widgets.hpp>
 #include <io.h>
 #include <rsl/Download.hpp>
 #include <rsl/Launch.hpp>
+#include <rsl/Zip.hpp>
 
 #include "GithubManifest.hpp"
 
@@ -174,7 +174,7 @@ bool Updater::InstallUpdate() {
       [=](Updater* updater) {
         rsl::DownloadFile(download.string(), url, USER_AGENT, progress_func,
                           this);
-        elz::extractZip(download.string(), folder.string());
+        rsl::ExtractZip(download.string(), folder.string());
         std::filesystem::remove(download);
         updater->QueueLaunch(new_exe.string());
       },
