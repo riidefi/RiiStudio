@@ -1,8 +1,8 @@
 #include "Outliner.hpp"
-#include <LibBadUIFramework/RichNameManager.hpp>     // kpi::RichNameManager
-#include <frontend/editor/EditorWindow.hpp> // EditorWindow
-#include <frontend/editor/StudioWindow.hpp> // StudioWindow
-#include <plugins/gc/Export/Material.hpp>   // libcube::IGCMaterial
+#include <LibBadUIFramework/RichNameManager.hpp> // kpi::RichNameManager
+#include <frontend/editor/EditorWindow.hpp>      // EditorWindow
+#include <frontend/editor/StudioWindow.hpp>      // StudioWindow
+#include <plugins/gc/Export/Material.hpp>        // libcube::IGCMaterial
 // #include <regex>                          // std::regex_search
 #include "OutlinerWidget.hpp"
 #include <LibBadUIFramework/ActionMenu.hpp> // kpi::ActionMenuManager
@@ -394,6 +394,10 @@ void GenericCollectionOutliner::draw_() noexcept {
     const kpi::IObject* atObject(std::size_t i) const override {
       assert(i == 0);
       return mpRoot;
+    }
+    std::string atName(std::size_t i) const override {
+      assert(i == 0);
+      return mpRoot->getName();
     }
     void add() override { assert(!"Not implemented"); }
     void swap(std::size_t, std::size_t) override { assert(!"Not implemented"); }

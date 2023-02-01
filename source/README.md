@@ -1,6 +1,9 @@
 # source
 An outline of the source tree.
 
+## blender
+Blender plugin with exporter support for BRRES/BMD.
+
 ## core
 Core utilities and structures. Available to all other modules.
 
@@ -10,8 +13,14 @@ The main editor itself.
 ## imcxx
 My C++ wrappers for ImGui.
 
+## LibBadUIFramework
+Basis of the `plugins` folder, defines some extendable UI structures.
+
 ## librii
 Library for interacting with Wii data.
+
+## minizip
+A third-party library.
 
 ## oishii
 My binary IO library.
@@ -25,15 +34,15 @@ Specific plugins for the editor.
 - BRRES
 - KMP
 - BFG
+- BLIGHT
+- BLMAP
 - Assimp (to BMD/BRRES)
 
 ## rsl
-My standard library: very generic template types.
+My standard library: generic template types.
 
 ## scripts
 Used for generating format Node files.
 
 ## vendor
 Third-party code.
-### 11zip
-A third-party library. Ideally it would be in the vendor folder.

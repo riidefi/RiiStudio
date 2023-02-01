@@ -10,6 +10,8 @@ class FogEntry {
 public:
   bool operator==(const FogEntry&) const = default;
 
+  std::string getName() const { return "TODO"; }
+
   librii::gx::FogType mType = librii::gx::FogType::None;
   f32 mStartZ = 0.0f;
   f32 mEndZ = 0.0f;

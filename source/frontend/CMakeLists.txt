@@ -40,7 +40,6 @@ add_executable(frontend
   "renderer/Camera.cpp"
   "renderer/CameraController.cpp"
   "renderer/Renderer.cpp"
-  "updater/updater.cpp"
   "widgets/IconDatabase.cpp"
   "widgets/IconManager.cpp"
   "widgets/Image.cpp"
@@ -70,6 +69,7 @@ target_link_libraries(frontend PUBLIC
 	plugins
 	vendor
   LibBadUIFramework
+  updater
 )
 
 if (WIN32)

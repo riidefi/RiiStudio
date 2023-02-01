@@ -11,6 +11,8 @@
 #include <librii/math/aabb.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
+#include <imcxx/ContiguousSelection.hpp>
+#include <imcxx/IndentedTreeWidget.hpp>
 
 namespace imcxx {
 

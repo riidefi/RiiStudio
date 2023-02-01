@@ -1,16 +1,8 @@
 #pragma once
 
-#include <functional> // std::function
-#include <optional>   // std::optional
-#include <string>     // std::string
-#include <vector>     // std::vector
-
-#include <core/3d/Texture.hpp> // lib3d::Texture*
-#include <LibBadUIFramework/Node2.hpp>  // kpi::IObject*
-
-#include <imgui/imgui.h> // ImGuiTextFilter
-
-#include <frontend/widgets/ContiguousSelection.hpp>
+#include <LibBadUIFramework/Node2.hpp> // kpi::IObject*
+#include <core/3d/Texture.hpp>         // lib3d::Texture*
+#include <imcxx/Widgets.hpp>           // ImGuiTextFilter
 
 namespace riistudio::frontend {
 
@@ -129,7 +121,8 @@ public:
   virtual void clearSelectionExcept(const Node* node = nullptr) = 0;
   virtual void setActiveModal(const Node* = nullptr) = 0;
   struct SelUpdate {
-    ContiguousSelection::SelectMode mode = ContiguousSelection::SELECT_NONE;
+    imcxx::ContiguousSelection::SelectMode mode =
+        imcxx::ContiguousSelection::SELECT_NONE;
     bool alreadySelected = false;
   };
   bool DrawObject(Node& child, size_t i, bool hasChildren, SelUpdate& update,

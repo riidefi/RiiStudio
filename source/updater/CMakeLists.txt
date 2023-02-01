@@ -1,4 +1,4 @@
-project(rsl)
+project(updater)
 
 include_directories(${PROJECT_SOURCE_DIR}/../)
 include_directories(${PROJECT_SOURCE_DIR}/../vendor)
@@ -6,7 +6,7 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
 
-add_library(rsl STATIC
-  "FsDialog.cpp"
- "Defer.hpp" "DebugBreak.hpp" "Ranges.hpp" "Stb.cpp" "SafeReader.cpp" "Launch.cpp")
-target_link_libraries(rsl core range-v3)
+add_library(updater STATIC
+  "updater.cpp"
+)
+target_link_libraries(updater core)

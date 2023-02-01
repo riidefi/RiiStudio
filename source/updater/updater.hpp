@@ -7,8 +7,9 @@ namespace riistudio {
 
 class JSON;
 
-class Updater {
 
+
+class Updater {
 public:
   Updater();
   ~Updater();

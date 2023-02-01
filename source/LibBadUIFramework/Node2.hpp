@@ -29,6 +29,21 @@ struct IObject {
   INode* childOf = nullptr;
 };
 
+struct INamed {
+  virtual std::string getName() const = 0;
+  virtual void setName(const std::string& name) = 0;
+};
+
+template <typename T> std::unique_ptr<INamed> DynNamed(const T& data) {
+  struct Impl : public IDebugString {
+    std::string getName() const override { return m_data->getName(); }
+    void setName(const std::string& name) { m_data->setName(name); }
+    Impl(T& data) : m_data(&data) {}
+    T* m_data;
+  };
+  return std::make_unique<Impl>(data);
+};
+
 struct ICollection {
   virtual ~ICollection() = default;
   virtual std::size_t size() const = 0;
@@ -39,6 +54,7 @@ struct ICollection {
   // Class composed of T
   virtual IObject* atObject(std::size_t) = 0;
   virtual const IObject* atObject(std::size_t) const = 0;
+  virtual std::string atName(std::size_t) const = 0;
   virtual void add() = 0;
 
   virtual void swap(std::size_t, std::size_t) = 0;
@@ -46,9 +62,9 @@ struct ICollection {
   std::size_t indexOf(const std::string_view name) const {
     const auto _size = size();
     for (std::size_t i = 0; i < _size; ++i) {
-      const auto* obj = atObject(i);
-      if (obj->getName() == name)
+      if (atName(i) == name) {
         return i;
+      }
     }
     return _size;
   }
@@ -347,6 +363,10 @@ template <typename T> struct CollectionImpl final : public ICollection {
   IObject* atObject(std::size_t i) override { return data[i].get(); }
   const IObject* atObject(std::size_t i) const override {
     return data[i].get();
+  }
+  std::string atName(std::size_t i) const override {
+    assert(i < data.size());
+    return static_cast<T&>(*data[i]).getName();
   }
   void add() override {
     auto& last = data.emplace_back(std::make_unique<element_type>());

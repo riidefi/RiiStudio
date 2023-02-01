@@ -9,8 +9,8 @@
 #include "file_host.hpp"
 
 #include <frontend/editor/ImporterWindow.hpp>
-#include <frontend/updater/updater.hpp>
 #include <frontend/widgets/theme_editor.hpp>
+#include <updater/updater.hpp>
 
 namespace riistudio::frontend {
 

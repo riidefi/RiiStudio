@@ -2,6 +2,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/Configurations.cmake)
 
 add_subdirectory(core)
 add_subdirectory(LibBadUIFramework)
+add_subdirectory(updater)
 add_subdirectory(plugins)
 
 # My libraries

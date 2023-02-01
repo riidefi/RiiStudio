@@ -2,9 +2,6 @@
 #include <frontend/editor/EditorWindow.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
-#include <frontend/widgets/ContiguousSelection.hpp>
-#include <frontend/widgets/IndentedTreeWidget.hpp>
-
 namespace riistudio::frontend {
 
 bool FancyFolderNode(ImVec4 color, const char* icon,
@@ -126,11 +123,11 @@ bool OutlinerWidget::DrawObject(Node& child, size_t i, bool hasChildren,
       child, i, hasChildren, curNodeSelected, thereWasAClick, focused,
       contextMenu, [&](auto* img, float size) { drawImageIcon(img, size); });
   if (thereWasAClick) {
-    update.mode = ContiguousSelection::SELECT_CLICK;
+    update.mode = imcxx::ContiguousSelection::SELECT_CLICK;
     update.alreadySelected = curNodeSelected;
   } else if (focused && /* selectMode == ContiguousSelection::SELECT_NONE && */
              !curNodeSelected) {
-    update.mode = ContiguousSelection::SELECT_ARROWKEYS;
+    update.mode = imcxx::ContiguousSelection::SELECT_ARROWKEYS;
     update.alreadySelected = curNodeSelected;
   }
   auto id = std::format("Ctx {}", i);
@@ -158,7 +155,7 @@ bool OutlinerWidget::DrawObject(Node& child, size_t i, bool hasChildren,
 }
 
 void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
-  struct MyIndentedTreeWidget final : private IndentedTreeWidget {
+  struct MyIndentedTreeWidget final : private imcxx::IndentedTreeWidget {
   public:
     MyIndentedTreeWidget(OutlinerWidget& outliner, std::vector<Node>& nodes,
                          Node& folder)
@@ -184,7 +181,7 @@ void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
         OutlinerWidget::SelUpdate update;
         bool treenode =
             mOutliner.DrawObject(node, i, hasChild, update, *mpFolder);
-        if (update.mode != ContiguousSelection::SELECT_NONE) {
+        if (update.mode != imcxx::ContiguousSelection::SELECT_NONE) {
           selectMode = update.mode;
           justSelectedFilteredIdx = filteredIndex;
           justSelectedAlreadySelected = update.alreadySelected;
@@ -208,8 +205,8 @@ void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
     std::size_t justSelectedFilteredIdx = -1;
     // Necessary to filter out clicks on already selected items.
     bool justSelectedAlreadySelected = false;
-    ContiguousSelection::SelectMode selectMode =
-        ContiguousSelection::SELECT_NONE;
+    imcxx::ContiguousSelection::SelectMode selectMode =
+        imcxx::ContiguousSelection::SELECT_NONE;
     std::vector<s32> filtered;
 
   private:
@@ -233,7 +230,7 @@ void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
   }
 
   // If nothing new was selected, no new processing needs to occur.
-  if (tree.selectMode == ContiguousSelection::SELECT_NONE)
+  if (tree.selectMode == imcxx::ContiguousSelection::SELECT_NONE)
     return;
 
 // Allow disjoint selections
@@ -270,7 +267,7 @@ void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
   // Calculation must occur in filtered space to prevent selection
   // of occluded nodes.
   //
-  class MyContiguousSelection final : public ContiguousSelection {
+  class MyContiguousSelection final : public imcxx::ContiguousSelection {
   public:
     MyContiguousSelection(OutlinerWidget& outliner, std::span<Node> flat,
                           std::vector<s32>&& filtered)

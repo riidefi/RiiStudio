@@ -2,7 +2,7 @@
 
 #include <core/common.h> // assert
 
-namespace riistudio::frontend {
+namespace imcxx {
 
 // Over some ranges [0, n)
 //
@@ -67,4 +67,4 @@ public:
   }
 };
 
-} // namespace riistudio::frontend
+} // namespace imcxx

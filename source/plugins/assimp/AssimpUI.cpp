@@ -5,9 +5,6 @@
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
-#include <vendor/assimp/DefaultLogger.hpp>
-#include <vendor/assimp/Importer.hpp>
-#include <vendor/assimp/scene.h>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 namespace riistudio::assimp {
