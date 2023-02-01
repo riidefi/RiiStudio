@@ -5,9 +5,7 @@
 
 namespace riistudio {
 
-class JSON;
-
-
+class GithubManifest;
 
 class Updater {
 public:
@@ -16,7 +14,7 @@ public:
   void draw();
 
 private:
-  std::unique_ptr<JSON> mJSON;
+  std::unique_ptr<GithubManifest> mJSON;
   std::string mLatestVer = GIT_TAG;
   bool mShowUpdateDialog = false;
   bool mShowChangelog = false;
@@ -29,7 +27,6 @@ private:
 
   bool InitRepoJSON();
   bool InstallUpdate();
-  std::string ExecutableFilename();
   void RetryAsAdmin();
 
 public:

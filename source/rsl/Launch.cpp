@@ -50,4 +50,19 @@ void LaunchAsUser(std::string path) {
 #endif
 }
 
+std::string GetExecutableFilename() {
+#ifdef _WIN32
+  std::array<char, 1024> pathBuffer{};
+  const int n =
+      GetModuleFileNameA(nullptr, pathBuffer.data(), pathBuffer.size());
+
+  // We don't want a truncated path
+  if (n < 1020)
+    return std::string(pathBuffer.data(), n);
+#else
+  // FIXME: Provide Linux/Mac version
+#endif
+  return "";
+}
+
 } // namespace rsl
