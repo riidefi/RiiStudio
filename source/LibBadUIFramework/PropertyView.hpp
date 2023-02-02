@@ -80,7 +80,7 @@ public:
     if (ImGui::IsAnyMouseDown()) {
       // Not all property updates come from clicks. But for those that do,
       // postpone a commit until mouse up.
-      mView.postUpdate();
+      mPostUpdate();
     } else {
       commit("Property Update");
     }
@@ -129,14 +129,15 @@ public:
 private:
   kpi::History& mHistory;
   const kpi::INode& mTransientRoot;
-  IPropertyView& mView;
+  std::function<void(void)> mPostUpdate;
 
 public:
-  PropertyDelegate(IPropertyView& view, T& active, std::vector<T*> affected,
-                   kpi::History& history, const kpi::INode& transientRoot,
+  PropertyDelegate(std::function<void(void)> postUpdate, T& active,
+                   std::vector<T*> affected, kpi::History& history,
+                   const kpi::INode& transientRoot,
                    riistudio::frontend::EditorWindow* ed)
       : mActive(active), mAffected(affected), mEd(ed), mHistory(history),
-        mTransientRoot(transientRoot), mView(view) {}
+        mTransientRoot(transientRoot), mPostUpdate(postUpdate) {}
 };
 
 class PropertyViewStateHolder {
@@ -148,7 +149,7 @@ public:
       auto& [key, value] = it;
       auto& last_used = value.second;
       ++last_used;
-	}
+    }
     std::erase_if(states, [&](auto& it) {
       auto& [key, value] = it;
       if (auto last_used = value.second; last_used >= lifetime_grace_period) {
@@ -227,6 +228,24 @@ struct StatefulTestB {
 };
 static_assert(!is_stateful_v<StatefulTestB>, "Detecting tag_stateful");
 
+template <typename T>
+inline PropertyDelegate<T>
+MakeDelegate(std::function<void(void)> postUpdate, T* _active,
+             std::vector<IObject*> affected, kpi::History& history,
+             kpi::INode& root, riistudio::frontend::EditorWindow* ed) {
+  assert(_active != nullptr);
+
+  std::vector<T*> _affected(affected.size());
+  for (std::size_t i = 0; i < affected.size(); ++i) {
+    _affected[i] = dynamic_cast<T*>(affected[i]);
+    assert(_affected[i] != nullptr);
+  }
+
+  PropertyDelegate<T> delegate(postUpdate, *_active, _affected, history, root,
+                               ed);
+  return delegate;
+}
+
 template <typename T, typename U, bool Advanced>
 struct PropertyViewImpl final : public IPropertyView {
   struct ViewStateImpl : public IPropertyViewState {
@@ -249,13 +268,10 @@ struct PropertyViewImpl final : public IPropertyView {
     T* _active = dynamic_cast<T*>(&active);
     assert(_active != nullptr);
 
-    std::vector<T*> _affected(affected.size());
-    for (std::size_t i = 0; i < affected.size(); ++i) {
-      _affected[i] = dynamic_cast<T*>(affected[i]);
-      assert(_affected[i] != nullptr);
-    }
+    auto postUpdate = [pView = this]() { pView->postUpdate(); };
 
-    PropertyDelegate<T> delegate(*this, *_active, _affected, history, root, ed);
+    PropertyDelegate<T> delegate =
+        MakeDelegate(postUpdate, _active, affected, history, root, ed);
     if constexpr (is_stateful_v<U>) {
       IPropertyViewState* state = state_holder.requestState(active, *this);
       assert(state != nullptr);
@@ -347,13 +363,10 @@ struct StatelessPropertyViewImpl : public IPropertyView {
     T* _active = dynamic_cast<T*>(&active);
     assert(_active != nullptr);
 
-    std::vector<T*> _affected(affected.size());
-    for (std::size_t i = 0; i < affected.size(); ++i) {
-      _affected[i] = dynamic_cast<T*>(affected[i]);
-      assert(_affected[i] != nullptr);
-    }
+    auto postUpdate = [pView = this]() { pView->postUpdate(); };
 
-    PropertyDelegate<T> delegate(*this, *_active, _affected, history, root, ed);
+    PropertyDelegate<T> delegate =
+        MakeDelegate(postUpdate, _active, affected, history, root, ed);
     mFunctor(delegate);
     handleUpdates(history, root);
   }

@@ -446,6 +446,4 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     delegate.commit("Stage added/removed");
 }
 
-kpi::RegisterPropertyView<IGCMaterial, StageSurface> StageSurfaceInstaller;
-
 } // namespace libcube::UI

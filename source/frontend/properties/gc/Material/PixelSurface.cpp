@@ -266,6 +266,4 @@ DstAlpha:
   }
 }
 
-kpi::RegisterPropertyView<IGCMaterial, PixelSurface> PixelSurfaceInstaller;
-
 } // namespace libcube::UI

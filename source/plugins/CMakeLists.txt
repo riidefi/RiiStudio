@@ -47,7 +47,7 @@ add_library(plugins STATIC
   "mk/BFG/FogView.cpp"
   "mk/BFG/Node.h"
   "rhst/RHSTImporter.cpp" 
-  "g3d/G3dUi.cpp"  "g3d/G3dIo.hpp"
+  "g3d/G3dIo.hpp"
   "j3d/J3dIo.hpp"
   
   "mk/LTEX.cpp" "mk/LIGHT.cpp"

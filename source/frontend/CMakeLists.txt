@@ -41,6 +41,7 @@ add_executable(frontend
   "properties/g3d/G3dSrtView.cpp"
   "properties/g3d/G3dVertexColorView.cpp"
 	"properties/j3d/MaterialView.cpp"
+  "properties/g3d/G3dUi.cpp"
   "renderer/Camera.cpp"
   "renderer/CameraController.cpp"
   "renderer/Renderer.cpp"

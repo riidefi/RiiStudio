@@ -167,7 +167,4 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 }
 
-kpi::RegisterPropertyView<IGCMaterial, LightingSurface>
-    LightingSurfaceInstaller;
-
 } // namespace libcube::UI

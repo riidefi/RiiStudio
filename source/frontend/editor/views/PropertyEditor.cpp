@@ -1,9 +1,11 @@
 #include "PropertyEditor.hpp"
-#include <core/3d/Material.hpp> // lib3d::Material
 #include <LibBadUIFramework/RichNameManager.hpp>
+#include <core/3d/Material.hpp> // lib3d::Material
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <imcxx/Widgets.hpp>              // imcxx::Combo
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_EXCLAMATION_TRIANGLE
+
+#include <frontend/properties/g3d/G3dMaterialViews.hpp>
 
 namespace riistudio::frontend {
 
@@ -29,6 +31,29 @@ void DrawRichSelection(kpi::IObject* active, int numSelected) {
 std::string GetTitle(kpi::IPropertyView& view) {
   return std::format("{} {}", view.getIcon(), view.getName());
 }
+
+std::vector<std::string> PropertyViewManager_TabTitles(kpi::IObject& active) {
+  auto& manager = kpi::PropertyViewManager::getInstance();
+  std::vector<std::string> r;
+  manager.forEachView(
+      [&](kpi::IPropertyView& view) { r.push_back(GetTitle(view)); }, active);
+  return r;
+}
+bool PropertyViewManager_Tab(int index, std::vector<kpi::IObject*> selected,
+                             kpi::History& mHost, kpi::INode& mRoot,
+                             kpi::PropertyViewStateHolder& state_holder,
+                             EditorWindow& ed, kpi::IObject& active) {
+  auto& manager = kpi::PropertyViewManager::getInstance();
+  auto* activeTab = manager.getView(index, active);
+  if (activeTab == nullptr) {
+    ImGui::TextUnformatted("Invalid Pane"_j);
+    return false;
+  } else {
+    activeTab->draw(active, selected, mHost, mRoot, state_holder, &ed);
+    return true;
+  }
+}
+
 class PropertyEditor : public StudioWindow, private PropertyEditorWidget {
 public:
   PropertyEditor(kpi::History& host, kpi::INode& root,
@@ -44,24 +69,39 @@ private:
   void draw_() override;
 
   std::vector<std::string> TabTitles() override {
-    auto& manager = kpi::PropertyViewManager::getInstance();
-    std::vector<std::string> r;
-    manager.forEachView(
-        [&](kpi::IPropertyView& view) { r.push_back(GetTitle(view)); },
-        *mSelection.mActive);
-    return r;
-  }
-  void Tab(int index) override {
-    auto& manager = kpi::PropertyViewManager::getInstance();
-    auto* activeTab = manager.getView(mActiveTab, *mSelection.mActive);
-    if (activeTab == nullptr) {
-      mActiveTab = 0;
-
-      ImGui::TextUnformatted("Invalid Pane"_j);
-    } else {
-      activeTab->draw(*mSelection.mActive, selected, mHost, mRoot, state_holder,
-                      &ed);
+    auto* g3dmat = dynamic_cast<riistudio::g3d::Material*>(mSelection.mActive);
+    if (g3dmat != nullptr) {
+      return Views_TabTitles(mG3dMatView);
     }
+    auto* j3dmat = dynamic_cast<riistudio::j3d::Material*>(mSelection.mActive);
+    if (j3dmat != nullptr) {
+      return Views_TabTitles(mJ3dMatView);
+    }
+    return PropertyViewManager_TabTitles(*mSelection.mActive);
+  }
+  bool Tab(int index) override {
+    auto postUpdate = [&]() { bCommitPosted = true; };
+
+    auto* g3dmat = dynamic_cast<riistudio::g3d::Material*>(mSelection.mActive);
+    if (g3dmat != nullptr) {
+      auto dl = kpi::MakeDelegate<riistudio::g3d::Material>(
+          postUpdate, g3dmat, selected, mHost, mRoot, &ed);
+      auto cv = CovariantPD<g3d::Material, libcube::IGCMaterial>::from(dl);
+      auto ok = Views_Tab(mG3dMatView, cv, index);
+      handleUpdates(mHost, mRoot);
+      return ok;
+    }
+    auto* j3dmat = dynamic_cast<riistudio::j3d::Material*>(mSelection.mActive);
+    if (j3dmat != nullptr) {
+      auto dl = kpi::MakeDelegate<riistudio::j3d::Material>(
+          postUpdate, j3dmat, selected, mHost, mRoot, &ed);
+      auto cv = CovariantPD<j3d::Material, libcube::IGCMaterial>::from(dl);
+      auto ok = Views_Tab(mJ3dMatView, cv, index);
+      handleUpdates(mHost, mRoot);
+      return ok;
+    }
+    return PropertyViewManager_Tab(index, selected, mHost, mRoot, state_holder,
+                                   ed, *mSelection.mActive);
   }
 
   EditorWindow& ed;
@@ -71,6 +111,22 @@ private:
 
   kpi::PropertyViewStateHolder state_holder;
   std::vector<kpi::IObject*> selected;
+
+  riistudio::G3dMaterialViews mG3dMatView;
+  riistudio::J3dMaterialViews mJ3dMatView;
+
+  // For MatView
+  bool bCommitPosted = false;
+  void postUpdate() { bCommitPosted = true; }
+  void consumeUpdate(kpi::History& history, kpi::INode& doc) {
+    assert(bCommitPosted);
+    history.commit(doc);
+    bCommitPosted = false;
+  }
+  void handleUpdates(kpi::History& history, kpi::INode& doc) {
+    if (bCommitPosted && !ImGui::IsAnyMouseDown())
+      consumeUpdate(history, doc);
+  }
 };
 
 template <typename T>

@@ -15,6 +15,4 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   mat_prop_ex(delegate, &GCMaterialData::cullMode, DrawCullMode);
 }
 
-kpi::RegisterPropertyView<IGCMaterial, DisplaySurface> DisplaySurfaceInstaller;
-
 } // namespace libcube::UI

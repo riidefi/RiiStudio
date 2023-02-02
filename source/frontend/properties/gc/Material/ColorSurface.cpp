@@ -45,6 +45,4 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
   }
 }
 
-kpi::RegisterPropertyView<IGCMaterial, ColorSurface> ColorSurfaceInstaller;
-
 } // namespace libcube::UI

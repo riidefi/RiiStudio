@@ -752,6 +752,4 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 }
 
-kpi::RegisterPropertyView<IGCMaterial, SamplerSurface> SamplerSurfaceInstaller;
-
 } // namespace libcube::UI

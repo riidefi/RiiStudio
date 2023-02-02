@@ -117,7 +117,4 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 }
 
-kpi::RegisterPropertyView<IGCMaterial, IndirectSurface>
-    IndirectSurfaceInstaller;
-
 } // namespace libcube::UI

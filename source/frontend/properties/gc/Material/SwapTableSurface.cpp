@@ -55,6 +55,4 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   ImGui::EndTable();
 }
 
-kpi::RegisterPropertyView<IGCMaterial, SwapTableSurface> SwapTableInstaller;
-
 } // namespace libcube::UI

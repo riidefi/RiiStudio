@@ -1,19 +1,6 @@
-#include <LibBadUIFramework/PropertyView.hpp>
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-#include <plugins/gc/Export/Material.hpp>
-#include <vendor/fa5/IconsFontAwesome5.h>
-
-#include <plugins/g3d/collection.hpp>
-
-#include <imcxx/Widgets.hpp>
+#include "G3dUi.hpp"
 
 namespace riistudio::g3d::ui {
-
-struct G3DDataSurface final {
-  static inline const char* name() { return "Fog"; }
-  static inline const char* icon = (const char*)ICON_FA_SHIP;
-};
 
 void drawProperty(kpi::PropertyDelegate<Material>& delegate, G3DDataSurface) {
   auto* gm = &delegate.getActive();
@@ -41,11 +28,6 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, G3DDataSurface) {
   }
 }
 
-struct G3DTexDataSurface final {
-  static inline const char* name() { return "BRRES Data"; }
-  static inline const char* icon = (const char*)ICON_FA_BOXES;
-};
-
 void drawProperty(kpi::PropertyDelegate<Texture>& delegate, G3DTexDataSurface) {
   bool custom_lod = delegate.getActive().custom_lod;
   ImGui::Checkbox("Custom Quality Range", &custom_lod);
@@ -61,10 +43,6 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, G3DTexDataSurface) {
   ImGui::InputFloat("Maximum mipmap quality", &max);
   KPI_PROPERTY_EX(delegate, maxLod, max);
 }
-struct G3DMdlDataSurface final {
-  static inline const char* name() { return "BRRES Data"; }
-  static inline const char* icon = (const char*)ICON_FA_BOXES;
-};
 
 void drawProperty(kpi::PropertyDelegate<Model>& delegate, G3DMdlDataSurface) {
   auto& active = delegate.getActive();
@@ -76,7 +54,6 @@ void drawProperty(kpi::PropertyDelegate<Model>& delegate, G3DMdlDataSurface) {
 kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins&) {
   auto& inst = kpi::PropertyViewManager::getInstance();
   inst.addPropertyView<Model, G3DMdlDataSurface>();
-  inst.addPropertyView<Material, G3DDataSurface>();
   inst.addPropertyView<Texture, G3DTexDataSurface, true>();
 });
 

@@ -1,5 +1,5 @@
 #include <core/common.h>
-#include <imcxx/Widgets.hpp>              // imcxx::Combo
+#include <imcxx/Widgets.hpp> // imcxx::Combo
 
 namespace riistudio::frontend {
 
@@ -18,7 +18,7 @@ public:
   }
 
   virtual std::vector<std::string> TabTitles() = 0;
-  virtual void Tab(int index) = 0;
+  virtual bool Tab(int index) = 0;
 
   void Tabs() {
     if (mMode == Mode::Tabs) {
@@ -47,7 +47,9 @@ private:
     ImGui::BeginChild("Right", ImGui::GetContentRegionAvail(), true);
     {
       // Just the current tab
-      Tab(mActiveTab);
+      if (!Tab(mActiveTab)) {
+        mActiveTab = 0;
+      }
     }
     ImGui::EndChild();
   }
@@ -59,7 +61,9 @@ private:
     bar.tabs = TabTitles();
     imcxx::DrawHorizTabBar(bar);
     mActiveTab = bar.active;
-    Tab(mActiveTab);
+    if (!Tab(mActiveTab)) {
+      mActiveTab = 0;
+    }
   }
   void HeaderTabs() {
     imcxx::CheckBoxTabBar bar;
@@ -80,7 +84,10 @@ private:
       bool tmp = tab_filter[i];
       if (ImGui::CollapsingHeader((title + "##_TAB").c_str(), &tmp,
                                   ImGuiTreeNodeFlags_DefaultOpen)) {
-        Tab(i);
+        if (!Tab(i)) {
+          // TODO: Do we want this
+          mActiveTab = 0;
+        }
       }
       tab_filter[i] = tmp;
     }
