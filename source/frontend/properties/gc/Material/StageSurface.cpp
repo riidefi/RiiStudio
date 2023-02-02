@@ -1,25 +1,9 @@
-#include "Common.hpp"
-#include <frontend/properties/gc/TevSolver.hpp> // optimizeNode
-#include <frontend/widgets/Image.hpp>           // ImagePreview
-#include <imcxx/Widgets.hpp>                    // imcxx::Combo
-#include <librii/hx/KonstSel.hpp>               // elevateKonstSel
-#include <plugins/gc/Export/Scene.hpp>
+#include "StageSurface.hpp"
 
 namespace libcube::UI {
 
 using namespace librii;
 using namespace riistudio::util;
-
-struct StageSurface final {
-  static inline const char* name() { return "Stage"_j; }
-  static inline const char* icon = (const char*)ICON_FA_NETWORK_WIRED;
-
-  // Mark this surface to be more than an IDL tag.
-  int tag_stateful;
-
-  riistudio::frontend::ImagePreview mImg; // In mat sampler
-  std::string mLastImg;
-};
 
 #define STATIC_STRVIEW(s)                                                      \
   { s, sizeof(s) - 1 }

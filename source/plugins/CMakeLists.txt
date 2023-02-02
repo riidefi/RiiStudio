@@ -13,7 +13,6 @@ add_library(plugins STATIC
 	"g3d/g3d_material.cpp"
 	"g3d/g3d_polygon.cpp"
 	"g3d/io/BRRES.cpp"
-  "g3d/ui/G3dVertexColorView.cpp"
 	"g3d/material.hpp"
 	"g3d/model.hpp"
 	"g3d/Node.h"
@@ -30,7 +29,6 @@ add_library(plugins STATIC
 	"gc/Node.h"
 	
 	"j3d/j3d_Installer.cpp"
-	"j3d/j3d_Material.cpp"
 	"j3d/Joint.hpp"
 	"j3d/Material.hpp"
 	"j3d/Model.hpp"
@@ -40,7 +38,7 @@ add_library(plugins STATIC
 	"j3d/Shape.cpp"
 	"j3d/Shape.hpp"
 	"j3d/Texture.hpp"
-	"j3d/ui/MaterialView.cpp"
+	"j3d/j3d_Material.cpp"
 	"j3d/VertexBuffer.hpp"
   "mk/BFG/io/BFG.hpp"
   "mk/BFG/io/BFG.cpp"
@@ -48,7 +46,7 @@ add_library(plugins STATIC
   "mk/BFG/FogEntry.hpp"
   "mk/BFG/FogView.cpp"
   "mk/BFG/Node.h"
-  "rhst/RHSTImporter.cpp" "g3d/ui/G3dSrtView.cpp"
+  "rhst/RHSTImporter.cpp" 
   "g3d/G3dUi.cpp"  "g3d/G3dIo.hpp"
   "j3d/J3dIo.hpp"
   

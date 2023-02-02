@@ -1,11 +1,9 @@
-#include <LibBadUIFramework/PropertyView.hpp>
-#include <imcxx/Widgets.hpp>
-#include <plugins/gc/Export/Bone.hpp>
-#include <vendor/fa5/IconsFontAwesome5.h>
+#include "BoneTransformSurface.hpp"
 
 namespace libcube::UI {
 
-auto bone_transform_ui = [](kpi::PropertyDelegate<IBoneDelegate>& delegate) {
+void drawProperty(kpi::PropertyDelegate<IBoneDelegate>& delegate,
+                  BoneTransformSurface) {
   auto& bone = delegate.getActive();
 
   const auto srt = bone.getSRT();
@@ -30,9 +28,9 @@ auto bone_transform_ui = [](kpi::PropertyDelegate<IBoneDelegate>& delegate) {
   ImGui::Text("Parent ID: %i"_j, (int)bone.getBoneParent());
 };
 
-kpi::StatelessPropertyView<libcube::IBoneDelegate>
-    BoneTransformSurfaceInstaller("Transformation",
-                                  (const char*)ICON_FA_ARROWS_ALT,
-                                  bone_transform_ui);
+kpi::DecentralizedInstaller AddBoneDisplaySurface([](kpi::ApplicationPlugins&) {
+  auto& inst = kpi::PropertyViewManager::getInstance();
+  inst.addPropertyView<libcube::IBoneDelegate, BoneTransformSurface>();
+});
 
 } // namespace libcube::UI

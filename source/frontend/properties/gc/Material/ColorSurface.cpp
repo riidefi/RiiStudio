@@ -1,4 +1,4 @@
-#include "Common.hpp"
+#include "ColorSurface.hpp"
 
 namespace libcube::UI {
 
@@ -18,10 +18,6 @@ librii::gx::Color ColorEditU8(const char* name, librii::gx::Color clr) {
 
   return fclr;
 }
-struct ColorSurface final {
-  static inline const char* name() { return "Colors"_j; }
-  static inline const char* icon = (const char*)ICON_FA_PAINT_BRUSH;
-};
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
   auto& matData = delegate.getActive().getMaterialData();

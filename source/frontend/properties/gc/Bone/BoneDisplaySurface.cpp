@@ -1,11 +1,4 @@
-#include <LibBadUIFramework/PropertyView.hpp>
-#include <imcxx/Widgets.hpp>
-#include <librii/g3d/data/BoneData.hpp>
-#include <plugins/g3d/material.hpp>
-#include <plugins/gc/Export/Bone.hpp>
-#include <plugins/gc/Export/IndexedPolygon.hpp>
-#include <plugins/gc/Export/Material.hpp>
-#include <vendor/fa5/IconsFontAwesome5.h>
+#include "BoneDisplaySurface.hpp"
 
 namespace libcube::UI {
 
@@ -187,13 +180,15 @@ void DrawDisplays(IBoneDelegate& bone,
   }
 }
 
-auto BoneDisplaySurface =
-    kpi::StatelessPropertyView<libcube::IBoneDelegate>()
-        .setTitle("Displays")
-        .setIcon((const char*)ICON_FA_IMAGE)
-        .onDraw([](kpi::PropertyDelegate<IBoneDelegate>& delegate) {
-          auto& bone = delegate.getActive();
-          DrawDisplays(bone, delegate);
-        });
+void drawProperty(kpi::PropertyDelegate<libcube::IBoneDelegate>& delegate,
+                  BoneDisplaySurface) {
+  auto& bone = delegate.getActive();
+  DrawDisplays(bone, delegate);
+}
+
+kpi::DecentralizedInstaller AddBoneDisplaySurface([](kpi::ApplicationPlugins&) {
+  auto& inst = kpi::PropertyViewManager::getInstance();
+  inst.addPropertyView<libcube::IBoneDelegate, BoneDisplaySurface>();
+});
 
 } // namespace libcube::UI

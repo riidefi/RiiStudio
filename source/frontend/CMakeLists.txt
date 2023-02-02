@@ -29,7 +29,7 @@ add_executable(frontend
   "properties/gc/Bone/BoneTransformSurface.cpp"
   "properties/gc/Material/ColorSurface.cpp"
   "properties/gc/Material/DisplaySurface.cpp"
-  "properties/gc/Material/FogSurface.cpp"
+  
   "properties/gc/Material/LightingSurface.cpp"
   "properties/gc/Material/PixelSurface.cpp"
   "properties/gc/Material/SamplerSurface.cpp"
@@ -37,6 +37,10 @@ add_executable(frontend
   "properties/gc/Material/SwapTableSurface.cpp"
   "properties/gc/Polygon/PolyDataSurface.cpp"
   "properties/gc/Polygon/PolyDescriptorSurface.cpp"
+  
+  "properties/g3d/G3dSrtView.cpp"
+  "properties/g3d/G3dVertexColorView.cpp"
+	"properties/j3d/MaterialView.cpp"
   "renderer/Camera.cpp"
   "renderer/CameraController.cpp"
   "renderer/Renderer.cpp"
