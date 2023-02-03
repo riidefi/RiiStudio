@@ -2,10 +2,10 @@
 
 #ifndef _WIN32
 namespace riistudio {
+class GithubManifest {};
 Updater::Updater() = default;
 Updater::~Updater() = default;
 void Updater::draw() {}
-class JSON {};
 } // namespace riistudio
 #else
 

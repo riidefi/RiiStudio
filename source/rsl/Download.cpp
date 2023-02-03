@@ -52,10 +52,10 @@ void DownloadFile(std::string destPath, std::string url, std::string user_agent,
   curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-  curl_easy_setopt(curl, CURLOPT_NOPROGRESS, FALSE);
+  curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
   curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, progress_func);
   curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, progress_data);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, TRUE);
+  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
   auto res = curl_easy_perform(curl);
 
   if (res != CURLE_OK) {

@@ -37,7 +37,7 @@ void main() {
 
 
   // Precision hack
-  uint low_bits = uint(u_Misc0[0]) & 0xFFFF;
+  uint low_bits = uint(u_Misc0[0]) & 0xFFFFu;
   uint high_bits = uint(u_Misc0[1]) << 16;
   uint attr_mask = low_bits | high_bits;
 
