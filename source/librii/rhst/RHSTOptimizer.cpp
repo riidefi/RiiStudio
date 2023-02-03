@@ -602,6 +602,12 @@ Result<MeshOptimizerStats> ToFanTriangles(MatrixPrimitive& prim, u32 min_len,
 Result<MeshOptimizerStats> ToFanTriangles2(MatrixPrimitive& prim) {
   MeshOptimizerStatsCollector stats(prim);
   auto vc = VertexCount(prim);
+  if (vc >= 20'000) {
+    // TODO: Workaround -- skips on sufficiently complex meshes, for now
+    stats.SetComment("Skipping mesh to save time: too complex");
+    return stats.End();
+  }
+
   std::array<size_t, 6> depths = {vc, 5, 10, 20, 40, 80};
 
   MeshOptimizerExperimentHolder<size_t> experiments(prim);
