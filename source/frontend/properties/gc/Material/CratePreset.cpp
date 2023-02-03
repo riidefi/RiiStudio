@@ -1226,6 +1226,8 @@ public:
           }
           cvtr.dst_encoded.name = tex.getName();
           OverwriteWithG3dTex(tex, cvtr.dst_encoded);
+		  // Bust cache
+          tex.nextGenerationId();
           m_state = State::None{};
           return kpi::CHANGE;
         case TCResult::Cancel:
