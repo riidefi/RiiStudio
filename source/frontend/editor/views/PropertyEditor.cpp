@@ -81,11 +81,12 @@ private:
   }
   bool Tab(int index) override {
     auto postUpdate = [&]() { bCommitPosted = true; };
+    auto commit = [&](const char*) { mHost.commit(mRoot); };
 
     auto* g3dmat = dynamic_cast<riistudio::g3d::Material*>(mSelection.mActive);
     if (g3dmat != nullptr) {
       auto dl = kpi::MakeDelegate<riistudio::g3d::Material>(
-          postUpdate, g3dmat, selected, mHost, mRoot, &ed);
+          postUpdate, commit, g3dmat, selected, &ed);
       auto cv = CovariantPD<g3d::Material, libcube::IGCMaterial>::from(dl);
       auto ok = Views_Tab(mG3dMatView, cv, index);
       handleUpdates(mHost, mRoot);
@@ -94,7 +95,7 @@ private:
     auto* j3dmat = dynamic_cast<riistudio::j3d::Material*>(mSelection.mActive);
     if (j3dmat != nullptr) {
       auto dl = kpi::MakeDelegate<riistudio::j3d::Material>(
-          postUpdate, j3dmat, selected, mHost, mRoot, &ed);
+          postUpdate, commit, j3dmat, selected, &ed);
       auto cv = CovariantPD<j3d::Material, libcube::IGCMaterial>::from(dl);
       auto ok = Views_Tab(mJ3dMatView, cv, index);
       handleUpdates(mHost, mRoot);

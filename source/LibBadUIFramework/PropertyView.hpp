@@ -60,12 +60,6 @@ public:
   T& getActive() { return mActive; }
   virtual const T& getActive() const { return mActive; }
 
-  void commit(const char* changeName) {
-    ((void)changeName);
-
-    mHistory.commit(mTransientRoot);
-  }
-
   template <typename U, typename TGet, typename TSet>
   void property(const U& before, const U& after, TGet get, TSet set) {
     if (before == after)
@@ -82,9 +76,10 @@ public:
       // postpone a commit until mouse up.
       mPostUpdate();
     } else {
-      commit("Property Update");
+      mCommit("Property Update");
     }
   }
+  void commit(const char* s) { mCommit(s); }
 
   template <typename TGet, typename TSet, typename TVal>
   void propertyAbstract(TGet get, TSet set, const TVal& after) {
@@ -127,17 +122,16 @@ public:
   riistudio::frontend::EditorWindow* mEd;
 
 private:
-  kpi::History& mHistory;
-  const kpi::INode& mTransientRoot;
   std::function<void(void)> mPostUpdate;
+  std::function<void(const char*)> mCommit;
 
 public:
-  PropertyDelegate(std::function<void(void)> postUpdate, T& active,
-                   std::vector<T*> affected, kpi::History& history,
-                   const kpi::INode& transientRoot,
+  PropertyDelegate(std::function<void(void)> postUpdate,
+                   std::function<void(const char*)> commit, T& active,
+                   std::vector<T*> affected,
                    riistudio::frontend::EditorWindow* ed)
-      : mActive(active), mAffected(affected), mEd(ed), mHistory(history),
-        mTransientRoot(transientRoot), mPostUpdate(postUpdate) {}
+      : mActive(active), mAffected(affected), mEd(ed), mPostUpdate(postUpdate),
+        mCommit(commit) {}
 };
 
 class PropertyViewStateHolder {
@@ -229,10 +223,11 @@ struct StatefulTestB {
 static_assert(!is_stateful_v<StatefulTestB>, "Detecting tag_stateful");
 
 template <typename T>
-inline PropertyDelegate<T>
-MakeDelegate(std::function<void(void)> postUpdate, T* _active,
-             std::vector<IObject*> affected, kpi::History& history,
-             kpi::INode& root, riistudio::frontend::EditorWindow* ed) {
+inline PropertyDelegate<T> MakeDelegate(std::function<void(void)> postUpdate,
+                                        std::function<void(const char*)> commit,
+                                        T* _active,
+                                        std::vector<IObject*> affected,
+                                        riistudio::frontend::EditorWindow* ed) {
   assert(_active != nullptr);
 
   std::vector<T*> _affected(affected.size());
@@ -241,8 +236,7 @@ MakeDelegate(std::function<void(void)> postUpdate, T* _active,
     assert(_affected[i] != nullptr);
   }
 
-  PropertyDelegate<T> delegate(postUpdate, *_active, _affected, history, root,
-                               ed);
+  PropertyDelegate<T> delegate(postUpdate, commit, *_active, _affected, ed);
   return delegate;
 }
 
@@ -269,9 +263,10 @@ struct PropertyViewImpl final : public IPropertyView {
     assert(_active != nullptr);
 
     auto postUpdate = [pView = this]() { pView->postUpdate(); };
+    auto commit = [&](const char*) { history.commit(root); };
 
     PropertyDelegate<T> delegate =
-        MakeDelegate(postUpdate, _active, affected, history, root, ed);
+        MakeDelegate(postUpdate, commit, _active, affected, ed);
     if constexpr (is_stateful_v<U>) {
       IPropertyViewState* state = state_holder.requestState(active, *this);
       assert(state != nullptr);
@@ -364,9 +359,10 @@ struct StatelessPropertyViewImpl : public IPropertyView {
     assert(_active != nullptr);
 
     auto postUpdate = [pView = this]() { pView->postUpdate(); };
+    auto commit = [&](const char*) { history.commit(root); };
 
     PropertyDelegate<T> delegate =
-        MakeDelegate(postUpdate, _active, affected, history, root, ed);
+        MakeDelegate(postUpdate, commit, _active, affected, ed);
     mFunctor(delegate);
     handleUpdates(history, root);
   }
