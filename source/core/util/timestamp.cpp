@@ -11,7 +11,7 @@
 #endif
 
 // Must match release on Github
-const char GIT_TAG[] = "Alpha 5.9 (Hotfix 5)";
+const char GIT_TAG[] = "Alpha 5.9 (Hotfix 6)";
 
 // Must be exactly 16 bytes long
 const char VERSION_SHORT[] = "RiiStudio: A-5.9";
