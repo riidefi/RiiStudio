@@ -152,6 +152,10 @@ CPMAddPackage("gh:ericniebler/range-v3#0.12.0")
 
 add_definitions(-DINCLUDE_RUST_HEADERS)
 
+if (APPLE)
+  set(Rust_CARGO_TARGET "aarch64-apple-darwin")
+endif()
+
 CPMAddPackage("gh:corrosion-rs/corrosion@0.3.2")
 find_package(Corrosion REQUIRED)
 

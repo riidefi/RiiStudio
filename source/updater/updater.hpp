@@ -78,7 +78,9 @@ private:
   std::string mLaunchPath;
   bool mForceUpdate = false;
 
+#ifdef _WIN32
   std::jthread sThread;
+#endif
 
   bool mHasChangeLog = false;
   bool mHasPendingUpdate = false;

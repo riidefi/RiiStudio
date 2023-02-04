@@ -34,15 +34,6 @@
 // No <expected> yet
 #ifdef __APPLE__
 #include <rsl/Expected.hpp>
-namespace std {
-template <typename T, typename E> using expected = rsl::expected<T, E>;
-template <typename T> rsl::unexpected<std::string> unexpected(T&& x) {
-  // Using std::string directly over std::remove_cvref_t<decltype(x)> +
-  // conversion magic is a hack.
-  return rsl::unexpected<std::string>(x);
-}
-} // namespace std
-#define __cpp_lib_expected 202202L
 #endif
 
 #if __cplusplus > 201703L

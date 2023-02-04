@@ -7,7 +7,20 @@ namespace riistudio {
 class GithubManifest {};
 Updater::Updater() = default;
 Updater::~Updater() = default;
-void Updater::draw() {}
+
+bool Updater_IsOnline(Updater& updater) { return false; }
+void Updater_SetForceUpdate(Updater& updater, bool update) {}
+void Updater_Calc(Updater& updater) {}
+bool Updater_HasAvailableUpdate(Updater& updater) { return false; }
+std::string Updater_LatestVer(Updater& updater) { return GIT_TAG; }
+void Updater_StartUpdate(Updater& updater) {}
+bool Updater_IsUpdating(Updater& updater) { return false; }
+float Updater_Progress(Updater& updater) { return 0.0f; }
+bool Updater_WasUpdated(Updater& updater) { return false; }
+std::optional<std::string> Updater_GetChangeLog(Updater& updater) {
+  return std::nullopt;
+}
+
 } // namespace riistudio
 #else
 

@@ -1,7 +1,9 @@
 #pragma once
 
 // As AppleClang doesn't support C++23 std::expected yet.
-
+#if __cpp_lib_expected >= 202202L
+#include <expected>
+#else
 #include <variant>
 
 namespace rsl {
@@ -73,3 +75,16 @@ private:
 };
 
 } // namespace rsl
+
+namespace std {
+template <typename T, typename E> using expected = rsl::expected<T, E>;
+template <typename T> rsl::unexpected<std::string> unexpected(T&& x) {
+  // Using std::string directly over std::remove_cvref_t<decltype(x)> +
+  // conversion magic is a hack.
+  return rsl::unexpected<std::string>(x);
+}
+} // namespace std
+
+#define __cpp_lib_expected 202202L
+
+#endif
