@@ -73,6 +73,9 @@ TEST_DATA = {
 
 	# Assimp importer test
 	'a42db34b7d7e02bdab0157a14cf3d4d7': '6efcb343ea1839b5152cde78fc2881bc', # beginner_course
+
+	# posteffect.bdof
+	'a8b43bdfb330713c5eb55a22399dce2a': 'a8b43bdfb330713c5eb55a22399dce2a', # volcano_course
 }
 
 BREAKPOINTS = {

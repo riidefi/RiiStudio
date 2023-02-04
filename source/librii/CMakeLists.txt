@@ -149,7 +149,7 @@ add_library(librii STATIC
   "assimp2rhst/InclusionMask.cpp"
   "assimp2rhst/LogScope.hpp"
   "assimp2rhst/LogScope.cpp"
-)
+ "egg/BDOF.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
 if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
