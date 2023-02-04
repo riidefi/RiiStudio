@@ -27,7 +27,8 @@ bool ShouldBeDefaultOpen(const Node& folder) {
 }
 // For models and bones we disable "add new" functionality for some reason
 static bool CanCreateNew(std::string_view key) {
-  return !key.ends_with("Model") && !key.ends_with("Bone");
+  return !key.ends_with("Model") && !key.ends_with("Bone") &&
+         !key.ends_with("Texture");
 }
 
 std::vector<const lib3d::Texture*> GetNodeIcons(kpi::IObject& nodeAt) {

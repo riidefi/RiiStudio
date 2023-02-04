@@ -233,36 +233,6 @@ void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
   if (tree.selectMode == imcxx::ContiguousSelection::SELECT_NONE)
     return;
 
-// Allow disjoint selections
-#if 0
-  // Unique selection model: No selections of different types.
-  // Since we use type-folders, this means only one folder can have selections.
-  // We only need to clear the folder of the last active object.
-  Node* folder = nullptr;
-  if (hasActiveSelection() && !mActiveClassId.empty()) {
-    s32 it = -1;
-    for (s32 i = 0; i < flat.size(); ++i) {
-      if (isActiveSelection(flat[i])) {
-        it = i;
-        break;
-      }
-    }
-    assert(it != -1);
-
-    folder = FlattenedTree::getFolderOfObject(flat, it);
-    assert(folder);
-    if (mActiveClassId != folder->key) {
-      // Invalidate last selection, otherwise SHIFT anchors from the old
-      // folder would carry over.
-      setActiveSelection(nullptr);
-      clearSelection();
-    }
-  }
-  if (folder != nullptr) {
-    mActiveClassId = folder->key;
-  }
-#endif
-
   //
   // Calculation must occur in filtered space to prevent selection
   // of occluded nodes.
