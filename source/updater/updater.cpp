@@ -9,26 +9,37 @@ void Updater::draw() {}
 } // namespace riistudio
 #else
 
+#include "GithubManifest.hpp"
 #include <frontend/applet.hpp>
 #include <frontend/widgets/changelog.hpp>
 #include <imcxx/Widgets.hpp>
 #include <io.h>
+#include <iostream>
+#include <rsl/Defer.hpp>
 #include <rsl/Download.hpp>
+#include <rsl/FsDialog.hpp>
 #include <rsl/Launch.hpp>
 #include <rsl/Zip.hpp>
 
-#include "GithubManifest.hpp"
-
-IMPORT_STD;
-#include <iostream>
-
 namespace riistudio {
+
+Result<std::filesystem::path> GetTempDirectory() {
+  std::error_code ec;
+  auto temp_dir = std::filesystem::temp_directory_path(ec);
+
+  if (ec) {
+    return std::unexpected(ec.message());
+  }
+  return temp_dir;
+}
 
 static const char* GITHUB_REPO = "riidefi/RiiStudio";
 static const char* USER_AGENT = "RiiStudio";
 
 Updater::Updater() {
   if (!InitRepoJSON()) {
+    rsl::ErrorDialogFmt("Updater Error\n\n"
+                        "Cannot connect to Github to check for updates.");
     fprintf(stderr, "Cannot connect to Github\n");
     return;
   }
@@ -49,23 +60,22 @@ Updater::Updater() {
 
   mShowUpdateDialog = GIT_TAG != mLatestVer;
 
-  std::error_code ec;
-  auto temp_dir = std::filesystem::temp_directory_path(ec);
-
-  if (ec) {
-    std::cout << ec.message() << std::endl;
+  auto temp_dir = GetTempDirectory();
+  if (!temp_dir) {
+    fprintf(stderr, "Cannot get temporary directory: %s\n",
+            temp_dir.error().c_str());
     return;
   }
 
-  const auto temp = temp_dir / "RiiStudio_temp.exe";
+  const auto temp = (*temp_dir) / "RiiStudio_temp.exe";
 
   if (std::filesystem::exists(temp)) {
     mShowChangelog = true;
-    remove(temp);
+    std::filesystem::remove(temp);
   }
 }
 
-Updater::~Updater() {}
+Updater::~Updater() = default;
 
 void Updater::draw() {
   if (mJSON == nullptr)
@@ -85,7 +95,6 @@ void Updater::draw() {
   }
 
   if (!mLaunchPath.empty()) {
-    printf("Launching update %s\n", mLaunchPath.c_str());
     LaunchUpdate(mLaunchPath);
     // (Never reached)
     mShowUpdateDialog = false;
@@ -94,33 +103,84 @@ void Updater::draw() {
   if (!mShowUpdateDialog)
     return;
 
-  const auto wflags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+  std::optional<float> progress;
+  if (mIsInUpdate) {
+    progress = mUpdateProgress;
+  }
+  auto action = DrawUpdaterUI(mLatestVer.c_str(), progress);
+
+  switch (action) {
+  case Action::None: {
+    break;
+  }
+  case Action::No: {
+    mShowUpdateDialog = false;
+    ImGui::CloseCurrentPopup();
+    break;
+  }
+  case Action::Yes: {
+    if (!InstallUpdate() && mNeedAdmin) {
+      RetryAsAdmin();
+      // (Never reached)
+    }
+    break;
+  }
+  }
+  mFirstFrame = false;
+}
+
+Updater::Action Updater::DrawUpdaterUI(const char* version,
+                                       std::optional<float> progress) {
+  Action action = Action::None;
+
+  const auto wflags =
+      ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
 
   ImGui::OpenPopup("RiiStudio Update"_j);
+
+  {
+    auto pos = ImGui::GetWindowPos();
+    auto avail = ImGui::GetWindowSize();
+    auto sz = ImVec2(600, 84);
+    ImGui::SetNextWindowPos(
+        ImVec2(pos.x + avail.x / 2 - sz.x / 2, pos.y + avail.y / 2 - sz.y));
+    ImGui::SetNextWindowSize(sz);
+  }
   if (ImGui::BeginPopupModal("RiiStudio Update"_j, nullptr, wflags)) {
-    if (mIsInUpdate) {
-      ImGui::Text("Installing Riistudio %s.."_j, mLatestVer.c_str());
-      ImGui::ProgressBar(mUpdateProgress);
+    if (progress.has_value()) {
+      ImGui::Text("Installing Riistudio %s.."_j, version);
+      ImGui::Separator();
+      ImGui::ProgressBar(*progress);
     } else {
       ImGui::Text("A new version of RiiStudio (%s) was found. Would you like "
                   "to update?"_j,
-                  mLatestVer.c_str());
-      if (ImGui::Button("Yes"_j, ImVec2(170, 0))) {
-        if (!InstallUpdate() && mNeedAdmin) {
-          RetryAsAdmin();
-          // (Never reached)
+                  version);
+
+      ImGui::Separator();
+
+      auto button = ImVec2{75, 0};
+      ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - button.x * 2);
+      {
+        ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 0, 0, 100));
+        RSL_DEFER(ImGui::PopStyleColor());
+        if (ImGui::Button("No"_j, button)) {
+          action = Action::No;
         }
       }
       ImGui::SameLine();
-      if (ImGui::Button("No"_j, ImVec2(170, 0))) {
-        mShowUpdateDialog = false;
-        ImGui::CloseCurrentPopup();
+      {
+        ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 255, 0, 100));
+        RSL_DEFER(ImGui::PopStyleColor());
+        if (ImGui::Button("Yes"_j, button)) {
+          action = Action::Yes;
+        }
       }
     }
 
     ImGui::EndPopup();
   }
-  mFirstFrame = false;
+
+  return action;
 }
 
 bool Updater::InitRepoJSON() {
@@ -132,8 +192,6 @@ bool Updater::InitRepoJSON() {
   mJSON = std::make_unique<GithubManifest>(*manifest);
   return true;
 }
-
-static std::jthread sThread;
 
 bool Updater::InstallUpdate() {
   const auto current_exe = rsl::GetExecutableFilename();
@@ -189,6 +247,7 @@ void Updater::RetryAsAdmin() {
 }
 
 void Updater::LaunchUpdate(const std::string& new_exe) {
+  printf("Launching update %s\n", new_exe.c_str());
   // On slow machines, the thread may not have been joined yet--so wait for it.
   sThread.join();
   assert(!sThread.joinable());

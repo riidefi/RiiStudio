@@ -43,7 +43,9 @@ static size_t write_data(void* ptr, size_t size, size_t nmemb, FILE* stream) {
   return written;
 }
 void DownloadFile(std::string destPath, std::string url, std::string user_agent,
-                  void* progress_func, void* progress_data) {
+                  int (*progress_func)(void* userdata, double total,
+                                       double current, double, double),
+                  void* progress_data) {
   CURL* curl = curl_easy_init();
   assert(curl);
   FILE* fp = fopen(destPath.c_str(), "wb");

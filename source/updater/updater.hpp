@@ -1,7 +1,9 @@
 #include <array>
 #include <core/util/timestamp.hpp>
 #include <memory>
+#include <optional>
 #include <string>
+#include <thread>
 
 namespace riistudio {
 
@@ -24,6 +26,16 @@ private:
   std::string mLaunchPath;
   bool mForceUpdate = false;
   bool mFirstFrame = true;
+
+  enum class Action {
+    None,
+    No,
+    Yes,
+  };
+
+  Action DrawUpdaterUI(const char* version, std::optional<float> progress);
+
+  std::jthread sThread;
 
   bool InitRepoJSON();
   bool InstallUpdate();
