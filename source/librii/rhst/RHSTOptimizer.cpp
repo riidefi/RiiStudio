@@ -28,6 +28,8 @@ namespace librii::rhst {
 class TriList {
 public:
   Result<void> SetFromMPrim(const MatrixPrimitive& prim) {
+    triangles_.reserve(20'000);
+
 #ifdef __APPLE__
     auto verts =
         ranges::to<std::vector>(MeshUtils::AsTriangles(prim.primitives));
@@ -61,6 +63,9 @@ public:
       }
       InsertTriangle(tri[0], tri[1], tri[2]);
     }
+
+	std::sort(triangles_.begin(), triangles_.end());
+
     return {};
   }
 
@@ -79,12 +84,10 @@ private:
     bool operator==(const Tri&) const = default;
   };
 
-  // Insert a triangle into the list using a binary search. Thus, the complexity
-  // is bounded by O(nlog(n)
+  // Insert a triangle into the list unsorted
   void InsertTriangle(const Vertex& a, const Vertex& b, const Vertex& c) {
     Tri tri{a, b, c};
-    auto it = std::lower_bound(triangles_.begin(), triangles_.end(), tri);
-    triangles_.insert(it, tri);
+    triangles_.push_back(tri);
   }
 
 public:
