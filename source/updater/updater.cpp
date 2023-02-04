@@ -1,3 +1,5 @@
+#define UPDATER_INTERNAL
+
 #include "updater.hpp"
 
 #ifndef _WIN32
@@ -10,12 +12,8 @@ void Updater::draw() {}
 #else
 
 #include "GithubManifest.hpp"
-#include <frontend/applet.hpp>
-#include <frontend/widgets/changelog.hpp>
-#include <imcxx/Widgets.hpp>
 #include <io.h>
 #include <iostream>
-#include <rsl/Defer.hpp>
 #include <rsl/Download.hpp>
 #include <rsl/FsDialog.hpp>
 #include <rsl/Launch.hpp>
@@ -26,7 +24,6 @@ namespace riistudio {
 Result<std::filesystem::path> GetTempDirectory() {
   std::error_code ec;
   auto temp_dir = std::filesystem::temp_directory_path(ec);
-
   if (ec) {
     return std::unexpected(ec.message());
   }
@@ -58,7 +55,7 @@ Updater::Updater() {
     return;
   }
 
-  mShowUpdateDialog = GIT_TAG != mLatestVer;
+  mHasPendingUpdate = GIT_TAG != mLatestVer;
 
   auto temp_dir = GetTempDirectory();
   if (!temp_dir) {
@@ -70,23 +67,15 @@ Updater::Updater() {
   const auto temp = (*temp_dir) / "RiiStudio_temp.exe";
 
   if (std::filesystem::exists(temp)) {
-    mShowChangelog = true;
+    mHasChangeLog = true;
     std::filesystem::remove(temp);
   }
 }
 
 Updater::~Updater() = default;
 
-void Updater::draw() {
-  if (mJSON == nullptr)
-    return;
-
-  if (auto body = mJSON->body(); body.has_value()) {
-    DrawChangeLog(&mShowChangelog, *body);
-  }
-
-  // Hack.. wait one frame for the UI to size properly
-  if (mForceUpdate && !mFirstFrame) {
+void Updater::Calc() {
+  if (mForceUpdate) {
     if (!InstallUpdate()) {
       // Give up.. admin perms didn't solve our problem
     }
@@ -97,90 +86,7 @@ void Updater::draw() {
   if (!mLaunchPath.empty()) {
     LaunchUpdate(mLaunchPath);
     // (Never reached)
-    mShowUpdateDialog = false;
   }
-
-  if (!mShowUpdateDialog)
-    return;
-
-  std::optional<float> progress;
-  if (mIsInUpdate) {
-    progress = mUpdateProgress;
-  }
-  auto action = DrawUpdaterUI(mLatestVer.c_str(), progress);
-
-  switch (action) {
-  case Action::None: {
-    break;
-  }
-  case Action::No: {
-    mShowUpdateDialog = false;
-    ImGui::CloseCurrentPopup();
-    break;
-  }
-  case Action::Yes: {
-    if (!InstallUpdate() && mNeedAdmin) {
-      RetryAsAdmin();
-      // (Never reached)
-    }
-    break;
-  }
-  }
-  mFirstFrame = false;
-}
-
-Updater::Action Updater::DrawUpdaterUI(const char* version,
-                                       std::optional<float> progress) {
-  Action action = Action::None;
-
-  const auto wflags =
-      ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
-
-  ImGui::OpenPopup("RiiStudio Update"_j);
-
-  {
-    auto pos = ImGui::GetWindowPos();
-    auto avail = ImGui::GetWindowSize();
-    auto sz = ImVec2(600, 84);
-    ImGui::SetNextWindowPos(
-        ImVec2(pos.x + avail.x / 2 - sz.x / 2, pos.y + avail.y / 2 - sz.y));
-    ImGui::SetNextWindowSize(sz);
-  }
-  if (ImGui::BeginPopupModal("RiiStudio Update"_j, nullptr, wflags)) {
-    if (progress.has_value()) {
-      ImGui::Text("Installing Riistudio %s.."_j, version);
-      ImGui::Separator();
-      ImGui::ProgressBar(*progress);
-    } else {
-      ImGui::Text("A new version of RiiStudio (%s) was found. Would you like "
-                  "to update?"_j,
-                  version);
-
-      ImGui::Separator();
-
-      auto button = ImVec2{75, 0};
-      ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - button.x * 2);
-      {
-        ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 0, 0, 100));
-        RSL_DEFER(ImGui::PopStyleColor());
-        if (ImGui::Button("No"_j, button)) {
-          action = Action::No;
-        }
-      }
-      ImGui::SameLine();
-      {
-        ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 255, 0, 100));
-        RSL_DEFER(ImGui::PopStyleColor());
-        if (ImGui::Button("Yes"_j, button)) {
-          action = Action::Yes;
-        }
-      }
-    }
-
-    ImGui::EndPopup();
-  }
-
-  return action;
 }
 
 bool Updater::InitRepoJSON() {
@@ -253,6 +159,50 @@ void Updater::LaunchUpdate(const std::string& new_exe) {
   assert(!sThread.joinable());
   rsl::LaunchAsUser(new_exe);
   exit(0);
+}
+std::optional<std::string> Updater::GetChangeLog() const {
+  auto b = mJSON->body();
+  if (b.has_value()) {
+    return *b;
+  }
+  return std::nullopt;
+}
+
+// Check if the Updater is usable
+bool Updater_IsOnline(Updater& updater) { return updater.IsOnline(); }
+
+// If the caller sees --update in command line args.
+void Updater_SetForceUpdate(Updater& updater, bool update) {
+  updater.SetForceUpdate(update);
+}
+
+// Called every frame. Handles --update and such.
+void Updater_Calc(Updater& updater) { updater.Calc(); }
+
+// Is there a version version available on GitHub?
+bool Updater_HasAvailableUpdate(Updater& updater) {
+  return updater.HasPendingUpdate();
+}
+
+// What is the latest release version?
+std::string Updater_LatestVer(Updater& updater) { return updater.mLatestVer; }
+
+// Starts the update process.
+void Updater_StartUpdate(Updater& updater) { updater.StartUpdate(); }
+
+// Is an update in progress?
+bool Updater_IsUpdating(Updater& updater) { return updater.mIsInUpdate; }
+
+// What is the % progress of the current download?
+// Returns in range [0, 1]
+float Updater_Progress(Updater& updater) { return updater.mUpdateProgress; }
+
+// Did an update (and restart) just complete?
+bool Updater_WasUpdated(Updater& updater) { return updater.WasJustUpdated(); }
+
+// Get the changelog of the latest release.
+std::optional<std::string> Updater_GetChangeLog(Updater& updater) {
+  return updater.GetChangeLog();
 }
 
 } // namespace riistudio

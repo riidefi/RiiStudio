@@ -8,9 +8,9 @@
 #include "ThemeManager.hpp"
 #include "file_host.hpp"
 
+#include <frontend/UpdaterView.hpp>
 #include <frontend/editor/ImporterWindow.hpp>
 #include <frontend/widgets/theme_editor.hpp>
-#include <updater/updater.hpp>
 
 namespace riistudio::frontend {
 
@@ -67,7 +67,7 @@ private:
   bool mGotFile = false;
   FileData mReqData;
 
-  Updater mUpdater = Updater();
+  UpdaterView mUpdater;
   bool mCheckUpdate = true;
 
 public:
