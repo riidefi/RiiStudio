@@ -28,7 +28,4 @@ void drawProperty(kpi::PropertyDelegate<libcube::IndexedPolygon>& dl,
   }
 }
 
-kpi::RegisterPropertyView<IndexedPolygon, PolyDescriptorSurface>
-    PolyDescriptorSurface_;
-
 } // namespace libcube::UI

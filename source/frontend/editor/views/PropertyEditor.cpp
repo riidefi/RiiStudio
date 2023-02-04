@@ -54,6 +54,23 @@ bool PropertyViewManager_Tab(int index, std::vector<kpi::IObject*> selected,
   }
 }
 
+struct CommitHandler {
+  // For MatView
+  bool bCommitPosted = false;
+  void postUpdate() { bCommitPosted = true; }
+  void consumeUpdate(kpi::History& history, kpi::INode& doc) {
+    assert(bCommitPosted);
+    history.commit(doc);
+    bCommitPosted = false;
+  }
+  void handleUpdates(kpi::History& history, kpi::INode& doc) {
+    if (bCommitPosted && !ImGui::IsAnyMouseDown())
+      consumeUpdate(history, doc);
+  }
+  kpi::History& mHost;
+  kpi::INode& mRoot;
+};
+
 class PropertyEditor : public StudioWindow, private PropertyEditorWidget {
 public:
   PropertyEditor(kpi::History& host, kpi::INode& root,
@@ -77,10 +94,14 @@ private:
     if (j3dmat != nullptr) {
       return Views_TabTitles(mJ3dMatView);
     }
+    auto* gcpoly = dynamic_cast<libcube::IndexedPolygon*>(mSelection.mActive);
+    if (gcpoly != nullptr) {
+      return Views_TabTitles(mGcPolyView);
+    }
     return PropertyViewManager_TabTitles(*mSelection.mActive);
   }
   bool Tab(int index) override {
-    auto postUpdate = [&]() { bCommitPosted = true; };
+    auto postUpdate = [&]() { mHandler.bCommitPosted = true; };
     auto commit = [&](const char*) { mHost.commit(mRoot); };
 
     auto* g3dmat = dynamic_cast<riistudio::g3d::Material*>(mSelection.mActive);
@@ -89,7 +110,7 @@ private:
           postUpdate, commit, g3dmat, selected, &ed);
       auto cv = CovariantPD<g3d::Material, libcube::IGCMaterial>::from(dl);
       auto ok = Views_Tab(mG3dMatView, cv, index);
-      handleUpdates(mHost, mRoot);
+      mHandler.handleUpdates(mHost, mRoot);
       return ok;
     }
     auto* j3dmat = dynamic_cast<riistudio::j3d::Material*>(mSelection.mActive);
@@ -98,7 +119,15 @@ private:
           postUpdate, commit, j3dmat, selected, &ed);
       auto cv = CovariantPD<j3d::Material, libcube::IGCMaterial>::from(dl);
       auto ok = Views_Tab(mJ3dMatView, cv, index);
-      handleUpdates(mHost, mRoot);
+      mHandler.handleUpdates(mHost, mRoot);
+      return ok;
+    }
+    auto* gcpoly = dynamic_cast<libcube::IndexedPolygon*>(mSelection.mActive);
+    if (gcpoly != nullptr) {
+      auto dl = kpi::MakeDelegate<libcube::IndexedPolygon>(
+          postUpdate, commit, gcpoly, selected, &ed);
+      auto ok = Views_Tab(mGcPolyView, dl, index);
+      mHandler.handleUpdates(mHost, mRoot);
       return ok;
     }
     return PropertyViewManager_Tab(index, selected, mHost, mRoot, state_holder,
@@ -115,19 +144,9 @@ private:
 
   riistudio::G3dMaterialViews mG3dMatView;
   riistudio::J3dMaterialViews mJ3dMatView;
+  riistudio::GcPolygonViews mGcPolyView;
 
-  // For MatView
-  bool bCommitPosted = false;
-  void postUpdate() { bCommitPosted = true; }
-  void consumeUpdate(kpi::History& history, kpi::INode& doc) {
-    assert(bCommitPosted);
-    history.commit(doc);
-    bCommitPosted = false;
-  }
-  void handleUpdates(kpi::History& history, kpi::INode& doc) {
-    if (bCommitPosted && !ImGui::IsAnyMouseDown())
-      consumeUpdate(history, doc);
-  }
+  CommitHandler mHandler{false, mHost, mRoot};
 };
 
 template <typename T>

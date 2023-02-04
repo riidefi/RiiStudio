@@ -12,6 +12,8 @@
 #include <frontend/properties/gc/Material/StageSurface.hpp>
 #include <frontend/properties/gc/Material/SwapTableSurface.hpp>
 #include <frontend/properties/j3d/MaterialView.hpp>
+#include <frontend/properties/gc/Polygon/PolyDataSurface.hpp>
+#include <frontend/properties/gc/Polygon/PolyDescriptorSurface.hpp>
 
 namespace riistudio {
 
@@ -47,6 +49,11 @@ struct J3dMaterialViews {
   libcube::UI::StageSurface stage;
   libcube::UI::SamplerSurface samplers;
   libcube::UI::DisplaySurface surface_visibility;
+};
+
+struct GcPolygonViews {
+  libcube::UI::PolyDataSurface index_data;
+  libcube::UI::PolyDescriptorSurface vertex_descriptor;
 };
 
 std::vector<std::string> Views_TabTitles(auto&& view) {
