@@ -151,7 +151,7 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
                            "[WILL NOT BE SAVED] Unsupported folder: " +
                                node.name);
 
-      fprintf(stderr, "Unsupported folder: %s\n", node.name.c_str());
+      rsl::error("Unsupported folder: {}", node.name.c_str());
     }
   }
 

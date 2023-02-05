@@ -49,7 +49,7 @@ void DownloadFile(std::string destPath, std::string url, std::string user_agent,
   CURL* curl = curl_easy_init();
   assert(curl);
   FILE* fp = fopen(destPath.c_str(), "wb");
-  printf("Downloading %s...\n", url.c_str());
+  rsl::trace("Downloading {}...", url);
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
@@ -62,7 +62,7 @@ void DownloadFile(std::string destPath, std::string url, std::string user_agent,
 
   if (res != CURLE_OK) {
     const char* str = curl_easy_strerror(res);
-    fprintf(stderr, "[libcurl] %s\n", str);
+    rsl::error("[libcurl] {}", str);
   }
 
   curl_easy_cleanup(curl);

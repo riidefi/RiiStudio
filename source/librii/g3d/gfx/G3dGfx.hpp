@@ -34,7 +34,7 @@ struct ShaderCompileError {
 
 inline std::variant<librii::glhelper::ShaderProgram, ShaderCompileError>
 CompileMaterial(const lib3d::Material& _mat, lib3d::RenderType type) {
-  DebugReport("Compiling shader for %s..\n", _mat.getName().c_str());
+  rsl::trace("Compiling shader for {}..", _mat.getName().c_str());
   const auto shader_sources_ = _mat.generateShaders(type);
   if (!shader_sources_.has_value()) {
     _mat.isShaderError = true;

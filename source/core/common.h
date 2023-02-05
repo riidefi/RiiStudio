@@ -253,3 +253,5 @@ auto findByName2 = [](auto&& x, auto&& y) {
 };
 } // namespace
 #endif
+
+#include <rsl/Log.hpp>

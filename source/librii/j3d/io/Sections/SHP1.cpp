@@ -57,7 +57,7 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
   }
 
   if (!sorted) {
-    DebugReport("Shape IDS are remapped.\n");
+    rsl::trace("Shape IDS are remapped.");
   }
 
   // Unused

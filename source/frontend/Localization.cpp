@@ -102,7 +102,7 @@ public:
   void setLocale(std::string s) {
     if (!mLocales.contains(s)) {
       // Not a valid locale
-      printf("Invalid locale string %s\n", s.c_str());
+      rsl::error("Invalid locale string {}", s.c_str());
       return;
     }
 

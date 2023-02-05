@@ -1,5 +1,5 @@
-#include <core/common.h>
 #include <LibBadUIFramework/Node2.hpp>
+#include <core/common.h>
 
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
@@ -256,10 +256,10 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
     switch (e.first) {
     case gx::VertexBufferAttribute::Position:
       if (ctx.mdl.vertexData.pos.mData.size() != e.second + 1) {
-        DebugReport(
-            "The position vertex buffer currently has %u greedily-claimed "
-            "entries due to 32B padding; %u are used.\n",
-            (u32)ctx.mdl.vertexData.pos.mData.size(), e.second + 1);
+        rsl::trace(
+            "The position vertex buffer currently has {} greedily-claimed "
+            "entries due to 32B padding; {} are used.",
+            ctx.mdl.vertexData.pos.mData.size(), e.second + 1);
         ctx.mdl.vertexData.pos.mData.resize(e.second + 1);
       }
       break;
@@ -269,10 +269,9 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
           ctx.mdl.vertexData
               .color[(int)e.first - (int)gx::VertexBufferAttribute::Color0];
       if (buf.mData.size() != e.second + 1) {
-        DebugReport(
-            "The color buffer currently has %u greedily-claimed entries "
-            "due to 32B padding; %u are used.\n",
-            (u32)buf.mData.size(), e.second + 1);
+        rsl::trace("The color buffer currently has {} greedily-claimed entries "
+                   "due to 32B padding; {} are used.",
+                   buf.mData.size(), e.second + 1);
         buf.mData.resize(e.second + 1);
       }
       break;
@@ -280,10 +279,10 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
     case gx::VertexBufferAttribute::Normal: {
       auto& buf = ctx.mdl.vertexData.norm;
       if (buf.mData.size() != e.second + 1) {
-        DebugReport(
-            "The normal buffer currently has %u greedily-claimed entries "
-            "due to 32B padding; %u are used.\n",
-            (u32)buf.mData.size(), e.second + 1);
+        rsl::trace(
+            "The normal buffer currently has {} greedily-claimed entries "
+            "due to 32B padding; {} are used.",
+            buf.mData.size(), e.second + 1);
         buf.mData.resize(e.second + 1);
       }
       break;
@@ -300,18 +299,19 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
           ctx.mdl.vertexData
               .uv[(int)e.first - (int)gx::VertexBufferAttribute::TexCoord0];
       if (buf.mData.size() != e.second + 1) {
-        DebugReport(
-            "The UV buffer currently has %u greedily-claimed entries due "
-            "to 32B padding; %u are used.\n",
-            (u32)buf.mData.size(), e.second + 1);
+        rsl::trace(
+            "The UV buffer currently has {} greedily-claimed entries due "
+            "to 32B padding; {} are used.",
+            buf.mData.size(), e.second + 1);
         buf.mData.resize(e.second + 1);
       }
       break;
     }
-//      // clang-format off
-//    case (gx::VertexBufferAttribute)(int)gx::VertexAttribute::PositionNormalMatrixIndex:
-//      // clang-format on
-//      break;
+      //      // clang-format off
+      //    case
+      //    (gx::VertexBufferAttribute)(int)gx::VertexAttribute::PositionNormalMatrixIndex:
+      //      // clang-format on
+      //      break;
     default:
       return std::unexpected(std::format(
           "Unsupported VertexBufAttribute {} ({})", static_cast<int>(e.first),

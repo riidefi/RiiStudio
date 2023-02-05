@@ -22,7 +22,7 @@ void SceneState::buildUniformBuffers() {
   mTree.forEachNode([&](librii::gfx::SceneNode& node) {
     auto ok = librii::gfx::AddSceneNodeToUBO(node, mUboBuilder);
     if (!ok) {
-      fprintf(stderr, "ubo_builder.push error: %s\n", ok.error().c_str());
+      rsl::error("ubo_builder.push error: {}", ok.error());
       mUploaded.push_back(false);
     } else {
       mUploaded.push_back(true);
@@ -39,7 +39,7 @@ void SceneState::draw() {
       return;
     auto ok = librii::gfx::DrawSceneNode(node, mUboBuilder, i - 1);
     if (!ok) {
-      fprintf(stderr, "DrawSceneNode failed: %s\n", ok.error().c_str());
+      rsl::error("DrawSceneNode failed: {}", ok.error());
     }
   });
 

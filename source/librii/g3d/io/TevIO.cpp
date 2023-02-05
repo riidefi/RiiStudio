@@ -120,7 +120,7 @@ void BinaryTevDL::write(oishii::Writer& writer) const {
     writer.skip(3); // 3
 
     MAYBE_UNUSED const auto couple_len = writer.tell() - couple_start;
-    DebugReport("CoupleLen: %u\n", (unsigned)couple_len);
+    rsl::trace("CoupleLen: {}", couple_len);
     assert(couple_len == 48);
   }
   auto blank_dl = 48 * (8 - stages_count_rounded / 2);
@@ -190,7 +190,7 @@ Result<void> ReadTev(librii::gx::LowLevelGxMaterial& mat,
     }
   }
   if (error) {
-    fprintf(stderr, "Invalid sampler configuration?\n");
+    rsl::error("Invalid sampler configuration?");
   }
 
   if (!brawlbox_bug) {

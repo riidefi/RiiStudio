@@ -1,7 +1,7 @@
 #include "RHSTImporter.hpp"
 
-#include <core/3d/i3dmodel.hpp>
 #include <LibBadUIFramework/Plugins.hpp>
+#include <core/3d/i3dmodel.hpp>
 
 #include <librii/hx/CullMode.hpp>
 #include <librii/hx/PixMode.hpp>
@@ -482,12 +482,12 @@ Result<void> importTextureImpl(libcube::Texture& data, std::span<u8> image,
                           resize);
     TRY(data.encode(scratch));
   } else {
-    printf("Width: %u, Height: %u.\n", (unsigned)width, (unsigned)height);
+    rsl::trace("Width: {}, Height: {}.", width, height);
     u32 size = 0;
     for (int i = 0; i <= num_mip; ++i) {
       size += (width >> i) * (height >> i) * 4;
-      printf("Image %i: %u, %u. -> Total Size: %u\n", i, (unsigned)(width >> i),
-             (unsigned)(height >> i), size);
+      rsl::trace("Image {}: {}, {}. -> Total Size: {}", i, width >> i,
+                 height >> i, size);
     }
     scratch.resize(size);
 
@@ -578,7 +578,7 @@ void import_texture(std::string tex, libcube::Texture* pdata,
     }
 #endif
   }
-  printf("Cannot find texture %s\n", tex.c_str());
+  rsl::error("Cannot find texture {}", tex.c_str());
   // 32x32 (32bpp)
   const auto dummy_width = 32;
   const auto dummy_height = 32;
@@ -628,7 +628,7 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
   }
 
   for (auto& tex : textures_needed) {
-    printf("Importing texture: %s\n", tex.c_str());
+    rsl::info("Importing texture: {}", tex.c_str());
 
     auto& data = scene.getTextures().add();
     data.setName(getFileShort(tex));
@@ -661,8 +661,8 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
                   : mesh->name);
           ++i;
           if (!ok) {
-            fmt::print(stderr, "Error: Failed to stripify mesh {}. {}\n",
-                       mesh->name, ok.error());
+            rsl::error("Error: Failed to stripify mesh {}. {}", mesh->name,
+                       ok.error());
           }
         }
       };
@@ -672,9 +672,8 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
     for (auto& f : futures) {
       f.get();
     }
-    fmt::print(stderr,
-               "Elapsed stripping time (multicore) (or texture import time if "
-               "greater): {}ms\n",
+    rsl::error("Elapsed stripping time (multicore) (or texture import time if "
+               "greater): {}ms",
                timer.elapsed());
   }
 
@@ -682,8 +681,7 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
     // Already optimized
     auto ok = compileMesh(mdl.getMeshes().add(), mesh, mdl, false);
     if (!ok) {
-      fprintf(stderr, "ERROR: Failed to compile mesh: %s\n",
-              ok.error().c_str());
+      rsl::error("ERROR: Failed to compile mesh: {}", ok.error().c_str());
       continue;
     }
   }
@@ -734,27 +732,27 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
       }
       auto* gmat = gmdl->getMaterials().findByName(mat.name);
       if (mat.preset_path_mdl0mat.ends_with(".rspreset")) {
-        DebugReport("Applying .rspreset preset to material %s from path %s\n",
-                    mat.name.c_str(), mat.preset_path_mdl0mat.c_str());
+        rsl::debug("Applying .rspreset preset to material {} from path {}",
+                   mat.name, mat.preset_path_mdl0mat);
         auto file = rsl::ReadOneFile(mat.preset_path_mdl0mat);
         if (!file) {
-          DebugReport("...Error: %s\n", file.error().c_str());
+          rsl::debug("...Error: {}", file.error());
           continue;
         }
         auto ok = ApplyRSPresetToMaterial(*gmat, file->data);
         if (!ok) {
-          DebugReport("...Error: %s\n", ok.error().c_str());
+          rsl::debug("...Error: {}", ok.error());
         } else {
-          DebugReport("...Sucess\n");
+          rsl::debug("...Sucess");
         }
       } else {
-        DebugReport("Applying .mdl0mat preset to material %s from path %s\n",
-                    mat.name.c_str(), mat.preset_path_mdl0mat.c_str());
+        rsl::debug("Applying .mdl0mat preset to material {} from path {}",
+                   mat.name, mat.preset_path_mdl0mat);
         auto ok = ApplyCratePresetToMaterial(*gmat, mat.preset_path_mdl0mat);
         if (!ok) {
-          DebugReport("...Error: %s\n", ok.error().c_str());
+          rsl::debug("...Error: {}", ok.error());
         } else {
-          DebugReport("...Sucess\n");
+          rsl::debug("...Sucess");
         }
       }
     }
@@ -783,8 +781,8 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
                          return unused;
                        }));
 
-    fmt::print(stderr, "Removing {} unreferenced textures: {}.\n",
-               gscn->getTextures().size() - n, rsl::join(unused_names, ","));
+    rsl::info("Removing {} unreferenced textures: {}.",
+              gscn->getTextures().size() - n, rsl::join(unused_names, ","));
     gscn->getTextures().resize(n);
   }
 

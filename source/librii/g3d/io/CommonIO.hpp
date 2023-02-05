@@ -193,7 +193,7 @@ public:
 
     int delta = 0;
     if (from == mLabels.end() || to == mLabels.end()) {
-      printf("Bad lookup: %s to %s\n", reloc.from.c_str(), reloc.to.c_str());
+      rsl::trace("Bad lookup: {} to {}\n", reloc.from, reloc.to);
       return; // come back..
     } else {
       delta = to->second - from->second;
@@ -209,7 +209,7 @@ public:
       mWriter.write<s16>(delta);
     } else {
       assert(false);
-      printf("Invalid reloc size..\n");
+      rsl::trace("Invalid reloc size..");
     }
 
     mWriter.seekSet(back);
@@ -233,7 +233,7 @@ public:
   void printLabels() const {
     for (auto& [label, at] : mLabels) {
       const auto uat = static_cast<unsigned>(at);
-      printf("%s: 0x%x (%u)\n", label.c_str(), uat, uat);
+      rsl::trace("{}: 0x{:x} ({})\n", label, uat, uat);
     }
   }
 

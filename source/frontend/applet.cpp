@@ -13,7 +13,7 @@ Applet::Applet(const std::string& name) : plate::Platform(1280, 720, name) {
   }
 
   if (!loadFonts()) {
-    fprintf(stderr, "Failed to load fonts");
+    rsl::error("Failed to load fonts");
   }
 
 #ifdef RII_BACKEND_GLFW

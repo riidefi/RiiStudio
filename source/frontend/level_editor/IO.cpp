@@ -87,7 +87,7 @@ ReadKCL(const std::vector<u8>& buf, std::string path) {
   }
 
   if (!res.empty()) {
-    printf("Error: %s\n", res.c_str());
+    rsl::error("Error: {}", res.c_str());
     return nullptr;
   }
 

@@ -30,6 +30,7 @@ std::optional<std::string> Updater_GetChangeLog(Updater& updater) {
 #include <rsl/Download.hpp>
 #include <rsl/FsDialog.hpp>
 #include <rsl/Launch.hpp>
+#include <rsl/Log.hpp>
 #include <rsl/Zip.hpp>
 
 namespace riistudio {
@@ -50,7 +51,7 @@ Updater::Updater() {
   if (!InitRepoJSON()) {
     rsl::ErrorDialogFmt("Updater Error\n\n"
                         "Cannot connect to Github to check for updates.");
-    fprintf(stderr, "Cannot connect to Github\n");
+    rsl::error("Cannot connect to Github");
     return;
   }
   if (auto name = mJSON->name(); name.has_value()) {
@@ -58,13 +59,13 @@ Updater::Updater() {
   }
 
   if (mLatestVer.empty()) {
-    fprintf(stderr, "There is no name field\n");
+    rsl::error("There is no name field");
     return;
   }
 
   const auto current_exe = rsl::GetExecutableFilename();
   if (current_exe.empty()) {
-    fprintf(stderr, "Cannot get the name of the current .exe\n");
+    rsl::error("Cannot get the name of the current .exe");
     return;
   }
 
@@ -72,8 +73,7 @@ Updater::Updater() {
 
   auto temp_dir = GetTempDirectory();
   if (!temp_dir) {
-    fprintf(stderr, "Cannot get temporary directory: %s\n",
-            temp_dir.error().c_str());
+    rsl::error("Cannot get temporary directory: {}", temp_dir.error());
     return;
   }
 
@@ -105,7 +105,7 @@ void Updater::Calc() {
 bool Updater::InitRepoJSON() {
   auto manifest = DownloadLatestRelease(GITHUB_REPO, USER_AGENT);
   if (!manifest) {
-    fprintf(stderr, "%s\n", manifest.error().c_str());
+    rsl::error("{}", manifest.error());
     return false;
   }
   mJSON = std::make_unique<GithubManifest>(*manifest);
@@ -133,7 +133,8 @@ bool Updater::InstallUpdate() {
   std::filesystem::rename(current_exe, temp_exe, error_code);
 
   if (error_code) {
-    std::cout << error_code.message() << std::endl;
+    rsl::error("Failed to rename: {}. Retrying with admin perms.",
+               error_code.message());
     // Request admin perms...
     mNeedAdmin = true;
     return false;
@@ -166,7 +167,7 @@ void Updater::RetryAsAdmin() {
 }
 
 void Updater::LaunchUpdate(const std::string& new_exe) {
-  printf("Launching update %s\n", new_exe.c_str());
+  rsl::info("Launching update {}", new_exe);
   // On slow machines, the thread may not have been joined yet--so wait for it.
   sThread.join();
   assert(!sThread.joinable());

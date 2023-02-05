@@ -1,7 +1,7 @@
-#include <core/common.h>
 #include <LibBadUIFramework/Node2.hpp>
 #include <LibBadUIFramework/PropertyView.hpp>
 #include <LibBadUIFramework/RichNameManager.hpp>
+#include <core/common.h>
 #include <oishii/reader/binary_reader.hxx>
 
 #include <memory>
@@ -53,10 +53,10 @@ SpawnImporter(const std::string& fileName, oishii::ByteView data) {
   }
 
   if (match.empty()) {
-    DebugReport("No matches.\n");
+    rsl::trace("No matches.");
     return {};
   } else {
-    DebugReport("Success spawning importer\n");
+    rsl::trace("Success spawning importer");
     return {match, std::move(out)};
   }
 }

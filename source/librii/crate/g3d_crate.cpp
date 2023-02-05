@@ -528,7 +528,7 @@ Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
   }
   auto as_json = nlohmann::json::parse(new_meta, nullptr, false);
   if (as_json.is_discarded()) {
-    fprintf(stderr, "Can't read json block");
+    rsl::error("Can't read json block");
     as_json = nlohmann::json();
   }
 

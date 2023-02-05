@@ -13,7 +13,7 @@ bool checkShaderErrors(u32 id, std::string& error) {
 
   if (!success) {
     glGetShaderInfoLog(id, 512, NULL, infoLog);
-    printf("Shader compilation failed: %s\n", infoLog);
+    rsl::error("Shader compilation failed: {}", infoLog);
     error += infoLog;
   }
 

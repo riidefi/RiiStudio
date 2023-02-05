@@ -23,7 +23,7 @@ u32 BuildTexMatrixFlags(const librii::gx::GCMaterialData::TexMatrix& mtx) {
 
 Result<void> BinaryMatDL::write(oishii::Writer& writer) const {
   MAYBE_UNUSED const auto dl_start = writer.tell();
-  DebugReport("Mat dl start: %x\n", (unsigned)writer.tell());
+  rsl::trace("Mat dl start: {:x}", writer.tell());
   librii::gpu::DLBuilder dl(writer);
   {
     dl.setAlphaCompare(alphaCompare);
@@ -242,9 +242,9 @@ Result<void> BinaryMaterial::writeBody(
       {
         const auto [entry_start, struct_start] =
             tex_sampler_mappings.from_mat(name, i);
-        DebugReport("<material=\"%s\" sampler=%u>\n", name.c_str(), i);
-        DebugReport("\tentry_start=%x, struct_start=%x\n",
-                    (unsigned)entry_start, (unsigned)struct_start);
+        rsl::trace("<material=\"{}\" sampler={}>", name, i);
+        rsl::trace("\tentry_start={:x}, struct_start={:x}", entry_start,
+                   struct_start);
         oishii::Jump<oishii::Whence::Set, oishii::Writer> sg(writer,
                                                              entry_start);
         writer.write<s32>(mat_start - struct_start);

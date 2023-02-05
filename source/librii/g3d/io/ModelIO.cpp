@@ -322,7 +322,7 @@ template <typename T, bool HasMinimum, bool HasDivisor,
 void WriteShader(RelocWriter& linker, oishii::Writer& writer,
                  const BinaryTev& tev, std::size_t shader_start,
                  int shader_id) {
-  DebugReport("Shader at %x\n", (unsigned)shader_start);
+  DebugReport("Shader at {:x}", shader_start);
   linker.label("Shader" + std::to_string(shader_id), shader_start);
 
   tev.writeBody(writer);
@@ -436,7 +436,7 @@ Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
   d_cursor = writer.tell();
   u32 dicts_size = 0;
   const auto tally_dict = [&](const char* str, const auto& dict) {
-    DebugReport("%s: %u entries\n", str, (unsigned)dict.size());
+    rsl::trace("{}: {} entries", str, dict.size());
     if (dict.empty())
       return;
     Dictionaries.emplace(str, dicts_size + d_cursor);
@@ -470,7 +470,7 @@ Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
     dicts_size += 24 + 16 * tex_sampler_mappings.size();
   }
   for (auto [key, val] : Dictionaries) {
-    DebugReport("%s: %x\n", key.c_str(), (unsigned)val);
+    rsl::trace("{}: {}", key, val);
   }
   writer.skip(dicts_size);
 
@@ -503,7 +503,7 @@ Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
   TRY(write_dict_mat("Bones", bin.bones,
                      [&](const librii::g3d::BinaryBoneData& bone,
                          std::size_t bone_start) -> Result<void> {
-                       DebugReport("Bone at %x\n", (unsigned)bone_start);
+                       rsl::trace("Bone at {}", bone_start);
                        writer.seekSet(bone_start);
                        bone.write(names, writer, mdl_start);
                        return {};
@@ -706,7 +706,7 @@ librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
   auto ctx = ctx_.sublet("Bone " + bin.name);
   librii::g3d::BoneData bone;
   bone.mName = bin.name;
-  printf("%s\n", bone.mName.c_str());
+  rsl::trace("Bone: {}", bone.mName);
   // TODO: Verify matrixId
   bone.billboardType = bin.billboardType;
   // TODO: refId

@@ -3,6 +3,8 @@
 #include <fa5/IconsFontAwesome5.h>
 #include <imgui/imgui.h>
 
+#include <rsl/Log.hpp>
+
 namespace riistudio::frontend {
 
 namespace Fonts {
@@ -35,13 +37,13 @@ inline bool IsJapaneseSupported() { return !strcmp(sTextFont, sJpnFont); }
 static inline void TryAddFont(const char* path, float fontSize,
                               ImFontConfig* config = nullptr,
                               const ImWchar* glyph_ranges = nullptr) {
-  printf("[FONT] Loading %s\n", path);
+  rsl::info("[FONT] Loading {}", path);
   const void* result = ImGui::GetIO().Fonts->AddFontFromFileTTF(
       path, fontSize, config, glyph_ranges);
   if (result == nullptr) {
-    printf("[FONT] Failed to load %s\n", path);
+    rsl::info("[FONT] Failed to load {}", path);
   } else {
-    printf("[FONT] Loaded %s\n", path);
+    rsl::info("[FONT] Loaded {}", path);
   }
 }
 

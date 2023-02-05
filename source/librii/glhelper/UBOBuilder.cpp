@@ -15,11 +15,11 @@ UBOBuilder::UBOBuilder() {
                         // a fixed value or proper way to query this.
 #else
   glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformStride);
-  printf("UBOBuilder: Buffer offset alignment: %i\n", uniformStride);
+  rsl::trace("UBOBuilder: Buffer offset alignment: {}", uniformStride);
 
   int maxBlockSize;
   glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxBlockSize);
-  printf("UBOBuilder: Max block size: %i\n", maxBlockSize);
+  rsl::trace("UBOBuilder: Max block size: {}", maxBlockSize);
 #endif
 
 #ifdef DEBUG
@@ -98,12 +98,14 @@ void DelegatedUBOBuilder::use(u32 idx) const {
   }
 }
 
-Result<void> DelegatedUBOBuilder::push(u32 binding_point, const std::vector<u8>& data) {
+Result<void> DelegatedUBOBuilder::push(u32 binding_point,
+                                       const std::vector<u8>& data) {
   auto& bound_data = getTempData(binding_point).emplace_back(data);
 
   assert(mMinSizes.size() > binding_point);
   if (mMinSizes[binding_point] > 1024 * 1024 * 1024) {
-    return std::unexpected("Invalid minimum size. Likely a shader compilation error earlier.");
+    return std::unexpected(
+        "Invalid minimum size. Likely a shader compilation error earlier.");
   }
   if (bound_data.size() < mMinSizes[binding_point])
     bound_data.resize(mMinSizes[binding_point]);

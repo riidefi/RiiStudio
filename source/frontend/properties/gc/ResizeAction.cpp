@@ -60,7 +60,7 @@ bool ResizeAction::resize_draw(Texture& data, bool* changed) {
                             "Lanczos\0"_j);
 
   if (ImGui::Button((const char*)ICON_FA_CHECK u8" Resize")) {
-    printf("Do the resizing..\n");
+    rsl::info("Do the resizing..");
 
     const auto oldWidth = data.getWidth();
     const auto oldHeight = data.getHeight();

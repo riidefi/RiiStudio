@@ -29,10 +29,10 @@ Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
                                      const aiMesh* pMesh, const aiNode* pNode,
                                      glm::vec3 tint) {
   EXPECT(pMesh != nullptr);
-  fprintf(stderr, "Importing mesh: %s\n", pMesh->mName.C_Str());
+  rsl::trace("Importing mesh: {}", pMesh->mName.C_Str());
   // Ignore points and lines
   if (pMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE) {
-    fprintf(stderr, "-> Not triangles; skipping\n");
+    rsl::trace("-> Not triangles; skipping");
     return std::unexpected("Mesh has denegerate triangles or points/lines");
   }
 
@@ -66,7 +66,7 @@ Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
       EXPECT(pMesh->mNumUVComponents[j] == 2);
     }
   }
-  fprintf(stderr, " ::generating vertices\n");
+  rsl::trace(" ::generating vertices");
   std::vector<librii::rhst::Vertex> vertices;
 
   for (unsigned f = 0; f < pMesh->mNumFaces; ++f) {

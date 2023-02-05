@@ -147,8 +147,8 @@ public:
     std::erase_if(states, [&](auto& it) {
       auto& [key, value] = it;
       if (auto last_used = value.second; last_used >= lifetime_grace_period) {
-        DebugReport("[PropertyViewStateHolder] Destroying state for: %s.\n",
-                    std::string(key.id).c_str());
+        rsl::trace("[PropertyViewStateHolder] Destroying state for: {}.",
+                   key.id);
         return true;
       }
       return false;
@@ -169,8 +169,8 @@ public:
       return nullptr;
     }
 
-    DebugReport("[PropertyViewStateHolder] Creating state for: %s.\n",
-                std::string(blueprint.getName()).c_str());
+    rsl::trace("[PropertyViewStateHolder] Creating state for: {}.",
+               blueprint.getName());
 
     auto* state_ref = state.get();
     states.emplace(key, std::make_pair(std::move(state), 0));

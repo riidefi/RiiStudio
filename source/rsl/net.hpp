@@ -42,7 +42,7 @@ public:
     asio::error_code ec;
     mSocket.shutdown(tcp::socket::shutdown_both, ec);
     if (ec) {
-      DebugReport("[ERROR] Failed to shutdown socket\n");
+      rsl::error("[ERROR] Failed to shutdown socket");
     }
     mSocket.close();
     mConnected = false;
