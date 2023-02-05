@@ -1,6 +1,9 @@
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use unzpack::Unzpack;
+use simple_logger::SimpleLogger;
+
+use log::*;
 
 /*
 use std::fs::OpenOptions;
@@ -45,4 +48,48 @@ pub unsafe fn c_rsl_extract_zip(from_file: *const c_char, to_folder: *const c_ch
       -1
     },
   }
+}
+
+#[no_mangle]
+pub fn rsl_log_init() {
+  SimpleLogger::new().init().unwrap();
+}
+
+#[no_mangle]
+pub unsafe fn rsl_c_debug(s: *const c_char, _len: u32) {
+  // TODO: Use len
+  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+  debug!("{}", &st);
+}
+#[no_mangle]
+pub unsafe fn rsl_c_error(s: *const c_char, _len: u32) {
+  // TODO: Use len
+  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+  error!("{}", &st);
+}
+#[no_mangle]
+pub unsafe fn rsl_c_info(s: *const c_char, _len: u32) {
+  // TODO: Use len
+  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+  info!("{}", &st);
+}
+/*
+#[no_mangle]
+pub unsafe fn rsl_c_log(s: *const c_char, _len: u32) {
+  // TODO: Use len
+  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+  log!("{}", &st);
+}
+*/
+#[no_mangle]
+pub unsafe fn rsl_c_trace(s: *const c_char, _len: u32) {
+  // TODO: Use len
+  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+  trace!("{}", &st);
+}
+#[no_mangle]
+pub unsafe fn rsl_c_warn(s: *const c_char, _len: u32) {
+  // TODO: Use len
+  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+  warn!("{}", &st);
 }

@@ -8,3 +8,5 @@ crate-type=["staticlib"]
 
 [dependencies]
 unzpack = "0.1"
+log = "0.4.7"
+simple_logger = "4.0.0"

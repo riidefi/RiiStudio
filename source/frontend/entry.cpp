@@ -3,6 +3,8 @@
 
 #include <frontend/Localization.hpp>
 
+#include <rsl/Log.hpp>
+
 IMPORT_STD;
 
 struct RootHolder {
@@ -28,6 +30,7 @@ private:
 } sRootHolder;
 
 int main(int argc, const char** argv) {
+  rsl::logging::init();
   if (argc > 0) {
     printf("%s\n", argv[0]);
     auto path = std::filesystem::path(argv[0]);
