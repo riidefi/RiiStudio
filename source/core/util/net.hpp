@@ -2,6 +2,12 @@
 
 #include <core/common.h>
 
+#ifdef __APPLE__
+namespace std {
+using ranges::result_of;
+}
+#endif
+
 #define ASIO_NO_EXCEPTIONS
 #include <vendor/asio.hpp>
 

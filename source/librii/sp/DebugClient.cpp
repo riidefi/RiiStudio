@@ -45,7 +45,11 @@ void DebugClient::GetSettingsAsync(
         reinterpret_cast<decltype(&callback)>(user));
     auto status = ConvertError(result);
     if (status.has_value()) {
+#ifdef __APPLE__
+      // (*cb)(unexpected2(*status));
+#else
       (*cb)(std::unexpected(*status));
+#endif
     } else {
       (*cb)(*reinterpret_cast<const Settings*>(settings));
     }
