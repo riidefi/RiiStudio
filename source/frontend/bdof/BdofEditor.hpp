@@ -2,6 +2,7 @@
 
 #include <core/util/oishii.hpp>
 #include <frontend/editor/StudioWindow.hpp>
+#include <frontend/level_editor/AutoHistory.hpp>
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <librii/egg/BDOF.hpp>
 #include <librii/sp/DebugClient.hpp>
@@ -62,6 +63,8 @@ public:
     if (m_sync && last != m_grid.m_dof) {
       debugSend();
     }
+
+	m_history.update(m_grid.m_dof);
   }
   ImGuiID buildDock(ImGuiID root_id) override {
     // ImGui::DockBuilderDockWindow("Properties", root_id);
@@ -103,6 +106,7 @@ private:
   BdofEditorTabSheet m_sheet;
   std::string m_path;
   bool m_sync = false;
+  lvl::AutoHistory<librii::egg::DOF> m_history;
 
   void debugGet() {
     librii::sp::DebugClient::GetSettingsAsync(
