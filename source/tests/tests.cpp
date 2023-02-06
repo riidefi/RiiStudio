@@ -2,6 +2,7 @@
 #include <librii/egg/BDOF.hpp>
 #include <librii/egg/Blight.hpp>
 #include <librii/egg/LTEX.hpp>
+#include <librii/egg/PBLM.hpp>
 #include <librii/kmp/io/KMP.hpp>
 #include <plugins/api.hpp>
 #include <rsl/Ranges.hpp>
@@ -121,7 +122,8 @@ void rebuild(std::string from, const std::string_view to, bool check,
   rebuild_dest = to;
 
   if (from.ends_with("kmp") || from.ends_with("blight") ||
-      from.ends_with("blmap") || from.ends_with("bdof")) {
+      from.ends_with("blmap") || from.ends_with("bdof") ||
+      from.ends_with("bblm")) {
     auto file = OishiiReadFile(from);
     if (!file.has_value()) {
       printf("Cannot rebuild\n");
@@ -139,6 +141,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
       if (bp < 0)
         reader.add_bp<u32>(-bp);
     }
+    rsl::SafeReader safe(reader);
     if (from.ends_with("kmp")) {
       librii::kmp::CourseMap map;
       librii::kmp::readKMP(map, file->slice());
@@ -156,13 +159,11 @@ void rebuild(std::string from, const std::string_view to, bool check,
     } else if (from.ends_with("blmap")) {
       writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
       librii::egg::LightMap lmap;
-      rsl::SafeReader safe(reader);
       lmap.read(safe);
       printf("Writing to %s\n", std::string(to).c_str());
       lmap.write(writer);
     } else if (from.ends_with("bdof")) {
       writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
-      rsl::SafeReader safe(reader);
       auto bdof = librii::egg::bin::BDOF_Read(safe);
       if (!bdof) {
         fprintf(stderr, "Failed to read bdof: %s\n", bdof.error().c_str());
@@ -176,6 +177,21 @@ void rebuild(std::string from, const std::string_view to, bool check,
       auto bdof2 = librii::egg::To_BDOF(*dof);
       printf("Writing to %s\n", std::string(to).c_str());
       librii::egg::bin::BDOF_Write(writer, bdof2);
+    } else if (from.ends_with("bblm")) {
+      writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
+      auto bdof = librii::egg::PBLM_Read(safe);
+      if (!bdof) {
+        fprintf(stderr, "Failed to read bblm: %s\n", bdof.error().c_str());
+        return;
+      }
+      auto dof = librii::egg::From_PBLM(*bdof);
+      if (!dof) {
+        fprintf(stderr, "Failed to read bblm: %s\n", dof.error().c_str());
+        return;
+      }
+      auto bdof2 = librii::egg::To_PBLM(*dof);
+      printf("Writing to %s\n", std::string(to).c_str());
+      librii::egg::PBLM_Write(writer, bdof2);
     }
     OishiiFlushWriter(writer, to);
     return;

@@ -76,6 +76,9 @@ TEST_DATA = {
 
 	# posteffect.bdof
 	'a8b43bdfb330713c5eb55a22399dce2a': 'a8b43bdfb330713c5eb55a22399dce2a', # volcano_course
+  
+	# posteffect.bblm
+	'8d3255359e750f3900e6928c40b05da1': '8d3255359e750f3900e6928c40b05da1', # old_House_ds
 }
 
 BREAKPOINTS = {
