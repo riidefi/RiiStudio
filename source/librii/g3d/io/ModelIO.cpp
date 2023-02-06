@@ -322,7 +322,7 @@ template <typename T, bool HasMinimum, bool HasDivisor,
 void WriteShader(RelocWriter& linker, oishii::Writer& writer,
                  const BinaryTev& tev, std::size_t shader_start,
                  int shader_id) {
-  DebugReport("Shader at {:x}", shader_start);
+  rsl::info("Shader at {:x}", shader_start);
   linker.label("Shader" + std::to_string(shader_id), shader_start);
 
   tev.writeBody(writer);

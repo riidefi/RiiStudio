@@ -17,16 +17,16 @@ void BDOF_Write(oishii::Writer& writer, const BDOF& bdof) {
 } // namespace bin
 
 Result<DOF> From_BDOF(const bin::BDOF& b) {
-  EXPECT(b.magic == 'PDOF');
-  EXPECT(b.fileSize == 0x50);
-  EXPECT(b.revision == 0);
-  EXPECT(b._09 == 0);
-  EXPECT(b._A == 0);
-  EXPECT(b._C == 0);
-  EXPECT(b._40 == 0);
-  EXPECT(b._44 == 0);
-  EXPECT(b._48 == 0);
-  EXPECT(b._4C == 0);
+  // EXPECT(b.magic == 'PDOF');
+  // EXPECT(b.fileSize == 0x50);
+  // EXPECT(b.revision == 0);
+  // EXPECT(b._09 == 0);
+  // EXPECT(b._A == 0);
+  // EXPECT(b._C == 0);
+  // EXPECT(b._40 == 0);
+  // EXPECT(b._44 == 0);
+  // EXPECT(b._48 == 0);
+  // EXPECT(b._4C == 0);
   return DOF{
       .flags = b.flags,
       .blurAlpha0 = b.blurAlpha0,

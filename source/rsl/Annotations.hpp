@@ -20,6 +20,8 @@ template <const StringLiteral s> struct Annotation : public AnnoTag {
   static std::string_view value() {
     return std::string_view(s.value, sizeof(s.value));
   }
+  bool operator==(const Annotation&) const { return true; }
+  bool operator!=(const Annotation&) const { return false; }
 };
 
 #if 0

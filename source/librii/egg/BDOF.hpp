@@ -105,6 +105,9 @@ struct DOF {
   f32 indTexScaleS;
   ANNOTATE_STR2("@name", "indTexScaleT");
   f32 indTexScaleT;
+
+  bool operator==(const DOF&) const = default;
+  bool operator!=(const DOF&) const = default;
 };
 
 Result<DOF> From_BDOF(const bin::BDOF& b);
