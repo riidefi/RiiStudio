@@ -36,8 +36,8 @@ struct PBLM {
   u32 _54 = 0;
   u32 _58 = 0;
   u32 _5c = 0;
-  u32 _60 = 0;
-  u32 _64 = 0;
+  f32 _60;
+  f32 _64;
   u32 _68 = 0;
   u32 _6c = 0;
   u32 _70 = 0;
@@ -81,9 +81,9 @@ struct BLM {
 
   
   ANNOTATE_STR2("@name", "_60");
-  u32 _60 = 0;
+  f32 _60;
   ANNOTATE_STR2("@name", "_64");
-  u32 _64 = 0;
+  f32 _64;
 
   ANNOTATE_STR2("@name", "compositeBlendMode");
   u8 compositeBlendMode;
@@ -93,6 +93,9 @@ struct BLM {
   f32 bokehColorScale0;
   ANNOTATE_STR2("@name", "bokehColorScale1");
   f32 bokehColorScale1;
+
+  bool operator==(const BLM&) const = default;
+  bool operator!=(const BLM&) const = default;
 };
 
 inline Result<BLM> From_PBLM(const PBLM& b) {

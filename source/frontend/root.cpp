@@ -22,6 +22,7 @@
 #include <emscripten.h>
 #endif
 
+#include <frontend/bdof/BblmEditor.hpp>
 #include <frontend/bdof/BdofEditor.hpp>
 #include <frontend/level_editor/LevelEditor.hpp>
 
@@ -276,12 +277,12 @@ void RootWindow::drawFileMenu(riistudio::frontend::EditorWindow* ed) {
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   rsl::info("Opening file: {}", data.mPath.c_str());
 
+  std::span<const u8> span(data.mData.get(), data.mData.get() + data.mLen);
+
   if (data.mPath.ends_with("szs")) {
     auto pWin = std::make_unique<lvl::LevelEditorWindow>();
 
-    pWin->openFile(
-        std::span<const u8>(data.mData.get(), data.mData.get() + data.mLen),
-        data.mPath);
+    pWin->openFile(span, data.mPath);
 
     attachWindow(std::move(pWin));
     return;
@@ -289,9 +290,15 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   if (data.mPath.ends_with("bdof")) {
     auto pWin = std::make_unique<BdofEditor>();
 
-    pWin->openFile(
-        std::span<const u8>(data.mData.get(), data.mData.get() + data.mLen),
-        data.mPath);
+    pWin->openFile(span, data.mPath);
+
+    attachWindow(std::move(pWin));
+    return;
+  }
+  if (data.mPath.ends_with("bblm")) {
+    auto pWin = std::make_unique<BblmEditor>();
+
+    pWin->openFile(span, data.mPath);
 
     attachWindow(std::move(pWin));
     return;
@@ -362,16 +369,19 @@ RootWindow::RootWindow()
 RootWindow::~RootWindow() { DeinitAPI(); }
 
 void RootWindow::save(const std::string& path) {
-  EditorWindow* ed =
-      getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
-  if (ed != nullptr) {
-    ed->saveAs(path);
-    return;
-  }
-  BdofEditor* b = dynamic_cast<BdofEditor*>(getActive());
-  if (b != nullptr) {
-    b->saveAs(path);
-    return;
+  if (getActive() != nullptr) {
+    if (auto* ed = dynamic_cast<EditorWindow*>(getActive())) {
+      ed->saveAs(path);
+      return;
+    }
+    if (auto* b = dynamic_cast<BdofEditor*>(getActive())) {
+      b->saveAs(path);
+      return;
+    }
+    if (auto* b = dynamic_cast<BblmEditor*>(getActive())) {
+      b->saveAs(path);
+      return;
+    }
   }
 
   rsl::ErrorDialog("Failed to save. Not saveable");
@@ -393,9 +403,31 @@ void RootWindow::saveAs() {
     }
     auto path = results->string();
 
-	// Just autofill BDOF for now
-	if (!path.ends_with(".bdof") && !path.ends_with(".pdof")) {
+    // Just autofill BDOF for now
+    if (!path.ends_with(".bdof") && !path.ends_with(".pdof")) {
       path += ".bdof";
+    }
+
+    save(path);
+    return;
+  }
+  if (BblmEditor* b = dynamic_cast<BblmEditor*>(getActive())) {
+    auto default_filename = std::filesystem::path(b->getFilePath()).filename();
+    filters.push_back("EGG Binary BBLM (*.bblm)");
+    filters.push_back("*.bblm");
+    filters.push_back("EGG Binary PBLM (*.pblm)");
+    filters.push_back("*.pblm");
+    auto results =
+        rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
+    if (!results) {
+      rsl::ErrorDialog("No saving - No file selected");
+      return;
+    }
+    auto path = results->string();
+
+    // Just autofill BBLM for now
+    if (!path.ends_with(".bblm") && !path.ends_with(".pblm")) {
+      path += ".bblm";
     }
 
     save(path);

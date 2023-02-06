@@ -1,3 +1,5 @@
+#pragma once
+
 #include <core/common.h>
 #include <imcxx/Widgets.hpp> // imcxx::Combo
 
