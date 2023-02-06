@@ -175,7 +175,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
       }
       auto bdof2 = librii::egg::To_BDOF(*dof);
       printf("Writing to %s\n", std::string(to).c_str());
-      librii::egg::bin::BDOF_Write(writer, *bdof);
+      librii::egg::bin::BDOF_Write(writer, bdof2);
     }
     OishiiFlushWriter(writer, to);
     return;

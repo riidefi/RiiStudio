@@ -14,7 +14,13 @@ template <size_t N> struct StringLiteral {
   char value[N];
 };
 
-template <const StringLiteral s> struct Annotation {};
+struct AnnoTag {};
+
+template <const StringLiteral s> struct Annotation : public AnnoTag {
+  static std::string_view value() {
+    return std::string_view(s.value, sizeof(s.value));
+  }
+};
 
 #if 0
 #if (defined(__clang__) || defined(__linux__)) && !defined(_MSC_VER)

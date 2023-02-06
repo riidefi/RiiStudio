@@ -22,6 +22,7 @@
 #include <emscripten.h>
 #endif
 
+#include <frontend/bdof/BdofEditor.hpp>
 #include <frontend/level_editor/LevelEditor.hpp>
 
 #include <frontend/Fonts.hpp>
@@ -248,31 +249,45 @@ void RootWindow::drawFileMenu(riistudio::frontend::EditorWindow* ed) {
 #endif
     if (ImGui::MenuItem("Save"_j)) {
       if (ed) {
-        DebugReport("Attempting to save to %s\n", ed->getFilePath().c_str());
-        if (!ed->getFilePath().empty())
+        rsl::trace("Attempting to save to {}", ed->getFilePath());
+        if (!ed->getFilePath().empty()) {
           save(ed->getFilePath());
-        else
+        } else {
           saveAs();
+        }
       } else {
-        DebugReport("%s", "Cannot save.. nothing has been opened.\n"_j);
+        // Try anyway (.bdof)
+        saveAs();
       }
     }
 #if !defined(__EMSCRIPTEN__)
     if (ImGui::MenuItem("Save As"_j)) {
-      if (ed)
+      if (ed) {
         saveAs();
-      else
-        DebugReport("%s", "Cannot save.. nothing has been opened.\n"_j);
+      } else {
+        // Try anyway (.bdof)
+        saveAs();
+      }
     }
 #endif
     ImGui::EndMenu();
   }
 }
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
-  DebugReport("Opening file: %s\n", data.mPath.c_str());
+  rsl::info("Opening file: {}", data.mPath.c_str());
 
   if (data.mPath.ends_with("szs")) {
     auto pWin = std::make_unique<lvl::LevelEditorWindow>();
+
+    pWin->openFile(
+        std::span<const u8>(data.mData.get(), data.mData.get() + data.mLen),
+        data.mPath);
+
+    attachWindow(std::move(pWin));
+    return;
+  }
+  if (data.mPath.ends_with("bdof")) {
+    auto pWin = std::make_unique<BdofEditor>();
 
     pWin->openFile(
         std::span<const u8>(data.mData.get(), data.mData.get() + data.mLen),
@@ -349,11 +364,43 @@ RootWindow::~RootWindow() { DeinitAPI(); }
 void RootWindow::save(const std::string& path) {
   EditorWindow* ed =
       getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
-  if (ed != nullptr)
+  if (ed != nullptr) {
     ed->saveAs(path);
+    return;
+  }
+  BdofEditor* b = dynamic_cast<BdofEditor*>(getActive());
+  if (b != nullptr) {
+    b->saveAs(path);
+    return;
+  }
+
+  rsl::ErrorDialog("Failed to save. Not saveable");
 }
 void RootWindow::saveAs() {
   std::vector<std::string> filters;
+
+  if (BdofEditor* b = dynamic_cast<BdofEditor*>(getActive())) {
+    auto default_filename = std::filesystem::path(b->getFilePath()).filename();
+    filters.push_back("EGG Binary BDOF (*.bdof)");
+    filters.push_back("*.bdof");
+    filters.push_back("EGG Binary PDOF (*.pdof)");
+    filters.push_back("*.pdof");
+    auto results =
+        rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
+    if (!results) {
+      rsl::ErrorDialog("No saving - No file selected");
+      return;
+    }
+    auto path = results->string();
+
+	// Just autofill BDOF for now
+	if (!path.ends_with(".bdof") && !path.ends_with(".pdof")) {
+      path += ".bdof";
+    }
+
+    save(path);
+    return;
+  }
 
   EditorWindow* ed =
       getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
@@ -426,7 +473,7 @@ bool RootWindow::shouldClose() {
       rsl::ErrorDialog("Current editor failed to save.");
       return false;
     }
-    DebugReport("Attempting to save to %s\n", ed->getFilePath().c_str());
+    rsl::info("Attempting to save to {}", ed->getFilePath());
     if (!ed->getFilePath().empty()) {
       save(ed->getFilePath());
     } else {
