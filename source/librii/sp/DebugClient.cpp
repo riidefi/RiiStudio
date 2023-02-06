@@ -111,13 +111,27 @@ C_Settings SynchronousDebugClientPrototype::getSettings() {
   return result;
 }
 
+std::vector<std::future<void>> sTaskQueue;
+std::mutex sTaskMutex;
+
 void debugclient_init(void) {}
-void debugclient_deinit(void) {}
+void debugclient_deinit(void) { sTaskQueue.clear(); }
 
 void debugclient_connect(const char* ip_port, int timeout,
                          void (*callback)(void* user, int result), void* user) {
-  SynchronousDebugClientPrototype::instance().connect(ip_port);
-  callback(user, DEBUGCLIENT_RESULT_OK);
+  auto task = [=]() {
+    SynchronousDebugClientPrototype::instance().connect(ip_port);
+    callback(user, DEBUGCLIENT_RESULT_OK);
+  };
+  auto future = std::async(std::launch::async, task);
+  std::unique_lock g(sTaskMutex);
+  sTaskQueue.push_back(std::move(future));
+
+  static bool regist = false;
+  if (!regist) {
+    regist = true;
+    atexit(debugclient_deinit);
+  }
 }
 void debugclient_send_settings(const C_Settings* settings) {
   SynchronousDebugClientPrototype::instance().sendSettings(*settings);

@@ -50,13 +50,29 @@ public:
     if (ImGui::Button("DEBUG connect")) {
       debugConnect();
     }
-    if (ImGui::Button("DEBUG get")) {
-      debugGet();
+    {
+      util::ConditionalActive g(m_state == State::Connected);
+      ImGui::SameLine();
+      if (ImGui::Button("DEBUG get")) {
+        debugGet();
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("DEBUG send")) {
+        debugSend();
+      }
+      ImGui::Checkbox("Automatically sync with game", &m_sync);
     }
-    if (ImGui::Button("DEBUG send")) {
-      debugSend();
+    switch (m_state) {
+    case State::None:
+      ImGui::Text("Not connected");
+      break;
+    case State::Connecting:
+      ImGui::Text("Waiting for game to initiate connection...");
+      break;
+    case State::Connected:
+      ImGui::Text("Connected.");
+      break;
     }
-    ImGui::Checkbox("Automatically sync with game", &m_sync);
 
     auto last = m_grid.m_dof;
     m_sheet.Draw();
@@ -64,7 +80,7 @@ public:
       debugSend();
     }
 
-	m_history.update(m_grid.m_dof);
+    m_history.update(m_grid.m_dof);
   }
   ImGuiID buildDock(ImGuiID root_id) override {
     // ImGui::DockBuilderDockWindow("Properties", root_id);
@@ -105,6 +121,12 @@ private:
   BdofEditorPropertyGrid m_grid;
   BdofEditorTabSheet m_sheet;
   std::string m_path;
+  enum class State {
+    None,
+    Connecting,
+    Connected,
+  };
+  State m_state = State::None;
   bool m_sync = false;
   lvl::AutoHistory<librii::egg::DOF> m_history;
 
@@ -121,9 +143,24 @@ private:
         });
   }
   void debugConnect() {
+    if (m_state != State::None) {
+      rsl::ErrorDialog("Can only call debugConnect() from State::None");
+      return;
+    }
+    rsl::ErrorDialog("WARNING: Debug connection uses the prototype protocol. "
+                     "Now waiting for the game to initiate a conection.");
+    m_state = State::Connecting;
     librii::sp::DebugClient::ConnectAsync(
         "127.0.0.1:1234", 60,
-        [](std::optional<librii::sp::DebugClient::Error> err) {});
+        [pE = this](std::optional<librii::sp::DebugClient::Error> err) {
+          if (err.has_value()) {
+            rsl::ErrorDialogFmt("Failed to conect: {}",
+                                magic_enum::enum_name(*err));
+            pE->m_state = State::None;
+            return;
+          }
+          pE->m_state = State::Connected;
+        });
   }
   void debugSend() {
     auto writer = write();
