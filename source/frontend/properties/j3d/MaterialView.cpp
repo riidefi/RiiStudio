@@ -74,15 +74,19 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
 
   if (ImGui::CollapsingHeader("Light Colors (Usually ignored by games)"_j,
                               ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (delegate.getActive().lightColors.empty()) {
+      ImGui::TextUnformatted("Material does not have any lightColors");
+    } else {
+      int i = 0;
+      for (auto& clr : delegate.getActive().lightColors) {
+        clr_f32 = clr;
+        ImGui::ColorEdit4(
+            (std::string("Light Color "_j) + std::to_string(i)).c_str(),
+            clr_f32);
 
-    int i = 0;
-    for (auto& clr : delegate.getActive().lightColors) {
-      clr_f32 = clr;
-      ImGui::ColorEdit4(
-          (std::string("Light Color "_j) + std::to_string(i)).c_str(), clr_f32);
-
-      KPI_PROPERTY(delegate, clr, (librii::gx::Color)clr_f32, lightColors[i]);
-      ++i;
+        KPI_PROPERTY(delegate, clr, (librii::gx::Color)clr_f32, lightColors[i]);
+        ++i;
+      }
     }
   }
   if (ImGui::CollapsingHeader("NBT Scale"_j, ImGuiTreeNodeFlags_DefaultOpen)) {
