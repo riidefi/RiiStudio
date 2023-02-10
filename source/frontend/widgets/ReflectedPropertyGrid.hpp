@@ -7,14 +7,34 @@
 namespace riistudio::frontend {
 
 struct ReflectedPropertyGrid {
-  void HandleTag(auto&& x, auto& name)
+  enum State {
+    NONE,
+    NAME,
+    KIND,
+  };
+  State m_state = NONE;
+  void HandleTag(auto&& x, auto& name, auto& kind_next)
     requires std::is_base_of_v<annotations_detail::AnnoTag,
                                std::remove_cvref_t<decltype(x)>>
   {
-    if (x.value().starts_with("@")) {
+    if (x.value().starts_with("@name")) {
+      m_state = NAME;
       return;
     }
-    name = x.value();
+    if (x.value().starts_with("@type")) {
+      m_state = KIND;
+      return;
+    }
+    if (m_state == NAME) {
+      name = x.value();
+      m_state = NONE;
+      return;
+    }
+    if (m_state == KIND) {
+      kind_next = x.value();
+      m_state = NONE;
+      return;
+    }
     return;
   }
   void HandleFloatlike(auto&& x, std::string name)
@@ -29,9 +49,21 @@ struct ReflectedPropertyGrid {
   {
     x = imcxx::EnumCombo(name, x);
   }
-  void HandleIntegral(auto&& x, std::string name)
+  void HandleIntegral(auto&& x, std::string name, std::optional<std::string>& type_next)
     requires std::is_integral_v<std::remove_cvref_t<decltype(x)>>
   {
+    if (type_next.has_value()) {
+      u32 clr = x;
+
+      ImVec4 tmp = ImGui::ColorConvertU32ToFloat4(clr);
+      ImGui::ColorEdit4(name.c_str(), &tmp.x);
+      clr = ImGui::ColorConvertFloat4ToU32(tmp);
+
+      x = clr;
+
+      type_next = std::nullopt;
+      return;
+    }
     int data = x;
     ImGui::InputInt(name.c_str(), &data);
     x = data;
@@ -39,6 +71,7 @@ struct ReflectedPropertyGrid {
 
   void Draw(auto&& some_struct) {
     std::string name = "?";
+    std::optional<std::string> type_next;
     int i = 0;
     bool last_named = false;
     cista::for_each_field(some_struct, [&](auto&& x) {
@@ -49,7 +82,7 @@ struct ReflectedPropertyGrid {
       }
       if constexpr (std::is_base_of_v<annotations_detail::AnnoTag,
                                       std::remove_cvref_t<decltype(x)>>) {
-        HandleTag(x, name);
+        HandleTag(x, name, type_next);
         last_named = true;
         return;
       }
@@ -63,7 +96,7 @@ struct ReflectedPropertyGrid {
         return;
       }
       if constexpr (std::is_integral_v<std::remove_cvref_t<decltype(x)>>) {
-        HandleIntegral(x, name);
+        HandleIntegral(x, name, type_next);
         return;
       }
     });

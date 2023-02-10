@@ -65,8 +65,10 @@ struct BLM {
   ANNOTATE_STR2("@name", "thresholdAmount");
   f32 thresholdAmount;
   ANNOTATE_STR2("@name", "thresholdColor");
+  ANNOTATE_STR2("@type", "color32");
   u32 thresholdColor;
   ANNOTATE_STR2("@name", "compositeColor");
+  ANNOTATE_STR2("@type", "color32");
   u32 compositeColor;
   ANNOTATE_STR2("@name", "blurFlags");
   u16 blurFlags;
