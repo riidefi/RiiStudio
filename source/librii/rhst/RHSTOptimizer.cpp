@@ -15,7 +15,7 @@
 #undef throw
 #include <rsl/Ranges.hpp>
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__linux__)
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/chunk.hpp>
 #endif
@@ -30,7 +30,7 @@ public:
   Result<void> SetFromMPrim(const MatrixPrimitive& prim) {
     triangles_.reserve(20'000);
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__linux__)
     auto verts =
         ranges::to<std::vector>(MeshUtils::AsTriangles(prim.primitives));
     for (auto it : verts | ranges::views::chunk(3)) {
