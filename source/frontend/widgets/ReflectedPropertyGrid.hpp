@@ -1,8 +1,10 @@
 #pragma once
 
+// !! This should be included first
+#include <rsl/Reflection.hpp>
+
 #include <imcxx/Widgets.hpp>
 #include <rsl/Annotations.hpp>
-#include <rsl/Reflection.hpp>
 
 namespace riistudio::frontend {
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/util/oishii.hpp>
+#include <frontend/IEditor.hpp>
 #include <frontend/editor/StudioWindow.hpp>
 #include <frontend/level_editor/AutoHistory.hpp>
 #include <frontend/widgets/PropertyEditorWidget.hpp>
@@ -36,7 +37,7 @@ public:
   librii::egg::BLM m_blm;
 };
 
-class BblmEditor : public frontend::StudioWindow {
+class BblmEditor : public frontend::StudioWindow, public IEditor {
 public:
   BblmEditor()
       : StudioWindow("BBLM Editor: <unknown>", false),
@@ -55,8 +56,8 @@ public:
     return root_id;
   }
 
-  void openFile(std::span<const u8> buf, std::string path) {
-    oishii::DataProvider view(buf | rsl::ToList(), path);
+  void openFile(std::span<const u8> buf, std::string_view path) override {
+    oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
     oishii::BinaryReader reader(view.slice());
     rsl::SafeReader safe(reader);
     auto bblm = librii::egg::PBLM_Read(safe);
@@ -71,12 +72,15 @@ public:
     m_grid.m_blm = *blm;
     m_path = path;
   }
-  void saveAs(std::string path) {
+  void saveAs(std::string_view path) {
     auto writer = write();
     OishiiFlushWriter(writer, path);
   }
+  std::string discordStatus() const override {
+    return "Editing a bloom file (.bblm)";
+  }
 
-  oishii::Writer write() {
+  oishii::Writer write() const {
     oishii::Writer writer(0x50);
     auto bblm = librii::egg::To_PBLM(m_grid.m_blm);
     librii::egg::PBLM_Write(writer, bblm);

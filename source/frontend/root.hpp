@@ -18,6 +18,41 @@ namespace riistudio::frontend {
 
 class EditorWindow;
 
+class DiscordRPCManager {
+public:
+  DiscordRPCManager() : mDiscordRpc("1074030676648669235") {}
+
+  void connect() {
+    mDiscordRpc.connect();
+    mDiscordRpc.set_activity(mActivity);
+  }
+
+  void setStatus(std::string&& status) {
+    if (mActivity.details != status) {
+      mActivity.details = std::move(status);
+      mDiscordRpc.set_activity(mActivity);
+    }
+  }
+
+private:
+  rsl::DiscordIpcClient mDiscordRpc;
+  rsl::Activity mActivity{
+      .state = "RiiStudio",
+      .details = "Idling", // Filled in by editor
+      .timestamps = {
+        .start = time(0),
+      },
+      .assets = {.large_image = "large-image", .large_text = "Large text"},
+      .buttons =
+          {
+              {
+                  .text = "GitHub",
+                  .link = "https://github.com/riidefi/RiiStudio",
+              },
+          },
+  };
+};
+
 class RootWindow final : public Applet, public FileHost {
 public:
   static RootWindow* spInstance;
@@ -72,7 +107,7 @@ private:
   UpdaterView mUpdater;
   bool mCheckUpdate = true;
 
-  rsl::DiscordIpcClient mDiscordRpc;
+  DiscordRPCManager mDiscordRpc;
 
 public:
   void requestFile() { mWantFile = true; }

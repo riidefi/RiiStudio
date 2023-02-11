@@ -176,3 +176,61 @@ pub extern "C" fn rsl_rpc_destroy(client: *mut DiscordIpcClient) {
     rpc_kill(&mut *boxed);
   }
 }
+#[cxx::bridge(namespace = "rsl::ffi")]
+mod ffi {
+  struct Asset {
+    large_image: String,
+    large_text: String,
+  }
+  struct Button {
+    text: String,
+    link: String,
+  }
+  struct Timestamps {
+    start: i64,
+    end: i64,
+  }
+  struct Activity {
+    state: String,
+    details: String,
+    timestamps: Timestamps,
+
+    assets: Asset,
+    buttons: Vec<Button>,
+  }
+}
+fn rpc_set_activity(client: &mut DiscordIpcClient, activity: &ffi::Activity)
+-> Result<(), Box<dyn std::error::Error>> {
+  warn!("State: {}, details: {}", &activity.state, &activity.details);
+  let a = activity::Activity::new()
+    .state(&activity.state)
+    .details(&activity.details)
+    .timestamps(activity::Timestamps::new().start(activity.timestamps.start))
+    .assets(
+      activity::Assets::new()
+        .large_image(&activity.assets.large_image)
+        .large_text(&activity.assets.large_text),
+    )
+    .buttons(activity.buttons.iter().map(|x| activity::Button::new(
+      &x.text,
+      &x.link,
+    )).collect());
+  client.set_activity(a)?;
+
+  Ok(())
+}
+#[no_mangle]
+pub extern "C" fn rsl_rpc_set_activity(client: &mut DiscordIpcClient,
+                                       activity: &ffi::Activity) {
+  trace!("[DiscordIpcClient] rsl_rpc_set_activity()...");
+  let ok = rpc_set_activity(client, &activity);
+  match ok {
+    Ok(_) => {
+      trace!("[DiscordIpcClient] rsl_rpc_set_activity()...OK");
+    },
+    Err(err) => {
+      let msg = err.to_string();
+      error!("[DiscordIpcClient] {msg}");
+    }
+  };
+}

@@ -115,6 +115,13 @@ void RootWindow::draw() {
   DoLeakCheck();
   fileHostProcess();
 
+  if (auto* a = getActive()) {
+    if (auto* b = dynamic_cast<IEditor*>(a)) {
+      auto status = b->discordStatus();
+      mDiscordRpc.setStatus(std::move(status));
+    }
+  }
+
   auto& io = ImGui::GetIO();
 #ifdef RETINA_DEBUG
   ImGui::Text("DEBUG: Display: %f, %f", io.DisplaySize.x, io.DisplaySize.y);
@@ -344,8 +351,7 @@ static std::optional<std::vector<uint8_t>> LoadLuigiCircuitSample() {
 }
 
 RootWindow::RootWindow()
-    : Applet(std::string("RiiStudio "_j) + RII_TIME_STAMP),
-      mDiscordRpc("771124766517755954") {
+    : Applet(std::string("RiiStudio "_j) + RII_TIME_STAMP) {
   spInstance = this;
 
   // Loads the plugins for file formats / importers
@@ -358,7 +364,6 @@ RootWindow::RootWindow()
   SetWindowIcon(getPlatformWindow(), "icon.png");
 
   mDiscordRpc.connect();
-  mDiscordRpc.test();
 
   {
     auto brres = LoadLuigiCircuitSample();
@@ -376,15 +381,8 @@ RootWindow::~RootWindow() { DeinitAPI(); }
 
 void RootWindow::save(const std::string& path) {
   if (getActive() != nullptr) {
-    if (auto* ed = dynamic_cast<EditorWindow*>(getActive())) {
-      ed->saveAs(path);
-      return;
-    }
-    if (auto* b = dynamic_cast<BdofEditor*>(getActive())) {
-      b->saveAs(path);
-      return;
-    }
-    if (auto* b = dynamic_cast<BblmEditor*>(getActive())) {
+    if (auto* b = dynamic_cast<IEditor*>(getActive())) {
+      rsl::trace("Saving to {}", path);
       b->saveAs(path);
       return;
     }

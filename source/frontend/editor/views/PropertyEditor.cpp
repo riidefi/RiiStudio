@@ -1,3 +1,6 @@
+// Should be first
+#include <vendor/cista.h>
+
 #include "PropertyEditor.hpp"
 #include <LibBadUIFramework/RichNameManager.hpp>
 #include <core/3d/Material.hpp> // lib3d::Material

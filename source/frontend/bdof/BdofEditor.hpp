@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/util/oishii.hpp>
+#include <frontend/IEditor.hpp>
 #include <frontend/editor/StudioWindow.hpp>
 #include <frontend/level_editor/AutoHistory.hpp>
 #include <frontend/widgets/PropertyEditorWidget.hpp>
@@ -36,7 +37,7 @@ public:
   librii::egg::DOF m_dof;
 };
 
-class BdofEditor : public frontend::StudioWindow {
+class BdofEditor : public frontend::StudioWindow, public IEditor {
 public:
   BdofEditor()
       : StudioWindow("BDOF Editor: <unknown>", false),
@@ -87,7 +88,11 @@ public:
     return root_id;
   }
 
-  void openFile(std::span<const u8> buf, std::string path) {
+  std::string discordStatus() const override {
+    return "Editing a depth-of-field (.bdof) file.";
+  }
+
+  void openFile(std::span<const u8> buf, std::string_view path) override {
     oishii::DataProvider view(buf | rsl::ToList(), path);
     oishii::BinaryReader reader(view.slice());
     rsl::SafeReader safe(reader);
@@ -103,12 +108,12 @@ public:
     m_grid.m_dof = *dof;
     m_path = path;
   }
-  void saveAs(std::string path) {
+  void saveAs(std::string_view path) override {
     auto writer = write();
     OishiiFlushWriter(writer, path);
   }
 
-  oishii::Writer write() {
+  oishii::Writer write() const {
     oishii::Writer writer(0x50);
     auto bdof = librii::egg::To_BDOF(m_grid.m_dof);
     librii::egg::bin::BDOF_Write(writer, bdof);
