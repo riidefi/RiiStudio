@@ -133,7 +133,7 @@ else()
 
     set(ASSIMP_VERSION "5.2.5")
     set(GLFW_VERSION "3.3.8")
-    set(FREETYPE_VERSION "2.12.1")
+    set(FREETYPE_VERSION "2.13.0")
 
     SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
   elseif (UNIX)
