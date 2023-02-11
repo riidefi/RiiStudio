@@ -16,7 +16,7 @@ public:
                           IndexTypeT primitive_restart_index) {
     size_t last = 0;
     for (size_t i = 0; i <= mesh.size(); ++i) {
-      if (mesh[i] == primitive_restart_index || i == mesh.size()) {
+      if (i == mesh.size() || mesh[i] == primitive_restart_index) {
         auto subspan = mesh.subspan(last, i - last);
         if (!subspan.empty()) {
           co_yield subspan;
