@@ -30,6 +30,8 @@
 #include <librii/szs/SZS.hpp>
 #include <rsl/FsDialog.hpp>
 
+#include <rsl/Discord.hpp>
+
 IMPORT_STD;
 
 namespace llvm {
@@ -342,7 +344,8 @@ static std::optional<std::vector<uint8_t>> LoadLuigiCircuitSample() {
 }
 
 RootWindow::RootWindow()
-    : Applet(std::string("RiiStudio "_j) + RII_TIME_STAMP) {
+    : Applet(std::string("RiiStudio "_j) + RII_TIME_STAMP),
+      mDiscordRpc("771124766517755954") {
   spInstance = this;
 
   // Loads the plugins for file formats / importers
@@ -353,6 +356,9 @@ RootWindow::RootWindow()
   ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
   SetWindowIcon(getPlatformWindow(), "icon.png");
+
+  mDiscordRpc.connect();
+  mDiscordRpc.test();
 
   {
     auto brres = LoadLuigiCircuitSample();

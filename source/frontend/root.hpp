@@ -12,6 +12,8 @@
 #include <frontend/editor/ImporterWindow.hpp>
 #include <frontend/widgets/theme_editor.hpp>
 
+#include <rsl/Discord.hpp>
+
 namespace riistudio::frontend {
 
 class EditorWindow;
@@ -69,6 +71,8 @@ private:
 
   UpdaterView mUpdater;
   bool mCheckUpdate = true;
+
+  rsl::DiscordIpcClient mDiscordRpc;
 
 public:
   void requestFile() { mWantFile = true; }
