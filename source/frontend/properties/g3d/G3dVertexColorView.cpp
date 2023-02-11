@@ -89,7 +89,7 @@ void drawProperty(kpi::PropertyDelegate<ColorBuffer>& dl,
   // }
 } // namespace riistudio::g3d
 
-kpi::DecentralizedInstaller VColorInstaller([](kpi::ApplicationPlugins&) {
+kpi::DecentralizedInstaller VColorInstaller2([](kpi::ApplicationPlugins&) {
   auto& inst = kpi::PropertyViewManager::getInstance();
   inst.addPropertyView<ColorBuffer, G3dVertexColorDataSurface>();
   inst.addPropertyView<ColorBuffer, G3dVertexColorQuantSurface>();

@@ -1,12 +1,6 @@
 #include "IndexedPolygon.hpp"
 #include <librii/gl/Compiler.hpp>
 
-// For some reason I cannot comprehend, we need this to fix linking on Linux:
-#if defined(__linux__) && !defined(__EMSCRIPTEN__)
-#include <librii/gl/Compiler.cpp>
-#include <librii/mtx/TexMtx.cpp>
-#endif
-
 #include <random>
 #include <vendor/magic_enum/magic_enum.hpp>
 

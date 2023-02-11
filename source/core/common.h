@@ -165,7 +165,7 @@ inline const char* operator"" _j(const char* str, size_t len) {
 
 #define HAS_RANGES
 
-#if defined(__clang__) || defined(__GCC__) || defined(__APPLE__)
+#if defined(__clang__) || defined(__GNUC__) || defined(__APPLE__)
 #define HAS_RUST_TRY
 #define TRY(...)                                                               \
   ({                                                                           \
