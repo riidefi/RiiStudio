@@ -19,9 +19,6 @@ Basis of the `plugins` folder, defines some extendable UI structures.
 ## librii
 Library for interacting with Wii data.
 
-## minizip
-A third-party library.
-
 ## oishii
 My binary IO library.
 

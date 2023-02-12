@@ -11,7 +11,6 @@ add_subdirectory(LibBadUIFramework)
 
 # Third-party libraries
 add_subdirectory(vendor)
-add_subdirectory(minizip)
 
 add_subdirectory(updater)
 add_subdirectory(plugins)
