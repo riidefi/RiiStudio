@@ -17,6 +17,7 @@ struct Shape : public librii::j3d::ShapeData,
                public virtual kpi::IObject {
   virtual const j3d::Model* getParent() const { return nullptr; }
 
+  std::string getName() const override { return "Shape " + std::to_string((u64)this); }
   void setName(const std::string& name) override {}
 
   MeshData& getMeshData() override { return *this; }
