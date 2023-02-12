@@ -131,8 +131,6 @@ struct BLM {
 };
 
 inline Result<BLM> From_PBLM(const PBLM& b) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreorder-init-list"
   return BLM{
       .thresholdAmount = b.thresholdAmount,
       .thresholdColor = b.thresholdColor,
@@ -149,36 +147,39 @@ inline Result<BLM> From_PBLM(const PBLM& b) {
       .bokehColorScale0 = b.bokehColorScale0,
       .bokehColorScale1 = b.bokehColorScale1,
       // Unknown fields
-      .unks._1e = b._1e,
-      .unks._28 = b._28,
-      .unks._2c = b._2c,
-      .unks._30 = b._30,
-      .unks._34 = b._34,
-      .unks._38 = b._38,
-      .unks._3c = b._3c,
-      .unks._48 = b._48,
-      .unks._4c = b._4c,
-      .unks._50 = b._50,
-      .unks._54 = b._54,
-      .unks._58 = b._58,
-      .unks._5c = b._5c,
-      .unks._68 = b._68,
-      .unks._6c = b._6c,
-      .unks._70 = b._70,
-      .unks._74 = b._74,
-      .unks._78 = b._78,
-      .unks._7c = b._7c,
-      .unks._82 = b._82,
-      .unks._84 = b._84,
-      .unks._88 = b._88,
-      .unks._8c = b._8c,
-      .unks._90 = b._90,
-      .unks._94 = b._94,
-      .unks._98 = b._98,
+      .unks = {
+        ._1e = b._1e,
+        ._28 = b._28,
+        ._2c = b._2c,
+        ._30 = b._30,
+        ._34 = b._34,
+        ._38 = b._38,
+        ._3c = b._3c,
+        ._48 = b._48,
+        ._4c = b._4c,
+        ._50 = b._50,
+        ._54 = b._54,
+        ._58 = b._58,
+        ._5c = b._5c,
+        ._68 = b._68,
+        ._6c = b._6c,
+        ._70 = b._70,
+        ._74 = b._74,
+        ._78 = b._78,
+        ._7c = b._7c,
+        ._82 = b._82,
+        ._84 = b._84,
+        ._88 = b._88,
+        ._8c = b._8c,
+        ._90 = b._90,
+        ._94 = b._94,
+        ._98 = b._98,
+      },
   };
-#pragma clang diagnostic pop
 }
 inline PBLM To_PBLM(const BLM& b) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreorder-init-list"
   return PBLM{
       .thresholdAmount = b.thresholdAmount,
       .thresholdColor = b.thresholdColor,
@@ -195,6 +196,7 @@ inline PBLM To_PBLM(const BLM& b) {
       .bokehColorScale0 = b.bokehColorScale0,
       .bokehColorScale1 = b.bokehColorScale1,
       // Unknown fields
+#if !defined(__linux__)
       ._1e = b.unks._1e,
       ._28 = b.unks._28,
       ._2c = b.unks._2c,
@@ -221,7 +223,9 @@ inline PBLM To_PBLM(const BLM& b) {
       ._90 = b.unks._90,
       ._94 = b.unks._94,
       ._98 = b.unks._98,
+#endif
   };
+#pragma clang diagnostic pop
 }
 
 } // namespace librii::egg

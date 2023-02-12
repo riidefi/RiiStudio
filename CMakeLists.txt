@@ -108,21 +108,18 @@ if (ASAN)
   add_compile_definitions(_DISABLE_VECTOR_ANNOTATION=1 _DISABLE_STRING_ANNOTATION=1)
 endif()
 
-
-# Force static CRT runtime.
+# Force static CRT runtime.    
 #
 # MSVC:
-string( REPLACE "/MDd" "MTd" CMAKE_CXX_FLAGS_INIT ${CMAKE_CXX_FLAGS_INIT} )
-string( REPLACE "/MD" "MT" CMAKE_CXX_FLAGS_INIT ${CMAKE_CXX_FLAGS_INIT} )
-# Clang on Windows seems to have this set by default
-#string( REPLACE "-D_DLL" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS} )
-string( REPLACE "-D_DLL" "" CMAKE_C_FLAGS_INIT ${CMAKE_C_FLAGS_INIT} )
-string( REPLACE "-D_DLL" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} )
-string( REPLACE "-D_DLL" "" CMAKE_CXX_FLAGS_INIT ${CMAKE_CXX_FLAGS_INIT} )
+if (WIN32)
+  string( REPLACE "/MDd" "MTd" CMAKE_CXX_FLAGS_INIT ${CMAKE_CXX_FLAGS_INIT} )
+  string( REPLACE "/MD" "MT" CMAKE_CXX_FLAGS_INIT ${CMAKE_CXX_FLAGS_INIT} )
+endif()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   add_compile_options("-U _DLL")
   if (WIN32)
+    # Include a PDB
     add_link_options("-g")
   endif()
 endif()

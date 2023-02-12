@@ -77,7 +77,7 @@ public:
     if (!as_enum.has_value()) {
       mReader.warnAt(as_enum.error().c_str(), mReader.tell() - sizeof(T),
                      mReader.tell());
-#ifndef __APPLE__
+#if defined(_WIN32)
       auto cur = std::stacktrace::current();
 #else
       auto cur = 0;

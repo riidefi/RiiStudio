@@ -556,7 +556,7 @@ Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset) {
   auto json = preset.metadata_json;
   // Fill in date field
   const auto now = std::chrono::system_clock::now();
-#if !defined(__APPLE__) && !defined(__clang__)
+#if defined(_WIN32)
   json["date_created"] = std::format("{:%B %d, %Y}", now);
 #endif
   json["tool"] = std::format("RiiStudio {}", std::string_view(GIT_TAG));
