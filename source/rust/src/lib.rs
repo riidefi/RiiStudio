@@ -109,17 +109,20 @@ fn rpc_create(app_id: &str) -> Result<DiscordIpcClient, Box<dyn std::error::Erro
   warn!("[DiscordIpcClient] Creating client");
   DiscordIpcClient::new(app_id)
 }
-fn rpc_connect(client: &mut DiscordIpcClient) {
+fn rpc_connect(client: &mut DiscordIpcClient) -> i32 {
   warn!("[DiscordIpcClient] Connecting...");
   match client.connect() {
-    Ok(_) => (),
+    Ok(_) => 0,
     Err(err) => {
       let msg = err.to_string();
       error!("[DiscordIpcClient] {msg}");
+      -1
     }
   }
 }
-fn rpc_kill(client: &mut DiscordIpcClient) {
+
+#[no_mangle]
+pub extern "C" fn rsl_rpc_disconnect(client: &mut DiscordIpcClient) {
   warn!("[DiscordIpcClient] Closing connection...");
   match client.close() {
     Ok(_) => (),
@@ -155,9 +158,9 @@ pub extern "C" fn rsl_rpc_test(client: &mut DiscordIpcClient) {
 }
 
 #[no_mangle]
-pub extern "C" fn rsl_rpc_connect(client: &mut DiscordIpcClient) {
+pub extern "C" fn rsl_rpc_connect(client: &mut DiscordIpcClient) -> i32 {
   warn!("[DiscordIpcClient] rsl_rpc_connect()");
-  rpc_connect(client);
+  rpc_connect(client)
 }
 
 #[no_mangle]
@@ -182,8 +185,7 @@ pub extern "C" fn rsl_rpc_create(s: *const c_char) -> *mut DiscordIpcClient {
 pub extern "C" fn rsl_rpc_destroy(client: *mut DiscordIpcClient) {
   warn!("[DiscordIpcClient] Destroying client");
   unsafe {
-    let mut boxed = Box::from_raw(client);
-    rpc_kill(&mut *boxed);
+    let mut _owning_boxed = Box::from_raw(client);
   }
 }
 #[cxx::bridge(namespace = "rsl::ffi")]

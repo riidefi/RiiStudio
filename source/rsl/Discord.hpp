@@ -1,9 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <stdint.h>
 #include <string>
 #include <string_view>
-#include <stdint.h>
 #include <vector>
 
 namespace rsl {
@@ -35,7 +35,10 @@ public:
   DiscordIpcClient(const DiscordIpcClient&) = delete;
   ~DiscordIpcClient();
 
-  void connect();
+  bool connect();
+  bool connected() const;
+  void disconnect();
+
   void set_activity(const Activity& activity);
   void test();
 
