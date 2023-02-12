@@ -304,7 +304,8 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
     attachWindow(std::move(pWin));
     return;
   }
-  if (data.mPath.ends_with("bblm")) {
+  // .bblm1 .bblm2 should also be matched
+  if (data.mPath.contains(".bblm")) {
     auto pWin = std::make_unique<BblmEditor>();
 
     pWin->openFile(span, data.mPath);
@@ -430,7 +431,9 @@ void RootWindow::saveAs() {
     auto path = results->string();
 
     // Just autofill BBLM for now
-    if (!path.ends_with(".bblm") && !path.ends_with(".pblm")) {
+    // .bblm1 .bblm2 should also be matched
+    if (!results->extension().string().contains(".bblm") &&
+        !path.ends_with(".pblm")) {
       path += ".bblm";
     }
 
