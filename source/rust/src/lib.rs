@@ -1,17 +1,22 @@
 use simple_logger::SimpleLogger;
 use std::ffi::CStr;
 use std::os::raw::c_char;
-use unzpack::Unzpack;
 
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use log::*;
+
+use std::path::PathBuf;
+use std::io::Cursor;
 
 /*
 use std::fs::OpenOptions;
 use std::os::windows::prelude::*;
 */
 
-pub fn rsl_extract_zip(from_file: &str, to_folder: &str) -> Result<(), String> {
+pub fn rsl_extract_zip(from_file: &str,
+  to_folder: &str,
+  write_file: unsafe extern "C" fn(*const c_char, *const u8, u32)
+) -> Result<(), String> {
   // This fails for some reason with ERROR_SHARING_VIOLATION
   // Yet doing a simple fopen in C++ works..
 
@@ -23,14 +28,19 @@ pub fn rsl_extract_zip(from_file: &str, to_folder: &str) -> Result<(), String> {
           .share_mode(7)
           .open(&outpath).unwrap();
           */
-  match Unzpack::extract(from_file, to_folder) {
+  let archive: Vec<u8> = std::fs::read(from_file).expect("Failed to read {from_file}");
+  match zip_extract::extract(Cursor::new(&archive), &PathBuf::from(to_folder), false, write_file) {
     Ok(_) => Ok(()),
     Err(_) => Err("Failed to extract".to_string()),
   }
 }
 
 #[no_mangle]
-pub unsafe fn c_rsl_extract_zip(from_file: *const c_char, to_folder: *const c_char) -> i32 {
+pub unsafe fn c_rsl_extract_zip(
+  from_file: *const c_char,
+  to_folder: *const c_char,
+  write_file: unsafe extern "C" fn(*const c_char, *const u8, u32)
+) -> i32 {
   if from_file.is_null() || to_folder.is_null() {
     return -1;
   }
@@ -42,7 +52,7 @@ pub unsafe fn c_rsl_extract_zip(from_file: *const c_char, to_folder: *const c_ch
 
   println!("Extracting zip (from {from_str} to {to_str})");
 
-  match rsl_extract_zip(&from_str, &to_str) {
+  match rsl_extract_zip(&from_str, &to_str, write_file) {
     Ok(_) => 0,
     Err(err) => {
       println!("Failed: {err}");

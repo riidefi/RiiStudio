@@ -264,7 +264,7 @@ dependencies = [
  "discord-rich-presence",
  "log",
  "simple_logger",
- "unzpack",
+ "zip-extract",
 ]
 
 [[package]]
@@ -413,15 +413,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
 
 [[package]]
-name = "unzpack"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fe1faf122af8bc23e0088cb5a3bce057883e99c01abee9312484ef213b2b725"
-dependencies = [
- "zip",
-]
-
-[[package]]
 name = "uuid"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -542,4 +533,14 @@ dependencies = [
  "flate2",
  "thiserror",
  "time 0.1.45",
+]
+
+[[package]]
+name = "zip-extract"
+version = "0.1.1"
+source = "git+https://github.com/riidefi/zip-extract#1385d451c0954aa287100e15aaa7cf013a2f7f17"
+dependencies = [
+ "log",
+ "thiserror",
+ "zip",
 ]
