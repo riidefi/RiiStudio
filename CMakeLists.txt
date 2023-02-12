@@ -68,9 +68,10 @@ if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
   add_compile_options("-Wno-deprecated-volatile")
   # Assimp
   add_compile_options("-Wno-pragma-pack")
+  # Lots of C++14 code
+  add_compile_definitions(_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING=1)
 
   if ("x${CMAKE_CXX_SIMULATE_ID}" STREQUAL "xMSVC")
-    add_compile_options("/MT")
     string( REPLACE "/EHsc" "" CMAKE_CXX_FLAGS_INIT ${CMAKE_CXX_FLAGS_INIT})
     string( REPLACE "/EHsc" "" CMAKE_C_FLAGS_INIT ${CMAKE_C_FLAGS_INIT} )
     string( REPLACE "/EHs" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_INIT} )
@@ -106,6 +107,26 @@ endif()
 if (ASAN)
   add_compile_definitions(_DISABLE_VECTOR_ANNOTATION=1 _DISABLE_STRING_ANNOTATION=1)
 endif()
+
+
+# Force static CRT runtime.
+#
+# MSVC:
+string( REPLACE "/MDd" "MTd" CMAKE_CXX_FLAGS_INIT ${CMAKE_CXX_FLAGS_INIT} )
+string( REPLACE "/MD" "MT" CMAKE_CXX_FLAGS_INIT ${CMAKE_CXX_FLAGS_INIT} )
+# Clang on Windows seems to have this set by default
+#string( REPLACE "-D_DLL" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS} )
+string( REPLACE "-D_DLL" "" CMAKE_C_FLAGS_INIT ${CMAKE_C_FLAGS_INIT} )
+string( REPLACE "-D_DLL" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} )
+string( REPLACE "-D_DLL" "" CMAKE_CXX_FLAGS_INIT ${CMAKE_CXX_FLAGS_INIT} )
+
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  add_compile_options("-U _DLL")
+  if (WIN32)
+    add_link_options("-g")
+  endif()
+endif()
+
 
 add_compile_definitions(FMT_EXCEPTIONS=0)
 CPMAddPackage("gh:fmtlib/fmt#9.1.0")

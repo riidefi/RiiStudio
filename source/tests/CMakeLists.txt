@@ -20,6 +20,8 @@ target_link_libraries(tests PUBLIC
 	plugins
 	vendor
 )
+# ???
+add_dependencies(tests plugins)
 
 if (WIN32)
   set(LINK_LIBS
@@ -85,7 +87,7 @@ else()
     # This is a hack to append a final link arg
     target_link_libraries(tests PUBLIC "-Wl,--end-group")
   else()
-    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "--whole_archive")
+    # SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "--whole_archive")
   endif()
 endif()
 

@@ -142,7 +142,7 @@ else()
     # This is a hack to append a final link arg
     target_link_libraries(frontend PUBLIC "-Wl,--end-group")
   else()
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "--whole_archive")
+    # SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "--whole_archive")
   endif()
   # TODO: Not functional (yet)
 	#add_link_options("-s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind")

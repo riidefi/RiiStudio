@@ -556,10 +556,10 @@ Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset) {
   auto json = preset.metadata_json;
   // Fill in date field
   const auto now = std::chrono::system_clock::now();
-#if !defined(__APPLE__) && !defined(__linux__)
+#if !defined(__APPLE__) && !defined(__clang__)
   json["date_created"] = std::format("{:%B %d, %Y}", now);
 #endif
-  json["tool"] = std::format("RiiStudio {}", GIT_TAG);
+  json["tool"] = std::format("RiiStudio {}", std::string_view(GIT_TAG));
 
   // A bone is required for some reason
   mdl.bones.emplace_back().mName =
