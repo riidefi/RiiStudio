@@ -1212,14 +1212,14 @@ struct ShaderAllocator {
 
 Result<librii::g3d::BinaryModel> toBinaryModel(const Model& mdl) {
   std::set<s16> shapeRefMtx = computeShapeMtxRef(mdl.meshes);
-  DebugPrint("shapeRefMtx: {}, Before: {}", shapeRefMtx.size(),
+  rsl::debug("shapeRefMtx: {}, Before: {}", shapeRefMtx.size(),
              mdl.matrices.size());
   if (!mdl.meshes.empty()) {
     EXPECT(shapeRefMtx.size() == mdl.matrices.size());
   }
   std::vector<DrawMatrix> drawMatrices = mdl.matrices;
   std::vector<u32> boneToMatrix;
-  DebugPrint("# Bones = {}", mdl.bones.size());
+  rsl::debug("# Bones = {}", mdl.bones.size());
   for (size_t i = 0; i < mdl.bones.size(); ++i) {
     int it = -1;
     for (size_t j = 0; j < mdl.matrices.size(); ++j) {
@@ -1232,7 +1232,7 @@ Result<librii::g3d::BinaryModel> toBinaryModel(const Model& mdl) {
     if (it == -1) {
       boneToMatrix.push_back(drawMatrices.size());
       DrawMatrix mtx{.mWeights = {{static_cast<u32>(i), 1.0f}}};
-      DebugPrint("Adding drawmtx {} for bone {} since no singlebound found",
+      rsl::debug("Adding drawmtx {} for bone {} since no singlebound found",
                  drawMatrices.size(), i);
       drawMatrices.push_back(mtx);
     } else {
@@ -1242,7 +1242,7 @@ Result<librii::g3d::BinaryModel> toBinaryModel(const Model& mdl) {
   auto getMatrixId = [&](auto& x, int i) { return boneToMatrix[i]; };
   std::set<s16> displayMatrices =
       gx::computeDisplayMatricesSubset(mdl.meshes, mdl.bones, getMatrixId);
-  DebugPrint("boneToMatrix: {}, displayMatrices: {}, drawMatrices: {}",
+  rsl::debug("boneToMatrix: {}, displayMatrices: {}, drawMatrices: {}",
              boneToMatrix.size(), displayMatrices.size(), drawMatrices.size());
 
   ShaderAllocator shader_allocator;

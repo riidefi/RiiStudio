@@ -114,29 +114,6 @@ import std.filesystem
 #define __FILE_NAME__ __FILE__
 #endif
 
-#ifdef DEBUG
-
-#if defined(__EMSCRIPTEN__)
-#include <emscripten.h>
-
-#define DebugReport(...)                                                       \
-  emscripten_log(EM_LOG_NO_PATHS | EM_LOG_CONSOLE,                             \
-                 "[" __FILE_NAME__                                             \
-                 ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__)
-
-#else
-#define DebugReport(...)                                                       \
-  printf("[" __FILE_NAME__ ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__)
-#define DebugPrint(...)                                                        \
-  fprintf(stderr, "[" __FILE_NAME__ ":" LIB_RII_TO_STRING(__LINE__) "] %s\n",  \
-          std::format(__VA_ARGS__).c_str());
-#endif
-#else
-#define DebugReport(...)
-#define DebugPrint(...)
-
-#endif
-
 constexpr u32 roundDown(u32 in, u32 align) {
   return align ? in & ~(align - 1) : in;
 };

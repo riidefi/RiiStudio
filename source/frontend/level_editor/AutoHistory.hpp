@@ -49,7 +49,7 @@ template <typename T> struct AutoHistory {
     // Revert it
     kmp = mKmpHistory.back();
 
-    DebugReport("Restored KMP to backup state\n");
+    rsl::debug("Restored KMP to backup state\n");
 
     assert(kmp == kmp && "Failed to restore KMP from backup state");
 
