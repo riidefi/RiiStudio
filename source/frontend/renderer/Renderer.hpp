@@ -1,14 +1,13 @@
 #pragma once
 
 #include "MouseHider.hpp"
+#include <LibBadUIFramework/Node2.hpp>
 #include <core/3d/i3dmodel.hpp>
 #include <core/common.h>
-#include <LibBadUIFramework/Node2.hpp>
-#include <frontend/level_editor/DeltaTime.hpp>
 #include <frontend/renderer/CameraController.hpp>
+#include <frontend/widgets/DeltaTime.hpp>
 #include <glm/mat4x4.hpp>
 #include <librii/gfx/SceneState.hpp>
-#include <memory>
 
 namespace riistudio::frontend {
 

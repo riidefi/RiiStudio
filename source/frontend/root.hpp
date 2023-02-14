@@ -12,46 +12,11 @@
 #include <frontend/editor/ImporterWindow.hpp>
 #include <frontend/widgets/theme_editor.hpp>
 
-#include <rsl/Discord.hpp>
+#include <frontend/DiscordRPCManager.hpp>
 
 namespace riistudio::frontend {
 
 class EditorWindow;
-
-class DiscordRPCManager {
-public:
-  DiscordRPCManager() : mDiscordRpc("1074030676648669235") {}
-
-  void connect() {
-    mDiscordRpc.connect();
-    mDiscordRpc.set_activity(mActivity);
-  }
-
-  void setStatus(std::string&& status) {
-    if (mActivity.details != status) {
-      mActivity.details = std::move(status);
-      mDiscordRpc.set_activity(mActivity);
-    }
-  }
-
-private:
-  rsl::DiscordIpcClient mDiscordRpc;
-  rsl::Activity mActivity{
-      .state = "RiiStudio",
-      .details = "Idling", // Filled in by editor
-      .timestamps = {
-        .start = time(0),
-      },
-      .assets = {.large_image = "large-image", .large_text = "Large text"},
-      .buttons =
-          {
-              {
-                  .text = "GitHub",
-                  .link = "https://github.com/riidefi/RiiStudio",
-              },
-          },
-  };
-};
 
 class RootWindow final : public Applet, public FileHost {
 public:
@@ -77,13 +42,6 @@ public:
   void attachEditorWindow(std::unique_ptr<EditorWindow> editor);
   void save(const std::string& path);
   void saveAs();
-
-  enum class UnsavedProgressResult {
-    Save,
-    DontSave,
-    CancelClose,
-  };
-  UnsavedProgressResult unsavedProgressBox();
 
 private:
   bool shouldClose() override;

@@ -1,23 +1,17 @@
 #pragma once
 
-#include <chrono>
 #include <core/common.h>
 #include <frontend/editor/StudioWindow.hpp>
+#include <frontend/level_editor/Archive.hpp>
+#include <frontend/level_editor/TriangleRenderer.hpp>
 #include <frontend/renderer/Renderer.hpp>
+#include <frontend/widgets/AutoHistory.hpp>
+#include <frontend/widgets/DeltaTime.hpp>
+#include <librii/g3d/gfx/G3dGfx.hpp>
 #include <librii/kcol/Model.hpp>
 #include <librii/kmp/CourseMap.hpp>
-#include <memory>
 #include <plate/toolkit/Viewport.hpp>
 #include <plugins/g3d/collection.hpp>
-#include <span>
-#include <string>
-
-#include <frontend/level_editor/Archive.hpp>
-#include <frontend/level_editor/AutoHistory.hpp>
-#include <frontend/level_editor/DeltaTime.hpp>
-#include <frontend/level_editor/TriangleRenderer.hpp>
-
-#include <librii/g3d/gfx/G3dGfx.hpp>
 
 namespace riistudio::lvl {
 

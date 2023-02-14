@@ -1,5 +1,7 @@
 #pragma once
 
+#include <rsl/FsDialog.hpp>
+
 #include "EditorDocument.hpp"             // EditorDocument
 #include "StudioWindow.hpp"               // StudioWindow
 #include <LibBadUIFramework/Document.hpp> // kpi::Document
@@ -45,6 +47,47 @@ public:
   }
 
   SelectionManager& getSelection() { return mSelection; }
+  bool implementsCustomSaving() const override { return true; }
+  void saveButton() override {
+    // For now, just fallback to "Save As". Minor inconvenience to user.
+    saveAsButton();
+  }
+  void saveAsButton() override {
+    std::vector<std::string> filters;
+    const kpi::INode* node = &getDocument().getRoot();
+
+    auto default_filename = std::filesystem::path(getFilePath()).filename();
+    if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
+      filters.push_back("Binary Model Data (*.bmd)"_j);
+      filters.push_back("*.bmd");
+      default_filename.replace_extension(".bmd");
+    } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) !=
+               nullptr) {
+      filters.push_back("Binary Resource (*.brres)"_j);
+      filters.push_back("*.brres");
+      default_filename.replace_extension(".brres");
+    }
+
+    filters.push_back("All Files");
+    filters.push_back("*");
+
+    auto results =
+        rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
+    if (!results)
+      return;
+    auto path = results->string();
+
+    if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
+      if (!path.ends_with(".bmd"))
+        path.append(".bmd");
+    } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) !=
+               nullptr) {
+      if (!path.ends_with(".brres"))
+        path.append(".brres");
+    }
+    rsl::trace("Saving to {}", path);
+    saveAs(path);
+  }
 
 private:
   void init();
@@ -53,10 +96,12 @@ private:
   SelectionManager mSelection;
 
   std::string discordStatus() const override {
-    if (auto* g = dynamic_cast<const riistudio::g3d::Collection*>(&getDocument().getRoot())) {
+    if (auto* g = dynamic_cast<const riistudio::g3d::Collection*>(
+            &getDocument().getRoot())) {
       return "Editing a BRRES";
     }
-    if (auto* g = dynamic_cast<const riistudio::j3d::Collection*>(&getDocument().getRoot())) {
+    if (auto* g = dynamic_cast<const riistudio::j3d::Collection*>(
+            &getDocument().getRoot())) {
       return "Editing a BMD";
     }
     return "Working on unknown things";
@@ -64,9 +109,7 @@ private:
   void openFile(std::span<const u8> buf, std::string_view path) override {
     rsl::error("Cannot open {}", path);
   }
-  void saveAs(std::string_view path) override {
-    getDocument().saveAs(path);
-  }
+  void saveAs(std::string_view path) override { getDocument().saveAs(path); }
 };
 
 } // namespace riistudio::frontend

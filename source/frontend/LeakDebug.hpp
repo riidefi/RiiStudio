@@ -6,6 +6,7 @@
 
 namespace riistudio {
 
+//! Only does anything if built with llvm LeakSanitizer.
 inline void DoLeakCheck() {
 #ifdef BUILD_ASAN
   __lsan_do_leak_check();

@@ -61,7 +61,15 @@ add_executable(frontend
  "level_editor/Archive.hpp" "level_editor/Archive.cpp"
  "level_editor/IO.hpp" "level_editor/IO.cpp"
  "level_editor/Transform.cpp" "level_editor/Transform.hpp"
- "level_editor/TriangleRenderer.cpp" "level_editor/TriangleRenderer.hpp" "level_editor/AutoHistory.hpp" "level_editor/DeltaTime.hpp" "level_editor/DeltaTime.cpp" "level_editor/CppSupport.hpp" "level_editor/CppSupport.cpp" "level_editor/ViewCube.hpp" "level_editor/ViewCube.cpp" "widgets/Lib3dImage.hpp" "widgets/Lib3dImage.cpp" "widgets/Manipulator.hpp" "widgets/Manipulator.cpp" "properties/gc/Material/CratePreset.cpp" "UpdaterView.cpp" "bdof/BdofEditor.cpp" "bdof/BblmEditor.cpp")
+ "level_editor/TriangleRenderer.cpp" "level_editor/TriangleRenderer.hpp"
+
+ "widgets/AutoHistory.hpp"
+ "widgets/DeltaTime.hpp"
+ "widgets/DeltaTime.cpp"
+ "widgets/CppSupport.hpp"
+ "widgets/CppSupport.cpp"
+
+ "level_editor/ViewCube.hpp" "level_editor/ViewCube.cpp" "widgets/Lib3dImage.hpp" "widgets/Lib3dImage.cpp" "widgets/Manipulator.hpp" "widgets/Manipulator.cpp" "properties/gc/Material/CratePreset.cpp" "UpdaterView.cpp" "bdof/BdofEditor.cpp" "bdof/BblmEditor.cpp" "Fonts.cpp")
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 

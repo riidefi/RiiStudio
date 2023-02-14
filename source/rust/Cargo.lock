@@ -538,7 +538,7 @@ dependencies = [
 [[package]]
 name = "zip-extract"
 version = "0.1.1"
-source = "git+https://github.com/riidefi/zip-extract#1385d451c0954aa287100e15aaa7cf013a2f7f17"
+source = "git+https://github.com/riidefi/zip-extract#fd98d7948860621c9b87bbe4745e3f5d13679d7e"
 dependencies = [
  "log",
  "thiserror",

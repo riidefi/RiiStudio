@@ -3,7 +3,7 @@
 #include <core/util/oishii.hpp>
 #include <frontend/IEditor.hpp>
 #include <frontend/editor/StudioWindow.hpp>
-#include <frontend/level_editor/AutoHistory.hpp>
+#include <frontend/widgets/AutoHistory.hpp>
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <librii/egg/PBLM.hpp>
 #include <librii/sp/DebugClient.hpp>
@@ -88,6 +88,36 @@ public:
   }
 
   std::string getFilePath() const { return m_path; }
+
+  bool implementsCustomSaving() const override { return true; }
+  void saveButton() override {
+    // For now, just fallback to "Save As". Minor inconvenience to user.
+    saveAsButton();
+  }
+  void saveAsButton() override {
+    std::vector<std::string> filters;
+    auto default_filename = std::filesystem::path(getFilePath()).filename();
+    filters.push_back("EGG Binary BBLM (*.bblm)");
+    filters.push_back("*.bblm");
+    filters.push_back("EGG Binary PBLM (*.pblm)");
+    filters.push_back("*.pblm");
+    auto results =
+        rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
+    if (!results) {
+      rsl::ErrorDialog("No saving - No file selected");
+      return;
+    }
+    auto path = results->string();
+
+    // Just autofill BBLM for now
+    // .bblm1 .bblm2 should also be matched
+    if (!results->extension().string().contains(".bblm") &&
+        !path.ends_with(".pblm")) {
+      path += ".bblm";
+    }
+
+    saveAs(path);
+  }
 
 private:
   BblmEditorPropertyGrid m_grid;

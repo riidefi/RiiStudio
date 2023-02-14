@@ -1,5 +1,4 @@
 #include "LevelEditor.hpp"
-#include "CppSupport.hpp"
 #include "IO.hpp"
 #include "KclUtil.hpp"
 #include "ObjUtil.hpp"
@@ -8,6 +7,7 @@
 #include <core/3d/gl.hpp>
 #include <core/common.h>
 #include <frontend/root.hpp>
+#include <frontend/widgets/CppSupport.hpp>
 #include <frontend/widgets/Manipulator.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>

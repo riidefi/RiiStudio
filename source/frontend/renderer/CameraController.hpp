@@ -12,21 +12,23 @@ namespace riistudio::frontend {
 class CameraController {
 public:
   enum class ControllerType : int {
-    WASD_Minecraft, //!< First-person controls matching the game Minecraft's
-                    //!< flying mode:
-                    //!< - WASD inputs only move the camera on the XZ plane.
-                    //!< - Manipulating the camera along the Y axis is done
-                    //!<   solely through Up/Down inputs (SPACE/SHIFT). These
-                    //!<   inputs are global up, and global down, and are
-                    //!<   independent of the camera's current attitude.
+    //! First-person controls matching the game Minecraft's
+    //! flying mode:
+    //! - WASD inputs only move the camera on the XZ plane.
+    //! - Manipulating the camera along the Y axis is done
+    //!   solely through Up/Down inputs (SPACE/SHIFT). These
+    //!   inputs are global up, and global down, and are
+    //!   independent of the camera's current attitude.
+    WASD_Minecraft,
 
-    WASD_Plane //!< First-person controls fitting a flight simulator.
-               //!< - WASD inputs move the camera in XYZ based on its direction,
-               //!<   as an actual aircraft would move when pointed in a
-               //!<   trajectory.
-               //!< - Up/Down inputs are still global, though, as being
-               //!<   perpendicular to the view direction can be confusing.
-               //!<   (Matching WASD_Minecraft's behavior for SPACE/SHIFT)
+    //! First-person controls fitting a flight simulator.
+    //! - WASD inputs move the camera in XYZ based on its direction,
+    //!   as an actual aircraft would move when pointed in a
+    //!   trajectory.
+    //! - Up/Down inputs are still global, though, as being
+    //!   perpendicular to the view direction can be confusing.
+    //!   (Matching WASD_Minecraft's behavior for SPACE/SHIFT)
+    WASD_Plane,
   };
 
   void move(float time_step, InputState input);

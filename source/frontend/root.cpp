@@ -32,6 +32,8 @@
 
 #include <rsl/Discord.hpp>
 
+#include <frontend/widgets/UnsavedProgress.hpp>
+
 IMPORT_STD;
 
 namespace llvm {
@@ -381,118 +383,32 @@ RootWindow::RootWindow()
 RootWindow::~RootWindow() { DeinitAPI(); }
 
 void RootWindow::save(const std::string& path) {
-  if (getActive() != nullptr) {
-    if (auto* b = dynamic_cast<IEditor*>(getActive())) {
-      rsl::trace("Saving to {}", path);
-      b->saveAs(path);
-      return;
-    }
+  if (getActive() == nullptr) {
+    rsl::ErrorDialog("Failed to save. Nothing is open");
+    return;
   }
-
+  if (auto* b = dynamic_cast<IEditor*>(getActive())) {
+    rsl::trace("Saving to {}", path);
+    // TODO: This is the old API
+    b->saveAs(path);
+    return;
+  }
+  // In theory, you could handle custom types here implementing a different API.
   rsl::ErrorDialog("Failed to save. Not saveable");
 }
 void RootWindow::saveAs() {
-  std::vector<std::string> filters;
-
-  if (BdofEditor* b = dynamic_cast<BdofEditor*>(getActive())) {
-    auto default_filename = std::filesystem::path(b->getFilePath()).filename();
-    filters.push_back("EGG Binary BDOF (*.bdof)");
-    filters.push_back("*.bdof");
-    filters.push_back("EGG Binary PDOF (*.pdof)");
-    filters.push_back("*.pdof");
-    auto results =
-        rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
-    if (!results) {
-      rsl::ErrorDialog("No saving - No file selected");
+  if (getActive() == nullptr) {
+    rsl::ErrorDialog("Failed to save. Nothing is open");
+    return;
+  }
+  if (IEditor* b = dynamic_cast<IEditor*>(getActive())) {
+    if (b->implementsCustomSaving()) {
+      b->saveAsButton();
       return;
     }
-    auto path = results->string();
-
-    // Just autofill BDOF for now
-    if (!path.ends_with(".bdof") && !path.ends_with(".pdof")) {
-      path += ".bdof";
-    }
-
-    save(path);
-    return;
   }
-  if (BblmEditor* b = dynamic_cast<BblmEditor*>(getActive())) {
-    auto default_filename = std::filesystem::path(b->getFilePath()).filename();
-    filters.push_back("EGG Binary BBLM (*.bblm)");
-    filters.push_back("*.bblm");
-    filters.push_back("EGG Binary PBLM (*.pblm)");
-    filters.push_back("*.pblm");
-    auto results =
-        rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
-    if (!results) {
-      rsl::ErrorDialog("No saving - No file selected");
-      return;
-    }
-    auto path = results->string();
-
-    // Just autofill BBLM for now
-    // .bblm1 .bblm2 should also be matched
-    if (!results->extension().string().contains(".bblm") &&
-        !path.ends_with(".pblm")) {
-      path += ".bblm";
-    }
-
-    save(path);
-    return;
-  }
-
-  EditorWindow* ed =
-      getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
-  if (ed == nullptr)
-    return;
-
-  const kpi::INode* node = &ed->getDocument().getRoot();
-
-  auto default_filename = std::filesystem::path(ed->getFilePath()).filename();
-  if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
-    filters.push_back("Binary Model Data (*.bmd)"_j);
-    filters.push_back("*.bmd");
-    default_filename.replace_extension(".bmd");
-  } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) != nullptr) {
-    filters.push_back("Binary Resource (*.brres)"_j);
-    filters.push_back("*.brres");
-    default_filename.replace_extension(".brres");
-  }
-
-  filters.push_back("All Files");
-  filters.push_back("*");
-
-  auto results =
-      rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
-  if (!results)
-    return;
-  auto path = results->string();
-
-  if (dynamic_cast<const riistudio::j3d::Collection*>(node) != nullptr) {
-    if (!path.ends_with(".bmd"))
-      path.append(".bmd");
-  } else if (dynamic_cast<const riistudio::g3d::Collection*>(node) != nullptr) {
-    if (!path.ends_with(".brres"))
-      path.append(".brres");
-  }
-
-  save(path);
-}
-
-RootWindow::UnsavedProgressResult RootWindow::unsavedProgressBox() {
-  auto box = pfd::message("Unsaved Files", //
-                          "Do you want to save before closing?",
-                          pfd::choice::yes_no_cancel, pfd::icon::warning);
-
-  switch (box.result()) {
-  case pfd::button::yes:
-    return UnsavedProgressResult::Save;
-  case pfd::button::no:
-    return UnsavedProgressResult::DontSave;
-  case pfd::button::cancel:
-  default:
-    return UnsavedProgressResult::CancelClose;
-  }
+  // In theory, you could handle custom types here implementing a different API.
+  rsl::ErrorDialog("Failed to save. Not saveable");
 }
 
 bool RootWindow::shouldClose() {

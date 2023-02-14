@@ -3,7 +3,7 @@
 #include <core/util/oishii.hpp>
 #include <frontend/IEditor.hpp>
 #include <frontend/editor/StudioWindow.hpp>
-#include <frontend/level_editor/AutoHistory.hpp>
+#include <frontend/widgets/AutoHistory.hpp>
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <librii/egg/BDOF.hpp>
 #include <librii/sp/DebugClient.hpp>
@@ -121,6 +121,34 @@ public:
   }
 
   std::string getFilePath() const { return m_path; }
+
+  bool implementsCustomSaving() const override { return true; }
+  void saveButton() override {
+    // For now, just fallback to "Save As". Minor inconvenience to user.
+    saveAsButton();
+  }
+  void saveAsButton() override {
+    std::vector<std::string> filters;
+    auto default_filename = std::filesystem::path(getFilePath()).filename();
+    filters.push_back("EGG Binary BDOF (*.bdof)");
+    filters.push_back("*.bdof");
+    filters.push_back("EGG Binary PDOF (*.pdof)");
+    filters.push_back("*.pdof");
+    auto results =
+        rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
+    if (!results) {
+      rsl::ErrorDialog("No saving - No file selected");
+      return;
+    }
+    auto path = results->string();
+
+    // Just autofill BDOF for now
+    if (!path.ends_with(".bdof") && !path.ends_with(".pdof")) {
+      path += ".bdof";
+    }
+
+    saveAs(path);
+  }
 
 private:
   BdofEditorPropertyGrid m_grid;
