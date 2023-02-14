@@ -1,40 +1,24 @@
-#include "root.hpp"
-#include "LeakDebug.hpp"
 #include <core/3d/gl.hpp>
+
+#include "LeakDebug.hpp"
+#include "root.hpp"
+#include "EditorFactory.hpp"
 #include <core/util/timestamp.hpp>
+#include <frontend/Fonts.hpp>
 #include <frontend/Localization.hpp>
 #include <frontend/editor/EditorWindow.hpp>
+#include <frontend/widgets/UnsavedProgress.hpp>
 #include <frontend/widgets/fps.hpp>
 #include <imcxx/Widgets.hpp>
 #include <imgui_markdown.h>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
-#include <pfd/portable-file-dialogs.h>
 #include <plugins/api.hpp>
-
-// Experimental conversion
 #include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/Scene.hpp>
-
-#include <vendor/stb_image.h>
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
-
-#include <frontend/bdof/BblmEditor.hpp>
-#include <frontend/bdof/BdofEditor.hpp>
-#include <frontend/level_editor/LevelEditor.hpp>
-
-#include <frontend/Fonts.hpp>
-#include <librii/szs/SZS.hpp>
-#include <rsl/FsDialog.hpp>
-
 #include <rsl/Discord.hpp>
-
-#include <frontend/widgets/UnsavedProgress.hpp>
-
-IMPORT_STD;
+#include <rsl/FsDialog.hpp>
+#include <rsl/Stb.hpp>
 
 namespace llvm {
 int DisableABIBreakingChecks;
@@ -83,10 +67,16 @@ RootWindow* RootWindow::spInstance;
 void SetWindowIcon(void* platform_window, const char* path) {
 #ifdef RII_BACKEND_GLFW
   GLFWwindow* window = reinterpret_cast<GLFWwindow*>(platform_window);
+  auto x = rsl::stb::load(path);
+  if (!x.has_value()) {
+    rsl::error("Failed to load icon");
+    return;
+  }
+
   GLFWimage image;
-  image.pixels = stbi_load(path, &image.width, &image.height, 0, 4);
+  image.width = x->width;
+  image.height = x->height;
   glfwSetWindowIcon(window, 1, &image);
-  stbi_image_free(image.pixels);
 #endif
 }
 
@@ -260,59 +250,23 @@ void RootWindow::drawFileMenu(riistudio::frontend::EditorWindow* ed) {
     }
 #endif
     if (ImGui::MenuItem("Save"_j)) {
-      if (ed) {
-        rsl::trace("Attempting to save to {}", ed->getFilePath());
-        if (!ed->getFilePath().empty()) {
-          save(ed->getFilePath());
-        } else {
-          saveAs();
-        }
-      } else {
-        // Try anyway (.bdof)
-        saveAs();
-      }
+      saveButton();
     }
 #if !defined(__EMSCRIPTEN__)
     if (ImGui::MenuItem("Save As"_j)) {
-      if (ed) {
-        saveAs();
-      } else {
-        // Try anyway (.bdof)
-        saveAs();
-      }
+      saveAsButton();
     }
 #endif
     ImGui::EndMenu();
   }
 }
+
 void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
   rsl::info("Opening file: {}", data.mPath.c_str());
 
-  std::span<const u8> span(data.mData.get(), data.mData.get() + data.mLen);
-
-  if (data.mPath.ends_with("szs")) {
-    auto pWin = std::make_unique<lvl::LevelEditorWindow>();
-
-    pWin->openFile(span, data.mPath);
-
-    attachWindow(std::move(pWin));
-    return;
-  }
-  if (data.mPath.ends_with("bdof")) {
-    auto pWin = std::make_unique<BdofEditor>();
-
-    pWin->openFile(span, data.mPath);
-
-    attachWindow(std::move(pWin));
-    return;
-  }
-  // .bblm1 .bblm2 should also be matched
-  if (data.mPath.contains(".bblm")) {
-    auto pWin = std::make_unique<BblmEditor>();
-
-    pWin->openFile(span, data.mPath);
-
-    attachWindow(std::move(pWin));
+  auto w = MakeEditor(data);
+  if (w) {
+    attachWindow(std::move(w));
     return;
   }
 
@@ -335,22 +289,6 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
 }
 void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
   attachWindow(std::move(editor));
-}
-
-static std::optional<std::vector<uint8_t>> LoadLuigiCircuitSample() {
-  auto szs = ReadFileData("./samp/luigi_circuit_brres.szs");
-  if (!szs)
-    return std::nullopt;
-
-  rsl::byte_view szs_view{szs->mData.get(), szs->mLen};
-  const auto expanded_size = librii::szs::getExpandedSize(szs_view);
-
-  std::vector<uint8_t> brres(expanded_size);
-  auto err = librii::szs::decode(brres, szs_view);
-  if (err)
-    return std::nullopt;
-
-  return brres;
 }
 
 RootWindow::RootWindow()
@@ -382,30 +320,27 @@ RootWindow::RootWindow()
 }
 RootWindow::~RootWindow() { DeinitAPI(); }
 
-void RootWindow::save(const std::string& path) {
-  if (getActive() == nullptr) {
-    rsl::ErrorDialog("Failed to save. Nothing is open");
-    return;
-  }
-  if (auto* b = dynamic_cast<IEditor*>(getActive())) {
-    rsl::trace("Saving to {}", path);
-    // TODO: This is the old API
-    b->saveAs(path);
-    return;
-  }
-  // In theory, you could handle custom types here implementing a different API.
-  rsl::ErrorDialog("Failed to save. Not saveable");
-}
-void RootWindow::saveAs() {
+void RootWindow::saveButton() {
   if (getActive() == nullptr) {
     rsl::ErrorDialog("Failed to save. Nothing is open");
     return;
   }
   if (IEditor* b = dynamic_cast<IEditor*>(getActive())) {
-    if (b->implementsCustomSaving()) {
-      b->saveAsButton();
-      return;
-    }
+    b->saveButton();
+    return;
+  }
+  // In theory, you could handle custom types here implementing a different API.
+  rsl::ErrorDialog("Failed to save. Not saveable");
+}
+
+void RootWindow::saveAsButton() {
+  if (getActive() == nullptr) {
+    rsl::ErrorDialog("Failed to save. Nothing is open");
+    return;
+  }
+  if (IEditor* b = dynamic_cast<IEditor*>(getActive())) {
+    b->saveAsButton();
+    return;
   }
   // In theory, you could handle custom types here implementing a different API.
   rsl::ErrorDialog("Failed to save. Not saveable");
@@ -422,18 +357,7 @@ bool RootWindow::shouldClose() {
   }
 
   if (choice == UnsavedProgressResult::Save) {
-    EditorWindow* ed =
-        getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
-    if (ed == nullptr) {
-      rsl::ErrorDialog("Current editor failed to save.");
-      return false;
-    }
-    rsl::info("Attempting to save to {}", ed->getFilePath());
-    if (!ed->getFilePath().empty()) {
-      save(ed->getFilePath());
-    } else {
-      saveAs();
-    }
+    saveButton();
   }
 
   return true;

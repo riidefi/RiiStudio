@@ -47,10 +47,13 @@ public:
   }
 
   SelectionManager& getSelection() { return mSelection; }
-  bool implementsCustomSaving() const override { return true; }
   void saveButton() override {
-    // For now, just fallback to "Save As". Minor inconvenience to user.
-    saveAsButton();
+    rsl::trace("Attempting to save to {}", getFilePath());
+    if (getFilePath().empty()) {
+      saveAsButton();
+      return;
+    }
+    saveAs(getFilePath());
   }
   void saveAsButton() override {
     std::vector<std::string> filters;
@@ -106,10 +109,7 @@ private:
     }
     return "Working on unknown things";
   }
-  void openFile(std::span<const u8> buf, std::string_view path) override {
-    rsl::error("Cannot open {}", path);
-  }
-  void saveAs(std::string_view path) override { getDocument().saveAs(path); }
+  void saveAs(std::string_view path) { getDocument().saveAs(path); }
 };
 
 } // namespace riistudio::frontend

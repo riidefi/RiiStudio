@@ -56,7 +56,7 @@ public:
     return root_id;
   }
 
-  void openFile(std::span<const u8> buf, std::string_view path) override {
+  void openFile(std::span<const u8> buf, std::string_view path) {
     oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
     oishii::BinaryReader reader(view.slice());
     rsl::SafeReader safe(reader);
@@ -89,10 +89,13 @@ public:
 
   std::string getFilePath() const { return m_path; }
 
-  bool implementsCustomSaving() const override { return true; }
   void saveButton() override {
-    // For now, just fallback to "Save As". Minor inconvenience to user.
-    saveAsButton();
+    rsl::trace("Attempting to save to {}", getFilePath());
+    if (getFilePath().empty()) {
+      saveAsButton();
+      return;
+    }
+    saveAs(getFilePath());
   }
   void saveAsButton() override {
     std::vector<std::string> filters;

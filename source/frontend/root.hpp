@@ -40,8 +40,9 @@ public:
     FileHost::dropDirect(std::move(data), len, name);
   }
   void attachEditorWindow(std::unique_ptr<EditorWindow> editor);
-  void save(const std::string& path);
-  void saveAs();
+
+  void saveButton();
+  void saveAsButton();
 
 private:
   bool shouldClose() override;
