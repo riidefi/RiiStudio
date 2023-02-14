@@ -101,6 +101,10 @@ private:
     if (gcpoly != nullptr) {
       return Views_TabTitles(mGcPolyView);
     }
+    auto* gcbone = dynamic_cast<libcube::IBoneDelegate*>(mSelection.mActive);
+    if (gcbone != nullptr) {
+      return Views_TabTitles(mGcBoneView);
+    }
     return PropertyViewManager_TabTitles(*mSelection.mActive);
   }
   bool Tab(int index) override {
@@ -133,6 +137,14 @@ private:
       mHandler.handleUpdates(mHost, mRoot);
       return ok;
     }
+    auto* gcbone = dynamic_cast<libcube::IBoneDelegate*>(mSelection.mActive);
+    if (gcbone != nullptr) {
+      auto dl = kpi::MakeDelegate<libcube::IBoneDelegate>(
+          postUpdate, commit, gcbone, selected, &ed);
+      auto ok = Views_Tab(mGcBoneView, dl, index);
+      mHandler.handleUpdates(mHost, mRoot);
+      return ok;
+    }
     return PropertyViewManager_Tab(index, selected, mHost, mRoot, state_holder,
                                    ed, *mSelection.mActive);
   }
@@ -148,6 +160,7 @@ private:
   riistudio::G3dMaterialViews mG3dMatView;
   riistudio::J3dMaterialViews mJ3dMatView;
   riistudio::GcPolygonViews mGcPolyView;
+  riistudio::GcBoneViews mGcBoneView;
 
   CommitHandler mHandler{false, mHost, mRoot};
 };

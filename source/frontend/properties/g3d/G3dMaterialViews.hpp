@@ -14,6 +14,8 @@
 #include <frontend/properties/j3d/MaterialView.hpp>
 #include <frontend/properties/gc/Polygon/PolyDataSurface.hpp>
 #include <frontend/properties/gc/Polygon/PolyDescriptorSurface.hpp>
+#include <frontend/properties/gc/Bone/BoneDisplaySurface.hpp>
+#include <frontend/properties/gc/Bone/BoneTransformSurface.hpp>
 
 namespace riistudio {
 
@@ -54,6 +56,11 @@ struct J3dMaterialViews {
 struct GcPolygonViews {
   libcube::UI::PolyDataSurface index_data;
   libcube::UI::PolyDescriptorSurface vertex_descriptor;
+};
+
+struct GcBoneViews {
+  libcube::UI::BoneDisplaySurface displays;
+  libcube::UI::BoneTransformSurface transformation;
 };
 
 std::vector<std::string> Views_TabTitles(auto&& view) {

@@ -186,9 +186,4 @@ void drawProperty(kpi::PropertyDelegate<libcube::IBoneDelegate>& delegate,
   DrawDisplays(bone, delegate);
 }
 
-kpi::DecentralizedInstaller AddBoneDisplaySurface([](kpi::ApplicationPlugins&) {
-  auto& inst = kpi::PropertyViewManager::getInstance();
-  inst.addPropertyView<libcube::IBoneDelegate, BoneDisplaySurface>();
-});
-
 } // namespace libcube::UI

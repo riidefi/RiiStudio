@@ -28,9 +28,4 @@ void drawProperty(kpi::PropertyDelegate<IBoneDelegate>& delegate,
   ImGui::Text("Parent ID: %i"_j, (int)bone.getBoneParent());
 };
 
-kpi::DecentralizedInstaller AddBoneTransformSurface([](kpi::ApplicationPlugins&) {
-  auto& inst = kpi::PropertyViewManager::getInstance();
-  inst.addPropertyView<libcube::IBoneDelegate, BoneTransformSurface>();
-});
-
 } // namespace libcube::UI
