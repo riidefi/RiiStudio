@@ -59,7 +59,6 @@ rvlArchiveHeaderGetFileData(const rvlArchiveHeader* self) {
 }
 
 template <typename T> bool SafeMemCopy(T& dest, std::span<const u8> data) {
-  assert(data.size_bytes() >= sizeof(T));
   if (data.size_bytes() < sizeof(T)) {
     std::fill((u8*)&dest, (u8*)(&dest + 1), 0);
     return false;
