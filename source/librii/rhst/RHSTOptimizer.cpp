@@ -64,7 +64,7 @@ public:
       InsertTriangle(tri[0], tri[1], tri[2]);
     }
 
-	std::sort(triangles_.begin(), triangles_.end());
+    std::sort(triangles_.begin(), triangles_.end());
 
     return {};
   }
@@ -304,15 +304,23 @@ private:
 
 // Get a thousands-separated string e.g. "10,000" from a number |x|.
 std::string ToEnUsString(auto&& x) {
-// Locale throws an exception for some reason.
-#ifdef __APPLE__
-  return std::to_string(x);
-#else
-  std::ostringstream ss;
-  ss.imbue(std::locale("en_US.UTF-8"));
-  ss << x;
-  return ss.str();
-#endif
+  auto str = std::to_string(x);
+  const std::size_t decimal_pos = str.find('.');
+  // If there's no decimal point, we want to start inserting commas three
+  // characters from the right. If there is a decimal point, we want to start
+  // inserting commas three characters to the left of the decimal point.
+  std::ptrdiff_t insert_pos =
+      (decimal_pos == std::string::npos)
+          ? std::ssize(str) - 3
+          : static_cast<std::ptrdiff_t>(decimal_pos) - 3;
+
+  // Insert commas until we've processed the entire string
+  while (insert_pos > 0) {
+    str.insert(insert_pos, ",");
+    insert_pos -= 3;
+  }
+
+  return str;
 }
 
 // Print the results of a `MeshOptimizerExperimentHolder` run as a formatted
