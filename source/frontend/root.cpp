@@ -1,8 +1,8 @@
 #include <core/3d/gl.hpp>
 
+#include "EditorFactory.hpp"
 #include "LeakDebug.hpp"
 #include "root.hpp"
-#include "EditorFactory.hpp"
 #include <core/util/timestamp.hpp>
 #include <frontend/Fonts.hpp>
 #include <frontend/Localization.hpp>
@@ -66,6 +66,11 @@ RootWindow* RootWindow::spInstance;
 
 void SetWindowIcon(void* platform_window, const char* path) {
 #ifdef RII_BACKEND_GLFW
+  if (platform_window == nullptr) {
+    rsl::error("Failed to set icon: platform_window is NULL");
+    return;
+  }
+
   GLFWwindow* window = reinterpret_cast<GLFWwindow*>(platform_window);
   auto x = rsl::stb::load(path);
   if (!x.has_value()) {
@@ -73,9 +78,12 @@ void SetWindowIcon(void* platform_window, const char* path) {
     return;
   }
 
+  rsl::info("Setting icon: width={},height={},data={}", x->width, x->height,
+            reinterpret_cast<void*>(x->data.data()));
   GLFWimage image;
   image.width = x->width;
   image.height = x->height;
+  image.pixels = x->data.data();
   glfwSetWindowIcon(window, 1, &image);
 #endif
 }
