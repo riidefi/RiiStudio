@@ -18,14 +18,7 @@
 #include <rsl/FsDialog.hpp>
 #include <rsl/Stb.hpp>
 
-#include <vendor/thread_pool.hpp>
-
-IMPORT_STD;
-
-// Enable debug reporting on release builds
-#undef DebugReport
-#define DebugReport(...)                                                       \
-  printf("[" __FILE__ ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__)
+#include <future>
 
 // XXX: Hack, though we'll refactor all of this way soon
 std::string rebuild_dest;
@@ -593,24 +586,14 @@ void import_texture(std::string tex, libcube::Texture* pdata,
   // unresolved.emplace(i, tex);
 }
 
-void CompileRHST(librii::rhst::SceneTree& rhst,
-                 kpi::IOTransaction& transaction) {
-  int hw_threads = std::thread::hardware_concurrency();
-  // Account for the main thread
-  if (hw_threads > 1)
-    --hw_threads;
-  thread_pool pool(hw_threads);
-
+bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
+                 std::string path, auto&& info) {
   std::set<std::string> textures_needed;
 
   for (auto& mat : rhst.materials) {
     if (!mat.texture_name.empty())
       textures_needed.emplace(mat.texture_name);
   }
-
-  libcube::Scene* pnode = dynamic_cast<libcube::Scene*>(&transaction.node);
-  assert(pnode != nullptr);
-  libcube::Scene& scene = *pnode;
 
   libcube::Model& mdl = scene.getModels().add();
 
@@ -634,16 +617,16 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
     data.setName(getFileShort(tex));
   }
   // Favor PNG, and the current directory
-  auto file_path =
-      std::filesystem::path(transaction.data.getProvider()->getFilePath());
+  auto file_path = std::filesystem::path(path);
 
-  std::vector<std::future<bool>> futures;
+  std::vector<std::future<void>> futures;
 
   for (int i = 0; i < scene.getTextures().size(); ++i) {
     libcube::Texture* data = &scene.getTextures()[i];
 
-    auto task = std::bind(&import_texture, data->getName(), data, file_path);
-    futures.push_back(pool.submit(task));
+    futures.push_back(std::async(std::launch::async, [=] {
+      import_texture(data->getName(), data, file_path);
+    }));
   }
 
   // Optimize meshes
@@ -666,12 +649,10 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
           }
         }
       };
-      futures.push_back(pool.submit(std::bind(task, &mesh)));
+      futures.push_back(std::async(std::launch::async, std::bind(task, &mesh)));
     }
 
-    for (auto& f : futures) {
-      f.get();
-    }
+    futures.clear();
     rsl::error("Elapsed stripping time (multicore) (or texture import time if "
                "greater): {}ms",
                timer.elapsed());
@@ -707,17 +688,15 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
       // Correction: Wrapping hardware only operates on power-of-two inputs.
       const auto clamp = librii::gx::TextureWrapMode::Clamp;
       if (!is_power_of_2(tex->getWidth()) && sampler.mWrapU != clamp) {
-        transaction.callback(
-            kpi::IOMessageClass::Information, mat.getName(),
-            "Texture is not a power of two in the U direction, Repeat/Mirror "
-            "wrapping is unsupported.");
+        info(mat.getName(),
+             "Texture is not a power of two in the U direction, Repeat/Mirror "
+             "wrapping is unsupported.");
         sampler.mWrapU = clamp;
       }
       if (!is_power_of_2(tex->getHeight()) && sampler.mWrapV != clamp) {
-        transaction.callback(
-            kpi::IOMessageClass::Information, mat.getName(),
-            "Texture is not a power of two in the V direction, Repeat/Mirror "
-            "wrapping is unsupported.");
+        info(mat.getName(),
+             "Texture is not a power of two in the V direction, Repeat/Mirror "
+             "wrapping is unsupported.");
         sampler.mWrapV = clamp;
       }
       // Correction: Intermediate format doesn't specify texture filtering.
@@ -786,7 +765,23 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
     gscn->getTextures().resize(n);
   }
 
-  transaction.state = kpi::TransactionState::Complete;
+  return true;
+}
+
+void CompileRHST(librii::rhst::SceneTree& rhst,
+                 kpi::IOTransaction& transaction) {
+  libcube::Scene* pnode = dynamic_cast<libcube::Scene*>(&transaction.node);
+  assert(pnode != nullptr);
+  libcube::Scene& scene = *pnode;
+  std::string path(transaction.data.getProvider()->getFilePath());
+  auto info = [&](std::string c, std::string v) {
+    transaction.callback(kpi::IOMessageClass::Information, c, v);
+  };
+  if (CompileRHST(rhst, scene, path, info)) {
+    transaction.state = kpi::TransactionState::Complete;
+    return;
+  }
+  transaction.state = kpi::TransactionState::Failure;
 }
 
 void RHSTReader::read(kpi::IOTransaction& transaction) {
