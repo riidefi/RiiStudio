@@ -14,10 +14,13 @@ namespace riistudio::frontend {
 // Implements a single tab for now
 class BdofEditorTabSheet : private PropertyEditorWidget {
 public:
-  BdofEditorTabSheet(std::function<void(void)> draw) : m_drawTab(draw) {}
-  void Draw() {
+  void Draw(std::function<void(void)> draw) {
+    // No concurrent access
+    assert(m_drawTab == nullptr);
+    m_drawTab = draw;
     DrawTabWidget(false);
     Tabs();
+    m_drawTab = nullptr;
   }
 
 private:
@@ -27,7 +30,7 @@ private:
     return true;
   }
 
-  std::function<void(void)> m_drawTab;
+  std::function<void(void)> m_drawTab = nullptr;
 };
 
 class BdofEditorPropertyGrid {
@@ -39,15 +42,14 @@ public:
 
 class BdofEditor : public frontend::StudioWindow, public IEditor {
 public:
-  BdofEditor()
-      : StudioWindow("BDOF Editor: <unknown>", false),
-        m_sheet([pEditor = this]() { pEditor->m_grid.Draw(); }) {
-    setWindowFlag(ImGuiWindowFlags_MenuBar);
+  BdofEditor() : StudioWindow("BDOF Editor: <unknown>", false) {
+    // setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
   BdofEditor(const BdofEditor&) = delete;
   BdofEditor(BdofEditor&&) = delete;
 
   void draw_() override {
+    setName("BDOF Editor: " + m_path);
     if (ImGui::Button("DEBUG connect")) {
       debugConnect();
     }
@@ -76,7 +78,7 @@ public:
     }
 
     auto last = m_grid.m_dof;
-    m_sheet.Draw();
+    m_sheet.Draw([&]() { m_grid.Draw(); });
     if (m_sync && last != m_grid.m_dof) {
       debugSend();
     }
@@ -120,23 +122,18 @@ public:
     return writer;
   }
 
-  std::string getFilePath() const { return m_path; }
-
   void saveButton() override {
-    rsl::trace("Attempting to save to {}", getFilePath());
-    if (getFilePath().empty()) {
+    rsl::trace("Attempting to save to {}", m_path);
+    if (m_path.empty()) {
       saveAsButton();
       return;
     }
-    saveAs(getFilePath());
+    saveAs(m_path);
   }
   void saveAsButton() override {
-    std::vector<std::string> filters;
-    auto default_filename = std::filesystem::path(getFilePath()).filename();
-    filters.push_back("EGG Binary BDOF (*.bdof)");
-    filters.push_back("*.bdof");
-    filters.push_back("EGG Binary PDOF (*.pdof)");
-    filters.push_back("*.pdof");
+    auto default_filename = std::filesystem::path(m_path).filename();
+    std::vector<std::string> filters{"EGG Binary BDOF (*.bdof)", "*.bdof",
+                                     "EGG Binary PDOF (*.pdof)", "*.pdof"};
     auto results =
         rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
     if (!results) {

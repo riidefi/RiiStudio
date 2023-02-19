@@ -14,10 +14,13 @@ namespace riistudio::frontend {
 // Implements a single tab for now
 class BblmEditorTabSheet : private PropertyEditorWidget {
 public:
-  BblmEditorTabSheet(std::function<void(void)> draw) : m_drawTab(draw) {}
-  void Draw() {
+  void Draw(std::function<void(void)> draw) {
+    // No concurrent access
+    assert(m_drawTab == nullptr);
+    m_drawTab = draw;
     DrawTabWidget(false);
     Tabs();
+    m_drawTab = nullptr;
   }
 
 private:
@@ -27,7 +30,7 @@ private:
     return true;
   }
 
-  std::function<void(void)> m_drawTab;
+  std::function<void(void)> m_drawTab = nullptr;
 };
 
 class BblmEditorPropertyGrid {
@@ -37,77 +40,75 @@ public:
   librii::egg::BLM m_blm;
 };
 
+inline Result<librii::egg::BLM> ReadBLM(std::span<const u8> buf,
+                                        std::string_view path) {
+  oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
+  oishii::BinaryReader reader(view.slice());
+  rsl::SafeReader safe(reader);
+  auto bblm = librii::egg::PBLM_Read(safe);
+  if (!bblm) {
+    return std::unexpected("Failed to read BBLM: " + bblm.error());
+  }
+  auto blm = librii::egg::From_PBLM(*bblm);
+  if (!blm) {
+    return std::unexpected("Failed to parse BBLM: " + blm.error());
+  }
+  return *blm;
+}
+inline void WriteBLM(const librii::egg::BLM& b, std::string_view path) {
+  rsl::trace("Attempting to save to {}", path);
+  oishii::Writer writer(0x50);
+  auto bblm = librii::egg::To_PBLM(b);
+  librii::egg::PBLM_Write(writer, bblm);
+  OishiiFlushWriter(writer, path);
+}
+
 class BblmEditor : public frontend::StudioWindow, public IEditor {
 public:
-  BblmEditor()
-      : StudioWindow("BBLM Editor: <unknown>", false),
-        m_sheet([pEditor = this]() { pEditor->m_grid.Draw(); }) {
-    setWindowFlag(ImGuiWindowFlags_MenuBar);
+  BblmEditor() : StudioWindow("BBLM Editor: <unknown>", false) {
+    // setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
   BblmEditor(const BblmEditor&) = delete;
   BblmEditor(BblmEditor&&) = delete;
 
   void draw_() override {
-    m_sheet.Draw();
+    setName("BBLM Editor: " + m_path);
+    m_sheet.Draw([&]() { m_grid.Draw(); });
     m_history.update(m_grid.m_blm);
   }
   ImGuiID buildDock(ImGuiID root_id) override {
     // ImGui::DockBuilderDockWindow("Properties", root_id);
     return root_id;
   }
-
   void openFile(std::span<const u8> buf, std::string_view path) {
-    oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
-    oishii::BinaryReader reader(view.slice());
-    rsl::SafeReader safe(reader);
-    auto bblm = librii::egg::PBLM_Read(safe);
-    if (!bblm) {
-      rsl::error("Failed to read BBLM");
-      return;
-    }
-    auto blm = librii::egg::From_PBLM(*bblm);
+    auto blm = ReadBLM(buf, path);
     if (!blm) {
-      rsl::error("Failed to parse BBLM");
+      rsl::error(blm.error());
+      rsl::ErrorDialog(blm.error());
+      return;
     }
     m_grid.m_blm = *blm;
     m_path = path;
   }
-  void saveAs(std::string_view path) {
-    auto writer = write();
-    OishiiFlushWriter(writer, path);
-  }
   std::string discordStatus() const override {
     return "Editing a bloom file (.bblm)";
   }
-
-  oishii::Writer write() const {
-    oishii::Writer writer(0x50);
-    auto bblm = librii::egg::To_PBLM(m_grid.m_blm);
-    librii::egg::PBLM_Write(writer, bblm);
-    return writer;
-  }
-
-  std::string getFilePath() const { return m_path; }
-
   void saveButton() override {
-    rsl::trace("Attempting to save to {}", getFilePath());
-    if (getFilePath().empty()) {
+    if (m_path.empty()) {
       saveAsButton();
       return;
     }
-    saveAs(getFilePath());
+    WriteBLM(m_grid.m_blm, m_path);
   }
   void saveAsButton() override {
-    std::vector<std::string> filters;
-    auto default_filename = std::filesystem::path(getFilePath()).filename();
-    filters.push_back("EGG Binary BBLM (*.bblm)");
-    filters.push_back("*.bblm");
-    filters.push_back("EGG Binary PBLM (*.pblm)");
-    filters.push_back("*.pblm");
+    auto default_filename = std::filesystem::path(m_path).filename();
+    std::vector<std::string> filters{"EGG Binary BBLM (*.bblm)", "*.bblm",
+                                     "EGG Binary PBLM (*.pblm)", "*.pblm"};
     auto results =
         rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
     if (!results) {
-      rsl::ErrorDialog("No saving - No file selected");
+      rsl::error(results.error());
+      rsl::ErrorDialog("Cannot save. " + results.error());
       return;
     }
     auto path = results->string();
@@ -119,7 +120,7 @@ public:
       path += ".bblm";
     }
 
-    saveAs(path);
+    WriteBLM(m_grid.m_blm, path);
   }
 
 private:

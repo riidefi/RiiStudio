@@ -6,10 +6,10 @@ namespace imcxx {
 
 // Over some ranges [0, n)
 //
-// Node0     [indent=0
+// Node0     [indent=0]
 //     Node1 [indent=1]
 //         Node2 [indent=2]
-//     Node3 [indent=3]
+//     Node3 [indent=1]
 //
 // From a tree structure, nodes must be supplied as a DFS.
 // The advantages of this approach:
