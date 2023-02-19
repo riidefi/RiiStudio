@@ -1,6 +1,8 @@
 #pragma once
 
+#include <future>
 #include <rsl/Discord.hpp>
+#include <vector>
 
 namespace riistudio::frontend {
 
@@ -13,10 +15,12 @@ public:
   DiscordRPCManager(const DiscordRPCManager&) = delete;
   ~DiscordRPCManager() = default;
 
-  //! Blocking. Performs the connection and sets the initial status.
+  //! Non-blocking. Performs the connection and sets the initial status.
   void connect() {
-    mDiscordRpc.connect();
-    mDiscordRpc.set_activity(mActivity);
+    mTaskQueue.push_back(std::async(std::launch::async, [&] {
+      mDiscordRpc.connect();
+      mDiscordRpc.set_activity(mActivity);
+    }));
   }
 
   //! If the status has changed, send a blocking request.
@@ -45,6 +49,7 @@ private:
               },
           },
   };
+  std::vector<std::future<void>> mTaskQueue;
 };
 
 } // namespace riistudio::frontend
