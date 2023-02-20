@@ -1,23 +1,14 @@
 #pragma once
 
-#include <LibBadUIFramework/Plugins.hpp>   // kpi::IOMessageClass
-#include <frontend/file_host.hpp> // FileData
-#include <memory>                 // std::unique_ptr
-#include <optional>               // std::optional
-#include <rsl/SmallVector.hpp>    // rsl::small_vector
-#include <string_view>            // std::string_view
+#include <LibBadUIFramework/Plugins.hpp> // kpi::IOMessageClass
+#include <frontend/file_host.hpp>        // FileData
+#include <frontend/widgets/ErrorDialogList.hpp>
+#include <memory>              // std::unique_ptr
+#include <optional>            // std::optional
+#include <rsl/SmallVector.hpp> // rsl::small_vector
+#include <string_view>         // std::string_view
 
 namespace riistudio::frontend {
-
-struct Message {
-  kpi::IOMessageClass message_class;
-  std::string domain;
-  std::string message_body;
-
-  Message(kpi::IOMessageClass mclass, std::string&& mdomain, std::string&& body)
-      : message_class(mclass), domain(std::move(mdomain)),
-        message_body(std::move(body)) {}
-};
 
 class EditorImporter {
 public:

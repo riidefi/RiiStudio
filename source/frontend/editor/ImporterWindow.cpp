@@ -1,6 +1,5 @@
 #include "ImporterWindow.hpp"
 #include <imgui/imgui.h>
-#include <vendor/fa5/IconsFontAwesome5.h>
 
 IMPORT_STD;
 
@@ -110,40 +109,8 @@ void ImporterWindow::draw() {
 }
 
 void ImporterWindow::drawMessages() {
-  // ImGui::SetWindowFontScale(1.2f);
-  const auto entry_flags = ImGuiTableFlags_Borders | ImGuiTableFlags_Sortable |
-                           ImGuiTableFlags_Resizable |
-                           ImGuiTableFlags_Reorderable;
-
-  if (ImGui::BeginTable("Body", 3, entry_flags)) {
-    ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthStretch, .1f);
-    ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_WidthStretch, .3f);
-    ImGui::TableSetupColumn("Body", ImGuiTableColumnFlags_WidthStretch, .6f);
-    ImGui::TableHeadersRow();
-    for (auto& msg : mMessages) {
-      ImGui::TableNextRow();
-      ImGui::TableSetColumnIndex(0);
-      ImGui::TextUnformatted([](kpi::IOMessageClass mclass) -> const char* {
-        switch (mclass) {
-        case kpi::IOMessageClass::None:
-          return "Invalid";
-        case kpi::IOMessageClass::Information:
-          return (const char*)ICON_FA_BELL u8" Info";
-        case kpi::IOMessageClass::Warning:
-          return (const char*)ICON_FA_EXCLAMATION_TRIANGLE u8" Warning";
-        case kpi::IOMessageClass::Error:
-          return (const char*)ICON_FA_TIMES u8" Error";
-        }
-      }(msg.message_class));
-      ImGui::TableSetColumnIndex(1);
-      ImGui::TextUnformatted(msg.domain.c_str());
-      ImGui::TableSetColumnIndex(2);
-      ImGui::TextWrapped("%s", msg.message_body.c_str());
-    }
-
-    ImGui::EndTable();
-  }
-  // ImGui::SetWindowFontScale(1.0f);
+  ErrorDialogList list;
+  list.Draw(mMessages);
 }
 
 static inline std::string getFileShortStripped(const std::string& path) {
