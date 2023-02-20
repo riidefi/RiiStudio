@@ -266,6 +266,7 @@ Result<G3dMaterialData> fromBinMat(const BinaryMaterial& bin,
   mat.name = bin.name;
   mat.id = bin.id;
   mat.flag = bin.flag;
+  mat.xlu = bin.flag & 0x80000000;
 
   // GenMode
   {

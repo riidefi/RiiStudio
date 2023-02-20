@@ -853,7 +853,7 @@ public:
     auto& mat = mdl.materials[disp.mMaterial];
     auto& poly = mdl.meshes[disp.mPoly];
     {
-      const bool xlu_mat = mat.flag & 0x80000000;
+      const bool xlu_mat = mat.xlu;
       if ((method.name == "DrawOpa" && xlu_mat) ||
           (method.name == "DrawXlu" && !xlu_mat)) {
         kpi::IOContext mc = ctx.sublet("materials").sublet(mat.name);
