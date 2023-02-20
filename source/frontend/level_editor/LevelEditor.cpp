@@ -79,8 +79,10 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto course_model_brres = FindFileWithOverloads(
         mLevel.root_archive, {"course_d_model.brres", "course_model.brres"});
     if (course_model_brres.has_value()) {
-      mCourseModel = std::make_unique<RenderableBRRES>(ReadBRRES(
-          course_model_brres->file_data, course_model_brres->resolved_path));
+      auto b = ReadBRRES(course_model_brres->file_data,
+                         course_model_brres->resolved_path);
+      if (b)
+        mCourseModel = std::make_unique<RenderableBRRES>(std::move(b));
     }
   }
 
@@ -89,8 +91,10 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto vrcorn_model_brres = FindFileWithOverloads(
         mLevel.root_archive, {"vrcorn_d_model.brres", "vrcorn_model.brres"});
     if (vrcorn_model_brres.has_value()) {
-      mVrcornModel = std::make_unique<RenderableBRRES>(ReadBRRES(
-          vrcorn_model_brres->file_data, vrcorn_model_brres->resolved_path));
+      auto b = ReadBRRES(vrcorn_model_brres->file_data,
+                         vrcorn_model_brres->resolved_path);
+      if (b)
+        mVrcornModel = std::make_unique<RenderableBRRES>(std::move(b));
     }
   }
 
@@ -99,8 +103,9 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto map_model =
         FindFileWithOverloads(mLevel.root_archive, {"map_model.brres"});
     if (map_model.has_value()) {
-      mMapModel = std::make_unique<RenderableBRRES>(
-          ReadBRRES(map_model->file_data, map_model->resolved_path));
+      auto b = ReadBRRES(map_model->file_data, map_model->resolved_path);
+      if (b)
+        mMapModel = std::make_unique<RenderableBRRES>(std::move(b));
     }
   }
 
