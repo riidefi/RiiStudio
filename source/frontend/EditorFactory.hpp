@@ -2,11 +2,11 @@
 
 #include <frontend/bdof/BblmEditor.hpp>
 #include <frontend/bdof/BdofEditor.hpp>
+#include <frontend/bdof/BfgEditor.hpp>
 #include <frontend/level_editor/LevelEditor.hpp>
 
-#include <librii/szs/SZS.hpp>
 #include <frontend/file_host.hpp>
-
+#include <librii/szs/SZS.hpp>
 
 namespace riistudio::frontend {
 
@@ -29,6 +29,11 @@ static std::unique_ptr<IWindow> MakeEditor(FileData& data) {
   // .bblm1 .bblm2 should also be matched
   if (data.mPath.contains(".bblm")) {
     auto pWin = std::make_unique<BblmEditor>();
+    pWin->openFile(span, data.mPath);
+    return pWin;
+  }
+  if (data.mPath.ends_with(".bfg")) {
+    auto pWin = std::make_unique<BfgEditor>(data.mPath);
     pWin->openFile(span, data.mPath);
     return pWin;
   }

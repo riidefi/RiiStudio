@@ -40,12 +40,7 @@ add_library(plugins STATIC
 	"j3d/Texture.hpp"
 	"j3d/j3d_Material.cpp"
 	"j3d/VertexBuffer.hpp"
-  "mk/BFG/io/BFG.hpp"
-  "mk/BFG/io/BFG.cpp"
-  "mk/BFG/Fog.hpp"
-  "mk/BFG/FogEntry.hpp"
-  "mk/BFG/FogView.cpp"
-  "mk/BFG/Node.h"
+
   "rhst/RHSTImporter.cpp" 
   "g3d/G3dIo.hpp"
   "j3d/J3dIo.hpp"
