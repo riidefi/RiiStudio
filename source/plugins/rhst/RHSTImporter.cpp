@@ -587,7 +587,9 @@ void import_texture(std::string tex, libcube::Texture* pdata,
 }
 
 bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
-                 std::string path, auto&& info) {
+                 std::string path,
+                 std::function<void(std::string, std::string)> info,
+                 std::function<void(std::string_view, float)> progress) {
   std::set<std::string> textures_needed;
 
   for (auto& mat : rhst.materials) {
@@ -631,9 +633,13 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
 
   // Optimize meshes
   {
+    std::atomic<int> so_far = 0;
+    int total = rhst.meshes.size();
+    progress(std::format("Optimizing meshes ({} / {})", 0, total), 0.0f);
+
     rsl::Timer timer;
     for (auto& mesh : rhst.meshes) {
-      auto task = [](librii::rhst::Mesh* mesh) {
+      auto task = [&](librii::rhst::Mesh* mesh) {
         assert(mesh != nullptr);
         int i = 0;
         for (auto& mp : mesh->matrix_primitives) {
@@ -648,6 +654,10 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
                        ok.error());
           }
         }
+        ++so_far;
+        int x = static_cast<int>(so_far);
+        progress(std::format("Optimizing meshes ({} / {})", x, total),
+                 static_cast<float>(x) / static_cast<float>(total));
       };
       futures.push_back(std::async(std::launch::async, std::bind(task, &mesh)));
     }
@@ -658,7 +668,10 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
                timer.elapsed());
   }
 
-  for (auto& mesh : rhst.meshes) {
+  progress(std::format("Compiling meshes {}/{}", 0, rhst.meshes.size()), 0.0f);
+  for (auto&& [i, mesh] : rsl::enumerate(rhst.meshes)) {
+    progress(std::format("Compiling meshes {}/{}", i, rhst.meshes.size()),
+             static_cast<float>(i) / static_cast<float>(rhst.meshes.size()));
     // Already optimized
     auto ok = compileMesh(mdl.getMeshes().add(), mesh, mdl, false);
     if (!ok) {
@@ -703,6 +716,7 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
     }
   }
 
+  progress("Applying material presets", 0.0f);
   // Handle material presets
   if (auto* gmdl = dynamic_cast<g3d::Model*>(&mdl); gmdl != nullptr) {
     for (auto& mat : rhst.materials) {
@@ -777,7 +791,8 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
   auto info = [&](std::string c, std::string v) {
     transaction.callback(kpi::IOMessageClass::Information, c, v);
   };
-  if (CompileRHST(rhst, scene, path, info)) {
+  auto progress = [](std::string_view, float) {};
+  if (CompileRHST(rhst, scene, path, info, progress)) {
     transaction.state = kpi::TransactionState::Complete;
     return;
   }

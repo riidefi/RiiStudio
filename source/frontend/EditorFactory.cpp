@@ -1,5 +1,6 @@
 #include "EditorFactory.hpp"
 
+#include <frontend/bdof/AssimpImporter.hpp>
 #include <frontend/bdof/BblmEditor.hpp>
 #include <frontend/bdof/BdofEditor.hpp>
 #include <frontend/bdof/BfgEditor.hpp>
@@ -39,6 +40,9 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
   }
   if (data.mPath.ends_with(".blight") || data.mPath.ends_with(".plight")) {
     return std::make_unique<BlightEditor>(span, data.mPath);
+  }
+  if (AssimpImporter::supports(data.mPath)) {
+    return std::make_unique<AssimpImporter>(span, data.mPath);
   }
 
   return nullptr;
