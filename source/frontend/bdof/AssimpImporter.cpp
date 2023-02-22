@@ -1,5 +1,6 @@
 #include "AssimpImporter.hpp"
 #include <glm/gtc/type_ptr.hpp>
+#include <rsl/Defer.hpp>
 
 #include <frontend/editor/EditorWindow.hpp>
 #include <frontend/root.hpp>
@@ -131,22 +132,30 @@ void AssimpEditorPropertyGrid::Draw(librii::assimp2rhst::Settings& ctx) {
 void AssimpImporter::draw_() {
   setName("Assimp Importer: " + m_path);
 
+  auto full = ImVec2{ImGui::GetContentRegionAvail().x, 0.0f};
+
   if (m_state == State::PickFormat) {
     ImGui::Text("Pick which file format to create.");
-    if (ImGui::Button("BRRES Model")) {
+    if (ImGui::Button("BRRES Model", full)) {
       m_result = std::make_unique<riistudio::g3d::Collection>();
       m_extension = ".brres";
       m_state = State::Settings;
     }
-    if (ImGui::Button("BMD Model")) {
+    if (ImGui::Button("BMD Model", full)) {
       m_result = std::make_unique<riistudio::j3d::Collection>();
       m_extension = ".bmd";
       m_state = State::Settings;
     }
   }
   if (m_state == State::Settings) {
-    m_grid.Draw(m_settings);
-    if (ImGui::Button("Next")) {
+    auto h = ImGui::GetContentRegionAvail().y;
+    if (ImGui::BeginChild("SW", ImVec2{0.0f, h-26.0f})) {
+      m_grid.Draw(m_settings);
+      ImGui::EndChild();
+    }
+    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 255, 0, 100));
+    RSL_DEFER(ImGui::PopStyleColor());
+    if (ImGui::Button("Next", full)) {
       launchImporter();
       m_state = State::Wait;
     }
@@ -159,7 +168,9 @@ void AssimpImporter::draw_() {
   // Moved here by importer thread
   else if (m_state == State::Done) {
     ImGui::Text("Done");
-    if (ImGui::Button("Next")) {
+    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 255, 0, 100));
+    RSL_DEFER(ImGui::PopStyleColor());
+    if (ImGui::Button("Next", full)) {
       if (!m_result.get()) {
         m_err += "\nResult has already been moved.";
         m_state = State::Fail;
