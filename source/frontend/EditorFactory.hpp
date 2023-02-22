@@ -33,8 +33,7 @@ static std::unique_ptr<IWindow> MakeEditor(FileData& data) {
     return pWin;
   }
   if (data.mPath.ends_with(".bfg")) {
-    auto pWin = std::make_unique<BfgEditor>(data.mPath);
-    pWin->openFile(span, data.mPath);
+    auto pWin = std::make_unique<BfgEditor>(span, data.mPath);
     return pWin;
   }
 

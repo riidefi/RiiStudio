@@ -18,9 +18,14 @@ inline void DefaultWindowSize() {
   ImGui::SetNextWindowSize(ImVec2{avail.x / 2, avail.y / 2}, ImGuiCond_Once);
 }
 
+enum class DockSetting {
+	None,
+	Dockspace,
+};
+
 class StudioWindow : public frontend::Window<StudioWindow, frontend::IWindow> {
 public:
-  StudioWindow(const std::string& name, bool dockspace = false);
+  StudioWindow(const std::string& name, DockSetting dockspace = DockSetting::None);
 
   void setName(const std::string& name) {
     mName = name;

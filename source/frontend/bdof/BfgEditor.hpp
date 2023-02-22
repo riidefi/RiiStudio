@@ -121,9 +121,17 @@ inline void WriteBFG(const librii::egg::BFG& b, std::string_view path) {
 
 class BfgEditor : public frontend::StudioWindow, public IEditor {
 public:
-  BfgEditor(std::string_view path) : StudioWindow("BFG Editor: <unknown>", true) {
-    setName("BFG Editor: " + std::string(path));
-    // setWindowFlag(ImGuiWindowFlags_MenuBar);
+  BfgEditor(std::span<const u8> buf, std::string_view path)
+      : StudioWindow("BFG Editor: <unknown>", DockSetting::Dockspace) {
+    auto blm = ReadBFG(buf, path);
+    if (!blm) {
+      rsl::error(blm.error());
+      rsl::ErrorDialog(blm.error());
+      return;
+    }
+    m_bfg = *blm;
+    m_path = path;
+    setName("BFG Editor: " + std::string(m_path));
   }
   BfgEditor(const BfgEditor&) = delete;
   BfgEditor(BfgEditor&&) = delete;
@@ -164,16 +172,6 @@ public:
     ImGui::DockBuilderDockWindow(idIfyChild("Properties").c_str(),
                                  dock_left_id);
     return next;
-  }
-  void openFile(std::span<const u8> buf, std::string_view path) {
-    auto blm = ReadBFG(buf, path);
-    if (!blm) {
-      rsl::error(blm.error());
-      rsl::ErrorDialog(blm.error());
-      return;
-    }
-    m_bfg = *blm;
-    m_path = path;
   }
   std::string discordStatus() const override {
     return "Editing a fog file (.bfg)";

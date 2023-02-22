@@ -65,7 +65,7 @@ inline void WriteBLM(const librii::egg::BLM& b, std::string_view path) {
 
 class BblmEditor : public frontend::StudioWindow, public IEditor {
 public:
-  BblmEditor() : StudioWindow("BBLM Editor: <unknown>", false) {
+  BblmEditor() : StudioWindow("BBLM Editor: <unknown>", DockSetting::None) {
     // setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
   BblmEditor(const BblmEditor&) = delete;

@@ -42,7 +42,7 @@ public:
 
 class BdofEditor : public frontend::StudioWindow, public IEditor {
 public:
-  BdofEditor() : StudioWindow("BDOF Editor: <unknown>", false) {
+  BdofEditor() : StudioWindow("BDOF Editor: <unknown>", DockSetting::None) {
     // setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
   BdofEditor(const BdofEditor&) = delete;

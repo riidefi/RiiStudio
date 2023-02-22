@@ -2,8 +2,8 @@
 
 namespace riistudio::frontend {
 
-StudioWindow::StudioWindow(const std::string& name, bool dockspace)
-    : mbDrawDockspace(dockspace) {
+StudioWindow::StudioWindow(const std::string& name, DockSetting dockspace)
+    : mbDrawDockspace(dockspace == DockSetting::Dockspace) {
   setName(name);
   mWindowClass.DockingAllowUnclassed = false;
   mWindowClass.ClassId = mId;

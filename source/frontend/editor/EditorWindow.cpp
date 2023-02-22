@@ -31,7 +31,7 @@ void EditorWindow::init() {
 
 EditorWindow::EditorWindow(std::unique_ptr<kpi::INode> state,
                            const std::string& path)
-    : StudioWindow(getFileShort(path), true),
+    : StudioWindow(getFileShort(path), DockSetting::Dockspace),
       EditorDocument(std::move(state), path) {
   init();
 }
