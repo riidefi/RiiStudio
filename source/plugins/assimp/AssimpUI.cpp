@@ -9,28 +9,11 @@
 
 namespace riistudio::assimp {
 
-// TODO
-u32 ClampMipMapDimension(u32 x) {
-  // round down to last power of two
-  const int old = x;
-  int res = 0;
-  while (x >>= 1)
-    ++res;
-  x = (1 << res);
-  // round up
-  if ((x << 1) - old < old - x)
-    x <<= 1;
-
-  return x;
-}
-
 using State = librii::assimp2rhst::State;
 using Settings = librii::assimp2rhst::Settings;
 using AssimpContext = librii::assimp2rhst::AssimpContext;
 
 // Builtin-in ImGui UI for `Settings`
-void RenderContextSettings(Settings& ctx);
-
 void RenderContextSettings(Settings& ctx) {
   if (ImGui::CollapsingHeader("Importing Settings"_j,
                               ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -91,7 +74,8 @@ void RenderContextSettings(Settings& ctx) {
       ImGui::Indent(50);
       ImGui::SliderInt("Minimum mipmap dimension."_j, &ctx.mMinMipDimension, 1,
                        512);
-      ctx.mMinMipDimension = ClampMipMapDimension(ctx.mMinMipDimension);
+      ctx.mMinMipDimension =
+          librii::assimp2rhst::ClampMipMapDimension(ctx.mMinMipDimension);
 
       ImGui::SliderInt("Maximum number of mipmaps."_j, &ctx.mMaxMipCount, 0, 8);
 
@@ -178,8 +162,8 @@ public:
   void StateWaitForSettings(kpi::IOTransaction& transaction) {
     std::string path(transaction.data.getProvider()->getFilePath());
 
-    mContext->mScene =
-        ReadScene(transaction, path, mContext->mSettings, *mContext->importer);
+    mContext->mScene = ReadScene(transaction.callback, transaction.data, path,
+                                 mContext->mSettings, *mContext->importer);
     if (!mContext->mScene) {
       transaction.state = kpi::TransactionState::Failure;
       return;
@@ -188,8 +172,7 @@ public:
   }
 
   void StateWaitForTextureDependencies(kpi::IOTransaction& transaction) {
-    auto sceneTree =
-        ToSceneTree(mContext->mScene, transaction, mContext->mSettings);
+    auto sceneTree = ToSceneTree(mContext->mScene, mContext->mSettings);
     if (!sceneTree) {
       transaction.callback(kpi::IOMessageClass::Error, "Assimp Importer",
                            sceneTree.error());

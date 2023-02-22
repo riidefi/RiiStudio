@@ -140,8 +140,8 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
     auto matId = TRY(ctr.getConvertedMaterial(pMesh->mMaterialIndex));
     auto ok = ImportMesh(out_model, pMesh, pNode, tint);
     if (!ok) {
-      transaction->callback(kpi::IOMessageClass::Warning, pMesh->mName.C_Str(),
-                            ok.error());
+      rsl::error("Failed to import mesh {}: {}", pMesh->mName.C_Str(),
+                 ok.error());
       continue;
     }
     aabb.expandBound(librii::math::AABB{
@@ -159,8 +159,9 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
   for (unsigned i = 0; i < pNode->mNumChildren; ++i) {
     auto ok = ImportNode(out_model, pNode->mChildren[i], tint, joint_id);
     if (!ok) {
-      transaction->callback(kpi::IOMessageClass::Warning,
-                            pNode->mChildren[i]->mName.C_Str(), ok.error());
+      rsl::error("Failed to import node {}: {}",
+                 pNode->mChildren[i]->mName.C_Str(),
+                 ok.error());
       continue;
     }
   }

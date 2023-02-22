@@ -14,10 +14,11 @@
 namespace librii::assimp2rhst {
 
 // Lifetime is tied to that of importer
-const aiScene* ReadScene(kpi::IOTransaction& transaction, std::string path,
-                         const Settings& settings, Assimp::Importer& importer) {
+const aiScene* ReadScene(KCallback callback, std::span<const u8> file,
+                         std::string path, const Settings& settings,
+                         Assimp::Importer& importer) {
   AssimpLoggerScope g_assimplogger(
-      std::make_unique<AssimpLogger>(transaction.callback, getFileShort(path)));
+      std::make_unique<AssimpLogger>(callback, getFileShort(path)));
 
   // Only include components we asked for
   {
@@ -32,7 +33,7 @@ const aiScene* ReadScene(kpi::IOTransaction& transaction, std::string path,
                               settings.mMagnification);
   }
 
-  importer.ReadFileFromMemory(transaction.data.data(), transaction.data.size(),
+  importer.ReadFileFromMemory(file.data(), file.size(),
                               aiProcess_PreTransformVertices, path.c_str());
   auto* pScene = importer.ApplyPostProcessing(aiFlags);
 
@@ -53,23 +54,21 @@ const aiScene* ReadScene(kpi::IOTransaction& transaction, std::string path,
 }
 
 Result<librii::rhst::SceneTree> ToSceneTree(const aiScene* scene,
-                                            kpi::IOTransaction& transaction,
                                             const Settings& settings) {
   AssImporter importer(scene);
-  importer.SetTransaction(transaction);
   return importer.Import(settings);
 }
 
 // Export-only
 Result<librii::rhst::SceneTree> DoImport(std::string path,
-                                         kpi::IOTransaction& transaction,
+                                         KCallback callback, std::span<const u8> file,
                                          const Settings& settings) {
   Assimp::Importer importer;
-  auto* pScene = ReadScene(transaction, path, settings, importer);
+  auto* pScene = ReadScene(callback, file, path, settings, importer);
   if (!pScene) {
     return std::unexpected("Assimp failed to read scene");
   }
-  return ToSceneTree(pScene, transaction, settings);
+  return ToSceneTree(pScene, settings);
 }
 
 } // namespace librii::assimp2rhst

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/common.h>
-#include <LibBadUIFramework/Plugins.hpp>
 #include <glm/glm.hpp>
 #include <librii/rhst/RHST.hpp>
 #include <vendor/assimp/scene.h>
@@ -37,10 +36,8 @@ public:
   [[nodiscard]] Result<librii::rhst::SceneTree>
   Import(const Settings& settings);
 
-  void SetTransaction(kpi::IOTransaction& t) { transaction = &t; }
 
 private:
-  kpi::IOTransaction* transaction = nullptr;
   IdCounter ctr;
 
   const aiScene* pScene = nullptr;

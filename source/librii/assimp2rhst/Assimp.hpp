@@ -28,7 +28,18 @@ static constexpr u32 AlwaysFlags =
     | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes | aiProcess_FlipUVs //
     | aiProcess_FlipWindingOrder                                             //
     ;
-
+constexpr u32 ClampMipMapDimension(u32 x) {
+  // Round down to last power of two
+  const u32 old = x;
+  u32 res = 0;
+  while (x >>= 1)
+    ++res;
+  x = (1 << res);
+  // Round up
+  if ((x << 1) - old < old - x)
+    x <<= 1;
+  return x;
+}
 struct Settings {
   u32 mAiFlags = AlwaysFlags | DefaultFlags;
   float mMagnification = 1.0f;
@@ -68,16 +79,20 @@ struct AssimpContext {
       std::make_shared<Assimp::Importer>();
 };
 
+using KCallback = std::function<void(kpi::IOMessageClass message_class,
+                                     const std::string_view domain,
+                                     const std::string_view message_body)>;
+
 // Lifetime is tied to that of importer
-const aiScene* ReadScene(kpi::IOTransaction& transaction, std::string path,
-                         const Settings& settings, Assimp::Importer& importer);
+const aiScene* ReadScene(KCallback callback, std::span<const u8> file,
+                         std::string path, const Settings& settings,
+                         Assimp::Importer& importer);
 
 Result<librii::rhst::SceneTree> ToSceneTree(const aiScene* scene,
-                                            kpi::IOTransaction& transaction,
                                             const Settings& settings);
 
-Result<librii::rhst::SceneTree> DoImport(std::string path,
-                                         kpi::IOTransaction& transaction,
+Result<librii::rhst::SceneTree> DoImport(std::string path, KCallback callback,
+                                         std::span<const u8> file,
                                          const Settings& settings);
 
 } // namespace librii::assimp2rhst
