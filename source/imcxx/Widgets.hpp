@@ -167,6 +167,22 @@ inline void Matrix44(const glm::mat4& mtx) {
 
 namespace riistudio::util {
 
+struct ConditionalEnabled {
+  ConditionalEnabled(bool pred) : m_pred(pred) {
+    if (m_pred)
+      return;
+    auto disabled = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
+
+    ImGui::PushStyleColor(ImGuiCol_Text, disabled);
+  }
+  ~ConditionalEnabled() {
+    if (m_pred)
+      return;
+    ImGui::PopStyleColor();
+  }
+  bool m_pred = true;
+};
+
 struct ConditionalActive {
   ConditionalActive(bool pred) { ImGui::BeginDisabled(!pred); }
   ~ConditionalActive() { ImGui::EndDisabled(); }

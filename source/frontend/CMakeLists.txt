@@ -69,7 +69,7 @@ add_executable(frontend
  "widgets/CppSupport.hpp"
  "widgets/CppSupport.cpp"
 
- "level_editor/ViewCube.hpp" "level_editor/ViewCube.cpp" "widgets/Lib3dImage.hpp" "widgets/Lib3dImage.cpp" "widgets/Manipulator.hpp" "widgets/Manipulator.cpp" "properties/gc/Material/CratePreset.cpp" "UpdaterView.cpp" "bdof/BdofEditor.cpp" "bdof/BblmEditor.cpp" "Fonts.cpp" "bdof/BfgEditor.cpp")
+ "level_editor/ViewCube.hpp" "level_editor/ViewCube.cpp" "widgets/Lib3dImage.hpp" "widgets/Lib3dImage.cpp" "widgets/Manipulator.hpp" "widgets/Manipulator.cpp" "properties/gc/Material/CratePreset.cpp" "UpdaterView.cpp" "bdof/BdofEditor.cpp" "bdof/BblmEditor.cpp" "Fonts.cpp" "bdof/BfgEditor.cpp" "bdof/BlightEditor.cpp" "EditorFactory.cpp")
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 

@@ -126,6 +126,7 @@ struct Light {
   glm::vec3 position{-10000.0, 10000.0, 10000.0}; // If !LightType::Sun
   glm::vec3 aim{0.0f, 0.0f, 0.0f};                // If !LightType::Point
   std::optional<u16> snapTargetIndex{}; // {FLAG_SNAP_TO, snapTargetIndex}
+  u16 snapTargetDefault = 0;
 
   librii::egg::Blight::CoordinateSpace coordSpace{
       librii::egg::Blight::CoordinateSpace::World};
@@ -190,6 +191,8 @@ struct Light {
     if (lobj.flags & librii::egg::Blight::FLAG_SNAP_TO) {
       snapTargetIndex.emplace(lobj.snapTargetIndex);
     }
+    // default.blight has an unused one
+    snapTargetDefault = lobj.snapTargetIndex;
     coordSpace = lobj.coordSpace;
     blmap = lobj.flags & librii::egg::Blight::FLAG_USE_BLMAP;
     brresColor = lobj.flags & librii::egg::Blight::FLAG_ENABLE_G3D_LIGHTCOLOR;
@@ -246,7 +249,7 @@ struct Light {
         .specularColor = specularColor,
         .refDist = refDist,
         .refBright = refBright,
-        .snapTargetIndex = snapTargetIndex.value_or(0),
+        .snapTargetIndex = snapTargetIndex.value_or(snapTargetDefault),
     };
   }
 };

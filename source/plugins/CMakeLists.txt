@@ -45,7 +45,7 @@ add_library(plugins STATIC
   "g3d/G3dIo.hpp"
   "j3d/J3dIo.hpp"
   
-  "mk/LTEX.cpp" "mk/LIGHT.cpp"
+  "mk/LTEX.cpp" 
   "api.hpp"
   "api.cpp"
   "SceneImpl.cpp"

@@ -38,22 +38,6 @@ public:
   void Draw(librii::egg::BFG::Entry& x);
 };
 
-struct ConditionalEnabled {
-  ConditionalEnabled(bool pred) : m_pred(pred) {
-    if (m_pred)
-      return;
-    auto disabled = ImGui::GetStyle().Colors[ImGuiCol_TextDisabled];
-
-    ImGui::PushStyleColor(ImGuiCol_Text, disabled);
-  }
-  ~ConditionalEnabled() {
-    if (m_pred)
-      return;
-    ImGui::PopStyleColor();
-  }
-  bool m_pred = true;
-};
-
 class BfgEditorTreeView : private imcxx::IndentedTreeWidget {
 public:
   void Draw() {
@@ -82,7 +66,7 @@ private:
       ImGui::TableNextColumn();
       return b;
     }
-    ConditionalEnabled g(i - 1 < enabled.size() && enabled[i - 1]);
+    util::ConditionalEnabled g(i - 1 < enabled.size() && enabled[i - 1]);
     auto str = std::format("Entry {}", i);
     if (ImGui::Selectable(str.c_str(), i == selected + 1)) {
       selected = i - 1;
