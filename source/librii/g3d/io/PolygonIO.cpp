@@ -568,7 +568,7 @@ struct BinaryPolygon {
     // Read primitiveData
     primitiveData.seekTo(reader);
     matrixPrims =
-        TRY(ReadMPrims(reader, primitiveData.buf_size, desc, vcdBitfield));
+        TRY(ReadMPrims(reader, primitiveData.buf_size, desc, currentMatrix));
 
     return {};
   }
