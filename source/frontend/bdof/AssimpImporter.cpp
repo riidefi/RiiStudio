@@ -149,7 +149,7 @@ void AssimpImporter::draw_() {
   }
   if (m_state == State::Settings) {
     auto h = ImGui::GetContentRegionAvail().y;
-    if (ImGui::BeginChild("SW", ImVec2{0.0f, h-26.0f})) {
+    if (ImGui::BeginChild("SW", ImVec2{0.0f, h - 26.0f})) {
       m_grid.Draw(m_settings);
       ImGui::EndChild();
     }
@@ -183,8 +183,9 @@ void AssimpImporter::draw_() {
         m_state = State::Fail;
         return;
       }
-      auto ed =
-          std::make_unique<EditorWindow>(std::move(node), m_path + m_extension);
+      auto path = std::filesystem::path(m_path);
+      path.replace_extension(m_extension);
+      auto ed = std::make_unique<EditorWindow>(std::move(node), path.string());
       RootWindow::spInstance->attachEditorWindow(std::move(ed));
       close();
     }
