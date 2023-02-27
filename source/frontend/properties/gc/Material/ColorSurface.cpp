@@ -24,10 +24,10 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate, ColorSurface) {
 
   if (ImGui::CollapsingHeader("TEV Color Registers"_j,
                               ImGuiTreeNodeFlags_DefaultOpen)) {
-
     // TODO: Is CPREV default state accessible?
-    for (std::size_t i = 0; i < 4; ++i) {
-      auto color_name = std::string("Color Register "_j) + std::to_string(i);
+    for (std::size_t i = 1; i < 4; ++i) {
+      auto color_name =
+          std::string("Color Register "_j) + std::to_string(i - 1);
       auto sclr = ColorEditS10(color_name.c_str(), matData.tevColors[i]);
 
       AUTO_PROP(tevColors[i], sclr);
