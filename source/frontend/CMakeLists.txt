@@ -100,7 +100,7 @@ if (WIN32)
   set(LINK_LIBS
     ${LINK_LIBS}
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
-		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
+		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc143-mt.lib
 		opengl32.lib
     ${PROJECT_SOURCE_DIR}/../vendor/libcurl.lib
     ${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
@@ -175,8 +175,8 @@ if (WIN32)
 	  TARGET frontend 
 	  POST_BUILD
 	  COMMAND ${CMAKE_COMMAND} -E copy
-		  ${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.dll
-		  $<TARGET_FILE_DIR:frontend>/assimp-vc141-mt.dll
+		  ${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc143-mt.dll
+		  $<TARGET_FILE_DIR:frontend>/assimp-vc143-mt.dll
 	)
   add_custom_command(
 	  TARGET frontend 

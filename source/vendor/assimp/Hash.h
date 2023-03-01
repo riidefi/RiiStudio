@@ -2,8 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2020, assimp team
-
+Copyright (c) 2006-2022, assimp team
 
 All rights reserved.
 
@@ -49,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdint.h>
 #include <string.h>
+#include <cmath>
 
 // ------------------------------------------------------------------------------------------------
 // Hashing function taken from
@@ -74,9 +74,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // ------------------------------------------------------------------------------------------------
 inline uint32_t SuperFastHash (const char * data, uint32_t len = 0, uint32_t hash = 0) {
-uint32_t tmp;
-int rem;
-
+    uint32_t tmp;
+    int rem;
+    
     if (!data) return 0;
     if (!len)len = (uint32_t)::strlen(data);
 
@@ -96,7 +96,7 @@ int rem;
     switch (rem) {
         case 3: hash += get16bits (data);
                 hash ^= hash << 16;
-                hash ^= data[sizeof (uint16_t)] << 18;
+                hash ^= abs(data[sizeof(uint16_t)]) << 18;
                 hash += hash >> 11;
                 break;
         case 2: hash += get16bits (data);
