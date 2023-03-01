@@ -123,6 +123,10 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
   joint.scale = srt.scale;
   joint.rotate = srt.rotation;
   joint.translate = srt.translation;
+  rsl::info("Joint {}: S {}, {}, {} R {}, {}, {} T {}, {}, {}", joint.name,
+            joint.scale.x, joint.scale.y, joint.scale.z, joint.rotate.x,
+            joint.rotate.y, joint.rotate.z, joint.translate.x,
+            joint.translate.y, joint.translate.z);
 
   joint.parent = parent;
   if (parent != -1) {
@@ -160,8 +164,7 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
     auto ok = ImportNode(out_model, pNode->mChildren[i], tint, joint_id);
     if (!ok) {
       rsl::error("Failed to import node {}: {}",
-                 pNode->mChildren[i]->mName.C_Str(),
-                 ok.error());
+                 pNode->mChildren[i]->mName.C_Str(), ok.error());
       continue;
     }
   }

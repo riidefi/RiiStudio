@@ -54,6 +54,8 @@ struct Settings {
   bool mAutoTransparent = true;
   //
   u32 mDataToInclude = DefaultInclusionMask();
+
+  bool mIgnoreRootTransform = false;
 };
 
 enum class State {

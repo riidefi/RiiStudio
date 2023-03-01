@@ -10,6 +10,7 @@
 #include <vendor/assimp/DefaultLogger.hpp>
 #include <vendor/assimp/Importer.hpp>
 #include <vendor/assimp/scene.h>
+#include <vendor/assimp/version.h>
 
 namespace librii::assimp2rhst {
 
@@ -19,6 +20,10 @@ const aiScene* ReadScene(KCallback callback, std::span<const u8> file,
                          Assimp::Importer& importer) {
   AssimpLoggerScope g_assimplogger(
       std::make_unique<AssimpLogger>(callback, getFileShort(path)));
+
+  rsl::info("Assimp: {}", aiGetLegalString());
+  rsl::info("Assimp v{}.{}.{} ({})", aiGetVersionMajor(), aiGetVersionMinor(),
+            aiGetVersionPatch(), aiGetBranchName());
 
   // Only include components we asked for
   {
@@ -34,20 +39,33 @@ const aiScene* ReadScene(KCallback callback, std::span<const u8> file,
   }
 
   importer.ReadFileFromMemory(file.data(), file.size(),
-                              aiProcess_PreTransformVertices, path.c_str());
-  auto* pScene = importer.ApplyPostProcessing(aiFlags);
-
+                              0, path.c_str());
+  if (settings.mIgnoreRootTransform) {
+    importer.GetScene()->mRootNode->mTransformation = {};
+  }
+  auto* pScene = importer.ApplyPostProcessing(aiProcess_PreTransformVertices);
+  if (!pScene) {
+    return nullptr;
+  }
+  pScene = importer.ApplyPostProcessing(aiFlags);
   if (!pScene) {
     return nullptr;
   }
   double unit_scale = 0.0;
   pScene->mMetaData->Get("UnitScaleFactor", unit_scale);
+  rsl::info("UnitScaleFactor: {}. (If previous != 0, then setting GLOBAL_SCALE "
+            "to {}). Was {} (default {})",
+            unit_scale, (1.0 / unit_scale) / 100.0,
+            importer.GetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY),
+            AI_CONFIG_GLOBAL_SCALE_FACTOR_DEFAULT);
+  rsl::info("Magnification: {}", settings.mMagnification);
 
   // Handle custom units
   if (unit_scale != 0.0) {
     // FBX-only property: internally in centimeters
     importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY,
-                              (1.0 / unit_scale) / 100.0);
+                              settings.mMagnification * (1.0 / unit_scale) /
+                                  100.0);
     importer.ApplyPostProcessing(aiProcess_GlobalScale);
   }
   return pScene;
@@ -60,8 +78,8 @@ Result<librii::rhst::SceneTree> ToSceneTree(const aiScene* scene,
 }
 
 // Export-only
-Result<librii::rhst::SceneTree> DoImport(std::string path,
-                                         KCallback callback, std::span<const u8> file,
+Result<librii::rhst::SceneTree> DoImport(std::string path, KCallback callback,
+                                         std::span<const u8> file,
                                          const Settings& settings) {
   Assimp::Importer importer;
   auto* pScene = ReadScene(callback, file, path, settings, importer);

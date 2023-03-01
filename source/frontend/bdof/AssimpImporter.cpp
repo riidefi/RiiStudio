@@ -52,6 +52,10 @@ void AssimpEditorPropertyGrid::Draw(librii::assimp2rhst::Settings& ctx) {
     // aiProcess_Debone - TODO
     // aiProcess_GlobalScale
     ImGui::InputFloat("Model Scale"_j, &ctx.mMagnification);
+    ImGui::Checkbox(
+        "Emulate BrawlBox Model Scale (This is incorrect and goes "
+        "against the COLLADA (.dae) specification but may be useful)",
+        &ctx.mIgnoreRootTransform);
     // aiProcess_ForceGenNormals - TODO
     // aiProcess_DropNormals - TODO
 
