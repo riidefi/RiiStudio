@@ -3,7 +3,9 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2020, assimp team
+
+
 
 All rights reserved.
 
@@ -39,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ---------------------------------------------------------------------------
 */
 
-/**
+/** 
   * @file   anim.h
   * @brief  Defines the data structures in which the imported animations
   *         are returned.
@@ -98,7 +100,6 @@ struct aiVectorKey {
     bool operator<(const aiVectorKey &rhs) const {
         return mTime < rhs.mTime;
     }
-    
     bool operator>(const aiVectorKey &rhs) const {
         return mTime > rhs.mTime;
     }
@@ -132,7 +133,6 @@ struct aiQuatKey {
     bool operator==(const aiQuatKey &rhs) const {
         return rhs.mValue == this->mValue;
     }
-    
     bool operator!=(const aiQuatKey &rhs) const {
         return rhs.mValue != this->mValue;
     }
@@ -141,7 +141,6 @@ struct aiQuatKey {
     bool operator<(const aiQuatKey &rhs) const {
         return mTime < rhs.mTime;
     }
-    
     bool operator>(const aiQuatKey &rhs) const {
         return mTime > rhs.mTime;
     }
@@ -351,7 +350,7 @@ struct aiMeshAnim {
     /** Size of the #mKeys array. Must be 1, at least. */
     unsigned int mNumKeys;
 
-    /** Key frames of the animation. May not be nullptr. */
+    /** Key frames of the animation. May not be NULL. */
     C_STRUCT aiMeshKey *mKeys;
 
 #ifdef __cplusplus
@@ -379,7 +378,7 @@ struct aiMeshMorphAnim {
     /** Size of the #mKeys array. Must be 1, at least. */
     unsigned int mNumKeys;
 
-    /** Key frames of the animation. May not be nullptr. */
+    /** Key frames of the animation. May not be NULL. */
     C_STRUCT aiMeshMorphKey *mKeys;
 
 #ifdef __cplusplus
@@ -481,11 +480,11 @@ struct aiAnimation {
 namespace Assimp {
 
 // ---------------------------------------------------------------------------
-/**
+/** 
   * @brief CPP-API: Utility class to simplify interpolations of various data types.
   *
   *  The type of interpolation is chosen automatically depending on the
-  *  types of the arguments.
+  *  types of the arguments. 
   */
 template <typename T>
 struct Interpolator {

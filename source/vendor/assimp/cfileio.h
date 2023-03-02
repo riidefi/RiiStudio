@@ -3,7 +3,9 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2020, assimp team
+
+
 
 All rights reserved.
 
@@ -104,7 +106,8 @@ struct aiFileIO
  *  the CRT. However, you can supply a custom implementation to Assimp by
  *  delivering a custom aiFileIO. Use this to enable reading from other sources,
  *  such as ZIP archives or memory locations. */
-struct aiFile {
+struct aiFile
+{
     /** Callback to read from a file */
     aiFileReadProc ReadProc;
 

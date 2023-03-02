@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2020, assimp team
 
 All rights reserved.
 
@@ -69,8 +69,7 @@ typedef enum aiMetadataType {
     AI_DOUBLE = 4,
     AI_AISTRING = 5,
     AI_AIVECTOR3D = 6,
-    AI_AIMETADATA = 7,
-    AI_META_MAX = 8,
+    AI_META_MAX = 7,
 
 #ifndef SWIG
     FORCE_32BIT = INT_MAX
@@ -87,21 +86,11 @@ typedef enum aiMetadataType {
 struct aiMetadataEntry {
     aiMetadataType mType;
     void *mData;
-
-#ifdef __cplusplus
-    aiMetadataEntry() :
-            mType(AI_META_MAX),
-            mData( nullptr ) {
-        // empty
-    }
-#endif
 };
 
 #ifdef __cplusplus
 
 #include <string>
-
-struct aiMetadata;
 
 // -------------------------------------------------------------------------------
 /**
@@ -130,9 +119,6 @@ inline aiMetadataType GetAiType(const aiString &) {
 inline aiMetadataType GetAiType(const aiVector3D &) {
     return AI_AIVECTOR3D;
 }
-inline aiMetadataType GetAiType(const aiMetadata &) {
-    return AI_AIMETADATA;
-}
 
 #endif // __cplusplus
 
@@ -156,7 +142,7 @@ struct aiMetadata {
 
 #ifdef __cplusplus
 
-    /**
+    /** 
      *  @brief  The default constructor, set all members to zero by default.
      */
     aiMetadata() AI_NO_EXCEPT
@@ -202,18 +188,13 @@ struct aiMetadata {
             } break;
             case AI_AISTRING: {
                 aiString v;
-                rhs.Get<aiString>(static_cast<unsigned int>(i), v);
+                rhs.Get<aiString>(mKeys[i], v);
                 mValues[i].mData = new aiString(v);
             } break;
             case AI_AIVECTOR3D: {
                 aiVector3D v;
-                rhs.Get<aiVector3D>(static_cast<unsigned int>(i), v);
+                rhs.Get<aiVector3D>(mKeys[i], v);
                 mValues[i].mData = new aiVector3D(v);
-            } break;
-            case AI_AIMETADATA: {
-                aiMetadata v;
-                rhs.Get<aiMetadata>(static_cast<unsigned int>(i), v);
-                mValues[i].mData = new aiMetadata(v);
             } break;
 #ifndef SWIG
             case FORCE_32BIT:
@@ -224,15 +205,7 @@ struct aiMetadata {
         }
     }
 
-    aiMetadata &operator=(aiMetadata rhs) {
-        using std::swap;
-        swap(mNumProperties, rhs.mNumProperties);
-        swap(mKeys, rhs.mKeys);
-        swap(mValues, rhs.mValues);
-        return *this;
-    }
-
-    /**
+    /** 
      *  @brief The destructor.
      */
     ~aiMetadata() {
@@ -263,9 +236,6 @@ struct aiMetadata {
                     break;
                 case AI_AIVECTOR3D:
                     delete static_cast<aiVector3D *>(data);
-                    break;
-                case AI_AIMETADATA:
-                    delete static_cast<aiMetadata *>(data);
                     break;
 #ifndef SWIG
                 case FORCE_32BIT:
@@ -343,25 +313,14 @@ struct aiMetadata {
 
         // Set metadata type
         mValues[index].mType = GetAiType(value);
-
         // Copy the given value to the dynamic storage
-        if (nullptr != mValues[index].mData && AI_AIMETADATA != mValues[index].mType) {
-            ::memcpy(mValues[index].mData, &value, sizeof(T));
-        } else if (nullptr != mValues[index].mData && AI_AIMETADATA == mValues[index].mType) {
-            *static_cast<T *>(mValues[index].mData) = value;
-        } else {
-            if (nullptr != mValues[index].mData) {
-                delete static_cast<T *>(mValues[index].mData);
-                mValues[index].mData = nullptr;
-            }
-            mValues[index].mData = new T(value);
-        }
+        mValues[index].mData = new T(value);
 
         return true;
     }
 
     template <typename T>
-    inline bool Set(const std::string &key, const T &value) {
+    inline bool Set( const std::string &key, const T &value ) {
         if (key.empty()) {
             return false;
         }
@@ -432,7 +391,7 @@ struct aiMetadata {
 
     /// Check whether there is a metadata entry for the given key.
     /// \param [in] Key - the key value value to check for.
-    inline bool HasKey(const char *key) const {
+    inline bool HasKey(const char *key) {
         if (nullptr == key) {
             return false;
         }
@@ -444,89 +403,6 @@ struct aiMetadata {
             }
         }
         return false;
-    }
-
-    friend bool CompareKeys(const aiMetadata &lhs, const aiMetadata &rhs) {
-        if (lhs.mNumProperties != rhs.mNumProperties) {
-            return false;
-        }
-
-        for (unsigned int i = 0; i < lhs.mNumProperties; ++i) {
-            if (lhs.mKeys[i] != rhs.mKeys[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    friend bool CompareValues(const aiMetadata &lhs, const aiMetadata &rhs) {
-        if (lhs.mNumProperties != rhs.mNumProperties) {
-            return false;
-        }
-
-        for (unsigned int i = 0; i < lhs.mNumProperties; ++i) {
-            if (lhs.mValues[i].mType != rhs.mValues[i].mType) {
-                return false;
-            }
-
-            switch (lhs.mValues[i].mType) {
-            case AI_BOOL: {
-                if (*static_cast<bool *>(lhs.mValues[i].mData) != *static_cast<bool *>(rhs.mValues[i].mData)) {
-                    return false;
-                }
-            } break;
-            case AI_INT32: {
-                if (*static_cast<int32_t *>(lhs.mValues[i].mData) != *static_cast<int32_t *>(rhs.mValues[i].mData)) {
-                    return false;
-                }
-            } break;
-            case AI_UINT64: {
-                if (*static_cast<uint64_t *>(lhs.mValues[i].mData) != *static_cast<uint64_t *>(rhs.mValues[i].mData)) {
-                    return false;
-                }
-            } break;
-            case AI_FLOAT: {
-                if (*static_cast<float *>(lhs.mValues[i].mData) != *static_cast<float *>(rhs.mValues[i].mData)) {
-                    return false;
-                }
-            } break;
-            case AI_DOUBLE: {
-                if (*static_cast<double *>(lhs.mValues[i].mData) != *static_cast<double *>(rhs.mValues[i].mData)) {
-                    return false;
-                }
-            } break;
-            case AI_AISTRING: {
-                if (*static_cast<aiString *>(lhs.mValues[i].mData) != *static_cast<aiString *>(rhs.mValues[i].mData)) {
-                    return false;
-                }
-            } break;
-            case AI_AIVECTOR3D: {
-                if (*static_cast<aiVector3D *>(lhs.mValues[i].mData) != *static_cast<aiVector3D *>(rhs.mValues[i].mData)) {
-                    return false;
-                }
-            } break;
-            case AI_AIMETADATA: {
-                if (*static_cast<aiMetadata *>(lhs.mValues[i].mData) != *static_cast<aiMetadata *>(rhs.mValues[i].mData)) {
-                    return false;
-                }
-            } break;
-#ifndef SWIG
-            case FORCE_32BIT:
-#endif
-            default:
-                break;
-            }
-        }
-
-        return true;
-    }
-
-    friend bool operator==(const aiMetadata &lhs, const aiMetadata &rhs) {
-        return CompareKeys(lhs, rhs) && CompareValues(lhs, rhs);
-    }
-
-    friend bool operator!=(const aiMetadata &lhs, const aiMetadata &rhs) {
-        return !(lhs == rhs);
     }
 
 #endif // __cplusplus

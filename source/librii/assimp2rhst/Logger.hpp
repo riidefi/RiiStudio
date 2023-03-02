@@ -20,7 +20,7 @@ struct AssimpLogger : public Assimp::Logger {
   void OnDebug(const char* message) override {
     rsl::trace("[Assimp::Debug] {}", message);
   }
-  void OnVerboseDebug(const char* message) override {
+  virtual void OnVerboseDebug(const char* message) /*override*/ {
     rsl::trace("[Assimp::VerboseDebug] {}", message);
   }
   void OnInfo(const char* message) override {
@@ -38,8 +38,8 @@ struct AssimpLogger : public Assimp::Logger {
                     unsigned int severity) override {
     return false;
   }
-  bool detachStream(Assimp::LogStream* pStream,
-                    unsigned int severity) override {
+  bool detatchStream(Assimp::LogStream* pStream,
+                     unsigned int severity) override {
     return false;
   }
 
