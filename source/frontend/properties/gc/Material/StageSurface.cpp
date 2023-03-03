@@ -312,6 +312,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           for (auto* e : delegate.mAffected) {
             auto& stage = e->getMaterialData().mStages[i];
             stage.texCoord = stage.texMap = texid;
+            e->nextGenerationId();
           }
           delegate.commit("Property update");
         }
