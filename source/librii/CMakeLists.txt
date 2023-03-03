@@ -152,7 +152,10 @@ add_library(librii STATIC
  "egg/BDOF.cpp"
 
  "sp/DebugClient.cpp"
- "sp/detail/FFI.h" "egg/PBLM.cpp" "egg/BFG.cpp")
+ "sp/detail/FFI.h" "egg/PBLM.cpp" "egg/BFG.cpp"
+
+"tev/TevSolver.cpp"
+)
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
 if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))

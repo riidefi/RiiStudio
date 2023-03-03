@@ -1,10 +1,10 @@
 #pragma once
 
 #include <frontend/properties/gc/Material/Common.hpp>
-#include <frontend/properties/gc/TevSolver.hpp> // optimizeNode
-#include <frontend/widgets/Image.hpp>           // ImagePreview
-#include <imcxx/Widgets.hpp>                    // imcxx::Combo
-#include <librii/hx/KonstSel.hpp>               // elevateKonstSel
+#include <frontend/widgets/Image.hpp> // ImagePreview
+#include <imcxx/Widgets.hpp>          // imcxx::Combo
+#include <librii/hx/KonstSel.hpp>     // elevateKonstSel
+#include <librii/tev/TevSolver.hpp>   // optimizeNode
 #include <plugins/gc/Export/Scene.hpp>
 
 namespace libcube::UI {

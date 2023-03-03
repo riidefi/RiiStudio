@@ -1,8 +1,6 @@
 #include "TevSolver.hpp"
 
-IMPORT_STD;
-
-namespace libcube::UI {
+namespace librii::tev {
 
 using namespace librii;
 
@@ -500,4 +498,4 @@ Expr& solveTevStage(const gx::TevStage::AlphaStage& substage,
 
 } // namespace impl
 
-} // namespace libcube::UI
+} // namespace librii::tev

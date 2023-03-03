@@ -116,6 +116,9 @@ Supports encoding/decoding/resizing Wii images.
 Texture matrix calculation.
 NOTE: Lots of accuracy issues currently
 
+### librii::tev
+TEV fixed-function pixel shader expression solver and potentially more.
+
 ## System/Hardware Libraries
 
 ### librii::nitro

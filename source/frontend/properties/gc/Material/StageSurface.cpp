@@ -58,13 +58,13 @@ librii::gx::TevReg drawOutRegister(librii::gx::TevReg out) {
                       "Register 1\0"
                       "Register 2\0"_j);
 }
-gx::TevColorArg drawTevOp(const TevExpression& expression, const char* title,
-                          gx::TevColorArg op, u32 op_mask) {
+gx::TevColorArg drawTevOp(const librii::tev::TevExpression& expression,
+                          const char* title, gx::TevColorArg op, u32 op_mask) {
   ConditionalHighlight g(expression.isUsed(op_mask));
   return imcxx::Combo(title, op, riistudio::translateString(colorOpt));
 }
-gx::TevAlphaArg drawTevOp(const TevExpression& expression, const char* title,
-                          gx::TevAlphaArg op, u32 op_mask) {
+gx::TevAlphaArg drawTevOp(const librii::tev::TevExpression& expression,
+                          const char* title, gx::TevAlphaArg op, u32 op_mask) {
   ConditionalHighlight g(expression.isUsed(op_mask));
   return imcxx::Combo(title, op, riistudio::translateString(alphaOpt));
 };
@@ -138,7 +138,7 @@ template <typename T> T drawTevOperation(T formula) {
 }
 
 template <typename T> T drawSubStage(T stage) {
-  TevExpression expression(stage);
+  librii::tev::TevExpression expression(stage);
 
   ImGui::SetWindowFontScale(1.3f);
   ImGui::Text("%s", expression.getString());
@@ -148,10 +148,10 @@ template <typename T> T drawSubStage(T stage) {
 
   stage.formula = drawTevOperation(stage.formula);
 
-  stage.a = drawTevOp(expression, "Operand A"_j, stage.a, A);
-  stage.b = drawTevOp(expression, "Operand B"_j, stage.b, B);
-  stage.c = drawTevOp(expression, "Operand C"_j, stage.c, C);
-  stage.d = drawTevOp(expression, "Operand D"_j, stage.d, D);
+  stage.a = drawTevOp(expression, "Operand A"_j, stage.a, librii::tev::A);
+  stage.b = drawTevOp(expression, "Operand B"_j, stage.b, librii::tev::B);
+  stage.c = drawTevOp(expression, "Operand C"_j, stage.c, librii::tev::C);
+  stage.d = drawTevOp(expression, "Operand D"_j, stage.d, librii::tev::D);
 
   if (stage.formula == T::OpType::add || stage.formula == T::OpType::subtract) {
     stage.bias = drawTevBias(stage.bias);

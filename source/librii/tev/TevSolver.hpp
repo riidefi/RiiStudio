@@ -1,11 +1,11 @@
 #pragma once
 
-#include <core/common.h>                  // for u32
-#include <plugins/gc/Export/Material.hpp> // gx::TevStage
-#include <rsl/StringBuilder.hpp>          // for StringBuilder
-#include <tuple>                          // for std::pair
+#include <core/common.h>         // for u32
+#include <librii/gx.h>         // gx::TevStage
+#include <rsl/StringBuilder.hpp> // for StringBuilder
+#include <tuple>                 // for std::pair
 
-namespace libcube::UI {
+namespace librii::tev {
 
 struct Expr;
 
@@ -86,4 +86,4 @@ private:
       mWorkMem{};
 };
 
-} // namespace libcube::UI
+} // namespace librii::tev

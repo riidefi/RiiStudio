@@ -23,7 +23,6 @@ add_executable(frontend
   "editor/views/ViewportRenderer.cpp"
   "properties/gc/ResizeAction.cpp"
   "properties/gc/ShaderView.cpp"
-  "properties/gc/TevSolver.cpp"
   "properties/gc/TexImageView.cpp"
   "properties/gc/Bone/BoneDisplaySurface.cpp"
   "properties/gc/Bone/BoneTransformSurface.cpp"
