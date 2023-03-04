@@ -729,7 +729,7 @@ Result<MeshOptimizerStats> StripifyTrianglesAlgo(MatrixPrimitive& prim,
 // Brute-force every algorithm
 Result<Algo> StripifyTriangles(MatrixPrimitive& prim,
                                std::optional<Algo> except,
-                               std::string_view debug_name) {
+                               std::string_view debug_name, bool verbose) {
   MeshOptimizerExperimentHolder<Algo> experiments(prim);
   u32 ms_on_validate = 0;
   for (auto e : magic_enum::enum_values<Algo>()) {
@@ -771,7 +771,7 @@ Result<Algo> StripifyTriangles(MatrixPrimitive& prim,
   for (Algo e : experiments.CalcWinners()) {
     winners.push_back(magic_enum::enum_name(e));
   }
-  if (!except) {
+  if (verbose && !except) {
     auto table = PrintScoresOfExperiment(experiments);
     std::stringstream thread_id;
     thread_id << std::this_thread::get_id();

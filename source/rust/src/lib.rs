@@ -8,13 +8,12 @@ use log::*;
 use std::path::PathBuf;
 use std::io::Cursor;
 
+use clap::CommandFactory;
 use clap_derive::Parser;
 use clap_derive::Subcommand;
-//use clap::Arg;
 use clap::Parser;
 use std::os::raw::{c_int, c_uint, c_float};
 use std::ffi::OsString;
-// use std::ffi::CString;
 use std::slice;
 
 #[derive(Parser, Debug)]
@@ -28,64 +27,67 @@ pub struct MyArgs {
 pub enum Commands {
     /// Import a .dae/.fbx file as .brres
     ImportCommand {
-      /// File to import from: .dae or .fbx
-      #[arg(required=true)]
-      from: String,
+        /// File to import from: .dae or .fbx
+        #[arg(required=true)]
+        from: String,
 
-      /// File to export to
-      to: Option<String>,
+        /// File to export to
+        to: Option<String>,
 
-      /// Scale to apply to the model
-      #[arg(short, long, default_value = "1.0")]
-      scale: f32,
+        /// Scale to apply to the model
+        #[arg(short, long, default_value = "1.0")]
+        scale: f32,
 
-      /// Whether to apply the Brawlbox scale fix
-      #[arg(short, long)]
-      brawlbox_scale: bool,
+        /// Whether to apply the Brawlbox scale fix
+        #[clap(long)]
+        brawlbox_scale: bool,
 
-      /// Whether to generate mipmaps for textures
-      #[arg(short, long)]
-      mipmaps: bool,
+        /// Whether to generate mipmaps for textures
+        #[clap(long, default_value="true")]
+        mipmaps: bool,
 
-      /// Minimum mipmap level to generate
-      #[arg(short, long, default_value = "32")]
-      min_mip: u32,
+        /// Minimum mipmap dimension to generate
+        #[arg(long, default_value = "32")]
+        min_mip: u32,
 
-      /// Maximum number of mipmaps to generate
-      #[arg(short, long, default_value = "5")]
-      max_mip: u32,
+        /// Maximum number of mipmaps to generate
+        #[arg(long, default_value = "5")]
+        max_mip: u32,
 
-      /// Whether to automatically set transparency
-      #[arg(short, long)]
-      auto_transparency: bool,
+        /// Whether to automatically set transparency
+        #[clap(long, default_value="true")]
+        auto_transparency: bool,
 
-      /// Whether to merge materials with identical properties
-      #[arg(short, long)]
-      merge_mats: bool,
+        /// Whether to merge materials with identical properties
+        #[clap(long, default_value="true")]
+        merge_mats: bool,
 
-      /// Whether to bake UV transforms into vertices
-      #[arg(short, long)]
-      bake_uvs: bool,
+        /// Whether to bake UV transforms into vertices
+        #[clap(long, default_value="false")]
+        bake_uvs: bool,
 
-      /// Tint to apply to the model in hex format (#RRGGBB)
-      #[arg(short, long, default_value = "#FFFFFFFF")]
-      tint: String,
+        /// Tint to apply to the model in hex format (#RRGGBB)
+        #[arg(long, default_value = "#FFFFFF")]
+        tint: String,
 
-      /// Whether to cull degenerate triangles
-      #[arg(short, long)]
-      cull_degenerates: bool,
+        /// Whether to cull degenerate triangles
+        #[clap(long, default_value="true")]
+        cull_degenerates: bool,
 
-      /// Whether to cull triangles with invalid vertices
-      #[arg(short, long)]
-      cull_invalid: bool,
+        /// Whether to cull triangles with invalid vertices
+        #[clap(long, default_value="true")]
+        cull_invalid: bool,
 
-      /// Whether to recompute normals
-      #[arg(short, long)]
-      recompute_normals: bool,
+        /// Whether to recompute normals
+        #[clap(long, default_value="false")]
+        recompute_normals: bool,
 
-      /// Whether to fuse identical vertices
-      #[arg(short, long)]
-      fuse_vertices: bool,
+        /// Whether to fuse identical vertices
+        #[clap(long, default_value="true")]
+        fuse_vertices: bool,
+
+        #[clap(short, long, default_value="false")]
+        verbose: bool,
     },
 }
 
@@ -106,6 +108,7 @@ pub struct CliOptions {
     pub cull_invalid: c_uint,
     pub recompute_normals: c_uint,
     pub fuse_vertices: c_uint,
+    pub verbose: c_uint,
 }
 
 fn is_valid_hexcode(value: String) -> Result<(), String> {
@@ -120,13 +123,16 @@ fn is_valid_hexcode(value: String) -> Result<(), String> {
     }
     Ok(())
 }
-impl Commands {
+impl MyArgs {
     fn to_cli_options(&self) -> CliOptions {
-        match self {
+        match &self.command {
             Commands::ImportCommand{
-            to, from, scale, brawlbox_scale, mipmaps, min_mip, max_mip, auto_transparency, merge_mats, bake_uvs, cull_degenerates, cull_invalid, recompute_normals, fuse_vertices, tint
+                to, from, scale, brawlbox_scale, mipmaps, min_mip, max_mip,
+                auto_transparency, merge_mats, bake_uvs, cull_degenerates,
+                cull_invalid, recompute_normals, fuse_vertices, tint,
+                verbose
             } => {
-                let tint_val = u32::from_str_radix(&tint[1..], 16).unwrap_or(0xFFFF_FFFF);
+                let tint_val = u32::from_str_radix(&tint[1..], 16).unwrap_or(0xFF_FFFF);
                 let mut from2 : [i8; 256]= [0; 256];
                 let mut to2 : [i8; 256]= [0; 256];
                 let from_bytes = from.as_bytes();
@@ -150,13 +156,14 @@ impl Commands {
                     cull_invalid: *cull_invalid as c_uint,
                     recompute_normals: *recompute_normals as c_uint,
                     fuse_vertices: *fuse_vertices as c_uint,
+                    verbose: *verbose as c_uint,
                 }
             },
         }
     }
 }
 
-fn parse_args(argc: c_int, argv: *const *const c_char) -> Result<Commands, String> {
+fn parse_args(argc: c_int, argv: *const *const c_char) -> Result<MyArgs, String> {
     let args: Vec<OsString> = unsafe { 
         slice::from_raw_parts(argv, argc as usize)
             .iter()
@@ -170,13 +177,30 @@ fn parse_args(argc: c_int, argv: *const *const c_char) -> Result<Commands, Strin
             .collect()
     };
 
-
-    println!("PArsing");
     match MyArgs::try_parse_from(args) {
-        Ok(args) => Ok(args.command),
+        Ok(args) => {
+            match args.command {
+                Commands::ImportCommand{ref tint,..} => {
+                    let str = tint.to_string();
+                    match is_valid_hexcode(str) {
+                        Ok(_) => { () },
+                        Err(e) => {
+                            let mut cmd = MyArgs::command();
+                            cmd.error(
+                                clap::error::ErrorKind::ArgumentConflict,
+                                &e,
+                            );
+                            println!("--tint: {}", e);
+                            return Err("Bad hexcode".to_string())
+                        }
+                    }
+                }
+            };
+            Ok(args)
+        },
         Err(e) => {
-          println!("Error: {}", e.to_string());
-          Err("Bruh".to_string())
+            println!("{}", e.to_string());
+            Err("Bruh".to_string())
         }
     }
 }

@@ -34,11 +34,10 @@ importTextureImpl(libcube::Texture& data, std::span<u8> image,
 void CompileRHST(librii::rhst::SceneTree& rhst,
                  kpi::IOTransaction& transaction);
 
-[[nodiscard]] bool
-CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
-            std::string path,
-            std::function<void(std::string, std::string)> info,
-            std::function<void(std::string_view, float)> progress);
+[[nodiscard]] bool CompileRHST(
+    librii::rhst::SceneTree& rhst, libcube::Scene& scene, std::string path,
+    std::function<void(std::string, std::string)> info,
+    std::function<void(std::string_view, float)> progress, bool verbose = true);
 
 [[nodiscard]] Result<librii::rhst::Mesh>
 decompileMesh(const libcube::IndexedPolygon& src, const libcube::Model& mdl);

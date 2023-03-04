@@ -589,7 +589,8 @@ void import_texture(std::string tex, libcube::Texture* pdata,
 bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
                  std::string path,
                  std::function<void(std::string, std::string)> info,
-                 std::function<void(std::string_view, float)> progress) {
+                 std::function<void(std::string_view, float)> progress,
+                 bool verbose) {
   std::set<std::string> textures_needed;
 
   for (auto& mat : rhst.materials) {
@@ -647,7 +648,8 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
               mp, std::nullopt,
               mesh->matrix_primitives.size() > 1
                   ? std::format("{}::{}", mesh->name, i)
-                  : mesh->name);
+                  : mesh->name,
+              verbose);
           ++i;
           if (!ok) {
             rsl::error("Error: Failed to stripify mesh {}. {}", mesh->name,

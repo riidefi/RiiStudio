@@ -292,7 +292,8 @@ Result<MeshOptimizerStats> StripifyTrianglesAlgo(MatrixPrimitive& prim,
 // Brute-force every algorithm
 Result<Algo> StripifyTriangles(MatrixPrimitive& prim,
                                std::optional<Algo> except = std::nullopt,
-                               std::string_view debug_name = "?");
+                               std::string_view debug_name = "?",
+                               bool verbose = true);
 
 std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
                                        std::string& error_message);

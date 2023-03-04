@@ -4,6 +4,7 @@
 #include <optional>
 
 // cli.exe import <from> [to]
+// --verbose
 // --scale 1.0
 // --brawlbox_scale
 // --mipmaps off --mipmaps 32:5
@@ -35,6 +36,7 @@ struct CliOptions {
   bool32 cull_invalid = true;
   bool32 recompute_normals = false;
   bool32 fuse_vertices = true;
+  bool32 verbose = false;
 };
 
 std::optional<CliOptions> parse(int argc, const char** argv);
