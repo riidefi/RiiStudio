@@ -97,7 +97,6 @@ add_library(librii STATIC
   "g3d/io/DictWriteIO.hpp"
   "g3d/io/DictWriteIO.cpp"
   "u8/U8.cpp" "u8/U8.hpp"
-  "image/DsTexture.hpp" "image/DsTexture.cpp"
   "gfx/PixelOcclusion.hpp"
   "gfx/TextureObj.hpp" "gfx/TextureObj.cpp"
   "gfx/SceneNode.hpp" "gfx/SceneNode.cpp"
