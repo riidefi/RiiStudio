@@ -39,6 +39,10 @@ elseif(APPLE)
   include_directories(/usr/local/include)
   link_directories(/usr/local/lib)
   add_compile_options(-DLLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING=1)
+  # LLVM
+  add_compile_options(-Wno-deprecated-declarations)
+  # Draco
+  add_compile_options(-Wno-implicit-const-int-float-conversion)
 elseif(UNIX)
   add_compile_definitions(RII_PLATFORM_LINUX)
   add_compile_definitions(RII_BACKEND_GLFW)
