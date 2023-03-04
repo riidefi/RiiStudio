@@ -12,6 +12,8 @@ log = "0.4.7"
 simple_logger = "4.0.0"
 discord-rich-presence = "0.2.3"
 cxx = { git = "https://github.com/riidefi/cxx", branch = "static-crt" }
+clap = "4.1.8"
+clap_derive = "4.1.8"
 
 [build-dependencies]
 cxx-build = "1.0.90"

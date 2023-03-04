@@ -8,6 +8,198 @@ use log::*;
 use std::path::PathBuf;
 use std::io::Cursor;
 
+use clap_derive::Parser;
+use clap_derive::Subcommand;
+//use clap::Arg;
+use clap::Parser;
+use std::os::raw::{c_int, c_uint, c_float};
+use std::ffi::OsString;
+// use std::ffi::CString;
+use std::slice;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+pub struct MyArgs {
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    /// Import a .dae/.fbx file as .brres
+    ImportCommand {
+      /// File to import from: .dae or .fbx
+      #[arg(required=true)]
+      from: String,
+
+      /// File to export to
+      to: Option<String>,
+
+      /// Scale to apply to the model
+      #[arg(short, long, default_value = "1.0")]
+      scale: f32,
+
+      /// Whether to apply the Brawlbox scale fix
+      #[arg(short, long)]
+      brawlbox_scale: bool,
+
+      /// Whether to generate mipmaps for textures
+      #[arg(short, long)]
+      mipmaps: bool,
+
+      /// Minimum mipmap level to generate
+      #[arg(short, long, default_value = "32")]
+      min_mip: u32,
+
+      /// Maximum number of mipmaps to generate
+      #[arg(short, long, default_value = "5")]
+      max_mip: u32,
+
+      /// Whether to automatically set transparency
+      #[arg(short, long)]
+      auto_transparency: bool,
+
+      /// Whether to merge materials with identical properties
+      #[arg(short, long)]
+      merge_mats: bool,
+
+      /// Whether to bake UV transforms into vertices
+      #[arg(short, long)]
+      bake_uvs: bool,
+
+      /// Tint to apply to the model in hex format (#RRGGBB)
+      #[arg(short, long, default_value = "#FFFFFFFF")]
+      tint: String,
+
+      /// Whether to cull degenerate triangles
+      #[arg(short, long)]
+      cull_degenerates: bool,
+
+      /// Whether to cull triangles with invalid vertices
+      #[arg(short, long)]
+      cull_invalid: bool,
+
+      /// Whether to recompute normals
+      #[arg(short, long)]
+      recompute_normals: bool,
+
+      /// Whether to fuse identical vertices
+      #[arg(short, long)]
+      fuse_vertices: bool,
+    },
+}
+
+#[repr(C)]
+pub struct CliOptions {
+    pub from: [c_char; 256],
+    pub to: [c_char; 256],
+    pub scale: c_float,
+    pub brawlbox_scale: c_uint,
+    pub mipmaps: c_uint,
+    pub min_mip: c_uint,
+    pub max_mips: c_uint,
+    pub auto_transparency: c_uint,
+    pub merge_mats: c_uint,
+    pub bake_uvs: c_uint,
+    pub tint: c_uint,
+    pub cull_degenerates: c_uint,
+    pub cull_invalid: c_uint,
+    pub recompute_normals: c_uint,
+    pub fuse_vertices: c_uint,
+}
+
+fn is_valid_hexcode(value: String) -> Result<(), String> {
+    if value.len() != 7 {
+        return Err("Hexcode must be 7 characters long".into());
+    }
+    if !value.starts_with("#") {
+        return Err("Hexcode must start with '#'".into());
+    }
+    if !value[1..].chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("Hexcode must be a valid hexadecimal number".into());
+    }
+    Ok(())
+}
+impl Commands {
+    fn to_cli_options(&self) -> CliOptions {
+        match self {
+            Commands::ImportCommand{
+            to, from, scale, brawlbox_scale, mipmaps, min_mip, max_mip, auto_transparency, merge_mats, bake_uvs, cull_degenerates, cull_invalid, recompute_normals, fuse_vertices, tint
+            } => {
+                let tint_val = u32::from_str_radix(&tint[1..], 16).unwrap_or(0xFFFF_FFFF);
+                let mut from2 : [i8; 256]= [0; 256];
+                let mut to2 : [i8; 256]= [0; 256];
+                let from_bytes = from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    from: from2,
+                    to: to2,
+                    scale: *scale as c_float,
+                    brawlbox_scale: *brawlbox_scale as c_uint,
+                    mipmaps: *mipmaps as c_uint,
+                    min_mip: *min_mip as c_uint,
+                    max_mips: *max_mip as c_uint,
+                    auto_transparency: *auto_transparency as c_uint,
+                    merge_mats: *merge_mats as c_uint,
+                    bake_uvs: *bake_uvs as c_uint,
+                    tint: tint_val as c_uint,
+                    cull_degenerates: *cull_degenerates as c_uint,
+                    cull_invalid: *cull_invalid as c_uint,
+                    recompute_normals: *recompute_normals as c_uint,
+                    fuse_vertices: *fuse_vertices as c_uint,
+                }
+            },
+        }
+    }
+}
+
+fn parse_args(argc: c_int, argv: *const *const c_char) -> Result<Commands, String> {
+    let args: Vec<OsString> = unsafe { 
+        slice::from_raw_parts(argv, argc as usize)
+            .iter()
+            .map(|&arg| {
+                OsString::from(
+                    String::from_utf8_lossy(
+                        CStr::from_ptr(arg).to_bytes()
+                    ).into_owned()
+                )
+            })
+            .collect()
+    };
+
+
+    println!("PArsing");
+    match MyArgs::try_parse_from(args) {
+        Ok(args) => Ok(args.command),
+        Err(e) => {
+          println!("Error: {}", e.to_string());
+          Err("Bruh".to_string())
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_parse_args(
+    argc: c_int,
+    argv: *const *const c_char,
+    args: *mut CliOptions,
+) -> c_int {
+    match parse_args(argc, argv) {
+        Ok(x) => {
+            unsafe {
+                std::ptr::write(args, x.to_cli_options());
+            }
+            0
+        }
+        Err(_) => {
+            -1
+        }
+    }
+}
+
 /*
 use std::fs::OpenOptions;
 use std::os::windows::prelude::*;
