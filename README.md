@@ -38,10 +38,15 @@ cd RiiStudio
 mkdir build
 cd build
 
-brew install cmake assimp glfw
+brew install cmake assimp glfw freetype llvm
+```
 
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --config Release
+| On M1                                                                                | On Intel                                                                                   |
+|--------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| `cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/opt/homebrew/bin/clang++` | `cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++` |
+
+```sh
+cmake --build . --config Release --parallel
 ```
 
 ### Linux
@@ -52,7 +57,7 @@ mkdir build
 cd build
 
 sudo apt-get update --fix-missing
-sudo apt install -y cmake mesa-common-dev libglfw3-dev libassimp-dev g++-12
+sudo apt install -y cmake mesa-common-dev libglfw3-dev libassimp-dev libfreetype-dev g++-12
 
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-12
 cmake --build . --config Release --parallel
