@@ -171,7 +171,10 @@ CPMAddPackage("gh:ericniebler/range-v3#0.12.0")
 add_definitions(-DINCLUDE_RUST_HEADERS)
 
 if (APPLE)
-  set(Rust_CARGO_TARGET "aarch64-apple-darwin")
+  execute_process(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE)
+  if (${ARCHITECTURE} STREQUAL "arm64")
+    set(Rust_CARGO_TARGET "aarch64-apple-darwin")
+  endif()
 endif()
 
 CPMAddPackage("gh:corrosion-rs/corrosion@0.3.2")
