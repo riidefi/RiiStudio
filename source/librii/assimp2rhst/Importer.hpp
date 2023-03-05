@@ -8,38 +8,18 @@
 
 namespace librii::assimp2rhst {
 
-class IdCounter {
-public:
-  void setConvertedMaterial(u32 aiIndex, u32 matIndex) {
-    matIdToMatIdMap[aiIndex] = matIndex;
-  }
-  Result<u32> getConvertedMaterial(u32 aiIndex) const {
-    auto it = matIdToMatIdMap.find(aiIndex);
-    EXPECT(it != matIdToMatIdMap.end());
-    return it->second;
-  }
 
-private:
-  std::map<u32, u32> matIdToMatIdMap;
-};
 class AssImporter {
 public:
   AssImporter(const AssImporter&) = delete; // boneIdCtr is not stable
   AssImporter(AssImporter&&) = delete;
-
-  bool assimpSuccess() const {
-    return pScene != nullptr && !pScene->nodes.empty();
-  }
 
   AssImporter(const lra::Scene* scene);
   [[nodiscard]] Result<librii::rhst::SceneTree>
   Import(const Settings& settings);
 
 private:
-  IdCounter ctr;
-
   const lra::Scene* pScene = nullptr;
-  const lra::Node* root = nullptr;
   void ProcessMeshTrianglesStatic(librii::rhst::Mesh& poly_data,
                                   std::vector<librii::rhst::Vertex>&& vertices);
 

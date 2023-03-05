@@ -139,7 +139,7 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
     // Can these be duplicated?
     const auto* pMesh = &pScene->meshes[pNode->meshes[i]];
 
-    auto matId = TRY(ctr.getConvertedMaterial(pMesh->materialIndex));
+    auto matId = pMesh->materialIndex;
     auto ok = ImportMesh(out_model, pMesh, pNode, tint);
     if (!ok) {
       rsl::error("Failed to import mesh {}: {}", pMesh->name, ok.error());
@@ -168,7 +168,6 @@ Result<librii::rhst::SceneTree> AssImporter::Import(const Settings& settings) {
   if (pScene->nodes.empty()) {
     return std::unexpected("No root node");
   }
-  root = &pScene->nodes[0];
   librii::rhst::SceneTree out_model;
 
   std::vector<std::string> new_mats;
@@ -187,7 +186,6 @@ Result<librii::rhst::SceneTree> AssImporter::Import(const Settings& settings) {
     auto* pMat = &pScene->materials[i];
     auto& mr = out_model.materials.emplace_back();
     mr.name = new_mats[i];
-    ctr.setConvertedMaterial(i, i);
 
     mr.texture_name = pMat->texture;
   }

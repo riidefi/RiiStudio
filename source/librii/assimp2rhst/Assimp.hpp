@@ -58,29 +58,6 @@ struct Settings {
   bool mIgnoreRootTransform = false;
 };
 
-enum class State {
-  Unengaged,
-  // send settings request, set mode to
-  WaitForSettings,
-  // check for texture dependencies
-  // tell the importer to fix them or abort
-  WaitForTextureDependencies,
-  // Now we actually import!
-  // And we're done:
-  Completed
-};
-struct AssimpContext {
-  State state = State::Unengaged;
-  const aiScene* mScene = nullptr;
-  Settings mSettings;
-
-  // Hack (we know importer will not be copied):
-  // Won't be necessary when IBinaryDeserializable is split into Factory and
-  // Instance, and Instance does not require copyable.
-  std::shared_ptr<Assimp::Importer> importer =
-      std::make_shared<Assimp::Importer>();
-};
-
 using KCallback = std::function<void(kpi::IOMessageClass message_class,
                                      const std::string_view domain,
                                      const std::string_view message_body)>;
