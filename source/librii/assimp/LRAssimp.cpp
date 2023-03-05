@@ -93,7 +93,7 @@ std::vector<Mesh> ReadMeshes(const aiScene& scn) {
     for (size_t i = 0; i < result.size(); ++i) {
       result[i] = ReadMesh(*scn.mMeshes[i]);
     }
-	return result;
+    return result;
   }
   return {};
 }
@@ -247,6 +247,47 @@ Scene ReadScene(const aiScene& scn) {
       .materials = ReadMaterials(scn),
       .animations = {},
   };
+}
+
+void DropNonTriangularMeshes(Scene& scn) {
+  for (size_t i = 0; i < scn.meshes.size(); ++i) {
+    bool is_bad = false;
+    for (auto& face : scn.meshes[i].faces) {
+      if (face.indices.size() != 3) {
+        is_bad = true;
+        break;
+      }
+    }
+    if (is_bad) {
+      rsl::info("Mesh {} contained non-triangles; dropping those",
+                scn.meshes[i].name);
+      scn.meshes.erase(scn.meshes.begin() + i);
+      // Update references
+      for (auto& node : scn.nodes) {
+        for (size_t j = 0; j < node.meshes.size(); ++j) {
+          if (node.meshes[j] == i) {
+            node.meshes.erase(node.meshes.begin() + j);
+            --j;
+          } else if (node.meshes[j] > i) {
+            --node.meshes[j];
+          }
+        }
+      }
+      --i;
+    }
+  }
+}
+
+void MakeMeshNamesUnique(Scene& scn) {
+  std::set<std::string> mesh_names;
+  size_t i = 0;
+  for (auto& m : scn.meshes) {
+    if (mesh_names.contains(m.name)) {
+      m.name = std::format("{}#{}", m.name, i);
+    }
+    mesh_names.emplace(m.name);
+    ++i;
+  }
 }
 
 } // namespace librii::lra

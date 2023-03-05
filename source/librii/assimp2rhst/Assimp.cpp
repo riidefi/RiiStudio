@@ -73,6 +73,8 @@ const aiScene* ReadScene(KCallback callback, std::span<const u8> file,
 Result<librii::rhst::SceneTree> ToSceneTree(const aiScene* scene,
                                             const Settings& settings) {
   lra::Scene scn = lra::ReadScene(*scene);
+  lra::DropNonTriangularMeshes(scn);
+  lra::MakeMeshNamesUnique(scn);
   AssImporter importer(&scn);
   return importer.Import(settings);
 }

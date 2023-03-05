@@ -153,4 +153,11 @@ struct Scene {
 
 Scene ReadScene(const aiScene& scn);
 
+/// Assimp post-pass will first split by prim type. This will discard
+/// non-triangle prims.
+void DropNonTriangularMeshes(Scene& scn);
+
+/// Assimp violates this all the time when splitting meshes.
+void MakeMeshNamesUnique(Scene& scn);
+
 } // namespace librii::lra
