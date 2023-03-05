@@ -86,6 +86,10 @@ pub enum Commands {
         #[clap(long, default_value="true")]
         fuse_vertices: bool,
 
+        /// Read preset material/animation overrides from this folder
+        #[clap(long)]
+        preset_path: Option<String>,
+
         #[clap(short, long, default_value="false")]
         verbose: bool,
     },
@@ -95,6 +99,7 @@ pub enum Commands {
 pub struct CliOptions {
     pub from: [c_char; 256],
     pub to: [c_char; 256],
+    pub preset_path: [c_char; 256],
     pub scale: c_float,
     pub brawlbox_scale: c_uint,
     pub mipmaps: c_uint,
@@ -130,19 +135,25 @@ impl MyArgs {
                 to, from, scale, brawlbox_scale, mipmaps, min_mip, max_mip,
                 auto_transparency, merge_mats, bake_uvs, cull_degenerates,
                 cull_invalid, recompute_normals, fuse_vertices, tint,
+                preset_path,
                 verbose
             } => {
                 let tint_val = u32::from_str_radix(&tint[1..], 16).unwrap_or(0xFF_FFFF);
                 let mut from2 : [i8; 256]= [0; 256];
                 let mut to2 : [i8; 256]= [0; 256];
+                let mut preset_path2 : [i8; 256] = [0; 256];
                 let from_bytes = from.as_bytes();
                 let default_str = String::new();
                 let to_bytes = to.as_ref().unwrap_or(&default_str).as_bytes();
+                let default_str2 = String::new();
+                let preset_str_bytes = preset_path.as_ref().unwrap_or(&default_str2).as_bytes();
                 from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
                 to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                preset_path2[..preset_str_bytes.len()].copy_from_slice(unsafe { &*(preset_str_bytes as *const _ as *const [i8]) });
                 CliOptions {
                     from: from2,
                     to: to2,
+                    preset_path: preset_path2,
                     scale: *scale as c_float,
                     brawlbox_scale: *brawlbox_scale as c_uint,
                     mipmaps: *mipmaps as c_uint,

@@ -255,6 +255,25 @@ if (WIN32)
   )
 endif()
 
+add_custom_command(
+  TARGET frontend 
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+	  $<TARGET_FILE:cli>
+	  $<TARGET_FILE_DIR:frontend>/
+)
+
+# Windows: Copy .pdb with debug info
+if (WIN32)
+  add_custom_command(
+  TARGET frontend 
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+	  $<TARGET_FILE_DIR:cli>/rszst.pdb
+	  $<TARGET_FILE_DIR:frontend>/rszst.pdb
+  )
+endif()
+
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "RiiStudio")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
@@ -264,3 +283,5 @@ if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "
     ../core/common.h
   )
 endif()
+
+add_dependencies(frontend cli)

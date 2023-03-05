@@ -24,22 +24,34 @@ static void setFlag(u32& f, u32 m, bool sel) {
   }
 }
 
+std::mutex s_progressLock;
+
 static void progress_put(std::string status, float percent, int barWidth = 70) {
-  std::cout << status << " [";
+  std::stringstream ss;
+  ss << status;
+  for (size_t i = status.size(); i < 32; ++i) {
+    ss << " ";
+  }
+  ss << "[";
   int pos = static_cast<int>(static_cast<float>(barWidth) * percent);
   for (int i = 0; i < barWidth; ++i) {
     if (i < pos)
-      std::cout << "=";
+      ss << "=";
     else if (i == pos)
-      std::cout << ">";
+      ss << ">";
     else
-      std::cout << " ";
+      ss << " ";
   }
-  std::cout << "] " << static_cast<int>(percent * 100.0f) << " %"
-            << "\r";
+  ss << "] " << static_cast<int>(percent * 100.0f) << " %"
+     << "\r";
+  std::unique_lock g(s_progressLock);
+  std::cout << ss.str();
   std::cout.flush();
 }
-static void progress_end() { std::cout << std::endl; }
+static void progress_end() {
+  std::unique_lock g(s_progressLock);
+  std::cout << std::endl;
+}
 
 class ImportBRRES {
 public:
@@ -83,9 +95,42 @@ public:
     bool ok = riistudio::rhst::CompileRHST(*tree, *m_result, m_from.string(),
                                            info, progress, m_opt.verbose);
     if (!ok) {
-      fmt::print(stderr, "Error: Failed to compile RHST");
+      fmt::print(stderr, "Error: Failed to compile RHST\n");
       return false;
     }
+    std::unordered_map<std::string, librii::crate::CrateAnimation> presets;
+    for (auto it : std::filesystem::directory_iterator(m_presets)) {
+      if (it.path().extension() == ".rspreset") {
+        auto file = OishiiReadFile(it.path().string());
+        if (!file) {
+          fmt::print(stderr, "Failed to read rspreset: {}\n",
+                     it.path().string());
+          continue;
+        }
+        auto preset = librii::crate::ReadRSPreset(file->slice());
+        if (!preset) {
+          fmt::print(stderr, "Failed to parse rspreset: {}\n",
+                     it.path().string());
+          continue;
+        }
+        presets[it.path().stem().string()] = *preset;
+      }
+    }
+    auto& mdl = m_result->getModels()[0];
+    for (size_t i = 0; i < mdl.getMaterials().size(); ++i) {
+      auto& target_mat = mdl.getMaterials()[i];
+      if (!presets.contains(target_mat.name))
+        continue;
+      auto& source_mat = presets[target_mat.name];
+      auto ok =
+          riistudio::g3d::ApplyCratePresetToMaterial(target_mat, source_mat);
+      if (!ok) {
+        fmt::print(stderr,
+                   "Attempted to merge {} into {}. Failed with error: {}\n",
+                   source_mat.mat.name, target_mat.name, ok.error());
+      }
+    }
+    // fmt::print("Read {} rspresets\n", presets.size());
     oishii::Writer result(0);
     riistudio::g3d::WriteBRRES(*m_result, result);
     OishiiFlushWriter(result, m_to.string());
@@ -96,23 +141,38 @@ private:
   bool parseArgs() {
     m_from = std::string{m_opt.from, strnlen(m_opt.from, sizeof(m_opt.from))};
     m_to = std::string{m_opt.to, strnlen(m_opt.to, sizeof(m_opt.to))};
+    m_presets =
+        std::string{m_opt.preset_path,
+                    strnlen(m_opt.preset_path, sizeof(m_opt.preset_path))};
     if (m_to.empty()) {
       std::filesystem::path p = m_from;
       p.replace_extension(".brres");
       m_to = p;
     }
     if (!std::filesystem::exists(m_from)) {
-      std::cerr << std::format("Error: File {} does not exist.",
-                               m_from.string())
-                << std::endl;
+      fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
       return false;
     }
     if (std::filesystem::exists(m_to)) {
-      std::cerr
-          << std::format(
-                 "Warning: File {} will be overwritten by this operation.",
-                 m_to.string())
-          << std::endl;
+      fmt::print(stderr,
+                 "Warning: File {} will be overwritten by this operation.\n",
+                 m_to.string());
+    }
+    if (!m_presets.empty()) {
+      if (!std::filesystem::exists(m_presets)) {
+        fmt::print(stderr,
+                   "Warning: Preset path {} does not exist not valid.\n",
+                   m_presets.string());
+        m_presets.clear();
+      } else if (!std::filesystem::is_directory(m_presets)) {
+        fmt::print(stderr,
+                   "Warning: Preset path {} does not refer to a folder.\n",
+                   m_presets.string());
+        m_presets.clear();
+      } else {
+        fmt::print(stdout, "Info: Reading presets from {}\n",
+                   m_presets.string());
+      }
     }
     return true;
   }
@@ -144,6 +204,7 @@ private:
   CliOptions m_opt;
   std::filesystem::path m_from;
   std::filesystem::path m_to;
+  std::filesystem::path m_presets;
 };
 
 int main(int argc, const char** argv) {

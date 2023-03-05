@@ -23,6 +23,7 @@ using bool32 = uint32_t;
 struct CliOptions {
   char from[256] = "";
   char to[256] = "";
+  char preset_path[256] = "";
   float scale = 1.0f;
   bool32 brawlbox_scale = false;
   bool32 mipmaps = true;
