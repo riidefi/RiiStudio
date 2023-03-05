@@ -7,6 +7,7 @@
 #include <plugins/g3d/G3dIo.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
+#include <sstream>
 
 namespace riistudio {
 const char* translateString(std::string_view str) { return str.data(); }
