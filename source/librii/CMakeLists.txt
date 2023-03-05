@@ -140,7 +140,6 @@ add_library(librii STATIC
   "assimp2rhst/Importer.hpp"
   "assimp2rhst/Logger.hpp"
   "assimp2rhst/Utility.hpp"
-  "assimp2rhst/Material.hpp"
   "assimp2rhst/Assimp.hpp"
   "assimp2rhst/SupportedFiles.hpp"
   "assimp2rhst/SupportedFiles.cpp"

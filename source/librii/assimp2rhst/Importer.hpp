@@ -2,10 +2,9 @@
 
 #include <core/common.h>
 #include <glm/glm.hpp>
-#include <librii/rhst/RHST.hpp>
-#include <vendor/assimp/scene.h>
-// TODO
+#include <librii/assimp/LRAssimp.hpp>
 #include <librii/assimp2rhst/Assimp.hpp>
+#include <librii/rhst/RHST.hpp>
 
 namespace librii::assimp2rhst {
 
@@ -29,31 +28,30 @@ public:
   AssImporter(AssImporter&&) = delete;
 
   bool assimpSuccess() const {
-    return pScene != nullptr && pScene->mRootNode != nullptr;
+    return pScene != nullptr && !pScene->nodes.empty();
   }
 
-  AssImporter(const aiScene* scene);
+  AssImporter(const lra::Scene* scene);
   [[nodiscard]] Result<librii::rhst::SceneTree>
   Import(const Settings& settings);
-
 
 private:
   IdCounter ctr;
 
-  const aiScene* pScene = nullptr;
-  aiNode* root = nullptr;
+  const lra::Scene* pScene = nullptr;
+  const lra::Node* root = nullptr;
   void ProcessMeshTrianglesStatic(librii::rhst::Mesh& poly_data,
                                   std::vector<librii::rhst::Vertex>&& vertices);
 
-  void ProcessMeshTriangles(librii::rhst::Mesh& poly_data, const aiMesh* pMesh,
-                            const aiNode* pNode,
+  void ProcessMeshTriangles(librii::rhst::Mesh& poly_data,
+                            const lra::Mesh* pMesh, const lra::Node* pNode,
                             std::vector<librii::rhst::Vertex>&& vertices);
 
   [[nodiscard]] Result<void> ImportMesh(librii::rhst::SceneTree& out_model,
-                                        const aiMesh* pMesh,
-                                        const aiNode* pNode, glm::vec3 tint);
+                                        const lra::Mesh* pMesh,
+                                        const lra::Node* pNode, glm::vec3 tint);
   [[nodiscard]] Result<void> ImportNode(librii::rhst::SceneTree& out_model,
-                                        const aiNode* pNode, glm::vec3 tint,
+                                        const lra::Node* pNode, glm::vec3 tint,
                                         int parent = -1);
 };
 

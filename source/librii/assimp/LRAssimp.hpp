@@ -78,6 +78,16 @@ struct Mesh {
 
   glm::vec3 min;
   glm::vec3 max;
+
+  // aiMesh helpers
+  bool HasPositions() const { return !positions.empty(); }
+  bool HasNormals() const { return !normals.empty(); }
+  bool HasVertexColors(unsigned int i) const {
+    return i < colors.size() && !colors[i].empty();
+  }
+  bool HasTextureCoords(unsigned int i) const {
+    return i < uvs.size() && !uvs[i].empty();
+  }
 };
 
 struct Material {

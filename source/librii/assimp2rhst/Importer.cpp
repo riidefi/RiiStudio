@@ -1,5 +1,4 @@
 #include "Importer.hpp"
-#include "Material.hpp"
 #include "Utility.hpp"
 #include <LibBadUIFramework/Plugins.hpp>
 #include <glm/glm.hpp>
@@ -9,7 +8,7 @@
 
 namespace librii::assimp2rhst {
 
-AssImporter::AssImporter(const aiScene* scene) : pScene(scene) {}
+AssImporter::AssImporter(const lra::Scene* scene) : pScene(scene) {}
 void AssImporter::ProcessMeshTrianglesStatic(
     librii::rhst::Mesh& poly_data,
     std::vector<librii::rhst::Vertex>&& vertices) {
@@ -20,24 +19,18 @@ void AssImporter::ProcessMeshTrianglesStatic(
 }
 
 void AssImporter::ProcessMeshTriangles(
-    librii::rhst::Mesh& poly_data, const aiMesh* pMesh, const aiNode* pNode,
-    std::vector<librii::rhst::Vertex>&& vertices) {
+    librii::rhst::Mesh& poly_data, const lra::Mesh* pMesh,
+    const lra::Node* pNode, std::vector<librii::rhst::Vertex>&& vertices) {
   ProcessMeshTrianglesStatic(poly_data, std::move(vertices));
 }
 
 Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
-                                     const aiMesh* pMesh, const aiNode* pNode,
-                                     glm::vec3 tint) {
+                                     const lra::Mesh* pMesh,
+                                     const lra::Node* pNode, glm::vec3 tint) {
   EXPECT(pMesh != nullptr);
-  rsl::trace("Importing mesh: {}", pMesh->mName.C_Str());
-  // Ignore points and lines
-  if (pMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE) {
-    rsl::trace("-> Not triangles; skipping");
-    return std::unexpected("Mesh has denegerate triangles or points/lines");
-  }
-
+  rsl::trace("Importing mesh: {}", pMesh->name);
   auto& poly = out_model.meshes.emplace_back();
-  poly.name = pMesh->mName.C_Str();
+  poly.name = pMesh->name;
   auto& vcd = poly.vertex_descriptor;
 
   auto add_attribute = [&](auto type, bool direct = false) {
@@ -60,28 +53,34 @@ Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
   }
 
   for (int j = 0; j < 8; ++j) {
+    // U and UVW channels already filtered out
     if (pMesh->HasTextureCoords(j)) {
       add_attribute(librii::gx::VertexAttribute::TexCoord0 + j);
-
-      EXPECT(pMesh->mNumUVComponents[j] == 2);
     }
   }
   rsl::trace(" ::generating vertices");
   std::vector<librii::rhst::Vertex> vertices;
 
-  for (unsigned f = 0; f < pMesh->mNumFaces; ++f) {
+  for (unsigned f = 0; f < pMesh->faces.size(); ++f) {
+    if (pMesh->faces[f].indices.size() != 3) {
+      // Skip non-triangle
+      rsl::trace("Skipping non-triangle in mesh {}", pMesh->name);
+      // Since we split by prim types, we can skip the rest
+      out_model.meshes.resize(out_model.meshes.size() - 1);
+      return std::unexpected("Mesh has denegerate triangles or points/lines");
+    }
     for (int fv = 0; fv < 3; ++fv) {
-      const auto v = pMesh->mFaces[f].mIndices[fv];
+      const auto v = pMesh->faces[f].indices[fv];
 
       librii::rhst::Vertex vtx{};
-      vtx.position = getVec(pMesh->mVertices[v]);
+      vtx.position = pMesh->positions[v];
       if (pMesh->HasNormals()) {
-        vtx.normal = getVec(pMesh->mNormals[v]);
+        vtx.normal = pMesh->normals[v];
       }
       // We always have at least one pair
       for (int j = 0; j < 2; ++j) {
         if (pMesh->HasVertexColors(j)) {
-          auto clr = pMesh->mColors[j][v];
+          auto clr = pMesh->colors[j][v];
           vtx.colors[j] = {clr.r, clr.g, clr.b, clr.a};
           vtx.colors[j] *= glm::vec4(tint, 1.0f);
         }
@@ -91,7 +90,7 @@ Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
       }
       for (int j = 0; j < 8; ++j) {
         if (pMesh->HasTextureCoords(j)) {
-          vtx.uvs[j] = getVec2(pMesh->mTextureCoords[j][v]);
+          vtx.uvs[j] = pMesh->uvs[j][v];
         }
       }
       vertices.push_back(vtx);
@@ -103,13 +102,12 @@ Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
 }
 
 Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
-                                     const aiNode* pNode, glm::vec3 tint,
+                                     const lra::Node* pNode, glm::vec3 tint,
                                      int parent) {
   // Create a bone (with name)
-  const auto joint_id = out_model.bones.size();
   auto& joint = out_model.bones.emplace_back();
-  joint.name = pNode->mName.C_Str();
-  const glm::mat4 xf = getMat4(pNode->mTransformation);
+  joint.name = pNode->name;
+  const glm::mat4 xf = pNode->xform;
 
   librii::math::SRT3 srt;
   glm::quat rotation;
@@ -137,20 +135,20 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
                           {FLT_MIN, FLT_MIN, FLT_MIN}};
 
   // Mesh data
-  for (unsigned i = 0; i < pNode->mNumMeshes; ++i) {
+  for (unsigned i = 0; i < pNode->meshes.size(); ++i) {
     // Can these be duplicated?
-    const auto* pMesh = pScene->mMeshes[pNode->mMeshes[i]];
+    const auto* pMesh = &pScene->meshes[pNode->meshes[i]];
 
-    auto matId = TRY(ctr.getConvertedMaterial(pMesh->mMaterialIndex));
+    auto matId = TRY(ctr.getConvertedMaterial(pMesh->materialIndex));
     auto ok = ImportMesh(out_model, pMesh, pNode, tint);
     if (!ok) {
-      rsl::error("Failed to import mesh {}: {}", pMesh->mName.C_Str(),
-                 ok.error());
+      rsl::error("Failed to import mesh {}: {}", pMesh->name, ok.error());
       continue;
     }
+
     aabb.expandBound(librii::math::AABB{
-        .min = getVec(pMesh->mAABB.mMin),
-        .max = getVec(pMesh->mAABB.mMax),
+        .min = pMesh->min,
+        .max = pMesh->max,
     });
     s32 meshId = out_model.meshes.size() - 1;
     joint.draw_calls.emplace_back(
@@ -160,41 +158,24 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
   joint.min = aabb.min;
   joint.max = aabb.max;
 
-  for (unsigned i = 0; i < pNode->mNumChildren; ++i) {
-    auto ok = ImportNode(out_model, pNode->mChildren[i], tint, joint_id);
-    if (!ok) {
-      rsl::error("Failed to import node {}: {}",
-                 pNode->mChildren[i]->mName.C_Str(), ok.error());
-      continue;
-    }
+  if (!pNode->children.empty()) {
+    // joint.child = pNode->children[0];
   }
   return {};
 }
 
-auto ConvertWrapMode(aiTextureMapMode mapmode) {
-  switch (mapmode) {
-  case aiTextureMapMode_Decal:
-  case aiTextureMapMode_Clamp:
-    return librii::gx::TextureWrapMode::Clamp;
-  case aiTextureMapMode_Wrap:
-    return librii::gx::TextureWrapMode::Repeat;
-  case aiTextureMapMode_Mirror:
-    return librii::gx::TextureWrapMode::Mirror;
-  case _aiTextureMapMode_Force32Bit:
-  default:
-    return librii::gx::TextureWrapMode::Repeat;
-  }
-}
-
 Result<librii::rhst::SceneTree> AssImporter::Import(const Settings& settings) {
-  root = pScene->mRootNode;
+  if (pScene->nodes.empty()) {
+    return std::unexpected("No root node");
+  }
+  root = &pScene->nodes[0];
   librii::rhst::SceneTree out_model;
 
   std::vector<std::string> new_mats;
 
-  for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
-    auto* pMat = pScene->mMaterials[i];
-    std::string name = pMat->GetName().C_Str();
+  for (unsigned i = 0; i < pScene->materials.size(); ++i) {
+    auto* pMat = &pScene->materials[i];
+    std::string name = pMat->name;
     if (name.empty()) {
       name = "Material";
       name += std::to_string(i);
@@ -202,31 +183,13 @@ Result<librii::rhst::SceneTree> AssImporter::Import(const Settings& settings) {
     new_mats.push_back(name);
   }
 
-  for (unsigned i = 0; i < pScene->mNumMaterials; ++i) {
-    auto* pMat = pScene->mMaterials[i];
+  for (unsigned i = 0; i < pScene->materials.size(); ++i) {
+    auto* pMat = &pScene->materials[i];
     auto& mr = out_model.materials.emplace_back();
     mr.name = new_mats[i];
     ctr.setConvertedMaterial(i, i);
 
-    ImpMaterial impMat;
-
-    for (unsigned t = aiTextureType_DIFFUSE; t <= aiTextureType_UNKNOWN; ++t) {
-      for (unsigned j = 0; j < pMat->GetTextureCount((aiTextureType)t); ++j) {
-        const auto [path, uvindex, mapmode] = GetTexture(pMat, t, j);
-
-        const librii::gx::TextureWrapMode impWrapMode =
-            ConvertWrapMode(mapmode);
-
-        ImpSampler impSamp{.path = getFileShort(path.C_Str()),
-                           .uv_channel = uvindex,
-                           .wrap = impWrapMode};
-        impMat.samplers.push_back(impSamp);
-      }
-    }
-
-    if (impMat.samplers.size() > 0) {
-      mr.texture_name = impMat.samplers[0].path;
-    }
+    mr.texture_name = pMat->texture;
   }
 
   // TODO: Handle material limitations for samplers..
@@ -237,10 +200,12 @@ Result<librii::rhst::SceneTree> AssImporter::Import(const Settings& settings) {
     mat.mag_filter = true;
   }
 
-  auto ok = ImportNode(out_model, root, settings.mModelTint);
-  if (!ok) {
-    return std::unexpected(
-        std::format("Failed to import root node {}", ok.error()));
+  for (auto& node : pScene->nodes) {
+    auto ok = ImportNode(out_model, &node, settings.mModelTint);
+    if (!ok) {
+      return std::unexpected(
+          std::format("Failed to import node {}", ok.error()));
+    }
   }
 
   // Vertex alpha default

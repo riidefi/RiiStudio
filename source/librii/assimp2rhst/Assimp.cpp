@@ -38,8 +38,7 @@ const aiScene* ReadScene(KCallback callback, std::span<const u8> file,
                               settings.mMagnification);
   }
 
-  importer.ReadFileFromMemory(file.data(), file.size(),
-                              0, path.c_str());
+  importer.ReadFileFromMemory(file.data(), file.size(), 0, path.c_str());
   if (settings.mIgnoreRootTransform) {
     importer.GetScene()->mRootNode->mTransformation = {};
   }
@@ -73,7 +72,8 @@ const aiScene* ReadScene(KCallback callback, std::span<const u8> file,
 
 Result<librii::rhst::SceneTree> ToSceneTree(const aiScene* scene,
                                             const Settings& settings) {
-  AssImporter importer(scene);
+  lra::Scene scn = lra::ReadScene(*scene);
+  AssImporter importer(&scn);
   return importer.Import(settings);
 }
 
