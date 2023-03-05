@@ -98,7 +98,7 @@ def add_to_name(path, suffix):
 def pretty_path(path):
 	return os.path.basename(path)
 
-def rebuild(test_exec, input_path, output_path, check, bps):
+def rebuild(test_exec, rszst, input_path, output_path, check, bps):
 	'''
 	Rebuild a file
 	Throw an error if the program faults, returning the stacktrace.
@@ -108,16 +108,21 @@ def rebuild(test_exec, input_path, output_path, check, bps):
 	# Remove the old file
 	if os.path.isfile(output_path):
 		os.remove(output_path)
-	args = [test_exec, input_path, output_path] + (["check"] if check else [""]) + list(str(x) for x in bps)
+	if input_path.endswith(".dae"):
+		args = [rszst, "import-command", input_path, output_path]
+	else:
+		args = [test_exec, input_path, output_path] + (["check"] if check else [""]) + list(str(x) for x in bps)
 	process = Popen(args, stdout=PIPE)
 	(output, err) = process.communicate()
 	exit_code = process.wait()
 
 	if exit_code:
+		print(output, err, exit_code)
 		print("Error: %s failed to rebuild" % pretty_path(input_path))
+		print(' '.join(args))
 		raise RuntimeError(err)
 
-def run_test(test_exec, path, out_path):
+def run_test(test_exec, rszst, path, out_path):
 	md5 = hash(path)
 	expected = "<None>"
 	if md5 not in TEST_DATA:
@@ -130,7 +135,7 @@ def run_test(test_exec, path, out_path):
 	bps = []
 	if md5 in BREAKPOINTS:
 		bps = BREAKPOINTS[md5]
-	rebuild(test_exec, path, rebuild_path, md5 == expected, bps)
+	rebuild(test_exec, rszst, path, rebuild_path, md5 == expected, bps)
 
 	if not os.path.isfile(rebuild_path):
 		print("Error: %s Rebuilding did not produce any file" % pretty_path(path))
@@ -151,7 +156,7 @@ def run_test(test_exec, path, out_path):
 
 	# os.remove(rebuild_path)
 
-def run_tests(test_exec, data, out):
+def run_tests(test_exec, rszst, data, out):
 	assert os.path.isdir(data)
 	assert not os.path.isfile(out)
 
@@ -163,16 +168,16 @@ def run_tests(test_exec, data, out):
 	for fs_file in os.listdir(fs_dir):
 	     in_file = os.path.join(data, os.fsdecode(fs_file))
 	     out_file = os.path.join(out, os.fsdecode(fs_file))
-	     run_test(test_exec, in_file, out_file)
+	     run_test(test_exec, rszst, in_file, out_file)
 
 import sys
 
-if len(sys.argv) < 3:
-	print("Usage: tests.py <tests.exe> <input_folder> <output_folder>")
+if len(sys.argv) < 5:
+	print("Usage: tests.py <tests.exe> <rszst.exe> <input_folder> <output_folder>")
 	sys.exit(1)
 
 try:
-	run_tests(sys.argv[1], sys.argv[2], sys.argv[3])
+	run_tests(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
 except:
 	print("Error: tests.py encountered a critical error")
 	raise

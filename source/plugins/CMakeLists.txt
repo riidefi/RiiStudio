@@ -48,8 +48,7 @@ add_library(plugins STATIC
   "mk/LTEX.cpp" 
   "api.hpp"
   "api.cpp"
-  "SceneImpl.cpp"
- "assimp/AssimpUI.cpp")
+  "SceneImpl.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
 if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))

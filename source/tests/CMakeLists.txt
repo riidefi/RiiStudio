@@ -20,6 +20,8 @@ target_link_libraries(tests PUBLIC
 	plugins
 	vendor
 )
+# Since we rely on rszst.exe
+add_dependencies(tests cli)
 # ???
 add_dependencies(tests plugins)
 
@@ -136,6 +138,7 @@ else()
 	  POST_BUILD
 	  COMMAND python3 ${PROJECT_SOURCE_DIR}/../../tests/tests.py
 		  $<TARGET_FILE_DIR:tests>/tests
+      $<TARGET_FILE_DIR:cli>/rszst
 		  ${PROJECT_SOURCE_DIR}/../../tests/samples
       ${PROJECT_SOURCE_DIR}/../../tests/out
 	)

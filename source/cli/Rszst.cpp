@@ -59,7 +59,11 @@ public:
   ImportBRRES(const CliOptions& opt) : m_opt(opt) {}
 
   bool execute() {
+    if (m_opt.verbose) {
+      rsl::logging::init();
+    }
     if (!parseArgs()) {
+      fmt::print(stderr, "Error: failed to parse args\n");
       return false;
     }
     if (!librii::assimp2rhst::IsExtensionSupported(m_from.string())) {
@@ -100,38 +104,40 @@ public:
       return false;
     }
     std::unordered_map<std::string, librii::crate::CrateAnimation> presets;
-    for (auto it : std::filesystem::directory_iterator(m_presets)) {
-      if (it.path().extension() == ".rspreset") {
-        auto file = OishiiReadFile(it.path().string());
-        if (!file) {
-          fmt::print(stderr, "Failed to read rspreset: {}\n",
-                     it.path().string());
-          continue;
+    if (std::filesystem::exists(m_presets) &&
+        std::filesystem::is_directory(m_presets)) {
+      for (auto it : std::filesystem::directory_iterator(m_presets)) {
+        if (it.path().extension() == ".rspreset") {
+          auto file = OishiiReadFile(it.path().string());
+          if (!file) {
+            fmt::print(stderr, "Failed to read rspreset: {}\n",
+                       it.path().string());
+            continue;
+          }
+          auto preset = librii::crate::ReadRSPreset(file->slice());
+          if (!preset) {
+            fmt::print(stderr, "Failed to parse rspreset: {}\n",
+                       it.path().string());
+            continue;
+          }
+          presets[it.path().stem().string()] = *preset;
         }
-        auto preset = librii::crate::ReadRSPreset(file->slice());
-        if (!preset) {
-          fmt::print(stderr, "Failed to parse rspreset: {}\n",
-                     it.path().string());
+      }
+      auto& mdl = m_result->getModels()[0];
+      for (size_t i = 0; i < mdl.getMaterials().size(); ++i) {
+        auto& target_mat = mdl.getMaterials()[i];
+        if (!presets.contains(target_mat.name))
           continue;
+        auto& source_mat = presets[target_mat.name];
+        auto ok =
+            riistudio::g3d::ApplyCratePresetToMaterial(target_mat, source_mat);
+        if (!ok) {
+          fmt::print(stderr,
+                     "Attempted to merge {} into {}. Failed with error: {}\n",
+                     source_mat.mat.name, target_mat.name, ok.error());
         }
-        presets[it.path().stem().string()] = *preset;
       }
     }
-    auto& mdl = m_result->getModels()[0];
-    for (size_t i = 0; i < mdl.getMaterials().size(); ++i) {
-      auto& target_mat = mdl.getMaterials()[i];
-      if (!presets.contains(target_mat.name))
-        continue;
-      auto& source_mat = presets[target_mat.name];
-      auto ok =
-          riistudio::g3d::ApplyCratePresetToMaterial(target_mat, source_mat);
-      if (!ok) {
-        fmt::print(stderr,
-                   "Attempted to merge {} into {}. Failed with error: {}\n",
-                   source_mat.mat.name, target_mat.name, ok.error());
-      }
-    }
-    // fmt::print("Read {} rspresets\n", presets.size());
     oishii::Writer result(0);
     riistudio::g3d::WriteBRRES(*m_result, result);
     OishiiFlushWriter(result, m_to.string());
@@ -209,7 +215,7 @@ private:
 };
 
 int main(int argc, const char** argv) {
-  printf("RiiStudio CLI %s\n", RII_TIME_STAMP);
+  fmt::print(stdout, "RiiStudio CLI {}\n", RII_TIME_STAMP);
   auto args = parse(argc, argv);
   if (!args) {
     return -1;
@@ -219,5 +225,12 @@ int main(int argc, const char** argv) {
   bool ok = cmd.execute();
   progress_end();
 
-  return ok ? 0 : -1;
+  if (!ok) {
+    fmt::print(stdout, "\r\nFailed to execute\n");
+    fmt::print(stderr, "\r\nFailed to execute\n");
+    return -1;
+  }
+
+  fmt::print(stdout, "\r\nOK\n");
+  return 0;
 }

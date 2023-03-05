@@ -7,8 +7,6 @@
 #include <memory>
 #include <vector>
 
-#include <plugins/assimp/AssimpUI.hpp>
-
 extern void InstallGC();
 
 namespace riistudio::g3d {
@@ -77,8 +75,6 @@ void InitAPI() {
 
   riistudio::g3d::InstallG3d(installer);
   riistudio::j3d::InstallJ3d(installer);
-
-  installer.mReaders.push_back(riistudio::assimp::CreatePlugin());
 
   // TODO: Phase out this system
 
