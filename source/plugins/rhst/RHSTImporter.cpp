@@ -590,7 +590,7 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
                  std::string path,
                  std::function<void(std::string, std::string)> info,
                  std::function<void(std::string_view, float)> progress,
-                 bool verbose) {
+                 bool tristrip, bool verbose) {
   std::set<std::string> textures_needed;
 
   for (auto& mat : rhst.materials) {
@@ -633,7 +633,8 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
   }
 
   // Optimize meshes
-  {
+  if (tristrip) {
+    progress(std::format("Optimizing meshes {}/{}", 0, 0), 0.0f);
     std::atomic<int> so_far = 0;
     int total = rhst.meshes.size();
     progress(std::format("Optimizing meshes ({} / {})", 0, total), 0.0f);
@@ -674,7 +675,7 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
   for (auto&& [i, mesh] : rsl::enumerate(rhst.meshes)) {
     progress(std::format("Compiling meshes {}/{}", i, rhst.meshes.size()),
              static_cast<float>(i) / static_cast<float>(rhst.meshes.size()));
-    // Already optimized
+    // Already optimized (and in parallel)
     auto ok = compileMesh(mdl.getMeshes().add(), mesh, mdl, false);
     if (!ok) {
       rsl::error("ERROR: Failed to compile mesh: {}", ok.error().c_str());

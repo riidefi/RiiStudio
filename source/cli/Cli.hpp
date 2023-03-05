@@ -37,6 +37,7 @@ struct CliOptions {
   bool32 cull_invalid = true;
   bool32 recompute_normals = false;
   bool32 fuse_vertices = true;
+  bool32 no_tristrip = false;
   bool32 verbose = false;
 };
 

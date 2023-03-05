@@ -65,6 +65,8 @@ TEST_DATA = {
 	# default.blmap
 	# 1:1
 	'e98edea25b4ed1088967e81cc2e214c7': 'e98edea25b4ed1088967e81cc2e214c7',
+	# posteffect.blmap
+	'1cd2fb6d39d55bec897bedd63c455eaa': '1cd2fb6d39d55bec897bedd63c455eaa',
 
 	# map_model.brres
 	# 1:1
@@ -73,6 +75,9 @@ TEST_DATA = {
 
 	# Assimp importer test
 	'a42db34b7d7e02bdab0157a14cf3d4d7': '6efcb343ea1839b5152cde78fc2881bc', # beginner_course
+
+	'2b50efd6a165d534e339afa339f2b8ce': '6efcb343ea1839b5152cde78fc2881bc', # course.dae
+	'b1cede4774f42a5662dd7054415674dd': '2dd6da598c3886e12bd73f59e8a13faf', # no_ts.dae [--no-tristrip]
 
 	# posteffect.bdof
 	'a8b43bdfb330713c5eb55a22399dce2a': 'a8b43bdfb330713c5eb55a22399dce2a', # volcano_course
@@ -110,6 +115,8 @@ def rebuild(test_exec, rszst, input_path, output_path, check, bps):
 		os.remove(output_path)
 	if input_path.endswith(".dae"):
 		args = [rszst, "import-command", input_path, output_path]
+		if input_path.endswith("no_ts.dae"):
+			args += ["--no-tristrip"]
 	else:
 		args = [test_exec, input_path, output_path] + (["check"] if check else [""]) + list(str(x) for x in bps)
 	process = Popen(args, stdout=PIPE)

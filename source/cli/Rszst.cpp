@@ -86,10 +86,6 @@ public:
       fmt::print(stderr, "Error: Failed to parse: {}\n", tree.error());
       return false;
     }
-    int num_optimized = 0;
-    int num_total = 0;
-    progress_put(
-        std::format("Optimizing meshes {}/{}", num_optimized, num_total), 0.0f);
     auto progress = [&](std::string_view s, float f) {
       progress_put(std::string(s), f);
     };
@@ -98,7 +94,8 @@ public:
     };
     auto m_result = std::make_unique<riistudio::g3d::Collection>();
     bool ok = riistudio::rhst::CompileRHST(*tree, *m_result, m_from.string(),
-                                           info, progress, m_opt.verbose);
+                                           info, progress, !m_opt.no_tristrip,
+                                           m_opt.verbose);
     if (!ok) {
       fmt::print(stderr, "Error: Failed to compile RHST\n");
       return false;

@@ -86,6 +86,10 @@ pub enum Commands {
         #[clap(long, default_value="true")]
         fuse_vertices: bool,
 
+        /// Disable triangle stripification
+        #[clap(long, default_value="false")]
+        no_tristrip: bool,
+
         /// Read preset material/animation overrides from this folder
         #[clap(long)]
         preset_path: Option<String>,
@@ -113,6 +117,7 @@ pub struct CliOptions {
     pub cull_invalid: c_uint,
     pub recompute_normals: c_uint,
     pub fuse_vertices: c_uint,
+    pub no_tristrip: c_uint,
     pub verbose: c_uint,
 }
 
@@ -136,7 +141,7 @@ impl MyArgs {
                 auto_transparency, merge_mats, bake_uvs, cull_degenerates,
                 cull_invalid, recompute_normals, fuse_vertices, tint,
                 preset_path,
-                verbose
+                no_tristrip, verbose
             } => {
                 let tint_val = u32::from_str_radix(&tint[1..], 16).unwrap_or(0xFF_FFFF);
                 let mut from2 : [i8; 256]= [0; 256];
@@ -167,6 +172,7 @@ impl MyArgs {
                     cull_invalid: *cull_invalid as c_uint,
                     recompute_normals: *recompute_normals as c_uint,
                     fuse_vertices: *fuse_vertices as c_uint,
+                    no_tristrip: *no_tristrip as c_uint,
                     verbose: *verbose as c_uint,
                 }
             },
