@@ -31,13 +31,6 @@ struct SceneAttrs {
   bool HasSharedVertices = false;
 };
 
-enum class PrimitiveType {
-  Point,
-  Line,
-  Triangle,
-  Ngon,
-};
-
 struct Face {
   std::vector<unsigned int> indices;
 };
@@ -159,5 +152,8 @@ void DropNonTriangularMeshes(Scene& scn);
 
 /// Assimp violates this all the time when splitting meshes.
 void MakeMeshNamesUnique(Scene& scn);
+
+/// Write scene to diff-able JSON
+std::string PrintJSON(const Scene& scn);
 
 } // namespace librii::lra

@@ -38,6 +38,7 @@ struct CliOptions {
   bool32 recompute_normals = false;
   bool32 fuse_vertices = true;
   bool32 no_tristrip = false;
+  bool32 ai_json = false;
   bool32 verbose = false;
 };
 

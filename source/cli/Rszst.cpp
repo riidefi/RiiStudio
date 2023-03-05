@@ -2,6 +2,7 @@
 #include <core/util/oishii.hpp>
 #include <core/util/timestamp.hpp>
 #include <iostream>
+#include <librii/assimp/LRAssimp.hpp>
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
 #include <plugins/g3d/G3dIo.hpp>
@@ -80,6 +81,21 @@ public:
       rsl::info("Assimp message: {} {} {}", magic_enum::enum_name(c), d, b);
     };
     auto settings = getSettings();
+    if (m_opt.ai_json) {
+      Assimp::Importer importer;
+      auto* pScene =
+          ReadScene(on_log, file->slice(), m_from.string(), settings, importer);
+      if (!pScene) {
+        fmt::print(stdout, "Failed to read ASSIMP scene\n");
+        return false;
+      }
+      auto scn = librii::lra::ReadScene(*pScene);
+      auto s = librii::lra::PrintJSON(scn);
+      std::ofstream out(m_to.string());
+      out << s;
+      fmt::print(stdout, "Dumped ASSIMP json\n");
+      return true;
+    }
     auto tree = librii::assimp2rhst::DoImport(m_from.string(), on_log,
                                               file->slice(), settings);
     if (!tree) {

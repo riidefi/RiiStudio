@@ -169,6 +169,8 @@ endif()
 
 CPMAddPackage("gh:seleznevae/libfort@0.4.2")
 
+CPMAddPackage("gh:jorgen/json_struct#master")
+
 # Apple doesn't support views::chunk yet
 CPMAddPackage("gh:ericniebler/range-v3#0.12.0")
 

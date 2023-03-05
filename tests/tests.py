@@ -78,6 +78,7 @@ TEST_DATA = {
 
 	'2b50efd6a165d534e339afa339f2b8ce': '6efcb343ea1839b5152cde78fc2881bc', # course.dae
 	'b1cede4774f42a5662dd7054415674dd': '2dd6da598c3886e12bd73f59e8a13faf', # no_ts.dae [--no-tristrip]
+	'cb80c2ab491b34e925c7e0de538938ff': 'a76072344956a6036e78757def00a998', # ai_json.dae [--ai-json]
 
 	# posteffect.bdof
 	'a8b43bdfb330713c5eb55a22399dce2a': 'a8b43bdfb330713c5eb55a22399dce2a', # volcano_course
@@ -117,6 +118,8 @@ def rebuild(test_exec, rszst, input_path, output_path, check, bps):
 		args = [rszst, "import-command", input_path, output_path]
 		if input_path.endswith("no_ts.dae"):
 			args += ["--no-tristrip"]
+		if input_path.endswith("ai_json.dae"):
+			args += ["--ai-json"]
 	else:
 		args = [test_exec, input_path, output_path] + (["check"] if check else [""]) + list(str(x) for x in bps)
 	process = Popen(args, stdout=PIPE)
