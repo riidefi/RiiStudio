@@ -137,7 +137,9 @@ void compileBone(libcube::IBoneDelegate& out, const librii::rhst::Bone& in) {
   out.setName(in.name);
 
   out.setBoneParent(in.parent);
-  // TODO: Children
+  for (auto c : in.child) {
+    out.addChild(c);
+  }
   out.setScale(in.scale);
   out.setRotation(in.rotate);
   out.setTranslation(in.translate);

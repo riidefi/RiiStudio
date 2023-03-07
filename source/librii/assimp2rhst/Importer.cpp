@@ -128,7 +128,11 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
 
   joint.parent = parent;
   if (parent != -1) {
-    out_model.bones[parent].child = out_model.bones.size() - 1;
+    auto& children = out_model.bones[parent].child;
+    children.clear();
+    for (auto c : pNode->children) {
+      children.push_back(c);
+	}
   }
 
   librii::math::AABB aabb{{FLT_MAX, FLT_MAX, FLT_MAX},

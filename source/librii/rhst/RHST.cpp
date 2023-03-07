@@ -347,7 +347,15 @@ public:
       }
 
       if (key == "child") {
-        return readInt(bone.child);
+        int child = -1;
+        auto err = readInt(child);
+        if (!err) {
+          return err;
+        }
+        if (child != -1) {
+          bone.child.push_back(child);
+        }
+        return Success();
       }
 
       if (key == "scale") {
@@ -791,7 +799,10 @@ public:
           b.name = get<std::string>(bone, "name").value_or("?");
           // Ignored: billboard
           b.parent = get<s32>(bone, "parent").value_or(-1);
-          b.child = get<s32>(bone, "child").value_or(-1);
+          auto child = get<s32>(bone, "child").value_or(-1);
+          if (child != -1) {
+            b.child.push_back(child);
+          }
           b.scale = getVec3(bone, "scale").value_or(glm::vec3(1.0f));
           b.rotate = getVec3(bone, "rotate").value_or(glm::vec3(0.0f));
           b.translate = getVec3(bone, "translate").value_or(glm::vec3(0.0f));
