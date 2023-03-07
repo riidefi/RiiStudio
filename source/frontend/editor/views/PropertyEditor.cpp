@@ -105,6 +105,15 @@ private:
     if (gcbone != nullptr) {
       return Views_TabTitles(mGcBoneView);
     }
+    auto* g3dvc =
+        dynamic_cast<riistudio::g3d::ColorBuffer*>(mSelection.mActive);
+    if (g3dvc != nullptr) {
+      return Views_TabTitles(mG3dVcView);
+    }
+    auto* g3dsrt = dynamic_cast<riistudio::g3d::SRT0*>(mSelection.mActive);
+    if (g3dsrt != nullptr) {
+      return Views_TabTitles(mG3dSrtView);
+    }
     return PropertyViewManager_TabTitles(*mSelection.mActive);
   }
   bool Tab(int index) override {
@@ -145,6 +154,22 @@ private:
       mHandler.handleUpdates(mHost, mRoot);
       return ok;
     }
+    auto* g3dv = dynamic_cast<riistudio::g3d::ColorBuffer*>(mSelection.mActive);
+    if (g3dv != nullptr) {
+      auto dl = kpi::MakeDelegate<riistudio::g3d::ColorBuffer>(
+          postUpdate, commit, g3dv, selected, &ed);
+      auto ok = Views_Tab(mG3dVcView, dl, index);
+      mHandler.handleUpdates(mHost, mRoot);
+      return ok;
+    }
+    auto* g3ds = dynamic_cast<riistudio::g3d::SRT0*>(mSelection.mActive);
+    if (g3ds != nullptr) {
+      auto dl = kpi::MakeDelegate<riistudio::g3d::SRT0>(postUpdate, commit,
+                                                        g3ds, selected, &ed);
+      auto ok = Views_Tab(mG3dSrtView, dl, index);
+      mHandler.handleUpdates(mHost, mRoot);
+      return ok;
+    }
     return PropertyViewManager_Tab(index, selected, mHost, mRoot, state_holder,
                                    ed, *mSelection.mActive);
   }
@@ -161,6 +186,9 @@ private:
   riistudio::J3dMaterialViews mJ3dMatView;
   riistudio::GcPolygonViews mGcPolyView;
   riistudio::GcBoneViews mGcBoneView;
+
+  riistudio::G3dVcViews mG3dVcView;
+  riistudio::G3dSrtViews mG3dSrtView;
 
   CommitHandler mHandler{false, mHost, mRoot};
 };

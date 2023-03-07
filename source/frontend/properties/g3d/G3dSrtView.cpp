@@ -76,9 +76,4 @@ void drawProperty(kpi::PropertyDelegate<SRT0>& dl, G3dSrtOptionsSurface) {
   }
 }
 
-kpi::DecentralizedInstaller VColorInstaller([](kpi::ApplicationPlugins&) {
-  auto& inst = kpi::PropertyViewManager::getInstance();
-  inst.addPropertyView<SRT0, G3dSrtOptionsSurface>();
-});
-
 } // namespace riistudio::g3d

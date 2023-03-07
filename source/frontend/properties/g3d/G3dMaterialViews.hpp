@@ -2,7 +2,11 @@
 
 #include <vendor/cista.h>
 
+#include <frontend/properties/g3d/G3dSrtView.hpp>
 #include <frontend/properties/g3d/G3dUi.hpp>
+#include <frontend/properties/g3d/G3dVertexColorView.hpp>
+#include <frontend/properties/gc/Bone/BoneDisplaySurface.hpp>
+#include <frontend/properties/gc/Bone/BoneTransformSurface.hpp>
 #include <frontend/properties/gc/Material/ColorSurface.hpp>
 #include <frontend/properties/gc/Material/DisplaySurface.hpp>
 #include <frontend/properties/gc/Material/Indirect.hpp>
@@ -11,11 +15,9 @@
 #include <frontend/properties/gc/Material/SamplerSurface.hpp>
 #include <frontend/properties/gc/Material/StageSurface.hpp>
 #include <frontend/properties/gc/Material/SwapTableSurface.hpp>
-#include <frontend/properties/j3d/MaterialView.hpp>
 #include <frontend/properties/gc/Polygon/PolyDataSurface.hpp>
 #include <frontend/properties/gc/Polygon/PolyDescriptorSurface.hpp>
-#include <frontend/properties/gc/Bone/BoneDisplaySurface.hpp>
-#include <frontend/properties/gc/Bone/BoneTransformSurface.hpp>
+#include <frontend/properties/j3d/MaterialView.hpp>
 
 namespace riistudio {
 
@@ -61,6 +63,14 @@ struct GcPolygonViews {
 struct GcBoneViews {
   libcube::UI::BoneDisplaySurface displays;
   libcube::UI::BoneTransformSurface transformation;
+};
+
+struct G3dSrtViews {
+  riistudio::g3d::G3dSrtOptionsSurface srt;
+};
+struct G3dVcViews {
+  riistudio::g3d::G3dVertexColorDataSurface data;
+  riistudio::g3d::G3dVertexColorQuantSurface quant;
 };
 
 std::vector<std::string> Views_TabTitles(auto&& view) {
