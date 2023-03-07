@@ -2,6 +2,23 @@
 
 ## File Format Libraries
 
+### assimp
+Modern C++ bindings for the Assimp library
+
+### assimp2rhst
+Converts an assimp scene to a RHST intermediate file
+
+### crate
+BRRES material/animation preset library.
+
+### egg
+EGG posteffect support:
+- .bdof/.pdof
+- .bfg*
+- .blight/.plight
+- .blmap/.plmap
+- .bblm/.pblm
+
 ### librii::g3d
 BRRES support.
 

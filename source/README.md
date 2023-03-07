@@ -7,6 +7,9 @@ Blender plugin with exporter support for BRRES/BMD.
 ## core
 Core utilities and structures. Available to all other modules.
 
+## cli
+Source for the `rszst` utility.
+
 ## frontend
 The main editor itself.
 
@@ -38,8 +41,14 @@ Specific plugins for the editor.
 ## rsl
 My standard library: generic template types.
 
+## rust
+Rust code other modules can depend on
+
 ## scripts
 Used for generating format Node files.
+
+## updater
+Application updater
 
 ## vendor
 Third-party code.
