@@ -20,26 +20,21 @@ TEST_DATA = {
 	'5ef11e53f6c94c4f00e9d256309d0a38': '87d77fb62b4c3b94068f93c840d74416',
 
 	# luigi_circuit.kmp
-	# 1:1!
 	'55af17739e1f02f9cc3fe0cdf79195a0': '55af17739e1f02f9cc3fe0cdf79195a0',
 
 	# luigi_circuit.brres
 	'b84346d8549d38f4ba75a47eb87e9ca6': 'b84346d8549d38f4ba75a47eb87e9ca6',
 
 	# sea.brres
-	# 1:1!
 	'8e882b37c306c0f98f3f08363ba61e31': '8e882b37c306c0f98f3f08363ba61e31',
 
 	# srt.brres
-	# 1:1!
 	'82c63889be2251623cde52d8c2c06604': '82c63889be2251623cde52d8c2c06604',
 	
 	# rPB.brres
-	# 1:1
 	'0f1c62ebc592e943e4bf483dd75cfe9f': '0f1c62ebc592e943e4bf483dd75cfe9f',
 
 	# human_walk.brres
-	# 1:1
 	'996b45501b13c14e3f4136eb4fb3efba': '996b45501b13c14e3f4136eb4fb3efba',
 	'bbd05488abd1dd21ac2cb21077d8ccdc': 'bbd05488abd1dd21ac2cb21077d8ccdc',
 	'9808950ca2a5972a8720ac90366711d3': '9808950ca2a5972a8720ac90366711d3', # With non-uniform ENV
@@ -47,29 +42,23 @@ TEST_DATA = {
 
 
 	# default.blight
-	# 1:1
 	'9c128977ba86c285c74b21cb22c96b2a': '9c128977ba86c285c74b21cb22c96b2a',
 
 	# smooth_rtpa.brres
-	# 1:1
 	'36ff91451748e356dfd0d5c680effb6c': '36ff91451748e356dfd0d5c680effb6c',
 
 	# smooth_rcla.brres
-	# 1:1
 	'1bc299896d721a2a0da4a036157e5a73': '1bc299896d721a2a0da4a036157e5a73',
 
 	# brvia.brres
-	# 1:1
 	'9e1def46194780251d3d3d180a396340': '9e1def46194780251d3d3d180a396340',
 
 	# default.blmap
-	# 1:1
 	'e98edea25b4ed1088967e81cc2e214c7': 'e98edea25b4ed1088967e81cc2e214c7',
 	# posteffect.blmap
 	'1cd2fb6d39d55bec897bedd63c455eaa': '1cd2fb6d39d55bec897bedd63c455eaa',
 
 	# map_model.brres
-	# 1:1
 	'b5a3663ec86a2f96e53d811af8775b9a': 'b5a3663ec86a2f96e53d811af8775b9a',
 	'b7fac9238095c5294730910b87d69910': 'b7fac9238095c5294730910b87d69910', # farm_course
 
@@ -177,6 +166,7 @@ def run_tests(test_exec, rszst, data, out):
 	    
 	for fs_file in os.listdir(fs_dir):
 	     in_file = os.path.join(data, os.fsdecode(fs_file))
+	     if os.path.isdir(in_file): continue
 	     out_file = os.path.join(out, os.fsdecode(fs_file))
 	     run_test(test_exec, rszst, in_file, out_file)
 
