@@ -23,88 +23,129 @@ pub struct MyArgs {
     pub command: Commands,
 }
 
+/// Import a .dae/.fbx file as .brres
+#[derive(Parser, Debug)]
+pub struct ImportCommand {
+    /// File to import from: .dae or .fbx
+    #[arg(required=true)]
+    from: String,
+
+    /// File to export to
+    to: Option<String>,
+
+    /// Scale to apply to the model
+    #[arg(short, long, default_value = "1.0")]
+    scale: f32,
+
+    /// Whether to apply the Brawlbox scale fix
+    #[clap(long)]
+    brawlbox_scale: bool,
+
+    /// Whether to generate mipmaps for textures
+    #[clap(long, default_value="true")]
+    mipmaps: bool,
+
+    /// Minimum mipmap dimension to generate
+    #[arg(long, default_value = "32")]
+    min_mip: u32,
+
+    /// Maximum number of mipmaps to generate
+    #[arg(long, default_value = "5")]
+    max_mip: u32,
+
+    /// Whether to automatically set transparency
+    #[clap(long, default_value="true")]
+    auto_transparency: bool,
+
+    /// Whether to merge materials with identical properties
+    #[clap(long, default_value="true")]
+    merge_mats: bool,
+
+    /// Whether to bake UV transforms into vertices
+    #[clap(long, default_value="false")]
+    bake_uvs: bool,
+
+    /// Tint to apply to the model in hex format (#RRGGBB)
+    #[arg(long, default_value = "#FFFFFF")]
+    tint: String,
+
+    /// Whether to cull degenerate triangles
+    #[clap(long, default_value="true")]
+    cull_degenerates: bool,
+
+    /// Whether to cull triangles with invalid vertices
+    #[clap(long, default_value="true")]
+    cull_invalid: bool,
+
+    /// Whether to recompute normals
+    #[clap(long, default_value="false")]
+    recompute_normals: bool,
+
+    /// Whether to fuse identical vertices
+    #[clap(long, default_value="true")]
+    fuse_vertices: bool,
+
+    /// Disable triangle stripification
+    #[clap(long, default_value="false")]
+    no_tristrip: bool,
+
+    /// 
+    #[clap(long, default_value="false")]
+    ai_json: bool,
+
+    /// Read preset material/animation overrides from this folder
+    #[clap(long)]
+    preset_path: Option<String>,
+
+    #[clap(short, long, default_value="false")]
+    verbose: bool,
+}
+
+/// Decompress a .szs file
+#[derive(Parser, Debug)]
+pub struct DecompressCommand {
+    /// File to decompress: *.szs
+    #[arg(required=true)]
+    from: String,
+
+    /// Output file for decompressed file
+    to: Option<String>,
+
+    #[clap(short, long, default_value="false")]
+    verbose: bool,
+}
+
+/// Compress a file as .szs
+#[derive(Parser, Debug)]
+pub struct CompressCommand {
+    /// File to compress: *
+    #[arg(required=true)]
+    from: String,
+
+    /// Output file for compressed file (.szs)
+    to: Option<String>,
+
+    #[clap(short, long, default_value="false")]
+    verbose: bool,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Import a .dae/.fbx file as .brres
-    ImportCommand {
-        /// File to import from: .dae or .fbx
-        #[arg(required=true)]
-        from: String,
+    importCommand(ImportCommand),
 
-        /// File to export to
-        to: Option<String>,
+    /// Decompress a .szs file
+    Decompress(DecompressCommand),
 
-        /// Scale to apply to the model
-        #[arg(short, long, default_value = "1.0")]
-        scale: f32,
-
-        /// Whether to apply the Brawlbox scale fix
-        #[clap(long)]
-        brawlbox_scale: bool,
-
-        /// Whether to generate mipmaps for textures
-        #[clap(long, default_value="true")]
-        mipmaps: bool,
-
-        /// Minimum mipmap dimension to generate
-        #[arg(long, default_value = "32")]
-        min_mip: u32,
-
-        /// Maximum number of mipmaps to generate
-        #[arg(long, default_value = "5")]
-        max_mip: u32,
-
-        /// Whether to automatically set transparency
-        #[clap(long, default_value="true")]
-        auto_transparency: bool,
-
-        /// Whether to merge materials with identical properties
-        #[clap(long, default_value="true")]
-        merge_mats: bool,
-
-        /// Whether to bake UV transforms into vertices
-        #[clap(long, default_value="false")]
-        bake_uvs: bool,
-
-        /// Tint to apply to the model in hex format (#RRGGBB)
-        #[arg(long, default_value = "#FFFFFF")]
-        tint: String,
-
-        /// Whether to cull degenerate triangles
-        #[clap(long, default_value="true")]
-        cull_degenerates: bool,
-
-        /// Whether to cull triangles with invalid vertices
-        #[clap(long, default_value="true")]
-        cull_invalid: bool,
-
-        /// Whether to recompute normals
-        #[clap(long, default_value="false")]
-        recompute_normals: bool,
-
-        /// Whether to fuse identical vertices
-        #[clap(long, default_value="true")]
-        fuse_vertices: bool,
-
-        /// Disable triangle stripification
-        #[clap(long, default_value="false")]
-        no_tristrip: bool,
-
-        /// 
-        #[clap(long, default_value="false")]
-        ai_json: bool,
-
-        /// Read preset material/animation overrides from this folder
-        #[clap(long)]
-        preset_path: Option<String>,
-
-        #[clap(short, long, default_value="false")]
-        verbose: bool,
-    },
+    /// Compress a file as .szs
+    Compress(CompressCommand),
 }
 
 #[repr(C)]
 pub struct CliOptions {
+    pub c_type: c_uint,
+
+    // TYPE 1: "import-command"
     pub from: [c_char; 256],
     pub to: [c_char; 256],
     pub preset_path: [c_char; 256],
@@ -124,6 +165,9 @@ pub struct CliOptions {
     pub no_tristrip: c_uint,
     pub ai_json: c_uint,
     pub verbose: c_uint,
+
+    // TYPE 2: "decompress"
+    // Uses "from", "to" and "verbose" above
 }
 
 fn is_valid_hexcode(value: String) -> Result<(), String> {
@@ -141,45 +185,106 @@ fn is_valid_hexcode(value: String) -> Result<(), String> {
 impl MyArgs {
     fn to_cli_options(&self) -> CliOptions {
         match &self.command {
-            Commands::ImportCommand{
-                to, from, scale, brawlbox_scale, mipmaps, min_mip, max_mip,
-                auto_transparency, merge_mats, bake_uvs, cull_degenerates,
-                cull_invalid, recompute_normals, fuse_vertices, tint,
-                preset_path,
-                no_tristrip, ai_json, verbose
-            } => {
-                let tint_val = u32::from_str_radix(&tint[1..], 16).unwrap_or(0xFF_FFFF);
+            Commands::importCommand(i) => {
+                let tint_val = u32::from_str_radix(&i.tint[1..], 16).unwrap_or(0xFF_FFFF);
                 let mut from2 : [i8; 256]= [0; 256];
                 let mut to2 : [i8; 256]= [0; 256];
                 let mut preset_path2 : [i8; 256] = [0; 256];
-                let from_bytes = from.as_bytes();
+                let from_bytes = i.from.as_bytes();
                 let default_str = String::new();
-                let to_bytes = to.as_ref().unwrap_or(&default_str).as_bytes();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
                 let default_str2 = String::new();
-                let preset_str_bytes = preset_path.as_ref().unwrap_or(&default_str2).as_bytes();
+                let preset_str_bytes = i.preset_path.as_ref().unwrap_or(&default_str2).as_bytes();
                 from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
                 to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
                 preset_path2[..preset_str_bytes.len()].copy_from_slice(unsafe { &*(preset_str_bytes as *const _ as *const [i8]) });
                 CliOptions {
+                    c_type: 1,
                     from: from2,
                     to: to2,
                     preset_path: preset_path2,
-                    scale: *scale as c_float,
-                    brawlbox_scale: *brawlbox_scale as c_uint,
-                    mipmaps: *mipmaps as c_uint,
-                    min_mip: *min_mip as c_uint,
-                    max_mips: *max_mip as c_uint,
-                    auto_transparency: *auto_transparency as c_uint,
-                    merge_mats: *merge_mats as c_uint,
-                    bake_uvs: *bake_uvs as c_uint,
+                    scale: i.scale as c_float,
+                    brawlbox_scale: i.brawlbox_scale as c_uint,
+                    mipmaps: i.mipmaps as c_uint,
+                    min_mip: i.min_mip as c_uint,
+                    max_mips: i.max_mip as c_uint,
+                    auto_transparency: i.auto_transparency as c_uint,
+                    merge_mats: i.merge_mats as c_uint,
+                    bake_uvs: i.bake_uvs as c_uint,
                     tint: tint_val as c_uint,
-                    cull_degenerates: *cull_degenerates as c_uint,
-                    cull_invalid: *cull_invalid as c_uint,
-                    recompute_normals: *recompute_normals as c_uint,
-                    fuse_vertices: *fuse_vertices as c_uint,
-                    no_tristrip: *no_tristrip as c_uint,
-                    ai_json: *ai_json as c_uint,
-                    verbose: *verbose as c_uint,
+                    cull_degenerates: i.cull_degenerates as c_uint,
+                    cull_invalid: i.cull_invalid as c_uint,
+                    recompute_normals: i.recompute_normals as c_uint,
+                    fuse_vertices: i.fuse_vertices as c_uint,
+                    no_tristrip: i.no_tristrip as c_uint,
+                    ai_json: i.ai_json as c_uint,
+                    verbose: i.verbose as c_uint,
+                }
+            },
+            Commands::Decompress(i) => {
+                let mut from2 : [i8; 256]= [0; 256];
+                let mut to2 : [i8; 256]= [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 2,
+                    from: from2,
+                    to: to2,
+                    verbose: i.verbose as c_uint,
+
+                    // Junk fields
+                    preset_path:  [0; 256],
+                    scale: 0.0 as c_float,
+                    brawlbox_scale: 0 as c_uint,
+                    mipmaps: 0 as c_uint,
+                    min_mip: 0 as c_uint,
+                    max_mips: 0 as c_uint,
+                    auto_transparency: 0 as c_uint,
+                    merge_mats: 0 as c_uint,
+                    bake_uvs: 0 as c_uint,
+                    tint: 0 as c_uint,
+                    cull_degenerates: 0 as c_uint,
+                    cull_invalid: 0 as c_uint,
+                    recompute_normals: 0 as c_uint,
+                    fuse_vertices: 0 as c_uint,
+                    no_tristrip: 0 as c_uint,
+                    ai_json: 0 as c_uint,
+                }
+            },
+            Commands::Compress(i) => {
+                let mut from2 : [i8; 256]= [0; 256];
+                let mut to2 : [i8; 256]= [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 3,
+                    from: from2,
+                    to: to2,
+                    verbose: i.verbose as c_uint,
+
+                    // Junk fields
+                    preset_path:  [0; 256],
+                    scale: 0.0 as c_float,
+                    brawlbox_scale: 0 as c_uint,
+                    mipmaps: 0 as c_uint,
+                    min_mip: 0 as c_uint,
+                    max_mips: 0 as c_uint,
+                    auto_transparency: 0 as c_uint,
+                    merge_mats: 0 as c_uint,
+                    bake_uvs: 0 as c_uint,
+                    tint: 0 as c_uint,
+                    cull_degenerates: 0 as c_uint,
+                    cull_invalid: 0 as c_uint,
+                    recompute_normals: 0 as c_uint,
+                    fuse_vertices: 0 as c_uint,
+                    no_tristrip: 0 as c_uint,
+                    ai_json: 0 as c_uint,
                 }
             },
         }
@@ -202,9 +307,9 @@ fn parse_args(argc: c_int, argv: *const *const c_char) -> Result<MyArgs, String>
 
     match MyArgs::try_parse_from(args) {
         Ok(args) => {
-            match args.command {
-                Commands::ImportCommand{ref tint,..} => {
-                    let str = tint.to_string();
+            match &args.command {
+                Commands::importCommand(i) => {
+                    let str = i.tint.to_string();
                     match is_valid_hexcode(str) {
                         Ok(_) => { () },
                         Err(e) => {
@@ -217,7 +322,8 @@ fn parse_args(argc: c_int, argv: *const *const c_char) -> Result<MyArgs, String>
                             return Err("Bad hexcode".to_string())
                         }
                     }
-                }
+                },
+                _ => {},
             };
             Ok(args)
         },

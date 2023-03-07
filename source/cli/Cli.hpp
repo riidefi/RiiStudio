@@ -20,7 +20,15 @@
 //
 using bool32 = uint32_t;
 
+enum {
+	TYPE_UNK,
+	TYPE_IMPORT_BRRES,
+	TYPE_DECOMPRESS,
+	TYPE_COMPRESS,
+};
+
 struct CliOptions {
+  uint32_t type = 0;
   char from[256] = "";
   char to[256] = "";
   char preset_path[256] = "";

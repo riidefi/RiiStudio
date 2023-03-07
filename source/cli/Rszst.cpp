@@ -5,6 +5,7 @@
 #include <librii/assimp/LRAssimp.hpp>
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
+#include <librii/szs/SZS.hpp>
 #include <plugins/g3d/G3dIo.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
@@ -226,24 +227,162 @@ private:
   std::filesystem::path m_to;
   std::filesystem::path m_presets;
 };
+class DecompressSZS {
+public:
+  DecompressSZS(const CliOptions& opt) : m_opt(opt) {}
+
+  bool execute() {
+    if (m_opt.verbose) {
+      rsl::logging::init();
+    }
+    if (!parseArgs()) {
+      fmt::print(stderr, "Error: failed to parse args\n");
+      return false;
+    }
+    if (false) {
+      fmt::print(stderr, "Error: file format is unsupported\n");
+      return false;
+    }
+    auto file = OishiiReadFile(m_opt.from);
+    if (!file.has_value()) {
+      fmt::print(stderr, "Error: Failed to read file\n");
+      return false;
+    }
+
+    fmt::print(stderr, "Decompressing SZS: {} => {}\n", m_from.string(),
+               m_to.string());
+    // Max 4GB
+    u32 size = librii::szs::getExpandedSize(file->slice());
+    std::vector<u8> buf(size);
+    librii::szs::decode(buf, file->slice());
+    if (false) {
+      fmt::print(stderr, "Error: Failed to decompress file\n");
+      return false;
+    }
+
+    plate::Platform::writeFile(buf, m_to.string());
+    return true;
+  }
+
+private:
+  bool parseArgs() {
+    m_from = std::string{m_opt.from, strnlen(m_opt.from, sizeof(m_opt.from))};
+    m_to = std::string{m_opt.to, strnlen(m_opt.to, sizeof(m_opt.to))};
+
+    if (m_to.empty()) {
+      std::filesystem::path p = m_from;
+      p.replace_extension(".u8");
+      m_to = p;
+    }
+    if (!std::filesystem::exists(m_from)) {
+      fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+      return false;
+    }
+    if (std::filesystem::exists(m_to)) {
+      fmt::print(stderr,
+                 "Warning: File {} will be overwritten by this operation.\n",
+                 m_to.string());
+    }
+    return true;
+  }
+
+  CliOptions m_opt;
+  std::filesystem::path m_from;
+  std::filesystem::path m_to;
+};
+class CompressSZS {
+public:
+  CompressSZS(const CliOptions& opt) : m_opt(opt) {}
+
+  bool execute() {
+    if (m_opt.verbose) {
+      rsl::logging::init();
+    }
+    if (!parseArgs()) {
+      fmt::print(stderr, "Error: failed to parse args\n");
+      return false;
+    }
+    if (false) {
+      fmt::print(stderr, "Error: file format is unsupported\n");
+      return false;
+    }
+    auto file = OishiiReadFile(m_opt.from);
+    if (!file.has_value()) {
+      fmt::print(stderr, "Error: Failed to read file\n");
+      return false;
+    }
+
+    fmt::print(stderr,
+               "Compressing SZS: {} => {} (Boyer-Moore-Horspool strategy)\n",
+               m_from.string(), m_to.string());
+    std::vector<u8> buf(file->slice().size_bytes() * 2);
+    int size = librii::szs::encodeBoyerMooreHorspool(
+        file->slice().data(), buf.data(), file->slice().size_bytes());
+    if (size < 0 || size > buf.size()) {
+      fmt::print(stderr, "Error: Failed to compress file\n");
+      return false;
+    }
+    buf.resize(roundUp(size, 32));
+
+    plate::Platform::writeFile(buf, m_to.string());
+    return true;
+  }
+
+private:
+  bool parseArgs() {
+    m_from = std::string{m_opt.from, strnlen(m_opt.from, sizeof(m_opt.from))};
+    m_to = std::string{m_opt.to, strnlen(m_opt.to, sizeof(m_opt.to))};
+
+    if (m_to.empty()) {
+      std::filesystem::path p = m_from;
+      p.replace_extension(".szs");
+      m_to = p;
+    }
+    if (!std::filesystem::exists(m_from)) {
+      fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+      return false;
+    }
+    if (std::filesystem::exists(m_to)) {
+      fmt::print(stderr,
+                 "Warning: File {} will be overwritten by this operation.\n",
+                 m_to.string());
+    }
+    return true;
+  }
+
+  CliOptions m_opt;
+  std::filesystem::path m_from;
+  std::filesystem::path m_to;
+};
 
 int main(int argc, const char** argv) {
   fmt::print(stdout, "RiiStudio CLI {}\n", RII_TIME_STAMP);
   auto args = parse(argc, argv);
   if (!args) {
+    fmt::print("::\n");
     return -1;
   }
-  progress_put("Processing...", 0.0f);
-  ImportBRRES cmd(*args);
-  bool ok = cmd.execute();
-  progress_end();
-
-  if (!ok) {
-    fmt::print(stdout, "\r\nFailed to execute\n");
-    fmt::print(stderr, "\r\nFailed to execute\n");
-    return -1;
+  if (args->type == TYPE_IMPORT_BRRES) {
+    progress_put("Processing...", 0.0f);
+    ImportBRRES cmd(*args);
+    bool ok = cmd.execute();
+    progress_end();
+  } else if (args->type == TYPE_DECOMPRESS) {
+    DecompressSZS cmd(*args);
+    bool ok = cmd.execute();
+    if (!ok) {
+      fmt::print(stdout, "\r\nFailed to execute\n");
+      fmt::print(stderr, "\r\nFailed to execute\n");
+      return -1;
+    }
+  } else if (args->type == TYPE_COMPRESS) {
+    CompressSZS cmd(*args);
+    bool ok = cmd.execute();
+    if (!ok) {
+      fmt::print(stdout, "\r\nFailed to execute\n");
+      fmt::print(stderr, "\r\nFailed to execute\n");
+      return -1;
+    }
   }
-
-  fmt::print(stdout, "\r\nOK\n");
   return 0;
 }
