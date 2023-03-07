@@ -952,11 +952,11 @@ struct AdvancedTextureConverter {
     }
     width = x;
 
-    auto ok = ReEncode();
+    auto ok = ReEncode(false);
     if (!ok) {
       width = old_w;
       height = old_h;
-      (void)ReEncode();
+      (void)ReEncode(false);
     }
 
     return ok;
@@ -973,17 +973,17 @@ struct AdvancedTextureConverter {
       width = maybe_width;
     }
     height = x;
-    auto ok = ReEncode();
+    auto ok = ReEncode(false);
     if (!ok) {
       width = old_w;
       height = old_h;
-      (void)ReEncode();
+      (void)ReEncode(false);
     }
     return ok;
   }
 
   // On any setting change
-  [[nodiscard]] Result<void> ReEncode() {
+  [[nodiscard]] Result<void> ReEncode(bool should_throw = true) {
     EXPECT(width >= 1 && width <= 1024);
     EXPECT(height >= 1 && height <= 1024);
     EXPECT(mip_levels >= 1 && mip_levels <= 10);
@@ -991,9 +991,11 @@ struct AdvancedTextureConverter {
     // If mips are also sent, just ignore
     EXPECT(source_data.size() >= src_size);
     std::vector<u8> scratch;
-    TRY(riistudio::rhst::importTextureImpl(
-        dst_encoded, source_data, scratch, mip_levels - 1, width, height,
-        first_width, first_height, format, resizer));
+    if (should_throw || (is_power_of_2(width) && is_power_of_2(height))) {
+      TRY(riistudio::rhst::importTextureImpl(
+          dst_encoded, source_data, scratch, mip_levels - 1, width, height,
+          first_width, first_height, format, resizer));
+    }
     // Bust cache
     dst_encoded.nextGenerationId();
     return {};
@@ -1101,6 +1103,10 @@ Result<TCResult> DrawAdvTexConv(AdvancedTextureConverter& action) {
     } else if (h != action.height) {
       TRY(action.SetHeight(h));
     }
+    if (!is_power_of_2(action.width) || !is_power_of_2(action.height)) {
+      ImGui::Text("Warning: (%d, %d) is not a power of two, so encoding cannot "
+                  "happen!", action.width, action.height);
+    }
     // ImGui::SameLine();
     // if (ImGui::Button("Apply", button)) {
     //   TRY(action.ReEncode());
@@ -1120,6 +1126,7 @@ Result<TCResult> DrawAdvTexConv(AdvancedTextureConverter& action) {
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 255, 0, 100));
     RSL_DEFER(ImGui::PopStyleColor());
     if (ImGui::Button("OK", button)) {
+      TRY(action.ReEncode());
       return TCResult::OK;
     }
   }
@@ -1226,7 +1233,7 @@ public:
           }
           cvtr.dst_encoded.name = tex.getName();
           OverwriteWithG3dTex(tex, cvtr.dst_encoded);
-		  // Bust cache
+          // Bust cache
           tex.nextGenerationId();
           m_state = State::None{};
           return kpi::CHANGE;
