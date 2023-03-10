@@ -404,7 +404,7 @@ public:
   }
 
   Expected readMaterial(int index) {
-    Material material{};
+    ProtoMaterial material{};
     const bool res =
         stringKeyIter([&](std::string_view key, int index) -> Expected {
           if (key == "name") {

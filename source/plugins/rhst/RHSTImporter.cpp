@@ -62,7 +62,7 @@ void compileAlphaMode(librii::gx::LowLevelGxMaterial& mat,
 }
 
 void compileMaterial(libcube::IGCMaterial& out,
-                     const librii::rhst::Material& in) {
+                     const librii::rhst::ProtoMaterial& in) {
   out.setName(in.name);
 
   auto& data = out.getMaterialData();

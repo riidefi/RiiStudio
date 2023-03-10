@@ -104,8 +104,10 @@ enum class WrapMode { Repeat, Mirror, Clamp };
 
 enum class AlphaMode { Opaque, Clip, Translucent };
 
-struct Material {
+//! Is eventually compiled to a common material.
+struct ProtoMaterial {
   std::string name = "Untitled Material";
+  bool can_merge = true;
 
   std::string texture_name = "";
   WrapMode wrap_u = WrapMode::Repeat;
@@ -136,6 +138,8 @@ struct DrawCall {
 
 struct Bone {
   std::string name = "Untitled Bone";
+  bool can_merge = true;
+
   s32 parent = -1;
   std::vector<s32> child;
   glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -199,6 +203,8 @@ inline size_t FaceCount(const MatrixPrimitive& mp) {
 
 struct Mesh {
   std::string name = "Untitled Mesh";
+  bool can_merge = true;
+
   s32 current_matrix = 0;
   u32 vertex_descriptor = 0;
 
@@ -235,7 +241,7 @@ struct SceneTree {
   std::vector<Bone> bones;
   std::vector<WeightMatrix> weights;
   std::vector<Mesh> meshes;
-  std::vector<Material> materials;
+  std::vector<ProtoMaterial> materials;
 };
 
 struct MeshOptimizerStats {
