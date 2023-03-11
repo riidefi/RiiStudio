@@ -73,13 +73,13 @@ def get_user_prefs(context):
 def get_rs_prefs(context):
 	return get_user_prefs(context).addons[__name__].preferences
 
-def invoke_converter(context, source, dest):
+def invoke_converter(context, source, dest, verbose):
 	bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
 	rszst = os.path.join(bin_root, "rszst.exe")
 
 	cmd = 'rhst2-bmd' if dest.endswith('bmd') else 'rhst2-brres'
 
-	subprocess.call([rszst, cmd, source, dest])
+	subprocess.call([rszst, cmd, source, dest] + (['-v'] if verbose else []))
 
 DEBUG = False
 
@@ -845,6 +845,13 @@ class RHST_RNA:
 	)
 	if BLENDER_30: keep_build_artifacts : keep_build_artifacts
 
+	verbose = BoolProperty(
+		name="Debug Logs",
+		default=True,
+		description="Write debug information to blender's Console",
+	)
+	if BLENDER_30: verbose : verbose
+
 	def get_root_transform(self):
 		root_scale	 = [self.root_transform_scale_x,	 self.root_transform_scale_y,	 self.root_transform_scale_z]
 		root_rotate	= [self.root_transform_rotate_x,	self.root_transform_rotate_y,	self.root_transform_rotate_z]
@@ -907,6 +914,7 @@ class RHST_RNA:
 		box.prop(self, 'add_dummy_colors')
 		box.prop(self, 'ignore_cache')
 		box.prop(self, 'keep_build_artifacts')
+		box.prop(self, 'verbose')
 
 		# Quantization
 		box = layout.box()
@@ -986,7 +994,11 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 			self.export_rhst(context, dump_pngs=True)
 			
 			timer = Timer("BRRES Conversion")
-			invoke_converter(context, source=self.get_rhst_path(), dest=self.get_dest_path())
+			invoke_converter(context,
+				source=self.get_rhst_path(),
+				dest=self.get_dest_path(),
+				verbose=self.verbose,
+			)
 			timer.dump()
 		finally:
 			self.cleanup_if_enabled()
@@ -1025,7 +1037,11 @@ class ExportBMD(Operator, ExportHelper, RHST_RNA):
 			self.export_rhst(context, dump_pngs=True)
 			
 			timer = Timer("BMD Conversion")
-			invoke_converter(context, source=self.get_rhst_path(), dest=self.get_dest_path())
+			invoke_converter(context,
+				source=self.get_rhst_path(),
+				dest=self.get_dest_path(),
+				verbose=self.verbose,
+			)
 			timer.dump()
 		finally:
 			self.cleanup_if_enabled()
