@@ -568,7 +568,7 @@ def export_mesh(
 
 		# Single channel of pure white
 		if add_dummy_colors:
-			vcd_set[11] = 1
+			vcd_set[VCD_COLOR0] = 1
 
 		# we'll worry about this when we have to, 1 primitive array should be fine for now.
 		facepoints = [] # [ [ V, N, C0, C1, U0, U1, U2, U3, U4, U5, U6, U7 ], ... ]
@@ -661,7 +661,7 @@ def export_jres(context, params : RHSTExportParams):
 			]
 		],
 		"bones": [{
-			"name": "riistudio_blender%s" % bpy.app.version[1],
+			"name": "riistudio_blender%s" % '.'.join(str(x) for x in bpy.app.version),
 			"parent": -1,
 			"child": -1,
 			"scale": params.root_transform.s,
