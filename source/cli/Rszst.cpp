@@ -8,6 +8,7 @@
 #include <librii/szs/SZS.hpp>
 #include <plugins/g3d/G3dIo.hpp>
 #include <plugins/g3d/collection.hpp>
+#include <plugins/j3d/J3dIo.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
 #include <sstream>
 
@@ -72,7 +73,7 @@ public:
       fmt::print(stderr, "Error: file format is unsupported\n");
       return false;
     }
-    auto file = OishiiReadFile(m_opt.from);
+    auto file = OishiiReadFile(m_opt.from.view());
     if (!file.has_value()) {
       fmt::print(stderr, "Error: Failed to read file\n");
       return false;
@@ -160,11 +161,9 @@ public:
 
 private:
   bool parseArgs() {
-    m_from = std::string{m_opt.from, strnlen(m_opt.from, sizeof(m_opt.from))};
-    m_to = std::string{m_opt.to, strnlen(m_opt.to, sizeof(m_opt.to))};
-    m_presets =
-        std::string{m_opt.preset_path,
-                    strnlen(m_opt.preset_path, sizeof(m_opt.preset_path))};
+    m_from = m_opt.from.view();
+    m_to = m_opt.to.view();
+    m_presets = m_opt.preset_path.view();
     if (m_to.empty()) {
       std::filesystem::path p = m_from;
       p.replace_extension(".brres");
@@ -227,6 +226,7 @@ private:
   std::filesystem::path m_to;
   std::filesystem::path m_presets;
 };
+
 class DecompressSZS {
 public:
   DecompressSZS(const CliOptions& opt) : m_opt(opt) {}
@@ -243,7 +243,7 @@ public:
       fmt::print(stderr, "Error: file format is unsupported\n");
       return false;
     }
-    auto file = OishiiReadFile(m_opt.from);
+    auto file = OishiiReadFile(m_opt.from.view());
     if (!file.has_value()) {
       fmt::print(stderr, "Error: Failed to read file\n");
       return false;
@@ -266,8 +266,8 @@ public:
 
 private:
   bool parseArgs() {
-    m_from = std::string{m_opt.from, strnlen(m_opt.from, sizeof(m_opt.from))};
-    m_to = std::string{m_opt.to, strnlen(m_opt.to, sizeof(m_opt.to))};
+    m_from = std::string{m_opt.from.view()};
+    m_to = std::string{m_opt.to.view()};
 
     if (m_to.empty()) {
       std::filesystem::path p = m_from;
@@ -306,7 +306,7 @@ public:
       fmt::print(stderr, "Error: file format is unsupported\n");
       return false;
     }
-    auto file = OishiiReadFile(m_opt.from);
+    auto file = OishiiReadFile(m_opt.from.view());
     if (!file.has_value()) {
       fmt::print(stderr, "Error: Failed to read file\n");
       return false;
@@ -330,12 +330,98 @@ public:
 
 private:
   bool parseArgs() {
-    m_from = std::string{m_opt.from, strnlen(m_opt.from, sizeof(m_opt.from))};
-    m_to = std::string{m_opt.to, strnlen(m_opt.to, sizeof(m_opt.to))};
+    m_from = m_opt.from.view();
+    m_to = m_opt.to.view();
 
     if (m_to.empty()) {
       std::filesystem::path p = m_from;
       p.replace_extension(".szs");
+      m_to = p;
+    }
+    if (!std::filesystem::exists(m_from)) {
+      fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+      return false;
+    }
+    if (std::filesystem::exists(m_to)) {
+      fmt::print(stderr,
+                 "Warning: File {} will be overwritten by this operation.\n",
+                 m_to.string());
+    }
+    return true;
+  }
+
+  CliOptions m_opt;
+  std::filesystem::path m_from;
+  std::filesystem::path m_to;
+};
+
+void WriteIt(riistudio::g3d::Collection& c, oishii::Writer& w) {
+  riistudio::g3d::WriteBRRES(c, w);
+}
+std::string ExOf(riistudio::g3d::Collection* c) { return ".brres"; }
+void WriteIt(riistudio::j3d::Collection& c, oishii::Writer& w) {
+  riistudio::j3d::WriteBMD(c, w);
+}
+std::string ExOf(riistudio::j3d::Collection* c) { return ".bmd"; }
+
+template <typename T> class CompileRHST {
+public:
+  CompileRHST(const CliOptions& opt) : m_opt(opt) {}
+
+  bool execute() {
+    if (m_opt.verbose) {
+      rsl::logging::init();
+    }
+    if (!parseArgs()) {
+      fmt::print(stderr, "Error: failed to parse args\n");
+      return false;
+    }
+    if (m_from.extension() != ".rhst") {
+      fmt::print(stderr, "Error: file format is unsupported\n");
+      return false;
+    }
+    auto file = OishiiReadFile(m_opt.from.view());
+    if (!file.has_value()) {
+      fmt::print(stderr, "Error: Failed to read file\n");
+      return false;
+    }
+    std::string ec;
+    auto tree = librii::rhst::ReadSceneTree(file->slice(), ec);
+    if (!tree) {
+      fmt::print(stderr, "Error: Failed to parse: {}\n", ec);
+      return false;
+    }
+    auto progress = [&](std::string_view s, float f) {
+      progress_put(std::string(s), f);
+    };
+    const auto on_log = [](kpi::IOMessageClass c, std::string_view d,
+                           std::string_view b) {
+      rsl::info("message: {} {} {}", magic_enum::enum_name(c), d, b);
+    };
+    auto info = [&](std::string c, std::string v) {
+      on_log(kpi::IOMessageClass::Information, c, v);
+    };
+    auto m_result = std::make_unique<T>();
+    bool ok = riistudio::rhst::CompileRHST(*tree, *m_result, m_from.string(),
+                                           info, progress, !m_opt.no_tristrip,
+                                           m_opt.verbose);
+    if (!ok) {
+      fmt::print(stderr, "Error: Failed to compile RHST\n");
+      return false;
+    }
+    oishii::Writer result(0);
+    WriteIt(*m_result, result);
+    OishiiFlushWriter(result, m_to.string());
+    return true;
+  }
+
+private:
+  bool parseArgs() {
+    m_from = m_opt.from.view();
+    m_to = m_opt.to.view();
+    if (m_to.empty()) {
+      std::filesystem::path p = m_from;
+      p.replace_extension(ExOf((T*)nullptr));
       m_to = p;
     }
     if (!std::filesystem::exists(m_from)) {
@@ -383,6 +469,16 @@ int main(int argc, const char** argv) {
       fmt::print(stderr, "\r\nFailed to execute\n");
       return -1;
     }
+  } else if (args->type == TYPE_COMPILE_RHST_BRRES) {
+    progress_put("Processing...", 0.0f);
+    CompileRHST<riistudio::g3d::Collection> cmd(*args);
+    bool ok = cmd.execute();
+    progress_end();
+  } else if (args->type == TYPE_COMPILE_RHST_BMD) {
+    progress_put("Processing...", 0.0f);
+    CompileRHST<riistudio::j3d::Collection> cmd(*args);
+    bool ok = cmd.execute();
+    progress_end();
   }
   return 0;
 }

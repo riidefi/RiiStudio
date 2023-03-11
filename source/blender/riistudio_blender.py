@@ -3,7 +3,7 @@
 bl_info = {
 	"name": "RiiStudio Blender Exporter",
 	"author": "riidefi",
-	"version": (0, 5, 9),
+	"version": (0, 5, 10),
 	"blender": (2, 80, 0),
 	"location": "File > Export",
 	"description": "Export to BRRES/BMD files.",
@@ -75,9 +75,11 @@ def get_rs_prefs(context):
 
 def invoke_converter(context, source, dest):
 	bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
-	tests_exe = os.path.join(bin_root, "tests.exe")
-	
-	subprocess.call([tests_exe, source, dest])
+	rszst = os.path.join(bin_root, "rszst.exe")
+
+	cmd = 'rhst2-bmd' if dest.endswith('bmd') else 'rhst2-brres'
+
+	subprocess.call([rszst, cmd, source, dest])
 
 DEBUG = False
 

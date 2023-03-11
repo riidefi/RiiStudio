@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 // cli.exe import <from> [to]
 // --verbose
@@ -21,17 +22,30 @@
 using bool32 = uint32_t;
 
 enum {
-	TYPE_UNK,
-	TYPE_IMPORT_BRRES,
-	TYPE_DECOMPRESS,
-	TYPE_COMPRESS,
+  TYPE_UNK,
+
+  // Via Assimp
+  TYPE_IMPORT_BRRES,
+
+  // SZS
+  TYPE_DECOMPRESS,
+  TYPE_COMPRESS,
+
+  TYPE_COMPILE_RHST_BRRES,
+  TYPE_COMPILE_RHST_BMD,
 };
+
+template <size_t L> struct CFixedString {
+  std::string_view view() const { return {buf, strnlen(buf, sizeof(buf))}; }
+  char buf[L]{};
+};
+static_assert(sizeof(CFixedString<256>) == 256);
 
 struct CliOptions {
   uint32_t type = 0;
-  char from[256] = "";
-  char to[256] = "";
-  char preset_path[256] = "";
+  CFixedString<256> from;
+  CFixedString<256> to;
+  CFixedString<256> preset_path;
   float scale = 1.0f;
   bool32 brawlbox_scale = false;
   bool32 mipmaps = true;
