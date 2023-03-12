@@ -98,7 +98,7 @@ Result<ObjectParameters> ReadFromFile(std::string_view path) {
 
 std::string GetPrimaryResource(const ObjectParameter& param) {
   for (auto word : std::ranges::views::split(param.AssetsListing, ";")) {
-    std::string_view sv(word.begin(), word.end());
+    std::string_view sv(&*word.begin(), std::ranges::distance(word));
     if (sv != "-") {
       return std::string(sv);
 	}

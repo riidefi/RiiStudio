@@ -7,7 +7,7 @@ IMPORT_STD;
 
 Result<Archive> ReadArchive(std::span<const u8> buf) {
   auto expanded = librii::szs::getExpandedSize(buf);
-  if (expanded == 0) {
+  if (!expanded) {
     rsl::error("Failed to grab expanded size");
     return std::unexpected("Invalid .szs file");
   }

@@ -58,6 +58,7 @@
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/reverse.hpp>
+#include <range/v3/view/split.hpp>
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
 namespace std {
