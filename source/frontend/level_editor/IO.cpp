@@ -57,12 +57,12 @@ std::unique_ptr<g3d::Collection> ReadBRRES(const std::vector<u8>& buf,
 
 std::unique_ptr<librii::kmp::CourseMap> ReadKMP(const std::vector<u8>& buf,
                                                 std::string path) {
-  auto result = std::make_unique<librii::kmp::CourseMap>();
-
   Reader reader(path, buf);
-  librii::kmp::readKMP(*result, reader.mData.slice());
-
-  return result;
+  auto map = librii::kmp::readKMP(reader.mData.slice());
+  if (!map) {
+    return nullptr;
+  }
+  return std::make_unique<librii::kmp::CourseMap>(*map);
 }
 
 std::vector<u8> WriteKMP(const librii::kmp::CourseMap& map) {

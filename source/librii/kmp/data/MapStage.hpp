@@ -12,8 +12,6 @@ enum class StartPosition { Standard, Near };
 enum class Corner { Left, Right };
 
 struct Stage {
-  bool operator==(const Stage&) const = default;
-
   u8 mLapCount{3};
   Corner mCorner{Corner::Left};
   StartPosition mStartPosition{StartPosition::Standard};
@@ -30,6 +28,8 @@ struct Stage {
   u16 mSpeedModifier; //!< Used by the speed modifier cheat code as the
                       //!< two most significant bytes of a f32. (Originally
                       //!< implicit pad)
+
+  bool operator==(const Stage&) const = default;
 };
 
 constexpr inline f32 DecodeTruncatedBigFloat(u16 sig) {

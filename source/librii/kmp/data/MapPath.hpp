@@ -12,93 +12,80 @@
 namespace librii::kmp {
 
 struct CheckPoint {
-  bool operator==(const CheckPoint&) const = default;
   glm::vec2 mLeft;
   glm::vec2 mRight;
 
   u8 mRespawnIndex = 0;
   u8 mLapCheck = 0xFF;
+
+  bool operator==(const CheckPoint&) const = default;
 };
 
 template <typename PointT> struct DirectedGraph {
-  bool operator==(const DirectedGraph&) const = default;
-
-  rsl::small_vector<PointT, 16> mPoints;
+  rsl::small_vector<PointT, 16> points;
 
   // Over 6 cannot be serialized
   rsl::small_vector<u8, 6> mPredecessors;
   rsl::small_vector<u8, 6> mSuccessors;
   std::array<u8, 2> misc;
+
+  bool operator==(const DirectedGraph&) const = default;
 };
 
-struct CheckPath : public DirectedGraph<CheckPoint> {};
+struct CheckPath : public DirectedGraph<CheckPoint> {
+  bool operator==(const CheckPath&) const = default;
+};
 
 struct EnemyPoint {
-  bool operator==(const EnemyPoint&) const = default;
   glm::vec3 position;
   f32 deviation{};
   std::array<u8, 4> param;
+
+  bool operator==(const EnemyPoint&) const = default;
 };
 
-struct EnemyPath : public DirectedGraph<EnemyPoint> {};
+struct EnemyPath : public DirectedGraph<EnemyPoint> {
+  bool operator==(const EnemyPath&) const = default;
+};
 
 struct ItemPoint {
-  bool operator==(const ItemPoint&) const = default;
   glm::vec3 position{0.0f};
   f32 deviation{0.0f};
   std::array<u8, 4> param;
+
+  bool operator==(const ItemPoint&) const = default;
 };
 
-struct ItemPath : public DirectedGraph<ItemPoint> {};
+struct ItemPath : public DirectedGraph<ItemPoint> {
+  bool operator==(const ItemPath&) const = default;
+};
 
 enum class Interpolation {
-  Linear, //!< Move along the shortest distance from A to B.
-  Spline  //!< Points are interpolated as cubic splines
+  //! Move along the shortest distance from A to B.
+  Linear,
+  //! Points are interpolated as cubic splines
+  Spline,
 };
 enum class LoopPolicy {
-  Closed, //!< Implicit connection from end to start: animation loops
-          //!< unidirectionally.
-  Open    //!< Ping-pong between the start and end.
+  //! Implicit connection from end to start: animation loops unidirectionally
+  Closed,
+  //!< Ping-pong between the start and end.
+  Open,
 };
 
-class Rail {
-public:
+struct RailPoint {
+  glm::vec3 position;
+  std::array<u16, 2> params;
+
+  bool operator==(const RailPoint&) const = default;
+};
+
+struct Rail {
+  Interpolation interpolation{Interpolation::Spline};
+  LoopPolicy loopPolicy{LoopPolicy::Closed};
+  rsl::small_vector<RailPoint, 16> points;
+
   bool operator==(const Rail&) const = default;
-
-  class Point {
-  public:
-    bool operator==(const Point&) const = default;
-
-    glm::vec3 position;
-    std::array<u16, 2> params;
-  };
-
-  Interpolation getInterpolation() const { return mInterpolation; }
-  void setInterpolation(Interpolation p) { mInterpolation = p; }
-  bool isBezier() const { return mInterpolation == Interpolation::Spline; }
-  void setBezier(bool b) {
-    mInterpolation = b ? Interpolation::Spline : Interpolation::Linear;
-  }
-
-  LoopPolicy getLoopPolicy() const { return mPolicy; }
-  void setLoopPolicy(LoopPolicy p) { mPolicy = p; }
-  bool isClosed() const { return mPolicy == LoopPolicy::Closed; }
-  void setClosed(bool c) {
-    mPolicy = c ? LoopPolicy::Closed : LoopPolicy::Open;
-  }
-
-  auto begin() { return mPoints.begin(); }
-  auto end() { return mPoints.end(); }
-  auto begin() const { return mPoints.begin(); }
-  auto end() const { return mPoints.end(); }
-
-  void resize(std::size_t sz) { mPoints.resize(sz); }
-  std::size_t size() const { return mPoints.size(); }
-
-private:
-  Interpolation mInterpolation;
-  LoopPolicy mPolicy;
-  rsl::small_vector<Point, 16> mPoints;
 };
 
 using Path = Rail;
@@ -106,7 +93,7 @@ using Path = Rail;
 inline bool IsLapCheck(const CheckPoint& p) { return p.mLapCheck != 0xFF; }
 
 inline bool IsLapCheck(const CheckPath& p) {
-  return std::any_of(p.mPoints.begin(), p.mPoints.end(),
+  return std::any_of(p.points.begin(), p.points.end(),
                      [](const CheckPoint& p) { return IsLapCheck(p); });
 }
 

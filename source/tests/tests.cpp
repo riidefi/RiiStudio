@@ -143,10 +143,13 @@ void rebuild(std::string from, const std::string_view to, bool check,
     }
     rsl::SafeReader safe(reader);
     if (from.ends_with("kmp")) {
-      librii::kmp::CourseMap map;
-      librii::kmp::readKMP(map, file->slice());
+      auto map = librii::kmp::readKMP(file->slice());
+      if (!map) {
+        fprintf(stderr, "Failed to read kmp: %s\n", map.error().c_str());
+        return;
+	  }
       printf("Writing to %s\n", std::string(to).c_str());
-      librii::kmp::writeKMP(map, writer);
+      librii::kmp::writeKMP(*map, writer);
     } else if (from.ends_with("blight")) {
       writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
       librii::egg::Blight lights;

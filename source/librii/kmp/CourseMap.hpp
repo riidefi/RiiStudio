@@ -14,20 +14,10 @@
 
 namespace librii::kmp {
 
-class CourseMapData {
-public:
-  bool operator==(const CourseMapData&) const = default;
-
+struct CourseMap {
   u16 mRevision = 2520;
   u8 mOpeningPanIndex = 0;
   u8 mVideoPanIndex = 0;
-};
-
-class CourseMap : public CourseMapData {
-public:
-  bool operator==(const CourseMap&) const = default;
-  bool operator!=(const CourseMap&) const = default;
-
   rsl::small_vector<StartPoint, 1> mStartPoints;
   rsl::small_vector<EnemyPath, 16> mEnemyPaths;
   rsl::small_vector<ItemPath, 16> mItemPaths;
@@ -40,6 +30,7 @@ public:
   rsl::small_vector<Cannon, 8> mCannonPoints;
   rsl::small_vector<Stage, 1> mStages;
   rsl::small_vector<MissionPoint, 1> mMissionPoints;
+  bool operator==(const CourseMap&) const = default;
 };
 
 } // namespace librii::kmp

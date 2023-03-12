@@ -5,7 +5,7 @@
 
 namespace librii::kmp {
 
-void readKMP(CourseMap& map, oishii::ByteView&& data);
+Result<CourseMap> readKMP(std::span<const u8> data);
 void writeKMP(const CourseMap& map, oishii::Writer& writer);
 
 } // namespace librii::kmp

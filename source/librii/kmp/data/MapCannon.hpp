@@ -6,8 +6,6 @@
 
 namespace librii::kmp {
 
-class CourseMap;
-
 enum class CannonType { Direct, Curved, Curved2 };
 
 struct Cannon {

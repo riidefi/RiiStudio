@@ -5,8 +5,6 @@
 
 namespace librii::kmp {
 
-class CourseMap;
-
 enum class CameraType {
   Goal,
   Fixed,

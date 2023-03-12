@@ -1,17 +1,15 @@
 #pragma once
 
-#include <algorithm>                   // std::max_element
-#include <array>                       // std::array
-#include <core/common.h>               // u32
-#include <glm/vec3.hpp>                // glm::vec3
+#include <algorithm>     // std::max_element
+#include <array>         // std::array
+#include <core/common.h> // u32
+#include <glm/vec3.hpp>  // glm::vec3
 
 namespace librii::kmp {
 
-class CourseMap;
-
 enum class AreaShape {
-  Box,     //!< Rectangular prism area
-  Cylinder //!< Cylinder area
+  Box,      //!< Rectangular prism area
+  Cylinder, //!< Cylinder area
 };
 
 enum class AreaType {
@@ -39,233 +37,41 @@ enum class AreaType {
 };
 
 // Union with children
-class AreaModel {
-  friend class KMP;
-
-public:
-  // Default box
-  AreaModel() = default;
-  AreaModel(AreaShape ashape) : mShape(ashape) {}
-  ~AreaModel() = default;
-
-  bool operator==(const AreaModel&) const = default;
-
-  AreaShape getShape() const { return mShape; }
-
-  const glm::vec3& getPosition() { return mPosition; }
-  const glm::vec3& setPosition(const glm::vec3& pos) { return mPosition = pos; }
-  const glm::vec3& getRotation() { return mRotation; }
-  const glm::vec3& setRotation(const glm::vec3& rot) { return mRotation = rot; }
-  const glm::vec3& getScaling() { return mScaling; }
-  const glm::vec3& setScaling(const glm::vec3& scl) { return mScaling = scl; }
-
-protected:
-public:
+struct AreaModel {
   AreaShape mShape = AreaShape::Box;
 
   // TRS block
   glm::vec3 mPosition{0.0f, 0.0f, 0.0f};
   glm::vec3 mRotation{0.0f, 0.0f, 0.0f}; // Radians
   glm::vec3 mScaling{1.0f, 1.0f, 1.0f};
+
+  bool operator==(const AreaModel&) const = default;
+  AreaShape getShape() const { return mShape; }
 };
 
-class AreaBoxModel : public AreaModel {
-  AreaBoxModel() : AreaModel(AreaShape::Box) {}
-  ~AreaBoxModel() = default;
+struct Area {
+  AreaType mType = AreaType::Camera;
+  AreaModel mModel;
+  s32 mCameraIndex = -1; // Valid for AreaType::Camera
+  u8 mPriority = 0;      // Greater -> higher priority
+  std::array<u16, 2> mParameters{0, 0};
+  // R2200:
+  u32 mRailID = 0;
+  u32 mEnemyLinkID = 0;
+  std::array<u8, 2> mPad{0, 0};
 
-  static bool classof(const AreaModel* a) {
-    return a->getShape() == AreaShape::Box;
-  }
-};
-
-class AreaCylinderModel : public AreaModel {
-  AreaCylinderModel() : AreaModel(AreaShape::Cylinder) {}
-  ~AreaCylinderModel() = default;
-
-  static bool classof(const AreaModel* a) {
-    return a->getShape() == AreaShape::Cylinder;
-  }
-};
-
-// Union with children
-class Area {
-  friend class KMP;
-
-public:
-  // Default camera
-  Area() = default;
-  Area(AreaType atype) : mType(atype) {}
-  ~Area() = default;
-
-  bool operator==(const Area& rhs) const = default;
-
+  bool operator==(const Area&) const = default;
   AreaType getType() const { return mType; }
 
   //! Get the intersection model of this area;
   AreaModel& getModel() { return mModel; }
   //! Get the intersection model of this area;
   const AreaModel& getModel() const { return mModel; }
-
-  // Lower is higher
-  u8 getPriority() const { return 0xFF - mPriority; }
-  void setPriority(u8 p) { mPriority = 0xFF - p; }
-
-  std::string getName() const {
-    constexpr std::array<const char*, 11> areaTypes{"Camera Area",
-                                                    "EffectController Area",
-                                                    "FogController Area",
-                                                    "PullController Area",
-                                                    "EnemyFall Area",
-                                                    "MapArea2D Area",
-                                                    "SoundController Area",
-                                                    "TeresaController Area",
-                                                    "ObjClipClassifier Area",
-                                                    "ObjClipDiscriminator Area",
-                                                    "PlayerBoundary Area"};
-    return areaTypes[static_cast<int>(getType())];
-  }
-
-protected:
-public:
-  AreaType mType = AreaType::Camera;
-  AreaModel mModel;
-
-  s32 mCameraIndex = -1; // Valid for AreaType::Camera
-  u8 mPriority = 0;      // Greater -> higher priority
-
-  std::array<u16, 2> mParameters{0, 0};
-
-  // R2200:
-
-  u32 mRailID = 0;
-  u32 mEnemyLinkID = 0;
-  std::array<u8, 2> mPad{0, 0};
-};
-
-class CameraArea : public Area {
-public:
-  CameraArea() : Area(AreaType::Camera) {}
-
-  s32 getCameraIndex() const { return mCameraIndex; }
-  void setCameraIndex(s32 idx) { mCameraIndex = idx; }
-
-  static bool classof(const Area* a) {
-    return a->getType() == AreaType::Camera;
-  }
-};
-
-class EffectArea : public Area {
-public:
-  EffectArea() : Area(AreaType::EffectController) {}
-
-  u16 getEffectType() const { return mParameters[0]; }
-  void setEffectType(u16 etype) { mParameters[0] = etype; }
-
-  static bool classof(const Area* a) {
-    return a->getType() == AreaType::EffectController;
-  }
-};
-
-class FogArea : public Area {
-public:
-  FogArea() : Area(AreaType::FogController) {}
-
-  u16 getFogIndex() const { return mParameters[0]; }
-  void setFogIndex(u16 idx) { mParameters[0] = idx; }
-
-  static bool classof(const Area* a) {
-    return a->getType() == AreaType::FogController;
-  }
-};
-
-class PullArea : public Area {
-public:
-  PullArea() : Area(AreaType::PullController) {}
-
-  u16 getParam1() const { return mParameters[0]; }
-  void getParam1(u16 idx) { mParameters[0] = idx; }
-
-  u16 getParam2() const { return mParameters[1]; }
-  void getParam2(u16 idx) { mParameters[1] = idx; }
-
-  u8 getRailId() const { return mRailID; }
-  void setRailId(u8 id) { mRailID = id; }
-
-  static bool classof(const Area* a) {
-    return a->getType() == AreaType::PullController;
-  }
-};
-
-class EnemyFallArea : public Area {
-public:
-  EnemyFallArea() : Area(AreaType::EnemyFall) {}
-
-  u8 getEnemyLinkId() const { return mEnemyLinkID; }
-  void setEnemyLinkId(u8 id) { mEnemyLinkID = id; }
-
-  static bool classof(const Area* a) {
-    return a->getType() == AreaType::EnemyFall;
-  }
-};
-
-class Map2DArea : public Area {
-public:
-  Map2DArea() : Area(AreaType::MapArea2D) {}
-
-  static bool classof(const Area* a) {
-    return a->getType() == AreaType::MapArea2D;
-  }
-};
-
-class BloomArea : public Area {
-public:
-  BloomArea() : Area(AreaType::BloomController) {}
-
-  u16 getParam1() const { return mParameters[0]; }
-  void getParam1(u16 idx) { mParameters[0] = idx; }
-
-  u16 getParam2() const { return mParameters[1]; }
-  void getParam2(u16 idx) { mParameters[1] = idx; }
-
-  static bool classof(const Area* a) {
-    return a->getType() == AreaType::BloomController;
-  }
-};
-
-class ObjClipArea : public Area {
-public:
-  ObjClipArea(AreaType a) : Area(a) {}
-
-  u16 getGroupId() const { return mParameters[0]; }
-  void setGroupId(u16 idx) { mParameters[0] = idx; }
-
-  static bool classof(const Area* a) {
-    return a->getType() == AreaType::ObjClipClassifier ||
-           a->getType() == AreaType::ObjClipDiscriminator;
-  }
-};
-
-class ObjClipClassifierArea : public ObjClipArea {
-public:
-  ObjClipClassifierArea() : ObjClipArea(AreaType::ObjClipClassifier) {}
-
-  static bool classof(const Area* a) {
-    return a->getType() == AreaType::ObjClipClassifier;
-  }
-};
-
-class ObjClipDiscriminatorArea : public ObjClipArea {
-public:
-  ObjClipDiscriminatorArea() : ObjClipArea(AreaType::ObjClipDiscriminator) {}
-
-  static bool classof(const Area* a) {
-    return a->getType() == AreaType::ObjClipDiscriminator;
-  }
 };
 
 class BoundaryArea : public Area {
 public:
-  BoundaryArea() : Area(AreaType::PlayerBoundary) {}
+  BoundaryArea() { mType = AreaType::PlayerBoundary; }
 
   enum class ConstraintType {
     Whitelist, //!< The area is enabled within the range

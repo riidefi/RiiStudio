@@ -1,8 +1,7 @@
 #include "KMP.hpp"
 #include <core/util/glm_io.hpp>
 #include <llvm/ADT/StringMap.h>
-
-IMPORT_STD;
+#include <rsl/SafeReader.hpp>
 
 namespace librii::kmp {
 
@@ -36,8 +35,12 @@ struct IOContext {
   IOContext(std::string&& p) : path(std::move(p)) {}
 };
 
-void readKMP(CourseMap& map, oishii::ByteView&& data) {
-  oishii::BinaryReader reader(std::move(data));
+Result<CourseMap> readKMP(std::span<const u8> data) {
+  CourseMap map;
+  std::vector<u8> dataCopy(data.begin(), data.end());
+  auto view = oishii::DataProvider(std::move(dataCopy));
+  oishii::BinaryReader reader(view.slice());
+  rsl::SafeReader safe(reader);
   IOContext ctx("kmp");
 
   u16 num_sec = 0;
@@ -59,7 +62,7 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
     g.require(map.mRevision == 2520, "Unusual revision");
   }
 
-  assert(num_sec < 32);
+  EXPECT(num_sec < 32);
   u32 sections_handled = 0;
 
   const auto search = [&](u32 key, bool standard_fields =
@@ -118,8 +121,8 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
       {
         oishii::Jump<oishii::Whence::Set> g(reader,
                                             pt_ofs + point_stride * start);
-        entry.mPoints.resize(size);
-        for (auto& pt : entry.mPoints)
+        entry.points.resize(size);
+        for (auto& pt : entry.points)
           read_point(pt, reader);
       }
     }
@@ -170,11 +173,11 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
     map.mPaths.resize(num_entry);
     for (auto& entry : map.mPaths) {
       const auto entry_size = reader.read<u16>();
-      entry.resize(entry_size);
+      entry.points.resize(entry_size);
       total_points_real += entry_size;
-      entry.setInterpolation(static_cast<Interpolation>(reader.read<u8>()));
-      entry.setLoopPolicy(static_cast<LoopPolicy>(reader.read<u8>()));
-      for (auto& sub : entry) {
+      entry.interpolation = TRY(safe.Enum8<Interpolation>());
+      entry.loopPolicy = TRY(safe.Enum8<LoopPolicy>());
+      for (auto& sub : entry.points) {
         sub.position << reader;
         sub.params = reader.readX<u16, 2>();
       }
@@ -213,13 +216,9 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
       entry.mType = static_cast<AreaType>(raw_area_type);
       entry.mCameraIndex = reader.read<u8>();
       entry.mPriority = reader.read<u8>();
-      glm::vec3 scratch;
-      scratch << reader;
-      entry.getModel().setPosition(scratch);
-      scratch << reader;
-      entry.getModel().setRotation(scratch);
-      scratch << reader;
-      entry.getModel().setScaling(scratch);
+      entry.getModel().mPosition << reader;
+      entry.getModel().mRotation << reader;
+      entry.getModel().mScaling << reader;
 
       entry.mParameters = reader.readX<u16, 2>();
       if (map.mRevision >= 2200) {
@@ -239,7 +238,7 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
     map.mVideoPanIndex = user_data & 0xff;
     map.mCameras.resize(num_entry);
     for (auto& entry : map.mCameras) {
-      entry.mType = static_cast<CameraType>(reader.read<u8>());
+      entry.mType = TRY(safe.Enum8<CameraType>());
       entry.mNext = reader.read<u8>();
       entry.mShake = reader.read<u8>();
       entry.mPathId = reader.read<u8>();
@@ -278,7 +277,7 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
       entry.mPosition << reader;
       entry.mRotation << reader;
       ctx_entry.require(reader.read<u16>() == i, "Invalid cannon ID");
-      entry.mType = static_cast<CannonType>(reader.read<u16>());
+      entry.mType = TRY(safe.Enum8<CannonType>());
       ++i;
     }
   }
@@ -297,8 +296,8 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
     map.mStages.resize(num_entry);
     for (auto& entry : map.mStages) {
       entry.mLapCount = reader.read<u8>();
-      entry.mCorner = static_cast<Corner>(reader.read<u8>());
-      entry.mStartPosition = static_cast<StartPosition>(reader.read<u8>());
+      entry.mCorner = TRY(safe.Enum8<Corner>());
+      entry.mStartPosition = TRY(safe.Enum8<StartPosition>());
       entry.mFlareTobi = reader.read<u8>();
       entry.mLensFlareOptions.a = reader.read<u8>();
       entry.mLensFlareOptions.r = reader.read<u8>();
@@ -316,6 +315,8 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
       }
     }
   }
+
+  return map;
 }
 
 class RelocWriter {
@@ -438,16 +439,16 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
       stream.write<u32>(pt_key);
       stream.write<u16>(std::accumulate(
           paths.begin(), paths.end(), 0,
-          [](auto total, auto& path) { return total + path.mPoints.size(); }));
+          [](auto total, auto& path) { return total + path.points.size(); }));
       stream.write<u16>(0); // user data
 
       std::size_t i = 0;
       for (auto& path : paths) {
         const auto p_start = i;
-        for (auto& point : path.mPoints) {
+        for (auto& point : path.points) {
           if constexpr (std::is_same_v<T, bool>) {
             write_point(point, stream, i, p_start,
-                        p_start + path.mPoints.size());
+                        p_start + path.points.size());
           } else {
             write_point(point, stream);
           }
@@ -462,8 +463,8 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
       u8 ph_start_index = 0;
       for (auto& path : paths) {
         stream.write<u8>(ph_start_index);
-        ph_start_index += path.mPoints.size();
-        stream.write<u8>(path.mPoints.size());
+        ph_start_index += path.points.size();
+        stream.write<u8>(path.points.size());
         for (auto p : path.mPredecessors)
           stream.write<u8>(p);
         for (int i = path.mPredecessors.size(); i < 6; ++i)
@@ -539,13 +540,13 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
     stream.write<u16>(map.mPaths.size());
     u32 total_count = 0;
     for (auto& entry : map.mPaths)
-      total_count += entry.size();
+      total_count += entry.points.size();
     stream.write<u16>(total_count);
     for (auto& entry : map.mPaths) {
-      stream.write<u16>(std::distance(entry.begin(), entry.end()));
-      stream.write<u8>(static_cast<u8>(entry.getInterpolation()));
-      stream.write<u8>(static_cast<u8>(entry.getLoopPolicy()));
-      for (auto& sub : entry) {
+      stream.write<u16>(entry.points.size());
+      stream.write<u8>(static_cast<u8>(entry.interpolation));
+      stream.write<u8>(static_cast<u8>(entry.loopPolicy));
+      for (auto& sub : entry.points) {
         sub.position >> stream;
         for (auto p : sub.params)
           stream.write<u16>(p);
