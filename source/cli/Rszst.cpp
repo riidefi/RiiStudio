@@ -373,10 +373,9 @@ public:
       fmt::print(stderr, "Error: Failed to read file\n");
       return false;
     }
-    std::string ec;
-    auto tree = librii::rhst::ReadSceneTree(file->slice(), ec);
+    auto tree = librii::rhst::ReadSceneTree(file->slice());
     if (!tree) {
-      fmt::print(stderr, "Error: Failed to parse: {}\n", ec);
+      fmt::print(stderr, "Error: Failed to parse: {}\n", tree.error());
       return false;
     }
     auto progress = [&](std::string_view s, float f) {

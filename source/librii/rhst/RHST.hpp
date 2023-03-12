@@ -301,7 +301,6 @@ Result<Algo> StripifyTriangles(MatrixPrimitive& prim,
                                std::string_view debug_name = "?",
                                bool verbose = true);
 
-std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
-                                       std::string& error_message);
+Result<SceneTree> ReadSceneTree(std::span<const u8> file_data);
 
 } // namespace librii::rhst

@@ -31,9 +31,6 @@ importTextureImpl(libcube::Texture& data, std::span<u8> image,
                                                  bool mip_gen, int min_dim,
                                                  int max_mip);
 
-void CompileRHST(librii::rhst::SceneTree& rhst,
-                 kpi::IOTransaction& transaction);
-
 [[nodiscard]] bool
 CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
             std::string path,

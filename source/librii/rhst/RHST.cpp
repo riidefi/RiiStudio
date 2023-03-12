@@ -995,8 +995,7 @@ private:
 
 u64 totalStrippingMs = 0;
 
-std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
-                                       std::string& error_message) {
+Result<SceneTree> ReadSceneTree(std::span<const u8> file_data) {
   totalStrippingMs = 0;
   if (file_data[0] == 'R' && file_data[1] == 'H' && file_data[2] == 'S' &&
       file_data[3] == 'T') {
@@ -1008,8 +1007,9 @@ std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
 
     SceneTreeReader scn_reader(reader);
 
-    if (!scn_reader.read())
-      return std::nullopt;
+    if (!scn_reader.read()) {
+      return std::unexpected("Failed to read BINARY rhst scene tree");
+    }
 
     return std::move(scn_reader.getResult());
   }
@@ -1019,8 +1019,8 @@ std::optional<SceneTree> ReadSceneTree(std::span<const u8> file_data,
   JsonSceneTreeReader scn_reader(tmp);
   auto result = scn_reader.read();
   if (!result) {
-    fprintf(stderr, "JSON PARSE ERORR: %s", result.error().c_str());
-    return std::nullopt;
+    return std::unexpected(
+        std::format("Failed to read JSON rhst scene tree: {}", result.error()));
   }
   return std::move(scn_reader.takeResult());
 }
