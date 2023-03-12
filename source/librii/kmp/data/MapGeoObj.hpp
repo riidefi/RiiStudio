@@ -7,10 +7,7 @@
 namespace librii::kmp {
 
 //! A geography object
-class GeoObj {
-public:
-  bool operator==(const GeoObj&) const = default;
-
+struct GeoObj {
   u16 id{0};
   u16 _{0};
 
@@ -19,8 +16,10 @@ public:
   glm::vec3 scale{1.0f};
 
   s16 pathId{-1};
-  std::array<u16, 8> settings;
-  u16 flags;
+  std::array<u16, 8> settings{};
+  u16 flags{0x3f};
+
+  bool operator==(const GeoObj&) const = default;
 };
 
 } // namespace librii::kmp

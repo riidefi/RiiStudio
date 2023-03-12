@@ -101,8 +101,8 @@ struct IOTransaction : public LightIOTransaction {
   oishii::ByteView data;
 
   // Unresolved
-  llvm::SmallVector<std::string, 8> unresolvedFiles; // request
-  llvm::SmallVector<std::vector<u8>, 8>
+  rsl::small_vector<std::string, 8> unresolvedFiles; // request
+  rsl::small_vector<std::vector<u8>, 8>
       resolvedFiles; // reply: size 0 -> ignore
 };
 

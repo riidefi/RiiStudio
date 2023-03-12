@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <algorithm>              // std::find_if
-#include <core/common.h>          // u32
-#include <cstddef>                // std::size_t
-#include <llvm/ADT/SmallVector.h> // llvm::SmallVector
-#include <string_view>            // std::string_view
-#include <type_traits>            // std::is_same_v
-#include <vector>                 // std::vector
+#include <algorithm>     // std::find_if
+#include <core/common.h> // u32
+#include <cstddef>       // std::size_t
+#include <rsl/SmallVector.hpp>
+#include <string_view> // std::string_view
+#include <type_traits> // std::is_same_v
+#include <vector>      // std::vector
 
 namespace kpi {
 
@@ -344,11 +344,7 @@ template <typename T> struct CollectionImpl final : public ICollection {
   // Rationale: It's quite common to have a single bone (static pose) and a
   // single model (formats like BMD). Perhaps in the future, this should be
   // customized further.
-#ifndef BUILD_DEBUG
-  llvm::SmallVector<boxed_type, 1> data;
-#else
-  std::vector<boxed_type> data;
-#endif
+  rsl::small_vector<boxed_type, 1> data;
   INode* parent = nullptr;
 
   std::size_t size() const override { return data.size(); }

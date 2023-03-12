@@ -5,35 +5,30 @@
 
 IMPORT_STD;
 
-std::optional<Archive> ReadArchive(std::span<const u8> buf,
-                                   std::string& errcode) {
+Result<Archive> ReadArchive(std::span<const u8> buf) {
   auto expanded = librii::szs::getExpandedSize(buf);
   if (expanded == 0) {
     rsl::error("Failed to grab expanded size");
-    errcode = "Invalid .szs file";
-    return std::nullopt;
+    return std::unexpected("Invalid .szs file");
   }
 
-  std::vector<u8> decoded(expanded);
+  std::vector<u8> decoded(*expanded);
   auto err = librii::szs::decode(decoded, buf);
   if (err) {
     rsl::error("Failed to decode SZS");
-    errcode = "Invalid .szs file";
-    return std::nullopt;
+    return std::unexpected("Invalid .szs file");
   }
 
   if (decoded.size() < 4 || decoded[0] != 0x55 || decoded[1] != 0xaa ||
       decoded[2] != 0x38 || decoded[3] != 0x2d) {
     rsl::error("Not a valid archive");
-    errcode = "Not a U8 archive";
-    return std::nullopt;
+    return std::unexpected("Not a U8 archive");
   }
 
   librii::U8::U8Archive arc;
   if (!librii::U8::LoadU8Archive(arc, decoded)) {
     rsl::error("Failed to read archive");
-    errcode = "Invalid U8 archive";
-    return std::nullopt;
+    return std::unexpected("Invalid U8 archive");
   }
 
   Archive n_arc;
@@ -74,8 +69,7 @@ std::optional<Archive> ReadArchive(std::span<const u8> buf,
   }
   if (!n_path.empty()) {
     rsl::error("Invalid U8 structure");
-    errcode = ".szs file was corrupted by BrawlBox";
-    return std::nullopt;
+    return std::unexpected(".szs file was corrupted by BrawlBox");
   }
 
   // Eliminate the period

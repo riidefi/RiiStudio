@@ -5,14 +5,13 @@
 
 namespace librii::kmp {
 
-class StartPoint {
-public:
-  bool operator==(const StartPoint&) const = default;
-
+struct StartPoint {
   glm::vec3 position;
   glm::vec3 rotation;
-  s16 player_index = 0;
-  s16 _ = 0;
+  s16 player_index{};
+  u16 _{};
+
+  bool operator==(const StartPoint&) const = default;
 };
 
 } // namespace librii::kmp

@@ -17,37 +17,29 @@ enum class CameraType {
   FollowPath,  // -1
   FollowPath2, // 1
   FollowPath3, // 2
-  MissionSuccess
+  MissionSuccess,
 };
 
-class Camera {
-  friend class KMP;
+//! Linear easing from |from| to |to| by a rate of |mSpeed|
+template <typename T> struct LinearAttribute {
+  u16 mSpeed = 0; // * (fovYSpeed, viewSpeed)
+  T from{};
+  T to{};
 
-public:
-  bool operator==(const Camera&) const = default;
+  bool operator==(const LinearAttribute&) const = default;
+};
 
-  CameraType getType() const { return mType; }
+struct Camera {
+  CameraType mType{CameraType::Goal};
 
-protected:
-public:
-  template <typename T> struct LinearAttribute {
-    u16 mSpeed = 0; // * (fovYSpeed, viewSpeed)
-    T from{};
-    T to{};
+  u8 mNext{0xFF}; // Intrusive graph, 0xFF sentinel
+  u8 mShake{0};   // *
 
-    bool operator==(const LinearAttribute&) const = default;
-  };
+  u8 mPathId{0xFF};  // 0xFF to disable
+  u16 mPathSpeed{0}; // *
 
-  CameraType mType = CameraType::Goal;
-
-  u8 mNext = 0xFF; // Intrusive graph, 0xFF sentinel
-  u8 mShake = 0;   // *
-
-  u8 mPathId = 0xFF;  // 0xFF to disable
-  u16 mPathSpeed = 0; // *
-
-  u8 mStartFlag = 0; // *
-  u8 mMovieFlag = 0; // * In-engine recording?
+  u8 mStartFlag{0}; // *
+  u8 mMovieFlag{0}; // * In-engine recording?
 
   glm::vec3 mPosition{0.0f, 0.0f, 0.0f};
   glm::vec3 mRotation{0.0f, 0.0f, 0.0f};
@@ -55,7 +47,10 @@ public:
   LinearAttribute<f32> mFov;
   LinearAttribute<glm::vec3> mView;
 
-  f32 mActiveFrames = 0;
+  f32 mActiveFrames{0.0f};
+
+  bool operator==(const Camera&) const = default;
+  CameraType getType() const { return mType; }
 };
 
 } // namespace librii::kmp

@@ -55,10 +55,12 @@ std::optional<std::vector<uint8_t>> LoadLuigiCircuitSample() {
 
   rsl::byte_view szs_view{szs->mData.get(), szs->mLen};
   const auto expanded_size = librii::szs::getExpandedSize(szs_view);
+  if (!expanded_size)
+    return std::nullopt;
 
-  std::vector<uint8_t> brres(expanded_size);
+  std::vector<uint8_t> brres(*expanded_size);
   auto err = librii::szs::decode(brres, szs_view);
-  if (err)
+  if (!err)
     return std::nullopt;
 
   return brres;

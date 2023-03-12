@@ -11,66 +11,42 @@ namespace librii::kmp {
 enum class StartPosition { Standard, Near };
 enum class Corner { Left, Right };
 
-class Stage {
-public:
+struct Stage {
   bool operator==(const Stage&) const = default;
 
-  u8 mLapCount;
-  Corner mCorner;
-  StartPosition mStartPosition;
-  u8 mFlareTobi; //!< If the flash "jumps"
+  u8 mLapCount{3};
+  Corner mCorner{Corner::Left};
+  StartPosition mStartPosition{StartPosition::Standard};
+  u8 mFlareTobi{true}; //!< If the flash "jumps"
   struct lensFlareOptions_t {
     bool operator==(const lensFlareOptions_t&) const = default;
-    u8 a, r, g, b;
+    u8 a{0}, r{0xe6}, g{0xe6}, b{0xe6};
   } mLensFlareOptions;
 
   // --- Pre Revision 2320: End of Structure
 
-  u8 mUnk08;
+  u8 mUnk08{0x32};
   u8 _;
   u16 mSpeedModifier; //!< Used by the speed modifier cheat code as the
                       //!< two most significant bytes of a f32. (Originally
                       //!< implicit pad)
 };
 
-#ifdef _WIN32
-#define BITCAST_CONSTEXPR constexpr
-#else
-#define BITCAST_CONSTEXPR
-#endif
-
-BITCAST_CONSTEXPR
-inline f32 DecodeTruncatedBigFloat(u16 sig) {
+constexpr inline f32 DecodeTruncatedBigFloat(u16 sig) {
   // Sig holds the two most significant bytes of the float in big-endian
   const u8 little_float[] = {0, 0, static_cast<u8>(sig & 0xff),
                              static_cast<u8>(sig >> 8)};
 
-// No std::bit_cast support yet
-#ifndef _WIN32
-  f32 res;
-  memcpy(&res, &little_float[0], 4);
-  return res;
-#else
   return std::bit_cast<f32>(little_float);
-#endif
 }
 
-BITCAST_CONSTEXPR inline u16 EncodeTruncatedBigFloat(f32 fl) {
-  // No std::bit_cast support yet
-#ifndef _WIN32
-  std::array<u8, 4> little_float;
-  memcpy(little_float.data(), &fl, 4);
-#else
+constexpr inline u16 EncodeTruncatedBigFloat(f32 fl) {
   // Sig are the two most significant bytes of the float in big-endian
   const auto little_float = std::bit_cast<std::array<u8, 4>>(fl);
-#endif
 
   return (little_float[3] << 8) | little_float[2];
 }
-
-#ifdef _WIN32
 static_assert(DecodeTruncatedBigFloat(EncodeTruncatedBigFloat(1.0f)) == 1.0f);
-#endif
 
 inline std::array<f32, 4>
 DecodeLensFlareOpts(const librii::kmp::Stage::lensFlareOptions_t& opt) {

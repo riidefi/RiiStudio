@@ -3,31 +3,16 @@
  */
 #pragma once
 
-#include <array>                  // std::array
-#include <core/common.h>          // u32
-#include <glm/vec2.hpp>           // glm::vec2
-#include <glm/vec3.hpp>           // glm::vec3
+#include <array>               // std::array
+#include <core/common.h>       // u32
+#include <glm/vec2.hpp>        // glm::vec2
+#include <glm/vec3.hpp>        // glm::vec3
 #include <rsl/SmallVector.hpp> // rsl::small_vector
 
 namespace librii::kmp {
 
-class CheckPoint {
-public:
+struct CheckPoint {
   bool operator==(const CheckPoint&) const = default;
-
-  glm::vec2 getLeft() const { return mLeft; }
-  void setLeft(const glm::vec2& p) { mLeft = p; }
-
-  glm::vec2 getRight() const { return mRight; }
-  void setRight(const glm::vec2& p) { mRight = p; }
-
-  u8 getRespawnIndex() const { return mRespawnIndex; }
-  void setRespawnIndex(u8 r) { mRespawnIndex = r; }
-
-  u8 getLapCheck() const { return mLapCheck; }
-  void setLapCheck(u8 c) { mLapCheck = c; }
-
-public:
   glm::vec2 mLeft;
   glm::vec2 mRight;
 
@@ -46,31 +31,25 @@ template <typename PointT> struct DirectedGraph {
   std::array<u8, 2> misc;
 };
 
-class CheckPath : public DirectedGraph<CheckPoint> {};
+struct CheckPath : public DirectedGraph<CheckPoint> {};
 
-class EnemyPoint {
-public:
+struct EnemyPoint {
   bool operator==(const EnemyPoint&) const = default;
-
-public:
   glm::vec3 position;
-  f32 deviation;
+  f32 deviation{};
   std::array<u8, 4> param;
 };
 
-class EnemyPath : public DirectedGraph<EnemyPoint> {};
+struct EnemyPath : public DirectedGraph<EnemyPoint> {};
 
-class ItemPoint {
-public:
+struct ItemPoint {
   bool operator==(const ItemPoint&) const = default;
-
-public:
   glm::vec3 position{0.0f};
   f32 deviation{0.0f};
   std::array<u8, 4> param;
 };
 
-class ItemPath : public DirectedGraph<ItemPoint> {};
+struct ItemPath : public DirectedGraph<ItemPoint> {};
 
 enum class Interpolation {
   Linear, //!< Move along the shortest distance from A to B.

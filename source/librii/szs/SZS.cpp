@@ -1,22 +1,18 @@
 #include "SZS.hpp"
-#include <llvm/Support/raw_ostream.h>
 #include <oishii/writer/binary_writer.hxx>
-
-IMPORT_STD;
 
 namespace librii::szs {
 
-u32 getExpandedSize(std::span<const u8> src) {
+Result<u32> getExpandedSize(std::span<const u8> src) {
   if (src.size_bytes() < 8)
-    return 0;
+    return std::unexpected("File too small to be a YAZ0 file");
 
-  assert(src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0');
+  EXPECT(src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0');
   return (src[4] << 24) | (src[5] << 16) | (src[6] << 8) | src[7];
 }
 
-llvm::Error decode(std::span<u8> dst, std::span<const u8> src) {
-  assert(src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0');
-  assert(dst.size() >= getExpandedSize(src));
+Result<void> decode(std::span<u8> dst, std::span<const u8> src) {
+  EXPECT(dst.size() >= TRY(getExpandedSize(src)));
 
   int in_position = 0x10;
   int out_position = 0;
@@ -80,7 +76,7 @@ llvm::Error decode(std::span<u8> dst, std::span<const u8> src) {
   //       std::errc::no_buffer_space,
   //       "Invalid YAZ0 header: file is larger than reported");
 
-  return llvm::Error::success();
+  return {};
 }
 
 std::vector<u8> encodeFast(std::span<const u8> src) {
@@ -113,7 +109,6 @@ std::vector<u8> encodeFast(std::span<const u8> src) {
 
   return result;
 }
-
 
 static u16 sSkipTable[256];
 

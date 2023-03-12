@@ -1,10 +1,9 @@
 #pragma once
 
-#include <algorithm>          // std::max_element
-#include <array>              // std::array
-#include <core/common.h>      // u32
-#include <LibBadUIFramework/Node2.hpp> // kpi::IObject
-#include <glm/vec3.hpp>       // glm::vec3
+#include <algorithm>                   // std::max_element
+#include <array>                       // std::array
+#include <core/common.h>               // u32
+#include <glm/vec3.hpp>                // glm::vec3
 
 namespace librii::kmp {
 
@@ -28,9 +27,7 @@ enum class AreaType {
   EnemyFall,
   //! Defines the orthographic capture region for the minimap model.
   MapArea2D,
-  //! Enables various audio effects such as reverb and biquad coefficient
-  //! presets.
-  SoundController,
+  BloomController,
   //! Controls presence of Boos.
   TeresaController,
   //! Tags objects in one of 16 layers.
@@ -38,7 +35,7 @@ enum class AreaType {
   //! Controls the presence of clip layers.
   ObjClipDiscriminator,
   //! Drivers will respawn when they enter this area.
-  PlayerBoundary
+  PlayerBoundary,
 };
 
 // Union with children
@@ -91,7 +88,7 @@ class AreaCylinderModel : public AreaModel {
 };
 
 // Union with children
-class Area : public virtual kpi::IObject {
+class Area {
   friend class KMP;
 
 public:
@@ -100,12 +97,7 @@ public:
   Area(AreaType atype) : mType(atype) {}
   ~Area() = default;
 
-  bool operator==(const Area& rhs) const {
-    return mType == rhs.mType && mModel == rhs.mModel &&
-           mCameraIndex == rhs.mCameraIndex && mPriority == rhs.mPriority &&
-           mParameters == rhs.mParameters && mRailID == rhs.mRailID &&
-           mEnemyLinkID == rhs.mEnemyLinkID && mPad == rhs.mPad;
-  }
+  bool operator==(const Area& rhs) const = default;
 
   AreaType getType() const { return mType; }
 
@@ -118,7 +110,7 @@ public:
   u8 getPriority() const { return 0xFF - mPriority; }
   void setPriority(u8 p) { mPriority = 0xFF - p; }
 
-  std::string getName() const override {
+  std::string getName() const {
     constexpr std::array<const char*, 11> areaTypes{"Camera Area",
                                                     "EffectController Area",
                                                     "FogController Area",
@@ -225,9 +217,9 @@ public:
   }
 };
 
-class SoundArea : public Area {
+class BloomArea : public Area {
 public:
-  SoundArea() : Area(AreaType::SoundController) {}
+  BloomArea() : Area(AreaType::BloomController) {}
 
   u16 getParam1() const { return mParameters[0]; }
   void getParam1(u16 idx) { mParameters[0] = idx; }
@@ -236,7 +228,7 @@ public:
   void getParam2(u16 idx) { mParameters[1] = idx; }
 
   static bool classof(const Area* a) {
-    return a->getType() == AreaType::SoundController;
+    return a->getType() == AreaType::BloomController;
   }
 };
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <librii/gx.h>
-#include <llvm/Support/Error.h>
 #include <map>
 #include <oishii/reader/binary_reader.hxx>
 

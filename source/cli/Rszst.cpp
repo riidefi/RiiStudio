@@ -231,37 +231,25 @@ class DecompressSZS {
 public:
   DecompressSZS(const CliOptions& opt) : m_opt(opt) {}
 
-  bool execute() {
+  Result<void> execute() {
     if (m_opt.verbose) {
       rsl::logging::init();
     }
     if (!parseArgs()) {
-      fmt::print(stderr, "Error: failed to parse args\n");
-      return false;
+      return std::unexpected("Error: failed to parse args");
     }
-    if (false) {
-      fmt::print(stderr, "Error: file format is unsupported\n");
-      return false;
-    }
-    auto file = OishiiReadFile(m_opt.from.view());
-    if (!file.has_value()) {
-      fmt::print(stderr, "Error: Failed to read file\n");
-      return false;
-    }
-
     fmt::print(stderr, "Decompressing SZS: {} => {}\n", m_from.string(),
                m_to.string());
-    // Max 4GB
-    u32 size = librii::szs::getExpandedSize(file->slice());
-    std::vector<u8> buf(size);
-    librii::szs::decode(buf, file->slice());
-    if (false) {
-      fmt::print(stderr, "Error: Failed to decompress file\n");
-      return false;
+    auto file = OishiiReadFile(m_opt.from.view());
+    if (!file.has_value()) {
+      return std::unexpected("Error: Failed to read file");
     }
-
+    // Max 4GB
+    u32 size = TRY(librii::szs::getExpandedSize(file->slice()));
+    std::vector<u8> buf(size);
+    TRY(librii::szs::decode(buf, file->slice()));
     plate::Platform::writeFile(buf, m_to.string());
-    return true;
+    return {};
   }
 
 private:
@@ -455,10 +443,10 @@ int main(int argc, const char** argv) {
     progress_end();
   } else if (args->type == TYPE_DECOMPRESS) {
     DecompressSZS cmd(*args);
-    bool ok = cmd.execute();
+    auto ok = cmd.execute();
     if (!ok) {
-      fmt::print(stdout, "\r\nFailed to execute\n");
-      fmt::print(stderr, "\r\nFailed to execute\n");
+      fmt::print(stderr, "{}\n", ok.error());
+      fmt::print(stdout, "{}\n", ok.error());
       return -1;
     }
   } else if (args->type == TYPE_COMPRESS) {

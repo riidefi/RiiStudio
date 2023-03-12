@@ -5,14 +5,13 @@
 
 namespace librii::kmp {
 
-class MissionPoint {
-public:
-  bool operator==(const MissionPoint&) const = default;
-
+struct MissionPoint {
   glm::vec3 position;
   glm::vec3 rotation;
-  u16 id;
-  u16 unknown;
+  u16 id{};
+  u16 unknown{};
+
+  bool operator==(const MissionPoint&) const = default;
 };
 
 } // namespace librii::kmp

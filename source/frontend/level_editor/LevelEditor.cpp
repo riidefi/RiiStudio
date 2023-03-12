@@ -61,10 +61,9 @@ void DrawRenderOptions(RenderOptions& opt) {
 void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   // Read .szs
   {
-    std::string errc;
-    auto root_arc = ReadArchive(buf, errc);
+    auto root_arc = ReadArchive(buf);
     if (!root_arc.has_value()) {
-      mErrDisp = errc;
+      mErrDisp = root_arc.error();
       return;
     }
 
@@ -543,8 +542,7 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
       break;
     case Page::Cannons:
       for (auto& pt : mKmp->mCannonPoints) {
-        glm::mat4 modelMtx =
-            MatrixOfPoint(pt.getPosition(), pt.getRotation(), 1);
+        glm::mat4 modelMtx = MatrixOfPoint(pt.mPosition, pt.mRotation, 1);
         PushCube(mSceneState, modelMtx, viewMtx, projMtx);
       }
       break;

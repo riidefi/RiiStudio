@@ -140,13 +140,10 @@ void readKMP(CourseMap& map, oishii::ByteView&& data) {
   read_path_section('ITPH', 'ITPT', map.mItemPaths, 0x14, read_itpt);
 
   const auto read_ckpt = [&](CheckPoint& pt, oishii::BinaryReader& reader) {
-    glm::vec2 scratch;
-    scratch << reader;
-    pt.setLeft(scratch);
-    scratch << reader;
-    pt.setRight(scratch);
-    pt.setRespawnIndex(reader.read<u8>());
-    pt.setLapCheck(reader.read<u8>());
+    pt.mLeft << reader;
+    pt.mRight << reader;
+    pt.mRespawnIndex = reader.read<u8>();
+    pt.mLapCheck = reader.read<u8>();
     // TODO: We assume the intrusive linked-list data is valid
     reader.skip(2);
   };
@@ -510,10 +507,10 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
   const auto write_ckpt = [](const CheckPoint& point, oishii::Writer& writer,
                              std::size_t seq, std::size_t first,
                              std::size_t last) {
-    point.getLeft() >> writer;
-    point.getRight() >> writer;
-    writer.write<u8>(point.getRespawnIndex());
-    writer.write<u8>(point.getLapCheck());
+    point.mLeft >> writer;
+    point.mRight >> writer;
+    writer.write<u8>(point.mRespawnIndex);
+    writer.write<u8>(point.mLapCheck);
     // Last, Next
     writer.write<u8>(seq <= first ? 0xFF : seq - 1);
     writer.write<u8>(seq + 1 == last ? 0xFF : seq + 1);
