@@ -6,6 +6,7 @@
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
 #include <librii/szs/SZS.hpp>
+#include <librii/u8/U8.hpp>
 #include <plugins/g3d/G3dIo.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/J3dIo.hpp>
@@ -248,7 +249,14 @@ public:
     u32 size = TRY(librii::szs::getExpandedSize(file->slice()));
     std::vector<u8> buf(size);
     TRY(librii::szs::decode(buf, file->slice()));
-    plate::Platform::writeFile(buf, m_to.string());
+    auto arc = TRY(librii::U8::LoadU8Archive(buf));
+    if (!std::filesystem::exists(m_to)) {
+      std::filesystem::create_directory(m_to);
+    }
+    if (!std::filesystem::is_directory(m_to)) {
+      return std::unexpected("Failed to extract: |to| is a file, not a folder");
+    }
+    TRY(librii::U8::Extract(arc, m_to));
     return {};
   }
 
@@ -259,7 +267,7 @@ private:
 
     if (m_to.empty()) {
       std::filesystem::path p = m_from;
-      p.replace_extension(".u8");
+      p.replace_extension(".d");
       m_to = p;
     }
     if (!std::filesystem::exists(m_from)) {
@@ -268,7 +276,7 @@ private:
     }
     if (std::filesystem::exists(m_to)) {
       fmt::print(stderr,
-                 "Warning: File {} will be overwritten by this operation.\n",
+                 "Warning: Folder {} will be overwritten by this operation.\n",
                  m_to.string());
     }
     return true;
@@ -428,6 +436,63 @@ private:
   std::filesystem::path m_to;
 };
 
+class ExtractSZS {
+public:
+  ExtractSZS(const CliOptions& opt) : m_opt(opt) {}
+
+  Result<void> execute() {
+    if (m_opt.verbose) {
+      rsl::logging::init();
+    }
+    if (!parseArgs()) {
+      return std::unexpected("Error: failed to parse args");
+    }
+    auto file = OishiiReadFile(m_opt.from.view());
+    if (!file.has_value()) {
+      return std::unexpected("Error: Failed to read file");
+    }
+
+    // Max 4GB
+    u32 size = TRY(librii::szs::getExpandedSize(file->slice()));
+    std::vector<u8> buf(size);
+    TRY(librii::szs::decode(buf, file->slice()));
+
+    fmt::print(stderr, "Extracting ARC.SZS,{} => {}\n", m_from.string(),
+               m_to.string());
+
+    auto arc = TRY(librii::U8::LoadU8Archive(buf));
+    TRY(librii::U8::Extract(arc, m_to));
+
+    return {};
+  }
+
+private:
+  bool parseArgs() {
+    m_from = m_opt.from.view();
+    m_to = m_opt.to.view();
+
+    if (m_to.empty()) {
+      std::filesystem::path p = m_from;
+      p.replace_extension(".szs");
+      m_to = p;
+    }
+    if (!std::filesystem::exists(m_from)) {
+      fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+      return false;
+    }
+    if (std::filesystem::exists(m_to)) {
+      fmt::print(stderr,
+                 "Warning: File {} will be overwritten by this operation.\n",
+                 m_to.string());
+    }
+    return true;
+  }
+
+  CliOptions m_opt;
+  std::filesystem::path m_from;
+  std::filesystem::path m_to;
+};
+
 int main(int argc, const char** argv) {
   fmt::print(stdout, "RiiStudio CLI {}\n", RII_TIME_STAMP);
   auto args = parse(argc, argv);
@@ -466,6 +531,14 @@ int main(int argc, const char** argv) {
     CompileRHST<riistudio::j3d::Collection> cmd(*args);
     bool ok = cmd.execute();
     progress_end();
+  } else if (args->type == TYPE_EXTRACT) {
+    ExtractSZS cmd(*args);
+    auto ok = cmd.execute();
+    if (!ok) {
+      fmt::print(stderr, "{}\n", ok.error());
+      fmt::print(stdout, "{}\n", ok.error());
+      return -1;
+    }
   }
   return 0;
 }

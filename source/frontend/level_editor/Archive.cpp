@@ -14,7 +14,7 @@ Result<Archive> ReadArchive(std::span<const u8> buf) {
 
   std::vector<u8> decoded(*expanded);
   auto err = librii::szs::decode(decoded, buf);
-  if (err) {
+  if (!err) {
     rsl::error("Failed to decode SZS");
     return std::unexpected("Invalid .szs file");
   }

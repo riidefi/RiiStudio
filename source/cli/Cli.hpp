@@ -33,6 +33,9 @@ enum {
 
   TYPE_COMPILE_RHST_BRRES,
   TYPE_COMPILE_RHST_BMD,
+
+  // SZS
+  TYPE_EXTRACT,
 };
 
 template <size_t L> struct CFixedString {

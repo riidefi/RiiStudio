@@ -1,5 +1,6 @@
 #include "U8.hpp"
 #include <core/common.h>
+#include <fstream>
 #include <rsl/SimpleReader.hpp>
 
 IMPORT_STD;
@@ -122,10 +123,12 @@ bool LoadU8Archive(LowU8Archive& result, std::span<const u8> data) {
   return true;
 }
 
-bool LoadU8Archive(U8Archive& result, std::span<const u8> data) {
+Result<U8Archive> LoadU8Archive(std::span<const u8> data) {
+  U8Archive result;
   LowU8Archive low;
-  if (!LoadU8Archive(low, data))
-    return false;
+  if (!LoadU8Archive(low, data)) {
+    return std::unexpected("Failed to read underlying data");
+  }
 
   result.watermark = low.header.watermark;
   for (auto& node : low.nodes) {
@@ -144,7 +147,7 @@ bool LoadU8Archive(U8Archive& result, std::span<const u8> data) {
   }
 
   result.file_data = std::move(low.file_data);
-  return true;
+  return result;
 }
 
 std::vector<u8> SaveU8Archive(const U8Archive& arc) {
@@ -202,6 +205,139 @@ std::vector<u8> SaveU8Archive(const U8Archive& arc) {
 
   assert(result.size() == header.files.offset + total_file_size);
   return result;
+}
+inline bool __rxPathCompare(const char* lhs, const char* rhs) {
+  while (rhs[0] != '\0') {
+    if (tolower(*lhs++) != tolower(*rhs++))
+      return false;
+  }
+
+  if (lhs[0] == '/' || lhs[0] == '\0')
+    return true;
+
+  return false;
+}
+s32 PathToEntrynum(const U8Archive& arc, const char* path, u32 currentPath) {
+  s32 name_length;      // r7
+  u32 it = currentPath; // r8
+
+  while (true) {
+    // End of string -> return what we have
+    if (path[0] == '\0')
+      return it;
+
+    // Ignore initial slash: /Path/File vs Path/File
+    if (path[0] == '/') {
+      it = 0;
+      ++path;
+      continue;
+    }
+
+    // Handle special cases:
+    // -../-, -.., -./-, -.
+    if (path[0] == '.') {
+      if (path[1] == '.') {
+        // Seek to parent ../
+        if (path[2] == '/') {
+          it = arc.nodes[it].folder.parent;
+          path += 3;
+          continue;
+        }
+        // Return parent folder immediately
+        if (path[2] == '\0')
+          return arc.nodes[it].folder.parent;
+        // Malformed: fall through, causing infinite loop
+        goto compare;
+      }
+
+      // "." directory does nothing
+      if (path[1] == '/') {
+        path += 2;
+        continue;
+      }
+
+      // Ignore trailing dot
+      if (path[1] == '\0')
+        return it;
+    }
+
+  compare:
+    // We've ensured the directory is not special.
+    // Isolate the name of the current item in the path string.
+    const char* name_end = path;
+    while (name_end[0] != '\0' && name_end[0] != '/')
+      ++name_end;
+
+    // If the name was delimited by a '/' rather than truncated.
+    int name_delimited_by_slash = name_end[0] != '\0';
+    name_length = name_end - path;
+
+    // Traverse all children of the parent.
+    const u32 anchor = it;
+    ++it;
+    while (it < arc.nodes[anchor].folder.sibling_next) {
+      while (true) {
+        if (arc.nodes[it].is_folder || !name_delimited_by_slash) {
+          auto name = arc.nodes[it].name;
+          // Skip empty directories
+          if (name == ".") {
+            ++it;
+            continue;
+          }
+
+          // Advance to the next item in the path
+          if (__rxPathCompare(path, name.c_str())) {
+            goto descend;
+          }
+        }
+
+        if (arc.nodes[it].is_folder) {
+          it = arc.nodes[it].folder.sibling_next;
+          break;
+        }
+
+        ++it;
+        break;
+      }
+    }
+
+    return -1;
+
+  descend:
+    // If the path was truncated, there is nowhere else to go
+    // These basic blocks have to go here right at the end, accessed via a goto.
+    // An odd choice.
+    if (!name_delimited_by_slash)
+      return it;
+
+    path += name_length + 1;
+  }
+}
+
+Result<void> Extract(const U8Archive& arc, std::filesystem::path out) {
+  auto tmp = out;
+  std::vector<u32> stack;
+  u32 i = 0;
+  for (auto& node : arc.nodes) {
+    if (!stack.empty() && stack.back() == i) {
+      stack.resize(stack.size() - 1);
+      tmp = tmp.parent_path();
+    }
+    ++i;
+    if (node.is_folder) {
+      stack.push_back(node.folder.sibling_next);
+      tmp /= node.name;
+      std::filesystem::create_directory(tmp);
+    } else {
+      auto fpath = (tmp / node.name).string();
+      std::ofstream out(fpath);
+      auto data = std::span(arc.file_data.begin(), arc.file_data.end())
+                      .subspan(node.file.offset, node.file.size);
+      EXPECT(data.size() == node.file.size);
+      out.write(reinterpret_cast<const char*>(data.data()), data.size());
+    }
+  }
+  return {};
 }
 
 } // namespace librii::U8
