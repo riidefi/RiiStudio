@@ -624,12 +624,16 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
           EXPECT(*u < mut.tracks.size());
           auto& track = mut.tracks[*u];
           for (auto& [idx, f] : track.keyframes) {
+            // For now, force palette to 0 as BrawlBox sets it to some other value
+            f.palette = 0;
             EXPECT(f.palette == 0, "PAT0: Palettes are not supported; each "
                                    "keyframe should have paletteIdx of 0");
             EXPECT(f.texture < mut.textureNames.size());
             referenced.emplace_back(f.texture);
           }
         } else if (auto* f = std::get_if<librii::g3d::PAT0KeyFrame>(&s)) {
+          // For now, force palette to 0 as BrawlBox sets it to some other value
+          f->palette = 0;
           EXPECT(f->palette == 0, "PAT0: Palettes are not supported; each "
                                   "keyframe should have paletteIdx of 0");
           referenced.emplace_back(f->texture);
