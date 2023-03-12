@@ -1,9 +1,10 @@
 #pragma once
 
-#include <core/common.h>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <math.h>
+
+namespace rsl {
 
 inline glm::vec3 hue_translate(glm::vec3 in, float H) {
   float U = cos(H * 3.141592f / 180.0f);
@@ -30,3 +31,5 @@ inline glm::vec4 color_from_hex(u32 hex) {
       static_cast<float>((hex & 0x00'00'00'FF) >> 0) / 255.0f,
   };
 }
+
+} // namespace rsl

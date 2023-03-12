@@ -56,7 +56,7 @@ add_executable(frontend
  "LeakDebug.hpp"
  "Fonts.hpp"
  "level_editor/LevelEditor.hpp" "level_editor/LevelEditor.cpp"
- "level_editor/ObjUtil.hpp" "level_editor/ObjUtil.cpp" "level_editor/ColorUtil.hpp" "level_editor/KclUtil.hpp" "level_editor/KclUtil.cpp"
+ "level_editor/ObjUtil.hpp" "level_editor/ObjUtil.cpp" "level_editor/KclUtil.hpp" "level_editor/KclUtil.cpp"
  "level_editor/Archive.hpp" "level_editor/Archive.cpp"
  "level_editor/IO.hpp" "level_editor/IO.cpp"
  "level_editor/Transform.cpp" "level_editor/Transform.hpp"
