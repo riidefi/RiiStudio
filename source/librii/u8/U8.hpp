@@ -38,5 +38,6 @@ std::vector<u8> SaveU8Archive(const U8Archive& arc);
 s32 PathToEntrynum(const U8Archive& arc, const char* path, u32 currentPath = 0);
 
 Result<void> Extract(const U8Archive& arc, std::filesystem::path out);
+Result<U8Archive> Create(std::filesystem::path root);
 
 } // namespace librii::U8

@@ -79,8 +79,11 @@ Result<void> decode(std::span<u8> dst, std::span<const u8> src) {
   return {};
 }
 
+u32 getWorstEncodingSize(std::span<const u8> src) {
+  return 16 + roundUp(src.size(), 8) / 8 * 9 - 1;
+}
 std::vector<u8> encodeFast(std::span<const u8> src) {
-  std::vector<u8> result(16 + roundUp(src.size(), 8) / 8 * 9 - 1);
+  std::vector<u8> result(getWorstEncodingSize(src));
 
   result[0] = 'Y';
   result[1] = 'a';

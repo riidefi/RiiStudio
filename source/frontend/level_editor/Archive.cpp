@@ -25,11 +25,12 @@ Result<Archive> ReadArchive(std::span<const u8> buf) {
     return std::unexpected("Not a U8 archive");
   }
 
-  librii::U8::U8Archive arc;
-  if (!librii::U8::LoadU8Archive(arc, decoded)) {
+  auto tarc = librii::U8::LoadU8Archive(decoded);
+  if (!tarc) {
     rsl::error("Failed to read archive");
     return std::unexpected("Invalid U8 archive");
   }
+  auto arc = *tarc;
 
   Archive n_arc;
 

@@ -36,6 +36,7 @@ enum {
 
   // SZS
   TYPE_EXTRACT,
+  TYPE_CREATE,
 };
 
 template <size_t L> struct CFixedString {

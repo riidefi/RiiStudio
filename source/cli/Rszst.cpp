@@ -62,22 +62,19 @@ class ImportBRRES {
 public:
   ImportBRRES(const CliOptions& opt) : m_opt(opt) {}
 
-  bool execute() {
+  Result<void> execute() {
     if (m_opt.verbose) {
       rsl::logging::init();
     }
     if (!parseArgs()) {
-      fmt::print(stderr, "Error: failed to parse args\n");
-      return false;
+      return std::unexpected("Failed to parse args");
     }
     if (!librii::assimp2rhst::IsExtensionSupported(m_from.string())) {
-      fmt::print(stderr, "Error: file format is unsupported\n");
-      return false;
+      return std::unexpected("File format is unsupported");
     }
     auto file = OishiiReadFile(m_opt.from.view());
     if (!file.has_value()) {
-      fmt::print(stderr, "Error: Failed to read file\n");
-      return false;
+      return std::unexpected("Failed to read file");
     }
     const auto on_log = [](kpi::IOMessageClass c, std::string_view d,
                            std::string_view b) {
@@ -89,21 +86,19 @@ public:
       auto* pScene =
           ReadScene(on_log, file->slice(), m_from.string(), settings, importer);
       if (!pScene) {
-        fmt::print(stdout, "Failed to read ASSIMP scene\n");
-        return false;
+        return std::unexpected("Failed to read ASSIMP SCENE");
       }
       auto scn = librii::lra::ReadScene(*pScene);
       auto s = librii::lra::PrintJSON(scn);
       std::ofstream out(m_to.string());
       out << s;
       fmt::print(stdout, "Dumped ASSIMP json\n");
-      return true;
+      return {};
     }
     auto tree = librii::assimp2rhst::DoImport(m_from.string(), on_log,
                                               file->slice(), settings);
     if (!tree) {
-      fmt::print(stderr, "Error: Failed to parse: {}\n", tree.error());
-      return false;
+      return std::unexpected("Failed to parse: " + tree.error());
     }
     auto progress = [&](std::string_view s, float f) {
       progress_put(std::string(s), f);
@@ -116,8 +111,7 @@ public:
                                            info, progress, !m_opt.no_tristrip,
                                            m_opt.verbose);
     if (!ok) {
-      fmt::print(stderr, "Error: Failed to compile RHST\n");
-      return false;
+      return std::unexpected("Failed to parse RHST");
     }
     std::unordered_map<std::string, librii::crate::CrateAnimation> presets;
     if (std::filesystem::exists(m_presets) &&
@@ -157,7 +151,7 @@ public:
     oishii::Writer result(0);
     riistudio::g3d::WriteBRRES(*m_result, result);
     OishiiFlushWriter(result, m_to.string());
-    return true;
+    return {};
   }
 
 private:
@@ -249,14 +243,10 @@ public:
     u32 size = TRY(librii::szs::getExpandedSize(file->slice()));
     std::vector<u8> buf(size);
     TRY(librii::szs::decode(buf, file->slice()));
-    auto arc = TRY(librii::U8::LoadU8Archive(buf));
-    if (!std::filesystem::exists(m_to)) {
-      std::filesystem::create_directory(m_to);
+    if (std::filesystem::is_directory(m_to)) {
+      return std::unexpected("Failed to extract: |to| is a folder, not a file");
     }
-    if (!std::filesystem::is_directory(m_to)) {
-      return std::unexpected("Failed to extract: |to| is a file, not a folder");
-    }
-    TRY(librii::U8::Extract(arc, m_to));
+    plate::Platform::writeFile(buf, m_to.string());
     return {};
   }
 
@@ -267,7 +257,7 @@ private:
 
     if (m_to.empty()) {
       std::filesystem::path p = m_from;
-      p.replace_extension(".d");
+      p.replace_extension(".arc");
       m_to = p;
     }
     if (!std::filesystem::exists(m_from)) {
@@ -302,9 +292,10 @@ public:
       fmt::print(stderr, "Error: file format is unsupported\n");
       return false;
     }
-    auto file = OishiiReadFile(m_opt.from.view());
+    auto from = std::filesystem::absolute(m_from);
+    auto file = OishiiReadFile(from.string());
     if (!file.has_value()) {
-      fmt::print(stderr, "Error: Failed to read file\n");
+      fmt::print(stderr, "Error: Failed to read file {}\n", from.string());
       return false;
     }
 
@@ -493,6 +484,68 @@ private:
   std::filesystem::path m_to;
 };
 
+class CreateSZS {
+public:
+  CreateSZS(const CliOptions& opt) : m_opt(opt) {}
+
+  Result<void> execute() {
+    if (m_opt.verbose) {
+      rsl::logging::init();
+    }
+    if (!parseArgs()) {
+      return std::unexpected("Error: failed to parse args");
+    }
+    if (!std::filesystem::is_directory(m_from)) {
+      return std::unexpected("Expected a folder, not a file as input");
+    }
+    fmt::print(stderr, "Creating ARC.SZS,{} => {}\n", m_from.string(),
+               std::filesystem::absolute(m_to).string());
+
+    auto arc = TRY(librii::U8::Create(m_from));
+    auto buf = librii::U8::SaveU8Archive(arc);
+    std::vector<u8> szs(librii::szs::getWorstEncodingSize(buf));
+    fmt::print(stderr,
+               "Compressing SZS: {} => {} (Boyer-Moore-Horspool strategy)\n",
+               m_from.string(), m_to.string());
+    int sz = librii::szs::encodeBoyerMooreHorspool(buf.data(), szs.data(),
+                                                   buf.size());
+    if (sz <= 0 || sz > szs.size()) {
+      return std::unexpected("SZS encoding failed");
+    }
+    szs.resize(roundUp(sz, 32));
+
+    plate::Platform::writeFile(szs, m_to.string());
+
+    return {};
+  }
+
+private:
+  bool parseArgs() {
+    m_from = m_opt.from.view();
+    m_to = m_opt.to.view();
+
+    if (m_to.empty()) {
+      std::filesystem::path p = m_from;
+      p.replace_extension(".d");
+      m_to = p;
+    }
+    if (!std::filesystem::exists(m_from)) {
+      fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+      return false;
+    }
+    if (std::filesystem::exists(m_to)) {
+      fmt::print(stderr,
+                 "Warning: File {} will be overwritten by this operation.\n",
+                 m_to.string());
+    }
+    return true;
+  }
+
+  CliOptions m_opt;
+  std::filesystem::path m_from;
+  std::filesystem::path m_to;
+};
+
 int main(int argc, const char** argv) {
   fmt::print(stdout, "RiiStudio CLI {}\n", RII_TIME_STAMP);
   auto args = parse(argc, argv);
@@ -503,8 +556,13 @@ int main(int argc, const char** argv) {
   if (args->type == TYPE_IMPORT_BRRES) {
     progress_put("Processing...", 0.0f);
     ImportBRRES cmd(*args);
-    bool ok = cmd.execute();
+    auto ok = cmd.execute();
     progress_end();
+    if (!ok) {
+      fmt::print(stderr, "{}\n", ok.error());
+      fmt::print(stdout, "{}\n", ok.error());
+      return -1;
+    }
   } else if (args->type == TYPE_DECOMPRESS) {
     DecompressSZS cmd(*args);
     auto ok = cmd.execute();
@@ -533,6 +591,14 @@ int main(int argc, const char** argv) {
     progress_end();
   } else if (args->type == TYPE_EXTRACT) {
     ExtractSZS cmd(*args);
+    auto ok = cmd.execute();
+    if (!ok) {
+      fmt::print(stderr, "{}\n", ok.error());
+      fmt::print(stdout, "{}\n", ok.error());
+      return -1;
+    }
+  } else if (args->type == TYPE_CREATE) {
+    CreateSZS cmd(*args);
     auto ok = cmd.execute();
     if (!ok) {
       fmt::print(stderr, "{}\n", ok.error());

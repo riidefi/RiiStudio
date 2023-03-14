@@ -1,5 +1,7 @@
 #include "U8.hpp"
 #include <core/common.h>
+#include <core/util/oishii.hpp>
+#include <core/util/timestamp.hpp>
 #include <fstream>
 #include <rsl/SimpleReader.hpp>
 
@@ -77,36 +79,36 @@ bool RangeContainsInclusive(std::span<const u8> range, const void* ptr) {
   return ptr >= range.data() && ptr <= range.data() + range.size();
 }
 
-bool LoadU8Archive(LowU8Archive& result, std::span<const u8> data) {
+Result<void> LoadU8Archive(LowU8Archive& result, std::span<const u8> data) {
   if (!SafeMemCopy(result.header, data))
-    return false;
+    return std::unexpected("Invalid header");
 
   const auto* nodes = rvlArchiveHeaderGetNodes(
       reinterpret_cast<const rvlArchiveHeader*>(data.data()));
   if (!RangeContains(data, nodes))
-    return false;
+    return std::unexpected("Invalid nodes");
 
   const auto node_count = nodes[0].folder.sibling_next;
   if (!RangeContainsInclusive(data, nodes + node_count))
-    return false;
+    return std::unexpected("Invalid root node");
 
   result.nodes = {nodes, nodes + node_count};
 
   const char* strings = reinterpret_cast<const char*>(nodes + node_count);
   if (!RangeContains(data, strings))
-    return false;
+    return std::unexpected("Invalid strings");
 
   const char* strings_end =
       reinterpret_cast<const char*>(nodes) + result.header.nodes.size;
   if (!RangeContainsInclusive(data, strings_end))
-    return false;
+    return std::unexpected("Invalid strings");
 
   result.strings = {strings, strings_end};
 
   auto* fd_begin = rvlArchiveHeaderGetFileData(
       reinterpret_cast<const rvlArchiveHeader*>(data.data()));
   if (!RangeContains(data, fd_begin))
-    return false;
+    return std::unexpected("Invalid file data buffer");
 
   // For some reason the FD pointer is actually just the start of the file
   // fd_begin = data.data();
@@ -120,15 +122,13 @@ bool LoadU8Archive(LowU8Archive& result, std::span<const u8> data) {
 
   result.file_data = {fd_begin, data.data() + data.size()};
 
-  return true;
+  return {};
 }
 
 Result<U8Archive> LoadU8Archive(std::span<const u8> data) {
   U8Archive result;
   LowU8Archive low;
-  if (!LoadU8Archive(low, data)) {
-    return std::unexpected("Failed to read underlying data");
-  }
+  TRY(LoadU8Archive(low, data));
 
   result.watermark = low.header.watermark;
   for (auto& node : low.nodes) {
@@ -338,6 +338,112 @@ Result<void> Extract(const U8Archive& arc, std::filesystem::path out) {
     }
   }
   return {};
+}
+
+// Insertion into a sorted list would be O(n^2) on a vector structure; a heap or
+// tree structure is probably not meritful. Instead, simply use std::sort
+// (O(nlgn)) to get files in the proper order and then iterate through them.
+Result<U8Archive> Create(std::filesystem::path root) {
+  struct Entry {
+    std::string str;
+    bool is_folder = false;
+
+    std::vector<u8> data;
+    std::string name;
+
+    int depth = -1;
+    int parent = 0; // Default files put parent as 0 for root
+    int nextAtGreaterDepth = -1;
+
+    bool operator<(const Entry& rhs) const {
+      return str < rhs.str && (is_folder ? 1 : 0) < (rhs.is_folder ? 1 : 0);
+    }
+  };
+  std::vector<Entry> paths{{
+      .str = ".",
+      .is_folder = true,
+  }};
+  for (auto&& it : std::filesystem::recursive_directory_iterator{root}) {
+    auto path = it.path();
+    bool folder = std::filesystem::is_directory(path);
+    if (path.filename() == ".DS_Store") {
+      continue;
+    }
+    std::vector<u8> data;
+    if (!folder) {
+      auto f = OishiiReadFile(path.string());
+      if (!f) {
+        return std::unexpected(
+            std::format("Failed to read file {}", path.string()));
+      }
+      auto s = f->slice();
+      data = {s.begin(), s.end()};
+    }
+    path = std::filesystem::path(".") / std::filesystem::relative(path, root);
+
+    paths.push_back(Entry{
+        .str = path.string(),
+        .is_folder = folder,
+        .data = data,
+        .name = path.filename().string(),
+    });
+  }
+  // They are almost certainly already in sorted order
+  std::sort(paths.begin(), paths.end());
+  for (auto& p : paths) {
+    for (auto c : p.str) {
+      // relative paths are weakly_canonical
+      if (c == '/') {
+        ++p.depth;
+      }
+    }
+  }
+  for (size_t i = 0; i < paths.size(); ++i) {
+    auto& p = paths[i];
+    if (p.is_folder) {
+      for (int j = i; i < paths.size(); ++j) {
+        if (paths[j].depth <= p.depth) {
+          p.nextAtGreaterDepth = j;
+          break;
+        }
+        paths[j].parent = i;
+      }
+    }
+  }
+  for (auto& p : paths) {
+    fmt::print("PATH: {} (folder:{}, depth:{})\n", p.str, p.is_folder, p.depth);
+  }
+  U8Archive result;
+  std::array<char, 16> watermark{};
+  std::format_to_n(watermark.data(), std::size(watermark), "{}",
+                   std::string(VERSION_SHORT));
+  static_assert(result.watermark.size() == watermark.size());
+  memcpy(result.watermark.data(), watermark.data(), result.watermark.size());
+
+  u32 size = 0;
+  for (auto&p:paths) {
+    size += p.data.size();
+  }
+  result.file_data.resize(size);
+
+  u32 i = 0;
+  for (auto& p : paths) {
+    U8Archive::Node node;
+    node.is_folder = p.is_folder;
+    node.name = p.name;
+    if (p.is_folder) {
+      node.folder.parent = p.parent;
+      node.folder.sibling_next = p.nextAtGreaterDepth;
+    } else {
+      node.file.offset = result.file_data.size();
+      node.file.size = p.data.size();
+      memcpy(result.file_data.data() + i, p.data.data(), p.data.size());
+      i += p.data.size();
+    }
+    result.nodes.push_back(node);
+  }
+
+  return result;
 }
 
 } // namespace librii::U8
