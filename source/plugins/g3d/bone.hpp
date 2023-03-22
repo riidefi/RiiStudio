@@ -63,21 +63,8 @@ struct Bone : public libcube::IBoneDelegate,
     { return Billboard::None; }
   }
   void setBillboard(Billboard b) override {
-    //	switch (b)
-    //	{
-    //	case Billboard::None:
-    //		bbMtxType = MatrixType::Standard;
-    //		break;
-    //	case Billboard::J3D_XY:
-    //		bbMtxType = MatrixType::Billboard;
-    //		break;
-    //	case Billboard::J3D_Y:
-    //		bbMtxType = MatrixType::BillboardY;
-    //		return;
-    //	default:
-    //		break;
-    //	}
-  }
+    billboardType = (int)b;
+}
 
   u64 getNumDisplays() const override { return mDisplayCommands.size(); }
   Display getDisplay(u64 idx) const override {

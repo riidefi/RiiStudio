@@ -36,14 +36,12 @@ struct IBoneDelegate : public riistudio::lib3d::Bone {
   u32 id = 0;
   enum class Billboard {
     None,
-    /* G3D Standard */
+    Z_Face,
     Z_Parallel,
-    Z_Face, // persp
-    Z_ParallelRotate,
     Z_FaceRotate,
-    /* G3D Y*/
+    Z_ParallelRotate,
+    Y_Face,
     Y_Parallel,
-    Y_Face, // persp
 
     // TODO -- merge
     J3D_XY,

@@ -104,6 +104,16 @@ enum class WrapMode { Repeat, Mirror, Clamp };
 
 enum class AlphaMode { Opaque, Clip, Translucent };
 
+enum class BillboardMode {
+  None = 0,
+  Z_Face = 1,
+  Z_Parallel = 2,
+  ZRotate_Face = 3,
+  ZRotate_Parallel= 4,
+  Y_Face = 5,
+  Y_Parallel = 6,
+};
+
 //! Is eventually compiled to a common material.
 struct ProtoMaterial {
   std::string name = "Untitled Material";
@@ -139,6 +149,7 @@ struct DrawCall {
 struct Bone {
   std::string name = "Untitled Bone";
   bool can_merge = true;
+  BillboardMode billboard_mode = BillboardMode::None;
 
   s32 parent = -1;
   std::vector<s32> child;
