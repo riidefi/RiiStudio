@@ -46,6 +46,8 @@ struct Polygon : public librii::g3d::PolygonData,
     return PolygonData::operator==(rhs);
   }
 
+  void setCurMtx(s32 mtx) override { mCurrentMatrix = static_cast<s16>(mtx); }
+
   librii::math::AABB bounds;
 };
 
