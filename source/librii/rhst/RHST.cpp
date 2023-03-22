@@ -799,10 +799,8 @@ public:
           b.name = get<std::string>(bone, "name").value_or("?");
           // Ignored: billboard
           b.parent = get<s32>(bone, "parent").value_or(-1);
-          auto child = get<s32>(bone, "child").value_or(-1);
-          if (child != -1) {
-            b.child.push_back(child);
-          }
+          // We entirely recompute child links (from the "parent" field) and no
+          // longer read the legacy "child" field
           b.scale = getVec3(bone, "scale").value_or(glm::vec3(1.0f));
           b.rotate = getVec3(bone, "rotate").value_or(glm::vec3(0.0f));
           b.translate = getVec3(bone, "translate").value_or(glm::vec3(0.0f));
@@ -1021,6 +1019,17 @@ Result<SceneTree> ReadSceneTree(std::span<const u8> file_data) {
   if (!result) {
     return std::unexpected(
         std::format("Failed to read JSON rhst scene tree: {}", result.error()));
+  }
+  SceneTree&& scn = scn_reader.takeResult();
+  // Recompute child links
+  for (auto&& bone : scn.bones) {
+    bone.child.clear();
+  }
+  for (size_t i = 0; i < scn.bones.size(); ++i) {
+    auto&& bone = scn.bones[i];
+    if (bone.parent >= 0 && bone.parent < scn.bones.size()) {
+      scn.bones[bone.parent].child.push_back(i);
+    }
   }
   return std::move(scn_reader.takeResult());
 }
