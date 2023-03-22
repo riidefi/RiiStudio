@@ -336,9 +336,29 @@ public:
         return Success();
       }
 
-      // Unsupported
+	auto read_billboard_mode = [](const auto& str) {
+        if(str == "y_face")
+          return BillboardMode::Y_Face;
+		if(str == "y_parallel")
+          return BillboardMode::Y_Parallel;
+        if(str == "z_face")
+          return BillboardMode::Z_Face;
+        if(str == "z_parallel")
+          return BillboardMode::Z_Parallel;
+        if(str == "zrotate_face")
+          return BillboardMode::ZRotate_Face;
+        if(str == "zrotate_parallel")
+          return BillboardMode::ZRotate_Parallel;
+        if (str == "none")
+          return BillboardMode::None;
+      };
       if (key == "billboard") {
-        mReader.readTok();
+        auto* tok = mReader.expect<RHSTReader::StringToken>();
+        if (!tok)
+          return Expected("Expected a string");
+
+        bone.billboard_mode = read_billboard_mode(tok->data);
+        
         return Success();
       }
 
@@ -797,6 +817,10 @@ public:
         for (auto& bone : bones) {
           auto& b = out.bones.emplace_back();
           b.name = get<std::string>(bone, "name").value_or("?");
+          std::string bill_mode =
+              get<std::string>(bone, "billboard").value_or("None");
+          b.billboard_mode =
+              magic_enum::enum_cast<BillboardMode>(cap(bill_mode)).value_or(BillboardMode::None);
           // Ignored: billboard
           b.parent = get<s32>(bone, "parent").value_or(-1);
           // We entirely recompute child links (from the "parent" field) and no

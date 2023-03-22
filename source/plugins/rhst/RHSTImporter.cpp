@@ -134,9 +134,39 @@ void compileMaterial(libcube::IGCMaterial& out,
   data.colorChanControls.push_back(ctrl); // a
 }
 
+void compileBillboardMode(libcube::IBoneDelegate& out,
+                          const librii::rhst::BillboardMode& billboard_mode) {
+  libcube::IBoneDelegate::Billboard bill_mode =
+      libcube::IBoneDelegate::Billboard::None;
+  switch (billboardMode) {
+  case librii::rhst::BillboardMode::Y_Face:
+    bill_mode = libcube::IBoneDelegate::Billboard::Y_Face;
+    break;
+  case librii::rhst::BillboardMode::Y_Parallel:
+    bill_mode = libcube::IBoneDelegate::Billboard::Y_Parallel;
+    break;
+  case librii::rhst::BillboardMode::Z_Face:
+    bill_mode = libcube::IBoneDelegate::Billboard::Z_Face;
+    break;
+  case librii::rhst::BillboardMode::Z_Parallel:
+    bill_mode = libcube::IBoneDelegate::Billboard::Z_Parallel;
+    break;
+  case librii::rhst::BillboardMode::ZRotate_Face:
+    bill_mode = libcube::IBoneDelegate::Billboard::Z_FaceRotate;
+    break;
+  case librii::rhst::BillboardMode::ZRotate_Parallel:
+    bill_mode = libcube::IBoneDelegate::Billboard::Z_ParallelRotate;
+    break;
+  default:
+    bill_mode = libcube::IBoneDelegate::Billboard::None;
+    break;
+  }
+
+  out.setBillboard(bill_mode);
+}
+
 void compileBone(libcube::IBoneDelegate& out, const librii::rhst::Bone& in) {
   out.setName(in.name);
-
   out.setBoneParent(in.parent);
   for (auto c : in.child) {
     out.addChild(c);
@@ -145,6 +175,7 @@ void compileBone(libcube::IBoneDelegate& out, const librii::rhst::Bone& in) {
   out.setRotation(in.rotate);
   out.setTranslation(in.translate);
   out.setAABB({in.min, in.max});
+  compileBillboardMode(out, in.billboard_mode);
   for (auto& draw_call : in.draw_calls) {
     out.addDisplay({.matId = static_cast<u32>(draw_call.mat_index),
                     .polyId = static_cast<u32>(draw_call.poly_index),
