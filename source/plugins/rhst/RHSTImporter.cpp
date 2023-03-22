@@ -3,6 +3,7 @@
 #include <LibBadUIFramework/Plugins.hpp>
 #include <core/3d/i3dmodel.hpp>
 
+#include <librii/crate/g3d_crate.hpp>
 #include <librii/hx/CullMode.hpp>
 #include <librii/hx/PixMode.hpp>
 #include <librii/hx/TextureFilter.hpp>
@@ -515,11 +516,27 @@ Result<void> importTextureFromFile(libcube::Texture& data,
                                    std::string_view path,
                                    std::vector<u8>& scratch, bool mip_gen,
                                    int min_dim, int max_mip) {
-  BEGINTRY
+  if (path.ends_with(".tex0")) {
+    auto obuf = OishiiReadFile(path);
+    if (!obuf) {
+      return std::unexpected("Failed to read file");
+    }
+    auto buf = *obuf;
+    auto tex = TRY(librii::crate::ReadTEX0(buf.slice()));
+    data.setTextureFormat(tex.format);
+    data.setWidth(tex.width);
+    data.setHeight(tex.height);
+    data.setImageCount(tex.number_of_images);
+    data.setLod(false, 0.0f, static_cast<f32>(data.getImageCount()));
+    data.resizeData();
+    auto span = data.getData();
+    EXPECT(span.size() == tex.data.size());
+    memcpy(span.data(), tex.data.data(), span.size());
+    return {};
+  }
   auto image = TRY(rsl::stb::load(path));
   return importTexture(data, image.data, scratch, mip_gen, min_dim, max_mip,
                        image.width, image.height, image.channels);
-  ENDTRY
 }
 
 void import_texture(std::string tex, libcube::Texture* pdata,
@@ -532,6 +549,9 @@ void import_texture(std::string tex, libcube::Texture* pdata,
 
   std::vector<std::filesystem::path> search_paths;
   search_paths.push_back(file_path);
+  search_paths.push_back(file_path.parent_path() / (tex + ".tex0"));
+  search_paths.push_back(file_path.parent_path() / "textures" /
+                         (tex + ".tex0"));
   search_paths.push_back(file_path.parent_path() / (tex + ".png"));
   search_paths.push_back(file_path.parent_path() / "textures" / (tex + ".png"));
 
