@@ -138,7 +138,7 @@ void compileBillboardMode(libcube::IBoneDelegate& out,
                           const librii::rhst::BillboardMode& billboard_mode) {
   libcube::IBoneDelegate::Billboard bill_mode =
       libcube::IBoneDelegate::Billboard::None;
-  switch (billboardMode) {
+  switch (billboard_mode) {
   case librii::rhst::BillboardMode::Y_Face:
     bill_mode = libcube::IBoneDelegate::Billboard::Y_Face;
     break;
