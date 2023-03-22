@@ -149,7 +149,7 @@ public:
       }
     }
     oishii::Writer result(0);
-    riistudio::g3d::WriteBRRES(*m_result, result);
+    TRY(riistudio::g3d::WriteBRRES(*m_result, result));
     OishiiFlushWriter(result, m_to.string());
     return {};
   }
@@ -342,12 +342,14 @@ private:
   std::filesystem::path m_to;
 };
 
-void WriteIt(riistudio::g3d::Collection& c, oishii::Writer& w) {
-  riistudio::g3d::WriteBRRES(c, w);
+[[nodiscard]] Result<void> WriteIt(riistudio::g3d::Collection& c,
+                                   oishii::Writer& w) {
+  return riistudio::g3d::WriteBRRES(c, w);
 }
 std::string ExOf(riistudio::g3d::Collection* c) { return ".brres"; }
-void WriteIt(riistudio::j3d::Collection& c, oishii::Writer& w) {
-  riistudio::j3d::WriteBMD(c, w);
+[[nodiscard]] Result<void> WriteIt(riistudio::j3d::Collection& c,
+                                   oishii::Writer& w) {
+  return riistudio::j3d::WriteBMD(c, w);
 }
 std::string ExOf(riistudio::j3d::Collection* c) { return ".bmd"; }
 
@@ -355,27 +357,23 @@ template <typename T> class CompileRHST {
 public:
   CompileRHST(const CliOptions& opt) : m_opt(opt) {}
 
-  bool execute() {
+  Result<void> execute() {
     if (m_opt.verbose) {
       rsl::logging::init();
     }
     if (!parseArgs()) {
-      fmt::print(stderr, "Error: failed to parse args\n");
-      return false;
+      return std::unexpected("Failed to parse args");
     }
     if (m_from.extension() != ".rhst") {
-      fmt::print(stderr, "Error: file format is unsupported\n");
-      return false;
+      return std::unexpected("File format is unsupported");
     }
     auto file = OishiiReadFile(m_opt.from.view());
     if (!file.has_value()) {
-      fmt::print(stderr, "Error: Failed to read file\n");
-      return false;
+      return std::unexpected("Failed to read file");
     }
     auto tree = librii::rhst::ReadSceneTree(file->slice());
     if (!tree) {
-      fmt::print(stderr, "Error: Failed to parse: {}\n", tree.error());
-      return false;
+      return std::unexpected("Failed to parse RHST");
     }
     auto progress = [&](std::string_view s, float f) {
       progress_put(std::string(s), f);
@@ -392,13 +390,12 @@ public:
                                            info, progress, !m_opt.no_tristrip,
                                            m_opt.verbose);
     if (!ok) {
-      fmt::print(stderr, "Error: Failed to compile RHST\n");
-      return false;
+      return std::unexpected("Failed to compile RHST");
     }
     oishii::Writer result(0);
-    WriteIt(*m_result, result);
+    TRY(WriteIt(*m_result, result));
     OishiiFlushWriter(result, m_to.string());
-    return true;
+    return {};
   }
 
 private:
@@ -582,13 +579,23 @@ int main(int argc, const char** argv) {
   } else if (args->type == TYPE_COMPILE_RHST_BRRES) {
     progress_put("Processing...", 0.0f);
     CompileRHST<riistudio::g3d::Collection> cmd(*args);
-    bool ok = cmd.execute();
+    auto ok = cmd.execute();
     progress_end();
+    if (!ok) {
+      fmt::print(stderr, "{}\n", ok.error());
+      fmt::print(stdout, "{}\n", ok.error());
+      return -1;
+    }
   } else if (args->type == TYPE_COMPILE_RHST_BMD) {
     progress_put("Processing...", 0.0f);
     CompileRHST<riistudio::j3d::Collection> cmd(*args);
-    bool ok = cmd.execute();
+    auto ok = cmd.execute();
     progress_end();
+    if (!ok) {
+      fmt::print(stderr, "{}\n", ok.error());
+      fmt::print(stdout, "{}\n", ok.error());
+      return -1;
+    }
   } else if (args->type == TYPE_EXTRACT) {
     ExtractSZS cmd(*args);
     auto ok = cmd.execute();

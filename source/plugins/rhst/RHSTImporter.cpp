@@ -405,6 +405,7 @@ Result<void> compileMesh(libcube::IndexedPolygon& dst,
   // No skinning/BB
   dst.init(false, nullptr);
   auto& data = dst.getMeshData();
+  dst.setCurMtx(src.current_matrix);
   data.mMatrixPrimitives.clear();
 
 #if 0
@@ -426,11 +427,12 @@ Result<void> compileMesh(libcube::IndexedPolygon& dst,
   EXPECT(data.mVertexDescriptor.mBitfield == src.vertex_descriptor);
   if (reinit_bufs) {
     dst.initBufsFromVcd(model);
+    dst.setCurMtx(src.current_matrix);
   }
 
   for (auto& matrix_prim : src.matrix_primitives) {
-    TRY(compileMatrixPrim(data.mMatrixPrimitives.emplace_back(), matrix_prim, 0,
-                          dst, model, optimize));
+    TRY(compileMatrixPrim(data.mMatrixPrimitives.emplace_back(), matrix_prim,
+                          src.current_matrix, dst, model, optimize));
   }
 
   for (auto& [attr, format] : data.mVertexDescriptor.mAttributes) {

@@ -40,6 +40,8 @@ struct IndexedPolygon : public riistudio::lib3d::Polygon {
 
   virtual void init(bool skinned, librii::math::AABB* boundingBox) = 0;
   virtual void initBufsFromVcd(riistudio::lib3d::Model&) {}
+
+  virtual void setCurMtx(s32 mtx) {}
 };
 
 template <typename T> struct SafeIndexer {
