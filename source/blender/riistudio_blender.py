@@ -34,6 +34,16 @@ BLENDER_30 = bpy.app.version[0] >= 3
 BLENDER_28 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 80) \
 	or BLENDER_30
 
+
+class OpenPreferences(bpy.types.Operator):
+	bl_idname = "riistudio.preferences"
+	bl_label = 'Open Preferences'
+	def execute(self, context):
+		bpy.ops.screen.userpref_show()
+		bpy.context.preferences.active_section = 'ADDONS'
+		bpy.data.window_managers["WinMan"].addon_search = "RiiStudio"
+		return {'FINISHED'}
+
 # Adapted from
 # https://blender.stackexchange.com/questions/7890/add-a-filter-for-the-extension-of-a-file-in-the-file-browser
 class FilteredFiledialog(bpy.types.Operator, ImportHelper):
@@ -140,8 +150,8 @@ texture_format_items = (
 
 def get_filename_without_extension(file_path):
 	file_basename = os.path.basename(file_path)
-	filename_without_extension = file_basename.split('.')[0]
-	return filename_without_extension
+	#filename_without_extension = file_basename.split('.')[0]
+	return file_basename
 
 # src\helpers\export_tex.py
 
@@ -739,7 +749,7 @@ def export_jres(context, params : RHSTExportParams):
 			"min": [0, 0, 0],
 			"max": [0, 0, 0],
 			"billboard": "none",
-			"draws": []
+			"draws": [],
 		}]
 	}
 	class Model:
@@ -770,7 +780,7 @@ def export_jres(context, params : RHSTExportParams):
 				"min": [0, 0, 0],
 				"max": [0, 0, 0],
 				"billboard": bill_mode,
-				"draws": []
+				"draws": [],
 				}
 			)
 			self.current_data["weights"].append(
@@ -1093,6 +1103,19 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 	if BLENDER_30: filter_glob : filter_glob
 
 	def draw(self, context):
+		bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
+		rszst = os.path.join(bin_root, "rszst.exe")
+		if(not os.path.exists(rszst)):
+			box = self.layout.box()
+			row = box.row()
+			row.alert = True
+			row.label(text="Warning", icon="ERROR")
+			col = box.column()
+			col.label(text="RiiStudio path was not setup properly.")
+			col.label(text="Please set it up in Preferences.")
+			col.operator("riistudio.preferences", icon="PREFERENCES")
+			
+			
 		box = self.layout.box()
 		box.label(text="BRRES", icon='FILE_TICK' if BLENDER_28 else 'FILESEL')
 		
@@ -1113,6 +1136,13 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 			self.cleanup_if_enabled()
 		
 	def execute(self, context):
+
+		bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
+		rszst = os.path.join(bin_root, "rszst.exe")
+		if(not os.path.exists(rszst)):
+			self.report({'ERROR'}, "RiiStudio path was not setup properly.\nGo to Edit → Preferences → Add-ons, find 'RiiStudio Blender Exporter' and setup 'RiiStudio Directory'")
+			return {'CANCELLED'}
+
 
 		timer = Timer("BRRES Export")
 		
@@ -1221,6 +1251,7 @@ class OBJECT_OT_addon_prefs_example(bpy.types.Operator):
 
 classes = (
 	FilteredFiledialog,
+	OpenPreferences,
 	ExportBRRES,
 	ExportBMD,
 
