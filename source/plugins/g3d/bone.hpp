@@ -58,9 +58,7 @@ struct Bone : public libcube::IBoneDelegate,
   void setSSC(bool b) override { ssc = b; }
 
   Billboard getBillboard() const override {
-    // TODO:
-    // switch (billboardType)
-    { return Billboard::None; }
+    { return static_cast<Billboard>(billboardType); }
   }
   void setBillboard(Billboard b) override {
     billboardType = (int)b;
