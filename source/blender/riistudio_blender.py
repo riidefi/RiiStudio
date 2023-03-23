@@ -150,7 +150,7 @@ texture_format_items = (
 
 def get_filename_without_extension(file_path):
 	file_basename = os.path.basename(file_path)
-	#filename_without_extension = file_basename.split('.')[0]
+	# filename_without_extension = file_basename.split('.')[0]
 	return file_basename
 
 # src\helpers\export_tex.py
@@ -1114,8 +1114,7 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 			col.label(text="RiiStudio path was not setup properly.")
 			col.label(text="Please set it up in Preferences.")
 			col.operator("riistudio.preferences", icon="PREFERENCES")
-			
-			
+
 		box = self.layout.box()
 		box.label(text="BRRES", icon='FILE_TICK' if BLENDER_28 else 'FILESEL')
 		
