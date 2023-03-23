@@ -489,7 +489,7 @@ def all_tex_uses(selection):
 def all_textures(selection=False):
 	return set(all_tex_uses(selection))
 
-def export_textures(textures_path,selection):
+def export_textures(textures_path,selection,params):
 	#Check if wimgt installed and accessible
 	wimgt_installed = os.popen("wimgt version").read().startswith("wimgt: Wiimms")
 
@@ -497,7 +497,8 @@ def export_textures(textures_path,selection):
 		os.makedirs(textures_path)
 
 	for tex in all_textures(selection):
-		export_tex(tex, textures_path, wimgt_installed)
+		use_wimgt = wimgt_installed and params.flags.texture_encoder == 'wimgt'
+		export_tex(tex, textures_path, use_wimgt)
 
 def build_rs_mat(mat, texture_name):
 	return {
@@ -710,13 +711,14 @@ class Quantization:
 
 class ConverterFlags:
 	def __init__(self, split_mesh_by_material=True, mesh_conversion_mode='PREVIEW',
-		add_dummy_colors = True, ignore_cache = False, write_metadata = False):
+		add_dummy_colors = True, ignore_cache = False, texture_encoder='wimgt', write_metadata = False):
 		
 		self.split_mesh_by_material = split_mesh_by_material
 		self.mesh_conversion_mode = mesh_conversion_mode
 		self.add_dummy_colors = add_dummy_colors
 		self.ignore_cache = ignore_cache
 		self.write_metadata = False
+		self.texture_encoder = texture_encoder
 
 class RHSTExportParams:
 	def __init__(self, dest_path, quantization=Quantization(), root_transform = SRT(),
@@ -969,6 +971,17 @@ class RHST_RNA:
 	)
 	if BLENDER_30: verbose : verbose
 
+	texture_encoder = EnumProperty(
+		name="Encoder",
+		items=(
+		('wimgt',"wimgt","Use wimgt to encode textures"),
+		('rs',"RiiStudio","Use RiiStudio to encode textures")
+		),
+		default="wimgt",
+		description="Select which encoder to use",
+	)
+	if BLENDER_30: texture_encoder : texture_encoder
+
 	def get_root_transform(self):
 		root_scale	 = [self.root_transform_scale_x,	 self.root_transform_scale_y,	 self.root_transform_scale_z]
 		root_rotate	= [self.root_transform_rotate_x,	self.root_transform_rotate_y,	self.root_transform_rotate_z]
@@ -989,8 +1002,12 @@ class RHST_RNA:
 			self.split_mesh_by_material,
 			self.mesh_conversion_mode,
 			self.add_dummy_colors,
-			self.ignore_cache
+			self.ignore_cache,
+			self.texture_encoder,
 		)
+	
+	def get_wimgt_installed(self):
+		return os.popen("wimgt version").read().startswith("wimgt: Wiimms");
 
 	def get_rhst_path(self):
 		return os.path.join(os.path.split(self.filepath)[0], "course.rhst")
@@ -1033,6 +1050,14 @@ class RHST_RNA:
 		box.prop(self, 'keep_build_artifacts')
 		box.prop(self, 'verbose')
 
+		# Textures
+		if(self.get_wimgt_installed):
+			box = layout.box()
+			box.label(text="Textures", icon='TEXTURE')
+			row = box.row(align=True)
+			row.label(text="Encoder")
+			row.prop(self, "texture_encoder", expand=True)
+
 		# Quantization
 		box = layout.box()
 		box.label(text="Quantization", icon='LINENUMBERS_ON')
@@ -1073,7 +1098,7 @@ class RHST_RNA:
 		if dump_pngs:
 			# Dump .PNG images
 			timer = Timer("PNG Dumping")
-			export_textures(self.get_textures_path(),self.get_selection_only())
+			export_textures(self.get_textures_path(),self.get_selection_only(),self.get_export_params())
 			timer.dump()
 
 	def cleanup_rhst(self):
