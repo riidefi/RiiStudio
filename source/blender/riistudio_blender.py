@@ -34,7 +34,6 @@ BLENDER_30 = bpy.app.version[0] >= 3
 BLENDER_28 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 80) \
 	or BLENDER_30
 
-
 class OpenPreferences(bpy.types.Operator):
 	bl_idname = "riistudio.preferences"
 	bl_label = 'Open Preferences'
@@ -150,7 +149,7 @@ texture_format_items = (
 
 def get_filename_without_extension(file_path):
 	file_basename = os.path.basename(file_path)
-	#filename_without_extension = file_basename.split('.')[0]
+	# filename_without_extension = file_basename.split('.')[0]
 	return file_basename
 
 # src\helpers\export_tex.py
@@ -162,7 +161,7 @@ def export_tex(texture, out_folder, use_wimgt):
 	texture.image.file_format = 'PNG'
 	# save image as PNNG
 	texture_outpath = os.path.join(out_folder, tex_name) + ".png"
-	if(use_wimgt):
+	if use_wimgt:
 		temp_output_name = str(binascii.b2a_hex(os.urandom(15)))
 		texture_outpath = os.path.join(out_folder, temp_output_name) + ".png"
 	tex0_outpath = os.path.join(out_folder, tex_name) + ".tex0"
@@ -179,7 +178,7 @@ def export_tex(texture, out_folder, use_wimgt):
 	elif texture.brres_mipmap_mode == 'none':
 		mm_string = "--n-mm=0"
 	#Encode textures
-	if(use_wimgt):
+	if use_wimgt:
 		print("EncodeTex: %s" % tex_name)
 		wimgt = r'wimgt encode "{0}" --transform {1} {2} --dest "{3}" -o'.format(texture_outpath, tformat_string, mm_string, tex0_outpath)
 		os.system(wimgt)
@@ -407,16 +406,16 @@ class JRESObjectPanel(bpy.types.Panel):
 		box.label(text="Draw Priority", icon='FILE_IMAGE')
 		row = box.row(align=True).split(factor=0.3)
 		row.prop(obj, "jres_use_priority")
-		if(not obj.jres_use_priority):
+		if not obj.jres_use_priority:
 			row.prop(obj, "jres_draw_priority")
 
 		box = layout.box()
 		box.label(text="Bone Settings", icon="BONE_DATA")
 		row = box.row(align=True).split(factor=0.6)
 		row.prop(obj, "jres_use_own_bone")
-		if(obj.jres_use_own_bone):
+		if obj.jres_use_own_bone:
 			row.prop(obj, "jres_is_billboard")
-			if(obj.jres_is_billboard):
+			if obj.jres_is_billboard:
 				split = box.row(align=True).split(factor=0.3)
 				row1,row2 = (split.row(),split.row())
 				row1.label(text="Mode", icon='OUTLINER_DATA_MESH')
@@ -569,7 +568,7 @@ def export_mesh(
 	bone = 0
 	bone_index = 0
 	bone_transform = [0,0,0]
-	if(Object.jres_use_own_bone):
+	if Object.jres_use_own_bone:
 		bone = Object.name
 		bone_location = [0,0,0]
 		bone_location[0] = Object.location.x * magnification
@@ -579,7 +578,7 @@ def export_mesh(
 		
 		#rotation = Object.rotation_euler
 		billboard = "None";
-		if(Object.jres_is_billboard):
+		if Object.jres_is_billboard:
 			billboard = Object.jres_billboard_setting + "_" + Object.jres_billboard_look
 
 		model.append_bone(bone,t=bone_transform,bill_mode=billboard)
@@ -789,13 +788,12 @@ def export_jres(context, params : RHSTExportParams):
 				]
 			)
 			
-
 		def get_bone_id(self,bone_name):
-			if(isinstance(bone_name, int)):
+			if isinstance(bone_name, int):
 				return bone_name
 			strong_bones = self.current_data["bones"]
 			for i in range(len(strong_bones)):
-				if(strong_bones[i]["name"] == bone_name):
+				if strong_bones[i]["name"] == bone_name:
 					return int(i)
 		
 		def add_mesh(self, poly):
@@ -821,7 +819,7 @@ def export_jres(context, params : RHSTExportParams):
 	#Remove main bone in case all objects are using their own bones
 	parent_index = 0;
 	common_bone_users = [o for o in all_meshes(selection=params.selection) if o[0].jres_use_own_bone == False]
-	if(len(common_bone_users) == 0):
+	if len(common_bone_users) == 0:
 		current_data["bones"].pop(0)
 		current_data["weights"].pop(0)
 		parent_index = -1;
@@ -1105,7 +1103,7 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 	def draw(self, context):
 		bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
 		rszst = os.path.join(bin_root, "rszst.exe")
-		if(not os.path.exists(rszst)):
+		if not os.path.exists(rszst):
 			box = self.layout.box()
 			row = box.row()
 			row.alert = True
@@ -1114,8 +1112,7 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 			col.label(text="RiiStudio path was not setup properly.")
 			col.label(text="Please set it up in Preferences.")
 			col.operator("riistudio.preferences", icon="PREFERENCES")
-			
-			
+
 		box = self.layout.box()
 		box.label(text="BRRES", icon='FILE_TICK' if BLENDER_28 else 'FILESEL')
 		
@@ -1139,10 +1136,9 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 
 		bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
 		rszst = os.path.join(bin_root, "rszst.exe")
-		if(not os.path.exists(rszst)):
+		if not os.path.exists(rszst):
 			self.report({'ERROR'}, "RiiStudio path was not setup properly.\nGo to Edit → Preferences → Add-ons, find 'RiiStudio Blender Exporter' and setup 'RiiStudio Directory'")
 			return {'CANCELLED'}
-
 
 		timer = Timer("BRRES Export")
 		
