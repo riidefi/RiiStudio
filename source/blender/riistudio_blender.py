@@ -656,7 +656,7 @@ def export_mesh(
 				# print("Skipped because tri mat: %u, target: %u" % (tri.material_index, mat_index))
 				continue
 			for global_index, fpVertexIndex in enumerate(tri.vertices, idx):
-				blender_vertex = triangulated.vertices[fpVertexIndex]				
+				blender_vertex = triangulated.vertices[fpVertexIndex]
 				gvertex = [vec3(blender_vertex.co), vec3(blender_vertex.normal)]
 				if has_vcolors:
 					for layer in triangulated.vertex_colors[:2]:
@@ -1133,7 +1133,6 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 			self.cleanup_if_enabled()
 		
 	def execute(self, context):
-
 		bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
 		rszst = os.path.join(bin_root, "rszst.exe")
 		if not os.path.exists(rszst):
@@ -1439,7 +1438,7 @@ def register_object():
 		default=False
 	)
 	bpy.types.Object.jres_is_billboard = BoolProperty(
-		name="Use as Billboard",
+		name="Enable Billboarding",
 		default=False
 	) 
 	bpy.types.Object.jres_billboard_setting = EnumProperty(
@@ -1455,7 +1454,7 @@ def register_object():
 		name="Rotation",
 		items=(
 			('Face', "Point", "Look at camera point"),
-			('Parellel', "Vector", "Look parellel to camera vector")
+			('Parallel', "Vector", "Look parellel to camera vector")
 		)
 	)
 
