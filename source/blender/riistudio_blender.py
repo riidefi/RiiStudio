@@ -17,7 +17,7 @@ bl_info = {
 
 import struct
 import bpy, bmesh
-import os, shutil
+import os, shutil, binascii
 import mathutils
 from bpy_extras.io_utils import axis_conversion
 from bpy_extras.io_utils import ImportHelper, ExportHelper
@@ -140,18 +140,21 @@ texture_format_items = (
 
 def get_filename_without_extension(file_path):
 	file_basename = os.path.basename(file_path)
-	# filename_without_extension = file_basename.split('.')[0]
-	return file_basename
+	filename_without_extension = file_basename.split('.')[0]
+	return filename_without_extension
 
 # src\helpers\export_tex.py
 
-def export_tex(texture, out_folder):
+def export_tex(texture, out_folder, use_wimgt):
 	tex_name = get_filename_without_extension(texture.image.name) if BLENDER_28 else texture.name
 	print("ExportTex: %s" % tex_name)
 	# Force PNG
 	texture.image.file_format = 'PNG'
 	# save image as PNNG
 	texture_outpath = os.path.join(out_folder, tex_name) + ".png"
+	if(use_wimgt):
+		temp_output_name = str(binascii.b2a_hex(os.urandom(15)))
+		texture_outpath = os.path.join(out_folder, temp_output_name) + ".png"
 	tex0_outpath = os.path.join(out_folder, tex_name) + ".tex0"
 	texture.image.save_render(texture_outpath)
 	# determine format
@@ -160,13 +163,17 @@ def export_tex(texture, out_folder):
 		texture.brres_manual_format if texture.brres_mode == 'manual' else best_tex_format(
 			texture)).upper()
 	# determine mipmaps
-	mm_string = ""
+	mm_string = "--mipmap-size=%s" % texture.brres_mipmap_minsize
 	if texture.brres_mipmap_mode == 'manual':
 		mm_string = "--n-mm=%s" % texture.brres_mipmap_manual
 	elif texture.brres_mipmap_mode == 'none':
 		mm_string = "--n-mm=0"
-	else:  # auto
-		mm_string = "--mipmap-size=%s" % texture.brres_mipmap_minsize
+	#Encode textures
+	if(use_wimgt):
+		print("EncodeTex: %s" % tex_name)
+		wimgt = r'wimgt encode "{0}" --transform {1} {2} --dest "{3}" -o'.format(texture_outpath, tformat_string, mm_string, tex0_outpath)
+		os.system(wimgt)
+		os.remove(texture_outpath)
 
 # src\panels\BRRESTexturePanel.py
 
@@ -370,6 +377,46 @@ class JRESScenePanel(bpy.types.Panel):
 		row.prop(scn, "jres_cache_dir")
 
 
+class JRESObjectPanel(bpy.types.Panel):
+	bl_label = "RiiStudio Object Options"
+	bl_idname = "OBJECT_PT_rstudio"
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_context = "object"
+
+	@classmethod
+	def poll(cls, context):
+		return context.scene
+
+	def draw(self, context):
+		obj = context.active_object
+		layout = self.layout
+		scn = context.scene
+
+		box = layout.box()
+		box.label(text="Draw Priority", icon='FILE_IMAGE')
+		row = box.row(align=True).split(factor=0.3)
+		row.prop(obj, "jres_use_priority")
+		if(not obj.jres_use_priority):
+			row.prop(obj, "jres_draw_priority")
+
+		box = layout.box()
+		box.label(text="Bone Settings", icon="BONE_DATA")
+		row = box.row(align=True).split(factor=0.6)
+		row.prop(obj, "jres_use_own_bone")
+		if(obj.jres_use_own_bone):
+			row.prop(obj, "jres_is_billboard")
+			if(obj.jres_is_billboard):
+				split = box.row(align=True).split(factor=0.3)
+				row1,row2 = (split.row(),split.row())
+				row1.label(text="Mode", icon='OUTLINER_DATA_MESH')
+				row2.prop(obj, "jres_billboard_setting",expand=True)
+
+				split = box.row(align=True).split(factor=0.3)
+				row1,row2 = (split.row(),split.row())
+				row1.label(text="Rotation", icon='FILE_REFRESH')
+				row2.prop(obj, "jres_billboard_look",expand=True)
+
 # src\exporters\jres\export_jres.py
 def vec2(x):
 	return (x.x, x.y)
@@ -383,9 +430,7 @@ def all_objects():
 		for obj in bpy.data.objects:
 			# Returns immediate parent
 			# If root, "Scene Collection"
-			collection = obj.users_collection[0]
-			flags = list(collection.name.split(':'))
-			prio = int(flags[1]) if len(flags) > 1 else 0
+			prio = obj.jres_draw_priority if not obj.jres_use_priority else 0
 			yield obj, prio
 	else:
 		for Object in bpy.data.objects:
@@ -436,11 +481,14 @@ def all_textures(selection=False):
 	return set(all_tex_uses(selection))
 
 def export_textures(textures_path,selection):
+	#Check if wimgt installed and accessible
+	wimgt_installed = os.popen("wimgt version").read().startswith("wimgt: Wiimms")
+
 	if not os.path.exists(textures_path):
 		os.makedirs(textures_path)
 
 	for tex in all_textures(selection):
-		export_tex(tex, textures_path)
+		export_tex(tex, textures_path, wimgt_installed)
 
 def build_rs_mat(mat, texture_name):
 	return {
@@ -508,7 +556,29 @@ def export_mesh(
 	axis = axis_conversion(to_forward='-Z', to_up='Y',).to_4x4()
 	global_matrix = (mathutils.Matrix.Scale(magnification, 4) @ axis) if BLENDER_28 else (mathutils.Matrix.Scale(magnification, 4) * axis)
 
-	triangulated.transform(global_matrix @ Object.matrix_world if BLENDER_28 else global_matrix * Object.matrix_world)
+	bone = 0
+	bone_index = 0
+	bone_transform = [0,0,0]
+	if(Object.jres_use_own_bone):
+		bone = Object.name
+		bone_location = [0,0,0]
+		bone_location[0] = Object.location.x * magnification
+		bone_location[1] = Object.location.z * magnification
+		bone_location[2] = Object.location.y * -magnification
+		bone_transform = tuple(bone_location)
+		
+		#rotation = Object.rotation_euler
+		billboard = "None";
+		if(Object.jres_is_billboard):
+			billboard = Object.jres_billboard_setting + "_" + Object.jres_billboard_look
+
+		model.append_bone(bone,t=bone_transform,bill_mode=billboard)
+		bone_index = model.get_bone_id(bone)
+
+	if not Object.jres_use_own_bone:
+		triangulated.transform(global_matrix @ Object.matrix_world if BLENDER_28 else global_matrix * Object.matrix_world)
+	else:
+		triangulated.transform(global_matrix if BLENDER_28 else global_matrix);
 	triangulated.flip_normals()
 	'''
 	triangulated.transform(mathutils.Matrix.Scale(magnification, 4))
@@ -551,13 +621,12 @@ def export_mesh(
 		if not get_texture(mat):
 			print("No texture: skipping")
 			continue
-
-
+		
 		vcd_set = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 		polygon_object = OrderedDict({
 			"name": "%s___%s" % (Object.name, texture_name),
 			"primitive_type": "triangle_fan",
-			"current_matrix": 0,
+			"current_matrix": bone_index,
 			"facepoint_format": vcd_set})
 		polygon_object["matrix_primitives"] = []
 
@@ -578,7 +647,7 @@ def export_mesh(
 				# print("Skipped because tri mat: %u, target: %u" % (tri.material_index, mat_index))
 				continue
 			for global_index, fpVertexIndex in enumerate(tri.vertices, idx):
-				blender_vertex = triangulated.vertices[fpVertexIndex]
+				blender_vertex = triangulated.vertices[fpVertexIndex]				
 				gvertex = [vec3(blender_vertex.co), vec3(blender_vertex.normal)]
 				if has_vcolors:
 					for layer in triangulated.vertex_colors[:2]:
@@ -609,7 +678,7 @@ def export_mesh(
 		material_object = build_rs_mat(mat, texture_name)
 		mat_id = model.add_material(material_object)
 		
-		model.append_drawcall(mat_id, mesh_id, prio=prio)
+		model.append_drawcall(mat_id, mesh_id, prio=prio,bone=bone)
 
 		# All mesh data will already be exported if not being split. This stops duplicate data
 		if not split_mesh_by_material:
@@ -678,15 +747,47 @@ def export_jres(context, params : RHSTExportParams):
 			self.object_i = 0
 			self.current_data = current_data
 			self.material_remap = {}
-
+			
 		def alloc_mesh_id(self):
 			cur_id = self.object_i
 			self.object_i += 1
 			return cur_id
 
-		def append_drawcall(self, mat, poly, prio):
-			self.current_data["bones"][0]["draws"].append([mat, poly, prio])
+		def append_drawcall(self, mat, poly, prio, bone = 0):
+			bone_id = self.get_bone_id(bone)
+			self.current_data["bones"][bone_id]['draws'].append([mat, poly, prio])
 
+		def append_bone(self,name,s=[1,1,1],r=[0,0,0],t=[0,0,0],bill_mode="none"):
+			index = len(self.current_data["bones"])
+			self.current_data["bones"].append(
+				{
+				"name": name,
+				"parent": parent_index,
+				"child": -1,
+				"scale": s,
+				"rotate": r,
+				"translate": t,
+				"min": [0, 0, 0],
+				"max": [0, 0, 0],
+				"billboard": bill_mode,
+				"draws": []
+				}
+			)
+			self.current_data["weights"].append(
+				[
+					[index,100]
+				]
+			)
+			
+
+		def get_bone_id(self,bone_name):
+			if(isinstance(bone_name, int)):
+				return bone_name
+			strong_bones = self.current_data["bones"]
+			for i in range(len(strong_bones)):
+				if(strong_bones[i]["name"] == bone_name):
+					return int(i)
+		
 		def add_mesh(self, poly):
 			self.current_data["polygons"].append(poly)
 			return self.alloc_mesh_id()
@@ -706,6 +807,14 @@ def export_jres(context, params : RHSTExportParams):
 			return new_mi
 
 	model = Model(current_data)
+
+	#Remove main bone in case all objects are using their own bones
+	parent_index = 0;
+	common_bone_users = [o for o in all_meshes(selection=params.selection) if o[0].jres_use_own_bone == False]
+	if(len(common_bone_users) == 0):
+		current_data["bones"].pop(0)
+		current_data["weights"].pop(0)
+		parent_index = -1;
 
 	for Object, prio in all_meshes(selection=params.selection):
 		export_mesh(
@@ -1004,6 +1113,7 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 			self.cleanup_if_enabled()
 		
 	def execute(self, context):
+
 		timer = Timer("BRRES Export")
 		
 		self.export(context, 'BRRES')
@@ -1117,6 +1227,7 @@ classes = (
 	BRRESTexturePanel,
 	JRESMaterialPanel,
 	# JRESScenePanel,
+	JRESObjectPanel,
 
 	RiidefiStudioPreferenceProperty,
 	OBJECT_OT_addon_prefs_example
@@ -1214,7 +1325,7 @@ def register_mat():
 		name="PE Mode",
 		items=(
 			('opaque', "Opaque", "No alpha"),
-			('outline', "Outline", "Binary alpha. A texel is either opaque or fully transparent"),
+			('clip', "Outline", "Binary alpha. A texel is either opaque or fully transparent"),
 			('translucent', "Translucent", "Expresses a full range of alpha")
 		),
 		default='opaque'
@@ -1284,6 +1395,43 @@ def register_mat():
 		default=-1.0,
 	)
 
+def register_object():
+	bpy.types.Object.jres_use_priority = BoolProperty(
+		name="Does not Matter",
+		default=True
+	)
+
+	bpy.types.Object.jres_draw_priority = IntProperty(
+		name="Draw Priority",
+		default=1,
+		max=255,
+		min=1
+	)
+	bpy.types.Object.jres_use_own_bone = BoolProperty(
+		name="Use separate bone",
+		default=False
+	)
+	bpy.types.Object.jres_is_billboard = BoolProperty(
+		name="Use as Billboard",
+		default=False
+	) 
+	bpy.types.Object.jres_billboard_setting = EnumProperty(
+		name="Billboard Mode",
+		items=(
+			('Z', "World", "Makes Z axis look at camera"),
+			('ZRotate', "Screen", "Uses the direction pointing up from the camera as the Y axis."),
+			('Y', "Y Axis", "Rotates only on Y axis")
+		),
+		default='Z'
+	)
+	bpy.types.Object.jres_billboard_look = EnumProperty(
+		name="Rotation",
+		items=(
+			('Face', "Point", "Look at camera point"),
+			('Parellel', "Vector", "Look parellel to camera vector")
+		)
+	)
+
 def register():
 	MT_file_export = bpy.types.TOPBAR_MT_file_export if BLENDER_28 else bpy.types.INFO_MT_file_export
 	MT_file_export.append(brres_menu_func_export)
@@ -1291,6 +1439,7 @@ def register():
 	
 	register_tex()
 	register_mat()
+	register_object()
 
 	# Texture Cache
 	tex_type = bpy.types.Node if BLENDER_28 else bpy.types.Texture
