@@ -991,7 +991,8 @@ struct AdvancedTextureConverter {
     // If mips are also sent, just ignore
     EXPECT(source_data.size() >= src_size);
     std::vector<u8> scratch;
-    if (should_throw || (is_power_of_2(width) && is_power_of_2(height))) {
+    if (should_throw || (is_power_of_2(width) && is_power_of_2(height) &&
+                         width > 4 && height > 4)) {
       TRY(riistudio::rhst::importTextureImpl(
           dst_encoded, source_data, scratch, mip_levels - 1, width, height,
           first_width, first_height, format, resizer));
@@ -1105,7 +1106,8 @@ Result<TCResult> DrawAdvTexConv(AdvancedTextureConverter& action) {
     }
     if (!is_power_of_2(action.width) || !is_power_of_2(action.height)) {
       ImGui::Text("Warning: (%d, %d) is not a power of two, so encoding cannot "
-                  "happen!", action.width, action.height);
+                  "happen!",
+                  action.width, action.height);
     }
     // ImGui::SameLine();
     // if (ImGui::Button("Apply", button)) {
