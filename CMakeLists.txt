@@ -184,7 +184,9 @@ if (APPLE)
 endif()
 
 CPMAddPackage("gh:corrosion-rs/corrosion@0.3.2")
-find_package(Corrosion REQUIRED)
+if(NOT UNIX)
+  find_package(Corrosion REQUIRED)
+endif()
 
 corrosion_import_crate(MANIFEST_PATH source/rust/Cargo.toml)
 

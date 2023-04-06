@@ -58,6 +58,17 @@ elseif (NOT UNIX)
     ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
     ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
   )
+elseif (UNIX)
+  find_library(ASSIMP_LIBRARY NAMES libassimp.so PATHS /usr/lib)
+  find_library(GLFW3_LIBRARY NAMES libglfw.so PATHS /usr/lib)
+  find_library(FREETYPE_LIBRARY NAMES libfreetype.so PATHS /usr/lib)
+  find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
+  target_link_libraries(cli PUBLIC
+    ${ASSIMP_LIBRARY}
+    ${GLFW3_LIBRARY}
+    ${FREETYPE_LIBRARY}
+    ${BZIP2_LIBRARY}
+  )
 endif()
  
 # DLLs for windows

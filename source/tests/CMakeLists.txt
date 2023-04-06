@@ -59,6 +59,10 @@ elseif (NOT UNIX)
 	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
 	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
 	)
+elseif(UNIX)
+	# TODO: code duplication, extract FindBzip2.cmake to top level CMakeLists
+	find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
+	target_link_libraries(tests PUBLIC ${BZIP2_LIBRARY})
 endif()
 
 # Decentralized installers based on initialization of static objects

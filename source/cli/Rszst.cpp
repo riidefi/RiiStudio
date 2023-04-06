@@ -12,6 +12,7 @@
 #include <plugins/j3d/J3dIo.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
 #include <sstream>
+#include <mutex>
 
 namespace riistudio {
 const char* translateString(std::string_view str) { return str.data(); }

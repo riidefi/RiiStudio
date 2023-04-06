@@ -13,4 +13,4 @@ add_library(rsl STATIC
  "Discord.cpp"
  "FFIActivity.cc"
  )
-target_link_libraries(rsl PUBLIC core range-v3 riistudio_rs)
+target_link_libraries(rsl PUBLIC core range-v3 riistudio_rs vendor)

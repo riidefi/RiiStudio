@@ -117,6 +117,10 @@ elseif (NOT UNIX)
 	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
 	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
 	)
+elseif (UNIX)
+	# TODO: Duplication: extract to FindX.cmake
+	find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
+	target_link_libraries(frontend PUBLIC ${BZIP2_LIBRARY})
 endif()
 
 # Decentralized installers based on initialization of static objects
