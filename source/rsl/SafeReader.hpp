@@ -34,6 +34,17 @@ inline std::expected<E, std::string> enum_cast(u32 candidate) {
   return *as_enum;
 }
 
+template <typename T, typename F>
+std::expected<T, std::string> checked_cast(const F& f) {
+  static_assert(std::is_integral_v<T>);
+  static_assert(std::is_integral_v<F>);
+  if (static_cast<F>(static_cast<T>(f)) != f) {
+    return std::unexpected(std::format(
+        "Cannot fit value {} in F (truncates to {})", f, static_cast<T>(f)));
+  }
+  return static_cast<T>(f);
+}
+
 class SafeReader {
 public:
   template <typename T> using Result = std::expected<T, std::string>;
