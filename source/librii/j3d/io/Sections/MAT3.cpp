@@ -820,6 +820,7 @@ void io_wrapper<SerializableMaterial>::onWrite(
 
   u8 flag = m.flag;
   flag = (flag & ~4) | (m.xlu ? 4 : 0);
+  flag = (flag & ~1) | (!m.xlu ? 1 : 0);
   writer.write<u8>(flag);
   writer.write<u8>(find(smat.mMAT3.mCache.cullModes, m.cullMode));
   writer.write<u8>(find(smat.mMAT3.mCache.nColorChan, m.chanData.size()));
