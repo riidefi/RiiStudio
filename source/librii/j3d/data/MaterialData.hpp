@@ -33,8 +33,6 @@ struct MaterialData : public librii::gx::GCMaterialData {
 
   u8 flag = 1;
 
-  bool indEnabled = false;
-
   // odd data
   librii::j3d::Fog fogInfo{};
   rsl::array_vector<librii::gx::Color, 8> lightColors{};

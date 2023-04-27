@@ -302,7 +302,6 @@ public:
     TRY(loader.indexedContained<Indirect>(ind, MatSec::IndirectTexturingInfo,
                                           0x138, idx));
 
-    mat.indEnabled = ind.enabled;
     mat.indirectStages.resize(ind.nIndStage);
 
     for (int i = 0; i < ind.nIndStage; ++i)

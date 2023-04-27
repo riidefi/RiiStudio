@@ -34,7 +34,8 @@ struct Indirect {
 
   Indirect() = default;
   Indirect(const librii::j3d::MaterialData& mat) {
-    enabled = mat.indEnabled;
+    // TODO: Check if any are actually used?
+    enabled = mat.indirectStages.size() > 0;
     nIndStage = mat.indirectStages.size();
 
     assert(nIndStage <= 4);
