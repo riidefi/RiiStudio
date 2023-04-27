@@ -30,6 +30,7 @@ if (WIN32)
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
 		opengl32.lib
+    ntdll # Rust needs this now?
 		${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
 	)
   if (ASAN)
