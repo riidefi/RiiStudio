@@ -38,7 +38,7 @@ inline auto mat_prop_ex = [](auto& delegate, auto member, auto draw) {
 inline bool IconSelectable(const char* text, bool selected,
                            const riistudio::lib3d::Texture* tex,
                            riistudio::frontend::EditorWindow* ed) {
-  ImGui::PushID(tex->getName().c_str());
+  ImGui::PushID((tex->getName() + text).c_str());
   auto s =
       ImGui::Selectable("##ID", selected, ImGuiSelectableFlags_None, {0, 32});
   ImGui::PopID();
