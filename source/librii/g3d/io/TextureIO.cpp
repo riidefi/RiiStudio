@@ -33,7 +33,7 @@ bool ReadTexture(librii::g3d::TextureData& tex, std::span<const u8> data,
     unsigned cursor = 0;
 
     if (const auto fourcc = lwzu(data, cursor); fourcc != 'TEX0') {
-      return false;
+      // return false;
     }
     cursor += 4; // SKIP: Size
     if (const auto revision = lwzu(data, cursor);
