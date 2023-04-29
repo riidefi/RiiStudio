@@ -594,7 +594,7 @@ ReadMesh(librii::g3d::PolygonData& poly, rsl::SafeReader& reader, bool& isValid,
          kpi::LightIOTransaction& transaction,
          const std::string& transaction_path,
 
-         u32 id) {
+         u32 id, bool* badfur) {
   const auto start = reader.tell();
 
   isValid &= TRY(reader.U32()) != 0; // size
@@ -658,9 +658,8 @@ ReadMesh(librii::g3d::PolygonData& poly, rsl::SafeReader& reader, bool& isValid,
   }
   // BrawlCrate sets this erroneously
   if (bin.furVecIdx != -1 || bin.furPosIdx != -1) {
-    transaction.callback(kpi::IOMessageClass::Warning, "Polygon: " + bin.name,
-                         "Mesh specifies it has fur, which is unsupported. "
-                         "Likely erroneously set by BrawlBox.");
+    if (badfur != nullptr)
+      *badfur = true;
   }
   poly.mMatrixPrimitives = bin.matrixPrims;
   return {};

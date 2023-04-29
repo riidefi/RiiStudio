@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/common.h>
 #include <LibBadUIFramework/Plugins.hpp>
+#include <core/common.h>
 #include <librii/g3d/data/PolygonData.hpp>
 #include <librii/g3d/data/VertexData.hpp>
 #include <librii/g3d/io/ModelIO.hpp>
@@ -20,7 +20,7 @@ ReadMesh(librii::g3d::PolygonData& poly, rsl::SafeReader& reader, bool& isValid,
          kpi::LightIOTransaction& transaction,
          const std::string& transaction_path,
 
-         u32 id);
+         u32 id, bool* hasfur);
 
 Result<void> WriteMesh(oishii::Writer& writer,
                        const librii::g3d::PolygonData& mesh,

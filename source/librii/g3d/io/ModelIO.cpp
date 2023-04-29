@@ -237,11 +237,28 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
     return mat.read(unsafeReader, nullptr);
   }));
   u32 i = 0;
-  TRY(readDict(secOfs.ofsMeshes, [&](const librii::g3d::BetterNode& dnode) {
-    auto& poly = meshes.emplace_back();
-    return ReadMesh(poly, reader, isValid, positions, normals, colors,
-                    texcoords, transaction, transaction_path, i++);
-  }));
+  u32 num_furpolys = 0;
+  TRY(readDict(secOfs.ofsMeshes,
+               [&](const librii::g3d::BetterNode& dnode) -> Result<void> {
+                 auto& poly = meshes.emplace_back();
+                 bool badfur = false;
+                 TRY(ReadMesh(poly, reader, isValid, positions, normals, colors,
+                              texcoords, transaction, transaction_path, i++,
+                              &badfur));
+                 if (badfur) {
+                   ++num_furpolys;
+                 }
+                 return {};
+               }));
+
+  if (num_furpolys != 0) {
+    transaction.callback(
+        kpi::IOMessageClass::Warning, transaction_path,
+        std::format("{} polygons are specified as having fur data, which "
+                    "is unsupported and almost never used. "
+                    "Likely erroneously set by BrawlBox.",
+                    num_furpolys));
+  }
 
   if (transaction.state == kpi::TransactionState::Failure)
     return {};
