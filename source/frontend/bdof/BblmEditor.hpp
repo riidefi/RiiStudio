@@ -40,29 +40,6 @@ public:
   librii::egg::BLM m_blm;
 };
 
-inline Result<librii::egg::BLM> ReadBLM(std::span<const u8> buf,
-                                        std::string_view path) {
-  oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
-  oishii::BinaryReader reader(view.slice());
-  rsl::SafeReader safe(reader);
-  auto bblm = librii::egg::PBLM_Read(safe);
-  if (!bblm) {
-    return std::unexpected("Failed to read BBLM: " + bblm.error());
-  }
-  auto blm = librii::egg::From_PBLM(*bblm);
-  if (!blm) {
-    return std::unexpected("Failed to parse BBLM: " + blm.error());
-  }
-  return *blm;
-}
-inline void WriteBLM(const librii::egg::BLM& b, std::string_view path) {
-  rsl::trace("Attempting to save to {}", path);
-  oishii::Writer writer(0x50);
-  auto bblm = librii::egg::To_PBLM(b);
-  librii::egg::PBLM_Write(writer, bblm);
-  OishiiFlushWriter(writer, path);
-}
-
 class BblmEditor : public frontend::StudioWindow, public IEditor {
 public:
   BblmEditor() : StudioWindow("BBLM Editor: <unknown>", DockSetting::None) {
@@ -81,7 +58,7 @@ public:
     return root_id;
   }
   void openFile(std::span<const u8> buf, std::string_view path) {
-    auto blm = ReadBLM(buf, path);
+    auto blm = librii::egg::ReadBLM(buf, path);
     if (!blm) {
       rsl::error(blm.error());
       rsl::ErrorDialog(blm.error());

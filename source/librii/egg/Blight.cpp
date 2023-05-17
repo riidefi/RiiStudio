@@ -1,6 +1,8 @@
 #include "Blight.hpp"
 #include <rsl/SafeReader.hpp>
 
+#include <core/util/oishii.hpp>
+
 namespace librii::egg {
 
 // Bring into namespace
@@ -119,6 +121,25 @@ void Blight::write(oishii::Writer& writer) {
     for (auto& e : obj.reserved)
       writer.write<u8>(e);
   }
+}
+
+Result<librii::egg::LightSet> ReadBLIGHT(std::span<const u8> buf,
+                                         std::string_view path) {
+  oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
+  oishii::BinaryReader reader(view.slice());
+  librii::egg::Blight b{};
+  TRY(b.read(reader));
+  librii::egg::LightSet s;
+  TRY(s.from(b));
+  return s;
+}
+void WriteBLIGHT(const librii::egg::LightSet& b, std::string_view path) {
+  rsl::trace("Attempting to save to {}", path);
+  oishii::Writer writer(0);
+  librii::egg::Blight low{};
+  b.to(low);
+  low.write(writer);
+  OishiiFlushWriter(writer, path);
 }
 
 } // namespace librii::egg

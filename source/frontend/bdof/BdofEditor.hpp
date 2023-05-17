@@ -95,32 +95,14 @@ public:
   }
 
   void openFile(std::span<const u8> buf, std::string_view path) {
-    oishii::DataProvider view(buf | rsl::ToList(), path);
-    oishii::BinaryReader reader(view.slice());
-    rsl::SafeReader safe(reader);
-    auto bdof = librii::egg::bin::BDOF_Read(safe);
-    if (!bdof) {
-      rsl::error("Failed to read BDOF");
-      return;
-    }
-    auto dof = librii::egg::From_BDOF(*bdof);
+    auto dof = librii::egg::ReadDof(buf, path);
     if (!dof) {
       rsl::error("Failed to parse BDOF");
     }
     m_grid.m_dof = *dof;
     m_path = path;
   }
-  void saveAs(std::string_view path) {
-    auto writer = write();
-    OishiiFlushWriter(writer, path);
-  }
-
-  oishii::Writer write() const {
-    oishii::Writer writer(0x50);
-    auto bdof = librii::egg::To_BDOF(m_grid.m_dof);
-    librii::egg::bin::BDOF_Write(writer, bdof);
-    return writer;
-  }
+  void saveAs(std::string_view path) { WriteDof(m_grid.m_dof, path); }
 
   void saveButton() override {
     rsl::trace("Attempting to save to {}", m_path);
@@ -196,7 +178,7 @@ private:
         });
   }
   void debugSend() {
-    auto writer = write();
+    auto writer = librii::egg::WriteDofMemory(m_grid.m_dof);
     auto buf = writer.takeBuf();
     if (buf.size() == 0x50) {
       std::array<u8, 0x50> d;

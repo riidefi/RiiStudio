@@ -113,4 +113,9 @@ struct DOF {
 Result<DOF> From_BDOF(const bin::BDOF& b);
 bin::BDOF To_BDOF(const DOF& b);
 
+Result<librii::egg::DOF> ReadDof(std::span<const u8> buf,
+                                 std::string_view path);
+oishii::Writer WriteDofMemory(const librii::egg::DOF& b);
+void WriteDof(const librii::egg::DOF& b, std::string_view path);
+
 } // namespace librii::egg

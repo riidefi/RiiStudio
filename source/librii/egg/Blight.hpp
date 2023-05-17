@@ -288,4 +288,8 @@ struct LightSet {
   }
 };
 
+Result<librii::egg::LightSet> ReadBLIGHT(std::span<const u8> buf,
+                                         std::string_view path);
+void WriteBLIGHT(const librii::egg::LightSet& b, std::string_view path);
+
 } // namespace librii::egg

@@ -28,4 +28,8 @@ struct BFG {
 Result<BFG> BFG_Read(rsl::SafeReader& reader);
 void BFG_Write(oishii::Writer& writer, const BFG& bfg);
 
+Result<librii::egg::BFG> ReadBFG(std::span<const u8> buf,
+                                 std::string_view path);
+void WriteBFG(const librii::egg::BFG& b, std::string_view path);
+
 } // namespace librii::egg

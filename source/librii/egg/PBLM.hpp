@@ -81,7 +81,6 @@ struct BLM {
   ANNOTATE_STR2("@name", "blur1Intensity");
   f32 blur1Intensity;
 
-  
   ANNOTATE_STR2("@name", "_60");
   f32 _60;
   ANNOTATE_STR2("@name", "_64");
@@ -147,85 +146,64 @@ inline Result<BLM> From_PBLM(const PBLM& b) {
       .bokehColorScale0 = b.bokehColorScale0,
       .bokehColorScale1 = b.bokehColorScale1,
       // Unknown fields
-      .unks = {
-        ._1e = b._1e,
-        ._28 = b._28,
-        ._2c = b._2c,
-        ._30 = b._30,
-        ._34 = b._34,
-        ._38 = b._38,
-        ._3c = b._3c,
-        ._48 = b._48,
-        ._4c = b._4c,
-        ._50 = b._50,
-        ._54 = b._54,
-        ._58 = b._58,
-        ._5c = b._5c,
-        ._68 = b._68,
-        ._6c = b._6c,
-        ._70 = b._70,
-        ._74 = b._74,
-        ._78 = b._78,
-        ._7c = b._7c,
-        ._82 = b._82,
-        ._84 = b._84,
-        ._88 = b._88,
-        ._8c = b._8c,
-        ._90 = b._90,
-        ._94 = b._94,
-        ._98 = b._98,
-      },
+      .unks =
+          {
+              ._1e = b._1e,
+              ._28 = b._28,
+              ._2c = b._2c,
+              ._30 = b._30,
+              ._34 = b._34,
+              ._38 = b._38,
+              ._3c = b._3c,
+              ._48 = b._48,
+              ._4c = b._4c,
+              ._50 = b._50,
+              ._54 = b._54,
+              ._58 = b._58,
+              ._5c = b._5c,
+              ._68 = b._68,
+              ._6c = b._6c,
+              ._70 = b._70,
+              ._74 = b._74,
+              ._78 = b._78,
+              ._7c = b._7c,
+              ._82 = b._82,
+              ._84 = b._84,
+              ._88 = b._88,
+              ._8c = b._8c,
+              ._90 = b._90,
+              ._94 = b._94,
+              ._98 = b._98,
+          },
   };
 }
 inline PBLM To_PBLM(const BLM& b) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreorder-init-list"
-  return PBLM{
-      .thresholdAmount = b.thresholdAmount,
-      .thresholdColor = b.thresholdColor,
-      .compositeColor = b.compositeColor,
-      .blurFlags = b.blurFlags,
-      .blur0Radius = b.blur0Radius,
-      .blur0Intensity = b.blur0Intensity,
-      .blur1Radius = b.blur1Radius,
-      .blur1Intensity = b.blur1Intensity,
-      ._60 = b._60,
-      ._64 = b._64,
-      .compositeBlendMode = b.compositeBlendMode,
-      .blur1NumPasses = b.blur1NumPasses,
-      .bokehColorScale0 = b.bokehColorScale0,
-      .bokehColorScale1 = b.bokehColorScale1,
-      // Unknown fields
+  return PBLM {
+    .thresholdAmount = b.thresholdAmount, .thresholdColor = b.thresholdColor,
+    .compositeColor = b.compositeColor, .blurFlags = b.blurFlags,
+    .blur0Radius = b.blur0Radius, .blur0Intensity = b.blur0Intensity,
+    .blur1Radius = b.blur1Radius, .blur1Intensity = b.blur1Intensity,
+    ._60 = b._60, ._64 = b._64, .compositeBlendMode = b.compositeBlendMode,
+    .blur1NumPasses = b.blur1NumPasses, .bokehColorScale0 = b.bokehColorScale0,
+    .bokehColorScale1 = b.bokehColorScale1,
+    // Unknown fields
 #if !defined(__linux__)
-      ._1e = b.unks._1e,
-      ._28 = b.unks._28,
-      ._2c = b.unks._2c,
-      ._30 = b.unks._30,
-      ._34 = b.unks._34,
-      ._38 = b.unks._38,
-      ._3c = b.unks._3c,
-      ._48 = b.unks._48,
-      ._4c = b.unks._4c,
-      ._50 = b.unks._50,
-      ._54 = b.unks._54,
-      ._58 = b.unks._58,
-      ._5c = b.unks._5c,
-      ._68 = b.unks._68,
-      ._6c = b.unks._6c,
-      ._70 = b.unks._70,
-      ._74 = b.unks._74,
-      ._78 = b.unks._78,
-      ._7c = b.unks._7c,
-      ._82 = b.unks._82,
-      ._84 = b.unks._84,
-      ._88 = b.unks._88,
-      ._8c = b.unks._8c,
-      ._90 = b.unks._90,
-      ._94 = b.unks._94,
-      ._98 = b.unks._98,
+    ._1e = b.unks._1e, ._28 = b.unks._28, ._2c = b.unks._2c, ._30 = b.unks._30,
+    ._34 = b.unks._34, ._38 = b.unks._38, ._3c = b.unks._3c, ._48 = b.unks._48,
+    ._4c = b.unks._4c, ._50 = b.unks._50, ._54 = b.unks._54, ._58 = b.unks._58,
+    ._5c = b.unks._5c, ._68 = b.unks._68, ._6c = b.unks._6c, ._70 = b.unks._70,
+    ._74 = b.unks._74, ._78 = b.unks._78, ._7c = b.unks._7c, ._82 = b.unks._82,
+    ._84 = b.unks._84, ._88 = b.unks._88, ._8c = b.unks._8c, ._90 = b.unks._90,
+    ._94 = b.unks._94, ._98 = b.unks._98,
 #endif
   };
 #pragma clang diagnostic pop
 }
+
+Result<librii::egg::BLM> ReadBLM(std::span<const u8> buf,
+                                 std::string_view path);
+void WriteBLM(const librii::egg::BLM& b, std::string_view path);
 
 } // namespace librii::egg

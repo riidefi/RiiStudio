@@ -2,6 +2,8 @@
 
 #include "BDOF.hpp"
 
+#include <core/util/oishii.hpp>
+
 namespace librii::egg {
 
 namespace bin {
@@ -68,6 +70,29 @@ bin::BDOF To_BDOF(const DOF& b) {
       .indTexScaleS = b.indTexScaleS,
       .indTexScaleT = b.indTexScaleT,
   };
+}
+
+Result<librii::egg::DOF> ReadDof(std::span<const u8> buf,
+                                 std::string_view path) {
+  oishii::DataProvider view(buf | rsl::ToList(), path);
+  oishii::BinaryReader reader(view.slice());
+  rsl::SafeReader safe(reader);
+  auto bdof = librii::egg::bin::BDOF_Read(safe);
+  if (!bdof) {
+    return std::unexpected("Failed to read BDOF: " + bdof.error());
+  }
+  return librii::egg::From_BDOF(*bdof);
+}
+oishii::Writer WriteDofMemory(const librii::egg::DOF& b) {
+  oishii::Writer writer(0);
+  auto b2 = To_BDOF(b);
+  bin::BDOF_Write(writer, b2);
+  return writer;
+}
+void WriteDof(const librii::egg::DOF& b, std::string_view path) {
+  rsl::trace("Attempting to save to {}", path);
+  auto writer = WriteDofMemory(b);
+  OishiiFlushWriter(writer, path);
 }
 
 } // namespace librii::egg
