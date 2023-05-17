@@ -99,17 +99,20 @@ target_link_libraries(frontend PUBLIC
   updater
 )
 
-find_package(OpenGL REQUIRED)
-
 if (WIN32)
+  find_package(OpenGL REQUIRED)
+  find_package(glfw3 REQUIRED)
+  find_package(freetype REQUIRED)
+  find_package(CURL REQUIRED)
+
   set(LINK_LIBS
     ${LINK_LIBS}
-		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
+		glfw
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
 		OpenGL::GL
     ntdll # Rust needs this now?
-    ${PROJECT_SOURCE_DIR}/../vendor/libcurl.lib
-    ${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
+    CURL::libcurl
+    Freetype::Freetype
 	)
   if (ASAN)
     set(LINK_LIBS ${LINK_LIBS} "C:\\Program Files\\LLVM\\lib\\clang\\10.0.0\\lib\\windows\\clang_rt.asan-x86_64.lib")
