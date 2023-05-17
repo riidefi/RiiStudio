@@ -80,7 +80,10 @@ add_executable(frontend
  "properties/gc/Material/CratePreset.cpp" "UpdaterView.cpp" "bdof/BdofEditor.cpp" "bdof/BblmEditor.cpp" "Fonts.cpp" "bdof/BfgEditor.cpp" "bdof/BlightEditor.cpp" "EditorFactory.cpp"
  "bdof/AssimpImporter.cpp"
  
- "bdof/BlmapEditor.cpp")
+ "bdof/BlmapEditor.cpp"
+
+ "Frontend.cpp"
+)
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
