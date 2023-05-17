@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../VectorStream.hxx"
 #include "../data_provider.hxx"
 #include "../interfaces.hxx"
 #include "../util/util.hxx"
@@ -7,12 +8,10 @@
 #include <core/common.h>
 #include <rsl/DebugBreak.hpp>
 
-namespace oishii {
+// HACK
+extern bool gTestMode;
 
-// Trait
-struct Invalidity {
-  enum { invality_t };
-};
+namespace oishii {
 
 template <typename T, EndianSelect E = EndianSelect::Current>
 inline T endianDecode(T val, std::endian fileEndian) {
@@ -28,110 +27,83 @@ inline T endianDecode(T val, std::endian fileEndian) {
   return val;
 }
 
-//! Distributes error messages to all connected handlers.
-//!
-struct ErrorEmitter {
+class BinaryReader final : public VectorStream {
 public:
-  ErrorEmitter(const DataProvider& provider) : mProvider(&provider) {}
-  ~ErrorEmitter() = default;
+  //! Failure type is always `std::string`
+  template <typename T> using Result = std::expected<T, std::string>;
 
-  void addErrorHandler(ErrorHandler* handler) {
-    mErrorHandlers.emplace(handler);
-  }
-  void removeErrorHandler(ErrorHandler* handler) {
-    mErrorHandlers.erase(handler);
-  }
-
-  void beginError() {
-    for (auto* handler : mErrorHandlers)
-      handler->onErrorBegin(*mProvider);
-  }
-  void describeError(const char* type, const char* brief, const char* details) {
-    for (auto* handler : mErrorHandlers)
-      handler->onErrorDescribe(*mProvider, type, brief, details);
-  }
-  void addErrorStackTrace(std::streampos start, std::streamsize size,
-                          const char* domain) {
-    for (auto* handler : mErrorHandlers)
-      handler->onErrorAddStackTrace(*mProvider, start, size, domain);
-  }
-  void endError() {
-    for (auto* handler : mErrorHandlers)
-      handler->onErrorEnd(*mProvider);
-  }
-
-private:
-  const DataProvider* mProvider = nullptr;
-  std::set<ErrorHandler*> mErrorHandlers;
-};
-
-class BinaryReader final : public AbstractStream<BinaryReader>,
-                           private ErrorEmitter {
-public:
-  BinaryReader(ByteView&& view);
+  //! Read file from memory
+  BinaryReader(std::vector<u8>&& view, std::string_view path);
+  BinaryReader(std::span<const u8> view, std::string_view path);
+  BinaryReader(const BinaryReader&) = delete;
+  BinaryReader(BinaryReader&&);
   ~BinaryReader();
 
-  void addErrorHandler(ErrorHandler* handler) {
-    ErrorEmitter::addErrorHandler(handler);
-  }
-  void removeErrorHandler(ErrorHandler* handler) {
-    ErrorEmitter::removeErrorHandler(handler);
-  }
+  //! Read file from disc
+  static Result<BinaryReader> FromFilePath(std::string_view path);
 
-  // MemoryBlockReader
-  u32 tell() const { return mPos; }
-  void seekSet(u32 ofs) { mPos = ofs; }
-  u32 startpos() const { return 0; }
-  u32 endpos() const { return static_cast<u32>(mView.size()); }
-  const u8* getStreamStart() const { return mView.data(); }
+  // The |BinaryReader| keeps track of the files endianness
+  std::endian endian() const { return mFileEndian; }
+  void setEndian(std::endian endian) noexcept { mFileEndian = endian; }
 
-  bool isInBounds(u32 pos) const { return mView.isInBounds(pos); }
+  // Path of the file or "Unknown path"
+  const char* getFile() const noexcept { return m_path.c_str(); }
 
-  std::span<const u8> slice() const { return mView; }
+  //! Get a read-only view of the file
+  std::span<const u8> slice() const { return mBuf; }
 
-private:
-  u32 mPos = 0;
-  ByteView mView;
-
-public:
-  template <typename T, EndianSelect E = EndianSelect::Current,
+  //! Pop a value from the stream (of type |T|)
+  template <typename T,                             //
+            EndianSelect E = EndianSelect::Current, //
             bool unaligned = false>
-  T peek();
-  template <typename T, EndianSelect E = EndianSelect::Current,
-            bool unaligned = false>
-  T read();
+  Result<T> tryRead();
 
-  template <typename T, EndianSelect E = EndianSelect::Current,
-            bool unaligned = false>
-  std::expected<T, std::string> tryRead();
-
-  template <typename T, EndianSelect E = EndianSelect::Current>
-  inline T readUnaligned() {
-    return read<T, E, true>();
+  //! Pop |n| values from the stream (each of type |T|)
+  template <typename T, //
+            u32 n>
+  auto tryReadX() -> Result<std::array<T, n>> {
+    std::array<T, n> result;
+    for (auto& r : result) {
+      auto tmp = tryRead<T>();
+      if (!tmp) {
+        return std::unexpected(tmp.error());
+      }
+      r = *tmp;
+    }
+    return result;
   }
 
-  template <typename T, int num = 1, EndianSelect E = EndianSelect::Current,
+  //! Get a value from an arbitrary point in the file
+  template <typename T,                             //
+            EndianSelect E = EndianSelect::Current, //
             bool unaligned = false>
-  std::array<T, num> readX();
+  auto tryGetAt(int trans) -> Result<T> {
+    if (!unaligned && (trans % sizeof(T))) {
+      auto err = std::format("Alignment error: {} is not {}-byte aligned.",
+                             tell(), sizeof(T));
+      if (gTestMode) {
+        fprintf(stderr, "%s\n", err.c_str());
+        rsl::debug_break();
+      }
+      return std::unexpected(err);
+    }
 
-  template <typename T, EndianSelect E = EndianSelect::Current,
-            bool unaligned = false>
-  void transfer(T& out) {
-    out = read<T, E, unaligned>();
-  }
+    if (trans < 0 || trans + sizeof(T) > endpos()) {
+      auto err = std::format(
+          "Bounds error: Reading {} bytes from {} exceeds buffer size of {}",
+          sizeof(T), trans, endpos());
+      if (gTestMode) {
+        fprintf(stderr, "%s\n", err.c_str());
+        rsl::debug_break();
+      }
+      return std::unexpected(err);
+    }
 
-  template <typename T, EndianSelect E = EndianSelect::Current,
-            bool unaligned = false>
-  T peekAt(int trans);
-  template <typename T, EndianSelect E = EndianSelect::Current,
-            bool unaligned = false>
-  std::expected<T, std::string> tryGetAt(int trans);
-  //	template <typename T, EndianSelect E = EndianSelect::Current>
-  //	T readAt();
-  template <typename T, EndianSelect E = EndianSelect::Current,
-            bool unaligned = false>
-  T getAt(int trans) {
-    return peekAt<T, E, unaligned>(trans - tell());
+    readerBpCheck(sizeof(T), trans - tell());
+    T decoded = endianDecode<T, E>(
+        *reinterpret_cast<const T*>(getStreamStart() + trans), mFileEndian);
+
+    return decoded;
   }
 
   struct ScopedRegion {
@@ -151,51 +123,17 @@ public:
     BinaryReader& mReader;
   };
 
+  //! Create a debug frame
   auto createScoped(std::string&& region) {
     return ScopedRegion(*this, std::move(region));
   }
 
-  //! @brief Warn that there is an issue in a certain range. Stack trace is read
-  //! and reported.
-  //!
-  //! @param[in] msg			Message to print
-  //! @param[in] selectBegin	File offset where warning selection begins.
-  //! @param[in] selectEnd	File offset where warning selection ends.
-  //! @param[in] checkStack	Whether or not to output a stack trace.
-  //! Necessary to prevent infinite recursion.
-  //!
+  //! Print a warning message
   void warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
               bool checkStack = true);
 
-  template <typename lastReadType, typename TInval> void signalInvalidityLast();
-
-  template <typename lastReadType, typename TInval,
-            int = TInval::inval_use_userdata_string>
-  void signalInvalidityLast(const char* userData);
-
-  // Magics are assumed to be 32 bit
-  template <u32 magic, bool critical = true> inline bool expectMagic();
-
-  void setEndian(std::endian endian) noexcept { mFileEndian = endian; }
-  bool isBigEndian() const noexcept { return mFileEndian == std::endian::big; }
-
-  // TODO
-  const char* getFile() const noexcept {
-    return mView.getProvider()->getFilePath().data();
-  }
-
-  void readBuffer(std::vector<u8>& out, u32 size, s32 ofs = -1) {
-    if (ofs < 0)
-      ofs = mPos;
-    out.reserve(out.size() + size);
-    boundsCheck(size);
-    std::copy(mView.begin() + ofs, mView.begin() + ofs + size,
-              std::back_inserter(out));
-    mPos += size;
-  }
-
   template <typename T>
-  std::expected<std::vector<T>, std::string> tryReadBuffer(u32 size, u32 addr) {
+  auto tryReadBuffer(u32 size, u32 addr) -> Result<std::vector<T>> {
     static_assert(sizeof(T) == 1);
     if (addr + size > endpos()) {
       rsl::debug_break();
@@ -203,11 +141,10 @@ public:
     }
     readerBpCheck(size, addr - tell());
     std::vector<T> out(size);
-    std::copy_n(mView.begin() + addr, size, out.begin());
+    std::copy_n(mBuf.begin() + addr, size, out.begin());
     return out;
   }
-  template <typename T>
-  std::expected<std::vector<T>, std::string> tryReadBuffer(u32 size) {
+  template <typename T> auto tryReadBuffer(u32 size) -> Result<std::vector<T>> {
     auto buf = tryReadBuffer<T>(size, tell());
     if (!buf) {
       return std::unexpected(buf.error());
@@ -218,11 +155,8 @@ public:
 
 private:
   std::endian mFileEndian = std::endian::big;
+  std::string m_path = "Unknown Path";
 
-  void boundsCheck(u32 size, u32 at);
-  void boundsCheck(u32 size) { boundsCheck(size, tell()); }
-  void alignmentCheck(u32 size, u32 at);
-  void alignmentCheck(u32 size) { alignmentCheck(size, tell()); }
   void readerBpCheck(u32 size, s32 trans = 0);
 
   struct DispatchStack;
@@ -239,6 +173,4 @@ inline std::span<const u8> SliceStream(oishii::BinaryReader& reader) {
 
 } // namespace oishii
 
-#include "binary_reader_impl.hxx"
-#include "invalidities.hxx"
 #include "stream_raii.hpp"

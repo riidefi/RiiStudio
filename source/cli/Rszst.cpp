@@ -73,7 +73,7 @@ public:
     if (!librii::assimp2rhst::IsExtensionSupported(m_from.string())) {
       return std::unexpected("File format is unsupported");
     }
-    auto file = OishiiReadFile(m_opt.from.view());
+    auto file = ReadFile(m_opt.from.view());
     if (!file.has_value()) {
       return std::unexpected("Failed to read file");
     }
@@ -84,8 +84,8 @@ public:
     auto settings = getSettings();
     if (m_opt.ai_json) {
       Assimp::Importer importer;
-      auto* pScene =
-          ReadScene(on_log, file->slice(), m_from.string(), settings, importer);
+      auto* pScene = ReadScene(on_log, std::span(*file), m_from.string(),
+                               settings, importer);
       if (!pScene) {
         return std::unexpected("Failed to read ASSIMP SCENE");
       }
@@ -97,7 +97,7 @@ public:
       return {};
     }
     auto tree = librii::assimp2rhst::DoImport(m_from.string(), on_log,
-                                              file->slice(), settings);
+                                              std::span(*file), settings);
     if (!tree) {
       return std::unexpected("Failed to parse: " + tree.error());
     }
@@ -119,13 +119,13 @@ public:
         std::filesystem::is_directory(m_presets)) {
       for (auto it : std::filesystem::directory_iterator(m_presets)) {
         if (it.path().extension() == ".rspreset") {
-          auto file = OishiiReadFile(it.path().string());
+          auto file = ReadFile(it.path().string());
           if (!file) {
             fmt::print(stderr, "Failed to read rspreset: {}\n",
                        it.path().string());
             continue;
           }
-          auto preset = librii::crate::ReadRSPreset(file->slice());
+          auto preset = librii::crate::ReadRSPreset(*file);
           if (!preset) {
             fmt::print(stderr, "Failed to parse rspreset: {}\n",
                        it.path().string());
@@ -236,14 +236,14 @@ public:
     }
     fmt::print(stderr, "Decompressing SZS: {} => {}\n", m_from.string(),
                m_to.string());
-    auto file = OishiiReadFile(m_opt.from.view());
+    auto file = ReadFile(m_opt.from.view());
     if (!file.has_value()) {
       return std::unexpected("Error: Failed to read file");
     }
     // Max 4GB
-    u32 size = TRY(librii::szs::getExpandedSize(file->slice()));
+    u32 size = TRY(librii::szs::getExpandedSize(*file));
     std::vector<u8> buf(size);
-    TRY(librii::szs::decode(buf, file->slice()));
+    TRY(librii::szs::decode(buf, *file));
     if (std::filesystem::is_directory(m_to)) {
       return std::unexpected("Failed to extract: |to| is a folder, not a file");
     }
@@ -294,7 +294,7 @@ public:
       return false;
     }
     auto from = std::filesystem::absolute(m_from);
-    auto file = OishiiReadFile(from.string());
+    auto file = ReadFile(from.string());
     if (!file.has_value()) {
       fmt::print(stderr, "Error: Failed to read file {}\n", from.string());
       return false;
@@ -303,9 +303,9 @@ public:
     fmt::print(stderr,
                "Compressing SZS: {} => {} (Boyer-Moore-Horspool strategy)\n",
                m_from.string(), m_to.string());
-    std::vector<u8> buf(file->slice().size_bytes() * 2);
-    int size = librii::szs::encodeBoyerMooreHorspool(
-        file->slice().data(), buf.data(), file->slice().size_bytes());
+    std::vector<u8> buf(file->size() * 2);
+    int size = librii::szs::encodeBoyerMooreHorspool(file->data(), buf.data(),
+                                                     file->size());
     if (size < 0 || size > buf.size()) {
       fmt::print(stderr, "Error: Failed to compress file\n");
       return false;
@@ -368,11 +368,11 @@ public:
     if (m_from.extension() != ".rhst") {
       return std::unexpected("File format is unsupported");
     }
-    auto file = OishiiReadFile(m_opt.from.view());
+    auto file = ReadFile(m_opt.from.view());
     if (!file.has_value()) {
       return std::unexpected("Failed to read file");
     }
-    auto tree = librii::rhst::ReadSceneTree(file->slice());
+    auto tree = librii::rhst::ReadSceneTree(*file);
     if (!tree) {
       return std::unexpected("Failed to parse RHST");
     }
@@ -436,15 +436,15 @@ public:
     if (!parseArgs()) {
       return std::unexpected("Error: failed to parse args");
     }
-    auto file = OishiiReadFile(m_opt.from.view());
+    auto file = ReadFile(m_opt.from.view());
     if (!file.has_value()) {
       return std::unexpected("Error: Failed to read file");
     }
 
     // Max 4GB
-    u32 size = TRY(librii::szs::getExpandedSize(file->slice()));
+    u32 size = TRY(librii::szs::getExpandedSize(*file));
     std::vector<u8> buf(size);
-    TRY(librii::szs::decode(buf, file->slice()));
+    TRY(librii::szs::decode(buf, *file));
 
     fmt::print(stderr, "Extracting ARC.SZS,{} => {}\n", m_from.string(),
                m_to.string());

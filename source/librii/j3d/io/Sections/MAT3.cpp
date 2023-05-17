@@ -51,7 +51,7 @@ struct MatLoader {
     template <typename TGet = TRaw> TGet raw() {
       assert(ofs != 0 && "Invalid read.");
 
-      return reader.getAt<TGet>(ofs);
+      return reader.tryGetAt<TGet>(ofs).value();
     }
     template <typename T, typename TRaw_> T as() {
       return static_cast<T>(raw<TRaw_>());
@@ -69,12 +69,12 @@ public:
   }
 
   template <typename T, typename U = T> SecOfsEntry<T> indexed(MatSec sec) {
-    return SecOfsEntry<T>{reader,
-                          secOfsEntryRaw(sec, reader.read<T>(), sizeof(U))};
+    return SecOfsEntry<T>{
+        reader, secOfsEntryRaw(sec, reader.tryRead<T>().value(), sizeof(U))};
   }
 
   template <typename T> SecOfsEntry<u8> indexed(MatSec sec, u32 stride) {
-    const auto idx = reader.read<T>();
+    const auto idx = reader.tryRead<T>().value();
 
     if (idx == static_cast<T>(-1)) {
       // reader.warnAt("Null index", reader.tell() - sizeof(T), reader.tell());
@@ -194,7 +194,7 @@ public:
     reader.getUnsafe().warnAt("Number of TexGens does not match GenInfo count",
                               reader.tell() - 20, reader.tell());
   }
-  MAYBE_UNUSED const auto post_tg = reader.getUnsafe().readX<u16, 8>();
+  MAYBE_UNUSED const auto post_tg = TRY(reader.getUnsafe().tryReadX<u16, 8>());
   // TODO: Validate assumptions here
 
   dbg.assertSince(0x48);
@@ -227,8 +227,8 @@ public:
     for (int i = 0; i < tevKonstColors.size(); ++i)
       mat.tevKonstColors[i] = tevKonstColors[i];
 
-    const auto kc_sels = reader.getUnsafe().readX<u8, 16>();
-    const auto ka_sels = reader.getUnsafe().readX<u8, 16>();
+    const auto kc_sels = TRY(reader.getUnsafe().tryReadX<u8, 16>());
+    const auto ka_sels = TRY(reader.getUnsafe().tryReadX<u8, 16>());
 
     const auto get_kc = [&](size_t i) {
       return rsl::enum_cast<gx::TevKColorSel>(kc_sels[i]);
@@ -337,10 +337,9 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
   TRY(reader.U16());
 
   const auto [ofsMatData, ofsRemapTable, ofsStringTable] =
-      reader.getUnsafe().readX<s32, 3>();
-  MatLoader loader{
-      reader.getUnsafe().readX<s32, static_cast<u32>(MatSec::Max)>(), g.start,
-      reader.getUnsafe()};
+      TRY(reader.S32s<3>());
+  MatLoader loader{TRY(reader.S32s<static_cast<u32>(MatSec::Max)>()), g.start,
+                   reader.getUnsafe()};
 
   {
     // Read cache
@@ -382,7 +381,7 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
           std::string_view pstring = "This is padding data to align";
 
           for (int i = 0; i < std::min(search_size, pstring.length()); ++i) {
-            if (reader.read<u8>() != pstring[i])
+            if (reader.tryRead<u8>().value() != pstring[i])
               return false;
           }
           return true;

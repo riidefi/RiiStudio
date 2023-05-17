@@ -1,7 +1,7 @@
-#include <core/common.h>
 #include <LibBadUIFramework/Node2.hpp>
 #include <LibBadUIFramework/Plugins.hpp>
 #include <LibBadUIFramework/RichNameManager.hpp>
+#include <core/common.h>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 #include "G3dIo.hpp"
@@ -20,7 +20,7 @@ public:
     assert(dynamic_cast<Collection*>(&transaction.node) != nullptr);
 
     Collection& collection = *dynamic_cast<Collection*>(&transaction.node);
-    oishii::BinaryReader reader(std::move(transaction.data));
+    oishii::BinaryReader reader(transaction.data, "Unknown path");
     for (auto& bp : reader_bps)
       reader.add_bp<u32>(bp);
 

@@ -17,5 +17,5 @@ file(GLOB_RECURSE HDR_FILES
 add_library(oishii STATIC
 	${SRC_FILES}
 	${HDR_FILES}
-)
+ "AbstractStream.cxx")
 target_link_libraries(oishii core)

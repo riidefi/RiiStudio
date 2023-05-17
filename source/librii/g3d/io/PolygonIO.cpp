@@ -218,17 +218,20 @@ ReadMPrims(rsl::SafeReader& reader, u32 buf_size,
                        (u32)librii::gx::VertexAttribute::Texture0MatrixIndex &&
                    (u32)attr <=
                        (u32)librii::gx::VertexAttribute::Texture7MatrixIndex)) {
-                vert[attr] = reader.readUnaligned<u8>();
+                vert[attr] =
+                    TRY(reader.tryRead<u8, oishii::EndianSelect::Big, true>());
                 break;
               }
               return std::unexpected("Mesh unsupported");
             case librii::gx::VertexAttributeType::None:
               break;
             case librii::gx::VertexAttributeType::Byte:
-              vert[attr] = reader.readUnaligned<u8>();
+              vert[attr] =
+                  TRY(reader.tryRead<u8, oishii::EndianSelect::Big, true>());
               break;
             case librii::gx::VertexAttributeType::Short:
-              vert[attr] = reader.readUnaligned<u16>();
+              vert[attr] =
+                  TRY(reader.tryRead<u16, oishii::EndianSelect::Big, true>());
               break;
             }
           }

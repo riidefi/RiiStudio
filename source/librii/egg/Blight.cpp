@@ -125,8 +125,7 @@ void Blight::write(oishii::Writer& writer) {
 
 Result<librii::egg::LightSet> ReadBLIGHT(std::span<const u8> buf,
                                          std::string_view path) {
-  oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
-  oishii::BinaryReader reader(view.slice());
+  oishii::BinaryReader reader(buf, path);
   librii::egg::Blight b{};
   TRY(b.read(reader));
   librii::egg::LightSet s;

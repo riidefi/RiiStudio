@@ -92,8 +92,7 @@ void LightMap::write(oishii::Writer& writer) const {
 
 Result<librii::egg::LightMap> ReadBlmap(std::span<const u8> buf,
                                         std::string_view path) {
-  oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
-  oishii::BinaryReader reader(view.slice());
+  oishii::BinaryReader reader(buf, path);
   rsl::SafeReader safe(reader);
   librii::egg::LightMap blmap;
   auto ok = blmap.read(safe);

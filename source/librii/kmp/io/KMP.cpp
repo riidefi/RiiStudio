@@ -37,9 +37,7 @@ struct IOContext {
 
 Result<CourseMap> readKMP(std::span<const u8> data) {
   CourseMap map;
-  std::vector<u8> dataCopy(data.begin(), data.end());
-  auto view = oishii::DataProvider(std::move(dataCopy));
-  oishii::BinaryReader reader(view.slice());
+  oishii::BinaryReader reader(data, "Unknown path");
   rsl::SafeReader safe(reader);
   IOContext ctx("kmp");
 
@@ -49,74 +47,79 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
   {
     auto g = ctx.sublet("header");
 
-    g.require(reader.read<u32>() == 'RKMD', "Invalid file magic");
-    g.require(reader.read<u32>() == reader.endpos(), "Invalid file size");
+    g.require(TRY(reader.tryRead<u32>()) == 'RKMD', "Invalid file magic");
+    g.require(reader.tryRead<u32>() == reader.endpos(), "Invalid file size");
 
-    num_sec = reader.read<u16>();
+    num_sec = TRY(reader.tryRead<u16>());
     g.request(num_sec == 15, "Unusual section count");
 
-    header_size = reader.read<u16>();
+    header_size = TRY(reader.tryRead<u16>());
     g.require(header_size == 0x10 + num_sec * 4, "Spoopy header length");
 
-    map.mRevision = reader.read<u32>();
+    map.mRevision = TRY(reader.tryRead<u32>());
     g.require(map.mRevision == 2520, "Unusual revision");
   }
 
   EXPECT(num_sec < 32);
   u32 sections_handled = 0;
 
-  const auto search = [&](u32 key, bool standard_fields =
-                                       true) -> std::tuple<bool, u16, u16> {
+  const auto search = [&](u32 key,
+                          bool standard_fields =
+                              true) -> Result<std::tuple<bool, u16, u16>> {
     for (u32 i = 0; i < num_sec; ++i) {
-      reader.seekSet(header_size +
-                     reader.getAt<u32>(header_size + (i - num_sec) * 4));
-      const auto magic = reader.read<u32>();
+      reader.seekSet(
+          header_size +
+          reader.tryGetAt<u32>(header_size + (i - num_sec) * 4).value());
+      const auto magic = TRY(reader.tryRead<u32>());
       if (magic == key) {
         sections_handled |= (1 << i);
         if (!standard_fields)
-          return {true, 1, 0};
-        const auto num_entry = reader.read<u16>();
-        const auto user_data = reader.read<u16>();
-        return {true, num_entry, user_data};
+          return std::tuple<bool, u16, u16>{true, 1, 0};
+        const auto num_entry = TRY(reader.tryRead<u16>());
+        const auto user_data = TRY(reader.tryRead<u16>());
+        return std::tuple<bool, u16, u16>{true, num_entry, user_data};
       }
     }
-    return {false, 0, 0};
+    return std::tuple<bool, u16, u16>{false, 0, 0};
   };
 
-  if (auto [found, num_entry, user_data] = search('KTPT', map.mRevision > 1830);
+  if (auto [found, num_entry, user_data] =
+          TRY(search('KTPT', map.mRevision > 1830));
       found) {
     map.mStartPoints.resize(num_entry);
     for (auto& entry : map.mStartPoints) {
       entry.position << reader;
       entry.rotation << reader;
-      entry.player_index = reader.read<s16>();
-      entry._ = reader.read<u16>();
+      entry.player_index = TRY(reader.tryRead<s16>());
+      entry._ = TRY(reader.tryRead<u16>());
     }
   }
 
   const auto read_path_section = [&](u32 path_key, u32 point_key, auto& sec,
-                                     u32 point_stride, auto read_point) {
-    auto [pt_found, pt_num_entry, pt_user_data] = search(point_key);
+                                     u32 point_stride,
+                                     auto read_point) -> Result<void> {
+    auto [pt_found, pt_num_entry, pt_user_data] = TRY(search(point_key));
     if (!pt_found)
-      return;
+      return {};
     const auto pt_ofs = reader.tell();
 
-    auto [ph_found, ph_num_entry, ph_user_data] = search(path_key);
+    auto [ph_found, ph_num_entry, ph_user_data] = TRY(search(path_key));
     if (!ph_found)
-      return;
+      return {};
 
     sec.resize(ph_num_entry);
     for (auto& entry : sec) {
-      const auto [start, size] = reader.readX<u8, 2>();
+      const u8 start = TRY(reader.tryRead<u8>());
+      const u8 size = TRY(reader.tryRead<u8>());
 
-      for (auto& e : reader.readX<u8, 6>())
+      for (auto& e : TRY(reader.tryReadX<u8, 6>()))
         if (e != 0xFF)
           entry.mPredecessors.push_back(e);
-      for (auto& e : reader.readX<u8, 6>())
+      for (auto& e : TRY(reader.tryReadX<u8, 6>()))
         if (e != 0xFF)
           entry.mSuccessors.push_back(e);
 
-      entry.misc = reader.readX<u8, 2>();
+      entry.misc = TRY(reader.tryReadX<u8, 2>());
 
       {
         oishii::Jump<oishii::Whence::Set> g(reader,
@@ -126,60 +129,67 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
           read_point(pt, reader);
       }
     }
+    return {};
   };
 
-  const auto read_enpt = [](EnemyPoint& pt, oishii::BinaryReader& reader) {
+  const auto read_enpt = [](EnemyPoint& pt,
+                            oishii::BinaryReader& reader) -> Result<void> {
     pt.position << reader;
-    pt.deviation = reader.read<f32>();
-    pt.param = reader.readX<u8, 4>();
+    pt.deviation = TRY(reader.tryRead<f32>());
+    pt.param = TRY(reader.tryReadX<u8, 4>());
+    return {};
   };
-  read_path_section('ENPH', 'ENPT', map.mEnemyPaths, 0x14, read_enpt);
+  TRY(read_path_section('ENPH', 'ENPT', map.mEnemyPaths, 0x14, read_enpt));
 
-  const auto read_itpt = [](ItemPoint& pt, oishii::BinaryReader& reader) {
+  const auto read_itpt = [](ItemPoint& pt,
+                            oishii::BinaryReader& reader) -> Result<void> {
     pt.position << reader;
-    pt.deviation = reader.read<f32>();
-    pt.param = reader.readX<u8, 4>();
+    pt.deviation = TRY(reader.tryRead<f32>());
+    pt.param = TRY(reader.tryReadX<u8, 4>());
+    return {};
   };
-  read_path_section('ITPH', 'ITPT', map.mItemPaths, 0x14, read_itpt);
+  TRY(read_path_section('ITPH', 'ITPT', map.mItemPaths, 0x14, read_itpt));
 
-  const auto read_ckpt = [&](CheckPoint& pt, oishii::BinaryReader& reader) {
+  const auto read_ckpt = [&](CheckPoint& pt,
+                             oishii::BinaryReader& reader) -> Result<void> {
     pt.mLeft << reader;
     pt.mRight << reader;
-    pt.mRespawnIndex = reader.read<u8>();
-    pt.mLapCheck = reader.read<u8>();
+    pt.mRespawnIndex = TRY(reader.tryRead<u8>());
+    pt.mLapCheck = TRY(reader.tryRead<u8>());
     // TODO: We assume the intrusive linked-list data is valid
     reader.skip(2);
+    return {};
   };
-  read_path_section('CKPH', 'CKPT', map.mCheckPaths, 0x14, read_ckpt);
+  TRY(read_path_section('CKPH', 'CKPT', map.mCheckPaths, 0x14, read_ckpt));
 
-  if (auto [found, num_entry, user_data] = search('GOBJ'); found) {
+  if (auto [found, num_entry, user_data] = TRY(search('GOBJ')); found) {
     map.mGeoObjs.resize(num_entry);
     for (auto& entry : map.mGeoObjs) {
-      entry.id = reader.read<u16>();
-      entry._ = reader.read<u16>();
+      entry.id = TRY(reader.tryRead<u16>());
+      entry._ = TRY(reader.tryRead<u16>());
       entry.position << reader;
       entry.rotation << reader;
       entry.scale << reader;
-      entry.pathId = reader.read<u16>();
-      entry.settings = reader.readX<u16, 8>();
-      entry.flags = reader.read<u16>();
+      entry.pathId = TRY(reader.tryRead<u16>());
+      entry.settings = TRY(reader.tryReadX<u16, 8>());
+      entry.flags = TRY(reader.tryRead<u16>());
     }
   }
 
-  if (auto [found, num_entry, user_data] = search('POTI'); found) {
+  if (auto [found, num_entry, user_data] = TRY(search('POTI')); found) {
     const auto total_points_expected = user_data;
     u32 total_points_real = 0;
 
     map.mPaths.resize(num_entry);
     for (auto& entry : map.mPaths) {
-      const auto entry_size = reader.read<u16>();
+      const auto entry_size = TRY(reader.tryRead<u16>());
       entry.points.resize(entry_size);
       total_points_real += entry_size;
       entry.interpolation = TRY(safe.Enum8<Interpolation>());
       entry.loopPolicy = TRY(safe.Enum8<LoopPolicy>());
       for (auto& sub : entry.points) {
         sub.position << reader;
-        sub.params = reader.readX<u16, 2>();
+        sub.params = TRY(reader.tryReadX<u16, 2>());
       }
     }
 
@@ -190,7 +200,7 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
                                    std::to_string(total_points_real) + ".");
   }
 
-  if (auto [found, num_entry, user_data] = search('AREA'); found) {
+  if (auto [found, num_entry, user_data] = TRY(search('AREA')); found) {
     auto area_ctx = ctx.sublet("Areas");
     map.mAreas.resize(num_entry);
 
@@ -198,14 +208,14 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
     for (auto& entry : map.mAreas) {
       auto entry_ctx = area_ctx.sublet("#" + std::to_string(i++));
 
-      auto raw_area_shp = reader.read<u8>();
+      auto raw_area_shp = TRY(reader.tryRead<u8>());
       if (raw_area_shp > 1) {
         entry_ctx.error("Invalid area shape: " + std::to_string(raw_area_shp) +
                         ". Expected range: [0, 1]. Defaulting to 0 (Box).");
         raw_area_shp = 0;
       }
 
-      auto raw_area_type = reader.read<u8>();
+      auto raw_area_type = TRY(reader.tryRead<u8>());
       if (raw_area_type > 10) {
         entry_ctx.error(
             "Invalid area type: " + std::to_string(raw_area_type) +
@@ -214,17 +224,17 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
 
       entry.getModel().mShape = static_cast<AreaShape>(raw_area_shp);
       entry.mType = static_cast<AreaType>(raw_area_type);
-      entry.mCameraIndex = reader.read<u8>();
-      entry.mPriority = reader.read<u8>();
+      entry.mCameraIndex = TRY(reader.tryRead<u8>());
+      entry.mPriority = TRY(reader.tryRead<u8>());
       entry.getModel().mPosition << reader;
       entry.getModel().mRotation << reader;
       entry.getModel().mScaling << reader;
 
-      entry.mParameters = reader.readX<u16, 2>();
+      entry.mParameters = TRY(reader.tryReadX<u16, 2>());
       if (map.mRevision >= 2200) {
-        entry.mRailID = reader.read<u8>();
-        entry.mEnemyLinkID = reader.read<u8>();
-        entry.mPad = reader.readX<u8, 2>();
+        entry.mRailID = TRY(reader.tryRead<u8>());
+        entry.mEnemyLinkID = TRY(reader.tryRead<u8>());
+        entry.mPad = TRY(reader.tryReadX<u8, 2>());
       } else {
         entry.mRailID = 0xFF;
         entry.mEnemyLinkID = 0xFF;
@@ -233,41 +243,41 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
     }
   }
 
-  if (auto [found, num_entry, user_data] = search('CAME'); found) {
+  if (auto [found, num_entry, user_data] = TRY(search('CAME')); found) {
     map.mOpeningPanIndex = user_data >> 8;
     map.mVideoPanIndex = user_data & 0xff;
     map.mCameras.resize(num_entry);
     for (auto& entry : map.mCameras) {
       entry.mType = TRY(safe.Enum8<CameraType>());
-      entry.mNext = reader.read<u8>();
-      entry.mShake = reader.read<u8>();
-      entry.mPathId = reader.read<u8>();
-      entry.mPathSpeed = reader.read<u16>();
-      entry.mFov.mSpeed = reader.read<u16>();
-      entry.mView.mSpeed = reader.read<u16>();
-      entry.mStartFlag = reader.read<u8>();
-      entry.mMovieFlag = reader.read<u8>();
+      entry.mNext = TRY(reader.tryRead<u8>());
+      entry.mShake = TRY(reader.tryRead<u8>());
+      entry.mPathId = TRY(reader.tryRead<u8>());
+      entry.mPathSpeed = TRY(reader.tryRead<u16>());
+      entry.mFov.mSpeed = TRY(reader.tryRead<u16>());
+      entry.mView.mSpeed = TRY(reader.tryRead<u16>());
+      entry.mStartFlag = TRY(reader.tryRead<u8>());
+      entry.mMovieFlag = TRY(reader.tryRead<u8>());
       entry.mPosition << reader;
       entry.mRotation << reader;
-      entry.mFov.from = reader.read<f32>();
-      entry.mFov.to = reader.read<f32>();
+      entry.mFov.from = TRY(reader.tryRead<f32>());
+      entry.mFov.to = TRY(reader.tryRead<f32>());
       entry.mView.from << reader;
       entry.mView.to << reader;
-      entry.mActiveFrames = reader.read<f32>();
+      entry.mActiveFrames = TRY(reader.tryRead<f32>());
     }
   }
 
-  if (auto [found, num_entry, user_data] = search('JGPT'); found) {
+  if (auto [found, num_entry, user_data] = TRY(search('JGPT')); found) {
     map.mRespawnPoints.resize(num_entry);
     for (auto& entry : map.mRespawnPoints) {
       entry.position << reader;
       entry.rotation << reader;
-      entry.id = reader.read<u16>();
-      entry.range = reader.read<u16>();
+      entry.id = TRY(reader.tryRead<u16>());
+      entry.range = TRY(reader.tryRead<u16>());
     }
   }
 
-  if (auto [found, num_entry, user_data] = search('CNPT'); found) {
+  if (auto [found, num_entry, user_data] = TRY(search('CNPT')); found) {
     auto ctx_cnpt = ctx.sublet("Cannons");
 
     map.mCannonPoints.resize(num_entry);
@@ -276,38 +286,38 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
       auto ctx_entry = ctx_cnpt.sublet(std::to_string(i));
       entry.mPosition << reader;
       entry.mRotation << reader;
-      ctx_entry.require(reader.read<u16>() == i, "Invalid cannon ID");
+      ctx_entry.require(TRY(reader.tryRead<u16>()) == i, "Invalid cannon ID");
       entry.mType = TRY(safe.Enum8<CannonType>());
       ++i;
     }
   }
 
-  if (auto [found, num_entry, user_data] = search('MSPT'); found) {
+  if (auto [found, num_entry, user_data] = TRY(search('MSPT')); found) {
     map.mMissionPoints.resize(num_entry);
     for (auto& entry : map.mMissionPoints) {
       entry.position << reader;
       entry.rotation << reader;
-      entry.id = reader.read<u16>();
-      entry.unknown = reader.read<u16>();
+      entry.id = TRY(reader.tryRead<u16>());
+      entry.unknown = TRY(reader.tryRead<u16>());
     }
   }
 
-  if (auto [found, num_entry, user_data] = search('STGI'); found) {
+  if (auto [found, num_entry, user_data] = TRY(search('STGI')); found) {
     map.mStages.resize(num_entry);
     for (auto& entry : map.mStages) {
-      entry.mLapCount = reader.read<u8>();
+      entry.mLapCount = TRY(reader.tryRead<u8>());
       entry.mCorner = TRY(safe.Enum8<Corner>());
       entry.mStartPosition = TRY(safe.Enum8<StartPosition>());
-      entry.mFlareTobi = reader.read<u8>();
-      entry.mLensFlareOptions.a = reader.read<u8>();
-      entry.mLensFlareOptions.r = reader.read<u8>();
-      entry.mLensFlareOptions.g = reader.read<u8>();
-      entry.mLensFlareOptions.b = reader.read<u8>();
+      entry.mFlareTobi = TRY(reader.tryRead<u8>());
+      entry.mLensFlareOptions.a = TRY(safe.U8());
+      entry.mLensFlareOptions.r = TRY(safe.U8());
+      entry.mLensFlareOptions.g = TRY(safe.U8());
+      entry.mLensFlareOptions.b = TRY(safe.U8());
 
       if (map.mRevision >= 2320) {
-        entry.mUnk08 = reader.read<u8>();
-        entry._ = reader.read<u8>();
-        entry.mSpeedModifier = reader.read<u16>();
+        entry.mUnk08 = TRY(safe.U8());
+        entry._ = TRY(safe.U8());
+        entry.mSpeedModifier = TRY(safe.U16());
       } else {
         entry.mUnk08 = 0;
         entry._ = 0;

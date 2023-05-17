@@ -44,7 +44,7 @@ enum class RHSTToken {
 
 class RHSTReader {
 public:
-  RHSTReader(oishii::ByteView file_data) : mReader(std::move(file_data)) {
+  RHSTReader(oishii::ByteView file_data) : mReader(file_data, "Unknown Path") {
     mReader.setEndian(std::endian::little);
     mReader.skip(8);
   }
@@ -117,7 +117,7 @@ public:
 
 private:
   std::string_view _readString() {
-    const u32 string_len = mReader.read<u32>();
+    const u32 string_len = mReader.tryRead<u32>().value();
     const u32 start_start_pos = mReader.tell();
     mReader.skip(roundUp(string_len, 4));
 
@@ -130,7 +130,8 @@ private:
   }
 
   Token _readTok() {
-    const RHSTToken type = static_cast<RHSTToken>(mReader.read<s32>());
+    const RHSTToken type =
+        static_cast<RHSTToken>(mReader.tryRead<s32>().value());
 
     switch (type) {
     case RHSTToken::RHST_DATA_STRING: {
@@ -139,17 +140,17 @@ private:
       return {StringToken{.data = data}};
     }
     case RHSTToken::RHST_DATA_S32: {
-      const s32 data = mReader.read<s32>();
+      const s32 data = mReader.tryRead<s32>().value();
 
       return {S32Token{.data = data}};
     }
     case RHSTToken::RHST_DATA_F32: {
-      const f32 data = mReader.read<f32>();
+      const f32 data = mReader.tryRead<f32>().value();
 
       return {F32Token{.data = data}};
     }
     case RHSTToken::RHST_DATA_DICT: {
-      const u32 nchildren = mReader.read<u32>();
+      const u32 nchildren = mReader.tryRead<u32>().value();
       std::string_view name = _readString();
 
       return {DictBeginToken{.name = name, .size = nchildren}};
@@ -158,8 +159,8 @@ private:
       return {DictEndToken{}};
     }
     case RHSTToken::RHST_DATA_ARRAY: {
-      const u32 nchildren = mReader.read<u32>();
-      [[maybe_unused]] const u32 child_type = mReader.read<u32>();
+      const u32 nchildren = mReader.tryRead<u32>().value();
+      [[maybe_unused]] const u32 child_type = mReader.tryRead<u32>().value();
 
       return {ArrayBeginToken{.size = nchildren}};
     }
@@ -336,21 +337,22 @@ public:
         return Success();
       }
 
-	auto read_billboard_mode = [](const auto& str) {
-        if(str == "y_face")
+      auto read_billboard_mode = [](const auto& str) {
+        if (str == "y_face")
           return BillboardMode::Y_Face;
-		if(str == "y_parallel")
+        if (str == "y_parallel")
           return BillboardMode::Y_Parallel;
-        if(str == "z_face")
+        if (str == "z_face")
           return BillboardMode::Z_Face;
-        if(str == "z_parallel")
+        if (str == "z_parallel")
           return BillboardMode::Z_Parallel;
-        if(str == "zrotate_face")
+        if (str == "zrotate_face")
           return BillboardMode::ZRotate_Face;
-        if(str == "zrotate_parallel")
+        if (str == "zrotate_parallel")
           return BillboardMode::ZRotate_Parallel;
         if (str == "none")
           return BillboardMode::None;
+        return BillboardMode::None;
       };
       if (key == "billboard") {
         auto* tok = mReader.expect<RHSTReader::StringToken>();
@@ -358,7 +360,7 @@ public:
           return Expected("Expected a string");
 
         bone.billboard_mode = read_billboard_mode(tok->data);
-        
+
         return Success();
       }
 
@@ -820,7 +822,8 @@ public:
           std::string bill_mode =
               get<std::string>(bone, "billboard").value_or("None");
           b.billboard_mode =
-              magic_enum::enum_cast<BillboardMode>(cap(bill_mode)).value_or(BillboardMode::None);
+              magic_enum::enum_cast<BillboardMode>(cap(bill_mode))
+                  .value_or(BillboardMode::None);
           // Ignored: billboard
           b.parent = get<s32>(bone, "parent").value_or(-1);
           // We entirely recompute child links (from the "parent" field) and no

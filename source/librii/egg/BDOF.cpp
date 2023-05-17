@@ -74,8 +74,7 @@ bin::BDOF To_BDOF(const DOF& b) {
 
 Result<librii::egg::DOF> ReadDof(std::span<const u8> buf,
                                  std::string_view path) {
-  oishii::DataProvider view(buf | rsl::ToList(), path);
-  oishii::BinaryReader reader(view.slice());
+  oishii::BinaryReader reader(buf, path);
   rsl::SafeReader safe(reader);
   auto bdof = librii::egg::bin::BDOF_Read(safe);
   if (!bdof) {

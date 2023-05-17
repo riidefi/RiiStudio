@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/common.h>
 #include <LibBadUIFramework/Plugins.hpp>
+#include <core/common.h>
 #include <map>
 #include <oishii/writer/binary_writer.hxx>
 #include <oishii/writer/node.hxx>
@@ -81,15 +81,17 @@ inline void writeMatrix(const glm::mat<r, c, TM, qM>& mat, T& stream) {
 
 inline std::vector<std::string> readNameTable(oishii::BinaryReader& reader) {
   const auto start = reader.tell();
-  std::vector<std::string> collected(reader.read<u16>());
-  reader.read<u16>();
+  std::vector<std::string> collected(reader.tryRead<u16>().value());
+  reader.tryRead<u16>().value();
 
   for (auto& e : collected) {
-    const auto [hash, ofs] = reader.readX<u16, 2>();
+    const auto hash = reader.tryRead<u16>().value();
+    const auto ofs = reader.tryRead<u16>().value();
     {
       oishii::Jump<oishii::Whence::Set> g(reader, start + ofs);
 
-      for (char c = reader.read<s8>(); c; c = reader.read<s8>())
+      for (char c = reader.tryRead<s8>().value(); c;
+           c = reader.tryRead<s8>().value())
         e.push_back(c);
     }
   }
@@ -148,7 +150,7 @@ struct ScopedSection : private oishii::BinaryReader::ScopedRegion {
       : oishii::BinaryReader::ScopedRegion(reader, name) {
     start = reader.tell();
     reader.skip(4);
-    size = reader.read<u32>();
+    size = reader.tryRead<u32>().value();
   }
   u32 start = 0;
   u32 size = 0;

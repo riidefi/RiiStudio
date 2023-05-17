@@ -89,11 +89,11 @@ Result<ObjectParameters> Read(std::span<const u8> buf) {
 }
 
 Result<ObjectParameters> ReadFromFile(std::string_view path) {
-  auto f = OishiiReadFile(path);
+  auto f = ReadFile(path);
   if (!f) {
     return std::unexpected(std::format("Failed to read file {}", path));
   }
-  return Read(f->slice());
+  return Read(*f);
 }
 
 std::string GetPrimaryResource(const ObjectParameter& param) {

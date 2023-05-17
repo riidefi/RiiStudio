@@ -25,8 +25,7 @@ void BFG_Write(oishii::Writer& writer, const BFG& bfg) {
 
 Result<librii::egg::BFG> ReadBFG(std::span<const u8> buf,
                                  std::string_view path) {
-  oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
-  oishii::BinaryReader reader(view.slice());
+  oishii::BinaryReader reader(buf, path);
   rsl::SafeReader safe(reader);
   auto bblm = librii::egg::BFG_Read(safe);
   if (!bblm) {

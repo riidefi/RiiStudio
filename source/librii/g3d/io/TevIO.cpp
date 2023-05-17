@@ -138,7 +138,7 @@ void BinaryTev::read(oishii::BinaryReader& reader, unsigned int tev_addr,
   // So the DL parser doesn't discard IndOrders
   mat.indirectStages.resize(4);
   ReadTev(mat, reader, tev_addr, /* trust_stagecount */ true, brawlbox_bug);
-  id = reader.getAt<u32>(tev_addr + 8);
+  id = reader.tryGetAt<u32>(tev_addr + 8).value();
   // TODO: LUT is skipped among other fields
   G3dShader sh(mat);
   reserved = {};

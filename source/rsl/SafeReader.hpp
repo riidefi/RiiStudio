@@ -66,6 +66,14 @@ public:
   auto U8() -> Result<u8>;
   auto S8() -> Result<s8>;
 
+  template <u32 n> auto S32s() -> Result<std::array<s32, n>> {
+    std::array<s32, n> result;
+    for (auto& r : result) {
+      r = TRY(S32());
+    }
+    return result;
+  }
+
   // TODO: Maybe some subletting system for unaligned contexts?
 private:
   static inline constexpr auto Cur = oishii::EndianSelect::Current;

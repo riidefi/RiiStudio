@@ -12,7 +12,7 @@ Result<void> readVTX1(BMDOutputContext& ctx) {
   ScopedSection g(reader.getUnsafe(), "Vertex Buffers");
 
   const auto ofsFmt = TRY(reader.S32());
-  const auto ofsData = reader.getUnsafe().readX<s32, 13>();
+  const auto ofsData = TRY(reader.S32s<13>());
 
   reader.seekSet(g.start + ofsFmt);
   gx::VertexBufferAttribute type =

@@ -550,12 +550,11 @@ Result<void> importTextureFromFile(libcube::Texture& data,
                                    std::vector<u8>& scratch, bool mip_gen,
                                    int min_dim, int max_mip) {
   if (path.ends_with(".tex0")) {
-    auto obuf = OishiiReadFile(path);
+    auto obuf = ReadFile(path);
     if (!obuf) {
       return std::unexpected("Failed to read file");
     }
-    auto buf = *obuf;
-    auto tex = TRY(librii::crate::ReadTEX0(buf.slice()));
+    auto tex = TRY(librii::crate::ReadTEX0(*obuf));
     data.setTextureFormat(tex.format);
     data.setWidth(tex.width);
     data.setHeight(tex.height);

@@ -17,10 +17,7 @@ struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
 namespace librii::crate {
 
 Result<g3d::G3dMaterialData> ReadMDL0Mat(std::span<const u8> file) {
-  std::vector<u8> bruh;
-  oishii::DataProvider provider(std::move(bruh));
-  oishii::ByteView view(file, provider, "MDL0Mat");
-  oishii::BinaryReader reader(std::move(view));
+  oishii::BinaryReader reader(file, "Unknown MDL0Mat");
 
   g3d::G3dMaterialData mat;
   const bool ok = g3d::readMaterial(mat, reader, /* ignore_tev */ true);
@@ -83,10 +80,7 @@ Result<g3d::G3dShader> ReadMDL0Shade(std::span<const u8> file) {
   // TODO: Clean this up
   file = file.subspan(8);
 
-  std::vector<u8> bruh;
-  oishii::DataProvider provider(std::move(bruh));
-  oishii::ByteView view(file, provider, "MDLShade");
-  oishii::BinaryReader reader(std::move(view));
+  oishii::BinaryReader reader(file, "Unknown MDL0Shade");
 
   // This function is a bit more complex, as we normally assume materials are
   // read before shaders; here we don't make such assumptions.
@@ -203,8 +197,7 @@ std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
 
 Result<g3d::BinarySrt, std::string> ReadSRT0(std::span<const u8> file) {
   g3d::SrtAnimationArchive arc;
-  oishii::DataProvider cringe(file | rsl::ToList());
-  oishii::BinaryReader reader(cringe.slice());
+  oishii::BinaryReader reader(file, "Unknown SRT0");
   auto ok = arc.read(reader);
   if (!ok) {
     return std::unexpected("Failed to parse SRT0: g3d::ReadSrtFile returned " +
@@ -304,19 +297,19 @@ ScanCrateAnimationFolder(std::filesystem::path path) {
 }
 
 Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
-  auto mdl0mat = OishiiReadFile(paths.mdl0mat.string());
+  auto mdl0mat = OishiiReadFile2(paths.mdl0mat.string());
   if (!mdl0mat) {
     return std::unexpected(
         std::format("Failed to read .mdl0mat at \"{}\"", paths.mdl0mat));
   }
-  auto mdl0shade = OishiiReadFile(paths.mdl0shade.string());
+  auto mdl0shade = OishiiReadFile2(paths.mdl0shade.string());
   if (!mdl0shade) {
     return std::unexpected(
         std::format("Failed to read .mdl0shade at \"{}\"", paths.mdl0shade));
   }
   std::vector<oishii::DataProvider> tex0s;
   for (auto& x : paths.tex0) {
-    auto tex0 = OishiiReadFile(x.string());
+    auto tex0 = OishiiReadFile2(x.string());
     if (!tex0) {
       return std::unexpected(std::format("Failed to read .tex0 at \"{}\"", x));
     }
@@ -324,7 +317,7 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   }
   std::vector<oishii::DataProvider> srt0s;
   for (auto& x : paths.srt0) {
-    auto srt0 = OishiiReadFile(x.string());
+    auto srt0 = OishiiReadFile2(x.string());
     if (!srt0) {
       return std::unexpected(std::format("Failed to read .srt0 at \"{}\"", x));
     }
@@ -437,7 +430,7 @@ struct Reader {
 
   Reader(std::string path, const std::vector<u8>& data)
       : mData(OishiiReadFile(path, data.data(), data.size())),
-        mReader(mData.slice()) {}
+        mReader(mData.slice(), path) {}
 };
 
 struct SimpleTransaction {
@@ -624,7 +617,8 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
           EXPECT(*u < mut.tracks.size());
           auto& track = mut.tracks[*u];
           for (auto& [idx, f] : track.keyframes) {
-            // For now, force palette to 0 as BrawlBox sets it to some other value
+            // For now, force palette to 0 as BrawlBox sets it to some other
+            // value
             f.palette = 0;
             EXPECT(f.palette == 0, "PAT0: Palettes are not supported; each "
                                    "keyframe should have paletteIdx of 0");

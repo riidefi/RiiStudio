@@ -371,13 +371,12 @@ Result<U8Archive> Create(std::filesystem::path root) {
     }
     std::vector<u8> data;
     if (!folder) {
-      auto f = OishiiReadFile(path.string());
+      auto f = ReadFile(path.string());
       if (!f) {
         return std::unexpected(
             std::format("Failed to read file {}", path.string()));
       }
-      auto s = f->slice();
-      data = {s.begin(), s.end()};
+      data = *f;
     }
     path = std::filesystem::path(".") / std::filesystem::relative(path, root);
 

@@ -30,7 +30,7 @@ public:
     assert(dynamic_cast<Collection*>(&node) != nullptr);
     auto& collection = *dynamic_cast<Collection*>(&node);
 
-    oishii::BinaryReader reader(std::move(data));
+    oishii::BinaryReader reader(data, "Unknown path");
 
     auto ok = ReadBMD(collection, reader, transaction);
     if (!ok) {

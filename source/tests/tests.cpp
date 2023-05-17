@@ -44,7 +44,7 @@ void save(std::string_view path, kpi::INode& root,
 
 std::optional<std::pair<std::unique_ptr<kpi::INode>, std::vector<u8>>>
 open(std::string path, std::span<const u32> bps = {}) {
-  auto file = OishiiReadFile(path);
+  auto file = OishiiReadFile2(path);
   if (!file.has_value()) {
     std::cout << "Failed to read file!\n";
     return std::nullopt;
@@ -124,7 +124,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
   if (from.ends_with("kmp") || from.ends_with("blight") ||
       from.ends_with("blmap") || from.ends_with("bdof") ||
       from.ends_with("bblm")) {
-    auto file = OishiiReadFile(from);
+    auto file = OishiiReadFile2(from);
     if (!file.has_value()) {
       printf("Cannot rebuild\n");
       return;
@@ -136,7 +136,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
         writer.add_bp<u32>(bp);
       }
     }
-    oishii::BinaryReader reader(file->slice());
+    oishii::BinaryReader reader(file->slice(), from);
     for (auto bp : bps) {
       if (bp < 0)
         reader.add_bp<u32>(-bp);

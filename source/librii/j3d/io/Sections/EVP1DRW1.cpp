@@ -5,6 +5,7 @@ namespace librii::j3d {
 
 Result<void> readEVP1DRW1(BMDOutputContext& ctx) {
   auto& reader = ctx.reader;
+  rsl::SafeReader s(reader);
   // We infer DRW1 -- one bone -> singlebound, else create envelope
   std::vector<libcube::DrawMatrix> envelopes;
 
@@ -12,12 +13,12 @@ Result<void> readEVP1DRW1(BMDOutputContext& ctx) {
   if (enterSection(ctx, 'EVP1')) {
     ScopedSection g(reader, "Envelopes");
 
-    u16 size = reader.read<u16>();
+    u16 size = TRY(s.U16());
     envelopes.resize(size);
-    reader.read<u16>();
+    TRY(s.U16());
 
     const auto [ofsMatrixSize, ofsMatrixIndex, ofsMatrixWeight,
-                ofsMatrixInvBind] = reader.readX<s32, 4>();
+                ofsMatrixInvBind] = TRY(reader.tryReadX<s32, 4>());
 
     if (ofsMatrixSize && ofsMatrixIndex && ofsMatrixWeight &&
         ofsMatrixInvBind) {
@@ -28,16 +29,17 @@ Result<void> readEVP1DRW1(BMDOutputContext& ctx) {
       reader.seekSet(g.start);
 
       for (int i = 0; i < size; ++i) {
-        const auto num = reader.peekAt<u8>(ofsMatrixSize + i);
+        const auto num =
+            TRY(reader.tryGetAt<u8>(reader.tell() + ofsMatrixSize + i));
 
         for (int j = 0; j < num; ++j) {
           // TODO: Validate this. Is this wrong? Why are these misaligned?
           const auto index =
-              reader.getAt<u16, oishii::EndianSelect::Current, true>(
-                  g.start + ofsMatrixIndex + mtxId * 2);
+              TRY(reader.tryGetAt<u16, oishii::EndianSelect::Current, true>(
+                  g.start + ofsMatrixIndex + mtxId * 2));
           const auto influence =
-              reader.getAt<f32, oishii::EndianSelect::Current, true>(
-                  g.start + ofsMatrixWeight + mtxId * 4);
+              TRY(reader.tryGetAt<f32, oishii::EndianSelect::Current, true>(
+                  g.start + ofsMatrixWeight + mtxId * 4));
 
           envelopes[i].mWeights.emplace_back(index, influence);
 
@@ -54,8 +56,8 @@ Result<void> readEVP1DRW1(BMDOutputContext& ctx) {
         auto& mtx = ctx.mdl.joints[i].inverseBindPoseMtx;
 
         for (int j = 0; j < 12; ++j) {
-          mtx[j] = reader.getAt<f32>(g.start + ofsMatrixInvBind + (i * 0x30) +
-                                     (j * 4));
+          mtx[j] = TRY(reader.tryGetAt<f32>(g.start + ofsMatrixInvBind +
+                                            (i * 0x30) + (j * 4)));
         }
       }
     }
@@ -67,11 +69,11 @@ Result<void> readEVP1DRW1(BMDOutputContext& ctx) {
 
     ctx.mdl.drawMatrices.clear();
     ctx.mdl.drawMatrices.resize(
-        reader.read<u16>() -
+        TRY(reader.tryRead<u16>()) -
         envelopes.size()); // Bug in N's tooling corrected on runtime
-    reader.read<u16>();
+    TRY(s.U16());
 
-    const auto [ofsPartialWeighting, ofsIndex] = reader.readX<s32, 2>();
+    const auto [ofsPartialWeighting, ofsIndex] = TRY(reader.tryReadX<s32, 2>());
 
     reader.seekSet(g.start);
 
@@ -79,8 +81,9 @@ Result<void> readEVP1DRW1(BMDOutputContext& ctx) {
     for (auto& mtx : ctx.mdl.drawMatrices) {
 
       const auto multipleInfluences =
-          reader.peekAt<u8>(ofsPartialWeighting + i);
-      const auto index = reader.peekAt<u16>(ofsIndex + i * 2);
+          TRY(reader.tryGetAt<u8>(reader.tell() + ofsPartialWeighting + i));
+      const auto index =
+          TRY(reader.tryGetAt<u16>(reader.tell() + ofsIndex + i * 2));
       //	if (multipleInfluences)
       //		printf("multiple influences: DRW=%u, EVP=%u\n", i,
       // index);
@@ -264,7 +267,8 @@ struct DRW1Node {
       getLinkingRestriction().alignment = 2;
     }
 
-    std::expected<void, std::string> write2(oishii::Writer& writer) const noexcept {
+    std::expected<void, std::string>
+    write2(oishii::Writer& writer) const noexcept {
       // TODO -- we can do much better
       std::vector<int> envelopesToWrite;
       for (int i = 0; i < mMdl.drawMatrices.size(); ++i) {

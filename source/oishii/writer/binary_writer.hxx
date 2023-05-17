@@ -12,8 +12,7 @@ namespace oishii {
 
 class Writer final : public VectorWriter {
 public:
-  Writer(u32 size) : VectorWriter(size) {}
-  Writer(std::vector<u8> buf) : VectorWriter(std::move(buf)) {}
+  using VectorWriter::VectorWriter;
 
   template <typename T, EndianSelect E = EndianSelect::Current>
   void transfer(T& out) {

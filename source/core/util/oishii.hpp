@@ -8,7 +8,7 @@
 #include <rsl/Expected.hpp>
 
 inline std::optional<oishii::DataProvider>
-OishiiReadFile(std::string_view path) {
+OishiiReadFile2(std::string_view path) {
   std::ifstream file(std::string(path), std::ios::binary | std::ios::ate);
   if (!file)
     return std::nullopt;
@@ -24,7 +24,7 @@ OishiiReadFile(std::string_view path) {
 }
 inline std::expected<std::vector<u8>, std::string>
 ReadFile(std::string_view path) {
-  auto buf = OishiiReadFile(path);
+  auto buf = OishiiReadFile2(path);
   if (!buf) {
     return std::unexpected("Failed to read file at \"" + std::string(path) +
                            "\"");

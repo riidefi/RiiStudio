@@ -41,7 +41,7 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
               // size + offset?
               // matrix primitive splits
               ofsMtxPrimAccessor // "mtx grp"
-  ] = reader.getUnsafe().readX<s32, 8>();
+  ] = TRY(reader.S32s<8>());
   reader.seekSet(g.start);
 
   // Compressible resources in J3D have a relocation table (necessary for
@@ -108,7 +108,7 @@ Result<void> readSHP1(BMDOutputContext& ctx) {
     for (u16 i = 0; i < num_matrix_prims; ++i) {
       const u32 prim_idx = first_mtx_prim_idx + i;
       reader.seekSet(g.start + ofsMtxPrimAccessor + prim_idx * 8);
-      const auto [dlSz, dlOfs] = reader.getUnsafe().readX<u32, 2>();
+      const auto [dlSz, dlOfs] = TRY(reader.getUnsafe().tryReadX<u32, 2>());
 
       struct MatrixData {
         s16 current_matrix;

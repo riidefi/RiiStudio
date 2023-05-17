@@ -1,24 +1,8 @@
 #include "binary_reader.hxx"
 
-namespace oishii {
+#include <fstream>
 
-void BinaryReader::boundsCheck(u32 size, u32 at) {
-  if (Options::BOUNDS_CHECK && at + size > endpos()) {
-    // warnAt("Out of bounds read...", at, size + at);
-    assert(!"Out of bounds read");
-    abort();
-  }
-}
-void BinaryReader::alignmentCheck(u32 size, u32 at) {
-  if (Options::ALIGNMENT_CHECK && at % size) {
-    // TODO: Filter warnings in same scope, only print stack once.
-    warnAt((std::string("Alignment error: ") + std::to_string(tell()) +
-            " is not " + std::to_string(size) + " byte aligned.")
-               .c_str(),
-           at, at + size, true);
-    rsl::debug_break();
-  }
-}
+namespace oishii {
 
 void BinaryReader::readerBpCheck(u32 size, s32 trans) {
 #ifndef NDEBUG
@@ -172,10 +156,6 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
   // Stack trace
 
   if (checkStack) {
-    beginError();
-    describeError("Warning", msg, "");
-    addErrorStackTrace(selectBegin, selectEnd - selectBegin, "<root>");
-
     // printf("\tStack Trace\n\t===========\n");
     if (mStack != nullptr) {
       auto& mStack = *this->mStack;
@@ -184,11 +164,6 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
         printf("\t\tIn %s: start=0x%X, at=0x%X\n",
                entry.handlerName.size() ? entry.handlerName.c_str() : "?",
                entry.handlerStart, entry.jump);
-        if (entry.jump != entry.handlerStart)
-          addErrorStackTrace(entry.jump, entry.jump_sz, "indirection");
-        addErrorStackTrace(entry.handlerStart, 0,
-                           entry.handlerName.size() ? entry.handlerName.c_str()
-                                                    : "?");
 
         if (entry.jump != selectBegin &&
             (i == static_cast<s32>(mStack.mSize) - 1 ||
@@ -196,14 +171,33 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
           warnAt("STACK TRACE", entry.jump, entry.jump + entry.jump_sz, false);
       }
     }
-
-    endError();
   }
 }
 
-BinaryReader::BinaryReader(ByteView&& view)
-    : ErrorEmitter(*view.getProvider()), mView(std::move(view)) {}
-BinaryReader ::~BinaryReader() = default;
+BinaryReader::BinaryReader(std::vector<u8>&& view, std::string_view path)
+    : VectorStream(std::move(view)), m_path(path) {}
+BinaryReader::BinaryReader(std::span<const u8> view, std::string_view path)
+    : VectorStream(std::vector<u8>{view.begin(), view.end()}), m_path(path) {}
+BinaryReader::~BinaryReader() = default;
+
+BinaryReader::BinaryReader(BinaryReader&&) = default;
+
+std::expected<BinaryReader, std::string>
+BinaryReader::FromFilePath(std::string_view path) {
+  std::ifstream file(std::string(path), std::ios::binary | std::ios::ate);
+  if (!file) {
+    return std::unexpected("Failed to open file " + std::string(path));
+  }
+
+  std::vector<u8> vec(file.tellg());
+  file.seekg(0, std::ios::beg);
+
+  if (!file.read(reinterpret_cast<char*>(vec.data()), vec.size())) {
+    return std::unexpected("Failed to read file " + std::string(path));
+  }
+
+  return BinaryReader(std::move(vec), path);
+}
 
 template <typename T, EndianSelect E = EndianSelect::Current,
           bool unaligned = false>
@@ -239,26 +233,5 @@ std::expected<T, std::string> tryReadImpl(oishii::BinaryReader& reader) {
   TRY_READ_IMPL_TEU(T, EndianSelect::Little, true)
 
 FOR_OISHII_TYPES(TRY_READ_IMPL_T)
-
-template <typename T, EndianSelect E, bool unaligned>
-T readImpl(oishii::BinaryReader& reader) {
-  T decoded = reader.peek<T, E, unaligned>();
-  reader.seek<Whence::Current>(sizeof(T));
-  return decoded;
-}
-
-#define READ_IMPL_TEU(T_, E_, U_)                                              \
-  template <> T_ BinaryReader::read<T_, E_, U_>() {                            \
-    return readImpl<T_, E_, U_>(*this);                                        \
-  }
-#define READ_IMPL_T(T)                                                         \
-  READ_IMPL_TEU(T, EndianSelect::Current, false)                               \
-  READ_IMPL_TEU(T, EndianSelect::Current, true)                                \
-  READ_IMPL_TEU(T, EndianSelect::Big, false)                                   \
-  READ_IMPL_TEU(T, EndianSelect::Big, true)                                    \
-  READ_IMPL_TEU(T, EndianSelect::Little, false)                                \
-  READ_IMPL_TEU(T, EndianSelect::Little, true)
-
-FOR_OISHII_TYPES(READ_IMPL_T)
 
 } // namespace oishii

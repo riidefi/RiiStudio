@@ -4,7 +4,7 @@
 
 namespace oishii {
 
-template <Whence W = Whence::Last, typename T = BinaryReader> struct Jump {
+template <Whence W = Whence::Set, typename T = BinaryReader> struct Jump {
   inline Jump(T& stream, u32 offset) : mStream(stream), back(stream.tell()) {
     mStream.template seek<W>(offset);
   }

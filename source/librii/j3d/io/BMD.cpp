@@ -182,7 +182,9 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
   BMDOutputContext ctx{mdl, {}, {}, reader, transaction};
 
   reader.setEndian(std::endian::big);
-  const auto magic = reader.read<u32>();
+  rsl::SafeReader s(reader);
+
+  const auto magic = TRY(s.U32());
   if (magic == 'J3D2') {
     // Big endian
   } else if (magic == '2D3J') {
@@ -193,22 +195,23 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
 
   mdl.isBDL = false;
 
-  u32 bmdVer = reader.read<u32>();
+  u32 bmdVer = TRY(s.U32());
   if (bmdVer == 'bmd3') {
   } else if (bmdVer == 'bdl4') {
 #ifndef BUILD_DIST
     // mdl.isBDL = true;
 #endif
   } else {
-    reader.signalInvalidityLast<u32, oishii::MagicInvalidity<'bmd3'>>();
+    reader.warnAt("Invalid magic: expected 'bmd3'", reader.tell() - 4,
+                  reader.tell());
     return std::unexpected(
-        std::format("Unsupporte BMD version 0x{:x}", bmdVer));
+        std::format("Unsupported BMD version 0x{:x}", bmdVer));
   }
 
   // TODO: Validate file size.
   // const auto fileSize =
-  reader.read<u32>();
-  const auto sec_count = reader.read<u32>();
+  TRY(s.U32());
+  const auto sec_count = TRY(s.U32());
 
   // Skip SVR3 header
   reader.seek<oishii::Whence::Current>(16);
@@ -216,8 +219,8 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
   // Scan the file
   ctx.mSections.clear();
   for (u32 i = 0; i < sec_count; ++i) {
-    const u32 secType = ctx.reader.read<u32>();
-    const u32 secSize = ctx.reader.read<u32>();
+    const u32 secType = TRY(s.U32());
+    const u32 secSize = TRY(s.U32());
 
     {
       oishii::JumpOut g(ctx.reader, secSize - 8);

@@ -98,10 +98,12 @@ Result<void> readTEX1(BMDOutputContext& ctx) {
 
   ScopedSection g(ctx.reader, "Textures");
 
-  u16 size = reader.read<u16>();
-  reader.read<u16>();
+  rsl::SafeReader safe(reader);
 
-  const auto [ofsHeaders, ofsNameTable] = reader.readX<s32, 2>();
+  u16 size = TRY(safe.U16());
+  TRY(safe.U16());
+
+  const auto [ofsHeaders, ofsNameTable] = TRY(safe.S32s<2>());
   reader.seekSet(g.start);
 
   std::vector<std::string> nameTable;
@@ -208,8 +210,8 @@ Result<void> readTEX1(BMDOutputContext& ctx) {
   int i = 0;
   for (const auto& it : uniques) {
     auto& texpair = texRaw[it.bti_index];
-    reader.readBuffer(texpair.data.mData, texpair.byte_size,
-                      texpair.absolute_file_offset);
+    texpair.data.mData = TRY(reader.tryReadBuffer<u8>(
+        texpair.byte_size, texpair.absolute_file_offset));
     ctx.mdl.textures.emplace_back() = texpair.data;
 
     ++i;

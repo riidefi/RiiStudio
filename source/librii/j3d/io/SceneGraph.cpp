@@ -21,13 +21,16 @@ struct ByteCodeCmd {
   ByteCodeOp op;
   s16 idx;
 
-  ByteCodeCmd(oishii::BinaryReader& reader) { transfer(reader); }
+  ByteCodeCmd(oishii::BinaryReader& reader) {
+    rsl::SafeReader safe(reader);
+    read(safe);
+  }
   ByteCodeCmd() : op(ByteCodeOp::Unitialized), idx(-1) {}
 
   ByteCodeCmd(ByteCodeOp o, s16 i = 0) : op(o), idx(i) {}
-  template <typename T> void transfer(T& stream) {
-    stream.template transfer<ByteCodeOp>(op);
-    stream.template transfer<s16>(idx);
+  template <typename T> void write(T& stream) {
+    stream.template write<s16>(static_cast<s16>(op));
+    stream.template write<s16>(idx);
   }
   Result<void> read(rsl::SafeReader& reader) {
     op = TRY(reader.Enum16<ByteCodeOp>());
@@ -106,7 +109,7 @@ struct SceneGraphNode : public oishii::Node {
     // Assume root 0
     TRY(writeBone(writer, mdl.joints[0], mdl.jointIds[0], mdl, depth));
 
-    ByteCodeCmd(ByteCodeOp::Terminate).transfer(writer);
+    ByteCodeCmd(ByteCodeOp::Terminate).write(writer);
     return {};
   }
 
@@ -121,8 +124,8 @@ struct SceneGraphNode : public oishii::Node {
         id = i;
     }
     EXPECT(id != -1);
-    ByteCodeCmd(ByteCodeOp::Joint, id).transfer(writer);
-    ByteCodeCmd(ByteCodeOp::Open).transfer(writer);
+    ByteCodeCmd(ByteCodeOp::Joint, id).write(writer);
+    ByteCodeCmd(ByteCodeOp::Open).write(writer);
     ++depth;
 
     if (!joint.displays.empty()) {
@@ -139,14 +142,14 @@ struct SceneGraphNode : public oishii::Node {
           // TODO: Ensure index=id is true before calling this
           s16 mid = d.material;
 
-          ByteCodeCmd(ByteCodeOp::Material, mid).transfer(writer);
-          ByteCodeCmd(ByteCodeOp::Open).transfer(writer);
+          ByteCodeCmd(ByteCodeOp::Material, mid).write(writer);
+          ByteCodeCmd(ByteCodeOp::Open).write(writer);
           ++depth;
         }
         if (d.shape != last.shape) {
           // TODO
-          ByteCodeCmd(ByteCodeOp::Shape, d.shape).transfer(writer);
-          ByteCodeCmd(ByteCodeOp::Open).transfer(writer);
+          ByteCodeCmd(ByteCodeOp::Shape, d.shape).write(writer);
+          ByteCodeCmd(ByteCodeOp::Open).write(writer);
           ++depth;
         }
         last = d;
@@ -164,7 +167,7 @@ struct SceneGraphNode : public oishii::Node {
         --depth;
       }
       for (u32 i = startDepth; i < depth; ++i) {
-        ByteCodeCmd(ByteCodeOp::Close).transfer(writer);
+        ByteCodeCmd(ByteCodeOp::Close).write(writer);
       }
       depth = startDepth;
     }
