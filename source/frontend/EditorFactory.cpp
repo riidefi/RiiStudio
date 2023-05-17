@@ -5,6 +5,7 @@
 #include <frontend/bdof/BdofEditor.hpp>
 #include <frontend/bdof/BfgEditor.hpp>
 #include <frontend/bdof/BlightEditor.hpp>
+#include <frontend/bdof/BlmapEditor.hpp>
 #include <frontend/level_editor/LevelEditor.hpp>
 
 #include <frontend/file_host.hpp>
@@ -40,6 +41,9 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
   }
   if (data.mPath.ends_with(".blight") || data.mPath.ends_with(".plight")) {
     return std::make_unique<BlightEditor>(span, data.mPath);
+  }
+  if (data.mPath.ends_with(".blmap") || data.mPath.ends_with(".plmap")) {
+    return std::make_unique<BlmapEditor>(span, data.mPath);
   }
   if (AssimpImporter::supports(data.mPath)) {
     return std::make_unique<AssimpImporter>(span, data.mPath);

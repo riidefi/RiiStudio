@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <core/util/oishii.hpp>
 #include <oishii/writer/binary_writer.hxx>
 #include <rsl/SafeReader.hpp>
 
@@ -63,5 +64,24 @@ struct LightMap {
   Result<void> read(rsl::SafeReader& reader);
   void write(oishii::Writer& writer) const;
 };
+
+inline Result<librii::egg::LightMap> ReadBlmap(std::span<const u8> buf,
+                                               std::string_view path) {
+  oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
+  oishii::BinaryReader reader(view.slice());
+  rsl::SafeReader safe(reader);
+  librii::egg::LightMap blmap;
+  auto ok = blmap.read(safe);
+  if (!ok) {
+    return std::unexpected("Failed to read BLMAP: " + ok.error());
+  }
+  return blmap;
+}
+inline void WriteBlmap(const librii::egg::LightMap& b, std::string_view path) {
+  rsl::trace("Attempting to save to {}", path);
+  oishii::Writer writer(0);
+  b.write(writer);
+  OishiiFlushWriter(writer, path);
+}
 
 } // namespace librii::egg
