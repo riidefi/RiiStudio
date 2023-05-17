@@ -90,4 +90,23 @@ void LightMap::write(oishii::Writer& writer) const {
   }
 }
 
+Result<librii::egg::LightMap> ReadBlmap(std::span<const u8> buf,
+                                        std::string_view path) {
+  oishii::DataProvider view(buf | rsl::ToList(), std::string(path));
+  oishii::BinaryReader reader(view.slice());
+  rsl::SafeReader safe(reader);
+  librii::egg::LightMap blmap;
+  auto ok = blmap.read(safe);
+  if (!ok) {
+    return std::unexpected("Failed to read BLMAP: " + ok.error());
+  }
+  return blmap;
+}
+void WriteBlmap(const librii::egg::LightMap& b, std::string_view path) {
+  rsl::trace("Attempting to save to {}", path);
+  oishii::Writer writer(0);
+  b.write(writer);
+  writer.saveToDisk(path);
+}
+
 } // namespace librii::egg

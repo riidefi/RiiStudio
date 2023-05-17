@@ -97,4 +97,9 @@ public:
   inline void skip(int ofs) { seek<Whence::Current>(ofs); }
 };
 
+using FlushFileHandler = void (*)(std::span<const u8> buf,
+                                  std::string_view path);
+void SetGlobalFileWriteFunction(FlushFileHandler handler);
+void FlushFile(std::span<const u8> buf, std::string_view path);
+
 } // namespace oishii

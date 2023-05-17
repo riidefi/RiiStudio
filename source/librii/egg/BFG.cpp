@@ -38,7 +38,7 @@ void WriteBFG(const librii::egg::BFG& b, std::string_view path) {
   rsl::trace("Attempting to save to {}", path);
   oishii::Writer writer(0);
   librii::egg::BFG_Write(writer, b);
-  OishiiFlushWriter(writer, path);
+  writer.saveToDisk(path);
 }
 
 } // namespace librii::egg

@@ -7,12 +7,12 @@
 #include <librii/assimp2rhst/SupportedFiles.hpp>
 #include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
+#include <mutex>
 #include <plugins/g3d/G3dIo.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/J3dIo.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
 #include <sstream>
-#include <mutex>
 
 namespace riistudio {
 const char* translateString(std::string_view str) { return str.data(); }
@@ -151,7 +151,7 @@ public:
     }
     oishii::Writer result(0);
     TRY(riistudio::g3d::WriteBRRES(*m_result, result));
-    OishiiFlushWriter(result, m_to.string());
+    result.saveToDisk(m_to.string());
     return {};
   }
 
@@ -395,7 +395,7 @@ public:
     }
     oishii::Writer result(0);
     TRY(WriteIt(*m_result, result));
-    OishiiFlushWriter(result, m_to.string());
+    result.saveToDisk(m_to.string());
     return {};
   }
 

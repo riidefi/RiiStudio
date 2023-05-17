@@ -185,6 +185,8 @@ public:
     return start;
   }
 
+  void saveToDisk(std::string_view path) const { FlushFile(mBuf, path); }
+
 private:
   std::endian mFileEndian = std::endian::big; // to swap
 };

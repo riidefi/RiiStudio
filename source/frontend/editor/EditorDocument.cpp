@@ -32,7 +32,7 @@ void EditorDocument::saveAs(const std::string_view _path) {
     return;
   }
 
-  OishiiFlushWriter(writer, path);
+  writer.saveToDisk(path);
 }
 
 } // namespace riistudio::frontend

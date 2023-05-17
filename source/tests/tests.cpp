@@ -39,7 +39,7 @@ void save(std::string_view path, kpi::INode& root,
     return;
   }
 
-  OishiiFlushWriter(writer, path);
+  writer.saveToDisk(path);
 }
 
 std::optional<std::pair<std::unique_ptr<kpi::INode>, std::vector<u8>>>
@@ -147,7 +147,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
       if (!map) {
         fprintf(stderr, "Failed to read kmp: %s\n", map.error().c_str());
         return;
-	  }
+      }
       printf("Writing to %s\n", std::string(to).c_str());
       librii::kmp::writeKMP(*map, writer);
     } else if (from.ends_with("blight")) {
@@ -196,7 +196,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
       printf("Writing to %s\n", std::string(to).c_str());
       librii::egg::PBLM_Write(writer, bdof2);
     }
-    OishiiFlushWriter(writer, to);
+    writer.saveToDisk(to);
     return;
   }
 

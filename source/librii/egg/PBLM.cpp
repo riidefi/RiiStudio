@@ -36,7 +36,7 @@ void WriteBLM(const librii::egg::BLM& b, std::string_view path) {
   oishii::Writer writer(0x50);
   auto bblm = librii::egg::To_PBLM(b);
   librii::egg::PBLM_Write(writer, bblm);
-  OishiiFlushWriter(writer, path);
+  writer.saveToDisk(path);
 }
 
 } // namespace librii::egg

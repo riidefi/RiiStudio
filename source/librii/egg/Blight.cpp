@@ -139,7 +139,7 @@ void WriteBLIGHT(const librii::egg::LightSet& b, std::string_view path) {
   librii::egg::Blight low{};
   b.to(low);
   low.write(writer);
-  OishiiFlushWriter(writer, path);
+  writer.saveToDisk(path);
 }
 
 } // namespace librii::egg

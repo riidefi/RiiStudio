@@ -92,7 +92,7 @@ oishii::Writer WriteDofMemory(const librii::egg::DOF& b) {
 void WriteDof(const librii::egg::DOF& b, std::string_view path) {
   rsl::trace("Attempting to save to {}", path);
   auto writer = WriteDofMemory(b);
-  OishiiFlushWriter(writer, path);
+  writer.saveToDisk(path);
 }
 
 } // namespace librii::egg
