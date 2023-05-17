@@ -6,9 +6,9 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
 include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 include_directories(${PROJECT_SOURCE_DIR}/../11zip/include)
 
-add_executable(frontend
+add_library(lib_frontend
   "applet.cpp"
-  "entry.cpp"
+  "Frontend.cpp"
   "file_host.cpp"
   
   "root.cpp"
@@ -82,12 +82,14 @@ add_executable(frontend
  
  "bdof/BlmapEditor.cpp"
 
- "Frontend.cpp"
 )
+
+add_executable(frontend 
+ "entry.cpp")
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
-target_link_libraries(frontend PUBLIC
+target_link_libraries(lib_frontend PUBLIC
 	core
 	oishii
 	plate
@@ -97,6 +99,9 @@ target_link_libraries(frontend PUBLIC
 	vendor
   LibBadUIFramework
   updater
+)
+target_link_libraries(frontend PUBLIC
+lib_frontend
 )
 
 find_package(OpenGL REQUIRED)
