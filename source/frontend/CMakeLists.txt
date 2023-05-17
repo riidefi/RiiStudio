@@ -99,12 +99,14 @@ target_link_libraries(frontend PUBLIC
   updater
 )
 
+find_package(OpenGL REQUIRED)
+
 if (WIN32)
   set(LINK_LIBS
     ${LINK_LIBS}
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
-		opengl32.lib
+		OpenGL::GL
     ntdll # Rust needs this now?
     ${PROJECT_SOURCE_DIR}/../vendor/libcurl.lib
     ${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
