@@ -240,6 +240,8 @@ void SetFolderFromKpi(Node& tmp, kpi::ICollection* folder, std::string key,
     icon_pl = rich.getIconPlural();
     name_pl = rich.getNamePlural();
     icon_color = rich.getIconColor();
+  } else {
+    name_pl = typeid(*folder).name();
   }
   std::function<void(size_t)> delete_child_fn =
       [node = folder, outliner = outliner](size_t i) {
@@ -264,7 +266,7 @@ private:
   static bool FilterFolder(const kpi::ICollection& folder) {
     // Do not show empty folders
     if (folder.size() == 0)
-      return false;
+      return true;
 
     // Do not display folders without rich type info (at the first child)
     if (!kpi::RichNameManager::getInstance()
