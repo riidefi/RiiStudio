@@ -114,7 +114,6 @@ if (WIN32)
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
 		OpenGL::GL
     ntdll Crypt32 Secur32 Ncrypt # Rust needs this now?
-    ${PROJECT_SOURCE_DIR}/../vendor/libcurl.lib
     ${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
 	)
   if (ASAN)
