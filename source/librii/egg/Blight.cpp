@@ -134,7 +134,7 @@ Result<librii::egg::LightSet> ReadBLIGHT(std::span<const u8> buf,
 }
 void WriteBLIGHT(const librii::egg::LightSet& b, std::string_view path) {
   rsl::trace("Attempting to save to {}", path);
-  oishii::Writer writer(0);
+  oishii::Writer writer(std::endian::big);
   librii::egg::Blight low{};
   b.to(low);
   low.write(writer);

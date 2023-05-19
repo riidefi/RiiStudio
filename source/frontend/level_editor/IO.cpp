@@ -56,7 +56,7 @@ std::unique_ptr<librii::kmp::CourseMap> ReadKMP(const std::vector<u8>& buf,
 }
 
 std::vector<u8> WriteKMP(const librii::kmp::CourseMap& map) {
-  oishii::Writer writer(0);
+  oishii::Writer writer(std::endian::big);
 
   librii::kmp::writeKMP(map, writer);
 

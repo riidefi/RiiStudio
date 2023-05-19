@@ -149,7 +149,7 @@ public:
         }
       }
     }
-    oishii::Writer result(0);
+    oishii::Writer result(std::endian::big);
     TRY(riistudio::g3d::WriteBRRES(*m_result, result));
     result.saveToDisk(m_to.string());
     return {};
@@ -393,7 +393,7 @@ public:
     if (!ok) {
       return std::unexpected("Failed to compile RHST");
     }
-    oishii::Writer result(0);
+    oishii::Writer result(std::endian::big);
     TRY(WriteIt(*m_result, result));
     result.saveToDisk(m_to.string());
     return {};

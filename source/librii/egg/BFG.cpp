@@ -35,7 +35,7 @@ Result<librii::egg::BFG> ReadBFG(std::span<const u8> buf,
 }
 void WriteBFG(const librii::egg::BFG& b, std::string_view path) {
   rsl::trace("Attempting to save to {}", path);
-  oishii::Writer writer(0);
+  oishii::Writer writer(std::endian::big);
   librii::egg::BFG_Write(writer, b);
   writer.saveToDisk(path);
 }

@@ -32,7 +32,7 @@ Result<librii::egg::BLM> ReadBLM(std::span<const u8> buf,
 }
 void WriteBLM(const librii::egg::BLM& b, std::string_view path) {
   rsl::trace("Attempting to save to {}", path);
-  oishii::Writer writer(0x50);
+  oishii::Writer writer(0x50, std::endian::big);
   auto bblm = librii::egg::To_PBLM(b);
   librii::egg::PBLM_Write(writer, bblm);
   writer.saveToDisk(path);

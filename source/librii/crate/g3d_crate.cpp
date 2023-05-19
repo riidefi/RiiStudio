@@ -29,7 +29,7 @@ Result<g3d::G3dMaterialData> ReadMDL0Mat(std::span<const u8> file) {
 }
 
 Result<std::vector<u8>> WriteMDL0Mat(const g3d::G3dMaterialData& mat) {
-  oishii::Writer writer(0);
+  oishii::Writer writer(std::endian::big);
 
   g3d::NameTable names;
   g3d::RelocWriter linker(writer);
@@ -108,7 +108,7 @@ Result<g3d::G3dShader> ReadMDL0Shade(std::span<const u8> file) {
 }
 
 std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat) {
-  oishii::Writer writer(0);
+  oishii::Writer writer(std::endian::big);
 
   g3d::NameTable names;
   g3d::RelocWriter linker(writer);
@@ -207,7 +207,7 @@ Result<g3d::SrtAnimationArchive> ReadSRT0(std::span<const u8> file) {
 }
 
 Result<std::vector<u8>> WriteSRT0(const g3d::SrtAnimationArchive& arc) {
-  oishii::Writer writer(0);
+  oishii::Writer writer(std::endian::big);
 
   g3d::NameTable names;
   // g3d::RelocWriter linker(writer);
@@ -552,7 +552,7 @@ Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset) {
   mdl.bones.emplace_back().mName =
       preset.metadata + "{BEGIN_STRUCTURED_DATA}" + nlohmann::to_string(json);
 
-  oishii::Writer writer(0);
+  oishii::Writer writer(0, std::endian::big);
   TRY(collection.binary()).write(writer);
   return writer.takeBuf();
 }
@@ -590,7 +590,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
     librii::g3d::BinarySrt mut = srt.write(srt);
     std::erase_if(mut.materials, [&](auto& m) { return m.name != mat.name; });
     if (!mut.materials.empty()) {
-      result.srt.push_back(TRY(librii::g3d::SrtAnim::read(mut, [](...){})));
+      result.srt.push_back(TRY(librii::g3d::SrtAnim::read(mut, [](...) {})));
     }
   }
   for (auto& clr : scene->clrs) {

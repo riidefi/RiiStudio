@@ -103,7 +103,7 @@ Result<librii::egg::LightMap> ReadBlmap(std::span<const u8> buf,
 }
 void WriteBlmap(const librii::egg::LightMap& b, std::string_view path) {
   rsl::trace("Attempting to save to {}", path);
-  oishii::Writer writer(0);
+  oishii::Writer writer(std::endian::big);
   b.write(writer);
   writer.saveToDisk(path);
 }

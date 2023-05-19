@@ -83,7 +83,7 @@ Result<librii::egg::DOF> ReadDof(std::span<const u8> buf,
   return librii::egg::From_BDOF(*bdof);
 }
 oishii::Writer WriteDofMemory(const librii::egg::DOF& b) {
-  oishii::Writer writer(0);
+  oishii::Writer writer(std::endian::big);
   auto b2 = To_BDOF(b);
   bin::BDOF_Write(writer, b2);
   return writer;

@@ -23,7 +23,7 @@ int DisableABIBreakingChecks;
 void save(std::string_view path, kpi::INode& root,
           std::vector<u8>* data = nullptr, std::span<const u32> bps = {}) {
   printf("Writing to %s\n", std::string(path).c_str());
-  oishii::Writer writer(0);
+  oishii::Writer writer(std::endian::big);
 
   if (data != nullptr) {
     writer.attachDataForMatchingOutput(*data);
@@ -130,7 +130,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
       return;
     }
 
-    oishii::Writer writer(0);
+    oishii::Writer writer(std::endian::big);
     for (auto bp : bps) {
       if (bp > 0) {
         writer.add_bp<u32>(bp);

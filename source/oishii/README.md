@@ -20,8 +20,7 @@ Result<f64> ReadMinutes(std::string_view path) {
 ```cpp
 // Writes as two big-endian ulongs
 void WriteMinutes(std::string_view path, f64 minutes) {
-	oishii::Writer writer;
-	writer.setEndian(std::endian::big);
+	oishii::Writer writer(std::endian::big);
 	writer.write<u32>(static_cast<u32>(round(minutes, 60.0));
 	writer.write<u32>(static_cast<u32>(fmod(minutes, 60.0) * 60.0);
 	writer.saveToDisk(path);
@@ -53,8 +52,7 @@ For debugging file rebuilding, a ground-truth copy can be provided. If the write
 ```cpp
 // Writer test case
 void Test() {
-	oishii::Writer writer;
-	writer.setEndian(std::endian::big);
+	oishii::Writer writer(std::endian::big);
 
 	std::vector<u8, 4> expected{0x12, 0x34, 0x56, 0x78};
 	writer.attachDataForMatchingOutput(expected);
