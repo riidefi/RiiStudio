@@ -29,6 +29,10 @@ public:
   Result<void> initFromScene(const g3d::Model& model,
                              const librii::g3d::SrtAnim& srt) {
     m_materials.clear();
+	// For now just show all always.
+    for (auto& a : m_attributes) {
+      a = true;
+	}
     for (auto& mat : model.getMaterials()) {
       m_materials[mat.name] = false;
     }
