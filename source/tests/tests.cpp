@@ -136,7 +136,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
         writer.add_bp<u32>(bp);
       }
     }
-    oishii::BinaryReader reader(file->slice(), from);
+    oishii::BinaryReader reader(file->slice(), from, std::endian::big);
     for (auto bp : bps) {
       if (bp < 0)
         reader.add_bp<u32>(-bp);

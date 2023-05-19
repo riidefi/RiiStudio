@@ -18,7 +18,7 @@ void PBLM_Write(oishii::Writer& writer, const PBLM& pblm) {
 
 Result<librii::egg::BLM> ReadBLM(std::span<const u8> buf,
                                  std::string_view path) {
-  oishii::BinaryReader reader(buf, path);
+  oishii::BinaryReader reader(buf, path, std::endian::big);
   rsl::SafeReader safe(reader);
   auto bblm = librii::egg::PBLM_Read(safe);
   if (!bblm) {

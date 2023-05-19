@@ -44,8 +44,8 @@ enum class RHSTToken {
 
 class RHSTReader {
 public:
-  RHSTReader(oishii::ByteView file_data) : mReader(file_data, "Unknown Path") {
-    mReader.setEndian(std::endian::little);
+  RHSTReader(oishii::ByteView file_data)
+      : mReader(file_data, "Unknown Path", std::endian::little) {
     mReader.skip(8);
   }
   ~RHSTReader() = default;

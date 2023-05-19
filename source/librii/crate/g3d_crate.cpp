@@ -17,7 +17,7 @@ struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
 namespace librii::crate {
 
 Result<g3d::G3dMaterialData> ReadMDL0Mat(std::span<const u8> file) {
-  oishii::BinaryReader reader(file, "Unknown MDL0Mat");
+  oishii::BinaryReader reader(file, "Unknown MDL0Mat", std::endian::big);
 
   g3d::G3dMaterialData mat;
   const bool ok = g3d::readMaterial(mat, reader, /* ignore_tev */ true);
@@ -80,7 +80,7 @@ Result<g3d::G3dShader> ReadMDL0Shade(std::span<const u8> file) {
   // TODO: Clean this up
   file = file.subspan(8);
 
-  oishii::BinaryReader reader(file, "Unknown MDL0Shade");
+  oishii::BinaryReader reader(file, "Unknown MDL0Shade", std::endian::big);
 
   // This function is a bit more complex, as we normally assume materials are
   // read before shaders; here we don't make such assumptions.
@@ -197,7 +197,7 @@ std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
 
 Result<g3d::SrtAnimationArchive> ReadSRT0(std::span<const u8> file) {
   g3d::BinarySrt arc;
-  oishii::BinaryReader reader(file, "Unknown SRT0");
+  oishii::BinaryReader reader(file, "Unknown SRT0", std::endian::big);
   auto ok = arc.read(reader);
   if (!ok) {
     return std::unexpected("Failed to parse SRT0: g3d::ReadSrtFile returned " +
@@ -427,15 +427,6 @@ Result<void> RetargetCrateAnimation(CrateAnimation& preset) {
   return {};
 }
 
-struct Reader {
-  oishii::DataProvider mData;
-  oishii::BinaryReader mReader;
-
-  Reader(std::string path, const std::vector<u8>& data)
-      : mData(OishiiReadFile(path, data.data(), data.size())),
-        mReader(mData.slice(), path) {}
-};
-
 struct SimpleTransaction {
   SimpleTransaction() {
     trans.callback = [](...) {};
@@ -451,9 +442,9 @@ struct SimpleTransaction {
 std::unique_ptr<librii::g3d::Archive> ReadBRRES(const std::vector<u8>& buf,
                                                 std::string path) {
   SimpleTransaction trans;
-  Reader reader(path, buf);
+  oishii::BinaryReader reader(buf, path, std::endian::big);
   librii::g3d::BinaryArchive bin;
-  auto ok = bin.read(reader.mReader, trans.trans);
+  auto ok = bin.read(reader, trans.trans);
   if (!ok) {
     return nullptr;
   }

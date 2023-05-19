@@ -20,7 +20,8 @@ public:
     assert(dynamic_cast<Collection*>(&transaction.node) != nullptr);
 
     Collection& collection = *dynamic_cast<Collection*>(&transaction.node);
-    oishii::BinaryReader reader(transaction.data, "Unknown path");
+    oishii::BinaryReader reader(transaction.data, "Unknown path",
+                                std::endian::big);
     for (auto& bp : reader_bps)
       reader.add_bp<u32>(bp);
 

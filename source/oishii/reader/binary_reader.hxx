@@ -33,14 +33,17 @@ public:
   template <typename T> using Result = std::expected<T, std::string>;
 
   //! Read file from memory
-  BinaryReader(std::vector<u8>&& view, std::string_view path);
-  BinaryReader(std::span<const u8> view, std::string_view path);
+  BinaryReader(std::vector<u8>&& view, std::string_view path,
+               std::endian endian);
+  BinaryReader(std::span<const u8> view, std::string_view path,
+               std::endian endian);
   BinaryReader(const BinaryReader&) = delete;
   BinaryReader(BinaryReader&&);
   ~BinaryReader();
 
   //! Read file from disc
-  static Result<BinaryReader> FromFilePath(std::string_view path);
+  static Result<BinaryReader> FromFilePath(std::string_view path,
+                                           std::endian endian);
 
   // The |BinaryReader| keeps track of the files endianness
   std::endian endian() const { return mFileEndian; }

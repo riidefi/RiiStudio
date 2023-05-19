@@ -32,7 +32,7 @@ std::unique_ptr<g3d::Collection> ReadBRRES(const std::vector<u8>& buf,
   auto result = std::make_unique<g3d::Collection>();
 
   SimpleTransaction trans;
-  oishii::BinaryReader reader(buf, path);
+  oishii::BinaryReader reader(buf, path, std::endian::big);
   g3d::ReadBRRES(*result, reader, trans.trans);
 
   // Tentatively allow previewing models we can't rebuild

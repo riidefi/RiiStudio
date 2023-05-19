@@ -174,16 +174,19 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
   }
 }
 
-BinaryReader::BinaryReader(std::vector<u8>&& view, std::string_view path)
-    : VectorStream(std::move(view)), m_path(path) {}
-BinaryReader::BinaryReader(std::span<const u8> view, std::string_view path)
-    : VectorStream(std::vector<u8>{view.begin(), view.end()}), m_path(path) {}
+BinaryReader::BinaryReader(std::vector<u8>&& view, std::string_view path,
+                           std::endian endian)
+    : VectorStream(std::move(view)), m_path(path), mFileEndian(endian) {}
+BinaryReader::BinaryReader(std::span<const u8> view, std::string_view path,
+                           std::endian endian)
+    : VectorStream(std::vector<u8>{view.begin(), view.end()}), m_path(path),
+      mFileEndian(endian) {}
 BinaryReader::~BinaryReader() = default;
 
 BinaryReader::BinaryReader(BinaryReader&&) = default;
 
 std::expected<BinaryReader, std::string>
-BinaryReader::FromFilePath(std::string_view path) {
+BinaryReader::FromFilePath(std::string_view path, std::endian endian) {
   std::ifstream file(std::string(path), std::ios::binary | std::ios::ate);
   if (!file) {
     return std::unexpected("Failed to open file " + std::string(path));
@@ -196,7 +199,7 @@ BinaryReader::FromFilePath(std::string_view path) {
     return std::unexpected("Failed to read file " + std::string(path));
   }
 
-  return BinaryReader(std::move(vec), path);
+  return BinaryReader(std::move(vec), path, endian);
 }
 
 template <typename T, EndianSelect E = EndianSelect::Current,

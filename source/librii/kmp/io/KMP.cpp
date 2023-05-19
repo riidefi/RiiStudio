@@ -37,7 +37,7 @@ struct IOContext {
 
 Result<CourseMap> readKMP(std::span<const u8> data) {
   CourseMap map;
-  oishii::BinaryReader reader(data, "Unknown path");
+  oishii::BinaryReader reader(data, "Unknown path", std::endian::big);
   rsl::SafeReader safe(reader);
   IOContext ctx("kmp");
 

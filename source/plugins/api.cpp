@@ -39,7 +39,7 @@ SpawnImporter(const std::string& fileName, oishii::ByteView data) {
 
   assert(kpi::ApplicationPlugins::getInstance());
   // Create a child view for intiial check
-  oishii::BinaryReader reader(data, fileName);
+  oishii::BinaryReader reader(data, fileName, std::endian::big);
   for (const auto& plugin : kpi::ApplicationPlugins::getInstance()->mReaders) {
     oishii::JumpOut reader_guard(reader, reader.tell());
     match = plugin->canRead_(fileName, reader);
