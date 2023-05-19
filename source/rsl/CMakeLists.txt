@@ -11,6 +11,5 @@ add_library(rsl STATIC
  "Defer.hpp" "DebugBreak.hpp" "Ranges.hpp" "Stb.cpp" "SafeReader.cpp" "Launch.cpp" "Download.cpp" "Zip.cpp" "Log.cpp"
  
  "Discord.cpp"
- "FFIActivity.cc"
  )
 target_link_libraries(rsl PUBLIC core range-v3 riistudio_rs vendor)

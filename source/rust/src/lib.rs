@@ -16,7 +16,7 @@ use std::slice;
 
 use curl::Error;
 use curl::easy::{Easy, WriteError};
-use std::ffi::{CString, CStr};
+use std::ffi::{CString, CStr, c_longlong};
 use std::os::raw::{c_char, c_void, c_double};
 use std::fs::File;
 use std::io::Write;
@@ -824,28 +824,94 @@ pub extern "C" fn rsl_rpc_destroy(client: *mut DiscordIpcClient) {
     let mut _owning_boxed = Box::from_raw(client);
   }
 }
-#[cxx::bridge(namespace = "rsl::ffi")]
-mod ffi {
-  struct Asset {
-    large_image: String,
-    large_text: String,
-  }
-  struct Button {
-    text: String,
-    link: String,
-  }
-  struct Timestamps {
-    start: i64,
-    end: i64,
-  }
-  struct Activity {
-    state: String,
-    details: String,
-    timestamps: Timestamps,
+#[repr(C)]
+pub struct Timestamps {
+    pub start: c_longlong,
+    pub end: c_longlong,
+}
 
-    assets: Asset,
-    buttons: Vec<Button>,
+#[repr(C)]
+pub struct Assets {
+    pub large_image: *const c_char,
+    pub large_text: *const c_char,
+}
+
+#[repr(C)]
+pub struct Button {
+    pub text: *const c_char,
+    pub link: *const c_char,
+}
+
+#[repr(C)]
+pub struct ButtonVector {
+    pub buttons: *mut Button,
+    pub length: usize,
+}
+
+#[repr(C)]
+pub struct ActivityC {
+    pub state: *const c_char,
+    pub details: *const c_char,
+    pub timestamps: Timestamps,
+    pub assets: Assets,
+    pub buttons: ButtonVector,
+}
+pub mod ffi {
+  pub struct Asset {
+    pub large_image: String,
+    pub large_text: String,
   }
+  pub struct Button {
+    pub text: String,
+    pub link: String,
+  }
+  pub struct Timestamps {
+    pub start: i64,
+    pub end: i64,
+  }
+  pub struct Activity {
+    pub state: String,
+    pub details: String,
+    pub timestamps: Timestamps,
+
+    pub assets: Asset,
+    pub buttons: Vec<Button>,
+  }
+}
+impl From<&ActivityC> for ffi::Activity {
+    fn from(activity_c: &ActivityC) -> Self {
+        // Helper function to convert C string into Rust String
+        fn c_str_to_string(c_str: *const c_char) -> String {
+            unsafe { CStr::from_ptr(c_str) }
+                .to_string_lossy()
+                .into_owned()
+        }
+
+        // Convert button vector to Rust Vec<Button>
+        let button_slice = unsafe { slice::from_raw_parts(activity_c.buttons.buttons, activity_c.buttons.length) };
+        let buttons = button_slice
+            .iter()
+            .map(|button_c| ffi::Button {
+                text: c_str_to_string(button_c.text),
+                link: c_str_to_string(button_c.link),
+            })
+            .collect();
+
+        // Construct the Rust Activity struct
+        ffi::Activity {
+            state: c_str_to_string(activity_c.state),
+            details: c_str_to_string(activity_c.details),
+            timestamps: ffi::Timestamps {
+                start: activity_c.timestamps.start,
+                end: activity_c.timestamps.end,
+            },
+            assets: ffi::Asset {
+                large_image: c_str_to_string(activity_c.assets.large_image),
+                large_text: c_str_to_string(activity_c.assets.large_text),
+            },
+            buttons,
+        }
+    }
 }
 fn rpc_set_activity(client: &mut DiscordIpcClient, activity: &ffi::Activity)
 -> Result<(), Box<dyn std::error::Error>> {
@@ -869,9 +935,10 @@ fn rpc_set_activity(client: &mut DiscordIpcClient, activity: &ffi::Activity)
 }
 #[no_mangle]
 pub extern "C" fn rsl_rpc_set_activity(client: &mut DiscordIpcClient,
-                                       activity: &ffi::Activity) {
+                                       activity: &ActivityC) {
   trace!("[DiscordIpcClient] rsl_rpc_set_activity()...");
-  let ok = rpc_set_activity(client, &activity);
+  let a = ffi::Activity::from(activity);
+  let ok = rpc_set_activity(client, &a);
   match ok {
     Ok(_) => {
       trace!("[DiscordIpcClient] rsl_rpc_set_activity()...OK");

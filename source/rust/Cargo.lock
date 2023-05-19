@@ -160,17 +160,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cxx"
-version = "1.0.90"
-source = "git+https://github.com/riidefi/cxx?branch=static-crt#888943bd33f5854fba4c9855a9689f160c56e370"
-dependencies = [
- "cc",
- "cxxbridge-flags",
- "cxxbridge-macro",
- "link-cplusplus",
-]
-
-[[package]]
 name = "cxx-build"
 version = "1.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -182,21 +171,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "scratch",
- "syn",
-]
-
-[[package]]
-name = "cxxbridge-flags"
-version = "1.0.90"
-source = "git+https://github.com/riidefi/cxx?branch=static-crt#888943bd33f5854fba4c9855a9689f160c56e370"
-
-[[package]]
-name = "cxxbridge-macro"
-version = "1.0.90"
-source = "git+https://github.com/riidefi/cxx?branch=static-crt#888943bd33f5854fba4c9855a9689f160c56e370"
-dependencies = [
- "proc-macro2",
- "quote",
  "syn",
 ]
 
@@ -328,15 +302,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "link-cplusplus"
-version = "1.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecd207c9c713c34f95a097a5b029ac2ce6010530c7b49d7fea24d977dede04f5"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -454,7 +419,6 @@ dependencies = [
  "clap",
  "clap_derive",
  "curl",
- "cxx",
  "cxx-build",
  "discord-rich-presence",
  "log",
