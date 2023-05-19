@@ -1,6 +1,4 @@
 use simple_logger::SimpleLogger;
-use std::ffi::CStr;
-use std::os::raw::c_char;
 
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use log::*;
@@ -15,6 +13,99 @@ use clap::Parser;
 use std::os::raw::{c_int, c_uint, c_float};
 use std::ffi::OsString;
 use std::slice;
+
+use curl::Error;
+use curl::easy::{Easy, WriteError};
+use std::ffi::{CString, CStr};
+use std::os::raw::{c_char, c_void, c_double};
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
+
+pub fn download_string_rust(url: &str, user_agent: &str) -> Result<String, Error> {
+    let mut easy = Easy::new();
+    easy.url(url)?;
+    easy.useragent(user_agent)?;
+
+    let mut data = Vec::new();
+    {
+        let mut transfer = easy.transfer();
+        transfer.write_function(|new_data| {
+            data.extend_from_slice(new_data);
+            Ok(new_data.len())
+        })?;
+        transfer.perform()?;
+    }
+
+    let result = String::from_utf8(data).unwrap();
+    Ok(result)
+}
+
+pub fn download_file_rust(dest_path: &str, url: &str, user_agent: &str, progress_func: Box<ProgressFunc>, progress_data: *mut c_void)
+    -> Result<(), Box<dyn std::error::Error>>
+{
+    let mut easy = Easy::new();
+    easy.url(url)?;
+    easy.useragent(user_agent)?;
+    easy.follow_location(true)?;
+    let path = Path::new(dest_path);
+    let mut file = File::create(&path).map_err(|err| format!("Couldn't create {}: {}", path.display(), err))?;
+
+    let write_function = |data: &[u8]| -> Result<usize, WriteError> {
+        file.write_all(data)
+            .map_err(|_| WriteError::Pause)
+            .map(|_| data.len())
+    };
+    let progress_function = |total: f64, current: f64, _, _| -> bool {
+        progress_func(progress_data, total, current, 0.0, 0.0) == 0
+    };
+    let mut transfer = easy.transfer();
+    transfer.write_function(write_function)?;
+    transfer.progress_function(progress_function)?;
+    transfer.perform().map_err(|err| err.into())
+}
+
+#[no_mangle]
+pub extern "C" fn download_string(url: *const c_char, user_agent: *const c_char, err: *mut c_int) -> *mut c_char {
+    let c_url = unsafe { CStr::from_ptr(url).to_str().unwrap() };
+    let c_user_agent = unsafe { CStr::from_ptr(user_agent).to_str().unwrap() };
+
+    match download_string_rust(c_url, c_user_agent) {
+        Ok(result) => {
+          unsafe { *err = 0; }
+          CString::new(result).unwrap().into_raw()
+        },
+        Err(error) => {
+          unsafe { *err = 1; }
+          CString::new(error.to_string()).unwrap().into_raw()
+        },
+    }
+}
+
+pub type ProgressFunc = extern "C" fn(*mut c_void, c_double, c_double, c_double, c_double) -> c_int;
+
+#[no_mangle]
+pub extern "C" fn download_file(dest_path: *const c_char, url: *const c_char, user_agent: *const c_char, progress_func: ProgressFunc, progress_data: *mut c_void) -> *mut c_char {
+    let c_dest_path = unsafe { CStr::from_ptr(dest_path).to_str().unwrap() };
+    let c_url = unsafe { CStr::from_ptr(url).to_str().unwrap() };
+    let c_user_agent = unsafe { CStr::from_ptr(user_agent).to_str().unwrap() };
+
+    let result = download_file_rust(c_dest_path, c_url, c_user_agent, Box::new(progress_func), progress_data);
+    let response = match result {
+        Ok(_) => String::from("Success"),
+        Err(e) => e.to_string(),
+    };
+
+    CString::new(response).unwrap().into_raw()
+}
+
+#[no_mangle]
+pub extern "C" fn free_string(s: *mut c_char) {
+    unsafe {
+        if s.is_null() { return }
+        CString::from_raw(s)
+    };
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

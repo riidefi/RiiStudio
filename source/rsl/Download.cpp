@@ -1,9 +1,54 @@
 #include "Download.hpp"
 
+#ifdef LEGACY_CPP_IMPLEMENTATION
 #include <curl/curl.h>
+#endif
 
 namespace rsl {
 
+#ifndef LEGACY_CPP_IMPLEMENTATION
+extern "C" {
+char* download_string(const char* url, const char* user_agent, int* err);
+void free_string(char* s);
+char* download_file(const char* dest_path, const char* url,
+                    const char* user_agent,
+                    int (*progress_func)(void* userdata, double total,
+                                         double current, double, double),
+                    void* progress_data);
+}
+
+Result<std::string> DownloadString(std::string url, std::string user_agent) {
+  int err = 0;
+  char* c_str = download_string(url.c_str(), user_agent.c_str(), &err);
+
+  fprintf(stderr, "RESULT: %s\n", c_str ? c_str : "???");
+
+  if (c_str == nullptr)
+    return std::unexpected("DownloadString failed with unspecified error");
+
+  std::string result(c_str);
+  free_string(c_str);
+
+  if (err) {
+    return std::unexpected("DownloadString failed: " + result);
+  }
+  return result;
+}
+void DownloadFile(std::string destPath, std::string url, std::string user_agent,
+                  int (*progress_func)(void* userdata, double total,
+                                       double current, double, double),
+                  void* progress_data) {
+  char* result =
+      download_file(destPath.c_str(), url.c_str(), user_agent.c_str(),
+                    progress_func, progress_data);
+
+  if (std::strcmp(result, "Success") != 0) {
+    fprintf(stderr, "DownloadFile error: %s\n", result);
+  }
+
+  free_string(result);
+}
+#else
 // From
 // https://gist.github.com/alghanmi/c5d7b761b2c9ab199157#file-curl_example-cpp
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb,
@@ -68,5 +113,6 @@ void DownloadFile(std::string destPath, std::string url, std::string user_agent,
   curl_easy_cleanup(curl);
   fclose(fp);
 }
+#endif
 
 } // namespace rsl
