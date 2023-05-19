@@ -141,9 +141,8 @@ void Linker::gather(std::unique_ptr<Node> pRoot,
   auto& root = *mLayout.emplace_back(std::move(pRoot), nameSpace).mNode.get();
 
   std::vector<std::unique_ptr<Node>> children;
-  const Node::eResult result = root.getChildren(children);
-  (void)result;
-  assert(result == Node::eResult::Success);
+  const auto result = root.getChildren(children);
+  assert(result);
 
   for (auto& child : children)
     gather(std::move(child),
@@ -188,7 +187,7 @@ Result<void> Linker::write(Writer& writer, bool doShuffle) {
     // Write
     writer.mNameSpace = entry.mNamespace;
     writer.mBlockName = entry.mNode->getId();
-    auto ok = entry.mNode->write2(writer);
+    auto ok = entry.mNode->write(writer);
     if (!ok) {
       return std::unexpected(
           std::format("Linker failure: {} while writing node {}::{}",

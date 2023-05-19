@@ -29,7 +29,7 @@ Result<void> processCollectionForWrite(BMDExportContext& collection);
 struct BMDFile : public oishii::Node {
   static const char* getNameId() { return "JSystem Binary Model Data"; }
 
-  Result write(oishii::Writer& writer) const noexcept {
+  Result<void> write(oishii::Writer& writer) const noexcept {
     // Hack
     writer.write<u32, oishii::EndianSelect::Big>('J3D2');
     writer.write<u32, oishii::EndianSelect::Big>(bBDL ? 'bdl4' : 'bmd3');
@@ -54,7 +54,7 @@ struct BMDFile : public oishii::Node {
 
     return {};
   }
-  Result gatherChildren(oishii::Node::NodeDelegate& ctx) const {
+  Result<void> gatherChildren(oishii::Node::NodeDelegate& ctx) const {
     pExp = std::make_unique<BMDExportContext>(BMDExportContext{*mCollection});
     auto& exp = *pExp;
     processCollectionForWrite(exp);

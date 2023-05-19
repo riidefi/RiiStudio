@@ -134,7 +134,7 @@ struct EVP1Node {
         : mFrom(from), mToWrite(toWrite), mWeightPool(weightPool), mMdl(mdl) {
       getLinkingRestriction().setLeaf();
     }
-    Result gatherChildren(NodeDelegate&) const noexcept { return {}; }
+    Result<void> gatherChildren(NodeDelegate&) const noexcept { return {}; }
     const std::vector<libcube::DrawMatrix>& mFrom;
     const std::vector<int>& mToWrite;
     const std::vector<float>& mWeightPool;
@@ -146,7 +146,7 @@ struct EVP1Node {
                         node.weightPool) {
       mId = "MatrixSizeTable";
     }
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       for (int i : mToWrite)
         writer.write<u8>(mFrom[i].mWeights.size());
       return {};
@@ -158,7 +158,7 @@ struct EVP1Node {
                         node.weightPool) {
       mId = "MatrixIndexTable";
     }
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       for (int i : mToWrite) {
         const auto& mtx = mFrom[i].mWeights;
         for (const auto& w : mtx)
@@ -174,7 +174,7 @@ struct EVP1Node {
       mId = "MatrixWeightTable";
       mLinkingRestriction.alignment = 8;
     }
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       for (f32 f : mWeightPool)
         writer.write<f32>(f);
       return {};
@@ -186,7 +186,7 @@ struct EVP1Node {
                         node.weightPool, &md) {
       mId = "MatrixInvBindTable";
     }
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       for (const auto& joint : mMdl->joints) {
         for (const auto f : joint.inverseBindPoseMtx)
           writer.write(f);
@@ -249,7 +249,7 @@ struct DRW1Node {
       mId = "MatrixTypeTable";
     }
 
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       for (const auto& drw : mMdl.drawMatrices)
         writer.write<u8>(drw.mWeights.size() > 1);
       // Nintendo's bug
@@ -268,7 +268,7 @@ struct DRW1Node {
     }
 
     std::expected<void, std::string>
-    write2(oishii::Writer& writer) const noexcept {
+    write(oishii::Writer& writer) const noexcept {
       // TODO -- we can do much better
       std::vector<int> envelopesToWrite;
       for (int i = 0; i < mMdl.drawMatrices.size(); ++i) {

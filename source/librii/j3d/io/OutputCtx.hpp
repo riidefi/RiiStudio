@@ -164,12 +164,13 @@ struct LinkNode final : public T, public oishii::Node {
     if (leaf)
       mLinkingRestriction.setLeaf();
   }
-  oishii::Node::Result write(oishii::Writer& writer) const noexcept override {
+  std::expected<void, std::string>
+  write(oishii::Writer& writer) const noexcept override {
     T::write(writer);
-    return eResult::Success;
+    return {};
   }
 
-  oishii::Node::Result
+  std::expected<void, std::string>
   gatherChildren(oishii::Node::NodeDelegate& out) const noexcept override {
     T::gatherChildren(out);
 

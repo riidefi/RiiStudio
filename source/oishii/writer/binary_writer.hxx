@@ -12,16 +12,9 @@ namespace oishii {
 
 class Writer final : public VectorWriter {
 public:
-  Writer(std::endian endian) : m_endian(endian) {}
-  Writer(uint32_t buffer_size, std::endian endian)
-      : VectorWriter(buffer_size), m_endian(endian) {}
-  Writer(std::vector<u8>&& buf, std::endian endian)
-      : VectorWriter(std::move(buf)), m_endian(endian) {}
-
-  template <typename T, EndianSelect E = EndianSelect::Current>
-  void transfer(T& out) {
-    write<T>(out);
-  }
+  Writer(std::endian endian);
+  Writer(uint32_t buffer_size, std::endian endian);
+  Writer(std::vector<u8>&& buf, std::endian endian);
 
   template <typename T, EndianSelect E = EndianSelect::Current>
   void write(T val, bool checkmatch = true) {
@@ -41,7 +34,7 @@ public:
       T current;
     } raw;
     raw.current = val;
-    const auto decoded = endianDecode<integral_t, E>(raw.integral);
+    const auto decoded = endianDecode<integral_t, E>(raw.integral, m_endian);
 
 #ifndef NDEBUG
     if (checkmatch && mDebugMatch.size() > tell() + sizeof(T)) {
@@ -127,28 +120,7 @@ public:
   }
 
   void setEndian(std::endian endian) noexcept { m_endian = endian; }
-  bool getIsBigEndian() const noexcept { return m_endian == std::endian::big; }
-
-  template <typename T, EndianSelect E>
-  inline T endianDecode(T val) const noexcept {
-    if constexpr (E == EndianSelect::Big) {
-      return std::endian::native != std::endian::big ? swapEndian<T>(val) : val;
-    } else if constexpr (E == EndianSelect::Little) {
-      return std::endian::native != std::endian::little ? swapEndian<T>(val)
-                                                        : val;
-    } else if constexpr (E == EndianSelect::Current) {
-      return std::endian::native != m_endian ? swapEndian<T>(val) : val;
-    }
-
-    return val;
-  }
-
-  constexpr uint32_t roundDown(uint32_t in, uint32_t align) {
-    return align ? in & ~(align - 1) : in;
-  }
-  constexpr uint32_t roundUp(uint32_t in, uint32_t align) {
-    return align ? roundDown(in + (align - 1), align) : in;
-  }
+  std::endian endian() const noexcept { return m_endian; }
 
   void alignTo(uint32_t alignment) {
     auto pad_begin = tell();
@@ -171,22 +143,10 @@ public:
     seekSet(back);
   }
 
-  inline uint32_t reserveNext(s32 n) {
-    assert(n > 0);
-    if (n == 0)
-      return tell();
-
-    const auto start = tell();
-
-    skip(n - 1);
-    write<u8>(0, false);
-    skip(-n);
-    assert(tell() == start);
-
-    return start;
-  }
-
-  void saveToDisk(std::string_view path) const { FlushFile(mBuf, path); }
+  uint32_t reserveNext(int32_t n);
+  void saveToDisk(std::string_view path) const;
+  void breakPointProcess(uint32_t tell, uint32_t size);
+  void breakPointProcess(uint32_t size);
 
 private:
   std::endian m_endian = std::endian::big; // to swap

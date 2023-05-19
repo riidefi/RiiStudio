@@ -161,4 +161,11 @@ using FlushFileHandler = void (*)(std::span<const uint8_t> buf,
 void SetGlobalFileWriteFunction(FlushFileHandler handler);
 void FlushFile(std::span<const uint8_t> buf, std::string_view path);
 
+constexpr uint32_t roundDown(uint32_t in, uint32_t align) {
+  return align ? in & ~(align - 1) : in;
+}
+constexpr uint32_t roundUp(uint32_t in, uint32_t align) {
+  return align ? roundDown(in + (align - 1), align) : in;
+}
+
 } // namespace oishii

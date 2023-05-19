@@ -174,7 +174,7 @@ class CompressableVector : public oishii::Node {
       // getLinkingRestriction().setFlag(oishii::LinkingRestriction::PadEnd);
       getLinkingRestriction().setLeaf();
     }
-    Result write(oishii::Writer& writer) const noexcept override {
+    Result<void> write(oishii::Writer& writer) const noexcept override {
       mParent.getEntry(mIndex).write(writer);
       return {};
     }
@@ -187,7 +187,7 @@ class CompressableVector : public oishii::Node {
       mId = id;
       getLinkingRestriction().alignment = bodyAlign;
     }
-    Result gatherChildren(NodeDelegate& d) const noexcept override {
+    Result<void> gatherChildren(NodeDelegate& d) const noexcept override {
       for (u32 i = 0; i < mParent.getNumEntries(); ++i)
         d.addNode(std::make_unique<Child>(mParent, i));
       return {};
@@ -277,7 +277,7 @@ struct SHP1Node final : public oishii::Node {
 #endif
                      false>
       mMtxListPool;
-  Result write(oishii::Writer& writer) const noexcept override {
+  Result<void> write(oishii::Writer& writer) const noexcept override {
     // VCD List compression compute.
     //	struct VCDHasher
     //	{
@@ -404,7 +404,7 @@ struct SHP1Node final : public oishii::Node {
     }
 
     std::expected<void, std::string>
-    write2(oishii::Writer& writer) const noexcept {
+    write(oishii::Writer& writer) const noexcept {
       switch (mSID) {
       case SubNodeID::ShapeData: {
         for (int i = 0; i < mMdl.shapes.size(); ++i) {
@@ -542,7 +542,7 @@ struct SHP1Node final : public oishii::Node {
       return {};
     }
 
-    Result gatherChildren(NodeDelegate& d) const noexcept override {
+    Result<void> gatherChildren(NodeDelegate& d) const noexcept override {
       switch (mSID) {
       case SubNodeID::ShapeData:
       case SubNodeID::LUT:
@@ -588,7 +588,7 @@ struct SHP1Node final : public oishii::Node {
     const std::vector<std::vector<s16>>* mtxListPool;
   };
 
-  Result gatherChildren(NodeDelegate& d) const noexcept override {
+  Result<void> gatherChildren(NodeDelegate& d) const noexcept override {
     auto addSubNode = [&](SubNodeID ID) {
       d.addNode(std::make_unique<SubNode>(mModel, ID, *this, -1, -1));
     };

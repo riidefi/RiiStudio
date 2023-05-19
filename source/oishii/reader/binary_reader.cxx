@@ -4,16 +4,10 @@ namespace oishii {
 
 void BinaryReader::readerBpCheck(uint32_t size, s32 trans) {
 #ifndef NDEBUG
-  for (const auto& bp : mBreakPoints) {
-    if (tell() + trans >= bp.offset &&
-        tell() + trans + size <= bp.offset + bp.size) {
-      printf("Reading from %04u (0x%04x) sized %u\n",
-             static_cast<uint32_t>(tell() + trans),
-             static_cast<uint32_t>(tell() + trans),
-             static_cast<uint32_t>(size));
-      warnAt("Breakpoint hit", tell() + trans, tell() + trans + size);
-      rsl::debug_break();
-    }
+  if (shouldBreak(tell() + trans, size)) {
+    printf("Reading from %04u (0x%04x) sized %u\n", tell, tell, size);
+    warnAt("Breakpoint hit", tell() + trans, tell() + trans + size);
+    rsl::debug_break();
   }
 #endif
 }

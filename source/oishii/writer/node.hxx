@@ -44,29 +44,6 @@ struct LinkingRestriction {
 //!
 class Node {
 public:
-  enum class eResult {
-    Success, //!< Everything went okay.
-    Warning, //!< Everything's not okay but we can still proceed.
-    Fatal    //!< We failed. We might want to make this nuanced, denoting the
-             //!< effects.
-  };
-
-  struct Result {
-    Result() : _e(eResult::Success) {}
-    Result(eResult e) : _e(e) {}
-
-    operator eResult() const { return _e; }
-
-    operator std::expected<void, std::string>() const {
-      if (_e != eResult::Success) {
-        return std::unexpected("Node error");
-      }
-      return {};
-    }
-
-    eResult _e;
-  };
-
   //! @brief The destructor.
   //!
   virtual ~Node() = default;
@@ -114,12 +91,9 @@ public:
   //! @return The result of the operation. Returning fatal will not stop other
   //! blocks from writing.
   //!
-  virtual Result write([[maybe_unused]] Writer& writer) const noexcept {
-    return {};
-  }
   virtual std::expected<void, std::string>
-  write2(Writer& writer) const noexcept {
-    return write(writer);
+  write(Writer& writer) const noexcept {
+    return {};
   }
 
 public:
@@ -145,7 +119,8 @@ protected:
   //! @return The result of the operation. If this fails, the block will be
   //! treated as a leaf node.
   //!
-  virtual Result gatherChildren(NodeDelegate& mOut) const;
+  virtual std::expected<void, std::string>
+  gatherChildren(NodeDelegate& mOut) const;
 
 public:
   //! @brief Get the children for this block.
@@ -156,7 +131,8 @@ public:
   //!     A leaf node returning children is considered a Warning and the
   //!     children will be deleted.
   //!
-  Result getChildren(std::vector<std::unique_ptr<Node>>& mOut) const;
+  std::expected<void, std::string>
+  getChildren(std::vector<std::unique_ptr<Node>>& mOut) const;
 
   inline const LinkingRestriction& getLinkingRestriction() const noexcept {
     return mLinkingRestriction;

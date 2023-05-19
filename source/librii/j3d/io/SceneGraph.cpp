@@ -103,7 +103,7 @@ struct SceneGraphNode : public oishii::Node {
   }
 
   std::expected<void, std::string>
-  write2(oishii::Writer& writer) const noexcept {
+  write(oishii::Writer& writer) const noexcept {
     u32 depth = 0;
 
     // Assume root 0

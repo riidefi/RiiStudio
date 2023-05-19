@@ -27,7 +27,7 @@ struct MDL3Node final : public oishii::Node {
     mLinkingRestriction.alignment = 32;
   }
 
-  Result write(oishii::Writer& writer) const noexcept override {
+  Result<void> write(oishii::Writer& writer) const noexcept override {
     const auto& mats = mModel.mdl.materials;
     MAYBE_UNUSED const auto start = writer.tell();
 
@@ -187,7 +187,7 @@ struct MDL3Node final : public oishii::Node {
       // write size
       writeAt(writer, dlHandlesOfs + 8 * i + 4, writer.tell() - dl_start);
     }
-    return eResult::Success;
+    return {};
   }
 
 private:

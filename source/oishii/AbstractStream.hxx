@@ -2,33 +2,12 @@
 
 #include "interfaces.hxx"
 
+#include "BreakpointHolder.hxx"
+
 namespace oishii {
-
-class BreakpointHolder {
-public:
-  void breakPointProcess(uint32_t tell, uint32_t size);
-#ifndef NDEBUG
-  struct BP {
-    uint32_t offset, size;
-    BP(uint32_t o, uint32_t s) : offset(o), size(s) {}
-  };
-  void add_bp(uint32_t offset, uint32_t size) {
-    mBreakPoints.emplace_back(offset, size);
-  }
-  std::vector<BP> mBreakPoints;
-#else
-  void add_bp(uint32_t, uint32_t) {}
-#endif
-
-  template <typename U> void add_bp(uint32_t offset) {
-    add_bp(offset, sizeof(U));
-  }
-};
 
 class AbstractStream : public BreakpointHolder {
 public:
-  void breakPointProcess(uint32_t size);
-
   template <Whence W = Whence::Set> void seek(int ofs, uint32_t mAtPool = 0) {
     static_assert(W == Whence::Set || W == Whence::Current || W == Whence::End,
                   "Invalid whence.");

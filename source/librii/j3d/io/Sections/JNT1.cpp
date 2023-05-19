@@ -91,7 +91,7 @@ struct JNT1Node final : public oishii::Node {
       getLinkingRestriction().alignment = 4;
     }
 
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       for (auto& jnt : mMdl.joints) {
         writer.write<u16>((jnt.flag & 0xf) |
                           (static_cast<u32>(jnt.bbMtxType) << 4));
@@ -123,7 +123,7 @@ struct JNT1Node final : public oishii::Node {
       getLinkingRestriction().alignment = 2;
     }
 
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       for (u16 i = 0; i < mMdl.joints.size(); ++i)
         writer.write<u16>(i);
 
@@ -139,7 +139,7 @@ struct JNT1Node final : public oishii::Node {
       getLinkingRestriction().alignment = 4;
     }
 
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       auto& bones = mMdl.joints;
 
       std::vector<std::string> names(bones.size());
@@ -153,7 +153,7 @@ struct JNT1Node final : public oishii::Node {
 
     const J3dModel& mMdl;
   };
-  Result write(oishii::Writer& writer) const noexcept override {
+  Result<void> write(oishii::Writer& writer) const noexcept override {
     writer.write<u32, oishii::EndianSelect::Big>('JNT1');
     writer.writeLink<s32>({*this}, {"SHP1"});
 
@@ -166,10 +166,10 @@ struct JNT1Node final : public oishii::Node {
     writer.writeLink<s32>(oishii::Hook(*this), oishii::Hook("JointLUT"));
     writer.writeLink<s32>(oishii::Hook(*this), oishii::Hook("JointNames"));
 
-    return eResult::Success;
+    return {};
   }
 
-  Result gatherChildren(NodeDelegate& d) const noexcept override {
+  Result<void> gatherChildren(NodeDelegate& d) const noexcept override {
     d.addNode(std::make_unique<JointData>(mModel));
     d.addNode(std::make_unique<JointLUT>(mModel));
     d.addNode(std::make_unique<JointNames>(mModel));

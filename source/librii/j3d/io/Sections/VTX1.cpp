@@ -255,7 +255,7 @@ struct FormatDecl : public oishii::Node {
     }
   };
 
-  Result write(oishii::Writer& writer) const noexcept {
+  Result<void> write(oishii::Writer& writer) const noexcept {
     // Positions
     if (!mdl->vertexData.pos.mData.empty()) {
       const auto& q = mdl->vertexData.pos.mQuant;
@@ -371,11 +371,11 @@ struct VTX1Node {
       getLinkingRestriction().alignment = 32;
     }
 
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       if (mData.writeData(writer))
-        return eResult::Success;
+        return {};
 
-      return eResult::Fatal;
+      return std::unexpected("Failed to mData.writeData");
     }
 
     const J3dModel& mdl;

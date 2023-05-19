@@ -243,7 +243,7 @@ struct TEX1Node final : public oishii::Node {
       getLinkingRestriction().alignment = 4;
     }
 
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       std::vector<std::string> names;
 
       for (int i = 0; i < mMdl.mTexCache.size(); ++i)
@@ -272,7 +272,7 @@ struct TEX1Node final : public oishii::Node {
         getLinkingRestriction().setLeaf();
         getLinkingRestriction().alignment = 4;
       }
-      Result write(oishii::Writer& writer) const noexcept {
+      Result<void> write(oishii::Writer& writer) const noexcept {
         tex.write(writer);
         writer.writeLink<s32>(*this, "TEX1::" + std::to_string(btiId));
         return {};
@@ -281,9 +281,9 @@ struct TEX1Node final : public oishii::Node {
       u32 btiId;
     };
 
-    Result write(oishii::Writer& writer) const noexcept { return {}; }
+    Result<void> write(oishii::Writer& writer) const noexcept { return {}; }
 
-    Result gatherChildren(NodeDelegate& d) const noexcept override {
+    Result<void> gatherChildren(NodeDelegate& d) const noexcept override {
       u32 id = 0;
       for (auto& tex : mMdl.mTexCache) {
         d.addNode(std::make_unique<TexHeaderEntryLink>(tex, id++, tex.btiId));
@@ -300,7 +300,7 @@ struct TEX1Node final : public oishii::Node {
       getLinkingRestriction().alignment = 32;
     }
 
-    Result write(oishii::Writer& writer) const noexcept {
+    Result<void> write(oishii::Writer& writer) const noexcept {
       const auto& tex = mMdl.textures[mIdx];
       const auto before = writer.tell();
 
@@ -319,7 +319,7 @@ struct TEX1Node final : public oishii::Node {
     const J3dModel& mMdl;
     const u32 mIdx;
   };
-  Result write(oishii::Writer& writer) const noexcept override {
+  Result<void> write(oishii::Writer& writer) const noexcept override {
     writer.write<u32, oishii::EndianSelect::Big>('TEX1');
     writer.writeLink<s32>({*this}, {*this, oishii::Hook::EndOfChildren});
 
@@ -329,10 +329,10 @@ struct TEX1Node final : public oishii::Node {
     writer.writeLink<s32>(oishii::Hook(*this), oishii::Hook("TexHeaders"));
     writer.writeLink<s32>(oishii::Hook(*this), oishii::Hook("TexNames"));
 
-    return eResult::Success;
+    return {};
   }
 
-  Result gatherChildren(NodeDelegate& d) const noexcept override {
+  Result<void> gatherChildren(NodeDelegate& d) const noexcept override {
 
     d.addNode(std::make_unique<TexHeaders>(mModel));
 

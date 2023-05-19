@@ -534,7 +534,7 @@ class MCompressableVector : public oishii::Node {
       // getLinkingRestriction().setFlag(oishii::LinkingRestriction::PadEnd);
       getLinkingRestriction().setLeaf();
     }
-    Result write(oishii::Writer& writer) const noexcept override {
+    Result<void> write(oishii::Writer& writer) const noexcept override {
       io_wrapper<T>::onWrite(writer, mParent.getEntry(mIndex));
       return {};
     }
@@ -547,7 +547,7 @@ class MCompressableVector : public oishii::Node {
       mId = id;
       getLinkingRestriction().alignment = bodyAlign;
     }
-    Result gatherChildren(NodeDelegate& d) const noexcept override {
+    Result<void> gatherChildren(NodeDelegate& d) const noexcept override {
       for (u32 i = 0; i < mParent.getNumEntries(); ++i)
         d.addNode(std::make_unique<Child>(mParent, i));
       return {};
@@ -667,7 +667,7 @@ struct MAT3Node : public oishii::Node {
     getLinkingRestriction().alignment = 32;
   }
 
-  Result write(oishii::Writer& writer) const noexcept override {
+  Result<void> write(oishii::Writer& writer) const noexcept override {
     const auto start = writer.tell();
     writer.write<u32, oishii::EndianSelect::Big>('MAT3');
     writer.writeLink<s32>({*this}, {*this, oishii::Hook::EndOfChildren});
@@ -798,7 +798,7 @@ struct MAT3Node : public oishii::Node {
     return {};
   }
 
-  Result gatherChildren(NodeDelegate& d) const noexcept override { return {}; }
+  Result<void> gatherChildren(NodeDelegate& d) const noexcept override { return {}; }
 };
 bool SerializableMaterial::operator==(
     const SerializableMaterial& rhs) const noexcept {
