@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "../types.hxx"
 #include <core/common.h>
+#include <stdint.h>
 
 namespace oishii {
 

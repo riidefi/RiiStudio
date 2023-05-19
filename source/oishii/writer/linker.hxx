@@ -8,7 +8,7 @@
 
 #include <core/common.h>
 
-#include "../types.hxx"
+#include <stdint.h>
 
 #include "hook.hxx"
 #include "node.hxx"

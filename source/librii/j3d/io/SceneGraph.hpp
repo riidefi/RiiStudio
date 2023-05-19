@@ -1,7 +1,6 @@
 #pragma once
 
 #include "OutputCtx.hpp"
-#include "oishii/types.hxx"
 #include <oishii/reader/binary_reader.hxx>
 
 namespace oishii {

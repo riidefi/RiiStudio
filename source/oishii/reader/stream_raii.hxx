@@ -5,17 +5,18 @@
 namespace oishii {
 
 template <Whence W = Whence::Set, typename T = BinaryReader> struct Jump {
-  inline Jump(T& stream, u32 offset) : mStream(stream), back(stream.tell()) {
+  inline Jump(T& stream, uint32_t offset)
+      : mStream(stream), back(stream.tell()) {
     mStream.template seek<W>(offset);
   }
   inline ~Jump() { mStream.template seek<Whence::Set>(back); }
   T& mStream;
-  u32 back;
+  uint32_t back;
 };
 
 template <Whence W = Whence::Current, typename T = BinaryReader>
 struct JumpOut {
-  inline JumpOut(T& stream, u32 offset)
+  inline JumpOut(T& stream, uint32_t offset)
       : mStream(stream), start(stream.tell()), back(offset) {}
   inline ~JumpOut() {
     mStream.template seek<Whence::Set>(start);
@@ -23,20 +24,20 @@ struct JumpOut {
   }
   T& mStream;
 
-  u32 start;
-  u32 back;
+  uint32_t start;
+  uint32_t back;
 };
 
 template <typename T = BinaryReader>
 struct DebugExpectSized
 #ifdef RELEASE
 {
-  DebugExpectSized(T& stream, u32 size) {}
-  bool assertSince(u32) { return true; }
+  DebugExpectSized(T& stream, uint32_t size) {}
+  bool assertSince(uint32_t) { return true; }
 };
 #else
 {
-  inline DebugExpectSized(T& stream, u32 size)
+  inline DebugExpectSized(T& stream, uint32_t size)
       : mStream(stream), mStart(stream.tell()), mSize(size) {}
   inline ~DebugExpectSized() {
     if (mStream.tell() - mStart != mSize)
@@ -45,7 +46,7 @@ struct DebugExpectSized
     assert(mStream.tell() - mStart == mSize && "Invalid size for this scope!");
   }
 
-  bool assertSince(u32 dif) {
+  bool assertSince(uint32_t dif) {
     const auto real_dif = mStream.tell() - mStart;
 
     if (real_dif != dif) {
@@ -57,8 +58,8 @@ struct DebugExpectSized
   }
 
   T& mStream;
-  u32 mStart;
-  u32 mSize;
+  uint32_t mStart;
+  uint32_t mSize;
 };
 #endif
 

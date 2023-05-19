@@ -12,20 +12,6 @@ extern bool gTestMode;
 
 namespace oishii {
 
-template <typename T, EndianSelect E = EndianSelect::Current>
-inline T endianDecode(T val, std::endian fileEndian) {
-  if constexpr (E == EndianSelect::Big) {
-    return std::endian::native != std::endian::big ? swapEndian<T>(val) : val;
-  } else if constexpr (E == EndianSelect::Little) {
-    return std::endian::native != std::endian::little ? swapEndian<T>(val)
-                                                      : val;
-  } else if constexpr (E == EndianSelect::Current) {
-    return std::endian::native != fileEndian ? swapEndian<T>(val) : val;
-  }
-
-  return val;
-}
-
 class BinaryReader final : public VectorStream {
 public:
   //! Failure type is always `std::string`
@@ -45,8 +31,8 @@ public:
                                            std::endian endian);
 
   // The |BinaryReader| keeps track of the files endianness
-  std::endian endian() const { return mFileEndian; }
-  void setEndian(std::endian endian) noexcept { mFileEndian = endian; }
+  std::endian endian() const { return m_endian; }
+  void setEndian(std::endian endian) noexcept { m_endian = endian; }
 
   // Path of the file or "Unknown path"
   const char* getFile() const noexcept { return m_path.c_str(); }
@@ -62,7 +48,7 @@ public:
 
   //! Pop |n| values from the stream (each of type |T|)
   template <typename T, //
-            u32 n>
+            uint32_t n>
   auto tryReadX() -> Result<std::array<T, n>> {
     std::array<T, n> result;
     for (auto& r : result) {
@@ -103,7 +89,7 @@ public:
 
     readerBpCheck(sizeof(T), trans - tell());
     T decoded = endianDecode<T, E>(
-        *reinterpret_cast<const T*>(getStreamStart() + trans), mFileEndian);
+        *reinterpret_cast<const T*>(getStreamStart() + trans), m_endian);
 
     return decoded;
   }
@@ -117,11 +103,11 @@ public:
     ~ScopedRegion() { mReader.exitRegion(jump_save, jump_size_save); }
 
   private:
-    u32 jump_save = 0;
-    u32 jump_size_save = 0;
+    uint32_t jump_save = 0;
+    uint32_t jump_size_save = 0;
 
   public:
-    u32 start = 0;
+    uint32_t start = 0;
     BinaryReader& mReader;
   };
 
@@ -131,11 +117,11 @@ public:
   }
 
   //! Print a warning message
-  void warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
+  void warnAt(const char* msg, uint32_t selectBegin, uint32_t selectEnd,
               bool checkStack = true);
 
   template <typename T>
-  auto tryReadBuffer(u32 size, u32 addr) -> Result<std::vector<T>> {
+  auto tryReadBuffer(uint32_t size, uint32_t addr) -> Result<std::vector<T>> {
     static_assert(sizeof(T) == 1);
     if (addr + size > endpos()) {
       rsl::debug_break();
@@ -146,7 +132,8 @@ public:
     std::copy_n(mBuf.begin() + addr, size, out.begin());
     return out;
   }
-  template <typename T> auto tryReadBuffer(u32 size) -> Result<std::vector<T>> {
+  template <typename T>
+  auto tryReadBuffer(uint32_t size) -> Result<std::vector<T>> {
     auto buf = tryReadBuffer<T>(size, tell());
     if (!buf) {
       return std::unexpected(buf.error());
@@ -156,16 +143,16 @@ public:
   }
 
 private:
-  std::endian mFileEndian = std::endian::big;
+  std::endian m_endian = std::endian::big;
   std::string m_path = "Unknown Path";
 
-  void readerBpCheck(u32 size, s32 trans = 0);
+  void readerBpCheck(uint32_t size, s32 trans = 0);
 
   struct DispatchStack;
   std::unique_ptr<DispatchStack> mStack;
-  void enterRegion(std::string&& name, u32& jump_save, u32& jump_size_save,
-                   u32 start, u32 size);
-  void exitRegion(u32 jump_save, u32 jump_size_save);
+  void enterRegion(std::string&& name, uint32_t& jump_save,
+                   uint32_t& jump_size_save, uint32_t start, uint32_t size);
+  void exitRegion(uint32_t jump_save, uint32_t jump_size_save);
 };
 
 inline std::span<const u8> SliceStream(oishii::BinaryReader& reader) {
@@ -175,4 +162,4 @@ inline std::span<const u8> SliceStream(oishii::BinaryReader& reader) {
 
 } // namespace oishii
 
-#include "stream_raii.hpp"
+#include "stream_raii.hxx"

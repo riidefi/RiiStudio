@@ -9,7 +9,9 @@
 static_assert(__cpp_lib_byteswap >= 202110L, "Depends on std::byteswap");
 
 #include <oishii/options.hxx>
-#include <oishii/types.hxx>
+#include <stdint.h>
+
+#include <core/common.h>
 
 namespace oishii {
 // Console colors
@@ -24,7 +26,7 @@ namespace oishii {
 struct Console {
   IF_WIN(HANDLE handle);
   IF_WIN(CONSOLE_SCREEN_BUFFER_INFO prior_state);
-  IF_WIN(u16 last); // last attribute
+  IF_WIN(uint16_t last); // last attribute
 
   void restoreFirstColorState() {
     IF_WIN(SetConsoleTextAttribute(handle, prior_state.wAttributes));
@@ -37,7 +39,7 @@ struct Console {
   //	{
   //		setColorState(last);
   //	}
-  void setColorState(u16 attrib) {
+  void setColorState(uint16_t attrib) {
     IF_WIN(last = attrib);
     IF_WIN(SetConsoleTextAttribute(handle, attrib));
   }
@@ -54,13 +56,13 @@ struct Console {
 };
 #ifndef _MSC_VER
 struct ScopedFormatter {
-  ScopedFormatter(u16) {}
+  ScopedFormatter(uint16_t) {}
 };
 #else
 struct ScopedFormatter {
-  u16 last;
+  uint16_t last;
 
-  ScopedFormatter(u16 attrib) {
+  ScopedFormatter(uint16_t attrib) {
     last = Console::getInstance().last;
     Console::getInstance().setColorState(attrib);
   }
@@ -76,7 +78,6 @@ template <typename T1, typename T2> union enumCastHelper {
 
   enumCastHelper(T1 _) : _t(_) {}
 };
-
 
 #if OISHII_PLATFORM_LE == 1
 #define MAKE_BE32(x) std::byteswap(x)
@@ -97,12 +98,12 @@ template <typename T> inline T swapEndian(T v) {
 
   switch (sizeof(T)) {
   case 4: {
-    enumCastHelper<T, u32> tmp(v);
+    enumCastHelper<T, uint32_t> tmp(v);
     tmp._u = std::byteswap(tmp._u);
     return tmp._t;
   }
   case 2: {
-    enumCastHelper<T, u16> tmp(v);
+    enumCastHelper<T, uint16_t> tmp(v);
     tmp._u = std::byteswap(tmp._u);
     return tmp._t;
   }
@@ -122,16 +123,42 @@ enum class EndianSelect {
   Little
 };
 
-template <u32 size> struct integral_of_equal_size;
+template <uint32_t size> struct integral_of_equal_size;
 
-template <> struct integral_of_equal_size<1> { using type = u8; };
+template <> struct integral_of_equal_size<1> {
+  using type = uint8_t;
+};
 
-template <> struct integral_of_equal_size<2> { using type = u16; };
+template <> struct integral_of_equal_size<2> {
+  using type = uint16_t;
+};
 
-template <> struct integral_of_equal_size<4> { using type = u32; };
+template <> struct integral_of_equal_size<4> {
+  using type = uint32_t;
+};
 
 template <typename T>
 using integral_of_equal_size_t =
     typename integral_of_equal_size<sizeof(T)>::type;
+
+template <typename T, EndianSelect E = EndianSelect::Current>
+inline T endianDecode(T val, std::endian fileEndian) {
+  if constexpr (E == EndianSelect::Big) {
+    return std::endian::native != std::endian::big ? swapEndian<T>(val) : val;
+  } else if constexpr (E == EndianSelect::Little) {
+    return std::endian::native != std::endian::little ? swapEndian<T>(val)
+                                                      : val;
+  } else if constexpr (E == EndianSelect::Current) {
+    return std::endian::native != fileEndian ? swapEndian<T>(val) : val;
+  }
+
+  return val;
+}
+
+std::expected<std::vector<u8>, std::string> UtilReadFile(std::string_view path);
+using FlushFileHandler = void (*)(std::span<const uint8_t> buf,
+                                  std::string_view path);
+void SetGlobalFileWriteFunction(FlushFileHandler handler);
+void FlushFile(std::span<const uint8_t> buf, std::string_view path);
 
 } // namespace oishii

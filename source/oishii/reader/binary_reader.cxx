@@ -1,17 +1,16 @@
 #include "binary_reader.hxx"
 
-#include <fstream>
-
 namespace oishii {
 
-void BinaryReader::readerBpCheck(u32 size, s32 trans) {
+void BinaryReader::readerBpCheck(uint32_t size, s32 trans) {
 #ifndef NDEBUG
   for (const auto& bp : mBreakPoints) {
     if (tell() + trans >= bp.offset &&
         tell() + trans + size <= bp.offset + bp.size) {
       printf("Reading from %04u (0x%04x) sized %u\n",
-             static_cast<u32>(tell() + trans), static_cast<u32>(tell() + trans),
-             static_cast<u32>(size));
+             static_cast<uint32_t>(tell() + trans),
+             static_cast<uint32_t>(tell() + trans),
+             static_cast<uint32_t>(size));
       warnAt("Breakpoint hit", tell() + trans, tell() + trans + size);
       rsl::debug_break();
     }
@@ -21,17 +20,17 @@ void BinaryReader::readerBpCheck(u32 size, s32 trans) {
 
 struct BinaryReader::DispatchStack {
   struct Entry {
-    u32 jump; // Offset in stream where jumped
-    u32 jump_sz;
+    uint32_t jump; // Offset in stream where jumped
+    uint32_t jump_sz;
 
     std::string handlerName; // Name of handler
-    u32 handlerStart;        // Start address of handler
+    uint32_t handlerStart;   // Start address of handler
   };
 
   std::array<Entry, 16> mStack;
-  u32 mSize = 0;
+  uint32_t mSize = 0;
 
-  void push_entry(u32 j, std::string_view name, u32 start = 0) {
+  void push_entry(uint32_t j, std::string_view name, uint32_t start = 0) {
     Entry& cur = mStack[mSize];
     ++mSize;
 
@@ -42,8 +41,9 @@ struct BinaryReader::DispatchStack {
   }
 };
 
-void BinaryReader::enterRegion(std::string&& name, u32& jump_save,
-                               u32& jump_size_save, u32 start, u32 size) {
+void BinaryReader::enterRegion(std::string&& name, uint32_t& jump_save,
+                               uint32_t& jump_size_save, uint32_t start,
+                               uint32_t size) {
   if (mStack == nullptr) {
     mStack = std::make_unique<DispatchStack>();
   }
@@ -61,7 +61,7 @@ void BinaryReader::enterRegion(std::string&& name, u32& jump_save,
     stack.mStack[stack.mSize - 2].jump_sz = size;
   }
 }
-void BinaryReader::exitRegion(u32 jump_save, u32 jump_size_save) {
+void BinaryReader::exitRegion(uint32_t jump_save, uint32_t jump_size_save) {
   assert(mStack != nullptr);
   auto& stack = *this->mStack;
   if (stack.mSize > 1) {
@@ -76,8 +76,8 @@ void BinaryReader::exitRegion(u32 jump_save, u32 jump_size_save) {
 // This is crappy, POC code -- plan on redoing it entirely
 //
 
-void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
-                          bool checkStack) {
+void BinaryReader::warnAt(const char* msg, uint32_t selectBegin,
+                          uint32_t selectEnd, bool checkStack) {
 
   if (checkStack) // TODO, unintuitive limitation
   {
@@ -100,11 +100,11 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
 
   // We write it at 16 bit lines, a selection may go over multiple lines, so
   // this may not be the best approach
-  u32 lineBegin = selectBegin / 16;
-  u32 lineEnd = selectEnd / 16 + !!(selectEnd % 16);
+  uint32_t lineBegin = selectBegin / 16;
+  uint32_t lineEnd = selectEnd / 16 + !!(selectEnd % 16);
 
   // Write hex lines
-  for (u32 i = lineBegin; i < lineEnd; ++i) {
+  for (uint32_t i = lineBegin; i < lineEnd; ++i) {
     fprintf(stderr, "%06X\t", i * 16);
 
     for (int j = 0; j < 16; ++j)
@@ -123,7 +123,7 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
   if (!checkStack)
     fprintf(stderr, "\t\t");
 
-  for (u32 i = lineBegin * 16; i < selectBegin; ++i)
+  for (uint32_t i = lineBegin * 16; i < selectBegin; ++i)
     fprintf(stderr, "   ");
 
   {
@@ -132,23 +132,23 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
     fprintf(stderr, selectEnd - selectBegin == 0
                         ? "^ "
                         : "^~"); // one less, one over below
-    for (u32 i = selectBegin + 1; i < selectEnd; ++i)
+    for (uint32_t i = selectBegin + 1; i < selectEnd; ++i)
       fprintf(stderr, "~~~");
   }
 
-  for (u32 i = selectEnd; i < lineEnd * 16; ++i)
+  for (uint32_t i = selectEnd; i < lineEnd * 16; ++i)
     fprintf(stderr, "   ");
 
   fprintf(stderr, " ");
 
-  for (u32 i = lineBegin * 16; i < selectBegin; ++i)
+  for (uint32_t i = lineBegin * 16; i < selectBegin; ++i)
     fprintf(stderr, " ");
 
   {
     ScopedFormatter fmt(0xa);
 
     fprintf(stderr, "^");
-    for (u32 i = selectBegin + 1; i < selectEnd; ++i)
+    for (uint32_t i = selectBegin + 1; i < selectEnd; ++i)
       fprintf(stderr, "~");
   }
   fprintf(stderr, "\n");
@@ -176,29 +176,18 @@ void BinaryReader::warnAt(const char* msg, u32 selectBegin, u32 selectEnd,
 
 BinaryReader::BinaryReader(std::vector<u8>&& view, std::string_view path,
                            std::endian endian)
-    : VectorStream(std::move(view)), m_path(path), mFileEndian(endian) {}
+    : VectorStream(std::move(view)), m_endian(endian), m_path(path) {}
 BinaryReader::BinaryReader(std::span<const u8> view, std::string_view path,
                            std::endian endian)
-    : VectorStream(std::vector<u8>{view.begin(), view.end()}), m_path(path),
-      mFileEndian(endian) {}
+    : VectorStream(std::vector<u8>{view.begin(), view.end()}), m_endian(endian),
+      m_path(path) {}
 BinaryReader::~BinaryReader() = default;
 
 BinaryReader::BinaryReader(BinaryReader&&) = default;
 
 std::expected<BinaryReader, std::string>
 BinaryReader::FromFilePath(std::string_view path, std::endian endian) {
-  std::ifstream file(std::string(path), std::ios::binary | std::ios::ate);
-  if (!file) {
-    return std::unexpected("Failed to open file " + std::string(path));
-  }
-
-  std::vector<u8> vec(file.tellg());
-  file.seekg(0, std::ios::beg);
-
-  if (!file.read(reinterpret_cast<char*>(vec.data()), vec.size())) {
-    return std::unexpected("Failed to read file " + std::string(path));
-  }
-
+  auto vec = TRY(UtilReadFile(path));
   return BinaryReader(std::move(vec), path, endian);
 }
 
@@ -214,13 +203,13 @@ std::expected<T, std::string> tryReadImpl(oishii::BinaryReader& reader) {
 }
 
 #define FOR_OISHII_TYPES(F_)                                                   \
-  F_(u8)                                                                       \
-  F_(s8)                                                                       \
-  F_(u16)                                                                      \
-  F_(s16)                                                                      \
-  F_(u32)                                                                      \
-  F_(s32)                                                                      \
-  F_(f32)
+  F_(uint8_t)                                                                  \
+  F_(int8_t)                                                                   \
+  F_(uint16_t)                                                                 \
+  F_(int16_t)                                                                  \
+  F_(uint32_t)                                                                 \
+  F_(int32_t)                                                                  \
+  F_(float)
 
 #define TRY_READ_IMPL_TEU(T_, E_, U_)                                          \
   template <>                                                                  \

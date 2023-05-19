@@ -12,11 +12,11 @@ namespace oishii {
 
 class Writer final : public VectorWriter {
 public:
-  Writer(std::endian endian) : mFileEndian(endian) {}
-  Writer(u32 buffer_size, std::endian endian)
-      : VectorWriter(buffer_size), mFileEndian(endian) {}
+  Writer(std::endian endian) : m_endian(endian) {}
+  Writer(uint32_t buffer_size, std::endian endian)
+      : VectorWriter(buffer_size), m_endian(endian) {}
   Writer(std::vector<u8>&& buf, std::endian endian)
-      : VectorWriter(std::move(buf)), mFileEndian(endian) {}
+      : VectorWriter(std::move(buf)), m_endian(endian) {}
 
   template <typename T, EndianSelect E = EndianSelect::Current>
   void transfer(T& out) {
@@ -49,7 +49,7 @@ public:
       if (before != decoded && decoded != 0xcccccccc) {
         fprintf(stderr,
                 "Matching violation at 0x%x: writing %x where should be %x\n",
-                tell(), (u32)decoded, (u32)before);
+                tell(), (uint32_t)decoded, (uint32_t)before);
 
         rsl::debug_break();
       }
@@ -66,7 +66,7 @@ public:
     write<T, E>(value);
   }
   template <EndianSelect E = EndianSelect::Current>
-  void writeN(std::size_t sz, u32 val) {
+  void writeN(std::size_t sz, uint32_t val) {
     if (tell() > 200'000'000) {
       fprintf(stderr, "File size is astronomical");
       rsl::debug_break();
@@ -75,7 +75,7 @@ public:
     while (tell() + sz > mBuf.size())
       mBuf.push_back(0);
 
-    u32 decoded = endianDecode<u32, E>(val);
+    uint32_t decoded = endianDecode<uint32_t, E>(val);
 
 #if 0
 #ifndef NDEBUG1
@@ -126,10 +126,8 @@ public:
     writeLink<T>(Link{from, to});
   }
 
-  void setEndian(std::endian endian) noexcept { mFileEndian = endian; }
-  bool getIsBigEndian() const noexcept {
-    return mFileEndian == std::endian::big;
-  }
+  void setEndian(std::endian endian) noexcept { m_endian = endian; }
+  bool getIsBigEndian() const noexcept { return m_endian == std::endian::big; }
 
   template <typename T, EndianSelect E>
   inline T endianDecode(T val) const noexcept {
@@ -139,41 +137,41 @@ public:
       return std::endian::native != std::endian::little ? swapEndian<T>(val)
                                                         : val;
     } else if constexpr (E == EndianSelect::Current) {
-      return std::endian::native != mFileEndian ? swapEndian<T>(val) : val;
+      return std::endian::native != m_endian ? swapEndian<T>(val) : val;
     }
 
     return val;
   }
 
-  constexpr u32 roundDown(u32 in, u32 align) {
+  constexpr uint32_t roundDown(uint32_t in, uint32_t align) {
     return align ? in & ~(align - 1) : in;
   }
-  constexpr u32 roundUp(u32 in, u32 align) {
+  constexpr uint32_t roundUp(uint32_t in, uint32_t align) {
     return align ? roundDown(in + (align - 1), align) : in;
   }
 
-  void alignTo(u32 alignment) {
+  void alignTo(uint32_t alignment) {
     auto pad_begin = tell();
     auto pad_end = roundUp(tell(), alignment);
     if (pad_begin == pad_end)
       return;
-    for (u32 i = 0; i < pad_end - pad_begin; ++i)
+    for (uint32_t i = 0; i < pad_end - pad_begin; ++i)
       this->write<u8>(0);
     if (mUserPad)
       mUserPad(reinterpret_cast<char*>(getDataBlockStart()) + pad_begin,
                pad_end - pad_begin);
   }
-  using PadFunction = void (*)(char* dst, u32 size);
+  using PadFunction = void (*)(char* dst, uint32_t size);
   PadFunction mUserPad = nullptr;
 
-  template <typename T> void writeAt(T val, u32 pos) {
+  template <typename T> void writeAt(T val, uint32_t pos) {
     const auto back = tell();
     seekSet(pos);
     write<T>(val);
     seekSet(back);
   }
 
-  inline u32 reserveNext(s32 n) {
+  inline uint32_t reserveNext(s32 n) {
     assert(n > 0);
     if (n == 0)
       return tell();
@@ -191,7 +189,7 @@ public:
   void saveToDisk(std::string_view path) const { FlushFile(mBuf, path); }
 
 private:
-  std::endian mFileEndian = std::endian::big; // to swap
+  std::endian m_endian = std::endian::big; // to swap
 };
 
 inline auto writePlaceholder(oishii::Writer& writer) {

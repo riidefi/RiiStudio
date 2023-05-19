@@ -27,19 +27,4 @@ Node::Result Node::getChildren(std::vector<std::unique_ptr<Node>>& mOut) const {
   return result;
 }
 
-void OishiiDefaultFlushFile(std::span<const u8> buf, std::string_view path) {
-  std::ofstream stream(std::string(path), std::ios::binary | std::ios::out);
-  stream.write(reinterpret_cast<const char*>(buf.data()), buf.size());
-}
-FlushFileHandler s_flushFileHandler = OishiiDefaultFlushFile;
-
-void SetGlobalFileWriteFunction(FlushFileHandler handler) {
-  s_flushFileHandler = handler;
-}
-
-void FlushFile(std::span<const u8> buf, std::string_view path) {
-  assert(s_flushFileHandler != nullptr);
-  s_flushFileHandler(buf, path);
-}
-
 } // namespace oishii

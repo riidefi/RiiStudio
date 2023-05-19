@@ -2,7 +2,7 @@
 
 namespace oishii {
 
-void BreakpointHolder::breakPointProcess(u32 tell, u32 size) {
+void BreakpointHolder::breakPointProcess(uint32_t tell, uint32_t size) {
   if (tell > 200'000'000) {
     fprintf(stderr, "File size is astronomical");
     rsl::debug_break();
@@ -19,7 +19,7 @@ void BreakpointHolder::breakPointProcess(u32 tell, u32 size) {
 #endif
 }
 
-void AbstractStream::breakPointProcess(u32 size) {
+void AbstractStream::breakPointProcess(uint32_t size) {
   BreakpointHolder::breakPointProcess(tell(), size);
 }
 
