@@ -56,7 +56,8 @@ ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
 //! A "SRT0" file is effectively a .brtsa archive without the enclosing
 //! structure.
 //!
-[[nodiscard]] Result<g3d::BinarySrt> ReadSRT0(std::span<const u8> file);
+[[nodiscard]] Result<g3d::SrtAnimationArchive>
+ReadSRT0(std::span<const u8> file);
 
 [[nodiscard]] Result<std::vector<u8>> WriteSRT0(const g3d::BinarySrt& arc);
 
@@ -116,7 +117,7 @@ ReadCrateAnimation(const CrateAnimationPaths& paths);
 
 //! Animations targets materials by name; rename each SRT animation target to
 //! the name of `mat`. We assert that only one material target is defined.
-[[nodiscard]] std::string RetargetCrateAnimation(CrateAnimation& preset);
+[[nodiscard]] Result<void> RetargetCrateAnimation(CrateAnimation& preset);
 
 [[nodiscard]] Result<CrateAnimation> ReadRSPreset(std::span<const u8> file);
 

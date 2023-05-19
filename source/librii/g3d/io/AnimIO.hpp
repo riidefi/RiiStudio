@@ -157,6 +157,7 @@ struct SrtAnim {
     std::string materialName{};
     bool indirect = false;
     int matrixIndex = 0;
+    bool operator==(const Target&) const = default;
   };
 
   using Track = std::variant<f32, std::vector<SRT0KeyFrame>>;
@@ -167,11 +168,13 @@ struct SrtAnim {
     Track rot{};
     Track transX{};
     Track transY{};
+    bool operator==(const Mtx&) const = default;
   };
 
   struct TargetedMtx {
     Target target;
     Mtx matrix;
+    bool operator==(const TargetedMtx&) const = default;
   };
 
   std::vector<TargetedMtx> matrices{};
@@ -180,6 +183,9 @@ struct SrtAnim {
   u16 frameDuration{};
   u32 xformModel{};
   AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
+
+  bool operator==(const SrtAnim&) const = default;
+
   static Result<SrtAnim> read(const BinarySrt& srt,
                               std::function<void(std::string_view)> warn) {
     SrtAnim tmp{};
@@ -265,7 +271,7 @@ struct SrtAnim {
     binary.xformModel = anim.xformModel;
     binary.wrapMode = anim.wrapMode;
 
-	std::map<std::string, std::vector<int>> materialSubMatrixSort;
+    std::map<std::string, std::vector<int>> materialSubMatrixSort;
 
     // Create a map to track material names and their corresponding indices in
     // the binary.materials vector
@@ -355,10 +361,12 @@ struct SrtAnim {
 
       // Add the SRT0Matrix to the corresponding SRT0Material
       material.matrices.push_back(matrix);
-      materialSubMatrixSort[material.name].push_back(targetedMtx.target.matrixIndex + (targetedMtx.target.indirect ? 100 : 0));
+      materialSubMatrixSort[material.name].push_back(
+          targetedMtx.target.matrixIndex +
+          (targetedMtx.target.indirect ? 100 : 0));
     }
 
-	for (auto& mat : binary.materials) {
+    for (auto& mat : binary.materials) {
       auto& sortIndices = materialSubMatrixSort[mat.name];
 
       std::vector<size_t> indices(sortIndices.size());
@@ -372,7 +380,7 @@ struct SrtAnim {
         sortedMatrices.push_back(mat.matrices[i]);
       }
       mat.matrices = sortedMatrices;
-	}
+    }
 
     binary.mergeIdenticalTracks();
 
@@ -466,6 +474,6 @@ private:
   }
 };
 
-using SrtAnimationArchive = BinarySrt;
+using SrtAnimationArchive = SrtAnim;
 
 } // namespace librii::g3d

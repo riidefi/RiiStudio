@@ -195,15 +195,15 @@ std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
   return buffer;
 }
 
-Result<g3d::BinarySrt, std::string> ReadSRT0(std::span<const u8> file) {
-  g3d::SrtAnimationArchive arc;
+Result<g3d::SrtAnimationArchive> ReadSRT0(std::span<const u8> file) {
+  g3d::BinarySrt arc;
   oishii::BinaryReader reader(file, "Unknown SRT0");
   auto ok = arc.read(reader);
   if (!ok) {
     return std::unexpected("Failed to parse SRT0: g3d::ReadSrtFile returned " +
                            ok.error());
   }
-  return arc;
+  return g3d::SrtAnim::read(arc, [](...) {});
 }
 
 Result<std::vector<u8>> WriteSRT0(const g3d::SrtAnimationArchive& arc) {
@@ -212,7 +212,8 @@ Result<std::vector<u8>> WriteSRT0(const g3d::SrtAnimationArchive& arc) {
   g3d::NameTable names;
   // g3d::RelocWriter linker(writer);
 
-  TRY(arc.write(writer, names, 0));
+  auto w = arc.write(arc);
+  TRY(w.write(writer, names, 0));
   const auto end = writer.tell();
   {
     names.poolNames();
@@ -369,11 +370,11 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   return tmp;
 }
 
-std::string RetargetCrateAnimation(CrateAnimation& preset) {
+Result<void> RetargetCrateAnimation(CrateAnimation& preset) {
   std::set<std::string> mat_targets;
   for (const auto& x : preset.srt) {
-    for (const auto& mat : x.materials) {
-      mat_targets.emplace(mat.name);
+    for (const auto& mat : x.matrices) {
+      mat_targets.emplace(mat.target.materialName);
     }
   }
   for (const auto& x : preset.clr) {
@@ -394,21 +395,23 @@ std::string RetargetCrateAnimation(CrateAnimation& preset) {
     const std::string mat_names =
         FormatRange(mat_targets, [](auto& x) { return x; });
 
-    return std::format(
+    return std::unexpected(std::format(
         "Invalid single material preset. We expect one material per preset. "
         "Here, we scanned {} SRT0+CLR0+PAT0 files ({}) and saw references to "
         "more than just one material. In particular, the materials ({}) were "
         "referenced. It's not clear which SRT0/CLR0/PAT0 animations to keep "
         "and which to discard here, so the material preset is rejected as "
         "being invalid. Remove the extraneous data and try again.",
-        preset.srt.size(), srt_names, mat_names);
+        preset.srt.size(), srt_names, mat_names));
   }
 
   // Map mat_targets[0] -> mat.name
   for (auto& x : preset.srt) {
-    for (auto& mat : x.materials) {
+    auto w = x.write(x);
+    for (auto& mat : w.materials) {
       mat.name = preset.mat.name;
     }
+    x = TRY(x.read(w, [](...) {}));
   }
   for (auto& x : preset.clr) {
     for (auto& mat : x.materials) {
@@ -491,8 +494,8 @@ Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
     }
   }
   for (auto& srt : brres->srts) {
-    for (auto& anim : srt.materials) {
-      if (anim.name != mat.name) {
+    for (auto& anim : srt.matrices) {
+      if (anim.target.materialName != mat.name) {
         return std::unexpected("Extraneous SRT0 animations included"s);
       }
     }
@@ -593,10 +596,10 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
     result.tex.push_back(*data);
   }
   for (auto& srt : scene->srts) {
-    librii::g3d::SrtAnimationArchive mut = srt;
+    librii::g3d::BinarySrt mut = srt.write(srt);
     std::erase_if(mut.materials, [&](auto& m) { return m.name != mat.name; });
     if (!mut.materials.empty()) {
-      result.srt.push_back(mut);
+      result.srt.push_back(TRY(librii::g3d::SrtAnim::read(mut, [](...){})));
     }
   }
   for (auto& clr : scene->clrs) {

@@ -128,12 +128,6 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
           return std::unexpected(
               std::format("Failed to read SRT0 {}: {}", sub.name, ok.error()));
         }
-        SrtAnim json = TRY(SrtAnim::read(srt, [&](std::string_view msg) {
-          transaction.callback(kpi::IOMessageClass::Warning,
-                               std::format("SRT0 {}", sub.name), msg);
-        }));
-        auto b2 = SrtAnim::write(json);
-        EXPECT(srt == b2);
       }
     } else if (node.name == "AnmVis(NW4R)") {
       for (auto& sub : cdic.nodes) {
@@ -457,7 +451,17 @@ Result<Archive> Archive::from(const BinaryArchive& archive,
   tmp.textures = archive.textures;
   tmp.clrs = archive.clrs;
   tmp.pats = archive.pats;
-  tmp.srts = archive.srts;
+
+  for (auto& srt : archive.srts) {
+    auto srt_warn = [&](std::string_view msg) {
+      transaction.callback(kpi::IOMessageClass::Warning,
+                           std::format("SRT0 {}", srt.name), msg);
+    };
+    SrtAnim json = TRY(SrtAnim::read(srt, srt_warn));
+    auto b2 = SrtAnim::write(json);
+    EXPECT(srt == b2 && "SrtAnim re-encode is not byte-matching");
+    tmp.srts.emplace_back(json);
+  }
   tmp.viss = archive.viss;
   return tmp;
 }
@@ -469,7 +473,9 @@ Result<BinaryArchive> Archive::binary() const {
   tmp.textures = textures;
   tmp.clrs = clrs;
   tmp.pats = pats;
-  tmp.srts = srts;
+  for (auto& srt : srts) {
+    tmp.srts.emplace_back(srt.write(srt));
+  }
   tmp.viss = viss;
   return tmp;
 }

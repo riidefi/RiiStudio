@@ -30,7 +30,7 @@ struct Archive {
   std::vector<TextureData> textures;
   std::vector<BinaryClr> clrs;
   std::vector<BinaryTexPat> pats;
-  std::vector<librii::g3d::BinarySrt> srts;
+  std::vector<librii::g3d::SrtAnim> srts;
   std::vector<librii::g3d::BinaryVis> viss;
 
   static Result<Archive> from(const BinaryArchive& model,

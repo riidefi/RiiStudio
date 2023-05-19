@@ -51,6 +51,7 @@ void drawProperty(kpi::PropertyDelegate<SRT0>& dl, G3dSrtOptionsSurface) {
   KPI_PROPERTY_EX(dl, xformModel, edited.xformModel);
   KPI_PROPERTY_EX(dl, wrapMode, edited.wrapMode);
 
+#if 0
   std::vector<uint8_t> is_open(
       srt.materials.size()); // Since vector<bool> isn't aliasable by bool*
   std::fill(is_open.begin(), is_open.end(), true);
@@ -74,6 +75,7 @@ void drawProperty(kpi::PropertyDelegate<SRT0>& dl, G3dSrtOptionsSurface) {
       break;
     }
   }
+#endif
 }
 
 } // namespace riistudio::g3d

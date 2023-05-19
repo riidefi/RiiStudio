@@ -200,7 +200,7 @@ class SaveAsSRT0 : public kpi::ActionMenu<riistudio::g3d::SRT0, SaveAsSRT0> {
       path = choice->string();
     }
 
-    auto buf = librii::crate::WriteSRT0(arc);
+    auto buf = librii::crate::WriteSRT0(arc.write(arc));
     if (!buf) {
       return "librii::crate::WriteSRT0 failed: " + buf.error();
     }

@@ -23,11 +23,8 @@ Result<void> ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
                                         librii::crate::CrateAnimation anim,
                                         bool overwrite_tex_same_name) {
   anim.mat.name = mat.name;
-  auto ret_err = RetargetCrateAnimation(anim);
-  if (ret_err.size()) {
-    return std::unexpected(ret_err);
-  }
-
+  TRY(RetargetCrateAnimation(anim));
+  
   static_cast<librii::g3d::G3dMaterialData&>(mat) = anim.mat;
   mat.onUpdate(); // Update viewport
   if (!mat.childOf) {
