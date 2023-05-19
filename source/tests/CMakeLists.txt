@@ -52,7 +52,7 @@ elseif (APPLE)
     set(GLFW_VERSION "3.3.8")
 	set(FREETYPE_VERSION "2.13.0_1")
 
-    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl -lcurl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
 elseif (NOT UNIX)
 	target_link_libraries(tests PUBLIC
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a

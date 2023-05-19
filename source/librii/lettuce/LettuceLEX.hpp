@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/common.h>
-#include <expected>
 #include <span>
 #include <string>
 #include <vector>

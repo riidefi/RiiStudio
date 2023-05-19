@@ -49,6 +49,16 @@ public:
     assert(value != nullptr);
     return *value;
   }
+  const value_type& value() const {
+    const auto* value = std::get_if<value_type>(&mVariant);
+    assert(value != nullptr);
+    return *value;
+  }
+  value_type& value() {
+    auto* value = std::get_if<value_type>(&mVariant);
+    assert(value != nullptr);
+    return *value;
+  }
 
   explicit operator bool() const { return has_value(); }
   bool has_value() const {

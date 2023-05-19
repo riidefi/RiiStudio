@@ -48,7 +48,7 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
     auto g = ctx.sublet("header");
 
     g.require(TRY(reader.tryRead<u32>()) == 'RKMD', "Invalid file magic");
-    g.require(reader.tryRead<u32>() == reader.endpos(), "Invalid file size");
+    g.require(TRY(reader.tryRead<u32>()) == reader.endpos(), "Invalid file size");
 
     num_sec = TRY(reader.tryRead<u16>());
     g.request(num_sec == 15, "Unusual section count");

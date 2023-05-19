@@ -134,7 +134,7 @@ elseif (NOT UNIX)
 	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
 	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
 	)
-elseif (UNIX)
+elseif (UNIX AND NOT APPLE)
 	# TODO: Duplication: extract to FindX.cmake
 	find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
 	target_link_libraries(frontend PUBLIC ${BZIP2_LIBRARY})
@@ -175,7 +175,7 @@ else()
     set(GLFW_VERSION "3.3.8")
     set(FREETYPE_VERSION "2.13.0_1")
 
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl -lcurl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
   elseif (UNIX)
     # --start-group, --end-group allows circular dependencies among object files
     SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lfreetype -lstdc++ -lm")
