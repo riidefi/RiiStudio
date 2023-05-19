@@ -4,7 +4,7 @@
 #include <imcxx/Widgets.hpp>
 #include <plugins/gc/Export/Material.hpp> // for GCMaterialData
 // TODO: Awful interdependency. Fix this when icon system is stable
-#include <frontend/editor/EditorWindow.hpp>
+#include <frontend/legacy_editor/EditorWindow.hpp>
 
 #define _AUTO_PROPERTY(delegate, before, after, val)                           \
   delegate.property(                                                           \

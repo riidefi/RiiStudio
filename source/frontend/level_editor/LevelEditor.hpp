@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/common.h>
-#include <frontend/editor/StudioWindow.hpp>
+#include <frontend/legacy_editor/StudioWindow.hpp>
 #include <frontend/level_editor/Archive.hpp>
 #include <frontend/level_editor/TriangleRenderer.hpp>
 #include <frontend/renderer/Renderer.hpp>
@@ -139,7 +139,8 @@ struct RenderableBRRES {
 class LevelEditorWindow : public frontend::StudioWindow, private Selection {
 public:
   LevelEditorWindow()
-      : StudioWindow("Level Editor: <unknown>", frontend::DockSetting::Dockspace) {
+      : StudioWindow("Level Editor: <unknown>",
+                     frontend::DockSetting::Dockspace) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
 
     mRenderSettings.mCameraController.combo_choice_cam =

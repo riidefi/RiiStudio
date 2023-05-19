@@ -1,8 +1,8 @@
 #include "Outliner.hpp"
-#include <LibBadUIFramework/RichNameManager.hpp> // kpi::RichNameManager
-#include <frontend/editor/EditorWindow.hpp>      // EditorWindow
-#include <frontend/editor/StudioWindow.hpp>      // StudioWindow
-#include <plugins/gc/Export/Material.hpp>        // libcube::IGCMaterial
+#include <LibBadUIFramework/RichNameManager.hpp>   // kpi::RichNameManager
+#include <frontend/legacy_editor/EditorWindow.hpp> // EditorWindow
+#include <frontend/legacy_editor/StudioWindow.hpp> // StudioWindow
+#include <plugins/gc/Export/Material.hpp>          // libcube::IGCMaterial
 // #include <regex>                          // std::regex_search
 #include "OutlinerWidget.hpp"
 #include <LibBadUIFramework/ActionMenu.hpp> // kpi::ActionMenuManager

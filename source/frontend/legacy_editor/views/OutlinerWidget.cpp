@@ -1,5 +1,5 @@
 #include "OutlinerWidget.hpp"
-#include <frontend/editor/EditorWindow.hpp>
+#include <frontend/legacy_editor/EditorWindow.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 namespace riistudio::frontend {

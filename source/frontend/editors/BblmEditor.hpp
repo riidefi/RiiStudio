@@ -2,7 +2,7 @@
 
 #include <core/util/oishii.hpp>
 #include <frontend/IEditor.hpp>
-#include <frontend/editor/StudioWindow.hpp>
+#include <frontend/legacy_editor/StudioWindow.hpp>
 #include <frontend/widgets/AutoHistory.hpp>
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <librii/egg/PBLM.hpp>

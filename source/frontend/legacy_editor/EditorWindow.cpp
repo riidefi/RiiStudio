@@ -1,10 +1,10 @@
 #include "EditorWindow.hpp"
-#include <core/3d/i3dmodel.hpp>                       // lib3d::Scene
-#include <frontend/applet.hpp>                        // core::Applet
-#include <frontend/editor/views/HistoryList.hpp>      // MakePropertyEditor
-#include <frontend/editor/views/Outliner.hpp>         // MakeHistoryList
-#include <frontend/editor/views/PropertyEditor.hpp>   // MakeOutliner
-#include <frontend/editor/views/ViewportRenderer.hpp> // MakeViewportRenderer
+#include <core/3d/i3dmodel.hpp>                            // lib3d::Scene
+#include <frontend/applet.hpp>                             // core::Applet
+#include <frontend/legacy_editor/views/HistoryList.hpp>    // MakePropertyEditor
+#include <frontend/legacy_editor/views/Outliner.hpp>       // MakeHistoryList
+#include <frontend/legacy_editor/views/PropertyEditor.hpp> // MakeOutliner
+#include <frontend/legacy_editor/views/ViewportRenderer.hpp> // MakeViewportRenderer
 #include <imcxx/Widgets.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_TIMES
 

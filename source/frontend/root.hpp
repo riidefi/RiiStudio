@@ -9,10 +9,12 @@
 #include "file_host.hpp"
 
 #include <frontend/UpdaterView.hpp>
-#include <frontend/editor/ImporterWindow.hpp>
 #include <frontend/widgets/theme_editor.hpp>
 
 #include <frontend/DiscordRPCManager.hpp>
+
+#include <frontend/legacy_editor/EditorWindow.hpp>
+#include <frontend/legacy_editor/ImporterWindow.hpp>
 
 namespace riistudio::frontend {
 

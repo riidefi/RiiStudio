@@ -6,7 +6,6 @@
 #include <core/util/timestamp.hpp>
 #include <frontend/Fonts.hpp>
 #include <frontend/Localization.hpp>
-#include <frontend/editor/EditorWindow.hpp>
 #include <frontend/widgets/UnsavedProgress.hpp>
 #include <frontend/widgets/fps.hpp>
 #include <imcxx/Widgets.hpp>

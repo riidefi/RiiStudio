@@ -1,6 +1,6 @@
 #pragma once
 
-#include <frontend/editor/StudioWindow.hpp>
+#include <frontend/legacy_editor/StudioWindow.hpp>
 #include <imcxx/Widgets.hpp>
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>

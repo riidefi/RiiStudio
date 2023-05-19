@@ -1,6 +1,6 @@
 #pragma once
 
-#include <frontend/editor/EditorImporter.hpp> // EditorImporter
+#include <frontend/legacy_editor/EditorImporter.hpp> // EditorImporter
 
 namespace riistudio::frontend {
 

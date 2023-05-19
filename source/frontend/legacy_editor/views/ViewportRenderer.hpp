@@ -1,8 +1,8 @@
 #pragma once
 
+#include <LibBadUIFramework/Node2.hpp> // kpi::IDocumentNode
 #include <core/3d/i3dmodel.hpp>
-#include <LibBadUIFramework/Node2.hpp>               // kpi::IDocumentNode
-#include <frontend/editor/StudioWindow.hpp> // StudioWindow
+#include <frontend/legacy_editor/StudioWindow.hpp> // StudioWindow
 
 namespace riistudio::frontend {
 
