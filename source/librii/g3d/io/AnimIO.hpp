@@ -183,7 +183,7 @@ struct SrtAnim {
   };
 
   std::vector<TargetedMtx> matrices{};
-  std::string name{};
+  std::string name{"Untitled SRT0"};
   std::string sourcePath{};
   u16 frameDuration{};
   u32 xformModel{};
