@@ -33,7 +33,7 @@ void Manipulator::drawUi(glm::mat4& mx) {
     if (ImGui::RadioButton("World", mCurrentGizmoMode == ImGuizmo::WORLD))
       mCurrentGizmoMode = ImGuizmo::WORLD;
   }
-  if (ImGui::IsKeyPressed(83))
+  if (ImGui::IsKeyPressed(ImGuiKey_S))
     useSnap = !useSnap;
   ImGui::Checkbox("SNAP", &useSnap);
   ImGui::SameLine();

@@ -87,7 +87,10 @@ template <typename T> T DrawKonstSel(T x) {
       ksel.k_reg = 0;
       ksel.k_sub = 0;
     }
-    ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth() / 3 - 2);
+    ImGui::PushItemWidth((ImGui::GetWindowContentRegionMax().x -
+                          ImGui::GetWindowContentRegionMin().x) /
+                             3 -
+                         2);
     ImGui::Combo(".##Constant Register ID", &ksel.k_reg,
                  "Constant Color 0\0"
                  "Constant Color 1\0"
