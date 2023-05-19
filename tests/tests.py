@@ -24,6 +24,9 @@ TEST_DATA = {
 
 	# luigi_circuit.brres
 	'b84346d8549d38f4ba75a47eb87e9ca6': 'b84346d8549d38f4ba75a47eb87e9ca6',
+  # old_town_ds.brres: Has isotropic non-identity scale
+  # Off by two bytes at 0x5DAD and 0x5DAE because indmtx precision errors with matrix decomposition.
+  'f0d2cbb8e2cc6ebf5d0d84fc1b26280e': '5908868b3d9c0f083ad3c23a1396d4ed',
 
 	# sea.brres
 	'8e882b37c306c0f98f3f08363ba61e31': '8e882b37c306c0f98f3f08363ba61e31',

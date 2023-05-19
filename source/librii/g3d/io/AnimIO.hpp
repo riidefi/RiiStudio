@@ -151,7 +151,11 @@ struct BinarySrt {
   void mergeIdenticalTracks();
 };
 
-// XML-suitable variant
+// Abstracted structure
+//
+// - "Constant" animations are expressed as a single keyframe.
+// - List of animated matrices is provided.
+//
 struct SrtAnim {
   struct Target {
     std::string materialName{};
@@ -160,7 +164,8 @@ struct SrtAnim {
     bool operator==(const Target&) const = default;
   };
 
-  using Track = std::variant<f32, std::vector<SRT0KeyFrame>>;
+  // 1 keyframe <=> constant
+  using Track = std::vector<SRT0KeyFrame>;
 
   struct Mtx {
     Track scaleX{};
@@ -309,13 +314,14 @@ struct SrtAnim {
           &targetedMtx.matrix.rot, &targetedMtx.matrix.transX,
           &targetedMtx.matrix.transY};
       for (size_t i = 0; i < targetIds.size(); ++i) {
-        if (auto* f = std::get_if<f32>(tracks[i])) {
+        if (tracks[i]->size() == 1) {
+          auto f = tracks[i]->at(0).value;
           if (targetIds[i] == SRT0Matrix::TargetId::ScaleU) {
             matrix.flags |= SRT0Matrix::FLAG_SCL_U_FIXED;
-            if (targetedMtx.matrix.scaleY.index() == 0 &&
-                std::get<f32>(targetedMtx.matrix.scaleY) == *f) {
+            if (targetedMtx.matrix.scaleY.size() == 1 &&
+                targetedMtx.matrix.scaleY[0].value == f) {
               matrix.flags |= SRT0Matrix::FLAG_SCL_ISOTROPIC;
-              if (*f == 1.0f) {
+              if (f == 1.0f) {
                 matrix.flags |= SRT0Matrix::FLAG_SCL_ONE;
               }
             }
@@ -323,14 +329,14 @@ struct SrtAnim {
             matrix.flags |= SRT0Matrix::FLAG_SCL_V_FIXED;
           } else if (targetIds[i] == SRT0Matrix::TargetId::Rotate) {
             matrix.flags |= SRT0Matrix::FLAG_ROT_FIXED;
-            if (*f == 0.0f) {
+            if (f == 0.0f) {
               matrix.flags |= SRT0Matrix::FLAG_ROT_ZERO;
             }
           } else if (targetIds[i] == SRT0Matrix::TargetId::TransU) {
             matrix.flags |= SRT0Matrix::FLAG_TRANS_U_FIXED;
-            if (targetedMtx.matrix.transY.index() == 0 &&
-                std::get<f32>(targetedMtx.matrix.transY) == *f) {
-              if (*f == 0.0f) {
+            if (targetedMtx.matrix.transY.size() == 1 &&
+                targetedMtx.matrix.transY[0].value == f) {
+              if (f == 0.0f) {
                 matrix.flags |= SRT0Matrix::FLAG_TRANS_ZERO;
               }
             }
@@ -341,16 +347,13 @@ struct SrtAnim {
             continue;
           }
           SRT0Target target;
-          target.data = std::get<f32>(*tracks[i]);
+          target.data = f;
           matrix.targets.push_back(target);
-        } else if (std::holds_alternative<std::vector<SRT0KeyFrame>>(
-                       *tracks[i])) {
+        } else {
           SRT0Track track;
-          track.keyframes = std::get<std::vector<SRT0KeyFrame>>(*tracks[i]);
-          track.step =
-              CalcStep(track.keyframes.front().frame,
-                       track.keyframes.back()
-                           .frame); // Make sure CalcStep is implemented
+          track.keyframes = *tracks[i];
+          track.step = CalcStep(track.keyframes.front().frame,
+                                track.keyframes.back().frame);
           binary.tracks.push_back(track);
 
           SRT0Target target;
@@ -404,27 +407,29 @@ private:
     size_t k = 0;
     Mtx y{};
     if (!mtx.isAttribIncluded(SRT0Matrix::TargetId::ScaleU, mtx.flags)) {
-      y.scaleX = 1.0f;
+      y.scaleX = {SRT0KeyFrame{.value = 1.0f}};
     } else {
       y.scaleX = TRY(readTrack(srt.tracks, mtx.targets[k++], warn));
     }
     if (!mtx.isAttribIncluded(SRT0Matrix::TargetId::ScaleV, mtx.flags)) {
-      y.scaleY = 1.0f;
+      auto scl =
+          (mtx.flags & SRT0Matrix::FLAG_SCL_ISOTROPIC) ? y.scaleX[0].value : 0;
+      y.scaleY = {SRT0KeyFrame{.value = scl}};
     } else {
       y.scaleY = TRY(readTrack(srt.tracks, mtx.targets[k++], warn));
     }
     if (!mtx.isAttribIncluded(SRT0Matrix::TargetId::Rotate, mtx.flags)) {
-      y.rot = 0.0f;
+      y.rot = {SRT0KeyFrame{.value = 0.0f}};
     } else {
       y.rot = TRY(readTrack(srt.tracks, mtx.targets[k++], warn));
     }
     if (!mtx.isAttribIncluded(SRT0Matrix::TargetId::TransU, mtx.flags)) {
-      y.transX = 0.0f;
+      y.transX = {SRT0KeyFrame{.value = 0.0f}};
     } else {
       y.transX = TRY(readTrack(srt.tracks, mtx.targets[k++], warn));
     }
     if (!mtx.isAttribIncluded(SRT0Matrix::TargetId::TransV, mtx.flags)) {
-      y.transY = 0.0f;
+      y.transY = {SRT0KeyFrame{.value = 0.0f}};
     } else {
       y.transY = TRY(readTrack(srt.tracks, mtx.targets[k++], warn));
     }
@@ -434,7 +439,7 @@ private:
                                  const SRT0Target& target,
                                  std::function<void(std::string_view)> warn) {
     if (auto* fixed = std::get_if<f32>(&target.data)) {
-      return Track{TRY(checkFloat(*fixed))};
+      return Track{SRT0KeyFrame{.value = TRY(checkFloat(*fixed))}};
     } else {
       assert(std::get_if<u32>(&target.data));
       auto& track = tracks[*std::get_if<u32>(&target.data)];
@@ -457,6 +462,9 @@ private:
       if (track.step != step) {
         warn("Frame interval not properly computed");
       }
+      EXPECT(track.keyframes.size() > 1,
+             "Unexpected animation track with a single keyframe, but not "
+             "encoded as a FIXED value.");
       return Track{track.keyframes};
     }
   }
