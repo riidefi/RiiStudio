@@ -1,11 +1,65 @@
 # Oishii
 
 A powerful and performant C++ library for endian binary IO.
-Pronounced oi-shi, from Japanese おいしい--"delicious".
+Pronounced oi-shī, from Japanese おいしい--"delicious".
 
 ## Reading files
 
 Basic reader functionality has been provided, as well as several layers of compile-time abstraction.
+
+```cpp
+// Reads two big-endian ulongs (representing minutes and seconds)
+Result<f64> ReadMinutes(std::string_view path) {
+  auto reader = TRY(oishii::BinaryReader::FromFilePath(path, std::endian::big));
+  u32 minutes = TRY(reader.tryRead<u32>());
+  u32 seconds = TRY(reader.tryRead<u32>());
+  return static_cast<f64>(minutes) + static_cast<f64>(seconds) / 60.0;
+}
+```
+
+```cpp
+// Writes as two big-endian ulongs
+void WriteMinutes(std::string_view path, f64 minutes) {
+	oishii::Writer writer;
+	writer.setEndian(std::endian::big);
+	writer.write<u32>(static_cast<u32>(round(minutes, 60.0));
+	writer.write<u32>(static_cast<u32>(fmod(minutes, 60.0) * 60.0);
+	writer.saveToDisk(path);
+}
+```
+
+```cpp
+// Reader breakpoint
+void ReadBP(std::string_view path) {
+	auto reader = oishii::BinaryReader::FromFilePath(path, std::endian::big).value();
+	reader.add_bp<u32>(0x10);
+	
+	// Trigger BP
+	reader.seekSet(0x10);
+	u32 _ = reader.tryRead<u32>(0).value();
+}
+```
+
+```
+test.bin:0x10: warning: Breakpoint hit
+        Offset  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+        000010  53 45 43 31 CD CD CD CD CD CD CD CD CD CD CD CD SEC1............
+                ^~~~~~~~~~~                                     ^~~~
+```
+
+```cpp
+// Writer test case
+void Test() {
+	oishii::Writer writer;
+	writer.setEndian(std::endian::big);
+
+	std::vector<u8, 4> expected{0x12, 0x34, 0x56, 0x78};
+	writer.attachDataForMatchingOutput(expected);
+
+	// Error if does not match
+	writer.write<u32>(0x1234'5678);
+}
+```
 
 Scope-based jumping forms the most basic level. No runtime cost is incurred.
 
