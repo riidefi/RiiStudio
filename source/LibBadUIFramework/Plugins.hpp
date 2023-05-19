@@ -2,7 +2,6 @@
 
 #include "Node2.hpp"
 #include "Reflection.hpp"
-#include <oishii/data_provider.hxx>
 
 namespace oishii {
 class BinaryReader;
@@ -98,7 +97,8 @@ struct IOContext {
 struct IOTransaction : public LightIOTransaction {
   // Caller -> Deserializer
   kpi::INode& node;
-  oishii::ByteView data;
+  std::span<const u8> data;
+  std::string path;
 
   // Unresolved
   rsl::small_vector<std::string, 8> unresolvedFiles; // request

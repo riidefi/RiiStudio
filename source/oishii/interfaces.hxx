@@ -1,11 +1,11 @@
 #pragma once
 
-#include "data_provider.hxx"
 #include "types.hxx"
 #include <cstdio>
 #include <iostream>
 #include <rsl/DebugBreak.hpp>
 #include <set>
+#include <span>
 #include <vector>
 
 namespace oishii {

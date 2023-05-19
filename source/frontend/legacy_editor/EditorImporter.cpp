@@ -1,5 +1,4 @@
 #include "EditorImporter.hpp"
-#include <oishii/data_provider.hxx>
 #include <plugins/api.hpp>
 
 // TODO
@@ -12,8 +11,9 @@ EditorImporter::EditorImporter(FileData&& data, kpi::INode* _fileState)
   std::vector<u8> vec(data.mLen);
   memcpy(vec.data(), data.mData.get(), data.mLen);
 
-  provider = std::make_unique<oishii::DataProvider>(std::move(vec), data.mPath);
-  auto [_data_id, _importer] = SpawnImporter(data.mPath, provider->slice());
+  provider = std::make_unique<std::vector<u8>>(std::move(vec));
+  mPath = data.mPath;
+  auto [_data_id, _importer] = SpawnImporter(data.mPath, *provider);
   data_id = std::move(_data_id);
   mDeserializer = std::move(_importer);
 
@@ -67,12 +67,15 @@ bool EditorImporter::process() {
     }
     // auto fn = std::bind(&EditorImporter::messageHandler, std::ref(*this));
     auto fn = [](...) {};
-    transaction.emplace(kpi::IOTransaction{{
-                                               fn,
-                                               kpi::TransactionState::Complete,
-                                           },
-                                           *fileState.get(),
-                                           provider->slice()});
+    transaction.emplace(kpi::IOTransaction{
+        {
+            fn,
+            kpi::TransactionState::Complete,
+        },
+        *fileState.get(),
+        *provider,
+        mPath,
+    });
 
     // TODO: Move elsewhere..
     auto path = getPath();

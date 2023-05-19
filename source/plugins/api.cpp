@@ -33,7 +33,7 @@ kpi::RichName GetRich(const std::string& type) {
 }
 
 std::pair<std::string, std::unique_ptr<kpi::IBinaryDeserializer>>
-SpawnImporter(const std::string& fileName, oishii::ByteView data) {
+SpawnImporter(const std::string& fileName, std::span<const u8> data) {
   std::string match = "";
   std::unique_ptr<kpi::IBinaryDeserializer> out = nullptr;
 

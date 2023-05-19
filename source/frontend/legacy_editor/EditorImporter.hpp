@@ -72,10 +72,7 @@ public:
   std::string getPath() const {
     if (!mPath.empty())
       return mPath;
-    assert(provider != nullptr);
-    if (provider == nullptr)
-      return {};
-    return std::string(provider->getFilePath());
+    return {};
   }
   void setPath(const std::string& path) { mPath = path; }
 
@@ -108,7 +105,7 @@ private:
 
   std::unique_ptr<kpi::IBinaryDeserializer> mDeserializer = nullptr;
   std::unique_ptr<kpi::INode> fileState = nullptr;
-  std::unique_ptr<oishii::DataProvider> provider;
+  std::unique_ptr<std::vector<u8>> provider;
 
   std::string mPath;
 

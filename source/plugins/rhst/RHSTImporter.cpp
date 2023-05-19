@@ -814,7 +814,7 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
   libcube::Scene* pnode = dynamic_cast<libcube::Scene*>(&transaction.node);
   assert(pnode != nullptr);
   libcube::Scene& scene = *pnode;
-  std::string path(transaction.data.getProvider()->getFilePath());
+  std::string path(transaction.path);
   auto info = [&](std::string c, std::string v) {
     transaction.callback(kpi::IOMessageClass::Information, c, v);
   };

@@ -44,7 +44,7 @@ enum class RHSTToken {
 
 class RHSTReader {
 public:
-  RHSTReader(oishii::ByteView file_data)
+  RHSTReader(std::span<const u8> file_data)
       : mReader(file_data, "Unknown Path", std::endian::little) {
     mReader.skip(8);
   }
@@ -1024,11 +1024,7 @@ Result<SceneTree> ReadSceneTree(std::span<const u8> file_data) {
   totalStrippingMs = 0;
   if (file_data[0] == 'R' && file_data[1] == 'H' && file_data[2] == 'S' &&
       file_data[3] == 'T') {
-    std::vector<u8> data_vec(file_data.size());
-    memcpy(data_vec.data(), file_data.data(), data_vec.size());
-    oishii::DataProvider provider(std::move(data_vec));
-
-    RHSTReader reader(provider.slice());
+    RHSTReader reader(file_data);
 
     SceneTreeReader scn_reader(reader);
 

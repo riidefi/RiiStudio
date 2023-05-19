@@ -308,7 +308,7 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
     return std::unexpected(
         std::format("Failed to read .mdl0shade at \"{}\"", paths.mdl0shade));
   }
-  std::vector<oishii::DataProvider> tex0s;
+  std::vector<std::vector<u8>> tex0s;
   for (auto& x : paths.tex0) {
     auto tex0 = OishiiReadFile2(x.string());
     if (!tex0) {
@@ -316,7 +316,7 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
     }
     tex0s.push_back(std::move(*tex0));
   }
-  std::vector<oishii::DataProvider> srt0s;
+  std::vector<std::vector<u8>> srt0s;
   for (auto& x : paths.srt0) {
     auto srt0 = OishiiReadFile2(x.string());
     if (!srt0) {
@@ -324,19 +324,19 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
     }
     srt0s.push_back(std::move(*srt0));
   }
-  auto mat = ReadMDL0Mat(mdl0mat->slice());
+  auto mat = ReadMDL0Mat(*mdl0mat);
   if (!mat.has_value()) {
     return std::unexpected(std::format("Failed to parse material at \"{}\": {}",
                                        paths.mdl0mat, mat.error()));
   }
-  auto shade = ReadMDL0Shade(mdl0shade->slice());
+  auto shade = ReadMDL0Shade(*mdl0shade);
   if (!shade.has_value()) {
     return std::unexpected(std::format("Failed to parse shader at \"{}\": {}",
                                        paths.mdl0shade, shade.error()));
   }
   CrateAnimation tmp;
   for (size_t i = 0; i < tex0s.size(); ++i) {
-    auto tex = ReadTEX0(tex0s[i].slice());
+    auto tex = ReadTEX0(tex0s[i]);
     if (!tex.has_value()) {
       if (i >= paths.tex0.size()) {
         return std::unexpected(tex.error());
@@ -347,7 +347,7 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
     tmp.tex.push_back(*tex);
   }
   for (size_t i = 0; i < srt0s.size(); ++i) {
-    auto srt = ReadSRT0(srt0s[i].slice());
+    auto srt = ReadSRT0(srt0s[i]);
     if (!srt.has_value()) {
       if (i >= paths.srt0.size()) {
         return std::unexpected(srt.error());

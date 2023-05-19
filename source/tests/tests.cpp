@@ -50,7 +50,7 @@ open(std::string path, std::span<const u32> bps = {}) {
     return std::nullopt;
   }
 
-  auto importer = SpawnImporter(std::string(path), file->slice());
+  auto importer = SpawnImporter(std::string(path), *file);
 
   if (!importer.second) {
     printf("Cannot spawn importer..\n");
@@ -82,12 +82,15 @@ open(std::string path, std::span<const u32> bps = {}) {
                                magic_enum::enum_name(message_class),
                                message_body, domain));
   };
-  kpi::IOTransaction transaction{{
-                                     add_log,
-                                     kpi::TransactionState::Complete,
-                                 },
-                                 *fileState,
-                                 file->slice()};
+  kpi::IOTransaction transaction{
+      {
+          add_log,
+          kpi::TransactionState::Complete,
+      },
+      *fileState,
+      *file,
+      path,
+  };
   for (u32 bp : bps) {
     importer.second->addBp(bp);
   }
@@ -111,7 +114,7 @@ open(std::string path, std::span<const u32> bps = {}) {
     }
   }
 
-  return std::make_pair(std::move(fileState), file->slice() | rsl::ToList());
+  return std::make_pair(std::move(fileState), *file | rsl::ToList());
 }
 
 // XXX: Hack, though we'll refactor all of this way soon
@@ -136,14 +139,14 @@ void rebuild(std::string from, const std::string_view to, bool check,
         writer.add_bp<u32>(bp);
       }
     }
-    oishii::BinaryReader reader(file->slice(), from, std::endian::big);
+    oishii::BinaryReader reader(*file, from, std::endian::big);
     for (auto bp : bps) {
       if (bp < 0)
         reader.add_bp<u32>(-bp);
     }
     rsl::SafeReader safe(reader);
     if (from.ends_with("kmp")) {
-      auto map = librii::kmp::readKMP(file->slice());
+      auto map = librii::kmp::readKMP(*file);
       if (!map) {
         fprintf(stderr, "Failed to read kmp: %s\n", map.error().c_str());
         return;
@@ -151,7 +154,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
       printf("Writing to %s\n", std::string(to).c_str());
       librii::kmp::writeKMP(*map, writer);
     } else if (from.ends_with("blight")) {
-      writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
+      writer.attachDataForMatchingOutput(*file | rsl::ToList());
       librii::egg::Blight lights;
       auto ok = lights.read(reader);
       if (!ok) {
@@ -160,13 +163,13 @@ void rebuild(std::string from, const std::string_view to, bool check,
       printf("Writing to %s\n", std::string(to).c_str());
       lights.save(writer);
     } else if (from.ends_with("blmap")) {
-      writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
+      writer.attachDataForMatchingOutput(*file | rsl::ToList());
       librii::egg::LightMap lmap;
       lmap.read(safe);
       printf("Writing to %s\n", std::string(to).c_str());
       lmap.write(writer);
     } else if (from.ends_with("bdof")) {
-      writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
+      writer.attachDataForMatchingOutput(*file | rsl::ToList());
       auto bdof = librii::egg::bin::BDOF_Read(safe);
       if (!bdof) {
         fprintf(stderr, "Failed to read bdof: %s\n", bdof.error().c_str());
@@ -181,7 +184,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
       printf("Writing to %s\n", std::string(to).c_str());
       librii::egg::bin::BDOF_Write(writer, bdof2);
     } else if (from.ends_with("bblm")) {
-      writer.attachDataForMatchingOutput(file->slice() | rsl::ToList());
+      writer.attachDataForMatchingOutput(*file | rsl::ToList());
       auto bdof = librii::egg::PBLM_Read(safe);
       if (!bdof) {
         fprintf(stderr, "Failed to read bblm: %s\n", bdof.error().c_str());
