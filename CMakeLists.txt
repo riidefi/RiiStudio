@@ -135,7 +135,7 @@ CPMAddPackage("gh:zeux/meshoptimizer#v0.18")
 
 set(DRACO_BACKWARDS_COMPATIBILITY OFF)
 set(DRACO_POINT_CLOUD_COMPRESSION OFF)
-CPMAddPackage("gh:google/draco#1.5.5")
+CPMAddPackage("gh:google/draco#1.5.6")
 
 # Doesn't work OOB -- requires exceptions
 if (FALSE)

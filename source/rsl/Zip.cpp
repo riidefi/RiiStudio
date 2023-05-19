@@ -1,6 +1,7 @@
 #include "Zip.hpp"
 
 #include <fstream>
+#include <cstdint>
 #include <span>
 
 extern "C" int c_rsl_extract_zip(const char* from_file, const char* to_folder,
