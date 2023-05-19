@@ -147,11 +147,20 @@ struct BinarySrt {
   [[nodiscard]] Result<void> read(oishii::BinaryReader& reader);
   [[nodiscard]] Result<void> write(oishii::Writer& writer, NameTable& names,
                                    u32 addrBrres) const;
+
+  void mergeIdenticalTracks();
 };
 
 // XML-suitable variant
 struct SrtAnim {
+  struct Target {
+    std::string materialName{};
+    bool indirect = false;
+    int matrixIndex = 0;
+  };
+
   using Track = std::variant<f32, std::vector<SRT0KeyFrame>>;
+
   struct Mtx {
     Track scaleX{};
     Track scaleY{};
@@ -159,18 +168,18 @@ struct SrtAnim {
     Track transX{};
     Track transY{};
   };
-  struct Mat {
-    std::string name{};
-    std::array<std::optional<Mtx>, 8> texsrts{};
-    std::array<std::optional<Mtx>, 3> indsrts{};
+
+  struct TargetedMtx {
+    Target target;
+    Mtx matrix;
   };
-  std::vector<Mat> materials{};
+
+  std::vector<TargetedMtx> matrices{};
   std::string name{};
   std::string sourcePath{};
   u16 frameDuration{};
   u32 xformModel{};
   AnimationWrapMode wrapMode{AnimationWrapMode::Repeat};
-
   static Result<SrtAnim> read(const BinarySrt& srt,
                               std::function<void(std::string_view)> warn) {
     SrtAnim tmp{};
@@ -179,25 +188,209 @@ struct SrtAnim {
     tmp.frameDuration = srt.frameDuration;
     tmp.xformModel = srt.xformModel;
     tmp.wrapMode = srt.wrapMode;
+
+    // Suppose our sort index array looks like
+    //
+    // 0  1 -1  2  3  4 -1 -1  5
+    // Our sortBiasCtr and lastSort variable logic will instead produce
+    // 0  1  2  3  4  5  6  7  8
+    //
+    std::vector<int> sortIndices;
+    int sortBiasCtr = 0;
+    int lastSort = 0;
+
     for (auto& m : srt.materials) {
-      auto& x = tmp.materials.emplace_back();
-      x.name = m.name;
       size_t j = 0;
       for (size_t i = 0; i < 8; ++i) {
         if (m.enabled_texsrts & (1 << i)) {
-          x.texsrts[i] = TRY(readMatrix(srt, m.matrices[j++], warn));
+          TargetedMtx targetedMtx;
+          targetedMtx.target.materialName = m.name;
+          targetedMtx.target.indirect = false;
+          targetedMtx.target.matrixIndex = i;
+          auto sortIndex = calculateSortIndex(m.matrices[j]);
+          if (sortIndex < 0) {
+            sortIndex = lastSort + 1;
+            ++sortBiasCtr;
+          } else {
+            sortIndex += sortBiasCtr;
+          }
+          lastSort = sortIndex;
+          targetedMtx.matrix = TRY(readMatrix(srt, m.matrices[j++], warn));
+          tmp.matrices.push_back(targetedMtx);
+          sortIndices.push_back(sortIndex);
         }
       }
       for (size_t i = 0; i < 3; ++i) {
         if (m.enabled_indsrts & (1 << i)) {
-          x.indsrts[i] = TRY(readMatrix(srt, m.matrices[j++], warn));
+          TargetedMtx targetedMtx;
+          targetedMtx.target.materialName = m.name;
+          targetedMtx.target.indirect = true;
+          targetedMtx.target.matrixIndex = i;
+          auto sortIndex = calculateSortIndex(m.matrices[j]);
+          if (sortIndex < 0) {
+            sortIndex = lastSort;
+            ++sortBiasCtr;
+          } else {
+            sortIndex += sortBiasCtr;
+          }
+          lastSort = sortIndex;
+          targetedMtx.matrix = TRY(readMatrix(srt, m.matrices[j++], warn));
+          tmp.matrices.push_back(targetedMtx);
+          sortIndices.push_back(sortIndex);
         }
       }
     }
+
+    std::vector<size_t> indices(tmp.matrices.size());
+    std::iota(indices.begin(), indices.end(), 0);
+    std::sort(indices.begin(), indices.end(), [&](size_t i1, size_t i2) {
+      return sortIndices[i1] < sortIndices[i2];
+    });
+
+    std::vector<TargetedMtx> sortedMatrices;
+    for (auto i : indices) {
+      sortedMatrices.push_back(tmp.matrices[i]);
+    }
+    tmp.matrices = sortedMatrices;
+
     return tmp;
+  }
+  static BinarySrt write(const SrtAnim& anim) {
+    BinarySrt binary;
+
+    // Converting general fields
+    binary.name = anim.name;
+    binary.sourcePath = anim.sourcePath;
+    binary.frameDuration = anim.frameDuration;
+    binary.xformModel = anim.xformModel;
+    binary.wrapMode = anim.wrapMode;
+
+	std::map<std::string, std::vector<int>> materialSubMatrixSort;
+
+    // Create a map to track material names and their corresponding indices in
+    // the binary.materials vector
+    std::unordered_map<std::string, int> materialIndexMap;
+
+    // Mapping from SrtAnim::TargetedMtx to SRT0Material, SRT0Matrix, and
+    // SRT0Track
+    for (const auto& targetedMtx : anim.matrices) {
+      if (materialIndexMap.count(targetedMtx.target.materialName) == 0) {
+        // Create a new SRT0Material if it doesn't already exist
+        SRT0Material material;
+        material.name = targetedMtx.target.materialName;
+        binary.materials.push_back(material);
+        materialIndexMap[material.name] = binary.materials.size() - 1;
+      }
+      auto& material =
+          binary.materials[materialIndexMap[targetedMtx.target.materialName]];
+      material.enabled_texsrts |= targetedMtx.target.indirect
+                                      ? 0
+                                      : (1 << targetedMtx.target.matrixIndex);
+      material.enabled_indsrts |= targetedMtx.target.indirect
+                                      ? (1 << targetedMtx.target.matrixIndex)
+                                      : 0;
+
+      SRT0Matrix matrix;
+      matrix.flags = SRT0Matrix::FLAG_ENABLED;
+
+      // Add tracks for scaleX, scaleY, rot, transX, and transY
+      std::vector<SRT0Matrix::TargetId> targetIds{
+          SRT0Matrix::TargetId::ScaleU, SRT0Matrix::TargetId::ScaleV,
+          SRT0Matrix::TargetId::Rotate, SRT0Matrix::TargetId::TransU,
+          SRT0Matrix::TargetId::TransV};
+      std::vector<const SrtAnim::Track*> tracks{
+          &targetedMtx.matrix.scaleX, &targetedMtx.matrix.scaleY,
+          &targetedMtx.matrix.rot, &targetedMtx.matrix.transX,
+          &targetedMtx.matrix.transY};
+      for (size_t i = 0; i < targetIds.size(); ++i) {
+        if (auto* f = std::get_if<f32>(tracks[i])) {
+          if (targetIds[i] == SRT0Matrix::TargetId::ScaleU) {
+            matrix.flags |= SRT0Matrix::FLAG_SCL_U_FIXED;
+            if (targetedMtx.matrix.scaleY.index() == 0 &&
+                std::get<f32>(targetedMtx.matrix.scaleY) == *f) {
+              matrix.flags |= SRT0Matrix::FLAG_SCL_ISOTROPIC;
+              if (*f == 1.0f) {
+                matrix.flags |= SRT0Matrix::FLAG_SCL_ONE;
+              }
+            }
+          } else if (targetIds[i] == SRT0Matrix::TargetId::ScaleV) {
+            matrix.flags |= SRT0Matrix::FLAG_SCL_V_FIXED;
+          } else if (targetIds[i] == SRT0Matrix::TargetId::Rotate) {
+            matrix.flags |= SRT0Matrix::FLAG_ROT_FIXED;
+            if (*f == 0.0f) {
+              matrix.flags |= SRT0Matrix::FLAG_ROT_ZERO;
+            }
+          } else if (targetIds[i] == SRT0Matrix::TargetId::TransU) {
+            matrix.flags |= SRT0Matrix::FLAG_TRANS_U_FIXED;
+            if (targetedMtx.matrix.transY.index() == 0 &&
+                std::get<f32>(targetedMtx.matrix.transY) == *f) {
+              if (*f == 0.0f) {
+                matrix.flags |= SRT0Matrix::FLAG_TRANS_ZERO;
+              }
+            }
+          } else if (targetIds[i] == SRT0Matrix::TargetId::TransV) {
+            matrix.flags |= SRT0Matrix::FLAG_TRANS_V_FIXED;
+          }
+          if (!matrix.isAttribIncluded(targetIds[i], matrix.flags)) {
+            continue;
+          }
+          SRT0Target target;
+          target.data = std::get<f32>(*tracks[i]);
+          matrix.targets.push_back(target);
+        } else if (std::holds_alternative<std::vector<SRT0KeyFrame>>(
+                       *tracks[i])) {
+          SRT0Track track;
+          track.keyframes = std::get<std::vector<SRT0KeyFrame>>(*tracks[i]);
+          track.step =
+              CalcStep(track.keyframes.front().frame,
+                       track.keyframes.back()
+                           .frame); // Make sure CalcStep is implemented
+          binary.tracks.push_back(track);
+
+          SRT0Target target;
+          target.data = static_cast<u32>(binary.tracks.size() - 1);
+          matrix.targets.push_back(target);
+        }
+      }
+
+      // Add the SRT0Matrix to the corresponding SRT0Material
+      material.matrices.push_back(matrix);
+      materialSubMatrixSort[material.name].push_back(targetedMtx.target.matrixIndex + (targetedMtx.target.indirect ? 100 : 0));
+    }
+
+	for (auto& mat : binary.materials) {
+      auto& sortIndices = materialSubMatrixSort[mat.name];
+
+      std::vector<size_t> indices(sortIndices.size());
+      std::iota(indices.begin(), indices.end(), 0);
+      std::sort(indices.begin(), indices.end(), [&](size_t i1, size_t i2) {
+        return sortIndices[i1] < sortIndices[i2];
+      });
+
+      std::vector<SRT0Matrix> sortedMatrices;
+      for (auto i : indices) {
+        sortedMatrices.push_back(mat.matrices[i]);
+      }
+      mat.matrices = sortedMatrices;
+	}
+
+    binary.mergeIdenticalTracks();
+
+    return binary;
   }
 
 private:
+  static int calculateSortIndex(const SRT0Matrix& mtx) {
+    int maxIndex = -1;
+    for (auto& target : mtx.targets) {
+      if (std::holds_alternative<u32>(target.data)) {
+        maxIndex =
+            std::max(maxIndex, static_cast<int>(std::get<u32>(target.data)));
+      }
+    }
+    return maxIndex;
+  }
+
   static Result<Mtx> readMatrix(const BinarySrt& srt, const SRT0Matrix& mtx,
                                 std::function<void(std::string_view)> warn) {
     size_t k = 0;
