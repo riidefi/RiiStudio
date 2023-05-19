@@ -459,7 +459,11 @@ Result<Archive> Archive::from(const BinaryArchive& archive,
     };
     SrtAnim json = TRY(SrtAnim::read(srt, srt_warn));
     auto b2 = SrtAnim::write(json);
-    EXPECT(srt == b2 && "SrtAnim re-encode is not byte-matching");
+    if (srt != b2) {
+      transaction.callback(kpi::IOMessageClass::Warning,
+                           std::format("SRT0 {}", srt.name),
+                           "SrtAnim re-encode will not be byte-matching.");
+    }
     tmp.srts.emplace_back(json);
   }
   tmp.viss = archive.viss;
@@ -474,7 +478,9 @@ Result<BinaryArchive> Archive::binary() const {
   tmp.clrs = clrs;
   tmp.pats = pats;
   for (auto& srt : srts) {
-    tmp.srts.emplace_back(srt.write(srt));
+    // TODO: Actually bind to the proper model?
+    tmp.srts.emplace_back(
+        srt.write(srt, models.empty() ? nullptr : &models[0]));
   }
   tmp.viss = viss;
   return tmp;

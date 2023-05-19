@@ -4,6 +4,7 @@
 #include <librii/g3d/io/CommonIO.hpp>
 #include <librii/g3d/io/DictIO.hpp>
 #include <librii/g3d/io/DictWriteIO.hpp>
+#include <librii/g3d/io/ModelIO.hpp>
 #include <librii/g3d/io/NameTableIO.hpp>
 #include <map>
 #include <oishii/reader/binary_reader.hxx>
@@ -266,7 +267,8 @@ struct SrtAnim {
 
     return tmp;
   }
-  static BinarySrt write(const SrtAnim& anim) {
+  static BinarySrt write(const SrtAnim& anim,
+                         const librii::g3d::Model* mdl = nullptr) {
     BinarySrt binary;
 
     // Converting general fields
@@ -314,8 +316,61 @@ struct SrtAnim {
           &targetedMtx.matrix.rot, &targetedMtx.matrix.transX,
           &targetedMtx.matrix.transY};
       for (size_t i = 0; i < targetIds.size(); ++i) {
-        if (tracks[i]->size() == 1) {
-          auto f = tracks[i]->at(0).value;
+        SrtAnim::Track track = *tracks[i];
+        if (track.size() <= 1) {
+          f32 f = i >= 2 ? 0.0f : 1.0f;
+          if (track.size() == 1) {
+            f = track[0].value;
+          } else {
+            // Grab value from model
+            if (mdl) {
+              auto* m = findByName2(mdl->materials, material.name);
+              if (m) {
+                auto midx = targetedMtx.target.matrixIndex;
+                if (targetedMtx.target.indirect) {
+                  if (midx <= m->mIndMatrices.size()) {
+                    switch (i) {
+                    case 0:
+                      f = m->mIndMatrices[midx].scale.x;
+                      break;
+                    case 1:
+                      f = m->mIndMatrices[midx].scale.y;
+                      break;
+                    case 2:
+                      f = m->mIndMatrices[midx].rotate;
+                      break;
+                    case 3:
+                      f = m->mIndMatrices[midx].trans.x;
+                      break;
+                    case 4:
+                      f = m->mIndMatrices[midx].trans.y;
+                      break;
+                    }
+                  }
+                } else {
+                  if (midx <= m->texMatrices.size()) {
+                    switch (i) {
+                    case 0:
+                      f = m->texMatrices[midx].scale.x;
+                      break;
+                    case 1:
+                      f = m->texMatrices[midx].scale.y;
+                      break;
+                    case 2:
+                      f = m->texMatrices[midx].rotate;
+                      break;
+                    case 3:
+                      f = m->texMatrices[midx].translate.x;
+                      break;
+                    case 4:
+                      f = m->texMatrices[midx].translate.y;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
           if (targetIds[i] == SRT0Matrix::TargetId::ScaleU) {
             matrix.flags |= SRT0Matrix::FLAG_SCL_U_FIXED;
             if (targetedMtx.matrix.scaleY.size() == 1 &&
