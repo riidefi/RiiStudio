@@ -24,7 +24,7 @@ struct MouseHider {
 
   void end_interaction(bool user_clicked) {
     if (user_clicked) {
-      hide();
+      // hide();
     } else {
       show();
     }
