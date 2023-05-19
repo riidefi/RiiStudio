@@ -36,6 +36,8 @@ add_library(lib_frontend
   "properties/gc/Material/SwapTableSurface.cpp"
   "properties/gc/Polygon/PolyDataSurface.cpp"
   "properties/gc/Polygon/PolyDescriptorSurface.cpp"
+ "properties/gc/Material/CratePreset.cpp"
+ "properties/gc/Material/Indirect.cpp"
   
   "properties/g3d/G3dSrtView.cpp"
   "properties/g3d/G3dVertexColorView.cpp"
@@ -50,38 +52,42 @@ add_library(lib_frontend
 
   ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc
  "renderer/InputState.hpp" "renderer/InputState.cpp"
- "properties/gc/Material/Indirect.cpp"
  "Localization.cpp" "Localization.hpp"
  "editor/views/OutlinerWidget.hpp" "editor/views/OutlinerWidget.cpp"
  "LeakDebug.hpp"
  "Fonts.hpp"
+
  "level_editor/LevelEditor.hpp" "level_editor/LevelEditor.cpp"
- "level_editor/ObjUtil.hpp" "level_editor/ObjUtil.cpp" "level_editor/KclUtil.hpp" "level_editor/KclUtil.cpp"
+ "level_editor/ObjUtil.hpp" "level_editor/ObjUtil.cpp"
+ "level_editor/KclUtil.hpp" "level_editor/KclUtil.cpp"
  "level_editor/Archive.hpp" "level_editor/Archive.cpp"
  "level_editor/IO.hpp" "level_editor/IO.cpp"
  "level_editor/Transform.cpp" "level_editor/Transform.hpp"
  "level_editor/TriangleRenderer.cpp" "level_editor/TriangleRenderer.hpp"
+ "level_editor/ViewCube.hpp"
+ "level_editor/ViewCube.cpp"
 
  "widgets/AutoHistory.hpp"
  "widgets/DeltaTime.hpp"
  "widgets/DeltaTime.cpp"
  "widgets/CppSupport.hpp"
  "widgets/CppSupport.cpp"
-
- "level_editor/ViewCube.hpp"
- "level_editor/ViewCube.cpp"
-
  "widgets/Lib3dImage.hpp"
  "widgets/Lib3dImage.cpp"
-
  "widgets/Manipulator.hpp"
  "widgets/Manipulator.cpp"
 
- "properties/gc/Material/CratePreset.cpp" "UpdaterView.cpp" "bdof/BdofEditor.cpp" "bdof/BblmEditor.cpp" "Fonts.cpp" "bdof/BfgEditor.cpp" "bdof/BlightEditor.cpp" "EditorFactory.cpp"
- "bdof/AssimpImporter.cpp"
- 
- "bdof/BlmapEditor.cpp"
+ "UpdaterView.cpp"
+ "Fonts.cpp"
+ "EditorFactory.cpp"
 
+ "editors/AssimpImporter.cpp"
+ "editors/BblmEditor.cpp"
+ "editors/BdofEditor.cpp"
+ "editors/BfgEditor.cpp"
+ "editors/BlightEditor.cpp"
+ "editors/BlmapEditor.cpp"
+ 
 )
 
 add_executable(frontend 

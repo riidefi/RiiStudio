@@ -1,11 +1,11 @@
 #include "EditorFactory.hpp"
 
-#include <frontend/bdof/AssimpImporter.hpp>
-#include <frontend/bdof/BblmEditor.hpp>
-#include <frontend/bdof/BdofEditor.hpp>
-#include <frontend/bdof/BfgEditor.hpp>
-#include <frontend/bdof/BlightEditor.hpp>
-#include <frontend/bdof/BlmapEditor.hpp>
+#include <frontend/editors/AssimpImporter.hpp>
+#include <frontend/editors/BblmEditor.hpp>
+#include <frontend/editors/BdofEditor.hpp>
+#include <frontend/editors/BfgEditor.hpp>
+#include <frontend/editors/BlightEditor.hpp>
+#include <frontend/editors/BlmapEditor.hpp>
 #include <frontend/level_editor/LevelEditor.hpp>
 
 #include <frontend/file_host.hpp>
