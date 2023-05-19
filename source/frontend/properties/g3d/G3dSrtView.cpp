@@ -3,23 +3,6 @@
 
 namespace riistudio::g3d {
 
-bool Checkbox(const char* name, bool init) {
-  ImGui::Checkbox(name, &init);
-  return init;
-}
-
-librii::g3d::SrtFlags DrawSrtFlags(const librii::g3d::SrtFlags& flags) {
-  auto result = flags;
-
-  result.Unknown = Checkbox("Unknown"_j, flags.Unknown);
-  result.Unknown = Checkbox("Identity Sclaing"_j, flags.Unknown);
-  result.Unknown = Checkbox("Identity Rotation"_j, flags.Unknown);
-  result.Unknown = Checkbox("Identity Translation"_j, flags.Unknown);
-  result.Unknown = Checkbox("Isotropic Sclaing"_j, flags.Unknown);
-
-  return result;
-}
-
 uint32_t fnv1a_32_hash(std::string_view text) {
   uint32_t hash = 0x811c9dc5;
   uint32_t prime = 0x1000193;
@@ -50,9 +33,13 @@ static int getMaxTrackSize(const librii::g3d::SrtAnimationArchive& anim) {
 void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
                  const riistudio::g3d::Model& mdl) {
   std::unordered_set<std::string> animatedMaterials;
+  std::array<bool, 8 + 3> animatedMtxSlots{};
   for (auto& mtx : anim.matrices) {
-    animatedMaterials.emplace(mtx.target.materialName);
+    auto& target = mtx.target;
+    animatedMaterials.emplace(target.materialName);
+    animatedMtxSlots[target.matrixIndex + (target.indirect ? 8 : 0)] = true;
   }
+  ImGui::BeginChild("ChildL", ImVec2(150, 0.0f));
   // Visibility selector for materials
   //
   // *--------------*------------*
@@ -71,13 +58,17 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
   // - Foreground: Animated materials BLACK, others WHITE
   // - Background: By material name hash. Matches keyframe table cells.
   //
-  ImGui::BeginChild("ChildL", ImVec2(150, 0.0f));
   auto flags = ImGuiTableFlags_Borders;
+  ImGui::BeginChild("ChildU",
+                    ImVec2(0, ImGui::GetContentRegionAvail().y - 150));
   if (ImGui::BeginTable("Materials", 2, flags)) {
     ImGui::TableSetupColumn("Material", ImGuiTableColumnFlags_WidthStretch, 5);
     ImGui::TableSetupColumn("A?", ImGuiTableColumnFlags_WidthStretch, 2);
     ImGui::TableHeadersRow();
+    int i = 0;
     for (auto& [matName, visible] : visFilter.materials()) {
+      ImGui::PushID(i++);
+      RSL_DEFER(ImGui::PopID());
       bool animated = animatedMaterials.contains(matName);
       u32 matNameHash = fnv1a_32_hash(matName);
       // ABGR encoding for some reason
@@ -91,12 +82,36 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
       ImGui::Text("%s", matName.c_str());
       ImGui::TableSetColumnIndex(1);
       ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-      char buf[32]{};
-      std::format_to_n(buf, sizeof(buf) - 1, "##enabled{}", matName);
-      ImGui::Checkbox(buf, &visible);
+      ImGui::Checkbox("##enabled", &visible);
     }
     ImGui::EndTable();
   }
+  ImGui::EndChild();
+
+  // MatrixID selector
+
+  ImGui::BeginChild("ChildD");
+  if (ImGui::BeginTable("Materials", 2, flags)) {
+    ImGui::TableSetupColumn("Matrix", ImGuiTableColumnFlags_WidthStretch, 5);
+    ImGui::TableSetupColumn("A?", ImGuiTableColumnFlags_WidthStretch, 2);
+    ImGui::TableHeadersRow();
+    for (int i = 0; i < 8 + 3; ++i) {
+      ImGui::PushID(i);
+      RSL_DEFER(ImGui::PopID());
+      bool animated = animatedMtxSlots[i];
+      u32 textFg = animated ? (0xFF00'00FF) : 0xFFFF'FFFF;
+      ImGui::PushStyleColor(ImGuiCol_Text, textFg);
+      RSL_DEFER(ImGui::PopStyleColor());
+      ImGui::TableNextRow();
+      ImGui::TableSetColumnIndex(0);
+      ImGui::Text("%s%d", (i >= 8 ? "IndMtx" : "TexMtx"), (i % 8));
+      ImGui::TableSetColumnIndex(1);
+      ImGui::Checkbox("##enabled", visFilter.attr(i));
+    }
+    ImGui::EndTable();
+  }
+  ImGui::EndChild();
+
   ImGui::EndChild();
   ImGui::SameLine();
   //
@@ -158,7 +173,7 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
                         ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollX)) {
     ImGui::TableSetupColumn("Material");
     ImGui::TableSetupColumn("Target");
-    for (int i = 0; i < maxTrackSize; ++i) {
+    for (int i = 0; i < maxTrackSize + 1; ++i) {
       ImGui::TableSetupColumn(("KeyFrame " + std::to_string(i)).c_str());
     }
     ImGui::TableHeadersRow();
