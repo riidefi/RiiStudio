@@ -51,7 +51,6 @@ add_library(lib_frontend
   "widgets/IconManager.cpp"
   "widgets/Image.cpp"
 
-  ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc
  "renderer/InputState.hpp" "renderer/InputState.cpp"
  "Localization.cpp" "Localization.hpp"
  "LeakDebug.hpp"
@@ -92,6 +91,7 @@ add_library(lib_frontend
 
 add_executable(frontend 
  "entry.cpp"
+  ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc
 )
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
