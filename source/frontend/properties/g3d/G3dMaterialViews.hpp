@@ -17,6 +17,7 @@
 #include <frontend/properties/gc/Material/SwapTableSurface.hpp>
 #include <frontend/properties/gc/Polygon/PolyDataSurface.hpp>
 #include <frontend/properties/gc/Polygon/PolyDescriptorSurface.hpp>
+#include <frontend/properties/gc/TexImageView.hpp>
 #include <frontend/properties/j3d/MaterialView.hpp>
 
 namespace riistudio {
@@ -71,6 +72,10 @@ struct G3dSrtViews {
 struct G3dVcViews {
   riistudio::g3d::G3dVertexColorDataSurface data;
   riistudio::g3d::G3dVertexColorQuantSurface quant;
+};
+
+struct GcTexViews {
+  libcube::UI::ImageSurface image;
 };
 
 std::vector<std::string> Views_TabTitles(auto&& view) {

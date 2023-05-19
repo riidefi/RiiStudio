@@ -114,6 +114,10 @@ private:
     if (g3dsrt != nullptr) {
       return Views_TabTitles(mG3dSrtView);
     }
+    auto* lt = dynamic_cast<libcube::Texture*>(mSelection.mActive);
+    if (lt != nullptr) {
+      return Views_TabTitles(mGcTexView);
+    }
     return PropertyViewManager_TabTitles(*mSelection.mActive);
   }
   bool Tab(int index) override {
@@ -170,6 +174,14 @@ private:
       mHandler.handleUpdates(mHost, mRoot);
       return ok;
     }
+    auto* lt = dynamic_cast<libcube::Texture*>(mSelection.mActive);
+    if (lt != nullptr) {
+      auto dl = kpi::MakeDelegate<libcube::Texture>(postUpdate, commit, lt,
+                                                    selected, &ed);
+      auto ok = Views_Tab(mGcTexView, dl, index);
+      mHandler.handleUpdates(mHost, mRoot);
+      return ok;
+    }
     return PropertyViewManager_Tab(index, selected, mHost, mRoot, state_holder,
                                    ed, *mSelection.mActive);
   }
@@ -186,6 +198,7 @@ private:
   riistudio::J3dMaterialViews mJ3dMatView;
   riistudio::GcPolygonViews mGcPolyView;
   riistudio::GcBoneViews mGcBoneView;
+  riistudio::GcTexViews mGcTexView;
 
   riistudio::G3dVcViews mG3dVcView;
   riistudio::G3dSrtViews mG3dSrtView;
