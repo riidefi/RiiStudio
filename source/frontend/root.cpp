@@ -27,6 +27,10 @@ bool gIsAdvancedMode = false;
 
 bool IsAdvancedMode() { return gIsAdvancedMode; }
 
+namespace libcube::UI {
+void InstallCrate();
+}
+
 namespace riistudio::frontend {
 
 void DrawLocaleMenu() {
@@ -304,6 +308,7 @@ RootWindow::RootWindow()
 
   // Loads the plugins for file formats / importers
   InitAPI();
+  libcube::UI::InstallCrate();
 
   // Without this, clicking in the viewport with a mouse would move the window
   // when undocked.

@@ -1693,29 +1693,28 @@ struct OptimizeMesh
   }
 };
 
-kpi::DecentralizedInstaller
-    CrateReplaceInstaller([](kpi::ApplicationPlugins& installer) {
-      auto& action_menu = kpi::ActionMenuManager::get();
-      action_menu.addMenu(std::make_unique<AddChild>());
-      action_menu.addMenu(std::make_unique<RenameNode>());
-      action_menu.addMenu(std::make_unique<SaveAsTEX0>());
-      if (rsl::FileDialogsSupported()) {
-        action_menu.addMenu(std::make_unique<ReplaceWithTEX0>());
-      }
-      action_menu.addMenu(std::make_unique<SaveAsSRT0>());
-      action_menu.addMenu(std::make_unique<MakeRsPreset>());
-      action_menu.addMenu(std::make_unique<MakeRsPresetALL>());
-      action_menu.addMenu(std::make_unique<ImportPresetsAction>());
-      action_menu.addMenu(std::make_unique<SaveAsMDL0MatShade>());
-      action_menu.addMenu(std::make_unique<AdvTexConvAction>());
-      action_menu.addMenu(std::make_unique<OptimizeMesh>());
-      if (rsl::FileDialogsSupported()) {
-        action_menu.addMenu(std::make_unique<ApplyRsPreset>());
-        action_menu.addMenu(std::make_unique<CrateReplaceAction>());
-        action_menu.addMenu(std::make_unique<ReplaceWithSRT0>());
-        action_menu.addMenu(std::make_unique<ImportTexturesAction>());
-        action_menu.addMenu(std::make_unique<ImportSRTAction>());
-      }
-    });
+void InstallCrate() {
+  auto& action_menu = kpi::ActionMenuManager::get();
+  action_menu.addMenu(std::make_unique<AddChild>());
+  action_menu.addMenu(std::make_unique<RenameNode>());
+  action_menu.addMenu(std::make_unique<SaveAsTEX0>());
+  if (rsl::FileDialogsSupported()) {
+    action_menu.addMenu(std::make_unique<ReplaceWithTEX0>());
+  }
+  action_menu.addMenu(std::make_unique<SaveAsSRT0>());
+  action_menu.addMenu(std::make_unique<MakeRsPreset>());
+  action_menu.addMenu(std::make_unique<MakeRsPresetALL>());
+  action_menu.addMenu(std::make_unique<ImportPresetsAction>());
+  action_menu.addMenu(std::make_unique<SaveAsMDL0MatShade>());
+  action_menu.addMenu(std::make_unique<AdvTexConvAction>());
+  action_menu.addMenu(std::make_unique<OptimizeMesh>());
+  if (rsl::FileDialogsSupported()) {
+    action_menu.addMenu(std::make_unique<ApplyRsPreset>());
+    action_menu.addMenu(std::make_unique<CrateReplaceAction>());
+    action_menu.addMenu(std::make_unique<ReplaceWithSRT0>());
+    action_menu.addMenu(std::make_unique<ImportTexturesAction>());
+    action_menu.addMenu(std::make_unique<ImportSRTAction>());
+  }
+}
 
 } // namespace libcube::UI

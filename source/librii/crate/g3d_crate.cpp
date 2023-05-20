@@ -206,14 +206,13 @@ Result<g3d::SrtAnimationArchive> ReadSRT0(std::span<const u8> file) {
   return g3d::SrtAnim::read(arc, [](...) {});
 }
 
-Result<std::vector<u8>> WriteSRT0(const g3d::SrtAnimationArchive& arc) {
+Result<std::vector<u8>> WriteSRT0(const g3d::BinarySrt& arc) {
   oishii::Writer writer(std::endian::big);
 
   g3d::NameTable names;
   // g3d::RelocWriter linker(writer);
 
-  auto w = arc.write(arc);
-  TRY(w.write(writer, names, 0));
+  TRY(arc.write(writer, names, 0));
   const auto end = writer.tell();
   {
     names.poolNames();
