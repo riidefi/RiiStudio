@@ -5,7 +5,7 @@ namespace oishii {
 void BinaryReader::readerBpCheck(uint32_t size, s32 trans) {
 #ifndef NDEBUG
   if (shouldBreak(tell() + trans, size)) {
-    printf("Reading from %04u (0x%04x) sized %u\n", tell, tell, size);
+    printf("Reading from %04u (0x%04x) sized %u\n", tell(), tell(), size);
     warnAt("Breakpoint hit", tell() + trans, tell() + trans + size);
     rsl::debug_break();
   }
