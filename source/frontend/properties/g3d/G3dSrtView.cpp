@@ -3,6 +3,10 @@
 
 namespace riistudio::g3d {
 
+float map(float value, float minIn, float maxIn, float minOut, float maxOut) {
+  return (value - minIn) * (maxOut - minOut) / (maxIn - minIn) + minOut;
+}
+
 uint32_t fnv1a_32_hash(std::string_view text) {
   uint32_t hash = 0x811c9dc5;
   uint32_t prime = 0x1000193;
@@ -30,8 +34,224 @@ static int getMaxTrackSize(const librii::g3d::SrtAnimationArchive& anim) {
   return maxTrackSize;
 }
 
+void ShowSRTCurveEditor(std::string id, ImVec2 size,
+                        librii::g3d::SrtAnim::Track* track,
+                        float frame_duration) {
+  auto dl = ImGui::GetWindowDrawList();
+
+  auto top_left = ImGui::GetCursorScreenPos();
+  auto bottom_right = top_left + size;
+
+  auto rect = ImRect(top_left, bottom_right);
+
+  auto imgui_id = ImGui::GetID(id.c_str());
+
+  if (!ImGui::ItemAdd(rect, imgui_id))
+    return;
+
+  ImGui::ItemHoverable(rect, imgui_id);
+
+  float min_frame = 0;
+  float max_frame = frame_duration;
+
+  float min_value = -1;
+  float max_value = 1;
+
+  float left = top_left.x;
+  float top = top_left.y;
+  float right = bottom_right.x;
+  float bottom = bottom_right.y;
+
+  const float sample_size = 2;
+
+  struct CurveEditorState {
+    float left_frame;
+    float top_value;
+    float bottom_value;
+    float frame_width;
+  };
+
+  static auto editor_states{new std::map<std::string, CurveEditorState>()};
+
+  CurveEditorState s;
+
+  auto found = editor_states->find(id);
+  if (found == editor_states->end()) {
+    s.left_frame = 0;
+    s.top_value = 1;
+    s.bottom_value = 0;
+    s.frame_width = size.x/frame_duration;
+  } else {
+    s = editor_states->at(found->first);
+  }
+
+  float s_right_frame = s.left_frame + size.x / s.frame_width;
+
+  dl->PushClipRect(top_left, bottom_right, true);
+
+  ImVec2 mouse_pos = ImGui::GetMousePos();
+
+  float mouse_pos_value =
+      map(mouse_pos.y, top, bottom, s.top_value, s.bottom_value);
+  float mouse_pos_frame =
+      map(mouse_pos.x, left, right, s.left_frame, s_right_frame);
+
+  float mouse_delta_frame =
+      ImGui::GetIO().MouseDelta.x * (s_right_frame - s.left_frame) / size.x;
+  float mouse_delta_value =
+      ImGui::GetIO().MouseDelta.y * (s.bottom_value - s.top_value) / size.y;
+
+  bool is_hovered = ImGui::IsItemHovered();
+
+  if (is_hovered) {
+    dl->AddRect(top_left, bottom_right, 0xFFFFFFFF);
+
+    // Zoom
+    if (ImGui::GetIO().KeyCtrl) {
+      float scale_factor = pow(1.05, -ImGui::GetIO().MouseWheel);
+
+      // Horizontal
+      if (ImGui::GetIO().KeyShift) {
+        s.left_frame =
+            mouse_pos_frame + (s.left_frame - mouse_pos_frame) * scale_factor;
+
+        s.frame_width /= scale_factor;
+
+        // Vertical
+      } else {
+        s.top_value =
+            mouse_pos_value + (s.top_value - mouse_pos_value) * scale_factor;
+        s.bottom_value =
+            mouse_pos_value + (s.bottom_value - mouse_pos_value) * scale_factor;
+      }
+
+      // recalculate
+      s_right_frame = s.left_frame + size.x / s.frame_width;
+      mouse_pos_value =
+          map(mouse_pos.y, top, bottom, s.top_value, s.bottom_value);
+
+      mouse_pos_frame =
+          map(mouse_pos.x, left, right, s.left_frame, s_right_frame);
+    }
+  }
+
+  float mouse_x_curve_value = 0;
+
+  if (!track->empty()) {
+    int num_points = (int)(size.x / sample_size) + 1;
+
+    ImVec2 points[num_points];
+
+    auto first = track->front();
+    auto last = track->back();
+
+    auto previous = first;
+    auto next = first;
+
+    if (first.frame > s.left_frame) {
+      previous.frame = s.left_frame;
+      previous.tangent = first.tangent;
+      previous.value =
+          first.value + first.tangent * (s.left_frame - first.frame);
+    }
+
+    int key_frame_idx = 0;
+
+    float previous_sample = 0;
+
+    for (int i = 0; i < num_points; i++) {
+      float frame = (i * sample_size) / s.frame_width + s.left_frame;
+      float x = left + i * sample_size;
+
+      // advance keyframe when required
+      if (frame >= next.frame) {
+        previous = next;
+
+        if (++key_frame_idx >= track->size()) {
+          next.frame = s_right_frame;
+          next.tangent = last.tangent;
+          next.value = last.value + last.tangent * (s_right_frame - last.frame);
+        } else {
+          next = track->at(key_frame_idx);
+        }
+      }
+
+      // hermite interpolation
+      float t = map(frame, previous.frame, next.frame, 0, 1);
+      float inv_t = t - 1.0f; //-1 to 0
+
+      float val = previous.value +
+                  (frame - previous.frame) * inv_t *
+                      (inv_t * previous.tangent + t * next.tangent) +
+                  t * t * (3.0f - 2.0f * t) * (next.value - previous.value);
+
+      points[i] = ImVec2(x, map(val, s.bottom_value, s.top_value, bottom, top));
+
+      if (x - sample_size <= mouse_pos.x && x >= mouse_pos.x)
+        mouse_x_curve_value =
+            map(mouse_pos.x, x - sample_size, x, previous_sample, val);
+
+      previous_sample = val;
+    }
+
+    dl->AddPolyline(points, num_points, 0xFFFFFFFF, ImDrawFlags_None, 1.5);
+  }
+
+  int hovered_keyframe = -1;
+
+  for (int i = 0; i < track->size(); i++) {
+    auto key_frame = track->at(i);
+    ImVec2 pos(map(key_frame.frame, s.left_frame, s_right_frame, left, right),
+               map(key_frame.value, s.bottom_value, s.top_value, bottom, top));
+
+    float x_diff = mouse_pos.x - pos.x;
+    float y_diff = mouse_pos.y - pos.y;
+    bool hovered = (x_diff * x_diff + y_diff * y_diff) < pow(5, 2);
+
+    dl->AddCircleFilled(pos, 5, hovered ? 0xFF55CCFF : 0xFFFFFFFF);
+
+    if (hovered)
+      hovered_keyframe = i;
+  }
+
+  if (is_hovered && hovered_keyframe == -1) {
+    ImVec2 pos(mouse_pos.x, map(mouse_x_curve_value, s.bottom_value,
+                                s.top_value, bottom, top));
+
+    dl->AddCircleFilled(pos, 4, 0x55FFFFFF);
+  }
+
+  float min_frame_x = map(min_frame, s.left_frame, s_right_frame, left, right);
+  float max_frame_x = map(max_frame, s.left_frame, s_right_frame, left, right);
+
+  if (min_frame_x > left)
+    dl->AddRectFilled(ImVec2(left, top), ImVec2(min_frame_x, bottom),
+                      0x99000000);
+
+  if (max_frame_x < right)
+    dl->AddRectFilled(ImVec2(max_frame_x, top), ImVec2(right, bottom),
+                      0x99000000);
+
+  dl->PopClipRect();
+
+  if (is_hovered && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+    s.left_frame -= mouse_delta_frame;
+    s.top_value -= mouse_delta_value;
+    s.bottom_value -= mouse_delta_value;
+
+    s_right_frame = s.left_frame + size.x / s.frame_width;
+
+    if (s.left_frame > max_frame)
+      s.left_frame = max_frame;
+    else if (s_right_frame < min_frame)
+      s.left_frame = min_frame - (s_right_frame - s.left_frame);
+  }
+
+  editor_states->insert_or_assign(id, s);
+}
+
 void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
-                 const riistudio::g3d::Model& mdl) {
+                 const riistudio::g3d::Model& mdl, float frame_duration) {
   std::unordered_set<std::string> animatedMaterials;
   std::array<bool, 8 + 3> animatedMtxSlots{};
   for (auto& mtx : anim.matrices) {
@@ -169,13 +389,12 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
   int maxTrackSize = getMaxTrackSize(anim);
 
   ImGui::BeginChild("ChildR");
-  if (ImGui::BeginTable("SrtAnim Table", maxTrackSize + 3,
+  if (ImGui::BeginTable("SrtAnim Table", 4,
                         ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollX)) {
     ImGui::TableSetupColumn("Material");
     ImGui::TableSetupColumn("Target");
-    for (int i = 0; i < maxTrackSize + 1; ++i) {
-      ImGui::TableSetupColumn(("KeyFrame " + std::to_string(i)).c_str());
-    }
+    ImGui::TableSetupColumn("Selected KeyFrame");
+    ImGui::TableSetupColumn("Curve", ImGuiTableColumnFlags_WidthStretch);
     ImGui::TableHeadersRow();
 
     for (auto& fvt : fvtsToDraw) {
@@ -198,77 +417,81 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
       if (it != anim.matrices.size()) {
         track = &(&anim.matrices[it].matrix.scaleX)[subtrack];
       }
-      // 0: INFO
-      // 1: Frame
-      // 2: Value
-      // 3: Tangent
-      for (int row_index = 0; row_index < 4; ++row_index) {
-        ImGui::TableNextRow();
-        if (row_index == 0) {
-          // Row 0: Frame + INFO
-          ImGui::TableSetColumnIndex(0);
-          ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-          ImGui::Text("%s", matName.c_str());
-          ImGui::TableSetColumnIndex(1);
-          ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-          // string_view created from cstring, so
-          // .data() is null-terminated
-          auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(subtrack);
-          const char* subtrackName = magic_enum::enum_name(tgtId).data();
-          ImGui::Text("%s%d: %s", targetMtxId >= 8 ? "IndMtx" : "TexMtx",
-                      (targetMtxId % 8), subtrackName);
-        }
-        for (size_t i = 0; i < (track ? track->size() : 0); ++i) {
-          auto& keyframe = track->at(i);
-          auto kfStringId =
-              std::format("{}{}{}{}", matName, targetMtxId, subtrack, i);
-          ImGui::PushID(kfStringId.c_str());
-          RSL_DEFER(ImGui::PopID());
-
-          ImGui::TableSetColumnIndex(i + 2);
-          if (row_index == 0) {
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-            ImGui::Text("Keyframe %d", static_cast<int>(i));
-            ImGui::SameLine();
-            auto title = std::format(
-                "{}##{}", (const char*)ICON_FA_TIMES_CIRCLE, kfStringId);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-            if (ImGui::Button(title.c_str())) {
-              track->erase(track->begin() + i);
-            }
-          } else if (row_index == 1) {
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-            ImGui::InputFloat("Frame", &keyframe.frame);
-          } else if (row_index == 2) {
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-            ImGui::InputFloat("Value", &keyframe.value);
-          } else if (row_index == 3) {
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-            ImGui::InputFloat("Tangent", &keyframe.tangent);
-          }
-        }
-        if (row_index == 0) {
-          ImGui::TableSetColumnIndex((track ? track->size() : 0) + 2);
-          ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-          auto title = std::format("{}##{}{}{}", "    +    ", matName, subtrack,
-                                   targetMtxId);
-          auto avail = ImVec2{ImGui::GetContentRegionAvail().x, 0.0f};
-          if (ImGui::Button(title.c_str(), avail)) {
-            // Define a new keyframe with default values
-            librii::g3d::SRT0KeyFrame newKeyframe;
-            newKeyframe.frame = 0.0f;
-            newKeyframe.value = 0.0f; // TODO: Grab last if exist
-            newKeyframe.tangent = 0.0f;
-
-            if (!track) {
-              auto& mtx = anim.matrices.emplace_back();
-              mtx.target = target;
-              track = &(&mtx.matrix.scaleX)[subtrack];
-            }
-            track->push_back(newKeyframe);
-          }
-        }
+      ImGui::TableNextRow();
+      {
+        // Row 0: Frame + INFO
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+        ImGui::Text("%s", matName.c_str());
+        ImGui::TableSetColumnIndex(1);
+        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+        // string_view created from cstring, so
+        // .data() is null-terminated
+        auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(subtrack);
+        const char* subtrackName = magic_enum::enum_name(tgtId).data();
+        ImGui::Text("%s%d: %s", targetMtxId >= 8 ? "IndMtx" : "TexMtx",
+                    (targetMtxId % 8), subtrackName);
       }
+
+	  auto kfStringId = std::format("{}{}{}", matName, targetMtxId, subtrack);
+
+	  float top_of_row = ImGui::GetCursorPosY();
+
+      int i = 0;
+
+      auto& keyframe = track->at(i);
+
+      ImGui::PushID(kfStringId.c_str());
+      RSL_DEFER(ImGui::PopID());
+      
+      ImGui::TableSetColumnIndex(2);
+	  
+      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+      ImGui::Text("Keyframe %d", static_cast<int>(i));
+      ImGui::SameLine();
+      auto title = std::format(
+          "{}##{}", (const char*)ICON_FA_TIMES_CIRCLE, kfStringId);
+      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+      if (ImGui::Button(title.c_str())) {
+        track->erase(track->begin() + i);
+      }
+      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+      ImGui::InputFloat("Frame", &keyframe.frame);
+      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+      ImGui::InputFloat("Value", &keyframe.value);
+      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+      ImGui::InputFloat("Tangent", &keyframe.tangent);
+   
+	  ImGui::NewLine();
+   	  
+      float row_height = ImGui::GetCursorPosY() - top_of_row;
+      ImGui::TableSetColumnIndex(3);
+      auto size = ImGui::GetContentRegionAvail();
+      size.y = row_height;
+      
+	  ShowSRTCurveEditor(kfStringId, size, track, frame_duration);
+
+      //{
+      //  ImGui::TableSetColumnIndex((track ? track->size() : 0) + 2);
+      //  ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+      //  auto title = std::format("{}##{}{}{}", "    +    ", matName, subtrack,
+      //                           targetMtxId);
+      //  auto avail = ImVec2{ImGui::GetContentRegionAvail().x, 0.0f};
+      //  if (ImGui::Button(title.c_str(), avail)) {
+      //    // Define a new keyframe with default values
+      //    librii::g3d::SRT0KeyFrame newKeyframe;
+      //    newKeyframe.frame = 0.0f;
+      //    newKeyframe.value = 0.0f; // TODO: Grab last if exist
+      //    newKeyframe.tangent = 0.0f;
+
+      //    if (!track) {
+      //      auto& mtx = anim.matrices.emplace_back();
+      //      mtx.target = target;
+      //      track = &(&mtx.matrix.scaleX)[subtrack];
+      //    }
+      //    track->push_back(newKeyframe);
+      //  }
+      //}
     }
 
     ImGui::EndTable();
@@ -300,7 +523,7 @@ DrawSrtOptions(const librii::g3d::SrtAnimationArchive& init, Filter& visFilter,
                                  "Clamp\0"
                                  "Repeat\0"_j);
 
-  ShowSrtAnim(result, visFilter, mdl);
+  ShowSrtAnim(result, visFilter, mdl, frame_duration);
 
   return result;
 }
