@@ -38,7 +38,7 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
                         librii::g3d::SrtAnim::Track* track,
                         float frame_duration) {
   ImGuiWindow* window = ImGui::GetCurrentWindow();
-  
+
   auto dl = ImGui::GetWindowDrawList();
 
   auto top_left = ImGui::GetCursorScreenPos();
@@ -52,8 +52,6 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
     return;
 
   ImGui::ItemHoverable(rect, imgui_id);
-
-
 
   float min_frame = 0;
   float max_frame = frame_duration;
@@ -158,9 +156,8 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
   if (ImGui::GetIO().MouseDown[0]) {
     is_hovered = ImGui::GetActiveID() == imgui_id;
   }
-  
-  if (ImGui::GetActiveID() == imgui_id &&
-	  ImGui::GetIO().MouseReleased[0]) {
+
+  if (ImGui::GetActiveID() == imgui_id && ImGui::GetIO().MouseReleased[0]) {
     ImGui::ClearActiveID();
   }
 
@@ -326,14 +323,36 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
       s.left_frame -= mouse_delta_frame;
       s.top_value -= mouse_delta_value;
       s.bottom_value -= mouse_delta_value;
-
-      s_right_frame = s.left_frame + size.x / s.frame_width;
-
-      if (s.left_frame > max_frame)
-        s.left_frame = max_frame;
-      else if (s_right_frame < min_frame)
-        s.left_frame = min_frame - (s_right_frame - s.left_frame);
     }
+
+    if (s.dragged_part != HoveredPart_None &&
+        ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+      float scrollXDeltaFrames = 0;
+      float scrollYDeltaValue = 0;
+
+      scrollXDeltaFrames += std::min(0.0f, mouse_pos_frame - s.left_frame);
+      scrollXDeltaFrames += std::max(0.0f, mouse_pos_frame - s_right_frame);
+
+      scrollYDeltaValue += std::max(0.0f, mouse_pos_value - s.top_value);
+      scrollYDeltaValue += std::min(0.0f, mouse_pos_value - s.bottom_value);
+
+      scrollXDeltaFrames *= 0.2f;
+      scrollYDeltaValue *= 0.2f;
+
+      s.left_frame += scrollXDeltaFrames;
+      s.top_value += scrollYDeltaValue;
+      s.bottom_value += scrollYDeltaValue;
+    }
+
+    // keep animation area always in view (or atleast very close)
+    s_right_frame = s.left_frame + size.x / s.frame_width;
+
+    if (s.left_frame > max_frame)
+      s.left_frame = max_frame;
+    else if (s_right_frame < min_frame)
+      s.left_frame = min_frame - (s_right_frame - s.left_frame);
+
+    s_right_frame = s.left_frame + size.x / s.frame_width;
   }
 
   float mouse_x_curve_value = 0;
@@ -482,10 +501,19 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
                       0x99000000);
 
   if (is_hovered) {
-    dl->AddText(mouse_pos + ImVec2(15, 0), 0xFFFFFFFF,
-                std::format("frame: {}\nvalue: {:.2f}", mouse_pos_frame,
-                            mouse_pos_value)
-                    .c_str());
+    auto text = std::format("frame: {}\nvalue: {:.2f}", mouse_pos_frame,
+                            mouse_pos_value);
+
+    auto size = ImGui::CalcTextSize(text.c_str());
+
+    auto pos = mouse_pos + ImVec2(15, 0);
+
+    if (s.dragged_part != HoveredPart_None) {
+      pos.x = std::clamp(pos.x, left, right - size.x);
+      pos.y = std::clamp(pos.y, top, bottom - size.y);
+    }
+
+    dl->AddText(pos, 0xFFFFFFFF, text.c_str());
   }
 
   dl->PopClipRect();
