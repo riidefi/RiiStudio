@@ -37,6 +37,8 @@ static int getMaxTrackSize(const librii::g3d::SrtAnimationArchive& anim) {
 void ShowSRTCurveEditor(std::string id, ImVec2 size,
                         librii::g3d::SrtAnim::Track* track,
                         float frame_duration) {
+  ImGuiWindow* window = ImGui::GetCurrentWindow();
+  
   auto dl = ImGui::GetWindowDrawList();
 
   auto top_left = ImGui::GetCursorScreenPos();
@@ -50,6 +52,8 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
     return;
 
   ImGui::ItemHoverable(rect, imgui_id);
+
+
 
   float min_frame = 0;
   float max_frame = frame_duration;
@@ -143,6 +147,22 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
       ImGui::GetIO().MouseDelta.y * (s.bottom_value - s.top_value) / size.y;
 
   bool is_hovered = ImGui::IsItemHovered();
+
+  // make sure dragging out of the widget works as expected
+  if (is_hovered && ImGui::GetIO().MouseClicked[0]) {
+    ImGui::SetActiveID(imgui_id, window);
+    ImGui::SetFocusID(imgui_id, window);
+    ImGui::FocusWindow(window);
+  }
+
+  if (ImGui::GetIO().MouseDown[0]) {
+    is_hovered = ImGui::GetActiveID() == imgui_id;
+  }
+  
+  if (ImGui::GetActiveID() == imgui_id &&
+	  ImGui::GetIO().MouseReleased[0]) {
+    ImGui::ClearActiveID();
+  }
 
   int hovered_keyframe = -1;
   HoveredPart hovered_part = HoveredPart_None;
@@ -461,10 +481,12 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
     dl->AddRectFilled(ImVec2(max_frame_x, top), ImVec2(right, bottom),
                       0x99000000);
 
-  dl->AddText(
-      mouse_pos + ImVec2(15, 0), 0xFFFFFFFF,
-      std::format("frame: {}\nvalue: {:.2f}", mouse_pos_frame, mouse_pos_value)
-          .c_str());
+  if (is_hovered) {
+    dl->AddText(mouse_pos + ImVec2(15, 0), 0xFFFFFFFF,
+                std::format("frame: {}\nvalue: {:.2f}", mouse_pos_frame,
+                            mouse_pos_value)
+                    .c_str());
+  }
 
   dl->PopClipRect();
 
