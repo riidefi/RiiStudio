@@ -91,6 +91,34 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
     s.bottom_value = 0;
     s.frame_width = size.x / frame_duration;
     s.dragged_part = HoveredPart_None;
+
+    // make sure to include all keyframes
+    // in the initial view
+    for (int i = 0; i < track->size(); i++) {
+      auto& key_frame = track->at(i);
+
+      s.bottom_value = std::min(s.bottom_value, key_frame.value);
+      s.top_value = std::max(s.top_value, key_frame.value);
+      // left controlpoint
+      if (i > 0) {
+        float middle_frame = (key_frame.frame + track->at(i - 1).frame) / 2;
+        float value = key_frame.value +
+                      (middle_frame - key_frame.frame) * key_frame.tangent;
+
+        s.bottom_value = std::min(s.bottom_value, value);
+        s.top_value = std::max(s.top_value, value);
+      }
+
+      // right controlpoint
+      if (i < track->size() - 1) {
+        float middle_frame = (key_frame.frame + track->at(i + 1).frame) / 2;
+        float value = key_frame.value +
+                      (middle_frame - key_frame.frame) * key_frame.tangent;
+
+        s.bottom_value = std::min(s.bottom_value, value);
+        s.top_value = std::max(s.top_value, value);
+      }
+    }
   } else {
     s = editor_states.at(found->first);
   }
@@ -579,7 +607,6 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
       }
     }
   }
-  int maxTrackSize = getMaxTrackSize(anim);
 
   ImGui::BeginChild("ChildR");
   if (ImGui::BeginTable("SrtAnim Table", 4,
