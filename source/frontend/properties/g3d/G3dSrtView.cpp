@@ -64,28 +64,41 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
 
   const float sample_size = 2;
 
+  enum HoveredPart {
+    HoveredPart_None,
+    HoveredPart_KeyFrame,
+    HoveredPart_KeyFrame_Tangent
+  };
+
   struct CurveEditorState {
     float left_frame;
     float top_value;
     float bottom_value;
     float frame_width;
+    librii::g3d::SRT0KeyFrame drag_keyframe;
+    HoveredPart dragged_part;
   };
 
-  static auto editor_states{new std::map<std::string, CurveEditorState>()};
+  static auto editor_states{std::map<std::string, CurveEditorState>()};
 
   CurveEditorState s;
 
-  auto found = editor_states->find(id);
-  if (found == editor_states->end()) {
+  auto found = editor_states.find(id);
+  if (found == editor_states.end()) {
+    // intialize curve editor state
     s.left_frame = 0;
     s.top_value = 1;
     s.bottom_value = 0;
-    s.frame_width = size.x/frame_duration;
+    s.frame_width = size.x / frame_duration;
+    s.dragged_part = HoveredPart_None;
   } else {
-    s = editor_states->at(found->first);
+    s = editor_states.at(found->first);
   }
 
   float s_right_frame = s.left_frame + size.x / s.frame_width;
+
+#define FRAME_X(frame) map(frame, s.left_frame, s_right_frame, left, right)
+#define VALUE_Y(value) map(value, s.bottom_value, s.top_value, bottom, top)
 
   dl->PushClipRect(top_left, bottom_right, true);
 
@@ -94,7 +107,7 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
   float mouse_pos_value =
       map(mouse_pos.y, top, bottom, s.top_value, s.bottom_value);
   float mouse_pos_frame =
-      map(mouse_pos.x, left, right, s.left_frame, s_right_frame);
+      round(map(mouse_pos.x, left, right, s.left_frame, s_right_frame));
 
   float mouse_delta_frame =
       ImGui::GetIO().MouseDelta.x * (s_right_frame - s.left_frame) / size.x;
@@ -103,8 +116,11 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
 
   bool is_hovered = ImGui::IsItemHovered();
 
+  int hovered_keyframe = -1;
+  HoveredPart hovered_part = HoveredPart_None;
+
   if (is_hovered) {
-    dl->AddRect(top_left, bottom_right, 0xFFFFFFFF);
+    dl->AddRect(top_left, bottom_right, 0x55FFFFFF);
 
     // Zoom
     if (ImGui::GetIO().KeyCtrl) {
@@ -131,12 +147,150 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
           map(mouse_pos.y, top, bottom, s.top_value, s.bottom_value);
 
       mouse_pos_frame =
-          map(mouse_pos.x, left, right, s.left_frame, s_right_frame);
+          round(map(mouse_pos.x, left, right, s.left_frame, s_right_frame));
+    }
+
+    auto drag_keyframe_previous = s.drag_keyframe;
+
+    if (s.dragged_part == HoveredPart_KeyFrame) {
+      s.drag_keyframe.frame = mouse_pos_frame;
+      s.drag_keyframe.value = mouse_pos_value;
+    }
+
+    // Hover test, find dragged KF and new dragged KF insert index
+    int drag_keyframe_found_index = -1;
+    int drag_keyframe_updated_insert_index = 0;
+
+    bool should_erase_dragged_keyframe = false;
+
+    for (int i = 0; i < track->size(); i++) {
+      auto& key_frame = track->at(i);
+
+      bool is_dragged_keyframe = false;
+
+      if (s.dragged_part != HoveredPart_None &&
+          key_frame == drag_keyframe_previous) {
+        drag_keyframe_found_index = i;
+        is_dragged_keyframe = true;
+      }
+
+      // left controlpoint hit test
+      if (i > 0) {
+        float middle_frame = (key_frame.frame + track->at(i - 1).frame) / 2;
+        ImVec2 handle_pos(
+            FRAME_X(middle_frame),
+            VALUE_Y(key_frame.value +
+                    (middle_frame - key_frame.frame) * key_frame.tangent));
+
+        float x_diff = mouse_pos.x - handle_pos.x;
+        float y_diff = mouse_pos.y - handle_pos.y;
+        if ((x_diff * x_diff + y_diff * y_diff) < pow(3, 2)) {
+          hovered_keyframe = i;
+          hovered_part = HoveredPart_KeyFrame_Tangent;
+        }
+      }
+
+      // right controlpoint hit test
+      if (i < track->size() - 1) {
+        float middle_frame = (key_frame.frame + track->at(i + 1).frame) / 2;
+        ImVec2 handle_pos(
+            FRAME_X(middle_frame),
+            VALUE_Y(key_frame.value +
+                    (middle_frame - key_frame.frame) * key_frame.tangent));
+
+        float x_diff = mouse_pos.x - handle_pos.x;
+        float y_diff = mouse_pos.y - handle_pos.y;
+        if ((x_diff * x_diff + y_diff * y_diff) < pow(3, 2)) {
+          hovered_keyframe = i;
+          hovered_part = HoveredPart_KeyFrame_Tangent;
+        }
+      }
+
+      // keyframe hit test
+      if (s.drag_keyframe.frame > key_frame.frame)
+        drag_keyframe_updated_insert_index++;
+
+      ImVec2 pos(FRAME_X(key_frame.frame), VALUE_Y(key_frame.value));
+      float x_diff = mouse_pos.x - pos.x;
+      float y_diff = mouse_pos.y - pos.y;
+      if ((x_diff * x_diff + y_diff * y_diff) < pow(5, 2)) {
+        hovered_keyframe = i;
+        hovered_part = HoveredPart_KeyFrame;
+      }
+
+      // check the dragged keyframe should be removed
+      // because it's in close proximity to this keyframe
+      if (!is_dragged_keyframe &&
+          ((x_diff * x_diff + y_diff * y_diff) < pow(8, 2) ||
+           s.drag_keyframe.frame == key_frame.frame))
+        should_erase_dragged_keyframe = true;
+    }
+
+    // Modify dragged keyframe tangent
+    if (s.dragged_part == HoveredPart_KeyFrame_Tangent &&
+        s.drag_keyframe.frame != mouse_pos_frame) {
+
+      if (hovered_keyframe > -1 && hovered_part == HoveredPart_KeyFrame) {
+        auto& keyframe = track->at(hovered_keyframe);
+        s.drag_keyframe.tangent = (keyframe.value - s.drag_keyframe.value) /
+                                  (keyframe.frame - s.drag_keyframe.frame);
+      } else {
+        s.drag_keyframe.tangent = (mouse_pos_value - s.drag_keyframe.value) /
+                                  (mouse_pos_frame - s.drag_keyframe.frame);
+      }
+    }
+
+    // Update track with dragged keyframe
+    if (s.dragged_part == HoveredPart_KeyFrame_Tangent) {
+      track->at(drag_keyframe_found_index) = s.drag_keyframe;
+
+    } else if (s.dragged_part == HoveredPart_KeyFrame) {
+      // the general idea is to remove the keyframe and reinsert it at the
+      // proper index
+
+      int erase_index = drag_keyframe_found_index;
+      int insert_index = drag_keyframe_updated_insert_index;
+
+      bool can_be_erased = drag_keyframe_found_index > -1;
+      bool should_be_reinserted = !should_erase_dragged_keyframe;
+
+      if (can_be_erased && should_be_reinserted &&
+          (insert_index == erase_index || insert_index == erase_index + 1)) {
+        // key frame would be removed and inserted at effectivly the same index
+        // so we just set it directly
+        track->at(erase_index) = s.drag_keyframe;
+
+      } else {
+        if (can_be_erased) {
+          track->erase(track->begin() + erase_index);
+          if (insert_index > erase_index)
+            insert_index--; // make sure we insert at the correct index
+        }
+
+        if (should_be_reinserted)
+          track->insert(track->begin() + insert_index, s.drag_keyframe);
+      }
+    }
+
+    // Pan
+    if (s.dragged_part == HoveredPart_None &&
+        ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+      s.left_frame -= mouse_delta_frame;
+      s.top_value -= mouse_delta_value;
+      s.bottom_value -= mouse_delta_value;
+
+      s_right_frame = s.left_frame + size.x / s.frame_width;
+
+      if (s.left_frame > max_frame)
+        s.left_frame = max_frame;
+      else if (s_right_frame < min_frame)
+        s.left_frame = min_frame - (s_right_frame - s.left_frame);
     }
   }
 
   float mouse_x_curve_value = 0;
 
+  // Sample and draw Visible Curve Points
   if (!track->empty()) {
     int num_points = (int)(size.x / sample_size) + 1;
 
@@ -163,14 +317,15 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
       float frame = (i * sample_size) / s.frame_width + s.left_frame;
       float x = left + i * sample_size;
 
-      // advance keyframe when required
-      if (frame >= next.frame) {
+      // advance keyframe(s) when required
+      while (frame >= next.frame) {
         previous = next;
 
         if (++key_frame_idx >= track->size()) {
           next.frame = s_right_frame;
           next.tangent = last.tangent;
           next.value = last.value + last.tangent * (s_right_frame - last.frame);
+          break;
         } else {
           next = track->at(key_frame_idx);
         }
@@ -185,7 +340,7 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
                       (inv_t * previous.tangent + t * next.tangent) +
                   t * t * (3.0f - 2.0f * t) * (next.value - previous.value);
 
-      points[i] = ImVec2(x, map(val, s.bottom_value, s.top_value, bottom, top));
+      points[i] = ImVec2(x, VALUE_Y(val));
 
       if (x - sample_size <= mouse_pos.x && x >= mouse_pos.x)
         mouse_x_curve_value =
@@ -197,24 +352,70 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
     dl->AddPolyline(points, num_points, 0xFFFFFFFF, ImDrawFlags_None, 1.5);
   }
 
-  int hovered_keyframe = -1;
-
-  for (int i = 0; i < track->size(); i++) {
-    auto key_frame = track->at(i);
-    ImVec2 pos(map(key_frame.frame, s.left_frame, s_right_frame, left, right),
-               map(key_frame.value, s.bottom_value, s.top_value, bottom, top));
-
-    float x_diff = mouse_pos.x - pos.x;
-    float y_diff = mouse_pos.y - pos.y;
-    bool hovered = (x_diff * x_diff + y_diff * y_diff) < pow(5, 2);
-
-    dl->AddCircleFilled(pos, 5, hovered ? 0xFF55CCFF : 0xFFFFFFFF);
-
-    if (hovered)
-      hovered_keyframe = i;
+  // Handle mouse interaction (that doesn't involve movement)
+  // because those have to happen before drawing to avoid it looking weird
+  if (is_hovered && s.dragged_part == HoveredPart_None) {
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+      if (hovered_keyframe > -1) {
+        s.dragged_part = hovered_part;
+        s.drag_keyframe = track->at(hovered_keyframe);
+      } else if (abs(VALUE_Y(mouse_x_curve_value) - mouse_pos.y) < 3) {
+        s.dragged_part = HoveredPart_KeyFrame;
+        s.drag_keyframe.frame = mouse_pos_frame;
+        s.drag_keyframe.tangent = 0; // for now
+        s.drag_keyframe.value = mouse_x_curve_value;
+      }
+    }
+  } else if (is_hovered && s.dragged_part != HoveredPart_None &&
+             ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+    s.dragged_part = HoveredPart_None;
   }
 
-  if (is_hovered && hovered_keyframe == -1) {
+  // Draw keyframes
+  for (int i = 0; i < track->size(); i++) {
+    auto& key_frame = track->at(i);
+    ImVec2 pos(FRAME_X(key_frame.frame), VALUE_Y(key_frame.value));
+
+    // draw left controlpoint
+    if (i > 0) {
+      float middle_frame = (key_frame.frame + track->at(i - 1).frame) / 2;
+      ImVec2 handle_pos(
+          FRAME_X(middle_frame),
+          VALUE_Y(key_frame.value +
+                  (middle_frame - key_frame.frame) * key_frame.tangent));
+
+      dl->AddLine(pos, handle_pos, 0xFFFFFFFF, 1.2);
+
+      bool hovered =
+          hovered_keyframe == i && hovered_part == HoveredPart_KeyFrame_Tangent;
+      dl->AddCircleFilled(handle_pos, 3, hovered ? 0xFF55CCFF : 0xFFFFFFFF);
+    }
+
+    // draw right controlpoint
+    if (i < track->size() - 1) {
+      float middle_frame = (key_frame.frame + track->at(i + 1).frame) / 2;
+      ImVec2 handle_pos(
+          FRAME_X(middle_frame),
+          VALUE_Y(key_frame.value +
+                  (middle_frame - key_frame.frame) * key_frame.tangent));
+
+      dl->AddLine(pos, handle_pos, 0xFFFFFFFF, 1.2);
+
+      bool hovered =
+          hovered_keyframe == i && hovered_part == HoveredPart_KeyFrame_Tangent;
+      dl->AddCircleFilled(handle_pos, 3, hovered ? 0xFF55CCFF : 0xFFFFFFFF);
+    }
+
+    // draw keyframe
+    bool hovered =
+        hovered_keyframe == i && hovered_part == HoveredPart_KeyFrame;
+    dl->AddCircleFilled(pos, 5, hovered ? 0xFF55CCFF : 0xFFFFFFFF);
+  }
+
+  // Draw shadow keyframe (for inserting)
+  if (is_hovered && s.dragged_part == HoveredPart_None &&
+      hovered_keyframe == -1 &&
+      abs(VALUE_Y(mouse_x_curve_value) - mouse_pos.y) < 3) {
     ImVec2 pos(mouse_pos.x, map(mouse_x_curve_value, s.bottom_value,
                                 s.top_value, bottom, top));
 
@@ -232,22 +433,14 @@ void ShowSRTCurveEditor(std::string id, ImVec2 size,
     dl->AddRectFilled(ImVec2(max_frame_x, top), ImVec2(right, bottom),
                       0x99000000);
 
+  dl->AddText(
+      mouse_pos + ImVec2(15, 0), 0xFFFFFFFF,
+      std::format("frame: {}\nvalue: {:.2f}", mouse_pos_frame, mouse_pos_value)
+          .c_str());
+
   dl->PopClipRect();
 
-  if (is_hovered && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-    s.left_frame -= mouse_delta_frame;
-    s.top_value -= mouse_delta_value;
-    s.bottom_value -= mouse_delta_value;
-
-    s_right_frame = s.left_frame + size.x / s.frame_width;
-
-    if (s.left_frame > max_frame)
-      s.left_frame = max_frame;
-    else if (s_right_frame < min_frame)
-      s.left_frame = min_frame - (s_right_frame - s.left_frame);
-  }
-
-  editor_states->insert_or_assign(id, s);
+  editor_states.insert_or_assign(id, s);
 }
 
 void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
@@ -433,9 +626,9 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
                     (targetMtxId % 8), subtrackName);
       }
 
-	  auto kfStringId = std::format("{}{}{}", matName, targetMtxId, subtrack);
+      auto kfStringId = std::format("{}{}{}", matName, targetMtxId, subtrack);
 
-	  float top_of_row = ImGui::GetCursorPosY();
+      float top_of_row = ImGui::GetCursorPosY();
 
       int i = 0;
 
@@ -443,14 +636,14 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
 
       ImGui::PushID(kfStringId.c_str());
       RSL_DEFER(ImGui::PopID());
-      
+
       ImGui::TableSetColumnIndex(2);
-	  
+
       ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
       ImGui::Text("Keyframe %d", static_cast<int>(i));
       ImGui::SameLine();
-      auto title = std::format(
-          "{}##{}", (const char*)ICON_FA_TIMES_CIRCLE, kfStringId);
+      auto title =
+          std::format("{}##{}", (const char*)ICON_FA_TIMES_CIRCLE, kfStringId);
       ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
       if (ImGui::Button(title.c_str())) {
         track->erase(track->begin() + i);
@@ -461,15 +654,15 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
       ImGui::InputFloat("Value", &keyframe.value);
       ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
       ImGui::InputFloat("Tangent", &keyframe.tangent);
-   
-	  ImGui::NewLine();
-   	  
+
+      ImGui::NewLine();
+
       float row_height = ImGui::GetCursorPosY() - top_of_row;
       ImGui::TableSetColumnIndex(3);
       auto size = ImGui::GetContentRegionAvail();
       size.y = row_height;
-      
-	  ShowSRTCurveEditor(kfStringId, size, track, frame_duration);
+
+      ShowSRTCurveEditor(kfStringId, size, track, frame_duration);
 
       //{
       //  ImGui::TableSetColumnIndex((track ? track->size() : 0) + 2);
