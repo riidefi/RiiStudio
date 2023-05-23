@@ -31,12 +31,17 @@ importTextureImpl(libcube::Texture& data, std::span<u8> image,
                                                  bool mip_gen, int min_dim,
                                                  int max_mip);
 
+struct MipGen {
+  u32 min_dim = 32;
+  u32 max_mip = 5;
+};
 [[nodiscard]] bool
 CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
             std::string path,
             std::function<void(std::string, std::string)> info,
             std::function<void(std::string_view, float)> progress,
-            bool tristrip = true, bool verbose = true);
+            std::optional<MipGen> mips = {}, bool tristrip = true,
+            bool verbose = true);
 
 [[nodiscard]] Result<librii::rhst::Mesh>
 decompileMesh(const libcube::IndexedPolygon& src, const libcube::Model& mdl);

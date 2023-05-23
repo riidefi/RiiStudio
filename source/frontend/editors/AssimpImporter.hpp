@@ -72,8 +72,9 @@ private:
       auto info = [&](std::string c, std::string v) {
         on_log(kpi::IOMessageClass::Information, c, v);
       };
+      auto mips = getMips();
       bool ok = riistudio::rhst::CompileRHST(*tree, *m_result, m_path, info,
-                                             progress);
+                                             progress, mips);
       // We can trust the UI thread will not write to this when in ::Waiting
       if (!ok) {
         m_err = "Failed to convert to BRRES/BMD.";
@@ -92,6 +93,16 @@ private:
   Status uiThreadGetStatus() {
     std::unique_lock g(m_statusLock);
     return m_status;
+  }
+
+  auto getMips() const -> std::optional<riistudio::rhst::MipGen> {
+    if (!m_settings.mGenerateMipMaps) {
+      return std::nullopt;
+    }
+    return riistudio::rhst::MipGen{
+        .min_dim = static_cast<u32>(m_settings.mMinMipDimension),
+        .max_mip = static_cast<u32>(m_settings.mMaxMipCount),
+    };
   }
 
   AssimpEditorPropertyGrid m_grid;

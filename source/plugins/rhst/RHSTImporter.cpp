@@ -572,12 +572,13 @@ Result<void> importTextureFromFile(libcube::Texture& data,
 }
 
 void import_texture(std::string tex, libcube::Texture* pdata,
-                    std::filesystem::path file_path) {
+                    std::filesystem::path file_path,
+                    std::optional<MipGen> mips) {
   libcube::Texture& data = *pdata;
   std::vector<u8> scratch;
-  bool mip_gen = true;
-  u32 min_dim = 64;
-  u32 max_mip = 3;
+  bool mip_gen = mips.has_value();
+  u32 min_dim = mips ? mips->min_dim : 0;
+  u32 max_mip = mips ? mips->max_mip : 0;
 
   std::vector<std::filesystem::path> search_paths;
   search_paths.push_back(file_path);
@@ -614,7 +615,7 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
                  std::string path,
                  std::function<void(std::string, std::string)> info,
                  std::function<void(std::string_view, float)> progress,
-                 bool tristrip, bool verbose) {
+                 std::optional<MipGen> mips, bool tristrip, bool verbose) {
   std::set<std::string> textures_needed;
 
   for (auto& mat : rhst.materials) {
@@ -652,7 +653,7 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
     libcube::Texture* data = &scene.getTextures()[i];
 
     futures.push_back(std::async(std::launch::async, [=] {
-      import_texture(data->getName(), data, file_path);
+      import_texture(data->getName(), data, file_path, mips);
     }));
   }
 

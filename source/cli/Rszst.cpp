@@ -59,6 +59,17 @@ static void progress_end() {
   std::cout << std::endl;
 }
 
+static auto GetMips(const CliOptions& opt)
+    -> std::optional<riistudio::rhst::MipGen> {
+  if (!opt.mipmaps) {
+    return std::nullopt;
+  }
+  return riistudio::rhst::MipGen{
+      .min_dim = opt.min_mip,
+      .max_mip = opt.max_mips,
+  };
+}
+
 class ImportBRRES {
 public:
   ImportBRRES(const CliOptions& opt) : m_opt(opt) {}
@@ -109,8 +120,8 @@ public:
     };
     auto m_result = std::make_unique<riistudio::g3d::Collection>();
     bool ok = riistudio::rhst::CompileRHST(*tree, *m_result, m_from.string(),
-                                           info, progress, !m_opt.no_tristrip,
-                                           m_opt.verbose);
+                                           info, progress, GetMips(m_opt),
+                                           !m_opt.no_tristrip, m_opt.verbose);
     if (!ok) {
       return std::unexpected("Failed to parse RHST");
     }
@@ -388,8 +399,8 @@ public:
     };
     auto m_result = std::make_unique<T>();
     bool ok = riistudio::rhst::CompileRHST(*tree, *m_result, m_from.string(),
-                                           info, progress, !m_opt.no_tristrip,
-                                           m_opt.verbose);
+                                           info, progress, GetMips(m_opt),
+                                           !m_opt.no_tristrip, m_opt.verbose);
     if (!ok) {
       return std::unexpected("Failed to compile RHST");
     }
