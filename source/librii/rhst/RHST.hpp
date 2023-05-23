@@ -249,6 +249,7 @@ struct WeightMatrix {
 struct SceneTree {
   MetaData meta_data;
 
+  std::string name = "course";
   std::vector<Bone> bones;
   std::vector<WeightMatrix> weights;
   std::vector<Mesh> meshes;
