@@ -79,20 +79,22 @@ inline void writeMatrix(const glm::mat<r, c, TM, qM>& mat, T& stream) {
       stream.write(mat[j][i]);
 }
 
-inline std::vector<std::string> readNameTable(oishii::BinaryReader& reader) {
+[[nodiscard]] inline Result<std::vector<std::string>>
+readNameTable(oishii::BinaryReader& reader) {
   const auto start = reader.tell();
-  std::vector<std::string> collected(reader.tryRead<u16>().value());
-  reader.tryRead<u16>().value();
+  std::vector<std::string> collected(TRY(reader.tryRead<u16>()));
+  TRY(reader.tryRead<u16>());
 
   for (auto& e : collected) {
-    const auto hash = reader.tryRead<u16>().value();
-    const auto ofs = reader.tryRead<u16>().value();
+    const auto hash = TRY(reader.tryRead<u16>());
+    const auto ofs = TRY(reader.tryRead<u16>());
     {
       oishii::Jump<oishii::Whence::Set> g(reader, start + ofs);
 
-      for (char c = reader.tryRead<s8>().value(); c;
-           c = reader.tryRead<s8>().value())
+      for (char c = TRY(reader.tryRead<s8>()); c;
+           c = TRY(reader.tryRead<s8>())) {
         e.push_back(c);
+      }
     }
   }
 

@@ -113,8 +113,8 @@ Result<void> readGenericBuffer(
   out.mEntries.resize(TRY(reader.U16()));
   if constexpr (HasMinimum) {
     T minEnt, maxEnt;
-    minEnt << reader.getUnsafe();
-    maxEnt << reader.getUnsafe();
+    TRY(minEnt << reader.getUnsafe());
+    TRY(maxEnt << reader.getUnsafe());
 
     out.mCachedMinMax = MinMax<T>{.min = minEnt, .max = maxEnt};
   }

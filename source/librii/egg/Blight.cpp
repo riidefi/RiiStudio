@@ -55,8 +55,8 @@ Result<void> Blight::read(oishii::BinaryReader& unsafeReader) {
     obj.lightType = TRY(reader.Enum8<LightType>());
     obj.ambientLightIndex = TRY(reader.U16());
     obj.flags = TRY(reader.U16());
-    obj.position << unsafeReader;
-    obj.aim << unsafeReader;
+    TRY(obj.position << unsafeReader);
+    TRY(obj.aim << unsafeReader);
     obj.intensity = TRY(reader.F32());
     obj.color = TRY(readColor(reader));
     obj.specularColor = TRY(readColor(reader));

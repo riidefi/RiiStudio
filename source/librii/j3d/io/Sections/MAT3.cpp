@@ -48,13 +48,13 @@ struct MatLoader {
     oishii::BinaryReader& reader;
     u32 ofs;
 
-    template <typename TGet = TRaw> TGet raw() {
-      assert(ofs != 0 && "Invalid read.");
+    template <typename TGet = TRaw> Result<TGet> raw() {
+      EXPECT(ofs != 0 && "Invalid read.");
 
-      return reader.tryGetAt<TGet>(ofs).value();
+      return reader.tryGetAt<TGet>(ofs);
     }
-    template <typename T, typename TRaw_> T as() {
-      return static_cast<T>(raw<TRaw_>());
+    template <typename T, typename TRaw_> Result<T> as() {
+      return static_cast<T>(TRY(raw<TRaw_>()));
     }
   };
 
@@ -68,13 +68,15 @@ public:
     return secOfsStart(sec) + idx * stride;
   }
 
-  template <typename T, typename U = T> SecOfsEntry<T> indexed(MatSec sec) {
+  template <typename T, typename U = T>
+  Result<SecOfsEntry<T>> indexed(MatSec sec) {
     return SecOfsEntry<T>{
-        reader, secOfsEntryRaw(sec, reader.tryRead<T>().value(), sizeof(U))};
+        reader, secOfsEntryRaw(sec, TRY(reader.tryRead<T>()), sizeof(U))};
   }
 
-  template <typename T> SecOfsEntry<u8> indexed(MatSec sec, u32 stride) {
-    const auto idx = reader.tryRead<T>().value();
+  template <typename T>
+  Result<SecOfsEntry<u8>> indexed(MatSec sec, u32 stride) {
+    const auto idx = TRY(reader.tryRead<T>());
 
     if (idx == static_cast<T>(-1)) {
       // reader.warnAt("Null index", reader.tell() - sizeof(T), reader.tell());
@@ -97,7 +99,7 @@ public:
   template <typename TIdx>
   [[nodiscard]] Result<void> indexedContained_VOIDPTR(void* out, MatSec sec,
                                                       u32 stride, IRead& dyn) {
-    if (const auto ofs = indexed<TIdx>(sec, stride).ofs) {
+    if (const auto ofs = TRY(indexed<TIdx>(sec, stride)).ofs) {
       oishii::Jump<oishii::Whence::Set> g(reader, ofs);
 
       rsl::SafeReader safe(reader);
@@ -136,7 +138,7 @@ public:
     oishii::JumpOut g(reader, out.fixed_size() * sizeof(TIdx));
 
     for (int i = 0; i < out.fixed_size(); ++i) {
-      const auto ofs = indexed<TIdx>(sec, stride).ofs;
+      const auto ofs = TRY(indexed<TIdx>(sec, stride)).ofs;
       // Assume entries are contiguous
       if (!ofs)
         break;
@@ -161,15 +163,16 @@ public:
   EXPECT(reader.tell() % 4 == 0);
   mat.flag = TRY(reader.U8());
   mat.xlu = mat.flag & 4;
-  auto cmx = loader.indexed<u8, u32>(MatSec::CullModeInfo);
-  mat.cullMode = TRY(rsl::enum_cast<gx::CullMode>(cmx.raw<u32>()));
-  const u8 nColorChan = loader.indexed<u8>(MatSec::NumColorChannels).raw();
-  const u8 num_tg = loader.indexed<u8>(MatSec::NumTexGens).raw();
-  const u8 num_stage = loader.indexed<u8>(MatSec::NumTevStages).raw();
+  auto cmx = TRY(loader.indexed<u8, u32>(MatSec::CullModeInfo));
+  mat.cullMode = TRY(rsl::enum_cast<gx::CullMode>(TRY(cmx.raw<u32>())));
+  const u8 nColorChan =
+      TRY(TRY(loader.indexed<u8>(MatSec::NumColorChannels)).raw());
+  const u8 num_tg = TRY(TRY(loader.indexed<u8>(MatSec::NumTexGens)).raw());
+  const u8 num_stage = TRY(TRY(loader.indexed<u8>(MatSec::NumTevStages)).raw());
   mat.earlyZComparison =
-      loader.indexed<u8>(MatSec::ZCompareInfo).as<bool, u8>();
+      TRY(TRY(loader.indexed<u8>(MatSec::ZCompareInfo)).as<bool, u8>());
   TRY(loader.indexedContained<u8>(mat.zMode, MatSec::ZModeInfo, 4));
-  mat.dither = loader.indexed<u8>(MatSec::DitherInfo).as<bool, u8>();
+  mat.dither = TRY(TRY(loader.indexed<u8>(MatSec::DitherInfo)).as<bool, u8>());
 
   dbg.assertSince(8);
   rsl::array_vector<gx::Color, 2> matColors;
@@ -377,11 +380,11 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
         out.resize(nInferred);
 
         auto pad_check = [](oishii::BinaryReader& reader,
-                            std::size_t search_size) {
+                            std::size_t search_size) -> Result<bool> {
           std::string_view pstring = "This is padding data to align";
 
           for (int i = 0; i < std::min(search_size, pstring.length()); ++i) {
-            if (reader.tryRead<u8>().value() != pstring[i])
+            if (TRY(reader.tryRead<u8>()) != pstring[i])
               return false;
           }
           return true;
@@ -390,7 +393,7 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
         std::size_t _it = 0;
         for (auto& e : out) {
           reader.seekSet(begin + g.start + _it * entry_size);
-          if (pad_check(reader.getUnsafe(), entry_size)) {
+          if (TRY(pad_check(reader.getUnsafe(), entry_size))) {
             break;
           }
           reader.seekSet(begin + g.start + _it * entry_size);
@@ -509,7 +512,7 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
   }
 
   reader.seekSet(ofsStringTable + g.start);
-  const auto nameTable = readNameTable(reader.getUnsafe());
+  const auto nameTable = TRY(readNameTable(reader.getUnsafe()));
 
   for (int i = 0; i < size; ++i) {
     auto& mat = ctx.mdl.materials[i];
@@ -798,7 +801,9 @@ struct MAT3Node : public oishii::Node {
     return {};
   }
 
-  Result<void> gatherChildren(NodeDelegate& d) const noexcept override { return {}; }
+  Result<void> gatherChildren(NodeDelegate& d) const noexcept override {
+    return {};
+  }
 };
 bool SerializableMaterial::operator==(
     const SerializableMaterial& rhs) const noexcept {

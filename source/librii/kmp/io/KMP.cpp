@@ -48,7 +48,8 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
     auto g = ctx.sublet("header");
 
     g.require(TRY(reader.tryRead<u32>()) == 'RKMD', "Invalid file magic");
-    g.require(TRY(reader.tryRead<u32>()) == reader.endpos(), "Invalid file size");
+    g.require(TRY(reader.tryRead<u32>()) == reader.endpos(),
+              "Invalid file size");
 
     num_sec = TRY(reader.tryRead<u16>());
     g.request(num_sec == 15, "Unusual section count");
@@ -67,9 +68,8 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
                           bool standard_fields =
                               true) -> Result<std::tuple<bool, u16, u16>> {
     for (u32 i = 0; i < num_sec; ++i) {
-      reader.seekSet(
-          header_size +
-          reader.tryGetAt<u32>(header_size + (i - num_sec) * 4).value());
+      auto offset = TRY(reader.tryGetAt<u32>(header_size + (i - num_sec) * 4));
+      reader.seekSet(header_size + offset);
       const auto magic = TRY(reader.tryRead<u32>());
       if (magic == key) {
         sections_handled |= (1 << i);
@@ -88,8 +88,8 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
       found) {
     map.mStartPoints.resize(num_entry);
     for (auto& entry : map.mStartPoints) {
-      entry.position << reader;
-      entry.rotation << reader;
+      TRY(entry.position << reader);
+      TRY(entry.rotation << reader);
       entry.player_index = TRY(reader.tryRead<s16>());
       entry._ = TRY(reader.tryRead<u16>());
     }
@@ -134,7 +134,7 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
 
   const auto read_enpt = [](EnemyPoint& pt,
                             oishii::BinaryReader& reader) -> Result<void> {
-    pt.position << reader;
+    TRY(pt.position << reader);
     pt.deviation = TRY(reader.tryRead<f32>());
     pt.param = TRY(reader.tryReadX<u8, 4>());
     return {};
@@ -143,7 +143,7 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
 
   const auto read_itpt = [](ItemPoint& pt,
                             oishii::BinaryReader& reader) -> Result<void> {
-    pt.position << reader;
+    TRY(pt.position << reader);
     pt.deviation = TRY(reader.tryRead<f32>());
     pt.param = TRY(reader.tryReadX<u8, 4>());
     return {};
@@ -152,8 +152,8 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
 
   const auto read_ckpt = [&](CheckPoint& pt,
                              oishii::BinaryReader& reader) -> Result<void> {
-    pt.mLeft << reader;
-    pt.mRight << reader;
+    TRY(pt.mLeft << reader);
+    TRY(pt.mRight << reader);
     pt.mRespawnIndex = TRY(reader.tryRead<u8>());
     pt.mLapCheck = TRY(reader.tryRead<u8>());
     // TODO: We assume the intrusive linked-list data is valid
@@ -167,9 +167,9 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
     for (auto& entry : map.mGeoObjs) {
       entry.id = TRY(reader.tryRead<u16>());
       entry._ = TRY(reader.tryRead<u16>());
-      entry.position << reader;
-      entry.rotation << reader;
-      entry.scale << reader;
+      TRY(entry.position << reader);
+      TRY(entry.rotation << reader);
+      TRY(entry.scale << reader);
       entry.pathId = TRY(reader.tryRead<u16>());
       entry.settings = TRY(reader.tryReadX<u16, 8>());
       entry.flags = TRY(reader.tryRead<u16>());
@@ -188,7 +188,7 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
       entry.interpolation = TRY(safe.Enum8<Interpolation>());
       entry.loopPolicy = TRY(safe.Enum8<LoopPolicy>());
       for (auto& sub : entry.points) {
-        sub.position << reader;
+        TRY(sub.position << reader);
         sub.params = TRY(reader.tryReadX<u16, 2>());
       }
     }
@@ -226,9 +226,9 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
       entry.mType = static_cast<AreaType>(raw_area_type);
       entry.mCameraIndex = TRY(reader.tryRead<u8>());
       entry.mPriority = TRY(reader.tryRead<u8>());
-      entry.getModel().mPosition << reader;
-      entry.getModel().mRotation << reader;
-      entry.getModel().mScaling << reader;
+      TRY(entry.getModel().mPosition << reader);
+      TRY(entry.getModel().mRotation << reader);
+      TRY(entry.getModel().mScaling << reader);
 
       entry.mParameters = TRY(reader.tryReadX<u16, 2>());
       if (map.mRevision >= 2200) {
@@ -257,12 +257,12 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
       entry.mView.mSpeed = TRY(reader.tryRead<u16>());
       entry.mStartFlag = TRY(reader.tryRead<u8>());
       entry.mMovieFlag = TRY(reader.tryRead<u8>());
-      entry.mPosition << reader;
-      entry.mRotation << reader;
+      TRY(entry.mPosition << reader);
+      TRY(entry.mRotation << reader);
       entry.mFov.from = TRY(reader.tryRead<f32>());
       entry.mFov.to = TRY(reader.tryRead<f32>());
-      entry.mView.from << reader;
-      entry.mView.to << reader;
+      TRY(entry.mView.from << reader);
+      TRY(entry.mView.to << reader);
       entry.mActiveFrames = TRY(reader.tryRead<f32>());
     }
   }
@@ -270,8 +270,8 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
   if (auto [found, num_entry, user_data] = TRY(search('JGPT')); found) {
     map.mRespawnPoints.resize(num_entry);
     for (auto& entry : map.mRespawnPoints) {
-      entry.position << reader;
-      entry.rotation << reader;
+      TRY(entry.position << reader);
+      TRY(entry.rotation << reader);
       entry.id = TRY(reader.tryRead<u16>());
       entry.range = TRY(reader.tryRead<u16>());
     }
@@ -284,8 +284,8 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
     int i = 0;
     for (auto& entry : map.mCannonPoints) {
       auto ctx_entry = ctx_cnpt.sublet(std::to_string(i));
-      entry.mPosition << reader;
-      entry.mRotation << reader;
+      TRY(entry.mPosition << reader);
+      TRY(entry.mRotation << reader);
       ctx_entry.require(TRY(reader.tryRead<u16>()) == i, "Invalid cannon ID");
       entry.mType = TRY(safe.Enum8<CannonType>());
       ++i;
@@ -295,8 +295,8 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
   if (auto [found, num_entry, user_data] = TRY(search('MSPT')); found) {
     map.mMissionPoints.resize(num_entry);
     for (auto& entry : map.mMissionPoints) {
-      entry.position << reader;
-      entry.rotation << reader;
+      TRY(entry.position << reader);
+      TRY(entry.rotation << reader);
       entry.id = TRY(reader.tryRead<u16>());
       entry.unknown = TRY(reader.tryRead<u16>());
     }

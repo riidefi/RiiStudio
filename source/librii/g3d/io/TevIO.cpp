@@ -132,13 +132,14 @@ void BinaryTevDL::write(oishii::Writer& writer) const {
   assert(tev_size == 0x200);
 }
 
-void BinaryTev::read(oishii::BinaryReader& reader, unsigned int tev_addr,
-                     bool brawlbox_bug) {
+Result<void> BinaryTev::read(oishii::BinaryReader& reader,
+                             unsigned int tev_addr, bool brawlbox_bug) {
   librii::gx::LowLevelGxMaterial mat;
   // So the DL parser doesn't discard IndOrders
   mat.indirectStages.resize(4);
-  ReadTev(mat, reader, tev_addr, /* trust_stagecount */ true, brawlbox_bug);
-  id = reader.tryGetAt<u32>(tev_addr + 8).value();
+  TRY(ReadTev(mat, reader, tev_addr, /* trust_stagecount */ true,
+              brawlbox_bug));
+  id = TRY(reader.tryGetAt<u32>(tev_addr + 8));
   // TODO: LUT is skipped among other fields
   G3dShader sh(mat);
   reserved = {};
@@ -147,6 +148,7 @@ void BinaryTev::read(oishii::BinaryReader& reader, unsigned int tev_addr,
   dl.swapTable = sh.mSwapTable;
   dl.indOrders = sh.mIndirectOrders;
   dl.tevStages = sh.mStages;
+  return {};
 }
 void BinaryTev::writeBody(oishii::Writer& writer) const {
   // For debug tracking

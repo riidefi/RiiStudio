@@ -109,7 +109,7 @@ Result<void> readTEX1(BMDOutputContext& ctx) {
   std::vector<std::string> nameTable;
   {
     oishii::Jump<oishii::Whence::Current> j(reader, ofsNameTable);
-    nameTable = readNameTable(reader);
+    nameTable = TRY(readNameTable(reader));
   }
 
   ctx.mTexCache.clear();

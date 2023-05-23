@@ -58,16 +58,20 @@ void DrawRenderOptions(RenderOptions& opt) {
   opt.xlu_mode = imcxx::Combo("Translucency", opt.xlu_mode, "Fast\0Fancy\0");
   ImGui::SliderFloat("Collision Alpha", &opt.kcl_alpha, 0.0f, 1.0f);
 }
+
 void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
+  auto ok = tryOpenFile(buf, path);
+  if (!ok) {
+    mErrDisp = ok.error();
+  }
+}
+
+Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
+                                            std::string path) {
   // Read .szs
   {
-    auto root_arc = ReadArchive(buf);
-    if (!root_arc.has_value()) {
-      mErrDisp = root_arc.error();
-      return;
-    }
-
-    mLevel.root_archive = std::move(*root_arc);
+    auto root_arc = TRY(ReadArchive(buf));
+    mLevel.root_archive = std::move(root_arc);
     mLevel.og_path = path;
   }
 
@@ -78,10 +82,9 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto course_model_brres = FindFileWithOverloads(
         mLevel.root_archive, {"course_d_model.brres", "course_model.brres"});
     if (course_model_brres.has_value()) {
-      auto b = ReadBRRES(course_model_brres->file_data,
-                         course_model_brres->resolved_path);
-      if (b)
-        mCourseModel = std::make_unique<RenderableBRRES>(std::move(b));
+      auto b = TRY(ReadBRRES(course_model_brres->file_data,
+                             course_model_brres->resolved_path));
+      mCourseModel = std::make_unique<RenderableBRRES>(std::move(b));
     }
   }
 
@@ -90,10 +93,9 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto vrcorn_model_brres = FindFileWithOverloads(
         mLevel.root_archive, {"vrcorn_d_model.brres", "vrcorn_model.brres"});
     if (vrcorn_model_brres.has_value()) {
-      auto b = ReadBRRES(vrcorn_model_brres->file_data,
-                         vrcorn_model_brres->resolved_path);
-      if (b)
-        mVrcornModel = std::make_unique<RenderableBRRES>(std::move(b));
+      auto b = TRY(ReadBRRES(vrcorn_model_brres->file_data,
+                             vrcorn_model_brres->resolved_path));
+      mVrcornModel = std::make_unique<RenderableBRRES>(std::move(b));
     }
   }
 
@@ -102,9 +104,8 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto map_model =
         FindFileWithOverloads(mLevel.root_archive, {"map_model.brres"});
     if (map_model.has_value()) {
-      auto b = ReadBRRES(map_model->file_data, map_model->resolved_path);
-      if (b)
-        mMapModel = std::make_unique<RenderableBRRES>(std::move(b));
+      auto b = TRY(ReadBRRES(map_model->file_data, map_model->resolved_path));
+      mMapModel = std::make_unique<RenderableBRRES>(std::move(b));
     }
   }
 
@@ -113,7 +114,8 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto course_kcl =
         FindFileWithOverloads(mLevel.root_archive, {"course.kcl"});
     if (course_kcl.has_value()) {
-      mCourseKcl = ReadKCL(course_kcl->file_data, course_kcl->resolved_path);
+      mCourseKcl =
+          TRY(ReadKCL(course_kcl->file_data, course_kcl->resolved_path));
     }
   }
 
@@ -128,7 +130,7 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     auto course_kmp =
         FindFileWithOverloads(mLevel.root_archive, {"course.kmp"});
     if (course_kmp.has_value()) {
-      mKmp = ReadKMP(course_kmp->file_data, course_kmp->resolved_path);
+      mKmp = TRY(ReadKMP(course_kmp->file_data, course_kmp->resolved_path));
     }
   }
 
@@ -152,6 +154,8 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
     cam.mClipMax = 1000000.0f;
     mRenderSettings.mCameraController.mSpeed = 15'000.0f;
   }
+
+  return {};
 }
 
 void LevelEditorWindow::saveFile(std::string path) {

@@ -539,11 +539,9 @@ Result<void> importTextureFromMemory(libcube::Texture& data,
                                      std::span<const u8> span,
                                      std::vector<u8>& scratch, bool mip_gen,
                                      int min_dim, int max_mip) {
-  BEGINTRY
   auto image = TRY(rsl::stb::load_from_memory(span));
   return importTexture(data, image.data, scratch, mip_gen, min_dim, max_mip,
                        image.width, image.height, image.channels);
-  ENDTRY
 }
 Result<void> importTextureFromFile(libcube::Texture& data,
                                    std::string_view path,
@@ -589,12 +587,10 @@ void import_texture(std::string tex, libcube::Texture* pdata,
   search_paths.push_back(file_path.parent_path() / "textures" / (tex + ".png"));
 
   for (const auto& path : search_paths) {
-#ifdef __clang__
     if (importTextureFromFile(data, path.string().c_str(), scratch, mip_gen,
                               min_dim, max_mip)) {
       return;
     }
-#endif
   }
   rsl::error("Cannot find texture {}", tex.c_str());
   // 32x32 (32bpp)

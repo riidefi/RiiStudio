@@ -1,5 +1,6 @@
 #include "RHST.hpp"
 #include <oishii/reader/binary_reader.hxx>
+#include <rsl/SafeReader.hpp>
 #include <rsl/TaggedUnion.hpp>
 #include <vendor/magic_enum/magic_enum.hpp>
 #include <vendor/nlohmann/json.hpp>
@@ -7,24 +8,6 @@
 IMPORT_STD;
 
 namespace librii::rhst {
-
-struct Expected {
-  explicit Expected(bool v) : success(v) { assert(v); }
-
-  operator bool() { return success; }
-
-  bool success = false;
-};
-
-struct Failure {
-  Failure(const char* msg) { printf("%s\n", msg); }
-
-  operator Expected() { return Expected(false); }
-};
-
-struct Success {
-  operator Expected() { return Expected(true); }
-};
 
 enum class RHSTToken {
   RHST_DATA_NULL = 0,
@@ -98,26 +81,31 @@ public:
                                          F32Token, DictBeginToken, DictEndToken,
                                          ArrayBeginToken, ArrayEndToken> {};
 
-  void readTok() { mLastToken = _readTok(); }
+  [[nodiscard]] Result<void> readTok() {
+    mLastToken = TRY(_readTok());
+    return {};
+  }
   Token get() const { return mLastToken; }
 
-  template <typename T> const T* expect() {
-    readTok();
+  template <typename T> Result<const T*> expect() {
+    TRY(readTok());
     return rsl::dyn_cast<T>(mLastToken);
   }
 
-  bool expectSimple(RHSTToken type) {
-    readTok();
+  Result<bool> expectSimple(RHSTToken type) {
+    TRY(readTok());
     return mLastToken.getType() == type;
   }
 
-  bool expectString() { return expectSimple(RHSTToken::RHST_DATA_STRING); }
-  bool expectInt() { return expectSimple(RHSTToken::RHST_DATA_S32); }
-  bool expectFloat() { return expectSimple(RHSTToken::RHST_DATA_F32); }
+  Result<bool> expectString() {
+    return expectSimple(RHSTToken::RHST_DATA_STRING);
+  }
+  Result<bool> expectInt() { return expectSimple(RHSTToken::RHST_DATA_S32); }
+  Result<bool> expectFloat() { return expectSimple(RHSTToken::RHST_DATA_F32); }
 
 private:
-  std::string_view _readString() {
-    const u32 string_len = mReader.tryRead<u32>().value();
+  Result<std::string_view> _readString() {
+    const u32 string_len = TRY(mReader.tryRead<u32>());
     const u32 start_start_pos = mReader.tell();
     mReader.skip(roundUp(string_len, 4));
 
@@ -129,47 +117,47 @@ private:
     return data;
   }
 
-  Token _readTok() {
+  Result<Token> _readTok() {
     const RHSTToken type =
-        static_cast<RHSTToken>(mReader.tryRead<s32>().value());
+        TRY(rsl::enum_cast<RHSTToken>(TRY(mReader.tryRead<s32>())));
 
     switch (type) {
     case RHSTToken::RHST_DATA_STRING: {
-      std::string_view data = _readString();
+      std::string_view data = TRY(_readString());
 
-      return {StringToken{.data = data}};
+      return Token{StringToken{.data = data}};
     }
     case RHSTToken::RHST_DATA_S32: {
-      const s32 data = mReader.tryRead<s32>().value();
+      const s32 data = TRY(mReader.tryRead<s32>());
 
-      return {S32Token{.data = data}};
+      return Token{S32Token{.data = data}};
     }
     case RHSTToken::RHST_DATA_F32: {
-      const f32 data = mReader.tryRead<f32>().value();
+      const f32 data = TRY(mReader.tryRead<f32>());
 
-      return {F32Token{.data = data}};
+      return Token{F32Token{.data = data}};
     }
     case RHSTToken::RHST_DATA_DICT: {
-      const u32 nchildren = mReader.tryRead<u32>().value();
-      std::string_view name = _readString();
+      const u32 nchildren = TRY(mReader.tryRead<u32>());
+      std::string_view name = TRY(_readString());
 
-      return {DictBeginToken{.name = name, .size = nchildren}};
+      return Token{DictBeginToken{.name = name, .size = nchildren}};
     }
     case RHSTToken::RHST_DATA_END_DICT: {
-      return {DictEndToken{}};
+      return Token{DictEndToken{}};
     }
     case RHSTToken::RHST_DATA_ARRAY: {
-      const u32 nchildren = mReader.tryRead<u32>().value();
-      [[maybe_unused]] const u32 child_type = mReader.tryRead<u32>().value();
+      const u32 nchildren = TRY(mReader.tryRead<u32>());
+      [[maybe_unused]] const u32 child_type = TRY(mReader.tryRead<u32>());
 
-      return {ArrayBeginToken{.size = nchildren}};
+      return Token{ArrayBeginToken{.size = nchildren}};
     }
     case RHSTToken::RHST_DATA_END_ARRAY: {
-      return {ArrayEndToken{}};
+      return Token{ArrayEndToken{}};
     }
     default:
     case RHSTToken::RHST_DATA_NULL: {
-      return {NullToken{}};
+      return Token{NullToken{}};
     }
     }
   }
@@ -183,51 +171,51 @@ class SceneTreeReader {
 public:
   SceneTreeReader(RHSTReader& reader) : mReader(reader) {}
 
-  template <typename T> Expected arrayIter(T functor) {
-    auto* array_begin = mReader.expect<RHSTReader::ArrayBeginToken>();
+  template <typename T> Result<void> arrayIter(T functor) {
+    auto* array_begin = TRY(mReader.expect<RHSTReader::ArrayBeginToken>());
     if (array_begin == nullptr)
-      return Failure("Expected an array");
+      return std::unexpected("Expected an array");
 
     auto begin_data = *array_begin;
 
     for (int i = 0; i < begin_data.size; ++i) {
       if (!functor(i))
-        return Failure("Functor returned false");
+        return std::unexpected("Functor returned false");
     }
 
-    auto* array_end = mReader.expect<RHSTReader::ArrayEndToken>();
+    auto* array_end = TRY(mReader.expect<RHSTReader::ArrayEndToken>());
     if (array_end == nullptr)
-      return Failure("Array terminator expected");
+      return std::unexpected("Array terminator Result<void>");
 
-    return Success();
+    return {};
   }
 
-  template <typename T> Expected dictIter(T functor) {
-    auto* begin = mReader.expect<RHSTReader::DictBeginToken>();
+  template <typename T> Result<void> dictIter(T functor) {
+    auto* begin = TRY(mReader.expect<RHSTReader::DictBeginToken>());
     if (begin == nullptr)
-      return Failure("Expected a dictionary");
+      return std::unexpected("Expected a dictionary");
 
     // begin, the pointer, will be invalidated by future calls.
     auto begin_data = *begin;
 
     for (int i = 0; i < begin_data.size; ++i) {
       if (!functor(begin_data.name, i))
-        return Failure("Failure");
+        return std::unexpected("std::unexpected");
     }
 
-    auto* end = mReader.expect<RHSTReader::DictEndToken>();
+    auto* end = TRY(mReader.expect<RHSTReader::DictEndToken>());
     if (end == nullptr)
-      return Failure("Failure");
+      return std::unexpected("std::unexpected");
 
-    return Success();
+    return {};
   }
 
-  Expected read() {
+  Result<void> read() {
     return dictIter(
         [&](std::string_view domain, int index) { return readRHSTSubNode(); });
   }
-  Expected readRHSTSubNode() {
-    return dictIter([&](std::string_view domain, int index) -> Expected {
+  Result<void> readRHSTSubNode() {
+    return dictIter([&](std::string_view domain, int index) -> Result<void> {
       if (domain == "head") {
         return readMetaData();
       }
@@ -235,41 +223,43 @@ public:
         return readData();
       }
 
-      return Success();
+      return {};
     });
   }
 
-  Expected readMetaData() {
-    return dictIter([&](std::string_view key, int index) -> Expected {
-      auto* value = mReader.expect<RHSTReader::StringToken>();
+  Result<void> readMetaData() {
+    return dictIter([&](std::string_view key, int index) -> Result<void> {
+      auto* value = TRY(mReader.expect<RHSTReader::StringToken>());
 
       if (value == nullptr)
-        return Failure("Failure");
+        return std::unexpected("std::unexpected");
 
       if (key == "generator") {
         mBuilding.meta_data.exporter = value->data;
-        return Success();
+        return {};
       }
       if (key == "type") {
         mBuilding.meta_data.format = value->data;
-        return Success();
+        return {};
       }
       if (key == "version") {
         mBuilding.meta_data.exporter_version = value->data;
-        return Success();
+        return {};
       }
       if (key == "name") {
-        return Success();
+        return {};
       }
 
-      return Failure("Unsupported metadata trait");
+      return std::unexpected("Unsupported metadata trait");
     });
   }
 
-  Expected readData() {
-    return dictIter([&](std::string_view key, int index) -> Expected {
+  Result<void> readData() {
+    return dictIter([&](std::string_view key, int index) -> Result<void> {
       if (key == "name") {
-        return Expected(mReader.expectString());
+        auto ok = TRY(mReader.expectString());
+        EXPECT(ok);
+        return {};
       }
 
       if (key == "bones") {
@@ -289,52 +279,47 @@ public:
         return readWeights();
       }
 
-      return Failure("Unknown section");
+      return std::unexpected("Unknown section");
     });
   }
 
-  Expected readWeights() {
+  Result<void> readWeights() {
     return arrayIter([&](int index) { return readWeight(index); });
   }
 
-  Expected readWeight(int index) {
+  Result<void> readWeight(int index) {
     WeightMatrix matrix{};
     // influences
-    const bool res = arrayIter([&](int index) -> Expected {
+    TRY(arrayIter([&](int index) -> Result<void> {
       // a single influence
       std::array<s32, 2> data;
       if (!arrayIter(
-              [&](int index) -> Expected { return readInt(data[index]); }))
-        return Failure("Failed to read weight");
+              [&](int index) -> Result<void> { return readInt(data[index]); }))
+        return std::unexpected("Failed to read weight");
 
       matrix.weights.push_back(
           Weight{.bone_index = data[0], .influence = data[1]});
-      return Success();
-    });
-
-    if (!res)
-      return Failure("Failure");
-
+      return {};
+    }));
     mBuilding.weights.push_back(matrix);
 
-    return Success();
+    return {};
   }
 
-  Expected readBones() {
+  Result<void> readBones() {
     return arrayIter([&](int index) { return readBone(index); });
   }
 
-  Expected readBone(int index) {
+  Result<void> readBone(int index) {
     Bone bone{};
-    const bool res = stringKeyIter([&](std::string_view key,
-                                       int index) -> Expected {
+    TRY(stringKeyIter([&](std::string_view key, int index) -> Result<void> {
       if (key == "name") {
-        auto* str = mReader.expect<RHSTReader::StringToken>();
+        auto* str = TRY(mReader.expect<RHSTReader::StringToken>());
         if (!str)
-          return Failure("Expected a string");
+          return std::unexpected("Expected a string");
 
         bone.name = str->data;
-        return Success();
+        return {};
       }
 
       auto read_billboard_mode = [](const auto& str) {
@@ -355,13 +340,13 @@ public:
         return BillboardMode::None;
       };
       if (key == "billboard") {
-        auto* tok = mReader.expect<RHSTReader::StringToken>();
+        auto* tok = TRY(mReader.expect<RHSTReader::StringToken>());
         if (!tok)
-          return Expected("Expected a string");
+          return std::unexpected("Expected a string");
 
         bone.billboard_mode = read_billboard_mode(tok->data);
 
-        return Success();
+        return {};
       }
 
       if (key == "parent") {
@@ -370,14 +355,11 @@ public:
 
       if (key == "child") {
         int child = -1;
-        auto err = readInt(child);
-        if (!err) {
-          return err;
-        }
+        TRY(readInt(child));
         if (child != -1) {
           bone.child.push_back(child);
         }
-        return Success();
+        return {};
       }
 
       if (key == "scale") {
@@ -398,202 +380,187 @@ public:
       }
 
       if (key == "draws") {
-        return arrayIter([&](int index) -> Expected {
+        return arrayIter([&](int index) -> Result<void> {
           std::array<s32, 3> vals;
           if (!readIntArray(vals))
-            return Failure("Unable to read draw call");
+            return std::unexpected("Unable to read draw call");
 
           bone.draw_calls.push_back(DrawCall{
               .mat_index = vals[0], .poly_index = vals[1], .prio = vals[2]});
 
-          return Success();
+          return {};
         });
       }
 
-      return Failure("Unexpected key");
-    });
-
-    if (!res)
-      return Failure("Failure");
+      return std::unexpected("unexpected key");
+    }));
 
     mBuilding.bones.push_back(bone);
 
-    return Success();
+    return {};
   }
 
-  Expected readMaterials() {
+  Result<void> readMaterials() {
     return arrayIter([&](int index) { return readMaterial(index); });
   }
 
-  Expected readMaterial(int index) {
+  Result<void> readMaterial(int index) {
     ProtoMaterial material{};
-    const bool res =
-        stringKeyIter([&](std::string_view key, int index) -> Expected {
-          if (key == "name") {
-            auto* str = mReader.expect<RHSTReader::StringToken>();
-            if (!str)
-              return Failure("Expected a string");
+    TRY(stringKeyIter([&](std::string_view key, int index) -> Result<void> {
+      if (key == "name") {
+        auto* str = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!str)
+          return std::unexpected("Expected a string");
 
-            material.name = str->data;
-            return Success();
-          }
+        material.name = str->data;
+        return {};
+      }
 
-          if (key == "texture") {
-            return readString(material.texture_name);
-          }
+      if (key == "texture") {
+        return readString(material.texture_name);
+      }
 
-          auto wrap_mode_from_string = [](const auto& str) {
-            if (str == "repeat")
-              return WrapMode::Repeat;
-            if (str == "mirror")
-              return WrapMode::Mirror;
-            if (str == "clamp")
-              return WrapMode::Clamp;
+      auto wrap_mode_from_string = [](const auto& str) {
+        if (str == "repeat")
+          return WrapMode::Repeat;
+        if (str == "mirror")
+          return WrapMode::Mirror;
+        if (str == "clamp")
+          return WrapMode::Clamp;
 
-            return WrapMode::Clamp;
-          };
-          if (key == "wrap_u") {
-            auto* tok = mReader.expect<RHSTReader::StringToken>();
-            if (!tok)
-              return Expected("Expected a string");
-            material.wrap_u = wrap_mode_from_string(tok->data);
-            return Success();
-          }
-          if (key == "wrap_v") {
-            auto* tok = mReader.expect<RHSTReader::StringToken>();
-            if (!tok)
-              return Expected("Expected a string");
-            material.wrap_v = wrap_mode_from_string(tok->data);
-            return Success();
-          }
-          if (key == "display_front") {
-            auto* tok = mReader.expect<RHSTReader::S32Token>();
-            if (!tok)
-              return Failure("Expected a s32");
-            material.show_front = tok->data != 0;
-            return Success();
-          }
-          if (key == "display_back") {
-            auto* tok = mReader.expect<RHSTReader::S32Token>();
-            if (!tok)
-              return Failure("Expected a s32");
-            material.show_back = tok->data != 0;
-            return Success();
-          }
-          if (key == "pe") {
-            auto* tok = mReader.expect<RHSTReader::StringToken>();
-            if (!tok)
-              return Failure("Expected a string");
+        return WrapMode::Clamp;
+      };
+      if (key == "wrap_u") {
+        auto* tok = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!tok)
+          return std::unexpected("Expected a string");
+        material.wrap_u = wrap_mode_from_string(tok->data);
+        return {};
+      }
+      if (key == "wrap_v") {
+        auto* tok = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!tok)
+          return std::unexpected("Expected a string");
+        material.wrap_v = wrap_mode_from_string(tok->data);
+        return {};
+      }
+      if (key == "display_front") {
+        auto* tok = TRY(mReader.expect<RHSTReader::S32Token>());
+        if (!tok)
+          return std::unexpected("Expected a s32");
+        material.show_front = tok->data != 0;
+        return {};
+      }
+      if (key == "display_back") {
+        auto* tok = TRY(mReader.expect<RHSTReader::S32Token>());
+        if (!tok)
+          return std::unexpected("Expected a s32");
+        material.show_back = tok->data != 0;
+        return {};
+      }
+      if (key == "pe") {
+        auto* tok = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!tok)
+          return std::unexpected("Expected a string");
 
-            if (tok->data == "opaque") {
-              material.alpha_mode = AlphaMode::Opaque;
-              return Success();
-            } else if (tok->data == "outline") {
-              material.alpha_mode = AlphaMode::Clip;
-              return Success();
-            } else if (tok->data == "translucent") {
-              material.alpha_mode = AlphaMode::Translucent;
-              return Success();
-            }
+        if (tok->data == "opaque") {
+          material.alpha_mode = AlphaMode::Opaque;
+          return {};
+        } else if (tok->data == "outline") {
+          material.alpha_mode = AlphaMode::Clip;
+          return {};
+        } else if (tok->data == "translucent") {
+          material.alpha_mode = AlphaMode::Translucent;
+          return {};
+        }
 
-            return Failure("Invalid alpha mode");
-          }
-          if (key == "lightset") {
-            return readInt(material.lightset_index);
-          }
-          if (key == "fog") {
-            return readInt(material.fog_index);
-          }
+        return std::unexpected("Invalid alpha mode");
+      }
+      if (key == "lightset") {
+        return readInt(material.lightset_index);
+      }
+      if (key == "fog") {
+        return readInt(material.fog_index);
+      }
 
-          if (key == "preset_path_mdl0mat") {
-            return readString(material.preset_path_mdl0mat);
-          }
+      if (key == "preset_path_mdl0mat") {
+        return readString(material.preset_path_mdl0mat);
+      }
 
-          return Failure("Unexpected key");
-        });
-
-    if (!res)
-      return Failure("Failure");
+      return std::unexpected("unexpected key");
+    }));
 
     mBuilding.materials.push_back(material);
 
-    return Success();
+    return {};
   }
 
-  Expected readMeshes() {
+  Result<void> readMeshes() {
     return arrayIter([&](int index) { return readMesh(index); });
   }
 
-  Expected readMesh(int index) {
+  Result<void> readMesh(int index) {
     Mesh mesh{};
-    const bool res =
-        stringKeyIter([&](std::string_view key, int index) -> Expected {
-          if (key == "name") {
-            auto* str = mReader.expect<RHSTReader::StringToken>();
-            if (!str)
-              return Failure("Expected a string");
+    TRY(stringKeyIter([&](std::string_view key, int index) -> Result<void> {
+      if (key == "name") {
+        auto* str = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!str)
+          return std::unexpected("Expected a string");
 
-            mesh.name = str->data;
-            return Success();
-          }
+        mesh.name = str->data;
+        return {};
+      }
 
-          if (key == "primitive_type") {
-            mReader.readTok();
-            return Success();
-          }
+      if (key == "primitive_type") {
+        TRY(mReader.readTok());
+        return {};
+      }
 
-          if (key == "current_matrix") {
-            return readInt(mesh.current_matrix);
-          }
+      if (key == "current_matrix") {
+        return readInt(mesh.current_matrix);
+      }
 
-          if (key == "facepoint_format") {
-            std::array<s32, 21> vcd;
-            if (!readIntArray(vcd))
-              return Failure("Failed to read VCD");
+      if (key == "facepoint_format") {
+        std::array<s32, 21> vcd;
+        if (!readIntArray(vcd))
+          return std::unexpected("Failed to read VCD");
 
-            u32 vcd_bits = 0;
-            for (int i = 0; i < vcd.size(); ++i) {
-              vcd_bits |= vcd[i] != 0 ? (1 << i) : 0;
-            }
+        u32 vcd_bits = 0;
+        for (int i = 0; i < vcd.size(); ++i) {
+          vcd_bits |= vcd[i] != 0 ? (1 << i) : 0;
+        }
 
-            mesh.vertex_descriptor = vcd_bits;
-            return Success();
-          }
+        mesh.vertex_descriptor = vcd_bits;
+        return {};
+      }
 
-          if (key == "matrix_primitives") {
-            return readMatrixPrimitives(mesh.matrix_primitives,
-                                        mesh.vertex_descriptor);
-          }
+      if (key == "matrix_primitives") {
+        return readMatrixPrimitives(mesh.matrix_primitives,
+                                    mesh.vertex_descriptor);
+      }
 
-          return Failure("Unexpected value");
-        });
-
-    if (!res)
-      return Failure("Failure");
+      return std::unexpected("Unexpected value");
+    }));
 
     mBuilding.meshes.push_back(mesh);
 
-    return Success();
+    return {};
   }
 
-  Expected readMatrixPrimitives(std::vector<MatrixPrimitive>& out, u32 vcd) {
+  Result<void> readMatrixPrimitives(std::vector<MatrixPrimitive>& out,
+                                    u32 vcd) {
     MatrixPrimitive cur;
-
-    bool res =
-        arrayIter([&](int index) { return readMatrixPrimitive(cur, vcd); });
-    if (!res)
-      return Failure("Failure");
-
+    TRY(arrayIter([&](int index) { return readMatrixPrimitive(cur, vcd); }));
     out.push_back(cur);
-    return Success();
+    return {};
   }
 
-  Expected readMatrixPrimitive(MatrixPrimitive& out, u32 vcd) {
-    return stringKeyIter([&](std::string_view key, int index) -> Expected {
+  Result<void> readMatrixPrimitive(MatrixPrimitive& out, u32 vcd) {
+    return stringKeyIter([&](std::string_view key, int index) -> Result<void> {
       if (key == "name") {
         mReader.expect<RHSTReader::StringToken>();
 
-        return Success();
+        return {};
       }
 
       if (key == "matrix") {
@@ -604,85 +571,81 @@ public:
         return readPrimitives(out.primitives, vcd);
       }
 
-      return Failure("Unexpected value");
+      return std::unexpected("unexpected value");
     });
   }
 
-  Expected readPrimitives(std::vector<Primitive>& out, u32 vcd) {
+  Result<void> readPrimitives(std::vector<Primitive>& out, u32 vcd) {
     Primitive cur;
-
-    bool res = arrayIter([&](int index) { return readPrimitive(cur, vcd); });
-    if (!res)
-      return Failure("Failure");
-
+    TRY(arrayIter([&](int index) { return readPrimitive(cur, vcd); }));
     out.push_back(cur);
-    return Success();
+    return {};
   }
 
-  Expected readPrimitive(Primitive& out, u32 vcd) {
-    return stringKeyIter([&](std::string_view key, int index) -> Expected {
+  Result<void> readPrimitive(Primitive& out, u32 vcd) {
+    return stringKeyIter([&](std::string_view key, int index) -> Result<void> {
       if (key == "name") {
-        mReader.expect<RHSTReader::StringToken>();
+        TRY(mReader.expect<RHSTReader::StringToken>());
 
-        return Success();
+        return {};
       }
 
       if (key == "primitive_type") {
-        auto* prim_type = mReader.expect<RHSTReader::StringToken>();
+        auto* prim_type = TRY(mReader.expect<RHSTReader::StringToken>());
 
         if (!prim_type)
-          return Failure("Expected a primitive type");
+          return std::unexpected("Expected a primitive type");
 
         if (prim_type->data == "triangles") {
           out.topology = Topology::Triangles;
-          return Success();
+          return {};
         }
         if (prim_type->data == "triangle_strips") {
           out.topology = Topology::TriangleStrip;
-          return Success();
+          return {};
         }
         if (prim_type->data == "triangle_fans") {
           out.topology = Topology::TriangleFan;
-          return Success();
+          return {};
         }
 
-        return Failure("Invalid topology type");
+        return std::unexpected("Invalid topology type");
       }
 
       if (key == "facepoints") {
         return readVertices(out.vertices, vcd);
       }
 
-      return Failure("Unexpected value");
+      return std::unexpected("Unexpected value");
     });
   }
 
-  Expected readVertices(std::vector<Vertex>& out, u32 vcd) {
-    auto* begin = mReader.expect<RHSTReader::ArrayBeginToken>();
+  Result<void> readVertices(std::vector<Vertex>& out, u32 vcd) {
+    auto* begin = TRY(mReader.expect<RHSTReader::ArrayBeginToken>());
     if (!begin)
-      return Failure("Expeted array begin");
+      return std::unexpected("Expeted array begin");
     out.resize(begin->size);
     for (auto& v : out) {
       if (!readVertex(v, vcd)) {
-        return Failure("Failed to read vert");
+        return std::unexpected("Failed to read vert");
       }
     }
-    auto* end = mReader.expect<RHSTReader::ArrayEndToken>();
+    auto* end = TRY(mReader.expect<RHSTReader::ArrayEndToken>());
     if (!end)
-      return Failure("Expeted array end");
+      return std::unexpected("Expected array end");
 
-    return Success();
+    return {};
   }
 
-  Expected readVertex(Vertex& out, u32 vcd) {
+  Result<void> readVertex(Vertex& out, u32 vcd) {
     int vcd_cursor = 0; // LSB
 
-    return arrayIter([&](int index) -> Expected {
+    return arrayIter([&](int index) -> Result<void> {
       while ((vcd & (1 << vcd_cursor)) == 0) {
         ++vcd_cursor;
 
         if (vcd_cursor >= 21) {
-          return Failure("Missing vertex data");
+          return std::unexpected("Missing vertex data");
         }
       }
       const int cur_attr = vcd_cursor;
@@ -700,44 +663,44 @@ public:
         return readVec2(out.uvs[uv_index]);
       }
 
-      return Failure("Unexpected value");
+      return std::unexpected("unexpected value");
     });
   }
 
-  Expected readString(std::string& out) {
-    auto* val = mReader.expect<RHSTReader::StringToken>();
+  Result<void> readString(std::string& out) {
+    auto* val = TRY(mReader.expect<RHSTReader::StringToken>());
     if (!val)
-      return Failure("Expected a string");
+      return std::unexpected("Expected a string");
 
     out = val->data;
-    return Success();
+    return {};
   }
 
-  Expected readInt(s32& out) {
-    auto* val = mReader.expect<RHSTReader::S32Token>();
+  Result<void> readInt(s32& out) {
+    auto* val = TRY(mReader.expect<RHSTReader::S32Token>());
     if (!val)
-      return Failure("Expected a S32");
+      return std::unexpected("Expected a S32");
 
     out = val->data;
-    return Success();
+    return {};
   }
-  Expected readFloat(f32& out) {
-    auto* val = mReader.expect<RHSTReader::F32Token>();
+  Result<void> readFloat(f32& out) {
+    auto* val = TRY(mReader.expect<RHSTReader::F32Token>());
     if (!val)
-      return Failure("Expected a F32");
+      return std::unexpected("Expected a F32");
 
     out = val->data;
-    return Success();
+    return {};
   }
-  Expected readNumber(f32& out) {
-    mReader.readTok();
+  Result<void> readNumber(f32& out) {
+    TRY(mReader.readTok());
     auto tok = mReader.get();
 
     {
       auto* f32_val = rsl::dyn_cast<RHSTReader::F32Token>(tok);
       if (f32_val) {
         out = f32_val->data;
-        return Success();
+        return {};
       }
     }
 
@@ -745,45 +708,45 @@ public:
       auto* s32_val = rsl::dyn_cast<RHSTReader::S32Token>(tok);
       if (s32_val) {
         out = s32_val->data;
-        return Success();
+        return {};
       }
     }
 
-    return Failure("Expected a number");
+    return std::unexpected("Expected a number");
   }
-  Expected readVec2(glm::vec2& out) {
+  Result<void> readVec2(glm::vec2& out) {
     return arrayIter(
-        [&](int v_index) -> Expected { return readNumber(out[v_index]); });
+        [&](int v_index) -> Result<void> { return readNumber(out[v_index]); });
   }
-  Expected readVec3(glm::vec3& out) {
+  Result<void> readVec3(glm::vec3& out) {
     return arrayIter(
-        [&](int v_index) -> Expected { return readNumber(out[v_index]); });
+        [&](int v_index) -> Result<void> { return readNumber(out[v_index]); });
   }
-  Expected readVec4(glm::vec4& out) {
+  Result<void> readVec4(glm::vec4& out) {
     return arrayIter(
-        [&](int v_index) -> Expected { return readNumber(out[v_index]); });
+        [&](int v_index) -> Result<void> { return readNumber(out[v_index]); });
   }
 
-  template <size_t N> Expected readIntArray(std::array<s32, N>& out) {
+  template <size_t N> Result<void> readIntArray(std::array<s32, N>& out) {
     return arrayIter([&](int v_index) { return readInt(out[v_index]); });
   }
 
-  template <typename T> Expected stringKeyIter(T functor) {
-    return dictIter([&](std::string_view root, int index) -> Expected {
-      auto* begin = mReader.expect<RHSTReader::DictBeginToken>();
+  template <typename T> Result<void> stringKeyIter(T functor) {
+    return dictIter([&](std::string_view root, int index) -> Result<void> {
+      auto* begin = TRY(mReader.expect<RHSTReader::DictBeginToken>());
       if (!begin)
-        return Failure("Expected a dictionary");
+        return std::unexpected("Expected a dictionary");
 
       auto begin_data = *begin;
 
       if (!functor(begin_data.name, index))
-        return Failure("Functor returned false");
+        return std::unexpected("Functor returned false");
 
-      auto* end = mReader.expect<RHSTReader::DictEndToken>();
+      auto* end = TRY(mReader.expect<RHSTReader::DictEndToken>());
       if (!end)
-        return Failure("Expected a dictionary terminator");
+        return std::unexpected("Expected a dictionary terminator");
 
-      return Success();
+      return {};
     });
   }
 
