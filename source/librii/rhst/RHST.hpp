@@ -102,7 +102,7 @@ namespace librii::rhst {
 
 enum class WrapMode { Repeat, Mirror, Clamp };
 
-enum class AlphaMode { Opaque, Clip, Translucent };
+enum class AlphaMode { Opaque, Clip, Translucent, HpeStencil, HpeTranslucent, Custom };
 
 enum class BillboardMode {
   None = 0,
@@ -113,6 +113,25 @@ enum class BillboardMode {
   Y_Face = 5,
   Y_Parallel = 6,
 };
+
+enum class AlphaTest {
+  Disabled,
+  Stencil,
+  Custom,
+};
+
+enum class Comparison {
+  Never,
+  Less,
+  Equal,
+  LEqual,
+  Greater,
+  NEqual,
+  GEqual,
+  Always,
+};
+
+enum class AlphaOp { And, Or, Xor, Xnor, };
 
 //! Is eventually compiled to a common material.
 struct ProtoMaterial {
@@ -127,6 +146,16 @@ struct ProtoMaterial {
   bool show_back = false;
 
   AlphaMode alpha_mode = AlphaMode::Opaque;
+
+  AlphaTest alpha_test = AlphaTest::Stencil;
+  
+  Comparison comparison_left = Comparison::Always;
+  u8 comparison_ref_left = 0;
+  AlphaOp comparison_op = AlphaOp::And;
+  Comparison comparison_right = Comparison::Always;
+  u8 comparison_ref_right = 0;
+
+  bool xlu = false;
 
   s32 lightset_index = -1;
   s32 fog_index = -1;

@@ -57,9 +57,87 @@ void compileAlphaMode(librii::gx::LowLevelGxMaterial& mat,
   case librii::rhst::AlphaMode::Translucent:
     pix_mode = librii::hx::PIX_TRANSLUCENT;
     break;
+  case librii::rhst::AlphaMode::HpeStencil:
+    pix_mode = librii::hx::PIX_HARRY_POTTER_STENCIL;
+    break;
+  case librii::rhst::AlphaMode::HpeTranslucent:
+    pix_mode = librii::hx::PIX_HARRY_POTTER_TRANSLUCENT;
+    break;
   }
   MAYBE_UNUSED bool res = librii::hx::configurePixMode(mat, pix_mode);
   assert(res);
+}
+
+librii::gx::Comparison compileComparison(librii::rhst::Comparison in) {
+  switch (in) {
+  case librii::rhst::Comparison::Always:
+  default:
+    return librii::gx::Comparison::ALWAYS;
+    break;
+  case librii::rhst::Comparison::Equal:
+    return librii::gx::Comparison::EQUAL;
+    break;
+  case librii::rhst::Comparison::GEqual:
+    return librii::gx::Comparison::GEQUAL;
+    break;
+  case librii::rhst::Comparison::Greater:
+    return librii::gx::Comparison::GREATER;
+    break;
+  case librii::rhst::Comparison::LEqual:
+    return librii::gx::Comparison::LEQUAL;
+    break;
+  case librii::rhst::Comparison::Less:
+    return librii::gx::Comparison::LESS;
+    break;
+  case librii::rhst::Comparison::NEqual:
+    return librii::gx::Comparison::NEQUAL;
+    break;
+  case librii::rhst::Comparison::Never:
+    return librii::gx::Comparison::NEVER;
+    break;
+  }
+}
+
+librii::gx::AlphaOp compileAlphaOp(librii::rhst::AlphaOp in) {
+  switch (in) {
+  case librii::rhst::AlphaOp::And:
+  default:
+    return librii::gx::AlphaOp::_and;
+    break;
+  case librii::rhst::AlphaOp::Or:
+    return librii::gx::AlphaOp::_or;
+    break;
+  case librii::rhst::AlphaOp::Xnor:
+    return librii::gx::AlphaOp::_xnor;
+    break;
+  case librii::rhst::AlphaOp::Xor:
+    return librii::gx::AlphaOp::_xor;
+    break;
+  }
+}
+
+void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
+                       librii::rhst::ProtoMaterial in) {
+  compileAlphaMode(mat, librii::rhst::AlphaMode::Opaque); // TEMP
+  switch (in.alpha_test) {
+  case librii::rhst::AlphaTest::Disabled:
+  default:
+    mat.alphaCompare = librii::hx::disabled_comparison;
+    break;
+  case librii::rhst::AlphaTest::Stencil:
+	mat.alphaCompare = librii::hx::stencil_comparison;
+    break;
+  case librii::rhst::AlphaTest::Custom:
+    librii::gx::AlphaComparison comparison;
+    comparison.compLeft = compileComparison(in.comparison_left);
+    comparison.op = compileAlphaOp(in.comparison_op);
+    comparison.refLeft = in.comparison_ref_left;
+    comparison.refRight = in.comparison_ref_right;
+    comparison.compRight = compileComparison(in.comparison_right);
+
+    mat.alphaCompare = comparison;
+  }
+  mat.xlu = in.xlu;
 }
 
 void compileMaterial(libcube::IGCMaterial& out,
@@ -86,7 +164,11 @@ void compileMaterial(libcube::IGCMaterial& out,
     sampler.mMinFilter = lowerTextureFilter(filter);
 
     compileCullMode(data, in.show_front, in.show_back);
-    compileAlphaMode(data, in.alpha_mode);
+    if (in.alpha_mode == librii::rhst::AlphaMode::Custom) {
+      compilePESettings(data, in);
+	} else {
+      compileAlphaMode(data, in.alpha_mode);
+	}
 
     data.texMatrices.push_back(j3d::Material::TexMatrix{});
     data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
