@@ -43,6 +43,9 @@ TEST_DATA = {
 	'9808950ca2a5972a8720ac90366711d3': '9808950ca2a5972a8720ac90366711d3', # With non-uniform ENV
 	'3888ad1a22003ff93c6b9734689eb393': '3888ad1a22003ff93c6b9734689eb393', # With uniform ENV
 
+  # ind_srt_0.brres
+  '2689c848e52167ecafee0334ce02dc4e': 'ae5364c457683c4a24d8e94121ec2e5f', 
+
 
 	# default.blight
 	'9c128977ba86c285c74b21cb22c96b2a': '9c128977ba86c285c74b21cb22c96b2a',

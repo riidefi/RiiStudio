@@ -297,7 +297,7 @@ SRT0Material::read(rsl::SafeReader& reader,
       reader.seekSet(back);
     }
   }
-  for (u32 i = 0; i < 33; ++i) {
+  for (u32 i = 0; i < 3; ++i) {
     if (0 == (enabled_indsrts & (FLAG_ENABLED << (i * 1)))) {
       continue;
     }
