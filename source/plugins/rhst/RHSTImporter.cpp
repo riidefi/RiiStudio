@@ -632,6 +632,7 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
   }
   if (auto* g = dynamic_cast<riistudio::g3d::Model*>(&mdl)) {
     g->aabb = aabb;
+    g->mName = rhst.name;
   }
 
   for (auto& tex : textures_needed) {

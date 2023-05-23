@@ -776,7 +776,10 @@ public:
     }
     if (json.contains("body")) {
       auto body = json["body"];
-      // Ignored: name
+      if (body.contains("name")) {
+        out.name =
+			get<std::string>(body, "name").value_or("course");
+      }
       if (body.contains("bones") && body["bones"].is_array()) {
         auto bones = body["bones"];
         for (auto& bone : bones) {
