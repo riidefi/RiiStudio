@@ -39,8 +39,10 @@ typedef double f64;
 #include <string>
 #include <string_view>
 #include <thread>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 // No <expected> yet
@@ -155,19 +157,47 @@ inline const char* operator"" _j(const char* str, size_t len) {
 
 #define HAS_RANGES
 
-#if defined(__clang__) || defined(__GNUC__) || defined(__APPLE__)
+// clang-format off
+//
+// ```cpp
+//    std::expected<int, Err> GetInt();
+//    std::expected<int, Err> Foo() {
+//       return TRY(GetInt()) + 5;
+//    }
+// ```
+//
+// https://godbolt.org/z/vhxdsbdqG
+//
+// In particular:
+// - Move-only types work
+// - Copy-only types work
+// - Void types work
+//
+// Trick to avoid copies via std::move inspired from from SerenityOS https://github.com/SerenityOS/serenity/blob/master/AK/Try.h
+// (Thanks to @InusualZ for pointing this out)
+//
+// (The `MyMove` function is some awful glue I came up with for the `void` case; perhaps there is a more elegant way).
+//
+#if (defined(__clang__) || defined(__GNUC__) || defined(__APPLE__)) && defined(__cpp_lib_remove_cvref) && __cpp_lib_remove_cvref >= 201711L
 #define HAS_RUST_TRY
+template <typename T> auto MyMove(T&& t) {
+  if constexpr (!std::is_void_v<typename std::remove_cvref_t<T>::value_type>) {
+    return std::move(*t);
+  }
+}
 #define TRY(...)                                                               \
   ({                                                                           \
-    auto y = (__VA_ARGS__);                                                    \
-    if (!y) {                                                                  \
+    auto&& y = (__VA_ARGS__);                                                  \
+    static_assert(!std::is_lvalue_reference_v<decltype(MyMove(y))>);           \
+    if (!y) [[unlikely]] {                                                     \
       return std::unexpected(y.error());                                       \
     }                                                                          \
-    *y;                                                                        \
+    MyMove(y);                                                                 \
   })
 #define BEGINTRY
 #define ENDTRY
 #else
+// #define TRY(...) static_assert(false, "Compiler does not support TRY macro")
 template <typename T> inline auto DoTry(T&& x) {
   if (!x.has_value()) {
     fprintf(stderr, "Fatal error: %s", x.error().c_str());
@@ -183,6 +213,7 @@ template <typename T> inline auto DoTry(T&& x) {
     return std::unexpected(s);                                                 \
   }
 #endif
+// clang-format on
 
 #if defined(__clang__) && !defined(__APPLE__)
 #define STACK_TRACE std::stacktrace::current()
@@ -193,11 +224,9 @@ template <typename T> inline auto DoTry(T&& x) {
 #define EXPECT(expr, ...)                                                      \
   if (!(expr)) [[unlikely]] {                                                  \
     auto cur = STACK_TRACE;                                                    \
-    return std::unexpected("[" __FILE_NAME__                                   \
-                           ":" LIB_RII_TO_STRING(__LINE__) "] " __VA_ARGS__    \
-                                                           "[Internal: " #expr \
-                                                           "]\n" +             \
-                           std::to_string(cur));                               \
+    return std::unexpected(std::format(                                        \
+        "[{}:{}] {} [Internal: {}] {}", __FILE_NAME__, __LINE__,               \
+        (0 __VA_OPT__(, ) __VA_ARGS__), #expr, std::to_string(cur)));          \
   }
 
 #if defined(__cpp_lib_expected)
