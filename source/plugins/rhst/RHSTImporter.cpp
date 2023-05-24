@@ -73,28 +73,20 @@ librii::gx::Comparison compileComparison(librii::rhst::Comparison in) {
   case librii::rhst::Comparison::Always:
   default:
     return librii::gx::Comparison::ALWAYS;
-    break;
   case librii::rhst::Comparison::Equal:
     return librii::gx::Comparison::EQUAL;
-    break;
   case librii::rhst::Comparison::GEqual:
     return librii::gx::Comparison::GEQUAL;
-    break;
   case librii::rhst::Comparison::Greater:
     return librii::gx::Comparison::GREATER;
-    break;
   case librii::rhst::Comparison::LEqual:
     return librii::gx::Comparison::LEQUAL;
-    break;
   case librii::rhst::Comparison::Less:
     return librii::gx::Comparison::LESS;
-    break;
   case librii::rhst::Comparison::NEqual:
     return librii::gx::Comparison::NEQUAL;
-    break;
   case librii::rhst::Comparison::Never:
     return librii::gx::Comparison::NEVER;
-    break;
   }
 }
 
@@ -103,16 +95,12 @@ librii::gx::AlphaOp compileAlphaOp(librii::rhst::AlphaOp in) {
   case librii::rhst::AlphaOp::And:
   default:
     return librii::gx::AlphaOp::_and;
-    break;
   case librii::rhst::AlphaOp::Or:
     return librii::gx::AlphaOp::_or;
-    break;
   case librii::rhst::AlphaOp::Xnor:
     return librii::gx::AlphaOp::_xnor;
-    break;
   case librii::rhst::AlphaOp::Xor:
     return librii::gx::AlphaOp::_xor;
-    break;
   }
 }
 
@@ -121,52 +109,40 @@ librii::gx::BlendModeType compileBlendType(librii::rhst::BlendModeType in) {
   case librii::rhst::BlendModeType::None:
   default:
     return librii::gx::BlendModeType::none;
-    break;
   case librii::rhst::BlendModeType::Logic:
     return librii::gx::BlendModeType::logic;
-    break;
   case librii::rhst::BlendModeType::Blend:
     return librii::gx::BlendModeType::blend;
-    break;
   case librii::rhst::BlendModeType::Subtract:
     return librii::gx::BlendModeType::subtract;
-    break;
-
   }
 }
 
-librii::gx::BlendModeFactor compileBlendFactor(librii::rhst::BlendModeFactor in) {
+librii::gx::BlendModeFactor
+compileBlendFactor(librii::rhst::BlendModeFactor in) {
   switch (in) {
   case librii::rhst::BlendModeFactor::Zero:
     return librii::gx::BlendModeFactor::zero;
-    break;
   case librii::rhst::BlendModeFactor::One:
     return librii::gx::BlendModeFactor::one;
-    break;
   case librii::rhst::BlendModeFactor::Src_c:
     return librii::gx::BlendModeFactor::src_c;
-    break;
   case librii::rhst::BlendModeFactor::Inv_src_c:
     return librii::gx::BlendModeFactor::inv_src_c;
-    break;
   case librii::rhst::BlendModeFactor::Src_a:
     return librii::gx::BlendModeFactor::src_a;
-    break;
   case librii::rhst::BlendModeFactor::Inv_src_a:
     return librii::gx::BlendModeFactor::inv_src_a;
-    break;
   case librii::rhst::BlendModeFactor::Dst_a:
     return librii::gx::BlendModeFactor::dst_a;
-    break;
   case librii::rhst::BlendModeFactor::Inv_dst_a:
     return librii::gx::BlendModeFactor::inv_dst_a;
-    break;
   }
 }
 
 void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
                        librii::rhst::ProtoMaterial in) {
-  //Alpha Test
+  // Alpha Test
   compileAlphaMode(mat, librii::rhst::AlphaMode::Opaque); // TEMP
   switch (in.pe.alpha_test) {
   case librii::rhst::AlphaTest::Disabled:
@@ -174,7 +150,7 @@ void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
     mat.alphaCompare = librii::hx::disabled_comparison;
     break;
   case librii::rhst::AlphaTest::Stencil:
-	mat.alphaCompare = librii::hx::stencil_comparison;
+    mat.alphaCompare = librii::hx::stencil_comparison;
     break;
   case librii::rhst::AlphaTest::Custom:
     librii::gx::AlphaComparison comparison;
@@ -185,7 +161,7 @@ void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
     comparison.compRight = compileComparison(in.pe.comparison_right);
     mat.alphaCompare = comparison;
   }
-  //Draw Pass
+  // Draw Pass
   mat.xlu = in.pe.xlu;
   // Z Buffer
   mat.earlyZComparison = in.pe.z_early_comparison;
@@ -233,9 +209,9 @@ void compileMaterial(libcube::IGCMaterial& out,
     compileCullMode(data, in.show_front, in.show_back);
     if (in.alpha_mode == librii::rhst::AlphaMode::Custom) {
       compilePESettings(data, in);
-	} else {
+    } else {
       compileAlphaMode(data, in.alpha_mode);
-	}
+    }
 
     data.texMatrices.push_back(j3d::Material::TexMatrix{});
     data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});

@@ -102,14 +102,21 @@ namespace librii::rhst {
 
 enum class WrapMode { Repeat, Mirror, Clamp };
 
-enum class AlphaMode { Opaque, Clip, Translucent, HpeStencil, HpeTranslucent, Custom };
+enum class AlphaMode {
+  Opaque,
+  Clip,
+  Translucent,
+  HpeStencil,
+  HpeTranslucent,
+  Custom
+};
 
 enum class BillboardMode {
   None = 0,
   Z_Face = 1,
   Z_Parallel = 2,
   ZRotate_Face = 3,
-  ZRotate_Parallel= 4,
+  ZRotate_Parallel = 4,
   Y_Face = 5,
   Y_Parallel = 6,
 };
@@ -144,7 +151,7 @@ enum class BlendModeFactor {
   Inv_dst_a,
 };
 
-enum class AlphaOp { And, Or, Xor, Xnor, };
+enum class AlphaOp { And, Or, Xor, Xnor };
 
 struct PixelEngine {
   //  Alpha Test
@@ -174,7 +181,7 @@ struct PixelEngine {
   BlendModeType blend_type = BlendModeType::None;
   BlendModeFactor blend_source = BlendModeFactor::Src_a;
   BlendModeFactor blend_dest = BlendModeFactor::Inv_src_a;
-  // Skip logic ops for now 
+  // Skip logic ops for now
 };
 
 //! Is eventually compiled to a common material.

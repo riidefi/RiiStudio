@@ -777,8 +777,7 @@ public:
     if (json.contains("body")) {
       auto body = json["body"];
       if (body.contains("name")) {
-        out.name =
-			get<std::string>(body, "name").value_or("course");
+        out.name = get<std::string>(body, "name").value_or("course");
       }
       if (body.contains("bones") && body["bones"].is_array()) {
         auto bones = body["bones"];
@@ -921,58 +920,64 @@ public:
           if (b.alpha_mode == AlphaMode::Custom) {
             if (mat.contains("pe_settings")) {
               auto pe = mat["pe_settings"];
-              b.pe.alpha_test = 
-                    magic_enum::enum_cast<AlphaTest>(
-                      cap(get<std::string>(pe, "alpha_test").value_or("Stencil")))
-                      .value_or(AlphaTest::Stencil);
+              b.pe.alpha_test = magic_enum::enum_cast<AlphaTest>(
+                                    cap(get<std::string>(pe, "alpha_test")
+                                            .value_or("Stencil")))
+                                    .value_or(AlphaTest::Stencil);
               // Alpha Test
-              if(b.pe.alpha_test == AlphaTest::Custom) {
+              if (b.pe.alpha_test == AlphaTest::Custom) {
                 b.pe.comparison_left =
                     magic_enum::enum_cast<Comparison>(
-                        cap(get<std::string>(pe, "comparison_left").value_or("Always")))
+                        cap(get<std::string>(pe, "comparison_left")
+                                .value_or("Always")))
                         .value_or(Comparison::Always);
                 b.pe.comparison_right =
                     magic_enum::enum_cast<Comparison>(
-                        cap(get<std::string>(pe, "comparison_right").value_or("Always")))
+                        cap(get<std::string>(pe, "comparison_right")
+                                .value_or("Always")))
                         .value_or(Comparison::Always);
-                b.pe.comparison_ref_left = get<u8>(pe, "comparison_ref_left").value_or(0);
-                b.pe.comparison_ref_right = get<u8>(pe, "comparison_ref_right").value_or(0);
+                b.pe.comparison_ref_left =
+                    get<u8>(pe, "comparison_ref_left").value_or(0);
+                b.pe.comparison_ref_right =
+                    get<u8>(pe, "comparison_ref_right").value_or(0);
                 b.pe.comparison_op =
                     magic_enum::enum_cast<AlphaOp>(
-                      cap(get<std::string>(pe, "comparison_op").value_or("And")))
-                      .value_or(AlphaOp::And);
+                        cap(get<std::string>(pe, "comparison_op")
+                                .value_or("And")))
+                        .value_or(AlphaOp::And);
               }
               // Draw Pass
               b.pe.xlu = get<bool>(pe, "xlu").value_or(false);
               // Z Buffer
-              b.pe.z_early_comparison = get<bool>(pe, "z_early_compare").value_or(true);
+              b.pe.z_early_comparison =
+                  get<bool>(pe, "z_early_compare").value_or(true);
               b.pe.z_compare = get<bool>(pe, "z_compare").value_or(true);
-              b.pe.z_comparison = 
-                      magic_enum::enum_cast<Comparison>(
-                        cap(get<std::string>(pe, "z_comparison").value_or("LEqual")))
-                        .value_or(Comparison::LEqual);
+              b.pe.z_comparison = magic_enum::enum_cast<Comparison>(
+                                      cap(get<std::string>(pe, "z_comparison")
+                                              .value_or("LEqual")))
+                                      .value_or(Comparison::LEqual);
               b.pe.z_update = get<bool>(pe, "z_update").value_or(true);
-			  // Dst Alpha
+              // Dst Alpha
               b.pe.dst_alpha_enabled =
                   get<bool>(pe, "dst_alpha_enabled").value_or(false);
               b.pe.dst_alpha = get<u8>(pe, "dst_alpha").value_or(0);
-			  // Blend Modes
+              // Blend Modes
               b.pe.blend_type =
-				  magic_enum::enum_cast<BlendModeType>(
-					  cap(get<std::string>(pe, "blend_mode").value_or("None")))
-                       .value_or(BlendModeType::None);
-			  b.pe.blend_source =
-                  magic_enum::enum_cast<BlendModeFactor>(
-                      cap(get<std::string>(pe, "blend_source").value_or("Src_a")))
-                      .value_or(BlendModeFactor::Src_a);
-              b.pe.blend_dest =
-                  magic_enum::enum_cast<BlendModeFactor>(
-                      cap(get<std::string>(pe, "blend_dest").value_or("Inv_rc_a")))
-                      .value_or(BlendModeFactor::Inv_src_a);
-			} else {
+                  magic_enum::enum_cast<BlendModeType>(
+                      cap(get<std::string>(pe, "blend_mode").value_or("None")))
+                      .value_or(BlendModeType::None);
+              b.pe.blend_source = magic_enum::enum_cast<BlendModeFactor>(
+                                      cap(get<std::string>(pe, "blend_source")
+                                              .value_or("Src_a")))
+                                      .value_or(BlendModeFactor::Src_a);
+              b.pe.blend_dest = magic_enum::enum_cast<BlendModeFactor>(
+                                    cap(get<std::string>(pe, "blend_dest")
+                                            .value_or("Inv_rc_a")))
+                                    .value_or(BlendModeFactor::Inv_src_a);
+            } else {
               b.alpha_mode = AlphaMode::Opaque;
-			}
-		  }
+            }
+          }
 
           b.lightset_index = get<s32>(mat, "lightset").value_or(-1);
           b.fog_index = get<s32>(mat, "fog").value_or(0);

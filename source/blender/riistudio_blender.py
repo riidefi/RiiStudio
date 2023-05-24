@@ -313,7 +313,7 @@ class JRESMaterialPanel(bpy.types.Panel):
 		row = box.row(align=True)
 		row.prop(mat, "jres_pe_mode", expand=True)
 
-		if(mat.jres_pe_mode == "custom"):
+		if mat.jres_pe_mode == "custom":
 			# Draw Pass
 			box2 = box.box()
 			box2.label(text="Draw Pass", icon="MOD_LINEART")
@@ -324,7 +324,7 @@ class JRESMaterialPanel(bpy.types.Panel):
 			box2.label(text="Alpha Test", icon="SEQ_SPLITVIEW")
 			row = box2.row()
 			row.prop(mat, "jres_pe_alpha_test", expand=True)
-			if(mat.jres_pe_alpha_test == "custom"):
+			if mat.jres_pe_alpha_test == "custom":
 				row = box2.row()
 				row.prop(mat, "jres_pe_alpha_ref_left")
 				row.prop(mat, "jres_pe_alpha_comp_left")
@@ -340,7 +340,7 @@ class JRESMaterialPanel(bpy.types.Panel):
 			row.prop(mat, "jres_pe_z_early_compare")
 			row.prop(mat, "jres_pe_z_update")
 			row2.prop(mat, "jres_pe_z_comparison")
-			if(mat.jres_pe_z_compare == False): # Just gray the options out, don't hide them
+			if mat.jres_pe_z_compare == False: # Just gray the options out, don't hide them
 				row.enabled = False
 				row2.enabled = False
 			
@@ -355,14 +355,14 @@ class JRESMaterialPanel(bpy.types.Panel):
 			split = split.split(factor=0.4)
 			split.label(text=") + (eFB C *")
 			split.prop(mat, "jres_pe_blend_dest")
-			if(mat.jres_pe_blend_mode != "blend"):
+			if mat.jres_pe_blend_mode != "blend" :
 				row.enabled = False
 
 			# Destination Alpha
 		box.label(text="Destination Alpha", icon="NODE_TEXTURE")
 		row = box.row()
 		row.prop(mat, "jres_pe_dst_alpha_enabled")
-		if(mat.jres_pe_dst_alpha_enabled):
+		if mat.jres_pe_dst_alpha_enabled :
 			row.prop(mat, "jres_pe_dst_alpha")
 
 		# Lighting
