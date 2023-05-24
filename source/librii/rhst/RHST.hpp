@@ -131,6 +131,19 @@ enum class Comparison {
   Always,
 };
 
+enum class BlendModeType { None, Blend, Logic, Subtract };
+
+enum class BlendModeFactor {
+  Zero,
+  One,
+  Src_c,
+  Inv_src_c,
+  Src_a,
+  Inv_src_a,
+  Dst_a,
+  Inv_dst_a,
+};
+
 enum class AlphaOp { And, Or, Xor, Xnor, };
 
 struct PixelEngine {
@@ -156,6 +169,12 @@ struct PixelEngine {
   // Dst Alpha
   bool dst_alpha_enabled = false;
   u8 dst_alpha = 0;
+
+  // Blend Mode
+  BlendModeType blend_type = BlendModeType::None;
+  BlendModeFactor blend_source = BlendModeFactor::Src_a;
+  BlendModeFactor blend_dest = BlendModeFactor::Inv_src_a;
+  // Skip logic ops for now 
 };
 
 //! Is eventually compiled to a common material.
