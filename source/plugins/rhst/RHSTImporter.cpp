@@ -118,6 +118,7 @@ librii::gx::AlphaOp compileAlphaOp(librii::rhst::AlphaOp in) {
 
 void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
                        librii::rhst::ProtoMaterial in) {
+  //Alpha Test
   compileAlphaMode(mat, librii::rhst::AlphaMode::Opaque); // TEMP
   switch (in.pe.alpha_test) {
   case librii::rhst::AlphaTest::Disabled:
@@ -134,10 +135,22 @@ void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
     comparison.refLeft = in.pe.comparison_ref_left;
     comparison.refRight = in.pe.comparison_ref_right;
     comparison.compRight = compileComparison(in.pe.comparison_right);
-
     mat.alphaCompare = comparison;
   }
+  //Draw Pass
   mat.xlu = in.pe.xlu;
+  // Z Buffer
+  mat.earlyZComparison = in.pe.z_early_comparison;
+  librii::gx::ZMode z_mode;
+  z_mode.compare = in.pe.z_compare;
+  z_mode.update = in.pe.z_update;
+  z_mode.function = compileComparison(in.pe.z_comparison);
+  mat.zMode = z_mode;
+  // Dst Alpha
+  librii::gx::DstAlpha dst_alpha;
+  dst_alpha.enabled = in.pe.dst_alpha_enabled;
+  dst_alpha.alpha = in.pe.dst_alpha;
+  mat.dstAlpha = dst_alpha;
 }
 
 void compileMaterial(libcube::IGCMaterial& out,

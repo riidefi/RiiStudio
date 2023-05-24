@@ -962,6 +962,7 @@ public:
                     magic_enum::enum_cast<AlphaTest>(
                       cap(get<std::string>(pe, "alpha_test").value_or("Stencil")))
                       .value_or(AlphaTest::Stencil);
+              // Alpha Test
               if(b.pe.alpha_test == AlphaTest::Custom) {
                 b.pe.comparison_left =
                     magic_enum::enum_cast<Comparison>(
@@ -978,7 +979,20 @@ public:
                       cap(get<std::string>(pe, "comparison_op").value_or("And")))
                       .value_or(AlphaOp::And);
               }
+              // Draw Pass
               b.pe.xlu = get<bool>(pe, "xlu").value_or(false);
+              // Z Buffer
+              b.pe.z_early_comparison = get<bool>(pe, "z_early_compare").value_or(true);
+              b.pe.z_compare = get<bool>(pe, "z_compare").value_or(true);
+              b.pe.z_comparison = 
+                      magic_enum::enum_cast<Comparison>(
+                        cap(get<std::string>(pe, "z_comparison").value_or("LEqual")))
+                        .value_or(Comparison::LEqual);
+              b.pe.z_update = get<bool>(pe, "z_update").value_or(true);
+			  // Dst Alpha
+              b.pe.dst_alpha_enabled =
+                  get<bool>(pe, "dst_alpha_enabled").value_or(false);
+              b.pe.dst_alpha = get<u8>(pe, "dst_alpha").value_or(0);
 			} else {
               b.alpha_mode = AlphaMode::Opaque;
 			}
