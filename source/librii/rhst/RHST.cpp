@@ -993,6 +993,19 @@ public:
               b.pe.dst_alpha_enabled =
                   get<bool>(pe, "dst_alpha_enabled").value_or(false);
               b.pe.dst_alpha = get<u8>(pe, "dst_alpha").value_or(0);
+			  // Blend Modes
+              b.pe.blend_type =
+				  magic_enum::enum_cast<BlendModeType>(
+					  cap(get<std::string>(pe, "blend_mode").value_or("None")))
+                       .value_or(BlendModeType::None);
+			  b.pe.blend_source =
+                  magic_enum::enum_cast<BlendModeFactor>(
+                      cap(get<std::string>(pe, "blend_source").value_or("Src_a")))
+                      .value_or(BlendModeFactor::Src_a);
+              b.pe.blend_dest =
+                  magic_enum::enum_cast<BlendModeFactor>(
+                      cap(get<std::string>(pe, "blend_dest").value_or("Inv_rc_a")))
+                      .value_or(BlendModeFactor::Inv_src_a);
 			} else {
               b.alpha_mode = AlphaMode::Opaque;
 			}

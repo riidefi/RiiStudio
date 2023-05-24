@@ -116,6 +116,54 @@ librii::gx::AlphaOp compileAlphaOp(librii::rhst::AlphaOp in) {
   }
 }
 
+librii::gx::BlendModeType compileBlendType(librii::rhst::BlendModeType in) {
+  switch (in) {
+  case librii::rhst::BlendModeType::None:
+  default:
+    return librii::gx::BlendModeType::none;
+    break;
+  case librii::rhst::BlendModeType::Logic:
+    return librii::gx::BlendModeType::logic;
+    break;
+  case librii::rhst::BlendModeType::Blend:
+    return librii::gx::BlendModeType::blend;
+    break;
+  case librii::rhst::BlendModeType::Subtract:
+    return librii::gx::BlendModeType::subtract;
+    break;
+
+  }
+}
+
+librii::gx::BlendModeFactor compileBlendFactor(librii::rhst::BlendModeFactor in) {
+  switch (in) {
+  case librii::rhst::BlendModeFactor::Zero:
+    return librii::gx::BlendModeFactor::zero;
+    break;
+  case librii::rhst::BlendModeFactor::One:
+    return librii::gx::BlendModeFactor::one;
+    break;
+  case librii::rhst::BlendModeFactor::Src_c:
+    return librii::gx::BlendModeFactor::src_c;
+    break;
+  case librii::rhst::BlendModeFactor::Inv_src_c:
+    return librii::gx::BlendModeFactor::inv_src_c;
+    break;
+  case librii::rhst::BlendModeFactor::Src_a:
+    return librii::gx::BlendModeFactor::src_a;
+    break;
+  case librii::rhst::BlendModeFactor::Inv_src_a:
+    return librii::gx::BlendModeFactor::inv_src_a;
+    break;
+  case librii::rhst::BlendModeFactor::Dst_a:
+    return librii::gx::BlendModeFactor::dst_a;
+    break;
+  case librii::rhst::BlendModeFactor::Inv_dst_a:
+    return librii::gx::BlendModeFactor::inv_dst_a;
+    break;
+  }
+}
+
 void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
                        librii::rhst::ProtoMaterial in) {
   //Alpha Test
@@ -151,6 +199,12 @@ void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
   dst_alpha.enabled = in.pe.dst_alpha_enabled;
   dst_alpha.alpha = in.pe.dst_alpha;
   mat.dstAlpha = dst_alpha;
+  // Blend Mode
+  librii::gx::BlendMode blend_mode;
+  blend_mode.type = compileBlendType(in.pe.blend_type);
+  blend_mode.source = compileBlendFactor(in.pe.blend_source);
+  blend_mode.dest = compileBlendFactor(in.pe.blend_dest);
+  mat.blendMode = blend_mode;
 }
 
 void compileMaterial(libcube::IGCMaterial& out,
