@@ -511,6 +511,7 @@ def build_rs_mat(mat, texture_name):
 		'display_front': mat.jres_display_front,
 		'display_back': mat.jres_display_back,
 		'pe': mat.jres_pe_mode,
+		'pe_settings': build_rs_mat_pe(mat) if mat.jres_pe_mode == "custom" else "",
 		'lightset': mat.jres_lightset_index,
 		'fog': mat.jres_fog_index,
 		# For compatibility, this field is not changed in RHST
@@ -521,6 +522,30 @@ def build_rs_mat(mat, texture_name):
 		'use_mip': mat.jres_use_mip,
 		'mip_filter': mat.jres_filter_mip == 'linear',
 		'lod_bias': mat.jres_lod_bias,
+	}
+
+def build_rs_mat_pe(mat):
+	return{
+		'xlu': mat.jres_pe_draw_pass == "xlu",
+		
+		'alpha_test': mat.jres_pe_alpha_test,
+		'comparison_left': mat.jres_pe_alpha_comp_left,
+		'comparison_ref_left': mat.jres_pe_alpha_ref_left,
+		'comparison_op': mat.jres_pe_alpha_op,
+		'comparison_right': mat.jres_pe_alpha_comp_right,
+		'comparison_ref_right': mat.jres_pe_alpha_ref_right,
+
+		'z_early_compare': mat.jres_pe_z_early_compare,
+		'z_compare': mat.jres_pe_z_compare,
+		'z_update': mat.jres_pe_z_update,
+		'z_comparison': mat.jres_pe_z_comparison,
+
+		'blend_mode': mat.jres_pe_blend_mode,
+		'blend_source': mat.jres_pe_blend_source,
+		'blend_dest': mat.jres_pe_blend_dest,
+
+		'dst_alpha_enabled': mat.jres_pe_dst_alpha_enabled,
+		'dst_alpha': mat.jres_pe_dst_alpha,
 	}
 
 def mesh_from_object(Object):
