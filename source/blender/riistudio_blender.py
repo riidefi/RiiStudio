@@ -799,17 +799,19 @@ class ConverterFlags:
 
 class RHSTExportParams:
 	def __init__(self, dest_path, quantization=Quantization(), root_transform = SRT(),
-				magnification=1000, flags = ConverterFlags(), selection=False):
+				magnification=1000, flags = ConverterFlags(), selection=False, name="course"):
 		self.dest_path = dest_path
 		self.quantization = quantization
 		self.root_transform = root_transform
 		self.magnification = magnification
 		self.flags = flags
 		self.selection = selection
+		self.name = name
 
 
 def export_jres(context, params : RHSTExportParams):
 	current_data = {
+		"name": "" if params.name == "" else params.name,
 		"materials": [],
 		"polygons": [],
 		"weights": [  # matrix array
@@ -993,6 +995,13 @@ class RHST_RNA:
 		root_transform_translate_y : root_transform_translate_y
 		root_transform_translate_z : root_transform_translate_z
 
+	rmdl_name = StringProperty(
+		name="",
+		default="course",
+	)
+
+	if BLENDER_30: rmdl_name : rmdl_name
+
 	selection_only = BoolProperty(
 		name="Export Selection Only",
 		default=False
@@ -1097,6 +1106,9 @@ class RHST_RNA:
 
 	def get_selection_only(self):
 		return self.selection_only
+	
+	def get_rmdl_name(self):
+		return self.rmdl_name
 
 	def get_export_params(self):
 		tmp_path = self.get_rhst_path()
@@ -1104,13 +1116,15 @@ class RHST_RNA:
 		root_transform = self.get_root_transform()
 		quantization = self.get_quantization()
 		converter_flags = self.get_converter_flags()
+		rmdl_name = self.get_rmdl_name()
 
 		return RHSTExportParams(tmp_path,
 			quantization   = quantization,
 			root_transform = root_transform,
 			magnification  = self.magnification,
 			flags		  = converter_flags,
-			selection	=	selection_only
+			selection	=	selection_only,
+			name = rmdl_name,
 		)
 
 	def draw_rhst_options(self, context):
@@ -1118,6 +1132,10 @@ class RHST_RNA:
 		# Mesh
 		box = layout.box()
 		box.label(text="PMesh", icon='MESH_DATA')
+		row = box.row()
+		split = row.split(factor=0.3)
+		split.label(text="Model Name")
+		split.prop(self, "rmdl_name")
 		box.prop(self, "magnification", icon='VIEWZOOM' if BLENDER_28 else 'MAN_SCALE')
 		box.prop(self, "selection_only")
 		box.prop(self, "split_mesh_by_material")
