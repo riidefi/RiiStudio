@@ -133,6 +133,18 @@ enum class Comparison {
 
 enum class AlphaOp { And, Or, Xor, Xnor, };
 
+struct PixelEngine {
+  AlphaTest alpha_test = AlphaTest::Stencil;
+
+  Comparison comparison_left = Comparison::Always;
+  u8 comparison_ref_left = 0;
+  AlphaOp comparison_op = AlphaOp::And;
+  Comparison comparison_right = Comparison::Always;
+  u8 comparison_ref_right = 0;
+
+  bool xlu = false;
+};
+
 //! Is eventually compiled to a common material.
 struct ProtoMaterial {
   std::string name = "Untitled Material";
@@ -147,15 +159,7 @@ struct ProtoMaterial {
 
   AlphaMode alpha_mode = AlphaMode::Opaque;
 
-  AlphaTest alpha_test = AlphaTest::Stencil;
-  
-  Comparison comparison_left = Comparison::Always;
-  u8 comparison_ref_left = 0;
-  AlphaOp comparison_op = AlphaOp::And;
-  Comparison comparison_right = Comparison::Always;
-  u8 comparison_ref_right = 0;
-
-  bool xlu = false;
+  PixelEngine pe;
 
   s32 lightset_index = -1;
   s32 fog_index = -1;

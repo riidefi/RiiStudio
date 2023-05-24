@@ -958,27 +958,27 @@ public:
           if (b.alpha_mode == AlphaMode::Custom) {
             if (mat.contains("pe_settings")) {
               auto pe = mat["pe_settings"];
-              b.alpha_test = 
+              b.pe.alpha_test = 
                     magic_enum::enum_cast<AlphaTest>(
                       cap(get<std::string>(pe, "alpha_test").value_or("Stencil")))
                       .value_or(AlphaTest::Stencil);
-              if(b.alpha_test == AlphaTest::Custom) {
-                b.comparison_left =
+              if(b.pe.alpha_test == AlphaTest::Custom) {
+                b.pe.comparison_left =
                     magic_enum::enum_cast<Comparison>(
                         cap(get<std::string>(pe, "comparison_left").value_or("Always")))
                         .value_or(Comparison::Always);
-                b.comparison_right =
+                b.pe.comparison_right =
                     magic_enum::enum_cast<Comparison>(
                         cap(get<std::string>(pe, "comparison_right").value_or("Always")))
                         .value_or(Comparison::Always);
-                b.comparison_ref_left = get<u8>(pe, "comparison_ref_left").value_or(0);
-                b.comparison_ref_right = get<u8>(pe, "comparison_ref_right").value_or(0);
-                b.comparison_op =
+                b.pe.comparison_ref_left = get<u8>(pe, "comparison_ref_left").value_or(0);
+                b.pe.comparison_ref_right = get<u8>(pe, "comparison_ref_right").value_or(0);
+                b.pe.comparison_op =
                     magic_enum::enum_cast<AlphaOp>(
                       cap(get<std::string>(pe, "comparison_op").value_or("And")))
                       .value_or(AlphaOp::And);
               }
-              b.xlu = get<std::string>(pe, "draw_pass").value_or("opa") == "xlu";
+              b.pe.xlu = get<bool>(pe, "xlu").value_or(false);
 			} else {
               b.alpha_mode = AlphaMode::Opaque;
 			}

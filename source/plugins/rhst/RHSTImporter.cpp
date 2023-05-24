@@ -119,7 +119,7 @@ librii::gx::AlphaOp compileAlphaOp(librii::rhst::AlphaOp in) {
 void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
                        librii::rhst::ProtoMaterial in) {
   compileAlphaMode(mat, librii::rhst::AlphaMode::Opaque); // TEMP
-  switch (in.alpha_test) {
+  switch (in.pe.alpha_test) {
   case librii::rhst::AlphaTest::Disabled:
   default:
     mat.alphaCompare = librii::hx::disabled_comparison;
@@ -129,15 +129,15 @@ void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
     break;
   case librii::rhst::AlphaTest::Custom:
     librii::gx::AlphaComparison comparison;
-    comparison.compLeft = compileComparison(in.comparison_left);
-    comparison.op = compileAlphaOp(in.comparison_op);
-    comparison.refLeft = in.comparison_ref_left;
-    comparison.refRight = in.comparison_ref_right;
-    comparison.compRight = compileComparison(in.comparison_right);
+    comparison.compLeft = compileComparison(in.pe.comparison_left);
+    comparison.op = compileAlphaOp(in.pe.comparison_op);
+    comparison.refLeft = in.pe.comparison_ref_left;
+    comparison.refRight = in.pe.comparison_ref_right;
+    comparison.compRight = compileComparison(in.pe.comparison_right);
 
     mat.alphaCompare = comparison;
   }
-  mat.xlu = in.xlu;
+  mat.xlu = in.pe.xlu;
 }
 
 void compileMaterial(libcube::IGCMaterial& out,
