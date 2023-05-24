@@ -5,29 +5,29 @@
 #include <vendor/glm/vec2.hpp>
 #include <vendor/glm/vec3.hpp>
 
-inline void read(oishii::BinaryReader& reader, glm::vec3& out) {
-  if (reader.tell() + 12 <= reader.endpos()) {
-    out.x = reader.tryRead<f32>().value();
-    out.y = reader.tryRead<f32>().value();
-    out.z = reader.tryRead<f32>().value();
-  } else {
-    out = {};
-  }
+#include <core/common.h>
+
+[[nodiscard]] inline Result<void> read(oishii::BinaryReader& reader,
+                                       glm::vec3& out) {
+  out.x = TRY(reader.tryRead<f32>());
+  out.y = TRY(reader.tryRead<f32>());
+  out.z = TRY(reader.tryRead<f32>());
+  return {};
 }
 
-inline void read(oishii::BinaryReader& reader, glm::vec2& out) {
-  if (reader.tell() + 8 <= reader.endpos()) {
-    out.x = reader.tryRead<f32>().value();
-    out.y = reader.tryRead<f32>().value();
-  } else {
-    out = {};
-  }
+[[nodiscard]] inline Result<void> read(oishii::BinaryReader& reader,
+                                       glm::vec2& out) {
+  out.x = TRY(reader.tryRead<f32>());
+  out.y = TRY(reader.tryRead<f32>());
+  return {};
 }
-inline void operator<<(glm::vec3& out, oishii::BinaryReader& reader) {
-  read(reader, out);
+[[nodiscard]] inline Result<void> operator<<(glm::vec3& out,
+                                             oishii::BinaryReader& reader) {
+  return read(reader, out);
 }
-inline void operator<<(glm::vec2& out, oishii::BinaryReader& reader) {
-  read(reader, out);
+[[nodiscard]] inline Result<void> operator<<(glm::vec2& out,
+                                             oishii::BinaryReader& reader) {
+  return read(reader, out);
 }
 inline void operator>>(const glm::vec3& vec, oishii::Writer& writer) {
   writer.write(vec.x);

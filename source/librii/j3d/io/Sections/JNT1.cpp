@@ -47,7 +47,7 @@ Result<void> readJNT1(BMDOutputContext& ctx) {
 
   // FIXME: unnecessary allocation of a vector.
   reader.seekSet(ofsStringTable + g.start);
-  const auto nameTable = readNameTable(reader.getUnsafe());
+  const auto nameTable = TRY(readNameTable(reader.getUnsafe()));
 
   int i = 0;
   for (auto& joint : ctx.mdl.joints) {

@@ -16,7 +16,10 @@ namespace riistudio::lvl {
 
 struct SimpleTransaction {
   SimpleTransaction() {
-    trans.callback = [](...) {};
+    trans.callback = [](kpi::IOMessageClass mc, std::string_view domain,
+                        std::string_view msg) {
+      rsl::warn("[{}] {}: {}", magic_enum::enum_name(mc), domain, msg);
+    };
   }
 
   bool success() const {
@@ -26,9 +29,9 @@ struct SimpleTransaction {
   kpi::LightIOTransaction trans;
 };
 
-std::unique_ptr<g3d::Collection> ReadBRRES(const std::vector<u8>& buf,
-                                           std::string path,
-                                           NeedResave need_resave) {
+Result<std::unique_ptr<g3d::Collection>> ReadBRRES(const std::vector<u8>& buf,
+                                                   std::string path,
+                                                   NeedResave need_resave) {
   auto result = std::make_unique<g3d::Collection>();
 
   SimpleTransaction trans;
@@ -41,18 +44,15 @@ std::unique_ptr<g3d::Collection> ReadBRRES(const std::vector<u8>& buf,
     return result;
 
   if (!trans.success())
-    return nullptr;
+    return std::unexpected("Transaction failed");
 
   return result;
 }
 
-std::unique_ptr<librii::kmp::CourseMap> ReadKMP(const std::vector<u8>& buf,
-                                                std::string path) {
-  auto map = librii::kmp::readKMP(buf);
-  if (!map) {
-    return nullptr;
-  }
-  return std::make_unique<librii::kmp::CourseMap>(*map);
+Result<std::unique_ptr<librii::kmp::CourseMap>>
+ReadKMP(const std::vector<u8>& buf, std::string path) {
+  auto map = TRY(librii::kmp::readKMP(buf));
+  return std::make_unique<librii::kmp::CourseMap>(map);
 }
 
 std::vector<u8> WriteKMP(const librii::kmp::CourseMap& map) {
@@ -63,7 +63,7 @@ std::vector<u8> WriteKMP(const librii::kmp::CourseMap& map) {
   return writer.takeBuf();
 }
 
-std::unique_ptr<librii::kcol::KCollisionData>
+Result<std::unique_ptr<librii::kcol::KCollisionData>>
 ReadKCL(const std::vector<u8>& buf, std::string path) {
   auto result = std::make_unique<librii::kcol::KCollisionData>();
 
@@ -75,8 +75,7 @@ ReadKCL(const std::vector<u8>& buf, std::string path) {
   }
 
   if (!res.empty()) {
-    rsl::error("Error: {}", res.c_str());
-    return nullptr;
+    return std::unexpected(res);
   }
 
   return result;

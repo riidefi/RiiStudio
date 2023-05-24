@@ -148,6 +148,7 @@ public:
   }
 
   void openFile(std::span<const u8> buf, std::string path);
+  Result<void> tryOpenFile(std::span<const u8> buf, std::string path);
   void saveFile(std::string path);
 
   void draw_() override;
