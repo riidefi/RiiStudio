@@ -97,13 +97,13 @@ inline std::string ValidateQuantize(librii::gx::VertexBufferKind kind,
     switch (quant.mType.generic) {
     case librii::gx::VertexBufferType::Generic::s8: {
       if ((int)quant.divisor != 6) {
-        return "Invalid divisor for S8 normal data";
+        // return "Invalid divisor for S8 normal data";
       }
       break;
     }
     case librii::gx::VertexBufferType::Generic::s16: {
       if ((int)quant.divisor != 14) {
-        return "Invalid divisor for S16 normal data";
+        // return "Invalid divisor for S16 normal data";
       }
       break;
     }
@@ -113,7 +113,7 @@ inline std::string ValidateQuantize(librii::gx::VertexBufferKind kind,
       return "Invalid quantization for normal data: U16";
     case librii::gx::VertexBufferType::Generic::f32:
       if ((int)quant.divisor != 0) {
-        return "Misleading divisor for F32 normal data";
+        // return "Misleading divisor for F32 normal data";
       }
       break;
     }

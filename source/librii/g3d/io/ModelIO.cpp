@@ -110,6 +110,25 @@ Result<void> readGenericBuffer(
   if (!err.empty()) {
     return std::unexpected(err);
   }
+  switch (out.mQuantize.mType.generic) {
+  case librii::gx::VertexBufferType::Generic::s8: {
+    if (kind == librii::gx::VertexBufferKind::normal) {
+      out.mQuantize.divisor = 6;
+    }
+    break;
+  }
+  case librii::gx::VertexBufferType::Generic::s16:
+    if (kind == librii::gx::VertexBufferKind::normal) {
+      out.mQuantize.divisor = 14;
+    }
+    break;
+  case librii::gx::VertexBufferType::Generic::u8:
+  case librii::gx::VertexBufferType::Generic::u16:
+    break;
+  case librii::gx::VertexBufferType::Generic::f32:
+    out.mQuantize.divisor = 0;
+    break;
+  }
   out.mEntries.resize(TRY(reader.U16()));
   if constexpr (HasMinimum) {
     T minEnt, maxEnt;
