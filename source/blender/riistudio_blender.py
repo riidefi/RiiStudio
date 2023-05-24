@@ -1298,6 +1298,47 @@ FILTER_MODES_MIP = (
 	('linear', "Smooth", "Linear (interpolated/blurry)"),
 )
 
+COMPARISON_MODES = [
+	('always',"Always",""),
+	('GEqual',"Greater or Equal",""),
+	('greater',"Greater",""),
+	('equal',"Equal",""),
+	('NEqual',"Not Equal",""),
+	('less',"Less",""),
+	('LEqual',"Less or Equal",""),
+	('never',"Never",""),
+]
+
+Z_COMPARISON_MODES = [
+	('always',"Always Draw",""),
+	('GEqual',"Pixel Z >= eFB Z",""),
+	('greater',"Pixel Z > eFB Z",""),
+	('equal',"Pixel Z == eFB Z",""),
+	('NEqual',"Pixel Z != eFB Z",""),
+	('less',"Pixel Z < eFB Z",""),
+	('LEqual',"Pixel Z <= eFB Z",""),
+	('never',"Never Draw",""),
+]
+BLEND_MODE_FACTORS = [
+	('zero', "0", ""),
+	('one', "1", ""),
+	('src_c', "eFB Color", ""),
+	('inv_src_c', "1 - eFB Color", ""),
+	('src_a', "Pixel Alpha", ""),
+	('inv_src_a', "1 - Pixel Alpha", ""),
+	('dst_a', "eFB Alpha", ""),
+	('inv_dst_a', "1 - eFB Alpha", ""),
+]
+BLEND_MODE_FACTORS_2 = [
+	('zero', "0", ""),
+	('one', "1", ""),
+	('src_c', "Pixel Color", ""),
+	('inv_src_c', "1 - Pixel Color", ""),
+	('src_a', "Pixel Alpha", ""),
+	('inv_src_a', "1 - Pixel Alpha", ""),
+	('dst_a', "eFB Alpha", ""),
+	('inv_dst_a', "1 - eFB Alpha", ""),
+]
 
 def register_tex():
 	tex_type = bpy.types.Node if BLENDER_28 else bpy.types.Texture
@@ -1377,10 +1418,111 @@ def register_mat():
 		items=(
 			('opaque', "Opaque", "No alpha"),
 			('clip', "Outline", "Binary alpha. A texel is either opaque or fully transparent"),
-			('translucent', "Translucent", "Expresses a full range of alpha")
+			('translucent', "Translucent", "Expresses a full range of alpha"),
+			('custom', "Custom", ""),
 		),
 		default='opaque'
 	)
+
+	# PE Custom Settings
+	bpy.types.Material.jres_pe_draw_pass = EnumProperty(
+		name="Draw Pass",
+		items=[
+			('opa', "Opaque", ""),
+			('xlu', "Translucent", ""),
+		],
+		default="opa"
+	)
+	bpy.types.Material.jres_pe_alpha_test = EnumProperty(
+		name="Alpha Test",
+		items=[
+			('disabled', "Disabled", ""),
+			('stencil', "Outline", ""),
+			('custom', "Custom", ""),
+		],
+		default="disabled"
+	)
+
+	bpy.types.Material.jres_pe_alpha_comp_left = EnumProperty(
+		name="", # Make Display better
+		items=COMPARISON_MODES,
+		default='always'
+	)
+	bpy.types.Material.jres_pe_alpha_comp_right = EnumProperty(
+		name="", # Make Display better
+		items=COMPARISON_MODES,
+		default='always'
+	)
+	bpy.types.Material.jres_pe_alpha_ref_left = IntProperty(
+		name = "",
+		default = 255,
+		min = 0,
+		max = 255,
+	)
+	bpy.types.Material.jres_pe_alpha_ref_right = IntProperty(
+		name = "",
+		default = 255,
+		min = 0,
+		max = 255,
+	)
+	bpy.types.Material.jres_pe_alpha_op = EnumProperty(
+		name="",
+		items=[ 
+			('and',"&&",""),
+			('or',"||",""),
+			('xnor',"==",""),
+			('xor',"!=",""),
+		],
+		default='and'
+	)
+	bpy.types.Material.jres_pe_z_compare = BoolProperty(
+		name="Compare Z Values",
+		default=True,
+	)
+	bpy.types.Material.jres_pe_z_early_compare = BoolProperty(
+		name="Compare Before Texture",
+		default=True,
+	)
+	bpy.types.Material.jres_pe_z_update = BoolProperty(
+		name="Write to Z Buffer",
+		default=True,
+	)
+	bpy.types.Material.jres_pe_z_comparison = EnumProperty(
+		name="Condition",
+		items=Z_COMPARISON_MODES,
+		default="LEqual",
+	)
+	bpy.types.Material.jres_pe_blend_mode = EnumProperty(
+		name="Type",
+		items=[
+			('none', 'Do not blend', ''),
+			('blend', 'Blending', ''),
+			# ('logic', 'Do not blend', ''),
+			('subtract', 'Subtract from Frame Buffer', ''),
+		],
+		default="none"
+	)
+	bpy.types.Material.jres_pe_blend_source = EnumProperty(
+		name="",
+		items = BLEND_MODE_FACTORS,
+		default="dst_a"
+	)
+	bpy.types.Material.jres_pe_blend_dest = EnumProperty(
+		name="",
+		items = BLEND_MODE_FACTORS_2,
+		default="inv_dst_a"
+	)
+	bpy.types.Material.jres_pe_dst_alpha = IntProperty(
+		name="Value",
+		min=0,
+		max=255,
+		default=0,
+	)
+	bpy.types.Material.jres_pe_dst_alpha_enabled = BoolProperty(
+		name="Enabled",
+		default=False,
+	)
+
 	# Lighting
 	bpy.types.Material.jres_lightset_index = IntProperty(
 		name="Lightset Index",
