@@ -313,6 +313,58 @@ class JRESMaterialPanel(bpy.types.Panel):
 		row = box.row(align=True)
 		row.prop(mat, "jres_pe_mode", expand=True)
 
+		if(mat.jres_pe_mode == "custom"):
+			# Draw Pass
+			box2 = box.box()
+			box2.label(text="Draw Pass", icon="MOD_LINEART")
+			row = box2.row()
+			row.prop(mat, "jres_pe_draw_pass", expand=True)
+			
+			# Alpha Test
+			box2.label(text="Alpha Test", icon="SEQ_SPLITVIEW")
+			row = box2.row()
+			row.prop(mat, "jres_pe_alpha_test", expand=True)
+			if(mat.jres_pe_alpha_test == "custom"):
+				row = box2.row()
+				row.prop(mat, "jres_pe_alpha_ref_left")
+				row.prop(mat, "jres_pe_alpha_comp_left")
+				row.prop(mat, "jres_pe_alpha_op")
+				row.prop(mat, "jres_pe_alpha_ref_right")
+				row.prop(mat, "jres_pe_alpha_comp_right")
+
+			# Z Buffer
+			box2.label(text="Z Buffer", icon="MOD_OPACITY")
+			box2.prop(mat, "jres_pe_z_compare")
+			row = box2.row()
+			row2 = box2.row()
+			row.prop(mat, "jres_pe_z_early_compare")
+			row.prop(mat, "jres_pe_z_update")
+			row2.prop(mat, "jres_pe_z_comparison")
+			if(mat.jres_pe_z_compare == False): # Just gray the options out, don't hide them
+				row.enabled = False
+				row2.enabled = False
+			
+			# Blending
+			box2.label(text="Blending", icon="RENDERLAYERS")
+			box2.prop(mat, "jres_pe_blend_mode")
+			row = box2.row()
+			split = row.split(factor=0.15)
+			split.label(text="(Pixel C *")
+			split = split.split(factor=0.35)
+			split.prop(mat, "jres_pe_blend_source")
+			split = split.split(factor=0.4)
+			split.label(text=") + (eFB C *")
+			split.prop(mat, "jres_pe_blend_dest")
+			if(mat.jres_pe_blend_mode != "blend"):
+				row.enabled = False
+
+			# Destination Alpha
+		box.label(text="Destination Alpha", icon="NODE_TEXTURE")
+		row = box.row()
+		row.prop(mat, "jres_pe_dst_alpha_enabled")
+		if(mat.jres_pe_dst_alpha_enabled):
+			row.prop(mat, "jres_pe_dst_alpha")
+
 		# Lighting
 		box = layout.box()
 		box.label(text="Lighting", icon='OUTLINER_OB_LIGHT' if BLENDER_28 else 'LAMP_SUN')  # Might want to change icon here
