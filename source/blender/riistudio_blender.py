@@ -519,10 +519,12 @@ def get_texture(mat):
 		for n in mat.node_tree.nodes:
 			if n.bl_idname == "ShaderNodeTexImage":
 				return n
+		else:
+			return
+		#raise RuntimeError("Cannot find active texture for material %s" % mat.name)
 
-		raise RuntimeError("Cannot find active texture for material %s" % mat.name)
-	
-	return mat.active_texture
+	else:
+		return mat.active_texture
 
 def all_tex_uses(selection):
 	for Object, prio in all_meshes(selection=selection):
