@@ -208,8 +208,6 @@ public:
   }
 };
 
-
-
 void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
   auto& data = delegate.getActive();
 
@@ -217,6 +215,14 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
 
   bool resizeAction = false;
   bool reformatOption = false;
+
+  if (data.getWidth() > 1024 || data.getHeight() > 1024) {
+    riistudio::util::PushErrorSyle();
+    ImGui::TextUnformatted(
+        (const char*)ICON_FA_EXCLAMATION_TRIANGLE u8"Error: Texture dimensions "
+                                                  u8"exceed 1024x1024!");
+    riistudio::util::PopErrorStyle();
+  }
 
   if (ImGui::BeginMenuBar()) {
     // if (ImGui::BeginMenu("Transform")) {
@@ -252,10 +258,12 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
     ImGui::EndMenuBar();
   }
 
-  ImGui::Text(
-      (const char*)
-          ICON_FA_EXCLAMATION_TRIANGLE u8" Image Properties do not support "
-                                       u8"multi-selection currently.");
+  if (delegate.mAffected.size() > 1) {
+    ImGui::Text(
+        (const char*)
+            ICON_FA_EXCLAMATION_TRIANGLE u8" Image Properties do not support "
+                                         u8"multi-selection currently.");
+  }
 
   if (resizeAction) {
     ImGui::OpenPopup("Resize");
