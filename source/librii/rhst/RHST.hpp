@@ -134,15 +134,28 @@ enum class Comparison {
 enum class AlphaOp { And, Or, Xor, Xnor, };
 
 struct PixelEngine {
+  //  Alpha Test
   AlphaTest alpha_test = AlphaTest::Stencil;
 
+  // Alpha Comparison
   Comparison comparison_left = Comparison::Always;
   u8 comparison_ref_left = 0;
   AlphaOp comparison_op = AlphaOp::And;
   Comparison comparison_right = Comparison::Always;
   u8 comparison_ref_right = 0;
 
+  // Draw Pass
   bool xlu = false;
+
+  // Z Buffer
+  bool z_early_comparison = true;
+  bool z_compare = true;
+  Comparison z_comparison = Comparison::LEqual;
+  bool z_update = true;
+
+  // Dst Alpha
+  bool dst_alpha_enabled = false;
+  u8 dst_alpha = 0;
 };
 
 //! Is eventually compiled to a common material.
