@@ -26,6 +26,8 @@ add_dependencies(tests cli)
 # ???
 add_dependencies(tests plugins)
 
+add_dependencies(tests rsl)
+
 if (WIN32)
   set(LINK_LIBS
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
@@ -104,6 +106,11 @@ endif()
 		  ${PROJECT_SOURCE_DIR}/../vendor/dll
 		  $<TARGET_FILE_DIR:tests>
   )
+add_custom_command(TARGET tests POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:tests> $<TARGET_FILE_DIR:tests> 
+  COMMAND_EXPAND_LISTS
+)
+
 if (WINDOWS)
   add_custom_command(
 	  TARGET tests 
