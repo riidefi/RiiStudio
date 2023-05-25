@@ -102,5 +102,10 @@ add_custom_command(
     ${PROJECT_SOURCE_DIR}/../vendor/dll
     $<TARGET_FILE_DIR:cli>
 )
+add_dependencies(cli rsl)
+add_custom_command(TARGET cli POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:cli> $<TARGET_FILE_DIR:cli> 
+  COMMAND_EXPAND_LISTS
+)
  
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "rszst")
