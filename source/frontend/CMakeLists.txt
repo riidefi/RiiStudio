@@ -53,7 +53,6 @@ add_library(lib_frontend
 
  "renderer/InputState.hpp" "renderer/InputState.cpp"
  "Localization.cpp" "Localization.hpp"
- "LeakDebug.hpp"
  "Fonts.hpp"
 
  "level_editor/LevelEditor.hpp" "level_editor/LevelEditor.cpp"

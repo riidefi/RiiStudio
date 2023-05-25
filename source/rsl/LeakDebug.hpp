@@ -4,7 +4,7 @@
 #include <sanitizer/lsan_interface.h>
 #endif
 
-namespace riistudio {
+namespace rsl {
 
 //! Only does anything if built with llvm LeakSanitizer.
 inline void DoLeakCheck() {
@@ -13,4 +13,4 @@ inline void DoLeakCheck() {
 #endif
 }
 
-} // namespace riistudio
+} // namespace rsl

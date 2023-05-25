@@ -1,7 +1,6 @@
 #include <core/3d/gl.hpp>
 
 #include "EditorFactory.hpp"
-#include "LeakDebug.hpp"
 #include "root.hpp"
 #include <core/util/timestamp.hpp>
 #include <frontend/Fonts.hpp>
@@ -17,6 +16,7 @@
 #include <plugins/j3d/Scene.hpp>
 #include <rsl/Discord.hpp>
 #include <rsl/FsDialog.hpp>
+#include <rsl/LeakDebug.hpp>
 #include <rsl/Stb.hpp>
 
 namespace llvm {
@@ -115,7 +115,7 @@ static void MSVCWarningWindow() {
 }
 
 void RootWindow::draw() {
-  DoLeakCheck();
+  rsl::DoLeakCheck();
   fileHostProcess();
 
   if (auto* a = getActive()) {
