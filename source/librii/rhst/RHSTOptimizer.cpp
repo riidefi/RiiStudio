@@ -6,8 +6,7 @@
 
 #include <draco/mesh/mesh_stripifier.h>
 #include <meshoptimizer.h>
-#include <rsmeshopt/TriStripper/tri_stripper.h>
-#include <rsmeshopt/tristrip/tristrip.hpp>
+#include <rsmeshopt/RsMeshOpt.hpp>
 
 #include <fmt/color.h>
 #define throw
@@ -475,13 +474,10 @@ StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim) {
 }
 Result<MeshOptimizerStats> StripifyTrianglesTriStripper(MatrixPrimitive& prim) {
   MeshOptimizerStatsCollector stats(prim);
-  auto buf = TRY(IndexBuffer<size_t>::create(prim));
+  auto buf = TRY(IndexBuffer<u32>::create(prim));
   std::vector<Vertex> vertices = std::move(buf.vertices);
-  std::vector<size_t> index_data = std::move(buf.index_data);
 
-  triangle_stripper::tri_stripper stripper(index_data);
-  triangle_stripper::primitive_vector out;
-  stripper.Strip(&out);
+  auto out = TRY(rsmeshopt::StripifyTrianglesTriStripper(buf.index_data));
 
   prim.primitives.clear();
   for (auto& x : out) {
@@ -509,15 +505,7 @@ StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim) {
   std::vector<u32> index_data = std::move(buf.index_data);
 
   EXPECT(index_data.size() % 3 == 0);
-  std::list<std::list<int>> mesh;
-  for (size_t i = 0; i < index_data.size(); i += 3) {
-    std::list<int> tri;
-    tri.push_back(index_data[i]);
-    tri.push_back(index_data[i + 1]);
-    tri.push_back(index_data[i + 2]);
-    mesh.push_back(std::move(tri));
-  }
-  auto strips = stripify(mesh);
+  auto strips = TRY(rsmeshopt::StripifyTrianglesNvTriStripPort(index_data));
 
   prim.primitives.clear();
   for (auto& x : strips) {
