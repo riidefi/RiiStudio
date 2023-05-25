@@ -5,6 +5,7 @@ edition = "2018"
 
 [lib]
 crate-type=["cdylib"]
+crt-static = true
 
 [dependencies]
 zip-extract = { git = "https://github.com/riidefi/zip-extract", branch = "v2" }
