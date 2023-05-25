@@ -644,28 +644,11 @@ pub extern "C" fn rs_parse_args(
     }
 }
 
-/*
-use std::fs::OpenOptions;
-use std::os::windows::prelude::*;
-*/
-
 pub fn rsl_extract_zip(from_file: &str,
   to_folder: &str,
-  write_file: unsafe extern "C" fn(*const c_char, *const u8, u32)
 ) -> Result<(), String> {
-  // This fails for some reason with ERROR_SHARING_VIOLATION
-  // Yet doing a simple fopen in C++ works..
-
-  /*let outpath = "C:\\Users\\rii\\Documents\\dev\\RiiStudio\\out\\build\\Clang-x64-DIST\\source\\frontend\\assimp-vc141-mt.dll";
-  OpenOptions::new()
-          .write(true)
-          .truncate(true)
-          .access_mode(0x40000000)
-          .share_mode(7)
-          .open(&outpath).unwrap();
-          */
   let archive: Vec<u8> = std::fs::read(from_file).expect("Failed to read {from_file}");
-  match zip_extract::extract(Cursor::new(&archive), &PathBuf::from(to_folder), false, write_file) {
+  match zip_extract::extract(Cursor::new(&archive), &PathBuf::from(to_folder), false) {
     Ok(_) => Ok(()),
     Err(_) => Err("Failed to extract".to_string()),
   }
@@ -675,7 +658,6 @@ pub fn rsl_extract_zip(from_file: &str,
 pub unsafe fn c_rsl_extract_zip(
   from_file: *const c_char,
   to_folder: *const c_char,
-  write_file: unsafe extern "C" fn(*const c_char, *const u8, u32)
 ) -> i32 {
   if from_file.is_null() || to_folder.is_null() {
     return -1;
@@ -688,7 +670,7 @@ pub unsafe fn c_rsl_extract_zip(
 
   println!("Extracting zip (from {from_str} to {to_str})");
 
-  match rsl_extract_zip(&from_str, &to_str, write_file) {
+  match rsl_extract_zip(&from_str, &to_str) {
     Ok(_) => 0,
     Err(err) => {
       println!("Failed: {err}");
@@ -933,6 +915,7 @@ fn rpc_set_activity(client: &mut DiscordIpcClient, activity: &ffi::Activity)
 
   Ok(())
 }
+
 #[no_mangle]
 pub extern "C" fn rsl_rpc_set_activity(client: &mut DiscordIpcClient,
                                        activity: &ActivityC) {
