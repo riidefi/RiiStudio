@@ -25,6 +25,8 @@ if (WIN32)
   add_compile_definitions(RII_PLATFORM_WINDOWS)
   add_compile_definitions(RII_BACKEND_GLFW)
 
+  add_link_options("-fuse-ld=lld")
+
   # Enable SSE3 if building with clang-cl
   if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" AND "x${CMAKE_CXX_SIMULATE_ID}" STREQUAL "xMSVC")
     add_compile_options("-mssse3")
