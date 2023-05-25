@@ -19,6 +19,7 @@ target_link_libraries(tests PUBLIC
 	plate
 	plugins
 	vendor
+  rsmeshopt
 )
 # Since we rely on rszst.exe
 add_dependencies(tests cli)
