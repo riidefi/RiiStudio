@@ -6,8 +6,8 @@
 
 #include <draco/mesh/mesh_stripifier.h>
 #include <meshoptimizer.h>
-#include <vendor/TriStripper/tri_stripper.h>
-#include <vendor/tristrip/tristrip.hpp>
+#include <rsmeshopt/TriStripper/tri_stripper.h>
+#include <rsmeshopt/tristrip/tristrip.hpp>
 
 #include <fmt/color.h>
 #define throw

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2004 Tanguy Fautré.
+// Copyright (C) 2004 Tanguy FautrÃ©.
 // For conditions of distribution and use,
 // see copyright notice in tri_stripper.h
 //
@@ -8,8 +8,8 @@
 #ifndef TRI_STRIPPER_HEADER_GUARD_POLICY_H
 #define TRI_STRIPPER_HEADER_GUARD_POLICY_H
 
-#include <vendor/TriStripper/public_types.h>
-#include <vendor/TriStripper/detail/types.h>
+#include "../public_types.h"
+#include "types.h"
 
 
 

@@ -17,3 +17,5 @@ add_subdirectory(plugins)
 add_subdirectory(tests)
 add_subdirectory(frontend)
 add_subdirectory(cli)
+
+add_subdirectory(rsmeshopt)

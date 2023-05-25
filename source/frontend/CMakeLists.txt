@@ -106,6 +106,7 @@ target_link_libraries(lib_frontend PUBLIC
 	vendor
   LibBadUIFramework
   updater
+  rsmeshopt
 )
 target_link_libraries(frontend PUBLIC
   lib_frontend

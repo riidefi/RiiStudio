@@ -20,6 +20,7 @@ target_link_libraries(cli PUBLIC
   plate
   plugins
   vendor
+  rsmeshopt
 )
 # ???
 add_dependencies(cli plugins)
