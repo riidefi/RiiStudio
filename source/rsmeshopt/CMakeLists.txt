@@ -12,6 +12,6 @@ file(GLOB_RECURSE SRC_FILES
 )
 
 add_library(rsmeshopt STATIC
-  SRC_FILES
-)
+  ${SRC_FILES}
+ "RsMeshOpt.cpp")
 target_link_libraries(rsmeshopt PUBLIC core range-v3 riistudio_rs vendor)
