@@ -1,16 +1,21 @@
 #include "Zip.hpp"
 
-#include <fstream>
 #include <cstdint>
+#include <fstream>
 #include <span>
 
-extern "C" int c_rsl_extract_zip(const char* from_file, const char* to_folder,
+extern "C" int c_rsl_extract_zip(const char* from_file, const char* to_folder
+#ifdef RSL_V1
+                                 ,
                                  void (*write_file)(const char* path,
                                                     const void* buf,
-                                                    uint32_t len));
+                                                    uint32_t len)
+#endif
+);
 
 namespace rsl {
 
+#ifdef RSL_V1
 //
 // I don't know why this works, but it does.
 // In particular, this is necessary for .dll files open by the main app.
@@ -23,14 +28,19 @@ static void WriteToOpenFile(std::string_view path,
   wFile.write(dumped.data(), dumped.size());
   wFile.close();
 }
+#endif
 
 void ExtractZip(std::string from_file, std::string to_folder) {
   (void)c_rsl_extract_zip(
-      from_file.c_str(), to_folder.c_str(),
+      from_file.c_str(), to_folder.c_str()
+#ifdef RSL_V1
+                             ,
       +[](const char* path, const void* buf, uint32_t len) {
         WriteToOpenFile(path, {reinterpret_cast<const char*>(buf),
                                static_cast<size_t>(len)});
-      });
+      }
+#endif
+  );
 }
 
 } // namespace rsl

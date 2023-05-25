@@ -7,7 +7,7 @@ edition = "2018"
 crate-type=["cdylib"]
 
 [dependencies]
-zip-extract = { git = "https://github.com/riidefi/zip-extract" }
+zip-extract = { git = "https://github.com/riidefi/zip-extract", branch = "v2" }
 log = "0.4.7"
 simple_logger = "4.0.0"
 discord-rich-presence = "0.2.3"
