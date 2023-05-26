@@ -19,33 +19,37 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
 
   std::span<const u8> span(data.mData.get(), data.mData.get() + data.mLen);
 
-  if (data.mPath.ends_with(".szs")) {
+  auto path_lower = data.mPath;
+  std::transform(path_lower.begin(), path_lower.end(), path_lower.begin(),
+                 ::tolower);
+
+  if (path_lower.ends_with(".szs")) {
     auto pWin = std::make_unique<lvl::LevelEditorWindow>();
     pWin->openFile(span, data.mPath);
     return pWin;
   }
-  if (data.mPath.ends_with(".bdof") || data.mPath.ends_with(".pdof")) {
+  if (path_lower.ends_with(".bdof") || path_lower.ends_with(".pdof")) {
     auto pWin = std::make_unique<BdofEditor>();
     pWin->openFile(span, data.mPath);
     return pWin;
   }
   // .bblm1 .bblm2 should also be matched
-  if (data.mPath.contains(".bblm") || data.mPath.ends_with(".pblm")) {
+  if (path_lower.contains(".bblm") || path_lower.ends_with(".pblm")) {
     auto pWin = std::make_unique<BblmEditor>();
     pWin->openFile(span, data.mPath);
     return pWin;
   }
-  if (data.mPath.ends_with(".bfg")) {
+  if (path_lower.ends_with(".bfg")) {
     auto pWin = std::make_unique<BfgEditor>(span, data.mPath);
     return pWin;
   }
-  if (data.mPath.ends_with(".blight") || data.mPath.ends_with(".plight")) {
+  if (path_lower.ends_with(".blight") || path_lower.ends_with(".plight")) {
     return std::make_unique<BlightEditor>(span, data.mPath);
   }
-  if (data.mPath.ends_with(".blmap") || data.mPath.ends_with(".plmap")) {
+  if (path_lower.ends_with(".blmap") || path_lower.ends_with(".plmap")) {
     return std::make_unique<BlmapEditor>(span, data.mPath);
   }
-  if (AssimpImporter::supports(data.mPath)) {
+  if (AssimpImporter::supports(path_lower)) {
     return std::make_unique<AssimpImporter>(span, data.mPath);
   }
 
