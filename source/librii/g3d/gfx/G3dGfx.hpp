@@ -80,50 +80,56 @@ struct CompiledLib3dTexture {
 // Texture cache, by texture name alone
 struct G3dTextureCache {
   // Maps texture names -> GL id
-  std::map<std::string, CompiledLib3dTexture> mTexIdMap;
+  std::map<std::pair<std::string, size_t>, CompiledLib3dTexture> mTexIdMap;
 
-  bool isCached(const lib3d::Texture& tex) const {
-    return mTexIdMap.contains(tex.getName());
+  bool isCached(const lib3d::Texture& tex, size_t discrim) const {
+    return mTexIdMap.contains(std::pair{tex.getName(), discrim});
   }
 
-  Result<void> cache(const lib3d::Texture& tex) {
-    mTexIdMap[tex.getName()] = tex;
+  Result<void> cache(const lib3d::Texture& tex, size_t discrim) {
+    mTexIdMap[std::pair{tex.getName(), discrim}] = tex;
     return {};
   }
 
   void invalidate() { mTexIdMap.clear(); }
 
   std::optional<u32> getCachedTexture(const std::string& tex) {
-    if (!mTexIdMap.contains(tex))
-      return std::nullopt;
-
-    return mTexIdMap.at(tex).getGlId();
+    for (auto&& [k, v] : mTexIdMap) {
+      auto name = k.first;
+      if (name == tex) {
+        return v.getGlId();
+      }
+    }
+    return std::nullopt;
   }
 
-  std::expected<u32, std::string> getCachedTexture(const lib3d::Texture& tex) {
-    if (!isCached(tex))
-      TRY(cache(tex));
+  std::expected<u32, std::string> getCachedTexture(const lib3d::Texture& tex,
+                                                   size_t discrim) {
+    if (!isCached(tex, discrim))
+      TRY(cache(tex, discrim));
 
-    assert(isCached(tex) && "Internal logic error. cache() should either "
-                            "succeed or return unexpected");
-    return mTexIdMap[tex.getName()].getGlId();
+    assert(isCached(tex, discrim) &&
+           "Internal logic error. cache() should either "
+           "succeed or return unexpected");
+    return mTexIdMap[std::pair{tex.getName(), discrim}].getGlId();
   }
 
   void update(const lib3d::Scene& host) {
-    std::set<std::string> updated;
+    std::set<std::pair<std::string, size_t>> updated;
+    size_t i = 0;
     for (auto& tex : host.getTextures()) {
-      updated.emplace(tex.getName());
-      if (isCached(tex)) {
+      updated.emplace(std::pair{tex.getName(), i});
+      if (isCached(tex, i)) {
         // Possibly reupload data if the generation ID has changed.
-        mTexIdMap[tex.getName()].update(tex);
+        mTexIdMap[std::pair{tex.getName(), i++}].update(tex);
         continue;
       }
 
-      cache(tex);
+      cache(tex, i++);
     }
 
     // Bust old data from cache
-    std::vector<std::string> old;
+    std::vector<std::pair<std::string, size_t>> old;
     for (auto& entry : mTexIdMap) {
       if (!updated.contains(entry.first)) {
         old.push_back(entry.first);

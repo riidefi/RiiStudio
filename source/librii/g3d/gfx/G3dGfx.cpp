@@ -135,11 +135,11 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
       const auto found = tex_id_map.getCachedTexture(sampler.mTexture);
       if (!found) {
         err = std::format("Cannot find texture \"{}\"", sampler.mTexture);
-        if (!tex_id_map.isCached(DefaultTex)) {
-          tex_id_map.cache(DefaultTex);
+        if (!tex_id_map.isCached(DefaultTex, 0)) {
+          tex_id_map.cache(DefaultTex, 0);
         }
         obj.active_id = i;
-        obj.image_id = TRY(tex_id_map.getCachedTexture(DefaultTex));
+        obj.image_id = TRY(tex_id_map.getCachedTexture(DefaultTex, 0));
       } else {
         obj.active_id = i;
         obj.image_id = *found;
