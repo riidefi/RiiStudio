@@ -958,7 +958,9 @@ struct RHSTReader {
                       oishii::BinaryReader& reader) const;
   void read(kpi::IOTransaction& transaction);
 };
-kpi::Register<RHSTReader, kpi::Reader> RHSTInstaller;
+void InstallRHST() {
+  kpi::ApplicationPlugins::getInstance()->addDeserializer<RHSTReader>();
+}
 std::string RHSTReader::canRead(const std::string& file,
                                 oishii::BinaryReader& reader) const {
   if (!file.ends_with(".rhst"))

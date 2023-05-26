@@ -189,9 +189,8 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
 #endif
 }
 
-kpi::DecentralizedInstaller
-    ImageActionsInstaller([](kpi::ApplicationPlugins& installer) {
-      kpi::ActionMenuManager::get().addMenu(std::make_unique<ImageActions>());
-    });
+void ImageActionsInstaller() {
+  kpi::ActionMenuManager::get().addMenu(std::make_unique<ImageActions>());
+}
 
 } // namespace libcube::UI

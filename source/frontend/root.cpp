@@ -29,7 +29,8 @@ bool IsAdvancedMode() { return gIsAdvancedMode; }
 
 namespace libcube::UI {
 void InstallCrate();
-}
+void ImageActionsInstaller();
+} // namespace libcube::UI
 
 namespace riistudio::frontend {
 
@@ -309,6 +310,7 @@ RootWindow::RootWindow()
   // Loads the plugins for file formats / importers
   InitAPI();
   libcube::UI::InstallCrate();
+  libcube::UI::ImageActionsInstaller();
 
   // Without this, clicking in the viewport with a mouse would move the window
   // when undocked.

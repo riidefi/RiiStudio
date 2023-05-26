@@ -16,6 +16,9 @@ void InstallG3d(kpi::ApplicationPlugins& installer);
 namespace riistudio::j3d {
 void InstallJ3d(kpi::ApplicationPlugins& installer);
 }
+namespace riistudio::rhst {
+void InstallRHST();
+}
 
 std::unique_ptr<kpi::IObject> SpawnState(const std::string& type) {
   return kpi::ApplicationPlugins::getInstance()->constructObject(type, nullptr);
@@ -74,14 +77,7 @@ void InitAPI() {
 
   riistudio::g3d::InstallG3d(installer);
   riistudio::j3d::InstallJ3d(installer);
-
-  // TODO: Phase out this system
-
-  // Register plugins
-  for (auto* it = kpi::RegistrationLink::getHead(); it != nullptr;
-       it = it->getLast()) {
-    it->exec(installer);
-  }
+  riistudio::rhst::InstallRHST();
 
   kpi::ReflectionMesh::getInstance()->getDataMesh().compute();
 }

@@ -10,7 +10,6 @@
 namespace kpi {
 
 ApplicationPlugins ApplicationPlugins::sInstance;
-RegistrationLink* RegistrationLink::gRegistrationChain = nullptr;
 
 #ifdef _WIN32
 

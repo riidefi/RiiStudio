@@ -178,4 +178,6 @@ struct ImageSurface final : public ResizeAction, public ReformatAction {
 
 void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex);
 
+void ImageActionsInstaller();
+
 } // namespace libcube::UI
