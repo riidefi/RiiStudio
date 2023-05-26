@@ -21,7 +21,7 @@ jobs:
     - name: SetupRust
       uses: ATiltedTree/setup-rust@v1
       with:
-        rust-version: beta
+        rust-version: nightly
     - name: Install LLVM
       run: choco install -y llvm
       if: runner.os == 'Windows'
