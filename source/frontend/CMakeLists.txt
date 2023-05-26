@@ -86,12 +86,12 @@ add_library(lib_frontend
  "editors/BlightEditor.cpp"
  "editors/BlmapEditor.cpp"
  
-)
+ "properties/gc/Material/AdvTexConv.cpp" "properties/gc/Material/Merge.cpp")
 
 add_executable(frontend 
  "entry.cpp"
   ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc
-)
+ "properties/gc/Material/AdvTexConv.cpp" "properties/gc/Material/Merge.cpp")
 
 set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
