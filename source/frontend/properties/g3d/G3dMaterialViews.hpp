@@ -17,6 +17,7 @@
 #include <frontend/properties/gc/Material/SwapTableSurface.hpp>
 #include <frontend/properties/gc/Polygon/PolyDataSurface.hpp>
 #include <frontend/properties/gc/Polygon/PolyDescriptorSurface.hpp>
+#include <frontend/properties/gc/ShaderView.hpp>
 #include <frontend/properties/gc/TexImageView.hpp>
 #include <frontend/properties/j3d/MaterialView.hpp>
 
@@ -43,6 +44,9 @@ struct G3dMaterialViews {
   libcube::UI::StageSurface stage;
   libcube::UI::SamplerSurface samplers;
   libcube::UI::DisplaySurface surface_visibility;
+#ifdef BUILD_DEBUG
+  libcube::UI::ShaderSurface shader;
+#endif
 };
 struct J3dMaterialViews {
   libcube::UI::ColorSurface colors;
@@ -54,16 +58,30 @@ struct J3dMaterialViews {
   libcube::UI::StageSurface stage;
   libcube::UI::SamplerSurface samplers;
   libcube::UI::DisplaySurface surface_visibility;
+#ifdef BUILD_DEBUG
+  libcube::UI::ShaderSurface shader;
+#endif
 };
 
-struct GcPolygonViews {
+struct G3dPolygonViews {
   libcube::UI::PolyDataSurface index_data;
   libcube::UI::PolyDescriptorSurface vertex_descriptor;
 };
+struct J3dPolygonViews {
+  libcube::UI::PolyDataSurface index_data;
+  libcube::UI::PolyDescriptorSurface vertex_descriptor;
+  riistudio::j3d::ui::ShapeJ3DSurface shape_j3d;
+};
 
-struct GcBoneViews {
+struct G3dBoneViews {
   libcube::UI::BoneDisplaySurface displays;
   libcube::UI::BoneTransformSurface transformation;
+};
+
+struct J3dBoneViews {
+  libcube::UI::BoneDisplaySurface displays;
+  libcube::UI::BoneTransformSurface transformation;
+  riistudio::j3d::ui::BoneJ3DSurface bone_j3d;
 };
 
 struct G3dSrtViews {
@@ -74,9 +92,26 @@ struct G3dVcViews {
   riistudio::g3d::G3dVertexColorQuantSurface quant;
 };
 
-struct GcTexViews {
+struct G3dTexViews {
+  libcube::UI::ImageSurface image;
+  riistudio::g3d::ui::G3DTexDataSurface tds;
+};
+struct J3dTexViews {
   libcube::UI::ImageSurface image;
 };
+struct G3dMdlViews {
+  riistudio::g3d::ui::G3DMdlDataSurface ms;
+};
+struct J3dMdlViews {
+  riistudio::j3d::ui::ModelJ3DSurface ms;
+};
+
+// TODO:
+// [X] BoneJ3DSurface
+// [X] ShapeJ3DSurface
+// [X] ModelJ3DSurface
+// [X] G3DMdlDataSurface
+// [X] G3DTexDataSurface
 
 std::vector<std::string> Views_TabTitles(auto&& view) {
   std::vector<std::string> titles;

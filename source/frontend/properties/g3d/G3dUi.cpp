@@ -51,10 +51,4 @@ void drawProperty(kpi::PropertyDelegate<Model>& delegate, G3DMdlDataSurface) {
   ImGui::Text("Number of faces: %u\n", nTri);
 }
 
-kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins&) {
-  auto& inst = kpi::PropertyViewManager::getInstance();
-  inst.addPropertyView<Model, G3DMdlDataSurface>();
-  inst.addPropertyView<Texture, G3DTexDataSurface, true>();
-});
-
 } // namespace riistudio::g3d::ui

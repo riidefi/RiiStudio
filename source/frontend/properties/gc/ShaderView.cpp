@@ -1,29 +1,10 @@
-#include <core/3d/i3dmodel.hpp>
-#include <LibBadUIFramework/PropertyView.hpp>
-#include <imcxx/Widgets.hpp>
-
-#include <vendor/ImGuiColorTextEdit/TextEditor.h>
+#include "ShaderView.hpp"
 
 #include <sstream>
 
 namespace libcube::UI {
 
-struct ShaderSurface final {
-  static inline const char* name() { return "Pixel Shader"_j; };
-  static inline const char* icon = (const char*)ICON_FA_CODE;
-
-  // Mark this surface to be more than an IDL tag.
-  int tag_stateful = 1;
-
-  TextEditor editor;
-  riistudio::lib3d::Material* matKey = nullptr;
-
-  ShaderSurface() {
-    editor.SetLanguageDefinition(TextEditor::LanguageDefinition::GLSL());
-  }
-};
-
-void drawProperty(kpi::PropertyDelegate<riistudio::lib3d::Material>& delegate,
+void drawProperty(kpi::PropertyDelegate<libcube::IGCMaterial>& delegate,
                   ShaderSurface& surface) {
   auto& mat = delegate.getActive();
 
@@ -75,10 +56,5 @@ void drawProperty(kpi::PropertyDelegate<riistudio::lib3d::Material>& delegate,
       text != mat.cachedPixelShader.c_str())
     mat.cachedPixelShader = text;
 }
-
-#ifdef BUILD_DEBUG
-kpi::RegisterPropertyView<riistudio::lib3d::Material, ShaderSurface>
-    ShaderSurfaceInstaller;
-#endif
 
 } // namespace libcube::UI

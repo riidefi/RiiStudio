@@ -212,11 +212,4 @@ void drawProperty(kpi::PropertyDelegate<j3d::Model>& dl, ModelJ3DSurface) {
   }
 }
 
-kpi::DecentralizedInstaller Installer([](kpi::ApplicationPlugins&) {
-  auto& inst = kpi::PropertyViewManager::getInstance();
-  inst.addPropertyView<Joint, BoneJ3DSurface>();
-  inst.addPropertyView<Shape, ShapeJ3DSurface>();
-  inst.addPropertyView<Model, ModelJ3DSurface>();
-});
-
 } // namespace riistudio::j3d::ui

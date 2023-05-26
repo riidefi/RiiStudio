@@ -89,6 +89,14 @@ private:
   void draw_() override;
 
   std::vector<std::string> TabTitles() override {
+    auto* g3dmdl = dynamic_cast<riistudio::g3d::Model*>(mSelection.mActive);
+    if (g3dmdl != nullptr) {
+      return Views_TabTitles(mG3dMdlView);
+    }
+    auto* j3dmdl = dynamic_cast<riistudio::j3d::Model*>(mSelection.mActive);
+    if (j3dmdl != nullptr) {
+      return Views_TabTitles(mJ3dMdlView);
+    }
     auto* g3dmat = dynamic_cast<riistudio::g3d::Material*>(mSelection.mActive);
     if (g3dmat != nullptr) {
       return Views_TabTitles(mG3dMatView);
@@ -97,13 +105,21 @@ private:
     if (j3dmat != nullptr) {
       return Views_TabTitles(mJ3dMatView);
     }
-    auto* gcpoly = dynamic_cast<libcube::IndexedPolygon*>(mSelection.mActive);
-    if (gcpoly != nullptr) {
-      return Views_TabTitles(mGcPolyView);
+    auto* g3poly = dynamic_cast<g3d::Polygon*>(mSelection.mActive);
+    if (g3poly != nullptr) {
+      return Views_TabTitles(mG3dPolyView);
     }
-    auto* gcbone = dynamic_cast<libcube::IBoneDelegate*>(mSelection.mActive);
-    if (gcbone != nullptr) {
-      return Views_TabTitles(mGcBoneView);
+    auto* j3poly = dynamic_cast<j3d::Shape*>(mSelection.mActive);
+    if (j3poly != nullptr) {
+      return Views_TabTitles(mJ3dPolyView);
+    }
+    auto* g3bone = dynamic_cast<g3d::Bone*>(mSelection.mActive);
+    if (g3bone != nullptr) {
+      return Views_TabTitles(mG3dBoneView);
+    }
+    auto* j3bone = dynamic_cast<j3d::Joint*>(mSelection.mActive);
+    if (j3bone != nullptr) {
+      return Views_TabTitles(mJ3dBoneView);
     }
     auto* g3dvc =
         dynamic_cast<riistudio::g3d::ColorBuffer*>(mSelection.mActive);
@@ -114,9 +130,13 @@ private:
     if (g3dsrt != nullptr) {
       return Views_TabTitles(mG3dSrtView);
     }
-    auto* lt = dynamic_cast<libcube::Texture*>(mSelection.mActive);
-    if (lt != nullptr) {
-      return Views_TabTitles(mGcTexView);
+    auto* g3tex = dynamic_cast<g3d::Texture*>(mSelection.mActive);
+    if (g3tex != nullptr) {
+      return Views_TabTitles(mG3dTexView);
+    }
+    auto* j3tex = dynamic_cast<j3d::Texture*>(mSelection.mActive);
+    if (j3tex != nullptr) {
+      return Views_TabTitles(mG3dTexView);
     }
     return PropertyViewManager_TabTitles(*mSelection.mActive);
   }
@@ -124,6 +144,22 @@ private:
     auto postUpdate = [&]() { mHandler.bCommitPosted = true; };
     auto commit = [&](const char*) { mHost.commit(mRoot); };
 
+    auto* g3dmdl = dynamic_cast<g3d::Model*>(mSelection.mActive);
+    if (g3dmdl != nullptr) {
+      auto dl = kpi::MakeDelegate<g3d::Model>(postUpdate, commit, g3dmdl,
+                                              selected, &ed);
+      auto ok = Views_Tab(mG3dMdlView, dl, index);
+      mHandler.handleUpdates(mHost, mRoot);
+      return ok;
+    }
+    auto* j3dmdl = dynamic_cast<j3d::Model*>(mSelection.mActive);
+    if (j3dmdl != nullptr) {
+      auto dl = kpi::MakeDelegate<j3d::Model>(postUpdate, commit, j3dmdl,
+                                              selected, &ed);
+      auto ok = Views_Tab(mJ3dMdlView, dl, index);
+      mHandler.handleUpdates(mHost, mRoot);
+      return ok;
+    }
     auto* g3dmat = dynamic_cast<riistudio::g3d::Material*>(mSelection.mActive);
     if (g3dmat != nullptr) {
       auto dl = kpi::MakeDelegate<riistudio::g3d::Material>(
@@ -142,19 +178,39 @@ private:
       mHandler.handleUpdates(mHost, mRoot);
       return ok;
     }
-    auto* gcpoly = dynamic_cast<libcube::IndexedPolygon*>(mSelection.mActive);
-    if (gcpoly != nullptr) {
-      auto dl = kpi::MakeDelegate<libcube::IndexedPolygon>(
-          postUpdate, commit, gcpoly, selected, &ed);
-      auto ok = Views_Tab(mGcPolyView, dl, index);
+    auto* g3poly = dynamic_cast<riistudio::g3d::Polygon*>(mSelection.mActive);
+    if (g3poly != nullptr) {
+      auto dl = kpi::MakeDelegate<riistudio::g3d::Polygon>(
+          postUpdate, commit, g3poly, selected, &ed);
+      auto cv = CovariantPD<g3d::Polygon, libcube::IndexedPolygon>::from(dl);
+      auto ok = Views_Tab(mG3dPolyView, cv, index);
       mHandler.handleUpdates(mHost, mRoot);
       return ok;
     }
-    auto* gcbone = dynamic_cast<libcube::IBoneDelegate*>(mSelection.mActive);
-    if (gcbone != nullptr) {
-      auto dl = kpi::MakeDelegate<libcube::IBoneDelegate>(
-          postUpdate, commit, gcbone, selected, &ed);
-      auto ok = Views_Tab(mGcBoneView, dl, index);
+    auto* j3poly = dynamic_cast<riistudio::j3d::Shape*>(mSelection.mActive);
+    if (j3poly != nullptr) {
+      auto dl = kpi::MakeDelegate<riistudio::j3d::Shape>(postUpdate, commit,
+                                                         j3poly, selected, &ed);
+      auto cv = CovariantPD<j3d::Shape, libcube::IndexedPolygon>::from(dl);
+      auto ok = Views_Tab(mJ3dPolyView, cv, index);
+      mHandler.handleUpdates(mHost, mRoot);
+      return ok;
+    }
+    auto* j3bone = dynamic_cast<riistudio::j3d::Joint*>(mSelection.mActive);
+    if (j3bone != nullptr) {
+      auto dl = kpi::MakeDelegate<riistudio::j3d::Joint>(postUpdate, commit,
+                                                         j3bone, selected, &ed);
+      auto cv = CovariantPD<j3d::Joint, libcube::IBoneDelegate>::from(dl);
+      auto ok = Views_Tab(mJ3dBoneView, cv, index);
+      mHandler.handleUpdates(mHost, mRoot);
+      return ok;
+    }
+    auto* g3bone = dynamic_cast<riistudio::g3d::Bone*>(mSelection.mActive);
+    if (g3bone != nullptr) {
+      auto dl = kpi::MakeDelegate<riistudio::g3d::Bone>(postUpdate, commit,
+                                                        g3bone, selected, &ed);
+      auto cv = CovariantPD<g3d::Bone, libcube::IBoneDelegate>::from(dl);
+      auto ok = Views_Tab(mG3dBoneView, cv, index);
       mHandler.handleUpdates(mHost, mRoot);
       return ok;
     }
@@ -174,11 +230,21 @@ private:
       mHandler.handleUpdates(mHost, mRoot);
       return ok;
     }
-    auto* lt = dynamic_cast<libcube::Texture*>(mSelection.mActive);
-    if (lt != nullptr) {
-      auto dl = kpi::MakeDelegate<libcube::Texture>(postUpdate, commit, lt,
-                                                    selected, &ed);
-      auto ok = Views_Tab(mGcTexView, dl, index);
+    auto* g3tex = dynamic_cast<g3d::Texture*>(mSelection.mActive);
+    if (g3tex != nullptr) {
+      auto dl = kpi::MakeDelegate<g3d::Texture>(postUpdate, commit, g3tex,
+                                                selected, &ed);
+      auto cv = CovariantPD<g3d::Texture, libcube::Texture>::from(dl);
+      auto ok = Views_Tab(mG3dTexView, cv, index);
+      mHandler.handleUpdates(mHost, mRoot);
+      return ok;
+    }
+    auto* j3tex = dynamic_cast<j3d::Texture*>(mSelection.mActive);
+    if (j3tex != nullptr) {
+      auto dl = kpi::MakeDelegate<j3d::Texture>(postUpdate, commit, j3tex,
+                                                selected, &ed);
+      auto cv = CovariantPD<j3d::Texture, libcube::Texture>::from(dl);
+      auto ok = Views_Tab(mJ3dTexView, cv, index);
       mHandler.handleUpdates(mHost, mRoot);
       return ok;
     }
@@ -194,14 +260,19 @@ private:
   kpi::PropertyViewStateHolder state_holder;
   std::vector<kpi::IObject*> selected;
 
+  riistudio::G3dMdlViews mG3dMdlView;
   riistudio::G3dMaterialViews mG3dMatView;
-  riistudio::J3dMaterialViews mJ3dMatView;
-  riistudio::GcPolygonViews mGcPolyView;
-  riistudio::GcBoneViews mGcBoneView;
-  riistudio::GcTexViews mGcTexView;
-
+  riistudio::G3dPolygonViews mG3dPolyView;
+  riistudio::G3dBoneViews mG3dBoneView;
+  riistudio::G3dTexViews mG3dTexView;
   riistudio::G3dVcViews mG3dVcView;
   riistudio::G3dSrtViews mG3dSrtView;
+
+  riistudio::J3dMdlViews mJ3dMdlView;
+  riistudio::J3dMaterialViews mJ3dMatView;
+  riistudio::J3dPolygonViews mJ3dPolyView;
+  riistudio::J3dBoneViews mJ3dBoneView;
+  riistudio::J3dTexViews mJ3dTexView;
 
   CommitHandler mHandler{false, mHost, mRoot};
 };
