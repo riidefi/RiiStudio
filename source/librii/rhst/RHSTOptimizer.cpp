@@ -1,8 +1,8 @@
-#include "HaroohieTriStripifier.hpp"
 #include "IndexBuffer.hpp"
 #include "MeshUtils.hpp"
 #include "RHST.hpp"
 #include "TriFanMeshOptimizer.hpp"
+#include <rsmeshopt/HaroohieTriStripifier.hpp>
 
 #include <draco/mesh/mesh_stripifier.h>
 #include <meshoptimizer.h>

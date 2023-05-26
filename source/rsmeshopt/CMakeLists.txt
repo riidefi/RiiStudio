@@ -13,5 +13,7 @@ file(GLOB_RECURSE SRC_FILES
 
 add_library(rsmeshopt STATIC
   ${SRC_FILES}
- "RsMeshOpt.cpp")
+  "HaroohieTriStripifier.cpp"
+  "RsMeshOpt.cpp"
+)
 target_link_libraries(rsmeshopt PUBLIC core range-v3 riistudio_rs vendor)

@@ -1,3 +1,5 @@
+// Based on jelle/Gericom's implementation
+
 #include "HaroohieTriStripifier.hpp"
 
 namespace HaroohiePals {
