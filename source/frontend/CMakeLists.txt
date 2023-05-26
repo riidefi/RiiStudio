@@ -140,27 +140,7 @@ elseif (UNIX AND NOT APPLE)
 	target_link_libraries(frontend PUBLIC ${BZIP2_LIBRARY})
 endif()
 
-# Decentralized installers based on initialization of static objects
-#
-# The clang-tidy way would be:
-#
-#   (In the module)
-#   > volatile int MyModuleAnchorSource = 0;
-#
-#   (In the main binary)
-#   > extern volatile int MyModuleAnchorSource;
-#   > static int MyModuleAnchorDestination = MyModuleAnchorSource;
-#
-# I really don't like it.
-#
-if (MSVC)
-  # clang-cl
-  if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-defaultlib:libcmt /WHOLEARCHIVE:source\\plugins\\plugins.lib")
-  else()
-	  SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "/WHOLEARCHIVE:plugins")
-  endif()
-else()
+if (NOT MSVC)
   if (APPLE)
     execute_process(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE)
     message(STATUS "Architecture: ${ARCHITECTURE}")
@@ -181,8 +161,6 @@ else()
     SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lfreetype -lstdc++ -lm")
     # This is a hack to append a final link arg
     target_link_libraries(frontend PUBLIC "-Wl,--end-group")
-  else()
-    # SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "--whole_archive")
   endif()
   # TODO: Not functional (yet)
 	#add_link_options("-s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind")

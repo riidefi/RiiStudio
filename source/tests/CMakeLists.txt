@@ -67,36 +67,11 @@ elseif(UNIX)
 	target_link_libraries(tests PUBLIC ${BZIP2_LIBRARY})
 endif()
 
-# Decentralized installers based on initialization of static objects
-#
-# The clang-tidy way would be:
-#
-#   (In the module)
-#   > volatile int MyModuleAnchorSource = 0;
-#
-#   (In the main binary)
-#   > extern volatile int MyModuleAnchorSource;
-#   > static int MyModuleAnchorDestination = MyModuleAnchorSource;
-#
-# I really don't like it.
-#
-if (MSVC)
-  # clang-cl
-  if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-defaultlib:libcmt /WHOLEARCHIVE:source\\plugins\\plugins.lib")
-  else()
-	  SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "/WHOLEARCHIVE:plugins")
-  endif()
-else()
-  if (APPLE)
-  elseif (UNIX)
-    # --start-group, --end-group allows circular dependencies among object files
-    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lfreetype -lstdc++ -lm -lpthread")
-    # This is a hack to append a final link arg
-    target_link_libraries(tests PUBLIC "-Wl,--end-group")
-  else()
-    # SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "--whole_archive")
-  endif()
+if (UNIX)
+  # --start-group, --end-group allows circular dependencies among object files
+  SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lfreetype -lstdc++ -lm -lpthread")
+  # This is a hack to append a final link arg
+  target_link_libraries(tests PUBLIC "-Wl,--end-group")
 endif()
 
 # DLLs for windows
