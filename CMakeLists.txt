@@ -129,57 +129,6 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 endif()
 
 
-add_compile_definitions(FMT_EXCEPTIONS=0)
-CPMAddPackage("gh:fmtlib/fmt#9.1.0")
-CPMAddPackage("gh:zeux/meshoptimizer#v0.18")
-
-set(DRACO_BACKWARDS_COMPATIBILITY OFF)
-set(DRACO_POINT_CLOUD_COMPRESSION OFF)
-if (UNIX AND NOT APPLE)
-# Windows CI issue with ftello
-CPMAddPackage("gh:google/draco#1.5.6")
-else()
-# GCC leaky headers issues
-CPMAddPackage("gh:google/draco#1.5.5")
-endif()
-
-# Doesn't work OOB -- requires exceptions
-if (FALSE)
-  CPMAddPackage(
-    NAME cppcoro
-    GIT_REPOSITORY https://github.com/lewissbaker/cppcoro
-    GIT_TAG master
-    DOWNLOAD_ONLY YES
-  )
-  if (cppcoro_ADDED)
-    FILE(GLOB cppcoro_sources ${cppcoro_SOURCE_DIR}/lib/*.cpp)
-    add_library(cppcoro STATIC ${cppcoro_sources})
-    target_include_directories(cppcoro
-    PUBLIC
-      $<BUILD_INTERFACE:${cppcoro_SOURCE_DIR}/include>
-    )
-  endif()
-endif()
-
-# Doesn't work OOB -- they explicitly block Clang
-if (FALSE)
-  set(LIBCORO_BUILD_TESTS OFF)
-  set(LIBCORO_CODE_COVERAGE OFF)
-  set(LIBCORO_BUILD_EXAMPLES OFF)
-  CPMAddPackage("gh:jbaldwin/libcoro#main")
-  target_include_directories(libcoro
-  PUBLIC
-    $<BUILD_INTERFACE:${libcoro_SOURCE_DIR}/inc>
-  )
-endif()
-
-CPMAddPackage("gh:seleznevae/libfort@0.4.2")
-
-CPMAddPackage("gh:jorgen/json_struct#master")
-
-# Apple doesn't support views::chunk yet
-CPMAddPackage("gh:ericniebler/range-v3#0.12.0")
-
 add_definitions(-DINCLUDE_RUST_HEADERS)
 
 if (APPLE)
