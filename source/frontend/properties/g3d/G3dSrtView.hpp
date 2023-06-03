@@ -5,6 +5,7 @@
 #include <imcxx/Widgets.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
+#include "G3dSrtCurveEditor.hpp"
 
 namespace riistudio::g3d {
 
