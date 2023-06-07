@@ -13,8 +13,45 @@ using librii::math::map;
 
 namespace riistudio::g3d {
 
+typedef int KeyframeIndex;
+
+class KeyframeIndexSelection {
+private:
+  std::unordered_set<KeyframeIndex> m_selected;
+  std::optional<KeyframeIndex> m_active;
+
+public:
+  KeyframeIndexSelection() : m_selected(), m_active() {}
+
+  void select(KeyframeIndex item, bool set_active = false) {
+    m_selected.insert(item);
+    if (set_active)
+      m_active = item;
+  }
+
+  void deselect(KeyframeIndex item) {
+    if (m_selected.contains(item))
+      m_selected.erase(item);
+
+    if (m_active == item)
+      m_active = std::optional<KeyframeIndex>();
+  }
+
+  void clear() {
+    m_selected.clear();
+    m_active = std::optional<KeyframeIndex>();
+  }
+
+  bool is_selected(KeyframeIndex item) { return m_selected.contains(item); }
+
+  bool is_active(KeyframeIndex item) { return item == m_active; }
+
+  std::optional<KeyframeIndex> get_active() { return m_active; }
+};
+
 void srt_curve_editor(std::string id, ImVec2 size,
-                      librii::g3d::SrtAnim::Track* track, float track_duration);
+                      librii::g3d::SrtAnim::Track* track, float track_duration,
+                      KeyframeIndexSelection* keyframe_selection);
 
 struct ControlPointPositions {
   ImVec2 keyframe;
@@ -31,6 +68,7 @@ public:
     ImRect viewport;
     librii::g3d::SrtAnim::Track* track;
     float track_duration;
+    KeyframeIndexSelection* keyframe_selection;
 
     float left() { return viewport.Min.x; }
     float top() { return viewport.Min.y; }
@@ -47,27 +85,40 @@ private:
 
   struct HoveredPart {
   private:
+    struct KeyframePart {
+      KeyframeIndex keyframe;
+      bool is_right_control_point;
+    };
+    struct CurvePoint {
+      float frame;
+      float value;
+    };
+
+    union Part {
+      KeyframePart keyframe;
+      CurvePoint curvepoint;
+    };
+
     int m_type;
-    SRT0KeyFrame m_key_frame;
-    bool m_is_right_control_point;
+    Part m_;
 
   public:
     static HoveredPart None();
     bool is_None();
 
-    static HoveredPart Keyframe(SRT0KeyFrame& keyframe);
-    bool is_Keyframe(SRT0KeyFrame& keyframe);
+    static HoveredPart Keyframe(KeyframeIndex keyframe);
+    bool is_Keyframe(KeyframeIndex& keyframe);
     bool is_Keyframe();
 
-    static HoveredPart ControlPoint(SRT0KeyFrame& keyframe, bool is_right);
-    bool is_ControlPoint(SRT0KeyFrame& keyframe, bool& is_right);
+    static HoveredPart ControlPoint(KeyframeIndex keyframe, bool is_right);
+    bool is_ControlPoint(KeyframeIndex& keyframe, bool& is_right);
     bool is_ControlPoint();
 
-	static HoveredPart CurvePoint(float frame, float value);
+    static HoveredPart CurvePoint(float frame, float value);
     bool is_CurvePoint(float& frame, float& value);
     bool is_CurvePoint();
 
-    bool is_keyframe_part(SRT0KeyFrame& keyframe,
+    bool is_keyframe_part(KeyframeIndex& keyframe,
                           ControlPointPos& control_point);
 
     bool is_keyframe_part();
@@ -90,7 +141,19 @@ private:
     }
   };
 
-  static std::map<std::string, CurveEditor> s_curve_editors;
+  // stores very redundant data, that's intended
+  struct KeyframeState {
+    SRT0KeyFrame keyframe;
+    bool is_selected;
+    bool is_active;
+    bool is_dragged;
+
+    bool operator<(KeyframeState& other) {
+      return keyframe.frame < other.keyframe.frame;
+    }
+  };
+
+  static std::unordered_map<std::string, CurveEditor> s_curve_editors;
 
   HoveredPart m_dragged_item;
   EditorView m_view;
@@ -120,13 +183,34 @@ private:
     return map(value, top_value(), bottom_value(), c.top(), c.bottom());
   }
 
-  void handle_dragging_keyframe(GuiFrameContext& c, SRT0KeyFrame& keyframe,
-                                ControlPointPos control_point,
+  void handle_dragging_keyframe(GuiFrameContext& c,
                                 ControlPointPositions* pos_array);
+
+  void end_dragging_keyframe(GuiFrameContext& c);
+
+  void delete_keyframe(GuiFrameContext& c, KeyframeIndex idx);
+  void sort_keyframes(GuiFrameContext& c);
+
   void handle_zooming(GuiFrameContext& c);
   void handle_panning(GuiFrameContext& c);
   void handle_auto_scrolling(GuiFrameContext& c);
   void keep_anim_area_in_view(GuiFrameContext& c);
+
+  void create_keyframe_state_vector(GuiFrameContext& c,
+                                    std::vector<KeyframeState>& out);
+  void update_from_keyframe_state_vector(GuiFrameContext& c,
+                                         std::vector<KeyframeState>& v);
+
+  bool is_keyframe_dragged(GuiFrameContext& c, KeyframeIndex keyframe) {
+    KeyframeIndex dragged_keyframe;
+
+    if (!m_dragged_item.is_Keyframe(dragged_keyframe))
+      return false;
+
+    return keyframe == dragged_keyframe ||
+           (c.keyframe_selection->is_selected(dragged_keyframe) &&
+            c.keyframe_selection->is_selected(keyframe));
+  }
 
   ImVec2 calc_tangent_intersection(GuiFrameContext& c, SRT0KeyFrame& keyframe,
                                    float intersection_frame);
@@ -135,13 +219,13 @@ private:
                                     ControlPointPositions* dest_array,
                                     int maxsize);
 
-  HoveredPart hit_test_keyframe(GuiFrameContext& c, SRT0KeyFrame& keyframe,
+  HoveredPart hit_test_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                                 ControlPointPositions& positions);
 
   void draw_curve(GuiFrameContext& c, ControlPointPositions* pos_array);
   float sample_curve(GuiFrameContext& c, float frame);
 
-  void draw_keyframe(GuiFrameContext& c, SRT0KeyFrame& keyframe,
+  void draw_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                      ControlPointPositions& positions,
                      HoveredPart& hovered_part);
 

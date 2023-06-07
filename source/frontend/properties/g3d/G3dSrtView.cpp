@@ -216,9 +216,23 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
 
       float top_of_row = ImGui::GetCursorPosY();
 
-      int i = 0;
+      static auto editor_selections{
+          std::unordered_map<std::string, KeyframeIndexSelection>()};
 
-      auto& keyframe = track->at(i);
+      KeyframeIndexSelection selection;
+
+      auto found = editor_selections.find(kfStringId);
+      if (found == editor_selections.end()) {
+        selection = KeyframeIndexSelection();
+      } else {
+        selection = editor_selections.at(found->first);
+      }
+
+      int active_idx = -1;
+      auto active = selection.get_active();
+      if (active) {
+        active_idx = *active;
+      }
 
       ImGui::PushID(kfStringId.c_str());
       RSL_DEFER(ImGui::PopID());
@@ -226,20 +240,32 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
       ImGui::TableSetColumnIndex(2);
 
       ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-      ImGui::Text("Keyframe %d", static_cast<int>(i));
-      ImGui::SameLine();
-      auto title =
-          std::format("{}##{}", (const char*)ICON_FA_TIMES_CIRCLE, kfStringId);
-      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-      if (ImGui::Button(title.c_str())) {
-        track->erase(track->begin() + i);
+
+      if (active_idx > -1) {
+        ImGui::Text("Keyframe %d", static_cast<int>(active_idx));
+        ImGui::SameLine();
+        auto title = std::format("{}##{}", (const char*)ICON_FA_TIMES_CIRCLE,
+                                 kfStringId);
+
+        auto& keyframe = track->at(active_idx);
+
+		bool delete_keyframe = false;
+
+        if (ImGui::Button(title.c_str())) {
+          track->erase(track->begin() + active_idx);
+          delete_keyframe = true;
+        }
+        ImGui::InputFloat("Frame", &keyframe.frame);
+        ImGui::InputFloat("Value", &keyframe.value);
+        ImGui::InputFloat("Tangent", &keyframe.tangent);
+
+		// adjust the selected keyframes if necessary
+        if (delete_keyframe)
+          selection.deselect(active_idx);
+        
+      } else {
+        ImGui::Dummy(ImVec2(0, 100));
       }
-      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-      ImGui::InputFloat("Frame", &keyframe.frame);
-      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-      ImGui::InputFloat("Value", &keyframe.value);
-      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-      ImGui::InputFloat("Tangent", &keyframe.tangent);
 
       ImGui::NewLine();
 
@@ -248,29 +274,9 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
       auto size = ImGui::GetContentRegionAvail();
       size.y = row_height;
 
-	  srt_curve_editor(kfStringId, size, track, frame_duration);
+      srt_curve_editor(kfStringId, size, track, frame_duration, &selection);
 
-      //{
-      //  ImGui::TableSetColumnIndex((track ? track->size() : 0) + 2);
-      //  ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-      //  auto title = std::format("{}##{}{}{}", "    +    ", matName, subtrack,
-      //                           targetMtxId);
-      //  auto avail = ImVec2{ImGui::GetContentRegionAvail().x, 0.0f};
-      //  if (ImGui::Button(title.c_str(), avail)) {
-      //    // Define a new keyframe with default values
-      //    librii::g3d::SRT0KeyFrame newKeyframe;
-      //    newKeyframe.frame = 0.0f;
-      //    newKeyframe.value = 0.0f; // TODO: Grab last if exist
-      //    newKeyframe.tangent = 0.0f;
-
-      //    if (!track) {
-      //      auto& mtx = anim.matrices.emplace_back();
-      //      mtx.target = target;
-      //      track = &(&mtx.matrix.scaleX)[subtrack];
-      //    }
-      //    track->push_back(newKeyframe);
-      //  }
-      //}
+      editor_selections.insert_or_assign(kfStringId, selection);
     }
 
     ImGui::EndTable();

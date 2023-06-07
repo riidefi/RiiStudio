@@ -10,11 +10,14 @@ const ImU32 HoverColor = 0xFF55CCFF;
 const ImU32 KeyframeColor = 0xFFFFFFFF;
 const float KeyframePointRadius = 5;
 const float ControlPointRadius = 3;
+const ImU32 KeyframeActiveOutlineColor = 0xFFFFFF33;
+const ImU32 KeyframeSelectionOutlineColor = 0xFFFF7733;
+const float KeyframeSelectionOutlineThickness = 2;
 
 const ImU32 CursorTextColor = 0xFFFFFFFF;
 const ImVec2 CursorTextOffset = ImVec2(15, 0);
 
-const ImU32 TrackboundsColor = 0x99000000;
+const ImU32 TrackBoundsColor = 0x99000000;
 
 const ImU32 ZeroValueLineColor = 0x66FFFFFF;
 const float ZeroValueLineThickness = 0.5;
@@ -29,8 +32,8 @@ const float MouseDragThreshold = 5;
 namespace riistudio::g3d {
 
 void srt_curve_editor(std::string id, ImVec2 size,
-                      librii::g3d::SrtAnim::Track* track,
-                      float track_duration) {
+                      librii::g3d::SrtAnim::Track* track, float track_duration,
+                      KeyframeIndexSelection* keyframe_selection) {
 
   CurveEditor::GuiFrameContext ctx;
   ctx.dl = ImGui::GetWindowDrawList();
@@ -38,6 +41,7 @@ void srt_curve_editor(std::string id, ImVec2 size,
   ctx.viewport.Max = ctx.viewport.Min + size;
   ctx.track_duration = track_duration;
   ctx.track = track;
+  ctx.keyframe_selection = keyframe_selection;
 
   auto editor = CurveEditor::get_or_init(id, ctx);
   editor.exe_gui(ctx);
@@ -45,11 +49,10 @@ void srt_curve_editor(std::string id, ImVec2 size,
   CurveEditor::update_editor_state(editor);
 }
 
-
 #pragma region CurveEditor impl
 
-std::map<std::string, CurveEditor> CurveEditor::s_curve_editors =
-    std::map<std::string, CurveEditor>();
+std::unordered_map<std::string, CurveEditor> CurveEditor::s_curve_editors =
+    std::unordered_map<std::string, CurveEditor>();
 
 CurveEditor CurveEditor::get_or_init(std::string id, GuiFrameContext& c) {
   EditorView edit_view;
@@ -105,6 +108,11 @@ CurveEditor CurveEditor::get_or_init(std::string id, GuiFrameContext& c) {
 }
 
 void CurveEditor::exe_gui(GuiFrameContext& c) {
+  // REMARK: when modifying the c.track other than push_back or assigning an element you
+  // MUST use create_keyframe_state_vector with update_from_keyframe_state_vector
+  // and modify the state vector in between instead of c.track to ensure that the editor
+  // state and context is still valid afterwards. this includes sorting as well!
+
   if (!ImGui::ItemAdd(c.viewport, m_imgui_id))
     return;
 
@@ -129,36 +137,27 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
     ImGui::ClearActiveID();
   }
 
-  ControlPointPositions pos_array[c.track->size() + 1]; /* make sure to include
-      a spare element in case we add a keyframe this frame */
-
   // handle dragging
 
   float frame, value;
   if (m_dragged_item.is_CurvePoint(frame, value)) {
-
-    // new keyframe is created here (it's added to the curve later)
-
     SRT0KeyFrame keyframe;
     keyframe.frame = frame;
     keyframe.value = value;
     keyframe.tangent = 0;
-    m_dragged_item = HoveredPart::Keyframe(keyframe);
+    c.track->push_back(keyframe);
+    m_dragged_item = HoveredPart::Keyframe(c.track->size() - 1);
   }
 
-  SRT0KeyFrame keyframe;
-  ControlPointPos control_point;
-  if (m_dragged_item.is_keyframe_part(keyframe, control_point))
-    handle_dragging_keyframe(c, keyframe, control_point, pos_array);
+  ControlPointPositions pos_array[c.track->size()];
 
-  // sort keyframes
+  if (m_dragged_item.is_keyframe_part() &&
+      ImGui::IsMouseDragPastThreshold(ImGuiMouseButton_Left,
+                                      MouseDragThreshold)) {
+    handle_dragging_keyframe(c, pos_array);
+  }
 
-  struct by_frame {
-    bool operator()(SRT0KeyFrame const& a, SRT0KeyFrame const& b) const {
-      return a.frame < b.frame;
-    }
-  };
-  std::sort(c.track->begin(), c.track->end(), by_frame());
+  sort_keyframes(c);
 
   // other interactions
 
@@ -185,7 +184,7 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
       hovered_part = HoveredPart::CurvePoint(mouse_pos_frame, sampled_value);
 
     for (int i = 0; i < c.track->size(); i++) {
-      hovered_part |= hit_test_keyframe(c, c.track->at(i), pos_array[i]);
+      hovered_part |= hit_test_keyframe(c, i, pos_array[i]);
     }
   } else {
     // make sure we still call this
@@ -197,6 +196,39 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
   }
 
   if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+    KeyframeIndex keyframe;
+
+    if (is_hovered && !ImGui::IsMouseDragPastThreshold(ImGuiMouseButton_Left,
+                                                       MouseDragThreshold)) {
+
+      // handle click
+
+      if (c.keyframe_selection && m_dragged_item.is_Keyframe(keyframe)) {
+
+        if (ImGui::GetIO().KeyMods == ImGuiModFlags_None) {
+          bool should_select = !c.keyframe_selection->is_active(keyframe);
+
+          c.keyframe_selection->clear();
+
+          if (should_select)
+            c.keyframe_selection->select(keyframe, true);
+        } else if (ImGui::GetIO().KeyMods == ImGuiModFlags_Ctrl) {
+          if (c.keyframe_selection->is_active(keyframe)) {
+            c.keyframe_selection->deselect(keyframe);
+          } else {
+            c.keyframe_selection->select(keyframe, true);
+          }
+        }
+      }
+
+      if (c.keyframe_selection && m_dragged_item.is_None() &&
+          ImGui::GetIO().KeyMods == ImGuiModFlags_None) {
+        c.keyframe_selection->clear();
+      }
+    } else if (m_dragged_item.is_Keyframe()) {
+      end_dragging_keyframe(c);
+    }
+
     m_dragged_item = HoveredPart::None();
   }
 
@@ -217,15 +249,15 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
     draw_curve(c, pos_array);
 
     float frame, value;
-    if (m_dragged_item.is_CurvePoint(frame, value))
+    if (m_dragged_item.is_CurvePoint(frame, value) ||
+        hovered_part.is_CurvePoint(frame, value)) {
+
       c.dl->AddCircleFilled(ImVec2(x_of_frame(c, frame), y_of_value(c, value)),
                             CurvePointRadius, CurveColor);
-    else if (hovered_part.is_CurvePoint(frame, value))
-      c.dl->AddCircleFilled(ImVec2(x_of_frame(c, frame), y_of_value(c, value)),
-                            CurvePointRadius, CurveColor);
+    }
 
     for (int i = 0; i < c.track->size(); i++) {
-      draw_keyframe(c, c.track->at(i), pos_array[i], hovered_part);
+      draw_keyframe(c, i, pos_array[i], hovered_part);
     }
   }
 
@@ -250,93 +282,139 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
   c.dl->PopClipRect();
 }
 
-inline void CurveEditor::handle_dragging_keyframe(
-    GuiFrameContext& c, SRT0KeyFrame& keyframe, ControlPointPos control_point,
-    ControlPointPositions* pos_array) {
+inline void
+CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
+                                      ControlPointPositions* pos_array) {
+  KeyframeIndex dragged_keyframe;
+  ControlPointPos dragged_control_point;
+  assert(
+      m_dragged_item.is_keyframe_part(dragged_keyframe, dragged_control_point));
+
   handle_auto_scrolling(c);
 
   calc_control_point_positions(c, pos_array, c.track->size());
 
   int hovered_part_index = -1;
   auto hovered_part = HoveredPart::None();
+
   for (int i = 0; i < c.track->size(); i++) {
-    if (c.track->at(i) == keyframe)
+    if (is_keyframe_dragged(c, i))
       continue;
 
-    auto _hovered_part = hit_test_keyframe(c, c.track->at(i), pos_array[i]);
+    auto _hovered_part = hit_test_keyframe(c, i, pos_array[i]);
     if (_hovered_part)
       hovered_part_index = i;
 
     hovered_part |= _hovered_part;
   }
 
-  // the dragged keyframe in it's unmodified state, for lookup in the track
-  // before or when updating
-  auto lookup_keyframe = keyframe;
-
-  // not actually a pointer but shh
-  auto item_ptr = std::find(c.track->begin(), c.track->end(), lookup_keyframe);
-  bool not_in_track = (item_ptr == c.track->end());
-
   auto mouse_pos = ImGui::GetMousePos();
-  float mouse_pos_frame = frame_at(c, mouse_pos.x);
-  float mouse_pos_value = value_at(c, mouse_pos.y);
 
-  bool delete_keyframe = false;
+  KeyframeIndex other;
+  bool is_right;
+  if (hovered_part.is_Keyframe()) {
+    mouse_pos = pos_array[hovered_part_index].keyframe;
+  } else if (dragged_control_point != ControlPointPos_Mid &&
+             hovered_part.is_ControlPoint(other, is_right)) {
+    auto point_positions = pos_array[hovered_part_index];
+    mouse_pos = is_right ? point_positions.right : point_positions.left;
+  }
 
-  if (m_dragged_item.is_Keyframe() &&
-      ImGui::IsMouseDragPastThreshold(ImGuiMouseButton_Left,
-                                      MouseDragThreshold)) {
+  if (m_dragged_item.is_Keyframe()) {
+    // support multi keyframe drag
 
-    keyframe.frame = mouse_pos_frame;
-    keyframe.value = mouse_pos_value;
+    float dragged_keyframe_frame = c.track->at(dragged_keyframe).frame;
+    float dragged_keyframe_value = c.track->at(dragged_keyframe).value;
 
-    m_dragged_item = HoveredPart::Keyframe(keyframe);
+    for (int i = 0; i < c.track->size(); i++) {
 
-    if (hovered_part.is_Keyframe())
-      delete_keyframe = true;
+      auto keyframe = c.track->at(i);
+
+      if (!is_keyframe_dragged(c, i))
+        continue;
+
+      float frame_offset = keyframe.frame - dragged_keyframe_frame;
+      float value_offset = keyframe.value - dragged_keyframe_value;
+
+      KeyframeIndex hovered_keyframe;
+      if (hovered_part.is_Keyframe(hovered_keyframe) && i == dragged_keyframe) {
+        /* little hack to ensure the keyframes get assigned the exact frame and
+           value when snapping */
+        keyframe.frame = c.track->at(hovered_keyframe).frame;
+        keyframe.value = c.track->at(hovered_keyframe).value;
+
+      } else {
+        keyframe.frame = frame_at(c, mouse_pos.x) + frame_offset;
+        keyframe.value = value_at(c, mouse_pos.y) + value_offset;
+      }
+
+      c.track->at(i) = keyframe;
+    }
 
   } else if (m_dragged_item.is_ControlPoint()) {
-    float frame = mouse_pos_frame;
-    float value = mouse_pos_value;
+    auto keyframe = c.track->at(dragged_keyframe);
 
-    SRT0KeyFrame other;
-    bool is_right;
-    if (hovered_part.is_Keyframe(other)) {
-      frame = other.frame;
-      value = other.value;
-    } else if (hovered_part.is_ControlPoint(other, is_right)) {
-      auto point_positions = pos_array[hovered_part_index];
-      auto pos = is_right ? point_positions.right : point_positions.left;
-      frame = frame_at(c, pos.x);
-      value = value_at(c, pos.y);
-    }
+    float frame = frame_at(c, mouse_pos.x);
+    float value = value_at(c, mouse_pos.y);
 
     keyframe.tangent = (value - keyframe.value) / (frame - keyframe.frame);
 
-    m_dragged_item = HoveredPart::ControlPoint(
-        keyframe, control_point == ControlPointPos_Right);
+    c.track->at(dragged_keyframe) = keyframe;
   }
+}
 
-  auto is_frame_collision = [&lookup_keyframe,
-                             &keyframe](const SRT0KeyFrame& other) {
-    return lookup_keyframe != other && keyframe.frame == other.frame;
+void CurveEditor::delete_keyframe(GuiFrameContext& c, KeyframeIndex idx) {
+  auto vec = std::vector<KeyframeState>();
+  create_keyframe_state_vector(c, vec);
+
+  vec.erase(vec.begin() + idx);
+
+  update_from_keyframe_state_vector(c, vec);
+}
+
+void CurveEditor::sort_keyframes(GuiFrameContext& c) {
+  struct by_frame {
+    bool operator()(SRT0KeyFrame const& a, SRT0KeyFrame const& b) const {
+      return a.frame < b.frame;
+    }
   };
 
-  if (!delete_keyframe && std::find_if(c.track->begin(), c.track->end(),
-                                       is_frame_collision) != c.track->end()) {
-    delete_keyframe = true;
+  if (std::is_sorted(c.track->begin(), c.track->end(), by_frame()))
+    return;
+
+  auto vec = std::vector<KeyframeState>();
+  create_keyframe_state_vector(c, vec);
+
+  std::sort(vec.begin(), vec.end());
+
+  update_from_keyframe_state_vector(c, vec);
+}
+
+inline void CurveEditor::end_dragging_keyframe(GuiFrameContext& c) {
+  assert(m_dragged_item.is_Keyframe());
+
+  auto dragged_keyframe_frames = std::set<float>();
+
+  for (int i = 0; i < c.track->size(); i++) {
+    if (is_keyframe_dragged(c, i))
+      dragged_keyframe_frames.insert(c.track->at(i).frame);
   }
 
-  if (not_in_track) {
-    if (!delete_keyframe)
-      c.track->push_back(keyframe);
-  } else {
-    if (delete_keyframe)
-      c.track->erase(item_ptr);
-    else
-      *item_ptr = keyframe;
+  int count_before = c.track->size();
+
+  auto vec = std::vector<KeyframeState>();
+  create_keyframe_state_vector(c, vec);
+
+  for (int i = c.track->size() - 1; i >= 0; i--) {
+    auto k = c.track->at(i);
+    if (!is_keyframe_dragged(c, i) && dragged_keyframe_frames.contains(k.frame))
+      vec.erase(vec.begin() + i);
   }
+
+  update_from_keyframe_state_vector(c, vec);
+
+  std::cout << std::format("deleted: {} keyframes\n",
+                           count_before - c.track->size());
 }
 
 inline void CurveEditor::handle_zooming(GuiFrameContext& c) {
@@ -407,6 +485,39 @@ inline void CurveEditor::keep_anim_area_in_view(GuiFrameContext& c) {
     m_view.left_frame = min_frame - (right_frame(c) - left_frame());
 }
 
+void CurveEditor::create_keyframe_state_vector(
+    GuiFrameContext& c, std::vector<CurveEditor::KeyframeState>& out) {
+  out = std::vector<KeyframeState>(c.track->size());
+  for (int i = 0; i < c.track->size(); i++) {
+    out[i].keyframe = c.track->at(i);
+    out[i].is_selected = c.keyframe_selection->is_selected(i);
+    out[i].is_active = c.keyframe_selection->is_active(i);
+
+    KeyframeIndex keyframe;
+    out[i].is_dragged = (m_dragged_item.is_Keyframe(keyframe) && keyframe == i);
+  }
+}
+
+void CurveEditor::update_from_keyframe_state_vector(
+    GuiFrameContext& c, std::vector<CurveEditor::KeyframeState>& vec) {
+
+  c.track->resize(vec.size());
+
+  c.keyframe_selection->clear();
+
+  if (m_dragged_item.is_Keyframe())
+    m_dragged_item = HoveredPart::None();
+
+  for (int i = 0; i < vec.size(); i++) {
+    c.track->at(i) = vec[i].keyframe;
+    if (vec[i].is_selected)
+      c.keyframe_selection->select(i, vec[i].is_active);
+
+    if (vec[i].is_dragged)
+      m_dragged_item = HoveredPart::Keyframe(i);
+  }
+}
+
 inline ImVec2 CurveEditor::calc_tangent_intersection(GuiFrameContext& c,
                                                      SRT0KeyFrame& keyframe,
                                                      float intersection_frame) {
@@ -418,16 +529,56 @@ inline ImVec2 CurveEditor::calc_tangent_intersection(GuiFrameContext& c,
 
 void CurveEditor::calc_control_point_positions(
     GuiFrameContext& c, ControlPointPositions* dest_array, int max_size) {
+
   typedef std::optional<SRT0KeyFrame> Optional;
+  typedef std::optional<KeyframeIndex> OptionalIdx;
+
+  struct OverlapGroup {
+    float frame;
+    float value;
+    OptionalIdx resolve_keyframe;
+    int begin;
+    Optional left;
+  };
+
+  auto calc = [this, &c](Optional left, SRT0KeyFrame mid, Optional right) {
+    ControlPointPositions cpp;
+    cpp.left = ImVec2(0 / 0.0, 0 / 0.0);
+    cpp.right = ImVec2(0 / 0.0, 0 / 0.0);
+
+    cpp.keyframe = ImVec2(x_of_frame(c, mid.frame), y_of_value(c, mid.value));
+
+    if (left) {
+      cpp.left =
+          calc_tangent_intersection(c, mid, (mid.frame + left->frame) / 2);
+    }
+
+    if (right) {
+      cpp.right =
+          calc_tangent_intersection(c, mid, (mid.frame + right->frame) / 2);
+    }
+
+    return cpp;
+  };
 
   if (c.track->empty())
     return;
+
+  OverlapGroup overlap_group;
+  overlap_group.frame = c.track->at(0).frame;
+  overlap_group.value = c.track->at(0).value;
+  overlap_group.resolve_keyframe = OptionalIdx();
+  overlap_group.begin = 0;
+  overlap_group.left = Optional();
 
   auto left = Optional();
   auto mid = Optional();
   auto right = Optional(c.track->at(0));
 
   for (int i = 1; i < c.track->size() + 1; i++) {
+    int mid_keyframe_idx = i - 1;
+    int right_keyframe_idx = i;
+
     left = mid;
     mid = right;
     right = Optional();
@@ -435,28 +586,48 @@ void CurveEditor::calc_control_point_positions(
     if (i < c.track->size())
       right = c.track->at(i);
 
-    ImVec2 handle_pos_left(0 / 0.0, 0 / 0.0);
-    ImVec2 handle_pos_right(0 / 0.0, 0 / 0.0);
-
     assert(mid);
 
-    ImVec2 handle_pos_keyframe(x_of_frame(c, mid->frame),
-                               y_of_value(c, mid->value));
+    auto cpp = calc(left, *mid, right);
 
-    if (left) {
-      handle_pos_left =
-          calc_tangent_intersection(c, *mid, (mid->frame + left->frame) / 2);
+    assert(mid_keyframe_idx < max_size);
+
+    dest_array[mid_keyframe_idx] = cpp;
+
+    // handle overlapping keyframes
+
+    if (is_keyframe_dragged(c, mid_keyframe_idx)) {
+      overlap_group.resolve_keyframe = mid_keyframe_idx;
     }
 
-    if (right) {
-      handle_pos_right =
-          calc_tangent_intersection(c, *mid, (mid->frame + right->frame) / 2);
-    }
+    if (!right || right->frame != overlap_group.frame ||
+        right->value != overlap_group.value) {
+      // overlap group endend
 
-    assert(i - 1 < max_size);
-    dest_array[i - 1].keyframe = handle_pos_keyframe;
-    dest_array[i - 1].left = handle_pos_left;
-    dest_array[i - 1].right = handle_pos_right;
+      if (overlap_group.resolve_keyframe) {
+        // resolve overlap with data of resolve keyframe
+        int resolve_keyframe = *overlap_group.resolve_keyframe;
+        for (int j = overlap_group.begin; j < right_keyframe_idx; j++) {
+
+          // make sure that the resolve keyframe is valid for resovling
+          assert(c.track->at(j).frame == c.track->at(resolve_keyframe).frame &&
+                 c.track->at(j).value == c.track->at(resolve_keyframe).value);
+
+          auto _mid = c.track->at(resolve_keyframe);
+
+          dest_array[j] = calc(overlap_group.left, _mid, right);
+        }
+      }
+
+      // begin new overlap group
+      if (right) {
+        overlap_group.begin = right_keyframe_idx;
+        overlap_group.frame = right->frame;
+        overlap_group.value = right->value;
+        overlap_group.resolve_keyframe = OptionalIdx();
+        overlap_group.left = mid;
+      }
+    }
   }
 }
 
@@ -467,7 +638,7 @@ inline bool hit_test_circle(ImVec2 point, ImVec2 center, float radius) {
 }
 
 CurveEditor::HoveredPart
-CurveEditor::hit_test_keyframe(GuiFrameContext& c, SRT0KeyFrame& keyframe,
+CurveEditor::hit_test_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                                ControlPointPositions& positions) {
   auto mouse_pos = ImGui::GetMousePos();
 
@@ -546,14 +717,23 @@ inline float CurveEditor::sample_curve(GuiFrameContext& c, float frame) {
   return right.value + (frame - right.frame) * right.tangent;
 }
 
-void CurveEditor::draw_keyframe(GuiFrameContext& c, SRT0KeyFrame& keyframe,
+void CurveEditor::draw_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                                 ControlPointPositions& positions,
                                 HoveredPart& hovered_part) {
+
+  if (c.keyframe_selection && c.keyframe_selection->is_selected(keyframe)) {
+    c.dl->AddCircleFilled(positions.keyframe,
+                          KeyframePointRadius +
+                              KeyframeSelectionOutlineThickness,
+                          c.keyframe_selection->is_active(keyframe)
+                              ? KeyframeActiveOutlineColor
+                              : KeyframeSelectionOutlineColor);
+  }
 
   if (positions.has_left()) {
     c.dl->AddLine(positions.keyframe, positions.left, KeyframeColor, 1.2);
 
-    SRT0KeyFrame _keyframe;
+    KeyframeIndex _keyframe;
     bool is_right;
     bool hovered = hovered_part.is_ControlPoint(_keyframe, is_right) &&
                    keyframe == _keyframe && !is_right;
@@ -564,7 +744,7 @@ void CurveEditor::draw_keyframe(GuiFrameContext& c, SRT0KeyFrame& keyframe,
   if (positions.has_right()) {
     c.dl->AddLine(positions.keyframe, positions.right, KeyframeColor, 1.2);
 
-    SRT0KeyFrame _keyframe;
+    KeyframeIndex _keyframe;
     bool is_right;
     bool hovered = hovered_part.is_ControlPoint(_keyframe, is_right) &&
                    keyframe == _keyframe && is_right;
@@ -573,7 +753,7 @@ void CurveEditor::draw_keyframe(GuiFrameContext& c, SRT0KeyFrame& keyframe,
   }
 
   // draw keyframe
-  SRT0KeyFrame _keyframe;
+  KeyframeIndex _keyframe;
   bool hovered = hovered_part.is_Keyframe(_keyframe) && keyframe == _keyframe;
   c.dl->AddCircleFilled(positions.keyframe, KeyframePointRadius,
                         hovered ? HoverColor : KeyframeColor);
@@ -586,11 +766,11 @@ inline void CurveEditor::draw_track_bounds(GuiFrameContext& c) {
 
   if (min_frame_x > c.left())
     c.dl->AddRectFilled(ImVec2(c.left(), c.top()),
-                        ImVec2(min_frame_x, c.bottom()), TrackboundsColor);
+                        ImVec2(min_frame_x, c.bottom()), TrackBoundsColor);
 
   if (max_frame_x < c.right())
     c.dl->AddRectFilled(ImVec2(max_frame_x, c.top()),
-                        ImVec2(c.right(), c.bottom()), TrackboundsColor);
+                        ImVec2(c.right(), c.bottom()), TrackBoundsColor);
 }
 
 #pragma endregion
@@ -605,33 +785,34 @@ CurveEditor::HoveredPart CurveEditor::HoveredPart::None() {
 bool CurveEditor::HoveredPart::is_None() { return m_type == 1; }
 
 CurveEditor::HoveredPart
-CurveEditor::HoveredPart::Keyframe(SRT0KeyFrame& keyframe) {
+CurveEditor::HoveredPart::Keyframe(KeyframeIndex keyframe) {
   auto part = HoveredPart();
   part.m_type = 2;
-  part.m_key_frame = keyframe;
+  part.m_.keyframe.keyframe = keyframe;
   return part;
 }
 inline bool CurveEditor::HoveredPart::is_Keyframe() { return m_type == 2; }
 
-bool CurveEditor::HoveredPart::is_Keyframe(SRT0KeyFrame& keyframe) {
-  keyframe = m_key_frame;
+bool CurveEditor::HoveredPart::is_Keyframe(KeyframeIndex& keyframe) {
+  keyframe = m_.keyframe.keyframe;
   return is_Keyframe();
 }
 
 CurveEditor::HoveredPart
-CurveEditor::HoveredPart::ControlPoint(SRT0KeyFrame& keyframe, bool is_right) {
+CurveEditor::HoveredPart::ControlPoint(const KeyframeIndex keyframe,
+                                       bool is_right) {
   auto part = HoveredPart();
   part.m_type = 3;
-  part.m_key_frame = keyframe;
-  part.m_is_right_control_point = is_right;
+  part.m_.keyframe.keyframe = keyframe;
+  part.m_.keyframe.is_right_control_point = is_right;
   return part;
 }
 inline bool CurveEditor::HoveredPart::is_ControlPoint() { return m_type == 3; }
 
-bool CurveEditor::HoveredPart::is_ControlPoint(SRT0KeyFrame& keyframe,
+bool CurveEditor::HoveredPart::is_ControlPoint(KeyframeIndex& keyframe,
                                                bool& is_right) {
-  keyframe = m_key_frame;
-  is_right = m_is_right_control_point;
+  keyframe = m_.keyframe.keyframe;
+  is_right = m_.keyframe.is_right_control_point;
   return is_ControlPoint();
 }
 
@@ -639,16 +820,16 @@ inline bool CurveEditor::HoveredPart::is_keyframe_part() {
   return m_type == 2 || m_type == 3;
 }
 bool CurveEditor::HoveredPart::is_keyframe_part(
-    SRT0KeyFrame& keyframe, ControlPointPos& control_point) {
+    KeyframeIndex& keyframe, ControlPointPos& control_point) {
   if (m_type == 2) {
-    keyframe = m_key_frame;
+    keyframe = m_.keyframe.keyframe;
     control_point = ControlPointPos_Mid;
     return true;
   }
   if (m_type == 3) {
-    keyframe = m_key_frame;
-    control_point =
-        m_is_right_control_point ? ControlPointPos_Right : ControlPointPos_Left;
+    keyframe = m_.keyframe.keyframe;
+    control_point = m_.keyframe.is_right_control_point ? ControlPointPos_Right
+                                                       : ControlPointPos_Left;
     return true;
   }
 
@@ -659,14 +840,14 @@ CurveEditor::HoveredPart CurveEditor::HoveredPart::CurvePoint(float frame,
                                                               float value) {
   auto part = HoveredPart();
   part.m_type = 4;
-  part.m_key_frame.frame = frame;
-  part.m_key_frame.value = value;
+  part.m_.curvepoint.frame = frame;
+  part.m_.curvepoint.value = value;
   return part;
 }
 bool CurveEditor::HoveredPart::is_CurvePoint() { return m_type == 4; }
 bool CurveEditor::HoveredPart::is_CurvePoint(float& frame, float& value) {
-  frame = m_key_frame.frame;
-  value = m_key_frame.value;
+  frame = m_.curvepoint.frame;
+  value = m_.curvepoint.value;
   return is_CurvePoint();
 }
 
