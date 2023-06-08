@@ -86,16 +86,16 @@ CurveEditor CurveEditor::get_or_init(std::string id, GuiFrameContext& c) {
     }
 
     // left controlpoint
-    if (positions.has_left()) {
-      float value = edit.value_at(c, positions.left.y);
+    if (positions.left) {
+      float value = edit.value_at(c, positions.left->y);
 
       edit_view.bottom_value = std::min(edit_view.bottom_value, value);
       edit_view.top_value = std::max(edit_view.top_value, value);
     }
 
     // right controlpoint
-    if (positions.has_right()) {
-      float value = edit.value_at(c, positions.right.y);
+    if (positions.right) {
+      float value = edit.value_at(c, positions.right->y);
 
       edit_view.bottom_value = std::min(edit_view.bottom_value, value);
       edit_view.top_value = std::max(edit_view.top_value, value);
@@ -108,10 +108,11 @@ CurveEditor CurveEditor::get_or_init(std::string id, GuiFrameContext& c) {
 }
 
 void CurveEditor::exe_gui(GuiFrameContext& c) {
-  // REMARK: when modifying the c.track other than push_back or assigning an element you
-  // MUST use create_keyframe_state_vector with update_from_keyframe_state_vector
-  // and modify the state vector in between instead of c.track to ensure that the editor
-  // state and context is still valid afterwards. this includes sorting as well!
+  // REMARK: when modifying the c.track other than push_back or assigning an
+  // element you MUST use create_keyframe_state_vector with
+  // update_from_keyframe_state_vector and modify the state vector in between
+  // instead of c.track to ensure that the editor state and context is still
+  // valid afterwards. this includes sorting as well!
 
   if (!ImGui::ItemAdd(c.viewport, m_imgui_id))
     return;
@@ -317,7 +318,14 @@ CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
   } else if (dragged_control_point != ControlPointPos_Mid &&
              hovered_part.is_ControlPoint(other, is_right)) {
     auto point_positions = pos_array[hovered_part_index];
-    mouse_pos = is_right ? point_positions.right : point_positions.left;
+
+    if (is_right) {
+      assert(point_positions.right);
+      mouse_pos = *point_positions.right;
+    } else {
+      assert(point_positions.left);
+      mouse_pos = *point_positions.left;
+    }
   }
 
   if (m_dragged_item.is_Keyframe()) {
@@ -644,12 +652,12 @@ CurveEditor::hit_test_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
 
   auto hovered_part = HoveredPart::None();
 
-  if (positions.has_left() &&
-      hit_test_circle(mouse_pos, positions.left, ControlPointRadius))
+  if (positions.left &&
+      hit_test_circle(mouse_pos, *positions.left, ControlPointRadius))
     hovered_part |= HoveredPart::ControlPoint(keyframe, false);
 
-  if (positions.has_right() &&
-      hit_test_circle(mouse_pos, positions.right, ControlPointRadius))
+  if (positions.right &&
+      hit_test_circle(mouse_pos, *positions.right, ControlPointRadius))
     hovered_part |= HoveredPart::ControlPoint(keyframe, true);
 
   if (hit_test_circle(mouse_pos, positions.keyframe, KeyframePointRadius))
@@ -678,9 +686,12 @@ inline void CurveEditor::draw_curve(GuiFrameContext& c,
     auto left = pos_array[i - 1];
     auto right = pos_array[i];
 
+    if (!left.right && !right.left)
+      continue;
+
     c.dl->AddBezierCubic(
-        left.keyframe, left.keyframe + (left.right - left.keyframe) * 2 / 3.0,
-        right.keyframe + (right.left - right.keyframe) * 2 / 3.0,
+        left.keyframe, left.keyframe + (*left.right - left.keyframe) * 2 / 3.0,
+        right.keyframe + (*right.left - right.keyframe) * 2 / 3.0,
         right.keyframe, CurveColor,
         CurveLineThickness); /* this is apperantly how the hermite
                   curves translate to bezier*/
@@ -730,25 +741,25 @@ void CurveEditor::draw_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                               : KeyframeSelectionOutlineColor);
   }
 
-  if (positions.has_left()) {
-    c.dl->AddLine(positions.keyframe, positions.left, KeyframeColor, 1.2);
+  if (positions.left) {
+    c.dl->AddLine(positions.keyframe, *positions.left, KeyframeColor, 1.2);
 
     KeyframeIndex _keyframe;
     bool is_right;
     bool hovered = hovered_part.is_ControlPoint(_keyframe, is_right) &&
                    keyframe == _keyframe && !is_right;
-    c.dl->AddCircleFilled(positions.left, ControlPointRadius,
+    c.dl->AddCircleFilled(*positions.left, ControlPointRadius,
                           hovered ? HoverColor : KeyframeColor);
   }
 
-  if (positions.has_right()) {
-    c.dl->AddLine(positions.keyframe, positions.right, KeyframeColor, 1.2);
+  if (positions.right) {
+    c.dl->AddLine(positions.keyframe, *positions.right, KeyframeColor, 1.2);
 
     KeyframeIndex _keyframe;
     bool is_right;
     bool hovered = hovered_part.is_ControlPoint(_keyframe, is_right) &&
                    keyframe == _keyframe && is_right;
-    c.dl->AddCircleFilled(positions.right, ControlPointRadius,
+    c.dl->AddCircleFilled(*positions.right, ControlPointRadius,
                           hovered ? HoverColor : KeyframeColor);
   }
 

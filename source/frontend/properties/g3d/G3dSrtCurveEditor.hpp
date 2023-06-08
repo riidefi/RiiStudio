@@ -55,10 +55,8 @@ void srt_curve_editor(std::string id, ImVec2 size,
 
 struct ControlPointPositions {
   ImVec2 keyframe;
-  ImVec2 left;
-  ImVec2 right;
-  bool has_left() { return !isnan(left.x); }
-  bool has_right() { return !isnan(right.x); }
+  std::optional<ImVec2> left;
+  std::optional < ImVec2> right;
 };
 
 class CurveEditor {
