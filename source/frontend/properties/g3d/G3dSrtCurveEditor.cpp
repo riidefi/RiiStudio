@@ -283,7 +283,7 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
   c.dl->PopClipRect();
 }
 
-inline void
+void
 CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
                                       ControlPointPositions* pos_array) {
   KeyframeIndex dragged_keyframe;
@@ -398,7 +398,7 @@ void CurveEditor::sort_keyframes(GuiFrameContext& c) {
   update_from_keyframe_state_vector(c, vec);
 }
 
-inline void CurveEditor::end_dragging_keyframe(GuiFrameContext& c) {
+void CurveEditor::end_dragging_keyframe(GuiFrameContext& c) {
   assert(m_dragged_item.is_Keyframe());
 
   auto dragged_keyframe_frames = std::set<float>();
@@ -425,7 +425,7 @@ inline void CurveEditor::end_dragging_keyframe(GuiFrameContext& c) {
                            count_before - c.track->size());
 }
 
-inline void CurveEditor::handle_zooming(GuiFrameContext& c) {
+void CurveEditor::handle_zooming(GuiFrameContext& c) {
   if (!ImGui::GetIO().KeyCtrl)
     return;
 
@@ -449,7 +449,7 @@ inline void CurveEditor::handle_zooming(GuiFrameContext& c) {
   }
 }
 
-inline void CurveEditor::handle_panning(GuiFrameContext& c) {
+void CurveEditor::handle_panning(GuiFrameContext& c) {
   auto mouse_delta = ImGui::GetIO().MouseDelta;
   float mouse_delta_frame = mouse_delta.x / m_view.frame_width;
   float mouse_delta_value =
@@ -460,7 +460,7 @@ inline void CurveEditor::handle_panning(GuiFrameContext& c) {
   m_view.bottom_value -= mouse_delta_value;
 }
 
-inline void CurveEditor::handle_auto_scrolling(GuiFrameContext& c) {
+void CurveEditor::handle_auto_scrolling(GuiFrameContext& c) {
   auto mouse_pos = ImGui::GetMousePos();
 
   float mouse_pos_frame = frame_at(c, mouse_pos.x);
@@ -483,7 +483,7 @@ inline void CurveEditor::handle_auto_scrolling(GuiFrameContext& c) {
   m_view.bottom_value += scrollYDeltaValue;
 }
 
-inline void CurveEditor::keep_anim_area_in_view(GuiFrameContext& c) {
+void CurveEditor::keep_anim_area_in_view(GuiFrameContext& c) {
   float min_frame = 0;
   float max_frame = c.track_duration;
 
@@ -526,7 +526,7 @@ void CurveEditor::update_from_keyframe_state_vector(
   }
 }
 
-inline ImVec2 CurveEditor::calc_tangent_intersection(GuiFrameContext& c,
+ImVec2 CurveEditor::calc_tangent_intersection(GuiFrameContext& c,
                                                      SRT0KeyFrame& keyframe,
                                                      float intersection_frame) {
   return ImVec2(
@@ -639,7 +639,7 @@ void CurveEditor::calc_control_point_positions(
   }
 }
 
-inline bool hit_test_circle(ImVec2 point, ImVec2 center, float radius) {
+bool hit_test_circle(ImVec2 point, ImVec2 center, float radius) {
   float x = point.x - center.x;
   float y = point.y - center.y;
   return (x * x + y * y) < radius * radius;
@@ -666,7 +666,7 @@ CurveEditor::hit_test_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
   return hovered_part;
 }
 
-inline void CurveEditor::draw_curve(GuiFrameContext& c,
+void CurveEditor::draw_curve(GuiFrameContext& c,
                                     ControlPointPositions* pos_array) {
   assert(!c.track->empty());
 
@@ -698,7 +698,7 @@ inline void CurveEditor::draw_curve(GuiFrameContext& c,
   }
 }
 
-inline float CurveEditor::sample_curve(GuiFrameContext& c, float frame) {
+float CurveEditor::sample_curve(GuiFrameContext& c, float frame) {
   assert(!c.track->empty());
 
   auto left = c.track->at(0);
@@ -770,7 +770,7 @@ void CurveEditor::draw_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                         hovered ? HoverColor : KeyframeColor);
 }
 
-inline void CurveEditor::draw_track_bounds(GuiFrameContext& c) {
+void CurveEditor::draw_track_bounds(GuiFrameContext& c) {
   float min_frame_x = map(0, left_frame(), right_frame(c), c.left(), c.right());
   float max_frame_x =
       map(c.track_duration, left_frame(), right_frame(c), c.left(), c.right());
@@ -802,7 +802,7 @@ CurveEditor::HoveredPart::Keyframe(KeyframeIndex keyframe) {
   part.m_.keyframe.keyframe = keyframe;
   return part;
 }
-inline bool CurveEditor::HoveredPart::is_Keyframe() { return m_type == 2; }
+bool CurveEditor::HoveredPart::is_Keyframe() { return m_type == 2; }
 
 bool CurveEditor::HoveredPart::is_Keyframe(KeyframeIndex& keyframe) {
   keyframe = m_.keyframe.keyframe;
@@ -818,7 +818,7 @@ CurveEditor::HoveredPart::ControlPoint(const KeyframeIndex keyframe,
   part.m_.keyframe.is_right_control_point = is_right;
   return part;
 }
-inline bool CurveEditor::HoveredPart::is_ControlPoint() { return m_type == 3; }
+bool CurveEditor::HoveredPart::is_ControlPoint() { return m_type == 3; }
 
 bool CurveEditor::HoveredPart::is_ControlPoint(KeyframeIndex& keyframe,
                                                bool& is_right) {
@@ -827,7 +827,7 @@ bool CurveEditor::HoveredPart::is_ControlPoint(KeyframeIndex& keyframe,
   return is_ControlPoint();
 }
 
-inline bool CurveEditor::HoveredPart::is_keyframe_part() {
+bool CurveEditor::HoveredPart::is_keyframe_part() {
   return m_type == 2 || m_type == 3;
 }
 bool CurveEditor::HoveredPart::is_keyframe_part(

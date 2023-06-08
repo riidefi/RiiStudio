@@ -158,12 +158,12 @@ private:
   std::string m_id;
   short m_imgui_id;
 
-  inline float left_frame() { return m_view.left_frame; }
-  inline float right_frame(GuiFrameContext& c) {
+  float left_frame() { return m_view.left_frame; }
+  float right_frame(GuiFrameContext& c) {
     return m_view.right_frame(c.viewport);
   }
-  inline float top_value() { return m_view.top_value; }
-  inline float bottom_value() { return m_view.bottom_value; }
+  float top_value() { return m_view.top_value; }
+  float bottom_value() { return m_view.bottom_value; }
 
   float frame_at(GuiFrameContext& c, float x) {
     return map(x, c.left(), c.right(), left_frame(), right_frame(c));
