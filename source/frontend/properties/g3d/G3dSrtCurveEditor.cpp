@@ -35,11 +35,14 @@ using librii::math::map;
 
 namespace riistudio::g3d {
 
+std::unordered_map<std::string, CurveEditor> global_curve_editors =
+    std::unordered_map<std::string, CurveEditor>();
+
 void srt_curve_editor(std::string id, ImVec2 size,
                       librii::g3d::SrtAnim::Track* track, float track_duration,
                       KeyframeIndexSelection* keyframe_selection) {
 
-  CurveEditor::GuiFrameContext ctx;
+  GuiFrameContext ctx;
   ctx.dl = ImGui::GetWindowDrawList();
   ctx.viewport.Min = ImGui::GetCursorScreenPos();
   ctx.viewport.Max = ctx.viewport.Min + size;
@@ -47,23 +50,24 @@ void srt_curve_editor(std::string id, ImVec2 size,
   ctx.track = track;
   ctx.keyframe_selection = keyframe_selection;
 
-  auto editor = CurveEditor::get_or_init(id, ctx);
+
+  CurveEditor editor;
+
+  auto found = global_curve_editors.find(id);
+  if (found != global_curve_editors.end())
+    editor = global_curve_editors.at(found->first);
+  else
+    editor = CurveEditor::create_and_init(id, ctx);
+
   editor.exe_gui(ctx);
 
-  CurveEditor::update_editor_state(editor);
+  global_curve_editors.insert_or_assign(id, editor);
 }
 
 #pragma region CurveEditor impl
 
-std::unordered_map<std::string, CurveEditor> CurveEditor::s_curve_editors =
-    std::unordered_map<std::string, CurveEditor>();
-
-CurveEditor CurveEditor::get_or_init(std::string id, GuiFrameContext& c) {
+CurveEditor CurveEditor::create_and_init(std::string id, GuiFrameContext& c) {
   EditorView edit_view;
-
-  auto found = s_curve_editors.find(id);
-  if (found != s_curve_editors.end())
-    return s_curve_editors.at(found->first);
 
   // intialize curve editor state
   edit_view.left_frame = 0;
@@ -288,7 +292,7 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
 }
 
 void CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
-                                      ControlPointPositions* pos_array) {
+                                           ControlPointPositions* pos_array) {
   KeyframeIndex dragged_keyframe;
   ControlPointPos dragged_control_point;
   assert(
@@ -318,7 +322,7 @@ void CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
   bool is_right;
   if (hovered_part.is_Keyframe()) {
     mouse_pos = pos_array[hovered_part_index].keyframe;
-  } else if (dragged_control_point != ControlPointPos_Mid &&
+  } else if (dragged_control_point != ControlPointPos::Mid &&
              hovered_part.is_ControlPoint(other, is_right)) {
     auto point_positions = pos_array[hovered_part_index];
 
@@ -530,8 +534,8 @@ void CurveEditor::update_from_keyframe_state_vector(
 }
 
 ImVec2 CurveEditor::calc_tangent_intersection(GuiFrameContext& c,
-                                                     SRT0KeyFrame& keyframe,
-                                                     float intersection_frame) {
+                                              SRT0KeyFrame& keyframe,
+                                              float intersection_frame) {
   return ImVec2(
       x_of_frame(c, intersection_frame),
       y_of_value(c, keyframe.value + (intersection_frame - keyframe.frame) *
@@ -670,7 +674,7 @@ CurveEditor::hit_test_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
 }
 
 void CurveEditor::draw_curve(GuiFrameContext& c,
-                                    ControlPointPositions* pos_array) {
+                             ControlPointPositions* pos_array) {
   assert(!c.track->empty());
 
   if (c.track->at(0).frame > left_frame()) {
@@ -831,13 +835,13 @@ bool CurveEditor::HoveredPart::is_keyframe_part(
     KeyframeIndex& keyframe, ControlPointPos& control_point) {
   if (m_type == 2) {
     keyframe = m_.keyframe.keyframe;
-    control_point = ControlPointPos_Mid;
+    control_point = ControlPointPos::Mid;
     return true;
   }
   if (m_type == 3) {
     keyframe = m_.keyframe.keyframe;
-    control_point = m_.keyframe.is_right_control_point ? ControlPointPos_Right
-                                                       : ControlPointPos_Left;
+    control_point = m_.keyframe.is_right_control_point ? ControlPointPos::Right
+                                                       : ControlPointPos::Left;
     return true;
   }
 

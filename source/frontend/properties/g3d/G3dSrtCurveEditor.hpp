@@ -50,32 +50,54 @@ void srt_curve_editor(std::string id, ImVec2 size,
                       librii::g3d::SrtAnim::Track* track, float track_duration,
                       KeyframeIndexSelection* keyframe_selection);
 
-struct ControlPointPositions {
-  ImVec2 keyframe;
-  std::optional<ImVec2> left;
-  std::optional < ImVec2> right;
+struct GuiFrameContext {
+  ImDrawList* dl;
+  ImRect viewport;
+  librii::g3d::SrtAnim::Track* track;
+  float track_duration;
+  KeyframeIndexSelection* keyframe_selection;
+
+  float left() { return viewport.Min.x; }
+  float top() { return viewport.Min.y; }
+  float right() { return viewport.Max.x; }
+  float bottom() { return viewport.Max.y; }
+};
+
+struct EditorView {
+  float left_frame;
+  float top_value;
+  float bottom_value;
+  float frame_width;
+
+  float right_frame(ImRect viewport) {
+    return left_frame + viewport.GetWidth() / frame_width;
+  }
 };
 
 class CurveEditor {
 public:
-  struct GuiFrameContext {
-    ImDrawList* dl;
-    ImRect viewport;
-    librii::g3d::SrtAnim::Track* track;
-    float track_duration;
-    KeyframeIndexSelection* keyframe_selection;
+  CurveEditor() = default;
+  void exe_gui(GuiFrameContext& c);
 
-    float left() { return viewport.Min.x; }
-    float top() { return viewport.Min.y; }
-    float right() { return viewport.Max.x; }
-    float bottom() { return viewport.Max.y; }
+  static CurveEditor create_and_init(std::string id, GuiFrameContext& c);
+
+  CurveEditor(const EditorView& m_view, std::string id) : m_view(m_view) {
+    m_dragged_item = HoveredPart::None();
+    m_id = id;
+    m_imgui_id = ImGui::GetID(id.c_str());
   };
 
 private:
   enum ControlPointPos {
-    ControlPointPos_Left,
-    ControlPointPos_Mid,
-    ControlPointPos_Right,
+    Left,
+    Mid,
+    Right,
+  };
+
+  struct ControlPointPositions {
+    ImVec2 keyframe;
+    std::optional<ImVec2> left;
+    std::optional<ImVec2> right;
   };
 
   struct HoveredPart {
@@ -125,17 +147,6 @@ private:
     }
   };
 
-  struct EditorView {
-    float left_frame;
-    float top_value;
-    float bottom_value;
-    float frame_width;
-
-    float right_frame(ImRect viewport) {
-      return left_frame + viewport.GetWidth() / frame_width;
-    }
-  };
-
   // stores very redundant data, that's intended
   struct KeyframeState {
     librii::g3d::SRT0KeyFrame keyframe;
@@ -148,12 +159,10 @@ private:
     }
   };
 
-  static std::unordered_map<std::string, CurveEditor> s_curve_editors;
-
   HoveredPart m_dragged_item;
   EditorView m_view;
   std::string m_id;
-  short m_imgui_id;
+  short m_imgui_id = -1;
 
   float left_frame() { return m_view.left_frame; }
   float right_frame(GuiFrameContext& c) {
@@ -162,7 +171,7 @@ private:
   float top_value() { return m_view.top_value; }
   float bottom_value() { return m_view.bottom_value; }
 
-  #define map librii::math::map
+#define map librii::math::map
   float frame_at(GuiFrameContext& c, float x) {
     return map(x, c.left(), c.right(), left_frame(), right_frame(c));
   }
@@ -178,7 +187,7 @@ private:
   float y_of_value(GuiFrameContext& c, float value) {
     return map(value, top_value(), bottom_value(), c.top(), c.bottom());
   }
-  #undef map
+#undef map
 
   void handle_dragging_keyframe(GuiFrameContext& c,
                                 ControlPointPositions* pos_array);
@@ -228,20 +237,6 @@ private:
                      HoveredPart& hovered_part);
 
   void draw_track_bounds(GuiFrameContext& c);
-
-public:
-  void exe_gui(GuiFrameContext& c);
-
-  static void update_editor_state(CurveEditor& edit) {
-    s_curve_editors.insert_or_assign(edit.m_id, edit);
-  }
-  static CurveEditor get_or_init(std::string id, GuiFrameContext& c);
-
-  CurveEditor(const EditorView& m_view, std::string id) : m_view(m_view) {
-    m_dragged_item = HoveredPart::None();
-    m_id = id;
-    m_imgui_id = ImGui::GetID(id.c_str());
-  };
 };
 
 } // namespace riistudio::g3d
