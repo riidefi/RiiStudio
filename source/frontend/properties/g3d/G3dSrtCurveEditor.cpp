@@ -29,6 +29,10 @@ const float EditView_ZoomFactorAutoScrollDeltaFactor = 0.2;
 
 const float MouseDragThreshold = 5;
 
+using namespace librii::g3d;
+using librii::math::hermite;
+using librii::math::map;
+
 namespace riistudio::g3d {
 
 void srt_curve_editor(std::string id, ImVec2 size,
@@ -283,8 +287,7 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
   c.dl->PopClipRect();
 }
 
-void
-CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
+void CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
                                       ControlPointPositions* pos_array) {
   KeyframeIndex dragged_keyframe;
   ControlPointPos dragged_control_point;
@@ -710,19 +713,13 @@ float CurveEditor::sample_curve(GuiFrameContext& c, float frame) {
   for (int i = 1; i < c.track->size(); i++) {
     right = c.track->at(i);
 
-    // hermite interpolation
-    float t = map(frame, left.frame, right.frame, 0, 1);
-    if (t < 0 || t > 1) {
+    if (frame < left.frame || frame > right.frame) {
       left = right;
       continue;
     }
 
-    float inv_t = t - 1.0f; //-1 to 0
-
-    return left.value +
-           (frame - left.frame) * inv_t *
-               (inv_t * left.tangent + t * right.tangent) +
-           t * t * (3.0f - 2.0f * t) * (right.value - left.value);
+    return hermite(frame, left.frame, left.value, left.tangent, right.frame,
+                   right.value, right.tangent);
   }
 
   return right.value + (frame - right.frame) * right.tangent;

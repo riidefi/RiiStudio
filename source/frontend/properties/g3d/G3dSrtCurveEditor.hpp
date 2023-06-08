@@ -8,9 +8,6 @@
 #include <plugins/g3d/collection.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
-using namespace librii::g3d;
-using librii::math::map;
-
 namespace riistudio::g3d {
 
 typedef int KeyframeIndex;
@@ -141,7 +138,7 @@ private:
 
   // stores very redundant data, that's intended
   struct KeyframeState {
-    SRT0KeyFrame keyframe;
+    librii::g3d::SRT0KeyFrame keyframe;
     bool is_selected;
     bool is_active;
     bool is_dragged;
@@ -165,6 +162,7 @@ private:
   float top_value() { return m_view.top_value; }
   float bottom_value() { return m_view.bottom_value; }
 
+  #define map librii::math::map
   float frame_at(GuiFrameContext& c, float x) {
     return map(x, c.left(), c.right(), left_frame(), right_frame(c));
   }
@@ -180,6 +178,7 @@ private:
   float y_of_value(GuiFrameContext& c, float value) {
     return map(value, top_value(), bottom_value(), c.top(), c.bottom());
   }
+  #undef map
 
   void handle_dragging_keyframe(GuiFrameContext& c,
                                 ControlPointPositions* pos_array);
@@ -210,7 +209,8 @@ private:
             c.keyframe_selection->is_selected(keyframe));
   }
 
-  ImVec2 calc_tangent_intersection(GuiFrameContext& c, SRT0KeyFrame& keyframe,
+  ImVec2 calc_tangent_intersection(GuiFrameContext& c,
+                                   librii::g3d::SRT0KeyFrame& keyframe,
                                    float intersection_frame);
 
   void calc_control_point_positions(GuiFrameContext& c,
