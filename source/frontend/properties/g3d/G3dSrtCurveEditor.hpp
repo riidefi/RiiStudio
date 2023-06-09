@@ -215,7 +215,6 @@ private:
 
   void end_dragging_keyframe(GuiFrameContext& c);
 
-  void delete_keyframe(GuiFrameContext& c, KeyframeIndex idx);
   void sort_keyframes(GuiFrameContext& c);
 
   void handle_zooming(GuiFrameContext& c);

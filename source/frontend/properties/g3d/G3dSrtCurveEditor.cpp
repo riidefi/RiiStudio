@@ -405,23 +405,9 @@ void CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
   }
 }
 
-void CurveEditor::delete_keyframe(GuiFrameContext& c, KeyframeIndex idx) {
-  auto vec = std::vector<KeyframeState>();
-  create_keyframe_state_vector(c, vec);
-
-  vec.erase(vec.begin() + idx);
-
-  update_from_keyframe_state_vector(c, vec);
-}
-
 void CurveEditor::sort_keyframes(GuiFrameContext& c) {
-  struct by_frame {
-    bool operator()(SRT0KeyFrame const& a, SRT0KeyFrame const& b) const {
-      return a.frame < b.frame;
-    }
-  };
-
-  if (std::is_sorted(c.track->begin(), c.track->end(), by_frame()))
+  auto by_frame = [](auto& a, auto& b) { return a.frame < b.frame; };
+  if (std::is_sorted(c.track->begin(), c.track->end(), by_frame))
     return;
 
   auto vec = std::vector<KeyframeState>();
