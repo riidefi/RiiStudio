@@ -248,14 +248,7 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
   c.dl->AddLine(ImVec2(c.left(), y), ImVec2(c.right(), y), ZeroValueLineColor,
                 ZeroValueLineThickness);
 
-  if (c.track->empty()) {
-    // draw curve as a simple line with constant value 0
-    c.dl->AddLine(ImVec2(c.left(), y_of_value(c, 0)),
-                  ImVec2(c.right(), y_of_value(c, 0)), CurveColor,
-                  CurveLineThickness);
-  } else {
-    draw_curve(c, pos_array);
-
+  {
     float frame, value;
     if (m_dragged_item.is_CurvePoint(frame, value) ||
         hovered_part.is_CurvePoint(frame, value)) {
@@ -263,6 +256,15 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
       c.dl->AddCircleFilled(ImVec2(x_of_frame(c, frame), y_of_value(c, value)),
                             CurvePointRadius, CurveColor);
     }
+  }
+
+  if (c.track->empty()) {
+    // draw curve as a simple line with constant value 0
+    c.dl->AddLine(ImVec2(c.left(), y_of_value(c, 0)),
+                  ImVec2(c.right(), y_of_value(c, 0)), CurveColor,
+                  CurveLineThickness);
+  } else {
+    draw_curve(c, pos_array);
 
     for (int i = 0; i < c.track->size(); i++) {
       draw_keyframe(c, i, pos_array[i], hovered_part);
