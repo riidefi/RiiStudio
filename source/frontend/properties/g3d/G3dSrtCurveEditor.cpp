@@ -305,7 +305,8 @@ void CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
   auto hovered_part = HoveredPart::None();
 
   for (int i = 0; i < c.track->size(); i++) {
-    if (is_keyframe_dragged(c, i))
+    if (is_keyframe_dragged(c, i) ||
+        i == dragged_keyframe /*when control point is dragged*/)
       continue;
 
     auto _hovered_part = hit_test_keyframe(c, i, pos_array[i]);
@@ -317,12 +318,13 @@ void CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
 
   auto mouse_pos = ImGui::GetMousePos();
 
-  KeyframeIndex other;
+  KeyframeIndex hovered_keyframe;
   bool is_right;
   if (hovered_part.is_Keyframe()) {
     mouse_pos = pos_array[hovered_part_index].keyframe;
+
   } else if (dragged_control_point != ControlPointPos::Mid &&
-             hovered_part.is_ControlPoint(other, is_right)) {
+             hovered_part.is_ControlPoint(hovered_keyframe, is_right)) {
     auto point_positions = pos_array[hovered_part_index];
 
     if (is_right) {
@@ -371,7 +373,10 @@ void CurveEditor::handle_dragging_keyframe(GuiFrameContext& c,
     float frame = frame_at(c, mouse_pos.x);
     float value = value_at(c, mouse_pos.y);
 
-    keyframe.tangent = (value - keyframe.value) / (frame - keyframe.frame);
+    float new_tangent = (value - keyframe.value) / (frame - keyframe.frame);
+
+    if (!std::isnan(new_tangent) && !std::isinf(new_tangent))
+      keyframe.tangent = new_tangent;
 
     c.track->at(dragged_keyframe) = keyframe;
   }
