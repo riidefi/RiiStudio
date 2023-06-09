@@ -50,7 +50,6 @@ void srt_curve_editor(std::string id, ImVec2 size,
   ctx.track = track;
   ctx.keyframe_selection = keyframe_selection;
 
-
   CurveEditor editor;
 
   auto found = global_curve_editors.find(id);
@@ -545,13 +544,12 @@ ImVec2 CurveEditor::calc_tangent_intersection(GuiFrameContext& c,
 void CurveEditor::calc_control_point_positions(
     GuiFrameContext& c, ControlPointPositions* dest_array, int max_size) {
 
-  typedef std::optional<SRT0KeyFrame> Optional;
-  typedef std::optional<KeyframeIndex> OptionalIdx;
+  using Optional = std::optional<SRT0KeyFrame>;
 
   struct OverlapGroup {
     float frame;
     float value;
-    OptionalIdx resolve_keyframe;
+    Optional resolve_keyframe;
     int begin;
     Optional left;
   };
@@ -582,13 +580,13 @@ void CurveEditor::calc_control_point_positions(
   OverlapGroup overlap_group;
   overlap_group.frame = c.track->at(0).frame;
   overlap_group.value = c.track->at(0).value;
-  overlap_group.resolve_keyframe = OptionalIdx();
+  overlap_group.resolve_keyframe = std::nullopt;
   overlap_group.begin = 0;
-  overlap_group.left = Optional();
+  overlap_group.left = std::nullopt;
 
-  auto left = Optional();
-  auto mid = Optional();
-  auto right = Optional(c.track->at(0));
+  Optional left = std::nullopt;
+  Optional mid = std::nullopt;
+  Optional right = Optional(c.track->at(0));
 
   for (int i = 1; i < c.track->size() + 1; i++) {
     int mid_keyframe_idx = i - 1;
@@ -596,7 +594,7 @@ void CurveEditor::calc_control_point_positions(
 
     left = mid;
     mid = right;
-    right = Optional();
+    right = std::nullopt;
 
     if (i < c.track->size())
       right = c.track->at(i);
@@ -612,7 +610,7 @@ void CurveEditor::calc_control_point_positions(
     // handle overlapping keyframes
 
     if (is_keyframe_dragged(c, mid_keyframe_idx)) {
-      overlap_group.resolve_keyframe = mid_keyframe_idx;
+      overlap_group.resolve_keyframe = mid;
     }
 
     if (!right || right->frame != overlap_group.frame ||
@@ -621,14 +619,14 @@ void CurveEditor::calc_control_point_positions(
 
       if (overlap_group.resolve_keyframe) {
         // resolve overlap with data of resolve keyframe
-        int resolve_keyframe = *overlap_group.resolve_keyframe;
+        auto resolve_keyframe = *overlap_group.resolve_keyframe;
         for (int j = overlap_group.begin; j < right_keyframe_idx; j++) {
 
           // make sure that the resolve keyframe is valid for resovling
-          assert(c.track->at(j).frame == c.track->at(resolve_keyframe).frame &&
-                 c.track->at(j).value == c.track->at(resolve_keyframe).value);
+          assert(c.track->at(j).frame == resolve_keyframe.frame &&
+                 c.track->at(j).value == resolve_keyframe.value);
 
-          auto _mid = c.track->at(resolve_keyframe);
+          auto _mid = resolve_keyframe;
 
           dest_array[j] = calc(overlap_group.left, _mid, right);
         }
@@ -639,7 +637,7 @@ void CurveEditor::calc_control_point_positions(
         overlap_group.begin = right_keyframe_idx;
         overlap_group.frame = right->frame;
         overlap_group.value = right->value;
-        overlap_group.resolve_keyframe = OptionalIdx();
+        overlap_group.resolve_keyframe = std::nullopt;
         overlap_group.left = mid;
       }
     }
@@ -791,57 +789,67 @@ void CurveEditor::draw_track_bounds(GuiFrameContext& c) {
 
 CurveEditor::HoveredPart CurveEditor::HoveredPart::None() {
   auto part = HoveredPart();
-  part.m_type = 1;
   return part;
 }
-bool CurveEditor::HoveredPart::is_None() { return m_type == 1; }
+bool CurveEditor::HoveredPart::is_None() {
+  return std::holds_alternative<_None>(m_part);
+}
 
 CurveEditor::HoveredPart
 CurveEditor::HoveredPart::Keyframe(KeyframeIndex keyframe) {
   auto part = HoveredPart();
-  part.m_type = 2;
-  part.m_.keyframe.keyframe = keyframe;
+  part.m_part = keyframe;
   return part;
 }
-bool CurveEditor::HoveredPart::is_Keyframe() { return m_type == 2; }
+bool CurveEditor::HoveredPart::is_Keyframe() {
+  return std::holds_alternative<KeyframeIndex>(m_part);
+}
 
 bool CurveEditor::HoveredPart::is_Keyframe(KeyframeIndex& keyframe) {
-  keyframe = m_.keyframe.keyframe;
-  return is_Keyframe();
+  if (auto* kf = std::get_if<KeyframeIndex>(&m_part); kf != nullptr) {
+    keyframe = *kf;
+    return true;
+  }
+  return false;
 }
 
 CurveEditor::HoveredPart
 CurveEditor::HoveredPart::ControlPoint(const KeyframeIndex keyframe,
                                        bool is_right) {
   auto part = HoveredPart();
-  part.m_type = 3;
-  part.m_.keyframe.keyframe = keyframe;
-  part.m_.keyframe.is_right_control_point = is_right;
+  part.m_part = _ControlPoint(keyframe, is_right);
   return part;
 }
-bool CurveEditor::HoveredPart::is_ControlPoint() { return m_type == 3; }
+bool CurveEditor::HoveredPart::is_ControlPoint() {
+  return std::holds_alternative<_ControlPoint>(m_part);
+}
 
 bool CurveEditor::HoveredPart::is_ControlPoint(KeyframeIndex& keyframe,
                                                bool& is_right) {
-  keyframe = m_.keyframe.keyframe;
-  is_right = m_.keyframe.is_right_control_point;
-  return is_ControlPoint();
+  if (auto* cp = std::get_if<_ControlPoint>(&m_part); cp != nullptr) {
+    keyframe = cp->keyframe;
+    is_right = cp->is_right;
+    return true;
+  }
+  return false;
 }
 
 bool CurveEditor::HoveredPart::is_keyframe_part() {
-  return m_type == 2 || m_type == 3;
+  return is_Keyframe() || is_ControlPoint();
 }
 bool CurveEditor::HoveredPart::is_keyframe_part(
     KeyframeIndex& keyframe, ControlPointPos& control_point) {
-  if (m_type == 2) {
-    keyframe = m_.keyframe.keyframe;
+
+  KeyframeIndex kf;
+  bool is_right;
+  if (is_Keyframe(kf)) {
+    keyframe = kf;
     control_point = ControlPointPos::Mid;
     return true;
   }
-  if (m_type == 3) {
-    keyframe = m_.keyframe.keyframe;
-    control_point = m_.keyframe.is_right_control_point ? ControlPointPos::Right
-                                                       : ControlPointPos::Left;
+  if (is_ControlPoint(kf, is_right)) {
+    keyframe = kf;
+    control_point = is_right ? ControlPointPos::Right : ControlPointPos::Left;
     return true;
   }
 
@@ -851,16 +859,19 @@ bool CurveEditor::HoveredPart::is_keyframe_part(
 CurveEditor::HoveredPart CurveEditor::HoveredPart::CurvePoint(float frame,
                                                               float value) {
   auto part = HoveredPart();
-  part.m_type = 4;
-  part.m_.curvepoint.frame = frame;
-  part.m_.curvepoint.value = value;
+  part.m_part = _CurvePoint(frame, value);
   return part;
 }
-bool CurveEditor::HoveredPart::is_CurvePoint() { return m_type == 4; }
+bool CurveEditor::HoveredPart::is_CurvePoint() {
+  return std::holds_alternative<_CurvePoint>(m_part);
+}
 bool CurveEditor::HoveredPart::is_CurvePoint(float& frame, float& value) {
-  frame = m_.curvepoint.frame;
-  value = m_.curvepoint.value;
-  return is_CurvePoint();
+  if (auto* cp = std::get_if<_CurvePoint>(&m_part); cp != nullptr) {
+    frame = cp->frame;
+    value = cp->value;
+    return true;
+  }
+  return false;
 }
 
 #pragma endregion

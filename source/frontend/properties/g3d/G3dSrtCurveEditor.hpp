@@ -10,15 +10,11 @@
 
 namespace riistudio::g3d {
 
-typedef int KeyframeIndex;
+using KeyframeIndex = int;
 
 class KeyframeIndexSelection {
-private:
-  std::unordered_set<KeyframeIndex> m_selected;
-  std::optional<KeyframeIndex> m_active;
-
 public:
-  KeyframeIndexSelection() : m_selected(), m_active() {}
+  KeyframeIndexSelection() = default;
 
   void select(KeyframeIndex item, bool set_active = false) {
     m_selected.insert(item);
@@ -31,12 +27,12 @@ public:
       m_selected.erase(item);
 
     if (m_active == item)
-      m_active = std::optional<KeyframeIndex>();
+      m_active = std::nullopt;
   }
 
   void clear() {
     m_selected.clear();
-    m_active = std::optional<KeyframeIndex>();
+    m_active = std::nullopt;
   }
 
   bool is_selected(KeyframeIndex item) { return m_selected.contains(item); }
@@ -44,6 +40,10 @@ public:
   bool is_active(KeyframeIndex item) { return item == m_active; }
 
   std::optional<KeyframeIndex> get_active() { return m_active; }
+
+private:
+  std::unordered_set<KeyframeIndex> m_selected;
+  std::optional<KeyframeIndex> m_active = std::nullopt;
 };
 
 //! @brief
@@ -65,7 +65,7 @@ struct GuiFrameContext {
   ImDrawList* dl;
   ImRect viewport;
   librii::g3d::SrtAnim::Track* track;
-  float track_duration;
+  float track_duration = -1;
   KeyframeIndexSelection* keyframe_selection;
 
   float left() { return viewport.Min.x; }
@@ -96,7 +96,6 @@ public:
   static CurveEditor create_and_init(std::string id, GuiFrameContext& c);
 
   CurveEditor(const EditorView& m_view, std::string id) : m_view(m_view) {
-    m_dragged_item = HoveredPart::None();
     m_id = id;
     m_imgui_id = ImGui::GetID(id.c_str());
   };
@@ -112,30 +111,33 @@ private:
   //! each keyframe
   struct ControlPointPositions {
     ImVec2 keyframe;
-    std::optional<ImVec2> left;
-    std::optional<ImVec2> right;
+    std::optional<ImVec2> left = std::nullopt;
+    std::optional<ImVec2> right = std::nullopt;
   };
 
   //! @brief A union/varient type for all kinds of Hoverable and or Draggable
   //! parts
   struct HoveredPart {
   private:
-    struct KeyframePart {
-      KeyframeIndex keyframe;
-      bool is_right_control_point;
+    using _None = std::monostate;
+
+    struct _ControlPoint {
+      KeyframeIndex keyframe = -1;
+      bool is_right = false;
+
+      _ControlPoint(KeyframeIndex keyframe, bool is_right)
+          : keyframe(keyframe), is_right(is_right) {
+      }
     };
-    struct CurvePoint {
+
+    struct _CurvePoint {
       float frame;
       float value;
+
+      _CurvePoint(float frame, float value) : frame(frame), value(value) {}
     };
 
-    union Part {
-      KeyframePart keyframe;
-      CurvePoint curvepoint;
-    };
-
-    int m_type;
-    Part m_;
+    std::variant<_None, KeyframeIndex, _ControlPoint, _CurvePoint> m_part = _None();
 
   public:
     static HoveredPart None();
@@ -169,16 +171,16 @@ private:
   //! preserved after an operation that changes their indices.
   struct KeyframeState {
     librii::g3d::SRT0KeyFrame keyframe;
-    bool is_selected;
-    bool is_active;
-    bool is_dragged;
+    bool is_selected = false;
+    bool is_active = false;
+    bool is_dragged = false;
 
     bool operator<(KeyframeState& other) {
       return keyframe.frame < other.keyframe.frame;
     }
   };
 
-  HoveredPart m_dragged_item;
+  HoveredPart m_dragged_item = HoveredPart::None();
   EditorView m_view;
   std::string m_id;
   short m_imgui_id = -1;
