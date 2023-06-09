@@ -46,10 +46,21 @@ public:
   std::optional<KeyframeIndex> get_active() { return m_active; }
 };
 
+//! @brief
+//! A widget that lets you edit a Curve/Track/List of keyframes in a visual way,
+//! similar to blender and other animation software
+//! @param id The ImGui widget id
+//! @param size The size of the widget
+//! @param track The track to display and edit
+//! @param track_duration Duration of the track in frames (for showing
+//! correct bounds)
+//! @param keyframe_selection [optional] A set of selected
+//! Keyframe indices (more or less), that may be modified by the widget
 void srt_curve_editor(std::string id, ImVec2 size,
                       librii::g3d::SrtAnim::Track* track, float track_duration,
-                      KeyframeIndexSelection* keyframe_selection);
+                      KeyframeIndexSelection* keyframe_selection = nullptr);
 
+//! @brief Stores all the external state necessary for using the CurveEditor
 struct GuiFrameContext {
   ImDrawList* dl;
   ImRect viewport;
@@ -63,6 +74,8 @@ struct GuiFrameContext {
   float bottom() { return viewport.Max.y; }
 };
 
+//! @brief Represents and stores the editors "camera" bounds, for zooming,
+//! panning etc.
 struct EditorView {
   float left_frame;
   float top_value;
@@ -74,6 +87,7 @@ struct EditorView {
   }
 };
 
+//! @brief The backing class for the srt_curve_editor widget
 class CurveEditor {
 public:
   CurveEditor() = default;
@@ -94,12 +108,16 @@ private:
     Right,
   };
 
+  //! @brief Stores the calculated control point positions in screen space for
+  //! each keyframe
   struct ControlPointPositions {
     ImVec2 keyframe;
     std::optional<ImVec2> left;
     std::optional<ImVec2> right;
   };
 
+  //! @brief A union/varient type for all kinds of Hoverable and or Draggable
+  //! parts
   struct HoveredPart {
   private:
     struct KeyframePart {
@@ -147,7 +165,8 @@ private:
     }
   };
 
-  // stores very redundant data, that's intended
+  //! @brief Stores redundant data about each keyframe, to ensure their state is
+  //! preserved after an operation that changes their indices.
   struct KeyframeState {
     librii::g3d::SRT0KeyFrame keyframe;
     bool is_selected;

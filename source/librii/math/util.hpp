@@ -2,15 +2,16 @@
 
 namespace librii::math {
 
+//! @brief Maps a value from one range to another [minIn..maxIn] ->
+//! [minOut..maxOut]
 constexpr static float map(float value, float minIn, float maxIn, float minOut,
                            float maxOut) {
   return (value - minIn) * (maxOut - minOut) / (maxIn - minIn) + minOut;
 }
 
-/// <summary>
-/// hermite interpolation between 2 keyframes (left, right) with a frame, a value and a tangent each
-/// </summary>
-/// <returns>The interpolated value</returns>
+//! @brief Hermite interpolation between 2 keyframes [left_frame, left_value,
+//! left_tangent] and [right_frame, right_value, right_tangent]
+//! @return The interpolated value
 constexpr static float hermite(float frame, float left_frame, float left_value,
                                float left_tangent, float right_frame,
                                float right_value, float right_tangent) {
