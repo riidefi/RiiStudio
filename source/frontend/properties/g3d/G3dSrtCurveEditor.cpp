@@ -68,7 +68,7 @@ void srt_curve_editor(std::string id, ImVec2 size,
 CurveEditor CurveEditor::create_and_init(std::string id, GuiFrameContext& c) {
   EditorView edit_view;
 
-  // intialize curve editor state
+  // initialize curve editor state
   edit_view.left_frame = 0;
   edit_view.top_value = EditView_DefaultTopValue;
   edit_view.bottom_value = EditView_DefaultBottomValue;
@@ -92,7 +92,7 @@ CurveEditor CurveEditor::create_and_init(std::string id, GuiFrameContext& c) {
       edit_view.top_value = std::max(edit_view.top_value, value);
     }
 
-    // left controlpoint
+    // left control point
     if (positions.left) {
       float value = edit.value_at(c, positions.left->y);
 
@@ -100,7 +100,7 @@ CurveEditor CurveEditor::create_and_init(std::string id, GuiFrameContext& c) {
       edit_view.top_value = std::max(edit_view.top_value, value);
     }
 
-    // right controlpoint
+    // right control point
     if (positions.right) {
       float value = edit.value_at(c, positions.right->y);
 
@@ -108,6 +108,25 @@ CurveEditor CurveEditor::create_and_init(std::string id, GuiFrameContext& c) {
       edit_view.top_value = std::max(edit_view.top_value, value);
     }
   }
+  float width = c.viewport.GetWidth();
+  float height = c.viewport.GetHeight();
+  const float padding = KeyframePointRadius * 2;
+
+  edit_view.top_value = map(0, padding, height - 2 * padding,
+                            edit_view.top_value, edit_view.bottom_value);
+
+  edit_view.bottom_value = map(height, padding, height - 2 * padding,
+                               edit_view.top_value, edit_view.bottom_value);
+
+  edit_view.left_frame =
+      map(0, padding, width - 2 * padding, edit_view.left_frame,
+          edit_view.right_frame(c.viewport));
+
+  float _right_frame =
+      map(width, padding, width - 2 * padding, edit_view.left_frame,
+          edit_view.right_frame(c.viewport));
+
+  edit_view.frame_width = width / (_right_frame - edit_view.left_frame);
 
   edit.m_view = edit_view;
 
@@ -243,6 +262,8 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
   // drawing
 
   c.dl->PushClipRect(c.viewport.Min, c.viewport.Max, true);
+
+  c.dl->AddRect(c.viewport.Min, c.viewport.Max, 0x99000000);
 
   float y = y_of_value(c, 0);
   c.dl->AddLine(ImVec2(c.left(), y), ImVec2(c.right(), y), ZeroValueLineColor,
@@ -446,15 +467,26 @@ void CurveEditor::handle_zooming(GuiFrameContext& c) {
   float mouse_pos_value = value_at(c, ImGui::GetMousePos().y);
   float scale_factor = pow(EditView_ZoomFactor, -ImGui::GetIO().MouseWheel);
 
-  // Horizontal
-  if (ImGui::GetIO().KeyShift) {
+  bool zoom_horizontally = false;
+  bool zoom_vertically = false;
+
+  if (ImGui::GetIO().KeyMods == (ImGuiModFlags_Ctrl | ImGuiModFlags_Shift)) {
+    zoom_horizontally = true;
+  } else if (ImGui::GetIO().KeyMods ==
+             (ImGuiModFlags_Ctrl | ImGuiModFlags_Alt)) {
+    zoom_vertically = true;
+  } else {
+    zoom_horizontally = true;
+    zoom_vertically = true;
+  }
+
+  if (zoom_horizontally) {
     m_view.left_frame =
         mouse_pos_frame + (left_frame() - mouse_pos_frame) * scale_factor;
 
     m_view.frame_width /= scale_factor;
-
-    // Vertical
-  } else {
+  }
+  if (zoom_vertically) {
     m_view.top_value =
         mouse_pos_value + (top_value() - mouse_pos_value) * scale_factor;
     m_view.bottom_value =
