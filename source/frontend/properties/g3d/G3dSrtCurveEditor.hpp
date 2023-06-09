@@ -126,8 +126,7 @@ private:
       bool is_right = false;
 
       _ControlPoint(KeyframeIndex keyframe, bool is_right)
-          : keyframe(keyframe), is_right(is_right) {
-      }
+          : keyframe(keyframe), is_right(is_right) {}
     };
 
     struct _CurvePoint {
@@ -137,7 +136,8 @@ private:
       _CurvePoint(float frame, float value) : frame(frame), value(value) {}
     };
 
-    std::variant<_None, KeyframeIndex, _ControlPoint, _CurvePoint> m_part = _None();
+    std::variant<_None, KeyframeIndex, _ControlPoint, _CurvePoint> m_part =
+        _None();
 
   public:
     static HoveredPart None();
@@ -209,24 +209,9 @@ private:
     return map(value, top_value(), bottom_value(), c.top(), c.bottom());
   }
 #undef map
-
-  void handle_dragging_keyframe(GuiFrameContext& c,
+  void handle_clicking_on(GuiFrameContext& c, HoveredPart& hovered_part);
+  void handle_dragging_keyframe_part(GuiFrameContext& c,
                                 ControlPointPositions* pos_array);
-
-  void end_dragging_keyframe(GuiFrameContext& c);
-
-  void sort_keyframes(GuiFrameContext& c);
-
-  void handle_zooming(GuiFrameContext& c);
-  void handle_panning(GuiFrameContext& c);
-  void handle_auto_scrolling(GuiFrameContext& c);
-  void keep_anim_area_in_view(GuiFrameContext& c);
-
-  void create_keyframe_state_vector(GuiFrameContext& c,
-                                    std::vector<KeyframeState>& out);
-  void update_from_keyframe_state_vector(GuiFrameContext& c,
-                                         std::vector<KeyframeState>& v);
-
   bool is_keyframe_dragged(GuiFrameContext& c, KeyframeIndex keyframe) {
     KeyframeIndex dragged_keyframe;
 
@@ -237,6 +222,18 @@ private:
            (c.keyframe_selection->is_selected(dragged_keyframe) &&
             c.keyframe_selection->is_selected(keyframe));
   }
+  void end_dragging_keyframe(GuiFrameContext& c);
+
+  void handle_zooming(GuiFrameContext& c);
+  void handle_panning(GuiFrameContext& c);
+  void handle_auto_scrolling(GuiFrameContext& c);
+  void keep_anim_area_in_view(GuiFrameContext& c);
+
+  void sort_keyframes(GuiFrameContext& c);
+  void create_keyframe_state_vector(GuiFrameContext& c,
+                                    std::vector<KeyframeState>& out);
+  void update_from_keyframe_state_vector(GuiFrameContext& c,
+                                         std::vector<KeyframeState>& v);
 
   ImVec2 calc_tangent_intersection(GuiFrameContext& c,
                                    librii::g3d::SRT0KeyFrame& keyframe,
@@ -246,17 +243,20 @@ private:
                                     ControlPointPositions* dest_array,
                                     int maxsize);
 
+  HoveredPart determine_hovered_part(GuiFrameContext& c, ImVec2 hit_point,
+                                     ControlPointPositions* pos_array);
   HoveredPart hit_test_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                                 ControlPointPositions& positions);
-
-  void draw_curve(GuiFrameContext& c, ControlPointPositions* pos_array);
   float sample_curve(GuiFrameContext& c, float frame);
 
+  void draw(GuiFrameContext& c, bool is_widget_hovered,
+            HoveredPart& hovered_part, ControlPointPositions* pos_array);
+  void draw_curve(GuiFrameContext& c, ControlPointPositions* pos_array);
   void draw_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                      ControlPointPositions& positions,
                      HoveredPart& hovered_part);
-
   void draw_track_bounds(GuiFrameContext& c);
+  void draw_cursor_text(GuiFrameContext& c);
 };
 
 } // namespace riistudio::g3d
