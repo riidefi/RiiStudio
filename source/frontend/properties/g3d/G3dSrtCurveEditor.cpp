@@ -78,7 +78,7 @@ CurveEditor CurveEditor::create_and_init(std::string id, GuiFrameContext& c) {
 
   // make sure to include all keyframes
   // in the initial view
-  ControlPointPositions pos_array[c.track->size()];
+  std::vector<ControlPointPositions> pos_array(c.track->size());
   edit.calc_control_point_positions(c, pos_array, c.track->size());
 
   for (int i = 0; i < c.track->size(); i++) {
@@ -267,11 +267,12 @@ void CurveEditor::handle_clicking_on(GuiFrameContext& c,
 }
 
 void CurveEditor::handle_dragging_keyframe_part(
-    GuiFrameContext& c, ControlPointPositions* pos_array) {
+    GuiFrameContext& c, std::span<ControlPointPositions> pos_array) {
   KeyframeIndex dragged_keyframe;
   ControlPointPos dragged_control_point;
-  assert(
-      m_dragged_item.is_keyframe_part(dragged_keyframe, dragged_control_point));
+  bool ok =
+      m_dragged_item.is_keyframe_part(dragged_keyframe, dragged_control_point);
+  assert(ok);
 
   handle_auto_scrolling(c);
 
@@ -517,7 +518,8 @@ ImVec2 CurveEditor::calc_tangent_intersection(GuiFrameContext& c,
 }
 
 void CurveEditor::calc_control_point_positions(
-    GuiFrameContext& c, ControlPointPositions* dest_array, int max_size) {
+    GuiFrameContext& c, std::span<ControlPointPositions> dest_array,
+    int max_size) {
   using Optional = std::optional<SRT0KeyFrame>;
 
   struct OverlapGroup {
@@ -618,9 +620,9 @@ void CurveEditor::calc_control_point_positions(
   }
 }
 
-CurveEditor::HoveredPart
-CurveEditor::determine_hovered_part(GuiFrameContext& c, ImVec2 hit_point,
-                                    ControlPointPositions* pos_array) {
+CurveEditor::HoveredPart CurveEditor::determine_hovered_part(
+    GuiFrameContext& c, ImVec2 hit_point,
+    std::span<ControlPointPositions> pos_array) {
   HoveredPart hovered_part = HoveredPart::None();
 
   float hit_frame = frame_at(c, hit_point.x);
@@ -694,7 +696,7 @@ float CurveEditor::sample_curve(GuiFrameContext& c, float frame) {
 
 void CurveEditor::draw(GuiFrameContext& c, bool is_widget_hovered,
                        HoveredPart& hovered_part,
-                       ControlPointPositions* pos_array) {
+                       std::span<ControlPointPositions> pos_array) {
   c.dl->PushClipRect(c.viewport.Min, c.viewport.Max, true);
 
   c.dl->AddRect(c.viewport.Min, c.viewport.Max, 0x99000000);
@@ -736,7 +738,7 @@ void CurveEditor::draw(GuiFrameContext& c, bool is_widget_hovered,
 }
 
 void CurveEditor::draw_curve(GuiFrameContext& c,
-                             ControlPointPositions* pos_array) {
+                             std::span<ControlPointPositions> pos_array) {
   assert(!c.track->empty());
 
   if (c.track->at(0).frame > left_frame()) {

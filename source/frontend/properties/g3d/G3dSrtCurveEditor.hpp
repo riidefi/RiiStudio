@@ -210,8 +210,9 @@ private:
   }
 #undef map
   void handle_clicking_on(GuiFrameContext& c, HoveredPart& hovered_part);
-  void handle_dragging_keyframe_part(GuiFrameContext& c,
-                                ControlPointPositions* pos_array);
+  void
+  handle_dragging_keyframe_part(GuiFrameContext& c,
+                                std::span<ControlPointPositions> pos_array);
   bool is_keyframe_dragged(GuiFrameContext& c, KeyframeIndex keyframe) {
     KeyframeIndex dragged_keyframe;
 
@@ -240,18 +241,21 @@ private:
                                    float intersection_frame);
 
   void calc_control_point_positions(GuiFrameContext& c,
-                                    ControlPointPositions* dest_array,
+                                    std::span<ControlPointPositions> dest_array,
                                     int maxsize);
 
-  HoveredPart determine_hovered_part(GuiFrameContext& c, ImVec2 hit_point,
-                                     ControlPointPositions* pos_array);
+  HoveredPart
+  determine_hovered_part(GuiFrameContext& c, ImVec2 hit_point,
+                         std::span<ControlPointPositions> pos_array);
   HoveredPart hit_test_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                                 ControlPointPositions& positions);
   float sample_curve(GuiFrameContext& c, float frame);
 
   void draw(GuiFrameContext& c, bool is_widget_hovered,
-            HoveredPart& hovered_part, ControlPointPositions* pos_array);
-  void draw_curve(GuiFrameContext& c, ControlPointPositions* pos_array);
+            HoveredPart& hovered_part,
+            std::span<ControlPointPositions> pos_array);
+  void draw_curve(GuiFrameContext& c,
+                  std::span<ControlPointPositions> pos_array);
   void draw_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                      ControlPointPositions& positions,
                      HoveredPart& hovered_part);
