@@ -298,4 +298,17 @@ inline void SetNextColumnVisible(bool shown) {
   // column->IsVisibleNextFrame = shown;
 }
 
+//! @brief Determines if a context popup should open based on the last drawn
+//! ImGui widget.
+inline bool ShouldContextOpen(
+    ImGuiPopupFlags popup_flags = ImGuiPopupFlags_MouseButtonRight) {
+  ImGuiContext& g = *GImGui;
+  ImGuiWindow* window = g.CurrentWindow;
+  if (window->SkipItems)
+    return false;
+  int mouse_button = (popup_flags & ImGuiPopupFlags_MouseButtonMask_);
+  return ImGui::IsMouseReleased(mouse_button) &&
+         ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
+}
+
 } // namespace riistudio::util

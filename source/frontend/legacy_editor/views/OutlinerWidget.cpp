@@ -1,76 +1,13 @@
 #include "OutlinerWidget.hpp"
 #include <frontend/legacy_editor/EditorWindow.hpp>
+#include <frontend/widgets/FancyNodes.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 namespace riistudio::frontend {
 
-bool FancyFolderNode(ImVec4 color, const char* icon,
-                     std::string_view unitPlural, size_t numEntries) {
-  ImGui::PushStyleColor(ImGuiCol_Text, color);
-  bool opened = ImGui::CollapsingHeader(icon);
-  ImGui::PopStyleColor();
-  ImGui::SameLine();
-  ImGui::TextUnformatted(
-      std::format("{} ({})", unitPlural, numEntries).c_str());
-  return opened;
-}
 u32 ContextFlags = ImGuiWindowFlags_AlwaysAutoResize |
                    ImGuiWindowFlags_NoTitleBar |
                    ImGuiWindowFlags_NoSavedSettings;
-bool ShouldContextOpen(
-    ImGuiPopupFlags popup_flags = ImGuiPopupFlags_MouseButtonRight) {
-  ImGuiContext& g = *GImGui;
-  ImGuiWindow* window = g.CurrentWindow;
-  if (window->SkipItems)
-    return false;
-  int mouse_button = (popup_flags & ImGuiPopupFlags_MouseButtonMask_);
-  return ImGui::IsMouseReleased(mouse_button) &&
-         ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
-}
-
-bool FancyObject(Node& child, size_t i, bool hasChild, bool curNodeSelected,
-                 bool& thereWasAClick, bool& focused, bool& contextMenu,
-                 std::function<void(const lib3d::Texture*, float)> drawIcon) {
-  const float icon_size = 24.0f * ImGui::GetIO().FontGlobalScale;
-
-  auto id = std::format("{}", child.display_id_relative_to_parent);
-  {
-    ImGui::Selectable(id.c_str(), curNodeSelected, ImGuiSelectableFlags_None,
-                      {0, icon_size});
-    if (ShouldContextOpen()) {
-      contextMenu = true;
-    }
-
-    ImGui::SameLine();
-  }
-
-  thereWasAClick = ImGui::IsItemClicked();
-  focused = ImGui::IsItemFocused();
-
-  u32 flags = ImGuiTreeNodeFlags_DefaultOpen;
-  if (!child.is_container && !hasChild)
-    flags |= ImGuiTreeNodeFlags_Leaf;
-
-  const auto text_size = ImGui::CalcTextSize("T");
-  const auto initial_pos_y = ImGui::GetCursorPosY();
-  ImGui::SetCursorPosY(initial_pos_y + (icon_size - text_size.y) / 2.0f);
-
-  ImGui::PushStyleColor(ImGuiCol_Text, child.type_icon_color);
-  const auto treenode =
-      ImGui::TreeNodeEx(id.c_str(), flags, "%s", child.type_icon.c_str());
-  ImGui::PopStyleColor();
-  ImGui::SameLine();
-  ImGui::TextUnformatted(child.public_name.c_str());
-  if (treenode) {
-    for (auto* pImg : child.icons_right) {
-      ImGui::SameLine();
-      ImGui::SetCursorPosY(initial_pos_y);
-      drawIcon(pImg, icon_size);
-    }
-  }
-  ImGui::SetCursorPosY(initial_pos_y + icon_size);
-  return treenode;
-}
 
 void OutlinerWidget::AddNewCtxMenu(Node& folder) {
   if (!folder.can_create_new)
@@ -116,22 +53,23 @@ bool OutlinerWidget::DrawObject(Node& child, size_t i, bool hasChildren,
   // Selections from other windows will carry over.
   bool curNodeSelected = isSelected(child);
 
-  bool contextMenu = false;
-  bool thereWasAClick = false;
-  bool focused;
-  bool treenode = FancyObject(
-      child, i, hasChildren, curNodeSelected, thereWasAClick, focused,
-      contextMenu, [&](auto* img, float size) { drawImageIcon(img, size); });
-  if (thereWasAClick) {
+  auto draw_image = [&](auto* img, float size) { drawImageIcon(img, size); };
+  const bool leaf = !child.is_container && !hasChildren;
+  auto fancy =
+      FancyObject(i, curNodeSelected, child.type_icon_color, child.type_icon,
+                  child.public_name, child.display_id_relative_to_parent, leaf,
+                  child.icons_right, draw_image);
+  if (fancy.thereWasAClick) {
     update.mode = imcxx::ContiguousSelection::SELECT_CLICK;
     update.alreadySelected = curNodeSelected;
-  } else if (focused && /* selectMode == ContiguousSelection::SELECT_NONE && */
+  } else if (fancy.focused && /* selectMode == ContiguousSelection::SELECT_NONE
+                                 && */
              !curNodeSelected) {
     update.mode = imcxx::ContiguousSelection::SELECT_ARROWKEYS;
     update.alreadySelected = curNodeSelected;
   }
   auto id = std::format("Ctx {}", i);
-  if (contextMenu) {
+  if (fancy.contextMenu) {
     ImGui::OpenPopup(id.c_str());
     setActiveModal(&child);
   }
@@ -151,7 +89,7 @@ bool OutlinerWidget::DrawObject(Node& child, size_t i, bool hasChildren,
 
     ImGui::EndPopup();
   }
-  return treenode;
+  return fancy.wasOpened;
 }
 
 void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
