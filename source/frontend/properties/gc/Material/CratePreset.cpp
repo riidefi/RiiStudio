@@ -2,6 +2,9 @@
 #include "AdvTexConv.hpp"
 #include "ErrorState.hpp"
 #include "Merge.hpp"
+#include "Rename.hpp"
+
+#include <frontend/widgets/TextEdit.hpp>
 
 #include <rsl/Defer.hpp>
 #include <rsl/FsDialog.hpp>
@@ -320,7 +323,6 @@ class ReplaceWithSRT0
   bool m_import = false;
   ErrorState m_errorState{"SRT0 Import Error"};
 
-
 public:
   bool _context(riistudio::g3d::SRT0&) {
     if (ImGui::MenuItem("Replace with .srt0"_j)) {
@@ -408,79 +410,6 @@ std::string tryImportManySrt(riistudio::g3d::Collection& scn) {
   return err;
 }
 
-struct TextEdit {
-  std::vector<char> m_buffer;
-
-  void Reset(const std::string& name) {
-    m_buffer.resize(name.size() + 1024);
-    std::fill(m_buffer.begin(), m_buffer.end(), '\0');
-    m_buffer.insert(m_buffer.begin(), name.begin(), name.end());
-  }
-
-  bool Modal(const std::string& name) {
-    auto new_name = std::string(m_buffer.data());
-    bool ok = ImGui::InputText(
-        name != new_name ? "Name*###Name" : "Name###Name", m_buffer.data(),
-        m_buffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
-    return ok;
-  }
-
-  std::string String() const { return std::string(m_buffer.data()); }
-};
-
-class RenameNode : public kpi::ActionMenu<kpi::IObject, RenameNode> {
-  bool m_rename = false;
-  TextEdit m_textEdit;
-
-public:
-  bool _context(kpi::IObject& obj) {
-    // Really silly way to determine if an object can be renamed
-    auto name = obj.getName();
-    obj.setName(obj.getName() + "_");
-    bool can_rename = obj.getName() != name;
-    obj.setName(name);
-
-    if (can_rename && ImGui::MenuItem("Rename"_j)) {
-      m_rename = true;
-      m_textEdit.Reset(name);
-    }
-
-    return false;
-  }
-
-  kpi::ChangeType _modal(kpi::IObject& obj) {
-    if (m_rename) {
-      m_rename = false;
-      ImGui::OpenPopup("Rename");
-    }
-    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter());
-    const auto wflags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
-                        ImGuiWindowFlags_AlwaysAutoResize;
-    bool open = true;
-    if (ImGui::BeginPopupModal("Rename", &open, wflags)) {
-      RSL_DEFER(ImGui::EndPopup());
-      const auto name = obj.getName();
-      bool ok = m_textEdit.Modal(name);
-      if (ImGui::Button("Rename") || ok) {
-        const auto new_name = m_textEdit.String();
-        if (name == new_name) {
-          ImGui::CloseCurrentPopup();
-          return kpi::NO_CHANGE;
-        }
-        obj.setName(new_name);
-        ImGui::CloseCurrentPopup();
-        return kpi::CHANGE;
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("Cancel") || !open) {
-        ImGui::CloseCurrentPopup();
-        return kpi::NO_CHANGE;
-      }
-    }
-
-    return kpi::NO_CHANGE;
-  }
-};
 Result<void> tryImportRsPreset(riistudio::g3d::Material& mat) {
   const auto file = TRY(rsl::ReadOneFile("Select preset"_j, "",
                                          {
@@ -693,7 +622,7 @@ struct OptimizeMesh
 void InstallCrate() {
   auto& action_menu = kpi::ActionMenuManager::get();
   action_menu.addMenu(std::make_unique<AddChild>());
-  action_menu.addMenu(std::make_unique<RenameNode>());
+  action_menu.addMenu(std::make_unique<riistudio::frontend::RenameNode>());
   action_menu.addMenu(std::make_unique<SaveAsTEX0>());
   if (rsl::FileDialogsSupported()) {
     action_menu.addMenu(std::make_unique<ReplaceWithTEX0>());
