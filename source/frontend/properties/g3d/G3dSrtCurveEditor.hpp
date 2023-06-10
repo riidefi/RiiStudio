@@ -35,11 +35,13 @@ public:
     m_active = std::nullopt;
   }
 
-  bool is_selected(KeyframeIndex item) { return m_selected.contains(item); }
+  bool is_selected(KeyframeIndex item) const {
+    return m_selected.contains(item);
+  }
 
-  bool is_active(KeyframeIndex item) { return item == m_active; }
+  bool is_active(KeyframeIndex item) const { return item == m_active; }
 
-  std::optional<KeyframeIndex> get_active() { return m_active; }
+  std::optional<KeyframeIndex> get_active() const { return m_active; }
 
 private:
   std::unordered_set<KeyframeIndex> m_selected;
@@ -62,27 +64,27 @@ void srt_curve_editor(std::string id, ImVec2 size,
 
 //! @brief Stores all the external state necessary for using the CurveEditor
 struct GuiFrameContext {
-  ImDrawList* dl;
-  ImRect viewport;
-  librii::g3d::SrtAnim::Track* track;
+  ImDrawList* dl = nullptr;
+  ImRect viewport{};
+  librii::g3d::SrtAnim::Track* track = nullptr;
   float track_duration = -1;
-  KeyframeIndexSelection* keyframe_selection;
+  KeyframeIndexSelection* keyframe_selection = nullptr;
 
-  float left() { return viewport.Min.x; }
-  float top() { return viewport.Min.y; }
-  float right() { return viewport.Max.x; }
-  float bottom() { return viewport.Max.y; }
+  float left() const { return viewport.Min.x; }
+  float top() const { return viewport.Min.y; }
+  float right() const { return viewport.Max.x; }
+  float bottom() const { return viewport.Max.y; }
 };
 
 //! @brief Represents and stores the editors "camera" bounds, for zooming,
 //! panning etc.
 struct EditorView {
-  float left_frame;
-  float top_value;
-  float bottom_value;
-  float frame_width;
+  float left_frame{};
+  float top_value{};
+  float bottom_value{};
+  float frame_width{};
 
-  float right_frame(ImRect viewport) {
+  float right_frame(ImRect viewport) const {
     return left_frame + viewport.GetWidth() / frame_width;
   }
 };
@@ -98,10 +100,10 @@ public:
   CurveEditor(const EditorView& m_view, std::string id) : m_view(m_view) {
     m_id = id;
     m_imgui_id = ImGui::GetID(id.c_str());
-  };
+  }
 
 private:
-  enum ControlPointPos {
+  enum class ControlPointPos {
     Left,
     Mid,
     Right,
@@ -110,7 +112,7 @@ private:
   //! @brief Stores the calculated control point positions in screen space for
   //! each keyframe
   struct ControlPointPositions {
-    ImVec2 keyframe;
+    ImVec2 keyframe{};
     std::optional<ImVec2> left = std::nullopt;
     std::optional<ImVec2> right = std::nullopt;
   };
@@ -185,27 +187,27 @@ private:
   std::string m_id;
   short m_imgui_id = -1;
 
-  float left_frame() { return m_view.left_frame; }
-  float right_frame(GuiFrameContext& c) {
+  float left_frame() const { return m_view.left_frame; }
+  float right_frame(GuiFrameContext& c) const {
     return m_view.right_frame(c.viewport);
   }
-  float top_value() { return m_view.top_value; }
-  float bottom_value() { return m_view.bottom_value; }
+  float top_value() const { return m_view.top_value; }
+  float bottom_value() const { return m_view.bottom_value; }
 
 #define map librii::math::map
-  float frame_at(GuiFrameContext& c, float x) {
+  float frame_at(GuiFrameContext& c, float x) const {
     return map(x, c.left(), c.right(), left_frame(), right_frame(c));
   }
 
-  float value_at(GuiFrameContext& c, float y) {
+  float value_at(GuiFrameContext& c, float y) const {
     return map(y, c.top(), c.bottom(), top_value(), bottom_value());
   }
 
-  float x_of_frame(GuiFrameContext& c, float frame) {
+  float x_of_frame(GuiFrameContext& c, float frame) const {
     return map(frame, left_frame(), right_frame(c), c.left(), c.right());
   }
 
-  float y_of_value(GuiFrameContext& c, float value) {
+  float y_of_value(GuiFrameContext& c, float value) const {
     return map(value, top_value(), bottom_value(), c.top(), c.bottom());
   }
 #undef map

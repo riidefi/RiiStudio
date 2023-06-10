@@ -66,9 +66,8 @@ void srt_curve_editor(std::string id, ImVec2 size,
 #pragma region CurveEditor impl
 
 CurveEditor CurveEditor::create_and_init(std::string id, GuiFrameContext& c) {
-  EditorView edit_view;
-
   // initialize curve editor state
+  EditorView edit_view;
   edit_view.left_frame = 0;
   edit_view.top_value = EditView_DefaultTopValue;
   edit_view.bottom_value = EditView_DefaultBottomValue;
@@ -178,7 +177,6 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
   float frame, value;
   if (m_dragged_item.is_CurvePoint(frame, value)) {
     // Create and add new keyframe and set it as dragged
-
     SRT0KeyFrame keyframe;
     keyframe.frame = frame;
     keyframe.value = value;
@@ -190,7 +188,6 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
   if (m_dragged_item.is_keyframe_part() &&
       ImGui::IsMouseDragPastThreshold(ImGuiMouseButton_Left,
                                       MouseDragThreshold)) {
-
     calc_control_point_positions(c, pos_array, c.track->size());
     is_pos_array_up_to_date = true;
     handle_dragging_keyframe_part(c, pos_array);
@@ -200,7 +197,6 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
 
   if (is_widget_hovered) {
     // camera controls
-
     handle_zooming(c);
 
     if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) &&
@@ -248,7 +244,6 @@ void CurveEditor::handle_clicking_on(GuiFrameContext& c,
       ImGui::GetIO().KeyMods == ImGuiModFlags_None) {
     c.keyframe_selection->clear();
   } else if (c.keyframe_selection && m_dragged_item.is_Keyframe(keyframe)) {
-
     if (ImGui::GetIO().KeyMods == ImGuiModFlags_None) {
       bool should_select = !c.keyframe_selection->is_active(keyframe);
 
@@ -313,7 +308,6 @@ void CurveEditor::handle_dragging_keyframe_part(
 
   if (m_dragged_item.is_Keyframe()) {
     // support multi keyframe drag
-
     float dragged_keyframe_frame = c.track->at(dragged_keyframe).frame;
     float dragged_keyframe_value = c.track->at(dragged_keyframe).value;
 
@@ -341,7 +335,6 @@ void CurveEditor::handle_dragging_keyframe_part(
 
       c.track->at(i) = keyframe;
     }
-
   } else if (m_dragged_item.is_ControlPoint()) {
     auto keyframe = c.track->at(dragged_keyframe);
 
@@ -363,8 +356,9 @@ void CurveEditor::end_dragging_keyframe(GuiFrameContext& c) {
   auto dragged_keyframe_frames = std::set<float>();
 
   for (int i = 0; i < c.track->size(); i++) {
-    if (is_keyframe_dragged(c, i))
+    if (is_keyframe_dragged(c, i)) {
       dragged_keyframe_frames.insert(c.track->at(i).frame);
+    }
   }
 
   int count_before = c.track->size();
