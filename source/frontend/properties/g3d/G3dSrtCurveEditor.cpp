@@ -170,7 +170,7 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
 
   // used to store the calculated keyframe and control point positions in screen
   // space so they can be calculated once and looked up afterwards
-  ControlPointPositions pos_array[c.track->size()];
+  std::vector<ControlPointPositions> pos_array(c.track->size());
   bool is_pos_array_up_to_date = false;
 
   // handle dragging
@@ -490,7 +490,6 @@ void CurveEditor::create_keyframe_state_vector(
 
 void CurveEditor::update_from_keyframe_state_vector(
     GuiFrameContext& c, std::vector<CurveEditor::KeyframeState>& vec) {
-
   c.track->resize(vec.size());
 
   c.keyframe_selection->clear();
@@ -519,7 +518,6 @@ ImVec2 CurveEditor::calc_tangent_intersection(GuiFrameContext& c,
 
 void CurveEditor::calc_control_point_positions(
     GuiFrameContext& c, ControlPointPositions* dest_array, int max_size) {
-
   using Optional = std::optional<SRT0KeyFrame>;
 
   struct OverlapGroup {
@@ -646,7 +644,6 @@ CurveEditor::determine_hovered_part(GuiFrameContext& c, ImVec2 hit_point,
 CurveEditor::HoveredPart
 CurveEditor::hit_test_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                                ControlPointPositions& positions) {
-
   auto hit_test_circle = [](ImVec2 point, ImVec2 center, float radius) {
     float x = point.x - center.x;
     float y = point.y - center.y;
@@ -773,7 +770,6 @@ void CurveEditor::draw_curve(GuiFrameContext& c,
 void CurveEditor::draw_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                                 ControlPointPositions& positions,
                                 HoveredPart& hovered_part) {
-
   if (c.keyframe_selection && c.keyframe_selection->is_selected(keyframe)) {
     c.dl->AddCircleFilled(positions.keyframe,
                           KeyframePointRadius +
@@ -902,7 +898,6 @@ bool CurveEditor::HoveredPart::is_keyframe_part() {
 }
 bool CurveEditor::HoveredPart::is_keyframe_part(
     KeyframeIndex& keyframe, ControlPointPos& control_point) {
-
   KeyframeIndex kf;
   bool is_right;
   if (is_Keyframe(kf)) {
