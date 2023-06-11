@@ -249,7 +249,7 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
 
         auto& keyframe = track->at(active_idx);
 
-		bool delete_keyframe = false;
+        bool delete_keyframe = false;
 
         if (ImGui::Button(title.c_str())) {
           track->erase(track->begin() + active_idx);
@@ -259,10 +259,10 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
         ImGui::InputFloat("Value", &keyframe.value);
         ImGui::InputFloat("Tangent", &keyframe.tangent);
 
-		// adjust the selected keyframes if necessary
+        // adjust the selected keyframes if necessary
         if (delete_keyframe)
           selection.deselect(active_idx);
-        
+
       } else {
         ImGui::Dummy(ImVec2(0, 100));
       }
@@ -274,9 +274,20 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
       auto size = ImGui::GetContentRegionAvail();
       size.y = row_height;
 
-      srt_curve_editor(kfStringId, size, track, frame_duration, &selection);
+      if (track) {
+        srt_curve_editor(kfStringId, size, track, frame_duration, &selection);
+        editor_selections.insert_or_assign(kfStringId, selection);
+      } else {
+        ImGui::PushID(kfStringId.c_str());
 
-      editor_selections.insert_or_assign(kfStringId, selection);
+        if (ImGui::Button("Add animation", size)) {
+          auto& mtx = anim.matrices.emplace_back();
+          mtx.target = target;
+          track = &(&mtx.matrix.scaleX)[subtrack];
+        }
+
+		ImGui::PopID();
+      }
     }
 
     ImGui::EndTable();
