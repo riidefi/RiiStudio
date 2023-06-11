@@ -228,6 +228,10 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
         selection = editor_selections.at(found->first);
       }
 
+      if (track == nullptr) {
+        selection.clear();
+      }
+
       int active_idx = -1;
       auto active = selection.get_active();
       if (active) {
@@ -286,7 +290,7 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
           track = &(&mtx.matrix.scaleX)[subtrack];
         }
 
-		ImGui::PopID();
+        ImGui::PopID();
       }
     }
 
