@@ -366,7 +366,6 @@ void WriteShader(RelocWriter& linker, oishii::Writer& writer,
 
 Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
                         NameTable& names, std::size_t brres_start) {
-
   // index: polygon
   std::map<u32, std::bitset<8>> mesh_texmtx;
   bool any_texmtx = false;
@@ -388,18 +387,7 @@ Result<void> writeModel(librii::g3d::BinaryModel& bin, oishii::Writer& writer,
         }
         for (size_t i = 0; i < mat.dl.texGens.size(); ++i) {
           auto& tg = mat.dl.texGens[i];
-          auto src = tg.sourceParam;
-          bool rigged_tg_need_texmtx = false;
-          switch (src) {
-          case gx::TexGenSrc::Position:
-          case gx::TexGenSrc::Normal:
-          case gx::TexGenSrc::Binormal:
-          case gx::TexGenSrc::Tangent:
-            // This way be way too lenient. We may not need these in the
-            // Position case, for example.
-            rigged_tg_need_texmtx = true;
-            break;
-          }
+          bool rigged_tg_need_texmtx = NeedTexMtx(tg);
           mesh_texmtx[polyId][i] =
               mesh_texmtx[polyId][i] || rigged_tg_need_texmtx;
           any_texmtx |= rigged_tg_need_texmtx;

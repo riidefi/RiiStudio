@@ -109,4 +109,21 @@ struct TexCoordGen // XF TEX/DUALTEX
   }
 };
 
+constexpr bool NeedTexMtx(const TexCoordGen& tg) {
+  auto src = tg.sourceParam;
+  switch (src) {
+  case gx::TexGenSrc::Position:
+  case gx::TexGenSrc::Normal:
+  case gx::TexGenSrc::Binormal:
+  case gx::TexGenSrc::Tangent:
+    // This way be way too lenient. We may not need these in the
+    // Position case, for example.
+    return true;
+  default:
+    break;
+  }
+
+  return false;
+}
+
 } // namespace librii::gx
