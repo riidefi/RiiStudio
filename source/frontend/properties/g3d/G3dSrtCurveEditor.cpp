@@ -169,7 +169,7 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
 
   // used to store the calculated keyframe and control point positions in screen
   // space so they can be calculated once and looked up afterwards
-  std::vector<ControlPointPositions> pos_array(c.track->size());
+  std::vector<ControlPointPositions> pos_array;
   bool is_pos_array_up_to_date = false;
 
   // handle dragging
@@ -184,6 +184,8 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
     c.track->push_back(keyframe);
     m_dragged_item = HoveredPart::Keyframe(c.track->size() - 1);
   }
+
+  pos_array = std::vector<ControlPointPositions>(c.track->size());
 
   if (m_dragged_item.is_keyframe_part() &&
       ImGui::IsMouseDragPastThreshold(ImGuiMouseButton_Left,
