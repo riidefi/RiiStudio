@@ -1044,7 +1044,10 @@ Result<void> processModel(const BinaryModel& binary_model,
 
   mdl.bones.resize(0);
   for (size_t i = 0; i < binary_model.bones.size(); ++i) {
-    EXPECT(binary_model.bones[i].id == i);
+    // CTools seemingly doesn't do this???
+    if (binary_model.bones[i].id != i) {
+      ctx.error("Bone IDs are desynced. Is this a CTools minimap???");
+    }
     mdl.bones.emplace_back() =
         fromBinaryBone(binary_model.bones[i], binary_model.bones, ctx,
                        binary_model.info.scalingRule);

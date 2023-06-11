@@ -286,7 +286,7 @@ ReadMPrims(rsl::SafeReader& reader, u32 buf_size,
 }
 
 static Result<librii::gx::VertexDescriptor>
-BuildVCD(rsl::SafeReader& reader, u32 buf_size, u32 bitfield) {
+BuildVCD(rsl::SafeReader& reader, u32 buf_size, u32& bitfield) {
   librii::gx::VertexDescriptor result;
   librii::gpu::QDisplayListVertexSetupHandler vcdHandler;
   TRY(librii::gpu::RunDisplayList(reader.getUnsafe(), vcdHandler, buf_size));
@@ -307,7 +307,13 @@ BuildVCD(rsl::SafeReader& reader, u32 buf_size, u32 bitfield) {
           i - (u32)librii::gx::VertexAttribute::Position);
       const auto encoding = static_cast<librii::gx::VertexAttributeType>(stat);
       if (encoding == librii::gx::VertexAttributeType::None) {
-        return std::unexpected("att == librii::gx::VertexAttributeType::None");
+        // CTools minimaps will encounter this case, so it's better for us to
+        // silently ignore it than halt all progress.
+        rsl::error("BuildVCD: att == librii::gx::VertexAttributeType::None is "
+                   "an unexpected case from an invalid vertex coordinate "
+                   "descriptor -- is this a CTools model?");
+        bitfield &= ~(1 << i);
+        continue;
       }
       result.mAttributes[att] = encoding;
     } else {
@@ -562,6 +568,8 @@ struct BinaryPolygon {
 
     // Read primitiveSetup
     primitiveSetup.seekTo(reader);
+    // vcdBitfield may be mutated to accomodate CTools models having ::None
+    // attributes specified..
     auto desc = TRY(BuildVCD(reader, primitiveSetup.buf_size, vcdBitfield));
     desc.calcVertexDescriptorFromAttributeList();
     EXPECT(desc.mBitfield == vcdBitfield);
