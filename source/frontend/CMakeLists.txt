@@ -41,6 +41,7 @@ add_library(lib_frontend
  "properties/gc/Material/Indirect.cpp"
   
   "properties/g3d/G3dSrtView.cpp"
+  "properties/g3d/G3dSrtCurveEditor.cpp"
   "properties/g3d/G3dVertexColorView.cpp"
 	"properties/j3d/MaterialView.cpp"
   "properties/g3d/G3dUi.cpp"

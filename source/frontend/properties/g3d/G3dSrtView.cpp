@@ -31,7 +31,7 @@ static int getMaxTrackSize(const librii::g3d::SrtAnimationArchive& anim) {
 }
 
 void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
-                 const riistudio::g3d::Model& mdl) {
+                 const riistudio::g3d::Model& mdl, float frame_duration) {
   std::unordered_set<std::string> animatedMaterials;
   std::array<bool, 8 + 3> animatedMtxSlots{};
   for (auto& mtx : anim.matrices) {
@@ -166,16 +166,14 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
       }
     }
   }
-  int maxTrackSize = getMaxTrackSize(anim);
 
   ImGui::BeginChild("ChildR");
-  if (ImGui::BeginTable("SrtAnim Table", maxTrackSize + 3,
+  if (ImGui::BeginTable("SrtAnim Table", 4,
                         ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollX)) {
     ImGui::TableSetupColumn("Material");
     ImGui::TableSetupColumn("Target");
-    for (int i = 0; i < maxTrackSize + 1; ++i) {
-      ImGui::TableSetupColumn(("KeyFrame " + std::to_string(i)).c_str());
-    }
+    ImGui::TableSetupColumn("Selected KeyFrame");
+    ImGui::TableSetupColumn("Curve", ImGuiTableColumnFlags_WidthStretch);
     ImGui::TableHeadersRow();
 
     for (auto& fvt : fvtsToDraw) {
@@ -198,76 +196,97 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
       if (it != anim.matrices.size()) {
         track = &(&anim.matrices[it].matrix.scaleX)[subtrack];
       }
-      // 0: INFO
-      // 1: Frame
-      // 2: Value
-      // 3: Tangent
-      for (int row_index = 0; row_index < 4; ++row_index) {
-        ImGui::TableNextRow();
-        if (row_index == 0) {
-          // Row 0: Frame + INFO
-          ImGui::TableSetColumnIndex(0);
-          ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-          ImGui::Text("%s", matName.c_str());
-          ImGui::TableSetColumnIndex(1);
-          ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-          // string_view created from cstring, so
-          // .data() is null-terminated
-          auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(subtrack);
-          const char* subtrackName = magic_enum::enum_name(tgtId).data();
-          ImGui::Text("%s%d: %s", targetMtxId >= 8 ? "IndMtx" : "TexMtx",
-                      (targetMtxId % 8), subtrackName);
-        }
-        for (size_t i = 0; i < (track ? track->size() : 0); ++i) {
-          auto& keyframe = track->at(i);
-          auto kfStringId =
-              std::format("{}{}{}{}", matName, targetMtxId, subtrack, i);
-          ImGui::PushID(kfStringId.c_str());
-          RSL_DEFER(ImGui::PopID());
+      ImGui::TableNextRow();
+      {
+        // Row 0: Frame + INFO
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+        ImGui::Text("%s", matName.c_str());
+        ImGui::TableSetColumnIndex(1);
+        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+        // string_view created from cstring, so
+        // .data() is null-terminated
+        auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(subtrack);
+        const char* subtrackName = magic_enum::enum_name(tgtId).data();
+        ImGui::Text("%s%d: %s", targetMtxId >= 8 ? "IndMtx" : "TexMtx",
+                    (targetMtxId % 8), subtrackName);
+      }
 
-          ImGui::TableSetColumnIndex(i + 2);
-          if (row_index == 0) {
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-            ImGui::Text("Keyframe %d", static_cast<int>(i));
-            ImGui::SameLine();
-            auto title = std::format(
-                "{}##{}", (const char*)ICON_FA_TIMES_CIRCLE, kfStringId);
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-            if (ImGui::Button(title.c_str())) {
-              track->erase(track->begin() + i);
-            }
-          } else if (row_index == 1) {
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-            ImGui::InputFloat("Frame", &keyframe.frame);
-          } else if (row_index == 2) {
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-            ImGui::InputFloat("Value", &keyframe.value);
-          } else if (row_index == 3) {
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-            ImGui::InputFloat("Tangent", &keyframe.tangent);
-          }
-        }
-        if (row_index == 0) {
-          ImGui::TableSetColumnIndex((track ? track->size() : 0) + 2);
-          ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-          auto title = std::format("{}##{}{}{}", "    +    ", matName, subtrack,
-                                   targetMtxId);
-          auto avail = ImVec2{ImGui::GetContentRegionAvail().x, 0.0f};
-          if (ImGui::Button(title.c_str(), avail)) {
-            // Define a new keyframe with default values
-            librii::g3d::SRT0KeyFrame newKeyframe;
-            newKeyframe.frame = 0.0f;
-            newKeyframe.value = 0.0f; // TODO: Grab last if exist
-            newKeyframe.tangent = 0.0f;
+      auto kfStringId = std::format("{}{}{}", matName, targetMtxId, subtrack);
 
-            if (!track) {
-              auto& mtx = anim.matrices.emplace_back();
-              mtx.target = target;
-              track = &(&mtx.matrix.scaleX)[subtrack];
-            }
-            track->push_back(newKeyframe);
-          }
+      float top_of_row = ImGui::GetCursorPosY();
+
+      static auto editor_selections{
+          std::unordered_map<std::string, KeyframeIndexSelection>()};
+
+      KeyframeIndexSelection selection;
+
+      auto found = editor_selections.find(kfStringId);
+      if (found == editor_selections.end()) {
+        selection = KeyframeIndexSelection();
+      } else {
+        selection = editor_selections.at(found->first);
+      }
+
+      int active_idx = -1;
+      auto active = selection.get_active();
+      if (active) {
+        active_idx = *active;
+      }
+
+      ImGui::PushID(kfStringId.c_str());
+      RSL_DEFER(ImGui::PopID());
+
+      ImGui::TableSetColumnIndex(2);
+
+      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+
+      if (active_idx > -1) {
+        ImGui::Text("Keyframe %d", static_cast<int>(active_idx));
+        ImGui::SameLine();
+        auto title = std::format("{}##{}", (const char*)ICON_FA_TIMES_CIRCLE,
+                                 kfStringId);
+
+        auto& keyframe = track->at(active_idx);
+
+        bool delete_keyframe = false;
+
+        if (ImGui::Button(title.c_str())) {
+          track->erase(track->begin() + active_idx);
+          delete_keyframe = true;
         }
+        ImGui::InputFloat("Frame", &keyframe.frame);
+        ImGui::InputFloat("Value", &keyframe.value);
+        ImGui::InputFloat("Tangent", &keyframe.tangent);
+
+        // adjust the selected keyframes if necessary
+        if (delete_keyframe)
+          selection.deselect(active_idx);
+
+      } else {
+        ImGui::Dummy(ImVec2(0, 100));
+      }
+
+      ImGui::NewLine();
+
+      float row_height = ImGui::GetCursorPosY() - top_of_row;
+      ImGui::TableSetColumnIndex(3);
+      auto size = ImGui::GetContentRegionAvail();
+      size.y = row_height;
+
+      if (track) {
+        srt_curve_editor(kfStringId, size, track, frame_duration, &selection);
+        editor_selections.insert_or_assign(kfStringId, selection);
+      } else {
+        ImGui::PushID(kfStringId.c_str());
+
+        if (ImGui::Button("Add animation", size)) {
+          auto& mtx = anim.matrices.emplace_back();
+          mtx.target = target;
+          track = &(&mtx.matrix.scaleX)[subtrack];
+        }
+
+		ImGui::PopID();
       }
     }
 
@@ -300,7 +319,7 @@ DrawSrtOptions(const librii::g3d::SrtAnimationArchive& init, Filter& visFilter,
                                  "Clamp\0"
                                  "Repeat\0"_j);
 
-  ShowSrtAnim(result, visFilter, mdl);
+  ShowSrtAnim(result, visFilter, mdl, frame_duration);
 
   return result;
 }
