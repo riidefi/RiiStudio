@@ -18,7 +18,6 @@ struct Joint : public libcube::IBoneDelegate,
 
   std::string getName() const { return name; }
   void setName(const std::string& n) override { name = n; }
-  s64 getId() override { return id; }
 
   librii::math::SRT3 getSRT() const override {
     return {scale, rotate, translate};

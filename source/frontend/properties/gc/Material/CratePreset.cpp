@@ -563,8 +563,8 @@ struct AddChild : public kpi::ActionMenu<riistudio::g3d::Bone, AddChild> {
       auto childId = col->size() - 1;
       auto* child = dynamic_cast<riistudio::g3d::Bone*>(col->atObject(childId));
       assert(child);
-      child->id = childId;
-      child->mParent = bone.id;
+      auto parentId = col->indexOf(bone.getName());
+      child->mParent = parentId;
       bone.mChildren.push_back(childId);
       return kpi::CHANGE_NEED_RESET;
     }

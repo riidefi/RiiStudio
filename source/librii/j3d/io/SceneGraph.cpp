@@ -71,8 +71,8 @@ Result<void> SceneGraph::onRead(rsl::SafeReader& reader,
 
       if (!joint_stack.empty()) {
         joints[joint_stack.back()].children.emplace_back(
-            ctx.mdl.jointIds[newId]);
-        joints[newId].parentId = ctx.mdl.jointIds[joint_stack.back()];
+            static_cast<s32>(newId));
+        joints[newId].parentId = joint_stack.back();
       }
       joint = newId;
       break;
@@ -107,7 +107,7 @@ struct SceneGraphNode : public oishii::Node {
     u32 depth = 0;
 
     // Assume root 0
-    TRY(writeBone(writer, mdl.joints[0], mdl.jointIds[0], mdl, depth));
+    TRY(writeBone(writer, mdl.joints[0], 0, mdl, depth));
 
     ByteCodeCmd(ByteCodeOp::Terminate).write(writer);
     return {};
@@ -118,13 +118,7 @@ struct SceneGraphNode : public oishii::Node {
             u32 jointId, const J3dModel& mdl, u32& depth) const {
     u32 startDepth = depth;
 
-    s16 id = -1;
-    for (int i = 0; i < mdl.joints.size(); ++i) {
-      if (mdl.jointIds[i] == jointId)
-        id = i;
-    }
-    EXPECT(id != -1);
-    ByteCodeCmd(ByteCodeOp::Joint, id).write(writer);
+    ByteCodeCmd(ByteCodeOp::Joint, jointId).write(writer);
     ByteCodeCmd(ByteCodeOp::Open).write(writer);
     ++depth;
 
@@ -157,7 +151,7 @@ struct SceneGraphNode : public oishii::Node {
     }
 
     for (const auto d : joint.children) {
-      writeBone(writer, mdl.joints[d], mdl.jointIds[d], mdl, depth);
+      writeBone(writer, mdl.joints[d], d, mdl, depth);
     }
     if (depth != startDepth) {
       // If last is an open, overwrite it

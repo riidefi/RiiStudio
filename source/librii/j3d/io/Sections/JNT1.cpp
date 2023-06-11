@@ -52,7 +52,6 @@ Result<void> readJNT1(BMDOutputContext& ctx) {
   int i = 0;
   for (auto& joint : ctx.mdl.joints) {
     reader.seekSet(g.start + ofsJointData + ctx.jointIdLut[i] * 0x40);
-    ctx.mdl.jointIds.push_back(ctx.jointIdLut[i]); // TODO
     joint.name = nameTable[i];
     const u16 flag = TRY(reader.U16());
     joint.flag = flag & 0xf;

@@ -21,7 +21,6 @@ inline void readJ3dMdl(librii::j3d::J3dModel& m,
   }
   for (auto& b : editor.getBones()) {
     m.joints.emplace_back(b);
-    m.jointIds.emplace_back(b.id);
   }
   for (auto& mesh : editor.getMeshes()) {
     m.shapes.emplace_back(mesh);
@@ -39,11 +38,9 @@ inline void toEditorMdl(riistudio::j3d::Collection& s,
   tmp.mDrawMatrices = m.drawMatrices;
   for (auto& ma : m.materials)
     static_cast<librii::j3d::MaterialData&>(tmp.getMaterials().add()) = ma;
-  size_t i = 0;
   for (auto& b : m.joints) {
     auto& added = tmp.getBones().add();
     static_cast<librii::j3d::JointData&>(added) = b;
-    added.id = m.jointIds[i++];
   }
   for (auto& mx : m.shapes)
     static_cast<librii::j3d::ShapeData&>(tmp.getMeshes().add()) = mx;

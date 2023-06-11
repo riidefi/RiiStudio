@@ -111,7 +111,6 @@ struct J3dModel {
   std::vector<libcube::DrawMatrix> drawMatrices;
   std::vector<librii::j3d::MaterialData> materials;
   std::vector<librii::j3d::JointData> joints;
-  std::vector<u32> jointIds; // TODO: Shouldn't need this
   std::vector<librii::j3d::ShapeData> shapes;
   std::vector<librii::j3d::TextureData> textures;
 

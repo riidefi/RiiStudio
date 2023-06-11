@@ -12,7 +12,6 @@ class Model;
 
 struct Bone {
   virtual ~Bone() = default;
-  virtual s64 getId() { return -1; }
   virtual void setName(const std::string& name) = 0;
 
   virtual librii::math::SRT3 getSRT() const = 0;
