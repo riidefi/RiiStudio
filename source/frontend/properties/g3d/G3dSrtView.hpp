@@ -1,11 +1,11 @@
 #pragma once
 
+#include "G3dSrtCurveEditor.hpp"
 #include <LibBadUIFramework/Node2.hpp>
 #include <LibBadUIFramework/PropertyView.hpp>
 #include <imcxx/Widgets.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
-#include "G3dSrtCurveEditor.hpp"
 
 namespace riistudio::g3d {
 

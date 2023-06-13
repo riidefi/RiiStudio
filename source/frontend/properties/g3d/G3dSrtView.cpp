@@ -3,7 +3,7 @@
 
 namespace riistudio::g3d {
 
-uint32_t fnv1a_32_hash(std::string_view text) {
+static uint32_t fnv1a_32_hash(std::string_view text) {
   uint32_t hash = 0x811c9dc5;
   uint32_t prime = 0x1000193;
 
@@ -30,15 +30,10 @@ static int getMaxTrackSize(const librii::g3d::SrtAnimationArchive& anim) {
   return maxTrackSize;
 }
 
-void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
-                 const riistudio::g3d::Model& mdl, float frame_duration) {
-  std::unordered_set<std::string> animatedMaterials;
-  std::array<bool, 8 + 3> animatedMtxSlots{};
-  for (auto& mtx : anim.matrices) {
-    auto& target = mtx.target;
-    animatedMaterials.emplace(target.materialName);
-    animatedMtxSlots[target.matrixIndex + (target.indirect ? 8 : 0)] = true;
-  }
+static void
+VisibilityMatrixIDSelector(Filter& visFilter,
+                           std::unordered_set<std::string>& animatedMaterials,
+                           std::array<bool, 8 + 3>& animatedMtxSlots) {
   ImGui::BeginChild("ChildL", ImVec2(150, 0.0f));
   // Visibility selector for materials
   //
@@ -113,35 +108,15 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
   ImGui::EndChild();
 
   ImGui::EndChild();
-  ImGui::SameLine();
-  //
-  // Our table editor is given by the following matrix:
-  //
-  // *----------*---------*------------*-----*------------*---------*
-  // | Material | Target  | Keyframe 1 | ... | Keyframe N | +Button |
-  // *----------|---------|------------|-----|------------|---------*
-  // | MName    | Mtx0ROT | Frame      | ... | Frame      |    +    |
-  // *----------|---------*------------|-----|------------*---------*
-  // .          .         | Value      | ... | Value      |         .
-  // .....................*------------|-----|------------*..........
-  // .          .         | Tangent    | ... | Tangent    |         .
-  // .....................*------------*-----*------------*..........
-  //                                                                 [N+3 x
-  //                                                                 3T+1]
-  // Note its width is N+3, where N is the maximum track size.
-  // Note its height is 3T+1 where T is the number of tracks.
-  //
-  // ImGui is Row-Dominant, so we traverse in this order:
-  //   AnimMtx -> FVT -> KeyFrame
-  // When using filter, it becomes
-  //   (Material -> Tgt) -> FVT -> KeyFrame
-  //
-  struct FVT {
-    std::string matName;
-    u32 color = 0xFF;
-    size_t mtxId = 0;
-    u32 subtrack = 0;
-  };
+}
+
+struct FVT {
+  std::string matName;
+  u32 color = 0xFF;
+  size_t mtxId = 0;
+  u32 subtrack = 0;
+};
+static std::vector<FVT> GatherFVTs(Filter& visFilter) {
   std::vector<FVT> fvtsToDraw;
   for (auto& [matName, visible] : visFilter.materials()) {
     if (!visible) {
@@ -166,6 +141,32 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
       }
     }
   }
+  return fvtsToDraw;
+}
+static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
+                              Filter& visFilter, float frame_duration) {
+  //
+  // Our curve table editor is given by the following matrix:
+  //
+  // *----------*---------*------------*--------------*
+  // | Material | Target  | Keyframe X | Curve editor |
+  // *----------|---------|------------|--------------|
+  // | MName    | Mtx0ROT | Frame      |     ...      |
+  // *----------|---------*------------|--------------|
+  // .          .         | Value      |     ...      |
+  // .....................*------------|--------------|
+  // .          .         | Tangent    |     ...      |
+  // .....................*------------*--------------*
+  //                                                  [4 x 3T+1]
+  // Note its width is 4.
+  // Note its height is 3T+1 where T is the number of tracks.
+  //
+  // ImGui is Row-Dominant, so we traverse in this order:
+  //   AnimMtx -> FVT -> KeyFrame
+  // When using filter, it becomes
+  //   (Material -> Tgt) -> FVT -> KeyFrame
+  //
+  auto fvtsToDraw = GatherFVTs(visFilter);
 
   ImGui::BeginChild("ChildR");
   if (ImGui::BeginTable("SrtAnim Table", 4,
@@ -297,6 +298,20 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
     ImGui::EndTable();
   }
   ImGui::EndChild();
+}
+void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
+                 const riistudio::g3d::Model& mdl, float frame_duration) {
+  std::unordered_set<std::string> animatedMaterials;
+  std::array<bool, 8 + 3> animatedMtxSlots{};
+  for (auto& mtx : anim.matrices) {
+    auto& target = mtx.target;
+    animatedMaterials.emplace(target.materialName);
+    animatedMtxSlots[target.matrixIndex + (target.indirect ? 8 : 0)] = true;
+  }
+
+  VisibilityMatrixIDSelector(visFilter, animatedMaterials, animatedMtxSlots);
+  ImGui::SameLine();
+  CurveEditorWindow(anim, visFilter, frame_duration);
 }
 librii::g3d::SrtAnimationArchive
 DrawSrtOptions(const librii::g3d::SrtAnimationArchive& init, Filter& visFilter,
