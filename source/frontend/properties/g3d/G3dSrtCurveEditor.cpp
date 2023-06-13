@@ -750,7 +750,7 @@ void CurveEditor::draw(GuiFrameContext& c, bool is_widget_hovered,
       continue;
 
 	ImVec4 color = ImGui::ColorConvertU32ToFloat4(c.tracks[i].color);
-    color.w *= 0.2;
+    color.w *= 0.5;
 
     if (c.tracks[i].empty()) {
       // draw curve as a simple line with constant value 0

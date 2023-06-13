@@ -175,6 +175,7 @@ static std::vector<TrackUIInfo> GatherTracks(Filter& visFilter) {
     u32 matNameHash = fnv1a_32_hash(matName);
     // ABGR encoding for some reason
     u32 matColor = matNameHash | 0xff00'0000;
+
     for (size_t mtxId = 0; mtxId < 11; ++mtxId) {
       bool mtxVisible = *visFilter.attr(mtxId);
       if (!mtxVisible) {
@@ -238,9 +239,14 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
           std::format("{}{}: {}", targetMtxId >= 8 ? "IndMtx" : "TexMtx",
                       (targetMtxId % 8), subtrackName);
 
+      static const u32 colors[5]{
+          0xFF'00'00'FF, 0xFF'FF'00'00, 0xFF'00'FF'00,
+          0xFF'00'33'FF, 0xFF'FF'88'00,
+      };
+
       tracks[i].track = track;
       tracks[i].name = track_name;
-      tracks[i].color = matColor;
+      tracks[i].color = colors[fvt.subtrack];
     }
 
     static std::optional<std::string> active_track_name{std::nullopt};
@@ -265,7 +271,7 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
     std::optional<KeyframeIndexSelection> selection = std::nullopt;
     std::optional<EditableTrack> active_track = std::nullopt;
 
-	{
+    {
       int active_keyframe_idx = -1;
 
       if (active_track_name) {
@@ -296,7 +302,7 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
 
         if (ImGui::Button(title.c_str())) {
           active_track->track->erase(active_track->track->begin() +
-                                        active_keyframe_idx);
+                                     active_keyframe_idx);
           delete_keyframe = true;
         }
         ImGui::InputFloat("Frame", &keyframe.frame);
@@ -312,8 +318,7 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
       } else {
         ImGui::Dummy(ImVec2(0, 100));
       }
-	}
-    
+    }
 
     ImGui::NewLine();
     auto size = ImGui::GetContentRegionAvail();
@@ -324,7 +329,7 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
     if (active_track_name && selection)
       editor_selections.insert_or_assign(*active_track_name, *selection);
 
-	if (active_track_idx > -1)
+    if (active_track_idx > -1)
       active_track_name = tracks[active_track_idx].name;
   }
   ImGui::EndChild();
