@@ -1,0 +1,108 @@
+#pragma once
+
+#include <frontend/IEditor.hpp>
+#include <frontend/legacy_editor/StudioWindow.hpp>
+#include <frontend/widgets/AutoHistory.hpp>
+#include <frontend/widgets/PropertyEditorWidget.hpp>
+#include <librii/j3d/BinaryBTK.hpp>
+#include <rsl/FsDialog.hpp>
+
+namespace riistudio::frontend {
+
+// Implements a single tab for now
+class BtkEditorTabSheet : private PropertyEditorWidget {
+public:
+  void Draw(std::function<void(void)> draw) {
+    // No concurrent access
+    assert(m_drawTab == nullptr);
+    m_drawTab = draw;
+    DrawTabWidget(false);
+    Tabs();
+    m_drawTab = nullptr;
+  }
+
+private:
+  std::vector<std::string> TabTitles() override { return {"BTK"}; }
+  bool Tab(int index) override {
+    m_drawTab();
+    return true;
+  }
+
+  std::function<void(void)> m_drawTab = nullptr;
+};
+
+class BtkEditorPropertyGrid {
+public:
+  void Draw(librii::j3d::BTK& btk);
+};
+
+class BtkEditor : public frontend::StudioWindow, public IEditor {
+public:
+  BtkEditor() : StudioWindow("BTK Editor: <unknown>", DockSetting::None) {
+    // setWindowFlag(ImGuiWindowFlags_MenuBar);
+  }
+  BtkEditor(const BtkEditor&) = delete;
+  BtkEditor(BtkEditor&&) = delete;
+
+  void draw_() override {
+    setName("BTK Editor: " + m_path);
+    m_sheet.Draw([&]() { m_grid.Draw(m_btk); });
+    m_history.update(m_btk);
+  }
+  ImGuiID buildDock(ImGuiID root_id) override {
+    // ImGui::DockBuilderDockWindow("Properties", root_id);
+    return root_id;
+  }
+
+  std::string discordStatus() const override {
+    return "Editing a ??? (.btk) file.";
+  }
+
+  void openFile(std::span<const u8> buf, std::string_view path) {
+    librii::j3d::BTK btk;
+    if (!btk.loadFromMemory(buf, path)) {
+      rsl::ErrorDialog("Failed to parse BTK");
+      return;
+    }
+    m_btk = btk;
+    m_path = path;
+  }
+  void saveAs(std::string_view path) {
+    rsl::ErrorDialog("BTK: File saving is not supported");
+  }
+
+  void saveButton() override {
+    rsl::trace("Attempting to save to {}", m_path);
+    if (m_path.empty()) {
+      saveAsButton();
+      return;
+    }
+    saveAs(m_path);
+  }
+  void saveAsButton() override {
+    auto default_filename = std::filesystem::path(m_path).filename();
+    std::vector<std::string> filters{"??? (*.btk)", "*.btk"};
+    auto results =
+        rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
+    if (!results) {
+      rsl::ErrorDialog("No saving - No file selected");
+      return;
+    }
+    auto path = results->string();
+
+    if (!path.ends_with(".btk")) {
+      path += ".btk";
+    }
+
+    saveAs(path);
+  }
+
+private:
+  BtkEditorPropertyGrid m_grid;
+  BtkEditorTabSheet m_sheet;
+  std::string m_path;
+  librii::j3d::BTK m_btk;
+  lvl::AutoHistory<librii::j3d::BTK> m_history;
+};
+
+} // namespace riistudio::frontend

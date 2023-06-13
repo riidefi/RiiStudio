@@ -122,14 +122,23 @@ public:
 
   template <typename T>
   auto tryReadBuffer(uint32_t size, uint32_t addr) -> Result<std::vector<T>> {
-    static_assert(sizeof(T) == 1);
-    if (addr + size > endpos()) {
+    static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4);
+    if (addr + size * sizeof(T)  > endpos()) {
       rsl::debug_break();
       return std::unexpected("Buffer read exceeds file length");
     }
     readerBpCheck(size, addr - tell());
+    if constexpr (sizeof(T) == 1) {
+      std::vector<T> out(size);
+      std::copy_n(mBuf.begin() + addr, size, out.begin());
+      return out;
+    }
     std::vector<T> out(size);
-    std::copy_n(mBuf.begin() + addr, size, out.begin());
+    auto it = addr;
+    for (auto& t : out) {
+      t = TRY(tryGetAt<T>(it));
+      it += sizeof(T);
+	}
     return out;
   }
   template <typename T>

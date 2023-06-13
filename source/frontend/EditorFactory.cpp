@@ -6,6 +6,7 @@
 #include <frontend/editors/BfgEditor.hpp>
 #include <frontend/editors/BlightEditor.hpp>
 #include <frontend/editors/BlmapEditor.hpp>
+#include <frontend/editors/BtkEditor.hpp>
 #include <frontend/level_editor/LevelEditor.hpp>
 
 #include <frontend/file_host.hpp>
@@ -48,6 +49,11 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
   }
   if (path_lower.ends_with(".blmap") || path_lower.ends_with(".plmap")) {
     return std::make_unique<BlmapEditor>(span, data.mPath);
+  }
+  if (path_lower.ends_with(".btk")) {
+    auto pWin = std::make_unique<BtkEditor>();
+    pWin->openFile(span, data.mPath);
+    return pWin;
   }
   if (AssimpImporter::supports(path_lower)) {
     return std::make_unique<AssimpImporter>(span, data.mPath);
