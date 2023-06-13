@@ -505,12 +505,11 @@ private:
         TRY(checkFloat(f.value));
         TRY(checkFloat(f.tangent));
       }
-      auto strictly_increasing =
+      auto monotonic_increasing =
           std::ranges::adjacent_find(track.keyframes, [](auto& x, auto& y) {
-            return x.frame >= y.frame;
+            return x.frame > y.frame;
           }) == track.keyframes.end();
-      EXPECT(strictly_increasing,
-             "SRT0 track keyframes must be strictly increasing");
+      EXPECT(monotonic_increasing, "SRT0 track keyframes must be increasing");
       f32 begin = track.keyframes[0].frame;
       f32 end = track.keyframes.back().frame;
       auto step = CalcStep(begin, end);
