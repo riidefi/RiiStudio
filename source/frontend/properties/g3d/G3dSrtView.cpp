@@ -112,14 +112,62 @@ VisibilityMatrixIDSelector(Filter& visFilter,
   ImGui::EndChild();
 }
 
-struct FVT {
+struct TrackUIInfo {
+  enum SubTrack {
+    SCALE_X,
+    SCALE_Y,
+    ROT,
+    TRANS_X,
+    TRANS_Y,
+  };
+
   std::string matName;
   u32 color = 0xFF;
   size_t mtxId = 0;
-  u32 subtrack = 0;
+  SubTrack subtrack = SCALE_X;
 };
-static std::vector<FVT> GatherFVTs(Filter& visFilter) {
-  std::vector<FVT> fvtsToDraw;
+
+/// Note: May return nullptr!
+static librii::g3d::SrtAnim::Track*
+ResolveTrackUIInfo(librii::g3d::SrtAnimationArchive& anim,
+                   const TrackUIInfo& info) {
+  librii::g3d::SrtAnim::Target target{
+      .materialName = info.matName,
+      .indirect = (info.mtxId >= 8),
+      .matrixIndex = static_cast<int>(info.mtxId % 8),
+  };
+  ptrdiff_t it =
+      std::distance(anim.matrices.begin(),
+                    std::find_if(anim.matrices.begin(), anim.matrices.end(),
+                                 [&](auto& x) { return x.target == target; }));
+
+  if (it == anim.matrices.size()) {
+    return nullptr;
+  }
+
+  return &anim.matrices[it].matrix.subtrack(info.subtrack);
+}
+
+static librii::g3d::SrtAnim::Track&
+AddNewButton_FromTrackUIInfo(librii::g3d::SrtAnimationArchive& anim,
+                             const TrackUIInfo& info) {
+  librii::g3d::SrtAnim::Target target{
+      .materialName = info.matName,
+      .indirect = (info.mtxId >= 8),
+      .matrixIndex = static_cast<int>(info.mtxId % 8),
+  };
+  ptrdiff_t it =
+      std::distance(anim.matrices.begin(),
+                    std::find_if(anim.matrices.begin(), anim.matrices.end(),
+                                 [&](auto& x) { return x.target == target; }));
+  assert(it == anim.matrices.size() && "Animation track already exists!");
+  auto& mtx = anim.matrices.emplace_back();
+  mtx.target = target;
+  return mtx.matrix.subtrack(info.subtrack);
+}
+
+static std::vector<TrackUIInfo> GatherTracks(Filter& visFilter) {
+  std::vector<TrackUIInfo> fvtsToDraw;
   for (auto& [matName, visible] : visFilter.materials()) {
     if (!visible) {
       continue;
@@ -134,11 +182,11 @@ static std::vector<FVT> GatherFVTs(Filter& visFilter) {
       }
       // sx, sy, r, tx, ty
       for (u32 subtrack = 0; subtrack < 5; ++subtrack) {
-        fvtsToDraw.push_back(FVT{
+        fvtsToDraw.push_back(TrackUIInfo{
             .matName = matName,
             .color = matColor,
             .mtxId = mtxId,
-            .subtrack = subtrack,
+            .subtrack = static_cast<TrackUIInfo::SubTrack>(subtrack),
         });
       }
     }
@@ -168,7 +216,7 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
   // When using filter, it becomes
   //   (Material -> Tgt) -> FVT -> KeyFrame
   //
-  auto fvtsToDraw = GatherFVTs(visFilter);
+  auto visibleTracks = GatherTracks(visFilter);
 
   ImGui::BeginChild("ChildR");
   if (ImGui::BeginTable("SrtAnim Table", 4,
@@ -179,26 +227,12 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
     ImGui::TableSetupColumn("Curve", ImGuiTableColumnFlags_WidthStretch);
     ImGui::TableHeadersRow();
 
-    for (auto& fvt : fvtsToDraw) {
+    for (auto& fvt : visibleTracks) {
       int targetMtxId = fvt.mtxId;
       auto matName = fvt.matName;
       u32 matColor = fvt.color;
-
-      librii::g3d::SrtAnim::Target target{
-          .materialName = matName,
-          .indirect = (targetMtxId >= 8),
-          .matrixIndex = (targetMtxId % 8),
-      };
-      ptrdiff_t it = std::distance(
-          anim.matrices.begin(),
-          std::find_if(anim.matrices.begin(), anim.matrices.end(),
-                       [&](auto& x) { return x.target == target; }));
-
       u32 subtrack = fvt.subtrack;
-      librii::g3d::SrtAnim::Track* track = nullptr;
-      if (it != anim.matrices.size()) {
-        track = &(&anim.matrices[it].matrix.scaleX)[subtrack];
-      }
+      librii::g3d::SrtAnim::Track* track = ResolveTrackUIInfo(anim, fvt);
       ImGui::TableNextRow();
       {
         // Row 0: Frame + INFO
@@ -288,9 +322,7 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
         ImGui::PushID(kfStringId.c_str());
 
         if (ImGui::Button("Add animation", size)) {
-          auto& mtx = anim.matrices.emplace_back();
-          mtx.target = target;
-          track = &(&mtx.matrix.scaleX)[subtrack];
+          AddNewButton_FromTrackUIInfo(anim, fvt);
         }
 
         ImGui::PopID();
@@ -325,7 +357,7 @@ static void TableEditorWindow(librii::g3d::SrtAnimationArchive& anim,
   // When using filter, it becomes
   //   (Material -> Tgt) -> FVT -> KeyFrame
   //
-  auto fvtsToDraw = GatherFVTs(visFilter);
+  auto visibleTracks = GatherTracks(visFilter);
   int maxTrackSize = getMaxTrackSize(anim);
 
   ImGui::BeginChild("ChildR");
@@ -338,26 +370,13 @@ static void TableEditorWindow(librii::g3d::SrtAnimationArchive& anim,
     }
     ImGui::TableHeadersRow();
 
-    for (auto& fvt : fvtsToDraw) {
+    for (auto& fvt : visibleTracks) {
       int targetMtxId = fvt.mtxId;
       auto matName = fvt.matName;
       u32 matColor = fvt.color;
 
-      librii::g3d::SrtAnim::Target target{
-          .materialName = matName,
-          .indirect = (targetMtxId >= 8),
-          .matrixIndex = (targetMtxId % 8),
-      };
-      ptrdiff_t it = std::distance(
-          anim.matrices.begin(),
-          std::find_if(anim.matrices.begin(), anim.matrices.end(),
-                       [&](auto& x) { return x.target == target; }));
-
       u32 subtrack = fvt.subtrack;
-      librii::g3d::SrtAnim::Track* track = nullptr;
-      if (it != anim.matrices.size()) {
-        track = &(&anim.matrices[it].matrix.scaleX)[subtrack];
-      }
+      librii::g3d::SrtAnim::Track* track = ResolveTrackUIInfo(anim, fvt);
       // 0: INFO
       // 1: Frame
       // 2: Value
@@ -421,9 +440,7 @@ static void TableEditorWindow(librii::g3d::SrtAnimationArchive& anim,
             newKeyframe.tangent = 0.0f;
 
             if (!track) {
-              auto& mtx = anim.matrices.emplace_back();
-              mtx.target = target;
-              track = &(&mtx.matrix.scaleX)[subtrack];
+              track = &AddNewButton_FromTrackUIInfo(anim, fvt);
             }
             track->push_back(newKeyframe);
           }

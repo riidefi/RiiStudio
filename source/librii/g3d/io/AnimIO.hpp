@@ -174,6 +174,15 @@ struct SrtAnim {
     Track rot{};
     Track transX{};
     Track transY{};
+
+    Track& subtrack(size_t idx) {
+      assert(idx >= 0 && idx < 5);
+      return (&scaleX)[idx];
+    }
+    const Track& subtrack(size_t idx) const {
+      assert(idx >= 0 && idx < 5);
+      return (&scaleX)[idx];
+    }
     bool operator==(const Mtx&) const = default;
   };
 
