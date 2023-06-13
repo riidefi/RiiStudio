@@ -6,25 +6,27 @@
 
 namespace librii::j3d {
 
-struct Key {
+struct KeyFrame {
   float time{};
   float value{};
   float tangentIn{};
   float tangentOut{};
-  bool operator==(const Key&) const = default;
+  bool operator==(const KeyFrame&) const = default;
 };
 
-struct MaterialAnim {
-  std::vector<Key> scales_x;
-  std::vector<Key> scales_y;
-  std::vector<Key> scales_z;
-  std::vector<Key> rotations_x;
-  std::vector<Key> rotations_y;
-  std::vector<Key> rotations_z;
-  std::vector<Key> translations_x;
-  std::vector<Key> translations_y;
-  std::vector<Key> translations_z;
-  bool operator==(const MaterialAnim&) const = default;
+using Track = std::vector<KeyFrame>;
+
+struct BinaryMtxAnim {
+  Track scales_x;
+  Track scales_y;
+  Track scales_z;
+  Track rotations_x;
+  Track rotations_y;
+  Track rotations_z;
+  Track translations_x;
+  Track translations_y;
+  Track translations_z;
+  bool operator==(const BinaryMtxAnim&) const = default;
 };
 
 enum class LoopType {
@@ -34,14 +36,19 @@ enum class LoopType {
   MirrorLoop,
 };
 
+/// Low-level direct mapping of the file format
+///
+/// NOTE: Rotation values are floats, but hold 16-bit FIDX values!
 struct BinaryBTK {
   std::vector<u16> remap_table;
   // Only animation_data goes through the remap_table
-  std::vector<MaterialAnim> animation_data;
+  std::vector<BinaryMtxAnim> matrices;
   std::vector<std::string> name_table;
   std::vector<u8> tex_mtx_index_table;
   std::vector<glm::vec3> texture_centers;
   LoopType loop_mode{LoopType::PlayOnce};
+  // Acts as a factor of (2 << n) on each value
+  u8 angle_bitshift{};
 
   bool operator==(const BinaryBTK&) const = default;
 
@@ -54,6 +61,36 @@ struct BinaryBTK {
 
   Result<void> load_tag_data_from_file(oishii::BinaryReader& reader,
                                        s32 tag_count);
+};
+
+struct TargetedMtx {
+  std::string name;
+  u8 tex_mtx_index{};
+  glm::vec3 texture_center{};
+  Track scales_x;
+  Track scales_y;
+  Track scales_z;
+  Track rotations_x;
+  Track rotations_y;
+  Track rotations_z;
+  Track translations_x;
+  Track translations_y;
+  Track translations_z;
+  bool operator==(const TargetedMtx&) const = default;
+};
+
+/// Abstracted strcuture
+struct BTK {
+  std::vector<TargetedMtx> matrices;
+  LoopType loop_mode{LoopType::PlayOnce};
+
+  std::string debugDump();
+
+  bool operator==(const BTK&) const = default;
+
+  static Result<BTK> fromBin(const BinaryBTK& bin);
+  static Result<BTK> fromFile(std::string_view path);
+  static Result<BTK> fromMemory(std::span<const u8> buf, std::string_view path);
 };
 
 } // namespace librii::j3d

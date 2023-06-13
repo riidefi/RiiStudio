@@ -43,12 +43,12 @@ Result<BinAnimComponent> read_anim_component(oishii::BinaryReader& reader) {
   return animComponent;
 }
 
-std::vector<Key> read_comp(std::span<const float> src,
-                           const BinAnimIndex& index) {
-  std::vector<Key> ret;
+std::vector<KeyFrame> read_comp(std::span<const float> src,
+                                const BinAnimIndex& index) {
+  std::vector<KeyFrame> ret;
 
   if (index.count == 1) {
-    ret.emplace_back(Key{
+    ret.emplace_back(KeyFrame{
         .time = 0.0f,
         .value = src[index.index],
         .tangentIn = 0.0f,
@@ -56,7 +56,7 @@ std::vector<Key> read_comp(std::span<const float> src,
     });
   } else {
     for (int j = 0; j < index.count; j++) {
-      Key key;
+      KeyFrame key;
       if (index.keyTangentType == TangentType::TangentIn) {
         key = {
             .time = src[index.index + 3 * j],
@@ -78,7 +78,7 @@ std::vector<Key> read_comp(std::span<const float> src,
 
   return ret;
 }
-void convert_rotation(std::vector<Key>& rots, float scale) {
+void convert_rotation(Track& rots, float scale) {
   for (auto& key : rots) {
     key.value *= scale;
     key.tangentIn *= scale;
@@ -90,7 +90,7 @@ std::string BinaryBTK::debugDump() {
   std::string result = "DEBUG DUMP OF BTK\n";
 
   result += rsl::DumpStruct(*this);
-  for (auto& x : animation_data) {
+  for (auto& x : matrices) {
     result += "ANIMATION DATA ENTRY\n";
     result += rsl::DumpStruct(x);
   }
@@ -131,7 +131,7 @@ struct TTK1Header {
   s16 num_scale_float_entries{};
   s16 num_rotation_short_entries{};
   s16 num_translate_float_entries{};
-  s32 anim_data_offset{};
+  s32 matrices_offset{};
   s32 remap_table_offset{};
   s32 string_table_offset{};
   s32 texture_index_table_offset{};
@@ -159,6 +159,7 @@ Result<void> BinaryBTK::load_tag_data_from_file(oishii::BinaryReader& reader,
     if (tag_name == 'TTK1') {
       auto ttk1 = TRY(ReadTTK1Header(reader));
       loop_mode = TRY(rsl::enum_cast<LoopType>(ttk1.loop_mode));
+      angle_bitshift = ttk1.angle_multiplier;
 
       // J3DMaterialTable::createTexMtxForAnimator shows this to be the size of
       // the remap table, but not the data arrays necessarily
@@ -207,13 +208,10 @@ Result<void> BinaryBTK::load_tag_data_from_file(oishii::BinaryReader& reader,
         x.z = TRY(reader.tryRead<f32>());
       }
 
-      animation_data.reserve(remap_table_count);
-      auto rot_scale =
-          std::pow(2.0f, static_cast<float>(ttk1.angle_multiplier)) *
-          (180.0 / 32768.0);
+      matrices.reserve(remap_table_count);
 
-      reader.seek(tag_start + ttk1.anim_data_offset);
-	  
+      reader.seek(tag_start + ttk1.matrices_offset);
+
       // Having the compressed component array using remap_table_count is
       // actually a failure of my code
       for (s32 j = 0; j < remap_table_count; ++j) {
@@ -221,21 +219,17 @@ Result<void> BinaryBTK::load_tag_data_from_file(oishii::BinaryReader& reader,
         auto tex_v = TRY(read_anim_component(reader));
         auto tex_w = TRY(read_anim_component(reader));
 
-        MaterialAnim anim{read_comp(scale_data, tex_u.scale),
-                          read_comp(scale_data, tex_v.scale),
-                          read_comp(scale_data, tex_w.scale),
-                          read_comp(rotation_data, tex_u.rotation),
-                          read_comp(rotation_data, tex_v.rotation),
-                          read_comp(rotation_data, tex_w.rotation),
-                          read_comp(translation_data, tex_u.translation),
-                          read_comp(translation_data, tex_v.translation),
-                          read_comp(translation_data, tex_w.translation)};
+        BinaryMtxAnim anim{read_comp(scale_data, tex_u.scale),
+                           read_comp(scale_data, tex_v.scale),
+                           read_comp(scale_data, tex_w.scale),
+                           read_comp(rotation_data, tex_u.rotation),
+                           read_comp(rotation_data, tex_v.rotation),
+                           read_comp(rotation_data, tex_w.rotation),
+                           read_comp(translation_data, tex_u.translation),
+                           read_comp(translation_data, tex_v.translation),
+                           read_comp(translation_data, tex_w.translation)};
 
-        convert_rotation(anim.rotations_x, rot_scale);
-        convert_rotation(anim.rotations_y, rot_scale);
-        convert_rotation(anim.rotations_z, rot_scale);
-
-        animation_data.push_back(std::move(anim));
+        matrices.push_back(std::move(anim));
       }
     } else {
       // ...
@@ -245,6 +239,63 @@ Result<void> BinaryBTK::load_tag_data_from_file(oishii::BinaryReader& reader,
   }
 
   return {};
+}
+
+std::string BTK::debugDump() {
+  std::string result = "DEBUG DUMP OF BTK\n";
+
+  result += rsl::DumpStruct(*this);
+  for (auto& x : matrices) {
+    result += "ANIAMTED MATRIX ENTRY\n";
+    result += rsl::DumpStruct(x);
+  }
+
+  return result;
+}
+
+Result<BTK> BTK::fromBin(const BinaryBTK& bin) {
+  BTK tmp;
+  tmp.loop_mode = bin.loop_mode;
+
+  auto rot_scale = std::pow(2.0f, static_cast<float>(bin.angle_bitshift)) *
+                   (std::numbers::pi / 32768.0);
+  for (size_t i = 0; i < bin.remap_table.size(); ++i) {
+    u16 data_index = bin.remap_table[i];
+    EXPECT(data_index < bin.matrices.size());
+    auto& data = bin.matrices[data_index];
+    EXPECT(i < bin.name_table.size());
+    EXPECT(i < bin.tex_mtx_index_table.size());
+    EXPECT(i < bin.texture_centers.size());
+    tmp.matrices.push_back({
+        .name = bin.name_table[i],
+        .tex_mtx_index = bin.tex_mtx_index_table[i],
+        .texture_center = bin.texture_centers[i],
+        .scales_x = data.scales_x,
+        .scales_y = data.scales_y,
+        .scales_z = data.scales_z,
+        .rotations_x = data.rotations_x,
+        .rotations_y = data.rotations_y,
+        .rotations_z = data.rotations_z,
+        .translations_x = data.translations_x,
+        .translations_y = data.translations_y,
+        .translations_z = data.translations_z,
+    });
+    auto& mtx = tmp.matrices.back();
+    convert_rotation(mtx.rotations_x, rot_scale);
+    convert_rotation(mtx.rotations_y, rot_scale);
+    convert_rotation(mtx.rotations_z, rot_scale);
+  }
+  return tmp;
+}
+Result<BTK> BTK::fromFile(std::string_view path) {
+  BinaryBTK bin;
+  TRY(bin.loadFromFile(path));
+  return fromBin(bin);
+}
+Result<BTK> BTK::fromMemory(std::span<const u8> buf, std::string_view path) {
+  BinaryBTK bin;
+  TRY(bin.loadFromMemory(buf, path));
+  return fromBin(bin);
 }
 
 } // namespace librii::j3d
