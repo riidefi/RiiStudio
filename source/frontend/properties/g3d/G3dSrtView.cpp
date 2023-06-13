@@ -1,6 +1,8 @@
 #include "G3dSrtView.hpp"
 #include <rsl/Defer.hpp>
 
+#include <vendor/fa5/IconsFontAwesome5.h>
+
 namespace riistudio::g3d {
 
 static uint32_t fnv1a_32_hash(std::string_view text) {
@@ -299,6 +301,140 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
   }
   ImGui::EndChild();
 }
+static void TableEditorWindow(librii::g3d::SrtAnimationArchive& anim,
+                              Filter& visFilter, float frame_duration) {
+  //
+  // Our table editor is given by the following matrix:
+  //
+  // *----------*---------*------------*-----*------------*---------*
+  // | Material | Target  | Keyframe 1 | ... | Keyframe N | +Button |
+  // *----------|---------|------------|-----|------------|---------*
+  // | MName    | Mtx0ROT | Frame      | ... | Frame      |    +    |
+  // *----------|---------*------------|-----|------------*---------*
+  // .          .         | Value      | ... | Value      |         .
+  // .....................*------------|-----|------------*..........
+  // .          .         | Tangent    | ... | Tangent    |         .
+  // .....................*------------*-----*------------*..........
+  //                                                                 [N+3 x
+  //                                                                 3T+1]
+  // Note its width is N+3, where N is the maximum track size.
+  // Note its height is 3T+1 where T is the number of tracks.
+  //
+  // ImGui is Row-Dominant, so we traverse in this order:
+  //   AnimMtx -> FVT -> KeyFrame
+  // When using filter, it becomes
+  //   (Material -> Tgt) -> FVT -> KeyFrame
+  //
+  auto fvtsToDraw = GatherFVTs(visFilter);
+  int maxTrackSize = getMaxTrackSize(anim);
+
+  ImGui::BeginChild("ChildR");
+  if (ImGui::BeginTable("SrtAnim Table", maxTrackSize + 3,
+                        ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollX)) {
+    ImGui::TableSetupColumn("Material");
+    ImGui::TableSetupColumn("Target");
+    for (int i = 0; i < maxTrackSize + 1; ++i) {
+      ImGui::TableSetupColumn(("KeyFrame " + std::to_string(i)).c_str());
+    }
+    ImGui::TableHeadersRow();
+
+    for (auto& fvt : fvtsToDraw) {
+      int targetMtxId = fvt.mtxId;
+      auto matName = fvt.matName;
+      u32 matColor = fvt.color;
+
+      librii::g3d::SrtAnim::Target target{
+          .materialName = matName,
+          .indirect = (targetMtxId >= 8),
+          .matrixIndex = (targetMtxId % 8),
+      };
+      ptrdiff_t it = std::distance(
+          anim.matrices.begin(),
+          std::find_if(anim.matrices.begin(), anim.matrices.end(),
+                       [&](auto& x) { return x.target == target; }));
+
+      u32 subtrack = fvt.subtrack;
+      librii::g3d::SrtAnim::Track* track = nullptr;
+      if (it != anim.matrices.size()) {
+        track = &(&anim.matrices[it].matrix.scaleX)[subtrack];
+      }
+      // 0: INFO
+      // 1: Frame
+      // 2: Value
+      // 3: Tangent
+      for (int row_index = 0; row_index < 4; ++row_index) {
+        ImGui::TableNextRow();
+        if (row_index == 0) {
+          // Row 0: Frame + INFO
+          ImGui::TableSetColumnIndex(0);
+          ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+          ImGui::Text("%s", matName.c_str());
+          ImGui::TableSetColumnIndex(1);
+          ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+          // string_view created from cstring, so
+          // .data() is null-terminated
+          auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(subtrack);
+          const char* subtrackName = magic_enum::enum_name(tgtId).data();
+          ImGui::Text("%s%d: %s", targetMtxId >= 8 ? "IndMtx" : "TexMtx",
+                      (targetMtxId % 8), subtrackName);
+        }
+        for (size_t i = 0; i < (track ? track->size() : 0); ++i) {
+          auto& keyframe = track->at(i);
+          auto kfStringId =
+              std::format("{}{}{}{}", matName, targetMtxId, subtrack, i);
+          ImGui::PushID(kfStringId.c_str());
+          RSL_DEFER(ImGui::PopID());
+
+          ImGui::TableSetColumnIndex(i + 2);
+          if (row_index == 0) {
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+            ImGui::Text("Keyframe %d", static_cast<int>(i));
+            ImGui::SameLine();
+            auto title = std::format(
+                "{}##{}", (const char*)ICON_FA_TIMES_CIRCLE, kfStringId);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+            if (ImGui::Button(title.c_str())) {
+              track->erase(track->begin() + i);
+            }
+          } else if (row_index == 1) {
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+            ImGui::InputFloat("Frame", &keyframe.frame);
+          } else if (row_index == 2) {
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+            ImGui::InputFloat("Value", &keyframe.value);
+          } else if (row_index == 3) {
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+            ImGui::InputFloat("Tangent", &keyframe.tangent);
+          }
+        }
+        if (row_index == 0) {
+          ImGui::TableSetColumnIndex((track ? track->size() : 0) + 2);
+          ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
+          auto title = std::format("{}##{}{}{}", "    +    ", matName, subtrack,
+                                   targetMtxId);
+          auto avail = ImVec2{ImGui::GetContentRegionAvail().x, 0.0f};
+          if (ImGui::Button(title.c_str(), avail)) {
+            // Define a new keyframe with default values
+            librii::g3d::SRT0KeyFrame newKeyframe;
+            newKeyframe.frame = 0.0f;
+            newKeyframe.value = 0.0f; // TODO: Grab last if exist
+            newKeyframe.tangent = 0.0f;
+
+            if (!track) {
+              auto& mtx = anim.matrices.emplace_back();
+              mtx.target = target;
+              track = &(&mtx.matrix.scaleX)[subtrack];
+            }
+            track->push_back(newKeyframe);
+          }
+        }
+      }
+    }
+
+    ImGui::EndTable();
+  }
+  ImGui::EndChild();
+}
 void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
                  const riistudio::g3d::Model& mdl, float frame_duration) {
   std::unordered_set<std::string> animatedMaterials;
@@ -309,9 +445,23 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
     animatedMtxSlots[target.matrixIndex + (target.indirect ? 8 : 0)] = true;
   }
 
-  VisibilityMatrixIDSelector(visFilter, animatedMaterials, animatedMtxSlots);
-  ImGui::SameLine();
-  CurveEditorWindow(anim, visFilter, frame_duration);
+  if (ImGui::BeginTabBar("Views")) {
+    if (ImGui::BeginTabItem((const char*)ICON_FA_BEZIER_CURVE "CURVE EDITOR")) {
+      VisibilityMatrixIDSelector(visFilter, animatedMaterials,
+                                 animatedMtxSlots);
+      ImGui::SameLine();
+      CurveEditorWindow(anim, visFilter, frame_duration);
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem((const char*)ICON_FA_TABLE "TABLE EDITOR")) {
+      VisibilityMatrixIDSelector(visFilter, animatedMaterials,
+                                 animatedMtxSlots);
+      ImGui::SameLine();
+      TableEditorWindow(anim, visFilter, frame_duration);
+      ImGui::EndTabItem();
+    }
+    ImGui::EndTabBar();
+  }
 }
 librii::g3d::SrtAnimationArchive
 DrawSrtOptions(const librii::g3d::SrtAnimationArchive& init, Filter& visFilter,
