@@ -119,6 +119,9 @@ struct J3dModel {
   [[nodiscard]] static Result<J3dModel> read(oishii::BinaryReader& reader,
                                              kpi::LightIOTransaction& tx);
   [[nodiscard]] Result<void> write(oishii::Writer& writer);
+
+  [[nodiscard]] Result<void> dropMtx();
+  [[nodiscard]] Result<void> genMtx();
 };
 
 } // namespace librii::j3d

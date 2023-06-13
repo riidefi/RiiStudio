@@ -359,15 +359,123 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
   return {};
 }
 
-Result<librii::j3d::J3dModel>
-librii::j3d::J3dModel::read(oishii::BinaryReader& reader,
-                            kpi::LightIOTransaction& tx) {
+Result<J3dModel> J3dModel::read(oishii::BinaryReader& reader,
+                                kpi::LightIOTransaction& tx) {
   librii::j3d::J3dModel out;
   TRY(detailReadBMD(out, reader, tx));
+  TRY(out.dropMtx());
   return out;
 }
-Result<void> librii::j3d::J3dModel::write(oishii::Writer& writer) {
-  return detailWriteBMD(*this, writer);
+Result<void> J3dModel::write(oishii::Writer& writer) {
+  J3dModel tmp = *this;
+  TRY(tmp.genMtx());
+  return detailWriteBMD(tmp, writer);
+}
+
+std::optional<u8> asTexNMtx(gx::VertexAttribute attr) {
+  u32 u = static_cast<u32>(attr);
+  if (u >= static_cast<u32>(gx::VertexAttribute::Texture0MatrixIndex) &&
+      u <= static_cast<u32>(gx::VertexAttribute::Texture7MatrixIndex)) {
+    return u - static_cast<u32>(gx::VertexAttribute::Texture0MatrixIndex);
+  }
+  return std::nullopt;
+}
+
+Result<void> J3dModel::dropMtx() {
+  for (auto& shape : shapes) {
+    // Take out TexNMtxIdx
+    //
+    // Right now, we don't check and simply purge the data, trusting that it
+    // will be added back properly.
+    auto& desc = shape.mVertexDescriptor;
+    std::bitset<8> texmtx_specified;
+    for (auto& attr : desc.mAttributes) {
+      auto texn = asTexNMtx(attr.first);
+      if (texn.has_value()) {
+        EXPECT(*texn < texmtx_specified.size());
+        texmtx_specified[*texn] = true;
+      }
+    }
+    std::erase_if(desc.mAttributes, [](auto& attr) -> bool {
+      auto t = asTexNMtx(attr.first);
+      return t.has_value();
+    });
+    desc.calcVertexDescriptorFromAttributeList();
+    // Because of the way IndexedVertex works, we don't have to touch the actual
+    // vertex arrays
+  }
+  return {};
+}
+Result<void> J3dModel::genMtx() {
+  std::map<u32, std::bitset<8>> mesh_texmtx;
+  bool any_texmtx = false;
+  for (auto& bone : joints) {
+    for (auto& display : bone.displays) {
+      u32 matId = display.material;
+      EXPECT(matId < materials.size());
+      auto& mat = materials[matId];
+      u32 polyId = display.shape;
+      EXPECT(polyId < shapes.size());
+      auto& poly = shapes[polyId];
+      if (!poly.mVertexDescriptor
+               [gx::VertexAttribute::PositionNormalMatrixIndex]) {
+        // We only care for the rigged case
+        continue;
+      }
+      for (size_t i = 0; i < mat.texGens.size(); ++i) {
+        auto& tg = mat.texGens[i];
+        bool rigged_tg_need_texmtx = NeedTexMtx(tg);
+        mesh_texmtx[polyId][i] =
+            mesh_texmtx[polyId][i] || rigged_tg_need_texmtx;
+        any_texmtx |= rigged_tg_need_texmtx;
+      }
+    }
+  }
+
+  for (size_t i = 0; i < shapes.size(); ++i) {
+    auto& shp = shapes[i];
+    auto texmtx_needed = mesh_texmtx[i];
+    // Add TEXNMTX to VCD
+    if (shp.mVertexDescriptor.mAttributes.contains(
+            gx::VertexAttribute::PositionNormalMatrixIndex)) {
+      for (size_t i = 0; i < 8; ++i) {
+        bool needed = texmtx_needed[i];
+        if (!needed)
+          continue;
+        librii::gx::VertexAttribute f =
+            static_cast<librii::gx::VertexAttribute>(
+                static_cast<int>(
+                    librii::gx::VertexAttribute::Texture0MatrixIndex) +
+                i);
+        shp.mVertexDescriptor.mAttributes[f] = gx::VertexAttributeType::Direct;
+        shp.mVertexDescriptor.mBitfield |= 2 << i;
+      }
+    }
+    auto& vcd = shp.mVertexDescriptor;
+    vcd.calcVertexDescriptorFromAttributeList();
+
+    // Add TEXNMTX to VERTEX DATA
+    if (shp.mVertexDescriptor[gx::VertexAttribute::PositionNormalMatrixIndex]) {
+      for (size_t i = 0; i < 8; ++i) {
+        bool needed = texmtx_needed[i];
+        if (!needed)
+          continue;
+        librii::gx::VertexAttribute f =
+            static_cast<librii::gx::VertexAttribute>(
+                static_cast<int>(
+                    librii::gx::VertexAttribute::Texture0MatrixIndex) +
+                i);
+        for (auto& mp : shp.mMatrixPrimitives) {
+          for (auto& p : mp.mPrimitives) {
+            for (auto& v : p.mVertices) {
+              v[f] = v[gx::VertexAttribute::PositionNormalMatrixIndex] + 30;
+            }
+          }
+        }
+      }
+    }
+  }
+  return {};
 }
 
 static gx::TexCoordGen postTexGen(const gx::TexCoordGen& gen) {

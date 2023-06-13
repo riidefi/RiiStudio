@@ -86,7 +86,7 @@ readNameTable(oishii::BinaryReader& reader) {
   TRY(reader.tryRead<u16>());
 
   for (auto& e : collected) {
-    const auto hash = TRY(reader.tryRead<u16>());
+    [[maybe_unused]] const auto hash = TRY(reader.tryRead<u16>());
     const auto ofs = TRY(reader.tryRead<u16>());
     {
       oishii::Jump<oishii::Whence::Set> g(reader, start + ofs);
