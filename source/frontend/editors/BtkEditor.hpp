@@ -33,7 +33,7 @@ private:
 
 class BtkEditorPropertyGrid {
 public:
-  void Draw(librii::j3d::BTK& btk);
+  void Draw(librii::j3d::BinaryBTK& btk);
 };
 
 class BtkEditor : public frontend::StudioWindow, public IEditor {
@@ -59,9 +59,10 @@ public:
   }
 
   void openFile(std::span<const u8> buf, std::string_view path) {
-    librii::j3d::BTK btk;
-    if (!btk.loadFromMemory(buf, path)) {
-      rsl::ErrorDialog("Failed to parse BTK");
+    librii::j3d::BinaryBTK btk;
+    auto ok = btk.loadFromMemory(buf, path);
+    if (!ok) {
+      rsl::ErrorDialogFmt("Failed to parse BTK\n{}", ok.error());
       return;
     }
     m_btk = btk;
@@ -101,8 +102,8 @@ private:
   BtkEditorPropertyGrid m_grid;
   BtkEditorTabSheet m_sheet;
   std::string m_path;
-  librii::j3d::BTK m_btk;
-  lvl::AutoHistory<librii::j3d::BTK> m_history;
+  librii::j3d::BinaryBTK m_btk;
+  lvl::AutoHistory<librii::j3d::BinaryBTK> m_history;
 };
 
 } // namespace riistudio::frontend

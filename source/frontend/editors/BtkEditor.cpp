@@ -4,7 +4,7 @@
 
 namespace riistudio::frontend {
 
-void BtkEditorPropertyGrid::Draw(librii::j3d::BTK& btk) {
+void BtkEditorPropertyGrid::Draw(librii::j3d::BinaryBTK& btk) {
   auto s = btk.debugDump();
   ImGui::Text("%s", s.c_str());
 }

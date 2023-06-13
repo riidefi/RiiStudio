@@ -1,9 +1,12 @@
 // Based on
 // https://github.com/LordNed/JStudio/blob/b9c4eabb1c7e80a8da7f63f8d5003df704de369c/JStudio/J3D/Animation/BTK.cs
 
+#include <rsl/Reflection.hpp>
+
 #include "BinaryBTK.hpp"
 #include <librii/j3d/io/OutputCtx.hpp>
 #include <oishii/reader/binary_reader.hxx>
+#include <rsl/DumpStruct.hpp>
 
 namespace librii::j3d {
 
@@ -83,47 +86,29 @@ void convert_rotation(std::vector<Key>& rots, float scale) {
   }
 }
 
-static std::string DumpStruct(auto& s) {
-#ifdef __clang__
-  std::string result;
-  auto printer = [&](auto&&... args) {
-    char buf[256];
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wformat-security"
-    snprintf(buf, sizeof(buf), args...);
-#pragma clang diagnostic pop
-    result += buf;
-  };
-  __builtin_dump_struct(&s, printer);
-  return result;
-#else
-  return "UNSUPPORTED COMPILER";
-#endif
-}
-
-std::string BTK::debugDump() {
+std::string BinaryBTK::debugDump() {
   std::string result = "DEBUG DUMP OF BTK\n";
 
-  result += DumpStruct(*this);
+  result += rsl::DumpStruct(*this);
   for (auto& x : animation_data) {
     result += "ANIMATION DATA ENTRY\n";
-    result += DumpStruct(x);
+    result += rsl::DumpStruct(x);
   }
 
   return result;
 }
 
-Result<void> BTK::loadFromFile(std::string_view fileName) {
+Result<void> BinaryBTK::loadFromFile(std::string_view fileName) {
   auto reader =
       TRY(oishii::BinaryReader::FromFilePath(fileName, std::endian::big));
   return loadFromStream(reader);
 }
-Result<void> BTK::loadFromMemory(std::span<const u8> buf,
-                                 std::string_view filename) {
+Result<void> BinaryBTK::loadFromMemory(std::span<const u8> buf,
+                                       std::string_view filename) {
   oishii::BinaryReader reader(buf, filename, std::endian::big);
   return loadFromStream(reader);
 }
-Result<void> BTK::loadFromStream(oishii::BinaryReader& reader) {
+Result<void> BinaryBTK::loadFromStream(oishii::BinaryReader& reader) {
   auto magic = TRY(reader.tryRead<u32>());
   EXPECT(magic == 'J3D1');
   auto anim_type = TRY(reader.tryRead<u32>());
@@ -137,8 +122,34 @@ Result<void> BTK::loadFromStream(oishii::BinaryReader& reader) {
   return {};
 }
 
-Result<void> BTK::load_tag_data_from_file(oishii::BinaryReader& reader,
-                                          s32 tag_count) {
+struct TTK1Header {
+  u8 loop_mode{};
+  uint8_t angle_multiplier{};
+  s16 anim_length_in_frames{};
+  // div3
+  s16 texture_anim_entry_count{};
+  s16 num_scale_float_entries{};
+  s16 num_rotation_short_entries{};
+  s16 num_translate_float_entries{};
+  s32 anim_data_offset{};
+  s32 remap_table_offset{};
+  s32 string_table_offset{};
+  s32 texture_index_table_offset{};
+  s32 texture_center_table_offset{};
+  s32 scale_data_offset{};
+  s32 rotation_data_offset{};
+  s32 translate_data_offset{};
+};
+
+Result<TTK1Header> ReadTTK1Header(oishii::BinaryReader& reader) {
+  rsl::SafeReader safe(reader);
+  TTK1Header out;
+  rsl::ReadFields(out, safe);
+  return out;
+}
+
+Result<void> BinaryBTK::load_tag_data_from_file(oishii::BinaryReader& reader,
+                                                s32 tag_count) {
   for (s32 i = 0; i < tag_count; ++i) {
     auto tag_start = reader.tell();
 
@@ -146,61 +157,71 @@ Result<void> BTK::load_tag_data_from_file(oishii::BinaryReader& reader,
     auto tag_size = TRY(reader.tryRead<s32>());
 
     if (tag_name == 'TTK1') {
-      loop_mode = static_cast<LoopType>(TRY(reader.tryRead<uint8_t>()));
-      auto angle_multiplier = TRY(reader.tryRead<uint8_t>());
-      auto anim_length_in_frames = TRY(reader.tryRead<s16>());
-      auto texture_anim_entry_count = TRY(reader.tryRead<s16>()) / 3;
-      auto num_scale_float_entries = TRY(reader.tryRead<s16>());
-      auto num_rotation_short_entries = TRY(reader.tryRead<s16>());
-      auto num_translate_float_entries = TRY(reader.tryRead<s16>());
-      auto anim_data_offset = TRY(reader.tryRead<s32>());
-      auto remap_table_offset = TRY(reader.tryRead<s32>());
-      auto string_table_offset = TRY(reader.tryRead<s32>());
-      auto texture_index_table_offset = TRY(reader.tryRead<s32>());
-      auto texture_center_table_offset = TRY(reader.tryRead<s32>());
-      auto scale_data_offset = TRY(reader.tryRead<s32>());
-      auto rotation_data_offset = TRY(reader.tryRead<s32>());
-      auto translate_data_offset = TRY(reader.tryRead<s32>());
+      auto ttk1 = TRY(ReadTTK1Header(reader));
+      loop_mode = TRY(rsl::enum_cast<LoopType>(ttk1.loop_mode));
+
+      // J3DMaterialTable::createTexMtxForAnimator shows this to be the size of
+      // the remap table, but not the data arrays necessarily
+      auto remap_table_count = ttk1.texture_anim_entry_count / 3;
+
+      reader.seek(tag_start + ttk1.remap_table_offset);
+      remap_table = TRY(reader.tryReadBuffer<u16>(remap_table_count));
+
+      // (and contiguous)
+      bool strictlyIncreasing = true;
+      for (size_t i = 0; i < remap_table.size(); ++i) {
+        if (remap_table[i] != i) {
+          strictlyIncreasing = false;
+        }
+      }
+      if (!strictlyIncreasing) {
+        rsl::error("TTK1 data is compressed!");
+      }
+
+      reader.seek(tag_start + ttk1.string_table_offset);
+      name_table = TRY(librii::j3d::readNameTable(reader));
+      EXPECT(name_table.size() == remap_table_count);
 
       auto scale_data = TRY(reader.tryReadBuffer<float>(
-          num_scale_float_entries, tag_start + scale_data_offset));
-      auto rotation_data = TRY(reader.tryReadBuffer<float>(
-          num_rotation_short_entries, tag_start + rotation_data_offset));
-      auto translation_data = TRY(reader.tryReadBuffer<float>(
-          num_translate_float_entries, tag_start + translate_data_offset));
+          ttk1.num_scale_float_entries, tag_start + ttk1.scale_data_offset));
+      auto rotation_data_short =
+          TRY(reader.tryReadBuffer<s16>(ttk1.num_rotation_short_entries,
+                                        tag_start + ttk1.rotation_data_offset));
+      std::vector<f32> rotation_data;
+      for (s16 s : rotation_data_short) {
+        rotation_data.push_back(static_cast<f32>(s));
+      }
+      auto translation_data = TRY(
+          reader.tryReadBuffer<float>(ttk1.num_translate_float_entries,
+                                      tag_start + ttk1.translate_data_offset));
 
-      reader.seek(tag_start + remap_table_offset);
-      remap_table = TRY(reader.tryReadBuffer<s16>(texture_anim_entry_count));
+      reader.seek(tag_start + ttk1.texture_index_table_offset);
+      tex_mtx_index_table =
+          TRY(reader.tryReadBuffer<uint8_t>(remap_table_count));
 
-      reader.seek(tag_start + string_table_offset);
-      auto string_table = TRY(librii::j3d::readNameTable(reader));
-
-      reader.seek(tag_start + texture_index_table_offset);
-      auto tex_mtx_index_table =
-          TRY(reader.tryReadBuffer<uint8_t>(texture_anim_entry_count));
-
-      reader.seek(tag_start + texture_center_table_offset);
-      std::vector<glm::vec3> texture_centers(texture_anim_entry_count);
+      reader.seek(tag_start + ttk1.texture_center_table_offset);
+      texture_centers.resize(remap_table_count);
       for (auto& x : texture_centers) {
         x.x = TRY(reader.tryRead<f32>());
         x.y = TRY(reader.tryRead<f32>());
         x.z = TRY(reader.tryRead<f32>());
       }
 
-      animation_data.reserve(texture_anim_entry_count);
-      auto rot_scale = std::pow(2.0f, static_cast<float>(angle_multiplier)) *
-                       (180.0 / 32768.0);
+      animation_data.reserve(remap_table_count);
+      auto rot_scale =
+          std::pow(2.0f, static_cast<float>(ttk1.angle_multiplier)) *
+          (180.0 / 32768.0);
 
-      reader.seek(tag_start + anim_data_offset);
-      for (s32 j = 0; j < texture_anim_entry_count; ++j) {
+      reader.seek(tag_start + ttk1.anim_data_offset);
+	  
+      // Having the compressed component array using remap_table_count is
+      // actually a failure of my code
+      for (s32 j = 0; j < remap_table_count; ++j) {
         auto tex_u = TRY(read_anim_component(reader));
         auto tex_v = TRY(read_anim_component(reader));
         auto tex_w = TRY(read_anim_component(reader));
 
-        MaterialAnim anim{texture_centers[j],
-                          string_table[j],
-                          static_cast<s32>(tex_mtx_index_table[j]),
-                          read_comp(scale_data, tex_u.scale),
+        MaterialAnim anim{read_comp(scale_data, tex_u.scale),
                           read_comp(scale_data, tex_v.scale),
                           read_comp(scale_data, tex_w.scale),
                           read_comp(rotation_data, tex_u.rotation),

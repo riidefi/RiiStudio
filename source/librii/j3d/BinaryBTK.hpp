@@ -14,16 +14,7 @@ struct Key {
   bool operator==(const Key&) const = default;
 };
 
-struct AnimComponent {
-  std::vector<Key> scale;
-  std::vector<Key> rotation;
-  std::vector<Key> translation;
-};
-
 struct MaterialAnim {
-  glm::vec3 center{};
-  std::string name;
-  s32 tex_matrix_index{};
   std::vector<Key> scales_x;
   std::vector<Key> scales_y;
   std::vector<Key> scales_z;
@@ -43,12 +34,16 @@ enum class LoopType {
   MirrorLoop,
 };
 
-struct BTK {
+struct BinaryBTK {
+  std::vector<u16> remap_table;
+  // Only animation_data goes through the remap_table
   std::vector<MaterialAnim> animation_data;
-  std::vector<s16> remap_table;
-  LoopType loop_mode;
+  std::vector<std::string> name_table;
+  std::vector<u8> tex_mtx_index_table;
+  std::vector<glm::vec3> texture_centers;
+  LoopType loop_mode{LoopType::PlayOnce};
 
-  bool operator==(const BTK&) const = default;
+  bool operator==(const BinaryBTK&) const = default;
 
   std::string debugDump();
 
