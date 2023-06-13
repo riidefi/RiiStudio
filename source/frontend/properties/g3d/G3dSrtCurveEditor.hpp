@@ -10,6 +10,16 @@
 
 namespace riistudio::g3d {
 
+struct EditableTrack {
+  librii::g3d::SrtAnim::Track* track;
+  std::string name;
+  u32 color = 0xFF;
+
+  constexpr auto& at(int idx) { return track->at(idx); }
+  auto empty() { return track->empty(); }
+  auto size() { return track->size(); }
+};
+
 using KeyframeIndex = int;
 
 class KeyframeIndexSelection {
@@ -59,21 +69,30 @@ private:
 //! @param keyframe_selection [optional] A set of selected
 //! Keyframe indices (more or less), that may be modified by the widget
 void srt_curve_editor(std::string id, ImVec2 size,
-                      librii::g3d::SrtAnim::Track* track, float track_duration,
+                      std::span<EditableTrack> tracks,
+                      float track_duration, int& active_track_idx,
                       KeyframeIndexSelection* keyframe_selection = nullptr);
 
 //! @brief Stores all the external state necessary for using the CurveEditor
 struct GuiFrameContext {
   ImDrawList* dl = nullptr;
   ImRect viewport{};
-  librii::g3d::SrtAnim::Track* track = nullptr;
+  std::span<EditableTrack> tracks = std::span<EditableTrack>();
   float track_duration = -1;
+  int active_track_idx = 0;
   KeyframeIndexSelection* keyframe_selection = nullptr;
 
   float left() const { return viewport.Min.x; }
   float top() const { return viewport.Min.y; }
   float right() const { return viewport.Max.x; }
   float bottom() const { return viewport.Max.y; }
+
+  bool has_active_track() {
+    return 0 <= active_track_idx && active_track_idx <= tracks.size() - 1;
+  }
+  EditableTrack* active_track() {
+    return has_active_track() ? &tracks[active_track_idx] : nullptr;
+  }
 };
 
 //! @brief Represents and stores the editors "camera" bounds, for zooming,
@@ -117,6 +136,10 @@ private:
     std::optional<ImVec2> right = std::nullopt;
   };
 
+  // used to store the calculated keyframe and control point positions in screen
+  // space so they can be calculated once and looked up afterwards
+  using PosArray = std::vector<ControlPointPositions>;
+
   //! @brief A union/varient type for all kinds of Hoverable and or Draggable
   //! parts
   struct HoveredPart {
@@ -138,7 +161,14 @@ private:
       _CurvePoint(float frame, float value) : frame(frame), value(value) {}
     };
 
-    std::variant<_None, KeyframeIndex, _ControlPoint, _CurvePoint> m_part =
+	struct _Curve {
+      int track_idx;
+
+      _Curve(int track_idx) : track_idx(track_idx) {}
+    };
+
+    std::variant<_None, KeyframeIndex, _ControlPoint, _CurvePoint, _Curve>
+        m_part =
         _None();
 
   public:
@@ -156,6 +186,10 @@ private:
     static HoveredPart CurvePoint(float frame, float value);
     bool is_CurvePoint(float& frame, float& value);
     bool is_CurvePoint();
+
+	static HoveredPart Curve(int track_idx);
+    bool is_Curve(int& track_idx);
+    bool is_Curve();
 
     bool is_keyframe_part(KeyframeIndex& keyframe,
                           ControlPointPos& control_point);
@@ -212,9 +246,8 @@ private:
   }
 #undef map
   void handle_clicking_on(GuiFrameContext& c, HoveredPart& hovered_part);
-  void
-  handle_dragging_keyframe_part(GuiFrameContext& c,
-                                std::span<ControlPointPositions> pos_array);
+  void handle_dragging_keyframe_part(GuiFrameContext& c,
+                                     PosArray& active_track_pos_array);
   bool is_keyframe_dragged(GuiFrameContext& c, KeyframeIndex keyframe) {
     KeyframeIndex dragged_keyframe;
 
@@ -243,26 +276,25 @@ private:
                                    float intersection_frame);
 
   void calc_control_point_positions(GuiFrameContext& c,
-                                    std::span<ControlPointPositions> dest_array,
-                                    int maxsize);
+                                    librii::g3d::SrtAnim::Track* track,
+                                    PosArray& dest_array);
 
-  HoveredPart
-  determine_hovered_part(GuiFrameContext& c, ImVec2 hit_point,
-                         std::span<ControlPointPositions> pos_array);
+  HoveredPart determine_hovered_part(GuiFrameContext& c, ImVec2 hit_point,
+                                     std::span<PosArray> pos_arrays);
   HoveredPart hit_test_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                                 ControlPointPositions& positions);
-  float sample_curve(GuiFrameContext& c, float frame);
+  float sample_curve(GuiFrameContext& c, librii::g3d::SrtAnim::Track* track,
+                     float frame);
 
   void draw(GuiFrameContext& c, bool is_widget_hovered,
-            HoveredPart& hovered_part,
-            std::span<ControlPointPositions> pos_array);
-  void draw_curve(GuiFrameContext& c,
-                  std::span<ControlPointPositions> pos_array);
+            HoveredPart& hovered_part, std::span<PosArray> pos_arrays);
+  void draw_curve(GuiFrameContext& c, librii::g3d::SrtAnim::Track* track,
+                  PosArray& pos_array, ImU32 color);
   void draw_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
                      ControlPointPositions& positions,
                      HoveredPart& hovered_part);
   void draw_track_bounds(GuiFrameContext& c);
-  void draw_cursor_text(GuiFrameContext& c);
+  void draw_cursor_text(GuiFrameContext& c, HoveredPart& hovered_part);
 };
 
 } // namespace riistudio::g3d

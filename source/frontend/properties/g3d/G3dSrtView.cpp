@@ -218,118 +218,114 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
   //
   auto visibleTracks = GatherTracks(visFilter);
 
-  ImGui::BeginChild("ChildR");
-  if (ImGui::BeginTable("SrtAnim Table", 4,
-                        ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollX)) {
-    ImGui::TableSetupColumn("Material");
-    ImGui::TableSetupColumn("Target");
-    ImGui::TableSetupColumn("Selected KeyFrame");
-    ImGui::TableSetupColumn("Curve", ImGuiTableColumnFlags_WidthStretch);
-    ImGui::TableHeadersRow();
+  if (ImGui::BeginChild("ChildR")) {
+    std::vector<EditableTrack> tracks(visibleTracks.size());
 
-    for (auto& fvt : visibleTracks) {
+    for (int i = 0; i < visibleTracks.size(); i++) {
+      auto& fvt = visibleTracks[i];
       int targetMtxId = fvt.mtxId;
       auto matName = fvt.matName;
       u32 matColor = fvt.color;
       u32 subtrack = fvt.subtrack;
+
       librii::g3d::SrtAnim::Track* track = ResolveTrackUIInfo(anim, fvt);
-      ImGui::TableNextRow();
-      {
-        // Row 0: Frame + INFO
-        ImGui::TableSetColumnIndex(0);
-        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-        ImGui::Text("%s", matName.c_str());
-        ImGui::TableSetColumnIndex(1);
-        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-        // string_view created from cstring, so
-        // .data() is null-terminated
-        auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(subtrack);
-        const char* subtrackName = magic_enum::enum_name(tgtId).data();
-        ImGui::Text("%s%d: %s", targetMtxId >= 8 ? "IndMtx" : "TexMtx",
-                    (targetMtxId % 8), subtrackName);
+      // string_view created from cstring, so
+      // .data() is null-terminated
+      auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(subtrack);
+      const char* subtrackName = magic_enum::enum_name(tgtId).data();
+
+      auto track_name =
+          std::format("{}{}: {}", targetMtxId >= 8 ? "IndMtx" : "TexMtx",
+                      (targetMtxId % 8), subtrackName);
+
+      tracks[i].track = track;
+      tracks[i].name = track_name;
+      tracks[i].color = matColor;
+    }
+
+    static std::optional<std::string> active_track_name{std::nullopt};
+
+    int active_track_idx = -1;
+
+    for (int i = 0; i < tracks.size(); i++) {
+      if (tracks[i].name == active_track_name) {
+        active_track_idx = i;
+        break;
+      }
+    }
+
+    if (active_track_idx == -1)
+      active_track_name = std::nullopt;
+
+    float top_of_row = ImGui::GetCursorPosY();
+
+    static auto editor_selections{
+        std::unordered_map<std::string, KeyframeIndexSelection>()};
+
+    std::optional<KeyframeIndexSelection> selection = std::nullopt;
+    std::optional<EditableTrack> active_track = std::nullopt;
+
+	{
+      int active_keyframe_idx = -1;
+
+      if (active_track_name) {
+        active_track = tracks[active_track_idx];
+        auto found = editor_selections.find(*active_track_name);
+        if (found == editor_selections.end()) {
+          selection = KeyframeIndexSelection();
+        } else {
+          selection = editor_selections.at(found->first);
+        }
+
+        auto active = selection->get_active();
+        if (active) {
+          active_keyframe_idx = *active;
+        }
       }
 
-      auto kfStringId = std::format("{}{}{}", matName, targetMtxId, subtrack);
-
-      float top_of_row = ImGui::GetCursorPosY();
-
-      static auto editor_selections{
-          std::unordered_map<std::string, KeyframeIndexSelection>()};
-
-      KeyframeIndexSelection selection;
-
-      auto found = editor_selections.find(kfStringId);
-      if (found == editor_selections.end()) {
-        selection = KeyframeIndexSelection();
-      } else {
-        selection = editor_selections.at(found->first);
-      }
-
-      if (track == nullptr) {
-        selection.clear();
-      }
-
-      int active_idx = -1;
-      auto active = selection.get_active();
-      if (active) {
-        active_idx = *active;
-      }
-
-      ImGui::PushID(kfStringId.c_str());
-      RSL_DEFER(ImGui::PopID());
-
-      ImGui::TableSetColumnIndex(2);
-
-      ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-
-      if (active_idx > -1) {
-        ImGui::Text("Keyframe %d", static_cast<int>(active_idx));
+      if (active_keyframe_idx > -1) {
+        ImGui::Text("Keyframe %d", static_cast<int>(active_keyframe_idx));
         ImGui::SameLine();
-        auto title = std::format("{}##{}", (const char*)ICON_FA_TIMES_CIRCLE,
-                                 kfStringId);
+        auto title = std::format("{}", (const char*)ICON_FA_TIMES_CIRCLE);
 
-        auto& keyframe = track->at(active_idx);
+        assert(active_track);
+
+        auto& keyframe = active_track->at(active_keyframe_idx);
 
         bool delete_keyframe = false;
 
         if (ImGui::Button(title.c_str())) {
-          track->erase(track->begin() + active_idx);
+          active_track->track->erase(active_track->track->begin() +
+                                        active_keyframe_idx);
           delete_keyframe = true;
         }
         ImGui::InputFloat("Frame", &keyframe.frame);
         ImGui::InputFloat("Value", &keyframe.value);
         ImGui::InputFloat("Tangent", &keyframe.tangent);
 
+        assert(selection);
+
         // adjust the selected keyframes if necessary
         if (delete_keyframe)
-          selection.deselect(active_idx);
+          selection->deselect(active_keyframe_idx);
 
       } else {
         ImGui::Dummy(ImVec2(0, 100));
       }
+	}
+    
 
-      ImGui::NewLine();
+    ImGui::NewLine();
+    auto size = ImGui::GetContentRegionAvail();
 
-      float row_height = ImGui::GetCursorPosY() - top_of_row;
-      ImGui::TableSetColumnIndex(3);
-      auto size = ImGui::GetContentRegionAvail();
-      size.y = row_height;
+    srt_curve_editor(anim.name, size, tracks, frame_duration, active_track_idx,
+                     selection ? &(*selection) : nullptr);
 
-      if (track) {
-        srt_curve_editor(kfStringId, size, track, frame_duration, &selection);
-        editor_selections.insert_or_assign(kfStringId, selection);
-      } else {
-        ImGui::PushID(kfStringId.c_str());
+    if (active_track_name && selection)
+      editor_selections.insert_or_assign(*active_track_name, *selection);
 
-        if (ImGui::Button("Add animation", size)) {
-          AddNewButton_FromTrackUIInfo(anim, fvt);
-        }
-
-        ImGui::PopID();
-      }
-    }
-
-    ImGui::EndTable();
+	if (active_track_idx > -1)
+      active_track_name = tracks[active_track_idx].name;
   }
   ImGui::EndChild();
 }
