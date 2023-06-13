@@ -465,23 +465,23 @@ struct SHP1Node final : public oishii::Node {
           writer.write<u16>(prim.mVertices.size());
           for (const auto& v : prim.mVertices) {
             for (int a = 0; a < (int)gx::VertexAttribute::Max; ++a) {
-              if (poly.mVertexDescriptor[(gx::VertexAttribute)a]) {
-                switch (poly.mVertexDescriptor.mAttributes.at(
-                    (gx::VertexAttribute)a)) {
+              auto attr = static_cast<gx::VertexAttribute>(a);
+              if (poly.mVertexDescriptor[attr]) {
+                switch (poly.mVertexDescriptor.mAttributes.at(attr)) {
                 case gx::VertexAttributeType::None:
                   break;
                 case gx::VertexAttributeType::Byte:
-                  writer.write<u8>(v[(gx::VertexAttribute)a]);
+                  writer.write<u8>(v[attr]);
                   break;
                 case gx::VertexAttributeType::Short:
-                  writer.write<u16>(v[(gx::VertexAttribute)a]);
+                  writer.write<u16>(v[attr]);
                   break;
                 case gx::VertexAttributeType::Direct:
-                  if (((gx::VertexAttribute)a) !=
-                      gx::VertexAttribute::PositionNormalMatrixIndex) {
+                  if (attr != gx::VertexAttribute::PositionNormalMatrixIndex &&
+                      !IsTexNMtxIdx(attr)) {
                     EXPECT(!"Direct vertex data is unsupported.");
                   }
-                  writer.write<u8>(v[(gx::VertexAttribute)a]);
+                  writer.write<u8>(v[attr]);
                   break;
                 default:
                   EXPECT("!Unknown vertex attribute format.");

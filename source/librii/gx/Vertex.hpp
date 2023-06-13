@@ -119,6 +119,10 @@ inline VertexAttribute TexCoordN(u32 n) {
   return static_cast<VertexAttribute>(
       static_cast<int>(VertexAttribute::TexCoord0) + n);
 }
+constexpr bool IsTexNMtxIdx(VertexAttribute a) {
+  return (int)a >= (int)VertexAttribute::Texture0MatrixIndex &&
+         (int)a <= (int)VertexAttribute::Texture7MatrixIndex;
+}
 // Subset of vertex attributes valid for a buffer.
 enum class VertexBufferAttribute : u32 {
   Position = 9,

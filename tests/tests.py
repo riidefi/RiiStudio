@@ -19,6 +19,9 @@ TEST_DATA = {
 	# Mario.bdl
 	'5ef11e53f6c94c4f00e9d256309d0a38': '87d77fb62b4c3b94068f93c840d74416',
 
+	# driver.bmd
+	'b1e2a63d17190b7e36ac56cf2ac432a5': 'b328c0b80f3a26e2d6553f32bc2abfaa',
+
 	# luigi_circuit.kmp
 	'55af17739e1f02f9cc3fe0cdf79195a0': '55af17739e1f02f9cc3fe0cdf79195a0',
 
