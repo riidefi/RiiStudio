@@ -5,6 +5,19 @@
 
 namespace riistudio::g3d {
 
+#define rgb(r, g, b) (u32)(0x##r | 0x##g << 8 | 0x##b << 16 | 0xFF00'0000)
+
+static const u32 subtrackColors[5]{
+    // Scale
+    rgb(FF, 55, 00),
+    rgb(00, FF, FF),
+    // Rotate
+    rgb(00, FF, 00),
+    // Translate
+    rgb(FF, 00, 00),
+    rgb(00, 88, FF),
+};
+
 static uint32_t fnv1a_32_hash(std::string_view text) {
   uint32_t hash = 0x811c9dc5;
   uint32_t prime = 0x1000193;
@@ -177,6 +190,8 @@ VisibilityMatrixIDSelector(librii::g3d::SrtAnimationArchive& anim,
           RSL_DEFER(ImGui::PopID());
 
           ImGui::TableNextRow();
+          ImGui::PushStyleColor(ImGuiCol_Text, subtrackColors[k]);
+          RSL_DEFER(ImGui::PopStyleColor());
           ImGui::TableSetColumnIndex(0);
           auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(k);
           const char* subtrackName = magic_enum::enum_name(tgtId).data();
@@ -290,14 +305,9 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
           std::format("{}{}: {}", targetMtxId >= 8 ? "IndMtx" : "TexMtx",
                       (targetMtxId % 8), subtrackName);
 
-      static const u32 colors[5]{
-          0xFF'00'00'FF, 0xFF'FF'00'00, 0xFF'00'FF'00,
-          0xFF'00'33'FF, 0xFF'FF'88'00,
-      };
-
       tracks[i].track = track;
       tracks[i].name = track_name;
-      tracks[i].color = colors[fvt.subtrack];
+      tracks[i].color = subtrackColors[fvt.subtrack];
     }
 
     static std::optional<std::string> active_track_name{std::nullopt};
