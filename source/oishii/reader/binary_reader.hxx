@@ -67,8 +67,9 @@ public:
             bool unaligned = false>
   auto tryGetAt(int trans) -> Result<T> {
     if (!unaligned && (trans % sizeof(T))) {
-      auto err = std::format("Alignment error: {} is not {}-byte aligned.",
-                             tell(), sizeof(T));
+      auto err = std::format(
+          "Alignment error: 0x{:x} ({} decimal) is not {}-byte aligned.", trans,
+          trans, sizeof(T));
       if (gTestMode) {
         fprintf(stderr, "%s\n", err.c_str());
         rsl::debug_break();
@@ -77,9 +78,9 @@ public:
     }
 
     if (trans < 0 || trans + sizeof(T) > endpos()) {
-      auto err = std::format(
-          "Bounds error: Reading {} bytes from {} exceeds buffer size of {}",
-          sizeof(T), trans, endpos());
+      auto err = std::format("Bounds error: Reading {} bytes from 0x{:} ({} "
+                             "decimal) exceeds buffer size of 0x{:x} ({})",
+                             sizeof(T), trans, trans, endpos(), endpos());
       if (gTestMode) {
         fprintf(stderr, "%s\n", err.c_str());
         rsl::debug_break();
@@ -123,9 +124,12 @@ public:
   template <typename T>
   auto tryReadBuffer(uint32_t size, uint32_t addr) -> Result<std::vector<T>> {
     static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4);
-    if (addr + size * sizeof(T)  > endpos()) {
+    if (addr + size * sizeof(T) > endpos()) {
+      auto err = std::format("Bounds error: Reading {} bytes from 0x{:} ({} "
+                             "decimal) exceeds buffer size of 0x{:x} ({})",
+                             sizeof(T) * size, addr, addr, endpos(), endpos());
       rsl::debug_break();
-      return std::unexpected("Buffer read exceeds file length");
+      return std::unexpected(err);
     }
     readerBpCheck(size, addr - tell());
     if constexpr (sizeof(T) == 1) {
@@ -138,7 +142,7 @@ public:
     for (auto& t : out) {
       t = TRY(tryGetAt<T>(it));
       it += sizeof(T);
-	}
+    }
     return out;
   }
   template <typename T>
