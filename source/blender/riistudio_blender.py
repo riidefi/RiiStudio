@@ -517,12 +517,16 @@ def all_meshes(selection=False):
 def get_texture(mat):
 	if BLENDER_28:
 		for n in mat.node_tree.nodes:
-			if n.bl_idname == "ShaderNodeTexImage":
-				return n
-		else:
-			return
+			if n.bl_idname != "ShaderNodeTexImage":
+				continue
+			# Ignore unlinked textures (light lightmaps). We probably want to actually search
+			# from the output color -> Principled BSDF like the other plugins,
+			# but for now this should be a sensible workaround.
+			if not n.outputs[0].is_linked:
+				continue
+			return n
+		return
 		#raise RuntimeError("Cannot find active texture for material %s" % mat.name)
-
 	else:
 		return mat.active_texture
 
