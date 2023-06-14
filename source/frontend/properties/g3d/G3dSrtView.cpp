@@ -32,8 +32,42 @@ static int getMaxTrackSize(const librii::g3d::SrtAnimationArchive& anim) {
   return maxTrackSize;
 }
 
+struct TrackUIInfo {
+  enum SubTrack {
+    SCALE_X,
+    SCALE_Y,
+    ROT,
+    TRANS_X,
+    TRANS_Y,
+  };
+
+  std::string matName;
+  u32 color = 0xFF;
+  size_t mtxId = 0;
+  SubTrack subtrack = SCALE_X;
+};
+
+static librii::g3d::SrtAnim::Track&
+AddNewButton_FromTrackUIInfo(librii::g3d::SrtAnimationArchive& anim,
+                             const TrackUIInfo& info) {
+  librii::g3d::SrtAnim::Target target{
+      .materialName = info.matName,
+      .indirect = (info.mtxId >= 8),
+      .matrixIndex = static_cast<int>(info.mtxId % 8),
+  };
+  ptrdiff_t it =
+      std::distance(anim.matrices.begin(),
+                    std::find_if(anim.matrices.begin(), anim.matrices.end(),
+                                 [&](auto& x) { return x.target == target; }));
+  assert(it == anim.matrices.size() && "Animation track already exists!");
+  auto& mtx = anim.matrices.emplace_back();
+  mtx.target = target;
+  return mtx.matrix.subtrack(info.subtrack);
+}
+
 static void
-VisibilityMatrixIDSelector(Filter& visFilter,
+VisibilityMatrixIDSelector(librii::g3d::SrtAnimationArchive& anim,
+                           Filter& visFilter,
                            std::unordered_set<std::string>& animatedMaterials,
                            std::array<bool, 8 + 3>& animatedMtxSlots) {
   ImGui::BeginChild("ChildL", ImVec2(150, 0.0f));
@@ -55,12 +89,17 @@ VisibilityMatrixIDSelector(Filter& visFilter,
   // - Foreground: Animated materials BLACK, others WHITE
   // - Background: By material name hash. Matches keyframe table cells.
   //
+
+  ImGui::PushStyleColor(ImGuiCol_FrameBg, 0x33FF'FFFF);
+  ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, 0x55FF'FFFF);
+  ImGui::PushStyleColor(ImGuiCol_FrameBgActive, 0x99FF'FFFF);
+  ImGui::PushStyleColor(ImGuiCol_Text, 0xFFFF'FFFF);
+  ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5);
+
   auto flags = ImGuiTableFlags_Borders;
-  ImGui::BeginChild("ChildU",
-                    ImVec2(0, ImGui::GetContentRegionAvail().y - 150));
   if (ImGui::BeginTable("Materials", 2, flags)) {
-    ImGui::TableSetupColumn("Material", ImGuiTableColumnFlags_WidthStretch, 5);
-    ImGui::TableSetupColumn("A?", ImGuiTableColumnFlags_WidthStretch, 2);
+    ImGui::TableSetupColumn("Curve", ImGuiTableColumnFlags_WidthStretch, 5);
+    ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthStretch, 2);
     ImGui::TableHeadersRow();
     int i = 0;
     for (auto& [matName, visible] : visFilter.materials()) {
@@ -76,56 +115,86 @@ VisibilityMatrixIDSelector(Filter& visFilter,
       ImGui::TableNextRow();
       ImGui::TableSetColumnIndex(0);
       ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
-      ImGui::Text("%s", matName.c_str());
+      bool _visible = visible;
+      auto flags = (_visible ? 0 : ImGuiTreeNodeFlags_Leaf) |
+                   ImGuiTreeNodeFlags_FramePadding |
+                   ImGuiTreeNodeFlags_SpanFullWidth;
+      bool open = ImGui::TreeNodeEx(matName.c_str(), flags);
+
       ImGui::TableSetColumnIndex(1);
       ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, matColor);
       ImGui::Checkbox("##enabled", &visible);
+      if (!open)
+        continue;
+      RSL_DEFER(ImGui::TreePop());
+
+      if (!_visible)
+        continue;
+
+      for (int j = 0; j < 8 + 3; ++j) {
+        ImGui::PushID(j);
+        RSL_DEFER(ImGui::PopID());
+
+        bool animated = animatedMtxSlots[j];
+        u32 textFg = animated ? (0xFF00'00FF) : 0xFFFF'FFFF;
+        ImGui::PushStyleColor(ImGuiCol_Text, textFg);
+        RSL_DEFER(ImGui::PopStyleColor());
+        ImGui::TableNextRow();
+
+        if (!animated) {
+          ImGui::TableSetColumnIndex(0);
+          if (ImGui::Button(std::format("Add {}{}",
+                                        (j >= 8 ? "IndMtx" : "TexMtx"), (j % 8))
+                                .c_str())) {
+
+            auto info = TrackUIInfo{
+                .matName = matName, .color = matColor, .mtxId = (size_t)j};
+            AddNewButton_FromTrackUIInfo(anim, info);
+          }
+
+          continue;
+        }
+
+        ImGui::TableSetColumnIndex(0);
+        bool* mtxVisible = visFilter.attr(j);
+        bool _visible = *mtxVisible;
+        auto flags = (_visible ? 0 : ImGuiTreeNodeFlags_Leaf) |
+                     ImGuiTreeNodeFlags_FramePadding |
+                     ImGuiTreeNodeFlags_SpanFullWidth;
+        bool open = ImGui::TreeNodeEx("%s%d", flags,
+                                      (j >= 8 ? "IndMtx" : "TexMtx"), (j % 8));
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Checkbox("##enabled", mtxVisible);
+        if (!open)
+          continue;
+        RSL_DEFER(ImGui::TreePop());
+
+        if (!_visible)
+          continue;
+
+        for (int k = 0; k < 5; ++k) {
+          ImGui::PushID(k);
+          RSL_DEFER(ImGui::PopID());
+
+          ImGui::TableNextRow();
+          ImGui::TableSetColumnIndex(0);
+          auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(k);
+          const char* subtrackName = magic_enum::enum_name(tgtId).data();
+          ImGui::Text("%s", subtrackName);
+          ImGui::TableSetColumnIndex(1);
+          bool x = true;
+          ImGui::Checkbox("##enabled", &x);
+        }
+      }
     }
     ImGui::EndTable();
   }
-  ImGui::EndChild();
 
-  // MatrixID selector
-
-  ImGui::BeginChild("ChildD");
-  if (ImGui::BeginTable("Materials", 2, flags)) {
-    ImGui::TableSetupColumn("Matrix", ImGuiTableColumnFlags_WidthStretch, 5);
-    ImGui::TableSetupColumn("A?", ImGuiTableColumnFlags_WidthStretch, 2);
-    ImGui::TableHeadersRow();
-    for (int i = 0; i < 8 + 3; ++i) {
-      ImGui::PushID(i);
-      RSL_DEFER(ImGui::PopID());
-      bool animated = animatedMtxSlots[i];
-      u32 textFg = animated ? (0xFF00'00FF) : 0xFFFF'FFFF;
-      ImGui::PushStyleColor(ImGuiCol_Text, textFg);
-      RSL_DEFER(ImGui::PopStyleColor());
-      ImGui::TableNextRow();
-      ImGui::TableSetColumnIndex(0);
-      ImGui::Text("%s%d", (i >= 8 ? "IndMtx" : "TexMtx"), (i % 8));
-      ImGui::TableSetColumnIndex(1);
-      ImGui::Checkbox("##enabled", visFilter.attr(i));
-    }
-    ImGui::EndTable();
-  }
-  ImGui::EndChild();
+  ImGui::PopStyleColor(4);
+  ImGui::PopStyleVar();
 
   ImGui::EndChild();
 }
-
-struct TrackUIInfo {
-  enum SubTrack {
-    SCALE_X,
-    SCALE_Y,
-    ROT,
-    TRANS_X,
-    TRANS_Y,
-  };
-
-  std::string matName;
-  u32 color = 0xFF;
-  size_t mtxId = 0;
-  SubTrack subtrack = SCALE_X;
-};
 
 /// Note: May return nullptr!
 static librii::g3d::SrtAnim::Track*
@@ -146,24 +215,6 @@ ResolveTrackUIInfo(librii::g3d::SrtAnimationArchive& anim,
   }
 
   return &anim.matrices[it].matrix.subtrack(info.subtrack);
-}
-
-static librii::g3d::SrtAnim::Track&
-AddNewButton_FromTrackUIInfo(librii::g3d::SrtAnimationArchive& anim,
-                             const TrackUIInfo& info) {
-  librii::g3d::SrtAnim::Target target{
-      .materialName = info.matName,
-      .indirect = (info.mtxId >= 8),
-      .matrixIndex = static_cast<int>(info.mtxId % 8),
-  };
-  ptrdiff_t it =
-      std::distance(anim.matrices.begin(),
-                    std::find_if(anim.matrices.begin(), anim.matrices.end(),
-                                 [&](auto& x) { return x.target == target; }));
-  assert(it == anim.matrices.size() && "Animation track already exists!");
-  auto& mtx = anim.matrices.emplace_back();
-  mtx.target = target;
-  return mtx.matrix.subtrack(info.subtrack);
 }
 
 static std::vector<TrackUIInfo> GatherTracks(Filter& visFilter) {
@@ -465,14 +516,14 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
 
   if (ImGui::BeginTabBar("Views")) {
     if (ImGui::BeginTabItem((const char*)ICON_FA_BEZIER_CURVE "CURVE EDITOR")) {
-      VisibilityMatrixIDSelector(visFilter, animatedMaterials,
+      VisibilityMatrixIDSelector(anim, visFilter, animatedMaterials,
                                  animatedMtxSlots);
       ImGui::SameLine();
       CurveEditorWindow(anim, visFilter, frame_duration);
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem((const char*)ICON_FA_TABLE "TABLE EDITOR")) {
-      VisibilityMatrixIDSelector(visFilter, animatedMaterials,
+      VisibilityMatrixIDSelector(anim, visFilter, animatedMaterials,
                                  animatedMtxSlots);
       ImGui::SameLine();
       TableEditorWindow(anim, visFilter, frame_duration);
