@@ -1,26 +1,26 @@
 #include "G3dSrtCurveEditor.hpp"
 
-const ImU32 CurveColor = 0xFFCC33FF;
+const ImU32 CurveColor = 0xFFCC'33FF;
 const float CurveHitTestThickness = 8;
 const float CurveLineThickness = 1.5;
 const float CurvePointRadius = 3.5;
 
-const ImU32 HoverColor = 0xFF55CCFF;
+const ImU32 HoverColor = 0xFF55'CCFF;
 
-const ImU32 KeyframeColor = 0xFFFFFFFF;
+const ImU32 KeyframeColor = 0xFFFF'FFFF;
 const float KeyframePointRadius = 5;
 const float ControlPointRadius = 3;
-const ImU32 KeyframeActiveOutlineColor = 0xFFFFFF33;
-const ImU32 KeyframeSelectionOutlineColor = 0xFFFF7733;
+const ImU32 KeyframeActiveOutlineColor = 0xFFFF'FF33;
+const ImU32 KeyframeSelectionOutlineColor = 0xFFFF'7733;
 const float KeyframeSelectionOutlineThickness = 2;
 
-const ImU32 CursorTextColor = 0xFFFFFFFF;
+const ImU32 CursorTextColor = 0xFFFF'FFFF;
 const ImVec2 CursorTextOffset = ImVec2(15, 0);
 
-const ImU32 TrackBoundsColor = 0x99000000;
+const ImU32 TrackBoundsColor = 0x9900'0000;
 
-const ImU32 ZeroValueLineColor = 0x66FFFFFF;
-const float ZeroValueLineThickness = 0.5;
+const ImU32 ZeroValueLineColor = 0xFFAA'AAAA;
+const float ZeroValueLineThickness = 1.5;
 const ImU32 GridColor = 0x88FF'FFFF;
 const float GridLineThickness = 1.0;
 
