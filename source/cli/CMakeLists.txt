@@ -74,20 +74,29 @@ elseif (UNIX)
 endif()
  
 # DLLs for windows
-add_custom_command(
-  TARGET cli 
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy
-    ${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.dll
-    $<TARGET_FILE_DIR:cli>/assimp-vc141-mt.dll
-)
-add_custom_command(
-  TARGET cli 
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy
-    ${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3.dll
-    $<TARGET_FILE_DIR:cli>/glfw3.dll
-)
+if (WIN32)
+  add_custom_command(
+    TARGET cli 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+      ${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.dll
+      $<TARGET_FILE_DIR:cli>/assimp-vc141-mt.dll
+  )
+  add_custom_command(
+    TARGET cli 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+      ${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3.dll
+      $<TARGET_FILE_DIR:cli>/glfw3.dll
+  )
+  add_custom_command(
+    TARGET cli 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      ${PROJECT_SOURCE_DIR}/../vendor/dll
+      $<TARGET_FILE_DIR:cli>
+  )
+endif()
 add_custom_command(
   TARGET cli 
   POST_BUILD
@@ -95,17 +104,14 @@ add_custom_command(
     ${PROJECT_SOURCE_DIR}/../../fonts
     $<TARGET_FILE_DIR:cli>/fonts
 )
-add_custom_command(
-  TARGET cli 
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${PROJECT_SOURCE_DIR}/../vendor/dll
-    $<TARGET_FILE_DIR:cli>
-)
 add_dependencies(cli rsl)
-add_custom_command(TARGET cli POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:cli> $<TARGET_FILE_DIR:cli> 
-  COMMAND_EXPAND_LISTS
-)
+
+# TODO: Cross platform
+if (WIN32)
+  add_custom_command(TARGET cli POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:cli> $<TARGET_FILE_DIR:cli> 
+    COMMAND_EXPAND_LISTS
+  )
+endif()
  
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "rszst")

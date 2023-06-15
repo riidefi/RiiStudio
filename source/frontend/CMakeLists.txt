@@ -277,10 +277,12 @@ if (WIN32)
   )
 endif()
 
-add_custom_command(TARGET frontend POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:frontend> $<TARGET_FILE_DIR:frontend> 
-  COMMAND_EXPAND_LISTS
-)
+if (WIN32)
+  add_custom_command(TARGET frontend POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:frontend> $<TARGET_FILE_DIR:frontend> 
+    COMMAND_EXPAND_LISTS
+  )
+endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "RiiStudio")
 

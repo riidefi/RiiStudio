@@ -77,7 +77,7 @@ if (UNIX)
 endif()
 
 # DLLs for windows
-# if (WINDOWS)
+if (WIN32)
 	add_custom_command(
 	  TARGET tests 
 	  POST_BUILD
@@ -93,22 +93,24 @@ endif()
 		  $<TARGET_FILE_DIR:tests>/glfw3.dll
 	)
 	add_custom_command(
-	  TARGET tests 
-	  POST_BUILD
-	  COMMAND ${CMAKE_COMMAND} -E copy_directory
-		  ${PROJECT_SOURCE_DIR}/../../fonts
-		  $<TARGET_FILE_DIR:tests>/fonts
+		TARGET tests 
+		POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_directory
+			${PROJECT_SOURCE_DIR}/../vendor/dll
+			$<TARGET_FILE_DIR:tests>
 	)
-  add_custom_command(
-	  TARGET tests 
-	  POST_BUILD
-	  COMMAND ${CMAKE_COMMAND} -E copy_directory
-		  ${PROJECT_SOURCE_DIR}/../vendor/dll
-		  $<TARGET_FILE_DIR:tests>
-  )
-add_custom_command(TARGET tests POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:tests> $<TARGET_FILE_DIR:tests> 
-  COMMAND_EXPAND_LISTS
+	add_custom_command(TARGET tests POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:tests> $<TARGET_FILE_DIR:tests> 
+	COMMAND_EXPAND_LISTS
+	)
+endif()
+
+add_custom_command(
+	TARGET tests 
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_directory
+		${PROJECT_SOURCE_DIR}/../../fonts
+		$<TARGET_FILE_DIR:tests>/fonts
 )
 
 if (WINDOWS)
