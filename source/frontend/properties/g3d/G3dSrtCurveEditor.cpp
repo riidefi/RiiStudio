@@ -21,6 +21,13 @@ const ImU32 TrackBoundsColor = 0x99000000;
 
 const ImU32 ZeroValueLineColor = 0x66FFFFFF;
 const float ZeroValueLineThickness = 0.5;
+const ImU32 GridColor = 0x88FF'FFFF;
+const float GridLineThickness = 1.0;
+
+const float GridHorizontalMinSize = 20.0;
+const int GridHorizontalMajorTickInterval = 10;
+const float GridVerticalMinSize = 20.0;
+const int GridVerticalMajorTickInterval = 10;
 
 const float EditView_DefaultTopValue = 1;
 const float EditView_DefaultBottomValue = 0;
@@ -39,8 +46,8 @@ std::unordered_map<std::string, CurveEditor> global_curve_editors =
     std::unordered_map<std::string, CurveEditor>();
 
 void srt_curve_editor(std::string id, ImVec2 size,
-                      std::span<EditableTrack> tracks,
-                      float track_duration, int& active_track_idx,
+                      std::span<EditableTrack> tracks, float track_duration,
+                      int& active_track_idx,
                       KeyframeIndexSelection* keyframe_selection) {
 
   GuiFrameContext ctx;
@@ -253,7 +260,7 @@ void CurveEditor::handle_clicking_on(GuiFrameContext& c,
   if (hovered_part.is_Curve(curve_idx)) {
     c.active_track_idx = curve_idx;
   } else if (c.keyframe_selection && hovered_part.is_None() &&
-      ImGui::GetIO().KeyMods == ImGuiModFlags_None) {
+             ImGui::GetIO().KeyMods == ImGuiModFlags_None) {
     c.keyframe_selection->clear();
   } else if (c.keyframe_selection && hovered_part.is_Keyframe(keyframe)) {
     if (ImGui::GetIO().KeyMods == ImGuiModFlags_None) {
@@ -741,6 +748,10 @@ void CurveEditor::draw(GuiFrameContext& c, bool is_widget_hovered,
 
   c.dl->AddRect(c.viewport.Min, c.viewport.Max, 0x99000000);
 
+  draw_grid_lines(c, false, GridHorizontalMinSize,
+                  GridHorizontalMajorTickInterval);
+  draw_grid_lines(c, true, GridVerticalMinSize, GridVerticalMajorTickInterval);
+
   float y = y_of_value(c, 0);
   c.dl->AddLine(ImVec2(c.left(), y), ImVec2(c.right(), y), ZeroValueLineColor,
                 ZeroValueLineThickness);
@@ -749,16 +760,17 @@ void CurveEditor::draw(GuiFrameContext& c, bool is_widget_hovered,
     if (i == c.active_track_idx)
       continue;
 
-	ImVec4 color = ImGui::ColorConvertU32ToFloat4(c.tracks[i].color);
+    ImVec4 color = ImGui::ColorConvertU32ToFloat4(c.tracks[i].color);
     color.w *= 0.5;
 
     if (c.tracks[i].empty()) {
       // draw curve as a simple line with constant value 0
       c.dl->AddLine(ImVec2(c.left(), y_of_value(c, 0)),
-                    ImVec2(c.right(), y_of_value(c, 0)), ImGui::GetColorU32(color),
-                    CurveLineThickness);
+                    ImVec2(c.right(), y_of_value(c, 0)),
+                    ImGui::GetColorU32(color), CurveLineThickness);
     } else {
-      draw_curve(c, c.tracks[i].track, pos_arrays[i], ImGui::GetColorU32(color));
+      draw_curve(c, c.tracks[i].track, pos_arrays[i],
+                 ImGui::GetColorU32(color));
     }
   }
 
@@ -794,6 +806,62 @@ void CurveEditor::draw(GuiFrameContext& c, bool is_widget_hovered,
   }
 
   c.dl->PopClipRect();
+}
+
+void CurveEditor::draw_grid_lines(GuiFrameContext& c, bool is_vertical,
+                                  float min_minor_tick_size,
+                                  int major_tick_interval) {
+  // grid lines are drawn in intervals from a to b
+  // the 0 and 1 coordinates represent the line ends at a and b
+  ImVec2 a0, a1, b0, b1;
+  float min_value, max_value, a, b;
+
+  if (is_vertical) {
+    min_value = bottom_value();
+    max_value = top_value();
+
+    a = c.bottom();
+    b = c.top();
+
+    a0 = ImVec2(c.left(), a);
+    a1 = ImVec2(c.right(), a);
+    b0 = ImVec2(c.left(), b);
+    b1 = ImVec2(c.right(), b);
+  } else {
+    min_value = left_frame();
+    max_value = right_frame(c);
+
+    a = c.left();
+    b = c.right();
+
+    a0 = ImVec2(a, c.top());
+    a1 = ImVec2(a, c.bottom());
+    b0 = ImVec2(b, c.top());
+    b1 = ImVec2(b, c.bottom());
+  }
+
+  float ideal_tick_interval =
+      min_minor_tick_size * (max_value - min_value) / abs(b - a);
+  float tick_interval_log = log(ideal_tick_interval) / log(major_tick_interval);
+  float tick_interval = pow(major_tick_interval, ceil(tick_interval_log));
+  float blend = 1 - (tick_interval_log - floor(tick_interval_log));
+
+  float min_tick_value = ceil(min_value / tick_interval) * tick_interval;
+  int tick_offset = ceil(min_value / tick_interval);
+  int tick_count = (int)floor(max_value / tick_interval) -
+                   (int)ceil(min_value / tick_interval) + 1;
+
+  for (int i = 0; i < tick_count; i++) {
+    bool is_major_tick = (i + tick_offset) % major_tick_interval == 0;
+
+    float t =
+        map(min_tick_value + i * tick_interval, min_value, max_value, 0, 1);
+
+    ImVec4 colorVec = ImGui::ColorConvertU32ToFloat4(GridColor);
+    colorVec.w *= is_major_tick ? 1.0 : blend;
+    c.dl->AddLine(a0 * (1 - t) + b0 * t, a1 * (1 - t) + b1 * t,
+                  ImGui::ColorConvertFloat4ToU32(colorVec), GridLineThickness);
+  }
 }
 
 void CurveEditor::draw_curve(GuiFrameContext& c,
@@ -884,7 +952,8 @@ void CurveEditor::draw_track_bounds(GuiFrameContext& c) {
                         ImVec2(c.right(), c.bottom()), TrackBoundsColor);
 }
 
-void CurveEditor::draw_cursor_text(GuiFrameContext& c, HoveredPart& hovered_part) {
+void CurveEditor::draw_cursor_text(GuiFrameContext& c,
+                                   HoveredPart& hovered_part) {
   auto mouse_pos = ImGui::GetMousePos();
   float mouse_pos_frame = frame_at(c, mouse_pos.x);
   float mouse_pos_value = value_at(c, mouse_pos.y);

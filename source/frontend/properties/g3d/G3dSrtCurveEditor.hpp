@@ -69,8 +69,8 @@ private:
 //! @param keyframe_selection [optional] A set of selected
 //! Keyframe indices (more or less), that may be modified by the widget
 void srt_curve_editor(std::string id, ImVec2 size,
-                      std::span<EditableTrack> tracks,
-                      float track_duration, int& active_track_idx,
+                      std::span<EditableTrack> tracks, float track_duration,
+                      int& active_track_idx,
                       KeyframeIndexSelection* keyframe_selection = nullptr);
 
 //! @brief Stores all the external state necessary for using the CurveEditor
@@ -161,15 +161,14 @@ private:
       _CurvePoint(float frame, float value) : frame(frame), value(value) {}
     };
 
-	struct _Curve {
+    struct _Curve {
       int track_idx;
 
       _Curve(int track_idx) : track_idx(track_idx) {}
     };
 
     std::variant<_None, KeyframeIndex, _ControlPoint, _CurvePoint, _Curve>
-        m_part =
-        _None();
+        m_part = _None();
 
   public:
     static HoveredPart None();
@@ -187,7 +186,7 @@ private:
     bool is_CurvePoint(float& frame, float& value);
     bool is_CurvePoint();
 
-	static HoveredPart Curve(int track_idx);
+    static HoveredPart Curve(int track_idx);
     bool is_Curve(int& track_idx);
     bool is_Curve();
 
@@ -288,6 +287,8 @@ private:
 
   void draw(GuiFrameContext& c, bool is_widget_hovered,
             HoveredPart& hovered_part, std::span<PosArray> pos_arrays);
+  void draw_grid_lines(GuiFrameContext& c, bool is_vertical,
+                       float min_minor_tick_size, int major_tick_interval);
   void draw_curve(GuiFrameContext& c, librii::g3d::SrtAnim::Track* track,
                   PosArray& pos_array, ImU32 color);
   void draw_keyframe(GuiFrameContext& c, KeyframeIndex keyframe,
