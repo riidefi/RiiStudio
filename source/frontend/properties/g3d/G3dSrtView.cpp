@@ -4,6 +4,42 @@
 #include <vendor/fa5/IconsFontAwesome5.h>
 
 namespace riistudio::g3d {
+enum SubTrack {
+  SCALE_X,
+  SCALE_Y,
+  ROT,
+  TRANS_X,
+  TRANS_Y,
+};
+
+struct TrackID {
+  std::string matName;
+  size_t mtxId = 0;
+  SubTrack subtrack = SCALE_X;
+
+  bool operator==(const TrackID& other) const = default;
+};
+
+struct TrackUIInfo {
+  std::string matName;
+  u32 color = 0xFF;
+  size_t mtxId = 0;
+  SubTrack subtrack = SCALE_X;
+};
+} // namespace riistudio::g3d
+
+namespace std {
+template <> struct hash<riistudio::g3d::TrackID> {
+  size_t operator()(const riistudio::g3d::TrackID& k) const {
+    size_t h1 = std::hash<std::string>{}(k.matName);
+    size_t h2 = std::hash<size_t>{}(k.mtxId);
+    size_t h3 = std::hash<int>{}(k.subtrack);
+    return h1 ^ (h2 << 1) ^ (h3 << 2);
+  }
+};
+} // namespace std
+
+namespace riistudio::g3d {
 
 #define rgb(r, g, b) (u32)(0x##r | 0x##g << 8 | 0x##b << 16 | 0xFF00'0000)
 
@@ -45,21 +81,6 @@ static int getMaxTrackSize(const librii::g3d::SrtAnimationArchive& anim) {
   return maxTrackSize;
 }
 
-struct TrackUIInfo {
-  enum SubTrack {
-    SCALE_X,
-    SCALE_Y,
-    ROT,
-    TRANS_X,
-    TRANS_Y,
-  };
-
-  std::string matName;
-  u32 color = 0xFF;
-  size_t mtxId = 0;
-  SubTrack subtrack = SCALE_X;
-};
-
 static librii::g3d::SrtAnim::Track&
 AddNewButton_FromTrackUIInfo(librii::g3d::SrtAnimationArchive& anim,
                              const TrackUIInfo& info) {
@@ -79,10 +100,11 @@ AddNewButton_FromTrackUIInfo(librii::g3d::SrtAnimationArchive& anim,
 }
 
 static void
-VisibilityMatrixIDSelector(librii::g3d::SrtAnimationArchive& anim,
-                           Filter& visFilter,
-                           std::unordered_set<std::string>& animatedMaterials,
-                           std::array<bool, 8 + 3>& animatedMtxSlots) {
+AnimationTrackTreeview(librii::g3d::SrtAnimationArchive& anim,
+                       Filter& visFilter,
+                       std::unordered_set<std::string>& animatedMaterials,
+                       std::array<bool, 8 + 3>& animatedMtxSlots,
+                       std::optional<TrackID>& active_track) {
   ImGui::BeginChild("ChildL", ImVec2(150, 0.0f));
   // Visibility selector for materials
   //
@@ -195,7 +217,15 @@ VisibilityMatrixIDSelector(librii::g3d::SrtAnimationArchive& anim,
           ImGui::TableSetColumnIndex(0);
           auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(k);
           const char* subtrackName = magic_enum::enum_name(tgtId).data();
-          ImGui::Text("%s", subtrackName);
+
+          auto track_id = TrackID{
+              .matName = matName, .mtxId = (size_t)j, .subtrack = (SubTrack)k};
+
+          bool is_active_track = active_track && (*active_track == track_id);
+
+          if (ImGui::Selectable(subtrackName, is_active_track))
+            active_track = track_id;
+
           ImGui::TableSetColumnIndex(1);
           bool x = true;
           ImGui::Checkbox("##enabled", &x);
@@ -253,7 +283,7 @@ static std::vector<TrackUIInfo> GatherTracks(Filter& visFilter) {
             .matName = matName,
             .color = matColor,
             .mtxId = mtxId,
-            .subtrack = static_cast<TrackUIInfo::SubTrack>(subtrack),
+            .subtrack = static_cast<SubTrack>(subtrack),
         });
       }
     }
@@ -261,7 +291,8 @@ static std::vector<TrackUIInfo> GatherTracks(Filter& visFilter) {
   return fvtsToDraw;
 }
 static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
-                              Filter& visFilter, float frame_duration) {
+                              Filter& visFilter, float frame_duration,
+                              std::optional<TrackID>& active_track_id) {
   //
   // Our curve table editor is given by the following matrix:
   //
@@ -284,6 +315,8 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
   //   (Material -> Tgt) -> FVT -> KeyFrame
   //
   auto visibleTracks = GatherTracks(visFilter);
+
+  int active_track_idx = -1;
 
   if (ImGui::BeginChild("ChildR")) {
     std::vector<EditableTrack> tracks(visibleTracks.size());
@@ -308,26 +341,21 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
       tracks[i].track = track;
       tracks[i].name = track_name;
       tracks[i].color = subtrackColors[fvt.subtrack];
-    }
 
-    static std::optional<std::string> active_track_name{std::nullopt};
-
-    int active_track_idx = -1;
-
-    for (int i = 0; i < tracks.size(); i++) {
-      if (tracks[i].name == active_track_name) {
+      if (active_track_id && (fvt.matName == active_track_id->matName &&
+                              fvt.mtxId == active_track_id->mtxId &&
+                              fvt.subtrack == active_track_id->subtrack)) {
         active_track_idx = i;
-        break;
       }
     }
 
     if (active_track_idx == -1)
-      active_track_name = std::nullopt;
+      active_track_id = std::nullopt;
 
     float top_of_row = ImGui::GetCursorPosY();
 
     static auto editor_selections{
-        std::unordered_map<std::string, KeyframeIndexSelection>()};
+        std::unordered_map<TrackID, KeyframeIndexSelection>()};
 
     std::optional<KeyframeIndexSelection> selection = std::nullopt;
     std::optional<EditableTrack> active_track = std::nullopt;
@@ -335,9 +363,9 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
     {
       int active_keyframe_idx = -1;
 
-      if (active_track_name) {
+      if (active_track_id) {
         active_track = tracks[active_track_idx];
-        auto found = editor_selections.find(*active_track_name);
+        auto found = editor_selections.find(*active_track_id);
         if (found == editor_selections.end()) {
           selection = KeyframeIndexSelection();
         } else {
@@ -387,11 +415,14 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
     srt_curve_editor(anim.name, size, tracks, frame_duration, active_track_idx,
                      selection ? &(*selection) : nullptr);
 
-    if (active_track_name && selection)
-      editor_selections.insert_or_assign(*active_track_name, *selection);
+    if (active_track && selection)
+      editor_selections.insert_or_assign(*active_track_id, *selection);
 
     if (active_track_idx > -1)
-      active_track_name = tracks[active_track_idx].name;
+      active_track_id =
+          TrackID{.matName = visibleTracks[active_track_idx].matName,
+                  .mtxId = visibleTracks[active_track_idx].mtxId,
+                  .subtrack = visibleTracks[active_track_idx].subtrack};
   }
   ImGui::EndChild();
 }
@@ -524,17 +555,19 @@ void ShowSrtAnim(librii::g3d::SrtAnimationArchive& anim, Filter& visFilter,
     animatedMtxSlots[target.matrixIndex + (target.indirect ? 8 : 0)] = true;
   }
 
+  static std::optional<TrackID> active_track_id{std::nullopt};
+
   if (ImGui::BeginTabBar("Views")) {
     if (ImGui::BeginTabItem((const char*)ICON_FA_BEZIER_CURVE "CURVE EDITOR")) {
-      VisibilityMatrixIDSelector(anim, visFilter, animatedMaterials,
-                                 animatedMtxSlots);
+      AnimationTrackTreeview(anim, visFilter, animatedMaterials,
+                             animatedMtxSlots, active_track_id);
       ImGui::SameLine();
-      CurveEditorWindow(anim, visFilter, frame_duration);
+      CurveEditorWindow(anim, visFilter, frame_duration, active_track_id);
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem((const char*)ICON_FA_TABLE "TABLE EDITOR")) {
-      VisibilityMatrixIDSelector(anim, visFilter, animatedMaterials,
-                                 animatedMtxSlots);
+      AnimationTrackTreeview(anim, visFilter, animatedMaterials,
+                             animatedMtxSlots, active_track_id);
       ImGui::SameLine();
       TableEditorWindow(anim, visFilter, frame_duration);
       ImGui::EndTabItem();
