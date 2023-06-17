@@ -1035,7 +1035,7 @@ checksum = "1a515f5799fe4961cb532f983ce2b23082366b898e52ffbce459c86f67c8378a"
 [[package]]
 name = "write-to-open-file-trick"
 version = "0.1.0"
-source = "git+https://github.com/riidefi/write-to-open-file-trick#dab44449d77a07ff081ef07cf2d291670bd1fd1d"
+source = "git+https://github.com/riidefi/write-to-open-file-trick#d8adb8dd0282c24351794ab435523d48ad35b94d"
 dependencies = [
  "bindgen",
  "cc",
@@ -1059,7 +1059,7 @@ dependencies = [
 [[package]]
 name = "zip-extract"
 version = "0.1.1"
-source = "git+https://github.com/riidefi/zip-extract?branch=v2#9cbdf8f507e480b5aa3af026880ac3b873a08ba4"
+source = "git+https://github.com/riidefi/zip-extract?branch=v2#4b66636b24b1f683191f121dc9dea7d6545c0943"
 dependencies = [
  "log",
  "thiserror",
