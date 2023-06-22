@@ -1,8 +1,8 @@
 #include "IndexBuffer.hpp"
 #include "MeshUtils.hpp"
 #include "RHST.hpp"
-#include "TriFanMeshOptimizer.hpp"
 #include <rsmeshopt/HaroohieTriStripifier.hpp>
+#include <rsmeshopt/TriFanMeshOptimizer.hpp>
 
 #include <draco/mesh/mesh_stripifier.h>
 #include <meshoptimizer.h>
@@ -421,7 +421,7 @@ private:
 coro::generator<Primitive> PrimitiveRestartSplitter::Primitives() const {
   Primitive triangles{};
   triangles.topology = Topology::Triangles;
-  for (auto strip : MeshUtils::SplitByPrimitiveRestart<unsigned int>(
+  for (auto strip : rsmeshopt::MeshUtils::SplitByPrimitiveRestart<unsigned int>(
            indices_, primitive_restart_index_)) {
     assert(strip.size() >= 3);
     Primitive* p{};
@@ -564,8 +564,8 @@ Result<MeshOptimizerStats> ToFanTriangles(MatrixPrimitive& prim, u32 min_len,
 
   PrimitiveRestartSplitter splitter(Topology::TriangleFan, buf.vertices, ~0u);
   splitter.Reserve(buf.index_data.size());
-  TriFanMeshOptimizer fan_pass;
-  TriFanOptions options{min_len, max_runs};
+  rsmeshopt::TriFanMeshOptimizer fan_pass;
+  rsmeshopt::TriFanOptions options{min_len, max_runs};
   bool ok = fan_pass.GenerateTriangleFansWithPrimitiveRestart(
       buf.index_data, ~0u, splitter.OutputIterator(), options);
   EXPECT(ok);

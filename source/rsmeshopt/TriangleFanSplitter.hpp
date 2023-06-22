@@ -2,7 +2,7 @@
 
 #include <core/common.h>
 
-namespace librii::rhst {
+namespace rsmeshopt {
 
 // Splits a mesh containing a central vertex into many sub-graphs of "islands"
 // such that each could be a valid trifan.
@@ -32,4 +32,4 @@ private:
   std::vector<std::set<size_t>> islands_{};
 };
 
-} // namespace librii::rhst
+} // namespace rsmeshopt

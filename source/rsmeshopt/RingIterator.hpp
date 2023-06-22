@@ -3,7 +3,7 @@
 #include <core/common.h>
 #include <fmt/core.h>
 
-namespace librii::rhst {
+namespace rsmeshopt {
 
 #define LIBRII_RINGITERATOR_DEBUG 0
 
@@ -170,4 +170,4 @@ private:
   IndexTypeT last_vertex_;
 };
 
-} // namespace librii::rhst
+} // namespace rsmeshopt

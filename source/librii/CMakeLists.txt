@@ -132,7 +132,7 @@ add_library(librii STATIC
 	"j3d/io/Sections/VTX1.cpp"
 	"j3d/io/Sections.hpp"
 	"j3d/io/Sections/MaterialData.cpp"
- "rhst/RHSTOptimizer.cpp" "rhst/MeshUtils.cpp" "rhst/TriangleFanSplitter.cpp" "g3d/io/PolygonIO.cpp"
+ "rhst/RHSTOptimizer.cpp" "rhst/MeshUtils.cpp"  "g3d/io/PolygonIO.cpp"
 
 
 	"assimp2rhst/Assimp.cpp"

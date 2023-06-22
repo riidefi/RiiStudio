@@ -1,6 +1,6 @@
 #include "TriangleFanSplitter.hpp"
 
-namespace librii::rhst {
+namespace rsmeshopt {
 
 std::vector<std::set<size_t>>
 TriangleFanSplitter::ConvertToFans(std::span<const u32> mesh, u32 center) {
@@ -122,4 +122,4 @@ bool TriangleFanSplitter::CanAddToFan(const std::set<size_t>& island,
   return false;
 }
 
-} // namespace librii::rhst
+} // namespace rsmeshopt

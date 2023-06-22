@@ -15,5 +15,6 @@ add_library(rsmeshopt STATIC
   ${SRC_FILES}
   "HaroohieTriStripifier.cpp"
   "RsMeshOpt.cpp"
+  "TriangleFanSplitter.cpp"
 )
 target_link_libraries(rsmeshopt PUBLIC core range-v3 riistudio_rs vendor)

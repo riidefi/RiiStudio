@@ -2,10 +2,11 @@
 
 #include <core/common.h>
 
-#include <librii/rhst/RingIterator.hpp>
-#include <librii/rhst/TriangleFanSplitter.hpp>
+#include "MeshUtils.hpp"
+#include "RingIterator.hpp"
+#include "TriangleFanSplitter.hpp"
 
-namespace librii::rhst {
+namespace rsmeshopt {
 
 // Options for TriFanMeshOptimizer
 struct TriFanOptions {
@@ -205,4 +206,4 @@ bool TriFanMeshOptimizer::GenerateTriangleFansWithPrimitiveRestart(
   return true;
 }
 
-} // namespace librii::rhst
+} // namespace rsmeshopt
