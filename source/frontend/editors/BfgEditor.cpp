@@ -32,9 +32,9 @@ void BfgEditorPropertyGrid::Draw(librii::egg::BFG::Entry& fog) {
 
     ImGui::InputFloat("End Z", &fog.mEndZ);
 
-	ImVec4 tmp = ImGui::ColorConvertU32ToFloat4(fog.mColor);
+    ImVec4 tmp = util::ColorConvertU32ToFloat4BE(fog.mColor);
     ImGui::ColorEdit4("Fog Color", &tmp.x);
-    fog.mColor = ImGui::ColorConvertFloat4ToU32(tmp);
+    fog.mColor = util::ColorConvertFloat4ToU32BE(tmp);
 
     int center = fog.mCenter;
     ImGui::InputInt("Center", &center);

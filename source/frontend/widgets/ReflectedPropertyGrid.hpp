@@ -57,9 +57,9 @@ struct ReflectedPropertyGrid {
     if (type_next.has_value()) {
       u32 clr = x;
 
-      ImVec4 tmp = ImGui::ColorConvertU32ToFloat4(clr);
+      ImVec4 tmp = util::ColorConvertU32ToFloat4BE(clr);
       ImGui::ColorEdit4(name.c_str(), &tmp.x);
-      clr = ImGui::ColorConvertFloat4ToU32(tmp);
+      clr = util::ColorConvertFloat4ToU32BE(tmp);
 
       x = clr;
 

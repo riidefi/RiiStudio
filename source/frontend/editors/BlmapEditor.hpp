@@ -113,7 +113,7 @@ public:
       m_tree.enabled.clear();
       m_tree.names.clear();
       for (auto& tex : m_blmap.textures) {
-        m_tree.colors.push_back(ImGui::ColorConvertU32ToFloat4(0));
+        m_tree.colors.push_back(util::ColorConvertU32ToFloat4BE(0));
         m_tree.enabled.push_back(true);
       }
       m_tree.Draw();

@@ -110,7 +110,7 @@ public:
       m_tree.colors.clear();
       m_tree.enabled.clear();
       for (auto& x : m_bfg.entries) {
-        m_tree.colors.push_back(ImGui::ColorConvertU32ToFloat4(x.mColor));
+        m_tree.colors.push_back(util::ColorConvertU32ToFloat4BE(x.mColor));
         m_tree.enabled.push_back(x.mEnabled);
       }
       m_tree.Draw();

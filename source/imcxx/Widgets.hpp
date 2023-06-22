@@ -311,4 +311,16 @@ inline bool ShouldContextOpen(
          ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
 }
 
+inline ImVec4 ColorConvertU32ToFloat4BE(u32 in) {
+  in = (in >> 24) | (((in >> 16) & 0xff) << 8) | (((in >> 8) & 0xff) << 16) |
+       ((in & 0xff) << 24);
+  return ImGui::ColorConvertU32ToFloat4(in);
+}
+
+inline u32 ColorConvertFloat4ToU32BE(ImVec4 in) {
+  u32 clr = ImGui::ColorConvertFloat4ToU32(in);
+  return (clr >> 24) | (((clr >> 16) & 0xff) << 8) |
+         (((clr >> 8) & 0xff) << 16) | ((clr & 0xff) << 24);
+}
+
 } // namespace riistudio::util
