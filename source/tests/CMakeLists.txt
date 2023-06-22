@@ -113,13 +113,14 @@ add_custom_command(
 		$<TARGET_FILE_DIR:tests>/fonts
 )
 
-if (WINDOWS)
+if (WIN32)
   add_custom_command(
-	  TARGET tests 
+	  TARGET tests
 	  POST_BUILD
 	  COMMAND python.exe ${PROJECT_SOURCE_DIR}/../../tests/tests.py
-		  $<TARGET_FILE_DIR:tests>/tests.exe
-		  ${PROJECT_SOURCE_DIR}/../../tests/samples
+      $<TARGET_FILE_DIR:tests>/tests
+      $<TARGET_FILE_DIR:cli>/rszst
+      ${PROJECT_SOURCE_DIR}/../../tests/samples
       ${PROJECT_SOURCE_DIR}/../../tests/out
 	)
 else()
