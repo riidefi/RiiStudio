@@ -189,33 +189,57 @@ void compileMaterial(libcube::IGCMaterial& out,
 
   auto& data = out.getMaterialData();
 
-  if (!in.texture_name.empty()) {
+  if (!in.samplers.empty()) {
+    for (int i = 0; i < in.samplers.size(); i++) {
+
+	data.samplers.push_back({});
+      auto& sampler = data.samplers[i];
+      auto sam = in.samplers[i];
+
+      librii::hx::TextureFilter filter;
+      filter.minBase = sam.min_filter;
+      filter.minMipBase = sam.mip_filter;
+      filter.mip = sam.enable_mip;
+      sampler.mTexture = sam.texture_name;
+      sampler.mWrapU = compileWrap(sam.wrap_u);
+      sampler.mWrapV = compileWrap(sam.wrap_v);
+
+      sampler.mLodBias = sam.lod_bias;
+
+      sampler.mMagFilter = sam.mag_filter ? librii::gx::TextureFilter::Linear
+                                          : librii::gx::TextureFilter::Near;
+      sampler.mMinFilter = lowerTextureFilter(filter);
+      data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
+    }
+  }
+   else if(!in.texture_name.empty()){
     data.samplers.push_back({});
     auto& sampler = data.samplers[0];
-    sampler.mTexture = in.texture_name;
-    sampler.mWrapU = compileWrap(in.wrap_u);
-    sampler.mWrapV = compileWrap(in.wrap_v);
+      librii::hx::TextureFilter filter;
+      filter.minBase = in.min_filter;
+      filter.minMipBase = in.mip_filter;
+      filter.mip = in.enable_mip;
+      sampler.mTexture = in.texture_name;
+      sampler.mWrapU = compileWrap(in.wrap_u);
+      sampler.mWrapV = compileWrap(in.wrap_v);
 
-    sampler.mLodBias = in.lod_bias;
+      sampler.mLodBias = in.lod_bias;
 
-    sampler.mMagFilter = in.mag_filter ? librii::gx::TextureFilter::Linear
-                                       : librii::gx::TextureFilter::Near;
-    librii::hx::TextureFilter filter;
-    filter.minBase = in.min_filter;
-    filter.minMipBase = in.mip_filter;
-    filter.mip = in.enable_mip;
-    sampler.mMinFilter = lowerTextureFilter(filter);
-
-    compileCullMode(data, in.show_front, in.show_back);
-    if (in.alpha_mode == librii::rhst::AlphaMode::Custom) {
-      compilePESettings(data, in);
-    } else {
-      compileAlphaMode(data, in.alpha_mode);
-    }
-
-    data.texMatrices.push_back(j3d::Material::TexMatrix{});
-    data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
+      sampler.mMagFilter = in.mag_filter ? librii::gx::TextureFilter::Linear
+                                          : librii::gx::TextureFilter::Near;
+      sampler.mMinFilter = lowerTextureFilter(filter);;
+      data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
   }
+  data.texMatrices.push_back(j3d::Material::TexMatrix{});
+	compileCullMode(data, in.show_front, in.show_back);
+	if (in.alpha_mode == librii::rhst::AlphaMode::Custom) {
+		compilePESettings(data, in);
+	} else {
+		compileAlphaMode(data, in.alpha_mode);
+	}
+
+	
+
   if (auto* g3dmat = dynamic_cast<riistudio::g3d::Material*>(&out)) {
     g3dmat->lightSetIndex = in.lightset_index;
     g3dmat->fogIndex = in.fog_index;
@@ -226,17 +250,7 @@ void compileMaterial(libcube::IGCMaterial& out,
   wip.rasOrder = librii::gx::ColorSelChanApi::color0a0;
   wip.rasSwap = 0;
 
-  if (!in.texture_name.empty()) {
-    wip.colorStage.a = librii::gx::TevColorArg::zero;
-    wip.colorStage.b = librii::gx::TevColorArg::texc;
-    wip.colorStage.c = librii::gx::TevColorArg::rasc;
-    wip.colorStage.d = librii::gx::TevColorArg::zero;
-
-    wip.alphaStage.a = librii::gx::TevAlphaArg::zero;
-    wip.alphaStage.b = librii::gx::TevAlphaArg::texa;
-    wip.alphaStage.c = librii::gx::TevAlphaArg::rasa;
-    wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
-  } else {
+  if (in.texture_name.empty() && in.samplers.empty()) {
     wip.colorStage.a = librii::gx::TevColorArg::rasc;
     wip.colorStage.b = librii::gx::TevColorArg::zero;
     wip.colorStage.c = librii::gx::TevColorArg::zero;
@@ -247,6 +261,17 @@ void compileMaterial(libcube::IGCMaterial& out,
     wip.alphaStage.c = librii::gx::TevAlphaArg::zero;
     wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
   }
+  else {
+    wip.colorStage.a = librii::gx::TevColorArg::zero;
+    wip.colorStage.b = librii::gx::TevColorArg::texc;
+    wip.colorStage.c = librii::gx::TevColorArg::rasc;
+    wip.colorStage.d = librii::gx::TevColorArg::zero;
+
+    wip.alphaStage.a = librii::gx::TevAlphaArg::zero;
+    wip.alphaStage.b = librii::gx::TevAlphaArg::texa;
+    wip.alphaStage.c = librii::gx::TevAlphaArg::rasa;
+    wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
+  } 
 
   data.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
   data.mStages[0] = wip;
@@ -740,8 +765,18 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
   std::set<std::string> textures_needed;
 
   for (auto& mat : rhst.materials) {
-    if (!mat.texture_name.empty())
-      textures_needed.emplace(mat.texture_name);
+    if (mat.samplers.empty()) {
+      if (!mat.texture_name.empty()) {
+        textures_needed.emplace(mat.texture_name);
+      }
+    } else {
+      for (auto& sam : mat.samplers) {
+        if (!sam.texture_name.empty()) {
+          textures_needed.emplace(sam.texture_name);
+        }
+      }
+    }
+    
   }
 
   libcube::Model& mdl = scene.getModels().add();
