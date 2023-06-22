@@ -190,10 +190,11 @@ def run_tests(test_exec, rszst, data, out):
 	fs_dir = os.fsencode(data)
 	    
 	for fs_file in os.listdir(fs_dir):
-	     in_file = os.path.join(data, os.fsdecode(fs_file))
-	     if os.path.isdir(in_file): continue
-	     out_file = os.path.join(out, os.fsdecode(fs_file))
-	     run_test(test_exec, rszst, in_file, out_file)
+		in_file = os.path.join(data, os.fsdecode(fs_file))
+		if os.path.isdir(in_file):
+			run_tests(test_exec, rszst, in_file, os.path.join(out, os.fsdecode(fs_file)))
+		out_file = os.path.join(out, os.fsdecode(fs_file))
+		run_test(test_exec, rszst, in_file, out_file)
 
 import sys
 
