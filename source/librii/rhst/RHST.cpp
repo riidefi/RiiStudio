@@ -154,15 +154,6 @@ public:
         for (auto mat : materials) {
           auto& b = out.materials.emplace_back();
           b.name = get<std::string>(mat, "name").value_or("?");
-          b.texture_name = get<std::string>(mat, "texture").value_or("?");
-          b.wrap_u =
-              magic_enum::enum_cast<WrapMode>(
-                  cap(get<std::string>(mat, "wrap_u").value_or("Repeat")))
-                  .value_or(WrapMode::Repeat);
-          b.wrap_v =
-              magic_enum::enum_cast<WrapMode>(
-                  cap(get<std::string>(mat, "wrap_v").value_or("Repeat")))
-                  .value_or(WrapMode::Repeat);
           b.show_front = get<bool>(mat, "display_front").value_or(true);
           b.show_back = get<bool>(mat, "display_back").value_or(false);
           b.alpha_mode =
@@ -235,11 +226,43 @@ public:
           b.fog_index = get<s32>(mat, "fog").value_or(0);
           b.preset_path_mdl0mat =
               get<std::string>(mat, "preset_path_mdl0mat").value_or("");
-          b.min_filter = get<bool>(mat, "min_filter").value_or(true);
-          b.mag_filter = get<bool>(mat, "mag_filter").value_or(true);
-          b.enable_mip = get<bool>(mat, "enable_mip").value_or(true);
-          b.mip_filter = get<bool>(mat, "mip_filter").value_or(true);
-          b.lod_bias = get<f32>(mat, "lod_bias").value_or(-1.0f);
+          if (mat.contains("samplers") &&
+              mat["samplers"].is_array()) {
+            auto samplers = mat["samplers"];
+            for (auto sam : samplers) {
+              auto& sampler = b.samplers.emplace_back();
+              sampler.texture_name =
+                  get<std::string>(sam, "texture").value_or("?");
+              sampler.wrap_u =
+                  magic_enum::enum_cast<WrapMode>(
+                      cap(get<std::string>(sam, "wrap_u").value_or("Repeat")))
+                      .value_or(WrapMode::Repeat);
+              sampler.wrap_v =
+                  magic_enum::enum_cast<WrapMode>(
+                      cap(get<std::string>(sam, "wrap_v").value_or("Repeat")))
+                      .value_or(WrapMode::Repeat);
+              sampler.min_filter = get<bool>(sam, "min_filter").value_or(true);
+              sampler.mag_filter = get<bool>(sam, "mag_filter").value_or(true);
+              sampler.enable_mip = get<bool>(sam, "enable_mip").value_or(true);
+              sampler.mip_filter = get<bool>(sam, "mip_filter").value_or(true);
+              sampler.lod_bias = get<f32>(sam, "lod_bias").value_or(-1.0f);
+            }
+          } else {
+            b.min_filter = get<bool>(mat, "min_filter").value_or(true);
+            b.mag_filter = get<bool>(mat, "mag_filter").value_or(true);
+            b.enable_mip = get<bool>(mat, "enable_mip").value_or(true);
+            b.mip_filter = get<bool>(mat, "mip_filter").value_or(true);
+            b.lod_bias = get<f32>(mat, "lod_bias").value_or(-1.0f);
+            b.texture_name = get<std::string>(mat, "texture").value_or("?");
+            b.wrap_u =
+                magic_enum::enum_cast<WrapMode>(
+                    cap(get<std::string>(mat, "wrap_u").value_or("Repeat")))
+                    .value_or(WrapMode::Repeat);
+            b.wrap_v =
+                magic_enum::enum_cast<WrapMode>(
+                    cap(get<std::string>(mat, "wrap_v").value_or("Repeat")))
+                    .value_or(WrapMode::Repeat);
+          }
         }
       }
     }
