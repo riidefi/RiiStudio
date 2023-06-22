@@ -198,14 +198,23 @@ struct PixelEngine {
   // Skip logic ops for now
 };
 
+struct ProtoSampler {
+  std::string texture_name = "";
+  WrapMode wrap_u = WrapMode::Repeat;
+  WrapMode wrap_v = WrapMode::Repeat;
+
+  bool min_filter = true;
+  bool mag_filter = true;
+  bool enable_mip = true;
+  bool mip_filter = true;
+  float lod_bias = -1.0f;
+};
+
+
 //! Is eventually compiled to a common material.
 struct ProtoMaterial {
   std::string name = "Untitled Material";
   bool can_merge = true;
-
-  std::string texture_name = "";
-  WrapMode wrap_u = WrapMode::Repeat;
-  WrapMode wrap_v = WrapMode::Repeat;
 
   bool show_front = true;
   bool show_back = false;
@@ -219,11 +228,18 @@ struct ProtoMaterial {
 
   std::string preset_path_mdl0mat;
 
+  std::vector<ProtoSampler> samplers;
+
+  //Legacy support
+  std::string texture_name = "";
+  WrapMode wrap_u = WrapMode::Repeat;
+  WrapMode wrap_v = WrapMode::Repeat;
   bool min_filter = true;
   bool mag_filter = true;
   bool enable_mip = true;
   bool mip_filter = true;
   float lod_bias = -1.0f;
+
 };
 
 struct DrawCall {
