@@ -184,6 +184,10 @@ pub struct ImportCommand {
     #[clap(long, default_value="false")]
     ai_json: bool,
 
+    /// Do not SZS-compress the archive
+    #[clap(short, long, default_value="false")]
+    no_compression: bool,
+
     /// Read preset material/animation overrides from this folder
     #[clap(long)]
     preset_path: Option<String>,
@@ -248,10 +252,10 @@ pub struct Rhst2BmdCommand {
     verbose: bool,
 }
 
-/// Extract a .szs file to a folder.
+/// Extract a possibly SZS-compressed archive to a folder.
 #[derive(Parser, Debug)]
 pub struct ExtractCommand {
-    /// SZS-compressed ARC file to read
+    /// SZS-compressed archive to read (accepts U8 or RARC)
     #[arg(required=true)]
     from: String,
 
@@ -262,15 +266,19 @@ pub struct ExtractCommand {
     verbose: bool,
 }
 
-/// Create a .szs file from a folder.
+/// Create a an archive from a folder.
 #[derive(Parser, Debug)]
 pub struct CreateCommand {
     /// Input folder
     #[arg(required=true)]
     from: String,
 
-    /// SZS-compressed ARC file to write (or none for default)
+    /// Archive to write (or none for default)
     to: Option<String>,
+
+    /// Do not SZS-compress the archive
+    #[clap(short, long, default_value="false")]
+    no_compression: bool,
 
     #[clap(short, long, default_value="false")]
     verbose: bool,
@@ -323,6 +331,7 @@ pub struct CliOptions {
     pub fuse_vertices: c_uint,
     pub no_tristrip: c_uint,
     pub ai_json: c_uint,
+    pub no_compression: c_uint,
     pub verbose: c_uint,
 
     // TYPE 2: "decompress"
@@ -377,6 +386,7 @@ impl MyArgs {
                     fuse_vertices: i.fuse_vertices as c_uint,
                     no_tristrip: i.no_tristrip as c_uint,
                     ai_json: i.ai_json as c_uint,
+                    no_compression: i.no_compression as c_uint,
                     verbose: i.verbose as c_uint,
                 }
             },
@@ -411,6 +421,7 @@ impl MyArgs {
                     fuse_vertices: 0 as c_uint,
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint
                 }
             },
             Commands::Compress(i) => {
@@ -444,6 +455,7 @@ impl MyArgs {
                     fuse_vertices: 0 as c_uint,
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint
                 }
             },
             Commands::Rhst2Brres(i) => {
@@ -477,6 +489,7 @@ impl MyArgs {
                     fuse_vertices: 0 as c_uint,
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint
                 }
             },
             Commands::Rhst2Bmd(i) => {
@@ -510,6 +523,7 @@ impl MyArgs {
                     fuse_vertices: 0 as c_uint,
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint
                 }
             },
             Commands::Extract(i) => {
@@ -543,6 +557,7 @@ impl MyArgs {
                   fuse_vertices: 0 as c_uint,
                   no_tristrip: 0 as c_uint,
                   ai_json: 0 as c_uint,
+                  no_compression: 0 as c_uint
               }
             },
             Commands::Create(i) => {
@@ -558,6 +573,7 @@ impl MyArgs {
                   from: from2,
                   to: to2,
                   verbose: i.verbose as c_uint,
+                  no_compression: i.no_compression as c_uint,
 
                   // Junk fields
                   preset_path:  [0; 256],
