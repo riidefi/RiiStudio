@@ -4,6 +4,7 @@ We simply check: Can all field artifacts be rebuilt losslessly?
 '''
 
 import os
+from pathlib import Path
 
 # "input_hash": "output_hash", # course_model0.brres
 TEST_DATA = {
@@ -89,20 +90,18 @@ BREAKPOINTS = {
   '8e882b37c306c0f98f3f08363ba61e31': [ ]
 }
 
-def hash(path):
+def fhash(path: Path):
 	from hashlib import md5
-	with open(path, "rb") as file:
-		return md5(file.read()).hexdigest()
+	return md5(path.read_bytes()).hexdigest()
 
 # Does not modify extension
-def add_to_name(path, suffix):
-	split = os.path.splitext(path)
-	return split[0] + suffix + split[1]
+def add_to_name(path: Path, suffix: str):
+	return path.stem + suffix + path.suffix
 
-def pretty_path(path):
-	return os.path.basename(path)
+def pretty_path(path: Path):
+	return path.name
 
-def rebuild(test_exec, rszst, input_path, output_path, check, bps):
+def rebuild(test_exec: Path, rszst: Path, input_path: Path, output_path: Path, check: bool, bps: list):
 	'''
 	Rebuild a file
 	Throw an error if the program faults, returning the stacktrace.
@@ -110,13 +109,13 @@ def rebuild(test_exec, rszst, input_path, output_path, check, bps):
 	from subprocess import Popen, PIPE
 
 	# Remove the old file
-	if os.path.isfile(output_path):
-		os.remove(output_path)
-	if input_path.endswith(".dae"):
+	if output_path.is_file():
+		output_path.unlink()
+	if input_path.suffix == ".dae":
 		args = [rszst, "import-command", input_path, output_path]
-		if input_path.endswith("no_ts.dae"):
+		if input_path.stem.endswith("no_ts"):
 			args += ["--no-tristrip"]
-		if input_path.endswith("ai_json.dae"):
+		elif input_path.stem.endswith("ai_json"):
 			args += ["--ai-json"]
 	else:
 		args = [test_exec, input_path, output_path] + (["check"] if check else [""]) + list(str(x) for x in bps)
@@ -130,8 +129,8 @@ def rebuild(test_exec, rszst, input_path, output_path, check, bps):
 		print(' '.join(args))
 		raise RuntimeError(err)
 
-def run_test(test_exec, rszst, path, out_path):
-	md5 = hash(path)
+def run_test(test_exec: Path, rszst: Path, path: Path, out_path: Path):
+	md5 = fhash(path)
 	expected = "<None>"
 	if md5 not in TEST_DATA:
 		print("Warning: %s is not part of the testing set" % pretty_path(path))
@@ -145,11 +144,11 @@ def run_test(test_exec, rszst, path, out_path):
 		bps = BREAKPOINTS[md5]
 	rebuild(test_exec, rszst, path, rebuild_path, md5 == expected, bps)
 
-	if not os.path.isfile(rebuild_path):
+	if not rebuild_path.is_file():
 		print("Error: %s Rebuilding did not produce any file" % pretty_path(path))
 		return
 
-	actual = hash(rebuild_path)
+	actual = fhash(rebuild_path)
 
 	if expected == "<None>":
 		print("--> Output Hash: %s" % actual)
@@ -164,21 +163,21 @@ def run_test(test_exec, rszst, path, out_path):
 
 	# os.remove(rebuild_path)
 
-def run_tests(test_exec, rszst, data, out):
-	assert os.path.isdir(data)
-	assert not os.path.isfile(out)
+def run_tests(test_exec: Path, rszst: Path, fs_dir: Path, out: Path):
+	assert fs_dir.is_dir()
+	assert not out.is_file()
 
-	if not os.path.isdir(out):
-		os.mkdir(out)
-
-	fs_dir = os.fsencode(data)
+	if not out.is_dir():
+		out.mkdir(parents=True)
 	    
 	for fs_file in os.listdir(fs_dir):
-		in_file = os.path.join(data, os.fsdecode(fs_file))
-		if os.path.isdir(in_file):
-			run_tests(test_exec, rszst, in_file, os.path.join(out, os.fsdecode(fs_file)))
-		out_file = os.path.join(out, os.fsdecode(fs_file))
-		run_test(test_exec, rszst, in_file, out_file)
+		in_file = fs_dir / fs_file
+		out_file = out / fs_file
+		print(out_file)
+		if in_file.is_dir():
+			run_tests(test_exec, rszst, in_file, out_file)
+		else:
+			run_test(test_exec, rszst, in_file, out_file)
 
 import sys
 
@@ -187,7 +186,7 @@ if len(sys.argv) < 5:
 	sys.exit(1)
 
 try:
-	run_tests(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+	run_tests(Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[4]))
 except:
 	print("Error: tests.py encountered a critical error")
 	raise
