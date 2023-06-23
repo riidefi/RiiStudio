@@ -313,7 +313,7 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc) {
         std::cout << std::format("== FS NODE ==\n"
                                  "Name: {0}\n"
                                  "Type: {1}\n",
-                                 strings.data() + fs_node.name, fs_node.type);
+                                 (strings.data() + *fs_node.name), *fs_node.type);
   }
   #endif
 
