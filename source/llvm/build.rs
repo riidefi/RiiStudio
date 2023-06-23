@@ -8,6 +8,14 @@ use glob::glob;
 fn main() {
     let mut build = cc::Build::new();
     build.cpp(true);
+
+    #[cfg(unix)]
+    build.define("LLVM_ON_UNIX", "1");
+    #[cfg(unix)]
+    build.define("RII_PLATFORM_LINUX", "1");
+    #[cfg(unix)]
+    build.flag("-w");
+
     build.include(".");
     build.file("src/bindings.cpp");
     for entry in glob("llvm/**/*.cpp").expect("Failed to read glob pattern") {
