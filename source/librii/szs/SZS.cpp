@@ -3,6 +3,13 @@
 
 namespace librii::szs {
 
+bool isDataYaz0Compressed(std::span<const u8> src) {
+  if (src.size_bytes() < 8)
+    return false;
+
+  return src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0';
+}
+
 Result<u32> getExpandedSize(std::span<const u8> src) {
   if (src.size_bytes() < 8)
     return std::unexpected("File too small to be a YAZ0 file");

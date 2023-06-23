@@ -6,6 +6,8 @@
 
 namespace librii::szs {
 
+bool isDataYaz0Compressed(std::span<const u8> src);
+
 Result<u32> getExpandedSize(std::span<const u8> src);
 Result<void> decode(std::span<u8> dst, std::span<const u8> src);
 

@@ -34,7 +34,7 @@ enum {
   TYPE_COMPILE_RHST_BRRES,
   TYPE_COMPILE_RHST_BMD,
 
-  // SZS
+  // Potentially compressed archives (U8, RARC)
   TYPE_EXTRACT,
   TYPE_CREATE,
 };
@@ -65,6 +65,7 @@ struct CliOptions {
   bool32 fuse_vertices = true;
   bool32 no_tristrip = false;
   bool32 ai_json = false;
+  bool32 no_compression = false;
   bool32 verbose = false;
 };
 

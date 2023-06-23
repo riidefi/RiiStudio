@@ -436,9 +436,9 @@ private:
   std::filesystem::path m_to;
 };
 
-class ExtractSZS {
+class ExtractArchive {
 public:
-  ExtractSZS(const CliOptions& opt) : m_opt(opt) {}
+  ExtractArchive(const CliOptions& opt) : m_opt(opt) {}
 
   Result<void> execute() {
     if (m_opt.verbose) {
@@ -453,9 +453,14 @@ public:
     }
 
     // Max 4GB
-    u32 size = TRY(librii::szs::getExpandedSize(*file));
-    std::vector<u8> buf(size);
-    TRY(librii::szs::decode(buf, *file));
+    std::vector<u8> buf;
+    if (librii::szs::isDataYaz0Compressed(*file)) {
+      u32 size = TRY(librii::szs::getExpandedSize(*file));
+      buf.resize(size);
+      TRY(librii::szs::decode(buf, *file));
+    } else {
+      buf = std::move(*file);
+	}
 
     fmt::print(stderr, "Extracting ARC.SZS,{} => {}\n", m_from.string(),
                m_to.string());
@@ -482,7 +487,7 @@ private:
     }
     if (std::filesystem::exists(m_to)) {
       fmt::print(stderr,
-                 "Warning: File {} will be overwritten by this operation.\n",
+                 "Warning: Folder {} will be overwritten by this operation.\n",
                  m_to.string());
     }
     return true;
@@ -493,9 +498,9 @@ private:
   std::filesystem::path m_to;
 };
 
-class CreateSZS {
+class CreateArchive {
 public:
-  CreateSZS(const CliOptions& opt) : m_opt(opt) {}
+  CreateArchive(const CliOptions& opt) : m_opt(opt) {}
 
   Result<void> execute() {
     if (m_opt.verbose) {
@@ -510,8 +515,15 @@ public:
     fmt::print(stderr, "Creating ARC.SZS,{} => {}\n", m_from.string(),
                std::filesystem::absolute(m_to).string());
 
-    auto arc = TRY(librii::U8::Create(m_from));
-    auto buf = librii::U8::SaveU8Archive(arc);
+	auto arc = TRY(librii::U8::Create(m_from));
+    std::vector<u8> buf = librii::U8::SaveU8Archive(arc);
+
+	if (m_opt.no_compression) {
+      buf.resize(roundUp(buf.size(), 32));
+      plate::Platform::writeFile(buf, m_to.string());
+      return {};
+	}
+
     std::vector<u8> szs(librii::szs::getWorstEncodingSize(buf));
     fmt::print(stderr,
                "Compressing SZS: {} => {} (Boyer-Moore-Horspool strategy)\n",
@@ -539,7 +551,7 @@ private:
       m_to = p;
     }
     if (!std::filesystem::exists(m_from)) {
-      fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+      fmt::print(stderr, "Error: Folder {} does not exist.\n", m_from.string());
       return false;
     }
     if (std::filesystem::exists(m_to)) {
@@ -609,7 +621,7 @@ int main(int argc, const char** argv) {
       return -1;
     }
   } else if (args->type == TYPE_EXTRACT) {
-    ExtractSZS cmd(*args);
+    ExtractArchive cmd(*args);
     auto ok = cmd.execute();
     if (!ok) {
       fmt::print(stderr, "{}\n", ok.error());
@@ -617,7 +629,7 @@ int main(int argc, const char** argv) {
       return -1;
     }
   } else if (args->type == TYPE_CREATE) {
-    CreateSZS cmd(*args);
+    CreateArchive cmd(*args);
     auto ok = cmd.execute();
     if (!ok) {
       fmt::print(stderr, "{}\n", ok.error());
