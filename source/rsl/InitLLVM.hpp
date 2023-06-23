@@ -6,25 +6,21 @@ namespace rsl {
 
 struct llvm_InitLLVM;
 
-inline llvm_InitLLVM* init_llvm(int& argc, const char**& argv,
-                                bool installPipeSignalExitHandler = true) {
-  auto* p = new llvm::InitLLVM(argc, argv, installPipeSignalExitHandler);
-  return reinterpret_cast<llvm_InitLLVM*>(p);
-}
+// Links against riidefi/llvm_sighandler crate
+extern "C" llvm_InitLLVM*
+rsl_init_llvm(int& argc, const char**& argv,
+              int installPipeSignalExitHandler = true);
 
-inline void deinit_llvm(llvm_InitLLVM* llvm) {
-  auto* p = reinterpret_cast<llvm::InitLLVM*>(llvm);
-  delete p;
-}
+extern "C" void rsl_deinit_llvm(llvm_InitLLVM* llvm);
 
 class InitLLVM {
 public:
   InitLLVM(int& argc, const char**& argv,
            bool installPipeSignalExitHandler = true)
-      : m_llvm(init_llvm(argc, argv, installPipeSignalExitHandler)) {}
+      : m_llvm(rsl_init_llvm(argc, argv, installPipeSignalExitHandler)) {}
 
 private:
-  using Deleter = decltype([](llvm_InitLLVM* llvm) { deinit_llvm(llvm); });
+  using Deleter = decltype([](llvm_InitLLVM* llvm) { rsl_deinit_llvm(llvm); });
   std::unique_ptr<llvm_InitLLVM, Deleter> m_llvm;
 };
 
