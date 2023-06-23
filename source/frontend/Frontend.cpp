@@ -1,9 +1,8 @@
 #include "Frontend.hpp"
 #include "root.hpp"
-#include <vendor/llvm/Support/InitLLVM.h>
 
 #include <frontend/Localization.hpp>
-
+#include <rsl/InitLLVM.hpp>
 #include <rsl/Log.hpp>
 
 IMPORT_STD;
@@ -11,7 +10,7 @@ IMPORT_STD;
 struct RootHolder {
   void create(int& argc, const char**& argv) {
     printf("Initializing LLVM\n");
-    initLlvm = std::make_unique<llvm::InitLLVM>(argc, argv);
+    initLlvm = std::make_unique<rsl::InitLLVM>(argc, argv);
 
     riistudio::MarkLocaleAPIReady();
 
@@ -27,7 +26,7 @@ struct RootHolder {
 
 private:
   std::unique_ptr<riistudio::frontend::RootWindow> window;
-  std::unique_ptr<llvm::InitLLVM> initLlvm;
+  std::unique_ptr<rsl::InitLLVM> initLlvm;
 } sRootHolder;
 
 int RiiStudio_main(int argc, const char** argv) {

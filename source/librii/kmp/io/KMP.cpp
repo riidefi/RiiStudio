@@ -1,6 +1,5 @@
 #include "KMP.hpp"
 #include <core/util/glm_io.hpp>
-#include <llvm/ADT/StringMap.h>
 #include <rsl/SafeReader.hpp>
 
 namespace librii::kmp {

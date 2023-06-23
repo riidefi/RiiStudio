@@ -5,8 +5,8 @@
 #include <librii/egg/PBLM.hpp>
 #include <librii/kmp/io/KMP.hpp>
 #include <plugins/api.hpp>
+#include <rsl/InitLLVM.hpp>
 #include <rsl/Ranges.hpp>
-#include <vendor/llvm/Support/InitLLVM.h>
 
 IMPORT_STD;
 
@@ -226,7 +226,7 @@ int main(int argc, const char** argv) {
   gTestMode = true;
 
   ANNOUNCE("Initializing LLVM");
-  llvm::InitLLVM init_llvm(argc, argv);
+  rsl::InitLLVM init_llvm(argc, argv);
 
   ANNOUNCE("Initializing plugins");
   InitAPI();
