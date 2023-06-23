@@ -94,3 +94,8 @@ static_assert(sizeof(SmallVectorSizeType<char>) == sizeof(uint64_t),
 static_assert(sizeof(SmallVectorSizeType<char>) == sizeof(uint32_t),
               "Expected SmallVectorBase<uint32_t> variant to be in use.");
 #endif
+
+void llvm::report_bad_alloc_error(const char* Reason, bool GenCrashDiag) {
+  fprintf(stderr, "%s", Reason);
+  abort();
+}
