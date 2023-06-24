@@ -525,7 +525,8 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
   }
 
   if (ImGui::BeginTabBar("Textures"_j)) {
-    llvm::SmallVector<bool, 16> open(matData.texGens.size(), true);
+    rsl::small_vector<u8, 16> open(matData.texGens.size(), true);
+    static_assert(sizeof(bool) == sizeof(u8));
     for (std::size_t i = 0; i < matData.texGens.size(); ++i) {
       auto& tg = matData.texGens[i];
 
@@ -544,7 +545,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
               std::format("Sampler {} [{}]###<internal_id=texture_{}>", i,
                           samp->mTexture, i)
                   .c_str(),
-              &open[i])) {
+              (bool*)&open[i])) {
         if (ImGui::CollapsingHeader("Image"_j,
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
           if (auto result = TextureImageCombo(samp->mTexture.c_str(), mImgs,
