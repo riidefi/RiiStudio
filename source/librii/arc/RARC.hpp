@@ -21,13 +21,14 @@ enum ResourceAttribute : u8 {
 
 struct ResourceArchive {
   struct Node {
-    rsl::bu16 flags;
+    s32 id;
+    u16 flags;
     std::string name;
 
     union {
       struct {
-        u32 parent;
-        u32 sibling_next;
+        s32 parent;
+        s32 sibling_next;
       } folder;
       struct {
         u32 offset;
@@ -36,6 +37,7 @@ struct ResourceArchive {
     };
 
 	bool is_folder() const { return (flags & DIRECTORY) != 0; }
+    bool is_special_path() const { return name == "." || name == ".."; }
   };
 
   std::vector<Node> nodes;
@@ -44,6 +46,8 @@ struct ResourceArchive {
 
 Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data);
 Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc);
+
+std::size_t OptimizeArchiveData(ResourceArchive& arc);
 
 Result<void> Extract(const ResourceArchive& arc, std::filesystem::path out);
 Result<ResourceArchive> Create(std::filesystem::path root);

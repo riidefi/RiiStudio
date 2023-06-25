@@ -5,6 +5,8 @@
 IMPORT_STD;
 #include <fstream>
 
+#include "librii/arc/RARC.hpp"
+
 namespace riistudio::frontend {
 
 static std::vector<std::string> fileDialogueOpen() {
@@ -39,7 +41,30 @@ void FileHost::openFile(OpenFilePolicy policy) {
     return;
 
   auto file = results[0];
-  openFile(file, policy);
+  auto fdata = ReadFileData(file);
+  if (!fdata)
+    return;
+
+  auto rarc = librii::RARC::LoadResourceArchive(
+      rsl::byte_view(fdata->mData.get(), fdata->mLen));
+  if (!rarc) {
+    fprintf(stdout, "%s\n", rarc.error().c_str());
+    return;
+  }
+  auto barc = librii::RARC::SaveResourceArchive(*rarc);
+  if (!barc) {
+    fprintf(stdout, "%s\n", barc.error().c_str());
+    return;
+  }
+
+  auto outfile = file.replace(file.end() - 3, file.end(), "barc");
+  std::ofstream stream(outfile, std::ios::binary | std::ios::ate);
+
+  if (!stream)
+    return;
+
+  stream.write((const char *)barc->data(), barc->size());
+  //openFile(file, policy);
 }
 std::optional<FileData> ReadFileData(const std::string& path) {
   std::ifstream stream(path, std::ios::binary | std::ios::ate);
