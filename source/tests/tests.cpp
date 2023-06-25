@@ -4,6 +4,10 @@
 #include <librii/egg/LTEX.hpp>
 #include <librii/egg/PBLM.hpp>
 #include <librii/kmp/io/KMP.hpp>
+#include <librii/arc/RARC.hpp>
+#include <librii/szs/SZS.hpp>
+#include <librii/u8/U8.hpp>
+#include <plugins/api.hpp>
 #include <plugins/g3d/G3dIo.hpp>
 #include <plugins/j3d/J3dIo.hpp>
 #include <rsl/InitLLVM.hpp>
@@ -31,7 +35,9 @@ void rebuild(std::string from, const std::string_view to, bool check,
   if (from.ends_with("kmp") || from.ends_with("blight") ||
       from.ends_with("blmap") || from.ends_with("bdof") ||
       from.ends_with("bblm") || from.ends_with("bmd") ||
-      from.ends_with("bdl") || from.ends_with("brres")) {
+      from.ends_with("bdl") || from.ends_with("brres") ||
+      from.ends_with("bblm") || from.ends_with("szs") ||
+      from.ends_with("arc") || from.ends_with("u8")) {
     auto file = OishiiReadFile2(from);
     if (!file.has_value()) {
       printf("Cannot rebuild\n");
@@ -149,7 +155,95 @@ void rebuild(std::string from, const std::string_view to, bool check,
         fprintf(stderr, "Failed to write BMD/BDL: %s\n", bruh.error().c_str());
         return;
       }
-    }
+    } else if (from.ends_with("szs") || from.ends_with("arc") ||
+   from.ends_with("u8")) {
+     const rsl::byte_view data_view = safe.slice();
+
+     std::vector<u8> data;
+     if (librii::szs::isDataYaz0Compressed(data_view)) {
+       auto result = librii::szs::getExpandedSize(data_view);
+       if (!result) {
+         fprintf(stderr, "Failed to read szs: %s\n", result.error().c_str());
+         return;
+       }
+       data.resize(*result);
+       librii::szs::decode(data, data_view);
+     }
+     else {
+       data.insert(data.begin(), data_view.begin(), data_view.end());
+     }
+
+     if (data[0] == 'R' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C') {
+       auto rarc = librii::RARC::LoadResourceArchive(data);
+       if (!rarc) {
+         fprintf(stderr, "Failed to read rarc: %s\n", rarc.error().c_str());
+         return;
+       }
+       printf("Writing to %s\n", std::string(to).c_str());
+       auto barc = librii::RARC::SaveResourceArchive(*rarc);
+       if (!barc) {
+         fprintf(stderr, "Failed to save rarc: %s\n", barc.error().c_str());
+         return;
+       }
+       for (auto& b : *barc) {
+         writer.write(b);
+       }
+     }
+     else {
+       auto u8 = librii::U8::LoadU8Archive(data);
+       if (!u8) {
+         fprintf(stderr, "Failed to read u8: %s\n", u8.error().c_str());
+         return;
+       }
+       printf("Writing to %s\n", std::string(to).c_str());
+       for (auto& b : librii::U8::SaveU8Archive(*u8)) {
+         writer.write(b);
+       }
+     }
+  }} else if (from.ends_with("szs") || from.ends_with("arc") ||
+               from.ends_with("u8")) {
+      const rsl::byte_view data_view = safe.slice();
+
+	  std::vector<u8> data;
+      if (librii::szs::isDataYaz0Compressed(data_view)) {
+        auto result = librii::szs::getExpandedSize(data_view);
+        if (!result) {
+          fprintf(stderr, "Failed to read szs: %s\n", result.error().c_str());
+          return;
+		}
+        data.resize(*result);
+        librii::szs::decode(data, data_view);
+      } else {
+        data.insert(data.begin(), data_view.begin(), data_view.end());
+	  }
+
+	  if (data[0] == 'R' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C') {
+        auto rarc = librii::RARC::LoadResourceArchive(data);
+        if (!rarc) {
+          fprintf(stderr, "Failed to read rarc: %s\n", rarc.error().c_str());
+          return;
+        }
+        printf("Writing to %s\n", std::string(to).c_str());
+        auto barc = librii::RARC::SaveResourceArchive(*rarc);
+        if (!barc) {
+          fprintf(stderr, "Failed to save rarc: %s\n", barc.error().c_str());
+          return;
+		}
+        for (auto& b : *barc) {
+          writer.write(b);
+        }
+      } else {
+        auto u8 = librii::U8::LoadU8Archive(data);
+        if (!u8) {
+          fprintf(stderr, "Failed to read u8: %s\n", u8.error().c_str());
+          return;
+        }
+        printf("Writing to %s\n", std::string(to).c_str());
+        for (auto& b : librii::U8::SaveU8Archive(*u8)) {
+          writer.write(b);
+        }
+	  }
+	}
     writer.saveToDisk(to);
     return;
   }
