@@ -1582,7 +1582,7 @@ def register_mat():
 	)
 	bpy.types.Material.jres_pe_z_early_compare = BoolProperty(
 		name="Compare Before Texture",
-		default=True,
+		default=False,
 	)
 	bpy.types.Material.jres_pe_z_update = BoolProperty(
 		name="Write to Z Buffer",
@@ -1606,12 +1606,12 @@ def register_mat():
 	bpy.types.Material.jres_pe_blend_source = EnumProperty(
 		name="",
 		items = BLEND_MODE_FACTORS,
-		default="dst_a"
+		default="src_a"
 	)
 	bpy.types.Material.jres_pe_blend_dest = EnumProperty(
 		name="",
 		items = BLEND_MODE_FACTORS_2,
-		default="inv_dst_a"
+		default="inv_src_a"
 	)
 	bpy.types.Material.jres_pe_dst_alpha = IntProperty(
 		name="Value",
