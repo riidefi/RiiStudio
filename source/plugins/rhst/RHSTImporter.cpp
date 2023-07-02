@@ -8,6 +8,7 @@
 #include <librii/hx/PixMode.hpp>
 #include <librii/hx/TextureFilter.hpp>
 #include <librii/image/CheckerBoard.hpp>
+#include <librii/rhst/RHST.hpp>
 #include <librii/rhst/RHSTOptimizer.hpp>
 
 #include <oishii/reader/binary_reader.hxx>
@@ -242,53 +243,6 @@ void compileMapping(const librii::rhst::ProtoSampler& in,
   }
 }
 
-librii::gx::ColorComponent compileSwapTableColor(librii::rhst::Colors in) {
-  switch (in) {
-  case librii::rhst::Colors::Red:
-    return librii::gx::ColorComponent::r;
-  case librii::rhst::Colors::Green:
-    return librii::gx::ColorComponent::g;
-  case librii::rhst::Colors::Blue:
-    return librii::gx::ColorComponent::b;
-  case librii::rhst::Colors::Alpha:
-    return librii::gx::ColorComponent::a;
-  }
-}
-
-librii::gx::ColorSelChanApi compileColorSelChan(librii::rhst::ColorSelChan in) {
-  switch (in) {
-  case librii::rhst::ColorSelChan::color0a0:
-    return librii::gx::ColorSelChanApi::color0a0;
-  case librii::rhst::ColorSelChan::color1a1:
-    return librii::gx::ColorSelChanApi::color1a1;
-  case librii::rhst::ColorSelChan::ind_alpha:
-    return librii::gx::ColorSelChanApi::ind_alpha;
-  case librii::rhst::ColorSelChan::normalized_ind_alpha:
-    return librii::gx::ColorSelChanApi::normalized_ind_alpha;
-  case librii::rhst::ColorSelChan::null:
-  default:
-    return librii::gx::ColorSelChanApi::null;
-  }
-}
-
-librii::gx::ColorS10 vec4ToColorS10(glm::vec4 in) {
-  librii::gx::ColorS10 out;
-  out.r = in.r;
-  out.g = in.g;
-  out.b = in.b;
-  out.a = in.a;
-  return out;
-}
-
-librii::gx::Color vec4ToColor(glm::vec4 in) {
-  librii::gx::Color out;
-  out.r = in.x;
-  out.g = in.y;
-  out.b = in.z;
-  out.a = in.w;
-  return out;
-}
-
 void compileMaterial(libcube::IGCMaterial& out,
                      const librii::rhst::ProtoMaterial& in) {
   out.setName(in.name);
@@ -323,10 +277,6 @@ void compileMaterial(libcube::IGCMaterial& out,
           static_cast<int>(librii::gx::TexMatrix::TexMatrix0) + i * 3);
       gen.matrix = actual_matrix;
 
-      mtx.scale = {sam.scale.x, sam.scale.y};
-      mtx.rotate = sam.rotate;
-      mtx.translate = {sam.trans.x, sam.trans.y};
-
       compileMapping(sam, mtx, gen);
 
       data.texMatrices.push_back(mtx);
@@ -348,7 +298,7 @@ void compileMaterial(libcube::IGCMaterial& out,
     sampler.mMagFilter = in.mag_filter ? librii::gx::TextureFilter::Linear
                                        : librii::gx::TextureFilter::Near;
     sampler.mMinFilter = lowerTextureFilter(filter);
-
+    ;
     data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
   }
   data.texMatrices.push_back(j3d::Material::TexMatrix{});
@@ -364,111 +314,35 @@ void compileMaterial(libcube::IGCMaterial& out,
     g3dmat->fogIndex = in.fog_index;
   }
 
-  // TEV
-  if (!in.tev_stages.empty()) {
-    int tev_size = in.tev_stages.size();
-    data.mStages.resize(tev_size);
-    for (int i = 0; i < tev_size; i++) {
-      auto st = in.tev_stages[i];
-      librii::gx::TevStage stage;
+  librii::gx::TevStage wip;
+  wip.texMap = wip.texCoord = 0;
+  wip.rasOrder = librii::gx::ColorSelChanApi::color0a0;
+  wip.rasSwap = 0;
 
-      stage.texMap = stage.texCoord = st.tex_map;
-      stage.rasOrder = compileColorSelChan(st.ras_channel);
-      stage.rasSwap = st.ras_swap;
-      stage.texMapSwap = st.tex_map_swap;
+  if (in.texture_name.empty() && in.samplers.empty()) {
+    wip.colorStage.a = librii::gx::TevColorArg::rasc;
+    wip.colorStage.b = librii::gx::TevColorArg::zero;
+    wip.colorStage.c = librii::gx::TevColorArg::zero;
+    wip.colorStage.d = librii::gx::TevColorArg::zero;
 
-      // Lazy
-      stage.colorStage.constantSelection =
-          static_cast<librii::gx::TevKColorSel>(st.color_stage.constant_sel);
-      stage.colorStage.a =
-          static_cast<librii::gx::TevColorArg>(st.color_stage.a);
-      stage.colorStage.b =
-          static_cast<librii::gx::TevColorArg>(st.color_stage.b);
-      stage.colorStage.c =
-          static_cast<librii::gx::TevColorArg>(st.color_stage.c);
-      stage.colorStage.d =
-          static_cast<librii::gx::TevColorArg>(st.color_stage.d);
-      stage.colorStage.formula =
-          static_cast<librii::gx::TevColorOp>(st.color_stage.formula);
-      stage.colorStage.scale =
-          static_cast<librii::gx::TevScale>(st.color_stage.scale);
-      stage.colorStage.bias =
-          static_cast<librii::gx::TevBias>(st.color_stage.bias);
-      stage.colorStage.clamp = st.color_stage.clamp;
-      stage.colorStage.out =
-          static_cast<librii::gx::TevReg>(st.color_stage.out);
-
-      stage.alphaStage.constantSelection =
-          static_cast<librii::gx::TevKAlphaSel>(st.alpha_stage.constant_sel);
-      stage.alphaStage.a =
-          static_cast<librii::gx::TevAlphaArg>(st.alpha_stage.a);
-      stage.alphaStage.b =
-          static_cast<librii::gx::TevAlphaArg>(st.alpha_stage.b);
-      stage.alphaStage.c =
-          static_cast<librii::gx::TevAlphaArg>(st.alpha_stage.c);
-      stage.alphaStage.d =
-          static_cast<librii::gx::TevAlphaArg>(st.alpha_stage.d);
-      stage.alphaStage.formula =
-          static_cast<librii::gx::TevAlphaOp>(st.alpha_stage.formula);
-      stage.alphaStage.scale =
-          static_cast<librii::gx::TevScale>(st.alpha_stage.scale);
-      stage.alphaStage.bias =
-          static_cast<librii::gx::TevBias>(st.alpha_stage.bias);
-      stage.alphaStage.clamp = st.alpha_stage.clamp;
-      stage.alphaStage.out =
-          static_cast<librii::gx::TevReg>(st.alpha_stage.out);
-
-      data.mStages[i] = stage;
-    }
+    wip.alphaStage.a = librii::gx::TevAlphaArg::rasa;
+    wip.alphaStage.b = librii::gx::TevAlphaArg::zero;
+    wip.alphaStage.c = librii::gx::TevAlphaArg::zero;
+    wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
   } else {
-    librii::gx::TevStage wip;
-    wip.texMap = wip.texCoord = 0;
-    wip.rasOrder = librii::gx::ColorSelChanApi::color0a0;
-    wip.rasSwap = 0;
+    wip.colorStage.a = librii::gx::TevColorArg::zero;
+    wip.colorStage.b = librii::gx::TevColorArg::texc;
+    wip.colorStage.c = librii::gx::TevColorArg::rasc;
+    wip.colorStage.d = librii::gx::TevColorArg::zero;
 
-    if (in.texture_name.empty() && in.samplers.empty()) {
-      wip.colorStage.a = librii::gx::TevColorArg::rasc;
-      wip.colorStage.b = librii::gx::TevColorArg::zero;
-      wip.colorStage.c = librii::gx::TevColorArg::zero;
-      wip.colorStage.d = librii::gx::TevColorArg::zero;
-
-      wip.alphaStage.a = librii::gx::TevAlphaArg::rasa;
-      wip.alphaStage.b = librii::gx::TevAlphaArg::zero;
-      wip.alphaStage.c = librii::gx::TevAlphaArg::zero;
-      wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
-    } else {
-      wip.colorStage.a = librii::gx::TevColorArg::zero;
-      wip.colorStage.b = librii::gx::TevColorArg::texc;
-      wip.colorStage.c = librii::gx::TevColorArg::rasc;
-      wip.colorStage.d = librii::gx::TevColorArg::zero;
-
-      wip.alphaStage.a = librii::gx::TevAlphaArg::zero;
-      wip.alphaStage.b = librii::gx::TevAlphaArg::texa;
-      wip.alphaStage.c = librii::gx::TevAlphaArg::rasa;
-      wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
-    }
-    data.mStages[0] = wip;
-  }
-  /*
-
-  }
-  */
-  for (int i = 0; i < 4; i++) {
-    data.tevColors[i] = vec4ToColorS10(in.tev_colors[i]);
-    data.tevKonstColors[i] = vec4ToColor(in.tev_konst_colors[i]);
+    wip.alphaStage.a = librii::gx::TevAlphaArg::zero;
+    wip.alphaStage.b = librii::gx::TevAlphaArg::texa;
+    wip.alphaStage.c = librii::gx::TevAlphaArg::rasa;
+    wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
   }
 
-  // Swap Table
-  for (int i = 0; i < 4; i++) {
-    librii::gx::SwapTableEntry entry;
-    librii::rhst::ProtoSwapTableEntry ste = in.swap_table[i];
-    entry.r = compileSwapTableColor(ste.r);
-    entry.g = compileSwapTableColor(ste.g);
-    entry.b = compileSwapTableColor(ste.b);
-    entry.a = compileSwapTableColor(ste.a);
-
-    data.mSwapTable[i] = entry;
-  }
+  data.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
+  data.mStages[0] = wip;
 
   librii::gx::ChannelControl ctrl;
   ctrl.enabled = false;

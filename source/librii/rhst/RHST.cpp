@@ -386,16 +386,6 @@ public:
                   get<int>(sam, "mapping_light_index").value_or(-1);
               sampler.camera_index =
                   get<int>(sam, "mapping_cam_index").value_or(-1);
-
-			  // Matrix
-              if (sam.contains("transformations")) {
-                auto trans = sam["transformations"];
-                sampler.scale =
-                    getVec2(trans, "scale").value_or(glm::vec2(1.0f));
-                sampler.rotate = get<f32>(trans, "rotate").value_or(0.0f);
-                sampler.trans =
-                    getVec2(trans, "translate").value_or(glm::vec2(0.0f));
-			  }
             }
           } else {
             b.min_filter = get<bool>(mat, "min_filter").value_or(true);
@@ -506,7 +496,7 @@ Result<SceneTree> ReadSceneTree(std::span<const u8> file_data) {
   totalStrippingMs = 0;
   if (file_data[0] == 'R' && file_data[1] == 'H' && file_data[2] == 'S' &&
       file_data[3] == 'T') {
-    return std::unexpected("BINARY rhst format is unsupported");
+    return std::unexpected("BINARY rhst scene tree unsupported");
   }
   std::string tmp(
       reinterpret_cast<const char*>(file_data.data()),

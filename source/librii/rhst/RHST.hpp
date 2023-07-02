@@ -116,7 +116,7 @@ enum class AlphaMode {
   Translucent,
   HpeStencil,
   HpeTranslucent,
-  Custom,
+  Custom
 };
 
 enum class BillboardMode {
@@ -146,12 +146,7 @@ enum class Comparison {
   Always,
 };
 
-enum class BlendModeType {
-  None,
-  Blend,
-  Logic,
-  Subtract,
-};
+enum class BlendModeType { None, Blend, Logic, Subtract };
 
 enum class BlendModeFactor {
   Zero,
@@ -164,12 +159,7 @@ enum class BlendModeFactor {
   Inv_dst_a,
 };
 
-enum class AlphaOp {
-  And,
-  Or,
-  Xor,
-  Xnor,
-};
+enum class AlphaOp { And, Or, Xor, Xnor };
 
 struct PixelEngine {
   //  Alpha Test
@@ -524,11 +514,7 @@ struct Vertex {
   auto operator<=>(const Vertex& rhs) const = default;
 };
 
-enum class Topology {
-  Triangles,
-  TriangleStrip,
-  TriangleFan,
-};
+enum class Topology { Triangles, TriangleStrip, TriangleFan };
 
 struct Primitive {
   Topology topology = Topology::Triangles;
