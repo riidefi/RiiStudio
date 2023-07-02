@@ -211,76 +211,89 @@ class BRRESTexturePanel(bpy.types.Panel):
 		c_box.label(text="Caching", icon='FILE_IMAGE')
 		c_box.row().prop(tex, "jres_is_cached")
 		mm_box = layout.box()
-		mm_box.label(text="Mipmaps", icon='RENDERLAYERS')
-		col = mm_box.column()
-		col.row().prop(tex, 'brres_mipmap_mode', expand=True)
-		if tex.brres_mipmap_mode == 'manual':
-			col.prop(tex, 'brres_mipmap_manual')
-		elif tex.brres_mipmap_mode == 'auto':
-			col.prop(tex, 'brres_mipmap_minsize')
-		else:
-			col.label(text="No mipmapping will be performed")
-		tf_box = layout.box()
-		tf_box.label(text="Wii Texture Format", icon='TEXTURE_DATA')
-		row = tf_box.row()
-		row.prop(tex, "brres_mode", expand=True)
-		if tex.brres_mode == 'guided':
-			box = tf_box.box()
-			col = box.column()
-			col.prop(tex, "brres_guided_optimize", expand=False)
-			row = box.row()
-			row.prop(tex, "brres_guided_color", expand=True)
-			# col = box.column()
-			row = box.row()
-			optimal_format = "?"
-			if tex.brres_guided_color == 'color':
-				row.prop(tex, "brres_guided_color_transparency", expand=True)
-				row = box.row()
-				if tex.brres_guided_color_transparency == 'opaque':
-					if tex.brres_guided_optimize == 'quality':
-						optimal_format = 'rgb565'
-					else:
-						optimal_format = 'cmpr'
-				elif tex.brres_guided_color_transparency == 'outline':
-					if tex.brres_guided_optimize == 'quality':
-						optimal_format = 'rgb5a3'
-					else:
-						optimal_format = 'cmpr'
-				else:
-					if tex.brres_guided_optimize == 'quality':
-						optimal_format = 'rgba8'
-					else:
-						optimal_format = 'rgb5a3'
-			else:
-				row.prop(tex, "brres_guided_grayscale_alpha", expand=True)
-				if tex.brres_guided_grayscale_alpha == 'use_alpha':
-					if tex.brres_guided_optimize == 'quality':
-						optimal_format = 'ia8'
-					else:
-						optimal_format = 'ia4'
-				else:
-					if tex.brres_guided_optimize == 'quality':
-						optimal_format = 'i8'
-					else:
-						optimal_format = 'i4'
-			# tex.guided_determined_best = optimal_format
-			box2 = box.box()
-			optimal_format_display = "?"
-			optimal_format_display2 = "?"
-			for item in texture_format_items:
-				if item[0] == optimal_format:
-					optimal_format_display = item[1]
-					optimal_format_display2 = item[2]
-			box2.row().label(text='Optimal Format: %s' % optimal_format_display)
-			box2.row().label(text='(%s)' % optimal_format_display2)
-		else:
-			box = layout.box()
-			col = box.column()
-			col.label(text="Texture format")
-			col.prop(tex, "brres_manual_format", expand=True)
+		draw_texture_settings(self,context, tex, mm_box)
 
+
+def draw_texture_settings(self, context, tex, box):
+	mm_box = box.box()
+	mm_box.label(text="Mipmaps", icon='RENDERLAYERS')
+	col = mm_box.column()
+	col.row().prop(tex, 'brres_mipmap_mode', expand=True)
+	if tex.brres_mipmap_mode == 'manual':
+		col.prop(tex, 'brres_mipmap_manual')
+	elif tex.brres_mipmap_mode == 'auto':
+		col.prop(tex, 'brres_mipmap_minsize')
+	else:
+		col.label(text="No mipmapping will be performed")
+	tf_box = box.box()
+	tf_box.label(text="Wii Texture Format", icon='TEXTURE_DATA')
+	row = tf_box.row()
+	row.prop(tex, "brres_mode", expand=True)
+	if tex.brres_mode == 'guided':
+		box = tf_box.box()
+		col = box.column()
+		col.prop(tex, "brres_guided_optimize", expand=False)
+		row = box.row()
+		row.prop(tex, "brres_guided_color", expand=True)
+		# col = box.column()
+		row = box.row()
+		optimal_format = "?"
+		if tex.brres_guided_color == 'color':
+			row.prop(tex, "brres_guided_color_transparency", expand=True)
+			row = box.row()
+			if tex.brres_guided_color_transparency == 'opaque':
+				if tex.brres_guided_optimize == 'quality':
+					optimal_format = 'rgb565'
+				else:
+					optimal_format = 'cmpr'
+			elif tex.brres_guided_color_transparency == 'outline':
+				if tex.brres_guided_optimize == 'quality':
+					optimal_format = 'rgb5a3'
+				else:
+					optimal_format = 'cmpr'
+			else:
+				if tex.brres_guided_optimize == 'quality':
+					optimal_format = 'rgba8'
+				else:
+					optimal_format = 'rgb5a3'
+		else:
+			row.prop(tex, "brres_guided_grayscale_alpha", expand=True)
+			if tex.brres_guided_grayscale_alpha == 'use_alpha':
+				if tex.brres_guided_optimize == 'quality':
+					optimal_format = 'ia8'
+				else:
+					optimal_format = 'ia4'
+			else:
+				if tex.brres_guided_optimize == 'quality':
+					optimal_format = 'i8'
+				else:
+					optimal_format = 'i4'
+		# tex.guided_determined_best = optimal_format
+		box2 = box.box()
+		optimal_format_display = "?"
+		optimal_format_display2 = "?"
+		for item in texture_format_items:
+			if item[0] == optimal_format:
+				optimal_format_display = item[1]
+				optimal_format_display2 = item[2]
+		box2.row().label(text='Optimal Format: %s' % optimal_format_display)
+		box2.row().label(text='(%s)' % optimal_format_display2)
+	else:
+		box = box.box()
+		col = box.column()
+		col.label(text="Texture format")
+		col.prop(tex, "brres_manual_format", expand=True)
 
 # src\panels\JRESMaterialPanel.py
+
+MATERIAL_PANEL_ELEMENTS = [
+	('colors', "Colors", ""),
+	('lighting', "Scene", ""),
+	('pe', "PE", ""),
+	('samplers', "Samplers", ""),
+	('stages', "TEV", ""),
+	('culling', "Culling", ""),
+]
 
 class JRESMaterialPanel(bpy.types.Panel):
 	"""
@@ -298,89 +311,8 @@ class JRESMaterialPanel(bpy.types.Panel):
 
 	def draw(self, context):
 		layout = self.layout
+		scene = context.scene
 		mat = context.material
-
-		# Culling
-		box = layout.box()
-		box.label(text="Culling", icon='MOD_WIREFRAME')
-		row = box.row(align=True)
-		row.prop(mat, "jres_display_front", toggle=True)
-		row.prop(mat, "jres_display_back", toggle=True)
-
-		# PE
-		box = layout.box()
-		box.label(text="Pixel Engine", icon='IMAGE_ALPHA')
-		row = box.row(align=True)
-		row.prop(mat, "jres_pe_mode", expand=True)
-
-		if mat.jres_pe_mode == "custom":
-			# Draw Pass
-			box2 = box.box()
-			box2.label(text="Draw Pass", icon="MOD_LINEART")
-			row = box2.row()
-			row.prop(mat, "jres_pe_draw_pass", expand=True)
-			
-			# Alpha Test
-			box2.label(text="Alpha Test", icon="SEQ_SPLITVIEW")
-			row = box2.row()
-			row.prop(mat, "jres_pe_alpha_test", expand=True)
-			if mat.jres_pe_alpha_test == "custom":
-				row = box2.row()
-				row.prop(mat, "jres_pe_alpha_ref_left")
-				row.prop(mat, "jres_pe_alpha_comp_left")
-				row.prop(mat, "jres_pe_alpha_op")
-				row.prop(mat, "jres_pe_alpha_ref_right")
-				row.prop(mat, "jres_pe_alpha_comp_right")
-
-			# Z Buffer
-			box2.label(text="Z Buffer", icon="MOD_OPACITY")
-			box2.prop(mat, "jres_pe_z_compare")
-			row = box2.row()
-			row2 = box2.row()
-			row.prop(mat, "jres_pe_z_early_compare")
-			row.prop(mat, "jres_pe_z_update")
-			row2.prop(mat, "jres_pe_z_comparison")
-			if mat.jres_pe_z_compare == False: # Just gray the options out, don't hide them
-				row.enabled = False
-				row2.enabled = False
-			
-			# Blending
-			box2.label(text="Blending", icon="RENDERLAYERS")
-			box2.prop(mat, "jres_pe_blend_mode")
-			row = box2.row()
-			split = row.split(factor=0.15)
-			split.label(text="(Pixel C *")
-			split = split.split(factor=0.35)
-			split.prop(mat, "jres_pe_blend_source")
-			split = split.split(factor=0.4)
-			split.label(text=") + (eFB C *")
-			split.prop(mat, "jres_pe_blend_dest")
-			if mat.jres_pe_blend_mode != "blend" :
-				row.enabled = False
-
-			# Destination Alpha
-		box.label(text="Destination Alpha", icon="NODE_TEXTURE")
-		row = box.row()
-		row.prop(mat, "jres_pe_dst_alpha_enabled")
-		if mat.jres_pe_dst_alpha_enabled :
-			row.prop(mat, "jres_pe_dst_alpha")
-
-		# Lighting
-		box = layout.box()
-		box.label(text="Lighting", icon='OUTLINER_OB_LIGHT' if BLENDER_28 else 'LAMP_SUN')  # Might want to change icon here
-		box.row().prop(mat, "jres_lightset_index")
-
-		# Fog
-		box = layout.box()
-		box.label(text="Fog", icon='RESTRICT_RENDER_ON')
-		box.row().prop(mat, "jres_fog_index")
-
-		# UV Wrapping
-		box = layout.box()
-		box.label(text="UV Wrapping Mode", icon='GROUP_UVS')
-		row = box.row(align=True)
-		row.prop(mat, "jres_wrap_u")
-		row.prop(mat, "jres_wrap_v")
 
 		# Material Preset
 		box = layout.box()
@@ -390,26 +322,184 @@ class JRESMaterialPanel(bpy.types.Panel):
 		# box.row().prop(mat, 'preset_path_mdl0mat_or_rspreset')
 		FilteredFiledialog.add(box.row(), mat, 'preset_path_mdl0mat_or_rspreset')
 
-		# Texture Filtering
-		box = layout.box()
-		box.label(text="Texture Filtering", icon='TEXTURE_DATA')
+		#if not mat.preset_path_mdl0mat_or_rspreset:
+		#	if mat.preset_path_mdl0mat_or_rspreset == "":
+		box = layout.box();
 		row = box.row()
-		row.label(text="Zoom-out", icon='FULLSCREEN_ENTER')
-		row.prop(mat, "jres_filter_min", expand=True)
-		row = box.row()
-		row.label(text="Zoom-in", icon='FULLSCREEN_EXIT')
-		row.prop(mat, "jres_filter_mag", expand=True)
+		row.prop(scene, "mat_panel_selection", expand=True)
+		#row.prop_enum(scene, "mat_panel_selection", "colors")
+		#row.prop_enum(scene, "mat_panel_selection", "lighting")
+		#row.prop_enum(scene, "mat_panel_selection", "pe")
+		#row = box.row()
+		#row.prop_enum(scene, "mat_panel_selection", "stages")
+		#row.prop_enum(scene, "mat_panel_selection", "samplers")
+		#row.prop_enum(scene, "mat_panel_selection", "culling")
 
-		# Mip-mapping
-		layout.prop(mat, "jres_use_mip")
-		box = layout.box()
-		box.enabled = mat.jres_use_mip
-		box.label(text="Mip Mapping", icon='MOD_OPACITY')
-		row = box.row()
-		row.label(text="Transitions")
-		row.prop(mat, "jres_filter_mip", expand=True)
-		box.row().prop(mat, "jres_lod_bias")
+		if scene.mat_panel_selection == "culling":
+			# Culling
+			box = layout.box()
+			box.label(text="Culling", icon='MOD_WIREFRAME')
+			row = box.row(align=True)
+			row.prop(mat, "jres_display_front", toggle=True)
+			row.prop(mat, "jres_display_back", toggle=True)
 
+
+		elif scene.mat_panel_selection == "pe":
+			# PE
+			box = layout.box()
+			box.label(text="Pixel Engine", icon='IMAGE_ALPHA')
+			row = box.row(align=True)
+			row.prop(mat, "jres_pe_mode", expand=True)
+
+			if mat.jres_pe_mode == "custom":
+				# Draw Pass
+				box2 = box.box()
+				box2.label(text="Draw Pass", icon="MOD_LINEART")
+				row = box2.row()
+				row.prop(mat, "jres_pe_draw_pass", expand=True)
+
+				# Alpha Test
+				box2.label(text="Alpha Test", icon="SEQ_SPLITVIEW")
+				row = box2.row()
+				row.prop(mat, "jres_pe_alpha_test", expand=True)
+				if mat.jres_pe_alpha_test == "custom":
+					row = box2.row()
+					row.prop(mat, "jres_pe_alpha_ref_left")
+					row.prop(mat, "jres_pe_alpha_comp_left")
+					row.prop(mat, "jres_pe_alpha_op")
+					row.prop(mat, "jres_pe_alpha_ref_right")
+					row.prop(mat, "jres_pe_alpha_comp_right")
+
+				# Z Buffer
+				box2.label(text="Z Buffer", icon="MOD_OPACITY")
+				box2.prop(mat, "jres_pe_z_compare")
+				row = box2.row()
+				row2 = box2.row()
+				row.prop(mat, "jres_pe_z_early_compare")
+				row.prop(mat, "jres_pe_z_update")
+				row2.prop(mat, "jres_pe_z_comparison")
+				if mat.jres_pe_z_compare == False: # Just gray the options out, don't hide them
+					row.enabled = False
+					row2.enabled = False
+
+				# Blending
+				box2.label(text="Blending", icon="RENDERLAYERS")
+				box2.prop(mat, "jres_pe_blend_mode")
+				row = box2.row()
+				split = row.split(factor=0.15)
+				split.label(text="(Pixel C *")
+				split = split.split(factor=0.35)
+				split.prop(mat, "jres_pe_blend_source")
+				split = split.split(factor=0.4)
+				split.label(text=") + (eFB C *")
+				split.prop(mat, "jres_pe_blend_dest")
+				if mat.jres_pe_blend_mode != "blend" :
+					row.enabled = False
+
+				# Destination Alpha
+			box.label(text="Destination Alpha", icon="NODE_TEXTURE")
+			row = box.row()
+			row.prop(mat, "jres_pe_dst_alpha_enabled")
+			if mat.jres_pe_dst_alpha_enabled :
+				row.prop(mat, "jres_pe_dst_alpha")
+
+		elif scene.mat_panel_selection == "lighting":
+			# Lighting
+			box = layout.box()
+			box.label(text="Lighting", icon='OUTLINER_OB_LIGHT' if BLENDER_28 else 'LAMP_SUN')  # Might want to change icon here
+			box.row().prop(mat, "jres_lightset_index")
+
+			# Fog
+			box = layout.box()
+			box.label(text="Fog", icon='RESTRICT_RENDER_ON')
+			box.row().prop(mat, "jres_fog_index")
+		elif scene.mat_panel_selection == "samplers":
+			box = layout.box()
+			row = box.row()
+			row.template_list("JRESSamplersList", "", mat.node_tree, "nodes", mat, "samp_selection")
+			col = row.column()
+			smp = mat.node_tree.nodes[mat.samp_selection]
+			col.operator('rstudio.mat_sam_move', icon="TRIA_UP", text="").action = 'UP'
+			col.operator('rstudio.mat_sam_move', icon="TRIA_DOWN", text="").action = 'DOWN'
+			col.operator('rstudio.mat_sam_toggle', icon="HIDE_ON" if smp.smp_disabled else "HIDE_OFF", text="")
+
+			if(smp.bl_idname == 'ShaderNodeTexImage'):
+				# Mapping
+				box = layout.box()
+				box.label(text="Mapping", icon='MOD_UVPROJECT')
+				col = box.column()
+				col.prop(smp, "smp_map_mode", text="Mode")
+				if smp.smp_map_mode == 'uv':
+					col.prop(smp, "smp_map_uv")
+
+				# UV Wrapping
+				box = layout.box()
+				box.label(text="UV Wrapping Mode", icon='GROUP_UVS')
+				row = box.row(align=True)
+				row.prop(smp, "smp_wrap_u")
+				row.prop(smp, "smp_wrap_v")
+
+				# Texture Filtering
+				box = layout.box()
+				box.label(text="Texture Filtering", icon='TEXTURE_DATA')
+				row = box.row()
+				row.label(text="Zoom-out", icon='FULLSCREEN_ENTER')
+				row.prop(smp, "smp_filter_min", expand=True)
+				row = box.row()
+				row.label(text="Zoom-in", icon='FULLSCREEN_EXIT')
+				row.prop(smp, "smp_filter_mag", expand=True)
+
+				# Mip-mapping
+				layout.prop(smp, "smp_use_mip")
+				box = layout.box()
+				box.enabled = smp.smp_use_mip
+				box.label(text="Mip Mapping", icon='MOD_OPACITY')
+				row = box.row()
+				row.label(text="Transitions")
+				row.prop(smp, "smp_filter_mip", expand=True)
+				box.row().prop(smp, "smp_lod_bias")
+
+				box = layout.box()
+				box.label(text="Texture Settings", icon='OUTLINER_OB_IMAGE')
+
+				draw_texture_settings(self, context, smp, box)
+
+class JRESSamplersList(bpy.types.UIList):
+	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+		self.use_filter_show = False
+		if item.bl_idname == 'ShaderNodeTexImage':
+			image = item.image
+			filepath = image.filepath.replace('\\','//')
+			filename = os.path.basename(filepath)
+			row = layout.row()
+			text = filename
+			if(item.smp_disabled):
+				row.enabled = False
+				text += " (Ignored)"
+
+			# Generate preview if it doesnt exists
+			if not image.preview:
+				image.asset_generate_preview()
+
+			if image.preview:
+				row.label(text=text, icon_value=image.preview.icon_id)
+			# If for whatever reason preview can't be generated use default icon
+			else:
+				row.label(text=text, icon="OUTLINER_OB_IMAGE")
+
+	def filter_items(self, context: Context, data: AnyType, property: str):
+		items = getattr(data, property);
+		flt_flags = [self.bitflag_filter_item] * len(items)
+
+		idata = list(enumerate(items))
+		sdata = sorted(idata, key=lambda x: x[1].smp_index)
+		flt_neworder = [sdata.index(x) for x in idata]
+
+		for idx, item in enumerate(items):
+			if not item.bl_idname == 'ShaderNodeTexImage' or not item.image:
+				flt_flags[idx] &= ~self.bitflag_filter_item
+
+		return flt_flags, flt_neworder
 
 # src\panels\JRESScenePanel.py
 
@@ -537,12 +627,19 @@ def all_tex_uses(selection):
 			if mat is None:
 				print("Object %s does not have a material, skipping" % Object.name)
 				continue
+			if BLENDER_28:
+				for n in mat.node_tree.nodes:
+					if n.bl_idname != "ShaderNodeTexImage":
+						continue
+					if n.smp_disabled:
+						continue
+					yield n
+			else:
+				tex = get_texture(mat)
+				if not tex:
+					continue
 
-			tex = get_texture(mat)
-			if not tex:
-				continue
-			
-			yield tex
+				yield tex
 
 def all_textures(selection=False):
 	return set(all_tex_uses(selection))
@@ -561,10 +658,9 @@ def export_textures(textures_path,selection,params):
 def build_rs_mat(mat, texture_name):
 	return {
 		'name': mat.name,
+		'texture': "",
 		# Texture element soon to be replaced with texmap array
-		'texture': texture_name,
-		"wrap_u": mat.jres_wrap_u,
-		"wrap_v": mat.jres_wrap_v,
+		'samplers': build_rs_material_samplers(mat, texture_name),
 		# Culling / Display Surfaces
 		'display_front': mat.jres_display_front,
 		'display_back': mat.jres_display_back,
@@ -572,14 +668,34 @@ def build_rs_mat(mat, texture_name):
 		'pe_settings': build_rs_mat_pe(mat) if mat.jres_pe_mode == "custom" else "",
 		'lightset': mat.jres_lightset_index,
 		'fog': mat.jres_fog_index,
+		'tev_colors': build_rs_mat_colors(mat),
 		# For compatibility, this field is not changed in RHST
 		# It can specify mdl0mat OR rspreset
 		'preset_path_mdl0mat': bpy.path.abspath(mat.preset_path_mdl0mat_or_rspreset),
-		'min_filter': mat.jres_filter_min == 'linear',
-		'mag_filter': mat.jres_filter_mag == 'linear',
-		'use_mip': mat.jres_use_mip,
-		'mip_filter': mat.jres_filter_mip == 'linear',
-		'lod_bias': mat.jres_lod_bias,
+	}
+
+def build_rs_material_samplers(mat, texture_name):
+	smps = []
+	imgTex = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage' and n.smp_disabled == False]
+	imgTex.sort(key=lambda x: x.smp_index, reverse=True)
+	for i in imgTex:
+		if i.image:
+			bult = build_rs_sampler(i)
+			smps.append(bult)
+
+	return smps
+
+def build_rs_sampler(mat):
+	return {
+		'texture': get_filename_without_extension(mat.image.name),
+		'mapping': mat.smp_map_mode,
+		"wrap_u": mat.smp_wrap_u,
+		"wrap_v": mat.smp_wrap_v,
+		'min_filter': mat.smp_filter_min == 'linear',
+		'mag_filter': mat.smp_filter_mag == 'linear',
+		'use_mip': mat.smp_use_mip,
+		'mip_filter': mat.smp_filter_mip == 'linear',
+		'lod_bias': mat.smp_lod_bias,
 	}
 
 def build_rs_mat_pe(mat):
@@ -889,7 +1005,7 @@ def export_jres(context, params : RHSTExportParams):
 
 		def add_material(self, mat):
 			materials = self.current_data["materials"]
-			tex_name = mat["texture"]
+			tex_name = mat["name"]
 			print("Adding material (name=%s, tex=%s)" % (mat['name'], tex_name))
 			if tex_name in self.material_remap:
 				print("-> Referencing existing entry")
@@ -1368,6 +1484,67 @@ class OBJECT_OT_addon_prefs_example(bpy.types.Operator):
 
 		return {'FINISHED'}
 
+class JRESMatToggleSampler(bpy.types.Operator):
+	bl_idname = "rstudio.mat_sam_toggle"
+	bl_label = "Move Sampler"
+
+	@classmethod
+	def poll(cls, context):
+		return context.material
+
+	def execute(self, context):
+		mat = context.material
+		smp = mat.node_tree.nodes[mat.samp_selection]
+		smp.smp_disabled = not smp.smp_disabled
+		return {'FINISHED'}
+
+class JRESMatMoveSampler(bpy.types.Operator):
+	bl_idname = "rstudio.mat_sam_move"
+	bl_label = "Move Sampler"
+
+	action : bpy.props.EnumProperty(
+        items=(
+            ('UP', "Up", ""),
+            ('DOWN', "Down", ""),
+        )
+    )
+
+	@classmethod
+	def poll(cls, context):
+		return context.material
+
+	def execute(self, context):
+		mat = context.material
+		idx = mat.samp_selection
+		if not idx:
+			return {'FINISHED'}
+
+		node = mat.node_tree.nodes[idx]
+		if node.smp_index == 1000:
+			tex_type_index_update(mat)
+
+		m = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage']
+		m = sorted(m, key=lambda o: o.smp_index)
+
+		if self.action == 'UP':
+			if node.smp_index > 0:
+				if m[node.smp_index - 1]:
+					m[node.smp_index - 1].smp_index += 1
+				node.smp_index -= 1
+		if self.action == 'DOWN':
+			if node.smp_index < len(m):
+				if m[node.smp_index + 1]:
+					m[node.smp_index + 1].smp_index -= 1
+				node.smp_index += 1
+
+		return {'FINISHED'}
+
+def tex_type_index_update(mat):
+	m = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage']
+	for index, n in enumerate(m):
+		if n.smp_index == 1000:
+			n.smp_index = index
+
 # src\base.py
 
 classes = (
@@ -1380,6 +1557,10 @@ classes = (
 	JRESMaterialPanel,
 	# JRESScenePanel,
 	JRESObjectPanel,
+
+	JRESSamplersList,
+	JRESMatMoveSampler,
+	JRESMatToggleSampler,
 
 	RiidefiStudioPreferenceProperty,
 	OBJECT_OT_addon_prefs_example
@@ -1398,6 +1579,13 @@ FILTER_MODES_MIP = (
 	('near', "Sudden", "Nearest (no interpolation/pixelated)"),
 	('linear', "Smooth", "Linear (interpolated/blurry)"),
 )
+MAPPING_MODES = [
+	('UVMap', 'UV Mapping', ''),
+	('envMap', 'Environment Mapping', ''),
+	('lEnvMap', 'Light Environment Mapping', ''),
+	('sEnvMap', 'Specular Environment Mapping', ''),
+	('projection', 'Projection Mapping', ''),
+]
 
 COMPARISON_MODES = [
 	('always',"Always",""),
@@ -1503,7 +1691,91 @@ def register_tex():
 		default=32
 	)
 
+	tex_type.smp_disabled = BoolProperty(
+		name="Ignore on Export",
+		description="Don't include this texture during export",
+		default=False
+	)
+
+	tex_type.smp_wrap_u = EnumProperty(
+		name="U",
+		items=UV_WRAP_MODES,
+		default='repeat'
+	)
+	tex_type.smp_wrap_v = EnumProperty(
+		name="V",
+		items=UV_WRAP_MODES,
+		default='repeat'
+	)
+	tex_type.smp_filter_min = EnumProperty(
+		name="Zoom-in",
+		items=FILTER_MODES,
+		default='linear',
+	)
+	tex_type.smp_filter_mag = EnumProperty(
+		name="Zoom-out",
+		items=FILTER_MODES,
+		default='linear',
+	)
+	# Mip Mapping
+	tex_type.smp_use_mip = BoolProperty(
+		name="Use mipmap",
+		default=True,
+	)
+	tex_type.smp_filter_mip = EnumProperty(
+		name="Transitions",
+		items=FILTER_MODES_MIP,
+		default='linear',
+	)
+	tex_type.smp_lod_bias = FloatProperty(
+		name="LOD Bias",
+		default=-1.0,
+	)
+	tex_type.smp_map_scale_x = FloatProperty(
+		name="",
+		default=1.0
+	)
+	tex_type.smp_map_scale_y = FloatProperty(
+		name="",
+		default=1.0
+	)
+	tex_type.smp_map_rotate = FloatProperty(
+		name="",
+		default=0.0
+	)
+	tex_type.smp_map_trans_x = FloatProperty(
+		name="",
+		default=0.0
+	)
+	tex_type.smp_map_trans_y = FloatProperty(
+		name="",
+		default=0.0
+	)
+	tex_type.smp_map_mode = EnumProperty(
+		name="Mapping mode",
+		items=MAPPING_MODES,
+		default='UVMap'
+	)
+	# Wanted to do cool PointerProperty, doesnt work :(
+	tex_type.smp_map_uv = IntProperty(
+		name="UV Map Index",
+		default=0
+	)
+	tex_type.smp_index = IntProperty(
+		name="Index",
+		default=1000
+	)
+
+
+def register_scene():
+	# We can't put properties inside panels, we use scene for global access and sync
+	bpy.types.Scene.mat_panel_selection = EnumProperty(
+		name="Selection",
+		items=MATERIAL_PANEL_ELEMENTS,
+		default="pe"
+	)
 def register_mat():
+	register_mat_colors()
 	# Display Surfaces
 	bpy.types.Material.jres_display_front = BoolProperty(
 		name="Display Front",
@@ -1688,6 +1960,10 @@ def register_mat():
 		name="LOD Bias",
 		default=-1.0,
 	)
+	bpy.types.Material.samp_selection = IntProperty(
+		name="",
+		default=0
+	)
 
 def register_object():
 	bpy.types.Object.jres_use_priority = BoolProperty(
@@ -1734,6 +2010,7 @@ def register():
 	register_tex()
 	register_mat()
 	register_object()
+	register_scene()
 
 	# Texture Cache
 	tex_type = bpy.types.Node if BLENDER_28 else bpy.types.Texture
