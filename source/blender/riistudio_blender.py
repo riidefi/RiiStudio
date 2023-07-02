@@ -343,6 +343,25 @@ class JRESMaterialPanel(bpy.types.Panel):
 			row.prop(mat, "jres_display_front", toggle=True)
 			row.prop(mat, "jres_display_back", toggle=True)
 
+		elif scene.mat_panel_selection == "colors":
+			box = layout.box()
+			box.label(text="Shader Colors", icon='BRUSHES_ALL')
+			row = box.row()
+			row.prop(mat, "col_tevcolorspace")
+
+			box = layout.box()
+			box.label(text="TEV Color Registers", icon='COLOR')
+			col = box.column()
+			for i in range(3):
+				row = col.row()
+				row.prop(mat, "col_tevcol"+str(i+1))
+
+			box = layout.box()
+			box.label(text="TEV Constant Colors", icon='COLOR')
+			col = box.column()
+			for i in range(4):
+				row = col.row()
+				row.prop(mat, "col_tevkonst"+str(i+1))
 
 		elif scene.mat_panel_selection == "pe":
 			# PE
@@ -721,6 +740,29 @@ def build_rs_mat_pe(mat):
 		'dst_alpha_enabled': mat.jres_pe_dst_alpha_enabled,
 		'dst_alpha': mat.jres_pe_dst_alpha,
 	}
+
+def adjust_color(mat,col):
+	final = []
+	if mat.col_tevcolorspace == "srgb":
+			for c in col:
+				if c < 0.0031308:
+					srgb = 0.0 if c < 0.0 else c * 12.92
+				else:
+					srgb = 1.055 * pow(c, 1.0 / 2.4) - 0.055
+				final.append(max(min(int(srgb * 255 + 0.5), 255), 0))		
+	else:
+		final = [int(255*c) for c in col]
+	return final
+
+def build_rs_mat_colors(mat, konst = False):
+	out = []
+	for i in range(3):
+		tmp = getattr(mat, "col_tevcol"+str(i+1))[:]
+		out.append(adjust_color(mat,tmp))
+	for i in range(4):
+		tmp = getattr(mat, "col_tevkonst"+str(i+1))[:]
+		out.append(adjust_color(mat,tmp))
+	return out
 
 def mesh_from_object(Object):
 	if BLENDER_28:
@@ -1774,6 +1816,51 @@ def register_scene():
 		items=MATERIAL_PANEL_ELEMENTS,
 		default="pe"
 	)
+
+def register_mat_colors():
+	mat = bpy.types.Material
+	mat.col_tevcolorspace = EnumProperty(
+		name="Color Space",
+		items=[
+			('srgb','sRGB','Convert the color value from sRGB to RGB during export'),
+			('rgb','Linear','Use raw color values during export'),
+		]
+	)
+
+	# Color Registers
+	mat.col_tevcol1 = bpy.props.FloatVectorProperty(
+		name="Color Register 1", size=4,default=[0.0,0.0,0.0,1.0],
+		min=0.0,max=1.0, subtype='COLOR'
+	)
+	mat.col_tevcol2 = bpy.props.FloatVectorProperty(
+		name="Color Register 2", size=4,default=[0.0,0.0,0.0,1.0],
+		min=0.0,max=1.0, subtype='COLOR'
+	)
+	mat.col_tevcol3 = bpy.props.FloatVectorProperty(
+		name="Color Register 3", size=4,default=[0.0,0.0,0.0,1.0],
+		min=0.0,max=1.0, subtype='COLOR'
+	)
+
+	# Constant Registers
+	mat.col_tevkonst1 = bpy.props.FloatVectorProperty(
+		name="Constant Register 1", size=4,default=[0.0,0.0,0.0,1.0],
+		min=0.0,max=1.0, subtype='COLOR'
+	)
+	mat.col_tevkonst2 = bpy.props.FloatVectorProperty(
+		name="Constant Register 2", size=4,default=[0.0,0.0,0.0,1.0],
+		min=0.0,max=1.0, subtype='COLOR'
+	)
+	mat.col_tevkonst3 = bpy.props.FloatVectorProperty(
+		name="Constant Register 3", size=4,default=[0.0,0.0,0.0,1.0],
+		min=0.0,max=1.0, subtype='COLOR'
+	)
+	mat.col_tevkonst4 = bpy.props.FloatVectorProperty(
+		name="Constant Register 4", size=4,default=[0.0,0.0,0.0,1.0],
+		min=0.0,max=1.0, subtype='COLOR'
+	)
+
+
+
 def register_mat():
 	register_mat_colors()
 	# Display Surfaces
