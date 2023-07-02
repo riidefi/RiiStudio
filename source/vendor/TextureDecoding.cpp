@@ -1,9 +1,9 @@
 #include "TextureDecoding.hpp"
-#include "dolemu/TextureDecoder/TextureDecoder.h"
 #include <librii/gx/Texture.hpp>
 
 namespace TextureDecoding {
 
+#if 0
 std::unique_ptr<u8> decode(const u8* source,
 	int width, int height,
 	u32 texture_format,
@@ -33,5 +33,6 @@ std::vector<u8> decodeVec(const u8 * source,
 
 	return dest;
 }
+#endif
 
 } // namespace TextureDecoding

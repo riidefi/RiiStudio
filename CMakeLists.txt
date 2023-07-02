@@ -196,5 +196,6 @@ endif()
 
 corrosion_import_crate(MANIFEST_PATH source/rust/Cargo.toml CRATE_TYPES cdylib)
 corrosion_import_crate(MANIFEST_PATH source/llvm/Cargo.toml CRATE_TYPES cdylib)
+corrosion_import_crate(MANIFEST_PATH source/gctex/Cargo.toml CRATE_TYPES cdylib)
 
 add_subdirectory(source)
