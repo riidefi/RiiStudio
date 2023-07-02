@@ -183,6 +183,66 @@ void compilePESettings(librii::gx::LowLevelGxMaterial& mat,
   mat.blendMode = blend_mode;
 }
 
+void compileMapping(const librii::rhst::ProtoSampler& in,
+                    librii::gx::GCMaterialData::TexMatrix &mtx,
+                    librii::gx::TexCoordGen& gen) {
+  using cmm = libcube::GCMaterialData::CommonMappingMethod;
+  using sp = librii::gx::TexGenSrc;
+
+  if (in.mapping == librii::rhst::Mapping::UVMap) {
+    mtx.method = cmm::Standard;
+    gen.func = librii::gx::TexGenType::Matrix2x4;
+    switch (in.uv_map_index) {
+    case 0:
+      gen.sourceParam = sp::UV0;
+      break;
+    case 1:
+      gen.sourceParam = sp::UV1;
+      break;
+    case 2:
+      gen.sourceParam = sp::UV2;
+      break;
+    case 3:
+      gen.sourceParam = sp::UV3;
+      break;
+    case 4:
+      gen.sourceParam = sp::UV4;
+      break;
+    case 5:
+      gen.sourceParam = sp::UV5;
+      break;
+    case 6:
+      gen.sourceParam = sp::UV6;
+      break;
+    case 7:
+      gen.sourceParam = sp::UV7;
+      break;
+    default:
+      break;
+    }
+  } else if (in.mapping == librii::rhst::Mapping::EnvMap) {
+    mtx.method = cmm::EnvironmentMapping;
+    gen.func = librii::gx::TexGenType::Matrix3x4;
+    gen.sourceParam = librii::gx::TexGenSrc::Normal;
+  } else if (in.mapping == librii::rhst::Mapping::lEnvMap) {
+    mtx.method = cmm::EnvironmentLightMapping;
+    gen.func = librii::gx::TexGenType::Matrix3x4;
+    gen.sourceParam = librii::gx::TexGenSrc::Normal;
+    mtx.lightIdx = in.light_index;
+  } else if (in.mapping == librii::rhst::Mapping::sEnvMap) {
+    mtx.method = cmm::EnvironmentSpecularMapping;
+    gen.func = librii::gx::TexGenType::Matrix3x4;
+    gen.sourceParam = librii::gx::TexGenSrc::Normal;
+    mtx.lightIdx = in.light_index;
+  } else if (in.mapping == librii::rhst::Mapping::Projection) {
+    mtx.method = cmm::ViewProjectionMapping;
+    gen.func = librii::gx::TexGenType::Matrix3x4;
+    gen.sourceParam = librii::gx::TexGenSrc::Position;
+    mtx.camIdx = in.camera_index;
+  }
+}
+
+
 void compileMaterial(libcube::IGCMaterial& out,
                      const librii::rhst::ProtoMaterial& in) {
   out.setName(in.name);
@@ -209,7 +269,19 @@ void compileMaterial(libcube::IGCMaterial& out,
       sampler.mMagFilter = sam.mag_filter ? librii::gx::TextureFilter::Linear
                                           : librii::gx::TextureFilter::Near;
       sampler.mMinFilter = lowerTextureFilter(filter);
-      data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
+      
+      librii::gx::GCMaterialData::TexMatrix mtx;
+      librii::gx::TexCoordGen gen;
+
+	  auto actual_matrix = static_cast<librii::gx::TexMatrix>(
+              static_cast<int>(librii::gx::TexMatrix::TexMatrix0) +
+              i * 3);
+      gen.matrix = actual_matrix;
+
+	  compileMapping(sam, mtx, gen);
+
+	  data.texMatrices.push_back(mtx);
+      data.texGens.push_back(gen);
     }
   }
    else if(!in.texture_name.empty()){
