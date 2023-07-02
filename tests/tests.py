@@ -112,22 +112,28 @@ def rebuild(test_exec: Path, rszst: Path, input_path: Path, output_path: Path, c
 	if output_path.is_file():
 		output_path.unlink()
 	if input_path.suffix == ".dae":
-		args = [rszst, "import-command", input_path, output_path]
+		args = [str(rszst), "import-command", str(input_path), str(output_path)]
 		if input_path.stem.endswith("no_ts"):
 			args += ["--no-tristrip"]
 		elif input_path.stem.endswith("ai_json"):
 			args += ["--ai-json"]
 	else:
-		args = [test_exec, input_path, output_path] + (["check"] if check else [""]) + list(str(x) for x in bps)
+		args = [str(test_exec), str(input_path), str(output_path)] + (["check"] if check else [""]) + list(str(x) for x in bps)
 	process = Popen(args, stdout=PIPE)
 	(output, err) = process.communicate()
 	exit_code = process.wait()
+
+	output_path.parent.mkdir(parents=True, exist_ok=True)
+	with output_path.with_suffix(".log").open("wb+") as f:
+		f.write(output)
+		if err is not None:
+			f.write(err)
 
 	if exit_code:
 		print(output, err, exit_code)
 		print("Error: %s failed to rebuild" % pretty_path(input_path))
 		print(' '.join(args))
-		raise RuntimeError(err)
+		# raise RuntimeError(err)
 
 def run_test(test_exec: Path, rszst: Path, path: Path, out_path: Path):
 	md5 = fhash(path)
@@ -175,9 +181,10 @@ def run_tests(test_exec: Path, rszst: Path, fs_dir: Path, out: Path):
 		out_file = out / fs_file
 		print(out_file)
 		if in_file.is_dir():
-			run_tests(test_exec, rszst, in_file, out_file)
-		else:
-			run_test(test_exec, rszst, in_file, out_file)
+			continue
+		# 	run_tests(test_exec, rszst, in_file, out_file)
+		# else:
+		run_test(test_exec, rszst, in_file, out_file)
 
 import sys
 

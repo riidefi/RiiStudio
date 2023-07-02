@@ -51,6 +51,9 @@ void FileHost::openFile(OpenFilePolicy policy) {
     fprintf(stdout, "%s\n", rarc.error().c_str());
     return;
   }
+
+  Extract(*rarc, "./");
+
   auto barc = librii::RARC::SaveResourceArchive(*rarc);
   if (!barc) {
     fprintf(stdout, "%s\n", barc.error().c_str());

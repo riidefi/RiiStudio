@@ -2,6 +2,7 @@
 #include <core/common.h>
 #include <rsl/SimpleReader.hpp>
 #include <iostream>
+#include <fstream>
 
 static u16 calc_key_code(const std::string& key) {
 	u32 code = 0;
@@ -192,6 +193,7 @@ LoadResourceArchiveLow(LowResourceArchive &result, rsl::byte_view data) {
 	return {};
 }
 
+#if 0
 static std::vector<ResourceArchive::Node>
 rarcRecurseLoadDirectory(ResourceArchive& arc,
 						 LowResourceArchive& low,
@@ -282,8 +284,115 @@ Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data) {
     result.file_data = std::move(low.file_data);
 	return result;
 }
+#else
+static void
+rarcRecurseLoadDirectory(ResourceArchive& arc,
+						 LowResourceArchive& low,
+						 rarcDirectoryNode& low_dir,
+						 std::optional<rarcFSNode> low_node,
+						 std::optional<ResourceArchive::Node> dir_parent,
+						 std::vector<ResourceArchive::Node> &out,
+						 std::size_t depth) {
+    const auto start_nodes = out.size();
 
-Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc) {
+    ResourceArchive::Node dir_node;
+	if (low_node) {
+        dir_node = {.id = static_cast<s32>(low_node->folder.dir_node),
+					.flags = static_cast<u16>(low_node->type >> 8),
+                    .name = low.strings.data() + low_dir.name};
+    } else {
+        // This is the ROOT directory (exists without an fs node to further
+        // describe it)
+        dir_node = {.id = 0,
+					.flags = ResourceAttribute::DIRECTORY,
+                    .name = low.strings.data() + low_dir.name};
+	}
+
+    dir_node.folder.parent = dir_parent ? dir_parent->id : -1;
+
+    auto* fs_begin = low.fs_nodes.data() + (low_dir.children_offset);
+    auto* fs_end =
+        low.fs_nodes.data() + (low_dir.children_offset + low_dir.child_count);
+
+	//dir_node.folder.sibling_next = fs_end->id;
+
+	ResourceArchive::Node dir_ref_node;
+	ResourceArchive::Node dir_parent_ref_node;
+
+    for (auto* fs_node = fs_begin; fs_node != fs_end; ++fs_node) {
+        if (rarcNodeIsFolder(*fs_node)) {
+            if ((low_node && fs_node->folder.dir_node == low_node->folder.dir_node) ||
+                (!low_node && fs_node->folder.dir_node == 0)) {
+				// Path "."
+				dir_ref_node = {.id = fs_node->folder.dir_node,
+								.flags =
+									static_cast<u16>(fs_node->type >> 8),
+								.name = low.strings.data() + fs_node->name};
+                continue;
+			}
+
+            if ((dir_parent && fs_node->folder.dir_node == dir_parent->id) ||
+                fs_node->folder.dir_node == -1) {
+                // Path ".."
+                dir_parent_ref_node = {
+                    .id = dir_parent ? dir_parent->id : -1,
+                    .flags = static_cast<u16>(fs_node->type >> 8),
+                    .name = low.strings.data() + fs_node->name};
+                continue;
+            }
+
+			// Sub Directory
+			auto& chlld_dir_n = low.dir_nodes.at(fs_node->folder.dir_node);
+			rarcRecurseLoadDirectory(arc, low, chlld_dir_n, *fs_node, dir_node, out, depth + 1);
+		} else {
+			ResourceArchive::Node tmp_f = {.id = fs_node->id,
+										   .flags = static_cast<u16>(fs_node->type >> 8),
+                                           .name = low.strings.data() + fs_node->name};
+			tmp_f.file.offset = fs_node->file.offset;
+			tmp_f.file.size = fs_node->file.size;
+			out.push_back(tmp_f);
+		}
+	}
+
+	dir_ref_node.folder.parent = dir_node.folder.parent;
+    dir_ref_node.folder.sibling_next = dir_node.folder.sibling_next;
+    out.insert(out.end(), dir_ref_node);
+
+    dir_parent_ref_node.folder.parent = dir_parent ? dir_parent->folder.parent : -1;
+    dir_parent_ref_node.folder.sibling_next = dir_parent ? dir_parent->folder.sibling_next : 0;
+    out.insert(out.end(), dir_parent_ref_node);
+
+	dir_node.folder.sibling_next = out.size() + depth + 1;
+    out.insert(out.begin() + start_nodes, dir_node);
+}
+
+Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data) {
+	ResourceArchive result;
+    LowResourceArchive low;
+
+	auto low_result = LoadResourceArchiveLow(low, data);
+	if (!low_result)
+	return std::unexpected(low_result.error());
+
+	for (auto& node : low.fs_nodes) {
+        std::cout << "Name: " << (low.strings.data() + node.name) << "\n";
+	}
+
+    rarcRecurseLoadDirectory(result, low, low.dir_nodes[0], std::nullopt,
+                                 std::nullopt, result.nodes, 0);
+
+    result.file_data = std::move(low.file_data);
+	return result;
+}
+#endif
+
+using children_info_type = std::unordered_map<std::string, std::pair<std::size_t, std::size_t>>;
+
+std::vector<ResourceArchive::Node> rarcSortFSNodesForSave(
+    const ResourceArchive& arc,
+    children_info_type& children_info);
+
+Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc, bool make_matching) {
 	struct OffsetInfo {
 		std::size_t string_offset;
 		std::size_t fs_node_offset;
@@ -294,12 +403,20 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc) {
 	{
         offsets_map["."] = {0, 0};
         offsets_map[".."] = {2, 0};
-        strings_blob += ".\0..\0";
+        strings_blob += "." + std::string("\0", 1) + ".." + std::string("\0", 1);
 		std::size_t fs_info_offset = 0;
 		for (auto& node : arc.nodes) {
-            if (!offsets_map.contains(node.name)) {
-                offsets_map[node.name] = {strings_blob.size(), fs_info_offset};
-                strings_blob += node.name + "\0";
+            if (make_matching) {
+                if (!node.is_special_path()) {
+					offsets_map[node.name + std::to_string(node.id)] = {
+						strings_blob.size(), fs_info_offset};
+					strings_blob += node.name + std::string("\0", 1);
+                }
+			} else {
+				if (!offsets_map.contains(node.name)) {
+					offsets_map[node.name] = {strings_blob.size(), fs_info_offset};
+					strings_blob += node.name + std::string("\0", 1);
+				}
             }
 			fs_info_offset += sizeof(rarcFSNode);
 		}
@@ -318,44 +435,79 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc) {
 	// =============================================================
 
 	std::size_t mram_size = 0, aram_size = 0, dvd_size = 0;
-	for (auto &node : arc.nodes) {
+    children_info_type children_infos;
+    std::size_t current_child_offset = 0;
+
+	// Used later for generated fs_node data, but we do it here to have the offsets and sizes discovered for the dirs.
+	auto fs_sorted_nodes = rarcSortFSNodesForSave(arc, children_infos);
+
+	// Directories follow DFS
+    for (auto& node : arc.nodes) {
         std::cout << node.name << "\n";
-		OffsetInfo offsets = offsets_map[node.name];
+        OffsetInfo offsets =
+            offsets_map[make_matching && !node.is_special_path()
+                            ? node.name + std::to_string(node.id)
+                            : node.name];
+
+        if (!node.is_folder())
+            continue;
+
+        // Special paths don't have directory entries
+        const bool is_special_path = node.is_special_path();
+        if (!is_special_path) {
+            rarcDirectoryNode low_dir;
+
+            std::string s_magic = node.name;
+            std::transform(s_magic.begin(), s_magic.end(),
+                            s_magic.begin(), ::toupper);
+            if (s_magic.size() < 4)
+                    s_magic.append(4 - s_magic.size(), ' ');
+
+            low_dir.name = offsets.string_offset;
+            low_dir.hash = calc_key_code(node.name);
+
+            const auto& info =
+                children_infos[node.name +
+                                std::to_string(node.id)];
+            low_dir.child_count = info.first;
+            low_dir.children_offset = current_child_offset;
+
+            current_child_offset += low_dir.child_count;
+
+            if (node.folder.parent != -1) {
+                low_dir.magic =
+                    *reinterpret_cast<rsl::bu32*>(
+                        s_magic.data());
+            } else {
+                low_dir.magic =
+                    static_cast<rsl::bu32>('ROOT');
+            }
+
+            dir_nodes.push_back(low_dir);
+        }
+    }
+
+	// The FS node table however does not follow DFS :P
+	for (auto &node : fs_sorted_nodes) {
+        std::cout << node.name << "\n";
+        OffsetInfo offsets =
+            offsets_map[make_matching && !node.is_special_path()
+                            ? node.name + std::to_string(node.id)
+                                      : node.name];
 
 		rarcFSNode low_node = {.hash = calc_key_code(node.name),
                                .type = node.flags << 8,
                                .name = offsets.string_offset};
 
         if (node.is_folder()) {
+			// Skip the root.
+            if (!node.is_special_path() && node.folder.parent == -1) {
+				continue;
+			}
+
 			low_node.id = 0xFFFF;
 			low_node.folder.dir_node = node.id;
 			low_node.folder.size = 0x10;
-
-            // Special paths don't have directory entries
-            const bool is_special_path = node.is_special_path();
-            if (!is_special_path) {
-				rarcDirectoryNode low_dir;
-
-				std::string s_magic = node.name;
-				std::transform(s_magic.begin(), s_magic.end(), s_magic.begin(),
-								::toupper);
-				if (s_magic.size() < 4)
-					s_magic.append(4 - s_magic.size(), ' ');
-				
-				low_dir.name = offsets.string_offset;
-				low_dir.child_count = node.folder.sibling_next - fs_nodes.size(); // Get child count (will require collecting tree structure
-				low_dir.children_offset = fs_nodes.size();
-
-				if (node.folder.parent != -1) {
-                    low_dir.magic = *reinterpret_cast<rsl::bu32*>(s_magic.data());
-                    fs_nodes.push_back(low_node);  // This pushes the directory into the fs list if it's not the root
-                } else {
-					low_dir.magic = static_cast<rsl::bu32>('ROOT');
-				}
-
-				dir_nodes.push_back(low_dir);
-				continue;
-			}
 
             fs_nodes.push_back(low_node);
 		} else {
@@ -365,13 +517,13 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc) {
 			low_node.file.offset = node.file.offset;
 			low_node.file.size = node.file.size;
 			if ((node.flags & ResourceAttribute::PRELOAD_TO_MRAM)) {
-			mram_size += (node.file.size + 0x1F) & ~0x1F;
+				mram_size += (node.file.size + 0x1F) & ~0x1F;
 			} else if ((node.flags & ResourceAttribute::PRELOAD_TO_ARAM)) {
-			aram_size += (node.file.size + 0x1F) & ~0x1F;
+				aram_size += (node.file.size + 0x1F) & ~0x1F;
 			} else if ((node.flags & ResourceAttribute::LOAD_FROM_DVD)) {
-			dvd_size += (node.file.size + 0x1F) & ~0x1F;
+				dvd_size += (node.file.size + 0x1F) & ~0x1F;
 			} else {
-			return std::unexpected(std::format("File \"{}\" hasn't been marked for loading!", node.name));
+				return std::unexpected(std::format("File \"{}\" hasn't been marked for loading!", node.name));
 			}
             fs_nodes.push_back(low_node);
 		}
@@ -399,7 +551,7 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc) {
     rarcMetaHeader meta_header{.magic = static_cast<rsl::bu32>('RARC')}; // Little endian 'RARC'
 	meta_header.nodes.offset = sizeof(rarcMetaHeader);
 	meta_header.files.offset =
-		(meta_header.nodes.offset + node_header.strings_offset + strings_blob.size() + 0x1F) & ~0x1F;
+		(node_header.strings_offset + strings_blob.size() + 0x1F) & ~0x1F;
 	meta_header.files.size = total_file_size;
 	meta_header.files.mram_size = mram_size;
 	meta_header.files.aram_size = aram_size;
@@ -429,12 +581,141 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc) {
 	return result;
 }
 
+std::size_t OptimizeArchiveData(ResourceArchive& arc) {
+    std::size_t stripped_size = 0;
+    for (auto& node : arc.nodes) {
+        if (node.is_folder())
+            continue;
+
+        for (auto& other : arc.nodes) {
+            if (other.is_folder() || node == other)
+                continue;
+
+            rsl::byte_view ldata = {arc.file_data.data() + node.file.offset,
+                                    node.file.size};
+            rsl::byte_view rdata = {arc.file_data.data() + other.file.offset,
+                                    other.file.size};
+
+			// Check if the data between both is perfectly equivalent
+            if (!std::equal(ldata.begin(), ldata.begin(), rdata.begin()))
+				continue;
+
+			// Erase the duplicate data
+            auto padded_size = ((other.file.size + 0x1F) & ~0x1F);
+			auto ebegin = arc.file_data.begin() + other.file.offset;
+            arc.file_data.erase(ebegin, ebegin + padded_size);
+
+			// Merge the offset with the original data
+			other.file.offset = node.file.offset;
+
+			for (auto& adjust : arc.nodes) {
+                if (adjust.is_folder() || adjust == other)
+                    continue;
+
+				if (adjust.file.offset <= node.file.offset)
+                    continue;
+
+				adjust.file.offset -= padded_size;
+			}
+
+			stripped_size += padded_size;
+		}
+	}
+    return stripped_size;
+}
+
 Result<void> Extract(const ResourceArchive& arc, std::filesystem::path out) {
-	return Result<void>();
+    auto tmp = out;
+    std::vector<u32> stack;
+    u32 i = 0;
+    for (auto& node : arc.nodes) {
+        if (!stack.empty() && stack.back() == i) {
+            stack.resize(stack.size() - 1);
+            tmp = tmp.parent_path();
+        }
+        ++i;
+        if (node.is_special_path())
+            continue;
+        if (node.is_folder()) {
+            stack.push_back(node.folder.sibling_next);
+            tmp /= node.name;
+            std::filesystem::create_directory(tmp);
+        } else {
+            auto fpath = (tmp / node.name).string();
+            std::ofstream fout(fpath);
+            auto data =
+                std::span(arc.file_data.begin(),
+                            arc.file_data.end())
+                    .subspan(node.file.offset, node.file.size);
+            EXPECT(data.size() == node.file.size);
+            fout.write(reinterpret_cast<const char*>(data.data()),
+                        data.size());
+        }
+    }
+    return {};
 }
 
 Result<ResourceArchive> Create(std::filesystem::path root) {
 	return Result<ResourceArchive>();
+}
+
+void rarcSortFSNodeForSaveResursive(const ResourceArchive& arc,
+									std::vector<ResourceArchive::Node>& out,
+									children_info_type& children_info,
+									std::size_t node_index) {
+	if (node_index > arc.nodes.size() - 2)  // Account for the children after
+        return;
+
+	const auto& node = arc.nodes.at(node_index);
+
+	assert(node.folder.sibling_next <= arc.nodes.size());  // Account for end
+
+    std::vector<ResourceArchive::Node> contents;
+	std::vector<ResourceArchive::Node> dirs, sub_nodes, files, special_dirs;
+
+	// Now push all children of this folder into their respective vectors
+    auto begin = arc.nodes.begin() + node_index + 1;
+    auto end = arc.nodes.begin() + node.folder.sibling_next;
+    
+    for (auto& child_node = begin; child_node != end; ++child_node) {
+        if (child_node->is_folder()) {
+            //assert(child_node->folder.parent == node.id);
+            if (child_node->is_special_path()) {
+                special_dirs.push_back(*child_node);
+            } else {
+                dirs.push_back(*child_node);
+                std::vector<ResourceArchive::Node> nodes;
+                rarcSortFSNodeForSaveResursive(
+                    arc, nodes, children_info, std::distance(arc.nodes.begin(), child_node));
+                sub_nodes.insert(sub_nodes.end(), nodes.begin(), nodes.end());
+                child_node += nodes.size();
+            }
+        } else {
+            files.push_back(*child_node);
+        }
+    }
+
+	size_t surface_children_size = files.size() + dirs.size() + special_dirs.size();
+    children_info[node.name + std::to_string(node.id)] = {
+        surface_children_size, node_index + surface_children_size + 1};
+
+	// Apply items in the order that Nintendo's tools did
+    out.insert(out.end(), files.begin(), files.end());
+    out.insert(out.end(), dirs.begin(), dirs.end());
+    out.insert(out.end(), special_dirs.begin(), special_dirs.end());
+    out.insert(out.end(), sub_nodes.begin(), sub_nodes.end());
+}
+
+std::vector<ResourceArchive::Node>
+rarcSortFSNodesForSave(const ResourceArchive& arc, children_info_type& children_info) {
+        std::vector<ResourceArchive::Node> out;
+
+        // Iterate over all nodes. We start with those that have no parent (root
+        // nodes).
+        assert(arc.nodes.size() > 0 && arc.nodes[0].folder.parent == -1);
+        out.push_back(arc.nodes[0]);
+        rarcSortFSNodeForSaveResursive(arc, out, children_info, 0);
+        return out;
 }
 
 } // namespace librii::RARC
