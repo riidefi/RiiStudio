@@ -110,11 +110,10 @@ void encodeIA4(u8* dst, const u32* src, u32 width, u32 height) {
 void encodeIA8(u8* dst, const u32* src, u32 width, u32 height) {
   for (u32 y = 0; y < height; y += 4) {
     for (u32 x = 0; x < width; x += 4) {
-
       for (int row = 0; row < 4; ++row) {
         for (int column = 0; column < 4; ++column) {
           rgba c = *(rgba*)&src[(y + row) * width + x + column];
-          dst[column * 2] = luminosity(c) << 8;
+          dst[column * 2] = luminosity(c);
           dst[column * 2 + 1] = c.a;
         }
         dst += 8;
@@ -126,7 +125,6 @@ void encodeIA8(u8* dst, const u32* src, u32 width, u32 height) {
 void encodeRGB565(u8* dst, const u32* src, u32 width, u32 height) {
   for (u32 y = 0; y < height; y += 4) {
     for (u32 x = 0; x < width; x += 4) {
-
       for (int row = 0; row < 4; ++row) {
         for (int column = 0; column < 4; ++column) {
           rgba c = *(rgba*)&src[(y + row) * width + x + column];
@@ -144,7 +142,6 @@ void encodeRGB565(u8* dst, const u32* src, u32 width, u32 height) {
 void encodeRGB5A3(u8* dst, const u32* src, u32 width, u32 height) {
   for (u32 y = 0; y < height; y += 4) {
     for (u32 x = 0; x < width; x += 4) {
-
       for (int row = 0; row < 4; ++row) {
         for (int column = 0; column < 4; ++column) {
           rgba c = *(rgba*)&src[(y + row) * width + x + column];
