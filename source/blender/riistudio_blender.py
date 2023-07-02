@@ -578,7 +578,7 @@ def vec4(x):
 
 def all_objects():
 	if BLENDER_28:
-		for obj in bpy.data.objects:
+		for obj in sorted(bpy.data.objects, key= lambda x: x.jres_draw_priority if not x.jres_use_priority else 0):
 			# Returns immediate parent
 			# If root, "Scene Collection"
 			prio = obj.jres_draw_priority if not obj.jres_use_priority else 0
