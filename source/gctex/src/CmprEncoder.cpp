@@ -219,11 +219,9 @@ CMPR_close_info(const u8* data,    // source data
     pal3[2] = (pal0[2] + 2 * pal1[2]) / 3;
     pal3[3] = 0xff;
 
-    u32 i;
-    for (i = 0; i < 4; i++) {
+    for (u32 i = 0; i < 4; i++) {
       u8 val = 0;
-      u32 j;
-      for (j = 0; j < 4; j++, data += 4) {
+      for (u32 j = 0; j < 4; j++, data += 4) {
         val <<= 2;
         const u32 d0 = calc_distance(data, pal0);
         const u32 d1 = calc_distance(data, pal1);
