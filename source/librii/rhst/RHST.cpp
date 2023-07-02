@@ -246,6 +246,16 @@ public:
               sampler.enable_mip = get<bool>(sam, "enable_mip").value_or(true);
               sampler.mip_filter = get<bool>(sam, "mip_filter").value_or(true);
               sampler.lod_bias = get<f32>(sam, "lod_bias").value_or(-1.0f);
+              sampler.mapping =
+                  magic_enum::enum_cast<Mapping>(
+                      cap(get<std::string>(sam, "mapping").value_or("UVMap")))
+                      .value_or(Mapping::UVMap);
+              sampler.uv_map_index =
+                  get<int>(sam, "mapping_uv_index").value_or(0);
+              sampler.light_index =
+                  get<int>(sam, "mapping_light_index").value_or(-1);
+              sampler.camera_index =
+                  get<int>(sam, "mapping_cam_index").value_or(-1);
             }
           } else {
             b.min_filter = get<bool>(mat, "min_filter").value_or(true);

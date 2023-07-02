@@ -100,11 +100,15 @@ namespace librii::rhst {
 
 // Rii hierarchical scene tree
 
-enum class WrapMode {
-  Repeat,
-  Mirror,
-  Clamp,
+enum class Mapping {
+	UVMap,
+	EnvMap,
+	lEnvMap,
+	sEnvMap,
+	Projection,
 };
+
+enum class WrapMode { Repeat, Mirror, Clamp };
 
 enum class AlphaMode {
   Opaque,
@@ -202,6 +206,11 @@ struct ProtoSampler {
   std::string texture_name = "";
   WrapMode wrap_u = WrapMode::Repeat;
   WrapMode wrap_v = WrapMode::Repeat;
+
+  Mapping mapping = Mapping::UVMap;
+  int uv_map_index = 0;
+  int light_index = -1;
+  int camera_index = -1;
 
   bool min_filter = true;
   bool mag_filter = true;
