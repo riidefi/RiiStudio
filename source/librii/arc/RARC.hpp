@@ -38,6 +38,10 @@ struct ResourceArchive {
 
 	bool is_folder() const { return (flags & DIRECTORY) != 0; }
     bool is_special_path() const { return name == "." || name == ".."; }
+
+	bool operator==(const Node& other) const {
+      return id == other.id && name == other.name;
+	}
   };
 
   std::vector<Node> nodes;
@@ -45,7 +49,8 @@ struct ResourceArchive {
 };
 
 Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data);
-Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc);
+Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
+                                            bool make_matching = true);
 
 std::size_t OptimizeArchiveData(ResourceArchive& arc);
 
