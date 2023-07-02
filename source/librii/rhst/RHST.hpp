@@ -249,6 +249,9 @@ struct ProtoMaterial {
   bool mip_filter = true;
   float lod_bias = -1.0f;
 
+  std::array<glm::vec4, 4> tevKonstColors{};
+  std::array<glm::vec4, 4> tevColors{};
+
 };
 
 struct DrawCall {
