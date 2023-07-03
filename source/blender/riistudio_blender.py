@@ -438,18 +438,23 @@ class JRESMaterialPanel(bpy.types.Panel):
 			row.template_list("JRESSamplersList", "", mat.node_tree, "nodes", mat, "samp_selection")
 			col = row.column()
 			smp = mat.node_tree.nodes[mat.samp_selection]
-			col.operator('rstudio.mat_sam_move', icon="TRIA_UP", text="").action = 'UP'
-			col.operator('rstudio.mat_sam_move', icon="TRIA_DOWN", text="").action = 'DOWN'
-			col.operator('rstudio.mat_sam_toggle', icon="HIDE_ON" if smp.smp_disabled else "HIDE_OFF", text="")
+			col.operator('rstudio.mat_sam_action', icon="TRIA_UP", text="").action = 'UP'
+			col.operator('rstudio.mat_sam_action', icon="TRIA_DOWN", text="").action = 'DOWN'
+			col.operator('rstudio.mat_sam_action', icon="HIDE_ON" if smp.smp_disabled else "HIDE_OFF", text="").action = 'TOGGLE'
 
-			if(smp.bl_idname == 'ShaderNodeTexImage'):
+			if smp.bl_idname == 'ShaderNodeTexImage':
 				# Mapping
 				box = layout.box()
 				box.label(text="Mapping", icon='MOD_UVPROJECT')
 				col = box.column()
 				col.prop(smp, "smp_map_mode", text="Mode")
-				if smp.smp_map_mode == 'uv':
-					col.prop(smp, "smp_map_uv")
+				if smp.smp_map_mode == 'UVMap':
+					row = col.row()
+					split = row.split(factor=0.6)
+					split.prop(smp, "smp_map_uv")
+					obj = context.object
+					if len(obj.data.uv_layers) > smp.smp_map_uv:
+						split.label(text=obj.data.uv_layers[smp.smp_map_uv].name,icon='GROUP_UVS')
 
 				# UV Wrapping
 				box = layout.box()
@@ -480,6 +485,10 @@ class JRESMaterialPanel(bpy.types.Panel):
 
 				box = layout.box()
 				box.label(text="Texture Settings", icon='OUTLINER_OB_IMAGE')
+				row = box.row()
+				split = row.split(factor=0.2)
+				split.label(text="Image", icon='IMAGE_DATA')
+				split.template_ID(smp, "image", open="image.open")
 
 				draw_texture_settings(self, context, smp, box)
 
@@ -488,23 +497,27 @@ class JRESSamplersList(bpy.types.UIList):
 		self.use_filter_show = False
 		if item.bl_idname == 'ShaderNodeTexImage':
 			image = item.image
-			filepath = image.filepath.replace('\\','//')
-			filename = os.path.basename(filepath)
 			row = layout.row()
-			text = filename
-			if(item.smp_disabled):
-				row.enabled = False
-				text += " (Ignored)"
+			if image:
+				filepath = image.filepath.replace('\\','//')
+				filename = os.path.basename(filepath)
+				text = filename
+				if(item.smp_disabled):
+					row.enabled = False
+					text += " (Ignored)"
 
-			# Generate preview if it doesnt exists
-			if not image.preview:
-				image.asset_generate_preview()
+				# Generate preview if it doesnt exists
+				if not image.preview:
+					image.asset_generate_preview()
 
-			if image.preview:
-				row.label(text=text, icon_value=image.preview.icon_id)
-			# If for whatever reason preview can't be generated use default icon
+				if image.preview:
+					row.label(text=text, icon_value=image.preview.icon_id)
+				# If for whatever reason preview can't be generated use default icon
+				else:
+					row.label(text=text, icon="OUTLINER_OB_IMAGE")
 			else:
-				row.label(text=text, icon="OUTLINER_OB_IMAGE")
+				row.enabled = False
+				row.label(text="Missing (Skipped)", icon="OUTLINER_OB_IMAGE")
 
 	def filter_items(self, context: Context, data: AnyType, property: str):
 		items = getattr(data, property);
@@ -515,11 +528,100 @@ class JRESSamplersList(bpy.types.UIList):
 		flt_neworder = [sdata.index(x) for x in idata]
 
 		for idx, item in enumerate(items):
-			if not item.bl_idname == 'ShaderNodeTexImage' or not item.image:
+			if not item.bl_idname == 'ShaderNodeTexImage':
 				flt_flags[idx] &= ~self.bitflag_filter_item
 
 		return flt_flags, flt_neworder
 
+class JRESSamplersListAction(bpy.types.Operator):
+	bl_idname = "rstudio.mat_sam_action"
+	bl_label = "Move Sampler"
+	bl_options = {'UNDO'}
+
+	action : bpy.props.EnumProperty(
+        items=(
+            ('UP', "Up", ""),
+            ('DOWN', "Down", ""),
+	    	('TOGGLE', "Toggle", ""),
+		    ('ADD', "Add", ""),
+		    ("REMOVE", "Remove", ""),
+        )
+    )
+
+	@classmethod
+	def poll(cls, context):
+		return context.material
+
+	def execute(self, context):
+		mat = context.material
+		idx = mat.samp_selection
+
+		if not idx:
+			return {'FINISHED'}
+		
+		if self.action == 'TOGGLE':
+			smp = mat.node_tree.nodes[idx]
+			smp.smp_disabled = not smp.smp_disabled
+			return {'FINISHED'}
+
+		node = mat.node_tree.nodes[idx]
+		if node.smp_index == 1000:
+			tex_type_index_update(mat)
+
+		m = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage']
+		m = sorted(m, key=lambda o: o.smp_index)
+
+		if self.action == 'UP':
+			if node.smp_index > 0:
+				if m[node.smp_index - 1]:
+					m[node.smp_index - 1].smp_index += 1
+				node.smp_index -= 1
+		elif self.action == 'DOWN':
+			if node.smp_index < len(m):
+				if m[node.smp_index + 1]:
+					m[node.smp_index + 1].smp_index -= 1
+				node.smp_index += 1
+		elif self.action == 'REMOVE':
+			hi = [n for n in m if n.smp_index > node.smp_index]
+			for h in hi:
+				h.smp_index -= 1
+			mat.node_tree.nodex.remove(node)
+
+		return {'FINISHED'}
+
+class JRESShaderStageAction(bpy.types.Operator):
+	bl_idname = "rstudio.mat_tev_action"
+	bl_label = "TEV Action"
+
+	action : bpy.props.EnumProperty(
+        items=(
+            ('ADD', "Add Stage", ""),
+            ('DELETE', "Remove Stage", ""),
+        )
+    )
+	@classmethod
+	def poll(cls, context):
+		return context.material
+
+	def execute(self, context):
+		mat = context.material
+		idx = 0
+		try:
+			idx = int(mat.tev_stage_enum)
+		except:
+			return {'CANCELLED'}
+		
+		if self.action == 'ADD':
+			if len(mat.tev_stages) < 16:
+				mat.tev_stages.add()
+				mat.tev_stage_enum = str(len(mat.tev_stages)-1)
+
+		else:
+			if len(mat.tev_stages) > 1:
+				mat.tev_stages.remove(idx)
+				mat.tev_stage_enum = str(idx-1)
+
+		return {'FINISHED'}
 # src\panels\JRESScenePanel.py
 
 class JRESScenePanel(bpy.types.Panel):
@@ -1526,60 +1628,17 @@ class OBJECT_OT_addon_prefs_example(bpy.types.Operator):
 
 		return {'FINISHED'}
 
-class JRESMatToggleSampler(bpy.types.Operator):
-	bl_idname = "rstudio.mat_sam_toggle"
-	bl_label = "Move Sampler"
 
-	@classmethod
-	def poll(cls, context):
-		return context.material
 
-	def execute(self, context):
-		mat = context.material
-		smp = mat.node_tree.nodes[mat.samp_selection]
-		smp.smp_disabled = not smp.smp_disabled
-		return {'FINISHED'}
 
-class JRESMatMoveSampler(bpy.types.Operator):
-	bl_idname = "rstudio.mat_sam_move"
-	bl_label = "Move Sampler"
 
-	action : bpy.props.EnumProperty(
-        items=(
-            ('UP', "Up", ""),
-            ('DOWN', "Down", ""),
-        )
-    )
 
-	@classmethod
-	def poll(cls, context):
-		return context.material
 
-	def execute(self, context):
-		mat = context.material
-		idx = mat.samp_selection
-		if not idx:
-			return {'FINISHED'}
 
-		node = mat.node_tree.nodes[idx]
-		if node.smp_index == 1000:
-			tex_type_index_update(mat)
 
-		m = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage']
-		m = sorted(m, key=lambda o: o.smp_index)
 
-		if self.action == 'UP':
-			if node.smp_index > 0:
-				if m[node.smp_index - 1]:
-					m[node.smp_index - 1].smp_index += 1
-				node.smp_index -= 1
-		if self.action == 'DOWN':
-			if node.smp_index < len(m):
-				if m[node.smp_index + 1]:
-					m[node.smp_index + 1].smp_index -= 1
 				node.smp_index += 1
 
-		return {'FINISHED'}
 
 def tex_type_index_update(mat):
 	m = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage']
@@ -1601,8 +1660,6 @@ classes = (
 	JRESObjectPanel,
 
 	JRESSamplersList,
-	JRESMatMoveSampler,
-	JRESMatToggleSampler,
 
 	RiidefiStudioPreferenceProperty,
 	OBJECT_OT_addon_prefs_example
