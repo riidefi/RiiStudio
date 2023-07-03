@@ -632,6 +632,27 @@ class JRESSamplersListAction(bpy.types.Operator):
 		mat = context.material
 		idx = mat.samp_selection
 
+		m = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage']
+		m = sorted(m, key=lambda o: o.smp_index)
+
+		if self.action == 'ADD':
+			if len(m) < 16:
+				new_idx = len(m)
+				new_node = mat.node_tree.nodes.new('ShaderNodeTexImage')
+
+				# Connect to shader if nothing is already attached
+				# Make adding texture easier
+				shader = mat.node_tree.nodes['Principled BSDF']
+				if shader:
+					if not shader.inputs['Base Color'].is_linked:
+						mat.node_tree.links.new(shader.inputs['Base Color'],new_node.outputs['Color'])
+					if not shader.inputs['Alpha'].is_linked:
+						mat.node_tree.links.new(shader.inputs['Alpha'],new_node.outputs['Alpha'])
+
+				m.append(new_node)
+				new_node.smp_index = new_idx
+				mat.samp_selection = mat.node_tree.nodes.find(new_node.name)
+
 		if not idx:
 			return {'FINISHED'}
 		
@@ -643,9 +664,6 @@ class JRESSamplersListAction(bpy.types.Operator):
 		node = mat.node_tree.nodes[idx]
 		if node.smp_index == 1000:
 			tex_type_index_update(mat)
-
-		m = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage']
-		m = sorted(m, key=lambda o: o.smp_index)
 
 		if self.action == 'UP':
 			if node.smp_index > 0:
@@ -664,14 +682,6 @@ class JRESSamplersListAction(bpy.types.Operator):
 				for h in hi:
 					h.smp_index -= 1
 				mat.node_tree.nodes.remove(node)
-
-		elif self.action == 'ADD':
-			if len(m) < 16:
-				new_idx = len(m)
-				new_node = mat.node_tree.nodes.new('ShaderNodeTexImage')
-				m.append(new_node)
-				new_node.smp_index = new_idx
-				mat.samp_selection = mat.node_tree.nodes.find(new_node.name)
 
 		return {'FINISHED'}
 
@@ -813,15 +823,10 @@ def all_meshes(selection=False):
 
 def get_texture(mat):
 	if BLENDER_28:
-		for n in mat.node_tree.nodes:
-			if n.bl_idname != "ShaderNodeTexImage":
-				continue
-			# Ignore unlinked textures (light lightmaps). We probably want to actually search
-			# from the output color -> Principled BSDF like the other plugins,
-			# but for now this should be a sensible workaround.
-			if not n.outputs[0].is_linked:
-				continue
-			return n
+		m = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage' and n.smp_disabled == False and n.image]
+		m = sorted(m, key=lambda o: o.smp_index)
+		if len(m) > 0:
+			return m[0]
 		return
 		#raise RuntimeError("Cannot find active texture for material %s" % mat.name)
 	else:
