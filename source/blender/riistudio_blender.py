@@ -875,7 +875,8 @@ def build_rs_mat(mat, texture_name):
 		'pe_settings': build_rs_mat_pe(mat) if mat.jres_pe_mode == "custom" else "",
 		'lightset': mat.jres_lightset_index,
 		'fog': mat.jres_fog_index,
-		'tev_colors': build_rs_mat_colors(mat),
+		'tev_colors': build_rs_mat_colors(mat, False),
+		'tev_konst_colors': build_rs_mat_colors(mat, True),
 		# For compatibility, this field is not changed in RHST
 		# It can specify mdl0mat OR rspreset
 		'preset_path_mdl0mat': bpy.path.abspath(mat.preset_path_mdl0mat_or_rspreset),
@@ -944,12 +945,14 @@ def adjust_color(mat,col):
 
 def build_rs_mat_colors(mat, konst = False):
 	out = []
-	for i in range(3):
-		tmp = getattr(mat, "col_tevcol"+str(i+1))[:]
-		out.append(adjust_color(mat,tmp))
-	for i in range(4):
-		tmp = getattr(mat, "col_tevkonst"+str(i+1))[:]
-		out.append(adjust_color(mat,tmp))
+	if konst:
+		for i in range(4):
+			tmp = getattr(mat, "col_tevkonst"+str(i+1))[:]
+			out.append(adjust_color(mat,tmp))
+	else:
+		for i in range(3):
+			tmp = getattr(mat, "col_tevcol"+str(i+1))[:]
+			out.append(adjust_color(mat,tmp))
 	return out
 
 def mesh_from_object(Object):
