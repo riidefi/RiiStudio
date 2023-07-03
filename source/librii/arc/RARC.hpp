@@ -48,7 +48,6 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
                                             bool make_matching = true,
                                             bool ids_synced = true);
 
-std::size_t OptimizeArchiveData(ResourceArchive& arc);
 void RecalculateArchiveIDs(ResourceArchive& arc);
 
 Result<void> Extract(const ResourceArchive& arc, std::filesystem::path out);
