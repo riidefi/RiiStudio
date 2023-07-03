@@ -89,35 +89,36 @@ struct LowResourceArchive {
   std::vector<u8> file_data; // One giant buffer
 };
 
-static inline const rarcNodesHeader*
+static inline Result<const rarcNodesHeader*>
 rarcGetNodesHeader(const rarcMetaHeader* self) {
-  assert(self->nodes.offset >= sizeof(rarcMetaHeader));
+  EXPECT(self->nodes.offset >= sizeof(rarcMetaHeader));
   return (const rarcNodesHeader*)(((u8*)self) + self->nodes.offset);
 }
 
-static inline const rarcDirectoryNode*
+static inline Result<const rarcDirectoryNode*>
 rarcGetDirectoryNodes(const rarcNodesHeader* self) {
-  assert(self->dir_nodes.offset >= sizeof(rarcNodesHeader));
+  EXPECT(self->dir_nodes.offset >= sizeof(rarcNodesHeader));
   return (const rarcDirectoryNode*)(((u8*)self) + self->dir_nodes.offset);
 }
 
-static inline const rarcFSNode* rarcGetFSNodes(const rarcNodesHeader* self) {
-  assert(self->fs_nodes.offset >=
+static inline Result<const rarcFSNode*>
+rarcGetFSNodes(const rarcNodesHeader* self) {
+  EXPECT(self->fs_nodes.offset >=
          self->dir_nodes.offset +
              roundUp(sizeof(rarcDirectoryNode) * self->dir_nodes.count, 32));
   return (const rarcFSNode*)(((u8*)self) + self->fs_nodes.offset);
 }
 
-static inline const char* rarcGetFSNames(const rarcNodesHeader* self) {
-  assert(self->strings_offset >=
+static inline Result<const char*> rarcGetFSNames(const rarcNodesHeader* self) {
+  EXPECT(self->strings_offset >=
          self->fs_nodes.offset +
              roundUp(sizeof(rarcFSNode) * self->fs_nodes.count, 32));
   return ((const char*)self) + self->strings_offset;
 }
 
-static inline const u8* rarcGetFileData(const rarcMetaHeader* self) {
-  auto* node_info = rarcGetNodesHeader(self);
-  assert(self->files.offset >=
+static inline Result<const u8*> rarcGetFileData(const rarcMetaHeader* self) {
+  auto* node_info = TRY(rarcGetNodesHeader(self));
+  EXPECT(self->files.offset >=
          node_info->strings_offset + node_info->string_table_size);
   return (const u8*)((((u8*)self) +
                       roundUp(self->nodes.offset + self->files.offset, 32)));
@@ -150,12 +151,12 @@ Result<void> LoadResourceArchiveLow(LowResourceArchive& result,
   if (!SafeMemCopy(result.header, data))
     return std::unexpected("Incomplete meta header data!");
 
-  const auto* node_info =
-      rarcGetNodesHeader(reinterpret_cast<const rarcMetaHeader*>(data.data()));
+  const auto* node_info = TRY(
+      rarcGetNodesHeader(reinterpret_cast<const rarcMetaHeader*>(data.data())));
   if (!RangeContains(data, node_info))
     return std::unexpected("Incomplete node header data!");
 
-  const auto* dir_nodes_begin = rarcGetDirectoryNodes(node_info);
+  const auto* dir_nodes_begin = TRY(rarcGetDirectoryNodes(node_info));
   const auto* dir_nodes_end = dir_nodes_begin + node_info->dir_nodes.count;
 
   if (!RangeContainsInclusive(data, dir_nodes_end))
@@ -163,7 +164,7 @@ Result<void> LoadResourceArchiveLow(LowResourceArchive& result,
 
   result.dir_nodes = {dir_nodes_begin, dir_nodes_end};
 
-  const auto* fs_nodes_begin = rarcGetFSNodes(node_info);
+  const auto* fs_nodes_begin = TRY(rarcGetFSNodes(node_info));
   const auto* fs_nodes_end = fs_nodes_begin + node_info->fs_nodes.count;
 
   if (!RangeContainsInclusive(data, fs_nodes_end))
@@ -171,7 +172,7 @@ Result<void> LoadResourceArchiveLow(LowResourceArchive& result,
 
   result.fs_nodes = {fs_nodes_begin, fs_nodes_end};
 
-  const char* strings_begin = rarcGetFSNames(node_info);
+  const char* strings_begin = TRY(rarcGetFSNames(node_info));
   if (!RangeContains(data, strings_begin))
     return std::unexpected("String table has invalid offset!");
 
@@ -182,8 +183,8 @@ Result<void> LoadResourceArchiveLow(LowResourceArchive& result,
 
   result.strings = {strings_begin, strings_end};
 
-  auto* fd_begin =
-      rarcGetFileData(reinterpret_cast<const rarcMetaHeader*>(data.data()));
+  auto* fd_begin = TRY(
+      rarcGetFileData(reinterpret_cast<const rarcMetaHeader*>(data.data())));
   if (!RangeContains(data, fd_begin))
     return std::unexpected("Resource data has invalid offset");
 
