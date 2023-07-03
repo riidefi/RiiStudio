@@ -43,6 +43,8 @@ struct ResourceArchive {
   std::vector<Node> nodes;
 };
 
+bool IsDataResourceArchive(rsl::byte_view data);
+
 Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data);
 Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
                                             bool make_matching = true,

@@ -41,10 +41,6 @@ void FileHost::openFile(OpenFilePolicy policy) {
     return;
 
   auto file = results[0];
-  auto fdata = ReadFileData(file);
-  if (!fdata)
-    return;
-
   openFile(file, policy);
 }
 std::optional<FileData> ReadFileData(const std::string& path) {

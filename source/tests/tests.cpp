@@ -1,10 +1,10 @@
 #include <core/util/oishii.hpp>
+#include <librii/arc/RARC.hpp>
 #include <librii/egg/BDOF.hpp>
 #include <librii/egg/Blight.hpp>
 #include <librii/egg/LTEX.hpp>
 #include <librii/egg/PBLM.hpp>
 #include <librii/kmp/io/KMP.hpp>
-#include <librii/arc/RARC.hpp>
 #include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
 #include <plugins/api.hpp>
@@ -206,20 +206,20 @@ void rebuild(std::string from, const std::string_view to, bool check,
                from.ends_with("u8")) {
       const rsl::byte_view data_view = safe.slice();
 
-	  std::vector<u8> data;
+      std::vector<u8> data;
       if (librii::szs::isDataYaz0Compressed(data_view)) {
         auto result = librii::szs::getExpandedSize(data_view);
         if (!result) {
           fprintf(stderr, "Failed to read szs: %s\n", result.error().c_str());
           return;
-		}
+        }
         data.resize(*result);
         librii::szs::decode(data, data_view);
       } else {
         data.insert(data.begin(), data_view.begin(), data_view.end());
-	  }
+      }
 
-	  if (data[0] == 'R' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C') {
+      if (librii::RARC::IsDataResourceArchive(data)) {
         auto rarc = librii::RARC::LoadResourceArchive(data);
         if (!rarc) {
           fprintf(stderr, "Failed to read rarc: %s\n", rarc.error().c_str());
@@ -230,7 +230,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
         if (!barc) {
           fprintf(stderr, "Failed to save rarc: %s\n", barc.error().c_str());
           return;
-		}
+        }
         for (auto& b : *barc) {
           writer.write(b);
         }
@@ -244,8 +244,8 @@ void rebuild(std::string from, const std::string_view to, bool check,
         for (auto& b : librii::U8::SaveU8Archive(*u8)) {
           writer.write(b);
         }
-	  }
-	}
+      }
+    }
     writer.saveToDisk(to);
     return;
   }
