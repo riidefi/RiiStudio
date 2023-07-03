@@ -2,6 +2,7 @@
 
 #include <array>
 #include <core/common.h>
+#include <rsl/SimpleReader.hpp>
 #include <filesystem>
 #include <span>
 #include <string>
@@ -30,7 +31,9 @@ struct U8Archive {
   std::vector<u8> file_data;
 };
 
-Result<U8Archive> LoadU8Archive(std::span<const u8> data);
+bool IsDataU8Archive(rsl::byte_view data);
+
+Result<U8Archive> LoadU8Archive(rsl::byte_view data);
 std::vector<u8> SaveU8Archive(const U8Archive& arc);
 
 //! Get the Node associated with a certain path, or -1.

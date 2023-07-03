@@ -274,6 +274,10 @@ static void rarcRecurseLoadDirectory(
   out.insert(out.begin() + start_nodes, dir_node);
 }
 
+bool IsDataResourceArchive(rsl::byte_view data) {
+  return data[0] == 'R' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C';
+}
+
 Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data) {
   ResourceArchive result;
   LowResourceArchive low;
