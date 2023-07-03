@@ -350,6 +350,18 @@ class JRESMaterialPanel(bpy.types.Panel):
 			row.prop(mat, "col_tevcolorspace")
 
 			box = layout.box()
+			box.label(text="Swap Table", icon='GROUP_VCOL')
+			col = box.column()
+			for i in range(4):
+				row = col.row()
+				row.label(text=f"Swap {i}")
+				prop = getattr(mat,f"tev_swap_{i}")
+				row.prop(prop, "red")
+				row.prop(prop, "green")
+				row.prop(prop, "blue")
+				row.prop(prop, "alpha")
+
+			box = layout.box()
 			box.label(text="TEV Color Registers", icon='COLOR')
 			col = box.column()
 			for i in range(3):
@@ -873,6 +885,7 @@ def build_rs_mat(mat, texture_name):
 		'texture': "",
 		# Texture element soon to be replaced with texmap array
 		'samplers': build_rs_material_samplers(mat, texture_name),
+		'swap_table': build_rs_mat_swap_table(mat),
 		# Culling / Display Surfaces
 		'display_front': mat.jres_display_front,
 		'display_back': mat.jres_display_back,
@@ -910,6 +923,20 @@ def build_rs_sampler(mat):
 		'mip_filter': mat.smp_filter_mip == 'linear',
 		'lod_bias': mat.smp_lod_bias,
 	}
+
+def build_rs_mat_swap_table(mat):
+	out = []
+	for i in range(4):
+		item = []
+		prop = getattr(mat, f"tev_swap_{i}")
+		item.append(prop.red)
+		item.append(prop.green)
+		item.append(prop.blue)
+		item.append(prop.alpha)
+
+		out.append(item)
+
+	return out
 
 def build_rs_mat_pe(mat):
 	return{
@@ -2234,11 +2261,29 @@ def register_mat_tev():
 		items= get_mat_tev_items
 	)
 
+SWAP_COLORS = [
+	('red', 'Red', "", 'SEQUENCE_COLOR_01', 0),
+	('green', 'Green', "", 'SEQUENCE_COLOR_04', 1),
+	('blue', 'Blue', "", 'SEQUENCE_COLOR_05', 2),
+	('alpha', 'Alpha', "", 'SEQUENCE_COLOR_09', 3),
+]
+
+class JRESMaterialSwapTable(bpy.types.PropertyGroup):
+	red : EnumProperty(name="",items=SWAP_COLORS,default='red',description="Red Destination")
+	green : EnumProperty(name="",items=SWAP_COLORS,default='green',description="Green Destination")
+	blue : EnumProperty(name="",items=SWAP_COLORS,default='blue',description="Blue Destination")
+	alpha : EnumProperty(name="",items=SWAP_COLORS,default='alpha',description="Alpha Destination")
 
 def register_mat_colors():
 	mat = bpy.types.Material
+
+	mat.tev_swap_0 = PointerProperty(type=JRESMaterialSwapTable)
+	mat.tev_swap_1 = PointerProperty(type=JRESMaterialSwapTable)
+	mat.tev_swap_2 = PointerProperty(type=JRESMaterialSwapTable)
+	mat.tev_swap_3 = PointerProperty(type=JRESMaterialSwapTable)
+
 	mat.col_tevcolorspace = EnumProperty(
-		name="Color Space",
+		name="Colorspace",
 		items=[
 			('srgb','sRGB','Convert the color value from sRGB to RGB during export'),
 			('rgb','Linear','Use raw color values during export'),
@@ -2529,6 +2574,7 @@ def register():
 
 	# Has to be registered before Material setups
 	bpy.utils.register_class(JRESShaderTevStage)
+	bpy.utils.register_class(JRESMaterialSwapTable)
 
 	register_tex()
 	register_mat()
