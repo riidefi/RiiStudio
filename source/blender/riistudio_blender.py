@@ -493,6 +493,80 @@ class JRESMaterialPanel(bpy.types.Panel):
 				split.template_ID(smp, "image", open="image.open")
 
 				draw_texture_settings(self, context, smp, box)
+		elif scene.mat_panel_selection == "stages":
+			if len (mat.tev_stages) == 0:
+				return
+			row = layout.row()
+			split = row.split(factor=0.5)
+			split.prop(mat, "tev_stage_enum")
+			split.operator('rstudio.mat_tev_action', text="Add").action = 'ADD'
+			split.operator('rstudio.mat_tev_action', text="Remove").action = 'DELETE'
+			stage = mat.tev_stages[0]
+			
+			box = layout.box()
+			box.label(text="Stage Settings", icon='SHADING_TEXTURE')
+			col = box.column()
+			col.prop(stage, "raster_channel")
+			row = col.row()
+			split = row.split(factor=0.4)
+
+			samplers = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage' if n.image and not n.smp_disabled]
+			samplers = sorted(samplers, key=lambda o: o.smp_index)
+
+			split.prop(stage, "sampler_id")
+			if len(samplers) > stage.sampler_id:
+				item = samplers[stage.sampler_id]
+				image = item.image
+				filepath = image.filepath.replace('\\','//')
+				filename = os.path.basename(filepath)
+
+				# Generate preview if it doesnt exists
+				if not image.preview:
+					image.asset_generate_preview()
+				split.label(text=filename, icon_value=image.preview.icon_id)
+
+			box = layout.box()
+			box.label(text="Color Stage", icon='RESTRICT_COLOR_ON')
+			col = box.column()
+			col.prop(stage, "c_konst_sel")
+			if stage.c_konst_sel == "const":
+				col.prop(stage, "c_konst_const")
+			else:
+				row = col.row()
+				split = row.split(factor=0.8)
+				split.prop(stage, "c_konst_uni")
+				split.prop(stage, "c_konst_uni_mode")
+			col.prop(stage, "c_formula")
+			col.prop(stage, "c_sel_a")
+			col.prop(stage, "c_sel_b")
+			col.prop(stage, "c_sel_c")
+			col.prop(stage, "c_sel_d")
+			col.prop(stage, "c_bias")
+			col.prop(stage, "c_scale")
+			col.prop(stage, "c_output_clamp")
+			col.prop(stage, "c_output")
+
+			box = layout.box()
+			box.label(text="Alpha Stage", icon='RESTRICT_COLOR_OFF')
+			col = box.column()
+			col.prop(stage, "a_konst_sel")
+			if stage.a_konst_sel == "const":
+				col.prop(stage, "a_konst_const")
+			else:
+				row = col.row()
+				split = row.split(factor=0.8)
+				split.prop(stage, "a_konst_uni")
+				split.prop(stage, "a_konst_uni_mode")
+			col.prop(stage, "a_formula")
+			col.prop(stage, "a_sel_a")
+			col.prop(stage, "a_sel_b")
+			col.prop(stage, "a_sel_c")
+			col.prop(stage, "a_sel_d")
+			col.prop(stage, "a_bias")
+			col.prop(stage, "a_scale")
+			col.prop(stage, "a_output_clamp")
+			col.prop(stage, "a_output")
+
 
 class JRESSamplersList(bpy.types.UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
@@ -1640,16 +1714,261 @@ class OBJECT_OT_addon_prefs_example(bpy.types.Operator):
 
 		return {'FINISHED'}
 
+#region props
+TEV_STAGE_OPTIONS_COLOR =[
+	('reg3c',"Register 3 Color", ""),
+	('reg3a',"Register 3 Alpha", ""),
+	('reg0c',"Register 0 Color", ""),
+	('reg0a',"Register 0 Alpha", ""),
+	('reg1c',"Register 1 Color", ""),
+	('reg1a',"Register 1 Alpha", ""),
+	('reg2c',"Register 2 Color", ""),
+	('reg2a',"Register 2 Alpha", ""),
+	('texc',"Texture Color", ""),
+	('texa',"Texture Alpha", ""),
+	('rasc',"Raster Color", ""),
+	('rasa',"Raster Alpha", ""),
+	('const',"Constant Color Selection", ""),
+	('one',"1", ""),
+	('half',"0.5", ""),
+	('zero',"0", ""),
+]
+TEV_STAGE_OPTIONS_ALPHA =[
+	('reg3a',"Register 3 Alpha", ""),
+	('reg0a',"Register 0 Alpha", ""),
+	('reg1a',"Register 1 Alpha", ""),
+	('reg2a',"Register 2 Alpha", ""),
+	('texa',"Texture Alpha", ""),
+	('rasa',"Raster Alpha", ""),
+	('const',"Constant Color Selection", ""),
+	('one',"1", ""),
+	('half',"0.5", ""),
+	('zero',"0", ""),
+]
+
+TEV_STAGE_BIAS = [
+	('zero', "No Bias", ""),
+	('add_half', "Add Middle Gray", ""),
+	('sub_half', "Substract Middle Gray", ""),
+]
+
+TEV_STAGE_SCALE = [
+	('half',r"50% brightness", ""),
+	('one',r"100% brightness", ""),
+	('two',r"200% brightness", ""),
+	('four',r"400% brightness", ""),
+]
+
+TEV_STAGE_OUTPUT = [
+	('reg3',"Register 3", ""),
+	('reg0',"Register 0", ""),
+	('reg1',"Register 1", ""),
+	('reg2',"Register 2", ""),
+]
+
+TEV_STAGE_CONSTANT_COLORS = [
+	('col0', "Constant Color 0", ""),
+	('col1', "Constant Color 1", ""),
+	('col2', "Constant Color 2", ""),
+	('col3', "Constant Color 3", ""),
+]
+
+TEV_STAGE_CONSTANT_COLORS_SEL_C = [
+	('rgb', "RGB", ""),
+	('r', "RRR", ""),
+	('g', "GGG", ""),
+	('b', "BBB", ""),
+	('a', "AAA", ""),
+]
+
+TEV_STAGE_CONSTANT_COLORS_SEL_A = [
+	('r', "R", ""),
+	('g', "G", ""),
+	('b', "B", ""),
+	('a', "A", ""),
+]
+
+TEV_STAGE_FORMULA = [
+	('add','X + Y', ""),
+	('sub','X - Y', ""),
+#	('mask','X ? Y : 0', ""),
+]
+#endregion
 
 
+def clamp_const(self,context):
+	temp = self.c_konst_const/0.125
+	if temp.is_integer():
+		return
+	self.c_konst_const = int(temp)*0.125
 
+class JRESShaderTevStage(bpy.types.PropertyGroup):
+	shader_index : IntProperty(default=0)
 
+	raster_channel : EnumProperty(
+		name="Channel ID",
+		items=[
+			('chan0',"Channel 0", ""),
+			('chan1',"Channel 1", ""),
+			('none', "None", ""),
+			('indAlpha', "Indirect Alpha", ""),
+			('indNorAlpha', "Normalized Indirect Alpha", ""),
+		],
+		default='chan0',
+	)
+	sampler_id : IntProperty(
+		name="Sampler ID",
+		min = 0,
+		max = 7,
+		default=0,
+	)
+	#region colorStage
+	c_konst_sel : EnumProperty(
+		name="Konst Selection",
+		items=[
+			('const', "Constant", ""),
+			('uni', "Uniform", ""),
+		],
+		default='const'
+	)
+	c_konst_const : FloatProperty(
+		name = "Constant Value",
+		min = 0.0,
+		max= 1.0,
+		step=12.5, # /100
+		default=0.125,
+		precision=3,
+		update=clamp_const
+	)
+	c_konst_uni : EnumProperty(
+		name="Const Register",
+		items=TEV_STAGE_CONSTANT_COLORS,
+		default='col0'
+	)
+	c_konst_uni_mode : EnumProperty(
+		name ="",
+		items=TEV_STAGE_CONSTANT_COLORS_SEL_C,
+		default='rgb'
+	)
+	c_formula : EnumProperty(
+		name="Formula",
+		items=TEV_STAGE_FORMULA,
+		default="add",
+	)
+	c_sel_a : EnumProperty(
+		name="Operant A",
+		items=TEV_STAGE_OPTIONS_COLOR,
+		default='zero'
+	)
+	c_sel_b : EnumProperty(
+		name="Operant B",
+		items=TEV_STAGE_OPTIONS_COLOR,
+		default='texc'
+	)
+	c_sel_c : EnumProperty(
+		name="Operant C",
+		items=TEV_STAGE_OPTIONS_COLOR,
+		default='rasc'
+	)
+	c_sel_d : EnumProperty(
+		name="Operant D",
+		items=TEV_STAGE_OPTIONS_COLOR,
+		default='zero'
+	)
+	c_bias : EnumProperty(
+		name="Bias",
+		items=TEV_STAGE_BIAS,
+		default="zero"
+	)
+	c_scale : EnumProperty(
+		name="Scale",
+		items=TEV_STAGE_SCALE,
+		default="one"
+	)
+	c_output_clamp : BoolProperty(
+		name="Clamp calculation to 0-255",
+		default=True
+	)
+	c_output : EnumProperty(
+		name="Output Destination",
+		items=TEV_STAGE_OUTPUT,
+		default="reg3"
+	)
+	#endregion
 
-
-
-
-
-
+	#region alphaStage
+	a_konst_sel : EnumProperty(
+		name="Konst Selection",
+		items=[
+			('const', "Constant", ""),
+			('uni', "Uniform", ""),
+		],
+		default='const'
+	)
+	a_konst_const : FloatProperty(
+		name = "Constant Value",
+		min = 0.0,
+		max= 1.0,
+		step=12.5, # /100
+		default=0.125,
+		precision=3,
+		update=clamp_const
+	)
+	a_konst_uni : EnumProperty(
+		name="Const Register",
+		items=TEV_STAGE_CONSTANT_COLORS,
+		default='col0'
+	)
+	a_konst_uni_mode : EnumProperty(
+		name ="",
+		items=TEV_STAGE_CONSTANT_COLORS_SEL_A,
+		default='a'
+	)
+	a_formula : EnumProperty(
+		name="Formula",
+		items=TEV_STAGE_FORMULA,
+		default="add",
+	)
+	a_sel_a : EnumProperty(
+		name="Operant A",
+		items=TEV_STAGE_OPTIONS_ALPHA,
+		default='zero'
+	)
+	a_sel_b : EnumProperty(
+		name="Operant B",
+		items=TEV_STAGE_OPTIONS_ALPHA,
+		default='texa'
+	)
+	a_sel_c : EnumProperty(
+		name="Operant C",
+		items=TEV_STAGE_OPTIONS_ALPHA,
+		default='rasa'
+	)
+	a_sel_d : EnumProperty(
+		name="Operant D",
+		items=TEV_STAGE_OPTIONS_ALPHA,
+		default='zero'
+	)
+	a_bias : EnumProperty(
+		name="Bias",
+		items=TEV_STAGE_BIAS,
+		default="zero"
+	)
+	a_scale : EnumProperty(
+		name="Scale",
+		items=TEV_STAGE_SCALE,
+		default="one"
+	)
+	a_output_clamp : BoolProperty(
+		name="Clamp calculation to 0-255",
+		default=True
+	)
+	a_output : EnumProperty(
+		name="Output Destination",
+		items=TEV_STAGE_OUTPUT,
+		default="reg3"
+	)
+	#endregion
 
 def tex_type_index_update(mat):
 	m = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage']
@@ -1670,6 +1989,8 @@ classes = (
 	# JRESScenePanel,
 	JRESObjectPanel,
 
+
+	JRESShaderStageAction,
 	JRESSamplersList,
 	JRESSamplersListAction,
 
@@ -1886,6 +2207,26 @@ def register_scene():
 		default="pe"
 	)
 
+def get_mat_tev_items(scene,context):
+	items = []
+	if not context.material:
+		return items
+	mat = context.material 
+	for i, s in enumerate(mat.tev_stages):
+		text = (f"{i}", f"Shader Stage {i}", '')
+		items.append(text)
+	return items
+
+def register_mat_tev():
+	mat = bpy.types.Material
+	mat.tev_stages = bpy.props.CollectionProperty(type=JRESShaderTevStage)
+	mat.tev_stage_select = IntProperty(default=0)
+	mat.tev_stage_enum = EnumProperty(
+		name="Stage",
+		items= get_mat_tev_items
+	)
+
+
 def register_mat_colors():
 	mat = bpy.types.Material
 	mat.col_tevcolorspace = EnumProperty(
@@ -1932,6 +2273,7 @@ def register_mat_colors():
 
 def register_mat():
 	register_mat_colors()
+	register_mat_tev()
 	# Display Surfaces
 	bpy.types.Material.jres_display_front = BoolProperty(
 		name="Display Front",
@@ -2140,7 +2482,7 @@ def register_object():
 	bpy.types.Object.jres_is_billboard = BoolProperty(
 		name="Enable Billboarding",
 		default=False
-	) 
+	)
 	bpy.types.Object.jres_billboard_setting = EnumProperty(
 		name="Billboard Mode",
 		items=(
@@ -2158,16 +2500,35 @@ def register_object():
 		)
 	)
 
+from bpy.app.handlers import persistent
+# I wish there was a handler that fires when creating new material
+# Using this to ensure there's at least one tev stage in material
+def on_change_handler(dummy):
+	for mat in bpy.data.materials:
+		tex_type_index_update(mat)
+		if len( mat.tev_stages ) == 0:
+			mat.tev_stages.add()
+
+@persistent
+def on_load_handler(dummy):
+	on_change_handler(dummy)
+
 def register():
 	MT_file_export = bpy.types.TOPBAR_MT_file_export if BLENDER_28 else bpy.types.INFO_MT_file_export
 	MT_file_export.append(brres_menu_func_export)
 	MT_file_export.append(bmd_menu_func_export)
 	
+
+	# Has to be registered before Material setups
+	bpy.utils.register_class(JRESShaderTevStage)
+
 	register_tex()
 	register_mat()
 	register_object()
 	register_scene()
 
+	bpy.app.handlers.depsgraph_update_post.append(on_change_handler)
+	bpy.app.handlers.load_post.append(on_load_handler)
 	# Texture Cache
 	tex_type = bpy.types.Node if BLENDER_28 else bpy.types.Texture
 	tex_type.jres_is_cached = BoolProperty(
