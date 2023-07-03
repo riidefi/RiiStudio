@@ -21,8 +21,8 @@ import os, shutil, binascii
 import mathutils
 from bpy_extras.io_utils import axis_conversion
 from bpy_extras.io_utils import ImportHelper, ExportHelper
-from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty, IntProperty
-from bpy.types import Operator
+from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty
+from bpy.types import AnyType, Context, Operator, UILayout
 from collections import OrderedDict
 from time import perf_counter
 import subprocess
@@ -441,6 +441,8 @@ class JRESMaterialPanel(bpy.types.Panel):
 			col.operator('rstudio.mat_sam_action', icon="TRIA_UP", text="").action = 'UP'
 			col.operator('rstudio.mat_sam_action', icon="TRIA_DOWN", text="").action = 'DOWN'
 			col.operator('rstudio.mat_sam_action', icon="HIDE_ON" if smp.smp_disabled else "HIDE_OFF", text="").action = 'TOGGLE'
+			col.operator('rstudio.mat_sam_action', icon="ADD", text="").action = 'ADD'
+			col.operator('rstudio.mat_sam_action', icon="REMOVE", text="").action = 'REMOVE'
 
 			if smp.bl_idname == 'ShaderNodeTexImage':
 				# Mapping
@@ -582,10 +584,20 @@ class JRESSamplersListAction(bpy.types.Operator):
 					m[node.smp_index + 1].smp_index -= 1
 				node.smp_index += 1
 		elif self.action == 'REMOVE':
-			hi = [n for n in m if n.smp_index > node.smp_index]
-			for h in hi:
-				h.smp_index -= 1
-			mat.node_tree.nodex.remove(node)
+			if len(m) > 0:
+				mat.samp_selection = mat.node_tree.nodes.find(m[node.smp_index-1].name)
+				hi = [n for n in m if n.smp_index > node.smp_index]
+				for h in hi:
+					h.smp_index -= 1
+				mat.node_tree.nodes.remove(node)
+
+		elif self.action == 'ADD':
+			if len(m) < 16:
+				new_idx = len(m)
+				new_node = mat.node_tree.nodes.new('ShaderNodeTexImage')
+				m.append(new_node)
+				new_node.smp_index = new_idx
+				mat.samp_selection = mat.node_tree.nodes.find(new_node.name)
 
 		return {'FINISHED'}
 
@@ -1637,7 +1649,6 @@ class OBJECT_OT_addon_prefs_example(bpy.types.Operator):
 
 
 
-				node.smp_index += 1
 
 
 def tex_type_index_update(mat):
@@ -1660,6 +1671,7 @@ classes = (
 	JRESObjectPanel,
 
 	JRESSamplersList,
+	JRESSamplersListAction,
 
 	RiidefiStudioPreferenceProperty,
 	OBJECT_OT_addon_prefs_example
