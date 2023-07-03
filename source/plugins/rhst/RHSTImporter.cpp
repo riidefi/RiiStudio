@@ -241,7 +241,23 @@ void compileMapping(const librii::rhst::ProtoSampler& in,
     mtx.camIdx = in.camera_index;
   }
 }
+librii::gx::ColorS10 vec4ToColorS10(glm::vec4 in) {
+  librii::gx::ColorS10 out;
+	out.r = in.r;
+	out.g = in.g;
+	out.b = in.b;
+	out.a = in.a;
+    return out;
+}
 
+librii::gx::Color vec4ToColor(glm::vec4 in) {
+    librii::gx::Color out;
+    out.r = in.x;
+    out.g = in.y;
+    out.b = in.z;
+    out.a = in.w;
+    return out;
+}
 
 void compileMaterial(libcube::IGCMaterial& out,
                      const librii::rhst::ProtoMaterial& in) {
@@ -345,7 +361,10 @@ void compileMaterial(libcube::IGCMaterial& out,
     wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
   } 
 
-  data.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
+  for (int i = 0; i < 4; i++) {
+    data.tevColors[i] = vec4ToColorS10(in.tevColors[i]);
+    data.tevKonstColors[i] = vec4ToColor(in.tevKonstColors[i]);
+  }
   data.mStages[0] = wip;
 
   librii::gx::ChannelControl ctrl;

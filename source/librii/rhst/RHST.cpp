@@ -272,6 +272,24 @@ public:
                 magic_enum::enum_cast<WrapMode>(
                     cap(get<std::string>(mat, "wrap_v").value_or("Repeat")))
                     .value_or(WrapMode::Repeat);
+
+          }
+          // TEV Colors
+          if (mat.contains("tev_colors") && mat["tev_colors"].is_array()) {
+            auto cols = mat["tev_colors"];
+            int P = 0;
+            b.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
+            for (int i = 0; i < 3; i++) {
+              b.tevColors[i + 1] = getVec4(cols, P).value_or(glm::vec4{});
+            }
+          }
+          if (mat.contains("tev_konst_colors") &&
+            mat["tev_konst_colors"].is_array()) {
+            auto cols = mat["tev_konst_colors"];
+            int P = 0;
+            for (int i = 0; i < 4; i++) {
+              b.tevKonstColors[i] = getVec4(cols, P).value_or(glm::vec4{});
+            }
           }
         }
       }
@@ -304,6 +322,7 @@ private:
     auto z = (*it)[2].template get<f32>();
     return glm::vec3(x, y, z);
   }
+
   std::optional<glm::vec2> getVec2(auto& jj, int& i) {
     auto j = jj[i++];
     auto x = (j)[0].template get<f32>();
