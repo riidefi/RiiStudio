@@ -412,6 +412,8 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
 
       const bool is_shared_data = std::any_of(
           fs_sorted_nodes.begin(), fs_sorted_nodes.end(), [&](auto& n) {
+            if (n.id == node.id)
+              return false;
             return n.data.size() == node.data.size() &&
                    std::equal(n.data.begin(), n.data.end(), node.data.begin());
           });
