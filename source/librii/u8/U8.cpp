@@ -330,7 +330,7 @@ Result<void> Extract(const U8Archive& arc, std::filesystem::path out) {
       std::filesystem::create_directory(tmp);
     } else {
       auto fpath = (tmp / node.name).string();
-      std::ofstream out(fpath);
+      std::ofstream out(fpath, std::ios::binary | std::ios::ate);
       auto data = std::span(arc.file_data.begin(), arc.file_data.end())
                       .subspan(node.file.offset, node.file.size);
       EXPECT(data.size() == node.file.size);
@@ -392,7 +392,7 @@ Result<U8Archive> Create(std::filesystem::path root) {
   for (auto& p : paths) {
     for (auto c : p.str) {
       // relative paths are weakly_canonical
-      if (c == '/') {
+      if (c == '/' || c == '\\') {
         ++p.depth;
       }
     }
@@ -400,7 +400,7 @@ Result<U8Archive> Create(std::filesystem::path root) {
   for (size_t i = 0; i < paths.size(); ++i) {
     auto& p = paths[i];
     if (p.is_folder) {
-      for (int j = i; i < paths.size(); ++j) {
+      for (int j = i; j < paths.size(); ++j) {
         if (paths[j].depth <= p.depth) {
           p.nextAtGreaterDepth = j;
           break;
