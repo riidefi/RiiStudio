@@ -214,6 +214,10 @@ pub struct ImportCommand {
     #[clap(short, long, default_value = "false")]
     no_compression: bool,
 
+    /// Compile the archive as RARC (GC) instead of U8 (Wii)
+    #[clap(long, default_value="false")]
+    rarc: bool,
+
     /// Read preset material/animation overrides from this folder
     #[clap(long)]
     preset_path: Option<String>,
@@ -306,7 +310,11 @@ pub struct CreateCommand {
     #[clap(short, long, default_value = "false")]
     no_compression: bool,
 
-    #[clap(short, long, default_value = "false")]
+    /// Compile the archive as RARC (GC) instead of U8 (Wii)
+    #[clap(long, default_value="false")]
+    rarc: bool,
+
+    #[clap(short, long, default_value="false")]
     verbose: bool,
 }
 
@@ -358,6 +366,7 @@ pub struct CliOptions {
     pub no_tristrip: c_uint,
     pub ai_json: c_uint,
     pub no_compression: c_uint,
+    pub rarc: c_uint,
     pub verbose: c_uint,
     // TYPE 2: "decompress"
     // Uses "from", "to" and "verbose" above
@@ -415,6 +424,7 @@ impl MyArgs {
                     no_tristrip: i.no_tristrip as c_uint,
                     ai_json: i.ai_json as c_uint,
                     no_compression: i.no_compression as c_uint,
+                    rarc: i.rarc as c_uint,
                     verbose: i.verbose as c_uint,
                 }
             }
@@ -452,6 +462,7 @@ impl MyArgs {
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
                 }
             }
             Commands::Compress(i) => {
@@ -488,6 +499,7 @@ impl MyArgs {
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
                 }
             }
             Commands::Rhst2Brres(i) => {
@@ -524,6 +536,7 @@ impl MyArgs {
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
                 }
             }
             Commands::Rhst2Bmd(i) => {
@@ -560,6 +573,7 @@ impl MyArgs {
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
                 }
             }
             Commands::Extract(i) => {
@@ -578,42 +592,42 @@ impl MyArgs {
                     to: to2,
                     verbose: i.verbose as c_uint,
 
-                    // Junk fields
-                    preset_path: [0; 256],
-                    scale: 0.0 as c_float,
-                    brawlbox_scale: 0 as c_uint,
-                    mipmaps: 0 as c_uint,
-                    min_mip: 0 as c_uint,
-                    max_mips: 0 as c_uint,
-                    auto_transparency: 0 as c_uint,
-                    merge_mats: 0 as c_uint,
-                    bake_uvs: 0 as c_uint,
-                    tint: 0 as c_uint,
-                    cull_degenerates: 0 as c_uint,
-                    cull_invalid: 0 as c_uint,
-                    recompute_normals: 0 as c_uint,
-                    fuse_vertices: 0 as c_uint,
-                    no_tristrip: 0 as c_uint,
-                    ai_json: 0 as c_uint,
-                    no_compression: 0 as c_uint,
-                }
-            }
+                  // Junk fields
+                  preset_path:  [0; 256],
+                  scale: 0.0 as c_float,
+                  brawlbox_scale: 0 as c_uint,
+                  mipmaps: 0 as c_uint,
+                  min_mip: 0 as c_uint,
+                  max_mips: 0 as c_uint,
+                  auto_transparency: 0 as c_uint,
+                  merge_mats: 0 as c_uint,
+                  bake_uvs: 0 as c_uint,
+                  tint: 0 as c_uint,
+                  cull_degenerates: 0 as c_uint,
+                  cull_invalid: 0 as c_uint,
+                  recompute_normals: 0 as c_uint,
+                  fuse_vertices: 0 as c_uint,
+                  no_tristrip: 0 as c_uint,
+                  ai_json: 0 as c_uint,
+                  no_compression: 0 as c_uint,
+                  rarc: 0 as c_uint,
+              }
+            },
             Commands::Create(i) => {
-                let mut from2: [i8; 256] = [0; 256];
-                let mut to2: [i8; 256] = [0; 256];
-                let from_bytes = i.from.as_bytes();
-                let default_str = String::new();
-                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()]
-                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()]
-                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
-                CliOptions {
-                    c_type: 7,
-                    from: from2,
-                    to: to2,
-                    verbose: i.verbose as c_uint,
-                    no_compression: i.no_compression as c_uint,
+              let mut from2 : [i8; 256]= [0; 256];
+              let mut to2 : [i8; 256]= [0; 256];
+              let from_bytes = i.from.as_bytes();
+              let default_str = String::new();
+              let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+              from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+              to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+              CliOptions {
+                  c_type: 7,
+                  from: from2,
+                  to: to2,
+                  verbose: i.verbose as c_uint,
+                  no_compression: i.no_compression as c_uint,
+                  rarc: i.rarc as c_uint,
 
                     // Junk fields
                     preset_path: [0; 256],
