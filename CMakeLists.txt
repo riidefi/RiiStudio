@@ -133,16 +133,6 @@ add_compile_definitions(FMT_EXCEPTIONS=0)
 CPMAddPackage("gh:fmtlib/fmt#9.1.0")
 CPMAddPackage("gh:zeux/meshoptimizer#v0.18")
 
-set(DRACO_BACKWARDS_COMPATIBILITY OFF)
-set(DRACO_POINT_CLOUD_COMPRESSION OFF)
-if (UNIX AND NOT APPLE)
-# Windows CI issue with ftello
-CPMAddPackage("gh:google/draco#1.5.6")
-else()
-# GCC leaky headers issues
-CPMAddPackage("gh:google/draco#1.5.5")
-endif()
-
 # Doesn't work OOB -- requires exceptions
 if (FALSE)
   CPMAddPackage(

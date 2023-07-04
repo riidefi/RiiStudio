@@ -4,7 +4,7 @@
 #include <rsmeshopt/HaroohieTriStripifier.hpp>
 #include <rsmeshopt/TriFanMeshOptimizer.hpp>
 
-#include <draco/mesh/mesh_stripifier.h>
+#include <rsmeshopt/draco/mesh/mesh_stripifier.h>
 #include <rsmeshopt/RsMeshOpt.hpp>
 
 #include <fmt/color.h>
