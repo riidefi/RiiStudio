@@ -2,12 +2,173 @@ use libc::{c_uint, c_void, size_t};
 use std::slice;
 
 pub mod librii {
-
     #[allow(non_upper_case_globals)]
     #[allow(non_camel_case_types)]
     #[allow(non_snake_case)]
     pub mod bindings {
         include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+    }
+
+    pub const _CTF: u32 = 0x20;
+    pub const _ZTF: u32 = 0x10;
+
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone)]
+    pub enum TextureFormat {
+        I4 = 0,
+        I8,
+        IA4,
+        IA8,
+        RGB565,
+        RGB5A3,
+        RGBA8,
+
+        C4,
+        C8,
+        C14X2,
+        CMPR = 0xE,
+
+        ExtensionRawRGBA32 = 0xFF,
+    }
+
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone)]
+    pub enum CopyTextureFormat {
+        R4 = 0x0 | _CTF,
+        RA4 = 0x2 | _CTF,
+        RA8 = 0x3 | _CTF,
+        YUVA8 = 0x6 | _CTF,
+        A8 = 0x7 | _CTF,
+        R8 = 0x8 | _CTF,
+        G8 = 0x9 | _CTF,
+        B8 = 0xA | _CTF,
+        RG8 = 0xB | _CTF,
+        GB8 = 0xC | _CTF,
+    }
+
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone)]
+    pub enum ZTextureFormat {
+        Z8 = 0x1 | _ZTF,
+        Z16 = 0x3 | _ZTF,
+        Z24X8 = 0x6 | _ZTF,
+
+        Z4 = 0x0 | _ZTF | _CTF,
+        Z8M = 0x9 | _ZTF | _CTF,
+        Z8L = 0xA | _ZTF | _CTF,
+        Z16L = 0xC | _ZTF | _CTF,
+    }
+
+    #[derive(Debug, Copy, Clone)]
+    struct ImageFormatInfo {
+        xshift: u32,
+        yshift: u32,
+        bitsize: u32,
+    }
+
+    fn get_format_info(format: u32) -> ImageFormatInfo {
+        let (xshift, yshift) = match format {
+            x if x == TextureFormat::C4 as u32
+                || x == TextureFormat::I4 as u32
+                || x == TextureFormat::CMPR as u32
+                || x == CopyTextureFormat::R4 as u32
+                || x == CopyTextureFormat::RA4 as u32
+                || x == ZTextureFormat::Z4 as u32 =>
+            {
+                (3, 3)
+            }
+            x if x == ZTextureFormat::Z8 as u32
+                || x == TextureFormat::C8 as u32
+                || x == TextureFormat::I8 as u32
+                || x == TextureFormat::IA4 as u32
+                || x == CopyTextureFormat::A8 as u32
+                || x == CopyTextureFormat::R8 as u32
+                || x == CopyTextureFormat::G8 as u32
+                || x == CopyTextureFormat::B8 as u32
+                || x == CopyTextureFormat::RG8 as u32
+                || x == CopyTextureFormat::GB8 as u32
+                || x == ZTextureFormat::Z8M as u32
+                || x == ZTextureFormat::Z8L as u32 =>
+            {
+                (3, 2)
+            }
+            x if x == TextureFormat::C14X2 as u32
+                || x == TextureFormat::IA8 as u32
+                || x == ZTextureFormat::Z16 as u32
+                || x == ZTextureFormat::Z24X8 as u32
+                || x == TextureFormat::RGB565 as u32
+                || x == TextureFormat::RGB5A3 as u32
+                || x == TextureFormat::RGBA8 as u32
+                || x == ZTextureFormat::Z16L as u32
+                || x == CopyTextureFormat::RA8 as u32 =>
+            {
+                (2, 2)
+            }
+            _ => panic!("Invalid texture format"),
+        };
+
+        let mut bitsize = 32;
+        if format == TextureFormat::RGBA8 as u32 || format == ZTextureFormat::Z24X8 as u32 {
+            bitsize = 64;
+        }
+
+        ImageFormatInfo {
+            xshift,
+            yshift,
+            bitsize,
+        }
+    }
+
+    fn info_compute_image_size(info: ImageFormatInfo, width: u32, height: u32) -> u32 {
+        let xtiles = ((width + (1 << info.xshift)) - 1) >> info.xshift;
+        let ytiles = ((height + (1 << info.yshift)) - 1) >> info.yshift;
+
+        xtiles * ytiles * info.bitsize
+    }
+
+    #[no_mangle]
+    pub fn rii_compute_image_size(format: u32, width: u32, height: u32) -> u32 {
+        if format == TextureFormat::ExtensionRawRGBA32 as u32 {
+            return width * height * 4;
+        }
+        let info = get_format_info(format);
+        info_compute_image_size(info, width, height)
+    }
+
+    #[no_mangle]
+    pub fn rii_compute_image_size_mip(
+        format: u32,
+        mut width: u32,
+        mut height: u32,
+        number_of_images: u32,
+    ) -> u32 {
+        if number_of_images <= 1 {
+            return rii_compute_image_size(format, width, height);
+        }
+
+        let mut size = 0;
+
+        for _i in 0..number_of_images {
+            if width == 1 && height == 1 {
+                break;
+            }
+
+            size += rii_compute_image_size(format, width, height);
+
+            if width > 1 {
+                width >>= 1;
+            } else {
+                width = 1;
+            }
+
+            if height > 1 {
+                height >>= 1;
+            } else {
+                height = 1;
+            }
+        }
+
+        size
     }
 
     pub fn rii_decode(

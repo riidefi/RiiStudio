@@ -8,6 +8,11 @@
 extern "C" {
 #endif
 
+uint32_t rii_compute_image_size(uint32_t format, uint32_t width, uint32_t height);
+
+uint32_t rii_compute_image_size_mip(uint32_t format, uint32_t width,
+                                    uint32_t height, uint32_t number_of_images);
+
 void rii_encode_cmpr(void* dst, size_t dst_len, const void* src, size_t src_len,
                      unsigned int width, unsigned int height);
 

@@ -75,16 +75,6 @@ enum class TextureFilter {
 
 enum class TextureWrapMode { Clamp, Repeat, Mirror };
 
-// I'm not sure I want these here. Perhaps they'd fit better in librii::image
-struct ImageFormatInfo {
-  u32 xshift = 0;
-  u32 yshift = 0;
-  u32 bitsize = 0;
-};
-
-ImageFormatInfo getFormatInfo(u32 format);
-
-u32 computeImageSize(ImageFormatInfo info, u32 width, u32 height);
 u32 computeImageSize(u16 width, u16 height, u32 format, u8 number_of_images);
 inline u32 computeImageSize(u16 width, u16 height, TextureFormat format,
                             u8 number_of_images) {

@@ -33,8 +33,8 @@ All supported texture formats and their respective encoding and decoding sources
 | IA4     | Builtin         | Dolphin Emulator |
 | IA8     | Builtin         | Dolphin Emulator (SIMD) |
 | RGB565  | Builtin         | Dolphin Emulator |
-| RGB5A3  | Builtin         | Dolphin Emulator |
-| RGBA8   | Builtin         | Dolphin Emulator |
+| RGB5A3  | Builtin         | Dolphin Emulator (SIMD) |
+| RGBA8   | Builtin         | Dolphin Emulator (SIMD) |
 
 Please note, SIMD texture decoding for I4, I8 and IA8 formats uses SSE3 instructions with a fallback to SSE2 if necessary, and these are implemented based on the Dolphin Emulator's texture decoding logic.
 
