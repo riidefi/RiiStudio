@@ -5,7 +5,6 @@
 #include <rsmeshopt/TriFanMeshOptimizer.hpp>
 
 #include <draco/mesh/mesh_stripifier.h>
-#include <meshoptimizer.h>
 #include <rsmeshopt/RsMeshOpt.hpp>
 
 #include <fmt/color.h>
@@ -398,7 +397,7 @@ public:
   // Reserve memory in the index buffer for faster OutputIterator use based on
   // an upper bound calculated from |triangle_indices_count|.
   void Reserve(u32 triangle_indices_count) {
-    indices_.reserve(meshopt_stripifyBound(triangle_indices_count));
+    indices_.reserve(rsmeshopt::meshopt_stripifyBound(triangle_indices_count));
   }
 
   // Construct an output iterator to the list of indices for consumption from
@@ -457,9 +456,10 @@ StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim) {
 
   size_t index_count = index_data.size();
   size_t vertex_count = vertices.size();
-  std::vector<unsigned int> strip(meshopt_stripifyBound(index_count));
+  std::vector<unsigned int> strip(
+      rsmeshopt::meshopt_stripifyBound(index_count));
   unsigned int restart_index = ~0u;
-  size_t strip_size = meshopt_stripify(
+  size_t strip_size = rsmeshopt::meshopt_stripify(
       &strip[0], index_data.data(), index_count, vertex_count, restart_index);
   strip.resize(strip_size);
 

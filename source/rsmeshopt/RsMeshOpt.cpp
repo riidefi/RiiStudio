@@ -3,6 +3,8 @@
 #include <rsmeshopt/TriStripper/tri_stripper.h>
 #include <rsmeshopt/tristrip/tristrip.hpp>
 
+#include <meshoptimizer.h>
+
 namespace rsmeshopt {
 
 Result<std::vector<std::vector<u32>>>
@@ -38,6 +40,24 @@ StripifyTrianglesTriStripper(std::span<const u32> index_data) {
   triangle_stripper::primitive_vector out;
   stripper.Strip(&out);
   return out;
+}
+
+size_t meshopt_stripify(unsigned int* destination, const unsigned int* indices,
+                        size_t index_count, size_t vertex_count,
+                        unsigned int restart_index) {
+  return ::meshopt_stripify(destination, indices, index_count, vertex_count,
+                            restart_index);
+}
+size_t meshopt_stripifyBound(size_t index_count) {
+  return ::meshopt_stripifyBound(index_count);
+}
+size_t meshopt_unstripify(unsigned int* destination,
+                          const unsigned int* indices, size_t index_count,
+                          unsigned int restart_index) {
+  return ::meshopt_unstripify(destination, indices, index_count, restart_index);
+}
+size_t meshopt_unstripifyBound(size_t index_count) {
+  return ::meshopt_unstripifyBound(index_count);
 }
 
 } // namespace rsmeshopt
