@@ -15,6 +15,8 @@ fn main() {
     build.define("RII_PLATFORM_LINUX", "1");
     #[cfg(unix)]
     build.flag("-w");
+    #[cfg(unix)]
+    build.flag("-std=c++17");
 
     build.include(".");
     build.file("src/bindings.cpp");

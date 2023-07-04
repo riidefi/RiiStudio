@@ -8,6 +8,9 @@ fn main() {
     let mut build = cc::Build::new();
     build.cpp(true);
 
+    #[cfg(unix)]
+    build.flag("-std=c++17");
+
     build.include(".").include("src");
     build.file("src/CmprEncoder.cpp");
     build.file("src/ImagePlatform.cpp");

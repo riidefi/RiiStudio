@@ -177,7 +177,7 @@ private:
     bool is_active = false;
     bool is_dragged = false;
 
-    bool operator<(KeyframeState& other) {
+    bool operator<(const KeyframeState& other) const {
       return keyframe.frame < other.keyframe.frame;
     }
   };
