@@ -155,6 +155,9 @@ def get_filename_without_extension(file_path):
 # src\helpers\export_tex.py
 
 def export_tex(texture, out_folder, use_wimgt):
+	if not texture.image:
+		return
+
 	tex_name = get_filename_without_extension(texture.image.name) if BLENDER_28 else texture.name
 	print("ExportTex: %s" % tex_name)
 	# Force PNG
@@ -856,6 +859,8 @@ def all_tex_uses(selection):
 					if n.bl_idname != "ShaderNodeTexImage":
 						continue
 					if n.smp_disabled:
+						continue
+					if not n.image:
 						continue
 					yield n
 			else:
