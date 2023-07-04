@@ -124,11 +124,11 @@ static inline Result<const u8*> rarcGetFileData(const rarcMetaHeader* self) {
                       roundUp(self->nodes.offset + self->files.offset, 32)));
 };
 
-bool rarcNodeIsFolder(const rarcFSNode self) {
+static bool rarcNodeIsFolder(const rarcFSNode self) {
   return self.type & (ResourceAttribute::DIRECTORY << 8);
 }
 
-template <typename T> bool SafeMemCopy(T& dest, rsl::byte_view data) {
+template <typename T> static bool SafeMemCopy(T& dest, rsl::byte_view data) {
   if (data.size_bytes() < sizeof(T)) {
     std::fill((u8*)&dest, (u8*)(&dest + 1), 0);
     return false;
@@ -138,11 +138,11 @@ template <typename T> bool SafeMemCopy(T& dest, rsl::byte_view data) {
   return true;
 }
 
-bool RangeContains(rsl::byte_view range, const void* ptr) {
+static bool RangeContains(rsl::byte_view range, const void* ptr) {
   return ptr >= range.data() && ptr < (range.data() + range.size());
 }
 
-bool RangeContainsInclusive(rsl::byte_view range, const void* ptr) {
+static bool RangeContainsInclusive(rsl::byte_view range, const void* ptr) {
   return ptr >= range.data() && ptr <= range.data() + range.size();
 }
 
@@ -283,9 +283,7 @@ Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data) {
   ResourceArchive result;
   LowResourceArchive low;
 
-  auto low_result = LoadResourceArchiveLow(low, data);
-  if (!low_result)
-    return std::unexpected(low_result.error());
+  TRY(LoadResourceArchiveLow(low, data));
 
   rarcRecurseLoadDirectory(result, low, low.dir_nodes[0], std::nullopt,
                            std::nullopt, result.nodes, 0);
