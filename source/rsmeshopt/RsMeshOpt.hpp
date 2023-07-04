@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include <glm/vec3.hpp>
+
 #include "TriStripper/public_types.h"
 
 namespace rsmeshopt {
@@ -25,5 +27,9 @@ size_t meshopt_unstripify(unsigned int* destination,
                           const unsigned int* indices, size_t index_count,
                           unsigned int restart_index);
 size_t meshopt_unstripifyBound(size_t index_count);
+
+std::expected<std::vector<u32>, std::string>
+StripifyDraco(std::span<u32> index_data, std::span<glm::vec3> vertex_data,
+              u32 restart = ~0u, bool degen = false);
 
 } // namespace rsmeshopt

@@ -5,6 +5,10 @@
 
 #include <meshoptimizer.h>
 
+#include <draco/mesh/mesh_stripifier.h>
+
+#include <glm/vec3.hpp>
+
 namespace rsmeshopt {
 
 Result<std::vector<std::vector<u32>>>
@@ -58,6 +62,45 @@ size_t meshopt_unstripify(unsigned int* destination,
 }
 size_t meshopt_unstripifyBound(size_t index_count) {
   return ::meshopt_unstripifyBound(index_count);
+}
+
+Result<std::vector<u32>> StripifyDraco(std::span<u32> index_data,
+                                       std::span<glm::vec3> vertex_data, u32 restart,
+                                       bool degen) {
+  auto mesh = std::make_shared<draco::Mesh>();
+  for (size_t i = 0; i < index_data.size(); i += 3) {
+    std::array<draco::PointIndex, 3> face;
+    face[0] = index_data[i];
+    face[1] = index_data[i + 1];
+    face[2] = index_data[i + 2];
+    mesh->AddFace(face);
+  }
+  auto pos = std::make_unique<draco::PointAttribute>();
+  pos->Init(draco::GeometryAttribute::POSITION, 3, draco::DT_FLOAT32, false,
+            vertex_data.size());
+  auto other = std::make_unique<draco::PointAttribute>();
+  other->Init(draco::GeometryAttribute::GENERIC, 1, draco::DT_UINT32, false,
+              vertex_data.size());
+  for (size_t i = 0; i < vertex_data.size(); ++i) {
+    pos->SetAttributeValue(draco::AttributeValueIndex(i), &vertex_data[i]);
+    u32 tmp = i;
+    other->SetAttributeValue(draco::AttributeValueIndex(i), &tmp);
+  }
+  mesh->SetAttribute(0, std::move(pos));
+  mesh->SetAttribute(1, std::move(other));
+
+  std::vector<u32> stripified;
+  draco::MeshStripifier stripifier;
+  bool ok = false;
+  if (degen) {
+    ok = stripifier.GenerateTriangleStripsWithDegenerateTriangles(
+        *mesh, std::back_inserter(stripified));
+  } else {
+    ok = stripifier.GenerateTriangleStripsWithPrimitiveRestart(
+        *mesh, restart, std::back_inserter(stripified));
+  }
+  EXPECT(ok);
+  return stripified;
 }
 
 } // namespace rsmeshopt

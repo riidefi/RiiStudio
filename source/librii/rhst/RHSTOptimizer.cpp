@@ -4,7 +4,6 @@
 #include <rsmeshopt/HaroohieTriStripifier.hpp>
 #include <rsmeshopt/TriFanMeshOptimizer.hpp>
 
-#include <rsmeshopt/draco/mesh/mesh_stripifier.h>
 #include <rsmeshopt/RsMeshOpt.hpp>
 
 #include <fmt/color.h>
@@ -623,68 +622,25 @@ Result<MeshOptimizerStats> ToFanTriangles2(MatrixPrimitive& prim) {
   return stats.End();
 }
 
-struct DracoMesh {
-  std::shared_ptr<draco::Mesh> mesh{};
-  IndexBuffer<u32> index_manager{};
-  size_t index_count{};
-  size_t vertex_count{};
-};
-
-Result<DracoMesh> ToDraco(const MatrixPrimitive& prim) {
+Result<MeshOptimizerStats> StripifyTrianglesDraco(MatrixPrimitive& prim,
+                                                  bool degen) {
+  MeshOptimizerStatsCollector stats(prim);
   auto buf = TRY(IndexBuffer<u32>::create(prim));
   auto& index_data = buf.index_data;
   auto& vertices = buf.vertices;
   assert(index_data.size() % 3 == 0);
-  size_t index_count = index_data.size();
-  size_t vertex_count = vertices.size();
-
-  auto mesh = std::make_shared<draco::Mesh>();
-  for (size_t i = 0; i < index_data.size(); i += 3) {
-    std::array<draco::PointIndex, 3> face;
-    face[0] = index_data[i];
-    face[1] = index_data[i + 1];
-    face[2] = index_data[i + 2];
-    mesh->AddFace(face);
-  }
-  auto pos = std::make_unique<draco::PointAttribute>();
-  pos->Init(draco::GeometryAttribute::POSITION, 3, draco::DT_FLOAT32, false,
-            vertex_count);
-  auto other = std::make_unique<draco::PointAttribute>();
-  other->Init(draco::GeometryAttribute::GENERIC, 1, draco::DT_UINT32, false,
-              vertex_count);
-  for (size_t i = 0; i < vertices.size(); ++i) {
-    pos->SetAttributeValue(draco::AttributeValueIndex(i), &vertices[i]);
-    u32 tmp = i;
-    other->SetAttributeValue(draco::AttributeValueIndex(i), &tmp);
-  }
-  mesh->SetAttribute(0, std::move(pos));
-  mesh->SetAttribute(1, std::move(other));
-  return DracoMesh{
-      .mesh = std::move(mesh),
-      .index_manager = std::move(buf),
-      .index_count = index_count,
-      .vertex_count = vertex_count,
-  };
-}
-
-Result<MeshOptimizerStats> StripifyTrianglesDraco(MatrixPrimitive& prim,
-                                                  bool degen) {
-  MeshOptimizerStatsCollector stats(prim);
-  auto draco_mesh = TRY(ToDraco(prim));
-  auto& [mesh, buf, index_count, vertex_count] = draco_mesh;
 
   PrimitiveRestartSplitter splitter(Topology::TriangleStrip, buf.vertices, ~0u);
   splitter.Reserve(buf.index_data.size());
-  draco::MeshStripifier stripifier;
-  bool ok = false;
-  if (degen) {
-    ok = stripifier.GenerateTriangleStripsWithDegenerateTriangles(
-        *mesh, splitter.OutputIterator());
-  } else {
-    ok = stripifier.GenerateTriangleStripsWithPrimitiveRestart(
-        *mesh, ~0u, splitter.OutputIterator());
+  std::vector<glm::vec3> verts;
+  for (auto v : vertices) {
+    verts.push_back(v.position);
   }
-  EXPECT(ok);
+  auto data = TRY(rsmeshopt::StripifyDraco(index_data, verts, ~0u, degen));
+  auto it = splitter.OutputIterator();
+  for (auto u : data) {
+    *it++ = u;
+  }
   prim.primitives.clear();
   for (Primitive& p : splitter.Primitives()) {
     prim.primitives.push_back(std::move(p));
