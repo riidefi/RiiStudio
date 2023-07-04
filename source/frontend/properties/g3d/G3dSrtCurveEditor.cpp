@@ -144,7 +144,7 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
   if (!ImGui::ItemAdd(c.viewport, m_imgui_id))
     return;
 
-  ImGui::ItemHoverable(c.viewport, m_imgui_id);
+  ImGui::ItemHoverable(c.viewport, m_imgui_id, ImGuiItemFlags_None);
 
   auto window = ImGui::GetCurrentWindow();
   bool is_widget_hovered = ImGui::IsItemHovered();
