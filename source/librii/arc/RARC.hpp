@@ -35,8 +35,10 @@ struct ResourceArchive {
     bool is_folder() const { return (flags & DIRECTORY) != 0; }
     bool is_special_path() const { return name == "." || name == ".."; }
 
-    bool operator==(const Node& other) const {
-      return id == other.id && name == other.name;
+    bool operator==(const Node& rhs) const {
+      return id == rhs.id && flags == rhs.flags && name == rhs.name &&
+             folder.parent == rhs.folder.parent &&
+             folder.sibling_next == rhs.folder.sibling_next && data == rhs.data;
     }
   };
 

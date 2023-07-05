@@ -19,7 +19,8 @@ OpenManyFiles(std::string_view title, std::string_view default_path,
 
 // Validates the result is a folder and does exist at the time of calling.
 Result<std::filesystem::path> OpenFolder(std::string_view title,
-                                         std::string_view default_path);
+                                         std::string_view default_path,
+										 bool must_exist = true);
 
 struct File {
   std::filesystem::path path;
