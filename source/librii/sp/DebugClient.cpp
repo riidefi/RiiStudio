@@ -1,5 +1,6 @@
 #include "DebugClient.hpp"
 #include "detail/FFI.h"
+#include <future>
 #include <memory>
 
 namespace librii::sp {
@@ -61,7 +62,6 @@ void DebugClient::GetSettingsAsync(
 } // namespace librii::sp
 
 // PROTOTYPE IMPLEMENTATION
-#include <core/util/net.hpp>
 
 class SynchronousDebugClientPrototype {
 public:
@@ -73,9 +73,6 @@ public:
 
 private:
   static SynchronousDebugClientPrototype sInstance;
-
-  asio::io_context m_io;
-  riistudio::net::TcpSocket m_server{m_io};
 };
 
 SynchronousDebugClientPrototype SynchronousDebugClientPrototype::sInstance;
@@ -89,25 +86,13 @@ SynchronousDebugClientPrototype& SynchronousDebugClientPrototype::instance() {
   return sInstance;
 }
 
-void SynchronousDebugClientPrototype::connect(std::string ip_port) {
-  // Ignores ip_port
-  m_server.connect(1234);
-}
+void SynchronousDebugClientPrototype::connect(std::string ip_port) {}
 
 void SynchronousDebugClientPrototype::sendSettings(const C_Settings& settings) {
-  s32 msg = MSG_SENDSETTINGS;
-  m_server.sendBytes(&msg, sizeof(msg));
-  m_server.sendBytes(&settings, sizeof(settings));
 }
 
 C_Settings SynchronousDebugClientPrototype::getSettings() {
-  s32 msg = MSG_GETSETTINGS;
-  m_server.sendBytes(&msg, sizeof(msg));
-  std::vector<u8> reply;
-  m_server.receiveBytes(reply);
-  assert(reply.size() == sizeof(C_Settings));
   C_Settings result{};
-  memcpy(&result, reply.data(), sizeof(result));
   return result;
 }
 
