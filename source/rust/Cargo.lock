@@ -479,16 +479,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09fc20d2ca12cb9f044c93e3bd6d32d523e6e2ec3db4f7b2939cd99026ecd3f0"
 
 [[package]]
-name = "llvm_sighandler"
-version = "0.1.0"
-dependencies = [
- "bindgen",
- "cc",
- "glob",
- "libc",
-]
-
-[[package]]
 name = "log"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -608,7 +598,6 @@ dependencies = [
  "curl",
  "cxx-build",
  "discord-rich-presence",
- "llvm_sighandler",
  "log",
  "simple_logger",
  "zip-extract",
