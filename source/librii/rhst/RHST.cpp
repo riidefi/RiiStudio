@@ -256,6 +256,16 @@ public:
                   get<int>(sam, "mapping_light_index").value_or(-1);
               sampler.camera_index =
                   get<int>(sam, "mapping_cam_index").value_or(-1);
+
+			  // Matrix
+              if (sam.contains("transformations")) {
+                auto trans = sam["transformations"];
+                sampler.scale =
+                    getVec2(trans, "scale").value_or(glm::vec2(1.0f));
+                sampler.rotate = get<f32>(trans, "rotate").value_or(0.0f);
+                sampler.trans =
+                    getVec2(trans, "translate").value_or(glm::vec2(0.0f));
+			  }
             }
           } else {
             b.min_filter = get<bool>(mat, "min_filter").value_or(true);
@@ -312,6 +322,17 @@ private:
     }
     return it->template get<T>();
   }
+
+  std::optional<glm::vec2> getVec2(auto& j, const std::string& name) {
+    auto it = j.find(name);
+    if (it == j.end()) {
+      return std::nullopt;
+    }
+    auto x = (*it)[0].template get<f32>();
+    auto y = (*it)[1].template get<f32>();
+    return glm::vec2(x, y);
+  }
+
   std::optional<glm::vec3> getVec3(auto& j, const std::string& name) {
     auto it = j.find(name);
     if (it == j.end()) {
