@@ -45,7 +45,8 @@ OpenManyFiles(std::string_view title, std::string_view default_path,
 }
 
 Result<std::filesystem::path> OpenFolder(std::string_view title,
-                                         std::string_view default_path) {
+                                         std::string_view default_path,
+                                         bool must_exist) {
   if (!FileDialogsSupported()) {
     return std::unexpected("File dialogues unsupported on this platform");
   }
@@ -57,7 +58,9 @@ Result<std::filesystem::path> OpenFolder(std::string_view title,
   }
   auto path = std::filesystem::path(folder);
   if (!std::filesystem::exists(path)) {
-    return std::unexpected("Folder doesn't exist");
+    if (must_exist)
+      return std::unexpected("Folder doesn't exist");
+    return path;
   }
   if (!std::filesystem::is_directory(path)) {
     return std::unexpected("Not a folder");

@@ -80,16 +80,17 @@ add_library(lib_frontend
  "Fonts.cpp"
  "EditorFactory.cpp"
 
+ "editors/RarcEditor.cpp"
  "editors/AssimpImporter.cpp"
  "editors/BblmEditor.cpp"
  "editors/BdofEditor.cpp"
  "editors/BfgEditor.cpp"
  "editors/BlightEditor.cpp"
  "editors/BlmapEditor.cpp"
+ "editors/BtkEditor.cpp"
  
  "properties/gc/Material/AdvTexConv.cpp"
  "properties/gc/Material/Merge.cpp"
- "editors/BtkEditor.cpp"
  "legacy_editor/views/BmdBrresOutliner.cpp" "renderer/MouseHider.cpp")
 
 add_executable(frontend 

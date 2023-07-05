@@ -498,21 +498,56 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
   return result;
 }
 
-void RecalculateArchiveIDs(
-    ResourceArchive& arc, const std::vector<ResourceArchive::Node>& calc_list) {
+void RecalculateArchiveIDs(ResourceArchive& arc) {
+  children_info_type throwaway;
+  const std::vector<ResourceArchive::Node>& calc_list =
+      rarcSortFSNodesForSave(arc, throwaway);
+
   assert(arc.nodes.size() == calc_list.size());
 
-  s16 id = -1; // Adjust for root node
+  s16 file_id = -1; // Adjust for root node
   for (auto& node : calc_list) {
     if (node.is_folder()) {
-      id++;
+      file_id++;
       continue;
     }
 
     for (auto& target : arc.nodes) {
-      if (target == node) {
-        target.id = id++;
+      if (target.id == node.id && target.name == node.name) {
+        target.id = file_id++;
         break;
+      }
+    }
+  }
+
+  std::vector<int> parent_stack = {
+      -1,
+  };
+  std::vector<int> walk_stack = {};
+  int folder_id = 0;
+
+  for (auto node = arc.nodes.begin(); node != arc.nodes.end(); node++) {
+    for (auto walk = walk_stack.begin(); walk != walk_stack.end();) {
+      if ((*walk)-- == 0) {
+        walk = walk_stack.erase(walk);
+        parent_stack.pop_back();
+      } else {
+        walk++;
+      }
+    }
+    if (node->is_folder()) {
+      if (node->name != "..") {
+        node->id = folder_id;
+        node->folder.parent = parent_stack.back();
+        if (node->name != ".") {
+          walk_stack.push_back(node->folder.sibling_next - std::distance(arc.nodes.begin(), node) - 1);
+        }
+      } else {
+        node->id = parent_stack.back();
+        node->folder.parent = parent_stack.size() > 1
+                                 ? parent_stack[parent_stack.size() - 2]
+                                 : -1;
+        parent_stack.push_back(folder_id++);
       }
     }
   }
@@ -706,8 +741,7 @@ Result<ResourceArchive> Create(std::filesystem::path root) {
     result.nodes.push_back(node);
   }
 
-  children_info_type throwaway;
-  RecalculateArchiveIDs(result, rarcSortFSNodesForSave(result, throwaway));
+  RecalculateArchiveIDs(result);
   return result;
 }
 
