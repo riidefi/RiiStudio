@@ -3,8 +3,9 @@
 #include <core/common.h>
 
 #ifdef __APPLE__
+#include <range/v3/algorithm/adjacent_find.hpp>
 namespace std {
-using ranges::result_of;
+using ::ranges::result_of;
 }
 #endif
 

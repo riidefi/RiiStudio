@@ -69,7 +69,7 @@ void decode(u8* dst, const u8* src, int width, int height,
 
 //! @brief Specifies an algorithm for downscaling/upscaling an image.
 //!
-enum ResizingAlgorithm { AVIR, Lanczos };
+enum class ResizingAlgorithm { AVIR, Lanczos };
 
 // dst and source may be equal
 // raw 8-bit RGBA resize

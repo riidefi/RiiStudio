@@ -7,12 +7,22 @@
 
 IMPORT_STD;
 
+#ifdef __APPLE__
+template <>
+struct fmt::formatter<std::filesystem::path, char>
+    : fmt::formatter<std::string> {
+  auto format(std::filesystem::path p, auto& ctx) {
+    return std::format_to(ctx.out(), "{}", p.string());
+  }
+};
+#else
 template <>
 struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
   auto format(std::filesystem::path p, format_context& ctx) {
     return formatter<std::string>::format(std::format("{}", p.string()), ctx);
   }
 };
+#endif
 
 namespace librii::crate {
 

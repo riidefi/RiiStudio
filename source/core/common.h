@@ -52,7 +52,8 @@ typedef double f64;
 #endif
 
 // No <ranges> yet
-#ifdef __APPLE__
+#if defined(__APPLE__)
+#if __cpp_lib_ranges < 202106L
 #include <range/v3/algorithm/adjacent_find.hpp>
 #include <range/v3/algorithm/any_of.hpp>
 #include <range/v3/algorithm/count.hpp>
@@ -77,6 +78,7 @@ namespace ranges {
 using namespace ::ranges;
 }
 } // namespace std
+#endif
 #endif
 
 #if defined(__APPLE__) || defined(__GCC__) || defined(__GNUC__)
