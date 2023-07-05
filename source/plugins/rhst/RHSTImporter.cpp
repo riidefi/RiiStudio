@@ -294,6 +294,10 @@ void compileMaterial(libcube::IGCMaterial& out,
               i * 3);
       gen.matrix = actual_matrix;
 
+	  mtx.scale = {sam.scale.x, sam.scale.y};
+      mtx.rotate = sam.rotate;
+      mtx.translate = {sam.trans.x, sam.trans.y};
+
 	  compileMapping(sam, mtx, gen);
 
 	  data.texMatrices.push_back(mtx);

@@ -217,6 +217,13 @@ struct ProtoSampler {
   bool enable_mip = true;
   bool mip_filter = true;
   float lod_bias = -1.0f;
+
+  // Matrix
+
+  glm::vec2 scale{1.0f, 1.0f};
+  float rotate = 1.0f;
+  glm::vec2 trans{0.0f, 0.0f};
+
 };
 
 
