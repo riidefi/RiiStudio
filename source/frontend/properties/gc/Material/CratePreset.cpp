@@ -10,6 +10,8 @@
 #include <rsl/FsDialog.hpp>
 #include <rsl/Stb.hpp>
 
+#include <librii/rhst/RHSTOptimizer.hpp>
+
 namespace libcube::UI {
 
 Result<void> tryReplace(riistudio::g3d::Material& mat) {

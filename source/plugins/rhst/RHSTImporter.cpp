@@ -8,7 +8,7 @@
 #include <librii/hx/PixMode.hpp>
 #include <librii/hx/TextureFilter.hpp>
 #include <librii/image/CheckerBoard.hpp>
-#include <librii/rhst/RHST.hpp>
+#include <librii/rhst/RHSTOptimizer.hpp>
 
 #include <oishii/reader/binary_reader.hxx>
 

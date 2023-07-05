@@ -1,6 +1,6 @@
+#include "RHSTOptimizer.hpp"
 #include "IndexBuffer.hpp"
 #include "MeshUtils.hpp"
-#include "RHST.hpp"
 #include <rsmeshopt/HaroohieTriStripifier.hpp>
 #include <rsmeshopt/TriFanMeshOptimizer.hpp>
 
