@@ -104,7 +104,7 @@ private:
   }
 
   template <typename OutputIteratorT>
-  void StoreFan(size_t center, std::span<const u32> fan,
+  bool StoreFan(size_t center, std::span<const u32> fan,
                 OutputIteratorT out_it) {
     ++num_fans_;
     std::vector<size_t> island_;
@@ -129,11 +129,15 @@ private:
     [[maybe_unused]] size_t num_verts = 1;
 
     RingIterator<size_t> ring_iterator(center, island_);
+    if (!ring_iterator.valid()) {
+      return false;
+    }
     for (auto vtx : ring_iterator) {
       *out_it++ = vtx;
       ++num_verts;
     }
     assert(num_verts == island_.size() / 3 + 2);
+    return true;
   }
 
   std::vector<std::vector<u32>>
@@ -186,7 +190,9 @@ bool TriFanMeshOptimizer::GenerateTriangleFansWithPrimitiveRestart(
     }
     auto fans = FindFansFromCenter(center, primitive_restart_index, out_it);
     for (auto& fan : fans) {
-      StoreFan(center, fan, out_it);
+      if (!StoreFan(center, fan, out_it)) {
+        return false;
+      }
       *out_it++ = primitive_restart_index;
     }
     // Effectively kill this vertex from our subgraph moving forward

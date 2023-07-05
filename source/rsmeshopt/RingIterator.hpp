@@ -56,7 +56,12 @@ public:
         edges_.push_back(edge);
       }
     }
-    sortEdges();
+    auto ok = sortEdges();
+    if (!ok) {
+      fmt::print(stderr, "Failed to sort edges; {}", ok.error());
+      valid_ = false;
+      return;
+    }
 #if LIBRII_RINGITERATOR_DEBUG
     for (size_t i = 0; i < edges_.size(); ++i) {
       fmt::print(stderr, "edge {}: ({}, {})\n", i, edges_[i].first,
@@ -115,7 +120,7 @@ public:
   Sentinel end() { return Sentinel{}; }
 
 private:
-  void sortEdges() {
+  Result<void> sortEdges() {
     std::unordered_map<int, int> valency;
     std::unordered_map<int, std::vector<int>> from_to;
     for (auto& [l, r] : edges_) {
@@ -131,23 +136,48 @@ private:
       fmt::print(stderr, "Vert: {}, Valency: {}\n", v, n);
     }
 #endif
+
+    // This old method fails here:
+    // 892->893;
+    // 895->892;
+    // 896->895;
+    // 895->896;
+    // Vert: 896, Valency: 2
+    // Vert: 895, Valency: 3
+    // Vert: 893, Valency: 1
+    // Vert: 892, Valency: 2
+    // Starting with vert 892
+    //
+    // (896) <-> (895) -> (892) -> 893
+    //
     // Pick the right start
     auto valency_tmp = valency;
+#if LIBRII_RINGITERATOR_DEBUG
+    for (auto [x, y] : from_to) {
+      std::string tmp;
+      for (auto z : y) {
+        tmp += std::to_string(z) + ",";
+      }
+      fmt::print("from_to {} -> {}\n", x, tmp);
+    }
+#endif
     std::erase_if(valency_tmp,
                   [&](auto& v) { return from_to[v.first].empty(); });
+
     auto start = std::ranges::min_element(
         valency_tmp, [&](auto& l, auto& r) { return l.second < r.second; });
     assert(start->second <= 4 && "edges_ likely contains duplicates");
     // In case of 2, it's a cycle
     std::vector<EdgeT> tmp;
     int cur = start->first;
+
 #if LIBRII_RINGITERATOR_DEBUG
-    fmt::print(stderr, "Starting with vert {}\n", cur);
+    fmt::print(stderr, "Starting with vert {} (v of {})\n", cur, start->second);
 #endif
     for (int i = 0; i < edges_.size(); ++i) {
       auto cands = from_to[cur];
       if (cands.size() == 0) {
-        assert(i + 1 == edges_.size() && "Not at end of cycle");
+        EXPECT(i + 1 == edges_.size() && "Not at end of cycle");
         break;
       }
       // If this fails, we inserted a triangle with bad winding order.
@@ -160,6 +190,7 @@ private:
     }
     tmp.push_back({cur, cur});
     edges_ = tmp;
+    return {};
   }
 
   IndexTypeT center_;
