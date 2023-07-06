@@ -89,15 +89,14 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           auto* tm = &matrices[i];
 
           auto s = tm->scale;
-          const auto rotate = glm::degrees(tm->rotate);
+          const auto rotate = tm->rotate;
           auto r = rotate;
           auto t = tm->trans;
-          ImGui::SliderFloat2("Scale", &s.x, 0.0f, 10.0f);
-          ImGui::SliderFloat("Rotate", &r, 0.0f, 360.0f);
+          ImGui::SliderFloat2("Scale", &s.x, -10.0f, 10.0f);
+          ImGui::SliderFloat("Rotate", &r, -360.0f, 360.0f);
           ImGui::SliderFloat2("Translate", &t.x, -10.0f, 10.0f);
           AUTO_PROP(mIndMatrices[i].scale, s);
-          if (r != rotate)
-            AUTO_PROP(mIndMatrices[i].rotate, glm::radians(r));
+          AUTO_PROP(mIndMatrices[i].rotate, r);
           AUTO_PROP(mIndMatrices[i].trans, t);
 
           ImGui::EndTabItem();
