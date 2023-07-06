@@ -173,65 +173,102 @@ using IndStage = librii::gx::TevStage::IndirectStage;
 IndStage drawIndStage(IndStage stage) {
   using namespace librii::gx;
 
-  int s = stage.indStageSel;
-  ImGui::Combo("Displacement Configuration", &s,
-               "Configuration 0\0"
-               "Configuration 1\0"
-               "Configuration 2\0"
-               "Configuration 3\0");
-  stage.indStageSel = s;
+  if (ImGui::BeginTabBar("Indirect Stage"_j)) {
 
-  stage.format = imcxx::Combo<IndTexFormat>("Format", stage.format,
-                                            "8 Bit\0"
-                                            "5 Bit\0"
-                                            "4 Bit\0"
-                                            "3 Bit\0");
+    if (ImGui::BeginTabItem("Simple"_j)) {
+      int s = stage.indStageSel;
+      ImGui::Combo("Displacement Configuration", &s,
+                   "Configuration 0\0"
+                   "Configuration 1\0"
+                   "Configuration 2\0"
+                   "Configuration 3\0");
+      stage.indStageSel = s;
 
-  IndTexBiasSel_H comps(stage.bias);
-  ImGui::Checkbox("Bias S component", &comps.s);
-  ImGui::Checkbox("Bias T component", &comps.t);
-  ImGui::Checkbox("Bias U component", &comps.u);
-  stage.bias = comps;
+      bool stu = stage.bias == IndTexBiasSel::stu;
+      bool last_stu = stu;
+      ImGui::Checkbox("Bias STU components", &stu);
+      if (last_stu != stu)
+        stage.bias = stu ? IndTexBiasSel::stu : IndTexBiasSel::none;
 
-  stage.matrix = imcxx::Combo("Displacement Matrix", stage.matrix,
-                              "Off\0"
-                              "Displacement Matrix 0\0"
-                              "Displacement Matrix 1\0"
-                              "Displacement Matrix 2\0"
-                              "Dynamic S 0\0"
-                              "Dynamic S 1\0"
-                              "Dynamic S 2\0"
-                              "Dynamic T 0\0"
-                              "Dynamic T 1\0"
-                              "Dynamic T 2\0");
+      stage.matrix = imcxx::Combo("Displacement Matrix", stage.matrix,
+                                  "Off\0"
+                                  "Displacement Matrix 0\0"
+                                  "Displacement Matrix 1\0"
+                                  "Displacement Matrix 2\0"
+                                  "Dynamic S 0\0"
+                                  "Dynamic S 1\0"
+                                  "Dynamic S 2\0"
+                                  "Dynamic T 0\0"
+                                  "Dynamic T 1\0"
+                                  "Dynamic T 2\0");
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("Advanced"_j)) {
 
-  const char* wrapOptions = "Off\0"
-                            "256\0"
-                            "128\0"
-                            "64\0"
-                            "32\0"
-                            "16\0"
-                            "0\0";
-  stage.wrapU = imcxx::Combo("Wrap U", stage.wrapU, wrapOptions);
-  stage.wrapV = imcxx::Combo("Wrap V", stage.wrapV, wrapOptions);
+      int s = stage.indStageSel;
+      ImGui::Combo("Displacement Configuration", &s,
+                   "Configuration 0\0"
+                   "Configuration 1\0"
+                   "Configuration 2\0"
+                   "Configuration 3\0");
+      stage.indStageSel = s;
 
-  int space = stage.addPrev ? 1 : 0;
-  ImGui::Combo("UV Space", &space,
-               "Global\0"
-               "Relative to last stage\0");
-  stage.addPrev = space == 1;
+      stage.format = imcxx::Combo<IndTexFormat>("Format", stage.format,
+                                                "8 Bit\0"
+                                                "5 Bit\0"
+                                                "4 Bit\0"
+                                                "3 Bit\0");
 
-  int affects = stage.utcLod ? 1 : 0;
-  ImGui::Combo("Target", &affects,
-               "Base + MipMaps\0"
-               "Base only\0");
-  stage.utcLod = affects == 1;
+      IndTexBiasSel_H comps(stage.bias);
+      ImGui::Checkbox("Bias S component", &comps.s);
+      ImGui::Checkbox("Bias T component", &comps.t);
+      ImGui::Checkbox("Bias U component", &comps.u);
+      stage.bias = comps;
 
-  stage.alpha = imcxx::Combo("Alpha", stage.alpha,
-                             "Off\0"
-                             "S\0"
-                             "T\0"
-                             "U\0");
+      stage.matrix = imcxx::Combo("Displacement Matrix", stage.matrix,
+                                  "Off\0"
+                                  "Displacement Matrix 0\0"
+                                  "Displacement Matrix 1\0"
+                                  "Displacement Matrix 2\0"
+                                  "Dynamic S 0\0"
+                                  "Dynamic S 1\0"
+                                  "Dynamic S 2\0"
+                                  "Dynamic T 0\0"
+                                  "Dynamic T 1\0"
+                                  "Dynamic T 2\0");
+
+      const char* wrapOptions = "Off\0"
+                                "256\0"
+                                "128\0"
+                                "64\0"
+                                "32\0"
+                                "16\0"
+                                "0\0";
+      stage.wrapU = imcxx::Combo("Wrap U", stage.wrapU, wrapOptions);
+      stage.wrapV = imcxx::Combo("Wrap V", stage.wrapV, wrapOptions);
+
+      int space = stage.addPrev ? 1 : 0;
+      ImGui::Combo("UV Space", &space,
+                   "Global\0"
+                   "Relative to last stage\0");
+      stage.addPrev = space == 1;
+
+      int affects = stage.utcLod ? 1 : 0;
+      ImGui::Combo("Target", &affects,
+                   "Base + MipMaps\0"
+                   "Base only\0");
+      stage.utcLod = affects == 1;
+
+      stage.alpha = imcxx::Combo("Alpha", stage.alpha,
+                                 "Off\0"
+                                 "S\0"
+                                 "T\0"
+                                 "U\0");
+      ImGui::EndTabItem();
+    }
+  }
+  ImGui::EndTabBar();
+
   return stage;
 }
 
