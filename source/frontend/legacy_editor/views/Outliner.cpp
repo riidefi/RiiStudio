@@ -14,13 +14,62 @@ IMPORT_STD;
 bool IsAdvancedMode();
 
 namespace riistudio::frontend {
+static ImVec4 Clr(u32 x) {
+  return ImVec4{
+      static_cast<float>(x >> 16) / 255.0f,
+      static_cast<float>((x >> 8) & 0xff) / 255.0f,
+      static_cast<float>(x & 0xff) / 255.0f,
+      1.0f,
+  };
+}
+static std::map<std::string, Node::RichTypeInfo> richtypes{
+    {"bone", {(const char*)ICON_FA_BONE, Clr(0xFFCA3A), "Bone"}},
+    {"material", {(const char*)ICON_FA_PAINT_BRUSH, Clr(0x6A4C93), "Material"}},
+    {"texture", {(const char*)ICON_FA_IMAGE, Clr(0x8AC926), "Texture"}},
+    {"polygon", {(const char*)ICON_FA_DRAW_POLYGON, Clr(0xFFFFFF), "Polygon"}},
+    {"model", {(const char*)ICON_FA_CUBE, Clr(0x1982C4), "Model"}},
+    {"scene", {(const char*)ICON_FA_SHAPES, Clr(0xFFFFFF), "Scene"}},
+    // g3d
+    {"vc", {(const char*)ICON_FA_BRUSH, Clr(0xFFFFFF), "Vertex Color"}},
+    {"srt0",
+     {(const char*)ICON_FA_WAVE_SQUARE, Clr(0xFF595E),
+      "Texture Matrix Animation"}},
+};
+
+std::optional<Node::RichTypeInfo> GetRichTypeInfo(const kpi::IObject* node) {
+  if (auto* x = dynamic_cast<const lib3d::Bone*>(node)) {
+    return richtypes["bone"];
+  }
+  if (auto* x = dynamic_cast<const lib3d::Material*>(node)) {
+    return richtypes["material"];
+  }
+  if (auto* x = dynamic_cast<const lib3d::Texture*>(node)) {
+    return richtypes["texture"];
+  }
+  if (auto* x = dynamic_cast<const lib3d::Polygon*>(node)) {
+    return richtypes["polygon"];
+  }
+  if (auto* x = dynamic_cast<const lib3d::Model*>(node)) {
+    return richtypes["model"];
+  }
+  if (auto* x = dynamic_cast<const lib3d::Scene*>(node)) {
+    return richtypes["scene"];
+  }
+  if (auto* x = dynamic_cast<const g3d::ColorBuffer*>(node)) {
+    return richtypes["vc"];
+  }
+  if (auto* x = dynamic_cast<const g3d::SRT0*>(node)) {
+    return richtypes["srt0"];
+  }
+  return {};
+}
 
 bool ShouldBeDefaultOpen(const Node& folder) {
   // Polygons
-  if (folder.type_icon == (const char*)ICON_FA_DRAW_POLYGON)
+  if (folder.rti.type_icon == (const char*)ICON_FA_DRAW_POLYGON)
     return false;
   // Vertex Colors
-  if (folder.type_icon == (const char*)ICON_FA_BRUSH)
+  if (folder.rti.type_icon == (const char*)ICON_FA_BRUSH)
     return false;
 
   return true;
@@ -82,9 +131,9 @@ std::string NameObject(const kpi::IObject* obj, int i) {
   std::string base = obj->getName();
 
   if (base == "TODO") {
-    const auto rich = kpi::RichNameManager::getInstance().getRich(obj);
-    if (rich.hasEntry())
-      base = rich.getNameSingular() + " #" + std::to_string(i);
+    const auto rich = GetRichTypeInfo(obj);
+    if (rich)
+      base = rich->type_name + " #" + std::to_string(i);
   }
 
   std::string extra;
@@ -183,10 +232,7 @@ void SetNodeFromKpiObj(Node& tmp, kpi::ICollection& sampler, EditorWindow& ed,
                        size_t i, GenericCollectionOutliner* outliner) {
   auto* node = dynamic_cast<kpi::INode*>(sampler.atObject(i));
   auto public_name = NameObject(sampler.atObject(i), i);
-  auto rich = kpi::RichNameManager::getInstance().getRich(sampler.atObject(i));
-  bool is_rich = kpi::RichNameManager::getInstance()
-                     .getRich(sampler.atObject(i))
-                     .hasEntry();
+  auto rich = GetRichTypeInfo(sampler.atObject(i));
 
   auto* obj = sampler.atObject(i);
   std::function<void(OutlinerWidget*)> ctx_draw =
@@ -202,16 +248,19 @@ void SetNodeFromKpiObj(Node& tmp, kpi::ICollection& sampler, EditorWindow& ed,
       };
   tmp = Node{
       .nodeType = NODE_OBJECT,
-      .type_icon = rich.getIconSingular(),
-      .type_icon_color = rich.getIconColor(),
-      .type_name = rich.getNameSingular(),
+      .rti =
+          {
+              .type_icon = rich ? rich->type_icon : "?",
+              .type_icon_color = rich ? rich->type_icon_color : Clr(0xFFFFFF),
+              .type_name = rich ? rich->type_name : "???",
+          },
       .icons_right = GetNodeIcons(*obj),
       .draw_context_menu_fn = ctx_draw,
       .draw_modal_fn = modal_draw,
       .public_name = public_name,
       .obj = obj,
       .is_container = node != nullptr,
-      .is_rich = is_rich,
+      .is_rich = rich.has_value(),
       .display_id_relative_to_parent = static_cast<int>(i),
   };
   if (auto* bone = dynamic_cast<riistudio::lib3d::Bone*>(obj)) {
@@ -234,12 +283,15 @@ void SetFolderFromKpi(Node& tmp, kpi::ICollection* folder, std::string key,
 
   // If no entry, we can't determine the rich name...
   if (folder->size() != 0) {
-    auto rich =
-        kpi::RichNameManager::getInstance().getRich(folder->atObject(0));
+    auto rich = GetRichTypeInfo(folder->atObject(0));
 
-    icon_pl = rich.getIconPlural();
-    name_pl = rich.getNamePlural();
-    icon_color = rich.getIconColor();
+    if (!rich) {
+      rich = Node::RichTypeInfo{};
+    }
+
+    icon_pl = rich->type_icon;
+    name_pl = rich->type_name;
+    icon_color = rich->type_icon_color;
   } else {
     name_pl = typeid(*folder).name();
   }
@@ -250,9 +302,12 @@ void SetFolderFromKpi(Node& tmp, kpi::ICollection* folder, std::string key,
       };
   tmp = Node{
       .nodeType = NODE_FOLDER,
-      .type_icon = icon_pl,
-      .type_icon_color = icon_color,
-      .type_name = name_pl,
+      .rti =
+          {
+              .type_icon = icon_pl,
+              .type_icon_color = icon_color,
+              .type_name = name_pl,
+          },
       .add_new_fn = std::bind(AddNew, folder),
       .delete_child_fn = delete_child_fn,
       .key = key,
@@ -269,9 +324,7 @@ private:
       return true;
 
     // Do not display folders without rich type info (at the first child)
-    if (!kpi::RichNameManager::getInstance()
-             .getRich(folder.atObject(0))
-             .hasEntry())
+    if (!GetRichTypeInfo(folder.atObject(0)))
       return false;
 
     return true;
@@ -283,7 +336,7 @@ private:
       return false;
 
     // We rely on rich type info to infer icons
-    if (!kpi::RichNameManager::getInstance().getRich(&child).hasEntry())
+    if (!GetRichTypeInfo(&child))
       return false;
 
     return true;

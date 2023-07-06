@@ -14,8 +14,9 @@ void OutlinerWidget::AddNewCtxMenu(Node& folder) {
     return;
   const auto id_str = std::string("MCtx") + folder.key;
   if (ImGui::BeginPopupContextItem(id_str.c_str())) {
-    ImGui::TextColored(folder.type_icon_color, "%s", folder.type_icon.c_str());
-    ImGui::TextUnformatted((" " + folder.type_name + ": ").c_str());
+    ImGui::TextColored(folder.rti.type_icon_color, "%s",
+                       folder.rti.type_icon.c_str());
+    ImGui::TextUnformatted((" " + folder.rti.type_name + ": ").c_str());
     ImGui::Separator();
 
     {
@@ -37,8 +38,8 @@ bool OutlinerWidget::PushFolder(Node& folder, u32 numChildren) {
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
   }
   bool opened =
-      FancyFolderNode(folder.type_icon_color, folder.type_icon.c_str(),
-                      folder.type_name, numChildren);
+      FancyFolderNode(folder.rti.type_icon_color, folder.rti.type_icon.c_str(),
+                      folder.rti.type_name, numChildren);
   AddNewCtxMenu(folder);
   if (!opened) {
     return false;
@@ -55,10 +56,10 @@ bool OutlinerWidget::DrawObject(Node& child, size_t i, bool hasChildren,
 
   auto draw_image = [&](auto* img, float size) { drawImageIcon(img, size); };
   const bool leaf = !child.is_container && !hasChildren;
-  auto fancy =
-      FancyObject(i, curNodeSelected, child.type_icon_color, child.type_icon,
-                  child.public_name, child.display_id_relative_to_parent, leaf,
-                  child.icons_right, draw_image);
+  auto fancy = FancyObject(i, curNodeSelected, child.rti.type_icon_color,
+                           child.rti.type_icon, child.public_name,
+                           child.display_id_relative_to_parent, leaf,
+                           child.icons_right, draw_image);
   if (fancy.thereWasAClick) {
     update.mode = imcxx::ContiguousSelection::SELECT_CLICK;
     update.alreadySelected = curNodeSelected;
@@ -74,10 +75,11 @@ bool OutlinerWidget::DrawObject(Node& child, size_t i, bool hasChildren,
     setActiveModal(&child);
   }
   if (ImGui::BeginPopup(id.c_str(), ContextFlags)) {
-    ImGui::TextColored(child.type_icon_color, "%s", child.type_icon.c_str());
+    ImGui::TextColored(child.rti.type_icon_color, "%s",
+                       child.rti.type_icon.c_str());
     ImGui::SameLine();
     ImGui::TextUnformatted(
-        (" " + child.type_name + ": " + child.public_name).c_str());
+        (" " + child.rti.type_name + ": " + child.public_name).c_str());
     ImGui::Separator();
 
     child.draw_context_menu_fn(this);

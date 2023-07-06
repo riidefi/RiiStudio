@@ -18,12 +18,14 @@ struct Node {
   // This should only increase or decrease by one per node
   int indent = 0;
 
-  // Images can be used, with a special character that indexes the font sheet
-  // See: FontAwesome.h
-  std::string type_icon = "(?)";
-  ImVec4 type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f};
-  // RichName::getNameSingular()
-  std::string type_name = "Unknown Thing";
+  struct RichTypeInfo {
+    // Images can be used, with a special character that indexes the font sheet
+    // See: FontAwesome.h
+    std::string type_icon = "(?)";
+    ImVec4 type_icon_color = {1.0f, 1.0f, 1.0f, 1.0f};
+    // RichName::getNameSingular()
+    std::string type_name = "Unknown Thing";
+  } rti;
 
   ///////////////////////////////////////////////////////
   // FOLDER ONLY
