@@ -241,6 +241,20 @@ void compileMapping(const librii::rhst::ProtoSampler& in,
     mtx.camIdx = in.camera_index;
   }
 }
+
+librii::gx::ColorComponent compileSwapTableColor(librii::rhst::Colors in) {
+  switch (in) {
+  case librii::rhst::Colors::Red:
+	return librii::gx::ColorComponent::r;
+  case librii::rhst::Colors::Green:
+	return librii::gx::ColorComponent::g;
+  case librii::rhst::Colors::Blue:
+        return librii::gx::ColorComponent::b;
+  case librii::rhst::Colors::Alpha:
+        return librii::gx::ColorComponent::a;
+  }
+}
+
 librii::gx::ColorS10 vec4ToColorS10(glm::vec4 in) {
   librii::gx::ColorS10 out;
 	out.r = in.r;
@@ -294,6 +308,7 @@ void compileMaterial(libcube::IGCMaterial& out,
               i * 3);
       gen.matrix = actual_matrix;
 
+
 	  mtx.scale = {sam.scale.x, sam.scale.y};
       mtx.rotate = sam.rotate;
       mtx.translate = {sam.trans.x, sam.trans.y};
@@ -329,8 +344,6 @@ void compileMaterial(libcube::IGCMaterial& out,
 	} else {
 		compileAlphaMode(data, in.alpha_mode);
 	}
-
-	
 
   if (auto* g3dmat = dynamic_cast<riistudio::g3d::Material*>(&out)) {
     g3dmat->lightSetIndex = in.lightset_index;
@@ -370,6 +383,18 @@ void compileMaterial(libcube::IGCMaterial& out,
     data.tevKonstColors[i] = vec4ToColor(in.tevKonstColors[i]);
   }
   data.mStages[0] = wip;
+
+  // Swap Table
+  for (int i = 0; i < 4; i++) {
+    librii::gx::SwapTableEntry entry;
+    librii::rhst::ProtoSwapTableEntry ste = in.swapTable[i];
+    entry.r = compileSwapTableColor(ste.r);
+    entry.g = compileSwapTableColor(ste.g);
+    entry.b = compileSwapTableColor(ste.b);
+    entry.a = compileSwapTableColor(ste.a);
+
+	data.mSwapTable[i] = entry;
+  }
 
   librii::gx::ChannelControl ctrl;
   ctrl.enabled = false;

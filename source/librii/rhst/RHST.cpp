@@ -226,6 +226,32 @@ public:
           b.fog_index = get<s32>(mat, "fog").value_or(0);
           b.preset_path_mdl0mat =
               get<std::string>(mat, "preset_path_mdl0mat").value_or("");
+
+		  // Swap Table
+		  if (mat.contains("swap_table") && mat["swap_table"].is_array()) {
+            auto swap = mat["swap_table"];
+            int i = 0;
+            for (auto entry : swap) {
+              b.swapTable[i].r =
+                  magic_enum::enum_cast<Colors>(
+                      cap(get<std::string>(entry, "red").value_or("Red")))
+                      .value_or(Colors::Red);
+              b.swapTable[i].g =
+                  magic_enum::enum_cast<Colors>(
+                      cap(get<std::string>(entry, "green").value_or("Green")))
+                      .value_or(Colors::Green);
+              b.swapTable[i].b =
+                  magic_enum::enum_cast<Colors>(
+                      cap(get<std::string>(entry, "blue").value_or("Blue")))
+                      .value_or(Colors::Blue);
+              b.swapTable[i].a =
+                  magic_enum::enum_cast<Colors>(
+                      cap(get<std::string>(entry, "alpha").value_or("Alpha")))
+                      .value_or(Colors::Alpha);
+              i++;
+			}
+          }
+
           if (mat.contains("samplers") &&
               mat["samplers"].is_array()) {
             auto samplers = mat["samplers"];
