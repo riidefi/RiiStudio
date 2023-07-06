@@ -473,6 +473,20 @@ class JRESMaterialPanel(bpy.types.Panel):
 					if len(obj.data.uv_layers) > smp.smp_map_uv:
 						split.label(text=obj.data.uv_layers[smp.smp_map_uv].name,icon='GROUP_UVS')
 
+				# # Matrix
+				box = box.box()
+				col = box.column()
+				row = col.row()
+				row.label(text="Scale")
+				row.prop(smp, "smp_mtx_scale", text="")
+				row = col.row()
+				row.label(text="Rotate")
+				row.prop(smp, "smp_mtx_rotate", text="")
+
+				row = col.row()
+				row.label(text="Translate")
+				row.prop(smp, "smp_mtx_translate", text="")
+
 				# UV Wrapping
 				box = layout.box()
 				box.label(text="UV Wrapping Mode", icon='GROUP_UVS')
@@ -885,12 +899,33 @@ def export_textures(textures_path,selection,params):
 		export_tex(tex, textures_path, use_wimgt)
 
 def build_rs_mat(mat, texture_name):
+	# Swap Table
+	swap_table = []
+	for i in range(4):
+		item = []
+		prop = getattr(mat, f"tev_swap_{i}")
+		item.append(prop.red)
+		item.append(prop.green)
+		item.append(prop.blue)
+		item.append(prop.alpha)
+
+		swap_table.append(item)
+	
+	# Samplers
+	smps = []
+	imgTex = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage' and n.smp_disabled == False]
+	imgTex.sort(key=lambda x: x.smp_index, reverse=True)
+	for i in imgTex:
+		if i.image:
+			bult = build_rs_sampler(i)
+			smps.append(bult)
+
 	return {
 		'name': mat.name,
 		'texture': "",
 		# Texture element soon to be replaced with texmap array
-		'samplers': build_rs_material_samplers(mat, texture_name),
-		'swap_table': build_rs_mat_swap_table(mat),
+		'samplers': smps,
+		'swap_table': swap_table,
 		# Culling / Display Surfaces
 		'display_front': mat.jres_display_front,
 		'display_back': mat.jres_display_back,
@@ -905,43 +940,27 @@ def build_rs_mat(mat, texture_name):
 		'preset_path_mdl0mat': bpy.path.abspath(mat.preset_path_mdl0mat_or_rspreset),
 	}
 
-def build_rs_material_samplers(mat, texture_name):
-	smps = []
-	imgTex = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage' and n.smp_disabled == False]
-	imgTex.sort(key=lambda x: x.smp_index, reverse=True)
-	for i in imgTex:
-		if i.image:
-			bult = build_rs_sampler(i)
-			smps.append(bult)
 
-	return smps
 
-def build_rs_sampler(mat):
-	return {
-		'texture': get_filename_without_extension(mat.image.name),
-		'mapping': mat.smp_map_mode,
-		"wrap_u": mat.smp_wrap_u,
-		"wrap_v": mat.smp_wrap_v,
-		'min_filter': mat.smp_filter_min == 'linear',
-		'mag_filter': mat.smp_filter_mag == 'linear',
-		'use_mip': mat.smp_use_mip,
-		'mip_filter': mat.smp_filter_mip == 'linear',
-		'lod_bias': mat.smp_lod_bias,
+def build_rs_sampler(smp):
+	transformations = {
+		'scale': [smp.smp_mtx_scale[0],smp.smp_mtx_scale[1]],
+		'rotate': smp.smp_mtx_rotate*(3.141519/180),
+		'translate': [smp.smp_mtx_translate[0],smp.smp_mtx_translate[1]],
 	}
 
-def build_rs_mat_swap_table(mat):
-	out = []
-	for i in range(4):
-		item = []
-		prop = getattr(mat, f"tev_swap_{i}")
-		item.append(prop.red)
-		item.append(prop.green)
-		item.append(prop.blue)
-		item.append(prop.alpha)
-
-		out.append(item)
-
-	return out
+	return {
+		'texture': get_filename_without_extension(smp.image.name),
+		'mapping': smp.smp_map_mode,
+		'transformations': transformations,
+		"wrap_u": smp.smp_wrap_u,
+		"wrap_v": smp.smp_wrap_v,
+		'min_filter': smp.smp_filter_min == 'linear',
+		'mag_filter': smp.smp_filter_mag == 'linear',
+		'use_mip': smp.smp_use_mip,
+		'mip_filter': smp.smp_filter_mip == 'linear',
+		'lod_bias': smp.smp_lod_bias,
+	}
 
 def build_rs_mat_pe(mat):
 	return{
@@ -1312,7 +1331,7 @@ def export_jres(context, params : RHSTExportParams):
 	start = perf_counter()
 
 	obj = {
-		'head': {'generator': "RiiStudio Blender", 'type': "JMDL2", 'version': "Beta 1", },
+		'head': {'generator': "RiiStudio Blender", 'type': "JMDL2", 'version': "Beta 2", },
 		'body': current_data,
 	}
 	print(params.dest_path)
@@ -2236,6 +2255,24 @@ def register_tex():
 	tex_type.smp_index = IntProperty(
 		name="Index",
 		default=1000
+	)
+
+	# Matrix
+	tex_type.smp_mtx_translate = bpy.props.FloatVectorProperty(
+		name="Translation",
+		size=2,
+		default = [0.0,0.0],
+	)
+	tex_type.smp_mtx_rotate = FloatProperty(
+		name="Rotation",
+		default=0,
+		min=0,
+		max=360,
+	)
+	tex_type.smp_mtx_scale = bpy.props.FloatVectorProperty(
+		name="Scale",
+		size=2,
+		default=[1.0,1.0]
 	)
 
 
