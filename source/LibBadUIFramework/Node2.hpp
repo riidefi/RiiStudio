@@ -317,7 +317,6 @@ public:
     return *this;
   }
 
-private:
   ICollection* low = nullptr;
 };
 

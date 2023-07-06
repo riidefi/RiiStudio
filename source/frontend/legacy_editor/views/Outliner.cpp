@@ -228,191 +228,6 @@ public:
   std::optional<std::function<void()>> activeModal;
 };
 
-void SetNodeFromKpiObj(Node& tmp, kpi::ICollection& sampler, EditorWindow& ed,
-                       size_t i, GenericCollectionOutliner* outliner) {
-  auto* node = dynamic_cast<kpi::INode*>(sampler.atObject(i));
-  auto public_name = NameObject(sampler.atObject(i), i);
-  auto rich = GetRichTypeInfo(sampler.atObject(i));
-
-  auto* obj = sampler.atObject(i);
-  std::function<void(OutlinerWidget*)> ctx_draw =
-      [DrawCtxMenuFor = DrawCtxMenuFor, obj = obj](OutlinerWidget* widget) {
-        auto& ed = ((GenericCollectionOutliner*)(widget))->ed;
-        DrawCtxMenuFor(obj, ed);
-      };
-
-  std::function<void(OutlinerWidget*)> modal_draw =
-      [DrawModalFor = DrawModalFor, obj = obj](OutlinerWidget* widget) {
-        auto& ed = ((GenericCollectionOutliner*)(widget))->ed;
-        DrawModalFor(obj, ed);
-      };
-  tmp = Node{
-      .nodeType = NODE_OBJECT,
-      .rti =
-          {
-              .type_icon = rich ? rich->type_icon : "?",
-              .type_icon_color = rich ? rich->type_icon_color : Clr(0xFFFFFF),
-              .type_name = rich ? rich->type_name : "???",
-          },
-      .icons_right = GetNodeIcons(*obj),
-      .draw_context_menu_fn = ctx_draw,
-      .draw_modal_fn = modal_draw,
-      .public_name = public_name,
-      .obj = obj,
-      .is_container = node != nullptr,
-      .is_rich = rich.has_value(),
-      .display_id_relative_to_parent = static_cast<int>(i),
-  };
-  if (auto* bone = dynamic_cast<riistudio::lib3d::Bone*>(obj)) {
-    auto parent = bone->getBoneParent();
-    int depth = 0;
-    while (parent >= 0) {
-      bone = dynamic_cast<riistudio::lib3d::Bone*>(
-          obj->collectionOf->atObject(parent));
-      parent = bone->getBoneParent();
-      ++depth;
-    }
-    tmp.indent = depth;
-  }
-}
-void SetFolderFromKpi(Node& tmp, kpi::ICollection* folder, std::string key,
-                      GenericCollectionOutliner* outliner) {
-  std::string icon_pl = "?";
-  std::string name_pl = "Unknowns";
-  ImVec4 icon_color = {1.0f, 1.0f, 1.0f, 1.0f};
-
-  // If no entry, we can't determine the rich name...
-  if (folder->size() != 0) {
-    auto rich = GetRichTypeInfo(folder->atObject(0));
-
-    if (!rich) {
-      rich = Node::RichTypeInfo{};
-    }
-
-    icon_pl = rich->type_icon;
-    name_pl = rich->type_name;
-    icon_color = rich->type_icon_color;
-  } else {
-    name_pl = typeid(*folder).name();
-  }
-  std::function<void(size_t)> delete_child_fn =
-      [node = folder, outliner = outliner](size_t i) {
-        DeleteChild(node, i);
-        outliner->activeModal = {};
-      };
-  tmp = Node{
-      .nodeType = NODE_FOLDER,
-      .rti =
-          {
-              .type_icon = icon_pl,
-              .type_icon_color = icon_color,
-              .type_name = name_pl,
-          },
-      .add_new_fn = std::bind(AddNew, folder),
-      .delete_child_fn = delete_child_fn,
-      .key = key,
-      .can_create_new = CanCreateNew(key),
-  };
-  tmp.default_open = ShouldBeDefaultOpen(tmp);
-}
-
-class MyTreeFlattener {
-private:
-  static bool FilterFolder(const kpi::ICollection& folder) {
-    // Do not show empty folders
-    if (folder.size() == 0)
-      return true;
-
-    // Do not display folders without rich type info (at the first child)
-    if (!GetRichTypeInfo(folder.atObject(0)))
-      return false;
-
-    return true;
-  }
-  static bool FilterChild(const kpi::IObject& child, TFilter& filter) {
-    auto* node = dynamic_cast<const kpi::INode*>(&child);
-    bool container = node != nullptr && node->numFolders() > 0;
-    if (!container && !filter.test(child.getName()))
-      return false;
-
-    // We rely on rich type info to infer icons
-    if (!GetRichTypeInfo(&child))
-      return false;
-
-    return true;
-  }
-
-  void FromFolder(kpi::ICollection& folder, std::string key, int depth,
-                  std::function<bool(const kpi::ICollection&)> filterFolder,
-                  std::function<bool(const kpi::IObject&)> filterChild,
-                  bool root) {
-    if (!filterFolder(folder)) {
-      return;
-    }
-    if (!root) {
-      Node tmp;
-      assert(mOutliner != nullptr);
-      SetFolderFromKpi(tmp, &folder, key, mOutliner);
-      auto& node = mNodes.emplace_back(tmp);
-      node.indent = depth;
-      node.nodeType = NODE_FOLDER;
-      node.__numChildren = folder.size();
-      ++depth;
-    }
-    for (size_t i = 0; i < folder.size(); ++i) {
-      auto* child = folder.atObject(i);
-      assert(child != nullptr);
-      FromChild(*child, i, depth, filterFolder, filterChild);
-    }
-  }
-  void FromChild(kpi::IObject& child, size_t i, int depth,
-                 std::function<bool(const kpi::ICollection&)> filterFolder,
-                 std::function<bool(const kpi::IObject&)> filterChild) {
-    if (!filterChild(child)) {
-      return;
-    }
-    Node tmp;
-    assert(child.collectionOf);
-    assert(mEditor != nullptr);
-    assert(mOutliner != nullptr);
-    SetNodeFromKpiObj(tmp, *child.collectionOf, *mEditor, i, mOutliner);
-    auto& node = mNodes.emplace_back(tmp);
-    node.indent += depth;
-    node.nodeType = NODE_OBJECT;
-    if (auto* node = dynamic_cast<kpi::INode*>(&child)) {
-      for (size_t i = 0; i < node->numFolders(); ++i) {
-        auto* folder = node->folderAt(i);
-        assert(folder != nullptr);
-        FromFolder(*folder, node->idAt(i), depth + 1, filterFolder, filterChild,
-                   /*root*/ false);
-      }
-    }
-  }
-  std::vector<Node>&& TakeResult() { return std::move(mNodes); }
-
-public:
-  static std::vector<Node> Flatten(kpi::ICollection& folder, TFilter& objFilter,
-                                   GenericCollectionOutliner& outliner,
-                                   EditorWindow& editor) {
-    if (!FilterFolder(folder))
-      return {};
-    MyTreeFlattener instance(outliner, editor);
-    instance.FromFolder(
-        folder, "ROOT", 0, FilterFolder,
-        [&](auto& child) { return FilterChild(child, objFilter); },
-        /*root*/ true);
-    return instance.TakeResult();
-  }
-
-private:
-  MyTreeFlattener(GenericCollectionOutliner& outliner, EditorWindow& editor)
-      : mOutliner(&outliner), mEditor(&editor) {}
-
-  GenericCollectionOutliner* mOutliner = nullptr;
-  EditorWindow* mEditor = nullptr;
-  std::vector<Node> mNodes;
-};
-
 GenericCollectionOutliner::GenericCollectionOutliner(
     kpi::INode& host, SelectionManager& selection, EditorWindow& ed)
     : StudioWindow("Outliner"), mHost(host), mSelection(selection), ed(ed) {
@@ -427,6 +242,292 @@ GenericCollectionOutliner::~GenericCollectionOutliner() {
   if (it != mSelection.mUndoRedoCbs.end()) {
     mSelection.mUndoRedoCbs.erase(it);
   }
+}
+
+Node HeaderBar(const char* key, int indent, auto* folder, auto* outliner) {
+  std::function<void(size_t)> delete_child_fn =
+      [node = folder, outliner = outliner](size_t i) {
+        DeleteChild(node, i);
+        outliner->activeModal = {};
+      };
+  return Node{
+      .nodeType = NODE_FOLDER,
+      .indent = indent,
+      .rti = richtypes[key],
+      .add_new_fn = std::bind(AddNew, folder),
+      .delete_child_fn = delete_child_fn,
+      .key = key,
+      .public_name = richtypes[key].type_name + "s",
+      .is_container = true,
+      .is_rich = true,
+  };
+}
+
+auto CtxDraw(auto* tex) {
+  std::function<void(OutlinerWidget*)> ctx_draw =
+      [DrawCtxMenuFor = DrawCtxMenuFor, obj = tex](OutlinerWidget* widget) {
+        auto& ed = ((GenericCollectionOutliner*)(widget))->ed;
+        DrawCtxMenuFor(obj, ed);
+      };
+  return ctx_draw;
+}
+auto ModalDraw(auto* tex) {
+  std::function<void(OutlinerWidget*)> modal_draw =
+      [DrawModalFor = DrawModalFor, obj = tex](OutlinerWidget* widget) {
+        auto& ed = ((GenericCollectionOutliner*)(widget))->ed;
+        DrawModalFor(obj, ed);
+      };
+  return modal_draw;
+}
+
+std::vector<Node> CollectNodes(kpi::INode* node, auto* outliner) {
+  std::vector<Node> result;
+
+  {
+    Node n{
+        .nodeType = NODE_OBJECT,
+        .rti = richtypes["scene"],
+        .public_name = "Scene #0",
+        .obj = node,
+        .is_rich = true,
+    };
+    result.push_back(n);
+  }
+  if (auto* g3d = dynamic_cast<g3d::Collection*>(node)) {
+    result.push_back(HeaderBar("model", 1, g3d->getModels().low, outliner));
+    for (int i = 0; i < g3d->getModels().size(); ++i) {
+      auto& mdl = g3d->getModels()[i];
+      Node n{
+          .indent = 2,
+          .rti = richtypes["model"],
+          .can_create_new = false,
+          .icons_right = GetNodeIcons(mdl),
+          .draw_context_menu_fn = CtxDraw(&mdl),
+          .draw_modal_fn = ModalDraw(&mdl),
+          .public_name = mdl.mName,
+          .obj = &mdl,
+          .is_container = false,
+          .is_rich = true,
+          .display_id_relative_to_parent = static_cast<int>(i),
+      };
+      result.push_back(n);
+      result.push_back(
+          HeaderBar("material", 3, mdl.getMaterials().low, outliner));
+      for (int i = 0; i < mdl.getMaterials().size(); ++i) {
+        auto& tex = mdl.getMaterials()[i];
+        Node n{
+            .indent = 4,
+            .rti = richtypes["material"],
+            .icons_right = GetNodeIcons(tex),
+            .draw_context_menu_fn = CtxDraw(&tex),
+            .draw_modal_fn = ModalDraw(&tex),
+            .public_name = tex.name,
+            .obj = &tex,
+            .is_container = false,
+            .is_rich = true,
+            .display_id_relative_to_parent = static_cast<int>(i),
+        };
+        result.push_back(n);
+      }
+      result.push_back(HeaderBar("bone", 3, mdl.getBones().low, outliner));
+      for (int i = 0; i < mdl.getBones().size(); ++i) {
+        auto& bone = mdl.getBones()[i];
+        Node n{
+            .indent = 4,
+            .rti = richtypes["bone"],
+            .can_create_new = false,
+            .icons_right = GetNodeIcons(bone),
+            .draw_context_menu_fn = CtxDraw(&bone),
+            .draw_modal_fn = ModalDraw(&bone),
+            .public_name = bone.mName,
+            .obj = &bone,
+            .is_container = false,
+            .is_rich = true,
+            .display_id_relative_to_parent = static_cast<int>(i),
+        };
+        auto parent = bone.getBoneParent();
+        int depth = 0;
+        auto* it = &bone;
+        while (parent >= 0) {
+          it = &mdl.getBones()[parent];
+          parent = it->getBoneParent();
+          ++depth;
+        }
+        n.indent += depth;
+        result.push_back(n);
+      }
+      result.push_back(HeaderBar("polygon", 3, mdl.getMeshes().low, outliner));
+      for (int i = 0; i < mdl.getMeshes().size(); ++i) {
+        auto& tex = mdl.getMeshes()[i];
+        Node n{
+            .indent = 4,
+            .rti = richtypes["polygon"],
+            .icons_right = GetNodeIcons(tex),
+            .draw_context_menu_fn = CtxDraw(&tex),
+            .draw_modal_fn = ModalDraw(&tex),
+            .public_name = tex.mName,
+            .obj = &tex,
+            .is_container = false,
+            .is_rich = true,
+            .display_id_relative_to_parent = static_cast<int>(i),
+        };
+        result.push_back(n);
+      }
+      result.push_back(HeaderBar("vc", 3, mdl.getBuf_Clr().low, outliner));
+      for (int i = 0; i < mdl.getBuf_Clr().size(); ++i) {
+        auto& tex = mdl.getBuf_Clr()[i];
+        Node n{
+            .indent = 4,
+            .rti = richtypes["vc"],
+            .icons_right = GetNodeIcons(tex),
+            .draw_context_menu_fn = CtxDraw(&tex),
+            .draw_modal_fn = ModalDraw(&tex),
+            .public_name = tex.mName,
+            .obj = &tex,
+            .is_container = false,
+            .is_rich = true,
+            .display_id_relative_to_parent = static_cast<int>(i),
+        };
+        result.push_back(n);
+      }
+    }
+    result.push_back(HeaderBar("texture", 1, g3d->getTextures().low, outliner));
+    for (int i = 0; i < g3d->getTextures().size(); ++i) {
+      auto& tex = g3d->getTextures()[i];
+      Node n{
+          .indent = 2,
+          .rti = richtypes["texture"],
+          .can_create_new = false,
+          .icons_right = GetNodeIcons(tex),
+          .draw_context_menu_fn = CtxDraw(&tex),
+          .draw_modal_fn = ModalDraw(&tex),
+          .public_name = tex.name,
+          .obj = &tex,
+          .is_container = false,
+          .is_rich = true,
+          .display_id_relative_to_parent = static_cast<int>(i),
+      };
+      result.push_back(n);
+    }
+    result.push_back(HeaderBar("srt0", 1, g3d->getAnim_Srts().low, outliner));
+    for (int i = 0; i < g3d->getAnim_Srts().size(); ++i) {
+      auto& tex = g3d->getAnim_Srts()[i];
+      Node n{
+          .indent = 2,
+          .rti = richtypes["srt0"],
+          .icons_right = GetNodeIcons(tex),
+          .draw_context_menu_fn = CtxDraw(&tex),
+          .draw_modal_fn = ModalDraw(&tex),
+          .public_name = tex.name,
+          .obj = &tex,
+          .is_container = false,
+          .is_rich = true,
+          .display_id_relative_to_parent = static_cast<int>(i),
+      };
+      result.push_back(n);
+    }
+  }
+  if (auto* g3d = dynamic_cast<j3d::Collection*>(node)) {
+    result.push_back(HeaderBar("model", 1, g3d->getModels().low, outliner));
+    for (int i = 0; i < g3d->getModels().size(); ++i) {
+      auto& mdl = g3d->getModels()[i];
+      Node n{
+          .indent = 2,
+          .rti = richtypes["model"],
+          .can_create_new = false,
+          .icons_right = GetNodeIcons(mdl),
+          .draw_context_menu_fn = CtxDraw(&mdl),
+          .draw_modal_fn = ModalDraw(&mdl),
+          .public_name = mdl.getName(),
+          .obj = &mdl,
+          .is_container = false,
+          .is_rich = true,
+          .display_id_relative_to_parent = static_cast<int>(i),
+      };
+      result.push_back(n);
+      result.push_back(
+          HeaderBar("material", 3, mdl.getMaterials().low, outliner));
+      for (int i = 0; i < mdl.getMaterials().size(); ++i) {
+        auto& tex = mdl.getMaterials()[i];
+        Node n{
+            .indent = 4,
+            .rti = richtypes["material"],
+            .icons_right = GetNodeIcons(tex),
+            .draw_context_menu_fn = CtxDraw(&tex),
+            .draw_modal_fn = ModalDraw(&tex),
+            .public_name = tex.name,
+            .obj = &tex,
+            .is_container = false,
+            .is_rich = true,
+            .display_id_relative_to_parent = static_cast<int>(i),
+        };
+        result.push_back(n);
+      }
+      result.push_back(HeaderBar("bone", 3, mdl.getBones().low, outliner));
+      for (int i = 0; i < mdl.getBones().size(); ++i) {
+        auto& bone = mdl.getBones()[i];
+        Node n{
+            .indent = 4,
+            .rti = richtypes["bone"],
+            .can_create_new = false,
+            .icons_right = GetNodeIcons(bone),
+            .draw_context_menu_fn = CtxDraw(&bone),
+            .draw_modal_fn = ModalDraw(&bone),
+            .public_name = bone.name,
+            .obj = &bone,
+            .is_container = false,
+            .is_rich = true,
+            .display_id_relative_to_parent = static_cast<int>(i),
+        };
+        auto parent = bone.getBoneParent();
+        int depth = 0;
+        auto* it = &bone;
+        while (parent >= 0) {
+          it = &mdl.getBones()[parent];
+          parent = it->getBoneParent();
+          ++depth;
+        }
+        n.indent += depth;
+        result.push_back(n);
+      }
+      result.push_back(HeaderBar("polygon", 3, mdl.getMeshes().low, outliner));
+      for (int i = 0; i < mdl.getMeshes().size(); ++i) {
+        auto& tex = mdl.getMeshes()[i];
+        Node n{
+            .indent = 4,
+            .rti = richtypes["polygon"],
+            .icons_right = GetNodeIcons(tex),
+            .draw_context_menu_fn = CtxDraw(&tex),
+            .draw_modal_fn = ModalDraw(&tex),
+            .public_name = tex.getName(),
+            .obj = &tex,
+            .is_container = false,
+            .is_rich = true,
+            .display_id_relative_to_parent = static_cast<int>(i),
+        };
+        result.push_back(n);
+      }
+    }
+    result.push_back(HeaderBar("texture", 1, g3d->getTextures().low, outliner));
+    for (int i = 0; i < g3d->getTextures().size(); ++i) {
+      auto& tex = g3d->getTextures()[i];
+      Node n{
+          .indent = 2,
+          .rti = richtypes["texture"],
+          .can_create_new = false,
+          .icons_right = GetNodeIcons(tex),
+          .draw_context_menu_fn = CtxDraw(&tex),
+          .draw_modal_fn = ModalDraw(&tex),
+          .public_name = tex.mName,
+          .obj = &tex,
+          .is_container = false,
+          .is_rich = true,
+          .display_id_relative_to_parent = static_cast<int>(i),
+      };
+      result.push_back(n);
+    }
+  }
+  return result;
 }
 
 void GenericCollectionOutliner::draw_() noexcept {
@@ -465,7 +566,7 @@ void GenericCollectionOutliner::draw_() noexcept {
   // Not great, hack
   auto* back = mHost.collectionOf;
   mHost.collectionOf = &root;
-  auto nodes = MyTreeFlattener::Flatten(root, mFilter, *this, ed);
+  std::vector<Node> nodes = CollectNodes(&mHost, this);
   if (!nodes.empty()) {
     Node bruh = nodes[0];
     DrawFolder(std::move(nodes), bruh);
