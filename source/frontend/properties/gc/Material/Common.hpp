@@ -37,27 +37,24 @@ inline auto mat_prop_ex = [](auto& delegate, auto member, auto draw) {
 
 inline bool IconSelectable(const char* text, bool selected,
                            const riistudio::lib3d::Texture* tex,
-                           riistudio::frontend::EditorWindow* ed) {
+                           auto drawIcon) {
   ImGui::PushID((tex->getName() + text).c_str());
   auto s =
       ImGui::Selectable("##ID", selected, ImGuiSelectableFlags_None, {0, 32});
   ImGui::PopID();
-  if (ed != nullptr) {
-    ImGui::SameLine();
-    ed->drawImageIcon(tex, 32);
-  }
+  drawIcon(tex, 32);
   ImGui::SameLine();
   ImGui::TextUnformatted(text);
   return s;
 }
 inline std::string TextureImageCombo(const char* current,
                                      kpi::ConstCollectionRange<Texture> images,
-                                     riistudio::frontend::EditorWindow* ed) {
+                                     auto drawIcon) {
   std::string result;
   if (ImGui::BeginCombo("Name##Img", current)) {
     for (const auto& tex : images) {
       bool selected = tex.getName() == current;
-      if (IconSelectable(tex.getName().c_str(), selected, &tex, ed)) {
+      if (IconSelectable(tex.getName().c_str(), selected, &tex, drawIcon)) {
         result = tex.getName();
       }
       if (selected)
@@ -72,7 +69,7 @@ inline int
 SamplerCombo(int current,
              rsl::array_vector<GCMaterialData::SamplerData, 8>& samplers,
              kpi::ConstCollectionRange<riistudio::lib3d::Texture> images,
-             riistudio::frontend::EditorWindow* ed, bool allow_none = false) {
+             auto drawIcon, bool allow_none = false) {
   int result = current;
 
   const auto format = [&](int id) -> std::string {
@@ -105,7 +102,7 @@ SamplerCombo(int current,
         }
       }
       if (curImg != nullptr) {
-        if (IconSelectable(format(i).c_str(), selected, curImg, ed)) {
+        if (IconSelectable(format(i).c_str(), selected, curImg, drawIcon)) {
           result = i;
         }
       }

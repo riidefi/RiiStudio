@@ -15,8 +15,11 @@ class EditorWindow;
 
 extern bool gIsAdvancedMode;
 
-namespace kpi {
+namespace riistudio::lib3d {
+struct Texture;
+}
 
+namespace kpi {
 
 template <typename T> class PropertyDelegate {
 public:
@@ -84,27 +87,30 @@ private:
 
 public:
   std::vector<T*> mAffected;
-  riistudio::frontend::EditorWindow* mEd;
+  // riistudio::frontend::EditorWindow* mEd;
 
 private:
   std::function<void(void)> mPostUpdate;
   std::function<void(const char*)> mCommit;
 
 public:
-  PropertyDelegate(std::function<void(void)> postUpdate,
-                   std::function<void(const char*)> commit, T& active,
-                   std::vector<T*> affected,
-                   riistudio::frontend::EditorWindow* ed)
-      : mActive(active), mAffected(affected), mEd(ed), mPostUpdate(postUpdate),
-        mCommit(commit) {}
+  std::function<void(const riistudio::lib3d::Texture*, u32)> mDrawIcon;
+
+  PropertyDelegate(
+      std::function<void(void)> postUpdate,
+      std::function<void(const char*)> commit, T& active,
+      std::vector<T*> affected,
+      std::function<void(const riistudio::lib3d::Texture*, u32)> drawIcon)
+      : mActive(active), mAffected(affected), mPostUpdate(postUpdate),
+        mCommit(commit), mDrawIcon(drawIcon) {}
 };
 
 template <typename T>
-inline PropertyDelegate<T> MakeDelegate(std::function<void(void)> postUpdate,
-                                        std::function<void(const char*)> commit,
-                                        T* _active,
-                                        std::vector<IObject*> affected,
-                                        riistudio::frontend::EditorWindow* ed) {
+inline PropertyDelegate<T> MakeDelegate(
+    std::function<void(void)> postUpdate,
+    std::function<void(const char*)> commit, T* _active,
+    std::vector<IObject*> affected,
+    std::function<void(const riistudio::lib3d::Texture*, u32)> drawIcon) {
   assert(_active != nullptr);
 
   std::vector<T*> _affected(affected.size());
@@ -113,7 +119,8 @@ inline PropertyDelegate<T> MakeDelegate(std::function<void(void)> postUpdate,
     assert(_affected[i] != nullptr);
   }
 
-  PropertyDelegate<T> delegate(postUpdate, commit, *_active, _affected, ed);
+  PropertyDelegate<T> delegate(postUpdate, commit, *_active, _affected,
+                               drawIcon);
   return delegate;
 }
 

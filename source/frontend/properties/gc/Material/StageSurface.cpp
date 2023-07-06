@@ -310,7 +310,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         int texid = stage.texMap;
         texid = SamplerCombo(texid, matData.samplers,
                              delegate.getActive().getTextureSource(*pScn),
-                             delegate.mEd, true);
+                             delegate.mDrawIcon, true);
         if (texid != stage.texMap) {
           for (auto* e : delegate.mAffected) {
             auto& stage = e->getMaterialData().mStages[i];

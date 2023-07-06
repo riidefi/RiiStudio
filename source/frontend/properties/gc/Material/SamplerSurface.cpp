@@ -549,7 +549,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
         if (ImGui::CollapsingHeader("Image"_j,
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
           if (auto result = TextureImageCombo(samp->mTexture.c_str(), mImgs,
-                                              delegate.mEd);
+                                              delegate.mDrawIcon);
               !result.empty()) {
             AUTO_PROP(samplers[i].mTexture, result);
           }

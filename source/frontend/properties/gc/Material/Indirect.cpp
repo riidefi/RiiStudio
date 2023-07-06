@@ -32,7 +32,7 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
           } else {
             const int texid =
                 SamplerCombo(conf.order.refMap, matData.samplers,
-                             pScn->getTextures(), delegate.mEd, true);
+                             pScn->getTextures(), delegate.mDrawIcon, true);
             if (texid != conf.order.refMap) {
               for (auto* e : delegate.mAffected) {
                 auto& order = e->getMaterialData().indirectStages[i].order;
