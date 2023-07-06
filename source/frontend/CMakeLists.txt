@@ -21,7 +21,7 @@ add_library(lib_frontend
   "legacy_editor/views/Outliner.cpp"
   "legacy_editor/views/PropertyEditor.cpp"
   "legacy_editor/views/ViewportRenderer.cpp"
-  "legacy_editor/views/OutlinerWidget.hpp" "legacy_editor/views/OutlinerWidget.cpp"
+  "widgets/OutlinerWidget.cpp"
   "properties/gc/ResizeAction.cpp"
   "properties/gc/ShaderView.cpp"
   "properties/gc/TexImageView.cpp"

@@ -32,8 +32,8 @@ struct Node {
   ///////////////////////////////////////////////////////
 
   // TODO: These functions can produce stale references
-  std::function<void()> add_new_fn;
-  std::function<void(size_t)> delete_child_fn;
+  std::function<void()> add_new_fn = nullptr;
+  std::function<void(size_t)> delete_child_fn = nullptr;
   // typename e.g. `class riistudio::g3d::Model`
   std::string key;
   bool default_open = true;
@@ -51,15 +51,15 @@ struct Node {
   std::vector<const lib3d::Texture*> icons_right;
 
   // These are not supported by folders (yet)
-  std::function<void(OutlinerWidget*)> draw_context_menu_fn;
+  std::function<void(OutlinerWidget*)> draw_context_menu_fn = nullptr;
   // TODO: Replace with modal stack
-  std::function<void(OutlinerWidget*)> draw_modal_fn;
+  std::function<void(OutlinerWidget*)> draw_modal_fn = nullptr;
 
   // Formatted, [#Stages=n]
   std::string public_name;
 
   // Only here for EditorWindow::mActive
-  kpi::IObject* obj;
+  kpi::IObject* obj = nullptr;
 
   // Potentially has sub-folders
   //

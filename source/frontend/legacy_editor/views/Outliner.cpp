@@ -1,11 +1,10 @@
 #include "Outliner.hpp"
+#include <LibBadUIFramework/ActionMenu.hpp>        // kpi::ActionMenuManager
 #include <LibBadUIFramework/RichNameManager.hpp>   // kpi::RichNameManager
 #include <frontend/legacy_editor/EditorWindow.hpp> // EditorWindow
 #include <frontend/legacy_editor/StudioWindow.hpp> // StudioWindow
-#include <plugins/gc/Export/Material.hpp>          // libcube::IGCMaterial
-// #include <regex>                          // std::regex_search
-#include "OutlinerWidget.hpp"
-#include <LibBadUIFramework/ActionMenu.hpp> // kpi::ActionMenuManager
+#include <frontend/widgets/OutlinerWidget.hpp>
+#include <plugins/gc/Export/Material.hpp> // libcube::IGCMaterial
 #include <plugins/gc/Export/Scene.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_SEARCH
 
@@ -219,7 +218,9 @@ public:
       activeModal = std::nullopt;
     } else {
       activeModal = [draw_modal = n->draw_modal_fn, f = this]() {
-        draw_modal(f);
+        if (draw_modal) {
+          draw_modal(f);
+        }
       };
     }
   }
@@ -244,11 +245,12 @@ GenericCollectionOutliner::~GenericCollectionOutliner() {
   }
 }
 
-Node HeaderBar(const char* key, int indent, auto* folder, auto* outliner) {
+Node HeaderBar(const char* key, int indent, auto* folder,
+               std::function<void()> postDeleteChild) {
   std::function<void(size_t)> delete_child_fn =
-      [node = folder, outliner = outliner](size_t i) {
+      [node = folder, postDeleteChild = postDeleteChild](size_t i) {
         DeleteChild(node, i);
-        outliner->activeModal = {};
+        postDeleteChild();
       };
   return Node{
       .nodeType = NODE_FOLDER,
@@ -280,124 +282,42 @@ auto ModalDraw(auto* tex) {
   return modal_draw;
 }
 
-std::vector<Node> CollectNodes(kpi::INode* node, auto* outliner) {
+std::vector<Node> CollectNodes(g3d::Collection* g3d,
+                               std::function<void()> outliner) {
   std::vector<Node> result;
 
-  {
+  Node n{
+      .nodeType = NODE_OBJECT,
+      .rti = richtypes["scene"],
+      .public_name = "Scene #0",
+      .obj = g3d,
+      .is_rich = true,
+  };
+  result.push_back(n);
+  result.push_back(HeaderBar("model", 1, g3d->getModels().low, outliner));
+  for (int i = 0; i < g3d->getModels().size(); ++i) {
+    auto& mdl = g3d->getModels()[i];
     Node n{
-        .nodeType = NODE_OBJECT,
-        .rti = richtypes["scene"],
-        .public_name = "Scene #0",
-        .obj = node,
+        .indent = 2,
+        .rti = richtypes["model"],
+        .can_create_new = false,
+        .icons_right = GetNodeIcons(mdl),
+        .draw_context_menu_fn = CtxDraw(&mdl),
+        .draw_modal_fn = ModalDraw(&mdl),
+        .public_name = mdl.mName,
+        .obj = &mdl,
+        .is_container = false,
         .is_rich = true,
+        .display_id_relative_to_parent = static_cast<int>(i),
     };
     result.push_back(n);
-  }
-  if (auto* g3d = dynamic_cast<g3d::Collection*>(node)) {
-    result.push_back(HeaderBar("model", 1, g3d->getModels().low, outliner));
-    for (int i = 0; i < g3d->getModels().size(); ++i) {
-      auto& mdl = g3d->getModels()[i];
+    result.push_back(
+        HeaderBar("material", 3, mdl.getMaterials().low, outliner));
+    for (int i = 0; i < mdl.getMaterials().size(); ++i) {
+      auto& tex = mdl.getMaterials()[i];
       Node n{
-          .indent = 2,
-          .rti = richtypes["model"],
-          .can_create_new = false,
-          .icons_right = GetNodeIcons(mdl),
-          .draw_context_menu_fn = CtxDraw(&mdl),
-          .draw_modal_fn = ModalDraw(&mdl),
-          .public_name = mdl.mName,
-          .obj = &mdl,
-          .is_container = false,
-          .is_rich = true,
-          .display_id_relative_to_parent = static_cast<int>(i),
-      };
-      result.push_back(n);
-      result.push_back(
-          HeaderBar("material", 3, mdl.getMaterials().low, outliner));
-      for (int i = 0; i < mdl.getMaterials().size(); ++i) {
-        auto& tex = mdl.getMaterials()[i];
-        Node n{
-            .indent = 4,
-            .rti = richtypes["material"],
-            .icons_right = GetNodeIcons(tex),
-            .draw_context_menu_fn = CtxDraw(&tex),
-            .draw_modal_fn = ModalDraw(&tex),
-            .public_name = tex.name,
-            .obj = &tex,
-            .is_container = false,
-            .is_rich = true,
-            .display_id_relative_to_parent = static_cast<int>(i),
-        };
-        result.push_back(n);
-      }
-      result.push_back(HeaderBar("bone", 3, mdl.getBones().low, outliner));
-      for (int i = 0; i < mdl.getBones().size(); ++i) {
-        auto& bone = mdl.getBones()[i];
-        Node n{
-            .indent = 4,
-            .rti = richtypes["bone"],
-            .can_create_new = false,
-            .icons_right = GetNodeIcons(bone),
-            .draw_context_menu_fn = CtxDraw(&bone),
-            .draw_modal_fn = ModalDraw(&bone),
-            .public_name = bone.mName,
-            .obj = &bone,
-            .is_container = false,
-            .is_rich = true,
-            .display_id_relative_to_parent = static_cast<int>(i),
-        };
-        auto parent = bone.getBoneParent();
-        int depth = 0;
-        auto* it = &bone;
-        while (parent >= 0) {
-          it = &mdl.getBones()[parent];
-          parent = it->getBoneParent();
-          ++depth;
-        }
-        n.indent += depth;
-        result.push_back(n);
-      }
-      result.push_back(HeaderBar("polygon", 3, mdl.getMeshes().low, outliner));
-      for (int i = 0; i < mdl.getMeshes().size(); ++i) {
-        auto& tex = mdl.getMeshes()[i];
-        Node n{
-            .indent = 4,
-            .rti = richtypes["polygon"],
-            .icons_right = GetNodeIcons(tex),
-            .draw_context_menu_fn = CtxDraw(&tex),
-            .draw_modal_fn = ModalDraw(&tex),
-            .public_name = tex.mName,
-            .obj = &tex,
-            .is_container = false,
-            .is_rich = true,
-            .display_id_relative_to_parent = static_cast<int>(i),
-        };
-        result.push_back(n);
-      }
-      result.push_back(HeaderBar("vc", 3, mdl.getBuf_Clr().low, outliner));
-      for (int i = 0; i < mdl.getBuf_Clr().size(); ++i) {
-        auto& tex = mdl.getBuf_Clr()[i];
-        Node n{
-            .indent = 4,
-            .rti = richtypes["vc"],
-            .icons_right = GetNodeIcons(tex),
-            .draw_context_menu_fn = CtxDraw(&tex),
-            .draw_modal_fn = ModalDraw(&tex),
-            .public_name = tex.mName,
-            .obj = &tex,
-            .is_container = false,
-            .is_rich = true,
-            .display_id_relative_to_parent = static_cast<int>(i),
-        };
-        result.push_back(n);
-      }
-    }
-    result.push_back(HeaderBar("texture", 1, g3d->getTextures().low, outliner));
-    for (int i = 0; i < g3d->getTextures().size(); ++i) {
-      auto& tex = g3d->getTextures()[i];
-      Node n{
-          .indent = 2,
-          .rti = richtypes["texture"],
-          .can_create_new = false,
+          .indent = 4,
+          .rti = richtypes["material"],
           .icons_right = GetNodeIcons(tex),
           .draw_context_menu_fn = CtxDraw(&tex),
           .draw_modal_fn = ModalDraw(&tex),
@@ -409,16 +329,43 @@ std::vector<Node> CollectNodes(kpi::INode* node, auto* outliner) {
       };
       result.push_back(n);
     }
-    result.push_back(HeaderBar("srt0", 1, g3d->getAnim_Srts().low, outliner));
-    for (int i = 0; i < g3d->getAnim_Srts().size(); ++i) {
-      auto& tex = g3d->getAnim_Srts()[i];
+    result.push_back(HeaderBar("bone", 3, mdl.getBones().low, outliner));
+    for (int i = 0; i < mdl.getBones().size(); ++i) {
+      auto& bone = mdl.getBones()[i];
       Node n{
-          .indent = 2,
-          .rti = richtypes["srt0"],
+          .indent = 4,
+          .rti = richtypes["bone"],
+          .can_create_new = false,
+          .icons_right = GetNodeIcons(bone),
+          .draw_context_menu_fn = CtxDraw(&bone),
+          .draw_modal_fn = ModalDraw(&bone),
+          .public_name = bone.mName,
+          .obj = &bone,
+          .is_container = false,
+          .is_rich = true,
+          .display_id_relative_to_parent = static_cast<int>(i),
+      };
+      auto parent = bone.getBoneParent();
+      int depth = 0;
+      auto* it = &bone;
+      while (parent >= 0) {
+        it = &mdl.getBones()[parent];
+        parent = it->getBoneParent();
+        ++depth;
+      }
+      n.indent += depth;
+      result.push_back(n);
+    }
+    result.push_back(HeaderBar("polygon", 3, mdl.getMeshes().low, outliner));
+    for (int i = 0; i < mdl.getMeshes().size(); ++i) {
+      auto& tex = mdl.getMeshes()[i];
+      Node n{
+          .indent = 4,
+          .rti = richtypes["polygon"],
           .icons_right = GetNodeIcons(tex),
           .draw_context_menu_fn = CtxDraw(&tex),
           .draw_modal_fn = ModalDraw(&tex),
-          .public_name = tex.name,
+          .public_name = tex.mName,
           .obj = &tex,
           .is_container = false,
           .is_rich = true,
@@ -426,95 +373,12 @@ std::vector<Node> CollectNodes(kpi::INode* node, auto* outliner) {
       };
       result.push_back(n);
     }
-  }
-  if (auto* g3d = dynamic_cast<j3d::Collection*>(node)) {
-    result.push_back(HeaderBar("model", 1, g3d->getModels().low, outliner));
-    for (int i = 0; i < g3d->getModels().size(); ++i) {
-      auto& mdl = g3d->getModels()[i];
+    result.push_back(HeaderBar("vc", 3, mdl.getBuf_Clr().low, outliner));
+    for (int i = 0; i < mdl.getBuf_Clr().size(); ++i) {
+      auto& tex = mdl.getBuf_Clr()[i];
       Node n{
-          .indent = 2,
-          .rti = richtypes["model"],
-          .can_create_new = false,
-          .icons_right = GetNodeIcons(mdl),
-          .draw_context_menu_fn = CtxDraw(&mdl),
-          .draw_modal_fn = ModalDraw(&mdl),
-          .public_name = mdl.getName(),
-          .obj = &mdl,
-          .is_container = false,
-          .is_rich = true,
-          .display_id_relative_to_parent = static_cast<int>(i),
-      };
-      result.push_back(n);
-      result.push_back(
-          HeaderBar("material", 3, mdl.getMaterials().low, outliner));
-      for (int i = 0; i < mdl.getMaterials().size(); ++i) {
-        auto& tex = mdl.getMaterials()[i];
-        Node n{
-            .indent = 4,
-            .rti = richtypes["material"],
-            .icons_right = GetNodeIcons(tex),
-            .draw_context_menu_fn = CtxDraw(&tex),
-            .draw_modal_fn = ModalDraw(&tex),
-            .public_name = tex.name,
-            .obj = &tex,
-            .is_container = false,
-            .is_rich = true,
-            .display_id_relative_to_parent = static_cast<int>(i),
-        };
-        result.push_back(n);
-      }
-      result.push_back(HeaderBar("bone", 3, mdl.getBones().low, outliner));
-      for (int i = 0; i < mdl.getBones().size(); ++i) {
-        auto& bone = mdl.getBones()[i];
-        Node n{
-            .indent = 4,
-            .rti = richtypes["bone"],
-            .can_create_new = false,
-            .icons_right = GetNodeIcons(bone),
-            .draw_context_menu_fn = CtxDraw(&bone),
-            .draw_modal_fn = ModalDraw(&bone),
-            .public_name = bone.name,
-            .obj = &bone,
-            .is_container = false,
-            .is_rich = true,
-            .display_id_relative_to_parent = static_cast<int>(i),
-        };
-        auto parent = bone.getBoneParent();
-        int depth = 0;
-        auto* it = &bone;
-        while (parent >= 0) {
-          it = &mdl.getBones()[parent];
-          parent = it->getBoneParent();
-          ++depth;
-        }
-        n.indent += depth;
-        result.push_back(n);
-      }
-      result.push_back(HeaderBar("polygon", 3, mdl.getMeshes().low, outliner));
-      for (int i = 0; i < mdl.getMeshes().size(); ++i) {
-        auto& tex = mdl.getMeshes()[i];
-        Node n{
-            .indent = 4,
-            .rti = richtypes["polygon"],
-            .icons_right = GetNodeIcons(tex),
-            .draw_context_menu_fn = CtxDraw(&tex),
-            .draw_modal_fn = ModalDraw(&tex),
-            .public_name = tex.getName(),
-            .obj = &tex,
-            .is_container = false,
-            .is_rich = true,
-            .display_id_relative_to_parent = static_cast<int>(i),
-        };
-        result.push_back(n);
-      }
-    }
-    result.push_back(HeaderBar("texture", 1, g3d->getTextures().low, outliner));
-    for (int i = 0; i < g3d->getTextures().size(); ++i) {
-      auto& tex = g3d->getTextures()[i];
-      Node n{
-          .indent = 2,
-          .rti = richtypes["texture"],
-          .can_create_new = false,
+          .indent = 4,
+          .rti = richtypes["vc"],
           .icons_right = GetNodeIcons(tex),
           .draw_context_menu_fn = CtxDraw(&tex),
           .draw_modal_fn = ModalDraw(&tex),
@@ -527,51 +391,179 @@ std::vector<Node> CollectNodes(kpi::INode* node, auto* outliner) {
       result.push_back(n);
     }
   }
+  result.push_back(HeaderBar("texture", 1, g3d->getTextures().low, outliner));
+  for (int i = 0; i < g3d->getTextures().size(); ++i) {
+    auto& tex = g3d->getTextures()[i];
+    Node n{
+        .indent = 2,
+        .rti = richtypes["texture"],
+        .can_create_new = false,
+        .icons_right = GetNodeIcons(tex),
+        .draw_context_menu_fn = CtxDraw(&tex),
+        .draw_modal_fn = ModalDraw(&tex),
+        .public_name = tex.name,
+        .obj = &tex,
+        .is_container = false,
+        .is_rich = true,
+        .display_id_relative_to_parent = static_cast<int>(i),
+    };
+    result.push_back(n);
+  }
+  result.push_back(HeaderBar("srt0", 1, g3d->getAnim_Srts().low, outliner));
+  for (int i = 0; i < g3d->getAnim_Srts().size(); ++i) {
+    auto& tex = g3d->getAnim_Srts()[i];
+    Node n{
+        .indent = 2,
+        .rti = richtypes["srt0"],
+        .icons_right = GetNodeIcons(tex),
+        .draw_context_menu_fn = CtxDraw(&tex),
+        .draw_modal_fn = ModalDraw(&tex),
+        .public_name = tex.name,
+        .obj = &tex,
+        .is_container = false,
+        .is_rich = true,
+        .display_id_relative_to_parent = static_cast<int>(i),
+    };
+    result.push_back(n);
+  }
+
   return result;
+}
+
+std::vector<Node> CollectNodes(j3d::Collection* g3d,
+                               std::function<void()> outliner) {
+  std::vector<Node> result;
+
+  Node n{
+      .nodeType = NODE_OBJECT,
+      .rti = richtypes["scene"],
+      .public_name = "Scene #0",
+      .obj = g3d,
+      .is_rich = true,
+  };
+  result.push_back(n);
+  result.push_back(HeaderBar("model", 1, g3d->getModels().low, outliner));
+  for (int i = 0; i < g3d->getModels().size(); ++i) {
+    auto& mdl = g3d->getModels()[i];
+    Node n{
+        .indent = 2,
+        .rti = richtypes["model"],
+        .can_create_new = false,
+        .icons_right = GetNodeIcons(mdl),
+        .draw_context_menu_fn = CtxDraw(&mdl),
+        .draw_modal_fn = ModalDraw(&mdl),
+        .public_name = mdl.getName(),
+        .obj = &mdl,
+        .is_container = false,
+        .is_rich = true,
+        .display_id_relative_to_parent = static_cast<int>(i),
+    };
+    result.push_back(n);
+    result.push_back(
+        HeaderBar("material", 3, mdl.getMaterials().low, outliner));
+    for (int i = 0; i < mdl.getMaterials().size(); ++i) {
+      auto& tex = mdl.getMaterials()[i];
+      Node n{
+          .indent = 4,
+          .rti = richtypes["material"],
+          .icons_right = GetNodeIcons(tex),
+          .draw_context_menu_fn = CtxDraw(&tex),
+          .draw_modal_fn = ModalDraw(&tex),
+          .public_name = tex.name,
+          .obj = &tex,
+          .is_container = false,
+          .is_rich = true,
+          .display_id_relative_to_parent = static_cast<int>(i),
+      };
+      result.push_back(n);
+    }
+    result.push_back(HeaderBar("bone", 3, mdl.getBones().low, outliner));
+    for (int i = 0; i < mdl.getBones().size(); ++i) {
+      auto& bone = mdl.getBones()[i];
+      Node n{
+          .indent = 4,
+          .rti = richtypes["bone"],
+          .can_create_new = false,
+          .icons_right = GetNodeIcons(bone),
+          .draw_context_menu_fn = CtxDraw(&bone),
+          .draw_modal_fn = ModalDraw(&bone),
+          .public_name = bone.name,
+          .obj = &bone,
+          .is_container = false,
+          .is_rich = true,
+          .display_id_relative_to_parent = static_cast<int>(i),
+      };
+      auto parent = bone.getBoneParent();
+      int depth = 0;
+      auto* it = &bone;
+      while (parent >= 0) {
+        it = &mdl.getBones()[parent];
+        parent = it->getBoneParent();
+        ++depth;
+      }
+      n.indent += depth;
+      result.push_back(n);
+    }
+    result.push_back(HeaderBar("polygon", 3, mdl.getMeshes().low, outliner));
+    for (int i = 0; i < mdl.getMeshes().size(); ++i) {
+      auto& tex = mdl.getMeshes()[i];
+      Node n{
+          .indent = 4,
+          .rti = richtypes["polygon"],
+          .icons_right = GetNodeIcons(tex),
+          .draw_context_menu_fn = CtxDraw(&tex),
+          .draw_modal_fn = ModalDraw(&tex),
+          .public_name = tex.getName(),
+          .obj = &tex,
+          .is_container = false,
+          .is_rich = true,
+          .display_id_relative_to_parent = static_cast<int>(i),
+      };
+      result.push_back(n);
+    }
+  }
+  result.push_back(HeaderBar("texture", 1, g3d->getTextures().low, outliner));
+  for (int i = 0; i < g3d->getTextures().size(); ++i) {
+    auto& tex = g3d->getTextures()[i];
+    Node n{
+        .indent = 2,
+        .rti = richtypes["texture"],
+        .can_create_new = false,
+        .icons_right = GetNodeIcons(tex),
+        .draw_context_menu_fn = CtxDraw(&tex),
+        .draw_modal_fn = ModalDraw(&tex),
+        .public_name = tex.mName,
+        .obj = &tex,
+        .is_container = false,
+        .is_rich = true,
+        .display_id_relative_to_parent = static_cast<int>(i),
+    };
+    result.push_back(n);
+  }
+  return result;
+}
+
+std::vector<Node> CollectNodes_(kpi::INode* node,
+                                std::function<void()> postDeleteChild) {
+  if (auto* g3d = dynamic_cast<g3d::Collection*>(node)) {
+    return CollectNodes(g3d, postDeleteChild);
+  }
+  if (auto* j3d = dynamic_cast<j3d::Collection*>(node)) {
+    return CollectNodes(j3d, postDeleteChild);
+  }
+  return {};
 }
 
 void GenericCollectionOutliner::draw_() noexcept {
   // activeModal = nullptr;
   mFilter.Draw();
 
-  class RootFolder final : public kpi::ICollection {
-  public:
-    RootFolder(kpi::INode& root) : mpRoot(&root) {}
-    ~RootFolder() override = default;
-
-  private:
-    std::size_t size() const override { return 1; }
-    void* at(std::size_t) override { return mpRoot; }
-    const void* at(std::size_t) const override { return mpRoot; }
-    void resize(std::size_t) override { assert(!"Not implemented"); }
-    kpi::IObject* atObject(std::size_t i) override {
-      assert(i == 0);
-      return mpRoot;
-    }
-    const kpi::IObject* atObject(std::size_t i) const override {
-      assert(i == 0);
-      return mpRoot;
-    }
-    std::string atName(std::size_t i) const override {
-      assert(i == 0);
-      return mpRoot->getName();
-    }
-    void add() override { assert(!"Not implemented"); }
-    void swap(std::size_t, std::size_t) override { assert(!"Not implemented"); }
-
-  private:
-    kpi::INode* mpRoot;
-  };
-  RootFolder root(mHost);
-  // Not great, hack
-  auto* back = mHost.collectionOf;
-  mHost.collectionOf = &root;
-  std::vector<Node> nodes = CollectNodes(&mHost, this);
+  auto postDeleteChild = [x = this]() { x->activeModal = {}; };
+  std::vector<Node> nodes = CollectNodes_(&mHost, postDeleteChild);
   if (!nodes.empty()) {
     Node bruh = nodes[0];
     DrawFolder(std::move(nodes), bruh);
   }
-  mHost.collectionOf = back;
 
   if (activeModal.has_value())
     (*activeModal)();

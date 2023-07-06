@@ -1,5 +1,4 @@
 #include "OutlinerWidget.hpp"
-#include <frontend/legacy_editor/EditorWindow.hpp>
 #include <frontend/widgets/FancyNodes.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h>
 
@@ -82,7 +81,9 @@ bool OutlinerWidget::DrawObject(Node& child, size_t i, bool hasChildren,
         (" " + child.rti.type_name + ": " + child.public_name).c_str());
     ImGui::Separator();
 
-    child.draw_context_menu_fn(this);
+    if (child.draw_context_menu_fn) {
+      child.draw_context_menu_fn(this);
+    }
 
     // set activeModal for an actual gui
     if (folder.delete_child_fn != nullptr && ImGui::MenuItem("Delete")) {
