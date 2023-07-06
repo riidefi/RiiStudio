@@ -221,9 +221,23 @@ struct ProtoSampler {
   // Matrix
 
   glm::vec2 scale{1.0f, 1.0f};
-  float rotate = 1.0f;
+  float rotate = 0.0f;
   glm::vec2 trans{0.0f, 0.0f};
 
+};
+
+enum Colors {
+	Red,
+	Green,
+	Blue,
+	Alpha,
+};
+
+struct ProtoSwapTableEntry {
+  Colors r = Colors::Red;
+  Colors g = Colors::Green;
+  Colors b = Colors::Blue;
+  Colors a = Colors::Alpha;
 };
 
 
@@ -258,6 +272,33 @@ struct ProtoMaterial {
 
   std::array<glm::vec4, 4> tevKonstColors{};
   std::array<glm::vec4, 4> tevColors{};
+
+  std::array<ProtoSwapTableEntry, 4> swapTable = {
+      ProtoSwapTableEntry{
+          .r = Red,
+          .g = Green,
+          .b = Blue,
+          .a = Alpha,
+      },
+      ProtoSwapTableEntry{
+          .r = Red,
+          .g = Red,
+          .b = Red,
+          .a = Alpha,
+      },
+      ProtoSwapTableEntry{
+          .r = Green,
+          .g = Green,
+          .b = Green,
+          .a = Alpha,
+      },
+      ProtoSwapTableEntry{
+          .r = Blue,
+          .g = Blue,
+          .b = Blue,
+          .a = Alpha,
+      },
+  };
 
 };
 
