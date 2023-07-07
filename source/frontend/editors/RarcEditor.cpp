@@ -24,7 +24,10 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
     m_focused_node = std::nullopt;
 
   if (ImGui::BeginTable("TABLE", 2,
-                        ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg)) {
+                        ImGuiTableFlags_RowBg |
+                            ImGuiTableFlags_NoSavedSettings)) {
+    RSL_DEFER(ImGui::EndTable());
+
     ImGui::TableSetupScrollFreeze(2, 1);
     ImGui::TableSetupColumn("Node");
     ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_WidthFixed, 240.0f);
@@ -34,23 +37,12 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
 
     std::size_t row = 0;
     for (auto node = rarc.nodes.begin(); node != rarc.nodes.end(); row++) {
-      for (auto walk = walk_stack.begin(); walk != walk_stack.end();) {
-        if ((*walk)-- == 0) {
-          walk = walk_stack.erase(walk);
-          ImGui::TreePop();
-        } else {
-          walk++;
-        }
-      }
-
       // We don't render . and ..
       if (node->is_special_path()) {
         node++;
         continue;
       }
 
-      // 26 Makes it match rows with comboboxes nicely
-      // ImGui::TableNextRow(ImGuiTableRowFlags_None, 26.0f);
       ImGui::TableNextRow();
       ImGui::TableNextColumn();
 
@@ -66,15 +58,9 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
       if (node->is_folder()) {
         auto flags = node->folder.parent == -1 ? root_flags : dir_flags;
         if (ImGui::TreeNodeEx(node->name.c_str(), flags)) {
-          walk_stack.push_back(node->folder.sibling_next -
-                               std::distance(rarc.nodes.begin(), node) - 1);
+          walk_stack.push_back(node->folder.sibling_next);
         } else {
-          auto sibling = rarc.nodes.begin() + node->folder.sibling_next;
-          for (auto walk = walk_stack.begin(); walk != walk_stack.end();
-               walk++) {
-            *walk -= std::distance(node, sibling);
-          }
-          next_node = sibling;
+          next_node = rarc.nodes.begin() + node->folder.sibling_next;
         }
       } else {
         if (ImGui::TreeNodeEx(node->name.c_str(), file_flags))
@@ -88,6 +74,20 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
       DrawFlagsColumn(*node, editor);
 
       node = next_node;
+
+      // Check for ended folders
+      for (auto walk = walk_stack.begin(); walk != walk_stack.end();) {
+        if (*walk == std::distance(rarc.nodes.begin(), node)) {
+          // We assume rightfully that all future walks are also ended
+          std::size_t ended_walks = std::distance(walk, walk_stack.end());
+          for (int i = 0; i < ended_walks; i++) {
+            walk_stack.pop_back();
+            ImGui::TreePop();
+          }
+          break;
+        }
+        walk++;
+      }
     }
 
     for (auto& walk : walk_stack) {
@@ -136,14 +136,13 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
       }
       ImGui::EndPopup();
     }*/
-
-    ImGui::EndTable();
   }
 }
 
 void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
                                              RarcEditor* editor) {
   if (ImGui::BeginPopupContextItem()) {
+    RSL_DEFER(ImGui::EndPopup());
     m_focused_node = node;
     if (node.is_folder()) {
       if (ImGui::MenuItem("Import Files..."_j)) {
@@ -177,8 +176,6 @@ void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
     if (ImGui::MenuItem("Replace..."_j)) {
       std::cout << "Replace!\n";
     }
-
-    ImGui::EndPopup();
   }
 }
 
@@ -256,6 +253,37 @@ get_sorted_directory_list_r(const std::filesystem::path& path,
   }
 }
 
+template <class _RanIt> static constexpr void fsSort(_RanIt begin, _RanIt end) {
+  std::sort(begin, end,
+            [&](ResourceArchive::Node lhs, ResourceArchive::Node rhs) {
+              if (lhs.name == rhs.name)
+                return false;
+
+              if (lhs.name == ".")
+                return true;
+
+              if (rhs.name == ".")
+                return false;
+
+              if (lhs.name == "..")
+                return true;
+
+              if (rhs.name == "..")
+                return false;
+
+              bool is_lhs_folder = lhs.is_folder();
+              bool is_rhs_folder = rhs.is_folder();
+
+              if (!is_lhs_folder && is_rhs_folder)
+                return true;
+
+              if (is_lhs_folder && !is_rhs_folder)
+                return false;
+
+              return lhs.name < rhs.name;
+            });
+}
+
 static bool insertFiles(ResourceArchive& rarc,
                         std::optional<ResourceArchive::Node> parent,
                         std::vector<rsl::File>& files) {
@@ -284,40 +312,91 @@ static bool insertFiles(ResourceArchive& rarc,
       std::distance(rarc.nodes.begin(),
                     std::find(rarc.nodes.begin(), rarc.nodes.end(), *parent));
 
-  auto dir_start = rarc.nodes.insert(rarc.nodes.begin() + parent_index + 1,
-                                     new_nodes.begin(), new_nodes.end());
 
-  auto dir_end = rarc.nodes.begin() + parent->folder.sibling_next + 1;
-  std::sort(dir_start, dir_end,
-            [&](ResourceArchive::Node lhs, ResourceArchive::Node rhs) {
-              if (lhs.name == rhs.name)
-                return false;
-
-              if (lhs.name == ".")
-                return true;
-
-              if (rhs.name == ".")
-                return false;
-
-              if (lhs.name == "..")
-                return true;
-
-              if (rhs.name == "..")
-                return false;
-
-              bool is_lhs_folder = lhs.is_folder();
-              bool is_rhs_folder = rhs.is_folder();
-
-              if (!is_lhs_folder && is_rhs_folder)
-                return true;
-
-              if (is_lhs_folder && !is_rhs_folder)
-                return false;
-
-              return lhs.name < rhs.name;
-            });
+  // Manual sort is probably better because we can dodge DFS nonsense effectively
+  // Even with O(n^2) because there typically aren't many nodes anyway.
+  for (auto new_node = new_nodes.begin(); new_node != new_nodes.end(); new_node++) {
+	auto dir_files_start = rarc.nodes.begin() + parent_index + 1;
+	auto dir_files_end = rarc.nodes.begin() + parent->folder.sibling_next + std::distance(new_nodes.begin(), new_node);
+    for (auto child = dir_files_start; child != dir_files_end; child++) {
+      if (child->is_folder()) {
+		// Never insert before the special dirs
+        if (child->is_special_path())
+          continue;
+		// Always insert before the regular dirs
+        rarc.nodes.insert(child, *new_node);
+        break;
+	  }
+      if (new_node->name < child->name) {
+        rarc.nodes.insert(child, *new_node);
+        break;
+	  }
+	}
+  }
 
   for (auto& node : rarc.nodes) {
+    if (!node.is_folder())
+      continue;
+    if (node.folder.sibling_next <= parent_index)
+      continue;
+    node.folder.sibling_next += files.size();
+  }
+
+  files.clear();
+  return true;
+}
+
+static bool insertFolder(ResourceArchive& rarc,
+                         std::optional<ResourceArchive::Node> parent,
+                         std::optional<std::filesystem::path> folder) {
+  if (!folder)
+    return false;
+
+  if (!parent) {
+    folder = std::nullopt;
+    return false;
+  }
+
+  // Generate an archive so we can steal the DFS structure.
+  auto tmp_rarc = librii::RARC::Create(*folder);
+  if (!tmp_rarc) {
+    folder = std::nullopt;
+    return false;
+  }
+
+  int parent_index =
+      std::distance(rarc.nodes.begin(),
+                    std::find(rarc.nodes.begin(), rarc.nodes.end(), *parent));
+
+  auto folder_name = folder->filename().string();
+  std::transform(folder_name.begin(), folder_name.end(), folder_name.begin(),
+                 [](char ch) { return std::tolower(ch); });
+
+
+
+  //ResourceArchive::Node new_folder = {
+  //    .id = 0,
+  //    .flags = ResourceAttribute::DIRECTORY,
+  //    .name = folder_name,
+  //    .folder = {.parent = parent->id, .sibling_next = 0}};
+
+  //{
+  //  auto dir_last = rarc.nodes.begin() + parent->folder.sibling_next - 1;
+  //  rarc.nodes.insert(dir_last, new_folder);
+  //}
+
+  //auto dir_start = rarc.nodes.begin() + parent_index + 1;
+  //auto dir_end = rarc.nodes.begin() + parent->folder.sibling_next + 1;
+
+  //// Sort the directory after inserting the new empty directory
+  //fsSort(dir_start, dir_end);
+
+  //auto this_iter = std::find(dir_start, dir_end, new_folder);
+
+  //std::vector<std::filesystem::path> flat_sorted_list;
+  //get_sorted_directory_list_r(*folder, flat_sorted_list);
+
+  /*for (auto& node : rarc.nodes) {
     if (!node.is_folder())
       continue;
     if (node.folder.parent > parent->folder.parent)
@@ -327,7 +406,7 @@ static bool insertFiles(ResourceArchive& rarc,
     node.folder.sibling_next += files.size();
   }
 
-  files.clear();
+  files.clear();*/
   return true;
 }
 
@@ -350,41 +429,26 @@ static bool deleteNodes(ResourceArchive& rarc,
             if (parent.folder.sibling_next > i)
               break;
           }
-          rarc.nodes.erase(rarc.nodes.begin() + i);
+          auto deleted_at = std::distance(rarc.nodes.begin(), rarc.nodes.erase(rarc.nodes.begin() + i));
 
           for (auto& node : rarc.nodes) {
             if (!node.is_folder())
               continue;
-            if (node.folder.parent == parent.folder.parent &&
-                node.id < parent.id)
+            if (node.folder.sibling_next <= deleted_at)
               continue;
             node.folder.sibling_next--;
           }
         } else {
-          /*auto parent_it =
-              std::find_if(rarc.nodes.begin(), rarc.nodes.end(),
-                           [&](ResourceArchive::Node node) {
-                             return node.is_folder() &&
-                                    !node.is_special_path() &&
-                                    node.id == to_delete.folder.parent;
-                           });
-          if (parent_it == rarc.nodes.end())
-            return false;
-
-		  parent = *parent_it;
-          parent_index = std::distance(rarc.nodes.begin(), parent_it);*/
-
-		  auto begin = rarc.nodes.begin() + i;
+          auto begin = rarc.nodes.begin() + i;
           auto end = rarc.nodes.begin() + to_delete.folder.sibling_next;
           auto size = std::distance(begin, end);
 
-		  rarc.nodes.erase(begin, end);
+          auto deleted_at = std::distance(rarc.nodes.begin(), rarc.nodes.erase(begin, end));
 
           for (auto& node : rarc.nodes) {
             if (!node.is_folder())
               continue;
-            if (node.folder.parent == to_delete.folder.parent &&
-                node.id < to_delete.id)
+            if (node.folder.sibling_next <= deleted_at)
               continue;
             if (node.folder.parent > to_delete.id)
               node.folder.parent -= 1;
