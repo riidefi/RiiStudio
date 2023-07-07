@@ -262,6 +262,7 @@ Node HeaderBar(const char* key, int indent, auto* folder,
       .public_name = richtypes[key].type_name + "s",
       .is_container = true,
       .is_rich = true,
+      .__numChildren = static_cast<int>(folder->size()),
   };
 }
 
