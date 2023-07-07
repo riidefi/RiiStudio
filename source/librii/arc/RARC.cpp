@@ -645,8 +645,18 @@ Result<ResourceArchive> Create(std::filesystem::path root) {
       }
       data = *f;
     }
+
     path = std::filesystem::path(".") /
            std::filesystem::relative(path, root.parent_path());
+
+	// We normalize it to lowercase because otherwise games can't find it.
+    {
+      auto path_string = path.string();
+      std::transform(path_string.begin(), path_string.end(),
+                     path_string.begin(),
+                     [](char ch) { return std::tolower(ch); });
+      path = std::filesystem::path(path_string);
+    }
 
     paths.push_back(Entry{
         .str = path.string(),
