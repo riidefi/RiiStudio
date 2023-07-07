@@ -13,9 +13,9 @@ add_library(lib_frontend
   
   "root.cpp"
   "legacy_editor/EditorDocument.cpp"
-  "legacy_editor/EditorImporter.cpp"
+  
   "legacy_editor/EditorWindow.cpp"
-  "legacy_editor/ImporterWindow.cpp"
+  
   "legacy_editor/StudioWindow.cpp"
   "legacy_editor/views/HistoryList.cpp"
   "legacy_editor/views/Outliner.cpp"

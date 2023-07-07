@@ -1,6 +1,5 @@
 #pragma once
 
-#include "EditorImporter.hpp"
 #include <LibBadUIFramework/Document.hpp>         // kpi::Document, kpi::INode
 #include <LibBadUIFramework/Plugins.hpp>          // kpi::IOMessageClass
 #include <frontend/file_host.hpp>        // FileData

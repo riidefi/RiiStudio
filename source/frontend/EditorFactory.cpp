@@ -7,10 +7,14 @@
 #include <frontend/editors/BlightEditor.hpp>
 #include <frontend/editors/BlmapEditor.hpp>
 #include <frontend/editors/BtkEditor.hpp>
+#include <frontend/legacy_editor/EditorWindow.hpp>
 #include <frontend/level_editor/LevelEditor.hpp>
 
 #include <frontend/file_host.hpp>
 #include <librii/szs/SZS.hpp>
+
+#include <plugins/g3d/G3dIo.hpp>
+#include <plugins/j3d/J3dIo.hpp>
 
 namespace riistudio::frontend {
 
@@ -53,6 +57,40 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
   if (path_lower.ends_with(".btk")) {
     auto pWin = std::make_unique<BtkEditor>();
     pWin->openFile(span, data.mPath);
+    return pWin;
+  }
+  if (path_lower.ends_with(".brres")) {
+    auto out = std::make_unique<g3d::Collection>();
+    oishii::BinaryReader reader(span, data.mPath, std::endian::big);
+    kpi::LightIOTransaction trans;
+    trans.callback = [](kpi::IOMessageClass message_class,
+                        const std::string_view domain,
+                        const std::string_view message_body) {
+      rsl::error("[{}] {} {}", magic_enum::enum_name(message_class), domain,
+                 message_body);
+    };
+    g3d::ReadBRRES(*out, reader, trans);
+    if (trans.state != kpi::TransactionState::Complete) {
+      return nullptr;
+    }
+    auto pWin = std::make_unique<EditorWindow>(std::move(out), data.mPath);
+    return pWin;
+  }
+  if (path_lower.ends_with(".bmd") || path_lower.ends_with(".bdl")) {
+    auto out = std::make_unique<j3d::Collection>();
+    oishii::BinaryReader reader(span, data.mPath, std::endian::big);
+    kpi::LightIOTransaction trans;
+    trans.callback = [](kpi::IOMessageClass message_class,
+                        const std::string_view domain,
+                        const std::string_view message_body) {
+      rsl::error("[{}] {} {}", magic_enum::enum_name(message_class), domain,
+                 message_body);
+    };
+    if (!j3d::ReadBMD(*out, reader, trans) ||
+        trans.state != kpi::TransactionState::Complete) {
+      return nullptr;
+    }
+    auto pWin = std::make_unique<EditorWindow>(std::move(out), data.mPath);
     return pWin;
   }
   if (AssimpImporter::supports(path_lower)) {

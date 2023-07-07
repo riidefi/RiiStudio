@@ -56,18 +56,6 @@ ImGuiID EditorWindow::buildDock(ImGuiID root_id) {
 void EditorWindow::draw_() {
   detachClosedChildren();
 
-#if 0
-  // TODO: This doesn't work
-  frontend::Applet* parent = dynamic_cast<frontend::Applet*>(getParent());
-  if (parent != nullptr) {
-    if (parent->getActive() == this) {
-      ImGui::Text("<Active>");
-    } else {
-      return;
-    }
-  }
-#endif
-
   // TODO: Only affect active window
   if (ImGui::GetIO().KeyCtrl) {
     if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {

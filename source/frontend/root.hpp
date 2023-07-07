@@ -14,7 +14,6 @@
 #include <frontend/DiscordRPCManager.hpp>
 
 #include <frontend/legacy_editor/EditorWindow.hpp>
-#include <frontend/legacy_editor/ImporterWindow.hpp>
 
 namespace riistudio::frontend {
 
@@ -30,7 +29,6 @@ public:
   ~RootWindow();
   void draw() override;
   void drawStatusBar();
-  void processImportersQueue();
   void drawMenuBar(riistudio::frontend::EditorWindow* ed);
   void drawLangMenu();
   void drawSettingsMenu();
@@ -57,8 +55,6 @@ private:
   // std::queue<std::string> mAttachEditorsQueue;
   ThemeManager mTheme;
   bool mThemeUpdated = true;
-
-  std::queue<ImporterWindow> mImportersQueue;
 
   // Hack...
   bool mWantFile = false;

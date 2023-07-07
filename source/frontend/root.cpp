@@ -165,7 +165,6 @@ void RootWindow::draw() {
     if (mCheckUpdate && mUpdater.IsOnline())
       mUpdater.draw();
 
-    processImportersQueue();
     drawChildren();
   }
   imcxx::EndFullscreenWindow();
@@ -176,39 +175,6 @@ void RootWindow::drawStatusBar() {
     ImGui::TextUnformatted("Drop a file to edit."_j);
   }
   ImGui::SetWindowFontScale(1.0f);
-}
-void RootWindow::processImportersQueue() {
-  if (mImportersQueue.empty())
-    return;
-
-  auto& window = mImportersQueue.front();
-
-  if (window.attachEditor()) {
-    attachEditorWindow(
-        std::make_unique<EditorWindow>(window.takeResult(), window.getPath()));
-    mImportersQueue.pop();
-    return;
-  }
-
-  if (window.abort()) {
-    mImportersQueue.pop();
-    return;
-  }
-
-  const auto wflags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
-                      ImGuiWindowFlags_AlwaysAutoResize;
-
-  ImGui::OpenPopup("Importer"_j);
-  {
-    auto pos = ImGui::GetWindowPos();
-    pos.x += (ImGui::GetWindowWidth() - 800.0f) / 2;
-    pos.y += (ImGui::GetWindowHeight() - 600.0f) / 2;
-    ImGui::SetNextWindowPos(pos);
-    ImGui::SetNextWindowSizeConstraints({800.0f, 0.0f}, {800.0f, 600.0f});
-    ImGui::BeginPopupModal("Importer"_j, nullptr, wflags);
-    window.draw();
-  }
-  ImGui::EndPopup();
 }
 void RootWindow::drawMenuBar(riistudio::frontend::EditorWindow* ed) {
   // [File] [Settings] [Lang]   (---> WindowWidth-60) [FPS]
@@ -287,17 +253,6 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
     mGotFile = true;
     return;
   }
-
-  if (!mImportersQueue.empty()) {
-    auto& top = mImportersQueue.front();
-
-    if (top.acceptDrop()) {
-      top.drop(std::move(data));
-      return;
-    }
-  }
-
-  mImportersQueue.emplace(std::move(data));
 }
 void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
   attachWindow(std::move(editor));
