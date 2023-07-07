@@ -2,7 +2,6 @@
 
 #include <frontend/IEditor.hpp>
 #include <frontend/legacy_editor/StudioWindow.hpp>
-#include <frontend/widgets/AutoHistory.hpp>
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <fstream>
 #include <librii/arc/RARC.hpp>
@@ -44,12 +43,14 @@ public:
 
 private:
   void DrawTable(librii::RARC::ResourceArchive& arc, RarcEditor* editor);
-  void DrawContextMenu(librii::RARC::ResourceArchive::Node& node,
-                       RarcEditor* editor);
   void DrawFlagsColumn(librii::RARC::ResourceArchive::Node& node,
                        RarcEditor* editor);
+  void DrawContextMenu(librii::RARC::ResourceArchive::Node& node,
+                       RarcEditor* editor);
+  void DrawCreateModal(RarcEditor* editor);
 
   std::optional<librii::RARC::ResourceArchive::Node> m_focused_node;
+  std::string m_new_folder_name;
   bool m_flag_modal_opening;
   bool m_flag_modal_open;
   bool m_should_calc_changes;
@@ -59,7 +60,7 @@ class RarcEditor : public frontend::StudioWindow, public IEditor {
 public:
   RarcEditor()
       : StudioWindow("RARC Editor: <unknown>", DockSetting::None), m_grid(),
-        m_changes_made(), m_files_to_insert(), m_folders_to_insert(),
+        m_changes_made(), m_files_to_insert(), m_folder_to_insert(),
         m_folder_to_create() {
     // setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
@@ -136,20 +137,28 @@ public:
     saveAs(path);
   }
 
-  void InsertFiles(const std::vector<rsl::File>& files, s32 parent = 0) {
-    m_insert_parent = parent;
+  void InsertFiles(const std::vector<rsl::File>& files, std::optional<s32> parent = std::nullopt) {
+    if (parent)
+      SetParentNode(*parent);
     m_files_to_insert = files;
   }
 
-  void InsertFolders(const std::vector<std::filesystem::path>& folders,
-                     s32 parent = 0) {
-    m_insert_parent = parent;
-    m_folders_to_insert = folders;
+  void InsertFolder(const std::filesystem::path& folder,
+                    std::optional<s32> parent = std::nullopt) {
+    if (parent)
+		SetParentNode(*parent);
+    m_folder_to_insert = folder;
   }
 
-  void CreateFolder(const std::filesystem::path& folder, s32 parent = 0) {
-    m_insert_parent = parent;
+  void CreateFolder(const std::string& folder,
+                    std::optional<s32> parent = std::nullopt) {
+    if (parent)
+		SetParentNode(*parent);
     m_folder_to_create = folder;
+  }
+
+  void SetParentNode(s32 parent) {
+	m_insert_parent = parent;
   }
 
   void
@@ -173,8 +182,8 @@ private:
 
   // Addition operations
   std::vector<rsl::File> m_files_to_insert;
-  std::vector<std::filesystem::path> m_folders_to_insert;
-  std::optional<std::filesystem::path> m_folder_to_create;
+  std::optional<std::filesystem::path> m_folder_to_insert;
+  std::optional<std::string> m_folder_to_create;
 
   // Subtraction operations
   std::vector<librii::RARC::ResourceArchive::Node> m_nodes_to_delete;
