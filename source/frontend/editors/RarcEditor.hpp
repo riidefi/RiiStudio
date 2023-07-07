@@ -67,7 +67,7 @@ public:
   RarcEditor(RarcEditor&&) = delete;
 
   void draw_() override {
-    setName("RARC Editor: " + m_path + (m_changes_made ? " *" : ""));
+    setName("RARC Editor: " + m_path);
     m_sheet.Draw([&]() { m_grid.Draw(m_rarc, this); });
   }
   ImGuiID buildDock(ImGuiID root_id) override {
@@ -76,7 +76,7 @@ public:
   }
 
   std::string discordStatus() const override {
-    return "Editing a ??? (.arc (RARC)) file.";
+    return "Editing a ??? (RARC) file.";
   }
 
   void openFile(rsl::byte_view buf, std::string_view path) {

@@ -527,20 +527,12 @@ void RecalculateArchiveIDs(ResourceArchive& arc) {
   int folder_id = 0;
 
   for (auto node = arc.nodes.begin(); node != arc.nodes.end(); node++) {
-    for (auto walk = walk_stack.begin(); walk != walk_stack.end();) {
-      if ((*walk)-- == 0) {
-        walk = walk_stack.erase(walk);
-        parent_stack.pop_back();
-      } else {
-        walk++;
-      }
-    }
     if (node->is_folder()) {
       if (node->name != "..") {
         node->id = folder_id;
         node->folder.parent = parent_stack.back();
         if (node->name != ".") {
-          walk_stack.push_back(node->folder.sibling_next - std::distance(arc.nodes.begin(), node) - 1);
+          walk_stack.push_back(node->folder.sibling_next);
         }
       } else {
         node->id = parent_stack.back();
@@ -548,6 +540,14 @@ void RecalculateArchiveIDs(ResourceArchive& arc) {
                                  ? parent_stack[parent_stack.size() - 2]
                                  : -1;
         parent_stack.push_back(folder_id++);
+      }
+    }
+    for (auto walk = walk_stack.begin(); walk != walk_stack.end();) {
+      if ((*walk) == std::distance(arc.nodes.begin(), node)) {
+        walk = walk_stack.erase(walk);
+        parent_stack.pop_back();
+      } else {
+        walk++;
       }
     }
   }
@@ -581,7 +581,7 @@ Result<void> Extract(const ResourceArchive& arc, std::filesystem::path out) {
   return {};
 }
 
-void get_sorted_directory_list_r(const std::filesystem::path& path,
+static void get_sorted_directory_list_r(const std::filesystem::path& path,
                                  std::vector<std::filesystem::path>& out) {
   std::vector<std::filesystem::path> dirs;
   for (auto&& it : std::filesystem::directory_iterator{path}) {
