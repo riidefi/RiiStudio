@@ -261,10 +261,10 @@ public:
               for (auto st : tevs) {
                 auto& stage = b.tev_stages.emplace_back();
 
-				stage.ras_channel = magic_enum::enum_cast<ColorSelChanLow>(
+				stage.ras_channel = magic_enum::enum_cast<ColorSelChan>(
                                         get<std::string>(st, "channel")
                                                 .value_or("color0a0"))
-                                        .value_or(ColorSelChanLow::color0a0);
+                                        .value_or(ColorSelChan::color0a0);
                 stage.tex_map = get<u8>(st, "sampler").value_or(0);
                 stage.ras_swap = get<u8>(st, "ras_swap").value_or(0);
                 stage.tex_map_swap = get<u8>(st, "sampler_swap").value_or(0);
