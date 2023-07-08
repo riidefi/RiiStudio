@@ -46,6 +46,11 @@ TEST_DATA = {
 	'9808950ca2a5972a8720ac90366711d3': '9808950ca2a5972a8720ac90366711d3', # With non-uniform ENV
 	'3888ad1a22003ff93c6b9734689eb393': '3888ad1a22003ff93c6b9734689eb393', # With uniform ENV
 
+  # human_walk_chr0.brres
+  '753ab1be14d090d927d4b6f83abe26bf': '753ab1be14d090d927d4b6f83abe26bf',
+  # mariotreeGC.brres
+  '6fe8bbb50310b18ec2b3b9b2de4990f5': '6fe8bbb50310b18ec2b3b9b2de4990f5',
+
   # ind_srt_0.brres
   '2689c848e52167ecafee0334ce02dc4e': 'ae5364c457683c4a24d8e94121ec2e5f', 
 

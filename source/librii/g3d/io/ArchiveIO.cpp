@@ -93,6 +93,18 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
                                "Failed to read texture: " + sub.name);
         }
       }
+    } else if (node.name == "AnmChr(NW4R)") {
+      for (auto& sub : cdic.nodes) {
+        EXPECT(sub.stream_pos);
+        reader.seekSet(sub.stream_pos);
+
+        auto& chr = chrs.emplace_back();
+        auto ok = chr.read(reader);
+        if (!ok) {
+          return std::unexpected(
+              std::format("Failed to read CHR0 {}: {}", sub.name, ok.error()));
+        }
+      }
     } else if (node.name == "AnmClr(NW4R)") {
       for (auto& sub : cdic.nodes) {
         EXPECT(sub.stream_pos);
@@ -240,8 +252,8 @@ Result<void> WriteBRRES(librii::g3d::BinaryArchive& arc,
     header.filesize_reloc_b = "BRRES_END";
     header.data_offset = 0x10;
     header.section_count = 1 + arc.models.size() + arc.textures.size() +
-                           arc.clrs.size() + arc.pats.size() + arc.srts.size() +
-                           arc.viss.size();
+                           arc.chrs.size() + arc.clrs.size() + arc.pats.size() +
+                           arc.srts.size() + arc.viss.size();
     header.write(writer, linker);
   }
 
@@ -252,6 +264,7 @@ Result<void> WriteBRRES(librii::g3d::BinaryArchive& arc,
 
     librii::g3d::BetterNode models{.name = "3DModels(NW4R)", .stream_pos = 0};
     librii::g3d::BetterNode textures{.name = "Textures(NW4R)", .stream_pos = 0};
+    librii::g3d::BetterNode chrs{.name = "AnmChr(NW4R)", .stream_pos = 0};
     librii::g3d::BetterNode clrs{.name = "AnmClr(NW4R)", .stream_pos = 0};
     librii::g3d::BetterNode pats{.name = "AnmTexPat(NW4R)", .stream_pos = 0};
     librii::g3d::BetterNode srts{.name = "AnmTexSrt(NW4R)", .stream_pos = 0};
@@ -262,14 +275,15 @@ Result<void> WriteBRRES(librii::g3d::BinaryArchive& arc,
 
     bool hasModels() const { return mCollection.models.size(); }
     bool hasTextures() const { return mCollection.textures.size(); }
+    bool hasCHRs() const { return mCollection.chrs.size(); }
     bool hasCLRs() const { return mCollection.clrs.size(); }
     bool hasPATs() const { return mCollection.pats.size(); }
     bool hasSRTs() const { return mCollection.srts.size(); }
     bool hasVISs() const { return mCollection.viss.size(); }
 
     int numFolders() const {
-      return (int)hasModels() + (int)hasTextures() + (int)hasSRTs() +
-             (int)hasPATs() + (int)hasCLRs() + (int)hasVISs();
+      return (int)hasModels() + (int)hasTextures() + (int)hasCHRs() +
+             (int)hasSRTs() + (int)hasPATs() + (int)hasCLRs() + (int)hasVISs();
     }
     int computeSize() const {
       return 8 + librii::g3d::CalcDictionarySize(numFolders());
@@ -285,6 +299,7 @@ Result<void> WriteBRRES(librii::g3d::BinaryArchive& arc,
       mWriter.write<u32>(
           computeSize() + librii::g3d::CalcDictionarySize(mdl.size()) +
           librii::g3d::CalcDictionarySize(tex.size()) +
+          librii::g3d::CalcDictionarySize(mCollection.chrs.size()) +
           librii::g3d::CalcDictionarySize(mCollection.clrs.size()) +
           librii::g3d::CalcDictionarySize(mCollection.pats.size()) +
           librii::g3d::CalcDictionarySize(mCollection.srts.size()) +
@@ -295,6 +310,8 @@ Result<void> WriteBRRES(librii::g3d::BinaryArchive& arc,
         tmp.nodes.push_back(models);
       if (hasTextures())
         tmp.nodes.push_back(textures);
+      if (hasCHRs())
+        tmp.nodes.push_back(chrs);
       if (hasCLRs())
         tmp.nodes.push_back(clrs);
       if (hasPATs())
@@ -320,6 +337,7 @@ Result<void> WriteBRRES(librii::g3d::BinaryArchive& arc,
 
   Folder models_dict(arc.models);
   Folder textures_dict(arc.textures);
+  Folder chrs_dict(arc.chrs);
   Folder clrs_dict(arc.clrs);
   Folder pats_dict(arc.pats);
   Folder srts_dict(arc.srts);
@@ -328,6 +346,7 @@ Result<void> WriteBRRES(librii::g3d::BinaryArchive& arc,
   const auto subdicts_pos = writer.tell();
   writer.skip(models_dict.computeSize());
   writer.skip(textures_dict.computeSize());
+  writer.skip(chrs_dict.computeSize());
   writer.skip(clrs_dict.computeSize());
   writer.skip(pats_dict.computeSize());
   writer.skip(srts_dict.computeSize());
@@ -350,6 +369,13 @@ Result<void> WriteBRRES(librii::g3d::BinaryArchive& arc,
     textures_dict.insert(i, tex.name, writer.tell());
 
     writeTexture(tex, writer, names);
+  }
+  for (int i = 0; i < arc.chrs.size(); ++i) {
+    auto& chr = arc.chrs[i];
+
+    chrs_dict.insert(i, chr.name, writer.tell());
+
+    chr.write(writer, names, start);
   }
   for (int i = 0; i < arc.clrs.size(); ++i) {
     auto& clr = arc.clrs[i];
@@ -392,6 +418,10 @@ Result<void> WriteBRRES(librii::g3d::BinaryArchive& arc,
   if (arc.textures.size()) {
     root_dict.setTextures(writer.tell());
     textures_dict.write(writer, names);
+  }
+  if (arc.chrs.size()) {
+    root_dict.chrs.stream_pos = writer.tell();
+    chrs_dict.write(writer, names);
   }
   if (arc.clrs.size()) {
     root_dict.clrs.stream_pos = writer.tell();
@@ -449,6 +479,7 @@ Result<Archive> Archive::from(const BinaryArchive& archive,
         TRY(Model::from(mdl, transaction, "MDL0 " + mdl.name)));
   }
   tmp.textures = archive.textures;
+  tmp.chrs = archive.chrs;
   tmp.clrs = archive.clrs;
   tmp.pats = archive.pats;
 
@@ -475,6 +506,7 @@ Result<BinaryArchive> Archive::binary() const {
     tmp.models.emplace_back(TRY(mdl.binary()));
   }
   tmp.textures = textures;
+  tmp.chrs = chrs;
   tmp.clrs = clrs;
   tmp.pats = pats;
   for (auto& srt : srts) {

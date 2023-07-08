@@ -110,6 +110,7 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
     static_cast<librii::g3d::SrtAnimationArchive&>(
         collection.getAnim_Srts().add()) = srt;
   }
+  collection.chrs = archive.chrs;
   collection.clrs = archive.clrs;
   collection.pats = archive.pats;
   collection.viss = archive.viss;
@@ -153,6 +154,7 @@ librii::g3d::Model toBinaryModel(const Model& mdl) {
 librii::g3d::Archive Collection::toLibRii() const {
   librii::g3d::Archive arc{
       .textures = getTextures() | rsl::ToList<librii::g3d::TextureData>(),
+      .chrs = chrs,
       .clrs = clrs,
       .pats = pats,
       .srts = getAnim_Srts() | rsl::ToList<librii::g3d::SrtAnimationArchive>(),
