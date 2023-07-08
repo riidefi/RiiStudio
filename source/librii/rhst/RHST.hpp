@@ -101,11 +101,11 @@ namespace librii::rhst {
 // Rii hierarchical scene tree
 
 enum class Mapping {
-	UVMap,
-	EnvMap,
-	lEnvMap,
-	sEnvMap,
-	Projection,
+  UVMap,
+  EnvMap,
+  lEnvMap,
+  sEnvMap,
+  Projection,
 };
 
 enum class WrapMode { Repeat, Mirror, Clamp };
@@ -223,14 +223,162 @@ struct ProtoSampler {
   glm::vec2 scale{1.0f, 1.0f};
   float rotate = 0.0f;
   glm::vec2 trans{0.0f, 0.0f};
-
 };
 
 enum Colors {
-	Red,
-	Green,
-	Blue,
-	Alpha,
+  Red,
+  Green,
+  Blue,
+  Alpha,
+};
+
+enum class TevColorArg {
+  cprev,
+  aprev,
+  c0,
+  a0,
+  c1,
+  a1,
+  c2,
+  a2,
+  texc,
+  texa,
+  rasc,
+  rasa,
+  one,
+  half,
+  konst,
+  zero
+};
+
+enum class TevAlphaArg { aprev, a0, a1, a2, texa, rasa, konst, zero };
+
+enum class TevBias {
+  zero,     //!< As-is
+  add_half, //!< Add middle gray
+  sub_half  //!< Subtract middle gray
+};
+
+enum class TevScale { scale_1, scale_2, scale_4, divide_2 };
+
+enum class TevColorOp {
+  add,
+  subtract,
+
+  comp_r8_gt = 8,
+  comp_r8_eq,
+  comp_gr16_gt,
+  comp_gr16_eq,
+  comp_bgr24_gt,
+  comp_bgr24_eq,
+  comp_rgb8_gt,
+  comp_rgb8_eq,
+};
+
+enum class TevAlphaOp {
+  add,
+  subtract,
+
+  comp_r8_gt = 8,
+  comp_r8_eq,
+  comp_gr16_gt,
+  comp_gr16_eq,
+  comp_bgr24_gt,
+  comp_bgr24_eq,
+  // Different from ColorOp
+  comp_a8_gt,
+  comp_a8_eq
+};
+
+enum class TevKColorSel {
+  const_8_8,
+  const_7_8,
+  const_6_8,
+  const_5_8,
+  const_4_8,
+  const_3_8,
+  const_2_8,
+  const_1_8,
+
+  k0 = 12,
+  k1,
+  k2,
+  k3,
+  k0_r,
+  k1_r,
+  k2_r,
+  k3_r,
+  k0_g,
+  k1_g,
+  k2_g,
+  k3_g,
+  k0_b,
+  k1_b,
+  k2_b,
+  k3_b,
+  k0_a,
+  k1_a,
+  k2_a,
+  k3_a
+};
+
+enum class ColorSelChanLow {
+  color0a0,
+  color1a1,
+
+  ind_alpha = 5,
+  normalized_ind_alpha,
+  null
+};
+
+enum class TevReg {
+  prev,
+  reg0,
+  reg1,
+  reg2,
+
+  reg3 = prev
+};
+
+struct ProtoTevStage {
+  ColorSelChanLow ras_channel = ColorSelChanLow::null;
+  u8 tex_map = 0;
+  u8 ras_swap = 0;
+  u8 tex_map_swap = 0;
+
+  struct ColorStage {
+    TevKColorSel constant_sel = TevKColorSel::k0;
+    TevColorArg a = TevColorArg::zero;
+    TevColorArg b = TevColorArg::zero;
+    TevColorArg c = TevColorArg::zero;
+    TevColorArg d = TevColorArg::cprev;
+    TevColorOp formula = TevColorOp::add;
+    TevBias bias = TevBias::zero;
+    TevScale scale = TevScale::scale_1;
+    bool clamp = true;
+    TevReg out = TevReg::prev;
+
+    bool operator==(const ColorStage& rhs) const noexcept = default;
+  } color_stage;
+
+  struct AlphaStage {
+    TevKColorSel constant_sel = TevKColorSel::k0_a;
+    TevAlphaArg a = TevAlphaArg::zero;
+    TevAlphaArg b = TevAlphaArg::zero;
+    TevAlphaArg c = TevAlphaArg::zero;
+    TevAlphaArg d = TevAlphaArg::aprev;
+    TevAlphaOp formula = TevAlphaOp::add;
+    TevBias bias = TevBias::zero;
+    TevScale scale = TevScale::scale_1;
+    bool clamp = true;
+    TevReg out = TevReg::prev;
+
+    bool operator==(const AlphaStage& rhs) const noexcept = default;
+  } alpha_stage;
+
+  // Skipping Indirect For now
+
+  bool operator==(const ProtoTevStage& rhs) const noexcept = default;
 };
 
 struct ProtoSwapTableEntry {
@@ -239,7 +387,6 @@ struct ProtoSwapTableEntry {
   Colors b = Colors::Blue;
   Colors a = Colors::Alpha;
 };
-
 
 //! Is eventually compiled to a common material.
 struct ProtoMaterial {
@@ -260,7 +407,7 @@ struct ProtoMaterial {
 
   std::vector<ProtoSampler> samplers;
 
-  //Legacy support
+  // Legacy support
   std::string texture_name = "";
   WrapMode wrap_u = WrapMode::Repeat;
   WrapMode wrap_v = WrapMode::Repeat;
@@ -270,10 +417,11 @@ struct ProtoMaterial {
   bool mip_filter = true;
   float lod_bias = -1.0f;
 
-  std::array<glm::vec4, 4> tevKonstColors{};
-  std::array<glm::vec4, 4> tevColors{};
+  std::array<glm::vec4, 4> tev_konst_colors{};
+  std::array<glm::vec4, 4> tev_colors{};
 
-  std::array<ProtoSwapTableEntry, 4> swapTable = {
+  std::vector<ProtoTevStage> tev_stages;
+  std::array<ProtoSwapTableEntry, 4> swap_table = {
       ProtoSwapTableEntry{
           .r = Red,
           .g = Green,
@@ -299,7 +447,6 @@ struct ProtoMaterial {
           .a = Alpha,
       },
   };
-
 };
 
 struct DrawCall {

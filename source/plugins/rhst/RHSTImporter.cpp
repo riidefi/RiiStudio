@@ -379,15 +379,15 @@ void compileMaterial(libcube::IGCMaterial& out,
   } 
 
   for (int i = 0; i < 4; i++) {
-    data.tevColors[i] = vec4ToColorS10(in.tevColors[i]);
-    data.tevKonstColors[i] = vec4ToColor(in.tevKonstColors[i]);
+    data.tevColors[i] = vec4ToColorS10(in.tev_colors[i]);
+    data.tevKonstColors[i] = vec4ToColor(in.tev_konst_colors[i]);
   }
   data.mStages[0] = wip;
 
   // Swap Table
   for (int i = 0; i < 4; i++) {
     librii::gx::SwapTableEntry entry;
-    librii::rhst::ProtoSwapTableEntry ste = in.swapTable[i];
+    librii::rhst::ProtoSwapTableEntry ste = in.swap_table[i];
     entry.r = compileSwapTableColor(ste.r);
     entry.g = compileSwapTableColor(ste.g);
     entry.b = compileSwapTableColor(ste.b);
