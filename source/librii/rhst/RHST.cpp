@@ -232,25 +232,128 @@ public:
             auto swap = mat["swap_table"];
             int i = 0;
             for (auto entry : swap) {
-              b.swapTable[i].r =
+              b.swap_table[i].r =
                   magic_enum::enum_cast<Colors>(
                       cap(get<std::string>(entry, "red").value_or("Red")))
                       .value_or(Colors::Red);
-              b.swapTable[i].g =
+              b.swap_table[i].g =
                   magic_enum::enum_cast<Colors>(
                       cap(get<std::string>(entry, "green").value_or("Green")))
                       .value_or(Colors::Green);
-              b.swapTable[i].b =
+              b.swap_table[i].b =
                   magic_enum::enum_cast<Colors>(
                       cap(get<std::string>(entry, "blue").value_or("Blue")))
                       .value_or(Colors::Blue);
-              b.swapTable[i].a =
+              b.swap_table[i].a =
                   magic_enum::enum_cast<Colors>(
                       cap(get<std::string>(entry, "alpha").value_or("Alpha")))
                       .value_or(Colors::Alpha);
               i++;
 			}
           }
+
+		  // TEV
+          if (mat.contains("tev") && mat["tev"].is_array()) {
+            auto tevs = mat["tev"];
+            if (int a = tevs.size() > 16) {
+              rsl::error("Too many TEV Stages: {} (Max 16)", tevs.size());
+            } else {
+              for (auto st : tevs) {
+                auto& stage = b.tev_stages.emplace_back();
+
+				stage.ras_channel = magic_enum::enum_cast<ColorSelChanLow>(
+                                        get<std::string>(st, "channel")
+                                                .value_or("color0a0"))
+                                        .value_or(ColorSelChanLow::color0a0);
+                stage.tex_map = get<u8>(st, "sampler").value_or(0);
+                stage.ras_swap = get<u8>(st, "ras_swap").value_or(0);
+                stage.tex_map_swap = get<u8>(st, "sampler_swap").value_or(0);
+
+                auto c_stage = stage.color_stage;
+                c_stage.constant_sel = magic_enum::enum_cast<TevKColorSel>(
+                                           get<std::string>(st, "c_konst")
+                                                   .value_or("const_1_8"))
+                                           .value_or(TevKColorSel::const_1_8);
+                c_stage.formula = magic_enum::enum_cast<TevColorOp>(
+                                      get<std::string>(st, "c_formula")
+                                              .value_or("add"))
+                                      .value_or(TevColorOp::add);
+                c_stage.a =
+                    magic_enum::enum_cast<TevColorArg>(
+                                      get<std::string>(st, "c_sel_a")
+                                              .value_or("zero"))
+                        .value_or(TevColorArg::zero);
+                c_stage.b =
+                    magic_enum::enum_cast<TevColorArg>(
+                        get<std::string>(st, "c_sel_b").value_or("rasc"))
+                        .value_or(TevColorArg::rasc);
+                c_stage.c =
+                    magic_enum::enum_cast<TevColorArg>(
+                        get<std::string>(st, "c_sel_c").value_or("texc"))
+                        .value_or(TevColorArg::texc);
+                c_stage.d =
+                    magic_enum::enum_cast<TevColorArg>(
+                        get<std::string>(st, "c_sel_d").value_or("zero"))
+                        .value_or(TevColorArg::zero);
+                c_stage.bias =
+                    magic_enum::enum_cast<TevBias>(
+                        get<std::string>(st, "c_bias").value_or("zero"))
+                        .value_or(TevBias::zero);
+                c_stage.scale =
+                    magic_enum::enum_cast<TevScale>(
+                        get<std::string>(st, "c_scale").value_or("scale_1"))
+                        .value_or(TevScale::scale_1);
+                c_stage.out = magic_enum::enum_cast<TevReg>(
+                                    get<std::string>(st, "c_out")
+                                            .value_or("reg3"))
+                                  .value_or(TevReg::reg3);
+                c_stage.clamp = get<bool>(st, "c_output_clamp").value_or(true);
+                stage.color_stage = c_stage;
+
+				auto a_stage = stage.alpha_stage;
+                a_stage.constant_sel = magic_enum::enum_cast<TevKColorSel>(
+                                           get<std::string>(st, "a_konst")
+                                                   .value_or("const_1_8"))
+                                           .value_or(TevKColorSel::const_1_8);
+                a_stage.formula =
+                    magic_enum::enum_cast<TevAlphaOp>(
+                        get<std::string>(st, "a_formula").value_or("add"))
+                        .value_or(TevAlphaOp::add);
+                a_stage.a =
+                    magic_enum::enum_cast<TevAlphaArg>(
+                        get<std::string>(st, "a_sel_a").value_or("zero"))
+                        .value_or(TevAlphaArg::zero);
+                a_stage.b =
+                    magic_enum::enum_cast<TevAlphaArg>(
+                        get<std::string>(st, "a_sel_b").value_or("rasa"))
+                        .value_or(TevAlphaArg::rasa);
+                a_stage.c =
+                    magic_enum::enum_cast<TevAlphaArg>(
+                        get<std::string>(st, "a_sel_c").value_or("texa"))
+                        .value_or(TevAlphaArg::texa);
+                a_stage.d =
+                    magic_enum::enum_cast<TevAlphaArg>(
+                        get<std::string>(st, "a_sel_d").value_or("zero"))
+                        .value_or(TevAlphaArg::zero);
+                a_stage.bias =
+                    magic_enum::enum_cast<TevBias>(
+                        get<std::string>(st, "a_bias").value_or("zero"))
+                        .value_or(TevBias::zero);
+                a_stage.scale = magic_enum::enum_cast<TevScale>(
+                                    get<std::string>(st, "a_scale")
+                                            .value_or("scale_1"))
+                                    .value_or(TevScale::scale_1);
+                a_stage.out =
+                    magic_enum::enum_cast<TevReg>(
+                        get<std::string>(st, "a_out").value_or("reg3"))
+                        .value_or(TevReg::reg3);
+                a_stage.clamp = get<bool>(st, "a_output_clamp").value_or(true);
+                stage.alpha_stage = a_stage;
+
+              }
+			}
+
+		  }
 
           if (mat.contains("samplers") &&
               mat["samplers"].is_array()) {
@@ -314,9 +417,9 @@ public:
           if (mat.contains("tev_colors") && mat["tev_colors"].is_array()) {
             auto cols = mat["tev_colors"];
             int P = 0;
-            b.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
+            b.tev_colors[0] = {0xaa, 0xbb, 0xcc, 0xff};
             for (int i = 0; i < 3; i++) {
-              b.tevColors[i + 1] = getVec4(cols, P).value_or(glm::vec4{});
+              b.tev_colors[i + 1] = getVec4(cols, P).value_or(glm::vec4{});
             }
           }
           if (mat.contains("tev_konst_colors") &&
@@ -324,7 +427,7 @@ public:
             auto cols = mat["tev_konst_colors"];
             int P = 0;
             for (int i = 0; i < 4; i++) {
-              b.tevKonstColors[i] = getVec4(cols, P).value_or(glm::vec4{});
+              b.tev_konst_colors[i] = getVec4(cols, P).value_or(glm::vec4{});
             }
           }
         }
