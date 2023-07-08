@@ -322,6 +322,42 @@ enum class TevKColorSel {
   k3_a
 };
 
+enum class TevKAlphaSel {
+  const_8_8,
+  const_7_8,
+  const_6_8,
+  const_5_8,
+  const_4_8,
+  const_3_8,
+  const_2_8,
+  const_1_8,
+
+  // Not valid. For generic code
+  // {
+  k0 = 12,
+  k1,
+  k2,
+  k3,
+  // }
+
+  k0_r = 16,
+  k1_r,
+  k2_r,
+  k3_r,
+  k0_g,
+  k1_g,
+  k2_g,
+  k3_g,
+  k0_b,
+  k1_b,
+  k2_b,
+  k3_b,
+  k0_a,
+  k1_a,
+  k2_a,
+  k3_a
+};
+
 enum class ColorSelChan {
   color0a0,
   color1a1,
@@ -362,7 +398,7 @@ struct ProtoTevStage {
   } color_stage;
 
   struct AlphaStage {
-    TevKColorSel constant_sel = TevKColorSel::k0_a;
+    TevKAlphaSel constant_sel = TevKAlphaSel::k0_a;
     TevAlphaArg a = TevAlphaArg::zero;
     TevAlphaArg b = TevAlphaArg::zero;
     TevAlphaArg c = TevAlphaArg::zero;
