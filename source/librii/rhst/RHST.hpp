@@ -322,7 +322,7 @@ enum class TevKColorSel {
   k3_a
 };
 
-enum class ColorSelChanLow {
+enum class ColorSelChan {
   color0a0,
   color1a1,
 
@@ -341,7 +341,7 @@ enum class TevReg {
 };
 
 struct ProtoTevStage {
-  ColorSelChanLow ras_channel = ColorSelChanLow::null;
+  ColorSelChan ras_channel = ColorSelChan::null;
   u8 tex_map = 0;
   u8 ras_swap = 0;
   u8 tex_map_swap = 0;
