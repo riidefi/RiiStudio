@@ -100,7 +100,7 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
     }
   }
 
-  DrawCreateModal(editor);
+  DrawNameModal(editor);
 }
 
 void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
@@ -123,6 +123,8 @@ void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
       }
       if (ImGui::MenuItem("Create Folder..."_j)) {
         m_flag_modal_opening = true;
+        m_name_input = "";
+        m_original_name = "";
         editor->SetParentNode(node.id);
       }
     }
@@ -130,7 +132,10 @@ void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
       editor->DeleteNodes({node});
     }
     if (ImGui::MenuItem("Rename..."_j)) {
-      std::cout << "Rename!\n";
+      m_flag_modal_opening = true;
+      m_name_input = node.name;
+      m_original_name = node.name;
+      m_focused_node = node;
     }
     if (ImGui::MenuItem("Extract..."_j)) {
       std::cout << "Extract!\n";
@@ -141,31 +146,36 @@ void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
   }
 }
 
-void RarcEditorPropertyGrid::DrawCreateModal(RarcEditor* editor) {
+void RarcEditorPropertyGrid::DrawNameModal(RarcEditor* editor) {
+  std::string dialog_name =
+      m_original_name != "" ? "Rename Node"_j : "New Folder"_j;
+
   if (m_flag_modal_opening) {
-    ImGui::OpenPopup("New Folder"_j);
+    ImGui::OpenPopup(dialog_name.c_str());
   }
 
   auto flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
                ImGuiWindowFlags_AlwaysAutoResize;
   bool open = true;
 
-  if (ImGui::BeginPopupModal("New Folder"_j, &open, flags)) {
+  if (ImGui::BeginPopupModal(dialog_name.c_str(), &open, flags)) {
     RSL_DEFER(ImGui::EndPopup());
 
     m_flag_modal_opening = false;
     m_flag_modal_open = true;
 
     char input_buf[128]{};
-    snprintf(input_buf, sizeof(input_buf), "%s", m_new_folder_name.c_str());
+    snprintf(input_buf, sizeof(input_buf), "%s", m_name_input.c_str());
 
     if (ImGui::InputText("Name", input_buf, sizeof(input_buf),
                          ImGuiInputTextFlags_CharsNoBlank |
                              ImGuiInputTextFlags_AutoSelectAll)) {
-      m_new_folder_name = input_buf;
+      m_name_input = input_buf;
     }
 
-    if (m_new_folder_name == "") {
+	bool is_invalid = m_name_input == "" || m_name_input == m_original_name;
+
+    if (is_invalid) {
       // Then, we get the bounding box of the last item
       ImRect bb = {ImGui::GetItemRectMin(), ImGui::GetItemRectMax()};
       bb.Max.x -= 36; // Adjust for the name label
@@ -182,10 +192,13 @@ void RarcEditorPropertyGrid::DrawCreateModal(RarcEditor* editor) {
 	}
 
     auto* enter_key = ImGui::GetKeyData(ImGuiKey_Enter);
-    if (enter_key->Down && m_new_folder_name != "") {
+    if (enter_key->Down && !is_invalid) {
       ImGui::CloseCurrentPopup();
-      editor->CreateFolder(m_new_folder_name);
       m_flag_modal_open = false;
+      if (m_original_name == "")
+        editor->CreateFolder(m_name_input);
+      else
+        editor->RenameNode(*m_focused_node, m_name_input);
     }
   }
 }
@@ -262,6 +275,26 @@ get_sorted_directory_list_r(const std::filesystem::path& path,
     out.push_back(dir);
     get_sorted_directory_list_r(dir, out);
   }
+}
+
+static void renameNode(ResourceArchive& rarc,
+	std::optional<ResourceArchive::Node>& node,
+	const std::string& new_name) {
+  if (!node)
+    return;
+
+  if (new_name == "") {
+    node = std::nullopt;
+    return;
+  }
+
+  auto node_it = std::find(rarc.nodes.begin(), rarc.nodes.end(), *node);
+  if (node_it == rarc.nodes.end()) {
+    node = std::nullopt;
+    return;
+  }
+
+  node_it->name = new_name;
 }
 
 static bool insertFiles(ResourceArchive& rarc,
@@ -607,10 +640,15 @@ Result<void> RarcEditor::reconstruct() {
 
   bool changes_applied = false;
 
-  // Delete things first to potentially improve performance...
+  // We order the operations in favor of search performance.
   // Realistically only one of these will be run at a time
   // So we can just recalculate the IDs once at the end.
   changes_applied |= deleteNodes(m_rarc, m_nodes_to_delete);
+
+  // Rename doesn't modify the node hierarchy at all.
+  // So we don't need to bother flagging any changes for it.
+  renameNode(m_rarc, m_node_to_rename, m_node_new_name);
+
   changes_applied |= createFolder(m_rarc, parent_node, m_folder_to_create);
   changes_applied |= insertFiles(m_rarc, parent_node, m_files_to_insert);
   changes_applied |= insertFolder(m_rarc, parent_node, m_folder_to_insert);
