@@ -73,7 +73,7 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
     if (trans.state != kpi::TransactionState::Complete) {
       return nullptr;
     }
-    auto pWin = std::make_unique<EditorWindow>(std::move(out), data.mPath);
+    auto pWin = std::make_unique<BRRESEditor>(std::move(out), data.mPath);
     return pWin;
   }
   if (path_lower.ends_with(".bmd") || path_lower.ends_with(".bdl")) {
@@ -90,7 +90,7 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
         trans.state != kpi::TransactionState::Complete) {
       return nullptr;
     }
-    auto pWin = std::make_unique<EditorWindow>(std::move(out), data.mPath);
+    auto pWin = std::make_unique<BMDEditor>(std::move(out), data.mPath);
     return pWin;
   }
   if (AssimpImporter::supports(path_lower)) {

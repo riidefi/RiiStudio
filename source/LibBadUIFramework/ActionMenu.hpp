@@ -19,8 +19,6 @@ struct IActionMenu {
   // Return true if the state of obj was mutated (add to history)
   virtual bool context(kpi::IObject& obj) = 0;
   virtual ChangeType modal(kpi::IObject& obj) = 0;
-
-  virtual void set_ed(void* ed) { (void)ed; }
 };
 
 template <typename T, typename TDerived>
@@ -62,11 +60,10 @@ public:
   }
 
   // Returns CHANGE if obj was mutated, CHANGE_NEED_RESET if strongly mutated
-  ChangeType drawModals(kpi::IObject& obj, void* user) const {
+  ChangeType drawModals(kpi::IObject& obj) const {
     int changed = NO_CHANGE;
     for (auto& menu : menus) {
       if (menu->in_domain(obj)) {
-        menu->set_ed(user);
         changed = std::max(changed, static_cast<int>(menu->modal(obj)));
       }
     }

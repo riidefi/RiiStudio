@@ -9,10 +9,6 @@
 #include <unordered_map>
 #include <vector>
 
-namespace riistudio::frontend {
-class EditorWindow;
-}
-
 extern bool gIsAdvancedMode;
 
 namespace riistudio::lib3d {

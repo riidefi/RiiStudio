@@ -8,9 +8,9 @@
 
 namespace riistudio::frontend {
 
-std::unique_ptr<StudioWindow> MakePropertyEditor(kpi::History& host,
-                                                 kpi::INode& root,
-                                                 SelectionManager& active,
-                                                 EditorWindow& ed);
+std::unique_ptr<StudioWindow>
+MakePropertyEditor(kpi::History& host, kpi::INode& root,
+                   SelectionManager& active,
+                   std::function<void(const lib3d::Texture*, u32)> ed);
 
 } // namespace riistudio::frontend

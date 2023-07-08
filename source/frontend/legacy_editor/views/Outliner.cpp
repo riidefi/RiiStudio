@@ -15,14 +15,14 @@ bool IsAdvancedMode();
 
 namespace riistudio::frontend {
 
-void DrawCtxMenuFor(kpi::IObject* nodeAt, EditorWindow& ed) {
+void DrawCtxMenuFor(kpi::IObject* nodeAt, std::function<void(bool)> commit) {
   if (kpi::ActionMenuManager::get().drawContextMenus(*nodeAt))
-    ed.getDocument().commit(ed.getSelection(), false);
+    commit(false);
 }
-void DrawModalFor(kpi::IObject* nodeAt, EditorWindow& ed) {
-  auto sel = kpi::ActionMenuManager::get().drawModals(*nodeAt, &ed);
+void DrawModalFor(kpi::IObject* nodeAt, std::function<void(bool)> commit) {
+  auto sel = kpi::ActionMenuManager::get().drawModals(*nodeAt);
   if (sel != kpi::NO_CHANGE) {
-    ed.getDocument().commit(ed.getSelection(), sel == kpi::CHANGE_NEED_RESET);
+    commit(sel == kpi::CHANGE_NEED_RESET);
   }
 }
 
@@ -34,7 +34,7 @@ struct ImTFilter : public ImGuiTextFilter {
 using TFilter = ImTFilter;
 struct GenericCollectionOutliner : public StudioWindow, private OutlinerWidget {
   GenericCollectionOutliner(kpi::INode& host, SelectionManager& selection,
-                            EditorWindow& ed);
+                            auto icon, auto post, auto commit);
   ~GenericCollectionOutliner();
 
   void onUndoRedo() noexcept { activeModal = std::nullopt; }
@@ -46,7 +46,6 @@ public:
   TFilter mFilter;
   // This points inside EditorWindow, meh
   SelectionManager& mSelection;
-  EditorWindow& ed;
 
   // OutlinerWidget
   bool isSelected(const Node& n) const override {
@@ -83,11 +82,11 @@ public:
   }
   void postAddNew() override {
     // Commit the changes
-    ed.getDocument().commit(ed.getSelection(), true);
+    mPostAddNew();
   }
   void drawImageIcon(const riistudio::lib3d::Texture* pImg,
                      int icon_size) override {
-    ed.drawImageIcon(pImg, icon_size);
+    mDrawImageIcon(pImg, icon_size);
   }
   void setActiveModal(const Node* n) {
     if (n == nullptr) {
@@ -103,11 +102,17 @@ public:
 
 public:
   std::optional<std::function<void()>> activeModal;
+
+  std::function<void(const riistudio::lib3d::Texture*, u32)> mDrawImageIcon;
+  std::function<void()> mPostAddNew;
+  std::function<void(bool)> mCommit;
 };
 
 GenericCollectionOutliner::GenericCollectionOutliner(
-    kpi::INode& host, SelectionManager& selection, EditorWindow& ed)
-    : StudioWindow("Outliner"), mHost(host), mSelection(selection), ed(ed) {
+    kpi::INode& host, SelectionManager& selection, auto icon, auto post,
+    auto commit)
+    : StudioWindow("Outliner"), mHost(host), mSelection(selection),
+      mDrawImageIcon(icon), mPostAddNew(post), mCommit(commit) {
   setClosable(false);
   mSelection.mUndoRedoCbs.push_back(
       {this, [outliner = this] { outliner->onUndoRedo(); }});
@@ -126,16 +131,16 @@ std::vector<Node> CollectNodes_(kpi::INode* node,
   auto MakeCtxDraw = [&](auto* tex) {
     std::function<void(OutlinerWidget*)> ctx_draw =
         [DrawCtxMenuFor = DrawCtxMenuFor, obj = tex](OutlinerWidget* widget) {
-          auto& ed = ((GenericCollectionOutliner*)(widget))->ed;
-          DrawCtxMenuFor(obj, ed);
+          auto commit = ((GenericCollectionOutliner*)(widget))->mCommit;
+          DrawCtxMenuFor(obj, commit);
         };
     return ctx_draw;
   };
   auto MakeModalDraw = [&](auto* tex) {
     std::function<void(OutlinerWidget*)> modal_draw =
         [DrawModalFor = DrawModalFor, obj = tex](OutlinerWidget* widget) {
-          auto& ed = ((GenericCollectionOutliner*)(widget))->ed;
-          DrawModalFor(obj, ed);
+          auto commit = ((GenericCollectionOutliner*)(widget))->mCommit;
+          DrawModalFor(obj, commit);
         };
     return modal_draw;
   };
@@ -164,8 +169,11 @@ void GenericCollectionOutliner::draw_() noexcept {
 }
 
 std::unique_ptr<StudioWindow>
-MakeOutliner(kpi::INode& host, SelectionManager& selection, EditorWindow& ed) {
-  return std::make_unique<GenericCollectionOutliner>(host, selection, ed);
+MakeOutliner(kpi::INode& host, SelectionManager& selection,
+             std::function<void(const lib3d::Texture*, u32)> icon,
+             std::function<void()> post, std::function<void(bool)> commit) {
+  return std::make_unique<GenericCollectionOutliner>(host, selection, icon,
+                                                     post, commit);
 }
 
 } // namespace riistudio::frontend

@@ -152,10 +152,7 @@ void RootWindow::draw() {
     const u32 dockspace_id = ImGui::GetID("DockSpaceWidget");
     ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), 0);
 
-    EditorWindow* ed =
-        getActive() ? dynamic_cast<EditorWindow*>(getActive()) : nullptr;
-
-    drawMenuBar(ed);
+    drawMenuBar();
 
     MSVCWarningWindow();
 
@@ -176,10 +173,10 @@ void RootWindow::drawStatusBar() {
   }
   ImGui::SetWindowFontScale(1.0f);
 }
-void RootWindow::drawMenuBar(riistudio::frontend::EditorWindow* ed) {
+void RootWindow::drawMenuBar() {
   // [File] [Settings] [Lang]   (---> WindowWidth-60) [FPS]
   if (ImGui::BeginMenuBar()) {
-    drawFileMenu(ed);
+    drawFileMenu();
 
     drawSettingsMenu();
 
@@ -220,7 +217,7 @@ void RootWindow::drawSettingsMenu() {
     ImGui::EndMenu();
   }
 }
-void RootWindow::drawFileMenu(riistudio::frontend::EditorWindow* ed) {
+void RootWindow::drawFileMenu() {
   if (ImGui::BeginMenu("File"_j)) {
 #if !defined(__EMSCRIPTEN__)
     if (ImGui::MenuItem("Open"_j)) {
@@ -253,9 +250,6 @@ void RootWindow::onFileOpen(FileData data, OpenFilePolicy policy) {
     mGotFile = true;
     return;
   }
-}
-void RootWindow::attachEditorWindow(std::unique_ptr<EditorWindow> editor) {
-  attachWindow(std::move(editor));
 }
 
 RootWindow::RootWindow()

@@ -51,9 +51,9 @@ struct CommitHandler {
 class PropertyEditor : public StudioWindow, private PropertyEditorWidget {
 public:
   PropertyEditor(kpi::History& host, kpi::INode& root,
-                 SelectionManager& selection, EditorWindow& ed)
-      : StudioWindow("Property Editor"), ed(ed), mHost(host), mRoot(root),
-        mSelection(selection) {
+                 SelectionManager& selection, auto drawImageIcon)
+      : StudioWindow("Property Editor"), drawImageIcon(drawImageIcon),
+        mHost(host), mRoot(root), mSelection(selection) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
     setClosable(false);
   }
@@ -71,7 +71,7 @@ private:
     auto drawIcon = [&](const lib3d::Texture* tex, u32 dim) {
       if (tex != nullptr) {
         ImGui::SameLine();
-        ed.drawImageIcon(tex, 32);
+        drawImageIcon(tex, 32);
       }
     };
 
@@ -79,7 +79,7 @@ private:
                                 mSelection.mActive, selected, drawIcon);
   }
 
-  EditorWindow& ed;
+  std::function<void(const lib3d::Texture*, u32)> drawImageIcon;
   kpi::History& mHost;
   kpi::INode& mRoot;
   kpi::SelectionManager& mSelection;
@@ -160,11 +160,11 @@ void PropertyEditor::draw_() {
   Tabs();
 }
 
-std::unique_ptr<StudioWindow> MakePropertyEditor(kpi::History& host,
-                                                 kpi::INode& root,
-                                                 SelectionManager& selection,
-                                                 EditorWindow& ed) {
-  return std::make_unique<PropertyEditor>(host, root, selection, ed);
+std::unique_ptr<StudioWindow>
+MakePropertyEditor(kpi::History& host, kpi::INode& root,
+                   SelectionManager& selection,
+                   std::function<void(const lib3d::Texture*, u32)> icon) {
+  return std::make_unique<PropertyEditor>(host, root, selection, icon);
 }
 
 } // namespace riistudio::frontend

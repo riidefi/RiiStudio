@@ -17,8 +17,6 @@
 
 namespace riistudio::frontend {
 
-class EditorWindow;
-
 class RootWindow final : public Applet, public FileHost {
 public:
   static RootWindow* spInstance;
@@ -29,17 +27,16 @@ public:
   ~RootWindow();
   void draw() override;
   void drawStatusBar();
-  void drawMenuBar(riistudio::frontend::EditorWindow* ed);
+  void drawMenuBar();
   void drawLangMenu();
   void drawSettingsMenu();
-  void drawFileMenu(riistudio::frontend::EditorWindow* ed);
+  void drawFileMenu();
   void onFileOpen(FileData data, OpenFilePolicy policy) override;
 
   void vdropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len,
                    const std::string& name) override {
     FileHost::dropDirect(std::move(data), len, name);
   }
-  void attachEditorWindow(std::unique_ptr<EditorWindow> editor);
 
   void saveButton();
   void saveAsButton();
