@@ -188,11 +188,17 @@ void AssimpImporter::draw_() {
       }
       auto path = std::filesystem::path(m_path);
       path.replace_extension(m_extension);
-      if (dynamic_cast<g3d::Collection*>(node.get())) {
-        auto ed = std::make_unique<BRRESEditor>(std::move(node), path.string());
+      if (auto* g = dynamic_cast<g3d::Collection*>(node.get())) {
+        node.release();
+        std::unique_ptr<g3d::Collection> gp(g);
+        auto ed = std::make_unique<BRRESEditor>(path.string());
+        ed->attach(std::move(gp));
         RootWindow::spInstance->attachWindow(std::move(ed));
-      } else if (dynamic_cast<j3d::Collection*>(node.get())) {
-        auto ed = std::make_unique<BMDEditor>(std::move(node), path.string());
+      } else if (auto* j = dynamic_cast<j3d::Collection*>(node.get())) {
+        node.release();
+        std::unique_ptr<j3d::Collection> jp(j);
+        auto ed = std::make_unique<BMDEditor>(path.string());
+        ed->attach(std::move(jp));
         RootWindow::spInstance->attachWindow(std::move(ed));
       }
       close();

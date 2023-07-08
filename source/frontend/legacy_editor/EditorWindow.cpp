@@ -8,6 +8,9 @@
 #include <imcxx/Widgets.hpp>
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_TIMES
 
+#include <plugins/g3d/G3dIo.hpp>
+#include <plugins/j3d/J3dIo.hpp>
+
 namespace riistudio::frontend {
 
 static std::string getFileShort(const std::string& path) {
@@ -22,7 +25,7 @@ void BRRESEditor::init() {
   mIconManager.propagateIcons(mDocument.getRoot());
 
   auto draw_image_icon = [&](const lib3d::Texture* tex, u32 dim) {
-    drawImageIcon(tex, dim);
+    mIconManager.drawImageIcon(tex, dim);
   };
   auto post = [&]() { mDocument.commit(mSelection, true); };
   auto commit_ = [&](bool b) { mDocument.commit(mSelection, b); };
@@ -33,15 +36,33 @@ void BRRESEditor::init() {
       MakeHistoryList(mDocument.getHistory(), mDocument.getRoot(), mSelection));
   attachWindow(MakeOutliner(mDocument.getRoot(), mSelection, draw_image_icon,
                             post, commit_));
-  if (auto* scene = dynamic_cast<lib3d::Scene*>(&mDocument.getRoot()))
-    attachWindow(MakeViewportRenderer(*scene));
+  attachWindow(MakeViewportRenderer(mDocument.getRoot()));
 }
 
-BRRESEditor::BRRESEditor(std::unique_ptr<kpi::INode> state,
-                         const std::string& path)
+BRRESEditor::BRRESEditor(std::string path)
     : StudioWindow(getFileShort(path), DockSetting::Dockspace),
-      mDocument(std::move(state), path) {
-  init();
+      mDocument(nullptr), mPath(path) {}
+BRRESEditor::BRRESEditor(std::span<const u8> span, const std::string& path)
+    : StudioWindow(getFileShort(path), DockSetting::Dockspace),
+      mDocument(nullptr), mPath(path) {
+  auto out = std::make_unique<g3d::Collection>();
+  oishii::BinaryReader reader(span, path, std::endian::big);
+  kpi::LightIOTransaction trans;
+  std::string total;
+  trans.callback = [&](kpi::IOMessageClass message_class,
+                       const std::string_view domain,
+                       const std::string_view message_body) {
+    auto msg = std::format("[{}] {} {}", magic_enum::enum_name(message_class),
+                           domain, message_body);
+    total += msg + "\n";
+    rsl::error(msg);
+  };
+  g3d::ReadBRRES(*out, reader, trans);
+  if (trans.state != kpi::TransactionState::Complete) {
+    rsl::ErrorDialog(total);
+    return;
+  }
+  attach(std::move(out));
 }
 BRRESEditor::~BRRESEditor() = default;
 ImGuiID BRRESEditor::buildDock(ImGuiID root_id) {
@@ -80,7 +101,7 @@ void BMDEditor::init() {
   mIconManager.propagateIcons(mDocument.getRoot());
 
   auto draw_image_icon = [&](const lib3d::Texture* tex, u32 dim) {
-    drawImageIcon(tex, dim);
+    mIconManager.drawImageIcon(tex, dim);
   };
   auto post = [&]() { mDocument.commit(mSelection, true); };
   auto commit_ = [&](bool b) { mDocument.commit(mSelection, b); };
@@ -91,14 +112,42 @@ void BMDEditor::init() {
       MakeHistoryList(mDocument.getHistory(), mDocument.getRoot(), mSelection));
   attachWindow(MakeOutliner(mDocument.getRoot(), mSelection, draw_image_icon,
                             post, commit_));
-  if (auto* scene = dynamic_cast<lib3d::Scene*>(&mDocument.getRoot()))
-    attachWindow(MakeViewportRenderer(*scene));
+  attachWindow(MakeViewportRenderer(mDocument.getRoot()));
+}
+void BRRESEditor::saveAsImpl(std::string path) {
+  oishii::Writer writer(std::endian::big);
+  auto& col = mDocument.getRoot();
+  if (auto ok = g3d::WriteBRRES(col, writer); !ok) {
+    rsl::ErrorDialogFmt("Failed to rebuild BRRES: {}", ok.error());
+    return;
+  }
+  writer.saveToDisk(path);
 }
 
-BMDEditor::BMDEditor(std::unique_ptr<kpi::INode> state, const std::string& path)
+BMDEditor::BMDEditor(std::string path)
     : StudioWindow(getFileShort(path), DockSetting::Dockspace),
-      mDocument(std::move(state), path) {
-  init();
+      mDocument(nullptr), mPath(path) {}
+BMDEditor::BMDEditor(std::span<const u8> span, const std::string& path)
+    : StudioWindow(getFileShort(path), DockSetting::Dockspace),
+      mDocument(nullptr), mPath(path) {
+  auto out = std::make_unique<j3d::Collection>();
+  oishii::BinaryReader reader(span, path, std::endian::big);
+  kpi::LightIOTransaction trans;
+  std::string total;
+  trans.callback = [&](kpi::IOMessageClass message_class,
+                       const std::string_view domain,
+                       const std::string_view message_body) {
+    auto msg = std::format("[{}] {} {}", magic_enum::enum_name(message_class),
+                           domain, message_body);
+    total += msg + "\n";
+    rsl::error(msg);
+  };
+  if (!j3d::ReadBMD(*out, reader, trans) ||
+      trans.state != kpi::TransactionState::Complete) {
+    rsl::ErrorDialog(total);
+    return;
+  }
+  attach(std::move(out));
 }
 BMDEditor::~BMDEditor() = default;
 ImGuiID BMDEditor::buildDock(ImGuiID root_id) {
@@ -129,6 +178,19 @@ void BMDEditor::draw_() {
       mDocument.redo(mSelection);
     }
   }
+}
+void BMDEditor::saveAsImpl(std::string path) {
+  if (path.ends_with(".bdl")) {
+    path.resize(path.size() - 4);
+    path += ".bmd";
+  }
+  oishii::Writer writer(std::endian::big);
+  auto& col = mDocument.getRoot();
+  if (auto ok = j3d::WriteBMD(col, writer); !ok) {
+    rsl::ErrorDialogFmt("Failed to rebuild BMD: {}", ok.error());
+    return;
+  }
+  writer.saveToDisk(path);
 }
 
 } // namespace riistudio::frontend

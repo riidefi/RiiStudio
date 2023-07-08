@@ -12,7 +12,7 @@ add_library(lib_frontend
   "file_host.cpp"
   
   "root.cpp"
-  "legacy_editor/EditorDocument.cpp"
+  
   
   "legacy_editor/EditorWindow.cpp"
   

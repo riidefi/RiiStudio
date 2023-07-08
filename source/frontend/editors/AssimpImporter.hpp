@@ -60,6 +60,7 @@ private:
       if (!tree) {
         m_err = "Failed to parse: " + tree.error();
         m_state = State::Fail;
+        return;
       }
       int num_optimized = 0;
       int num_total = 0;

@@ -2,7 +2,6 @@
 
 #include <rsl/FsDialog.hpp>
 
-#include "EditorDocument.hpp"             // EditorDocument
 #include "StudioWindow.hpp"               // StudioWindow
 #include <LibBadUIFramework/Document.hpp> // kpi::Document
 #include <LibBadUIFramework/Node2.hpp>    // kpi::INode
@@ -20,18 +19,20 @@ namespace riistudio::frontend {
 using SelectionManager = kpi::SelectionManager;
 
 struct BRRESEditor : public StudioWindow, public IEditor {
-  BRRESEditor(std::unique_ptr<kpi::INode> state, const std::string& path);
+  BRRESEditor(std::string path);
+  BRRESEditor(std::span<const u8> buf, const std::string& path);
   BRRESEditor(const BRRESEditor&) = delete;
   BRRESEditor(BRRESEditor&&) = delete;
   ~BRRESEditor();
 
-  ImGuiID buildDock(ImGuiID root_id) override;
-  void draw_() override;
-  void drawImageIcon(const lib3d::Texture* tex, u32 dim) {
-    mIconManager.drawImageIcon(tex, dim);
+  void attach(auto&& out) {
+    mDocument.setRoot(std::move(out));
+    init();
   }
 
-  std::string getFilePath() const { return std::string(mDocument.getPath()); }
+  ImGuiID buildDock(ImGuiID root_id) override;
+  void draw_() override;
+  std::string getFilePath() const { return mPath; }
 
   void reinit() {
     detachAllChildren();
@@ -39,7 +40,9 @@ struct BRRESEditor : public StudioWindow, public IEditor {
   }
 
   void init();
-  EditorDocument mDocument;
+
+  kpi::Document<g3d::Collection> mDocument;
+  std::string mPath;
   IconManager mIconManager;
   SelectionManager mSelection;
 
@@ -64,7 +67,7 @@ struct BRRESEditor : public StudioWindow, public IEditor {
     if (!path.ends_with(".brres"))
       path.append(".brres");
     rsl::trace("Saving to {}", path);
-    mDocument.saveAs(path);
+    saveAsImpl(path);
   }
   void saveButton() override {
     rsl::trace("Attempting to save to {}", getFilePath());
@@ -72,23 +75,26 @@ struct BRRESEditor : public StudioWindow, public IEditor {
       saveAsButton();
       return;
     }
-    mDocument.saveAs(getFilePath());
+    saveAsImpl(getFilePath());
   }
+  void saveAsImpl(std::string path);
 };
 
 struct BMDEditor : public StudioWindow, public IEditor {
-  BMDEditor(std::unique_ptr<kpi::INode> state, const std::string& path);
+  BMDEditor(std::string path);
+  BMDEditor(std::span<const u8> buf, const std::string& path);
   BMDEditor(const BMDEditor&) = delete;
   BMDEditor(BMDEditor&&) = delete;
   ~BMDEditor();
 
-  ImGuiID buildDock(ImGuiID root_id) override;
-  void draw_() override;
-  void drawImageIcon(const lib3d::Texture* tex, u32 dim) {
-    mIconManager.drawImageIcon(tex, dim);
+  void attach(auto&& out) {
+    mDocument.setRoot(std::move(out));
+    init();
   }
 
-  std::string getFilePath() const { return std::string(mDocument.getPath()); }
+  ImGuiID buildDock(ImGuiID root_id) override;
+  void draw_() override;
+  std::string getFilePath() const { return mPath; }
 
   void reinit() {
     detachAllChildren();
@@ -96,7 +102,9 @@ struct BMDEditor : public StudioWindow, public IEditor {
   }
 
   void init();
-  EditorDocument mDocument;
+
+  kpi::Document<j3d::Collection> mDocument;
+  std::string mPath;
   IconManager mIconManager;
   SelectionManager mSelection;
 
@@ -120,7 +128,7 @@ struct BMDEditor : public StudioWindow, public IEditor {
     if (!path.ends_with(".bmd"))
       path.append(".bmd");
     rsl::trace("Saving to {}", path);
-    mDocument.saveAs(path);
+    saveAsImpl(path);
   }
   void saveButton() override {
     rsl::trace("Attempting to save to {}", getFilePath());
@@ -128,8 +136,9 @@ struct BMDEditor : public StudioWindow, public IEditor {
       saveAsButton();
       return;
     }
-    mDocument.saveAs(getFilePath());
+    saveAsImpl(getFilePath());
   }
+  void saveAsImpl(std::string path);
 };
 
 } // namespace riistudio::frontend

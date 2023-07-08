@@ -13,9 +13,6 @@
 #include <frontend/file_host.hpp>
 #include <librii/szs/SZS.hpp>
 
-#include <plugins/g3d/G3dIo.hpp>
-#include <plugins/j3d/J3dIo.hpp>
-
 namespace riistudio::frontend {
 
 //! Create an editor from the file data specified. Returns nullptr on failure.
@@ -60,37 +57,11 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
     return pWin;
   }
   if (path_lower.ends_with(".brres")) {
-    auto out = std::make_unique<g3d::Collection>();
-    oishii::BinaryReader reader(span, data.mPath, std::endian::big);
-    kpi::LightIOTransaction trans;
-    trans.callback = [](kpi::IOMessageClass message_class,
-                        const std::string_view domain,
-                        const std::string_view message_body) {
-      rsl::error("[{}] {} {}", magic_enum::enum_name(message_class), domain,
-                 message_body);
-    };
-    g3d::ReadBRRES(*out, reader, trans);
-    if (trans.state != kpi::TransactionState::Complete) {
-      return nullptr;
-    }
-    auto pWin = std::make_unique<BRRESEditor>(std::move(out), data.mPath);
+    auto pWin = std::make_unique<BRRESEditor>(span, data.mPath);
     return pWin;
   }
   if (path_lower.ends_with(".bmd") || path_lower.ends_with(".bdl")) {
-    auto out = std::make_unique<j3d::Collection>();
-    oishii::BinaryReader reader(span, data.mPath, std::endian::big);
-    kpi::LightIOTransaction trans;
-    trans.callback = [](kpi::IOMessageClass message_class,
-                        const std::string_view domain,
-                        const std::string_view message_body) {
-      rsl::error("[{}] {} {}", magic_enum::enum_name(message_class), domain,
-                 message_body);
-    };
-    if (!j3d::ReadBMD(*out, reader, trans) ||
-        trans.state != kpi::TransactionState::Complete) {
-      return nullptr;
-    }
-    auto pWin = std::make_unique<BMDEditor>(std::move(out), data.mPath);
+    auto pWin = std::make_unique<BMDEditor>(span, data.mPath);
     return pWin;
   }
   if (AssimpImporter::supports(path_lower)) {
