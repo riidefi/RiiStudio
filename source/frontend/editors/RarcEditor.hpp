@@ -47,10 +47,11 @@ private:
                        RarcEditor* editor);
   void DrawContextMenu(librii::RARC::ResourceArchive::Node& node,
                        RarcEditor* editor);
-  void DrawCreateModal(RarcEditor* editor);
+  void DrawNameModal(RarcEditor* editor);
 
   std::optional<librii::RARC::ResourceArchive::Node> m_focused_node;
-  std::string m_new_folder_name;
+  std::string m_name_input;
+  std::string m_original_name;
   bool m_flag_modal_opening;
   bool m_flag_modal_open;
   bool m_should_calc_changes;
@@ -137,6 +138,12 @@ public:
     saveAs(path);
   }
 
+  void RenameNode(const librii::RARC::ResourceArchive::Node& node,
+	  const std::string& new_name) {
+    m_node_to_rename = node;
+    m_node_new_name = new_name;
+  }
+
   void InsertFiles(const std::vector<rsl::File>& files, std::optional<s32> parent = std::nullopt) {
     if (parent)
       SetParentNode(*parent);
@@ -179,6 +186,10 @@ private:
 
   // Parent id
   s32 m_insert_parent;
+
+  // Rename
+  std::optional<librii::RARC::ResourceArchive::Node> m_node_to_rename;
+  std::string m_node_new_name;
 
   // Addition operations
   std::vector<rsl::File> m_files_to_insert;
