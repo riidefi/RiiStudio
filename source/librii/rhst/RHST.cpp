@@ -311,10 +311,11 @@ public:
                 stage.color_stage = c_stage;
 
 				auto a_stage = stage.alpha_stage;
-                a_stage.constant_sel = magic_enum::enum_cast<TevKColorSel>(
+                a_stage.constant_sel =
+                    magic_enum::enum_cast<TevKAlphaSel>(
                                            get<std::string>(st, "a_konst")
                                                    .value_or("const_1_8"))
-                                           .value_or(TevKColorSel::const_1_8);
+                                        .value_or(TevKAlphaSel::const_1_8);
                 a_stage.formula =
                     magic_enum::enum_cast<TevAlphaOp>(
                         get<std::string>(st, "a_formula").value_or("add"))
