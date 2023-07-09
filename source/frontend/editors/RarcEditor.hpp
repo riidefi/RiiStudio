@@ -61,8 +61,9 @@ class RarcEditor : public frontend::StudioWindow, public IEditor {
 public:
   RarcEditor()
       : StudioWindow("RARC Editor: <unknown>", DockSetting::None), m_grid(),
-        m_changes_made(), m_files_to_insert(), m_folder_to_insert(),
-        m_folder_to_create() {
+        m_changes_made(), m_node_to_rename(), m_node_new_name(),
+        m_files_to_insert(), m_folder_to_insert(), m_folder_to_create(),
+        m_node_to_extract(), m_extract_path() {
     // setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
   RarcEditor(const RarcEditor&) = delete;
@@ -139,12 +140,13 @@ public:
   }
 
   void RenameNode(const librii::RARC::ResourceArchive::Node& node,
-	  const std::string& new_name) {
+                  const std::string& new_name) {
     m_node_to_rename = node;
     m_node_new_name = new_name;
   }
 
-  void InsertFiles(const std::vector<rsl::File>& files, std::optional<s32> parent = std::nullopt) {
+  void InsertFiles(const std::vector<rsl::File>& files,
+                   std::optional<s32> parent = std::nullopt) {
     if (parent)
       SetParentNode(*parent);
     m_files_to_insert = files;
@@ -153,20 +155,24 @@ public:
   void InsertFolder(const std::filesystem::path& folder,
                     std::optional<s32> parent = std::nullopt) {
     if (parent)
-		SetParentNode(*parent);
+      SetParentNode(*parent);
     m_folder_to_insert = folder;
   }
 
   void CreateFolder(const std::string& folder,
                     std::optional<s32> parent = std::nullopt) {
     if (parent)
-		SetParentNode(*parent);
+      SetParentNode(*parent);
     m_folder_to_create = folder;
   }
 
-  void SetParentNode(s32 parent) {
-	m_insert_parent = parent;
+  void ExtractNodeTo(const librii::RARC::ResourceArchive::Node& node,
+                     const std::filesystem::path& dst) {
+    m_node_to_extract = node;
+    m_extract_path = dst;
   }
+
+  void SetParentNode(s32 parent) { m_insert_parent = parent; }
 
   void
   DeleteNodes(const std::vector<librii::RARC::ResourceArchive::Node>& nodes) {
@@ -198,6 +204,10 @@ private:
 
   // Subtraction operations
   std::vector<librii::RARC::ResourceArchive::Node> m_nodes_to_delete;
+
+  // Extract
+  std::optional<librii::RARC::ResourceArchive::Node> m_node_to_extract;
+  std::filesystem::path m_extract_path;
 
   Result<void> reconstruct();
 };
