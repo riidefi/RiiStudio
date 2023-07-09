@@ -2,12 +2,69 @@
 
 #include "RarcEditor.hpp"
 #include <rsl/Defer.hpp>
-#include <vendor/fa5/IconsFontAwesome5.h>
 #include <unordered_set>
+#include <vendor/fa5/IconsFontAwesome5.h>
 
 namespace riistudio::frontend {
 
 using namespace librii::RARC;
+
+struct ExtensionInfo {
+  std::string m_category;
+  std::string m_unicode_icon;
+};
+
+static ExtensionInfo s_animation_info = {"Animation Data",
+                                         (const char*)ICON_FA_BEZIER_CURVE};
+static ExtensionInfo s_archive_info = {"Archive", (const char*)ICON_FA_ARCHIVE};
+static ExtensionInfo s_collision_info = {"Collision Data",
+                                         (const char*)ICON_FA_CUBE};
+static ExtensionInfo s_compressed_info = {"Compressed Data",
+                                          (const char*)ICON_FA_COMPRESS};
+static ExtensionInfo s_environment_info = {"Environment Data",
+                                           (const char*)ICON_FA_CLOUD_SUN};
+static ExtensionInfo s_font_info = {"Font Data", (const char*)ICON_FA_PEN};
+static ExtensionInfo s_input_info = {"Input Data",
+                                     (const char*)ICON_FA_GAMEPAD};
+static ExtensionInfo s_layout_info = {"Layout Data", (const char*)ICON_FA_MAP};
+static ExtensionInfo s_material_info = {"Material Data",
+                                        (const char*)ICON_FA_PAINT_BRUSH};
+static ExtensionInfo s_message_info = {"Message Data",
+                                       (const char*)ICON_FA_QUOTE_RIGHT};
+static ExtensionInfo s_model_info = {"Model Data",
+                                     (const char*)ICON_FA_DRAW_POLYGON};
+static ExtensionInfo s_movie_info = {"Movie Data", (const char*)ICON_FA_VIDEO};
+static ExtensionInfo s_particle_info = {"Particle Data",
+                                        (const char*)ICON_FA_FIRE};
+static ExtensionInfo s_script_info = {"Script Data", (const char*)ICON_FA_CODE};
+static ExtensionInfo s_sound_info = {"Sound Data", (const char*)ICON_FA_MUSIC};
+static ExtensionInfo s_texture_info = {"Texture Data",
+                                       (const char*)ICON_FA_IMAGE};
+static ExtensionInfo s_track_info = {"Track Data",
+                                     (const char*)ICON_FA_MOTORCYCLE};
+
+static std::unordered_map<std::string, ExtensionInfo> s_extension_map = {
+    {"bck", s_animation_info},      {"blk", s_animation_info},
+    {"bpk", s_animation_info},      {"brk", s_animation_info},
+    {"btk", s_animation_info},      {"btp", s_animation_info},
+    {"arc", s_archive_info},        {"carc", s_archive_info},
+    {"u8", s_archive_info},         {"col", s_collision_info},
+    {"kcl", s_collision_info},      {"szs", s_compressed_info},
+    {"bdof", s_environment_info},   {"bfg", s_environment_info},
+    {"blight", s_environment_info}, {"pblm", s_environment_info},
+    {"bin", s_environment_info},    {"ral", s_environment_info},
+    {"bfn", s_font_info},           {"pad", s_input_info},
+    {"bmt", s_material_info},       {"bmg", s_message_info},
+    {"bmd", s_model_info},          {"brres", s_model_info},
+    {"thp", s_movie_info},          {"jpa", s_particle_info},
+    {"sb", s_script_info},          {"bas", s_sound_info},
+    {"bms", s_sound_info},          {"com", s_sound_info},
+    {"scom", s_sound_info},         {"aw", s_sound_info},
+    {"afc", s_sound_info},          {"ws", s_sound_info},
+    {"bnk", s_sound_info},          {"bld", s_sound_info},
+    {"bst", s_sound_info},          {"bti", s_texture_info},
+    {"bmp", s_texture_info},        {"kmp", s_track_info},
+};
 
 void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
   RSL_DEFER(editor->ApplyUpdates());
@@ -44,6 +101,17 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
         continue;
       }
 
+      ExtensionInfo extension_info;
+      {
+        std::string extension = node->name.substr(node->name.find(".") + 1);
+        if (node->is_folder()) {
+          extension_info = {"Folder", (const char*)ICON_FA_FOLDER};
+        } else if (s_extension_map.contains(extension)) {
+          extension_info = s_extension_map[extension];
+        } else {
+          extension_info = {"All Files", (const char*)ICON_FA_FILE};
+        }
+      }
 
       ImGui::TableNextRow();
       ImGui::TableNextColumn();
@@ -58,7 +126,8 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
       auto next_node = node + 1;
 
       if (node->is_folder()) {
-        std::string awesome_name = std::format("{}    {}", (const char *)ICON_FA_FOLDER, node->name);
+        std::string awesome_name =
+            std::format("{}    {}", extension_info.m_unicode_icon, node->name);
         auto flags = node->folder.parent == -1 ? root_flags : dir_flags;
         if (ImGui::TreeNodeEx(awesome_name.c_str(), flags)) {
           walk_stack.push_back(node->folder.sibling_next);
@@ -67,7 +136,7 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
         }
       } else {
         std::string awesome_name =
-            std::format("{}    {}", (const char*)ICON_FA_FILE, node->name);
+            std::format("{}    {}", extension_info.m_unicode_icon, node->name);
         if (ImGui::TreeNodeEx(awesome_name.c_str(), file_flags))
           ImGui::TreePop();
       }
@@ -138,10 +207,29 @@ void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
       m_focused_node = node;
     }
     if (ImGui::MenuItem("Extract..."_j)) {
-      std::cout << "Extract!\n";
+      auto folder = rsl::OpenFolder("Extract Node"_j, "");
+      if (!folder)
+        return;
+      editor->ExtractNodeTo(node, *folder);
     }
     if (ImGui::MenuItem("Replace..."_j)) {
-      std::cout << "Replace!\n";
+      std::vector<std::string> filters = {"All Files", "*"};
+      if (node.is_folder()) {
+        auto folder = rsl::OpenFolder("Replace With"_j, "");
+        if (!folder)
+          return;
+
+      } else {
+        std::string extension = node.name.substr(node.name.find(".") + 1);
+        if (s_extension_map.contains(extension)) {
+          auto& info = s_extension_map[extension];
+          filters.push_back(info.m_category);
+          filters.push_back(std::format("*.{}", extension));
+        }
+        auto file = rsl::OpenOneFile("Replace With"_j, "", filters);
+        if (!file)
+          return;
+      }
     }
   }
 }
@@ -173,7 +261,7 @@ void RarcEditorPropertyGrid::DrawNameModal(RarcEditor* editor) {
       m_name_input = input_buf;
     }
 
-	bool is_invalid = m_name_input == "" || m_name_input == m_original_name;
+    bool is_invalid = m_name_input == "" || m_name_input == m_original_name;
 
     if (is_invalid) {
       // Then, we get the bounding box of the last item
@@ -185,11 +273,11 @@ void RarcEditorPropertyGrid::DrawNameModal(RarcEditor* editor) {
       draw_list->AddRect(bb.Min, bb.Max, IM_COL32(255, 0, 0, 255)); // RGBA
     }
 
-	if (!open) {
+    if (!open) {
       ImGui::CloseCurrentPopup();
       m_flag_modal_open = false;
       return;
-	}
+    }
 
     auto* enter_key = ImGui::GetKeyData(ImGuiKey_Enter);
     if (enter_key->Down && !is_invalid) {
@@ -278,8 +366,8 @@ get_sorted_directory_list_r(const std::filesystem::path& path,
 }
 
 static void renameNode(ResourceArchive& rarc,
-	std::optional<ResourceArchive::Node>& node,
-	const std::string& new_name) {
+                       std::optional<ResourceArchive::Node>& node,
+                       const std::string& new_name) {
   if (!node)
     return;
 
@@ -624,6 +712,54 @@ static bool deleteNodes(ResourceArchive& rarc,
   return true;
 }
 
+static void extractTo(const ResourceArchive& rarc,
+                      std::optional<ResourceArchive::Node>& node,
+                      const std::filesystem::path& dst) {
+  RSL_DEFER(node = std::nullopt);
+
+  if (!node)
+    return;
+
+  if (!std::filesystem::is_directory(dst))
+    return;
+
+  if (node->is_folder()) {
+    ResourceArchive tmp_rarc{};
+
+    auto node_it = std::find(rarc.nodes.begin(), rarc.nodes.end(), node);
+    if (node_it == rarc.nodes.end())
+      return;
+
+    auto before_size = std::distance(rarc.nodes.begin(), node_it);
+    auto parent_diff = node_it->id;
+
+    tmp_rarc.nodes.insert(tmp_rarc.nodes.end(), node_it,
+                          rarc.nodes.begin() + node->folder.sibling_next);
+
+    tmp_rarc.nodes[0].folder = {-1, tmp_rarc.nodes[0].folder.sibling_next -
+                                        (s32)before_size};
+
+    tmp_rarc.nodes[1].folder = {-1, tmp_rarc.nodes[0].folder.sibling_next};
+
+    tmp_rarc.nodes[2].folder = {-1, 0};
+    for (auto tnode = tmp_rarc.nodes.begin() + 3; tnode != tmp_rarc.nodes.end();
+         tnode++) {
+      if (tnode->is_folder()) {
+        tnode->folder.parent -= parent_diff;
+        tnode->folder.sibling_next -= before_size;
+      }
+    }
+    RecalculateArchiveIDs(tmp_rarc);
+    Extract(tmp_rarc, dst);
+    return;
+  }
+
+  auto dst_path = dst / node->name;
+  auto out = std::ofstream(dst_path.string(), std::ios::binary | std::ios::ate);
+
+  out.write((const char*)node->data.data(), node->data.size());
+}
+
 Result<void> RarcEditor::reconstruct() {
   // Start by inserting the files into the folder list,
   // sorted by name
@@ -652,6 +788,10 @@ Result<void> RarcEditor::reconstruct() {
   changes_applied |= createFolder(m_rarc, parent_node, m_folder_to_create);
   changes_applied |= insertFiles(m_rarc, parent_node, m_files_to_insert);
   changes_applied |= insertFolder(m_rarc, parent_node, m_folder_to_insert);
+
+  // Extract doesn't modify the node hierarchy at all.
+  // So we don't need to bother flagging any changes for it.
+  extractTo(m_rarc, m_node_to_extract, m_extract_path);
 
   if (changes_applied) {
     m_changes_made = true;
