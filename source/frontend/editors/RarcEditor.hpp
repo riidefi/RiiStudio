@@ -45,6 +45,8 @@ private:
   void DrawTable(librii::RARC::ResourceArchive& arc, RarcEditor* editor);
   void DrawFlagsColumn(librii::RARC::ResourceArchive::Node& node,
                        RarcEditor* editor);
+  void DrawSizeColumn(librii::RARC::ResourceArchive::Node& node,
+                      RarcEditor* editor);
   void DrawContextMenu(librii::RARC::ResourceArchive::Node& node,
                        RarcEditor* editor);
   void DrawNameModal(RarcEditor* editor);
@@ -61,9 +63,10 @@ class RarcEditor : public frontend::StudioWindow, public IEditor {
 public:
   RarcEditor()
       : StudioWindow("RARC Editor: <unknown>", DockSetting::None), m_grid(),
-        m_changes_made(), m_node_to_rename(), m_node_new_name(),
-        m_files_to_insert(), m_folder_to_insert(), m_folder_to_create(),
-        m_node_to_extract(), m_extract_path() {
+        m_rarc(), m_dir_size_cache(), m_changes_made(), m_node_to_rename(),
+        m_node_new_name(), m_files_to_insert(), m_folder_to_insert(),
+        m_folder_to_create(), m_node_to_extract(), m_extract_path(),
+        m_node_to_replace(), m_replace_path() {
     // setWindowFlag(ImGuiWindowFlags_MenuBar);
   }
   RarcEditor(const RarcEditor&) = delete;
@@ -100,6 +103,7 @@ public:
     }
     m_rarc = *arc;
     m_path = path;
+    recache();
   }
 
   void saveAs(std::string_view path) {
@@ -139,6 +143,14 @@ public:
     saveAs(path);
   }
 
+  std::size_t
+  GetNodeSize(librii::RARC::ResourceArchive::Node& node) {
+    if (node.is_folder()) {
+      return m_dir_size_cache[node];
+    }
+    return node.data.size();
+  }
+
   void RenameNode(const librii::RARC::ResourceArchive::Node& node,
                   const std::string& new_name) {
     m_node_to_rename = node;
@@ -172,6 +184,12 @@ public:
     m_extract_path = dst;
   }
 
+  void ReplaceNodeWith(const librii::RARC::ResourceArchive::Node& node,
+                       const std::filesystem::path& dst) {
+    m_node_to_replace = node;
+    m_replace_path = dst;
+  }
+
   void SetParentNode(s32 parent) { m_insert_parent = parent; }
 
   void
@@ -186,9 +204,11 @@ private:
   RarcEditorTabSheet m_sheet;
   std::string m_path;
   librii::RARC::ResourceArchive m_rarc;
-  bool m_changes_made;
+  std::unordered_map<librii::RARC::ResourceArchive::Node, std::size_t, librii::RARC::ResourceArchiveNodeHasher>
+      m_dir_size_cache;
 
   //// Edit state
+  bool m_changes_made;
 
   // Parent id
   s32 m_insert_parent;
@@ -209,7 +229,12 @@ private:
   std::optional<librii::RARC::ResourceArchive::Node> m_node_to_extract;
   std::filesystem::path m_extract_path;
 
+  // Replace
+  std::optional<librii::RARC::ResourceArchive::Node> m_node_to_replace;
+  std::filesystem::path m_replace_path;
+
   Result<void> reconstruct();
+  void recache();
 };
 
 } // namespace riistudio::frontend

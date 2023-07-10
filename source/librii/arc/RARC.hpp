@@ -54,7 +54,20 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
 
 void RecalculateArchiveIDs(ResourceArchive& arc);
 
-Result<void> Extract(const ResourceArchive& arc, std::filesystem::path out);
-Result<ResourceArchive> Create(std::filesystem::path root);
+Result<void> ExtractResourceArchive(const ResourceArchive& arc, std::filesystem::path out);
+Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root);
+
+struct ResourceArchiveNodeHasher {
+  std::size_t operator()(const ResourceArchive::Node& node) const {
+    std::size_t h1 = std::hash<s32>{}(node.id);
+    std::size_t h2 = std::hash<std::string>{}(node.name);
+    std::size_t h3 = 0;
+    if (node.is_folder()) {
+      h3 = std::hash<s32>{}(node.folder.parent);
+    }
+    // Combine hashes - This is a common technique to combine hash values
+    return h1 ^ (h2 << 1) ^ (h3 << 2);
+  }
+};
 
 } // namespace librii::RARC
