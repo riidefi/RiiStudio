@@ -468,7 +468,7 @@ public:
 
 	if (librii::RARC::IsDataResourceArchive(buf)) {
       auto arc = TRY(librii::RARC::LoadResourceArchive(buf));
-      TRY(librii::RARC::Extract(arc, m_to));
+      TRY(librii::RARC::ExtractResourceArchive(arc, m_to));
 	} else if (librii::U8::IsDataU8Archive(buf)) {
       auto arc = TRY(librii::U8::LoadU8Archive(buf));
       TRY(librii::U8::Extract(arc, m_to));
@@ -525,7 +525,7 @@ public:
 
 	std::vector<u8> buf;
     if (m_opt.rarc) {
-      auto arc = TRY(librii::RARC::Create(m_from));
+      auto arc = TRY(librii::RARC::CreateResourceArchive(m_from));
       buf = TRY(librii::RARC::SaveResourceArchive(arc));
 	} else {
       auto arc = TRY(librii::U8::Create(m_from));

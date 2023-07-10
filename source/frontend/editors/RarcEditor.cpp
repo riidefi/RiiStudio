@@ -44,26 +44,31 @@ static ExtensionInfo s_track_info = {"Track Data",
                                      (const char*)ICON_FA_MOTORCYCLE};
 
 static std::unordered_map<std::string, ExtensionInfo> s_extension_map = {
-    {"bck", s_animation_info},      {"blk", s_animation_info},
-    {"bpk", s_animation_info},      {"brk", s_animation_info},
-    {"btk", s_animation_info},      {"btp", s_animation_info},
-    {"arc", s_archive_info},        {"carc", s_archive_info},
-    {"u8", s_archive_info},         {"col", s_collision_info},
-    {"kcl", s_collision_info},      {"szs", s_compressed_info},
-    {"bdof", s_environment_info},   {"bfg", s_environment_info},
-    {"blight", s_environment_info}, {"pblm", s_environment_info},
-    {"bin", s_environment_info},    {"ral", s_environment_info},
-    {"bfn", s_font_info},           {"pad", s_input_info},
-    {"bmt", s_material_info},       {"bmg", s_message_info},
-    {"bmd", s_model_info},          {"brres", s_model_info},
-    {"thp", s_movie_info},          {"jpa", s_particle_info},
-    {"sb", s_script_info},          {"bas", s_sound_info},
-    {"bms", s_sound_info},          {"com", s_sound_info},
-    {"scom", s_sound_info},         {"aw", s_sound_info},
-    {"afc", s_sound_info},          {"ws", s_sound_info},
-    {"bnk", s_sound_info},          {"bld", s_sound_info},
-    {"bst", s_sound_info},          {"bti", s_texture_info},
-    {"bmp", s_texture_info},        {"kmp", s_track_info},
+    {"bck", s_animation_info},     {"blk", s_animation_info},
+    {"bpk", s_animation_info},     {"brk", s_animation_info},
+    {"btk", s_animation_info},     {"btp", s_animation_info},
+    {"bva", s_animation_info},     {"arc", s_archive_info},
+    {"carc", s_archive_info},      {"u8", s_archive_info},
+    {"col", s_collision_info},     {"kcl", s_collision_info},
+    {"szs", s_compressed_info},    {"bdof", s_environment_info},
+    {"bfg", s_environment_info},   {"blight", s_environment_info},
+    {"blmap", s_environment_info}, {"pblm", s_environment_info},
+    {"bin", s_environment_info},   {"ral", s_environment_info},
+    {"bfn", s_font_info},          {"pad", s_input_info},
+    {"blo", s_layout_info},        {"brlyt", s_layout_info},
+    {"brlan", s_layout_info},      {"brctr", s_layout_info},
+    {"bmt", s_material_info},      {"bmg", s_message_info},
+    {"bdl", s_model_info},         {"bmd", s_model_info},
+    {"brres", s_model_info},       {"dae", s_model_info},
+    {"fbx", s_model_info},         {"3ds", s_model_info},
+    {"thp", s_movie_info},         {"jpa", s_particle_info},
+    {"sb", s_script_info},         {"bas", s_sound_info},
+    {"bms", s_sound_info},         {"com", s_sound_info},
+    {"scom", s_sound_info},        {"aw", s_sound_info},
+    {"afc", s_sound_info},         {"ws", s_sound_info},
+    {"bnk", s_sound_info},         {"bld", s_sound_info},
+    {"bst", s_sound_info},         {"bti", s_texture_info},
+    {"bmp", s_texture_info},       {"kmp", s_track_info},
 };
 
 void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
@@ -81,14 +86,15 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
   if (!m_flag_modal_open)
     m_focused_node = std::nullopt;
 
-  if (ImGui::BeginTable("TABLE", 2,
+  if (ImGui::BeginTable("TABLE", 3,
                         ImGuiTableFlags_RowBg |
                             ImGuiTableFlags_NoSavedSettings)) {
     RSL_DEFER(ImGui::EndTable());
 
-    ImGui::TableSetupScrollFreeze(2, 1);
+    ImGui::TableSetupScrollFreeze(3, 1);
     ImGui::TableSetupColumn("Node Tree");
     ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_WidthFixed, 240.0f);
+    ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50.0f);
     ImGui::TableHeadersRow();
 
     std::vector<std::size_t> walk_stack;
@@ -99,6 +105,20 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
       if (node->is_special_path()) {
         node++;
         continue;
+      }
+
+      // Check for ended folders
+      for (auto walk = walk_stack.begin(); walk != walk_stack.end();) {
+        if (*walk == std::distance(rarc.nodes.begin(), node)) {
+          // We assume rightfully that all future walks are also ended
+          std::size_t ended_walks = std::distance(walk, walk_stack.end());
+          for (int i = 0; i < ended_walks; i++) {
+            walk_stack.pop_back();
+            ImGui::TreePop();
+          }
+          break;
+        }
+        walk++;
       }
 
       ExtensionInfo extension_info;
@@ -147,21 +167,11 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
 
       DrawFlagsColumn(*node, editor);
 
-      node = next_node;
+      ImGui::TableNextColumn();
 
-      // Check for ended folders
-      for (auto walk = walk_stack.begin(); walk != walk_stack.end();) {
-        if (*walk == std::distance(rarc.nodes.begin(), node)) {
-          // We assume rightfully that all future walks are also ended
-          std::size_t ended_walks = std::distance(walk, walk_stack.end());
-          for (int i = 0; i < ended_walks; i++) {
-            walk_stack.pop_back();
-            ImGui::TreePop();
-          }
-          break;
-        }
-        walk++;
-      }
+      DrawSizeColumn(*node, editor);
+
+      node = next_node;
     }
 
     for (auto& walk : walk_stack) {
@@ -218,7 +228,7 @@ void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
         auto folder = rsl::OpenFolder("Replace With"_j, "");
         if (!folder)
           return;
-
+        editor->ReplaceNodeWith(node, *folder);
       } else {
         std::string extension = node.name.substr(node.name.find(".") + 1);
         if (s_extension_map.contains(extension)) {
@@ -229,6 +239,7 @@ void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
         auto file = rsl::OpenOneFile("Replace With"_j, "", filters);
         if (!file)
           return;
+        editor->ReplaceNodeWith(node, *file);
       }
     }
   }
@@ -349,6 +360,37 @@ void RarcEditorPropertyGrid::DrawFlagsColumn(ResourceArchive::Node& node,
   ImGui::PopID();
 }
 
+void RarcEditorPropertyGrid::DrawSizeColumn(ResourceArchive::Node& node,
+                                            RarcEditor* editor) {
+  ImGui::PushID(std::addressof(node));
+
+  std::string size_string;
+  std::size_t node_size = editor->GetNodeSize(node);
+
+  if (node.is_folder()) {
+    size_string = std::format("{}", node_size);
+  } else {
+    std::vector<std::string> suffixes = {"B", "KB", "MB", "GB", "TB", "PB"};
+
+    auto size_tier = static_cast<int>(std::log10(node_size)) / 3;
+    auto suffix =
+        size_tier < suffixes.size() ? suffixes[size_tier] : suffixes.back();
+
+    if (size_tier == 0) {
+      size_string = std::format("{} {}", node_size, suffix);
+    } else {
+      size_string = std::format(
+          "{} {}",
+          static_cast<std::size_t>(node_size / std::pow(1000, size_tier)),
+          suffix);
+    }
+  }
+
+  ImGui::Text("%s", size_string.c_str());
+
+  ImGui::PopID();
+}
+
 static void
 get_sorted_directory_list_r(const std::filesystem::path& path,
                             std::vector<std::filesystem::path>& out) {
@@ -466,7 +508,7 @@ static bool insertFolder(ResourceArchive& rarc,
   }
 
   // Generate an archive so we can steal the DFS structure.
-  auto tmp_rarc = librii::RARC::Create(*folder);
+  auto tmp_rarc = librii::RARC::CreateResourceArchive(*folder);
   if (!tmp_rarc) {
     folder = std::nullopt;
     return false;
@@ -475,10 +517,6 @@ static bool insertFolder(ResourceArchive& rarc,
   int parent_index =
       std::distance(rarc.nodes.begin(),
                     std::find(rarc.nodes.begin(), rarc.nodes.end(), *parent));
-
-  auto folder_name = folder->filename().string();
-  std::transform(folder_name.begin(), folder_name.end(), folder_name.begin(),
-                 [](char ch) { return std::tolower(ch); });
 
   auto insert_index = rarc.nodes.size();
   auto dir_files_start = rarc.nodes.begin() + parent_index + 1;
@@ -750,7 +788,7 @@ static void extractTo(const ResourceArchive& rarc,
       }
     }
     RecalculateArchiveIDs(tmp_rarc);
-    Extract(tmp_rarc, dst);
+    librii::RARC::ExtractResourceArchive(tmp_rarc, dst);
     return;
   }
 
@@ -758,6 +796,98 @@ static void extractTo(const ResourceArchive& rarc,
   auto out = std::ofstream(dst_path.string(), std::ios::binary | std::ios::ate);
 
   out.write((const char*)node->data.data(), node->data.size());
+}
+
+static bool replaceWith(ResourceArchive& rarc,
+                        std::optional<ResourceArchive::Node>& to_replace,
+                        const std::filesystem::path& src) {
+  RSL_DEFER(to_replace = std::nullopt);
+
+  if (!to_replace)
+    return false;
+
+  if (!std::filesystem::exists(src))
+    return false;
+
+  auto node_it = std::find(rarc.nodes.begin(), rarc.nodes.end(), to_replace);
+  if (node_it == rarc.nodes.end())
+    return false;
+
+  if (to_replace->is_folder()) {
+    if (!std::filesystem::is_directory(src))
+      return false;
+
+    auto parent = std::find_if(rarc.nodes.begin(), rarc.nodes.end(),
+                               [&](ResourceArchive::Node node) {
+                                 return node.id == to_replace->folder.parent;
+                               });
+
+    auto begin = node_it;
+    auto end = rarc.nodes.begin() + to_replace->folder.sibling_next;
+    auto old_size = std::distance(begin, end);
+
+    auto deleted_at =
+        std::distance(rarc.nodes.begin(), rarc.nodes.erase(begin, end));
+
+    // Generate an archive so we can steal the DFS structure.
+    auto tmp_rarc = librii::RARC::CreateResourceArchive(src);
+    if (!tmp_rarc)
+      return false;
+
+    tmp_rarc->nodes[0].name = to_replace->name;
+    tmp_rarc->nodes[0].folder.parent =
+        to_replace->folder.parent; // This repairs the insertion node which will
+                                   // recursively regenerate later
+
+    for (auto& new_node : tmp_rarc->nodes) {
+      if (new_node.is_folder())
+        new_node.folder.sibling_next += deleted_at;
+    }
+    rarc.nodes.insert(rarc.nodes.begin() + deleted_at, tmp_rarc->nodes.begin(),
+                      tmp_rarc->nodes.end());
+
+    auto sibling_adjust = tmp_rarc->nodes.size() - old_size;
+    if (sibling_adjust != 0) {
+      for (auto node = rarc.nodes.begin(); node != rarc.nodes.end();) {
+        auto index = std::distance(rarc.nodes.begin(), node);
+        // Skip files and the special dirs (they get recalculated later)
+        if (!node->is_folder() || node->is_special_path()) {
+          node++;
+          continue;
+        }
+        if (index == deleted_at) { // Skip inserted dir (already adjusted)
+          node = rarc.nodes.begin() + node->folder.sibling_next;
+          continue;
+        }
+        if (node->folder.sibling_next <
+            deleted_at) { // Skip dirs that come before insertion by span
+                          // alone
+          node = rarc.nodes.begin() + node->folder.sibling_next;
+          continue;
+        }
+        // This is a directory adjacent but not beyond the insertion, ignore.
+        if (node->folder.parent >= parent->id && index < deleted_at) {
+          node = rarc.nodes.begin() + node->folder.sibling_next;
+          continue;
+        }
+        node->folder.sibling_next += sibling_adjust;
+        node++;
+      }
+    }
+
+    return true;
+  }
+
+  if (!std::filesystem::is_regular_file(src))
+    return false;
+
+  auto in = std::ifstream(src.string(), std::ios::binary | std::ios::in);
+  auto fsize = std::filesystem::file_size(src);
+
+  node_it->data.resize(fsize);
+  in.read((char*)node_it->data.data(), fsize);
+
+  return true;
 }
 
 Result<void> RarcEditor::reconstruct() {
@@ -793,11 +923,36 @@ Result<void> RarcEditor::reconstruct() {
   // So we don't need to bother flagging any changes for it.
   extractTo(m_rarc, m_node_to_extract, m_extract_path);
 
+  changes_applied |= replaceWith(m_rarc, m_node_to_replace, m_replace_path);
+
   if (changes_applied) {
     m_changes_made = true;
     librii::RARC::RecalculateArchiveIDs(m_rarc);
+    recache();
   }
   return {};
+}
+
+void RarcEditor::recache() {
+  // Travel nodes backwards to improve cache speed
+  for (int i = m_rarc.nodes.size() - 1; i >= 0; i--) {
+    auto& node = m_rarc.nodes[i];
+    if (!node.is_folder() || node.is_special_path())
+      continue;
+
+    std::size_t dir_size = 0;
+    for (int j = i + 3; j < node.folder.sibling_next; j++) {
+      auto& child = m_rarc.nodes[j];
+      if (child.is_special_path())
+        continue;
+      if (child.is_folder()) {
+        dir_size += m_dir_size_cache[child] + 1;
+        j = child.folder.sibling_next;
+      } else
+        dir_size += 1;
+    }
+    m_dir_size_cache[node] = dir_size;
+  }
 }
 
 } // namespace riistudio::frontend
