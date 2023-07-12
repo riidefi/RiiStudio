@@ -8,11 +8,11 @@ pub mod bindings {
 pub extern "C" fn rsl_init_llvm(
     argc: *mut ::std::os::raw::c_int,
     argv: *mut *mut *const ::std::os::raw::c_char,
-    installPipeSignalExitHandler: ::std::os::raw::c_int,
+    install_pipe_signal_exit_handler: ::std::os::raw::c_int,
 ) -> *mut bindings::llvm_InitLLVM {
     println!("bindings::init_llvm");
     unsafe {
-        bindings::init_llvm(argc, argv, installPipeSignalExitHandler)
+        bindings::init_llvm(argc, argv, install_pipe_signal_exit_handler)
     }
 }
 #[no_mangle]
