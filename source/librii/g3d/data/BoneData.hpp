@@ -41,6 +41,10 @@ struct BinaryBoneData {
   glm::mat4x3 modelMtx;
   glm::mat4x3 inverseModelMtx;
 
+  // Not a real field: computed later on
+  bool forceDisplayMatrix = false;
+  bool omitFromNodeMix = false;
+
   Result<void> read(oishii::BinaryReader& reader);
   void write(NameTable& names, oishii::Writer& writer, u32 mdl_start) const;
 
@@ -87,6 +91,10 @@ struct BoneData {
     }
   };
   std::vector<DisplayCommand> mDisplayCommands;
+
+  // Not a real field: computed later on
+  bool forceDisplayMatrix = false;
+  bool omitFromNodeMix = false;
 
   std::string getName() const { return mName; }
   bool isDisplayMatrix() const { return displayMatrix; }

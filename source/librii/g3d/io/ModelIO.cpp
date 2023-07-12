@@ -215,10 +215,16 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
     return {};
   };
 
-  TRY(readDict(secOfs.ofsBones, [&](const librii::g3d::BetterNode& dnode) {
-    auto& bone = bones.emplace_back();
-    return bone.read(unsafeReader);
-  }));
+  TRY(readDict(secOfs.ofsBones,
+               [&](const librii::g3d::BetterNode& dnode) -> Result<void> {
+                 auto& bone = bones.emplace_back();
+                 TRY(bone.read(unsafeReader));
+                 // TODO: We shouldn't need this hack
+                 if (bone.matrixId < info.numViewMtx) {
+                   bone.forceDisplayMatrix = true;
+                 }
+                 return {};
+               }));
 
   // Read Vertex data
   TRY(readDict(
@@ -289,6 +295,22 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
                  bytecodes.emplace_back(c);
                  return {};
                }));
+
+  for (auto& bone : bones) {
+    bone.omitFromNodeMix = true;
+  }
+  for (auto& bc : bytecodes) {
+    if (bc.name != "NodeMix") {
+      continue;
+    }
+    for (auto& cmd : bc.commands) {
+      if (auto* x = std::get_if<ByteCodeLists::EnvelopeMatrix>(&cmd)) {
+        EXPECT(x->nodeId < bones.size());
+        bones[x->nodeId].omitFromNodeMix = false;
+      }
+    }
+    break;
+  }
 
   if (!isValid) {
     transaction.callback(kpi::IOMessageClass::Warning, transaction_path,
@@ -743,6 +765,9 @@ librii::g3d::BoneData fromBinaryBone(const librii::g3d::BinaryBoneData& bin,
   bone.mParent = bin.parent_id;
   // Skip sibling and child links -- we recompute it all
 
+  bone.forceDisplayMatrix = bin.forceDisplayMatrix;
+  bone.omitFromNodeMix = bin.omitFromNodeMix;
+
   auto modelMtx = calcSrtMtx(bin, bones, scalingRule);
   auto modelMtx34 = glm::mat4x3(modelMtx);
 
@@ -817,6 +842,10 @@ toBinaryBone(const librii::g3d::BoneData& bone,
   bin.modelMtx = modelMtx34;
   bin.inverseModelMtx =
       librii::g3d::MTXInverse(modelMtx34).value_or(glm::mat4x3(0.0f));
+
+  bin.forceDisplayMatrix = bone.forceDisplayMatrix;
+  bin.omitFromNodeMix = bone.omitFromNodeMix;
+
   return bin;
 }
 
@@ -947,6 +976,46 @@ private:
   kpi::IOContext& ctx;
 };
 
+inline std::set<s16> gcomputeShapeMtxRef(auto&& meshes) {
+  std::set<s16> shapeRefMtx;
+  for (auto&& mesh : meshes) {
+    // TODO: Do we need to check currentMatrixEmbedded flag?
+    if (mesh.mCurrentMatrix != -1) {
+      shapeRefMtx.insert(mesh.mCurrentMatrix);
+      continue;
+    }
+    // TODO: Presumably mCurrentMatrix (envelope mode) precludes blended weight
+    // mode?
+    for (auto& mp : mesh.mMatrixPrimitives) {
+      for (auto& w : mp.mDrawMatrixIndices) {
+        if (w == -1) {
+          continue;
+        }
+        shapeRefMtx.insert(w);
+      }
+    }
+  }
+  return shapeRefMtx;
+}
+inline std::set<s16> gcomputeDisplayMatricesSubset(
+    const auto& meshes, const auto& bones,
+    auto getMatrixId = [](auto& x) { return x.matrixId; }) {
+  std::set<s16> displayMatrices = gcomputeShapeMtxRef(meshes);
+  const size_t len = displayMatrices.size();
+  for (int i = 0; i < bones.size(); ++i) {
+    const auto& bone = bones[i];
+    if (!displayMatrices.contains(getMatrixId(bone, i))) {
+      // Assume non-view matrices are appended to end
+      // HACK: Permit leaves to match map_model.brres
+      if (!bone.forceDisplayMatrix) {
+        continue;
+      }
+      displayMatrices.insert(getMatrixId(bone, i));
+    }
+  }
+  return displayMatrices;
+}
+
 Result<void> processModel(const BinaryModel& binary_model,
                           kpi::LightIOTransaction& transaction,
                           std::string_view transaction_path, Model& mdl) {
@@ -981,14 +1050,14 @@ Result<void> processModel(const BinaryModel& binary_model,
     }
     mdl.info.sourceLocation = info.sourceLocation;
     {
-      auto displayMatrices = librii::gx::computeDisplayMatricesSubset(
+      auto displayMatrices = gcomputeDisplayMatricesSubset(
           binary_model.meshes, binary_model.bones,
           [](auto& x, int i) { return x.matrixId; });
       ctx.request(info.numViewMtx == displayMatrices.size(),
                   "Model header specifies {} display matrices, but the mesh "
                   "data only references {} display matrices.",
                   info.numViewMtx, displayMatrices.size());
-      auto ref = librii::gx::computeShapeMtxRef(binary_model.meshes);
+      auto ref = gcomputeShapeMtxRef(binary_model.meshes);
       numDisplayMatrices = ref.size();
     }
     {
@@ -1044,13 +1113,14 @@ Result<void> processModel(const BinaryModel& binary_model,
 
   mdl.bones.resize(0);
   for (size_t i = 0; i < binary_model.bones.size(); ++i) {
+    auto& bone = binary_model.bones[i];
     // CTools seemingly doesn't do this???
-    if (binary_model.bones[i].id != i) {
+    if (bone.id != i) {
       ctx.error("Bone IDs are desynced. Is this a CTools minimap???");
     }
-    mdl.bones.emplace_back() =
-        fromBinaryBone(binary_model.bones[i], binary_model.bones, ctx,
-                       binary_model.info.scalingRule);
+    auto new_bone = fromBinaryBone(bone, binary_model.bones, ctx,
+                                   binary_model.info.scalingRule);
+    mdl.bones.push_back(new_bone);
   }
 
   mdl.positions = binary_model.positions;
@@ -1178,6 +1248,10 @@ BuildRenderLists(const Model& mdl,
   if (needs_nodemix) {
     // Bones come first
     for (size_t i = 0; i < mdl.bones.size(); ++i) {
+      // Official models seem to omit unecessary NODEMIXES
+      if (mdl.bones[i].omitFromNodeMix) {
+        continue;
+      }
       auto& drw = drawMatrices[boneToMatrix[i]];
       TRY(write_drw(drw, boneToMatrix[i]));
     }
@@ -1268,7 +1342,7 @@ Result<librii::g3d::BinaryModel> toBinaryModel(const Model& mdl) {
   }
   auto getMatrixId = [&](auto& x, int i) { return boneToMatrix[i]; };
   std::set<s16> displayMatrices =
-      gx::computeDisplayMatricesSubset(mdl.meshes, mdl.bones, getMatrixId);
+      gcomputeDisplayMatricesSubset(mdl.meshes, mdl.bones, getMatrixId);
   rsl::debug("boneToMatrix: {}, displayMatrices: {}, drawMatrices: {}",
              boneToMatrix.size(), displayMatrices.size(), drawMatrices.size());
 

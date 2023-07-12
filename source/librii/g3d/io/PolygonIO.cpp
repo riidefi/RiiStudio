@@ -440,15 +440,21 @@ struct BinaryPolygon {
 
     if (currentMatrix == -1) {
       librii::gpu::DLBuilder builder(writer);
+      bool anyNeedsTextureMtx = false;
       for (u32 i = 0; i < 8; ++i) {
         if (needsTextureMtx(i)) {
-          for (size_t i = 0; i < mp.mDrawMatrixIndices.size(); ++i) {
-            if (mp.mDrawMatrixIndices[i] == -1) {
-              continue;
-            }
-            builder.loadTexMtxIndx(mp.mDrawMatrixIndices[i], 30 + i * 3,
-                                   librii::gx::TexGenType::Matrix3x4);
+          anyNeedsTextureMtx = true;
+          break;
+        }
+      }
+      // Only one copy needed!
+      if (anyNeedsTextureMtx) {
+        for (size_t i = 0; i < mp.mDrawMatrixIndices.size(); ++i) {
+          if (mp.mDrawMatrixIndices[i] == -1) {
+            continue;
           }
+          builder.loadTexMtxIndx(mp.mDrawMatrixIndices[i], 30 + i * 3,
+                                 librii::gx::TexGenType::Matrix3x4);
         }
       }
       if (needsPositionMtx()) {

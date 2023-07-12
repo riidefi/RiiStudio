@@ -62,11 +62,6 @@ Result<void> BinaryArchive::read(oishii::BinaryReader& reader,
 
     // TODO
     if (node.name == "3DModels(NW4R)") {
-      if (cdic.nodes.size() > 1) {
-        return std::unexpected(
-            "This file has multiple MDL0 files within it. "
-            "Only single-MDL0 BRRES files are currently supported.");
-      }
       for (auto& sub : cdic.nodes) {
         EXPECT(sub.stream_pos);
         reader.seekSet(sub.stream_pos);

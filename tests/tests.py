@@ -51,6 +51,12 @@ TEST_DATA = {
   # mariotreeGC.brres
   '6fe8bbb50310b18ec2b3b9b2de4990f5': '6fe8bbb50310b18ec2b3b9b2de4990f5',
 
+  # Multi models
+  # kuribo.brres
+  '81deff134e06ff650704ff10056086a4': '81deff134e06ff650704ff10056086a4',
+  # MashBalloonGC.brres
+  '1708f97c5a7a90a236433f08f31673f6': '1708f97c5a7a90a236433f08f31673f6',
+
   # ind_srt_0.brres
   '2689c848e52167ecafee0334ce02dc4e': 'ae5364c457683c4a24d8e94121ec2e5f', 
 
