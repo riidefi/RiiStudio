@@ -19,13 +19,14 @@ inline void DefaultWindowSize() {
 }
 
 enum class DockSetting {
-	None,
-	Dockspace,
+  None,
+  Dockspace,
 };
 
 class StudioWindow : public frontend::Window<StudioWindow, frontend::IWindow> {
 public:
-  StudioWindow(const std::string& name, DockSetting dockspace = DockSetting::None);
+  StudioWindow(const std::string& name,
+               DockSetting dockspace = DockSetting::None);
 
   void setName(const std::string& name) {
     mName = name;
@@ -67,9 +68,14 @@ private:
   ImGuiWindowClass mWindowClass;
   std::string mName;
   ImGuiID mId;
+
+protected:
   bool mbDrawDockspace = true;
+
+private:
   u32 mFlags = 0;
 
+public:
   void drawDockspace();
 };
 

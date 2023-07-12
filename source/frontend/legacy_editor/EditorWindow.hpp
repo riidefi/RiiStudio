@@ -8,6 +8,7 @@
 #include <LibBadUIFramework/Plugins.hpp>  // kpi::IOTransaction
 #include <core/3d/Texture.hpp>            // lib3d::Texture
 #include <frontend/IEditor.hpp>
+#include <frontend/widgets/ErrorDialogList.hpp>
 #include <frontend/widgets/IconManager.hpp> // IconManager
 #include <string_view>                      // std::string_view
 
@@ -45,6 +46,9 @@ struct BRRESEditor : public StudioWindow, public IEditor {
   std::string mPath;
   IconManager mIconManager;
   SelectionManager mSelection;
+  ErrorDialogList mLoadErrors;
+  std::vector<Message> mLoadErrorMessages;
+  bool mErrorState = false;
 
   std::string discordStatus() const override { return "Editing a BRRES"; }
   void saveAsButton() override {
@@ -107,6 +111,9 @@ struct BMDEditor : public StudioWindow, public IEditor {
   std::string mPath;
   IconManager mIconManager;
   SelectionManager mSelection;
+  ErrorDialogList mLoadErrors;
+  std::vector<Message> mLoadErrorMessages;
+  bool mErrorState = false;
 
   std::string discordStatus() const override { return "Editing a BMD"; }
   void saveAsButton() override {

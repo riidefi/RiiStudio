@@ -39,11 +39,12 @@ void BRRESEditor::init() {
   attachWindow(MakeViewportRenderer(mDocument.getRoot()));
 }
 
+// We handle the Dockspace manually (disabling it in an error state)
 BRRESEditor::BRRESEditor(std::string path)
-    : StudioWindow(getFileShort(path), DockSetting::Dockspace),
+    : StudioWindow(getFileShort(path), DockSetting::None),
       mDocument(nullptr), mPath(path) {}
 BRRESEditor::BRRESEditor(std::span<const u8> span, const std::string& path)
-    : StudioWindow(getFileShort(path), DockSetting::Dockspace),
+    : StudioWindow(getFileShort(path), DockSetting::None),
       mDocument(nullptr), mPath(path) {
   auto out = std::make_unique<g3d::Collection>();
   oishii::BinaryReader reader(span, path, std::endian::big);
@@ -56,10 +57,12 @@ BRRESEditor::BRRESEditor(std::span<const u8> span, const std::string& path)
                            domain, message_body);
     total += msg + "\n";
     rsl::error(msg);
+    Message emsg(message_class, std::string(domain), std::string(message_body));
+    mLoadErrorMessages.push_back(emsg);
   };
   g3d::ReadBRRES(*out, reader, trans);
   if (trans.state != kpi::TransactionState::Complete) {
-    rsl::ErrorDialog(total);
+    mErrorState = true;
     return;
   }
   attach(std::move(out));
@@ -83,6 +86,25 @@ ImGuiID BRRESEditor::buildDock(ImGuiID root_id) {
   return next;
 }
 void BRRESEditor::draw_() {
+  if (mErrorState) {
+    mLoadErrors.Draw(mLoadErrorMessages);
+    return;
+  }
+  drawDockspace();
+  if (!mLoadErrorMessages.empty()) {
+    auto name = idIfyChild("Warnings");
+    bool open = true;
+    if (ImGui::Begin(name.c_str(), &open)) {
+      mLoadErrors.Draw(mLoadErrorMessages);
+      if (ImGui::Button("OK")) {
+        open = false;
+      }
+    }
+    ImGui::End();
+    if (!open) {
+      mLoadErrorMessages.clear();
+    }
+  }
   detachClosedChildren();
 
   // TODO: Only affect active window
@@ -124,11 +146,12 @@ void BRRESEditor::saveAsImpl(std::string path) {
   writer.saveToDisk(path);
 }
 
+// We handle the Dockspace manually (disabling it in an error state)
 BMDEditor::BMDEditor(std::string path)
-    : StudioWindow(getFileShort(path), DockSetting::Dockspace),
+    : StudioWindow(getFileShort(path), DockSetting::None),
       mDocument(nullptr), mPath(path) {}
 BMDEditor::BMDEditor(std::span<const u8> span, const std::string& path)
-    : StudioWindow(getFileShort(path), DockSetting::Dockspace),
+    : StudioWindow(getFileShort(path), DockSetting::None),
       mDocument(nullptr), mPath(path) {
   auto out = std::make_unique<j3d::Collection>();
   oishii::BinaryReader reader(span, path, std::endian::big);
@@ -141,9 +164,16 @@ BMDEditor::BMDEditor(std::span<const u8> span, const std::string& path)
                            domain, message_body);
     total += msg + "\n";
     rsl::error(msg);
+    Message emsg(message_class, std::string(domain), std::string(message_body));
+    mLoadErrorMessages.push_back(emsg);
   };
-  if (!j3d::ReadBMD(*out, reader, trans) ||
-      trans.state != kpi::TransactionState::Complete) {
+  auto ok = j3d::ReadBMD(*out, reader, trans);
+  if (!ok) {
+    rsl::error(ok.error());
+    mErrorState = true;
+    return;
+  }
+  if (trans.state != kpi::TransactionState::Complete) {
     rsl::ErrorDialog(total);
     return;
   }
@@ -168,6 +198,25 @@ ImGuiID BMDEditor::buildDock(ImGuiID root_id) {
   return next;
 }
 void BMDEditor::draw_() {
+  if (mErrorState) {
+    mLoadErrors.Draw(mLoadErrorMessages);
+    return;
+  }
+  drawDockspace();
+  if (!mLoadErrorMessages.empty()) {
+    auto name = idIfyChild("Warnings");
+    bool open = true;
+    if (ImGui::Begin(name.c_str(), &open)) {
+      mLoadErrors.Draw(mLoadErrorMessages);
+      if (ImGui::Button("OK")) {
+        open = false;
+      }
+    }
+    ImGui::End();
+    if (!open) {
+      mLoadErrorMessages.clear();
+    }
+  }
   detachClosedChildren();
 
   // TODO: Only affect active window
