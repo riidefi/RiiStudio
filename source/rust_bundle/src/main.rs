@@ -2,7 +2,6 @@ extern crate libc;
 use libc::c_char;
 use std::ffi::CString;
 use std::os::raw::c_int;
-use std::os::raw::c_void;
 
 extern "C" {
     fn RiiStudio_main(argc: c_int, argv: *const *const c_char) -> c_int;
