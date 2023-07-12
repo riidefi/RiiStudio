@@ -30,4 +30,18 @@ void ClearGlScreen() {
 #endif
 }
 
+const char* GetGpuName() {
+  static std::string renderer =
+      reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+
+  return renderer.c_str();
+}
+
+const char* GetGlVersion() {
+  static std::string version =
+      reinterpret_cast<const char*>(glGetString(GL_VERSION));
+
+  return version.c_str();
+}
+
 } // namespace librii::glhelper

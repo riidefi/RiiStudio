@@ -9,18 +9,28 @@
 
 namespace riistudio::frontend {
 
-const char* GetGpuName() {
-  static std::string renderer =
-      reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+// Calculate the bounding box of a polygon
+librii::math::AABB CalcPolyBound(const lib3d::Polygon& poly,
+                                 const lib3d::Bone& bone,
+                                 const lib3d::Model& mdl) {
+  auto mdl_mtx = lib3d::calcSrtMtxSimple(bone, &mdl);
 
-  return renderer.c_str();
+  librii::math::AABB bound = poly.getBounds();
+  auto nmax = mdl_mtx * glm::vec4(bound.max, 1.0f);
+  auto nmin = mdl_mtx * glm::vec4(bound.min, 1.0f);
+
+  return {nmin, nmax};
 }
 
-const char* GetGlVersion() {
-  static std::string version =
-      reinterpret_cast<const char*>(glGetString(GL_VERSION));
-
-  return version.c_str();
+Result<void> SceneImpl::prepare(lib3d::SceneState& state,
+                                const libcube::Scene& host, glm::mat4 v_mtx,
+                                glm::mat4 p_mtx, lib3d::RenderType type) {
+  if (!uploaded) {
+    uploaded = true;
+    TRY(render_data.init(host));
+  }
+  return librii::g3d::gfx::Any3DSceneAddNodesToBuffer(state, host, v_mtx, p_mtx,
+                                                      render_data, type);
 }
 
 void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
@@ -50,20 +60,20 @@ void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
         //   util::ConditionalBold g(true);
         ImGui::TextUnformatted("Backend:");
       }
-      ImGui::Text("OpenGL %s", GetGlVersion());
+      ImGui::Text("OpenGL %s", librii::glhelper::GetGlVersion());
 
       {
         //    util::ConditionalBold g(true);
         ImGui::TextUnformatted("Device:");
       }
-      ImGui::TextUnformatted(GetGpuName());
+      ImGui::TextUnformatted(librii::glhelper::GetGpuName());
     }
 
     ImGui::EndMenuBar();
   }
 }
 
-Renderer::Renderer(lib3d::IDrawable* root, const lib3d::Scene* node)
+Renderer::Renderer(IDrawable* root, const libcube::Scene* node)
     : mRoot(root), mData(node) {
   root->dispatcher = &mRootDispatcher;
 }

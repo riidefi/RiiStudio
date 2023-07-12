@@ -18,8 +18,9 @@ extern bool gPointerLock;
 
 namespace riistudio::frontend {
 
-struct RenderTest : public StudioWindow {
-  RenderTest(const lib3d::Scene& host);
+class RenderTest : public StudioWindow {
+public:
+  RenderTest(const libcube::Scene& host);
 
 private:
   void draw_() override;
@@ -27,11 +28,11 @@ private:
 
   // Components
   plate::tk::Viewport mViewport;
-  lib3d::SceneImpl mImpl;
+  SceneImpl mImpl;
   Renderer mRenderer;
 };
 
-RenderTest::RenderTest(const lib3d::Scene& host)
+RenderTest::RenderTest(const libcube::Scene& host)
     : StudioWindow("Viewport"), mRenderer(&mImpl, &host) {
   setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
   setClosable(false);
@@ -60,7 +61,7 @@ void RenderTest::drawViewCube() {
     frontend::SetCameraControllerToMatrix(cam, mRenderer.mViewMtx);
 }
 
-std::unique_ptr<StudioWindow> MakeViewportRenderer(const lib3d::Scene& host) {
+std::unique_ptr<StudioWindow> MakeViewportRenderer(const libcube::Scene& host) {
   return std::make_unique<RenderTest>(host);
 }
 
