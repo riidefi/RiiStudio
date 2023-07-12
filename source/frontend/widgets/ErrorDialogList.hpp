@@ -17,6 +17,10 @@ struct Message {
         message_body(std::move(body)) {}
 };
 struct ErrorDialogList {
+  static constexpr ImVec4 WHITE = {1.0f, 1.0f, 1.0f, 1.0};
+  static constexpr ImVec4 YELLOW = {1.0f, 1.0f, 0.0f, 1.0};
+  static constexpr ImVec4 RED = {1.0f, 0.0f, 0.0f, 1.0};
+
   void Draw(std::span<const Message> messages) {
     const auto entry_flags =
         ImGuiTableFlags_Borders | ImGuiTableFlags_Sortable |
@@ -30,6 +34,18 @@ struct ErrorDialogList {
       for (auto& msg : messages) {
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
+        ImGui::PushStyleColor(ImGuiCol_Text,
+                              [](kpi::IOMessageClass mclass) -> ImVec4 {
+                                switch (mclass) {
+                                case kpi::IOMessageClass::None:
+                                case kpi::IOMessageClass::Information:
+                                  return WHITE;
+                                case kpi::IOMessageClass::Warning:
+                                  return YELLOW;
+                                case kpi::IOMessageClass::Error:
+                                  return RED;
+                                }
+                              }(msg.message_class));
         ImGui::TextUnformatted([](kpi::IOMessageClass mclass) -> const char* {
           switch (mclass) {
           case kpi::IOMessageClass::None:
@@ -46,6 +62,7 @@ struct ErrorDialogList {
         ImGui::TextUnformatted(msg.domain.c_str());
         ImGui::TableSetColumnIndex(2);
         ImGui::TextWrapped("%s", msg.message_body.c_str());
+        ImGui::PopStyleColor();
       }
 
       ImGui::EndTable();

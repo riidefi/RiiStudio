@@ -42,11 +42,11 @@ void BRRESEditor::init() {
 
 // We handle the Dockspace manually (disabling it in an error state)
 BRRESEditor::BRRESEditor(std::string path)
-    : StudioWindow(getFileShort(path), DockSetting::None),
-      mDocument(nullptr), mPath(path) {}
+    : StudioWindow(getFileShort(path), DockSetting::None), mDocument(nullptr),
+      mPath(path) {}
 BRRESEditor::BRRESEditor(std::span<const u8> span, const std::string& path)
-    : StudioWindow(getFileShort(path), DockSetting::None),
-      mDocument(nullptr), mPath(path) {
+    : StudioWindow(getFileShort(path), DockSetting::None), mDocument(nullptr),
+      mPath(path) {
   auto out = std::make_unique<g3d::Collection>();
   oishii::BinaryReader reader(span, path, std::endian::big);
   kpi::LightIOTransaction trans;
@@ -95,6 +95,7 @@ void BRRESEditor::draw_() {
   if (!mLoadErrorMessages.empty()) {
     auto name = idIfyChild("Warnings");
     bool open = true;
+    ImGui::SetNextWindowSize(ImVec2(900.0f, 500.0f), ImGuiCond_FirstUseEver);
     if (ImGui::Begin(name.c_str(), &open)) {
       mLoadErrors.Draw(mLoadErrorMessages);
       if (ImGui::Button("OK")) {
@@ -150,11 +151,11 @@ void BRRESEditor::saveAsImpl(std::string path) {
 
 // We handle the Dockspace manually (disabling it in an error state)
 BMDEditor::BMDEditor(std::string path)
-    : StudioWindow(getFileShort(path), DockSetting::None),
-      mDocument(nullptr), mPath(path) {}
+    : StudioWindow(getFileShort(path), DockSetting::None), mDocument(nullptr),
+      mPath(path) {}
 BMDEditor::BMDEditor(std::span<const u8> span, const std::string& path)
-    : StudioWindow(getFileShort(path), DockSetting::None),
-      mDocument(nullptr), mPath(path) {
+    : StudioWindow(getFileShort(path), DockSetting::None), mDocument(nullptr),
+      mPath(path) {
   auto out = std::make_unique<j3d::Collection>();
   oishii::BinaryReader reader(span, path, std::endian::big);
   kpi::LightIOTransaction trans;
@@ -208,6 +209,7 @@ void BMDEditor::draw_() {
   if (!mLoadErrorMessages.empty()) {
     auto name = idIfyChild("Warnings");
     bool open = true;
+    ImGui::SetNextWindowSize(ImVec2(900.0f, 500.0f), ImGuiCond_FirstUseEver);
     if (ImGui::Begin(name.c_str(), &open)) {
       mLoadErrors.Draw(mLoadErrorMessages);
       if (ImGui::Button("OK")) {
