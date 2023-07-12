@@ -270,9 +270,7 @@ private:
   }
 
   EXPECT(dst_.size() == dst.size());
-  for (size_t i = 0; i < dst_.size(); ++i) {
-    dst_[i] = dst[i];
-  }
+  memcpy(&dst_[0], &dst[0], dst_.size());
   return {};
 }
 
