@@ -1,6 +1,4 @@
 #include "ViewportRenderer.hpp"
-#include <frontend/renderer/Renderer.hpp> // Renderer
-#include <plate/toolkit/Viewport.hpp>     // plate::tk::Viewport
 
 // TODO: Clean up pointerlock code
 #include <core/3d/gl.hpp>
@@ -14,28 +12,17 @@ extern bool gPointerLock;
 
 #include <frontend/level_editor/ViewCube.hpp>
 
-#include <plugins/SceneImpl.hpp>
-
 namespace riistudio::frontend {
 
-class RenderTest : public StudioWindow {
-public:
-  RenderTest(const libcube::Scene& host);
-
-private:
-  void draw_() override;
-  void drawViewCube();
-
-  // Components
-  plate::tk::Viewport mViewport;
-  SceneImpl mImpl;
-  Renderer mRenderer;
-};
-
 RenderTest::RenderTest(const libcube::Scene& host)
-    : StudioWindow("Viewport"), mRenderer(&mImpl, &host) {
+    : StudioWindow("Viewport"), mRenderer(&host) {
   setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
   setClosable(false);
+}
+
+void RenderTest::precache() {
+  rsl::info("Precaching render state");
+  mRenderer.precache();
 }
 
 void RenderTest::draw_() {
@@ -59,10 +46,6 @@ void RenderTest::drawViewCube() {
   auto& cam = mRenderer.mSettings.mCameraController;
   if (view_updated)
     frontend::SetCameraControllerToMatrix(cam, mRenderer.mViewMtx);
-}
-
-std::unique_ptr<StudioWindow> MakeViewportRenderer(const libcube::Scene& host) {
-  return std::make_unique<RenderTest>(host);
 }
 
 } // namespace riistudio::frontend

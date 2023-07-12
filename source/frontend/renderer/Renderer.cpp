@@ -22,13 +22,18 @@ librii::math::AABB CalcPolyBound(const lib3d::Polygon& poly,
   return {nmin, nmax};
 }
 
-Result<void> SceneImpl::prepare(lib3d::SceneState& state,
-                                const libcube::Scene& host, glm::mat4 v_mtx,
-                                glm::mat4 p_mtx, lib3d::RenderType type) {
+Result<void> SceneImpl::upload(const libcube::Scene& host) {
   if (!uploaded) {
     uploaded = true;
     TRY(render_data.init(host));
   }
+  return {};
+}
+
+Result<void> SceneImpl::prepare(lib3d::SceneState& state,
+                                const libcube::Scene& host, glm::mat4 v_mtx,
+                                glm::mat4 p_mtx, lib3d::RenderType type) {
+  TRY(upload(host));
   return librii::g3d::gfx::Any3DSceneAddNodesToBuffer(state, host, v_mtx, p_mtx,
                                                       render_data, type);
 }
@@ -73,19 +78,18 @@ void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
   }
 }
 
-Renderer::Renderer(IDrawable* root, const libcube::Scene* node)
-    : mRoot(root), mData(node) {
-  root->dispatcher = &mRootDispatcher;
-}
+Renderer::Renderer(const libcube::Scene* node) : mData(node) {}
 Renderer::~Renderer() {}
+
+void Renderer::precache() {
+  assert(mData != nullptr);
+  mRoot.upload(*mData);
+}
 
 void Renderer::render(u32 width, u32 height) {
   mSettings.drawMenuBar();
 
   if (!mSettings.rend)
-    return;
-
-  if (!mRootDispatcher.beginDraw())
     return;
 
   librii::glhelper::SetGlWireframe(mSettings.wireframe);
@@ -107,8 +111,8 @@ void Renderer::render(u32 width, u32 height) {
 
   mSceneState.invalidate();
   assert(mData != nullptr);
-  auto ok = mRootDispatcher.populate(*mRoot, mSceneState, *mData, mViewMtx,
-                                     mProjMtx, mSettings.mRenderType);
+  auto ok = mRoot.prepare(mSceneState, *mData, mViewMtx, mProjMtx,
+                          mSettings.mRenderType);
   if (!ok.has_value()) {
     ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_NavHighlight],
                        "Renderer error during populate(): %s",
@@ -118,8 +122,6 @@ void Renderer::render(u32 width, u32 height) {
 
   librii::glhelper::ClearGlScreen();
   mSceneState.draw();
-
-  mRootDispatcher.endDraw();
 }
 
 } // namespace riistudio::frontend

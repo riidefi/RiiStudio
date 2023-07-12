@@ -13,73 +13,12 @@
 
 namespace riistudio::frontend {
 
-class DrawableDispatcher;
-
-// Used for the root element
-struct IDrawable {
-  virtual ~IDrawable() = default;
-
-  //! Prepare a scene based on the resource data.
-  virtual Result<void> prepare(lib3d::SceneState& state,
-                               const libcube::Scene& root, glm::mat4 v_mtx,
-                               glm::mat4 p_mtx, lib3d::RenderType type) = 0;
-
-  DrawableDispatcher& getDispatcher() {
-    assert(dispatcher);
-    return *dispatcher;
-  }
-
-  DrawableDispatcher* dispatcher = nullptr;
-};
-
-class DrawableDispatcher {
+class SceneImpl {
 public:
-  void beginEdit() { poisoned = true; }
-  void endEdit() {
-    poisoned = false;
-    reinit = true;
-  }
-
-  Result<void> populate(IDrawable& drawable, lib3d::SceneState& state,
-                        const libcube::Scene& root, glm::mat4 v_mtx,
-                        glm::mat4 p_mtx, lib3d::RenderType type) {
-    assert(!poisoned);
-    assert(!reinit);
-    return drawable.prepare(state, root, v_mtx, p_mtx, type);
-  }
-
-  bool beginDraw() {
-    if (poisoned)
-      return false;
-
-    // We don't have any initialization code yet
-    reinit = false;
-
-    return true;
-  }
-
-  void endDraw() {}
-
-private:
-  bool poisoned = false;
-  bool reinit = false;
-};
-
-class SceneImpl : public IDrawable {
-public:
-  SceneImpl() = default;
-  virtual ~SceneImpl() = default;
-
+  Result<void> upload(const libcube::Scene& host);
   Result<void> prepare(lib3d::SceneState& state, const libcube::Scene& host,
                        glm::mat4 v_mtx, glm::mat4 p_mtx,
-                       lib3d::RenderType type) override;
-
-  void gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
-                           const lib3d::Model& root, const lib3d::Scene& scn,
-                           glm::mat4 v_mtx, glm::mat4 p_mtx);
-
-  void gather(lib3d::SceneBuffers& output, const lib3d::Model& root,
-              const lib3d::Scene& scene, glm::mat4 v_mtx, glm::mat4 p_mtx);
+                       lib3d::RenderType type);
 
 private:
   librii::g3d::gfx::G3dSceneRenderData render_data;
@@ -99,9 +38,10 @@ struct RenderSettings {
 
 class Renderer {
 public:
-  Renderer(IDrawable* root, const libcube::Scene* data);
+  Renderer(const libcube::Scene* data);
   ~Renderer();
   void render(u32 width, u32 height);
+  void precache();
 
   Camera& getCamera() { return mSettings.mCameraController.mCamera; }
 
@@ -109,9 +49,8 @@ private:
   // Scene state
   lib3d::SceneState mSceneState;
 
-  IDrawable* mRoot = nullptr;
+  SceneImpl mRoot;
   const libcube::Scene* mData = nullptr;
-  DrawableDispatcher mRootDispatcher;
 
 public:
   RenderSettings mSettings;

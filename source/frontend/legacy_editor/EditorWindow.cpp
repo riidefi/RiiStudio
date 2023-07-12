@@ -36,7 +36,8 @@ void BRRESEditor::init() {
       MakeHistoryList(mDocument.getHistory(), mDocument.getRoot(), mSelection));
   attachWindow(MakeOutliner(mDocument.getRoot(), mSelection, draw_image_icon,
                             post, commit_));
-  attachWindow(MakeViewportRenderer(mDocument.getRoot()));
+  auto rt = std::make_unique<RenderTest>(mDocument.getRoot());
+  attachWindow(std::move(rt));
 }
 
 // We handle the Dockspace manually (disabling it in an error state)
@@ -134,7 +135,8 @@ void BMDEditor::init() {
       MakeHistoryList(mDocument.getHistory(), mDocument.getRoot(), mSelection));
   attachWindow(MakeOutliner(mDocument.getRoot(), mSelection, draw_image_icon,
                             post, commit_));
-  attachWindow(MakeViewportRenderer(mDocument.getRoot()));
+  auto rt = std::make_unique<RenderTest>(mDocument.getRoot());
+  attachWindow(std::move(rt));
 }
 void BRRESEditor::saveAsImpl(std::string path) {
   oishii::Writer writer(std::endian::big);
