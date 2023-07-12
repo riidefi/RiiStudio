@@ -43,6 +43,7 @@ bool OutlinerWidget::PushFolder(Node& folder, u32 numChildren) {
   if (!opened) {
     return false;
   }
+  ImGui::Indent();
   ImGui::PushID(folder.key.c_str());
   return true;
 }
@@ -114,11 +115,6 @@ void OutlinerWidget::DrawFolder(std::vector<Node>&& flat, Node& firstFolder) {
       auto& node = mNodes[i];
       filtered.push_back(i);
       if (node.nodeType == NODE_OBJECT) {
-
-        // Don't know why but this fixes things
-        if (i > 0 && mNodes[i - 1].nodeType == NODE_FOLDER) {
-          ImGui::Indent();
-        }
         OutlinerWidget::SelUpdate update;
         bool treenode =
             mOutliner.DrawObject(node, i, hasChild, update, *mpFolder);
