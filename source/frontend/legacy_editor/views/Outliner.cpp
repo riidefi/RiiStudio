@@ -49,15 +49,21 @@ public:
 
   // OutlinerWidget
   bool isSelected(const Node& n) const override {
-    assert(n.obj != nullptr);
+    if (n.obj == nullptr) {
+      return false;
+    }
     return mSelection.isSelected(n.obj);
   }
   void select(const Node& n) override {
-    assert(n.obj != nullptr);
+    if (n.obj == nullptr) {
+      return;
+    }
     mSelection.select(n.obj);
   }
   void deselect(const Node& n) override {
-    assert(n.obj != nullptr);
+    if (n.obj == nullptr) {
+      return;
+    }
     mSelection.deselect(n.obj);
   }
   void clearSelectionExcept(const Node* node = nullptr) override {

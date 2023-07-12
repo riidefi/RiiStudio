@@ -18,7 +18,7 @@ void OutlinerWidget::AddNewCtxMenu(Node& folder) {
     ImGui::TextUnformatted((" " + folder.rti.type_name + ": ").c_str());
     ImGui::Separator();
 
-    {
+    if (folder.add_new_fn) {
       // set activeModal for an actual gui
       if (ImGui::MenuItem("Add New")) {
         folder.add_new_fn();

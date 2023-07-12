@@ -15,6 +15,7 @@ static ImVec4 Clr(u32 x) {
       1.0f,
   };
 }
+// TODO: Some better color scheme
 static std::map<std::string, Node::RichTypeInfo> richtypes{
     {"bone", {(const char*)ICON_FA_BONE, Clr(0xFFCA3A), "Bone"}},
     {"material", {(const char*)ICON_FA_PAINT_BRUSH, Clr(0x6A4C93), "Material"}},
@@ -27,6 +28,17 @@ static std::map<std::string, Node::RichTypeInfo> richtypes{
     {"srt0",
      {(const char*)ICON_FA_WAVE_SQUARE, Clr(0xFF595E),
       "Texture Matrix Animation"}},
+    {"chr0",
+     {(const char*)ICON_FA_WAVE_SQUARE, Clr(0x59FF5E), "Character Animation"}},
+    {"clr0",
+     {(const char*)ICON_FA_WAVE_SQUARE, Clr(0xA9335E),
+      "Uniform Color Animation"}},
+    {"pat0",
+     {(const char*)ICON_FA_WAVE_SQUARE, Clr(0x33FFFF),
+      "Texture Pattern Animation"}},
+    {"vis0",
+     {(const char*)ICON_FA_WAVE_SQUARE, Clr(0xa80077),
+      "Bone Visibility Animation"}},
 };
 
 static std::optional<Node::RichTypeInfo>
@@ -82,8 +94,26 @@ static std::vector<const lib3d::Texture*> GetNodeIcons(kpi::IObject& nodeAt) {
   return icons;
 }
 
-static void AddNew(kpi::ICollection* node) { node->add(); }
-static void DeleteChild(kpi::ICollection* node, size_t index) {
+static inline Node HeaderBarImpl(const char* key, int indent, size_t size,
+                                 std::function<void(size_t)> delete_child_fn,
+                                 std::function<void()> add_new_fn,
+                                 std::function<void()> postDeleteChild) {
+  return Node{
+      .nodeType = NODE_FOLDER,
+      .indent = indent,
+      .rti = richtypes[key],
+      .add_new_fn = add_new_fn,
+      .delete_child_fn = delete_child_fn,
+      .key = key,
+      .public_name = richtypes[key].type_name + "s",
+      .is_container = true,
+      .is_rich = true,
+      .__numChildren = static_cast<int>(size),
+  };
+}
+
+static inline void AddNew(kpi::ICollection* node) { node->add(); }
+static inline void DeleteChild(kpi::ICollection* node, size_t index) {
   if (node->size() < 1 || index >= node->size()) {
     return;
   }
@@ -94,25 +124,16 @@ static void DeleteChild(kpi::ICollection* node, size_t index) {
   node->resize(end);
 }
 
-static Node HeaderBar(const char* key, int indent, auto* folder,
-                      std::function<void()> postDeleteChild) {
+static inline Node HeaderBar(const char* key, int indent, auto* folder,
+                             std::function<void()> postDeleteChild) {
   std::function<void(size_t)> delete_child_fn =
       [node = folder, postDeleteChild = postDeleteChild](size_t i) {
         DeleteChild(node, i);
         postDeleteChild();
       };
-  return Node{
-      .nodeType = NODE_FOLDER,
-      .indent = indent,
-      .rti = richtypes[key],
-      .add_new_fn = std::bind(AddNew, folder),
-      .delete_child_fn = delete_child_fn,
-      .key = key,
-      .public_name = richtypes[key].type_name + "s",
-      .is_container = true,
-      .is_rich = true,
-      .__numChildren = static_cast<int>(folder->size()),
-  };
+  auto add_new_fn = std::bind(AddNew, folder);
+  return HeaderBarImpl(key, indent, folder->size(), delete_child_fn, add_new_fn,
+                       postDeleteChild);
 }
 
 static std::vector<Node> CollectNodes(g3d::Collection* g3d,
@@ -254,6 +275,94 @@ static std::vector<Node> CollectNodes(g3d::Collection* g3d,
         .draw_modal_fn = ModalDraw(&tex),
         .public_name = tex.name,
         .obj = &tex,
+        .is_container = false,
+        .is_rich = true,
+        .display_id_relative_to_parent = static_cast<int>(i),
+    };
+    result.push_back(n);
+  }
+  auto add_new_clr0 = [pG = g3d]() {
+    auto& x = pG->clrs.emplace_back();
+    x.name = "Untitled CLR0";
+  };
+  result.push_back(HeaderBarImpl("clr0", 1, g3d->clrs.size(), nullptr,
+                                 add_new_clr0, nullptr));
+  for (int i = 0; i < g3d->clrs.size(); ++i) {
+    auto& tex = g3d->clrs[i];
+    Node n{
+        .indent = 2,
+        .rti = richtypes["clr0"],
+        .icons_right = {},
+        .draw_context_menu_fn = nullptr,
+        .draw_modal_fn = nullptr,
+        .public_name = tex.name,
+        .obj = nullptr,
+        .is_container = false,
+        .is_rich = true,
+        .display_id_relative_to_parent = static_cast<int>(i),
+    };
+    result.push_back(n);
+  }
+  auto add_new_pat0 = [pG = g3d]() {
+    auto& x = pG->pats.emplace_back();
+    x.name = "Untitled PAT0";
+  };
+  result.push_back(HeaderBarImpl("pat0", 1, g3d->pats.size(), nullptr,
+                                 add_new_pat0, nullptr));
+  for (int i = 0; i < g3d->pats.size(); ++i) {
+    auto& tex = g3d->pats[i];
+    Node n{
+        .indent = 2,
+        .rti = richtypes["pat0"],
+        .icons_right = {},
+        .draw_context_menu_fn = nullptr,
+        .draw_modal_fn = nullptr,
+        .public_name = tex.name,
+        .obj = nullptr,
+        .is_container = false,
+        .is_rich = true,
+        .display_id_relative_to_parent = static_cast<int>(i),
+    };
+    result.push_back(n);
+  }
+  auto add_new_vis0 = [pG = g3d]() {
+    auto& x = pG->viss.emplace_back();
+    x.name = "Untitled VIS0";
+  };
+  result.push_back(HeaderBarImpl("vis0", 1, g3d->viss.size(), nullptr,
+                                 add_new_vis0, nullptr));
+  for (int i = 0; i < g3d->viss.size(); ++i) {
+    auto& tex = g3d->viss[i];
+    Node n{
+        .indent = 2,
+        .rti = richtypes["vis0"],
+        .icons_right = {},
+        .draw_context_menu_fn = nullptr,
+        .draw_modal_fn = nullptr,
+        .public_name = tex.name,
+        .obj = nullptr,
+        .is_container = false,
+        .is_rich = true,
+        .display_id_relative_to_parent = static_cast<int>(i),
+    };
+    result.push_back(n);
+  }
+  auto add_new_chr0 = [pG = g3d]() {
+    auto& x = pG->chrs.emplace_back();
+    x.name = "Untitled CHR0";
+  };
+  result.push_back(HeaderBarImpl("chr0", 1, g3d->chrs.size(), nullptr,
+                                 add_new_chr0, nullptr));
+  for (int i = 0; i < g3d->chrs.size(); ++i) {
+    auto& tex = g3d->chrs[i];
+    Node n{
+        .indent = 2,
+        .rti = richtypes["chr0"],
+        .icons_right = {},
+        .draw_context_menu_fn = nullptr,
+        .draw_modal_fn = nullptr,
+        .public_name = tex.name,
+        .obj = nullptr,
         .is_container = false,
         .is_rich = true,
         .display_id_relative_to_parent = static_cast<int>(i),

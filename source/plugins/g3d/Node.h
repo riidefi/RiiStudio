@@ -142,6 +142,7 @@ private:
 
 public:
     struct _Memento : public kpi::IMemento {
+        riistudio::g3d::G3DModelData d;
         kpi::ConstPersistentVec<Material> mMaterials;
         kpi::ConstPersistentVec<Bone> mBones;
         kpi::ConstPersistentVec<Polygon> mMeshes;
@@ -151,6 +152,7 @@ public:
         kpi::ConstPersistentVec<TextureCoordinateBuffer> mBuf_Uv;
         template<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {
             const auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;
+            d = static_cast<const riistudio::g3d::G3DModelData&>(_new);
             kpi::nextFolder(this->mMaterials, _new.getMaterials(), old ? &old->mMaterials : nullptr);
             kpi::nextFolder(this->mBones, _new.getBones(), old ? &old->mBones : nullptr);
             kpi::nextFolder(this->mMeshes, _new.getMeshes(), old ? &old->mMeshes : nullptr);
@@ -166,6 +168,7 @@ public:
     void from(const kpi::IMemento& _memento) override {
         auto* in = dynamic_cast<const _Memento*>(&_memento);
         assert(in);
+        static_cast<riistudio::g3d::G3DModelData&>(*this) = in->d;
         kpi::fromFolder(getMaterials(), in->mMaterials);
         kpi::fromFolder(getBones(), in->mBones);
         kpi::fromFolder(getMeshes(), in->mMeshes);
@@ -283,11 +286,13 @@ private:
 
 public:
     struct _Memento : public kpi::IMemento {
+        SceneData sd;
         kpi::ConstPersistentVec<Model> mModels;
         kpi::ConstPersistentVec<Texture> mTextures;
         kpi::ConstPersistentVec<SRT0> mAnim_Srts;
         template<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {
             const auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;
+            sd = static_cast<const SceneData&>(_new);
             kpi::nextFolder(this->mModels, _new.getModels(), old ? &old->mModels : nullptr);
             kpi::nextFolder(this->mTextures, _new.getTextures(), old ? &old->mTextures : nullptr);
             kpi::nextFolder(this->mAnim_Srts, _new.getAnim_Srts(), old ? &old->mAnim_Srts : nullptr);
@@ -299,6 +304,7 @@ public:
     void from(const kpi::IMemento& _memento) override {
         auto* in = dynamic_cast<const _Memento*>(&_memento);
         assert(in);
+        static_cast<SceneData&>(*this) = in->sd;
         kpi::fromFolder(getModels(), in->mModels);
         kpi::fromFolder(getTextures(), in->mTextures);
         kpi::fromFolder(getAnim_Srts(), in->mAnim_Srts);

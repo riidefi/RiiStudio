@@ -95,11 +95,13 @@ private:
 
 public:
     struct _Memento : public kpi::IMemento {
+        riistudio::j3d::ModelData d;
         kpi::ConstPersistentVec<riistudio::j3d::Material> mMaterials;
         kpi::ConstPersistentVec<riistudio::j3d::Joint> mBones;
         kpi::ConstPersistentVec<riistudio::j3d::Shape> mMeshes;
         template<typename M> _Memento(const M& _new, const kpi::IMemento* last=nullptr) {
             const auto* old = last ? dynamic_cast<const _Memento*>(last) : nullptr;
+			d = static_cast<const riistudio::j3d::ModelData&>(_new);
             kpi::nextFolder(this->mMaterials, _new.getMaterials(), old ? &old->mMaterials : nullptr);
             kpi::nextFolder(this->mBones, _new.getBones(), old ? &old->mBones : nullptr);
             kpi::nextFolder(this->mMeshes, _new.getMeshes(), old ? &old->mMeshes : nullptr);
@@ -111,6 +113,7 @@ public:
     void from(const kpi::IMemento& _memento) override {
         auto* in = dynamic_cast<const _Memento*>(&_memento);
         assert(in);
+        static_cast<riistudio::j3d::ModelData&>(*this) = in->d;
         kpi::fromFolder(getMaterials(), in->mMaterials);
         kpi::fromFolder(getBones(), in->mBones);
         kpi::fromFolder(getMeshes(), in->mMeshes);
