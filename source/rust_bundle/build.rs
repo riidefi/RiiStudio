@@ -67,7 +67,18 @@ fn main() {
         (format!("{}{}", out_dir, "rsl"), "rsl"),
         (format!("{}{}", out_dir, "updater"), "updater"),
         (format!("{}{}", out_dir, "vendor"), "vendor"),
+
+        #[cfg(windows)]
+        (format!("{}{}", source_dir, "vendor"), "freetype"),
+        #[cfg(windows)]
+        (format!("{}{}", source_dir, "plate\\vendor\\glfw\\lib-vc2017"), "glfw3dll"),
+        #[cfg(windows)]
+        (format!("{}{}", source_dir, "vendor\\assimp"), "assimp-vc141-mt"),
+
+        #[cfg(unix)]
         (format!("{}{}", deps_dir, "fmt-build"), "fmtd"),
+        #[cfg(windows)]
+        (format!("{}{}", deps_dir, "fmt-build"), "fmt"),
         (format!("{}{}", deps_dir, "libfort-build/lib"), "fort"),
         (format!("{}{}", deps_dir, "meshoptimizer-build"), "meshoptimizer"),
     ];
