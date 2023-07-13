@@ -9,10 +9,10 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 add_library(LibBadUIFramework STATIC
   "ActionMenu.cpp"
   "Memento.cpp"
-  "Plugins.cpp"
+  
   "PropertyView.cpp"
   "Reflection.cpp"
-  "RichNameManager.cpp"
+  
 )
 target_link_libraries(LibBadUIFramework core)
 set(LibBadUIFramework_HDR

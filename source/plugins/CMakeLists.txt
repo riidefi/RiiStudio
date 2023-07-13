@@ -27,7 +27,7 @@ add_library(plugins STATIC
 	"gc/GX/Material.cpp"
 	"gc/Node.h"
 	
-	"j3d/j3d_Installer.cpp"
+	
 	"j3d/Joint.hpp"
 	"j3d/Material.hpp"
 	"j3d/Model.hpp"

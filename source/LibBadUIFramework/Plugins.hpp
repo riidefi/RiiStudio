@@ -94,16 +94,4 @@ struct IOContext {
   IOContext(kpi::LightIOTransaction& t) : transaction(t) {}
 };
 
-struct IOTransaction : public LightIOTransaction {
-  // Caller -> Deserializer
-  kpi::INode& node;
-  std::span<const u8> data;
-  std::string path;
-
-  // Unresolved
-  rsl::small_vector<std::string, 8> unresolvedFiles; // request
-  rsl::small_vector<std::vector<u8>, 8>
-      resolvedFiles; // reply: size 0 -> ignore
-};
-
 } // namespace kpi

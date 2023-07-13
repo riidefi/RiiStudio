@@ -932,21 +932,4 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
   return true;
 }
 
-void CompileRHST(librii::rhst::SceneTree& rhst,
-                 kpi::IOTransaction& transaction) {
-  libcube::Scene* pnode = dynamic_cast<libcube::Scene*>(&transaction.node);
-  assert(pnode != nullptr);
-  libcube::Scene& scene = *pnode;
-  std::string path(transaction.path);
-  auto info = [&](std::string c, std::string v) {
-    transaction.callback(kpi::IOMessageClass::Information, c, v);
-  };
-  auto progress = [](std::string_view, float) {};
-  if (CompileRHST(rhst, scene, path, info, progress)) {
-    transaction.state = kpi::TransactionState::Complete;
-    return;
-  }
-  transaction.state = kpi::TransactionState::Failure;
-}
-
 } // namespace riistudio::rhst
