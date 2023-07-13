@@ -10,21 +10,18 @@
 
 #include <frontend/properties/BrresBmdPropEdit.hpp>
 
+#include "BmdBrresOutliner.hpp"
+
 namespace riistudio::frontend {
 
 void DrawRichSelection(kpi::IObject* active, int numSelected) {
-  if (auto rich = kpi::RichNameManager::getInstance().getRich(active);
-      rich.hasEntry()) {
-    ImGui::TextColored(
-        rich.getIconColor(), "%s",
-        (numSelected > 1 ? rich.getIconPlural() : rich.getIconSingular())
-            .c_str());
+  if (auto rich = GetRichTypeInfo(active); rich) {
+    // TODO: Do we want plural icons?
+    auto icon = numSelected > 1 ? rich->type_icon : rich->type_icon;
+    auto name = numSelected > 1 ? rich->type_name + "s" : rich->type_name;
+    ImGui::TextColored(rich->type_icon_color, "%s", icon.c_str());
     ImGui::SameLine();
-    ImGui::TextUnformatted(
-        (" " +
-         (numSelected > 1 ? rich.getNamePlural() : rich.getNameSingular()) +
-         ": ")
-            .c_str());
+    ImGui::TextUnformatted((" " + name + ": ").c_str());
     ImGui::SameLine();
   }
   ImGui::Text("%s %s (%i)", active->getName().c_str(),
