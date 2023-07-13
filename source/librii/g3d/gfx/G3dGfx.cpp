@@ -48,7 +48,7 @@ struct MyDefTex : public librii::image::NullTexture<64, 64> {
 static MyDefTex DefaultTex(NullCheckerboard);
 
 Result<std::vector<glm::mat4>> getPosMtx(const libcube::IndexedPolygon& p,
-                                         ModelView model, u64 mpid) {
+                                         ModelView& model, u64 mpid) {
   std::vector<glm::mat4> out;
 
   const auto& mp = p.getMeshData().mMatrixPrimitives[mpid];
@@ -102,10 +102,8 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
                            librii::glhelper::VBOBuilder& v,
                            G3dTextureCache& tex_id_map, Node node,
                            librii::glhelper::ShaderProgram& prog, u32 mp_id,
-                           glm::mat4 view_matrix, glm::mat4 proj_matrix,
-                           std::string& err) {
-  glm::mat4 model_matrix{1.0f};
-
+                           glm::mat4 model_matrix, glm::mat4 view_matrix,
+                           glm::mat4 proj_matrix, std::string& err) {
   out.vao_id = v.getGlId();
   out.bound = {};
   // lib3d::CalcPolyBound(node.poly, node.bone, node.model);
@@ -250,12 +248,12 @@ void pushDisplay(lib3d::IndexRange tenant,
                  librii::glhelper::VBOBuilder& vbo_builder, Node node,
                  riistudio::lib3d::SceneBuffers& output, u32 mp_id,
                  G3dTextureCache& tex_id_map,
-                 librii::glhelper::ShaderProgram& shader, glm::mat4 v_mtx,
-                 glm::mat4 p_mtx, std::string& err) {
+                 librii::glhelper::ShaderProgram& shader, glm::mat4 m_mtx,
+                 glm::mat4 v_mtx, glm::mat4 p_mtx, std::string& err) {
 
   librii::gfx::SceneNode mnode;
   auto err_ = MakeSceneNode(mnode, tenant, vbo_builder, tex_id_map, node,
-                            shader, mp_id, v_mtx, p_mtx, err);
+                            shader, mp_id, m_mtx, v_mtx, p_mtx, err);
   if (!err_.has_value()) {
     err = err + "\n" + err_.error();
     return;
@@ -267,8 +265,8 @@ void pushDisplay(lib3d::IndexRange tenant,
 }
 
 Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
-                                 ModelView view, glm::mat4 v_mtx,
-                                 glm::mat4 p_mtx,
+                                 ModelView& view, glm::mat4 m_mtx,
+                                 glm::mat4 v_mtx, glm::mat4 p_mtx,
                                  G3dSceneRenderData& render_data,
                                  std::string& err, lib3d::RenderType type) {
   if (boneId >= view.bones.size()) {
@@ -318,7 +316,7 @@ Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
       pushDisplay(
           TRY(render_data.mVertexRenderData.getDrawCallVertices(mesh_name)),
           render_data.mVertexRenderData.mVboBuilder, node, output, i,
-          render_data.mTextureData, **shader, v_mtx, p_mtx, _err);
+          render_data.mTextureData, **shader, m_mtx, v_mtx, p_mtx, _err);
       if (_err.size()) {
         err = err + "\n" + _err;
       }
@@ -327,8 +325,8 @@ Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
 
   for (u64 i = 0; i < pBone.getNumChildren(); ++i) {
     std::string _err;
-    auto err = gatherBoneRecursive(output, pBone.getChild(i), view, v_mtx,
-                                   p_mtx, render_data, _err, type);
+    auto err = gatherBoneRecursive(output, pBone.getChild(i), view, m_mtx,
+                                   v_mtx, p_mtx, render_data, _err, type);
     auto err2 = err.has_value() ? "" : err.error();
     if (_err.size()) {
       err2 = err2 + "\n" + _err;
@@ -341,16 +339,17 @@ Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
   return {};
 }
 
-std::string gather(lib3d::SceneBuffers& output, ModelView view, glm::mat4 v_mtx,
-                   glm::mat4 p_mtx, G3dSceneRenderData& render_data,
+std::string gather(lib3d::SceneBuffers& output, ModelView& view,
+                   glm::mat4 m_mtx, glm::mat4 v_mtx, glm::mat4 p_mtx,
+                   G3dSceneRenderData& render_data,
                    lib3d::RenderType type = lib3d::RenderType::Preview) {
   if (view.mats.empty() || view.polys.empty() || view.bones.empty())
     return {};
 
   // Assumes root at zero
   std::string _err;
-  auto err = gatherBoneRecursive(output, 0, view, v_mtx, p_mtx, render_data,
-                                 _err, type);
+  auto err = gatherBoneRecursive(output, 0, view, m_mtx, v_mtx, p_mtx,
+                                 render_data, _err, type);
   auto err2 = err.has_value() ? "" : err.error();
   if (_err.size()) {
     err2 = err2 + "\n" + _err;
@@ -368,7 +367,8 @@ G3DSceneCreateRenderData(riistudio::g3d::Collection& scene) {
 // This code is shared between J3D and G3D right now
 Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
                                       const riistudio::g3d::Collection& scene,
-                                      glm::mat4 v_mtx, glm::mat4 p_mtx,
+                                      glm::mat4 m_mtx, glm::mat4 v_mtx,
+                                      glm::mat4 p_mtx,
                                       G3dSceneRenderData& render_data) {
   // Reupload changed textures
   render_data.mTextureData.update(scene);
@@ -380,7 +380,8 @@ Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
   for (auto& model : scene.getModels()) {
     ModelView view(model, scene);
     view.model_id = i++;
-    auto err = gather(state.getBuffers(), view, v_mtx, p_mtx, render_data);
+    auto err =
+        gather(state.getBuffers(), view, m_mtx, v_mtx, p_mtx, render_data);
     if (err.size()) {
       _err = _err + "\n" + err;
     }
@@ -390,7 +391,8 @@ Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
 
 Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
                                         const libcube::Scene& scene,
-                                        glm::mat4 v_mtx, glm::mat4 p_mtx,
+                                        glm::mat4 m_mtx, glm::mat4 v_mtx,
+                                        glm::mat4 p_mtx,
                                         G3dSceneRenderData& render_data,
                                         lib3d::RenderType type) {
   // Reupload changed textures
@@ -401,8 +403,8 @@ Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
   for (auto& model : scene.getModels()) {
     ModelView view(model, scene);
     view.model_id = i++;
-    auto err =
-        gather(state.getBuffers(), view, v_mtx, p_mtx, render_data, type);
+    auto err = gather(state.getBuffers(), view, m_mtx, v_mtx, p_mtx,
+                      render_data, type);
     if (err.size()) {
       return std::unexpected(err);
     }

@@ -118,12 +118,12 @@ struct RenderableBRRES {
   }
 
   // Append draw calls to a buffer
-  void addNodesToBuffer(riistudio::lib3d::SceneState& state, glm::mat4 v_mtx,
-                        glm::mat4 p_mtx) {
+  void addNodesToBuffer(riistudio::lib3d::SceneState& state, glm::mat4 m_mtx,
+                        glm::mat4 v_mtx, glm::mat4 p_mtx) {
     assert(mCollection != nullptr);
     assert(mRenderData != nullptr);
-    librii::g3d::gfx::G3DSceneAddNodesToBuffer(state, *mCollection, v_mtx,
-                                               p_mtx, *mRenderData);
+    librii::g3d::gfx::G3DSceneAddNodesToBuffer(state, *mCollection, m_mtx,
+                                               v_mtx, p_mtx, *mRenderData);
   }
 
   // Flush the cache and update the render data

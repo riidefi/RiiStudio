@@ -456,10 +456,12 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
 
   if (disp_opts.show_brres) {
     if (mVrcornModel) {
-      mVrcornModel->addNodesToBuffer(mSceneState, viewMtx, projMtx);
+      mVrcornModel->addNodesToBuffer(mSceneState, glm::mat4(1.0f), viewMtx,
+                                     projMtx);
     }
     if (mCourseModel) {
-      mCourseModel->addNodesToBuffer(mSceneState, viewMtx, projMtx);
+      mCourseModel->addNodesToBuffer(mSceneState, glm::mat4(1.0f), viewMtx,
+                                     projMtx);
     }
   }
 
@@ -579,9 +581,8 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
     ImGui::InputFloat("Minimap ScaleY", &mini_scale_y);
 
     mMapModel->addNodesToBuffer(
-        mSceneState,
-        viewMtx * glm::scale(glm::mat4(1.0f), glm::vec3(1, mini_scale_y, 1)),
-        projMtx);
+        mSceneState, glm::scale(glm::mat4(1.0f), glm::vec3(1, mini_scale_y, 1)),
+        viewMtx, projMtx);
 
     // Transfer to XLU pass
     xlu.insert(xlu.begin() + begin_xlu, opa.begin() + begin_opa, opa.end());

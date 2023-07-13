@@ -34,8 +34,8 @@ Result<void> SceneImpl::prepare(lib3d::SceneState& state,
                                 const libcube::Scene& host, glm::mat4 v_mtx,
                                 glm::mat4 p_mtx, lib3d::RenderType type) {
   TRY(upload(host));
-  return librii::g3d::gfx::Any3DSceneAddNodesToBuffer(state, host, v_mtx, p_mtx,
-                                                      render_data, type);
+  return librii::g3d::gfx::Any3DSceneAddNodesToBuffer(
+      state, host, glm::mat4(1.0f), v_mtx, p_mtx, render_data, type);
 }
 
 void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
