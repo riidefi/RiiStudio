@@ -2,7 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#if !defined(RII_PLATFORM_EMSCRIPTEN) && !defined(__APPLE__)
+#if defined(ARCH_X64)
 
 #include <cstring>
 #include <string>

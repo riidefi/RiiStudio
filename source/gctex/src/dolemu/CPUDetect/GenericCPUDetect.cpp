@@ -4,7 +4,7 @@
 
 #include "CPUDetect.h"
 
-#ifdef RII_PLATFORM_EMSCRIPTEN
+#if !defined(ARCH_X64)
 
 CPUInfo cpu_info;
 

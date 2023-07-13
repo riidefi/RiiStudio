@@ -4,7 +4,7 @@
 
 #include "BitTest.hpp"
 
-#if defined(ENVIRONMENT64) && !defined(__linux__) && !defined(__APPLE__)
+#if defined(ARCH_X64)
 #include <algorithm>
 #include <cmath>
 #include <cstring>

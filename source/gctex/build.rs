@@ -11,6 +11,9 @@ fn main() {
     #[cfg(unix)]
     build.flag("-std=c++17");
 
+    #[cfg(target_arch = "x86_64")]
+    build.flag("-DARCH_X64=1");
+
     build.include(".").include("src");
     build.file("src/CmprEncoder.cpp");
     build.file("src/ImagePlatform.cpp");

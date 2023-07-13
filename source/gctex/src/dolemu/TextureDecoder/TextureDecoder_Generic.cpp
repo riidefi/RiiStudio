@@ -3,8 +3,7 @@
 // Refer to the license.txt file included.
 
 #include "BitTest.hpp"
-#if (defined(ENVIRONMENT32) && !defined(ENVIRONMENT64)) ||                     \
-    defined(RII_PLATFORM_EMSCRIPTEN) || defined(__linux__) || defined(__APPLE__)
+#if !defined(ARCH_X64)
 #include <algorithm>
 #include <cmath>
 #include <assert.h>
