@@ -33,12 +33,6 @@ static ImVec4 Clr(u32 x) {
 }
 
 void InstallGC() {
-  auto& installer = *kpi::ApplicationPlugins::getInstance();
-  installer.registerParent<libcube::IBoneDelegate, riistudio::lib3d::Bone>()
-      .registerParent<libcube::IGCMaterial, riistudio::lib3d::Material>()
-      .registerParent<libcube::Texture, riistudio::lib3d::Texture>()
-      .registerParent<libcube::IndexedPolygon, riistudio::lib3d::Polygon>();
-
   kpi::RichNameManager& rich = kpi::RichNameManager::getInstance();
   rich.addRichName<riistudio::lib3d::Bone>((const char*)ICON_FA_BONE, "Bone",
                                            "", "", Clr(0xFFCA3A))

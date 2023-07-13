@@ -949,37 +949,4 @@ void CompileRHST(librii::rhst::SceneTree& rhst,
   transaction.state = kpi::TransactionState::Failure;
 }
 
-// LEGACY API
-//
-// Enables tests.exe compatibility. New blender plugin uses `rszst` API instead.
-//
-struct RHSTReader {
-  std::string canRead(const std::string& file,
-                      oishii::BinaryReader& reader) const;
-  void read(kpi::IOTransaction& transaction);
-};
-void InstallRHST() {
-  kpi::ApplicationPlugins::getInstance()->addDeserializer<RHSTReader>();
-}
-std::string RHSTReader::canRead(const std::string& file,
-                                oishii::BinaryReader& reader) const {
-  if (!file.ends_with(".rhst"))
-    return "";
-  if (rebuild_dest.ends_with(".brres"))
-    return typeid(g3d::Collection).name();
-  if (rebuild_dest.ends_with(".bmd"))
-    return typeid(j3d::Collection).name();
-  return "";
-}
-void RHSTReader::read(kpi::IOTransaction& transaction) {
-  auto result = librii::rhst::ReadSceneTree(transaction.data);
-  if (!result.has_value()) {
-    transaction.state = kpi::TransactionState::Failure;
-    transaction.callback(kpi::IOMessageClass::Error, "RHSTReader",
-                         result.error());
-    return;
-  }
-  CompileRHST(*result, transaction);
-}
-
 } // namespace riistudio::rhst
