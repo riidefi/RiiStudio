@@ -27,27 +27,28 @@ void DrawRichSelection(kpi::IObject* active, int numSelected) {
               numSelected > 1 ? "..." : "", numSelected);
 }
 
-struct CommitHandler {
+template <typename T> struct CommitHandler {
   // For MatView
   bool bCommitPosted = false;
   void postUpdate() { bCommitPosted = true; }
-  void consumeUpdate(kpi::History& history, kpi::INode& doc) {
+  void consumeUpdate(kpi::History& history, T& doc) {
     assert(bCommitPosted);
     history.commit(doc);
     bCommitPosted = false;
   }
-  void handleUpdates(kpi::History& history, kpi::INode& doc) {
+  void handleUpdates(kpi::History& history, T& doc) {
     if (bCommitPosted && !ImGui::IsAnyMouseDown())
       consumeUpdate(history, doc);
   }
   kpi::History& mHost;
-  kpi::INode& mRoot;
+  T& mRoot;
 };
 
+template <typename T>
 class PropertyEditor : public StudioWindow, private PropertyEditorWidget {
 public:
-  PropertyEditor(kpi::History& host, kpi::INode& root,
-                 SelectionManager& selection, auto drawImageIcon)
+  PropertyEditor(kpi::History& host, T& root, SelectionManager& selection,
+                 auto drawImageIcon)
       : StudioWindow("Property Editor"), drawImageIcon(drawImageIcon),
         mHost(host), mRoot(root), mSelection(selection) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
@@ -77,14 +78,14 @@ private:
 
   std::function<void(const lib3d::Texture*, u32)> drawImageIcon;
   kpi::History& mHost;
-  kpi::INode& mRoot;
+  T& mRoot;
   kpi::SelectionManager& mSelection;
 
   std::vector<kpi::IObject*> selected;
 
   BrresBmdPropEdit brresBmdPropEdit;
 
-  CommitHandler mHandler{false, mHost, mRoot};
+  CommitHandler<T> mHandler{false, mHost, mRoot};
   riistudio::g3d::Model* mMdl = nullptr;
 };
 
@@ -98,7 +99,7 @@ static void BuildSelect(auto&& mSelection, auto&& _selected, auto&& folder) {
   }
 }
 
-void PropertyEditor::draw_() {
+template <typename T> void PropertyEditor<T>::draw_() {
   if (mSelection.mActive == nullptr) {
     ImGui::TextUnformatted("Nothing is selected."_j);
     return;
@@ -171,7 +172,14 @@ std::unique_ptr<StudioWindow>
 MakePropertyEditor(kpi::History& host, kpi::INode& root,
                    SelectionManager& selection,
                    std::function<void(const lib3d::Texture*, u32)> icon) {
-  return std::make_unique<PropertyEditor>(host, root, selection, icon);
+  if (auto* g = dynamic_cast<g3d::Collection*>(&root)) {
+    return std::make_unique<PropertyEditor<g3d::Collection>>(host, *g,
+                                                             selection, icon);
+  } else if (auto* g = dynamic_cast<j3d::Collection*>(&root)) {
+    return std::make_unique<PropertyEditor<j3d::Collection>>(host, *g,
+                                                             selection, icon);
+  }
+  return nullptr;
 }
 
 } // namespace riistudio::frontend

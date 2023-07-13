@@ -174,8 +174,7 @@ struct IMementoOriginator {
 };
 
 // Base of all concrete collection types
-struct INode : public IMementoOriginator,
-               public virtual IObject // TODO: Global factories require this.
+struct INode : public virtual IObject // TODO: Global factories require this.
                                       // But we don't need them?
 {
   virtual ~INode() override = default;

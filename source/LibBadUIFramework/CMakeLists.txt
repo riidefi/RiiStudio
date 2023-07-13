@@ -8,7 +8,7 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
 add_library(LibBadUIFramework STATIC
   "ActionMenu.cpp"
-  "Memento.cpp"
+  
   
   "PropertyView.cpp"
   "Reflection.cpp"

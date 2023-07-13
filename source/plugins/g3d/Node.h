@@ -113,10 +113,10 @@ public:
             kpi::nextFolder(this->mBuf_Uv, _new.getBuf_Uv(), old ? &old->mBuf_Uv : nullptr);
         }
     };
-    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const override {
+    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const {
         return std::make_unique<_Memento>(*this, last);
     }
-    void from(const kpi::IMemento& _memento) override {
+    void from(const kpi::IMemento& _memento) {
         auto* in = dynamic_cast<const _Memento*>(&_memento);
         assert(in);
         static_cast<riistudio::g3d::G3DModelData&>(*this) = in->d;
@@ -216,10 +216,10 @@ public:
             kpi::nextFolder(this->mAnim_Srts, _new.getAnim_Srts(), old ? &old->mAnim_Srts : nullptr);
         }
     };
-    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const override {
+    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const {
         return std::make_unique<_Memento>(*this, last);
     }
-    void from(const kpi::IMemento& _memento) override {
+    void from(const kpi::IMemento& _memento) {
         auto* in = dynamic_cast<const _Memento*>(&_memento);
         assert(in);
         static_cast<SceneData&>(*this) = in->sd;

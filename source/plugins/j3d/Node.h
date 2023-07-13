@@ -74,10 +74,10 @@ public:
             kpi::nextFolder(this->mMeshes, _new.getMeshes(), old ? &old->mMeshes : nullptr);
         }
     };
-    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const override {
+    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const {
         return std::make_unique<_Memento>(*this, last);
     }
-    void from(const kpi::IMemento& _memento) override {
+    void from(const kpi::IMemento& _memento) {
         auto* in = dynamic_cast<const _Memento*>(&_memento);
         assert(in);
         static_cast<riistudio::j3d::ModelData&>(*this) = in->d;
@@ -149,10 +149,10 @@ public:
             kpi::nextFolder(this->mTextures, _new.getTextures(), old ? &old->mTextures : nullptr);
         }
     };
-    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const override {
+    std::unique_ptr<kpi::IMemento> next(const kpi::IMemento* last) const {
         return std::make_unique<_Memento>(*this, last);
     }
-    void from(const kpi::IMemento& _memento) override {
+    void from(const kpi::IMemento& _memento) {
         auto* in = dynamic_cast<const _Memento*>(&_memento);
         assert(in);
         kpi::fromFolder(getModels(), in->mModels);

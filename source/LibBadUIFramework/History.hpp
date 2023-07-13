@@ -6,6 +6,7 @@
 namespace kpi {
 
 struct IObject;
+struct IMemento;
 
 struct SelectionManager {
   kpi::IObject* getActive() { return mActive; }
@@ -33,7 +34,7 @@ struct SelectionManager {
 
 class History {
 public:
-  void commit(const IMementoOriginator& doc, SelectionManager* sel = nullptr,
+  void commit(const auto& doc, SelectionManager* sel = nullptr,
               bool select_reset = false) {
     if (history_cursor >= 0)
       root_history.erase(root_history.begin() + history_cursor + 1,
@@ -46,7 +47,7 @@ public:
     }
     ++history_cursor;
   }
-  void undo(IMementoOriginator& doc, SelectionManager& sel) {
+  void undo(auto& doc, SelectionManager& sel) {
     if (history_cursor <= 0)
       return;
     assert(history_cursor < std::ssize(needs_select_reset));
@@ -55,7 +56,7 @@ public:
     --history_cursor;
     rollbackTo(doc, history_cursor);
   }
-  void redo(IMementoOriginator& doc, SelectionManager& sel) {
+  void redo(auto& doc, SelectionManager& sel) {
     if (history_cursor + 1 >= std::ssize(root_history))
       return;
     ++history_cursor;
@@ -75,7 +76,7 @@ private:
   std::vector<bool> needs_select_reset;
   signed history_cursor = -1;
 
-  void rollbackTo(IMementoOriginator& doc, unsigned position) {
+  void rollbackTo(auto& doc, unsigned position) {
     rollback(doc, *root_history[position].get());
   }
 };
