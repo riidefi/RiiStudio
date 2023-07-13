@@ -103,7 +103,7 @@ pub extern "C" fn download_file(dest_path: *const c_char, url: *const c_char, us
 pub extern "C" fn free_string(s: *mut c_char) {
     unsafe {
         if s.is_null() { return }
-        CString::from_raw(s)
+        let _ = CString::from_raw(s);
     };
 }
 
@@ -287,7 +287,7 @@ pub struct CreateCommand {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Import a .dae/.fbx file as .brres
-    importCommand(ImportCommand),
+    ImportCommand(ImportCommand),
 
     /// Decompress a .szs file
     Decompress(DecompressCommand),
@@ -353,7 +353,7 @@ fn is_valid_hexcode(value: String) -> Result<(), String> {
 impl MyArgs {
     fn to_cli_options(&self) -> CliOptions {
         match &self.command {
-            Commands::importCommand(i) => {
+            Commands::ImportCommand(i) => {
                 let tint_val = u32::from_str_radix(&i.tint[1..], 16).unwrap_or(0xFF_FFFF);
                 let mut from2 : [i8; 256]= [0; 256];
                 let mut to2 : [i8; 256]= [0; 256];
@@ -615,7 +615,7 @@ fn parse_args(argc: c_int, argv: *const *const c_char) -> Result<MyArgs, String>
     match MyArgs::try_parse_from(args) {
         Ok(args) => {
             match &args.command {
-                Commands::importCommand(i) => {
+                Commands::ImportCommand(i) => {
                     let str = i.tint.to_string();
                     match is_valid_hexcode(str) {
                         Ok(_) => { () },
