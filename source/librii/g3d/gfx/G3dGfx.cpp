@@ -246,7 +246,7 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
 
 void pushDisplay(lib3d::IndexRange tenant,
                  librii::glhelper::VBOBuilder& vbo_builder, Node node,
-                 riistudio::lib3d::SceneBuffers& output, u32 mp_id,
+                 librii::gfx::SceneBuffers& output, u32 mp_id,
                  G3dTextureCache& tex_id_map,
                  librii::glhelper::ShaderProgram& shader, glm::mat4 m_mtx,
                  glm::mat4 v_mtx, glm::mat4 p_mtx, std::string& err) {
@@ -264,7 +264,7 @@ void pushDisplay(lib3d::IndexRange tenant,
   nodebuf.nodes.push_back(std::move(mnode));
 }
 
-Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
+Result<void> gatherBoneRecursive(librii::gfx::SceneBuffers& output, u64 boneId,
                                  ModelView& view, glm::mat4 m_mtx,
                                  glm::mat4 v_mtx, glm::mat4 p_mtx,
                                  G3dSceneRenderData& render_data,
@@ -339,7 +339,7 @@ Result<void> gatherBoneRecursive(lib3d::SceneBuffers& output, u64 boneId,
   return {};
 }
 
-std::string gather(lib3d::SceneBuffers& output, ModelView& view,
+std::string gather(librii::gfx::SceneBuffers& output, ModelView& view,
                    glm::mat4 m_mtx, glm::mat4 v_mtx, glm::mat4 p_mtx,
                    G3dSceneRenderData& render_data,
                    lib3d::RenderType type = lib3d::RenderType::Preview) {
@@ -365,7 +365,7 @@ G3DSceneCreateRenderData(riistudio::g3d::Collection& scene) {
 }
 
 // This code is shared between J3D and G3D right now
-Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
+Result<void> G3DSceneAddNodesToBuffer(librii::gfx::SceneState& state,
                                       const riistudio::g3d::Collection& scene,
                                       glm::mat4 m_mtx, glm::mat4 v_mtx,
                                       glm::mat4 p_mtx,
@@ -389,7 +389,7 @@ Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
   return std::unexpected(_err);
 }
 
-Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
+Result<void> Any3DSceneAddNodesToBuffer(librii::gfx::SceneState& state,
                                         const libcube::Scene& scene,
                                         glm::mat4 m_mtx, glm::mat4 v_mtx,
                                         glm::mat4 p_mtx,

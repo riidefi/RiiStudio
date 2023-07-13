@@ -118,7 +118,7 @@ struct RenderableBRRES {
   }
 
   // Append draw calls to a buffer
-  void addNodesToBuffer(riistudio::lib3d::SceneState& state, glm::mat4 m_mtx,
+  void addNodesToBuffer(librii::gfx::SceneState& state, glm::mat4 m_mtx,
                         glm::mat4 v_mtx, glm::mat4 p_mtx) {
     assert(mCollection != nullptr);
     assert(mRenderData != nullptr);
@@ -180,7 +180,7 @@ public:
   frontend::MouseHider mMouseHider;
 
   DeltaTimer mDeltaTimer;
-  lib3d::SceneState mSceneState;
+  librii::gfx::SceneState mSceneState;
 
   std::unique_ptr<RenderableBRRES> mCourseModel;
   std::unique_ptr<RenderableBRRES> mVrcornModel;

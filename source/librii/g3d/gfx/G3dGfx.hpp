@@ -439,13 +439,13 @@ struct ModelView {
   }
 };
 
-Result<void> G3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
+Result<void> G3DSceneAddNodesToBuffer(librii::gfx::SceneState& state,
                                       const riistudio::g3d::Collection& scene,
                                       glm::mat4 m_mtx, glm::mat4 v_mtx,
                                       glm::mat4 p_mtx,
                                       G3dSceneRenderData& render_data);
 
-Result<void> Any3DSceneAddNodesToBuffer(riistudio::lib3d::SceneState& state,
+Result<void> Any3DSceneAddNodesToBuffer(librii::gfx::SceneState& state,
                                         const libcube::Scene& scene,
                                         glm::mat4 m_mtx, glm::mat4 v_mtx,
                                         glm::mat4 p_mtx,

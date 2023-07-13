@@ -30,7 +30,7 @@ Result<void> SceneImpl::upload(const libcube::Scene& host) {
   return {};
 }
 
-Result<void> SceneImpl::prepare(lib3d::SceneState& state,
+Result<void> SceneImpl::prepare(librii::gfx::SceneState& state,
                                 const libcube::Scene& host, glm::mat4 v_mtx,
                                 glm::mat4 p_mtx, lib3d::RenderType type) {
   TRY(upload(host));

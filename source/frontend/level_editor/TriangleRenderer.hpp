@@ -26,7 +26,7 @@ public:
   void sortTriangles(const glm::mat4& viewMtx);
 
   // Add draw call to tree
-  void draw(riistudio::lib3d::SceneState& state, const glm::mat4& modelMtx,
+  void draw(librii::gfx::SceneState& state, const glm::mat4& modelMtx,
             const glm::mat4& viewMtx, const glm::mat4& projMtx, u32 attr_mask,
             float alpha);
 

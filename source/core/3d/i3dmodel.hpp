@@ -13,12 +13,9 @@ class Scene;
 
 namespace riistudio::lib3d {
 
-struct SceneState;
 class Scene;
 
 class DrawableDispatcher;
-
-struct SceneBuffers;
 
 } // namespace riistudio::lib3d
 

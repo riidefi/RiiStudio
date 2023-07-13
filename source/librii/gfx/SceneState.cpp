@@ -2,7 +2,7 @@
 #include <core/3d/gl.hpp>
 #include <vendor/glm/matrix.hpp>
 
-namespace riistudio::lib3d {
+namespace librii::gfx {
 
 librii::math::AABB SceneState::computeBounds() {
   librii::math::AABB bound;
@@ -49,4 +49,4 @@ void SceneState::draw() {
 #endif
 }
 
-} // namespace riistudio::lib3d
+} // namespace librii::gfx

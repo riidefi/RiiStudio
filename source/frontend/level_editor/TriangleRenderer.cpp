@@ -71,7 +71,7 @@ void main() {
 }
 )";
 
-void PushTriangles(riistudio::lib3d::SceneState& state, glm::mat4 modelMtx,
+void PushTriangles(librii::gfx::SceneState& state, glm::mat4 modelMtx,
                    glm::mat4 viewMtx, glm::mat4 projMtx, u32 tri_vao,
                    u32 tri_vao_count, u32 attr_mask, float alpha) {
   static const librii::glhelper::ShaderProgram tri_shader(gTriShader,
@@ -258,7 +258,7 @@ void TriangleRenderer::sortTriangles(const glm::mat4& viewMtx) {
   tri_vbo->uploadIndexBuffer();
 }
 
-void TriangleRenderer::draw(riistudio::lib3d::SceneState& state,
+void TriangleRenderer::draw(librii::gfx::SceneState& state,
                             const glm::mat4& modelMtx, const glm::mat4& viewMtx,
                             const glm::mat4& projMtx, u32 attr_mask,
                             float alpha) {

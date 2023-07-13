@@ -16,7 +16,8 @@ namespace riistudio::frontend {
 class SceneImpl {
 public:
   Result<void> upload(const libcube::Scene& host);
-  Result<void> prepare(lib3d::SceneState& state, const libcube::Scene& host,
+  Result<void> prepare(librii::gfx::SceneState& state,
+                       const libcube::Scene& host,
                        glm::mat4 v_mtx, glm::mat4 p_mtx,
                        lib3d::RenderType type);
 
@@ -47,7 +48,7 @@ public:
 
 private:
   // Scene state
-  lib3d::SceneState mSceneState;
+  librii::gfx::SceneState mSceneState;
 
   SceneImpl mRoot;
   const libcube::Scene* mData = nullptr;

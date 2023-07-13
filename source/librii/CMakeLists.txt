@@ -57,6 +57,7 @@ add_library(librii STATIC
 
   "gfx/MegaState.hpp"
   "gfx/SceneState.cpp"
+  "gfx/Cube.cpp"
   
   "glhelper/ShaderCache.cpp"
   "glhelper/ShaderProgram.cpp"

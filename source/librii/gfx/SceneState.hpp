@@ -5,7 +5,7 @@
 #include <librii/glhelper/VBOBuilder.hpp> // VBOBuilder
 #include <librii/math/aabb.hpp>           // AABB
 
-namespace riistudio::lib3d {
+namespace librii::gfx {
 
 // Not implemented yet
 enum class RenderPass {
@@ -68,4 +68,4 @@ private:
   librii::glhelper::DelegatedUBOBuilder mUboBuilder;
 };
 
-} // namespace riistudio::lib3d
+} // namespace librii::gfx
