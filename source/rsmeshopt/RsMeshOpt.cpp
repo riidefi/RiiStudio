@@ -9,6 +9,8 @@
 
 #include <glm/vec3.hpp>
 
+#include "TriFanMeshOptimizer.hpp"
+
 namespace rsmeshopt {
 
 Result<std::vector<std::vector<u32>>>
@@ -65,8 +67,8 @@ size_t meshopt_unstripifyBound(size_t index_count) {
 }
 
 Result<std::vector<u32>> StripifyDraco(std::span<u32> index_data,
-                                       std::span<glm::vec3> vertex_data, u32 restart,
-                                       bool degen) {
+                                       std::span<glm::vec3> vertex_data,
+                                       u32 restart, bool degen) {
   auto mesh = std::make_shared<draco::Mesh>();
   for (size_t i = 0; i < index_data.size(); i += 3) {
     std::array<draco::PointIndex, 3> face;
@@ -99,6 +101,17 @@ Result<std::vector<u32>> StripifyDraco(std::span<u32> index_data,
     ok = stripifier.GenerateTriangleStripsWithPrimitiveRestart(
         *mesh, restart, std::back_inserter(stripified));
   }
+  EXPECT(ok);
+  return stripified;
+}
+
+std::expected<std::vector<u32>, std::string>
+MakeFans(std::span<u32> index_data, u32 restart, u32 min_len, u32 max_runs) {
+  rsmeshopt::TriFanMeshOptimizer fan_pass;
+  rsmeshopt::TriFanOptions options{min_len, max_runs};
+  std::vector<u32> stripified;
+  bool ok = fan_pass.GenerateTriangleFansWithPrimitiveRestart(
+      index_data, ~0u, std::back_inserter(stripified), options);
   EXPECT(ok);
   return stripified;
 }

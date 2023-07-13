@@ -103,11 +103,11 @@ Result<void> ValidateMeshesEqualImpl(const TriList& ll, const TriList& rl) {
     auto b = rl.triangles_[i];
     if (a != b) {
 #ifndef NDEBUG
-      auto test = a.a.position <=> b.a.position;
-      bool ok_a = a.a == b.a;
-      bool ok_b = a.b == b.b;
+      [[maybe_unused]] auto test = a.a.position <=> b.a.position;
+      [[maybe_unused]] bool ok_a = a.a == b.a;
+      [[maybe_unused]] bool ok_b = a.b == b.b;
 #endif
-      bool ok_c = a.c == b.c;
+      [[maybe_unused]] bool ok_c = a.c == b.c;
       return std::unexpected(std::format("Mismatch at triangle {}/{}", i,
                                          ll.triangles_.size() - 1));
     }
@@ -561,13 +561,12 @@ Result<MeshOptimizerStats> ToFanTriangles(MatrixPrimitive& prim, u32 min_len,
   MeshOptimizerStatsCollector stats(prim);
   auto buf = TRY(IndexBuffer<u32>::create(prim));
 
+  auto fans = TRY(rsmeshopt::MakeFans(buf.index_data, ~0u, min_len, max_runs));
+
   PrimitiveRestartSplitter splitter(Topology::TriangleFan, buf.vertices, ~0u);
   splitter.Reserve(buf.index_data.size());
-  rsmeshopt::TriFanMeshOptimizer fan_pass;
-  rsmeshopt::TriFanOptions options{min_len, max_runs};
-  bool ok = fan_pass.GenerateTriangleFansWithPrimitiveRestart(
-      buf.index_data, ~0u, splitter.OutputIterator(), options);
-  EXPECT(ok);
+
+  std::copy(fans.begin(), fans.end(), splitter.OutputIterator());
 
   prim.primitives.clear();
   for (Primitive& p : splitter.Primitives()) {

@@ -33,4 +33,7 @@ std::expected<std::vector<u32>, std::string>
 StripifyDraco(std::span<u32> index_data, std::span<glm::vec3> vertex_data,
               u32 restart = ~0u, bool degen = false);
 
+std::expected<std::vector<u32>, std::string>
+MakeFans(std::span<u32> index_data, u32 restart, u32 min_len, u32 max_runs);
+
 } // namespace rsmeshopt
