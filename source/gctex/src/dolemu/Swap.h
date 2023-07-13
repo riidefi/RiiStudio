@@ -142,6 +142,7 @@ void swap(u8*);
 template <>
 inline void swap<1>(u8* data)
 {
+  (void)data;
 }
 
 template <>

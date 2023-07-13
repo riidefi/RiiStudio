@@ -7,6 +7,7 @@
     defined(RII_PLATFORM_EMSCRIPTEN) || defined(__linux__) || defined(__APPLE__)
 #include <algorithm>
 #include <cmath>
+#include <assert.h>
 
 #include "../CPUDetect/CPUDetect.h"
 #include <stdint.h>
@@ -359,6 +360,9 @@ void _TexDecoder_DecodeImpl(u32* dst, const u8* src, int width, int height, Text
       }
       break;
     }
+  case TextureFormat::XFB:
+    assert(!"TextureDecoder_Generic does not support XFB");
+    break;
   }
 }
 
