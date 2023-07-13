@@ -5,6 +5,10 @@
 
 namespace riistudio {
 
+namespace lib3d {
+struct Texture;
+}
+
 class IconManager {
 public:
   IconManager();
@@ -12,8 +16,7 @@ public:
   IconManager(IconManager&&) = delete;
   ~IconManager() = default;
 
-  void propagateIcons(kpi::ICollection& folder);
-  void propagateIcons(kpi::INode& node);
+  void propagateIcon(lib3d::Texture* tex);
   // Will upload if missing
   void drawImageIcon(const lib3d::Texture* tex, u32 dim);
 

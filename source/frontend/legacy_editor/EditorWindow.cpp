@@ -22,7 +22,9 @@ static std::string getFileShort(const std::string& path) {
 void BRRESEditor::init() {
   // Don't require selection reset on first element
   mDocument.commit(mSelection, false);
-  mIconManager.propagateIcons(mDocument.getRoot());
+  for (auto& tex : mDocument.getRoot().getTextures()) {
+    mIconManager.propagateIcon(&tex);
+  }
 
   auto draw_image_icon = [&](const lib3d::Texture* tex, u32 dim) {
     mIconManager.drawImageIcon(tex, dim);
@@ -122,7 +124,9 @@ void BRRESEditor::draw_() {
 void BMDEditor::init() {
   // Don't require selection reset on first element
   mDocument.commit(mSelection, false);
-  mIconManager.propagateIcons(mDocument.getRoot());
+  for (auto& tex : mDocument.getRoot().getTextures()) {
+    mIconManager.propagateIcon(&tex);
+  }
 
   auto draw_image_icon = [&](const lib3d::Texture* tex, u32 dim) {
     mIconManager.drawImageIcon(tex, dim);

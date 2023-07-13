@@ -511,11 +511,10 @@ DrawSrtOptions(const librii::g3d::SrtAnimationArchive& init, Filter& visFilter,
 }
 
 void drawProperty(kpi::PropertyDelegate<SRT0>& dl,
-                  G3dSrtOptionsSurface& surface) {
+                  G3dSrtOptionsSurface& surface,
+                  const riistudio::g3d::Model& mdl) {
   SRT0& srt = dl.getActive();
 
-  auto& mdl = *dynamic_cast<const riistudio::g3d::Model*>(
-      srt.childOf->folderAt(0)->atObject(0));
   if (!surface.m_filterReady) {
     surface.m_filter.initFromScene(mdl, srt);
     surface.m_filterReady = true;

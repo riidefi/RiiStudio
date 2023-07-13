@@ -72,7 +72,7 @@ private:
     };
 
     return brresBmdPropEdit.Tab(index, postUpdate, commit, handleUpdates,
-                                mSelection.mActive, selected, drawIcon);
+                                mSelection.mActive, selected, drawIcon, mMdl);
   }
 
   std::function<void(const lib3d::Texture*, u32)> drawImageIcon;
@@ -85,23 +85,14 @@ private:
   BrresBmdPropEdit brresBmdPropEdit;
 
   CommitHandler mHandler{false, mHost, mRoot};
+  riistudio::g3d::Model* mMdl = nullptr;
 };
 
-template <typename T>
-static void gatherSelected(kpi::SelectionManager& ed,
-                           std::set<kpi::IObject*>& tmp,
-                           kpi::ICollection& folder, T pred) {
-  for (int i = 0; i < folder.size(); ++i) {
-    auto* obj = folder.atObject(i);
-    if (ed.isSelected(obj) && pred(&folder)) {
-      tmp.emplace(obj);
-    }
-
-    auto* col = dynamic_cast<kpi::INode*>(obj);
-    if (col != nullptr) {
-      for (int j = 0; j < col->numFolders(); ++j) {
-        if (col->folderAt(j) != nullptr)
-          gatherSelected(ed, tmp, *col->folderAt(j), pred);
+static void BuildSelect(auto&& mSelection, auto&& _selected, auto&& folder) {
+  if (mSelection.mActive->collectionOf == folder.low) {
+    for (auto& x : folder) {
+      if (mSelection.isSelected(&x)) {
+        _selected.insert(&x);
       }
     }
   }
@@ -135,11 +126,30 @@ void PropertyEditor::draw_() {
   }
 
   std::set<kpi::IObject*> _selected;
-  for (int i = 0; i < mRoot.numFolders(); ++i) {
-    gatherSelected(mSelection, _selected, *mRoot.folderAt(i),
-                   [&](kpi::ICollection* folder) {
-                     return folder == mSelection.mActive->collectionOf;
-                   });
+  if (mSelection.mActive) {
+    if (auto* g = dynamic_cast<g3d::Collection*>(&mRoot)) {
+      BuildSelect(mSelection, _selected, g->getModels());
+      BuildSelect(mSelection, _selected, g->getTextures());
+      BuildSelect(mSelection, _selected, g->getAnim_Srts());
+      for (auto& x : g->getModels()) {
+        BuildSelect(mSelection, _selected, x.getMaterials());
+        BuildSelect(mSelection, _selected, x.getBones());
+        BuildSelect(mSelection, _selected, x.getMeshes());
+        BuildSelect(mSelection, _selected, x.getBuf_Pos());
+        BuildSelect(mSelection, _selected, x.getBuf_Nrm());
+        BuildSelect(mSelection, _selected, x.getBuf_Clr());
+        BuildSelect(mSelection, _selected, x.getBuf_Uv());
+        mMdl = &x;
+      }
+    } else if (auto* g = dynamic_cast<j3d::Collection*>(&mRoot)) {
+      BuildSelect(mSelection, _selected, g->getModels());
+      BuildSelect(mSelection, _selected, g->getTextures());
+      for (auto& x : g->getModels()) {
+        BuildSelect(mSelection, _selected, x.getMaterials());
+        BuildSelect(mSelection, _selected, x.getBones());
+        BuildSelect(mSelection, _selected, x.getMeshes());
+      }
+    }
   }
   // TODO: 7 objects per selection..?
 
@@ -154,6 +164,7 @@ void PropertyEditor::draw_() {
 
   selected = {_selected.begin(), _selected.end()};
   Tabs();
+  mMdl = nullptr;
 }
 
 std::unique_ptr<StudioWindow>

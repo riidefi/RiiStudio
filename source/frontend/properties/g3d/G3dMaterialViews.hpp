@@ -85,6 +85,8 @@ struct J3dBoneViews {
 };
 
 struct G3dSrtViews {
+  // NOTE: This struct is incompatible with Views_Tabs as a model reference is
+  // required!
   riistudio::g3d::G3dSrtOptionsSurface srt;
 };
 struct G3dVcViews {

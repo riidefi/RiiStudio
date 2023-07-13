@@ -73,6 +73,7 @@ struct G3dSrtOptionsSurface {
 };
 
 void drawProperty(kpi::PropertyDelegate<SRT0>& dl,
-                  G3dSrtOptionsSurface& surface);
+                  G3dSrtOptionsSurface& surface,
+                  const riistudio::g3d::Model& mdl);
 
 } // namespace riistudio::g3d

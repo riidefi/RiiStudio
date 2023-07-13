@@ -74,7 +74,8 @@ struct BrresBmdPropEdit {
            std::function<void(const char*)> commit,
            std::function<void()> handleUpdates, kpi::IObject* node,
            auto&& selected,
-           std::function<void(const lib3d::Texture*, u32)> drawIcon) {
+           std::function<void(const lib3d::Texture*, u32)> drawIcon,
+           riistudio::g3d::Model* mdl) {
     auto* g3dmdl = dynamic_cast<g3d::Model*>(node);
     if (g3dmdl != nullptr) {
       auto dl = kpi::MakeDelegate<g3d::Model>(postUpdate, commit, g3dmdl,
@@ -157,9 +158,12 @@ struct BrresBmdPropEdit {
     if (g3ds != nullptr) {
       auto dl = kpi::MakeDelegate<riistudio::g3d::SRT0>(
           postUpdate, commit, g3ds, selected, drawIcon);
-      auto ok = Views_Tab(mG3dSrtView, dl, index);
+      if (!mdl) {
+        return false;
+      }
+      drawProperty(dl, mG3dSrtView.srt, *mdl);
       handleUpdates();
-      return ok;
+      return true;
     }
     auto* g3tex = dynamic_cast<g3d::Texture*>(node);
     if (g3tex != nullptr) {

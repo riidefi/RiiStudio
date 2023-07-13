@@ -13,24 +13,8 @@ IconManager::IconManager() {
   sInstance = this;
 }
 
-void IconManager::propagateIcons(kpi::ICollection& folder) {
-  for (int i = 0; i < folder.size(); ++i) {
-    kpi::IObject* elem = folder.atObject(i);
-
-    if (lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(elem);
-        tex != nullptr) {
-      mImageIcons.try_emplace(tex->getGenerationId(),
-                              mIconManager.addIcon(*tex));
-    }
-
-    if (kpi::INode* node = dynamic_cast<kpi::INode*>(elem); node != nullptr) {
-      propagateIcons(*node);
-    }
-  }
-}
-void IconManager::propagateIcons(kpi::INode& node) {
-  for (int i = 0; i < node.numFolders(); ++i)
-    propagateIcons(*node.folderAt(i));
+void IconManager::propagateIcon(lib3d::Texture* tex) {
+  mImageIcons.try_emplace(tex->getGenerationId(), mIconManager.addIcon(*tex));
 }
 
 void IconManager::drawImageIcon(const lib3d::Texture* tex, u32 dim) {
