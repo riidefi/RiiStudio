@@ -13,9 +13,7 @@
 namespace kpi {
 
 struct ICollection;
-struct INode;
 
-// INode -- Owner of folders
 // IObject -- Folder item
 struct IObject {
   virtual ~IObject() = default;
@@ -26,7 +24,7 @@ struct IObject {
   // For now, at least, all objects exist in collections
   ICollection* collectionOf = nullptr;
   // The owner of the collection
-  INode* childOf = nullptr;
+  IObject* childOf = nullptr;
 };
 
 struct INamed {
@@ -173,14 +171,7 @@ struct IMementoOriginator {
   virtual void from(const kpi::IMemento& memento) = 0;
 };
 
-// Base of all concrete collection types
-struct INode : public virtual IObject // TODO: Global factories require this.
-                                      // But we don't need them?
-{
-  virtual ~INode() override = default;
-
-  // virtual std::unique_ptr<INode> clone() const = 0;
-};
+using INode = IObject;
 
 template <typename T> class ConstCollectionRange {
 public:

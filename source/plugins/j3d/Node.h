@@ -2,7 +2,7 @@
 
 namespace riistudio::j3d {
 
-class Model : public libcube::Model, public kpi::TDocData<riistudio::j3d::ModelData>, public kpi::INode {
+class Model : public libcube::Model, public kpi::TDocData<riistudio::j3d::ModelData>, public virtual kpi::IObject {
 public:
     Model() = default;
     virtual ~Model() = default;
@@ -58,8 +58,6 @@ private:
     kpi::CollectionImpl<riistudio::j3d::Joint> mBones{this};
     kpi::CollectionImpl<riistudio::j3d::Shape> mMeshes{this};
 
-    // INode implementations
-
 public:
     struct _Memento : public kpi::IMemento {
         riistudio::j3d::ModelData d;
@@ -92,7 +90,7 @@ public:
 
 namespace riistudio::j3d {
 
-class Collection : public libcube::Scene, public kpi::INode {
+class Collection : public libcube::Scene, public virtual kpi::IObject {
 public:
     Collection() = default;
     virtual ~Collection() = default;
@@ -136,8 +134,6 @@ public:
 private:
     kpi::CollectionImpl<riistudio::j3d::Model> mModels{this};
     kpi::CollectionImpl<riistudio::j3d::Texture> mTextures{this};
-
-    // INode implementations
 
 public:
     struct _Memento : public kpi::IMemento {

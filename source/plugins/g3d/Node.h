@@ -8,7 +8,7 @@
 
 namespace riistudio::g3d {
 
-class Model : public libcube::Model, public kpi::TDocData<riistudio::g3d::G3DModelData>, public kpi::INode {
+class Model : public libcube::Model, public kpi::TDocData<riistudio::g3d::G3DModelData>, public virtual kpi::IObject {
 public:
     Model() = default;
     virtual ~Model() = default;
@@ -89,8 +89,6 @@ private:
     kpi::CollectionImpl<ColorBuffer> mBuf_Clr{this};
     kpi::CollectionImpl<TextureCoordinateBuffer> mBuf_Uv{this};
 
-    // INode implementations
-
 public:
     struct _Memento : public kpi::IMemento {
         riistudio::g3d::G3DModelData d;
@@ -147,7 +145,7 @@ struct SceneData {
 
 class Collection
     : public libcube::Scene,
-      public kpi::TDocData<SceneData>, public kpi::INode {
+      public kpi::TDocData<SceneData>, public virtual kpi::IObject{
   public:
     Collection() = default;
     virtual ~Collection() = default;
@@ -199,8 +197,6 @@ private:
     kpi::CollectionImpl<Model> mModels{this};
     kpi::CollectionImpl<Texture> mTextures{this};
     kpi::CollectionImpl<SRT0> mAnim_Srts{this};
-
-    // INode implementations
 
 public:
     struct _Memento : public kpi::IMemento {
