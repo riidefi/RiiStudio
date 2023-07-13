@@ -3,23 +3,23 @@ use simple_logger::SimpleLogger;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use log::*;
 
-use std::path::PathBuf;
 use std::io::Cursor;
+use std::path::PathBuf;
 
 use clap::CommandFactory;
+use clap::Parser;
 use clap_derive::Parser;
 use clap_derive::Subcommand;
-use clap::Parser;
-use std::os::raw::{c_int, c_uint, c_float};
 use std::ffi::OsString;
+use std::os::raw::{c_float, c_int, c_uint};
 use std::slice;
 
-use curl::Error;
 use curl::easy::{Easy, WriteError};
-use std::ffi::{CString, CStr, c_longlong};
-use std::os::raw::{c_char, c_void, c_double};
+use curl::Error;
+use std::ffi::{c_longlong, CStr, CString};
 use std::fs::File;
 use std::io::Write;
+use std::os::raw::{c_char, c_double, c_void};
 use std::path::Path;
 
 pub fn download_string_rust(url: &str, user_agent: &str) -> Result<String, Error> {
@@ -41,15 +41,20 @@ pub fn download_string_rust(url: &str, user_agent: &str) -> Result<String, Error
     Ok(result)
 }
 
-pub fn download_file_rust(dest_path: &str, url: &str, user_agent: &str, progress_func: Box<ProgressFunc>, progress_data: *mut c_void)
-    -> Result<(), Box<dyn std::error::Error>>
-{
+pub fn download_file_rust(
+    dest_path: &str,
+    url: &str,
+    user_agent: &str,
+    progress_func: Box<ProgressFunc>,
+    progress_data: *mut c_void,
+) -> Result<(), Box<dyn std::error::Error>> {
     let mut easy = Easy::new();
     easy.url(url)?;
     easy.useragent(user_agent)?;
     easy.follow_location(true)?;
     let path = Path::new(dest_path);
-    let mut file = File::create(&path).map_err(|err| format!("Couldn't create {}: {}", path.display(), err))?;
+    let mut file = File::create(&path)
+        .map_err(|err| format!("Couldn't create {}: {}", path.display(), err))?;
 
     let write_function = |data: &[u8]| -> Result<usize, WriteError> {
         file.write_all(data)
@@ -66,31 +71,51 @@ pub fn download_file_rust(dest_path: &str, url: &str, user_agent: &str, progress
 }
 
 #[no_mangle]
-pub extern "C" fn download_string(url: *const c_char, user_agent: *const c_char, err: *mut c_int) -> *mut c_char {
+pub extern "C" fn download_string(
+    url: *const c_char,
+    user_agent: *const c_char,
+    err: *mut c_int,
+) -> *mut c_char {
     let c_url = unsafe { CStr::from_ptr(url).to_str().unwrap() };
     let c_user_agent = unsafe { CStr::from_ptr(user_agent).to_str().unwrap() };
 
     match download_string_rust(c_url, c_user_agent) {
         Ok(result) => {
-          unsafe { *err = 0; }
-          CString::new(result).unwrap().into_raw()
-        },
+            unsafe {
+                *err = 0;
+            }
+            CString::new(result).unwrap().into_raw()
+        }
         Err(error) => {
-          unsafe { *err = 1; }
-          CString::new(error.to_string()).unwrap().into_raw()
-        },
+            unsafe {
+                *err = 1;
+            }
+            CString::new(error.to_string()).unwrap().into_raw()
+        }
     }
 }
 
 pub type ProgressFunc = extern "C" fn(*mut c_void, c_double, c_double, c_double, c_double) -> c_int;
 
 #[no_mangle]
-pub extern "C" fn download_file(dest_path: *const c_char, url: *const c_char, user_agent: *const c_char, progress_func: ProgressFunc, progress_data: *mut c_void) -> *mut c_char {
+pub extern "C" fn download_file(
+    dest_path: *const c_char,
+    url: *const c_char,
+    user_agent: *const c_char,
+    progress_func: ProgressFunc,
+    progress_data: *mut c_void,
+) -> *mut c_char {
     let c_dest_path = unsafe { CStr::from_ptr(dest_path).to_str().unwrap() };
     let c_url = unsafe { CStr::from_ptr(url).to_str().unwrap() };
     let c_user_agent = unsafe { CStr::from_ptr(user_agent).to_str().unwrap() };
 
-    let result = download_file_rust(c_dest_path, c_url, c_user_agent, Box::new(progress_func), progress_data);
+    let result = download_file_rust(
+        c_dest_path,
+        c_url,
+        c_user_agent,
+        Box::new(progress_func),
+        progress_data,
+    );
     let response = match result {
         Ok(_) => String::from("Success"),
         Err(e) => e.to_string(),
@@ -102,7 +127,9 @@ pub extern "C" fn download_file(dest_path: *const c_char, url: *const c_char, us
 #[no_mangle]
 pub extern "C" fn free_string(s: *mut c_char) {
     unsafe {
-        if s.is_null() { return }
+        if s.is_null() {
+            return;
+        }
         let _ = CString::from_raw(s);
     };
 }
@@ -118,7 +145,7 @@ pub struct MyArgs {
 #[derive(Parser, Debug)]
 pub struct ImportCommand {
     /// File to import from: .dae or .fbx
-    #[arg(required=true)]
+    #[arg(required = true)]
     from: String,
 
     /// File to export to
@@ -133,7 +160,7 @@ pub struct ImportCommand {
     brawlbox_scale: bool,
 
     /// Whether to generate mipmaps for textures
-    #[clap(long, default_value="true")]
+    #[clap(long, default_value = "true")]
     mipmaps: bool,
 
     /// Minimum mipmap dimension to generate
@@ -145,15 +172,15 @@ pub struct ImportCommand {
     max_mip: u32,
 
     /// Whether to automatically set transparency
-    #[clap(long, default_value="true")]
+    #[clap(long, default_value = "true")]
     auto_transparency: bool,
 
     /// Whether to merge materials with identical properties
-    #[clap(long, default_value="true")]
+    #[clap(long, default_value = "true")]
     merge_mats: bool,
 
     /// Whether to bake UV transforms into vertices
-    #[clap(long, default_value="false")]
+    #[clap(long, default_value = "false")]
     bake_uvs: bool,
 
     /// Tint to apply to the model in hex format (#RRGGBB)
@@ -161,38 +188,38 @@ pub struct ImportCommand {
     tint: String,
 
     /// Whether to cull degenerate triangles
-    #[clap(long, default_value="true")]
+    #[clap(long, default_value = "true")]
     cull_degenerates: bool,
 
     /// Whether to cull triangles with invalid vertices
-    #[clap(long, default_value="true")]
+    #[clap(long, default_value = "true")]
     cull_invalid: bool,
 
     /// Whether to recompute normals
-    #[clap(long, default_value="false")]
+    #[clap(long, default_value = "false")]
     recompute_normals: bool,
 
     /// Whether to fuse identical vertices
-    #[clap(long, default_value="true")]
+    #[clap(long, default_value = "true")]
     fuse_vertices: bool,
 
     /// Disable triangle stripification
-    #[clap(long, default_value="false")]
+    #[clap(long, default_value = "false")]
     no_tristrip: bool,
 
-    /// 
-    #[clap(long, default_value="false")]
+    ///
+    #[clap(long, default_value = "false")]
     ai_json: bool,
 
     /// Do not SZS-compress the archive
-    #[clap(short, long, default_value="false")]
+    #[clap(short, long, default_value = "false")]
     no_compression: bool,
 
     /// Read preset material/animation overrides from this folder
     #[clap(long)]
     preset_path: Option<String>,
 
-    #[clap(short, long, default_value="false")]
+    #[clap(short, long, default_value = "false")]
     verbose: bool,
 }
 
@@ -200,13 +227,13 @@ pub struct ImportCommand {
 #[derive(Parser, Debug)]
 pub struct DecompressCommand {
     /// File to decompress: *.szs
-    #[arg(required=true)]
+    #[arg(required = true)]
     from: String,
 
     /// Output file for decompressed file
     to: Option<String>,
 
-    #[clap(short, long, default_value="false")]
+    #[clap(short, long, default_value = "false")]
     verbose: bool,
 }
 
@@ -214,13 +241,13 @@ pub struct DecompressCommand {
 #[derive(Parser, Debug)]
 pub struct CompressCommand {
     /// File to compress: *
-    #[arg(required=true)]
+    #[arg(required = true)]
     from: String,
 
     /// Output file for compressed file (.szs)
     to: Option<String>,
 
-    #[clap(short, long, default_value="false")]
+    #[clap(short, long, default_value = "false")]
     verbose: bool,
 }
 
@@ -228,13 +255,13 @@ pub struct CompressCommand {
 #[derive(Parser, Debug)]
 pub struct Rhst2BrresCommand {
     /// RHST .json file to read
-    #[arg(required=true)]
+    #[arg(required = true)]
     from: String,
 
     /// Output .brres file
     to: Option<String>,
 
-    #[clap(short, long, default_value="false")]
+    #[clap(short, long, default_value = "false")]
     verbose: bool,
 }
 
@@ -242,13 +269,13 @@ pub struct Rhst2BrresCommand {
 #[derive(Parser, Debug)]
 pub struct Rhst2BmdCommand {
     /// RHST .json file to read
-    #[arg(required=true)]
+    #[arg(required = true)]
     from: String,
 
     /// Output .bmd file
     to: Option<String>,
 
-    #[clap(short, long, default_value="false")]
+    #[clap(short, long, default_value = "false")]
     verbose: bool,
 }
 
@@ -256,13 +283,13 @@ pub struct Rhst2BmdCommand {
 #[derive(Parser, Debug)]
 pub struct ExtractCommand {
     /// SZS-compressed archive to read (accepts U8 or RARC)
-    #[arg(required=true)]
+    #[arg(required = true)]
     from: String,
 
     /// Output folder (or none for default)
     to: Option<String>,
 
-    #[clap(short, long, default_value="false")]
+    #[clap(short, long, default_value = "false")]
     verbose: bool,
 }
 
@@ -270,17 +297,17 @@ pub struct ExtractCommand {
 #[derive(Parser, Debug)]
 pub struct CreateCommand {
     /// Input folder
-    #[arg(required=true)]
+    #[arg(required = true)]
     from: String,
 
     /// Archive to write (or none for default)
     to: Option<String>,
 
     /// Do not SZS-compress the archive
-    #[clap(short, long, default_value="false")]
+    #[clap(short, long, default_value = "false")]
     no_compression: bool,
 
-    #[clap(short, long, default_value="false")]
+    #[clap(short, long, default_value = "false")]
     verbose: bool,
 }
 
@@ -333,7 +360,6 @@ pub struct CliOptions {
     pub ai_json: c_uint,
     pub no_compression: c_uint,
     pub verbose: c_uint,
-
     // TYPE 2: "decompress"
     // Uses "from", "to" and "verbose" above
 }
@@ -355,17 +381,20 @@ impl MyArgs {
         match &self.command {
             Commands::ImportCommand(i) => {
                 let tint_val = u32::from_str_radix(&i.tint[1..], 16).unwrap_or(0xFF_FFFF);
-                let mut from2 : [i8; 256]= [0; 256];
-                let mut to2 : [i8; 256]= [0; 256];
-                let mut preset_path2 : [i8; 256] = [0; 256];
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
+                let mut preset_path2: [i8; 256] = [0; 256];
                 let from_bytes = i.from.as_bytes();
                 let default_str = String::new();
                 let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
                 let default_str2 = String::new();
                 let preset_str_bytes = i.preset_path.as_ref().unwrap_or(&default_str2).as_bytes();
-                from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
-                preset_path2[..preset_str_bytes.len()].copy_from_slice(unsafe { &*(preset_str_bytes as *const _ as *const [i8]) });
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                preset_path2[..preset_str_bytes.len()]
+                    .copy_from_slice(unsafe { &*(preset_str_bytes as *const _ as *const [i8]) });
                 CliOptions {
                     c_type: 1,
                     from: from2,
@@ -389,15 +418,17 @@ impl MyArgs {
                     no_compression: i.no_compression as c_uint,
                     verbose: i.verbose as c_uint,
                 }
-            },
+            }
             Commands::Decompress(i) => {
-                let mut from2 : [i8; 256]= [0; 256];
-                let mut to2 : [i8; 256]= [0; 256];
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
                 let from_bytes = i.from.as_bytes();
                 let default_str = String::new();
                 let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
                 CliOptions {
                     c_type: 2,
                     from: from2,
@@ -405,7 +436,7 @@ impl MyArgs {
                     verbose: i.verbose as c_uint,
 
                     // Junk fields
-                    preset_path:  [0; 256],
+                    preset_path: [0; 256],
                     scale: 0.0 as c_float,
                     brawlbox_scale: 0 as c_uint,
                     mipmaps: 0 as c_uint,
@@ -421,17 +452,19 @@ impl MyArgs {
                     fuse_vertices: 0 as c_uint,
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
-                    no_compression: 0 as c_uint
+                    no_compression: 0 as c_uint,
                 }
-            },
+            }
             Commands::Compress(i) => {
-                let mut from2 : [i8; 256]= [0; 256];
-                let mut to2 : [i8; 256]= [0; 256];
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
                 let from_bytes = i.from.as_bytes();
                 let default_str = String::new();
                 let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
                 CliOptions {
                     c_type: 3,
                     from: from2,
@@ -439,7 +472,7 @@ impl MyArgs {
                     verbose: i.verbose as c_uint,
 
                     // Junk fields
-                    preset_path:  [0; 256],
+                    preset_path: [0; 256],
                     scale: 0.0 as c_float,
                     brawlbox_scale: 0 as c_uint,
                     mipmaps: 0 as c_uint,
@@ -455,17 +488,19 @@ impl MyArgs {
                     fuse_vertices: 0 as c_uint,
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
-                    no_compression: 0 as c_uint
+                    no_compression: 0 as c_uint,
                 }
-            },
+            }
             Commands::Rhst2Brres(i) => {
-                let mut from2 : [i8; 256]= [0; 256];
-                let mut to2 : [i8; 256]= [0; 256];
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
                 let from_bytes = i.from.as_bytes();
                 let default_str = String::new();
                 let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
                 CliOptions {
                     c_type: 4,
                     from: from2,
@@ -473,7 +508,7 @@ impl MyArgs {
                     verbose: i.verbose as c_uint,
 
                     // Junk fields
-                    preset_path:  [0; 256],
+                    preset_path: [0; 256],
                     scale: 0.0 as c_float,
                     brawlbox_scale: 0 as c_uint,
                     mipmaps: 0 as c_uint,
@@ -489,17 +524,19 @@ impl MyArgs {
                     fuse_vertices: 0 as c_uint,
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
-                    no_compression: 0 as c_uint
+                    no_compression: 0 as c_uint,
                 }
-            },
+            }
             Commands::Rhst2Bmd(i) => {
-                let mut from2 : [i8; 256]= [0; 256];
-                let mut to2 : [i8; 256]= [0; 256];
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
                 let from_bytes = i.from.as_bytes();
                 let default_str = String::new();
                 let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-                from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-                to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
                 CliOptions {
                     c_type: 5,
                     from: from2,
@@ -507,7 +544,7 @@ impl MyArgs {
                     verbose: i.verbose as c_uint,
 
                     // Junk fields
-                    preset_path:  [0; 256],
+                    preset_path: [0; 256],
                     scale: 0.0 as c_float,
                     brawlbox_scale: 0 as c_uint,
                     mipmaps: 0 as c_uint,
@@ -523,91 +560,91 @@ impl MyArgs {
                     fuse_vertices: 0 as c_uint,
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
-                    no_compression: 0 as c_uint
+                    no_compression: 0 as c_uint,
                 }
-            },
+            }
             Commands::Extract(i) => {
-              let mut from2 : [i8; 256]= [0; 256];
-              let mut to2 : [i8; 256]= [0; 256];
-              let from_bytes = i.from.as_bytes();
-              let default_str = String::new();
-              let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-              from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-              to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
-              CliOptions {
-                  c_type: 6,
-                  from: from2,
-                  to: to2,
-                  verbose: i.verbose as c_uint,
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 6,
+                    from: from2,
+                    to: to2,
+                    verbose: i.verbose as c_uint,
 
-                  // Junk fields
-                  preset_path:  [0; 256],
-                  scale: 0.0 as c_float,
-                  brawlbox_scale: 0 as c_uint,
-                  mipmaps: 0 as c_uint,
-                  min_mip: 0 as c_uint,
-                  max_mips: 0 as c_uint,
-                  auto_transparency: 0 as c_uint,
-                  merge_mats: 0 as c_uint,
-                  bake_uvs: 0 as c_uint,
-                  tint: 0 as c_uint,
-                  cull_degenerates: 0 as c_uint,
-                  cull_invalid: 0 as c_uint,
-                  recompute_normals: 0 as c_uint,
-                  fuse_vertices: 0 as c_uint,
-                  no_tristrip: 0 as c_uint,
-                  ai_json: 0 as c_uint,
-                  no_compression: 0 as c_uint
-              }
-            },
+                    // Junk fields
+                    preset_path: [0; 256],
+                    scale: 0.0 as c_float,
+                    brawlbox_scale: 0 as c_uint,
+                    mipmaps: 0 as c_uint,
+                    min_mip: 0 as c_uint,
+                    max_mips: 0 as c_uint,
+                    auto_transparency: 0 as c_uint,
+                    merge_mats: 0 as c_uint,
+                    bake_uvs: 0 as c_uint,
+                    tint: 0 as c_uint,
+                    cull_degenerates: 0 as c_uint,
+                    cull_invalid: 0 as c_uint,
+                    recompute_normals: 0 as c_uint,
+                    fuse_vertices: 0 as c_uint,
+                    no_tristrip: 0 as c_uint,
+                    ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint,
+                }
+            }
             Commands::Create(i) => {
-              let mut from2 : [i8; 256]= [0; 256];
-              let mut to2 : [i8; 256]= [0; 256];
-              let from_bytes = i.from.as_bytes();
-              let default_str = String::new();
-              let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-              from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-              to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
-              CliOptions {
-                  c_type: 7,
-                  from: from2,
-                  to: to2,
-                  verbose: i.verbose as c_uint,
-                  no_compression: i.no_compression as c_uint,
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 7,
+                    from: from2,
+                    to: to2,
+                    verbose: i.verbose as c_uint,
+                    no_compression: i.no_compression as c_uint,
 
-                  // Junk fields
-                  preset_path:  [0; 256],
-                  scale: 0.0 as c_float,
-                  brawlbox_scale: 0 as c_uint,
-                  mipmaps: 0 as c_uint,
-                  min_mip: 0 as c_uint,
-                  max_mips: 0 as c_uint,
-                  auto_transparency: 0 as c_uint,
-                  merge_mats: 0 as c_uint,
-                  bake_uvs: 0 as c_uint,
-                  tint: 0 as c_uint,
-                  cull_degenerates: 0 as c_uint,
-                  cull_invalid: 0 as c_uint,
-                  recompute_normals: 0 as c_uint,
-                  fuse_vertices: 0 as c_uint,
-                  no_tristrip: 0 as c_uint,
-                  ai_json: 0 as c_uint,
-              }
-          },
+                    // Junk fields
+                    preset_path: [0; 256],
+                    scale: 0.0 as c_float,
+                    brawlbox_scale: 0 as c_uint,
+                    mipmaps: 0 as c_uint,
+                    min_mip: 0 as c_uint,
+                    max_mips: 0 as c_uint,
+                    auto_transparency: 0 as c_uint,
+                    merge_mats: 0 as c_uint,
+                    bake_uvs: 0 as c_uint,
+                    tint: 0 as c_uint,
+                    cull_degenerates: 0 as c_uint,
+                    cull_invalid: 0 as c_uint,
+                    recompute_normals: 0 as c_uint,
+                    fuse_vertices: 0 as c_uint,
+                    no_tristrip: 0 as c_uint,
+                    ai_json: 0 as c_uint,
+                }
+            }
         }
     }
 }
 
 fn parse_args(argc: c_int, argv: *const *const c_char) -> Result<MyArgs, String> {
-    let args: Vec<OsString> = unsafe { 
+    let args: Vec<OsString> = unsafe {
         slice::from_raw_parts(argv, argc as usize)
             .iter()
             .map(|&arg| {
-                OsString::from(
-                    String::from_utf8_lossy(
-                        CStr::from_ptr(arg).to_bytes()
-                    ).into_owned()
-                )
+                OsString::from(String::from_utf8_lossy(CStr::from_ptr(arg).to_bytes()).into_owned())
             })
             .collect()
     };
@@ -618,22 +655,19 @@ fn parse_args(argc: c_int, argv: *const *const c_char) -> Result<MyArgs, String>
                 Commands::ImportCommand(i) => {
                     let str = i.tint.to_string();
                     match is_valid_hexcode(str) {
-                        Ok(_) => { () },
+                        Ok(_) => (),
                         Err(e) => {
                             let mut cmd = MyArgs::command();
-                            cmd.error(
-                                clap::error::ErrorKind::ArgumentConflict,
-                                &e,
-                            );
+                            cmd.error(clap::error::ErrorKind::ArgumentConflict, &e);
                             println!("--tint: {}", e);
-                            return Err("Bad hexcode".to_string())
+                            return Err("Bad hexcode".to_string());
                         }
                     }
-                },
-                _ => {},
+                }
+                _ => {}
             };
             Ok(args)
-        },
+        }
         Err(e) => {
             println!("{}", e.to_string());
             Err("Bruh".to_string())
@@ -654,69 +688,62 @@ pub extern "C" fn rs_parse_args(
             }
             0
         }
-        Err(_) => {
+        Err(_) => -1,
+    }
+}
+
+pub fn rsl_extract_zip(from_file: &str, to_folder: &str) -> Result<(), String> {
+    let archive: Vec<u8> = std::fs::read(from_file).expect("Failed to read {from_file}");
+    match zip_extract::extract(Cursor::new(&archive), &PathBuf::from(to_folder), false) {
+        Ok(_) => Ok(()),
+        Err(_) => Err("Failed to extract".to_string()),
+    }
+}
+
+#[no_mangle]
+pub unsafe fn c_rsl_extract_zip(from_file: *const c_char, to_folder: *const c_char) -> i32 {
+    if from_file.is_null() || to_folder.is_null() {
+        return -1;
+    }
+    let from_cstr = CStr::from_ptr(from_file);
+    let to_cstr = CStr::from_ptr(to_folder);
+
+    let from_str = String::from_utf8_lossy(from_cstr.to_bytes());
+    let to_str = String::from_utf8_lossy(to_cstr.to_bytes());
+
+    println!("Extracting zip (from {from_str} to {to_str})");
+
+    match rsl_extract_zip(&from_str, &to_str) {
+        Ok(_) => 0,
+        Err(err) => {
+            println!("Failed: {err}");
             -1
         }
     }
 }
 
-pub fn rsl_extract_zip(from_file: &str,
-  to_folder: &str,
-) -> Result<(), String> {
-  let archive: Vec<u8> = std::fs::read(from_file).expect("Failed to read {from_file}");
-  match zip_extract::extract(Cursor::new(&archive), &PathBuf::from(to_folder), false) {
-    Ok(_) => Ok(()),
-    Err(_) => Err("Failed to extract".to_string()),
-  }
-}
-
-#[no_mangle]
-pub unsafe fn c_rsl_extract_zip(
-  from_file: *const c_char,
-  to_folder: *const c_char,
-) -> i32 {
-  if from_file.is_null() || to_folder.is_null() {
-    return -1;
-  }
-  let from_cstr = CStr::from_ptr(from_file);
-  let to_cstr = CStr::from_ptr(to_folder);
-
-  let from_str = String::from_utf8_lossy(from_cstr.to_bytes());
-  let to_str = String::from_utf8_lossy(to_cstr.to_bytes());
-
-  println!("Extracting zip (from {from_str} to {to_str})");
-
-  match rsl_extract_zip(&from_str, &to_str) {
-    Ok(_) => 0,
-    Err(err) => {
-      println!("Failed: {err}");
-      -1
-    }
-  }
-}
-
 #[no_mangle]
 pub fn rsl_log_init() {
-  SimpleLogger::new().init().unwrap();
+    SimpleLogger::new().init().unwrap();
 }
 
 #[no_mangle]
 pub unsafe fn rsl_c_debug(s: *const c_char, _len: u32) {
-  // TODO: Use len
-  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
-  debug!("{}", &st);
+    // TODO: Use len
+    let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+    debug!("{}", &st);
 }
 #[no_mangle]
 pub unsafe fn rsl_c_error(s: *const c_char, _len: u32) {
-  // TODO: Use len
-  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
-  error!("{}", &st);
+    // TODO: Use len
+    let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+    error!("{}", &st);
 }
 #[no_mangle]
 pub unsafe fn rsl_c_info(s: *const c_char, _len: u32) {
-  // TODO: Use len
-  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
-  info!("{}", &st);
+    // TODO: Use len
+    let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+    info!("{}", &st);
 }
 /*
 #[no_mangle]
@@ -728,99 +755,97 @@ pub unsafe fn rsl_c_log(s: *const c_char, _len: u32) {
 */
 #[no_mangle]
 pub unsafe fn rsl_c_trace(s: *const c_char, _len: u32) {
-  // TODO: Use len
-  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
-  trace!("{}", &st);
+    // TODO: Use len
+    let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+    trace!("{}", &st);
 }
 #[no_mangle]
 pub unsafe fn rsl_c_warn(s: *const c_char, _len: u32) {
-  // TODO: Use len
-  let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
-  warn!("{}", &st);
+    // TODO: Use len
+    let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
+    warn!("{}", &st);
 }
 
 fn rpc_create(app_id: &str) -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
-  warn!("[DiscordIpcClient] Creating client");
-  DiscordIpcClient::new(app_id)
+    warn!("[DiscordIpcClient] Creating client");
+    DiscordIpcClient::new(app_id)
 }
 fn rpc_connect(client: &mut DiscordIpcClient) -> i32 {
-  warn!("[DiscordIpcClient] Connecting...");
-  match client.connect() {
-    Ok(_) => 0,
-    Err(err) => {
-      let msg = err.to_string();
-      error!("[DiscordIpcClient] {msg}");
-      -1
+    warn!("[DiscordIpcClient] Connecting...");
+    match client.connect() {
+        Ok(_) => 0,
+        Err(err) => {
+            let msg = err.to_string();
+            error!("[DiscordIpcClient] {msg}");
+            -1
+        }
     }
-  }
 }
 
 #[no_mangle]
 pub extern "C" fn rsl_rpc_disconnect(client: &mut DiscordIpcClient) {
-  warn!("[DiscordIpcClient] Closing connection...");
-  match client.close() {
-    Ok(_) => (),
-    Err(err) => {
-      let msg = err.to_string();
-      error!("[DiscordIpcClient] {msg}");
+    warn!("[DiscordIpcClient] Closing connection...");
+    match client.close() {
+        Ok(_) => (),
+        Err(err) => {
+            let msg = err.to_string();
+            error!("[DiscordIpcClient] {msg}");
+        }
     }
-  }
 }
 
 fn rpc_test(client: &mut DiscordIpcClient) -> Result<(), Box<dyn std::error::Error>> {
-  warn!("[DiscordIpcClient] Setting activity...");
-  let activity = activity::Activity::new()
-    .state("A test")
-    .details("A placeholder")
-    .assets(
-      activity::Assets::new()
-        .large_image("large-image")
-        .large_text("Large text"),
-    )
-    .buttons(vec![activity::Button::new(
-      "A button",
-      "https://github.com",
-    )]);
-  client.set_activity(activity)?;
-  Ok(())
+    warn!("[DiscordIpcClient] Setting activity...");
+    let activity = activity::Activity::new()
+        .state("A test")
+        .details("A placeholder")
+        .assets(
+            activity::Assets::new()
+                .large_image("large-image")
+                .large_text("Large text"),
+        )
+        .buttons(vec![activity::Button::new(
+            "A button",
+            "https://github.com",
+        )]);
+    client.set_activity(activity)?;
+    Ok(())
 }
 
 #[no_mangle]
 pub extern "C" fn rsl_rpc_test(client: &mut DiscordIpcClient) {
-  warn!("[DiscordIpcClient] rsl_rpc_test()");
-  let _ = rpc_test(client);
+    warn!("[DiscordIpcClient] rsl_rpc_test()");
+    let _ = rpc_test(client);
 }
 
 #[no_mangle]
 pub extern "C" fn rsl_rpc_connect(client: &mut DiscordIpcClient) -> i32 {
-  warn!("[DiscordIpcClient] rsl_rpc_connect()");
-  rpc_connect(client)
+    warn!("[DiscordIpcClient] rsl_rpc_connect()");
+    rpc_connect(client)
 }
 
 #[no_mangle]
 pub extern "C" fn rsl_rpc_create(s: *const c_char) -> *mut DiscordIpcClient {
-  let app_id = unsafe {
-    String::from_utf8_lossy(CStr::from_ptr(s).to_bytes())
-  };
-  match rpc_create(&app_id) {
-    Ok(client) => {
-      // Return an owning pointer to C
-      let boxed = Box::new(client);
-      Box::into_raw(boxed) as *mut _
+    let app_id = unsafe { String::from_utf8_lossy(CStr::from_ptr(s).to_bytes()) };
+    match rpc_create(&app_id) {
+        Ok(client) => {
+            // Return an owning pointer to C
+            let boxed = Box::new(client);
+            Box::into_raw(boxed) as *mut _
+        }
+        Err(err) => {
+            let msg = err.to_string();
+            error!("[DiscordIpcClient] {msg}");
+            std::ptr::null::<DiscordIpcClient>() as *mut _
+        }
     }
-    Err(err) => {
-      let msg = err.to_string();
-      error!("[DiscordIpcClient] {msg}");
-      std::ptr::null::<DiscordIpcClient>() as *mut _
-    }
-  }
 }
 #[no_mangle]
 pub extern "C" fn rsl_rpc_destroy(client: *mut DiscordIpcClient) {
-  warn!("[DiscordIpcClient] Destroying client");
-  unsafe {
-    let mut _owning_boxed = Box::from_raw(client);
-  }
+    warn!("[DiscordIpcClient] Destroying client");
+    unsafe {
+        let mut _owning_boxed = Box::from_raw(client);
+    }
 }
 #[repr(C)]
 pub struct Timestamps {
@@ -855,26 +880,26 @@ pub struct ActivityC {
     pub buttons: ButtonVector,
 }
 pub mod ffi {
-  pub struct Asset {
-    pub large_image: String,
-    pub large_text: String,
-  }
-  pub struct Button {
-    pub text: String,
-    pub link: String,
-  }
-  pub struct Timestamps {
-    pub start: i64,
-    pub end: i64,
-  }
-  pub struct Activity {
-    pub state: String,
-    pub details: String,
-    pub timestamps: Timestamps,
+    pub struct Asset {
+        pub large_image: String,
+        pub large_text: String,
+    }
+    pub struct Button {
+        pub text: String,
+        pub link: String,
+    }
+    pub struct Timestamps {
+        pub start: i64,
+        pub end: i64,
+    }
+    pub struct Activity {
+        pub state: String,
+        pub details: String,
+        pub timestamps: Timestamps,
 
-    pub assets: Asset,
-    pub buttons: Vec<Button>,
-  }
+        pub assets: Asset,
+        pub buttons: Vec<Button>,
+    }
 }
 impl From<&ActivityC> for ffi::Activity {
     fn from(activity_c: &ActivityC) -> Self {
@@ -886,7 +911,8 @@ impl From<&ActivityC> for ffi::Activity {
         }
 
         // Convert button vector to Rust Vec<Button>
-        let button_slice = unsafe { slice::from_raw_parts(activity_c.buttons.buttons, activity_c.buttons.length) };
+        let button_slice =
+            unsafe { slice::from_raw_parts(activity_c.buttons.buttons, activity_c.buttons.length) };
         let buttons = button_slice
             .iter()
             .map(|button_c| ffi::Button {
@@ -911,40 +937,44 @@ impl From<&ActivityC> for ffi::Activity {
         }
     }
 }
-fn rpc_set_activity(client: &mut DiscordIpcClient, activity: &ffi::Activity)
--> Result<(), Box<dyn std::error::Error>> {
-  warn!("State: {}, details: {}", &activity.state, &activity.details);
-  let a = activity::Activity::new()
-    .state(&activity.state)
-    .details(&activity.details)
-    .timestamps(activity::Timestamps::new().start(activity.timestamps.start))
-    .assets(
-      activity::Assets::new()
-        .large_image(&activity.assets.large_image)
-        .large_text(&activity.assets.large_text),
-    )
-    .buttons(activity.buttons.iter().map(|x| activity::Button::new(
-      &x.text,
-      &x.link,
-    )).collect());
-  client.set_activity(a)?;
+fn rpc_set_activity(
+    client: &mut DiscordIpcClient,
+    activity: &ffi::Activity,
+) -> Result<(), Box<dyn std::error::Error>> {
+    warn!("State: {}, details: {}", &activity.state, &activity.details);
+    let a = activity::Activity::new()
+        .state(&activity.state)
+        .details(&activity.details)
+        .timestamps(activity::Timestamps::new().start(activity.timestamps.start))
+        .assets(
+            activity::Assets::new()
+                .large_image(&activity.assets.large_image)
+                .large_text(&activity.assets.large_text),
+        )
+        .buttons(
+            activity
+                .buttons
+                .iter()
+                .map(|x| activity::Button::new(&x.text, &x.link))
+                .collect(),
+        );
+    client.set_activity(a)?;
 
-  Ok(())
+    Ok(())
 }
 
 #[no_mangle]
-pub extern "C" fn rsl_rpc_set_activity(client: &mut DiscordIpcClient,
-                                       activity: &ActivityC) {
-  trace!("[DiscordIpcClient] rsl_rpc_set_activity()...");
-  let a = ffi::Activity::from(activity);
-  let ok = rpc_set_activity(client, &a);
-  match ok {
-    Ok(_) => {
-      trace!("[DiscordIpcClient] rsl_rpc_set_activity()...OK");
-    },
-    Err(err) => {
-      let msg = err.to_string();
-      error!("[DiscordIpcClient] {msg}");
-    }
-  };
+pub extern "C" fn rsl_rpc_set_activity(client: &mut DiscordIpcClient, activity: &ActivityC) {
+    trace!("[DiscordIpcClient] rsl_rpc_set_activity()...");
+    let a = ffi::Activity::from(activity);
+    let ok = rpc_set_activity(client, &a);
+    match ok {
+        Ok(_) => {
+            trace!("[DiscordIpcClient] rsl_rpc_set_activity()...OK");
+        }
+        Err(err) => {
+            let msg = err.to_string();
+            error!("[DiscordIpcClient] {msg}");
+        }
+    };
 }
