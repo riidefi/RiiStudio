@@ -261,7 +261,7 @@ void LevelEditorWindow::draw_() {
     util::PopErrorStyle();
     return;
   }
-
+  drawDockspace();
   if (ImGui::BeginMenuBar()) {
     if (ImGui::Button("Save")) {
       saveFile("umm.szs");

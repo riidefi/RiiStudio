@@ -139,8 +139,7 @@ struct RenderableBRRES {
 class LevelEditorWindow : public frontend::StudioWindow, private Selection {
 public:
   LevelEditorWindow()
-      : StudioWindow("Level Editor: <unknown>",
-                     frontend::DockSetting::Dockspace) {
+      : StudioWindow("Level Editor: <unknown>", frontend::DockSetting::None) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
 
     mRenderSettings.mCameraController.combo_choice_cam =
