@@ -59,39 +59,6 @@ private:
     kpi::CollectionImpl<riistudio::j3d::Shape> mMeshes{this};
 
     // INode implementations
-    std::size_t numFolders() const override { return 3; }
-    const kpi::ICollection* folderAt(std::size_t index) const override {
-        switch (index) {
-        case 0: return &mMaterials;
-        case 1: return &mBones;
-        case 2: return &mMeshes;
-        default: return nullptr;
-        }
-    }
-    kpi::ICollection* folderAt(std::size_t index) override {
-        switch (index) {
-        case 0: return &mMaterials;
-        case 1: return &mBones;
-        case 2: return &mMeshes;
-        default: return nullptr;
-        }
-    }
-    const char* idAt(std::size_t index) const override {
-        switch (index) {
-        case 0: return typeid(riistudio::j3d::Material).name();
-        case 1: return typeid(riistudio::j3d::Joint).name();
-        case 2: return typeid(riistudio::j3d::Shape).name();
-        default: return nullptr;
-        }
-    }
-    std::size_t fromId(const char* id) const override {
-        if (!strcmp(id, typeid(riistudio::j3d::Material).name())) return 0;
-        if (!strcmp(id, typeid(riistudio::j3d::Joint).name())) return 1;
-        if (!strcmp(id, typeid(riistudio::j3d::Shape).name())) return 2;
-        return ~0;
-    }
-    virtual kpi::IDocData* getImmediateData() { return static_cast<kpi::TDocData<riistudio::j3d::ModelData>*>(this); }
-    virtual const kpi::IDocData* getImmediateData() const { return static_cast<const kpi::TDocData<riistudio::j3d::ModelData>*>(this); }
 
 public:
     struct _Memento : public kpi::IMemento {
@@ -171,35 +138,6 @@ private:
     kpi::CollectionImpl<riistudio::j3d::Texture> mTextures{this};
 
     // INode implementations
-    std::size_t numFolders() const override { return 2; }
-    const kpi::ICollection* folderAt(std::size_t index) const override {
-        switch (index) {
-        case 0: return &mModels;
-        case 1: return &mTextures;
-        default: return nullptr;
-        }
-    }
-    kpi::ICollection* folderAt(std::size_t index) override {
-        switch (index) {
-        case 0: return &mModels;
-        case 1: return &mTextures;
-        default: return nullptr;
-        }
-    }
-    const char* idAt(std::size_t index) const override {
-        switch (index) {
-        case 0: return typeid(riistudio::j3d::Model).name();
-        case 1: return typeid(riistudio::j3d::Texture).name();
-        default: return nullptr;
-        }
-    }
-    std::size_t fromId(const char* id) const override {
-        if (!strcmp(id, typeid(riistudio::j3d::Model).name())) return 0;
-        if (!strcmp(id, typeid(riistudio::j3d::Texture).name())) return 1;
-        return ~0;
-    }
-    virtual kpi::IDocData* getImmediateData() { return nullptr; }
-    virtual const kpi::IDocData* getImmediateData() const { return nullptr; }
 
 public:
     struct _Memento : public kpi::IMemento {

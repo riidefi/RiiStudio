@@ -165,22 +165,6 @@ template <typename T> struct TDocData : public IDocData, public T {
 };
 struct IMemento;
 
-struct ITypeFolderManager {
-  virtual ~ITypeFolderManager() = default;
-
-  virtual std::size_t numFolders() const = 0;
-  virtual const ICollection* folderAt(std::size_t index) const = 0;
-  virtual ICollection* folderAt(std::size_t index) = 0;
-
-  // The data not stored in folders
-  // Note: If no folders, this is the only data allowed
-  virtual IDocData* getImmediateData() = 0;
-  virtual const IDocData* getImmediateData() const = 0;
-
-  virtual const char* idAt(std::size_t) const = 0;
-  virtual std::size_t fromId(const char*) const = 0;
-};
-
 struct IMementoOriginator {
   virtual ~IMementoOriginator() = default;
 
@@ -190,8 +174,7 @@ struct IMementoOriginator {
 };
 
 // Base of all concrete collection types
-struct INode : public ITypeFolderManager,
-               public IMementoOriginator,
+struct INode : public IMementoOriginator,
                public virtual IObject // TODO: Global factories require this.
                                       // But we don't need them?
 {

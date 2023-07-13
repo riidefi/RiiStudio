@@ -90,55 +90,6 @@ private:
     kpi::CollectionImpl<TextureCoordinateBuffer> mBuf_Uv{this};
 
     // INode implementations
-    std::size_t numFolders() const override { return 7; }
-    const kpi::ICollection* folderAt(std::size_t index) const override {
-        switch (index) {
-        case 0: return &mMaterials;
-        case 1: return &mBones;
-        case 2: return &mMeshes;
-        case 3: return &mBuf_Pos;
-        case 4: return &mBuf_Nrm;
-        case 5: return &mBuf_Clr;
-        case 6: return &mBuf_Uv;
-        default: return nullptr;
-        }
-    }
-    kpi::ICollection* folderAt(std::size_t index) override {
-        switch (index) {
-        case 0: return &mMaterials;
-        case 1: return &mBones;
-        case 2: return &mMeshes;
-        case 3: return &mBuf_Pos;
-        case 4: return &mBuf_Nrm;
-        case 5: return &mBuf_Clr;
-        case 6: return &mBuf_Uv;
-        default: return nullptr;
-        }
-    }
-    const char* idAt(std::size_t index) const override {
-        switch (index) {
-        case 0: return typeid(Material).name();
-        case 1: return typeid(Bone).name();
-        case 2: return typeid(Polygon).name();
-        case 3: return typeid(PositionBuffer).name();
-        case 4: return typeid(NormalBuffer).name();
-        case 5: return typeid(ColorBuffer).name();
-        case 6: return typeid(TextureCoordinateBuffer).name();
-        default: return nullptr;
-        }
-    }
-    std::size_t fromId(const char* id) const override {
-        if (!strcmp(id, typeid(Material).name())) return 0;
-        if (!strcmp(id, typeid(Bone).name())) return 1;
-        if (!strcmp(id, typeid(Polygon).name())) return 2;
-        if (!strcmp(id, typeid(PositionBuffer).name())) return 3;
-        if (!strcmp(id, typeid(NormalBuffer).name())) return 4;
-        if (!strcmp(id, typeid(ColorBuffer).name())) return 5;
-        if (!strcmp(id, typeid(TextureCoordinateBuffer).name())) return 6;
-        return ~0;
-    }
-    virtual kpi::IDocData* getImmediateData() { return static_cast<kpi::TDocData<riistudio::g3d::G3DModelData>*>(this); }
-    virtual const kpi::IDocData* getImmediateData() const { return static_cast<const kpi::TDocData<riistudio::g3d::G3DModelData>*>(this); }
 
 public:
     struct _Memento : public kpi::IMemento {
@@ -250,39 +201,6 @@ private:
     kpi::CollectionImpl<SRT0> mAnim_Srts{this};
 
     // INode implementations
-    std::size_t numFolders() const override { return 3; }
-    const kpi::ICollection* folderAt(std::size_t index) const override {
-        switch (index) {
-        case 0: return &mModels;
-        case 1: return &mTextures;
-        case 2: return &mAnim_Srts;
-        default: return nullptr;
-        }
-    }
-    kpi::ICollection* folderAt(std::size_t index) override {
-        switch (index) {
-        case 0: return &mModels;
-        case 1: return &mTextures;
-        case 2: return &mAnim_Srts;
-        default: return nullptr;
-        }
-    }
-    const char* idAt(std::size_t index) const override {
-        switch (index) {
-        case 0: return typeid(Model).name();
-        case 1: return typeid(Texture).name();
-        case 2: return typeid(SRT0).name();
-        default: return nullptr;
-        }
-    }
-    std::size_t fromId(const char* id) const override {
-        if (!strcmp(id, typeid(Model).name())) return 0;
-        if (!strcmp(id, typeid(Texture).name())) return 1;
-        if (!strcmp(id, typeid(SRT0).name())) return 2;
-        return ~0;
-    }
-    virtual kpi::IDocData* getImmediateData() { return nullptr; }
-    virtual const kpi::IDocData* getImmediateData() const { return nullptr; }
 
 public:
     struct _Memento : public kpi::IMemento {
