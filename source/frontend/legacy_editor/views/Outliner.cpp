@@ -1,7 +1,6 @@
 #include "Outliner.hpp"
 #include "BmdBrresOutliner.hpp"
 #include <LibBadUIFramework/ActionMenu.hpp>        // kpi::ActionMenuManager
-#include <LibBadUIFramework/RichNameManager.hpp>   // kpi::RichNameManager
 #include <frontend/legacy_editor/EditorWindow.hpp> // EditorWindow
 #include <frontend/legacy_editor/StudioWindow.hpp> // StudioWindow
 #include <frontend/widgets/OutlinerWidget.hpp>

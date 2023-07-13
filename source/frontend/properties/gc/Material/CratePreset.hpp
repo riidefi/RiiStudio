@@ -4,7 +4,6 @@
 #include "ErrorState.hpp"
 
 #include <LibBadUIFramework/ActionMenu.hpp>
-#include <LibBadUIFramework/RichNameManager.hpp>
 #include <core/util/oishii.hpp>
 #include <core/util/timestamp.hpp>
 

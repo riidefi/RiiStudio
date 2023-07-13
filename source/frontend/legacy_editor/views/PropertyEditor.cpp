@@ -2,7 +2,6 @@
 #include <vendor/cista.h>
 
 #include "PropertyEditor.hpp"
-#include <LibBadUIFramework/RichNameManager.hpp>
 #include <core/3d/Material.hpp> // lib3d::Material
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <imcxx/Widgets.hpp>              // imcxx::Combo

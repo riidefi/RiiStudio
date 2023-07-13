@@ -9,7 +9,6 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 add_library(plugins STATIC
 	"g3d/bone.hpp"
 	"g3d/collection.hpp"
-	"g3d/g3d_install.cpp"
 	"g3d/g3d_material.cpp"
 	"g3d/g3d_polygon.cpp"
 	"g3d/io/BRRES.cpp"
@@ -45,8 +44,6 @@ add_library(plugins STATIC
   "g3d/G3dIo.hpp"
   "j3d/J3dIo.hpp"
   
-  "api.hpp"
-  "api.cpp"
   "SceneImpl.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.

@@ -11,7 +11,6 @@
 #include <imgui_markdown.h>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
-#include <plugins/api.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/Scene.hpp>
 #include <rsl/Discord.hpp>
@@ -257,7 +256,6 @@ RootWindow::RootWindow()
   spInstance = this;
 
   // Loads the plugins for file formats / importers
-  InitAPI();
   libcube::UI::InstallCrate();
   libcube::UI::ImageActionsInstaller();
 
@@ -281,7 +279,7 @@ RootWindow::RootWindow()
   mThemeData.mFontGlobalScale = .534f;
 #endif
 }
-RootWindow::~RootWindow() { DeinitAPI(); }
+RootWindow::~RootWindow() = default;
 
 void RootWindow::saveButton() {
   if (getActive() == nullptr) {

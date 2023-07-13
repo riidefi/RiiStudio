@@ -1,9 +1,9 @@
 #include "Merge.hpp"
 
-#include <LibBadUIFramework/RichNameManager.hpp>
 #include <frontend/widgets/IconManager.hpp>
-
 #include <rsl/FsDialog.hpp>
+
+#include <frontend/legacy_editor/views/BmdBrresOutliner.hpp>
 
 namespace libcube::UI {
 
@@ -116,9 +116,9 @@ void DrawComboSourceMat(MergeAction& action, std::optional<size_t>& item) {
           ImGui::TextUnformatted((const char*)ICON_FA_LONG_ARROW_ALT_LEFT);
           ImGui::SameLine();
           riistudio::g3d::Material tmp;
-          ImGui::PushStyleColor(
-              ImGuiCol_Text,
-              kpi::RichNameManager::getInstance().getRich(&tmp).getIconColor());
+          auto rich = riistudio::frontend::GetRichTypeInfo(&tmp).value_or(
+              riistudio::frontend::Node::RichTypeInfo{});
+          ImGui::PushStyleColor(ImGuiCol_Text, rich.type_icon_color);
           ImGui::TextUnformatted((const char*)ICON_FA_PAINT_BRUSH);
           ImGui::PopStyleColor();
           ImGui::SameLine();
