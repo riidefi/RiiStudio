@@ -1,6 +1,15 @@
 #pragma once
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
+#endif
+
 #include <vendor/cista.h>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #include <oishii/writer/binary_writer.hxx>
 #include <rsl/SafeReader.hpp>
