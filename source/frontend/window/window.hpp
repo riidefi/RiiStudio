@@ -88,7 +88,11 @@ private:
   bool mClosable = true;
 
   TWindow* mActive = nullptr;
+
+public:
   TWindowParent* mParent = nullptr;
+
+private:
   std::vector<std::unique_ptr<TWindow>> mChildren;
 
 #ifdef RII_BACKEND_GLFW

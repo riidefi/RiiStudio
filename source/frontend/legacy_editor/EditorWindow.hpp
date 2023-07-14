@@ -49,6 +49,10 @@ struct BRRESEditor : public StudioWindow, public IEditor {
   ErrorDialogList mLoadErrors;
   std::vector<Message> mLoadErrorMessages;
   bool mErrorState = false;
+  std::unique_ptr<StudioWindow> mPropertyEditor;
+  std::unique_ptr<StudioWindow> mHistoryList;
+  std::unique_ptr<StudioWindow> mOutliner;
+  std::unique_ptr<StudioWindow> mRenderTest;
 
   std::string discordStatus() const override { return "Editing a BRRES"; }
   void saveAsButton() override {
@@ -114,6 +118,10 @@ struct BMDEditor : public StudioWindow, public IEditor {
   ErrorDialogList mLoadErrors;
   std::vector<Message> mLoadErrorMessages;
   bool mErrorState = false;
+  std::unique_ptr<StudioWindow> mPropertyEditor;
+  std::unique_ptr<StudioWindow> mHistoryList;
+  std::unique_ptr<StudioWindow> mOutliner;
+  std::unique_ptr<StudioWindow> mRenderTest;
 
   std::string discordStatus() const override { return "Editing a BMD"; }
   void saveAsButton() override {

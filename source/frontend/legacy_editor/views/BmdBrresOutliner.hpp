@@ -41,7 +41,7 @@ static std::map<std::string, Node::RichTypeInfo> richtypes{
       "Bone Visibility Animation"}},
 };
 
-static std::optional<Node::RichTypeInfo>
+static inline std::optional<Node::RichTypeInfo>
 GetRichTypeInfo(const kpi::IObject* node) {
   if (auto* x = dynamic_cast<const lib3d::Bone*>(node)) {
     return richtypes["bone"];
@@ -70,7 +70,7 @@ GetRichTypeInfo(const kpi::IObject* node) {
   return {};
 }
 
-static std::vector<const lib3d::Texture*> GetNodeIcons(kpi::IObject& nodeAt) {
+static inline std::vector<const lib3d::Texture*> GetNodeIcons(kpi::IObject& nodeAt) {
   std::vector<const lib3d::Texture*> icons;
 
   lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(&nodeAt);
@@ -136,7 +136,7 @@ static inline Node HeaderBar(const char* key, int indent, auto* folder,
                        postDeleteChild);
 }
 
-static std::vector<Node> CollectNodes(g3d::Collection* g3d,
+static inline std::vector<Node> CollectNodes(g3d::Collection* g3d,
                                       std::function<void()> outliner,
                                       auto CtxDraw, auto ModalDraw) {
   std::vector<Node> result;

@@ -17,10 +17,10 @@ add_library(lib_frontend
   "legacy_editor/EditorWindow.cpp"
   
   "legacy_editor/StudioWindow.cpp"
-  "legacy_editor/views/HistoryList.cpp"
+  
   "legacy_editor/views/Outliner.cpp"
   "legacy_editor/views/PropertyEditor.cpp"
-  "legacy_editor/views/ViewportRenderer.cpp"
+  
   "widgets/OutlinerWidget.cpp"
   "properties/gc/ResizeAction.cpp"
   "properties/gc/ShaderView.cpp"

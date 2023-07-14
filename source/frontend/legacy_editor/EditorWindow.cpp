@@ -1,11 +1,13 @@
 #include "EditorWindow.hpp"
 #include <core/3d/i3dmodel.hpp>                            // lib3d::Scene
 #include <frontend/applet.hpp>                             // core::Applet
-#include <frontend/legacy_editor/views/HistoryList.hpp>    // MakePropertyEditor
 #include <frontend/legacy_editor/views/Outliner.hpp>       // MakeHistoryList
 #include <frontend/legacy_editor/views/PropertyEditor.hpp> // MakeOutliner
-#include <frontend/legacy_editor/views/ViewportRenderer.hpp> // MakeViewportRenderer
+#include <frontend/level_editor/ViewCube.hpp>
+#include <frontend/renderer/Renderer.hpp> // Renderer
+#include <frontend/widgets/HistoryListWidget.hpp>
 #include <imcxx/Widgets.hpp>
+#include <plate/toolkit/Viewport.hpp>     // plate::tk::Viewport
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_TIMES
 
 #include <plugins/g3d/G3dIo.hpp>
@@ -13,6 +15,112 @@
 
 namespace riistudio::frontend {
 
+struct HistoryList : public StudioWindow, private HistoryListWidget {
+  HistoryList(auto doCommit, auto doUndo, auto doRedo, auto doCursor,
+              auto doSize)
+      : StudioWindow("History"), mCommit(doCommit), mUndo(doUndo),
+        mRedo(doRedo), mCursor(doCursor), mSize(doSize) {
+    setClosable(false);
+  }
+
+  void draw_() override { drawHistoryList(); }
+  void commit_() override { mCommit(); }
+  void undo_() override { mUndo(); }
+  void redo_() override { mRedo(); }
+  int cursor_() override { return mCursor(); }
+  int size_() override { return mSize(); }
+
+  std::function<void()> mCommit, mUndo, mRedo;
+  std::function<int()> mCursor, mSize;
+};
+class RenderTest : public StudioWindow {
+public:
+  RenderTest(const libcube::Scene& host);
+  void draw_() override;
+
+  // TODO: Figure out how to do this concurrently
+  void precache();
+
+private:
+  void drawViewCube();
+
+  // Components
+  plate::tk::Viewport mViewport;
+  Renderer mRenderer;
+};
+RenderTest::RenderTest(const libcube::Scene& host)
+    : StudioWindow("Viewport"), mRenderer(&host) {
+  setWindowFlag(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
+  setClosable(false);
+}
+
+void RenderTest::precache() {
+  rsl::info("Precaching render state");
+  mRenderer.precache();
+}
+
+void RenderTest::draw_() {
+  auto bounds = ImGui::GetWindowSize();
+
+  if (mViewport.begin(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y))) {
+    mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y));
+    drawViewCube();
+    mViewport.end();
+  }
+}
+
+void RenderTest::drawViewCube() {
+  const bool view_updated =
+      lvl::DrawViewCube(mViewport.mLastResolution.width,
+                        mViewport.mLastResolution.height, mRenderer.mViewMtx);
+  auto& cam = mRenderer.mSettings.mCameraController;
+  if (view_updated) {
+    frontend::SetCameraControllerToMatrix(cam, mRenderer.mViewMtx);
+  }
+}
+
+static void BuildSelect(auto&& mSelection, auto&& _selected, auto&& folder) {
+  if (mSelection.mActive->collectionOf == folder.low) {
+    for (auto& x : folder) {
+      if (mSelection.isSelected(&x)) {
+        _selected.insert(&x);
+      }
+    }
+  }
+}
+static std::set<kpi::IObject*> GatherSelected(auto&& mSelection,
+                                              g3d::Collection& root) {
+  std::set<kpi::IObject*> _selected;
+  if (mSelection.mActive) {
+    BuildSelect(mSelection, _selected, root.getModels());
+    BuildSelect(mSelection, _selected, root.getTextures());
+    BuildSelect(mSelection, _selected, root.getAnim_Srts());
+    for (auto& x : root.getModels()) {
+      BuildSelect(mSelection, _selected, x.getMaterials());
+      BuildSelect(mSelection, _selected, x.getBones());
+      BuildSelect(mSelection, _selected, x.getMeshes());
+      BuildSelect(mSelection, _selected, x.getBuf_Pos());
+      BuildSelect(mSelection, _selected, x.getBuf_Nrm());
+      BuildSelect(mSelection, _selected, x.getBuf_Clr());
+      BuildSelect(mSelection, _selected, x.getBuf_Uv());
+    }
+  }
+  return _selected;
+}
+static std::set<kpi::IObject*> GatherSelected(auto&& mSelection,
+                                              j3d::Collection& root) {
+  std::set<kpi::IObject*> _selected;
+  if (mSelection.mActive) {
+    BuildSelect(mSelection, _selected, root.getModels());
+    BuildSelect(mSelection, _selected, root.getTextures());
+    for (auto& x : root.getModels()) {
+      BuildSelect(mSelection, _selected, x.getMaterials());
+      BuildSelect(mSelection, _selected, x.getBones());
+      BuildSelect(mSelection, _selected, x.getMeshes());
+    }
+  }
+  return _selected;
+}
 static std::string getFileShort(const std::string& path) {
   const auto path_ = path.substr(path.rfind("\\") + 1);
 
@@ -32,14 +140,35 @@ void BRRESEditor::init() {
   auto post = [&]() { mDocument.commit(mSelection, true); };
   auto commit_ = [&](bool b) { mDocument.commit(mSelection, b); };
   // mActive must be stable
-  attachWindow(MakePropertyEditor(mDocument.getHistory(), mDocument.getRoot(),
-                                  mSelection, draw_image_icon));
-  attachWindow(
-      MakeHistoryList(mDocument.getHistory(), mDocument.getRoot(), mSelection));
-  attachWindow(MakeOutliner(mDocument.getRoot(), mSelection, draw_image_icon,
-                            post, commit_));
-  auto rt = std::make_unique<RenderTest>(mDocument.getRoot());
-  attachWindow(std::move(rt));
+  auto _get_selection = [&]() {
+    return GatherSelected(mSelection, mDocument.getRoot());
+  };
+  auto _get_active = [&]() { return mSelection.mActive; };
+  mPropertyEditor =
+      MakePropertyEditor(mDocument.getHistory(), mDocument.getRoot(),
+                         _get_selection, _get_active, draw_image_icon);
+  mPropertyEditor->mParent = this;
+  {
+    auto commit_ = [&]() {
+      mDocument.getHistory().commit(mDocument.getRoot(), &mSelection, false);
+    };
+    auto undo_ = [&]() {
+      mDocument.getHistory().undo(mDocument.getRoot(), mSelection);
+    };
+    auto redo_ = [&]() {
+      mDocument.getHistory().redo(mDocument.getRoot(), mSelection);
+    };
+    auto cursor_ = [&]() { return mDocument.getHistory().cursor(); };
+    auto size_ = [&]() { return mDocument.getHistory().size(); };
+    mHistoryList =
+        std::make_unique<HistoryList>(commit_, undo_, redo_, cursor_, size_);
+    mHistoryList->mParent = this;
+  }
+  mOutliner = MakeOutliner(mDocument.getRoot(), mSelection, draw_image_icon,
+                           post, commit_);
+  mOutliner->mParent = this;
+  mRenderTest = std::make_unique<RenderTest>(mDocument.getRoot());
+  mRenderTest->mParent = this;
 }
 
 // We handle the Dockspace manually (disabling it in an error state)
@@ -111,6 +240,11 @@ void BRRESEditor::draw_() {
   }
   detachClosedChildren();
 
+  mPropertyEditor->draw();
+  mHistoryList->draw();
+  mOutliner->draw();
+  mRenderTest->draw();
+
   // TODO: Only affect active window
   if (ImGui::GetIO().KeyCtrl) {
     if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
@@ -134,14 +268,35 @@ void BMDEditor::init() {
   auto post = [&]() { mDocument.commit(mSelection, true); };
   auto commit_ = [&](bool b) { mDocument.commit(mSelection, b); };
   // mActive must be stable
-  attachWindow(MakePropertyEditor(mDocument.getHistory(), mDocument.getRoot(),
-                                  mSelection, draw_image_icon));
-  attachWindow(
-      MakeHistoryList(mDocument.getHistory(), mDocument.getRoot(), mSelection));
-  attachWindow(MakeOutliner(mDocument.getRoot(), mSelection, draw_image_icon,
-                            post, commit_));
-  auto rt = std::make_unique<RenderTest>(mDocument.getRoot());
-  attachWindow(std::move(rt));
+  auto _get_selection = [&]() {
+    return GatherSelected(mSelection, mDocument.getRoot());
+  };
+  auto _get_active = [&]() { return mSelection.mActive; };
+  mPropertyEditor =
+      MakePropertyEditor(mDocument.getHistory(), mDocument.getRoot(),
+                         _get_selection, _get_active, draw_image_icon);
+  mPropertyEditor->mParent = this;
+  {
+    auto commit_ = [&]() {
+      mDocument.getHistory().commit(mDocument.getRoot(), &mSelection, false);
+    };
+    auto undo_ = [&]() {
+      mDocument.getHistory().undo(mDocument.getRoot(), mSelection);
+    };
+    auto redo_ = [&]() {
+      mDocument.getHistory().redo(mDocument.getRoot(), mSelection);
+    };
+    auto cursor_ = [&]() { return mDocument.getHistory().cursor(); };
+    auto size_ = [&]() { return mDocument.getHistory().size(); };
+    mHistoryList =
+        std::make_unique<HistoryList>(commit_, undo_, redo_, cursor_, size_);
+    mHistoryList->mParent = this;
+  }
+  mOutliner = MakeOutliner(mDocument.getRoot(), mSelection, draw_image_icon,
+                           post, commit_);
+  mOutliner->mParent = this;
+  mRenderTest = std::make_unique<RenderTest>(mDocument.getRoot());
+  mRenderTest->mParent = this;
 }
 void BRRESEditor::saveAsImpl(std::string path) {
   oishii::Writer writer(std::endian::big);
@@ -226,6 +381,11 @@ void BMDEditor::draw_() {
     }
   }
   detachClosedChildren();
+
+  mPropertyEditor->draw();
+  mHistoryList->draw();
+  mOutliner->draw();
+  mRenderTest->draw();
 
   // TODO: Only affect active window
   if (ImGui::GetIO().KeyCtrl) {

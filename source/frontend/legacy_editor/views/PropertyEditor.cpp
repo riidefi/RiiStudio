@@ -47,10 +47,13 @@ template <typename T> struct CommitHandler {
 template <typename T>
 class PropertyEditor : public StudioWindow, private PropertyEditorWidget {
 public:
-  PropertyEditor(kpi::History& host, T& root, SelectionManager& selection,
+  PropertyEditor(kpi::History& host, T& root,
+                 std::function<std::set<kpi::IObject*>()> selection,
+                 std::function<kpi::IObject*()> selectionActive,
                  auto drawImageIcon)
       : StudioWindow("Property Editor"), drawImageIcon(drawImageIcon),
-        mHost(host), mRoot(root), mSelection(selection) {
+        mSelectionActive(selectionActive), mHost(host), mRoot(root),
+        mSelection(selection) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
     setClosable(false);
   }
@@ -59,7 +62,7 @@ private:
   void draw_() override;
 
   std::vector<std::string> TabTitles() override {
-    return brresBmdPropEdit.TabTitles(mSelection.mActive);
+    return brresBmdPropEdit.TabTitles(mSelectionActive());
   }
   bool Tab(int index) override {
     auto postUpdate = [&]() { mHandler.bCommitPosted = true; };
@@ -73,13 +76,14 @@ private:
     };
 
     return brresBmdPropEdit.Tab(index, postUpdate, commit, handleUpdates,
-                                mSelection.mActive, selected, drawIcon, mMdl);
+                                mSelectionActive(), selected, drawIcon, mMdl);
   }
 
   std::function<void(const lib3d::Texture*, u32)> drawImageIcon;
   kpi::History& mHost;
   T& mRoot;
-  kpi::SelectionManager& mSelection;
+  std::function<std::set<kpi::IObject*>()> mSelection;
+  std::function<kpi::IObject*()> mSelectionActive;
 
   std::vector<kpi::IObject*> selected;
 
@@ -89,23 +93,13 @@ private:
   riistudio::g3d::Model* mMdl = nullptr;
 };
 
-static void BuildSelect(auto&& mSelection, auto&& _selected, auto&& folder) {
-  if (mSelection.mActive->collectionOf == folder.low) {
-    for (auto& x : folder) {
-      if (mSelection.isSelected(&x)) {
-        _selected.insert(&x);
-      }
-    }
-  }
-}
-
 template <typename T> void PropertyEditor<T>::draw_() {
-  if (mSelection.mActive == nullptr) {
+  if (mSelectionActive() == nullptr) {
     ImGui::TextUnformatted("Nothing is selected."_j);
     return;
   }
 
-  if (lib3d::Material* mat = dynamic_cast<lib3d::Material*>(mSelection.mActive);
+  if (lib3d::Material* mat = dynamic_cast<lib3d::Material*>(mSelectionActive());
       mat != nullptr) {
     if (mat->isShaderError) {
       util::PushErrorSyle();
@@ -126,41 +120,22 @@ template <typename T> void PropertyEditor<T>::draw_() {
     ImGui::EndMenuBar();
   }
 
-  std::set<kpi::IObject*> _selected;
-  if (mSelection.mActive) {
-    if (auto* g = dynamic_cast<g3d::Collection*>(&mRoot)) {
-      BuildSelect(mSelection, _selected, g->getModels());
-      BuildSelect(mSelection, _selected, g->getTextures());
-      BuildSelect(mSelection, _selected, g->getAnim_Srts());
-      for (auto& x : g->getModels()) {
-        BuildSelect(mSelection, _selected, x.getMaterials());
-        BuildSelect(mSelection, _selected, x.getBones());
-        BuildSelect(mSelection, _selected, x.getMeshes());
-        BuildSelect(mSelection, _selected, x.getBuf_Pos());
-        BuildSelect(mSelection, _selected, x.getBuf_Nrm());
-        BuildSelect(mSelection, _selected, x.getBuf_Clr());
-        BuildSelect(mSelection, _selected, x.getBuf_Uv());
-        mMdl = &x;
-      }
-    } else if (auto* g = dynamic_cast<j3d::Collection*>(&mRoot)) {
-      BuildSelect(mSelection, _selected, g->getModels());
-      BuildSelect(mSelection, _selected, g->getTextures());
-      for (auto& x : g->getModels()) {
-        BuildSelect(mSelection, _selected, x.getMaterials());
-        BuildSelect(mSelection, _selected, x.getBones());
-        BuildSelect(mSelection, _selected, x.getMeshes());
-      }
+  std::set<kpi::IObject*> _selected = mSelection();
+  if (auto* g = dynamic_cast<g3d::Collection*>(&mRoot)) {
+    for (auto& x : g->getModels()) {
+      mMdl = &x;
     }
   }
+
   // TODO: 7 objects per selection..?
 
   if (_selected.empty()) {
     ImGui::Text((const char*)ICON_FA_EXCLAMATION_TRIANGLE
                 " Active selection and multiselection desynced."
                 " This shouldn't happen.");
-    _selected.emplace(mSelection.mActive);
+    _selected.emplace(mSelectionActive());
   }
-  DrawRichSelection(mSelection.mActive, _selected.size());
+  DrawRichSelection(mSelectionActive(), _selected.size());
   ImGui::Separator();
 
   selected = {_selected.begin(), _selected.end()};
@@ -170,14 +145,15 @@ template <typename T> void PropertyEditor<T>::draw_() {
 
 std::unique_ptr<StudioWindow>
 MakePropertyEditor(kpi::History& host, kpi::INode& root,
-                   SelectionManager& selection,
+                   std::function<std::set<kpi::IObject*>()> selection,
+                   std::function<kpi::IObject*()> selectionActive,
                    std::function<void(const lib3d::Texture*, u32)> icon) {
   if (auto* g = dynamic_cast<g3d::Collection*>(&root)) {
-    return std::make_unique<PropertyEditor<g3d::Collection>>(host, *g,
-                                                             selection, icon);
+    return std::make_unique<PropertyEditor<g3d::Collection>>(
+        host, *g, selection, selectionActive, icon);
   } else if (auto* g = dynamic_cast<j3d::Collection*>(&root)) {
-    return std::make_unique<PropertyEditor<j3d::Collection>>(host, *g,
-                                                             selection, icon);
+    return std::make_unique<PropertyEditor<j3d::Collection>>(
+        host, *g, selection, selectionActive, icon);
   }
   return nullptr;
 }
