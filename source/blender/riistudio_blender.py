@@ -1914,12 +1914,175 @@ TEV_STAGE_FORMULA = [
 ]
 #endregion
 
+#region mat update methods
+
+update_bool = False;
+
+# Colors = C, Scene = S, PE = P, Samplers = S, Tev = T, Cull = X
+
+def get_group(mat, scene):
+	group_name = mat.jres_mat_group_enum
+	group_idx = scene.mat_groups.find(group_name[7:])
+	if group_idx == -1:
+			return
+	return scene.mat_groups[group_idx]
+
+def get_group_mats(mat):
+	if mat.jres_mat_group_enum == 'null':
+		return []
+	
+	return [n for n in bpy.data.materials if n.jres_mat_group_enum == mat.jres_mat_group_enum]
+
+
+def dum_col_update(self, context):
+	main = context.material
+
+	group = get_group(main, context.scene)
+	if not group:
+		return
+	if group.sync_colors == False:
+		return
+
+	for mat_holder in group.items:
+		print()
+		mat_col_update(main,mat_holder.item)
+
+
+def mat_col_update(from_mat, to_mat):
+	global update_bool
+	if update_bool:
+		return
+	update_bool = True
+	to_mat.jres_col_tevcolorspace = from_mat.jres_col_tevcolorspace
+	for i in range(4):
+		if i < 3:
+			setattr(to_mat, f"jres_col_tevcol{i+1}", getattr(from_mat, f"jres_col_tevcol{i+1}"))
+		setattr(to_mat, f"jres_col_tevkonst{i+1}", getattr(from_mat, f"jres_col_tevkonst{i+1}"))
+		mat_swap = getattr(to_mat, f"jres_col_tev_swap{i}")
+		self_swap = getattr(from_mat, f"jres_col_tev_swap{i}")
+		mat_swap.red = self_swap.red
+		mat_swap.green = self_swap.green
+		mat_swap.blue = self_swap.blue
+		mat_swap.alpha = self_swap.alpha
+	update_bool = False
+
+def dum_scene_update(self, context):
+	main = context.material
+
+	group = get_group(main, context.scene)
+	if not group:
+		return
+
+	if group.sync_scene == False:
+		return
+
+	for mat_holder in group.items:
+		mat_scene_update(main, mat_holder.item)
+
+def mat_scene_update(from_mat, to_mat):
+	global update_bool
+	if from_mat == to_mat:
+		return
+	if update_bool:
+		return
+	update_bool = True	
+	to_mat.jres_lightset_index = from_mat.jres_lightset_index
+	to_mat.jres_fog_index = from_mat.jres_fog_index
+	update_bool = False	
+
+
+def dum_pe_update(self, context):
+	main = context.material
+
+	group = get_group(main, context.scene)
+	if not group:
+		return
+
+	if group.sync_pe == False:
+		return
+
+	for mat_holder in group.items:
+		mat_pe_update(main, mat_holder.item)
+
+def mat_pe_update(from_mat, to_mat):
+	global update_bool
+	if from_mat == to_mat:
+		return
+	if update_bool:
+		return
+	update_bool = True	
+	from_items = from_mat.items()
+	for i, e in from_items:
+		if i.startswith("jres_pe"):
+			to_mat[i] = e
+	update_bool = False
+
+def dum_stages_update(self,context):
+	main = context.material
+
+	group = get_group(main, context.scene)
+	if not group:
+		return
+
+	if group.sync_tev == False:
+		return
+	
+	for mat_holder in group.items:
+		mat_stages_update(main, mat_holder.item)
+
+def mat_stages_update(from_mat, to_mat):
+	global update_bool
+	if from_mat == to_mat:
+		return
+	if update_bool:
+		return
+	update_bool = True
+	stages = from_mat.jres_tev_stages
+
+	numStages = len(stages)	
+	to_mat.jres_tev_stages.clear()
+	for i in range(numStages):
+		newStage = to_mat.jres_tev_stages.add()
+		for item, value in from_mat.jres_tev_stages[i].items():
+			newStage[item] = value
+
+	to_mat.jres_tev_stage_enum = from_mat.jres_tev_stage_enum
+	update_bool = False
+
+def dum_culling_update(self,context):
+	main = context.material
+
+	group = get_group(main, context.scene)
+	if not group:
+		return
+
+	if group.sync_culling == False:
+		return
+	
+	for mat_holder in group.items:
+		mat_stages_update(main, mat_holder.item)
+
+def mat_culling_update(from_mat, to_mat):
+	global update_bool
+	if from_mat == to_mat:
+		return
+	if update_bool:
+		return
+	update_bool = True
+	to_mat.jres_display_front = from_mat.jres_display_front
+	to_mat.jres_display_back = from_mat.jres_display_back
+	update_bool = False	
+
+#endregion
+
+# TEV class
 
 def clamp_const(self,context):
 	temp = self.c_konst_const/0.125
 	if temp.is_integer():
 		return
 	self.c_konst_const = int(temp)*0.125
+	dum_stages_update(self,context)
 
 
 class JRESShaderTevStage(bpy.types.PropertyGroup):
@@ -1940,6 +2103,7 @@ class JRESShaderTevStage(bpy.types.PropertyGroup):
 		min=0,
 		max=3,
 		default=0,
+		update=dum_stages_update,
 	)
 	sampler_id : IntProperty(
 		name="Sampler ID",
@@ -1953,6 +2117,7 @@ class JRESShaderTevStage(bpy.types.PropertyGroup):
 		min=0,
 		max=3,
 		default=0,
+		update=dum_stages_update,
 	)
 	#region colorStage
 	c_konst_sel : EnumProperty(
@@ -1961,7 +2126,8 @@ class JRESShaderTevStage(bpy.types.PropertyGroup):
 			('const', "Constant", ""),
 			('uni', "Uniform", ""),
 		],
-		default='const'
+		default='const',
+		update=dum_stages_update,
 	)
 	c_konst_const : FloatProperty(
 		name = "Constant Value",
@@ -1970,61 +2136,72 @@ class JRESShaderTevStage(bpy.types.PropertyGroup):
 		step=12.5, # /100
 		default=0.125,
 		precision=3,
-		update=clamp_const
+		update=clamp_const,
 	)
 	c_konst_uni : EnumProperty(
 		name="Const Register",
 		items=TEV_STAGE_CONSTANT_COLORS,
-		default='col0'
+		default='col0',
+		update=dum_stages_update,
 	)
 	c_konst_uni_mode : EnumProperty(
 		name ="",
 		items=TEV_STAGE_CONSTANT_COLORS_SEL_C,
-		default='rgb'
+		default='rgb',
+		update=dum_stages_update,
 	)
 	c_formula : EnumProperty(
 		name="Formula",
 		items=TEV_STAGE_FORMULA,
 		default="add",
+		update=dum_stages_update,
 	)
 	c_sel_a : EnumProperty(
 		name="Operant A",
 		items=TEV_STAGE_OPTIONS_COLOR,
-		default='zero'
+		default='zero',
+		update=dum_stages_update,
 	)
 	c_sel_b : EnumProperty(
 		name="Operant B",
 		items=TEV_STAGE_OPTIONS_COLOR,
-		default='texc'
+		default='texc',
+		update=dum_stages_update,
 	)
 	c_sel_c : EnumProperty(
 		name="Operant C",
 		items=TEV_STAGE_OPTIONS_COLOR,
-		default='rasc'
+		default='rasc',
+		update=dum_stages_update,
 	)
 	c_sel_d : EnumProperty(
 		name="Operant D",
 		items=TEV_STAGE_OPTIONS_COLOR,
-		default='zero'
+		default='zero',
+		update=dum_stages_update,
 	)
 	c_bias : EnumProperty(
 		name="Bias",
 		items=TEV_STAGE_BIAS,
-		default="zero"
+		default="zero",
+		update=dum_stages_update,
 	)
 	c_scale : EnumProperty(
 		name="Scale",
 		items=TEV_STAGE_SCALE,
-		default="one"
+		default="scale_1",
+		update=dum_stages_update,
 	)
 	c_output_clamp : BoolProperty(
 		name="Clamp calculation to 0-255",
-		default=True
+		default=True,
+		update=dum_stages_update,
 	)
 	c_output : EnumProperty(
 		name="Output Destination",
 		items=TEV_STAGE_OUTPUT,
-		default="reg3"
+		default="reg3",
+		update=dum_stages_update,
 	)
 	#endregion
 
@@ -2035,7 +2212,8 @@ class JRESShaderTevStage(bpy.types.PropertyGroup):
 			('const', "Constant", ""),
 			('uni', "Uniform", ""),
 		],
-		default='const'
+		default='const',
+		update=dum_stages_update,
 	)
 	a_konst_const : FloatProperty(
 		name = "Constant Value",
@@ -2044,61 +2222,72 @@ class JRESShaderTevStage(bpy.types.PropertyGroup):
 		step=12.5, # /100
 		default=0.125,
 		precision=3,
-		update=clamp_const
+		update=clamp_const,
 	)
 	a_konst_uni : EnumProperty(
 		name="Const Register",
 		items=TEV_STAGE_CONSTANT_COLORS,
-		default='col0'
+		default='col0',
+		update=dum_stages_update,
 	)
 	a_konst_uni_mode : EnumProperty(
 		name ="",
 		items=TEV_STAGE_CONSTANT_COLORS_SEL_A,
-		default='a'
+		default='a',
+		update=dum_stages_update,
 	)
 	a_formula : EnumProperty(
 		name="Formula",
 		items=TEV_STAGE_FORMULA,
 		default="add",
+		update=dum_stages_update,
 	)
 	a_sel_a : EnumProperty(
 		name="Operant A",
 		items=TEV_STAGE_OPTIONS_ALPHA,
-		default='zero'
+		default='zero',
+		update=dum_stages_update,
 	)
 	a_sel_b : EnumProperty(
 		name="Operant B",
 		items=TEV_STAGE_OPTIONS_ALPHA,
-		default='texa'
+		default='texa',
+		update=dum_stages_update,
 	)
 	a_sel_c : EnumProperty(
 		name="Operant C",
 		items=TEV_STAGE_OPTIONS_ALPHA,
-		default='rasa'
+		default='rasa',
+		update=dum_stages_update,
 	)
 	a_sel_d : EnumProperty(
 		name="Operant D",
 		items=TEV_STAGE_OPTIONS_ALPHA,
-		default='zero'
+		default='zero',
+		update=dum_stages_update,
 	)
 	a_bias : EnumProperty(
 		name="Bias",
 		items=TEV_STAGE_BIAS,
-		default="zero"
+		default="zero",
+		update=dum_stages_update,
 	)
 	a_scale : EnumProperty(
 		name="Scale",
 		items=TEV_STAGE_SCALE,
 		default="scale_1",
+		update=dum_stages_update,
 	)
 	a_output_clamp : BoolProperty(
 		name="Clamp calculation to 0-255",
-		default=True
+		default=True,
+		update=dum_stages_update,
 	)
 	a_output : EnumProperty(
 		name="Output Destination",
 		items=TEV_STAGE_OUTPUT,
-		default="reg3"
+		default="reg3",
+		update=dum_stages_update,
 	)
 	#endregion
 
@@ -2350,6 +2539,8 @@ def register_scene():
 		default="pe"
 	)
 
+	bpy.types.Scene.mat_groups = bpy.props.CollectionProperty(type=JRESMaterialSyncGroup)
+
 def get_mat_tev_items(scene,context):
 	items = []
 	if not context.material:
@@ -2384,54 +2575,120 @@ def register_mat_colors():
 		items=[
 			('srgb','sRGB','Convert the color value from sRGB to RGB during export'),
 			('rgb','Linear','Use raw color values during export'),
-		]
+		],
+		update=dum_col_update
 	)
 
 	# Color Registers
 	mat.jres_col_tevcol1 = bpy.props.FloatVectorProperty(
 		name="Color Register 1", size=4,default=[0.0,0.0,0.0,1.0],
-		min=0.0,max=1.0, subtype='COLOR'
+		min=0.0,max=1.0, subtype='COLOR',
+		update=dum_col_update
 	)
 	mat.jres_col_tevcol2 = bpy.props.FloatVectorProperty(
 		name="Color Register 2", size=4,default=[0.0,0.0,0.0,1.0],
-		min=0.0,max=1.0, subtype='COLOR'
+		min=0.0,max=1.0, subtype='COLOR',
+		update=dum_col_update
 	)
 	mat.jres_col_tevcol3 = bpy.props.FloatVectorProperty(
 		name="Color Register 3", size=4,default=[0.0,0.0,0.0,1.0],
-		min=0.0,max=1.0, subtype='COLOR'
+		min=0.0,max=1.0, subtype='COLOR',
+		update=dum_col_update
 	)
 
 	# Constant Registers
 	mat.jres_col_tevkonst1 = bpy.props.FloatVectorProperty(
 		name="Constant Register 1", size=4,default=[0.0,0.0,0.0,1.0],
-		min=0.0,max=1.0, subtype='COLOR'
+		min=0.0,max=1.0, subtype='COLOR',
+		update=dum_col_update
 	)
 	mat.jres_col_tevkonst2 = bpy.props.FloatVectorProperty(
 		name="Constant Register 2", size=4,default=[0.0,0.0,0.0,1.0],
-		min=0.0,max=1.0, subtype='COLOR'
+		min=0.0,max=1.0, subtype='COLOR',
+		update=dum_col_update
 	)
 	mat.jres_col_tevkonst3 = bpy.props.FloatVectorProperty(
 		name="Constant Register 3", size=4,default=[0.0,0.0,0.0,1.0],
-		min=0.0,max=1.0, subtype='COLOR'
+		min=0.0,max=1.0, subtype='COLOR',
+		update=dum_col_update
 	)
 	mat.jres_col_tevkonst4 = bpy.props.FloatVectorProperty(
 		name="Constant Register 4", size=4,default=[0.0,0.0,0.0,1.0],
-		min=0.0,max=1.0, subtype='COLOR'
+		min=0.0,max=1.0, subtype='COLOR',
+		update=dum_col_update
 	)
+
+
+def get_mat_group_items(scene,context):
+	items = [('null', 'None', '')]
+	if not context.material:
+		return items
+	scene = context.scene
+	for s in scene.mat_groups:
+		text= (s.id_name, f"{s.name}", "")
+		items.append(text)
+	return items
+
+def mat_group_enum_update(self, context):
+	scene = context.scene
+
+	id_name = self.jres_mat_group_enum
+	if id_name == 'null':
+		mat_group_unlink(scene,self)
+		return
+
+	group_idx = scene.mat_groups.find(id_name[7:])
+	if group_idx == -1:
+		return
+	group = scene.mat_groups[group_idx]
+	if group.items.find(self.name) < 0:
+		new_idx = group.items.add()
+		new_idx.item = self
+		new_idx.name = self.name
+
+
+	if len(group.items) < 2:
+		return
+	take_from = group.items[0].item
+	if take_from == self:
+		take_from = group.items[1].item
+
+	if group.sync_colors:
+		mat_col_update(take_from,self)
+	if group.sync_scene:
+		mat_scene_update(take_from,self)
+	if group.sync_culling:
+		mat_culling_update(take_from,self)
+	if group.sync_pe:
+		mat_pe_update(take_from,self)
+	if group.sync_tev:
+		mat_stages_update(take_from,self)
 
 
 
 def register_mat():
 	register_mat_colors()
 	register_mat_tev()
+
+	bpy.types.Material.jres_mat_group_update = BoolProperty(default=False)
+	bpy.types.Material.jres_mat_group = StringProperty(name="sync_id_name",default="null")
+	bpy.types.Material.jres_mat_group_enum = EnumProperty(
+		name="Group",
+		items=get_mat_group_items,
+		default=0,
+		update=mat_group_enum_update
+	)
+
 	# Display Surfaces
 	bpy.types.Material.jres_display_front = BoolProperty(
 		name="Display Front",
-		default=True
+		default=True,
+		update=dum_culling_update,
 	)
 	bpy.types.Material.jres_display_back = BoolProperty(
 		name="Display Back",
-		default=False
+		default=False,
+		update=dum_culling_update,
 	)
 	# PE and Blend Modes
 	bpy.types.Material.jres_pe_mode = EnumProperty(
@@ -2547,12 +2804,14 @@ def register_mat():
 	# Lighting
 	bpy.types.Material.jres_lightset_index = IntProperty(
 		name="Lightset Index",
-		default=-1
+		default=-1,
+		update=dum_scene_update
 	)
 	# Fog
 	bpy.types.Material.jres_fog_index = IntProperty(
 		name="Fog Index",
-		default=0
+		default=0,
+		update=dum_scene_update
 	)
 
 	# UV Wrapping
@@ -2659,6 +2918,134 @@ class JRESMaterialSwapTable(bpy.types.PropertyGroup):
 	blue : EnumProperty(name="",items=SWAP_COLORS,default='blue',description="Blue Destination", update=dum_col_update)
 	alpha : EnumProperty(name="",items=SWAP_COLORS,default='alpha',description="Alpha Destination", update=dum_col_update)
 
+
+#region Material syncing
+
+class JRESMaterialSyncItem(bpy.types.PropertyGroup):
+	item : PointerProperty(name="", type=bpy.types.Material)
+
+	def add(self, mat):
+		self.item = mat
+		self.name = mat.name
+		return self.item
+
+class JRESMaterialSyncGroup(bpy.types.PropertyGroup):
+	id_name : StringProperty(name="id_name")
+	name : StringProperty(name="Name")
+
+	# Sync Variables
+	sync_colors : BoolProperty(name="Colors", default=True)
+	sync_culling : BoolProperty(name="Culling", default=True)
+	sync_pe : BoolProperty(name="Pixel Engine", default=True)
+	sync_samplers : BoolProperty(name="Samplers", default=False)
+	sync_tev : BoolProperty(name="TEV", default=True)
+	sync_scene : BoolProperty(name="Scene", default=True)
+	
+	items : bpy.props.CollectionProperty(type=JRESMaterialSyncItem)
+
+class JRESMaterialSyncAdd(Operator):
+	bl_idname = "riistudio.matsync_add"
+	bl_label = "Create New Group"
+
+	# Required for the dialog box
+	name : StringProperty(name="Group Name")
+	sync_colors : BoolProperty(name="Colors", default=False)
+	sync_culling : BoolProperty(name="Culling", default=True)
+	sync_pe : BoolProperty(name="Pixel Engine", default=True)
+	sync_samplers : BoolProperty(name="Samplers", default=False) # Cant do it tbf
+	sync_tev : BoolProperty(name="TEV", default=True)
+	sync_scene : BoolProperty(name="Scene", default=True)
+
+	@classmethod
+	def poll(cls, context):
+		return context.material
+
+	def execute(self, context):
+		if self.name == '' or self.name == 'None':
+			self.report({"WARNING"}, "Invalid group name")
+			return {'CANCELLED'}
+
+		id_name = f"rs_mat_{self.name}"
+
+		if not context.scene:
+			return {'CANCELLED'}
+		scene = context.scene
+
+		if not context.material:
+			return {'CANCELLED'}
+		mat = context.material
+
+		if scene.mat_groups.find(self.name) > -1:
+			self.report({"WARNING"}, "A group with that name already exists")
+			return {'CANCELLED'}
+
+		new_group = scene.mat_groups.add()
+		new_group.id_name = id_name
+		new_group.name = self.name
+		new_group.sync_colors = self.sync_colors
+		new_group.sync_culling = self.sync_culling
+		new_group.sync_pe = self.sync_pe
+		new_group.sync_samplers = self.sync_samplers
+		new_group.sync_tev = self.sync_tev
+		new_group.sync_scene = self.sync_scene
+		new_mat = new_group.items.add()
+		new_mat.item = mat
+		new_mat.name = mat.name
+
+		mat.jres_mat_group = id_name
+		mat.jres_mat_group_enum = id_name
+
+		return {'FINISHED'}
+	
+	def invoke(self, context, event):
+		return context.window_manager.invoke_props_dialog(self)
+
+	def draw(self, context):
+		layout = self.layout
+		layout.prop(self, "name")
+		box = layout.box()
+		col = box.column()
+		col.label(text="Sync Items", icon='UV_SYNC_SELECT')
+		row = col.row()
+		row.prop(self, "sync_colors")
+		row.prop(self, "sync_scene")
+		row = col.row()
+		row.prop(self, "sync_culling")
+		row.prop(self, "sync_pe")
+		row = col.row()
+		#row.prop(self, "sync_samplers")
+		row.prop(self, "sync_tev")
+		
+class JRESMaterialSyncUnlink(Operator):
+	bl_idname = "riistudio.matsync_unlink"
+	bl_label = "Unlink"
+
+	@classmethod
+	def poll(cls, context):
+		return context.material
+	
+	def execute(self, context):
+		scene = context.scene
+		mat = context.material
+
+		mat_group_unlink(scene,mat)
+		mat.jres_mat_group_enum = 'null'
+		return {'FINISHED'}
+	
+
+def mat_group_unlink(scene,mat):
+	group_name = mat.jres_mat_group_enum
+	group_idx = scene.mat_groups.find(group_name[7:])
+	if group_idx == -1:
+		return
+
+	group = scene.mat_groups[group_idx]
+	group.items.remove(group.items.find(mat.name))
+
+	if len(group.items) == 0:
+		scene.mat_groups.remove(group_idx)
+
+#endregion
 
 from bpy.app.handlers import persistent
 # I wish there was a handler that fires when creating new material
