@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Node2.hpp"
-#include "Reflection.hpp"
 
 namespace oishii {
 class BinaryReader;

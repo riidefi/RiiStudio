@@ -163,14 +163,6 @@ template <typename T> struct TDocData : public IDocData, public T {
 };
 struct IMemento;
 
-struct IMementoOriginator {
-  virtual ~IMementoOriginator() = default;
-
-  virtual std::unique_ptr<kpi::IMemento>
-  next(const kpi::IMemento* last) const = 0;
-  virtual void from(const kpi::IMemento& memento) = 0;
-};
-
 using INode = IObject;
 
 template <typename T> class ConstCollectionRange {

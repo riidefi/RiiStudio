@@ -10,8 +10,7 @@ add_library(LibBadUIFramework STATIC
   "ActionMenu.cpp"
   
   
-  "PropertyView.cpp"
-  "Reflection.cpp"
+  
   
 )
 target_link_libraries(LibBadUIFramework core)
