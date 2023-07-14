@@ -212,7 +212,7 @@ class BRRESTexturePanel(bpy.types.Panel):
 		layout = self.layout
 		c_box = layout.box()
 		c_box.label(text="Caching", icon='FILE_IMAGE')
-		c_box.row().prop(tex, "jres_is_cached")
+		#c_box.row().prop(tex, "jres_is_cached")
 		mm_box = layout.box()
 		draw_texture_settings(self,context, tex, mm_box)
 
@@ -325,18 +325,27 @@ class JRESMaterialPanel(bpy.types.Panel):
 		# box.row().prop(mat, 'preset_path_mdl0mat_or_rspreset')
 		FilteredFiledialog.add(box.row(), mat, 'preset_path_mdl0mat_or_rspreset')
 
-		#if not mat.preset_path_mdl0mat_or_rspreset:
-		#	if mat.preset_path_mdl0mat_or_rspreset == "":
+		if mat.preset_path_mdl0mat_or_rspreset != "":
+			box = layout.box()
+			box.label(text="Using .rspreset, material settings are hidden.", icon='ERROR')
+			return
+
+		# Material Sync
+		box = layout.box()
+		box.label(text="Material Sync Groups (Experimental)", icon='UV_SYNC_SELECT')
+		col = box.column()
+		col.label(text="Sync Groups can be used to sync BRRES material settings.")
+		col.label(text="This includes all the tabs below, eg. TEV, Colors, PE.")
+		col.label(text="You can set up which components you want to sync across.")
+		row = box.row()
+		split = row.split(factor=0.7)
+		split.prop(mat, "jres_mat_group_enum")
+		split.operator(JRESMaterialSyncAdd.bl_idname, text="New")
+		
+
 		box = layout.box();
 		row = box.row()
 		row.prop(scene, "mat_panel_selection", expand=True)
-		#row.prop_enum(scene, "mat_panel_selection", "colors")
-		#row.prop_enum(scene, "mat_panel_selection", "lighting")
-		#row.prop_enum(scene, "mat_panel_selection", "pe")
-		#row = box.row()
-		#row.prop_enum(scene, "mat_panel_selection", "stages")
-		#row.prop_enum(scene, "mat_panel_selection", "samplers")
-		#row.prop_enum(scene, "mat_panel_selection", "culling")
 
 		if scene.mat_panel_selection == "culling":
 			# Culling
@@ -350,7 +359,7 @@ class JRESMaterialPanel(bpy.types.Panel):
 			box = layout.box()
 			box.label(text="Shader Colors", icon='BRUSHES_ALL')
 			row = box.row()
-			row.prop(mat, "col_tevcolorspace")
+			row.prop(mat, "jres_col_tevcolorspace")
 
 			box = layout.box()
 			box.label(text="Swap Table", icon='GROUP_VCOL')
@@ -358,7 +367,7 @@ class JRESMaterialPanel(bpy.types.Panel):
 			for i in range(4):
 				row = col.row()
 				row.label(text=f"Swap {i}")
-				prop = getattr(mat,f"tev_swap_{i}")
+				prop = getattr(mat,f"jres_col_tev_swap{i}")
 				row.prop(prop, "red")
 				row.prop(prop, "green")
 				row.prop(prop, "blue")
@@ -369,14 +378,14 @@ class JRESMaterialPanel(bpy.types.Panel):
 			col = box.column()
 			for i in range(3):
 				row = col.row()
-				row.prop(mat, "col_tevcol"+str(i+1))
+				row.prop(mat, "jres_col_tevcol"+str(i+1))
 
 			box = layout.box()
 			box.label(text="TEV Constant Colors", icon='COLOR')
 			col = box.column()
 			for i in range(4):
 				row = col.row()
-				row.prop(mat, "col_tevkonst"+str(i+1))
+				row.prop(mat, "jres_col_tevkonst"+str(i+1))
 
 		elif scene.mat_panel_selection == "pe":
 			# PE
@@ -523,25 +532,25 @@ class JRESMaterialPanel(bpy.types.Panel):
 
 				draw_texture_settings(self, context, smp, box)
 		elif scene.mat_panel_selection == "stages":
-			if len (mat.tev_stages) == 0:
+			if len (mat.jres_tev_stages) == 0:
 				return
 			row = layout.row()
 			split = row.split(factor=0.5)
-			split.prop(mat, "tev_stage_enum")
+			split.prop(mat, "jres_tev_stage_enum")
 			split.operator('rstudio.mat_tev_action', text="Add").action = 'ADD'
 			split.operator('rstudio.mat_tev_action', text="Remove").action = 'DELETE'
-			stage = mat.tev_stages[0]
 			
+			stage = mat.jres_tev_stages[int(mat.jres_tev_stage_enum)]
 			box = layout.box()
 			box.label(text="Stage Settings", icon='SHADING_TEXTURE')
 			col = box.column()
-			col.prop(stage, "raster_channel")
 			row = col.row()
-			split = row.split(factor=0.4)
+			row.prop(stage, "raster_channel")
+			row = col.row()
 
 			samplers = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage' if n.image and not n.smp_disabled]
 			samplers = sorted(samplers, key=lambda o: o.smp_index)
-
+			split = row.split(factor=0.5)
 			split.prop(stage, "sampler_id")
 			if len(samplers) > stage.sampler_id:
 				item = samplers[stage.sampler_id]
@@ -553,6 +562,11 @@ class JRESMaterialPanel(bpy.types.Panel):
 				if not image.preview:
 					image.asset_generate_preview()
 				split.label(text=filename, icon_value=image.preview.icon_id)
+
+			col.label(text="Swap Tables")
+			row = col.row()
+			row.prop(stage, "raster_swap")
+			row.prop(stage, "sampler_swap")
 
 			box = layout.box()
 			box.label(text="Color Stage", icon='RESTRICT_COLOR_ON')
@@ -724,6 +738,7 @@ class JRESShaderStageAction(bpy.types.Operator):
             ('DELETE', "Remove Stage", ""),
         )
     )
+
 	@classmethod
 	def poll(cls, context):
 		return context.material
@@ -732,20 +747,20 @@ class JRESShaderStageAction(bpy.types.Operator):
 		mat = context.material
 		idx = 0
 		try:
-			idx = int(mat.tev_stage_enum)
+			idx = int(mat.jres_tev_stage_enum)
 		except:
 			return {'CANCELLED'}
 		
 		if self.action == 'ADD':
-			if len(mat.tev_stages) < 16:
-				mat.tev_stages.add()
-				mat.tev_stage_enum = str(len(mat.tev_stages)-1)
+			if len(mat.jres_tev_stages) < 16:
+				mat.jres_tev_stages.add()
+				mat.jres_tev_stage_enum = str(len(mat.jres_tev_stages)-1)
 
 		else:
-			if len(mat.tev_stages) > 1:
-				mat.tev_stages.remove(idx)
-				mat.tev_stage_enum = str(idx-1)
-
+			if len(mat.jres_tev_stages) > 1:
+				mat.jres_tev_stages.remove(idx)
+				mat.jres_tev_stage_enum = str(idx-1)
+		dum_stages_update(self, context)
 		return {'FINISHED'}
 # src\panels\JRESScenePanel.py
 
@@ -902,15 +917,14 @@ def build_rs_mat(mat, texture_name):
 	# Swap Table
 	swap_table = []
 	for i in range(4):
-		item = []
-		prop = getattr(mat, f"tev_swap_{i}")
-		item.append(prop.red)
-		item.append(prop.green)
-		item.append(prop.blue)
-		item.append(prop.alpha)
+		prop = getattr(mat, f"jres_col_tev_swap{i}")
+		swap_table.append({
+			"red": prop.red,
+			"green": prop.green,
+			"blue": prop.blue,
+			"alpha": prop.alpha,
+		})
 
-		swap_table.append(item)
-	
 	# Samplers
 	smps = []
 	imgTex = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage' and n.smp_disabled == False]
@@ -920,9 +934,57 @@ def build_rs_mat(mat, texture_name):
 			bult = build_rs_sampler(i)
 			smps.append(bult)
 
+
+	# TEV
+	tevs = []
+	for i in mat.jres_tev_stages:
+
+		c_konst = f"const_{int(i.c_konst_const/0.125)}_8"
+		if i.c_konst_sel == 'uni':
+			c_konst = f"k{i.c_konst_uni[3:]}"
+			if i.c_konst_uni_mode != 'rgb':
+				c_konst += f"_{i.c_konst_uni_mode}"
+
+		a_konst = f"const_{int(i.a_konst_const/0.125)}_8"
+		if i.a_konst_sel == 'uni':
+			a_konst = f"k{i.a_konst_uni[3:]}_{i.a_konst_uni_mode}"
+
+		stage = {
+			"channel": i.raster_channel,
+			"sampler": i.sampler_id,
+			"channel_swap": i.raster_swap,
+			"sampler_swap": i.sampler_swap,
+
+			"c_konst": c_konst,
+			"c_formula": i.c_formula,
+			"c_sel_a": i.c_sel_a,
+			"c_sel_b": i.c_sel_b,
+			"c_sel_c": i.c_sel_c,
+			"c_sel_d": i.c_sel_d,
+			"c_bias": i.c_bias,
+			"c_scale": i.c_scale,
+			"c_output_clamp": i.c_output_clamp,
+			"c_output": i.c_output,
+
+			"a_konst": a_konst,
+			"a_formula": i.a_formula,
+			"a_sel_a": i.a_sel_a,
+			"a_sel_b": i.a_sel_b,
+			"a_sel_c": i.a_sel_c,
+			"a_sel_d": i.a_sel_d,
+			"a_bias": i.a_bias,
+			"a_scale": i.a_scale,
+			"a_output_clamp": i.a_output_clamp,
+			"a_output": i.a_output,
+		}
+
+		tevs.append(stage)
+
+
 	return {
 		'name': mat.name,
 		'texture': "",
+		'tev' : tevs,
 		# Texture element soon to be replaced with texmap array
 		'samplers': smps,
 		'swap_table': swap_table,
@@ -988,13 +1050,13 @@ def build_rs_mat_pe(mat):
 
 def adjust_color(mat,col):
 	final = []
-	if mat.col_tevcolorspace == "srgb":
+	if mat.jres_col_tevcolorspace == "srgb":
 			for c in col:
 				if c < 0.0031308:
 					srgb = 0.0 if c < 0.0 else c * 12.92
 				else:
 					srgb = 1.055 * pow(c, 1.0 / 2.4) - 0.055
-				final.append(max(min(int(srgb * 255 + 0.5), 255), 0))		
+				final.append(max(min(int(srgb * 255 + 0.5), 255), 0))
 	else:
 		final = [int(255*c) for c in col]
 	return final
@@ -1003,11 +1065,11 @@ def build_rs_mat_colors(mat, konst = False):
 	out = []
 	if konst:
 		for i in range(4):
-			tmp = getattr(mat, "col_tevkonst"+str(i+1))[:]
+			tmp = getattr(mat, "jres_col_tevkonst"+str(i+1))[:]
 			out.append(adjust_color(mat,tmp))
 	else:
 		for i in range(3):
-			tmp = getattr(mat, "col_tevcol"+str(i+1))[:]
+			tmp = getattr(mat, "jres_col_tevcol"+str(i+1))[:]
 			out.append(adjust_color(mat,tmp))
 	return out
 
@@ -1415,7 +1477,7 @@ class RHST_RNA:
 
 	selection_only = BoolProperty(
 		name="Export Selection Only",
-		default=False
+		default=True
 	)
 	
 	if BLENDER_30: selection_only : selection_only
@@ -1775,33 +1837,31 @@ class OBJECT_OT_addon_prefs_example(bpy.types.Operator):
 
 #region props
 TEV_STAGE_OPTIONS_COLOR =[
-	('reg3c',"Register 3 Color", ""),
-	('reg3a',"Register 3 Alpha", ""),
-	('reg0c',"Register 0 Color", ""),
-	('reg0a',"Register 0 Alpha", ""),
-	('reg1c',"Register 1 Color", ""),
-	('reg1a',"Register 1 Alpha", ""),
-	('reg2c',"Register 2 Color", ""),
-	('reg2a',"Register 2 Alpha", ""),
+	('cprev',"Register 3 Color", ""),
+	('aprev',"Register 3 Alpha", ""),
+	('c0',"Register 0 Color", ""),
+	('a0',"Register 0 Alpha", ""),
+	('c1',"Register 1 Color", ""),
+	('a1',"Register 1 Alpha", ""),
+	('c2',"Register 2 Color", ""),
+	('a0',"Register 2 Alpha", ""),
 	('texc',"Texture Color", ""),
 	('texa',"Texture Alpha", ""),
 	('rasc',"Raster Color", ""),
 	('rasa',"Raster Alpha", ""),
-	('const',"Constant Color Selection", ""),
+	('konst',"Constant Color Selection", ""),
 	('one',"1", ""),
 	('half',"0.5", ""),
 	('zero',"0", ""),
 ]
 TEV_STAGE_OPTIONS_ALPHA =[
-	('reg3a',"Register 3 Alpha", ""),
-	('reg0a',"Register 0 Alpha", ""),
-	('reg1a',"Register 1 Alpha", ""),
-	('reg2a',"Register 2 Alpha", ""),
+	('aprev',"Register 3 Alpha", ""),
+	('a0',"Register 0 Alpha", ""),
+	('a1',"Register 1 Alpha", ""),
+	('a2',"Register 2 Alpha", ""),
 	('texa',"Texture Alpha", ""),
 	('rasa',"Raster Alpha", ""),
-	('const',"Constant Color Selection", ""),
-	('one',"1", ""),
-	('half',"0.5", ""),
+	('konst',"Constant Color Selection", ""),
 	('zero',"0", ""),
 ]
 
@@ -1812,10 +1872,10 @@ TEV_STAGE_BIAS = [
 ]
 
 TEV_STAGE_SCALE = [
-	('half',r"50% brightness", ""),
-	('one',r"100% brightness", ""),
-	('two',r"200% brightness", ""),
-	('four',r"400% brightness", ""),
+	('divide_2',r"50% brightness", ""),
+	('scale_1',r"100% brightness", ""),
+	('scale_2',r"200% brightness", ""),
+	('scale_4',r"400% brightness", ""),
 ]
 
 TEV_STAGE_OUTPUT = [
@@ -1861,24 +1921,37 @@ def clamp_const(self,context):
 		return
 	self.c_konst_const = int(temp)*0.125
 
-class JRESShaderTevStage(bpy.types.PropertyGroup):
-	shader_index : IntProperty(default=0)
 
+class JRESShaderTevStage(bpy.types.PropertyGroup):
 	raster_channel : EnumProperty(
 		name="Channel ID",
 		items=[
-			('chan0',"Channel 0", ""),
-			('chan1',"Channel 1", ""),
+			('color0a0',"Channel 0", ""),
+			('color1a1',"Channel 1", ""),
 			('none', "None", ""),
-			('indAlpha', "Indirect Alpha", ""),
-			('indNorAlpha', "Normalized Indirect Alpha", ""),
+			('ind_alpha', "Indirect Alpha", ""),
+			('normalized_ind_alpha', "Normalized Indirect Alpha", ""),
 		],
-		default='chan0',
+		default='color0a0',
+		update=dum_stages_update,
+	)
+	raster_swap : IntProperty(
+		name="Raster Swap Table",
+		min=0,
+		max=3,
+		default=0,
 	)
 	sampler_id : IntProperty(
 		name="Sampler ID",
 		min = 0,
 		max = 7,
+		default=0,
+		update=dum_stages_update,
+	)
+	sampler_swap : IntProperty(
+		name="Sampler Swap Table",
+		min=0,
+		max=3,
 		default=0,
 	)
 	#region colorStage
@@ -2016,7 +2089,7 @@ class JRESShaderTevStage(bpy.types.PropertyGroup):
 	a_scale : EnumProperty(
 		name="Scale",
 		items=TEV_STAGE_SCALE,
-		default="one"
+		default="scale_1",
 	)
 	a_output_clamp : BoolProperty(
 		name="Clamp calculation to 0-255",
@@ -2037,25 +2110,7 @@ def tex_type_index_update(mat):
 
 # src\base.py
 
-classes = (
-	FilteredFiledialog,
-	OpenPreferences,
-	ExportBRRES,
-	ExportBMD,
-
-	BRRESTexturePanel,
-	JRESMaterialPanel,
-	# JRESScenePanel,
-	JRESObjectPanel,
-
-
-	JRESShaderStageAction,
-	JRESSamplersList,
-	JRESSamplersListAction,
-
-	RiidefiStudioPreferenceProperty,
-	OBJECT_OT_addon_prefs_example
-)
+#region ENUMS
 
 UV_WRAP_MODES = (
 	('repeat', "Repeat", "Repeated texture; requires texture be ^2"),
@@ -2119,6 +2174,17 @@ BLEND_MODE_FACTORS_2 = [
 	('dst_a', "eFB Alpha", ""),
 	('inv_dst_a', "1 - eFB Alpha", ""),
 ]
+
+SWAP_COLORS = [
+	('red', 'Red', "", 'SEQUENCE_COLOR_01', 0),
+	('green', 'Green', "", 'SEQUENCE_COLOR_04', 1),
+	('blue', 'Blue', "", 'SEQUENCE_COLOR_05', 2),
+	('alpha', 'Alpha', "", 'SEQUENCE_COLOR_09', 3),
+]
+
+#endregion
+
+#region register() funcs
 
 def register_tex():
 	tex_type = bpy.types.Node if BLENDER_28 else bpy.types.Texture
@@ -2288,43 +2354,32 @@ def get_mat_tev_items(scene,context):
 	items = []
 	if not context.material:
 		return items
-	mat = context.material 
-	for i, s in enumerate(mat.tev_stages):
+	mat = context.material
+	for i, s in enumerate(mat.jres_tev_stages):
 		text = (f"{i}", f"Shader Stage {i}", '')
 		items.append(text)
 	return items
 
 def register_mat_tev():
 	mat = bpy.types.Material
-	mat.tev_stages = bpy.props.CollectionProperty(type=JRESShaderTevStage)
-	mat.tev_stage_select = IntProperty(default=0)
-	mat.tev_stage_enum = EnumProperty(
+	mat.jres_tev_stages = bpy.props.CollectionProperty(type=JRESShaderTevStage, 	
+					)
+	mat.jres_tev_stage_select = IntProperty(default=0)
+	mat.jres_tev_stage_enum = EnumProperty(
 		name="Stage",
 		items= get_mat_tev_items
 	)
 
-SWAP_COLORS = [
-	('red', 'Red', "", 'SEQUENCE_COLOR_01', 0),
-	('green', 'Green', "", 'SEQUENCE_COLOR_04', 1),
-	('blue', 'Blue', "", 'SEQUENCE_COLOR_05', 2),
-	('alpha', 'Alpha', "", 'SEQUENCE_COLOR_09', 3),
-]
-
-class JRESMaterialSwapTable(bpy.types.PropertyGroup):
-	red : EnumProperty(name="",items=SWAP_COLORS,default='red',description="Red Destination")
-	green : EnumProperty(name="",items=SWAP_COLORS,default='green',description="Green Destination")
-	blue : EnumProperty(name="",items=SWAP_COLORS,default='blue',description="Blue Destination")
-	alpha : EnumProperty(name="",items=SWAP_COLORS,default='alpha',description="Alpha Destination")
 
 def register_mat_colors():
 	mat = bpy.types.Material
 
-	mat.tev_swap_0 = PointerProperty(type=JRESMaterialSwapTable)
-	mat.tev_swap_1 = PointerProperty(type=JRESMaterialSwapTable)
-	mat.tev_swap_2 = PointerProperty(type=JRESMaterialSwapTable)
-	mat.tev_swap_3 = PointerProperty(type=JRESMaterialSwapTable)
+	mat.jres_col_tev_swap0 = PointerProperty(type=JRESMaterialSwapTable)
+	mat.jres_col_tev_swap1 = PointerProperty(type=JRESMaterialSwapTable)
+	mat.jres_col_tev_swap2 = PointerProperty(type=JRESMaterialSwapTable)
+	mat.jres_col_tev_swap3 = PointerProperty(type=JRESMaterialSwapTable)
 
-	mat.col_tevcolorspace = EnumProperty(
+	mat.jres_col_tevcolorspace = EnumProperty(
 		name="Colorspace",
 		items=[
 			('srgb','sRGB','Convert the color value from sRGB to RGB during export'),
@@ -2333,33 +2388,33 @@ def register_mat_colors():
 	)
 
 	# Color Registers
-	mat.col_tevcol1 = bpy.props.FloatVectorProperty(
+	mat.jres_col_tevcol1 = bpy.props.FloatVectorProperty(
 		name="Color Register 1", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR'
 	)
-	mat.col_tevcol2 = bpy.props.FloatVectorProperty(
+	mat.jres_col_tevcol2 = bpy.props.FloatVectorProperty(
 		name="Color Register 2", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR'
 	)
-	mat.col_tevcol3 = bpy.props.FloatVectorProperty(
+	mat.jres_col_tevcol3 = bpy.props.FloatVectorProperty(
 		name="Color Register 3", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR'
 	)
 
 	# Constant Registers
-	mat.col_tevkonst1 = bpy.props.FloatVectorProperty(
+	mat.jres_col_tevkonst1 = bpy.props.FloatVectorProperty(
 		name="Constant Register 1", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR'
 	)
-	mat.col_tevkonst2 = bpy.props.FloatVectorProperty(
+	mat.jres_col_tevkonst2 = bpy.props.FloatVectorProperty(
 		name="Constant Register 2", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR'
 	)
-	mat.col_tevkonst3 = bpy.props.FloatVectorProperty(
+	mat.jres_col_tevkonst3 = bpy.props.FloatVectorProperty(
 		name="Constant Register 3", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR'
 	)
-	mat.col_tevkonst4 = bpy.props.FloatVectorProperty(
+	mat.jres_col_tevkonst4 = bpy.props.FloatVectorProperty(
 		name="Constant Register 4", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR'
 	)
@@ -2595,18 +2650,59 @@ def register_object():
 		)
 	)
 
+
+#endregion
+
+class JRESMaterialSwapTable(bpy.types.PropertyGroup):
+	red : EnumProperty(name="",items=SWAP_COLORS,default='red',description="Red Destination", update=dum_col_update)
+	green : EnumProperty(name="",items=SWAP_COLORS,default='green',description="Green Destination", update=dum_col_update)
+	blue : EnumProperty(name="",items=SWAP_COLORS,default='blue',description="Blue Destination", update=dum_col_update)
+	alpha : EnumProperty(name="",items=SWAP_COLORS,default='alpha',description="Alpha Destination", update=dum_col_update)
+
+
 from bpy.app.handlers import persistent
 # I wish there was a handler that fires when creating new material
 # Using this to ensure there's at least one tev stage in material
+@persistent
 def on_change_handler(dummy):
 	for mat in bpy.data.materials:
 		tex_type_index_update(mat)
-		if len( mat.tev_stages ) == 0:
-			mat.tev_stages.add()
+		if len( mat.jres_tev_stages ) == 0:
+			mat.jres_tev_stages.add()
 
 @persistent
 def on_load_handler(dummy):
 	on_change_handler(dummy)
+
+early_classes = (
+	JRESShaderTevStage,
+	JRESMaterialSwapTable,
+	JRESMaterialSyncItem,
+	JRESMaterialSyncGroup,
+)
+
+classes = (
+	FilteredFiledialog,
+	OpenPreferences,
+	ExportBRRES,
+	ExportBMD,
+
+	BRRESTexturePanel,
+	JRESMaterialPanel,
+	# JRESScenePanel,
+	JRESObjectPanel,
+
+	JRESMaterialSyncAdd,
+	JRESMaterialSyncUnlink,
+
+	JRESShaderStageAction,
+	JRESSamplersList,
+	JRESSamplersListAction,
+
+	RiidefiStudioPreferenceProperty,
+	OBJECT_OT_addon_prefs_example
+)
+
 
 def register():
 	MT_file_export = bpy.types.TOPBAR_MT_file_export if BLENDER_28 else bpy.types.INFO_MT_file_export
@@ -2615,8 +2711,8 @@ def register():
 	
 
 	# Has to be registered before Material setups
-	bpy.utils.register_class(JRESShaderTevStage)
-	bpy.utils.register_class(JRESMaterialSwapTable)
+	for c in early_classes:
+		bpy.utils.register_class(c)
 
 	register_tex()
 	register_mat()
@@ -2626,11 +2722,11 @@ def register():
 	bpy.app.handlers.depsgraph_update_post.append(on_change_handler)
 	bpy.app.handlers.load_post.append(on_load_handler)
 	# Texture Cache
-	tex_type = bpy.types.Node if BLENDER_28 else bpy.types.Texture
-	tex_type.jres_is_cached = BoolProperty(
-		name="Is cached? Uncheck when changes are made",
-		default=False
-	)
+	#tex_type = bpy.types.Node if BLENDER_28 else bpy.types.Texture
+	#tex_type.jres_is_cached = BoolProperty(
+	#	name="Is cached? Uncheck when changes are made",
+	#	default=False
+	#)
 	#	# Scene Cache
 	#	bpy.types.Scene.jres_cache_dir = StringProperty(
 	#		name="Cache Directory Subname",
@@ -2644,6 +2740,13 @@ def register():
 def unregister():
 	for c in classes:
 		bpy.utils.unregister_class(c)
+
+	for c in early_classes:
+		bpy.utils.unregister_class(c)
+
+	bpy.app.handlers.depsgraph_update_post.clear()
+	bpy.app.handlers.frame_change_post.clear()
+
 	MT_file_export = bpy.types.TOPBAR_MT_file_export if BLENDER_28 else bpy.types.INFO_MT_file_export
 	MT_file_export.remove(brres_menu_func_export)
 	MT_file_export.remove(bmd_menu_func_export)
