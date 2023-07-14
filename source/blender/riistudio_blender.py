@@ -1119,6 +1119,9 @@ def export_mesh(
 	bone = 0
 	bone_index = 0
 	bone_transform = [0,0,0]
+
+	object_matrix = Object.matrix_world
+
 	if Object.jres_use_own_bone:
 		bone = Object.name
 		bone_location = [0,0,0]
@@ -1135,10 +1138,13 @@ def export_mesh(
 		model.append_bone(bone,t=bone_transform,bill_mode=billboard)
 		bone_index = model.get_bone_id(bone)
 
-	if not Object.jres_use_own_bone:
-		triangulated.transform(global_matrix @ Object.matrix_world if BLENDER_28 else global_matrix * Object.matrix_world)
-	else:
-		triangulated.transform(global_matrix if BLENDER_28 else global_matrix);
+		# Reset location
+		loc, rot, scale = object_matrix.decompose()
+		R = rot.to_matrix().to_4x4()
+		S = mathutils.Matrix.Diagonal(scale.to_4d())
+		object_matrix = R @ S
+
+	triangulated.transform(global_matrix @ object_matrix if BLENDER_28 else global_matrix * object_matrix)
 	triangulated.flip_normals()
 	'''
 	triangulated.transform(mathutils.Matrix.Scale(magnification, 4))
