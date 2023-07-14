@@ -1,5 +1,3 @@
-// This is a generated file
-
 namespace riistudio::lib3d {
 
 class Model {
@@ -19,10 +17,6 @@ protected:
     virtual kpi::ICollection* v_getBones() const = 0;
     virtual kpi::ICollection* v_getMeshes() const = 0;
 };
-
-} // namespace riistudio::lib3d
-
-namespace riistudio::lib3d {
 
 class Scene {
 public:

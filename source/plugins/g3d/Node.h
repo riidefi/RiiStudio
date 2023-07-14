@@ -1,5 +1,3 @@
-// This is a generated file
-
 #include <librii/g3d/io/AnimChrIO.hpp>
 #include <librii/g3d/io/AnimClrIO.hpp>
 #include <librii/g3d/io/AnimTexPatIO.hpp>
@@ -128,10 +126,6 @@ public:
     }
     template<typename T> void* operator=(const T& rhs) { from(rhs); return this; }
 };
-
-} // namespace riistudio::g3d
-
-namespace riistudio::g3d {
 
 struct SceneData {
     std::vector<librii::g3d::BinaryChr> chrs;

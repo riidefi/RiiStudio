@@ -1,5 +1,3 @@
-// This is a generated file
-
 namespace libcube {
 
 class Model : public riistudio::lib3d::Model, public kpi::TDocData<libcube::ModelData> {
@@ -19,10 +17,6 @@ protected:
     virtual kpi::ICollection* v_getBones() const = 0;
     virtual kpi::ICollection* v_getMeshes() const = 0;
 };
-
-} // namespace libcube
-
-namespace libcube {
 
 class Scene : public riistudio::lib3d::Scene {
 public:
