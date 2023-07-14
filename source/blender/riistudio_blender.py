@@ -928,7 +928,7 @@ def build_rs_mat(mat, texture_name):
 	# Samplers
 	smps = []
 	imgTex = [n for n in mat.node_tree.nodes if n.bl_idname == 'ShaderNodeTexImage' and n.smp_disabled == False]
-	imgTex.sort(key=lambda x: x.smp_index, reverse=True)
+	imgTex.sort(key=lambda x: x.smp_index)
 	for i in imgTex:
 		if i.image:
 			bult = build_rs_sampler(i)
@@ -3083,9 +3083,9 @@ def on_change_handler(dummy):
 			new_stage.c_sel_b = 'texc'
 			new_stage.c_sel_c = 'rasc'
 
-			new_stage.c_sel_a = 'zero'
-			new_stage.c_sel_b = 'texa'
-			new_stage.c_sel_c = 'rasa'
+			new_stage.a_sel_a = 'zero'
+			new_stage.a_sel_b = 'texa'
+			new_stage.a_sel_c = 'rasa'
 
 @persistent
 def on_load_handler(dummy):
