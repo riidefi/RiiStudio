@@ -2165,19 +2165,19 @@ class JRESShaderTevStage(bpy.types.PropertyGroup):
 	c_sel_a : EnumProperty(
 		name="Operant A",
 		items=TEV_STAGE_OPTIONS_COLOR,
-		default='zero',
+		default='cprev',
 		update=dum_stages_update,
 	)
 	c_sel_b : EnumProperty(
 		name="Operant B",
 		items=TEV_STAGE_OPTIONS_COLOR,
-		default='texc',
+		default='zero',
 		update=dum_stages_update,
 	)
 	c_sel_c : EnumProperty(
 		name="Operant C",
 		items=TEV_STAGE_OPTIONS_COLOR,
-		default='rasc',
+		default='zero',
 		update=dum_stages_update,
 	)
 	c_sel_d : EnumProperty(
@@ -2251,19 +2251,19 @@ class JRESShaderTevStage(bpy.types.PropertyGroup):
 	a_sel_a : EnumProperty(
 		name="Operant A",
 		items=TEV_STAGE_OPTIONS_ALPHA,
-		default='zero',
+		default='aprev',
 		update=dum_stages_update,
 	)
 	a_sel_b : EnumProperty(
 		name="Operant B",
 		items=TEV_STAGE_OPTIONS_ALPHA,
-		default='texa',
+		default='zero',
 		update=dum_stages_update,
 	)
 	a_sel_c : EnumProperty(
 		name="Operant C",
 		items=TEV_STAGE_OPTIONS_ALPHA,
-		default='rasa',
+		default='zero',
 		update=dum_stages_update,
 	)
 	a_sel_d : EnumProperty(
@@ -3061,7 +3061,14 @@ def on_change_handler(dummy):
 	for mat in bpy.data.materials:
 		tex_type_index_update(mat)
 		if len( mat.jres_tev_stages ) == 0:
-			mat.jres_tev_stages.add()
+			new_stage = mat.jres_tev_stages.add()
+			new_stage.c_sel_a = 'zero'
+			new_stage.c_sel_b = 'texc'
+			new_stage.c_sel_c = 'rasc'
+
+			new_stage.c_sel_a = 'zero'
+			new_stage.c_sel_b = 'texa'
+			new_stage.c_sel_c = 'rasa'
 
 @persistent
 def on_load_handler(dummy):
