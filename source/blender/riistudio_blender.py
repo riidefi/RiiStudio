@@ -1483,7 +1483,7 @@ class RHST_RNA:
 
 	selection_only = BoolProperty(
 		name="Export Selection Only",
-		default=True
+		default=False
 	)
 	
 	if BLENDER_30: selection_only : selection_only
