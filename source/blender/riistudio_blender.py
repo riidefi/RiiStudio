@@ -2705,7 +2705,8 @@ def register_mat():
 			('translucent', "Translucent", "Expresses a full range of alpha"),
 			('custom', "Custom", ""),
 		),
-		default='opaque'
+		default='opaque',
+		update=dum_pe_update
 	)
 
 	# PE Custom Settings
@@ -2715,7 +2716,8 @@ def register_mat():
 			('opa', "Opaque", ""),
 			('xlu', "Translucent", ""),
 		],
-		default="opa"
+		default="opa",
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_alpha_test = EnumProperty(
 		name="Alpha Test",
@@ -2724,30 +2726,35 @@ def register_mat():
 			('stencil', "Outline", ""),
 			('custom', "Custom", ""),
 		],
-		default="disabled"
+		default="disabled",
+		update=dum_pe_update
 	)
 
 	bpy.types.Material.jres_pe_alpha_comp_left = EnumProperty(
 		name="", # Make Display better
 		items=COMPARISON_MODES,
-		default='always'
+		default='always',
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_alpha_comp_right = EnumProperty(
 		name="", # Make Display better
 		items=COMPARISON_MODES,
-		default='always'
+		default='always',
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_alpha_ref_left = IntProperty(
 		name = "",
 		default = 255,
 		min = 0,
 		max = 255,
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_alpha_ref_right = IntProperty(
 		name = "",
 		default = 255,
 		min = 0,
 		max = 255,
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_alpha_op = EnumProperty(
 		name="",
@@ -2757,24 +2764,29 @@ def register_mat():
 			('xnor',"==",""),
 			('xor',"!=",""),
 		],
-		default='and'
+		default='and',
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_z_compare = BoolProperty(
 		name="Compare Z Values",
 		default=True,
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_z_early_compare = BoolProperty(
 		name="Compare Before Texture",
 		default=False,
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_z_update = BoolProperty(
 		name="Write to Z Buffer",
 		default=True,
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_z_comparison = EnumProperty(
 		name="Condition",
 		items=Z_COMPARISON_MODES,
 		default="LEqual",
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_blend_mode = EnumProperty(
 		name="Type",
@@ -2784,27 +2796,32 @@ def register_mat():
 			# ('logic', 'Do not blend', ''),
 			('subtract', 'Subtract from Frame Buffer', ''),
 		],
-		default="none"
+		default="none",
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_blend_source = EnumProperty(
 		name="",
 		items = BLEND_MODE_FACTORS,
-		default="src_a"
+		default="src_a",
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_blend_dest = EnumProperty(
 		name="",
 		items = BLEND_MODE_FACTORS_2,
-		default="inv_src_a"
+		default="inv_src_a",
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_dst_alpha = IntProperty(
 		name="Value",
 		min=0,
 		max=255,
 		default=0,
+		update=dum_pe_update
 	)
 	bpy.types.Material.jres_pe_dst_alpha_enabled = BoolProperty(
 		name="Enabled",
 		default=False,
+		update=dum_pe_update
 	)
 
 	# Lighting
