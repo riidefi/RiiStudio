@@ -1,5 +1,5 @@
 # RiiStudio
-Sophisticated editors for GameCube and Wii files
+Editor for various 3D model formats
 
 ![Importing](https://raw.githubusercontent.com/riidefi/RiiStudio/gh-pages/assets/alpha_3.0/import_brres.gif)
 
@@ -10,8 +10,14 @@ Sophisticated editors for GameCube and Wii files
 | BDL    | Yes      | As .BMD  |
 | BRRES* | Yes      | Yes      |
 | KMP    | Yes      | Yes      |
+| .bblm (bloom) | Yes      | Yes      |
+| .bdof (Depth of Field) | Yes      | Yes      |
+| .bfg (fog) | Yes      | Yes      |
+| .blight (lighting) | Yes      | Yes      |
+| .blmap (matcaps) | Yes      | Yes      |
+| .btk | WIP  | No |
 
-\* MDL0 and TEX0
+\* MDL0, TEX0, SRT0, CHR0, CLR0, PAT0
 
 ## Importing
 Assimp supported formats like FBX and DAE can be imported as BMD/BRRES*.
@@ -21,10 +27,8 @@ Assimp supported formats like FBX and DAE can be imported as BMD/BRRES*.
 ## RiiStudio (as a C++ library) also supports
 | Format | Can Open | Can Save |
 |--------|----------|----------|
-| U8     | Yes      | No       |
-| SZS    | Yes      | Yes*     |
-
-\* With "fast" compression only.
+| U8     | Yes      | Yes      |
+| SZS    | Yes      | Yes      |
 
 ## Building
 

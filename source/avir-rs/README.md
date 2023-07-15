@@ -14,7 +14,7 @@ librii::clancir_resize(&mut dst, width / 2, height / 2, &src, width, height);
 ### C/C++
 The library provides C bindings, making it useful in both Rust and C/C++ based projects.
 ```cpp
-#include "gctex.h"
+#include "avir_rs.h"
 
 unsigned char dst[dst_len];
 unsigned char src[src_len];
