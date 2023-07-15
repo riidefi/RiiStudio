@@ -1,6 +1,5 @@
 #include "ImagePlatform.hpp"
 
-#include "CmprEncoder.hpp"
 #include <librii/gx.h>
 
 #include <rsl/Ranges.hpp>
@@ -35,71 +34,46 @@ void decode(u8* dst, const u8* src, int width, int height,
              0, static_cast<u32>(tlutformat));
 }
 
-void encodeI4(u8* dst, const u32* src, u32 width, u32 height) {
-  rii_encode_i4(dst, 0, src, 0, width, height);
-}
-void encodeI8(u8* dst, const u32* src, u32 width, u32 height) {
-  rii_encode_i8(dst, 0, src, 0, width, height);
-}
-void encodeIA4(u8* dst, const u32* src, u32 width, u32 height) {
-  rii_encode_ia4(dst, 0, src, 0, width, height);
-}
-void encodeIA8(u8* dst, const u32* src, u32 width, u32 height) {
-  rii_encode_ia8(dst, 0, src, 0, width, height);
-}
-
-void encodeRGB565(u8* dst, const u32* src, u32 width, u32 height) {
-  rii_encode_rgb565(dst, 0, src, 0, width, height);
-}
-
-void encodeRGB5A3(u8* dst, const u32* src, u32 width, u32 height) {
-  rii_encode_rgb5a3(dst, 0, src, 0, width, height);
-}
-
-void encodeRGBA8(u8* dst, const u32* src, u32 width, u32 height) {
-  rii_encode_rgba8(dst, 0, src, 0, width, height);
-}
-
 // raw 8-bit RGBA -> X
 Result<void> encode(u8* dst, const u8* src, int width, int height,
                     gx::TextureFormat texformat) {
   if (texformat == gx::TextureFormat::CMPR) {
-    EncodeDXT1(dst, src, width, height);
+    rii_encode_cmpr(dst, 0, src, 0, width, height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::I4) {
-    encodeI4(dst, (const u32*)src, width, height);
+    rii_encode_i4(dst, 0, src, 0, width, height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::I8) {
-    encodeI8(dst, (const u32*)src, width, height);
+    rii_encode_i8(dst, 0, src, 0, width, height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::IA4) {
-    encodeIA4(dst, (const u32*)src, width, height);
+    rii_encode_ia4(dst, 0, src, 0, width, height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::IA8) {
-    encodeIA8(dst, (const u32*)src, width, height);
+    rii_encode_ia8(dst, 0, src, 0, width, height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::RGB565) {
-    encodeRGB565(dst, (const u32*)src, width, height);
+    rii_encode_rgb565(dst, 0, src, 0, width, height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::RGB5A3) {
-    encodeRGB5A3(dst, (const u32*)src, width, height);
+    rii_encode_rgb5a3(dst, 0, src, 0, width, height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::RGBA8) {
-    encodeRGBA8(dst, (const u32*)src, width, height);
+    rii_encode_rgba8(dst, 0, src, 0, width, height);
     return {};
   }
 

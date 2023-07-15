@@ -27,8 +27,7 @@ add_library(librii STATIC
 
   "nitro/types.hpp"
 
-  "image/CmprEncoder.cpp"
-  "image/CmprEncoder.hpp"
+  
   "image/ImagePlatform.cpp"
   "image/ImagePlatform.hpp"
   "image/TextureExport.cpp"
