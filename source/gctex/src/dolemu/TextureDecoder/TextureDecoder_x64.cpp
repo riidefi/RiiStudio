@@ -5,6 +5,11 @@
 #include "BitTest.hpp"
 
 #if defined(ARCH_X64)
+
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
