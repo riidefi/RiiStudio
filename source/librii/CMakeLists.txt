@@ -169,7 +169,7 @@ if (UNIX)
   set(LINUX_LIBS curl)
 endif (UNIX)
 
-target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE fort range-v3 json_struct vendor oishii gctex ${LINUX_LIBS})
+target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE fort range-v3 json_struct vendor oishii gctex avir-rs ${LINUX_LIBS})
 
 target_include_directories(librii
   PRIVATE

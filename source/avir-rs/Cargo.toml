@@ -1,0 +1,20 @@
+[package]
+name = "avir-rs"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+description = "Rust bindings for avir, a SIMD image resizing / scaling library"
+homepage = "https://github.com/riidefi/RiiStudio/tree/master/source/avir-rs"
+repository = "https://github.com/riidefi/RiiStudio"
+keywords = ["gamedev", "graphics"]
+readme = "README.md"
+
+[lib]
+crate-type=["cdylib", "lib"]
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+bindgen = "0.57"
+cc = { version = "1.0", features = ["parallel"] }

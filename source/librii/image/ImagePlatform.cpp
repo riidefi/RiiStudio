@@ -2,11 +2,10 @@
 
 #include "CmprEncoder.hpp"
 #include <librii/gx.h>
-#include <vendor/avir/avir.h>
-#include <vendor/avir/lancir.h>
 
 #include <rsl/Ranges.hpp>
 
+#include "avir-rs/include/avir_rs.h"
 #include "gctex/include/gctex.h"
 
 IMPORT_STD;
@@ -121,13 +120,11 @@ void resize(std::span<u8> dst, int dx, int dy, std::span<const u8> src, int sx,
   std::vector<u8> src_(src.begin(), src.end());
   std::vector<u8> dst_(dst.begin(), dst.end());
   if (type == ResizingAlgorithm::AVIR) {
-    avir::CImageResizer<> Avir8BitImageResizer(8);
-    // TODO: Allow more customization (args, k)
-    Avir8BitImageResizer.resizeImage(src_.data(), sx, sy, 0, dst_.data(), dx,
-                                     dy, 4, 0);
+    avir_resize(dst_.data(), dst_.size(), dx, dy, src_.data(), src_.size(), sx,
+                sy);
   } else {
-    avir::CLancIR AvirLanczos;
-    AvirLanczos.resizeImage(src_.data(), sx, sy, 0, dst_.data(), dx, dy, 4, 0);
+    clancir_resize(dst_.data(), dst_.size(), dx, dy, src_.data(), src_.size(),
+                   sx, sy);
   }
 
   for (size_t i = 0; i < dst_.size(); ++i) {
