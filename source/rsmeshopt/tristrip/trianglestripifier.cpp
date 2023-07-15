@@ -374,17 +374,18 @@ bool TriangleStripifier::find_good_reset_point()
 	} else {
 		start_face_iter = mesh->faces.begin() + (start_step - (mesh->faces.end() - start_face_iter));
 	};
-	std::vector<MFacePtr>::const_iterator face = start_face_iter;
+	const MFacePtr* face = mesh->faces.data() + (start_face_iter - mesh->faces.begin());
+	const MFacePtr* sentinel = &*start_face_iter;
 	do {
 		if ((*face)->strip_id == -1) {
 			// face not used in any strip, so start there for next strip
-			start_face_iter = face;
+			start_face_iter = mesh->faces.begin() + (face - mesh->faces.data());
 			return true;
 		};
 		face++;
-		if (face == mesh->faces.end())
-			face = mesh->faces.begin();
-	} while (face != start_face_iter);
+		if (face == mesh->faces.data() + mesh->faces.size())
+			face = mesh->faces.data();
+	} while (face != sentinel);
 	// we have exhausted all the faces
 	return false;
 };

@@ -31,3 +31,11 @@ add_library(rsmeshopt STATIC
   "draco/point_cloud/point_cloud.cc"
 )
 target_link_libraries(rsmeshopt PUBLIC core range-v3 riistudio_rs vendor meshoptimizer)
+
+if (WIN32)
+  if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    target_compile_options(rsmeshopt PRIVATE "-O2")
+  else()
+    target_compile_options(rsmeshopt PRIVATE "/Ox")
+  endif()
+endif()
