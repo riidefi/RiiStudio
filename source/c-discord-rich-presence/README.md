@@ -40,7 +40,8 @@ int main() {
 	client.set_activity(my_activity);
 
 	client.disconnect(); // Calling this is optional
-}```
+}
+```
 
 
 ## Example: Pure C application.
@@ -62,4 +63,5 @@ int main() {
 
 	rsl_rpc_disconnect(rpc);
 	rsl_rpc_destroy(rpc);
-}```
+}
+```
