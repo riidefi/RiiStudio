@@ -749,6 +749,21 @@ class JRESShaderStageAction(bpy.types.Operator):
 	def execute(self, context):
 		mat = context.material
 		idx = 0
+
+		if self.action == 'ADD_RAW':
+			new_stage = mat.jres_tev_stages.add()
+			new_stage.c_sel_a = 'zero'
+			new_stage.c_sel_b = 'texc'
+			new_stage.c_sel_c = 'rasc'
+
+			new_stage.a_sel_a = 'zero'
+			new_stage.a_sel_b = 'texa'
+			new_stage.a_sel_c = 'rasa'
+			if on_change_handler not in bpy.app.handlers.depsgraph_update_post:
+				bpy.app.handlers.depsgraph_update_post.append(on_change_handler)
+			dum_stages_update(self, context)
+			return {'FINISHED'}
+
 		try:
 			idx = int(mat.jres_tev_stage_enum)
 		except:
@@ -758,15 +773,7 @@ class JRESShaderStageAction(bpy.types.Operator):
 			if len(mat.jres_tev_stages) < 16:
 				mat.jres_tev_stages.add()
 				mat.jres_tev_stage_enum = str(len(mat.jres_tev_stages)-1)
-		elif self.action == 'ADD_RAW':
-			new_stage = mat.jres_tev_stages.add()
-			new_stage.c_sel_a = 'zero'
-			new_stage.c_sel_b = 'texc'
-			new_stage.c_sel_c = 'rasc'
 
-			new_stage.a_sel_a = 'zero'
-			new_stage.a_sel_b = 'texa'
-			new_stage.a_sel_c = 'rasa'
 
 		else:
 			if len(mat.jres_tev_stages) > 1:
