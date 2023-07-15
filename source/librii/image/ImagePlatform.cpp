@@ -27,53 +27,62 @@ int getEncodedSize(int width, int height, gx::TextureFormat format,
 }
 
 // X -> raw 8-bit RGBA
-void decode(u8* dst, const u8* src, int width, int height,
-            gx::TextureFormat texformat, const u8* tlut,
+void decode(std::span<u8> dst, std::span<const u8> src, int width, int height,
+            gx::TextureFormat texformat, std::span<const u8> tlut,
             gx::PaletteFormat tlutformat) {
-  rii_decode(dst, 0, src, 0, width, height, static_cast<u32>(texformat), tlut,
-             0, static_cast<u32>(tlutformat));
+  rii_decode(dst.data(), dst.size(), src.data(), src.size(), width, height,
+             static_cast<u32>(texformat), tlut.data(), tlut.size(),
+             static_cast<u32>(tlutformat));
 }
 
 // raw 8-bit RGBA -> X
-Result<void> encode(u8* dst, const u8* src, int width, int height,
-                    gx::TextureFormat texformat) {
+Result<void> encode(std::span<u8> dst, std::span<const u8> src, int width,
+                    int height, gx::TextureFormat texformat) {
   if (texformat == gx::TextureFormat::CMPR) {
-    rii_encode_cmpr(dst, 0, src, 0, width, height);
+    rii_encode_cmpr(dst.data(), dst.size(), src.data(), src.size(), width,
+                    height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::I4) {
-    rii_encode_i4(dst, 0, src, 0, width, height);
+    rii_encode_i4(dst.data(), dst.size(), src.data(), src.size(), width,
+                  height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::I8) {
-    rii_encode_i8(dst, 0, src, 0, width, height);
+    rii_encode_i8(dst.data(), dst.size(), src.data(), src.size(), width,
+                  height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::IA4) {
-    rii_encode_ia4(dst, 0, src, 0, width, height);
+    rii_encode_ia4(dst.data(), dst.size(), src.data(), src.size(), width,
+                   height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::IA8) {
-    rii_encode_ia8(dst, 0, src, 0, width, height);
+    rii_encode_ia8(dst.data(), dst.size(), src.data(), src.size(), width,
+                   height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::RGB565) {
-    rii_encode_rgb565(dst, 0, src, 0, width, height);
+    rii_encode_rgb565(dst.data(), dst.size(), src.data(), src.size(), width,
+                      height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::RGB5A3) {
-    rii_encode_rgb5a3(dst, 0, src, 0, width, height);
+    rii_encode_rgb5a3(dst.data(), dst.size(), src.data(), src.size(), width,
+                      height);
     return {};
   }
 
   if (texformat == gx::TextureFormat::RGBA8) {
-    rii_encode_rgba8(dst, 0, src, 0, width, height);
+    rii_encode_rgba8(dst.data(), dst.size(), src.data(), src.size(), width,
+                     height);
     return {};
   }
 
@@ -81,12 +90,12 @@ Result<void> encode(u8* dst, const u8* src, int width, int height,
   return std::unexpected("No palette support");
 }
 // Change format, no resizing
-Result<void> reencode(u8* dst, const u8* src, int width, int height,
-                      gx::TextureFormat oldFormat,
+Result<void> reencode(std::span<u8> dst, std::span<const u8> src, int width,
+                      int height, gx::TextureFormat oldFormat,
                       gx::TextureFormat newFormat) {
   std::vector<u8> tmp(width * height * 4 + 1024 /* Bias for SIMD */);
-  decode(tmp.data(), src, width, height, oldFormat);
-  return encode(dst, tmp.data(), width, height, newFormat);
+  decode(tmp, src, width, height, oldFormat);
+  return encode(dst, tmp, width, height, newFormat);
 }
 
 void resize(std::span<u8> dst, int dx, int dy, std::span<const u8> src, int sx,
@@ -101,9 +110,7 @@ void resize(std::span<u8> dst, int dx, int dy, std::span<const u8> src, int sx,
                    sx, sy);
   }
 
-  for (size_t i = 0; i < dst_.size(); ++i) {
-    dst[i] = dst_[i];
-  }
+  memcpy(dst.data(), dst_.data(), dst.size());
 }
 
 struct RGBA32ImageSource {
@@ -120,7 +127,7 @@ struct RGBA32ImageSource {
       tmp.mTmp.resize(roundUp(w, 32) * roundUp(h, 32) *
                       4 /* Round up for SIMD */);
       EXPECT(tmp.mBuf.size() >= getEncodedSize(w, h, tmp.mFmt));
-      decode(tmp.mTmp.data(), tmp.mBuf.data(), w, h, tmp.mFmt);
+      decode(tmp.mTmp, tmp.mBuf, w, h, tmp.mFmt);
       tmp.mDecoded = tmp.mTmp;
     }
     return tmp;
@@ -150,7 +157,7 @@ struct RGBA32ImageTarget {
     } else {
       EXPECT(dst.size() >= getEncodedSize(mW, mH, fmt));
       EXPECT(mTmp.size() >= mW * mH * 4);
-      return encode(dst.data(), mTmp.data(), mW, mH, fmt);
+      return encode(dst, mTmp, mW, mH, fmt);
     }
     return {};
   }

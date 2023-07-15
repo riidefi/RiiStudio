@@ -18,8 +18,8 @@ namespace librii::image {
 //!
 //! @return Dimensions rounded up blocked size.
 //!
-std::pair<u32, u32> getBlockedDimensions(u32 width, u32 height,
-                                         gx::TextureFormat format);
+[[nodiscard]] std::pair<u32, u32>
+getBlockedDimensions(u32 width, u32 height, gx::TextureFormat format);
 
 //! @brief Compute the encoded size of an image.
 //!
@@ -31,8 +31,8 @@ std::pair<u32, u32> getBlockedDimensions(u32 width, u32 height,
 //!
 //! @return The computed size of the image in bytes.
 //!
-int getEncodedSize(int width, int height, gx::TextureFormat format,
-                   u32 mipMapCount = 0);
+[[nodiscard]] int getEncodedSize(int width, int height,
+                                 gx::TextureFormat format, u32 mipMapCount = 0);
 
 //! @brief Decode an image to 8-bit, four-channel RGBA.
 //!
@@ -48,8 +48,8 @@ int getEncodedSize(int width, int height, gx::TextureFormat format,
 //! @pre For efficiency reasons, this method does not handle the case where dst
 //! == src.
 //!
-void decode(u8* dst, const u8* src, int width, int height,
-            gx::TextureFormat texformat, const u8* tlut = nullptr,
+void decode(std::span<u8> dst, std::span<const u8> src, int width, int height,
+            gx::TextureFormat texformat, std::span<const u8> tlut = {},
             gx::PaletteFormat tlutformat = gx::PaletteFormat::IA8);
 
 //! @brief Encode an image to a GPU texture.
@@ -64,7 +64,8 @@ void decode(u8* dst, const u8* src, int width, int height,
 //! @pre For efficiency reasons, this method does not handle the case where dst
 //! == src.
 //!
-[[nodiscard]] Result<void> encode(u8* dst, const u8* src, int width, int height,
+[[nodiscard]] Result<void> encode(std::span<u8> dst, std::span<const u8> src,
+                                  int width, int height,
                                   gx::TextureFormat texformat);
 
 //! @brief Specifies an algorithm for downscaling/upscaling an image.
