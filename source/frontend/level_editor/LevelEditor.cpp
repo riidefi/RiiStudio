@@ -70,6 +70,8 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
 
 Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
                                             std::string path) {
+  std::span<const u8> objflow_bin{ObjFlow_bin, ObjFlow_bin_len};
+  mObjParam = TRY(librii::objflow::Read(objflow_bin));
   // Read .szs
   {
     auto root_arc = TRY(ReadArchive(buf));
@@ -146,6 +148,32 @@ Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
       auto& start = mKmp->mStartPoints[0];
       cam.mEye = start.position + glm::vec3(0.0f, 10'000.0f, 0.0f);
     }
+  }
+
+  for (auto& pt : mKmp->mGeoObjs) {
+    librii::objflow::ObjectParameter param =
+        mObjParam.parameters[mObjParam.remap_table[pt.id]];
+    auto res = librii::objflow::GetPrimaryResource(param) + ".brres";
+    if (mObjModels.contains(res)) {
+      continue;
+    }
+    auto p = FindFileWithOverloads(mLevel.root_archive, {res});
+    if (!p)
+      continue;
+    auto b =
+        ReadBRRES(p->file_data, p->resolved_path, NeedResave::AllowUnwritable);
+    if (!b)
+      continue;
+
+    for (size_t i = 0; i < (**b).getModels().size(); ++i) {
+      auto& mdl = (**b).getModels()[i];
+      if (mdl.getName().contains("shadow")) {
+        for (auto& m : mdl.getBones()) {
+          m.mDisplayCommands.clear();
+        }
+      }
+    }
+    mObjModels[res] = std::make_unique<RenderableBRRES>(*std::move(b));
   }
 
   // Default camera values
@@ -454,8 +482,25 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
       break;
     case Page::Objects:
       for (auto& pt : mKmp->mGeoObjs) {
-        glm::mat4 modelMtx = MatrixOfPoint(pt.position, pt.rotation, 1);
-        PushCube(mSceneState, modelMtx, viewMtx, projMtx);
+        glm::mat4 posMat = glm::translate(glm::mat4(1.0f), pt.position);
+        glm::mat4 rotMat =
+            glm::rotate(glm::mat4(1.0f), glm::radians(pt.rotation.x),
+                        glm::vec3(1.0f, 0.0f, 0.0f));
+        rotMat = glm::rotate(rotMat, glm::radians(pt.rotation.y),
+                             glm::vec3(0.0f, 1.0f, 0.0f));
+        rotMat = glm::rotate(rotMat, glm::radians(pt.rotation.z),
+                             glm::vec3(0.0f, 0.0f, 1.0f));
+
+        glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), pt.scale);
+
+        glm::mat4 mtx = posMat * rotMat * scaleMat;
+        librii::objflow::ObjectParameter param =
+            mObjParam.parameters[mObjParam.remap_table[pt.id]];
+        auto res = librii::objflow::GetPrimaryResource(param) + ".brres";
+        if (!mObjModels.contains(res)) {
+          continue;
+        }
+        mObjModels[res]->addNodesToBuffer(mSceneState, mtx, viewMtx, projMtx);
       }
       break;
     case Page::Areas:

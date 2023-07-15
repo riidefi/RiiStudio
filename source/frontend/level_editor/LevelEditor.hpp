@@ -10,6 +10,7 @@
 #include <librii/g3d/gfx/G3dGfx.hpp>
 #include <librii/kcol/Model.hpp>
 #include <librii/kmp/CourseMap.hpp>
+#include <librii/objflow/ObjFlow.hpp>
 #include <plate/toolkit/Viewport.hpp>
 #include <plugins/g3d/collection.hpp>
 
@@ -155,25 +156,6 @@ public:
 
   void drawScene(u32 width, u32 height);
 
-  void DrawRespawnTable();
-  void DrawStartPointTable();
-  void DrawAreaTable();
-  void DrawCameraTable();
-  void DrawCannonTable();
-  void DrawMissionTable();
-  void DrawStages();
-
-  void DrawEnemyPathTable();
-  void DrawEnemyPointTable(librii::kmp::EnemyPath& path);
-
-  void DrawItemPathTable();
-  void DrawItemPointTable(librii::kmp::ItemPath& path);
-
-  void DrawCheckPathTable();
-  void DrawCheckPointTable(librii::kmp::CheckPath& path);
-
-  glm::mat4 getFrame(int frame);
-
   Level mLevel;
   plate::tk::Viewport mViewport;
   frontend::RenderSettings mRenderSettings;
@@ -188,6 +170,9 @@ public:
   float mini_scale_y = 1.0f;
   std::unique_ptr<librii::kcol::KCollisionData> mCourseKcl;
   TriangleRenderer mTriangleRenderer;
+
+  librii::objflow::ObjectParameters mObjParam;
+  std::map<std::string, std::unique_ptr<RenderableBRRES>> mObjModels;
 
   std::unique_ptr<librii::kmp::CourseMap> mKmp;
   KmpHistory mKmpHistory;
