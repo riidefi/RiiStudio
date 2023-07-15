@@ -12,6 +12,8 @@ struct RootHolder {
     printf("Initializing LLVM\n");
     initLlvm = std::make_unique<rsl::InitLLVM>(argc, argv);
 
+    fmt::print(stdout, "RiiStudio {}\n", RII_TIME_STAMP);
+
     riistudio::MarkLocaleAPIReady();
 
     window = std::make_unique<riistudio::frontend::RootWindow>();
