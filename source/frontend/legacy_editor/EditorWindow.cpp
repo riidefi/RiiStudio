@@ -41,6 +41,9 @@ public:
   // TODO: Figure out how to do this concurrently
   void precache();
 
+  std::string hide_mat;
+  u32 hide_mat_countdown = 0;
+
 private:
   void drawViewCube();
 
@@ -62,8 +65,20 @@ void RenderTest::precache() {
 void RenderTest::draw_() {
   auto bounds = ImGui::GetWindowSize();
 
+  std::string impl_hide_mat;
+
+  // TODO: FPS-dependent value
+  if (hide_mat_countdown > 0) {
+    // 3 flickers = 6 state transitions per second
+    if (((hide_mat_countdown / 10) & 1)) {
+      impl_hide_mat = hide_mat;
+    }
+    --hide_mat_countdown;
+  }
+
   if (mViewport.begin(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y))) {
-    mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y));
+    mRenderer.render(static_cast<u32>(bounds.x), static_cast<u32>(bounds.y),
+                     impl_hide_mat);
     drawViewCube();
     mViewport.end();
   }
@@ -242,7 +257,18 @@ void BRRESEditor::draw_() {
 
   mPropertyEditor->draw();
   mHistoryList->draw();
+
+  auto* active = mSelection.mActive;
+
   mOutliner->draw();
+
+  if (mSelection.mActive != active) {
+    if (auto* g = dynamic_cast<lib3d::Material*>(active)) {
+      mRenderTest->hide_mat = g->getName();
+      mRenderTest->hide_mat_countdown = 60;
+    }
+  }
+
   mRenderTest->draw();
 
   // TODO: Only affect active window
@@ -384,7 +410,18 @@ void BMDEditor::draw_() {
 
   mPropertyEditor->draw();
   mHistoryList->draw();
+
+  auto* active = mSelection.mActive;
+
   mOutliner->draw();
+
+  if (mSelection.mActive != active) {
+    if (auto* g = dynamic_cast<lib3d::Material*>(active)) {
+      mRenderTest->hide_mat = g->getName();
+      mRenderTest->hide_mat_countdown = 60;
+    }
+  }
+
   mRenderTest->draw();
 
   // TODO: Only affect active window

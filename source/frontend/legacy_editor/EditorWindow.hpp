@@ -17,6 +17,7 @@
 
 namespace riistudio::frontend {
 
+class RenderTest;
 using SelectionManager = kpi::SelectionManager;
 
 struct BRRESEditor : public StudioWindow, public IEditor {
@@ -52,7 +53,7 @@ struct BRRESEditor : public StudioWindow, public IEditor {
   std::unique_ptr<StudioWindow> mPropertyEditor;
   std::unique_ptr<StudioWindow> mHistoryList;
   std::unique_ptr<StudioWindow> mOutliner;
-  std::unique_ptr<StudioWindow> mRenderTest;
+  std::unique_ptr<RenderTest> mRenderTest;
 
   std::string discordStatus() const override { return "Editing a BRRES"; }
   void saveAsButton() override {
@@ -121,7 +122,7 @@ struct BMDEditor : public StudioWindow, public IEditor {
   std::unique_ptr<StudioWindow> mPropertyEditor;
   std::unique_ptr<StudioWindow> mHistoryList;
   std::unique_ptr<StudioWindow> mOutliner;
-  std::unique_ptr<StudioWindow> mRenderTest;
+  std::unique_ptr<RenderTest> mRenderTest;
 
   std::string discordStatus() const override { return "Editing a BMD"; }
   void saveAsButton() override {

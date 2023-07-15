@@ -17,9 +17,9 @@ class SceneImpl {
 public:
   Result<void> upload(const libcube::Scene& host);
   Result<void> prepare(librii::gfx::SceneState& state,
-                       const libcube::Scene& host,
-                       glm::mat4 v_mtx, glm::mat4 p_mtx,
-                       lib3d::RenderType type);
+                       const libcube::Scene& host, glm::mat4 v_mtx,
+                       glm::mat4 p_mtx, lib3d::RenderType type,
+                       std::string_view hide_mat = "");
 
 private:
   librii::g3d::gfx::G3dSceneRenderData render_data;
@@ -41,7 +41,7 @@ class Renderer {
 public:
   Renderer(const libcube::Scene* data);
   ~Renderer();
-  void render(u32 width, u32 height);
+  void render(u32 width, u32 height, std::string_view hide_mat = "");
   void precache();
 
   Camera& getCamera() { return mSettings.mCameraController.mCamera; }

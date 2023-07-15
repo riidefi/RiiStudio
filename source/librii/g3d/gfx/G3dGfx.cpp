@@ -268,7 +268,8 @@ Result<void> gatherBoneRecursive(librii::gfx::SceneBuffers& output, u64 boneId,
                                  ModelView& view, glm::mat4 m_mtx,
                                  glm::mat4 v_mtx, glm::mat4 p_mtx,
                                  G3dSceneRenderData& render_data,
-                                 std::string& err, lib3d::RenderType type) {
+                                 std::string& err, lib3d::RenderType type,
+                                 std::string_view hide_mat) {
   if (boneId >= view.bones.size()) {
     return std::unexpected("Invalid bone id");
   }
@@ -285,6 +286,10 @@ Result<void> gatherBoneRecursive(librii::gfx::SceneBuffers& output, u64 boneId,
     }
     const auto& mat = *view.mats[display.matId];
     const auto& poly = *view.polys[display.polyId];
+
+    if (mat.getName() == hide_mat) {
+      continue;
+    }
 
     // REASON FOR REMOVAL: We will already create the shader if we cache miss
     //
@@ -325,8 +330,9 @@ Result<void> gatherBoneRecursive(librii::gfx::SceneBuffers& output, u64 boneId,
 
   for (u64 i = 0; i < pBone.getNumChildren(); ++i) {
     std::string _err;
-    auto err = gatherBoneRecursive(output, pBone.getChild(i), view, m_mtx,
-                                   v_mtx, p_mtx, render_data, _err, type);
+    auto err =
+        gatherBoneRecursive(output, pBone.getChild(i), view, m_mtx, v_mtx,
+                            p_mtx, render_data, _err, type, hide_mat);
     auto err2 = err.has_value() ? "" : err.error();
     if (_err.size()) {
       err2 = err2 + "\n" + _err;
@@ -342,14 +348,15 @@ Result<void> gatherBoneRecursive(librii::gfx::SceneBuffers& output, u64 boneId,
 std::string gather(librii::gfx::SceneBuffers& output, ModelView& view,
                    glm::mat4 m_mtx, glm::mat4 v_mtx, glm::mat4 p_mtx,
                    G3dSceneRenderData& render_data,
-                   lib3d::RenderType type = lib3d::RenderType::Preview) {
+                   lib3d::RenderType type = lib3d::RenderType::Preview,
+                   std::string_view hide_mat = "") {
   if (view.mats.empty() || view.polys.empty() || view.bones.empty())
     return {};
 
   // Assumes root at zero
   std::string _err;
   auto err = gatherBoneRecursive(output, 0, view, m_mtx, v_mtx, p_mtx,
-                                 render_data, _err, type);
+                                 render_data, _err, type, hide_mat);
   auto err2 = err.has_value() ? "" : err.error();
   if (_err.size()) {
     err2 = err2 + "\n" + _err;
@@ -394,7 +401,8 @@ Result<void> Any3DSceneAddNodesToBuffer(librii::gfx::SceneState& state,
                                         glm::mat4 m_mtx, glm::mat4 v_mtx,
                                         glm::mat4 p_mtx,
                                         G3dSceneRenderData& render_data,
-                                        lib3d::RenderType type) {
+                                        lib3d::RenderType type,
+                                        std::string_view hide_mat) {
   // Reupload changed textures
   render_data.mTextureData.update(scene);
   TRY(render_data.mVertexRenderData.update(scene));
@@ -404,7 +412,7 @@ Result<void> Any3DSceneAddNodesToBuffer(librii::gfx::SceneState& state,
     ModelView view(model, scene);
     view.model_id = i++;
     auto err = gather(state.getBuffers(), view, m_mtx, v_mtx, p_mtx,
-                      render_data, type);
+                      render_data, type, hide_mat);
     if (err.size()) {
       return std::unexpected(err);
     }

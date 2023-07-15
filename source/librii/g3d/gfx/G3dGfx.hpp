@@ -450,6 +450,7 @@ Result<void> Any3DSceneAddNodesToBuffer(librii::gfx::SceneState& state,
                                         glm::mat4 m_mtx, glm::mat4 v_mtx,
                                         glm::mat4 p_mtx,
                                         G3dSceneRenderData& render_data,
-                                        lib3d::RenderType type);
+                                        lib3d::RenderType type,
+                                        std::string_view hide_mat = "");
 
 } // namespace librii::g3d::gfx

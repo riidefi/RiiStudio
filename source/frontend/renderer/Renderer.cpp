@@ -32,10 +32,11 @@ Result<void> SceneImpl::upload(const libcube::Scene& host) {
 
 Result<void> SceneImpl::prepare(librii::gfx::SceneState& state,
                                 const libcube::Scene& host, glm::mat4 v_mtx,
-                                glm::mat4 p_mtx, lib3d::RenderType type) {
+                                glm::mat4 p_mtx, lib3d::RenderType type,
+                                std::string_view hide_mat) {
   TRY(upload(host));
   return librii::g3d::gfx::Any3DSceneAddNodesToBuffer(
-      state, host, glm::mat4(1.0f), v_mtx, p_mtx, render_data, type);
+      state, host, glm::mat4(1.0f), v_mtx, p_mtx, render_data, type, hide_mat);
 }
 
 void RenderSettings::drawMenuBar(bool draw_controller, bool draw_wireframe) {
@@ -86,7 +87,7 @@ void Renderer::precache() {
   mRoot.upload(*mData);
 }
 
-void Renderer::render(u32 width, u32 height) {
+void Renderer::render(u32 width, u32 height, std::string_view hide_mat) {
   mSettings.drawMenuBar();
 
   if (!mSettings.rend)
@@ -112,7 +113,7 @@ void Renderer::render(u32 width, u32 height) {
   mSceneState.invalidate();
   assert(mData != nullptr);
   auto ok = mRoot.prepare(mSceneState, *mData, mViewMtx, mProjMtx,
-                          mSettings.mRenderType);
+                          mSettings.mRenderType, hide_mat);
   if (!ok.has_value()) {
     ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_NavHighlight],
                        "Renderer error during populate(): %s",
