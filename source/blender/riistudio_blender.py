@@ -1048,18 +1048,21 @@ def build_rs_mat_pe(mat):
 		'dst_alpha': mat.jres_pe_dst_alpha,
 	}
 
+def h_conv_srgb(col):
+	fin = []
+	for c in col:
+		if c < 0.0031308:
+			srgb = 0.0 if c < 0.0 else c * 12.92
+		else:
+			srgb = 1.055 * pow(c, 1.0 / 2.4) - 0.055
+		fin.append(max(min(int(srgb * 255 + 0.5), 255), 0))
+	return fin
+		
 def adjust_color(mat,col):
-	final = []
 	if mat.jres_col_tevcolorspace == "srgb":
-			for c in col:
-				if c < 0.0031308:
-					srgb = 0.0 if c < 0.0 else c * 12.92
-				else:
-					srgb = 1.055 * pow(c, 1.0 / 2.4) - 0.055
-				final.append(max(min(int(srgb * 255 + 0.5), 255), 0))
+			return h_conv_srgb(col)
 	else:
-		final = [int(255*c) for c in col]
-	return final
+		return [int(255*c) for c in col]
 
 def build_rs_mat_colors(mat, konst = False):
 	out = []
@@ -2043,6 +2046,7 @@ def mat_stages_update(from_mat, to_mat):
 	if update_bool:
 		return
 	update_bool = True
+	
 	stages = from_mat.jres_tev_stages
 
 	numStages = len(stages)	
@@ -2582,46 +2586,46 @@ def register_mat_colors():
 			('srgb','sRGB','Convert the color value from sRGB to RGB during export'),
 			('rgb','Linear','Use raw color values during export'),
 		],
-		update=dum_col_update
+		update=dum_col_update,
 	)
 
 	# Color Registers
 	mat.jres_col_tevcol1 = bpy.props.FloatVectorProperty(
 		name="Color Register 1", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR',
-		update=dum_col_update
+		update=dum_col_update,
 	)
 	mat.jres_col_tevcol2 = bpy.props.FloatVectorProperty(
 		name="Color Register 2", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR',
-		update=dum_col_update
+		update=dum_col_update,
 	)
 	mat.jres_col_tevcol3 = bpy.props.FloatVectorProperty(
 		name="Color Register 3", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR',
-		update=dum_col_update
+		update=dum_col_update,
 	)
 
 	# Constant Registers
 	mat.jres_col_tevkonst1 = bpy.props.FloatVectorProperty(
 		name="Constant Register 1", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR',
-		update=dum_col_update
+		update=dum_col_update,
 	)
 	mat.jres_col_tevkonst2 = bpy.props.FloatVectorProperty(
 		name="Constant Register 2", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR',
-		update=dum_col_update
+		update=dum_col_update,
 	)
 	mat.jres_col_tevkonst3 = bpy.props.FloatVectorProperty(
 		name="Constant Register 3", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR',
-		update=dum_col_update
+		update=dum_col_update,
 	)
 	mat.jres_col_tevkonst4 = bpy.props.FloatVectorProperty(
 		name="Constant Register 4", size=4,default=[0.0,0.0,0.0,1.0],
 		min=0.0,max=1.0, subtype='COLOR',
-		update=dum_col_update
+		update=dum_col_update,
 	)
 
 
@@ -2682,7 +2686,7 @@ def register_mat():
 		name="Group",
 		items=get_mat_group_items,
 		default=0,
-		update=mat_group_enum_update
+		update=mat_group_enum_update,
 	)
 
 	# Display Surfaces
@@ -2706,7 +2710,7 @@ def register_mat():
 			('custom', "Custom", ""),
 		),
 		default='opaque',
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 
 	# PE Custom Settings
@@ -2717,7 +2721,7 @@ def register_mat():
 			('xlu', "Translucent", ""),
 		],
 		default="opa",
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_alpha_test = EnumProperty(
 		name="Alpha Test",
@@ -2727,34 +2731,34 @@ def register_mat():
 			('custom', "Custom", ""),
 		],
 		default="disabled",
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 
 	bpy.types.Material.jres_pe_alpha_comp_left = EnumProperty(
 		name="", # Make Display better
 		items=COMPARISON_MODES,
 		default='always',
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_alpha_comp_right = EnumProperty(
 		name="", # Make Display better
 		items=COMPARISON_MODES,
 		default='always',
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_alpha_ref_left = IntProperty(
 		name = "",
 		default = 255,
 		min = 0,
 		max = 255,
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_alpha_ref_right = IntProperty(
 		name = "",
 		default = 255,
 		min = 0,
 		max = 255,
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_alpha_op = EnumProperty(
 		name="",
@@ -2765,28 +2769,28 @@ def register_mat():
 			('xor',"!=",""),
 		],
 		default='and',
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_z_compare = BoolProperty(
 		name="Compare Z Values",
 		default=True,
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_z_early_compare = BoolProperty(
 		name="Compare Before Texture",
 		default=False,
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_z_update = BoolProperty(
 		name="Write to Z Buffer",
 		default=True,
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_z_comparison = EnumProperty(
 		name="Condition",
 		items=Z_COMPARISON_MODES,
 		default="LEqual",
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_blend_mode = EnumProperty(
 		name="Type",
@@ -2797,44 +2801,44 @@ def register_mat():
 			('subtract', 'Subtract from Frame Buffer', ''),
 		],
 		default="none",
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_blend_source = EnumProperty(
 		name="",
 		items = BLEND_MODE_FACTORS,
 		default="src_a",
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_blend_dest = EnumProperty(
 		name="",
 		items = BLEND_MODE_FACTORS_2,
 		default="inv_src_a",
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_dst_alpha = IntProperty(
 		name="Value",
 		min=0,
 		max=255,
 		default=0,
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 	bpy.types.Material.jres_pe_dst_alpha_enabled = BoolProperty(
 		name="Enabled",
 		default=False,
-		update=dum_pe_update
+		update=dum_pe_update,
 	)
 
 	# Lighting
 	bpy.types.Material.jres_lightset_index = IntProperty(
 		name="Lightset Index",
 		default=-1,
-		update=dum_scene_update
+		update=dum_scene_update,
 	)
 	# Fog
 	bpy.types.Material.jres_fog_index = IntProperty(
 		name="Fog Index",
 		default=0,
-		update=dum_scene_update
+		update=dum_scene_update,
 	)
 
 	# UV Wrapping
