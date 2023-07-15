@@ -144,54 +144,44 @@ static std::string getFileShort(const std::string& path) {
 
 void BRRESEditor::init() {
   // Don't require selection reset on first element
-  mDocument.commit(mSelection, false);
-  for (auto& tex : mDocument.getRoot().getTextures()) {
+  mHistory.commit(*mRoot, &mSelection, false);
+  for (auto& tex : mRoot->getTextures()) {
     mIconManager.propagateIcon(&tex);
   }
 
   auto draw_image_icon = [&](const lib3d::Texture* tex, u32 dim) {
     mIconManager.drawImageIcon(tex, dim);
   };
-  auto post = [&]() { mDocument.commit(mSelection, true); };
-  auto commit_ = [&](bool b) { mDocument.commit(mSelection, b); };
+  auto post = [&]() { mHistory.commit(*mRoot, &mSelection, true); };
+  auto commit_ = [&](bool b) { mHistory.commit(*mRoot, &mSelection, b); };
   // mActive must be stable
-  auto _get_selection = [&]() {
-    return GatherSelected(mSelection, mDocument.getRoot());
-  };
+  auto _get_selection = [&]() { return GatherSelected(mSelection, *mRoot); };
   auto _get_active = [&]() { return mSelection.mActive; };
-  mPropertyEditor =
-      MakePropertyEditor(mDocument.getHistory(), mDocument.getRoot(),
-                         _get_selection, _get_active, draw_image_icon);
+  mPropertyEditor = MakePropertyEditor(mHistory, *mRoot, _get_selection,
+                                       _get_active, draw_image_icon);
   mPropertyEditor->mParent = this;
   {
-    auto commit_ = [&]() {
-      mDocument.getHistory().commit(mDocument.getRoot(), &mSelection, false);
-    };
-    auto undo_ = [&]() {
-      mDocument.getHistory().undo(mDocument.getRoot(), mSelection);
-    };
-    auto redo_ = [&]() {
-      mDocument.getHistory().redo(mDocument.getRoot(), mSelection);
-    };
-    auto cursor_ = [&]() { return mDocument.getHistory().cursor(); };
-    auto size_ = [&]() { return mDocument.getHistory().size(); };
+    auto commit_ = [&]() { mHistory.commit(*mRoot, &mSelection, false); };
+    auto undo_ = [&]() { mHistory.undo(*mRoot, mSelection); };
+    auto redo_ = [&]() { mHistory.redo(*mRoot, mSelection); };
+    auto cursor_ = [&]() { return mHistory.cursor(); };
+    auto size_ = [&]() { return mHistory.size(); };
     mHistoryList =
         std::make_unique<HistoryList>(commit_, undo_, redo_, cursor_, size_);
     mHistoryList->mParent = this;
   }
-  mOutliner = MakeOutliner(mDocument.getRoot(), mSelection, draw_image_icon,
-                           post, commit_);
+  mOutliner = MakeOutliner(*mRoot, mSelection, draw_image_icon, post, commit_);
   mOutliner->mParent = this;
-  mRenderTest = std::make_unique<RenderTest>(mDocument.getRoot());
+  mRenderTest = std::make_unique<RenderTest>(*mRoot);
   mRenderTest->mParent = this;
 }
 
 // We handle the Dockspace manually (disabling it in an error state)
 BRRESEditor::BRRESEditor(std::string path)
-    : StudioWindow(getFileShort(path), DockSetting::None), mDocument(nullptr),
+    : StudioWindow(getFileShort(path), DockSetting::None), mRoot(nullptr),
       mPath(path) {}
 BRRESEditor::BRRESEditor(std::span<const u8> span, const std::string& path)
-    : StudioWindow(getFileShort(path), DockSetting::None), mDocument(nullptr),
+    : StudioWindow(getFileShort(path), DockSetting::None), mRoot(nullptr),
       mPath(path) {
   auto out = std::make_unique<g3d::Collection>();
   oishii::BinaryReader reader(span, path, std::endian::big);
@@ -274,59 +264,49 @@ void BRRESEditor::draw_() {
   // TODO: Only affect active window
   if (ImGui::GetIO().KeyCtrl) {
     if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
-      mDocument.undo(mSelection);
+      mHistory.undo(*mRoot, mSelection);
     } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
-      mDocument.redo(mSelection);
+      mHistory.redo(*mRoot, mSelection);
     }
   }
 }
 
 void BMDEditor::init() {
   // Don't require selection reset on first element
-  mDocument.commit(mSelection, false);
-  for (auto& tex : mDocument.getRoot().getTextures()) {
+  mHistory.commit(*mRoot, &mSelection, false);
+  for (auto& tex : mRoot->getTextures()) {
     mIconManager.propagateIcon(&tex);
   }
 
   auto draw_image_icon = [&](const lib3d::Texture* tex, u32 dim) {
     mIconManager.drawImageIcon(tex, dim);
   };
-  auto post = [&]() { mDocument.commit(mSelection, true); };
-  auto commit_ = [&](bool b) { mDocument.commit(mSelection, b); };
+  auto post = [&]() { mHistory.commit(*mRoot, &mSelection, true); };
+  auto commit_ = [&](bool b) { mHistory.commit(*mRoot, &mSelection, b); };
   // mActive must be stable
-  auto _get_selection = [&]() {
-    return GatherSelected(mSelection, mDocument.getRoot());
-  };
+  auto _get_selection = [&]() { return GatherSelected(mSelection, *mRoot); };
   auto _get_active = [&]() { return mSelection.mActive; };
-  mPropertyEditor =
-      MakePropertyEditor(mDocument.getHistory(), mDocument.getRoot(),
-                         _get_selection, _get_active, draw_image_icon);
+  mPropertyEditor = MakePropertyEditor(mHistory, *mRoot, _get_selection,
+                                       _get_active, draw_image_icon);
   mPropertyEditor->mParent = this;
   {
-    auto commit_ = [&]() {
-      mDocument.getHistory().commit(mDocument.getRoot(), &mSelection, false);
-    };
-    auto undo_ = [&]() {
-      mDocument.getHistory().undo(mDocument.getRoot(), mSelection);
-    };
-    auto redo_ = [&]() {
-      mDocument.getHistory().redo(mDocument.getRoot(), mSelection);
-    };
-    auto cursor_ = [&]() { return mDocument.getHistory().cursor(); };
-    auto size_ = [&]() { return mDocument.getHistory().size(); };
+    auto commit_ = [&]() { mHistory.commit(*mRoot, &mSelection, false); };
+    auto undo_ = [&]() { mHistory.undo(*mRoot, mSelection); };
+    auto redo_ = [&]() { mHistory.redo(*mRoot, mSelection); };
+    auto cursor_ = [&]() { return mHistory.cursor(); };
+    auto size_ = [&]() { return mHistory.size(); };
     mHistoryList =
         std::make_unique<HistoryList>(commit_, undo_, redo_, cursor_, size_);
     mHistoryList->mParent = this;
   }
-  mOutliner = MakeOutliner(mDocument.getRoot(), mSelection, draw_image_icon,
-                           post, commit_);
+  mOutliner = MakeOutliner(*mRoot, mSelection, draw_image_icon, post, commit_);
   mOutliner->mParent = this;
-  mRenderTest = std::make_unique<RenderTest>(mDocument.getRoot());
+  mRenderTest = std::make_unique<RenderTest>(*mRoot);
   mRenderTest->mParent = this;
 }
 void BRRESEditor::saveAsImpl(std::string path) {
   oishii::Writer writer(std::endian::big);
-  auto& col = mDocument.getRoot();
+  auto& col = *mRoot;
   if (auto ok = g3d::WriteBRRES(col, writer); !ok) {
     rsl::ErrorDialogFmt("Failed to rebuild BRRES: {}", ok.error());
     return;
@@ -336,10 +316,10 @@ void BRRESEditor::saveAsImpl(std::string path) {
 
 // We handle the Dockspace manually (disabling it in an error state)
 BMDEditor::BMDEditor(std::string path)
-    : StudioWindow(getFileShort(path), DockSetting::None), mDocument(nullptr),
+    : StudioWindow(getFileShort(path), DockSetting::None), mRoot(nullptr),
       mPath(path) {}
 BMDEditor::BMDEditor(std::span<const u8> span, const std::string& path)
-    : StudioWindow(getFileShort(path), DockSetting::None), mDocument(nullptr),
+    : StudioWindow(getFileShort(path), DockSetting::None), mRoot(nullptr),
       mPath(path) {
   auto out = std::make_unique<j3d::Collection>();
   oishii::BinaryReader reader(span, path, std::endian::big);
@@ -427,9 +407,9 @@ void BMDEditor::draw_() {
   // TODO: Only affect active window
   if (ImGui::GetIO().KeyCtrl) {
     if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z))) {
-      mDocument.undo(mSelection);
+      mHistory.undo(*mRoot, mSelection);
     } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y))) {
-      mDocument.redo(mSelection);
+      mHistory.redo(*mRoot, mSelection);
     }
   }
 }
@@ -439,7 +419,7 @@ void BMDEditor::saveAsImpl(std::string path) {
     path += ".bmd";
   }
   oishii::Writer writer(std::endian::big);
-  auto& col = mDocument.getRoot();
+  auto& col = *mRoot;
   if (auto ok = j3d::WriteBMD(col, writer); !ok) {
     rsl::ErrorDialogFmt("Failed to rebuild BMD: {}", ok.error());
     return;

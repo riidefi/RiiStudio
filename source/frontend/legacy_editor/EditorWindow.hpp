@@ -2,11 +2,11 @@
 
 #include <rsl/FsDialog.hpp>
 
-#include "StudioWindow.hpp"               // StudioWindow
-#include <LibBadUIFramework/Document.hpp> // kpi::Document
-#include <LibBadUIFramework/Node2.hpp>    // kpi::INode
-#include <LibBadUIFramework/Plugins.hpp>  // kpi::IOTransaction
-#include <core/3d/Texture.hpp>            // lib3d::Texture
+#include "StudioWindow.hpp" // StudioWindow
+#include <LibBadUIFramework/History.hpp>
+#include <LibBadUIFramework/Node2.hpp>   // kpi::INode
+#include <LibBadUIFramework/Plugins.hpp> // kpi::IOTransaction
+#include <core/3d/Texture.hpp>           // lib3d::Texture
 #include <frontend/IEditor.hpp>
 #include <frontend/widgets/ErrorDialogList.hpp>
 #include <frontend/widgets/IconManager.hpp> // IconManager
@@ -28,7 +28,7 @@ struct BRRESEditor : public StudioWindow, public IEditor {
   ~BRRESEditor();
 
   void attach(auto&& out) {
-    mDocument.setRoot(std::move(out));
+    mRoot = std::move(out);
     init();
   }
 
@@ -43,7 +43,8 @@ struct BRRESEditor : public StudioWindow, public IEditor {
 
   void init();
 
-  kpi::Document<g3d::Collection> mDocument;
+  std::unique_ptr<g3d::Collection> mRoot;
+  kpi::History mHistory;
   std::string mPath;
   IconManager mIconManager;
   SelectionManager mSelection;
@@ -97,7 +98,7 @@ struct BMDEditor : public StudioWindow, public IEditor {
   ~BMDEditor();
 
   void attach(auto&& out) {
-    mDocument.setRoot(std::move(out));
+    mRoot = std::move(out);
     init();
   }
 
@@ -112,7 +113,8 @@ struct BMDEditor : public StudioWindow, public IEditor {
 
   void init();
 
-  kpi::Document<j3d::Collection> mDocument;
+  std::unique_ptr<j3d::Collection> mRoot;
+  kpi::History mHistory;
   std::string mPath;
   IconManager mIconManager;
   SelectionManager mSelection;
