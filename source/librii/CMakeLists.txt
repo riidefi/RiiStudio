@@ -116,7 +116,7 @@ add_library(librii STATIC
   "g3d/io/AnimClrIO.cpp"
   "g3d/io/AnimVisIO.cpp"
   "egg/LTEX.cpp"
-  "g3d/io/WiiTrig.cpp"
+  "trig/WiiTrig.cpp"
 
   "j3d/io/BMD.cpp"
 	"j3d/io/OutputCtx.hpp"

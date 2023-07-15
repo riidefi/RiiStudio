@@ -17,9 +17,9 @@
 #include <vendor/glm/vec2.hpp>
 #include <vendor/glm/vec3.hpp>
 
-#include <librii/g3d/io/WiiTrig.hpp>
 #include <librii/math/mtx.hpp>
 #include <librii/math/srt3.hpp>
+#include <librii/trig/WiiTrig.hpp>
 
 namespace librii::g3d {
 

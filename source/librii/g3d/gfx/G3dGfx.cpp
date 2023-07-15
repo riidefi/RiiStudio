@@ -14,7 +14,7 @@ s32 parentOf(const libcube::IBoneDelegate& bone) {
 }
 bool ssc(const libcube::IBoneDelegate& bone) { return bone.getSSC(); }
 
-#include <librii/g3d/io/WiiTrig.hpp>
+#include <librii/trig/WiiTrig.hpp>
 
 namespace librii::g3d::gfx {
 
