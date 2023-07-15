@@ -9,6 +9,754 @@ IMPORT_STD;
 
 namespace librii::rhst {
 
+enum class RHSTToken {
+  RHST_DATA_NULL = 0,
+
+  RHST_DATA_DICT = 1,
+  RHST_DATA_ARRAY = 2,
+  RHST_DATA_ARRAY_DYNAMIC = 3,
+
+  RHST_DATA_END_DICT = 4,
+  RHST_DATA_END_ARRAY = 5,
+  RHST_DATA_END_ARRAY_DYNAMIC = 6,
+
+  RHST_DATA_STRING = 7,
+  RHST_DATA_S32 = 8,
+  RHST_DATA_F32 = 9
+};
+
+class RHSTReader {
+public:
+  RHSTReader(std::span<const u8> file_data)
+      : mReader(file_data, "Unknown Path", std::endian::little) {
+    mReader.skip(8);
+  }
+  ~RHSTReader() = default;
+
+  //! A null token. Signifies termination of the file.
+  struct NullToken
+      : public rsl::kawaiiTag<RHSTToken, RHSTToken::RHST_DATA_NULL> {};
+
+  //! A string token. An inline string will directly succeed it.
+  struct StringToken
+      : public rsl::kawaiiTag<RHSTToken, RHSTToken::RHST_DATA_STRING> {
+    std::string_view data{};
+  };
+
+  //! A 32-bit signed integer token.
+  struct S32Token : public rsl::kawaiiTag<RHSTToken, RHSTToken::RHST_DATA_S32> {
+    s32 data = -1;
+  };
+
+  //! A 32-bit floating-point token.
+  struct F32Token : public rsl::kawaiiTag<RHSTToken, RHSTToken::RHST_DATA_F32> {
+    f32 data = 0.0f;
+  };
+
+  //! Signifies that a dictionary will follow.
+  struct DictBeginToken
+      : public rsl::kawaiiTag<RHSTToken, RHSTToken::RHST_DATA_DICT> {
+    std::string_view name;
+    u32 size = 0;
+  };
+
+  //! Signifies that a dictionary is over. Redundancy
+  struct DictEndToken
+      : public rsl::kawaiiTag<RHSTToken, RHSTToken::RHST_DATA_END_DICT> {};
+
+  //! Signifies that an array will follow.
+  struct ArrayBeginToken
+      : public rsl::kawaiiTag<RHSTToken, RHSTToken::RHST_DATA_ARRAY> {
+    u32 size = 0;
+  };
+
+  //! Signifies that an array is over. Redundancy
+  struct ArrayEndToken
+      : public rsl::kawaiiTag<RHSTToken, RHSTToken::RHST_DATA_END_ARRAY> {};
+
+  //! Any token	of the many supported.
+  struct Token : public rsl::kawaiiUnion<RHSTToken,
+                                         // All token types
+                                         NullToken, StringToken, S32Token,
+                                         F32Token, DictBeginToken, DictEndToken,
+                                         ArrayBeginToken, ArrayEndToken> {};
+
+  [[nodiscard]] Result<void> readTok() {
+    mLastToken = TRY(_readTok());
+    return {};
+  }
+  Token get() const { return mLastToken; }
+
+  template <typename T> Result<const T*> expect() {
+    TRY(readTok());
+    return rsl::dyn_cast<T>(mLastToken);
+  }
+
+  Result<bool> expectSimple(RHSTToken type) {
+    TRY(readTok());
+    return mLastToken.getType() == type;
+  }
+
+  Result<bool> expectString() {
+    return expectSimple(RHSTToken::RHST_DATA_STRING);
+  }
+  Result<bool> expectInt() { return expectSimple(RHSTToken::RHST_DATA_S32); }
+  Result<bool> expectFloat() { return expectSimple(RHSTToken::RHST_DATA_F32); }
+
+private:
+  Result<std::string_view> _readString() {
+    const u32 string_len = TRY(mReader.tryRead<u32>());
+    const u32 start_start_pos = mReader.tell();
+    mReader.skip(roundUp(string_len, 4));
+
+    const char* string_begin =
+        reinterpret_cast<const char*>(mReader.getStreamStart()) +
+        start_start_pos;
+    std::string_view data{string_begin, string_len};
+
+    return data;
+  }
+
+  Result<Token> _readTok() {
+    const RHSTToken type =
+        TRY(rsl::enum_cast<RHSTToken>(TRY(mReader.tryRead<s32>())));
+
+    switch (type) {
+    case RHSTToken::RHST_DATA_STRING: {
+      std::string_view data = TRY(_readString());
+
+      return Token{StringToken{.data = data}};
+    }
+    case RHSTToken::RHST_DATA_S32: {
+      const s32 data = TRY(mReader.tryRead<s32>());
+
+      return Token{S32Token{.data = data}};
+    }
+    case RHSTToken::RHST_DATA_F32: {
+      const f32 data = TRY(mReader.tryRead<f32>());
+
+      return Token{F32Token{.data = data}};
+    }
+    case RHSTToken::RHST_DATA_DICT: {
+      const u32 nchildren = TRY(mReader.tryRead<u32>());
+      std::string_view name = TRY(_readString());
+
+      return Token{DictBeginToken{.name = name, .size = nchildren}};
+    }
+    case RHSTToken::RHST_DATA_END_DICT: {
+      return Token{DictEndToken{}};
+    }
+    case RHSTToken::RHST_DATA_ARRAY: {
+      const u32 nchildren = TRY(mReader.tryRead<u32>());
+      [[maybe_unused]] const u32 child_type = TRY(mReader.tryRead<u32>());
+
+      return Token{ArrayBeginToken{.size = nchildren}};
+    }
+    case RHSTToken::RHST_DATA_END_ARRAY: {
+      return Token{ArrayEndToken{}};
+    }
+    default:
+    case RHSTToken::RHST_DATA_NULL: {
+      return Token{NullToken{}};
+    }
+    }
+  }
+
+private:
+  oishii::BinaryReader mReader;
+  Token mLastToken{NullToken{}};
+};
+
+class SceneTreeReader {
+public:
+  SceneTreeReader(RHSTReader& reader) : mReader(reader) {}
+
+  template <typename T> Result<void> arrayIter(T functor) {
+    auto* array_begin = TRY(mReader.expect<RHSTReader::ArrayBeginToken>());
+    if (array_begin == nullptr)
+      return std::unexpected("Expected an array");
+
+    auto begin_data = *array_begin;
+
+    for (int i = 0; i < begin_data.size; ++i) {
+      if (!functor(i))
+        return std::unexpected("Functor returned false");
+    }
+
+    auto* array_end = TRY(mReader.expect<RHSTReader::ArrayEndToken>());
+    if (array_end == nullptr)
+      return std::unexpected("Array terminator Result<void>");
+
+    return {};
+  }
+
+  template <typename T> Result<void> dictIter(T functor) {
+    auto* begin = TRY(mReader.expect<RHSTReader::DictBeginToken>());
+    if (begin == nullptr)
+      return std::unexpected("Expected a dictionary");
+
+    // begin, the pointer, will be invalidated by future calls.
+    auto begin_data = *begin;
+
+    for (int i = 0; i < begin_data.size; ++i) {
+      if (!functor(begin_data.name, i))
+        return std::unexpected("std::unexpected");
+    }
+
+    auto* end = TRY(mReader.expect<RHSTReader::DictEndToken>());
+    if (end == nullptr)
+      return std::unexpected("std::unexpected");
+
+    return {};
+  }
+
+  Result<void> read() {
+    return dictIter(
+        [&](std::string_view domain, int index) { return readRHSTSubNode(); });
+  }
+  Result<void> readRHSTSubNode() {
+    return dictIter([&](std::string_view domain, int index) -> Result<void> {
+      if (domain == "head") {
+        return readMetaData();
+      }
+      if (domain == "body") {
+        return readData();
+      }
+
+      return {};
+    });
+  }
+
+  Result<void> readMetaData() {
+    return dictIter([&](std::string_view key, int index) -> Result<void> {
+      auto* value = TRY(mReader.expect<RHSTReader::StringToken>());
+
+      if (value == nullptr)
+        return std::unexpected("std::unexpected");
+
+      if (key == "generator") {
+        mBuilding.meta_data.exporter = value->data;
+        return {};
+      }
+      if (key == "type") {
+        mBuilding.meta_data.format = value->data;
+        return {};
+      }
+      if (key == "version") {
+        mBuilding.meta_data.exporter_version = value->data;
+        return {};
+      }
+      if (key == "name") {
+        return {};
+      }
+
+      return std::unexpected("Unsupported metadata trait");
+    });
+  }
+
+  Result<void> readData() {
+    return dictIter([&](std::string_view key, int index) -> Result<void> {
+      if (key == "name") {
+        auto ok = TRY(mReader.expectString());
+        EXPECT(ok);
+        return {};
+      }
+
+      if (key == "bones") {
+        return readBones();
+      }
+
+      if (key == "polygons") {
+        return readMeshes();
+      }
+
+      if (key == "materials") {
+        return readMaterials();
+      }
+
+      // no-op for now
+      if (key == "weights") {
+        return readWeights();
+      }
+
+      return std::unexpected("Unknown section");
+    });
+  }
+
+  Result<void> readWeights() {
+    return arrayIter([&](int index) { return readWeight(index); });
+  }
+
+  Result<void> readWeight(int index) {
+    WeightMatrix matrix{};
+    // influences
+    TRY(arrayIter([&](int index) -> Result<void> {
+      // a single influence
+      std::array<s32, 2> data;
+      if (!arrayIter(
+              [&](int index) -> Result<void> { return readInt(data[index]); }))
+        return std::unexpected("Failed to read weight");
+
+      matrix.weights.push_back(
+          Weight{.bone_index = data[0], .influence = data[1]});
+      return {};
+    }));
+    mBuilding.weights.push_back(matrix);
+
+    return {};
+  }
+
+  Result<void> readBones() {
+    return arrayIter([&](int index) { return readBone(index); });
+  }
+
+  Result<void> readBone(int index) {
+    Bone bone{};
+    TRY(stringKeyIter([&](std::string_view key, int index) -> Result<void> {
+      if (key == "name") {
+        auto* str = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!str)
+          return std::unexpected("Expected a string");
+
+        bone.name = str->data;
+        return {};
+      }
+
+      auto read_billboard_mode = [](const auto& str) {
+        if (str == "y_face")
+          return BillboardMode::Y_Face;
+        if (str == "y_parallel")
+          return BillboardMode::Y_Parallel;
+        if (str == "z_face")
+          return BillboardMode::Z_Face;
+        if (str == "z_parallel")
+          return BillboardMode::Z_Parallel;
+        if (str == "zrotate_face")
+          return BillboardMode::ZRotate_Face;
+        if (str == "zrotate_parallel")
+          return BillboardMode::ZRotate_Parallel;
+        if (str == "none")
+          return BillboardMode::None;
+        return BillboardMode::None;
+      };
+      if (key == "billboard") {
+        auto* tok = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!tok)
+          return std::unexpected("Expected a string");
+
+        bone.billboard_mode = read_billboard_mode(tok->data);
+
+        return {};
+      }
+
+      if (key == "parent") {
+        return readInt(bone.parent);
+      }
+
+      if (key == "child") {
+        int child = -1;
+        TRY(readInt(child));
+        if (child != -1) {
+          bone.child.push_back(child);
+        }
+        return {};
+      }
+
+      if (key == "scale") {
+        return readVec3(bone.scale);
+      }
+      if (key == "rotate") {
+        return readVec3(bone.rotate);
+      }
+      if (key == "translate") {
+        return readVec3(bone.translate);
+      }
+
+      if (key == "min") {
+        return readVec3(bone.min);
+      }
+      if (key == "max") {
+        return readVec3(bone.max);
+      }
+
+      if (key == "draws") {
+        return arrayIter([&](int index) -> Result<void> {
+          std::array<s32, 3> vals;
+          if (!readIntArray(vals))
+            return std::unexpected("Unable to read draw call");
+
+          bone.draw_calls.push_back(DrawCall{
+              .mat_index = vals[0], .poly_index = vals[1], .prio = vals[2]});
+
+          return {};
+        });
+      }
+
+      return std::unexpected("unexpected key");
+    }));
+
+    mBuilding.bones.push_back(bone);
+
+    return {};
+  }
+
+  Result<void> readMaterials() {
+    return arrayIter([&](int index) { return readMaterial(index); });
+  }
+
+  Result<void> readMaterial(int index) {
+    ProtoMaterial material{};
+    TRY(stringKeyIter([&](std::string_view key, int index) -> Result<void> {
+      if (key == "name") {
+        auto* str = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!str)
+          return std::unexpected("Expected a string");
+
+        material.name = str->data;
+        return {};
+      }
+
+      if (key == "texture") {
+        return readString(material.texture_name);
+      }
+
+      auto wrap_mode_from_string = [](const auto& str) {
+        if (str == "repeat")
+          return WrapMode::Repeat;
+        if (str == "mirror")
+          return WrapMode::Mirror;
+        if (str == "clamp")
+          return WrapMode::Clamp;
+
+        return WrapMode::Clamp;
+      };
+      if (key == "wrap_u") {
+        auto* tok = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!tok)
+          return std::unexpected("Expected a string");
+        material.wrap_u = wrap_mode_from_string(tok->data);
+        return {};
+      }
+      if (key == "wrap_v") {
+        auto* tok = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!tok)
+          return std::unexpected("Expected a string");
+        material.wrap_v = wrap_mode_from_string(tok->data);
+        return {};
+      }
+      if (key == "display_front") {
+        auto* tok = TRY(mReader.expect<RHSTReader::S32Token>());
+        if (!tok)
+          return std::unexpected("Expected a s32");
+        material.show_front = tok->data != 0;
+        return {};
+      }
+      if (key == "display_back") {
+        auto* tok = TRY(mReader.expect<RHSTReader::S32Token>());
+        if (!tok)
+          return std::unexpected("Expected a s32");
+        material.show_back = tok->data != 0;
+        return {};
+      }
+      if (key == "pe") {
+        auto* tok = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!tok)
+          return std::unexpected("Expected a string");
+
+        if (tok->data == "opaque") {
+          material.alpha_mode = AlphaMode::Opaque;
+          return {};
+        } else if (tok->data == "outline") {
+          material.alpha_mode = AlphaMode::Clip;
+          return {};
+        } else if (tok->data == "translucent") {
+          material.alpha_mode = AlphaMode::Translucent;
+          return {};
+        }
+
+        return std::unexpected("Invalid alpha mode");
+      }
+      if (key == "lightset") {
+        return readInt(material.lightset_index);
+      }
+      if (key == "fog") {
+        return readInt(material.fog_index);
+      }
+
+      if (key == "preset_path_mdl0mat") {
+        return readString(material.preset_path_mdl0mat);
+      }
+
+      return std::unexpected("unexpected key");
+    }));
+
+    mBuilding.materials.push_back(material);
+
+    return {};
+  }
+
+  Result<void> readMeshes() {
+    return arrayIter([&](int index) { return readMesh(index); });
+  }
+
+  Result<void> readMesh(int index) {
+    Mesh mesh{};
+    TRY(stringKeyIter([&](std::string_view key, int index) -> Result<void> {
+      if (key == "name") {
+        auto* str = TRY(mReader.expect<RHSTReader::StringToken>());
+        if (!str)
+          return std::unexpected("Expected a string");
+
+        mesh.name = str->data;
+        return {};
+      }
+
+      if (key == "primitive_type") {
+        TRY(mReader.readTok());
+        return {};
+      }
+
+      if (key == "current_matrix") {
+        return readInt(mesh.current_matrix);
+      }
+
+      if (key == "facepoint_format") {
+        std::array<s32, 21> vcd;
+        if (!readIntArray(vcd))
+          return std::unexpected("Failed to read VCD");
+
+        u32 vcd_bits = 0;
+        for (int i = 0; i < vcd.size(); ++i) {
+          vcd_bits |= vcd[i] != 0 ? (1 << i) : 0;
+        }
+
+        mesh.vertex_descriptor = vcd_bits;
+        return {};
+      }
+
+      if (key == "matrix_primitives") {
+        return readMatrixPrimitives(mesh.matrix_primitives,
+                                    mesh.vertex_descriptor);
+      }
+
+      return std::unexpected("Unexpected value");
+    }));
+
+    mBuilding.meshes.push_back(mesh);
+
+    return {};
+  }
+
+  Result<void> readMatrixPrimitives(std::vector<MatrixPrimitive>& out,
+                                    u32 vcd) {
+    MatrixPrimitive cur;
+    TRY(arrayIter([&](int index) { return readMatrixPrimitive(cur, vcd); }));
+    out.push_back(cur);
+    return {};
+  }
+
+  Result<void> readMatrixPrimitive(MatrixPrimitive& out, u32 vcd) {
+    return stringKeyIter([&](std::string_view key, int index) -> Result<void> {
+      if (key == "name") {
+        mReader.expect<RHSTReader::StringToken>();
+
+        return {};
+      }
+
+      if (key == "matrix") {
+        return readIntArray(out.draw_matrices);
+      }
+
+      if (key == "primitives") {
+        return readPrimitives(out.primitives, vcd);
+      }
+
+      return std::unexpected("unexpected value");
+    });
+  }
+
+  Result<void> readPrimitives(std::vector<Primitive>& out, u32 vcd) {
+    Primitive cur;
+    TRY(arrayIter([&](int index) { return readPrimitive(cur, vcd); }));
+    out.push_back(cur);
+    return {};
+  }
+
+  Result<void> readPrimitive(Primitive& out, u32 vcd) {
+    return stringKeyIter([&](std::string_view key, int index) -> Result<void> {
+      if (key == "name") {
+        TRY(mReader.expect<RHSTReader::StringToken>());
+
+        return {};
+      }
+
+      if (key == "primitive_type") {
+        auto* prim_type = TRY(mReader.expect<RHSTReader::StringToken>());
+
+        if (!prim_type)
+          return std::unexpected("Expected a primitive type");
+
+        if (prim_type->data == "triangles") {
+          out.topology = Topology::Triangles;
+          return {};
+        }
+        if (prim_type->data == "triangle_strips") {
+          out.topology = Topology::TriangleStrip;
+          return {};
+        }
+        if (prim_type->data == "triangle_fans") {
+          out.topology = Topology::TriangleFan;
+          return {};
+        }
+
+        return std::unexpected("Invalid topology type");
+      }
+
+      if (key == "facepoints") {
+        return readVertices(out.vertices, vcd);
+      }
+
+      return std::unexpected("Unexpected value");
+    });
+  }
+
+  Result<void> readVertices(std::vector<Vertex>& out, u32 vcd) {
+    auto* begin = TRY(mReader.expect<RHSTReader::ArrayBeginToken>());
+    if (!begin)
+      return std::unexpected("Expeted array begin");
+    out.resize(begin->size);
+    for (auto& v : out) {
+      if (!readVertex(v, vcd)) {
+        return std::unexpected("Failed to read vert");
+      }
+    }
+    auto* end = TRY(mReader.expect<RHSTReader::ArrayEndToken>());
+    if (!end)
+      return std::unexpected("Expected array end");
+
+    return {};
+  }
+
+  Result<void> readVertex(Vertex& out, u32 vcd) {
+    int vcd_cursor = 0; // LSB
+
+    return arrayIter([&](int index) -> Result<void> {
+      while ((vcd & (1 << vcd_cursor)) == 0) {
+        ++vcd_cursor;
+
+        if (vcd_cursor >= 21) {
+          return std::unexpected("Missing vertex data");
+        }
+      }
+      const int cur_attr = vcd_cursor;
+      ++vcd_cursor;
+
+      if (cur_attr == 9) {
+        return readVec3(out.position);
+      } else if (cur_attr == 10) {
+        return readVec3(out.normal);
+      } else if (cur_attr >= 11 && cur_attr <= 12) {
+        const int color_index = cur_attr - 11;
+        return readVec4(out.colors[color_index]);
+      } else if (cur_attr >= 13 && cur_attr <= 20) {
+        const int uv_index = cur_attr - 13;
+        return readVec2(out.uvs[uv_index]);
+      }
+
+      return std::unexpected("unexpected value");
+    });
+  }
+
+  Result<void> readString(std::string& out) {
+    auto* val = TRY(mReader.expect<RHSTReader::StringToken>());
+    if (!val)
+      return std::unexpected("Expected a string");
+
+    out = val->data;
+    return {};
+  }
+
+  Result<void> readInt(s32& out) {
+    auto* val = TRY(mReader.expect<RHSTReader::S32Token>());
+    if (!val)
+      return std::unexpected("Expected a S32");
+
+    out = val->data;
+    return {};
+  }
+  Result<void> readFloat(f32& out) {
+    auto* val = TRY(mReader.expect<RHSTReader::F32Token>());
+    if (!val)
+      return std::unexpected("Expected a F32");
+
+    out = val->data;
+    return {};
+  }
+  Result<void> readNumber(f32& out) {
+    TRY(mReader.readTok());
+    auto tok = mReader.get();
+
+    {
+      auto* f32_val = rsl::dyn_cast<RHSTReader::F32Token>(tok);
+      if (f32_val) {
+        out = f32_val->data;
+        return {};
+      }
+    }
+
+    {
+      auto* s32_val = rsl::dyn_cast<RHSTReader::S32Token>(tok);
+      if (s32_val) {
+        out = s32_val->data;
+        return {};
+      }
+    }
+
+    return std::unexpected("Expected a number");
+  }
+  Result<void> readVec2(glm::vec2& out) {
+    return arrayIter(
+        [&](int v_index) -> Result<void> { return readNumber(out[v_index]); });
+  }
+  Result<void> readVec3(glm::vec3& out) {
+    return arrayIter(
+        [&](int v_index) -> Result<void> { return readNumber(out[v_index]); });
+  }
+  Result<void> readVec4(glm::vec4& out) {
+    return arrayIter(
+        [&](int v_index) -> Result<void> { return readNumber(out[v_index]); });
+  }
+
+  template <size_t N> Result<void> readIntArray(std::array<s32, N>& out) {
+    return arrayIter([&](int v_index) { return readInt(out[v_index]); });
+  }
+
+  template <typename T> Result<void> stringKeyIter(T functor) {
+    return dictIter([&](std::string_view root, int index) -> Result<void> {
+      auto* begin = TRY(mReader.expect<RHSTReader::DictBeginToken>());
+      if (!begin)
+        return std::unexpected("Expected a dictionary");
+
+      auto begin_data = *begin;
+
+      if (!functor(begin_data.name, index))
+        return std::unexpected("Functor returned false");
+
+      auto* end = TRY(mReader.expect<RHSTReader::DictEndToken>());
+      if (!end)
+        return std::unexpected("Expected a dictionary terminator");
+
+      return {};
+    });
+  }
+
+  SceneTree&& getResult() { return std::move(mBuilding); }
+
+private:
+  RHSTReader& mReader;
+  SceneTree mBuilding;
+};
+
 class JsonSceneTreeReader {
 public:
   JsonSceneTreeReader(const std::string& data)
@@ -227,8 +975,8 @@ public:
           b.preset_path_mdl0mat =
               get<std::string>(mat, "preset_path_mdl0mat").value_or("");
 
-		  // Swap Table
-		  if (mat.contains("swap_table") && mat["swap_table"].is_array()) {
+          // Swap Table
+          if (mat.contains("swap_table") && mat["swap_table"].is_array()) {
             auto swap = mat["swap_table"];
             int i = 0;
             for (auto entry : swap) {
@@ -249,39 +997,38 @@ public:
                       cap(get<std::string>(entry, "alpha").value_or("Alpha")))
                       .value_or(Colors::Alpha);
               i++;
-			}
+            }
           }
 
-		  // TEV
+          // TEV
           if (mat.contains("tev") && mat["tev"].is_array()) {
             auto tevs = mat["tev"];
-            if (int a = tevs.size() > 16) {
+            if (tevs.size() > 16) {
               rsl::error("Too many TEV Stages: {} (Max 16)", tevs.size());
             } else {
               for (auto st : tevs) {
                 auto& stage = b.tev_stages.emplace_back();
 
-				stage.ras_channel = magic_enum::enum_cast<ColorSelChan>(
-                                        get<std::string>(st, "channel")
-                                                .value_or("color0a0"))
-                                        .value_or(ColorSelChan::color0a0);
+                stage.ras_channel =
+                    magic_enum::enum_cast<ColorSelChan>(
+                        get<std::string>(st, "channel").value_or("color0a0"))
+                        .value_or(ColorSelChan::color0a0);
                 stage.tex_map = get<u8>(st, "sampler").value_or(0);
                 stage.ras_swap = get<u8>(st, "ras_swap").value_or(0);
                 stage.tex_map_swap = get<u8>(st, "sampler_swap").value_or(0);
 
                 auto c_stage = stage.color_stage;
-                c_stage.constant_sel = magic_enum::enum_cast<TevKColorSel>(
-                                           get<std::string>(st, "c_konst")
-                                                   .value_or("const_1_8"))
-                                           .value_or(TevKColorSel::const_1_8);
-                c_stage.formula = magic_enum::enum_cast<TevColorOp>(
-                                      get<std::string>(st, "c_formula")
-                                              .value_or("add"))
-                                      .value_or(TevColorOp::add);
+                c_stage.constant_sel =
+                    magic_enum::enum_cast<TevKColorSel>(
+                        get<std::string>(st, "c_konst").value_or("const_1_8"))
+                        .value_or(TevKColorSel::const_1_8);
+                c_stage.formula =
+                    magic_enum::enum_cast<TevColorOp>(
+                        get<std::string>(st, "c_formula").value_or("add"))
+                        .value_or(TevColorOp::add);
                 c_stage.a =
                     magic_enum::enum_cast<TevColorArg>(
-                                      get<std::string>(st, "c_sel_a")
-                                              .value_or("zero"))
+                        get<std::string>(st, "c_sel_a").value_or("zero"))
                         .value_or(TevColorArg::zero);
                 c_stage.b =
                     magic_enum::enum_cast<TevColorArg>(
@@ -303,19 +1050,18 @@ public:
                     magic_enum::enum_cast<TevScale>(
                         get<std::string>(st, "c_scale").value_or("scale_1"))
                         .value_or(TevScale::scale_1);
-                c_stage.out = magic_enum::enum_cast<TevReg>(
-                                    get<std::string>(st, "c_out")
-                                            .value_or("reg3"))
-                                  .value_or(TevReg::reg3);
+                c_stage.out =
+                    magic_enum::enum_cast<TevReg>(
+                        get<std::string>(st, "c_out").value_or("reg3"))
+                        .value_or(TevReg::reg3);
                 c_stage.clamp = get<bool>(st, "c_output_clamp").value_or(true);
                 stage.color_stage = c_stage;
 
-				auto a_stage = stage.alpha_stage;
+                auto a_stage = stage.alpha_stage;
                 a_stage.constant_sel =
                     magic_enum::enum_cast<TevKAlphaSel>(
-                                           get<std::string>(st, "a_konst")
-                                                   .value_or("const_1_8"))
-                                        .value_or(TevKAlphaSel::const_1_8);
+                        get<std::string>(st, "a_konst").value_or("const_1_8"))
+                        .value_or(TevKAlphaSel::const_1_8);
                 a_stage.formula =
                     magic_enum::enum_cast<TevAlphaOp>(
                         get<std::string>(st, "a_formula").value_or("add"))
@@ -340,24 +1086,21 @@ public:
                     magic_enum::enum_cast<TevBias>(
                         get<std::string>(st, "a_bias").value_or("zero"))
                         .value_or(TevBias::zero);
-                a_stage.scale = magic_enum::enum_cast<TevScale>(
-                                    get<std::string>(st, "a_scale")
-                                            .value_or("scale_1"))
-                                    .value_or(TevScale::scale_1);
+                a_stage.scale =
+                    magic_enum::enum_cast<TevScale>(
+                        get<std::string>(st, "a_scale").value_or("scale_1"))
+                        .value_or(TevScale::scale_1);
                 a_stage.out =
                     magic_enum::enum_cast<TevReg>(
                         get<std::string>(st, "a_out").value_or("reg3"))
                         .value_or(TevReg::reg3);
                 a_stage.clamp = get<bool>(st, "a_output_clamp").value_or(true);
                 stage.alpha_stage = a_stage;
-
               }
-			}
+            }
+          }
 
-		  }
-
-          if (mat.contains("samplers") &&
-              mat["samplers"].is_array()) {
+          if (mat.contains("samplers") && mat["samplers"].is_array()) {
             auto samplers = mat["samplers"];
             for (auto sam : samplers) {
               auto& sampler = b.samplers.emplace_back();
@@ -386,6 +1129,16 @@ public:
                   get<int>(sam, "mapping_light_index").value_or(-1);
               sampler.camera_index =
                   get<int>(sam, "mapping_cam_index").value_or(-1);
+
+              // Matrix
+              if (sam.contains("transformations")) {
+                auto trans = sam["transformations"];
+                sampler.scale =
+                    getVec2(trans, "scale").value_or(glm::vec2(1.0f));
+                sampler.rotate = get<f32>(trans, "rotate").value_or(0.0f);
+                sampler.trans =
+                    getVec2(trans, "translate").value_or(glm::vec2(0.0f));
+              }
             }
           } else {
             b.min_filter = get<bool>(mat, "min_filter").value_or(true);
@@ -402,7 +1155,6 @@ public:
                 magic_enum::enum_cast<WrapMode>(
                     cap(get<std::string>(mat, "wrap_v").value_or("Repeat")))
                     .value_or(WrapMode::Repeat);
-
           }
           // TEV Colors
           if (mat.contains("tev_colors") && mat["tev_colors"].is_array()) {
@@ -414,7 +1166,7 @@ public:
             }
           }
           if (mat.contains("tev_konst_colors") &&
-            mat["tev_konst_colors"].is_array()) {
+              mat["tev_konst_colors"].is_array()) {
             auto cols = mat["tev_konst_colors"];
             int P = 0;
             for (int i = 0; i < 4; i++) {

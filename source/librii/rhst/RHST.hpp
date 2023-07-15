@@ -108,7 +108,11 @@ enum class Mapping {
   Projection,
 };
 
-enum class WrapMode { Repeat, Mirror, Clamp };
+enum class WrapMode {
+  Repeat,
+  Mirror,
+  Clamp,
+};
 
 enum class AlphaMode {
   Opaque,
