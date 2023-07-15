@@ -1,7 +1,7 @@
 #include "SupportedFiles.hpp"
 #include <core/common.h>
 
-IMPORT_STD;
+#include <algorithm>
 
 namespace librii::assimp2rhst {
 

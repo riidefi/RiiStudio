@@ -3,6 +3,7 @@
 #include <core/common.h>
 #include <glm/mat4x3.hpp>
 #include <glm/mat4x4.hpp>
+#include <optional>
 
 #include <librii/g3d/data/ModelData.hpp> // ScalingRule
 

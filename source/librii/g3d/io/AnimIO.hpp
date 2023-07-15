@@ -9,6 +9,7 @@
 #include <map>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
+#include <rsl/ArrayUtil.hpp>
 #include <rsl/SafeReader.hpp>
 #include <string>
 #include <variant>

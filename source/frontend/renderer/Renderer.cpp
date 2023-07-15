@@ -3,7 +3,6 @@
 #endif
 #include "Renderer.hpp"
 #include <core/3d/gl.hpp>    // glPolygonMode
-#include <frontend/root.hpp> // RootWindow
 #include <imcxx/Widgets.hpp>
 #include <librii/glhelper/Util.hpp> // librii::glhelper::SetGlWireframe
 

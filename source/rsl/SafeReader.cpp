@@ -1,5 +1,8 @@
 #include "SafeReader.hpp"
 
+#include <algorithm>
+#include <ranges>
+
 namespace rsl {
 
 // Slicing shouldn't fail, python approach. Just returns a null span.

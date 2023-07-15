@@ -1,6 +1,7 @@
 #include <core/3d/gl.hpp>
 
 #include "EditorFactory.hpp"
+#include "IEditor.hpp"
 #include "root.hpp"
 #include <core/util/timestamp.hpp>
 #include <frontend/Fonts.hpp>
@@ -11,8 +12,6 @@
 #include <imgui_markdown.h>
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
-#include <plugins/g3d/collection.hpp>
-#include <plugins/j3d/Scene.hpp>
 #include <rsl/Discord.hpp>
 #include <rsl/FsDialog.hpp>
 #include <rsl/LeakDebug.hpp>

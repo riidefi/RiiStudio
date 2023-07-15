@@ -1,9 +1,10 @@
 #include <core/common.h>
 #include <rsl/Crc32.hpp>
 
-IMPORT_STD;
+#include <algorithm>
 #include <fstream>
 #include <mutex>
+#include <optional>
 
 namespace riistudio {
 

@@ -2,6 +2,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <rsl/Defer.hpp>
 
+#include <frontend/legacy_editor/EditorWindow.hpp>
 #include <frontend/root.hpp>
 
 namespace riistudio::frontend {

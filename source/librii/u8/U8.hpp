@@ -2,6 +2,7 @@
 
 #include <array>
 #include <core/common.h>
+#include <filesystem>
 #include <span>
 #include <string>
 #include <vector>

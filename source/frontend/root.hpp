@@ -13,8 +13,6 @@
 
 #include <frontend/DiscordRPCManager.hpp>
 
-#include <frontend/legacy_editor/EditorWindow.hpp>
-
 namespace riistudio::frontend {
 
 class RootWindow final : public Applet, public FileHost {

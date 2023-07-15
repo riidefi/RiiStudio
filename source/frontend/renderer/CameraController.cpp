@@ -1,4 +1,5 @@
 #include "CameraController.hpp"
+#include <algorithm>
 #include <core/common.h>
 #include <glm/gtx/euler_angles.hpp>
 #include <imgui/imgui.h>

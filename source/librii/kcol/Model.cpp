@@ -1,4 +1,5 @@
 #include "Model.hpp"
+#include <algorithm>
 #include <math.h>
 
 IMPORT_STD;

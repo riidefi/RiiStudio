@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <filesystem>
 #include <librii/g3d/data/MaterialData.hpp>
 #include <librii/g3d/data/TextureData.hpp>
 #include <librii/g3d/io/AnimClrIO.hpp>

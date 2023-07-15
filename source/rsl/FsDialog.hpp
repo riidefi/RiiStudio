@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <filesystem>
 #include <rsl/Expected.hpp>
 
 #include <fmt/core.h>

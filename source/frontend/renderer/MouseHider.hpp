@@ -1,7 +1,5 @@
 #pragma once
 
-#include <frontend/root.hpp> // RootWindow
-
 namespace riistudio::frontend {
 
 struct MouseHider {
@@ -9,8 +7,8 @@ struct MouseHider {
   // window.
   ~MouseHider() { show(); }
 
-  void show() { RootWindow::spInstance->showMouse(); }
-  void hide() { RootWindow::spInstance->hideMouse(); }
+  void show();
+  void hide();
 
   // Returns whether to camera process
   bool begin_interaction(bool focused) {

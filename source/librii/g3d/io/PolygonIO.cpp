@@ -1,6 +1,7 @@
 #include "PolygonIO.hpp"
 #include <librii/gpu/DLBuilder.hpp>
 #include <librii/gpu/DLInterpreter.hpp>
+#include <rsl/ArrayUtil.hpp>
 
 namespace librii::g3d {
 
