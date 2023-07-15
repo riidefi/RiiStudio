@@ -4,6 +4,7 @@ We simply check: Can all field artifacts be rebuilt losslessly?
 '''
 
 import os
+from timeit import default_timer as timer
 
 # "input_hash": "output_hash", # course_model0.brres
 TEST_DATA = {
@@ -154,7 +155,11 @@ def run_test(test_exec, rszst, path, out_path):
 	bps = []
 	if md5 in BREAKPOINTS:
 		bps = BREAKPOINTS[md5]
+
+	start = timer()
 	rebuild(test_exec, rszst, path, rebuild_path, md5 == expected, bps)
+	end = timer()
+	elapsed = end - start
 
 	if not os.path.isfile(rebuild_path):
 		print("Error: %s Rebuilding did not produce any file" % pretty_path(path))
@@ -171,7 +176,7 @@ def run_test(test_exec, rszst, path, out_path):
 		print("--> Expected: %s" % expected)
 		print("--> Actual:   %s" % actual)
 	else:
-		print("%s: Success" % pretty_path(path))
+		print("%s: Success in %s seconds" % (pretty_path(path), elapsed))
 
 	# os.remove(rebuild_path)
 
