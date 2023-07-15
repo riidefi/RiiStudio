@@ -1,4 +1,3 @@
-use libc::{c_uint, c_void, size_t};
 use std::slice;
 
 pub mod librii {
@@ -244,132 +243,132 @@ pub mod librii {
 
 #[no_mangle]
 pub unsafe extern "C" fn rii_encode_cmpr(
-    dst: *mut c_void,
-    dst_len: size_t,
-    src: *const c_void,
-    src_len: size_t,
-    width: c_uint,
-    height: c_uint,
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+    width: u32,
+    height: u32,
 ) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len);
+    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
     librii::rii_encode_cmpr(dst_slice, src_slice, width, height);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rii_encode_i4(
-    dst: *mut c_void,
-    dst_len: size_t,
-    src: *const c_void,
-    src_len: size_t,
-    width: c_uint,
-    height: c_uint,
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+    width: u32,
+    height: u32,
 ) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len);
+    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
     librii::rii_encode_i4(dst_slice, src_slice, width, height);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rii_encode_i8(
-    dst: *mut c_void,
-    dst_len: size_t,
-    src: *const c_void,
-    src_len: size_t,
-    width: c_uint,
-    height: c_uint,
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+    width: u32,
+    height: u32,
 ) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len);
+    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
     librii::rii_encode_i8(dst_slice, src_slice, width, height);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rii_encode_ia4(
-    dst: *mut c_void,
-    dst_len: size_t,
-    src: *const c_void,
-    src_len: size_t,
-    width: c_uint,
-    height: c_uint,
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+    width: u32,
+    height: u32,
 ) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len);
+    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
     librii::rii_encode_ia4(dst_slice, src_slice, width, height);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rii_encode_ia8(
-    dst: *mut c_void,
-    dst_len: size_t,
-    src: *const c_void,
-    src_len: size_t,
-    width: c_uint,
-    height: c_uint,
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+    width: u32,
+    height: u32,
 ) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len);
+    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
     librii::rii_encode_ia8(dst_slice, src_slice, width, height);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rii_encode_rgb565(
-    dst: *mut c_void,
-    dst_len: size_t,
-    src: *const c_void,
-    src_len: size_t,
-    width: c_uint,
-    height: c_uint,
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+    width: u32,
+    height: u32,
 ) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len);
+    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
     librii::rii_encode_rgb565(dst_slice, src_slice, width, height);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rii_encode_rgb5a3(
-    dst: *mut c_void,
-    dst_len: size_t,
-    src: *const c_void,
-    src_len: size_t,
-    width: c_uint,
-    height: c_uint,
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+    width: u32,
+    height: u32,
 ) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len);
+    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
     librii::rii_encode_rgb5a3(dst_slice, src_slice, width, height);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rii_encode_rgba8(
-    dst: *mut c_void,
-    dst_len: size_t,
-    src: *const c_void,
-    src_len: size_t,
-    width: c_uint,
-    height: c_uint,
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+    width: u32,
+    height: u32,
 ) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len);
+    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
     librii::rii_encode_rgba8(dst_slice, src_slice, width, height);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn rii_decode(
-    dst: *mut c_void,
-    dst_len: size_t,
-    src: *const c_void,
-    src_len: size_t,
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
     width: u32,
     height: u32,
     texformat: u32,
-    tlut: *const c_void,
-    tlut_len: size_t,
+    tlut: *const u8,
+    tlut_len: u32,
     tlutformat: u32,
 ) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len);
-    let tlut_slice = slice::from_raw_parts(tlut as *const u8, tlut_len);
+    let dst_slice = slice::from_raw_parts_mut(dst, dst_len as usize);
+    let src_slice = slice::from_raw_parts(src, src_len as usize);
+    let tlut_slice = slice::from_raw_parts(tlut, tlut_len as usize);
     librii::rii_decode(
         dst_slice, src_slice, width, height, texformat, tlut_slice, tlutformat,
     );
