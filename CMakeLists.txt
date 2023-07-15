@@ -130,7 +130,7 @@ endif()
 
 
 add_compile_definitions(FMT_EXCEPTIONS=0)
-CPMAddPackage("gh:fmtlib/fmt#9.1.0")
+CPMAddPackage("gh:fmtlib/fmt#10.0.0")
 CPMAddPackage("gh:zeux/meshoptimizer#v0.18")
 
 # Doesn't work OOB -- requires exceptions
