@@ -533,6 +533,8 @@ class JRESMaterialPanel(bpy.types.Panel):
 				draw_texture_settings(self, context, smp, box)
 		elif scene.mat_panel_selection == "stages":
 			if len (mat.jres_tev_stages) == 0:
+				row = layout.row()
+				row.operator('rstudio.mat_tev_action', text="Setup TEV").action = 'ADD_RAW'
 				return
 			row = layout.row()
 			split = row.split(factor=0.5)
@@ -736,6 +738,7 @@ class JRESShaderStageAction(bpy.types.Operator):
         items=(
             ('ADD', "Add Stage", ""),
             ('DELETE', "Remove Stage", ""),
+            ('ADD_RAW', "Setup TEV", ""),
         )
     )
 
@@ -755,6 +758,15 @@ class JRESShaderStageAction(bpy.types.Operator):
 			if len(mat.jres_tev_stages) < 16:
 				mat.jres_tev_stages.add()
 				mat.jres_tev_stage_enum = str(len(mat.jres_tev_stages)-1)
+		elif self.action == 'ADD_RAW':
+			new_stage = mat.jres_tev_stages.add()
+			new_stage.c_sel_a = 'zero'
+			new_stage.c_sel_b = 'texc'
+			new_stage.c_sel_c = 'rasc'
+
+			new_stage.a_sel_a = 'zero'
+			new_stage.a_sel_b = 'texa'
+			new_stage.a_sel_c = 'rasa'
 
 		else:
 			if len(mat.jres_tev_stages) > 1:
