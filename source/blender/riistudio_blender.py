@@ -3165,8 +3165,8 @@ def unregister():
 	for c in early_classes:
 		bpy.utils.unregister_class(c)
 
-	bpy.app.handlers.depsgraph_update_post.clear()
-	bpy.app.handlers.frame_change_post.clear()
+	bpy.app.handlers.load_post.remove(on_load_handler)
+	bpy.app.handlers.depsgraph_update_post.remove(on_change_handler)
 
 	MT_file_export = bpy.types.TOPBAR_MT_file_export if BLENDER_28 else bpy.types.INFO_MT_file_export
 	MT_file_export.remove(brres_menu_func_export)
@@ -3176,7 +3176,7 @@ def unregister():
 def main():
 	register()
 	# test call
-	bpy.ops.rstudio.export_brres('INVOKE_DEFAULT')
+	#bpy.ops.rstudio.export_brres('INVOKE_DEFAULT')
 
 if __name__ == "__main__":
 	main()
