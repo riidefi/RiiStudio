@@ -12,6 +12,8 @@
 #include <unordered_map>
 #include <variant>
 
+#include <vendor/llvm/ADT/SmallVector.h>
+
 namespace librii::g3d::gfx {
 
 using namespace riistudio;
@@ -416,11 +418,11 @@ G3DSceneCreateRenderData(riistudio::g3d::Collection& scene);
 
 struct ModelView {
   int model_id = 0;
-  std::vector<const libcube::IBoneDelegate*> bones;
-  std::vector<const libcube::IndexedPolygon*> polys;
-  std::vector<const libcube::IGCMaterial*> mats;
-  std::vector<const libcube::Texture*> textures;
-  std::vector<libcube::DrawMatrix> drawMatrices;
+  llvm::SmallVector<const libcube::IBoneDelegate*, 32> bones;
+  llvm::SmallVector<const libcube::IndexedPolygon*, 32> polys;
+  llvm::SmallVector<const libcube::IGCMaterial*, 32> mats;
+  llvm::SmallVector<const libcube::Texture*, 32> textures;
+  llvm::SmallVector<libcube::DrawMatrix, 32> drawMatrices;
 
   ModelView(const libcube::Model& model, const libcube::Scene& scene) {
     for (auto& x : model.getBones()) {
@@ -435,7 +437,9 @@ struct ModelView {
     for (auto& x : scene.getTextures()) {
       textures.push_back(&x);
     }
-    drawMatrices = model.mDrawMatrices;
+    for (auto& x : model.mDrawMatrices) {
+      drawMatrices.push_back(x);
+    }
   }
 };
 

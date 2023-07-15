@@ -168,6 +168,10 @@ if (UNIX)
   set(LINUX_LIBS curl)
 endif (UNIX)
 
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  set_source_files_properties("g3d/gfx/G3dGfx.cpp" PROPERTIES COMPILE_FLAGS -O2 SKIP_PRECOMPILE_HEADERS ON)
+endif()
+
 target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE fort range-v3 json_struct vendor oishii gctex avir-rs ${LINUX_LIBS})
 
 target_include_directories(librii

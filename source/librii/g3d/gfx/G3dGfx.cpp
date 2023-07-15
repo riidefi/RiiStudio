@@ -25,7 +25,7 @@ using namespace riistudio;
 //
 
 struct Node {
-  ModelView model;
+  ModelView& model;
   const lib3d::Bone& bone;
   const libcube::IGCMaterial& mat;
   const libcube::IndexedPolygon& poly;
@@ -58,7 +58,7 @@ Result<std::vector<glm::mat4>> getPosMtx(const libcube::IndexedPolygon& p,
     libcube::IBoneDelegate& operator[](size_t i) {
       return const_cast<libcube::IBoneDelegate&>(*m.bones[i]);
     }
-    ModelView m;
+    ModelView& m;
   };
   Bones_ bones{model};
 
@@ -153,15 +153,18 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
   }
 
   {
-    int query_min;
 
     for (u32 i = 0; i < 3; ++i) {
-#ifdef RII_GL
-      glGetActiveUniformBlockiv(out.shader_id, i, GL_UNIFORM_BLOCK_DATA_SIZE,
-                                &query_min);
-#endif
+      static std::map<std::pair<u32, u32>, u32> query_mins;
+      std::pair<u32, u32> id{out.shader_id, i};
+      if (!query_mins.contains(id)) {
+        int query_min;
+        glGetActiveUniformBlockiv(out.shader_id, i, GL_UNIFORM_BLOCK_DATA_SIZE,
+                                  &query_min);
+        query_mins[id] = static_cast<u32>(query_min);
+      }
       out.uniform_mins.push_back(
-          {.binding_point = i, .min_size = static_cast<u32>(query_min)});
+          {.binding_point = i, .min_size = query_mins[id]});
     }
   }
 
@@ -219,26 +222,26 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
   }
 
   {
-
-    // WebGL doesn't support binding=n in the shader
+    static std::set<u32> hasUploaded;
+    if (!hasUploaded.contains(out.shader_id)) {
+      // WebGL doesn't support binding=n in the shader
 #if defined(__EMSCRIPTEN__) || defined(__APPLE__)
-    glUniformBlockBinding(
-        out.shader_id, glGetUniformBlockIndex(out.shader_id, "ub_SceneParams"),
-        0);
-    glUniformBlockBinding(
-        out.shader_id,
-        glGetUniformBlockIndex(out.shader_id, "ub_MaterialParams"), 1);
-    glUniformBlockBinding(
-        out.shader_id, glGetUniformBlockIndex(out.shader_id, "ub_PacketParams"),
-        2);
+      glUniformBlockBinding(
+          out.shader_id,
+          glGetUniformBlockIndex(out.shader_id, "ub_SceneParams"), 0);
+      glUniformBlockBinding(
+          out.shader_id,
+          glGetUniformBlockIndex(out.shader_id, "ub_MaterialParams"), 1);
+      glUniformBlockBinding(
+          out.shader_id,
+          glGetUniformBlockIndex(out.shader_id, "ub_PacketParams"), 2);
 #endif // __EMSCRIPTEN__
-
-    const s32 samplerIds[] = {0, 1, 2, 3, 4, 5, 6, 7};
-#ifdef RII_GL
-    glUseProgram(out.shader_id);
-    u32 uTexLoc = glGetUniformLocation(out.shader_id, "u_Texture");
-    glUniform1iv(uTexLoc, 8, samplerIds);
-#endif
+      const s32 samplerIds[] = {0, 1, 2, 3, 4, 5, 6, 7};
+      glUseProgram(out.shader_id);
+      u32 uTexLoc = glGetUniformLocation(out.shader_id, "u_Texture");
+      glUniform1iv(uTexLoc, 8, samplerIds);
+      hasUploaded.insert(out.shader_id);
+    }
   }
 
   return {};
