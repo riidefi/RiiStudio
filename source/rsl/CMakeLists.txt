@@ -12,4 +12,4 @@ add_library(rsl STATIC
  
  "Discord.cpp"
  )
-target_link_libraries(rsl PUBLIC core range-v3 riistudio_rs vendor llvm_sighandler)
+target_link_libraries(rsl PUBLIC core range-v3 riistudio_rs vendor llvm_sighandler c-discord-rich-presence)

@@ -1,0 +1,11 @@
+[package]
+name = "c-discord-rich-presence"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type=["cdylib"]
+
+[dependencies]
+log = "0.4.7"
+discord-rich-presence = "0.2.3"

@@ -7,96 +7,7 @@
 
 #include <string.h>
 
-extern "C" {
-
-struct C_RPC;
-
-C_RPC* rsl_rpc_create(const char* application_id);
-void rsl_rpc_destroy(C_RPC*);
-
-// 0 -> OK, negative -> error
-int rsl_rpc_connect(C_RPC*);
-// Only valid if prior connect call succeeded
-void rsl_rpc_disconnect(C_RPC*);
-// Sets a status. Type of ffi::Activity from FFIActivity.hh
-void rsl_rpc_set_activity(C_RPC*, void* activity);
-// Sets dummy status
-void rsl_rpc_test(C_RPC*);
-}
-
-struct Timestamps_C {
-  int64_t start;
-  int64_t end;
-};
-
-struct Assets_C {
-  const char* large_image;
-  const char* large_text;
-};
-
-struct Button_C {
-  const char* text;
-  const char* link;
-};
-
-struct ButtonVector_C {
-  Button_C* buttons;
-  size_t length;
-};
-
-struct Activity_C {
-  const char* state;
-  const char* details;
-  Timestamps_C timestamps;
-  Assets_C assets;
-  ButtonVector_C buttons;
-};
-
-// Functions to create and destroy the Activity_C struct and to access the
-// fields of the Activity struct
-
-Activity_C* create_activity(const rsl::Activity& activity) {
-  Activity_C* activity_c = new Activity_C;
-
-  // Allocate and copy strings for state and details
-  activity_c->state = strdup(activity.state.c_str());
-  activity_c->details = strdup(activity.details.c_str());
-
-  // Copy timestamps and assets
-  activity_c->timestamps.start = activity.timestamps.start;
-  activity_c->timestamps.end = activity.timestamps.end;
-  activity_c->assets.large_image = strdup(activity.assets.large_image.c_str());
-  activity_c->assets.large_text = strdup(activity.assets.large_text.c_str());
-
-  // Allocate and copy button vector
-  activity_c->buttons.length = activity.buttons.size();
-  activity_c->buttons.buttons = new Button_C[activity_c->buttons.length];
-  for (size_t i = 0; i < activity_c->buttons.length; i++) {
-    activity_c->buttons.buttons[i].text =
-        strdup(activity.buttons[i].text.c_str());
-    activity_c->buttons.buttons[i].link =
-        strdup(activity.buttons[i].link.c_str());
-  }
-
-  return activity_c;
-}
-
-void destroy_activity(Activity_C* activity_c) {
-  // Free strings
-  free((void*)activity_c->state);
-  free((void*)activity_c->details);
-  free((void*)activity_c->assets.large_image);
-  free((void*)activity_c->assets.large_text);
-
-  // Free button vector
-  for (size_t i = 0; i < activity_c->buttons.length; i++) {
-    free((void*)activity_c->buttons.buttons[i].text);
-    free((void*)activity_c->buttons.buttons[i].link);
-  }
-  delete[] activity_c->buttons.buttons;
-
-  delete activity_c;
-}
+#include "c-discord-rich-presence/include/discord_rpc.h"
 
 namespace rsl {
 
@@ -169,7 +80,7 @@ void DiscordIpcClient::disconnect() {
     m_impl->m_connected = false;
   }
 }
-void DiscordIpcClient::set_activity(const Activity& activity) {
+void DiscordIpcClient::set_activity(const discord_rpc::Activity& activity) {
   if (m_impl == nullptr) {
     rsl::error("[rsl::DiscordIpcClient] set_activity failed. No socket exists");
     return;
@@ -179,9 +90,9 @@ void DiscordIpcClient::set_activity(const Activity& activity) {
                "Discord");
     return;
   }
-  auto* a = create_activity(activity);
+  auto* a = discord_rpc::create_activity(activity);
   rsl_rpc_set_activity(&m_impl->handle(), a);
-  destroy_activity(a);
+  discord_rpc::destroy_activity(a);
 }
 void DiscordIpcClient::test() {
   if (m_impl != nullptr) {

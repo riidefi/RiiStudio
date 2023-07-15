@@ -6,27 +6,11 @@
 #include <string_view>
 #include <vector>
 
+#include "c-discord-rich-presence/include/discord_rpc.h"
+
 namespace rsl {
 
-struct Activity {
-  std::string state = "A test";
-  std::string details = "A placeholder";
-  struct Timestamps {
-    int64_t start = 0;
-    int64_t end = 0;
-  };
-  Timestamps timestamps;
-  struct Assets {
-    std::string large_image = "large-image";
-    std::string large_text = "Large text";
-  };
-  Assets assets;
-  struct Button {
-    std::string text = "A button";
-    std::string link = "https://github.com";
-  };
-  std::vector<Button> buttons{Button{}};
-};
+using Activity = discord_rpc::Activity;
 
 class DiscordIpcClient {
 public:
@@ -39,7 +23,7 @@ public:
   bool connected() const;
   void disconnect();
 
-  void set_activity(const Activity& activity);
+  void set_activity(const discord_rpc::Activity& activity);
   void test();
 
 private:
