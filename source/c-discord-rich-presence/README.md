@@ -1,5 +1,5 @@
 # c-discord-rich-presence
-C/C++ bindings for the [discord-rich-presence crate](). Provides an alternative to the official Discord libraries for RPC for C++ applications.
+C/C++ bindings for the [discord-rich-presence crate](https://github.com/sardonicism-04/discord-rich-presence). Provides an alternative to the official Discord libraries for RPC for C++ applications.
 
 The following structure will be filled out by the application:
 ```cpp
@@ -23,6 +23,13 @@ struct Activity {
   std::vector<Button> buttons{Button{}};
 };
 ```
+
+## Installation
+
+### With CMake/[Corrosion](https://github.com/corrosion-rs/corrosion)
+corrosion_import_crate(MANIFEST_PATH source/c-discord-rich-presence/Cargo.toml CRATE_TYPES staticlib)
+### With other buildsystems
+`cargo build` and copy-paste the compiled .lib (Windows) or .a (Linux/MacOS) library files into your project.
 
 ## Example: C++ application (using https://github.com/riidefi/RiiStudio/blob/master/source/rsl/Discord.hpp).
 ```c

@@ -24,7 +24,7 @@ struct Activity {
   Assets assets;
   struct Button {
     std::string text = "A button";
-    std::string link = "https://github.com";
+    std::string link = "https://github.com/riidefi/RiiStudio/tree/master/source/c-discord-rich-presence";
   };
   std::vector<Button> buttons{Button{}};
 };

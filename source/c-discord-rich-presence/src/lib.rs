@@ -1,11 +1,13 @@
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use log::*;
+use simple_logger::SimpleLogger;
 use std::ffi::c_char;
 use std::ffi::c_longlong;
 use std::ffi::CStr;
 use std::slice;
 
 fn rpc_create(app_id: &str) -> Result<DiscordIpcClient, Box<dyn std::error::Error>> {
+    let _ = SimpleLogger::new().init();
     warn!("[DiscordIpcClient] Creating client");
     DiscordIpcClient::new(app_id)
 }
@@ -45,7 +47,7 @@ fn rpc_test(client: &mut DiscordIpcClient) -> Result<(), Box<dyn std::error::Err
         )
         .buttons(vec![activity::Button::new(
             "A button",
-            "https://github.com",
+            "https://github.com/riidefi/RiiStudio/tree/master/source/c-discord-rich-presence",
         )]);
     client.set_activity(activity)?;
     Ok(())
