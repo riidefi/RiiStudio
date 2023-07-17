@@ -11,4 +11,4 @@ add_library(core STATIC
   "util/timestamp.cpp"
    "util/oishii.hpp")
 
-target_link_libraries(core PUBLIC fmt range-v3)
+target_link_libraries(core PUBLIC fmt)

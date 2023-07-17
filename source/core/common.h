@@ -46,36 +46,6 @@ typedef double f64;
 #endif
 #endif
 
-// No <ranges> yet
-#if defined(__APPLE__)
-#if __cpp_lib_ranges < 202106L
-#include <range/v3/algorithm/adjacent_find.hpp>
-#include <range/v3/algorithm/any_of.hpp>
-#include <range/v3/algorithm/count.hpp>
-#include <range/v3/algorithm/equal.hpp>
-#include <range/v3/algorithm/fill.hpp>
-#include <range/v3/algorithm/find.hpp>
-#include <range/v3/algorithm/find_if.hpp>
-#include <range/v3/algorithm/max_element.hpp>
-#include <range/v3/algorithm/min_element.hpp>
-#include <range/v3/algorithm/sort.hpp>
-#include <range/v3/view/drop.hpp>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/reverse.hpp>
-#include <range/v3/view/split.hpp>
-#include <range/v3/view/take.hpp>
-#include <range/v3/view/transform.hpp>
-namespace std {
-namespace views {
-using namespace ::ranges::views;
-}
-namespace ranges {
-using namespace ::ranges;
-}
-} // namespace std
-#endif
-#endif
-
 #if defined(__APPLE__) || defined(__GCC__) || defined(__GNUC__)
 #include <fmt/format.h>
 namespace std {

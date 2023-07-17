@@ -9,11 +9,6 @@
 #include <fmt/color.h>
 #include <rsl/Ranges.hpp>
 
-#if defined(__APPLE__) || defined(__linux__)
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/chunk.hpp>
-#endif
-
 #if !defined(__APPLE__)
 #define throw
 #endif
@@ -32,22 +27,20 @@ public:
   Result<void> SetFromMPrim(const MatrixPrimitive& prim) {
     triangles_.reserve(20'000);
 
-#if defined(__APPLE__) || defined(__linux__)
-    auto verts =
-        ranges::to<std::vector>(MeshUtils::AsTriangles(prim.primitives));
-    for (auto it : verts | ranges::views::chunk(3)) {
-#else
-    for (auto it :
-         MeshUtils::AsTriangles(prim.primitives) | std::views::chunk(3)) {
-#endif
-      std::array<Vertex, 3> tri;
-      size_t i = 0;
-      for (auto& x : it) {
-        if (!x.has_value()) {
-          return std::unexpected(x.error());
-        }
-        tri[i++] = *x;
+    auto verts = MeshUtils::AsTriangles(prim.primitives);
+
+    std::vector<std::array<Vertex, 3>> tris;
+    int ctr = 0;
+    std::array<Vertex, 3> tmp;
+    for (auto v : verts) {
+      tmp[ctr] = TRY(v);
+      ++ctr;
+      if (ctr == 3) {
+        ctr = 0;
+        tris.push_back(tmp);
       }
+    }
+    for (auto& tri : tris) {
       // Discard degenerate triangles
       if (tri[0] == tri[1] || tri[0] == tri[2] || tri[1] == tri[2] ||
           tri[0] == tri[2]) {

@@ -2,10 +2,6 @@
 #include <librii/gpu/DLBuilder.hpp>
 #include <rsl/Ranges.hpp>
 
-#ifdef __APPLE__
-#include <range/v3/range/conversion.hpp>
-#endif
-
 namespace librii::g3d {
 
 u32 BuildTexMatrixFlags(const librii::gx::GCMaterialData::TexMatrix& mtx) {
@@ -492,7 +488,7 @@ BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
       .indMethod = mat.mIndMatrices | std::views::transform(toIndMethod) |
 
 #ifdef __APPLE__
-                   ranges::to<std::vector>() |
+                   //ranges::to<std::vector>() |
 #endif
 
                    rsl::ToArray<4>(),

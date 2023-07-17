@@ -17,4 +17,4 @@ if (WIN32)
   target_link_directories(rsl PUBLIC ${PROJECT_SOURCE_DIR}/../vendor/dll)
 endif()
 
-target_link_libraries(rsl PUBLIC core range-v3 riistudio_rs vendor llvm_sighandler c-discord-rich-presence)
+target_link_libraries(rsl PUBLIC core riistudio_rs vendor llvm_sighandler c-discord-rich-presence)
