@@ -46,6 +46,10 @@ struct ResourceArchive {
   std::vector<Node> nodes;
 };
 
+Result<std::pair<ResourceArchive::Node, ResourceArchive::Node>>
+CreateSpecialDirs(const ResourceArchive::Node& node,
+                  std::optional<ResourceArchive::Node> parent);
+
 bool IsDataResourceArchive(rsl::byte_view data);
 
 Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data);

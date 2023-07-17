@@ -275,6 +275,36 @@ static void rarcRecurseLoadDirectory(
   out.insert(out.begin() + start_nodes, dir_node);
 }
 
+Result<std::pair<ResourceArchive::Node, ResourceArchive::Node>>
+CreateSpecialDirs(const ResourceArchive::Node& node,
+                  std::optional<ResourceArchive::Node> parent) {
+  if (!node.is_folder())
+    return std::unexpected("Can't make special dirs for a file!");
+
+  // This is the root
+  if (!parent) {
+    return {
+        {{.id = node.id,
+          .flags = ResourceAttribute::DIRECTORY,
+          .name = ".",
+          .folder = {.parent = -1, .sibling_next = node.folder.sibling_next}},
+         {.id = -1,
+          .flags = ResourceAttribute::DIRECTORY,
+          .name = "..",
+          .folder = {.parent = -1, .sibling_next = 0}}}};
+  }
+
+  return {{{.id = 0,
+            .flags = ResourceAttribute::DIRECTORY,
+            .name = ".",
+            .folder = {.parent = parent->id, .sibling_next = 0}},
+           {.id = 0,
+            .flags = ResourceAttribute::DIRECTORY,
+            .name = "..",
+            .folder = {.parent = parent->folder.parent,
+                       .sibling_next = parent->folder.sibling_next}}}};
+}
+
 bool IsDataResourceArchive(rsl::byte_view data) {
   return data[0] == 'R' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C';
 }

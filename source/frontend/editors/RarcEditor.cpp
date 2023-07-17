@@ -630,17 +630,19 @@ static bool createFolder(ResourceArchive& rarc,
       {.id = 0,
        .flags = ResourceAttribute::DIRECTORY,
        .name = folder_name,
-       .folder = {.parent = parent->id, .sibling_next = 0}},
-      {.id = 0,
-       .flags = ResourceAttribute::DIRECTORY,
-       .name = ".",
-       .folder = {.parent = parent->id, .sibling_next = 0}},
-      {.id = 0,
-       .flags = ResourceAttribute::DIRECTORY,
-       .name = "..",
-       .folder = {.parent = parent->folder.parent,
-                  .sibling_next = parent->folder.sibling_next}},
+       .folder = {.parent = parent->id, .sibling_next = 0}}
   };
+
+  {
+	auto special_nodes = CreateSpecialDirs(folder_nodes[0], parent);
+    if (!special_nodes) {
+      std::printf("%s", special_nodes.error().c_str());
+      return false;
+	}
+
+	folder_nodes.push_back(special_nodes->first);
+    folder_nodes.push_back(special_nodes->second);
+  }
 
   auto insert_index = rarc.nodes.size();
   auto dir_files_start = rarc.nodes.begin() + parent_index + 1;
