@@ -1,7 +1,7 @@
 // This class is a relic of the old tool.
 
 #include "NameTableIO.hpp"
-IMPORT_STD;
+#include <algorithm>
 
 namespace librii::g3d {
 

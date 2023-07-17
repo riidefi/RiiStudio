@@ -2,6 +2,7 @@
 
 #include <core/common.h>
 #include <fmt/core.h>
+#include <ranges>
 
 namespace rsmeshopt {
 
@@ -34,7 +35,8 @@ public:
 #endif
     for (size_t i = 0; i < indices.size(); i += 3) {
       // Ensure each triangle shares |center| exactly once
-      if (std::ranges::count(indices.subspan(i, 3), center_) != 1) {
+      auto ix = indices.subspan(i, 3);
+      if (std::count(ix.begin(), ix.end(), center_) != 1) {
         valid_ = false;
         return;
       }

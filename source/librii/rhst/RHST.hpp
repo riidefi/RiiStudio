@@ -150,7 +150,12 @@ enum class Comparison {
   Always,
 };
 
-enum class BlendModeType { None, Blend, Logic, Subtract };
+enum class BlendModeType {
+  None,
+  Blend,
+  Logic,
+  Subtract,
+};
 
 enum class BlendModeFactor {
   Zero,
@@ -163,7 +168,12 @@ enum class BlendModeFactor {
   Inv_dst_a,
 };
 
-enum class AlphaOp { And, Or, Xor, Xnor };
+enum class AlphaOp {
+  And,
+  Or,
+  Xor,
+  Xnor,
+};
 
 struct PixelEngine {
   //  Alpha Test
@@ -219,7 +229,7 @@ struct ProtoSampler {
   glm::vec2 trans{0.0f, 0.0f};
 };
 
-enum Colors {
+enum class Colors {
   Red,
   Green,
   Blue,
@@ -245,7 +255,16 @@ enum class TevColorArg {
   zero
 };
 
-enum class TevAlphaArg { aprev, a0, a1, a2, texa, rasa, konst, zero };
+enum class TevAlphaArg {
+  aprev,
+  a0,
+  a1,
+  a2,
+  texa,
+  rasa,
+  konst,
+  zero,
+};
 
 enum class TevBias {
   zero,     //!< As-is
@@ -253,7 +272,12 @@ enum class TevBias {
   sub_half  //!< Subtract middle gray
 };
 
-enum class TevScale { scale_1, scale_2, scale_4, divide_2 };
+enum class TevScale {
+  scale_1,
+  scale_2,
+  scale_4,
+  divide_2,
+};
 
 enum class TevColorOp {
   add,
@@ -281,7 +305,7 @@ enum class TevAlphaOp {
   comp_bgr24_eq,
   // Different from ColorOp
   comp_a8_gt,
-  comp_a8_eq
+  comp_a8_eq,
 };
 
 enum class TevKColorSel {
@@ -453,28 +477,28 @@ struct ProtoMaterial {
   std::vector<ProtoTevStage> tev_stages;
   std::array<ProtoSwapTableEntry, 4> swap_table = {
       ProtoSwapTableEntry{
-          .r = Red,
-          .g = Green,
-          .b = Blue,
-          .a = Alpha,
+          .r = Colors::Red,
+          .g = Colors::Green,
+          .b = Colors::Blue,
+          .a = Colors::Alpha,
       },
       ProtoSwapTableEntry{
-          .r = Red,
-          .g = Red,
-          .b = Red,
-          .a = Alpha,
+          .r = Colors::Red,
+          .g = Colors::Red,
+          .b = Colors::Red,
+          .a = Colors::Alpha,
       },
       ProtoSwapTableEntry{
-          .r = Green,
-          .g = Green,
-          .b = Green,
-          .a = Alpha,
+          .r = Colors::Green,
+          .g = Colors::Green,
+          .b = Colors::Green,
+          .a = Colors::Alpha,
       },
       ProtoSwapTableEntry{
-          .r = Blue,
-          .g = Blue,
-          .b = Blue,
-          .a = Alpha,
+          .r = Colors::Blue,
+          .g = Colors::Blue,
+          .b = Colors::Blue,
+          .a = Colors::Alpha,
       },
   };
 };

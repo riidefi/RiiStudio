@@ -4,6 +4,7 @@
 #include <core/util/timestamp.hpp>
 #include <fstream>
 #include <rsl/SimpleReader.hpp>
+#include <algorithm>
 
 IMPORT_STD;
 

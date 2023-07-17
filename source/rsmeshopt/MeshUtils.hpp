@@ -2,6 +2,7 @@
 
 #include <core/common.h>
 #include <coro/generator.hpp>
+#include <ranges>
 
 namespace rsmeshopt::MeshUtils {
 

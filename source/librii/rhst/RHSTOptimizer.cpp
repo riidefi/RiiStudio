@@ -7,14 +7,19 @@
 #include <rsmeshopt/RsMeshOpt.hpp>
 
 #include <fmt/color.h>
-#define throw
-#include <fort.hpp>
-#undef throw
 #include <rsl/Ranges.hpp>
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/chunk.hpp>
+#endif
+
+#if !defined(__APPLE__)
+#define throw
+#endif
+#include <fort.hpp>
+#if !defined(__APPLE__)
+#undef throw
 #endif
 
 namespace librii::rhst {
@@ -717,7 +722,9 @@ Result<Algo> StripifyTriangles(MatrixPrimitive& prim,
   if (verbose && !except) {
     auto table = PrintScoresOfExperiment(experiments);
     std::stringstream thread_id;
+#ifndef __APPLE__
     thread_id << std::this_thread::get_id();
+#endif
     fmt::print(stderr,
                "----\n| Compiling {} on thread {}\n{}| Spent {}ms on "
                "validation\n---\n",
