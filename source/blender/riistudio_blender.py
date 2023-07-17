@@ -34,6 +34,17 @@ BLENDER_30 = bpy.app.version[0] >= 3
 BLENDER_28 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 80) \
 	or BLENDER_30
 
+#region versions
+RIISTUDIO_VERSION = "5.10.10"
+RIISTUDIO_VERSION_LAST_BLENDER_UPDATE = (5,10,10)
+
+# Feature update versions
+RIISTUDIO_VERSION_NEW_MAT = (5,10,10)
+# Error popup
+FEATURES_NEW_MAT = "Materials: Colors, TEV, Samplers"
+
+#endregion
+
 class OpenPreferences(bpy.types.Operator):
 	bl_idname = "riistudio.preferences"
 	bl_label = 'Open Preferences'
@@ -310,7 +321,7 @@ class JRESMaterialPanel(bpy.types.Panel):
 
 	@classmethod
 	def poll(cls, context):
-		return context.material
+		return context.object.active_material
 
 	def draw(self, context):
 		layout = self.layout
@@ -459,7 +470,7 @@ class JRESMaterialPanel(bpy.types.Panel):
 		elif scene.mat_panel_selection == "samplers":
 			box = layout.box()
 			row = box.row()
-			row.template_list("JRESSamplersList", "", mat.node_tree, "nodes", mat, "samp_selection")
+			row.template_list("JRES_UL_SamplersList", "", mat.node_tree, "nodes", mat, "samp_selection")
 			col = row.column()
 			smp = mat.node_tree.nodes[mat.samp_selection]
 			col.operator('rstudio.mat_sam_action', icon="TRIA_UP", text="").action = 'UP'
@@ -613,7 +624,7 @@ class JRESMaterialPanel(bpy.types.Panel):
 			col.prop(stage, "a_output")
 
 
-class JRESSamplersList(bpy.types.UIList):
+class JRES_UL_SamplersList(bpy.types.UIList):
 	def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
 		self.use_filter_show = False
 		if item.bl_idname == 'ShaderNodeTexImage':
@@ -671,7 +682,7 @@ class JRESSamplersListAction(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return context.material
+		return context.object.active_material
 
 	def execute(self, context):
 		mat = context.material
@@ -744,9 +755,11 @@ class JRESShaderStageAction(bpy.types.Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return context.material
+		return context.object.active_material
 
 	def execute(self, context):
+		if not context.material:
+			return
 		mat = context.material
 		idx = 0
 
@@ -1706,13 +1719,26 @@ class RHST_RNA:
 			self.cleanup_rhst()
 
 # src\exporters\brres\ExportBRRESCap.py
+# ExportHelper breaks with invoke()
 
-class ExportBRRES(Operator, ExportHelper, RHST_RNA):
+class ExportBRRES(Operator, RHST_RNA):
 	"""Export file as BRRES"""
 	bl_idname = "rstudio.export_brres"
 	bl_label = "Blender BRRES Exporter"
 	bl_options = {'PRESET'}
 	filename_ext = ".brres"
+
+	filepath: StringProperty(
+        name="File Path",
+        maxlen=1024,
+        subtype='FILE_PATH',
+    )
+
+	check_existing: BoolProperty(
+        name="Check Existing",
+        default=True,
+        options={'HIDDEN'},
+    )
 
 	filter_glob = StringProperty(
 		default="*.brres",
@@ -1734,10 +1760,54 @@ class ExportBRRES(Operator, ExportHelper, RHST_RNA):
 			col.label(text="Please set it up in Preferences.")
 			col.operator("riistudio.preferences", icon="PREFERENCES")
 
+		if not "DEBUG" in RIISTUDIO_VERSION:
+			version = tuple(map(int, (RIISTUDIO_VERSION.split("."))))
+			if version < RIISTUDIO_VERSION_LAST_BLENDER_UPDATE:
+				box = self.layout.box()
+				row = box.row()
+				row.alert = True
+				row.label(text="Warning", icon="ERROR")
+				col = box.column()
+				col.label(text=f"RiiStudio version is outdated: ({RIISTUDIO_VERSION})")
+				col.label(text="These features might not work:")
+				if version < RIISTUDIO_VERSION_NEW_MAT:
+					col.label(text=FEATURES_NEW_MAT)
+		else:
+			box = self.layout.box()
+			row = box.row()
+			row.alert = True
+			row.label(text="Warning", icon="ERROR")
+			col = box.column()
+			col.label(text="Using DEBUG Riistudio version.")
+
+
+
 		box = self.layout.box()
 		box.label(text="BRRES", icon='FILE_TICK' if BLENDER_28 else 'FILESEL')
 		
 		self.draw_rhst_options(context)
+
+	def invoke(self, context, event):
+		global RIISTUDIO_VERSION, RIISTUDIO_VERSION_NEW_MAT
+
+		if not self.filepath:
+			blend_filepath = context.blend_data.filepath
+			if not blend_filepath:
+				blend_filepath = "untitled"
+			else:
+				blend_filepath = os.path.splitext(blend_filepath)[0]
+			self.filepath = blend_filepath + self.filename_ext
+
+		bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
+		rszst = os.path.join(bin_root, "rszst.exe")
+		rszst_output = os.popen(rszst).readlines()
+		for l in rszst_output:
+			if l.startswith("RiiStudio CLI"):
+				RIISTUDIO_VERSION = l.split(' ')[3].upper()
+
+		context.window_manager.fileselect_add(self)
+
+		return {'RUNNING_MODAL'}
 
 	def export(self, context, format):
 		try:
@@ -1949,6 +2019,10 @@ update_bool = False;
 # Colors = C, Scene = S, PE = P, Samplers = S, Tev = T, Cull = X
 
 def get_group(mat, scene):
+	if not mat:
+		return
+	if not mat.jres_mat_group_enum:
+		return
 	group_name = mat.jres_mat_group_enum
 	group_idx = scene.mat_groups.find(group_name[7:])
 	if group_idx == -1:
@@ -2046,6 +2120,8 @@ def mat_pe_update(from_mat, to_mat):
 	update_bool = False
 
 def dum_stages_update(self,context):
+	if not context.material:
+		return
 	main = context.material
 
 	group = get_group(main, context.scene)
@@ -3004,7 +3080,7 @@ class JRESMaterialSyncAdd(Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return context.material
+		return context.object.active_material
 
 	def execute(self, context):
 		if self.name == '' or self.name == 'None':
@@ -3068,7 +3144,7 @@ class JRESMaterialSyncUnlink(Operator):
 
 	@classmethod
 	def poll(cls, context):
-		return context.material
+		return context.object.active_material
 	
 	def execute(self, context):
 		scene = context.scene
@@ -3099,7 +3175,8 @@ from bpy.app.handlers import persistent
 @persistent
 def on_change_handler(dummy):
 	for mat in bpy.data.materials:
-		tex_type_index_update(mat)
+		if mat.use_nodes:
+			tex_type_index_update(mat)
 		if len( mat.jres_tev_stages ) == 0:
 			new_stage = mat.jres_tev_stages.add()
 			new_stage.c_sel_a = 'zero'
@@ -3136,7 +3213,7 @@ classes = (
 	JRESMaterialSyncUnlink,
 
 	JRESShaderStageAction,
-	JRESSamplersList,
+	JRES_UL_SamplersList,
 	JRESSamplersListAction,
 
 	RiidefiStudioPreferenceProperty,
