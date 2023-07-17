@@ -1046,6 +1046,7 @@ def build_rs_sampler(smp):
 	return {
 		'texture': get_filename_without_extension(smp.image.name),
 		'mapping': smp.smp_map_mode,
+		'mapping_uv_index': smp.smp_map_uv,
 		'transformations': transformations,
 		"wrap_u": smp.smp_wrap_u,
 		"wrap_v": smp.smp_wrap_v,
