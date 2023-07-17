@@ -61,22 +61,22 @@ static std::unordered_map<std::string, ExtensionInfo> s_extension_map = {
     {"bfg", s_environment_info},   {"blight", s_environment_info},
     {"blmap", s_environment_info}, {"pblm", s_environment_info},
     {"bin", s_environment_info},   {"ral", s_environment_info},
-    {"ymp", s_environment_info},
-    {"bfn", s_font_info},          {"pad", s_input_info},
-    {"blo", s_layout_info},        {"brlyt", s_layout_info},
-    {"brlan", s_layout_info},      {"brctr", s_layout_info},
-    {"bmt", s_material_info},      {"bmg", s_message_info},
-    {"bdl", s_model_info},         {"bmd", s_model_info},
-    {"brres", s_model_info},       {"dae", s_model_info},
-    {"fbx", s_model_info},         {"3ds", s_model_info},
-    {"thp", s_movie_info},         {"jpa", s_particle_info},
-    {"sb", s_script_info},         {"bas", s_sound_info},
-    {"bms", s_sound_info},         {"com", s_sound_info},
-    {"scom", s_sound_info},        {"aw", s_sound_info},
-    {"afc", s_sound_info},         {"ws", s_sound_info},
-    {"bnk", s_sound_info},         {"bld", s_sound_info},
-    {"bst", s_sound_info},         {"bti", s_texture_info},
-    {"bmp", s_texture_info},       {"kmp", s_track_info},
+    {"ymp", s_environment_info},   {"bfn", s_font_info},
+    {"pad", s_input_info},         {"blo", s_layout_info},
+    {"brlyt", s_layout_info},      {"brlan", s_layout_info},
+    {"brctr", s_layout_info},      {"bmt", s_material_info},
+    {"bmg", s_message_info},       {"bdl", s_model_info},
+    {"bmd", s_model_info},         {"brres", s_model_info},
+    {"dae", s_model_info},         {"fbx", s_model_info},
+    {"3ds", s_model_info},         {"thp", s_movie_info},
+    {"jpa", s_particle_info},      {"sb", s_script_info},
+    {"bas", s_sound_info},         {"bms", s_sound_info},
+    {"com", s_sound_info},         {"scom", s_sound_info},
+    {"aw", s_sound_info},          {"afc", s_sound_info},
+    {"ws", s_sound_info},          {"bnk", s_sound_info},
+    {"bld", s_sound_info},         {"bst", s_sound_info},
+    {"bti", s_texture_info},       {"bmp", s_texture_info},
+    {"kmp", s_track_info},
 };
 
 void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
@@ -153,7 +153,7 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
 
       auto next_node = node + 1;
 
-	  ImGui::PushID(node->name.c_str());
+      ImGui::PushID(node->name.c_str());
       {
         auto icon_color = extension_info.m_icon_color;
         if (icon_color)
@@ -171,7 +171,8 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
           ImGui::SameLine();
           ImGui::Text("%s", node->name.c_str());
         } else {
-          if (ImGui::TreeNodeEx(extension_info.m_unicode_icon.c_str(), file_flags))
+          if (ImGui::TreeNodeEx(extension_info.m_unicode_icon.c_str(),
+                                file_flags))
             ImGui::TreePop();
           if (icon_color)
             ImGui::PopStyleColor();
@@ -181,7 +182,7 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
       }
       ImGui::PopID();
 
-	  DrawContextMenu(*node, editor);
+      DrawContextMenu(*node, editor);
 
       ImGui::TableNextColumn();
 

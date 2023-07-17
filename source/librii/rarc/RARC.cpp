@@ -545,15 +545,16 @@ void RecalculateArchiveIDs(ResourceArchive& arc) {
       } else {
         node->id = parent_stack.back();
         node->folder.parent = parent_stack.size() > 1
-                                 ? parent_stack[parent_stack.size() - 2]
-                                 : -1;
+                                  ? parent_stack[parent_stack.size() - 2]
+                                  : -1;
         parent_stack.push_back(folder_id++);
       }
     }
   }
 }
 
-Result<void> ExtractResourceArchive(const ResourceArchive& arc, std::filesystem::path out) {
+Result<void> ExtractResourceArchive(const ResourceArchive& arc,
+                                    std::filesystem::path out) {
   auto tmp = out;
   std::vector<u32> stack;
   u32 i = 0;
@@ -581,8 +582,9 @@ Result<void> ExtractResourceArchive(const ResourceArchive& arc, std::filesystem:
   return {};
 }
 
-static void get_sorted_directory_list_r(const std::filesystem::path& path,
-                                 std::vector<std::filesystem::path>& out) {
+static void
+get_sorted_directory_list_r(const std::filesystem::path& path,
+                            std::vector<std::filesystem::path>& out) {
   std::vector<std::filesystem::path> dirs;
   for (auto&& it : std::filesystem::directory_iterator{path}) {
     if (it.is_directory())
@@ -649,7 +651,7 @@ Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root) {
     path = std::filesystem::path(".") /
            std::filesystem::relative(path, root.parent_path());
 
-	// We normalize it to lowercase because otherwise games can't find it.
+    // We normalize it to lowercase because otherwise games can't find it.
     {
       auto path_string = path.string();
       std::transform(path_string.begin(), path_string.end(),

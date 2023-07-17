@@ -2,8 +2,8 @@
 
 #include <array>
 #include <core/common.h>
-#include <rsl/SimpleReader.hpp>
 #include <filesystem>
+#include <rsl/SimpleReader.hpp>
 #include <span>
 #include <string>
 #include <vector>
@@ -55,7 +55,8 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
 
 void RecalculateArchiveIDs(ResourceArchive& arc);
 
-Result<void> ExtractResourceArchive(const ResourceArchive& arc, std::filesystem::path out);
+Result<void> ExtractResourceArchive(const ResourceArchive& arc,
+                                    std::filesystem::path out);
 Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root);
 
 struct ResourceArchiveNodeHasher {
