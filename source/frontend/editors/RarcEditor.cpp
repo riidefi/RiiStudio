@@ -94,6 +94,10 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
   if (m_context_modal_state == ModalState::M_CLOSED && m_operation_modal_state == ModalState::M_CLOSED)
     m_focused_node = std::nullopt;
 
+  ImGui::Text("Search");
+  ImGui::SameLine();
+  m_model_filter.Draw();
+
   if (ImGui::BeginTable("TABLE", 3,
                         ImGuiTableFlags_RowBg |
                             ImGuiTableFlags_NoSavedSettings)) {
@@ -127,6 +131,11 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
           break;
         }
         walk++;
+      }
+
+      if (!m_model_filter.PassFilter(node->name.c_str())) {
+        node++;
+        continue;
       }
 
       ExtensionInfo extension_info;

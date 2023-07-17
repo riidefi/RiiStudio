@@ -64,6 +64,7 @@ private:
   void DrawNameModal(RarcEditor* editor);
   void DrawOperationModal(RarcEditor* editor);
 
+  ImGuiTextFilter m_model_filter;
   std::optional<librii::RARC::ResourceArchive::Node> m_focused_node;
   std::string m_name_input;
   std::string m_original_name;
