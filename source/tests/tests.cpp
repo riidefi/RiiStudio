@@ -155,53 +155,9 @@ void rebuild(std::string from, const std::string_view to, bool check,
         fprintf(stderr, "Failed to write BMD/BDL: %s\n", bruh.error().c_str());
         return;
       }
-    } else if (from.ends_with("szs") || from.ends_with("arc") ||
-   from.ends_with("u8")) {
-     const rsl::byte_view data_view = safe.slice();
-
-     std::vector<u8> data;
-     if (librii::szs::isDataYaz0Compressed(data_view)) {
-       auto result = librii::szs::getExpandedSize(data_view);
-       if (!result) {
-         fprintf(stderr, "Failed to read szs: %s\n", result.error().c_str());
-         return;
-       }
-       data.resize(*result);
-       librii::szs::decode(data, data_view);
-     }
-     else {
-       data.insert(data.begin(), data_view.begin(), data_view.end());
-     }
-
-     if (data[0] == 'R' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C') {
-       auto rarc = librii::RARC::LoadResourceArchive(data);
-       if (!rarc) {
-         fprintf(stderr, "Failed to read rarc: %s\n", rarc.error().c_str());
-         return;
-       }
-       printf("Writing to %s\n", std::string(to).c_str());
-       auto barc = librii::RARC::SaveResourceArchive(*rarc);
-       if (!barc) {
-         fprintf(stderr, "Failed to save rarc: %s\n", barc.error().c_str());
-         return;
-       }
-       for (auto& b : *barc) {
-         writer.write(b);
-       }
-     }
-     else {
-       auto u8 = librii::U8::LoadU8Archive(data);
-       if (!u8) {
-         fprintf(stderr, "Failed to read u8: %s\n", u8.error().c_str());
-         return;
-       }
-       printf("Writing to %s\n", std::string(to).c_str());
-       for (auto& b : librii::U8::SaveU8Archive(*u8)) {
-         writer.write(b);
-       }
-     }
-  }} else if (from.ends_with("szs") || from.ends_with("arc") ||
-               from.ends_with("u8")) {
+    }
+    else if (from.ends_with("szs") || from.ends_with("arc") ||
+      from.ends_with("u8")) {
       const rsl::byte_view data_view = safe.slice();
 
       std::vector<u8> data;
@@ -213,7 +169,8 @@ void rebuild(std::string from, const std::string_view to, bool check,
         }
         data.resize(*result);
         librii::szs::decode(data, data_view);
-      } else {
+      }
+      else {
         data.insert(data.begin(), data_view.begin(), data_view.end());
       }
 
@@ -232,7 +189,8 @@ void rebuild(std::string from, const std::string_view to, bool check,
         for (auto& b : *barc) {
           writer.write(b);
         }
-      } else {
+      }
+      else {
         auto u8 = librii::U8::LoadU8Archive(data);
         if (!u8) {
           fprintf(stderr, "Failed to read u8: %s\n", u8.error().c_str());
