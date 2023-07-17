@@ -81,11 +81,11 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
     }
   }
   if (path_lower.ends_with(".brres")) {
-    auto pWin = std::make_unique<BRRESEditor>(span, data.mPath);
+    auto pWin = std::make_unique<BRRESEditor>(expanded_span, data.mPath);
     return pWin;
   }
   if (path_lower.ends_with(".bmd") || path_lower.ends_with(".bdl")) {
-    auto pWin = std::make_unique<BMDEditor>(span, data.mPath);
+    auto pWin = std::make_unique<BMDEditor>(expanded_span, data.mPath);
     return pWin;
   }
   if (AssimpImporter::supports(path_lower)) {

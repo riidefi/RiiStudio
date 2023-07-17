@@ -7,7 +7,6 @@
 #include <librii/kmp/io/KMP.hpp>
 #include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
-#include <plugins/api.hpp>
 #include <plugins/g3d/G3dIo.hpp>
 #include <plugins/j3d/J3dIo.hpp>
 #include <rsl/InitLLVM.hpp>

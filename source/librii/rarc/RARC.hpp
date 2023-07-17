@@ -3,6 +3,7 @@
 #include <array>
 #include <core/common.h>
 #include <rsl/SimpleReader.hpp>
+#include <filesystem>
 #include <span>
 #include <string>
 #include <vector>
