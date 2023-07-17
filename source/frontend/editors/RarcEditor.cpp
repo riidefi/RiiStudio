@@ -12,36 +12,43 @@ using namespace librii::RARC;
 struct ExtensionInfo {
   std::string m_category;
   std::string m_unicode_icon;
+  std::optional<ImVec4> m_icon_color;
 };
 
 static ExtensionInfo s_animation_info = {"Animation Data",
-                                         (const char*)ICON_FA_BEZIER_CURVE};
-static ExtensionInfo s_archive_info = {"Archive", (const char*)ICON_FA_ARCHIVE};
-static ExtensionInfo s_collision_info = {"Collision Data",
-                                         (const char*)ICON_FA_CUBE};
-static ExtensionInfo s_compressed_info = {"Compressed Data",
-                                          (const char*)ICON_FA_COMPRESS};
-static ExtensionInfo s_environment_info = {"Environment Data",
-                                           (const char*)ICON_FA_CLOUD_SUN};
-static ExtensionInfo s_font_info = {"Font Data", (const char*)ICON_FA_PEN};
-static ExtensionInfo s_input_info = {"Input Data",
-                                     (const char*)ICON_FA_GAMEPAD};
-static ExtensionInfo s_layout_info = {"Layout Data", (const char*)ICON_FA_MAP};
-static ExtensionInfo s_material_info = {"Material Data",
-                                        (const char*)ICON_FA_PAINT_BRUSH};
-static ExtensionInfo s_message_info = {"Message Data",
-                                       (const char*)ICON_FA_QUOTE_RIGHT};
-static ExtensionInfo s_model_info = {"Model Data",
-                                     (const char*)ICON_FA_DRAW_POLYGON};
-static ExtensionInfo s_movie_info = {"Movie Data", (const char*)ICON_FA_VIDEO};
-static ExtensionInfo s_particle_info = {"Particle Data",
-                                        (const char*)ICON_FA_FIRE};
-static ExtensionInfo s_script_info = {"Script Data", (const char*)ICON_FA_CODE};
-static ExtensionInfo s_sound_info = {"Sound Data", (const char*)ICON_FA_MUSIC};
-static ExtensionInfo s_texture_info = {"Texture Data",
-                                       (const char*)ICON_FA_IMAGE};
-static ExtensionInfo s_track_info = {"Track Data",
-                                     (const char*)ICON_FA_MOTORCYCLE};
+                                         (const char*)ICON_FA_BEZIER_CURVE,
+                                         {{0.8, 0.8, 0.2, 1.0}}};
+static ExtensionInfo s_archive_info = {
+    "Archive", (const char*)ICON_FA_ARCHIVE, {{0.7, 0.2, 0.2, 1.0}}};
+static ExtensionInfo s_collision_info = {
+    "Collision Data", (const char*)ICON_FA_CUBE, {{0.9, 0.5, 0.2, 1.0}}};
+static ExtensionInfo s_compressed_info = {
+    "Compressed Data", (const char*)ICON_FA_COMPRESS, {{0.7, 0.8, 0.2, 1.0}}};
+static ExtensionInfo s_environment_info = {
+    "Environment Data", (const char*)ICON_FA_CLOUD_SUN, {{0.4, 0.6, 0.9, 1.0}}};
+static ExtensionInfo s_font_info = {"Font Data", (const char*)ICON_FA_PEN, {}};
+static ExtensionInfo s_input_info = {
+    "Input Data", (const char*)ICON_FA_GAMEPAD, {}};
+static ExtensionInfo s_layout_info = {
+    "Layout Data", (const char*)ICON_FA_MAP, {}};
+static ExtensionInfo s_material_info = {
+    "Material Data", (const char*)ICON_FA_PAINT_BRUSH, {{0.7, 0.3, 0.8, 1.0}}};
+static ExtensionInfo s_message_info = {
+    "Message Data", (const char*)ICON_FA_QUOTE_RIGHT, {}};
+static ExtensionInfo s_model_info = {
+    "Model Data", (const char*)ICON_FA_DRAW_POLYGON, {{0.3, 0.8, 0.3, 1.0}}};
+static ExtensionInfo s_movie_info = {
+    "Movie Data", (const char*)ICON_FA_VIDEO, {{0.9, 0.3, 0.3, 1.0}}};
+static ExtensionInfo s_particle_info = {
+    "Particle Data", (const char*)ICON_FA_FIRE, {{0.9, 0.7, 0.2, 1.0}}};
+static ExtensionInfo s_script_info = {
+    "Script Data", (const char*)ICON_FA_CODE, {{0.4, 0.9, 0.4, 1.0}}};
+static ExtensionInfo s_sound_info = {
+    "Sound Data", (const char*)ICON_FA_MUSIC, {{0.4, 0.5, 0.8, 1.0}}};
+static ExtensionInfo s_texture_info = {
+    "Texture Data", (const char*)ICON_FA_IMAGE, {{0.7, 0.3, 0.8, 1.0}}};
+static ExtensionInfo s_track_info = {
+    "Track Data", (const char*)ICON_FA_MOTORCYCLE, {{0.8, 0.5, 0.3, 1.0}}};
 
 static std::unordered_map<std::string, ExtensionInfo> s_extension_map = {
     {"bck", s_animation_info},     {"blk", s_animation_info},
@@ -54,6 +61,7 @@ static std::unordered_map<std::string, ExtensionInfo> s_extension_map = {
     {"bfg", s_environment_info},   {"blight", s_environment_info},
     {"blmap", s_environment_info}, {"pblm", s_environment_info},
     {"bin", s_environment_info},   {"ral", s_environment_info},
+    {"ymp", s_environment_info},
     {"bfn", s_font_info},          {"pad", s_input_info},
     {"blo", s_layout_info},        {"brlyt", s_layout_info},
     {"brlan", s_layout_info},      {"brctr", s_layout_info},
@@ -145,23 +153,35 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
 
       auto next_node = node + 1;
 
-      if (node->is_folder()) {
-        std::string awesome_name =
-            std::format("{}    {}", extension_info.m_unicode_icon, node->name);
-        auto flags = node->folder.parent == -1 ? root_flags : dir_flags;
-        if (ImGui::TreeNodeEx(awesome_name.c_str(), flags)) {
-          walk_stack.push_back(node->folder.sibling_next);
-        } else {
-          next_node = rarc.nodes.begin() + node->folder.sibling_next;
-        }
-      } else {
-        std::string awesome_name =
-            std::format("{}    {}", extension_info.m_unicode_icon, node->name);
-        if (ImGui::TreeNodeEx(awesome_name.c_str(), file_flags))
-          ImGui::TreePop();
-      }
+	  ImGui::PushID(node->name.c_str());
+      {
+        auto icon_color = extension_info.m_icon_color;
+        if (icon_color)
+          ImGui::PushStyleColor(ImGuiCol_Text, *icon_color);
 
-      DrawContextMenu(*node, editor);
+        if (node->is_folder()) {
+          auto flags = node->folder.parent == -1 ? root_flags : dir_flags;
+          if (ImGui::TreeNodeEx(extension_info.m_unicode_icon.c_str(), flags)) {
+            walk_stack.push_back(node->folder.sibling_next);
+          } else {
+            next_node = rarc.nodes.begin() + node->folder.sibling_next;
+          }
+          if (icon_color)
+            ImGui::PopStyleColor();
+          ImGui::SameLine();
+          ImGui::Text("%s", node->name.c_str());
+        } else {
+          if (ImGui::TreeNodeEx(extension_info.m_unicode_icon.c_str(), file_flags))
+            ImGui::TreePop();
+          if (icon_color)
+            ImGui::PopStyleColor();
+          ImGui::SameLine();
+          ImGui::Text("%s", node->name.c_str());
+        }
+      }
+      ImGui::PopID();
+
+	  DrawContextMenu(*node, editor);
 
       ImGui::TableNextColumn();
 
@@ -184,7 +204,7 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
 
 void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
                                              RarcEditor* editor) {
-  if (ImGui::BeginPopupContextItem()) {
+  if (ImGui::BeginPopupContextItem(node.name.c_str())) {
     RSL_DEFER(ImGui::EndPopup());
     m_focused_node = node;
     if (node.is_folder()) {
