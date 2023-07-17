@@ -1,5 +1,5 @@
 #include <core/util/oishii.hpp>
-#include <librii/arc/RARC.hpp>
+#include <librii/rarc/RARC.hpp>
 #include <librii/egg/BDOF.hpp>
 #include <librii/egg/Blight.hpp>
 #include <librii/egg/LTEX.hpp>

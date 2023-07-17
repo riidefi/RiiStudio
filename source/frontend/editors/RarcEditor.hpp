@@ -4,7 +4,7 @@
 #include <frontend/legacy_editor/StudioWindow.hpp>
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <fstream>
-#include <librii/arc/RARC.hpp>
+#include <librii/rarc/RARC.hpp>
 #include <librii/szs/SZS.hpp>
 #include <rsl/FsDialog.hpp>
 

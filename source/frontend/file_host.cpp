@@ -5,7 +5,7 @@
 IMPORT_STD;
 #include <fstream>
 
-#include "librii/arc/RARC.hpp"
+#include "librii/rarc/RARC.hpp"
 
 namespace riistudio::frontend {
 

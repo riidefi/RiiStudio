@@ -13,7 +13,7 @@
 
 #include <frontend/file_host.hpp>
 #include <librii/szs/SZS.hpp>
-#include <librii/arc/RARC.hpp>
+#include <librii/rarc/RARC.hpp>
 #include <librii/u8/U8.hpp>
 
 namespace riistudio::frontend {
