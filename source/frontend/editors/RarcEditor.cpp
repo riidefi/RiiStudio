@@ -436,16 +436,12 @@ static void renameNode(ResourceArchive& rarc,
   if (!node)
     return;
 
-  if (new_name == "") {
-    node = std::nullopt;
+  if (new_name == "")
     return;
-  }
 
   auto node_it = std::find(rarc.nodes.begin(), rarc.nodes.end(), *node);
-  if (node_it == rarc.nodes.end()) {
-    node = std::nullopt;
+  if (node_it == rarc.nodes.end())
     return;
-  }
 
   node_it->name = new_name;
 }
@@ -453,7 +449,7 @@ static void renameNode(ResourceArchive& rarc,
 static bool insertFiles(ResourceArchive& rarc,
                         std::optional<ResourceArchive::Node> parent,
                         std::vector<rsl::File>& files) {
-  RSL_DEFER(folder = std::nullopt);
+  RSL_DEFER(files.clear());
 
   if (files.size() == 0)
     return false;
