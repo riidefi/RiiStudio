@@ -6,7 +6,7 @@
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
 #include <librii/szs/SZS.hpp>
-#include <librii/arc/RARC.hpp>
+#include <librii/rarc/RARC.hpp>
 #include <librii/u8/U8.hpp>
 #include <mutex>
 #include <plugins/g3d/G3dIo.hpp>
