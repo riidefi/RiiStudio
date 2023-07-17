@@ -91,7 +91,7 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
 
   constexpr auto root_flags = dir_flags | ImGuiTreeNodeFlags_DefaultOpen;
 
-  if (!m_flag_modal_open)
+  if (m_context_modal_state == ModalState::M_CLOSED && m_operation_modal_state == ModalState::M_CLOSED)
     m_focused_node = std::nullopt;
 
   if (ImGui::BeginTable("TABLE", 3,
@@ -201,6 +201,7 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
   }
 
   DrawNameModal(editor);
+  DrawOperationModal(editor);
 }
 
 void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
@@ -222,7 +223,7 @@ void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
         editor->InsertFolder(*folder, node.id);
       }
       if (ImGui::MenuItem("Create Folder..."_j)) {
-        m_flag_modal_opening = true;
+        m_context_modal_state = ModalState::M_OPENING;
         m_name_input = "";
         m_original_name = "";
         editor->SetParentNode(node.id);
@@ -232,7 +233,7 @@ void RarcEditorPropertyGrid::DrawContextMenu(ResourceArchive::Node& node,
       editor->DeleteNodes({node});
     }
     if (ImGui::MenuItem("Rename..."_j)) {
-      m_flag_modal_opening = true;
+      m_context_modal_state = ModalState::M_OPENING;
       m_name_input = node.name;
       m_original_name = node.name;
       m_focused_node = node;
@@ -270,7 +271,7 @@ void RarcEditorPropertyGrid::DrawNameModal(RarcEditor* editor) {
   std::string dialog_name =
       m_original_name != "" ? "Rename Node"_j : "New Folder"_j;
 
-  if (m_flag_modal_opening) {
+  if (m_context_modal_state == ModalState::M_OPENING) {
     ImGui::OpenPopup(dialog_name.c_str());
   }
 
@@ -281,8 +282,7 @@ void RarcEditorPropertyGrid::DrawNameModal(RarcEditor* editor) {
   if (ImGui::BeginPopupModal(dialog_name.c_str(), &open, flags)) {
     RSL_DEFER(ImGui::EndPopup());
 
-    m_flag_modal_opening = false;
-    m_flag_modal_open = true;
+    m_context_modal_state = ModalState::M_OPEN;
 
     char input_buf[128]{};
     snprintf(input_buf, sizeof(input_buf), "%s", m_name_input.c_str());
@@ -307,14 +307,14 @@ void RarcEditorPropertyGrid::DrawNameModal(RarcEditor* editor) {
 
     if (!open) {
       ImGui::CloseCurrentPopup();
-      m_flag_modal_open = false;
+      m_context_modal_state = ModalState::M_CLOSED;
       return;
     }
 
     auto* enter_key = ImGui::GetKeyData(ImGuiKey_Enter);
     if (enter_key->Down && !is_invalid) {
       ImGui::CloseCurrentPopup();
-      m_flag_modal_open = false;
+      m_context_modal_state = ModalState::M_CLOSED;
       if (m_original_name == "")
         editor->CreateFolder(m_name_input);
       else
@@ -410,6 +410,44 @@ void RarcEditorPropertyGrid::DrawSizeColumn(ResourceArchive::Node& node,
   ImGui::Text("%s", size_string.c_str());
 
   ImGui::PopID();
+}
+
+void RarcEditorPropertyGrid::DrawOperationModal(RarcEditor* editor) {
+  if (m_operation_state == TriState::ST_INDETERMINATE)
+    return;
+
+  std::string dialog_name =
+      m_operation_state == TriState::ST_FALSE ? "Failure" : "Success";
+
+  if (m_operation_modal_state == ModalState::M_OPENING) {
+    ImGui::OpenPopup(dialog_name.c_str());
+  }
+
+  auto flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+               ImGuiWindowFlags_AlwaysAutoResize;
+  bool open = true;
+
+  if (ImGui::BeginPopupModal(dialog_name.c_str(), &open, flags)) {
+    RSL_DEFER(ImGui::EndPopup());
+
+    m_operation_modal_state = ModalState::M_OPEN;
+
+    ImGui::Text(m_operation_state == TriState::ST_FALSE
+                    ? "Operation failed!"
+                    : "Operation completed successfully!");
+
+    if (!open) {
+      ImGui::CloseCurrentPopup();
+      m_operation_modal_state = ModalState::M_CLOSED;
+      return;
+    }
+
+    auto* enter_key = ImGui::GetKeyData(ImGuiKey_Enter);
+    if (enter_key->Down) {
+      ImGui::CloseCurrentPopup();
+      m_operation_modal_state = ModalState::M_CLOSED;
+    }
+  }
 }
 
 static void
@@ -767,23 +805,23 @@ static bool deleteNodes(ResourceArchive& rarc,
   return true;
 }
 
-static void extractTo(const ResourceArchive& rarc,
+static Result<bool> extractTo(const ResourceArchive& rarc,
                       std::optional<ResourceArchive::Node>& node,
                       const std::filesystem::path& dst) {
   RSL_DEFER(node = std::nullopt);
 
   if (!node)
-    return;
+    return false;
 
   if (!std::filesystem::is_directory(dst))
-    return;
+    return false;
 
   if (node->is_folder()) {
     ResourceArchive tmp_rarc{};
 
     auto node_it = std::find(rarc.nodes.begin(), rarc.nodes.end(), node);
     if (node_it == rarc.nodes.end())
-      return;
+      return false;
 
     auto before_size = std::distance(rarc.nodes.begin(), node_it);
     auto parent_diff = node_it->id;
@@ -805,8 +843,12 @@ static void extractTo(const ResourceArchive& rarc,
       }
     }
     RecalculateArchiveIDs(tmp_rarc);
-    librii::RARC::ExtractResourceArchive(tmp_rarc, dst);
-    return;
+
+	// Convert result to bool type result
+    auto result = librii::RARC::ExtractResourceArchive(tmp_rarc, dst);
+    if (!result)
+      return std::unexpected(result.error());
+    return true;
   }
 
   auto dst_path = dst / node->name;
@@ -938,7 +980,16 @@ Result<void> RarcEditor::reconstruct() {
 
   // Extract doesn't modify the node hierarchy at all.
   // So we don't need to bother flagging any changes for it.
-  extractTo(m_rarc, m_node_to_extract, m_extract_path);
+  auto extract_result = extractTo(m_rarc, m_node_to_extract, m_extract_path);
+  if (extract_result) {
+    if (*extract_result) {
+      m_grid.m_operation_state = TriState::ST_TRUE;
+      m_grid.m_operation_modal_state = ModalState::M_OPENING;
+    }
+  } else {
+    m_grid.m_operation_state = TriState::ST_FALSE;
+    m_grid.m_operation_modal_state = ModalState::M_OPENING;
+  }
 
   changes_applied |= replaceWith(m_rarc, m_node_to_replace, m_replace_path);
 

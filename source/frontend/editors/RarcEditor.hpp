@@ -32,6 +32,18 @@ private:
   std::function<void(void)> m_drawTab = nullptr;
 };
 
+enum class TriState {
+	ST_FALSE,
+	ST_TRUE,
+	ST_INDETERMINATE
+};
+
+enum class ModalState {
+	M_CLOSED,
+	M_OPENING,
+	M_OPEN
+};
+
 class RarcEditor;
 
 class RarcEditorPropertyGrid {
@@ -50,12 +62,14 @@ private:
   void DrawContextMenu(librii::RARC::ResourceArchive::Node& node,
                        RarcEditor* editor);
   void DrawNameModal(RarcEditor* editor);
+  void DrawOperationModal(RarcEditor* editor);
 
   std::optional<librii::RARC::ResourceArchive::Node> m_focused_node;
   std::string m_name_input;
   std::string m_original_name;
-  bool m_flag_modal_opening;
-  bool m_flag_modal_open;
+  ModalState m_context_modal_state;
+  ModalState m_operation_modal_state;
+  TriState m_operation_state;
   bool m_should_calc_changes;
 };
 
