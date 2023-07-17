@@ -431,6 +431,8 @@ get_sorted_directory_list_r(const std::filesystem::path& path,
 static void renameNode(ResourceArchive& rarc,
                        std::optional<ResourceArchive::Node>& node,
                        const std::string& new_name) {
+  RSL_DEFER(node = std::nullopt);
+
   if (!node)
     return;
 
@@ -451,13 +453,13 @@ static void renameNode(ResourceArchive& rarc,
 static bool insertFiles(ResourceArchive& rarc,
                         std::optional<ResourceArchive::Node> parent,
                         std::vector<rsl::File>& files) {
+  RSL_DEFER(folder = std::nullopt);
+
   if (files.size() == 0)
     return false;
 
-  if (!parent) {
-    files.clear();
+  if (!parent)
     return false;
-  }
 
   std::vector<ResourceArchive::Node> new_nodes;
   for (auto& file : files) {
@@ -513,27 +515,24 @@ static bool insertFiles(ResourceArchive& rarc,
     node.folder.sibling_next += files.size();
   }
 
-  files.clear();
   return true;
 }
 
 static bool insertFolder(ResourceArchive& rarc,
                          std::optional<ResourceArchive::Node> parent,
                          std::optional<std::filesystem::path>& folder) {
+  RSL_DEFER(folder = std::nullopt);
+
   if (!folder)
     return false;
 
-  if (!parent) {
-    folder = std::nullopt;
+  if (!parent)
     return false;
-  }
 
   // Generate an archive so we can steal the DFS structure.
   auto tmp_rarc = librii::RARC::CreateResourceArchive(*folder);
-  if (!tmp_rarc) {
-    folder = std::nullopt;
+  if (!tmp_rarc)
     return false;
-  }
 
   int parent_index =
       std::distance(rarc.nodes.begin(),
@@ -609,20 +608,19 @@ static bool insertFolder(ResourceArchive& rarc,
     node++;
   }
 
-  folder = std::nullopt;
   return true;
 }
 
 static bool createFolder(ResourceArchive& rarc,
                          std::optional<ResourceArchive::Node> parent,
                          std::optional<std::string>& folder) {
+  RSL_DEFER(folder = std::nullopt);
+
   if (!folder)
     return false;
 
-  if (!parent) {
-    folder = std::nullopt;
+  if (!parent)
     return false;
-  }
 
   int parent_index =
       std::distance(rarc.nodes.begin(),
@@ -712,12 +710,13 @@ static bool createFolder(ResourceArchive& rarc,
     node++;
   }
 
-  folder = std::nullopt;
   return true;
 }
 
 static bool deleteNodes(ResourceArchive& rarc,
                         std::vector<ResourceArchive::Node>& nodes) {
+  RSL_DEFER(nodes.clear());
+
   if (nodes.size() == 0)
     return false;
 
@@ -767,7 +766,6 @@ static bool deleteNodes(ResourceArchive& rarc,
     }
   }
 
-  nodes.clear();
   return true;
 }
 
