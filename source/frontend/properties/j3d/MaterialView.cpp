@@ -35,12 +35,24 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
       new_type += (1 - orthoOrPersp) * 5;
     KPI_PROPERTY_EX(delegate, fogInfo.type,
                     static_cast<librii::gx::FogType>(new_type));
-    bool enabled = fog.enabled;
-    ImGui::Checkbox("Fog Enabled"_j, &enabled);
+
+    int fog_type = fog.enabled ? 1 : 0;
+    ImGui::Combo("Fog Shape"_j, &fog_type,
+                 "Cube (Fast)\0"
+                 "Cylinder (Fancy)\0"_j);
+    bool enabled = fog_type == 1;
     KPI_PROPERTY_EX(delegate, fogInfo.enabled, enabled);
 
     {
       util::ConditionalActive g(enabled /* && new_type != 0*/);
+      std::string buf;
+      for (auto adj : fog.rangeAdjTable) {
+        buf += std::format("{}, ", adj / 256.f);
+      }
+      ImGui::Text("Range adjustment table: %s", buf.c_str());
+    }
+
+    {
       ImGui::PushItemWidth(200);
       {
         int center = fog.center;
