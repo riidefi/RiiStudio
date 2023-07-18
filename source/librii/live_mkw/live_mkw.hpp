@@ -15,10 +15,13 @@ namespace librii::live_mkw {
 // `fread`, essentially
 using Io = std::function<bool(u32, std::span<u8>)>;
 
-template <typename T> T ReadFromDolphin(Io io, u32 addr) {
+template <typename T> Result<T> ReadFromDolphin(Io io, u32 addr) {
   T raw;
   bool ok = io(addr, {(u8*)&raw, sizeof(raw)});
-  assert(ok);
+  if (!ok) {
+    return std::unexpected(
+        std::format("Failed to read {} bytes from {:x}", sizeof(raw), addr));
+  }
   return raw;
 }
 
@@ -33,7 +36,7 @@ enum ResourceChannelID {
   RES_CHAN_DEMO,     //!< [7] Cutscenes
   RES_CHAN_UI_MODEL, //!< [8] BackModel et al
 
-  RES_CHAN_NUM
+  RES_CHAN_PLAYER = 0xA,
 };
 enum EResourceKind {
   RES_KIND_FILE_DOUBLE_FORMAT, // 0 %s%s Supports prefix
@@ -53,7 +56,7 @@ enum ArchiveState {
   DVD_ARCHIVE_STATE_UNKN5 = 5
 };
 template <typename T> struct ptr {
-  T get(Io io, u32 idx = 0) const {
+  Result<T> get(Io io, u32 idx = 0) const {
     return ReadFromDolphin<T>(io, data + idx * sizeof(T));
   }
   rsl::bu32 data;
@@ -99,13 +102,13 @@ struct ut_List {
 };
 static_assert(sizeof(ut_List) == 0xC);
 
-static inline std::vector<u32> ReadUtList(Io io, const ut_List& list) {
+static inline Result<std::vector<u32>> ReadUtList(Io io, const ut_List& list) {
   std::vector<u32> result;
   u32 it = list.head.data;
   for (u32 i = 0; i < list.count; ++i) {
-    assert(it != 0);
+    EXPECT(it != 0 && "Corrupted linked list");
     u32 inner = it + list.intrusion_offset;
-    auto node = ReadFromDolphin<ut_Node>(io, inner);
+    auto node = TRY(ReadFromDolphin<ut_Node>(io, inner));
 
     result.push_back(it);
 
@@ -129,38 +132,38 @@ struct Info {
   ResourceChannelID type;
   MultiDvdArchive arc;
 };
-static inline std::vector<Info> GameScene_ReadArchives(Io io,
-                                                       const GameScene& scn) {
-  auto arcs = ReadUtList(io, scn.mArchiveList);
+static inline Result<std::vector<Info>>
+GameScene_ReadArchives(Io io, const GameScene& scn) {
+  auto arcs = TRY(ReadUtList(io, scn.mArchiveList));
   std::vector<Info> result;
   for (u32 u : arcs) {
-    auto inf = ReadFromDolphin<GameArcInfo>(io, u);
+    auto inf = TRY(ReadFromDolphin<GameArcInfo>(io, u));
     Info my_info;
     my_info.type = (ResourceChannelID)(u32)inf.type;
-    my_info.arc = inf.arc.get(io);
+    my_info.arc = TRY(inf.arc.get(io));
     result.push_back(my_info);
   }
   return result;
 }
-static inline u32 ReadChain(Io io, std::span<u32> ofs) {
+static inline Result<u32> ReadChain(Io io, std::span<u32> ofs) {
   u32 it = 0;
   for (auto x : ofs) {
-    it = ReadFromDolphin<rsl::bu32>(io, it + x);
+    it = TRY(ReadFromDolphin<rsl::bu32>(io, it + x));
     if (it == 0) {
       return 0;
     }
   }
   return it;
 }
-static inline std::optional<GameScene> GetGameScene(Io io) {
+static inline Result<GameScene> GetGameScene(Io io) {
   u32 scene_id_chain[] = {0x80385FC8, 0x54, 0xC, 0x28};
-  u32 scene_id = ReadChain(io, scene_id_chain);
+  u32 scene_id = TRY(ReadChain(io, scene_id_chain));
   if (scene_id == 0 || scene_id == 5) {
-    return std::nullopt;
+    return std::unexpected("Not in a game scene");
   }
 
   u32 scene_chain[] = {0x80385FC8, 0x54, 0xC};
-  u32 scene = ReadChain(io, scene_chain);
+  u32 scene = TRY(ReadChain(io, scene_chain));
   return ReadFromDolphin<GameScene>(io, scene);
 }
 
@@ -204,9 +207,9 @@ struct KartObjectProxy {
   ptr<void> m_accessor;
   u8 _04[0xc - 0x4];
 
-  u32 getPos(Io io) {
+  Result<u32> getPos(Io io) {
     u32 chain[] = {m_accessor.data + 0x8, 0x90, 0x4};
-    auto o = ReadChain(io, chain);
+    auto o = TRY(ReadChain(io, chain));
     if (!o)
       return 0;
     return o + 0x68;
@@ -222,8 +225,8 @@ struct KartObjectManager {
   u8 m_count;
   u8 _25[0x38 - 0x25];
 
-  KartObjectProxy object(Io io, u32 playerId) const {
-    return m_objects.get(io).get(io, playerId);
+  Result<KartObjectProxy> object(Io io, u32 playerId) const {
+    return TRY(m_objects.get(io)).get(io, playerId);
   }
 };
 static_assert(sizeof(KartObjectManager) == 0x38);

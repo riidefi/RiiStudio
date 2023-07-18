@@ -60,14 +60,14 @@ public:
   DolphinAccessor(const DolphinAccessor&) = delete;
   DolphinAccessor(DolphinAccessor&& rhs) {
     if (m_dolphin_accessor) {
-      dolphin_accessor_drop(m_dolphin_accessor);
+      // dolphin_accessor_drop(m_dolphin_accessor);
     }
     m_dolphin_accessor = rhs.m_dolphin_accessor;
     rhs.m_dolphin_accessor = nullptr;
   }
   ~DolphinAccessor() {
     if (m_dolphin_accessor) {
-      dolphin_accessor_drop(m_dolphin_accessor);
+      // dolphin_accessor_drop(m_dolphin_accessor);
     }
   }
 

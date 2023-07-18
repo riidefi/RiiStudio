@@ -15,6 +15,16 @@
 
 namespace riistudio::frontend {
 
+std::unique_ptr<IWindow> MakeEditor(std::span<const u8> data,
+                                    std::string_view path) {
+  frontend::FileData fd;
+  fd.mData = std::make_unique<u8[]>(data.size());
+  memcpy(fd.mData.get(), data.data(), data.size());
+  fd.mLen = data.size();
+  fd.mPath = path;
+  return MakeEditor(fd);
+}
+
 //! Create an editor from the file data specified. Returns nullptr on failure.
 std::unique_ptr<IWindow> MakeEditor(FileData& data) {
   rsl::info("Opening file: {}", data.mPath.c_str());

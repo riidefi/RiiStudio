@@ -11,6 +11,8 @@
 #include <frontend/UpdaterView.hpp>
 #include <frontend/widgets/theme_editor.hpp>
 
+#include <frontend/editors/MkwDebug.hpp>
+
 #include <frontend/DiscordRPCManager.hpp>
 
 namespace riistudio::frontend {
@@ -60,6 +62,9 @@ private:
   bool mCheckUpdate = true;
 
   DiscordRPCManager mDiscordRpc;
+
+  bool mShowMkwDebug = false;
+  MkwDebug mMkwDebugWindow;
 
 public:
   void requestFile() { mWantFile = true; }

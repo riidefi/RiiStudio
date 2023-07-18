@@ -161,6 +161,10 @@ void RootWindow::draw() {
       mUpdater.draw();
 
     drawChildren();
+
+    if (mShowMkwDebug) {
+      mMkwDebugWindow.draw();
+    }
   }
   imcxx::EndFullscreenWindow();
 }
@@ -177,6 +181,11 @@ void RootWindow::drawMenuBar() {
     drawFileMenu();
 
     drawSettingsMenu();
+
+    if (ImGui::BeginMenu("Tools"_j)) {
+      ImGui::Checkbox("MKW Debug (Dolphin)"_j, &mShowMkwDebug);
+      ImGui::EndMenu();
+    }
 
     if (Fonts::IsJapaneseSupported())
       drawLangMenu();

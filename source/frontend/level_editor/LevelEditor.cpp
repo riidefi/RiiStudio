@@ -155,34 +155,33 @@ Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
       auto& start = mKmp->mStartPoints[0];
       cam.mEye = start.position + glm::vec3(0.0f, 10'000.0f, 0.0f);
     }
-  }
 
-  for (auto& pt : mKmp->mGeoObjs) {
-    librii::objflow::ObjectParameter param =
-        mObjParam.parameters[mObjParam.remap_table[pt.id]];
-    auto res = librii::objflow::GetPrimaryResource(param) + ".brres";
-    if (mObjModels.contains(res)) {
-      continue;
-    }
-    auto p = FindFileWithOverloads(mLevel.root_archive, {res});
-    if (!p)
-      continue;
-    auto b =
-        ReadBRRES(p->file_data, p->resolved_path, NeedResave::AllowUnwritable);
-    if (!b)
-      continue;
+    for (auto& pt : mKmp->mGeoObjs) {
+      librii::objflow::ObjectParameter param =
+          mObjParam.parameters[mObjParam.remap_table[pt.id]];
+      auto res = librii::objflow::GetPrimaryResource(param) + ".brres";
+      if (mObjModels.contains(res)) {
+        continue;
+      }
+      auto p = FindFileWithOverloads(mLevel.root_archive, {res});
+      if (!p)
+        continue;
+      auto b = ReadBRRES(p->file_data, p->resolved_path,
+                         NeedResave::AllowUnwritable);
+      if (!b)
+        continue;
 
-    for (size_t i = 0; i < (**b).getModels().size(); ++i) {
-      auto& mdl = (**b).getModels()[i];
-      if (mdl.getName().contains("shadow")) {
-        for (auto& m : mdl.getBones()) {
-          m.mDisplayCommands.clear();
+      for (size_t i = 0; i < (**b).getModels().size(); ++i) {
+        auto& mdl = (**b).getModels()[i];
+        if (mdl.getName().contains("shadow")) {
+          for (auto& m : mdl.getBones()) {
+            m.mDisplayCommands.clear();
+          }
         }
       }
+      mObjModels[res] = std::make_unique<RenderableBRRES>(*std::move(b));
     }
-    mObjModels[res] = std::make_unique<RenderableBRRES>(*std::move(b));
   }
-
   // Default camera values
   {
     auto& cam = mRenderSettings.mCameraController.mCamera;

@@ -90,7 +90,7 @@ add_library(lib_frontend
  "properties/gc/Material/AdvTexConv.cpp"
  "properties/gc/Material/Merge.cpp"
  "editors/BtkEditor.cpp"
- "legacy_editor/views/BmdBrresOutliner.cpp" "renderer/MouseHider.cpp")
+ "legacy_editor/views/BmdBrresOutliner.cpp" "renderer/MouseHider.cpp" "editors/MkwDebug.cpp")
 
 add_executable(frontend 
  "entry.cpp"
@@ -109,6 +109,7 @@ target_link_libraries(lib_frontend PUBLIC
   LibBadUIFramework
   updater
   rsmeshopt
+  dolphin-memory-engine-rs
 )
 target_link_libraries(frontend PUBLIC
   lib_frontend
