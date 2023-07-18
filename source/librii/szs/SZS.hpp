@@ -16,4 +16,6 @@ std::vector<u8> encodeFast(std::span<const u8> src);
 
 int encodeBoyerMooreHorspool(const u8* src, u8* dst, int srcSize);
 
+u32 encodeSP(const u8* src, u8* dst, u32 srcSize, u32 dstSize);
+
 } // namespace librii::szs
