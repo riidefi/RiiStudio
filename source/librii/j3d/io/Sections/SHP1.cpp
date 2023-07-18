@@ -404,7 +404,7 @@ struct SHP1Node final : public oishii::Node {
     }
 
     std::expected<void, std::string>
-    write(oishii::Writer& writer) const noexcept {
+    write(oishii::Writer& writer) const noexcept override {
       switch (mSID) {
       case SubNodeID::ShapeData: {
         for (int i = 0; i < mMdl.shapes.size(); ++i) {

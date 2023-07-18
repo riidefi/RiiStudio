@@ -46,7 +46,7 @@ struct GenerationIDTracked {
 
 struct Texture : public virtual kpi::IObject, public GenerationIDTracked {
   virtual std::string getName() const override { return "Untitled Texture"; }
-  virtual void setName(const std::string& name) = 0;
+  virtual void setName(const std::string& name) override = 0;
   virtual s64 getId() const { return -1; }
 
   virtual u32 getDecodedSize(bool mip) const {

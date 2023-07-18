@@ -65,7 +65,7 @@ private:
     return 1;
   }
   bool Enabled(size_t i) const override { return true; }
-  bool DrawNode(size_t i, size_t filteredIndex, bool hasChild) {
+  bool DrawNode(size_t i, size_t filteredIndex, bool hasChild) override {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
     if (i == 0) {

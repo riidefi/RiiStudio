@@ -43,6 +43,7 @@ public:
       };
       using T = librii::g3d::SRT0Matrix::TargetId;
       for (auto t : {T::ScaleU, T::ScaleV, T::Rotate, T::TransU, T::TransV}) {
+        (void)t;
         *attr(a.index()) = true;
       }
     }

@@ -281,7 +281,9 @@ struct TEX1Node final : public oishii::Node {
       u32 btiId;
     };
 
-    Result<void> write(oishii::Writer& writer) const noexcept { return {}; }
+    Result<void> write(oishii::Writer& writer) const noexcept override {
+      return {};
+    }
 
     Result<void> gatherChildren(NodeDelegate& d) const noexcept override {
       u32 id = 0;

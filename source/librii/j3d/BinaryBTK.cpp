@@ -114,6 +114,7 @@ Result<void> BinaryBTK::loadFromStream(oishii::BinaryReader& reader) {
   auto anim_type = TRY(reader.tryRead<u32>());
   EXPECT(anim_type == 'btk1');
   auto file_size = TRY(reader.tryRead<s32>());
+  (void)file_size;
   auto tag_count = TRY(reader.tryRead<s32>());
   // Skip SVR1
   reader.seekSet(0x20);

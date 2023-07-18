@@ -52,7 +52,7 @@ public:
                  std::function<kpi::IObject*()> selectionActive,
                  auto drawImageIcon)
       : StudioWindow("Property Editor"), drawImageIcon(drawImageIcon),
-        mSelectionActive(selectionActive), mHost(host), mRoot(root),
+        mHost(host), mSelectionActive(selectionActive), mRoot(root),
         mSelection(selection) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
     setClosable(false);
