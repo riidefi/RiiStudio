@@ -9,8 +9,10 @@ void DolphinAccessor_hook() { DolphinComm::DolphinAccessor::hook(); }
 void DolphinAccessor_unHook() { DolphinComm::DolphinAccessor::unHook(); }
 int32_t DolphinAccessor_readFromRAM(uint32_t addr, char* buffer, uint32_t size,
                                     int32_t withBSwap) {
+#if 0
   printf("DolphinAccessor_readFromRAM: %x, %p, %u, %d\n", addr, (void*)buffer,
          size, withBSwap);
+#endif
   u32 offset = Common::dolphinAddrToOffset(addr, false);
   return DolphinComm::DolphinAccessor::readFromRAM(offset, buffer, size,
                                                    withBSwap);

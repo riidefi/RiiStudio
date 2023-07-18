@@ -188,7 +188,7 @@ pub extern "C" fn dolphin_accessor_write_to_ram(
 }
 
 #[no_mangle]
-pub extern "C" fn dolphin_accessor_get_status(dolphin_accessor: *mut c_void) -> DolphinStatus_C {
+pub extern "C" fn dolphin_accessor_get_status(_dummy: *mut c_void) -> DolphinStatus_C {
     let dolphin_accessor = DolphinAccessor::instance();
     DolphinStatus_C::from(dolphin_accessor.get_status())
 }
