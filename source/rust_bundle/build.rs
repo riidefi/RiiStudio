@@ -79,7 +79,6 @@ fn main() {
         (format!("{}{}", deps_dir, "fmt-build"), "fmtd"),
         #[cfg(windows)]
         (format!("{}{}", deps_dir, "fmt-build"), "fmt"),
-        (format!("{}{}", deps_dir, "libfort-build/lib"), "fort"),
         (format!("{}{}", deps_dir, "meshoptimizer-build"), "meshoptimizer"),
     ];
 
@@ -91,7 +90,7 @@ fn main() {
     // llvm-dlltool.exe -D llvm_sighandler.dll -d llvm_sighandler.def -l llvm_sighandler.lib -m i386:x86-64
 
     #[cfg(windows)]
-    let dlls = vec!["gctex.dll", "riistudio_rs.dll", "llvm_sighandler.dll"];
+    let dlls = vec!["gctex.dll", "riistudio_rs.dll", "llvm_sighandler.dll", "avir_rs.dll", "dolphin_memory_engine_rs.dll"];
 
     #[cfg(windows)]
     for dll in &dlls {
@@ -110,7 +109,7 @@ fn main() {
         // Prepare .def and .lib file names
         let dll_path = Path::new(dll);
         let dll_stem = dll_path.file_stem().unwrap().to_str().unwrap();
-        let def_file = format!("{}.def", dll_stem);
+        let def_file = format!("{}\\{}.def", cargo_dir, dll_stem);
         let lib_file = format!("{}\\{}.lib", cargo_dir, dll_stem);
 
         // Run llvm-dlltool.exe
@@ -128,6 +127,9 @@ fn main() {
     println!("cargo:rustc-link-lib=dylib=gctex");
     println!("cargo:rustc-link-lib=dylib=riistudio_rs");
     println!("cargo:rustc-link-lib=dylib=llvm_sighandler");
+    println!("cargo:rustc-link-lib=dylib=avir_rs");
+    println!("cargo:rustc-link-lib=dylib=c_discord_rich_presence");
+    println!("cargo:rustc-link-lib=dylib=dolphin_memory_engine_rs");
 
     #[cfg(windows)]
     {
