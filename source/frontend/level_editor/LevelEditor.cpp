@@ -6,7 +6,7 @@
 #include "ViewCube.hpp"
 #include <core/3d/gl.hpp>
 #include <core/common.h>
-#include <frontend/root.hpp>
+#include <frontend/EditorFactory.hpp>
 #include <frontend/widgets/CppSupport.hpp>
 #include <frontend/widgets/Manipulator.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -21,9 +21,6 @@
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <librii/math/srt3.hpp>
 #include <rsl/FsDialog.hpp>
-#include <rsl/Rna.hpp>
-
-IMPORT_STD;
 
 namespace riistudio::lvl {
 
@@ -317,9 +314,16 @@ void LevelEditorWindow::draw_() {
   if (Begin(".szs", nullptr, 0, this)) {
     auto clicked = GatherNodes(mLevel.root_archive);
     if (clicked.has_value()) {
-      auto* pParent = frontend::RootWindow::spInstance;
-      if (pParent) {
-        pParent->dropDirect(clicked->second, clicked->first);
+      auto bytes = clicked->second;
+      auto path = clicked->first;
+      frontend::FileData data;
+      data.mData = std::make_unique<u8[]>(bytes.size());
+      memcpy(data.mData.get(), bytes.data(), bytes.size());
+      data.mLen = bytes.size();
+      data.mPath = path;
+      auto ed = frontend::MakeEditor(data);
+      if (ed) {
+        mChildEditors.push_back(std::move(ed));
       }
     }
   }
@@ -387,6 +391,18 @@ void LevelEditorWindow::draw_() {
     }
   }
   ImGui::End();
+
+  for (auto& w : mChildEditors) {
+    if (!w)
+      continue;
+    if (auto* g = dynamic_cast<StudioWindow*>(w.get())) {
+      g->mParent = this;
+    }
+    w->draw();
+    if (!w->isOpen()) {
+      w = nullptr;
+    }
+  }
 }
 
 ImGuiID LevelEditorWindow::buildDock(ImGuiID root_id) {

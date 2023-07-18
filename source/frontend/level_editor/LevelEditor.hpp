@@ -162,6 +162,8 @@ public:
 
   void drawScene(u32 width, u32 height);
 
+  std::vector<std::unique_ptr<frontend::IWindow>> mChildEditors;
+
   Level mLevel;
   plate::tk::Viewport mViewport;
   frontend::RenderSettings mRenderSettings;
