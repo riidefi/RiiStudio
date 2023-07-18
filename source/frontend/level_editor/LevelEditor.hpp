@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/common.h>
+#include <frontend/IEditor.hpp>
 #include <frontend/legacy_editor/StudioWindow.hpp>
 #include <frontend/level_editor/Archive.hpp>
 #include <frontend/level_editor/TriangleRenderer.hpp>
@@ -137,7 +138,9 @@ struct RenderableBRRES {
   std::unique_ptr<librii::g3d::gfx::G3dSceneRenderData> mRenderData;
 };
 
-class LevelEditorWindow : public frontend::StudioWindow, private Selection {
+class LevelEditorWindow : public frontend::StudioWindow,
+                          public frontend::IEditor,
+                          private Selection {
 public:
   LevelEditorWindow()
       : StudioWindow("Level Editor: <unknown>", frontend::DockSetting::None) {
@@ -146,6 +149,9 @@ public:
     mRenderSettings.mCameraController.combo_choice_cam =
         frontend::CameraController::ControllerType::WASD_Plane;
   }
+
+  void saveButton() override;
+  void saveAsButton() override;
 
   void openFile(std::span<const u8> buf, std::string path);
   Result<void> tryOpenFile(std::span<const u8> buf, std::string path);

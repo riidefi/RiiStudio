@@ -111,7 +111,7 @@ static void ProcessArcs(const Archive* arc, std::string_view name,
   u8.nodes[node_index].folder.sibling_next = u8.nodes.size();
 }
 
-std::vector<u8> WriteArchive(const Archive& arc) {
+Result<std::vector<u8>> WriteArchive(const Archive& arc) {
   librii::U8::U8Archive u8;
   u8.watermark = {0};
 

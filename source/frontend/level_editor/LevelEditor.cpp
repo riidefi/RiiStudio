@@ -20,6 +20,7 @@
 #include <librii/glhelper/Util.hpp>
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <librii/math/srt3.hpp>
+#include <rsl/FsDialog.hpp>
 #include <rsl/Rna.hpp>
 
 IMPORT_STD;
@@ -59,6 +60,15 @@ void DrawRenderOptions(RenderOptions& opt) {
 
   opt.xlu_mode = imcxx::Combo("Translucency", opt.xlu_mode, "Fast\0Fancy\0");
   ImGui::SliderFloat("Collision Alpha", &opt.kcl_alpha, 0.0f, 1.0f);
+}
+
+void LevelEditorWindow::saveButton() {
+  // TODO
+  rsl::ErrorDialog("Not implemented");
+}
+void LevelEditorWindow::saveAsButton() {
+  saveFile("Baka.szs");
+  rsl::ErrorDialog("Not implemented");
 }
 
 void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
@@ -196,7 +206,12 @@ void LevelEditorWindow::saveFile(std::string path) {
   // Flush archive cache
   auto szs_buf = WriteArchive(mLevel.root_archive);
 
-  plate::Platform::writeFile(szs_buf, path);
+  if (!szs_buf) {
+    rsl::ErrorDialogFmt("Failed to save:\n{}", szs_buf.error());
+    return;
+  }
+
+  plate::Platform::writeFile(*szs_buf, path);
 }
 
 static std::optional<std::pair<std::string, std::vector<u8>>>
