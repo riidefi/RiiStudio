@@ -165,7 +165,7 @@ struct CHR0BakedTrack8 {
     CHR0BakedTrack8 result;
     result.scale = TRY(reader.F32());
     result.offset = TRY(reader.F32());
-    for (u32 i = 0; i < frames; ++i) {
+    for (u32 i = 0; i < frames + 1; ++i) {
       result.frames.push_back(TRY(reader.U8()));
     }
     return result;
@@ -190,7 +190,7 @@ struct CHR0BakedTrack16 {
     CHR0BakedTrack16 result;
     result.scale = TRY(reader.F32());
     result.offset = TRY(reader.F32());
-    for (u32 i = 0; i < frames; ++i) {
+    for (u32 i = 0; i < frames + 1; ++i) {
       result.frames.push_back(TRY(reader.U16()));
     }
     return result;
@@ -210,7 +210,7 @@ struct CHR0BakedTrack32 {
 
   static Result<CHR0BakedTrack32> read(rsl::SafeReader& reader, u32 frames) {
     CHR0BakedTrack32 result;
-    for (u32 i = 0; i < frames; ++i) {
+    for (u32 i = 0; i < frames + 1; ++i) {
       result.frames.push_back(TRY(reader.F32()));
     }
     return result;
@@ -298,12 +298,14 @@ struct CHR0BakedTrack {
 
 struct CHR0AnyTrack {
   std::variant<CHR0Track, CHR0BakedTrack> data;
+  u32 ofs;
 
   bool operator==(const CHR0AnyTrack&) const = default;
 
   static Result<CHR0AnyTrack> read(rsl::SafeReader& reader, bool baked, u32 fmt,
-                                   u32 frames) {
+                                   u32 frames, u32 fileStart) {
     CHR0AnyTrack result;
+    result.ofs = reader.tell() - fileStart;
     if (!baked) {
       result.data = TRY(CHR0Track::read(reader, fmt));
     } else {
