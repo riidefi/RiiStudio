@@ -165,7 +165,7 @@ struct CHR0BakedTrack8 {
     CHR0BakedTrack8 result;
     result.scale = TRY(reader.F32());
     result.offset = TRY(reader.F32());
-    for (u32 i = 0; i < frames; ++i) {
+    for (u32 i = 0; i < frames + 1; ++i) {
       result.frames.push_back(TRY(reader.U8()));
     }
     return result;
@@ -190,7 +190,7 @@ struct CHR0BakedTrack16 {
     CHR0BakedTrack16 result;
     result.scale = TRY(reader.F32());
     result.offset = TRY(reader.F32());
-    for (u32 i = 0; i < frames; ++i) {
+    for (u32 i = 0; i < frames + 1; ++i) {
       result.frames.push_back(TRY(reader.U16()));
     }
     return result;
@@ -210,7 +210,7 @@ struct CHR0BakedTrack32 {
 
   static Result<CHR0BakedTrack32> read(rsl::SafeReader& reader, u32 frames) {
     CHR0BakedTrack32 result;
-    for (u32 i = 0; i < frames; ++i) {
+    for (u32 i = 0; i < frames + 1; ++i) {
       result.frames.push_back(TRY(reader.F32()));
     }
     return result;
