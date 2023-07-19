@@ -39,7 +39,7 @@ fn main() {
     #[cfg(windows)]
     let cargo_dir = format!("{}cargo\\build\\x86_64-pc-windows-msvc\\release\\", build_dir);
     #[cfg(unix)]
-    let cargo_dir = format!("{}cargo/build/aarch64-apple-darwin/debug/", build_dir);
+    let cargo_dir = format!("{}cargo/build/aarch64-apple-darwin/release/", build_dir);
 
     #[cfg(unix)]
     {
@@ -147,7 +147,7 @@ fn main() {
     let lang_src = format!("{}{}", source_dir, "../lang");
     let icon_src = format!("{}{}", source_dir, "frontend/rc/icon.png");
 
-    let out_dir = "target/debug";
+    let out_dir = "target/release";
 
     // The destination directories for fonts, lang, and icon.png.
     let font_dest = Path::new(&out_dir).join("fonts");

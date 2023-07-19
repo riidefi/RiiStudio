@@ -53,6 +53,12 @@ brew install cmake assimp glfw freetype llvm
 cmake --build . --config Release --parallel
 ```
 
+### Building a .app file
+```sh
+cd source/rust_bundle
+cargo bundle --release
+```
+
 ### Linux
 ```sh
 git clone https://github.com/riidefi/RiiStudio
