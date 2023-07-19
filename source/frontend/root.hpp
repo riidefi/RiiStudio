@@ -17,9 +17,11 @@
 
 namespace riistudio::frontend {
 
-class RootWindow final : public Applet, public FileHost {
+class RootWindow final : public Applet {
 public:
   static RootWindow* spInstance;
+
+  FileHost mFileHost;
 
   RootWindow();
   RootWindow(const RootWindow&) = delete;
@@ -31,11 +33,11 @@ public:
   void drawLangMenu();
   void drawSettingsMenu();
   void drawFileMenu();
-  void onFileOpen(FileData data, OpenFilePolicy policy) override;
+  void onFileOpen(FileData data, OpenFilePolicy policy);
 
   void vdropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len,
                    const std::string& name) override {
-    FileHost::dropDirect(std::move(data), len, name);
+    mFileHost.dropDirect(std::move(data), len, name);
   }
 
   void saveButton();

@@ -12,7 +12,8 @@ static std::vector<std::string> fileDialogueOpen() {
 }
 
 // Called once per frame
-void FileHost::fileHostProcess() {
+void FileHost::fileHostProcess(
+    std::function<void(FileData data, OpenFilePolicy policy)> onFileOpen) {
   while (!mDropQueue.empty()) {
     std::string to_open = mDropQueue.front();
     rsl::info("Reading from disc: {}", to_open.c_str());
@@ -22,6 +23,7 @@ void FileHost::fileHostProcess() {
   while (!mDataDropQueue.empty()) {
     assert(!mDataDropQueue.front().mPath.empty() &&
            mDataDropQueue.front().mPath[0]);
+    assert(onFileOpen);
     onFileOpen(std::move(mDataDropQueue.front()), OpenFilePolicy::NewEditor);
     mDataDropQueue.pop();
   }

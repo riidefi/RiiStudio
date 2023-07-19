@@ -115,7 +115,10 @@ static void MSVCWarningWindow() {
 
 void RootWindow::draw() {
   rsl::DoLeakCheck();
-  fileHostProcess();
+  auto on_file_open = [&](FileData x, OpenFilePolicy y) {
+    onFileOpen(std::move(x), y);
+  };
+  mFileHost.fileHostProcess(on_file_open);
 
   if (auto* a = getActive()) {
     if (auto* b = dynamic_cast<IEditor*>(a)) {
@@ -235,7 +238,7 @@ void RootWindow::drawFileMenu() {
   if (ImGui::BeginMenu("File"_j)) {
 #if !defined(__EMSCRIPTEN__)
     if (ImGui::MenuItem("Open"_j)) {
-      openFile();
+      mFileHost.openFile();
     }
 #endif
     if (ImGui::MenuItem("Save"_j)) {
@@ -284,12 +287,13 @@ RootWindow::RootWindow()
 
   {
     auto brres = LoadLuigiCircuitSample();
-    if (brres)
-      dropDirect(std::move(*brres), "./samples/luigi_circuit.brres");
+    if (brres) {
+      mFileHost.dropDirect(std::move(*brres), "./samples/luigi_circuit.brres");
+    }
   }
 
 #if 0
-  // IOS has 3:1 DPI
+  // iOS has 3:1 DPI
   mThemeData.mGlobalScale = .534f;
   mThemeData.mFontGlobalScale = .534f;
 #endif
