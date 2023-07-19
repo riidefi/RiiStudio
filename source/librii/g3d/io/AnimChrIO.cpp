@@ -54,7 +54,6 @@ struct BinaryChrInfo {
 Result<void> BinaryChr::read(oishii::BinaryReader& reader) {
   rsl::SafeReader safe(reader);
   auto clr0 = safe.scoped("CHR0");
-  u32 start = reader.tell();
   TRY(safe.Magic("CHR0"));
   TRY(safe.U32()); // size
   auto ver = TRY(safe.U32());
@@ -118,7 +117,7 @@ Result<void> BinaryChr::read(oishii::BinaryReader& reader) {
       tp = 2;
       break;
     }
-    track = TRY(CHR0AnyTrack::read(safe, baked, tp, frameDuration, start));
+    track = TRY(CHR0AnyTrack::read(safe, baked, tp, frameDuration));
 
     // The slow part
     // TODO: For now, we don't even convert offsets to indices
@@ -175,7 +174,7 @@ void BinaryChr::write(oishii::Writer& writer, NameTable& names,
     node.write(writer, names);
   }
   for (auto& track : tracks) {
-    writer.seekSet(start + track.ofs);
+    writer.alignTo(0x4);
     track.write(writer);
   }
 

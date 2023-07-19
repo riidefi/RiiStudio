@@ -298,14 +298,12 @@ struct CHR0BakedTrack {
 
 struct CHR0AnyTrack {
   std::variant<CHR0Track, CHR0BakedTrack> data;
-  u32 ofs;
 
   bool operator==(const CHR0AnyTrack&) const = default;
 
   static Result<CHR0AnyTrack> read(rsl::SafeReader& reader, bool baked, u32 fmt,
-                                   u32 frames, u32 fileStart) {
+                                   u32 frames) {
     CHR0AnyTrack result;
-    result.ofs = reader.tell() - fileStart;
     if (!baked) {
       result.data = TRY(CHR0Track::read(reader, fmt));
     } else {
