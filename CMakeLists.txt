@@ -163,8 +163,6 @@ if (FALSE)
   )
 endif()
 
-CPMAddPackage("gh:jorgen/json_struct#master")
-
 add_definitions(-DINCLUDE_RUST_HEADERS)
 
 if (APPLE)
