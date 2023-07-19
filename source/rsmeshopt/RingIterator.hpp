@@ -2,6 +2,7 @@
 
 #include <core/common.h>
 #include <fmt/core.h>
+#include <algorithm>
 #include <ranges>
 
 namespace rsmeshopt {

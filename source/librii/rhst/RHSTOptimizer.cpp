@@ -8,6 +8,7 @@
 
 #include <fmt/color.h>
 #include <rsl/Ranges.hpp>
+#include <thread>
 
 #if !defined(__APPLE__)
 #define throw

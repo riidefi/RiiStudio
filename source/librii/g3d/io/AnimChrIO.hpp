@@ -408,6 +408,7 @@ struct CHR0Flags {
     case CHR0Attrib::TRANS_Z:
       return (flags & OMIT_TZ) == 0;
     }
+    return false;
   }
   static bool IsAttribConst(u32 flags, CHR0Attrib attr) {
     switch (attr) {
@@ -430,6 +431,7 @@ struct CHR0Flags {
     case CHR0Attrib::TRANS_Z:
       return flags & TZ_CONST;
     }
+    return false;
   }
 
   enum class ScaleTransFmt {
