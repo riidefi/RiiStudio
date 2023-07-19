@@ -184,7 +184,7 @@ void BinaryChr::write(oishii::Writer& writer, NameTable& names,
   writer.seekSet(start + 4);
   writer.write<u32>(back - start);
   writer.seekSet(back);
-  writer.alignTo(4);
+  writer.alignTo(0x4);
 }
 
 } // namespace librii::g3d

@@ -56,6 +56,9 @@ TEST_DATA = {
   # mariotreeGC.brres
   '6fe8bbb50310b18ec2b3b9b2de4990f5': '6fe8bbb50310b18ec2b3b9b2de4990f5',
 
+  # fur_rabbits-chr0.brres
+  'c255bf1956d01adf873dc6ff7e91374b': 'c255bf1956d01adf873dc6ff7e91374b',
+
   # Multi models
   # kuribo.brres
   '81deff134e06ff650704ff10056086a4': '81deff134e06ff650704ff10056086a4',
