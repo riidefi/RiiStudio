@@ -19,8 +19,8 @@ pub enum DolphinStatus {
     UnHooked = 3,
 }
 
-impl From<i32> for DolphinStatus {
-    fn from(item: i32) -> Self {
+impl From<u32> for DolphinStatus {
+    fn from(item: u32) -> Self {
         match item {
             0 => DolphinStatus::Hooked,
             1 => DolphinStatus::NotRunning,

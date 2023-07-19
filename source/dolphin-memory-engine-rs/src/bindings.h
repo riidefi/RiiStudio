@@ -21,7 +21,7 @@ int32_t DolphinAccessor_writeToRAM(uint32_t offset, const char* buffer,
                                    uint32_t size, int32_t withBSwap);
 int32_t DolphinAccessor_getPID();
 uint64_t DolphinAccessor_getEmuRAMAddressStart();
-DolphinStatus DolphinAccessor_getStatus();
+uint32_t DolphinAccessor_getStatus();
 int32_t DolphinAccessor_isARAMAccessible();
 uint64_t DolphinAccessor_getARAMAddressStart();
 int32_t DolphinAccessor_isMEM2Present();

@@ -1,5 +1,5 @@
 #include "DolphinAccessor.h"
-#ifdef linux
+#ifdef __linux__
 #include "Linux/LinuxDolphinProcess.h"
 #elif _WIN32
 #include "Windows/WindowsDolphinProcess.h"

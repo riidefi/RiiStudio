@@ -29,7 +29,7 @@ int32_t DolphinAccessor_getPID() {
 uint64_t DolphinAccessor_getEmuRAMAddressStart() {
   return DolphinComm::DolphinAccessor::getEmuRAMAddressStart();
 }
-DolphinStatus DolphinAccessor_getStatus() {
+uint32_t DolphinAccessor_getStatus() {
   return static_cast<DolphinStatus>(DolphinComm::DolphinAccessor::getStatus());
 }
 int32_t DolphinAccessor_isARAMAccessible() {
