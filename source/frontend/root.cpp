@@ -170,6 +170,13 @@ void RootWindow::draw() {
 }
 void RootWindow::drawStatusBar() {
   ImGui::SetWindowFontScale(1.1f);
+#ifndef NDEBUG
+  {
+    ImVec4 clr{1.0f, 0.0f, 0.0f, 1.0f};
+    ImGui::TextColored(
+        clr, "Warning: This is a Debug build with optimizations disabled");
+  }
+#endif
   if (!hasChildren()) {
     ImGui::TextUnformatted("Drop a file to edit."_j);
   }
