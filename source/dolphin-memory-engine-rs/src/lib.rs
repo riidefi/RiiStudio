@@ -92,7 +92,7 @@ impl DolphinAccessor {
     }
 
     pub fn get_status(&self) -> DolphinStatus {
-        let status = unsafe { bindings::DolphinAccessor_getStatus() };
+        let status = unsafe { bindings::DolphinAccessor_getStatus() } as u32;
         DolphinStatus::from(status)
     }
 

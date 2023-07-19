@@ -9,4 +9,4 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 add_library(updater STATIC
   "updater.cpp"
 )
-target_link_libraries(updater core)
+target_link_libraries(updater core rsl)

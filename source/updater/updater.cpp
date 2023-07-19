@@ -2,30 +2,10 @@
 
 #include "updater.hpp"
 
-#ifndef _WIN32
-namespace riistudio {
-class GithubManifest {};
-Updater::Updater() = default;
-Updater::~Updater() = default;
-
-bool Updater_IsOnline(Updater& updater) { return false; }
-void Updater_SetForceUpdate(Updater& updater, bool update) {}
-void Updater_Calc(Updater& updater) {}
-bool Updater_HasAvailableUpdate(Updater& updater) { return false; }
-std::string Updater_LatestVer(Updater& updater) { return GIT_TAG; }
-void Updater_StartUpdate(Updater& updater) {}
-bool Updater_IsUpdating(Updater& updater) { return false; }
-float Updater_Progress(Updater& updater) { return 0.0f; }
-bool Updater_WasUpdated(Updater& updater) { return false; }
-std::optional<std::string> Updater_GetChangeLog(Updater& updater) {
-  return std::nullopt;
-}
-
-} // namespace riistudio
-#else
-
 #include "GithubManifest.hpp"
+#ifdef _WIN32
 #include <io.h>
+#endif
 #include <iostream>
 #include <rsl/Download.hpp>
 #include <rsl/FsDialog.hpp>
@@ -34,6 +14,14 @@ std::optional<std::string> Updater_GetChangeLog(Updater& updater) {
 #include <rsl/Zip.hpp>
 
 namespace riistudio {
+
+bool Updater_CanUpdate(Updater& updater) {
+#ifdef _WIN32
+  return true;
+#else
+  return false;
+#endif
+}
 
 Result<std::filesystem::path> GetTempDirectory() {
   std::error_code ec;
@@ -113,6 +101,9 @@ bool Updater::InitRepoJSON() {
 }
 
 bool Updater::InstallUpdate() {
+#ifndef _WIN32
+  return false;
+#else
   const auto current_exe = rsl::GetExecutableFilename();
   if (current_exe.empty())
     return false;
@@ -158,21 +149,26 @@ bool Updater::InstallUpdate() {
       },
       this);
   return true;
+#endif
 }
 
 void Updater::RetryAsAdmin() {
+#ifdef _WIN32
   auto path = rsl::GetExecutableFilename();
   rsl::LaunchAsAdmin(path, "--update");
   exit(0);
+#endif
 }
 
 void Updater::LaunchUpdate(const std::string& new_exe) {
+#ifdef _WIN32
   rsl::info("Launching update {}", new_exe);
   // On slow machines, the thread may not have been joined yet--so wait for it.
   sThread.join();
   assert(!sThread.joinable());
   rsl::LaunchAsUser(new_exe);
   exit(0);
+#endif
 }
 std::optional<std::string> Updater::GetChangeLog() const {
   auto b = mJSON->body();
@@ -220,5 +216,3 @@ std::optional<std::string> Updater_GetChangeLog(Updater& updater) {
 }
 
 } // namespace riistudio
-
-#endif

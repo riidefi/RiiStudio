@@ -10,6 +10,9 @@ namespace riistudio {
 // Opaque updater type
 class Updater;
 
+// Only Windows builds are published
+bool Updater_CanUpdate(Updater& updater);
+
 // Check if the Updater is usable
 bool Updater_IsOnline(Updater& updater);
 

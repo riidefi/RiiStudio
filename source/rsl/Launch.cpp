@@ -2,6 +2,11 @@
 #include <Windows.h>
 ///////////////////////////
 #include <Libloaderapi.h>
+#elif __APPLE__
+#include <limits.h>
+#include <mach-o/dyld.h>
+#else
+#include <unistd.h>
 #endif
 
 #include "Launch.hpp"
@@ -59,10 +64,26 @@ std::string GetExecutableFilename() {
   // We don't want a truncated path
   if (n < 1020)
     return std::string(pathBuffer.data(), n);
-#else
-  // FIXME: Provide Linux/Mac version
+
+#elif __APPLE__
+  std::array<char, 1024> pathBuffer{};
+  uint32_t size = pathBuffer.size();
+
+  if (_NSGetExecutablePath(pathBuffer.data(), &size) == 0)
+    return std::string(pathBuffer.data());
+  else
+    return ""; // buffer too small
+
+#else // Assume Linux
+  std::array<char, 1024> pathBuffer{};
+  ssize_t len =
+      readlink("/proc/self/exe", pathBuffer.data(), pathBuffer.size() - 1);
+
+  if (len != -1) {
+    pathBuffer[len] = '\0';
+    return std::string(pathBuffer.data());
+  }
 #endif
   return "";
 }
-
 } // namespace rsl
