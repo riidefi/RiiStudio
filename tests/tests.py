@@ -59,6 +59,9 @@ TEST_DATA = {
   # fur_rabbits-chr0.brres
   'c255bf1956d01adf873dc6ff7e91374b': 'c255bf1956d01adf873dc6ff7e91374b',
 
+  # pocha.brres
+  '4358683edc917f717b2acb7e60fd6572' : '36f6e9e5fc70391627441eda975cbfa4',
+
   # Multi models
   # kuribo.brres
   '81deff134e06ff650704ff10056086a4': '81deff134e06ff650704ff10056086a4',
