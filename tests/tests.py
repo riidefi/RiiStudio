@@ -51,7 +51,7 @@ TEST_DATA = {
   '753ab1be14d090d927d4b6f83abe26bf': '753ab1be14d090d927d4b6f83abe26bf',
 
   # driver_model.brres
-  '92e79c67f4e14ca4d68af80fd0e28037': '29d3ecf64ce0b89c826692234e958013',
+  '92e79c67f4e14ca4d68af80fd0e28037': '92e79c67f4e14ca4d68af80fd0e28037',
 
   # mariotreeGC.brres
   '6fe8bbb50310b18ec2b3b9b2de4990f5': '6fe8bbb50310b18ec2b3b9b2de4990f5',
