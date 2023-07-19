@@ -25,7 +25,7 @@ template <typename T> Result<T> ReadFromDolphin(Io io, u32 addr) {
   return raw;
 }
 
-enum ResourceChannelID {
+enum class ResourceChannelID {
   RES_CHAN_RACE_SYS, //!< [0] Localized: /Race/Common.szs and such
   RES_CHAN_COURSE,   //!< [1] Diff'd: Track file
   RES_CHAN_UI,       //!< [2] Localized: 2D UI
@@ -38,7 +38,7 @@ enum ResourceChannelID {
 
   RES_CHAN_PLAYER = 0xA,
 };
-enum EResourceKind {
+enum class EResourceKind {
   RES_KIND_FILE_DOUBLE_FORMAT, // 0 %s%s Supports prefix
   RES_KIND_FILE_SINGLE_FORMAT, // 1 %s
   RES_KIND_BUFFER,             // 2
@@ -48,7 +48,7 @@ enum EResourceKind {
   RES_KIND_DEFAULT = RES_KIND_FILE_DOUBLE_FORMAT
 };
 
-enum ArchiveState {
+enum class ArchiveState {
   DVD_ARCHIVE_STATE_CLEARED = 0,
   DVD_ARCHIVE_STATE_RIPPED = 2,
   DVD_ARCHIVE_STATE_DECOMPRESSED = 3,

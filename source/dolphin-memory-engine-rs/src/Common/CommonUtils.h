@@ -38,6 +38,29 @@ inline u64 bSwap64(u64 data)
 {
   return bswap_64(data);
 }
+#else
+inline uint16_t bSwap16(uint16_t data)
+{
+  return (data << 8) | (data >> 8);
+}
+inline uint32_t bSwap32(uint32_t data)
+{
+  return ((data << 24) & 0xFF000000 ) |
+         ((data << 8)  & 0x00FF0000 ) |
+         ((data >> 8)  & 0x0000FF00 ) |
+         ((data >> 24) & 0x000000FF );
+}
+inline uint64_t bSwap64(uint64_t data)
+{
+  return ((data << 56) & 0xFF00000000000000 ) |
+         ((data << 40) & 0x00FF000000000000 ) |
+         ((data << 24) & 0x0000FF0000000000 ) |
+         ((data << 8)  & 0x000000FF00000000 ) |
+         ((data >> 8)  & 0x00000000FF000000 ) |
+         ((data >> 24) & 0x0000000000FF0000 ) |
+         ((data >> 40) & 0x000000000000FF00 ) |
+         ((data >> 56) & 0x00000000000000FF );
+}
 #endif
 
 inline u32 dolphinAddrToOffset(u32 addr, bool considerAram)

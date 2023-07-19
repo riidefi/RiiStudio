@@ -50,6 +50,14 @@ std::string FormatSize(u32 node_size) {
 std::vector<std::unique_ptr<riistudio::frontend::IWindow>> windows;
 
 void MkwDebug::draw() {
+#ifdef __APPLE__
+  if (ImGui::Begin("Warning")) {
+    ImGui::Text(
+        "The integrated Dolphin debugger is unsupported on MacOS for now");
+  }
+  ImGui::End();
+  return;
+#endif
   if (ImGui::Begin("Hi!")) {
     auto status = dolphin.getStatus();
     if (ImGui::Button("Hook")) {
