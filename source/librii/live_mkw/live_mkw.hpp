@@ -9,6 +9,7 @@
 #include <functional>
 #include <optional>
 #include <rsl/SimpleReader.hpp>
+#include <vendor/magic_enum/magic_enum.hpp>
 
 namespace librii::live_mkw {
 
@@ -23,6 +24,54 @@ template <typename T> Result<T> ReadFromDolphin(Io io, u32 addr) {
         std::format("Failed to read {} bytes from {:x}", sizeof(raw), addr));
   }
   return raw;
+}
+
+enum class Region {
+  P,
+  E,
+  J,
+  K,
+};
+
+enum {
+  REGION_P_ID = 0x54a9,
+  REGION_E_ID = 0x5409,
+  REGION_J_ID = 0x53cd,
+  REGION_K_ID = 0x5511,
+};
+
+Result<Region> GetRegion(Io io) {
+  u16 id = TRY(ReadFromDolphin<rsl::bu16>(io, 0x8000620a));
+  switch (id) {
+  case REGION_P_ID:
+    return Region::P;
+  case REGION_E_ID:
+    return Region::E;
+  case REGION_J_ID:
+    return Region::J;
+  case REGION_K_ID:
+    return Region::K;
+  default:
+    break;
+  }
+  return std::unexpected("Unknown region ID");
+}
+
+//! Port a PAL address to the current region
+Result<u32> Port(Io io, u32 addr) {
+  auto region = TRY(GetRegion(io));
+  if (region == Region::P) {
+    return addr;
+  }
+  if (addr == 0x80385fc8 && region == Region::E) {
+    return 0x80381c48;
+  }
+  if (addr == 0x80385fc8 && region == Region::J) {
+    return 0x80385948;
+  }
+  return std::unexpected(
+      std::format("Region {} is currently unsupported. Please use a PAL disc",
+                  magic_enum::enum_name(region)));
 }
 
 enum class ResourceChannelID {
@@ -156,13 +205,13 @@ static inline Result<u32> ReadChain(Io io, std::span<u32> ofs) {
   return it;
 }
 static inline Result<GameScene> GetGameScene(Io io) {
-  u32 scene_id_chain[] = {0x80385FC8, 0x54, 0xC, 0x28};
+  u32 scene_id_chain[] = {TRY(Port(io, 0x80385FC8)), 0x54, 0xC, 0x28};
   u32 scene_id = TRY(ReadChain(io, scene_id_chain));
   if (scene_id == 0 || scene_id == 5) {
     return std::unexpected("Not in a game scene");
   }
 
-  u32 scene_chain[] = {0x80385FC8, 0x54, 0xC};
+  u32 scene_chain[] = {TRY(Port(io, 0x80385FC8)), 0x54, 0xC};
   u32 scene = TRY(ReadChain(io, scene_chain));
   return ReadFromDolphin<GameScene>(io, scene);
 }

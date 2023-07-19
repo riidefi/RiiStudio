@@ -17,6 +17,9 @@ namespace riistudio::frontend {
 
 DolphinAccessor dolphin;
 live::Io io = [](u32 addr, std::span<u8> dst) {
+  if (dolphin.getStatus() != DolphinAccessor::Status::Hooked) {
+    return false;
+  }
   return dolphin.readFromRAM(addr, dst, false);
 };
 std::string gameName() {
