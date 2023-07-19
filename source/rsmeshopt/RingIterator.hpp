@@ -124,8 +124,8 @@ public:
 
 private:
   Result<void> sortEdges() {
-    std::unordered_map<int, int> valency;
-    std::unordered_map<int, std::vector<int>> from_to;
+    std::map<int, int> valency;
+    std::map<int, std::vector<int>> from_to;
     for (auto& [l, r] : edges_) {
       ++valency[l];
       ++valency[r];
