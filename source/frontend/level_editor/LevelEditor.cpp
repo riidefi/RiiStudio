@@ -157,8 +157,14 @@ Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
     }
 
     for (auto& pt : mKmp->mGeoObjs) {
-      librii::objflow::ObjectParameter param =
-          mObjParam.parameters[mObjParam.remap_table[pt.id]];
+      if (pt.id > mObjParam.remap_table.size()) {
+        continue;
+      }
+      u32 remap_id = mObjParam.remap_table[pt.id];
+      if (remap_id > mObjParam.parameters.size()) {
+        continue;
+      }
+      librii::objflow::ObjectParameter param = mObjParam.parameters[remap_id];
       auto res = librii::objflow::GetPrimaryResource(param) + ".brres";
       if (mObjModels.contains(res)) {
         continue;
