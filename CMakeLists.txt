@@ -185,5 +185,6 @@ corrosion_import_crate(MANIFEST_PATH source/gctex/Cargo.toml CRATE_TYPES cdylib)
 corrosion_import_crate(MANIFEST_PATH source/avir-rs/Cargo.toml CRATE_TYPES cdylib)
 corrosion_import_crate(MANIFEST_PATH source/c-discord-rich-presence/Cargo.toml CRATE_TYPES staticlib)
 corrosion_import_crate(MANIFEST_PATH source/dolphin-memory-engine-rs/Cargo.toml CRATE_TYPES cdylib)
+corrosion_import_crate(MANIFEST_PATH source/c-wbz/Cargo.toml CRATE_TYPES staticlib)
 
 add_subdirectory(source)

@@ -20,6 +20,8 @@
 #include <librii/glhelper/Util.hpp>
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <librii/math/srt3.hpp>
+#include <librii/szs/SZS.hpp>
+#include <librii/wbz/WBZ.hpp>
 #include <rsl/FsDialog.hpp>
 
 namespace riistudio::lvl {
@@ -79,9 +81,17 @@ Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
                                             std::string path) {
   std::span<const u8> objflow_bin{ObjFlow_bin, ObjFlow_bin_len};
   mObjParam = TRY(librii::objflow::Read(objflow_bin));
+
+  // Convert to .szs (optional)
+  std::vector<u8> szs_buf;
+  if (path.ends_with(".wbz")) {
+    auto arc = TRY(librii::wbz::decodeWBZ(buf, "C:\\Program Files\\Wiimm\\SZS\\auto-add"));
+    szs_buf = TRY(librii::szs::encodeCTGP(arc));
+  }
+
   // Read .szs
   {
-    auto root_arc = TRY(ReadArchive(buf));
+    auto root_arc = TRY(ReadArchive(szs_buf.size() ? szs_buf : buf));
     mLevel.root_archive = std::move(root_arc);
     mLevel.og_path = path;
   }

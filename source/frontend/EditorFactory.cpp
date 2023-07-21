@@ -35,7 +35,7 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
   std::transform(path_lower.begin(), path_lower.end(), path_lower.begin(),
                  ::tolower);
 
-  if (path_lower.ends_with(".szs")) {
+  if (path_lower.ends_with(".szs") || path_lower.ends_with(".wbz")) {
     auto pWin = std::make_unique<lvl::LevelEditorWindow>();
     pWin->openFile(span, data.mPath);
     return pWin;
