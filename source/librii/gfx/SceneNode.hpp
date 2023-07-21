@@ -79,6 +79,9 @@ struct SceneNode {
   };
 
   rsl::small_vector<UniformMin, 4> uniform_mins;
+
+  // Purely for debugging
+  std::string matName;
 };
 
 [[nodiscard]] Result<void>

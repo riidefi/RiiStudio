@@ -101,9 +101,11 @@ Result<std::vector<glm::mat4>> getPosMtx(const libcube::IndexedPolygon& p,
 Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
                            librii::glhelper::VBOBuilder& v,
                            G3dTextureCache& tex_id_map, Node node,
+                           G3dSceneRenderData& render_data,
                            librii::glhelper::ShaderProgram& prog, u32 mp_id,
                            glm::mat4 model_matrix, glm::mat4 view_matrix,
                            glm::mat4 proj_matrix, std::string& err) {
+  out.matName = node.mat.getName();
   out.vao_id = v.getGlId();
   out.bound = {};
   // lib3d::CalcPolyBound(node.poly, node.bone, node.model);
@@ -155,16 +157,17 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
   {
 
     for (u32 i = 0; i < 3; ++i) {
-      static std::map<std::pair<u32, u32>, u32> query_mins;
       std::pair<u32, u32> id{out.shader_id, i};
-      if (!query_mins.contains(id)) {
+      if (!render_data.query_mins.contains(id)) {
         int query_min;
         glGetActiveUniformBlockiv(out.shader_id, i, GL_UNIFORM_BLOCK_DATA_SIZE,
                                   &query_min);
-        query_mins[id] = static_cast<u32>(query_min);
+        render_data.query_mins[id] = static_cast<u32>(query_min);
       }
-      out.uniform_mins.push_back(
-          {.binding_point = i, .min_size = query_mins[id]});
+      out.uniform_mins.push_back({
+          .binding_point = i,
+          .min_size = render_data.query_mins[id],
+      });
     }
   }
 
@@ -222,8 +225,7 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
   }
 
   {
-    static std::set<u32> hasUploaded;
-    if (!hasUploaded.contains(out.shader_id)) {
+    if (!render_data.hasUploaded.contains(out.shader_id)) {
       // WebGL doesn't support binding=n in the shader
 #if defined(__EMSCRIPTEN__) || defined(__APPLE__)
       glUniformBlockBinding(
@@ -240,7 +242,7 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
       glUseProgram(out.shader_id);
       u32 uTexLoc = glGetUniformLocation(out.shader_id, "u_Texture");
       glUniform1iv(uTexLoc, 8, samplerIds);
-      hasUploaded.insert(out.shader_id);
+      render_data.hasUploaded.insert(out.shader_id);
     }
   }
 
@@ -250,13 +252,14 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
 void pushDisplay(lib3d::IndexRange tenant,
                  librii::glhelper::VBOBuilder& vbo_builder, Node node,
                  librii::gfx::SceneBuffers& output, u32 mp_id,
-                 G3dTextureCache& tex_id_map,
+                 G3dTextureCache& tex_id_map, G3dSceneRenderData& render_data,
                  librii::glhelper::ShaderProgram& shader, glm::mat4 m_mtx,
                  glm::mat4 v_mtx, glm::mat4 p_mtx, std::string& err) {
 
   librii::gfx::SceneNode mnode;
-  auto err_ = MakeSceneNode(mnode, tenant, vbo_builder, tex_id_map, node,
-                            shader, mp_id, m_mtx, v_mtx, p_mtx, err);
+  auto err_ =
+      MakeSceneNode(mnode, tenant, vbo_builder, tex_id_map, node, render_data,
+                    shader, mp_id, m_mtx, v_mtx, p_mtx, err);
   if (!err_.has_value()) {
     err = err + "\n" + err_.error();
     return;
@@ -324,7 +327,8 @@ Result<void> gatherBoneRecursive(librii::gfx::SceneBuffers& output, u64 boneId,
       pushDisplay(
           TRY(render_data.mVertexRenderData.getDrawCallVertices(mesh_name)),
           render_data.mVertexRenderData.mVboBuilder, node, output, i,
-          render_data.mTextureData, **shader, m_mtx, v_mtx, p_mtx, _err);
+          render_data.mTextureData, render_data, **shader, m_mtx, v_mtx, p_mtx,
+          _err);
       if (_err.size()) {
         err = err + "\n" + _err;
       }
