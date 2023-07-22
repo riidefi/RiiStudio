@@ -5,6 +5,7 @@
 #include <rsl/InitLLVM.hpp>
 #include <rsl/Log.hpp>
 
+#include <core/util/timestamp.hpp>
 #include <filesystem>
 
 struct RootHolder {

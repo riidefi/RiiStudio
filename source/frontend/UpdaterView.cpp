@@ -5,29 +5,29 @@
 
 namespace riistudio {
 
-UpdaterView::UpdaterView() {
-  mShowUpdateDialog = Updater_HasAvailableUpdate(mUpdater);
+UpdaterView::UpdaterView() : mUpdater(Updater_Create(), Updater_Destroy) {
+  mShowUpdateDialog = Updater_HasAvailableUpdate(*mUpdater);
 }
 void UpdaterView::draw() {
-  if (!Updater_IsOnline(mUpdater))
+  if (!Updater_IsOnline(*mUpdater))
     return;
 
-  if (Updater_WasUpdated(mUpdater)) {
-    if (auto body = Updater_GetChangeLog(mUpdater); body.has_value()) {
+  if (Updater_WasUpdated(*mUpdater)) {
+    if (auto body = Updater_GetChangeLog(*mUpdater); body.has_value()) {
       DrawChangeLog(&mShowChangelog, *body);
     }
   }
 
-  Updater_Calc(mUpdater);
+  Updater_Calc(*mUpdater);
 
   if (!mShowUpdateDialog)
     return;
 
   std::optional<float> progress;
-  if (Updater_IsUpdating(mUpdater)) {
-    progress = Updater_Progress(mUpdater);
+  if (Updater_IsUpdating(*mUpdater)) {
+    progress = Updater_Progress(*mUpdater);
   }
-  auto action = DrawUpdaterUI(Updater_LatestVer(mUpdater).c_str(), progress);
+  auto action = DrawUpdaterUI(Updater_LatestVer(*mUpdater).c_str(), progress);
   switch (action) {
   case Action::None: {
     break;
@@ -37,7 +37,7 @@ void UpdaterView::draw() {
     break;
   }
   case Action::Yes: {
-    Updater_StartUpdate(mUpdater);
+    Updater_StartUpdate(*mUpdater);
     break;
   }
   }
@@ -56,7 +56,7 @@ UpdaterView::Action UpdaterView::DrawUpdaterUI(const char* version,
     auto pos = ImGui::GetWindowPos();
     auto avail = ImGui::GetWindowSize();
     auto sz = ImVec2(600, 84);
-    if (!Updater_CanUpdate(mUpdater)) {
+    if (!Updater_CanUpdate(*mUpdater)) {
       // Long explanation text
       sz.y = 176;
     }
@@ -76,7 +76,7 @@ UpdaterView::Action UpdaterView::DrawUpdaterUI(const char* version,
 
       ImGui::Separator();
 
-      if (!Updater_CanUpdate(mUpdater)) {
+      if (!Updater_CanUpdate(*mUpdater)) {
         ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error:");
         ImGui::TextWrapped(
             "Unfortunately, only Windows builds are published "
@@ -92,7 +92,7 @@ UpdaterView::Action UpdaterView::DrawUpdaterUI(const char* version,
         }
       }
 
-      if (Updater_CanUpdate(mUpdater)) {
+      if (Updater_CanUpdate(*mUpdater)) {
         auto button = ImVec2{75, 0};
         ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - button.x * 2);
         {

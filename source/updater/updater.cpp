@@ -13,7 +13,75 @@
 #include <rsl/Log.hpp>
 #include <rsl/Zip.hpp>
 
+#include <array>
+#include <core/util/timestamp.hpp>
+#include <memory>
+#include <thread>
+
 namespace riistudio {
+
+///
+/// The following is implementation-defined and will hopefully soon be replaced
+/// with Rust code.
+///
+
+class GithubManifest;
+
+class Updater {
+public:
+  Updater();
+  ~Updater();
+
+#if defined(UPDATER_INTERNAL)
+public:
+#else
+private:
+#endif
+  void Calc();
+  bool mIsInUpdate = false;
+  float mUpdateProgress = 0.0f;
+  void StartUpdate() {
+    if (!InstallUpdate() && mNeedAdmin) {
+      RetryAsAdmin();
+      // (Never reached)
+    }
+  }
+  std::optional<std::string> GetChangeLog() const;
+  std::string mLatestVer = GIT_TAG;
+  bool WasJustUpdated() const { return mHasChangeLog; }
+  bool HasPendingUpdate() const { return mHasPendingUpdate; }
+
+private:
+  std::unique_ptr<GithubManifest> mJSON;
+  bool mNeedAdmin = false;
+  std::string mLaunchPath;
+  bool mForceUpdate = false;
+
+#ifdef _WIN32
+  std::jthread sThread;
+#endif
+
+  bool mHasChangeLog = false;
+  bool mHasPendingUpdate = false;
+
+  bool InitRepoJSON();
+  bool InstallUpdate();
+  void RetryAsAdmin();
+
+#if defined(UPDATER_INTERNAL)
+public:
+#else
+private:
+#endif
+  void LaunchUpdate(const std::string& new_exe);
+  void QueueLaunch(const std::string& path) { mLaunchPath = path; }
+  void SetProgress(float progress) { mUpdateProgress = progress; }
+  void SetForceUpdate(bool update) { mForceUpdate = update; }
+  bool IsOnline() const { return mJSON != nullptr; }
+};
+
+Updater* Updater_Create() { return new Updater; }
+void Updater_Destroy(Updater* updater) { delete updater; }
 
 bool Updater_CanUpdate(Updater& updater) {
 #ifdef _WIN32

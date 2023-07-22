@@ -1,14 +1,13 @@
-#include <array>
-#include <core/util/timestamp.hpp>
-#include <memory>
 #include <optional>
 #include <string>
-#include <thread>
 
 namespace riistudio {
 
 // Opaque updater type
 class Updater;
+
+Updater* Updater_Create();
+void Updater_Destroy(Updater* updater);
 
 // Only Windows builds are published
 bool Updater_CanUpdate(Updater& updater);
@@ -43,65 +42,5 @@ bool Updater_WasUpdated(Updater& updater);
 
 // Get the changelog of the latest release.
 std::optional<std::string> Updater_GetChangeLog(Updater& updater);
-
-///
-/// The following is implementation-defined and will hopefully soon be replaced
-/// with Rust code.
-///
-
-class GithubManifest;
-
-class Updater {
-public:
-  Updater();
-  ~Updater();
-
-#if defined(UPDATER_INTERNAL)
-public:
-#else
-private:
-#endif
-  void Calc();
-  bool mIsInUpdate = false;
-  float mUpdateProgress = 0.0f;
-  void StartUpdate() {
-    if (!InstallUpdate() && mNeedAdmin) {
-      RetryAsAdmin();
-      // (Never reached)
-    }
-  }
-  std::optional<std::string> GetChangeLog() const;
-  std::string mLatestVer = GIT_TAG;
-  bool WasJustUpdated() const { return mHasChangeLog; }
-  bool HasPendingUpdate() const { return mHasPendingUpdate; }
-
-private:
-  std::unique_ptr<GithubManifest> mJSON;
-  bool mNeedAdmin = false;
-  std::string mLaunchPath;
-  bool mForceUpdate = false;
-
-#ifdef _WIN32
-  std::jthread sThread;
-#endif
-
-  bool mHasChangeLog = false;
-  bool mHasPendingUpdate = false;
-
-  bool InitRepoJSON();
-  bool InstallUpdate();
-  void RetryAsAdmin();
-
-#if defined(UPDATER_INTERNAL)
-public:
-#else
-private:
-#endif
-  void LaunchUpdate(const std::string& new_exe);
-  void QueueLaunch(const std::string& path) { mLaunchPath = path; }
-  void SetProgress(float progress) { mUpdateProgress = progress; }
-  void SetForceUpdate(bool update) { mForceUpdate = update; }
-  bool IsOnline() const { return mJSON != nullptr; }
-};
 
 } // namespace riistudio
