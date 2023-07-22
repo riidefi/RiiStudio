@@ -18,6 +18,7 @@
 #include <rsl/Stb.hpp>
 
 namespace llvm {
+int EnableABIBreakingChecks;
 int DisableABIBreakingChecks;
 } // namespace llvm
 
