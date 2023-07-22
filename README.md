@@ -67,9 +67,9 @@ mkdir build
 cd build
 
 sudo apt-get update --fix-missing
-sudo apt install -y cmake mesa-common-dev libglfw3-dev libassimp-dev libfreetype-dev g++-12
+sudo apt install -y cmake mesa-common-dev libglfw3-dev libassimp-dev libfreetype-dev
 
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-12
+cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build . --config Release --parallel
 ```
 
