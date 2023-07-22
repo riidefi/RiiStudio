@@ -30,11 +30,7 @@ int32_t wbzrs_decode_wu8(void* wu8_buffer, uint32_t wu8_len,
                          const char* autoadd_path);
 
 const char* wbzrs_error_to_string(int32_t ec);
-
-static inline void wbzrs_free_buffer(wbzrs_buffer* buf) {
-  free(buf->data);
-  memset(buf, 0, sizeof(*buf));
-}
+void wbzrs_free_buffer(wbzrs_buffer* buf);
 
 #ifdef __cplusplus
 }
