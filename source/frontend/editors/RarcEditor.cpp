@@ -393,9 +393,14 @@ void RarcEditorPropertyGrid::DrawFlagsColumn(ResourceArchive::Node& node,
 void RarcEditorPropertyGrid::DrawSizeColumn(ResourceArchive::Node& node,
                                             RarcEditor* editor) {
   ImGui::PushID(std::addressof(node));
+  RSL_DEFER(ImGui::PopID()); 
 
   std::string size_string;
   std::size_t node_size = editor->GetNodeSize(node);
+  if (node_size == 0) {
+    ImGui::Text("%s", "0 B");
+	return;
+  }
 
   if (node.is_folder()) {
     size_string = std::format("{}", node_size);
@@ -417,8 +422,6 @@ void RarcEditorPropertyGrid::DrawSizeColumn(ResourceArchive::Node& node,
   }
 
   ImGui::Text("%s", size_string.c_str());
-
-  ImGui::PopID();
 }
 
 void RarcEditorPropertyGrid::DrawOperationModal(RarcEditor* editor) {
