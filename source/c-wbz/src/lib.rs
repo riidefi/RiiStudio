@@ -17,8 +17,10 @@ pub enum ErrorCode {
     ERR_FILE_OPERATION_FAILED,
     ERR_INVALID_WBZ_MAGIC,
     ERR_INVALID_WU8_MAGIC,
+    ERR_INVALID_U8_MAGIC,
     ERR_INVALID_STRING,
     ERR_INVALID_BOOL,
+    ERR_UNSPECIFIED,
 }
 
 fn guard_null<T>(ptr: *const T) -> *const T {
@@ -41,8 +43,10 @@ fn error_to_code(error: wbz_converter::Error) -> ErrorCode {
         wbz_converter::Error::FileOperationFailed(_) => ErrorCode::ERR_FILE_OPERATION_FAILED,
         wbz_converter::Error::InvalidWBZMagic { .. } => ErrorCode::ERR_INVALID_WBZ_MAGIC,
         wbz_converter::Error::InvalidWU8Magic { .. } => ErrorCode::ERR_INVALID_WU8_MAGIC,
+        wbz_converter::Error::InvalidU8Magic { .. } => ErrorCode::ERR_INVALID_U8_MAGIC,
         wbz_converter::Error::InvalidString(_) => ErrorCode::ERR_INVALID_STRING,
         wbz_converter::Error::InvalidBool(_) => ErrorCode::ERR_INVALID_BOOL,
+        _ => ErrorCode::ERR_UNSPECIFIED,
     }
 }
 
@@ -55,8 +59,10 @@ pub extern "C" fn wbzrs_error_to_string(errc: ErrorCode) -> *const c_char {
         ErrorCode::ERR_FILE_OPERATION_FAILED => "Underlying error when reading from file",
         ErrorCode::ERR_INVALID_WBZ_MAGIC => "WBZ file did not contain valid magic",
         ErrorCode::ERR_INVALID_WU8_MAGIC => "WU8 file did not contain valid magic",
+        ErrorCode::ERR_INVALID_U8_MAGIC => "U8 file did not contain valid magic",
         ErrorCode::ERR_INVALID_STRING => "Invalid string error",
         ErrorCode::ERR_INVALID_BOOL => "Invalid boolean value",
+        ErrorCode::ERR_UNSPECIFIED => "Unspecified error",
     };
     message.as_ptr() as *const c_char
 }
@@ -77,7 +83,7 @@ pub unsafe extern "C" fn wbzrs_decode_wbz(
     guard_null(autoadd_path);
     guard_null_mut(out_buffer);
 
-    let c_str_path = unsafe {CStr::from_ptr(autoadd_path)};
+    let c_str_path = unsafe { CStr::from_ptr(autoadd_path) };
     let path = match c_str_path.to_str() {
         Ok(s) => Path::new(s),
         Err(_) => return ErrorCode::ERR_INVALID_STRING as i32,
@@ -100,7 +106,7 @@ pub unsafe extern "C" fn wbzrs_decode_wbz(
 /// - wu8_buffer and wu8_len must be valid for [`slice::from_raw_parts_mut`].
 /// - autoadd_path must be valid for [`CStr::from_ptr`].
 #[no_mangle]
-pub unsafe extern "C" fn wbzrs_decode_wu8(
+pub unsafe extern "C" fn wbzrs_decode_wu8_inplace(
     wu8_buffer: *mut u8,
     wu8_len: u32,
     autoadd_path: *const c_char,
@@ -108,7 +114,7 @@ pub unsafe extern "C" fn wbzrs_decode_wu8(
     guard_null_mut(wu8_buffer);
     guard_null(autoadd_path);
 
-    let c_str_path = unsafe {CStr::from_ptr(autoadd_path)};
+    let c_str_path = unsafe { CStr::from_ptr(autoadd_path) };
     let path = match c_str_path.to_str() {
         Ok(s) => Path::new(s),
         Err(_) => return -1,
@@ -122,9 +128,71 @@ pub unsafe extern "C" fn wbzrs_decode_wu8(
 }
 
 /// # Safety
+/// - wu8_buffer and wu8_len must be valid for [`slice::from_raw_parts_mut`].
+/// - autoadd_path must be valid for [`CStr::from_ptr`].
+#[no_mangle]
+pub unsafe extern "C" fn wbzrs_encode_wu8_inplace(
+    wu8_buffer: *mut u8,
+    wu8_len: u32,
+    autoadd_path: *const c_char,
+) -> i32 {
+    guard_null_mut(wu8_buffer);
+    guard_null(autoadd_path);
+
+    let c_str_path = unsafe { CStr::from_ptr(autoadd_path) };
+    let path = match c_str_path.to_str() {
+        Ok(s) => Path::new(s),
+        Err(_) => return -1,
+    };
+
+    let data_slice = unsafe { slice::from_raw_parts_mut(wu8_buffer, wu8_len as usize) };
+    match wbz_converter::encode_wu8(data_slice, path) {
+        Ok(_) => ErrorCode::ERR_OK as i32,
+        Err(e) => error_to_code(e) as i32,
+    }
+}
+
+/// # Safety
+///
+/// - u8_buffer WILL be written to.
+/// - u8_buffer and u8_len must be valid for [`slice::from_raw_parts`].
+/// - autoadd_path must be valid for [`CStr::from_ptr`].
+/// - out_buffer's pointer must be freed via [`wbzrs_free_buffer`].
+#[no_mangle]
+pub unsafe extern "C" fn wbzrs_encode_wbz_inplace(
+    u8_buffer: *mut u8,
+    u8_len: u32,
+    autoadd_path: *const c_char,
+    out_buffer: *mut Buffer,
+) -> i32 {
+    guard_null(u8_buffer);
+    guard_null(autoadd_path);
+    guard_null_mut(out_buffer);
+
+    let c_str_path = unsafe { CStr::from_ptr(autoadd_path) };
+    let path = match c_str_path.to_str() {
+        Ok(s) => Path::new(s),
+        Err(_) => return ErrorCode::ERR_INVALID_STRING as i32,
+    };
+
+    let data_slice = unsafe { slice::from_raw_parts_mut(u8_buffer, u8_len as usize) };
+    let mut wbz_file = Vec::<u8>::new();
+    match wbz_converter::encode_wbz(data_slice, &mut wbz_file, path) {
+        Ok(_) => (),
+        Err(e) => return error_to_code(e) as i32,
+    };
+
+    unsafe {
+        *out_buffer = Buffer::from(wbz_file);
+    }
+
+    ErrorCode::ERR_OK as i32
+}
+
+/// # Safety
 /// - buffer must been returned via this library.
 #[no_mangle]
 pub unsafe extern "C" fn wbzrs_free_buffer(buffer: *mut Buffer) {
-    let buffer = unsafe {*buffer};
+    let buffer = unsafe { *buffer };
     buffer.into_vec();
 }

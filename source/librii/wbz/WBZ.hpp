@@ -7,8 +7,12 @@
 namespace librii::wbz {
 
 Result<std::vector<u8>> decodeWBZ(std::span<const u8> buf,
-                                   std::string_view autoadd_path);
+                                  std::string_view autoadd_path);
 
 Result<void> decodeWU8Inplace(std::span<u8> buf, std::string_view autoadd_path);
+Result<void> encodeWU8Inplace(std::span<u8> buf, std::string_view autoadd_path);
+
+Result<std::vector<u8>> encodeWBZ(std::span<const u8> buf,
+                                  std::string_view autoadd_path);
 
 } // namespace librii::wbz

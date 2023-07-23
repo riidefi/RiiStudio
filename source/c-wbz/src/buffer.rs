@@ -11,9 +11,7 @@ impl Buffer {
     /// # Safety
     /// Buffer must have originally been created via the From<Vec<u8>> conversion.
     pub unsafe fn into_vec(self) -> Vec<u8> {
-        unsafe {
-            Vec::from_raw_parts(self.begin, self.len, self.len)
-        }
+        unsafe { Vec::from_raw_parts(self.begin, self.len, self.len) }
     }
 }
 
@@ -32,9 +30,6 @@ impl From<Vec<u8>> for Buffer {
             std::process::abort();
         }
 
-        Buffer {
-            begin: ptr,
-            len
-        }
+        Buffer { begin: ptr, len }
     }
 }
