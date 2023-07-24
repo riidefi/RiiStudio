@@ -3,6 +3,7 @@
 #include <array>
 #include <core/common.h>
 #include <filesystem>
+#include <rsl/FsDialog.hpp>
 #include <rsl/SimpleReader.hpp>
 #include <span>
 #include <string>
@@ -34,7 +35,6 @@ struct ResourceArchive {
     std::vector<u8> data;
 
     bool is_folder() const { return (flags & DIRECTORY) != 0; }
-    bool is_special_path() const { return name == "." || name == ".."; }
 
     bool operator==(const Node& rhs) const {
       return id == rhs.id && flags == rhs.flags && name == rhs.name &&
@@ -57,11 +57,29 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
                                             bool make_matching = true,
                                             bool ids_synced = true);
 
-void RecalculateArchiveIDs(ResourceArchive& arc);
+Result<void> RecalculateArchiveIDs(ResourceArchive& arc);
 
 Result<void> ExtractResourceArchive(const ResourceArchive& arc,
                                     std::filesystem::path out);
 Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root);
+
+bool ImportFiles(ResourceArchive& rarc,
+                 ResourceArchive::Node parent,
+                 std::vector<rsl::File>& files);
+bool ImportFolder(ResourceArchive& rarc,
+                  ResourceArchive::Node parent,
+                  const std::filesystem::path& folder);
+bool CreateFolder(ResourceArchive& rarc,
+                  ResourceArchive::Node parent,
+                  std::string name);
+bool DeleteNodes(ResourceArchive& rarc,
+                 std::vector<ResourceArchive::Node>& nodes);
+Result<bool> ExtractNodeTo(const ResourceArchive& rarc,
+                           ResourceArchive::Node node,
+                           const std::filesystem::path& dst);
+bool ReplaceNode(ResourceArchive& rarc,
+                 ResourceArchive::Node to_replace,
+                 const std::filesystem::path& src);
 
 struct ResourceArchiveNodeHasher {
   std::size_t operator()(const ResourceArchive::Node& node) const {

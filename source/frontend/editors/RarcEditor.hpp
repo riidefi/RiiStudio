@@ -78,7 +78,7 @@ class RarcEditor : public frontend::StudioWindow, public IEditor {
 public:
   RarcEditor()
       : StudioWindow("RARC Editor: <unknown>", DockSetting::None), m_grid(),
-        m_rarc(), m_dir_size_cache(), m_changes_made(), m_node_to_rename(),
+        m_rarc(), m_changes_made(), m_node_to_rename(),
         m_node_new_name(), m_files_to_insert(), m_folder_to_insert(),
         m_folder_to_create(), m_node_to_extract(), m_extract_path(),
         m_node_to_replace(), m_replace_path() {
@@ -118,7 +118,6 @@ public:
     }
     m_rarc = *arc;
     m_path = path;
-    recache();
   }
 
   void saveAs(std::string_view path) {
@@ -161,7 +160,7 @@ public:
   std::size_t
   GetNodeSize(librii::RARC::ResourceArchive::Node& node) {
     if (node.is_folder()) {
-      return m_dir_size_cache[node];
+      return node.folder.sibling_next - std::distance(m_rarc.nodes.begin(), std::find(m_rarc.nodes.begin(), m_rarc.nodes.end(), node)) - 1;
     }
     return node.data.size();
   }
@@ -219,8 +218,6 @@ private:
   RarcEditorTabSheet m_sheet;
   std::string m_path;
   librii::RARC::ResourceArchive m_rarc;
-  std::unordered_map<librii::RARC::ResourceArchive::Node, std::size_t, librii::RARC::ResourceArchiveNodeHasher>
-      m_dir_size_cache;
 
   //// Edit state
   bool m_changes_made;
@@ -249,7 +246,6 @@ private:
   std::filesystem::path m_replace_path;
 
   Result<void> reconstruct();
-  void recache();
 };
 
 } // namespace riistudio::frontend
