@@ -49,6 +49,7 @@ void compileAlphaMode(librii::gx::LowLevelGxMaterial& mat,
                       librii::rhst::AlphaMode alpha_mode) {
   librii::hx::PixMode pix_mode = librii::hx::PIX_DEFAULT_OPAQUE;
   switch (alpha_mode) {
+  case librii::rhst::AlphaMode::Custom:
   case librii::rhst::AlphaMode::Opaque:
     pix_mode = librii::hx::PIX_DEFAULT_OPAQUE;
     break;

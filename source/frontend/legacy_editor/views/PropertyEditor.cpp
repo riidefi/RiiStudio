@@ -52,7 +52,7 @@ public:
                  std::function<kpi::IObject*()> selectionActive,
                  auto drawImageIcon)
       : StudioWindow("Property Editor"), drawImageIcon(drawImageIcon),
-        mHost(host), mSelectionActive(selectionActive), mRoot(root),
+        mHost(host), mRoot(root), mSelectionActive(selectionActive),
         mSelection(selection) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
     setClosable(false);
@@ -141,8 +141,7 @@ template <typename T> void PropertyEditor<T>::draw_() {
     ImGui::SameLine();
     if (ImGui::Button((const char*)ICON_FA_LINK " Force recompile")) {
       for (auto& o : mSelection()) {
-        if (lib3d::Material* m =
-                dynamic_cast<lib3d::Material*>(mSelectionActive())) {
+        if (lib3d::Material* m = dynamic_cast<lib3d::Material*>(o)) {
           m->nextGenerationId();
         }
       }

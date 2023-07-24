@@ -99,8 +99,8 @@ Result<g3d::G3dShader> ReadMDL0Shade(std::span<const u8> file) {
   // So the DL parser doesn't discard IndOrders
   gx_mat.indirectStages.resize(4);
   // Trust the stage count since we have not necessarily read the material yet.
-  g3d::ReadTev(gx_mat, reader, /* tev_addr */ 0,
-               /* trust_stagecount */ true, /* brawlbox_bug */ true);
+  TRY(g3d::ReadTev(gx_mat, reader, /* tev_addr */ 0,
+                   /* trust_stagecount */ true, /* brawlbox_bug */ true));
 
   g3d::G3dShader shader;
 

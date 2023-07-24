@@ -570,7 +570,7 @@ bool Yaz_open(Yaz_file_struct* file, WRITE_FN fptr) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   };
 
-  int ret = file->file_write(szsHeader, sizeof(szsHeader), 1);
+  [[maybe_unused]] int ret = file->file_write(szsHeader, sizeof(szsHeader), 1);
   assert(ret == 1);
 
   file->copyLocation = -1;
