@@ -31,6 +31,8 @@ import cProfile
 import json
 
 BLENDER_30 = bpy.app.version[0] >= 3
+BLENDER_29 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 90) \
+	or BLENDER_30
 BLENDER_28 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 80) \
 	or BLENDER_30
 
@@ -1905,7 +1907,7 @@ class RiidefiStudioPreferenceProperty(bpy.types.AddonPreferences):
 		update = lambda s,c: make_rs_path_absolute(),
 		default=""
 	)
-	if BLENDER_30: riistudio_directory : riistudio_directory
+	if BLENDER_28: riistudio_directory : riistudio_directory
 
 	def draw(self, context):
 		layout = self.layout
@@ -2778,12 +2780,19 @@ def register_mat():
 
 	bpy.types.Material.jres_mat_group_update = BoolProperty(default=False)
 	bpy.types.Material.jres_mat_group = StringProperty(name="sync_id_name",default="null")
-	bpy.types.Material.jres_mat_group_enum = EnumProperty(
-		name="Group",
-		items=get_mat_group_items,
-		default=0,
-		update=mat_group_enum_update,
-	)
+	if BLENDER_29:
+		bpy.types.Material.jres_mat_group_enum = EnumProperty(
+			name="Group",
+			items=get_mat_group_items,
+			default=0,
+			update=mat_group_enum_update,
+		)
+	else:
+		bpy.types.Material.jres_mat_group_enum = EnumProperty(
+			name="Group",
+			items=get_mat_group_items,
+			update=mat_group_enum_update,
+		)
 
 	# Display Surfaces
 	bpy.types.Material.jres_display_front = BoolProperty(
