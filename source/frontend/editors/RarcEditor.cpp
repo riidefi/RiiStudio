@@ -1,4 +1,5 @@
 #include <frontend/widgets/ReflectedPropertyGrid.hpp>
+#include <frontend/utilities.hpp>
 
 #include "RarcEditor.hpp"
 #include <rsl/Defer.hpp>
@@ -300,13 +301,7 @@ void RarcEditorPropertyGrid::DrawNameModal(RarcEditor* editor) {
     bool is_invalid = m_name_input == "" || m_name_input == m_original_name;
 
     if (is_invalid) {
-      // Then, we get the bounding box of the last item
-      ImRect bb = {ImGui::GetItemRectMin(), ImGui::GetItemRectMax()};
-      bb.Max.x -= 36; // Adjust for the name label
-
-      // Then we use the ImGui draw list to draw a custom border
-      ImDrawList* draw_list = ImGui::GetWindowDrawList();
-      draw_list->AddRect(bb.Min, bb.Max, IM_COL32(255, 0, 0, 255)); // RGBA
+      DrawItemBorder({1.0, 0.0, 0.0, 1.0}, {{0, 0, -36, 0}});
     }
 
     if (!open) {
