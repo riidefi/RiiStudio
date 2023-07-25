@@ -338,6 +338,8 @@ BMDEditor::BMDEditor(std::span<const u8> span, const std::string& path)
   auto ok = j3d::ReadBMD(*out, reader, trans);
   if (!ok) {
     rsl::error(ok.error());
+    Message emsg(kpi::IOMessageClass::Error, "bmd", std::string(ok.error()));
+    mLoadErrorMessages.push_back(emsg);
     mErrorState = true;
     return;
   }
