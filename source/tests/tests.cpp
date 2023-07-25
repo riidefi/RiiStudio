@@ -1,10 +1,10 @@
 #include <core/util/oishii.hpp>
-#include <librii/rarc/RARC.hpp>
 #include <librii/egg/BDOF.hpp>
 #include <librii/egg/Blight.hpp>
 #include <librii/egg/LTEX.hpp>
 #include <librii/egg/PBLM.hpp>
 #include <librii/kmp/io/KMP.hpp>
+#include <librii/rarc/RARC.hpp>
 #include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
 #include <plugins/g3d/G3dIo.hpp>
@@ -36,7 +36,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
       from.ends_with("bblm") || from.ends_with("bmd") ||
       from.ends_with("bdl") || from.ends_with("brres") ||
       from.ends_with("bblm") || from.ends_with("szs") ||
-      from.ends_with("arc") || from.ends_with("u8")) {
+      from.ends_with("arc") || from.ends_with("carc") || from.ends_with("u8")) {
     auto file = OishiiReadFile2(from);
     if (!file.has_value()) {
       printf("Cannot rebuild\n");
@@ -154,9 +154,8 @@ void rebuild(std::string from, const std::string_view to, bool check,
         fprintf(stderr, "Failed to write BMD/BDL: %s\n", bruh.error().c_str());
         return;
       }
-    }
-    else if (from.ends_with("szs") || from.ends_with("arc") ||
-      from.ends_with("u8")) {
+    } else if (from.ends_with("szs") || from.ends_with("arc") ||
+               from.ends_with("carc") || from.ends_with("u8")) {
       const rsl::byte_view data_view = safe.slice();
 
       std::vector<u8> data;
@@ -168,8 +167,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
         }
         data.resize(*result);
         librii::szs::decode(data, data_view);
-      }
-      else {
+      } else {
         data.insert(data.begin(), data_view.begin(), data_view.end());
       }
 
@@ -188,8 +186,7 @@ void rebuild(std::string from, const std::string_view to, bool check,
         for (auto& b : *barc) {
           writer.write(b);
         }
-      }
-      else {
+      } else {
         auto u8 = librii::U8::LoadU8Archive(data);
         if (!u8) {
           fprintf(stderr, "Failed to read u8: %s\n", u8.error().c_str());

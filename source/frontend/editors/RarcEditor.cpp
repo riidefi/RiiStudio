@@ -476,15 +476,11 @@ static void renameNode(ResourceArchive& rarc,
 }
 
 Result<void> RarcEditor::reconstruct() {
-  // Start by inserting the files into the folder list,
-  // sorted by name
   std::optional<ResourceArchive::Node> parent_node;
-  std::size_t parent_index;
   for (std::size_t i = 0; i < m_rarc.nodes.size(); ++i) {
     auto& node = m_rarc.nodes[i];
     if (node.is_folder() && node.id == m_insert_parent) {
       parent_node = node;
-      parent_index = i;
       break;
     }
   }
