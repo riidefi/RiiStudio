@@ -32,9 +32,17 @@ private:
   std::function<void(void)> m_drawTab = nullptr;
 };
 
-enum class TriState { ST_FALSE, ST_TRUE, ST_INDETERMINATE };
+enum class TriState {
+  ST_FALSE,
+  ST_TRUE,
+  ST_INDETERMINATE,
+};
 
-enum class ModalState { M_CLOSED, M_OPENING, M_OPEN };
+enum class ModalState {
+  M_CLOSED,
+  M_OPENING,
+  M_OPEN,
+};
 
 class RarcEditor;
 
@@ -127,8 +135,8 @@ public:
   void saveAsButton() override {
     auto default_filename = std::filesystem::path(m_path).filename();
     std::vector<std::string> filters{
-        "Compressed Archive (*.szs)",  "*.szs", "Archive (*.arc)", "*.arc",
-        "Archive (*.carc)", "*.carc"};
+        "Compressed Archive (*.szs)", "*.szs", "Archive (*.arc)", "*.arc",
+        "Archive (*.carc)",           "*.carc"};
     auto results =
         rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
     if (!results) {
@@ -137,7 +145,8 @@ public:
     }
     auto path = results->string();
 
-    if (!path.ends_with(".arc") && !path.ends_with(".carc") && !path.ends_with(".szs")) {
+    if (!path.ends_with(".arc") && !path.ends_with(".carc") &&
+        !path.ends_with(".szs")) {
       path += ".arc";
     }
 
