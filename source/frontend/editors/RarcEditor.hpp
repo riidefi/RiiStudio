@@ -32,17 +32,9 @@ private:
   std::function<void(void)> m_drawTab = nullptr;
 };
 
-enum class TriState {
-	ST_FALSE,
-	ST_TRUE,
-	ST_INDETERMINATE
-};
+enum class TriState { ST_FALSE, ST_TRUE, ST_INDETERMINATE };
 
-enum class ModalState {
-	M_CLOSED,
-	M_OPENING,
-	M_OPEN
-};
+enum class ModalState { M_CLOSED, M_OPENING, M_OPEN };
 
 class RarcEditor;
 
@@ -76,14 +68,7 @@ private:
 
 class RarcEditor : public frontend::StudioWindow, public IEditor {
 public:
-  RarcEditor()
-      : StudioWindow("RARC Editor: <unknown>", DockSetting::None), m_grid(),
-        m_rarc(), m_changes_made(), m_node_to_rename(),
-        m_node_new_name(), m_files_to_insert(), m_folder_to_insert(),
-        m_folder_to_create(), m_node_to_extract(), m_extract_path(),
-        m_node_to_replace(), m_replace_path() {
-    // setWindowFlag(ImGuiWindowFlags_MenuBar);
-  }
+  RarcEditor() : StudioWindow("RARC Editor: <unknown>", DockSetting::None) {}
   RarcEditor(const RarcEditor&) = delete;
   RarcEditor(RarcEditor&&) = delete;
 
@@ -157,10 +142,13 @@ public:
     saveAs(path);
   }
 
-  std::size_t
-  GetNodeSize(librii::RARC::ResourceArchive::Node& node) {
+  std::size_t GetNodeSize(librii::RARC::ResourceArchive::Node& node) {
     if (node.is_folder()) {
-      return node.folder.sibling_next - std::distance(m_rarc.nodes.begin(), std::find(m_rarc.nodes.begin(), m_rarc.nodes.end(), node)) - 1;
+      return node.folder.sibling_next -
+             std::distance(
+                 m_rarc.nodes.begin(),
+                 std::find(m_rarc.nodes.begin(), m_rarc.nodes.end(), node)) -
+             1;
     }
     return node.data.size();
   }
@@ -226,24 +214,27 @@ private:
   s32 m_insert_parent;
 
   // Rename
-  std::optional<librii::RARC::ResourceArchive::Node> m_node_to_rename;
-  std::string m_node_new_name;
+  std::optional<librii::RARC::ResourceArchive::Node> m_node_to_rename =
+      std::nullopt;
+  std::string m_node_new_name = "";
 
   // Addition operations
-  std::vector<rsl::File> m_files_to_insert;
-  std::optional<std::filesystem::path> m_folder_to_insert;
-  std::optional<std::string> m_folder_to_create;
+  std::vector<rsl::File> m_files_to_insert = {};
+  std::optional<std::filesystem::path> m_folder_to_insert = std::nullopt;
+  std::optional<std::string> m_folder_to_create = std::nullopt;
 
   // Subtraction operations
-  std::vector<librii::RARC::ResourceArchive::Node> m_nodes_to_delete;
+  std::vector<librii::RARC::ResourceArchive::Node> m_nodes_to_delete = {};
 
   // Extract
-  std::optional<librii::RARC::ResourceArchive::Node> m_node_to_extract;
-  std::filesystem::path m_extract_path;
+  std::optional<librii::RARC::ResourceArchive::Node> m_node_to_extract =
+      std::nullopt;
+  std::filesystem::path m_extract_path = ".";
 
   // Replace
-  std::optional<librii::RARC::ResourceArchive::Node> m_node_to_replace;
-  std::filesystem::path m_replace_path;
+  std::optional<librii::RARC::ResourceArchive::Node> m_node_to_replace =
+      std::nullopt;
+  std::filesystem::path m_replace_path = ".";
 
   Result<void> reconstruct();
 };
