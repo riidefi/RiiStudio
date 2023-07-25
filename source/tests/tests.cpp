@@ -171,31 +171,38 @@ void rebuild(std::string from, const std::string_view to, bool check,
         data.insert(data.begin(), data_view.begin(), data_view.end());
       }
 
-      if (librii::RARC::IsDataResourceArchive(data)) {
-        auto rarc = librii::RARC::LoadResourceArchive(data);
-        if (!rarc) {
-          fprintf(stderr, "Failed to read rarc: %s\n", rarc.error().c_str());
-          return;
+      if (auto result = librii::RARC::IsDataResourceArchive(data)) {
+        if (*result) {
+          auto rarc = librii::RARC::LoadResourceArchive(data);
+          if (!rarc) {
+            fprintf(stderr, "Failed to read rarc: %s\n", rarc.error().c_str());
+            return;
+          }
+          printf("Writing to %s\n", std::string(to).c_str());
+          auto barc = librii::RARC::SaveResourceArchive(*rarc);
+          if (!barc) {
+            fprintf(stderr, "Failed to save rarc: %s\n", barc.error().c_str());
+            return;
+          }
+          for (auto& b : *barc) {
+            writer.write(b);
+          }
         }
-        printf("Writing to %s\n", std::string(to).c_str());
-        auto barc = librii::RARC::SaveResourceArchive(*rarc);
-        if (!barc) {
-          fprintf(stderr, "Failed to save rarc: %s\n", barc.error().c_str());
-          return;
-        }
-        for (auto& b : *barc) {
-          writer.write(b);
+      } else if (auto result = librii::U8::IsDataU8Archive(data)) {
+        if (*result) {
+          auto u8 = librii::U8::LoadU8Archive(data);
+          if (!u8) {
+            fprintf(stderr, "Failed to read u8: %s\n", u8.error().c_str());
+            return;
+          }
+          printf("Writing to %s\n", std::string(to).c_str());
+          for (auto& b : librii::U8::SaveU8Archive(*u8)) {
+            writer.write(b);
+          }
         }
       } else {
-        auto u8 = librii::U8::LoadU8Archive(data);
-        if (!u8) {
-          fprintf(stderr, "Failed to read u8: %s\n", u8.error().c_str());
-          return;
-        }
-        printf("Writing to %s\n", std::string(to).c_str());
-        for (auto& b : librii::U8::SaveU8Archive(*u8)) {
-          writer.write(b);
-        }
+        fprintf(stderr, "Unrecognized archive format; Failed to rebuild\n");
+        return;
       }
     }
     writer.saveToDisk(to);

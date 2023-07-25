@@ -466,10 +466,10 @@ public:
     fmt::print(stderr, "Extracting ARC.SZS,{} => {}\n", m_from.string(),
                m_to.string());
 
-	if (librii::RARC::IsDataResourceArchive(buf)) {
+	if (TRY(librii::RARC::IsDataResourceArchive(buf))) {
       auto arc = TRY(librii::RARC::LoadResourceArchive(buf));
       TRY(librii::RARC::ExtractResourceArchive(arc, m_to));
-	} else if (librii::U8::IsDataU8Archive(buf)) {
+	} else if (TRY(librii::U8::IsDataU8Archive(buf))) {
       auto arc = TRY(librii::U8::LoadU8Archive(buf));
       TRY(librii::U8::Extract(arc, m_to));
     } else {

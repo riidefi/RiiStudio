@@ -70,14 +70,20 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
   }
   if (path_lower.ends_with(".arc") || path_lower.ends_with(".carc") ||
       path_lower.ends_with(".u8")) {
-    if (librii::RARC::IsDataResourceArchive(expanded_span)) {
-      auto pWin = std::make_unique<RarcEditor>();
-      pWin->openFile(expanded_span, data.mPath);
-      return pWin;
-    } else if (librii::U8::IsDataU8Archive(expanded_span)) {
-      /*auto pWin = std::make_unique<U8Editor>();
-      pWin->openFile(expanded_span, data.mPath);
-      return pWin;*/
+    if (auto result = librii::RARC::IsDataResourceArchive(expanded_span)) {
+      if (*result) {
+        auto pWin = std::make_unique<RarcEditor>();
+        pWin->openFile(expanded_span, data.mPath);
+        return pWin;
+      }
+    }
+
+    if (auto result = librii::U8::IsDataU8Archive(expanded_span)) {
+      if (*result) {
+        /*auto pWin = std::make_unique<U8Editor>();
+        pWin->openFile(expanded_span, data.mPath);
+        return pWin;*/
+      }
     }
   }
   if (path_lower.ends_with(".brres")) {
