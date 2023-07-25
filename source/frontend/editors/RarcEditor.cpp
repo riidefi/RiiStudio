@@ -494,7 +494,10 @@ Result<void> RarcEditor::reconstruct() {
   // We order the operations in favor of search performance.
   // Realistically only one of these will be run at a time
   // So we can just recalculate the IDs once at the end.
-  changes_applied |= librii::RARC::DeleteNodes(m_rarc, m_nodes_to_delete);
+  if (m_nodes_to_delete.size() > 0) {
+    changes_applied |= librii::RARC::DeleteNodes(m_rarc, m_nodes_to_delete);
+    m_nodes_to_delete.clear();
+  }
 
   // Rename doesn't modify the node hierarchy at all.
   // So we don't need to bother flagging any changes for it.
@@ -504,12 +507,17 @@ Result<void> RarcEditor::reconstruct() {
     if (m_folder_to_create) {
       changes_applied |=
           librii::RARC::CreateFolder(m_rarc, *parent_node, *m_folder_to_create);
+      m_folder_to_create = std::nullopt;
     }
-    changes_applied |=
-        librii::RARC::ImportFiles(m_rarc, *parent_node, m_files_to_insert);
+    if (m_files_to_insert.size() > 0) {
+      changes_applied |=
+          librii::RARC::ImportFiles(m_rarc, *parent_node, m_files_to_insert);
+      m_files_to_insert.clear();
+    }
     if (m_folder_to_insert) {
       changes_applied |=
           librii::RARC::ImportFolder(m_rarc, *parent_node, *m_folder_to_insert);
+      m_folder_to_insert = std::nullopt;
     }
   }
 
@@ -518,6 +526,7 @@ Result<void> RarcEditor::reconstruct() {
   if (m_node_to_extract) {
     auto extract_result =
         librii::RARC::ExtractNodeTo(m_rarc, *m_node_to_extract, m_extract_path);
+    m_node_to_extract = std::nullopt;
     if (extract_result) {
       if (*extract_result) {
         m_grid.m_operation_state = TriState::ST_TRUE;
@@ -529,9 +538,11 @@ Result<void> RarcEditor::reconstruct() {
     }
   }
 
-  if (m_node_to_replace)
+  if (m_node_to_replace) {
     changes_applied |=
         librii::RARC::ReplaceNode(m_rarc, *m_node_to_replace, m_replace_path);
+    m_node_to_replace = std::nullopt;
+  }
 
   if (changes_applied) {
     m_changes_made = true;

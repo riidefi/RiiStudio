@@ -202,12 +202,9 @@ Result<void> LoadResourceArchiveLow(LowResourceArchive& result,
 using children_info_type =
     std::unordered_map<std::string, std::pair<std::size_t, std::size_t>>;
 
-Result<std::pair<
-    ResourceArchive::Node,
-    ResourceArchive::
-        Node>> static rarcCreateSpecialDirs(const ResourceArchive::Node& node,
-                                            std::optional<ResourceArchive::Node>
-                                                parent) {
+static Result<std::pair<ResourceArchive::Node, ResourceArchive::Node>>
+rarcCreateSpecialDirs(const ResourceArchive::Node& node,
+                      std::optional<ResourceArchive::Node> parent) {
   if (!node.is_folder())
     return std::unexpected("Can't make special dirs for a file!");
 
@@ -230,7 +227,7 @@ Result<std::pair<
                    .name = ".",
                    .folder = {.parent = parent->id,
                               .sibling_next = node.folder.sibling_next}};
-    nodes.second = {.id = -1,
+    nodes.second = {.id = parent->id,
                     .flags = ResourceAttribute::DIRECTORY,
                     .name = "..",
                     .folder = {.parent = parent->folder.parent,
@@ -243,34 +240,44 @@ Result<std::pair<
 static Result<void>
 rarcInsertSpecialDirs(std::vector<ResourceArchive::Node>& nodes) {
   std::vector<std::pair<int, int>> folder_infos;
+  std::size_t adjust_amount = 2;
 
-  for (auto node = nodes.begin(); node != nodes.end();) {
+  for (auto node = nodes.begin(); node != nodes.end(); node++) {
     if (!node->is_folder())
       continue;
 
-    for (auto info : folder_infos) {
+    auto this_index = std::distance(nodes.begin(), node);
+
+    for (auto& info : folder_infos) {
       auto& folder = nodes[info.first];
 
       // This folder is not a parent or future sibling of the new folder
-      if (folder.folder.sibling_next <= std::distance(nodes.begin(), node))
+      if (folder.folder.sibling_next <= this_index)
         continue;
 
       // Adjust for the subdir's special dirs
       info.second += 2;
     }
 
-    folder_infos.push_back({std::distance(nodes.begin(), node), 2});
+    folder_infos.push_back({this_index, adjust_amount});
+    adjust_amount += 2;
   }
 
-  for (auto info = folder_infos.rbegin(); info != folder_infos.rend();) {
+  for (auto info = folder_infos.rbegin(); info != folder_infos.rend(); info++) {
     auto& node = nodes[info->first];
     node.folder.sibling_next += info->second;
 
     std::pair<ResourceArchive::Node, ResourceArchive::Node> dirs;
-    if (node.folder.parent != -1)
-      dirs = TRY(rarcCreateSpecialDirs(node, nodes[node.folder.parent]));
-    else
+    if (node.folder.parent != -1) {
+      auto parent = std::find_if(
+          nodes.begin(), nodes.end(), [&](const ResourceArchive::Node& n) {
+            return n.is_folder() && !rarcIsSpecialPath(n.name) &&
+                   n.id == node.folder.parent;
+          });
+      dirs = TRY(rarcCreateSpecialDirs(node, *parent));
+    } else {
       dirs = TRY(rarcCreateSpecialDirs(node, std::nullopt));
+    }
 
     nodes.insert(nodes.begin() + info->first + 1, dirs.second);
     nodes.insert(nodes.begin() + info->first + 1, dirs.first);
@@ -366,6 +373,7 @@ rarcProcessNodesForSave(const ResourceArchive& arc,
   assert(arc.nodes.size() > 0 && arc.nodes[0].folder.parent == -1);
   {
     std::vector<ResourceArchive::Node> with_dirs;
+    with_dirs.insert(with_dirs.end(), arc.nodes.begin(), arc.nodes.end());
     TRY(rarcInsertSpecialDirs(with_dirs));
     out.push_back(arc.nodes[0]);
     rarcSortNodesForSaveRecursive(with_dirs, out, children_info, 0);
@@ -639,11 +647,32 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
 }
 
 Result<void> RecalculateArchiveIDs(ResourceArchive& arc) {
+  std::vector<int> parent_stack = {
+      -1,
+  };
+  std::vector<int> walk_stack = {};
+  int folder_id = 0;
+
+  for (auto node = arc.nodes.begin(); node != arc.nodes.end(); node++) {
+    for (auto walk = walk_stack.begin(); walk != walk_stack.end();) {
+      if ((*walk) == std::distance(arc.nodes.begin(), node)) {
+        walk = walk_stack.erase(walk);
+        parent_stack.pop_back();
+      } else {
+        walk++;
+      }
+    }
+    if (node->is_folder()) {
+      node->id = folder_id++;
+      node->folder.parent = parent_stack.back();
+      walk_stack.push_back(node->folder.sibling_next);
+      parent_stack.push_back(node->id);
+    }
+  }
+
   children_info_type throwaway;
   const std::vector<ResourceArchive::Node>& calc_list =
       TRY(rarcProcessNodesForSave(arc, throwaway));
-
-  assert(arc.nodes.size() == calc_list.size());
 
   s16 file_id = -1; // Adjust for root node
   for (auto& node : calc_list) {
@@ -836,8 +865,7 @@ Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root) {
   return result;
 }
 
-bool ImportFiles(ResourceArchive& rarc,
-                 ResourceArchive::Node parent,
+bool ImportFiles(ResourceArchive& rarc, ResourceArchive::Node parent,
                  std::vector<rsl::File>& files) {
   if (files.size() == 0)
     return false;
@@ -896,8 +924,7 @@ bool ImportFiles(ResourceArchive& rarc,
   return true;
 }
 
-bool ImportFolder(ResourceArchive& rarc,
-                  ResourceArchive::Node parent,
+bool ImportFolder(ResourceArchive& rarc, ResourceArchive::Node parent,
                   const std::filesystem::path& folder) {
   // Generate an archive so we can steal the DFS structure.
   auto tmp_rarc = librii::RARC::CreateResourceArchive(folder);
@@ -975,8 +1002,7 @@ bool ImportFolder(ResourceArchive& rarc,
   return true;
 }
 
-bool CreateFolder(ResourceArchive& rarc,
-                  ResourceArchive::Node parent,
+bool CreateFolder(ResourceArchive& rarc, ResourceArchive::Node parent,
                   std::string name) {
   int parent_index =
       std::distance(rarc.nodes.begin(),
@@ -1165,8 +1191,7 @@ Result<bool> ExtractNodeTo(const ResourceArchive& rarc,
   return true;
 }
 
-bool ReplaceNode(ResourceArchive& rarc,
-                 ResourceArchive::Node to_replace,
+bool ReplaceNode(ResourceArchive& rarc, ResourceArchive::Node to_replace,
                  const std::filesystem::path& src) {
   if (!std::filesystem::exists(src))
     return false;
@@ -1199,7 +1224,7 @@ bool ReplaceNode(ResourceArchive& rarc,
     tmp_rarc->nodes[0].name = to_replace.name;
     tmp_rarc->nodes[0].folder.parent =
         to_replace.folder.parent; // This repairs the insertion node which will
-                                   // recursively regenerate later
+                                  // recursively regenerate later
 
     for (auto& new_node : tmp_rarc->nodes) {
       if (new_node.is_folder())
