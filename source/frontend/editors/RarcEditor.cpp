@@ -1,5 +1,5 @@
-#include <frontend/widgets/ReflectedPropertyGrid.hpp>
 #include <frontend/utilities.hpp>
+#include <frontend/widgets/ReflectedPropertyGrid.hpp>
 
 #include "RarcEditor.hpp"
 #include <rsl/Defer.hpp>
@@ -434,20 +434,26 @@ void RarcEditorPropertyGrid::DrawOperationModal(RarcEditor* editor) {
 
     m_operation_modal_state = ModalState::M_OPEN;
 
-    ImGui::Text(m_operation_state == TriState::ST_FALSE
-                    ? "Operation failed!"
-                    : "Operation completed successfully!");
+    if (m_operation_state == TriState::ST_FALSE) {
+      ImGui::Text("Operation failed! %s", m_operation_error_msg.c_str());
+    } else {
+      ImGui::Text("Operation completed successfully!");
+    }
 
     if (!open) {
       ImGui::CloseCurrentPopup();
+	  m_operation_state = TriState::ST_INDETERMINATE;
       m_operation_modal_state = ModalState::M_CLOSED;
+	  m_operation_error_msg = "";
       return;
     }
 
     auto* enter_key = ImGui::GetKeyData(ImGuiKey_Enter);
     if (enter_key->Down) {
       ImGui::CloseCurrentPopup();
+      m_operation_state = TriState::ST_INDETERMINATE;
       m_operation_modal_state = ModalState::M_CLOSED;
+	  m_operation_error_msg = "";
     }
   }
 }
@@ -496,49 +502,54 @@ Result<void> RarcEditor::reconstruct() {
 
   if (parent_node) {
     if (m_folder_to_create) {
-      changes_applied |=
-          librii::RARC::CreateFolder(m_rarc, *parent_node, *m_folder_to_create);
-      m_folder_to_create = std::nullopt;
+      TRY(librii::RARC::CreateFolder(m_rarc, *parent_node,
+                                     *m_folder_to_create));
+      changes_applied = true;
     }
     if (m_files_to_insert.size() > 0) {
-      changes_applied |=
-          librii::RARC::ImportFiles(m_rarc, *parent_node, m_files_to_insert);
-      m_files_to_insert.clear();
+      auto err = TRY(
+          librii::RARC::ImportFiles(m_rarc, *parent_node, m_files_to_insert));
+      if (err) {
+        FlagErrorDialog(err);
+      }
+      changes_applied = true;
     }
     if (m_folder_to_insert) {
-      changes_applied |=
-          librii::RARC::ImportFolder(m_rarc, *parent_node, *m_folder_to_insert);
-      m_folder_to_insert = std::nullopt;
+      auto err = TRY(librii::RARC::ImportFolder(m_rarc, *parent_node,
+                                                *m_folder_to_insert));
+      if (err) {
+        FlagErrorDialog(err);
+      }
+      changes_applied = true;
     }
   }
 
   // Extract doesn't modify the node hierarchy at all.
   // So we don't need to bother flagging any changes for it.
   if (m_node_to_extract) {
-    auto extract_result =
-        librii::RARC::ExtractNodeTo(m_rarc, *m_node_to_extract, m_extract_path);
-    m_node_to_extract = std::nullopt;
-    if (extract_result) {
-      if (*extract_result) {
-        m_grid.m_operation_state = TriState::ST_TRUE;
-        m_grid.m_operation_modal_state = ModalState::M_OPENING;
-      }
+    auto err = TRY(librii::RARC::ExtractNodeTo(m_rarc, *m_node_to_extract,
+                                               m_extract_path));
+    if (err) {
+      FlagErrorDialog(err);
     } else {
-      m_grid.m_operation_state = TriState::ST_FALSE;
-      m_grid.m_operation_modal_state = ModalState::M_OPENING;
+      FlagSuccessDialog();
     }
   }
 
   if (m_node_to_replace) {
-    changes_applied |=
-        librii::RARC::ReplaceNode(m_rarc, *m_node_to_replace, m_replace_path);
-    m_node_to_replace = std::nullopt;
+    auto err = TRY(
+        librii::RARC::ReplaceNode(m_rarc, *m_node_to_replace, m_replace_path));
+    if (err) {
+      FlagErrorDialog(err);
+    }
+    changes_applied = true;
   }
 
   if (changes_applied) {
-    m_changes_made = true;
     TRY(librii::RARC::RecalculateArchiveIDs(m_rarc));
+    m_changes_made = true;
   }
+
   return {};
 }
 

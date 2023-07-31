@@ -412,7 +412,7 @@ Result<U8Archive> Create(std::filesystem::path root) {
     }
   }
   for (auto& p : paths) {
-    fmt::print("PATH: {} (folder:{}, depth:{})\n", p.str, p.is_folder, p.depth);
+    fmt::print(stdout, "PATH: {} (folder:{}, depth:{})\n", p.str, p.is_folder, p.depth);
   }
   U8Archive result;
   std::array<char, 16> watermark{};

@@ -26,7 +26,7 @@ struct ResourceArchive {
     s32 parent;
     s32 sibling_next;
 
-	bool operator==(const FolderInfo& rhs) const = default;
+    bool operator==(const FolderInfo& rhs) const = default;
   };
 
   struct Node {
@@ -62,23 +62,22 @@ Result<void> ExtractResourceArchive(const ResourceArchive& arc,
                                     std::filesystem::path out);
 Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root);
 
-bool ImportFiles(ResourceArchive& rarc,
-                 ResourceArchive::Node parent,
-                 std::vector<rsl::File>& files);
-bool ImportFolder(ResourceArchive& rarc,
-                  ResourceArchive::Node parent,
-                  const std::filesystem::path& folder);
-bool CreateFolder(ResourceArchive& rarc,
-                  ResourceArchive::Node parent,
-                  std::string name);
+Result<std::error_code> ImportFiles(ResourceArchive& rarc,
+                                    ResourceArchive::Node parent,
+                                    std::vector<rsl::File>& files);
+Result<std::error_code> ImportFolder(ResourceArchive& rarc,
+                                     ResourceArchive::Node parent,
+                                     const std::filesystem::path& folder);
+Result<void> CreateFolder(ResourceArchive& rarc, ResourceArchive::Node parent,
+                          std::string name);
 bool DeleteNodes(ResourceArchive& rarc,
                  std::vector<ResourceArchive::Node>& nodes);
-Result<bool> ExtractNodeTo(const ResourceArchive& rarc,
-                           ResourceArchive::Node node,
-                           const std::filesystem::path& dst);
-bool ReplaceNode(ResourceArchive& rarc,
-                 ResourceArchive::Node to_replace,
-                 const std::filesystem::path& src);
+Result<std::error_code> ExtractNodeTo(const ResourceArchive& rarc,
+                                      ResourceArchive::Node node,
+                                      const std::filesystem::path& dst);
+Result<std::error_code> ReplaceNode(ResourceArchive& rarc,
+                                    ResourceArchive::Node to_replace,
+                                    const std::filesystem::path& src);
 
 struct ResourceArchiveNodeHasher {
   std::size_t operator()(const ResourceArchive::Node& node) const {

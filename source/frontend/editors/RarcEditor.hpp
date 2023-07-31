@@ -71,6 +71,7 @@ private:
   ModalState m_context_modal_state;
   ModalState m_operation_modal_state;
   TriState m_operation_state;
+  std::string m_operation_error_msg;
   bool m_should_calc_changes;
 };
 
@@ -210,7 +211,54 @@ public:
     m_nodes_to_delete = nodes;
   }
 
-  void ApplyUpdates() { reconstruct(); }
+  void FlagErrorDialog(const std::string& message) {
+    m_grid.m_operation_error_msg = message;
+    m_grid.m_operation_state = TriState::ST_FALSE;
+    m_grid.m_operation_modal_state = ModalState::M_OPENING;
+  }
+
+  void FlagErrorDialog(const std::error_code& err) {
+    m_grid.m_operation_error_msg = err.message();
+    m_grid.m_operation_state = TriState::ST_FALSE;
+    m_grid.m_operation_modal_state = ModalState::M_OPENING;
+  }
+
+  void FlagSuccessDialog() {
+    m_grid.m_operation_state = TriState::ST_TRUE;
+    m_grid.m_operation_modal_state = ModalState::M_OPENING;
+  }
+
+  void ResetOperationContexts() {
+	// Rename
+    m_node_to_rename = std::nullopt;
+    m_node_new_name = "";
+
+	// Insert
+    m_files_to_insert.clear();
+    m_folder_to_insert = std::nullopt;
+
+	// Create
+	m_folder_to_create = std::nullopt;
+
+	// Delete
+    m_nodes_to_delete.clear();
+
+	// Extract
+    m_node_to_extract = std::nullopt;
+
+	// Replace
+    m_node_to_replace = std::nullopt;
+  }
+
+  void ApplyUpdates() {
+    auto result = reconstruct();
+
+	ResetOperationContexts();
+
+    if (!result) {
+      FlagErrorDialog(result.error());
+    }
+  }
 
 private:
   RarcEditorPropertyGrid m_grid;
