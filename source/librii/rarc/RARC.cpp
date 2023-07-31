@@ -5,6 +5,7 @@
 #include <iostream>
 #include <librii/szs/SZS.hpp>
 #include <rsl/SimpleReader.hpp>
+#include <rsl/StringManip.hpp>
 
 // INTERNAL //
 
@@ -802,10 +803,8 @@ Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root) {
 
     // We normalize it to lowercase because otherwise games can't find it.
     {
-      auto path_string = path.string();
-      std::transform(path_string.begin(), path_string.end(),
-                     path_string.begin(),
-                     [](char ch) { return std::tolower(ch); });
+      std::string path_string = path.string();
+      rsl::to_lower(path_string);
       path = std::filesystem::path(path_string);
     }
 
@@ -894,9 +893,8 @@ Result<std::error_code> ImportFiles(ResourceArchive& rarc,
 
   std::vector<ResourceArchive::Node> new_nodes;
   for (auto& file : files) {
-    auto file_name = file.path.filename().string();
-    std::transform(file_name.begin(), file_name.end(), file_name.begin(),
-                   [](u8 ch) { return std::tolower(ch); });
+    std::string file_name = file.path.filename().string();
+    rsl::to_lower(file_name);
     ResourceArchive::Node node = {.id = 0,
                                   .flags = ResourceAttribute::FILE |
                                            ResourceAttribute::PRELOAD_TO_MRAM,
@@ -1027,8 +1025,7 @@ Result<void> CreateFolder(ResourceArchive& rarc, ResourceArchive::Node parent,
       std::distance(rarc.nodes.begin(),
                     std::find(rarc.nodes.begin(), rarc.nodes.end(), parent));
 
-  std::transform(name.begin(), name.end(), name.begin(),
-                 [](char ch) { return std::tolower(ch); });
+  rsl::to_lower(name);
 
   ResourceArchive::Node folder_node = {
       .id = 0,

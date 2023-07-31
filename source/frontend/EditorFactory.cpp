@@ -11,6 +11,8 @@
 #include <frontend/legacy_editor/EditorWindow.hpp>
 #include <frontend/level_editor/LevelEditor.hpp>
 
+#include <rsl/StringManip.hpp>
+
 #include <frontend/file_host.hpp>
 #include <librii/szs/SZS.hpp>
 #include <librii/rarc/RARC.hpp>
@@ -25,8 +27,7 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
   std::span<u8> raw_span(data.mData.get(), data.mData.get() + data.mLen);
 
   auto path_lower = data.mPath;
-  std::transform(path_lower.begin(), path_lower.end(), path_lower.begin(),
-                 ::tolower);
+  rsl::to_lower(path_lower);
 
   if (path_lower.ends_with(".szs")) {
     auto pWin = std::make_unique<lvl::LevelEditorWindow>();
