@@ -257,9 +257,14 @@ rarcCreateSpecialDirs(const ResourceArchive::Node& node,
   return nodes;
 }
 
+struct DirAdjustmentInfo {
+  int index;
+  std::size_t adjustment;
+};
+
 static Result<void>
 rarcInsertSpecialDirs(std::vector<ResourceArchive::Node>& nodes) {
-  std::vector<std::pair<int, int>> folder_infos;
+  std::vector<DirAdjustmentInfo> folder_infos;
   std::size_t adjust_amount = 2;
 
   for (auto node = nodes.begin(); node != nodes.end(); node++) {
@@ -269,23 +274,23 @@ rarcInsertSpecialDirs(std::vector<ResourceArchive::Node>& nodes) {
     auto this_index = std::distance(nodes.begin(), node);
 
     for (auto& info : folder_infos) {
-      auto& folder = nodes[info.first];
+      auto& folder = nodes[info.index];
 
       // This folder is not a parent or future sibling of the new folder
       if (folder.folder.sibling_next <= this_index)
         continue;
 
       // Adjust for the subdir's special dirs
-      info.second += 2;
+      info.adjustment += 2;
     }
 
-    folder_infos.push_back({this_index, adjust_amount});
+    folder_infos.push_back({(int)this_index, adjust_amount});
     adjust_amount += 2;
   }
 
   for (auto info = folder_infos.rbegin(); info != folder_infos.rend(); info++) {
-    auto& node = nodes[info->first];
-    node.folder.sibling_next += info->second;
+    auto& node = nodes[info->index];
+    node.folder.sibling_next += info->adjustment;
 
     SpecialDirs dirs;
     if (node.folder.parent != -1) {
@@ -299,41 +304,41 @@ rarcInsertSpecialDirs(std::vector<ResourceArchive::Node>& nodes) {
       dirs = TRY(rarcCreateSpecialDirs(node, std::nullopt));
     }
 
-    nodes.insert(nodes.begin() + info->first + 1, dirs.parent);
-    nodes.insert(nodes.begin() + info->first + 1, dirs.self);
+    nodes.insert(nodes.begin() + info->index + 1, dirs.parent);
+    nodes.insert(nodes.begin() + info->index + 1, dirs.self);
   }
 
   return {};
 }
 
 static void rarcRemoveSpecialDirs(std::vector<ResourceArchive::Node>& nodes) {
-  std::vector<std::pair<int, int>> folder_infos;
+  std::vector<DirAdjustmentInfo> folder_infos;
 
   for (auto node = nodes.begin(); node != nodes.end();) {
     if (!node->is_folder() || rarcIsSpecialPath(node->name))
       continue;
 
     for (auto info : folder_infos) {
-      auto& folder = nodes[info.first];
+      auto& folder = nodes[info.index];
 
       // This folder is not a parent or future sibling of the new folder
       if (folder.folder.sibling_next <= std::distance(nodes.begin(), node))
         continue;
 
       // Adjust for the subdir's special dirs
-      info.second += 2;
+      info.adjustment += 2;
     }
 
-    folder_infos.push_back({std::distance(nodes.begin(), node), 2});
+    folder_infos.push_back({(int)std::distance(nodes.begin(), node), 2});
   }
 
   for (auto info = folder_infos.rbegin(); info != folder_infos.rend();) {
-    auto& node = nodes[info->first];
-    node.folder.sibling_next -= info->second;
+    auto& node = nodes[info->index];
+    node.folder.sibling_next -= info->adjustment;
 
     // Erase the special dirs
-    nodes.erase(nodes.begin() + info->first + 1,
-                nodes.begin() + info->first + 3);
+    nodes.erase(nodes.begin() + info->index + 1,
+                nodes.begin() + info->index + 3);
   }
 }
 
