@@ -14,6 +14,8 @@ struct ExtensionInfo {
   std::string m_category;
   std::string m_unicode_icon;
   std::optional<ImVec4> m_icon_color;
+
+  static ExtensionInfo FromNode(const ResourceArchive::Node& node);
 };
 
 static ExtensionInfo s_animation_info = {"Animation Data",
@@ -80,6 +82,21 @@ static std::unordered_map<std::string, ExtensionInfo> s_extension_map = {
     {"bmp", s_texture_info},       {"kmp", s_track_info},
 };
 
+ExtensionInfo ExtensionInfo::FromNode(const ResourceArchive::Node& node) {
+  ExtensionInfo extension_info;
+  {
+    std::string extension = node.name.substr(node.name.find(".") + 1);
+    if (node.is_folder()) {
+      extension_info = {"Folder", (const char*)ICON_FA_FOLDER};
+    } else if (s_extension_map.contains(extension)) {
+      extension_info = s_extension_map[extension];
+    } else {
+      extension_info = {"All Files", (const char*)ICON_FA_FILE};
+    }
+  }
+  return extension_info;
+}
+
 void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
   RSL_DEFER(editor->ApplyUpdates());
 
@@ -134,17 +151,7 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
         continue;
       }
 
-      ExtensionInfo extension_info;
-      {
-        std::string extension = node->name.substr(node->name.find(".") + 1);
-        if (node->is_folder()) {
-          extension_info = {"Folder", (const char*)ICON_FA_FOLDER};
-        } else if (s_extension_map.contains(extension)) {
-          extension_info = s_extension_map[extension];
-        } else {
-          extension_info = {"All Files", (const char*)ICON_FA_FILE};
-        }
-      }
+      auto extension_info = ExtensionInfo::FromNode(*node);
 
       ImGui::TableNextRow();
       ImGui::TableNextColumn();
