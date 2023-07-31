@@ -156,11 +156,9 @@ public:
 
   std::size_t GetNodeSize(librii::RARC::ResourceArchive::Node& node) {
     if (node.is_folder()) {
+      auto node_it = std::find(m_rarc.nodes.begin(), m_rarc.nodes.end(), node);
       return node.folder.sibling_next -
-             std::distance(
-                 m_rarc.nodes.begin(),
-                 std::find(m_rarc.nodes.begin(), m_rarc.nodes.end(), node)) -
-             1;
+             std::distance(m_rarc.nodes.begin(), node_it) - 1;
     }
     return node.data.size();
   }
