@@ -57,7 +57,7 @@ Result<std::filesystem::path> OpenFolder(std::string_view title,
   }
   auto path = std::filesystem::path(folder);
   if (!std::filesystem::exists(path)) {
-      return std::unexpected("Folder doesn't exist");
+    return std::unexpected("Folder doesn't exist");
   }
   if (!std::filesystem::is_directory(path)) {
     return std::unexpected("Not a folder");
