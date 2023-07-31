@@ -13,7 +13,7 @@ inline void to_lower(std::string& str) {
 }
 
 inline std::string to_lower(std::string_view str) {
-  std::string ret = str;
+  std::string ret = std::string(str);
   to_lower(ret);
   return ret;
 }
@@ -24,7 +24,7 @@ inline void to_upper(std::string& str) {
 }
 
 inline std::string to_upper(std::string_view str) {
-  std::string ret = str;
+  std::string ret = std::string(str);
   to_upper(ret);
   return ret;
 }
