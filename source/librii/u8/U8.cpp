@@ -67,6 +67,7 @@ static Result<void> SafeMemCopy(T& dest, rsl::byte_view data,
                                 std::string fail_msg) {
   EXPECT(data.size_bytes() >= sizeof(T));
   std::memcpy(&dest, data.data(), sizeof(T));
+  return {};
 }
 
 static bool RangeContains(rsl::byte_view range, const void* ptr) {
