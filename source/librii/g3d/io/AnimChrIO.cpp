@@ -174,6 +174,7 @@ void BinaryChr::write(oishii::Writer& writer, NameTable& names,
     node.write(writer, names);
   }
   for (auto& track : tracks) {
+    writer.alignTo(0x4);
     track.write(writer);
   }
 
@@ -183,6 +184,7 @@ void BinaryChr::write(oishii::Writer& writer, NameTable& names,
   writer.seekSet(start + 4);
   writer.write<u32>(back - start);
   writer.seekSet(back);
+  writer.alignTo(0x4);
 }
 
 } // namespace librii::g3d

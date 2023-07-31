@@ -20,6 +20,7 @@ const char* translateString(std::string_view str) { return str.data(); }
 } // namespace riistudio
 
 namespace llvm {
+int EnableABIBreakingChecks;
 int DisableABIBreakingChecks;
 } // namespace llvm
 

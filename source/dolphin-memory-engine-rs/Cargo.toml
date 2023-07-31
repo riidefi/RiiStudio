@@ -1,0 +1,21 @@
+[package]
+name = "dolphin-memory-engine-rs"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+description = "TODO"
+homepage = "https://github.com/riidefi/RiiStudio/tree/master/source/dolphin-memory-engine-rs"
+repository = "https://github.com/riidefi/RiiStudio"
+keywords = ["gamedev", "gamecube"]
+readme = "README.md"
+
+[lib]
+crate-type=["cdylib", "lib"]
+
+[dependencies]
+lazy_static = "1.4.0"
+libc = "0.2"
+
+[build-dependencies]
+bindgen = "0.57"
+cc = { version = "1.0", features = ["parallel"] }

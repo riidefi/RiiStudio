@@ -25,7 +25,7 @@ struct Polygon : public virtual kpi::IObject {
 
   virtual bool isVisible() const { return true; }
   virtual std::string getName() const override { return "TODO"; }
-  virtual void setName(const std::string& name) = 0;
+  virtual void setName(const std::string& name) override = 0;
 
   // For now... (slow api)
   virtual std::expected<riistudio::lib3d::IndexRange, std::string>

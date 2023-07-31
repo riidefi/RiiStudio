@@ -18,6 +18,7 @@
 #include <rsl/Stb.hpp>
 
 namespace llvm {
+int EnableABIBreakingChecks;
 int DisableABIBreakingChecks;
 } // namespace llvm
 
@@ -115,7 +116,10 @@ static void MSVCWarningWindow() {
 
 void RootWindow::draw() {
   rsl::DoLeakCheck();
-  fileHostProcess();
+  auto on_file_open = [&](FileData x, OpenFilePolicy y) {
+    onFileOpen(std::move(x), y);
+  };
+  mFileHost.fileHostProcess(on_file_open);
 
   if (auto* a = getActive()) {
     if (auto* b = dynamic_cast<IEditor*>(a)) {
@@ -161,11 +165,22 @@ void RootWindow::draw() {
       mUpdater.draw();
 
     drawChildren();
+
+    if (mShowMkwDebug) {
+      mMkwDebugWindow.draw();
+    }
   }
   imcxx::EndFullscreenWindow();
 }
 void RootWindow::drawStatusBar() {
   ImGui::SetWindowFontScale(1.1f);
+#ifndef NDEBUG
+  {
+    ImVec4 clr{1.0f, 0.0f, 0.0f, 1.0f};
+    ImGui::TextColored(
+        clr, "Warning: This is a Debug build with optimizations disabled");
+  }
+#endif
   if (!hasChildren()) {
     ImGui::TextUnformatted("Drop a file to edit."_j);
   }
@@ -177,6 +192,11 @@ void RootWindow::drawMenuBar() {
     drawFileMenu();
 
     drawSettingsMenu();
+
+    if (ImGui::BeginMenu("Tools"_j)) {
+      ImGui::Checkbox("MKW Debug (Dolphin)"_j, &mShowMkwDebug);
+      ImGui::EndMenu();
+    }
 
     if (Fonts::IsJapaneseSupported())
       drawLangMenu();
@@ -219,7 +239,7 @@ void RootWindow::drawFileMenu() {
   if (ImGui::BeginMenu("File"_j)) {
 #if !defined(__EMSCRIPTEN__)
     if (ImGui::MenuItem("Open"_j)) {
-      openFile();
+      mFileHost.openFile();
     }
 #endif
     if (ImGui::MenuItem("Save"_j)) {
@@ -268,12 +288,13 @@ RootWindow::RootWindow()
 
   {
     auto brres = LoadLuigiCircuitSample();
-    if (brres)
-      dropDirect(std::move(*brres), "./samples/luigi_circuit.brres");
+    if (brres) {
+      mFileHost.dropDirect(std::move(*brres), "./samples/luigi_circuit.brres");
+    }
   }
 
 #if 0
-  // IOS has 3:1 DPI
+  // iOS has 3:1 DPI
   mThemeData.mGlobalScale = .534f;
   mThemeData.mFontGlobalScale = .534f;
 #endif

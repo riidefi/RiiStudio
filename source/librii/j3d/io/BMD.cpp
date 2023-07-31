@@ -431,6 +431,7 @@ Result<void> J3dModel::genMtx() {
       }
     }
   }
+  (void)any_texmtx;
 
   for (size_t i = 0; i < shapes.size(); ++i) {
     auto& shp = shapes[i];

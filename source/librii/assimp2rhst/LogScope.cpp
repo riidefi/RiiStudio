@@ -1,8 +1,7 @@
 #include "LogScope.hpp"
 #include <core/common.h>
 #include <vendor/assimp/DefaultLogger.hpp>
-
-IMPORT_STD;
+#include <atomic>
 
 namespace librii::assimp2rhst {
 

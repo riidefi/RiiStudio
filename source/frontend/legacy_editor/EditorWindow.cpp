@@ -253,7 +253,7 @@ void BRRESEditor::draw_() {
   mOutliner->draw();
 
   if (mSelection.mActive != active) {
-    if (auto* g = dynamic_cast<lib3d::Material*>(active)) {
+    if (auto* g = dynamic_cast<lib3d::Material*>(mSelection.mActive)) {
       mRenderTest->hide_mat = g->getName();
       mRenderTest->hide_mat_countdown = 60;
     }

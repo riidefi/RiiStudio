@@ -144,6 +144,8 @@ static inline std::vector<Node> CollectNodes(g3d::Collection* g3d,
   Node n{
       .nodeType = NODE_OBJECT,
       .rti = richtypes["scene"],
+      .draw_context_menu_fn = CtxDraw(g3d),
+      .draw_modal_fn = ModalDraw(g3d),
       .public_name = "Scene #0",
       .obj = g3d,
       .is_rich = true,

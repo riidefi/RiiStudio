@@ -11,13 +11,17 @@
 #include <frontend/UpdaterView.hpp>
 #include <frontend/widgets/theme_editor.hpp>
 
+#include <frontend/editors/MkwDebug.hpp>
+
 #include <frontend/DiscordRPCManager.hpp>
 
 namespace riistudio::frontend {
 
-class RootWindow final : public Applet, public FileHost {
+class RootWindow final : public Applet {
 public:
   static RootWindow* spInstance;
+
+  FileHost mFileHost;
 
   RootWindow();
   RootWindow(const RootWindow&) = delete;
@@ -29,11 +33,11 @@ public:
   void drawLangMenu();
   void drawSettingsMenu();
   void drawFileMenu();
-  void onFileOpen(FileData data, OpenFilePolicy policy) override;
+  void onFileOpen(FileData data, OpenFilePolicy policy);
 
   void vdropDirect(std::unique_ptr<uint8_t[]> data, std::size_t len,
                    const std::string& name) override {
-    FileHost::dropDirect(std::move(data), len, name);
+    mFileHost.dropDirect(std::move(data), len, name);
   }
 
   void saveButton();
@@ -60,6 +64,9 @@ private:
   bool mCheckUpdate = true;
 
   DiscordRPCManager mDiscordRpc;
+
+  bool mShowMkwDebug = false;
+  MkwDebug mMkwDebugWindow;
 
 public:
   void requestFile() { mWantFile = true; }

@@ -1001,7 +1001,6 @@ inline std::set<s16> gcomputeDisplayMatricesSubset(
     const auto& meshes, const auto& bones,
     auto getMatrixId = [](auto& x) { return x.matrixId; }) {
   std::set<s16> displayMatrices = gcomputeShapeMtxRef(meshes);
-  const size_t len = displayMatrices.size();
   for (int i = 0; i < bones.size(); ++i) {
     const auto& bone = bones[i];
     if (!displayMatrices.contains(getMatrixId(bone, i))) {

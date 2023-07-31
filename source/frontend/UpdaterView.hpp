@@ -9,10 +9,12 @@ public:
   void draw();
 
   // If the caller sees --update in command line args.
-  void SetForceUpdate(bool update) { Updater_SetForceUpdate(mUpdater, update); }
+  void SetForceUpdate(bool update) {
+    Updater_SetForceUpdate(*mUpdater, update);
+  }
 
   // Check if the Updater is usable
-  bool IsOnline() { return Updater_IsOnline(mUpdater); }
+  bool IsOnline() { return Updater_IsOnline(*mUpdater); }
 
 private:
   enum class Action {
@@ -23,7 +25,7 @@ private:
 
   Action DrawUpdaterUI(const char* version, std::optional<float> progress);
 
-  Updater mUpdater;
+  std::unique_ptr<Updater, void (*)(Updater*)> mUpdater;
   bool mShowChangelog = true;
   bool mShowUpdateDialog = false;
 };

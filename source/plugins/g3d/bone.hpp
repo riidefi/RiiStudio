@@ -19,7 +19,7 @@ namespace riistudio::g3d {
 struct Bone : public libcube::IBoneDelegate,
               public librii::g3d::BoneData,
               public virtual kpi::IObject {
-  std::string getName() const { return mName; }
+  std::string getName() const override { return mName; }
   void setName(const std::string& name) override { mName = name; }
   // std::string getName() const override { return mName; }
 

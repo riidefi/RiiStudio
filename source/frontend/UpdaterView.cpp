@@ -5,29 +5,29 @@
 
 namespace riistudio {
 
-UpdaterView::UpdaterView() {
-  mShowUpdateDialog = Updater_HasAvailableUpdate(mUpdater);
+UpdaterView::UpdaterView() : mUpdater(Updater_Create(), Updater_Destroy) {
+  mShowUpdateDialog = Updater_HasAvailableUpdate(*mUpdater);
 }
 void UpdaterView::draw() {
-  if (!Updater_IsOnline(mUpdater))
+  if (!Updater_IsOnline(*mUpdater))
     return;
 
-  if (Updater_WasUpdated(mUpdater)) {
-    if (auto body = Updater_GetChangeLog(mUpdater); body.has_value()) {
+  if (Updater_WasUpdated(*mUpdater)) {
+    if (auto body = Updater_GetChangeLog(*mUpdater); body.has_value()) {
       DrawChangeLog(&mShowChangelog, *body);
     }
   }
 
-  Updater_Calc(mUpdater);
+  Updater_Calc(*mUpdater);
 
   if (!mShowUpdateDialog)
     return;
 
   std::optional<float> progress;
-  if (Updater_IsUpdating(mUpdater)) {
-    progress = Updater_Progress(mUpdater);
+  if (Updater_IsUpdating(*mUpdater)) {
+    progress = Updater_Progress(*mUpdater);
   }
-  auto action = DrawUpdaterUI(Updater_LatestVer(mUpdater).c_str(), progress);
+  auto action = DrawUpdaterUI(Updater_LatestVer(*mUpdater).c_str(), progress);
   switch (action) {
   case Action::None: {
     break;
@@ -37,7 +37,7 @@ void UpdaterView::draw() {
     break;
   }
   case Action::Yes: {
-    Updater_StartUpdate(mUpdater);
+    Updater_StartUpdate(*mUpdater);
     break;
   }
   }
@@ -56,6 +56,10 @@ UpdaterView::Action UpdaterView::DrawUpdaterUI(const char* version,
     auto pos = ImGui::GetWindowPos();
     auto avail = ImGui::GetWindowSize();
     auto sz = ImVec2(600, 84);
+    if (!Updater_CanUpdate(*mUpdater)) {
+      // Long explanation text
+      sz.y = 176;
+    }
     ImGui::SetNextWindowPos(
         ImVec2(pos.x + avail.x / 2 - sz.x / 2, pos.y + avail.y / 2 - sz.y));
     ImGui::SetNextWindowSize(sz);
@@ -72,22 +76,40 @@ UpdaterView::Action UpdaterView::DrawUpdaterUI(const char* version,
 
       ImGui::Separator();
 
-      auto button = ImVec2{75, 0};
-      ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - button.x * 2);
-      {
-        ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 0, 0, 100));
-        RSL_DEFER(ImGui::PopStyleColor());
-        if (ImGui::Button("No"_j, button)) {
+      if (!Updater_CanUpdate(*mUpdater)) {
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error:");
+        ImGui::TextWrapped(
+            "Unfortunately, only Windows builds are published "
+            "currently. You can run `git pull origin master` to update the "
+            "source code, and then `cmake --build . --config Release "
+            "--parallel` in your `build` directory to continue with your last "
+            "settings. In a differential build, only new code will be "
+            "compiled, resulting in a much faster process.");
+        ImGui::Separator();
+        if (ImGui::Button("OK"_j)) {
           ImGui::CloseCurrentPopup();
           action = Action::No;
         }
       }
-      ImGui::SameLine();
-      {
-        ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 255, 0, 100));
-        RSL_DEFER(ImGui::PopStyleColor());
-        if (ImGui::Button("Yes"_j, button)) {
-          action = Action::Yes;
+
+      if (Updater_CanUpdate(*mUpdater)) {
+        auto button = ImVec2{75, 0};
+        ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - button.x * 2);
+        {
+          ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 0, 0, 100));
+          RSL_DEFER(ImGui::PopStyleColor());
+          if (ImGui::Button("No"_j, button)) {
+            ImGui::CloseCurrentPopup();
+            action = Action::No;
+          }
+        }
+        ImGui::SameLine();
+        {
+          ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 255, 0, 100));
+          RSL_DEFER(ImGui::PopStyleColor());
+          if (ImGui::Button("Yes"_j, button)) {
+            action = Action::Yes;
+          }
         }
       }
     }

@@ -24,7 +24,8 @@ struct Activity {
   Assets assets;
   struct Button {
     std::string text = "A button";
-    std::string link = "https://github.com/riidefi/RiiStudio/tree/master/source/c-discord-rich-presence";
+    std::string link = "https://github.com/riidefi/RiiStudio/tree/master/"
+                       "source/c-discord-rich-presence";
   };
   std::vector<Button> buttons{Button{}};
 };
@@ -84,29 +85,39 @@ void rsl_rpc_test(struct C_RPC*);
 
 #ifdef __cplusplus
 namespace discord_rpc {
+
+static inline char* my_strdup(const char* in) {
+  auto len = strlen(in);
+  char* buf = (char*)malloc(len + 1);
+  memcpy(buf, in, len);
+  buf[len] = '\0';
+  return buf;
+}
+
 // Functions to create and destroy the Activity_C struct and to access the
 // fields of the Activity struct
-inline Activity_C* create_activity(const Activity& activity) {
+static inline Activity_C* create_activity(const Activity& activity) {
   Activity_C* activity_c = new Activity_C;
 
   // Allocate and copy strings for state and details
-  activity_c->state = strdup(activity.state.c_str());
-  activity_c->details = strdup(activity.details.c_str());
+  activity_c->state = my_strdup(activity.state.c_str());
+  activity_c->details = my_strdup(activity.details.c_str());
 
   // Copy timestamps and assets
   activity_c->timestamps.start = activity.timestamps.start;
   activity_c->timestamps.end = activity.timestamps.end;
-  activity_c->assets.large_image = strdup(activity.assets.large_image.c_str());
-  activity_c->assets.large_text = strdup(activity.assets.large_text.c_str());
+  activity_c->assets.large_image =
+      my_strdup(activity.assets.large_image.c_str());
+  activity_c->assets.large_text = my_strdup(activity.assets.large_text.c_str());
 
   // Allocate and copy button vector
   activity_c->buttons.length = activity.buttons.size();
   activity_c->buttons.buttons = new Button_C[activity_c->buttons.length];
   for (size_t i = 0; i < activity_c->buttons.length; i++) {
     activity_c->buttons.buttons[i].text =
-        strdup(activity.buttons[i].text.c_str());
+        my_strdup(activity.buttons[i].text.c_str());
     activity_c->buttons.buttons[i].link =
-        strdup(activity.buttons[i].link.c_str());
+        my_strdup(activity.buttons[i].link.c_str());
   }
 
   return activity_c;

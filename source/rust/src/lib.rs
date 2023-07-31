@@ -15,7 +15,7 @@ use std::slice;
 
 use curl::easy::{Easy, WriteError};
 use curl::Error;
-use std::ffi::{c_longlong, CStr, CString};
+use std::ffi::{CStr, CString};
 use std::fs::File;
 use std::io::Write;
 use std::os::raw::{c_char, c_double, c_void};
