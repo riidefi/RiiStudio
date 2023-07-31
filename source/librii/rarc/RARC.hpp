@@ -49,7 +49,7 @@ Result<std::pair<ResourceArchive::Node, ResourceArchive::Node>>
 CreateSpecialDirs(const ResourceArchive::Node& node,
                   std::optional<ResourceArchive::Node> parent);
 
-Result<bool> IsDataResourceArchive(rsl::byte_view data);
+bool IsDataResourceArchive(rsl::byte_view data);
 
 Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data);
 Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,

@@ -136,8 +136,8 @@ public:
   void saveAsButton() override {
     auto default_filename = std::filesystem::path(m_path).filename();
     std::vector<std::string> filters{
-        "Compressed Archive (*.szs)", "*.szs", "Archive (*.arc)", "*.arc",
-        "Archive (*.carc)",           "*.carc"};
+        "Compressed Archive (*.szs)",  "*.szs", "Archive (*.arc)", "*.arc",
+        "Compressed Archive (*.carc)", "*.carc"};
     auto results =
         rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
     if (!results) {
@@ -229,31 +229,31 @@ public:
   }
 
   void ResetOperationContexts() {
-	// Rename
+    // Rename
     m_node_to_rename = std::nullopt;
     m_node_new_name = "";
 
-	// Insert
+    // Insert
     m_files_to_insert.clear();
     m_folder_to_insert = std::nullopt;
 
-	// Create
-	m_folder_to_create = std::nullopt;
+    // Create
+    m_folder_to_create = std::nullopt;
 
-	// Delete
+    // Delete
     m_nodes_to_delete.clear();
 
-	// Extract
+    // Extract
     m_node_to_extract = std::nullopt;
 
-	// Replace
+    // Replace
     m_node_to_replace = std::nullopt;
   }
 
   void ApplyUpdates() {
     auto result = reconstruct();
 
-	ResetOperationContexts();
+    ResetOperationContexts();
 
     if (!result) {
       FlagErrorDialog(result.error());

@@ -31,7 +31,7 @@ struct U8Archive {
   std::vector<u8> file_data;
 };
 
-Result<bool> IsDataU8Archive(rsl::byte_view data);
+bool IsDataU8Archive(rsl::byte_view data);
 
 Result<U8Archive> LoadU8Archive(rsl::byte_view data);
 std::vector<u8> SaveU8Archive(const U8Archive& arc);

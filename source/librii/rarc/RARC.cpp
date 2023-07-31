@@ -461,9 +461,8 @@ static void rarcRecurseLoadDirectory(
 
 // EXTERNAL //
 
-Result<bool> IsDataResourceArchive(rsl::byte_view data) {
-  EXPECT(data.size() >= 4);
-  return data[0] == 'R' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C';
+bool IsDataResourceArchive(rsl::byte_view data) {
+  return data.size() >= 4 && data[0] == 'R' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C';
 }
 
 Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data) {

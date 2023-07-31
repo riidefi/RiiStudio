@@ -77,9 +77,8 @@ static bool RangeContainsInclusive(rsl::byte_view range, const void* ptr) {
   return ptr >= range.data() && ptr <= range.data() + range.size();
 }
 
-Result<bool> IsDataU8Archive(rsl::byte_view data) {
-  EXPECT(data.size() >= 4);
-  return data[0] == 'U' && data[1] == u8('\xAA') && data[2] == '8' &&
+bool IsDataU8Archive(rsl::byte_view data) {
+  return data.size() >= 4 && data[0] == 'U' && data[1] == u8('\xAA') && data[2] == '8' &&
          data[3] == '-';
 }
 
