@@ -214,6 +214,32 @@ Result<void> LoadResourceArchiveLow(LowResourceArchive& result,
   return {};
 }
 
+Result<std::vector<u8>> SaveResourceArchiveLow(
+    const rarcMetaHeader& meta_data, const rarcNodesHeader& nodes_data,
+    const std::vector<rarcDirectoryNode>& dir_nodes,
+    const std::vector<rarcFSNode>& fs_nodes, const std::string& strings_blob,
+    const rsl::byte_view& file_data) {
+  std::vector<u8> result(meta_data.size);
+
+  memcpy(&result[0], &meta_data, sizeof(rarcMetaHeader));
+  memcpy(&result[meta_data.nodes.offset], &nodes_data, sizeof(rarcNodesHeader));
+  memcpy(&result[meta_data.nodes.offset + nodes_data.dir_nodes.offset],
+         dir_nodes.data(),
+         sizeof(rarcDirectoryNode) * nodes_data.dir_nodes.count);
+  memcpy(&result[meta_data.nodes.offset + nodes_data.fs_nodes.offset],
+         fs_nodes.data(), sizeof(rarcFSNode) * nodes_data.fs_nodes.count);
+  memcpy(&result[meta_data.nodes.offset + nodes_data.strings_offset],
+         strings_blob.data(), strings_blob.size());
+  memcpy(&result[meta_data.nodes.offset + meta_data.files.offset],
+         file_data.data(), file_data.size());
+
+  if (result.size() != meta_data.size)
+    return std::unexpected(
+        "Saved data mismatched the recorded data size provided!");
+
+  return result;
+}
+
 using children_info_type =
     std::unordered_map<std::string, std::pair<std::size_t, std::size_t>>;
 
@@ -462,7 +488,8 @@ static void rarcRecurseLoadDirectory(
 // EXTERNAL //
 
 bool IsDataResourceArchive(rsl::byte_view data) {
-  return data.size() >= 4 && data[0] == 'R' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C';
+  return data.size() >= 4 && data[0] == 'R' && data[1] == 'A' &&
+         data[2] == 'R' && data[3] == 'C';
 }
 
 Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data) {
@@ -637,7 +664,7 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
       roundUp(node_header.fs_nodes.count * sizeof(rarcFSNode), 32);
 
   // Calculate header connections, data info, and size information
-  rarcMetaHeader meta_header{
+  rarcMetaHeader meta_header = {
       .magic = static_cast<rsl::bu32>('RARC')}; // Little endian 'RARC'
   meta_header.nodes.offset = sizeof(rarcMetaHeader);
   meta_header.files.offset =
@@ -649,26 +676,8 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
   meta_header.size = meta_header.nodes.offset + meta_header.files.offset +
                      meta_header.files.size;
 
-  std::vector<u8> result(meta_header.size);
-
-  memcpy(&result[0], &meta_header, sizeof(rarcMetaHeader));
-  memcpy(&result[meta_header.nodes.offset], &node_header,
-         sizeof(rarcNodesHeader));
-  memcpy(&result[meta_header.nodes.offset + node_header.dir_nodes.offset],
-         dir_nodes.data(),
-         sizeof(rarcDirectoryNode) * node_header.dir_nodes.count);
-  memcpy(&result[meta_header.nodes.offset + node_header.fs_nodes.offset],
-         fs_nodes.data(), sizeof(rarcFSNode) * node_header.fs_nodes.count);
-  memcpy(&result[meta_header.nodes.offset + node_header.strings_offset],
-         strings_blob.data(), strings_blob.size());
-  memcpy(&result[meta_header.nodes.offset + meta_header.files.offset],
-         low_data.data(), low_data.size());
-
-  if (result.size() != meta_header.size)
-    return std::unexpected(
-        "Saved data mismatched the recorded data size provided!");
-
-  return result;
+  return SaveResourceArchiveLow(meta_header, node_header, dir_nodes, fs_nodes,
+                                strings_blob, low_data);
 }
 
 Result<void> RecalculateArchiveIDs(ResourceArchive& arc) {
@@ -755,10 +764,6 @@ Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root) {
     int depth = -1;
     int parent = 0; // Default files put parent as 0 for root
     int siblingNext = -1;
-
-    bool operator<(const Entry& rhs) const {
-      return str < rhs.str && (is_folder ? 1 : 0) < (rhs.is_folder ? 1 : 0);
-    }
   };
   std::vector<Entry> paths;
 
@@ -1025,11 +1030,11 @@ Result<void> CreateFolder(ResourceArchive& rarc, ResourceArchive::Node parent,
   std::transform(name.begin(), name.end(), name.begin(),
                  [](char ch) { return std::tolower(ch); });
 
-  ResourceArchive::Node folder_node = 
-      {.id = 0,
-       .flags = ResourceAttribute::DIRECTORY,
-       .name = name,
-       .folder = {.parent = parent.id, .sibling_next = 0}};
+  ResourceArchive::Node folder_node = {
+      .id = 0,
+      .flags = ResourceAttribute::DIRECTORY,
+      .name = name,
+      .folder = {.parent = parent.id, .sibling_next = 0}};
 
   auto insert_index = rarc.nodes.size();
   auto dir_files_start = rarc.nodes.begin() + parent_index + 1;
