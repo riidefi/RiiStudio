@@ -1,4 +1,4 @@
-#include <frontend/utilities.hpp>
+#include <frontend/widgets/utilities.hpp>
 #include <frontend/widgets/ReflectedPropertyGrid.hpp>
 
 #include "RarcEditor.hpp"

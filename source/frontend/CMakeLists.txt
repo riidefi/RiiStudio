@@ -12,7 +12,7 @@ add_library(lib_frontend
   "file_host.cpp"
   
   "root.cpp"
-  "utilities.hpp" "utilities.cpp"
+  "widgets/utilities.hpp" "widgets/utilities.cpp"
   
   "legacy_editor/EditorWindow.cpp"
   
