@@ -215,7 +215,7 @@ pub struct ImportCommand {
     no_compression: bool,
 
     /// Compile the archive as RARC (GC) instead of U8 (Wii)
-    #[clap(long, default_value="false")]
+    #[clap(long, default_value = "false")]
     rarc: bool,
 
     /// Read preset material/animation overrides from this folder
@@ -311,10 +311,10 @@ pub struct CreateCommand {
     no_compression: bool,
 
     /// Compile the archive as RARC (GC) instead of U8 (Wii)
-    #[clap(long, default_value="false")]
+    #[clap(long, default_value = "false")]
     rarc: bool,
 
-    #[clap(short, long, default_value="false")]
+    #[clap(short, long, default_value = "false")]
     verbose: bool,
 }
 
@@ -592,42 +592,44 @@ impl MyArgs {
                     to: to2,
                     verbose: i.verbose as c_uint,
 
-                  // Junk fields
-                  preset_path:  [0; 256],
-                  scale: 0.0 as c_float,
-                  brawlbox_scale: 0 as c_uint,
-                  mipmaps: 0 as c_uint,
-                  min_mip: 0 as c_uint,
-                  max_mips: 0 as c_uint,
-                  auto_transparency: 0 as c_uint,
-                  merge_mats: 0 as c_uint,
-                  bake_uvs: 0 as c_uint,
-                  tint: 0 as c_uint,
-                  cull_degenerates: 0 as c_uint,
-                  cull_invalid: 0 as c_uint,
-                  recompute_normals: 0 as c_uint,
-                  fuse_vertices: 0 as c_uint,
-                  no_tristrip: 0 as c_uint,
-                  ai_json: 0 as c_uint,
-                  no_compression: 0 as c_uint,
-                  rarc: 0 as c_uint,
-              }
-            },
+                    // Junk fields
+                    preset_path: [0; 256],
+                    scale: 0.0 as c_float,
+                    brawlbox_scale: 0 as c_uint,
+                    mipmaps: 0 as c_uint,
+                    min_mip: 0 as c_uint,
+                    max_mips: 0 as c_uint,
+                    auto_transparency: 0 as c_uint,
+                    merge_mats: 0 as c_uint,
+                    bake_uvs: 0 as c_uint,
+                    tint: 0 as c_uint,
+                    cull_degenerates: 0 as c_uint,
+                    cull_invalid: 0 as c_uint,
+                    recompute_normals: 0 as c_uint,
+                    fuse_vertices: 0 as c_uint,
+                    no_tristrip: 0 as c_uint,
+                    ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
+                }
+            }
             Commands::Create(i) => {
-              let mut from2 : [i8; 256]= [0; 256];
-              let mut to2 : [i8; 256]= [0; 256];
-              let from_bytes = i.from.as_bytes();
-              let default_str = String::new();
-              let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
-              from2[..from_bytes.len()].copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
-              to2[..to_bytes.len()].copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
-              CliOptions {
-                  c_type: 7,
-                  from: from2,
-                  to: to2,
-                  verbose: i.verbose as c_uint,
-                  no_compression: i.no_compression as c_uint,
-                  rarc: i.rarc as c_uint,
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 7,
+                    from: from2,
+                    to: to2,
+                    verbose: i.verbose as c_uint,
+                    no_compression: i.no_compression as c_uint,
+                    rarc: i.rarc as c_uint,
 
                     // Junk fields
                     preset_path: [0; 256],
