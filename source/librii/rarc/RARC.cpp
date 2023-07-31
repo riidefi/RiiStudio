@@ -216,25 +216,59 @@ Result<void> LoadResourceArchiveLow(LowResourceArchive& result,
 }
 
 Result<std::vector<u8>> SaveResourceArchiveLow(
-    const rarcMetaHeader& meta_data, const rarcNodesHeader& nodes_data,
-    const std::vector<rarcDirectoryNode>& dir_nodes,
+    std::size_t mram_size, std::size_t aram_size, std::size_t dvd_size,
+    bool ids_synced, const std::vector<rarcDirectoryNode>& dir_nodes,
     const std::vector<rarcFSNode>& fs_nodes, const std::string& strings_blob,
     const rsl::byte_view& file_data) {
-  std::vector<u8> result(meta_data.size);
+  std::size_t total_file_size = mram_size + aram_size + dvd_size;
+  if (total_file_size != file_data.size())
+    return std::unexpected(
+        "Marked total file size doesn't match true data size!");
 
-  memcpy(&result[0], &meta_data, sizeof(rarcMetaHeader));
-  memcpy(&result[meta_data.nodes.offset], &nodes_data, sizeof(rarcNodesHeader));
-  memcpy(&result[meta_data.nodes.offset + nodes_data.dir_nodes.offset],
+  // Node metadata
+  // TODO: Verify custom unsynced IDs?
+  rarcNodesHeader node_header{.id_max = fs_nodes.size(),
+                              .ids_synced = ids_synced};
+  node_header.dir_nodes.count = dir_nodes.size();
+  node_header.dir_nodes.offset = sizeof(rarcNodesHeader);
+  node_header.fs_nodes.count = fs_nodes.size();
+  node_header.fs_nodes.offset =
+      node_header.dir_nodes.offset +
+      roundUp(node_header.dir_nodes.count * sizeof(rarcDirectoryNode), 32);
+  node_header.string_table_size = roundUp(strings_blob.size(), 32);
+  node_header.strings_offset =
+      node_header.fs_nodes.offset +
+      roundUp(node_header.fs_nodes.count * sizeof(rarcFSNode), 32);
+
+  // Calculate header connections, data info, and size information
+  rarcMetaHeader meta_header = {
+      .magic = static_cast<rsl::bu32>('RARC')}; // Little endian 'RARC'
+  meta_header.nodes.offset = sizeof(rarcMetaHeader);
+  meta_header.files.offset =
+      roundUp(node_header.strings_offset + strings_blob.size(), 32);
+  meta_header.files.size = total_file_size;
+  meta_header.files.mram_size = mram_size;
+  meta_header.files.aram_size = aram_size;
+  meta_header.files.dvd_size = dvd_size;
+  meta_header.size = meta_header.nodes.offset + meta_header.files.offset +
+                     meta_header.files.size;
+
+  std::vector<u8> result(meta_header.size);
+
+  memcpy(&result[0], &meta_header, sizeof(rarcMetaHeader));
+  memcpy(&result[meta_header.nodes.offset], &node_header,
+         sizeof(rarcNodesHeader));
+  memcpy(&result[meta_header.nodes.offset + node_header.dir_nodes.offset],
          dir_nodes.data(),
-         sizeof(rarcDirectoryNode) * nodes_data.dir_nodes.count);
-  memcpy(&result[meta_data.nodes.offset + nodes_data.fs_nodes.offset],
-         fs_nodes.data(), sizeof(rarcFSNode) * nodes_data.fs_nodes.count);
-  memcpy(&result[meta_data.nodes.offset + nodes_data.strings_offset],
+         sizeof(rarcDirectoryNode) * node_header.dir_nodes.count);
+  memcpy(&result[meta_header.nodes.offset + node_header.fs_nodes.offset],
+         fs_nodes.data(), sizeof(rarcFSNode) * node_header.fs_nodes.count);
+  memcpy(&result[meta_header.nodes.offset + node_header.strings_offset],
          strings_blob.data(), strings_blob.size());
-  memcpy(&result[meta_data.nodes.offset + meta_data.files.offset],
+  memcpy(&result[meta_header.nodes.offset + meta_header.files.offset],
          file_data.data(), file_data.size());
 
-  if (result.size() != meta_data.size)
+  if (result.size() != meta_header.size)
     return std::unexpected(
         "Saved data mismatched the recorded data size provided!");
 
@@ -644,41 +678,8 @@ Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
     }
   }
 
-  std::size_t total_file_size = mram_size + aram_size + dvd_size;
-  if (total_file_size != low_data.size())
-    return std::unexpected(
-        "Marked total file size doesn't match true data size!");
-
-  // Node metadata
-  // TODO: Verify custom unsynced IDs?
-  rarcNodesHeader node_header{.id_max = fs_nodes.size(),
-                              .ids_synced = ids_synced};
-  node_header.dir_nodes.count = dir_nodes.size();
-  node_header.dir_nodes.offset = sizeof(rarcNodesHeader);
-  node_header.fs_nodes.count = fs_nodes.size();
-  node_header.fs_nodes.offset =
-      node_header.dir_nodes.offset +
-      roundUp(node_header.dir_nodes.count * sizeof(rarcDirectoryNode), 32);
-  node_header.string_table_size = roundUp(strings_blob.size(), 32);
-  node_header.strings_offset =
-      node_header.fs_nodes.offset +
-      roundUp(node_header.fs_nodes.count * sizeof(rarcFSNode), 32);
-
-  // Calculate header connections, data info, and size information
-  rarcMetaHeader meta_header = {
-      .magic = static_cast<rsl::bu32>('RARC')}; // Little endian 'RARC'
-  meta_header.nodes.offset = sizeof(rarcMetaHeader);
-  meta_header.files.offset =
-      roundUp(node_header.strings_offset + strings_blob.size(), 32);
-  meta_header.files.size = total_file_size;
-  meta_header.files.mram_size = mram_size;
-  meta_header.files.aram_size = aram_size;
-  meta_header.files.dvd_size = dvd_size;
-  meta_header.size = meta_header.nodes.offset + meta_header.files.offset +
-                     meta_header.files.size;
-
-  return SaveResourceArchiveLow(meta_header, node_header, dir_nodes, fs_nodes,
-                                strings_blob, low_data);
+  return SaveResourceArchiveLow(mram_size, aram_size, dvd_size, ids_synced,
+                                dir_nodes, fs_nodes, strings_blob, low_data);
 }
 
 Result<void> RecalculateArchiveIDs(ResourceArchive& arc) {
