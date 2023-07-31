@@ -24,78 +24,76 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
 
   std::span<u8> raw_span(data.mData.get(), data.mData.get() + data.mLen);
 
-  std::vector<u8> expanded_span;
-  if (librii::szs::isDataYaz0Compressed(raw_span)) {
-    expanded_span.resize(*librii::szs::getExpandedSize(raw_span));
-    if (!librii::szs::decode(expanded_span, raw_span))
-      return nullptr;
-  } else {
-    expanded_span = {raw_span.data(), raw_span.data() + raw_span.size()};
-  }
-
   auto path_lower = data.mPath;
   std::transform(path_lower.begin(), path_lower.end(), path_lower.begin(),
                  ::tolower);
 
   if (path_lower.ends_with(".szs")) {
     auto pWin = std::make_unique<lvl::LevelEditorWindow>();
-    pWin->openFile(expanded_span, data.mPath);
+    pWin->openFile(raw_span, data.mPath);
     return pWin;
   }
   if (path_lower.ends_with(".bdof") || path_lower.ends_with(".pdof")) {
     auto pWin = std::make_unique<BdofEditor>();
-    pWin->openFile(expanded_span, data.mPath);
+    pWin->openFile(raw_span, data.mPath);
     return pWin;
   }
   // .bblm1 .bblm2 should also be matched
   if (path_lower.contains(".bblm") || path_lower.ends_with(".pblm")) {
     auto pWin = std::make_unique<BblmEditor>();
-    pWin->openFile(expanded_span, data.mPath);
+    pWin->openFile(raw_span, data.mPath);
     return pWin;
   }
   if (path_lower.ends_with(".bfg")) {
-    auto pWin = std::make_unique<BfgEditor>(expanded_span, data.mPath);
+    auto pWin = std::make_unique<BfgEditor>(raw_span, data.mPath);
     return pWin;
   }
   if (path_lower.ends_with(".blight") || path_lower.ends_with(".plight")) {
-    return std::make_unique<BlightEditor>(expanded_span, data.mPath);
+    return std::make_unique<BlightEditor>(raw_span, data.mPath);
   }
   if (path_lower.ends_with(".blmap") || path_lower.ends_with(".plmap")) {
-    return std::make_unique<BlmapEditor>(expanded_span, data.mPath);
+    return std::make_unique<BlmapEditor>(raw_span, data.mPath);
   }
   if (path_lower.ends_with(".btk")) {
     auto pWin = std::make_unique<BtkEditor>();
-    pWin->openFile(expanded_span, data.mPath);
+    pWin->openFile(raw_span, data.mPath);
     return pWin;
   }
   if (path_lower.ends_with(".arc") || path_lower.ends_with(".carc") ||
       path_lower.ends_with(".u8")) {
-    if (auto result = librii::RARC::IsDataResourceArchive(expanded_span)) {
-      if (*result) {
+    std::vector<u8> expanded_span;
+
+    if (librii::szs::isDataYaz0Compressed(raw_span)) {
+      expanded_span.resize(*librii::szs::getExpandedSize(raw_span));
+      if (!librii::szs::decode(expanded_span, raw_span))
+        return nullptr;
+    } else {
+      expanded_span = {raw_span.data(), raw_span.data() + raw_span.size()};
+    }
+
+    if (librii::RARC::IsDataResourceArchive(expanded_span)) {
         auto pWin = std::make_unique<RarcEditor>();
         pWin->openFile(expanded_span, data.mPath);
         return pWin;
-      }
     }
 
-    if (auto result = librii::U8::IsDataU8Archive(expanded_span)) {
-      if (*result) {
+	// TODO: U8Editor
+    if (librii::U8::IsDataU8Archive(expanded_span)) {
         /*auto pWin = std::make_unique<U8Editor>();
         pWin->openFile(expanded_span, data.mPath);
         return pWin;*/
-      }
     }
   }
   if (path_lower.ends_with(".brres")) {
-    auto pWin = std::make_unique<BRRESEditor>(expanded_span, data.mPath);
+    auto pWin = std::make_unique<BRRESEditor>(raw_span, data.mPath);
     return pWin;
   }
   if (path_lower.ends_with(".bmd") || path_lower.ends_with(".bdl")) {
-    auto pWin = std::make_unique<BMDEditor>(expanded_span, data.mPath);
+    auto pWin = std::make_unique<BMDEditor>(raw_span, data.mPath);
     return pWin;
   }
   if (AssimpImporter::supports(path_lower)) {
-    return std::make_unique<AssimpImporter>(expanded_span, data.mPath);
+    return std::make_unique<AssimpImporter>(raw_span, data.mPath);
   }
 
   return nullptr;
