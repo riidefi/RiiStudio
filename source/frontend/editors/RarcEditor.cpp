@@ -1,5 +1,5 @@
-#include <frontend/widgets/utilities.hpp>
 #include <frontend/widgets/ReflectedPropertyGrid.hpp>
+#include <frontend/widgets/utilities.hpp>
 
 #include "RarcEditor.hpp"
 #include <rsl/Defer.hpp>
@@ -56,7 +56,7 @@ static std::unordered_map<std::string, ExtensionInfo> s_extension_map = {
     {"bpk", s_animation_info},     {"brk", s_animation_info},
     {"btk", s_animation_info},     {"btp", s_animation_info},
     {"bva", s_animation_info},     {"arc", s_archive_info},
-    {"carc", s_archive_info},      {"u8", s_archive_info},
+    {"carc", s_compressed_info},   {"u8", s_archive_info},
     {"col", s_collision_info},     {"kcl", s_collision_info},
     {"szs", s_compressed_info},    {"bdof", s_environment_info},
     {"bfg", s_environment_info},   {"blight", s_environment_info},
@@ -74,10 +74,10 @@ static std::unordered_map<std::string, ExtensionInfo> s_extension_map = {
     {"bas", s_sound_info},         {"bms", s_sound_info},
     {"com", s_sound_info},         {"scom", s_sound_info},
     {"aw", s_sound_info},          {"afc", s_sound_info},
-    {"ws", s_sound_info},          {"bnk", s_sound_info},
-    {"bld", s_sound_info},         {"bst", s_sound_info},
-    {"bti", s_texture_info},       {"bmp", s_texture_info},
-    {"kmp", s_track_info},
+    {"adp", s_sound_info},         {"ws", s_sound_info},
+    {"bnk", s_sound_info},         {"bld", s_sound_info},
+    {"bst", s_sound_info},         {"bti", s_texture_info},
+    {"bmp", s_texture_info},       {"kmp", s_track_info},
 };
 
 void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
@@ -442,9 +442,9 @@ void RarcEditorPropertyGrid::DrawOperationModal(RarcEditor* editor) {
 
     if (!open) {
       ImGui::CloseCurrentPopup();
-	  m_operation_state = TriState::ST_INDETERMINATE;
+      m_operation_state = TriState::ST_INDETERMINATE;
       m_operation_modal_state = ModalState::M_CLOSED;
-	  m_operation_error_msg = "";
+      m_operation_error_msg = "";
       return;
     }
 
@@ -453,7 +453,7 @@ void RarcEditorPropertyGrid::DrawOperationModal(RarcEditor* editor) {
       ImGui::CloseCurrentPopup();
       m_operation_state = TriState::ST_INDETERMINATE;
       m_operation_modal_state = ModalState::M_CLOSED;
-	  m_operation_error_msg = "";
+      m_operation_error_msg = "";
     }
   }
 }
