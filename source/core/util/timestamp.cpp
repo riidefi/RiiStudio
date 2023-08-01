@@ -11,10 +11,10 @@
 #endif
 
 // Must match release on Github
-const char GIT_TAG[] = "Alpha 5.10.10 (Hotfix 3)";
+const char GIT_TAG[] = "Alpha 5.10.11";
 
 // Must be exactly 16 bytes long
-const char VERSION_SHORT[] = "RiiStudioA5.10.a";
+const char VERSION_SHORT[] = "RiiStudioA5.10.b";
 static_assert(sizeof(VERSION_SHORT) - 1 == 16,
               "VERSION_SHORT must be 16 bytes long");
 
@@ -23,7 +23,7 @@ static_assert(sizeof(VERSION_SHORT) - 1 == 16,
 #elif defined(BUILD_RELEASE)
 #define RII_BUILD "Alpha Release"
 #elif defined(BUILD_DIST)
-#define RII_BUILD "Alpha 5.10.10 (Hotfix 3)"
+#define RII_BUILD "Alpha 5.10.11"
 #else
 #define RII_BUILD "Custom"
 #endif
