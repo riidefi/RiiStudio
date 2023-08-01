@@ -1,5 +1,3 @@
-#define UPDATER_INTERNAL
-
 #include "updater.hpp"
 
 #include "GithubManifest.hpp"
@@ -8,6 +6,7 @@
 #endif
 #include <iostream>
 #include <rsl/Download.hpp>
+#include <rsl/Filesystem.hpp>
 #include <rsl/FsDialog.hpp>
 #include <rsl/Launch.hpp>
 #include <rsl/Log.hpp>
@@ -32,16 +31,19 @@ public:
   Updater();
   ~Updater();
 
-#if defined(UPDATER_INTERNAL)
-public:
-#else
-private:
-#endif
+  Result<void> Init();
+
   void Calc();
   bool mIsInUpdate = false;
   float mUpdateProgress = 0.0f;
   void StartUpdate() {
-    if (!InstallUpdate() && mNeedAdmin) {
+    auto installOk = InstallUpdate();
+    if (!installOk) {
+      rsl::error(installOk.error());
+      rsl::ErrorDialogFmt("Updater Error\n\n{}", installOk.error());
+    }
+
+    if (!installOk && mNeedAdmin) {
       RetryAsAdmin();
       // (Never reached)
     }
@@ -64,15 +66,11 @@ private:
   bool mHasChangeLog = false;
   bool mHasPendingUpdate = false;
 
-  bool InitRepoJSON();
-  bool InstallUpdate();
+  Result<void> InitRepoJSON();
+  Result<void> InstallUpdate();
   void RetryAsAdmin();
 
-#if defined(UPDATER_INTERNAL)
 public:
-#else
-private:
-#endif
   void LaunchUpdate(const std::string& new_exe);
   void QueueLaunch(const std::string& path) { mLaunchPath = path; }
   void SetProgress(float progress) { mUpdateProgress = progress; }
@@ -91,6 +89,12 @@ bool Updater_CanUpdate(Updater& updater) {
 #endif
 }
 
+#define FS_TRY(expr)                                                           \
+  TRY(expr.transform_error([](const std::error_code& ec) -> std::string {      \
+    return std::format("Filesystem Error: {} ({}:{})", ec.message(), __FILE__, \
+                       __LINE__);                                              \
+  }))
+
 Result<std::filesystem::path> GetTempDirectory() {
   std::error_code ec;
   auto temp_dir = std::filesystem::temp_directory_path(ec);
@@ -104,41 +108,46 @@ static const char* GITHUB_REPO = "riidefi/RiiStudio";
 static const char* USER_AGENT = "RiiStudio";
 
 Updater::Updater() {
-  if (!InitRepoJSON()) {
-    rsl::ErrorDialogFmt("Updater Error\n\n"
-                        "Cannot connect to Github to check for updates.");
-    rsl::error("Cannot connect to Github");
-    return;
+  auto ok = Init();
+  if (!ok) {
+    rsl::error(ok.error());
+    rsl::ErrorDialogFmt("Updater Error\n\n{}", ok.error());
+  }
+}
+
+Result<void> Updater::Init() {
+  if (auto ok = InitRepoJSON(); !ok) {
+    return std::unexpected("Cannot connect to Github to check for updates: " +
+                           ok.error());
   }
   if (auto name = mJSON->name(); name.has_value()) {
     mLatestVer = *name;
   }
 
   if (mLatestVer.empty()) {
-    rsl::error("There is no name field");
-    return;
+    return std::unexpected("There is no name field");
   }
 
   const auto current_exe = rsl::GetExecutableFilename();
   if (current_exe.empty()) {
-    rsl::error("Cannot get the name of the current .exe");
-    return;
+    return std::unexpected("Cannot get the name of the current .exe");
   }
 
   mHasPendingUpdate = GIT_TAG != mLatestVer;
 
   auto temp_dir = GetTempDirectory();
   if (!temp_dir) {
-    rsl::error("Cannot get temporary directory: {}", temp_dir.error());
-    return;
+    return std::unexpected("Cannot get temporary directory: " +
+                           temp_dir.error());
   }
 
   const auto temp = (*temp_dir) / "RiiStudio_temp.exe";
 
-  if (std::filesystem::exists(temp)) {
+  if (FS_TRY(rsl::filesystem::exists(temp))) {
     mHasChangeLog = true;
-    std::filesystem::remove(temp);
+    FS_TRY(rsl::filesystem::remove(temp));
   }
+  return {};
 }
 
 Updater::~Updater() = default;
@@ -158,45 +167,40 @@ void Updater::Calc() {
   }
 }
 
-bool Updater::InitRepoJSON() {
-  auto manifest = DownloadLatestRelease(GITHUB_REPO, USER_AGENT);
-  if (!manifest) {
-    rsl::error("{}", manifest.error());
-    return false;
-  }
-  mJSON = std::make_unique<GithubManifest>(*manifest);
-  return true;
+Result<void> Updater::InitRepoJSON() {
+  auto manifest = TRY(DownloadLatestRelease(GITHUB_REPO, USER_AGENT));
+  mJSON = std::make_unique<GithubManifest>(manifest);
+  return {};
 }
 
-bool Updater::InstallUpdate() {
+Result<void> Updater::InstallUpdate() {
 #ifndef _WIN32
   return false;
 #else
   const auto current_exe = rsl::GetExecutableFilename();
   if (current_exe.empty())
-    return false;
+    return std::unexpected("Failed to get path of .exe file");
 
   auto assets = mJSON->getAssets();
   if (assets.size() < 1) {
-    return false;
+    return std::unexpected("Release has no prebuilt binaries on GitHub");
   }
   const auto url = assets[0].browser_download_url;
 
   const auto folder = std::filesystem::path(current_exe).parent_path();
   const auto new_exe = folder / "RiiStudio.exe";
   const auto temp_exe =
-      std::filesystem::temp_directory_path() / "RiiStudio_temp.exe";
+      FS_TRY(rsl::filesystem::temp_directory_path()) / "RiiStudio_temp.exe";
   const auto download = folder / "download.zip";
 
-  std::error_code error_code;
-  std::filesystem::rename(current_exe, temp_exe, error_code);
+  auto rename_ok = rsl::filesystem::rename(current_exe, temp_exe);
 
-  if (error_code) {
-    rsl::error("Failed to rename: {}. Retrying with admin perms.",
-               error_code.message());
+  if (!rename_ok) {
     // Request admin perms...
     mNeedAdmin = true;
-    return false;
+    return std::unexpected(
+        std::format("Failed to rename: {}. Retrying with admin perms.",
+                    rename_ok.error().message()));
   }
 
   auto progress_func =
@@ -212,11 +216,14 @@ bool Updater::InstallUpdate() {
         rsl::DownloadFile(download.string(), url, USER_AGENT, progress_func,
                           this);
         rsl::ExtractZip(download.string(), folder.string());
-        std::filesystem::remove(download);
+        auto ok = rsl::filesystem::remove(download);
+        if (!ok) {
+          rsl::ErrorDialogFmt("Failed to remove {}", download.string());
+        }
         updater->QueueLaunch(new_exe.string());
       },
       this);
-  return true;
+  return {};
 #endif
 }
 
