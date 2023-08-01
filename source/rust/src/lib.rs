@@ -210,14 +210,6 @@ pub struct ImportCommand {
     #[clap(long, default_value = "false")]
     ai_json: bool,
 
-    /// Do not SZS-compress the archive
-    #[clap(short, long, default_value = "false")]
-    no_compression: bool,
-
-    /// Compile the archive as RARC (GC) instead of U8 (Wii)
-    #[clap(long, default_value = "false")]
-    rarc: bool,
-
     /// Read preset material/animation overrides from this folder
     #[clap(long)]
     preset_path: Option<String>,
@@ -423,9 +415,11 @@ impl MyArgs {
                     fuse_vertices: i.fuse_vertices as c_uint,
                     no_tristrip: i.no_tristrip as c_uint,
                     ai_json: i.ai_json as c_uint,
-                    no_compression: i.no_compression as c_uint,
-                    rarc: i.rarc as c_uint,
                     verbose: i.verbose as c_uint,
+
+                    // Junk fields
+                    no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
                 }
             }
             Commands::Decompress(i) => {
