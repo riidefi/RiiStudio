@@ -494,7 +494,7 @@ private:
 
     if (m_to.empty()) {
       std::filesystem::path p = m_from;
-      p.replace_extension(".szs");
+      p.replace_extension(".d");
       m_to = p;
     }
     if (!FS_TRY(rsl::filesystem::exists(m_from))) {
