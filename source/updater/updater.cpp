@@ -175,7 +175,8 @@ Result<void> Updater::InitRepoJSON() {
 
 Result<void> Updater::InstallUpdate() {
 #ifndef _WIN32
-  return false;
+  return std::unexpected(
+      "Updating from a prebuilt binary is not supported on Linux/MacOS");
 #else
   const auto current_exe = rsl::GetExecutableFilename();
   if (current_exe.empty())
