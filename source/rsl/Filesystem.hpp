@@ -7,7 +7,8 @@
 
 namespace rsl::filesystem {
 
-std::expected<std::filesystem::path, std::error_code>
+[[nodiscard]] static inline std::expected<std::filesystem::path,
+                                          std::error_code>
 absolute(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::absolute(p, ec);
@@ -16,7 +17,8 @@ absolute(const std::filesystem::path& p) {
   }
   return result;
 }
-std::expected<std::filesystem::path, std::error_code>
+[[nodiscard]] static inline std::expected<std::filesystem::path,
+                                          std::error_code>
 canonical(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::canonical(p, ec);
@@ -26,7 +28,8 @@ canonical(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<std::filesystem::path, std::error_code>
+[[nodiscard]] static inline std::expected<std::filesystem::path,
+                                          std::error_code>
 weakly_canonical(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::weakly_canonical(p, ec);
@@ -36,7 +39,8 @@ weakly_canonical(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<std::filesystem::path, std::error_code>
+[[nodiscard]] static inline std::expected<std::filesystem::path,
+                                          std::error_code>
 relative(const std::filesystem::path& p,
          const std::filesystem::path& base = std::filesystem::current_path()) {
   std::error_code ec;
@@ -47,7 +51,8 @@ relative(const std::filesystem::path& p,
   return result;
 }
 
-std::expected<std::filesystem::path, std::error_code>
+[[nodiscard]] static inline std::expected<std::filesystem::path,
+                                          std::error_code>
 proximate(const std::filesystem::path& p,
           const std::filesystem::path& base = std::filesystem::current_path()) {
   std::error_code ec;
@@ -58,7 +63,7 @@ proximate(const std::filesystem::path& p,
   return result;
 }
 
-std::expected<void, std::error_code>
+[[nodiscard]] static inline std::expected<void, std::error_code>
 copy(const std::filesystem::path& from, const std::filesystem::path& to,
      std::filesystem::copy_options options =
          std::filesystem::copy_options::none) {
@@ -70,7 +75,7 @@ copy(const std::filesystem::path& from, const std::filesystem::path& to,
   return {};
 }
 
-std::expected<bool, std::error_code>
+[[nodiscard]] static inline std::expected<bool, std::error_code>
 copy_file(const std::filesystem::path& from, const std::filesystem::path& to,
           std::filesystem::copy_options options =
               std::filesystem::copy_options::none) {
@@ -82,7 +87,7 @@ copy_file(const std::filesystem::path& from, const std::filesystem::path& to,
   return result;
 }
 
-std::expected<void, std::error_code>
+[[nodiscard]] static inline std::expected<void, std::error_code>
 copy_symlink(const std::filesystem::path& existing_symlink,
              const std::filesystem::path& new_symlink) {
   std::error_code ec;
@@ -93,7 +98,7 @@ copy_symlink(const std::filesystem::path& existing_symlink,
   return {};
 }
 
-std::expected<bool, std::error_code>
+[[nodiscard]] static inline std::expected<bool, std::error_code>
 create_directory(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::create_directory(p, ec);
@@ -103,7 +108,7 @@ create_directory(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code>
+[[nodiscard]] static inline std::expected<bool, std::error_code>
 create_directories(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::create_directories(p, ec);
@@ -113,7 +118,7 @@ create_directories(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<void, std::error_code>
+[[nodiscard]] static inline std::expected<void, std::error_code>
 create_hard_link(const std::filesystem::path& to,
                  const std::filesystem::path& new_hard_link) {
   std::error_code ec;
@@ -124,7 +129,7 @@ create_hard_link(const std::filesystem::path& to,
   return {};
 }
 
-std::expected<void, std::error_code>
+[[nodiscard]] static inline std::expected<void, std::error_code>
 create_symlink(const std::filesystem::path& to,
                const std::filesystem::path& new_symlink) {
   std::error_code ec;
@@ -135,7 +140,7 @@ create_symlink(const std::filesystem::path& to,
   return {};
 }
 
-std::expected<void, std::error_code>
+[[nodiscard]] static inline std::expected<void, std::error_code>
 create_directory_symlink(const std::filesystem::path& to,
                          const std::filesystem::path& new_symlink) {
   std::error_code ec;
@@ -146,7 +151,9 @@ create_directory_symlink(const std::filesystem::path& to,
   return {};
 }
 
-std::expected<std::filesystem::path, std::error_code> current_path() {
+[[nodiscard]] static inline std::expected<std::filesystem::path,
+                                          std::error_code>
+current_path() {
   std::error_code ec;
   auto result = std::filesystem::current_path(ec);
   if (ec) {
@@ -155,7 +162,8 @@ std::expected<std::filesystem::path, std::error_code> current_path() {
   return result;
 }
 
-std::expected<bool, std::error_code> exists(const std::filesystem::path& p) {
+[[nodiscard]] static inline std::expected<bool, std::error_code>
+exists(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::exists(p, ec);
   if (ec) {
@@ -164,7 +172,7 @@ std::expected<bool, std::error_code> exists(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code>
+[[nodiscard]] static inline std::expected<bool, std::error_code>
 equivalent(const std::filesystem::path& p1, const std::filesystem::path& p2) {
   std::error_code ec;
   auto result = std::filesystem::equivalent(p1, p2, ec);
@@ -174,7 +182,7 @@ equivalent(const std::filesystem::path& p1, const std::filesystem::path& p2) {
   return result;
 }
 
-std::expected<uintmax_t, std::error_code>
+[[nodiscard]] static inline std::expected<uintmax_t, std::error_code>
 file_size(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::file_size(p, ec);
@@ -184,7 +192,7 @@ file_size(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<uintmax_t, std::error_code>
+[[nodiscard]] static inline std::expected<uintmax_t, std::error_code>
 hard_link_count(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::hard_link_count(p, ec);
@@ -194,7 +202,8 @@ hard_link_count(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<std::filesystem::file_time_type, std::error_code>
+[[nodiscard]] static inline std::expected<std::filesystem::file_time_type,
+                                          std::error_code>
 last_write_time(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::last_write_time(p, ec);
@@ -204,7 +213,7 @@ last_write_time(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<void, std::error_code>
+[[nodiscard]] static inline std::expected<void, std::error_code>
 permissions(const std::filesystem::path& p, std::filesystem::perms prms,
             std::filesystem::perm_options opts =
                 std::filesystem::perm_options::replace) {
@@ -215,7 +224,8 @@ permissions(const std::filesystem::path& p, std::filesystem::perms prms,
   }
   return {};
 }
-std::expected<std::filesystem::path, std::error_code>
+[[nodiscard]] static inline std::expected<std::filesystem::path,
+                                          std::error_code>
 read_symlink(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::read_symlink(p, ec);
@@ -225,7 +235,8 @@ read_symlink(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code> remove(const std::filesystem::path& p) {
+[[nodiscard]] static inline std::expected<bool, std::error_code>
+remove(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::remove(p, ec);
   if (ec) {
@@ -234,7 +245,7 @@ std::expected<bool, std::error_code> remove(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<uintmax_t, std::error_code>
+[[nodiscard]] static inline std::expected<uintmax_t, std::error_code>
 remove_all(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::remove_all(p, ec);
@@ -244,8 +255,8 @@ remove_all(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<void, std::error_code> rename(const std::filesystem::path& from,
-                                            const std::filesystem::path& to) {
+[[nodiscard]] static inline std::expected<void, std::error_code>
+rename(const std::filesystem::path& from, const std::filesystem::path& to) {
   std::error_code ec;
   std::filesystem::rename(from, to, ec);
   if (ec) {
@@ -254,8 +265,8 @@ std::expected<void, std::error_code> rename(const std::filesystem::path& from,
   return {};
 }
 
-std::expected<void, std::error_code> resize_file(const std::filesystem::path& p,
-                                                 uintmax_t size) {
+[[nodiscard]] static inline std::expected<void, std::error_code>
+resize_file(const std::filesystem::path& p, uintmax_t size) {
   std::error_code ec;
   std::filesystem::resize_file(p, size, ec);
   if (ec) {
@@ -264,7 +275,8 @@ std::expected<void, std::error_code> resize_file(const std::filesystem::path& p,
   return {};
 }
 
-std::expected<std::filesystem::space_info, std::error_code>
+[[nodiscard]] static inline std::expected<std::filesystem::space_info,
+                                          std::error_code>
 space(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::space(p, ec);
@@ -274,7 +286,8 @@ space(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<std::filesystem::file_status, std::error_code>
+[[nodiscard]] static inline std::expected<std::filesystem::file_status,
+                                          std::error_code>
 status(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::status(p, ec);
@@ -284,7 +297,8 @@ status(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<std::filesystem::file_status, std::error_code>
+[[nodiscard]] static inline std::expected<std::filesystem::file_status,
+                                          std::error_code>
 symlink_status(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::symlink_status(p, ec);
@@ -294,7 +308,9 @@ symlink_status(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<std::filesystem::path, std::error_code> temp_directory_path() {
+[[nodiscard]] static inline std::expected<std::filesystem::path,
+                                          std::error_code>
+temp_directory_path() {
   std::error_code ec;
   auto result = std::filesystem::temp_directory_path(ec);
   if (ec) {
@@ -302,7 +318,7 @@ std::expected<std::filesystem::path, std::error_code> temp_directory_path() {
   }
   return result;
 }
-std::expected<bool, std::error_code>
+[[nodiscard]] static inline std::expected<bool, std::error_code>
 is_block_file(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::is_block_file(p, ec);
@@ -312,7 +328,7 @@ is_block_file(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code>
+[[nodiscard]] static inline std::expected<bool, std::error_code>
 is_character_file(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::is_character_file(p, ec);
@@ -322,7 +338,7 @@ is_character_file(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code>
+[[nodiscard]] static inline std::expected<bool, std::error_code>
 is_directory(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::is_directory(p, ec);
@@ -332,7 +348,8 @@ is_directory(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code> is_empty(const std::filesystem::path& p) {
+[[nodiscard]] static inline std::expected<bool, std::error_code>
+is_empty(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::is_empty(p, ec);
   if (ec) {
@@ -341,7 +358,8 @@ std::expected<bool, std::error_code> is_empty(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code> is_fifo(const std::filesystem::path& p) {
+[[nodiscard]] static inline std::expected<bool, std::error_code>
+is_fifo(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::is_fifo(p, ec);
   if (ec) {
@@ -350,7 +368,8 @@ std::expected<bool, std::error_code> is_fifo(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code> is_other(const std::filesystem::path& p) {
+[[nodiscard]] static inline std::expected<bool, std::error_code>
+is_other(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::is_other(p, ec);
   if (ec) {
@@ -359,7 +378,7 @@ std::expected<bool, std::error_code> is_other(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code>
+[[nodiscard]] static inline std::expected<bool, std::error_code>
 is_regular_file(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::is_regular_file(p, ec);
@@ -369,7 +388,8 @@ is_regular_file(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code> is_socket(const std::filesystem::path& p) {
+[[nodiscard]] static inline std::expected<bool, std::error_code>
+is_socket(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::is_socket(p, ec);
   if (ec) {
@@ -378,7 +398,7 @@ std::expected<bool, std::error_code> is_socket(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code>
+[[nodiscard]] static inline std::expected<bool, std::error_code>
 is_symlink(const std::filesystem::path& p) {
   std::error_code ec;
   auto result = std::filesystem::is_symlink(p, ec);
@@ -388,7 +408,7 @@ is_symlink(const std::filesystem::path& p) {
   return result;
 }
 
-std::expected<bool, std::error_code>
+[[nodiscard]] static inline std::expected<bool, std::error_code>
 status_known(const std::filesystem::file_status& s) {
   std::error_code ec;
   auto result = std::filesystem::status_known(s);
@@ -397,4 +417,5 @@ status_known(const std::filesystem::file_status& s) {
   }
   return result;
 }
+
 } // namespace rsl::filesystem

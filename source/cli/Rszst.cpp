@@ -5,14 +5,15 @@
 #include <librii/assimp/LRAssimp.hpp>
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
-#include <librii/szs/SZS.hpp>
 #include <librii/rarc/RARC.hpp>
+#include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
 #include <mutex>
 #include <plugins/g3d/G3dIo.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/J3dIo.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
+#include <rsl/Filesystem.hpp>
 #include <sstream>
 
 namespace riistudio {
@@ -72,6 +73,12 @@ static auto GetMips(const CliOptions& opt)
   };
 }
 
+#define FS_TRY(expr)                                                           \
+  TRY(expr.transform_error([](const std::error_code& ec) -> std::string {      \
+    return std::format("Filesystem Error: {} ({}:{})", ec.message(), __FILE__, \
+                       __LINE__);                                              \
+  }))
+
 class ImportBRRES {
 public:
   ImportBRRES(const CliOptions& opt) : m_opt(opt) {}
@@ -80,8 +87,9 @@ public:
     if (m_opt.verbose) {
       rsl::logging::init();
     }
-    if (!parseArgs()) {
-      return std::unexpected("Failed to parse args");
+    auto pok = parseArgs();
+    if (!pok) {
+      return std::unexpected("Failed to parse args: " + pok.error());
     }
     if (!librii::assimp2rhst::IsExtensionSupported(m_from.string())) {
       return std::unexpected("File format is unsupported");
@@ -128,8 +136,8 @@ public:
       return std::unexpected("Failed to parse RHST");
     }
     std::unordered_map<std::string, librii::crate::CrateAnimation> presets;
-    if (std::filesystem::exists(m_presets) &&
-        std::filesystem::is_directory(m_presets)) {
+    if (FS_TRY(rsl::filesystem::exists(m_presets)) &&
+        FS_TRY(rsl::filesystem::is_directory(m_presets))) {
       for (auto it : std::filesystem::directory_iterator(m_presets)) {
         if (it.path().extension() == ".rspreset") {
           auto file = ReadFile(it.path().string());
@@ -169,7 +177,7 @@ public:
   }
 
 private:
-  bool parseArgs() {
+  Result<void> parseArgs() {
     m_from = m_opt.from.view();
     m_to = m_opt.to.view();
     m_presets = m_opt.preset_path.view();
@@ -178,22 +186,22 @@ private:
       p.replace_extension(".brres");
       m_to = p;
     }
-    if (!std::filesystem::exists(m_from)) {
+    if (!FS_TRY(rsl::filesystem::exists(m_from))) {
       fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
-      return false;
+      return std::unexpected("FileNotExist");
     }
-    if (std::filesystem::exists(m_to)) {
+    if (!FS_TRY(rsl::filesystem::exists(m_to))) {
       fmt::print(stderr,
                  "Warning: File {} will be overwritten by this operation.\n",
                  m_to.string());
     }
     if (!m_presets.empty()) {
-      if (!std::filesystem::exists(m_presets)) {
+      if (!FS_TRY(rsl::filesystem::exists(m_presets))) {
         fmt::print(stderr,
                    "Warning: Preset path {} does not exist not valid.\n",
                    m_presets.string());
         m_presets.clear();
-      } else if (!std::filesystem::is_directory(m_presets)) {
+      } else if (!FS_TRY(rsl::filesystem::is_directory(m_presets))) {
         fmt::print(stderr,
                    "Warning: Preset path {} does not refer to a folder.\n",
                    m_presets.string());
@@ -203,7 +211,7 @@ private:
                    m_presets.string());
       }
     }
-    return true;
+    return {};
   }
 
   librii::assimp2rhst::Settings getSettings() {
@@ -244,8 +252,9 @@ public:
     if (m_opt.verbose) {
       rsl::logging::init();
     }
-    if (!parseArgs()) {
-      return std::unexpected("Error: failed to parse args");
+    auto pok = parseArgs();
+    if (!pok) {
+      return std::unexpected("Error: failed to parse args: " + pok.error());
     }
     fmt::print(stderr, "Decompressing SZS: {} => {}\n", m_from.string(),
                m_to.string());
@@ -257,7 +266,7 @@ public:
     u32 size = TRY(librii::szs::getExpandedSize(*file));
     std::vector<u8> buf(size);
     TRY(librii::szs::decode(buf, *file));
-    if (std::filesystem::is_directory(m_to)) {
+    if (FS_TRY(rsl::filesystem::is_directory(m_to))) {
       return std::unexpected("Failed to extract: |to| is a folder, not a file");
     }
     plate::Platform::writeFile(buf, m_to.string());
@@ -265,7 +274,7 @@ public:
   }
 
 private:
-  bool parseArgs() {
+  Result<void> parseArgs() {
     m_from = std::string{m_opt.from.view()};
     m_to = std::string{m_opt.to.view()};
 
@@ -274,16 +283,16 @@ private:
       p.replace_extension(".arc");
       m_to = p;
     }
-    if (!std::filesystem::exists(m_from)) {
+    if (!FS_TRY(rsl::filesystem::exists(m_from))) {
       fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
-      return false;
+      return std::unexpected("FileNotExist");
     }
-    if (std::filesystem::exists(m_to)) {
+    if (FS_TRY(rsl::filesystem::exists(m_to))) {
       fmt::print(stderr,
                  "Warning: Folder {} will be overwritten by this operation.\n",
                  m_to.string());
     }
-    return true;
+    return {};
   }
 
   CliOptions m_opt;
@@ -294,23 +303,20 @@ class CompressSZS {
 public:
   CompressSZS(const CliOptions& opt) : m_opt(opt) {}
 
-  bool execute() {
+  Result<void> execute() {
     if (m_opt.verbose) {
       rsl::logging::init();
     }
-    if (!parseArgs()) {
-      fmt::print(stderr, "Error: failed to parse args\n");
-      return false;
+    auto pok = parseArgs();
+    if (!pok) {
+      return std::unexpected(
+          std::format("Error: failed to parse args: {}", pok.error()));
     }
-    if (false) {
-      fmt::print(stderr, "Error: file format is unsupported\n");
-      return false;
-    }
-    auto from = std::filesystem::absolute(m_from);
+    auto from = FS_TRY(rsl::filesystem::absolute(m_from));
     auto file = ReadFile(from.string());
     if (!file.has_value()) {
-      fmt::print(stderr, "Error: Failed to read file {}\n", from.string());
-      return false;
+      return std::unexpected(
+          std::format("Error: Failed to read file {}\n", from.string()));
     }
 
     fmt::print(stderr,
@@ -320,17 +326,16 @@ public:
     int size = librii::szs::encodeBoyerMooreHorspool(file->data(), buf.data(),
                                                      file->size());
     if (size < 0 || size > buf.size()) {
-      fmt::print(stderr, "Error: Failed to compress file\n");
-      return false;
+      return std::unexpected("Error: Failed to compress file\n");
     }
     buf.resize(roundUp(size, 32));
 
     plate::Platform::writeFile(buf, m_to.string());
-    return true;
+    return {};
   }
 
 private:
-  bool parseArgs() {
+  Result<void> parseArgs() {
     m_from = m_opt.from.view();
     m_to = m_opt.to.view();
 
@@ -339,16 +344,16 @@ private:
       p.replace_extension(".szs");
       m_to = p;
     }
-    if (!std::filesystem::exists(m_from)) {
+    if (!FS_TRY(rsl::filesystem::exists(m_from))) {
       fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
-      return false;
+      return std::unexpected("FileNotExist");
     }
-    if (std::filesystem::exists(m_to)) {
+    if (FS_TRY(rsl::filesystem::exists(m_to))) {
       fmt::print(stderr,
                  "Warning: File {} will be overwritten by this operation.\n",
                  m_to.string());
     }
-    return true;
+    return {};
   }
 
   CliOptions m_opt;
@@ -375,8 +380,9 @@ public:
     if (m_opt.verbose) {
       rsl::logging::init();
     }
-    if (!parseArgs()) {
-      return std::unexpected("Failed to parse args");
+    auto pok = parseArgs();
+    if (!pok) {
+      return std::unexpected("Failed to parse args: " + pok.error());
     }
     if (m_from.extension() != ".rhst") {
       return std::unexpected("File format is unsupported");
@@ -413,7 +419,7 @@ public:
   }
 
 private:
-  bool parseArgs() {
+  Result<void> parseArgs() {
     m_from = m_opt.from.view();
     m_to = m_opt.to.view();
     if (m_to.empty()) {
@@ -421,16 +427,16 @@ private:
       p.replace_extension(ExOf((T*)nullptr));
       m_to = p;
     }
-    if (!std::filesystem::exists(m_from)) {
+    if (!FS_TRY(rsl::filesystem::exists(m_from))) {
       fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
-      return false;
+      return std::unexpected("FileNotExist");
     }
-    if (std::filesystem::exists(m_to)) {
+    if (FS_TRY(rsl::filesystem::exists(m_to))) {
       fmt::print(stderr,
                  "Warning: File {} will be overwritten by this operation.\n",
                  m_to.string());
     }
-    return true;
+    return {};
   }
 
   CliOptions m_opt;
@@ -446,8 +452,9 @@ public:
     if (m_opt.verbose) {
       rsl::logging::init();
     }
-    if (!parseArgs()) {
-      return std::unexpected("Error: failed to parse args");
+    auto pok = parseArgs();
+    if (!pok) {
+      return std::unexpected("Error: failed to parse args: " + pok.error());
     }
     auto file = ReadFile(m_opt.from.view());
     if (!file.has_value()) {
@@ -462,26 +469,26 @@ public:
       TRY(librii::szs::decode(buf, *file));
     } else {
       buf = std::move(*file);
-	}
+    }
 
     fmt::print(stderr, "Extracting ARC.SZS,{} => {}\n", m_from.string(),
                m_to.string());
 
-	if (librii::RARC::IsDataResourceArchive(buf)) {
+    if (librii::RARC::IsDataResourceArchive(buf)) {
       auto arc = TRY(librii::RARC::LoadResourceArchive(buf));
       TRY(librii::RARC::ExtractResourceArchive(arc, m_to));
-	} else if (librii::U8::IsDataU8Archive(buf)) {
+    } else if (librii::U8::IsDataU8Archive(buf)) {
       auto arc = TRY(librii::U8::LoadU8Archive(buf));
       TRY(librii::U8::Extract(arc, m_to));
     } else {
       return std::unexpected("Error: Archive is neither RARC nor U8");
-	}
+    }
 
     return {};
   }
 
 private:
-  bool parseArgs() {
+  Result<void> parseArgs() {
     m_from = m_opt.from.view();
     m_to = m_opt.to.view();
 
@@ -490,16 +497,16 @@ private:
       p.replace_extension(".szs");
       m_to = p;
     }
-    if (!std::filesystem::exists(m_from)) {
+    if (!FS_TRY(rsl::filesystem::exists(m_from))) {
       fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
-      return false;
+      return std::unexpected("FileNotExist");
     }
-    if (std::filesystem::exists(m_to)) {
+    if (FS_TRY(rsl::filesystem::exists(m_to))) {
       fmt::print(stderr,
                  "Warning: Folder {} will be overwritten by this operation.\n",
                  m_to.string());
     }
-    return true;
+    return {};
   }
 
   CliOptions m_opt;
@@ -515,8 +522,9 @@ public:
     if (m_opt.verbose) {
       rsl::logging::init();
     }
-    if (!parseArgs()) {
-      return std::unexpected("Error: failed to parse args");
+    auto pok = parseArgs();
+    if (!pok) {
+      return std::unexpected("Error: failed to parse args: " + pok.error());
     }
     if (!std::filesystem::is_directory(m_from)) {
       return std::unexpected("Expected a folder, not a file as input");
@@ -524,20 +532,20 @@ public:
     fmt::print(stderr, "Creating ARC.SZS,{} => {}\n", m_from.string(),
                std::filesystem::absolute(m_to).string());
 
-	std::vector<u8> buf;
+    std::vector<u8> buf;
     if (m_opt.rarc) {
       auto arc = TRY(librii::RARC::CreateResourceArchive(m_from));
       buf = TRY(librii::RARC::SaveResourceArchive(arc));
-	} else {
+    } else {
       auto arc = TRY(librii::U8::Create(m_from));
       buf = librii::U8::SaveU8Archive(arc);
     }
 
-	if (m_opt.no_compression) {
+    if (m_opt.no_compression) {
       buf.resize(roundUp(buf.size(), 32));
       plate::Platform::writeFile(buf, m_to.string());
       return {};
-	}
+    }
 
     std::vector<u8> szs(librii::szs::getWorstEncodingSize(buf));
     fmt::print(stderr,
@@ -556,7 +564,7 @@ public:
   }
 
 private:
-  bool parseArgs() {
+  Result<void> parseArgs() {
     m_from = m_opt.from.view();
     m_to = m_opt.to.view();
 
@@ -565,16 +573,16 @@ private:
       p.replace_extension(".d");
       m_to = p;
     }
-    if (!std::filesystem::exists(m_from)) {
+    if (!FS_TRY(rsl::filesystem::exists(m_from))) {
       fmt::print(stderr, "Error: Folder {} does not exist.\n", m_from.string());
-      return false;
+      return std::unexpected("FolderNotExist");
     }
-    if (std::filesystem::exists(m_to)) {
+    if (FS_TRY(rsl::filesystem::exists(m_to))) {
       fmt::print(stderr,
                  "Warning: File {} will be overwritten by this operation.\n",
                  m_to.string());
     }
-    return true;
+    return {};
   }
 
   CliOptions m_opt;
@@ -609,10 +617,10 @@ int main(int argc, const char** argv) {
     }
   } else if (args->type == TYPE_COMPRESS) {
     CompressSZS cmd(*args);
-    bool ok = cmd.execute();
+    auto ok = cmd.execute();
     if (!ok) {
-      fmt::print(stdout, "\r\nFailed to execute\n");
-      fmt::print(stderr, "\r\nFailed to execute\n");
+      fmt::print(stderr, "{}\n", ok.error());
+      fmt::print(stdout, "{}\n", ok.error());
       return -1;
     }
   } else if (args->type == TYPE_COMPILE_RHST_BRRES) {
