@@ -51,41 +51,42 @@ struct LowU8Archive {
 #define rvlArchiveNodeIsFolder(node) ((node).packed_type_name & 0xff000000)
 #define rvlArchiveNodeGetName(node) ((node).packed_type_name & 0x00ffffff)
 
-static inline const rvlArchiveNode*
+static inline Result<const rvlArchiveNode*>
 rvlArchiveHeaderGetNodes(const rvlArchiveHeader* self) {
-  assert(self->nodes.offset >= sizeof(rvlArchiveHeader));
+  EXPECT(self->nodes.offset >= sizeof(rvlArchiveHeader), "Invalid nodes");
   return (const rvlArchiveNode*)(((u8*)self) + self->nodes.offset);
 }
-static inline const u8*
+static inline Result<const u8*>
 rvlArchiveHeaderGetFileData(const rvlArchiveHeader* self) {
-  assert(self->files.offset >= sizeof(rvlArchiveHeader));
+  EXPECT(self->files.offset >= sizeof(rvlArchiveHeader), "Invalid file data buffer");
   return (const u8*)((u8*)self + self->files.offset);
 }
 
-template <typename T> bool SafeMemCopy(T& dest, std::span<const u8> data) {
-  assert(data.size_bytes() >= sizeof(T));
-  if (data.size_bytes() < sizeof(T)) {
-    std::fill((u8*)&dest, (u8*)(&dest + 1), 0);
-    return false;
-  }
-
+template <typename T>
+static Result<void> SafeMemCopy(T& dest, rsl::byte_view data,
+                                std::string fail_msg) {
+  EXPECT(data.size_bytes() >= sizeof(T));
   std::memcpy(&dest, data.data(), sizeof(T));
-  return true;
+  return {};
 }
 
-bool RangeContains(std::span<const u8> range, const void* ptr) {
+static bool RangeContains(rsl::byte_view range, const void* ptr) {
   return ptr >= range.data() && ptr < (range.data() + range.size());
 }
-bool RangeContainsInclusive(std::span<const u8> range, const void* ptr) {
+static bool RangeContainsInclusive(rsl::byte_view range, const void* ptr) {
   return ptr >= range.data() && ptr <= range.data() + range.size();
 }
 
-Result<void> LoadU8Archive(LowU8Archive& result, std::span<const u8> data) {
-  if (!SafeMemCopy(result.header, data))
-    return std::unexpected("Invalid header");
+bool IsDataU8Archive(rsl::byte_view data) {
+  return data.size() >= 4 && data[0] == 'U' && data[1] == u8('\xAA') && data[2] == '8' &&
+         data[3] == '-';
+}
 
-  const auto* nodes = rvlArchiveHeaderGetNodes(
-      reinterpret_cast<const rvlArchiveHeader*>(data.data()));
+Result<void> LoadU8Archive(LowU8Archive& result, rsl::byte_view data) {
+  TRY(SafeMemCopy(result.header, data, "Invalid header"));
+
+  const auto* nodes = TRY(rvlArchiveHeaderGetNodes(
+      reinterpret_cast<const rvlArchiveHeader*>(data.data())));
   if (!RangeContains(data, nodes))
     return std::unexpected("Invalid nodes");
 
@@ -106,8 +107,8 @@ Result<void> LoadU8Archive(LowU8Archive& result, std::span<const u8> data) {
 
   result.strings = {strings, strings_end};
 
-  auto* fd_begin = rvlArchiveHeaderGetFileData(
-      reinterpret_cast<const rvlArchiveHeader*>(data.data()));
+  auto* fd_begin = TRY(rvlArchiveHeaderGetFileData(
+      reinterpret_cast<const rvlArchiveHeader*>(data.data())));
   if (!RangeContains(data, fd_begin))
     return std::unexpected("Invalid file data buffer");
 
@@ -126,7 +127,7 @@ Result<void> LoadU8Archive(LowU8Archive& result, std::span<const u8> data) {
   return {};
 }
 
-Result<U8Archive> LoadU8Archive(std::span<const u8> data) {
+Result<U8Archive> LoadU8Archive(rsl::byte_view data) {
   U8Archive result;
   LowU8Archive low;
   TRY(LoadU8Archive(low, data));
@@ -411,7 +412,7 @@ Result<U8Archive> Create(std::filesystem::path root) {
     }
   }
   for (auto& p : paths) {
-    fmt::print("PATH: {} (folder:{}, depth:{})\n", p.str, p.is_folder, p.depth);
+    fmt::print(stdout, "PATH: {} (folder:{}, depth:{})\n", p.str, p.is_folder, p.depth);
   }
   U8Archive result;
   std::array<char, 16> watermark{};
@@ -421,7 +422,7 @@ Result<U8Archive> Create(std::filesystem::path root) {
   memcpy(result.watermark.data(), watermark.data(), result.watermark.size());
 
   u32 size = 0;
-  for (auto&p:paths) {
+  for (auto& p : paths) {
     size += p.data.size();
   }
   result.file_data.resize(size);

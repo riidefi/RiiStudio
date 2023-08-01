@@ -66,6 +66,7 @@ struct CliOptions {
   bool32 no_tristrip = false;
   bool32 ai_json = false;
   bool32 no_compression = false;
+  bool32 rarc = false;
   bool32 verbose = false;
 };
 

@@ -5,6 +5,8 @@
 IMPORT_STD;
 #include <fstream>
 
+#include "librii/rarc/RARC.hpp"
+
 namespace riistudio::frontend {
 
 static std::vector<std::string> fileDialogueOpen() {

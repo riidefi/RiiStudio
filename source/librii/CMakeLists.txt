@@ -97,6 +97,7 @@ add_library(librii STATIC
   "g3d/io/NameTableIO.cpp"
   "g3d/io/DictWriteIO.hpp"
   "g3d/io/DictWriteIO.cpp"
+  "rarc/RARC.cpp" "rarc/RARC.hpp"
   "u8/U8.cpp" "u8/U8.hpp"
   "gfx/PixelOcclusion.hpp"
   "gfx/TextureObj.hpp" "gfx/TextureObj.cpp"

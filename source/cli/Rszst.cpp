@@ -6,6 +6,7 @@
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
 #include <librii/szs/SZS.hpp>
+#include <librii/rarc/RARC.hpp>
 #include <librii/u8/U8.hpp>
 #include <mutex>
 #include <plugins/g3d/G3dIo.hpp>
@@ -466,8 +467,15 @@ public:
     fmt::print(stderr, "Extracting ARC.SZS,{} => {}\n", m_from.string(),
                m_to.string());
 
-    auto arc = TRY(librii::U8::LoadU8Archive(buf));
-    TRY(librii::U8::Extract(arc, m_to));
+	if (librii::RARC::IsDataResourceArchive(buf)) {
+      auto arc = TRY(librii::RARC::LoadResourceArchive(buf));
+      TRY(librii::RARC::ExtractResourceArchive(arc, m_to));
+	} else if (librii::U8::IsDataU8Archive(buf)) {
+      auto arc = TRY(librii::U8::LoadU8Archive(buf));
+      TRY(librii::U8::Extract(arc, m_to));
+    } else {
+      return std::unexpected("Error: Archive is neither RARC nor U8");
+	}
 
     return {};
   }
@@ -516,8 +524,14 @@ public:
     fmt::print(stderr, "Creating ARC.SZS,{} => {}\n", m_from.string(),
                std::filesystem::absolute(m_to).string());
 
-	auto arc = TRY(librii::U8::Create(m_from));
-    std::vector<u8> buf = librii::U8::SaveU8Archive(arc);
+	std::vector<u8> buf;
+    if (m_opt.rarc) {
+      auto arc = TRY(librii::RARC::CreateResourceArchive(m_from));
+      buf = TRY(librii::RARC::SaveResourceArchive(arc));
+	} else {
+      auto arc = TRY(librii::U8::Create(m_from));
+      buf = librii::U8::SaveU8Archive(arc);
+    }
 
 	if (m_opt.no_compression) {
       buf.resize(roundUp(buf.size(), 32));

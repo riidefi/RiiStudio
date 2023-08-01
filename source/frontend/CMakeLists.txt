@@ -12,7 +12,7 @@ add_library(lib_frontend
   "file_host.cpp"
   
   "root.cpp"
-  
+  "widgets/utilities.hpp" "widgets/utilities.cpp"
   
   "legacy_editor/EditorWindow.cpp"
   
@@ -80,12 +80,14 @@ add_library(lib_frontend
  "Fonts.cpp"
  "EditorFactory.cpp"
 
+ "editors/RarcEditor.cpp"
  "editors/AssimpImporter.cpp"
  "editors/BblmEditor.cpp"
  "editors/BdofEditor.cpp"
  "editors/BfgEditor.cpp"
  "editors/BlightEditor.cpp"
  "editors/BlmapEditor.cpp"
+ "editors/BtkEditor.cpp"
  
  "properties/gc/Material/AdvTexConv.cpp"
  "properties/gc/Material/Merge.cpp"
