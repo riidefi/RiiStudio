@@ -2,7 +2,7 @@
 #define NOMINMAX
 #endif
 #include "Renderer.hpp"
-#include <core/3d/gl.hpp>    // glPolygonMode
+#include <core/3d/gl.hpp> // glPolygonMode
 #include <imcxx/Widgets.hpp>
 #include <librii/glhelper/Util.hpp> // librii::glhelper::SetGlWireframe
 
@@ -32,7 +32,7 @@ Result<void> SceneImpl::upload(const libcube::Scene& host) {
 Result<void> SceneImpl::prepare(librii::gfx::SceneState& state,
                                 const libcube::Scene& host, glm::mat4 v_mtx,
                                 glm::mat4 p_mtx, lib3d::RenderType type,
-                                std::string_view hide_mat) {
+                                std::span<std::string> hide_mat) {
   TRY(upload(host));
   return librii::g3d::gfx::Any3DSceneAddNodesToBuffer(
       state, host, glm::mat4(1.0f), v_mtx, p_mtx, render_data, type, hide_mat);
@@ -86,7 +86,7 @@ void Renderer::precache() {
   mRoot.upload(*mData);
 }
 
-void Renderer::render(u32 width, u32 height, std::string_view hide_mat) {
+void Renderer::render(u32 width, u32 height, std::span<std::string> hide_mat) {
   mSettings.drawMenuBar();
 
   if (!mSettings.rend)

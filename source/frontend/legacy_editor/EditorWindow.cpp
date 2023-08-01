@@ -41,7 +41,7 @@ public:
   // TODO: Figure out how to do this concurrently
   void precache();
 
-  std::string hide_mat;
+  std::vector<std::string> hide_mats;
   u32 hide_mat_countdown = 0;
 
 private:
@@ -65,13 +65,13 @@ void RenderTest::precache() {
 void RenderTest::draw_() {
   auto bounds = ImGui::GetWindowSize();
 
-  std::string impl_hide_mat;
+  std::vector<std::string> impl_hide_mat;
 
   // TODO: FPS-dependent value
   if (hide_mat_countdown > 0) {
     // 3 flickers = 6 state transitions per second
     if (((hide_mat_countdown / 10) & 1)) {
-      impl_hide_mat = hide_mat;
+      impl_hide_mat = hide_mats;
     }
     --hide_mat_countdown;
   }
@@ -249,12 +249,20 @@ void BRRESEditor::draw_() {
   mHistoryList->draw();
 
   auto* active = mSelection.mActive;
+  auto sel = mSelection.selected;
 
   mOutliner->draw();
 
-  if (mSelection.mActive != active) {
-    if (auto* g = dynamic_cast<lib3d::Material*>(mSelection.mActive)) {
-      mRenderTest->hide_mat = g->getName();
+  if (mSelection.mActive != active || mSelection.selected != sel) {
+    if (auto* g = dynamic_cast<lib3d::Material*>(active)) {
+      mRenderTest->hide_mats.clear();
+      for (auto& x : mSelection.selected) {
+        auto* m = dynamic_cast<const lib3d::Material*>(x);
+        if (m == nullptr) {
+          continue;
+        }
+        mRenderTest->hide_mats.push_back(m->getName());
+      }
       mRenderTest->hide_mat_countdown = 60;
     }
   }
@@ -394,12 +402,20 @@ void BMDEditor::draw_() {
   mHistoryList->draw();
 
   auto* active = mSelection.mActive;
+  auto sel = mSelection.selected;
 
   mOutliner->draw();
 
-  if (mSelection.mActive != active) {
+  if (mSelection.mActive != active || mSelection.selected != sel) {
     if (auto* g = dynamic_cast<lib3d::Material*>(active)) {
-      mRenderTest->hide_mat = g->getName();
+      mRenderTest->hide_mats.clear();
+      for (auto& x : mSelection.selected) {
+        auto* m = dynamic_cast<const lib3d::Material*>(x);
+        if (m == nullptr) {
+          continue;
+        }
+        mRenderTest->hide_mats.push_back(m->getName());
+      }
       mRenderTest->hide_mat_countdown = 60;
     }
   }
