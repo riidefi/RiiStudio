@@ -540,6 +540,9 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
         glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), pt.scale);
 
         glm::mat4 mtx = posMat * rotMat * scaleMat;
+        if (pt.id == 0) {
+          continue;
+        }
         librii::objflow::ObjectParameter param =
             mObjParam.parameters[mObjParam.remap_table[pt.id]];
         auto res = librii::objflow::GetPrimaryResource(param) + ".brres";
