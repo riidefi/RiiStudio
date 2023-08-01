@@ -1,6 +1,88 @@
 # source
 An outline of the source tree.
 
+```mermaid
+flowchart LR
+
+subgraph "Rust Depencies"
+	discord-rich-presence
+	wbz_converter
+    zip-extract
+    clap
+    curl
+    simple_logger
+end
+
+discord-rich-presence ---> c-discord-rich-presence
+wbz_converter --> c-wbz
+zip-extract --> rust
+clap --> rust
+curl --> rust
+simple_logger --> rust
+
+subgraph "Rust Crates"
+	llvm
+    avir-rs
+	c-discord-rich-presence
+	c-wbz
+	dolphin-memory-engine-rs
+	gctex
+	rust
+end
+
+subgraph "C++ Libraries"
+	imcxx
+	oishii
+	plate
+	rsmeshopt
+	LibBadUIFramework
+	librii
+	rsl
+end
+
+subgraph "RiiStudio"
+    updater
+    plugins
+    frontend(["frontend (RiiStudio.exe)"])
+    cli(["cli (rszst.exe, command-line interface)"])
+    tests(["tests (tests.exe, for unit tests)"])
+end
+
+core --> oishii & plate & rsmeshopt & imcxx & LibBadUIFramework
+
+%% core
+%% vendor
+
+%% subgraph "C++ Binaries"
+%% 	cli
+%% 	tests
+%% 	frontend
+%% end
+
+avir-rs --> librii
+c-discord-rich-presence --> rsl
+c-wbz --> librii
+dolphin-memory-engine-rs --> frontend
+gctex --> librii
+llvm --> cli & frontend & tests
+rust -->  rsl & cli & frontend & tests
+
+%% core -->  LibBadUIFramework & librii & plugins & rsl & updater & cli & frontend & tests
+imcxx --> frontend
+LibBadUIFramework --> plugins & librii
+%%  & frontend
+librii --> cli & frontend & tests
+oishii --> rsl & librii
+plate --> frontend
+plugins --> frontend
+rsl --> librii & plugins & updater
+%% & cli & frontend & tests
+rsmeshopt --> librii
+updater --> frontend
+%% vendor --> LibBadUIFramework & librii & plugins & rsl & updater & cli & frontend & tests
+```
+
+
 ## avir-rs
 Rust wrapper for a C++ image resizing library.
 
