@@ -1,5 +1,5 @@
 #include "LRAssimp.hpp"
-#include <json_struct/json_struct.h>
+#include <vendor/json_struct.h>
 
 using namespace librii::lra;
 

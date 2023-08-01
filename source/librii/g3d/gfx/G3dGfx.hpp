@@ -403,6 +403,10 @@ struct G3dSceneRenderData {
   G3dTextureCache mTextureData;
   G3dShaderCache mMaterialData;
 
+  // TODO: Document
+  std::map<std::pair<u32, u32>, u32> query_mins;
+  std::set<u32> hasUploaded;
+
   Result<void> init(const libcube::Scene& host) {
     TRY(mVertexRenderData.init(host));
     mTextureData.update(host);

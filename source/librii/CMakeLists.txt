@@ -24,6 +24,7 @@ add_library(librii STATIC
 
   "szs/SZS.hpp"
   "szs/SZS.cpp"
+  "szs/CTGP.cpp"
 
   "nitro/types.hpp"
 
@@ -155,7 +156,7 @@ add_library(librii STATIC
 
 "tev/TevSolver.cpp"
  "assimp/LRAssimp.cpp"
-"assimp/LRAssimpJSON.cpp" "objflow/ObjFlow.cpp" "lettuce/LettuceLEX.cpp" "j3d/BinaryBTK.cpp" "g3d/io/AnimChrIO.cpp")
+"assimp/LRAssimpJSON.cpp" "objflow/ObjFlow.cpp" "lettuce/LettuceLEX.cpp" "j3d/BinaryBTK.cpp" "g3d/io/AnimChrIO.cpp" "live_mkw/live_mkw.cpp" "wbz/WBZ.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
 if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
@@ -173,7 +174,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   set_source_files_properties("g3d/gfx/G3dGfx.cpp" PROPERTIES COMPILE_FLAGS -O2 SKIP_PRECOMPILE_HEADERS ON)
 endif()
 
-target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE fort json_struct vendor oishii gctex avir-rs ${LINUX_LIBS})
+target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE vendor oishii gctex avir-rs c-wbz ${LINUX_LIBS})
 
 target_include_directories(librii
   PRIVATE

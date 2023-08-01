@@ -78,27 +78,23 @@ struct CLR0Material {
     auto material = safe.scoped("CLR0Material");
     name = TRY(safe.StringOfs32(material.start));
     flags = TRY(safe.U32());
-    u32 num_targets = 0;
     for (u32 i = 0; i < static_cast<u32>(TargetId::Count); ++i) {
       if (flags & (FLAG_ENABLED << (i * 2))) {
-        ++num_targets;
-      }
-    }
-    for (u32 i = 0; i < num_targets; ++i) {
-      u32 mask = TRY(safe.U32());
-      if (flags & (FLAG_CONSTANT << (i * 2))) {
-        CLR0KeyFrame constFrame;
-        constFrame.data = TRY(safe.U32());
-        targets.emplace_back(
-            CLR0Target{.notAnimatedMask = mask, .data = constFrame});
-      } else {
-        auto ofs = TRY(safe.S32());
-        // For some reason it's relative to the array entry? In PAT0 it's
-        // relative to section start. Suppose IndexedArray and Indexed<Custom>
-        // are implemented differently.
-        u32 index = TRY(trackAddressToIndex(safe.tell() + ofs - 4));
-        targets.emplace_back(
-            CLR0Target{.notAnimatedMask = mask, .data = index});
+        u32 mask = TRY(safe.U32());
+        if (flags & (FLAG_CONSTANT << (i * 2))) {
+          CLR0KeyFrame constFrame;
+          constFrame.data = TRY(safe.U32());
+          targets.emplace_back(
+              CLR0Target{.notAnimatedMask = mask, .data = constFrame});
+        } else {
+          auto ofs = TRY(safe.S32());
+          // For some reason it's relative to the array entry? In PAT0 it's
+          // relative to section start. Suppose IndexedArray and Indexed<Custom>
+          // are implemented differently.
+          u32 index = TRY(trackAddressToIndex(safe.tell() + ofs - 4));
+          targets.emplace_back(
+              CLR0Target{.notAnimatedMask = mask, .data = index});
+        }
       }
     }
     return {};

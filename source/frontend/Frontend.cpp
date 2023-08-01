@@ -5,6 +5,7 @@
 #include <rsl/InitLLVM.hpp>
 #include <rsl/Log.hpp>
 
+#include <core/util/timestamp.hpp>
 #include <filesystem>
 
 struct RootHolder {
@@ -47,7 +48,7 @@ int RiiStudio_main(int argc, const char** argv) {
       sRootHolder.getRoot().setForceUpdate(true);
     } else {
       printf("File: %s\n", argv[1]);
-      sRootHolder.getRoot().openFile(argv[1]);
+      sRootHolder.getRoot().mFileHost.openFile(argv[1]);
     }
   }
 

@@ -2,6 +2,7 @@
 #include <rsl/Crc32.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <fstream>
 #include <mutex>
 #include <optional>

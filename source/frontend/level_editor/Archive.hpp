@@ -17,7 +17,7 @@ struct Archive {
 Result<Archive> ReadArchive(std::span<const u8> buf);
 
 //! Write a .szs/.carc file from a generic Archive
-std::vector<u8> WriteArchive(const Archive& arc);
+Result<std::vector<u8>> WriteArchive(const Archive& arc);
 
 /*
 FindFile(arc, "pictures/dogs/1.png");

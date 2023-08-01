@@ -57,7 +57,7 @@ public:
 private:
   int Indent(size_t i) const override { return i > 0 ? 1 : 0; }
   bool Enabled(size_t i) const override { return true; }
-  bool DrawNode(size_t i, size_t filteredIndex, bool hasChild) {
+  bool DrawNode(size_t i, size_t filteredIndex, bool hasChild) override {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
     if (i == 0) {

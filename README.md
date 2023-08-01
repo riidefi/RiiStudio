@@ -53,6 +53,12 @@ brew install cmake assimp glfw freetype llvm
 cmake --build . --config Release --parallel
 ```
 
+### Building a .app file
+```sh
+cd source/rust_bundle
+cargo bundle --release
+```
+
 ### Linux
 ```sh
 git clone https://github.com/riidefi/RiiStudio
@@ -61,9 +67,9 @@ mkdir build
 cd build
 
 sudo apt-get update --fix-missing
-sudo apt install -y cmake mesa-common-dev libglfw3-dev libassimp-dev libfreetype-dev g++-12
+sudo apt install -y cmake mesa-common-dev libglfw3-dev libassimp-dev libfreetype-dev
 
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-12
+cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build . --config Release --parallel
 ```
 

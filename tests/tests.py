@@ -50,8 +50,18 @@ TEST_DATA = {
 
   # human_walk_chr0.brres
   '753ab1be14d090d927d4b6f83abe26bf': '753ab1be14d090d927d4b6f83abe26bf',
+
+  # driver_model.brres
+  '92e79c67f4e14ca4d68af80fd0e28037': '92e79c67f4e14ca4d68af80fd0e28037',
+
   # mariotreeGC.brres
   '6fe8bbb50310b18ec2b3b9b2de4990f5': '6fe8bbb50310b18ec2b3b9b2de4990f5',
+
+  # fur_rabbits-chr0.brres
+  'c255bf1956d01adf873dc6ff7e91374b': 'c255bf1956d01adf873dc6ff7e91374b',
+
+  # pocha.brres
+  '4358683edc917f717b2acb7e60fd6572' : '36f6e9e5fc70391627441eda975cbfa4',
 
   # Multi models
   # kuribo.brres
@@ -84,12 +94,29 @@ TEST_DATA = {
 	'b5a3663ec86a2f96e53d811af8775b9a': 'b5a3663ec86a2f96e53d811af8775b9a',
 	'b7fac9238095c5294730910b87d69910': 'b7fac9238095c5294730910b87d69910', # farm_course
 
-	# Assimp importer test
-	'a42db34b7d7e02bdab0157a14cf3d4d7': '6efcb343ea1839b5152cde78fc2881bc', # beginner_course
+	#---------------------------------------------------------------------------------
+	# .dae -> BRRES tests
+	#---------------------------------------------------------------------------------
 
-	'2b50efd6a165d534e339afa339f2b8ce': '6efcb343ea1839b5152cde78fc2881bc', # course.dae
-	'b1cede4774f42a5662dd7054415674dd': '2dd6da598c3886e12bd73f59e8a13faf', # no_ts.dae [--no-tristrip]
+	# STEP 1: Check raw Assimp output
+	#  This is to catch bugs in the Assimp library (for reading .dae files), of which there are many.
+	#
 	'cb80c2ab491b34e925c7e0de538938ff': 'a76072344956a6036e78757def00a998', # ai_json.dae [--ai-json]
+
+	# STEP 2: Check without optimizations
+	# Without triangle stripping optimizations which has in the past been nondeterministic (e.g. use of std::unordered_map)
+	#  This is to catch bugs in the core importing logic
+	#
+	'b1cede4774f42a5662dd7054415674dd': 'cffc06252036efcc40ae9755a1e415cb', # no_ts.dae [--no-tristrip]
+
+	# STEP 3: Check the final product
+	# The actual output that we would use, with triangle stripping
+	#
+	'a42db34b7d7e02bdab0157a14cf3d4d7': '0340c5b9406ebb17ec92cda94ccbb33d', # course.dae
+
+	#
+	'Idk what this mapped to': '6efcb343ea1839b5152cde78fc2881bc', # beginner_course
+	#---------------------------------------------------------------------------------
 
 	# posteffect.bdof
 	'a8b43bdfb330713c5eb55a22399dce2a': 'a8b43bdfb330713c5eb55a22399dce2a', # volcano_course

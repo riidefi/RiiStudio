@@ -58,7 +58,7 @@ public:
 private:
   int Indent(size_t i) const override { return i > 0 ? 1 : 0; }
   bool Enabled(size_t i) const override { return true; }
-  bool DrawNode(size_t i, size_t filteredIndex, bool hasChild) {
+  bool DrawNode(size_t i, size_t filteredIndex, bool hasChild) override {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
     if (i == 0) {
@@ -113,6 +113,7 @@ public:
       m_tree.enabled.clear();
       m_tree.names.clear();
       for (auto& tex : m_blmap.textures) {
+        (void)tex;
         m_tree.colors.push_back(util::ColorConvertU32ToFloat4BE(0));
         m_tree.enabled.push_back(true);
       }

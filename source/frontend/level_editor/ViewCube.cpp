@@ -33,7 +33,7 @@ bool DrawViewCube(float last_width, float last_height, glm::mat4& view_mtx,
 
   for (int i = 0; i < 4; ++i) {
     for (int j = 0; j < 4; ++j) {
-      auto& f = view_mtx[i][j];
+      [[maybe_unused]] auto& f = view_mtx[i][j];
       assert(!std::isnan(f));
     }
   }

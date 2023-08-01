@@ -13,7 +13,7 @@ public:
 
   virtual void seekSet(uint32_t pos) override { mPos = pos; }
   virtual uint32_t tell() const override { return mPos; }
-  virtual uint32_t endpos() const { return mBuf.size(); }
+  virtual uint32_t endpos() const override { return mBuf.size(); }
 
   void resize(uint32_t sz) { mBuf.resize(sz); }
   uint8_t* getDataBlockStart() { return mBuf.data(); }

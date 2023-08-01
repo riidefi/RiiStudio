@@ -24,15 +24,17 @@ struct FileData {
 
 std::optional<FileData> ReadFileData(const std::string& path);
 
-enum class OpenFilePolicy { NewEditor, ReplaceEditorIfMatching, ReplaceEditor };
+enum class OpenFilePolicy {
+  NewEditor,
+  ReplaceEditorIfMatching,
+  ReplaceEditor,
+};
 
 class FileHost {
 public:
-  virtual ~FileHost() = default;
-  virtual void onFileOpen(FileData data, OpenFilePolicy policy) = 0;
-
   // Called once per frame
-  void fileHostProcess();
+  void fileHostProcess(
+      std::function<void(FileData data, OpenFilePolicy policy)> onFileOpen);
 
   // Call from UI
   void openFile(OpenFilePolicy policy = OpenFilePolicy::NewEditor);

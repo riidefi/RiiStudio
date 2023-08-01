@@ -163,10 +163,6 @@ if (FALSE)
   )
 endif()
 
-CPMAddPackage("gh:seleznevae/libfort@0.4.2")
-
-CPMAddPackage("gh:jorgen/json_struct#master")
-
 add_definitions(-DINCLUDE_RUST_HEADERS)
 
 if (APPLE)
@@ -188,5 +184,7 @@ endif()
 corrosion_import_crate(MANIFEST_PATH source/gctex/Cargo.toml CRATE_TYPES cdylib)
 corrosion_import_crate(MANIFEST_PATH source/avir-rs/Cargo.toml CRATE_TYPES cdylib)
 corrosion_import_crate(MANIFEST_PATH source/c-discord-rich-presence/Cargo.toml CRATE_TYPES staticlib)
+corrosion_import_crate(MANIFEST_PATH source/dolphin-memory-engine-rs/Cargo.toml CRATE_TYPES cdylib)
+corrosion_import_crate(MANIFEST_PATH source/c-wbz/Cargo.toml CRATE_TYPES staticlib)
 
 add_subdirectory(source)

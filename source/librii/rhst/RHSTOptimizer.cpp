@@ -8,11 +8,12 @@
 
 #include <fmt/color.h>
 #include <rsl/Ranges.hpp>
+#include <thread>
 
 #if !defined(__APPLE__)
 #define throw
 #endif
-#include <fort.hpp>
+#include <fort/fort.hpp>
 #if !defined(__APPLE__)
 #undef throw
 #endif

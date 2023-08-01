@@ -17,11 +17,11 @@ using MatrixPrimitive = librii::gx::MatrixPrimitive;
 struct Polygon : public librii::g3d::PolygonData,
                  public libcube::IndexedPolygon,
                  public virtual kpi::IObject {
-  std::string getName() const { return mName; }
+  std::string getName() const override { return mName; }
   void setName(const std::string& name) override { mName = name; }
 
   MeshData& getMeshData() override { return *this; }
-  const MeshData& getMeshData() const { return *this; }
+  const MeshData& getMeshData() const override { return *this; }
   librii::math::AABB getBounds() const override { return bounds; }
 
   std::span<const glm::vec2> getUv(const libcube::Model& mdl,

@@ -93,7 +93,7 @@ public:
                      int icon_size) override {
     mDrawImageIcon(pImg, icon_size);
   }
-  void setActiveModal(const Node* n) {
+  void setActiveModal(const Node* n) override {
     if (n == nullptr) {
       activeModal = std::nullopt;
     } else {

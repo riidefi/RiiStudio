@@ -16,7 +16,7 @@ struct Joint : public libcube::IBoneDelegate,
   // PX_TYPE_INFO_EX("J3D Joint", "j3d_joint", "J::Joint", ICON_FA_BONE,
   // ICON_FA_BONE);
 
-  std::string getName() const { return name; }
+  std::string getName() const override { return name; }
   void setName(const std::string& n) override { name = n; }
 
   librii::math::SRT3 getSRT() const override {

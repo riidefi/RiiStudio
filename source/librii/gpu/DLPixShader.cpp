@@ -414,9 +414,16 @@ QDisplayListVertexSetupHandler::onCommandCP(const QCPCommand& token) {
   case 0x90:
     // TODO: we encounter these but simply ignore them.
     return {};
+  // Runtime only typically, but CTools seems to set it
+  case 0xa0:
+  case 0xa1:
+  case 0xb0:
+  case 0xb1:
+    return {};
   }
-  return std::unexpected(
-      std::format("Unexpected command in display list: 0x{:x}", token.reg));
+  auto s = std::format("Unexpected command in display list: 0x{:x}", token.reg);
+  printf("%s\n", s.c_str());
+  return {};
 }
 Result<void>
 QDisplayListVertexSetupHandler::onCommandXF(const QXFCommand& token) {

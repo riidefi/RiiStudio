@@ -1,0 +1,11 @@
+[package]
+name = "c-wbz"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type=["staticlib","cdylib"]
+
+[dependencies]
+wbz_converter = { git = "https://github.com/GnomedDev/wbz-to-szs-rs" }
+libc = "0.2"

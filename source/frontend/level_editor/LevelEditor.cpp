@@ -6,7 +6,7 @@
 #include "ViewCube.hpp"
 #include <core/3d/gl.hpp>
 #include <core/common.h>
-#include <frontend/root.hpp>
+#include <frontend/EditorFactory.hpp>
 #include <frontend/widgets/CppSupport.hpp>
 #include <frontend/widgets/Manipulator.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -20,9 +20,9 @@
 #include <librii/glhelper/Util.hpp>
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <librii/math/srt3.hpp>
-#include <rsl/Rna.hpp>
-
-IMPORT_STD;
+#include <librii/szs/SZS.hpp>
+#include <librii/wbz/WBZ.hpp>
+#include <rsl/FsDialog.hpp>
 
 namespace riistudio::lvl {
 
@@ -61,6 +61,15 @@ void DrawRenderOptions(RenderOptions& opt) {
   ImGui::SliderFloat("Collision Alpha", &opt.kcl_alpha, 0.0f, 1.0f);
 }
 
+void LevelEditorWindow::saveButton() {
+  // TODO
+  rsl::ErrorDialog("Not implemented");
+}
+void LevelEditorWindow::saveAsButton() {
+  saveFile("Baka.szs");
+  rsl::ErrorDialog("Not implemented");
+}
+
 void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
   auto ok = tryOpenFile(buf, path);
   if (!ok) {
@@ -72,9 +81,17 @@ Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
                                             std::string path) {
   std::span<const u8> objflow_bin{ObjFlow_bin, ObjFlow_bin_len};
   mObjParam = TRY(librii::objflow::Read(objflow_bin));
+
+  // Convert to .szs (optional)
+  std::vector<u8> szs_buf;
+  if (path.ends_with(".wbz")) {
+    auto arc = TRY(librii::wbz::decodeWBZ(buf, "C:\\Program Files\\Wiimm\\SZS\\auto-add"));
+    szs_buf = TRY(librii::szs::encodeCTGP(arc));
+  }
+
   // Read .szs
   {
-    auto root_arc = TRY(ReadArchive(buf));
+    auto root_arc = TRY(ReadArchive(szs_buf.size() ? szs_buf : buf));
     mLevel.root_archive = std::move(root_arc);
     mLevel.og_path = path;
   }
@@ -148,34 +165,39 @@ Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
       auto& start = mKmp->mStartPoints[0];
       cam.mEye = start.position + glm::vec3(0.0f, 10'000.0f, 0.0f);
     }
-  }
 
-  for (auto& pt : mKmp->mGeoObjs) {
-    librii::objflow::ObjectParameter param =
-        mObjParam.parameters[mObjParam.remap_table[pt.id]];
-    auto res = librii::objflow::GetPrimaryResource(param) + ".brres";
-    if (mObjModels.contains(res)) {
-      continue;
-    }
-    auto p = FindFileWithOverloads(mLevel.root_archive, {res});
-    if (!p)
-      continue;
-    auto b =
-        ReadBRRES(p->file_data, p->resolved_path, NeedResave::AllowUnwritable);
-    if (!b)
-      continue;
+    for (auto& pt : mKmp->mGeoObjs) {
+      if (pt.id > mObjParam.remap_table.size()) {
+        continue;
+      }
+      u32 remap_id = mObjParam.remap_table[pt.id];
+      if (remap_id > mObjParam.parameters.size()) {
+        continue;
+      }
+      librii::objflow::ObjectParameter param = mObjParam.parameters[remap_id];
+      auto res = librii::objflow::GetPrimaryResource(param) + ".brres";
+      if (mObjModels.contains(res)) {
+        continue;
+      }
+      auto p = FindFileWithOverloads(mLevel.root_archive, {res});
+      if (!p)
+        continue;
+      auto b = ReadBRRES(p->file_data, p->resolved_path,
+                         NeedResave::AllowUnwritable);
+      if (!b)
+        continue;
 
-    for (size_t i = 0; i < (**b).getModels().size(); ++i) {
-      auto& mdl = (**b).getModels()[i];
-      if (mdl.getName().contains("shadow")) {
-        for (auto& m : mdl.getBones()) {
-          m.mDisplayCommands.clear();
+      for (size_t i = 0; i < (**b).getModels().size(); ++i) {
+        auto& mdl = (**b).getModels()[i];
+        if (mdl.getName().contains("shadow")) {
+          for (auto& m : mdl.getBones()) {
+            m.mDisplayCommands.clear();
+          }
         }
       }
+      mObjModels[res] = std::make_unique<RenderableBRRES>(*std::move(b));
     }
-    mObjModels[res] = std::make_unique<RenderableBRRES>(*std::move(b));
   }
-
   // Default camera values
   {
     auto& cam = mRenderSettings.mCameraController.mCamera;
@@ -196,7 +218,12 @@ void LevelEditorWindow::saveFile(std::string path) {
   // Flush archive cache
   auto szs_buf = WriteArchive(mLevel.root_archive);
 
-  plate::Platform::writeFile(szs_buf, path);
+  if (!szs_buf) {
+    rsl::ErrorDialogFmt("Failed to save:\n{}", szs_buf.error());
+    return;
+  }
+
+  plate::Platform::writeFile(*szs_buf, path);
 }
 
 static std::optional<std::pair<std::string, std::vector<u8>>>
@@ -302,9 +329,16 @@ void LevelEditorWindow::draw_() {
   if (Begin(".szs", nullptr, 0, this)) {
     auto clicked = GatherNodes(mLevel.root_archive);
     if (clicked.has_value()) {
-      auto* pParent = frontend::RootWindow::spInstance;
-      if (pParent) {
-        pParent->dropDirect(clicked->second, clicked->first);
+      auto bytes = clicked->second;
+      auto path = clicked->first;
+      frontend::FileData data;
+      data.mData = std::make_unique<u8[]>(bytes.size());
+      memcpy(data.mData.get(), bytes.data(), bytes.size());
+      data.mLen = bytes.size();
+      data.mPath = path;
+      auto ed = frontend::MakeEditor(data);
+      if (ed) {
+        mChildEditors.push_back(std::move(ed));
       }
     }
   }
@@ -372,6 +406,18 @@ void LevelEditorWindow::draw_() {
     }
   }
   ImGui::End();
+
+  for (auto& w : mChildEditors) {
+    if (!w)
+      continue;
+    if (auto* g = dynamic_cast<StudioWindow*>(w.get())) {
+      g->mParent = this;
+    }
+    w->draw();
+    if (!w->isOpen()) {
+      w = nullptr;
+    }
+  }
 }
 
 ImGuiID LevelEditorWindow::buildDock(ImGuiID root_id) {

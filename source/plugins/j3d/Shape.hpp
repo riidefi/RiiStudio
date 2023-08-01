@@ -21,7 +21,7 @@ struct Shape : public librii::j3d::ShapeData,
   void setName(const std::string& name) override {}
 
   MeshData& getMeshData() override { return *this; }
-  const MeshData& getMeshData() const { return *this; }
+  const MeshData& getMeshData() const override { return *this; }
   librii::math::AABB getBounds() const override { return bbox; }
 
   std::span<const glm::vec2> getUv(const libcube::Model& mdl,
