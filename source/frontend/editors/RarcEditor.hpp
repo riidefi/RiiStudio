@@ -265,10 +265,10 @@ private:
   librii::RARC::ResourceArchive m_rarc;
 
   //// Edit state
-  bool m_changes_made;
+  bool m_changes_made = false;
 
   // Parent id
-  s32 m_insert_parent;
+  s32 m_insert_parent = -1;
 
   // Rename
   std::optional<librii::RARC::ResourceArchive::Node> m_node_to_rename =
