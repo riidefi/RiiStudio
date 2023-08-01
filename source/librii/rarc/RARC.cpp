@@ -752,7 +752,7 @@ Result<void> ExtractResourceArchive(const ResourceArchive& arc,
     if (node.is_folder()) {
       stack.push_back(node.folder.sibling_next);
       tmp /= node.name;
-      FS_TRY(rsl::filesystem::create_directory(tmp));
+      FS_TRY(rsl::filesystem::create_directories(tmp));
     } else {
       auto fpath = (tmp / node.name).string();
       std::ofstream fout(fpath, std::ios::binary | std::ios::ate);
@@ -808,7 +808,7 @@ Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root) {
     }
 
     path = std::filesystem::path(".") /
-           FS_TRY(rsl::filesystem::relative(path, root.parent_path()));
+           FS_TRY(rsl::filesystem::relative(path, root));
 
     // We normalize it to lowercase because otherwise games can't find it.
     {
