@@ -4,8 +4,16 @@
 #include <fstream>
 #include <iostream>
 #include <librii/szs/SZS.hpp>
+#include <rsl/Filesystem.hpp>
 #include <rsl/SimpleReader.hpp>
 #include <rsl/StringManip.hpp>
+
+// WIP/temporary solution
+#define FS_TRY(expr)                                                           \
+  TRY(expr.transform_error([](const std::error_code& ec) -> std::string {      \
+    return std::format("Filesystem Error: {} ({}:{})", ec.message(), __FILE__, \
+                       __LINE__);                                              \
+  }))
 
 // INTERNAL //
 
@@ -744,7 +752,7 @@ Result<void> ExtractResourceArchive(const ResourceArchive& arc,
     if (node.is_folder()) {
       stack.push_back(node.folder.sibling_next);
       tmp /= node.name;
-      std::filesystem::create_directory(tmp);
+      FS_TRY(rsl::filesystem::create_directory(tmp));
     } else {
       auto fpath = (tmp / node.name).string();
       std::ofstream fout(fpath, std::ios::binary | std::ios::ate);
@@ -781,7 +789,7 @@ Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root) {
   GetSortedDirectoryListR(root, sorted_fs_tree);
 
   for (auto& path : sorted_fs_tree) {
-    bool folder = std::filesystem::is_directory(path, err);
+    bool folder = FS_TRY(rsl::filesystem::is_directory(path));
     if (err) {
       fmt::print(stderr, "CREATE: {}\n", err.message().c_str());
       continue;
@@ -800,7 +808,7 @@ Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root) {
     }
 
     path = std::filesystem::path(".") /
-           std::filesystem::relative(path, root.parent_path());
+           FS_TRY(rsl::filesystem::relative(path, root.parent_path()));
 
     // We normalize it to lowercase because otherwise games can't find it.
     {
@@ -886,11 +894,10 @@ Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root) {
   return result;
 }
 
-Result<std::error_code> ImportFiles(ResourceArchive& rarc,
-                                    ResourceArchive::Node parent,
-                                    std::vector<rsl::File>& files) {
+Result<void> ImportFiles(ResourceArchive& rarc, ResourceArchive::Node parent,
+                         std::vector<rsl::File>& files) {
   if (files.size() == 0)
-    return std::error_code();
+    return {};
 
   std::vector<ResourceArchive::Node> new_nodes;
   for (auto& file : files) {
@@ -942,12 +949,11 @@ Result<std::error_code> ImportFiles(ResourceArchive& rarc,
     node.folder.sibling_next += files.size();
   }
 
-  return std::error_code();
+  return {};
 }
 
-Result<std::error_code> ImportFolder(ResourceArchive& rarc,
-                                     ResourceArchive::Node parent,
-                                     const std::filesystem::path& folder) {
+Result<void> ImportFolder(ResourceArchive& rarc, ResourceArchive::Node parent,
+                          const std::filesystem::path& folder) {
   // Generate an archive so we can steal the DFS structure.
   auto tmp_rarc = TRY(librii::RARC::CreateResourceArchive(folder));
 
@@ -1017,7 +1023,7 @@ Result<std::error_code> ImportFolder(ResourceArchive& rarc,
     node++;
   }
 
-  return std::error_code();
+  return {};
 }
 
 Result<void> CreateFolder(ResourceArchive& rarc, ResourceArchive::Node parent,
@@ -1147,16 +1153,11 @@ bool DeleteNodes(ResourceArchive& rarc,
   return true;
 }
 
-Result<std::error_code> ExtractNodeTo(const ResourceArchive& rarc,
-                                      ResourceArchive::Node node,
-                                      const std::filesystem::path& dst) {
-  std::error_code err;
-  if (!std::filesystem::is_directory(dst, err))
+Result<void> ExtractNodeTo(const ResourceArchive& rarc,
+                           ResourceArchive::Node node,
+                           const std::filesystem::path& dst) {
+  if (!FS_TRY(rsl::filesystem::is_directory(dst)))
     return std::unexpected("EXTRACT: Not a directory!");
-
-  // Filesystem error
-  if (err)
-    return err;
 
   if (node.is_folder()) {
     ResourceArchive tmp_rarc{};
@@ -1184,41 +1185,32 @@ Result<std::error_code> ExtractNodeTo(const ResourceArchive& rarc,
         tnode->folder.sibling_next -= before_size;
       }
     }
-    RecalculateArchiveIDs(tmp_rarc);
+    TRY(RecalculateArchiveIDs(tmp_rarc));
 
     TRY(librii::RARC::ExtractResourceArchive(tmp_rarc, dst));
-    return std::error_code();
+    return {};
   }
 
   auto dst_path = dst / node.name;
   auto out = std::ofstream(dst_path.string(), std::ios::binary | std::ios::ate);
 
   out.write((const char*)node.data.data(), node.data.size());
-  return std::error_code();
+  return {};
 }
 
-Result<std::error_code> ReplaceNode(ResourceArchive& rarc,
-                                    ResourceArchive::Node to_replace,
-                                    const std::filesystem::path& src) {
-  std::error_code err;
-  if (!std::filesystem::exists(src, err))
+Result<void> ReplaceNode(ResourceArchive& rarc,
+                         ResourceArchive::Node to_replace,
+                         const std::filesystem::path& src) {
+  if (!FS_TRY(rsl::filesystem::exists(src)))
     return std::unexpected("REPLACE: Path doesn't exist!");
-
-  // Filesystem error
-  if (err)
-    return err;
 
   auto node_it = std::find(rarc.nodes.begin(), rarc.nodes.end(), to_replace);
   if (node_it == rarc.nodes.end())
     return std::unexpected("Replace: Target node not found!");
 
   if (to_replace.is_folder()) {
-    if (!std::filesystem::is_directory(src, err))
+    if (!FS_TRY(rsl::filesystem::is_directory(src)))
       return std::unexpected("REPLACE: Not a directory!");
-
-    // Filesystem error
-    if (err)
-      return err;
 
     auto begin = node_it;
     auto end = rarc.nodes.begin() + to_replace.folder.sibling_next;
@@ -1276,27 +1268,19 @@ Result<std::error_code> ReplaceNode(ResourceArchive& rarc,
       }
     }
 
-    return std::error_code();
+    return {};
   }
 
-  if (!std::filesystem::is_regular_file(src, err))
+  if (!FS_TRY(rsl::filesystem::is_regular_file(src)))
     return std::unexpected("REPLACE: Not a file!");
 
-  // Filesystem error
-  if (err)
-    return err;
-
   auto in = std::ifstream(src.string(), std::ios::binary | std::ios::in);
-  auto fsize = std::filesystem::file_size(src, err);
-
-  // Filesystem error
-  if (err)
-    return err;
+  auto fsize = FS_TRY(rsl::filesystem::file_size(src));
 
   node_it->data.resize(fsize);
   in.read((char*)node_it->data.data(), fsize);
 
-  return std::error_code();
+  return {};
 }
 
 } // namespace librii::RARC

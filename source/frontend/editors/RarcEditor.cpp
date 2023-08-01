@@ -207,7 +207,7 @@ void RarcEditorPropertyGrid::Draw(ResourceArchive& rarc, RarcEditor* editor) {
       node = next_node;
     }
 
-    for (auto& walk : walk_stack) {
+    for ([[maybe_unused]] auto& walk : walk_stack) {
       ImGui::TreePop();
     }
   }
@@ -514,19 +514,12 @@ Result<void> RarcEditor::reconstruct() {
       changes_applied = true;
     }
     if (m_files_to_insert.size() > 0) {
-      auto err = TRY(
-          librii::RARC::ImportFiles(m_rarc, *parent_node, m_files_to_insert));
-      if (err) {
-        FlagErrorDialog(err);
-      }
+      TRY(librii::RARC::ImportFiles(m_rarc, *parent_node, m_files_to_insert));
       changes_applied = true;
     }
     if (m_folder_to_insert) {
-      auto err = TRY(librii::RARC::ImportFolder(m_rarc, *parent_node,
-                                                *m_folder_to_insert));
-      if (err) {
-        FlagErrorDialog(err);
-      }
+      TRY(librii::RARC::ImportFolder(m_rarc, *parent_node,
+                                     *m_folder_to_insert));
       changes_applied = true;
     }
   }
@@ -534,21 +527,13 @@ Result<void> RarcEditor::reconstruct() {
   // Extract doesn't modify the node hierarchy at all.
   // So we don't need to bother flagging any changes for it.
   if (m_node_to_extract) {
-    auto err = TRY(librii::RARC::ExtractNodeTo(m_rarc, *m_node_to_extract,
-                                               m_extract_path));
-    if (err) {
-      FlagErrorDialog(err);
-    } else {
-      FlagSuccessDialog();
-    }
+    TRY(librii::RARC::ExtractNodeTo(m_rarc, *m_node_to_extract,
+                                    m_extract_path));
+    FlagSuccessDialog();
   }
 
   if (m_node_to_replace) {
-    auto err = TRY(
-        librii::RARC::ReplaceNode(m_rarc, *m_node_to_replace, m_replace_path));
-    if (err) {
-      FlagErrorDialog(err);
-    }
+    TRY(librii::RARC::ReplaceNode(m_rarc, *m_node_to_replace, m_replace_path));
     changes_applied = true;
   }
 

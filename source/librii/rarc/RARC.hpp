@@ -45,35 +45,37 @@ struct ResourceArchive {
   std::vector<Node> nodes;
 };
 
-bool IsDataResourceArchive(rsl::byte_view data);
+[[nodiscard]] bool IsDataResourceArchive(rsl::byte_view data);
 
-Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data);
-Result<std::vector<u8>> SaveResourceArchive(const ResourceArchive& arc,
-                                            bool make_matching = true,
-                                            bool ids_synced = true);
+[[nodiscard]] Result<ResourceArchive> LoadResourceArchive(rsl::byte_view data);
+[[nodiscard]] Result<std::vector<u8>>
+SaveResourceArchive(const ResourceArchive& arc, bool make_matching = true,
+                    bool ids_synced = true);
 
-Result<void> RecalculateArchiveIDs(ResourceArchive& arc);
+[[nodiscard]] Result<void> RecalculateArchiveIDs(ResourceArchive& arc);
 
-Result<void> ExtractResourceArchive(const ResourceArchive& arc,
-                                    std::filesystem::path out);
-Result<ResourceArchive> CreateResourceArchive(std::filesystem::path root);
+[[nodiscard]] Result<void> ExtractResourceArchive(const ResourceArchive& arc,
+                                                  std::filesystem::path out);
+[[nodiscard]] Result<ResourceArchive>
+CreateResourceArchive(std::filesystem::path root);
 
-Result<std::error_code> ImportFiles(ResourceArchive& rarc,
-                                    ResourceArchive::Node parent,
-                                    std::vector<rsl::File>& files);
-Result<std::error_code> ImportFolder(ResourceArchive& rarc,
-                                     ResourceArchive::Node parent,
-                                     const std::filesystem::path& folder);
-Result<void> CreateFolder(ResourceArchive& rarc, ResourceArchive::Node parent,
-                          std::string name);
-bool DeleteNodes(ResourceArchive& rarc,
-                 std::vector<ResourceArchive::Node>& nodes);
-Result<std::error_code> ExtractNodeTo(const ResourceArchive& rarc,
-                                      ResourceArchive::Node node,
-                                      const std::filesystem::path& dst);
-Result<std::error_code> ReplaceNode(ResourceArchive& rarc,
-                                    ResourceArchive::Node to_replace,
-                                    const std::filesystem::path& src);
+[[nodiscard]] Result<void> ImportFiles(ResourceArchive& rarc,
+                                       ResourceArchive::Node parent,
+                                       std::vector<rsl::File>& files);
+[[nodiscard]] Result<void> ImportFolder(ResourceArchive& rarc,
+                                        ResourceArchive::Node parent,
+                                        const std::filesystem::path& folder);
+[[nodiscard]] Result<void> CreateFolder(ResourceArchive& rarc,
+                                        ResourceArchive::Node parent,
+                                        std::string name);
+[[nodiscard]] bool DeleteNodes(ResourceArchive& rarc,
+                               std::vector<ResourceArchive::Node>& nodes);
+[[nodiscard]] Result<void> ExtractNodeTo(const ResourceArchive& rarc,
+                                         ResourceArchive::Node node,
+                                         const std::filesystem::path& dst);
+[[nodiscard]] Result<void> ReplaceNode(ResourceArchive& rarc,
+                                       ResourceArchive::Node to_replace,
+                                       const std::filesystem::path& src);
 
 struct ResourceArchiveNodeHasher {
   std::size_t operator()(const ResourceArchive::Node& node) const {
