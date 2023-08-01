@@ -175,7 +175,7 @@ pub struct ImportCommand {
     auto_transparency: bool,
 
     /// Whether to merge materials with identical properties
-    #[clap(long, default_value = "true")]
+    #[clap(long, default_value = "false")]
     merge_mats: bool,
 
     /// Whether to bake UV transforms into vertices
