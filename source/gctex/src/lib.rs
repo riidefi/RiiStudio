@@ -289,6 +289,50 @@ pub mod librii {
         }
     }
 
+    #[cfg(test)]
+    mod tests2 {
+        use super::*;
+        use std::fs::File;
+        use std::io::Read;
+
+        #[test]
+        fn test_decode_cmpr_fast() {
+            let mut file = File::open("tests/monke.cmpr").unwrap();
+            let mut src = Vec::new();
+            file.read_to_end(&mut src).unwrap();
+
+            let mut dst = vec![0; 504 * 504 * 4];
+
+            let tlut = &[];
+            rii_decode_fast(&mut dst, &src, 500, 500, 0xE, tlut, 0);
+
+            let mut expected_file = File::open("tests/monke_expected_result").unwrap();
+            let mut expected_dst = Vec::new();
+            expected_file.read_to_end(&mut expected_dst).unwrap();
+
+            assert_eq!(dst.len(), expected_dst.len());
+            assert_eq!(dst, expected_dst);
+        }
+        #[test]
+        fn test_decode_cmpr_nonfast() {
+            let mut file = File::open("tests/monke.cmpr").unwrap();
+            let mut src = Vec::new();
+            file.read_to_end(&mut src).unwrap();
+
+            let mut dst = vec![0; 500 * 500 * 4];
+
+            let tlut = &[];
+            rii_decode(&mut dst, &src, 500, 500, 0xE, tlut, 0);
+
+            let mut expected_file = File::open("tests/monke_expected_result").unwrap();
+            let mut expected_dst = Vec::new();
+            expected_file.read_to_end(&mut expected_dst).unwrap();
+            expected_dst.resize(500 * 500 * 4, 0);
+
+            assert_eq!(dst, expected_dst);
+        }
+    }
+
     pub fn rii_encode_cmpr(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
         unsafe {
             bindings::impl_rii_encodeCMPR(dst.as_mut_ptr(), src.as_ptr(), width, height);
