@@ -170,6 +170,47 @@ pub mod librii {
         size
     }
 
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_rii_compute_image_size_mip_with_small_size() {
+            let format = 1;
+            let width = 10;
+            let height = 10;
+            let number_of_images = 1;
+
+            let result = rii_compute_image_size_mip(format, width, height, number_of_images);
+
+            assert_eq!(result, 192);
+        }
+
+        #[test]
+        fn test_rii_compute_image_size_mip_with_large_size() {
+            let format = 1;
+            let width = 1000;
+            let height = 1000;
+            let number_of_images = 1;
+
+            let result = rii_compute_image_size_mip(format, width, height, number_of_images);
+
+            assert_eq!(result, 1000000);
+        }
+
+        #[test]
+        fn test_rii_compute_image_size_mip_with_multiple_images() {
+            let format = 1;
+            let width = 1000;
+            let height = 1000;
+            let number_of_images = 5;
+
+            let result = rii_compute_image_size_mip(format, width, height, number_of_images);
+
+            assert_eq!(result, 1336992);
+        }
+    }
+
     pub fn rii_decode(
         dst: &mut [u8],
         src: &[u8],
