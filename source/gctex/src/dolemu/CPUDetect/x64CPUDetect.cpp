@@ -2,7 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#if defined(ARCH_X64)
+#if defined(ARCH_X64) && !defined(__MINGW32__)
 
 #include <cstring>
 #include <string>

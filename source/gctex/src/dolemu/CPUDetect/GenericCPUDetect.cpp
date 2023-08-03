@@ -4,7 +4,7 @@
 
 #include "CPUDetect.h"
 
-#if !defined(ARCH_X64)
+#if !defined(ARCH_X64) || defined(__MINGW32__)
 
 CPUInfo cpu_info;
 
