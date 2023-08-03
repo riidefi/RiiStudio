@@ -58,11 +58,23 @@ pub mod librii {
         Z16L = 0xC | _ZTF | _CTF,
     }
 
+    fn round_up(val: u32, round_to: u32) -> u32 {
+        let remainder = val % round_to;
+        if remainder == 0 {
+            val
+        } else {
+            val - remainder + round_to
+        }
+    }
+
     #[derive(Debug, Copy, Clone)]
     struct ImageFormatInfo {
         xshift: u32,
         yshift: u32,
         bitsize: u32,
+
+        block_width_in_texels: u32,
+        block_height_in_texels: u32,
     }
 
     fn get_format_info(format: u32) -> ImageFormatInfo {
@@ -115,11 +127,15 @@ pub mod librii {
             xshift,
             yshift,
             bitsize,
+            block_width_in_texels: (1 << xshift),
+            block_height_in_texels: (1 << yshift),
         }
     }
 
     fn info_compute_image_size(info: ImageFormatInfo, width: u32, height: u32) -> u32 {
+        // div_ceil(width, 1 << info.xshift)
         let xtiles = ((width + (1 << info.xshift)) - 1) >> info.xshift;
+        // div_ceil(height, 1 << info.yshift)
         let ytiles = ((height + (1 << info.yshift)) - 1) >> info.yshift;
 
         xtiles * ytiles * info.bitsize
@@ -220,6 +236,14 @@ pub mod librii {
         tlut: &[u8],
         tlutformat: u32,
     ) {
+        let info = get_format_info(texformat);
+        let expanded_width = round_up(width, info.block_width_in_texels);
+        let expanded_height = round_up(height, info.block_height_in_texels);
+        assert_eq!(dst.len() as u32, expanded_width * expanded_height * 4);
+        assert_eq!(
+            src.len() as u32,
+            rii_compute_image_size(texformat, width, height)
+        );
         unsafe {
             bindings::impl_rii_decode(
                 dst.as_mut_ptr(),
