@@ -62,9 +62,17 @@ void ImagePreview::draw(float wd, float ht, bool mip_slider) {
     return;
   }
 
-
 #ifdef RII_GL
   glBindTexture(GL_TEXTURE_2D, mGpuTexId);
+  if (mFilter) {
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  } else {
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_NEAREST_MIPMAP_NEAREST);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  }
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, static_cast<f32>(mLod));
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, static_cast<f32>(mLod));
 
@@ -80,6 +88,8 @@ void ImagePreview::draw(float wd, float ht, bool mip_slider) {
 
   if (mip_slider && mNumMipMaps > 0) {
     ImGui::SliderInt("LOD", &mLod, 0, mNumMipMaps);
+    ImGui::SameLine();
+    ImGui::Checkbox("Filtering", &mFilter);
   }
 }
 } // namespace riistudio::frontend

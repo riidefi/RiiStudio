@@ -30,6 +30,7 @@ public:
   // MM
   u32 mNumMipMaps = 0;
   int mLod = 0;
+  bool mFilter = true;
 };
 
 } // namespace riistudio::frontend
