@@ -240,11 +240,8 @@ pub mod librii {
         let info = get_format_info(texformat);
         let expanded_width = round_up(width, info.block_width_in_texels);
         let expanded_height = round_up(height, info.block_height_in_texels);
-        assert_eq!(dst.len() as u32, expanded_width * expanded_height * 4);
-        assert_eq!(
-            src.len() as u32,
-            rii_compute_image_size(texformat, width, height)
-        );
+        assert!(dst.len() as u32 >= expanded_width * expanded_height * 4);
+        assert!(src.len() as u32 >= rii_compute_image_size(texformat, width, height));
         unsafe {
             bindings::impl_rii_decode(
                 dst.as_mut_ptr(),
@@ -273,17 +270,22 @@ pub mod librii {
         let expanded_width = round_up(width, info.block_width_in_texels);
         let expanded_height = round_up(height, info.block_height_in_texels);
 
-        assert_eq!(
-            src.len() as u32,
-            rii_compute_image_size(texformat, width, height)
-        );
+        assert!(src.len() as u32 >= rii_compute_image_size(texformat, width, height));
 
         if expanded_width == width && expanded_height == height {
             rii_decode_fast(dst, src, width, height, texformat, tlut, tlutformat);
         } else {
             let mut tmp = vec![0 as u8; (expanded_width * expanded_height * 4) as usize];
 
-            rii_decode_fast(&mut tmp[..], src, width, height, texformat, tlut, tlutformat);
+            rii_decode_fast(
+                &mut tmp[..],
+                src,
+                width,
+                height,
+                texformat,
+                tlut,
+                tlutformat,
+            );
             let nonpadding_dst_size = (width * height * 4) as usize;
             dst[..nonpadding_dst_size].copy_from_slice(&tmp[..nonpadding_dst_size]);
         }
