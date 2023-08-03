@@ -227,7 +227,8 @@ pub mod librii {
         }
     }
 
-    pub fn rii_decode(
+    // Requires expanded size to be block-aligned
+    pub fn rii_decode_fast(
         dst: &mut [u8],
         src: &[u8],
         width: u32,
@@ -254,6 +255,37 @@ pub mod librii {
                 tlut.as_ptr(),
                 tlutformat,
             );
+        }
+    }
+
+    pub fn rii_decode(
+        dst: &mut [u8],
+        src: &[u8],
+        width: u32,
+        height: u32,
+        texformat: u32,
+        tlut: &[u8],
+        tlutformat: u32,
+    ) {
+        assert!(dst.len() as u32 >= width * height * 4);
+
+        let info = get_format_info(texformat);
+        let expanded_width = round_up(width, info.block_width_in_texels);
+        let expanded_height = round_up(height, info.block_height_in_texels);
+
+        assert_eq!(
+            src.len() as u32,
+            rii_compute_image_size(texformat, width, height)
+        );
+
+        if expanded_width == width && expanded_height == height {
+            rii_decode_fast(dst, src, width, height, texformat, tlut, tlutformat);
+        } else {
+            let mut tmp = vec![0 as u8; (expanded_width * expanded_height * 4) as usize];
+
+            rii_decode_fast(&mut tmp[..], src, width, height, texformat, tlut, tlutformat);
+            let nonpadding_dst_size = (width * height * 4) as usize;
+            dst[..nonpadding_dst_size].copy_from_slice(&tmp[..nonpadding_dst_size]);
         }
     }
 
