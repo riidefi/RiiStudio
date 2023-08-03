@@ -96,7 +96,7 @@ static inline u32 calc_distance(const u8* v1, const u8* v2) {
   return abs(d0) + abs(d1) + abs(d2);
 }
 
-static constexpr inline void
+static inline void
 CMPR_close_info(const u8* data,    // source data
                 cmpr_info_t* info, // info data structure
                 u8* dest           // store destination data here (never 0)
