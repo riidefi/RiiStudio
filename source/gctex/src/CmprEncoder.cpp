@@ -442,7 +442,7 @@ void EncodeDXT1(u8* dest_img, const u8* source_img, u32 width, u32 height) {
 
   const u32 block_size = block_width * 4;
 
-  const u32 xwidth = ((width + 0x1f) & ~0x1f);
+  const u32 xwidth = ((width + 7) & ~7);
   const u32 line_size = xwidth * 4;
   const u32 delta[] = {0, 16, 4 * line_size, 4 * line_size + 16};
 
