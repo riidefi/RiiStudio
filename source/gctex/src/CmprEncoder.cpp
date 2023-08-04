@@ -429,6 +429,27 @@ void EncodeDXT1(u8* dest_img, const u8* source_img, u32 width, u32 height) {
   assert(dest_img);
   assert(source_img);
 
+  const u32 xwidth = ((width + 7) & ~7);
+  const u32 xheight = ((height + 7) & ~7);
+
+  // Adjust to wiimm xheight/xwidth convention.
+  // The source image may be, say, 500x500, but will be stored as 504x504
+  // Not in-place because I'm lazy
+  u8* tmp = (u8*)calloc(1, xwidth * xheight * 4);
+
+  if (width > 0 && height > 0) {
+    for (u32 y = 0; y < xheight; ++y) {
+      for (u32 x = 0; x < xwidth; ++x) {
+        // Row-major matrix
+#define MIN(x, y) (x < y ? x : y)
+        u32 src_cell = width * MIN(y, height - 1) + MIN(x, width - 1);
+        u32 dst_cell = xwidth * y + x;
+#undef MIN
+        memcpy(&tmp[dst_cell * 4], &source_img[src_cell * 4], 4);
+      }
+    }
+  }
+
   const u32 bits_per_pixel = 4;
   const u32 block_width = 8;
   const u32 block_height = 8;
@@ -438,11 +459,10 @@ void EncodeDXT1(u8* dest_img, const u8* source_img, u32 width, u32 height) {
                  &h_blocks, &v_blocks, &img_size);
 
   u8* dest = dest_img;
-  const u8* src1 = source_img;
+  const u8* src1 = tmp;
 
   const u32 block_size = block_width * 4;
 
-  const u32 xwidth = ((width + 7) & ~7);
   const u32 line_size = xwidth * 4;
   const u32 delta[] = {0, 16, 4 * line_size, 4 * line_size + 16};
 
@@ -476,6 +496,7 @@ void EncodeDXT1(u8* dest_img, const u8* source_img, u32 width, u32 height) {
 
   assert(dest == dest_img + img_size);
   // assert(src1 <= dest_img->data + dest_img->data_size);
+  free(tmp);
 }
 
 } } // namespace librii::image
