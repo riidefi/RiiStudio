@@ -394,6 +394,10 @@ pub mod librii {
             bindings::impl_rii_encodeRGBA8(dst.as_mut_ptr(), src4.as_ptr(), width, height);
         }
     }
+
+    pub fn get_version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
+    }
 }
 
 #[no_mangle]
@@ -527,4 +531,36 @@ pub unsafe extern "C" fn rii_decode(
     librii::rii_decode(
         dst_slice, src_slice, width, height, texformat, tlut_slice, tlutformat,
     );
+}
+
+#[no_mangle]
+pub extern "C" fn gctex_get_version_unstable_api(buffer: *mut u8, length: u32) -> i32 {
+    let pkg_version = env!("CARGO_PKG_VERSION");
+    let profile = if cfg!(debug_assertions) {
+        "debug"
+    } else {
+        "release"
+    };
+    let target = env!("TARGET");
+    let version_info = format!(
+        "Version: {}, Profile: {}, Target: {}",
+        pkg_version, profile, target
+    );
+
+    let string_length = version_info.len();
+
+    if string_length > length as usize {
+        return -1;
+    }
+
+    let buffer_slice = unsafe {
+        assert!(!buffer.is_null());
+        slice::from_raw_parts_mut(buffer, length as usize)
+    };
+
+    for (i, byte) in version_info.as_bytes().iter().enumerate() {
+        buffer_slice[i] = *byte;
+    }
+
+    string_length as i32
 }

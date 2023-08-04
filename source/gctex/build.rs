@@ -5,6 +5,11 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    println!(
+        "cargo:rustc-env=TARGET={}",
+        std::env::var("TARGET").unwrap()
+    );
+
     let mut build = cc::Build::new();
     build.cpp(true);
 
