@@ -425,6 +425,34 @@ CalcImageBlock(u32 width, u32 height,
     *img_size = size;
 }
 
+void NormalizeFrameIMG(u32 width, u32 height, u32 xwidth, u32 xheight,
+                       u8* data) {
+  const u32 cell_size = 4;
+
+  if (width > 0 && xwidth > width) {
+    const u32 fill_size = (xwidth - width) * cell_size;
+    u8* row = data + width * cell_size;
+    u32 ih = height;
+    while (ih-- > 0) {
+      u8* src = row - cell_size;
+      u8* dest = row;
+      u8* end = row + fill_size;
+      while (dest < end)
+        *dest++ = *src++;
+      row += xwidth * cell_size;
+    }
+  }
+
+  if (height > 0 && xheight > height) {
+    const u32 line_size = xwidth * cell_size;
+    u8* dest = data + height * line_size;
+    u8* end = data + xheight * line_size;
+    u8* src = dest - line_size;
+    while (dest < end)
+      *dest++ = *src++;
+  }
+}
+
 void EncodeDXT1(u8* dest_img, const u8* source_img, u32 width, u32 height) {
   assert(dest_img);
   assert(source_img);
@@ -449,6 +477,8 @@ void EncodeDXT1(u8* dest_img, const u8* source_img, u32 width, u32 height) {
       }
     }
   }
+
+  NormalizeFrameIMG(width, height, xwidth, xheight, tmp);
 
   const u32 bits_per_pixel = 4;
   const u32 block_width = 8;
