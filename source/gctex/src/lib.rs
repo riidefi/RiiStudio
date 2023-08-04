@@ -164,11 +164,11 @@ pub mod librii {
         let mut size = 0;
 
         for _i in 0..number_of_images {
+            size += rii_compute_image_size(format, width, height);
+
             if width == 1 && height == 1 {
                 break;
             }
-
-            size += rii_compute_image_size(format, width, height);
 
             if width > 1 {
                 width >>= 1;
@@ -189,6 +189,18 @@ pub mod librii {
     #[cfg(test)]
     mod tests {
         use super::*;
+
+        #[test]
+        fn test_rii_compute_image_size_mip_with_1x1() {
+            let format = 0xE;
+            let width = 16;
+            let height = 16;
+            let number_of_images = 5;
+
+            let result = rii_compute_image_size_mip(format, width, height, number_of_images);
+
+            assert_eq!(result, 256);
+        }
 
         #[test]
         fn test_rii_compute_image_size_mip_with_small_size() {
