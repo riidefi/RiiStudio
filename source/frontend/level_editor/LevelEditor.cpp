@@ -79,8 +79,7 @@ void LevelEditorWindow::openFile(std::span<const u8> buf, std::string path) {
 
 Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
                                             std::string path) {
-  std::span<const u8> objflow_bin{ObjFlow_bin, ObjFlow_bin_len};
-  mObjParam = TRY(librii::objflow::Read(objflow_bin));
+  mObjParam = TRY(librii::objflow::Default());
 
   // Convert to .szs (optional)
   std::vector<u8> szs_buf;
