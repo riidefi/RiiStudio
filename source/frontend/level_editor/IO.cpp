@@ -65,20 +65,18 @@ std::vector<u8> WriteKMP(const librii::kmp::CourseMap& map) {
 
 Result<std::unique_ptr<librii::kcol::KCollisionData>>
 ReadKCL(const std::vector<u8>& buf, std::string path) {
-  auto result = std::make_unique<librii::kcol::KCollisionData>();
-
-  auto res = librii::kcol::ReadKCollisionData(*result, buf, buf.size());
+  auto ok = librii::kcol::ReadKCollisionData(buf, buf.size());
 
   {
     const auto metadata = librii::kcol::InspectKclFile(buf);
     std::cout << librii::kcol::GetKCLVersion(metadata) << std::endl;
   }
 
-  if (!res.empty()) {
-    return std::unexpected(res);
+  if (!ok) {
+    return std::unexpected(ok.error());
   }
 
-  return result;
+  return std::make_unique<librii::kcol::KCollisionData>(*ok);
 }
 
 } // namespace riistudio::lvl

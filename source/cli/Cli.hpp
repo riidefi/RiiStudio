@@ -40,6 +40,9 @@ enum {
 
   TYPE_KMP2JSON,
   TYPE_JSON2KMP,
+
+  TYPE_KCL2JSON,
+  TYPE_JSON2KCL,
 };
 
 template <size_t L> struct CFixedString {

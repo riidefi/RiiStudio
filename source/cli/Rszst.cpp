@@ -5,6 +5,7 @@
 #include <librii/assimp/LRAssimp.hpp>
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
+#include <librii/kcol/Model.hpp>
 #include <librii/kmp/io/KMP.hpp>
 #include <librii/rarc/RARC.hpp>
 #include <librii/szs/SZS.hpp>
@@ -659,6 +660,44 @@ static Result<void> json2kmp(const CliOptions& m_opt) {
   return {};
 }
 
+static Result<void> kcl2json(const CliOptions& m_opt) {
+  if (m_opt.verbose) {
+    rsl::logging::init();
+  }
+  std::filesystem::path m_from = m_opt.from.view();
+  std::filesystem::path m_to = m_opt.to.view();
+
+  if (m_to.empty()) {
+    std::filesystem::path p = m_from;
+    p.replace_extension(".json");
+    m_to = p;
+  }
+  if (!FS_TRY(rsl::filesystem::exists(m_from))) {
+    fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+    return std::unexpected("FolderNotExist");
+  }
+  if (FS_TRY(rsl::filesystem::exists(m_to))) {
+    fmt::print(stderr,
+               "Warning: File {} will be overwritten by this operation.\n",
+               m_to.string());
+  }
+  auto file = ReadFile(m_opt.from.view());
+  if (!file.has_value()) {
+    return std::unexpected("Error: Failed to read file");
+  }
+  auto kmp = TRY(librii::kcol::ReadKCollisionData(*file, file->size()));
+
+  auto result = DumpJSON(kmp);
+  fmt::print("{}\n", result);
+  std::ofstream stream(m_to);
+  stream << result;
+
+  return {};
+}
+static Result<void> json2kcl(const CliOptions& m_opt) {
+  return std::unexpected("unimplemented!");
+}
+
 int main(int argc, const char** argv) {
   fmt::print(stdout, "RiiStudio CLI {}\n", RII_TIME_STAMP);
   auto args = parse(argc, argv);
@@ -675,6 +714,20 @@ int main(int argc, const char** argv) {
   }
   if (args->type == TYPE_JSON2KMP) {
     auto ok = json2kmp(*args);
+    if (!ok) {
+      fmt::print("{}\n", ok.error());
+      return -1;
+    }
+  }
+  if (args->type == TYPE_KCL2JSON) {
+    auto ok = kcl2json(*args);
+    if (!ok) {
+      fmt::print("{}\n", ok.error());
+      return -1;
+    }
+  }
+  if (args->type == TYPE_JSON2KCL) {
+    auto ok = json2kcl(*args);
     if (!ok) {
       fmt::print("{}\n", ok.error());
       return -1;

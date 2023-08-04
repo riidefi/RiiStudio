@@ -123,8 +123,8 @@ struct KCollisionData {
   std::string version = std::string("RiiStudio ") + std::string(GIT_TAG);
 };
 
-std::string ReadKCollisionData(KCollisionData& data, std::span<const u8> bytes,
-                               u32 file_size);
+Result<KCollisionData> ReadKCollisionData(std::span<const u8> bytes,
+                                          u32 file_size);
 
 inline std::array<glm::vec3, 3> FromPrism(const KCollisionData& data,
                                           const KCollisionPrismData& prism) {
@@ -132,5 +132,8 @@ inline std::array<glm::vec3, 3> FromPrism(const KCollisionData& data,
                    data.nrm_data[prism.fnrm_i], data.nrm_data[prism.enrm1_i],
                    data.nrm_data[prism.enrm2_i], data.nrm_data[prism.enrm3_i]);
 }
+
+std::string DumpJSON(const KCollisionData& map);
+KCollisionData LoadJSON(std::string_view map);
 
 } // namespace librii::kcol

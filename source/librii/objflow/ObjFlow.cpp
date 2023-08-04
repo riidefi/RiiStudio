@@ -3289,8 +3289,10 @@ unsigned char ObjFlow_bin[] = {
     0x01, 0x31, 0x01, 0x32, 0x01, 0x33, 0x01, 0x34, 0x01, 0x35, 0x01, 0x36,
     0x01, 0x37, 0x01, 0x38, 0x01, 0x39, 0x01, 0x3a, 0x01, 0x3b};
 unsigned int ObjFlow_bin_len = 38170;
-const std::span<const u8> objflow_bin{ObjFlow_bin, ObjFlow_bin_len};
 
-Result<ObjectParameters> Default() { return Read(objflow_bin); }
+Result<ObjectParameters> Default() {
+  std::span<const u8> objflow_bin{ObjFlow_bin, ObjFlow_bin_len};
+  return Read(objflow_bin);
+}
 
 } // namespace librii::objflow

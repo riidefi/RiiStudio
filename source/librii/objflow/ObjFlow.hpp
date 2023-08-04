@@ -32,7 +32,6 @@ Result<ObjectParameters> Read(std::span<const u8> buf);
 Result<ObjectParameters> ReadFromFile(std::string_view path);
 
 std::string GetPrimaryResource(const ObjectParameter& param);
-extern const std::span<const u8> objflow_bin;
 
 Result<ObjectParameters> Default();
 
