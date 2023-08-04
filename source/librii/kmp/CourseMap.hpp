@@ -34,4 +34,7 @@ struct CourseMap {
   bool operator==(const CourseMap&) const = default;
 };
 
+std::string DumpJSON(const CourseMap& map);
+CourseMap LoadJSON(std::string_view map);
+
 } // namespace librii::kmp

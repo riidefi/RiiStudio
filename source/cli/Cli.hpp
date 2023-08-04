@@ -37,6 +37,9 @@ enum {
   // Potentially compressed archives (U8, RARC)
   TYPE_EXTRACT,
   TYPE_CREATE,
+
+  TYPE_KMP2JSON,
+  TYPE_JSON2KMP,
 };
 
 template <size_t L> struct CFixedString {

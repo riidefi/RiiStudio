@@ -5,6 +5,7 @@
 #include <librii/assimp/LRAssimp.hpp>
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
+#include <librii/kmp/io/KMP.hpp>
 #include <librii/rarc/RARC.hpp>
 #include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
@@ -590,12 +591,94 @@ private:
   std::filesystem::path m_to;
 };
 
+static Result<void> kmp2json(const CliOptions& m_opt) {
+  if (m_opt.verbose) {
+    rsl::logging::init();
+  }
+  std::filesystem::path m_from = m_opt.from.view();
+  std::filesystem::path m_to = m_opt.to.view();
+
+  if (m_to.empty()) {
+    std::filesystem::path p = m_from;
+    p.replace_extension(".json");
+    m_to = p;
+  }
+  if (!FS_TRY(rsl::filesystem::exists(m_from))) {
+    fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+    return std::unexpected("FolderNotExist");
+  }
+  if (FS_TRY(rsl::filesystem::exists(m_to))) {
+    fmt::print(stderr,
+               "Warning: File {} will be overwritten by this operation.\n",
+               m_to.string());
+  }
+  auto file = ReadFile(m_opt.from.view());
+  if (!file.has_value()) {
+    return std::unexpected("Error: Failed to read file");
+  }
+  auto kmp = TRY(librii::kmp::readKMP(*file));
+
+  auto result = DumpJSON(kmp);
+  fmt::print("{}\n", result);
+  std::ofstream stream(m_to);
+  stream << result;
+
+  return {};
+}
+static Result<void> json2kmp(const CliOptions& m_opt) {
+  if (m_opt.verbose) {
+    rsl::logging::init();
+  }
+  std::filesystem::path m_from = m_opt.from.view();
+  std::filesystem::path m_to = m_opt.to.view();
+
+  if (m_to.empty()) {
+    std::filesystem::path p = m_from;
+    p.replace_extension(".kmp");
+    m_to = p;
+  }
+  if (!FS_TRY(rsl::filesystem::exists(m_from))) {
+    fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+    return std::unexpected("FolderNotExist");
+  }
+  if (FS_TRY(rsl::filesystem::exists(m_to))) {
+    fmt::print(stderr,
+               "Warning: File {} will be overwritten by this operation.\n",
+               m_to.string());
+  }
+  auto file = ReadFile(m_opt.from.view());
+  if (!file.has_value()) {
+    return std::unexpected("Error: Failed to read file");
+  }
+  auto kmp = librii::kmp::LoadJSON(
+      std::string_view{(char*)file->data(), file->size()});
+
+  oishii::Writer writer(std::endian::big);
+  librii::kmp::writeKMP(kmp, writer);
+  writer.saveToDisk(m_to.string());
+  return {};
+}
+
 int main(int argc, const char** argv) {
   fmt::print(stdout, "RiiStudio CLI {}\n", RII_TIME_STAMP);
   auto args = parse(argc, argv);
   if (!args) {
     fmt::print("::\n");
     return -1;
+  }
+  if (args->type == TYPE_KMP2JSON) {
+    auto ok = kmp2json(*args);
+    if (!ok) {
+      fmt::print("{}\n", ok.error());
+      return -1;
+    }
+  }
+  if (args->type == TYPE_JSON2KMP) {
+    auto ok = json2kmp(*args);
+    if (!ok) {
+      fmt::print("{}\n", ok.error());
+      return -1;
+    }
   }
   if (args->type == TYPE_IMPORT_BRRES) {
     progress_put("Processing...", 0.0f);
