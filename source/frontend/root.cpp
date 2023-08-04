@@ -2,6 +2,7 @@
 
 #include "EditorFactory.hpp"
 #include "IEditor.hpp"
+#include "SettingsMenu.hpp"
 #include "root.hpp"
 #include <core/util/timestamp.hpp>
 #include <frontend/Fonts.hpp>
@@ -169,6 +170,9 @@ void RootWindow::draw() {
     if (mShowMkwDebug) {
       mMkwDebugWindow.draw();
     }
+    if (mShowSettings) {
+      DrawSettingsWindow();
+    }
   }
   imcxx::EndFullscreenWindow();
 }
@@ -194,6 +198,7 @@ void RootWindow::drawMenuBar() {
     drawSettingsMenu();
 
     if (ImGui::BeginMenu("Tools"_j)) {
+      ImGui::Checkbox("Build Info"_j, &mShowSettings);
       ImGui::Checkbox("MKW Debug (Dolphin)"_j, &mShowMkwDebug);
       ImGui::EndMenu();
     }

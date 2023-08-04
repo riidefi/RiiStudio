@@ -118,4 +118,6 @@ transform(std::span<u8> dst, int dwidth, int dheight,
           u32 mipMapCount = 0,
           ResizingAlgorithm algorithm = ResizingAlgorithm::Lanczos);
 
+std::string_view gctex_version();
+
 } // namespace librii::image

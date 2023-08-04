@@ -252,4 +252,9 @@ private:
   return {};
 }
 
+std::string_view gctex_version() {
+  static std::string ver = gctex::get_version();
+  return ver;
+}
+
 } // namespace librii::image

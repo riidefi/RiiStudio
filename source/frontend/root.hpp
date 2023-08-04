@@ -68,6 +68,8 @@ private:
   bool mShowMkwDebug = false;
   MkwDebug mMkwDebugWindow;
 
+  bool mShowSettings = false;
+
 public:
   void requestFile() { mWantFile = true; }
   FileData* getFile() {
