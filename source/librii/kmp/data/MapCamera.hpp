@@ -48,7 +48,6 @@ struct Camera {
   f32 mActiveFrames{0.0f};
 
   bool operator==(const Camera&) const = default;
-  CameraType getType() const { return mType; }
 };
 
 } // namespace librii::kmp

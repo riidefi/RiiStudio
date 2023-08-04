@@ -22,11 +22,11 @@ struct CheckPoint {
 };
 
 template <typename PointT> struct DirectedGraph {
-  rsl::small_vector<PointT, 16> points;
+  std::vector<PointT> points; // 16
 
   // Over 6 cannot be serialized
-  rsl::small_vector<u8, 6> mPredecessors;
-  rsl::small_vector<u8, 6> mSuccessors;
+  std::vector<u8> mPredecessors; // 6
+  std::vector<u8> mSuccessors; // 6
   std::array<u8, 2> misc;
 
   bool operator==(const DirectedGraph&) const = default;

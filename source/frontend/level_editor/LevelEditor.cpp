@@ -555,7 +555,7 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
     case Page::Areas:
       for (auto& pt : mKmp->mAreas) {
         glm::mat4 modelMtx =
-            MatrixOfPoint(pt.getModel().mPosition, pt.getModel().mRotation, 1);
+            MatrixOfPoint(pt.mModel.mPosition, pt.mModel.mRotation, 1);
         PushCube(mSceneState, modelMtx, viewMtx, projMtx);
       }
       break;

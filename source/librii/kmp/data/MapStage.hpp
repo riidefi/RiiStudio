@@ -8,8 +8,14 @@
 
 namespace librii::kmp {
 
-enum class StartPosition { Standard, Near };
-enum class Corner { Left, Right };
+enum class StartPosition {
+  Standard,
+  Near,
+};
+enum class Corner {
+  Left,
+  Right,
+};
 
 struct Stage {
   u8 mLapCount{3};

@@ -18,18 +18,19 @@ struct CourseMap {
   u16 mRevision = 2520;
   u8 mOpeningPanIndex = 0;
   u8 mVideoPanIndex = 0;
-  rsl::small_vector<StartPoint, 1> mStartPoints;
-  rsl::small_vector<EnemyPath, 16> mEnemyPaths;
-  rsl::small_vector<ItemPath, 16> mItemPaths;
-  rsl::small_vector<CheckPath, 16> mCheckPaths;
-  rsl::small_vector<Path, 32> mPaths;
-  rsl::small_vector<GeoObj, 64> mGeoObjs;
-  rsl::small_vector<Area, 16> mAreas;
-  rsl::small_vector<Camera, 16> mCameras;
-  rsl::small_vector<RespawnPoint, 32> mRespawnPoints;
-  rsl::small_vector<Cannon, 8> mCannonPoints;
-  rsl::small_vector<Stage, 1> mStages;
-  rsl::small_vector<MissionPoint, 1> mMissionPoints;
+  std::vector<StartPoint> mStartPoints;
+  std::vector<EnemyPath> mEnemyPaths;
+  std::vector<ItemPath> mItemPaths;
+  std::vector<CheckPath> mCheckPaths;
+  std::vector<Path> mPaths;
+  std::vector<GeoObj> mGeoObjs;
+  std::vector<Area> mAreas;
+  std::vector<Camera> mCameras;
+  std::vector<RespawnPoint> mRespawnPoints;
+  std::vector<Cannon> mCannonPoints;
+  std::vector<Stage> mStages;
+  std::vector<MissionPoint> mMissionPoints;
+
   bool operator==(const CourseMap&) const = default;
 };
 

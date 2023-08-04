@@ -221,13 +221,13 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
             ". Expected range: [0, 10]. This will be ignored  by the game.");
       }
 
-      entry.getModel().mShape = static_cast<AreaShape>(raw_area_shp);
+      entry.mModel.mShape = static_cast<AreaShape>(raw_area_shp);
       entry.mType = static_cast<AreaType>(raw_area_type);
       entry.mCameraIndex = TRY(reader.tryRead<u8>());
       entry.mPriority = TRY(reader.tryRead<u8>());
-      TRY(entry.getModel().mPosition << reader);
-      TRY(entry.getModel().mRotation << reader);
-      TRY(entry.getModel().mScaling << reader);
+      TRY(entry.mModel.mPosition << reader);
+      TRY(entry.mModel.mRotation << reader);
+      TRY(entry.mModel.mScaling << reader);
 
       entry.mParameters = TRY(reader.tryReadX<u16, 2>());
       if (map.mRevision >= 2200) {
@@ -568,13 +568,13 @@ void writeKMP(const CourseMap& map, oishii::Writer& writer) {
     stream.write<u16>(map.mAreas.size());
     stream.write<u16>(0); // user data
     for (auto& entry : map.mAreas) {
-      stream.write<u8>(static_cast<u8>(entry.getModel().mShape));
+      stream.write<u8>(static_cast<u8>(entry.mModel.mShape));
       stream.write<u8>(static_cast<u8>(entry.mType));
       stream.write<u8>(entry.mCameraIndex);
       stream.write<u8>(entry.mPriority);
-      entry.getModel().mPosition >> stream;
-      entry.getModel().mRotation >> stream;
-      entry.getModel().mScaling >> stream;
+      entry.mModel.mPosition >> stream;
+      entry.mModel.mRotation >> stream;
+      entry.mModel.mScaling >> stream;
       for (auto p : entry.mParameters)
         stream.write<u16>(p);
       if (map.mRevision >= 2200) {

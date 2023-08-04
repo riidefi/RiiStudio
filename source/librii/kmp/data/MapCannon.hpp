@@ -6,7 +6,11 @@
 
 namespace librii::kmp {
 
-enum class CannonType { Direct, Curved, Curved2 };
+enum class CannonType {
+  Direct,
+  Curved,
+  Curved2,
+};
 
 struct Cannon {
   CannonType mType = CannonType::Direct;
