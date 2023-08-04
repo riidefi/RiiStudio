@@ -21,6 +21,7 @@ struct AdvancedTextureConverter {
   int width{};       // [1, 1024]
   int height{};      // [1, 1024]
   bool constrain{true};
+  bool sync{true};
   // For constraint
   int first_width{};
   int first_height{};
@@ -61,14 +62,21 @@ struct AdvancedTextureConverter {
     };
   }
 
+  Result<void> Sync(bool errbox = true) {
+    if (sync) {
+      TRY(ReEncode(errbox));
+    }
+    return {};
+  }
+
   [[nodiscard]] Result<void> SetMipLevels(int x) {
     EXPECT(x >= 1 && x <= 10);
     auto old = mip_levels;
     mip_levels = x;
-    auto ok = ReEncode();
+    auto ok = Sync();
     if (!ok) {
       mip_levels = old;
-      (void)ReEncode();
+      (void)Sync();
     }
     return ok;
   }
@@ -86,11 +94,11 @@ struct AdvancedTextureConverter {
     }
     width = x;
 
-    auto ok = ReEncode(false);
+    auto ok = Sync(false);
     if (!ok) {
       width = old_w;
       height = old_h;
-      (void)ReEncode(false);
+      (void)Sync(false);
     }
 
     return ok;
@@ -107,11 +115,11 @@ struct AdvancedTextureConverter {
       width = maybe_width;
     }
     height = x;
-    auto ok = ReEncode(false);
+    auto ok = Sync(false);
     if (!ok) {
       width = old_w;
       height = old_h;
-      (void)ReEncode(false);
+      (void)Sync(false);
     }
     return ok;
   }

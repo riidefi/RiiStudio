@@ -111,7 +111,9 @@ Result<TCResult> DrawAdvTexConv(AdvancedTextureConverter& action) {
     }
     if (fmt != action.format) {
       action.format = fmt;
-      TRY(action.ReEncode());
+      if (action.sync) {
+        TRY(action.ReEncode());
+      }
     }
     int mip = action.mip_levels;
     ImGui::InputInt("Mip Levels", &mip);
@@ -154,6 +156,14 @@ Result<TCResult> DrawAdvTexConv(AdvancedTextureConverter& action) {
       TRY(action.SetConstrain(aspect));
     }
     action.resizer = imcxx::EnumCombo("Resizing algorithm", action.resizer);
+    ImGui::Separator();
+    ImGui::Checkbox("Auto-sync", &action.sync);
+    if (!action.sync) {
+      ImGui::SameLine();
+      if (ImGui::Button("Re-encode")) {
+        TRY(action.ReEncode());
+      }
+    }
   }
   ImGui::Separator();
 
