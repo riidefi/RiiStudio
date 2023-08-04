@@ -28,6 +28,13 @@ static_assert(sizeof(VERSION_SHORT) - 1 == 16,
 #define RII_BUILD "Custom"
 #endif
 
+extern "C" bool RII_IS_DIST_BUILD;
+#if defined(BUILD_DIST)
+bool RII_IS_DIST_BUILD = true;
+#else
+bool RII_IS_DIST_BUILD = false;
+#endif
+
 #if defined(BUILD_DIST) && defined(__EMSCRIPTEN__)
 const char RII_TIME_STAMP[] = RII__BUILD;
 #else

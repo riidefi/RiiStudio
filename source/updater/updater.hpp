@@ -40,6 +40,9 @@ float Updater_Progress(Updater& updater);
 // Did an update (and restart) just complete?
 bool Updater_WasUpdated(Updater& updater);
 
+// Are we requesting an update because our current install is bad?
+bool Updater_InRecoveryMode(Updater& updater);
+
 // Get the changelog of the latest release.
 std::optional<std::string> Updater_GetChangeLog(Updater& updater);
 

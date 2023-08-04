@@ -60,6 +60,10 @@ UpdaterView::Action UpdaterView::DrawUpdaterUI(const char* version,
       // Long explanation text
       sz.y = 176;
     }
+    if (Updater_InRecoveryMode(*mUpdater)) {
+      // Long explanation text
+      sz.y = 100;
+    }
     ImGui::SetNextWindowPos(
         ImVec2(pos.x + avail.x / 2 - sz.x / 2, pos.y + avail.y / 2 - sz.y));
     ImGui::SetNextWindowSize(sz);
@@ -70,9 +74,17 @@ UpdaterView::Action UpdaterView::DrawUpdaterUI(const char* version,
       ImGui::Separator();
       ImGui::ProgressBar(*progress);
     } else {
-      ImGui::Text("A new version of RiiStudio (%s) was found. Would you like "
-                  "to update?"_j,
-                  version);
+      if (!Updater_InRecoveryMode(*mUpdater)) {
+        ImGui::Text("A new version of RiiStudio (%s) was found. Would you like "
+                    "to update?"_j,
+                    version);
+      } else {
+        ImGui::Text(
+            "Outdated or altered .dll files in your install, which may be due "
+            "to a past glitch in the update process.\n"
+            "Would you like to download clean versions from RiiStudio (%s)?"_j,
+            version);
+      }
 
       ImGui::Separator();
 
