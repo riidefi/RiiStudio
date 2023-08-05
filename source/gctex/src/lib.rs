@@ -22,7 +22,7 @@ pub mod librii {
         RGB5A3,
         RGBA8,
 
-        C4,
+        C4 = 0x8,
         C8,
         C14X2,
         CMPR = 0xE,
@@ -189,6 +189,18 @@ pub mod librii {
     #[cfg(test)]
     mod tests {
         use super::*;
+
+        #[test]
+        fn image_size_c8() {
+            let format = 9;
+            let width = 128;
+            let height = 128;
+            let number_of_images = 1;
+
+            let result = rii_compute_image_size_mip(format, width, height, number_of_images);
+
+            assert_eq!(result, 16384);
+        }
 
         #[test]
         fn test_rii_compute_image_size_mip_with_1x1() {
