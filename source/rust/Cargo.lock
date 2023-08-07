@@ -364,10 +364,11 @@ dependencies = [
 
 [[package]]
 name = "riistudio_rs"
-version = "0.1.5"
+version = "0.1.8"
 dependencies = [
  "clap",
  "clap_derive",
+ "colored",
  "curl",
  "log",
  "simple_logger",

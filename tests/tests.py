@@ -151,7 +151,7 @@ def rebuild(test_exec: Path, rszst: Path, input_path: Path, output_path: Path, c
 	if output_path.is_file():
 		output_path.unlink()
 	if input_path.suffix == ".dae":
-		args = [str(rszst), "import-command", str(input_path), str(output_path)]
+		args = [str(rszst), "import-brres", str(input_path), str(output_path)]
 		if input_path.stem.endswith("no_ts"):
 			args += ["--no-tristrip"]
 		elif input_path.stem.endswith("ai_json"):

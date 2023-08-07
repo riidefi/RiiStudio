@@ -1,6 +1,6 @@
 [package]
 name = "riistudio_rs"
-version = "0.1.5"
+version = "0.1.8"
 edition = "2018"
 
 [lib]
@@ -13,3 +13,4 @@ simple_logger = "4.0.0"
 clap = "4.1.8"
 clap_derive = "4.1.8"
 curl = "0.4.44"
+colored = "2"
