@@ -35,6 +35,25 @@ struct Face {
   std::vector<unsigned int> indices;
 };
 
+/// A single influence of a bone on a vertex.
+struct VertexWeight {
+  u32 vertexIndex = 0;
+  /// The strength of the influence in the range [0, 1].
+  /// The influence from all bones at one vertex amounts to 1.
+  float weight = 1.0f;
+};
+
+struct Bone {
+  std::string name;
+
+  /// Per-vertex weights
+  std::vector<VertexWeight> weights;
+
+  // mArmature; we ignore
+  u32 nodeIndex;
+  // mOffsetMatrix; we ignore
+};
+
 struct Mesh {
   /// Use SortByPrimitiveType to ensure size() == 1
   // std::set<PrimitiveType> primitive_types;
@@ -60,7 +79,7 @@ struct Mesh {
   std::vector<Face> faces;
 
   /// Deformations on the triangles
-  // std::vector<Bone> bones;
+  std::vector<Bone> bones;
 
   uint32_t materialIndex = 0;
 
@@ -97,7 +116,7 @@ struct Node {
   /// Relative to parent
   glm::mat4 xform;
 
-  // mParent; we ignore
+  int parent = -1;
 
   /// Indices
   std::vector<size_t> children;

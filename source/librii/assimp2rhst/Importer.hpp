@@ -8,7 +8,6 @@
 
 namespace librii::assimp2rhst {
 
-
 class AssImporter {
 public:
   AssImporter(const AssImporter&) = delete; // boneIdCtr is not stable
@@ -29,10 +28,11 @@ private:
 
   [[nodiscard]] Result<void> ImportMesh(librii::rhst::SceneTree& out_model,
                                         const lra::Mesh* pMesh,
-                                        const lra::Node* pNode, glm::vec3 tint);
+                                        const lra::Node* pNode, s32 nodeIndex,
+                                        glm::vec3 tint);
   [[nodiscard]] Result<void> ImportNode(librii::rhst::SceneTree& out_model,
-                                        const lra::Node* pNode, glm::vec3 tint,
-                                        int parent = -1);
+                                        const lra::Node* pNode, s32 nodeIndex,
+                                        glm::vec3 tint, int parent = -1);
 };
 
 } // namespace librii::assimp2rhst

@@ -602,11 +602,14 @@ struct MetaData {
 };
 
 struct Weight {
-  s32 bone_index;
-  s32 influence;
+  s32 bone_index = 0;
+  s32 influence = 100;
+  bool operator==(const Weight&) const = default;
 };
 struct WeightMatrix {
   std::vector<Weight> weights; // all the influences
+
+  bool operator==(const WeightMatrix&) const = default;
 };
 
 struct SceneTree {
