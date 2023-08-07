@@ -388,6 +388,12 @@ pub enum Commands {
     /// DEPRECATED: Use import-brres
     ImportCommand(ImportCommand),
 
+    /// Import a .dae/.fbx file as .brres
+    ImportBrres(ImportCommand),
+
+    /// Import a .dae/.fbx file as .bmd
+    ImportBmd(ImportCommand),
+
     /// Decompress a .szs file
     Decompress(DecompressCommand),
 
@@ -522,6 +528,50 @@ impl MyArgs {
                     .copy_from_slice(unsafe { &*(preset_str_bytes as *const _ as *const [i8]) });
                 CliOptions {
                     c_type: 1,
+                    from: from2,
+                    to: to2,
+                    preset_path: preset_path2,
+                    scale: i.scale as c_float,
+                    brawlbox_scale: i.brawlbox_scale as c_uint,
+                    mipmaps: i.mipmaps as c_uint,
+                    min_mip: i.min_mip as c_uint,
+                    max_mips: i.max_mip as c_uint,
+                    auto_transparency: i.auto_transparency as c_uint,
+                    merge_mats: i.merge_mats as c_uint,
+                    bake_uvs: i.bake_uvs as c_uint,
+                    tint: tint_val as c_uint,
+                    cull_degenerates: i.cull_degenerates as c_uint,
+                    cull_invalid: i.cull_invalid as c_uint,
+                    recompute_normals: i.recompute_normals as c_uint,
+                    fuse_vertices: i.fuse_vertices as c_uint,
+                    no_tristrip: i.no_tristrip as c_uint,
+                    ai_json: i.ai_json as c_uint,
+                    verbose: i.verbose as c_uint,
+
+                    // Junk fields
+                    no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
+                }
+            }
+            Commands::ImportBmd(i) => {
+                let tint_val = u32::from_str_radix(&i.tint[1..], 16).unwrap_or(0xFF_FFFF);
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
+                let mut preset_path2: [i8; 256] = [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                let default_str2 = String::new();
+                let preset_str_bytes = i.preset_path.as_ref().unwrap_or(&default_str2).as_bytes();
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                preset_path2[..preset_str_bytes.len()]
+                    .copy_from_slice(unsafe { &*(preset_str_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 12,
                     from: from2,
                     to: to2,
                     preset_path: preset_path2,

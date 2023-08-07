@@ -248,6 +248,137 @@ private:
   std::filesystem::path m_presets;
 };
 
+class ImportBMD {
+public:
+  ImportBMD(const CliOptions& opt) : m_opt(opt) {}
+
+  Result<void> execute() {
+    if (m_opt.verbose) {
+      rsl::logging::init();
+    }
+    auto pok = parseArgs();
+    if (!pok) {
+      return std::unexpected("Failed to parse args: " + pok.error());
+    }
+    if (!librii::assimp2rhst::IsExtensionSupported(m_from.string())) {
+      return std::unexpected("File format is unsupported");
+    }
+    auto file = ReadFile(m_opt.from.view());
+    if (!file.has_value()) {
+      return std::unexpected("Failed to read file");
+    }
+    const auto on_log = [](kpi::IOMessageClass c, std::string_view d,
+                           std::string_view b) {
+      rsl::info("Assimp message: {} {} {}", magic_enum::enum_name(c), d, b);
+    };
+    auto settings = getSettings();
+    if (m_opt.ai_json) {
+      Assimp::Importer importer;
+      auto* pScene = ReadScene(on_log, std::span(*file), m_from.string(),
+                               settings, importer);
+      if (!pScene) {
+        return std::unexpected("Failed to read ASSIMP SCENE");
+      }
+      auto scn = librii::lra::ReadScene(*pScene);
+      auto s = librii::lra::PrintJSON(scn);
+      std::ofstream out(m_to.string());
+      out << s;
+      fmt::print(stdout, "Dumped ASSIMP json\n");
+      return {};
+    }
+    auto tree = librii::assimp2rhst::DoImport(m_from.string(), on_log,
+                                              std::span(*file), settings);
+    if (!tree) {
+      return std::unexpected("Failed to parse: " + tree.error());
+    }
+    auto progress = [&](std::string_view s, float f) {
+      progress_put(std::string(s), f);
+    };
+    auto info = [&](std::string c, std::string v) {
+      on_log(kpi::IOMessageClass::Information, c, v);
+    };
+    auto m_result = std::make_unique<riistudio::j3d::Collection>();
+    bool ok = riistudio::rhst::CompileRHST(*tree, *m_result, m_from.string(),
+                                           info, progress, GetMips(m_opt),
+                                           !m_opt.no_tristrip, m_opt.verbose);
+    if (!ok) {
+      return std::unexpected("Failed to parse RHST");
+    }
+    oishii::Writer result(std::endian::big);
+    TRY(riistudio::j3d::WriteBMD(*m_result, result));
+    result.saveToDisk(m_to.string());
+    return {};
+  }
+
+private:
+  Result<void> parseArgs() {
+    m_from = m_opt.from.view();
+    m_to = m_opt.to.view();
+    m_presets = m_opt.preset_path.view();
+    if (m_to.empty()) {
+      std::filesystem::path p = m_from;
+      p.replace_extension(".bmd");
+      m_to = p;
+    }
+    if (!FS_TRY(rsl::filesystem::exists(m_from))) {
+      fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+      return std::unexpected("FileNotExist");
+    }
+    if (!FS_TRY(rsl::filesystem::exists(m_to))) {
+      fmt::print(stderr,
+                 "Warning: File {} will be overwritten by this operation.\n",
+                 m_to.string());
+    }
+    if (!m_presets.empty()) {
+      if (!FS_TRY(rsl::filesystem::exists(m_presets))) {
+        fmt::print(stderr,
+                   "Warning: Preset path {} does not exist not valid.\n",
+                   m_presets.string());
+        m_presets.clear();
+      } else if (!FS_TRY(rsl::filesystem::is_directory(m_presets))) {
+        fmt::print(stderr,
+                   "Warning: Preset path {} does not refer to a folder.\n",
+                   m_presets.string());
+        m_presets.clear();
+      } else {
+        fmt::print(stdout, "Info: Reading presets from {}\n",
+                   m_presets.string());
+      }
+    }
+    return {};
+  }
+
+  librii::assimp2rhst::Settings getSettings() {
+    librii::assimp2rhst::Settings settings;
+    auto& f = settings.mAiFlags;
+    setFlag(f, aiProcess_RemoveRedundantMaterials, m_opt.merge_mats);
+    setFlag(f, aiProcess_TransformUVCoords, m_opt.bake_uvs);
+    setFlag(f, aiProcess_FindDegenerates, m_opt.cull_degenerates);
+    setFlag(f, aiProcess_FindInvalidData, m_opt.cull_invalid);
+    setFlag(f, aiProcess_FixInfacingNormals, m_opt.recompute_normals);
+    setFlag(f, aiProcess_OptimizeMeshes, true);
+    setFlag(f, aiProcess_OptimizeGraph, true);
+    settings.mMagnification = m_opt.scale;
+    glm::vec3 tint;
+    tint.r = static_cast<float>((m_opt.hexcode >> 16) & 0xff) / 255.0f;
+    tint.g = static_cast<float>((m_opt.hexcode >> 8) & 0xff) / 255.0f;
+    tint.b = static_cast<float>((m_opt.hexcode >> 0) & 0xff) / 255.0f;
+    settings.mModelTint = tint;
+    settings.mGenerateMipMaps = m_opt.mipmaps;
+    settings.mMinMipDimension = m_opt.min_mip;
+    settings.mMaxMipCount = m_opt.max_mips;
+    settings.mAutoTransparent = m_opt.auto_transparency;
+    settings.mIgnoreRootTransform = m_opt.brawlbox_scale;
+    return settings;
+  }
+
+  CliOptions m_opt;
+  std::filesystem::path m_from;
+  std::filesystem::path m_to;
+  std::filesystem::path m_presets;
+};
+
+
 class DecompressSZS {
 public:
   DecompressSZS(const CliOptions& opt) : m_opt(opt) {}
@@ -727,6 +858,7 @@ int main(int argc, const char** argv) {
       return -1;
     }
   }
+
   if (args->type == TYPE_KCL2JSON) {
     auto ok = kcl2json(*args);
     if (!ok) {
@@ -751,7 +883,19 @@ int main(int argc, const char** argv) {
       fmt::print(stdout, "{}\n", ok.error());
       return -1;
     }
-  } else if (args->type == TYPE_DECOMPRESS) {
+  }
+  if (args->type == TYPE_IMPORT_BMD) {
+    progress_put("Processing...", 0.0f);
+    ImportBMD cmd(*args);
+    auto ok = cmd.execute();
+    progress_end();
+    if (!ok) {
+      fmt::print(stderr, "{}\n", ok.error());
+      fmt::print(stdout, "{}\n", ok.error());
+      return -1;
+    }
+  }
+  if (args->type == TYPE_DECOMPRESS) {
     DecompressSZS cmd(*args);
     auto ok = cmd.execute();
     if (!ok) {
