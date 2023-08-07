@@ -67,7 +67,7 @@ class FilteredFiledialog(bpy.types.Operator, ImportHelper):
 		options={'HIDDEN'},
 		maxlen=255,  # Max internal buffer length, longer would be clamped.
 	)
-	if BLENDER_30: filter_glob : filter_glob
+	if BLENDER_29: filter_glob : filter_glob
 
 	def execute(self, context):
 		setattr(self.string_prop_namespace, self.string_prop_name, bpy.path.relpath(self.filepath))
@@ -1459,7 +1459,7 @@ class RHST_RNA:
 		default="float",
 		items=quantize_types
 	)
-	if BLENDER_30: position_quantize : position_quantize
+	if BLENDER_29: position_quantize : position_quantize
 
 	normal_quantize = EnumProperty(
 		name="Normal",
@@ -1470,14 +1470,14 @@ class RHST_RNA:
 			("fixed6", "fixed6", "Lowest precision")
 		)
 	)
-	if BLENDER_30: normal_quantize : normal_quantize
+	if BLENDER_29: normal_quantize : normal_quantize
 
 	uv_quantize = EnumProperty(
 		name="UV",
 		default="float",
 		items=quantize_types
 	)
-	if BLENDER_30: uv_quantize : uv_quantize
+	if BLENDER_29: uv_quantize : uv_quantize
 
 	color_quantize = EnumProperty(
 		name="Color",
@@ -1490,7 +1490,7 @@ class RHST_RNA:
 			('rgb565', "rgb565", "5-bit RB channels (32 levels), and 6-bit G channel (64 levels)")
 		)
 	)
-	if BLENDER_30: color_quantize : color_quantize
+	if BLENDER_29: color_quantize : color_quantize
 
 	root_transform_scale_x = FloatProperty(name="X", default=1)
 	root_transform_scale_y = FloatProperty(name="Y", default=1)
@@ -1501,7 +1501,7 @@ class RHST_RNA:
 	root_transform_translate_x = FloatProperty(name="X", default=0)
 	root_transform_translate_y = FloatProperty(name="Y", default=0)
 	root_transform_translate_z = FloatProperty(name="Z", default=0)
-	if BLENDER_30:
+	if BLENDER_29:
 		root_transform_scale_x : root_transform_scale_x
 		root_transform_scale_y : root_transform_scale_y
 		root_transform_scale_z : root_transform_scale_z
@@ -1517,24 +1517,24 @@ class RHST_RNA:
 		default="course",
 	)
 
-	if BLENDER_30: rmdl_name : rmdl_name
+	if BLENDER_29: rmdl_name : rmdl_name
 
 	selection_only = BoolProperty(
 		name="Export Selection Only",
 		default=False
 	)
 	
-	if BLENDER_30: selection_only : selection_only
+	if BLENDER_29: selection_only : selection_only
 
 	magnification = FloatProperty(
 		name="Magnification",
 		default=100
 	)
-	if BLENDER_30: magnification : magnification
+	if BLENDER_29: magnification : magnification
 	
 
 	split_mesh_by_material = BoolProperty(name="Split Mesh by Material", default=True)
-	if BLENDER_30: split_mesh_by_material : split_mesh_by_material
+	if BLENDER_29: split_mesh_by_material : split_mesh_by_material
 	
 	mesh_conversion_mode = EnumProperty(
 		name="Mesh Conversion Mode",
@@ -1544,35 +1544,35 @@ class RHST_RNA:
 			('RENDER', "Render", "Render settings"),
 		)
 	)
-	if BLENDER_30: mesh_conversion_mode : mesh_conversion_mode
+	if BLENDER_29: mesh_conversion_mode : mesh_conversion_mode
 
 	add_dummy_colors = BoolProperty(
 		name="Add Dummy Vertex Colors",
 		description="Allows for polygons without assigned vertex colors to use the same materials as polygons with assigned vertex colors",
 		default=True
 	)
-	if BLENDER_30: add_dummy_colors : add_dummy_colors
+	if BLENDER_29: add_dummy_colors : add_dummy_colors
 
 	ignore_cache = BoolProperty(
 		name="Ignore Cache",
 		default=False,
 		description="Ignore the cache and rebuild every texture"
 	)
-	if BLENDER_30: ignore_cache : ignore_cache
+	if BLENDER_29: ignore_cache : ignore_cache
 
 	keep_build_artifacts = BoolProperty(
 		name="Keep Build Artifacts",
 		default=False,
 		description="Don't delete .rhst and .png files"
 	)
-	if BLENDER_30: keep_build_artifacts : keep_build_artifacts
+	if BLENDER_29: keep_build_artifacts : keep_build_artifacts
 
 	verbose = BoolProperty(
 		name="Debug Logs",
 		default=True,
 		description="Write debug information to blender's Console",
 	)
-	if BLENDER_30: verbose : verbose
+	if BLENDER_29: verbose : verbose
 
 	texture_encoder = EnumProperty(
 		name="Encoder",
@@ -1583,7 +1583,7 @@ class RHST_RNA:
 		default="wimgt",
 		description="Select which encoder to use",
 	)
-	if BLENDER_30: texture_encoder : texture_encoder
+	if BLENDER_29: texture_encoder : texture_encoder
 
 	def get_root_transform(self):
 		root_scale	 = [self.root_transform_scale_x,	 self.root_transform_scale_y,	 self.root_transform_scale_z]
@@ -1748,7 +1748,7 @@ class ExportBRRES(Operator, RHST_RNA):
 		options={'HIDDEN'},
 		maxlen=255,  # Max internal buffer length, longer would be clamped.
 	)
-	if BLENDER_30: filter_glob : filter_glob
+	if BLENDER_29: filter_glob : filter_glob
 
 	def draw(self, context):
 		bin_root = os.path.abspath(get_rs_prefs(context).riistudio_directory)
@@ -1853,7 +1853,7 @@ class ExportBMD(Operator, ExportHelper, RHST_RNA):
 		options={'HIDDEN'},
 		maxlen=255,  # Max internal buffer length, longer would be clamped.
 	)
-	if BLENDER_30: filter_glob : filter_glob
+	if BLENDER_29: filter_glob : filter_glob
 
 	def draw(self, context):
 		box = self.layout.box()
