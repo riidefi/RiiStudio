@@ -82,6 +82,52 @@ updater --> frontend
 %% vendor --> LibBadUIFramework & librii & plugins & rsl & updater & cli & frontend & tests
 ```
 
+### Data pipeline for model creation
+```mermaid
+
+flowchart LR
+
+subgraph "3D Software"
+Blender
+Maya
+end
+
+Blender --> dae & fbx
+
+Maya --> fbx
+
+subgraph Interchange formats
+dae
+fbx
+.json
+end
+subgraph Assimp library
+Assimp
+end
+subgraph "RHST Structure (C++)"
+RHST
+end
+subgraph Game files
+BMD
+BRRES
+end
+Blender --> |"Blender Plugin (python)"|.json
+
+.json --> |librii\rhst\RHST.cpp| RHST
+
+RHST --> |"plugins\RHSTImporter.cpp"| BMD
+RHST --> |"plugins\RHSTImporter.cpp"| BRRES
+
+Assimp --> |"librii\assimp2rhst\*.cpp"| RHST
+dae & fbx --> Assimp
+
+
+RHST --> RHSTOptimizer
+RHSTOptimizer["Intermediate format optimizer\n\n(librii\rhst\RHSTOptimizer.cpp)"] --> RHST
+
+RHSTOptimizer <--> rsmeshopt
+rsmeshopt["rsmeshopt\n\n(Mesh optimization library)"] <--> draco & meshoptimizer & tristrip & TriStripper & TriFanMeshOptimizer & HaroohieTriStripifier
+```
 
 ## avir-rs
 Rust wrapper for a C++ image resizing library.
