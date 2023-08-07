@@ -39,7 +39,7 @@ Result<void> WriteToDolphin(const Io& io, u32 addr, const T& obj) {
   bool ok = io.write(addr, {reinterpret_cast<const u8*>(&obj), sizeof(obj)});
   if (!ok) {
     return std::unexpected(
-        std::format("Failed to write {} bytes to {:x}", sizeof(raw), addr));
+        std::format("Failed to write {} bytes to {:x}", sizeof(obj), addr));
   }
   return {};
 }

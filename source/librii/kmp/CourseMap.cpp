@@ -190,7 +190,8 @@ void to_json(json& j, const GeoObj& obj) {
 }
 
 void from_json(const json& j, GeoObj& obj) {
-  auto id = StrToId(j["id"]);
+  std::string s = j["id"];
+  auto id = StrToId(s);
   if (!id) {
     fmt::print(stderr, fmt::fg(fmt::color::dark_red), "JSON->KMP: {}",
                id.error());
