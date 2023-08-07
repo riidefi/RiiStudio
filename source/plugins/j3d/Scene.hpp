@@ -16,7 +16,7 @@ namespace riistudio::j3d {
 using Bufs = librii::j3d::Bufs;
 
 struct ModelData_ {
-  librii::j3d::ScalingRule mScalingRule;
+  librii::j3d::ScalingRule mScalingRule = librii::j3d::ScalingRule::Basic;
   bool isBDL = false;
   Bufs mBufs;
 
