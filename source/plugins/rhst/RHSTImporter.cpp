@@ -735,13 +735,6 @@ Result<void> importTexture(libcube::Texture& data, std::span<u8> image,
     return std::unexpected(
         std::format("Height {} exceeds maximum of 1024", height));
   }
-  if (!is_power_of_2(width)) {
-    return std::unexpected(std::format("Width {} is not a power of 2.", width));
-  }
-  if (!is_power_of_2(height)) {
-    return std::unexpected(
-        std::format("Height {} is not a power of 2.", height));
-  }
 
   int num_mip = 0;
   if (mip_gen && is_power_of_2(width) && is_power_of_2(height)) {
