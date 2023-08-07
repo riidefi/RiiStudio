@@ -8,22 +8,40 @@
 #include <assert.h>
 #include <functional>
 #include <optional>
+#include <rsl/EnumCast.hpp>
 #include <rsl/SimpleReader.hpp>
 #include <vendor/magic_enum/magic_enum.hpp>
 
 namespace librii::live_mkw {
 
 // `fread`, essentially
-using Io = std::function<bool(u32, std::span<u8>)>;
+using IoRead = std::function<bool(u32, std::span<u8>)>;
+using IoWrite = std::function<bool(u32, std::span<const u8>)>;
 
-template <typename T> Result<T> ReadFromDolphin(Io io, u32 addr) {
+struct Io {
+  IoRead read = nullptr;
+  IoWrite write = nullptr;
+};
+
+template <typename T> Result<T> ReadFromDolphin(const Io& io, u32 addr) {
   T raw;
-  bool ok = io(addr, {(u8*)&raw, sizeof(raw)});
+  EXPECT(io.read != nullptr);
+  bool ok = io.read(addr, {(u8*)&raw, sizeof(raw)});
   if (!ok) {
     return std::unexpected(
         std::format("Failed to read {} bytes from {:x}", sizeof(raw), addr));
   }
   return raw;
+}
+template <typename T>
+Result<void> WriteToDolphin(const Io& io, u32 addr, const T& obj) {
+  EXPECT(io.write != nullptr);
+  bool ok = io.write(addr, {reinterpret_cast<const u8*>(&obj), sizeof(obj)});
+  if (!ok) {
+    return std::unexpected(
+        std::format("Failed to write {} bytes to {:x}", sizeof(raw), addr));
+  }
+  return {};
 }
 
 enum class Region {
@@ -57,6 +75,10 @@ Result<Region> GetRegion(Io io) {
   return std::unexpected("Unknown region ID");
 }
 
+constexpr std::array<u32, 4> Symbols[] = {
+    {0x809c3618, 0x809bee20, 0x809c2678, 0x809b1c58},
+};
+
 //! Port a PAL address to the current region
 Result<u32> Port(Io io, u32 addr) {
   auto region = TRY(GetRegion(io));
@@ -68,6 +90,27 @@ Result<u32> Port(Io io, u32 addr) {
   }
   if (addr == 0x80385fc8 && region == Region::J) {
     return 0x80385948;
+  }
+  for (auto& sym : Symbols) {
+    if (sym[0] != addr)
+      continue;
+
+    u32 index = 0;
+    switch (region) {
+    case Region::P:
+      index = 0;
+      break;
+    case Region::E:
+      index = 1;
+      break;
+    case Region::J:
+      index = 2;
+      break;
+    case Region::K:
+      index = 3;
+      break;
+    }
+    return sym[index];
   }
   return std::unexpected(
       std::format("Region {} is currently unsupported. Please use a PAL disc",
@@ -279,5 +322,81 @@ struct KartObjectManager {
   }
 };
 static_assert(sizeof(KartObjectManager) == 0x38);
+
+enum class ItemId {
+  None = -0x01,
+  Green = 0x00,
+  Red = 0x01,
+  Nana = 0x02,
+  FIB = 0x03,
+  Shroom = 0x04,
+  TripShrooms = 0x05,
+  Bomb = 0x06,
+  Blue = 0x07,
+  Shock = 0x08,
+  Star = 0x09,
+  Golden = 0x0a,
+  Mega = 0x0b,
+  Blooper = 0x0c,
+  Pow = 0x0d,
+  TC = 0x0e,
+  Bill = 0x0f,
+  TripGreens = 0x10,
+  TripReds = 0x11,
+  TripNanas = 0x12,
+  Unused = 0x13,
+  NoItem = 0x14,
+};
+
+// Tentative name
+struct KartItem {
+  u8 _00[0x88 - 0x00];
+  rsl::bs32 _88;
+  rsl::bs32 mCurrentItemKind;
+  rsl::bs32 mCurrentItemQty;
+  u8 _94[0x248 - 0x94];
+};
+static_assert(sizeof(KartItem) == 0x248);
+
+// Tentative name
+struct ItemDirector {
+  u8 _00[0x14 - 0x00];
+  ptr<KartItem> m_kartItems;
+  u8 _48[0x430 - 0x18];
+};
+static_assert(sizeof(ItemDirector) == 0x430);
+
+static inline u32 ItemDirectorAddr() { return 0x809C3618; }
+
+struct ItemInfo {
+  ItemId kind = ItemId::Shroom;
+  s32 qty = 1;
+};
+static inline Result<ItemInfo> GetItem(Io io, u32 playerIndex) {
+  u32 idAt = TRY(ReadFromDolphin<rsl::bu32>(io, ItemDirectorAddr()));
+  auto itemDir = TRY(ReadFromDolphin<ItemDirector>(io, idAt));
+  auto kItem = TRY(itemDir.m_kartItems.get(io, playerIndex));
+  auto id = TRY(rsl::enum_cast<ItemId>(kItem.mCurrentItemKind));
+  auto qty = static_cast<s32>(kItem.mCurrentItemQty);
+  return ItemInfo{
+      id,
+      qty,
+  };
+}
+static inline Result<ItemInfo> SetItem(Io io, const ItemInfo& info,
+                                       u32 playerIndex) {
+  u32 idAt = TRY(ReadFromDolphin<rsl::bu32>(io, ItemDirectorAddr()));
+  auto itemDir = TRY(ReadFromDolphin<ItemDirector>(io, idAt));
+  auto kItem = TRY(itemDir.m_kartItems.get(io, playerIndex));
+  kItem.mCurrentItemKind = static_cast<s32>(info.kind);
+  kItem.mCurrentItemQty = info.qty;
+  std::span<const u8> patch{(const u8*)&kItem.mCurrentItemKind, 8};
+  bool ok = io.write(
+      itemDir.m_kartItems.data + sizeof(KartItem) * playerIndex + 0x8c, patch);
+  if (!ok) {
+    return std::unexpected("Failed to write kart item..");
+  }
+  return {};
+}
 
 } // namespace librii::live_mkw

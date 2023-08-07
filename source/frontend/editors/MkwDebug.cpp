@@ -16,12 +16,20 @@ using namespace librii::live_mkw;
 namespace riistudio::frontend {
 
 DolphinAccessor dolphin;
-live::Io io = [](u32 addr, std::span<u8> dst) {
+live::IoRead ioRead = [](u32 addr, std::span<u8> dst) {
   if (dolphin.getStatus() != DolphinAccessor::Status::Hooked) {
     return false;
   }
   return dolphin.readFromRAM(addr, dst, false);
 };
+live::IoWrite ioWrite = [](u32 addr, std::span<const u8> dst) {
+  if (dolphin.getStatus() != DolphinAccessor::Status::Hooked) {
+    return false;
+  }
+  return dolphin.writeToRAM(addr, dst, false);
+};
+live::Io io = {ioRead, ioWrite};
+
 std::string gameName() {
   std::string id = "????";
   if (dolphin.getStatus() == DolphinAccessor::Status::Hooked) {
@@ -141,6 +149,32 @@ void MkwDebug::draw() {
     }
   }
   ImGui::End();
+
+  if (ImGui::Begin("Race")) {
+    static bool sticky = false;
+    static librii::live_mkw::ItemInfo saved;
+    if (sticky) {
+      auto _ = librii::live_mkw::SetItem(io, saved, 0);
+    }
+    auto item = librii::live_mkw::GetItem(io, 0);
+    if (!item) {
+      util::PushErrorSyle();
+      ImGui::Text("%s\n", item.error().c_str());
+      util::PopErrorStyle();
+    } else {
+      auto kind = imcxx::EnumCombo("Item", item->kind);
+      int qty = item->qty;
+      ImGui::InputInt("Qty", &qty);
+      ImGui::Checkbox("Sticky?", &sticky);
+      bool changed = kind != item->kind || qty != item->qty;
+      if (changed) {
+        saved = librii::live_mkw::ItemInfo{kind, qty};
+        auto _ = librii::live_mkw::SetItem(io, saved, 0);
+      }
+    }
+  }
+  ImGui::End();
+
   for (auto& win : windows) {
     if (!win) {
       continue;
