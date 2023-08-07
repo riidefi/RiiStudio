@@ -5,10 +5,10 @@ use log::*;
 use std::io::Cursor;
 use std::path::PathBuf;
 
-use clap::CommandFactory;
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use clap_derive::Parser;
 use clap_derive::Subcommand;
+use clap_derive::ValueEnum;
 use std::ffi::OsString;
 use std::os::raw::{c_float, c_int, c_uint};
 use std::slice;
@@ -232,6 +232,16 @@ pub struct DecompressCommand {
     verbose: bool,
 }
 
+// Sync with librii::szs
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, ValueEnum)]
+enum SzsAlgo {
+    WorstCaseEncoding,
+    Nintendo,
+    MkwSp,
+    CTGP,
+}
+
 /// Compress a file as .szs
 #[derive(Parser, Debug)]
 pub struct CompressCommand {
@@ -241,6 +251,10 @@ pub struct CompressCommand {
 
     /// Output file for compressed file (.szs)
     to: Option<String>,
+
+    /// Compression algorithm to use.
+    #[clap(short, long, value_enum)]
+    algorithm: Option<SzsAlgo>,
 
     #[clap(short, long, default_value = "false")]
     verbose: bool,
@@ -422,6 +436,7 @@ pub struct CliOptions {
     pub no_compression: c_uint,
     pub rarc: c_uint,
     pub verbose: c_uint,
+    pub szs_algo: c_uint,
     // TYPE 2: "decompress"
     // Uses "from", "to" and "verbose" above
 }
@@ -482,6 +497,7 @@ impl MyArgs {
                     // Junk fields
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
                 }
             }
             Commands::Decompress(i) => {
@@ -519,6 +535,7 @@ impl MyArgs {
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
                 }
             }
             Commands::Compress(i) => {
@@ -536,6 +553,7 @@ impl MyArgs {
                     from: from2,
                     to: to2,
                     verbose: i.verbose as c_uint,
+                    szs_algo: i.algorithm.unwrap_or(SzsAlgo::CTGP) as c_uint,
 
                     // Junk fields
                     preset_path: [0; 256],
@@ -593,6 +611,7 @@ impl MyArgs {
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
                 }
             }
             Commands::JsonToKmp(i) => {
@@ -630,6 +649,7 @@ impl MyArgs {
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
                 }
             }
             Commands::KclToJson(i) => {
@@ -667,6 +687,7 @@ impl MyArgs {
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
                 }
             }
             Commands::JsonToKcl(i) => {
@@ -704,6 +725,7 @@ impl MyArgs {
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
                 }
             }
             Commands::Rhst2Brres(i) => {
@@ -741,6 +763,7 @@ impl MyArgs {
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
                 }
             }
             Commands::Rhst2Bmd(i) => {
@@ -778,6 +801,7 @@ impl MyArgs {
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
                 }
             }
             Commands::Extract(i) => {
@@ -815,6 +839,7 @@ impl MyArgs {
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
                 }
             }
             Commands::Create(i) => {
@@ -852,6 +877,7 @@ impl MyArgs {
                     fuse_vertices: 0 as c_uint,
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
                 }
             }
         }

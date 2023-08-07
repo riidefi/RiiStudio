@@ -74,6 +74,7 @@ struct CliOptions {
   bool32 no_compression = false;
   bool32 rarc = false;
   bool32 verbose = false;
+  uint32_t szs_algo = 0;
 };
 
 std::optional<CliOptions> parse(int argc, const char** argv);

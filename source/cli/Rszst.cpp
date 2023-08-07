@@ -1,6 +1,7 @@
 #include "Cli.hpp"
 #include <core/util/oishii.hpp>
 #include <core/util/timestamp.hpp>
+#include <fmt/color.h>
 #include <iostream>
 #include <librii/assimp/LRAssimp.hpp>
 #include <librii/assimp2rhst/Assimp.hpp>
@@ -16,6 +17,7 @@
 #include <plugins/j3d/J3dIo.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
 #include <rsl/Filesystem.hpp>
+#include <rsl/Timer.hpp>
 #include <sstream>
 
 namespace riistudio {
@@ -320,19 +322,25 @@ public:
       return std::unexpected(
           std::format("Error: Failed to read file {}\n", from.string()));
     }
-
-    fmt::print(stderr,
-               "Compressing SZS: {} => {} (Boyer-Moore-Horspool strategy)\n",
-               m_from.string(), m_to.string());
-    std::vector<u8> buf(file->size() * 2);
-    int size = librii::szs::encodeBoyerMooreHorspool(file->data(), buf.data(),
-                                                     file->size());
-    if (size < 0 || size > buf.size()) {
-      return std::unexpected("Error: Failed to compress file\n");
-    }
-    buf.resize(roundUp(size, 32));
-
+    auto strat = TRY(rsl::enum_cast<librii::szs::Algo>(m_opt.szs_algo));
+    auto sname = magic_enum::enum_name(strat);
+    rsl::Timer timer;
+    timer.reset();
+    fmt::print(stderr, "Compressing SZS: {} => {} ({} strategy)\n",
+               m_from.string(), m_to.string(),
+               fmt::styled(sname, fmt::fg(fmt::color::gold)));
+    auto buf = TRY(librii::szs::encodeAlgo(*file, strat));
+    float elapsed = static_cast<float>(timer.elapsed()) * 0.001f;
+    float rate =
+        static_cast<float>(buf.size()) / static_cast<float>(file->size());
+    buf.resize(roundUp(buf.size(), 32));
     plate::Platform::writeFile(buf, m_to.string());
+
+    fmt::print("Elapsed time: {:.2f} seconds. Compression rate: {:.2f}% "
+               "(lower is better)",
+               fmt::styled(elapsed, fmt::fg(fmt::color::light_green)),
+               fmt::styled(rate * 100.0f, fmt::fg(fmt::color::light_green)));
+
     return {};
   }
 
