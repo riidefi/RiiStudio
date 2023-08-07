@@ -34,7 +34,7 @@ BLENDER_30 = bpy.app.version[0] >= 3
 BLENDER_29 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 90) \
 	or BLENDER_30
 BLENDER_28 = (bpy.app.version[0] == 2 and bpy.app.version[1] >= 80) \
-	or BLENDER_30
+	or BLENDER_29
 
 #region versions
 RIISTUDIO_VERSION = "5.10.10"
