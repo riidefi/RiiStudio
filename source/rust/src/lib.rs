@@ -24,6 +24,29 @@ use std::path::Path;
 extern crate colored;
 use colored::*;
 
+fn utf16_to_utf8(utf16_slice: &[u16]) -> Result<String, std::string::FromUtf16Error> {
+    String::from_utf16(utf16_slice)
+}
+
+#[no_mangle]
+pub extern "C" fn rii_utf16_to_utf8(utf16: *const u16, len: u32, output: *mut u8, output_len: u32) -> i32 {
+    let utf16_slice = unsafe { std::slice::from_raw_parts(utf16, len as usize) };
+
+    match utf16_to_utf8(utf16_slice) {
+        Ok(utf8_string) => {
+            let utf8_bytes = utf8_string.as_bytes();
+            let bytes_to_copy = std::cmp::min(output_len as usize, utf8_bytes.len());
+
+            unsafe {
+                std::ptr::copy_nonoverlapping(utf8_bytes.as_ptr(), output, bytes_to_copy);
+            }
+
+            0 // Indicate success
+        }
+        Err(_) => -1 // Indicate error
+    }
+}
+
 pub fn download_string_rust(url: &str, user_agent: &str) -> Result<String, Error> {
     let mut easy = Easy::new();
     easy.url(url)?;
