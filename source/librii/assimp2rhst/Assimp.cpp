@@ -42,11 +42,13 @@ const aiScene* ReadScene(KCallback callback, std::span<const u8> file,
   if (settings.mIgnoreRootTransform) {
     importer.GetScene()->mRootNode->mTransformation = {};
   }
-  auto* pScene = importer.ApplyPostProcessing(aiProcess_PreTransformVertices);
+  auto* pScene =
+      importer.ApplyPostProcessing(aiFlags & aiProcess_PreTransformVertices);
   if (!pScene) {
     return nullptr;
   }
-  pScene = importer.ApplyPostProcessing(aiFlags);
+  pScene =
+      importer.ApplyPostProcessing(aiFlags & ~aiProcess_PreTransformVertices);
   if (!pScene) {
     return nullptr;
   }

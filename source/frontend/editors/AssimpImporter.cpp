@@ -108,6 +108,11 @@ void AssimpEditorPropertyGrid::Draw(librii::assimp2rhst::Settings& ctx) {
     // aiProcess_OptimizeGraph
     ImGui::CheckboxFlags("Compress bones (for static scenes)"_j, &ctx.mAiFlags,
                          aiProcess_OptimizeGraph);
+    ImGui::CheckboxFlags(
+        "Simplify multi-influence weighting into singlebinds"_j, &ctx.mAiFlags,
+        aiProcess_Debone);
+    ImGui::CheckboxFlags("Regenerate scene hierarchy", &ctx.mAiFlags,
+                         aiProcess_PreTransformVertices);
   }
   if (ImGui::CollapsingHeader(
           (const char*)ICON_FA_PROJECT_DIAGRAM u8" Data to Import",
