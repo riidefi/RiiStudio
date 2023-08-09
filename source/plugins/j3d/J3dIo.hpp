@@ -49,10 +49,11 @@ inline void toEditorMdl(riistudio::j3d::Collection& s,
 }
 
 [[nodiscard]] inline Result<void>
-WriteBMD(riistudio::j3d::Collection& collection, oishii::Writer& writer) {
+WriteBMD(riistudio::j3d::Collection& collection, oishii::Writer& writer,
+         bool linkmap = true) {
   librii::j3d::J3dModel tmp;
   readJ3dMdl(tmp, collection.getModels()[0], collection);
-  return tmp.write(writer);
+  return tmp.write(writer, linkmap);
 }
 [[nodiscard]] inline Result<void>
 ReadBMD(riistudio::j3d::Collection& collection, oishii::BinaryReader& reader,

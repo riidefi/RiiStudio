@@ -52,8 +52,8 @@ public:
   //!
   //! @param[in] writer The output stream.
   //!
-  [[nodiscard]] std::expected<void, std::string> write(Writer& writer,
-                                                       bool shuffle = false);
+  [[nodiscard]] std::expected<void, std::string>
+  write(Writer& writer, bool shuffle = false, bool print_linkmap = true);
 
   using PadFunction = void (*)(char* dst, u32 size);
   PadFunction mUserPad = nullptr;

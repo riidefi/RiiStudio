@@ -162,7 +162,7 @@ void Linker::shuffle() {
 
 void Linker::enforceRestrictions() {}
 
-Result<void> Linker::write(Writer& writer, bool doShuffle) {
+Result<void> Linker::write(Writer& writer, bool doShuffle, bool print_linkmap) {
   if (doShuffle) {
     shuffle();
     enforceRestrictions();
@@ -206,7 +206,7 @@ Result<void> Linker::write(Writer& writer, bool doShuffle) {
     }
   }
 
-  {
+  if (print_linkmap) {
     printf("Begin    End      Size     Align    Static Leaf  Symbol\n");
     for (const auto& entry : mMap) {
       printf("0x%06x 0x%06x 0x%06x 0x%06x %s  %s %s\n", (u32)entry.begin,

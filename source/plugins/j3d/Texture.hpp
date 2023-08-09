@@ -14,8 +14,8 @@ struct Texture : public librii::j3d::TextureData, public libcube::Texture {
   // PX_TYPE_INFO_EX("J3D Texture", "j3d_tex", "J::Texture", ICON_FA_IMAGES,
   // ICON_FA_IMAGE);
 
-  std::string getName() const override { return mName; }
-  void setName(const std::string& name) override { mName = name; }
+  std::string getName() const override { return name; }
+  void setName(const std::string& n) override { name = n; }
 
   librii::gx::TextureFormat getTextureFormat() const override {
     return mFormat;

@@ -6,6 +6,8 @@
 #include <librii/j3d/data/TextureData.hpp>
 #include <librii/j3d/data/VertexData.hpp>
 
+#include <plugins/gc/Export/Bone.hpp>
+
 #include <LibBadUIFramework/Plugins.hpp> // LightIOTransaction
 
 namespace librii::j3d {
@@ -116,9 +118,12 @@ struct J3dModel {
 
   bool operator==(const J3dModel&) const = default;
 
+  [[nodiscard]] static Result<J3dModel> fromFile(const std::string_view path,
+                                                 kpi::LightIOTransaction& tx);
   [[nodiscard]] static Result<J3dModel> read(oishii::BinaryReader& reader,
                                              kpi::LightIOTransaction& tx);
-  [[nodiscard]] Result<void> write(oishii::Writer& writer);
+  [[nodiscard]] Result<void> write(oishii::Writer& writer,
+                                   bool print_linkmap = true);
 
   [[nodiscard]] Result<void> dropMtx();
   [[nodiscard]] Result<void> genMtx();

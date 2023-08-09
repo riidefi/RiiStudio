@@ -7,17 +7,20 @@
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
 #include <librii/crate/g3d_crate.hpp>
+#include <librii/crate/j3d_crate.hpp>
 #include <librii/kcol/Model.hpp>
 #include <librii/kmp/io/KMP.hpp>
 #include <librii/rarc/RARC.hpp>
 #include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
 #include <mutex>
+#include <plugins/SceneImpl.hpp>
 #include <plugins/g3d/G3dIo.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/J3dIo.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
 #include <rsl/Filesystem.hpp>
+#include <rsl/StringManip.hpp>
 #include <rsl/Timer.hpp>
 #include <sstream>
 
@@ -305,8 +308,46 @@ public:
     if (!ok) {
       return std::unexpected("Failed to parse RHST");
     }
+    std::unordered_map<std::string, librii::crate::CrateAnimationJ3D> presets;
+    if (FS_TRY(rsl::filesystem::exists(m_presets)) &&
+        FS_TRY(rsl::filesystem::is_directory(m_presets))) {
+      for (auto it : std::filesystem::directory_iterator(m_presets)) {
+        if (it.path().extension() == ".bmd_rspreset") {
+          auto file = ReadFile(it.path().string());
+          if (!file) {
+            fmt::print(stderr, "Failed to read bmd_rspreset: {}\n",
+                       it.path().string());
+            continue;
+          }
+          auto preset = librii::crate::ReadRSPresetJ3D(*file);
+          if (!preset) {
+            fmt::print(stderr, "Failed to parse bmd_rspreset: {}\n",
+                       it.path().string());
+            continue;
+          }
+          presets[it.path().stem().string()] = *preset;
+        }
+      }
+      auto& mdl = m_result->getModels()[0];
+      for (size_t i = 0; i < mdl.getMaterials().size(); ++i) {
+        auto& target_mat = mdl.getMaterials()[i];
+        if (!presets.contains(target_mat.name))
+          continue;
+        auto& source_mat = presets[target_mat.name];
+        auto ok =
+            ApplyCratePresetToMaterialJ3D(*m_result, target_mat, source_mat);
+        if (!ok) {
+          fmt::print(stderr,
+                     "Attempted to merge {} into {}. Failed with error: {}\n",
+                     source_mat.mat.name, target_mat.name, ok.error());
+          continue;
+        }
+        auto s = std::format("Applied preset {}", source_mat.mat.name);
+        fmt::print(stdout, "{}\n", fmt::styled(s, fmt::fg(fmt::color::green)));
+      }
+    }
     oishii::Writer result(std::endian::big);
-    TRY(riistudio::j3d::WriteBMD(*m_result, result));
+    TRY(riistudio::j3d::WriteBMD(*m_result, result, false));
     result.saveToDisk(m_to.string());
     return {};
   }
@@ -837,7 +878,7 @@ static Result<void> json2kcl(const CliOptions& m_opt) {
   return std::unexpected("unimplemented!");
 }
 
-static Result<void> dumpPresets(const CliOptions& m_opt) {
+static Result<void> dumpPresetsG3D(const CliOptions& m_opt) {
   std::filesystem::path m_from = m_opt.from.view();
   std::filesystem::path m_to = m_opt.to.view();
 
@@ -887,6 +928,58 @@ static Result<void> dumpPresets(const CliOptions& m_opt) {
   auto brres = TRY(librii::g3d::Archive::fromFile(m_from.string(), trans));
   TRY(librii::crate::DumpPresetsToFolder(m_to, brres, /*cli*/ true,
                                          /*metadata*/ ""));
+
+  return {};
+}
+static Result<void> dumpPresetsJ3D(const CliOptions& m_opt) {
+  std::filesystem::path m_from = m_opt.from.view();
+  std::filesystem::path m_to = m_opt.to.view();
+
+  if (m_to.empty()) {
+    std::filesystem::path p = m_from;
+    p.replace_extension(".presets");
+    m_to = p;
+  }
+  if (!FS_TRY(rsl::filesystem::exists(m_from))) {
+    fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+    return std::unexpected("FileNotExist");
+  }
+  const bool overwrite = FS_TRY(rsl::filesystem::exists(m_to));
+  if (overwrite && !FS_TRY(rsl::filesystem::is_directory(m_to))) {
+    fmt::print(
+        stderr,
+        "Error: Cannot write folder to {}--file exists with the same name!\n",
+        m_to.string());
+    return std::unexpected("NotAFolder");
+  }
+  if (overwrite) {
+    fmt::print(stderr,
+               "Warning: Folder {} will be overwritten by this operation.\n",
+               m_to.string());
+  } else {
+    FS_TRY(rsl::filesystem::create_directory(m_to));
+  }
+  if (m_opt.verbose) {
+    rsl::logging::init();
+  }
+  auto file = ReadFile(m_opt.from.view());
+  if (!file.has_value()) {
+    return std::unexpected("Error: Failed to read file");
+  }
+
+  fmt::print(stderr, "Dumping Presets BMD,{} => {}\n", m_from.string(),
+             m_to.string());
+
+  kpi::LightIOTransaction trans;
+  trans.callback = [&](kpi::IOMessageClass message_class,
+                       const std::string_view domain,
+                       const std::string_view message_body) {
+    auto msg = std::format("[{}] {} {}", magic_enum::enum_name(message_class),
+                           domain, message_body);
+    rsl::error(msg);
+  };
+  auto brres = TRY(librii::j3d::J3dModel::fromFile(m_from.string(), trans));
+  TRY(librii::crate::DumpPresetsToFolderJ3D(m_to, brres, /*cli*/ true));
 
   return {};
 }
@@ -1003,7 +1096,14 @@ int main(int argc, const char** argv) {
     }
   }
   if (args->type == TYPE_DUMP_PRESETS) {
-    auto ok = dumpPresets(*args);
+    Result<void> ok = {};
+    std::string from_ = rsl::to_lower(args->from.view());
+    bool isJ3d = from_.ends_with("bmd") || from_.ends_with("bdl");
+    if (isJ3d) {
+      dumpPresetsJ3D(*args);
+    } else {
+      dumpPresetsG3D(*args);
+    }
     if (!ok) {
       fmt::print(stderr, "{}\n", ok.error());
       return -1;

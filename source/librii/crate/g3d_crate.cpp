@@ -572,7 +572,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
                                                 std::string_view metadata) {
   if (!scene) {
     return std::unexpected(
-        "Internal: This scene type does not support .rsmat presets. "
+        "Internal: This scene type does not support .rspreset files. "
         "Not a BRRES file?");
   }
   std::set<std::string> tex_names, srt_names;

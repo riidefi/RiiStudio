@@ -130,7 +130,7 @@ Result<void> readTEX1(BMDOutputContext& ctx) {
     tex.btiId = i;
     rsl::SafeReader safe(reader);
     TRY(tex.transfer(safe));
-    printf(":: (%d) %s\n", i, nameTable[i].c_str());
+    rsl::info("readTEX1 :: ({}) {}", i, nameTable[i]);
 
     if (librii::gx::IsPaletteFormat(tex.mFormat)) {
       return std::unexpected("Texture \"" + nameTable[i] +
@@ -172,7 +172,7 @@ Result<void> readTEX1(BMDOutputContext& ctx) {
     auto& inf = texRaw.emplace_back();
     auto& data = inf.data;
 
-    data.mName = nameTable[i];
+    data.name = nameTable[i];
     data.mFormat = tex.mFormat;
     data.mWidth = tex.mWidth;
     data.mHeight = tex.mHeight;
@@ -247,9 +247,9 @@ struct TEX1Node final : public oishii::Node {
       std::vector<std::string> names;
 
       for (int i = 0; i < mMdl.mTexCache.size(); ++i)
-        names.push_back(mMdl.mdl.textures[mMdl.mTexCache[i].btiId].mName);
+        names.push_back(mMdl.mdl.textures[mMdl.mTexCache[i].btiId].name);
       for (int i = 0; i < names.size(); ++i) {
-        printf(":: (%i) %s\n", i, names[i].c_str());
+        rsl::info("TEX1Node.TexNames :: ({}) {}", i, names[i]);
       }
       writeNameTable(writer, names);
       writer.alignTo(32);
