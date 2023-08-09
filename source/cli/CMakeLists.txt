@@ -21,6 +21,7 @@ target_link_libraries(cli PUBLIC
   plugins
   vendor
   rsmeshopt
+  rszst_arg_parser
 )
 # ???
 add_dependencies(cli plugins)

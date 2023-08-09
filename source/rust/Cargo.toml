@@ -10,7 +10,4 @@ crate-type=["cdylib"]
 zip-extract = { git = "https://github.com/riidefi/zip-extract", branch = "v2" }
 log = "0.4.7"
 simple_logger = "4.0.0"
-clap = "4.1.8"
-clap_derive = "4.1.8"
 curl = "0.4.44"
-colored = "2"
