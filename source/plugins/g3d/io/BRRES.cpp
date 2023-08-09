@@ -1,6 +1,6 @@
-#include <core/common.h>
 #include <LibBadUIFramework/Node2.hpp>
 #include <LibBadUIFramework/Plugins.hpp>
+#include <core/common.h>
 
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
@@ -15,7 +15,6 @@
 #include <rsl/Ranges.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
-
 
 namespace riistudio::g3d {
 
@@ -75,19 +74,16 @@ static Result<void> processModel(librii::g3d::Model& binary_model,
   return {};
 }
 
-void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
-               kpi::LightIOTransaction& transaction) {
+Result<void> ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
+                       kpi::LightIOTransaction& transaction) {
   librii::g3d::BinaryArchive bin;
   if (auto r = bin.read(reader, transaction); !r) {
     transaction.callback(kpi::IOMessageClass::Error, "BRRES", r.error());
-    transaction.state = kpi::TransactionState::Failure;
-    return;
+    return std::unexpected(r.error());
   }
   auto archive_ = librii::g3d::Archive::from(bin, transaction);
   if (!archive_) {
-    transaction.callback(kpi::IOMessageClass::Error, "BRRES", archive_.error());
-    transaction.state = kpi::TransactionState::Failure;
-    return;
+    return std::unexpected(archive_.error());
   }
   auto archive = *archive_;
   collection.path = reader.getFile();
@@ -98,8 +94,8 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
       transaction.callback(
           kpi::IOMessageClass::Error, std::format("MDL0 {}", mdl.name),
           std::format("Could not read MDL0 {}: {}", mdl.name, ok.error()));
-      transaction.state = kpi::TransactionState::Failure;
-      return;
+      return std::unexpected(
+          std::format("Could not read MDL0 {}: {}", mdl.name, ok.error()));
     }
   }
   for (auto& tex : archive.textures) {
@@ -114,6 +110,7 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
   collection.clrs = archive.clrs;
   collection.pats = archive.pats;
   collection.viss = archive.viss;
+  return {};
 }
 
 librii::g3d::Model toBinaryModel(const Model& mdl) {

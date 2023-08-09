@@ -197,8 +197,11 @@ BRRESEditor::BRRESEditor(std::span<const u8> span, const std::string& path)
     Message emsg(message_class, std::string(domain), std::string(message_body));
     mLoadErrorMessages.push_back(emsg);
   };
-  g3d::ReadBRRES(*out, reader, trans);
-  if (trans.state != kpi::TransactionState::Complete) {
+  auto ok = g3d::ReadBRRES(*out, reader, trans);
+  if (!ok) {
+    rsl::error(ok.error());
+    Message emsg(kpi::IOMessageClass::Error, "brres", std::string(ok.error()));
+    mLoadErrorMessages.push_back(emsg);
     mErrorState = true;
     return;
   }
@@ -349,10 +352,6 @@ BMDEditor::BMDEditor(std::span<const u8> span, const std::string& path)
     Message emsg(kpi::IOMessageClass::Error, "bmd", std::string(ok.error()));
     mLoadErrorMessages.push_back(emsg);
     mErrorState = true;
-    return;
-  }
-  if (trans.state != kpi::TransactionState::Complete) {
-    rsl::ErrorDialog(total);
     return;
   }
   attach(std::move(out));

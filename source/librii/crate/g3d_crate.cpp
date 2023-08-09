@@ -441,10 +441,6 @@ struct SimpleTransaction {
     trans.callback = [](...) {};
   }
 
-  bool success() const {
-    return trans.state == kpi::TransactionState::Complete;
-  }
-
   kpi::LightIOTransaction trans;
 };
 
@@ -457,14 +453,8 @@ std::unique_ptr<librii::g3d::Archive> ReadBRRES(const std::vector<u8>& buf,
   if (!ok) {
     return nullptr;
   }
-  if (!trans.success()) {
-    return nullptr;
-  }
 
   auto arc = librii::g3d::Archive::from(bin, trans.trans);
-  if (!trans.success()) {
-    return nullptr;
-  }
   if (!arc) {
     return nullptr;
   }

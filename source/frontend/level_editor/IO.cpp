@@ -22,10 +22,6 @@ struct SimpleTransaction {
     };
   }
 
-  bool success() const {
-    return trans.state == kpi::TransactionState::Complete;
-  }
-
   kpi::LightIOTransaction trans;
 };
 
@@ -36,15 +32,14 @@ Result<std::unique_ptr<g3d::Collection>> ReadBRRES(const std::vector<u8>& buf,
 
   SimpleTransaction trans;
   oishii::BinaryReader reader(buf, path, std::endian::big);
-  g3d::ReadBRRES(*result, reader, trans.trans);
+  TRY(g3d::ReadBRRES(*result, reader, trans.trans));
 
-  // Tentatively allow previewing models we can't rebuild
+// Tentatively allow previewing models we can't rebuild
+#if 0
   if (need_resave == NeedResave::AllowUnwritable &&
       trans.trans.state == kpi::TransactionState::FailureToSave)
     return result;
-
-  if (!trans.success())
-    return std::unexpected("Transaction failed");
+#endif
 
   return result;
 }

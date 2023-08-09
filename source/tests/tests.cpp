@@ -121,9 +121,9 @@ void rebuild(std::string from, const std::string_view to, bool check,
                         domain, message_body);
         rsl::error(msg);
       };
-      riistudio::g3d::ReadBRRES(brres, reader, trans);
-      if (trans.state != kpi::TransactionState::Complete) {
-        fprintf(stderr, "Failed to read BRRES\n");
+      auto ok = riistudio::g3d::ReadBRRES(brres, reader, trans);
+      if (!ok) {
+        fprintf(stderr, "Failed to read BRRES: %s\n", ok.error().c_str());
         return;
       }
       printf("Writing to %s\n", std::string(to).c_str());

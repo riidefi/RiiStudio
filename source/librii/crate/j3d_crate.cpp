@@ -11,10 +11,6 @@ struct SimpleTransaction {
     trans.callback = [](...) {};
   }
 
-  bool success() const {
-    return trans.state == kpi::TransactionState::Complete;
-  }
-
   kpi::LightIOTransaction trans;
 };
 

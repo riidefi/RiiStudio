@@ -252,9 +252,6 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
         librii::gx::VertexBufferType::Generic{});
   }));
 
-  if (transaction.state == kpi::TransactionState::Failure)
-    return {};
-
   // TODO: Fur
 
   TRY(readDict(secOfs.ofsMaterials, [&](const librii::g3d::BetterNode& dnode) {
@@ -284,9 +281,6 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
                     "Likely erroneously set by BrawlBox.",
                     num_furpolys));
   }
-
-  if (transaction.state == kpi::TransactionState::Failure)
-    return {};
 
   TRY(readDict(secOfs.ofsRenderTree,
                [&](const librii::g3d::BetterNode& dnode) -> Result<void> {
@@ -871,7 +865,7 @@ public:
                  const BinaryModel& bmdl_, kpi::IOContext& ctx_)
       : method(method_), mdl(mdl_), binary_mdl(bmdl_), ctx(ctx_) {}
 
-  void onDraw(const B::Draw& draw) {
+  Result<void> onDraw(const B::Draw& draw) {
     BoneData::DisplayCommand disp{
         .mMaterial = static_cast<u32>(draw.matId),
         .mPoly = static_cast<u32>(draw.polyId),
@@ -881,19 +875,19 @@ public:
     if (boneIdx > mdl.bones.size()) {
       ctx.error("Invalid bone index in render command");
       boneIdx = 0;
-      ctx.transaction.state = kpi::TransactionState::Failure;
+      return std::unexpected("Invalid bone index in render command");
     }
 
     if (disp.mMaterial > mdl.meshes.size()) {
       ctx.error("Invalid material index in render command");
       disp.mMaterial = 0;
-      ctx.transaction.state = kpi::TransactionState::Failure;
+      return std::unexpected("Invalid material index in render command");
     }
 
     if (disp.mPoly > mdl.meshes.size()) {
       ctx.error("Invalid mesh index in render command");
       disp.mPoly = 0;
-      ctx.transaction.state = kpi::TransactionState::Failure;
+      return std::unexpected("Invalid mesh index in render command");
     }
 
     mdl.bones[boneIdx].mDisplayCommands.push_back(disp);
@@ -920,6 +914,7 @@ public:
     }
     // And ultimately reset the flag to its proper value.
     mat.xlu = method.name == "DrawXlu";
+    return {};
   }
 
   void onNodeDesc(const B::NodeDescendence& desc) {
@@ -963,6 +958,8 @@ public:
     return {};
   }
 
+  bool isError() const { return error; }
+
 private:
   DrawMatrix& insertMatrix(std::size_t index) {
     if (mdl.matrices.size() <= index) {
@@ -974,6 +971,7 @@ private:
   Model& mdl;
   const BinaryModel& binary_mdl;
   kpi::IOContext& ctx;
+  bool error = false;
 };
 
 inline std::set<s16> gcomputeShapeMtxRef(auto&& meshes) {
@@ -1019,9 +1017,6 @@ Result<void> processModel(const BinaryModel& binary_model,
                           kpi::LightIOTransaction& transaction,
                           std::string_view transaction_path, Model& mdl) {
   using namespace librii::g3d;
-  if (transaction.state == kpi::TransactionState::Failure) {
-    return {};
-  }
   kpi::IOContext ctx(std::string(transaction_path) + "//MDL0 " +
                          binary_model.name,
                      transaction);
@@ -1137,7 +1132,7 @@ Result<void> processModel(const BinaryModel& binary_model,
     ByteCodeHelper helper(method, mdl, binary_model, ctx);
     for (auto& command : method.commands) {
       if (auto* draw = std::get_if<ByteCodeLists::Draw>(&command)) {
-        helper.onDraw(*draw);
+        TRY(helper.onDraw(*draw));
       } else if (auto* desc =
                      std::get_if<ByteCodeLists::NodeDescendence>(&command)) {
         helper.onNodeDesc(*desc);
