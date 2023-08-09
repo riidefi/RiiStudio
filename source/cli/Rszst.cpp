@@ -22,6 +22,7 @@
 #include <rsl/Filesystem.hpp>
 #include <rsl/StringManip.hpp>
 #include <rsl/Timer.hpp>
+#include <rsl/WriteFile.hpp>
 #include <sstream>
 
 namespace riistudio {
@@ -445,7 +446,7 @@ public:
     if (FS_TRY(rsl::filesystem::is_directory(m_to))) {
       return std::unexpected("Failed to extract: |to| is a folder, not a file");
     }
-    plate::Platform::writeFile(buf, m_to.string());
+    TRY(rsl::WriteFile(buf, m_to.string()));
     return {};
   }
 
@@ -506,7 +507,7 @@ public:
     float rate =
         static_cast<float>(buf.size()) / static_cast<float>(file->size());
     buf.resize(roundUp(buf.size(), 32));
-    plate::Platform::writeFile(buf, m_to.string());
+    TRY(rsl::WriteFile(buf, m_to.string()));
 
     fmt::print("Elapsed time: {:.2f} seconds. Compression rate: {:.2f}% "
                "(lower is better)",
@@ -725,7 +726,7 @@ public:
 
     if (m_opt.no_compression) {
       buf.resize(roundUp(buf.size(), 32));
-      plate::Platform::writeFile(buf, m_to.string());
+      TRY(rsl::WriteFile(buf, m_to.string()));
       return {};
     }
 
@@ -740,7 +741,7 @@ public:
     }
     szs.resize(roundUp(sz, 32));
 
-    plate::Platform::writeFile(szs, m_to.string());
+    TRY(rsl::WriteFile(szs, m_to.string()));
 
     return {};
   }

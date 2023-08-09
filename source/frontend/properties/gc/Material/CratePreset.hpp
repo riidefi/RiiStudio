@@ -90,7 +90,7 @@ public:
 
 std::string tryImportTEX0(libcube::Texture& tex);
 std::string tryImportSRT0(riistudio::g3d::SRT0& srt);
-std::string tryExportSRT0(const librii::g3d::SrtAnimationArchive& arc);
+Result<void> tryExportSRT0(const librii::g3d::SrtAnimationArchive& arc);
 Result<void> tryReplace(riistudio::g3d::Material& mat);
 Result<void> tryImportRsPreset(riistudio::g3d::Material& mat);
 std::string tryExportRsPreset(const riistudio::g3d::Material& mat);

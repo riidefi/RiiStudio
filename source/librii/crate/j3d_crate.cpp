@@ -3,6 +3,7 @@
 #include <core/util/timestamp.hpp>
 #include <plate/Platform.hpp>
 #include <rsl/ArrayUtil.hpp>
+#include <rsl/WriteFile.hpp>
 
 namespace librii::crate {
 
@@ -114,7 +115,7 @@ CreatePresetFromMaterialJ3D(const j3d::MaterialData& mat,
     auto preset = TRY(CreatePresetFromMaterialJ3D(mat, &scene));
     auto bytes = TRY(WriteRSPresetJ3D(preset, cli));
     auto dst = (root / (mat.name + ".bmd_rspreset")).string();
-    plate::Platform::writeFile(bytes, dst);
+    rsl::WriteFile(bytes, dst);
   }
   return {};
 }

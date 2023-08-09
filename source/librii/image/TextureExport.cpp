@@ -3,7 +3,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <vendor/stb_image_write.h>
 
-#include <plate/Platform.hpp>
+#include <rsl/WriteFile.hpp>
 
 namespace librii {
 
@@ -18,8 +18,8 @@ void writeImageStb(const char* filename, STBImage type, int x, int y,
     encoded = stbi_write_png_to_mem(
         reinterpret_cast<const unsigned char*>(data),
         x * channel_component_count, x, y, channel_component_count, &len);
-    plate::Platform::writeFile(
-        std::span<uint8_t>{encoded, static_cast<std::size_t>(len)}, filename);
+    rsl::WriteFile(std::span<uint8_t>{encoded, static_cast<std::size_t>(len)},
+                   filename);
     break;
   case STBImage::BMP:
     stbi_write_bmp(filename, x, y, channel_component_count, data);

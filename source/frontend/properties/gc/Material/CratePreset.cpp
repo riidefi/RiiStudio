@@ -9,6 +9,7 @@
 #include <rsl/Defer.hpp>
 #include <rsl/FsDialog.hpp>
 #include <rsl/Stb.hpp>
+#include <rsl/WriteFile.hpp>
 
 #include <librii/crate/j3d_crate.hpp>
 #include <librii/rhst/RHSTOptimizer.hpp>
@@ -103,7 +104,10 @@ public:
       return "librii::crate::WriteTEX0 failed";
     }
 
-    plate::Platform::writeFile(buf, path);
+    auto ok = rsl::WriteFile(buf, path);
+    if (!ok) {
+      return ok.error();
+    }
     return {};
   }
 
@@ -131,31 +135,25 @@ public:
   }
 };
 
-std::string tryExportSRT0(const librii::g3d::SrtAnimationArchive& arc) {
+Result<void> tryExportSRT0(const librii::g3d::SrtAnimationArchive& arc) {
   std::string path = arc.name + ".srt0";
 
   // Web version does not
   if (rsl::FileDialogsSupported()) {
-    auto choice = rsl::SaveOneFile("Export Path"_j, path,
-                                   {
-                                       "SRT0 file (*.srt0)",
-                                       "*.srt0",
-                                   });
-    if (!choice) {
-      return choice.error();
-    }
-    path = choice->string();
+    auto choice = TRY(rsl::SaveOneFile("Export Path"_j, path,
+                                       {
+                                           "SRT0 file (*.srt0)",
+                                           "*.srt0",
+                                       }));
+    path = choice.string();
   }
 
-  auto buf = librii::crate::WriteSRT0(arc.write(arc));
-  if (!buf) {
-    return "librii::crate::WriteSRT0 failed: " + buf.error();
-  }
-  if (buf->empty()) {
-    return "librii::crate::WriteSRT0 failed";
+  auto buf = TRY(librii::crate::WriteSRT0(arc.write(arc)));
+  if (buf.empty()) {
+    return std::unexpected("librii::crate::WriteSRT0 failed");
   }
 
-  plate::Platform::writeFile(*buf, path);
+  TRY(rsl::WriteFile(buf, path));
   return {};
 }
 class SaveAsSRT0 : public kpi::ActionMenu<riistudio::g3d::SRT0, SaveAsSRT0> {
@@ -176,9 +174,9 @@ public:
 
     if (m_export) {
       m_export = false;
-      auto err = tryExportSRT0(srt);
-      if (!err.empty()) {
-        m_errorState.enter(std::move(err));
+      auto ok = tryExportSRT0(srt);
+      if (!ok) {
+        m_errorState.enter(std::move(ok.error()));
       }
     }
 
@@ -210,7 +208,10 @@ std::string tryExportMdl0Mat(const librii::g3d::G3dMaterialData& mat) {
   if (buf.empty()) {
     return "librii::crate::WriteMDL0Mat failed";
   }
-  plate::Platform::writeFile(buf, path);
+  auto wok = rsl::WriteFile(buf, path);
+  if (!wok) {
+    return wok.error();
+  }
 
   {
     auto fs_path = std::filesystem::path(path);
@@ -220,7 +221,10 @@ std::string tryExportMdl0Mat(const librii::g3d::G3dMaterialData& mat) {
     if (buf.empty()) {
       return "librii::crate::WriteMDL0Shade failed";
     }
-    plate::Platform::writeFile(buf, shade.string());
+    auto wok2 = rsl::WriteFile(buf, shade.string());
+    if (!wok2) {
+      return wok2.error();
+    }
   }
 
   return {};
@@ -515,7 +519,10 @@ std::string tryExportRsPresetMat(std::string path,
     return "librii::crate::WriteRSPreset failed";
   }
 
-  plate::Platform::writeFile(*buf, path);
+  auto wok2 = rsl::WriteFile(*buf, path);
+  if (!wok2) {
+    return wok2.error();
+  }
   return {};
 }
 

@@ -4,6 +4,7 @@
 #include <librii/g3d/io/MatIO.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
+#include <rsl/WriteFile.hpp>
 
 IMPORT_STD;
 
@@ -666,7 +667,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
       auto preset = TRY(CreatePresetFromMaterial(mat, &scene, metadata));
       auto bytes = TRY(WriteRSPreset(preset, cli));
       auto dst = (root / (mat.name + ".rspreset")).string();
-      plate::Platform::writeFile(bytes, dst);
+      TRY(rsl::WriteFile(bytes, dst));
     }
   }
   return {};

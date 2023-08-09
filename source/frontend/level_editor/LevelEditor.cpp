@@ -23,6 +23,7 @@
 #include <librii/szs/SZS.hpp>
 #include <librii/wbz/WBZ.hpp>
 #include <rsl/FsDialog.hpp>
+#include <rsl/WriteFile.hpp>
 
 namespace riistudio::lvl {
 
@@ -84,7 +85,8 @@ Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
   // Convert to .szs (optional)
   std::vector<u8> szs_buf;
   if (path.ends_with(".wbz")) {
-    auto arc = TRY(librii::wbz::decodeWBZ(buf, "C:\\Program Files\\Wiimm\\SZS\\auto-add"));
+    auto arc = TRY(
+        librii::wbz::decodeWBZ(buf, "C:\\Program Files\\Wiimm\\SZS\\auto-add"));
     szs_buf = TRY(librii::szs::encodeCTGP(arc));
   }
 
@@ -222,7 +224,10 @@ void LevelEditorWindow::saveFile(std::string path) {
     return;
   }
 
-  plate::Platform::writeFile(*szs_buf, path);
+  auto ok = rsl::WriteFile(*szs_buf, path);
+  if (!ok) {
+    rsl::ErrorDialogFmt("Failed to save:\n{}", ok.error());
+  }
 }
 
 static std::optional<std::pair<std::string, std::vector<u8>>>

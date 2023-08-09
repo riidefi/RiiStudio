@@ -11,7 +11,7 @@ add_library(rsl STATIC
  "Defer.hpp" "DebugBreak.hpp" "Ranges.hpp" "Stb.cpp" "SafeReader.cpp" "Launch.cpp" "Download.cpp" "Zip.cpp" "Log.cpp"
  
  "Discord.cpp"
- )
+  "WriteFile.cpp")
  
 if (WIN32)
   target_link_directories(rsl PUBLIC ${PROJECT_SOURCE_DIR}/../vendor/dll)
