@@ -6,19 +6,8 @@
 
 namespace librii::dolphin {
 
-struct SharedMem {
-  static Result<SharedMem> from(std::string memFileName);
-  SharedMem() : sharedMem(nullptr) {}
-  SharedMem(void* s) : sharedMem(s) {}
-  SharedMem(const SharedMem&) = delete;
-  SharedMem(SharedMem&& rhs) noexcept : sharedMem(rhs.sharedMem) {
-    rhs.sharedMem = nullptr;
-  }
-  ~SharedMem();
-  void* get() const { return sharedMem; }
-
-  void* sharedMem;
-};
+using SharedMem = std::unique_ptr<void, void (*)(void*)>;
+Result<SharedMem> SharedMem_from(std::string memFileName);
 
 std::optional<int> GetDolphinPID();
 
@@ -77,27 +66,14 @@ struct DolphinAc {
     Hooked,
     UnHooked,
   };
-  static inline uint32_t code[] = {
-      llvm::ByteSwap_32(0x029f0010), llvm::ByteSwap_32(0x029f0033),
-      llvm::ByteSwap_32(0x029f0034), llvm::ByteSwap_32(0x029f0035)};
-
-  void* find_sequence(void* start, size_t size) {
-    uint32_t* p = (uint32_t*)start;
-    for (size_t i = 0; i < size - 4 + 1; i++, p++) {
-      if (memcmp(p, code, sizeof(code)) == 0) {
-        return p;
-      }
-    }
-    return NULL;
-  }
   void hook() {
     mPID = GetDolphinPID();
     if (mPID) {
-      new (&mSHM) SharedMem(*OpenDolphin(*mPID));
-      dumpMemoryLayout();
-      void* addr = find_sequence((char*)mSHM.get() + GetRamSize(mSHM),
-                                 GetExRamSize() / 4);
-      fmt::print("MEM2 at {:x}\n", (unsigned long long)addr);
+      auto dol = OpenDolphin(*mPID);
+      if (dol) {
+        new (&mSHM) SharedMem(std::move(*dol));
+        dumpMemoryLayout();
+      }
     }
   }
 
@@ -135,7 +111,7 @@ struct DolphinAc {
   void dumpMemoryLayout();
   void dumpRegion(const std::string& name, u32 virtualStart, u32 size);
 
-  SharedMem mSHM;
+  SharedMem mSHM{nullptr, +[](void*) {}};
   std::optional<int> mPID;
 };
 

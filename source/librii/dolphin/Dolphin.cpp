@@ -37,15 +37,7 @@ std::optional<int> GetDolphinPID() {
   return std::nullopt;
 }
 
-SharedMem::~SharedMem() {
-  if (sharedMem != nullptr) {
-#ifdef _WIN32
-    UnmapViewOfFile(sharedMem);
-#endif
-    sharedMem = nullptr;
-  }
-}
-Result<SharedMem> SharedMem::from(std::string memFileName) {
+Result<SharedMem> SharedMem_from(std::string memFileName) {
 #ifdef _WIN32
   HANDLE hMapFile =
       CreateFileMappingA(INVALID_HANDLE_VALUE, // Use paging file.
@@ -75,7 +67,8 @@ Result<SharedMem> SharedMem::from(std::string memFileName) {
     return std::unexpected(s);
   }
 
-  return SharedMem(lpMapAddress);
+  return SharedMem(
+      lpMapAddress, +[](void* s) -> void { UnmapViewOfFile(s); });
 #else
   return std::unexpected("Non-windows unsuported");
 #endif
@@ -83,7 +76,7 @@ Result<SharedMem> SharedMem::from(std::string memFileName) {
 
 Result<SharedMem> OpenDolphin(int pid) {
   std::string memFileName = "dolphin-emu." + std::to_string(pid);
-  return SharedMem::from(memFileName);
+  return SharedMem_from(memFileName);
 }
 
 void DolphinAc::dumpMemoryLayout() {
