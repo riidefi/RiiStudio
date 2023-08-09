@@ -10,7 +10,10 @@
 #include <rsl/FsDialog.hpp>
 #include <rsl/Stb.hpp>
 
+#include <librii/crate/j3d_crate.hpp>
 #include <librii/rhst/RHSTOptimizer.hpp>
+
+#include <plugins/SceneImpl.hpp>
 
 namespace libcube::UI {
 
@@ -420,6 +423,21 @@ Result<void> tryImportRsPreset(riistudio::g3d::Material& mat) {
                                          }));
   return ApplyRSPresetToMaterial(mat, file.data);
 }
+Result<void> ApplyRSPresetToMaterialJ3D(riistudio::j3d::Collection& c,
+                                        librii::j3d::MaterialData& mat,
+                                        std::span<const u8> file) {
+  auto anim = TRY(librii::crate::ReadRSPresetJ3D(file));
+  return riistudio::j3d::ApplyCratePresetToMaterialJ3D(c, mat, anim);
+}
+Result<void> tryImportRsPresetJ(riistudio::j3d::Collection& c,
+                                riistudio::j3d::Material& mat) {
+  const auto file = TRY(rsl::ReadOneFile("Select preset"_j, "",
+                                         {
+                                             "bmd_rspreset Files",
+                                             "*.bmd_rspreset",
+                                         }));
+  return ApplyRSPresetToMaterialJ3D(c, mat, file.data);
+}
 class ApplyRsPreset
     : public kpi::ActionMenu<riistudio::g3d::Material, ApplyRsPreset> {
   bool m_import = false;
@@ -440,6 +458,38 @@ public:
     if (m_import) {
       m_import = false;
       auto ok = tryImportRsPreset(mat);
+      if (!ok) {
+        m_errorState.enter(std::move(ok.error()));
+      }
+      return kpi::CHANGE_NEED_RESET;
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
+
+class ApplyRsPresetJ
+    : public kpi::ActionMenu<riistudio::j3d::Material, ApplyRsPresetJ> {
+  bool m_import = false;
+  ErrorState m_errorState{"RSPreset Import Error"};
+
+public:
+  bool _context(riistudio::j3d::Material&) {
+    if (ImGui::MenuItem("Apply .bmd_rspreset material preset"_j)) {
+      m_import = true;
+    }
+
+    return false;
+  }
+
+  kpi::ChangeType _modal(riistudio::j3d::Material& mat) {
+    m_errorState.modal();
+
+    if (m_import) {
+      m_import = false;
+      auto& scn =
+          *dynamic_cast<riistudio::j3d::Collection*>(mat.childOf->childOf);
+      auto ok = tryImportRsPresetJ(scn, mat);
       if (!ok) {
         m_errorState.enter(std::move(ok.error()));
       }
@@ -633,11 +683,15 @@ void InstallCrate() {
   action_menu.addMenu(std::make_unique<MakeRsPreset>());
   action_menu.addMenu(std::make_unique<MakeRsPresetALL>());
   action_menu.addMenu(std::make_unique<ImportPresetsAction>());
+  // action_menu.addMenu(std::make_unique<MakeRsPresetJ>());
+  // action_menu.addMenu(std::make_unique<MakeRsPresetALLJ>());
+  // action_menu.addMenu(std::make_unique<ImportPresetsActionJ>());
   action_menu.addMenu(std::make_unique<SaveAsMDL0MatShade>());
   action_menu.addMenu(std::make_unique<AdvTexConvAction>());
   action_menu.addMenu(std::make_unique<OptimizeMesh>());
   if (rsl::FileDialogsSupported()) {
     action_menu.addMenu(std::make_unique<ApplyRsPreset>());
+    action_menu.addMenu(std::make_unique<ApplyRsPresetJ>());
     action_menu.addMenu(std::make_unique<CrateReplaceAction>());
     action_menu.addMenu(std::make_unique<ReplaceWithSRT0>());
     action_menu.addMenu(std::make_unique<ImportTexturesAction>());
