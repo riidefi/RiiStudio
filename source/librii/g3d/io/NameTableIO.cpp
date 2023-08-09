@@ -67,6 +67,10 @@ void NameTable::poolNames(bool UseNMethod) {
       mMapping[it.id] = pool.size();
       pool.push_back({it.name, it.nonvolatile});
       size += it.name.size() + 5;
+      if (UseNMethod) {
+        while (size % 4)
+          ++size;
+      }
     } else { // Duplicate
       // std::cout << "Duplicate name " << it.name
       //           << " (past Idx: " << std::to_string(pastIt - pool.begin())
