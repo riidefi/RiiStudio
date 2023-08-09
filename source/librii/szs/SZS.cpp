@@ -3,6 +3,35 @@
 
 namespace librii::szs {
 
+Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo) {
+  if (algo == Algo::WorstCaseEncoding) {
+    return encodeFast(buf);
+  }
+  if (algo == Algo::Nintendo) {
+    std::vector<u8> tmp(getWorstEncodingSize(buf));
+    int sz = encodeBoyerMooreHorspool(buf.data(), tmp.data(), buf.size());
+    if (sz < 0 || sz > tmp.size()) {
+      return std::unexpected("encodeBoyerMooreHorspool failed");
+    }
+    tmp.resize(sz);
+    return tmp;
+  }
+  if (algo == Algo::MkwSp) {
+    std::vector<u8> tmp(getWorstEncodingSize(buf));
+    u32 sz = encodeSP(buf.data(), tmp.data(), buf.size(), tmp.size());
+    if (sz > tmp.size()) {
+      return std::unexpected("encodeSP failed");
+    }
+    tmp.resize(sz);
+    return tmp;
+  }
+  if (algo == Algo::CTGP) {
+    return encodeCTGP(buf);
+  }
+
+  return std::unexpected("Invalid algorithm");
+}
+
 bool isDataYaz0Compressed(std::span<const u8> src) {
   if (src.size_bytes() < 8)
     return false;
