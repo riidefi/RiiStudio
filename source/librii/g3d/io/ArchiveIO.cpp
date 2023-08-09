@@ -513,4 +513,17 @@ Result<BinaryArchive> Archive::binary() const {
   return tmp;
 }
 
+Result<Archive> Archive::fromFile(std::string path,
+                                  kpi::LightIOTransaction& transaction) {
+  auto reader = oishii::BinaryReader::FromFilePath(path, std::endian::big);
+  EXPECT(reader && "Failed to read file");
+  return read(*reader, transaction);
+}
+Result<Archive> Archive::read(oishii::BinaryReader& reader,
+                              kpi::LightIOTransaction& transaction) {
+  BinaryArchive bin;
+  TRY(bin.read(reader, transaction));
+  return from(bin, transaction);
+}
+
 } // namespace librii::g3d

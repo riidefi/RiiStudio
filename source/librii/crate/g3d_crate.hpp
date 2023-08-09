@@ -123,10 +123,15 @@ ReadCrateAnimation(const CrateAnimationPaths& paths);
 [[nodiscard]] Result<CrateAnimation> ReadRSPreset(std::span<const u8> file);
 
 [[nodiscard]] Result<std::vector<u8>>
-WriteRSPreset(const CrateAnimation& preset);
+WriteRSPreset(const CrateAnimation& preset, bool cli = false);
 
 [[nodiscard]] Result<CrateAnimation>
 CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
                          const g3d::Archive* scene, std::string_view metadata);
+
+[[nodiscard]] Result<void> DumpPresetsToFolder(std::filesystem::path root,
+                                               const g3d::Archive& scene,
+                                               bool cli,
+                                               std::string_view metadata);
 
 } // namespace librii::crate

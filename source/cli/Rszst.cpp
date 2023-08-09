@@ -6,6 +6,7 @@
 #include <librii/assimp/LRAssimp.hpp>
 #include <librii/assimp2rhst/Assimp.hpp>
 #include <librii/assimp2rhst/SupportedFiles.hpp>
+#include <librii/crate/g3d_crate.hpp>
 #include <librii/kcol/Model.hpp>
 #include <librii/kmp/io/KMP.hpp>
 #include <librii/rarc/RARC.hpp>
@@ -377,7 +378,6 @@ private:
   std::filesystem::path m_to;
   std::filesystem::path m_presets;
 };
-
 
 class DecompressSZS {
 public:
@@ -837,6 +837,60 @@ static Result<void> json2kcl(const CliOptions& m_opt) {
   return std::unexpected("unimplemented!");
 }
 
+static Result<void> dumpPresets(const CliOptions& m_opt) {
+  std::filesystem::path m_from = m_opt.from.view();
+  std::filesystem::path m_to = m_opt.to.view();
+
+  if (m_to.empty()) {
+    std::filesystem::path p = m_from;
+    p.replace_extension(".presets");
+    m_to = p;
+  }
+  if (!FS_TRY(rsl::filesystem::exists(m_from))) {
+    fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+    return std::unexpected("FileNotExist");
+  }
+  const bool overwrite = FS_TRY(rsl::filesystem::exists(m_to));
+  if (overwrite && !FS_TRY(rsl::filesystem::is_directory(m_to))) {
+    fmt::print(
+        stderr,
+        "Error: Cannot write folder to {}--file exists with the same name!\n",
+        m_to.string());
+    return std::unexpected("NotAFolder");
+  }
+  if (overwrite) {
+    fmt::print(stderr,
+               "Warning: Folder {} will be overwritten by this operation.\n",
+               m_to.string());
+  } else {
+    FS_TRY(rsl::filesystem::create_directory(m_to));
+  }
+  if (m_opt.verbose) {
+    rsl::logging::init();
+  }
+  auto file = ReadFile(m_opt.from.view());
+  if (!file.has_value()) {
+    return std::unexpected("Error: Failed to read file");
+  }
+
+  fmt::print(stderr, "Dumping Presets BRRES,{} => {}\n", m_from.string(),
+             m_to.string());
+
+  kpi::LightIOTransaction trans;
+  trans.callback = [&](kpi::IOMessageClass message_class,
+                       const std::string_view domain,
+                       const std::string_view message_body) {
+    auto msg = std::format("[{}] {} {}", magic_enum::enum_name(message_class),
+                           domain, message_body);
+    rsl::error(msg);
+  };
+  auto brres = TRY(librii::g3d::Archive::fromFile(m_from.string(), trans));
+  TRY(librii::crate::DumpPresetsToFolder(m_to, brres, /*cli*/ true,
+                                         /*metadata*/ ""));
+
+  return {};
+}
+
 int main(int argc, const char** argv) {
   fmt::print(stdout, "RiiStudio CLI {}\n", RII_TIME_STAMP);
   auto args = parse(argc, argv);
@@ -945,6 +999,13 @@ int main(int argc, const char** argv) {
     if (!ok) {
       fmt::print(stderr, "{}\n", ok.error());
       fmt::print(stdout, "{}\n", ok.error());
+      return -1;
+    }
+  }
+  if (args->type == TYPE_DUMP_PRESETS) {
+    auto ok = dumpPresets(*args);
+    if (!ok) {
+      fmt::print(stderr, "{}\n", ok.error());
       return -1;
     }
   }

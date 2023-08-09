@@ -36,6 +36,10 @@ struct Archive {
   std::vector<librii::g3d::SrtAnim> srts;
   std::vector<librii::g3d::BinaryVis> viss;
 
+  static Result<Archive> fromFile(std::string path,
+                                  kpi::LightIOTransaction& transaction);
+  static Result<Archive> read(oishii::BinaryReader& reader,
+                              kpi::LightIOTransaction& transaction);
   static Result<Archive> from(const BinaryArchive& model,
                               kpi::LightIOTransaction& transaction);
   Result<BinaryArchive> binary() const;

@@ -538,7 +538,7 @@ Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
       .metadata_json = as_json,
   };
 }
-Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset) {
+Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset, bool cli) {
   librii::g3d::Archive collection;
   auto& mdl = collection.models.emplace_back();
   mdl.materials.push_back(preset.mat);
@@ -555,7 +555,8 @@ Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset) {
 #if defined(_WIN32)
   json["date_created"] = std::format("{:%B %d, %Y}", now);
 #endif
-  json["tool"] = std::format("RiiStudio {}", std::string_view(GIT_TAG));
+  json["tool"] = std::format("RiiStudio {}{}", cli ? "CLI " : "",
+                             std::string_view(GIT_TAG));
 
   // A bone is required for some reason
   mdl.bones.emplace_back().mName =
@@ -659,6 +660,26 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
     }
   }
   return result;
+}
+
+[[nodiscard]] Result<void> DumpPresetsToFolder(std::filesystem::path root,
+                                               const g3d::Archive& scene,
+                                               bool cli,
+                                               std::string_view metadata) {
+  std::error_code ec;
+  bool exists = std::filesystem::exists(root, ec);
+  if (ec || !exists) {
+    return std::unexpected("Error: output folder does not exist");
+  }
+  for (auto& mdl : scene.models) {
+    for (auto& mat : mdl.materials) {
+      auto preset = TRY(CreatePresetFromMaterial(mat, &scene, metadata));
+      auto bytes = TRY(WriteRSPreset(preset, cli));
+      auto dst = (root / (mat.name + ".rspreset")).string();
+      plate::Platform::writeFile(bytes, dst);
+    }
+  }
+  return {};
 }
 
 } // namespace librii::crate

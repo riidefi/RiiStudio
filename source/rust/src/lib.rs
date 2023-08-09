@@ -29,7 +29,12 @@ fn utf16_to_utf8(utf16_slice: &[u16]) -> Result<String, std::string::FromUtf16Er
 }
 
 #[no_mangle]
-pub extern "C" fn rii_utf16_to_utf8(utf16: *const u16, len: u32, output: *mut u8, output_len: u32) -> i32 {
+pub extern "C" fn rii_utf16_to_utf8(
+    utf16: *const u16,
+    len: u32,
+    output: *mut u8,
+    output_len: u32,
+) -> i32 {
     let utf16_slice = unsafe { std::slice::from_raw_parts(utf16, len as usize) };
 
     match utf16_to_utf8(utf16_slice) {
@@ -43,7 +48,7 @@ pub extern "C" fn rii_utf16_to_utf8(utf16: *const u16, len: u32, output: *mut u8
 
             0 // Indicate success
         }
-        Err(_) => -1 // Indicate error
+        Err(_) => -1, // Indicate error
     }
 }
 
@@ -406,6 +411,20 @@ pub struct CreateCommand {
     verbose: bool,
 }
 
+/// Dump presets of a model to a folder.
+#[derive(Parser, Debug)]
+pub struct DumpPresets {
+    /// BRRES archive to read
+    #[arg(required = true)]
+    from: String,
+
+    /// Output folder (or none for default)
+    to: Option<String>,
+
+    #[clap(short, long, default_value = "false")]
+    verbose: bool,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// DEPRECATED: Use import-brres
@@ -440,6 +459,8 @@ pub enum Commands {
 
     KclToJson(KclToJson),
     JsonToKcl(JsonToKcl),
+
+    DumpPresets(DumpPresets),
 }
 
 #[repr(C)]
@@ -998,6 +1019,44 @@ impl MyArgs {
                     fuse_vertices: 0 as c_uint,
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
+                }
+            }
+            Commands::DumpPresets(i) => {
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 13,
+                    from: from2,
+                    to: to2,
+                    verbose: i.verbose as c_uint,
+
+                    // Junk fields
+                    preset_path: [0; 256],
+                    scale: 0.0 as c_float,
+                    brawlbox_scale: 0 as c_uint,
+                    mipmaps: 0 as c_uint,
+                    min_mip: 0 as c_uint,
+                    max_mips: 0 as c_uint,
+                    auto_transparency: 0 as c_uint,
+                    merge_mats: 0 as c_uint,
+                    bake_uvs: 0 as c_uint,
+                    tint: 0 as c_uint,
+                    cull_degenerates: 0 as c_uint,
+                    cull_invalid: 0 as c_uint,
+                    recompute_normals: 0 as c_uint,
+                    fuse_vertices: 0 as c_uint,
+                    no_tristrip: 0 as c_uint,
+                    ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                 }
             }

@@ -45,6 +45,8 @@ enum {
   TYPE_JSON2KCL,
 
   TYPE_IMPORT_BMD,
+
+  TYPE_DUMP_PRESETS,
 };
 
 template <size_t L> struct CFixedString {
