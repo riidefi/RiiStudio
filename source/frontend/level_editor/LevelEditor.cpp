@@ -445,9 +445,11 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
   mRenderSettings.drawMenuBar(false, false);
 
   // if (ImGui::BeginMenuBar()) {
-  DrawRenderOptions(disp_opts);
-  auto report = MakeVersionReport(mCourseKcl.get());
-  ImGui::Text("KCL: %s", report.course_kcl_version.c_str());
+  if (ImGui::CollapsingHeader("Render Settings")) {
+    DrawRenderOptions(disp_opts);
+    auto report = MakeVersionReport(mCourseKcl.get());
+    ImGui::Text("KCL: %s", report.course_kcl_version.c_str());
+  }
   //   ImGui::EndMenuBar();
   // }
 
@@ -658,7 +660,9 @@ void LevelEditorWindow::drawScene(u32 width, u32 height) {
   static Manipulator manip;
 
   if (!mSelectedObjectTransformEdit.dirty) {
-    manip.drawUi(mSelectedObjectTransformEdit.matrix);
+    if (ImGui::CollapsingHeader("Manipulator Settings")) {
+      manip.drawUi(mSelectedObjectTransformEdit.matrix);
+    }
     auto backup = mSelectedObjectTransformEdit.matrix;
     manip.manipulate(mSelectedObjectTransformEdit.matrix, viewMtx, projMtx);
     mSelectedObjectTransformEdit.dirty |=
