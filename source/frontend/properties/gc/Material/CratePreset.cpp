@@ -14,7 +14,7 @@
 #include <librii/crate/j3d_crate.hpp>
 #include <librii/rhst/RHSTOptimizer.hpp>
 
-#include <plugins/SceneImpl.hpp>
+#include <plugins/j3d/Preset.hpp>
 
 namespace libcube::UI {
 
@@ -525,6 +525,27 @@ std::string tryExportRsPresetMat(std::string path,
   }
   return {};
 }
+std::string tryExportRsPresetMatJ(std::string path,
+                                  const riistudio::j3d::Material& mat) {
+  auto anim = CreatePresetFromMaterial(mat);
+  if (!anim) {
+    return "Failed to create preset bundle: " + anim.error();
+  }
+
+  auto buf = librii::crate::WriteRSPresetJ3D(*anim);
+  if (!buf) {
+    return "Failed to write RSPreset";
+  }
+  if (buf->empty()) {
+    return "librii::crate::WriteRSPreset failed";
+  }
+
+  auto wok2 = rsl::WriteFile(*buf, path);
+  if (!wok2) {
+    return wok2.error();
+  }
+  return {};
+}
 
 std::string tryExportRsPreset(const riistudio::g3d::Material& mat) {
   std::string path = mat.name + ".rspreset";
@@ -541,6 +562,22 @@ std::string tryExportRsPreset(const riistudio::g3d::Material& mat) {
     path = file->string();
   }
   return tryExportRsPresetMat(path, mat);
+}
+std::string tryExportRsPresetJ(const riistudio::j3d::Material& mat) {
+  std::string path = mat.name + ".bmd_rspreset";
+  // Web version doesn't support this
+  if (rsl::FileDialogsSupported()) {
+    const auto file = rsl::SaveOneFile("Select preset"_j, path,
+                                       {
+                                           "rspreset Files",
+                                           "*.bmd_rspreset",
+                                       });
+    if (!file) {
+      return file.error();
+    }
+    path = file->string();
+  }
+  return tryExportRsPresetMatJ(path, mat);
 }
 
 class MakeRsPreset
@@ -594,6 +631,67 @@ public:
     if (m_import) {
       m_import = false;
       auto ok = tryExportRsPresetALL(model.getMaterials());
+      if (!ok) {
+        m_errorState.enter(std::move(ok.error()));
+      }
+      return kpi::CHANGE_NEED_RESET;
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
+
+class MakeRsPresetJ
+    : public kpi::ActionMenu<riistudio::j3d::Material, MakeRsPresetJ> {
+  bool m_import = false;
+  ErrorState m_errorState{"RSPreset Export Error"};
+
+public:
+  bool _context(riistudio::j3d::Material&) {
+    if (ImGui::MenuItem("Create material preset"_j)) {
+      m_import = true;
+    }
+
+    return false;
+  }
+
+  kpi::ChangeType _modal(riistudio::j3d::Material& mat) {
+    m_errorState.modal();
+
+    if (m_import) {
+      m_import = false;
+      auto err = tryExportRsPresetJ(mat);
+      if (!err.empty()) {
+        rsl::ErrorDialogFmt("Failed to export preset for material {}: {}",
+                            mat.name, err);
+        m_errorState.enter(std::move(err));
+      }
+      return kpi::CHANGE_NEED_RESET;
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
+
+class MakeRsPresetALLJ
+    : public kpi::ActionMenu<riistudio::j3d::Model, MakeRsPresetALLJ> {
+  bool m_import = false;
+  ErrorState m_errorState{"RSPreset Export Error"};
+
+public:
+  bool _context(riistudio::j3d::Model&) {
+    if (ImGui::MenuItem("Export all materials as presets")) {
+      m_import = true;
+    }
+    return false;
+  }
+
+  kpi::ChangeType _modal(riistudio::j3d::Model& model) {
+    m_errorState.modal();
+
+    if (m_import) {
+      m_import = false;
+      auto ok = tryExportRsPresetALLJ(model.getMaterials());
       if (!ok) {
         m_errorState.enter(std::move(ok.error()));
       }
@@ -690,8 +788,8 @@ void InstallCrate() {
   action_menu.addMenu(std::make_unique<MakeRsPreset>());
   action_menu.addMenu(std::make_unique<MakeRsPresetALL>());
   action_menu.addMenu(std::make_unique<ImportPresetsAction>());
-  // action_menu.addMenu(std::make_unique<MakeRsPresetJ>());
-  // action_menu.addMenu(std::make_unique<MakeRsPresetALLJ>());
+  action_menu.addMenu(std::make_unique<MakeRsPresetJ>());
+  action_menu.addMenu(std::make_unique<MakeRsPresetALLJ>());
   // action_menu.addMenu(std::make_unique<ImportPresetsActionJ>());
   action_menu.addMenu(std::make_unique<SaveAsMDL0MatShade>());
   action_menu.addMenu(std::make_unique<AdvTexConvAction>());

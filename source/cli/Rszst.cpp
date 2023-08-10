@@ -14,10 +14,10 @@
 #include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
 #include <mutex>
-#include <plugins/SceneImpl.hpp>
 #include <plugins/g3d/G3dIo.hpp>
 #include <plugins/g3d/collection.hpp>
 #include <plugins/j3d/J3dIo.hpp>
+#include <plugins/j3d/Preset.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
 #include <rsl/Filesystem.hpp>
 #include <rsl/StringManip.hpp>

@@ -31,4 +31,24 @@ ApplyCratePresetToMaterialJ3D(riistudio::j3d::Collection& scene,
   return {};
 }
 
+Result<librii::crate::CrateAnimationJ3D>
+CreatePresetFromMaterial(const riistudio::j3d::Material& mat) {
+  if (!mat.childOf) {
+    return std::unexpected("Material is an orphan; needs to belong to a scene");
+  }
+  if (!mat.childOf->childOf) {
+    return std::unexpected("Model is an orphan; needs to belong to a scene");
+  }
+  // Model -> Scene
+  auto* scene = dynamic_cast<riistudio::j3d::Collection*>(mat.childOf->childOf);
+  if (!scene) {
+    return std::unexpected(
+        "Internal: This scene type does not support .rsmat presets. "
+        "Not a BMD file?");
+  }
+  librii::j3d::J3dModel scn;
+  readJ3dMdl(scn, scene->getModels()[0], *scene);
+  return librii::crate::CreatePresetFromMaterialJ3D(mat, &scn);
+}
+
 } // namespace riistudio::j3d

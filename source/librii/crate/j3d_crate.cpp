@@ -115,7 +115,7 @@ CreatePresetFromMaterialJ3D(const j3d::MaterialData& mat,
     auto preset = TRY(CreatePresetFromMaterialJ3D(mat, &scene));
     auto bytes = TRY(WriteRSPresetJ3D(preset, cli));
     auto dst = (root / (mat.name + ".bmd_rspreset")).string();
-    rsl::WriteFile(bytes, dst);
+    TRY(rsl::WriteFile(bytes, dst));
   }
   return {};
 }
