@@ -5,14 +5,16 @@ use log::*;
 use std::io::Cursor;
 use std::path::PathBuf;
 
-use std::os::raw::{c_int};
+use std::os::raw::c_int;
 
-use curl::easy::{Easy, WriteError};
-use curl::Error;
+use reqwest;
+use reqwest::blocking::Client;
+use std::error::Error;
 use std::ffi::{CStr, CString};
 use std::fs::File;
+use std::io::Read;
 use std::io::Write;
-use std::os::raw::{c_char, c_double, c_void};
+use std::os::raw::{c_char, c_void};
 use std::path::Path;
 
 fn utf16_to_utf8(utf16_slice: &[u16]) -> Result<String, std::string::FromUtf16Error> {
@@ -43,24 +45,19 @@ pub extern "C" fn rii_utf16_to_utf8(
     }
 }
 
-pub fn download_string_rust(url: &str, user_agent: &str) -> Result<String, Error> {
-    let mut easy = Easy::new();
-    easy.url(url)?;
-    easy.useragent(user_agent)?;
+pub fn download_string_rust(url: &str, user_agent: &str) -> Result<String, Box<dyn Error>> {
+    let client = reqwest::blocking::Client::new();
 
-    let mut data = Vec::new();
-    {
-        let mut transfer = easy.transfer();
-        transfer.write_function(|new_data| {
-            data.extend_from_slice(new_data);
-            Ok(new_data.len())
-        })?;
-        transfer.perform()?;
-    }
+    let res = client
+        .get(url)
+        .header(reqwest::header::USER_AGENT, user_agent)
+        .send()? // This will block until complete
+        .text()?;
 
-    let result = String::from_utf8(data).unwrap();
-    Ok(result)
+    Ok(res)
 }
+
+pub type ProgressFunc = extern "C" fn(*mut c_void, f64, f64, f64, f64) -> i32;
 
 pub fn download_file_rust(
     dest_path: &str,
@@ -69,26 +66,36 @@ pub fn download_file_rust(
     progress_func: Box<ProgressFunc>,
     progress_data: *mut c_void,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut easy = Easy::new();
-    easy.url(url)?;
-    easy.useragent(user_agent)?;
-    easy.follow_location(true)?;
     let path = Path::new(dest_path);
     let mut file = File::create(&path)
         .map_err(|err| format!("Couldn't create {}: {}", path.display(), err))?;
 
-    let write_function = |data: &[u8]| -> Result<usize, WriteError> {
-        file.write_all(data)
-            .map_err(|_| WriteError::Pause)
-            .map(|_| data.len())
-    };
-    let progress_function = |total: f64, current: f64, _, _| -> bool {
-        progress_func(progress_data, total, current, 0.0, 0.0) == 0
-    };
-    let mut transfer = easy.transfer();
-    transfer.write_function(write_function)?;
-    transfer.progress_function(progress_function)?;
-    transfer.perform().map_err(|err| err.into())
+    let client = Client::builder().user_agent(user_agent).build()?;
+    let mut response = client.get(url).send()?;
+
+    let total_size = response
+        .headers()
+        .get(reqwest::header::CONTENT_LENGTH)
+        .and_then(|ct_len| ct_len.to_str().ok())
+        .and_then(|ct_len| ct_len.parse::<f64>().ok())
+        .unwrap_or(0.0);
+
+    let mut buffer = vec![0; 4096]; // 4KB buffer
+    let mut current_size = 0.0;
+
+    loop {
+        let bytes_read = response.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        file.write_all(&buffer[..bytes_read])?;
+        current_size += bytes_read as f64;
+        if progress_func(progress_data, total_size, current_size, 0.0, 0.0) != 0 {
+            return Err("Progress function returned non-zero.".into());
+        }
+    }
+
+    Ok(())
 }
 
 #[no_mangle]
@@ -115,8 +122,6 @@ pub extern "C" fn download_string(
         }
     }
 }
-
-pub type ProgressFunc = extern "C" fn(*mut c_void, c_double, c_double, c_double, c_double) -> c_int;
 
 #[no_mangle]
 pub extern "C" fn download_file(
