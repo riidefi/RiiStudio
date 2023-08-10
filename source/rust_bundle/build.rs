@@ -90,7 +90,7 @@ fn main() {
     // llvm-dlltool.exe -D llvm_sighandler.dll -d llvm_sighandler.def -l llvm_sighandler.lib -m i386:x86-64
 
     #[cfg(windows)]
-    let dlls = vec!["gctex.dll", "riistudio_rs.dll", "llvm_sighandler.dll", "avir_rs.dll", "dolphin_memory_engine_rs.dll"];
+    let dlls = vec!["gctex.dll", "llvm_sighandler.dll", "avir_rs.dll"];
 
     #[cfg(windows)]
     for dll in &dlls {
@@ -125,11 +125,8 @@ fn main() {
 
     println!("cargo:rustc-link-search=native={}", cargo_dir);
     println!("cargo:rustc-link-lib=dylib=gctex");
-    println!("cargo:rustc-link-lib=dylib=riistudio_rs");
     println!("cargo:rustc-link-lib=dylib=llvm_sighandler");
     println!("cargo:rustc-link-lib=dylib=avir_rs");
-    println!("cargo:rustc-link-lib=dylib=c_discord_rich_presence");
-    println!("cargo:rustc-link-lib=dylib=dolphin_memory_engine_rs");
 
     #[cfg(windows)]
     {
