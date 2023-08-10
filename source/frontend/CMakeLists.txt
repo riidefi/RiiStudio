@@ -111,7 +111,6 @@ target_link_libraries(lib_frontend PUBLIC
   LibBadUIFramework
   updater
   rsmeshopt
-  dolphin-memory-engine-rs
 )
 target_link_libraries(frontend PUBLIC
   lib_frontend
