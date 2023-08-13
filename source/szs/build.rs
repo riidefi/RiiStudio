@@ -16,6 +16,8 @@ fn main() {
     let compiler = build.get_compiler();
     if !compiler.is_like_gnu() && !compiler.is_like_clang() {
         build.flag("/std:c++latest");
+        #[cfg(not(debug_assertions))]
+        build.flag("-MT");
     } else {
         build.flag("-std=c++2b");
     }

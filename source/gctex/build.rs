@@ -25,6 +25,10 @@ fn main() {
         #[cfg(target_arch = "x86_64")]
         build.flag("-mssse3");
     }
+    if !compiler.is_like_gnu() && !compiler.is_like_clang() {
+        #[cfg(not(debug_assertions))]
+        build.flag("-MT");
+    }
 
     build.include(".").include("src");
     build.file("src/CmprEncoder.cpp");
