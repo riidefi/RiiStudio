@@ -24,9 +24,8 @@ uint32_t impl_rii_szs_decode(void* buf, uint32_t len, const void* src,
   (void)src_len;
   return 0;
 }
-uint32_t impl_rii_worst_encoding_size(const void* src, uint32_t len) {
-  (void)src;
-  (void)len;
+uint32_t impl_rii_worst_encoding_size(uint32_t len) {
+  return librii::szs::getWorstEncodingSize(len);
   return 0;
 }
 

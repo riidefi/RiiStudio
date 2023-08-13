@@ -7,7 +7,7 @@ namespace librii::szs {
 
 Result<u32> encodeAlgoFast(std::span<u8> dst, std::span<const u8> src,
                            Algo algo) {
-  uint32_t algo_u = static_cast<uint32_t>(algo);
+  auto algo_u = static_cast<::szs::Algo>(algo);
   return ::szs::encode_algo_fast(dst, src, algo_u);
 }
 

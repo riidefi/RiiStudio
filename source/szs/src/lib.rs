@@ -13,6 +13,10 @@ pub mod librii {
         Error(String),
     }
 
+    pub fn encoded_upper_bound(len: u32) -> u32 {
+        unsafe { bindings::impl_rii_worst_encoding_size(len) }
+    }
+
     pub fn encode_algo_fast(dst: &mut [u8], src: &[u8], algo: u32) -> Result<u32, EncodeAlgoError> {
         let mut used_len: u32 = 0;
 
@@ -70,6 +74,11 @@ pub extern "C" fn szs_get_version_unstable_api(buffer: *mut u8, length: u32) -> 
     }
 
     string_length as i32
+}
+
+#[no_mangle]
+pub extern "C" fn riiszs_encoded_upper_bound(len: u32) -> u32 {
+    librii::encoded_upper_bound(len)
 }
 
 #[no_mangle]

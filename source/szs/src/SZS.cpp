@@ -124,8 +124,9 @@ Result<void> decode(std::span<u8> dst, std::span<const u8> src) {
   return {};
 }
 
+u32 getWorstEncodingSize(u32 src) { return 16 + roundUp(src, 8) / 8 * 9 - 1; }
 u32 getWorstEncodingSize(std::span<const u8> src) {
-  return 16 + roundUp(src.size(), 8) / 8 * 9 - 1;
+  return getWorstEncodingSize(static_cast<u32>(src.size()));
 }
 std::vector<u8> encodeFast(std::span<const u8> src) {
   std::vector<u8> result(getWorstEncodingSize(src));
@@ -422,4 +423,4 @@ u32 encodeSP(const u8* src, u8* dst, u32 srcSize, u32 dstSize) {
   return srcOffset == srcSize ? dstOffset : 0;
 }
 
-} // namespace librii::szs
+} // namespace rlibrii::szs

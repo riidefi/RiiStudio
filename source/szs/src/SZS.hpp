@@ -13,7 +13,6 @@ using s32 = int32_t;
 using s16 = int16_t;
 using s8 = int8_t;
 
-
 constexpr u32 roundDown(u32 in, u32 align) {
   return align ? in & ~(align - 1) : in;
 };
@@ -30,6 +29,7 @@ bool isDataYaz0Compressed(std::span<const u8> src);
 Result<u32> getExpandedSize(std::span<const u8> src);
 Result<void> decode(std::span<u8> dst, std::span<const u8> src);
 
+u32 getWorstEncodingSize(u32 src);
 u32 getWorstEncodingSize(std::span<const u8> src);
 std::vector<u8> encodeFast(std::span<const u8> src);
 
@@ -47,4 +47,4 @@ enum class Algo {
 
 Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo);
 
-} // namespace librii::szs
+} // namespace rlibrii::szs
