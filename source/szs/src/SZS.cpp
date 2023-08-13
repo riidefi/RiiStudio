@@ -1,7 +1,5 @@
 #include "SZS.hpp"
 
-#include <szs/include/szs.h>
-
 namespace librii::szs {
 
 Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo) {
@@ -44,12 +42,20 @@ Result<u32> getExpandedSize(std::span<const u8> src) {
   if (src.size_bytes() < 8)
     return std::unexpected("File too small to be a YAZ0 file");
 
-  EXPECT(src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0');
+  if (!(src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0')) {
+    return std::unexpected("Data is not a YAZ0 file");
+  }
   return (src[4] << 24) | (src[5] << 16) | (src[6] << 8) | src[7];
 }
 
 Result<void> decode(std::span<u8> dst, std::span<const u8> src) {
-  EXPECT(dst.size() >= TRY(getExpandedSize(src)));
+  auto exp = getExpandedSize(src);
+  if (!exp) {
+    return std::unexpected("Source is not a SZS compressed file!");
+  }
+  if (dst.size() < *exp) {
+    return std::unexpected("Result buffer is too small!");
+  }
 
   int in_position = 0x10;
   int out_position = 0;
