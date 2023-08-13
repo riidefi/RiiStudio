@@ -35,7 +35,7 @@ struct Yaz_file_struct {
 int Yaz_fputc_r(int* reent, int value, Yaz_file_struct* file);
 bool Yaz_open(Yaz_file_struct* file, WRITE_FN fptr);
 
-namespace librii::szs {
+namespace rlibrii::szs {
 Result<std::vector<u8>> encodeCTGP(std::span<const u8> buf) {
   std::vector<u8> result;
   WRITE_FN write_ = [&](const void* buffer, size_t size, size_t count) {

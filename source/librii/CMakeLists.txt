@@ -24,7 +24,7 @@ add_library(librii STATIC
 
   "szs/SZS.hpp"
   "szs/SZS.cpp"
-  "szs/CTGP.cpp"
+  
 
   "nitro/types.hpp"
 

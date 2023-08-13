@@ -26,6 +26,10 @@ enum class Algo {
   CTGP,
 };
 
+Result<u32> encodeAlgoFast(std::span<u8> dst, std::span<const u8> src,
+                           Algo algo);
 Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo);
+
+std::string_view szs_version();
 
 } // namespace librii::szs

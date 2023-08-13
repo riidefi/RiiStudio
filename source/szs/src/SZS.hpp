@@ -21,7 +21,7 @@ constexpr u32 roundUp(u32 in, u32 align) {
   return align ? roundDown(in + (align - 1), align) : in;
 };
 
-namespace librii::szs {
+namespace rlibrii::szs {
 
 template <typename T> using Result = std::expected<T, std::string>;
 
