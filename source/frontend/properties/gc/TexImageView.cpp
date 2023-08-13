@@ -18,16 +18,14 @@ static const std::vector<std::string> StdImageFilters = {
     "*.jpg",     "BMP Files", "*.bmp",     "All Files", "*",
 };
 
-void exportImage(const Texture& tex, u32 export_lod) {
+[[nodiscard]] Result<void> exportImage(const Texture& tex, u32 export_lod) {
   std::string path =
       tex.getName() + " Mip Level " + std::to_string(export_lod) + ".png";
   librii::STBImage imgType = librii::STBImage::PNG;
 
   if (rsl::FileDialogsSupported()) {
-    auto results = rsl::SaveOneFile("Export image"_j, "", StdImageFilters);
-    if (!results)
-      return;
-    path = results->string();
+    auto results = TRY(rsl::SaveOneFile("Export image"_j, "", StdImageFilters));
+    path = results.string();
     if (path.ends_with(".png")) {
       imgType = librii::STBImage::PNG;
     } else if (path.ends_with(".bmp")) {
@@ -46,9 +44,9 @@ void exportImage(const Texture& tex, u32 export_lod) {
   for (u32 i = 0; i < export_lod; ++i)
     offset += (tex.getWidth() >> i) * (tex.getHeight() >> i) * 4;
 
-  librii::writeImageStbRGBA(path.c_str(), imgType, tex.getWidth() >> export_lod,
-                            tex.getHeight() >> export_lod,
-                            data.data() + offset);
+  return librii::writeImageStbRGBA(
+      path.c_str(), imgType, tex.getWidth() >> export_lod,
+      tex.getHeight() >> export_lod, data.data() + offset);
 }
 
 [[nodiscard]] Result<void> importImage(Texture& tex, u32 import_lod) {
@@ -93,7 +91,7 @@ void drawProperty(kpi::PropertyDelegate<Texture>& delegate, ImageSurface& tex) {
       reformatOption = true;
     }
     if (ImGui::Button((const char*)ICON_FA_SAVE u8" Export")) {
-      exportImage(data, 0);
+      [[maybe_unused]] auto _ = exportImage(data, 0);
     }
     if (ImGui::Button((const char*)ICON_FA_FILE u8" Import")) {
       auto path = rsl::OpenOneFile("Import image", "", StdImageFilters);

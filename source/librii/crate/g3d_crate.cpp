@@ -12,14 +12,14 @@ IMPORT_STD;
 template <>
 struct fmt::formatter<std::filesystem::path, char>
     : fmt::formatter<std::string> {
-  auto format(std::filesystem::path p, auto& ctx) {
+  auto format(std::filesystem::path p, auto& ctx) const {
     return std::format_to(ctx.out(), "{}", p.string());
   }
 };
 #else
 template <>
 struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
-  auto format(std::filesystem::path p, format_context& ctx) {
+  auto format(std::filesystem::path p, format_context& ctx) const {
     return formatter<std::string>::format(std::format("{}", p.string()), ctx);
   }
 };

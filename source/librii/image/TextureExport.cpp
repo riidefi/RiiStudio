@@ -7,8 +7,8 @@
 
 namespace librii {
 
-void writeImageStb(const char* filename, STBImage type, int x, int y,
-                   int channel_component_count, const void* data) {
+Result<void> writeImageStb(const char* filename, STBImage type, int x, int y,
+                           int channel_component_count, const void* data) {
   int len = 0;
   unsigned char* encoded = nullptr;
 
@@ -18,8 +18,8 @@ void writeImageStb(const char* filename, STBImage type, int x, int y,
     encoded = stbi_write_png_to_mem(
         reinterpret_cast<const unsigned char*>(data),
         x * channel_component_count, x, y, channel_component_count, &len);
-    rsl::WriteFile(std::span<uint8_t>{encoded, static_cast<std::size_t>(len)},
-                   filename);
+    TRY(rsl::WriteFile(
+        std::span<uint8_t>{encoded, static_cast<std::size_t>(len)}, filename));
     break;
   case STBImage::BMP:
     stbi_write_bmp(filename, x, y, channel_component_count, data);
@@ -34,10 +34,8 @@ void writeImageStb(const char* filename, STBImage type, int x, int y,
     stbi_write_hdr(filename, x, y, channel_component_count,
                    static_cast<const float*>(data));
     break;
-  default:
-    assert(!"Invalid format.");
-    break;
   }
+  return std::unexpected("Invalid format.");
 }
 
 } // namespace librii
