@@ -1,5 +1,6 @@
 #include "SZS.hpp"
 
+#define RIISZS_NO_INCLUDE_EXPECTED
 #include <szs/include/szs.h>
 
 namespace librii::szs {

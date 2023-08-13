@@ -1,5 +1,6 @@
 #include "WBZ.hpp"
 
+#define CWBZ_NO_INCLUDE_EXPECTED
 #include "c-wbz/include/wbz_rs.h"
 
 namespace librii::wbz {

@@ -33,7 +33,9 @@ int32_t szs_get_version_unstable_api(char* buf, uint32_t len);
 #endif
 
 #ifdef __cplusplus
+#ifndef RIISZS_NO_INCLUDE_EXPECTED
 #include <expected>
+#endif
 #include <span>
 #include <string>
 

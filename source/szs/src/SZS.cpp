@@ -1,5 +1,7 @@
 #include "SZS.hpp"
 
+#include <algorithm>
+
 namespace rlibrii::szs {
 
 Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo) {
