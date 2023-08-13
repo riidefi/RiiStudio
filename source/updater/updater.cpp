@@ -150,7 +150,9 @@ bool IsUpdateStale(Updater& updater, std::filesystem::path root) {
   }
 #ifdef _WIN32
   // These filepaths are Windows-specific
-  return !FilesFromSameUpdateRun(root / "RiiStudio.exe", root / "gctex.dll");
+  return false;
+  // Disabled: No longer using DLL for Rust crates
+  // return !FilesFromSameUpdateRun(root / "RiiStudio.exe", root / "gctex.dll");
 #else
   return false;
 #endif
