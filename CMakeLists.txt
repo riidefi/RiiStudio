@@ -172,7 +172,7 @@ if (APPLE)
   endif()
 endif()
 
-CPMAddPackage("gh:riidefi/corrosion#master")
+CPMAddPackage("gh:corrosion-rs/corrosion#master")
 if(NOT UNIX)
   find_package(Corrosion REQUIRED)
 endif()

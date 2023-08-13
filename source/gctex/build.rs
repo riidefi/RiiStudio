@@ -20,7 +20,8 @@ fn main() {
     build.flag("-DARCH_X64=1");
 
     let compiler = build.get_compiler();
-    if compiler.is_like_gnu() || compiler.is_like_clang() {
+    let is_clang_cl = compiler.path().ends_with("clang-cl.exe") || compiler.path().ends_with("clang-cl");
+    if compiler.is_like_gnu() || compiler.is_like_clang() || is_clang_cl {
         #[cfg(target_arch = "x86_64")]
         build.flag("-mssse3");
     }
