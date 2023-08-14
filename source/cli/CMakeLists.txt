@@ -66,11 +66,15 @@ elseif (UNIX)
   find_library(GLFW3_LIBRARY NAMES libglfw.so PATHS /usr/lib)
   find_library(FREETYPE_LIBRARY NAMES libfreetype.so PATHS /usr/lib)
   find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
+  find_library(SSL_LIBRARY NAMES libssl.so PATHS /usr/lib)
+  find_library(CRYPTO_LIBRARY NAMES libcrypto.so PATHS /usr/lib)
   target_link_libraries(cli PUBLIC
     ${ASSIMP_LIBRARY}
     ${GLFW3_LIBRARY}
     ${FREETYPE_LIBRARY}
     ${BZIP2_LIBRARY}
+    ${SSL_LIBRARY}
+    ${CRYPTO_LIBRARY}
   )
 endif()
  

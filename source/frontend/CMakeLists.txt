@@ -140,9 +140,11 @@ elseif (NOT UNIX)
 	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
 	)
 elseif (UNIX AND NOT APPLE)
-	# TODO: Duplication: extract to FindX.cmake
-	find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
-	target_link_libraries(frontend PUBLIC ${BZIP2_LIBRARY})
+  # TODO: Duplication: extract to FindX.cmake
+  find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
+  find_library(SSL_LIBRARY NAMES libssl.so PATHS /usr/lib)
+  find_library(CRYPTO_LIBRARY NAMES libcrypto.so PATHS /usr/lib)
+  target_link_libraries(frontend PUBLIC ${BZIP2_LIBRARY} ${SSL_LIBRARY} ${CRYPTO_LIBRARY})
 endif()
 
 if (NOT MSVC)
