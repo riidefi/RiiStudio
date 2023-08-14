@@ -1,4 +1,5 @@
 #include "SZS.hpp"
+#include <string.h>
 
 // Prevent duplicate symbols from Rust and C++ side
 namespace librii {

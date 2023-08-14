@@ -3,6 +3,7 @@
 #include "SZS.hpp"
 
 #include <assert.h>
+#include <string.h>
 
 // Adapted from work from wit and Palapeli
 
