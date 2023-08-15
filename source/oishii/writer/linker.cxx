@@ -234,13 +234,13 @@ Result<void> Linker::write(Writer& writer, bool doShuffle, bool print_linkmap) {
 
     // Order: local -> children -> global
 
-    MAYBE_UNUSED const Node& from =
+    [[maybe_unused]] const Node& from =
         link.from.mBlock
             ? *link.from.mBlock
             : *LinkerHelper::findNamespacedID(*this, link.from.mId, nameSpace,
                                               reserve.blockName,
                                               fromBlockSymbol);
-    MAYBE_UNUSED const Node& to =
+    [[maybe_unused]] const Node& to =
         link.to.mBlock
             ? *link.to.mBlock
             : *LinkerHelper::findNamespacedID(*this, link.to.mId, nameSpace,

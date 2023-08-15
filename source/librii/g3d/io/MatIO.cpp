@@ -18,7 +18,7 @@ u32 BuildTexMatrixFlags(const librii::gx::GCMaterialData::TexMatrix& mtx) {
 }
 
 Result<void> BinaryMatDL::write(oishii::Writer& writer) const {
-  MAYBE_UNUSED const auto dl_start = writer.tell();
+  [[maybe_unused]] const auto dl_start = writer.tell();
   rsl::trace("Mat dl start: {:x}", writer.tell());
   librii::gpu::DLBuilder dl(writer);
   {

@@ -66,7 +66,7 @@ void compileAlphaMode(librii::gx::LowLevelGxMaterial& mat,
     pix_mode = librii::hx::PIX_HARRY_POTTER_TRANSLUCENT;
     break;
   }
-  MAYBE_UNUSED bool res = librii::hx::configurePixMode(mat, pix_mode);
+  [[maybe_unused]] bool res = librii::hx::configurePixMode(mat, pix_mode);
   assert(res);
 }
 

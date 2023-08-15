@@ -165,7 +165,7 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
   rsl::SafeReader reader(unsafeReader);
   const auto start = reader.tell();
   TRY(reader.Magic("MDL0"));
-  MAYBE_UNUSED const u32 fileSize = TRY(reader.U32());
+  [[maybe_unused]] const u32 fileSize = TRY(reader.U32());
   const u32 revision = TRY(reader.U32());
   if (revision != 11) {
     return std::unexpected(std::format(

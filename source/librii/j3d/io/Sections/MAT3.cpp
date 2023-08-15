@@ -197,7 +197,7 @@ public:
     reader.getUnsafe().warnAt("Number of TexGens does not match GenInfo count",
                               reader.tell() - 20, reader.tell());
   }
-  MAYBE_UNUSED const auto post_tg = TRY(reader.getUnsafe().tryReadX<u16, 8>());
+  [[maybe_unused]] const auto post_tg = TRY(reader.getUnsafe().tryReadX<u16, 8>());
   // TODO: Validate assumptions here
 
   dbg.assertSince(0x48);

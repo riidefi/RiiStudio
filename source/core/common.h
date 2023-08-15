@@ -1,19 +1,6 @@
 #pragma once
 
-#include <oishii/options.hxx>
-#include <stdint.h>
-
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-
-typedef float f32;
-typedef double f64;
+#include <rsl/Types.hpp>
 
 #ifndef assert
 #include <cassert>
@@ -38,22 +25,9 @@ typedef double f64;
 #include <utility>
 #include <vector>
 
+#include <rsl/Expect.hpp>
+#include <rsl/Result.hpp>
 #include <rsl/Try.hpp>
-
-#if __cplusplus > 201703L
-#ifndef __APPLE__
-#include <stacktrace>
-#endif
-#endif
-
-#if defined(__APPLE__) || defined(__GCC__) || defined(__GNUC__)
-#include <fmt/format.h>
-namespace std {
-using namespace fmt;
-}
-#else
-#include <format>
-#endif
 
 // When clang-cl `import std` support, switch to these and remove above includes
 // from this header
@@ -75,21 +49,6 @@ import std.filesystem
 #define RII_NATIVE_GL_WIREFRAME
 #endif
 
-#define LIB_RII_TO_STRING(v) __LIB_RII_TO_STRING(v)
-#define __LIB_RII_TO_STRING(v) #v
-
-#ifdef __cplusplus
-#include <cstdio>
-#else
-#include <stdio.h>
-#endif
-
-// clang: Merged May 16 2019, Clang 9
-// GCC:   Merged May 20 2021, GCC 12 (likely to release April 2022)
-#ifndef __FILE_NAME__
-#define __FILE_NAME__ __FILE__
-#endif
-
 constexpr u32 roundDown(u32 in, u32 align) {
   return align ? in & ~(align - 1) : in;
 };
@@ -98,15 +57,6 @@ constexpr u32 roundUp(u32 in, u32 align) {
 };
 
 constexpr bool is_power_of_2(u32 x) { return (x & (x - 1)) == 0; }
-
-#define MODULE_PRIVATE public
-#define MODULE_PUBLIC public
-
-#ifdef __clang__
-#define MAYBE_UNUSED [[maybe_unused]]
-#else
-#define MAYBE_UNUSED
-#endif
 
 namespace riistudio {
 const char* translateString(std::string_view str);
@@ -117,27 +67,6 @@ inline const char* operator"" _j(const char* str, size_t len) {
 }
 
 #define HAS_RANGES
-
-#if defined(__clang__) && !defined(__APPLE__)
-#define STACK_TRACE std::stacktrace::current()
-#else
-#define STACK_TRACE 0
-#endif
-
-#define EXPECT(expr, ...)                                                      \
-  if (!(expr)) [[unlikely]] {                                                  \
-    auto cur = STACK_TRACE;                                                    \
-    return std::unexpected(std::format(                                        \
-        "[{}:{}] {} [Internal: {}] {}", __FILE_NAME__, __LINE__,               \
-        (0 __VA_OPT__(, ) __VA_ARGS__), #expr, std::to_string(cur)));          \
-  }
-
-#if defined(__cpp_lib_expected)
-#if __cpp_lib_expected >= 202202L
-template <typename T, typename E = std::string>
-using Result = std::expected<T, E>;
-#endif
-#endif
 
 #define RII_INTERFACE(T)                                                       \
 public:                                                                        \
