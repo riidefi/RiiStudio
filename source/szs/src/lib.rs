@@ -42,6 +42,28 @@ pub mod librii {
             Err(EncodeAlgoError::Error(error_msg))
         }
     }
+
+    pub fn decode(dst: &mut [u8], src: &[u8]) -> Result<(), EncodeAlgoError> {
+        let result = unsafe {
+            bindings::impl_riiszs_decode(
+                dst.as_mut_ptr() as *mut _,
+                dst.len() as u32,
+                src.as_ptr() as *const _,
+                src.len() as u32,
+            )
+        };
+
+        if result.is_null() {
+            Ok(())
+        } else {
+            let error_msg = unsafe {
+                std::ffi::CStr::from_ptr(result)
+                    .to_string_lossy()
+                    .into_owned()
+            };
+            Err(EncodeAlgoError::Error(error_msg))
+        }
+    }
 }
 
 #[no_mangle]
@@ -98,6 +120,28 @@ pub extern "C" fn riiszs_encode_algo_fast(
             unsafe {
                 *result = used_len;
             }
+            std::ptr::null()
+        }
+        Err(librii::EncodeAlgoError::Error(msg)) => {
+            let c_string = std::ffi::CString::new(msg).unwrap();
+            // Leak the CString into a raw pointer, so we don't deallocate it
+            c_string.into_raw()
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn riiszs_decode(
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+) -> *const c_char {
+    let dst_slice = unsafe { std::slice::from_raw_parts_mut(dst, dst_len as usize) };
+    let src_slice = unsafe { std::slice::from_raw_parts(src, src_len as usize) };
+
+    match librii::decode(dst_slice, src_slice) {
+        Ok(()) => {
             std::ptr::null()
         }
         Err(librii::EncodeAlgoError::Error(msg)) => {

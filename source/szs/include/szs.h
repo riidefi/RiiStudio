@@ -10,8 +10,8 @@ extern "C" {
 
 uint32_t rii_is_szs_compressed(const void* src, uint32_t len);
 uint32_t rii_get_szs_expand_size(const void* src, uint32_t len);
-uint32_t rii_szs_decode(void* buf, uint32_t len, const void* src,
-                        uint32_t src_len);
+const char* riiszs_decode(void* buf, uint32_t len, const void* src,
+                          uint32_t src_len);
 uint32_t riiszs_encoded_upper_bound(uint32_t len);
 
 enum {
@@ -86,6 +86,18 @@ Result<std::vector<uint8_t>> encode_algo(std::span<const uint8_t> buf,
   assert(tmp.size() >= *ok);
   tmp.resize(*ok);
   return tmp;
+}
+
+static inline std::expected<void, std::string>
+decode(std::span<uint8_t> dst, std::span<const uint8_t> src) {
+  const char* err =
+      riiszs_decode(dst.data(), dst.size(), src.data(), src.size());
+  if (err == nullptr) {
+    return {};
+  }
+  std::string emsg(err);
+  riiszs_free_error_message(err);
+  return std::unexpected(emsg);
 }
 
 } // namespace szs
