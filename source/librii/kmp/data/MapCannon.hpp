@@ -10,6 +10,9 @@ enum class CannonType {
   Direct,
   Curved,
   Curved2,
+
+  // < 0 => Direct
+  Default = -1,
 };
 
 struct Cannon {

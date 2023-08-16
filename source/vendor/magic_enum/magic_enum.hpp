@@ -88,7 +88,7 @@
 // Enum value must be greater or equals than MAGIC_ENUM_RANGE_MIN. By default MAGIC_ENUM_RANGE_MIN = -128.
 // If need another min range for all enum types by default, redefine the macro MAGIC_ENUM_RANGE_MIN.
 #if !defined(MAGIC_ENUM_RANGE_MIN)
-#  define MAGIC_ENUM_RANGE_MIN 0
+#  define MAGIC_ENUM_RANGE_MIN -32
 #endif
 
 // Enum value must be less or equals than MAGIC_ENUM_RANGE_MAX. By default MAGIC_ENUM_RANGE_MAX = 128.
