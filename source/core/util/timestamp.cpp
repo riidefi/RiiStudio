@@ -36,7 +36,7 @@ bool RII_IS_DIST_BUILD = false;
 #endif
 
 #if defined(BUILD_DIST) && defined(__EMSCRIPTEN__)
-const char RII_TIME_STAMP[] = RII__BUILD;
+const char RII_TIME_STAMP[] = RII_BUILD;
 #else
 const char RII_TIME_STAMP[] =
     RII_BUILD " (Built " __DATE__ " at " __TIME__ ", " RII_CC ")";

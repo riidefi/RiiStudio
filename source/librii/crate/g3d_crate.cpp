@@ -6,25 +6,6 @@
 #include <librii/g3d/io/TextureIO.hpp>
 #include <rsl/WriteFile.hpp>
 
-IMPORT_STD;
-
-#ifdef __APPLE__
-template <>
-struct fmt::formatter<std::filesystem::path, char>
-    : fmt::formatter<std::string> {
-  auto format(std::filesystem::path p, auto& ctx) const {
-    return std::format_to(ctx.out(), "{}", p.string());
-  }
-};
-#else
-template <>
-struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
-  auto format(std::filesystem::path p, format_context& ctx) const {
-    return formatter<std::string>::format(std::format("{}", p.string()), ctx);
-  }
-};
-#endif
-
 namespace librii::crate {
 
 Result<g3d::G3dMaterialData> ReadMDL0Mat(std::span<const u8> file) {
@@ -310,19 +291,20 @@ ScanCrateAnimationFolder(std::filesystem::path path) {
 Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   auto mdl0mat = OishiiReadFile2(paths.mdl0mat.string());
   if (!mdl0mat) {
-    return std::unexpected(
-        std::format("Failed to read .mdl0mat at \"{}\"", paths.mdl0mat));
+    return std::unexpected(std::format("Failed to read .mdl0mat at \"{}\"",
+                                       paths.mdl0mat.string()));
   }
   auto mdl0shade = OishiiReadFile2(paths.mdl0shade.string());
   if (!mdl0shade) {
-    return std::unexpected(
-        std::format("Failed to read .mdl0shade at \"{}\"", paths.mdl0shade));
+    return std::unexpected(std::format("Failed to read .mdl0shade at \"{}\"",
+                                       paths.mdl0shade.string()));
   }
   std::vector<std::vector<u8>> tex0s;
   for (auto& x : paths.tex0) {
     auto tex0 = OishiiReadFile2(x.string());
     if (!tex0) {
-      return std::unexpected(std::format("Failed to read .tex0 at \"{}\"", x));
+      return std::unexpected(
+          std::format("Failed to read .tex0 at \"{}\"", x.string()));
     }
     tex0s.push_back(std::move(*tex0));
   }
@@ -330,19 +312,21 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   for (auto& x : paths.srt0) {
     auto srt0 = OishiiReadFile2(x.string());
     if (!srt0) {
-      return std::unexpected(std::format("Failed to read .srt0 at \"{}\"", x));
+      return std::unexpected(
+          std::format("Failed to read .srt0 at \"{}\"", x.string()));
     }
     srt0s.push_back(std::move(*srt0));
   }
   auto mat = ReadMDL0Mat(*mdl0mat);
   if (!mat.has_value()) {
     return std::unexpected(std::format("Failed to parse material at \"{}\": {}",
-                                       paths.mdl0mat, mat.error()));
+                                       paths.mdl0mat.string(), mat.error()));
   }
   auto shade = ReadMDL0Shade(*mdl0shade);
   if (!shade.has_value()) {
     return std::unexpected(std::format("Failed to parse shader at \"{}\": {}",
-                                       paths.mdl0shade, shade.error()));
+                                       paths.mdl0shade.string(),
+                                       shade.error()));
   }
   CrateAnimation tmp;
   for (size_t i = 0; i < tex0s.size(); ++i) {
@@ -352,7 +336,7 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
         return std::unexpected(tex.error());
       }
       return std::unexpected(std::format("Failed to parse TEX0 at \"{}\": {}",
-                                         paths.tex0[i], tex.error()));
+                                         paths.tex0[i].string(), tex.error()));
     }
     tmp.tex.push_back(*tex);
   }
@@ -363,7 +347,7 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
         return std::unexpected(srt.error());
       }
       return std::unexpected(std::format("Failed to parse SRT0 at \"{}\": {}",
-                                         paths.srt0[i], srt.error()));
+                                         paths.srt0[i].string(), srt.error()));
     }
     tmp.srt.push_back(*srt);
   }

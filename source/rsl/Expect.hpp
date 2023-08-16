@@ -5,7 +5,7 @@
 #include <string>
 
 #if __cplusplus > 201703L
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
 #include <stacktrace>
 #endif
 #endif
@@ -16,7 +16,7 @@
 #define __FILE_NAME__ __FILE__
 #endif
 
-#if defined(__clang__) && !defined(__APPLE__)
+#if defined(__clang__) && !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
 #define STACK_TRACE std::stacktrace::current()
 #else
 #define STACK_TRACE 0

@@ -33,6 +33,7 @@ fn main() {
 
     let bindings = bindgen::Builder::default()
         .header("src/bindings.h")
+        .clang_arg("-fvisibility=default")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
         .expect("Unable to generate bindings");

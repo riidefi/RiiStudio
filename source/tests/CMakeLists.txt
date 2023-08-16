@@ -55,14 +55,7 @@ elseif (APPLE)
 	set(FREETYPE_VERSION "2.13.1")
 
     SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl -lcurl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
-elseif (NOT UNIX)
-	target_link_libraries(tests PUBLIC
-		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libIrrXML.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
-	)
-elseif(UNIX)
+elseif(UNIX AND NOT EMSCRIPTEN)
 	# TODO: code duplication, extract FindBzip2.cmake to top level CMakeLists
 	find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
 	find_library(SSL_LIBRARY NAMES libssl.so PATHS /usr/lib)

@@ -51,7 +51,7 @@ elseif (APPLE)
   set(FREETYPE_VERSION "2.13.1")
  
   SET_TARGET_PROPERTIES(cli PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl -lcurl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
-elseif (UNIX)
+elseif (UNIX AND NOT EMSCRIPTEN)
   find_library(GLFW3_LIBRARY NAMES libglfw.so PATHS /usr/lib)
   find_library(FREETYPE_LIBRARY NAMES libfreetype.so PATHS /usr/lib)
   find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)

@@ -192,7 +192,7 @@ elseif (APPLE)
  
   set(ASSIMP_VERSION "5.2.5")
   target_link_libraries(librii PUBLIC "${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib")
-elseif (NOT UNIX)
+elseif (EMSCRIPTEN)
   target_link_libraries(librii PUBLIC
     ${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
     ${PROJECT_SOURCE_DIR}/../vendor/assimp/libIrrXML.a

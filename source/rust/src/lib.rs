@@ -7,7 +7,9 @@ use std::path::PathBuf;
 
 use std::os::raw::c_int;
 
+#[cfg(not(target_arch = "wasm32"))]
 use reqwest;
+#[cfg(not(target_arch = "wasm32"))]
 use reqwest::blocking::Client;
 use std::error::Error;
 use std::ffi::{CStr, CString};
@@ -45,6 +47,7 @@ pub extern "C" fn rii_utf16_to_utf8(
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn download_string_rust(url: &str, user_agent: &str) -> Result<String, Box<dyn Error>> {
     let client = reqwest::blocking::Client::new();
 
@@ -59,6 +62,7 @@ pub fn download_string_rust(url: &str, user_agent: &str) -> Result<String, Box<d
 
 pub type ProgressFunc = extern "C" fn(*mut c_void, f64, f64, f64, f64) -> i32;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn download_file_rust(
     dest_path: &str,
     url: &str,
@@ -99,6 +103,7 @@ pub fn download_file_rust(
 }
 
 #[no_mangle]
+#[cfg(not(target_arch = "wasm32"))]
 pub extern "C" fn download_string(
     url: *const c_char,
     user_agent: *const c_char,
@@ -124,6 +129,7 @@ pub extern "C" fn download_string(
 }
 
 #[no_mangle]
+#[cfg(not(target_arch = "wasm32"))]
 pub extern "C" fn download_file(
     dest_path: *const c_char,
     url: *const c_char,

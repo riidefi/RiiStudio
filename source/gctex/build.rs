@@ -9,6 +9,7 @@ fn main() {
         "cargo:rustc-env=TARGET={}",
         std::env::var("TARGET").unwrap()
     );
+    let target = std::env::var("TARGET").unwrap();
 
     let mut build = cc::Build::new();
     build.cpp(true);
@@ -16,14 +17,17 @@ fn main() {
     #[cfg(unix)]
     build.flag("-std=c++17");
 
-    #[cfg(target_arch = "x86_64")]
-    build.flag("-DARCH_X64=1");
+    if target.starts_with("x86_64-") {
+        build.flag("-DARCH_X64=1");
+    }
 
     let compiler = build.get_compiler();
-    let is_clang_cl = compiler.path().ends_with("clang-cl.exe") || compiler.path().ends_with("clang-cl");
+    let is_clang_cl =
+        compiler.path().ends_with("clang-cl.exe") || compiler.path().ends_with("clang-cl");
     if compiler.is_like_gnu() || compiler.is_like_clang() || is_clang_cl {
-        #[cfg(target_arch = "x86_64")]
-        build.flag("-mssse3");
+        if target.starts_with("x86_64-") {
+            build.flag("-mssse3");
+        }
     }
     if !compiler.is_like_gnu() && !compiler.is_like_clang() {
         #[cfg(not(debug_assertions))]

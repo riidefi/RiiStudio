@@ -4,7 +4,7 @@
 
 #include <core/common.h>
 #include <oishii/reader/binary_reader.hxx>
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
 #include <stacktrace>
 #endif
 

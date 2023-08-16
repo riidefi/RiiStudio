@@ -1,8 +1,10 @@
 #pragma once
 
-#include <vendor/llvm/Support/InitLLVM.h>
-
 namespace rsl {
+
+// Disabled on emscripten.
+// Rationale: browser already handles stacktraces for us.
+#ifndef __EMSCRIPTEN__
 
 struct llvm_InitLLVM;
 
@@ -23,5 +25,15 @@ private:
   using Deleter = decltype([](llvm_InitLLVM* llvm) { rsl_deinit_llvm(llvm); });
   std::unique_ptr<llvm_InitLLVM, Deleter> m_llvm;
 };
+
+#else
+
+class InitLLVM {
+public:
+  InitLLVM(int& argc, const char**& argv,
+           bool installPipeSignalExitHandler = true) {}
+};
+
+#endif
 
 } // namespace rsl

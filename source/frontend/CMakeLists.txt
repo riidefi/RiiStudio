@@ -129,7 +129,7 @@ if (WIN32)
   endif()
   
 	target_link_libraries(frontend PUBLIC ${LINK_LIBS})
-elseif (UNIX AND NOT APPLE)
+elseif (UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
   # TODO: Duplication: extract to FindX.cmake
   find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
   find_library(SSL_LIBRARY NAMES libssl.so PATHS /usr/lib)
