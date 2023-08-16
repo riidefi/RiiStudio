@@ -17,18 +17,22 @@ public:
 
   //! Non-blocking. Performs the connection and sets the initial status.
   void connect() {
+#ifndef __EMSCRIPTEN__
     mTaskQueue.push_back(std::async(std::launch::async, [&] {
       mDiscordRpc.connect();
       mDiscordRpc.set_activity(mActivity);
     }));
+#endif
   }
 
   //! If the status has changed, send a blocking request.
   void setStatus(std::string&& status) {
+#ifndef __EMSCRIPTEN__
     if (mActivity.details != status) {
       mActivity.details = std::move(status);
       mDiscordRpc.set_activity(mActivity);
     }
+#endif
   }
 
 private:

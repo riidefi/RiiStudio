@@ -54,7 +54,7 @@ elseif (APPLE)
     set(GLFW_VERSION "3.3.8")
 	set(FREETYPE_VERSION "2.13.1")
 
-    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl -lcurl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
 elseif(UNIX AND NOT EMSCRIPTEN)
 	# TODO: code duplication, extract FindBzip2.cmake to top level CMakeLists
 	find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)

@@ -151,10 +151,14 @@ if (NOT MSVC)
     set(GLFW_VERSION "3.3.8")
     set(FREETYPE_VERSION "2.13.1")
 
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl -lcurl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
   elseif (UNIX)
     # --start-group, --end-group allows circular dependencies among object files
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lglfw -lfreetype -lstdc++ -lm")
+    if (EMSCRIPTEN)
+      SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lglfw -lstdc++ -lm")
+    else()
+      SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lglfw -lfreetype -lstdc++ -lm")
+    endif()
     # This is a hack to append a final link arg
     target_link_libraries(frontend PUBLIC "-Wl,--end-group")
   endif()
@@ -162,6 +166,10 @@ if (NOT MSVC)
 	#add_link_options("-s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind")
 	#add_link_options("-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 --no-heap-copy --preload-file ./fonts@/fonts")
   #add_link_options("-o out.html --shell-file shell_minimal.html")
+endif()
+
+if (EMSCRIPTEN)
+  set_target_properties(frontend PROPERTIES LINK_FLAGS "-s USE_FREETYPE=1 -s MAX_WEBGL_VERSION=2 --bind -sASSERTIONS --preload-file ../fonts@fonts -s ALLOW_MEMORY_GROWTH=1  --preload-file ../lang@lang --preload-file ../samp@samp -g4 --source-map-base ../ -O0")
 endif()
 
 # DLLs for windows
@@ -229,45 +237,47 @@ COMMAND ${CMAKE_COMMAND} -E copy
 	$<TARGET_FILE_DIR:frontend>/riistudio_blender.py
 )
 
-# Ensure tests is built first
-add_dependencies(frontend tests)
+if (NOT EMSCRIPTEN)
+  # Ensure tests is built first
+  add_dependencies(frontend tests cli)
 
-add_custom_command(
-TARGET frontend 
-POST_BUILD
-COMMAND ${CMAKE_COMMAND} -E copy
-	$<TARGET_FILE:tests>
-	$<TARGET_FILE_DIR:frontend>/
-)
-
-# Windows: Copy .pdb with debug info
-if (WIN32)
   add_custom_command(
   TARGET frontend 
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
-	  $<TARGET_FILE_DIR:tests>/tests.pdb
-	  $<TARGET_FILE_DIR:frontend>/tests.pdb
-  )
-endif()
-
-add_custom_command(
-  TARGET frontend 
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy
-	  $<TARGET_FILE:cli>
+	  $<TARGET_FILE:tests>
 	  $<TARGET_FILE_DIR:frontend>/
-)
-
-# Windows: Copy .pdb with debug info
-if (WIN32)
-  add_custom_command(
-  TARGET frontend 
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy
-	  $<TARGET_FILE_DIR:cli>/rszst.pdb
-	  $<TARGET_FILE_DIR:frontend>/rszst.pdb
   )
+
+  # Windows: Copy .pdb with debug info
+  if (WIN32)
+    add_custom_command(
+    TARGET frontend 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+	    $<TARGET_FILE_DIR:tests>/tests.pdb
+	    $<TARGET_FILE_DIR:frontend>/tests.pdb
+    )
+  endif()
+
+  add_custom_command(
+    TARGET frontend 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+	    $<TARGET_FILE:cli>
+	    $<TARGET_FILE_DIR:frontend>/
+  )
+
+  # Windows: Copy .pdb with debug info
+  if (WIN32)
+    add_custom_command(
+    TARGET frontend 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+	    $<TARGET_FILE_DIR:cli>/rszst.pdb
+	    $<TARGET_FILE_DIR:frontend>/rszst.pdb
+    )
+  endif()
 endif()
 
 # Disabled: No DLLs exist
@@ -288,5 +298,4 @@ if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "
   )
 endif()
 
-add_dependencies(frontend cli)
 add_dependencies(frontend rsl)

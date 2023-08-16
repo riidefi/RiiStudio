@@ -166,10 +166,6 @@ if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "
   )
 endif()
 
-if (UNIX)
-  set(LINUX_LIBS curl)
-endif (UNIX)
-
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   set_source_files_properties("g3d/gfx/G3dGfx.cpp" PROPERTIES COMPILE_FLAGS -O2 SKIP_PRECOMPILE_HEADERS ON)
 endif()
@@ -206,7 +202,7 @@ elseif (UNIX)
   )
 endif()
 
-target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE vendor oishii gctex avir-rs c-wbz szs plate ${LINUX_LIBS})
+target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE vendor oishii gctex avir-rs c-wbz szs plate)
 
 target_include_directories(librii
   PRIVATE

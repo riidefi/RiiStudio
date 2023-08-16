@@ -43,7 +43,7 @@ inline std::partial_ordering operator<=>(const glm::vec2& l,
   return l.y <=> r.y;
 }
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__EMSCRIPTEN__)
 namespace std {
 template <class I1, class I2, class Cmp>
 constexpr auto lexicographical_compare_three_way(I1 f1, I1 l1, I2 f2, I2 l2,
@@ -72,7 +72,8 @@ constexpr auto lexicographical_compare_three_way(I1 f1, I1 l1, I2 f2, I2 l2,
 inline std::partial_ordering operator<=>(const std::array<glm::vec4, 2>& l,
                                          const std::array<glm::vec4, 2>& r) {
   return std::lexicographical_compare_three_way(
-      l.begin(), l.end(), r.begin(), r.end(), [](auto& l, auto& r) {
+      l.begin(), l.end(), r.begin(), r.end(),
+      [](auto& l, auto& r) -> std::partial_ordering {
         if (auto cmp = l.x <=> r.x; cmp != 0) {
           return cmp;
         }
@@ -88,7 +89,8 @@ inline std::partial_ordering operator<=>(const std::array<glm::vec4, 2>& l,
 inline std::partial_ordering operator<=>(const std::array<glm::vec2, 8>& l,
                                          const std::array<glm::vec2, 8>& r) {
   return std::lexicographical_compare_three_way(
-      l.begin(), l.end(), r.begin(), r.end(), [](auto& l, auto& r) {
+      l.begin(), l.end(), r.begin(), r.end(),
+      [](auto& l, auto& r) -> std::partial_ordering {
         if (auto cmp = l.x <=> r.x; cmp != 0) {
           return cmp;
         }

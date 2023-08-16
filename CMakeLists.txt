@@ -43,23 +43,21 @@ elseif(APPLE)
   add_compile_options(-Wno-deprecated-declarations)
   # Draco
   add_compile_options(-Wno-implicit-const-int-float-conversion)
+elseif(EMSCRIPTEN)
+	add_compile_definitions(RII_PLATFORM_EMSCRIPTEN)
+	add_compile_definitions(IMGUI_IMPL_OPENGL_ES2)
+	add_compile_definitions(RII_BACKEND_SDL)
+	add_compile_definitions(__linux__)
+  # Assume emscripten + GLES2/SDL (linux-like)
+  # TODO: Set here, not toolchain
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} " -s USE_SDL=2 --no-heap-copy ")
+  #add_compile_options("-s ALLOW_MEMORY_GROWTH=1")
+  #add_compile_options("-s NO_EXIT_RUNTIME=0")
 elseif(UNIX)
   add_compile_definitions(RII_PLATFORM_LINUX)
   add_compile_definitions(RII_BACKEND_GLFW)
 	add_compile_definitions(__linux__)
   add_compile_definitions(LLVM_ON_UNIX)
-else()
-  # Assume emscripten + GLES2/SDL (linux-like)
-  
-	add_compile_definitions(RII_PLATFORM_EMSCRIPTEN)
-	add_compile_definitions(IMGUI_IMPL_OPENGL_ES2)
-	add_compile_definitions(RII_BACKEND_SDL)
-	add_compile_definitions(__linux__)
-
-  # TODO: Set here, not toolchain
-  # set(CMAKE_CXX_FLAGS "-s USE_SDL=2 -s ASSERTIONS=2")
-  #add_compile_options("-s ALLOW_MEMORY_GROWTH=1")
-  #add_compile_options("-s NO_EXIT_RUNTIME=0")
 endif()
 
 # Clang/Clang-Cl

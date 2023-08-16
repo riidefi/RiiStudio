@@ -18,6 +18,9 @@ char* download_file(const char* dest_path, const char* url,
 }
 
 Result<std::string> DownloadString(std::string url, std::string user_agent) {
+#ifdef __EMSCRIPTEN__
+  return std::unexpected("WASM UNSUPPORTED");
+#else
   int err = 0;
   char* c_str = download_string(url.c_str(), user_agent.c_str(), &err);
 
@@ -33,11 +36,14 @@ Result<std::string> DownloadString(std::string url, std::string user_agent) {
     return std::unexpected("DownloadString failed: " + result);
   }
   return result;
+#endif
 }
 void DownloadFile(std::string destPath, std::string url, std::string user_agent,
                   int (*progress_func)(void* userdata, double total,
                                        double current, double, double),
                   void* progress_data) {
+#ifdef __EMSCRIPTEN__
+#else
   char* result =
       download_file(destPath.c_str(), url.c_str(), user_agent.c_str(),
                     progress_func, progress_data);
@@ -47,6 +53,7 @@ void DownloadFile(std::string destPath, std::string url, std::string user_agent,
   }
 
   free_string(result);
+#endif
 }
 #else
 // From

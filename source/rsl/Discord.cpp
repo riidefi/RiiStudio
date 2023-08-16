@@ -11,7 +11,11 @@
 
 namespace rsl {
 
-using DISCORD_DELETER = decltype([](::C_RPC* x) { rsl_rpc_destroy(x); });
+using DISCORD_DELETER = decltype([](::C_RPC* x) {
+#ifndef __EMSCRIPTEN__
+  rsl_rpc_destroy(x);
+#endif
+});
 using rpc_pointer = std::unique_ptr<::C_RPC, DISCORD_DELETER>;
 
 class DiscordIpcClient::Impl {
@@ -20,7 +24,11 @@ private:
 
 public:
   static std::optional<Impl> create(const char* application_id) {
+#ifdef __EMSCRIPTEN__
+    ::C_RPC* ptr = nullptr;
+#else
     ::C_RPC* ptr = rsl_rpc_create(application_id);
+#endif
     if (ptr == nullptr) {
       return std::nullopt;
     }
@@ -64,21 +72,27 @@ bool DiscordIpcClient::connect() {
     rsl::warn("[rsl::DiscordIpcClient] connect() - Already connected");
     return true;
   }
+#ifdef __EMSCRIPTEN__
+  return false;
+#else
   const int err = rsl_rpc_connect(&m_impl->handle());
   if (err != 0) {
     return false;
   }
   m_impl->m_connected = true;
   return true;
+#endif
 }
 bool DiscordIpcClient::connected() const {
   return m_impl != nullptr && m_impl->m_connected;
 }
 void DiscordIpcClient::disconnect() {
+#ifndef __EMSCRIPTEN__
   if (m_impl != nullptr && m_impl->m_connected) {
     rsl_rpc_disconnect(&m_impl->handle());
     m_impl->m_connected = false;
   }
+#endif
 }
 void DiscordIpcClient::set_activity(const discord_rpc::Activity& activity) {
   if (m_impl == nullptr) {
@@ -90,14 +104,18 @@ void DiscordIpcClient::set_activity(const discord_rpc::Activity& activity) {
                "Discord");
     return;
   }
+#ifndef __EMSCRIPTEN__
   auto* a = discord_rpc::create_activity(activity);
   rsl_rpc_set_activity(&m_impl->handle(), a);
   discord_rpc::destroy_activity(a);
+#endif
 }
 void DiscordIpcClient::test() {
+#ifndef __EMSCRIPTEN__
   if (m_impl != nullptr) {
     rsl_rpc_test(&m_impl->handle());
   }
+#endif
 }
 
 } // namespace rsl
