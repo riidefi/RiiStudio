@@ -174,6 +174,38 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   set_source_files_properties("g3d/gfx/G3dGfx.cpp" PROPERTIES COMPILE_FLAGS -O2 SKIP_PRECOMPILE_HEADERS ON)
 endif()
 
+
+set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
+if (WIN32)
+  target_link_libraries(librii PUBLIC
+    ${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
+  )
+elseif (APPLE)
+  execute_process(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE)
+  message(STATUS "Architecture: ${ARCHITECTURE}")
+ 
+  if (${ARCHITECTURE} STREQUAL "arm64")
+    set(HOMEBREW_CELLAR "/opt/homebrew/Cellar")
+  else()
+    set(HOMEBREW_CELLAR "/usr/local/Cellar")
+  endif()
+ 
+  set(ASSIMP_VERSION "5.2.5")
+  target_link_libraries(librii PUBLIC "${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib")
+elseif (NOT UNIX)
+  target_link_libraries(librii PUBLIC
+    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
+    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libIrrXML.a
+    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
+    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
+  )
+elseif (UNIX)
+  find_library(ASSIMP_LIBRARY NAMES libassimp.so PATHS /usr/lib)
+  target_link_libraries(librii PUBLIC
+    ${ASSIMP_LIBRARY}
+  )
+endif()
+
 target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE vendor oishii gctex avir-rs c-wbz szs plate ${LINUX_LIBS})
 
 target_include_directories(librii

@@ -31,7 +31,6 @@ add_dependencies(tests rsl)
 if (WIN32)
   set(LINK_LIBS
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
-		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
 		opengl32.lib
     ntdll Crypt32 Secur32 Ncrypt # Rust needs this now?
 		${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
@@ -55,7 +54,7 @@ elseif (APPLE)
     set(GLFW_VERSION "3.3.8")
 	set(FREETYPE_VERSION "2.13.1")
 
-    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl -lcurl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl -lcurl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
 elseif (NOT UNIX)
 	target_link_libraries(tests PUBLIC
 		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
@@ -73,7 +72,7 @@ endif()
 
 if (UNIX AND NOT APPLE)
   # --start-group, --end-group allows circular dependencies among object files
-  SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lfreetype -lstdc++ -lm -lpthread")
+  SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lglfw -lfreetype -lstdc++ -lm -lpthread")
   # This is a hack to append a final link arg
   target_link_libraries(tests PUBLIC "-Wl,--end-group")
 endif()

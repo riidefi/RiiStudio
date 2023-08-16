@@ -98,8 +98,6 @@ add_executable(frontend
  "entry.cpp"
   ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc)
 
-set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
-
 target_link_libraries(lib_frontend PUBLIC
 	core
 	oishii
@@ -122,7 +120,6 @@ if (WIN32)
   set(LINK_LIBS
     ${LINK_LIBS}
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
-		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
 		OpenGL::GL
     ntdll Crypt32 Secur32 Ncrypt # Rust needs this now?
     ${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
@@ -132,13 +129,6 @@ if (WIN32)
   endif()
   
 	target_link_libraries(frontend PUBLIC ${LINK_LIBS})
-elseif (NOT UNIX)
-	target_link_libraries(frontend PUBLIC
-		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libIrrXML.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
-	)
 elseif (UNIX AND NOT APPLE)
   # TODO: Duplication: extract to FindX.cmake
   find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
@@ -158,14 +148,13 @@ if (NOT MSVC)
       set(HOMEBREW_CELLAR "/usr/local/Cellar")
     endif()
 
-    set(ASSIMP_VERSION "5.2.5")
     set(GLFW_VERSION "3.3.8")
     set(FREETYPE_VERSION "2.13.1")
 
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl -lcurl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl -lcurl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
   elseif (UNIX)
     # --start-group, --end-group allows circular dependencies among object files
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lfreetype -lstdc++ -lm")
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lglfw -lfreetype -lstdc++ -lm")
     # This is a hack to append a final link arg
     target_link_libraries(frontend PUBLIC "-Wl,--end-group")
   endif()
