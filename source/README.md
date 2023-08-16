@@ -7,13 +7,13 @@ An outline of the source tree.
 | blender           | Blender plugin with exporter support for BRRES/BMD.     | Python               |
 | c-discord-rich-presence               | C/C++ bindings for the [discord-rich-presence crate](https://github.com/sardonicism-04/discord-rich-presence). Provides an alternative to the official Discord libraries for RPC for C++ applications.                         | Rust                  |
 | c-wbz | C/C++ bindings for [wbz_converter](https://github.com/GnomedDev/wbz-to-szs-rs) | Rust |
-| cli               | Source for the `rszst` utility.                         | C++                  |
+| cli               | Source for the `rszst` utility.                         | C++, Rust                  |
 | core              | Core utilities and structures. Available to all other modules. | C++              |
 | frontend          | The main editor itself.                                 | C++                  |
 | gctex             | GC/Wii image codec. [Published to crates.io](https://crates.io/crates/gctex) | Rust/C++          |
 | imcxx             | My C++ wrappers for ImGui.                              | C++                  |
 | LibBadUIFramework | Basis of the `plugins` folder, defines some extendable UI structures. |  C++   |
-| librii            | Library for interacting with Wii data.                  | C++                  |
+| librii            | Library for interacting with Wii data. [Documentation here](https://github.com/riidefi/RiiStudio/blob/master/source/librii/README.md)                 | C++                  |
 | llvm              | Rust wrapper for the llvm crash handler.                | Rust/C++             |
 | oishii            | My binary IO library.                                   | C++                  |
 | plate             | Dear ImGui boilerplate code.                            | C++                  |

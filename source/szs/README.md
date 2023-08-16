@@ -2,9 +2,26 @@
 szs is a WIP crate for compressing and decompressing SZS formats used in the Nintendo GameCube and Wii games. The library provides C bindings, making it useful in both Rust and C/C++ based projects.
 
 Warning: The library is not currently in a fully functional state. Use at your own risk. 0.1.0 will start the release series.
+Warning: These algorithms are currently implemented in **the C programming language**, and not in Rust. While they have been rigorously validated, please use at your own risk. A Rust rewrite is planned.
 
 #### Algorithms
-- Booyer-moore-horspool (1:1 matching source files--relevant for decompilation projects), Brute force, CTGP (1:1 matching), Fast
+- Boyer-moore-horspool (1:1 matching source files--relevant for decompilation projects), Brute force, CTGP (1:1 matching), Fast
+
+### Stats
+**Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
+| Method | Time Taken | Compression Rate |
+|--------|------------|------------------|
+| worst-case-encoding | **0s** | 112.50% |
+| ctgp | 0.31s | 71.41% |
+| mkw-sp | 3.76s | 57.23% |
+| nintendo | 5.93s | **56.87%** |
+| **Comparison with other libraries:** | | |
+| wszst (fast) | **0.387s** (via shell) | 65.78% |
+| wszst (standard) | 1.776s (via shell) | 57.23% |
+| wszst (ultra) | 2.727s (via shell) | **56.65%** |
+| yaz0-rs | 11.34s (via shell) | 56.87% |
+
+In conclusion, in most cases, wszst currently is both faster and more effective than the current algorithms.
 
 ### Rust
 The following snippet demonstrates how to compress a file as a SZS format using Rust:
@@ -19,7 +36,7 @@ let max_len = encoded_upper_bound(src_data.len() as u32);
 // Allocate a buffer based on the calculated upper bound.
 let mut dst_data: Vec<u8> = vec![0; max_len as usize];
 
-// Boyer-Moore-hoorspool variant
+// Boyer-Moore-horspool variant
 let algo_number: u32 = 0;
 
 match encode_algo_fast(&mut dst_data, &src_data, algo_number) {
@@ -32,21 +49,6 @@ match encode_algo_fast(&mut dst_data, &src_data, algo_number) {
         println!("Encoding failed: {}", err_msg);
     }
 }
-```
-
-### Example (C++ Bindings)
-```cpp
-#include `szs.h`
-
-// Boyer-Moore-hoorspool variant
-szs::Algo algorithm = szs::Algo::Nintendo;
-auto encoded = szs::encode_algo(data, algorithm);
-if (!encoded)
-	std::println(stderr, "Failed to compress: {}.", encoded.error()); {
-	return -1;
-}
-std::vector<u8> szs_data = *encoded;
-std::println("Encoded {} bytes.", szs_data.size());
 ```
 
 ### Example (C Bindings)
@@ -63,7 +65,7 @@ if (!buf) {
 	return -1;
 }
 
-// Boyer-Moore-hoorspool variant
+// Boyer-Moore-horspool variant
 u32 algorithm = RII_SZS_ENCODE_ALGO_NINTENDO;
 
 u32 actual_len = 0;
@@ -77,6 +79,21 @@ printf("Encoded %u bytes.\n", actual_len);
 // Optionally: shrink the dst_data to the actual size.
 encoded_buf = realloc(encoded_buf, actual_len);
 ```
- 
+
+### C++ Wrapper on top of C Bindings
+```cpp
+#include `szs.h`
+
+// Boyer-Moore-horspool variant
+szs::Algo algorithm = szs::Algo::Nintendo;
+auto encoded = szs::encode_algo(data, algorithm);
+if (!encoded)
+	std::println(stderr, "Failed to compress: {}.", encoded.error()); {
+	return -1;
+}
+std::vector<u8> szs_data = *encoded;
+std::println("Encoded {} bytes.", szs_data.size());
+```
+
 #### License
 This library is published under the MIT license.
