@@ -100,7 +100,7 @@
                         
                         reader.onloadend = evt => {
                             const uint8_t_arr = new Uint8Array(evt.target.result);
-                            const uint8_t_ptr = window.Module._malloc(uint8_t_arr.length);
+                            const uint8_t_ptr = window.Module.myMalloc(uint8_t_arr.length);
                             window.Module.HEAPU8.set(uint8_t_arr, uint8_t_ptr);
 
                             window.Module.readFile(uint8_t_ptr, uint8_t_arr.length, file.name);
@@ -121,7 +121,7 @@
             console.log("onerror: " + event);
         };
     </script>
-    <script type="text/javascript" src="out.js"></script>
+    <script type="text/javascript" src="RiiStudio.js"></script>
 </body>
 
 </html>
