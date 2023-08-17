@@ -257,9 +257,12 @@ void BRRESEditor::draw_() {
   mOutliner->draw();
 
   if (mSelection.mActive != active || mSelection.selected != sel) {
-    if (auto* g = dynamic_cast<lib3d::Material*>(active)) {
+    if (auto* g = active ? dynamic_cast<lib3d::Material*>(active) : nullptr) {
       mRenderTest->hide_mats.clear();
       for (auto& x : mSelection.selected) {
+        if (x == nullptr) {
+          continue;
+        }
         auto* m = dynamic_cast<const lib3d::Material*>(x);
         if (m == nullptr) {
           continue;
@@ -406,9 +409,12 @@ void BMDEditor::draw_() {
   mOutliner->draw();
 
   if (mSelection.mActive != active || mSelection.selected != sel) {
-    if (auto* g = dynamic_cast<lib3d::Material*>(active)) {
+    if (auto* g = active ? dynamic_cast<lib3d::Material*>(active) : nullptr) {
       mRenderTest->hide_mats.clear();
       for (auto& x : mSelection.selected) {
+        if (x == nullptr) {
+          continue;
+        }
         auto* m = dynamic_cast<const lib3d::Material*>(x);
         if (m == nullptr) {
           continue;
