@@ -113,6 +113,23 @@ static void MSVCWarningWindow() {
   }
   ImGui::End();
 #endif // !defined(HAS_RUST_TRY)
+#ifdef __EMSCRIPTEN__
+  ImGui::SetNextItemWidth(400);
+  static bool okp = true;
+  if (okp && ImGui::Begin("Warning", &okp, ImGuiWindowFlags_AlwaysAutoResize)) {
+    auto back = ImGui::GetCurrentWindow()->FontWindowScale;
+    ImGui::SetWindowFontScale(1.3f);
+    util::PushErrorSyle();
+    util::Markdown("Warning: The web version of RiiStudio is just a preview "
+                   "and less frequently updated than the desktop builds "
+                   "published on the Releases section.\n\nAccess the last "
+                   "version at https://riidefi.github.io/RiiStudio/old (this "
+                   "version's importer is not fully functional)");
+    util::PopErrorStyle();
+    ImGui::SetWindowFontScale(back);
+  }
+  ImGui::End();
+#endif
 }
 
 void RootWindow::draw() {

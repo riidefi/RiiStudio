@@ -169,7 +169,8 @@ if (NOT MSVC)
 endif()
 
 if (EMSCRIPTEN)
-  set_target_properties(frontend PROPERTIES LINK_FLAGS "-s USE_FREETYPE=1 -s MAX_WEBGL_VERSION=2 --bind -sASSERTIONS --preload-file ../fonts@fonts -s ALLOW_MEMORY_GROWTH=1  --preload-file ../lang@lang --preload-file ../samp@samp -g4 --source-map-base ../ -O0")
+  # Debugging  -g4 --source-map-base ../ -O0
+  set_target_properties(frontend PROPERTIES LINK_FLAGS "-s USE_FREETYPE=1 -s MAX_WEBGL_VERSION=2 --bind -sASSERTIONS --preload-file ../fonts@fonts -s ALLOW_MEMORY_GROWTH=1  --preload-file ../lang@lang --preload-file ../samp@samp")
 endif()
 
 # DLLs for windows
