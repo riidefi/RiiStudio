@@ -186,8 +186,12 @@ public:
 
   TRY(loader.indexedContainer<u16>(ambColors, MatSec::AmbientColors, 4));
   mat.chanData.resize(0);
-  for (int i = 0; i < matColors.size(); ++i)
-    mat.chanData.push_back({matColors[i], ambColors[i]});
+  for (int i = 0; i < matColors.size(); ++i) {
+    gx::Color matc = matColors[i];
+    // seesawmovenuta.bmd has no ambColors
+    gx::Color ambc = i < ambColors.size() ? ambColors[i] : gx::Color{};
+    mat.chanData.push_back({matc, ambc});
+  }
 
   TRY(loader.indexedContainer<u16>(mat.lightColors, MatSec::LightInfo, 4));
 
@@ -197,7 +201,8 @@ public:
     reader.getUnsafe().warnAt("Number of TexGens does not match GenInfo count",
                               reader.tell() - 20, reader.tell());
   }
-  [[maybe_unused]] const auto post_tg = TRY(reader.getUnsafe().tryReadX<u16, 8>());
+  [[maybe_unused]] const auto post_tg =
+      TRY(reader.getUnsafe().tryReadX<u16, 8>());
   // TODO: Validate assumptions here
 
   dbg.assertSince(0x48);
@@ -275,6 +280,12 @@ public:
     dbg.assertSince(0x104);
     rsl::array_vector<SwapSel, 16> swapSels;
     TRY(loader.indexedContainer<u16>(swapSels, MatSec::TevSwapModeInfo, 4));
+    if (mat.mStages.size() != swapSels.size()) {
+      rsl::error("Swap sel count mismatch: {} when expected {}",
+                 swapSels.size(), mat.mStages.size());
+      // seesawmovenuta.bmd has no swap sels
+      swapSels.resize(mat.mStages.size());
+    }
     for (int i = 0; i < mat.mStages.size(); ++i) {
       mat.mStages[i].texMapSwap = swapSels[i].texSel;
       mat.mStages[i].rasSwap = swapSels[i].colorChanSel;
@@ -364,7 +375,16 @@ Result<void> readMAT3(BMDOutputContext& ctx) {
             found = true;
           }
         }
-        EXPECT(found);
+        // i != 24: seesawmovenuta.bmd has no ZCompInfo
+        if (!found) {
+          auto sec = static_cast<MatSec>(i);
+          if (sec == MatSec::ZCompareInfo) {
+            rsl::error("Missing ZCompareInfo: Assuming a debug KCL BMD");
+          } else {
+            return std::unexpected(std::format("Failed to find section {} ({})",
+                                               magic_enum::enum_name(sec), i));
+          }
+        }
       }
       EXPECT(i + 1 == (int)MatSec::Max || end == loader.mSections[i + 1] ||
              loader.mSections[i + 1] == 0);
