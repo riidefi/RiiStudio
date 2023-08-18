@@ -1,6 +1,7 @@
 #pragma once
 
-#include <expected>
+#include "expected.hpp"
+
 #include <span>
 #include <stdint.h>
 #include <string>
@@ -22,7 +23,7 @@ constexpr u32 roundUp(u32 in, u32 align) {
 
 namespace rlibrii::szs {
 
-template <typename T> using Result = std::expected<T, std::string>;
+template <typename T> using Result = tl::expected<T, std::string>;
 
 bool isDataYaz0Compressed(std::span<const u8> src);
 

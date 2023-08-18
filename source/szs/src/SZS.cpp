@@ -12,7 +12,7 @@ Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo) {
     std::vector<u8> tmp(getWorstEncodingSize(buf));
     int sz = encodeBoyerMooreHorspool(buf.data(), tmp.data(), buf.size());
     if (sz < 0 || sz > tmp.size()) {
-      return std::unexpected("encodeBoyerMooreHorspool failed");
+      return tl::unexpected("encodeBoyerMooreHorspool failed");
     }
     tmp.resize(sz);
     return tmp;
@@ -21,7 +21,7 @@ Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo) {
     std::vector<u8> tmp(getWorstEncodingSize(buf));
     u32 sz = encodeSP(buf.data(), tmp.data(), buf.size(), tmp.size());
     if (sz > tmp.size()) {
-      return std::unexpected("encodeSP failed");
+      return tl::unexpected("encodeSP failed");
     }
     tmp.resize(sz);
     return tmp;
@@ -30,7 +30,7 @@ Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo) {
     return encodeCTGP(buf);
   }
 
-  return std::unexpected("Invalid algorithm");
+  return tl::unexpected("Invalid algorithm");
 }
 
 bool isDataYaz0Compressed(std::span<const u8> src) {
@@ -42,10 +42,10 @@ bool isDataYaz0Compressed(std::span<const u8> src) {
 
 Result<u32> getExpandedSize(std::span<const u8> src) {
   if (src.size_bytes() < 8)
-    return std::unexpected("File too small to be a YAZ0 file");
+    return tl::unexpected("File too small to be a YAZ0 file");
 
   if (!(src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0')) {
-    return std::unexpected("Data is not a YAZ0 file");
+    return tl::unexpected("Data is not a YAZ0 file");
   }
   return (src[4] << 24) | (src[5] << 16) | (src[6] << 8) | src[7];
 }
@@ -53,10 +53,10 @@ Result<u32> getExpandedSize(std::span<const u8> src) {
 Result<void> decode(std::span<u8> dst, std::span<const u8> src) {
   auto exp = getExpandedSize(src);
   if (!exp) {
-    return std::unexpected("Source is not a SZS compressed file!");
+    return tl::unexpected("Source is not a SZS compressed file!");
   }
   if (dst.size() < *exp) {
-    return std::unexpected("Result buffer is too small!");
+    return tl::unexpected("Result buffer is too small!");
   }
 
   int in_position = 0x10;

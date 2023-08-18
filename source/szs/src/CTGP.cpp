@@ -50,12 +50,12 @@ Result<std::vector<u8>> encodeCTGP(std::span<const u8> buf) {
   memset(&stream, 0, sizeof(stream));
 
   if (!Yaz_open(&stream, write_)) {
-    return std::unexpected("encodeCTGP: Yaz_open failed");
+    return tl::unexpected("encodeCTGP: Yaz_open failed");
   }
   for (u8 c : buf) {
     int reent = 0; // ?
     if (Yaz_fputc_r(&reent, c, &stream) != c) {
-      return std::unexpected("encodeCTGP: Yaz_fputc_r failed");
+      return tl::unexpected("encodeCTGP: Yaz_fputc_r failed");
     }
   }
   int reent;
@@ -68,16 +68,16 @@ Result<std::vector<u8>> encodeCTGP(std::span<const u8> buf) {
   // Validate
   {
     if (getExpandedSize(result).value_or(0) != buf.size()) {
-      return std::unexpected(
+      return tl::unexpected(
           "encodeCTGP: Failed to produce a valid SZS header");
     }
     std::vector<u8> out(buf.size());
     if (!decode(out, result)) {
-      return std::unexpected(
+      return tl::unexpected(
           "encodeCTGP: Failed to produce a valid SZS stream");
     }
     if (memcmp(out.data(), buf.data(), out.size())) {
-      return std::unexpected("encodeCTGP: Produced a corrupt file");
+      return tl::unexpected("encodeCTGP: Produced a corrupt file");
     }
   }
   return result;
