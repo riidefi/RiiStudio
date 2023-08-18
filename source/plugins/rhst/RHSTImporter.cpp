@@ -1,7 +1,7 @@
 #include "RHSTImporter.hpp"
 
 #include <LibBadUIFramework/Plugins.hpp>
-#include <core/3d/i3dmodel.hpp>
+#include <plugins/3d/i3dmodel.hpp>
 
 #include <librii/crate/g3d_crate.hpp>
 #include <librii/hx/CullMode.hpp>

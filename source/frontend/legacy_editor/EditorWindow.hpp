@@ -6,7 +6,7 @@
 #include <LibBadUIFramework/History.hpp>
 #include <LibBadUIFramework/Node2.hpp>   // kpi::INode
 #include <LibBadUIFramework/Plugins.hpp> // kpi::IOTransaction
-#include <core/3d/Texture.hpp>           // lib3d::Texture
+#include <plugins/3d/Texture.hpp>           // lib3d::Texture
 #include <frontend/IEditor.hpp>
 #include <frontend/widgets/ErrorDialogList.hpp>
 #include <frontend/widgets/IconManager.hpp> // IconManager

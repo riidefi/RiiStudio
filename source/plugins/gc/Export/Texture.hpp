@@ -1,7 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include <core/3d/i3dmodel.hpp>
+#include <plugins/3d/i3dmodel.hpp>
 #include <librii/gx/Texture.hpp>
 #include <librii/image/ImagePlatform.hpp>
 #include <string_view>

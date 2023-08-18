@@ -1,9 +1,9 @@
 #pragma once
 
-#include <core/3d/Bone.hpp>
-#include <core/3d/Material.hpp>
-#include <core/3d/Polygon.hpp>
-#include <core/3d/Texture.hpp>
+#include <plugins/3d/Bone.hpp>
+#include <plugins/3d/Material.hpp>
+#include <plugins/3d/Polygon.hpp>
+#include <plugins/3d/Texture.hpp>
 #include <librii/glhelper/VBOBuilder.hpp>
 #include <memory> // std::shared_ptr
 

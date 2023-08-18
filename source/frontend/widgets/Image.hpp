@@ -3,7 +3,7 @@
 #include <core/common.h>
 #include <vector>
 
-#include <core/3d/i3dmodel.hpp>
+#include <plugins/3d/i3dmodel.hpp>
 
 namespace riistudio::frontend {
 

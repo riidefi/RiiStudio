@@ -1,5 +1,5 @@
 #include "EditorWindow.hpp"
-#include <core/3d/i3dmodel.hpp>                            // lib3d::Scene
+#include <plugins/3d/i3dmodel.hpp>                            // lib3d::Scene
 #include <frontend/applet.hpp>                             // core::Applet
 #include <frontend/legacy_editor/views/Outliner.hpp>       // MakeHistoryList
 #include <frontend/legacy_editor/views/PropertyEditor.hpp> // MakeOutliner

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <LibBadUIFramework/Node2.hpp> // kpi::IObject*
-#include <core/3d/Texture.hpp>         // lib3d::Texture*
+#include <plugins/3d/Texture.hpp>         // lib3d::Texture*
 #include <imcxx/Widgets.hpp>           // ImGuiTextFilter
 
 namespace riistudio::frontend {
