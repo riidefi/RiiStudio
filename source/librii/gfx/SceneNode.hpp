@@ -12,7 +12,7 @@
 namespace librii::gfx {
 
 enum class PrimitiveType {
-  Triangles // GL_TRIANGLES
+  Triangles, // GL_TRIANGLES
 };
 
 // Convert a PrimitiveType to OpenGL BeginMode

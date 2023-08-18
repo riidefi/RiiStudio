@@ -17,7 +17,13 @@ struct SerializationProfile {
   float runtime_scale{100.0f}; //!< Property of the target game
 };
 
-enum class Platform { Nitro, Revolution, Citra, Cafe, NX };
+enum class Platform {
+  Nitro,
+  Revolution,
+  Citra,
+  Cafe,
+  NX,
+};
 
 constexpr SerializationProfile PlatformProfile(Platform platform) {
   switch (platform) {

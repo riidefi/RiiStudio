@@ -9,10 +9,6 @@
 #include <string>
 #include <vector>
 
-#include <version>
-#ifdef __cpp_lib_format
-#include <format>
-#endif
 #include <variant>
 
 #include <core/util/timestamp.hpp>
@@ -76,12 +72,7 @@ struct WiimmKclVersion {
 };
 
 inline std::string FormatWiimmKclVersion(const WiimmKclVersion& ver) {
-#ifdef __cpp_lib_format
   return std::format("WiimmSZS v{}.{}", ver.major_version, ver.minor_version);
-#else
-  return "WiimmSZS v" + std::to_string(ver.major_version) + "." +
-         std::to_string(ver.minor_version);
-#endif
 }
 
 struct UnknownKclVersion {};
@@ -126,8 +117,8 @@ struct KCollisionData {
 Result<KCollisionData> ReadKCollisionData(std::span<const u8> bytes,
                                           u32 file_size);
 
-inline std::array<glm::vec3, 3> FromPrism(const KCollisionData& data,
-                                          const KCollisionPrismData& prism) {
+static inline std::array<glm::vec3, 3>
+FromPrism(const KCollisionData& data, const KCollisionPrismData& prism) {
   return FromPrism(prism.height, data.pos_data[prism.pos_i],
                    data.nrm_data[prism.fnrm_i], data.nrm_data[prism.enrm1_i],
                    data.nrm_data[prism.enrm2_i], data.nrm_data[prism.enrm3_i]);

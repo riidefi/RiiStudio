@@ -2,8 +2,8 @@
 
 #include <array>
 #include <bit>
-#include <core/common.h> // u16
-#include <glm/vec3.hpp>  // glm::vec3
+#include <glm/vec3.hpp> // glm::vec3
+#include <rsl/Types.hpp>
 #include <span>
 
 namespace librii::kmp {

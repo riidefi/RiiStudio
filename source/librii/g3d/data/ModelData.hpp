@@ -5,9 +5,21 @@
 
 namespace librii::g3d {
 
-enum class ScalingRule { Standard, XSI, Maya };
-enum class TextureMatrixMode { Maya, XSI, Max };
-enum class EnvelopeMatrixMode { Normal, Approximation, Precision };
+enum class ScalingRule {
+  Standard,
+  XSI,
+  Maya,
+};
+enum class TextureMatrixMode {
+  Maya,
+  XSI,
+  Max,
+};
+enum class EnvelopeMatrixMode {
+  Normal,
+  Approximation,
+  Precision,
+};
 
 struct G3DModelDataData {
   ScalingRule mScalingRule = ScalingRule::Standard;
