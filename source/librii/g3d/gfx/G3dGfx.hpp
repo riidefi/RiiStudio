@@ -30,11 +30,7 @@ AddPolygonToVBO(librii::glhelper::VBOBuilder& vbo_builder,
   return poly.propagate(mdl, mp_id, vbo_builder);
 }
 
-struct ShaderCompileError {
-  std::string desc;
-};
-
-inline std::variant<librii::glhelper::ShaderProgram, ShaderCompileError>
+static inline std::expected<librii::glhelper::ShaderProgram, std::string>
 CompileMaterial(const lib3d::Material& _mat, lib3d::RenderType type) {
   rsl::trace("Compiling shader for {}..", _mat.getName().c_str());
   const auto shader_sources_ = _mat.generateShaders(type);
@@ -42,7 +38,7 @@ CompileMaterial(const lib3d::Material& _mat, lib3d::RenderType type) {
     _mat.isShaderError = true;
     _mat.shaderError =
         std::format("ShaderGen Error: {}", shader_sources_.error());
-    return ShaderCompileError{.desc = _mat.shaderError};
+    return std::unexpected(_mat.shaderError);
   }
   auto shader_sources = *shader_sources_;
   librii::glhelper::ShaderProgram new_shader(
@@ -51,7 +47,7 @@ CompileMaterial(const lib3d::Material& _mat, lib3d::RenderType type) {
   if (new_shader.getError()) {
     _mat.isShaderError = true;
     _mat.shaderError = std::format("GLSL Error: {}", new_shader.getErrorDesc());
-    return ShaderCompileError{.desc = _mat.shaderError};
+    return std::unexpected(_mat.shaderError);
   }
   _mat.isShaderError = false;
 
@@ -177,17 +173,13 @@ private:
       mLastId = _mat->getGenerationId();
 
       auto result = CompileMaterial(*_mat, type);
-      if (auto* shader = std::get_if<librii::glhelper::ShaderProgram>(&result);
-          shader != nullptr) {
-        mProgram = std::move(*shader);
-        mErr = {};
+      if (!result) {
+        mErr = result.error();
         return;
       }
 
-      if (auto* err = std::get_if<ShaderCompileError>(&result);
-          err != nullptr) {
-        mErr = err->desc;
-      }
+      mProgram = std::move(*result);
+      mErr = {};
     }
   };
   std::unique_ptr<Impl> mImpl;
@@ -261,9 +253,8 @@ struct G3dShaderCache_WithUnusableHashingMechanism {
 
     auto result = CompileMaterial(mat);
 
-    if (auto* shader = std::get_if<librii::glhelper::ShaderProgram>(&result);
-        shader != nullptr) {
-      return &*(data[mat] = std::move(*shader));
+    if (result) {
+      return &*(data[mat] = std::move(*result));
     }
 
     // Compilation failed, so give up and pick a different shader
@@ -405,7 +396,17 @@ struct G3dSceneRenderData {
 
   // TODO: Document
   std::map<std::pair<u32, u32>, u32> query_mins;
-  std::set<u32> hasUploaded;
+  struct ShaderKey {
+    u32 glId = 0;
+    s32 matGenId = 0;
+
+    u64 packed() const {
+      u64 a = glId;
+      u64 b = (u32)matGenId;
+      return (a << 32) | b;
+    }
+  };
+  std::set<u64> hasUploaded;
 
   Result<void> init(const libcube::Scene& host) {
     TRY(mVertexRenderData.init(host));

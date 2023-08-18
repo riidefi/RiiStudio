@@ -225,7 +225,11 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
   }
 
   {
-    if (!render_data.hasUploaded.contains(out.shader_id)) {
+    G3dSceneRenderData::ShaderKey key{
+        .glId = out.shader_id,
+        .matGenId = node.mat.getGenerationId(),
+    };
+    if (!render_data.hasUploaded.contains(key.packed())) {
       // WebGL doesn't support binding=n in the shader
 #if defined(__EMSCRIPTEN__) || defined(__APPLE__)
       glUniformBlockBinding(
@@ -242,7 +246,7 @@ Result<void> MakeSceneNode(SceneNode& out, lib3d::IndexRange tenant,
       glUseProgram(out.shader_id);
       u32 uTexLoc = glGetUniformLocation(out.shader_id, "u_Texture");
       glUniform1iv(uTexLoc, 8, samplerIds);
-      render_data.hasUploaded.insert(out.shader_id);
+      render_data.hasUploaded.insert(key.packed());
     }
   }
 
