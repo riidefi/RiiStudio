@@ -78,6 +78,32 @@ cmake --build . --config Release --parallel
 Credit to @h0d22 on twitter for the translation
 https://twitter.com/h0d22
 
+## Command Line Interface
+```
+Usage: rszst <COMMAND>
+
+Commands:
+  import-command  DEPRECATED: Use import-brres
+  import-brres    Import a .dae/.fbx file as .brres
+  import-bmd      Import a .dae/.fbx file as .bmd
+  decompress      Decompress a .szs file
+  compress        Compress a file as .szs
+  rhst2-brres     Convert a .rhst file to a .brres file
+  rhst2-bmd       Convert a .rhst file to a .bmd file
+  extract         Extract a .szs file to a folder
+  create          Create a .szs file from a folder
+  kmp-to-json     Dump a kmp as json
+  json-to-kmp     Convert to kmp from json
+  kcl-to-json     Dump a kcl as json
+  json-to-kcl     Convert to kcl from json
+  dump-presets    Dump presets of a model to a folder
+  help            Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
 ## Credits
  * Dear ImGui - "Bloat-free Immediate Mode Graphical User interface for C++ with minimal dependencies" - https://github.com/ocornut/imgui
  * GLFW, GLM, SDL 
