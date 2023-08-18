@@ -113,6 +113,21 @@ pub struct DecompressCommand {
     verbose: bool,
 }
 
+/// [Deep cut, debug] For generating KCL testing suite data, we dump "Jmp2Bmd" files to
+/// .obj to recover original triangle data -- kcl files, on their own, are quite lossy.
+#[derive(Parser, Debug)]
+pub struct PreciseBMDDump {
+    /// File to dump: *.bmd
+    #[arg(required = true)]
+    from: String,
+
+    /// Output file for decompressed file
+    to: Option<String>,
+
+    #[clap(short, long, default_value = "false")]
+    verbose: bool,
+}
+
 // Sync with librii::szs
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, ValueEnum)]
@@ -311,6 +326,8 @@ pub enum Commands {
     JsonToKcl(JsonToKcl),
 
     DumpPresets(DumpPresets),
+
+    PreciseBMDDump(PreciseBMDDump),
 }
 
 #[repr(C)]
@@ -884,6 +901,44 @@ impl MyArgs {
                     .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
                 CliOptions {
                     c_type: 13,
+                    from: from2,
+                    to: to2,
+                    verbose: i.verbose as c_uint,
+
+                    // Junk fields
+                    preset_path: [0; 256],
+                    scale: 0.0 as c_float,
+                    brawlbox_scale: 0 as c_uint,
+                    mipmaps: 0 as c_uint,
+                    min_mip: 0 as c_uint,
+                    max_mips: 0 as c_uint,
+                    auto_transparency: 0 as c_uint,
+                    merge_mats: 0 as c_uint,
+                    bake_uvs: 0 as c_uint,
+                    tint: 0 as c_uint,
+                    cull_degenerates: 0 as c_uint,
+                    cull_invalid: 0 as c_uint,
+                    recompute_normals: 0 as c_uint,
+                    fuse_vertices: 0 as c_uint,
+                    no_tristrip: 0 as c_uint,
+                    ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
+                }
+            }
+            Commands::PreciseBMDDump(i) => {
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 14,
                     from: from2,
                     to: to2,
                     verbose: i.verbose as c_uint,

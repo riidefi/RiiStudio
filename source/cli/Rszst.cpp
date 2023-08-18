@@ -8,6 +8,7 @@
 #include <librii/assimp2rhst/SupportedFiles.hpp>
 #include <librii/crate/g3d_crate.hpp>
 #include <librii/crate/j3d_crate.hpp>
+#include <librii/j3d/PreciseBMDDump.hpp>
 #include <librii/kcol/Model.hpp>
 #include <librii/kmp/io/KMP.hpp>
 #include <librii/rarc/RARC.hpp>
@@ -985,6 +986,41 @@ static Result<void> dumpPresetsJ3D(const CliOptions& m_opt) {
   return {};
 }
 
+static Result<void> preciseBmdDump(const CliOptions& m_opt) {
+  if (m_opt.verbose) {
+    rsl::logging::init();
+  }
+  std::filesystem::path m_from = m_opt.from.view();
+  std::filesystem::path m_to = m_opt.to.view();
+
+  if (m_to.empty()) {
+    std::filesystem::path p = m_from;
+    p.replace_extension(".obj");
+    m_to = p;
+  }
+  if (!FS_TRY(rsl::filesystem::exists(m_from))) {
+    fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+    return std::unexpected("FolderNotExist");
+  }
+  if (FS_TRY(rsl::filesystem::exists(m_to))) {
+    fmt::print(stderr,
+               "Warning: File {} will be overwritten by this operation.\n",
+               m_to.string());
+  }
+  kpi::LightIOTransaction trans;
+  trans.callback =
+      [](kpi::IOMessageClass message_class, const std::string_view domain,
+         const std::string_view message_body) { rsl::info(message_body); };
+  auto bmd = TRY(librii::j3d::J3dModel::fromFile(m_opt.from.view(), trans));
+
+  auto result = TRY(librii::j3d::PreciseBMDDump(bmd, m_opt.from.view()));
+  fmt::print("{}\n", result);
+  std::ofstream stream(m_to);
+  stream << result;
+
+  return {};
+}
+
 int main(int argc, const char** argv) {
   fmt::print(stdout, "RiiStudio CLI {}\n", RII_TIME_STAMP);
   auto args = parse(argc, argv);
@@ -1105,6 +1141,13 @@ int main(int argc, const char** argv) {
     } else {
       dumpPresetsG3D(*args);
     }
+    if (!ok) {
+      fmt::print(stderr, "{}\n", ok.error());
+      return -1;
+    }
+  }
+  if (args->type == TYPE_PRECISE_BMD_DUMP) {
+    auto ok = preciseBmdDump(*args);
     if (!ok) {
       fmt::print(stderr, "{}\n", ok.error());
       return -1;

@@ -47,6 +47,8 @@ enum {
   TYPE_IMPORT_BMD,
 
   TYPE_DUMP_PRESETS,
+
+  TYPE_PRECISE_BMD_DUMP,
 };
 
 template <size_t L> struct CFixedString {
