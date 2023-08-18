@@ -92,33 +92,5 @@ std::string tryImportTEX0(libcube::Texture& tex);
 std::string tryImportSRT0(riistudio::g3d::SRT0& srt);
 Result<void> tryExportSRT0(const librii::g3d::SrtAnimationArchive& arc);
 Result<void> tryReplace(riistudio::g3d::Material& mat);
-Result<void> tryImportRsPreset(riistudio::g3d::Material& mat);
-std::string tryExportRsPreset(const riistudio::g3d::Material& mat);
-std::string tryExportRsPresetMat(std::string path,
-                                 const riistudio::g3d::Material& mat);
-std::string tryExportRsPresetMatJ(std::string path,
-                                  const riistudio::j3d::Material& mat);
-inline Result<void> tryExportRsPresetALL(auto&& mats) {
-  const auto path = TRY(rsl::OpenFolder("Output folder"_j, ""));
-  for (auto& mat : mats) {
-    auto ok =
-        tryExportRsPresetMat((path / (mat.name + ".rspreset")).string(), mat);
-    if (ok.size()) {
-      return std::unexpected(ok);
-    }
-  }
-  return {};
-}
-inline Result<void> tryExportRsPresetALLJ(auto&& mats) {
-  const auto path = TRY(rsl::OpenFolder("Output folder"_j, ""));
-  for (auto& mat : mats) {
-    auto ok = tryExportRsPresetMatJ(
-        (path / (mat.name + ".bmd_rspreset")).string(), mat);
-    if (ok.size()) {
-      return std::unexpected(ok);
-    }
-  }
-  return {};
-}
 
 } // namespace libcube::UI

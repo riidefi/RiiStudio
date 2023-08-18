@@ -92,7 +92,7 @@ add_library(lib_frontend
  "properties/gc/Material/AdvTexConv.cpp"
  "properties/gc/Material/Merge.cpp"
  "editors/BtkEditor.cpp"
- "legacy_editor/views/BmdBrresOutliner.cpp" "renderer/MouseHider.cpp" "editors/MkwDebug.cpp")
+ "legacy_editor/views/BmdBrresOutliner.cpp" "renderer/MouseHider.cpp" "editors/MkwDebug.cpp" "PresetHelper.cpp")
 
 add_executable(frontend 
  "entry.cpp"

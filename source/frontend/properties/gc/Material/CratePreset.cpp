@@ -16,6 +16,8 @@
 
 #include <plugins/j3d/Preset.hpp>
 
+#include <frontend/PresetHelper.hpp>
+
 namespace libcube::UI {
 
 Result<void> tryReplace(riistudio::g3d::Material& mat) {
@@ -419,29 +421,6 @@ std::string tryImportManySrt(riistudio::g3d::Collection& scn) {
   return err;
 }
 
-Result<void> tryImportRsPreset(riistudio::g3d::Material& mat) {
-  const auto file = TRY(rsl::ReadOneFile("Select preset"_j, "",
-                                         {
-                                             "rspreset Files",
-                                             "*.rspreset",
-                                         }));
-  return ApplyRSPresetToMaterial(mat, file.data);
-}
-Result<void> ApplyRSPresetToMaterialJ3D(riistudio::j3d::Collection& c,
-                                        librii::j3d::MaterialData& mat,
-                                        std::span<const u8> file) {
-  auto anim = TRY(librii::crate::ReadRSPresetJ3D(file));
-  return riistudio::j3d::ApplyCratePresetToMaterialJ3D(c, mat, anim);
-}
-Result<void> tryImportRsPresetJ(riistudio::j3d::Collection& c,
-                                riistudio::j3d::Material& mat) {
-  const auto file = TRY(rsl::ReadOneFile("Select preset"_j, "",
-                                         {
-                                             "bmd_rspreset Files",
-                                             "*.bmd_rspreset",
-                                         }));
-  return ApplyRSPresetToMaterialJ3D(c, mat, file.data);
-}
 class ApplyRsPreset
     : public kpi::ActionMenu<riistudio::g3d::Material, ApplyRsPreset> {
   bool m_import = false;
@@ -461,7 +440,7 @@ public:
 
     if (m_import) {
       m_import = false;
-      auto ok = tryImportRsPreset(mat);
+      auto ok = rs::preset_helper::tryImportRsPreset(mat);
       if (!ok) {
         m_errorState.enter(std::move(ok.error()));
       }
@@ -493,7 +472,7 @@ public:
       m_import = false;
       auto& scn =
           *dynamic_cast<riistudio::j3d::Collection*>(mat.childOf->childOf);
-      auto ok = tryImportRsPresetJ(scn, mat);
+      auto ok = rs::preset_helper::tryImportRsPresetJ(scn, mat);
       if (!ok) {
         m_errorState.enter(std::move(ok.error()));
       }
@@ -503,82 +482,6 @@ public:
     return kpi::NO_CHANGE;
   }
 };
-
-std::string tryExportRsPresetMat(std::string path,
-                                 const riistudio::g3d::Material& mat) {
-  auto anim = CreatePresetFromMaterial(mat);
-  if (!anim) {
-    return "Failed to create preset bundle: " + anim.error();
-  }
-
-  auto buf = librii::crate::WriteRSPreset(*anim);
-  if (!buf) {
-    return "Failed to write RSPreset";
-  }
-  if (buf->empty()) {
-    return "librii::crate::WriteRSPreset failed";
-  }
-
-  auto wok2 = rsl::WriteFile(*buf, path);
-  if (!wok2) {
-    return wok2.error();
-  }
-  return {};
-}
-std::string tryExportRsPresetMatJ(std::string path,
-                                  const riistudio::j3d::Material& mat) {
-  auto anim = CreatePresetFromMaterial(mat);
-  if (!anim) {
-    return "Failed to create preset bundle: " + anim.error();
-  }
-
-  auto buf = librii::crate::WriteRSPresetJ3D(*anim);
-  if (!buf) {
-    return "Failed to write RSPreset";
-  }
-  if (buf->empty()) {
-    return "librii::crate::WriteRSPreset failed";
-  }
-
-  auto wok2 = rsl::WriteFile(*buf, path);
-  if (!wok2) {
-    return wok2.error();
-  }
-  return {};
-}
-
-std::string tryExportRsPreset(const riistudio::g3d::Material& mat) {
-  std::string path = mat.name + ".rspreset";
-  // Web version doesn't support this
-  if (rsl::FileDialogsSupported()) {
-    const auto file = rsl::SaveOneFile("Select preset"_j, path,
-                                       {
-                                           "rspreset Files",
-                                           "*.rspreset",
-                                       });
-    if (!file) {
-      return file.error();
-    }
-    path = file->string();
-  }
-  return tryExportRsPresetMat(path, mat);
-}
-std::string tryExportRsPresetJ(const riistudio::j3d::Material& mat) {
-  std::string path = mat.name + ".bmd_rspreset";
-  // Web version doesn't support this
-  if (rsl::FileDialogsSupported()) {
-    const auto file = rsl::SaveOneFile("Select preset"_j, path,
-                                       {
-                                           "rspreset Files",
-                                           "*.bmd_rspreset",
-                                       });
-    if (!file) {
-      return file.error();
-    }
-    path = file->string();
-  }
-  return tryExportRsPresetMatJ(path, mat);
-}
 
 class MakeRsPreset
     : public kpi::ActionMenu<riistudio::g3d::Material, MakeRsPreset> {
@@ -599,11 +502,11 @@ public:
 
     if (m_import) {
       m_import = false;
-      auto err = tryExportRsPreset(mat);
-      if (!err.empty()) {
+      auto err = rs::preset_helper::tryExportRsPreset(mat);
+      if (!err) {
         rsl::ErrorDialogFmt("Failed to export preset for material {}: {}",
-                            mat.name, err);
-        m_errorState.enter(std::move(err));
+                            mat.name, err.error());
+        m_errorState.enter(std::move(err.error()));
       }
       return kpi::CHANGE_NEED_RESET;
     }
@@ -630,7 +533,7 @@ public:
 
     if (m_import) {
       m_import = false;
-      auto ok = tryExportRsPresetALL(model.getMaterials());
+      auto ok = rs::preset_helper::tryExportRsPresetALL(model.getMaterials());
       if (!ok) {
         m_errorState.enter(std::move(ok.error()));
       }
@@ -660,11 +563,11 @@ public:
 
     if (m_import) {
       m_import = false;
-      auto err = tryExportRsPresetJ(mat);
-      if (!err.empty()) {
+      auto err = rs::preset_helper::tryExportRsPresetJ(mat);
+      if (!err) {
         rsl::ErrorDialogFmt("Failed to export preset for material {}: {}",
-                            mat.name, err);
-        m_errorState.enter(std::move(err));
+                            mat.name, err.error());
+        m_errorState.enter(std::move(err.error()));
       }
       return kpi::CHANGE_NEED_RESET;
     }
@@ -691,7 +594,7 @@ public:
 
     if (m_import) {
       m_import = false;
-      auto ok = tryExportRsPresetALLJ(model.getMaterials());
+      auto ok = rs::preset_helper::tryExportRsPresetALLJ(model.getMaterials());
       if (!ok) {
         m_errorState.enter(std::move(ok.error()));
       }

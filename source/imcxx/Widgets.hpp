@@ -16,6 +16,19 @@
 
 namespace imcxx {
 
+static inline bool ColoredButton(u32 color, const char* txt) {
+  ImGui::PushStyleColor(ImGuiCol_Button, color);
+  bool b = ImGui::Button(txt);
+  ImGui::PopStyleColor();
+  return b;
+}
+template <typename... T>
+static inline bool ColoredButton(u32 color, fmt::format_string<T...> s,
+                                 T&&... args) {
+  auto buf = fmt::format(s, std::forward<T>(args)...);
+  return ColoredButton(color, buf.c_str());
+}
+
 inline int Combo(const std::string& label, const int current_item,
                  const char* options) {
   int trans_item = current_item;

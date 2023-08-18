@@ -4,14 +4,13 @@
 
 #include <LibBadUIFramework/ActionMenu.hpp>
 #include <core/common.h>
+#include <frontend/PresetHelper.hpp>
 #include <imcxx/Widgets.hpp>
 #include <librii/crate/g3d_crate.hpp>
 #include <plugins/g3d/model.hpp>
 #include <rsl/Defer.hpp>
 
 namespace libcube::UI {
-
-Result<std::vector<librii::crate::CrateAnimation>> tryImportManyRsPreset();
 
 struct MergeAction {
   riistudio::g3d::Model* target_model;
@@ -183,7 +182,7 @@ public:
     }
 
     if (m_state.index() == 1) {
-      auto presets = tryImportManyRsPreset();
+      auto presets = rs::preset_helper::tryImportManyRsPreset();
       if (!presets) {
         m_state = State::Error{std::move(presets.error())};
         return kpi::NO_CHANGE;

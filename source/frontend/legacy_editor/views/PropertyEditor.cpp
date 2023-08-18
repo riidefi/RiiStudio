@@ -11,6 +11,9 @@
 
 #include "BmdBrresOutliner.hpp"
 
+#include <frontend/PresetHelper.hpp>
+#include <rsl/Defer.hpp>
+
 namespace riistudio::frontend {
 
 void DrawRichSelection(kpi::IObject* active, int numSelected) {
@@ -93,6 +96,16 @@ private:
   riistudio::g3d::Model* mMdl = nullptr;
 };
 
+static void OrDialogBox(std::string_view file, u32 line,
+                        std::string_view header, auto&& result) {
+  if (result)
+    return;
+  auto err = result.error();
+  rsl::ErrorDialogFmt("[{}:{}] {} failed:\n\n{}", file, line, header, err);
+}
+#define TRY_OR_DIALOG_BOX(task)                                                \
+  OrDialogBox(__FILE_NAME__, __LINE__, #task, task)
+
 template <typename T> void PropertyEditor<T>::draw_() {
   if (mSelectionActive() == nullptr) {
     ImGui::TextUnformatted("Nothing is selected."_j);
@@ -138,12 +151,33 @@ template <typename T> void PropertyEditor<T>::draw_() {
   DrawRichSelection(mSelectionActive(), _selected.size());
   if (lib3d::Material* mat =
           dynamic_cast<lib3d::Material*>(mSelectionActive())) {
+    auto* g = dynamic_cast<g3d::Material*>(mSelectionActive());
+    auto* j = dynamic_cast<j3d::Material*>(mSelectionActive());
     ImGui::SameLine();
     if (ImGui::Button((const char*)ICON_FA_LINK " Force recompile")) {
       for (auto& o : mSelection()) {
         if (lib3d::Material* m = dynamic_cast<lib3d::Material*>(o)) {
           m->nextGenerationId();
         }
+      }
+    }
+    ImGui::SameLine();
+    if (imcxx::ColoredButton(IM_COL32(0, 255, 0, 100), "{} {}",
+                             (const char*)ICON_FA_DOWNLOAD,
+                             "Import Preset"_j)) {
+      if (g) {
+        TRY_OR_DIALOG_BOX(rs::preset_helper::tryImportRsPreset(*g));
+      } else if (j) {
+        TRY_OR_DIALOG_BOX(rs::preset_helper::tryImportRsPresetJ(*j));
+      }
+    }
+    ImGui::SameLine();
+    if (imcxx::ColoredButton(IM_COL32(255, 0, 0, 100), "{} {}",
+                             (const char*)ICON_FA_UPLOAD, "Export Preset"_j)) {
+      if (g) {
+        TRY_OR_DIALOG_BOX(rs::preset_helper::tryExportRsPreset(*g));
+      } else if (j) {
+        TRY_OR_DIALOG_BOX(rs::preset_helper::tryExportRsPresetJ(*j));
       }
     }
   }
