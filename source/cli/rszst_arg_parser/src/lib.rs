@@ -136,6 +136,7 @@ enum SzsAlgo {
     Nintendo,
     MkwSp,
     CTGP,
+    Haroohie,
 }
 
 /// Compress a file as .szs

@@ -1,5 +1,7 @@
 #include "SZS.hpp"
 
+#include "HaroohieYaz0.hpp"
+
 #include <algorithm>
 
 namespace rlibrii::szs {
@@ -29,8 +31,11 @@ Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo) {
   if (algo == Algo::CTGP) {
     return encodeCTGP(buf);
   }
+  if (algo == Algo::Haroohie) {
+    return HaroohiePals::Yaz0::Compress(buf);
+  }
 
-  return tl::unexpected("Invalid algorithm");
+  return tl::unexpected("Invalid algorithm: id=" + std::to_string((int)algo));
 }
 
 bool isDataYaz0Compressed(std::span<const u8> src) {

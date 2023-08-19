@@ -44,6 +44,7 @@ enum class Algo {
   Nintendo,
   MkwSp,
   CTGP,
+  Haroohie,
 };
 
 Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo);

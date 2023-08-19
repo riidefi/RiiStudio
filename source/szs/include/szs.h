@@ -19,6 +19,7 @@ enum {
   RII_SZS_ENCODE_ALGO_NINTENDO,
   RII_SZS_ENCODE_ALGO_MKWSP,
   RII_SZS_ENCODE_ALGO_CTGP,
+  RII_SZS_ENCODE_ALGO_HAROOHIE,
 };
 
 const char* riiszs_encode_algo_fast(void* dst, uint32_t dst_len,
@@ -48,6 +49,7 @@ enum class Algo {
   Nintendo = RII_SZS_ENCODE_ALGO_NINTENDO,
   MKWSP = RII_SZS_ENCODE_ALGO_MKWSP,
   CTGP = RII_SZS_ENCODE_ALGO_CTGP,
+  Haroohie = RII_SZS_ENCODE_ALGO_HAROOHIE,
 };
 
 static inline std::string get_version() {

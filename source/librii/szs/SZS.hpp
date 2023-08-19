@@ -24,6 +24,7 @@ enum class Algo {
   Nintendo,
   MkwSp,
   CTGP,
+  Haroohie,
 };
 
 Result<u32> encodeAlgoFast(std::span<u8> dst, std::span<const u8> src,

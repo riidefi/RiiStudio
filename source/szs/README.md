@@ -5,7 +5,11 @@ Warning: The library is not currently in a fully functional state. Use at your o
 Warning: These algorithms are currently implemented in **the C programming language**, and not in Rust. While they have been rigorously validated, please use at your own risk. A Rust rewrite is planned.
 
 #### Algorithms
-- Boyer-moore-horspool (1:1 matching source files--relevant for decompilation projects), Brute force, CTGP (1:1 matching), Fast
+- Boyer-moore-horspool (1:1 matching source files--relevant for decompilation projects)
+- SP
+- CTGP (1:1 matching)
+- Worst case
+- Haroohie (credit @Gericom)
 
 ### Stats
 **Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
@@ -13,15 +17,17 @@ Warning: These algorithms are currently implemented in **the C programming langu
 |--------|------------|------------------|
 | worst-case-encoding | **0s** | 112.50% |
 | ctgp | 0.31s | 71.41% |
+| Haroohie | 0.58s | 57.23% |
 | mkw-sp | 3.76s | 57.23% |
 | nintendo | 5.93s | **56.87%** |
 | **Comparison with other libraries:** | | |
+| Haroohie (C#) | 0.71s | 57.23% |
 | wszst (fast) | **0.387s** (via shell) | 65.78% |
 | wszst (standard) | 1.776s (via shell) | 57.23% |
 | wszst (ultra) | 2.727s (via shell) | **56.65%** |
 | yaz0-rs | 11.34s (via shell) | 56.87% |
 
-In conclusion, in most cases, wszst currently is both faster and more effective than the current algorithms.
+In most cases, the `Haroohie` algorithm gets the best compression the fastest, although wszst ultra is able to get the smallest filesizes if absolutely necessary.
 
 ### Rust
 The following snippet demonstrates how to compress a file as a SZS format using Rust:
