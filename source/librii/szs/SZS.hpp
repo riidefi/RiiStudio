@@ -25,6 +25,7 @@ enum class Algo {
   MkwSp,
   CTGP,
   Haroohie,
+  CTLib,
 };
 
 Result<u32> encodeAlgoFast(std::span<u8> dst, std::span<const u8> src,

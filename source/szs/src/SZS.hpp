@@ -45,6 +45,7 @@ enum class Algo {
   MkwSp,
   CTGP,
   Haroohie,
+  CTLib,
 };
 
 Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo);

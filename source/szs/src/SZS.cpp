@@ -1,5 +1,6 @@
 #include "SZS.hpp"
 
+#include "CTLib.hpp"
 #include "HaroohieYaz0.hpp"
 
 #include <algorithm>
@@ -33,6 +34,9 @@ Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo) {
   }
   if (algo == Algo::Haroohie) {
     return HaroohiePals::Yaz0::Compress(buf);
+  }
+  if (algo == Algo::CTLib) {
+    return CTLib::compressBase(buf);
   }
 
   return tl::unexpected("Invalid algorithm: id=" + std::to_string((int)algo));

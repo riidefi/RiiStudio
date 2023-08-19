@@ -1,15 +1,16 @@
 # szs
-szs is a WIP crate for compressing and decompressing SZS formats used in the Nintendo GameCube and Wii games. The library provides C bindings, making it useful in both Rust and C/C++ based projects.
+szs is a WIP crate for compressing and decompressing SZS files (Yaz0 encoding) used in the Nintendo GameCube and Wii games. The library provides C bindings, making it useful in both Rust and C/C++ based projects.
 
-Warning: The library is not currently in a fully functional state. Use at your own risk. 0.1.0 will start the release series.
-Warning: These algorithms are currently implemented in **the C programming language**, and not in Rust. While they have been rigorously validated, please use at your own risk. A Rust rewrite is planned.
+##### Warning: The library is not currently in a fully functional state. Use at your own risk. 0.1.0 will start the release series.
+##### Warning: These algorithms are currently implemented in **the C programming language**, and not in Rust. While they have been rigorously validated, please use at your own risk. A Rust rewrite is planned.
 
-#### Algorithms
-- Boyer-moore-horspool (1:1 matching source files--relevant for decompilation projects)
+### Algorithms
+- Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects)
 - SP
-- CTGP (1:1 matching)
+- CTGP (Reverse engineered. 1:1 matching)
 - Worst case
-- Haroohie (credit @Gericom)
+- Haroohie (credit @Gericom, adapted from MarioKartToolbox)
+- CTLib (credit @narahiero, adapted from CTLib)
 
 ### Stats
 **Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
@@ -17,6 +18,7 @@ Warning: These algorithms are currently implemented in **the C programming langu
 |--------|------------|------------------|
 | worst-case-encoding | **0s** | 112.50% |
 | ctgp | 0.31s | 71.41% |
+| CTLib | 0.32s | 57.24% |
 | Haroohie | 0.58s | 57.23% |
 | mkw-sp | 3.76s | 57.23% |
 | nintendo | 5.93s | **56.87%** |
@@ -27,7 +29,9 @@ Warning: These algorithms are currently implemented in **the C programming langu
 | wszst (ultra) | 2.727s (via shell) | **56.65%** |
 | yaz0-rs | 11.34s (via shell) | 56.87% |
 
-In most cases, the `Haroohie` algorithm gets the best compression the fastest, although wszst ultra is able to get the smallest filesizes if absolutely necessary.
+*\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
+
+In most cases, the `CTLib` algorithm gets the best compression the fastest, with marginally better results from the `Haroohie` algorithm a bit slower. `wszst ultra` gets the smallest filesizes.
 
 ### Rust
 The following snippet demonstrates how to compress a file as a SZS format using Rust:
