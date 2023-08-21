@@ -1,11 +1,10 @@
 #pragma once
 
+#include "../Endian.hxx"
 #include "../VectorStream.hxx"
 #include "../interfaces.hxx"
-#include "../util/util.hxx"
-
-#include <core/common.h>
 #include <rsl/DebugBreak.hpp>
+#include <rsl/Expected.hpp>
 
 // HACK
 extern bool gTestMode;

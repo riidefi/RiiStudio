@@ -1,5 +1,7 @@
 #include "binary_reader.hxx"
 
+#include "../util/util.hxx"
+
 namespace oishii {
 
 void BinaryReader::readerBpCheck(uint32_t size, s32 trans) {

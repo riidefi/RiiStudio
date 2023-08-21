@@ -6,9 +6,7 @@
 
 #pragma once
 
-#include <core/common.h>
-
-#include <stdint.h>
+#include <rsl/Types.hpp>
 
 #include "hook.hxx"
 #include "node.hxx"
