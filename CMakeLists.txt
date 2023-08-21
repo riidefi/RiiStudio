@@ -187,7 +187,7 @@ else()
   set(RECURSIVE_CPP_CRATE_TYPE staticlib)
 endif()
 
-corrosion_import_crate(MANIFEST_PATH source/rust/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
+corrosion_import_crate(MANIFEST_PATH source/rsl/rust/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 if (NOT WIN32 AND NOT EMSCRIPTEN)
   corrosion_import_crate(MANIFEST_PATH source/llvm/Cargo.toml CRATE_TYPES cdylib)
 endif()

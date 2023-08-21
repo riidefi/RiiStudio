@@ -20,7 +20,6 @@ An outline of the source tree.
 | plugins           | Specific plugins for the editor: BMD, BRRES, Assimp (to BMD/BRRES). | C++      |
 | rsl               | My standard library: generic template types.            | C++                  |
 | rsmeshopt         | My mesh optimization library.                           | C++                  |
-| rust              | Rust code other modules can depend on                   | Rust                 |
 | rust_bundle       | Allows RiiStudio to be `cargo bundle`d into a MacOS .app file. | Rust                 |
 | scripts           | Once housed scripts for generating format Node files. Now just has a CMAKE config for targetting the Wii itself. | CMake                     |
 | szs             | SZS compressing and decompressing algorithms. [Published to crates.io](https://crates.io/crates/szs) | Rust/C++          |
