@@ -27,6 +27,9 @@ namespace librii::kmp {
 const auto Flow = *objflow::Default();
 
 Result<std::string> IdToStr(int id) {
+	if (id == 0) {
+    return "InvalidID:0x00";
+  }
   if (id >= Flow.remap_table.size() || id < 0 ||
       Flow.remap_table[id] >= Flow.parameters.size() ||
       Flow.remap_table[id] < 0) {
