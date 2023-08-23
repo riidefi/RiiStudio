@@ -7,15 +7,25 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 
 
 add_library(rsl STATIC
+  "DebugBreak.hpp"
+  "Defer.hpp"
+  "Discord.cpp"
+  "Download.cpp"
   "FsDialog.cpp"
- "Defer.hpp" "DebugBreak.hpp" "Ranges.hpp" "Stb.cpp" "SafeReader.cpp" "Launch.cpp" "Download.cpp" "Zip.cpp" "Log.cpp"
- 
- "Discord.cpp"
-  "WriteFile.cpp")
+  "Launch.cpp"
+  "Log.cpp"
+  "Ranges.hpp"
+  "SafeReader.cpp"
+  "Stb.cpp"
+  "WriteFile.cpp"
+  "Zip.cpp"
+)
  
 if (WIN32)
   target_link_directories(rsl PUBLIC ${PROJECT_SOURCE_DIR}/../vendor/dll)
 endif()
+
+corrosion_import_crate(MANIFEST_PATH rust/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 
 target_link_libraries(rsl PUBLIC core riistudio_rs vendor)
 

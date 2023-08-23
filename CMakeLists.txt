@@ -28,9 +28,6 @@ if (WIN32)
   # Enable SSE3 if building with clang-cl
   if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" AND "x${CMAKE_CXX_SIMULATE_ID}" STREQUAL "xMSVC")
     add_compile_options("-mssse3")
-    if (FALSE)
-      add_compile_options("-march=native")
-    endif()
   endif()
 elseif(APPLE)
   add_compile_definitions(RII_PLATFORM_MACOSX)
@@ -131,36 +128,6 @@ add_compile_definitions(FMT_EXCEPTIONS=0)
 CPMAddPackage("gh:fmtlib/fmt#10.0.0")
 CPMAddPackage("gh:zeux/meshoptimizer#v0.18")
 
-# Doesn't work OOB -- requires exceptions
-if (FALSE)
-  CPMAddPackage(
-    NAME cppcoro
-    GIT_REPOSITORY https://github.com/lewissbaker/cppcoro
-    GIT_TAG master
-    DOWNLOAD_ONLY YES
-  )
-  if (cppcoro_ADDED)
-    FILE(GLOB cppcoro_sources ${cppcoro_SOURCE_DIR}/lib/*.cpp)
-    add_library(cppcoro STATIC ${cppcoro_sources})
-    target_include_directories(cppcoro
-    PUBLIC
-      $<BUILD_INTERFACE:${cppcoro_SOURCE_DIR}/include>
-    )
-  endif()
-endif()
-
-# Doesn't work OOB -- they explicitly block Clang
-if (FALSE)
-  set(LIBCORO_BUILD_TESTS OFF)
-  set(LIBCORO_CODE_COVERAGE OFF)
-  set(LIBCORO_BUILD_EXAMPLES OFF)
-  CPMAddPackage("gh:jbaldwin/libcoro#main")
-  target_include_directories(libcoro
-  PUBLIC
-    $<BUILD_INTERFACE:${libcoro_SOURCE_DIR}/inc>
-  )
-endif()
-
 add_definitions(-DINCLUDE_RUST_HEADERS)
 
 if (APPLE)
@@ -187,7 +154,6 @@ else()
   set(RECURSIVE_CPP_CRATE_TYPE staticlib)
 endif()
 
-corrosion_import_crate(MANIFEST_PATH source/rsl/rust/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 if (NOT WIN32 AND NOT EMSCRIPTEN)
   corrosion_import_crate(MANIFEST_PATH source/llvm/Cargo.toml CRATE_TYPES cdylib)
 endif()
