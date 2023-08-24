@@ -158,13 +158,18 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     ImGui::Checkbox("Compare Z Values"_j, &zcmp);
     AUTO_PROP(zMode.compare, zcmp);
 
-    ImGui::Indent(30.0f);
     {
       ConditionalActive g(zcmp);
+
+      ImGui::Indent(30.0f);
 
       bool zearly = matData.earlyZComparison;
       ImGui::Checkbox("Compare Before Texture Processing"_j, &zearly);
       AUTO_PROP(earlyZComparison, zearly);
+
+      bool zwrite = matData.zMode.update;
+      ImGui::Checkbox("Write to Z Buffer", &zwrite);
+      AUTO_PROP(zMode.update, zwrite);
 
       auto zcond = imcxx::Combo("Condition"_j, matData.zMode.function,
                                 "Never draw.\0"
@@ -176,11 +181,9 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
                                 "Pixel Z >= EFB Z\0"
                                 "Always draw.\0"_j);
       AUTO_PROP(zMode.function, zcond);
+
+      ImGui::Unindent(30.0f);
     }
-    bool zwrite = matData.zMode.update;
-    ImGui::Checkbox("Write to Z Buffer", &zwrite);
-    ImGui::Unindent(30.0f);
-    AUTO_PROP(zMode.update, zwrite);
   }
   if (ImGui::CollapsingHeader("Blending"_j, ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::PushItemWidth(200);
