@@ -14,6 +14,15 @@
 #include <imcxx/ContiguousSelection.hpp>
 #include <imcxx/IndentedTreeWidget.hpp>
 
+static inline ImVec4 Clr(u32 x) {
+  return ImVec4{
+      static_cast<float>(x >> 16) / 255.0f,
+      static_cast<float>((x >> 8) & 0xff) / 255.0f,
+      static_cast<float>(x & 0xff) / 255.0f,
+      1.0f,
+  };
+}
+
 namespace imcxx {
 
 static inline bool ColoredButton(u32 color, const char* txt) {

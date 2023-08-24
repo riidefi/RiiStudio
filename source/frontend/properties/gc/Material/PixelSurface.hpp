@@ -10,6 +10,7 @@ namespace libcube::UI {
 struct PixelSurface final {
   static inline const char* name() { return "Pixel"_j; }
   static inline const char* icon = (const char*)ICON_FA_GHOST;
+  static inline ImVec4 color = Clr(0xFF'FF'FF);
 
   int tag_stateful;
 

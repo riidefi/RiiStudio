@@ -7,14 +7,6 @@
 
 namespace riistudio::frontend {
 
-static ImVec4 Clr(u32 x) {
-  return ImVec4{
-      static_cast<float>(x >> 16) / 255.0f,
-      static_cast<float>((x >> 8) & 0xff) / 255.0f,
-      static_cast<float>(x & 0xff) / 255.0f,
-      1.0f,
-  };
-}
 // TODO: Some better color scheme
 static std::map<std::string, Node::RichTypeInfo> richtypes{
     {"bone", {(const char*)ICON_FA_BONE, Clr(0xFFCA3A), "Bone"}},

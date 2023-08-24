@@ -15,6 +15,7 @@ namespace libcube::UI {
 struct SamplerSurface final {
   static inline const char* name() { return "Samplers"_j; }
   static inline const char* icon = (const char*)ICON_FA_IMAGES;
+  static inline ImVec4 color = Clr(0x8AC926);
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;
