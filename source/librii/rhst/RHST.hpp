@@ -586,6 +586,13 @@ struct Mesh {
 
   std::vector<MatrixPrimitive> matrix_primitives;
 };
+static inline size_t VertexCount(const Mesh& mesh) {
+  size_t total = 0;
+  for (auto& mp : mesh.matrix_primitives) {
+    total += VertexCount(mp);
+  }
+  return total;
+}
 
 inline bool hasPosition(u32 vcd) { return vcd & (1 << 9); }
 inline bool hasNormal(u32 vcd) { return vcd & (1 << 10); }

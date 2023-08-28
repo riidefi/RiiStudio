@@ -12,6 +12,8 @@
 #include <librii/kcol/Model.hpp>
 #include <librii/kmp/io/KMP.hpp>
 #include <librii/rarc/RARC.hpp>
+#include <librii/rhst/MeshUtils.hpp>
+#include <librii/rhst/RHSTOptimizer.hpp>
 #include <librii/szs/SZS.hpp>
 #include <librii/u8/U8.hpp>
 #include <mutex>
@@ -919,15 +921,7 @@ static Result<void> dumpPresetsG3D(const CliOptions& m_opt) {
   fmt::print(stderr, "Dumping Presets BRRES,{} => {}\n", m_from.string(),
              m_to.string());
 
-  kpi::LightIOTransaction trans;
-  trans.callback = [&](kpi::IOMessageClass message_class,
-                       const std::string_view domain,
-                       const std::string_view message_body) {
-    auto msg = std::format("[{}] {} {}", magic_enum::enum_name(message_class),
-                           domain, message_body);
-    rsl::error(msg);
-  };
-  auto brres = TRY(librii::g3d::Archive::fromFile(m_from.string(), trans));
+  auto brres = TRY(librii::g3d::Archive::fromFile(m_from.string()));
   TRY(librii::crate::DumpPresetsToFolder(m_to, brres, /*cli*/ true,
                                          /*metadata*/ ""));
 
@@ -1017,6 +1011,152 @@ static Result<void> preciseBmdDump(const CliOptions& m_opt) {
   fmt::print("{}\n", result);
   std::ofstream stream(m_to);
   stream << result;
+
+  return {};
+}
+
+static Result<void> optimizeG3D(const CliOptions& m_opt) {
+  std::filesystem::path m_from = m_opt.from.view();
+  std::filesystem::path m_to = m_opt.to.view();
+
+  if (m_to.empty()) {
+    m_to = m_from;
+  }
+  if (!FS_TRY(rsl::filesystem::exists(m_from))) {
+    fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+    return std::unexpected("FileNotExist");
+  }
+  const bool overwrite = FS_TRY(rsl::filesystem::exists(m_to));
+  if (overwrite && FS_TRY(rsl::filesystem::is_directory(m_to))) {
+    fmt::print(
+        stderr,
+        "Error: Cannot write file to {}--folder exists with the same name!\n",
+        m_to.string());
+    return std::unexpected("NotAFolder");
+  }
+  if (overwrite) {
+    fmt::print(stderr,
+               "Warning: File {} will be overwritten by this operation.\n",
+               m_to.string());
+  }
+  if (m_opt.verbose) {
+    rsl::logging::init();
+  }
+  fmt::print(stderr, "Optimizing BRRES,{} => {}\n", m_from.string(),
+             m_to.string());
+  auto brres = TRY(librii::g3d::Archive::fromFile(m_from.string()));
+  riistudio::g3d::Collection c;
+  TRY(riistudio::g3d::ReadBRRES(c, brres, m_from.string()));
+
+  fmt::println(
+      "Performing \"facepoint\" reduction strategy (single-core mode)");
+  u32 before = 0;
+  u32 after = 0;
+  rsl::Timer timer;
+  timer.reset();
+  for (auto& model : c.getModels()) {
+    u32 i = 0;
+    for (auto& mesh : model.getMeshes()) {
+      auto percent =
+          static_cast<f32>(i) / static_cast<f32>(model.getMeshes().size());
+      ++i;
+      progress_put("Optimizing mesh " + mesh.getName(), percent);
+      auto rhst = TRY(riistudio::rhst::decompileMesh(mesh, model));
+      before += librii::rhst::VertexCount(rhst);
+      auto rhstP = TRY(librii::rhst::MeshUtils::TriangulateMesh(rhst));
+      for (auto& mp : rhstP.matrix_primitives) {
+        TRY(librii::rhst::StripifyTriangles(mp, std::nullopt, mesh.getName(),
+                                            m_opt.verbose));
+      }
+      after += librii::rhst::VertexCount(rhstP);
+      TRY(riistudio::rhst::compileMesh(mesh, rhstP, model, false, false));
+    }
+  }
+  float elapsed = static_cast<float>(timer.elapsed()) * 0.001f;
+  auto rate =
+      100.0 * (1.0f - (static_cast<f64>(after) / static_cast<f64>(before)));
+  progress_end();
+  fmt::println("Before: {} facepoints; After: {} facepoints", before, after);
+  fmt::println("Elapsed time: {:.2f} seconds. Reduction of {:.2f}% "
+               "(higher is better)",
+               fmt::styled(elapsed, fmt::fg(fmt::color::light_green)),
+               fmt::styled(rate, fmt::fg(fmt::color::light_green)));
+
+  auto optimized = c.toLibRii();
+  auto d = m_to.string();
+  TRY(optimized.write(d));
+
+  return {};
+}
+static Result<void> optimizeJ3D(const CliOptions& m_opt) {
+  std::filesystem::path m_from = m_opt.from.view();
+  std::filesystem::path m_to = m_opt.to.view();
+
+  if (m_to.empty()) {
+    std::filesystem::path p = m_from;
+    p.replace_extension(".bmd");
+    m_to = p;
+  }
+  if (!FS_TRY(rsl::filesystem::exists(m_from))) {
+    fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+    return std::unexpected("FileNotExist");
+  }
+  const bool overwrite = FS_TRY(rsl::filesystem::exists(m_to));
+  if (overwrite && FS_TRY(rsl::filesystem::is_directory(m_to))) {
+    fmt::print(
+        stderr,
+        "Error: Cannot write file to {}--folder exists with the same name!\n",
+        m_to.string());
+    return std::unexpected("NotAFolder");
+  }
+  if (overwrite) {
+    fmt::print(stderr,
+               "Warning: File {} will be overwritten by this operation.\n",
+               m_to.string());
+  }
+  if (m_opt.verbose) {
+    rsl::logging::init();
+  }
+  fmt::print(stderr, "Optimizing BMD,{} => {}\n", m_from.string(),
+             m_to.string());
+  auto bmd = TRY(riistudio::j3d::ReadBMD(m_from.string()));
+  fmt::println(
+      "Performing \"facepoint\" reduction strategy (single-core mode)");
+  u32 before = 0;
+  u32 after = 0;
+  rsl::Timer timer;
+  timer.reset();
+  for (auto& model : bmd.getModels()) {
+    u32 i = 0;
+    for (auto& mesh : model.getMeshes()) {
+      auto percent =
+          static_cast<f32>(i) / static_cast<f32>(model.getMeshes().size());
+      ++i;
+      progress_put("Optimizing mesh " + mesh.getName(), percent);
+      auto rhst = TRY(riistudio::rhst::decompileMesh(mesh, model));
+      before += librii::rhst::VertexCount(rhst);
+      auto rhstP = TRY(librii::rhst::MeshUtils::TriangulateMesh(rhst));
+      for (auto& mp : rhstP.matrix_primitives) {
+        TRY(librii::rhst::StripifyTriangles(mp, std::nullopt, mesh.getName(),
+                                            m_opt.verbose));
+      }
+      after += librii::rhst::VertexCount(rhstP);
+      TRY(riistudio::rhst::compileMesh(mesh, rhstP, model, false, false));
+    }
+  }
+  float elapsed = static_cast<float>(timer.elapsed()) * 0.001f;
+  auto rate =
+      100.0 * (1.0f - (static_cast<f64>(after) / static_cast<f64>(before)));
+  progress_end();
+  fmt::println("Before: {} facepoints; After: {} facepoints", before, after);
+  fmt::println("Elapsed time: {:.2f} seconds. Reduction of {:.2f}% "
+               "(higher is better)",
+               fmt::styled(elapsed, fmt::fg(fmt::color::light_green)),
+               fmt::styled(rate, fmt::fg(fmt::color::light_green)));
+
+  oishii::Writer writer(std::endian::big);
+  TRY(riistudio::j3d::WriteBMD(bmd, writer, m_opt.verbose));
+  writer.saveToDisk(m_to.string());
 
   return {};
 }
@@ -1137,9 +1277,9 @@ int main(int argc, const char** argv) {
     std::string from_ = rsl::to_lower(args->from.view());
     bool isJ3d = from_.ends_with("bmd") || from_.ends_with("bdl");
     if (isJ3d) {
-      dumpPresetsJ3D(*args);
+      ok = dumpPresetsJ3D(*args);
     } else {
-      dumpPresetsG3D(*args);
+      ok = dumpPresetsG3D(*args);
     }
     if (!ok) {
       fmt::print(stderr, "{}\n", ok.error());
@@ -1148,6 +1288,20 @@ int main(int argc, const char** argv) {
   }
   if (args->type == TYPE_PRECISE_BMD_DUMP) {
     auto ok = preciseBmdDump(*args);
+    if (!ok) {
+      fmt::print(stderr, "{}\n", ok.error());
+      return -1;
+    }
+  }
+  if (args->type == TYPE_OPTIMIZE) {
+    Result<void> ok = {};
+    std::string from_ = rsl::to_lower(args->from.view());
+    bool isJ3d = from_.ends_with("bmd") || from_.ends_with("bdl");
+    if (isJ3d) {
+      ok = optimizeJ3D(*args);
+    } else {
+      ok = optimizeG3D(*args);
+    }
     if (!ok) {
       fmt::print(stderr, "{}\n", ok.error());
       return -1;

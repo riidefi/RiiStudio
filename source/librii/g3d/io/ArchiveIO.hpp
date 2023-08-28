@@ -38,10 +38,13 @@ struct Archive {
 
   static Result<Archive> fromFile(std::string path,
                                   kpi::LightIOTransaction& transaction);
+  static Result<Archive> fromFile(std::string path);
   static Result<Archive> read(oishii::BinaryReader& reader,
                               kpi::LightIOTransaction& transaction);
   static Result<Archive> from(const BinaryArchive& model,
                               kpi::LightIOTransaction& transaction);
+  Result<void> write(oishii::Writer& writer) const;
+  Result<void> write(std::string_view path) const;
   Result<BinaryArchive> binary() const;
 };
 

@@ -512,12 +512,32 @@ Result<BinaryArchive> Archive::binary() const {
   tmp.viss = viss;
   return tmp;
 }
+Result<void> Archive::write(oishii::Writer& writer) const {
+  return TRY(binary()).write(writer);
+}
+Result<void> Archive::write(std::string_view path) const {
+  oishii::Writer writer(std::endian::big);
+  TRY(write(writer));
+  writer.saveToDisk(path);
+  return {};
+}
 
 Result<Archive> Archive::fromFile(std::string path,
                                   kpi::LightIOTransaction& transaction) {
   auto reader = oishii::BinaryReader::FromFilePath(path, std::endian::big);
   EXPECT(reader && "Failed to read file");
   return read(*reader, transaction);
+}
+Result<Archive> Archive::fromFile(std::string path) {
+  kpi::LightIOTransaction trans;
+  trans.callback = [&](kpi::IOMessageClass message_class,
+                       const std::string_view domain,
+                       const std::string_view message_body) {
+    auto msg = std::format("[{}] {} {}", magic_enum::enum_name(message_class),
+                           domain, message_body);
+    rsl::error(msg);
+  };
+  return fromFile(path, trans);
 }
 Result<Archive> Archive::read(oishii::BinaryReader& reader,
                               kpi::LightIOTransaction& transaction) {

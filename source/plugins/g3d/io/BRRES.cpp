@@ -19,7 +19,6 @@
 namespace riistudio::g3d {
 
 static Result<void> processModel(librii::g3d::Model& binary_model,
-                                 kpi::LightIOTransaction& transaction,
                                  const std::string& transaction_path,
                                  riistudio::g3d::Model& mdl) {
   mdl.mName = binary_model.name;
@@ -74,26 +73,13 @@ static Result<void> processModel(librii::g3d::Model& binary_model,
   return {};
 }
 
-Result<void> ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
-                       kpi::LightIOTransaction& transaction) {
-  librii::g3d::BinaryArchive bin;
-  if (auto r = bin.read(reader, transaction); !r) {
-    transaction.callback(kpi::IOMessageClass::Error, "BRRES", r.error());
-    return std::unexpected(r.error());
-  }
-  auto archive_ = librii::g3d::Archive::from(bin, transaction);
-  if (!archive_) {
-    return std::unexpected(archive_.error());
-  }
-  auto archive = *archive_;
-  collection.path = reader.getFile();
+Result<void> ReadBRRES(Collection& collection, librii::g3d::Archive& archive,
+                       std::string path) {
+  collection.path = path;
   for (auto& mdl : archive.models) {
     auto& editor_mdl = collection.getModels().add();
-    auto ok = processModel(mdl, transaction, "MDL0 " + mdl.name, editor_mdl);
+    auto ok = processModel(mdl, "MDL0 " + mdl.name, editor_mdl);
     if (!ok) {
-      transaction.callback(
-          kpi::IOMessageClass::Error, std::format("MDL0 {}", mdl.name),
-          std::format("Could not read MDL0 {}: {}", mdl.name, ok.error()));
       return std::unexpected(
           std::format("Could not read MDL0 {}: {}", mdl.name, ok.error()));
     }
@@ -111,6 +97,17 @@ Result<void> ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
   collection.pats = archive.pats;
   collection.viss = archive.viss;
   return {};
+}
+
+Result<void> ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
+                       kpi::LightIOTransaction& transaction) {
+  librii::g3d::BinaryArchive bin;
+  if (auto r = bin.read(reader, transaction); !r) {
+    transaction.callback(kpi::IOMessageClass::Error, "BRRES", r.error());
+    return std::unexpected(r.error());
+  }
+  auto archive = TRY(librii::g3d::Archive::from(bin, transaction));
+  return ReadBRRES(collection, archive, reader.getFile());
 }
 
 librii::g3d::Model toBinaryModel(const Model& mdl) {

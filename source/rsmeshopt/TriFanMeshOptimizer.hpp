@@ -86,8 +86,9 @@ public:
 private:
   bool Prepare(std::span<const u32> mesh, const TriFanOptions& options) {
     assert(mesh.size() % 3 == 0);
-    assert(!MeshUtils::TriangleArrayHoldsDuplicates(mesh) &&
-           "Duplicate triangles");
+    if (MeshUtils::TriangleArrayHoldsDuplicates(mesh)) {
+      return false;
+    }
     mesh_ = mesh;
     face_visited_.clear();
     face_visited_.resize(mesh.size() / 3);
