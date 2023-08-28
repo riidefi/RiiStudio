@@ -202,7 +202,7 @@ elseif (UNIX)
   )
 endif()
 
-target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE vendor oishii gctex avir-rs c-wbz szs plate)
+target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE vendor oishii gctex wiitrig avir-rs c-wbz szs plate)
 
 target_include_directories(librii
   PRIVATE
