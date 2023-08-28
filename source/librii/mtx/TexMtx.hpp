@@ -22,17 +22,22 @@ enum class CommonMappingMethod {
   EnvironmentSpecularMapping,
 
   // J3D only?
-  ManualEnvironmentMapping // Specify effect matrix maunally
-                           // J3D 4/5?
+  ManualEnvironmentMapping, // Specify effect matrix maunally
+                            // J3D 4/5?
 };
 
 enum class CommonMappingOption {
   NoSelection,
   DontRemapTextureSpace, // -1 -> 1 (J3D "basic")
-  KeepTranslation        // Don't reset translation column
+  KeepTranslation,       // Don't reset translation column
 };
 
-enum class CommonTransformModel { Default, Maya, Max, XSI };
+enum class CommonTransformModel {
+  Default,
+  Maya,
+  Max,
+  XSI,
+};
 
 glm::mat4 computeTexSrt(const glm::vec2& scale, f32 rotate,
                         const glm::vec2& translate, CommonTransformModel xform);

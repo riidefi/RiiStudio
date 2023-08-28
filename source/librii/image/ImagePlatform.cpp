@@ -22,7 +22,7 @@ std::pair<u32, u32> getBlockedDimensions(u32 width, u32 height,
 int getEncodedSize(int width, int height, gx::TextureFormat format,
                    u32 mipMapCount) {
   assert(mipMapCount < 0xff);
-  return librii::gx::computeImageSize(width, height, static_cast<u32>(format),
+  return rii_compute_image_size_mip(width, height, static_cast<u32>(format),
                                       mipMapCount + 1);
 }
 

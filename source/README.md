@@ -5,12 +5,12 @@ An outline of the source tree.
 |-------------------|---------------------------------------------------------|----------------------|
 | avir-rs           | Rust wrapper for a C++ image resizing library.          | Rust/C++             |
 | blender           | Blender plugin with exporter support for BRRES/BMD.     | Python               |
-| c-discord-rich-presence               | C/C++ bindings for the [discord-rich-presence crate](https://github.com/sardonicism-04/discord-rich-presence). Provides an alternative to the official Discord libraries for RPC for C++ applications.                         | Rust                  |
-| c-wbz | C/C++ bindings for [wbz_converter](https://github.com/GnomedDev/wbz-to-szs-rs) | Rust |
-| cli               | Source for the `rszst` utility.                         | C++, Rust                  |
-| core              | Core utilities and structures. Available to all other modules. | C++              |
+| c-discord-rich-presence | C/C++ bindings for the [discord-rich-presence crate](https://github.com/sardonicism-04/discord-rich-presence). Provides an alternative to the official Discord libraries for RPC for C++ applications.                         | Rust                  |
+| c-wbz             | C/C++ bindings for [wbz_converter](https://github.com/GnomedDev/wbz-to-szs-rs) | Rust |
+| cli               | Source for the `rszst` utility.                         | C++, Rust            |
+| core              | Core utilities and structures. Available to all other modules. | C++           |
 | frontend          | The main editor itself.                                 | C++                  |
-| gctex             | GC/Wii image codec. [Published to crates.io](https://crates.io/crates/gctex) | Rust/C++          |
+| gctex             | GC/Wii image codec. [Published to crates.io](https://crates.io/crates/gctex)   | Rust/C++          |
 | imcxx             | My C++ wrappers for ImGui.                              | C++                  |
 | LibBadUIFramework | Basis of the `plugins` folder, defines some extendable UI structures. |  C++   |
 | librii            | Library for interacting with Wii data. [Documentation here](https://github.com/riidefi/RiiStudio/blob/master/source/librii/README.md)                 | C++                  |
@@ -20,12 +20,13 @@ An outline of the source tree.
 | plugins           | Specific plugins for the editor: BMD, BRRES, Assimp (to BMD/BRRES). | C++      |
 | rsl               | My standard library: generic template types.            | C++                  |
 | rsmeshopt         | My mesh optimization library.                           | C++                  |
-| rust_bundle       | Allows RiiStudio to be `cargo bundle`d into a MacOS .app file. | Rust                 |
+| rust_bundle       | Allows RiiStudio to be `cargo bundle`d into a MacOS .app file. | Rust          |
 | scripts           | Once housed scripts for generating format Node files. Now just has a CMAKE config for targetting the Wii itself. | CMake                     |
-| szs             | SZS compressing and decompressing algorithms. [Published to crates.io](https://crates.io/crates/szs) | Rust/C++          |
-| tests             | A CLI tool used by the python unit tests.               | C++               |
-| updater           | Application updater                                     | C++                     |
-| vendor            | Third-party code.                                       | C, C++                     |
+| szs               | SZS compressing and decompressing algorithms. [Published to crates.io](https://crates.io/crates/szs) | Rust/C++          |
+| tests             | A CLI tool used by the python unit tests.               | C++                  |
+| updater           | Application updater                                     | C++                  |
+| vendor            | Third-party code.                                       | C, C++               |
+| wiitrig           | Wii `sin`/`cos` function implementations                | Rust/C++             |
 
 
 ```mermaid
@@ -52,6 +53,7 @@ subgraph "Rust Crates"
 	c-discord-rich-presence
 	c-wbz
 	gctex
+	wiitrig
 	szs
     rszst_arg_parser
     riistudio_rs
@@ -93,6 +95,7 @@ avir-rs --> librii
 c-discord-rich-presence --> rsl
 c-wbz --> librii
 gctex --> librii
+wiitrig --> librii
 %%llvm --> cli & frontend & tests
 riistudio_rs -->  rsl
 szs --> librii
