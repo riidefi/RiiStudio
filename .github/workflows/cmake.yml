@@ -23,7 +23,7 @@ jobs:
       with:
         rust-version: beta
     - name: Install LLVM
-      run: choco install -y llvm
+      run: choco install -y llvm --version=16.0.6
       if: runner.os == 'Windows'
     - name: Install Ninja
       run: choco install -y ninja
