@@ -12,7 +12,6 @@
 
 #include <librii/crate/g3d_crate.hpp>
 #include <librii/image/ImagePlatform.hpp>
-#include <librii/image/TextureExport.hpp>
 #include <librii/rhst/MeshUtils.hpp>
 
 #include <plate/Platform.hpp>

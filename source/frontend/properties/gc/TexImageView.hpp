@@ -7,12 +7,10 @@
 #include <frontend/widgets/Image.hpp>
 #include <frontend/widgets/Lib3dImage.hpp>
 #include <imcxx/Widgets.hpp>
-#include <librii/image/TextureExport.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
 #include <rsl/FsDialog.hpp>
 #include <rsl/Stb.hpp>
-#include <vendor/stb_image.h>
 
 namespace libcube::UI {
 

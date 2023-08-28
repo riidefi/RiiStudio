@@ -31,8 +31,7 @@ add_library(librii STATIC
   
   "image/ImagePlatform.cpp"
   "image/ImagePlatform.hpp"
-  "image/TextureExport.cpp"
-  "image/TextureExport.hpp"
+  
   "image/CheckerBoard.hpp"
 
   "gpu/DLBuilder.hpp"

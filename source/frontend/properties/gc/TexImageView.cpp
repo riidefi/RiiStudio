@@ -1,5 +1,7 @@
 #include "TexImageView.hpp"
 
+#include <vendor/stb_image.h>
+
 namespace libcube::UI {
 
 struct PopupOpener {
@@ -21,19 +23,19 @@ static const std::vector<std::string> StdImageFilters = {
 [[nodiscard]] Result<void> exportImage(const Texture& tex, u32 export_lod) {
   std::string path =
       tex.getName() + " Mip Level " + std::to_string(export_lod) + ".png";
-  librii::STBImage imgType = librii::STBImage::PNG;
+  rsl::stb::STBImage imgType = rsl::stb::STBImage::PNG;
 
   if (rsl::FileDialogsSupported()) {
     auto results = TRY(rsl::SaveOneFile("Export image"_j, "", StdImageFilters));
     path = results.string();
     if (path.ends_with(".png")) {
-      imgType = librii::STBImage::PNG;
+      imgType = rsl::stb::STBImage::PNG;
     } else if (path.ends_with(".bmp")) {
-      imgType = librii::STBImage::BMP;
+      imgType = rsl::stb::STBImage::BMP;
     } else if (path.ends_with(".tga")) {
-      imgType = librii::STBImage::TGA;
+      imgType = rsl::stb::STBImage::TGA;
     } else if (path.ends_with(".jpg")) {
-      imgType = librii::STBImage::JPG;
+      imgType = rsl::stb::STBImage::JPG;
     }
   }
 
@@ -44,7 +46,7 @@ static const std::vector<std::string> StdImageFilters = {
   for (u32 i = 0; i < export_lod; ++i)
     offset += (tex.getWidth() >> i) * (tex.getHeight() >> i) * 4;
 
-  return librii::writeImageStbRGBA(
+  return rsl::stb::writeImageStbRGBA(
       path.c_str(), imgType, tex.getWidth() >> export_lod,
       tex.getHeight() >> export_lod, data.data() + offset);
 }
