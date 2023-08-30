@@ -14,8 +14,7 @@ fn main() {
     let mut build = cc::Build::new();
     build.cpp(true);
 
-    #[cfg(unix)]
-    build.flag("-std=c++17");
+    build.std("c++17");
 
     if target.starts_with("x86_64-") {
         build.flag("-DARCH_X64=1");
