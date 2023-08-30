@@ -681,7 +681,7 @@ private:
     m_to = m_opt.to.view();
 
     if (m_to.empty()) {
-      m_to = FS_TRY(rsl::filesystem::current_path());
+      m_to = m_from.parent_path();
     }
     if (!FS_TRY(rsl::filesystem::exists(m_from))) {
       fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
