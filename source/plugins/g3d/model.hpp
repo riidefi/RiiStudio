@@ -10,12 +10,12 @@
 #include <librii/g3d/data/AnimData.hpp>
 #include <librii/g3d/data/ModelData.hpp>
 #include <librii/g3d/data/VertexData.hpp>
+#include <librii/g3d/io/AnimIO.hpp>
 #include <librii/gx.h>
 #include <plugins/gc/Export/Scene.hpp>
 #include <tuple>
 
 namespace riistudio::g3d {
-
 
 struct PositionBuffer : public librii::g3d::PositionBuffer,
                         public virtual kpi::IObject {
@@ -29,7 +29,7 @@ struct PositionBuffer : public librii::g3d::PositionBuffer,
   }
 };
 struct NormalBuffer : public librii::g3d::NormalBuffer,
-                        public virtual kpi::IObject {
+                      public virtual kpi::IObject {
   using Parent = librii::g3d::NormalBuffer;
   std::string getName() const {
     return static_cast<const Parent&>(*this).mName;
@@ -40,7 +40,7 @@ struct NormalBuffer : public librii::g3d::NormalBuffer,
   }
 };
 struct ColorBuffer : public librii::g3d::ColorBuffer,
-                        public virtual kpi::IObject {
+                     public virtual kpi::IObject {
   using Parent = librii::g3d::ColorBuffer;
   std::string getName() const {
     return static_cast<const Parent&>(*this).mName;
@@ -51,7 +51,7 @@ struct ColorBuffer : public librii::g3d::ColorBuffer,
   }
 };
 struct TextureCoordinateBuffer : public librii::g3d::TextureCoordinateBuffer,
-                     public virtual kpi::IObject {
+                                 public virtual kpi::IObject {
   using Parent = librii::g3d::TextureCoordinateBuffer;
   std::string getName() const {
     return static_cast<const Parent&>(*this).mName;
@@ -78,13 +78,12 @@ struct G3DModelData : public librii::g3d::G3DModelDataData,
   void setName(const std::string& name) { mName = name; }
 };
 
-struct SRT0 : public librii::g3d::SrtAnimationArchive,
-              public virtual kpi::IObject {
+struct SRT0 : public librii::g3d::SrtAnim, public virtual kpi::IObject {
   bool operator==(const SRT0& rhs) const {
-    return static_cast<const librii::g3d::SrtAnimationArchive&>(*this) == rhs;
+    return static_cast<const librii::g3d::SrtAnim&>(*this) == rhs;
   }
   SRT0& operator=(const SRT0& rhs) {
-    static_cast<librii::g3d::SrtAnimationArchive&>(*this) = rhs;
+    static_cast<librii::g3d::SrtAnim&>(*this) = rhs;
     return *this;
   }
 

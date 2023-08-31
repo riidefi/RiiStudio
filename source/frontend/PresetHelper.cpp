@@ -6,6 +6,8 @@
 #include <rsl/FsDialog.hpp>
 #include <rsl/WriteFile.hpp>
 
+#include <librii/g3d/io/ArchiveIO.hpp>
+
 namespace rs::preset_helper {
 
 Result<void> tryExportRsPresetMat(std::string path,

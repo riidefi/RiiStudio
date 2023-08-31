@@ -1,13 +1,17 @@
 #include "ArchiveIO.hpp"
 
 #include "CommonIO.hpp"
-// XXX: Must not include DictIO.hpp when using DictWriteIO.hpp
-#include <librii/g3d/io/DictWriteIO.hpp>
-
+#include <librii/g3d/data/Archive.hpp>
 #include <librii/g3d/io/AnimIO.hpp>
+#include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
 
 namespace librii::g3d {
+
+Archive::Archive() __attribute__((weak)) = default;
+Archive::Archive(const Archive&) __attribute__((weak)) = default;
+Archive::Archive(Archive&&) noexcept __attribute__((weak)) = default;
+Archive::~Archive() __attribute__((weak)) = default;
 
 struct BRRESHeader {
   u32 magic;

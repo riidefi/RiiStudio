@@ -1,3 +1,5 @@
+#define ARCHIVE_DEF
+
 #include <LibBadUIFramework/Node2.hpp>
 #include <LibBadUIFramework/Plugins.hpp>
 #include <core/common.h>

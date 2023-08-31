@@ -1,6 +1,7 @@
 #include "g3d_crate.hpp"
 #include <core/util/timestamp.hpp>
 #include <librii/g3d/io/AnimIO.hpp>
+#include <librii/g3d/io/ArchiveIO.hpp>
 #include <librii/g3d/io/MatIO.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>

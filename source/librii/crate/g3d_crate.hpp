@@ -2,13 +2,12 @@
 
 #include <core/common.h>
 #include <filesystem>
-#include <librii/g3d/data/MaterialData.hpp>
-#include <librii/g3d/data/TextureData.hpp>
-#include <librii/g3d/io/AnimClrIO.hpp>
-#include <librii/g3d/io/AnimIO.hpp>
-#include <librii/g3d/io/AnimTexPatIO.hpp>
-#include <librii/g3d/io/ArchiveIO.hpp>
+#include <librii/g3d/data/Archive.hpp>
 #include <vendor/nlohmann/json.hpp>
+
+namespace librii::g3d {
+struct BinarySrt;
+}
 
 namespace librii::crate {
 
@@ -57,8 +56,7 @@ ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
 //! A "SRT0" file is effectively a .brtsa archive without the enclosing
 //! structure.
 //!
-[[nodiscard]] Result<g3d::SrtAnimationArchive>
-ReadSRT0(std::span<const u8> file);
+[[nodiscard]] Result<g3d::SrtAnim> ReadSRT0(std::span<const u8> file);
 
 [[nodiscard]] Result<std::vector<u8>> WriteSRT0(const g3d::BinarySrt& arc);
 
@@ -72,11 +70,11 @@ struct CrateAnimationPaths {
 };
 
 struct CrateAnimation {
-  g3d::G3dMaterialData mat;                  // MDL0Mat + MDL0Shade combined
-  std::vector<g3d::TextureData> tex;         // All valid .tex0s
-  std::vector<g3d::SrtAnimationArchive> srt; // All valid .srt archives
-  std::vector<g3d::BinaryClr> clr;           // .clr0
-  std::vector<g3d::BinaryTexPat> pat;        // .pat0
+  g3d::G3dMaterialData mat;           // MDL0Mat + MDL0Shade combined
+  std::vector<g3d::TextureData> tex;  // All valid .tex0s
+  std::vector<g3d::SrtAnim> srt;      // All valid .srt archives
+  std::vector<g3d::BinaryClr> clr;    // .clr0
+  std::vector<g3d::BinaryTexPat> pat; // .pat0
 
   std::string metadata;
   nlohmann::json metadata_json{
