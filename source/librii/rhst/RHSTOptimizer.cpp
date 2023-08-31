@@ -587,9 +587,9 @@ Result<MeshOptimizerStats> StripifyTrianglesDraco(MatrixPrimitive& prim,
   auto& vertices = buf.vertices;
   assert(index_data.size() % 3 == 0);
 
-  std::vector<glm::vec3> verts;
+  std::vector<rsmeshopt::vec3> verts;
   for (auto v : vertices) {
-    verts.push_back(v.position);
+    verts.push_back({v.position.x, v.position.y, v.position.z});
   }
   auto strip = TRY(rsmeshopt::StripifyDraco(index_data, verts, ~0u, degen));
   PrimitiveRestartSplitter splitter(Topology::TriangleStrip, vertices, ~0u);

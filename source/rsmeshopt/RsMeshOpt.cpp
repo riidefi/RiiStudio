@@ -5,7 +5,6 @@
 #include "draco/mesh/mesh_stripifier.h"
 #include "meshoptimizer/meshoptimizer.h"
 #include "tristrip/tristrip.hpp"
-#include <core/common.h>
 #include <glm/vec3.hpp>
 
 namespace rsmeshopt {
@@ -117,7 +116,7 @@ std::vector<u32> StripifyMeshOpt(std::span<const u32> index_data,
 }
 
 Result<std::vector<u32>> StripifyDraco(std::span<const u32> index_data,
-                                       std::span<const glm::vec3> vertex_data,
+                                       std::span<const vec3> vertex_data,
                                        u32 restart, bool degen) {
   auto mesh = std::make_shared<draco::Mesh>();
   for (size_t i = 0; i < index_data.size(); i += 3) {
@@ -179,7 +178,7 @@ Result<std::vector<u32>> StripifyHaroohie(std::span<const u32> index_data,
 
 std::expected<std::vector<u32>, std::string>
 DoStripifyAlgo(StripifyAlgo algo, std::span<const u32> index_data,
-               std::span<const glm::vec3> vertex_data, u32 restart) {
+               std::span<const vec3> vertex_data, u32 restart) {
   switch (algo) {
   case StripifyAlgo::NvTriStripPort:
     return StripifyTrianglesNvTriStripPort2(index_data, restart);
