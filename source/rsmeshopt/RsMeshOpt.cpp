@@ -188,6 +188,8 @@ DoStripifyAlgo(StripifyAlgo algo, std::span<const u32> index_data,
     return StripifyMeshOpt(index_data, vertex_data.size(), restart);
   case StripifyAlgo::Draco:
     return StripifyDraco(index_data, vertex_data, restart, false);
+  case StripifyAlgo::DracoDegen:
+    return StripifyDraco(index_data, vertex_data, restart, true);
   case StripifyAlgo::Haroohie:
     return StripifyHaroohie(index_data, restart);
   }

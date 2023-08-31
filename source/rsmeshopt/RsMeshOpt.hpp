@@ -54,6 +54,7 @@ enum class StripifyAlgo {
   TriStripper,
   MeshOpt,
   Draco, // degen = false
+  DracoDegen,
   Haroohie,
 };
 std::expected<std::vector<u32>, std::string>
