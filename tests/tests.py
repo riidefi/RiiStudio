@@ -222,7 +222,7 @@ def run_tests(test_exec: Path, rszst: Path, fs_dir: Path, out: Path):
 	for fs_file in os.listdir(fs_dir):
 		in_file = fs_dir / fs_file
 		out_file = out / fs_file
-		print(out_file)
+		# print(out_file)
 		if in_file.is_dir():
 			continue
 		# 	run_tests(test_exec, rszst, in_file, out_file)
