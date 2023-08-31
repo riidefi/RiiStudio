@@ -11,6 +11,10 @@
 
 #include "TriFanMeshOptimizer.hpp"
 
+#include "HaroohieTriStripifier.hpp"
+
+#include "RsMeshOpt.hpp"
+
 namespace rsmeshopt {
 
 Result<std::vector<std::vector<u32>>>
@@ -37,6 +41,22 @@ StripifyTrianglesNvTriStripPort(std::span<const u32> index_data) {
   return result;
 }
 
+Result<std::vector<u32>>
+StripifyTrianglesNvTriStripPort2(std::span<const u32> index_data, u32 restart) {
+  auto v = TRY(StripifyTrianglesNvTriStripPort(index_data));
+  std::vector<u32> result;
+  for (auto& x : v) {
+    for (size_t i = 0; i < x.size(); ++i) {
+      result.push_back(x[i]);
+    }
+    result.push_back(restart);
+  }
+  if (result.size()) {
+    result.resize(result.size() - 1);
+  }
+  return result;
+}
+
 Result<triangle_stripper::primitive_vector>
 StripifyTrianglesTriStripper(std::span<const u32> index_data) {
   EXPECT(index_data.size() % 3 == 0);
@@ -46,6 +66,31 @@ StripifyTrianglesTriStripper(std::span<const u32> index_data) {
   triangle_stripper::primitive_vector out;
   stripper.Strip(&out);
   return out;
+}
+
+Result<std::vector<u32>>
+StripifyTrianglesTriStripper2(std::span<const u32> index_data, u32 restart) {
+  auto v = TRY(StripifyTrianglesTriStripper(index_data));
+  std::vector<u32> result;
+  for (auto& x : v) {
+    if (x.Type == triangle_stripper::TRIANGLES) {
+      for (size_t i = 0; i < x.Indices.size(); ++i) {
+        result.push_back(x.Indices[i]);
+        if (i != 0 && ((i + 1) % 3) == 0) {
+          result.push_back(restart);
+        }
+      }
+    } else if (x.Type == triangle_stripper::TRIANGLE_STRIP) {
+      for (size_t i = 0; i < x.Indices.size(); ++i) {
+        result.push_back(x.Indices[i]);
+      }
+    }
+    result.push_back(restart);
+  }
+  if (result.size()) {
+    result.resize(result.size() - 1);
+  }
+  return result;
 }
 
 size_t meshopt_stripify(unsigned int* destination, const unsigned int* indices,
@@ -66,8 +111,20 @@ size_t meshopt_unstripifyBound(size_t index_count) {
   return ::meshopt_unstripifyBound(index_count);
 }
 
-Result<std::vector<u32>> StripifyDraco(std::span<u32> index_data,
-                                       std::span<glm::vec3> vertex_data,
+std::vector<u32> StripifyMeshOpt(std::span<const u32> index_data,
+                                 u32 vertex_count, u32 restart) {
+  std::vector<u32> dst(meshopt_stripifyBound(index_data.size()));
+  static_assert(sizeof(u32) == sizeof(unsigned int));
+  size_t num = meshopt_stripify((unsigned int*)dst.data(),
+                                (const unsigned int*)index_data.data(),
+                                index_data.size(), vertex_count, restart);
+  assert(num <= dst.size());
+  dst.resize(num);
+  return dst;
+}
+
+Result<std::vector<u32>> StripifyDraco(std::span<const u32> index_data,
+                                       std::span<const glm::vec3> vertex_data,
                                        u32 restart, bool degen) {
   auto mesh = std::make_shared<draco::Mesh>();
   for (size_t i = 0; i < index_data.size(); i += 3) {
@@ -106,7 +163,8 @@ Result<std::vector<u32>> StripifyDraco(std::span<u32> index_data,
 }
 
 std::expected<std::vector<u32>, std::string>
-MakeFans(std::span<u32> index_data, u32 restart, u32 min_len, u32 max_runs) {
+MakeFans(std::span<const u32> index_data, u32 restart, u32 min_len,
+         u32 max_runs) {
   rsmeshopt::TriFanMeshOptimizer fan_pass;
   rsmeshopt::TriFanOptions options{min_len, max_runs};
   std::vector<u32> stripified;
@@ -114,6 +172,35 @@ MakeFans(std::span<u32> index_data, u32 restart, u32 min_len, u32 max_runs) {
       index_data, ~0u, std::back_inserter(stripified), options);
   EXPECT(ok);
   return stripified;
+}
+
+Result<std::vector<u32>> StripifyHaroohie(std::span<const u32> index_data,
+                                          u32 restart) {
+  HaroohiePals::TriangleStripifier stripifier;
+  std::vector<u32> result;
+  auto ok = stripifier.GenerateTriangleStripsWithPrimitiveRestart(
+      index_data, ~0u, std::back_inserter(result));
+  EXPECT(ok);
+  return result;
+}
+
+std::expected<std::vector<u32>, std::string>
+DoStripifyAlgo(StripifyAlgo algo, std::span<const u32> index_data,
+               std::span<const glm::vec3> vertex_data, u32 restart) {
+  switch (algo) {
+  case StripifyAlgo::NvTriStripPort:
+    return StripifyTrianglesNvTriStripPort2(index_data, restart);
+  case StripifyAlgo::TriStripper:
+    return StripifyTrianglesTriStripper2(index_data, restart);
+  case StripifyAlgo::MeshOpt:
+    return StripifyMeshOpt(index_data, vertex_data.size(), restart);
+  case StripifyAlgo::Draco:
+    return StripifyDraco(index_data, vertex_data, restart, false);
+  case StripifyAlgo::Haroohie:
+    return StripifyHaroohie(index_data, restart);
+  }
+
+  EXPECT(false && "Invalid algorithm!");
 }
 
 } // namespace rsmeshopt
