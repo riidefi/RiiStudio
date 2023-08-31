@@ -125,7 +125,7 @@ endif()
 
 
 add_compile_definitions(FMT_EXCEPTIONS=0)
-CPMAddPackage("gh:fmtlib/fmt#10.0.0")
+CPMAddPackage("gh:fmtlib/fmt#10.1.1")
 
 add_definitions(-DINCLUDE_RUST_HEADERS)
 
