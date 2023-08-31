@@ -19,5 +19,3 @@ if (NOT EMSCRIPTEN)
   add_subdirectory(cli)
 endif()
 add_subdirectory(frontend)
-
-add_subdirectory(rsmeshopt)

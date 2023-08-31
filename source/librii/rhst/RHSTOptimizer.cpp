@@ -1,14 +1,15 @@
 #include "RHSTOptimizer.hpp"
 #include "IndexBuffer.hpp"
 #include "MeshUtils.hpp"
-#include <rsmeshopt/HaroohieTriStripifier.hpp>
-#include <rsmeshopt/TriFanMeshOptimizer.hpp>
 
-#include <rsmeshopt/RsMeshOpt.hpp>
+#include <rsmeshopt/include/rsmeshopt.h>
 
 #include <fmt/color.h>
 #include <rsl/Ranges.hpp>
 #include <thread>
+
+// TODO: Bad, intrusive dependency
+#include <rsmeshopt/src/MeshUtils.hpp>
 
 #if !defined(__APPLE__)
 #define throw
@@ -395,7 +396,7 @@ public:
   // Reserve memory in the index buffer for faster OutputIterator use based on
   // an upper bound calculated from |triangle_indices_count|.
   void Reserve(u32 triangle_indices_count) {
-    indices_.reserve(rsmeshopt::meshopt_stripifyBound(triangle_indices_count));
+    indices_.reserve(rsmeshopt::meshopt_stripifyBound_(triangle_indices_count));
   }
 
   // Construct an output iterator to the list of indices for consumption from
@@ -457,7 +458,7 @@ StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo algo,
   for (auto v : vertices) {
     verts.push_back({v.position.x, v.position.y, v.position.z});
   }
-  auto strip = TRY(rsmeshopt::DoStripifyAlgo(algo, index_data, verts, ~0u));
+  auto strip = TRY(rsmeshopt::DoStripifyAlgo_(algo, index_data, verts, ~0u));
   PrimitiveRestartSplitter splitter(Topology::TriangleStrip, vertices, ~0u);
   splitter.SetIndices(std::move(strip));
   prim.primitives.clear();
@@ -477,7 +478,8 @@ Result<MeshOptimizerStats> StripifyTrianglesTriStripper(MatrixPrimitive& prim) {
 }
 Result<MeshOptimizerStats>
 StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim) {
-  return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::NvTriStripPort, prim);
+  return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::NvTriStripPort,
+                                    prim);
 }
 
 Result<MeshOptimizerStats> StripifyTrianglesHaroohie(MatrixPrimitive& prim) {
@@ -489,7 +491,7 @@ Result<MeshOptimizerStats> ToFanTriangles(MatrixPrimitive& prim, u32 min_len,
   MeshOptimizerStatsCollector stats(prim);
   auto buf = TRY(IndexBuffer<u32>::create(prim));
 
-  auto fans = TRY(rsmeshopt::MakeFans(buf.index_data, ~0u, min_len, max_runs));
+  auto fans = TRY(rsmeshopt::MakeFans_(buf.index_data, ~0u, min_len, max_runs));
 
   PrimitiveRestartSplitter splitter(Topology::TriangleFan, buf.vertices, ~0u);
   splitter.Reserve(buf.index_data.size());
@@ -552,7 +554,8 @@ Result<MeshOptimizerStats> ToFanTriangles2(MatrixPrimitive& prim) {
 Result<MeshOptimizerStats> StripifyTrianglesDraco(MatrixPrimitive& prim,
                                                   bool degen) {
   if (degen) {
-    return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::DracoDegen, prim);
+    return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::DracoDegen,
+                                      prim);
   }
   return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::Draco, prim);
 }

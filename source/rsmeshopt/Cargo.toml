@@ -1,0 +1,20 @@
+[package]
+name = "rsmeshopt"
+license = "MIT"
+version = "0.0.4"
+edition = "2021"
+description = "Triangle strip/fan generation"
+homepage = "https://github.com/riidefi/RiiStudio/tree/master/source/rsmeshopt"
+repository = "https://github.com/riidefi/RiiStudio"
+keywords = ["gamedev", "graphics"]
+readme = "README.md"
+
+[lib]
+crate-type=["cdylib", "lib", "staticlib"]
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+bindgen = "0.57"
+cc = { version = "1.0.83", features = ["parallel"] }
