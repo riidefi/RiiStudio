@@ -5,7 +5,10 @@
 #include "draco/mesh/mesh_stripifier.h"
 #include "meshoptimizer/meshoptimizer.h"
 #include "tristrip/tristrip.hpp"
-#include <glm/vec3.hpp>
+
+#include <rsl/Expect.hpp>
+#include <rsl/Result.hpp>
+#include <rsl/Try.hpp>
 
 namespace rsmeshopt {
 

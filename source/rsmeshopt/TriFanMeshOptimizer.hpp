@@ -1,10 +1,14 @@
 #pragma once
 
-#include <core/common.h>
-
 #include "MeshUtils.hpp"
 #include "RingIterator.hpp"
 #include "TriangleFanSplitter.hpp"
+
+#include <array>
+#include <assert.h>
+#include <rsl/Types.hpp>
+#include <span>
+#include <vector>
 
 namespace rsmeshopt {
 

@@ -1,19 +1,24 @@
 #pragma once
 
-#include <core/common.h>
-#include <fmt/core.h>
 #include <algorithm>
+#include <fmt/core.h>
+#include <optional>
 #include <ranges>
+#include <rsl/Expect.hpp>
+#include <rsl/Result.hpp>
+#include <rsl/Types.hpp>
+#include <span>
+#include <vector>
 
 namespace rsmeshopt {
 
 #define LIBRII_RINGITERATOR_DEBUG 0
 
 // Returns true if two edges |a| and |b| are connected.
-inline bool EdgeCompare(auto&& l, auto&& r) {
+static inline bool EdgeCompare(auto&& l, auto&& r) {
   return l.first == r.first || l.first == r.second || l.second == r.first ||
          l.second == r.second;
-};
+}
 
 // Given some vertex |center|, and all the triangles have a vertex at |center|
 // and are connected to each other, iterate over the non-|center| vertices in

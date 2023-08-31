@@ -1,6 +1,9 @@
 #pragma once
 
-#include <core/common.h>
+#include <assert.h>
+#include <rsl/Types.hpp>
+#include <span>
+#include <vector>
 
 namespace HaroohiePals {
 

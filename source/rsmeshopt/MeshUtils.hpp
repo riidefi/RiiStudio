@@ -1,8 +1,11 @@
 #pragma once
 
-#include <core/common.h>
+#include <array>
 #include <coro/generator.hpp>
 #include <ranges>
+#include <rsl/Types.hpp>
+#include <span>
+#include <vector>
 
 namespace rsmeshopt::MeshUtils {
 

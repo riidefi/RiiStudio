@@ -1,6 +1,9 @@
 #pragma once
 
-#include <core/common.h>
+#include <rsl/Types.hpp>
+#include <set>
+#include <span>
+#include <vector>
 
 namespace rsmeshopt {
 

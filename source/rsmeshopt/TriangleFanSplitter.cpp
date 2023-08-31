@@ -1,5 +1,8 @@
 #include "TriangleFanSplitter.hpp"
 
+#include <array>
+#include <unordered_map>
+
 namespace rsmeshopt {
 
 std::vector<std::set<size_t>>
