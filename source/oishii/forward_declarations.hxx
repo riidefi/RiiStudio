@@ -4,5 +4,5 @@
 
 namespace oishii {
 class BinaryReader;
-class BinaryWriter;
+class Writer;
 } // namespace oishii

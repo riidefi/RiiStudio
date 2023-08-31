@@ -88,7 +88,6 @@ add_library(librii STATIC
   "g3d/io/TextureIO.cpp"
   "g3d/data/AnimData.hpp"
   "g3d/io/AnimIO.cpp"
-  "g3d/io/DictIO.hpp"
   "g3d/io/CommonIO.hpp"
   "g3d/io/AnimIO.hpp"
   "g3d/io/TevIO.hpp"
