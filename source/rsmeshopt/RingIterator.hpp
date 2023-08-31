@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <fmt/core.h>
 #include <optional>
 #include <ranges>
 #include <rsl/Expect.hpp>
@@ -9,6 +8,8 @@
 #include <rsl/Types.hpp>
 #include <span>
 #include <vector>
+
+#include "Print.hpp"
 
 namespace rsmeshopt {
 
@@ -33,11 +34,11 @@ public:
       : center_(center) {
 #if LIBRII_RINGITERATOR_DEBUG
     for (size_t i = 0; i < indices.size(); i += 3) {
-      fmt::print(stderr, "{}->{};\n", indices[i], indices[i + 1]);
-      fmt::print(stderr, "{}->{};\n", indices[i + 1], indices[i + 2]);
-      fmt::print(stderr, "{}->{};\n", indices[i + 2], indices[i]);
+      RSM_PRINT(stderr, "{}->{};\n", indices[i], indices[i + 1]);
+      RSM_PRINT(stderr, "{}->{};\n", indices[i + 1], indices[i + 2]);
+      RSM_PRINT(stderr, "{}->{};\n", indices[i + 2], indices[i]);
     }
-    fmt::print(stderr, " aboveDump\n");
+    RSM_PRINT(stderr, " aboveDump\n");
 #endif
     for (size_t i = 0; i < indices.size(); i += 3) {
       // Ensure each triangle shares |center| exactly once
@@ -66,13 +67,13 @@ public:
     }
     auto ok = sortEdges();
     if (!ok) {
-      fmt::print(stderr, "Failed to sort edges; {}", ok.error());
+      RSM_PRINT(stderr, "Failed to sort edges; {}", ok.error());
       valid_ = false;
       return;
     }
 #if LIBRII_RINGITERATOR_DEBUG
     for (size_t i = 0; i < edges_.size(); ++i) {
-      fmt::print(stderr, "edge {}: ({}, {})\n", i, edges_[i].first,
+      RSM_PRINT(stderr, "edge {}: ({}, {})\n", i, edges_[i].first,
                  edges_[i].second);
     }
 #endif
@@ -138,10 +139,10 @@ private:
     }
 #if LIBRII_RINGITERATOR_DEBUG
     for (auto& [v, n] : edges_) {
-      fmt::print(stderr, "{}->{};\n", v, n);
+      RSM_PRINT(stderr, "{}->{};\n", v, n);
     }
     for (auto& [v, n] : valency) {
-      fmt::print(stderr, "Vert: {}, Valency: {}\n", v, n);
+      RSM_PRINT(stderr, "Vert: {}, Valency: {}\n", v, n);
     }
 #endif
 
@@ -166,7 +167,7 @@ private:
       for (auto z : y) {
         tmp += std::to_string(z) + ",";
       }
-      fmt::print("from_to {} -> {}\n", x, tmp);
+      RSM_PRINT("from_to {} -> {}\n", x, tmp);
     }
 #endif
     std::erase_if(valency_tmp,
@@ -180,7 +181,7 @@ private:
     int cur = start->first;
 
 #if LIBRII_RINGITERATOR_DEBUG
-    fmt::print(stderr, "Starting with vert {} (v of {})\n", cur, start->second);
+    RSM_PRINT(stderr, "Starting with vert {} (v of {})\n", cur, start->second);
 #endif
     for (int i = 0; i < edges_.size(); ++i) {
       auto cands = from_to[cur];
