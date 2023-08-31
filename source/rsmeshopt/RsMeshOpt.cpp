@@ -1,19 +1,12 @@
-#include <core/common.h>
-
-#include <rsmeshopt/TriStripper/tri_stripper.h>
-#include <rsmeshopt/tristrip/tristrip.hpp>
-
-#include <meshoptimizer.h>
-
-#include <draco/mesh/mesh_stripifier.h>
-
-#include <glm/vec3.hpp>
-
-#include "TriFanMeshOptimizer.hpp"
-
-#include "HaroohieTriStripifier.hpp"
-
 #include "RsMeshOpt.hpp"
+#include "HaroohieTriStripifier.hpp"
+#include "TriFanMeshOptimizer.hpp"
+#include "TriStripper/tri_stripper.h"
+#include "draco/mesh/mesh_stripifier.h"
+#include "meshoptimizer/meshoptimizer.h"
+#include "tristrip/tristrip.hpp"
+#include <core/common.h>
+#include <glm/vec3.hpp>
 
 namespace rsmeshopt {
 

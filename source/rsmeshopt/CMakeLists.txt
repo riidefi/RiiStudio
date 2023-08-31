@@ -29,8 +29,10 @@ add_library(rsmeshopt STATIC
   "draco/mesh/mesh_misc_functions.cc"
   "draco/mesh/mesh_stripifier.cc"
   "draco/point_cloud/point_cloud.cc"
+
+  "meshoptimizer/stripifier.cpp"
 )
-target_link_libraries(rsmeshopt PUBLIC core riistudio_rs vendor meshoptimizer)
+target_link_libraries(rsmeshopt PUBLIC core riistudio_rs vendor)
 
 if (WIN32)
   if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
