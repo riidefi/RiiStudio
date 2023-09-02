@@ -1,5 +1,7 @@
 #include "AnimClrIO.hpp"
 
+#include <rsl/CompactVector.hpp>
+
 namespace librii::g3d {
 
 struct CLROffsets {
@@ -146,6 +148,22 @@ void BinaryClr::write(oishii::Writer& writer, NameTable& names,
   writer.seekSet(start + 4);
   writer.write<u32>(back - start);
   writer.seekSet(back);
+}
+
+void BinaryClr::mergeIdenticalTracks() {
+  auto compacted = rsl::StableCompactVector(tracks);
+
+  // Replace old track indices with new indices in CLR0Target targets
+  for (auto& material : materials) {
+    for (auto& target : material.targets) {
+      if (auto* index = std::get_if<u32>(&target.data)) {
+        *index = compacted.remapTableOldToNew[*index];
+      }
+    }
+  }
+
+  // Replace the old tracks with the new list of unique tracks
+  tracks = std::move(compacted.uniqueElements);
 }
 
 } // namespace librii::g3d

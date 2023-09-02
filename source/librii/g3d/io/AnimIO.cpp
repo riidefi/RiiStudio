@@ -2,6 +2,7 @@
 
 #include <rsl/ArrayUtil.hpp>
 #include <rsl/CheckFloat.hpp>
+#include <rsl/CompactVector.hpp>
 #include <rsl/SortArray.hpp>
 
 namespace librii::g3d {
@@ -348,35 +349,21 @@ SRT0Material::write(oishii::Writer& writer, NameTable& names,
 }
 
 void BinarySrt::mergeIdenticalTracks() {
-  std::vector<SRT0Track> uniqueTracks;
-  std::unordered_map<size_t, size_t> trackIndexMap;
-
-  for (size_t i = 0; i < tracks.size(); ++i) {
-    auto it = std::find(uniqueTracks.begin(), uniqueTracks.end(), tracks[i]);
-    if (it == uniqueTracks.end()) {
-      // The track is not found in the uniqueTracks, so we add it
-      uniqueTracks.push_back(tracks[i]);
-      trackIndexMap[i] = uniqueTracks.size() - 1;
-    } else {
-      // The track is found in uniqueTracks, so we map the old index to the
-      // found index
-      trackIndexMap[i] = std::distance(uniqueTracks.begin(), it);
-    }
-  }
+  auto compacted = rsl::StableCompactVector(tracks);
 
   // Replace old track indices with new indices in SRT0Matrix targets
   for (auto& material : materials) {
     for (auto& matrix : material.matrices) {
       for (auto& target : matrix.targets) {
         if (auto* index = std::get_if<u32>(&target.data)) {
-          *index = trackIndexMap[*index];
+          *index = compacted.remapTableOldToNew[*index];
         }
       }
     }
   }
 
   // Replace the old tracks with the new list of unique tracks
-  tracks = std::move(uniqueTracks);
+  tracks = std::move(compacted.uniqueElements);
 }
 
 ///////////////////////

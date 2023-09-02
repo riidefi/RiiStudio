@@ -555,6 +555,11 @@ struct BinaryChr {
 
   Result<void> read(oishii::BinaryReader& reader);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
+
+// Disabled for now: We do not convert offsets to indices yet..
+#if 0
+  void mergeIdenticalTracks();
+#endif
 };
 
 } // namespace librii::g3d

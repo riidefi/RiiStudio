@@ -139,6 +139,8 @@ struct BinaryTexPat {
   [[nodiscard]] Result<void> read(oishii::BinaryReader& reader);
   [[nodiscard]] Result<void> write(oishii::Writer& writer, NameTable& names,
                                    u32 addrBrres) const;
+
+  void mergeIdenticalTracks();
 };
 
 } // namespace librii::g3d

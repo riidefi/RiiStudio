@@ -1,5 +1,7 @@
 #include "AnimTexPatIO.hpp"
 
+#include <rsl/CompactVector.hpp>
+
 namespace librii::g3d {
 
 struct BinaryTexPatInfo {
@@ -204,6 +206,22 @@ Result<void> BinaryTexPat::write(oishii::Writer& writer, NameTable& names,
   writer.seekSet(back);
 
   return {};
+}
+
+void BinaryTexPat::mergeIdenticalTracks() {
+  auto compacted = rsl::StableCompactVector(tracks);
+
+  // Replace old track indices with new indices in PAT0Material targets
+  for (auto& material : materials) {
+    for (auto& target : material.samplers) {
+      if (auto* index = std::get_if<u32>(&target)) {
+        *index = compacted.remapTableOldToNew[*index];
+      }
+    }
+  }
+
+  // Replace the old tracks with the new list of unique tracks
+  tracks = std::move(compacted.uniqueElements);
 }
 
 } // namespace librii::g3d

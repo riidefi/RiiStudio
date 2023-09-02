@@ -1,5 +1,7 @@
 #include "AnimChrIO.hpp"
 
+#include <rsl/CompactVector.hpp>
+
 namespace librii::g3d {
 
 struct CHR0Offsets {
@@ -154,7 +156,7 @@ void BinaryChr::write(oishii::Writer& writer, NameTable& names,
       .frameDuration = frameDuration,
       .materialCount = static_cast<u16>(nodes.size()),
       .wrapMode = wrapMode,
-	  .scaleRule = scaleRule,
+      .scaleRule = scaleRule,
   };
   info.write(writer, names, start);
 
@@ -186,5 +188,24 @@ void BinaryChr::write(oishii::Writer& writer, NameTable& names,
   writer.seekSet(back);
   writer.alignTo(0x4);
 }
+
+// Disabled for now: We do not convert offsets to indices yet..
+#if 0
+void BinaryChr::mergeIdenticalTracks() {
+  auto compacted = rsl::StableCompactVector(tracks);
+
+  // Replace old track indices with new indices in CHR0Node targets
+  for (auto& node : nodes) {
+    for (auto& target : node.tracks) {
+      if (auto* index = std::get_if<u32>(&target)) {
+        *index = compacted.remapTableOldToNew[*index];
+      }
+    }
+  }
+
+  // Replace the old tracks with the new list of unique tracks
+  tracks = std::move(compacted.uniqueElements);
+}
+#endif
 
 } // namespace librii::g3d
