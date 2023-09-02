@@ -21,6 +21,19 @@
 
 namespace librii::rhst {
 
+// Respects winding order
+static void NormalizeTriInplace(auto& tri) {
+  size_t minPos = 0;
+  for (size_t i = 1; i < 3; ++i) {
+    if (tri[i] < tri[minPos]) {
+      minPos = i;
+    }
+  }
+
+  // Rotate the array so that the minimum element comes first
+  std::rotate(std::begin(tri), std::begin(tri) + minPos, std::end(tri));
+}
+
 // Validates that an optimization pass did not damage the model itself.
 // - Duplicates are allowed
 // - Degenerates are stripped
@@ -48,16 +61,7 @@ public:
           tri[0] == tri[2]) {
         continue;
       }
-      // Sort triangle
-      if (tri[0] > tri[1]) {
-        std::swap(tri[0], tri[1]);
-      }
-      if (tri[1] > tri[2]) {
-        std::swap(tri[1], tri[2]);
-      }
-      if (tri[0] > tri[1]) {
-        std::swap(tri[0], tri[1]);
-      }
+      NormalizeTriInplace(tri);
       InsertTriangle(tri[0], tri[1], tri[2]);
     }
 
