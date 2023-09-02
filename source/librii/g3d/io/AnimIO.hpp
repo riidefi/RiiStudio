@@ -9,7 +9,9 @@
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
 #include <rsl/ArrayUtil.hpp>
+#include <rsl/CheckFloat.hpp>
 #include <rsl/SafeReader.hpp>
+#include <rsl/SortArray.hpp>
 #include <string>
 #include <variant>
 #include <vector>
@@ -213,14 +215,12 @@ struct SrtAnim {
     // Suppose our sort index array looks like
     //
     // 0  1 -1  2  3  4 -1 -1  5
-    // Our sortBiasCtr and lastSort variable logic will instead produce
+    // Calling rsl::RemoveSortPlaceholdersInplace will produce
     // 0  1  2  3  4  5  6  7  8
     //
     std::vector<int> sortIndices;
-    int sortBiasCtr = 0;
-    int lastSort = 0;
 
-    for (auto& m : srt.materials) {
+    for (const auto& m : srt.materials) {
       size_t j = 0;
       for (size_t i = 0; i < 8; ++i) {
         if (m.enabled_texsrts & (1 << i)) {
@@ -228,17 +228,12 @@ struct SrtAnim {
           targetedMtx.target.materialName = m.name;
           targetedMtx.target.indirect = false;
           targetedMtx.target.matrixIndex = i;
+          // NB: This index may be negative (placeholder)
           auto sortIndex = calculateSortIndex(m.matrices[j]);
-          if (sortIndex < 0) {
-            sortIndex = lastSort + 1;
-            ++sortBiasCtr;
-          } else {
-            sortIndex += sortBiasCtr;
-          }
-          lastSort = sortIndex;
-          targetedMtx.matrix = TRY(readMatrix(srt, m.matrices[j++], warn));
-          tmp.matrices.push_back(targetedMtx);
           sortIndices.push_back(sortIndex);
+          targetedMtx.matrix = TRY(readMatrix(srt, m.matrices[j], warn));
+          tmp.matrices.push_back(targetedMtx);
+          ++j;
         }
       }
       for (size_t i = 0; i < 3; ++i) {
@@ -247,34 +242,65 @@ struct SrtAnim {
           targetedMtx.target.materialName = m.name;
           targetedMtx.target.indirect = true;
           targetedMtx.target.matrixIndex = i;
+          // NB: This index may be negative (placeholder)
           auto sortIndex = calculateSortIndex(m.matrices[j]);
-          if (sortIndex < 0) {
-            sortIndex = lastSort;
-            ++sortBiasCtr;
-          } else {
-            sortIndex += sortBiasCtr;
-          }
-          lastSort = sortIndex;
-          targetedMtx.matrix = TRY(readMatrix(srt, m.matrices[j++], warn));
-          tmp.matrices.push_back(targetedMtx);
           sortIndices.push_back(sortIndex);
+          targetedMtx.matrix = TRY(readMatrix(srt, m.matrices[j], warn));
+          tmp.matrices.push_back(targetedMtx);
+          ++j;
         }
       }
     }
 
-    std::vector<size_t> indices(tmp.matrices.size());
-    std::iota(indices.begin(), indices.end(), 0);
-    std::sort(indices.begin(), indices.end(), [&](size_t i1, size_t i2) {
-      return sortIndices[i1] < sortIndices[i2];
-    });
-
-    std::vector<TargetedMtx> sortedMatrices;
-    for (auto i : indices) {
-      sortedMatrices.push_back(tmp.matrices[i]);
-    }
-    tmp.matrices = sortedMatrices;
+    rsl::RemoveSortPlaceholdersInplace(sortIndices);
+    tmp.matrices = rsl::SortArrayByKeys(tmp.matrices, sortIndices);
 
     return tmp;
+  }
+  // When an attribute is *not* animated, we need to grab a value from the
+  // model..
+  static std::optional<float> getDefaultAttrib(auto* mdl, auto& material,
+                                               auto& targetedMtx, int i) {
+    if (mdl == nullptr) {
+      return std::nullopt;
+    }
+    auto* m = findByName2(mdl->materials, material.name);
+    if (m == nullptr) {
+      return std::nullopt;
+    }
+    auto midx = targetedMtx.target.matrixIndex;
+    if (targetedMtx.target.indirect) {
+      if (midx <= m->mIndMatrices.size()) {
+        switch (i) {
+        case 0:
+          return m->mIndMatrices[midx].scale.x;
+        case 1:
+          return m->mIndMatrices[midx].scale.y;
+        case 2:
+          return m->mIndMatrices[midx].rotate;
+        case 3:
+          return m->mIndMatrices[midx].trans.x;
+        case 4:
+          return m->mIndMatrices[midx].trans.y;
+        }
+      }
+    } else {
+      if (midx <= m->texMatrices.size()) {
+        switch (i) {
+        case 0:
+          return m->texMatrices[midx].scale.x;
+        case 1:
+          return m->texMatrices[midx].scale.y;
+        case 2:
+          return m->texMatrices[midx].rotate;
+        case 3:
+          return m->texMatrices[midx].translate.x;
+        case 4:
+          return m->texMatrices[midx].translate.y;
+        }
+      }
+    }
+    return std::nullopt;
   }
   static BinarySrt write(const SrtAnim& anim,
                          const librii::g3d::Model* mdl = nullptr) {
@@ -326,60 +352,26 @@ struct SrtAnim {
           &targetedMtx.matrix.transY};
       for (size_t i = 0; i < targetIds.size(); ++i) {
         SrtAnim::Track track = *tracks[i];
-        if (track.size() <= 1) {
-          f32 f = i >= 2 ? 0.0f : 1.0f;
-          if (track.size() == 1) {
+        bool isTrackAnimated = track.size() > 1;
+        if (!isTrackAnimated) {
+          f32 f{};
+
+          bool isConstantValue = track.size() == 1;
+          if (isConstantValue) {
             f = track[0].value;
-          } else {
+          } else if (auto model_value =
+                         getDefaultAttrib(mdl, material, targetedMtx, i);
+                     model_value) {
             // Grab value from model
-            if (mdl) {
-              auto* m = findByName2(mdl->materials, material.name);
-              if (m) {
-                auto midx = targetedMtx.target.matrixIndex;
-                if (targetedMtx.target.indirect) {
-                  if (midx <= m->mIndMatrices.size()) {
-                    switch (i) {
-                    case 0:
-                      f = m->mIndMatrices[midx].scale.x;
-                      break;
-                    case 1:
-                      f = m->mIndMatrices[midx].scale.y;
-                      break;
-                    case 2:
-                      f = m->mIndMatrices[midx].rotate;
-                      break;
-                    case 3:
-                      f = m->mIndMatrices[midx].trans.x;
-                      break;
-                    case 4:
-                      f = m->mIndMatrices[midx].trans.y;
-                      break;
-                    }
-                  }
-                } else {
-                  if (midx <= m->texMatrices.size()) {
-                    switch (i) {
-                    case 0:
-                      f = m->texMatrices[midx].scale.x;
-                      break;
-                    case 1:
-                      f = m->texMatrices[midx].scale.y;
-                      break;
-                    case 2:
-                      f = m->texMatrices[midx].rotate;
-                      break;
-                    case 3:
-                      f = m->texMatrices[midx].translate.x;
-                      break;
-                    case 4:
-                      f = m->texMatrices[midx].translate.y;
-                      break;
-                    }
-                  }
-                }
-              }
-            }
+            f = *model_value;
+          } else {
+            // Backup values if cannot retrieve from model
+            // - Scale:     1.0f
+            // - Rot/Trans: 0.0f
+            bool isScaleTargetId = i <= 2;
+            f = isScaleTargetId ? 1.0f : 0.0f;
           }
+
           if (targetIds[i] == SRT0Matrix::TargetId::ScaleU) {
             matrix.flags |= SRT0Matrix::FLAG_SCL_U_FIXED;
             if (targetedMtx.matrix.scaleY.size() == 1 &&
@@ -431,22 +423,13 @@ struct SrtAnim {
       materialSubMatrixSort[material.name].push_back(
           targetedMtx.target.matrixIndex +
           (targetedMtx.target.indirect ? 100 : 0));
+      // Note: matrixIndex in [0, 7]. 100 is arbitrary and 7 would've worked too
     }
 
     for (auto& mat : binary.materials) {
-      auto& sortIndices = materialSubMatrixSort[mat.name];
+      const auto& sortIndices = materialSubMatrixSort[mat.name];
 
-      std::vector<size_t> indices(sortIndices.size());
-      std::iota(indices.begin(), indices.end(), 0);
-      std::sort(indices.begin(), indices.end(), [&](size_t i1, size_t i2) {
-        return sortIndices[i1] < sortIndices[i2];
-      });
-
-      std::vector<SRT0Matrix> sortedMatrices;
-      for (auto i : indices) {
-        sortedMatrices.push_back(mat.matrices[i]);
-      }
-      mat.matrices = sortedMatrices;
+      mat.matrices = rsl::SortArrayByKeys(mat.matrices, sortIndices);
     }
 
     binary.mergeIdenticalTracks();
@@ -503,16 +486,16 @@ private:
                                  const SRT0Target& target,
                                  std::function<void(std::string_view)> warn) {
     if (auto* fixed = std::get_if<f32>(&target.data)) {
-      return Track{SRT0KeyFrame{.value = TRY(checkFloat(*fixed))}};
+      return Track{SRT0KeyFrame{.value = TRY(rsl::CheckFloat(*fixed))}};
     } else {
       assert(std::get_if<u32>(&target.data));
       auto& track = tracks[*std::get_if<u32>(&target.data)];
       EXPECT(track.reserved[0] == 0 && track.reserved[1] == 0);
       EXPECT(tracks.size() >= 1);
       for (auto& f : track.keyframes) {
-        TRY(checkFloat(f.frame));
-        TRY(checkFloat(f.value));
-        TRY(checkFloat(f.tangent));
+        TRY(rsl::CheckFloat(f.frame));
+        TRY(rsl::CheckFloat(f.value));
+        TRY(rsl::CheckFloat(f.tangent));
       }
       auto monotonic_increasing =
           std::ranges::adjacent_find(track.keyframes, [](auto& x, auto& y) {
@@ -530,18 +513,6 @@ private:
              "encoded as a FIXED value.");
       return Track{track.keyframes};
     }
-  }
-
-  static Result<f32> checkFloat(f32 in) {
-    if (std::isinf(in)) {
-      return in > 0.0f ? std::unexpected("Float is set to INFINITY")
-                       : std::unexpected("Float is set to -INFINITY");
-    }
-    if (std::isnan(in)) {
-      return in > 0.0f ? std::unexpected("Float is set to NAN")
-                       : std::unexpected("Float is set to -NAN");
-    }
-    return in;
   }
 };
 
