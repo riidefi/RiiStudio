@@ -94,6 +94,10 @@ TEST_DATA = {
 	'b5a3663ec86a2f96e53d811af8775b9a': 'b5a3663ec86a2f96e53d811af8775b9a',
 	'b7fac9238095c5294730910b87d69910': 'b7fac9238095c5294730910b87d69910', # farm_course
 
+	# moray.brres
+	# Contains a BrawlBox CHR0 file which was broken before 5.10.13 (Hotfix 7)
+	'45c201cb04fadee9a320a166cb493b91': '3c4502bdec02a4f5d7791d5d141340ab',
+
 	#---------------------------------------------------------------------------------
 	# .dae -> BRRES tests
 	#---------------------------------------------------------------------------------
