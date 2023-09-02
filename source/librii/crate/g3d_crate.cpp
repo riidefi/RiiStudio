@@ -5,6 +5,7 @@
 #include <librii/g3d/io/MatIO.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
+#include <rsl/ArrayUtil.hpp>
 #include <rsl/WriteFile.hpp>
 
 namespace librii::crate {

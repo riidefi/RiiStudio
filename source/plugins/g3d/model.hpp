@@ -10,7 +10,6 @@
 #include <librii/g3d/data/AnimData.hpp>
 #include <librii/g3d/data/ModelData.hpp>
 #include <librii/g3d/data/VertexData.hpp>
-#include <librii/g3d/io/AnimIO.hpp>
 #include <librii/gx.h>
 #include <plugins/gc/Export/Scene.hpp>
 #include <tuple>
