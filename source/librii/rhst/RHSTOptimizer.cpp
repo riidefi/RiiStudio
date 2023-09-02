@@ -2,6 +2,7 @@
 #include "IndexBuffer.hpp"
 #include "MeshUtils.hpp"
 
+#define RSMESHOPT_NO_EXPECTED
 #include <rsmeshopt/include/rsmeshopt.h>
 
 #include <fmt/color.h>

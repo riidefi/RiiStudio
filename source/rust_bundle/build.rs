@@ -43,7 +43,9 @@ fn main() {
 
     #[cfg(unix)]
     {
-        println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/freetype/2.13.1/lib/");
+        println!("cargo:rustc-link-lib=framework={}", "CoreFoundation");
+        println!("cargo:rustc-link-lib=framework={}", "Security");
+        println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/freetype/2.13.2/lib/");
         println!("cargo:rustc-link-lib=static={}", "freetype");
         println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/glfw/3.3.8/lib/");
         println!("cargo:rustc-link-lib=static={}", "glfw");
@@ -51,7 +53,6 @@ fn main() {
         println!("cargo:rustc-link-lib=static={}", "assimp");
         println!("cargo:rustc-link-lib=static={}", "dl");
         println!("cargo:rustc-link-lib=static={}", "c++");
-        println!("cargo:rustc-link-lib=framework={}", "CoreFoundation");
     }
  
 
@@ -60,7 +61,6 @@ fn main() {
         (format!("{}{}", out_dir, "core"), "core"),
         (format!("{}{}", out_dir, "LibBadUIFramework"), "LibBadUIFramework"),
         (format!("{}{}", out_dir, "librii"), "librii"),
-        (format!("{}{}", out_dir, "rsmeshopt"), "rsmeshopt"),
         (format!("{}{}", out_dir, "oishii"), "oishii"),
         (format!("{}{}", out_dir, "plate"), "plate"),
         (format!("{}{}", out_dir, "plugins"), "plugins"),
@@ -74,8 +74,6 @@ fn main() {
         (format!("{}{}", source_dir, "plate\\vendor\\glfw\\lib-vc2017"), "glfw3dll"),
         #[cfg(windows)]
         (format!("{}{}", source_dir, "vendor\\assimp"), "assimp-vc141-mt"),
-
-        (format!("{}{}", deps_dir, "meshoptimizer-build"), "meshoptimizer"),
     ];
 
     for (dir, lib) in libs {
@@ -123,6 +121,8 @@ fn main() {
 
     println!("cargo:rustc-link-search=native={}", cargo_dir);
     println!("cargo:rustc-link-lib=static=gctex");
+    println!("cargo:rustc-link-lib=static=wiitrig");
+    println!("cargo:rustc-link-lib=static=rsmeshopt");
     println!("cargo:rustc-link-lib=dylib=llvm_sighandler");
     println!("cargo:rustc-link-lib=static=avir_rs");
     println!("cargo:rustc-link-lib=static=riistudio_rs");

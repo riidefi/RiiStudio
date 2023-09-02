@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <map>
 #include <optional>
 #include <ranges>
 #include <rsl/Expect.hpp>
@@ -74,7 +75,7 @@ public:
 #if LIBRII_RINGITERATOR_DEBUG
     for (size_t i = 0; i < edges_.size(); ++i) {
       RSM_PRINT(stderr, "edge {}: ({}, {})\n", i, edges_[i].first,
-                 edges_[i].second);
+                edges_[i].second);
     }
 #endif
     for (size_t i = 1; i < edges_.size(); ++i) {

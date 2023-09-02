@@ -57,7 +57,7 @@ enum class Algo {
 static inline std::string get_version() {
   std::string s;
   s.resize(1024);
-  int32_t len = szs_get_version_unstable_api(s.data(), s.size());
+  int32_t len = ::szs_get_version_unstable_api(s.data(), s.size());
   if (len <= 0 || len > s.size()) {
     return "Unable to query";
   }
@@ -69,19 +69,19 @@ encode_algo_fast(std::span<uint8_t> dst, std::span<const uint8_t> src,
                  Algo algo) {
   uint32_t used_len = 0;
   const uint32_t algo_u = static_cast<uint32_t>(algo);
-  const char* err = riiszs_encode_algo_fast(dst.data(), dst.size(), src.data(),
-                                            src.size(), &used_len, algo_u);
+  const char* err = ::riiszs_encode_algo_fast(
+      dst.data(), dst.size(), src.data(), src.size(), &used_len, algo_u);
   if (err == nullptr) {
     return used_len;
   }
   std::string emsg(err);
-  riiszs_free_error_message(err);
+  ::riiszs_free_error_message(err);
   return std::unexpected(emsg);
 }
 
 Result<std::vector<uint8_t>> encode_algo(std::span<const uint8_t> buf,
                                          Algo algo) {
-  uint32_t worst = riiszs_encoded_upper_bound(static_cast<u32>(buf.size()));
+  uint32_t worst = ::riiszs_encoded_upper_bound(static_cast<u32>(buf.size()));
   std::vector<uint8_t> tmp(worst);
   auto ok = encode_algo_fast(tmp, buf, algo);
   if (!ok) {
@@ -95,12 +95,12 @@ Result<std::vector<uint8_t>> encode_algo(std::span<const uint8_t> buf,
 static inline std::expected<void, std::string>
 decode(std::span<uint8_t> dst, std::span<const uint8_t> src) {
   const char* err =
-      riiszs_decode(dst.data(), dst.size(), src.data(), src.size());
+      ::riiszs_decode(dst.data(), dst.size(), src.data(), src.size());
   if (err == nullptr) {
     return {};
   }
   std::string emsg(err);
-  riiszs_free_error_message(err);
+  ::riiszs_free_error_message(err);
   return std::unexpected(emsg);
 }
 

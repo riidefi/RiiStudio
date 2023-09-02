@@ -48,7 +48,7 @@ elseif (APPLE)
   endif()
  
   set(GLFW_VERSION "3.3.8")
-  set(FREETYPE_VERSION "2.13.1")
+  set(FREETYPE_VERSION "2.13.2")
  
   SET_TARGET_PROPERTIES(cli PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
 elseif (UNIX AND NOT EMSCRIPTEN)
