@@ -18,7 +18,7 @@ fn main() {
         build.std("gnu++2b");
     }
 
-    if compiler.is_like_clang() {
+    if compiler.is_like_clang() || is_clang_cl{
         // warning: src\draco/core/bounding_box.h:44:3: warning: 'const' type qualifier on return type has no effect [-Wignored-qualifiers]
         // warning:   const bool IsValid() const;
         build.flag("-Wno-ignored-qualifiers");
@@ -51,7 +51,7 @@ fn main() {
         build.flag("-MT");
     }
 
-    if compiler.is_like_gnu() || compiler.is_like_clang() {
+    if compiler.is_like_gnu() || compiler.is_like_clang() || is_clang_cl {
         build.flag("-O2");
     }
 
