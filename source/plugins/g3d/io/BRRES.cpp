@@ -1,4 +1,6 @@
+// Hacky workarounds for enabling designated initializers
 #define ARCHIVE_DEF
+#define MODEL_DEF
 
 #include <LibBadUIFramework/Node2.hpp>
 #include <LibBadUIFramework/Plugins.hpp>

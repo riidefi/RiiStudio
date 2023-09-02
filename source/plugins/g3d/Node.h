@@ -2,7 +2,7 @@
 #include <librii/g3d/io/AnimClrIO.hpp>
 #include <librii/g3d/io/AnimTexPatIO.hpp>
 #include <librii/g3d/io/AnimVisIO.hpp>
-#include <librii/g3d/io/ArchiveIO.hpp>
+#include <librii/g3d/data/Archive.hpp>
 
 namespace riistudio::g3d {
 

@@ -23,6 +23,11 @@
 
 namespace librii::g3d {
 
+Model::Model() __attribute__((weak)) = default;
+Model::Model(const Model&) __attribute__((weak)) = default;
+Model::Model(Model&&) noexcept __attribute__((weak)) = default;
+Model::~Model() __attribute__((weak)) = default;
+
 template <bool Named, bool bMaterial, typename T, typename U>
 Result<void> writeDictionary(const std::string& name, T&& src_range, U handler,
                              RelocWriter& linker, oishii::Writer& writer,

@@ -5,9 +5,12 @@
 #include <librii/g3d/data/Archive.hpp>
 #include <vendor/nlohmann/json.hpp>
 
+#include <librii/g3d/data/MaterialData.hpp>
+
 namespace librii::g3d {
 struct BinarySrt;
-}
+struct G3dShader;
+} // namespace librii::g3d
 
 namespace librii::crate {
 

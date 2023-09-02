@@ -3,7 +3,6 @@
 #include "AnimData.hpp"
 #include "ModelData.hpp"
 #include "TextureData.hpp"
-#include <librii/g3d/io/ModelIO.hpp>
 #include <rsl/Result.hpp>
 #include <string_view>
 
