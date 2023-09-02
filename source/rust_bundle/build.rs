@@ -75,10 +75,6 @@ fn main() {
         #[cfg(windows)]
         (format!("{}{}", source_dir, "vendor\\assimp"), "assimp-vc141-mt"),
 
-        #[cfg(unix)]
-        (format!("{}{}", deps_dir, "fmt-build"), "fmtd"),
-        #[cfg(windows)]
-        (format!("{}{}", deps_dir, "fmt-build"), "fmt"),
         (format!("{}{}", deps_dir, "meshoptimizer-build"), "meshoptimizer"),
     ];
 

@@ -9,5 +9,3 @@ add_library(core STATIC
   "common.h"
   "util/timestamp.cpp"
    "util/oishii.hpp")
-
-target_link_libraries(core PUBLIC fmt)
