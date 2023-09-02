@@ -306,6 +306,36 @@ pub struct Optimize {
     verbose: bool,
 }
 
+/// Import a .png/etc file as .tex0
+#[derive(Parser, Debug)]
+pub struct ImportTex0 {
+    /// File to import from: .png, .jpg, etc
+    #[arg(required = true)]
+    from: String,
+
+    /// File to export to
+    to: Option<String>,
+
+    /// Whether to generate mipmaps for textures
+    #[clap(long, default_value = "true")]
+    mipmaps: bool,
+
+    /// Minimum mipmap dimension to generate
+    #[arg(long, default_value = "32")]
+    min_mip: u32,
+
+    /// Maximum number of mipmaps to generate
+    #[arg(long, default_value = "5")]
+    max_mip: u32,
+
+    /// Texture format to use
+    #[arg(long, default_value = "14")]
+    format: u32,
+
+    #[clap(short, long, default_value = "false")]
+    verbose: bool,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// DEPRECATED: Use import-brres
@@ -346,6 +376,8 @@ pub enum Commands {
     PreciseBMDDump(PreciseBMDDump),
 
     Optimize(Optimize),
+
+    ImportTex0(ImportTex0),
 }
 
 #[repr(C)]
@@ -375,6 +407,7 @@ pub struct CliOptions {
     pub rarc: c_uint,
     pub verbose: c_uint,
     pub szs_algo: c_uint,
+    pub format: c_uint,
     // TYPE 2: "decompress"
     // Uses "from", "to" and "verbose" above
 }
@@ -437,6 +470,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::ImportBrres(i) => {
@@ -481,6 +515,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::ImportBmd(i) => {
@@ -525,6 +560,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::Decompress(i) => {
@@ -563,6 +599,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::Compress(i) => {
@@ -601,6 +638,7 @@ impl MyArgs {
                     ai_json: 0 as c_uint,
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::KmpToJson(i) => {
@@ -639,6 +677,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::JsonToKmp(i) => {
@@ -677,6 +716,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::KclToJson(i) => {
@@ -715,6 +755,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::JsonToKcl(i) => {
@@ -753,6 +794,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::Rhst2Brres(i) => {
@@ -791,6 +833,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::Rhst2Bmd(i) => {
@@ -829,6 +872,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::Extract(i) => {
@@ -867,6 +911,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::Create(i) => {
@@ -905,6 +950,7 @@ impl MyArgs {
                     no_tristrip: 0 as c_uint,
                     ai_json: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::DumpPresets(i) => {
@@ -943,6 +989,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::PreciseBMDDump(i) => {
@@ -981,6 +1028,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
                 }
             }
             Commands::Optimize(i) => {
@@ -1006,6 +1054,46 @@ impl MyArgs {
                     mipmaps: 0 as c_uint,
                     min_mip: 0 as c_uint,
                     max_mips: 0 as c_uint,
+                    auto_transparency: 0 as c_uint,
+                    merge_mats: 0 as c_uint,
+                    bake_uvs: 0 as c_uint,
+                    tint: 0 as c_uint,
+                    cull_degenerates: 0 as c_uint,
+                    cull_invalid: 0 as c_uint,
+                    recompute_normals: 0 as c_uint,
+                    fuse_vertices: 0 as c_uint,
+                    no_tristrip: 0 as c_uint,
+                    ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
+                }
+            }
+            Commands::ImportTex0(i) => {
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 16,
+                    from: from2,
+                    to: to2,
+                    mipmaps: i.mipmaps as c_uint,
+                    min_mip: i.min_mip as c_uint,
+                    max_mips: i.max_mip as c_uint,
+                    format: i.format as c_uint,
+                    verbose: i.verbose as c_uint,
+
+                    // Junk fields
+                    preset_path: [0; 256],
+                    scale: 0.0 as c_float,
+                    brawlbox_scale: 0 as c_uint,
                     auto_transparency: 0 as c_uint,
                     merge_mats: 0 as c_uint,
                     bake_uvs: 0 as c_uint,

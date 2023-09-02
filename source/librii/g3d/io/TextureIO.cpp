@@ -1,6 +1,7 @@
 #include "TextureIO.hpp"
 #include <librii/g3d/data/TextureData.hpp>
 #include <rsl/SimpleReader.hpp>
+#include <rsl/WriteFile.hpp>
 
 namespace librii::g3d {
 
@@ -189,6 +190,12 @@ std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
   applier.apply(reloc, 0 /* structure offset */);
 
   return buffer;
+}
+
+Result<void> WriteTEX0ToFile(const g3d::TextureData& tex, std::string path) {
+  auto buf = WriteTEX0(tex);
+  TRY(rsl::WriteFile(buf, path));
+  return {};
 }
 
 } // namespace librii::g3d

@@ -15,11 +15,10 @@ importTextureImpl(libcube::Texture& data, std::span<u8> image,
                   librii::image::ResizingAlgorithm resize =
                       librii::image::ResizingAlgorithm::Lanczos);
 
-[[nodiscard]] Result<void> importTexture(libcube::Texture& data,
-                                         std::span<u8> image,
-                                         std::vector<u8>& scratch, bool mip_gen,
-                                         int min_dim, int max_mip, int width,
-                                         int height, int channels);
+[[nodiscard]] Result<void> importTexture(
+    libcube::Texture& data, std::span<u8> image, std::vector<u8>& scratch,
+    bool mip_gen, int min_dim, int max_mip, int width, int height, int channels,
+    librii::gx::TextureFormat format = librii::gx::TextureFormat::CMPR);
 [[nodiscard]] Result<void> importTextureFromMemory(libcube::Texture& data,
                                                    std::span<const u8> span,
                                                    std::vector<u8>& scratch,
@@ -35,13 +34,11 @@ struct MipGen {
   u32 min_dim = 32;
   u32 max_mip = 5;
 };
-[[nodiscard]] bool
-CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
-            std::string path,
-            std::function<void(std::string, std::string)> info,
-            std::function<void(std::string_view, float)> progress,
-            std::optional<MipGen> mips = {}, bool tristrip = true,
-            bool verbose = true);
+[[nodiscard]] bool CompileRHST(
+    librii::rhst::SceneTree& rhst, libcube::Scene& scene, std::string path,
+    std::function<void(std::string, std::string)> info,
+    std::function<void(std::string_view, float)> progress,
+    std::optional<MipGen> mips = {}, bool tristrip = true, bool verbose = true);
 
 [[nodiscard]] Result<librii::rhst::Mesh>
 decompileMesh(const libcube::IndexedPolygon& src, const libcube::Model& mdl);

@@ -8,6 +8,7 @@
 #include <librii/assimp2rhst/SupportedFiles.hpp>
 #include <librii/crate/g3d_crate.hpp>
 #include <librii/crate/j3d_crate.hpp>
+#include <librii/g3d/io/TextureIO.hpp>
 #include <librii/j3d/PreciseBMDDump.hpp>
 #include <librii/kcol/Model.hpp>
 #include <librii/kmp/io/KMP.hpp>
@@ -23,6 +24,7 @@
 #include <plugins/j3d/Preset.hpp>
 #include <plugins/rhst/RHSTImporter.hpp>
 #include <rsl/Filesystem.hpp>
+#include <rsl/Stb.hpp>
 #include <rsl/StringManip.hpp>
 #include <rsl/Timer.hpp>
 #include <rsl/WriteFile.hpp>
@@ -1161,6 +1163,55 @@ static Result<void> optimizeJ3D(const CliOptions& m_opt) {
   return {};
 }
 
+static Result<void> import_tex0(const CliOptions& m_opt) {
+  if (m_opt.verbose) {
+    rsl::logging::init();
+  }
+  std::filesystem::path m_from = m_opt.from.view();
+  std::filesystem::path m_to = m_opt.to.view();
+
+  auto format =
+      TRY(rsl::enum_cast<librii::gx::TextureFormat>(m_opt.texture_format));
+
+  if (m_to.empty()) {
+    std::filesystem::path p = m_from;
+    p.replace_extension(".tex0");
+    m_to = p;
+  }
+  if (!FS_TRY(rsl::filesystem::exists(m_from))) {
+    fmt::print(stderr, "Error: File {} does not exist.\n", m_from.string());
+    return std::unexpected("FileNotExist");
+  }
+  if (FS_TRY(rsl::filesystem::exists(m_to))) {
+    fmt::print(stderr,
+               "Warning: File {} will be overwritten by this operation.\n",
+               m_to.string());
+  }
+  auto path = m_from.string();
+  auto image = rsl::stb::load(path);
+  if (!image) {
+    return std::unexpected(
+        std::format("Failed to import texture {}: stb_image didn't "
+                    "recognize it or didn't exist.",
+                    path));
+  }
+  std::vector<u8> scratch;
+  riistudio::g3d::Texture tex;
+  const auto ok = riistudio::rhst::importTexture(
+      tex, image->data, scratch, m_opt.mipmaps, m_opt.min_mip, m_opt.max_mips,
+      image->width, image->height, image->channels, format);
+  if (!ok) {
+    return std::unexpected(
+        std::format("Failed to import texture {}: {}", path, ok.error()));
+  }
+  std::filesystem::path fsp(m_opt.from.view());
+  tex.setName(fsp.stem().string());
+
+  TRY(librii::g3d::WriteTEX0ToFile(tex, m_to.string()));
+
+  return {};
+}
+
 int main(int argc, const char** argv) {
   fmt::print(stdout, "RiiStudio CLI {}\n", RII_TIME_STAMP);
   auto args = parse(argc, argv);
@@ -1302,6 +1353,13 @@ int main(int argc, const char** argv) {
     } else {
       ok = optimizeG3D(*args);
     }
+    if (!ok) {
+      fmt::print(stderr, "{}\n", ok.error());
+      return -1;
+    }
+  }
+  if (args->type == TYPE_IMPORT_TEX0) {
+    auto ok = import_tex0(*args);
     if (!ok) {
       fmt::print(stderr, "{}\n", ok.error());
       return -1;

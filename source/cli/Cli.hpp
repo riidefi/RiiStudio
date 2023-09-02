@@ -51,6 +51,8 @@ enum {
   TYPE_PRECISE_BMD_DUMP,
 
   TYPE_OPTIMIZE,
+
+  TYPE_IMPORT_TEX0,
 };
 
 template <size_t L> struct CFixedString {
@@ -83,6 +85,7 @@ struct CliOptions {
   bool32 rarc = false;
   bool32 verbose = false;
   uint32_t szs_algo = 0;
+  uint32_t texture_format = 0xE;
 };
 
 std::optional<CliOptions> parse(int argc, const char** argv);

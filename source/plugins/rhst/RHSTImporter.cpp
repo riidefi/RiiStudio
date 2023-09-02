@@ -850,7 +850,8 @@ Result<void> importTextureImpl(libcube::Texture& data, std::span<u8> image,
 }
 Result<void> importTexture(libcube::Texture& data, std::span<u8> image,
                            std::vector<u8>& scratch, bool mip_gen, int min_dim,
-                           int max_mip, int width, int height, int channels) {
+                           int max_mip, int width, int height, int channels,
+                           librii::gx::TextureFormat format) {
   if (image.empty()) {
     return std::unexpected(
         "STB failed to parse image. Unsupported file format?");
@@ -872,7 +873,7 @@ Result<void> importTexture(libcube::Texture& data, std::span<u8> image,
   }
 
   return importTextureImpl(data, image, scratch, num_mip, width, height, width,
-                           height, librii::gx::TextureFormat::CMPR);
+                           height, format);
 }
 
 Result<void> importTextureFromMemory(libcube::Texture& data,
