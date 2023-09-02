@@ -549,5 +549,21 @@ Result<Archive> Archive::read(oishii::BinaryReader& reader,
   TRY(bin.read(reader, transaction));
   return from(bin, transaction);
 }
+Result<Archive> Archive::fromMemory(std::span<const u8> buf, std::string path,
+                                    kpi::LightIOTransaction& trans) {
+  oishii::BinaryReader reader(buf, path, std::endian::big);
+  return read(reader, trans);
+}
+Result<Archive> Archive::fromMemory(std::span<const u8> buf, std::string path) {
+  kpi::LightIOTransaction trans;
+  trans.callback = [&](kpi::IOMessageClass message_class,
+                       const std::string_view domain,
+                       const std::string_view message_body) {
+    auto msg = std::format("[{}] {} {}", magic_enum::enum_name(message_class),
+                           domain, message_body);
+    rsl::error(msg);
+  };
+  return fromMemory(buf, path, trans);
+}
 
 } // namespace librii::g3d

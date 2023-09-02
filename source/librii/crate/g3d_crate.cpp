@@ -130,65 +130,6 @@ std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat) {
   return writer.takeBuf();
 }
 
-Result<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file) {
-  g3d::TextureData tex;
-  // TODO: We trust the .tex0-file provided name to be correct
-  const bool ok = g3d::ReadTexture(tex, file, "");
-  if (!ok) {
-    return std::unexpected(
-        "Failed to parse TEX0: g3d::ReadTexture returned false");
-  }
-  return tex;
-}
-
-class SimpleRelocApplier {
-public:
-  SimpleRelocApplier(std::vector<u8>& buf) : mBuf(buf) {}
-  ~SimpleRelocApplier() = default;
-
-  void apply(g3d::NameReloc reloc, u32 structure_offset) {
-    // Transform from structure-space to buffer-space
-    reloc = g3d::RebasedNameReloc(reloc, structure_offset);
-    // Write to end of mBuffer
-    const u32 string_location = writeName(reloc.name);
-    mBuf.resize(roundUp(mBuf.size(), 4));
-    // Resolve pointer
-    writePointer(reloc, string_location);
-  }
-
-private:
-  void writePointer(g3d::NameReloc& reloc, u32 string_location) {
-    const u32 pointer_location = reloc.offset_of_pointer_in_struct;
-    const u32 structure_location = reloc.offset_of_delta_reference;
-    rsl::store<s32>(string_location - structure_location, mBuf,
-                    pointer_location);
-  }
-  u32 writeName(std::string_view name) {
-    const u32 sz = name.size();
-    mBuf.push_back((sz & 0xff000000) >> 24);
-    mBuf.push_back((sz & 0x00ff0000) >> 16);
-    mBuf.push_back((sz & 0x0000ff00) >> 8);
-    mBuf.push_back((sz & 0x000000ff) >> 0);
-    const u32 string_location = mBuf.size();
-    mBuf.insert(mBuf.end(), name.begin(), name.end());
-    mBuf.push_back(0);
-    return string_location;
-  }
-  std::vector<u8>& mBuf;
-};
-
-std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
-  auto memory_request = g3d::CalcTextureBlockData(tex);
-  std::vector<u8> buffer(memory_request.size);
-
-  g3d::NameReloc reloc;
-  g3d::WriteTexture(buffer, tex, 0, reloc);
-  SimpleRelocApplier applier(buffer);
-  applier.apply(reloc, 0 /* structure offset */);
-
-  return buffer;
-}
-
 Result<g3d::SrtAnimationArchive> ReadSRT0(std::span<const u8> file) {
   g3d::BinarySrt arc;
   oishii::BinaryReader reader(file, "Unknown SRT0", std::endian::big);
@@ -332,7 +273,7 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   }
   CrateAnimation tmp;
   for (size_t i = 0; i < tex0s.size(); ++i) {
-    auto tex = ReadTEX0(tex0s[i]);
+    auto tex = g3d::ReadTEX0(tex0s[i]);
     if (!tex.has_value()) {
       if (i >= paths.tex0.size()) {
         return std::unexpected(tex.error());
@@ -434,14 +375,8 @@ struct SimpleTransaction {
 std::unique_ptr<librii::g3d::Archive> ReadBRRES(const std::vector<u8>& buf,
                                                 std::string path) {
   SimpleTransaction trans;
-  oishii::BinaryReader reader(buf, path, std::endian::big);
-  librii::g3d::BinaryArchive bin;
-  auto ok = bin.read(reader, trans.trans);
-  if (!ok) {
-    return nullptr;
-  }
 
-  auto arc = librii::g3d::Archive::from(bin, trans.trans);
+  auto arc = librii::g3d::Archive::fromMemory(buf, path, trans.trans);
   if (!arc) {
     return nullptr;
   }

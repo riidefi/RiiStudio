@@ -4,6 +4,7 @@
 #include <plugins/3d/i3dmodel.hpp>
 
 #include <librii/crate/g3d_crate.hpp>
+#include <librii/g3d/io/TextureIO.hpp>
 #include <librii/hx/CullMode.hpp>
 #include <librii/hx/PixMode.hpp>
 #include <librii/hx/TextureFilter.hpp>
@@ -891,7 +892,7 @@ Result<void> importTextureFromFile(libcube::Texture& data,
     if (!obuf) {
       return std::unexpected("Failed to read file");
     }
-    auto tex = TRY(librii::crate::ReadTEX0(*obuf));
+    auto tex = TRY(librii::g3d::ReadTEX0(*obuf));
     data.setTextureFormat(tex.format);
     data.setWidth(tex.width);
     data.setHeight(tex.height);

@@ -49,13 +49,6 @@ WriteMDL0Mat(const g3d::G3dMaterialData& mat);
 ApplyG3dShaderToMaterial(const g3d::G3dMaterialData& mat,
                          const g3d::G3dShader& tev);
 
-//! A "TEX0" file is effectively a .brtex archive without the enclosing
-//! structure.
-//!
-[[nodiscard]] Result<g3d::TextureData> ReadTEX0(std::span<const u8> file);
-
-[[nodiscard]] std::vector<u8> WriteTEX0(const g3d::TextureData& tex);
-
 //! A "SRT0" file is effectively a .brtsa archive without the enclosing
 //! structure.
 //!

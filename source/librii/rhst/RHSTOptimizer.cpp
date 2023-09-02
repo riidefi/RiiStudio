@@ -19,6 +19,8 @@
 #undef throw
 #endif
 
+#include <rsl/EnUsString.hpp>
+
 namespace librii::rhst {
 
 // Respects winding order
@@ -32,6 +34,10 @@ static void NormalizeTriInplace(auto& tri) {
 
   // Rotate the array so that the minimum element comes first
   std::rotate(std::begin(tri), std::begin(tri) + minPos, std::end(tri));
+}
+static bool IsTriDegenerate(auto& tri) {
+  return tri[0] == tri[1] || tri[0] == tri[2] || tri[1] == tri[2] ||
+         tri[0] == tri[2];
 }
 
 // Validates that an optimization pass did not damage the model itself.
@@ -57,8 +63,7 @@ public:
     }
     for (auto& tri : tris) {
       // Discard degenerate triangles
-      if (tri[0] == tri[1] || tri[0] == tri[2] || tri[1] == tri[2] ||
-          tri[0] == tri[2]) {
+      if (IsTriDegenerate(tri)) {
         continue;
       }
       NormalizeTriInplace(tri);
@@ -303,27 +308,6 @@ private:
   std::unordered_map<KeyT, MeshOptimizerStats> stats_{};
 };
 
-// Get a thousands-separated string e.g. "10,000" from a number |x|.
-std::string ToEnUsString(auto&& x) {
-  auto str = std::to_string(x);
-  const std::size_t decimal_pos = str.find('.');
-  // If there's no decimal point, we want to start inserting commas three
-  // characters from the right. If there is a decimal point, we want to start
-  // inserting commas three characters to the left of the decimal point.
-  std::ptrdiff_t insert_pos =
-      (decimal_pos == std::string::npos)
-          ? std::ssize(str) - 3
-          : static_cast<std::ptrdiff_t>(decimal_pos) - 3;
-
-  // Insert commas until we've processed the entire string
-  while (insert_pos > 0) {
-    str.insert(insert_pos, ",");
-    insert_pos -= 3;
-  }
-
-  return str;
-}
-
 // Print the results of a `MeshOptimizerExperimentHolder` run as a formatted
 // table.
 template <typename KeyT>
@@ -371,13 +355,13 @@ PrintScoresOfExperiment(const MeshOptimizerExperimentHolder<KeyT>& holder) {
   for (auto [name, score, stats] : scores) {
     auto rank = std::distance(ranks.begin(), ranks.find(score));
     std::string time = stats ? std::format("{}ms", stats->ms_elapsed) : "?";
-    std::string faces = stats ? ToEnUsString(stats->after_faces) : "?";
+    std::string faces = stats ? rsl::ToEnUsString(stats->after_faces) : "?";
     auto reduction =
         100.0f * (1.0f - static_cast<float>(score) /
                              static_cast<float>(holder.GetBaselineScore()));
     table << std::format("#{}", rank + 1);
     table << name;
-    table << ToEnUsString(score);
+    table << rsl::ToEnUsString(score);
     table << fmt::format("{}%", reduction);
     table << time;
     table << faces;

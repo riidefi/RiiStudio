@@ -32,6 +32,9 @@ struct Archive {
   static Result<Archive> fromFile(std::string path,
                                   kpi::LightIOTransaction& transaction);
   static Result<Archive> fromFile(std::string path);
+  static Result<Archive> fromMemory(std::span<const u8> buf, std::string path,
+                                    kpi::LightIOTransaction& transaction);
+  static Result<Archive> fromMemory(std::span<const u8> buf, std::string path);
   static Result<Archive> read(oishii::BinaryReader& reader,
                               kpi::LightIOTransaction& transaction);
   static Result<Archive> from(const BinaryArchive& model,

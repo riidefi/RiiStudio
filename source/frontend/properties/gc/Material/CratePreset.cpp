@@ -12,6 +12,7 @@
 #include <rsl/WriteFile.hpp>
 
 #include <librii/crate/j3d_crate.hpp>
+#include <librii/g3d/io/TextureIO.hpp>
 #include <librii/rhst/RHSTOptimizer.hpp>
 
 #include <plugins/j3d/Preset.hpp>
@@ -101,7 +102,7 @@ public:
     tex0.data.resize(tex.getEncodedSize(true));
     memcpy(tex0.data.data(), tex.getData().data(),
            std::min<u32>(tex.getEncodedSize(true), tex0.data.size()));
-    auto buf = librii::crate::WriteTEX0(tex0);
+    auto buf = librii::g3d::WriteTEX0(tex0);
     if (buf.empty()) {
       return "librii::crate::WriteTEX0 failed";
     }
@@ -270,7 +271,7 @@ std::string tryImportTEX0(libcube::Texture& tex) {
   if (!file) {
     return file.error();
   }
-  auto replacement = librii::crate::ReadTEX0(file->data);
+  auto replacement = librii::g3d::ReadTEX0(file->data);
   if (!replacement) {
     return "Failed to read .tex0 at \"" + file->path.string() + "\"\n" +
            replacement.error();
