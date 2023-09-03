@@ -88,11 +88,12 @@ add_library(lib_frontend
  "editors/BlightEditor.cpp"
  "editors/BlmapEditor.cpp"
  "editors/BtkEditor.cpp"
- 
+ "editors/JpaEditor.cpp"
+
  "properties/gc/Material/AdvTexConv.cpp"
  "properties/gc/Material/Merge.cpp"
- "editors/BtkEditor.cpp"
  "legacy_editor/views/BmdBrresOutliner.cpp" "renderer/MouseHider.cpp" "editors/MkwDebug.cpp")
+
 
 add_executable(frontend 
  "entry.cpp"

@@ -8,6 +8,7 @@
 #include <frontend/editors/BlmapEditor.hpp>
 #include <frontend/editors/BtkEditor.hpp>
 #include <frontend/editors/RarcEditor.hpp>
+#include <frontend/editors/JpaEditor.hpp>
 #include <frontend/legacy_editor/EditorWindow.hpp>
 #include <frontend/level_editor/LevelEditor.hpp>
 
@@ -103,6 +104,12 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
     auto pWin = std::make_unique<BMDEditor>(raw_span, data.mPath);
     return pWin;
   }
+  if (path_lower.ends_with(".jpa")) {
+    auto pWin = std::make_unique<JpaEditor>();
+    pWin->openFile(raw_span, data.mPath);
+    return pWin;
+  }
+
   if (AssimpImporter::supports(path_lower)) {
     return std::make_unique<AssimpImporter>(raw_span, data.mPath);
   }
