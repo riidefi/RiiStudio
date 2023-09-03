@@ -42,7 +42,17 @@ To_JEFF_JPABaseShapeBlock(const JPABaseShapeBlock& b) {
     colorEnvAnimFlags = 0x7;
   }
 
+  u32 size = 0xA0;
+
+  size += sizeof(u8) * b.colorPrmAnimData.size();
+  size += sizeof(ColorTableEntry) * b.colorPrmAnimData.size();
+  size += sizeof(ColorTableEntry) * b.colorEnvAnimData.size();
+
+  // using integer division to
+  size = ((size / 0x20) * 0x20) + 0x20;
+
   return jeff_jpa::JPABaseShapeBlock{
+      .size = size, 
       .texIdxAnimDataOffs = 0, .colorPrmAnimDataOffs = 0,
       .colorEnvAnimDataOffs = 0, .baseSizeX = b.baseSize.x,
       .baseSizeY = b.baseSize.y,
@@ -92,6 +102,9 @@ To_JEFF_JPABaseShapeBlock(const JPABaseShapeBlock& b) {
       .texIncScaleY = JPAConvertFloatToFixed(b.texIncScaleY / 0.1f),
       .texIncRot = JPAConvertFloatToFixed(b.texIncRot),
       .isEnableTexScrollAnm = JPAConvertFloatToFixed(b.isEnableTexScrollAnm),
+      .texIdxAnimData = b.texIdxAnimData,
+      .colorPrmAnimData = b.colorPrmAnimData,
+      .colorEnvAnimData = b.colorEnvAnimData
   };
 
 }
@@ -193,6 +206,18 @@ Result<void> WriteJEFF_JPABaseShapeBlock(oishii::Writer& writer,
   writer.write(b.isEnableTexScrollAnm);
   writer.write(b._98);
   writer.write(b._9C);
+
+  for (auto& entry: b.texIdxAnimData) {
+    writer.write(entry);
+  }
+  for (auto& entry : b.colorPrmAnimData) {
+    writer.write(entry.timeBegin);
+    writer.write(u32(gx::Color(entry.color)));
+  }
+  for (auto& entry : b.colorEnvAnimData) {
+    writer.write(entry.timeBegin);
+    writer.write(u32(gx::Color(entry.color)));
+  }
 
   return {};
 }

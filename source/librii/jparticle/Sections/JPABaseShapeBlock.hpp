@@ -5,6 +5,7 @@
 #include "oishii/writer/binary_writer.hxx"
 
 namespace librii::jpa {
+struct ColorTableEntry;
 
 enum class EmitFlags {
   FixedDensity = 0x01,
@@ -161,6 +162,10 @@ struct JPABaseShapeBlock {
   u32 _98 = 0;
 
   u32 _9C = 0;
+
+  std::vector<u8> texIdxAnimData;
+  std::vector<ColorTableEntry> colorPrmAnimData;
+  std::vector<ColorTableEntry> colorEnvAnimData;
 
 };
 }
