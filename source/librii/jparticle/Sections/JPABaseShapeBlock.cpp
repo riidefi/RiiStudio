@@ -42,19 +42,28 @@ To_JEFF_JPABaseShapeBlock(const JPABaseShapeBlock& b) {
     colorEnvAnimFlags = 0x7;
   }
 
-  u32 size = 0xA0;
+  u16 size = 0xA0;
 
-  size += sizeof(u8) * b.colorPrmAnimData.size();
-  size += sizeof(ColorTableEntry) * b.colorPrmAnimData.size();
-  size += sizeof(ColorTableEntry) * b.colorEnvAnimData.size();
+  u16 texIdxAnimDataOffs = b.texIdxAnimData.size() > 0 ? size : 0;
+  size += sizeof(u8) * b.texIdxAnimData.size();
 
-  // using integer division to
+
+  u16 colorPrmAnimDataOffs = b.colorPrmAnimData.size() > 0 ? size : 0;
+  // a color table entry is made up of a u16 and a rgba stored as 4 u8a
+  size += (sizeof(u16) + sizeof(u32)) * b.colorPrmAnimData.size();
+
+  u16 colorEnvAnimDataOffs = b.colorEnvAnimData.size() > 0 ? size : 0;
+  size += (sizeof(u16) + sizeof(u32)) * b.colorEnvAnimData.size();
+
+  // calculate the ceiling of size with a significance of 0x20
   size = ((size / 0x20) * 0x20) + 0x20;
 
   return jeff_jpa::JPABaseShapeBlock{
       .size = size, 
-      .texIdxAnimDataOffs = 0, .colorPrmAnimDataOffs = 0,
-      .colorEnvAnimDataOffs = 0, .baseSizeX = b.baseSize.x,
+      .texIdxAnimDataOffs = texIdxAnimDataOffs,
+      .colorPrmAnimDataOffs = colorPrmAnimDataOffs,
+      .colorEnvAnimDataOffs = colorEnvAnimDataOffs,
+      .baseSizeX = b.baseSize.x,
       .baseSizeY = b.baseSize.y,
       .anmRndm = b.anmRndm,
       .texAnmCalcFlags = texAnmCalcFlags,
@@ -218,6 +227,11 @@ Result<void> WriteJEFF_JPABaseShapeBlock(oishii::Writer& writer,
     writer.write(entry.timeBegin);
     writer.write(u32(gx::Color(entry.color)));
   }
+  // Now pad out to a multiple of 0x20
+  for (u32 i = 0; i < (writer.tell() % 0x20); i++) {
+    writer.write<u8>(0);
+  }
+
 
   return {};
 }

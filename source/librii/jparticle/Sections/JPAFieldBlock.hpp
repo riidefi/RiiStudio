@@ -42,10 +42,11 @@ struct JPAFieldBlock {
   u32 size = 0x60;
   u32 padding = 0;
   u8 type;
+  u8 _D = 0;
   u8 addType;
   u8 cycle;
-  u8 sttFlag;
-  u32 _10 = 0;
+  u16 sttFlag;
+  u16 _10 = 0;
   f32 mag;
   f32 magRndm;
   f32 maxDist;
