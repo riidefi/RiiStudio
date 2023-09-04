@@ -579,6 +579,52 @@ void compileVert(librii::gx::IndexedVertex& dst,
   }
 }
 
+void compileIndexedVert(librii::gx::IndexedVertex& dst,
+                        const librii::rhst::IndexedVertex& src,
+                        g3d::Polygon& poly, g3d::Model& mdl) {
+  u32 vcd_cursor = 0;
+
+  auto& data = poly.getMeshData();
+
+  for (int i = 0; i < data.mVertexDescriptor.mAttributes.size(); ++i) {
+    while ((data.mVertexDescriptor.mBitfield & (1 << vcd_cursor)) == 0) {
+      ++vcd_cursor;
+
+      if (vcd_cursor >= 21) {
+        assert(!"Invalid");
+        return;
+      }
+    }
+    const int cur_attr = vcd_cursor;
+    ++vcd_cursor;
+
+    if (cur_attr == 0) {
+      dst[librii::gx::VertexAttribute::PositionNormalMatrixIndex] =
+          src.matrix_index * 3;
+      continue;
+    }
+    if (cur_attr == 9) {
+      dst[librii::gx::VertexAttribute::Position] = src.position;
+      continue;
+    }
+    if (cur_attr == 10) {
+      dst[librii::gx::VertexAttribute::Normal] = src.normal;
+      continue;
+    }
+
+    if (cur_attr >= 11 && cur_attr <= 12) {
+      const int color_index = cur_attr - 11;
+      dst[(librii::gx::VertexAttribute)cur_attr] = src.colors[color_index];
+      continue;
+    }
+    if (cur_attr >= 13 && cur_attr <= 20) {
+      const int uv_index = cur_attr - 13;
+      dst[(librii::gx::VertexAttribute)cur_attr] = src.uvs[uv_index];
+      continue;
+    }
+  }
+}
+
 void compilePrim(librii::gx::IndexedPrimitive& dst,
                  const librii::rhst::Primitive& src,
                  libcube::IndexedPolygon& poly, libcube::Model& model) {
@@ -597,6 +643,27 @@ void compilePrim(librii::gx::IndexedPrimitive& dst,
   dst.mVertices.reserve(src.vertices.size());
   for (auto& vert : src.vertices) {
     compileVert(dst.mVertices.emplace_back(), vert, poly, model);
+  }
+}
+
+void compileIndexedPrim(librii::gx::IndexedPrimitive& dst,
+                        const librii::rhst::IndexedPrimitive& src,
+                        g3d::Polygon& poly, g3d::Model& model) {
+  switch (src.topology) {
+  case librii::rhst::Topology::Triangles:
+    dst.mType = librii::gx::PrimitiveType::Triangles;
+    break;
+  case librii::rhst::Topology::TriangleStrip:
+    dst.mType = librii::gx::PrimitiveType::TriangleStrip;
+    break;
+  case librii::rhst::Topology::TriangleFan:
+    dst.mType = librii::gx::PrimitiveType::TriangleFan;
+    break;
+  }
+
+  dst.mVertices.reserve(src.vertices.size());
+  for (auto& vert : src.vertices) {
+    compileIndexedVert(dst.mVertices.emplace_back(), vert, poly, model);
   }
 }
 
@@ -634,6 +701,42 @@ compileMatrixPrim(librii::gx::MatrixPrimitive& dst,
 
   for (auto& prim : tmp.primitives) {
     compilePrim(dst.mPrimitives.emplace_back(), prim, poly, model);
+  }
+
+  return {};
+}
+
+[[nodiscard]] Result<void>
+compileIndexedMatrixPrim(librii::gx::MatrixPrimitive& dst,
+                         const librii::rhst::IndexedMatrixPrimitive& src,
+                         s32 current_matrix, g3d::Polygon& poly,
+                         g3d::Model& model) {
+  dst.mCurrentMatrix = current_matrix;
+  std::array<s32, 10> empty{
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  };
+  dst.mDrawMatrixIndices.clear();
+  if (src.draw_matrices == empty) {
+    dst.mDrawMatrixIndices.push_back(current_matrix);
+  } else {
+    bool done = false;
+    for (s32 d : src.draw_matrices) {
+      if (done) {
+        EXPECT(d < 0 && "Non-contiguous draw-matrix indices are unsupported");
+      }
+      if (d < 0) {
+        done = true;
+        continue;
+      }
+      dst.mDrawMatrixIndices.push_back(d);
+    }
+  }
+
+  // Convert to tristrips
+  librii::rhst::IndexedMatrixPrimitive tmp = src;
+
+  for (auto& prim : tmp.primitives) {
+    compileIndexedPrim(dst.mPrimitives.emplace_back(), prim, poly, model);
   }
 
   return {};
@@ -777,6 +880,58 @@ Result<void> compileMesh(libcube::IndexedPolygon& dst,
   for (auto& matrix_prim : src.matrix_primitives) {
     TRY(compileMatrixPrim(data.mMatrixPrimitives.emplace_back(), matrix_prim,
                           src.current_matrix, dst, model, optimize));
+  }
+
+  librii::gx::RecomputeMinimalIndexFormat(data);
+
+  return {};
+}
+
+Result<void> compileIndexedMesh(g3d::Polygon& dst,
+                                const librii::rhst::IndexedMesh& src,
+                                g3d::Model& model) {
+  dst.setName(src.name);
+
+  // No skinning/BB
+  dst.init(false, nullptr);
+  auto& data = dst.getMeshData();
+  dst.setCurMtx(src.current_matrix);
+  data.mMatrixPrimitives.clear();
+
+  if (src.position != -1)
+    dst.mPositionBuffer = "rhst_Pos" + std::to_string(src.position);
+  if (src.normal != -1)
+    dst.mNormalBuffer = "rhst_Nrm" + std::to_string(src.normal);
+  for (size_t i = 0; i < 8; ++i) {
+    auto x = src.uvs[i];
+    if (x != -1)
+      dst.mTexCoordBuffer[i] = "rhst_Uv" + std::to_string(x);
+  }
+  for (size_t i = 0; i < 2; ++i) {
+    auto x = src.colors[i];
+    if (x != -1)
+      dst.mColorBuffer[i] = "rhst_Clr" + std::to_string(x);
+  }
+
+  for (int i = 0; i < static_cast<int>(librii::gx::VertexAttribute::Max); ++i) {
+    if ((src.vertex_descriptor & (1 << i)) == 0)
+      continue;
+
+    // PNMTXIDX is direct u8
+    auto fmt = i == 0 ? librii::gx::VertexAttributeType::Direct
+                      : librii::gx::VertexAttributeType::Short;
+    data.mVertexDescriptor.mAttributes.emplace(
+        static_cast<librii::gx::VertexAttribute>(i), fmt);
+  }
+
+  data.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
+
+  EXPECT(data.mVertexDescriptor.mBitfield == src.vertex_descriptor);
+  dst.setCurMtx(src.current_matrix);
+
+  for (auto& matrix_prim : src.matrix_primitives) {
+    TRY(compileIndexedMatrixPrim(data.mMatrixPrimitives.emplace_back(),
+                                 matrix_prim, src.current_matrix, dst, model));
   }
 
   librii::gx::RecomputeMinimalIndexFormat(data);
@@ -958,7 +1113,8 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
     compileBone(mdl.getBones().add(), bone);
     aabb.expandBound(librii::math::AABB{bone.min, bone.max});
   }
-  if (auto* g = dynamic_cast<riistudio::g3d::Model*>(&mdl)) {
+  auto* g = dynamic_cast<riistudio::g3d::Model*>(&mdl);
+  if (g) {
     g->aabb = aabb;
     g->mName = rhst.name;
   }
@@ -1030,6 +1186,61 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
     if (!ok) {
       rsl::error("ERROR: Failed to compile mesh: {}", ok.error().c_str());
       continue;
+    }
+  }
+  if (!rhst.indexedMeshes.empty()) {
+    if (!g) {
+      rsl::error("Only .brres supports indexed meshes...");
+      progress("Only .brres supports indexed meshes...", 0.0f);
+      return false;
+    }
+    progress(std::format("Compiling indexed meshes {}/{}", 0,
+                         rhst.indexedMeshes.size()),
+             0.0f);
+    for (auto&& [i, mesh] : rsl::enumerate(rhst.indexedMeshes)) {
+      progress(std::format("Compiling indexed meshes {}/{}", i,
+                           rhst.indexedMeshes.size()),
+               static_cast<float>(i) /
+                   static_cast<float>(rhst.indexedMeshes.size()));
+      // Already optimized (and in parallel)
+      auto ok = compileIndexedMesh(g->getMeshes().add(), mesh, *g);
+      if (!ok) {
+        rsl::error("ERROR: Failed to compile indexed mesh: {}",
+                   ok.error().c_str());
+        continue;
+      }
+    }
+    for (auto&& [i, buf] : rsl::enumerate(rhst.pos_buffers)) {
+      auto& gb = g->getBuf_Pos().add();
+      gb.mName = "rhst_Pos" + std::to_string(i);
+      gb.mId = i;
+      gb.mEntries = buf;
+    }
+    for (auto&& [i, buf] : rsl::enumerate(rhst.nrm_buffers)) {
+      auto& gb = g->getBuf_Nrm().add();
+      gb.mName = "rhst_Nrm" + std::to_string(i);
+      gb.mId = i;
+      gb.mEntries = buf;
+    }
+    for (auto&& [i, buf] : rsl::enumerate(rhst.uv_buffers)) {
+      auto& gb = g->getBuf_Uv().add();
+      gb.mName = "rhst_Uv" + std::to_string(i);
+      gb.mId = i;
+      gb.mEntries = buf;
+    }
+    for (auto&& [i, buf] : rsl::enumerate(rhst.clr_buffers)) {
+      auto& gb = g->getBuf_Clr().add();
+      gb.mName = "rhst_Clr" + std::to_string(i);
+      gb.mId = i;
+      for (auto& e : buf) {
+        librii::gx::ColorF32 f;
+        f.r = e[0];
+        f.g = e[1];
+        f.b = e[2];
+        f.a = e[3];
+        librii::gx::Color c = f;
+        gb.mEntries.push_back(c);
+      }
     }
   }
 

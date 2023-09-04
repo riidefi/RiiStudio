@@ -531,8 +531,6 @@ struct Vertex {
   glm::vec3 position{0.0f, 0.0f, 0.0f};
   glm::vec3 normal{0.0f, 0.0f, 0.0f};
 
-  template <typename T, size_t N> using array_vector = std::vector<T>;
-
   std::array<glm::vec2, 8> uvs{};
   std::array<glm::vec4, 2> colors{};
 
@@ -544,20 +542,47 @@ struct Vertex {
   auto operator<=>(const Vertex& rhs) const = default;
 };
 
-enum class Topology { Triangles, TriangleStrip, TriangleFan };
+struct IndexedVertex {
+  int position = -1;
+  int normal = -1;
+  std::array<int, 8> uvs{-1, -1, -1, -1, -1, -1, -1, -1};
+  std::array<int, 2> colors{-1, -1};
+
+  // In HW, this is a row index, so multiply by 3
+  // Only relevant for rigged models
+  // Index into MatrixPrimitive::draw_matrices
+  s8 matrix_index{-1};
+
+  auto operator<=>(const IndexedVertex& rhs) const = default;
+};
+
+enum class Topology {
+  Triangles,
+  TriangleStrip,
+  TriangleFan,
+};
 
 struct Primitive {
   Topology topology = Topology::Triangles;
 
   std::vector<Vertex> vertices;
 };
+struct IndexedPrimitive {
+  Topology topology = Topology::Triangles;
+
+  std::vector<IndexedVertex> vertices;
+};
 
 struct MatrixPrimitive {
   std::array<s32, 10> draw_matrices{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
   std::vector<Primitive> primitives;
 };
+struct IndexedMatrixPrimitive {
+  std::array<s32, 10> draw_matrices{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+  std::vector<IndexedPrimitive> primitives;
+};
 
-inline size_t VertexCount(const MatrixPrimitive& mp) {
+static inline size_t VertexCount(const MatrixPrimitive& mp) {
   size_t score = 0;
   for (auto& p : mp.primitives) {
     score += p.vertices.size();
@@ -585,6 +610,20 @@ struct Mesh {
   u32 vertex_descriptor = 0;
 
   std::vector<MatrixPrimitive> matrix_primitives;
+};
+struct IndexedMesh {
+  std::string name = "Untitled Mesh";
+  bool can_merge = true;
+
+  s32 current_matrix = 0;
+  u32 vertex_descriptor = 0;
+
+  int position = -1;
+  int normal = -1;
+  std::array<int, 8> uvs{-1, -1, -1, -1, -1, -1, -1, -1};
+  std::array<int, 2> colors{-1, -1};
+
+  std::vector<IndexedMatrixPrimitive> matrix_primitives;
 };
 static inline size_t VertexCount(const Mesh& mesh) {
   size_t total = 0;
@@ -628,6 +667,14 @@ struct SceneTree {
   std::vector<Bone> bones;
   std::vector<WeightMatrix> weights;
   std::vector<Mesh> meshes;
+  std::vector<IndexedMesh> indexedMeshes;
+
+  // Index buffers for indexedMeshes
+  std::vector<std::vector<glm::vec3>> pos_buffers;
+  std::vector<std::vector<glm::vec3>> nrm_buffers;
+  std::vector<std::vector<glm::vec2>> uv_buffers;
+  std::vector<std::vector<glm::vec4>> clr_buffers;
+
   std::vector<ProtoMaterial> materials;
 };
 
