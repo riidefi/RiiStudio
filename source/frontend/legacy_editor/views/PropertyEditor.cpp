@@ -2,9 +2,9 @@
 #include <vendor/cista.h>
 
 #include "PropertyEditor.hpp"
-#include <plugins/3d/Material.hpp> // lib3d::Material
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <imcxx/Widgets.hpp>              // imcxx::Combo
+#include <plugins/3d/Material.hpp>        // lib3d::Material
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_EXCLAMATION_TRIANGLE
 
 #include <frontend/properties/BrresBmdPropEdit.hpp>
@@ -47,8 +47,7 @@ template <typename T> struct CommitHandler {
   T& mRoot;
 };
 
-template <typename T>
-class PropertyEditor : public StudioWindow, private PropertyEditorWidget {
+template <typename T> class PropertyEditor : public StudioWindow {
 public:
   PropertyEditor(kpi::History& host, T& root,
                  std::function<std::set<kpi::IObject*>()> selection,
@@ -64,10 +63,10 @@ public:
 private:
   void draw_() override;
 
-  std::vector<std::string> TabTitles() override {
+  std::vector<std::string> TabTitles() {
     return brresBmdPropEdit.TabTitles(mSelectionActive());
   }
-  bool Tab(int index) override {
+  bool Tab(int index) {
     auto postUpdate = [&]() { mHandler.bCommitPosted = true; };
     auto commit = [&](const char*) { mHost.commit(mRoot); };
     auto handleUpdates = [&]() { mHandler.handleUpdates(mHost, mRoot); };
@@ -94,6 +93,8 @@ private:
 
   CommitHandler<T> mHandler{false, mHost, mRoot};
   riistudio::g3d::Model* mMdl = nullptr;
+
+  PropertyEditorState m_state;
 };
 
 static void OrDialogBox(std::string_view file, u32 line,
@@ -125,11 +126,11 @@ template <typename T> void PropertyEditor<T>::draw_() {
   }
 
   if (ImGui::BeginPopupContextWindow()) {
-    DrawTabWidget(false);
+    DrawPropertyEditorWidgetV2_Header(m_state, false);
     ImGui::EndPopup();
   }
   if (ImGui::BeginMenuBar()) {
-    DrawTabWidget(true);
+    DrawPropertyEditorWidgetV2_Header(m_state, true);
     ImGui::EndMenuBar();
   }
 
@@ -184,7 +185,9 @@ template <typename T> void PropertyEditor<T>::draw_() {
   ImGui::Separator();
 
   selected = {_selected.begin(), _selected.end()};
-  Tabs();
+  auto titles = TabTitles();
+  std::function<bool(int)> drawTab = [&](int index) { return Tab(index); };
+  DrawPropertyEditorWidgetV2_Body(m_state, drawTab, titles);
   mMdl = nullptr;
 }
 

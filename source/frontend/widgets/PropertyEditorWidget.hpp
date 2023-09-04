@@ -5,7 +5,18 @@
 
 namespace riistudio::frontend {
 
-class PropertyEditorWidget {
+struct PropertyEditorState {
+  enum class Mode {
+    Tabs,     //!< Standard horizontal tabs
+    VertTabs, //!< Tree of tabs on the left
+    Headers   //!< Use collapsing headers
+  };
+  Mode mMode = Mode::VertTabs;
+  int mActiveTab = 0;
+  std::vector<bool> tab_filter;
+};
+
+class PropertyEditorWidget : public PropertyEditorState {
 public:
   void DrawTabWidget(bool compact) {
     if (compact)
@@ -94,19 +105,47 @@ private:
       tab_filter[i] = tmp;
     }
   }
+};
 
-  enum class Mode {
-    Tabs,     //!< Standard horizontal tabs
-    VertTabs, //!< Tree of tabs on the left
-    Headers   //!< Use collapsing headers
-  };
-  Mode mMode = Mode::VertTabs;
-
-protected:
-  int mActiveTab = 0;
+class Pv2Impl : public PropertyEditorWidget {
+public:
+  void DrawHeader(bool compact = false) { DrawTabWidget(compact); }
+  void DrawBody(std::function<bool(int)> drawTab,
+                std::vector<std::string> tabTitles) {
+    m_drawTabs = drawTab;
+    m_tabTitles = tabTitles;
+    Tabs();
+  }
 
 private:
-  std::vector<bool> tab_filter;
+  std::vector<std::string> TabTitles() override { return m_tabTitles; }
+  bool Tab(int index) override { return m_drawTabs(index); }
+
+  std::function<bool(int)> m_drawTabs = nullptr;
+  std::vector<std::string> m_tabTitles;
 };
+static inline void DrawPropertyEditorWidgetV2_Header(PropertyEditorState& state,
+                                                     bool compact = false) {
+  Pv2Impl impl;
+  static_cast<PropertyEditorState&>(impl) = state;
+  impl.DrawHeader(compact);
+  state = impl;
+}
+static inline void
+DrawPropertyEditorWidgetV2_Body(PropertyEditorState& state,
+                                std::function<bool(int)> drawTab,
+                                std::vector<std::string> tabTitles) {
+  Pv2Impl impl;
+  static_cast<PropertyEditorState&>(impl) = state;
+  impl.DrawBody(drawTab, tabTitles);
+  state = impl;
+}
+static inline void
+DrawPropertyEditorWidgetV2(PropertyEditorState& state,
+                           std::function<bool(int)> drawTab,
+                           std::vector<std::string> tabTitles) {
+  DrawPropertyEditorWidgetV2_Header(state, false);
+  DrawPropertyEditorWidgetV2_Body(state, drawTab, tabTitles);
+}
 
 } // namespace riistudio::frontend
