@@ -755,9 +755,6 @@ Result<void> compileMesh(libcube::IndexedPolygon& dst,
   dst.setCurMtx(src.current_matrix);
   data.mMatrixPrimitives.clear();
 
-#if 0
-  fprintf(stderr, "Compiling %s \n", src.name.c_str());
-#endif
   for (int i = 0; i < static_cast<int>(librii::gx::VertexAttribute::Max); ++i) {
     if ((src.vertex_descriptor & (1 << i)) == 0)
       continue;
@@ -782,26 +779,7 @@ Result<void> compileMesh(libcube::IndexedPolygon& dst,
                           src.current_matrix, dst, model, optimize));
   }
 
-  for (auto& [attr, format] : data.mVertexDescriptor.mAttributes) {
-    if (format != librii::gx::VertexAttributeType::Short) {
-      continue;
-    }
-    u16 max = 0;
-    for (auto& mp : data.mMatrixPrimitives) {
-      for (auto& p : mp.mPrimitives) {
-        for (auto& v : p.mVertices) {
-          // TODO: Checked
-          u16 i = v[attr];
-          if (i > max) {
-            max = i;
-          }
-        }
-      }
-    }
-    if (max <= std::numeric_limits<u8>::max()) {
-      format = librii::gx::VertexAttributeType::Byte;
-    }
-  }
+  librii::gx::RecomputeMinimalIndexFormat(data);
 
   return {};
 }

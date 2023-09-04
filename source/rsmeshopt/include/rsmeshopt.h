@@ -39,12 +39,21 @@ struct vec3 {
 };
 
 enum class StripifyAlgo {
+  // Uses amorilia/tristrip's port of NVTriStrip w/o cache support (fine, our
+  // target doesn't have a post-TnL cache)
+  // - Removed use of boost
+  // - Replaced throw() with assertions
   NvTriStripPort = 0,
+  // Uses GPSnoopy/TriStripper
   TriStripper,
+  // Uses zeux/meshoptimizer
   MeshOpt,
+  // Uses google/draco
   Draco,
+  // Uses google/draco
   DracoDegen,
-  Haroohie
+  // C++ port of jellees/nns-blender-plugin
+  Haroohie,
 };
 
 static inline std::expected<std::vector<uint32_t>, std::string>
