@@ -122,6 +122,48 @@ std::vector<std::string> Views_TabTitles(auto&& view) {
   });
   return titles;
 }
+
+template <typename Q> class has_icon_color {
+  typedef char YesType[1];
+  typedef char NoType[2];
+
+  template <typename C> static YesType& test(decltype(&C::color));
+  template <typename C> static NoType& test(...);
+
+public:
+  enum { value = sizeof(test<Q>(0)) == sizeof(YesType) };
+};
+
+struct Title {
+  ImVec4 iconColor = Clr(0xff'ff'ff);
+  std::string icon;
+  std::string name;
+};
+template <typename Y> static inline Title GetTitle(const Y& x) {
+  Title title;
+  title.icon = x.icon;
+  if constexpr (has_icon_color<Y>::value) {
+    title.iconColor = x.color;
+  }
+  title.name = x.name();
+  return title;
+}
+
+bool Views_TabTitleFancy(auto&& view, int index) {
+  int counter = 0;
+  bool ok = false;
+  cista::for_each_field(view, [&](auto&& x) {
+    if (counter == index) {
+      auto title = GetTitle(x);
+      ImGui::TextColored(title.iconColor, "%s", title.icon.c_str());
+      ImGui::SameLine();
+      ImGui::Text(" %s", title.name.c_str());
+      ok = true;
+    }
+    ++counter;
+  });
+  return ok;
+}
 bool Views_Tab(auto&& view, auto&& dl, int index) {
   int counter = 0;
   bool ok = false;

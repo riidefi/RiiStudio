@@ -80,6 +80,9 @@ private:
     return brresBmdPropEdit.Tab(index, postUpdate, commit, handleUpdates,
                                 mSelectionActive(), selected, drawIcon, mMdl);
   }
+  void DrawTitle(int index) {
+    brresBmdPropEdit.TabTitleFancy(mSelectionActive(), index);
+  }
 
   std::function<void(const lib3d::Texture*, u32)> drawImageIcon;
   kpi::History& mHost;
@@ -187,7 +190,10 @@ template <typename T> void PropertyEditor<T>::draw_() {
   selected = {_selected.begin(), _selected.end()};
   auto titles = TabTitles();
   std::function<bool(int)> drawTab = [&](int index) { return Tab(index); };
-  DrawPropertyEditorWidgetV2_Body(m_state, drawTab, titles);
+  std::function<void(int)> drawTitle = [&](int index) {
+    return DrawTitle(index);
+  };
+  DrawPropertyEditorWidgetV3_Body(m_state, drawTab, drawTitle, titles);
   mMdl = nullptr;
 }
 

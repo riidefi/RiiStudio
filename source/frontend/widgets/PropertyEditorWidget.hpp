@@ -45,6 +45,12 @@ public:
     }
   }
 
+  std::function<void(const char*, int)> m_drawText = [](const char* s,
+                                                        int idx) {
+    (void)idx;
+    ImGui::TextUnformatted(s);
+  };
+
 private:
   void VertTabs() {
     ImGui::BeginChild("Left", ImVec2(120, 0), true);
@@ -52,7 +58,18 @@ private:
       imcxx::TabBar bar;
       bar.active = mActiveTab;
       bar.tabs = TabTitles();
-      imcxx::DrawVertTabBar(bar);
+      for (size_t i = 0; i < bar.tabs.size(); ++i) {
+        const bool sel = i == bar.active;
+        std::string i_s = "##" + std::to_string(i);
+        auto x = ImGui::GetCursorPosX();
+        bool s = ImGui::Selectable(i_s.c_str(), sel);
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(x);
+        m_drawText(bar.tabs[i].c_str(), i);
+        if (s) {
+          bar.active = i;
+        }
+      }
       mActiveTab = bar.active;
     }
     ImGui::EndChild();
@@ -146,6 +163,22 @@ DrawPropertyEditorWidgetV2(PropertyEditorState& state,
                            std::vector<std::string> tabTitles) {
   DrawPropertyEditorWidgetV2_Header(state, false);
   DrawPropertyEditorWidgetV2_Body(state, drawTab, tabTitles);
+}
+
+/////////////
+// V3 API
+/////////////
+static inline void DrawPropertyEditorWidgetV3_Body(
+    PropertyEditorState& state, std::function<bool(int)> drawTab,
+    std::function<void(int)> drawTabTitle, std::vector<std::string> tabTitles) {
+  Pv2Impl impl;
+  static_cast<PropertyEditorState&>(impl) = state;
+  impl.m_drawText = [&](const char* s, int idx) {
+    (void)s;
+    drawTabTitle(idx);
+  };
+  impl.DrawBody(drawTab, tabTitles);
+  state = impl;
 }
 
 } // namespace riistudio::frontend

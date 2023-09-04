@@ -70,6 +70,69 @@ struct BrresBmdPropEdit {
     }
     return {};
   }
+  void TabTitleFancy(kpi::IObject* node, int index) {
+    auto* g3dmdl = dynamic_cast<riistudio::g3d::Model*>(node);
+    if (g3dmdl != nullptr) {
+      Views_TabTitleFancy(mG3dMdlView, index);
+      return;
+    }
+    auto* j3dmdl = dynamic_cast<riistudio::j3d::Model*>(node);
+    if (j3dmdl != nullptr) {
+      Views_TabTitleFancy(mJ3dMdlView, index);
+      return;
+    }
+    auto* g3dmat = dynamic_cast<riistudio::g3d::Material*>(node);
+    if (g3dmat != nullptr) {
+      Views_TabTitleFancy(mG3dMatView, index);
+      return;
+    }
+    auto* j3dmat = dynamic_cast<riistudio::j3d::Material*>(node);
+    if (j3dmat != nullptr) {
+      Views_TabTitleFancy(mJ3dMatView, index);
+      return;
+    }
+    auto* g3poly = dynamic_cast<g3d::Polygon*>(node);
+    if (g3poly != nullptr) {
+      Views_TabTitleFancy(mG3dPolyView, index);
+      return;
+    }
+    auto* j3poly = dynamic_cast<j3d::Shape*>(node);
+    if (j3poly != nullptr) {
+      Views_TabTitleFancy(mJ3dPolyView, index);
+      return;
+    }
+    auto* g3bone = dynamic_cast<g3d::Bone*>(node);
+    if (g3bone != nullptr) {
+      Views_TabTitleFancy(mG3dBoneView, index);
+      return;
+    }
+    auto* j3bone = dynamic_cast<j3d::Joint*>(node);
+    if (j3bone != nullptr) {
+      Views_TabTitleFancy(mJ3dBoneView, index);
+      return;
+    }
+    auto* g3dvc = dynamic_cast<riistudio::g3d::ColorBuffer*>(node);
+    if (g3dvc != nullptr) {
+      Views_TabTitleFancy(mG3dVcView, index);
+      return;
+    }
+    auto* g3dsrt = dynamic_cast<riistudio::g3d::SRT0*>(node);
+    if (g3dsrt != nullptr) {
+      Views_TabTitleFancy(mG3dSrtView, index);
+      return;
+    }
+    auto* g3tex = dynamic_cast<g3d::Texture*>(node);
+    if (g3tex != nullptr) {
+      Views_TabTitleFancy(mG3dTexView, index);
+      return;
+    }
+    auto* j3tex = dynamic_cast<j3d::Texture*>(node);
+    if (j3tex != nullptr) {
+      Views_TabTitleFancy(mG3dTexView, index);
+      return;
+    }
+    ImGui::Text("???");
+  }
   bool Tab(int index, std::function<void()> postUpdate,
            std::function<void(const char*)> commit,
            std::function<void()> handleUpdates, kpi::IObject* node,
