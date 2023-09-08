@@ -545,8 +545,13 @@ struct Vertex {
 struct IndexedVertex {
   int position = -1;
   int normal = -1;
+#ifdef __APPLE__
+  int uvs[8]{-1, -1, -1, -1, -1, -1, -1, -1};
+  int colors[2]{-1, -1};
+#else
   std::array<int, 8> uvs{-1, -1, -1, -1, -1, -1, -1, -1};
   std::array<int, 2> colors{-1, -1};
+#endif
 
   // In HW, this is a row index, so multiply by 3
   // Only relevant for rigged models
