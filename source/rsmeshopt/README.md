@@ -2,6 +2,7 @@
 Triangle strip / triangle fan generation algorithms
 
 ## WARNING: Clang or GCC is required to build!
+## WARNING: This project is not entirely standalone yet; `rsl` (header only) from the parent directory is currently used.
 
 ## Rust API
 The following Rust API is provided:

@@ -4,5 +4,5 @@
 #include <print>
 #define RSM_PRINT std::print
 #else
-#define RSM_PRINT
+#define RSM_PRINT(...)
 #endif

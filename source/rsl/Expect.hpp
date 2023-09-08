@@ -22,6 +22,7 @@
 #define STACK_TRACE 0
 #endif
 
+#ifndef RSL_EXPECT_NO_USE_FORMAT
 #define EXPECT(expr, ...)                                                      \
   if (!(expr)) [[unlikely]] {                                                  \
     auto cur = STACK_TRACE;                                                    \
@@ -29,3 +30,10 @@
         "[{}:{}] {} [Internal: {}] {}", __FILE_NAME__, __LINE__,               \
         (0 __VA_OPT__(, ) __VA_ARGS__), #expr, std::to_string(cur)));          \
   }
+#else
+#define EXPECT(expr, ...)                                                      \
+  if (!(expr)) [[unlikely]] {                                                  \
+    auto cur = STACK_TRACE;                                                    \
+    return std::unexpected(#expr);                                             \
+  }
+#endif

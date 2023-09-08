@@ -65,6 +65,10 @@ fn main() {
     // draco HACK!
     build.include("../vendor");
 
+    // Since MacOS has to use fmt, which we don't want to necessarily link
+    #[cfg(target_os = "macos")]
+    build.flag("-DRSL_EXPECT_NO_USE_FORMAT=1");
+
     build.file("src/bindings.cpp");
     build.file("src/HaroohieTriStripifier.cpp");
     build.file("src/RsMeshOpt.cpp");
