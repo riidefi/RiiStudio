@@ -1,18 +1,6 @@
 {
     "configurations": [
         {
-            "name": "msvc-x64-Debug",
-            "generator": "Ninja",
-            "configurationType": "Debug",
-            "inheritEnvironments": [ "msvc_x64_x64" ],
-            "buildRoot": "${projectDir}\\out\\build\\${name}",
-            "installRoot": "${projectDir}\\out\\install\\${name}",
-            "cmakeCommandArgs": "-DRust_CARGO_TARGET=x86_64-pc-windows-msvc",
-            "buildCommandArgs": "",
-            "ctestCommandArgs": "",
-            "variables": []
-        },
-        {
             "name": "Clang-x64-Debug",
             "generator": "Ninja",
             "configurationType": "Debug",
@@ -22,42 +10,6 @@
             "buildCommandArgs": "",
             "ctestCommandArgs": "",
             "inheritEnvironments": [ "clang_cl_x64_x64" ],
-            "variables": []
-        },
-        {
-            "name": "msvc-x86-DIST",
-            "generator": "Ninja",
-            "configurationType": "RelWithDebInfo",
-            "buildRoot": "${projectDir}\\out\\build\\${name}",
-            "installRoot": "${projectDir}\\out\\install\\${name}",
-            "cmakeCommandArgs": "-DRust_CARGO_TARGET=i686-pc-windows-msvc",
-            "buildCommandArgs": "",
-            "ctestCommandArgs": "",
-            "inheritEnvironments": [ "msvc_x86" ],
-            "variables": []
-        },
-        {
-            "name": "msvc-x64-Release",
-            "generator": "Ninja",
-            "configurationType": "RelWithDebInfo",
-            "buildRoot": "${projectDir}\\out\\build\\${name}",
-            "installRoot": "${projectDir}\\out\\install\\${name}",
-            "cmakeCommandArgs": "-DRust_CARGO_TARGET=x86_64-pc-windows-msvc",
-            "buildCommandArgs": "",
-            "ctestCommandArgs": "",
-            "inheritEnvironments": [ "msvc_x64_x64" ],
-            "variables": []
-        },
-        {
-            "name": "msvc-x64-DIST",
-            "generator": "Ninja",
-            "configurationType": "Release",
-            "buildRoot": "${projectDir}\\out\\build\\${name}",
-            "installRoot": "${projectDir}\\out\\install\\${name}",
-            "cmakeCommandArgs": "-DRust_CARGO_TARGET=x86_64-pc-windows-msvc",
-            "buildCommandArgs": "",
-            "ctestCommandArgs": "",
-            "inheritEnvironments": [ "msvc_x64_x64" ],
             "variables": []
         },
         {
