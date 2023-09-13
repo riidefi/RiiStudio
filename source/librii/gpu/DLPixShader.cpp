@@ -360,31 +360,34 @@ Result<void> QDisplayListMaterialHandler::onCommandBP(const QBPCommand& token) {
     break;
   case BPAddress::IND_MTXA:
   case BPAddress::IND_MTXA + 3:
-  case BPAddress::IND_MTXA + 6:
-    mGpuMat.setReg(
-        mGpuMat.mIndirect
-            .mIndMatrices[((u32)token.reg - (u32)BPAddress::IND_MTXA) / 3]
-            .col0,
-        token);
+  case BPAddress::IND_MTXA + 6: {
+    u32 i = ((u32)token.reg - (u32)BPAddress::IND_MTXA) / 3;
+    if (i >= mGpuMat.mIndirect.mIndMatrices.size()) {
+      mGpuMat.mIndirect.mIndMatrices.resize(i + 1);
+	}
+    mGpuMat.setReg(mGpuMat.mIndirect.mIndMatrices[i].col0, token);
     break;
+  }
   case BPAddress::IND_MTXB:
   case BPAddress::IND_MTXB + 3:
-  case BPAddress::IND_MTXB + 6:
-    mGpuMat.setReg(
-        mGpuMat.mIndirect
-            .mIndMatrices[((u32)token.reg - (u32)BPAddress::IND_MTXA) / 3]
-            .col1,
-        token);
+  case BPAddress::IND_MTXB + 6: {
+    u32 i = ((u32)token.reg - (u32)BPAddress::IND_MTXA) / 3;
+    if (i >= mGpuMat.mIndirect.mIndMatrices.size()) {
+      mGpuMat.mIndirect.mIndMatrices.resize(i + 1);
+    }
+    mGpuMat.setReg(mGpuMat.mIndirect.mIndMatrices[i].col1, token);
     break;
+  }
   case BPAddress::IND_MTXC:
   case BPAddress::IND_MTXC + 3:
-  case BPAddress::IND_MTXC + 6:
-    mGpuMat.setReg(
-        mGpuMat.mIndirect
-            .mIndMatrices[((u32)token.reg - (u32)BPAddress::IND_MTXA) / 3]
-            .col2,
-        token);
+  case BPAddress::IND_MTXC + 6: {
+    u32 i = ((u32)token.reg - (u32)BPAddress::IND_MTXA) / 3;
+    if (i >= mGpuMat.mIndirect.mIndMatrices.size()) {
+      mGpuMat.mIndirect.mIndMatrices.resize(i + 1);
+    }
+    mGpuMat.setReg(mGpuMat.mIndirect.mIndMatrices[i].col2, token);
     break;
+  }
   default: {
     return std::unexpected(std::format("Unexpected BP command: 0x{:x}",
                                        static_cast<u32>(token.reg)));

@@ -60,7 +60,7 @@ struct GPUMaterial {
   } mShaderColor;
   struct {
     std::array<ras1_ss, 2> mIndTexScales;
-    std::array<IND_MTX, 3> mIndMatrices;
+    rsl::array_vector<IND_MTX, 3> mIndMatrices;
   } mIndirect;
   std::array<XF_TEXTURE, 8> mTexture;
 
