@@ -28,6 +28,12 @@ fn main() {
             build.flag("-mssse3");
         }
     }
+    if compiler.is_like_clang() || is_clang_cl {
+        // warning : src/dolemu/TextureDecoder/TextureDecoder_x64.cpp(1177,75): warning: unused parameter 'tlut' [-Wunused-parameter]
+        // warning : TextureFormat texformat, const u8* tlut, TLUTFormat tlutfmt,
+        // warning : ^
+        build.flag("-Wno-unused-parameter");
+    }
     if !compiler.is_like_gnu() && !compiler.is_like_clang() {
         #[cfg(not(debug_assertions))]
         build.flag("-MT");
