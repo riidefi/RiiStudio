@@ -44,10 +44,8 @@ struct JPAC {
   u32 blockCount;
 
   std::vector<JPAResource> resources;
-
   std::vector<TextureBlock> textures;
 
-  std::string debugDump();
 
   bool operator==(const JPAC&) const = default;
 

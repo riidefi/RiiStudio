@@ -42,6 +42,10 @@ To_JEFF_JPABaseShapeBlock(const JPABaseShapeBlock& b) {
     colorEnvAnimFlags = 0x7;
   }
 
+  u8 texAnimFlags = 0x2;
+  texAnimFlags |= b.texIdxAnimData.size() > 0;
+
+
   u16 size = 0xA0;
 
   u16 texIdxAnimDataOffs = b.texIdxAnimData.size() > 0 ? size : 0;
@@ -86,8 +90,10 @@ To_JEFF_JPABaseShapeBlock(const JPABaseShapeBlock& b) {
       .zWrite = zWrite,
       .isEnableProjection = b.isEnableProjection,
       .flags = flags,
-      .texAnimFlags = 0, .texCalcIdxType = static_cast<u8>(b.texCalcIdxType),
-      .texIdxAnimDataCount = 0, .texIdx = 0,
+      .texAnimFlags = texAnimFlags,
+      .texCalcIdxType = static_cast<u8>(b.texCalcIdxType),
+      .texIdxAnimDataCount = static_cast<u8>(b.texIdxAnimData.size()),
+      .texIdx = b.texIdx,
       .colorAnimMaxFrm = b.colorAnimMaxFrm,
       .colorCalcIdxType = static_cast<u8>(b.colorCalcIdxType),
       .colorPrmAnimFlags = colorPrmAnimFlags,

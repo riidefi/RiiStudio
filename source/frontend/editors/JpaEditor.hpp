@@ -149,6 +149,7 @@ public:
     if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
       if (ImGui::BeginPopupContextItem(str.c_str())) {
         if (ImGui::MenuItem("Add BTI texture")) {
+          importBTI(tex);
         }
 
         ImGui::EndPopup();
@@ -175,6 +176,36 @@ public:
     }
 
   }
+  Result<void> importBTI(std::vector<librii::jpa::TextureBlock>& tex) {
+    auto default_filename = std::filesystem::path("").filename();
+    std::vector<std::string> filters{"??? (*.bti)", "*.bti"};
+    auto results =
+        rsl::ReadOneFile("Open File"_j, default_filename.string(), filters);
+    if (!results) {
+      rsl::ErrorDialog("No saving - No file selected");
+      return {};
+    }
+
+    rsl::trace("Attempting to load from {}", results->path.string());
+
+    librii::j3d::Tex tmp;
+    auto reader = TRY(oishii::BinaryReader::FromFilePath(results->path.string(),
+                                                         std::endian::big));
+    rsl::SafeReader safeReader(reader);
+    TRY(tmp.transfer(safeReader));
+    auto buffer_addr = tmp.ofsTex;
+    auto buffer_size = librii::gx::computeImageSize(
+        tmp.mWidth, tmp.mHeight, tmp.mFormat, tmp.mMipmapLevel);
+
+    auto image_data = TRY(reader.tryReadBuffer<u8>(buffer_size, buffer_addr));
+
+    librii::jpa::TextureBlock data = librii::jpa::TextureBlock(tmp, image_data);
+    // Strip out file extension
+    data.setName(results->path.replace_extension().filename().string());
+    tex.push_back(data);
+    return {};
+  }
+
 
   Result<void> replaceBTI(const char* btiName,
                           librii::jpa::TextureBlock& data) {
@@ -201,8 +232,10 @@ public:
 
     auto image_data = TRY(reader.tryReadBuffer<u8>(buffer_size, buffer_addr));
 
+
     data = librii::jpa::TextureBlock(tmp, image_data);
-    data.setName(results->path.filename().string());
+    // Strip out file extension
+    data.setName(results->path.replace_extension().filename().string());
     selected = data;
     return {};
   }
@@ -371,7 +404,7 @@ public:
 
   void saveAsButton() override {
     auto default_filename = std::filesystem::path(m_path).filename();
-    std::vector<std::string> filters{"??? (*.jpa)", "*.jpa"};
+    std::vector<std::string> filters{"JEffect Particle File (*.jpa)", "*.jpa"};
     auto results =
         rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
     if (!results) {

@@ -19,23 +19,6 @@
 namespace librii::jpa {
 
 
-std::string JPAC::debugDump() {
-  std::string result = "DEBUG DUMP OF JPA\n";
-
-  // result += rsl::DumpStruct(*this);
-  //
-  // for (auto& x : resources) {
-  //     result += "JPAResource entry\n";
-  //     result += rsl::DumpStruct(x.bsp1);
-  //
-  //   for (auto& y : x.fld1) {
-  //       result += rsl::DumpStruct(y);
-  //     }
-  // }
-
-  return result;
-}
-
 float lint1(f32 a, f32 b, f32 f) { return (a * (1.0f - f)) + (b * f); }
 
 
@@ -51,10 +34,6 @@ gx::ColorF32 colorLerp(gx::ColorF32 a, gx::ColorF32 b, f32 t) {
 
 gx::ColorF32 colorFromRGBA8(u32 n){
   const gx::Color dst = gx::Color(n);
-  // dst.r = ((n >> 24) & 0xFF) / 0xFF;
-  // dst.g = ((n >> 16) & 0xFF) / 0xFF;
-  // dst.b = ((n >> 8) & 0xFF) / 0xFF;
-  // dst.a = ((n >> 0) & 0xFF) / 0xFF;
   return dst;
 }
 
@@ -256,7 +235,6 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
                            block->colorPrmAnimData));
       }
 
-      // I think the 3rd bit tells if there's color anm data, and the second is if there's multiple
       if (((colorEnvAnimFlags >> 2) & 0x01)) {
         u16 colorEnvAnimDataOffs = tag_start + TRY(reader.tryGetAt<u16>(tag_start + 0x16));
         u8 colorEnvAnimDataCount = TRY(reader.tryGetAt<u8>(tag_start + 0x63));

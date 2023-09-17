@@ -36,10 +36,6 @@ void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac) {
     numberOfSections++;
   }
 
-
-  // rsl::WriteFields(
-  //     writer, librii::jpa::To_JEFF_JPABaseShapeBlock(*jpac.resources[0].bsp1));
-
   if (jpac.resources[0].bsp1) {
     numberOfSections++;
 

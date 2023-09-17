@@ -72,8 +72,7 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
 
   ImGui::Text("Texture Palette Animation");
 
-  ImGui::Checkbox("Enabled", &block->isEnableTexture);
-  ImGui::Checkbox("Global Texture Animation", &block->isGlblTexAnm);
+  ImGui::Checkbox("Enabled", &block->isGlblTexAnm);
   block->texCalcIdxType =
       imcxx::EnumCombo("Calculation Index Type", block->texCalcIdxType);
   ImGui::InputScalar("Texture Index", ImGuiDataType_U8, &block->texIdx);
@@ -97,7 +96,11 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
 
   ImGui::Text("Texture Coordinate Animation");
 
+  ImGui::PushID("Texture Coordinate Animation");
   ImGui::Checkbox("Enabled", &block->isEnableProjection);
+  ImGui::PopID();
+
+
   ImGui::Checkbox("Texture Scroll Animation", &block->isEnableTexScrollAnm);
 
   ImGui::SliderFloat("Texture Initial Translation X", &block->texInitTransX, 0,
@@ -128,8 +131,10 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   // Color Animation Settings
   ImGui::Text("Color Animation Settings");
 
-
+  ImGui::PushID("Color Animation Settings");
   ImGui::Checkbox("Enabled", &block->isGlblClrAnm);
+  ImGui::PopID();
+
 
   block->colorCalcIdxType =
       imcxx::EnumCombo("Color Calcuation Index", block->colorCalcIdxType);
@@ -291,6 +296,7 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAFieldBlock* block) {
     ImGui::InputFloat("Outer Speed", &block->outerSpeed);
   }
 }
+
 
 void JpaEditorPropertyGrid::Draw(librii::jpa::TextureBlock block) {
   preview.draw(block);
