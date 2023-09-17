@@ -9,7 +9,6 @@ enum class CalcScaleAnmType {
 };
 
 enum class CalcAlphaWaveType{
-  None,
   NrmSin,
   AddSin,
   MultSin,
@@ -82,6 +81,7 @@ struct JPAExtraShapeBlock {
   CalcScaleAnmType scaleAnmTypeY;
   bool isEnableRotate;
   bool isEnableAlpha;
+  bool isEnableSinWave;
   CalcAlphaWaveType alphaWaveType;
   u8 pivotX;
   u8 pivotY;

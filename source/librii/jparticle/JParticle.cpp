@@ -225,7 +225,7 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
           (alphaCmp1 << 5) | (alphaOp << 3) | (alphaCmp0 << 0);
       block->zModeFlags = (zWrite << 4) | (zCompare << 1) | (zTest << 0);
 
-      block->isEnableProjection = !!TRY(reader.tryGetAt<u8>(tag_start + 0x43));
+      block->isEnableProjection = TRY(reader.tryGetAt<u8>(tag_start + 0x43));
       u8 flags = TRY(reader.tryGetAt<u8>(tag_start + 0x44));
       u8 texAnimFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x4C));
       block->texCalcIdxType = {TRY(reader.tryGetAt<u8>(tag_start + 0x4D))};
@@ -254,8 +254,6 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
 
         TRY(makeColorTable(reader, colorPrmAnimDataOffs, colorPrmAnimDataCount,
                            block->colorPrmAnimData));
-
-		std::cout << block->colorPrmAnimData.size() << std::endl;
       }
 
       // I think the 3rd bit tells if there's color anm data, and the second is if there's multiple
@@ -265,8 +263,6 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
 
         TRY(makeColorTable(reader, colorEnvAnimDataOffs, colorEnvAnimDataCount,
                            block->colorEnvAnimData));
-
-		std::cout << block->colorEnvAnimData.size() << std::endl;
       }
       
       block->colorPrm = colorFromRGBA8(TRY(reader.tryGetAt<u32>(tag_start + 0x64)));
@@ -327,12 +323,13 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
       u8 alphaAnmFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x1E));
 
       block->isEnableAlpha = ((alphaAnmFlags >> 0) & 0x01);
-      bool isEnableSinWave = ((alphaAnmFlags >> 1) & 0x01);
+      block->isEnableSinWave = ((alphaAnmFlags >> 1) & 0x01);
       u8 alphaWaveTypeFlag = TRY(reader.tryGetAt<u8>(tag_start + 0x1F));
-      if (isEnableSinWave) {
+      if (block->isEnableSinWave) {
         block->alphaWaveType = static_cast<CalcAlphaWaveType>(alphaWaveTypeFlag);
       }else {
-        block->alphaWaveType = CalcAlphaWaveType::None;
+        // default value of 0
+        block->alphaWaveType = CalcAlphaWaveType::NrmSin;
       }
 
       block->alphaIncreaseRate = 1;
@@ -421,7 +418,7 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
           JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x60)));
       block->rotateDirection =
           JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x62)));
-      block->isEnableRotate = !!TRY(reader.tryGetAt<u8>(tag_start + 0x64));
+      block->isEnableRotate = TRY(reader.tryGetAt<u8>(tag_start + 0x64));
 
 
       resource.esp1 = block;
@@ -611,8 +608,24 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
       }
       resource.fld1.push_back(block);
     } else if (tag_name == 'TEX1') {
-      auto texture = TRY(reader.tryReadBuffer<u8>(tag_size - 8));
-      textures.push_back(texture);
+      // 
+      reader.skip(0x4);
+      auto name = TRY(reader.tryReadBuffer<u8>(0x14));
+      librii::j3d::Tex tmp;
+      auto tex_start = reader.tell();
+      rsl::SafeReader safeReader(reader);
+      TRY(tmp.transfer(safeReader));
+      auto buffer_addr = tex_start + tmp.ofsTex;
+      auto buffer_size = librii::gx::computeImageSize(
+          tmp.mWidth, tmp.mHeight, tmp.mFormat, tmp.mMipmapLevel);
+
+
+      auto image_data = TRY(reader.tryReadBuffer<u8>(buffer_size, buffer_addr));
+
+      TextureBlock block = TextureBlock(tmp, image_data);
+      block.setName(std::string(name.begin(),name.end()));
+
+      textures.push_back(block);
     }
 
 

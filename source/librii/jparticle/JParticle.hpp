@@ -9,6 +9,7 @@
 #include "Sections/JPAChildShapeBlock.hpp"
 #include "Sections/JPAKeyBlock.hpp"
 #include "Sections/JPAExTexBlock.hpp"
+#include "Sections/TextureBlock.hpp"
 #include "plugins/j3d/Texture.hpp"
 
 #include <array>
@@ -44,7 +45,7 @@ struct JPAC {
 
   std::vector<JPAResource> resources;
 
-  std::vector<std::vector<u8>> textures;
+  std::vector<TextureBlock> textures;
 
   std::string debugDump();
 

@@ -1,5 +1,6 @@
 #include "frontend/legacy_editor/EditorWindow.hpp"
 #include "frontend/legacy_editor/views/BmdBrresOutliner.hpp"
+#include "frontend/widgets/Lib3dImage.hpp"
 #include "frontend/widgets/OutlinerWidget.hpp"
 #include "LibBadUIFramework/ActionMenu.hpp"
 #include "librii/jparticle/JParticle.hpp"
@@ -45,23 +46,25 @@ public:
   void Draw(librii::jpa::JPABaseShapeBlock* block);
   void Draw(librii::jpa::JPAExtraShapeBlock* block);
   void Draw(librii::jpa::JPAFieldBlock* block);
+  void Draw(librii::jpa::TextureBlock block);
+
+  riistudio::frontend::Lib3dCachedImagePreview preview;
 };
 
 using JPABlockSelection = std::variant<librii::jpa::JPADynamicsBlock*,
                                        librii::jpa::JPABaseShapeBlock*,
                                        librii::jpa::JPAExtraShapeBlock*,
                                        librii::jpa::JPAFieldBlock*,
-                                       std::string,
+                                       librii::jpa::TextureBlock,
                                        std::monostate>;
 
 class JpaEditorTreeView {
 public:
   void Draw(std::vector<librii::jpa::JPAResource>& resources,
-            std::vector<std::vector<u8>> &tex) {
+            std::vector<librii::jpa::TextureBlock>& tex) {
 
     auto str = std::format("JPA resources ({} entries)", num_entries);
     if (ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-      // ImGui::TreePush("JPA_resources");
       u32 entryNum = 0;
       for (auto& x : resources) {
         auto str = std::format("JPA resource {}", entryNum);
@@ -129,31 +132,42 @@ public:
                 if (ImGui::BeginPopupContextItem(nullptr)) {
                   if(ImGui::MenuItem("Delete")) {
                     x.fld1.erase(x.fld1.begin() + i);
+                    selected = {};
                   }
 
                   ImGui::EndPopup();
                 }
               }
+                ImGui::TreePop();
           }
-          ImGui::TreePop();
+
         }
         entryNum++;
       }
       ImGui::TreePop();
     }
     if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
-      for (auto& x : tex) {
-        auto* c = reinterpret_cast<const char*>(x.data()+0x4);
+      if (ImGui::BeginPopupContextItem(str.c_str())) {
+        if (ImGui::MenuItem("Add BTI texture")) {
+        }
+
+        ImGui::EndPopup();
+      }
+      for (int i = 0; i < tex.size(); i++) {
+        auto c = tex[i].getName().c_str();
         if (ImGui::Selectable(c)) {
+          selected = tex[i];
         }
         if (ImGui::BeginPopupContextItem(c)) {
           if (ImGui::MenuItem("Export")) {
-              exportBTI(c, x);
+              exportBTI(c, tex[i]);
           }
-          if (ImGui::MenuItem("Import")) {
-
+          if (ImGui::MenuItem("Replace")) {
+              replaceBTI(c, tex[i]);
           }
           if (ImGui::MenuItem("Delete")) {
+              tex.erase(tex.begin() + i);
+              selected = {};
           }
           ImGui::EndPopup();
         }
@@ -161,7 +175,40 @@ public:
     }
 
   }
-  void exportBTI(const char* btiName, std::vector<u8> data) {
+
+  Result<void> replaceBTI(const char* btiName,
+                          librii::jpa::TextureBlock& data) {
+    auto default_filename = std::filesystem::path("").filename();
+    default_filename.replace_filename(btiName);
+    std::vector<std::string> filters{"??? (*.bti)", "*.bti"};
+    auto results =
+        rsl::ReadOneFile("Save File"_j, default_filename.string(), filters);
+    if (!results) {
+      rsl::ErrorDialog("No saving - No file selected");
+      return {};
+    }
+
+    rsl::trace("Attempting to load from {}", results->path.string());
+
+    librii::j3d::Tex tmp;
+    auto reader = TRY(
+        oishii::BinaryReader::FromFilePath(results->path.string(), std::endian::big));
+    rsl::SafeReader safeReader(reader);
+    TRY(tmp.transfer(safeReader));
+    auto buffer_addr = tmp.ofsTex;
+    auto buffer_size = librii::gx::computeImageSize(
+        tmp.mWidth, tmp.mHeight, tmp.mFormat, tmp.mMipmapLevel);
+
+    auto image_data = TRY(reader.tryReadBuffer<u8>(buffer_size, buffer_addr));
+
+    data = librii::jpa::TextureBlock(tmp, image_data);
+    data.setName(results->path.filename().string());
+    selected = data;
+    return {};
+  }
+
+
+  void exportBTI(const char* btiName, librii::jpa::TextureBlock data) {
     auto default_filename = std::filesystem::path("").filename();
     default_filename.replace_filename(btiName);
     std::vector<std::string> filters{"??? (*.bti)", "*.bti"};
@@ -179,9 +226,12 @@ public:
 
     rsl::trace("Attempting to save to {}", path);
     oishii::Writer writer(std::endian::big);
-    for (auto& b:data) {
+    data.tex.write(writer);
+    writer.write(data.tex.ofsTex);
+    for (auto& b : data.getData()) {
       writer.write(b);
     }
+
     writer.saveToDisk(path);
   }
 
@@ -231,14 +281,6 @@ public:
     if (ImGui::Begin((idIfyChild("Outliner")).c_str())) {
       m_tree.num_entries = m_jpa.resources.size();
       m_tree.selected = m_selected;
-      // m_tree.tex.clear();
-      // m_tree.res.clear();
-      // for (auto& x : m_jpa.resources) {
-      //   m_tree.res.push_back(x);
-      // }
-      // for (auto& x : m_jpa.textures) {
-      //   m_tree.tex.push_back(x);
-      // }
       m_tree.Draw(m_jpa.resources, m_jpa.textures);
       m_selected = m_tree.selected;
     }
@@ -271,6 +313,11 @@ public:
           if (*x) {
             m_grid.Draw(*x);
           }
+        });
+      } else if (auto* x =
+                     std::get_if<librii::jpa::TextureBlock>(&m_selected)) {
+        m_sheet.Draw([&]() {
+            m_grid.Draw(*x);
         });
       }
     }

@@ -12,7 +12,7 @@ To_JEFF_JPAExtraShapeBlock(const JPAExtraShapeBlock& b) {
 
   u8 alphaAnmFlags = 0;
   alphaAnmFlags |= b.isEnableAlpha << 0;
-  alphaAnmFlags |= (b.alphaWaveType != CalcAlphaWaveType::None) << 1;
+  alphaAnmFlags |= b.isEnableSinWave << 1;
 
 
   u8 scaleAnmFlags = 1;

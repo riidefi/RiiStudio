@@ -5,6 +5,8 @@
 
 #include "JpaEditor.hpp"
 
+#include "frontend/widgets/Lib3dImage.hpp"
+
 namespace riistudio::frontend {
 
 void JpaEditorPropertyGrid::Draw(librii::jpa::JPADynamicsBlock* block) {
@@ -56,12 +58,12 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPADynamicsBlock* block) {
 void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   block->shapeType = imcxx::EnumCombo("Shape Type", block->shapeType);
   block->dirType = imcxx::EnumCombo("Direction Type", block->dirType);
-  // block.shapeType = imcxx::EnumCombo("Shape Type", block.shapeType);
+  block->rotType = imcxx::EnumCombo("Rotation Type", block->rotType);
 
   ImGui::InputFloat2("Base Size", glm::value_ptr(block->baseSize));
 
-  ImGui::InputFloat("Tiling S", &block->tilingS);
-  ImGui::InputFloat("Tiling T", &block->tilingT);
+  ImGui::SliderFloat("Tiling S", &block->tilingS, 0, 10, "%.3f", 0);
+  ImGui::SliderFloat("Tiling T", &block->tilingT, 0, 10, "%.3f", 0);
 
   ImGui::Checkbox("Draw Forward Ahead", &block->isDrawFwdAhead);
   ImGui::Checkbox("Draw Parent Ahead", &block->isDrawPrntAhead);
@@ -75,13 +77,12 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   block->texCalcIdxType =
       imcxx::EnumCombo("Calculation Index Type", block->texCalcIdxType);
   ImGui::InputScalar("Texture Index", ImGuiDataType_U8, &block->texIdx);
-  // Draw editable list
 
   if (ImGui::TreeNodeEx("Texture Anim List", ImGuiTreeNodeFlags_DefaultOpen)) {
-    for (int i = 0; i < block->texIdxAnimData.size();i++) {
+    for (int i = 0; i < block->texIdxAnimData.size(); i++) {
 
       ImGui::PushItemWidth(-1);
-      auto str = std::format("texture Id {}",i);
+      auto str = std::format("texture Id {}", i);
       ImGui::PushID(str.c_str());
       ImGui::InputScalar("Rate Step", ImGuiDataType_U8,
                          &block->texIdxAnimData[i]);
@@ -91,7 +92,6 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
     ImGui::TreePop();
   }
 
-
   ImGui::InputScalar("Texture Index Loop Offset Mask", ImGuiDataType_U8,
                      &block->texIdxLoopOfstMask);
 
@@ -99,21 +99,38 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
 
   ImGui::Checkbox("Enabled", &block->isEnableProjection);
   ImGui::Checkbox("Texture Scroll Animation", &block->isEnableTexScrollAnm);
-  ImGui::InputFloat("Texture Initial Translation X", &block->texInitTransX);
-  ImGui::InputFloat("Texture Initial Translation Y", &block->texInitTransY);
-  ImGui::InputFloat("Texture Initial Scale X", &block->texInitScaleX);
-  ImGui::InputFloat("Texture Initial Scale Y", &block->texInitScaleY);
-  ImGui::InputFloat("Texture Initial Rotation", &block->texInitRot);
-  ImGui::InputFloat("Texture Rotation Increment", &block->texIncRot);
-  ImGui::InputFloat("Texture Translation X Increment", &block->texIncTransX);
-  ImGui::InputFloat("Texture Translation Y Increment", &block->texIncTransY);
-  ImGui::InputFloat("Texture Scale X Increment", &block->texIncScaleX);
-  ImGui::InputFloat("Texture Scale Y Increment", &block->texIncScaleY);
+
+  ImGui::SliderFloat("Texture Initial Translation X", &block->texInitTransX, 0,
+                     10, "%.3f", 0);
+  ImGui::SliderFloat("Texture Initial Translation Y", &block->texInitTransY, 0,
+                     10, "%.3f", 0);
+  ImGui::SliderFloat("Texture Initial Scale X", &block->texInitScaleX, 0, 10,
+                     "%.3f", 0);
+  ImGui::SliderFloat("Texture Initial Scale Y", &block->texInitScaleY, 0, 10,
+                     "%.3f", 0);
+
+  ImGui::SliderFloat("Texture Initial Rotation", &block->texInitRot, 0, 1,
+                     "%.3f", 0);
+  ImGui::SliderFloat("Texture Rotation Increment", &block->texIncRot, 0, 1,
+                     "%.3f", 0);
+  ImGui::SliderFloat("Texture Translation X Increment",
+                     &block->texIncTransX, 0,
+                     10, "%.3f", 0);
+  ImGui::SliderFloat("Texture Translation Y Increment",
+                     &block->texIncTransY, 0,
+                     10, "%.3f", 0);
+
+  ImGui::SliderFloat("Texture Scale X Increment", &block->texIncScaleX, 0, 0.1f,
+                     "%.3f", 0);
+  ImGui::SliderFloat("Texture Scale Y Increment", &block->texIncScaleY, 0, 0.1f,
+                     "%.3f", 0);
 
   // Color Animation Settings
   ImGui::Text("Color Animation Settings");
 
-  bool isGlblClrAnm;
+
+  ImGui::Checkbox("Enabled", &block->isGlblClrAnm);
+
   block->colorCalcIdxType =
       imcxx::EnumCombo("Color Calcuation Index", block->colorCalcIdxType);
 
@@ -126,7 +143,8 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   ImGui::InputScalar("Color Loop Offset Mask", ImGuiDataType_U8,
                      &block->colorLoopOfstMask);
 
-  if (ImGui::TreeNodeEx("Color prm Anim table", ImGuiTreeNodeFlags_DefaultOpen)) {
+  if (ImGui::TreeNodeEx("Color prm Anim table",
+                        ImGuiTreeNodeFlags_DefaultOpen)) {
     for (int i = 0; i < block->colorPrmAnimData.size(); i++) {
 
       ImGui::PushItemWidth(-1);
@@ -143,7 +161,8 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
     ImGui::TreePop();
   }
 
-  if (ImGui::TreeNodeEx("Color env Anim table", ImGuiTreeNodeFlags_DefaultOpen)) {
+  if (ImGui::TreeNodeEx("Color env Anim table",
+                        ImGuiTreeNodeFlags_DefaultOpen)) {
     for (int i = 0; i < block->colorEnvAnimData.size(); i++) {
 
       auto str = std::format("color env Id {}", i);
@@ -173,13 +192,20 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAExtraShapeBlock* block) {
   block->scaleAnmTypeY =
       imcxx::EnumCombo("Scale Animation Type Y", block->scaleAnmTypeY);
 
-  ImGui::InputFloat("Scale In Timing", &block->scaleInTiming);
-  ImGui::InputFloat("Scale Out Timing", &block->scaleOutTiming);
-  ImGui::InputFloat("Scale In Value X", &block->scaleInValueX);
-  ImGui::InputFloat("Scale In Value Y", &block->scaleInValueY);
-  ImGui::InputFloat("Scale Out Value X", &block->scaleOutValueX);
-  ImGui::InputFloat("Scale Out Value Y", &block->scaleOutValueY);
-  ImGui::InputFloat("Scale Out Random", &block->scaleOutRandom);
+  ImGui::SliderFloat("Scale In Timing", &block->scaleInTiming, 0, 10, "%.3f",
+                     0);
+  ImGui::SliderFloat("Scale Out Timing", &block->scaleOutTiming, 0, 10, "%.3f",
+                     0);
+  ImGui::SliderFloat("Scale In Value X", &block->scaleInValueX, 0, 10, "%.3f",
+                     0);
+  ImGui::SliderFloat("Scale In Value Y", &block->scaleInValueY, 0, 10, "%.3f",
+                     0);
+  ImGui::SliderFloat("Scale Out Value X", &block->scaleOutValueX, 0, 10, "%.3f",
+                     0);
+  ImGui::SliderFloat("Scale Out Value Y", &block->scaleOutValueY, 0, 10, "%.3f",
+                     0);
+  ImGui::SliderFloat("Scale Out Random", &block->scaleOutRandom, 0, 10, "%.3f",
+                     0);
   ImGui::InputScalar("Scale Anm Max Frame X", ImGuiDataType_U16,
                      &block->scaleAnmMaxFrameX);
   ImGui::InputScalar("Scale Anm Max Frame Y", ImGuiDataType_U16,
@@ -203,9 +229,12 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAExtraShapeBlock* block) {
   ImGui::InputFloat("Direction", &block->rotateSpeedRandom);
 
   ImGui::Checkbox("Enable Alpha", &block->isEnableAlpha);
+  ImGui::Checkbox("Enable Sine Wave", &block->isEnableSinWave);
 
-  block->alphaWaveType =
-      imcxx::EnumCombo("Alpha Wave Type", block->alphaWaveType);
+  if (block->isEnableSinWave) {
+    block->alphaWaveType =
+        imcxx::EnumCombo("Alpha Wave Type", block->alphaWaveType);
+  }
 
   ImGui::InputFloat("In Timing", &block->alphaInTiming);
   ImGui::InputFloat("Out Timing", &block->alphaOutTiming);
@@ -261,6 +290,10 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAFieldBlock* block) {
   if (block->type == librii::jpa::FieldType::Vortex) {
     ImGui::InputFloat("Outer Speed", &block->outerSpeed);
   }
+}
+
+void JpaEditorPropertyGrid::Draw(librii::jpa::TextureBlock block) {
+  preview.draw(block);
 }
 
 
