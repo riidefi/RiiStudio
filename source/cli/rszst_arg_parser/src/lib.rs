@@ -138,6 +138,7 @@ enum SzsAlgo {
     CTGP,
     Haroohie,
     CTLib,
+    LibYaz0,
 }
 
 /// Compress a file as .szs

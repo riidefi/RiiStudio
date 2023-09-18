@@ -11,6 +11,7 @@ szs is a WIP crate for compressing and decompressing SZS files (Yaz0 encoding) u
 - Worst case
 - Haroohie (credit @Gericom, adapted from MarioKartToolbox)
 - CTLib (credit @narahiero, adapted from CTLib)
+- libyaz0 (credit @aboood40091)
 
 ### Stats
 **Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
@@ -20,8 +21,9 @@ szs is a WIP crate for compressing and decompressing SZS files (Yaz0 encoding) u
 | ctgp | 0.31s | 71.41% |
 | CTLib | 0.32s | 57.24% |
 | Haroohie | 0.58s | 57.23% |
+| lib-yaz0 | 2.03s | **56.65%** |
 | mkw-sp | 3.76s | 57.23% |
-| nintendo | 5.93s | **56.87%** |
+| nintendo | 5.93s | 56.87% |
 | **Comparison with other libraries:** | | |
 | Haroohie (C#) | 0.71s | 57.23% |
 | wszst (fast) | **0.387s** (via shell) | 65.78% |
@@ -31,7 +33,7 @@ szs is a WIP crate for compressing and decompressing SZS files (Yaz0 encoding) u
 
 *\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
 
-In most cases, the `CTLib` algorithm gets the best compression the fastest, with marginally better results from the `Haroohie` algorithm a bit slower. `wszst ultra` gets the smallest filesizes.
+Generally, the `CTLib` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
 
 ### Rust
 The following snippet demonstrates how to compress a file as a SZS format using Rust:

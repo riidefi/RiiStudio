@@ -46,8 +46,12 @@ enum class Algo {
   CTGP,
   Haroohie,
   CTLib,
+  LibYaz0,
 };
 
 Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo);
+
+void CompressYaz(const u8* src_, u32 src_len, u8 opt_compr, u8* dest,
+                 u32 dest_len, u32* out_len);
 
 } // namespace rlibrii::szs

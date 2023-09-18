@@ -21,6 +21,7 @@ enum {
   RII_SZS_ENCODE_ALGO_CTGP,
   RII_SZS_ENCODE_ALGO_HAROOHIE,
   RII_SZS_ENCODE_ALGO_CTLIB,
+  RII_SZS_ENCODE_ALGO_LIBYAZ0,
 };
 
 const char* riiszs_encode_algo_fast(void* dst, uint32_t dst_len,
@@ -52,6 +53,7 @@ enum class Algo {
   CTGP = RII_SZS_ENCODE_ALGO_CTGP,
   Haroohie = RII_SZS_ENCODE_ALGO_HAROOHIE,
   CTLib = RII_SZS_ENCODE_ALGO_CTLIB,
+  LibYaz0 = RII_SZS_ENCODE_ALGO_LIBYAZ0,
 };
 
 static inline std::string get_version() {
