@@ -159,6 +159,8 @@ std::vector<u8> encodeFast(std::span<const u8> src) {
 
   std::fill(result.begin() + 8, result.begin() + 16, 0);
 
+// Old implementation: Marginally slower but easier to read/reason about
+#if 0
   auto* dst = result.data() + 16;
 
   unsigned counter = 0;
@@ -171,6 +173,28 @@ std::vector<u8> encodeFast(std::span<const u8> src) {
   }
   while (counter--)
     *dst++ = 0;
+#else
+  // New implementation courtesy abood
+
+  auto* dst_pos = result.data() + 16;
+  auto* src_pos = src.data();
+  auto* src_end = src.data() + src.size();
+
+  while (src_end - src_pos >= 8) {
+    *dst_pos++ = 0xFF;
+    memcpy(dst_pos, src_pos, 8);
+    dst_pos += 8;
+    src_pos += 8;
+  }
+
+  u32 delta = src_end - src_pos;
+  if (delta > 0) {
+    *dst_pos = ((1 << delta) - 1) << (8 - delta);
+    memcpy(dst_pos + 1, src_pos, delta); // +1 to skip the marker byte
+    dst_pos += delta + 1;                // +1 to account for the marker byte
+    src_pos += delta;
+  }
+#endif
 
   return result;
 }
