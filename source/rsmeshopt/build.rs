@@ -5,6 +5,11 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    // For version API
+    println!(
+        "cargo:rustc-env=TARGET={}",
+        std::env::var("TARGET").unwrap()
+    );
     let mut build = cc::Build::new();
     build.cpp(true);
 
@@ -18,7 +23,7 @@ fn main() {
         build.std("gnu++2b");
     }
 
-    if compiler.is_like_clang() || is_clang_cl{
+    if compiler.is_like_clang() || is_clang_cl {
         // warning: src\draco/core/bounding_box.h:44:3: warning: 'const' type qualifier on return type has no effect [-Wignored-qualifiers]
         // warning:   const bool IsValid() const;
         build.flag("-Wno-ignored-qualifiers");

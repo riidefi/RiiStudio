@@ -1,3 +1,5 @@
+use core::slice;
+
 pub mod librii {
     #[allow(non_upper_case_globals)]
     #[allow(non_camel_case_types)]
@@ -85,4 +87,36 @@ pub unsafe extern "C" fn rii_makefans(
     dst_slice.copy_from_slice(&result_vec);
 
     result_vec.len() as u32
+}
+
+#[no_mangle]
+pub extern "C" fn rsmeshopt_get_version_unstable_api(buffer: *mut u8, length: u32) -> i32 {
+    let pkg_version = env!("CARGO_PKG_VERSION");
+    let profile = if cfg!(debug_assertions) {
+        "debug"
+    } else {
+        "release"
+    };
+    let target = env!("TARGET");
+    let version_info = format!(
+        "Version: {}, Profile: {}, Target: {}",
+        pkg_version, profile, target
+    );
+
+    let string_length = version_info.len();
+
+    if string_length > length as usize {
+        return -1;
+    }
+
+    let buffer_slice = unsafe {
+        assert!(!buffer.is_null());
+        slice::from_raw_parts_mut(buffer, length as usize)
+    };
+
+    for (i, byte) in version_info.as_bytes().iter().enumerate() {
+        buffer_slice[i] = *byte;
+    }
+
+    string_length as i32
 }

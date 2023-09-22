@@ -15,6 +15,8 @@ uint32_t rii_makefans(uint32_t* dst, const uint32_t* indices,
                       uint32_t num_indices, uint32_t restart, uint32_t min_len,
                       uint32_t max_runs);
 
+int32_t rsmeshopt_get_version_unstable_api(char* buf, uint32_t len);
+
 #ifdef __cplusplus
 }
 #endif
