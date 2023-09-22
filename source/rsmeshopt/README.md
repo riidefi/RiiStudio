@@ -12,7 +12,7 @@ pub fn make_fans(indices: &[u32], restart: u32, min_len: u32, max_runs: u32) -> 
 ```
 
 ## C Bindings
-The following C bindings are provided:
+The following C bindings are [provided](https://github.com/riidefi/RiiStudio/blob/master/source/rsmeshopt/include/rsmeshopt.h):
 
 ```c
 uint32_t rii_stripify(uint32_t* dst, uint32_t algo, const uint32_t* indices,
@@ -22,6 +22,17 @@ uint32_t rii_stripify(uint32_t* dst, uint32_t algo, const uint32_t* indices,
 uint32_t rii_makefans(uint32_t* dst, const uint32_t* indices,
                       uint32_t num_indices, uint32_t restart, uint32_t min_len,
                       uint32_t max_runs);
+```
+
+## C# Bindings
+The following C# bindings are [provided](https://github.com/riidefi/RiiStudio/tree/master/source/rsmeshopt/c%23):
+
+```cs
+public static List<uint> Stripify(StripifyAlgo algo, List<uint> indexData,
+								  List<Vec3> vertexData, uint restart = 0xFFFFFFFF);
+
+public static List<uint> MakeFans(List<uint> indexData, uint restart,
+								  uint minLen, uint maxRuns);
 ```
 
 ## Triangle Stripifying Algorithms
