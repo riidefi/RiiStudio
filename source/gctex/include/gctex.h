@@ -8,41 +8,54 @@
 extern "C" {
 #endif
 
+//! Computes the size of a simple image
 uint32_t rii_compute_image_size(uint32_t format, uint32_t width,
                                 uint32_t height);
 
+//! Computes the size of a mipmapped image
 uint32_t rii_compute_image_size_mip(uint32_t format, uint32_t width,
                                     uint32_t height, uint32_t number_of_images);
 
-void rii_encode_cmpr(void* dst, size_t dst_len, const void* src, size_t src_len,
-                     unsigned int width, unsigned int height);
+//! Encode from raw 32-bit color to the specified format
+void rii_encode(uint32_t format, void* dst, uint32_t dst_len, const void* src,
+                uint32_t src_len,
+                uint32_t width, uint32_t height);
 
-void rii_encode_i4(void* dst, size_t dst_len, const void* src, size_t src_len,
-                   unsigned int width, unsigned int height);
-
-void rii_encode_i8(void* dst, size_t dst_len, const void* src, size_t src_len,
-                   unsigned int width, unsigned int height);
-
-void rii_encode_ia4(void* dst, size_t dst_len, const void* src, size_t src_len,
-                    unsigned int width, unsigned int height);
-
-void rii_encode_ia8(void* dst, size_t dst_len, const void* src, size_t src_len,
-                    unsigned int width, unsigned int height);
-
-void rii_encode_rgb565(void* dst, size_t dst_len, const void* src,
-                       size_t src_len, unsigned int width, unsigned int height);
-
-void rii_encode_rgb5a3(void* dst, size_t dst_len, const void* src,
-                       size_t src_len, unsigned int width, unsigned int height);
-
-void rii_encode_rgba8(void* dst, size_t dst_len, const void* src,
-                      size_t src_len, unsigned int width, unsigned int height);
-
-void rii_decode(void* dst, size_t dst_len, const void* src, size_t src_len,
+//! Decode from the specified format to raw 32-bit color
+void rii_decode(void* dst, uint32_t dst_len, const void* src, uint32_t src_len,
                 uint32_t width, uint32_t height, uint32_t texformat,
-                const void* tlut, size_t tlut_len, uint32_t tlutformat);
+                const void* tlut, uint32_t tlut_len, uint32_t tlutformat);
 
+//! Returns the length of the string. Will be no more than 256.
 int32_t gctex_get_version_unstable_api(char* buf, uint32_t len);
+
+//
+// Implementations
+//
+
+void rii_encode_cmpr(void* dst, uint32_t dst_len, const void* src,
+                     uint32_t src_len, uint32_t width, uint32_t height);
+
+void rii_encode_i4(void* dst, uint32_t dst_len, const void* src,
+                   uint32_t src_len, uint32_t width, uint32_t height);
+
+void rii_encode_i8(void* dst, uint32_t dst_len, const void* src,
+                   uint32_t src_len, uint32_t width, uint32_t height);
+
+void rii_encode_ia4(void* dst, uint32_t dst_len, const void* src,
+                    uint32_t src_len, uint32_t width, uint32_t height);
+
+void rii_encode_ia8(void* dst, uint32_t dst_len, const void* src,
+                    uint32_t src_len, uint32_t width, uint32_t height);
+
+void rii_encode_rgb565(void* dst, uint32_t dst_len, const void* src,
+                       uint32_t src_len, uint32_t width, uint32_t height);
+
+void rii_encode_rgb5a3(void* dst, uint32_t dst_len, const void* src,
+                       uint32_t src_len, uint32_t width, uint32_t height);
+
+void rii_encode_rgba8(void* dst, uint32_t dst_len, const void* src,
+                      uint32_t src_len, uint32_t width, uint32_t height);
 
 #ifdef __cplusplus
 }
