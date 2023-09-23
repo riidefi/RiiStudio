@@ -6,6 +6,7 @@
 // Github: https://github.com/riidefi/RiiStudio/blob/master/source/rsmeshopt/
 //
 
+using System.Collections;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -19,7 +20,7 @@ public static class rsmeshopt_native
 
   [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
   public static extern uint rii_stripify(
-      uint[] dst,
+      IntPtr dst,
       uint algo,
       uint[] indices,
       uint num_indices,
@@ -30,7 +31,7 @@ public static class rsmeshopt_native
 
   [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
   public static extern uint rii_makefans(
-      uint[] dst,
+      IntPtr dst,
       uint[] indices,
       uint num_indices,
       uint restart,
@@ -65,57 +66,64 @@ public static class rsmeshopt
   }
 
   // Note: Currently, vertexData is *only* needed for the StripifyAlgo::Draco algorithm
-  public static List<uint> Stripify(
+  public unsafe static List<uint> Stripify(
       StripifyAlgo algo,
       List<uint> indexData,
       List<Vec3> vertexData,
       uint restart = 0xFFFFFFFF)
   {
     uint bound = StripifyBound((uint)indexData.Count);
-    var dst = new List<uint>(new uint[bound]);
+    uint[] indices = new uint[bound];
 
-    uint resultSize = rsmeshopt_native.rii_stripify(
-        dst.ToArray(),
-        (uint)algo,
-        indexData.ToArray(),
-        (uint)indexData.Count,
-        vertexData.ConvertAll(v => new float[] { v.X, v.Y, v.Z }).SelectMany(f => f).ToArray(),
-        (uint)vertexData.Count * 3,
-        restart
-    );
-
-    if (resultSize == 0)
+    fixed (uint* ind = &indices[0])
     {
-      throw new Exception("[rsmeshopt] rii_stripify failed.");
-    }
+      uint resultSize = rsmeshopt_native.rii_stripify(
+          (IntPtr)ind,
+          (uint)algo,
+          indexData.ToArray(),
+          (uint)indexData.Count,
+          vertexData.ConvertAll(v => new float[] { v.X, v.Y, v.Z }).SelectMany(f => f).ToArray(),
+          (uint)vertexData.Count * 3,
+          restart
+       );
 
-    return dst.GetRange(0, (int)resultSize);
+      if (resultSize == 0)
+      {
+        throw new Exception("[rsmeshopt] rii_stripify failed.");
+      }
+
+      int[] result = new int[resultSize];
+      Marshal.Copy((IntPtr)ind, result, 0, result.Length);
+
+      return result.Select(x => (uint)x).ToList();
+    }
   }
 
-  public static List<uint> MakeFans(
+  public unsafe static List<uint> MakeFans(
       List<uint> indexData,
       uint restart,
       uint minLen,
       uint maxRuns)
   {
     uint bound = StripifyBound((uint)indexData.Count);
-    var dst = new List<uint>(new uint[bound]);
+    uint[] indices = new uint[bound];
 
-    uint resultSize = rsmeshopt_native.rii_makefans(
-          dst.ToArray(),
-          indexData.ToArray(),
-          (uint)indexData.Count,
-          restart,
-          minLen,
-          maxRuns
-      );
-
-    if (resultSize == 0)
+    fixed (uint* ind = &indices[0])
     {
-      throw new Exception("[rsmeshopt] rii_makefans failed.");
+      uint resultSize = rsmeshopt_native.rii_makefans(
+      (IntPtr)ind,
+      indexData.ToArray(),
+      (uint)indexData.Count,
+      restart,
+      minLen,
+      maxRuns);
+
+      int[] result = new int[resultSize];
+      Marshal.Copy((IntPtr)ind, result, 0, result.Length);
+
+      return result.Select(x => (uint)x).ToList();
     }
 
-    return dst.GetRange(0, (int)resultSize);
   }
   public static string GetVersion()
   {
