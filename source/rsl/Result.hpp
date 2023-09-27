@@ -3,7 +3,7 @@
 #include "Expected.hpp"
 #include <string>
 
-#ifdef __APPLE__
+#ifdef RSL_USE_FALLBACK_EXPECTED
 template <typename T, typename E = std::string>
 using Result = tl::expected<T, E>;
 #else

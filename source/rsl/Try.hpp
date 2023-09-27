@@ -6,11 +6,7 @@
 #include <utility>
 
 // No <expected> yet
-#ifdef __APPLE__
 #include <rsl/Expected.hpp>
-#else
-#include <expected>
-#endif
 
 // clang-format off
 //
@@ -45,7 +41,7 @@ template <typename T> auto MyMove(T&& t) {
     auto&& y = (__VA_ARGS__);                                                  \
     static_assert(!std::is_lvalue_reference_v<decltype(MyMove(y))>);           \
     if (!y) [[unlikely]] {                                                     \
-      return std::unexpected(y.error());                                       \
+      return RSL_UNEXPECTED(y.error());                                        \
     }                                                                          \
     MyMove(y);                                                                 \
   })
@@ -65,7 +61,7 @@ template <typename T> auto MyMove(T&& t) {
 #define ENDTRY                                                                 \
   }                                                                            \
   catch (std::string s) {                                                      \
-    return std::unexpected(s);                                                 \
+    return RSL_UNEXPECTED(s);                                                  \
   }
 #endif
 // clang-format on

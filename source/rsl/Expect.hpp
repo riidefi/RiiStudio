@@ -4,10 +4,10 @@
 #include "Format.hpp"
 #include <string>
 
-#if __cplusplus > 201703L
-#if !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
-#include <stacktrace>
-#endif
+#if (__cplusplus > 201703L) && !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
+// ...
+#else
+#define RSL_STACKTRACE_UNSUPPORTED
 #endif
 
 // clang: Merged May 16 2019, Clang 9
@@ -16,7 +16,8 @@
 #define __FILE_NAME__ __FILE__
 #endif
 
-#if defined(__clang__) && !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
+#ifndef RSL_STACKTRACE_UNSUPPORTED
+#include <stacktrace>
 #define STACK_TRACE std::stacktrace::current()
 #else
 #define STACK_TRACE 0
@@ -26,7 +27,7 @@
 #define EXPECT(expr, ...)                                                      \
   if (!(expr)) [[unlikely]] {                                                  \
     auto cur = STACK_TRACE;                                                    \
-    return std::unexpected(std::format(                                        \
+    return RSL_UNEXPECTED(std::format(                                         \
         "[{}:{}] {} [Internal: {}] {}", __FILE_NAME__, __LINE__,               \
         (0 __VA_OPT__(, ) __VA_ARGS__), #expr, std::to_string(cur)));          \
   }
@@ -34,6 +35,6 @@
 #define EXPECT(expr, ...)                                                      \
   if (!(expr)) [[unlikely]] {                                                  \
     auto cur = STACK_TRACE;                                                    \
-    return std::unexpected(#expr);                                             \
+    return RSL_UNEXPECTED(#expr);                                              \
   }
 #endif

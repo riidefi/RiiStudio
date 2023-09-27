@@ -1,7 +1,9 @@
 // Based on jelle/Gericom's implementation
 
 #include "HaroohieTriStripifier.hpp"
+#include <limits>
 #include <string>
+#include <tuple>
 
 namespace HaroohiePals {
 

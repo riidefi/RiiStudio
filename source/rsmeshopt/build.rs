@@ -51,6 +51,35 @@ fn main() {
         build.flag("-Wno-unused-parameter");
     }
 
+    if compiler.is_like_gnu() {
+        // warning: src\draco/core/bounding_box.h:44:3: warning: 'const' type qualifier on return type has no effect [-Wignored-qualifiers]
+        // warning:   const bool IsValid() const;
+        build.flag("-Wno-ignored-qualifiers");
+
+        // warning: src/TriStripper/tri_stripper.cpp:373:40: warning: unused typedef 'tri_node_iter' [-Wunused-local-typedef]
+        // warning:         typedef triangle_graph::node_iterator tri_node_iter;
+        build.flag("-Wno-unused-local-typedefs");
+
+        // warning: src/tristrip/trianglestripifier.cpp:67:4: warning: field 'strip_id' will be initialized after field 'experiment_id' [-Wreorder-ctor]
+        // warning:           strip_id(TriangleStrip::NUM_STRIPS++),
+        // warning:           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        // warning:           experiment_id(_experiment_id)
+        build.flag("-Wno-reorder");
+
+        //   cargo:warning=src/draco/core/draco_index_type.h:150:25: note: because ‘draco::IndexType<unsigned int, draco::AttributeValueIndex_tag_type_>’ has user-provided ‘draco::IndexType<ValueTypeT, TagT>::ThisIndexType& draco::IndexType<ValueTypeT, TagT>::operator=(const ThisIndexType&) [with ValueTypeT = unsigned int; TagT = draco::AttributeValueIndex_tag_type_; draco::IndexType<ValueTypeT, TagT>::ThisIndexType = draco::IndexType<unsigned int, draco::AttributeValueIndex_tag_type_>]’
+        //   cargo:warning=  150 |   inline ThisIndexType &operator=(const ThisIndexType &i) {
+        //   cargo:warning=      |
+        build.flag("-Wno-deprecated-copy");
+
+        build.flag("-Wno-comment");
+        // TODO: Fix
+        build.flag("-Wno-sign-compare");
+
+        // TODO: This is a workaround
+        build.flag("-DRSL_USE_FALLBACK_EXPECTED=1");
+        build.flag("-DRSL_STACKTRACE_UNSUPPORTED=1");
+    }
+
     if !compiler.is_like_gnu() && !compiler.is_like_clang() {
         #[cfg(not(debug_assertions))]
         build.flag("-MT");
