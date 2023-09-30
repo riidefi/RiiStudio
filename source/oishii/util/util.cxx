@@ -3,8 +3,11 @@
 #include <Windows.h>
 #endif
 
-#include <fstream>
 #include "util.hxx"
+#include <fstream>
+
+// TODO: Bad dependency
+#include <rsl/WriteFile.hpp>
 
 namespace oishii {
 
@@ -28,8 +31,7 @@ UtilReadFile(std::string_view path) {
 
 void OishiiDefaultFlushFile(std::span<const uint8_t> buf,
                             std::string_view path) {
-  std::ofstream stream(std::string(path), std::ios::binary | std::ios::out);
-  stream.write(reinterpret_cast<const char*>(buf.data()), buf.size());
+  auto ok = rsl::WriteFile(buf, path);
 }
 FlushFileHandler s_flushFileHandler = OishiiDefaultFlushFile;
 

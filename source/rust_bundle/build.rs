@@ -43,7 +43,9 @@ fn main() {
 
     #[cfg(unix)]
     {
-        println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/freetype/2.13.1/lib/");
+        println!("cargo:rustc-link-lib=framework={}", "CoreFoundation");
+        println!("cargo:rustc-link-lib=framework={}", "Security");
+        println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/freetype/2.13.2/lib/");
         println!("cargo:rustc-link-lib=static={}", "freetype");
         println!("cargo:rustc-link-search=native={}", "/opt/homebrew/Cellar/glfw/3.3.8/lib/");
         println!("cargo:rustc-link-lib=static={}", "glfw");
@@ -51,7 +53,6 @@ fn main() {
         println!("cargo:rustc-link-lib=static={}", "assimp");
         println!("cargo:rustc-link-lib=static={}", "dl");
         println!("cargo:rustc-link-lib=static={}", "c++");
-        println!("cargo:rustc-link-lib=framework={}", "CoreFoundation");
     }
  
 
@@ -60,26 +61,19 @@ fn main() {
         (format!("{}{}", out_dir, "core"), "core"),
         (format!("{}{}", out_dir, "LibBadUIFramework"), "LibBadUIFramework"),
         (format!("{}{}", out_dir, "librii"), "librii"),
-        (format!("{}{}", out_dir, "rsmeshopt"), "rsmeshopt"),
         (format!("{}{}", out_dir, "oishii"), "oishii"),
         (format!("{}{}", out_dir, "plate"), "plate"),
         (format!("{}{}", out_dir, "plugins"), "plugins"),
         (format!("{}{}", out_dir, "rsl"), "rsl"),
         (format!("{}{}", out_dir, "updater"), "updater"),
         (format!("{}{}", out_dir, "vendor"), "vendor"),
-
+        
         #[cfg(windows)]
         (format!("{}{}", source_dir, "vendor"), "freetype"),
         #[cfg(windows)]
         (format!("{}{}", source_dir, "plate\\vendor\\glfw\\lib-vc2017"), "glfw3dll"),
         #[cfg(windows)]
         (format!("{}{}", source_dir, "vendor\\assimp"), "assimp-vc141-mt"),
-
-        #[cfg(unix)]
-        (format!("{}{}", deps_dir, "fmt-build"), "fmtd"),
-        #[cfg(windows)]
-        (format!("{}{}", deps_dir, "fmt-build"), "fmt"),
-        (format!("{}{}", deps_dir, "meshoptimizer-build"), "meshoptimizer"),
     ];
 
     for (dir, lib) in libs {
@@ -90,16 +84,18 @@ fn main() {
     // llvm-dlltool.exe -D llvm_sighandler.dll -d llvm_sighandler.def -l llvm_sighandler.lib -m i386:x86-64
 
     #[cfg(windows)]
-    let dlls = vec!["gctex.dll", "riistudio_rs.dll", "llvm_sighandler.dll", "avir_rs.dll", "dolphin_memory_engine_rs.dll"];
+    let mut dlls = vec!["..\\vendor\\dll\\llvm_sighandler.dll"];
+    #[cfg(windows)]
+    dlls.resize(0, "");
 
     #[cfg(windows)]
     for dll in &dlls {
         // Run gendef.exe
         let output = Command::new(format!("{}\\gendef.exe", cargo_dir))
-            .arg(format!("{}\\{}", &cargo_dir, dll))
+            .arg(format!("{}", dll))
             .current_dir(&cargo_dir)
             .output()
-            .expect("Failed to execute gendef.exe");
+            .expect(&format!("Failed to execute {}\\gendef.exe {}", &cargo_dir, dll));
 
         // Check the output for any error
         if !output.status.success() {
@@ -124,12 +120,15 @@ fn main() {
     }
 
     println!("cargo:rustc-link-search=native={}", cargo_dir);
-    println!("cargo:rustc-link-lib=dylib=gctex");
-    println!("cargo:rustc-link-lib=dylib=riistudio_rs");
+    println!("cargo:rustc-link-lib=static=gctex");
+    println!("cargo:rustc-link-lib=static=wiitrig");
+    println!("cargo:rustc-link-lib=static=rsmeshopt");
     println!("cargo:rustc-link-lib=dylib=llvm_sighandler");
-    println!("cargo:rustc-link-lib=dylib=avir_rs");
-    println!("cargo:rustc-link-lib=dylib=c_discord_rich_presence");
-    println!("cargo:rustc-link-lib=dylib=dolphin_memory_engine_rs");
+    println!("cargo:rustc-link-lib=static=avir_rs");
+    println!("cargo:rustc-link-lib=static=riistudio_rs");
+    println!("cargo:rustc-link-lib=static=szs");
+    println!("cargo:rustc-link-lib=static=c_wbz");
+    println!("cargo:rustc-link-lib=static=c_discord_rich_presence");
 
     #[cfg(windows)]
     {

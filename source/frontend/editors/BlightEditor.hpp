@@ -12,25 +12,22 @@
 namespace riistudio::frontend {
 
 // Implements a single tab for now
-class BlightEditorTabSheet : private PropertyEditorWidget {
+class BlightEditorTabSheet {
 public:
   void Draw(std::function<void(void)> draw) {
-    // No concurrent access
-    assert(m_drawTab == nullptr);
-    m_drawTab = draw;
-    DrawTabWidget(false);
-    Tabs();
-    m_drawTab = nullptr;
+    std::vector<std::string> titles{
+        "BLIGHT",
+    };
+    std::function<bool(int)> drawTab = [&](int index) {
+      if (index != 0) {
+        return false;
+      }
+      draw();
+      return true;
+    };
+    DrawPropertyEditorWidgetV2(m_state, drawTab, titles);
   }
-
-private:
-  std::vector<std::string> TabTitles() override { return {"BLIGHT"}; }
-  bool Tab(int index) override {
-    m_drawTab();
-    return true;
-  }
-
-  std::function<void(void)> m_drawTab = nullptr;
+  PropertyEditorState m_state;
 };
 
 class BlightEditorPropertyGrid {

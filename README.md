@@ -30,6 +30,56 @@ Assimp supported formats like FBX and DAE can be imported as BMD/BRRES*.
 | U8     | Yes      | Yes      |
 | SZS    | Yes      | Yes      |
 
+## Overview of source tree
+[An overview of the source code is available here](https://github.com/riidefi/RiiStudio/blob/master/source/README.md)
+
+## Command Line Interface
+```
+RiiStudio CLI Alpha 5.10.13 (Hotfix 4) (Built Aug 23 2023 at 21:50:26, Clang 16.0.5)
+Usage: rszst.exe <COMMAND>
+
+Commands:
+  import-brres      Import a .dae/.fbx file as .brres
+  import-bmd        Import a .dae/.fbx file as .bmd
+  decompress        Decompress a .szs file
+  compress          Compress a file as .szs
+  rhst2-brres       Convert a .rhst file to a .brres file
+  rhst2-bmd         Convert a .rhst file to a .bmd file
+  extract           Extract a .szs file to a folder
+  create            Create a .szs file from a folder
+  kmp-to-json       Dump a kmp as json
+  json-to-kmp       Convert to kmp from json
+  kcl-to-json       Dump a kcl as json
+  dump-presets      Dump presets of a model to a folder
+  optimize          Optimize a BRRES or BMD file
+  help              Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
+Example: Optimizing an existing .brres file with default settings
+```
+rszst.exe optimize file.brres
+```
+Example: Creating a .bmd file from a .dae file
+```
+rszst.exe import-bmd cube.dae
+```
+Example: Dumping all material/animation presets of a model to a folder
+```
+rszst dump-presets course_model.brres my_preset_folder
+```
+Example: Converting a binary .kmp file to an editable JSON document
+```
+rszst kmp-to-json course.kmp course_kmp.json
+```
+Example: Compressing a YAZ0 file
+```
+rszst compress file.arc file.szs --algorithm nintendo
+```
+
 ## Building
 
 ### Windows

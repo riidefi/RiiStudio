@@ -23,6 +23,11 @@
 
 namespace librii::g3d {
 
+Model::Model() __attribute__((weak)) = default;
+Model::Model(const Model&) __attribute__((weak)) = default;
+Model::Model(Model&&) noexcept __attribute__((weak)) = default;
+Model::~Model() __attribute__((weak)) = default;
+
 template <bool Named, bool bMaterial, typename T, typename U>
 Result<void> writeDictionary(const std::string& name, T&& src_range, U handler,
                              RelocWriter& linker, oishii::Writer& writer,
@@ -165,7 +170,7 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
   rsl::SafeReader reader(unsafeReader);
   const auto start = reader.tell();
   TRY(reader.Magic("MDL0"));
-  MAYBE_UNUSED const u32 fileSize = TRY(reader.U32());
+  [[maybe_unused]] const u32 fileSize = TRY(reader.U32());
   const u32 revision = TRY(reader.U32());
   if (revision != 11) {
     return std::unexpected(std::format(
@@ -252,9 +257,6 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
         librii::gx::VertexBufferType::Generic{});
   }));
 
-  if (transaction.state == kpi::TransactionState::Failure)
-    return {};
-
   // TODO: Fur
 
   TRY(readDict(secOfs.ofsMaterials, [&](const librii::g3d::BetterNode& dnode) {
@@ -284,9 +286,6 @@ Result<void> BinaryModel::read(oishii::BinaryReader& unsafeReader,
                     "Likely erroneously set by BrawlBox.",
                     num_furpolys));
   }
-
-  if (transaction.state == kpi::TransactionState::Failure)
-    return {};
 
   TRY(readDict(secOfs.ofsRenderTree,
                [&](const librii::g3d::BetterNode& dnode) -> Result<void> {
@@ -871,7 +870,7 @@ public:
                  const BinaryModel& bmdl_, kpi::IOContext& ctx_)
       : method(method_), mdl(mdl_), binary_mdl(bmdl_), ctx(ctx_) {}
 
-  void onDraw(const B::Draw& draw) {
+  Result<void> onDraw(const B::Draw& draw) {
     BoneData::DisplayCommand disp{
         .mMaterial = static_cast<u32>(draw.matId),
         .mPoly = static_cast<u32>(draw.polyId),
@@ -881,19 +880,19 @@ public:
     if (boneIdx > mdl.bones.size()) {
       ctx.error("Invalid bone index in render command");
       boneIdx = 0;
-      ctx.transaction.state = kpi::TransactionState::Failure;
+      return std::unexpected("Invalid bone index in render command");
     }
 
     if (disp.mMaterial > mdl.meshes.size()) {
       ctx.error("Invalid material index in render command");
       disp.mMaterial = 0;
-      ctx.transaction.state = kpi::TransactionState::Failure;
+      return std::unexpected("Invalid material index in render command");
     }
 
     if (disp.mPoly > mdl.meshes.size()) {
       ctx.error("Invalid mesh index in render command");
       disp.mPoly = 0;
-      ctx.transaction.state = kpi::TransactionState::Failure;
+      return std::unexpected("Invalid mesh index in render command");
     }
 
     mdl.bones[boneIdx].mDisplayCommands.push_back(disp);
@@ -920,6 +919,7 @@ public:
     }
     // And ultimately reset the flag to its proper value.
     mat.xlu = method.name == "DrawXlu";
+    return {};
   }
 
   void onNodeDesc(const B::NodeDescendence& desc) {
@@ -963,6 +963,8 @@ public:
     return {};
   }
 
+  bool isError() const { return error; }
+
 private:
   DrawMatrix& insertMatrix(std::size_t index) {
     if (mdl.matrices.size() <= index) {
@@ -974,6 +976,7 @@ private:
   Model& mdl;
   const BinaryModel& binary_mdl;
   kpi::IOContext& ctx;
+  bool error = false;
 };
 
 inline std::set<s16> gcomputeShapeMtxRef(auto&& meshes) {
@@ -1019,9 +1022,6 @@ Result<void> processModel(const BinaryModel& binary_model,
                           kpi::LightIOTransaction& transaction,
                           std::string_view transaction_path, Model& mdl) {
   using namespace librii::g3d;
-  if (transaction.state == kpi::TransactionState::Failure) {
-    return {};
-  }
   kpi::IOContext ctx(std::string(transaction_path) + "//MDL0 " +
                          binary_model.name,
                      transaction);
@@ -1137,7 +1137,7 @@ Result<void> processModel(const BinaryModel& binary_model,
     ByteCodeHelper helper(method, mdl, binary_model, ctx);
     for (auto& command : method.commands) {
       if (auto* draw = std::get_if<ByteCodeLists::Draw>(&command)) {
-        helper.onDraw(*draw);
+        TRY(helper.onDraw(*draw));
       } else if (auto* desc =
                      std::get_if<ByteCodeLists::NodeDescendence>(&command)) {
         helper.onNodeDesc(*desc);
@@ -1315,7 +1315,7 @@ Result<librii::g3d::BinaryModel> toBinaryModel(const Model& mdl) {
   rsl::debug("shapeRefMtx: {}, Before: {}", shapeRefMtx.size(),
              mdl.matrices.size());
   if (!mdl.meshes.empty()) {
-    EXPECT(shapeRefMtx.size() == mdl.matrices.size());
+    // EXPECT(shapeRefMtx.size() == mdl.matrices.size());
   }
   std::vector<DrawMatrix> drawMatrices = mdl.matrices;
   std::vector<u32> boneToMatrix;

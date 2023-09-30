@@ -1,11 +1,12 @@
 #pragma once
 
-#include <stdint.h>
 #include <cstdio>
 #include <iostream>
 #include <rsl/DebugBreak.hpp>
+#include <rsl/Types.hpp>
 #include <set>
 #include <span>
+#include <stdint.h>
 #include <vector>
 
 namespace oishii {

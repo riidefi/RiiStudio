@@ -1,14 +1,16 @@
 #include "RHSTOptimizer.hpp"
 #include "IndexBuffer.hpp"
 #include "MeshUtils.hpp"
-#include <rsmeshopt/HaroohieTriStripifier.hpp>
-#include <rsmeshopt/TriFanMeshOptimizer.hpp>
 
-#include <rsmeshopt/RsMeshOpt.hpp>
+#define RSMESHOPT_NO_EXPECTED
+#include <rsmeshopt/include/rsmeshopt.h>
 
 #include <fmt/color.h>
 #include <rsl/Ranges.hpp>
 #include <thread>
+
+// TODO: Bad, intrusive dependency
+#include <rsmeshopt/src/MeshUtils.hpp>
 
 #if !defined(__APPLE__)
 #define throw
@@ -18,7 +20,26 @@
 #undef throw
 #endif
 
+#include <rsl/EnUsString.hpp>
+
 namespace librii::rhst {
+
+// Respects winding order
+static void NormalizeTriInplace(auto& tri) {
+  size_t minPos = 0;
+  for (size_t i = 1; i < 3; ++i) {
+    if (tri[i] < tri[minPos]) {
+      minPos = i;
+    }
+  }
+
+  // Rotate the array so that the minimum element comes first
+  std::rotate(std::begin(tri), std::begin(tri) + minPos, std::end(tri));
+}
+static bool IsTriDegenerate(auto& tri) {
+  return tri[0] == tri[1] || tri[0] == tri[2] || tri[1] == tri[2] ||
+         tri[0] == tri[2];
+}
 
 // Validates that an optimization pass did not damage the model itself.
 // - Duplicates are allowed
@@ -43,20 +64,10 @@ public:
     }
     for (auto& tri : tris) {
       // Discard degenerate triangles
-      if (tri[0] == tri[1] || tri[0] == tri[2] || tri[1] == tri[2] ||
-          tri[0] == tri[2]) {
+      if (IsTriDegenerate(tri)) {
         continue;
       }
-      // Sort triangle
-      if (tri[0] > tri[1]) {
-        std::swap(tri[0], tri[1]);
-      }
-      if (tri[1] > tri[2]) {
-        std::swap(tri[1], tri[2]);
-      }
-      if (tri[0] > tri[1]) {
-        std::swap(tri[0], tri[1]);
-      }
+      NormalizeTriInplace(tri);
       InsertTriangle(tri[0], tri[1], tri[2]);
     }
 
@@ -298,27 +309,6 @@ private:
   std::unordered_map<KeyT, MeshOptimizerStats> stats_{};
 };
 
-// Get a thousands-separated string e.g. "10,000" from a number |x|.
-std::string ToEnUsString(auto&& x) {
-  auto str = std::to_string(x);
-  const std::size_t decimal_pos = str.find('.');
-  // If there's no decimal point, we want to start inserting commas three
-  // characters from the right. If there is a decimal point, we want to start
-  // inserting commas three characters to the left of the decimal point.
-  std::ptrdiff_t insert_pos =
-      (decimal_pos == std::string::npos)
-          ? std::ssize(str) - 3
-          : static_cast<std::ptrdiff_t>(decimal_pos) - 3;
-
-  // Insert commas until we've processed the entire string
-  while (insert_pos > 0) {
-    str.insert(insert_pos, ",");
-    insert_pos -= 3;
-  }
-
-  return str;
-}
-
 // Print the results of a `MeshOptimizerExperimentHolder` run as a formatted
 // table.
 template <typename KeyT>
@@ -366,13 +356,13 @@ PrintScoresOfExperiment(const MeshOptimizerExperimentHolder<KeyT>& holder) {
   for (auto [name, score, stats] : scores) {
     auto rank = std::distance(ranks.begin(), ranks.find(score));
     std::string time = stats ? std::format("{}ms", stats->ms_elapsed) : "?";
-    std::string faces = stats ? ToEnUsString(stats->after_faces) : "?";
+    std::string faces = stats ? rsl::ToEnUsString(stats->after_faces) : "?";
     auto reduction =
         100.0f * (1.0f - static_cast<float>(score) /
                              static_cast<float>(holder.GetBaselineScore()));
     table << std::format("#{}", rank + 1);
     table << name;
-    table << ToEnUsString(score);
+    table << rsl::ToEnUsString(score);
     table << fmt::format("{}%", reduction);
     table << time;
     table << faces;
@@ -395,7 +385,7 @@ public:
   // Reserve memory in the index buffer for faster OutputIterator use based on
   // an upper bound calculated from |triangle_indices_count|.
   void Reserve(u32 triangle_indices_count) {
-    indices_.reserve(rsmeshopt::meshopt_stripifyBound(triangle_indices_count));
+    indices_.reserve(rsmeshopt::meshopt_stripifyBound_(triangle_indices_count));
   }
 
   // Construct an output iterator to the list of indices for consumption from
@@ -445,22 +435,19 @@ coro::generator<Primitive> PrimitiveRestartSplitter::Primitives() const {
 }
 
 Result<MeshOptimizerStats>
-StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim) {
+StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo algo,
+                           MatrixPrimitive& prim) {
   MeshOptimizerStatsCollector stats(prim);
-
   auto buf = TRY(IndexBuffer<u32>::create(prim));
-  std::vector<Vertex> vertices = std::move(buf.vertices);
-  std::vector<u32> index_data = std::move(buf.index_data);
+  auto& index_data = buf.index_data;
+  auto& vertices = buf.vertices;
+  assert(index_data.size() % 3 == 0);
 
-  size_t index_count = index_data.size();
-  size_t vertex_count = vertices.size();
-  std::vector<unsigned int> strip(
-      rsmeshopt::meshopt_stripifyBound(index_count));
-  unsigned int restart_index = ~0u;
-  size_t strip_size = rsmeshopt::meshopt_stripify(
-      &strip[0], index_data.data(), index_count, vertex_count, restart_index);
-  strip.resize(strip_size);
-
+  std::vector<rsmeshopt::vec3> verts;
+  for (auto v : vertices) {
+    verts.push_back({v.position.x, v.position.y, v.position.z});
+  }
+  auto strip = TRY(rsmeshopt::DoStripifyAlgo_(algo, index_data, verts, ~0u));
   PrimitiveRestartSplitter splitter(Topology::TriangleStrip, vertices, ~0u);
   splitter.SetIndices(std::move(strip));
   prim.primitives.clear();
@@ -470,89 +457,22 @@ StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim) {
 
   return stats.End();
 }
+
+Result<MeshOptimizerStats>
+StripifyTrianglesMeshOptimizer(MatrixPrimitive& prim) {
+  return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::MeshOpt, prim);
+}
 Result<MeshOptimizerStats> StripifyTrianglesTriStripper(MatrixPrimitive& prim) {
-  MeshOptimizerStatsCollector stats(prim);
-  auto buf = TRY(IndexBuffer<u32>::create(prim));
-  std::vector<Vertex> vertices = std::move(buf.vertices);
-
-  auto out = TRY(rsmeshopt::StripifyTrianglesTriStripper(buf.index_data));
-
-  prim.primitives.clear();
-  for (auto& x : out) {
-    auto& to = prim.primitives.emplace_back();
-    switch (x.Type) {
-    case triangle_stripper::TRIANGLES:
-      to.topology = Topology::Triangles;
-      break;
-    case triangle_stripper::TRIANGLE_STRIP:
-      to.topology = Topology::TriangleStrip;
-      break;
-    }
-    for (size_t idx : x.Indices) {
-      to.vertices.push_back(vertices[idx]);
-    }
-  }
-
-  return stats.End();
+  return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::TriStripper, prim);
 }
 Result<MeshOptimizerStats>
 StripifyTrianglesNvTriStripPort(MatrixPrimitive& prim) {
-  MeshOptimizerStatsCollector stats(prim);
-  auto buf = TRY(IndexBuffer<u32>::create(prim));
-  std::vector<Vertex> vertices = std::move(buf.vertices);
-  std::vector<u32> index_data = std::move(buf.index_data);
-
-  EXPECT(index_data.size() % 3 == 0);
-  auto strips = TRY(rsmeshopt::StripifyTrianglesNvTriStripPort(index_data));
-
-  prim.primitives.clear();
-  for (auto& x : strips) {
-    EXPECT(x.size() >= 3);
-    if (x.size() <= 3)
-      continue;
-    auto& to = prim.primitives.emplace_back();
-    to.topology = Topology::TriangleStrip;
-    for (int idx : x) {
-      to.vertices.push_back(vertices[idx]);
-    }
-  }
-  auto& v_new = prim.primitives.emplace_back();
-  v_new.topology = Topology::Triangles;
-  for (auto& x : strips) {
-    if (x.size() == 3) {
-      for (int y : x) {
-        v_new.vertices.push_back(vertices[y]);
-      }
-    }
-  }
-  if (v_new.vertices.size() == 0) {
-    prim.primitives.resize(prim.primitives.size() - 1);
-  }
-
-  return stats.End();
+  return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::NvTriStripPort,
+                                    prim);
 }
 
 Result<MeshOptimizerStats> StripifyTrianglesHaroohie(MatrixPrimitive& prim) {
-  MeshOptimizerStatsCollector stats(prim);
-  auto buf = TRY(IndexBuffer<u32>::create(prim));
-  std::vector<Vertex> vertices = std::move(buf.vertices);
-  std::vector<u32> index_data = std::move(buf.index_data);
-  EXPECT(index_data.size() % 3 == 0);
-
-  PrimitiveRestartSplitter splitter(Topology::TriangleStrip, vertices, ~0u);
-  splitter.Reserve(buf.index_data.size());
-
-  HaroohiePals::TriangleStripifier stripifier;
-  auto ok = stripifier.GenerateTriangleStripsWithPrimitiveRestart(
-      index_data, ~0u, splitter.OutputIterator());
-  EXPECT(ok);
-
-  prim.primitives.clear();
-  for (Primitive& p : splitter.Primitives()) {
-    prim.primitives.push_back(std::move(p));
-  }
-
-  return stats.End();
+  return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::Haroohie, prim);
 }
 
 Result<MeshOptimizerStats> ToFanTriangles(MatrixPrimitive& prim, u32 min_len,
@@ -560,7 +480,7 @@ Result<MeshOptimizerStats> ToFanTriangles(MatrixPrimitive& prim, u32 min_len,
   MeshOptimizerStatsCollector stats(prim);
   auto buf = TRY(IndexBuffer<u32>::create(prim));
 
-  auto fans = TRY(rsmeshopt::MakeFans(buf.index_data, ~0u, min_len, max_runs));
+  auto fans = TRY(rsmeshopt::MakeFans_(buf.index_data, ~0u, min_len, max_runs));
 
   PrimitiveRestartSplitter splitter(Topology::TriangleFan, buf.vertices, ~0u);
   splitter.Reserve(buf.index_data.size());
@@ -622,28 +542,11 @@ Result<MeshOptimizerStats> ToFanTriangles2(MatrixPrimitive& prim) {
 
 Result<MeshOptimizerStats> StripifyTrianglesDraco(MatrixPrimitive& prim,
                                                   bool degen) {
-  MeshOptimizerStatsCollector stats(prim);
-  auto buf = TRY(IndexBuffer<u32>::create(prim));
-  auto& index_data = buf.index_data;
-  auto& vertices = buf.vertices;
-  assert(index_data.size() % 3 == 0);
-
-  PrimitiveRestartSplitter splitter(Topology::TriangleStrip, buf.vertices, ~0u);
-  splitter.Reserve(buf.index_data.size());
-  std::vector<glm::vec3> verts;
-  for (auto v : vertices) {
-    verts.push_back(v.position);
+  if (degen) {
+    return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::DracoDegen,
+                                      prim);
   }
-  auto data = TRY(rsmeshopt::StripifyDraco(index_data, verts, ~0u, degen));
-  auto it = splitter.OutputIterator();
-  for (auto u : data) {
-    *it++ = u;
-  }
-  prim.primitives.clear();
-  for (Primitive& p : splitter.Primitives()) {
-    prim.primitives.push_back(std::move(p));
-  }
-  return stats.End();
+  return StripifyTrianglesRSMESHOPT(rsmeshopt::StripifyAlgo::Draco, prim);
 }
 
 Result<MeshOptimizerStats> StripifyTrianglesAlgo(MatrixPrimitive& prim,

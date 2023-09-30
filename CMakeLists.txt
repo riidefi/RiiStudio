@@ -28,9 +28,6 @@ if (WIN32)
   # Enable SSE3 if building with clang-cl
   if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" AND "x${CMAKE_CXX_SIMULATE_ID}" STREQUAL "xMSVC")
     add_compile_options("-mssse3")
-    if (FALSE)
-      add_compile_options("-march=native")
-    endif()
   endif()
 elseif(APPLE)
   add_compile_definitions(RII_PLATFORM_MACOSX)
@@ -43,23 +40,21 @@ elseif(APPLE)
   add_compile_options(-Wno-deprecated-declarations)
   # Draco
   add_compile_options(-Wno-implicit-const-int-float-conversion)
+elseif(EMSCRIPTEN)
+	add_compile_definitions(RII_PLATFORM_EMSCRIPTEN)
+	add_compile_definitions(IMGUI_IMPL_OPENGL_ES2)
+	add_compile_definitions(RII_BACKEND_SDL)
+	add_compile_definitions(__linux__)
+  # Assume emscripten + GLES2/SDL (linux-like)
+  # TODO: Set here, not toolchain
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} " -s USE_SDL=2 --no-heap-copy ")
+  #add_compile_options("-s ALLOW_MEMORY_GROWTH=1")
+  #add_compile_options("-s NO_EXIT_RUNTIME=0")
 elseif(UNIX)
   add_compile_definitions(RII_PLATFORM_LINUX)
   add_compile_definitions(RII_BACKEND_GLFW)
 	add_compile_definitions(__linux__)
   add_compile_definitions(LLVM_ON_UNIX)
-else()
-  # Assume emscripten + GLES2/SDL (linux-like)
-  
-	add_compile_definitions(RII_PLATFORM_EMSCRIPTEN)
-	add_compile_definitions(IMGUI_IMPL_OPENGL_ES2)
-	add_compile_definitions(RII_BACKEND_SDL)
-	add_compile_definitions(__linux__)
-
-  # TODO: Set here, not toolchain
-  # set(CMAKE_CXX_FLAGS "-s USE_SDL=2 -s ASSERTIONS=2")
-  #add_compile_options("-s ALLOW_MEMORY_GROWTH=1")
-  #add_compile_options("-s NO_EXIT_RUNTIME=0")
 endif()
 
 # Clang/Clang-Cl
@@ -130,38 +125,7 @@ endif()
 
 
 add_compile_definitions(FMT_EXCEPTIONS=0)
-CPMAddPackage("gh:fmtlib/fmt#10.0.0")
-CPMAddPackage("gh:zeux/meshoptimizer#v0.18")
-
-# Doesn't work OOB -- requires exceptions
-if (FALSE)
-  CPMAddPackage(
-    NAME cppcoro
-    GIT_REPOSITORY https://github.com/lewissbaker/cppcoro
-    GIT_TAG master
-    DOWNLOAD_ONLY YES
-  )
-  if (cppcoro_ADDED)
-    FILE(GLOB cppcoro_sources ${cppcoro_SOURCE_DIR}/lib/*.cpp)
-    add_library(cppcoro STATIC ${cppcoro_sources})
-    target_include_directories(cppcoro
-    PUBLIC
-      $<BUILD_INTERFACE:${cppcoro_SOURCE_DIR}/include>
-    )
-  endif()
-endif()
-
-# Doesn't work OOB -- they explicitly block Clang
-if (FALSE)
-  set(LIBCORO_BUILD_TESTS OFF)
-  set(LIBCORO_CODE_COVERAGE OFF)
-  set(LIBCORO_BUILD_EXAMPLES OFF)
-  CPMAddPackage("gh:jbaldwin/libcoro#main")
-  target_include_directories(libcoro
-  PUBLIC
-    $<BUILD_INTERFACE:${libcoro_SOURCE_DIR}/inc>
-  )
-endif()
+# CPMAddPackage("gh:fmtlib/fmt#10.1.1")
 
 add_definitions(-DINCLUDE_RUST_HEADERS)
 
@@ -172,19 +136,35 @@ if (APPLE)
   endif()
 endif()
 
-CPMAddPackage("gh:riidefi/corrosion#master")
+if (EMSCRIPTEN)
+  set(Rust_CARGO_TARGET "wasm32-unknown-emscripten")
+endif()
+
+CPMAddPackage("gh:corrosion-rs/corrosion#master")
 if(NOT UNIX)
   find_package(Corrosion REQUIRED)
 endif()
 
-corrosion_import_crate(MANIFEST_PATH source/rust/Cargo.toml CRATE_TYPES cdylib)
-if (NOT WIN32)
+# In Debug builds, we are forced to use .dll due to incompatible _ITERATOR_DEBUG_LEVEL values: 0 in cc-rs via Rust and 2 in C++.
+# In release builds we should prefer static libraries, though, due to minimize failure points during the update process.
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(RECURSIVE_CPP_CRATE_TYPE cdylib)
+else()
+  set(RECURSIVE_CPP_CRATE_TYPE staticlib)
+endif()
+
+if (NOT WIN32 AND NOT EMSCRIPTEN)
   corrosion_import_crate(MANIFEST_PATH source/llvm/Cargo.toml CRATE_TYPES cdylib)
 endif()
-corrosion_import_crate(MANIFEST_PATH source/gctex/Cargo.toml CRATE_TYPES cdylib)
-corrosion_import_crate(MANIFEST_PATH source/avir-rs/Cargo.toml CRATE_TYPES cdylib)
-corrosion_import_crate(MANIFEST_PATH source/c-discord-rich-presence/Cargo.toml CRATE_TYPES staticlib)
-corrosion_import_crate(MANIFEST_PATH source/dolphin-memory-engine-rs/Cargo.toml CRATE_TYPES cdylib)
-corrosion_import_crate(MANIFEST_PATH source/c-wbz/Cargo.toml CRATE_TYPES staticlib)
+corrosion_import_crate(MANIFEST_PATH source/gctex/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})
+corrosion_import_crate(MANIFEST_PATH source/wiitrig/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})
+corrosion_import_crate(MANIFEST_PATH source/rsmeshopt/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})
+corrosion_import_crate(MANIFEST_PATH source/szs/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})
+corrosion_import_crate(MANIFEST_PATH source/avir-rs/Cargo.toml CRATE_TYPES ${RECURSIVE_CPP_CRATE_TYPE} FLAGS --crate-type=${RECURSIVE_CPP_CRATE_TYPE})
+if (NOT EMSCRIPTEN)
+  corrosion_import_crate(MANIFEST_PATH source/c-discord-rich-presence/Cargo.toml CRATE_TYPES staticlib)
+endif()
+corrosion_import_crate(MANIFEST_PATH source/c-wbz/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
+corrosion_import_crate(MANIFEST_PATH source/cli/rszst_arg_parser/Cargo.toml CRATE_TYPES staticlib FLAGS --crate-type=staticlib)
 
 add_subdirectory(source)

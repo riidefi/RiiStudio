@@ -7,14 +7,6 @@
 
 namespace riistudio::frontend {
 
-static ImVec4 Clr(u32 x) {
-  return ImVec4{
-      static_cast<float>(x >> 16) / 255.0f,
-      static_cast<float>((x >> 8) & 0xff) / 255.0f,
-      static_cast<float>(x & 0xff) / 255.0f,
-      1.0f,
-  };
-}
 // TODO: Some better color scheme
 static std::map<std::string, Node::RichTypeInfo> richtypes{
     {"bone", {(const char*)ICON_FA_BONE, Clr(0xFFCA3A), "Bone"}},
@@ -478,7 +470,7 @@ static std::vector<Node> CollectNodes(j3d::Collection* g3d,
         .icons_right = GetNodeIcons(tex),
         .draw_context_menu_fn = CtxDraw(&tex),
         .draw_modal_fn = ModalDraw(&tex),
-        .public_name = tex.mName,
+        .public_name = tex.name,
         .obj = &tex,
         .is_container = false,
         .is_rich = true,

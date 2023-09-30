@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/3d/Texture.hpp>
 #include <core/common.h>
 #include <optional>
+#include <plugins/3d/Texture.hpp>
 
 namespace librii::glhelper {
 

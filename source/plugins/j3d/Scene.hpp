@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/3d/i3dmodel.hpp>
+#include <plugins/3d/i3dmodel.hpp>
 
 #include "Joint.hpp"
 #include "Material.hpp"
@@ -16,7 +16,7 @@ namespace riistudio::j3d {
 using Bufs = librii::j3d::Bufs;
 
 struct ModelData_ {
-  librii::j3d::ScalingRule mScalingRule;
+  librii::j3d::ScalingRule mScalingRule = librii::j3d::ScalingRule::Basic;
   bool isBDL = false;
   Bufs mBufs;
 

@@ -24,15 +24,14 @@ add_library(librii STATIC
 
   "szs/SZS.hpp"
   "szs/SZS.cpp"
-  "szs/CTGP.cpp"
+  
 
   "nitro/types.hpp"
 
   
   "image/ImagePlatform.cpp"
   "image/ImagePlatform.hpp"
-  "image/TextureExport.cpp"
-  "image/TextureExport.hpp"
+  
   "image/CheckerBoard.hpp"
 
   "gpu/DLBuilder.hpp"
@@ -89,7 +88,6 @@ add_library(librii STATIC
   "g3d/io/TextureIO.cpp"
   "g3d/data/AnimData.hpp"
   "g3d/io/AnimIO.cpp"
-  "g3d/io/DictIO.hpp"
   "g3d/io/CommonIO.hpp"
   "g3d/io/AnimIO.hpp"
   "g3d/io/TevIO.hpp"
@@ -160,10 +158,18 @@ add_library(librii STATIC
  "sp/DebugClient.cpp"
  "sp/detail/FFI.h" "egg/PBLM.cpp" "egg/BFG.cpp"
 
+ "jparticle/JParticle.cpp"
+ "jparticle/JEFFJPA1.cpp"
+ "jparticle/Sections/JPADynamicsBlock.cpp" 
+ "jparticle/utils/JPAUtils.cpp" 
+ "jparticle/Sections/JPAFieldBlock.cpp" 
+ "jparticle/Sections/JPAExtraShapeBlock.cpp" 
+ "jparticle/Sections/JPABaseShapeBlock.cpp" 
+ "jparticle/Sections/TextureUtil.cpp"
+
 "tev/TevSolver.cpp"
  "assimp/LRAssimp.cpp"
-
-"assimp/LRAssimpJSON.cpp" "objflow/ObjFlow.cpp" "lettuce/LettuceLEX.cpp" "j3d/BinaryBTK.cpp" "g3d/io/AnimChrIO.cpp" "live_mkw/live_mkw.cpp" "wbz/WBZ.cpp" "jparticle/JParticle.cpp" "jparticle/JEFFJPA1.cpp" "jparticle/Sections/JPADynamicsBlock.cpp" "jparticle/utils/JPAUtils.cpp" "jparticle/Sections/JPAFieldBlock.cpp" "jparticle/Sections/JPAExtraShapeBlock.cpp" "jparticle/Sections/JPABaseShapeBlock.cpp" "jparticle/Sections/TextureUtil.cpp")
+"assimp/LRAssimpJSON.cpp" "objflow/ObjFlow.cpp" "lettuce/LettuceLEX.cpp" "j3d/BinaryBTK.cpp" "g3d/io/AnimChrIO.cpp" "live_mkw/live_mkw.cpp" "wbz/WBZ.cpp" "dolphin/Dolphin.cpp" "crate/j3d_crate.cpp" "j3d/PreciseBMDDump.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
 if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
@@ -173,15 +179,46 @@ if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "
   )
 endif()
 
-if (UNIX)
-  set(LINUX_LIBS curl)
-endif (UNIX)
-
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   set_source_files_properties("g3d/gfx/G3dGfx.cpp" PROPERTIES COMPILE_FLAGS -O2 SKIP_PRECOMPILE_HEADERS ON)
 endif()
 
-target_link_libraries(librii PUBLIC core LibBadUIFramework rsmeshopt  PRIVATE vendor oishii gctex avir-rs c-wbz ${LINUX_LIBS})
+
+set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
+if (WIN32)
+  target_link_libraries(librii PUBLIC
+    ${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
+  )
+elseif (APPLE)
+  execute_process(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE)
+  message(STATUS "Architecture: ${ARCHITECTURE}")
+ 
+  if (${ARCHITECTURE} STREQUAL "arm64")
+    set(HOMEBREW_CELLAR "/opt/homebrew/Cellar")
+  else()
+    set(HOMEBREW_CELLAR "/usr/local/Cellar")
+  endif()
+ 
+  set(ASSIMP_VERSION "5.2.5")
+  target_link_libraries(librii PUBLIC "${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib")
+elseif (EMSCRIPTEN)
+  target_link_libraries(librii PUBLIC
+    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
+    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libIrrXML.a
+    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
+    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
+  )
+elseif (UNIX)
+  find_library(ASSIMP_LIBRARY NAMES libassimp.so PATHS /usr/lib)
+  target_link_libraries(librii PUBLIC
+    ${ASSIMP_LIBRARY}
+  )
+endif()
+
+target_link_libraries(librii
+  PUBLIC core LibBadUIFramework
+  PRIVATE vendor oishii gctex wiitrig avir-rs c-wbz szs plate rsmeshopt
+)
 
 target_include_directories(librii
   PRIVATE

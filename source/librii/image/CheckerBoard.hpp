@@ -1,7 +1,7 @@
 #pragma once
 
 #include <array>
-#include <core/3d/Texture.hpp>
+#include <plugins/3d/Texture.hpp>
 #include <core/common.h>
 #include <span>
 

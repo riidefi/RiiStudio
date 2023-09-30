@@ -7,32 +7,6 @@
 
 namespace libcube::UI {
 
-Result<std::vector<librii::crate::CrateAnimation>> tryImportManyRsPreset() {
-  const auto files =
-      TRY(rsl::ReadManyFile("Import Path"_j, "",
-                            {
-                                ".rspreset Material/Animation presets",
-                                "*.rspreset",
-                            }));
-
-  std::vector<librii::crate::CrateAnimation> presets;
-
-  for (const auto& file : files) {
-    const auto& path = file.path.string();
-    if (!path.ends_with(".rspreset")) {
-      continue;
-    }
-    auto rep = librii::crate::ReadRSPreset(file.data);
-    if (!rep) {
-      return std::unexpected(std::format(
-          "Failed to read .rspreset at \"{}\"\n{}", path, rep.error()));
-    }
-    presets.push_back(*rep);
-  }
-
-  return presets;
-}
-
 void DrawComboSourceMat(MergeAction& action, int& item) {
   if (item >= std::ssize(action.source)) {
     item = 0;

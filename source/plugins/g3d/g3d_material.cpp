@@ -5,6 +5,7 @@
 #include <core/util/timestamp.hpp>
 #include <librii/crate/g3d_crate.hpp>
 #include <plugins/g3d/collection.hpp>
+#include <rsl/ArrayUtil.hpp>
 
 namespace riistudio::g3d {
 
@@ -24,7 +25,7 @@ Result<void> ApplyCratePresetToMaterial(riistudio::g3d::Material& mat,
                                         bool overwrite_tex_same_name) {
   anim.mat.name = mat.name;
   TRY(RetargetCrateAnimation(anim));
-  
+
   static_cast<librii::g3d::G3dMaterialData&>(mat) = anim.mat;
   mat.onUpdate(); // Update viewport
   if (!mat.childOf) {

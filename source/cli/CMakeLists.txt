@@ -10,7 +10,6 @@ add_executable(cli
   "Rszst.cpp"
  )
 
-set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
 target_link_libraries(cli PUBLIC
   core
@@ -21,14 +20,14 @@ target_link_libraries(cli PUBLIC
   plugins
   vendor
   rsmeshopt
+  rszst_arg_parser
 )
 # ???
 add_dependencies(cli plugins)
- 
+
 if (WIN32)
   set(LINK_LIBS
     ${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
-    ${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
     opengl32.lib
     ntdll Crypt32 Secur32 Ncrypt # Rust needs this now?
     ${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
@@ -48,28 +47,22 @@ elseif (APPLE)
     set(HOMEBREW_CELLAR "/usr/local/Cellar")
   endif()
  
-  set(ASSIMP_VERSION "5.2.5")
   set(GLFW_VERSION "3.3.8")
-  set(FREETYPE_VERSION "2.13.1")
+  set(FREETYPE_VERSION "2.13.2")
  
-  SET_TARGET_PROPERTIES(cli PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl -lcurl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
-elseif (NOT UNIX)
-  target_link_libraries(cli PUBLIC
-    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
-    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libIrrXML.a
-    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
-    ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
-  )
-elseif (UNIX)
-  find_library(ASSIMP_LIBRARY NAMES libassimp.so PATHS /usr/lib)
+  SET_TARGET_PROPERTIES(cli PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+elseif (UNIX AND NOT EMSCRIPTEN)
   find_library(GLFW3_LIBRARY NAMES libglfw.so PATHS /usr/lib)
   find_library(FREETYPE_LIBRARY NAMES libfreetype.so PATHS /usr/lib)
   find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
+  find_library(SSL_LIBRARY NAMES libssl.so PATHS /usr/lib)
+  find_library(CRYPTO_LIBRARY NAMES libcrypto.so PATHS /usr/lib)
   target_link_libraries(cli PUBLIC
-    ${ASSIMP_LIBRARY}
     ${GLFW3_LIBRARY}
     ${FREETYPE_LIBRARY}
     ${BZIP2_LIBRARY}
+    ${SSL_LIBRARY}
+    ${CRYPTO_LIBRARY}
   )
 endif()
  
@@ -106,8 +99,8 @@ add_custom_command(
 )
 add_dependencies(cli rsl)
 
-# TODO: Cross platform
-if (WIN32)
+# Disabled: No DLLs exist
+if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_custom_command(TARGET cli POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:cli> $<TARGET_FILE_DIR:cli> 
     COMMAND_EXPAND_LISTS

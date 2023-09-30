@@ -1,8 +1,8 @@
 #pragma once
 
-#include <array>         // std::array
-#include <core/common.h> // u32
-#include <glm/vec3.hpp>  // glm::vec3
+#include <array>        // std::array
+#include <glm/vec3.hpp> // glm::vec3
+#include <rsl/Types.hpp>
 
 namespace librii::kmp {
 
@@ -10,6 +10,9 @@ enum class CannonType {
   Direct,
   Curved,
   Curved2,
+
+  // < 0 => Direct
+  Default = -1,
 };
 
 struct Cannon {

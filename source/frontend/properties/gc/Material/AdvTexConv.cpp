@@ -1,5 +1,7 @@
 #include "AdvTexConv.hpp"
 
+#include <librii/g3d/io/TextureIO.hpp>
+
 #include <rsl/Stb.hpp>
 
 namespace libcube::UI {
@@ -25,7 +27,7 @@ void OverwriteWithG3dTex(libcube::Texture& tex,
 Result<librii::g3d::TextureData> ReadTexture(const rsl::File& file) {
   const auto& path = file.path.string();
   if (path.ends_with(".tex0")) {
-    auto rep = librii::crate::ReadTEX0(file.data);
+    auto rep = librii::g3d::ReadTEX0(file.data);
     if (!rep) {
       return std::unexpected("Failed to read .tex0 at \"" + std::string(path) +
                              "\"\n" + rep.error());

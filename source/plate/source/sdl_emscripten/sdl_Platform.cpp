@@ -37,8 +37,12 @@ void readFile(const int& addr, const size_t& len, std::string path) {
 
   g_AppWindow->vdropDirect(std::unique_ptr<uint8_t[]>(data), len, path);
 }
+int myMalloc(const int& len) { return (int)malloc(len); }
 
-EMSCRIPTEN_BINDINGS(my_module) { emscripten::function("readFile", &readFile); }
+EMSCRIPTEN_BINDINGS(my_module) {
+  emscripten::function("readFile", &readFile);
+  emscripten::function("myMalloc", &myMalloc);
+}
 
 void main_loop(void* arg) {
   reinterpret_cast<Platform*>(arg)->mainLoopInternal();
@@ -66,8 +70,9 @@ Platform::Platform(unsigned width, unsigned height, const std::string& pName)
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
   SDL_DisplayMode current;
   SDL_GetCurrentDisplayMode(0, &current);
-  SDL_WindowFlags window_flags = (SDL_WindowFlags)(
-      SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+  SDL_WindowFlags window_flags =
+      (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
+                        SDL_WINDOW_ALLOW_HIGHDPI);
   static std::string sWinTitle = "App";
   if (!mTitle.empty())
     sWinTitle = mTitle;

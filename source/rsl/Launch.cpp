@@ -2,10 +2,16 @@
 #include <Windows.h>
 ///////////////////////////
 #include <Libloaderapi.h>
-#elif __APPLE__
+#endif
+
+#ifdef __APPLE__
 #include <limits.h>
 #include <mach-o/dyld.h>
-#else
+#endif
+
+#if !defined(_WIN32)
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #endif
 
@@ -19,7 +25,18 @@ void LaunchAsAdmin(std::string path, std::string arg) {
 #ifdef _WIN32
   ShellExecute(nullptr, "runas", path.c_str(), arg.c_str(), 0, SW_SHOWNORMAL);
 #else
-// FIXME: Provide Linux/Mac version
+  // Linux/Mac-specific privilege escalation using sudo
+  pid_t pid = fork();
+
+  if (pid == 0) {
+    // This block will be executed by the child process
+    execlp("sudo", "sudo", path.c_str(), arg.c_str(), (char*)nullptr);
+    // If execlp fails
+    _exit(EXIT_FAILURE);
+  } else if (pid < 0) {
+    // Handle fork failure
+    perror("fork failed");
+  }
 #endif
 }
 void LaunchAsUser(std::string path) {
@@ -51,7 +68,18 @@ void LaunchAsUser(std::string path) {
   // AdjustTokenPrivileges(nullptr, true, nullptr, 0, nullptr, 0);
 
 #else
-  // FIXME: Provide Linux/Mac version
+  // Linux/Mac-specific process creation code
+  pid_t pid = fork();
+
+  if (pid == 0) {
+    // This block will be executed by the child process
+    execlp(path.c_str(), path.c_str(), (char*)nullptr);
+    // If execlp fails
+    _exit(EXIT_FAILURE);
+  } else if (pid < 0) {
+    // Handle fork failure
+    perror("fork failed");
+  }
 #endif
 }
 

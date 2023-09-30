@@ -9,8 +9,15 @@
 #include <rsl/Defer.hpp>
 #include <rsl/FsDialog.hpp>
 #include <rsl/Stb.hpp>
+#include <rsl/WriteFile.hpp>
 
+#include <librii/crate/j3d_crate.hpp>
+#include <librii/g3d/io/TextureIO.hpp>
 #include <librii/rhst/RHSTOptimizer.hpp>
+
+#include <plugins/j3d/Preset.hpp>
+
+#include <frontend/PresetHelper.hpp>
 
 namespace libcube::UI {
 
@@ -95,12 +102,15 @@ public:
     tex0.data.resize(tex.getEncodedSize(true));
     memcpy(tex0.data.data(), tex.getData().data(),
            std::min<u32>(tex.getEncodedSize(true), tex0.data.size()));
-    auto buf = librii::crate::WriteTEX0(tex0);
+    auto buf = librii::g3d::WriteTEX0(tex0);
     if (buf.empty()) {
       return "librii::crate::WriteTEX0 failed";
     }
 
-    plate::Platform::writeFile(buf, path);
+    auto ok = rsl::WriteFile(buf, path);
+    if (!ok) {
+      return ok.error();
+    }
     return {};
   }
 
@@ -128,31 +138,25 @@ public:
   }
 };
 
-std::string tryExportSRT0(const librii::g3d::SrtAnimationArchive& arc) {
+Result<void> tryExportSRT0(const librii::g3d::SrtAnimationArchive& arc) {
   std::string path = arc.name + ".srt0";
 
   // Web version does not
   if (rsl::FileDialogsSupported()) {
-    auto choice = rsl::SaveOneFile("Export Path"_j, path,
-                                   {
-                                       "SRT0 file (*.srt0)",
-                                       "*.srt0",
-                                   });
-    if (!choice) {
-      return choice.error();
-    }
-    path = choice->string();
+    auto choice = TRY(rsl::SaveOneFile("Export Path"_j, path,
+                                       {
+                                           "SRT0 file (*.srt0)",
+                                           "*.srt0",
+                                       }));
+    path = choice.string();
   }
 
-  auto buf = librii::crate::WriteSRT0(arc.write(arc));
-  if (!buf) {
-    return "librii::crate::WriteSRT0 failed: " + buf.error();
-  }
-  if (buf->empty()) {
-    return "librii::crate::WriteSRT0 failed";
+  auto buf = TRY(librii::crate::WriteSRT0(arc.write(arc)));
+  if (buf.empty()) {
+    return std::unexpected("librii::crate::WriteSRT0 failed");
   }
 
-  plate::Platform::writeFile(*buf, path);
+  TRY(rsl::WriteFile(buf, path));
   return {};
 }
 class SaveAsSRT0 : public kpi::ActionMenu<riistudio::g3d::SRT0, SaveAsSRT0> {
@@ -173,9 +177,9 @@ public:
 
     if (m_export) {
       m_export = false;
-      auto err = tryExportSRT0(srt);
-      if (!err.empty()) {
-        m_errorState.enter(std::move(err));
+      auto ok = tryExportSRT0(srt);
+      if (!ok) {
+        m_errorState.enter(std::move(ok.error()));
       }
     }
 
@@ -207,7 +211,10 @@ std::string tryExportMdl0Mat(const librii::g3d::G3dMaterialData& mat) {
   if (buf.empty()) {
     return "librii::crate::WriteMDL0Mat failed";
   }
-  plate::Platform::writeFile(buf, path);
+  auto wok = rsl::WriteFile(buf, path);
+  if (!wok) {
+    return wok.error();
+  }
 
   {
     auto fs_path = std::filesystem::path(path);
@@ -217,7 +224,10 @@ std::string tryExportMdl0Mat(const librii::g3d::G3dMaterialData& mat) {
     if (buf.empty()) {
       return "librii::crate::WriteMDL0Shade failed";
     }
-    plate::Platform::writeFile(buf, shade.string());
+    auto wok2 = rsl::WriteFile(buf, shade.string());
+    if (!wok2) {
+      return wok2.error();
+    }
   }
 
   return {};
@@ -261,7 +271,7 @@ std::string tryImportTEX0(libcube::Texture& tex) {
   if (!file) {
     return file.error();
   }
-  auto replacement = librii::crate::ReadTEX0(file->data);
+  auto replacement = librii::g3d::ReadTEX0(file->data);
   if (!replacement) {
     return "Failed to read .tex0 at \"" + file->path.string() + "\"\n" +
            replacement.error();
@@ -412,14 +422,6 @@ std::string tryImportManySrt(riistudio::g3d::Collection& scn) {
   return err;
 }
 
-Result<void> tryImportRsPreset(riistudio::g3d::Material& mat) {
-  const auto file = TRY(rsl::ReadOneFile("Select preset"_j, "",
-                                         {
-                                             "rspreset Files",
-                                             "*.rspreset",
-                                         }));
-  return ApplyRSPresetToMaterial(mat, file.data);
-}
 class ApplyRsPreset
     : public kpi::ActionMenu<riistudio::g3d::Material, ApplyRsPreset> {
   bool m_import = false;
@@ -439,7 +441,7 @@ public:
 
     if (m_import) {
       m_import = false;
-      auto ok = tryImportRsPreset(mat);
+      auto ok = rs::preset_helper::tryImportRsPreset(mat);
       if (!ok) {
         m_errorState.enter(std::move(ok.error()));
       }
@@ -450,41 +452,37 @@ public:
   }
 };
 
-std::string tryExportRsPresetMat(std::string path,
-                                 const riistudio::g3d::Material& mat) {
-  auto anim = CreatePresetFromMaterial(mat);
-  if (!anim) {
-    return "Failed to create preset bundle: " + anim.error();
-  }
+class ApplyRsPresetJ
+    : public kpi::ActionMenu<riistudio::j3d::Material, ApplyRsPresetJ> {
+  bool m_import = false;
+  ErrorState m_errorState{"RSPreset Import Error"};
 
-  auto buf = librii::crate::WriteRSPreset(*anim);
-  if (!buf) {
-    return "Failed to write RSPreset";
-  }
-  if (buf->empty()) {
-    return "librii::crate::WriteRSPreset failed";
-  }
-
-  plate::Platform::writeFile(*buf, path);
-  return {};
-}
-
-std::string tryExportRsPreset(const riistudio::g3d::Material& mat) {
-  std::string path = mat.name + ".rspreset";
-  // Web version doesn't support this
-  if (rsl::FileDialogsSupported()) {
-    const auto file = rsl::SaveOneFile("Select preset"_j, path,
-                                       {
-                                           "rspreset Files",
-                                           "*.rspreset",
-                                       });
-    if (!file) {
-      return file.error();
+public:
+  bool _context(riistudio::j3d::Material&) {
+    if (ImGui::MenuItem("Apply .bmd_rspreset material preset"_j)) {
+      m_import = true;
     }
-    path = file->string();
+
+    return false;
   }
-  return tryExportRsPresetMat(path, mat);
-}
+
+  kpi::ChangeType _modal(riistudio::j3d::Material& mat) {
+    m_errorState.modal();
+
+    if (m_import) {
+      m_import = false;
+      auto& scn =
+          *dynamic_cast<riistudio::j3d::Collection*>(mat.childOf->childOf);
+      auto ok = rs::preset_helper::tryImportRsPresetJ(scn, mat);
+      if (!ok) {
+        m_errorState.enter(std::move(ok.error()));
+      }
+      return kpi::CHANGE_NEED_RESET;
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
 
 class MakeRsPreset
     : public kpi::ActionMenu<riistudio::g3d::Material, MakeRsPreset> {
@@ -505,11 +503,11 @@ public:
 
     if (m_import) {
       m_import = false;
-      auto err = tryExportRsPreset(mat);
-      if (!err.empty()) {
+      auto err = rs::preset_helper::tryExportRsPreset(mat);
+      if (!err) {
         rsl::ErrorDialogFmt("Failed to export preset for material {}: {}",
-                            mat.name, err);
-        m_errorState.enter(std::move(err));
+                            mat.name, err.error());
+        m_errorState.enter(std::move(err.error()));
       }
       return kpi::CHANGE_NEED_RESET;
     }
@@ -536,7 +534,68 @@ public:
 
     if (m_import) {
       m_import = false;
-      auto ok = tryExportRsPresetALL(model.getMaterials());
+      auto ok = rs::preset_helper::tryExportRsPresetALL(model.getMaterials());
+      if (!ok) {
+        m_errorState.enter(std::move(ok.error()));
+      }
+      return kpi::CHANGE_NEED_RESET;
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
+
+class MakeRsPresetJ
+    : public kpi::ActionMenu<riistudio::j3d::Material, MakeRsPresetJ> {
+  bool m_import = false;
+  ErrorState m_errorState{"RSPreset Export Error"};
+
+public:
+  bool _context(riistudio::j3d::Material&) {
+    if (ImGui::MenuItem("Create material preset"_j)) {
+      m_import = true;
+    }
+
+    return false;
+  }
+
+  kpi::ChangeType _modal(riistudio::j3d::Material& mat) {
+    m_errorState.modal();
+
+    if (m_import) {
+      m_import = false;
+      auto err = rs::preset_helper::tryExportRsPresetJ(mat);
+      if (!err) {
+        rsl::ErrorDialogFmt("Failed to export preset for material {}: {}",
+                            mat.name, err.error());
+        m_errorState.enter(std::move(err.error()));
+      }
+      return kpi::CHANGE_NEED_RESET;
+    }
+
+    return kpi::NO_CHANGE;
+  }
+};
+
+class MakeRsPresetALLJ
+    : public kpi::ActionMenu<riistudio::j3d::Model, MakeRsPresetALLJ> {
+  bool m_import = false;
+  ErrorState m_errorState{"RSPreset Export Error"};
+
+public:
+  bool _context(riistudio::j3d::Model&) {
+    if (ImGui::MenuItem("Export all materials as presets")) {
+      m_import = true;
+    }
+    return false;
+  }
+
+  kpi::ChangeType _modal(riistudio::j3d::Model& model) {
+    m_errorState.modal();
+
+    if (m_import) {
+      m_import = false;
+      auto ok = rs::preset_helper::tryExportRsPresetALLJ(model.getMaterials());
       if (!ok) {
         m_errorState.enter(std::move(ok.error()));
       }
@@ -633,11 +692,15 @@ void InstallCrate() {
   action_menu.addMenu(std::make_unique<MakeRsPreset>());
   action_menu.addMenu(std::make_unique<MakeRsPresetALL>());
   action_menu.addMenu(std::make_unique<ImportPresetsAction>());
+  action_menu.addMenu(std::make_unique<MakeRsPresetJ>());
+  action_menu.addMenu(std::make_unique<MakeRsPresetALLJ>());
+  // action_menu.addMenu(std::make_unique<ImportPresetsActionJ>());
   action_menu.addMenu(std::make_unique<SaveAsMDL0MatShade>());
   action_menu.addMenu(std::make_unique<AdvTexConvAction>());
   action_menu.addMenu(std::make_unique<OptimizeMesh>());
   if (rsl::FileDialogsSupported()) {
     action_menu.addMenu(std::make_unique<ApplyRsPreset>());
+    action_menu.addMenu(std::make_unique<ApplyRsPresetJ>());
     action_menu.addMenu(std::make_unique<CrateReplaceAction>());
     action_menu.addMenu(std::make_unique<ReplaceWithSRT0>());
     action_menu.addMenu(std::make_unique<ImportTexturesAction>());

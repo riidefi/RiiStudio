@@ -58,7 +58,9 @@ void wbzrs_free_buffer(wbzrs_buffer* buf);
 #endif
 
 #ifdef __cplusplus
+#ifndef CWBZ_NO_INCLUDE_EXPECTED
 #include <expected>
+#endif
 #include <span>
 #include <string>
 #include <string_view>

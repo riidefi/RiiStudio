@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Texture.hpp"
-#include <core/3d/i3dmodel.hpp>
+#include <plugins/3d/i3dmodel.hpp>
 #include <core/common.h>
 #include <LibBadUIFramework/Node2.hpp>
 #include <librii/gx.h>

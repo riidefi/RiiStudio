@@ -109,6 +109,7 @@ struct CHR0Track32 {
       frame.write(writer);
     }
   }
+  u32 filesize() const { return 8 + 4 * frames.size(); }
 };
 struct CHR0Track48 {
   // frames[i] * scale + offset
@@ -134,6 +135,7 @@ struct CHR0Track48 {
       frame.write(writer);
     }
   }
+  u32 filesize() const { return 8 + 6 * frames.size(); }
 };
 struct CHR0Track96 {
   std::vector<CHR0Frame96> frames;
@@ -152,6 +154,7 @@ struct CHR0Track96 {
       frame.write(writer);
     }
   }
+  u32 filesize() const { return 12 * frames.size(); }
 };
 struct CHR0BakedTrack8 {
   // frames[i] * scale + offset
@@ -177,6 +180,7 @@ struct CHR0BakedTrack8 {
       writer.write<u8>(frame);
     }
   }
+  u32 filesize() const { return 8 + 1 * frames.size(); }
 };
 struct CHR0BakedTrack16 {
   // frames[i] * scale + offset
@@ -202,6 +206,7 @@ struct CHR0BakedTrack16 {
       writer.write<u16>(frame);
     }
   }
+  u32 filesize() const { return 8 + 2 * frames.size(); }
 };
 struct CHR0BakedTrack32 {
   std::vector<f32> frames;
@@ -220,6 +225,7 @@ struct CHR0BakedTrack32 {
       writer.write<f32>(frame);
     }
   }
+  u32 filesize() const { return 4 * frames.size(); }
 };
 struct CHR0Track {
   f32 step;
@@ -267,6 +273,17 @@ struct CHR0Track {
       x->write(writer);
     }
   }
+  u32 filesize() const {
+    if (auto* x = std::get_if<CHR0Track32>(&data)) {
+      return 8 + x->filesize();
+    } else if (auto* x = std::get_if<CHR0Track48>(&data)) {
+      return 8 + x->filesize();
+    } else if (auto* x = std::get_if<CHR0Track96>(&data)) {
+      return 8 + x->filesize();
+    }
+    assert(!"Internal error");
+    std::unreachable();
+  }
 };
 struct CHR0BakedTrack {
   std::variant<CHR0BakedTrack8, CHR0BakedTrack16, CHR0BakedTrack32> data;
@@ -294,6 +311,17 @@ struct CHR0BakedTrack {
       x->write(writer);
     }
   }
+  u32 filesize() const {
+    if (auto* x = std::get_if<CHR0BakedTrack8>(&data)) {
+      return x->filesize();
+    } else if (auto* x = std::get_if<CHR0BakedTrack16>(&data)) {
+      return x->filesize();
+    } else if (auto* x = std::get_if<CHR0BakedTrack32>(&data)) {
+      return x->filesize();
+    }
+    assert(!"Internal error");
+    std::unreachable();
+  }
 };
 
 struct CHR0AnyTrack {
@@ -317,6 +345,15 @@ struct CHR0AnyTrack {
     } else if (auto* x = std::get_if<CHR0BakedTrack>(&data)) {
       x->write(writer);
     }
+  }
+  u32 filesize() const {
+    if (auto* x = std::get_if<CHR0Track>(&data)) {
+      return x->filesize();
+    } else if (auto* x = std::get_if<CHR0BakedTrack>(&data)) {
+      return x->filesize();
+    }
+    assert(!"Internal error");
+    std::unreachable();
   }
 };
 
@@ -555,6 +592,11 @@ struct BinaryChr {
 
   Result<void> read(oishii::BinaryReader& reader);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
+
+// Disabled for now: We do not convert offsets to indices yet..
+#if 0
+  void mergeIdenticalTracks();
+#endif
 };
 
 } // namespace librii::g3d

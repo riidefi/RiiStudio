@@ -286,7 +286,7 @@ Result<CourseMap> readKMP(std::span<const u8> data) {
       TRY(entry.mPosition << reader);
       TRY(entry.mRotation << reader);
       ctx_entry.require(TRY(reader.tryRead<u16>()) == i, "Invalid cannon ID");
-      entry.mType = TRY(safe.Enum8<CannonType>());
+      entry.mType = TRY(safe.Enum<s16, CannonType>());
       ++i;
     }
   }

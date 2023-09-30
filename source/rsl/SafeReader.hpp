@@ -1,38 +1,14 @@
 #pragma once
 
+#include "EnumCast.hpp"
+
 #include <core/common.h>
 #include <oishii/reader/binary_reader.hxx>
-#include <rsl/Ranges.hpp>
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
 #include <stacktrace>
 #endif
-#include <vendor/magic_enum/magic_enum.hpp>
 
 namespace rsl {
-
-inline std::string EnumError(u32 bad, auto&& good) {
-  auto values_printed =
-      rsl::join(good | std::views::transform([](auto x) {
-                  auto [id, name] = x;
-                  auto id_raw = static_cast<u32>(id);
-                  return std::format("{}={}=0x{:x}", name, id_raw, id_raw);
-                }),
-                ", ");
-  return std::format(
-      "Invalid enum value. Expected one of ({}). Instead saw {} (0x{:x}).",
-      values_printed, bad, bad);
-}
-
-template <typename E>
-inline std::expected<E, std::string> enum_cast(u32 candidate) {
-  auto as_enum = magic_enum::enum_cast<E>(candidate);
-  if (!as_enum.has_value()) {
-    auto values = magic_enum::enum_entries<E>();
-    auto msg = EnumError(candidate, values);
-    return std::unexpected(msg);
-  }
-  return *as_enum;
-}
 
 template <typename T, typename F>
 std::expected<T, std::string> checked_cast(const F& f) {

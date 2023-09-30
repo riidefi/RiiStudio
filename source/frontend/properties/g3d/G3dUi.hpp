@@ -11,6 +11,7 @@ namespace riistudio::g3d::ui {
 struct G3DDataSurface final {
   static inline const char* name() { return "Fog"_j; }
   static inline const char* icon = (const char*)ICON_FA_SHIP;
+  static inline ImVec4 color = Clr(0x588157);
 };
 void drawProperty(kpi::PropertyDelegate<Material>& delegate, G3DDataSurface);
 

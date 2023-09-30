@@ -1,6 +1,5 @@
 #pragma once
 
-#include <core/common.h>
 #include <librii/kmp/data/MapArea.hpp>
 #include <librii/kmp/data/MapCamera.hpp>
 #include <librii/kmp/data/MapCannon.hpp>
@@ -10,7 +9,8 @@
 #include <librii/kmp/data/MapRespawn.hpp>
 #include <librii/kmp/data/MapStage.hpp>
 #include <librii/kmp/data/MapStart.hpp>
-#include <rsl/SmallVector.hpp>
+#include <string>
+#include <vector>
 
 namespace librii::kmp {
 

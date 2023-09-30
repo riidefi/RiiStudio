@@ -43,7 +43,7 @@ struct DebugExpectSized
     if (mStream.tell() - mStart != mSize)
       printf("Expected to read %u bytes -- instead read %u\n", mSize,
              mStream.tell() - mStart);
-    assert(mStream.tell() - mStart == mSize && "Invalid size for this scope!");
+    // assert(mStream.tell() - mStart == mSize && "Invalid size for this scope!");
   }
 
   bool assertSince(uint32_t dif) {

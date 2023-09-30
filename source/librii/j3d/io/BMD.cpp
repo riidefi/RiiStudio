@@ -113,7 +113,7 @@ processModelForWrite(BMDExportContext& model,
         auto& csamp = mat.samplers[i];
         EXPECT(!csamp.mTexture.empty());
 
-        if (csamp.mTexture == tex.mName) {
+        if (csamp.mTexture == tex.name) {
           its.push_back(&csamp);
         }
       }
@@ -152,13 +152,14 @@ processModelForWrite(BMDExportContext& model,
 Result<void> processCollectionForWrite(BMDExportContext& collection) {
   std::map<std::string, u32> texNameMap;
   for (int i = 0; i < collection.mdl.textures.size(); ++i) {
-    texNameMap[collection.mdl.textures[i].mName] = i;
+    texNameMap[collection.mdl.textures[i].name] = i;
   }
 
   return processModelForWrite(collection, texNameMap);
 }
 
-Result<void> detailWriteBMD(const J3dModel& model_, oishii::Writer& writer) {
+Result<void> detailWriteBMD(const J3dModel& model_, oishii::Writer& writer,
+                            bool print_linkmap) {
   auto model = std::make_unique<J3dModel>(model_);
   oishii::Linker linker;
 
@@ -173,7 +174,7 @@ Result<void> detailWriteBMD(const J3dModel& model_, oishii::Writer& writer) {
   // writer.add_bp(0x37b2c, 4);
 
   linker.gather(std::move(bmd), "");
-  TRY(linker.write(writer));
+  TRY(linker.write(writer, /* shuffle */ false, print_linkmap));
   return {};
 }
 
@@ -359,6 +360,14 @@ Result<void> detailReadBMD(J3dModel& mdl, oishii::BinaryReader& reader,
   return {};
 }
 
+Result<J3dModel> J3dModel::fromFile(std::string_view path,
+                                    kpi::LightIOTransaction& tx) {
+  auto reader = TRY(oishii::BinaryReader::FromFilePath(path, std::endian::big));
+  librii::j3d::J3dModel out;
+  TRY(detailReadBMD(out, reader, tx));
+  TRY(out.dropMtx());
+  return out;
+}
 Result<J3dModel> J3dModel::read(oishii::BinaryReader& reader,
                                 kpi::LightIOTransaction& tx) {
   librii::j3d::J3dModel out;
@@ -366,10 +375,10 @@ Result<J3dModel> J3dModel::read(oishii::BinaryReader& reader,
   TRY(out.dropMtx());
   return out;
 }
-Result<void> J3dModel::write(oishii::Writer& writer) {
+Result<void> J3dModel::write(oishii::Writer& writer, bool print_linkmap) {
   J3dModel tmp = *this;
   TRY(tmp.genMtx());
-  return detailWriteBMD(tmp, writer);
+  return detailWriteBMD(tmp, writer, print_linkmap);
 }
 
 std::optional<u8> asTexNMtx(gx::VertexAttribute attr) {

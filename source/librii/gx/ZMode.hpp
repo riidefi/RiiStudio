@@ -1,7 +1,8 @@
 #pragma once
 
+#include <librii/gx/Comparison.hpp>
+
 namespace librii::gx {
-	
 
 struct ZMode {
   bool compare = true;
@@ -10,5 +11,5 @@ struct ZMode {
 
   bool operator==(const ZMode& rhs) const noexcept = default;
 };
-	
-} // namepace librii::gx
+
+} // namespace librii::gx

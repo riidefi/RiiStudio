@@ -8,7 +8,9 @@ extern "C" {
 }
 
 fn main() {
-    let args: Vec<CString> = std::env::args().map(|arg| CString::new(arg).unwrap()).collect();
+    let args: Vec<CString> = std::env::args()
+        .map(|arg| CString::new(arg).unwrap())
+        .collect();
     let c_args: Vec<*const c_char> = args.iter().map(|arg| arg.as_ptr()).collect();
 
     println!("Invoking from Rust!");

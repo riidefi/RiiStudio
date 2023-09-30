@@ -16,7 +16,7 @@ static constexpr u32 DefaultFlags =
     aiProcess_GenSmoothNormals | aiProcess_RemoveRedundantMaterials |
     aiProcess_FindDegenerates | aiProcess_FindInvalidData |
     aiProcess_OptimizeMeshes | aiProcess_Debone | aiProcess_OptimizeGraph |
-    aiProcess_RemoveComponent;
+    aiProcess_RemoveComponent | aiProcess_PreTransformVertices;
 
 static constexpr u32 AlwaysFlags =
     aiProcess_JoinIdenticalVertices   // Merge doubles

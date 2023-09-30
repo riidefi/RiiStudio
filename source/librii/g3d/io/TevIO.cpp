@@ -119,7 +119,7 @@ void BinaryTevDL::write(oishii::Writer& writer) const {
 
     writer.skip(3); // 3
 
-    MAYBE_UNUSED const auto couple_len = writer.tell() - couple_start;
+    [[maybe_unused]] const auto couple_len = writer.tell() - couple_start;
     rsl::trace("CoupleLen: {}", couple_len);
     assert(couple_len == 48);
   }
@@ -127,8 +127,8 @@ void BinaryTevDL::write(oishii::Writer& writer) const {
   writer.reserveNext(blank_dl);
   writer.skip(blank_dl);
 
-  MAYBE_UNUSED const auto end = writer.tell();
-  MAYBE_UNUSED const auto tev_size = writer.tell() - dl_start + 32;
+  [[maybe_unused]] const auto end = writer.tell();
+  [[maybe_unused]] const auto tev_size = writer.tell() - dl_start + 32;
   assert(tev_size == 0x200);
 }
 
@@ -152,7 +152,7 @@ Result<void> BinaryTev::read(oishii::BinaryReader& reader,
 }
 void BinaryTev::writeBody(oishii::Writer& writer) const {
   // For debug tracking
-  MAYBE_UNUSED auto tev_start = writer.tell() - 8;
+  [[maybe_unused]] auto tev_start = writer.tell() - 8;
 
   writer.write<u32>(id);
   writer.write<u8>(dl.tevStages.size());

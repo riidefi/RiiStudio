@@ -12,6 +12,7 @@ namespace libcube::UI {
 struct StageSurface final {
   static inline const char* name() { return "Stage"_j; }
   static inline const char* icon = (const char*)ICON_FA_NETWORK_WIRED;
+  static inline ImVec4 color = Clr(0xb5e2fa);
 
   // Mark this surface to be more than an IDL tag.
   int tag_stateful;

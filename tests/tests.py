@@ -94,6 +94,10 @@ TEST_DATA = {
 	'b5a3663ec86a2f96e53d811af8775b9a': 'b5a3663ec86a2f96e53d811af8775b9a',
 	'b7fac9238095c5294730910b87d69910': 'b7fac9238095c5294730910b87d69910', # farm_course
 
+	# moray.brres
+	# Contains a BrawlBox CHR0 file which was broken before 5.10.13 (Hotfix 7)
+	'45c201cb04fadee9a320a166cb493b91': '3c4502bdec02a4f5d7791d5d141340ab',
+
 	#---------------------------------------------------------------------------------
 	# .dae -> BRRES tests
 	#---------------------------------------------------------------------------------
@@ -151,7 +155,7 @@ def rebuild(test_exec: Path, rszst: Path, input_path: Path, output_path: Path, c
 	if output_path.is_file():
 		output_path.unlink()
 	if input_path.suffix == ".dae":
-		args = [str(rszst), "import-command", str(input_path), str(output_path)]
+		args = [str(rszst), "import-brres", str(input_path), str(output_path)]
 		if input_path.stem.endswith("no_ts"):
 			args += ["--no-tristrip"]
 		elif input_path.stem.endswith("ai_json"):
@@ -222,7 +226,7 @@ def run_tests(test_exec: Path, rszst: Path, fs_dir: Path, out: Path):
 	for fs_file in os.listdir(fs_dir):
 		in_file = fs_dir / fs_file
 		out_file = out / fs_file
-		print(out_file)
+		# print(out_file)
 		if in_file.is_dir():
 			continue
 		# 	run_tests(test_exec, rszst, in_file, out_file)

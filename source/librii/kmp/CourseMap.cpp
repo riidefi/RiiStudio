@@ -27,6 +27,9 @@ namespace librii::kmp {
 const auto Flow = *objflow::Default();
 
 Result<std::string> IdToStr(int id) {
+	if (id == 0) {
+    return "InvalidID:0x00";
+  }
   if (id >= Flow.remap_table.size() || id < 0 ||
       Flow.remap_table[id] >= Flow.parameters.size() ||
       Flow.remap_table[id] < 0) {
@@ -190,7 +193,8 @@ void to_json(json& j, const GeoObj& obj) {
 }
 
 void from_json(const json& j, GeoObj& obj) {
-  auto id = StrToId(j["id"]);
+  std::string s = j["id"];
+  auto id = StrToId(s);
   if (!id) {
     fmt::print(stderr, fmt::fg(fmt::color::dark_red), "JSON->KMP: {}",
                id.error());

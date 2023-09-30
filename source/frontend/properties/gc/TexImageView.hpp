@@ -3,21 +3,19 @@
 #include "ResizeAction.hpp"
 #include <LibBadUIFramework/ActionMenu.hpp>
 #include <LibBadUIFramework/PropertyView.hpp>
-#include <core/3d/i3dmodel.hpp>
+#include <plugins/3d/i3dmodel.hpp>
 #include <frontend/widgets/Image.hpp>
 #include <frontend/widgets/Lib3dImage.hpp>
 #include <imcxx/Widgets.hpp>
-#include <librii/image/TextureExport.hpp>
 #include <plugins/gc/Export/IndexedPolygon.hpp>
 #include <plugins/gc/Export/Texture.hpp>
 #include <rsl/FsDialog.hpp>
 #include <rsl/Stb.hpp>
-#include <vendor/stb_image.h>
 
 namespace libcube::UI {
 
 [[nodiscard]] Result<void> importImage(Texture& tex, u32 import_lod);
-void exportImage(const Texture& tex, u32 export_lod);
+[[nodiscard]] Result<void> exportImage(const Texture& tex, u32 export_lod);
 
 class ImageActions : public kpi::ActionMenu<Texture, ImageActions>,
                      public ResizeAction,
@@ -107,7 +105,7 @@ public:
     bool all_changed = false;
 
     if (export_lod != -1) {
-      exportImage(tex, export_lod);
+      [[maybe_unused]] auto _ = exportImage(tex, export_lod);
       export_lod = -1;
     }
 

@@ -22,25 +22,12 @@ inline IOMessageClass operator|(const IOMessageClass lhs,
                                      static_cast<u32>(rhs));
 }
 
-//! @brief A (de)serializer may request input from the user.
-//!
-//! Configure? -> Interrupted?* (not available for clis) -> Complete
-enum class TransactionState {
-  Complete,            //!< Operation has ended
-  Failure,             //!< Exit
-  FailureToSave,       //!< Exit
-  ConfigureProperties, //!< Configure + Interrupted
-  ResolveDependencies, //!< Interrupted: The entire point of this system!
-};
-
 struct LightIOTransaction {
   // Deserializer -> Caller
   std::function<void(IOMessageClass message_class,
                      const std::string_view domain,
                      const std::string_view message_body)>
       callback;
-
-  TransactionState state = TransactionState::Complete;
 };
 
 struct IOContext {

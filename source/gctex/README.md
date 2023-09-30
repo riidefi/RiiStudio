@@ -11,6 +11,15 @@ let mut dst = vec![0; dst_len];
 let src = vec![0; src_len];
 gctex::rii_encode_cmpr(&mut dst, &src, width, height);
 ```
+
+### C# Bindings
+See https://github.com/riidefi/RiiStudio/tree/master/source/gctex/examples/c%23
+```cs
+byte[] dst = new byte[dst_len];
+byte[] src = new byte[src_len];
+gctex.Encode(0xE /* CMPR */, dst, src, width, height);
+```
+
 ### C/C++
 For C/C++ applications, you can use the following syntax:
 ```cpp

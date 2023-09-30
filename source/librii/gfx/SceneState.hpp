@@ -10,7 +10,7 @@ namespace librii::gfx {
 // Not implemented yet
 enum class RenderPass {
   Standard,
-  ID // For selection
+  ID, // For selection
 };
 
 struct DrawBuffer {

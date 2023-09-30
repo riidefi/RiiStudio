@@ -1,5 +1,5 @@
 #include "EditorWindow.hpp"
-#include <core/3d/i3dmodel.hpp>                            // lib3d::Scene
+#include <plugins/3d/i3dmodel.hpp>                            // lib3d::Scene
 #include <frontend/applet.hpp>                             // core::Applet
 #include <frontend/legacy_editor/views/Outliner.hpp>       // MakeHistoryList
 #include <frontend/legacy_editor/views/PropertyEditor.hpp> // MakeOutliner
@@ -197,8 +197,11 @@ BRRESEditor::BRRESEditor(std::span<const u8> span, const std::string& path)
     Message emsg(message_class, std::string(domain), std::string(message_body));
     mLoadErrorMessages.push_back(emsg);
   };
-  g3d::ReadBRRES(*out, reader, trans);
-  if (trans.state != kpi::TransactionState::Complete) {
+  auto ok = g3d::ReadBRRES(*out, reader, trans);
+  if (!ok) {
+    rsl::error(ok.error());
+    Message emsg(kpi::IOMessageClass::Error, "brres", std::string(ok.error()));
+    mLoadErrorMessages.push_back(emsg);
     mErrorState = true;
     return;
   }
@@ -254,9 +257,12 @@ void BRRESEditor::draw_() {
   mOutliner->draw();
 
   if (mSelection.mActive != active || mSelection.selected != sel) {
-    if (auto* g = dynamic_cast<lib3d::Material*>(active)) {
+    if (auto* g = active ? dynamic_cast<lib3d::Material*>(active) : nullptr) {
       mRenderTest->hide_mats.clear();
       for (auto& x : mSelection.selected) {
+        if (x == nullptr) {
+          continue;
+        }
         auto* m = dynamic_cast<const lib3d::Material*>(x);
         if (m == nullptr) {
           continue;
@@ -351,10 +357,6 @@ BMDEditor::BMDEditor(std::span<const u8> span, const std::string& path)
     mErrorState = true;
     return;
   }
-  if (trans.state != kpi::TransactionState::Complete) {
-    rsl::ErrorDialog(total);
-    return;
-  }
   attach(std::move(out));
 }
 BMDEditor::~BMDEditor() = default;
@@ -407,9 +409,12 @@ void BMDEditor::draw_() {
   mOutliner->draw();
 
   if (mSelection.mActive != active || mSelection.selected != sel) {
-    if (auto* g = dynamic_cast<lib3d::Material*>(active)) {
+    if (auto* g = active ? dynamic_cast<lib3d::Material*>(active) : nullptr) {
       mRenderTest->hide_mats.clear();
       for (auto& x : mSelection.selected) {
+        if (x == nullptr) {
+          continue;
+        }
         auto* m = dynamic_cast<const lib3d::Material*>(x);
         if (m == nullptr) {
           continue;

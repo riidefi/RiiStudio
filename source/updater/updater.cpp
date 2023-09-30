@@ -150,7 +150,9 @@ bool IsUpdateStale(Updater& updater, std::filesystem::path root) {
   }
 #ifdef _WIN32
   // These filepaths are Windows-specific
-  return !FilesFromSameUpdateRun(root / "RiiStudio.exe", root / "gctex.dll");
+  return false;
+  // Disabled: No longer using DLL for Rust crates
+  // return !FilesFromSameUpdateRun(root / "RiiStudio.exe", root / "gctex.dll");
 #else
   return false;
 #endif
@@ -241,7 +243,30 @@ Result<void> Updater::InstallUpdate() {
   if (assets.size() < 1) {
     return std::unexpected("Release has no prebuilt binaries on GitHub");
   }
-  const auto url = assets[0].browser_download_url;
+  for (auto& x : assets) {
+    rsl::trace("Asset: {}", x.browser_download_url);
+  }
+  std::optional<GithubManifest::Asset> asset = std::nullopt;
+  for (auto& x : assets) {
+#ifdef __APPLE__
+    if (x.browser_download_url.ends_with(".app")) {
+      asset = x;
+      break;
+    }
+#endif
+#ifdef _WIN32
+    if (x.browser_download_url.ends_with(".zip")) {
+      asset = x;
+      break;
+    }
+#endif
+  }
+
+  if (!asset) {
+    return std::unexpected(
+        "Release does not have any Linux/MacOS prebuilt binaries");
+  }
+  const auto url = asset->browser_download_url;
 
   const auto folder = std::filesystem::path(current_exe).parent_path();
   const auto new_exe = folder / "RiiStudio.exe";

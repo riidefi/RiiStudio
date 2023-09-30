@@ -1,14 +1,15 @@
 #include "FsDialog.hpp"
-#include <plate/Platform.hpp>
-#include <vendor/FileDialogues.hpp>
-
-IMPORT_STD;
-
 #include <fstream>
+#include <vendor/FileDialogues.hpp>
 
 namespace rsl {
 
-bool FileDialogsSupported() { return plate::Platform::supportsFileDialogues(); }
+bool FileDialogsSupported() {
+#ifdef EMSCRIPTEN
+  return false;
+#endif
+  return true;
+}
 
 Result<std::filesystem::path> OpenOneFile(std::string_view title,
                                           std::string_view default_path,

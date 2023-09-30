@@ -4,10 +4,10 @@
 #pragma once
 
 #include <array>               // std::array
-#include <core/common.h>       // u32
 #include <glm/vec2.hpp>        // glm::vec2
 #include <glm/vec3.hpp>        // glm::vec3
 #include <rsl/SmallVector.hpp> // rsl::small_vector
+#include <rsl/Types.hpp>
 
 namespace librii::kmp {
 
@@ -26,7 +26,7 @@ template <typename PointT> struct DirectedGraph {
 
   // Over 6 cannot be serialized
   std::vector<u8> mPredecessors; // 6
-  std::vector<u8> mSuccessors; // 6
+  std::vector<u8> mSuccessors;   // 6
   std::array<u8, 2> misc;
 
   bool operator==(const DirectedGraph&) const = default;

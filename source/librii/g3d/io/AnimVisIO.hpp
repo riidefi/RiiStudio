@@ -3,7 +3,6 @@
 #include <core/common.h>
 #include <librii/g3d/data/AnimData.hpp>
 #include <librii/g3d/io/CommonIO.hpp>
-#include <librii/g3d/io/DictIO.hpp>
 #include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/NameTableIO.hpp>
 #include <oishii/reader/binary_reader.hxx>

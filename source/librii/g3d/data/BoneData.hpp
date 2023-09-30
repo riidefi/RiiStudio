@@ -9,8 +9,7 @@
 #include <string>
 #include <vector>
 
-#include <oishii/reader/binary_reader.hxx>
-#include <oishii/writer/binary_writer.hxx>
+#include <oishii/forward_declarations.hxx>
 
 #include <glm/mat4x3.hpp>
 

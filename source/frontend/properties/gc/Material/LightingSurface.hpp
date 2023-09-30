@@ -10,6 +10,7 @@ namespace libcube::UI {
 struct LightingSurface final {
   static inline const char* name() { return "Lighting"_j; }
   static inline const char* icon = (const char*)ICON_FA_SUN;
+  static inline ImVec4 color = Clr(0xfca311);
 };
 
 void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,

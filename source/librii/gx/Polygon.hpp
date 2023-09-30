@@ -90,6 +90,29 @@ struct MeshData {
   bool operator==(const MeshData&) const = default;
 };
 
+static inline void RecomputeMinimalIndexFormat(librii::gx::MeshData& data) {
+  for (auto& [attr, format] : data.mVertexDescriptor.mAttributes) {
+    if (format != librii::gx::VertexAttributeType::Short) {
+      continue;
+    }
+    u16 max = 0;
+    for (auto& mp : data.mMatrixPrimitives) {
+      for (auto& p : mp.mPrimitives) {
+        for (auto& v : p.mVertices) {
+          // TODO: Checked
+          u16 i = v[attr];
+          if (i > max) {
+            max = i;
+          }
+        }
+      }
+    }
+    if (max <= std::numeric_limits<u8>::max()) {
+      format = librii::gx::VertexAttributeType::Byte;
+    }
+  }
+}
+
 inline std::pair<u32, u32> ComputeVertTriCounts(const MeshData& mesh) {
   u32 nVert = 0, nTri = 0;
 

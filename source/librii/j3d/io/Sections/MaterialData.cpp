@@ -390,6 +390,12 @@ Result<void> io_wrapper<gx::TevStage>::onRead(rsl::SafeReader& reader,
   const auto unk1 = TRY(reader.U8());
   // Assumed to be TevOp (see attributedlandmeteoritec.bmd)
   (void)unk1;
+  if (unk1 != 0xff) {
+    auto msg = std::format("Unexpected unk1 value 0x{:02x} (presumed to be "
+                           "GXTevOp). Expected 0xff.",
+                           unk1);
+    reader.getUnsafe().warnAt(msg.c_str(), reader.tell() - 1, reader.tell());
+  }
   // assert(unk1 == 0xff);
   c.colorStage.a = TRY(reader.Enum8<gx::TevColorArg>());
   c.colorStage.b = TRY(reader.Enum8<gx::TevColorArg>());
@@ -397,7 +403,7 @@ Result<void> io_wrapper<gx::TevStage>::onRead(rsl::SafeReader& reader,
   c.colorStage.d = TRY(reader.Enum8<gx::TevColorArg>());
 
   c.colorStage.formula = TRY(reader.Enum8<gx::TevColorOp>());
-  // See icemountainplanet.bdl
+  // See icemountainplanet.bdl for an example of an invalid TevBias
   auto b = reader.Enum8<gx::TevBias>();
   c.colorStage.bias = b.value_or(gx::TevBias::zero);
   c.colorStage.scale = TRY(reader.Enum8<gx::TevScale>());
@@ -416,8 +422,14 @@ Result<void> io_wrapper<gx::TevStage>::onRead(rsl::SafeReader& reader,
   c.alphaStage.out = TRY(reader.Enum8<gx::TevReg>());
 
   const auto unk2 = TRY(reader.U8());
+  // See seesawmovenuta.bmd
   (void)unk2;
-  EXPECT(unk2 == 0xff);
+  if (unk2 != 0xff) {
+    auto msg =
+        std::format("Unexpected unk2 value 0x{:02x}. Expected 0xff.", unk2);
+    reader.getUnsafe().warnAt(msg.c_str(), reader.tell() - 1, reader.tell());
+  }
+  // EXPECT(unk2 == 0xff);
   return {};
 }
 template <>

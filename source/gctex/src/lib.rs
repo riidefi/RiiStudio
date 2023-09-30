@@ -30,6 +30,28 @@ pub mod librii {
         ExtensionRawRGBA32 = 0xFF,
     }
 
+    impl TextureFormat {
+        pub fn from_u32(val: u32) -> Option<Self> {
+            match val {
+                x if x == TextureFormat::I4 as u32 => Some(TextureFormat::I4),
+                x if x == TextureFormat::I8 as u32 => Some(TextureFormat::I8),
+                x if x == TextureFormat::IA4 as u32 => Some(TextureFormat::IA4),
+                x if x == TextureFormat::IA8 as u32 => Some(TextureFormat::IA8),
+                x if x == TextureFormat::RGB565 as u32 => Some(TextureFormat::RGB565),
+                x if x == TextureFormat::RGB5A3 as u32 => Some(TextureFormat::RGB5A3),
+                x if x == TextureFormat::RGBA8 as u32 => Some(TextureFormat::RGBA8),
+                x if x == TextureFormat::C4 as u32 => Some(TextureFormat::C4),
+                x if x == TextureFormat::C8 as u32 => Some(TextureFormat::C8),
+                x if x == TextureFormat::C14X2 as u32 => Some(TextureFormat::C14X2),
+                x if x == TextureFormat::CMPR as u32 => Some(TextureFormat::CMPR),
+                x if x == TextureFormat::ExtensionRawRGBA32 as u32 => {
+                    Some(TextureFormat::ExtensionRawRGBA32)
+                }
+                _ => None,
+            }
+        }
+    }
+
     #[repr(u32)]
     #[derive(Debug, Copy, Clone)]
     pub enum CopyTextureFormat {
@@ -365,51 +387,86 @@ pub mod librii {
         }
     }
 
-    pub fn rii_encode_i4(dst: &mut [u8], src: &[u32], width: u32, height: u32) {
+    pub fn rii_encode_i4(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
         unsafe {
             bindings::impl_rii_encodeI4(dst.as_mut_ptr(), src.as_ptr(), width, height);
         }
     }
 
-    pub fn rii_encode_i8(dst: &mut [u8], src: &[u32], width: u32, height: u32) {
+    pub fn rii_encode_i8(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
         unsafe {
             bindings::impl_rii_encodeI8(dst.as_mut_ptr(), src.as_ptr(), width, height);
         }
     }
 
-    pub fn rii_encode_ia4(dst: &mut [u8], src: &[u32], width: u32, height: u32) {
+    pub fn rii_encode_ia4(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
         unsafe {
             bindings::impl_rii_encodeIA4(dst.as_mut_ptr(), src.as_ptr(), width, height);
         }
     }
 
-    pub fn rii_encode_ia8(dst: &mut [u8], src: &[u32], width: u32, height: u32) {
+    pub fn rii_encode_ia8(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
         unsafe {
             bindings::impl_rii_encodeIA8(dst.as_mut_ptr(), src.as_ptr(), width, height);
         }
     }
 
-    pub fn rii_encode_rgb565(dst: &mut [u8], src: &[u32], width: u32, height: u32) {
+    pub fn rii_encode_rgb565(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
         unsafe {
             bindings::impl_rii_encodeRGB565(dst.as_mut_ptr(), src.as_ptr(), width, height);
         }
     }
 
-    pub fn rii_encode_rgb5a3(dst: &mut [u8], src: &[u32], width: u32, height: u32) {
+    pub fn rii_encode_rgb5a3(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
         unsafe {
             bindings::impl_rii_encodeRGB5A3(dst.as_mut_ptr(), src.as_ptr(), width, height);
         }
     }
 
-    pub fn rii_encode_rgba8(dst: &mut [u8], src4: &[u32], width: u32, height: u32) {
+    pub fn rii_encode_rgba8(dst: &mut [u8], src4: &[u8], width: u32, height: u32) {
         unsafe {
             bindings::impl_rii_encodeRGBA8(dst.as_mut_ptr(), src4.as_ptr(), width, height);
+        }
+    }
+
+    pub fn rii_encode(format: TextureFormat, dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+        match format {
+            TextureFormat::I4 => rii_encode_i4(dst, src, width, height),
+            TextureFormat::I8 => rii_encode_i8(dst, src, width, height),
+            TextureFormat::IA4 => rii_encode_ia4(dst, src, width, height),
+            TextureFormat::IA8 => rii_encode_ia8(dst, src, width, height),
+            TextureFormat::RGB565 => rii_encode_rgb565(dst, src, width, height),
+            TextureFormat::RGB5A3 => rii_encode_rgb5a3(dst, src, width, height),
+            TextureFormat::RGBA8 => rii_encode_rgba8(dst, src, width, height),
+            TextureFormat::CMPR => rii_encode_cmpr(dst, src, width, height),
+            _ => panic!("Unsupported texture format: {:?}", format),
         }
     }
 
     pub fn get_version() -> &'static str {
         env!("CARGO_PKG_VERSION")
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rii_encode(
+    format: u32,
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+    width: u32,
+    height: u32,
+) {
+    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
+    let texture_format = match librii::TextureFormat::from_u32(format) {
+        Some(tf) => tf,
+        None => {
+            panic!("Invalid texture format: {}", format);
+        }
+    };
+    librii::rii_encode(texture_format, dst_slice, src_slice, width, height);
 }
 
 #[no_mangle]
@@ -436,7 +493,7 @@ pub unsafe extern "C" fn rii_encode_i4(
     height: u32,
 ) {
     let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
     librii::rii_encode_i4(dst_slice, src_slice, width, height);
 }
 
@@ -450,7 +507,7 @@ pub unsafe extern "C" fn rii_encode_i8(
     height: u32,
 ) {
     let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
     librii::rii_encode_i8(dst_slice, src_slice, width, height);
 }
 
@@ -464,7 +521,7 @@ pub unsafe extern "C" fn rii_encode_ia4(
     height: u32,
 ) {
     let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
     librii::rii_encode_ia4(dst_slice, src_slice, width, height);
 }
 
@@ -478,7 +535,7 @@ pub unsafe extern "C" fn rii_encode_ia8(
     height: u32,
 ) {
     let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
     librii::rii_encode_ia8(dst_slice, src_slice, width, height);
 }
 
@@ -492,7 +549,7 @@ pub unsafe extern "C" fn rii_encode_rgb565(
     height: u32,
 ) {
     let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
     librii::rii_encode_rgb565(dst_slice, src_slice, width, height);
 }
 
@@ -506,7 +563,7 @@ pub unsafe extern "C" fn rii_encode_rgb5a3(
     height: u32,
 ) {
     let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
     librii::rii_encode_rgb5a3(dst_slice, src_slice, width, height);
 }
 
@@ -520,7 +577,7 @@ pub unsafe extern "C" fn rii_encode_rgba8(
     height: u32,
 ) {
     let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u32, src_len as usize);
+    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
     librii::rii_encode_rgba8(dst_slice, src_slice, width, height);
 }
 

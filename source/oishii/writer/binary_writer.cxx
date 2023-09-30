@@ -1,5 +1,7 @@
 #include "binary_writer.hxx"
 
+#include "../util/util.hxx"
+
 namespace oishii {
 
 Writer::Writer(std::endian endian) : m_endian(endian) {}

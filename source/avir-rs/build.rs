@@ -10,6 +10,11 @@ fn main() {
 
     #[cfg(unix)]
     build.flag("-std=c++17");
+    let compiler = build.get_compiler();
+    if !compiler.is_like_gnu() && !compiler.is_like_clang() {
+        #[cfg(not(debug_assertions))]
+        build.flag("-MT");
+    }
 
     #[cfg(target_arch = "x86_64")]
     build.flag("-DARCH_X64=1");
@@ -20,6 +25,7 @@ fn main() {
 
     let bindings = bindgen::Builder::default()
         .header("src/bindings.h")
+        .clang_arg("-fvisibility=default")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
         .expect("Unable to generate bindings");

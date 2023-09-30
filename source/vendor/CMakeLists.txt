@@ -19,6 +19,7 @@ include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
 file(GLOB_RECURSE SRC_FILES
 	${PROJECT_SOURCE_DIR}/*.cxx
 	${PROJECT_SOURCE_DIR}/*.cpp
+	${PROJECT_SOURCE_DIR}/*.cc
 	${PROJECT_SOURCE_DIR}/*.c
 )
 file(GLOB_RECURSE HDR_FILES

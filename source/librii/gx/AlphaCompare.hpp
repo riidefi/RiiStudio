@@ -1,9 +1,15 @@
 #pragma once
 
-namespace librii::gx {
-	
+#include <librii/gx/Comparison.hpp>
 
-enum class AlphaOp { _and, _or, _xor, _xnor };
+namespace librii::gx {
+
+enum class AlphaOp {
+  _and,
+  _or,
+  _xor,
+  _xnor,
+};
 
 struct AlphaComparison {
   Comparison compLeft = Comparison::ALWAYS;
@@ -17,4 +23,4 @@ struct AlphaComparison {
   bool operator==(const AlphaComparison& rhs) const = default;
 };
 
-} // namepace librii::gx
+} // namespace librii::gx

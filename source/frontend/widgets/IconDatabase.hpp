@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/3d/Texture.hpp> // for lib3d::Texture
+#include <plugins/3d/Texture.hpp> // for lib3d::Texture
 #include <core/common.h>       // for u64
 #include <vector>              // for vector
 

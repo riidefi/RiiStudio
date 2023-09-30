@@ -31,7 +31,6 @@ add_dependencies(tests rsl)
 if (WIN32)
   set(LINK_LIBS
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
-		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
 		opengl32.lib
     ntdll Crypt32 Secur32 Ncrypt # Rust needs this now?
 		${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
@@ -53,25 +52,20 @@ elseif (APPLE)
 
     set(ASSIMP_VERSION "5.2.5")
     set(GLFW_VERSION "3.3.8")
-	set(FREETYPE_VERSION "2.13.1")
+	set(FREETYPE_VERSION "2.13.2")
 
-    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl -lcurl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
-elseif (NOT UNIX)
-	target_link_libraries(tests PUBLIC
-		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libIrrXML.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
-	)
-elseif(UNIX)
+    SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+elseif(UNIX AND NOT EMSCRIPTEN)
 	# TODO: code duplication, extract FindBzip2.cmake to top level CMakeLists
 	find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
-	target_link_libraries(tests PUBLIC ${BZIP2_LIBRARY})
+	find_library(SSL_LIBRARY NAMES libssl.so PATHS /usr/lib)
+	find_library(CRYPTO_LIBRARY NAMES libcrypto.so PATHS /usr/lib)
+	target_link_libraries(tests PUBLIC ${BZIP2_LIBRARY} ${SSL_LIBRARY} ${CRYPTO_LIBRARY})
 endif()
 
 if (UNIX AND NOT APPLE)
   # --start-group, --end-group allows circular dependencies among object files
-  SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lfreetype -lstdc++ -lm -lpthread")
+  SET_TARGET_PROPERTIES(tests PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lglfw -lfreetype -lstdc++ -lm -lpthread")
   # This is a hack to append a final link arg
   target_link_libraries(tests PUBLIC "-Wl,--end-group")
 endif()
@@ -99,10 +93,13 @@ if (WIN32)
 			${PROJECT_SOURCE_DIR}/../vendor/dll
 			$<TARGET_FILE_DIR:tests>
 	)
-	add_custom_command(TARGET tests POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:tests> $<TARGET_FILE_DIR:tests> 
-	COMMAND_EXPAND_LISTS
-	)
+  # Disabled: No DLLs exist
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+	  add_custom_command(TARGET tests POST_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:tests> $<TARGET_FILE_DIR:tests> 
+	    COMMAND_EXPAND_LISTS
+	  )
+  endif()
 endif()
 
 add_custom_command(

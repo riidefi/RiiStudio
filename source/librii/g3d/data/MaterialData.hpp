@@ -6,14 +6,18 @@
 namespace librii::g3d {
 
 // Note: In G3D this is per-material; in J3D it is per-texmatrix
-enum class TexMatrixMode { Maya, XSI, Max };
+enum class TexMatrixMode {
+  Maya,
+  XSI,
+  Max,
+};
 
 enum class G3dMappingMode {
   Standard,
   EnvCamera,
   Projection,
   EnvLight,
-  EnvSpec
+  EnvSpec,
 };
 
 enum class G3dIndMethod {
@@ -24,7 +28,7 @@ enum class G3dIndMethod {
   Res0,
   Res1,
   User0,
-  User1
+  User1,
 };
 
 // This doesn't exist outside of the binary format, and is split off as an

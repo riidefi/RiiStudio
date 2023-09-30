@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include <plugins/gc/Export/Material.hpp>
 #include <rsl/SafeReader.hpp>
 
 namespace librii::j3d {
@@ -17,11 +18,11 @@ enum class JUTTransparency {
   Clip,
   Translucent,
   // Mario.bdl has this
-  MSVC_UNITIALIZED_HEAP_VALUE = 0xCC,
+  MSVC_UNINITIALIZED_HEAP_VALUE = 0xCC,
 };
 
 struct TextureData {
-  std::string mName; // For linking
+  std::string name; // For linking
 
   librii::gx::TextureFormat mFormat = librii::gx::TextureFormat::I4;
   JUTTransparency transparency = JUTTransparency::Opaque;

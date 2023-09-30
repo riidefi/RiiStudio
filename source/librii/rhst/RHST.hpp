@@ -43,7 +43,7 @@ inline std::partial_ordering operator<=>(const glm::vec2& l,
   return l.y <=> r.y;
 }
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__EMSCRIPTEN__)
 namespace std {
 template <class I1, class I2, class Cmp>
 constexpr auto lexicographical_compare_three_way(I1 f1, I1 l1, I2 f2, I2 l2,
@@ -72,7 +72,8 @@ constexpr auto lexicographical_compare_three_way(I1 f1, I1 l1, I2 f2, I2 l2,
 inline std::partial_ordering operator<=>(const std::array<glm::vec4, 2>& l,
                                          const std::array<glm::vec4, 2>& r) {
   return std::lexicographical_compare_three_way(
-      l.begin(), l.end(), r.begin(), r.end(), [](auto& l, auto& r) {
+      l.begin(), l.end(), r.begin(), r.end(),
+      [](auto& l, auto& r) -> std::partial_ordering {
         if (auto cmp = l.x <=> r.x; cmp != 0) {
           return cmp;
         }
@@ -88,7 +89,8 @@ inline std::partial_ordering operator<=>(const std::array<glm::vec4, 2>& l,
 inline std::partial_ordering operator<=>(const std::array<glm::vec2, 8>& l,
                                          const std::array<glm::vec2, 8>& r) {
   return std::lexicographical_compare_three_way(
-      l.begin(), l.end(), r.begin(), r.end(), [](auto& l, auto& r) {
+      l.begin(), l.end(), r.begin(), r.end(),
+      [](auto& l, auto& r) -> std::partial_ordering {
         if (auto cmp = l.x <=> r.x; cmp != 0) {
           return cmp;
         }
@@ -529,8 +531,6 @@ struct Vertex {
   glm::vec3 position{0.0f, 0.0f, 0.0f};
   glm::vec3 normal{0.0f, 0.0f, 0.0f};
 
-  template <typename T, size_t N> using array_vector = std::vector<T>;
-
   std::array<glm::vec2, 8> uvs{};
   std::array<glm::vec4, 2> colors{};
 
@@ -542,20 +542,52 @@ struct Vertex {
   auto operator<=>(const Vertex& rhs) const = default;
 };
 
-enum class Topology { Triangles, TriangleStrip, TriangleFan };
+struct IndexedVertex {
+  int position = -1;
+  int normal = -1;
+#ifdef __APPLE__
+  int uvs[8]{-1, -1, -1, -1, -1, -1, -1, -1};
+  int colors[2]{-1, -1};
+#else
+  std::array<int, 8> uvs{-1, -1, -1, -1, -1, -1, -1, -1};
+  std::array<int, 2> colors{-1, -1};
+#endif
+
+  // In HW, this is a row index, so multiply by 3
+  // Only relevant for rigged models
+  // Index into MatrixPrimitive::draw_matrices
+  s8 matrix_index{-1};
+
+  auto operator<=>(const IndexedVertex& rhs) const = default;
+};
+
+enum class Topology {
+  Triangles,
+  TriangleStrip,
+  TriangleFan,
+};
 
 struct Primitive {
   Topology topology = Topology::Triangles;
 
   std::vector<Vertex> vertices;
 };
+struct IndexedPrimitive {
+  Topology topology = Topology::Triangles;
+
+  std::vector<IndexedVertex> vertices;
+};
 
 struct MatrixPrimitive {
   std::array<s32, 10> draw_matrices{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
   std::vector<Primitive> primitives;
 };
+struct IndexedMatrixPrimitive {
+  std::array<s32, 10> draw_matrices{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+  std::vector<IndexedPrimitive> primitives;
+};
 
-inline size_t VertexCount(const MatrixPrimitive& mp) {
+static inline size_t VertexCount(const MatrixPrimitive& mp) {
   size_t score = 0;
   for (auto& p : mp.primitives) {
     score += p.vertices.size();
@@ -584,6 +616,27 @@ struct Mesh {
 
   std::vector<MatrixPrimitive> matrix_primitives;
 };
+struct IndexedMesh {
+  std::string name = "Untitled Mesh";
+  bool can_merge = true;
+
+  s32 current_matrix = 0;
+  u32 vertex_descriptor = 0;
+
+  int position = -1;
+  int normal = -1;
+  std::array<int, 8> uvs{-1, -1, -1, -1, -1, -1, -1, -1};
+  std::array<int, 2> colors{-1, -1};
+
+  std::vector<IndexedMatrixPrimitive> matrix_primitives;
+};
+static inline size_t VertexCount(const Mesh& mesh) {
+  size_t total = 0;
+  for (auto& mp : mesh.matrix_primitives) {
+    total += VertexCount(mp);
+  }
+  return total;
+}
 
 inline bool hasPosition(u32 vcd) { return vcd & (1 << 9); }
 inline bool hasNormal(u32 vcd) { return vcd & (1 << 10); }
@@ -602,11 +655,14 @@ struct MetaData {
 };
 
 struct Weight {
-  s32 bone_index;
-  s32 influence;
+  s32 bone_index = 0;
+  s32 influence = 100;
+  bool operator==(const Weight&) const = default;
 };
 struct WeightMatrix {
   std::vector<Weight> weights; // all the influences
+
+  bool operator==(const WeightMatrix&) const = default;
 };
 
 struct SceneTree {
@@ -616,6 +672,14 @@ struct SceneTree {
   std::vector<Bone> bones;
   std::vector<WeightMatrix> weights;
   std::vector<Mesh> meshes;
+  std::vector<IndexedMesh> indexedMeshes;
+
+  // Index buffers for indexedMeshes
+  std::vector<std::vector<glm::vec3>> pos_buffers;
+  std::vector<std::vector<glm::vec3>> nrm_buffers;
+  std::vector<std::vector<glm::vec2>> uv_buffers;
+  std::vector<std::vector<glm::vec4>> clr_buffers;
+
   std::vector<ProtoMaterial> materials;
 };
 

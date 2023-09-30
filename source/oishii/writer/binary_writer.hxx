@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "../util/util.hxx"
+#include "../Endian.hxx"
 #include "link.hxx"
 #include "vector_writer.hxx"
 

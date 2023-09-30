@@ -1,6 +1,5 @@
 #include "MkwDebug.hpp"
 
-#include <dolphin-memory-engine-rs/include/dme.h>
 #include <imcxx/Widgets.hpp>
 #include <librii/live_mkw/live_mkw.hpp>
 
@@ -9,23 +8,37 @@
 #include <frontend/EditorFactory.hpp>
 #include <librii/szs/SZS.hpp>
 
+#include <librii/dolphin/Dolphin.hpp>
+
 namespace live {
 using namespace librii::live_mkw;
 }
 
 namespace riistudio::frontend {
 
-DolphinAccessor dolphin;
-live::Io io = [](u32 addr, std::span<u8> dst) {
-  if (dolphin.getStatus() != DolphinAccessor::Status::Hooked) {
+
+using namespace librii::dolphin;
+librii::dolphin::DolphinAc dolphin;
+live::IoRead ioRead = [](u32 addr, std::span<u8> dst) {
+  if (dolphin.getStatus() != DolphinAc::Status::Hooked) {
     return false;
   }
-  return dolphin.readFromRAM(addr, dst, false);
+  auto ok = dolphin.readFromRAM(addr, dst);
+  return static_cast<bool>(ok);
 };
+live::IoWrite ioWrite = [](u32 addr, std::span<const u8> dst) {
+  if (dolphin.getStatus() != DolphinAc::Status::Hooked) {
+    return false;
+  }
+  auto ok = dolphin.writeToRAM(addr, dst);
+  return static_cast<bool>(ok);
+};
+live::Io io = {ioRead, ioWrite};
+
 std::string gameName() {
   std::string id = "????";
-  if (dolphin.getStatus() == DolphinAccessor::Status::Hooked) {
-    dolphin.readFromRAM(0x8000'0000, {(u8*)id.data(), id.size()}, false);
+  if (dolphin.getStatus() == DolphinAc::Status::Hooked) {
+    auto _ = dolphin.readFromRAM(0x8000'0000, {(u8*)id.data(), id.size()});
   }
   return id;
 }
@@ -79,6 +92,11 @@ void MkwDebug::draw() {
   ImGui::End();
 
   if (ImGui::Begin("Archives")) {
+    auto sec = GetSectionId(io);
+    if (sec) {
+      auto s = magic_enum::enum_name(*sec);
+      ImGui::Text("SectionID: %s\n", s.data());
+    }
     auto arcs = archives();
     if (!arcs) {
       util::PushErrorSyle();
@@ -127,7 +145,7 @@ void MkwDebug::draw() {
             u32 begin = e.low.mArchiveStart.data;
             u32 size = e.low.mArchiveSize;
             std::vector<u8> buf(size);
-            dolphin.readFromRAM(begin, buf, false);
+            dolphin.readFromRAM(begin, buf);
             auto b2 = librii::szs::encodeCTGP(buf);
             auto path = std::format("{}.szs", e.category);
             auto ed = frontend::MakeEditor(*b2, path);
@@ -141,6 +159,32 @@ void MkwDebug::draw() {
     }
   }
   ImGui::End();
+
+  if (ImGui::Begin("Race")) {
+    static bool sticky = false;
+    static librii::live_mkw::ItemInfo saved;
+    if (sticky) {
+      auto _ = librii::live_mkw::SetItem(io, saved, 0);
+    }
+    auto item = librii::live_mkw::GetItem(io, 0);
+    if (!item) {
+      util::PushErrorSyle();
+      ImGui::Text("%s\n", item.error().c_str());
+      util::PopErrorStyle();
+    } else {
+      auto kind = imcxx::EnumCombo("Item", item->kind);
+      int qty = item->qty;
+      ImGui::InputInt("Qty", &qty);
+      ImGui::Checkbox("Sticky?", &sticky);
+      bool changed = kind != item->kind || qty != item->qty;
+      if (changed) {
+        saved = librii::live_mkw::ItemInfo{kind, qty};
+        auto _ = librii::live_mkw::SetItem(io, saved, 0);
+      }
+    }
+  }
+  ImGui::End();
+
   for (auto& win : windows) {
     if (!win) {
       continue;

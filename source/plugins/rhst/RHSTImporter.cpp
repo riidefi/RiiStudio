@@ -1,9 +1,10 @@
 #include "RHSTImporter.hpp"
 
 #include <LibBadUIFramework/Plugins.hpp>
-#include <core/3d/i3dmodel.hpp>
+#include <plugins/3d/i3dmodel.hpp>
 
 #include <librii/crate/g3d_crate.hpp>
+#include <librii/g3d/io/TextureIO.hpp>
 #include <librii/hx/CullMode.hpp>
 #include <librii/hx/PixMode.hpp>
 #include <librii/hx/TextureFilter.hpp>
@@ -66,7 +67,7 @@ void compileAlphaMode(librii::gx::LowLevelGxMaterial& mat,
     pix_mode = librii::hx::PIX_HARRY_POTTER_TRANSLUCENT;
     break;
   }
-  MAYBE_UNUSED bool res = librii::hx::configurePixMode(mat, pix_mode);
+  [[maybe_unused]] bool res = librii::hx::configurePixMode(mat, pix_mode);
   assert(res);
 }
 
@@ -244,6 +245,53 @@ void compileMapping(const librii::rhst::ProtoSampler& in,
   }
 }
 
+librii::gx::ColorComponent compileSwapTableColor(librii::rhst::Colors in) {
+  switch (in) {
+  case librii::rhst::Colors::Red:
+    return librii::gx::ColorComponent::r;
+  case librii::rhst::Colors::Green:
+    return librii::gx::ColorComponent::g;
+  case librii::rhst::Colors::Blue:
+    return librii::gx::ColorComponent::b;
+  case librii::rhst::Colors::Alpha:
+    return librii::gx::ColorComponent::a;
+  }
+}
+
+librii::gx::ColorSelChanApi compileColorSelChan(librii::rhst::ColorSelChan in) {
+  switch (in) {
+  case librii::rhst::ColorSelChan::color0a0:
+    return librii::gx::ColorSelChanApi::color0a0;
+  case librii::rhst::ColorSelChan::color1a1:
+    return librii::gx::ColorSelChanApi::color1a1;
+  case librii::rhst::ColorSelChan::ind_alpha:
+    return librii::gx::ColorSelChanApi::ind_alpha;
+  case librii::rhst::ColorSelChan::normalized_ind_alpha:
+    return librii::gx::ColorSelChanApi::normalized_ind_alpha;
+  case librii::rhst::ColorSelChan::null:
+  default:
+    return librii::gx::ColorSelChanApi::null;
+  }
+}
+
+librii::gx::ColorS10 vec4ToColorS10(glm::vec4 in) {
+  librii::gx::ColorS10 out;
+  out.r = in.r;
+  out.g = in.g;
+  out.b = in.b;
+  out.a = in.a;
+  return out;
+}
+
+librii::gx::Color vec4ToColor(glm::vec4 in) {
+  librii::gx::Color out;
+  out.r = in.x;
+  out.g = in.y;
+  out.b = in.z;
+  out.a = in.w;
+  return out;
+}
+
 void compileMaterial(libcube::IGCMaterial& out,
                      const librii::rhst::ProtoMaterial& in) {
   out.setName(in.name);
@@ -278,6 +326,10 @@ void compileMaterial(libcube::IGCMaterial& out,
           static_cast<int>(librii::gx::TexMatrix::TexMatrix0) + i * 3);
       gen.matrix = actual_matrix;
 
+      mtx.scale = {sam.scale.x, sam.scale.y};
+      mtx.rotate = sam.rotate;
+      mtx.translate = {sam.trans.x, sam.trans.y};
+
       compileMapping(sam, mtx, gen);
 
       data.texMatrices.push_back(mtx);
@@ -299,7 +351,7 @@ void compileMaterial(libcube::IGCMaterial& out,
     sampler.mMagFilter = in.mag_filter ? librii::gx::TextureFilter::Linear
                                        : librii::gx::TextureFilter::Near;
     sampler.mMinFilter = lowerTextureFilter(filter);
-    ;
+
     data.texGens.push_back({.matrix = librii::gx::TexMatrix::TexMatrix0});
   }
   data.texMatrices.push_back(j3d::Material::TexMatrix{});
@@ -315,35 +367,111 @@ void compileMaterial(libcube::IGCMaterial& out,
     g3dmat->fogIndex = in.fog_index;
   }
 
-  librii::gx::TevStage wip;
-  wip.texMap = wip.texCoord = 0;
-  wip.rasOrder = librii::gx::ColorSelChanApi::color0a0;
-  wip.rasSwap = 0;
+  // TEV
+  if (!in.tev_stages.empty()) {
+    int tev_size = in.tev_stages.size();
+    data.mStages.resize(tev_size);
+    for (int i = 0; i < tev_size; i++) {
+      auto st = in.tev_stages[i];
+      librii::gx::TevStage stage;
 
-  if (in.texture_name.empty() && in.samplers.empty()) {
-    wip.colorStage.a = librii::gx::TevColorArg::rasc;
-    wip.colorStage.b = librii::gx::TevColorArg::zero;
-    wip.colorStage.c = librii::gx::TevColorArg::zero;
-    wip.colorStage.d = librii::gx::TevColorArg::zero;
+      stage.texMap = stage.texCoord = st.tex_map;
+      stage.rasOrder = compileColorSelChan(st.ras_channel);
+      stage.rasSwap = st.ras_swap;
+      stage.texMapSwap = st.tex_map_swap;
 
-    wip.alphaStage.a = librii::gx::TevAlphaArg::rasa;
-    wip.alphaStage.b = librii::gx::TevAlphaArg::zero;
-    wip.alphaStage.c = librii::gx::TevAlphaArg::zero;
-    wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
+      // Lazy
+      stage.colorStage.constantSelection =
+          static_cast<librii::gx::TevKColorSel>(st.color_stage.constant_sel);
+      stage.colorStage.a =
+          static_cast<librii::gx::TevColorArg>(st.color_stage.a);
+      stage.colorStage.b =
+          static_cast<librii::gx::TevColorArg>(st.color_stage.b);
+      stage.colorStage.c =
+          static_cast<librii::gx::TevColorArg>(st.color_stage.c);
+      stage.colorStage.d =
+          static_cast<librii::gx::TevColorArg>(st.color_stage.d);
+      stage.colorStage.formula =
+          static_cast<librii::gx::TevColorOp>(st.color_stage.formula);
+      stage.colorStage.scale =
+          static_cast<librii::gx::TevScale>(st.color_stage.scale);
+      stage.colorStage.bias =
+          static_cast<librii::gx::TevBias>(st.color_stage.bias);
+      stage.colorStage.clamp = st.color_stage.clamp;
+      stage.colorStage.out =
+          static_cast<librii::gx::TevReg>(st.color_stage.out);
+
+      stage.alphaStage.constantSelection =
+          static_cast<librii::gx::TevKAlphaSel>(st.alpha_stage.constant_sel);
+      stage.alphaStage.a =
+          static_cast<librii::gx::TevAlphaArg>(st.alpha_stage.a);
+      stage.alphaStage.b =
+          static_cast<librii::gx::TevAlphaArg>(st.alpha_stage.b);
+      stage.alphaStage.c =
+          static_cast<librii::gx::TevAlphaArg>(st.alpha_stage.c);
+      stage.alphaStage.d =
+          static_cast<librii::gx::TevAlphaArg>(st.alpha_stage.d);
+      stage.alphaStage.formula =
+          static_cast<librii::gx::TevAlphaOp>(st.alpha_stage.formula);
+      stage.alphaStage.scale =
+          static_cast<librii::gx::TevScale>(st.alpha_stage.scale);
+      stage.alphaStage.bias =
+          static_cast<librii::gx::TevBias>(st.alpha_stage.bias);
+      stage.alphaStage.clamp = st.alpha_stage.clamp;
+      stage.alphaStage.out =
+          static_cast<librii::gx::TevReg>(st.alpha_stage.out);
+
+      data.mStages[i] = stage;
+    }
   } else {
-    wip.colorStage.a = librii::gx::TevColorArg::zero;
-    wip.colorStage.b = librii::gx::TevColorArg::texc;
-    wip.colorStage.c = librii::gx::TevColorArg::rasc;
-    wip.colorStage.d = librii::gx::TevColorArg::zero;
+    librii::gx::TevStage wip;
+    wip.texMap = wip.texCoord = 0;
+    wip.rasOrder = librii::gx::ColorSelChanApi::color0a0;
+    wip.rasSwap = 0;
 
-    wip.alphaStage.a = librii::gx::TevAlphaArg::zero;
-    wip.alphaStage.b = librii::gx::TevAlphaArg::texa;
-    wip.alphaStage.c = librii::gx::TevAlphaArg::rasa;
-    wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
+    if (in.texture_name.empty() && in.samplers.empty()) {
+      wip.colorStage.a = librii::gx::TevColorArg::rasc;
+      wip.colorStage.b = librii::gx::TevColorArg::zero;
+      wip.colorStage.c = librii::gx::TevColorArg::zero;
+      wip.colorStage.d = librii::gx::TevColorArg::zero;
+
+      wip.alphaStage.a = librii::gx::TevAlphaArg::rasa;
+      wip.alphaStage.b = librii::gx::TevAlphaArg::zero;
+      wip.alphaStage.c = librii::gx::TevAlphaArg::zero;
+      wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
+    } else {
+      wip.colorStage.a = librii::gx::TevColorArg::zero;
+      wip.colorStage.b = librii::gx::TevColorArg::texc;
+      wip.colorStage.c = librii::gx::TevColorArg::rasc;
+      wip.colorStage.d = librii::gx::TevColorArg::zero;
+
+      wip.alphaStage.a = librii::gx::TevAlphaArg::zero;
+      wip.alphaStage.b = librii::gx::TevAlphaArg::texa;
+      wip.alphaStage.c = librii::gx::TevAlphaArg::rasa;
+      wip.alphaStage.d = librii::gx::TevAlphaArg::zero;
+    }
+    data.mStages[0] = wip;
+  }
+  /*
+
+  }
+  */
+  for (int i = 0; i < 4; i++) {
+    data.tevColors[i] = vec4ToColorS10(in.tev_colors[i]);
+    data.tevKonstColors[i] = vec4ToColor(in.tev_konst_colors[i]);
   }
 
-  data.tevColors[0] = {0xaa, 0xbb, 0xcc, 0xff};
-  data.mStages[0] = wip;
+  // Swap Table
+  for (int i = 0; i < 4; i++) {
+    librii::gx::SwapTableEntry entry;
+    librii::rhst::ProtoSwapTableEntry ste = in.swap_table[i];
+    entry.r = compileSwapTableColor(ste.r);
+    entry.g = compileSwapTableColor(ste.g);
+    entry.b = compileSwapTableColor(ste.b);
+    entry.a = compileSwapTableColor(ste.a);
+
+    data.mSwapTable[i] = entry;
+  }
 
   librii::gx::ChannelControl ctrl;
   ctrl.enabled = false;
@@ -451,6 +579,52 @@ void compileVert(librii::gx::IndexedVertex& dst,
   }
 }
 
+void compileIndexedVert(librii::gx::IndexedVertex& dst,
+                        const librii::rhst::IndexedVertex& src,
+                        g3d::Polygon& poly, g3d::Model& mdl) {
+  u32 vcd_cursor = 0;
+
+  auto& data = poly.getMeshData();
+
+  for (int i = 0; i < data.mVertexDescriptor.mAttributes.size(); ++i) {
+    while ((data.mVertexDescriptor.mBitfield & (1 << vcd_cursor)) == 0) {
+      ++vcd_cursor;
+
+      if (vcd_cursor >= 21) {
+        assert(!"Invalid");
+        return;
+      }
+    }
+    const int cur_attr = vcd_cursor;
+    ++vcd_cursor;
+
+    if (cur_attr == 0) {
+      dst[librii::gx::VertexAttribute::PositionNormalMatrixIndex] =
+          src.matrix_index * 3;
+      continue;
+    }
+    if (cur_attr == 9) {
+      dst[librii::gx::VertexAttribute::Position] = src.position;
+      continue;
+    }
+    if (cur_attr == 10) {
+      dst[librii::gx::VertexAttribute::Normal] = src.normal;
+      continue;
+    }
+
+    if (cur_attr >= 11 && cur_attr <= 12) {
+      const int color_index = cur_attr - 11;
+      dst[(librii::gx::VertexAttribute)cur_attr] = src.colors[color_index];
+      continue;
+    }
+    if (cur_attr >= 13 && cur_attr <= 20) {
+      const int uv_index = cur_attr - 13;
+      dst[(librii::gx::VertexAttribute)cur_attr] = src.uvs[uv_index];
+      continue;
+    }
+  }
+}
+
 void compilePrim(librii::gx::IndexedPrimitive& dst,
                  const librii::rhst::Primitive& src,
                  libcube::IndexedPolygon& poly, libcube::Model& model) {
@@ -469,6 +643,27 @@ void compilePrim(librii::gx::IndexedPrimitive& dst,
   dst.mVertices.reserve(src.vertices.size());
   for (auto& vert : src.vertices) {
     compileVert(dst.mVertices.emplace_back(), vert, poly, model);
+  }
+}
+
+void compileIndexedPrim(librii::gx::IndexedPrimitive& dst,
+                        const librii::rhst::IndexedPrimitive& src,
+                        g3d::Polygon& poly, g3d::Model& model) {
+  switch (src.topology) {
+  case librii::rhst::Topology::Triangles:
+    dst.mType = librii::gx::PrimitiveType::Triangles;
+    break;
+  case librii::rhst::Topology::TriangleStrip:
+    dst.mType = librii::gx::PrimitiveType::TriangleStrip;
+    break;
+  case librii::rhst::Topology::TriangleFan:
+    dst.mType = librii::gx::PrimitiveType::TriangleFan;
+    break;
+  }
+
+  dst.mVertices.reserve(src.vertices.size());
+  for (auto& vert : src.vertices) {
+    compileIndexedVert(dst.mVertices.emplace_back(), vert, poly, model);
   }
 }
 
@@ -506,6 +701,42 @@ compileMatrixPrim(librii::gx::MatrixPrimitive& dst,
 
   for (auto& prim : tmp.primitives) {
     compilePrim(dst.mPrimitives.emplace_back(), prim, poly, model);
+  }
+
+  return {};
+}
+
+[[nodiscard]] Result<void>
+compileIndexedMatrixPrim(librii::gx::MatrixPrimitive& dst,
+                         const librii::rhst::IndexedMatrixPrimitive& src,
+                         s32 current_matrix, g3d::Polygon& poly,
+                         g3d::Model& model) {
+  dst.mCurrentMatrix = current_matrix;
+  std::array<s32, 10> empty{
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  };
+  dst.mDrawMatrixIndices.clear();
+  if (src.draw_matrices == empty) {
+    dst.mDrawMatrixIndices.push_back(current_matrix);
+  } else {
+    bool done = false;
+    for (s32 d : src.draw_matrices) {
+      if (done) {
+        EXPECT(d < 0 && "Non-contiguous draw-matrix indices are unsupported");
+      }
+      if (d < 0) {
+        done = true;
+        continue;
+      }
+      dst.mDrawMatrixIndices.push_back(d);
+    }
+  }
+
+  // Convert to tristrips
+  librii::rhst::IndexedMatrixPrimitive tmp = src;
+
+  for (auto& prim : tmp.primitives) {
+    compileIndexedPrim(dst.mPrimitives.emplace_back(), prim, poly, model);
   }
 
   return {};
@@ -627,9 +858,6 @@ Result<void> compileMesh(libcube::IndexedPolygon& dst,
   dst.setCurMtx(src.current_matrix);
   data.mMatrixPrimitives.clear();
 
-#if 0
-  fprintf(stderr, "Compiling %s \n", src.name.c_str());
-#endif
   for (int i = 0; i < static_cast<int>(librii::gx::VertexAttribute::Max); ++i) {
     if ((src.vertex_descriptor & (1 << i)) == 0)
       continue;
@@ -654,26 +882,59 @@ Result<void> compileMesh(libcube::IndexedPolygon& dst,
                           src.current_matrix, dst, model, optimize));
   }
 
-  for (auto& [attr, format] : data.mVertexDescriptor.mAttributes) {
-    if (format != librii::gx::VertexAttributeType::Short) {
-      continue;
-    }
-    u16 max = 0;
-    for (auto& mp : data.mMatrixPrimitives) {
-      for (auto& p : mp.mPrimitives) {
-        for (auto& v : p.mVertices) {
-          // TODO: Checked
-          u16 i = v[attr];
-          if (i > max) {
-            max = i;
-          }
-        }
-      }
-    }
-    if (max <= std::numeric_limits<u8>::max()) {
-      format = librii::gx::VertexAttributeType::Byte;
-    }
+  librii::gx::RecomputeMinimalIndexFormat(data);
+
+  return {};
+}
+
+Result<void> compileIndexedMesh(g3d::Polygon& dst,
+                                const librii::rhst::IndexedMesh& src,
+                                g3d::Model& model) {
+  dst.setName(src.name);
+
+  // No skinning/BB
+  dst.init(false, nullptr);
+  auto& data = dst.getMeshData();
+  dst.setCurMtx(src.current_matrix);
+  data.mMatrixPrimitives.clear();
+
+  if (src.position != -1)
+    dst.mPositionBuffer = "rhst_Pos" + std::to_string(src.position);
+  if (src.normal != -1)
+    dst.mNormalBuffer = "rhst_Nrm" + std::to_string(src.normal);
+  for (size_t i = 0; i < 8; ++i) {
+    auto x = src.uvs[i];
+    if (x != -1)
+      dst.mTexCoordBuffer[i] = "rhst_Uv" + std::to_string(x);
   }
+  for (size_t i = 0; i < 2; ++i) {
+    auto x = src.colors[i];
+    if (x != -1)
+      dst.mColorBuffer[i] = "rhst_Clr" + std::to_string(x);
+  }
+
+  for (int i = 0; i < static_cast<int>(librii::gx::VertexAttribute::Max); ++i) {
+    if ((src.vertex_descriptor & (1 << i)) == 0)
+      continue;
+
+    // PNMTXIDX is direct u8
+    auto fmt = i == 0 ? librii::gx::VertexAttributeType::Direct
+                      : librii::gx::VertexAttributeType::Short;
+    data.mVertexDescriptor.mAttributes.emplace(
+        static_cast<librii::gx::VertexAttribute>(i), fmt);
+  }
+
+  data.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
+
+  EXPECT(data.mVertexDescriptor.mBitfield == src.vertex_descriptor);
+  dst.setCurMtx(src.current_matrix);
+
+  for (auto& matrix_prim : src.matrix_primitives) {
+    TRY(compileIndexedMatrixPrim(data.mMatrixPrimitives.emplace_back(),
+                                 matrix_prim, src.current_matrix, dst, model));
+  }
+
+  librii::gx::RecomputeMinimalIndexFormat(data);
 
   return {};
 }
@@ -722,7 +983,8 @@ Result<void> importTextureImpl(libcube::Texture& data, std::span<u8> image,
 }
 Result<void> importTexture(libcube::Texture& data, std::span<u8> image,
                            std::vector<u8>& scratch, bool mip_gen, int min_dim,
-                           int max_mip, int width, int height, int channels) {
+                           int max_mip, int width, int height, int channels,
+                           librii::gx::TextureFormat format) {
   if (image.empty()) {
     return std::unexpected(
         "STB failed to parse image. Unsupported file format?");
@@ -735,13 +997,6 @@ Result<void> importTexture(libcube::Texture& data, std::span<u8> image,
     return std::unexpected(
         std::format("Height {} exceeds maximum of 1024", height));
   }
-  if (!is_power_of_2(width)) {
-    return std::unexpected(std::format("Width {} is not a power of 2.", width));
-  }
-  if (!is_power_of_2(height)) {
-    return std::unexpected(
-        std::format("Height {} is not a power of 2.", height));
-  }
 
   int num_mip = 0;
   if (mip_gen && is_power_of_2(width) && is_power_of_2(height)) {
@@ -751,7 +1006,7 @@ Result<void> importTexture(libcube::Texture& data, std::span<u8> image,
   }
 
   return importTextureImpl(data, image, scratch, num_mip, width, height, width,
-                           height, librii::gx::TextureFormat::CMPR);
+                           height, format);
 }
 
 Result<void> importTextureFromMemory(libcube::Texture& data,
@@ -771,7 +1026,7 @@ Result<void> importTextureFromFile(libcube::Texture& data,
     if (!obuf) {
       return std::unexpected("Failed to read file");
     }
-    auto tex = TRY(librii::crate::ReadTEX0(*obuf));
+    auto tex = TRY(librii::g3d::ReadTEX0(*obuf));
     data.setTextureFormat(tex.format);
     data.setWidth(tex.width);
     data.setHeight(tex.height);
@@ -858,7 +1113,8 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
     compileBone(mdl.getBones().add(), bone);
     aabb.expandBound(librii::math::AABB{bone.min, bone.max});
   }
-  if (auto* g = dynamic_cast<riistudio::g3d::Model*>(&mdl)) {
+  auto* g = dynamic_cast<riistudio::g3d::Model*>(&mdl);
+  if (g) {
     g->aabb = aabb;
     g->mName = rhst.name;
   }
@@ -930,6 +1186,61 @@ bool CompileRHST(librii::rhst::SceneTree& rhst, libcube::Scene& scene,
     if (!ok) {
       rsl::error("ERROR: Failed to compile mesh: {}", ok.error().c_str());
       continue;
+    }
+  }
+  if (!rhst.indexedMeshes.empty()) {
+    if (!g) {
+      rsl::error("Only .brres supports indexed meshes...");
+      progress("Only .brres supports indexed meshes...", 0.0f);
+      return false;
+    }
+    progress(std::format("Compiling indexed meshes {}/{}", 0,
+                         rhst.indexedMeshes.size()),
+             0.0f);
+    for (auto&& [i, mesh] : rsl::enumerate(rhst.indexedMeshes)) {
+      progress(std::format("Compiling indexed meshes {}/{}", i,
+                           rhst.indexedMeshes.size()),
+               static_cast<float>(i) /
+                   static_cast<float>(rhst.indexedMeshes.size()));
+      // Already optimized (and in parallel)
+      auto ok = compileIndexedMesh(g->getMeshes().add(), mesh, *g);
+      if (!ok) {
+        rsl::error("ERROR: Failed to compile indexed mesh: {}",
+                   ok.error().c_str());
+        continue;
+      }
+    }
+    for (auto&& [i, buf] : rsl::enumerate(rhst.pos_buffers)) {
+      auto& gb = g->getBuf_Pos().add();
+      gb.mName = "rhst_Pos" + std::to_string(i);
+      gb.mId = i;
+      gb.mEntries = buf;
+    }
+    for (auto&& [i, buf] : rsl::enumerate(rhst.nrm_buffers)) {
+      auto& gb = g->getBuf_Nrm().add();
+      gb.mName = "rhst_Nrm" + std::to_string(i);
+      gb.mId = i;
+      gb.mEntries = buf;
+    }
+    for (auto&& [i, buf] : rsl::enumerate(rhst.uv_buffers)) {
+      auto& gb = g->getBuf_Uv().add();
+      gb.mName = "rhst_Uv" + std::to_string(i);
+      gb.mId = i;
+      gb.mEntries = buf;
+    }
+    for (auto&& [i, buf] : rsl::enumerate(rhst.clr_buffers)) {
+      auto& gb = g->getBuf_Clr().add();
+      gb.mName = "rhst_Clr" + std::to_string(i);
+      gb.mId = i;
+      for (auto& e : buf) {
+        librii::gx::ColorF32 f;
+        f.r = e[0];
+        f.g = e[1];
+        f.b = e[2];
+        f.a = e[3];
+        librii::gx::Color c = f;
+        gb.mEntries.push_back(c);
+      }
     }
   }
 

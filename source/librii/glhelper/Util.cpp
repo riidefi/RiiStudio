@@ -4,8 +4,9 @@
 
 namespace librii::glhelper {
 
+// WebGL doesn't support GL_WIREFRAME
 bool IsGlWireframeSupported() {
-#ifdef RII_NATIVE_GL_WIREFRAME
+#if !defined(RII_PLATFORM_EMSCRIPTEN)
   return true;
 #else
   return false;
@@ -13,7 +14,7 @@ bool IsGlWireframeSupported() {
 }
 
 void SetGlWireframe(bool wireframe) {
-#ifdef RII_NATIVE_GL_WIREFRAME
+#if !defined(RII_PLATFORM_EMSCRIPTEN)
   if (wireframe)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   else

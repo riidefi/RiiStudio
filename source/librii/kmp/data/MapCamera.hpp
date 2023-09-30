@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/common.h> // u32
-#include <glm/vec3.hpp>  // glm::vec3
+#include <glm/vec3.hpp> // glm::vec3
+#include <rsl/Types.hpp>
 
 namespace librii::kmp {
 

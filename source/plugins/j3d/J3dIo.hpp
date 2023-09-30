@@ -9,9 +9,9 @@
 
 namespace riistudio::j3d {
 
-inline void readJ3dMdl(librii::j3d::J3dModel& m,
-                       const riistudio::j3d::Model& editor,
-                       riistudio::j3d::Collection& c) {
+static inline void readJ3dMdl(librii::j3d::J3dModel& m,
+                              const riistudio::j3d::Model& editor,
+                              riistudio::j3d::Collection& c) {
   m.scalingRule = editor.mScalingRule;
   m.isBDL = editor.isBDL;
   m.vertexData = editor.mBufs;
@@ -29,8 +29,8 @@ inline void readJ3dMdl(librii::j3d::J3dModel& m,
     m.textures.emplace_back(tex);
   }
 }
-inline void toEditorMdl(riistudio::j3d::Collection& s,
-                        const librii::j3d::J3dModel& m) {
+static inline void toEditorMdl(riistudio::j3d::Collection& s,
+                               const librii::j3d::J3dModel& m) {
   riistudio::j3d::Model& tmp = s.getModels().add();
   tmp.mScalingRule = m.scalingRule;
   tmp.isBDL = m.isBDL;
@@ -48,13 +48,14 @@ inline void toEditorMdl(riistudio::j3d::Collection& s,
     static_cast<librii::j3d::TextureData&>(s.getTextures().add()) = t;
 }
 
-[[nodiscard]] inline Result<void>
-WriteBMD(riistudio::j3d::Collection& collection, oishii::Writer& writer) {
+[[nodiscard]] static inline Result<void>
+WriteBMD(riistudio::j3d::Collection& collection, oishii::Writer& writer,
+         bool linkmap = true) {
   librii::j3d::J3dModel tmp;
   readJ3dMdl(tmp, collection.getModels()[0], collection);
-  return tmp.write(writer);
+  return tmp.write(writer, linkmap);
 }
-[[nodiscard]] inline Result<void>
+[[nodiscard]] static inline Result<void>
 ReadBMD(riistudio::j3d::Collection& collection, oishii::BinaryReader& reader,
         kpi::LightIOTransaction& transaction) {
   auto tmp = TRY(librii::j3d::J3dModel::read(reader, transaction));
@@ -62,6 +63,28 @@ ReadBMD(riistudio::j3d::Collection& collection, oishii::BinaryReader& reader,
   collection.onRelocate();
   collection.getModels()[0].onRelocate();
   return {};
+}
+[[nodiscard]] static inline Result<void>
+ReadBMD(riistudio::j3d::Collection& collection, oishii::BinaryReader& reader) {
+  kpi::LightIOTransaction trans;
+  trans.callback = [&](kpi::IOMessageClass message_class,
+                       const std::string_view domain,
+                       const std::string_view message_body) {
+    auto msg = std::format("[{}] {} {}", magic_enum::enum_name(message_class),
+                           domain, message_body);
+    rsl::error(msg);
+  };
+  auto tmp = TRY(librii::j3d::J3dModel::read(reader, trans));
+  toEditorMdl(collection, tmp);
+  collection.onRelocate();
+  collection.getModels()[0].onRelocate();
+  return {};
+}
+[[nodiscard]] static inline Result<Collection> ReadBMD(std::string path) {
+  Collection c;
+  auto reader = TRY(oishii::BinaryReader::FromFilePath(path, std::endian::big));
+  TRY(ReadBMD(c, reader));
+  return c;
 }
 
 } // namespace riistudio::j3d

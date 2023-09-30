@@ -2,14 +2,17 @@
 #include <vendor/cista.h>
 
 #include "PropertyEditor.hpp"
-#include <core/3d/Material.hpp> // lib3d::Material
 #include <frontend/widgets/PropertyEditorWidget.hpp>
 #include <imcxx/Widgets.hpp>              // imcxx::Combo
+#include <plugins/3d/Material.hpp>        // lib3d::Material
 #include <vendor/fa5/IconsFontAwesome5.h> // ICON_FA_EXCLAMATION_TRIANGLE
 
 #include <frontend/properties/BrresBmdPropEdit.hpp>
 
 #include "BmdBrresOutliner.hpp"
+
+#include <frontend/PresetHelper.hpp>
+#include <rsl/Defer.hpp>
 
 namespace riistudio::frontend {
 
@@ -44,16 +47,15 @@ template <typename T> struct CommitHandler {
   T& mRoot;
 };
 
-template <typename T>
-class PropertyEditor : public StudioWindow, private PropertyEditorWidget {
+template <typename T> class PropertyEditor : public StudioWindow {
 public:
   PropertyEditor(kpi::History& host, T& root,
                  std::function<std::set<kpi::IObject*>()> selection,
                  std::function<kpi::IObject*()> selectionActive,
                  auto drawImageIcon)
       : StudioWindow("Property Editor"), drawImageIcon(drawImageIcon),
-        mHost(host), mRoot(root), mSelectionActive(selectionActive),
-        mSelection(selection) {
+        mHost(host), mRoot(root), mSelection(selection),
+        mSelectionActive(selectionActive) {
     setWindowFlag(ImGuiWindowFlags_MenuBar);
     setClosable(false);
   }
@@ -61,10 +63,10 @@ public:
 private:
   void draw_() override;
 
-  std::vector<std::string> TabTitles() override {
+  std::vector<std::string> TabTitles() {
     return brresBmdPropEdit.TabTitles(mSelectionActive());
   }
-  bool Tab(int index) override {
+  bool Tab(int index) {
     auto postUpdate = [&]() { mHandler.bCommitPosted = true; };
     auto commit = [&](const char*) { mHost.commit(mRoot); };
     auto handleUpdates = [&]() { mHandler.handleUpdates(mHost, mRoot); };
@@ -77,6 +79,9 @@ private:
 
     return brresBmdPropEdit.Tab(index, postUpdate, commit, handleUpdates,
                                 mSelectionActive(), selected, drawIcon, mMdl);
+  }
+  void DrawTitle(int index) {
+    brresBmdPropEdit.TabTitleFancy(mSelectionActive(), index);
   }
 
   std::function<void(const lib3d::Texture*, u32)> drawImageIcon;
@@ -91,7 +96,19 @@ private:
 
   CommitHandler<T> mHandler{false, mHost, mRoot};
   riistudio::g3d::Model* mMdl = nullptr;
+
+  PropertyEditorState m_state;
 };
+
+static void OrDialogBox(std::string_view file, u32 line,
+                        std::string_view header, auto&& result) {
+  if (result)
+    return;
+  auto err = result.error();
+  rsl::ErrorDialogFmt("[{}:{}] {} failed:\n\n{}", file, line, header, err);
+}
+#define TRY_OR_DIALOG_BOX(task)                                                \
+  OrDialogBox(__FILE_NAME__, __LINE__, #task, task)
 
 template <typename T> void PropertyEditor<T>::draw_() {
   if (mSelectionActive() == nullptr) {
@@ -112,11 +129,11 @@ template <typename T> void PropertyEditor<T>::draw_() {
   }
 
   if (ImGui::BeginPopupContextWindow()) {
-    DrawTabWidget(false);
+    DrawPropertyEditorWidgetV2_Header(m_state, false);
     ImGui::EndPopup();
   }
   if (ImGui::BeginMenuBar()) {
-    DrawTabWidget(true);
+    DrawPropertyEditorWidgetV2_Header(m_state, true);
     ImGui::EndMenuBar();
   }
 
@@ -138,6 +155,8 @@ template <typename T> void PropertyEditor<T>::draw_() {
   DrawRichSelection(mSelectionActive(), _selected.size());
   if (lib3d::Material* mat =
           dynamic_cast<lib3d::Material*>(mSelectionActive())) {
+    auto* g = dynamic_cast<g3d::Material*>(mSelectionActive());
+    auto* j = dynamic_cast<j3d::Material*>(mSelectionActive());
     ImGui::SameLine();
     if (ImGui::Button((const char*)ICON_FA_LINK " Force recompile")) {
       for (auto& o : mSelection()) {
@@ -146,11 +165,35 @@ template <typename T> void PropertyEditor<T>::draw_() {
         }
       }
     }
+    ImGui::SameLine();
+    if (imcxx::ColoredButton(IM_COL32(0, 255, 0, 100), "{} {}",
+                             (const char*)ICON_FA_DOWNLOAD,
+                             "Import Preset"_j)) {
+      if (g) {
+        TRY_OR_DIALOG_BOX(rs::preset_helper::tryImportRsPreset(*g));
+      } else if (j) {
+        TRY_OR_DIALOG_BOX(rs::preset_helper::tryImportRsPresetJ(*j));
+      }
+    }
+    ImGui::SameLine();
+    if (imcxx::ColoredButton(IM_COL32(255, 0, 0, 100), "{} {}",
+                             (const char*)ICON_FA_UPLOAD, "Export Preset"_j)) {
+      if (g) {
+        TRY_OR_DIALOG_BOX(rs::preset_helper::tryExportRsPreset(*g));
+      } else if (j) {
+        TRY_OR_DIALOG_BOX(rs::preset_helper::tryExportRsPresetJ(*j));
+      }
+    }
   }
   ImGui::Separator();
 
   selected = {_selected.begin(), _selected.end()};
-  Tabs();
+  auto titles = TabTitles();
+  std::function<bool(int)> drawTab = [&](int index) { return Tab(index); };
+  std::function<void(int)> drawTitle = [&](int index) {
+    return DrawTitle(index);
+  };
+  DrawPropertyEditorWidgetV3_Body(m_state, drawTab, drawTitle, titles);
   mMdl = nullptr;
 }
 

@@ -92,14 +92,13 @@ add_library(lib_frontend
 
  "properties/gc/Material/AdvTexConv.cpp"
  "properties/gc/Material/Merge.cpp"
- "legacy_editor/views/BmdBrresOutliner.cpp" "renderer/MouseHider.cpp" "editors/MkwDebug.cpp")
+ "editors/BtkEditor.cpp"
+ "legacy_editor/views/BmdBrresOutliner.cpp" "renderer/MouseHider.cpp" "editors/MkwDebug.cpp" "PresetHelper.cpp")
 
 
 add_executable(frontend 
  "entry.cpp"
   ${PROJECT_SOURCE_DIR}/rc/RiiStudio.rc)
-
-set(ASSIMP_DIR, ${PROJECT_SOURCE_DIR}/../vendor/assimp)
 
 target_link_libraries(lib_frontend PUBLIC
 	core
@@ -112,7 +111,6 @@ target_link_libraries(lib_frontend PUBLIC
   LibBadUIFramework
   updater
   rsmeshopt
-  dolphin-memory-engine-rs
 )
 target_link_libraries(frontend PUBLIC
   lib_frontend
@@ -124,7 +122,6 @@ if (WIN32)
   set(LINK_LIBS
     ${LINK_LIBS}
 		${PROJECT_SOURCE_DIR}/../plate/vendor/glfw/lib-vc2017/glfw3dll.lib
-		${PROJECT_SOURCE_DIR}/../vendor/assimp/assimp-vc141-mt.lib
 		OpenGL::GL
     ntdll Crypt32 Secur32 Ncrypt # Rust needs this now?
     ${PROJECT_SOURCE_DIR}/../vendor/freetype.lib
@@ -134,17 +131,12 @@ if (WIN32)
   endif()
   
 	target_link_libraries(frontend PUBLIC ${LINK_LIBS})
-elseif (NOT UNIX)
-	target_link_libraries(frontend PUBLIC
-		${PROJECT_SOURCE_DIR}/../vendor/assimp/libassimp.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libIrrXML.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlib.a
-	  ${PROJECT_SOURCE_DIR}/../vendor/assimp/libzlibstatic.a
-	)
-elseif (UNIX AND NOT APPLE)
-	# TODO: Duplication: extract to FindX.cmake
-	find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
-	target_link_libraries(frontend PUBLIC ${BZIP2_LIBRARY})
+elseif (UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
+  # TODO: Duplication: extract to FindX.cmake
+  find_library(BZIP2_LIBRARY NAMES libbz2.so PATHS /usr/lib)
+  find_library(SSL_LIBRARY NAMES libssl.so PATHS /usr/lib)
+  find_library(CRYPTO_LIBRARY NAMES libcrypto.so PATHS /usr/lib)
+  target_link_libraries(frontend PUBLIC ${BZIP2_LIBRARY} ${SSL_LIBRARY} ${CRYPTO_LIBRARY})
 endif()
 
 if (NOT MSVC)
@@ -158,14 +150,17 @@ if (NOT MSVC)
       set(HOMEBREW_CELLAR "/usr/local/Cellar")
     endif()
 
-    set(ASSIMP_VERSION "5.2.5")
     set(GLFW_VERSION "3.3.8")
-    set(FREETYPE_VERSION "2.13.1")
+    set(FREETYPE_VERSION "2.13.2")
 
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -ldl -lcurl ${HOMEBREW_CELLAR}/assimp/${ASSIMP_VERSION}/lib/libassimp.dylib ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
+    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-framework CoreFoundation -framework Security -ldl ${HOMEBREW_CELLAR}/glfw/${GLFW_VERSION}/lib/libglfw.dylib ${HOMEBREW_CELLAR}/freetype/${FREETYPE_VERSION}/lib/libfreetype.dylib")
   elseif (UNIX)
     # --start-group, --end-group allows circular dependencies among object files
-    SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lassimp -lglfw -lfreetype -lstdc++ -lm")
+    if (EMSCRIPTEN)
+      SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lglfw -lstdc++ -lm")
+    else()
+      SET_TARGET_PROPERTIES(frontend PROPERTIES LINK_FLAGS "-Wl,--start-group -ldl -lglfw -lfreetype -lstdc++ -lm")
+    endif()
     # This is a hack to append a final link arg
     target_link_libraries(frontend PUBLIC "-Wl,--end-group")
   endif()
@@ -173,6 +168,11 @@ if (NOT MSVC)
 	#add_link_options("-s USE_SDL=2 -s MAX_WEBGL_VERSION=2 -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 --bind")
 	#add_link_options("-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 --no-heap-copy --preload-file ./fonts@/fonts")
   #add_link_options("-o out.html --shell-file shell_minimal.html")
+endif()
+
+if (EMSCRIPTEN)
+  # Debugging  -g4 --source-map-base ../ -O0
+  set_target_properties(frontend PROPERTIES LINK_FLAGS "-s USE_FREETYPE=1 -s MAX_WEBGL_VERSION=2 --bind -sASSERTIONS --preload-file ../fonts@fonts -s ALLOW_MEMORY_GROWTH=1  --preload-file ../lang@lang --preload-file ../samp@samp")
 endif()
 
 # DLLs for windows
@@ -240,48 +240,51 @@ COMMAND ${CMAKE_COMMAND} -E copy
 	$<TARGET_FILE_DIR:frontend>/riistudio_blender.py
 )
 
-# Ensure tests is built first
-add_dependencies(frontend tests)
+if (NOT EMSCRIPTEN)
+  # Ensure tests is built first
+  add_dependencies(frontend tests cli)
 
-add_custom_command(
-TARGET frontend 
-POST_BUILD
-COMMAND ${CMAKE_COMMAND} -E copy
-	$<TARGET_FILE:tests>
-	$<TARGET_FILE_DIR:frontend>/
-)
-
-# Windows: Copy .pdb with debug info
-if (WIN32)
   add_custom_command(
   TARGET frontend 
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
-	  $<TARGET_FILE_DIR:tests>/tests.pdb
-	  $<TARGET_FILE_DIR:frontend>/tests.pdb
-  )
-endif()
-
-add_custom_command(
-  TARGET frontend 
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy
-	  $<TARGET_FILE:cli>
+	  $<TARGET_FILE:tests>
 	  $<TARGET_FILE_DIR:frontend>/
-)
-
-# Windows: Copy .pdb with debug info
-if (WIN32)
-  add_custom_command(
-  TARGET frontend 
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy
-	  $<TARGET_FILE_DIR:cli>/rszst.pdb
-	  $<TARGET_FILE_DIR:frontend>/rszst.pdb
   )
+
+  # Windows: Copy .pdb with debug info
+  if (WIN32)
+    add_custom_command(
+    TARGET frontend 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+	    $<TARGET_FILE_DIR:tests>/tests.pdb
+	    $<TARGET_FILE_DIR:frontend>/tests.pdb
+    )
+  endif()
+
+  add_custom_command(
+    TARGET frontend 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+	    $<TARGET_FILE:cli>
+	    $<TARGET_FILE_DIR:frontend>/
+  )
+
+  # Windows: Copy .pdb with debug info
+  if (WIN32)
+    add_custom_command(
+    TARGET frontend 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+	    $<TARGET_FILE_DIR:cli>/rszst.pdb
+	    $<TARGET_FILE_DIR:frontend>/rszst.pdb
+    )
+  endif()
 endif()
 
-if (WIN32)
+# Disabled: No DLLs exist
+if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_custom_command(TARGET frontend POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:frontend> $<TARGET_FILE_DIR:frontend> 
     COMMAND_EXPAND_LISTS
@@ -298,5 +301,4 @@ if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "
   )
 endif()
 
-add_dependencies(frontend cli)
 add_dependencies(frontend rsl)

@@ -39,7 +39,25 @@ Face ReadFace(const aiFace& face) {
   return {.indices = ReadVec(face.mIndices, face.mNumIndices)};
 }
 
-Mesh ReadMesh(const aiMesh& mesh) {
+Bone ReadBone(const aiBone& bone, const std::map<aiNode*, size_t>& ids_set) {
+  std::vector<VertexWeight> weights;
+  auto aiWeights = ReadVec(bone.mWeights, bone.mNumWeights);
+  for (const auto& aiW : aiWeights) {
+    weights.push_back(VertexWeight{
+        .vertexIndex = aiW.mVertexId,
+        .weight = aiW.mWeight,
+    });
+  }
+  std::string name = bone.mName.C_Str();
+  assert(ids_set.contains(bone.mNode));
+  return Bone{
+      .name = name,
+      .weights = weights,
+      .nodeIndex = static_cast<u32>(ids_set.at(bone.mNode)),
+  };
+}
+
+Mesh ReadMesh(const aiMesh& mesh, const std::map<aiNode*, size_t>& ids_set) {
   (void)mesh.mPrimitiveTypes;
   Mesh m;
   m.positions = ReadVec(reinterpret_cast<const glm::vec3*>(mesh.mVertices),
@@ -75,8 +93,10 @@ Mesh ReadMesh(const aiMesh& mesh) {
       m.faces[i] = ReadFace(mesh.mFaces[i]);
     }
   }
-  (void)mesh.mNumBones;
-  (void)mesh.mBones;
+  auto bones = ReadVec(mesh.mBones, mesh.mNumBones);
+  for (auto* bone : bones) {
+    m.bones.push_back(ReadBone(*bone, ids_set));
+  }
   m.materialIndex = mesh.mMaterialIndex;
   m.name = mesh.mName.C_Str();
   (void)mesh.mNumAnimMeshes;
@@ -87,11 +107,12 @@ Mesh ReadMesh(const aiMesh& mesh) {
   return m;
 }
 
-std::vector<Mesh> ReadMeshes(const aiScene& scn) {
+std::vector<Mesh> ReadMeshes(const aiScene& scn,
+                             const std::map<aiNode*, size_t>& ids_set) {
   if (scn.mMeshes && scn.mNumMeshes) {
     std::vector<Mesh> result(scn.mNumMeshes);
     for (size_t i = 0; i < result.size(); ++i) {
-      result[i] = ReadMesh(*scn.mMeshes[i]);
+      result[i] = ReadMesh(*scn.mMeshes[i], ids_set);
     }
     return result;
   }
@@ -189,11 +210,16 @@ std::vector<Material> ReadMaterials(const aiScene& scn) {
 }
 
 // Does not read children yet
-Node ReadNode(const aiNode& node) {
+Node ReadNode(const aiNode& node, const std::map<aiNode*, size_t>& ids_set) {
   Node n;
   n.name = node.mName.C_Str();
   n.xform = getMat4(node.mTransformation);
-  (void)node.mParent;
+  if (node.mParent != nullptr) {
+    assert(ids_set.contains(node.mParent));
+    n.parent = ids_set.at(node.mParent);
+  } else {
+    n.parent = -1;
+  }
   (void)node.mChildren; // Read later
   n.meshes = ReadVec(node.mMeshes, node.mNumMeshes);
   (void)node.mMetaData;
@@ -201,13 +227,15 @@ Node ReadNode(const aiNode& node) {
 }
 
 // Recursive function
-void ReadNodesImpl(const aiNode* root, auto&& out_it,
-                   std::set<aiNode*>& ids_set) {
+void ReadNodesImpl(const aiNode* root, auto& result,
+                   std::map<aiNode*, size_t>& ids_set) {
   // ids_set:
   // - To detect circular references / duplicates
   // - Sorted to allow aiNode* -> ID lookup
-  auto n = ReadNode(*root);
+  auto n = ReadNode(*root, ids_set);
+  auto out_it = std::back_inserter(result);
   *out_it++ = n;
+  size_t written_id = result.size() - 1;
   auto children = ReadVec(root->mChildren, root->mNumChildren);
   for (size_t i = 0; i < children.size(); ++i) {
     auto* it = children[i];
@@ -220,30 +248,32 @@ void ReadNodesImpl(const aiNode* root, auto&& out_it,
                 it->mName.C_Str(), i);
       continue;
     }
-    n.children.push_back(ids_set.size());
-    ids_set.emplace(it);
-    ReadNodesImpl(it, out_it, ids_set);
+    result[written_id].children.push_back(ids_set.size());
+    ids_set.emplace(it, ids_set.size());
+    ReadNodesImpl(it, result, ids_set);
   }
 }
 
-std::vector<Node> ReadNodes(const aiScene& scn) {
+std::vector<Node> ReadNodes(const aiScene& scn,
+                            std::map<aiNode*, size_t>& ids_set) {
   if (scn.mRootNode == nullptr) {
     return {};
   }
   std::vector<Node> result;
-  std::set<aiNode*> ids_set;
-  ids_set.emplace(scn.mRootNode);
-  ReadNodesImpl(scn.mRootNode, std::back_inserter(result), ids_set);
+  ids_set.emplace(scn.mRootNode, 0);
+  ReadNodesImpl(scn.mRootNode, result, ids_set);
   return result;
 }
 
 } // namespace
 
 Scene ReadScene(const aiScene& scn) {
+  std::map<aiNode*, size_t> ids_set;
+  auto nodes = ReadNodes(scn, ids_set);
   return {
       .flags = ReadSceneAttrs(scn),
-      .nodes = ReadNodes(scn),
-      .meshes = ReadMeshes(scn),
+      .nodes = nodes,
+      .meshes = ReadMeshes(scn, ids_set),
       .materials = ReadMaterials(scn),
       .animations = {},
   };

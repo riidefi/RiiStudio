@@ -2,7 +2,6 @@
 
 #include <librii/g3d/data/AnimData.hpp>
 #include <librii/g3d/io/CommonIO.hpp>
-#include <librii/g3d/io/DictIO.hpp>
 #include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/NameTableIO.hpp>
 #include <map>
@@ -135,6 +134,8 @@ struct BinaryClr {
 
   Result<void> read(oishii::BinaryReader& reader);
   void write(oishii::Writer& writer, NameTable& names, u32 addrBrres) const;
+
+  void mergeIdenticalTracks();
 };
 
 } // namespace librii::g3d

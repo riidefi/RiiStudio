@@ -1,6 +1,10 @@
-#include <core/common.h>
+// Hacky workarounds for enabling designated initializers
+#define ARCHIVE_DEF
+#define MODEL_DEF
+
 #include <LibBadUIFramework/Node2.hpp>
 #include <LibBadUIFramework/Plugins.hpp>
+#include <core/common.h>
 
 #include <oishii/reader/binary_reader.hxx>
 #include <oishii/writer/binary_writer.hxx>
@@ -16,11 +20,9 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-
 namespace riistudio::g3d {
 
 static Result<void> processModel(librii::g3d::Model& binary_model,
-                                 kpi::LightIOTransaction& transaction,
                                  const std::string& transaction_path,
                                  riistudio::g3d::Model& mdl) {
   mdl.mName = binary_model.name;
@@ -75,31 +77,15 @@ static Result<void> processModel(librii::g3d::Model& binary_model,
   return {};
 }
 
-void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
-               kpi::LightIOTransaction& transaction) {
-  librii::g3d::BinaryArchive bin;
-  if (auto r = bin.read(reader, transaction); !r) {
-    transaction.callback(kpi::IOMessageClass::Error, "BRRES", r.error());
-    transaction.state = kpi::TransactionState::Failure;
-    return;
-  }
-  auto archive_ = librii::g3d::Archive::from(bin, transaction);
-  if (!archive_) {
-    transaction.callback(kpi::IOMessageClass::Error, "BRRES", archive_.error());
-    transaction.state = kpi::TransactionState::Failure;
-    return;
-  }
-  auto archive = *archive_;
-  collection.path = reader.getFile();
+Result<void> ReadBRRES(Collection& collection, librii::g3d::Archive& archive,
+                       std::string path) {
+  collection.path = path;
   for (auto& mdl : archive.models) {
     auto& editor_mdl = collection.getModels().add();
-    auto ok = processModel(mdl, transaction, "MDL0 " + mdl.name, editor_mdl);
+    auto ok = processModel(mdl, "MDL0 " + mdl.name, editor_mdl);
     if (!ok) {
-      transaction.callback(
-          kpi::IOMessageClass::Error, std::format("MDL0 {}", mdl.name),
+      return std::unexpected(
           std::format("Could not read MDL0 {}: {}", mdl.name, ok.error()));
-      transaction.state = kpi::TransactionState::Failure;
-      return;
     }
   }
   for (auto& tex : archive.textures) {
@@ -114,6 +100,18 @@ void ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
   collection.clrs = archive.clrs;
   collection.pats = archive.pats;
   collection.viss = archive.viss;
+  return {};
+}
+
+Result<void> ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
+                       kpi::LightIOTransaction& transaction) {
+  librii::g3d::BinaryArchive bin;
+  if (auto r = bin.read(reader, transaction); !r) {
+    transaction.callback(kpi::IOMessageClass::Error, "BRRES", r.error());
+    return std::unexpected(r.error());
+  }
+  auto archive = TRY(librii::g3d::Archive::from(bin, transaction));
+  return ReadBRRES(collection, archive, reader.getFile());
 }
 
 librii::g3d::Model toBinaryModel(const Model& mdl) {

@@ -1,5 +1,7 @@
 #include "AnimChrIO.hpp"
 
+#include <rsl/CompactVector.hpp>
+
 namespace librii::g3d {
 
 struct CHR0Offsets {
@@ -120,18 +122,15 @@ Result<void> BinaryChr::read(oishii::BinaryReader& reader) {
     track = TRY(CHR0AnyTrack::read(safe, baked, tp, frameDuration));
 
     // The slow part
-    // TODO: For now, we don't even convert offsets to indices
-#if 0
     for (auto& n : nodes) {
       for (auto& t : n.tracks) {
         if (auto* o = std::get_if<u32>(&t)) {
           if (*o == ofs) {
-            *o = tracks.size() - 1;
+            *o = static_cast<u32>(tracks.size() - 1);
           }
         }
       }
     }
-#endif
   }
 
   return {};
@@ -154,23 +153,39 @@ void BinaryChr::write(oishii::Writer& writer, NameTable& names,
       .frameDuration = frameDuration,
       .materialCount = static_cast<u16>(nodes.size()),
       .wrapMode = wrapMode,
-	  .scaleRule = scaleRule,
+      .scaleRule = scaleRule,
   };
   info.write(writer, names, start);
 
   BetterDictionary dict;
 
   std::vector<u32> track_addresses;
-  // Edge case: no root node if 1 entry
   auto dictSize = CalcDictionarySize(nodes.size());
   u32 accum = start + 0x2c /* header */ + dictSize;
   for (auto& mat : nodes) {
     dict.nodes.push_back(BetterNode{.name = mat.name, .stream_pos = accum});
     accum += mat.filesize();
   }
+  for (auto& track : tracks) {
+    accum = roundUp(accum, 4);
+    track_addresses.push_back(accum);
+    accum += track.filesize();
+  }
   offsets.ofsMatDict = writer.tell() - start;
   WriteDictionary(dict, writer, names);
-  for (auto& node : nodes) {
+
+  std::vector<CHR0Node> nodes_tmp = nodes;
+  // Convert indices -> offsets
+  for (auto& n : nodes_tmp) {
+    for (auto& t : n.tracks) {
+      if (auto* o = std::get_if<u32>(&t)) {
+        assert(*o < track_addresses.size());
+        *o = track_addresses[*o];
+      }
+    }
+  }
+
+  for (auto& node : nodes_tmp) {
     node.write(writer, names);
   }
   for (auto& track : tracks) {
@@ -186,5 +201,24 @@ void BinaryChr::write(oishii::Writer& writer, NameTable& names,
   writer.seekSet(back);
   writer.alignTo(0x4);
 }
+
+// Disabled for now: We do not convert offsets to indices yet..
+#if 0
+void BinaryChr::mergeIdenticalTracks() {
+  auto compacted = rsl::StableCompactVector(tracks);
+
+  // Replace old track indices with new indices in CHR0Node targets
+  for (auto& node : nodes) {
+    for (auto& target : node.tracks) {
+      if (auto* index = std::get_if<u32>(&target)) {
+        *index = compacted.remapTableOldToNew[*index];
+      }
+    }
+  }
+
+  // Replace the old tracks with the new list of unique tracks
+  tracks = std::move(compacted.uniqueElements);
+}
+#endif
 
 } // namespace librii::g3d

@@ -1,7 +1,7 @@
 [package]
 name = "gctex"
 license = "GPL-2.0-or-later"
-version = "0.1.12"
+version = "0.1.13"
 edition = "2021"
 description = "gctex is a Rust crate designed for encoding and decoding texture formats used in the Nintendo GameCube and Wii games. The library provides C bindings, making it useful in both Rust and C/C++ based projects."
 homepage = "https://github.com/riidefi/RiiStudio/tree/master/source/gctex"
@@ -11,8 +11,8 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-crate-type=["cdylib", "lib"]
+crate-type=["cdylib", "lib", "staticlib"]
 
 [build-dependencies]
-bindgen = "0.57"
-cc = { version = "1.0", features = ["parallel"] }
+bindgen = "0.66"
+cc = { version = "1.0.83", features = ["parallel"] }

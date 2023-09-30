@@ -18,7 +18,7 @@ u32 BuildTexMatrixFlags(const librii::gx::GCMaterialData::TexMatrix& mtx) {
 }
 
 Result<void> BinaryMatDL::write(oishii::Writer& writer) const {
-  MAYBE_UNUSED const auto dl_start = writer.tell();
+  [[maybe_unused]] const auto dl_start = writer.tell();
   rsl::trace("Mat dl start: {:x}", writer.tell());
   librii::gpu::DLBuilder dl(writer);
   {
@@ -95,7 +95,8 @@ Result<void> BinaryMatDL::parse(oishii::BinaryReader& reader, u32 numIndStages,
             curScale.ss0),
         static_cast<librii::gx::IndirectTextureScalePair::Selection>(
             curScale.ss1)};
-
+  }
+  for (u8 i = 0; i < matHandler.mGpuMat.mIndirect.mIndMatrices.size(); ++i) {
     std::vector<std::string> _warnings;
     Result<librii::gx::IndirectMatrix> m =
         matHandler.mGpuMat.mIndirect.mIndMatrices[i].lift(_warnings);
@@ -278,8 +279,6 @@ Result<G3dMaterialData> fromBinMat(const BinaryMaterial& bin,
     mat.lightSetIndex = bin.misc.lightSetIndex;
     mat.fogIndex = bin.misc.fogIndex;
     // Ignore reserved
-
-    EXPECT(bin.misc.indMethod.size() >= bin.dl.indMatrices.size());
   }
 
   // TEV
@@ -336,7 +335,7 @@ Result<G3dMaterialData> fromBinMat(const BinaryMaterial& bin,
       mat.indirectStages[i].scale = bin.dl.scales[i];
     }
     mat.indirectStages.resize(bin.genMode.numIndStages);
-    mat.mIndMatrices.resize(bin.genMode.numIndStages); // TODO
+    mat.mIndMatrices.resize(bin.dl.indMatrices.size());
     for (int i = 0; i < bin.dl.indMatrices.size(); ++i) {
       mat.mIndMatrices[i] = bin.dl.indMatrices[i];
       mat.mIndMatrices[i].method =
@@ -488,7 +487,7 @@ BinaryMaterial toBinMat(const G3dMaterialData& mat, u32 mat_idx) {
       .indMethod = mat.mIndMatrices | std::views::transform(toIndMethod) |
 
 #ifdef __APPLE__
-                   //ranges::to<std::vector>() |
+  // ranges::to<std::vector>() |
 #endif
 
                    rsl::ToArray<4>(),

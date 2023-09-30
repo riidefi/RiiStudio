@@ -5,8 +5,11 @@
 
 #pragma once
 
-#include <core/common.h>
-#include <stdint.h>
+#include <memory>
+#include <rsl/Expected.hpp>
+#include <rsl/Types.hpp>
+#include <string>
+#include <vector>
 
 namespace oishii {
 

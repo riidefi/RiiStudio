@@ -1,28 +1,12 @@
 #include "g3d_crate.hpp"
 #include <core/util/timestamp.hpp>
 #include <librii/g3d/io/AnimIO.hpp>
+#include <librii/g3d/io/ArchiveIO.hpp>
 #include <librii/g3d/io/MatIO.hpp>
 #include <librii/g3d/io/TevIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
-
-IMPORT_STD;
-
-#ifdef __APPLE__
-template <>
-struct fmt::formatter<std::filesystem::path, char>
-    : fmt::formatter<std::string> {
-  auto format(std::filesystem::path p, auto& ctx) {
-    return std::format_to(ctx.out(), "{}", p.string());
-  }
-};
-#else
-template <>
-struct std::formatter<std::filesystem::path> : std::formatter<std::string> {
-  auto format(std::filesystem::path p, format_context& ctx) {
-    return formatter<std::string>::format(std::format("{}", p.string()), ctx);
-  }
-};
-#endif
+#include <rsl/ArrayUtil.hpp>
+#include <rsl/WriteFile.hpp>
 
 namespace librii::crate {
 
@@ -146,65 +130,6 @@ std::vector<u8> WriteMDL0Shade(const g3d::G3dMaterialData& mat) {
   return writer.takeBuf();
 }
 
-Result<g3d::TextureData, std::string> ReadTEX0(std::span<const u8> file) {
-  g3d::TextureData tex;
-  // TODO: We trust the .tex0-file provided name to be correct
-  const bool ok = g3d::ReadTexture(tex, file, "");
-  if (!ok) {
-    return std::unexpected(
-        "Failed to parse TEX0: g3d::ReadTexture returned false");
-  }
-  return tex;
-}
-
-class SimpleRelocApplier {
-public:
-  SimpleRelocApplier(std::vector<u8>& buf) : mBuf(buf) {}
-  ~SimpleRelocApplier() = default;
-
-  void apply(g3d::NameReloc reloc, u32 structure_offset) {
-    // Transform from structure-space to buffer-space
-    reloc = g3d::RebasedNameReloc(reloc, structure_offset);
-    // Write to end of mBuffer
-    const u32 string_location = writeName(reloc.name);
-    mBuf.resize(roundUp(mBuf.size(), 4));
-    // Resolve pointer
-    writePointer(reloc, string_location);
-  }
-
-private:
-  void writePointer(g3d::NameReloc& reloc, u32 string_location) {
-    const u32 pointer_location = reloc.offset_of_pointer_in_struct;
-    const u32 structure_location = reloc.offset_of_delta_reference;
-    rsl::store<s32>(string_location - structure_location, mBuf,
-                    pointer_location);
-  }
-  u32 writeName(std::string_view name) {
-    const u32 sz = name.size();
-    mBuf.push_back((sz & 0xff000000) >> 24);
-    mBuf.push_back((sz & 0x00ff0000) >> 16);
-    mBuf.push_back((sz & 0x0000ff00) >> 8);
-    mBuf.push_back((sz & 0x000000ff) >> 0);
-    const u32 string_location = mBuf.size();
-    mBuf.insert(mBuf.end(), name.begin(), name.end());
-    mBuf.push_back(0);
-    return string_location;
-  }
-  std::vector<u8>& mBuf;
-};
-
-std::vector<u8> WriteTEX0(const g3d::TextureData& tex) {
-  auto memory_request = g3d::CalcTextureBlockData(tex);
-  std::vector<u8> buffer(memory_request.size);
-
-  g3d::NameReloc reloc;
-  g3d::WriteTexture(buffer, tex, 0, reloc);
-  SimpleRelocApplier applier(buffer);
-  applier.apply(reloc, 0 /* structure offset */);
-
-  return buffer;
-}
-
 Result<g3d::SrtAnimationArchive> ReadSRT0(std::span<const u8> file) {
   g3d::BinarySrt arc;
   oishii::BinaryReader reader(file, "Unknown SRT0", std::endian::big);
@@ -309,19 +234,20 @@ ScanCrateAnimationFolder(std::filesystem::path path) {
 Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   auto mdl0mat = OishiiReadFile2(paths.mdl0mat.string());
   if (!mdl0mat) {
-    return std::unexpected(
-        std::format("Failed to read .mdl0mat at \"{}\"", paths.mdl0mat));
+    return std::unexpected(std::format("Failed to read .mdl0mat at \"{}\"",
+                                       paths.mdl0mat.string()));
   }
   auto mdl0shade = OishiiReadFile2(paths.mdl0shade.string());
   if (!mdl0shade) {
-    return std::unexpected(
-        std::format("Failed to read .mdl0shade at \"{}\"", paths.mdl0shade));
+    return std::unexpected(std::format("Failed to read .mdl0shade at \"{}\"",
+                                       paths.mdl0shade.string()));
   }
   std::vector<std::vector<u8>> tex0s;
   for (auto& x : paths.tex0) {
     auto tex0 = OishiiReadFile2(x.string());
     if (!tex0) {
-      return std::unexpected(std::format("Failed to read .tex0 at \"{}\"", x));
+      return std::unexpected(
+          std::format("Failed to read .tex0 at \"{}\"", x.string()));
     }
     tex0s.push_back(std::move(*tex0));
   }
@@ -329,29 +255,31 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
   for (auto& x : paths.srt0) {
     auto srt0 = OishiiReadFile2(x.string());
     if (!srt0) {
-      return std::unexpected(std::format("Failed to read .srt0 at \"{}\"", x));
+      return std::unexpected(
+          std::format("Failed to read .srt0 at \"{}\"", x.string()));
     }
     srt0s.push_back(std::move(*srt0));
   }
   auto mat = ReadMDL0Mat(*mdl0mat);
   if (!mat.has_value()) {
     return std::unexpected(std::format("Failed to parse material at \"{}\": {}",
-                                       paths.mdl0mat, mat.error()));
+                                       paths.mdl0mat.string(), mat.error()));
   }
   auto shade = ReadMDL0Shade(*mdl0shade);
   if (!shade.has_value()) {
     return std::unexpected(std::format("Failed to parse shader at \"{}\": {}",
-                                       paths.mdl0shade, shade.error()));
+                                       paths.mdl0shade.string(),
+                                       shade.error()));
   }
   CrateAnimation tmp;
   for (size_t i = 0; i < tex0s.size(); ++i) {
-    auto tex = ReadTEX0(tex0s[i]);
+    auto tex = g3d::ReadTEX0(tex0s[i]);
     if (!tex.has_value()) {
       if (i >= paths.tex0.size()) {
         return std::unexpected(tex.error());
       }
       return std::unexpected(std::format("Failed to parse TEX0 at \"{}\": {}",
-                                         paths.tex0[i], tex.error()));
+                                         paths.tex0[i].string(), tex.error()));
     }
     tmp.tex.push_back(*tex);
   }
@@ -362,7 +290,7 @@ Result<CrateAnimation> ReadCrateAnimation(const CrateAnimationPaths& paths) {
         return std::unexpected(srt.error());
       }
       return std::unexpected(std::format("Failed to parse SRT0 at \"{}\": {}",
-                                         paths.srt0[i], srt.error()));
+                                         paths.srt0[i].string(), srt.error()));
     }
     tmp.srt.push_back(*srt);
   }
@@ -441,30 +369,14 @@ struct SimpleTransaction {
     trans.callback = [](...) {};
   }
 
-  bool success() const {
-    return trans.state == kpi::TransactionState::Complete;
-  }
-
   kpi::LightIOTransaction trans;
 };
 
 std::unique_ptr<librii::g3d::Archive> ReadBRRES(const std::vector<u8>& buf,
                                                 std::string path) {
   SimpleTransaction trans;
-  oishii::BinaryReader reader(buf, path, std::endian::big);
-  librii::g3d::BinaryArchive bin;
-  auto ok = bin.read(reader, trans.trans);
-  if (!ok) {
-    return nullptr;
-  }
-  if (!trans.success()) {
-    return nullptr;
-  }
 
-  auto arc = librii::g3d::Archive::from(bin, trans.trans);
-  if (!trans.success()) {
-    return nullptr;
-  }
+  auto arc = librii::g3d::Archive::fromMemory(buf, path, trans.trans);
   if (!arc) {
     return nullptr;
   }
@@ -538,7 +450,7 @@ Result<CrateAnimation> ReadRSPreset(std::span<const u8> file) {
       .metadata_json = as_json,
   };
 }
-Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset) {
+Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset, bool cli) {
   librii::g3d::Archive collection;
   auto& mdl = collection.models.emplace_back();
   mdl.materials.push_back(preset.mat);
@@ -555,7 +467,8 @@ Result<std::vector<u8>> WriteRSPreset(const CrateAnimation& preset) {
 #if defined(_WIN32)
   json["date_created"] = std::format("{:%B %d, %Y}", now);
 #endif
-  json["tool"] = std::format("RiiStudio {}", std::string_view(GIT_TAG));
+  json["tool"] = std::format("RiiStudio {}{}", cli ? "CLI " : "",
+                             std::string_view(GIT_TAG));
 
   // A bone is required for some reason
   mdl.bones.emplace_back().mName =
@@ -571,7 +484,7 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
                                                 std::string_view metadata) {
   if (!scene) {
     return std::unexpected(
-        "Internal: This scene type does not support .rsmat presets. "
+        "Internal: This scene type does not support .rspreset files. "
         "Not a BRRES file?");
   }
   std::set<std::string> tex_names, srt_names;
@@ -659,6 +572,26 @@ Result<CrateAnimation> CreatePresetFromMaterial(const g3d::G3dMaterialData& mat,
     }
   }
   return result;
+}
+
+[[nodiscard]] Result<void> DumpPresetsToFolder(std::filesystem::path root,
+                                               const g3d::Archive& scene,
+                                               bool cli,
+                                               std::string_view metadata) {
+  std::error_code ec;
+  bool exists = std::filesystem::exists(root, ec);
+  if (ec || !exists) {
+    return std::unexpected("Error: output folder does not exist");
+  }
+  for (auto& mdl : scene.models) {
+    for (auto& mat : mdl.materials) {
+      auto preset = TRY(CreatePresetFromMaterial(mat, &scene, metadata));
+      auto bytes = TRY(WriteRSPreset(preset, cli));
+      auto dst = (root / (mat.name + ".rspreset")).string();
+      TRY(rsl::WriteFile(bytes, dst));
+    }
+  }
+  return {};
 }
 
 } // namespace librii::crate

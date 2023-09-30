@@ -26,11 +26,30 @@ void AssImporter::ProcessMeshTriangles(
 
 Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
                                      const lra::Mesh* pMesh,
-                                     const lra::Node* pNode, glm::vec3 tint) {
+                                     const lra::Node* pNode, s32 nodeIndex,
+                                     glm::vec3 tint) {
   EXPECT(pMesh != nullptr);
   rsl::trace("Importing mesh: {}", pMesh->name);
+
   auto& poly = out_model.meshes.emplace_back();
   poly.name = pMesh->name;
+
+  EXPECT(pMesh->bones.empty() && "Only singlebound meshes supported!");
+  librii::rhst::WeightMatrix search{{
+      {static_cast<s32>(nodeIndex), 100},
+  }};
+  int cur_mtx = -1;
+  for (s32 i = 0; i < out_model.weights.size(); ++i) {
+    if (out_model.weights[i] == search) {
+      cur_mtx = i;
+    }
+  }
+  if (cur_mtx == -1) {
+    cur_mtx = static_cast<int>(out_model.weights.size());
+    out_model.weights.push_back(search);
+  }
+  poly.current_matrix = cur_mtx;
+
   auto& vcd = poly.vertex_descriptor;
 
   auto add_attribute = [&](auto type, bool direct = false) {
@@ -102,8 +121,8 @@ Result<void> AssImporter::ImportMesh(librii::rhst::SceneTree& out_model,
 }
 
 Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
-                                     const lra::Node* pNode, glm::vec3 tint,
-                                     int parent) {
+                                     const lra::Node* pNode, s32 nodeIndex,
+                                     glm::vec3 tint, int parent) {
   // Create a bone (with name)
   auto& joint = out_model.bones.emplace_back();
   joint.name = pNode->name;
@@ -126,14 +145,7 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
             joint.rotate.y, joint.rotate.z, joint.translate.x,
             joint.translate.y, joint.translate.z);
 
-  joint.parent = parent;
-  if (parent != -1) {
-    auto& children = out_model.bones[parent].child;
-    children.clear();
-    for (auto c : pNode->children) {
-      children.push_back(c);
-	}
-  }
+  joint.parent = pNode->parent;
 
   librii::math::AABB aabb{{FLT_MAX, FLT_MAX, FLT_MAX},
                           {FLT_MIN, FLT_MIN, FLT_MIN}};
@@ -144,7 +156,7 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
     const auto* pMesh = &pScene->meshes[pNode->meshes[i]];
 
     auto matId = pMesh->materialIndex;
-    auto ok = ImportMesh(out_model, pMesh, pNode, tint);
+    auto ok = ImportMesh(out_model, pMesh, pNode, nodeIndex, tint);
     if (!ok) {
       rsl::error("Failed to import mesh {}: {}", pMesh->name, ok.error());
       continue;
@@ -162,9 +174,10 @@ Result<void> AssImporter::ImportNode(librii::rhst::SceneTree& out_model,
   joint.min = aabb.min;
   joint.max = aabb.max;
 
-  if (!pNode->children.empty()) {
-    // joint.child = pNode->children[0];
+  for (size_t child : pNode->children) {
+    joint.child.push_back(static_cast<s32>(child));
   }
+
   return {};
 }
 
@@ -202,8 +215,8 @@ Result<librii::rhst::SceneTree> AssImporter::Import(const Settings& settings) {
     mat.mag_filter = true;
   }
 
-  for (auto& node : pScene->nodes) {
-    auto ok = ImportNode(out_model, &node, settings.mModelTint);
+  for (s32 i = 0; i < pScene->nodes.size(); ++i) {
+    auto ok = ImportNode(out_model, &pScene->nodes[i], i, settings.mModelTint);
     if (!ok) {
       return std::unexpected(
           std::format("Failed to import node {}", ok.error()));

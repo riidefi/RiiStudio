@@ -1383,7 +1383,8 @@ out vec3 v_TexCoord7;
 out vec4 v_PrimID;
 )";
 
-    std::array<char, 1024 * 64> vert_buf;
+    std::string vert_buf;
+    vert_buf.resize(1024 * 64);
     StringBuilder vert(vert_buf.data(), vert_buf.size());
     vert += varying_vert;
     TRY(generateVertAttributeDefs(vert));
@@ -1449,7 +1450,8 @@ in vec4 v_PrimID;
 out vec4 fragOut;
 )";
 
-    std::array<char, 1024 * 64> frag_buf;
+    std::string frag_buf;
+    frag_buf.resize(1024 * 64);
     StringBuilder frag(frag_buf.data(), frag_buf.size());
 #if !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
     if (mMaterial.earlyZComparison) {

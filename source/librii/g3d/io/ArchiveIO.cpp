@@ -1,13 +1,17 @@
 #include "ArchiveIO.hpp"
 
 #include "CommonIO.hpp"
-// XXX: Must not include DictIO.hpp when using DictWriteIO.hpp
-#include <librii/g3d/io/DictWriteIO.hpp>
-
+#include <librii/g3d/data/Archive.hpp>
 #include <librii/g3d/io/AnimIO.hpp>
+#include <librii/g3d/io/DictWriteIO.hpp>
 #include <librii/g3d/io/TextureIO.hpp>
 
 namespace librii::g3d {
+
+Archive::Archive() __attribute__((weak)) = default;
+Archive::Archive(const Archive&) __attribute__((weak)) = default;
+Archive::Archive(Archive&&) noexcept __attribute__((weak)) = default;
+Archive::~Archive() __attribute__((weak)) = default;
 
 struct BRRESHeader {
   u32 magic;
@@ -511,6 +515,55 @@ Result<BinaryArchive> Archive::binary() const {
   }
   tmp.viss = viss;
   return tmp;
+}
+Result<void> Archive::write(oishii::Writer& writer) const {
+  return TRY(binary()).write(writer);
+}
+Result<void> Archive::write(std::string_view path) const {
+  oishii::Writer writer(std::endian::big);
+  TRY(write(writer));
+  writer.saveToDisk(path);
+  return {};
+}
+
+Result<Archive> Archive::fromFile(std::string path,
+                                  kpi::LightIOTransaction& transaction) {
+  auto reader = oishii::BinaryReader::FromFilePath(path, std::endian::big);
+  EXPECT(reader && "Failed to read file");
+  return read(*reader, transaction);
+}
+Result<Archive> Archive::fromFile(std::string path) {
+  kpi::LightIOTransaction trans;
+  trans.callback = [&](kpi::IOMessageClass message_class,
+                       const std::string_view domain,
+                       const std::string_view message_body) {
+    auto msg = std::format("[{}] {} {}", magic_enum::enum_name(message_class),
+                           domain, message_body);
+    rsl::error(msg);
+  };
+  return fromFile(path, trans);
+}
+Result<Archive> Archive::read(oishii::BinaryReader& reader,
+                              kpi::LightIOTransaction& transaction) {
+  BinaryArchive bin;
+  TRY(bin.read(reader, transaction));
+  return from(bin, transaction);
+}
+Result<Archive> Archive::fromMemory(std::span<const u8> buf, std::string path,
+                                    kpi::LightIOTransaction& trans) {
+  oishii::BinaryReader reader(buf, path, std::endian::big);
+  return read(reader, trans);
+}
+Result<Archive> Archive::fromMemory(std::span<const u8> buf, std::string path) {
+  kpi::LightIOTransaction trans;
+  trans.callback = [&](kpi::IOMessageClass message_class,
+                       const std::string_view domain,
+                       const std::string_view message_body) {
+    auto msg = std::format("[{}] {} {}", magic_enum::enum_name(message_class),
+                           domain, message_body);
+    rsl::error(msg);
+  };
+  return fromMemory(buf, path, trans);
 }
 
 } // namespace librii::g3d
