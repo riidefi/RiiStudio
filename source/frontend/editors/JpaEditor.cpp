@@ -150,33 +150,6 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   ImGui::InputScalar("Color Loop Offset Mask", ImGuiDataType_U8,
                      &block->colorLoopOfstMask);
 
-  // if (ImGui::TreeNodeEx("Color prm Anim table",
-  //                       ImGuiTreeNodeFlags_DefaultOpen)) {
-  //   if (ImGui::BeginPopupContextItem("Color prm Anim table add")) {
-  //       if (ImGui::MenuItem("Add Entry")) {
-  //       block->colorPrmAnimData.push_back({0,{0,0,0,0}});
-  //       }
-  //     ImGui::EndPopup();
-  //   }
-  //   for (int i = 0; i < block->colorPrmAnimData.size(); i++) {
-  //     ImGui::PushItemWidth(-1);
-  //     auto str = std::format("color prm Id {}", i);
-  //     ImGui::PushID(str.c_str());
-  //     ImGui::PushItemWidth(16.0f);
-  //     ImGui::InputScalar("Time start", ImGuiDataType_U8,
-  //                        &block->colorPrmAnimData[i].timeBegin);
-  //     ImGui::PopItemWidth();
-  //     ImGui::SameLine();
-  //     ImGui::ColorEdit4("Color", block->colorPrmAnimData[i].color);
-  //     ImGui::SameLine();
-  //     if (ImGui::Button("X")) {
-  //       block->colorPrmAnimData.erase(block->colorPrmAnimData.begin() + i);
-  //     }
-  //     ImGui::PopID();
-  //   }
-  //   ImGui::TreePop();
-  // }
-
   colorPrmGradient.widget("Color Primary Animation Gradient");
   // After drawing the gradient we must update the underlying color table
   // entries
@@ -201,30 +174,6 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   }
 
 
-  // if (ImGui::TreeNodeEx("Color env Anim table",
-  //                       ImGuiTreeNodeFlags_DefaultOpen)) {
-  //   if (ImGui::BeginPopupContextItem("Color env Anim table add")) {
-  //     if (ImGui::MenuItem("Add Entry")) {
-  //       block->colorEnvAnimData.push_back({0, {0, 0, 0, 0}});
-  //     }
-  //     ImGui::EndPopup();
-  //   }
-    // for (int i = 0; i < block->colorEnvAnimData.size(); i++) {
-    //
-    //   auto str = std::format("color env Id {}", i);
-    //   ImGui::PushID(str.c_str());
-    //   ImGui::PushItemWidth(16.0f);
-    //   ImGui::InputScalar("Time", ImGuiDataType_U8,
-    //                      &block->colorEnvAnimData[i].timeBegin);
-    //   ImGui::PopItemWidth();
-    //   ImGui::SameLine();
-    //   ImGui::ColorEdit4("Color", block->colorEnvAnimData[i].color);
-    //   ImGui::SameLine();
-    //   if (ImGui::Button("X")) {
-    //     block->colorEnvAnimData.erase(block->colorEnvAnimData.begin() + i);
-    //   }
-    //   ImGui::PopID();
-    // }
 
     colorEnvGradient.widget("Color Env Animation Gradient");
     // After drawing the gradient we must update the underlying color table entries
@@ -247,10 +196,6 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
 
       std::advance(mark, 1);
     }
-
-
-    // ImGui::TreePop();
-  // }
 
 }
 
