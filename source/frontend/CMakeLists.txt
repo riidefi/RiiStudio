@@ -111,6 +111,7 @@ target_link_libraries(lib_frontend PUBLIC
   LibBadUIFramework
   updater
   rsmeshopt
+  imgui_gradient
 )
 target_link_libraries(frontend PUBLIC
   lib_frontend

@@ -2,6 +2,7 @@
 #include "frontend/legacy_editor/views/BmdBrresOutliner.hpp"
 #include "frontend/widgets/Lib3dImage.hpp"
 #include "frontend/widgets/OutlinerWidget.hpp"
+#include "imgui-gradient/src/GradientWidget.hpp"
 #include "LibBadUIFramework/ActionMenu.hpp"
 #include "librii/jparticle/JParticle.hpp"
 #include "librii/jparticle/JEFFJPA1.hpp"
@@ -49,7 +50,11 @@ public:
   void Draw(librii::jpa::JPAExTexBlock* block);
   void Draw(librii::jpa::TextureBlock block);
 
+  void refreshGradientWidgets(librii::jpa::JPABaseShapeBlock* block);
+
   Lib3dCachedImagePreview preview;
+  ImGG::GradientWidget colorPrmGradient{};
+  ImGG::GradientWidget colorEnvGradient{};
 };
 
 using JPABlockSelection = std::variant<librii::jpa::JPADynamicsBlock*,
@@ -62,7 +67,8 @@ using JPABlockSelection = std::variant<librii::jpa::JPADynamicsBlock*,
 class JpaEditorTreeView {
 public:
   void Draw(std::vector<librii::jpa::JPAResource>& resources,
-            std::vector<librii::jpa::TextureBlock>& tex) {
+            std::vector<librii::jpa::TextureBlock>& tex,
+	    JpaEditorPropertyGrid &grid) {
 
     auto str = std::format("JPA resources ({} entries)", num_entries);
     if (ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -93,6 +99,7 @@ public:
           }
           if (ImGui::Selectable("Base Shape")) {
             selected = x.bsp1;
+            grid.refreshGradientWidgets(x.bsp1);
           }
           if (x.esp1) {
             if (ImGui::Selectable("Extra Shape")) {
@@ -315,7 +322,7 @@ public:
     if (ImGui::Begin((idIfyChild("Outliner")).c_str())) {
       m_tree.num_entries = m_jpa.resources.size();
       m_tree.selected = m_selected;
-      m_tree.Draw(m_jpa.resources, m_jpa.textures);
+      m_tree.Draw(m_jpa.resources, m_jpa.textures, m_grid);
       m_selected = m_tree.selected;
     }
     ImGui::End();
@@ -378,12 +385,12 @@ public:
   }
 
   void openFile(std::span<const u8> buf, std::string_view path) {
-    auto btk = librii::jpa::JPAC::fromMemory(buf, path);
-    if (!btk) {
-      rsl::ErrorDialogFmt("Failed to parse JPA\n{}", btk.error());
+    auto jpa = librii::jpa::JPAC::fromMemory(buf, path);
+    if (!jpa) {
+      rsl::ErrorDialogFmt("Failed to parse JPA\n{}", jpa.error());
       return;
     }
-    m_jpa = *btk;
+    m_jpa = *jpa;
     m_path = path;
   }
 
