@@ -2,6 +2,17 @@
 Triangle strip / triangle fan generation algorithms
 
 ## WARNING: Clang or GCC is required to build!
+##### Windows build instructions:
+```sh
+SET CXX=clang
+cargo build
+```
+This will force the compiler to be `clang`, supposing it exists in your path.
+##### Linux/Mac build instructions:
+```
+cargo build
+```
+
 ## WARNING: This project is not entirely standalone yet; `rsl` (header only) from the parent directory is currently used.
 
 ## Rust API
@@ -29,10 +40,10 @@ The following C# bindings are [provided](https://github.com/riidefi/RiiStudio/tr
 
 ```cs
 public static List<uint> Stripify(StripifyAlgo algo, List<uint> indexData,
-								  List<Vec3> vertexData, uint restart = 0xFFFFFFFF);
+                                  List<Vec3> vertexData, uint restart = 0xFFFFFFFF);
 
 public static List<uint> MakeFans(List<uint> indexData, uint restart,
-								  uint minLen, uint maxRuns);
+                                  uint minLen, uint maxRuns);
 ```
 
 ## Triangle Stripifying Algorithms
