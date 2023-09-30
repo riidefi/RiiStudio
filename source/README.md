@@ -21,7 +21,7 @@ All the folders in the [source](https://github.com/riidefi/RiiStudio/blob/master
 | [plate](https://github.com/riidefi/RiiStudio/blob/master/source/plate)              | ❌ | Dear ImGui boilerplate code.                            | C++                  |
 | [plugins](https://github.com/riidefi/RiiStudio/blob/master/source/plugins)          | ❌ | Specific plugins for the editor: BMD, BRRES, Assimp (to BMD/BRRES). | C++      |
 | [rsl](https://github.com/riidefi/RiiStudio/blob/master/source/rsl)                  | ❌ | My standard library: generic template types.            | C++                  |
-| [rsmeshopt](https://github.com/riidefi/RiiStudio/blob/master/source/rsmeshopt)      | ✅ | My mesh optimization library.                           | C++                  |
+| [rsmeshopt](https://github.com/riidefi/RiiStudio/blob/master/source/rsmeshopt)      | ✅ | My mesh optimization library. [Published to crates.io](https://crates.io/crates/rsmeshopt) | C++                  |
 | [rust_bundle](https://github.com/riidefi/RiiStudio/blob/master/source/rust_bundle)  | ✅ | Allows RiiStudio to be `cargo bundle`d into a MacOS .app file. | Rust          |
 | [szs](https://github.com/riidefi/RiiStudio/blob/master/source/szs)                  | ✅ | SZS compressing and decompressing algorithms. [Published to crates.io](https://crates.io/crates/szs) | Rust/C++          |
 | [tests](https://github.com/riidefi/RiiStudio/blob/master/source/tests)              | ❌ | A CLI tool used by the python unit tests.               | C++                  |
