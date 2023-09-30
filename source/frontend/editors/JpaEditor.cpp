@@ -297,6 +297,14 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAFieldBlock* block) {
   }
 }
 
+void JpaEditorPropertyGrid::Draw(librii::jpa::JPAExTexBlock* block) {
+  ImGui::InputScalar("Indirect Texture ID", ImGuiDataType_U8, &block->indTextureID);
+  ImGui::InputScalar("Sub Texture ID", ImGuiDataType_U8, &block->subTextureID);
+
+  ImGui::InputScalar("Second Texture ID", ImGuiDataType_U8, &block->secondTextureIndex);
+}
+
+
 
 void JpaEditorPropertyGrid::Draw(librii::jpa::TextureBlock block) {
   preview.draw(block);

@@ -46,9 +46,10 @@ public:
   void Draw(librii::jpa::JPABaseShapeBlock* block);
   void Draw(librii::jpa::JPAExtraShapeBlock* block);
   void Draw(librii::jpa::JPAFieldBlock* block);
+  void Draw(librii::jpa::JPAExTexBlock* block);
   void Draw(librii::jpa::TextureBlock block);
 
-  riistudio::frontend::Lib3dCachedImagePreview preview;
+  Lib3dCachedImagePreview preview;
 };
 
 using JPABlockSelection = std::variant<librii::jpa::JPADynamicsBlock*,
