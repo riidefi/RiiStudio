@@ -205,7 +205,6 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
 
       block->isEnableProjection = TRY(reader.tryGetAt<u8>(tag_start + 0x43));
 
-      // Unknown flags
       u8 flags = TRY(reader.tryGetAt<u8>(tag_start + 0x44));
 
       u8 texAnimFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x4C));
@@ -300,7 +299,7 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
 
       std::shared_ptr<JPAExtraShapeBlock> block =
           std::make_shared<
-        JPAExtraShapeBlock>();
+            JPAExtraShapeBlock>();
 
       block->alphaInTiming =
           JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x14)));
@@ -427,7 +426,7 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
       // Contains child particle draw settings.
       std::shared_ptr<JPAChildShapeBlock> block =
           std::make_shared<
-        JPAChildShapeBlock>();
+            JPAChildShapeBlock>();
 
       block->shapeType = {TRY(reader.tryGetAt<u8>(tag_start + 0x10))};
       block->dirType = {TRY(reader.tryGetAt<u8>(tag_start + 0x11))};
@@ -487,6 +486,7 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
 
       std::shared_ptr<JPAExTexBlock> block = std::make_shared<JPAExTexBlock>();
 
+      // unknown
       u32 flags = TRY(reader.tryGetAt<u32>(tag_start + 0x00));
 
       f32 p00 = TRY(reader.tryGetAt<f32>(tag_start + 0x04));
@@ -506,7 +506,7 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
       block->indTextureMtx[1][2] = p12 * scale;
       block->indTextureMtx[1][3] = 0.0;
 
-      block->indTextureMode = (flags >> 0) & 0x03;
+      block->indTextureMode = static_cast<IndTextureMode>((flags >> 0) & 0x03);
       block->indTextureID = TRY(reader.tryGetAt<u8>(tag_start + 0x20));
       block->subTextureID = TRY(reader.tryGetAt<u8>(tag_start + 0x21));
       block->secondTextureIndex =

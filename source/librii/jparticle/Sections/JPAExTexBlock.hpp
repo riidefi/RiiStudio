@@ -3,7 +3,7 @@
 namespace librii::jpa {
 
 struct JPAExTexBlock {
-  u32 indTextureMode;
+  IndTextureMode indTextureMode;
   glm::mat2x4 indTextureMtx;
   u8 indTextureID;
   u8 subTextureID;
