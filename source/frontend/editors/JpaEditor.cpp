@@ -104,21 +104,32 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
 
   ImGui::Text("Texture Palette Animation");
 
-  ImGui::Checkbox("Enabled", &block->isGlblTexAnm);
+  ImGui::Checkbox("Global texture animation", &block->isGlblTexAnm);
   block->texCalcIdxType =
       imcxx::EnumCombo("Calculation Index Type", block->texCalcIdxType);
   ImGui::InputScalar("Texture Index", ImGuiDataType_U8, &block->texIdx);
 
-  if (ImGui::TreeNodeEx("Texture Anim List", ImGuiTreeNodeFlags_DefaultOpen)) {
-    for (int i = 0; i < block->texIdxAnimData.size(); i++) {
+  if (ImGui::TreeNodeEx("Texture index animation data", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::BeginPopupContextItem("Texture index animation data popup")) {
+      if (ImGui::MenuItem("Add Entry")) {
+        block->texIdxAnimData.push_back(0);
+      }
+      ImGui::EndPopup();
+    }
 
-      ImGui::PushItemWidth(-1);
+    for (int i = 0; i < block->texIdxAnimData.size(); i++) {
       auto str = std::format("texture Id {}", i);
       ImGui::PushID(str.c_str());
-      ImGui::InputScalar("Rate Step", ImGuiDataType_U8,
+      ImGui::InputScalar("", ImGuiDataType_U8,
                          &block->texIdxAnimData[i]);
+
+
+      ImGui::SameLine();
+
+      if (ImGui::Button("X")) {
+        block->texIdxAnimData.erase(block->texIdxAnimData.begin() + i);
+      }
       ImGui::PopID();
-      ImGui::PopItemWidth();
     }
     ImGui::TreePop();
   }
@@ -163,7 +174,7 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   ImGui::Text("Color Animation Settings");
 
   ImGui::PushID("Color Animation Settings");
-  ImGui::Checkbox("Enabled", &block->isGlblClrAnm);
+  ImGui::Checkbox("Global color animation", &block->isGlblClrAnm);
   ImGui::PopID();
 
   block->colorCalcIdxType =
