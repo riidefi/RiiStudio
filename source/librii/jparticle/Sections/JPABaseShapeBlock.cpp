@@ -13,20 +13,6 @@ To_JEFF_JPABaseShapeBlock(const JPABaseShapeBlock& b) {
   u8 colorAnmCalcFlags =
       (b.isGlblTexAnm << 1) | (b.colorLoopOfstMask == 0xFFFF ? 1 : 0);
 
-  u8 blendMode = b.blendModeFlags & 0x3;
-  u8 blendSrcFactor = (b.blendModeFlags >> 2) & 0x7;
-  // u8 logicOp = (b.blendModeFlags >> 4) & 0x5;
-  u8 blendDstFactor = (b.blendModeFlags >> 6) & 0x7;
-
-  u8 alphaCmp0 = b.alphaCompareFlags & 0x7;
-  u8 alphaOp = (b.alphaCompareFlags >> 3) & 0x3;
-  u8 alphaCmp1 = (b.alphaCompareFlags >> 5) & 0x7;
-
-  // 0x3E is ZCompLoc
-  u8 zTest = b.zModeFlags & 0x1;
-  u8 zCompare = (b.zModeFlags >> 1) & 0x7;
-  u8 zWrite = (b.zModeFlags >> 4) & 0xF;
-
   u8 flags =
       (b.isDrawFwdAhead << 1) & (b.isDrawPrntAhead);
 
@@ -75,19 +61,19 @@ To_JEFF_JPABaseShapeBlock(const JPABaseShapeBlock& b) {
       .shapeType = static_cast<u8>(b.shapeType),
       .dirType = static_cast<u8>(b.dirType),
       .rotType = static_cast<u8>(b.rotType), .colorInSelect = b.colorInSelect,
-      .blendMode = blendMode,
-      .blendSrcFactor = blendSrcFactor,
-      .blendDstFactor = blendDstFactor,
-      .logicOp = 0,
-      .alphaCmp0 = alphaCmp0,
+      .blendMode = static_cast<u8>(b.blendMode),
+      .blendSrcFactor = static_cast<u8>(b.blendSrcFactor),
+      .blendDstFactor = static_cast<u8>(b.blendDstFactor),
+      .logicOp = static_cast<u8>(b.logicOp),
+      .alphaCmp0 = static_cast<u8>(b.alphaCmp0),
       .alphaRef0 = b.alphaRef0,
-      .alphaOp = alphaOp,
-      .alphaCmp1 = alphaCmp1,
+      .alphaOp = static_cast<u8>(b.alphaOp),
+      .alphaCmp1 = static_cast<u8>(b.alphaCmp1),
       .alphaRef1 = b.alphaRef1,
       .zCompLoc = 0,
-      .zTest = zTest,
-      .zCompare = zCompare,
-      .zWrite = zWrite,
+      .zTest = b.zTest,
+      .zCompare = static_cast<u8>(b.zCompare),
+      .zWrite = b.zWrite,
       .isEnableProjection = b.isEnableProjection,
       .flags = flags,
       .texAnimFlags = texAnimFlags,

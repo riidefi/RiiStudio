@@ -1,6 +1,8 @@
 #pragma once
 
 
+#include "librii/gx/AlphaCompare.hpp"
+#include "librii/gx/Blend.hpp"
 #include "librii/gx/Color.hpp"
 #include "oishii/writer/binary_writer.hxx"
 
@@ -194,11 +196,21 @@ struct JPABaseShapeBlock {
   // TEV/PE Settings
   u8 colorInSelect;
   u8 alphaInSelect;
-  u32 blendModeFlags;
-  u32 alphaCompareFlags;
+
+  gx::BlendModeType blendMode;
+  gx::BlendModeFactor blendSrcFactor;
+  gx::BlendModeFactor blendDstFactor;
+  gx::LogicOp logicOp;
+
+  gx::Comparison alphaCmp0;
+  gx::AlphaOp alphaOp;
+  gx::Comparison alphaCmp1;
   u8 alphaRef0;
   u8 alphaRef1;
-  u32 zModeFlags;
+
+  bool zTest;
+  gx::Comparison zCompare;
+  bool zWrite;
 
   u16 anmRndm;
 

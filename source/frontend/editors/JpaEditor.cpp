@@ -70,6 +70,38 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   ImGui::Checkbox("No Draw Parent", &block->isNoDrawParent);
   ImGui::Checkbox("No Draw Child", &block->isNoDrawChild);
 
+  ImGui::InputScalar("Color In Select", ImGuiDataType_U8,
+                     &block->colorInSelect);
+
+  ImGui::InputScalar("Alpha In Select", ImGuiDataType_U8,
+                     &block->alphaInSelect);
+
+  ImGui::Text("Blend");
+
+  block->blendMode = imcxx::EnumCombo("Mode", block->blendMode);
+
+  block->blendSrcFactor = imcxx::EnumCombo("Source factor",
+                                           block->blendSrcFactor);
+  block->blendDstFactor =
+      imcxx::EnumCombo("Destination factor", block->blendDstFactor);
+  block->logicOp = imcxx::EnumCombo("Logical operation", block->logicOp);
+
+  ImGui::Text("Alpha Compare");
+
+  block->alphaCmp0 = imcxx::EnumCombo("Left Comparison", block->alphaCmp0);
+  ImGui::InputScalar("Left reference", ImGuiDataType_U8,
+                     &block->alphaRef0);
+
+  block->alphaOp = imcxx::EnumCombo("Operation", block->alphaOp);
+  block->alphaCmp1 = imcxx::EnumCombo("Right Comparison", block->alphaCmp1);
+  ImGui::InputScalar("Right reference", ImGuiDataType_U8, &block->alphaRef0);
+
+  ImGui::Text("Z test");
+
+  ImGui::Checkbox("Enabled", &block->zTest);
+  block->zCompare = imcxx::EnumCombo("Comparison", block->zCompare);
+  ImGui::Checkbox("Overwrite", &block->zTest);
+
   ImGui::Text("Texture Palette Animation");
 
   ImGui::Checkbox("Enabled", &block->isGlblTexAnm);
@@ -99,7 +131,6 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   ImGui::PushID("Texture Coordinate Animation");
   ImGui::Checkbox("Enabled", &block->isEnableProjection);
   ImGui::PopID();
-
 
   ImGui::Checkbox("Texture Scroll Animation", &block->isEnableTexScrollAnm);
 
@@ -135,7 +166,6 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   ImGui::Checkbox("Enabled", &block->isGlblClrAnm);
   ImGui::PopID();
 
-
   block->colorCalcIdxType =
       imcxx::EnumCombo("Color Calcuation Index", block->colorCalcIdxType);
 
@@ -143,8 +173,8 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
   ImGui::ColorEdit4("Environment Color", block->colorEnv);
 
   // We want to scale the gradients
-  if(ImGui::InputScalar("Max Color Animation Frame", ImGuiDataType_U16,
-                     &block->colorAnimMaxFrm)) {
+  if (ImGui::InputScalar("Max Color Animation Frame", ImGuiDataType_U16,
+                         &block->colorAnimMaxFrm)) {
     refreshGradientWidgets(block);
   }
   ImGui::InputScalar("Color Loop Offset Mask", ImGuiDataType_U8,
@@ -170,32 +200,30 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
     block->colorPrmAnimData.push_back(librii::jpa::ColorTableEntry(
         markPrm->position.get() * block->colorAnimMaxFrm, markColor));
 
-    std::advance(markPrm,1);
+    std::advance(markPrm, 1);
   }
 
+  colorEnvGradient.widget("Color Env Animation Gradient");
+  // After drawing the gradient we must update the underlying color table entries
 
+  block->colorEnvAnimData.clear();
 
-    colorEnvGradient.widget("Color Env Animation Gradient");
-    // After drawing the gradient we must update the underlying color table entries
+  // Because the marks are stored in a list internally 
+  auto mark = colorEnvGradient.gradient().get_marks().begin();
+  for (int i = 0; i < colorEnvGradient.gradient().get_marks().size(); i++) {
 
-    block->colorEnvAnimData.clear();
+    librii::gx::ColorF32 markColor = librii::gx::ColorF32();
 
-    // Because the marks are stored in a list internally 
-    auto mark = colorEnvGradient.gradient().get_marks().begin();
-    for (int i = 0; i < colorEnvGradient.gradient().get_marks().size(); i++) {
+    markColor.r = mark->color.x;
+    markColor.g = mark->color.y;
+    markColor.b = mark->color.z;
+    markColor.a = mark->color.w;
 
-      librii::gx::ColorF32 markColor = librii::gx::ColorF32();
+    block->colorEnvAnimData.push_back(librii::jpa::ColorTableEntry(
+        mark->position.get() * block->colorAnimMaxFrm, markColor));
 
-      markColor.r = mark->color.x;
-      markColor.g = mark->color.y;
-      markColor.b = mark->color.z;
-      markColor.a = mark->color.w;
-
-      block->colorEnvAnimData.push_back(librii::jpa::ColorTableEntry(
-          mark->position.get() * block->colorAnimMaxFrm, markColor));
-
-      std::advance(mark, 1);
-    }
+    std::advance(mark, 1);
+  }
 
 }
 
@@ -312,18 +340,19 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAFieldBlock* block) {
 }
 
 void JpaEditorPropertyGrid::Draw(librii::jpa::JPAExTexBlock* block) {
-  ImGui::InputScalar("Indirect Texture ID", ImGuiDataType_U8, &block->indTextureID);
+  ImGui::InputScalar("Indirect Texture ID", ImGuiDataType_U8,
+                     &block->indTextureID);
   ImGui::InputScalar("Sub Texture ID", ImGuiDataType_U8, &block->subTextureID);
 
-  ImGui::InputScalar("Second Texture ID", ImGuiDataType_U8, &block->secondTextureIndex);
+  ImGui::InputScalar("Second Texture ID", ImGuiDataType_U8,
+                     &block->secondTextureIndex);
 }
 
 
- void JpaEditorPropertyGrid::refreshGradientWidgets(
+void JpaEditorPropertyGrid::refreshGradientWidgets(
     librii::jpa::JPABaseShapeBlock* block) {
   colorEnvGradient.gradient().clear();
   colorPrmGradient.gradient().clear();
-
 
   for (auto& color_entry : block->colorPrmAnimData) {
     f32 position = (float)color_entry.timeBegin / (float)block->colorAnimMaxFrm;
@@ -334,15 +363,15 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAExTexBlock* block) {
                           color_entry.color.b, color_entry.color.a}});
   }
 
-
-  for (auto &color_entry: block->colorEnvAnimData) {
+  for (auto& color_entry : block->colorEnvAnimData) {
     f32 position = (float)color_entry.timeBegin / (float)block->colorAnimMaxFrm;
 
     colorEnvGradient.gradient().add_mark(
         ImGG::Mark{
-                           ImGG::RelativePosition{position},
-        ImVec4{color_entry.color.r, color_entry.color.g, color_entry.color.b,
-               color_entry.color.a}});
+            ImGG::RelativePosition{position},
+            ImVec4{color_entry.color.r, color_entry.color.g,
+                   color_entry.color.b,
+                   color_entry.color.a}});
   }
 
 }

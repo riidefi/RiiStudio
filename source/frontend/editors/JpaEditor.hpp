@@ -68,7 +68,7 @@ class JpaEditorTreeView {
 public:
   void Draw(std::vector<librii::jpa::JPAResource>& resources,
             std::vector<librii::jpa::TextureBlock>& tex,
-	    JpaEditorPropertyGrid &grid) {
+            JpaEditorPropertyGrid& grid) {
 
     auto str = std::format("JPA resources ({} entries)", num_entries);
     if (ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -79,9 +79,8 @@ public:
           if (ImGui::BeginPopupContextItem(str.c_str())) {
 
             if (!x.esp1) {
-              if(ImGui::MenuItem("Add Extra Shape")) {
-                auto extraShape = new librii::jpa::JPAExtraShapeBlock();
-                x.esp1 = extraShape;
+              if (ImGui::MenuItem("Add Extra Shape")) {
+                x.esp1 = std::make_unique<librii::jpa::JPAExtraShapeBlock>();
               }
             }
             if (!x.etx1) {
@@ -95,58 +94,57 @@ public:
           }
 
           if (ImGui::Selectable("Emitter")) {
-            selected = x.bem1;
+            selected = x.bem1.get();
           }
           if (ImGui::Selectable("Base Shape")) {
-            selected = x.bsp1;
-            grid.refreshGradientWidgets(x.bsp1);
+            selected = x.bsp1.get();
+            grid.refreshGradientWidgets(x.bsp1.get());
           }
           if (x.esp1) {
             if (ImGui::Selectable("Extra Shape")) {
-              selected = x.esp1;
+              selected = x.esp1.get();
             }
             if (ImGui::BeginPopupContextItem(nullptr)) {
               if (ImGui::MenuItem("Delete")) {
-                delete x.esp1;
-                x.esp1 = nullptr;
+                x.esp1.reset();
                 selected = {};
               }
               ImGui::EndPopup();
             }
           }
 
-            if (ImGui::TreeNodeEx("Fields", ImGuiTreeNodeFlags_DefaultOpen)) {
-              if (ImGui::BeginPopupContextItem(str.c_str())) {
-                if(ImGui::MenuItem("Add Field")) {
-                  auto field = new librii::jpa::JPAFieldBlock();
-                  x.fld1.push_back(field);
+          if (ImGui::TreeNodeEx("Fields", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (ImGui::BeginPopupContextItem(str.c_str())) {
+              if (ImGui::MenuItem("Add Field")) {
+                x.fld1.push_back(
+                    std::make_unique<librii::jpa::JPAFieldBlock>());
+              }
+
+              ImGui::EndPopup();
+            }
+            for (int i = 0; i < x.fld1.size(); i++) {
+
+              auto field = x.fld1[i];
+              auto fieldName = std::format(
+                  "{} Field",
+                  convertIntToFieldTypeName(static_cast<u8>(field->type)));
+              auto ID = std::format("{} Field", i);
+
+              ImGui::PushID(ID.c_str());
+              if (ImGui::Selectable(fieldName.c_str())) {
+                selected = field.get();
+              }
+              ImGui::PopID();
+              if (ImGui::BeginPopupContextItem(nullptr)) {
+                if (ImGui::MenuItem("Delete")) {
+                  x.fld1.erase(x.fld1.begin() + i);
+                  selected = {};
                 }
 
                 ImGui::EndPopup();
               }
-                for (int i = 0; i < x.fld1.size(); i++) {
-
-		  auto field = x.fld1[i];
-                  auto fieldName = std::format(
-                    "{} Field",
-                    convertIntToFieldTypeName(static_cast<u8>(field->type)));
-                auto ID = std::format("{} Field", i );
-
-                ImGui::PushID(ID.c_str());
-                if (ImGui::Selectable(fieldName.c_str())) {
-                  selected = field;
-                }
-                ImGui::PopID();
-                if (ImGui::BeginPopupContextItem(nullptr)) {
-                  if(ImGui::MenuItem("Delete")) {
-                    x.fld1.erase(x.fld1.begin() + i);
-                    selected = {};
-                  }
-
-                  ImGui::EndPopup();
-                }
-              }
-                ImGui::TreePop();
+            }
+            ImGui::TreePop();
           }
 
         }
@@ -169,14 +167,14 @@ public:
         }
         if (ImGui::BeginPopupContextItem(c)) {
           if (ImGui::MenuItem("Export")) {
-              exportBTI(c, tex[i]);
+            exportBTI(c, tex[i]);
           }
           if (ImGui::MenuItem("Replace")) {
-              replaceBTI(c, tex[i]);
+            replaceBTI(c, tex[i]);
           }
           if (ImGui::MenuItem("Delete")) {
-              tex.erase(tex.begin() + i);
-              selected = {};
+            tex.erase(tex.begin() + i);
+            selected = {};
           }
           ImGui::EndPopup();
         }
@@ -184,6 +182,7 @@ public:
     }
 
   }
+
   Result<void> importBTI(std::vector<librii::jpa::TextureBlock>& tex) {
     auto default_filename = std::filesystem::path("").filename();
     std::vector<std::string> filters{"??? (*.bti)", "*.bti"};
@@ -198,7 +197,7 @@ public:
 
     librii::j3d::Tex tmp;
     auto reader = TRY(oishii::BinaryReader::FromFilePath(results->path.string(),
-                                                         std::endian::big));
+      std::endian::big));
     rsl::SafeReader safeReader(reader);
     TRY(tmp.transfer(safeReader));
     auto buffer_addr = tmp.ofsTex;
@@ -231,7 +230,8 @@ public:
 
     librii::j3d::Tex tmp;
     auto reader = TRY(
-        oishii::BinaryReader::FromFilePath(results->path.string(), std::endian::big));
+        oishii::BinaryReader::FromFilePath(results->path.string(), std::endian::
+          big));
     rsl::SafeReader safeReader(reader);
     TRY(tmp.transfer(safeReader));
     auto buffer_addr = tmp.ofsTex;
@@ -239,7 +239,6 @@ public:
         tmp.mWidth, tmp.mHeight, tmp.mFormat, tmp.mMipmapLevel);
 
     auto image_data = TRY(reader.tryReadBuffer<u8>(buffer_size, buffer_addr));
-
 
     data = librii::jpa::TextureBlock(tmp, image_data);
     // Strip out file extension
@@ -356,9 +355,9 @@ public:
           }
         });
       } else if (auto* x =
-                     std::get_if<librii::jpa::TextureBlock>(&m_selected)) {
+          std::get_if<librii::jpa::TextureBlock>(&m_selected)) {
         m_sheet.Draw([&]() {
-            m_grid.Draw(*x);
+          m_grid.Draw(*x);
         });
       }
     }
