@@ -45,7 +45,7 @@ const char* impl_rii_encodeAlgo(void* dst, uint32_t dst_len, const void* src,
                                 uint32_t src_len, uint32_t* used_len,
                                 uint32_t algo) {
   std::span<const u8> src_span{(const u8*)src, src_len};
-  if (algo > 6) {
+  if (algo > 7) {
     return my_strdup("Invalid algorithm");
   }
   auto algo_e = static_cast<librii::szs::Algo>(algo);

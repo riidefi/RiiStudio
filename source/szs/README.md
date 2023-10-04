@@ -18,6 +18,7 @@ szs is a WIP crate for compressing and decompressing SZS files (Yaz0 encoding) u
 | Method | Time Taken | Compression Rate |
 |--------|------------|------------------|
 | worst-case-encoding | **0s** | 112.50% |
+| MK8  | 0.09s | 57.59% |
 | ctgp | 0.31s | 71.41% |
 | CTLib | 0.32s | 57.24% |
 | Haroohie | 0.58s | 57.23% |
@@ -33,7 +34,20 @@ szs is a WIP crate for compressing and decompressing SZS files (Yaz0 encoding) u
 
 *\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
 
-Generally, the `CTLib` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
+Generally, the `CTLib` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster. For absolute speed, the `mk8` algorithm achieves the best results.
+
+#### Large file comparison
+NSMBU 8-43 (63.9 MB decompressed)
+| Method               | Time (Avg 3 runs) | Compression Rate | File Size |
+|----------------------|-------------------|------------------|-----------|
+| lib-yaz0             |            25.97s |           29.32% |  18.74 MB |
+| mkw                  |            78.26s |           29.40% |  18.79 MB |
+| mkw-sp               |            49.28s |           29.74% |  19.01 MB |
+| haroohie             |            11.44s |           29.74% |  19.01 MB |
+| ct-lib               |             5.32s |           29.74% |  19.01 MB |
+| mk8                  |             1.46s |           30.12% |  19.25 MB |
+| ctgp                 |            12.05s |           40.91% |  26.14 MB |
+| worst-case-encoding  |             0.07s |          112.50% |  71.90 MB |
 
 ### Rust
 The following snippet demonstrates how to compress a file as a SZS format using Rust:
