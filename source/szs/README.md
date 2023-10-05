@@ -6,12 +6,13 @@ szs is a WIP crate for compressing and decompressing SZS files (Yaz0 encoding) u
 
 ### Algorithms
 - Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects)
-- SP
+- MK8 compressor (Reverse engineered. Credit @aboood40091)
+- MKW-SP
 - CTGP (Reverse engineered. 1:1 matching)
 - Worst case
 - Haroohie (credit @Gericom, adapted from MarioKartToolbox)
 - CTLib (credit @narahiero, adapted from CTLib)
-- libyaz0 (credit @aboood40091)
+- libyaz0 (Based on wszst. credit @aboood40091)
 
 ### Stats
 **Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
@@ -119,6 +120,31 @@ if (!encoded)
 }
 std::vector<u8> szs_data = *encoded;
 std::println("Encoded {} bytes.", szs_data.size());
+```
+
+## C# Bindings
+The following C# bindings are [provided](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%23):
+```cs
+using System;
+
+public class SZSExample
+{
+    public static void Main(string[] args)
+    {
+        byte[] data = ...; // Initialize your data here
+
+        szs.CompressionAlgorithm algorithm = szs.CompressionAlgorithm.Nintendo;
+        byte[] encodedData = szs.Encode(data, algorithm);
+
+        if (encodedData == null || encodedData.Length == 0)
+        {
+            Console.WriteLine("Failed to compress.");
+            return;
+        }
+
+        Console.WriteLine($"Encoded {encodedData.Length} bytes.");
+    }
+}
 ```
 
 #### License

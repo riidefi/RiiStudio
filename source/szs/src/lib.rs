@@ -161,3 +161,29 @@ pub extern "C" fn riiszs_free_error_message(err_ptr: *mut c_char) {
         }
     }
 }
+
+fn is_compressed(src: &[u8]) -> bool {
+    if src.len() < 8 {
+        return false;
+    }
+    src.starts_with(b"Yaz0")
+}
+
+fn decoded_size(src: &[u8]) -> u32 {
+    if src.len() < 8 || !src.starts_with(b"Yaz0") {
+        return 0;
+    }
+    ((src[4] as u32) << 24) | ((src[5] as u32) << 16) | ((src[6] as u32) << 8) | (src[7] as u32)
+}
+
+#[no_mangle]
+pub extern "C" fn riiszs_is_compressed(src: *const u8, len: u32) -> bool {
+    let data = unsafe { std::slice::from_raw_parts(src, len as usize) };
+    is_compressed(data)
+}
+
+#[no_mangle]
+pub extern "C" fn riiszs_decoded_size(src: *const u8, len: u32) -> u32 {
+    let data = unsafe { std::slice::from_raw_parts(src, len as usize) };
+    decoded_size(data)
+}

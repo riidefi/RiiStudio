@@ -8,8 +8,8 @@
 extern "C" {
 #endif
 
-uint32_t rii_is_szs_compressed(const void* src, uint32_t len);
-uint32_t rii_get_szs_expand_size(const void* src, uint32_t len);
+uint32_t riiszs_is_compressed(const void* src, uint32_t len);
+uint32_t riiszs_decoded_size(const void* src, uint32_t len);
 const char* riiszs_decode(void* buf, uint32_t len, const void* src,
                           uint32_t src_len);
 uint32_t riiszs_encoded_upper_bound(uint32_t len);
