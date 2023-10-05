@@ -4,6 +4,7 @@
 #include "HaroohieYaz0.hpp"
 
 #include <algorithm>
+#include <string.h>
 
 namespace rlibrii::szs {
 
