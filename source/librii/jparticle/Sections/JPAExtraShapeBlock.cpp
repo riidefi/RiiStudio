@@ -56,10 +56,12 @@ To_JEFF_JPAExtraShapeBlock(const JPAExtraShapeBlock& b) {
       .anmTypeX = anmTypeX,
       .scaleAnmMaxFrameX = b.scaleAnmMaxFrameX,
       .scaleAnmFlags = scaleAnmFlags,
-      .rotateAngle = JPAConvertFloatToFixed(b.rotateAngle / (M_PI * 2.0f)),
-      .rotateSpeed = JPAConvertFloatToFixed(b.rotateSpeed / (M_PI * 2.0f)),
-      .rotateAngleRandom =
-          JPAConvertFloatToFixed(b.rotateAngleRandom / (M_PI * 2.0f)),
+      .rotateAngle =
+          JPAConvertFloatToFixed(b.rotateAngle / (std::numbers::pi * 2.0f)),
+      .rotateSpeed =
+          JPAConvertFloatToFixed(b.rotateSpeed / (std::numbers::pi * 2.0f)),
+      .rotateAngleRandom = JPAConvertFloatToFixed(b.rotateAngleRandom /
+                                                  (std::numbers::pi * 2.0f)),
       .rotateSpeedRandom = JPAConvertFloatToFixed(b.rotateSpeedRandom),
       .rotateDirection = JPAConvertFloatToFixed(b.rotateDirection),
       .isEnableRotate = b.isEnableRotate

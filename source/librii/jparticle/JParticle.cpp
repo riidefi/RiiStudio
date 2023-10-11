@@ -12,7 +12,7 @@
 #include "utils/JPAUtils.hpp"
 
 #include <librii/gx.h>
-#include <corecrt_math_defines.h>
+#include <numbers>
 
 
 namespace librii::jpa {
@@ -88,11 +88,11 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
 
       // Tau is 2 * PI
       f32 emitterRotX =
-          (TRY(reader.tryGetAt<u16>(tag_start + 0x24)) / 0x7FFF) * (M_PI);
-      f32 emitterRotY =
-          (TRY(reader.tryGetAt<u16>(tag_start + 0x26)) / 0x7FFF) * (M_PI);
-      f32 emitterRotZ =
-          (TRY(reader.tryGetAt<u16>(tag_start + 0x28)) / 0x7FFF) * (M_PI);
+          (TRY(reader.tryGetAt<u16>(tag_start + 0x24)) / 0x7FFF) * (std::numbers::pi);
+      f32 emitterRotY = (TRY(reader.tryGetAt<u16>(tag_start + 0x26)) / 0x7FFF) *
+                        (std::numbers::pi);
+      f32 emitterRotZ = (TRY(reader.tryGetAt<u16>(tag_start + 0x28)) / 0x7FFF) *
+                        (std::numbers::pi);
       block->emitterRot = glm::vec3(emitterRotX, emitterRotY, emitterRotZ);
 
       block->volumeType = {TRY(reader.tryGetAt<u8>(tag_start + 0x2A))};
@@ -407,13 +407,13 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
 
       block->rotateAngle = JPAConvertFixToFloat(
                                TRY(reader.tryGetAt<u16>(tag_start + 0x5A))) *
-                           M_PI * 2.0f;
+          std::numbers::pi * 2.0f;
       block->rotateSpeed = JPAConvertFixToFloat(
                                TRY(reader.tryGetAt<u16>(tag_start + 0x5C))) *
-                           M_PI * 2.0f;
+          std::numbers::pi * 2.0f;
       block->rotateAngleRandom =
           JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x5E))) *
-          M_PI * 2.0f;
+          std::numbers::pi * 2.0f;
       block->rotateSpeedRandom =
           JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x60)));
       block->rotateDirection =
