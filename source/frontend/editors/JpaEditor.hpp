@@ -47,6 +47,7 @@ public:
   void Draw(librii::jpa::JPABaseShapeBlock* block);
   void Draw(librii::jpa::JPAExtraShapeBlock* block);
   void Draw(librii::jpa::JPAFieldBlock* block);
+  void Draw(librii::jpa::JPAChildShapeBlock* block);
   void Draw(librii::jpa::JPAExTexBlock* block);
   void Draw(librii::jpa::TextureBlock block);
 
@@ -59,6 +60,7 @@ public:
 
 using JPABlockSelection = std::variant<librii::jpa::JPADynamicsBlock*,
                                        librii::jpa::JPABaseShapeBlock*,
+                                       librii::jpa::JPAChildShapeBlock*,
                                        librii::jpa::JPAExtraShapeBlock*,
                                        librii::jpa::JPAFieldBlock*,
                                        librii::jpa::TextureBlock,
@@ -83,12 +85,14 @@ public:
                 x.esp1 = std::make_unique<librii::jpa::JPAExtraShapeBlock>();
               }
             }
-            if (!x.etx1) {
-              ImGui::MenuItem("Add Extra Texture");
-            }
-            if (!x.ssp1) {
-              ImGui::MenuItem("Add Child Shape");
-            }
+            // if (!x.etx1) {
+            //   ImGui::MenuItem("Add Extra Texture");
+            // }
+            // if (!x.ssp1) {
+            //   if(ImGui::MenuItem("Add Child Shape")) {
+            //     x.ssp1 = std::make_unique<librii::jpa::JPAChildShapeBlock>();
+            //   }
+            // }
 
             ImGui::EndPopup();
           }
@@ -110,6 +114,11 @@ public:
                 selected = {};
               }
               ImGui::EndPopup();
+            }
+          }
+          if (x.ssp1) {
+            if(ImGui::Selectable("Child Shape")) {
+              selected = x.ssp1.get();
             }
           }
 
@@ -335,6 +344,13 @@ public:
         });
       } else if (auto* x = std::get_if<librii::jpa::JPABaseShapeBlock*>(
           &m_selected)) {
+        m_sheet.Draw([&]() {
+          if (*x) {
+            m_grid.Draw(*x);
+          }
+        });
+      } else if (auto* x = std::get_if<librii::jpa::JPAChildShapeBlock*>(
+                     &m_selected)) {
         m_sheet.Draw([&]() {
           if (*x) {
             m_grid.Draw(*x);

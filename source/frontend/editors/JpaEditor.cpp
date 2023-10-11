@@ -350,6 +350,46 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAFieldBlock* block) {
   }
 }
 
+void JpaEditorPropertyGrid::Draw(librii::jpa::JPAChildShapeBlock* block) {
+  block->shapeType = imcxx::EnumCombo("Shape Type", block->shapeType);
+  block->dirType = imcxx::EnumCombo("Direction Type", block->dirType);
+  block->rotType = imcxx::EnumCombo("Rotation Type", block->rotType);
+
+  ImGui::InputScalar("Life", ImGuiDataType_U16, &block->life);
+  ImGui::InputScalar("Rate", ImGuiDataType_U16, &block->rate);
+  ImGui::InputScalar("Step", ImGuiDataType_U16, &block->step);
+  ImGui::InputFloat("Position Random", &block->posRndm);
+  ImGui::InputFloat("Base Velocity", &block->baseVel);
+
+  ImGui::Checkbox("Enable field", &block->isEnableField);
+  ImGui::Checkbox("Enable scale out", &block->isEnableScaleOut);
+  ImGui::Checkbox("Enable alpha out", &block->isEnableAlphaOut);
+
+  ImGui::InputFloat2("Global Size", glm::value_ptr(block->globalScale2D));
+
+  ImGui::Checkbox("Enable rotation", &block->isEnableRotate);
+
+  ImGui::Checkbox("Inherit Scale", &block->isInheritedScale);
+  ImGui::Checkbox("Inherit Alpha", &block->isInheritedAlpha);
+  ImGui::Checkbox("Inherit RGB", &block->isInheritedRGB);
+
+
+  ImGui::ColorEdit4("Primary Color", block->colorPrm);
+  ImGui::ColorEdit4("Environment Color", block->colorEnv);
+
+  ImGui::SliderFloat("Timing", &block->timing, 0, 1,"%.3f", 0);
+  ImGui::SliderFloat("Velocity Infinity rate", &block->velInfRate, 0, 1, "%.3f",
+                     0);
+  ImGui::SliderFloat("Base velocity randomness", &block->baseVelRndm, 0, 1, "%.3f", 0);
+  ImGui::SliderFloat("Gravity", &block->gravity, 0, 1,"%.3f", 0);
+
+  ImGui::SliderFloat("Scale", &block->inheritScale, 0, 1, "%.3f", 0);
+  ImGui::SliderFloat("Alpha", &block->inheritAlpha, 0, 1, "%.3f", 0);
+  ImGui::SliderFloat("RGB", &block->inheritRGB, 0, 1, "%.3f", 0);
+
+  ImGui::SliderFloat("Rotate Speed", &block->rotateSpeed, 0, 1, "%.3f", 0);
+}
+
 void JpaEditorPropertyGrid::Draw(librii::jpa::JPAExTexBlock* block) {
   ImGui::InputScalar("Indirect Texture ID", ImGuiDataType_U8,
                      &block->indTextureID);

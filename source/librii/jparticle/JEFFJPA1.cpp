@@ -32,7 +32,7 @@ void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac) {
 
 
   for (auto& field : jpac.resources[0].kfa1) {
-    // rsl::WriteFields(writer, librii::jpa::To_JEFF_JPAFieldBlock(*field));
+    // rsl::WriteFields(writer, librii::jpa::To_JEFF_JPAKeyBlock(*field));
     numberOfSections++;
   }
 
