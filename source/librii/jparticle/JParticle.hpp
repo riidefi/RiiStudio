@@ -27,13 +27,13 @@ namespace librii::jpa {
 
 
 struct JPAResource {
-  std::shared_ptr<JPADynamicsBlock> bem1;
-  std::shared_ptr<JPABaseShapeBlock> bsp1;
-  std::shared_ptr<JPAExtraShapeBlock> esp1;
-  std::shared_ptr<JPAExTexBlock> etx1;
-  std::shared_ptr<JPAChildShapeBlock> ssp1;
-  std::vector<std::shared_ptr<JPAFieldBlock>> fld1;
-  std::vector<std::shared_ptr<JPAKeyBlock>> kfa1;
+  JPADynamicsBlock bem1;
+  JPABaseShapeBlock bsp1;
+  std::optional<JPAExtraShapeBlock> esp1;
+  std::optional<JPAExTexBlock> etx1;
+  std::optional<JPAChildShapeBlock> ssp1;
+  std::vector<JPAFieldBlock> fld1;
+  std::vector<JPAKeyBlock> kfa1;
   std::vector<u16> tdb1;
 };
 

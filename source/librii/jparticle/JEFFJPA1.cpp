@@ -14,51 +14,44 @@ void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac) {
   writer.write<u32>(0);
   writer.write<u32>(0);
 
-  for (u32 i = 0; i<4;i++) {
+  for (u32 i = 0; i < 4; i++) {
     writer.write<u32>(0);
   }
 
-  // writer.writeN(4,0);
-  if (jpac.resources[0].bem1) {
-    rsl::WriteFields(writer, librii::jpa::To_JEFF_JPADynamicsBlock(
-                                 *jpac.resources[0].bem1, 0));
-    numberOfSections++;
-  }
+  rsl::WriteFields(writer, librii::jpa::To_JEFF_JPADynamicsBlock(
+                       jpac.resources[0].bem1, 0));
+  numberOfSections++;
 
   for (auto& field : jpac.resources[0].fld1) {
-    rsl::WriteFields(writer, librii::jpa::To_JEFF_JPAFieldBlock(*field));
+    rsl::WriteFields(writer, librii::jpa::To_JEFF_JPAFieldBlock(field));
     numberOfSections++;
   }
-
 
   for (auto& field : jpac.resources[0].kfa1) {
     // rsl::WriteFields(writer, librii::jpa::To_JEFF_JPAKeyBlock(*field));
     numberOfSections++;
   }
 
-  if (jpac.resources[0].bsp1) {
-    numberOfSections++;
+  numberOfSections++;
 
-    // BSP1 is too big to use writeFields (maximum of 64 members ) 
+  // BSP1 is too big to use writeFields (maximum of 64 members ) 
 
-    auto bsp = librii::jpa::To_JEFF_JPABaseShapeBlock(*jpac.resources[0].bsp1);
+  auto bsp = librii::jpa::To_JEFF_JPABaseShapeBlock(jpac.resources[0].bsp1);
 
-    librii::jpa::WriteJEFF_JPABaseShapeBlock(writer, bsp);
-  }
+  librii::jpa::WriteJEFF_JPABaseShapeBlock(writer, bsp);
 
-
-  if (jpac.resources[0].esp1) {
+  if (jpac.resources[0].esp1.has_value()) {
     numberOfSections++;
     rsl::WriteFields(writer, librii::jpa::To_JEFF_JPAExtraShapeBlock(
-                                 *jpac.resources[0].esp1));
+                         jpac.resources[0].esp1.value()));
   }
   for (auto& texture : jpac.textures) {
 
     numberOfSections++;
     writer.write('TEX1');
-    auto buffer_size = librii::gx::computeImageSize(texture.tex.mWidth, texture.tex.mHeight, texture.tex.mFormat,
+    auto buffer_size = librii::gx::computeImageSize(
+        texture.tex.mWidth, texture.tex.mHeight, texture.tex.mFormat,
         texture.tex.mMipmapLevel);
-
 
     // Image size plus header
     writer.write(static_cast<u32>(buffer_size) + 0x40);
@@ -80,7 +73,7 @@ void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac) {
 
     writer.write(texture.tex.ofsTex);
 
-    for ( auto& textureByte : texture.getData()) {
+    for (auto& textureByte : texture.getData()) {
       writer.write(textureByte);
     }
   }
