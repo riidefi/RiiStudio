@@ -188,6 +188,34 @@ pub struct JsonToKmp {
     verbose: bool,
 }
 
+/// Dump a brres as json
+#[derive(Parser, Debug)]
+pub struct BrresToJson {
+    /// File to dump (.kmp)
+    #[arg(required = true)]
+    from: String,
+
+    /// Output file for json (.json)
+    to: Option<String>,
+
+    #[clap(short, long, default_value = "false")]
+    verbose: bool,
+}
+
+/// Convert to json from brres
+#[derive(Parser, Debug)]
+pub struct JsonToBrres {
+    /// File to read (.json)
+    #[arg(required = true)]
+    from: String,
+
+    /// Output file for brres (.brres)
+    to: Option<String>,
+
+    #[clap(short, long, default_value = "false")]
+    verbose: bool,
+}
+
 /// Dump a kcl as json
 #[derive(Parser, Debug)]
 pub struct KclToJson {
@@ -372,6 +400,9 @@ pub enum Commands {
 
     KclToJson(KclToJson),
     JsonToKcl(JsonToKcl),
+
+    BrresToJson(BrresToJson),
+    JsonToBrres(JsonToBrres),
 
     DumpPresets(DumpPresets),
 
@@ -772,6 +803,84 @@ impl MyArgs {
                     .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
                 CliOptions {
                     c_type: 11,
+                    from: from2,
+                    to: to2,
+                    verbose: i.verbose as c_uint,
+
+                    // Junk fields
+                    preset_path: [0; 256],
+                    scale: 0.0 as c_float,
+                    brawlbox_scale: 0 as c_uint,
+                    mipmaps: 0 as c_uint,
+                    min_mip: 0 as c_uint,
+                    max_mips: 0 as c_uint,
+                    auto_transparency: 0 as c_uint,
+                    merge_mats: 0 as c_uint,
+                    bake_uvs: 0 as c_uint,
+                    tint: 0 as c_uint,
+                    cull_degenerates: 0 as c_uint,
+                    cull_invalid: 0 as c_uint,
+                    recompute_normals: 0 as c_uint,
+                    fuse_vertices: 0 as c_uint,
+                    no_tristrip: 0 as c_uint,
+                    ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
+                }
+            }
+            Commands::BrresToJson(i) => {
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 17,
+                    from: from2,
+                    to: to2,
+                    verbose: i.verbose as c_uint,
+
+                    // Junk fields
+                    preset_path: [0; 256],
+                    scale: 0.0 as c_float,
+                    brawlbox_scale: 0 as c_uint,
+                    mipmaps: 0 as c_uint,
+                    min_mip: 0 as c_uint,
+                    max_mips: 0 as c_uint,
+                    auto_transparency: 0 as c_uint,
+                    merge_mats: 0 as c_uint,
+                    bake_uvs: 0 as c_uint,
+                    tint: 0 as c_uint,
+                    cull_degenerates: 0 as c_uint,
+                    cull_invalid: 0 as c_uint,
+                    recompute_normals: 0 as c_uint,
+                    fuse_vertices: 0 as c_uint,
+                    no_tristrip: 0 as c_uint,
+                    ai_json: 0 as c_uint,
+                    no_compression: 0 as c_uint,
+                    rarc: 0 as c_uint,
+                    szs_algo: 0 as c_uint,
+                    format: 0 as c_uint,
+                }
+            }
+            Commands::JsonToBrres(i) => {
+                let mut from2: [i8; 256] = [0; 256];
+                let mut to2: [i8; 256] = [0; 256];
+                let from_bytes = i.from.as_bytes();
+                let default_str = String::new();
+                let to_bytes = i.to.as_ref().unwrap_or(&default_str).as_bytes();
+                from2[..from_bytes.len()]
+                    .copy_from_slice(unsafe { &*(from_bytes as *const _ as *const [i8]) });
+                to2[..to_bytes.len()]
+                    .copy_from_slice(unsafe { &*(to_bytes as *const _ as *const [i8]) });
+                CliOptions {
+                    c_type: 18,
                     from: from2,
                     to: to2,
                     verbose: i.verbose as c_uint,
