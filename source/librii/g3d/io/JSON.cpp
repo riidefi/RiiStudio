@@ -13,39 +13,69 @@
 #include <librii/g3d/data/PolygonData.hpp>
 #include <librii/g3d/data/VertexData.hpp>
 
-#include <sstream>
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wenum-constexpr-conversion"
+#endif
 
-static std::ostream& operator<<(std::ostream& s, const glm::vec3& vtx) {
-  char buf[256];
-  snprintf(buf, sizeof(buf), "[%f, %f, %f]", vtx.x, vtx.y, vtx.z);
-  s << &buf[0];
-  return s;
-}
-static std::ostream& operator<<(std::ostream& s, const glm::vec2& vtx) {
-  char buf[256];
-  snprintf(buf, sizeof(buf), "[%f, %f]", vtx.x, vtx.y);
-  s << &buf[0];
-  return s;
-}
-static std::ostream& operator<<(std::ostream& s, const librii::gx::Color& c) {
-  char buf[256];
-  snprintf(buf, sizeof(buf), "\"#%02X%02X%02X%02X\"", c.r, c.g, c.b, c.a);
-  s << &buf[0];
-  return s;
-}
-static std::ostream& operator<<(std::ostream& s,
-                                const librii::gx::ColorS10& c) {
-  char buf[256];
-  snprintf(buf, sizeof(buf), "[%d, %d, %d, %d]", (int)c.r, (int)c.g, (int)c.b,
-           (int)c.a);
-  s << &buf[0];
-  return s;
-}
 #include <magic_enum/magic_enum.hpp>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 #include <rsl/EnumCast.hpp>
-#include <tser/tser.hpp>
+
+#include <vendor/json_struct.h>
+JS_OBJ_EXT(glm::vec2, x, y);
+JS_OBJ_EXT(glm::vec3, x, y, z);
+JS_OBJ_EXT(glm::vec4, x, y, z, w);
+JS_OBJ_EXT(librii::gx::Color, r, g, b, a);
+JS_OBJ_EXT(librii::gx::ColorS10, r, g, b, a);
+namespace JS {
+template <typename T, size_t N> struct TypeHandler<std::array<T, N>> {
+  static inline Error to(auto& to_type, ParseContext& context) {
+    return Error::NoError;
+  }
+
+  static inline void from(auto& vec, Token& token, Serializer& serializer) {
+    token.value_type = Type::ArrayStart;
+    token.value = DataRef("[");
+    serializer.write(token);
+
+    token.name = DataRef("");
+
+    for (auto& index : vec) {
+      TypeHandler<T>::from(index, token, serializer);
+    }
+
+    token.name = DataRef("");
+
+    token.value_type = Type::ArrayEnd;
+    token.value = DataRef("]");
+    serializer.write(token);
+  }
+};
+template <typename T>
+concept IsEnum = std::is_enum_v<T>;
+template <IsEnum T> struct TypeHandler<T> {
+  static inline Error to(auto& to_type, ParseContext& context) {
+    return Error::NoError;
+  }
+
+  static inline void from(T x, Token& token, Serializer& serializer) {
+    token.value_type = Type::String;
+    std::string_view v = magic_enum::enum_name(x);
+    token.value = DataRef(v.data(), v.size());
+    serializer.write(token);
+  }
+};
+} // namespace JS
+
+// #include <tser/tser.hpp>
 
 namespace librii::g3d {
+
+#define DEFINE_SERIALIZABLE(T, ...) JS_OBJ(__VA_ARGS__);
 
 struct JSONMatrixWeight {
   DEFINE_SERIALIZABLE(JSONMatrixWeight, bone_id, weight)
@@ -291,8 +321,9 @@ struct JSONMatrixPrimitive {
 };
 
 struct JSONVertexDescriptor {
-  DEFINE_SERIALIZABLE(JSONVertexDescriptor, mAttributes, mBitfield)
+  DEFINE_SERIALIZABLE(JSONVertexDescriptor, mBitfield)
 
+  // TODO: mAttributes needs to be recalculated
   std::map<librii::gx::VertexAttribute, librii::gx::VertexAttributeType>
       mAttributes;
   u32 mBitfield;
@@ -1036,11 +1067,10 @@ struct JSONModel {
     return model;
   }
 
-  operator Model() const {
+  Result<Model> lift() const {
     Model result;
     result.name = name;
-    // todo: unwrap!()
-    result.info = *info.to();
+    result.info = TRY(info.to());
     for (const auto& jsonBone : bones) {
       result.bones.push_back(static_cast<BoneData>(jsonBone));
     }
@@ -1080,10 +1110,18 @@ struct JSONModel {
 
 std::string ModelToJSON(const Model& model) {
   JSONModel mdl = JSONModel::from(model);
-  // std::cout << mdl << std::endl;
-  std::stringstream ss;
-  ss << mdl;
-  return ss.str();
+  return JS::serializeStruct(mdl);
+}
+Result<Model> JSONToModel(std::string_view json) {
+  JS::ParseContext context(json.data(), json.size());
+  JSONModel mdl;
+  auto err = context.parseTo(mdl);
+  if (err != JS::Error::NoError) {
+    auto n = magic_enum::enum_name(err);
+    return std::unexpected(
+        std::format("JSONToModel failed: Parse error {}", n));
+  }
+  return mdl.lift();
 }
 
 } // namespace librii::g3d
