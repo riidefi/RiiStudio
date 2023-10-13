@@ -6,6 +6,7 @@
 #include "LibBadUIFramework/ActionMenu.hpp"
 #include "librii/jparticle/JParticle.hpp"
 #include "librii/jparticle/JEFFJPA1.hpp"
+#include "librii/jparticle/utils/BTIUtils.hpp"
 
 #include <frontend/IEditor.hpp>
 #include <frontend/legacy_editor/StudioWindow.hpp>
@@ -163,7 +164,7 @@ public:
     if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
       if (ImGui::BeginPopupContextItem(str.c_str())) {
         if (ImGui::MenuItem("Add BTI texture")) {
-          importBTI(tex);
+          librii::jpa::importBTI(tex);
         }
 
         ImGui::EndPopup();
@@ -175,10 +176,11 @@ public:
         }
         if (ImGui::BeginPopupContextItem(c)) {
           if (ImGui::MenuItem("Export")) {
-            exportBTI(c, tex[i]);
+            librii::jpa::exportBTI(c, tex[i]);
           }
           if (ImGui::MenuItem("Replace")) {
-            replaceBTI(c, tex, i);
+            librii::jpa::replaceBTI(c, tex[i]);
+            selected = tex[i];
           }
           if (ImGui::MenuItem("Delete")) {
             tex.erase(tex.begin() + i);
@@ -189,100 +191,6 @@ public:
       }
     }
 
-  }
-
-  Result<void> importBTI(std::vector<librii::jpa::TextureBlock>& tex) {
-    auto default_filename = std::filesystem::path("").filename();
-    std::vector<std::string> filters{"??? (*.bti)", "*.bti"};
-    auto results =
-        rsl::ReadOneFile("Open File"_j, default_filename.string(), filters);
-    if (!results) {
-      rsl::ErrorDialog("No saving - No file selected");
-      return {};
-    }
-
-    rsl::trace("Attempting to load from {}", results->path.string());
-
-    librii::j3d::Tex tmp;
-    auto reader = TRY(oishii::BinaryReader::FromFilePath(results->path.string(),
-      std::endian::big));
-    rsl::SafeReader safeReader(reader);
-    TRY(tmp.transfer(safeReader));
-    auto buffer_addr = tmp.ofsTex;
-    auto buffer_size = librii::gx::computeImageSize(
-        tmp.mWidth, tmp.mHeight, tmp.mFormat, tmp.mMipmapLevel);
-
-    auto image_data = TRY(reader.tryReadBuffer<u8>(buffer_size, buffer_addr));
-
-    librii::jpa::TextureBlock data = librii::jpa::TextureBlock(tmp, image_data);
-    // Strip out file extension
-    data.setName(std::string(results->path.replace_extension().filename().string()));
-    tex.push_back(data);
-    return {};
-  }
-
-
-  Result<void> replaceBTI(const char* btiName,
-                          std::vector<librii::jpa::TextureBlock>& data,
-                          u32 index) {
-    auto default_filename = std::filesystem::path("").filename();
-    default_filename.replace_filename(btiName);
-    std::vector<std::string> filters{"??? (*.bti)", "*.bti"};
-    auto results =
-        rsl::ReadOneFile("Save File"_j, default_filename.string(), filters);
-    if (!results) {
-      rsl::ErrorDialog("No saving - No file selected");
-      return {};
-    }
-
-    rsl::trace("Attempting to load from {}", results->path.string());
-
-    librii::j3d::Tex tmp;
-    auto reader = TRY(
-        oishii::BinaryReader::FromFilePath(results->path.string(), std::endian::
-          big));
-    rsl::SafeReader safeReader(reader);
-    TRY(tmp.transfer(safeReader));
-    auto buffer_addr = tmp.ofsTex;
-    auto buffer_size = librii::gx::computeImageSize(
-        tmp.mWidth, tmp.mHeight, tmp.mFormat, tmp.mMipmapLevel);
-
-    auto image_data = TRY(reader.tryReadBuffer<u8>(buffer_size, buffer_addr));
-
-    auto block = librii::jpa::TextureBlock(tmp, image_data);
-    block.setName(std::string(results->path.replace_extension().filename().string()));
-
-    data[index] = block;
-
-    return {};
-  }
-
-
-  void exportBTI(const char* btiName, librii::jpa::TextureBlock data) {
-    auto default_filename = std::filesystem::path("").filename();
-    default_filename.replace_filename(btiName);
-    std::vector<std::string> filters{"??? (*.bti)", "*.bti"};
-    auto results =
-        rsl::SaveOneFile("Save File"_j, default_filename.string(), filters);
-    if (!results) {
-      rsl::ErrorDialog("No saving - No file selected");
-      return;
-    }
-    auto path = results->string();
-
-    if (!path.ends_with(".bti")) {
-      path += ".bti";
-    }
-
-    rsl::trace("Attempting to save to {}", path);
-    oishii::Writer writer(std::endian::big);
-    data.tex.write(writer);
-    writer.write(data.tex.ofsTex);
-    for (auto& b : data.getData()) {
-      writer.write(b);
-    }
-
-    writer.saveToDisk(path);
   }
 
   u32 num_entries = 0;
@@ -450,7 +358,7 @@ private:
   JpaEditorTreeView m_tree;
   std::string m_path;
   librii::jpa::JPAC m_jpa;
-  // lvl::AutoHistory<librii::j3d::BTK> m_history;
+  // lvl::AutoHistory<librii::j3d::JPAC> m_history;
   JPABlockSelection m_selected = {};
 
 
