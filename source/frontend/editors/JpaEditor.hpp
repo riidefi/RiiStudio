@@ -43,26 +43,26 @@ private:
 
 class JpaEditorPropertyGrid {
 public:
-  void Draw(librii::jpa::JPADynamicsBlock& block);
-  void Draw(librii::jpa::JPABaseShapeBlock& block);
-  void Draw(librii::jpa::JPAExtraShapeBlock& block);
-  void Draw(librii::jpa::JPAFieldBlock& block);
-  void Draw(librii::jpa::JPAChildShapeBlock& block);
-  void Draw(librii::jpa::JPAExTexBlock& block);
+  void Draw(librii::jpa::JPADynamicsBlock* block);
+  void Draw(librii::jpa::JPABaseShapeBlock* block);
+  void Draw(librii::jpa::JPAExtraShapeBlock* block);
+  void Draw(librii::jpa::JPAFieldBlock* block);
+  void Draw(librii::jpa::JPAChildShapeBlock* block);
+  void Draw(librii::jpa::JPAExTexBlock* block);
   void Draw(librii::jpa::TextureBlock block);
 
-  void refreshGradientWidgets(librii::jpa::JPABaseShapeBlock& block);
+  void refreshGradientWidgets(librii::jpa::JPABaseShapeBlock* block);
 
   Lib3dCachedImagePreview preview;
   ImGG::GradientWidget colorPrmGradient{};
   ImGG::GradientWidget colorEnvGradient{};
 };
 
-using JPABlockSelection = std::variant<librii::jpa::JPADynamicsBlock,
-                                       librii::jpa::JPABaseShapeBlock,
-                                       librii::jpa::JPAChildShapeBlock,
-                                       librii::jpa::JPAExtraShapeBlock,
-                                       librii::jpa::JPAFieldBlock,
+using JPABlockSelection = std::variant<librii::jpa::JPADynamicsBlock*,
+                                       librii::jpa::JPABaseShapeBlock*,
+                                       librii::jpa::JPAChildShapeBlock*,
+                                       librii::jpa::JPAExtraShapeBlock*,
+                                       librii::jpa::JPAFieldBlock*,
                                        librii::jpa::TextureBlock,
                                        std::monostate>;
 
@@ -98,15 +98,15 @@ public:
           }
 
           if (ImGui::Selectable("Emitter")) {
-            selected = x.bem1;
+            selected = &x.bem1;
           }
           if (ImGui::Selectable("Base Shape")) {
-            selected = x.bsp1;
-            grid.refreshGradientWidgets(x.bsp1);
+            selected = &x.bsp1;
+            grid.refreshGradientWidgets(&x.bsp1);
           }
           if (x.esp1.has_value()) {
             if (ImGui::Selectable("Extra Shape")) {
-              selected = x.esp1.value();
+              selected = &x.esp1.value();
             }
             if (ImGui::BeginPopupContextItem(nullptr)) {
               if (ImGui::MenuItem("Delete")) {
@@ -118,7 +118,7 @@ public:
           }
           if (x.ssp1.has_value()) {
             if (ImGui::Selectable("Child Shape")) {
-              selected = x.ssp1.value();
+              selected = &x.ssp1.value();
             }
           }
 
@@ -140,7 +140,7 @@ public:
 
               ImGui::PushID(ID.c_str());
               if (ImGui::Selectable(fieldName.c_str())) {
-                selected = field;
+                selected = &x.fld1[i];
               }
               ImGui::PopID();
               if (ImGui::BeginPopupContextItem(nullptr)) {
@@ -170,7 +170,7 @@ public:
       }
       for (int i = 0; i < tex.size(); i++) {
         auto c = tex[i].getName().c_str();
-        if (ImGui::Selectable(c)) {
+        if (ImGui::Selectable(tex[i].getName().c_str())) {
           selected = tex[i];
         }
         if (ImGui::BeginPopupContextItem(c)) {
@@ -216,14 +216,15 @@ public:
 
     librii::jpa::TextureBlock data = librii::jpa::TextureBlock(tmp, image_data);
     // Strip out file extension
-    data.setName(results->path.replace_extension().filename().string());
+    data.setName(std::string(results->path.replace_extension().filename().string()));
     tex.push_back(data);
     return {};
   }
 
 
   Result<void> replaceBTI(const char* btiName,
-                          std::vector<librii::jpa::TextureBlock> data, u32 index) {
+                          std::vector<librii::jpa::TextureBlock>& data,
+                          u32 index) {
     auto default_filename = std::filesystem::path("").filename();
     default_filename.replace_filename(btiName);
     std::vector<std::string> filters{"??? (*.bti)", "*.bti"};
@@ -248,9 +249,11 @@ public:
 
     auto image_data = TRY(reader.tryReadBuffer<u8>(buffer_size, buffer_addr));
 
-    data[index] = librii::jpa::TextureBlock(tmp, image_data);
+    auto block = librii::jpa::TextureBlock(tmp, image_data);
+    block.setName(std::string(results->path.replace_extension().filename().string()));
 
-    selected = data[index];
+    data[index] = block;
+
     return {};
   }
 
@@ -334,35 +337,43 @@ public:
     ImGui::End();
 
     if (ImGui::Begin((idIfyChild("Properties")).c_str())) {
-      if (auto* x = std::get_if<librii::jpa::JPADynamicsBlock>(&m_selected)) {
+      if (auto* x = std::get_if<librii::jpa::JPADynamicsBlock*>(&m_selected)) {
         m_sheet.Draw([&]() {
-          m_grid.Draw(*x);
+          if (*x) {
+            m_grid.Draw(*x);
+          }
         });
-      } else if (auto* x = std::get_if<librii::jpa::JPABaseShapeBlock>(
+      } else if (auto* x = std::get_if<librii::jpa::JPABaseShapeBlock*>(
           &m_selected)) {
         m_sheet.Draw([&]() {
-          m_grid.Draw(*x);
+          if (*x) {
+            m_grid.Draw(*x);
+          }
         });
-      } else if (auto* x = std::get_if<librii::jpa::JPAChildShapeBlock>(
+      } else if (auto* x = std::get_if<librii::jpa::JPAChildShapeBlock*>(
           &m_selected)) {
         m_sheet.Draw([&]() {
-          m_grid.Draw(*x);
+          if (*x) {
+            m_grid.Draw(*x);
+          }
+        });
+      } else if (auto* x = std::get_if<librii::jpa::JPAExtraShapeBlock*>(
+          &m_selected)) {
+        m_sheet.Draw([&]() {
+          if (*x) {
+            m_grid.Draw(*x);
+          }
         });
       } else if (auto* x =
-          std::get_if<librii::jpa::JPAExtraShapeBlock>(&m_selected)) {
+          std::get_if<librii::jpa::JPAFieldBlock*>(&m_selected)) {
         m_sheet.Draw([&]() {
-          m_grid.Draw(*x);
-        });
-      } else if (auto* x =
-          std::get_if<librii::jpa::JPAFieldBlock>(&m_selected)) {
-        m_sheet.Draw([&]() {
-          m_grid.Draw(*x);
+          if (*x) {
+            m_grid.Draw(*x);
+          }
         });
       } else if (auto* x =
           std::get_if<librii::jpa::TextureBlock>(&m_selected)) {
-        m_sheet.Draw([&]() {
-          m_grid.Draw(*x);
-        });
+        m_sheet.Draw([&]() { m_grid.Draw(*x); });
       }
     }
     ImGui::End();
