@@ -27,6 +27,7 @@ enum class Algo {
   Haroohie,
   CTLib,
   LibYaz0,
+  MK8,
 };
 
 Result<u32> encodeAlgoFast(std::span<u8> dst, std::span<const u8> src,

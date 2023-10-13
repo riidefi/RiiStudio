@@ -53,6 +53,9 @@ enum {
   TYPE_OPTIMIZE,
 
   TYPE_IMPORT_TEX0,
+
+  TYPE_BRRES2JSON,
+  TYPE_JSON2BRRES,
 };
 
 template <size_t L> struct CFixedString {

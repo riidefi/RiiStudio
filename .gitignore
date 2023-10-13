@@ -38,7 +38,6 @@
 *.app
 
 # Visual Studio files
-*.sln
 *.vcxproj
 *.vcxproj.*
 *.suo
