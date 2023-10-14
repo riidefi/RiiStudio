@@ -1,5 +1,7 @@
 #pragma once
 
+#include "plugins/gc/Export/Material.hpp"
+
 #include <core/common.h>
 #include <librii/gx.h>
 #include <string>

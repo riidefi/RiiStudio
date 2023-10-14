@@ -41,11 +41,13 @@ struct Color {
             static_cast<float>(b) / static_cast<float>(0xff),
             static_cast<float>(a) / static_cast<float>(0xff)};
   }
+  inline operator u32() const { return a | (b << 8) | (g << 16) | (r << 24); }
+
   inline Color() : r(0), g(0), b(0), a(0) {}
   inline Color(u32 hex) {
-    r = (hex & 0xff000000) << 24;
-    g = (hex & 0x00ff0000) << 16;
-    b = (hex & 0x0000ff00) << 8;
+    r = (hex & 0xff000000) >> 24;
+    g = (hex & 0x00ff0000) >> 16;
+    b = (hex & 0x0000ff00) >> 8;
     a = (hex & 0x000000ff);
   }
   inline Color(u8 _r, u8 _g, u8 _b, u8 _a) : r(_r), g(_g), b(_b), a(_a) {}

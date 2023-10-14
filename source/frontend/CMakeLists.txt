@@ -88,11 +88,13 @@ add_library(lib_frontend
  "editors/BlightEditor.cpp"
  "editors/BlmapEditor.cpp"
  "editors/BtkEditor.cpp"
- 
+ "editors/JpaEditor.cpp"
+
  "properties/gc/Material/AdvTexConv.cpp"
  "properties/gc/Material/Merge.cpp"
  "editors/BtkEditor.cpp"
  "legacy_editor/views/BmdBrresOutliner.cpp" "renderer/MouseHider.cpp" "editors/MkwDebug.cpp" "PresetHelper.cpp")
+
 
 add_executable(frontend 
  "entry.cpp"
@@ -109,6 +111,7 @@ target_link_libraries(lib_frontend PUBLIC
   LibBadUIFramework
   updater
   rsmeshopt
+  imgui_gradient
 )
 target_link_libraries(frontend PUBLIC
   lib_frontend
