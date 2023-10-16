@@ -390,6 +390,195 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
 
     if (ImGui::CollapsingHeader("Color Stage"_j,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
+      int preset = -1;
+      enum {
+        PRES_PREV,
+        PRES_RASC,
+        PRES_RASA,
+        PRES_TEXC,
+        PRES_TEXA,
+        PRES_KONST,
+
+        PRES_BAR1, // Not a real value; ignore
+
+        PRES_RASC_PREV,
+        PRES_RASC_TEXC,
+        PRES_RASC_TEXA,
+        PRES_RASC_KONST,
+        PRES_RASC_INVKONST,
+        PRES_RASC_TWOCOLOR,
+
+        PRES_BAR2, // Not a real value; ignore
+
+        PRES_TEXC_PREV,
+        PRES_TEXC_RASC,
+        PRES_TEXC_TEXA,
+        PRES_TEXC_KONST,
+        PRES_TEXC_INVKONST,
+        PRES_TEXC_TWOCOLOR,
+      };
+      bool input = ImGui::Combo(
+          "Preset", &preset,
+          "The result of the previous stage\0"
+          "Rasterized color\0"
+          "Rasterized alpha\0"
+          "Texture color\0"
+          "Texture alpha\0"
+          "KONST Value\0"
+          "----------------------\0"
+          "Rasterized color * the result of the previous stage\0"
+          "Rasterized color * Texture color\0"
+          "Rasterized color * Texture alpha\0"
+          "Rasterized color * KONST value\0"
+          "Rasterized color * (1 - KONST value)\0"
+          "Two-color interpolation of Rasterized color in Color Register\0"
+          "----------------------\0"
+          "Texture color * the result of the previous stage\0"
+          "Texture color * Rasterized color\0"
+          "Texture color * Texture alpha\0"
+          "Texture color * KONST value\0"
+          "Texture color * (1 - KONST value)\0"
+          "Two-color interpolation of Texture color in Color Register\0"
+          "\0",
+          20);
+
+      if (!input) {
+        preset = -1;
+      }
+
+      // TEV Formula: D + lerp(A, B, C
+      switch (preset) {
+      case PRES_PREV:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::zero;
+        stage.colorStage.c = librii::gx::TevColorArg::zero;
+		// TODO: Actually check the last stage output
+        stage.colorStage.d = librii::gx::TevColorArg::cprev;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_RASC:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::zero;
+        stage.colorStage.c = librii::gx::TevColorArg::zero;
+        stage.colorStage.d = librii::gx::TevColorArg::rasc;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_RASA:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::zero;
+        stage.colorStage.c = librii::gx::TevColorArg::zero;
+        stage.colorStage.d = librii::gx::TevColorArg::rasa;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_TEXC:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::zero;
+        stage.colorStage.c = librii::gx::TevColorArg::zero;
+        stage.colorStage.d = librii::gx::TevColorArg::texc;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_TEXA:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::zero;
+        stage.colorStage.c = librii::gx::TevColorArg::zero;
+        stage.colorStage.d = librii::gx::TevColorArg::texa;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_KONST:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::zero;
+        stage.colorStage.c = librii::gx::TevColorArg::zero;
+        stage.colorStage.d = librii::gx::TevColorArg::konst;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_RASC_PREV:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::rasc;
+        stage.colorStage.c = librii::gx::TevColorArg::cprev;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_RASC_TEXC:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::rasc;
+        stage.colorStage.c = librii::gx::TevColorArg::texc;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_RASC_TEXA:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::rasc;
+        stage.colorStage.c = librii::gx::TevColorArg::texa;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_RASC_KONST:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::rasc;
+        stage.colorStage.c = librii::gx::TevColorArg::konst;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_RASC_INVKONST:
+        stage.colorStage.a = librii::gx::TevColorArg::rasc;
+        stage.colorStage.b = librii::gx::TevColorArg::zero;
+        stage.colorStage.c = librii::gx::TevColorArg::konst;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_RASC_TWOCOLOR:
+        stage.colorStage.a = librii::gx::TevColorArg::c1;
+        stage.colorStage.b = librii::gx::TevColorArg::c0;
+        stage.colorStage.c = librii::gx::TevColorArg::rasc;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_TEXC_PREV:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::texc;
+        stage.colorStage.c = librii::gx::TevColorArg::cprev;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_TEXC_RASC:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::texc;
+        stage.colorStage.c = librii::gx::TevColorArg::rasc;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_TEXC_TEXA:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::texc;
+        stage.colorStage.c = librii::gx::TevColorArg::texa;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_TEXC_KONST:
+        stage.colorStage.a = librii::gx::TevColorArg::zero;
+        stage.colorStage.b = librii::gx::TevColorArg::texc;
+        stage.colorStage.c = librii::gx::TevColorArg::konst;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_TEXC_INVKONST:
+        stage.colorStage.a = librii::gx::TevColorArg::texc;
+        stage.colorStage.b = librii::gx::TevColorArg::zero;
+        stage.colorStage.c = librii::gx::TevColorArg::konst;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      case PRES_TEXC_TWOCOLOR:
+        stage.colorStage.a = librii::gx::TevColorArg::c1;
+        stage.colorStage.b = librii::gx::TevColorArg::c0;
+        stage.colorStage.c = librii::gx::TevColorArg::texc;
+        stage.colorStage.d = librii::gx::TevColorArg::zero;
+        stage.colorStage.formula = librii::gx::TevColorOp::add;
+        break;
+      default:
+        break;
+      }
+
       librii::gx::TevStage::ColorStage substage =
           drawSubStage(stage.colorStage);
       STAGE_PROP(colorStage.constantSelection, substage.constantSelection);
@@ -405,6 +594,139 @@ void drawProperty(kpi::PropertyDelegate<IGCMaterial>& delegate,
     }
     if (ImGui::CollapsingHeader("Alpha Stage"_j,
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
+      int preset = -1;
+      enum {
+        PRES_PREV,
+        PRES_RASA,
+        PRES_TEXA,
+        PRES_KONST,
+
+        PRES_BAR1, // Not a real value; ignore
+
+        PRES_RASA_PREV,
+        PRES_RASA_TEXA,
+        PRES_RASA_KONST,
+        PRES_RASA_INVKONST,
+
+        PRES_BAR2, // Not a real value; ignore
+
+        PRES_TEXA_PREV,
+        PRES_TEXA_RASA,
+        PRES_TEXA_KONST,
+        PRES_TEXA_INVKONST,
+      };
+      bool input =
+          ImGui::Combo("Preset##APRES", &preset,
+                       "The result of the previous stage\0"
+                       "Rasterized alpha\0"
+                       "Texture alpha\0"
+                       "KONST Value\0"
+                       "----------------------\0"
+                       "Rasterized alpha * the result of the previous stage\0"
+                       "Rasterized alpha * Texture alpha\0"
+                       "Rasterized alpha * KONST value\0"
+                       "Rasterized alpha * (1 - KONST value)\0"
+                       "----------------------\0"
+                       "Texture alpha * the result of the previous stage\0"
+                       "Texture alpha * Rasterized alpha\0"
+                       "Texture alpha * KONST value\0"
+                       "Texture alpha * (1 - KONST value)\0"
+                       "\0",
+                       14);
+
+      if (!input) {
+        preset = -1;
+      }
+
+      // TEV Formula: D + lerp(A, B, C
+      switch (preset) {
+      case PRES_PREV:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::aprev;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_RASA:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::rasa;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_TEXA:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::texa;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_KONST:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::konst;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_RASA_PREV:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::rasa;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::aprev;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_RASA_TEXA:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::rasa;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::texa;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_RASA_KONST:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::rasa;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::konst;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_RASA_INVKONST:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::rasa;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::konst;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_TEXA_PREV:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::texa;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::aprev;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_TEXA_RASA:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::texa;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::rasa;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_TEXA_KONST:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::texa;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::konst;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      case PRES_TEXA_INVKONST:
+        stage.alphaStage.a = librii::gx::TevAlphaArg::texa;
+        stage.alphaStage.b = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.c = librii::gx::TevAlphaArg::konst;
+        stage.alphaStage.d = librii::gx::TevAlphaArg::zero;
+        stage.alphaStage.formula = librii::gx::TevAlphaOp::add;
+        break;
+      default:
+        break;
+      }
       IDScope alphag("Alpha");
       librii::gx::TevStage::AlphaStage substage =
           drawSubStage(stage.alphaStage);
