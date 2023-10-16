@@ -3,10 +3,10 @@ cmake_minimum_required(VERSION 3.8)
 set(WARNINGS_AS_ERRORS_FOR_IMGUI_GRADIENT OFF CACHE BOOL "ON iff you want to treat warnings as errors")
 
 
-include_directories(${PROJECT_SOURCE_DIR}/../)
-include_directories(${PROJECT_SOURCE_DIR}/../vendor)
-include_directories(${PROJECT_SOURCE_DIR}/../plate/include)
-include_directories(${PROJECT_SOURCE_DIR}/../plate/vendor)
+include_directories(${PROJECT_SOURCE_DIR}/)
+include_directories(${PROJECT_SOURCE_DIR}/vendor)
+include_directories(${PROJECT_SOURCE_DIR}/plate/include)
+include_directories(${PROJECT_SOURCE_DIR}/plate/vendor)
 
 
 add_library(imgui_gradient)
