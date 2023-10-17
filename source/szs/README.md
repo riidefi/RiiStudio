@@ -1,9 +1,95 @@
 # szs
-szs is a WIP crate for compressing and decompressing SZS files (Yaz0 encoding) used in the Nintendo GameCube and Wii games. The library provides C bindings, making it useful in both Rust and C/C++ based projects.
+Lightweight crate for SZS (\"Yaz0\") compression/decompression used in the Nintendo GameCube/Wii games. The library provides C, C++ and C# bindings.
+
+### Rust
+The following snippet demonstrates how to compress a file as a SZS format using Rust:
+
+```rs
+// Sample source bytes to be encoded.
+let src_data: Vec<u8> = "Hello, World!".as_bytes().to_vec();
+
+match szs::encode(&src_data, szs::EncodeAlgo::Nintendo) {
+    Ok(encoded_data) => {
+        println!("Encoded into {} bytes", encoded_data.len());
+    }
+    Err(szs::EncodeAlgoError::Error(err_msg)) => {
+        println!("Encoding failed: {}", err_msg);
+    }
+}
+```
+And similarly, to decompress:
+```rs
+match szs::decode(&encoded_data) {
+    Ok(decoded_data) => {
+        println!("Decoded {} bytes", decoded_data.len());
+    }
+    Err(szs::EncodeAlgoError::Error(err_msg)) => {
+        println!("Decoding failed: {}", err_msg);
+    }
+}
+```
+
+## C# Bindings
+The following C# bindings are [provided](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%23):
+```cs
+using System;
+
+public class SZSExample
+{
+    public static void Main(string[] args)
+    {
+        byte[] data = ...; // Initialize your data here
+
+        szs.CompressionAlgorithm algorithm = szs.CompressionAlgorithm.Nintendo;
+        byte[] encodedData = szs.Encode(data, algorithm);
+
+        if (encodedData == null || encodedData.Length == 0)
+        {
+            Console.WriteLine("Failed to compress.");
+            return;
+        }
+
+        Console.WriteLine($"Encoded {encodedData.Length} bytes.");
+    }
+}
+```
 
 ##### Warning: These algorithms are currently implemented in **the C programming language**, and not in Rust. While they have been rigorously validated, please use at your own risk. A Rust rewrite is planned.
 
-### Stats
+### Algorithms
+
+| Algorithm (`rszst compress --algorithm` form) | Rust form | C bindings                     | Desc       |
+|-----------------------------------------------|-----------|--------------------------------|------------|
+| `nintendo`            | `EncodeAlgo::Nintendo`            | `RII_SZS_ENCODE_ALGO_NINTENDO` | Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects)
+| `mk8`                 | `EncodeAlgo::Mk8`                 | `RII_SZS_ENCODE_ALGO_MK8`      | MK8 compressor (Reverse engineered. Credit @aboood40091)
+| `mkw-sp`              | `EncodeAlgo::MkwSp`               | `RII_SZS_ENCODE_ALGO_MKWSP`    | MKW-SP
+| `ctgp`                | `EncodeAlgo::CTGP`                | `RII_SZS_ENCODE_ALGO_CTGP`     | CTGP (Reverse engineered. 1:1 matching)
+| `worst-case-encoding` | `EncodeAlgo::WorstCaseEncoding`   | `RII_SZS_ENCODE_ALGO_WORST_CASE_ENCODING` | Worst case
+| `haroohie`            | `EncodeAlgo::Haroohie`            | `RII_SZS_ENCODE_ALGO_HAROOHIE`| Haroohie (credit @Gericom, adapted from MarioKartToolbox)
+| `ct-lib`              | `EncodeAlgo::CTLib`               | `RII_SZS_ENCODE_ALGO_CTLIB`   | CTLib (credit @narahiero, adapted from CTLib)
+| `lib-yaz0`            | `EncodeAlgo::LibYaz0`             | `RII_SZS_ENCODE_ALGO_LIBYAZ0` | libyaz0 (Based on wszst. credit @aboood40091)
+
+Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
+
+
+### Large file comparison
+NSMBU 8-43 (63.9 MB decompressed)
+| Method               | Time (Avg 3 runs) | Compression Rate | File Size |
+|----------------------|-------------------|------------------|-----------|
+| lib-yaz0             |            25.97s |           29.32% |  18.74 MB |
+| mkw                  |            78.26s |           29.40% |  18.79 MB |
+| mkw-sp               |            49.28s |           29.74% |  19.01 MB |
+| haroohie             |            11.44s |           29.74% |  19.01 MB |
+| ct-lib               |             5.32s |           29.74% |  19.01 MB |
+| mk8                  |             1.46s |           30.12% |  19.25 MB |
+| ctgp                 |            12.05s |           40.91% |  26.14 MB |
+| worst-case-encoding  |             0.07s |          112.50% |  71.90 MB |
+
+*\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
+
+Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
+
+### Small file comparison
 **Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
 | Method              | Time Taken             | Compression Rate |
 |---------------------|------------------------|------------------|
@@ -24,57 +110,6 @@ szs is a WIP crate for compressing and decompressing SZS files (Yaz0 encoding) u
 
 *\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
 
-Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
-
-| Algorithm (`rszst compress --algorithm` form) | Rust form | C bindings | Desc |
-|-----------------------------------------------|------|----|
-| `nintendo`            | `EncodeAlgo::Nintendo` | `RII_SZS_ENCODE_ALGO_NINTENDO` | Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects)
-| `mk8`                 | `EncodeAlgo::Mk8` | `RII_SZS_ENCODE_ALGO_MK8`      | MK8 compressor (Reverse engineered. Credit @aboood40091)
-| `mkw-sp`              | `EncodeAlgo::MkwSp` | `RII_SZS_ENCODE_ALGO_MKWSP`    | MKW-SP
-| `ctgp`                | `EncodeAlgo::CTGP` | `RII_SZS_ENCODE_ALGO_CTGP`     | CTGP (Reverse engineered. 1:1 matching)
-| `worst-case-encoding` | `EncodeAlgo::WorstCaseEncoding` | `RII_SZS_ENCODE_ALGO_WORST_CASE_ENCODING` | Worst case
-| `haroohie`            | `EncodeAlgo::Haroohie` | `RII_SZS_ENCODE_ALGO_HAROOHIE`| Haroohie (credit @Gericom, adapted from MarioKartToolbox)
-| `ct-lib`              | `EncodeAlgo::CTLib` | `RII_SZS_ENCODE_ALGO_CTLIB`   | CTLib (credit @narahiero, adapted from CTLib)
-| `lib-yaz0`            | `EncodeAlgo::LibYaz0` | `RII_SZS_ENCODE_ALGO_LIBYAZ0` | libyaz0 (Based on wszst. credit @aboood40091)
-
-
-#### Large file comparison
-NSMBU 8-43 (63.9 MB decompressed)
-| Method               | Time (Avg 3 runs) | Compression Rate | File Size |
-|----------------------|-------------------|------------------|-----------|
-| lib-yaz0             |            25.97s |           29.32% |  18.74 MB |
-| mkw                  |            78.26s |           29.40% |  18.79 MB |
-| mkw-sp               |            49.28s |           29.74% |  19.01 MB |
-| haroohie             |            11.44s |           29.74% |  19.01 MB |
-| ct-lib               |             5.32s |           29.74% |  19.01 MB |
-| mk8                  |             1.46s |           30.12% |  19.25 MB |
-| ctgp                 |            12.05s |           40.91% |  26.14 MB |
-| worst-case-encoding  |             0.07s |          112.50% |  71.90 MB |
-
-### Rust
-The following snippet demonstrates how to compress a file as a SZS format using Rust:
-
-```rs
-// Sample source bytes to be encoded.
-let src_data: Vec<u8> = "Hello, World!".as_bytes().to_vec();
-
-// Calculate the upper bound for encoding.
-let max_len = encoded_upper_bound(src_data.len() as u32);
-
-// Allocate a buffer based on the calculated upper bound.
-let mut dst_data: Vec<u8> = vec![0; max_len as usize];
-
-match encode_algo_fast(&mut dst_data, &src_data, librii::EncodeAlgo::Nintendo) {
-    Ok(encoded_len) => {
-        println!("Encoded {} bytes", encoded_len);
-        // Optionally: shrink the dst_data to the actual size.
-        dst_data.truncate(encoded_len as usize);
-    }
-    Err(EncodeAlgoError::Error(err_msg)) => {
-        println!("Encoding failed: {}", err_msg);
-    }
-}
-```
 
 ### Example (C Bindings)
 ```c
@@ -118,31 +153,6 @@ if (!encoded)
 }
 std::vector<u8> szs_data = *encoded;
 std::println("Encoded {} bytes.", szs_data.size());
-```
-
-## C# Bindings
-The following C# bindings are [provided](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%23):
-```cs
-using System;
-
-public class SZSExample
-{
-    public static void Main(string[] args)
-    {
-        byte[] data = ...; // Initialize your data here
-
-        szs.CompressionAlgorithm algorithm = szs.CompressionAlgorithm.Nintendo;
-        byte[] encodedData = szs.Encode(data, algorithm);
-
-        if (encodedData == null || encodedData.Length == 0)
-        {
-            Console.WriteLine("Failed to compress.");
-            return;
-        }
-
-        Console.WriteLine($"Encoded {encodedData.Length} bytes.");
-    }
-}
 ```
 
 #### License
