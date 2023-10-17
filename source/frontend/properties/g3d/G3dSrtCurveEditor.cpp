@@ -191,6 +191,7 @@ void CurveEditor::exe_gui(GuiFrameContext& c) {
   float frame, value;
   if (m_dragged_item.is_CurvePoint(frame, value)) {
     auto track = c.active_track();
+    assert(track->track);
     // Create and add new keyframe and set it as dragged
     SRT0KeyFrame keyframe;
     keyframe.frame = frame;

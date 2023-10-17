@@ -88,7 +88,10 @@ struct GuiFrameContext {
   float bottom() const { return viewport.Max.y; }
 
   bool has_active_track() {
-    return 0 <= active_track_idx && active_track_idx <= tracks.size() - 1;
+    if (!(0 <= active_track_idx && active_track_idx <= tracks.size() - 1)) {
+      return false;
+    }
+    return tracks[active_track_idx].track != nullptr;
   }
   EditableTrack* active_track() {
     return has_active_track() ? &tracks[active_track_idx] : nullptr;

@@ -319,7 +319,7 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
   int active_track_idx = -1;
 
   if (ImGui::BeginChild("ChildR")) {
-    std::vector<EditableTrack> tracks(visibleTracks.size());
+    std::vector<EditableTrack> tracks;
 
     for (int i = 0; i < visibleTracks.size(); i++) {
       auto& fvt = visibleTracks[i];
@@ -329,6 +329,10 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
       u32 subtrack = fvt.subtrack;
 
       librii::g3d::SrtAnim::Track* track = ResolveTrackUIInfo(anim, fvt);
+      if (track == nullptr) {
+        // TODO: Double check this logic
+        continue;
+      }
       // string_view created from cstring, so
       // .data() is null-terminated
       auto tgtId = static_cast<librii::g3d::SRT0Matrix::TargetId>(subtrack);
@@ -337,10 +341,11 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
       auto track_name =
           std::format("{}{}: {}", targetMtxId >= 8 ? "IndMtx" : "TexMtx",
                       (targetMtxId % 8), subtrackName);
-
-      tracks[i].track = track;
-      tracks[i].name = track_name;
-      tracks[i].color = subtrackColors[fvt.subtrack];
+      EditableTrack t;
+      t.track = track;
+      t.name = track_name;
+      t.color = subtrackColors[fvt.subtrack];
+      tracks.push_back(t);
 
       if (active_track_id && (fvt.matName == active_track_id->matName &&
                               fvt.mtxId == active_track_id->mtxId &&
@@ -378,7 +383,8 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
         }
       }
 
-      if (active_keyframe_idx > -1) {
+      if (active_keyframe_idx > -1 && active_track &&
+          active_keyframe_idx < active_track->size()) {
         ImGui::Text("Keyframe %d", static_cast<int>(active_keyframe_idx));
         ImGui::SameLine();
         auto title = std::format("{}", (const char*)ICON_FA_TIMES_CIRCLE);
@@ -405,6 +411,7 @@ static void CurveEditorWindow(librii::g3d::SrtAnimationArchive& anim,
           selection->deselect(active_keyframe_idx);
 
       } else {
+        active_keyframe_idx = -1;
         ImGui::Dummy(ImVec2(0, 100));
       }
     }
