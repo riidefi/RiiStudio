@@ -1,12 +1,12 @@
 [package]
 name = "szs"
 license = "MIT"
-version = "0.0.27"
+version = "1.0.0"
 edition = "2021"
-description = "szs is a WIP crate for compressing and decompressing SZS formats used in the Nintendo GameCube and Wii games. The library provides C bindings, making it useful in both Rust and C/C++ based projects."
+description = "Lightweight crate for SZS (\"Yaz0\") compression/decompression used in the Nintendo GameCube/Wii games. The library provides C, C++ and C# bindings."
 homepage = "https://github.com/riidefi/RiiStudio/tree/master/source/szs"
 repository = "https://github.com/riidefi/RiiStudio"
-keywords = ["wii", "gamecube"]
+keywords = ["wii", "gamecube", "yaz0", "szs"]
 readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

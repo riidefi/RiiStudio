@@ -17,7 +17,23 @@ pub mod librii {
         unsafe { bindings::impl_rii_worst_encoding_size(len) }
     }
 
-    pub fn encode_algo_fast(dst: &mut [u8], src: &[u8], algo: u32) -> Result<u32, EncodeAlgoError> {
+    #[repr(u32)]
+    pub enum EncodeAlgo {
+        WorstCaseEncoding = 0,
+        Nintendo,
+        MkwSp,
+        CTGP,
+        Haroohie,
+        CTLib,
+        LibYaz0,
+        Mk8,
+    }
+
+    pub fn encode_algo_fast(
+        dst: &mut [u8],
+        src: &[u8],
+        algo: EncodeAlgo,
+    ) -> Result<u32, EncodeAlgoError> {
         let mut used_len: u32 = 0;
 
         let result = unsafe {
@@ -27,7 +43,7 @@ pub mod librii {
                 src.as_ptr() as *const _,
                 src.len() as u32,
                 &mut used_len,
-                algo,
+                algo as u32,
             )
         };
 
@@ -110,7 +126,7 @@ pub extern "C" fn riiszs_encode_algo_fast(
     src: *const u8,
     src_len: u32,
     result: *mut u32,
-    algo: u32,
+    algo: librii::EncodeAlgo, // u32
 ) -> *const c_char {
     let dst_slice = unsafe { std::slice::from_raw_parts_mut(dst, dst_len as usize) };
     let src_slice = unsafe { std::slice::from_raw_parts(src, src_len as usize) };
@@ -141,9 +157,7 @@ pub extern "C" fn riiszs_decode(
     let src_slice = unsafe { std::slice::from_raw_parts(src, src_len as usize) };
 
     match librii::decode(dst_slice, src_slice) {
-        Ok(()) => {
-            std::ptr::null()
-        }
+        Ok(()) => std::ptr::null(),
         Err(librii::EncodeAlgoError::Error(msg)) => {
             let c_string = std::ffi::CString::new(msg).unwrap();
             // Leak the CString into a raw pointer, so we don't deallocate it

@@ -1,41 +1,42 @@
 # szs
 szs is a WIP crate for compressing and decompressing SZS files (Yaz0 encoding) used in the Nintendo GameCube and Wii games. The library provides C bindings, making it useful in both Rust and C/C++ based projects.
 
-##### Warning: The library is not currently in a fully functional state. Use at your own risk. 0.1.0 will start the release series.
 ##### Warning: These algorithms are currently implemented in **the C programming language**, and not in Rust. While they have been rigorously validated, please use at your own risk. A Rust rewrite is planned.
-
-### Algorithms
-- Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects)
-- MK8 compressor (Reverse engineered. Credit @aboood40091)
-- MKW-SP
-- CTGP (Reverse engineered. 1:1 matching)
-- Worst case
-- Haroohie (credit @Gericom, adapted from MarioKartToolbox)
-- CTLib (credit @narahiero, adapted from CTLib)
-- libyaz0 (Based on wszst. credit @aboood40091)
 
 ### Stats
 **Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
-| Method | Time Taken | Compression Rate |
-|--------|------------|------------------|
-| worst-case-encoding | **0s** | 112.50% |
-| MK8  | 0.09s | 57.59% |
-| ctgp | 0.31s | 71.41% |
-| CTLib | 0.32s | 57.24% |
-| Haroohie | 0.58s | 57.23% |
-| lib-yaz0 | 2.03s | **56.65%** |
-| mkw-sp | 3.76s | 57.23% |
-| nintendo | 5.93s | 56.87% |
-| **Comparison with other libraries:** | | |
-| Haroohie (C#) | 0.71s | 57.23% |
-| wszst (fast) | **0.387s** (via shell) | 65.78% |
-| wszst (standard) | 1.776s (via shell) | 57.23% |
-| wszst (ultra) | 2.727s (via shell) | **56.65%** |
-| yaz0-rs | 11.34s (via shell) | 56.87% |
+| Method              | Time Taken             | Compression Rate |
+|---------------------|------------------------|------------------|
+| lib-yaz0            | 2.03s                  |       **56.65%** |
+| nintendo            | 5.93s                  |           56.87% |
+| mkw-sp              | 3.76s                  |           57.23% |
+| Haroohie            | 0.58s                  |           57.23% |
+| CTLib               | 0.32s                  |           57.24% |
+| MK8                 | 0.09s                  |           57.59% |
+| ctgp                | 0.31s                  |           71.41% |
+| worst-case-encoding | **0s**                 |          112.50% |
+| **Comparison with other libraries:** |       |                  |
+| Haroohie (C#)       | 0.71s                  |           57.23% |
+| wszst (fast)        | **0.387s** (via shell) |           65.78% |
+| wszst (standard)    | 1.776s (via shell)     |           57.23% |
+| wszst (ultra)       | 2.727s (via shell)     |       **56.65%** |
+| yaz0-rs             | 11.34s (via shell)     |           56.87% |
 
 *\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
 
-Generally, the `CTLib` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster. For absolute speed, the `mk8` algorithm achieves the best results.
+Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
+
+| Algorithm (`rszst compress --algorithm` form) | Rust form | C bindings | Desc |
+|-----------------------------------------------|------|----|
+| `nintendo`            | `EncodeAlgo::Nintendo` | `RII_SZS_ENCODE_ALGO_NINTENDO` | Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects)
+| `mk8`                 | `EncodeAlgo::Mk8` | `RII_SZS_ENCODE_ALGO_MK8`      | MK8 compressor (Reverse engineered. Credit @aboood40091)
+| `mkw-sp`              | `EncodeAlgo::MkwSp` | `RII_SZS_ENCODE_ALGO_MKWSP`    | MKW-SP
+| `ctgp`                | `EncodeAlgo::CTGP` | `RII_SZS_ENCODE_ALGO_CTGP`     | CTGP (Reverse engineered. 1:1 matching)
+| `worst-case-encoding` | `EncodeAlgo::WorstCaseEncoding` | `RII_SZS_ENCODE_ALGO_WORST_CASE_ENCODING` | Worst case
+| `haroohie`            | `EncodeAlgo::Haroohie` | `RII_SZS_ENCODE_ALGO_HAROOHIE`| Haroohie (credit @Gericom, adapted from MarioKartToolbox)
+| `ct-lib`              | `EncodeAlgo::CTLib` | `RII_SZS_ENCODE_ALGO_CTLIB`   | CTLib (credit @narahiero, adapted from CTLib)
+| `lib-yaz0`            | `EncodeAlgo::LibYaz0` | `RII_SZS_ENCODE_ALGO_LIBYAZ0` | libyaz0 (Based on wszst. credit @aboood40091)
+
 
 #### Large file comparison
 NSMBU 8-43 (63.9 MB decompressed)
@@ -63,10 +64,7 @@ let max_len = encoded_upper_bound(src_data.len() as u32);
 // Allocate a buffer based on the calculated upper bound.
 let mut dst_data: Vec<u8> = vec![0; max_len as usize];
 
-// Boyer-Moore-horspool variant
-let algo_number: u32 = 0;
-
-match encode_algo_fast(&mut dst_data, &src_data, algo_number) {
+match encode_algo_fast(&mut dst_data, &src_data, librii::EncodeAlgo::Nintendo) {
     Ok(encoded_len) => {
         println!("Encoded {} bytes", encoded_len);
         // Optionally: shrink the dst_data to the actual size.
