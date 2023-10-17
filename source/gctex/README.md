@@ -7,9 +7,8 @@ gctex is a Rust crate designed for encoding and decoding texture formats used in
 The following snippet demonstrates how to encode a texture in CMPR format using Rust:
 
 ```rust
-let mut dst = vec![0; dst_len];
 let src = vec![0; src_len];
-gctex::rii_encode_cmpr(&mut dst, &src, width, height);
+let dst = gctex::encode(gctex::TextureFormat::CMPR, &src, width, height);
 ```
 
 ### C# Bindings
