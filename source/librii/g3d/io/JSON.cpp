@@ -1,5 +1,3 @@
-#define private public
-
 #include <glm/vec3.hpp>
 #include <iostream>
 #include <string>

@@ -170,16 +170,16 @@ public:
         ImGui::EndPopup();
       }
       for (int i = 0; i < tex.size(); i++) {
-        auto c = tex[i].getName().c_str();
-        if (ImGui::Selectable(tex[i].getName().c_str())) {
+        auto name = tex[i].getName();
+        if (ImGui::Selectable(name.c_str())) {
           selected = tex[i];
         }
-        if (ImGui::BeginPopupContextItem(c)) {
+        if (ImGui::BeginPopupContextItem(name.c_str())) {
           if (ImGui::MenuItem("Export")) {
-            librii::jpa::exportBTI(c, tex[i]);
+            librii::jpa::exportBTI(name.c_str(), tex[i]);
           }
           if (ImGui::MenuItem("Replace")) {
-            librii::jpa::replaceBTI(c, tex[i]);
+            librii::jpa::replaceBTI(name.c_str(), tex[i]);
             selected = tex[i];
           }
           if (ImGui::MenuItem("Delete")) {

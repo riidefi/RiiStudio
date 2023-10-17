@@ -53,7 +53,6 @@ struct IndexedVertex {
   }
   bool operator==(const IndexedVertex& rhs) const = default;
 
-private:
   std::array<u16, (u64)VertexAttribute::Max> indices;
 };
 

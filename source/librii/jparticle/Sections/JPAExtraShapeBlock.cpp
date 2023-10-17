@@ -2,7 +2,6 @@
 
 #include "librii/jparticle/utils/JPAUtils.hpp"
 
-#include <corecrt_math_defines.h>
 #include <iostream>
 
 namespace librii::jpa {
