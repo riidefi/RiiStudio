@@ -141,6 +141,7 @@ encoded_buf = realloc(encoded_buf, actual_len);
 ```
 
 ### C++ Wrapper on top of C Bindings
+#### [A CMake example is provided, too.](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%2b%2b)
 ```cpp
 #include `szs.h`
 

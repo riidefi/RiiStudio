@@ -68,6 +68,13 @@ static inline std::string get_version() {
   return s;
 }
 
+static inline bool is_compressed(std::span<const uint8_t> src) {
+  return ::riiszs_is_compressed(src.data(), src.size());
+}
+static inline uint32_t decoded_size(std::span<const uint8_t> src) {
+  return ::riiszs_decoded_size(src.data(), src.size());
+}
+
 static inline std::expected<uint32_t, std::string>
 encode_algo_fast(std::span<uint8_t> dst, std::span<const uint8_t> src,
                  Algo algo) {
@@ -83,9 +90,10 @@ encode_algo_fast(std::span<uint8_t> dst, std::span<const uint8_t> src,
   return std::unexpected(emsg);
 }
 
-Result<std::vector<uint8_t>> encode_algo(std::span<const uint8_t> buf,
-                                         Algo algo) {
-  uint32_t worst = ::riiszs_encoded_upper_bound(static_cast<u32>(buf.size()));
+std::expected<std::vector<uint8_t>, std::string>
+encode_algo(std::span<const uint8_t> buf, Algo algo) {
+  uint32_t worst =
+      ::riiszs_encoded_upper_bound(static_cast<uint32_t>(buf.size()));
   std::vector<uint8_t> tmp(worst);
   auto ok = encode_algo_fast(tmp, buf, algo);
   if (!ok) {
@@ -106,6 +114,16 @@ decode(std::span<uint8_t> dst, std::span<const uint8_t> src) {
   std::string emsg(err);
   ::riiszs_free_error_message(err);
   return std::unexpected(emsg);
+}
+static inline std::expected<std::vector<uint8_t>, std::string>
+decode_wrapper(std::span<const uint8_t> src) {
+  uint32_t size = ::riiszs_decoded_size(src.data(), src.size());
+  std::vector<uint8_t> result(size);
+  auto ok = decode(result, src);
+  if (!ok) {
+    return std::unexpected(ok.error());
+  }
+  return result;
 }
 
 } // namespace szs
