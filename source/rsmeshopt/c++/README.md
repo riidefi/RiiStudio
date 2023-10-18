@@ -1,6 +1,6 @@
 # C/C++ Bindings
 
-C/C++ bindings are provided for the native library via "gctex.h". The following example demonstrates integration with CMake.
+C/C++ bindings are provided for the native library via "rsmeshopt.h". The following example demonstrates integration with CMake.
 
 ### Requirements
 - You must have rust installed.
@@ -20,7 +20,7 @@ corrosion_import_crate(MANIFEST_PATH source/rsmeshopt/Cargo.toml CRATE_TYPES ${R
 
 ## bindings
 A library, provides the following API:
-```cs
+```cpp
 namespace rsmeshopt {
   enum class StripifyAlgo {
     NvTriStripPort = 0,
@@ -30,16 +30,16 @@ namespace rsmeshopt {
     DracoDegen,
     Haroohie,
   };
-std::expected<std::vector<uint32_t>, std::string>
-DoStripifyAlgo_(StripifyAlgo algo,
-				std::span<const uint32_t> index_data,
-                std::span<const vec3> vertex_data,
-				uint32_t restart = ~0u);
-std::expected<std::vector<uint32_t>, std::string>
-MakeFans_(std::span<const uint32_t> index_data,
-		  uint32_t restart,
-          uint32_t min_len,
-		  uint32_t max_runs);
+  std::expected<std::vector<uint32_t>, std::string>
+  DoStripifyAlgo_(StripifyAlgo algo,
+                  std::span<const uint32_t> index_data,
+                  std::span<const vec3> vertex_data,
+                  uint32_t restart = ~0u);
+  std::expected<std::vector<uint32_t>, std::string>
+  MakeFans_(std::span<const uint32_t> index_data,
+            uint32_t restart,
+            uint32_t min_len,
+            uint32_t max_runs);
 }
 ```
 
