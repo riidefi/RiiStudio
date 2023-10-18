@@ -21,6 +21,7 @@ pub fn make_fans(indices: &[u32], restart: u32, min_len: u32, max_runs: u32) -> 
 
 ## C Bindings
 The following C bindings are [provided](https://github.com/riidefi/RiiStudio/blob/master/source/rsmeshopt/include/rsmeshopt.h):
+[A CMake example is provided, too.](https://github.com/riidefi/RiiStudio/tree/master/source/rsmeshopt/c%2b%2b)
 
 ```c
 uint32_t rii_stripify(uint32_t* dst, uint32_t algo, const uint32_t* indices,

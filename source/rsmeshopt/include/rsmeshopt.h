@@ -32,6 +32,18 @@ int32_t rsmeshopt_get_version_unstable_api(char* buf, uint32_t len);
 
 namespace rsmeshopt {
 
+//! Get the library version.
+static inline std::string get_version() {
+  std::string s;
+  s.resize(1024);
+  int32_t len = ::rsmeshopt_get_version_unstable_api(&s[0], s.size());
+  if (len <= 0 || len > s.size()) {
+    return "Unable to query";
+  }
+  s.resize(len);
+  return s;
+}
+
 static inline uint32_t meshopt_stripifyBound_(uint32_t x) {
   return (x / 3) * 5;
 }
