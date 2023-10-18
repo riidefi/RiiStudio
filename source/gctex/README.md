@@ -29,6 +29,7 @@ unsigned char src[src_len];
 rii_encode_cmpr(dst, sizeof(dst), src, sizeof(src), width, height);
 ```
 The relevant header is available in `include/gctex.h`.
+#### A C++ CMake example is provided [here](See https://github.com/riidefi/RiiStudio/tree/master/source/gctex/examples/c%2b%2b)
 
 #### Supported Formats
 All supported texture formats and their respective encoding and decoding sources are listed below.

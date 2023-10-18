@@ -69,7 +69,7 @@ namespace gctex {
 static inline std::string get_version() {
   std::string s;
   s.resize(1024);
-  int32_t len = gctex_get_version_unstable_api(s.data(), s.size());
+  int32_t len = gctex_get_version_unstable_api(&s[0], s.size());
   if (len <= 0 || len > s.size()) {
     return "Unable to query";
   }
