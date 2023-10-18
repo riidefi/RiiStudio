@@ -9,7 +9,7 @@ FetchContent_MakeAvailable(Corrosion)
 # Install gctex
 FetchContent_Declare(
   gctex
-  URL      https://crates.io/api/v1/crates/gctex/0.2.1/download
+  URL      https://crates.io/api/v1/crates/gctex/0.2.2/download
 )
 FetchContent_MakeAvailable(gctex)
 

@@ -30,59 +30,29 @@ int getEncodedSize(int width, int height, gx::TextureFormat format,
 void decode(std::span<u8> dst, std::span<const u8> src, int width, int height,
             gx::TextureFormat texformat, std::span<const u8> tlut,
             gx::PaletteFormat tlutformat) {
-  rii_decode(dst.data(), dst.size(), src.data(), src.size(), width, height,
-             static_cast<u32>(texformat), tlut.data(), tlut.size(),
-             static_cast<u32>(tlutformat));
+  gctex::decode_into(dst, src, width, height, static_cast<u32>(texformat), tlut,
+                     static_cast<u32>(tlutformat));
 }
 
 // raw 8-bit RGBA -> X
 Result<void> encode(std::span<u8> dst, std::span<const u8> src, int width,
                     int height, gx::TextureFormat texformat) {
-  if (texformat == gx::TextureFormat::CMPR) {
-    rii_encode_cmpr(dst.data(), dst.size(), src.data(), src.size(), width,
-                    height);
-    return {};
+  bool ok = false;
+  switch (texformat) {
+  case gx::TextureFormat::CMPR:
+  case gx::TextureFormat::I4:
+  case gx::TextureFormat::I8:
+  case gx::TextureFormat::IA4:
+  case gx::TextureFormat::IA8:
+  case gx::TextureFormat::RGB565:
+  case gx::TextureFormat::RGB5A3:
+  case gx::TextureFormat::RGBA8:
+    ok = true;
+    break;
   }
 
-  if (texformat == gx::TextureFormat::I4) {
-    rii_encode_i4(dst.data(), dst.size(), src.data(), src.size(), width,
-                  height);
-    return {};
-  }
-
-  if (texformat == gx::TextureFormat::I8) {
-    rii_encode_i8(dst.data(), dst.size(), src.data(), src.size(), width,
-                  height);
-    return {};
-  }
-
-  if (texformat == gx::TextureFormat::IA4) {
-    rii_encode_ia4(dst.data(), dst.size(), src.data(), src.size(), width,
-                   height);
-    return {};
-  }
-
-  if (texformat == gx::TextureFormat::IA8) {
-    rii_encode_ia8(dst.data(), dst.size(), src.data(), src.size(), width,
-                   height);
-    return {};
-  }
-
-  if (texformat == gx::TextureFormat::RGB565) {
-    rii_encode_rgb565(dst.data(), dst.size(), src.data(), src.size(), width,
-                      height);
-    return {};
-  }
-
-  if (texformat == gx::TextureFormat::RGB5A3) {
-    rii_encode_rgb5a3(dst.data(), dst.size(), src.data(), src.size(), width,
-                      height);
-    return {};
-  }
-
-  if (texformat == gx::TextureFormat::RGBA8) {
-    rii_encode_rgba8(dst.data(), dst.size(), src.data(), src.size(), width,
-                     height);
+  if (ok) {
+    gctex::encode_into(static_cast<u32>(texformat), dst, src, width, height);
     return {};
   }
 
