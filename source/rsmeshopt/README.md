@@ -1,13 +1,12 @@
 # rsmeshopt
 Triangle strip / triangle fan generation algorithms
 
-## WARNING: Clang or GCC is required to build!
 ##### Windows build instructions:
 ```sh
-SET CXX=clang
+# Optionally, for better performance*, swap the compiler: SET CXX=clang
 cargo build
 ```
-This will force the compiler to be `clang`, supposing it exists in your path.
+* This will force the compiler to be `clang`, supposing it exists in your path.
 ##### Linux/Mac build instructions:
 ```
 cargo build

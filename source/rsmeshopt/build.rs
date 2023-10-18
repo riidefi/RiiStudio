@@ -17,7 +17,7 @@ fn main() {
     let is_clang_cl =
         compiler.path().ends_with("clang-cl.exe") || compiler.path().ends_with("clang-cl");
 
-    if is_clang_cl {
+    if is_clang_cl || compiler.is_like_msvc() {
         build.std("c++latest");
     } else {
         build.std("gnu++2b");

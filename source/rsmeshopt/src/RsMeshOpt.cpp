@@ -38,7 +38,12 @@ StripifyTrianglesNvTriStripPort(std::span<const u32> index_data) {
 
 Result<std::vector<u32>>
 StripifyTrianglesNvTriStripPort2(std::span<const u32> index_data, u32 restart) {
-  auto v = TRY(StripifyTrianglesNvTriStripPort(index_data));
+  auto ov = StripifyTrianglesNvTriStripPort(index_data);
+  if (!ov) {
+    return std::unexpected(ov.error());
+  }
+  auto v = *ov;
+
   std::vector<u32> result;
   for (auto& x : v) {
     for (size_t i = 0; i < x.size(); ++i) {
@@ -65,7 +70,12 @@ StripifyTrianglesTriStripper(std::span<const u32> index_data) {
 
 Result<std::vector<u32>>
 StripifyTrianglesTriStripper2(std::span<const u32> index_data, u32 restart) {
-  auto v = TRY(StripifyTrianglesTriStripper(index_data));
+  auto ov = StripifyTrianglesTriStripper(index_data);
+  if (!ov) {
+    return std::unexpected(ov.error());
+  }
+  auto v = *ov;
+
   std::vector<u32> result;
   for (auto& x : v) {
     if (x.Type == triangle_stripper::TRIANGLES) {

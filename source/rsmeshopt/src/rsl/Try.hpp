@@ -48,20 +48,7 @@ template <typename T> auto MyMove(T&& t) {
 #define BEGINTRY
 #define ENDTRY
 #else
-// #define TRY(...) static_assert(false, "Compiler does not support TRY macro")
-#define TRY(...)                                                               \
-  [](auto&& x) {                                                               \
-    if (!x.has_value()) {                                                      \
-      fprintf(stderr, "Fatal error: %s", x.error().c_str());                   \
-      throw x.error();                                                         \
-    }                                                                          \
-    return *x;                                                                 \
-  }(__VA_ARGS__)
-#define BEGINTRY try {
-#define ENDTRY                                                                 \
-  }                                                                            \
-  catch (std::string s) {                                                      \
-    return RSL_UNEXPECTED(s);                                                  \
-  }
+#define TRY(...) static_assert(false, "Compiler does not support TRY macro")
+
 #endif
 // clang-format on

@@ -29,9 +29,11 @@
 #define EXPECT(expr, ...)                                                      \
   if (!(expr)) [[unlikely]] {                                                  \
     auto cur = STACK_TRACE;                                                    \
-    return RSL_UNEXPECTED(std::format(                                         \
-        "[{}:{}] {} [Internal: {}] {}", __FILE_NAME__, __LINE__,               \
-        (0 __VA_OPT__(, ) __VA_ARGS__), #expr, std::to_string(cur)));          \
+    std::string dump = std::to_string(cur);                                    \
+    auto mesg = (0 /* __VA_OPT__(, ) __VA_ARGS__*/);                                \
+    return RSL_UNEXPECTED(std::format("[{}:{}] {} [Internal: {}] {}",          \
+                                      __FILE_NAME__, __LINE__, mesg, #expr,    \
+                                      dump));                                  \
   }
 #else
 #define EXPECT(expr, ...)                                                      \
