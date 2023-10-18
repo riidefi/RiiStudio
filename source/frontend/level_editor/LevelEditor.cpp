@@ -87,7 +87,7 @@ Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
   if (path.ends_with(".wbz")) {
     auto arc = TRY(
         librii::wbz::decodeWBZ(buf, "C:\\Program Files\\Wiimm\\SZS\\auto-add"));
-    szs_buf = TRY(librii::szs::encodeCTGP(arc));
+    szs_buf = TRY(librii::szs::encodeAlgo(arc, librii::szs::Algo::CTGP));
   }
 
   // Read .szs

@@ -16,7 +16,6 @@ using namespace librii::live_mkw;
 
 namespace riistudio::frontend {
 
-
 using namespace librii::dolphin;
 librii::dolphin::DolphinAc dolphin;
 live::IoRead ioRead = [](u32 addr, std::span<u8> dst) {
@@ -146,7 +145,7 @@ void MkwDebug::draw() {
             u32 size = e.low.mArchiveSize;
             std::vector<u8> buf(size);
             dolphin.readFromRAM(begin, buf);
-            auto b2 = librii::szs::encodeCTGP(buf);
+            auto b2 = librii::szs::encodeAlgo(buf, librii::szs::Algo::CTGP);
             auto path = std::format("{}.szs", e.category);
             auto ed = frontend::MakeEditor(*b2, path);
             if (ed) {

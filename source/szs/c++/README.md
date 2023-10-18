@@ -35,11 +35,10 @@ namespace szs {
   std::string get_version();
   bool is_compressed(std::span<const uint8_t> src);
   uint32_t decoded_size(std::span<const uint8_t> src);
-  std::expected<uint32_t, std::string>
-  encode_algo_fast(std::span<uint8_t> dst, std::span<const uint8_t> src, Algo algo);
-  std::expected<std::vector<uint8_t>, std::string> encode_algo(std::span<const uint8_t> buf, Algo algo);
-  std::expected<void, std::string> decode(std::span<uint8_t> dst, std::span<const uint8_t> src);
-  std::expected<std::vector<uint8_t>, std::string> decode_wrapper(std::span<const uint8_t> src);
+  std::expected<uint32_t, std::string> encode_into(std::span<uint8_t> dst, std::span<const uint8_t> src, Algo algo);
+  std::expected<std::vector<uint8_t>, std::string> encode(std::span<const uint8_t> buf, Algo algo);
+  std::expected<void, std::string> decode_into(std::span<uint8_t> dst, std::span<const uint8_t> src);
+  std::expected<std::vector<uint8_t>, std::string> decode(std::span<const uint8_t> src);
 }
 ```
 
@@ -68,7 +67,7 @@ int main() {
             << (isCompressed ? "true" : "false") << "\n\n";
 
   // Encode data
-  auto maybe_encodedData = szs::encode_algo(originalData, szs::Algo::LibYaz0);
+  auto maybe_encodedData = szs::encode(originalData, szs::Algo::LibYaz0);
   if (!maybe_encodedData) {
     std::cout << "Failed to encode: " << maybe_encodedData.error() << std::endl;
     return -1;
@@ -78,7 +77,7 @@ int main() {
   std::cout << "Encoded Size: " << encodedData.size() << " bytes\n\n";
 
   // Decode data
-  auto maybe_decodedData = szs::decode_wrapper(encodedData);
+  auto maybe_decodedData = szs::decode(encodedData);
 
   if (!maybe_decodedData) {
     std::cout << "Failed to decode: " << maybe_decodedData.error() << std::endl;

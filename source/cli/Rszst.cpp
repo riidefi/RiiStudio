@@ -736,16 +736,11 @@ public:
       return {};
     }
 
-    std::vector<u8> szs(librii::szs::getWorstEncodingSize(buf));
     fmt::print(stderr,
                "Compressing SZS: {} => {} (Boyer-Moore-Horspool strategy)\n",
                m_from.string(), m_to.string());
-    int sz = librii::szs::encodeBoyerMooreHorspool(buf.data(), szs.data(),
-                                                   buf.size());
-    if (sz <= 0 || sz > szs.size()) {
-      return std::unexpected("SZS encoding failed");
-    }
-    szs.resize(roundUp(sz, 32));
+    auto szs = TRY(librii::szs::encodeAlgo(buf, librii::szs::Algo::Nintendo));
+    szs.resize(roundUp(szs.size(), 32));
 
     TRY(rsl::WriteFile(szs, m_to.string()));
 

@@ -9,7 +9,7 @@ FetchContent_MakeAvailable(Corrosion)
 # Install rsmeshopt
 FetchContent_Declare(
   szs
-  URL      https://crates.io/api/v1/crates/szs/0.1.1/download
+  URL      https://crates.io/api/v1/crates/szs/0.2.0/download
 )
 FetchContent_MakeAvailable(szs)
 

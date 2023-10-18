@@ -147,7 +147,7 @@ encoded_buf = realloc(encoded_buf, actual_len);
 
 // Boyer-Moore-horspool variant
 szs::Algo algorithm = szs::Algo::Nintendo;
-auto encoded = szs::encode_algo(data, algorithm);
+auto encoded = szs::encode(data, algorithm);
 if (!encoded)
 	std::println(stderr, "Failed to compress: {}.", encoded.error()); {
 	return -1;

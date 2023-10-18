@@ -118,7 +118,7 @@ Result<std::vector<u8>> WriteArchive(const Archive& arc) {
   ProcessArcs(&arc, ".", u8);
 
   auto u8_buf = librii::U8::SaveU8Archive(u8);
-  auto szs_buf = librii::szs::encodeFast(u8_buf);
+  auto szs_buf = librii::szs::encodeAlgo(u8_buf, librii::szs::Algo::WorstCaseEncoding);
 
   return szs_buf;
 }

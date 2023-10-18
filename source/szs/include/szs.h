@@ -76,8 +76,7 @@ static inline uint32_t decoded_size(std::span<const uint8_t> src) {
 }
 
 static inline std::expected<uint32_t, std::string>
-encode_algo_fast(std::span<uint8_t> dst, std::span<const uint8_t> src,
-                 Algo algo) {
+encode_into(std::span<uint8_t> dst, std::span<const uint8_t> src, Algo algo) {
   uint32_t used_len = 0;
   const uint32_t algo_u = static_cast<uint32_t>(algo);
   const char* err = ::riiszs_encode_algo_fast(
@@ -91,11 +90,11 @@ encode_algo_fast(std::span<uint8_t> dst, std::span<const uint8_t> src,
 }
 
 std::expected<std::vector<uint8_t>, std::string>
-encode_algo(std::span<const uint8_t> buf, Algo algo) {
+encode(std::span<const uint8_t> buf, Algo algo) {
   uint32_t worst =
       ::riiszs_encoded_upper_bound(static_cast<uint32_t>(buf.size()));
   std::vector<uint8_t> tmp(worst);
-  auto ok = encode_algo_fast(tmp, buf, algo);
+  auto ok = encode_into(tmp, buf, algo);
   if (!ok) {
     return std::unexpected(ok.error());
   }
@@ -105,7 +104,7 @@ encode_algo(std::span<const uint8_t> buf, Algo algo) {
 }
 
 static inline std::expected<void, std::string>
-decode(std::span<uint8_t> dst, std::span<const uint8_t> src) {
+decode_into(std::span<uint8_t> dst, std::span<const uint8_t> src) {
   const char* err =
       ::riiszs_decode(dst.data(), dst.size(), src.data(), src.size());
   if (err == nullptr) {
@@ -116,10 +115,10 @@ decode(std::span<uint8_t> dst, std::span<const uint8_t> src) {
   return std::unexpected(emsg);
 }
 static inline std::expected<std::vector<uint8_t>, std::string>
-decode_wrapper(std::span<const uint8_t> src) {
+decode(std::span<const uint8_t> src) {
   uint32_t size = ::riiszs_decoded_size(src.data(), src.size());
   std::vector<uint8_t> result(size);
-  auto ok = decode(result, src);
+  auto ok = decode_into(result, src);
   if (!ok) {
     return std::unexpected(ok.error());
   }
