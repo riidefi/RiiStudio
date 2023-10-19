@@ -46,6 +46,8 @@ IndexedPolygon::propagate(const riistudio::lib3d::Model& mdl, u32 mp_id,
       out.pushData(7, glm::vec2{});
     if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::TexCoord1)))
       out.pushData(8, glm::vec2{});
+    if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::TexCoord2)))
+      out.pushData(9, glm::vec2{});
     if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::Normal)))
       out.pushData(4, glm::vec3{});
     if (!(vcd.mBitfield & (1 << (u32)gx::VertexAttribute::Color0)))
