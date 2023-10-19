@@ -135,7 +135,6 @@ pub enum EncodeAlgoError {
 /// # Examples
 ///
 /// ```
-/// // Assuming necessary imports and initializations...
 /// let mut dst: [u8; 512] = [0; 512];
 /// let src = b"some data to encode";
 /// let algorithm = szs::EncodeAlgo::Mk8; // Mario Kart 8
@@ -196,7 +195,6 @@ pub fn encode_inplace(
 /// # Examples
 ///
 /// ```
-/// // Assuming necessary imports and initializations...
 /// let src = b"some data to encode";
 /// let algorithm = szs::EncodeAlgo::Mk8; // Mario Kart 8
 ///
@@ -248,7 +246,6 @@ pub fn encode(src: &[u8], algo: EncodeAlgo) -> Result<Vec<u8>, EncodeAlgoError> 
 /// # Examples
 ///
 /// ```
-/// // Assuming necessary imports and initializations...
 /// let mut dst: [u8; 512] = [0; 512];
 /// let src = b"some encoded data";
 ///
@@ -297,7 +294,6 @@ pub fn decode_inplace(dst: &mut [u8], src: &[u8]) -> Result<(), EncodeAlgoError>
 /// # Examples
 ///
 /// ```
-/// // Assuming necessary imports and initializations...
 /// let src = b"some encoded data";
 ///
 /// match szs::decode(src) {
@@ -334,7 +330,6 @@ pub fn decode(src: &[u8]) -> Result<Vec<u8>, EncodeAlgoError> {
 /// # Examples
 ///
 /// ```
-/// // Assuming necessary imports...
 /// let original_length = 100;
 /// let upper_bound = szs::deinterlaced_upper_bound(original_length);
 /// assert!(upper_bound >= original_length);
@@ -370,7 +365,6 @@ pub fn deinterlaced_upper_bound(len: u32) -> u32 {
 /// # Examples
 ///
 /// ```
-/// // Assuming necessary imports and initializations...
 /// let mut dst: [u8; 512] = [0; 512];
 /// let src = b"some interlaced data";
 ///
@@ -422,7 +416,6 @@ pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, EncodeAlgoErr
 /// # Examples
 ///
 /// ```
-/// // Assuming necessary imports and initializations...
 /// let src = b"some interlaced data";
 ///
 /// match szs::deinterlace(src) {

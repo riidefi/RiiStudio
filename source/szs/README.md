@@ -1,5 +1,8 @@
-# szs
-Lightweight crate for SZS (\"Yaz0\") compression/decompression used in the Nintendo GameCube/Wii games. The library provides C, C++ and C# bindings.
+[![crates.io](https://img.shields.io/crates/v/szs.svg)](https://crates.io/crates/szs)
+[![docs.rs](https://docs.rs/szs/badge.svg)](https://docs.rs/szs/)
+
+# `szs`
+Lightweight crate for SZS (\"Yaz0\") compression/decompression used in the Nintendo GameCube/Wii games. The library provides C, C++ and C# bindings. YAY0 ("SZP") is supported, too.
 
 ### Rust
 The following snippet demonstrates how to compress a file as a SZS format using Rust:
