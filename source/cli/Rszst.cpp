@@ -505,10 +505,10 @@ public:
     auto sname = magic_enum::enum_name(strat);
     rsl::Timer timer;
     timer.reset();
-    fmt::print(stderr, "Compressing SZS: {} => {} ({} strategy)\n",
-               m_from.string(), m_to.string(),
-               fmt::styled(sname, fmt::fg(fmt::color::gold)));
-    auto buf = TRY(librii::szs::encodeAlgo(*file, strat));
+    fmt::print(stderr, "Compressing {}: {} => {} ({} strategy)\n",
+               m_opt.yay0 ? "SZP (YAY0)" : "SZS (YAZ0)", m_from.string(),
+               m_to.string(), fmt::styled(sname, fmt::fg(fmt::color::gold)));
+    auto buf = TRY(librii::szs::encodeAlgo(*file, strat, m_opt.yay0));
     float elapsed = static_cast<float>(timer.elapsed()) * 0.001f;
     float rate =
         static_cast<float>(buf.size()) / static_cast<float>(file->size());
@@ -530,7 +530,7 @@ private:
 
     if (m_to.empty()) {
       std::filesystem::path p = m_from;
-      p.replace_extension(".szs");
+      p.replace_extension(m_opt.yay0 ? ".szp" : ".szs");
       m_to = p;
     }
     if (!FS_TRY(rsl::filesystem::exists(m_from))) {

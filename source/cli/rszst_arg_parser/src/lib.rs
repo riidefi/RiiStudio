@@ -156,6 +156,10 @@ pub struct CompressCommand {
     #[clap(short, long, value_enum)]
     algorithm: Option<SzsAlgo>,
 
+    /// Use YAY0 instead of YAZ0
+    #[clap(short, long, default_value = "false")]
+    yay0: bool,
+
     #[clap(short, long, default_value = "false")]
     verbose: bool,
 }
@@ -441,6 +445,7 @@ pub struct CliOptions {
     pub verbose: c_uint,
     pub szs_algo: c_uint,
     pub format: c_uint,
+    pub yay0: c_uint,
     // TYPE 2: "decompress"
     // Uses "from", "to" and "verbose" above
 }
@@ -504,6 +509,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::ImportBrres(i) => {
@@ -549,6 +555,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::ImportBmd(i) => {
@@ -594,6 +601,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::Decompress(i) => {
@@ -633,6 +641,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::Compress(i) => {
@@ -651,6 +660,7 @@ impl MyArgs {
                     to: to2,
                     verbose: i.verbose as c_uint,
                     szs_algo: i.algorithm.unwrap_or(SzsAlgo::CTGP) as c_uint,
+                    yay0: i.yay0 as c_uint,
 
                     // Junk fields
                     preset_path: [0; 256],
@@ -711,6 +721,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::JsonToKmp(i) => {
@@ -750,6 +761,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::KclToJson(i) => {
@@ -789,6 +801,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::JsonToKcl(i) => {
@@ -828,6 +841,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::BrresToJson(i) => {
@@ -867,6 +881,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::JsonToBrres(i) => {
@@ -906,6 +921,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::Rhst2Brres(i) => {
@@ -945,6 +961,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::Rhst2Bmd(i) => {
@@ -984,6 +1001,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::Extract(i) => {
@@ -1023,6 +1041,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::Create(i) => {
@@ -1062,6 +1081,7 @@ impl MyArgs {
                     ai_json: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::DumpPresets(i) => {
@@ -1101,6 +1121,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::PreciseBMDDump(i) => {
@@ -1140,6 +1161,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::Optimize(i) => {
@@ -1179,6 +1201,7 @@ impl MyArgs {
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
                     format: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
             Commands::ImportTex0(i) => {
@@ -1218,6 +1241,7 @@ impl MyArgs {
                     no_compression: 0 as c_uint,
                     rarc: 0 as c_uint,
                     szs_algo: 0 as c_uint,
+                    yay0: 0 as c_uint,
                 }
             }
         }

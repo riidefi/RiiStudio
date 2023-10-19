@@ -89,6 +89,7 @@ struct CliOptions {
   bool32 verbose = false;
   uint32_t szs_algo = 0;
   uint32_t texture_format = 0xE;
+  bool32 yay0 = false;
 };
 
 std::optional<CliOptions> parse(int argc, const char** argv);
