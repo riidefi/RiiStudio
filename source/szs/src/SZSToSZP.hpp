@@ -9,6 +9,7 @@
 #include "SZS.hpp"
 
 #include <assert.h>
+#include <string.h>
 
 struct SZPData {
   u32 decompressedSize = 0;
