@@ -11,12 +11,12 @@
 #endif
 
 // Must match release on Github
-#define GITHUB_TAG "Alpha 5.11 (Hotfix 1)"
+#define GITHUB_TAG "Alpha 5.11.1"
 
 const char GIT_TAG[] = GITHUB_TAG;
 
 // Must be exactly 16 bytes long
-const char VERSION_SHORT[] = "RiiStudioA5.11  ";
+const char VERSION_SHORT[] = "RiiStudioA5.11.1";
 static_assert(sizeof(VERSION_SHORT) - 1 == 16,
               "VERSION_SHORT must be 16 bytes long");
 
