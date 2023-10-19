@@ -32,6 +32,11 @@ void riiszs_free_error_message(const char* msg);
 
 int32_t szs_get_version_unstable_api(char* buf, uint32_t len);
 
+uint32_t riiszs_deinterlaced_upper_bound(uint32_t len);
+const char* riiszs_deinterlace_into(void* dst, uint32_t dst_len,
+                                    const void* src, uint32_t src_len,
+                                    uint32_t* used_len);
+
 #ifdef __cplusplus
 }
 #endif
@@ -123,6 +128,46 @@ decode(std::span<const uint8_t> src) {
     return std::unexpected(ok.error());
   }
   return result;
+}
+
+static inline std::expected<uint32_t, std::string>
+deinterlace_into(std::span<uint8_t> dst, std::span<const uint8_t> src) {
+  uint32_t used_len = 0;
+  const char* err = ::riiszs_deinterlace_into(
+      dst.data(), dst.size(), src.data(), src.size(), &used_len);
+  if (err == nullptr) {
+    return used_len;
+  }
+  std::string emsg(err);
+  ::riiszs_free_error_message(err);
+  return std::unexpected(emsg);
+}
+
+std::expected<std::vector<uint8_t>, std::string>
+deinterlace(std::span<const uint8_t> buf) {
+  uint32_t worst =
+      ::riiszs_deinterlaced_upper_bound(static_cast<uint32_t>(buf.size()));
+  std::vector<uint8_t> tmp(worst);
+  auto ok = deinterlace_into(tmp, buf);
+  if (!ok) {
+    return std::unexpected(ok.error());
+  }
+  assert(tmp.size() >= *ok);
+  tmp.resize(*ok);
+  return tmp;
+}
+
+std::expected<std::vector<uint8_t>, std::string>
+encode_yay0(std::span<const uint8_t> buf, Algo algo) {
+  auto ok = encode(buf, algo);
+  if (!ok) {
+    return std::unexpected(ok.error());
+  }
+  auto ok2 = deinterlace(*ok);
+  if (!ok2) {
+    return std::unexpected(ok2.error());
+  }
+  return *ok2;
 }
 
 } // namespace szs

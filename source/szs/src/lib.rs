@@ -126,6 +126,52 @@ pub fn decode(src: &[u8]) -> Result<Vec<u8>, EncodeAlgoError> {
     }
 }
 
+pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, EncodeAlgoError> {
+    let mut used_len: u32 = 0;
+
+    let result = unsafe {
+        bindings::impl_rii_deinterlace(
+            dst.as_mut_ptr() as *mut _,
+            dst.len() as u32,
+            src.as_ptr() as *const _,
+            src.len() as u32,
+            &mut used_len,
+        )
+    };
+
+    if result.is_null() {
+        Ok(used_len)
+    } else {
+        let error_msg = unsafe {
+            std::ffi::CStr::from_ptr(result)
+                .to_string_lossy()
+                .into_owned()
+        };
+        Err(EncodeAlgoError::Error(error_msg))
+    }
+}
+
+pub fn deinterlaced_upper_bound(len: u32) -> u32 {
+    return len + 3;
+}
+
+pub fn deinterlace(src: &[u8]) -> Result<Vec<u8>, EncodeAlgoError> {
+    // Calculate the upper bound for conversion.
+    let max_len = deinterlaced_upper_bound(src.len() as u32);
+
+    // Allocate a buffer based on the calculated upper bound.
+    let mut dst: Vec<u8> = vec![0; max_len as usize];
+
+    match deinterlace_into(&mut dst, src) {
+        Ok(encoded_len) => {
+            // Shrink the dst to the actual size.
+            dst.truncate(encoded_len as usize);
+            Ok(dst)
+        }
+        Err(err) => Err(err),
+    }
+}
+
 //--------------------------------------------------------
 //
 // C BINDINGS BEGIN
@@ -236,4 +282,35 @@ pub extern "C" fn riiszs_is_compressed(src: *const u8, len: u32) -> bool {
 pub extern "C" fn riiszs_decoded_size(src: *const u8, len: u32) -> u32 {
     let data = unsafe { std::slice::from_raw_parts(src, len as usize) };
     decoded_size(data)
+}
+
+#[no_mangle]
+pub extern "C" fn riiszs_deinterlaced_upper_bound(len: u32) -> u32 {
+    deinterlaced_upper_bound(len)
+}
+
+#[no_mangle]
+pub extern "C" fn riiszs_deinterlace_into(
+    dst: *mut u8,
+    dst_len: u32,
+    src: *const u8,
+    src_len: u32,
+    result: *mut u32,
+) -> *const c_char {
+    let dst_slice = unsafe { std::slice::from_raw_parts_mut(dst, dst_len as usize) };
+    let src_slice = unsafe { std::slice::from_raw_parts(src, src_len as usize) };
+
+    match deinterlace_into(dst_slice, src_slice) {
+        Ok(used_len) => {
+            unsafe {
+                *result = used_len;
+            }
+            std::ptr::null()
+        }
+        Err(EncodeAlgoError::Error(msg)) => {
+            let c_string = std::ffi::CString::new(msg).unwrap();
+            // Leak the CString into a raw pointer, so we don't deallocate it
+            c_string.into_raw()
+        }
+    }
 }

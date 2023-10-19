@@ -23,7 +23,7 @@ enum class Algo {
   LibYaz0,
   MK8,
 };
-Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo);
+Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo, bool yay0 = false);
 
 std::string_view szs_version();
 

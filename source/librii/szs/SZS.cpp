@@ -5,22 +5,11 @@
 
 namespace librii::szs {
 
-Result<u32> encodeAlgoFast(std::span<u8> dst, std::span<const u8> src,
-                           Algo algo) {
-  auto algo_u = static_cast<::szs::Algo>(algo);
-  return ::szs::encode_into(dst, src, algo_u);
-}
-
-Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo) {
-  uint32_t worst = getWorstEncodingSize(buf);
-  std::vector<u8> tmp(worst);
-  auto ok = encodeAlgoFast(tmp, buf, algo);
-  if (!ok) {
-    return std::unexpected(ok.error());
+Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo, bool yay0) {
+  if (yay0) {
+    return ::szs::encode_yay0(buf, static_cast<::szs::Algo>(algo));
   }
-  EXPECT(tmp.size() >= *ok);
-  tmp.resize(*ok);
-  return tmp;
+  return ::szs::encode(buf, static_cast<::szs::Algo>(algo));
 }
 
 bool isDataYaz0Compressed(std::span<const u8> src) {
