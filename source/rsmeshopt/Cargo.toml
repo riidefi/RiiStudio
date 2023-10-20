@@ -1,12 +1,12 @@
 [package]
 name = "rsmeshopt"
 license = "MIT"
-version = "0.0.10"
+version = "0.0.11"
 edition = "2021"
 description = "Triangle strip/fan generation"
 homepage = "https://github.com/riidefi/RiiStudio/tree/master/source/rsmeshopt"
 repository = "https://github.com/riidefi/RiiStudio"
-keywords = ["gamedev", "graphics"]
+keywords = ["gamedev", "graphics", "tristrip", "wii", "gamecube"]
 readme = "README.md"
 
 [lib]

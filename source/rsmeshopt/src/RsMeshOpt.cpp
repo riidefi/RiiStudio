@@ -40,7 +40,7 @@ Result<std::vector<u32>>
 StripifyTrianglesNvTriStripPort2(std::span<const u32> index_data, u32 restart) {
   auto ov = StripifyTrianglesNvTriStripPort(index_data);
   if (!ov) {
-    return std::unexpected(ov.error());
+    return RSL_UNEXPECTED(ov.error());
   }
   auto v = *ov;
 
@@ -72,7 +72,7 @@ Result<std::vector<u32>>
 StripifyTrianglesTriStripper2(std::span<const u32> index_data, u32 restart) {
   auto ov = StripifyTrianglesTriStripper(index_data);
   if (!ov) {
-    return std::unexpected(ov.error());
+    return RSL_UNEXPECTED(ov.error());
   }
   auto v = *ov;
 
