@@ -1,4 +1,7 @@
-# rsmeshopt
+[![crates.io](https://img.shields.io/crates/v/rsmeshopt.svg)](https://crates.io/crates/rsmeshopt)
+[![docs.rs](https://docs.rs/rsmeshopt/badge.svg)](https://docs.rs/rsmeshopt/)
+
+# `rsmeshopt`
 Triangle strip / triangle fan generation algorithms
 
 ##### Windows build instructions:
