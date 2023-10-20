@@ -1,4 +1,7 @@
-# gctex
+[![crates.io](https://img.shields.io/crates/v/gctex.svg)](https://crates.io/crates/gctex)
+[![docs.rs](https://docs.rs/gctex/badge.svg)](https://docs.rs/gctex/)
+
+# `gctex`
 gctex is a Rust crate designed for encoding and decoding texture formats used in the Nintendo GameCube and Wii games. The library provides C bindings, making it useful in both Rust and C/C++ based projects.
 
 ## Usage 
