@@ -545,7 +545,7 @@ struct Vertex {
 struct IndexedVertex {
   int position = -1;
   int normal = -1;
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__EMSCRIPTEN__)
   int uvs[8]{-1, -1, -1, -1, -1, -1, -1, -1};
   int colors[2]{-1, -1};
 #else

@@ -12,7 +12,7 @@
 // TODO: Bad, intrusive dependency
 #include <rsmeshopt/src/MeshUtils.hpp>
 
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
 #define throw
 #endif
 #include <fort/fort.hpp>

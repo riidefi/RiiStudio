@@ -9,11 +9,16 @@
 #include <rsl/StringManip.hpp>
 
 // WIP/temporary solution
+#ifndef __EMSCRIPTEN__
 #define FS_TRY(expr)                                                           \
   TRY(expr.transform_error([](const std::error_code& ec) -> std::string {      \
     return std::format("Filesystem Error: {} ({}:{})", ec.message(), __FILE__, \
                        __LINE__);                                              \
   }))
+#else
+// TODO
+#define FS_TRY(expr) *expr
+#endif
 
 // INTERNAL //
 

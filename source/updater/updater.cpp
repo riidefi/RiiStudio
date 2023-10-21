@@ -93,11 +93,16 @@ bool Updater_CanUpdate(Updater& updater) {
 #endif
 }
 
+#ifndef __EMSCRIPTEN__
 #define FS_TRY(expr)                                                           \
   TRY(expr.transform_error([](const std::error_code& ec) -> std::string {      \
     return std::format("Filesystem Error: {} ({}:{})", ec.message(), __FILE__, \
                        __LINE__);                                              \
   }))
+#else
+// TODO
+#define FS_TRY(expr) *expr
+#endif
 
 static const char* GITHUB_REPO = "riidefi/RiiStudio";
 static const char* USER_AGENT = "RiiStudio";
