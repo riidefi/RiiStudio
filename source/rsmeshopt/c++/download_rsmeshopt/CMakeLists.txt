@@ -4,12 +4,14 @@ include(FetchContent)
 FetchContent_Declare(
     Corrosion
     GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+    GIT_TAG        v0.4.4 # Necessary for offline builds
 )
 FetchContent_MakeAvailable(Corrosion)
 # Install rsmeshopt
 FetchContent_Declare(
   rsmeshopt
-  URL      https://crates.io/api/v1/crates/rsmeshopt/0.0.9/download
+  URL      https://crates.io/api/v1/crates/rsmeshopt/0.0.11/download
+  URL_HASH MD5=09c663685595c3694b86932a7a209ce2 # Necessary for offline builds
 )
 FetchContent_MakeAvailable(rsmeshopt)
 
