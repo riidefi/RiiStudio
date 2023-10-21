@@ -11,7 +11,7 @@ pub const _CTF: u32 = 0x20;
 pub const _ZTF: u32 = 0x10;
 
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TextureFormat {
     I4 = 0,
     I8,
@@ -98,8 +98,8 @@ struct ImageFormatInfo {
     block_height_in_texels: u32,
 }
 
-fn get_format_info(format: u32) -> ImageFormatInfo {
-    let (xshift, yshift) = match format {
+fn get_format_info(format: TextureFormat) -> ImageFormatInfo {
+    let (xshift, yshift) = match format as u32 {
         x if x == TextureFormat::C4 as u32
             || x == TextureFormat::I4 as u32
             || x == TextureFormat::CMPR as u32
@@ -140,7 +140,8 @@ fn get_format_info(format: u32) -> ImageFormatInfo {
     };
 
     let mut bitsize = 32;
-    if format == TextureFormat::RGBA8 as u32 || format == ZTextureFormat::Z24X8 as u32 {
+    // TODO: This function should allow ZTextureFormat too..
+    if format == TextureFormat::RGBA8 || format as u32 == ZTextureFormat::Z24X8 as u32 {
         bitsize = 64;
     }
 
@@ -162,30 +163,67 @@ fn info_compute_image_size(info: ImageFormatInfo, width: u32, height: u32) -> u3
     xtiles * ytiles * info.bitsize
 }
 
-#[no_mangle]
-pub fn rii_compute_image_size(format: u32, width: u32, height: u32) -> u32 {
-    if format == TextureFormat::ExtensionRawRGBA32 as u32 {
+/// Computes the size of the image based on its texture format, width, and height.
+///
+/// # Parameters
+/// - `format`: The texture format of the image.
+/// - `width`: The width of the image.
+/// - `height`: The height of the image.
+///
+/// # Returns
+/// The computed size of the image in bytes.
+///
+/// # Example
+/// ```
+/// let format = gctex::TextureFormat::C8;
+/// let width = 128;
+/// let height = 128;
+/// let size = gctex::compute_image_size(format, width, height);
+/// assert_eq!(size, 16384);
+/// ```
+pub fn compute_image_size(format: TextureFormat, width: u32, height: u32) -> u32 {
+    if format == TextureFormat::ExtensionRawRGBA32 {
         return width * height * 4;
     }
     let info = get_format_info(format);
     info_compute_image_size(info, width, height)
 }
 
-#[no_mangle]
-pub fn rii_compute_image_size_mip(
-    format: u32,
+/// Computes the total size of the image and its mipmaps based on the texture format, width, height, and number of images.
+///
+/// # Parameters
+/// - `format`: The texture format of the image.
+/// - `width`: The initial width of the image.
+/// - `height`: The initial height of the image.
+/// - `number_of_images`: The number of images including the original and its mipmaps.
+///
+/// # Returns
+/// The computed total size of the image and its mipmaps in bytes.
+///
+/// # Example
+/// ```
+/// let format = gctex::TextureFormat::I8;
+/// let width = 1000;
+/// let height = 1000;
+/// let number_of_images = 5;
+/// let size = gctex::compute_image_size_mip(format, width, height, number_of_images);
+/// assert_eq!(size, 1336992);
+/// ```
+pub fn compute_image_size_mip(
+    format: TextureFormat,
     mut width: u32,
     mut height: u32,
     number_of_images: u32,
 ) -> u32 {
+    assert!(number_of_images != 0);
     if number_of_images <= 1 {
-        return rii_compute_image_size(format, width, height);
+        return compute_image_size(format, width, height);
     }
 
     let mut size = 0;
 
     for _i in 0..number_of_images {
-        size += rii_compute_image_size(format, width, height);
+        size += compute_image_size(format, width, height);
 
         if width == 1 && height == 1 {
             break;
@@ -213,72 +251,92 @@ mod tests {
 
     #[test]
     fn image_size_c8() {
-        let format = 9;
+        let format = TextureFormat::C8;
         let width = 128;
         let height = 128;
         let number_of_images = 1;
 
-        let result = rii_compute_image_size_mip(format, width, height, number_of_images);
+        let result = compute_image_size_mip(format, width, height, number_of_images);
 
         assert_eq!(result, 16384);
     }
 
     #[test]
     fn test_rii_compute_image_size_mip_with_1x1() {
-        let format = 0xE;
+        let format = TextureFormat::CMPR;
         let width = 16;
         let height = 16;
         let number_of_images = 5;
 
-        let result = rii_compute_image_size_mip(format, width, height, number_of_images);
+        let result = compute_image_size_mip(format, width, height, number_of_images);
 
         assert_eq!(result, 256);
     }
 
     #[test]
     fn test_rii_compute_image_size_mip_with_small_size() {
-        let format = 1;
+        let format = TextureFormat::I8;
         let width = 10;
         let height = 10;
         let number_of_images = 1;
 
-        let result = rii_compute_image_size_mip(format, width, height, number_of_images);
+        let result = compute_image_size_mip(format, width, height, number_of_images);
 
         assert_eq!(result, 192);
     }
 
     #[test]
     fn test_rii_compute_image_size_mip_with_large_size() {
-        let format = 1;
+        let format = TextureFormat::I8;
         let width = 1000;
         let height = 1000;
         let number_of_images = 1;
 
-        let result = rii_compute_image_size_mip(format, width, height, number_of_images);
+        let result = compute_image_size_mip(format, width, height, number_of_images);
 
         assert_eq!(result, 1000000);
     }
 
     #[test]
     fn test_rii_compute_image_size_mip_with_multiple_images() {
-        let format = 1;
+        let format = TextureFormat::I8;
         let width = 1000;
         let height = 1000;
         let number_of_images = 5;
 
-        let result = rii_compute_image_size_mip(format, width, height, number_of_images);
+        let result = compute_image_size_mip(format, width, height, number_of_images);
 
         assert_eq!(result, 1336992);
     }
 }
 
 // Requires expanded size to be block-aligned
+/// Decodes a texture using a fast decoding method optimized for the Nintendo GameCube and Wii texture formats.
+///
+/// This method is optimized for scenarios where the given texture's dimensions
+/// are block-aligned according to the GameCube and Wii texture standards.
+/// Ensure the dimensions are block-aligned before using this method for accurate decoding.
+///
+/// # Arguments
+/// * `dst` - The destination buffer to write the decoded data into.
+/// * `src` - The source buffer containing the encoded texture data.
+/// * `width` - The width of the texture.
+/// * `height` - The height of the texture.
+/// * `texformat` - The format of the texture, specific to GameCube and Wii, to be decoded.
+/// * `tlut` - A table look-up texture used for certain texture formats.
+/// * `tlutformat` - The format of the `tlut`.
+///
+/// # Panics
+/// This function will panic if:
+/// * The destination buffer is too small to hold the decoded data.
+/// * The source buffer does not have enough data for the given `width` and `height`.
+///
 pub fn decode_fast(
     dst: &mut [u8],
     src: &[u8],
     width: u32,
     height: u32,
-    texformat: u32,
+    texformat: TextureFormat,
     tlut: &[u8],
     tlutformat: u32,
 ) {
@@ -286,26 +344,46 @@ pub fn decode_fast(
     let expanded_width = round_up(width, info.block_width_in_texels);
     let expanded_height = round_up(height, info.block_height_in_texels);
     assert!(dst.len() as u32 >= expanded_width * expanded_height * 4);
-    assert!(src.len() as u32 >= rii_compute_image_size(texformat, width, height));
+    assert!(src.len() as u32 >= compute_image_size(texformat, width, height));
     unsafe {
         bindings::impl_rii_decode(
             dst.as_mut_ptr(),
             src.as_ptr(),
             width,
             height,
-            texformat,
+            texformat as u32,
             tlut.as_ptr(),
             tlutformat,
         );
     }
 }
 
+/// Decodes a Nintendo GameCube or Wii texture into the provided destination buffer.
+///
+/// Based on the alignment of the texture's dimensions, this method determines if
+/// the fast decoding method (`decode_fast`) can be utilized. If the texture dimensions
+/// are not block-aligned, padding will be handled, and then the fast decoding method is employed.
+///
+/// # Arguments
+/// * `dst` - The destination buffer to write the decoded data into.
+/// * `src` - The source buffer containing the encoded texture data.
+/// * `width` - The width of the texture.
+/// * `height` - The height of the texture.
+/// * `texformat` - The format of the texture, specific to GameCube and Wii, to be decoded.
+/// * `tlut` - A table look-up texture used for certain texture formats.
+/// * `tlutformat` - The format of the `tlut`.
+///
+/// # Panics
+/// This function will panic if:
+/// * The destination buffer is too small to hold the decoded data.
+/// * The source buffer does not have enough data for the given `width` and `height`.
+///
 pub fn decode_into(
     dst: &mut [u8],
     src: &[u8],
     width: u32,
     height: u32,
-    texformat: u32,
+    texformat: TextureFormat,
     tlut: &[u8],
     tlutformat: u32,
 ) {
@@ -315,7 +393,7 @@ pub fn decode_into(
     let expanded_width = round_up(width, info.block_width_in_texels);
     let expanded_height = round_up(height, info.block_height_in_texels);
 
-    assert!(src.len() as u32 >= rii_compute_image_size(texformat, width, height));
+    assert!(src.len() as u32 >= compute_image_size(texformat, width, height));
 
     if expanded_width == width && expanded_height == height {
         decode_fast(dst, src, width, height, texformat, tlut, tlutformat);
@@ -351,7 +429,7 @@ mod tests2 {
         let mut dst = vec![0; 504 * 504 * 4];
 
         let tlut = &[];
-        decode_fast(&mut dst, &src, 500, 500, 0xE, tlut, 0);
+        decode_fast(&mut dst, &src, 500, 500, TextureFormat::CMPR, tlut, 0);
 
         let mut expected_file = File::open("tests/monke_expected_result").unwrap();
         let mut expected_dst = Vec::new();
@@ -369,7 +447,7 @@ mod tests2 {
         let mut dst = vec![0; 500 * 500 * 4];
 
         let tlut = &[];
-        decode(&mut dst, &src, 500, 500, 0xE, tlut, 0);
+        decode_into(&mut dst, &src, 500, 500, TextureFormat::CMPR, tlut, 0);
 
         let mut expected_file = File::open("tests/monke_expected_result").unwrap();
         let mut expected_dst = Vec::new();
@@ -380,11 +458,32 @@ mod tests2 {
     }
 }
 
+/// Decodes a Nintendo GameCube or Wii texture and returns the decoded data as a `Vec<u8>`.
+///
+/// This function uses the `decode_into` method internally to decode the texture.
+/// It automatically determines the necessary buffer size based on the provided `width`
+/// and `height` and then returns the decoded data.
+///
+/// # Arguments
+/// * `src` - The source buffer containing the encoded texture data.
+/// * `width` - The width of the texture.
+/// * `height` - The height of the texture.
+/// * `texformat` - The format of the texture, specific to GameCube and Wii, to be decoded.
+/// * `tlut` - A table look-up texture used for certain texture formats.
+/// * `tlutformat` - The format of the `tlut`.
+///
+/// # Returns
+/// A `Vec<u8>` containing the decoded texture data.
+///
+/// # Panics
+/// This function will panic if:
+/// * The source buffer does not have enough data for the given `width` and `height`.
+///
 pub fn decode(
     src: &[u8],
     width: u32,
     height: u32,
-    texformat: u32,
+    texformat: TextureFormat,
     tlut: &[u8],
     tlutformat: u32,
 ) -> Vec<u8> {
@@ -444,7 +543,37 @@ pub fn encode_rgba8_into(dst: &mut [u8], src4: &[u8], width: u32, height: u32) {
     }
 }
 
+pub fn encode_raw_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    let bytes_to_copy = (width * height * 4) as usize;
+
+    if src.len() < bytes_to_copy || dst.len() < bytes_to_copy {
+        panic!("encode_raw_into: Buffer sizes are not sufficient!");
+    }
+
+    dst[..bytes_to_copy].copy_from_slice(&src[..bytes_to_copy]);
+}
+
+/// Encodes a Nintendo GameCube or Wii texture into the specified format and writes the result into the provided destination buffer.
+///
+/// This function supports various texture formats used by the Nintendo GameCube and Wii games, as defined by the `TextureFormat` enum.
+/// The specific encoding method is determined based on the provided `format`.
+///
+/// # Arguments
+/// * `format` - The format of the texture specific to GameCube and Wii to which the source data will be encoded.
+/// * `dst` - The destination buffer to write the encoded data into.
+/// * `src` - The source buffer containing the RGBA texture data to be encoded.
+/// * `width` - The width of the texture.
+/// * `height` - The height of the texture.
+///
+/// # Panics
+/// This function will panic if:
+/// * The destination buffer is too small to hold the encoded data for the specified format and texture dimensions.
+/// * The source buffer does not have the expected size for the given `width` and `height`.
+/// * An unsupported `TextureFormat` is provided.
+///
 pub fn encode_into(format: TextureFormat, dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    assert!(dst.len() >= compute_image_size(format, width, height) as usize);
+    assert!(src.len() >= (width * height * 4) as usize);
     match format {
         TextureFormat::I4 => encode_i4_into(dst, src, width, height),
         TextureFormat::I8 => encode_i8_into(dst, src, width, height),
@@ -454,12 +583,33 @@ pub fn encode_into(format: TextureFormat, dst: &mut [u8], src: &[u8], width: u32
         TextureFormat::RGB5A3 => encode_rgb5a3_into(dst, src, width, height),
         TextureFormat::RGBA8 => encode_rgba8_into(dst, src, width, height),
         TextureFormat::CMPR => encode_cmpr_into(dst, src, width, height),
-        _ => panic!("Unsupported texture format: {:?}", format),
+        TextureFormat::ExtensionRawRGBA32 => encode_raw_into(dst, src, width, height),
+        _ => panic!("encode_into: Unsupported texture format: {:?}", format),
     }
 }
 
+/// Encodes a Nintendo GameCube or Wii texture into the specified format and returns the encoded data as a `Vec<u8>`.
+///
+/// This function uses the `encode_into` method internally to encode the texture.
+/// It automatically determines the necessary buffer size based on the provided `width`,
+/// `height`, and `format`, then returns the encoded data.
+///
+/// # Arguments
+/// * `format` - The format of the texture specific to GameCube and Wii to which the source data will be encoded.
+/// * `src` - The source buffer containing the RGBA texture data to be encoded.
+/// * `width` - The width of the texture.
+/// * `height` - The height of the texture.
+///
+/// # Returns
+/// A `Vec<u8>` containing the encoded texture data.
+///
+/// # Panics
+/// This function will panic if:
+/// * The source buffer does not have the expected size for the given `width` and `height`.
+/// * An unsupported `TextureFormat` is provided.
+///
 pub fn encode(format: TextureFormat, src: &[u8], width: u32, height: u32) -> Vec<u8> {
-    let size = rii_compute_image_size(format as u32, width, height) as usize;
+    let size = compute_image_size(format, width, height) as usize;
     let mut dst = vec![0u8; size];
 
     encode_into(format, &mut dst, src, width, height);
@@ -467,166 +617,25 @@ pub fn encode(format: TextureFormat, src: &[u8], width: u32, height: u32) -> Vec
     dst
 }
 
-pub fn get_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rii_encode(
-    format: u32,
-    dst: *mut u8,
-    dst_len: u32,
-    src: *const u8,
-    src_len: u32,
-    width: u32,
-    height: u32,
-) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
-    let texture_format = match TextureFormat::from_u32(format) {
-        Some(tf) => tf,
-        None => {
-            panic!("Invalid texture format: {}", format);
-        }
-    };
-    encode_into(texture_format, dst_slice, src_slice, width, height);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rii_encode_cmpr(
-    dst: *mut u8,
-    dst_len: u32,
-    src: *const u8,
-    src_len: u32,
-    width: u32,
-    height: u32,
-) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
-    encode_cmpr_into(dst_slice, src_slice, width, height);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rii_encode_i4(
-    dst: *mut u8,
-    dst_len: u32,
-    src: *const u8,
-    src_len: u32,
-    width: u32,
-    height: u32,
-) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
-    encode_i4_into(dst_slice, src_slice, width, height);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rii_encode_i8(
-    dst: *mut u8,
-    dst_len: u32,
-    src: *const u8,
-    src_len: u32,
-    width: u32,
-    height: u32,
-) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
-    encode_i8_into(dst_slice, src_slice, width, height);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rii_encode_ia4(
-    dst: *mut u8,
-    dst_len: u32,
-    src: *const u8,
-    src_len: u32,
-    width: u32,
-    height: u32,
-) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
-    encode_ia4_into(dst_slice, src_slice, width, height);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rii_encode_ia8(
-    dst: *mut u8,
-    dst_len: u32,
-    src: *const u8,
-    src_len: u32,
-    width: u32,
-    height: u32,
-) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
-    encode_ia8_into(dst_slice, src_slice, width, height);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rii_encode_rgb565(
-    dst: *mut u8,
-    dst_len: u32,
-    src: *const u8,
-    src_len: u32,
-    width: u32,
-    height: u32,
-) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
-    encode_rgb565_into(dst_slice, src_slice, width, height);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rii_encode_rgb5a3(
-    dst: *mut u8,
-    dst_len: u32,
-    src: *const u8,
-    src_len: u32,
-    width: u32,
-    height: u32,
-) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
-    encode_rgb5a3_into(dst_slice, src_slice, width, height);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rii_encode_rgba8(
-    dst: *mut u8,
-    dst_len: u32,
-    src: *const u8,
-    src_len: u32,
-    width: u32,
-    height: u32,
-) {
-    let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
-    encode_rgba8_into(dst_slice, src_slice, width, height);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rii_decode(
-    dst: *mut u8,
-    dst_len: u32,
-    src: *const u8,
-    src_len: u32,
-    width: u32,
-    height: u32,
-    texformat: u32,
-    tlut: *const u8,
-    tlut_len: u32,
-    tlutformat: u32,
-) {
-    let dst_slice = slice::from_raw_parts_mut(dst, dst_len as usize);
-    let src_slice = slice::from_raw_parts(src, src_len as usize);
-    let tlut_slice = slice::from_raw_parts(tlut, tlut_len as usize);
-    decode_into(
-        dst_slice, src_slice, width, height, texformat, tlut_slice, tlutformat,
-    );
-}
-
-#[no_mangle]
-pub extern "C" fn gctex_get_version_unstable_api(buffer: *mut u8, length: u32) -> i32 {
+/// Returns a formatted string representing the version, build profile, and target of the `gctex` crate.
+///
+/// This function makes use of several compile-time environment variables provided by Cargo
+/// to determine the version, build profile (debug or release), and target platform.
+///
+/// # Returns
+/// A `String` that contains:
+/// - The version of the `gctex` crate, as specified in its `Cargo.toml`.
+/// - The build profile, which can either be "debug" or "release".
+/// - The target platform for which the crate was compiled.
+///
+/// # Example
+/// ```
+/// let version_string = gctex::get_version();
+/// println!("{}", version_string);
+/// // Outputs: "riidefi/gctex: Version: 0.1.0, Profile: release, Target: x86_64-unknown-linux-gnu"
+/// ```
+///
+pub fn get_version() -> String {
     let pkg_version = env!("CARGO_PKG_VERSION");
     let profile = if cfg!(debug_assertions) {
         "debug"
@@ -634,25 +643,218 @@ pub extern "C" fn gctex_get_version_unstable_api(buffer: *mut u8, length: u32) -
         "release"
     };
     let target = env!("TARGET");
-    let version_info = format!(
-        "Version: {}, Profile: {}, Target: {}",
+    format!(
+        "riidefi/gctex: Version: {}, Profile: {}, Target: {}",
         pkg_version, profile, target
-    );
+    )
+}
 
-    let string_length = version_info.len();
+//--------------------------------------------------------
+//
+// C BINDINGS BEGIN
+//
+//--------------------------------------------------------
+pub mod c_api {
+    use crate::*;
 
-    if string_length > length as usize {
-        return -1;
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_compute_image_size(format: u32, width: u32, height: u32) -> u32 {
+        compute_image_size(TextureFormat::from_u32(format).unwrap(), width, height)
     }
 
-    let buffer_slice = unsafe {
-        assert!(!buffer.is_null());
-        slice::from_raw_parts_mut(buffer, length as usize)
-    };
-
-    for (i, byte) in version_info.as_bytes().iter().enumerate() {
-        buffer_slice[i] = *byte;
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_compute_image_size_mip(
+        format: u32,
+        width: u32,
+        height: u32,
+        number_of_images: u32,
+    ) -> u32 {
+        compute_image_size_mip(
+            TextureFormat::from_u32(format).unwrap(),
+            width,
+            height,
+            number_of_images,
+        )
     }
 
-    string_length as i32
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_encode(
+        format: u32,
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+        width: u32,
+        height: u32,
+    ) {
+        let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+        let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
+        let texture_format = match TextureFormat::from_u32(format) {
+            Some(tf) => tf,
+            None => {
+                panic!("Invalid texture format: {}", format);
+            }
+        };
+        encode_into(texture_format, dst_slice, src_slice, width, height);
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_encode_cmpr(
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+        width: u32,
+        height: u32,
+    ) {
+        let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+        let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
+        encode_cmpr_into(dst_slice, src_slice, width, height);
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_encode_i4(
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+        width: u32,
+        height: u32,
+    ) {
+        let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+        let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
+        encode_i4_into(dst_slice, src_slice, width, height);
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_encode_i8(
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+        width: u32,
+        height: u32,
+    ) {
+        let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+        let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
+        encode_i8_into(dst_slice, src_slice, width, height);
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_encode_ia4(
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+        width: u32,
+        height: u32,
+    ) {
+        let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+        let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
+        encode_ia4_into(dst_slice, src_slice, width, height);
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_encode_ia8(
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+        width: u32,
+        height: u32,
+    ) {
+        let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+        let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
+        encode_ia8_into(dst_slice, src_slice, width, height);
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_encode_rgb565(
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+        width: u32,
+        height: u32,
+    ) {
+        let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+        let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
+        encode_rgb565_into(dst_slice, src_slice, width, height);
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_encode_rgb5a3(
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+        width: u32,
+        height: u32,
+    ) {
+        let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+        let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
+        encode_rgb5a3_into(dst_slice, src_slice, width, height);
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_encode_rgba8(
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+        width: u32,
+        height: u32,
+    ) {
+        let dst_slice = slice::from_raw_parts_mut(dst as *mut u8, dst_len as usize);
+        let src_slice = slice::from_raw_parts(src as *const u8, src_len as usize);
+        encode_rgba8_into(dst_slice, src_slice, width, height);
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rii_decode(
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+        width: u32,
+        height: u32,
+        texformat: u32,
+        tlut: *const u8,
+        tlut_len: u32,
+        tlutformat: u32,
+    ) {
+        let dst_slice = slice::from_raw_parts_mut(dst, dst_len as usize);
+        let src_slice = slice::from_raw_parts(src, src_len as usize);
+        let tlut_slice = slice::from_raw_parts(tlut, tlut_len as usize);
+        decode_into(
+            dst_slice,
+            src_slice,
+            width,
+            height,
+            TextureFormat::from_u32(texformat).unwrap(),
+            tlut_slice,
+            tlutformat,
+        );
+    }
+
+    #[no_mangle]
+    pub extern "C" fn gctex_get_version_unstable_api(buffer: *mut u8, length: u32) -> i32 {
+        let version_info = get_version();
+        let string_length = version_info.len();
+
+        if string_length > length as usize {
+            return -1;
+        }
+
+        let buffer_slice = unsafe {
+            assert!(!buffer.is_null());
+            std::slice::from_raw_parts_mut(buffer, length as usize)
+        };
+
+        for (i, byte) in version_info.as_bytes().iter().enumerate() {
+            buffer_slice[i] = *byte;
+        }
+
+        string_length as i32
+    }
 }
