@@ -14,3 +14,7 @@ void deinit_llvm(llvm_InitLLVM* llvm) {
   delete p;
 }
 }
+
+namespace llvm {
+int DisableABIBreakingChecks;
+}

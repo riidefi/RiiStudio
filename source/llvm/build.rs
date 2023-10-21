@@ -18,6 +18,9 @@ fn main() {
     #[cfg(unix)]
     build.flag("-std=c++17");
 
+    // Rename `llvm` namespace to avoid collisions...
+    build.define("llvm", "llvm_for_crash_handler");
+
     build.include(".");
     build.file("src/bindings.cpp");
     for entry in glob("llvm/**/*.cpp").expect("Failed to read glob pattern") {
