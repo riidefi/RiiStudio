@@ -2,7 +2,7 @@
 [![docs.rs](https://docs.rs/szs/badge.svg)](https://docs.rs/szs/)
 
 # `szs`
-Lightweight crate for SZS (\"Yaz0\") compression/decompression used in the Nintendo GameCube/Wii games. The library provides [C](https://github.com/riidefi/RiiStudio/tree/master/source/szs#example-c-bindings), [C++](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%2b%2b) and [C#](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%23s) bindings. YAY0 ("SZP") is supported, too.
+Lightweight crate for SZS (\"Yaz0\") compression/decompression used in the Nintendo GameCube/Wii games. The library provides [C](https://github.com/riidefi/RiiStudio/tree/master/source/szs#example-c-bindings), [C++](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%2b%2b) and [C#](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%23) bindings. YAY0 ("SZP") is supported, too.
 
 ### Rust
 The following snippet demonstrates how to compress a file as a SZS format using Rust:
