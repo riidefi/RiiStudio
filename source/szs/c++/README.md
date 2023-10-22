@@ -8,7 +8,8 @@ C/C++ bindings are provided for the native library via "szs.h". The following ex
 ### Visual Studio Debug Build Static Linking Caveats
 Microsoft unfortunately implements some stipulations on static linking where certain settings must be synced:
 - `#define _ITERATOR_DEBUG_LEVEL 2`: In some debug builds, this is enabled to provide additional checks
-- `-M`T vs `-MD`: `szs` uses the *static* C++ runtime (-MT) to avoid the user needing to install the Visual C++ Redistributable .dll files.
+- `-MT` vs `-MD`: `szs` uses the *static* C++ runtime (`-MT`) to avoid the user needing to install the Visual C++ Redistributable .dll files.
+
 In practice, the easy way to get around this is to use `szs` as a DLL (dynamic link library), which is also called a `cdylib`. The example has been set up with a `cdylib`/.dll for that reason.
 
 Static linking is possible, though is typically only useful for release builds. RiiStudio uses the following setup:
