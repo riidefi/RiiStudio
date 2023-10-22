@@ -2,7 +2,7 @@
 [![docs.rs](https://docs.rs/szs/badge.svg)](https://docs.rs/szs/)
 
 # `szs`
-Lightweight crate for SZS (\"Yaz0\") compression/decompression used in the Nintendo GameCube/Wii games. The library provides [C](https://github.com/riidefi/RiiStudio/tree/master/source/szs#example-c-bindings), [C++](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%2b%2b) and [C#]() bindings. YAY0 ("SZP") is supported, too.
+Lightweight crate for SZS (\"Yaz0\") compression/decompression used in the Nintendo GameCube/Wii games. The library provides [C](https://github.com/riidefi/RiiStudio/tree/master/source/szs#example-c-bindings), [C++](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%2b%2b) and [C#](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%23s) bindings. YAY0 ("SZP") is supported, too.
 
 ### Rust
 The following snippet demonstrates how to compress a file as a SZS format using Rust:
@@ -56,7 +56,7 @@ public static void Main(string[] args)
 ### Algorithms
 
 | Algorithm                       | Use Case                 | Desc               |
-|------------------------------------------------------------|--------------------|
+|---------------------------------|--------------------------|--------------------|
 | `EncodeAlgo::Nintendo`          | Matching decomp projects | Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects) |
 | `EncodeAlgo::Mk8`               | General `FAST` preset.   | MK8 compressor (Reverse engineered. Credit @aboood40091) |
 | `EncodeAlgo::MkwSp`             |                          | MKW-SP |
@@ -86,25 +86,6 @@ Generally, the `mk8` algorithm gets acceptable compression the fastest. For case
 
 ### Benchmarks
 <img src="asset/small_file_comparison.png"/>
-<img src="asset/large_file_comparison.png"/>
-
-#### Large file comparison
-NSMBU 8-43 (63.9 MB decompressed)
-| Method               | Time (Avg 3 runs) | Compression Rate | File Size |
-|----------------------|-------------------|------------------|-----------|
-| lib-yaz0             |            25.97s |           29.32% |  18.74 MB |
-| mkw                  |            78.26s |           29.40% |  18.79 MB |
-| mkw-sp               |            49.28s |           29.74% |  19.01 MB |
-| haroohie             |            11.44s |           29.74% |  19.01 MB |
-| ct-lib               |             5.32s |           29.74% |  19.01 MB |
-| mk8                  |             1.46s |           30.12% |  19.25 MB |
-| ctgp                 |            12.05s |           40.91% |  26.14 MB |
-| worst-case-encoding  |             0.07s |          112.50% |  71.90 MB |
-
-*\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
-
-Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
-
 
 #### Small file comparison
 **Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
@@ -127,10 +108,30 @@ Generally, the `mk8` algorithm gets acceptable compression the fastest. For case
 
 *\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
 
+#### Large file comparison
+NSMBU 8-43 (63.9 MB decompressed)
+| Method               | Time (Avg 3 runs) | Compression Rate | File Size |
+|----------------------|-------------------|------------------|-----------|
+| lib-yaz0             |            25.97s |           29.32% |  18.74 MB |
+| mkw                  |            78.26s |           29.40% |  18.79 MB |
+| mkw-sp               |            49.28s |           29.74% |  19.01 MB |
+| haroohie             |            11.44s |           29.74% |  19.01 MB |
+| ct-lib               |             5.32s |           29.74% |  19.01 MB |
+| mk8                  |             1.46s |           30.12% |  19.25 MB |
+| ctgp                 |            12.05s |           40.91% |  26.14 MB |
+| worst-case-encoding  |             0.07s |          112.50% |  71.90 MB |
+
+*\* Average of 3 runs; x64 Clang (15, 16) build tested on an Intel i7-9750H on Windows 11*
+
+Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
+
+<img src="asset/large_file_comparison.png"/>
+
+
 
 ### Example (C Bindings)
 ```c
-#include `szs.h`
+#include "szs.h"
 
 // Calculate the upper bound for encoding.
 u32 max_size = riiszs_encoded_upper_bound(sizeof(data));
