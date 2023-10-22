@@ -10,8 +10,12 @@ extern "C" {
 
 uint32_t riiszs_is_compressed(const void* src, uint32_t len);
 uint32_t riiszs_decoded_size(const void* src, uint32_t len);
+// YAZ0 (.szs)
 const char* riiszs_decode(void* buf, uint32_t len, const void* src,
                           uint32_t src_len);
+// YAY0 (.szp)
+const char* riiszs_decode_yay0_into(void* buf, uint32_t len, const void* src,
+                                    uint32_t src_len);
 uint32_t riiszs_encoded_upper_bound(uint32_t len);
 
 enum {
@@ -124,6 +128,28 @@ decode(std::span<const uint8_t> src) {
   uint32_t size = ::riiszs_decoded_size(src.data(), src.size());
   std::vector<uint8_t> result(size);
   auto ok = decode_into(result, src);
+  if (!ok) {
+    return std::unexpected(ok.error());
+  }
+  return result;
+}
+
+static inline std::expected<void, std::string>
+decode_yay0_into(std::span<uint8_t> dst, std::span<const uint8_t> src) {
+  const char* err =
+      ::riiszs_decode_yay0_into(dst.data(), dst.size(), src.data(), src.size());
+  if (err == nullptr) {
+    return {};
+  }
+  std::string emsg(err);
+  ::riiszs_free_error_message(err);
+  return std::unexpected(emsg);
+}
+static inline std::expected<std::vector<uint8_t>, std::string>
+decode_yay0(std::span<const uint8_t> src) {
+  uint32_t size = ::riiszs_decoded_size(src.data(), src.size());
+  std::vector<uint8_t> result(size);
+  auto ok = decode_yay0_into(result, src);
   if (!ok) {
     return std::unexpected(ok.error());
   }

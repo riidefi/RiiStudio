@@ -15,7 +15,7 @@ match szs::encode(&src_data, szs::EncodeAlgo::Nintendo) {
     Ok(encoded_data) => {
         println!("Encoded into {} bytes", encoded_data.len());
     }
-    Err(szs::EncodeAlgoError::Error(err_msg)) => {
+    Err(szs::Error::Error(err_msg)) => {
         println!("Encoding failed: {}", err_msg);
     }
 }
@@ -26,7 +26,7 @@ match szs::decode(&encoded_data) {
     Ok(decoded_data) => {
         println!("Decoded {} bytes", decoded_data.len());
     }
-    Err(szs::EncodeAlgoError::Error(err_msg)) => {
+    Err(szs::Error::Error(err_msg)) => {
         println!("Decoding failed: {}", err_msg);
     }
 }
@@ -35,47 +35,60 @@ match szs::decode(&encoded_data) {
 ## C# Bindings
 The following C# bindings are [provided](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%23):
 ```cs
-using System;
-
-public class SZSExample
+public static void Main(string[] args)
 {
-    public static void Main(string[] args)
-    {
-        byte[] data = ...; // Initialize your data here
-
-        szs.CompressionAlgorithm algorithm = szs.CompressionAlgorithm.Nintendo;
-        byte[] encodedData = szs.Encode(data, algorithm);
-
-        if (encodedData == null || encodedData.Length == 0)
-        {
-            Console.WriteLine("Failed to compress.");
-            return;
-        }
-
-        Console.WriteLine($"Encoded {encodedData.Length} bytes.");
-    }
+    byte[] data = ...;
+    szs.CompressionAlgorithm algorithm = szs.CompressionAlgorithm.Nintendo;
+	try
+	{
+		byte[] encodedData = szs.Encode(data, algorithm);
+		Console.WriteLine($"Encoded {encodedData.Length} bytes.");
+	}
+	catch (Exception e)
+	{
+		Console.WriteLine("Failed to compress: " + e.Message);
+	}
 }
 ```
 
-##### Warning: These algorithms are currently implemented in **the C programming language**, and not in Rust. While they have been rigorously validated, please use at your own risk. A Rust rewrite is planned.
+##### Warning: `szs` has a portion implemented in C, which brings its own security considerations.
 
 ### Algorithms
 
-| Algorithm (`rszst compress --algorithm` form) | Rust form | C bindings                     | Desc       |
-|-----------------------------------------------|-----------|--------------------------------|------------|
-| `nintendo`            | `EncodeAlgo::Nintendo`            | `RII_SZS_ENCODE_ALGO_NINTENDO` | Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects)
-| `mk8`                 | `EncodeAlgo::Mk8`                 | `RII_SZS_ENCODE_ALGO_MK8`      | MK8 compressor (Reverse engineered. Credit @aboood40091)
-| `mkw-sp`              | `EncodeAlgo::MkwSp`               | `RII_SZS_ENCODE_ALGO_MKWSP`    | MKW-SP
-| `ctgp`                | `EncodeAlgo::CTGP`                | `RII_SZS_ENCODE_ALGO_CTGP`     | CTGP (Reverse engineered. 1:1 matching)
-| `worst-case-encoding` | `EncodeAlgo::WorstCaseEncoding`   | `RII_SZS_ENCODE_ALGO_WORST_CASE_ENCODING` | Worst case
-| `haroohie`            | `EncodeAlgo::Haroohie`            | `RII_SZS_ENCODE_ALGO_HAROOHIE`| Haroohie (credit @Gericom, adapted from MarioKartToolbox)
-| `ct-lib`              | `EncodeAlgo::CTLib`               | `RII_SZS_ENCODE_ALGO_CTLIB`   | CTLib (credit @narahiero, adapted from CTLib)
-| `lib-yaz0`            | `EncodeAlgo::LibYaz0`             | `RII_SZS_ENCODE_ALGO_LIBYAZ0` | libyaz0 (Based on wszst. credit @aboood40091)
+| Algorithm                       | Use Case                 | Desc               |
+|------------------------------------------------------------|--------------------|
+`EncodeAlgo::Nintendo`            | Matching decomp projects | Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects)
+`EncodeAlgo::Mk8`                 | General `FAST` preset.   | MK8 compressor (Reverse engineered. Credit @aboood40091)
+`EncodeAlgo::MkwSp`               |                          | MKW-SP
+`EncodeAlgo::CTGP`                | CTGP work                | CTGP (Reverse engineered. 1:1 matching)
+`EncodeAlgo::WorstCaseEncoding`   | `INSTANT` preset.        | Worst case
+`EncodeAlgo::Haroohie`            |                          | Haroohie (credit @Gericom, adapted from MarioKartToolbox)
+`EncodeAlgo::CTLib`               | `MEDIUM` preset.         | CTLib (credit @narahiero, adapted from CTLib)
+`EncodeAlgo::LibYaz0`             | `ULTRA` preset.          | libyaz0 (Based on wszst. credit @aboood40091)
 
 Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
 
+### Comparison to Other Libraries:
+1. **[yaz0-rs](https://github.com/gcnhax/yaz0-rs)**
+    - Performance: `EncodeAlgo::LibYaz0` offers superior compression and is approximately 6x faster on reference data compared to `yaz0-rs`.
+    - Note: `szs` has a portion implemented in C, which brings its own security considerations.
 
-### Large file comparison
+2. **[oead](https://github.com/zeldamods/oead)**
+    - Performance: `EncodeAlgo::MK8` matches the compression and speed of `oead`.
+    - Size: `szs` is a lightweight few-kilobyte MIT licensed dependency, while `oead` is a larger multi-megabyte GPL licensed package.
+
+3. **[Wiimm's SZS Tools](https://github.com/Wiimm/wiimms-szs-tools)**
+    - Performance:
+        - `EncodeAlgo::LibYaz0` provides equivalent compression to `wszst ultra` but is about 30% faster and not restricted by the GPL license.
+        - `EncodeAlgo::MK8` outperforms `wszst fast` in compression and is 4-5 times faster.
+
+**Special Feature**: Among the libraries listed, only `szs` offers comprehensive support for the `YAZ0`, `YAZ1`, and `YAY0` stream formats.
+
+### Benchmarks
+<img src="asset/small_file_comparison.png"/>
+<img src="asset/large_file_comparison.png"/>
+
+#### Large file comparison
 NSMBU 8-43 (63.9 MB decompressed)
 | Method               | Time (Avg 3 runs) | Compression Rate | File Size |
 |----------------------|-------------------|------------------|-----------|
@@ -92,7 +105,8 @@ NSMBU 8-43 (63.9 MB decompressed)
 
 Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
 
-### Small file comparison
+
+#### Small file comparison
 **Task: Compress N64 Bowser Castle** (Source filesize: 2,574,368)
 | Method              | Time Taken             | Compression Rate |
 |---------------------|------------------------|------------------|

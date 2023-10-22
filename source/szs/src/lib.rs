@@ -1,5 +1,6 @@
 use core::ffi::c_char;
 use core::slice;
+use std::convert::TryInto;
 
 #[allow(non_upper_case_globals)]
 #[allow(non_camel_case_types)]
@@ -36,7 +37,7 @@ pub fn is_compressed(src: &[u8]) -> bool {
     src.starts_with(b"Yaz0")
 }
 
-/// Retrieves the decoded size of an SZS (YAZ0) compressed byte slice.
+/// Retrieves the decoded size of an SZS (YAZ0) or SZP (YAY0) compressed byte slice.
 ///
 /// This function reads the 4 bytes following the "Yaz0" signature
 /// in the byte slice to determine the uncompressed data size.
@@ -60,7 +61,7 @@ pub fn is_compressed(src: &[u8]) -> bool {
 /// assert_eq!(szs::decoded_size(non_compressed_data), 0);
 /// ```
 pub fn decoded_size(src: &[u8]) -> u32 {
-    if src.len() < 8 || !src.starts_with(b"Yaz0") {
+    if src.len() < 8 || !(src.starts_with(b"Yaz0") || src.starts_with(b"Yay0")) {
         return 0;
     }
     ((src[4] as u32) << 24) | ((src[5] as u32) << 16) | ((src[6] as u32) << 8) | (src[7] as u32)
@@ -91,19 +92,78 @@ pub fn encoded_upper_bound(len: u32) -> u32 {
     unsafe { bindings::impl_rii_worst_encoding_size(len) }
 }
 
+/// Algorithms available for encoding.
 #[repr(u32)]
 pub enum EncodeAlgo {
+    /// Uses the `WorstCaseEncoding` algorithm.
+    ///
+    /// Use Case: `INSTANT` preset.
+    /// Description: This is literally the worst possible compression output, resulting in files genuinely larger than their decompressed form.
+    ///
+    /// Speed: A+
+    /// Compression Rate: F
     WorstCaseEncoding = 0,
-    Nintendo,
+
+    /// Uses the `MKW` algorithm.
+    ///
+    /// Use Case: Matching decompilation projects.
+    /// Description: This is the Mario Kart Wii compression algorithm reverse-engineered. In practice it's a Boyer-moore-horspool search with a second opinion mechanism.
+    ///
+    /// Speed: F
+    /// Compression Rate: A
+    MKW,
+
+    /// Uses the `MkwSp` algorithm.
+    ///
+    /// Description: MKW-SP.
+    ///
+    /// Speed: D
+    /// Compression Rate: B+
     MkwSp,
+
+    /// Uses the `CTGP` algorithm.
+    ///
+    /// Use Case: CTGP work (Reverse engineered. 1:1 matching).
     CTGP,
+
+    /// Uses the `Haroohie` algorithm.
+    ///
+    ///
+    /// Speed: B+
+    /// Compression Rate: B+
     Haroohie,
+
+    /// Uses the `CTLib` algorithm.
+    ///
+    /// Use Case: `MEDIUM` preset.
+    ///
+    /// Speed: A-
+    /// Compression Rate: B+
     CTLib,
+
+    /// Uses the `LibYaz0` algorithm.
+    ///
+    /// Use Case: `ULTRA` preset.
+    ///
+    /// Speed: C
+    /// Compression Rate: A+
     LibYaz0,
-    Mk8,
+
+    /// Uses the `MK8` algorithm.
+    ///
+    /// Use Case: General `FAST` preset.
+    /// Description: This is the Mario Kart 8 compression algorithm reverse-engineered. In practice it's a sliding Monte Carlo hash table.
+    ///
+    /// Speed: A+
+    /// Compression Rate: B+
+    MK8,
+}
+impl EncodeAlgo {
+    /// Alias for the `MKW` algorithm.
+    pub const Nintendo: EncodeAlgo = EncodeAlgo::MKW;
 }
 
-pub enum EncodeAlgoError {
+pub enum Error {
     Error(String),
 }
 
@@ -125,7 +185,7 @@ pub enum EncodeAlgoError {
 ///
 /// * `Ok(u32)`: The length of the encoded data written to `dst`.
 ///
-/// * `Err(EncodeAlgoError)`: An error encountered during the encoding process.
+/// * `Err(Error)`: An error encountered during the encoding process.
 ///
 /// # Safety
 ///
@@ -135,20 +195,23 @@ pub enum EncodeAlgoError {
 /// # Examples
 ///
 /// ```
-/// let mut dst: [u8; 512] = [0; 512];
 /// let src = b"some data to encode";
-/// let algorithm = szs::EncodeAlgo::Mk8; // Mario Kart 8
+/// let algorithm = szs::EncodeAlgo::MK8; // Mario Kart 8
 ///
-/// match szs::encode_inplace(&mut dst, src, algorithm) {
-///     Ok(encoded_len) => println!("Encoded {} bytes", encoded_len),
-///     Err(szs::EncodeAlgoError::Error(err)) => println!("Error: {}", err),
+/// // Determine the upper bound for the encoded data size
+/// let max_encoded_size = szs::encoded_upper_bound(src.len() as u32) as usize;
+///
+/// let mut dst: Vec<u8> = vec![0; max_encoded_size];
+///
+/// match szs::encode_into(&mut dst, src, algorithm) {
+///     Ok(encoded_len) => {
+///         println!("Encoded {} bytes", encoded_len);
+///         dst.truncate(encoded_len as usize);  // Adjust the vector to the actual encoded length
+///     },
+///     Err(szs::Error::Error(err)) => println!("Error: {}", err),
 /// }
 /// ```
-pub fn encode_inplace(
-    dst: &mut [u8],
-    src: &[u8],
-    algo: EncodeAlgo,
-) -> Result<u32, EncodeAlgoError> {
+pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, Error> {
     let mut used_len: u32 = 0;
 
     let result = unsafe {
@@ -170,7 +233,7 @@ pub fn encode_inplace(
                 .to_string_lossy()
                 .into_owned()
         };
-        Err(EncodeAlgoError::Error(error_msg))
+        Err(Error::Error(error_msg))
     }
 }
 
@@ -190,27 +253,27 @@ pub fn encode_inplace(
 ///
 /// * `Ok(Vec<u8>)`: A `Vec<u8>` containing the encoded data.
 ///
-/// * `Err(EncodeAlgoError)`: An error encountered during the encoding process.
+/// * `Err(Error)`: An error encountered during the encoding process.
 ///
 /// # Examples
 ///
 /// ```
 /// let src = b"some data to encode";
-/// let algorithm = szs::EncodeAlgo::Mk8; // Mario Kart 8
+/// let algorithm = szs::EncodeAlgo::MK8; // Mario Kart 8
 ///
 /// match szs::encode(src, algorithm) {
 ///     Ok(encoded_data) => println!("Encoded data length: {}", encoded_data.len()),
-///     Err(szs::EncodeAlgoError::Error(err)) => println!("Error: {}", err),
+///     Err(szs::Error::Error(err)) => println!("Error: {}", err),
 /// }
 /// ```
-pub fn encode(src: &[u8], algo: EncodeAlgo) -> Result<Vec<u8>, EncodeAlgoError> {
+pub fn encode(src: &[u8], algo: EncodeAlgo) -> Result<Vec<u8>, Error> {
     // Calculate the upper bound for encoding.
     let max_len = encoded_upper_bound(src.len() as u32);
 
     // Allocate a buffer based on the calculated upper bound.
     let mut dst: Vec<u8> = vec![0; max_len as usize];
 
-    match encode_inplace(&mut dst, src, algo) {
+    match encode_into(&mut dst, src, algo) {
         Ok(encoded_len) => {
             // Shrink the dst to the actual size.
             dst.truncate(encoded_len as usize);
@@ -236,7 +299,7 @@ pub fn encode(src: &[u8], algo: EncodeAlgo) -> Result<Vec<u8>, EncodeAlgoError> 
 ///
 /// * `Ok(())`: Indicates successful decoding.
 ///
-/// * `Err(EncodeAlgoError)`: An error encountered during the decoding process.
+/// * `Err(Error)`: An error encountered during the decoding process.
 ///
 /// # Safety
 ///
@@ -246,15 +309,20 @@ pub fn encode(src: &[u8], algo: EncodeAlgo) -> Result<Vec<u8>, EncodeAlgoError> 
 /// # Examples
 ///
 /// ```
-/// let mut dst: [u8; 512] = [0; 512];
 /// let src = b"some encoded data";
 ///
-/// match szs::decode_inplace(&mut dst, src) {
+/// // Get the expected size of the decoded data
+/// let expected_size = szs::decoded_size(src) as usize;
+///
+/// // Allocate a buffer of the appropriate size
+/// let mut dst = vec![0u8; expected_size];
+///
+/// match szs::decode_into(&mut dst, src) {
 ///     Ok(_) => println!("Successfully decoded"),
-///     Err(szs::EncodeAlgoError::Error(err)) => println!("Decoding error: {}", err),
+///     Err(szs::Error::Error(err)) => println!("Decoding error: {}", err),
 /// }
 /// ```
-pub fn decode_inplace(dst: &mut [u8], src: &[u8]) -> Result<(), EncodeAlgoError> {
+pub fn decode_into(dst: &mut [u8], src: &[u8]) -> Result<(), Error> {
     let result = unsafe {
         bindings::impl_riiszs_decode(
             dst.as_mut_ptr() as *mut _,
@@ -272,7 +340,7 @@ pub fn decode_inplace(dst: &mut [u8], src: &[u8]) -> Result<(), EncodeAlgoError>
                 .to_string_lossy()
                 .into_owned()
         };
-        Err(EncodeAlgoError::Error(error_msg))
+        Err(Error::Error(error_msg))
     }
 }
 
@@ -289,7 +357,7 @@ pub fn decode_inplace(dst: &mut [u8], src: &[u8]) -> Result<(), EncodeAlgoError>
 ///
 /// * `Ok(Vec<u8>)`: A `Vec<u8>` containing the decoded data.
 ///
-/// * `Err(EncodeAlgoError)`: An error encountered during the decoding process.
+/// * `Err(Error)`: An error encountered during the decoding process.
 ///
 /// # Examples
 ///
@@ -298,20 +366,140 @@ pub fn decode_inplace(dst: &mut [u8], src: &[u8]) -> Result<(), EncodeAlgoError>
 ///
 /// match szs::decode(src) {
 ///     Ok(decoded_data) => println!("Decoded data length: {}", decoded_data.len()),
-///     Err(szs::EncodeAlgoError::Error(err)) => println!("Decoding error: {}", err),
+///     Err(szs::Error::Error(err)) => println!("Decoding error: {}", err),
 /// }
 /// ```
-pub fn decode(src: &[u8]) -> Result<Vec<u8>, EncodeAlgoError> {
+pub fn decode(src: &[u8]) -> Result<Vec<u8>, Error> {
     // Calculate the required size for decoding.
     let req_len = decoded_size(src);
 
     // Allocate a buffer based on the calculated required size.
     let mut dst: Vec<u8> = vec![0; req_len as usize];
 
-    match decode_inplace(&mut dst, src) {
+    match decode_into(&mut dst, src) {
         Ok(_) => Ok(dst),
         Err(err) => Err(err),
     }
+}
+
+/// Decompresses the Yay0 (SZP) compressed `src` byte slice into the `dst` byte slice.
+///
+/// # Arguments
+/// * `dst`: Destination buffer where the uncompressed data will be written.
+/// Ensure this buffer is large enough to hold the decompressed data.
+/// * `src`: Source buffer containing the Yay0-compressed data.
+///
+/// # Returns
+/// * `Ok(())` if the decompression was successful.
+/// * `Err(&'static str)` if there was an error during decompression.
+///
+/// # Examples
+/// ```
+/// let src = b"some YAY0 (SZP) encoded data";
+///
+/// // Calculate the expected size of the decompressed data
+/// let expected_size = szs::decoded_size(src) as usize;
+///
+/// // Allocate a buffer of the appropriate size
+/// let mut uncompressed = vec![0u8; expected_size];
+///
+/// match szs::decode_yay0_into(&mut uncompressed, src) {
+///     Ok(_) => println!("Decompression successful!"),
+///     Err(szs::Error::Error(err)) => println!("Error: {}", err),
+/// }
+/// ```
+pub fn decode_yay0_into(dst: &mut [u8], src: &[u8]) -> Result<(), Error> {
+    let mut index = 0;
+
+    if &src[index..index + 4] != "Yay0".as_bytes() {
+        return Err(Error::Error(
+            "Invalid Identifier. Expected magic.".to_string(),
+        ));
+    }
+    index += 4;
+
+    let uncompressed_size = u32::from_be_bytes(src[index..index + 4].try_into().unwrap());
+    index += 4;
+    let mut link_table_offset =
+        u32::from_be_bytes(src[index..index + 4].try_into().unwrap()) as usize;
+    index += 4;
+    let mut byte_chunk_and_count_modifiers_offset =
+        u32::from_be_bytes(src[index..index + 4].try_into().unwrap()) as usize;
+    index += 4;
+
+    if uncompressed_size as usize > dst.len() {
+        return Err(Error::Error("Destination buffer too small.".to_string()));
+    }
+
+    let mut mask_bit_counter = 0;
+    let mut current_offset_in_dest_buffer = 0;
+    let mut current_mask = 0;
+
+    while current_offset_in_dest_buffer < uncompressed_size as usize {
+        if mask_bit_counter == 0 {
+            current_mask = u32::from_be_bytes(src[index..index + 4].try_into().unwrap());
+            index += 4;
+            mask_bit_counter = 32;
+        }
+
+        if (current_mask & 0x8000_0000) != 0 {
+            dst[current_offset_in_dest_buffer] = src[byte_chunk_and_count_modifiers_offset];
+            byte_chunk_and_count_modifiers_offset += 1;
+            current_offset_in_dest_buffer += 1;
+        } else {
+            let link = u16::from_be_bytes(
+                src[link_table_offset..link_table_offset + 2]
+                    .try_into()
+                    .unwrap(),
+            );
+            link_table_offset += 2;
+
+            let offset = current_offset_in_dest_buffer as isize - (link & 0x0fff) as isize;
+            let mut count = (link >> 12) as usize;
+
+            if count == 0 {
+                let count_modifier = src[byte_chunk_and_count_modifiers_offset];
+                count = count_modifier as usize + 18;
+                byte_chunk_and_count_modifiers_offset += 1;
+            } else {
+                count += 2;
+            }
+
+            for i in 0..count {
+                dst[current_offset_in_dest_buffer + i] = dst[offset as usize + i - 1];
+            }
+            current_offset_in_dest_buffer += count;
+        }
+
+        current_mask <<= 1;
+        mask_bit_counter -= 1;
+    }
+
+    Ok(())
+}
+/// Decompresses the Yay0 (SZP) compressed `src` byte slice and returns the uncompressed data in a `Vec<u8>`.
+///
+/// # Arguments
+/// * `src`: Source buffer containing the Yay0-compressed data.
+///
+/// # Returns
+/// * `Ok(Vec<u8>)` containing the uncompressed data if the decompression was successful.
+/// * `Err(&'static str)` if there was an error during decompression.
+///
+/// # Examples
+/// ```
+/// let compressed = b"some YAY0 (SZP) encoded data";
+///
+/// match szs::decode_yay0(compressed) {
+///     Ok(uncompressed) => println!("Decompressed data size: {}", uncompressed.len()),
+///     Err(szs::Error::Error(err)) => println!("Error: {}", err),
+/// }
+/// ```
+pub fn decode_yay0(src: &[u8]) -> Result<Vec<u8>, Error> {
+    let uncompressed_size = u32::from_be_bytes(src[4..8].try_into().unwrap()) as usize;
+    let mut dst = vec![0u8; uncompressed_size];
+    decode_yay0_into(&mut dst, src)?;
+    Ok(dst)
 }
 
 /// Calculates the upper bound of the length for a deinterlaced SZP (YAY0) stream given an interlaced SZS (YAZ0) stream.
@@ -355,7 +543,7 @@ pub fn deinterlaced_upper_bound(len: u32) -> u32 {
 ///
 /// * `Ok(u32)`: The length of the deinterlaced data written to `dst`.
 ///
-/// * `Err(EncodeAlgoError)`: An error encountered during the deinterlacing process.
+/// * `Err(Error)`: An error encountered during the deinterlacing process.
 ///
 /// # Safety
 ///
@@ -370,10 +558,10 @@ pub fn deinterlaced_upper_bound(len: u32) -> u32 {
 ///
 /// match szs::deinterlace_into(&mut dst, src) {
 ///     Ok(deinterlaced_len) => println!("Deinterlaced {} bytes", deinterlaced_len),
-///     Err(szs::EncodeAlgoError::Error(err)) => println!("Deinterlacing error: {}", err),
+///     Err(szs::Error::Error(err)) => println!("Deinterlacing error: {}", err),
 /// }
 /// ```
-pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, EncodeAlgoError> {
+pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, Error> {
     let mut used_len: u32 = 0;
 
     let result = unsafe {
@@ -394,7 +582,7 @@ pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, EncodeAlgoErr
                 .to_string_lossy()
                 .into_owned()
         };
-        Err(EncodeAlgoError::Error(error_msg))
+        Err(Error::Error(error_msg))
     }
 }
 
@@ -411,7 +599,7 @@ pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, EncodeAlgoErr
 ///
 /// * `Ok(Vec<u8>)`: A `Vec<u8>` containing the deinterlaced data.
 ///
-/// * `Err(EncodeAlgoError)`: An error encountered during the deinterlacing process.
+/// * `Err(Error)`: An error encountered during the deinterlacing process.
 ///
 /// # Examples
 ///
@@ -420,10 +608,10 @@ pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, EncodeAlgoErr
 ///
 /// match szs::deinterlace(src) {
 ///     Ok(deinterlaced_data) => println!("Deinterlaced data length: {}", deinterlaced_data.len()),
-///     Err(szs::EncodeAlgoError::Error(err)) => println!("Deinterlacing error: {}", err),
+///     Err(szs::Error::Error(err)) => println!("Deinterlacing error: {}", err),
 /// }
 /// ```
-pub fn deinterlace(src: &[u8]) -> Result<Vec<u8>, EncodeAlgoError> {
+pub fn deinterlace(src: &[u8]) -> Result<Vec<u8>, Error> {
     // Calculate the upper bound for conversion.
     let max_len = deinterlaced_upper_bound(src.len() as u32);
 
@@ -497,14 +685,14 @@ pub mod c_api {
         let dst_slice = unsafe { std::slice::from_raw_parts_mut(dst, dst_len as usize) };
         let src_slice = unsafe { std::slice::from_raw_parts(src, src_len as usize) };
 
-        match encode_inplace(dst_slice, src_slice, algo) {
+        match encode_into(dst_slice, src_slice, algo) {
             Ok(used_len) => {
                 unsafe {
                     *result = used_len;
                 }
                 std::ptr::null()
             }
-            Err(EncodeAlgoError::Error(msg)) => {
+            Err(Error::Error(msg)) => {
                 let c_string = std::ffi::CString::new(msg).unwrap();
                 // Leak the CString into a raw pointer, so we don't deallocate it
                 c_string.into_raw()
@@ -522,9 +710,29 @@ pub mod c_api {
         let dst_slice = unsafe { std::slice::from_raw_parts_mut(dst, dst_len as usize) };
         let src_slice = unsafe { std::slice::from_raw_parts(src, src_len as usize) };
 
-        match decode_inplace(dst_slice, src_slice) {
+        match decode_into(dst_slice, src_slice) {
             Ok(()) => std::ptr::null(),
-            Err(EncodeAlgoError::Error(msg)) => {
+            Err(Error::Error(msg)) => {
+                let c_string = std::ffi::CString::new(msg).unwrap();
+                // Leak the CString into a raw pointer, so we don't deallocate it
+                c_string.into_raw()
+            }
+        }
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn riiszs_decode_yay0_into(
+        dst: *mut u8,
+        dst_len: u32,
+        src: *const u8,
+        src_len: u32,
+    ) -> *const c_char {
+        let dst_slice = unsafe { std::slice::from_raw_parts_mut(dst, dst_len as usize) };
+        let src_slice = unsafe { std::slice::from_raw_parts(src, src_len as usize) };
+
+        match decode_yay0_into(dst_slice, src_slice) {
+            Ok(()) => std::ptr::null(),
+            Err(Error::Error(msg)) => {
                 let c_string = std::ffi::CString::new(msg).unwrap();
                 // Leak the CString into a raw pointer, so we don't deallocate it
                 c_string.into_raw()
@@ -577,7 +785,7 @@ pub mod c_api {
                 }
                 std::ptr::null()
             }
-            Err(EncodeAlgoError::Error(msg)) => {
+            Err(Error::Error(msg)) => {
                 let c_string = std::ffi::CString::new(msg).unwrap();
                 // Leak the CString into a raw pointer, so we don't deallocate it
                 c_string.into_raw()

@@ -18,8 +18,10 @@ fn main() {
         build.flag("/std:c++latest");
         #[cfg(not(debug_assertions))]
         build.flag("-MT");
+        build.flag("/O2");
     } else {
         build.flag("-std=c++2b");
+        build.flag("-O3");
     }
 
     #[cfg(target_arch = "x86_64")]
