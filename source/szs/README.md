@@ -2,7 +2,7 @@
 [![docs.rs](https://docs.rs/szs/badge.svg)](https://docs.rs/szs/)
 
 # `szs`
-Lightweight crate for SZS (\"Yaz0\") compression/decompression used in the Nintendo GameCube/Wii games. The library provides C, C++ and C# bindings. YAY0 ("SZP") is supported, too.
+Lightweight crate for SZS (\"Yaz0\") compression/decompression used in the Nintendo GameCube/Wii games. The library provides [C](https://github.com/riidefi/RiiStudio/tree/master/source/szs#example-c-bindings), [C++](https://github.com/riidefi/RiiStudio/tree/master/source/szs/c%2b%2b) and [C#]() bindings. YAY0 ("SZP") is supported, too.
 
 ### Rust
 The following snippet demonstrates how to compress a file as a SZS format using Rust:
@@ -57,14 +57,14 @@ public static void Main(string[] args)
 
 | Algorithm                       | Use Case                 | Desc               |
 |------------------------------------------------------------|--------------------|
-`EncodeAlgo::Nintendo`            | Matching decomp projects | Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects)
-`EncodeAlgo::Mk8`                 | General `FAST` preset.   | MK8 compressor (Reverse engineered. Credit @aboood40091)
-`EncodeAlgo::MkwSp`               |                          | MKW-SP
-`EncodeAlgo::CTGP`                | CTGP work                | CTGP (Reverse engineered. 1:1 matching)
-`EncodeAlgo::WorstCaseEncoding`   | `INSTANT` preset.        | Worst case
-`EncodeAlgo::Haroohie`            |                          | Haroohie (credit @Gericom, adapted from MarioKartToolbox)
-`EncodeAlgo::CTLib`               | `MEDIUM` preset.         | CTLib (credit @narahiero, adapted from CTLib)
-`EncodeAlgo::LibYaz0`             | `ULTRA` preset.          | libyaz0 (Based on wszst. credit @aboood40091)
+| `EncodeAlgo::Nintendo`          | Matching decomp projects | Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects) |
+| `EncodeAlgo::Mk8`               | General `FAST` preset.   | MK8 compressor (Reverse engineered. Credit @aboood40091) |
+| `EncodeAlgo::MkwSp`             |                          | MKW-SP |
+| `EncodeAlgo::CTGP`              | CTGP work                | CTGP (Reverse engineered. 1:1 matching) |
+| `EncodeAlgo::WorstCaseEncoding` | `INSTANT` preset.        | Worst case |
+| `EncodeAlgo::Haroohie`          |                          | Haroohie (credit @Gericom, adapted from MarioKartToolbox) |
+| `EncodeAlgo::CTLib`             | `MEDIUM` preset.         | CTLib (credit @narahiero, adapted from CTLib) |
+| `EncodeAlgo::LibYaz0`           | `ULTRA` preset.          | libyaz0 (Based on wszst. credit @aboood40091) |
 
 Generally, the `mk8` algorithm gets acceptable compression the fastest. For cases where filesize matters, `lib-yaz0` ties `wszst ultra` for the smallest filesizes, while being ~25% faster.
 
