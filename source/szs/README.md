@@ -39,15 +39,15 @@ public static void Main(string[] args)
 {
     byte[] data = ...;
     szs.CompressionAlgorithm algorithm = szs.CompressionAlgorithm.Nintendo;
-	try
+    try
 	{
-		byte[] encodedData = szs.Encode(data, algorithm);
-		Console.WriteLine($"Encoded {encodedData.Length} bytes.");
-	}
-	catch (Exception e)
-	{
-		Console.WriteLine("Failed to compress: " + e.Message);
-	}
+        byte[] encodedData = szs.Encode(data, algorithm);
+        Console.WriteLine($"Encoded {encodedData.Length} bytes.");
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine("Failed to compress: " + e.Message);
+    }
 }
 ```
 
@@ -57,8 +57,8 @@ public static void Main(string[] args)
 
 | Algorithm                       | Use Case                 | Desc               |
 |---------------------------------|--------------------------|--------------------|
-| `EncodeAlgo::Nintendo`          | Matching decomp projects | Boyer-moore-horspool (Reverse engineered. 1:1 matching source files--relevant for decompilation projects) |
-| `EncodeAlgo::Mk8`               | General `FAST` preset.   | MK8 compressor (Reverse engineered. Credit @aboood40091) |
+| `EncodeAlgo::Nintendo`          | Matching decomp projects | This is the Mario Kart Wii compression algorithm reverse-engineered. In practice it's a Boyer-moore-horspool search with a second opinion mechanism. |
+| `EncodeAlgo::Mk8`               | General `FAST` preset.   | This is the Mario Kart 8 compression algorithm reverse-engineered. In practice it's a sliding Monte Carlo hash table. (Credit @aboood40091, @KillZGaming) |
 | `EncodeAlgo::MkwSp`             |                          | MKW-SP |
 | `EncodeAlgo::CTGP`              | CTGP work                | CTGP (Reverse engineered. 1:1 matching) |
 | `EncodeAlgo::WorstCaseEncoding` | `INSTANT` preset.        | Worst case |

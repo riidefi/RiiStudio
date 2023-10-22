@@ -5,8 +5,13 @@ C/C++ bindings are provided for the native library via "szs.h". The following ex
 ### Requirements
 - You must have rust installed.
 
-### Caveats
-Because the library itself has C++ code in it, to avoid needing to sync some settings, using a .dll is by far the easiest approach, which is demonstrated in the example. Static linking is possible, though is typically only useful for release builds. RiiStudio uses the following setup
+### Visual Studio Debug Build Static Linking Caveats
+Microsoft unfortunately implements some stipulations on static linking where certain settings must be synced:
+- `#define _ITERATOR_DEBUG_LEVEL 2`: In some debug builds, this is enabled to provide additional checks
+- `-M`T vs `-MD`: `szs` uses the *static* C++ runtime (-MT) to avoid the user needing to install the Visual C++ Redistributable .dll files.
+In practice, the easy way to get around this is to use `szs` as a DLL (dynamic link library), which is also called a `cdylib`. The example has been set up with a `cdylib`/.dll for that reason.
+
+Static linking is possible, though is typically only useful for release builds. RiiStudio uses the following setup:
 ```cmake
 # In Debug builds, we are forced to use .dll due to incompatible _ITERATOR_DEBUG_LEVEL values: 0 in cc-rs via Rust and 2 in C++.
 # In release builds we should prefer static libraries, though, to minimize failure points during the update process.
