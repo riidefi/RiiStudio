@@ -5,7 +5,8 @@
 
 namespace librii::szs {
 
-Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo, bool yay0) {
+Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo,
+                                   bool yay0) {
   if (yay0) {
     return ::szs::encode_yay0(buf, static_cast<::szs::Algo>(algo));
   }
@@ -18,13 +19,17 @@ bool isDataYaz0Compressed(std::span<const u8> src) {
 
 Result<u32> getExpandedSize(std::span<const u8> src) {
   if (src.size_bytes() < 8)
-    return std::unexpected("File too small to be a YAZ0 file");
+    return std::unexpected("File too small to be a YAZ0/YAY0 file");
 
-  EXPECT(src[0] == 'Y' && src[1] == 'a' && src[2] == 'z' && src[3] == '0');
+  EXPECT(src[0] == 'Y' && src[1] == 'a' && (src[2] == 'z' || src[2] == 'y') &&
+         (src[3] == '0' || src[3] == '1'));
   return (src[4] << 24) | (src[5] << 16) | (src[6] << 8) | src[7];
 }
 
-Result<void> decode(std::span<u8> dst, std::span<const u8> src) {
+Result<void> decode(std::span<u8> dst, std::span<const u8> src, bool yay0) {
+  if (yay0) {
+    return ::szs::decode_yay0_into(dst, src);
+  }
   return ::szs::decode_into(dst, src);
 }
 

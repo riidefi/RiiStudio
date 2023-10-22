@@ -439,17 +439,20 @@ public:
     if (!pok) {
       return std::unexpected("Error: failed to parse args: " + pok.error());
     }
-    fmt::print(stderr, "Decompressing SZS: {} => {}\n", m_from.string(),
-               m_to.string());
     auto file = ReadFile(m_opt.from.view());
     if (!file.has_value()) {
       return std::unexpected("Error: Failed to read file");
     }
     // Max 4GB
     u32 size = TRY(librii::szs::getExpandedSize(*file));
+    std::string fmt = librii::szs::isDataYaz0Compressed(*file) ? "SZS" : "SZP";
+    fmt::print(stderr, "Decompressing {}: {} => {}\n", fmt, m_from.string(),
+               m_to.string());
     std::vector<u8> buf(size);
-    TRY(librii::szs::decode(buf, *file));
-    if (FS_TRY(rsl::filesystem::is_directory(m_to))) {
+    TRY(librii::szs::decode(buf, *file,
+                            !librii::szs::isDataYaz0Compressed(*file)));
+    if (FS_TRY(rsl::filesystem::exists(m_to)) &&
+        FS_TRY(rsl::filesystem::is_directory(m_to))) {
       return std::unexpected("Failed to extract: |to| is a folder, not a file");
     }
     TRY(rsl::WriteFile(buf, m_to.string()));
@@ -472,7 +475,7 @@ private:
     }
     if (FS_TRY(rsl::filesystem::exists(m_to))) {
       fmt::print(stderr,
-                 "Warning: Folder {} will be overwritten by this operation.\n",
+                 "Warning: File {} will be overwritten by this operation.\n",
                  m_to.string());
     }
     return {};
@@ -650,17 +653,25 @@ public:
       return std::unexpected("Error: Failed to read file");
     }
 
+    std::string fmt = "RAW";
     // Max 4GB
     std::vector<u8> buf;
     if (librii::szs::isDataYaz0Compressed(*file)) {
       u32 size = TRY(librii::szs::getExpandedSize(*file));
       buf.resize(size);
       TRY(librii::szs::decode(buf, *file));
+      fmt = "SZS";
+    } else if (file->size() >= 4 && (*file)[0] == 'Y' && (*file)[1] == 'a' &&
+               (*file)[2] == 'y') {
+      u32 size = TRY(librii::szs::getExpandedSize(*file));
+      buf.resize(size);
+      TRY(librii::szs::decode(buf, *file, true));
+      fmt = "SZP";
     } else {
       buf = std::move(*file);
     }
 
-    fmt::print(stderr, "Extracting ARC.SZS,{} => {}\n", m_from.string(),
+    fmt::print(stderr, "Extracting ARC.{},{} => {}\n", fmt, m_from.string(),
                m_to.string());
 
     if (librii::RARC::IsDataResourceArchive(buf)) {

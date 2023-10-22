@@ -9,7 +9,8 @@ namespace librii::szs {
 bool isDataYaz0Compressed(std::span<const u8> src);
 
 Result<u32> getExpandedSize(std::span<const u8> src);
-Result<void> decode(std::span<u8> dst, std::span<const u8> src);
+Result<void> decode(std::span<u8> dst, std::span<const u8> src,
+                    bool yay0 = false);
 
 u32 getWorstEncodingSize(std::span<const u8> src);
 
@@ -23,7 +24,8 @@ enum class Algo {
   LibYaz0,
   MK8,
 };
-Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo, bool yay0 = false);
+Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo,
+                                   bool yay0 = false);
 
 std::string_view szs_version();
 
