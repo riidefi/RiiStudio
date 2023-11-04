@@ -40,7 +40,7 @@ gx::ColorF32 colorFromRGBA8(u32 n) {
 Result<void> makeColorTable(oishii::BinaryReader& reader, u16 offset,
                             u16 entryCount, std::vector<ColorTableEntry>& dst) {
 
-  // assert(entryCount > 0 && duration > 0);
+  assert(entryCount > 0 && duration > 0);
 
   for (u32 i = 0; i < entryCount; i++) {
     u32 entry0 = i;
@@ -54,6 +54,280 @@ Result<void> makeColorTable(oishii::BinaryReader& reader, u16 offset,
     dst.push_back(entry);
   }
 
+  return {};
+}
+
+Result<void>
+JPAC::load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
+                                         s32 block_count) {
+  JPAResource resource = JPAResource();
+
+  auto blockCount = TRY(reader.tryRead<u16>());
+  auto fieldBlockCount = TRY(reader.tryRead<u8>());
+  auto keyBlockCount = TRY(reader.tryRead<u8>());
+  auto tdb1Count = TRY(reader.tryRead<u8>());
+  reader.skip(1);
+  for (s32 i = 0; i < block_count; ++i) {
+    auto tag_start = reader.tell();
+
+    auto tag_name = TRY(reader.tryRead<s32>());
+    auto tag_size = TRY(reader.tryRead<s32>());
+
+    if (tag_name == 'BEM1') {
+      JPADynamicsBlock block = JPADynamicsBlock();
+
+      block.emitFlags = TRY(reader.tryGetAt<u32>(tag_start + 0x08));
+      block.volumeType = static_cast<VolumeType>((block.emitFlags >> 8) & 0x07);
+
+      // 0x0C = unk
+      f32 emitterSclX = TRY(reader.tryGetAt<f32>(tag_start + 0x10));
+      f32 emitterSclY = TRY(reader.tryGetAt<f32>(tag_start + 0x14));
+      f32 emitterSclZ = TRY(reader.tryGetAt<f32>(tag_start + 0x18));
+      block.emitterScl = glm::vec3(emitterSclX, emitterSclY, emitterSclZ);
+
+      f32 emitterTrsX = TRY(reader.tryGetAt<f32>(tag_start + 0x1C));
+      f32 emitterTrsY = TRY(reader.tryGetAt<f32>(tag_start + 0x20));
+      f32 emitterTrsZ = TRY(reader.tryGetAt<f32>(tag_start + 0x24));
+      block.emitterTrs = glm::vec3(emitterTrsX, emitterTrsY, emitterTrsZ);
+
+      f32 emitterDirX = TRY(reader.tryGetAt<f32>(tag_start + 0x28));
+      f32 emitterDirY = TRY(reader.tryGetAt<f32>(tag_start + 0x2C));
+      f32 emitterDirZ = TRY(reader.tryGetAt<f32>(tag_start + 0x30));
+      block.emitterDir =
+          glm::normalize(glm::vec3(emitterDirX, emitterDirY, emitterDirZ));
+
+      block.initialVelOmni = TRY(reader.tryGetAt<f32>(tag_start + 0x34));
+      block.initialVelAxis = TRY(reader.tryGetAt<f32>(tag_start + 0x38));
+      block.initialVelRndm = TRY(reader.tryGetAt<f32>(tag_start + 0x3C));
+      block.initialVelDir = TRY(reader.tryGetAt<f32>(tag_start + 0x40));
+
+      block.spread = TRY(reader.tryGetAt<f32>(tag_start + 0x44));
+      block.initialVelRatio = TRY(reader.tryGetAt<f32>(tag_start + 0x48));
+      block.rate = TRY(reader.tryGetAt<f32>(tag_start + 0x4C));
+      block.rateRndm = TRY(reader.tryGetAt<f32>(tag_start + 0x50));
+      block.lifeTimeRndm = TRY(reader.tryGetAt<f32>(tag_start + 0x54));
+      block.volumeSweep = TRY(reader.tryGetAt<f32>(tag_start + 0x58));
+      block.volumeMinRad = TRY(reader.tryGetAt<f32>(tag_start + 0x5C));
+      block.airResist = TRY(reader.tryGetAt<f32>(tag_start + 0x60));
+      block.momentRndm = TRY(reader.tryGetAt<f32>(tag_start + 0x64));
+
+      f32 emitterRotX = (TRY(reader.tryGetAt<u16>(tag_start + 0x68))) *
+                        (std::numbers::pi / 180);
+      f32 emitterRotY = (TRY(reader.tryGetAt<u16>(tag_start + 0x6A))) *
+                        (std::numbers::pi / 180);
+      f32 emitterRotZ = (TRY(reader.tryGetAt<u16>(tag_start + 0x6C))) * (
+                          std::numbers::pi / 180);
+      block.emitterRot = glm::vec3(emitterRotX, emitterRotY, emitterRotZ);
+
+      block.maxFrame = TRY(reader.tryGetAt<u16>(tag_start + 0x6E));
+      block.startFrame = TRY(reader.tryGetAt<u16>(tag_start + 0x70));
+      block.lifeTime = TRY(reader.tryGetAt<u16>(tag_start + 0x72));
+      block.volumeSize = TRY(reader.tryGetAt<u16>(tag_start + 0x74));
+      block.divNumber = TRY(reader.tryGetAt<u16>(tag_start + 0x76));
+      block.rateStep = TRY(reader.tryGetAt<u8>(tag_start + 0x78));
+      resource.bem1 = block;
+    } else if (tag_name == 'BSP1') {
+      // JPABaseShape
+      // Contains particle draw settings.
+
+      JPABaseShapeBlock block = JPABaseShapeBlock();
+
+      u32 flags = TRY(reader.tryGetAt<u32>(tag_start + 0x08));
+      block.shapeType = static_cast<ShapeType>((flags >> 0) & 0x0F);
+      block.dirType = static_cast<DirType>((flags >> 4) & 0x07);
+      block.rotType = static_cast<RotType>((flags >> 7) & 0x07);
+      block.planeType = static_cast<PlaneType>((flags >> 10) & 0x01);
+      // 11 = unk
+      block.isGlblClrAnm = !!((flags >> 12) & 0x01);
+      // 13 = unk
+      block.isGlblTexAnm = !!((flags >> 14) & 0x01);
+      block.colorInSelect = (flags >> 15) & 0x07;
+      block.alphaInSelect = (flags >> 18) & 0x01;
+      // 19 = unk
+      block.isEnableProjection = !!((flags >> 20) & 0x01);
+      block.isDrawFwdAhead = !!((flags >> 21) & 0x01);
+      block.isDrawPrntAhead = !!((flags >> 22) & 0x01);
+      // 23 = unk
+      block.isEnableTexScrollAnm = !!((flags >> 24) & 0x01);
+      block.tilingS = !!((flags >> 25) & 0x01) ? 2.0 : 1.0;
+      block.tilingT = !!((flags >> 26) & 0x01) ? 2.0 : 1.0;
+      block.isNoDrawParent = !!((flags >> 27) & 0x01);
+      block.isNoDrawChild = !!((flags >> 28) & 0x01);
+
+      if (block.shapeType == ShapeType::DirectionCross ||
+          block.shapeType == ShapeType::RotationCross)
+        block.planeType = PlaneType::X;
+
+      f32 baseSizeX = TRY(reader.tryGetAt<f32>(tag_start + 0x10));
+      f32 baseSizeY = TRY(reader.tryGetAt<f32>(tag_start + 0x14));
+      block.baseSize = glm::vec2(baseSizeX, baseSizeY);
+
+      u16 blendModeFlags = TRY(reader.tryGetAt<u16>(tag_start + 0x18));
+
+      block.blendMode = static_cast<gx::BlendModeType>(blendModeFlags & 0x3);
+      block.blendSrcFactor = static_cast<gx::BlendModeFactor>((blendModeFlags >> 2) & 0x7);
+      block.blendSrcFactor = static_cast<gx::BlendModeFactor>((blendModeFlags >> 6) & 0x7);
+
+      u8 alphaCompareFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x1A));
+
+      block.alphaCmp0 = static_cast<gx::Comparison>(alphaCompareFlags & 0x7);
+      block.alphaOp = static_cast<gx::AlphaOp>((alphaCompareFlags >> 3) & 0x3);
+      block.alphaCmp1 =
+          static_cast<gx::Comparison>((alphaCompareFlags >> 5) & 0x7);
+
+      block.alphaRef0 = TRY(reader.tryGetAt<u8>(tag_start + 0x1B));
+      block.alphaRef1 = TRY(reader.tryGetAt<u8>(tag_start + 0x1C));
+
+
+      u8 zModeFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x1D));
+
+      block.zTest = static_cast<bool>(zModeFlags & 0x1);
+      block.zCompare = static_cast<gx::Comparison>((zModeFlags >> 1) & 0x7);
+      block.zWrite = static_cast<bool>((blendModeFlags >> 4) & 0x1);
+
+      u8 texFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x1E));
+      u8 texIdxAnimDataCount = TRY(reader.tryGetAt<u8>(tag_start + 0x1F));
+      block.texIdx = TRY(reader.tryGetAt<u8>(tag_start + 0x20));
+      u8 colorFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x21));
+
+      block.colorPrm = gx::Color(TRY(
+          reader.tryGetAt<u32, oishii::EndianSelect::Current,
+          true>(tag_start + 0x26)));
+      block.colorEnv = gx::Color(
+          TRY(reader.tryGetAt<u32, oishii::EndianSelect::Current, true>(
+              tag_start + 0x2A)));
+
+      block.texCalcIdxType = static_cast<CalcIdxType>((texFlags >> 2) & 0x07);
+
+      block.anmRndm = TRY(reader.tryGetAt<u8>(tag_start + 0x2E));
+      block.colorLoopOfstMask = TRY(reader.tryGetAt<u8>(tag_start + 0x2F));
+      block.texIdxLoopOfstMask = TRY(reader.tryGetAt<u8>(tag_start + 0x30));
+
+      u32 extraDataOffs = tag_start + 0x34;
+
+      if (block.isEnableTexScrollAnm) {
+        block.texInitTransX = TRY(reader.tryGetAt<f32>(extraDataOffs + 0x00));
+        block.texInitTransY = TRY(reader.tryGetAt<f32>(extraDataOffs + 0x04));
+        block.texInitScaleX = TRY(reader.tryGetAt<f32>(extraDataOffs + 0x08));
+        block.texInitScaleY = TRY(reader.tryGetAt<f32>(extraDataOffs + 0x0C));
+        block.texInitRot = TRY(reader.tryGetAt<f32>(extraDataOffs + 0x10));
+        block.texIncTransX = TRY(reader.tryGetAt<f32>(extraDataOffs + 0x14));
+        block.texIncTransY = TRY(reader.tryGetAt<f32>(extraDataOffs + 0x18));
+        block.texIncScaleX = TRY(reader.tryGetAt<f32>(extraDataOffs + 0x1C));
+        block.texIncScaleY = TRY(reader.tryGetAt<f32>(extraDataOffs + 0x20));
+        block.texIncRot = TRY(reader.tryGetAt<f32>(extraDataOffs + 0x24));
+        extraDataOffs += 0x28;
+      }
+
+      bool isEnableTextureAnm = !!((texFlags >> 0) & 0x01);
+      if (isEnableTextureAnm) {
+        reader.seek(extraDataOffs);
+        for (u32 x = 0; x < texIdxAnimDataCount; x++) {
+          block.texIdxAnimData.push_back(TRY(reader.tryRead<u8>()));
+        }
+
+      }
+
+      block.colorAnimMaxFrm = TRY(reader.tryGetAt<u16>(tag_start + 0x24));
+
+      bool isColorPrmAnm = !!((colorFlags >> 1) & 0x01);
+      bool isColorEnvAnm = !!((colorFlags >> 3) & 0x01);
+      block.colorCalcIdxType = static_cast<CalcIdxType>(
+        (colorFlags >> 4) & 0x07);
+
+      if (isColorPrmAnm) {
+        u32 colorPrmAnimDataOffs = tag_start + TRY(
+                                       reader.tryGetAt<u16>(tag_start + 0x0C));
+        u32 colorPrmAnimDataCount = TRY(reader.tryGetAt<u8>(tag_start + 0x22));
+
+        TRY(makeColorTable(reader, colorPrmAnimDataOffs, colorPrmAnimDataCount,
+          block.colorPrmAnimData));
+      }
+
+      if (isColorEnvAnm) {
+
+        u32 colorEnvAnimDataOffs =
+            tag_start + TRY(reader.tryGetAt<u16>(tag_start + 0x0E));
+        u32 colorEnvAnimDataCount = TRY(reader.tryGetAt<u8>(tag_start + 0x23));
+
+        TRY(makeColorTable(reader, colorEnvAnimDataOffs, colorEnvAnimDataCount,
+          block.colorEnvAnimData));
+      }
+
+      block.isEnableTexture = true;
+
+      resource.bsp1 = block;
+
+    } else if (tag_name == 'FLD1') {
+
+      JPAFieldBlock block = JPAFieldBlock();
+
+      u32 flags = TRY(reader.tryGetAt<u32>(tag_start + 0x08));
+      block.type = static_cast<FieldType>((flags >> 0) & 0x0F);
+      block.addType = static_cast<FieldAddType>((flags >> 8) & 0x03);
+      // block.sttFlag = (flags >> 16);
+
+      f32 posX = TRY(reader.tryGetAt<f32>(tag_start + 0x0C));
+      f32 posY = TRY(reader.tryGetAt<f32>(tag_start + 0x10));
+      f32 posZ = TRY(reader.tryGetAt<f32>(tag_start + 0x14));
+      block.pos = glm::vec3(posX, posY, posZ);
+
+      f32 dirX = TRY(reader.tryGetAt<f32>(tag_start + 0x18));
+      f32 dirY = TRY(reader.tryGetAt<f32>(tag_start + 0x1C));
+      f32 dirZ = TRY(reader.tryGetAt<f32>(tag_start + 0x20));
+      block.dir = glm::vec3(dirX, dirY, dirZ);
+
+      f32 param1 = TRY(reader.tryGetAt<f32>(tag_start + 0x24));
+      f32 param2 = TRY(reader.tryGetAt<f32>(tag_start + 0x28));
+      f32 param3 = TRY(reader.tryGetAt<f32>(tag_start + 0x2C));
+
+      block.fadeIn = TRY(reader.tryGetAt<f32>(tag_start + 0x30));
+      block.fadeOut = TRY(reader.tryGetAt<f32>(tag_start + 0x34));
+      block.enTime = TRY(reader.tryGetAt<f32>(tag_start + 0x38));
+      block.disTime = TRY(reader.tryGetAt<f32>(tag_start + 0x3C));
+      block.cycle = TRY(reader.tryGetAt<u8>(tag_start + 0x40));
+
+      block.fadeInRate = 1;
+      if (block.fadeIn > block.enTime)
+        block.fadeInRate = 1 / (block.fadeIn - block.enTime);
+
+      block.fadeOutRate = 1;
+      if (block.fadeOut < block.disTime)
+        block.fadeOutRate = 1 / (block.disTime - block.fadeOut);
+
+      block.refDistance = -1;
+      block.innerSpeed = -1;
+      block.outerSpeed = -1;
+
+      block.mag = param1;
+      block.magRndm = 0;
+
+      if (block.type == FieldType::Newton) {
+        block.refDistance = param3 * param3;
+      }
+
+      if (block.type == FieldType::Vortex) {
+        block.innerSpeed = param1;
+        block.outerSpeed = param2;
+      }
+
+      if (block.type == FieldType::Air) {
+        block.refDistance = param2;
+      }
+
+      if (block.type == FieldType::Convection) {
+        block.refDistance = param3;
+      }
+
+      if (block.type == FieldType::Spin) {
+        block.innerSpeed = param1;
+      }
+      resource.fld1.push_back(block);
+    }
+
+    reader.seek(tag_start + tag_size);
+  }
+  resources.push_back(resource);
   return {};
 }
 
@@ -647,17 +921,84 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
 Result<JPAC> JPAC::loadFromStream(oishii::BinaryReader& reader) {
   JPAC temp = JPAC();
   auto magic = TRY(reader.tryRead<u32>());
-  EXPECT(magic == 'JEFF');
-  version = 0;
-  reader.seekSet(0x0c);
-  blockCount = TRY(reader.tryRead<u32>());
+  if (magic == 'JEFF') {
+    version = 0;
+    reader.seekSet(0x0c);
+    blockCount = TRY(reader.tryRead<u32>());
 
-  temp.resources = std::vector<JPAResource>();
+    temp.resources = std::vector<JPAResource>();
 
-  reader.seekSet(0x20);
-  TRY(load_block_data_from_file(reader, blockCount));
+    reader.seekSet(0x20);
+    TRY(load_block_data_from_file(reader, blockCount));
 
-  return temp;
+    return temp;
+  } else if (magic == 'JPAC') {
+    auto version = TRY(reader.tryRead<u32>());
+    if (version == '2-10') {
+      version = 2;
+
+      temp.resources = std::vector<JPAResource>();
+
+      u16 effectCount = TRY(reader.tryRead<u16>());
+      u16 textureCount = TRY(reader.tryRead<u16>());
+      u32 textureTableOffs = TRY(reader.tryRead<u32>());
+
+      u32 effectTableIdx = 0x10;
+      for (int i = 0; i < effectCount; i++) {
+        u32 resourceBeginOffs = effectTableIdx;
+
+        u32 resourceId =
+            TRY(reader.tryGetAt<u16, oishii::EndianSelect::Current, true>(
+                  effectTableIdx + 0x00));
+        u32 blockCount =
+            TRY(reader.tryGetAt<u16, oishii::EndianSelect::Current, true>(
+                  effectTableIdx + 0x02));
+
+        effectTableIdx += 0x08;
+        for (int j = 0; j < blockCount; j++) {
+          // blockSize includes the header.
+          u32 blockSize = TRY(reader.tryGetAt<u32>(effectTableIdx + 0x04));
+          effectTableIdx += blockSize;
+        }
+
+        reader.seekSet(resourceBeginOffs + 0x2);
+        TRY(load_block_data_from_file_JPAC2_10(reader, blockCount));
+
+      }
+
+      u32 textureTableIdx = textureTableOffs;
+      for (int i = 0; i < textureCount; i++) {
+        reader.seek(textureTableIdx);
+        auto tag_name = TRY(reader.tryRead<s32>());
+        assert(tag_name == 'TEX1');
+        u32 blockSize = TRY(reader.tryRead<u32>());
+        reader.skip(0x4);
+        auto name = TRY(reader.tryReadBuffer<u8>(0x14));
+
+        librii::j3d::Tex tmp;
+        auto tex_start = reader.tell();
+        std::cout << tex_start << std::endl;
+        rsl::SafeReader safeReader(reader);
+        TRY(tmp.transfer(safeReader));
+        auto buffer_addr = tex_start + tmp.ofsTex;
+        auto buffer_size = librii::gx::computeImageSize(
+            tmp.mWidth, tmp.mHeight, tmp.mFormat, tmp.mMipmapLevel);
+
+        auto image_data =
+            TRY(reader.tryReadBuffer<u8>(buffer_size, buffer_addr));
+
+        TextureBlock block = TextureBlock(tmp, image_data);
+        block.setName(std::string(name.begin(), name.end()));
+
+        textures.push_back(block);
+        textureTableIdx += blockSize;
+      }
+
+      return temp;
+    }
+  } else {
+    return std::unexpected("Not a valid JPA file");
+  }
 }
 
 Result<JPAC> JPAC::loadFromFile(std::string_view fileName) {

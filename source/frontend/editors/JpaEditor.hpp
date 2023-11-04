@@ -156,10 +156,10 @@ public:
             ImGui::TreePop();
           }
 
+          ImGui::TreePop();
         }
         entryNum++;
       }
-      ImGui::TreePop();
     }
     if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
       if (ImGui::BeginPopupContextItem(str.c_str())) {
