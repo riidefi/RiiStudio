@@ -6,19 +6,23 @@
 
 namespace rlibrii::szs {
 
-static u16 sSkipTable[256];
+struct EGGContext {
+  u16 sSkipTable[256]{};
+};
 
-static void findMatch(const u8* src, int srcPos, int maxSize, int* matchOffset,
-                      int* matchSize);
-static int searchWindow(const u8* needle, int needleSize, const u8* haystack,
-                        int haystackSize);
-static void computeSkipTable(const u8* needle, int needleSize);
+static void findMatch(EGGContext* ctx, const u8* src, int srcPos, int maxSize,
+                      int* matchOffset, int* matchSize);
+static int searchWindow(EGGContext* ctx, const u8* needle, int needleSize,
+                        const u8* haystack, int haystackSize);
+static void computeSkipTable(EGGContext* ctx, const u8* needle, int needleSize);
 
-int encodeBoyerMooreHorspool(const u8* src, u8* dst, int srcSize) {
+static inline int encodeBoyerMooreHorspool(const u8* src, u8* dst,
+                                           int srcSize) {
   int srcPos;
   int groupHeaderPos;
   int dstPos;
   u8 groupHeaderBitRaw;
+  EGGContext ctx{};
 
   dst[0] = 'Y';
   dst[1] = 'a';
@@ -37,11 +41,12 @@ int encodeBoyerMooreHorspool(const u8* src, u8* dst, int srcSize) {
   while (srcPos < srcSize) {
     int matchOffset;
     int firstMatchLen;
-    findMatch(src, srcPos, srcSize, &matchOffset, &firstMatchLen);
+    findMatch(&ctx, src, srcPos, srcSize, &matchOffset, &firstMatchLen);
     if (firstMatchLen > 2) {
       int secondMatchOffset;
       int secondMatchLen;
-      findMatch(src, srcPos + 1, srcSize, &secondMatchOffset, &secondMatchLen);
+      findMatch(&ctx, src, srcPos + 1, srcSize, &secondMatchOffset,
+                &secondMatchLen);
       if (firstMatchLen + 1 < secondMatchLen) {
         // Put a single byte
         dst[groupHeaderPos] |= groupHeaderBitRaw;
@@ -87,8 +92,8 @@ int encodeBoyerMooreHorspool(const u8* src, u8* dst, int srcSize) {
   return dstPos;
 }
 
-void findMatch(const u8* src, int srcPos, int maxSize, int* matchOffset,
-               int* matchSize) {
+static inline void findMatch(EGGContext* ctx, const u8* src, int srcPos,
+                             int maxSize, int* matchOffset, int* matchSize) {
   // SZS backreference types:
   // (2 bytes) N >= 2:  NR RR    -> maxMatchSize=16+2,    windowOffset=4096+1
   // (3 bytes) N >= 18: 0R RR NN -> maxMatchSize=0xFF+18, windowOffset=4096+1
@@ -104,9 +109,9 @@ void findMatch(const u8* src, int srcPos, int maxSize, int* matchOffset,
   int windowOffset;
   int foundMatchOffset;
   while (window < srcPos &&
-         (windowOffset = searchWindow(&src[srcPos], windowSize, &src[window],
-                                      srcPos + windowSize - window)) <
-             srcPos - window) {
+         (windowOffset =
+              searchWindow(ctx, &src[srcPos], windowSize, &src[window],
+                           srcPos + windowSize - window)) < srcPos - window) {
     for (; windowSize < maxMatchSize; ++windowSize) {
       if (src[window + windowOffset + windowSize] != src[srcPos + windowSize])
         break;
@@ -124,28 +129,28 @@ void findMatch(const u8* src, int srcPos, int maxSize, int* matchOffset,
   *matchSize = windowSize > 3 ? windowSize - 1 : 0;
 }
 
-static int searchWindow(const u8* needle, int needleSize, const u8* haystack,
-                        int haystackSize) {
+static int searchWindow(EGGContext* ctx, const u8* needle, int needleSize,
+                        const u8* haystack, int haystackSize) {
   int itHaystack; // r8
   int itNeedle;   // r9
 
   if (needleSize > haystackSize)
     return haystackSize;
-  computeSkipTable(needle, needleSize);
+  computeSkipTable(ctx, needle, needleSize);
 
   // Scan forwards for the last character in the needle
   for (itHaystack = needleSize - 1;;) {
     while (1) {
       if (needle[needleSize - 1] == haystack[itHaystack])
         break;
-      itHaystack += sSkipTable[haystack[itHaystack]];
+      itHaystack += ctx->sSkipTable[haystack[itHaystack]];
     }
     --itHaystack;
     itNeedle = needleSize - 2;
     break;
   Difference:
     // The entire needle was not found, continue search
-    int skip = sSkipTable[haystack[itHaystack]];
+    int skip = ctx->sSkipTable[haystack[itHaystack]];
     if (needleSize - itNeedle > skip)
       skip = needleSize - itNeedle;
     itHaystack += skip;
@@ -163,12 +168,13 @@ static int searchWindow(const u8* needle, int needleSize, const u8* haystack,
   return itHaystack + 1;
 }
 
-static void computeSkipTable(const u8* needle, int needleSize) {
+static void computeSkipTable(EGGContext* ctx, const u8* needle,
+                             int needleSize) {
   for (int i = 0; i < 256; ++i) {
-    sSkipTable[i] = needleSize;
+    ctx->sSkipTable[i] = needleSize;
   }
   for (int i = 0; i < needleSize; ++i) {
-    sSkipTable[needle[i]] = needleSize - i - 1;
+    ctx->sSkipTable[needle[i]] = needleSize - i - 1;
   }
 }
 
