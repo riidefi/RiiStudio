@@ -10,6 +10,10 @@ keywords = ["wii", "gamecube", "yaz0", "szs", "yay0"]
 readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["c_api"]
+c_api = []
+
 [lib]
 crate-type=["cdylib", "lib", "staticlib"]
 

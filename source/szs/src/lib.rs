@@ -633,6 +633,7 @@ pub fn deinterlace(src: &[u8]) -> Result<Vec<u8>, Error> {
 // C BINDINGS BEGIN
 //
 //--------------------------------------------------------
+#[cfg(feature = "c_api")]
 #[allow(clippy::missing_safety_doc)]
 pub mod c_api {
     use crate::*;
