@@ -14,12 +14,26 @@ using s32 = int32_t;
 using s16 = int16_t;
 using s8 = int8_t;
 
-constexpr u32 roundDown(u32 in, u32 align) {
+constexpr static inline u32 roundDown(u32 in, u32 align) {
   return align ? in & ~(align - 1) : in;
-};
-constexpr u32 roundUp(u32 in, u32 align) {
+}
+constexpr static inline u32 roundUp(u32 in, u32 align) {
   return align ? roundDown(in + (align - 1), align) : in;
-};
+}
+
+static inline void writeU16(u8* data, u32 offset, u16 val) {
+  u8* base = data + offset;
+  base[0x0] = val >> 8;
+  base[0x1] = val;
+}
+
+static inline void writeU32(u8* data, u32 offset, u32 val) {
+  u8* base = data + offset;
+  base[0x0] = val >> 24;
+  base[0x1] = val >> 16;
+  base[0x2] = val >> 8;
+  base[0x3] = val;
+}
 
 namespace rlibrii::szs {
 
@@ -34,11 +48,6 @@ u32 getWorstEncodingSize(u32 src);
 u32 getWorstEncodingSize(std::span<const u8> src);
 std::vector<u8> encodeFast(std::span<const u8> src);
 
-int encodeBoyerMooreHorspool(const u8* src, u8* dst, int srcSize);
-
-u32 encodeSP(const u8* src, u8* dst, u32 srcSize, u32 dstSize);
-Result<std::vector<u8>> encodeCTGP(std::span<const u8> buf);
-
 enum class Algo {
   WorstCaseEncoding,
   Nintendo,
@@ -52,7 +61,9 @@ enum class Algo {
 
 Result<std::vector<u8>> encodeAlgo(std::span<const u8> buf, Algo algo);
 
-void CompressYaz(const u8* src_, u32 src_len, u8 opt_compr, u8* dest,
-                 u32 dest_len, u32* out_len);
+enum {
+  YAZ0_MAGIC = 0x59617a30,
+  YAZ1_MAGIC = 0x59617a31,
+};
 
 } // namespace rlibrii::szs
