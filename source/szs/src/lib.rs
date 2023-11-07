@@ -628,6 +628,109 @@ pub fn deinterlace(src: &[u8]) -> Result<Vec<u8>, Error> {
     }
 }
 
+/// Calculates the upper bound of the length for an encoded YAY0 stream given uncompressed data.
+///
+/// This function combines the worst-case scenario sizes of both YAZ0 encoding and YAY0 deinterlacing.
+///
+/// # Arguments
+///
+/// * `len`: The length of the uncompressed data.
+///
+/// # Returns
+///
+/// * The maximum potential length of the YAY0 encoded data.
+///
+/// # Examples
+///
+/// ```
+/// let original_length = 100;
+/// let upper_bound = szs::encoded_yay0_upper_bound(original_length);
+/// assert!(upper_bound >= original_length);
+/// ```
+pub fn encoded_yay0_upper_bound(len: u32) -> u32 {
+    // Calculate YAZ0 encoding size, then adjust for YAY0 deinterlacing.
+    let yaz0_upper_bound = encoded_upper_bound(len);
+    deinterlaced_upper_bound(yaz0_upper_bound)
+}
+
+/// Encodes and deinterlaces the source slice into YAY0 format using the given encoding algorithm and writes the result into the destination slice.
+///
+/// # Arguments
+///
+/// * `dst`: A mutable byte slice where the YAY0 encoded data will be written.
+/// * `src`: A byte slice containing the data to be encoded.
+/// * `algo`: The encoding algorithm to be used.
+///
+/// # Returns
+///
+/// * `Ok(u32)`: The length of the YAY0 encoded data written to `dst`.
+/// * `Err(Error)`: An error encountered during the encoding or deinterlacing process.
+///
+/// # Examples
+///
+/// ```
+/// let src = b"some data to encode into YAY0";
+/// let mut dst: Vec<u8> = Vec::new();
+/// dst.resize_with(szs::encoded_yay0_upper_bound(src.len() as u32) as usize, Default::default);
+/// let algorithm = szs::EncodeAlgo::Nintendo;
+///
+/// match szs::encode_yay0_into(&mut dst, src, algorithm) {
+///     Ok(encoded_len) => {
+///         println!("YAY0 encoded {} bytes", encoded_len);
+///         dst.truncate(encoded_len as usize);
+///     },
+///     Err(szs::Error::Error(e)) => println!("Error: {:?}", e),
+/// }
+/// ```
+pub fn encode_yay0_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, Error> {
+    let temp_encoded = encode(src, algo)?;
+    let deinterlaced_size = deinterlaced_upper_bound(temp_encoded.len() as u32);
+
+    if deinterlaced_size > dst.len() as u32 {
+        return Err(Error::Error(
+            "Destination buffer not large enough".to_string(),
+        ));
+    }
+
+    deinterlace_into(dst, &temp_encoded)
+}
+
+/// Encodes and deinterlaces the source slice into YAY0 format using the given encoding algorithm and returns the result.
+///
+/// # Arguments
+///
+/// * `src`: A byte slice containing the data to be encoded.
+/// * `algo`: The encoding algorithm to be used.
+///
+/// # Returns
+///
+/// * `Ok(Vec<u8>)`: A `Vec<u8>` containing the YAY0 encoded data.
+/// * `Err(Error)`: An error encountered during the encoding or deinterlacing process.
+///
+/// # Examples
+///
+/// ```
+/// let src = b"some data to encode into YAY0";
+/// let algorithm = szs::EncodeAlgo::Nintendo;
+///
+/// match szs::encode_yay0(src, algorithm) {
+///     Ok(encoded_data) => println!("YAY0 encoded data length: {}", encoded_data.len()),
+///     Err(szs::Error::Error(e)) => println!("Error: {:?}", e),
+/// }
+/// ```
+pub fn encode_yay0(src: &[u8], algo: EncodeAlgo) -> Result<Vec<u8>, Error> {
+    let temp_encoded = encode(src, algo)?;
+    let mut dst: Vec<u8> = vec![0; deinterlaced_upper_bound(temp_encoded.len() as u32) as usize];
+
+    match deinterlace_into(&mut dst, &temp_encoded) {
+        Ok(deinterlaced_len) => {
+            dst.truncate(deinterlaced_len as usize);
+            Ok(dst)
+        }
+        Err(e) => Err(e),
+    }
+}
+
 //--------------------------------------------------------
 //
 // C BINDINGS BEGIN
