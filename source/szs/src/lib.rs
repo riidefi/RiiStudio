@@ -124,6 +124,7 @@ pub fn encoded_upper_bound(len: u32) -> u32 {
 
 /// Algorithms available for encoding.
 #[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EncodeAlgo {
     /// Uses the `WorstCaseEncoding` algorithm.
     ///
@@ -188,15 +189,27 @@ pub enum EncodeAlgo {
     /// Compression Rate: B+
     MK8,
 }
+
 impl EncodeAlgo {
     /// Alias for the `MKW` algorithm.
     #[allow(non_upper_case_globals)]
     pub const Nintendo: EncodeAlgo = EncodeAlgo::MKW;
 }
 
+#[derive(Debug, Clone)]
 pub enum Error {
     Error(String),
 }
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Error::Error(str) => write!(f, "{}", str)
+        }
+    }
+}
+
+impl std::error::Error for Error {}
 
 /// Performs in-place encoding of the source slice using the specified encoding algorithm.
 ///
