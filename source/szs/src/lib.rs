@@ -7,7 +7,37 @@ use std::convert::TryInto;
 #[allow(non_snake_case)]
 #[allow(dead_code)]
 mod bindings {
+    #[cfg(feature = "run_bindgen")]
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+
+    // For now, just manually embed these...
+    #[cfg(not(feature = "run_bindgen"))]
+    extern "C" {
+        pub fn impl_rii_is_szs_compressed(src: *const ::std::os::raw::c_void, len: u32) -> u32;
+        pub fn impl_rii_get_szs_expand_size(src: *const ::std::os::raw::c_void, len: u32) -> u32;
+        pub fn impl_riiszs_decode(
+            buf: *mut ::std::os::raw::c_void,
+            len: u32,
+            src: *const ::std::os::raw::c_void,
+            src_len: u32,
+        ) -> *const ::std::os::raw::c_char;
+        pub fn impl_rii_worst_encoding_size(len: u32) -> u32;
+        pub fn impl_rii_encodeAlgo(
+            dst: *mut ::std::os::raw::c_void,
+            dst_len: u32,
+            src: *const ::std::os::raw::c_void,
+            src_len: u32,
+            used_len: *mut u32,
+            algo: u32,
+        ) -> *const ::std::os::raw::c_char;
+        pub fn impl_rii_deinterlace(
+            dst: *mut ::std::os::raw::c_void,
+            dst_len: u32,
+            src: *const ::std::os::raw::c_void,
+            src_len: u32,
+            used_len: *mut u32,
+        ) -> *const ::std::os::raw::c_char;
+    }
 }
 
 /// Checks if the given byte slice is SZS (YAZ0) compressed.
@@ -160,6 +190,7 @@ pub enum EncodeAlgo {
 }
 impl EncodeAlgo {
     /// Alias for the `MKW` algorithm.
+    #[allow(non_upper_case_globals)]
     pub const Nintendo: EncodeAlgo = EncodeAlgo::MKW;
 }
 
