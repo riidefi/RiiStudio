@@ -14,8 +14,8 @@ match szs::encode(&src_data, szs::EncodeAlgo::Nintendo) {
     Ok(encoded_data) => {
         println!("Encoded into {} bytes", encoded_data.len());
     }
-    Err(szs::Error::Error(err_msg)) => {
-        println!("Encoding failed: {}", err_msg);
+    Err(err) => {
+        println!("Encoding failed: {}", err);
     }
 }
 ```
@@ -25,8 +25,8 @@ match szs::decode(&encoded_data) {
     Ok(decoded_data) => {
         println!("Decoded {} bytes", decoded_data.len());
     }
-    Err(szs::Error::Error(err_msg)) => {
-        println!("Decoding failed: {}", err_msg);
+    Err(err) => {
+        println!("Decoding failed: {}", err);
     }
 }
 ```

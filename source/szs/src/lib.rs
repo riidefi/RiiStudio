@@ -204,7 +204,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Error::Error(str) => write!(f, "{}", str)
+            Error::Error(str) => write!(f, "{}", str),
         }
     }
 }
@@ -252,7 +252,7 @@ impl std::error::Error for Error {}
 ///         println!("Encoded {} bytes", encoded_len);
 ///         dst.truncate(encoded_len as usize);  // Adjust the vector to the actual encoded length
 ///     },
-///     Err(szs::Error::Error(err)) => println!("Error: {}", err),
+///     Err(err) => println!("Error: {}", err),
 /// }
 /// ```
 pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, Error> {
@@ -307,7 +307,7 @@ pub fn encode_into(dst: &mut [u8], src: &[u8], algo: EncodeAlgo) -> Result<u32, 
 ///
 /// match szs::encode(src, algorithm) {
 ///     Ok(encoded_data) => println!("Encoded data length: {}", encoded_data.len()),
-///     Err(szs::Error::Error(err)) => println!("Error: {}", err),
+///     Err(err) => println!("Error: {}", err),
 /// }
 /// ```
 pub fn encode(src: &[u8], algo: EncodeAlgo) -> Result<Vec<u8>, Error> {
@@ -363,7 +363,7 @@ pub fn encode(src: &[u8], algo: EncodeAlgo) -> Result<Vec<u8>, Error> {
 ///
 /// match szs::decode_into(&mut dst, src) {
 ///     Ok(_) => println!("Successfully decoded"),
-///     Err(szs::Error::Error(err)) => println!("Decoding error: {}", err),
+///     Err(err) => println!("Decoding error: {}", err),
 /// }
 /// ```
 pub fn decode_into(dst: &mut [u8], src: &[u8]) -> Result<(), Error> {
@@ -410,7 +410,7 @@ pub fn decode_into(dst: &mut [u8], src: &[u8]) -> Result<(), Error> {
 ///
 /// match szs::decode(src) {
 ///     Ok(decoded_data) => println!("Decoded data length: {}", decoded_data.len()),
-///     Err(szs::Error::Error(err)) => println!("Decoding error: {}", err),
+///     Err(err) => println!("Decoding error: {}", err),
 /// }
 /// ```
 pub fn decode(src: &[u8]) -> Result<Vec<u8>, Error> {
@@ -449,7 +449,7 @@ pub fn decode(src: &[u8]) -> Result<Vec<u8>, Error> {
 ///
 /// match szs::decode_yay0_into(&mut uncompressed, src) {
 ///     Ok(_) => println!("Decompression successful!"),
-///     Err(szs::Error::Error(err)) => println!("Error: {}", err),
+///     Err(err) => println!("Error: {}", err),
 /// }
 /// ```
 pub fn decode_yay0_into(dst: &mut [u8], src: &[u8]) -> Result<(), Error> {
@@ -536,7 +536,7 @@ pub fn decode_yay0_into(dst: &mut [u8], src: &[u8]) -> Result<(), Error> {
 ///
 /// match szs::decode_yay0(compressed) {
 ///     Ok(uncompressed) => println!("Decompressed data size: {}", uncompressed.len()),
-///     Err(szs::Error::Error(err)) => println!("Error: {}", err),
+///     Err(err) => println!("Error: {}", err),
 /// }
 /// ```
 pub fn decode_yay0(src: &[u8]) -> Result<Vec<u8>, Error> {
@@ -602,7 +602,7 @@ pub fn deinterlaced_upper_bound(len: u32) -> u32 {
 ///
 /// match szs::deinterlace_into(&mut dst, src) {
 ///     Ok(deinterlaced_len) => println!("Deinterlaced {} bytes", deinterlaced_len),
-///     Err(szs::Error::Error(err)) => println!("Deinterlacing error: {}", err),
+///     Err(err) => println!("Deinterlacing error: {}", err),
 /// }
 /// ```
 pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, Error> {
@@ -652,7 +652,7 @@ pub fn deinterlace_into(dst: &mut [u8], src: &[u8]) -> Result<u32, Error> {
 ///
 /// match szs::deinterlace(src) {
 ///     Ok(deinterlaced_data) => println!("Deinterlaced data length: {}", deinterlaced_data.len()),
-///     Err(szs::Error::Error(err)) => println!("Deinterlacing error: {}", err),
+///     Err(err) => println!("Deinterlacing error: {}", err),
 /// }
 /// ```
 pub fn deinterlace(src: &[u8]) -> Result<Vec<u8>, Error> {
