@@ -84,6 +84,10 @@ static inline uint32_t decoded_size(std::span<const uint8_t> src) {
   return ::riiszs_decoded_size(src.data(), src.size());
 }
 
+static inline uint32_t encoded_upper_bound(uint32_t len) {
+  return ::riiszs_encoded_upper_bound(len);
+}
+
 static inline std::expected<uint32_t, std::string>
 encode_into(std::span<uint8_t> dst, std::span<const uint8_t> src, Algo algo) {
   uint32_t used_len = 0;

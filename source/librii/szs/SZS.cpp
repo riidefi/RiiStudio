@@ -1,5 +1,7 @@
 #include "SZS.hpp"
 
+// RIISZS_NO_INCLUDE_EXPECTED: We prefer to use our definition, which may be a
+// shim for tl::expected on incompatible systems*
 #define RIISZS_NO_INCLUDE_EXPECTED
 #include <szs/include/szs.h>
 
@@ -34,7 +36,7 @@ Result<void> decode(std::span<u8> dst, std::span<const u8> src, bool yay0) {
 }
 
 u32 getWorstEncodingSize(std::span<const u8> src) {
-  return 16 + roundUp(src.size(), 8) / 8 * 9 - 1;
+  return ::szs::encoded_upper_bound(static_cast<u32>(src.size()));
 }
 
 std::string_view szs_version() {
