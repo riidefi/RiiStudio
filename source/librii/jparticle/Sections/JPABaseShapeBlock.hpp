@@ -220,7 +220,7 @@ struct JPABaseShapeBlock {
   CalcIdxType texCalcIdxType;
   u8 texIdx;
   std::vector<u8> texIdxAnimData;
-  u16 texIdxLoopOfstMask;
+  u8 texIdxLoopOfstMask;
 
   // Texture Coordinate Animation
   bool isEnableProjection;
@@ -244,7 +244,7 @@ struct JPABaseShapeBlock {
   std::vector<ColorTableEntry> colorPrmAnimData;
   std::vector<ColorTableEntry> colorEnvAnimData;
   u16 colorAnimMaxFrm;
-  u16 colorLoopOfstMask;
+  u8 colorLoopOfstMask;
 };
 
 jeff_jpa::JPABaseShapeBlock

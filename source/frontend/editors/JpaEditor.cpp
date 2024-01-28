@@ -98,7 +98,7 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPABaseShapeBlock* block) {
 
   ImGui::Checkbox("Enabled", &block->zTest);
   block->zCompare = imcxx::EnumCombo("Comparison", block->zCompare);
-  ImGui::Checkbox("Overwrite", &block->zTest);
+  ImGui::Checkbox("Overwrite", &block->zWrite);
 
   ImGui::Text("Texture Palette Animation");
 
@@ -308,6 +308,7 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAExtraShapeBlock* block) {
 void JpaEditorPropertyGrid::Draw(librii::jpa::JPAFieldBlock* block) {
   block->type = imcxx::EnumCombo("Field Type", block->type);
   block->addType = imcxx::EnumCombo("Field Add Type", block->addType);
+  ImGui::InputScalar("Status Flags", ImGuiDataType_U8, &block->sttFlag);
   // block.addType = imcxx::EnumCombo("Field Status Type", block.addType);
 
   ImGui::InputFloat("Max Distance", &block->maxDist);
@@ -353,6 +354,9 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAChildShapeBlock* block) {
   ImGui::InputScalar("Step", ImGuiDataType_U16, &block->step);
   ImGui::InputFloat("Position Random", &block->posRndm);
   ImGui::InputFloat("Base Velocity", &block->baseVel);
+
+
+  ImGui::InputScalar("Texture Index", ImGuiDataType_U8, &block->texIdx);
 
   ImGui::Checkbox("Enable field", &block->isEnableField);
   ImGui::Checkbox("Enable scale out", &block->isEnableScaleOut);
@@ -413,6 +417,20 @@ void JpaEditorPropertyGrid::refreshGradientWidgets(
         ImGG::Mark{ImGG::RelativePosition{position},
                    ImVec4{color_entry.color.r, color_entry.color.g,
                           color_entry.color.b, color_entry.color.a}});
+  }
+}
+
+void JpaEditorPropertyGrid::Draw(librii::jpa::JPAKeyBlock* block) {
+  
+}
+
+void JpaEditorPropertyGrid::Draw(std::vector<u16> block) {
+  for (int i = 0; i < block.size(); i++) {
+    auto str = std::format("texture Id {}", i);
+    ImGui::PushID(str.c_str());
+    ImGui::InputScalar("", ImGuiDataType_U8, &block[i]);
+
+    ImGui::PopID();
   }
 }
 

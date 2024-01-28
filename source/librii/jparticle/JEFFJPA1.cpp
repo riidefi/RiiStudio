@@ -40,6 +40,13 @@ void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac) {
 
   librii::jpa::WriteJEFF_JPABaseShapeBlock(writer, bsp);
 
+  if (jpac.resources[0].ssp1.has_value()) {
+    numberOfSections++;
+    rsl::WriteFields(writer, librii::jpa::To_JEFF_JPAChildShapeBlock(
+                                 jpac.resources[0].ssp1.value(),
+                                 jpac.resources[0].bsp1.isNoDrawParent));
+  }
+
   if (jpac.resources[0].esp1.has_value()) {
     numberOfSections++;
     rsl::WriteFields(writer, librii::jpa::To_JEFF_JPAExtraShapeBlock(
@@ -47,6 +54,7 @@ void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac) {
   }
   for (auto& texture : jpac.textures) {
 
+    u32 sectionStart = writer.tell();
     numberOfSections++;
     writer.write('TEX1');
     auto buffer_size = librii::gx::computeImageSize(
@@ -65,7 +73,7 @@ void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac) {
     }
 
     // Now pad out to a multiple of 0x20
-    for (u32 i = 0; i < (writer.tell() % 0x20); i++) {
+    for (u32 i = 0; i < 0x20-((writer.tell() - sectionStart)); i++) {
       writer.write<u8>(0);
     }
 

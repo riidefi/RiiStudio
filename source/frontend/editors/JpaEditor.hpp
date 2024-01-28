@@ -50,7 +50,9 @@ public:
   void Draw(librii::jpa::JPAFieldBlock* block);
   void Draw(librii::jpa::JPAChildShapeBlock* block);
   void Draw(librii::jpa::JPAExTexBlock* block);
+  void Draw(librii::jpa::JPAKeyBlock* block);
   void Draw(librii::jpa::TextureBlock block);
+  void Draw(std::vector<u16> block);
 
   void refreshGradientWidgets(librii::jpa::JPABaseShapeBlock* block);
 
@@ -65,9 +67,14 @@ using JPABlockSelection = std::variant<librii::jpa::JPADynamicsBlock*,
                                        librii::jpa::JPAExtraShapeBlock*,
                                        librii::jpa::JPAFieldBlock*,
                                        librii::jpa::TextureBlock,
+                                       std::vector<u16>,
                                        std::monostate>;
 
 class JpaEditorTreeView {
+private:
+  Lib3dCachedImagePreview preview;
+  IconManager mIconManager;
+
 public:
   void Draw(std::vector<librii::jpa::JPAResource>& resources,
             std::vector<librii::jpa::TextureBlock>& tex,
@@ -81,7 +88,7 @@ public:
         if (ImGui::TreeNodeEx(str.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
           if (ImGui::BeginPopupContextItem(str.c_str())) {
 
-            if (x.esp1.has_value()) {
+            if (!x.esp1.has_value()) {
               if (ImGui::MenuItem("Add Extra Shape")) {
                 x.esp1.emplace(librii::jpa::JPAExtraShapeBlock());
               }
@@ -89,11 +96,45 @@ public:
             // if (!x.etx1) {
             //   ImGui::MenuItem("Add Extra Texture");
             // }
-            // if (!x.ssp1) {
-            //   if(ImGui::MenuItem("Add Child Shape")) {
-            //     x.ssp1 = std::make_unique<librii::jpa::JPAChildShapeBlock>();
-            //   }
-            // }
+            if (!x.ssp1.has_value()) {
+              if(ImGui::MenuItem("Add Child Shape")) {
+                x.ssp1.emplace(librii::jpa::JPAChildShapeBlock());
+              }
+            }
+
+            if (ImGui::MenuItem("Export as JEffect")) {
+                auto default_filename =
+                    std::filesystem::path("").filename();
+                std::vector<std::string> filters{
+                    "JEffect Particle File (*.jpa)", "*.jpa"};
+                auto results = rsl::SaveOneFile(
+                    "Save File"_j, default_filename.string(), filters);
+                if (!results) {
+                  rsl::ErrorDialog("No saving - No file selected");
+                  return;
+                }
+                auto path = results->string();
+
+                if (!path.ends_with(".jpa")) {
+                  path += ".jpa";
+                }
+
+                // Create a new JPC that only contains our
+                librii::jpa::JPAC collection;
+
+                assert(resource.tdb1.size() > 0);
+
+                for (int i = 0; i < x.tdb1.size(); i++) {
+                  collection.textures.push_back(tex[x.tdb1[i]]);
+                }
+                collection.resources.push_back(x);
+
+                rsl::trace("Attempting to save to {}", path);
+                oishii::Writer writer(std::endian::big);
+                SaveAsJEFFJP(writer, collection);
+                writer.saveToDisk(path);
+            }
+
 
             ImGui::EndPopup();
           }
@@ -119,6 +160,18 @@ public:
           }
           if (x.ssp1.has_value()) {
             if (ImGui::Selectable("Child Shape")) {
+              selected = &x.ssp1.value();
+            }
+            if (ImGui::BeginPopupContextItem(nullptr)) {
+              if (ImGui::MenuItem("Delete")) {
+                x.ssp1.reset();
+                selected = {};
+              }
+              ImGui::EndPopup();
+            }
+          }
+          if (x.etx1.has_value()) {
+            if (ImGui::Selectable("Extra Texture")) {
               selected = &x.ssp1.value();
             }
           }
@@ -156,6 +209,44 @@ public:
             ImGui::TreePop();
           }
 
+
+          if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (ImGui::BeginPopupContextItem(str.c_str())) {
+              if (ImGui::MenuItem("Add BTI texture")) {
+                librii::jpa::importBTI(tex);
+
+              }
+            
+              ImGui::EndPopup();
+            }
+            for (int i = 0; i < x.tdb1.size();i++) {
+              auto name = tex[x.tdb1[i]].getName();
+              if (ImGui::Selectable(name.c_str())) {
+                selected = tex[x.tdb1[i]];
+              }
+              if (ImGui::BeginPopupContextItem(name.c_str())) {
+                if (ImGui::MenuItem("Export")) {
+                  librii::jpa::exportBTI(name.c_str(), tex[x.tdb1[i]]);
+                }
+                if (ImGui::MenuItem("Replace")) {
+                  librii::jpa::replaceBTI(name.c_str(), tex[x.tdb1[i]]);
+                  selected = tex[x.tdb1[i]];
+                }
+                if (ImGui::MenuItem("Delete")) {
+                  tex.erase(tex.begin() + x.tdb1[i]);
+                  x.tdb1.erase(x.tdb1.begin() + i);
+                  selected = {};
+                }
+                ImGui::EndPopup();
+              }
+            }
+            ImGui::TreePop();
+          }
+
+          if (ImGui::Selectable("Keyframes")) {
+            // selected = &x.ssp1.value();
+          }
+
           ImGui::TreePop();
         }
         entryNum++;
@@ -166,7 +257,7 @@ public:
         if (ImGui::MenuItem("Add BTI texture")) {
           librii::jpa::importBTI(tex);
         }
-
+    
         ImGui::EndPopup();
       }
       for (int i = 0; i < tex.size(); i++) {
@@ -174,6 +265,9 @@ public:
         if (ImGui::Selectable(name.c_str())) {
           selected = tex[i];
         }
+        ImGui::SameLine();
+        mIconManager.drawImageIcon(&tex[i], 16);
+
         if (ImGui::BeginPopupContextItem(name.c_str())) {
           if (ImGui::MenuItem("Export")) {
             librii::jpa::exportBTI(name.c_str(), tex[i]);
@@ -282,6 +376,8 @@ public:
       } else if (auto* x =
           std::get_if<librii::jpa::TextureBlock>(&m_selected)) {
         m_sheet.Draw([&]() { m_grid.Draw(*x); });
+      } else if (auto* x = std::get_if<std::vector<u16>>(&m_selected)) {
+        m_sheet.Draw([&]() { m_grid.Draw(*x); });
       }
     }
     ImGui::End();
@@ -318,9 +414,15 @@ public:
 
   void saveAs(std::string_view path) {
     rsl::trace("Attempting to save to {}", path);
-    oishii::Writer writer(std::endian::big);
-    SaveAsJEFFJP(writer, m_jpa);
-    writer.saveToDisk(path);
+
+    if (m_jpa.version == 0) {
+      oishii::Writer writer(std::endian::big);
+      SaveAsJEFFJP(writer, m_jpa);
+      writer.saveToDisk(path);
+    } else {
+      rsl::ErrorDialog("JPAC: File saving is not supported");
+    }
+
   }
 
   void saveButton() override {

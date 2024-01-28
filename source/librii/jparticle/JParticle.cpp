@@ -125,6 +125,9 @@ JPAC::load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
       block.volumeSize = TRY(reader.tryGetAt<u16>(tag_start + 0x74));
       block.divNumber = TRY(reader.tryGetAt<u16>(tag_start + 0x76));
       block.rateStep = TRY(reader.tryGetAt<u8>(tag_start + 0x78));
+
+      block.moment = 1;
+
       resource.bem1 = block;
     } else if (tag_name == 'BSP1') {
       // JPABaseShape
@@ -165,8 +168,10 @@ JPAC::load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
       u16 blendModeFlags = TRY(reader.tryGetAt<u16>(tag_start + 0x18));
 
       block.blendMode = static_cast<gx::BlendModeType>(blendModeFlags & 0x3);
-      block.blendSrcFactor = static_cast<gx::BlendModeFactor>((blendModeFlags >> 2) & 0x7);
-      block.blendSrcFactor = static_cast<gx::BlendModeFactor>((blendModeFlags >> 6) & 0x7);
+      block.blendSrcFactor = static_cast<gx::BlendModeFactor>(
+        (blendModeFlags >> 2) & 0x7);
+      block.blendDstFactor = static_cast<gx::BlendModeFactor>(
+        (blendModeFlags >> 6) & 0x7);
 
       u8 alphaCompareFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x1A));
 
@@ -178,12 +183,11 @@ JPAC::load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
       block.alphaRef0 = TRY(reader.tryGetAt<u8>(tag_start + 0x1B));
       block.alphaRef1 = TRY(reader.tryGetAt<u8>(tag_start + 0x1C));
 
-
       u8 zModeFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x1D));
 
       block.zTest = static_cast<bool>(zModeFlags & 0x1);
       block.zCompare = static_cast<gx::Comparison>((zModeFlags >> 1) & 0x7);
-      block.zWrite = static_cast<bool>((blendModeFlags >> 4) & 0x1);
+      block.zWrite = static_cast<bool>((zModeFlags >> 4) & 0x1);
 
       u8 texFlags = TRY(reader.tryGetAt<u8>(tag_start + 0x1E));
       u8 texIdxAnimDataCount = TRY(reader.tryGetAt<u8>(tag_start + 0x1F));
@@ -195,7 +199,7 @@ JPAC::load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
           true>(tag_start + 0x26)));
       block.colorEnv = gx::Color(
           TRY(reader.tryGetAt<u32, oishii::EndianSelect::Current, true>(
-              tag_start + 0x2A)));
+                tag_start + 0x2A)));
 
       block.texCalcIdxType = static_cast<CalcIdxType>((texFlags >> 2) & 0x07);
 
@@ -258,6 +262,136 @@ JPAC::load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
 
       resource.bsp1 = block;
 
+    } else if (tag_name == 'ESP1') {
+
+      JPAExtraShapeBlock block = JPAExtraShapeBlock();
+
+      u32 flags = TRY(reader.tryGetAt<u32>(tag_start + 0x08));
+      block.isEnableScale = !!((flags >> 0) & 0x01);
+      block.isDiffXY = !!((flags >> 1) & 0x01);
+      block.scaleAnmTypeX = static_cast<CalcScaleAnmType>((flags >> 8) & 0x03);
+      block.scaleAnmTypeY = static_cast<CalcScaleAnmType>((flags >> 10) & 0x03);
+      block.pivotX = (flags >> 12) & 0x03;
+      block.pivotY = (flags >> 14) & 0x03;
+      block.isEnableAlpha = !!((flags >> 16) & 0x01);
+      block.isEnableSinWave = !!((flags >> 17) & 0x01);
+      block.isEnableRotate = !!((flags >> 24) & 0x01);
+      block.alphaWaveType = CalcAlphaWaveType::NrmSin;
+      // isEnableScaleBySpeedX was removed in JPA 2.0.
+      block.isEnableScaleBySpeedX = false;
+      // isEnableScaleBySpeedY was removed in JPA 2.0.
+      block.isEnableScaleBySpeedY = false;
+
+      block.scaleInTiming = TRY(reader.tryGetAt<f32>(tag_start + 0x0C));
+      block.scaleOutTiming = TRY(reader.tryGetAt<f32>(tag_start + 0x10));
+      block.scaleInValueX = TRY(reader.tryGetAt<f32>(tag_start + 0x14));
+      block.scaleOutValueX = TRY(reader.tryGetAt<f32>(tag_start + 0x18));
+      block.scaleInValueY = TRY(reader.tryGetAt<f32>(tag_start + 0x1C));
+      block.scaleOutValueY = TRY(reader.tryGetAt<f32>(tag_start + 0x20));
+      block.scaleOutRandom = TRY(reader.tryGetAt<f32>(tag_start + 0x24));
+      block.scaleAnmMaxFrameX = TRY(reader.tryGetAt<u16>(tag_start + 0x28));
+      block.scaleAnmMaxFrameY = TRY(reader.tryGetAt<u16>(tag_start + 0x2A));
+
+      block.scaleIncreaseRateX = 1, block.scaleIncreaseRateY = 1;
+      if (block.scaleInTiming > 0) {
+        block.scaleIncreaseRateX =
+            (1.0 - block.scaleInValueX) / block.scaleInTiming;
+        block.scaleIncreaseRateY =
+            (1.0 - block.scaleInValueY) / block.scaleInTiming;
+      }
+
+      block.scaleDecreaseRateX = 1, block.scaleDecreaseRateY = 1;
+      if (block.scaleOutTiming < 1) {
+        block.scaleDecreaseRateX =
+            (block.scaleOutValueX - 1.0) / (1.0 - block.scaleOutTiming);
+        block.scaleDecreaseRateY =
+            (block.scaleOutValueY - 1.0) / (1.0 - block.scaleOutTiming);
+      }
+
+      block.alphaInTiming = TRY(reader.tryGetAt<f32>(tag_start + 0x2C));
+      block.alphaOutTiming = TRY(reader.tryGetAt<f32>(tag_start + 0x30));
+      block.alphaInValue = TRY(reader.tryGetAt<f32>(tag_start + 0x34));
+      block.alphaBaseValue = TRY(reader.tryGetAt<f32>(tag_start + 0x38));
+      block.alphaOutValue = TRY(reader.tryGetAt<f32>(tag_start + 0x3C));
+
+      block.alphaDecreaseRate = 1;
+      if (block.alphaInTiming > 0)
+        block.alphaIncreaseRate =
+            (block.alphaBaseValue - block.alphaInValue) / block.alphaInTiming;
+
+      block.alphaDecreaseRate = 1;
+      if (block.alphaOutTiming < 1)
+        block.alphaDecreaseRate =
+            (block.alphaOutValue - block.alphaBaseValue) / (
+              1.0f - block.alphaOutTiming);
+
+      f32 alphaWaveFrequency = TRY(reader.tryGetAt<f32>(tag_start + 0x40));
+      block.alphaWaveRandom = TRY(reader.tryGetAt<f32>(tag_start + 0x44));
+      f32 alphaWaveAmplitude = TRY(reader.tryGetAt<f32>(tag_start + 0x48));
+
+      // Put in terms of JPA1 alpha wave parameters.
+      block.alphaWaveParam1 = alphaWaveFrequency;
+      block.alphaWaveParam2 = 0.0;
+      block.alphaWaveParam3 = alphaWaveAmplitude;
+
+      block.rotateAngle = TRY(reader.tryGetAt<f32>(tag_start + 0x4C)) *
+                          std::numbers::pi * 2 / 0xFFFF;
+      block.rotateAngleRandom = TRY(reader.tryGetAt<f32>(tag_start + 0x50)) *
+                                std::numbers::pi * 2 / 0xFFFF;
+      block.rotateSpeed = TRY(reader.tryGetAt<f32>(tag_start + 0x54)) *
+                          std::numbers::pi * 2 / 0xFFFF;
+      block.rotateSpeedRandom = TRY(reader.tryGetAt<f32>(tag_start + 0x58));
+      block.rotateDirection = TRY(reader.tryGetAt<f32>(tag_start + 0x5C));
+
+      resource.esp1.emplace(block);
+    } else if (tag_name == 'SSP1') {
+      // JPAChildShape / JPASweepShape
+      // Contains child particle draw settings.
+      JPAChildShapeBlock block = JPAChildShapeBlock();
+
+      u32 flags = TRY(reader.tryGetAt<u32>(tag_start + 0x08));
+      block.shapeType = static_cast<ShapeType>((flags >> 0) & 0x0F);
+      block.dirType = static_cast<DirType>((flags >> 4) & 0x07);
+      block.rotType = static_cast<RotType>((flags >> 7) & 0x07);
+      block.planeType = static_cast<PlaneType>((flags >> 10) & 0x01);
+      block.isInheritedScale = ((flags >> 16) & 0x01);
+      block.isInheritedAlpha = ((flags >> 17) & 0x01);
+      block.isInheritedRGB = ((flags >> 18) & 0x01);
+      block.isEnableField = ((flags >> 21) & 0x01);
+      block.isEnableScaleOut = ((flags >> 22) & 0x01);
+      block.isEnableAlphaOut = ((flags >> 23) & 0x01);
+      block.isEnableRotate = ((flags >> 24) & 0x01);
+
+      if (block.shapeType == ShapeType::DirectionCross ||
+          block.shapeType == ShapeType::RotationCross)
+        block.planeType = PlaneType::X;
+
+      block.posRndm = TRY(reader.tryGetAt<f32>(tag_start + 0x0C));
+      block.baseVel = TRY(reader.tryGetAt<f32>(tag_start + 0x10));
+      block.baseVelRndm = TRY(reader.tryGetAt<f32>(tag_start + 0x14));
+      block.velInfRate = TRY(reader.tryGetAt<f32>(tag_start + 0x18));
+      block.gravity = TRY(reader.tryGetAt<f32>(tag_start + 0x1C));
+
+      f32 globalScale2DX = TRY(reader.tryGetAt<f32>(tag_start + 0x20));
+      f32 globalScale2DY = TRY(reader.tryGetAt<f32>(tag_start + 0x24));
+      block.globalScale2D = glm::vec2(globalScale2DX, globalScale2DY);
+
+      block.inheritScale = TRY(reader.tryGetAt<f32>(tag_start + 0x28));
+      block.inheritAlpha = TRY(reader.tryGetAt<f32>(tag_start + 0x2C));
+      block.inheritRGB = TRY(reader.tryGetAt<f32>(tag_start + 0x30));
+      block.colorPrm =
+          colorFromRGBA8(TRY(reader.tryGetAt<u32>(tag_start + 0x34)));
+      block.colorEnv =
+          colorFromRGBA8(TRY(reader.tryGetAt<u32>(tag_start + 0x38)));
+      block.timing = TRY(reader.tryGetAt<f32>(tag_start + 0x3C));
+      block.life = TRY(reader.tryGetAt<u16>(tag_start + 0x40));
+      block.rate = TRY(reader.tryGetAt<u16>(tag_start + 0x42));
+      block.step = TRY(reader.tryGetAt<u8>(tag_start + 0x44));
+      block.texIdx = TRY(reader.tryGetAt<u8>(tag_start + 0x45));
+      block.rotateSpeed = TRY(reader.tryGetAt<u16>(tag_start + 0x46)) / 0xFFFF;
+
+      resource.ssp1.emplace(block);
+
     } else if (tag_name == 'FLD1') {
 
       JPAFieldBlock block = JPAFieldBlock();
@@ -265,7 +399,7 @@ JPAC::load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
       u32 flags = TRY(reader.tryGetAt<u32>(tag_start + 0x08));
       block.type = static_cast<FieldType>((flags >> 0) & 0x0F);
       block.addType = static_cast<FieldAddType>((flags >> 8) & 0x03);
-      // block.sttFlag = (flags >> 16);
+      block.sttFlag = (flags >> 16);
 
       f32 posX = TRY(reader.tryGetAt<f32>(tag_start + 0x0C));
       f32 posY = TRY(reader.tryGetAt<f32>(tag_start + 0x10));
@@ -323,6 +457,8 @@ JPAC::load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
         block.innerSpeed = param1;
       }
       resource.fld1.push_back(block);
+    } else if (tag_name == 'TDB1') {
+      resource.tdb1 = TRY(reader.tryReadBuffer<u16>(tdb1Count,tag_start + 0x8));
     }
 
     reader.seek(tag_start + tag_size);
@@ -334,6 +470,7 @@ JPAC::load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
 
 Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
                                              s32 tag_count) {
+
 
   JPAResource resource = JPAResource();
 
@@ -438,9 +575,10 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
                                    : 0x0000;
       block.isGlblTexAnm = !!((texAnmCalcFlags >> 1) & 0x01);
 
+
       block.colorLoopOfstMask =
           !!((colorAnmCalcFlags >> 0) & 0x01) ? 0xFFFF : 0x0000;
-      block.isGlblClrAnm = ((colorAnmCalcFlags >> 1) & 0x01);
+      block.isGlblClrAnm = !!((colorAnmCalcFlags >> 1) & 0x01);
 
       block.shapeType = {TRY(reader.tryGetAt<u8>(tag_start + 0x24))};
       block.dirType = {TRY(reader.tryGetAt<u8>(tag_start + 0x25))};
@@ -725,9 +863,9 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
 
       block.isEnableRotate = TRY(reader.tryGetAt<u8>(tag_start + 0x56));
       u8 flags = TRY(reader.tryGetAt<u8>(tag_start + 0x57));
-      block.isInheritedScale = !!((flags >> 0) & 0x01);
-      block.isInheritedAlpha = !!((flags >> 1) & 0x01);
-      block.isInheritedRGB = !!((flags >> 2) & 0x01);
+      block.isInheritedScale = ((flags >> 0) & 0x01);
+      block.isInheritedAlpha = ((flags >> 1) & 0x01);
+      block.isInheritedRGB = ((flags >> 2) & 0x01);
 
       block.colorPrm = gx::Color(TRY(reader.tryGetAt<u32>(tag_start + 0x58)));
       block.colorEnv = gx::Color(TRY(reader.tryGetAt<u32>(tag_start + 0x5C)));
@@ -736,18 +874,14 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
           TRY(reader.tryGetAt<u16>(tag_start + 0x18)));
       block.velInfRate = JPAConvertFixToFloat(
           TRY(reader.tryGetAt<u16>(tag_start + 0x30)));
-      block.baseVelRndm = JPAConvertFixToFloat(
-          TRY(reader.tryGetAt<u16>(tag_start + 0x32)));
-      block.gravity = JPAConvertFixToFloat(
-          TRY(reader.tryGetAt<u16>(tag_start + 0x34)));
+      block.baseVelRndm = JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x32)));
+      block.gravity = JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x34)));
       block.inheritScale =
-          JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x32)));
+          JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x48)));
       block.inheritAlpha =
-          JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x32)));
-      block.inheritRGB = JPAConvertFixToFloat(
-          TRY(reader.tryGetAt<u16>(tag_start + 0x32)));
-      block.rotateSpeed = JPAConvertFixToFloat(
-          TRY(reader.tryGetAt<u16>(tag_start + 0x32)));
+          JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x4a)));
+      block.inheritRGB = JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x60)));
+      block.rotateSpeed = JPAConvertFixToFloat(TRY(reader.tryGetAt<u16>(tag_start + 0x54)));
 
       resource.ssp1.emplace(block);
 
@@ -827,7 +961,7 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
       block.addType = static_cast<FieldAddType>(TRY(
           reader.tryGetAt<u8>(tag_start + 0x0E)));
       block.cycle = TRY(reader.tryGetAt<u8>(tag_start + 0x0F));
-      block.sttFlag = static_cast<FieldStatusFlag>(
+      block.sttFlag = (
         TRY(reader.tryGetAt<u8>(tag_start + 0x10)));
 
       block.mag = TRY(reader.tryGetAt<f32>(tag_start + 0x14));
@@ -892,7 +1026,7 @@ Result<void> JPAC::load_block_data_from_file(oishii::BinaryReader& reader,
       }
       resource.fld1.push_back(block);
     } else if (tag_name == 'TEX1') {
-      // 
+      //
       reader.skip(0x4);
       auto name = TRY(reader.tryReadBuffer<u8>(0x14));
       librii::j3d::Tex tmp;
@@ -922,7 +1056,7 @@ Result<JPAC> JPAC::loadFromStream(oishii::BinaryReader& reader) {
   JPAC temp = JPAC();
   auto magic = TRY(reader.tryRead<u32>());
   if (magic == 'JEFF') {
-    version = 0;
+    temp.version = 0;
     reader.seekSet(0x0c);
     blockCount = TRY(reader.tryRead<u32>());
 
@@ -935,7 +1069,7 @@ Result<JPAC> JPAC::loadFromStream(oishii::BinaryReader& reader) {
   } else if (magic == 'JPAC') {
     auto version = TRY(reader.tryRead<u32>());
     if (version == '2-10') {
-      version = 2;
+      temp.version = 2;
 
       temp.resources = std::vector<JPAResource>();
 
