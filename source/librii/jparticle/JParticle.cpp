@@ -1056,7 +1056,7 @@ Result<JPAC> JPAC::loadFromStream(oishii::BinaryReader& reader) {
   JPAC temp = JPAC();
   auto magic = TRY(reader.tryRead<u32>());
   if (magic == 'JEFF') {
-    temp.version = 0;
+    version = 0;
     reader.seekSet(0x0c);
     blockCount = TRY(reader.tryRead<u32>());
 
@@ -1067,9 +1067,9 @@ Result<JPAC> JPAC::loadFromStream(oishii::BinaryReader& reader) {
 
     return temp;
   } else if (magic == 'JPAC') {
-    auto version = TRY(reader.tryRead<u32>());
-    if (version == '2-10') {
-      temp.version = 2;
+    auto subVersion = TRY(reader.tryRead<u32>());
+    if (subVersion == '2-10') {
+      version = 2;
 
       temp.resources = std::vector<JPAResource>();
 

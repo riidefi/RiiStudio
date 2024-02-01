@@ -78,6 +78,7 @@ private:
 public:
   void Draw(std::vector<librii::jpa::JPAResource>& resources,
             std::vector<librii::jpa::TextureBlock>& tex,
+	    u32 version,
             JpaEditorPropertyGrid& grid) {
 
     auto str = std::format("JPA resources ({} entries)", num_entries);
@@ -209,78 +210,81 @@ public:
             ImGui::TreePop();
           }
 
+          if (version == 2) {
+            if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
+              if (ImGui::BeginPopupContextItem(str.c_str())) {
+                if (ImGui::MenuItem("Add BTI texture")) {
+                  librii::jpa::importBTI(tex);
+                }
 
-          if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (ImGui::BeginPopupContextItem(str.c_str())) {
-              if (ImGui::MenuItem("Add BTI texture")) {
-                librii::jpa::importBTI(tex);
-
-              }
-            
-              ImGui::EndPopup();
-            }
-            for (int i = 0; i < x.tdb1.size();i++) {
-              auto name = tex[x.tdb1[i]].getName();
-              if (ImGui::Selectable(name.c_str())) {
-                selected = tex[x.tdb1[i]];
-              }
-              if (ImGui::BeginPopupContextItem(name.c_str())) {
-                if (ImGui::MenuItem("Export")) {
-                  librii::jpa::exportBTI(name.c_str(), tex[x.tdb1[i]]);
-                }
-                if (ImGui::MenuItem("Replace")) {
-                  librii::jpa::replaceBTI(name.c_str(), tex[x.tdb1[i]]);
-                  selected = tex[x.tdb1[i]];
-                }
-                if (ImGui::MenuItem("Delete")) {
-                  tex.erase(tex.begin() + x.tdb1[i]);
-                  x.tdb1.erase(x.tdb1.begin() + i);
-                  selected = {};
-                }
                 ImGui::EndPopup();
               }
+              for (int i = 0; i < x.tdb1.size(); i++) {
+                auto name = tex[x.tdb1[i]].getName();
+                if (ImGui::Selectable(name.c_str())) {
+                  selected = tex[x.tdb1[i]];
+                }
+
+                ImGui::SameLine();
+                mIconManager.drawImageIcon(&tex[x.tdb1[i]], 16);
+
+                if (ImGui::BeginPopupContextItem(name.c_str())) {
+                  if (ImGui::MenuItem("Export")) {
+                    librii::jpa::exportBTI(name.c_str(), tex[x.tdb1[i]]);
+                  }
+                  if (ImGui::MenuItem("Replace")) {
+                    librii::jpa::replaceBTI(name.c_str(), tex[x.tdb1[i]]);
+                    selected = tex[x.tdb1[i]];
+                  }
+                  if (ImGui::MenuItem("Delete")) {
+                    tex.erase(tex.begin() + x.tdb1[i]);
+                    x.tdb1.erase(x.tdb1.begin() + i);
+                    selected = {};
+                  }
+                  ImGui::EndPopup();
+                }
+              }
+              ImGui::TreePop();
             }
-            ImGui::TreePop();
           }
 
-          if (ImGui::Selectable("Keyframes")) {
-            // selected = &x.ssp1.value();
-          }
 
           ImGui::TreePop();
         }
         entryNum++;
       }
     }
-    if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
-      if (ImGui::BeginPopupContextItem(str.c_str())) {
-        if (ImGui::MenuItem("Add BTI texture")) {
-          librii::jpa::importBTI(tex);
-        }
-    
-        ImGui::EndPopup();
-      }
-      for (int i = 0; i < tex.size(); i++) {
-        auto name = tex[i].getName();
-        if (ImGui::Selectable(name.c_str())) {
-          selected = tex[i];
-        }
-        ImGui::SameLine();
-        mIconManager.drawImageIcon(&tex[i], 16);
-
-        if (ImGui::BeginPopupContextItem(name.c_str())) {
-          if (ImGui::MenuItem("Export")) {
-            librii::jpa::exportBTI(name.c_str(), tex[i]);
+    if (version == 0) {
+      if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::BeginPopupContextItem(str.c_str())) {
+          if (ImGui::MenuItem("Add BTI texture")) {
+            librii::jpa::importBTI(tex);
           }
-          if (ImGui::MenuItem("Replace")) {
-            librii::jpa::replaceBTI(name.c_str(), tex[i]);
+
+          ImGui::EndPopup();
+        }
+        for (int i = 0; i < tex.size(); i++) {
+          auto name = tex[i].getName();
+          if (ImGui::Selectable(name.c_str())) {
             selected = tex[i];
           }
-          if (ImGui::MenuItem("Delete")) {
-            tex.erase(tex.begin() + i);
-            selected = {};
+          ImGui::SameLine();
+          mIconManager.drawImageIcon(&tex[i], 16);
+
+          if (ImGui::BeginPopupContextItem(name.c_str())) {
+            if (ImGui::MenuItem("Export")) {
+              librii::jpa::exportBTI(name.c_str(), tex[i]);
+            }
+            if (ImGui::MenuItem("Replace")) {
+              librii::jpa::replaceBTI(name.c_str(), tex[i]);
+              selected = tex[i];
+            }
+            if (ImGui::MenuItem("Delete")) {
+              tex.erase(tex.begin() + i);
+              selected = {};
+            }
+            ImGui::EndPopup();
           }
-          ImGui::EndPopup();
         }
       }
     }
@@ -333,7 +337,8 @@ public:
     if (ImGui::Begin((idIfyChild("Outliner")).c_str())) {
       m_tree.num_entries = m_jpa.resources.size();
       m_tree.selected = m_selected;
-      m_tree.Draw(m_jpa.resources, m_jpa.textures, m_grid);
+      std::cout << m_jpa.version << std::endl;
+      m_tree.Draw(m_jpa.resources, m_jpa.textures, m_jpa.version, m_grid);
       m_selected = m_tree.selected;
     }
     ImGui::End();
