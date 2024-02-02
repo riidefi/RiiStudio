@@ -52,6 +52,7 @@ void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac) {
     rsl::WriteFields(writer, librii::jpa::To_JEFF_JPAExtraShapeBlock(
                          jpac.resources[0].esp1.value()));
   }
+
   for (auto& texture : jpac.textures) {
 
     u32 sectionStart = writer.tell();

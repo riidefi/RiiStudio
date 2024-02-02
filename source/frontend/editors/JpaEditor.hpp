@@ -337,7 +337,6 @@ public:
     if (ImGui::Begin((idIfyChild("Outliner")).c_str())) {
       m_tree.num_entries = m_jpa.resources.size();
       m_tree.selected = m_selected;
-      std::cout << m_jpa.version << std::endl;
       m_tree.Draw(m_jpa.resources, m_jpa.textures, m_jpa.version, m_grid);
       m_selected = m_tree.selected;
     }
