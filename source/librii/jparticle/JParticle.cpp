@@ -1104,7 +1104,9 @@ Result<JPAC> JPAC::loadFromStream(oishii::BinaryReader& reader) {
       for (int i = 0; i < textureCount; i++) {
         reader.seek(textureTableIdx);
         auto tag_name = TRY(reader.tryRead<s32>());
-        assert(tag_name == 'TEX1');
+        if(tag_name != 'TEX1') {
+          return std::unexpected("Unexpected tag found in texture area");
+        }
         u32 blockSize = TRY(reader.tryRead<u32>());
         reader.skip(0x4);
         auto name = TRY(reader.tryReadBuffer<u8>(0x14));

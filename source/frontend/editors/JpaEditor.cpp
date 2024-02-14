@@ -424,16 +424,6 @@ void JpaEditorPropertyGrid::Draw(librii::jpa::JPAKeyBlock* block) {
   
 }
 
-void JpaEditorPropertyGrid::Draw(std::vector<u16> block) {
-  for (int i = 0; i < block.size(); i++) {
-    auto str = std::format("texture Id {}", i);
-    ImGui::PushID(str.c_str());
-    ImGui::InputScalar("", ImGuiDataType_U8, &block[i]);
-
-    ImGui::PopID();
-  }
-}
-
 void JpaEditorPropertyGrid::Draw(librii::jpa::TextureBlock block) {
   preview.draw(block);
 }

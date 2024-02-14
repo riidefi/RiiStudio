@@ -52,7 +52,6 @@ public:
   void Draw(librii::jpa::JPAExTexBlock* block);
   void Draw(librii::jpa::JPAKeyBlock* block);
   void Draw(librii::jpa::TextureBlock block);
-  void Draw(std::vector<u16> block);
 
   void refreshGradientWidgets(librii::jpa::JPABaseShapeBlock* block);
 
@@ -67,7 +66,6 @@ using JPABlockSelection = std::variant<librii::jpa::JPADynamicsBlock*,
                                        librii::jpa::JPAExtraShapeBlock*,
                                        librii::jpa::JPAFieldBlock*,
                                        librii::jpa::TextureBlock,
-                                       std::vector<u16>,
                                        std::monostate>;
 
 class JpaEditorTreeView {
@@ -123,7 +121,10 @@ public:
                 // Create a new JPC that only contains our
                 librii::jpa::JPAC collection;
 
-                assert(resource.tdb1.size() > 0);
+		if (x.tdb1.size() == 0) {
+                  rsl::ErrorDialog("There are no textures associated to this ");
+                  return;
+		}
 
                 for (int i = 0; i < x.tdb1.size(); i++) {
                   collection.textures.push_back(tex[x.tdb1[i]]);
@@ -224,10 +225,6 @@ public:
                 if (ImGui::Selectable(name.c_str())) {
                   selected = tex[x.tdb1[i]];
                 }
-
-                ImGui::SameLine();
-                mIconManager.drawImageIcon(&tex[x.tdb1[i]], 16);
-
                 if (ImGui::BeginPopupContextItem(name.c_str())) {
                   if (ImGui::MenuItem("Export")) {
                     librii::jpa::exportBTI(name.c_str(), tex[x.tdb1[i]]);
@@ -243,6 +240,9 @@ public:
                   }
                   ImGui::EndPopup();
                 }
+
+                ImGui::SameLine();
+                mIconManager.drawImageIcon(&tex[x.tdb1[i]], 16);
               }
               ImGui::TreePop();
             }
@@ -268,8 +268,6 @@ public:
           if (ImGui::Selectable(name.c_str())) {
             selected = tex[i];
           }
-          ImGui::SameLine();
-          mIconManager.drawImageIcon(&tex[i], 16);
 
           if (ImGui::BeginPopupContextItem(name.c_str())) {
             if (ImGui::MenuItem("Export")) {
@@ -285,6 +283,9 @@ public:
             }
             ImGui::EndPopup();
           }
+
+          ImGui::SameLine();
+          mIconManager.drawImageIcon(&tex[i], 16);
         }
       }
     }
@@ -379,8 +380,6 @@ public:
         });
       } else if (auto* x =
           std::get_if<librii::jpa::TextureBlock>(&m_selected)) {
-        m_sheet.Draw([&]() { m_grid.Draw(*x); });
-      } else if (auto* x = std::get_if<std::vector<u16>>(&m_selected)) {
         m_sheet.Draw([&]() { m_grid.Draw(*x); });
       }
     }

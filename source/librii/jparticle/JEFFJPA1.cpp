@@ -74,7 +74,7 @@ void SaveAsJEFFJP(oishii::Writer& writer, const librii::jpa::JPAC& jpac) {
     }
 
     // Now pad out to a multiple of 0x20
-    for (u32 i = 0; i < 0x20-((writer.tell() - sectionStart)); i++) {
+    for (u32 i = 0; i < (writer.tell() % 0x20); i++) {
       writer.write<u8>(0);
     }
 
