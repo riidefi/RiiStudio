@@ -45,7 +45,8 @@ struct JPAFieldBlock {
   u8 _D = 0;
   u8 addType;
   u8 cycle;
-  u16 sttFlag;
+  u8 sttFlag;
+  u8 _F = 0;
   u16 _10 = 0;
   f32 mag;
   f32 magRndm;
@@ -61,8 +62,8 @@ struct JPAFieldBlock {
   f32 param3;
   u16 fadeIn;
   u16 fadeOut;
-  u16 disTime;
   u16 enTime;
+  u16 disTime;
   u32 _48 = 0;
   u32 _4C = 0;
   u32 _50 = 0;
@@ -73,7 +74,7 @@ struct JPAFieldBlock {
 }
 
 struct JPAFieldBlock {
-  FieldStatusFlag sttFlag;
+  u32 sttFlag;
   FieldType type;
   FieldAddType addType;
   f32 maxDist;

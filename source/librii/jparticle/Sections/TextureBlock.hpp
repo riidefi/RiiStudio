@@ -47,7 +47,6 @@ public:
   u16 getHeight() const override { return tex.mHeight; };
   void setHeight(u16 height) override{};
 
-
 };
 
 } // namespace librii::jpa

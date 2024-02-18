@@ -162,7 +162,8 @@ add_library(librii STATIC
  "jparticle/JEFFJPA1.cpp"
  "jparticle/Sections/JPADynamicsBlock.cpp" 
  "jparticle/utils/JPAUtils.cpp" 
- "jparticle/Sections/JPAFieldBlock.cpp" 
+ "jparticle/Sections/JPAFieldBlock.cpp"
+  "jparticle/Sections/JPAChildShapeBlock.cpp" 
  "jparticle/Sections/JPAExtraShapeBlock.cpp" 
  "jparticle/Sections/JPABaseShapeBlock.cpp" 
  "jparticle/Sections/TextureUtil.cpp"
@@ -170,7 +171,7 @@ add_library(librii STATIC
 
  "tev/TevSolver.cpp"
  "assimp/LRAssimp.cpp"
- "assimp/LRAssimpJSON.cpp" "objflow/ObjFlow.cpp" "lettuce/LettuceLEX.cpp" "j3d/BinaryBTK.cpp" "g3d/io/AnimChrIO.cpp" "live_mkw/live_mkw.cpp" "wbz/WBZ.cpp" "dolphin/Dolphin.cpp" "crate/j3d_crate.cpp" "j3d/PreciseBMDDump.cpp" "g3d/io/JSON.cpp")
+ "assimp/LRAssimpJSON.cpp" "objflow/ObjFlow.cpp" "lettuce/LettuceLEX.cpp" "j3d/BinaryBTK.cpp" "g3d/io/AnimChrIO.cpp" "live_mkw/live_mkw.cpp" "wbz/WBZ.cpp" "dolphin/Dolphin.cpp" "crate/j3d_crate.cpp" "j3d/PreciseBMDDump.cpp" "g3d/io/JSON.cpp" "jparticle/Sections/JPAKeyBlock.cpp")
 
 # CMake w/ ARM MacOS GCC does not work with PCH. Passes "-Xarch_arm" which is not valid on GCC.
 if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))

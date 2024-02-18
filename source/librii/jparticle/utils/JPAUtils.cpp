@@ -11,6 +11,10 @@ u16 JPAConvertFloatToFixed(f32 number) {
     return 0x7FFF;
   }
 
+  if (number <= -1.0f) {
+    return 0x8000;
+  }
+
   return static_cast<short>(number * 0x8000);
 }
 

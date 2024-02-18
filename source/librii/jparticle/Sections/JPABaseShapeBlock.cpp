@@ -9,9 +9,9 @@ jeff_jpa::JPABaseShapeBlock
 To_JEFF_JPABaseShapeBlock(const JPABaseShapeBlock& b) {
 
 
-  u8 texAnmCalcFlags = (b.isGlblTexAnm << 1) | (b.texIdxLoopOfstMask == 0xFFFF ? 1 : 0);
+  u8 texAnmCalcFlags = (b.isGlblTexAnm << 1) | (b.texIdxLoopOfstMask == 0xFF ? 1 : 0);
   u8 colorAnmCalcFlags =
-      (b.isGlblTexAnm << 1) | (b.colorLoopOfstMask == 0xFFFF ? 1 : 0);
+      (b.isGlblClrAnm << 1) | (b.colorLoopOfstMask == 0xFF ? 1 : 0);
 
   u8 flags =
       (b.isDrawFwdAhead << 1) & (b.isDrawPrntAhead);
@@ -46,7 +46,7 @@ To_JEFF_JPABaseShapeBlock(const JPABaseShapeBlock& b) {
   size += (sizeof(u16) + sizeof(u32)) * b.colorEnvAnimData.size();
 
   // calculate the ceiling of size with a significance of 0x20
-  size = ((size / 0x20) * 0x20) + 0x20;
+  size = (1 + ((size - 1) / 0x20)) * 0x20;
 
   return jeff_jpa::JPABaseShapeBlock{
       .size = size, 

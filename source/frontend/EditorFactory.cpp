@@ -104,7 +104,7 @@ std::unique_ptr<IWindow> MakeEditor(FileData& data) {
     auto pWin = std::make_unique<BMDEditor>(raw_span, data.mPath);
     return pWin;
   }
-  if (path_lower.ends_with(".jpa")) {
+  if (path_lower.ends_with(".jpa") || path_lower.ends_with(".jpc")) {
     auto pWin = std::make_unique<JpaEditor>();
     pWin->openFile(raw_span, data.mPath);
     return pWin;

@@ -60,6 +60,8 @@ struct JPAC {
 
   Result<void> load_block_data_from_file(oishii::BinaryReader& reader,
                                        s32 tag_count);
+  Result<void> load_block_data_from_file_JPAC2_10(oishii::BinaryReader& reader,
+                                                  s32 block_count);
 
 };
 
