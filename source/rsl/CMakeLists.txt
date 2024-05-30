@@ -30,5 +30,5 @@ corrosion_import_crate(MANIFEST_PATH rust/Cargo.toml CRATE_TYPES staticlib FLAGS
 target_link_libraries(rsl PUBLIC core riistudio_rs vendor)
 
 if (NOT EMSCRIPTEN)
-  target_link_libraries(rsl PUBLIC llvm_sighandler c-discord-rich-presence)
+  target_link_libraries(rsl PUBLIC llvm_sighandler c_discord_rich_presence)
 endif()

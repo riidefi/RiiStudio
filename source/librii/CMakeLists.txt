@@ -219,7 +219,7 @@ endif()
 
 target_link_libraries(librii
   PUBLIC core LibBadUIFramework
-  PRIVATE vendor oishii gctex wiitrig avir-rs c-wbz szs plate rsmeshopt
+  PRIVATE vendor oishii gctex wiitrig avir_rs c_wbz szs plate rsmeshopt
 )
 
 target_include_directories(librii
