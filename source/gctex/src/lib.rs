@@ -438,6 +438,48 @@ fn decode_texture_i4(dst: &mut [u8], src: &[u8], width: usize, height: usize) {
     }
 }
 
+use std::arch::x86_64::*;
+
+// Based on Dolphin implementation
+#[cfg(feature = "simd")]
+#[target_feature(enable = "ssse3")]
+unsafe fn decode_texture_i4_ssse3(dst: *mut u32, src: *const u8, width: usize, height: usize) {
+    let wsteps4 = (width + 3) / 4;
+    let wsteps8 = (width + 7) / 8;
+    let kMask_x0f = _mm_set1_epi32(0x0f0f0f0fu32 as i32);
+    let kMask_xf0 = _mm_set1_epi32(-252645136); // 0xf0f0f0f0u32
+
+    let mask9180 = _mm_set_epi8(9, 9, 9, 9, 1, 1, 1, 1, 8, 8, 8, 8, 0, 0, 0, 0);
+    let maskB3A2 = _mm_set_epi8(11, 11, 11, 11, 3, 3, 3, 3, 10, 10, 10, 10, 2, 2, 2, 2);
+    let maskD5C4 = _mm_set_epi8(13, 13, 13, 13, 5, 5, 5, 5, 12, 12, 12, 12, 4, 4, 4, 4);
+    let maskF7E6 = _mm_set_epi8(15, 15, 15, 15, 7, 7, 7, 7, 14, 14, 14, 14, 6, 6, 6, 6);
+
+    for y in (0..height).step_by(8) {
+        let mut y_step = (y / 8) * wsteps8;
+        for x in (0..width).step_by(8) {
+            let mut x_step = 4 * y_step;
+            for iy in (0..8).step_by(2) {
+                let r0 = _mm_loadl_epi64(src.add(8 * x_step) as *const __m128i);
+                let i1 = _mm_and_si128(r0, kMask_xf0);
+                let i11 = _mm_or_si128(i1, _mm_srli_epi16(i1, 4));
+                let i2 = _mm_and_si128(r0, kMask_x0f);
+                let i22 = _mm_or_si128(i2, _mm_slli_epi16(i2, 4));
+                let base = _mm_unpacklo_epi64(i11, i22);
+                let o1 = _mm_shuffle_epi8(base, mask9180);
+                let o2 = _mm_shuffle_epi8(base, maskB3A2);
+                let o3 = _mm_shuffle_epi8(base, maskD5C4);
+                let o4 = _mm_shuffle_epi8(base, maskF7E6);
+                _mm_storeu_si128(dst.add((y + iy) * width + x) as *mut __m128i, o1);
+                _mm_storeu_si128(dst.add((y + iy) * width + x + 4) as *mut __m128i, o2);
+                _mm_storeu_si128(dst.add((y + iy + 1) * width + x) as *mut __m128i, o3);
+                _mm_storeu_si128(dst.add((y + iy + 1) * width + x + 4) as *mut __m128i, o4);
+                x_step += 1;
+            }
+            y_step += 1;
+        }
+    }
+}
+
 fn decode_texture_i8(dst: &mut [u32], src: &[u8], width: usize, height: usize) {
     let mut src_idx = 0;
     for y in (0..height).step_by(4) {
@@ -554,6 +596,7 @@ unsafe fn u8_to_u32_slice(u8_slice: &mut [u8]) -> &mut [u32] {
 
     unsafe { std::slice::from_raw_parts_mut(u8_slice.as_mut_ptr() as *mut u32, u8_slice.len() / 4) }
 }
+
 // Requires expanded size to be block-aligned
 /// Decodes a texture using a fast decoding method optimized for the Nintendo GameCube and Wii texture formats.
 ///
@@ -590,66 +633,96 @@ pub fn decode_fast(
     assert!(dst.len() as u32 >= expanded_width * expanded_height * 4);
     assert!(src.len() as u32 >= compute_image_size(texformat, width, height));
 
-    #[cfg(feature = "no_simd")]
+    #[cfg(feature = "simd")]
     {
-        let mut handled = true;
-        match texformat {
-            TextureFormat::I4 => decode_texture_i4(dst, src, width as usize, height as usize),
-            TextureFormat::I8 => decode_texture_i8(
-                unsafe { u8_to_u32_slice(dst) },
-                src,
-                width as usize,
-                height as usize,
-            ),
-            TextureFormat::IA4 => decode_texture_ia4(
-                unsafe { u8_to_u32_slice(dst) },
-                src,
-                width as usize,
-                height as usize,
-            ),
-            TextureFormat::IA8 => decode_texture_ia8(
-                unsafe { u8_to_u32_slice(dst) },
-                src,
-                width as usize,
-                height as usize,
-            ),
-            TextureFormat::RGB565 => decode_texture_rgb565(
-                unsafe { u8_to_u32_slice(dst) },
-                src,
-                width as usize,
-                height as usize,
-            ),
-            TextureFormat::RGB5A3 => decode_texture_rgb5a3(
-                unsafe { u8_to_u32_slice(dst) },
-                src,
-                width as usize,
-                height as usize,
-            ),
-            TextureFormat::RGBA8 => decode_texture_rgba8(
-                unsafe { u8_to_u32_slice(dst) },
-                src,
-                width as usize,
-                height as usize,
-            ),
-            _ => {
-                handled = false;
+        if texformat == TextureFormat::I4 {
+            if is_x86_feature_detected!("sse3") {
+                unsafe {
+                    decode_texture_i4_ssse3(
+                        dst.as_mut_ptr() as *mut u32,
+                        src.as_ptr(),
+                        width as usize,
+                        height as usize,
+                    );
+                }
+            } else {
+                // Fall back to Rust rather than C++
+                decode_texture_i4(dst, src, width as usize, height as usize);
             }
-        }
-        if handled {
             return;
         }
+
+        // Fall back to C++ for all other formats for SIMD decoder availability
+
+        unsafe {
+            bindings::impl_rii_decode(
+                dst.as_mut_ptr(),
+                src.as_ptr(),
+                width,
+                height,
+                texformat as u32,
+                tlut.as_ptr(),
+                tlutformat,
+            );
+        }
+        return;
     }
 
-    unsafe {
-        bindings::impl_rii_decode(
-            dst.as_mut_ptr(),
-            src.as_ptr(),
-            width,
-            height,
-            texformat as u32,
-            tlut.as_ptr(),
-            tlutformat,
-        );
+    // In the non-SIMD path, prefer Rust implementations
+    // (Only falling back to C++ for formats we don't support (CMPR, CI4, CI8, CI14))
+    match texformat {
+        TextureFormat::I4 => decode_texture_i4(dst, src, width as usize, height as usize),
+        TextureFormat::I8 => decode_texture_i8(
+            unsafe { u8_to_u32_slice(dst) },
+            src,
+            width as usize,
+            height as usize,
+        ),
+        TextureFormat::IA4 => decode_texture_ia4(
+            unsafe { u8_to_u32_slice(dst) },
+            src,
+            width as usize,
+            height as usize,
+        ),
+        TextureFormat::IA8 => decode_texture_ia8(
+            unsafe { u8_to_u32_slice(dst) },
+            src,
+            width as usize,
+            height as usize,
+        ),
+        TextureFormat::RGB565 => decode_texture_rgb565(
+            unsafe { u8_to_u32_slice(dst) },
+            src,
+            width as usize,
+            height as usize,
+        ),
+        TextureFormat::RGB5A3 => decode_texture_rgb5a3(
+            unsafe { u8_to_u32_slice(dst) },
+            src,
+            width as usize,
+            height as usize,
+        ),
+        TextureFormat::RGBA8 => decode_texture_rgba8(
+            unsafe { u8_to_u32_slice(dst) },
+            src,
+            width as usize,
+            height as usize,
+        ),
+        _ => {
+            // (Only falling back to C++ for formats we don't support (CMPR, CI4, CI8, CI14))
+
+            unsafe {
+                bindings::impl_rii_decode(
+                    dst.as_mut_ptr(),
+                    src.as_ptr(),
+                    width,
+                    height,
+                    texformat as u32,
+                    tlut.as_ptr(),
+                    tlutformat,
+                );
+            }
+        }
     }
 }
 

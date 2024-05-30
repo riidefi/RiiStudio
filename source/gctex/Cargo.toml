@@ -12,11 +12,11 @@ readme = "README.md"
 
 [features]
 # Enabled only for development
-default = ["c_api", "no_simd"]
+default = ["c_api", "simd"]
 c_api = []
 # Internal, don't enable
 run_bindgen = ["bindgen"]
-no_simd = []
+simd = []
 
 [lib]
 crate-type=["cdylib", "lib", "staticlib"]
