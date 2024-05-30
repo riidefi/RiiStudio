@@ -645,6 +645,86 @@ pub fn encode(format: TextureFormat, src: &[u8], width: u32, height: u32) -> Vec
     dst
 }
 
+#[cfg(test)]
+mod tests3 {
+    use super::*;
+    use std::fs::{self, File};
+    use std::io::Read;
+    use std::path::Path;
+
+    const IMAGE_WIDTH: u32 = 500;
+    const IMAGE_HEIGHT: u32 = 500;
+    const RAW_IMAGE_PATH: &str = "tests/monke_expected_result";
+    const CACHE_DIR: &str = "tests";
+
+    fn load_raw_image(path: &str) -> Vec<u8> {
+        let mut file = File::open(path).expect("Failed to open raw image file");
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)
+            .expect("Failed to read raw image file");
+        buffer
+    }
+
+    fn save_encoded_blob(format: TextureFormat, data: &[u8], cache_name: &str) {
+        let cache_path = format!("{}/{}_{}", CACHE_DIR, cache_name, format as u32);
+        fs::write(cache_path, data).expect("Failed to write encoded blob to cache");
+    }
+
+    fn load_encoded_blob(format: TextureFormat, cache_name: &str) -> Option<Vec<u8>> {
+        let cache_path = format!("{}/{}_{}", CACHE_DIR, cache_name, format as u32);
+        if Path::new(&cache_path).exists() {
+            Some(fs::read(cache_path).expect("Failed to read encoded blob from cache"))
+        } else {
+            None
+        }
+    }
+
+    #[test]
+    fn test_encode_all_formats() {
+        // Load the raw RGBA image
+        let mut raw_image = load_raw_image(RAW_IMAGE_PATH);
+
+        // hack
+        raw_image.resize(500 * 500 * 4, 0);
+
+        // Ensure the image has the expected size
+        assert_eq!(raw_image.len(), (IMAGE_WIDTH * IMAGE_HEIGHT * 4) as usize);
+
+        // Iterate over all texture formats
+        for format in [
+            TextureFormat::I4,
+            TextureFormat::I8,
+            TextureFormat::IA4,
+            TextureFormat::IA8,
+            TextureFormat::RGB565,
+            TextureFormat::RGB5A3,
+            TextureFormat::RGBA8,
+            TextureFormat::CMPR,
+        ] {
+            // Encode the image
+            let encoded_image = encode(format, &raw_image, IMAGE_WIDTH, IMAGE_HEIGHT);
+
+            // Load the cached result, if available
+            if let Some(cached_image) = load_encoded_blob(format, "encoded_monke") {
+                // Compare the encoded image with the cached result
+                assert_eq!(
+                    encoded_image, cached_image,
+                    "Mismatch for format {:?}",
+                    format
+                );
+            } else {
+                // Save the encoded image as the cached result
+                save_encoded_blob(format, &encoded_image, "encoded_monke");
+                // Trivially pass the test if there's no cached result
+                println!(
+                    "Cached result for format {:?} not found. Generated and saved new cache.",
+                    format
+                );
+            }
+        }
+    }
+}
+
 /// Returns a formatted string representing the version, build profile, and target of the `gctex` crate.
 ///
 /// This function makes use of several compile-time environment variables provided by Cargo
