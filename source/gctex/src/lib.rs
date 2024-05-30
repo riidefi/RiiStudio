@@ -338,6 +338,46 @@ mod tests {
     }
 }
 
+const fn convert_3_to_8(v: u8) -> u8 {
+    // Swizzle bits: 00000123 -> 12312312
+    (v << 5) | (v << 2) | (v >> 1)
+}
+
+const fn convert_4_to_8(v: u8) -> u8 {
+    // Swizzle bits: 00001234 -> 12341234
+    (v << 4) | v
+}
+
+const fn convert_5_to_8(v: u8) -> u8 {
+    // Swizzle bits: 00012345 -> 12345123
+    (v << 3) | (v >> 2)
+}
+
+const fn convert_6_to_8(v: u8) -> u8 {
+    // Swizzle bits: 00123456 -> 12345612
+    (v << 2) | (v >> 4)
+}
+
+fn decode_texture_i4(dst: &mut [u8], src: &[u8], width: usize, height: usize) {
+    let mut src_idx = 0;
+    for y in (0..height).step_by(8) {
+        for x in (0..width).step_by(8) {
+            for iy in 0..8 {
+                for ix in 0..4 {
+                    let val = src[src_idx + ix];
+                    let i1 = convert_4_to_8(val >> 4);
+                    let i2 = convert_4_to_8(val & 0xF);
+                    let dst_idx1 = (y + iy) * width + x + ix * 2;
+                    let dst_idx2 = dst_idx1 + 1;
+                    dst[dst_idx1*4..dst_idx1*4+4].fill(i1);
+                    dst[dst_idx2*4..dst_idx2*4+4].fill(i2);
+                }
+                src_idx += 4;
+            }
+        }
+    }
+}
+
 // Requires expanded size to be block-aligned
 /// Decodes a texture using a fast decoding method optimized for the Nintendo GameCube and Wii texture formats.
 ///
@@ -373,6 +413,15 @@ pub fn decode_fast(
     let expanded_height = round_up(height, info.block_height_in_texels);
     assert!(dst.len() as u32 >= expanded_width * expanded_height * 4);
     assert!(src.len() as u32 >= compute_image_size(texformat, width, height));
+
+    #[cfg(feature = "no_simd")]
+    {
+      if texformat == TextureFormat::I4 {
+          decode_texture_i4(dst, src, width as usize, height as usize);
+          return;
+      }
+    }
+
     unsafe {
         bindings::impl_rii_decode(
             dst.as_mut_ptr(),

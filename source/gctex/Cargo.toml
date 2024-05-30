@@ -15,6 +15,7 @@ default = ["c_api"]
 c_api = []
 # Internal, don't enable
 run_bindgen = ["bindgen"]
+no_simd = []
 
 [lib]
 crate-type=["cdylib", "lib", "staticlib"]
