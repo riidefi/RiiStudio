@@ -8,6 +8,8 @@ homepage = "https://github.com/riidefi/RiiStudio/tree/master/source/gctex"
 repository = "https://github.com/riidefi/RiiStudio"
 keywords = ["gamedev", "graphics", "wii", "gamecube", "texture"]
 readme = "README.md"
+# Don't include unit tests in crate
+exclude=["/tests"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
