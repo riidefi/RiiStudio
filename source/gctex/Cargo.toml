@@ -11,7 +11,8 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["c_api"]
+# Enabled only for development
+default = ["c_api", "no_simd"]
 c_api = []
 # Internal, don't enable
 run_bindgen = ["bindgen"]

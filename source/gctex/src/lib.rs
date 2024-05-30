@@ -338,6 +338,66 @@ mod tests {
     }
 }
 
+fn decode_pixel_ia8(val: u16) -> u32 {
+    let a = (val & 0xFF) as i32;
+    let i = (val >> 8) as i32;
+    (i | (i << 8) | (i << 16) | (a << 24)) as u32
+}
+
+fn decode_pixel_rgb565(val: u16) -> u32 {
+    let r = convert_5_to_8(((val >> 11) & 0x1f) as u8);
+    let g = convert_6_to_8(((val >> 5) & 0x3f) as u8);
+    let b = convert_5_to_8((val & 0x1f) as u8);
+    let a = 0xFF;
+    (r as u32) | ((g as u32) << 8) | ((b as u32) << 16) | ((a as u32) << 24)
+}
+
+fn decode_pixel_rgb5a3(val: u16) -> u32 {
+    let (r, g, b, a) = if (val & 0x8000) != 0 {
+        let r = convert_5_to_8(((val >> 10) & 0x1f) as u8);
+        let g = convert_5_to_8(((val >> 5) & 0x1f) as u8);
+        let b = convert_5_to_8((val & 0x1f) as u8);
+        (r, g, b, 0xFF)
+    } else {
+        let a = convert_3_to_8(((val >> 12) & 0x7) as u8);
+        let r = convert_4_to_8(((val >> 8) & 0xf) as u8);
+        let g = convert_4_to_8(((val >> 4) & 0xf) as u8);
+        let b = convert_4_to_8((val & 0xf) as u8);
+        (r, g, b, a)
+    };
+    (r as u32) | ((g as u32) << 8) | ((b as u32) << 16) | ((a as u32) << 24)
+}
+
+fn decode_bytes_ia4(dst: &mut [u32], src: &[u8]) {
+    for (x, val) in src.iter().enumerate().take(8) {
+        let a = convert_4_to_8(val >> 4);
+        let l = convert_4_to_8(val & 0xF);
+        dst[x] = ((a as u32) << 24) | ((l as u32) << 16) | ((l as u32) << 8) | l as u32;
+    }
+}
+
+fn decode_bytes_rgb5a3(dst: &mut [u32], src: &[u16]) {
+    dst[0] = decode_pixel_rgb5a3(u16::from_be(src[0]));
+    dst[1] = decode_pixel_rgb5a3(u16::from_be(src[1]));
+    dst[2] = decode_pixel_rgb5a3(u16::from_be(src[2]));
+    dst[3] = decode_pixel_rgb5a3(u16::from_be(src[3]));
+}
+
+fn decode_bytes_rgba8(dst: &mut [u32], src: &[u16], src2: &[u16]) {
+    dst[0] = (((src[0] & 0xFF) as u32) << 24)
+        | (((src[0] & 0xFF00) as u32) >> 8)
+        | ((src2[0] as u32) << 8);
+    dst[1] = (((src[1] & 0xFF) as u32) << 24)
+        | (((src[1] & 0xFF00) as u32) >> 8)
+        | ((src2[1] as u32) << 8);
+    dst[2] = (((src[2] & 0xFF) as u32) << 24)
+        | (((src[2] & 0xFF00) as u32) >> 8)
+        | ((src2[2] as u32) << 8);
+    dst[3] = (((src[3] & 0xFF) as u32) << 24)
+        | (((src[3] & 0xFF00) as u32) >> 8)
+        | ((src2[3] as u32) << 8);
+}
+
 const fn convert_3_to_8(v: u8) -> u8 {
     // Swizzle bits: 00000123 -> 12312312
     (v << 5) | (v << 2) | (v >> 1)
@@ -369,8 +429,8 @@ fn decode_texture_i4(dst: &mut [u8], src: &[u8], width: usize, height: usize) {
                     let i2 = convert_4_to_8(val & 0xF);
                     let dst_idx1 = (y + iy) * width + x + ix * 2;
                     let dst_idx2 = dst_idx1 + 1;
-                    dst[dst_idx1*4..dst_idx1*4+4].fill(i1);
-                    dst[dst_idx2*4..dst_idx2*4+4].fill(i2);
+                    dst[dst_idx1 * 4..dst_idx1 * 4 + 4].fill(i1);
+                    dst[dst_idx2 * 4..dst_idx2 * 4 + 4].fill(i2);
                 }
                 src_idx += 4;
             }
@@ -378,6 +438,122 @@ fn decode_texture_i4(dst: &mut [u8], src: &[u8], width: usize, height: usize) {
     }
 }
 
+fn decode_texture_i8(dst: &mut [u32], src: &[u8], width: usize, height: usize) {
+    let mut src_idx = 0;
+    for y in (0..height).step_by(4) {
+        for x in (0..width).step_by(8) {
+            for iy in 0..4 {
+                let new_dst = (y + iy) * width + x;
+                let new_src = src_idx;
+
+                for i in 0..8 {
+                    let src_val = src[new_src + i];
+                    dst[new_dst + i] = (src_val as u32)
+                        | ((src_val as u32) << 8)
+                        | ((src_val as u32) << 16)
+                        | ((src_val as u32) << 24);
+                }
+                src_idx += 8;
+            }
+        }
+    }
+}
+
+fn decode_texture_ia4(dst: &mut [u32], src: &[u8], width: usize, height: usize) {
+    let wsteps8 = (width + 7) / 8;
+    for y in (0..height).step_by(4) {
+        let mut y_step = (y / 4) * wsteps8;
+        for x in (0..width).step_by(8) {
+            for iy in 0..4 {
+                let x_step = 4 * y_step + iy;
+                decode_bytes_ia4(&mut dst[(y + iy) * width + x..], &src[8 * x_step..]);
+            }
+            y_step += 1;
+        }
+    }
+}
+
+fn decode_texture_ia8(dst: &mut [u32], src: &[u8], width: usize, height: usize) {
+    let mut src_offset = 0;
+    for y in (0..height).step_by(4) {
+        for x in (0..width).step_by(4) {
+            for iy in 0..4 {
+                let dst_offset = (y + iy) * width + x;
+                let s = &src[src_offset..];
+                dst[dst_offset] = decode_pixel_ia8(u16::from_le_bytes([s[0], s[1]]));
+                dst[dst_offset + 1] = decode_pixel_ia8(u16::from_le_bytes([s[2], s[3]]));
+                dst[dst_offset + 2] = decode_pixel_ia8(u16::from_le_bytes([s[4], s[5]]));
+                dst[dst_offset + 3] = decode_pixel_ia8(u16::from_le_bytes([s[6], s[7]]));
+                src_offset += 8;
+            }
+        }
+    }
+}
+
+fn decode_texture_rgb565(dst: &mut [u32], src: &[u8], width: usize, height: usize) {
+    let mut src_offset = 0;
+    for y in (0..height).step_by(4) {
+        for x in (0..width).step_by(4) {
+            for iy in 0..4 {
+                let dst_offset = (y + iy) * width + x;
+                let s = &src[src_offset..];
+                for j in 0..4 {
+                    dst[dst_offset + j] =
+                        decode_pixel_rgb565(u16::from_be_bytes([s[2 * j], s[2 * j + 1]]));
+                }
+                src_offset += 8;
+            }
+        }
+    }
+}
+
+unsafe fn u8_to_u16_slice(u8_slice: &[u8]) -> &[u16] {
+    assert!(
+        u8_slice.len() % 2 == 0,
+        "Length of the u8 slice must be a multiple of 2"
+    );
+
+    unsafe { std::slice::from_raw_parts(u8_slice.as_ptr() as *mut u16, u8_slice.len() / 2) }
+}
+
+fn decode_texture_rgb5a3(dst: &mut [u32], src: &[u8], width: usize, height: usize) {
+    let mut src_offset = 0;
+    for y in (0..height).step_by(4) {
+        for x in (0..width).step_by(4) {
+            for iy in 0..4 {
+                let dst_offset = (y + iy) * width + x;
+                decode_bytes_rgb5a3(&mut dst[dst_offset..], unsafe {
+                    u8_to_u16_slice(&src[src_offset..])
+                });
+                src_offset += 8;
+            }
+        }
+    }
+}
+
+fn decode_texture_rgba8(dst: &mut [u32], src: &[u8], width: usize, height: usize) {
+    let mut src_offset = 0;
+    for y in (0..height).step_by(4) {
+        for x in (0..width).step_by(4) {
+            for iy in 0..4 {
+                let dst_offset = (y + iy) * width + x;
+                let s0 = unsafe { u8_to_u16_slice(&src[src_offset + 8 * iy..]) };
+                let s1 = unsafe { u8_to_u16_slice(&src[src_offset + 8 * iy + 32..]) };
+                decode_bytes_rgba8(&mut dst[dst_offset..], s0, s1);
+            }
+            src_offset += 64;
+        }
+    }
+}
+
+unsafe fn u8_to_u32_slice(u8_slice: &mut [u8]) -> &mut [u32] {
+    assert!(
+        u8_slice.len() % 4 == 0,
+        "Length of the u8 slice must be a multiple of 4"
+    );
+
+    unsafe { std::slice::from_raw_parts_mut(u8_slice.as_mut_ptr() as *mut u32, u8_slice.len() / 4) }
+}
 // Requires expanded size to be block-aligned
 /// Decodes a texture using a fast decoding method optimized for the Nintendo GameCube and Wii texture formats.
 ///
@@ -416,10 +592,52 @@ pub fn decode_fast(
 
     #[cfg(feature = "no_simd")]
     {
-      if texformat == TextureFormat::I4 {
-          decode_texture_i4(dst, src, width as usize, height as usize);
-          return;
-      }
+        let mut handled = true;
+        match texformat {
+            TextureFormat::I4 => decode_texture_i4(dst, src, width as usize, height as usize),
+            TextureFormat::I8 => decode_texture_i8(
+                unsafe { u8_to_u32_slice(dst) },
+                src,
+                width as usize,
+                height as usize,
+            ),
+            TextureFormat::IA4 => decode_texture_ia4(
+                unsafe { u8_to_u32_slice(dst) },
+                src,
+                width as usize,
+                height as usize,
+            ),
+            TextureFormat::IA8 => decode_texture_ia8(
+                unsafe { u8_to_u32_slice(dst) },
+                src,
+                width as usize,
+                height as usize,
+            ),
+            TextureFormat::RGB565 => decode_texture_rgb565(
+                unsafe { u8_to_u32_slice(dst) },
+                src,
+                width as usize,
+                height as usize,
+            ),
+            TextureFormat::RGB5A3 => decode_texture_rgb5a3(
+                unsafe { u8_to_u32_slice(dst) },
+                src,
+                width as usize,
+                height as usize,
+            ),
+            TextureFormat::RGBA8 => decode_texture_rgba8(
+                unsafe { u8_to_u32_slice(dst) },
+                src,
+                width as usize,
+                height as usize,
+            ),
+            _ => {
+                handled = false;
+            }
+        }
+        if handled {
+            return;
+        }
     }
 
     unsafe {
