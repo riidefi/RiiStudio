@@ -1078,6 +1078,134 @@ mod tests3 {
         let buffer = ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, image).unwrap();
         buffer.save(path).unwrap();
     }
+
+    // Decoding tests
+
+    #[test]
+    fn test_decode_all_formats() {
+        // Load the raw RGBA image
+        let mut raw_image = load_raw_image(RAW_IMAGE_PATH);
+
+        // hack
+        raw_image.resize(500 * 500 * 4, 0);
+
+        // Ensure the image has the expected size
+        assert_eq!(raw_image.len(), (IMAGE_WIDTH * IMAGE_HEIGHT * 4) as usize);
+
+        // Iterate over all texture formats
+        for format in [
+            TextureFormat::I4,
+            TextureFormat::I8,
+            TextureFormat::IA4,
+            TextureFormat::IA8,
+            TextureFormat::RGB565,
+            TextureFormat::RGB5A3,
+            TextureFormat::RGBA8,
+            TextureFormat::CMPR,
+        ] {
+            // Load the cached encoded image, if available
+            let encoded_image =
+                if let Some(cached_encoded) = load_encoded_blob(format, "encoded_monke") {
+                    cached_encoded
+                } else {
+                    // Encode the image
+                    let new_encoded = encode(format, &raw_image, IMAGE_WIDTH, IMAGE_HEIGHT);
+                    // Save the encoded image as the cached result
+                    save_encoded_blob(format, &new_encoded, "encoded_monke");
+                    new_encoded
+                };
+
+            // Decode the image
+            let decoded_image = decode(&encoded_image, IMAGE_WIDTH, IMAGE_HEIGHT, format, &[0], 0);
+
+            // Save the decoded image for debugging
+            save_png(
+                &decoded_image,
+                IMAGE_WIDTH,
+                IMAGE_HEIGHT,
+                &format!("tests/mnk_dbg_decode_{:?}.png", format),
+            );
+
+            // Load the cached result, if available
+            if let Some(cached_image) = load_encoded_blob(format, "decoded_monke") {
+                // Compare the decoded image with the cached result
+                assert_buffers_equal(
+                    &decoded_image,
+                    &cached_image,
+                    &format!("Mismatch for format {:?}", format),
+                );
+            } else {
+                // Save the decoded image as the cached result
+                save_encoded_blob(format, &decoded_image, "decoded_monke");
+                // Trivially pass the test if there's no cached result
+                println!(
+                    "Cached result for format {:?} not found. Generated and saved new cache.",
+                    format
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_decode_with_random_data() {
+        // Generate random image data with a fixed seed
+        let raw_image = generate_random_image_data(1024, 1024, 1337);
+
+        // Iterate over all texture formats
+        for format in [
+            TextureFormat::I4,
+            TextureFormat::I8,
+            TextureFormat::IA4,
+            TextureFormat::IA8,
+            TextureFormat::RGB565,
+            TextureFormat::RGB5A3,
+            TextureFormat::RGBA8,
+            TextureFormat::CMPR,
+        ] {
+            println!("Decoding {}", format as u32);
+
+            // Load the cached encoded image, if available
+            let encoded_image =
+                if let Some(cached_encoded) = load_encoded_blob(format, "encoded_random") {
+                    cached_encoded
+                } else {
+                    // Encode the image
+                    let new_encoded = encode(format, &raw_image, IMAGE_WIDTH, IMAGE_HEIGHT);
+                    // Save the encoded image as the cached result
+                    save_encoded_blob(format, &new_encoded, "encoded_random");
+                    new_encoded
+                };
+
+            // Decode the image
+            let decoded_image = decode(&encoded_image, IMAGE_WIDTH, IMAGE_HEIGHT, format, &[0], 0);
+
+            // Save the decoded image for debugging
+            save_png(
+                &decoded_image,
+                IMAGE_WIDTH,
+                IMAGE_HEIGHT,
+                &format!("tests/rng_dbg_decode_{:?}.png", format),
+            );
+
+            // Load the cached result, if available
+            if let Some(cached_image) = load_encoded_blob(format, "decoded_random") {
+                // Compare the decoded image with the cached result
+                assert_buffers_equal(
+                    &decoded_image,
+                    &cached_image,
+                    &format!("Mismatch for format {:?}", format),
+                );
+            } else {
+                // Save the decoded image as the cached result
+                save_encoded_blob(format, &decoded_image, "decoded_random");
+                // Trivially pass the test if there's no cached result
+                println!(
+                    "Cached result for format {:?} not found. Generated and saved new cache.",
+                    format
+                );
+            }
+        }
+    }
 }
 
 /// Returns a formatted string representing the version, build profile, and target of the `gctex` crate.
