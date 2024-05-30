@@ -19,9 +19,7 @@ jobs:
       with:
         submodules: recursive
     - name: SetupRust
-      uses: ATiltedTree/setup-rust@v1
-      with:
-        rust-version: beta
+      uses: dtolnay/rust-toolchain@stable
     - name: Install LLVM
       run: choco install -y llvm --version=16.0.6
       if: runner.os == 'Windows'
