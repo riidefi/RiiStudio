@@ -42,7 +42,7 @@ struct rgba {
 constexpr u8 luminosity(const rgba& rgba) {
   double f = static_cast<double>(rgba.r) * 0.299 +
              static_cast<double>(rgba.g) * 0.587 +
-             static_cast<double>(rgba.b) * 0.144;
+             static_cast<double>(rgba.b) * 0.114;
   return static_cast<u8>(f);
 }
 
