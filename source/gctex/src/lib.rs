@@ -4,7 +4,35 @@ use std::slice;
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 pub mod bindings {
+    #[cfg(feature = "run_bindgen")]
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+
+    // For now, just manually embed these...
+    #[cfg(not(feature = "run_bindgen"))]
+    extern "C" {
+        pub fn impl_rii_decode(
+            dst: *mut u8,
+            src: *const u8,
+            width: u32,
+            height: u32,
+            texformat: u32,
+            tlut: *const u8,
+            tlutformat: u32,
+        );
+        pub fn impl_rii_encodeCMPR(
+            dest_img: *mut u8,
+            source_img: *const u8,
+            width: u32,
+            height: u32,
+        );
+        pub fn impl_rii_encodeI4(dst: *mut u8, src: *const u8, width: u32, height: u32);
+        pub fn impl_rii_encodeI8(dst: *mut u8, src: *const u8, width: u32, height: u32);
+        pub fn impl_rii_encodeIA4(dst: *mut u8, src: *const u8, width: u32, height: u32);
+        pub fn impl_rii_encodeIA8(dst: *mut u8, src: *const u8, width: u32, height: u32);
+        pub fn impl_rii_encodeRGB565(dst: *mut u8, src: *const u8, width: u32, height: u32);
+        pub fn impl_rii_encodeRGB5A3(dst: *mut u8, src: *const u8, width: u32, height: u32);
+        pub fn impl_rii_encodeRGBA8(dst: *mut u8, src4: *const u8, width: u32, height: u32);
+    }
 }
 
 pub const _CTF: u32 = 0x20;
@@ -654,6 +682,7 @@ pub fn get_version() -> String {
 // C BINDINGS BEGIN
 //
 //--------------------------------------------------------
+#[cfg(feature = "c_api")]
 pub mod c_api {
     use crate::*;
 
