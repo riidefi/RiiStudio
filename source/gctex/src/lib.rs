@@ -720,31 +720,47 @@ fn encode_rgba8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     for block in (0..height).step_by(4) {
         for i in (0..width).step_by(4) {
             for c in 0..4 {
-                let block_wid = (((block + c) * width) + i) << 2;
+                let block_wid = ((block + c) * width + i) * 4;
 
-                dst[dst_index] = src[(block_wid + 3) as usize]; // ar = 0
-                dst[dst_index + 1] = src[block_wid as usize];
-                dst[dst_index + 2] = src[(block_wid + 7) as usize]; // ar = 1
-                dst[dst_index + 3] = src[(block_wid + 4) as usize];
-                dst[dst_index + 4] = src[(block_wid + 11) as usize]; // ar = 2
-                dst[dst_index + 5] = src[(block_wid + 8) as usize];
-                dst[dst_index + 6] = src[(block_wid + 15) as usize]; // ar = 3
-                dst[dst_index + 7] = src[(block_wid + 12) as usize];
+                let rgba0 = Rgba::from_slice(&src[block_wid as usize..block_wid as usize + 4]);
+                let rgba1 =
+                    Rgba::from_slice(&src[(block_wid + 4) as usize..(block_wid + 8) as usize]);
+                let rgba2 =
+                    Rgba::from_slice(&src[(block_wid + 8) as usize..(block_wid + 12) as usize]);
+                let rgba3 =
+                    Rgba::from_slice(&src[(block_wid + 12) as usize..(block_wid + 16) as usize]);
+
+                dst[dst_index] = rgba0.a;
+                dst[dst_index + 1] = rgba0.r;
+                dst[dst_index + 2] = rgba1.a;
+                dst[dst_index + 3] = rgba1.r;
+                dst[dst_index + 4] = rgba2.a;
+                dst[dst_index + 5] = rgba2.r;
+                dst[dst_index + 6] = rgba3.a;
+                dst[dst_index + 7] = rgba3.r;
 
                 dst_index += 8;
             }
 
             for c in 0..4 {
-                let block_wid = (((block + c) * width) + i) << 2;
+                let block_wid = ((block + c) * width + i) * 4;
 
-                dst[dst_index] = src[(block_wid + 1) as usize]; // gb = 0
-                dst[dst_index + 1] = src[(block_wid + 2) as usize];
-                dst[dst_index + 2] = src[(block_wid + 5) as usize]; // gb = 1
-                dst[dst_index + 3] = src[(block_wid + 6) as usize];
-                dst[dst_index + 4] = src[(block_wid + 9) as usize]; // gb = 2
-                dst[dst_index + 5] = src[(block_wid + 10) as usize];
-                dst[dst_index + 6] = src[(block_wid + 13) as usize]; // gb = 3
-                dst[dst_index + 7] = src[(block_wid + 14) as usize];
+                let rgba0 = Rgba::from_slice(&src[block_wid as usize..block_wid as usize + 4]);
+                let rgba1 =
+                    Rgba::from_slice(&src[(block_wid + 4) as usize..(block_wid + 8) as usize]);
+                let rgba2 =
+                    Rgba::from_slice(&src[(block_wid + 8) as usize..(block_wid + 12) as usize]);
+                let rgba3 =
+                    Rgba::from_slice(&src[(block_wid + 12) as usize..(block_wid + 16) as usize]);
+
+                dst[dst_index] = rgba0.g;
+                dst[dst_index + 1] = rgba0.b;
+                dst[dst_index + 2] = rgba1.g;
+                dst[dst_index + 3] = rgba1.b;
+                dst[dst_index + 4] = rgba2.g;
+                dst[dst_index + 5] = rgba2.b;
+                dst[dst_index + 6] = rgba3.g;
+                dst[dst_index + 7] = rgba3.b;
 
                 dst_index += 8;
             }
