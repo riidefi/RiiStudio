@@ -529,9 +529,55 @@ pub fn encode_cmpr_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     }
 }
 
-pub fn encode_i4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+pub fn legacy_encode_i4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     unsafe {
         bindings::impl_rii_encodeI4(dst.as_mut_ptr(), src.as_ptr(), width, height);
+    }
+}
+
+struct Rgba {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+}
+
+impl Rgba {
+    fn from_slice(slice: &[u8]) -> Rgba {
+        Rgba {
+            r: slice[0],
+            g: slice[1],
+            b: slice[2],
+            a: slice[3],
+        }
+    }
+}
+
+fn luminosity(rgba: &Rgba) -> u8 {
+    let f = rgba.r as f64 * 0.299 + rgba.g as f64 * 0.587 + rgba.b as f64 * 0.114;
+    f as u8
+}
+
+fn encode_i4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    let mut dst_index: u32 = 0;
+    for y in (0..height).step_by(8) {
+        for x in (0..width).step_by(8) {
+            for row in 0..8 {
+                // Process two columns at a time
+                for column in 0..4 {
+                    let pos = (y + row) * width + x + column * 2;
+                    let rgba0 = Rgba::from_slice(&src[(pos * 4) as usize..]);
+                    let rgba1 = Rgba::from_slice(&src[(pos * 4 + 4) as usize..]);
+
+                    let i0 = luminosity(&rgba0);
+                    let i1 = luminosity(&rgba1);
+
+                    let i0i1 = (i0 & 0b1111_0000) | ((i1 >> 4) & 0b0000_1111);
+                    dst[(dst_index + column) as usize] = i0i1;
+                }
+                dst_index += 4;
+            }
+        }
     }
 }
 
