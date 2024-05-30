@@ -583,8 +583,43 @@ pub fn encode_raw_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
 
 /// Encodes a Nintendo GameCube or Wii texture into the specified format and writes the result into the provided destination buffer.
 ///
-/// This function supports various texture formats used by the Nintendo GameCube and Wii games, as defined by the `TextureFormat` enum.
-/// The specific encoding method is determined based on the provided `format`.
+/// This function is optimized for scenarios where the given texture's dimensions are block-aligned according to the GameCube and Wii texture standards.
+/// Ensure the dimensions are block-aligned before using this method for accurate encoding.
+///
+/// # Arguments
+/// * `format` - The format of the texture specific to GameCube and Wii to which the source data will be encoded.
+/// * `dst` - The destination buffer to write the encoded data into.
+/// * `src` - The source buffer containing the RGBA texture data to be encoded.
+/// * `width` - The width of the texture.
+/// * `height` - The height of the texture.
+///
+/// # Panics
+/// This function will panic if:
+/// * The destination buffer is too small to hold the encoded data for the specified format and texture dimensions.
+/// * The source buffer does not have the expected size for the given `width` and `height`.
+/// * An unsupported `TextureFormat` is provided.
+///
+pub fn encode_fast(format: TextureFormat, dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    assert!(dst.len() >= compute_image_size(format, width, height) as usize);
+    assert!(src.len() >= (width * height * 4) as usize);
+    match format {
+        TextureFormat::I4 => encode_i4_into(dst, src, width, height),
+        TextureFormat::I8 => encode_i8_into(dst, src, width, height),
+        TextureFormat::IA4 => encode_ia4_into(dst, src, width, height),
+        TextureFormat::IA8 => encode_ia8_into(dst, src, width, height),
+        TextureFormat::RGB565 => encode_rgb565_into(dst, src, width, height),
+        TextureFormat::RGB5A3 => encode_rgb5a3_into(dst, src, width, height),
+        TextureFormat::RGBA8 => encode_rgba8_into(dst, src, width, height),
+        TextureFormat::CMPR => encode_cmpr_into(dst, src, width, height),
+        TextureFormat::ExtensionRawRGBA32 => encode_raw_into(dst, src, width, height),
+        _ => panic!("encode_fast: Unsupported texture format: {:?}", format),
+    }
+}
+
+/// Encodes a Nintendo GameCube or Wii texture into the specified format and writes the result into the provided destination buffer.
+///
+/// Based on the alignment of the texture's dimensions, this method determines if the fast encoding method (`encode_fast`) can be utilized.
+/// If the texture dimensions are not block-aligned, padding will be handled, and then the fast encoding method is employed.
 ///
 /// # Arguments
 /// * `format` - The format of the texture specific to GameCube and Wii to which the source data will be encoded.
@@ -600,19 +635,33 @@ pub fn encode_raw_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
 /// * An unsupported `TextureFormat` is provided.
 ///
 pub fn encode_into(format: TextureFormat, dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    let info = get_format_info(format);
+    let expanded_width = round_up(width, info.block_width_in_texels);
+    let expanded_height = round_up(height, info.block_height_in_texels);
+
     assert!(dst.len() >= compute_image_size(format, width, height) as usize);
     assert!(src.len() >= (width * height * 4) as usize);
-    match format {
-        TextureFormat::I4 => encode_i4_into(dst, src, width, height),
-        TextureFormat::I8 => encode_i8_into(dst, src, width, height),
-        TextureFormat::IA4 => encode_ia4_into(dst, src, width, height),
-        TextureFormat::IA8 => encode_ia8_into(dst, src, width, height),
-        TextureFormat::RGB565 => encode_rgb565_into(dst, src, width, height),
-        TextureFormat::RGB5A3 => encode_rgb5a3_into(dst, src, width, height),
-        TextureFormat::RGBA8 => encode_rgba8_into(dst, src, width, height),
-        TextureFormat::CMPR => encode_cmpr_into(dst, src, width, height),
-        TextureFormat::ExtensionRawRGBA32 => encode_raw_into(dst, src, width, height),
-        _ => panic!("encode_into: Unsupported texture format: {:?}", format),
+
+    if expanded_width == width && expanded_height == height {
+        encode_fast(format, dst, src, width, height);
+    } else {
+        let mut tmp_src = vec![0u8; (expanded_width * expanded_height * 4) as usize];
+
+        if width > 0 && height > 0 {
+            for y in 0..expanded_height {
+                for x in 0..expanded_width {
+                    // Row-major matrix
+                    let min = |a, b| if a < b { a } else { b };
+                    let src_cell = width * min(y, height - 1) + min(x, width - 1);
+                    let dst_cell = expanded_width * y + x;
+                    tmp_src[(dst_cell * 4) as usize..(dst_cell * 4 + 4) as usize].copy_from_slice(
+                        &src[(src_cell * 4) as usize..(src_cell * 4 + 4) as usize],
+                    );
+                }
+            }
+        }
+
+        encode_fast(format, dst, &tmp_src, expanded_width, expanded_height);
     }
 }
 
