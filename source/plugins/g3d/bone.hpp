@@ -6,18 +6,17 @@
 
 #include <glm/vec3.hpp>
 
-#include <plugins/3d/i3dmodel.hpp>
 #include <core/common.h>
 #include <librii/math/aabb.hpp>
+#include <plugins/3d/i3dmodel.hpp>
 
 #include <librii/g3d/data/BoneData.hpp>
 #include <plugins/gc/Export/Bone.hpp>
 
 namespace riistudio::g3d {
 
-
 struct Bone : public libcube::IBoneDelegate,
-              public librii::g3d::BoneData,
+              private librii::g3d::BoneData,
               public virtual kpi::IObject {
   std::string getName() const override { return mName; }
   void setName(const std::string& name) override { mName = name; }
@@ -59,9 +58,7 @@ struct Bone : public libcube::IBoneDelegate,
   Billboard getBillboard() const override {
     { return static_cast<Billboard>(billboardType); }
   }
-  void setBillboard(Billboard b) override {
-    billboardType = (int)b;
-}
+  void setBillboard(Billboard b) override { billboardType = (int)b; }
 
   u64 getNumDisplays() const override { return mDisplayCommands.size(); }
   Display getDisplay(u64 idx) const override {
@@ -79,9 +76,15 @@ struct Bone : public libcube::IBoneDelegate,
   void addDisplay(const Display& d) override {
     mDisplayCommands.push_back({d.matId, d.polyId, d.prio});
   }
+  void clearDrawCalls() { mDisplayCommands.clear(); }
   bool operator==(const Bone& rhs) const {
     return static_cast<const BoneData&>(*this) == rhs;
   }
+
+  void decompile(const librii::g3d::BoneData& b) {
+    static_cast<librii::g3d::BoneData&>(*this) = b;
+  }
+  const librii::g3d::BoneData& compile() const { return *this; }
 };
 
 } // namespace riistudio::g3d

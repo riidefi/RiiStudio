@@ -192,7 +192,7 @@ Result<void> LevelEditorWindow::tryOpenFile(std::span<const u8> buf,
         auto& mdl = (**b).getModels()[i];
         if (mdl.getName().contains("shadow")) {
           for (auto& m : mdl.getBones()) {
-            m.mDisplayCommands.clear();
+            m.clearDrawCalls();
           }
         }
       }

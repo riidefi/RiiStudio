@@ -62,7 +62,8 @@ GetRichTypeInfo(const kpi::IObject* node) {
   return {};
 }
 
-static inline std::vector<const lib3d::Texture*> GetNodeIcons(kpi::IObject& nodeAt) {
+static inline std::vector<const lib3d::Texture*>
+GetNodeIcons(kpi::IObject& nodeAt) {
   std::vector<const lib3d::Texture*> icons;
 
   lib3d::Texture* tex = dynamic_cast<lib3d::Texture*>(&nodeAt);
@@ -129,8 +130,8 @@ static inline Node HeaderBar(const char* key, int indent, auto* folder,
 }
 
 static inline std::vector<Node> CollectNodes(g3d::Collection* g3d,
-                                      std::function<void()> outliner,
-                                      auto CtxDraw, auto ModalDraw) {
+                                             std::function<void()> outliner,
+                                             auto CtxDraw, auto ModalDraw) {
   std::vector<Node> result;
 
   Node n{
@@ -188,7 +189,7 @@ static inline std::vector<Node> CollectNodes(g3d::Collection* g3d,
           .icons_right = GetNodeIcons(bone),
           .draw_context_menu_fn = CtxDraw(&bone),
           .draw_modal_fn = ModalDraw(&bone),
-          .public_name = bone.mName,
+          .public_name = bone.getName(),
           .obj = &bone,
           .is_container = false,
           .is_rich = true,
@@ -425,7 +426,7 @@ static std::vector<Node> CollectNodes(j3d::Collection* g3d,
           .icons_right = GetNodeIcons(bone),
           .draw_context_menu_fn = CtxDraw(&bone),
           .draw_modal_fn = ModalDraw(&bone),
-          .public_name = bone.name,
+          .public_name = bone.getName(),
           .obj = &bone,
           .is_container = false,
           .is_rich = true,

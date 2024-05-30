@@ -1,9 +1,9 @@
 #pragma once
 
-#include <plugins/3d/i3dmodel.hpp>
 #include <core/common.h>
 #include <glm/glm.hpp>
 #include <librii/j3d/data/JointData.hpp>
+#include <plugins/3d/i3dmodel.hpp>
 #include <plugins/gc/Export/Bone.hpp>
 #include <string>
 #include <vector>
@@ -11,7 +11,7 @@
 namespace riistudio::j3d {
 
 struct Joint : public libcube::IBoneDelegate,
-               public librii::j3d::JointData,
+               private /* mutable */ librii::j3d::JointData,
                public virtual kpi::IObject {
   // PX_TYPE_INFO_EX("J3D Joint", "j3d_joint", "J::Joint", ICON_FA_BONE,
   // ICON_FA_BONE);
@@ -91,6 +91,43 @@ struct Joint : public libcube::IBoneDelegate,
 
   void addDisplay(const lib3d::Bone::Display& d) override {
     displays.emplace_back(d.matId, d.polyId);
+  }
+
+  void decompile(const librii::j3d::JointData& b) {
+    static_cast<librii::j3d::JointData&>(*this) = b;
+    j_flag = flag;
+    j_bbMtxType = bbMtxType;
+    j_mayaSSC = mayaSSC;
+    j_boundingSphereRadius = boundingSphereRadius;
+    j_boundingBox = boundingBox;
+  }
+  const librii::j3d::JointData& compile() {
+    flag = j_flag;
+    bbMtxType = j_bbMtxType;
+    mayaSSC = j_mayaSSC;
+    boundingSphereRadius = j_boundingSphereRadius;
+    boundingBox = j_boundingBox;
+    return *this;
+  }
+  const librii::j3d::JointData& compile() const {
+    // We treat the JointData parent as a mutable member
+    return const_cast<Joint*>(this)->compile();
+  }
+
+  u16 j_flag = 1; // Unused four bits; default value in galaxy is 1
+  librii::j3d::MatrixType j_bbMtxType = librii::j3d::MatrixType::Standard;
+  bool j_mayaSSC = false;
+  f32 j_boundingSphereRadius = 100000.0f;
+  librii::math::AABB j_boundingBox{{-100000.0f, -100000.0f, -100000.0f},
+                                   {100000.0f, 100000.0f, 100000.0f}};
+  bool operator==(const Joint& rhs) const {
+    // We treat the JointData parent as a mutable member
+    const_cast<Joint*>(this)->compile();
+    return static_cast<const JointData&>(*this) == rhs &&
+           j_flag == rhs.j_flag && j_bbMtxType == rhs.j_bbMtxType &&
+           j_mayaSSC == rhs.j_mayaSSC &&
+           j_boundingSphereRadius == rhs.j_boundingSphereRadius &&
+           j_boundingBox == rhs.j_boundingBox;
   }
 };
 

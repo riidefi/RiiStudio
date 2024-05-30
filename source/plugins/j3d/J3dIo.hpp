@@ -20,7 +20,7 @@ static inline void readJ3dMdl(librii::j3d::J3dModel& m,
     m.materials.emplace_back(mat);
   }
   for (auto& b : editor.getBones()) {
-    m.joints.emplace_back(b);
+    m.joints.emplace_back(b.compile());
   }
   for (auto& mesh : editor.getMeshes()) {
     m.shapes.emplace_back(mesh);
@@ -40,7 +40,7 @@ static inline void toEditorMdl(riistudio::j3d::Collection& s,
     static_cast<librii::j3d::MaterialData&>(tmp.getMaterials().add()) = ma;
   for (auto& b : m.joints) {
     auto& added = tmp.getBones().add();
-    static_cast<librii::j3d::JointData&>(added) = b;
+    added.decompile(b);
   }
   for (auto& mx : m.shapes)
     static_cast<librii::j3d::ShapeData&>(tmp.getMeshes().add()) = mx;

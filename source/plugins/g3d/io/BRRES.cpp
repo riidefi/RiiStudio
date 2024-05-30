@@ -39,8 +39,7 @@ static Result<void> processModel(librii::g3d::Model& binary_model,
 
   mdl.getBones().resize(binary_model.bones.size());
   for (size_t i = 0; i < binary_model.bones.size(); ++i) {
-    static_cast<librii::g3d::BoneData&>(mdl.getBones()[i]) =
-        binary_model.bones[i];
+    mdl.getBones()[i].decompile(binary_model.bones[i]);
   }
 
   for (auto& pos : binary_model.positions) {
@@ -117,8 +116,6 @@ Result<void> ReadBRRES(Collection& collection, oishii::BinaryReader& reader,
 librii::g3d::Model toBinaryModel(const Model& mdl) {
   librii::g3d::Model intermediate{
       .name = mdl.mName,
-      .bones = mdl.getBones()                          // Start with the bones
-               | rsl::ToList<librii::g3d::BoneData>(), // And back to vector
       .positions =
           mdl.getBuf_Pos() | rsl::ToList<librii::g3d::PositionBuffer>(),
       .normals = mdl.getBuf_Nrm() | rsl::ToList<librii::g3d::NormalBuffer>(),
@@ -129,6 +126,9 @@ librii::g3d::Model toBinaryModel(const Model& mdl) {
                    | rsl::ToList<librii::g3d::G3dMaterialData>(),
       .meshes = mdl.getMeshes() | rsl::ToList<librii::g3d::PolygonData>(),
   };
+  for (auto& b : mdl.getBones()) {
+    intermediate.bones.push_back(b.compile());
+  }
   intermediate.matrices.resize(0);
   for (auto& mtx : mdl.mDrawMatrices) {
     librii::g3d::DrawMatrix drw;

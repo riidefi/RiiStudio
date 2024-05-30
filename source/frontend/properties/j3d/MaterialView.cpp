@@ -120,21 +120,21 @@ void drawProperty(kpi::PropertyDelegate<Material>& delegate, J3DDataSurface) {
 void drawProperty(kpi::PropertyDelegate<Joint>& delegate, BoneJ3DSurface) {
   auto& bone = delegate.getActive();
 
-  int flag = bone.flag;
+  int flag = bone.j_flag;
   ImGui::InputInt("Flag"_j, &flag);
-  KPI_PROPERTY_EX(delegate, flag, static_cast<u16>(flag));
+  KPI_PROPERTY_EX(delegate, j_flag, static_cast<u16>(flag));
 
-  auto bbMtx = imcxx::Combo("Billboard Matrix"_j, bone.bbMtxType,
+  auto bbMtx = imcxx::Combo("Billboard Matrix"_j, bone.j_bbMtxType,
                             "Standard\0"
                             "XY\0"
                             "Y\0"_j);
-  KPI_PROPERTY_EX(delegate, bbMtxType, bbMtx);
+  KPI_PROPERTY_EX(delegate, j_bbMtxType, bbMtx);
 
-  auto boundingBox = bone.boundingBox;
-  auto boundingSphereRadius = bone.boundingSphereRadius;
+  auto boundingBox = bone.j_boundingBox;
+  auto boundingSphereRadius = bone.j_boundingSphereRadius;
   Toolkit::BoundingVolume(&boundingBox, &boundingSphereRadius);
-  KPI_PROPERTY_EX(delegate, boundingBox, boundingBox);
-  KPI_PROPERTY_EX(delegate, boundingSphereRadius, boundingSphereRadius);
+  KPI_PROPERTY_EX(delegate, j_boundingBox, boundingBox);
+  KPI_PROPERTY_EX(delegate, j_boundingSphereRadius, boundingSphereRadius);
 
   const riistudio::lib3d::Model* pMdl =
       dynamic_cast<const riistudio::lib3d::Model*>(
