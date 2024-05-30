@@ -581,39 +581,174 @@ fn encode_i4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     }
 }
 
-pub fn encode_i8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+pub fn legacy_encode_i8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     unsafe {
         bindings::impl_rii_encodeI8(dst.as_mut_ptr(), src.as_ptr(), width, height);
     }
 }
 
-pub fn encode_ia4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+fn encode_i8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    let mut dst_index: usize = 0;
+    for y in (0..height).step_by(4) {
+        for x in (0..width).step_by(8) {
+            for row in 0..4 {
+                for column in 0..8 {
+                    let pos = (((y + row) * width + x + column) * 4) as usize;
+                    let rgba = Rgba::from_slice(&src[pos..pos + 4]);
+                    dst[dst_index] = luminosity(&rgba);
+                    dst_index += 1;
+                }
+            }
+        }
+    }
+}
+
+pub fn legacy_encode_ia4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     unsafe {
         bindings::impl_rii_encodeIA4(dst.as_mut_ptr(), src.as_ptr(), width, height);
     }
 }
 
-pub fn encode_ia8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+fn encode_ia4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    let mut dst_index: usize = 0;
+    for y in (0..height).step_by(4) {
+        for x in (0..width).step_by(8) {
+            for row in 0..4 {
+                for column in 0..8 {
+                    let pos = (((y + row) * width + x + column) * 4) as usize;
+                    let rgba = Rgba::from_slice(&src[pos..pos + 4]);
+                    dst[dst_index] = (luminosity(&rgba) & 0b1111_0000) | (rgba.a >> 4);
+                    dst_index += 1;
+                }
+            }
+        }
+    }
+}
+
+pub fn legacy_encode_ia8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     unsafe {
         bindings::impl_rii_encodeIA8(dst.as_mut_ptr(), src.as_ptr(), width, height);
     }
 }
 
-pub fn encode_rgb565_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+fn encode_ia8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    let mut dst_index: usize = 0;
+    for y in (0..height).step_by(4) {
+        for x in (0..width).step_by(4) {
+            for row in 0..4 {
+                for column in 0..4 {
+                    let pos = (((y + row) * width + x + column) * 4) as usize;
+                    let rgba = Rgba::from_slice(&src[pos..pos + 4]);
+                    dst[dst_index] = luminosity(&rgba);
+                    dst[dst_index + 1] = rgba.a;
+                    dst_index += 2;
+                }
+            }
+        }
+    }
+}
+
+pub fn legacy_encode_rgb565_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     unsafe {
         bindings::impl_rii_encodeRGB565(dst.as_mut_ptr(), src.as_ptr(), width, height);
     }
 }
 
-pub fn encode_rgb5a3_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+fn encode_rgb565_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    let mut dst_index: usize = 0;
+    for y in (0..height).step_by(4) {
+        for x in (0..width).step_by(4) {
+            for row in 0..4 {
+                for column in 0..4 {
+                    let pos = (((y + row) * width + x + column) * 4) as usize;
+                    let rgba = Rgba::from_slice(&src[pos..pos + 4]);
+                    let packed = ((rgba.r & 0xF8) as u16) << 8
+                        | ((rgba.g & 0xFC) as u16) << 3
+                        | ((rgba.b & 0xF8) as u16) >> 3;
+                    dst[dst_index] = (packed >> 8) as u8;
+                    dst[dst_index + 1] = packed as u8;
+                    dst_index += 2;
+                }
+            }
+        }
+    }
+}
+
+pub fn legacy_encode_rgb5a3_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     unsafe {
         bindings::impl_rii_encodeRGB5A3(dst.as_mut_ptr(), src.as_ptr(), width, height);
     }
 }
 
-pub fn encode_rgba8_into(dst: &mut [u8], src4: &[u8], width: u32, height: u32) {
+fn encode_rgb5a3_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    let mut dst_index: usize = 0;
+    for y in (0..height).step_by(4) {
+        for x in (0..width).step_by(4) {
+            for row in 0..4 {
+                for column in 0..4 {
+                    let pos = (((y + row) * width + x + column) * 4) as usize;
+                    let rgba = Rgba::from_slice(&src[pos..pos + 4]);
+                    let packed = if rgba.a < 0xE0 {
+                        ((rgba.a & 0xE0) as u16) << 7
+                            | ((rgba.r & 0xF0) as u16) << 4
+                            | ((rgba.g & 0xF0) as u16)
+                            | ((rgba.b & 0xF0) as u16) >> 4
+                    } else {
+                        0x8000
+                            | ((rgba.r & 0xF8) as u16) << 7
+                            | ((rgba.g & 0xF8) as u16) << 2
+                            | ((rgba.b & 0xF8) as u16) >> 3
+                    };
+                    dst[dst_index] = (packed >> 8) as u8;
+                    dst[dst_index + 1] = packed as u8;
+                    dst_index += 2;
+                }
+            }
+        }
+    }
+}
+
+pub fn legacy_encode_rgba8_into(dst: &mut [u8], src4: &[u8], width: u32, height: u32) {
     unsafe {
         bindings::impl_rii_encodeRGBA8(dst.as_mut_ptr(), src4.as_ptr(), width, height);
+    }
+}
+
+fn encode_rgba8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    let mut dst_index: usize = 0;
+
+    for block in (0..height).step_by(4) {
+        for i in (0..width).step_by(4) {
+            for c in 0..4 {
+                let block_wid = (((block + c) * width) + i) << 2;
+
+                dst[dst_index] = src[(block_wid + 3) as usize]; // ar = 0
+                dst[dst_index + 1] = src[block_wid as usize];
+                dst[dst_index + 2] = src[(block_wid + 7) as usize]; // ar = 1
+                dst[dst_index + 3] = src[(block_wid + 4) as usize];
+                dst[dst_index + 4] = src[(block_wid + 11) as usize]; // ar = 2
+                dst[dst_index + 5] = src[(block_wid + 8) as usize];
+                dst[dst_index + 6] = src[(block_wid + 15) as usize]; // ar = 3
+                dst[dst_index + 7] = src[(block_wid + 12) as usize];
+
+                dst_index += 8;
+            }
+
+            for c in 0..4 {
+                let block_wid = (((block + c) * width) + i) << 2;
+
+                dst[dst_index] = src[(block_wid + 1) as usize]; // gb = 0
+                dst[dst_index + 1] = src[(block_wid + 2) as usize];
+                dst[dst_index + 2] = src[(block_wid + 5) as usize]; // gb = 1
+                dst[dst_index + 3] = src[(block_wid + 6) as usize];
+                dst[dst_index + 4] = src[(block_wid + 9) as usize]; // gb = 2
+                dst[dst_index + 5] = src[(block_wid + 10) as usize];
+                dst[dst_index + 6] = src[(block_wid + 13) as usize]; // gb = 3
+                dst[dst_index + 7] = src[(block_wid + 14) as usize];
+
+                dst_index += 8;
+            }
+        }
     }
 }
 
