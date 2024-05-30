@@ -25,3 +25,4 @@ cc = { version = "1.0.83", features = ["parallel"] }
 
 [dev-dependencies]
 rand = "0.8.5"
+image = "0.25.1"

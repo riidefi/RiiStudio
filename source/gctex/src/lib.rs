@@ -744,6 +744,17 @@ mod tests3 {
             // Encode the image
             let encoded_image = encode(format, &raw_image, IMAGE_WIDTH, IMAGE_HEIGHT);
 
+            // Decode the image for debugging
+            let decoded_image = decode(&encoded_image, IMAGE_WIDTH, IMAGE_HEIGHT, format, &[0], 0);
+
+            // Save the decoded image as a .png file for debugging
+            save_png(
+                &decoded_image,
+                IMAGE_WIDTH,
+                IMAGE_HEIGHT,
+                &format!("tests/mnk_dbg_{:?}.png", format),
+            );
+
             // Load the cached result, if available
             if let Some(cached_image) = load_encoded_blob(format, "encoded_monke") {
                 // Compare the encoded image with the cached result
@@ -784,6 +795,17 @@ mod tests3 {
             // Encode the image
             let encoded_image = encode(format, &raw_image, IMAGE_WIDTH, IMAGE_HEIGHT);
 
+            // Decode the image for debugging
+            let decoded_image = decode(&encoded_image, IMAGE_WIDTH, IMAGE_HEIGHT, format, &[0], 0);
+
+            // Save the decoded image as a .png file for debugging
+            save_png(
+                &decoded_image,
+                IMAGE_WIDTH,
+                IMAGE_HEIGHT,
+                &format!("tests/rng_dbg_{:?}.png", format),
+            );
+
             // Load the cached result, if available
             if let Some(cached_image) = load_encoded_blob(format, "encoded_random") {
                 // Compare the encoded image with the cached result
@@ -802,6 +824,13 @@ mod tests3 {
                 );
             }
         }
+    }
+
+    // Function to save a raw image buffer as a PNG file
+    fn save_png(image: &[u8], width: u32, height: u32, path: &str) {
+        use image::{ImageBuffer, Rgba};
+        let buffer = ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, image).unwrap();
+        buffer.save(path).unwrap();
     }
 }
 
