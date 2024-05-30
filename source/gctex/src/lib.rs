@@ -654,6 +654,26 @@ pub fn decode_fast(
 
         // Fall back to C++ for all other formats for SIMD decoder availability
 
+        // (IA4 and RGB565 SIMD paths are unavailable)
+        if texformat == TextureFormat::IA4 {
+            decode_texture_ia4(
+                unsafe { u8_to_u32_slice(dst) },
+                src,
+                width as usize,
+                height as usize,
+            );
+            return;
+        }
+        if texformat == TextureFormat::RGB565 {
+            decode_texture_rgb565(
+                unsafe { u8_to_u32_slice(dst) },
+                src,
+                width as usize,
+                height as usize,
+            );
+            return;
+        }
+
         unsafe {
             bindings::impl_rii_decode(
                 dst.as_mut_ptr(),
@@ -869,12 +889,6 @@ pub fn encode_cmpr_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     }
 }
 
-pub fn legacy_encode_i4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
-    unsafe {
-        bindings::impl_rii_encodeI4(dst.as_mut_ptr(), src.as_ptr(), width, height);
-    }
-}
-
 struct Rgba {
     r: u8,
     g: u8,
@@ -921,12 +935,6 @@ fn encode_i4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     }
 }
 
-pub fn legacy_encode_i8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
-    unsafe {
-        bindings::impl_rii_encodeI8(dst.as_mut_ptr(), src.as_ptr(), width, height);
-    }
-}
-
 fn encode_i8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     let mut dst_index: usize = 0;
     for y in (0..height).step_by(4) {
@@ -943,12 +951,6 @@ fn encode_i8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     }
 }
 
-pub fn legacy_encode_ia4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
-    unsafe {
-        bindings::impl_rii_encodeIA4(dst.as_mut_ptr(), src.as_ptr(), width, height);
-    }
-}
-
 fn encode_ia4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     let mut dst_index: usize = 0;
     for y in (0..height).step_by(4) {
@@ -962,12 +964,6 @@ fn encode_ia4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
                 }
             }
         }
-    }
-}
-
-pub fn legacy_encode_ia8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
-    unsafe {
-        bindings::impl_rii_encodeIA8(dst.as_mut_ptr(), src.as_ptr(), width, height);
     }
 }
 
@@ -988,12 +984,6 @@ fn encode_ia8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     }
 }
 
-pub fn legacy_encode_rgb565_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
-    unsafe {
-        bindings::impl_rii_encodeRGB565(dst.as_mut_ptr(), src.as_ptr(), width, height);
-    }
-}
-
 fn encode_rgb565_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
     let mut dst_index: usize = 0;
     for y in (0..height).step_by(4) {
@@ -1011,12 +1001,6 @@ fn encode_rgb565_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
                 }
             }
         }
-    }
-}
-
-pub fn legacy_encode_rgb5a3_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
-    unsafe {
-        bindings::impl_rii_encodeRGB5A3(dst.as_mut_ptr(), src.as_ptr(), width, height);
     }
 }
 
@@ -1045,12 +1029,6 @@ fn encode_rgb5a3_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
                 }
             }
         }
-    }
-}
-
-pub fn legacy_encode_rgba8_into(dst: &mut [u8], src4: &[u8], width: u32, height: u32) {
-    unsafe {
-        bindings::impl_rii_encodeRGBA8(dst.as_mut_ptr(), src4.as_ptr(), width, height);
     }
 }
 

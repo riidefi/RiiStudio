@@ -38,16 +38,16 @@ All supported texture formats and their respective encoding and decoding sources
 
 | Format  | Encoding Source | Decoding Source |
 |---------|-----------------|-----------------|
-| CMPR    | WSZST           | Dolphin Emulator |
+| CMPR    | WSZST           | Builtin (SIMD) |
 | I4      | Builtin         | Dolphin Emulator (SIMD) |
 | I8      | Builtin         | Dolphin Emulator (SIMD) |
-| IA4     | Builtin         | Dolphin Emulator |
+| IA4     | Builtin         | Builtin |
 | IA8     | Builtin         | Dolphin Emulator (SIMD) |
-| RGB565  | Builtin         | Dolphin Emulator |
+| RGB565  | Builtin         | Builtin |
 | RGB5A3  | Builtin         | Dolphin Emulator (SIMD) |
 | RGBA8   | Builtin         | Dolphin Emulator (SIMD) |
 
-Please note, SIMD texture decoding for I4, I8 and IA8 formats uses SSE3 instructions with a fallback to SSE2 if necessary, and these are implemented based on the Dolphin Emulator's texture decoding logic.
+Please note, SIMD texture decoding for I4, I8 and IA8 formats uses SSE3 instructions with a fallback to SSE2 if necessary (excepting I4), and these are implemented based on the Dolphin Emulator's texture decoding logic.
 
 #### License
 This dynamically linked library is published under GPLv2.
