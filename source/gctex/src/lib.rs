@@ -648,7 +648,10 @@ pub fn encode(format: TextureFormat, src: &[u8], width: u32, height: u32) -> Vec
 #[cfg(test)]
 mod tests3 {
     use super::*;
-    use std::fs::{self, File};
+    use rand::rngs::StdRng;
+    use rand::{Rng, SeedableRng};
+    use std::fs;
+    use std::fs::File;
     use std::io::Read;
     use std::path::Path;
 
@@ -676,6 +679,43 @@ mod tests3 {
             Some(fs::read(cache_path).expect("Failed to read encoded blob from cache"))
         } else {
             None
+        }
+    }
+
+    fn generate_random_image_data(width: u32, height: u32, seed: u64) -> Vec<u8> {
+        let mut rng = StdRng::seed_from_u64(seed);
+        (0..width * height * 4).map(|_| rng.gen()).collect()
+    }
+
+    fn assert_buffers_equal(encoded_image: &[u8], cached_image: &[u8], format: &str) {
+        if encoded_image != cached_image {
+            let diff_count = encoded_image
+                .iter()
+                .zip(cached_image.iter())
+                .filter(|(a, b)| a != b)
+                .count();
+            println!(
+                "Mismatch for format {:?} - {} bytes differ",
+                format, diff_count
+            );
+
+            // Print some example differences (up to 10)
+            let mut diff_examples = vec![];
+            for (i, (a, b)) in encoded_image.iter().zip(cached_image.iter()).enumerate() {
+                if a != b {
+                    diff_examples.push((i, *a, *b));
+                    if diff_examples.len() >= 10 {
+                        break;
+                    }
+                }
+            }
+
+            println!("Example differences (up to 10):");
+            for (i, a, b) in diff_examples {
+                println!("Byte {}: encoded = {}, cached = {}", i, a, b);
+            }
+
+            panic!("Buffers are not equal");
         }
     }
 
@@ -707,14 +747,54 @@ mod tests3 {
             // Load the cached result, if available
             if let Some(cached_image) = load_encoded_blob(format, "encoded_monke") {
                 // Compare the encoded image with the cached result
-                assert_eq!(
-                    encoded_image, cached_image,
-                    "Mismatch for format {:?}",
-                    format
+                assert_buffers_equal(
+                    &encoded_image,
+                    &cached_image,
+                    &format!("Mismatch for format {:?}", format),
                 );
             } else {
                 // Save the encoded image as the cached result
                 save_encoded_blob(format, &encoded_image, "encoded_monke");
+                // Trivially pass the test if there's no cached result
+                println!(
+                    "Cached result for format {:?} not found. Generated and saved new cache.",
+                    format
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_encode_with_random_data() {
+        // Generate random image data with a fixed seed
+        let raw_image = generate_random_image_data(1024, 1024, 1337);
+
+        // Iterate over all texture formats
+        for format in [
+            TextureFormat::I4,
+            TextureFormat::I8,
+            TextureFormat::IA4,
+            TextureFormat::IA8,
+            TextureFormat::RGB565,
+            TextureFormat::RGB5A3,
+            TextureFormat::RGBA8,
+            TextureFormat::CMPR,
+        ] {
+            println!("Encoding {}", format as u32);
+            // Encode the image
+            let encoded_image = encode(format, &raw_image, IMAGE_WIDTH, IMAGE_HEIGHT);
+
+            // Load the cached result, if available
+            if let Some(cached_image) = load_encoded_blob(format, "encoded_random") {
+                // Compare the encoded image with the cached result
+                assert_buffers_equal(
+                    &encoded_image,
+                    &cached_image,
+                    &format!("Mismatch for format {:?}", format),
+                );
+            } else {
+                // Save the encoded image as the cached result
+                save_encoded_blob(format, &encoded_image, "encoded_random");
                 // Trivially pass the test if there's no cached result
                 println!(
                     "Cached result for format {:?} not found. Generated and saved new cache.",
