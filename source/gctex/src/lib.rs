@@ -802,6 +802,7 @@ pub fn decode_fast(
         _ => {
             // (Only falling back to C++ for formats we don't support (CMPR, CI4, CI8, CI14))
 
+            #[cfg(feature = "cpp_fallback")]
             unsafe {
                 bindings::impl_rii_decode(
                     dst.as_mut_ptr(),
@@ -812,7 +813,9 @@ pub fn decode_fast(
                     tlut.as_ptr(),
                     tlutformat,
                 );
+                return;
             }
+            panic!("Unsupported format (C++ fallback is disabled)");
         }
     }
 }
@@ -955,9 +958,12 @@ pub fn decode(
 }
 
 pub fn encode_cmpr_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
+    #[cfg(feature = "cpp_fallback")]
     unsafe {
         bindings::impl_rii_encodeCMPR(dst.as_mut_ptr(), src.as_ptr(), width, height);
+        return;
     }
+    panic!("CMPR encoding not supported when cpp_fallback not defined");
 }
 
 struct Rgba {
