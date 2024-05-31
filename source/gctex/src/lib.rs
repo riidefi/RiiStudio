@@ -418,6 +418,22 @@ const fn convert_6_to_8(v: u8) -> u8 {
     (v << 2) | (v >> 4)
 }
 
+fn convert_5_to_8_wiimm(x: u8) -> u8 {
+    (((x as u16) * 255 + 15) / 31) as u8
+}
+
+fn convert_6_to_8_wiimm(x: u8) -> u8 {
+    (((x as u16) * 255 + 31) / 63) as u8
+}
+
+fn convert_8_to_5_wiimm(x: u8) -> u8 {
+    (((x as u16) * 31 + 127) / 255) as u8
+}
+
+fn convert_8_to_6_wiimm(x: u8) -> u8 {
+    (((x as u16) * 63 + 127) / 255) as u8
+}
+
 fn decode_texture_i4(dst: &mut [u8], src: &[u8], width: usize, height: usize) {
     let mut src_idx = 0;
     for y in (0..height).step_by(8) {
@@ -1071,13 +1087,364 @@ pub fn decode(
     dst
 }
 
-pub fn encode_cmpr_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
-    #[cfg(feature = "cpp_fallback")]
-    unsafe {
-        bindings::impl_rii_encodeCMPR(dst.as_mut_ptr(), src.as_ptr(), width, height);
+use std::cmp::min;
+
+const CMPR_MAX_COL: u32 = 16;
+const CMPR_DATA_SIZE: usize = 64;
+
+#[repr(C)]
+struct CmprInfo {
+    opaque_count: u32,
+    p: [[u8; 4]; 4],
+}
+
+fn calc_distance(v1: &[u8], v2: &[u8]) -> u32 {
+    let d0 = v1[0] as i32 - v2[0] as i32;
+    let d1 = v1[1] as i32 - v2[1] as i32;
+    let d2 = v1[2] as i32 - v2[2] as i32;
+    (d0.abs() + d1.abs() + d2.abs()) as u32
+}
+
+fn argmin3(val0: u32, val1: u32, val2: u32) -> u8 {
+    if val1 <= val2 {
+        if val1 <= val0 {
+            1
+        } else {
+            0
+        }
+    } else {
+        if val2 < val0 {
+            2
+        } else {
+            0
+        }
+    }
+}
+
+fn argmin4(val0: u32, val1: u32, val2: u32, val3: u32) -> u8 {
+    if val3 < min(val0, min(val1, val2)) {
+        3
+    } else {
+        argmin3(val0, val1, val2)
+    }
+}
+fn mix_2_3(pal0: &[u8; 4], pal1: &[u8; 4]) -> ([u8; 4], [u8; 4]) {
+    let pal2 = [
+        ((2 * pal0[0] as u32 + pal1[0] as u32) / 3) as u8,
+        ((2 * pal0[1] as u32 + pal1[1] as u32) / 3) as u8,
+        ((2 * pal0[2] as u32 + pal1[2] as u32) / 3) as u8,
+        0xff,
+    ];
+    let pal3 = [
+        ((pal0[0] as u32 + 2 * pal1[0] as u32) / 3) as u8,
+        ((pal0[1] as u32 + 2 * pal1[1] as u32) / 3) as u8,
+        ((pal0[2] as u32 + 2 * pal1[2] as u32) / 3) as u8,
+        0xff,
+    ];
+    (pal2, pal3)
+}
+
+fn rgb8_to_rgb565(r: u8, g: u8, b: u8) -> u16 {
+    ((convert_8_to_5_wiimm(r) as u16) << 11)
+        | ((convert_8_to_6_wiimm(g) as u16) << 5)
+        | (convert_8_to_5_wiimm(b) as u16)
+}
+
+fn rgb565_to_rgb8(rgb565: u16) -> (u8, u8, u8) {
+    (
+        convert_5_to_8_wiimm(((rgb565 >> 11) & 0x1F) as u8),
+        convert_6_to_8_wiimm(((rgb565 >> 5) & 0x3F) as u8),
+        convert_5_to_8_wiimm((rgb565 & 0x1F) as u8),
+    )
+}
+
+// Ref: WIMGT
+fn cmpr_close_info(data: &[u8], info: &CmprInfo, dest: &mut [u8]) {
+    assert!(info.opaque_count <= CMPR_MAX_COL);
+    assert!(!dest.is_empty());
+
+    let mut dest_index = 0;
+
+    if info.opaque_count < CMPR_MAX_COL {
+        if info.opaque_count == 0 {
+            dest[dest_index] = 0;
+            dest_index += 1;
+            dest[dest_index] = 0;
+            dest_index += 1;
+            dest[dest_index..dest_index + 6].fill(0xff);
+            return;
+        }
+
+        // Handle transparent pixels
+        let p0 = rgb8_to_rgb565(info.p[0][0], info.p[0][1], info.p[0][2]);
+        let p1 = rgb8_to_rgb565(info.p[1][0], info.p[1][1], info.p[1][2]);
+        let (p0, p1) = if p0 == p1 {
+            (p0 & !1, p1 | 1)
+        } else if p0 > p1 {
+            (p1, p0)
+        } else {
+            (p0, p1)
+        };
+
+        assert!(p0 < p1);
+        write_be16(&mut dest[dest_index..], p0);
+        dest_index += 2;
+        write_be16(&mut dest[dest_index..], p1);
+        dest_index += 2;
+
+        let pal0 = {
+            let (r, g, b) = rgb565_to_rgb8(p0);
+            [r, g, b, 0xff]
+        };
+        let pal1 = {
+            let (r, g, b) = rgb565_to_rgb8(p1);
+            [r, g, b, 0xff]
+        };
+        let pal2 = [
+            ((pal0[0] as u32 + pal1[0] as u32) / 2) as u8,
+            ((pal0[1] as u32 + pal1[1] as u32) / 2) as u8,
+            ((pal0[2] as u32 + pal1[2] as u32) / 2) as u8,
+            0xff,
+        ];
+        let pal3 = pal2;
+
+        for i in 0..4 {
+            let mut val = 0;
+            for j in 0..4 {
+                let pixel = &data[(i * 4 + j) * 4..];
+                val <<= 2;
+                if pixel[3] >= 0x80 {
+                    let d0 = calc_distance(pixel, &pal0);
+                    let d1 = calc_distance(pixel, &pal1);
+                    let d2 = calc_distance(pixel, &pal2);
+                    val |= argmin3(d0, d1, d2);
+                } else {
+                    val |= 3;
+                }
+            }
+            dest[dest_index] = val;
+            dest_index += 1;
+        }
+    } else {
+        // No transparent pixels
+        let p0 = rgb8_to_rgb565(info.p[0][0], info.p[0][1], info.p[0][2]);
+        let p1 = rgb8_to_rgb565(info.p[1][0], info.p[1][1], info.p[1][2]);
+        let (p0, p1) = if p0 == p1 {
+            (p0 | 1, p1 & !1)
+        } else if p0 < p1 {
+            (p1, p0)
+        } else {
+            (p0, p1)
+        };
+
+        assert!(p0 > p1);
+        write_be16(&mut dest[dest_index..], p0);
+        dest_index += 2;
+        write_be16(&mut dest[dest_index..], p1);
+        dest_index += 2;
+
+        let pal0 = {
+            let (r, g, b) = rgb565_to_rgb8(p0);
+            [r, g, b, 0xff]
+        };
+        let pal1 = {
+            let (r, g, b) = rgb565_to_rgb8(p1);
+            [r, g, b, 0xff]
+        };
+        let (pal2, pal3) = mix_2_3(&pal0, &pal1);
+
+        for i in 0..4 {
+            let mut val = 0;
+            for j in 0..4 {
+                let pixel = &data[(i * 4 + j) * 4..];
+                val <<= 2;
+                let d0 = calc_distance(pixel, &pal0);
+                let d1 = calc_distance(pixel, &pal1);
+                let d2 = calc_distance(pixel, &pal2);
+                let d3 = calc_distance(pixel, &pal3);
+                val |= argmin4(d0, d1, d2, d3);
+            }
+            dest[dest_index] = val;
+            dest_index += 1;
+        }
+    }
+}
+
+fn write_be16(dest: &mut [u8], value: u16) {
+    dest[0] = (value >> 8) as u8;
+    dest[1] = value as u8;
+}
+
+fn encode_cmpr_into(dest_img: &mut [u8], source_img: &[u8], width: u32, height: u32) {
+    assert!(!dest_img.is_empty());
+    assert!(!source_img.is_empty());
+
+    let xwidth = (width + 7) & !7;
+    let xheight = (height + 7) & !7;
+
+    let bits_per_pixel = 4;
+    let block_width = 8;
+    let block_height = 8;
+
+    let img_size = (xwidth * xheight * bits_per_pixel / 8) as usize;
+
+    let mut src_offset = 0;
+    let mut dest_offset = 0;
+    let block_size = block_width * 4;
+    let line_size = (xwidth * 4) as usize;
+    let delta = [0, 16, 4 * line_size, 4 * line_size + 16];
+
+    for y in (0..height).step_by(block_height as usize) {
+        for x in (0..width).step_by(block_width as usize) {
+            for subb in 0..4 {
+                let mut vector = [0u8; 16 * 4];
+                let mut vect_offset = 0;
+                let mut src3_offset = src_offset + delta[subb];
+                for _ in 0..4 {
+                    vector[vect_offset..vect_offset + 16]
+                        .copy_from_slice(&source_img[src3_offset..src3_offset + 16]);
+                    vect_offset += 16;
+                    src3_offset += line_size;
+                }
+
+                let mut info = CmprInfo {
+                    opaque_count: 0,
+                    p: [[0; 4]; 4],
+                };
+                wimgt_cmpr(&vector, &mut info);
+                cmpr_close_info(&vector, &info, &mut dest_img[dest_offset..]);
+                dest_offset += 8;
+            }
+            src_offset += block_size as usize;
+        }
+        src_offset += line_size * (block_height as usize - 1);
+    }
+
+    assert_eq!(dest_offset, img_size);
+}
+
+fn wimgt_cmpr(data: &[u8], info: &mut CmprInfo) {
+    assert!(!data.is_empty());
+    assert!(info.opaque_count <= CMPR_MAX_COL);
+
+    let mut sum: [Sum; CMPR_MAX_COL as usize] = unsafe { std::mem::zeroed() };
+    let mut n_sum = 0;
+    let mut opaque_count = 0;
+
+    for dat in data.chunks(4) {
+        if dat[3] >= 0x80 {
+            opaque_count += 1;
+            let col = [
+                convert_5_to_8_wiimm(convert_8_to_5_wiimm(dat[0])),
+                convert_6_to_8_wiimm(convert_8_to_6_wiimm(dat[1])),
+                convert_5_to_8_wiimm(convert_8_to_5_wiimm(dat[2])),
+                0xff,
+            ];
+
+            let mut did_find = false;
+            for s in 0..n_sum {
+                if sum[s].col[..3] == col[..3] {
+                    sum[s].count += 1;
+                    did_find = true;
+                    break;
+                }
+            }
+
+            if !did_find {
+                sum[n_sum].col.copy_from_slice(&col);
+                sum[n_sum].count = 1;
+                n_sum += 1;
+            }
+        }
+    }
+
+    info.opaque_count = opaque_count;
+    if opaque_count == 0 {
         return;
     }
-    panic!("CMPR encoding not supported when cpp_fallback not defined");
+
+    assert!(n_sum != 0);
+    if n_sum < 3 {
+        info.p[0].copy_from_slice(&sum[0].col);
+        info.p[1].copy_from_slice(&sum[n_sum - 1].col);
+        return;
+    }
+
+    assert!(opaque_count >= 3);
+
+    let (mut best0, mut best1) = (0, 0);
+    let mut max_dist = u32::MAX;
+
+    if info.opaque_count < CMPR_MAX_COL {
+        // Transparent points -> 1 middle point
+
+        for s0 in 0..n_sum {
+            let pal0 = &sum[s0].col;
+            for s1 in (s0 + 1)..n_sum {
+                let pal1 = &sum[s1].col;
+                let pal2 = [
+                    ((pal0[0] as u32 + pal1[0] as u32) / 2) as u8,
+                    ((pal0[1] as u32 + pal1[1] as u32) / 2) as u8,
+                    ((pal0[2] as u32 + pal1[2] as u32) / 2) as u8,
+                    0xff,
+                ];
+
+                let mut dist = 0;
+                for dat in data.chunks(4) {
+                    if dist >= max_dist {
+                        break;
+                    }
+                    if dat[3] & 0x80 != 0 {
+                        let d0 = calc_distance(dat, pal0);
+                        let d1 = calc_distance(dat, pal1);
+                        let d2 = calc_distance(dat, &pal2);
+                        dist += min(d0, min(d1, d2));
+                    }
+                }
+                if max_dist > dist {
+                    max_dist = dist;
+                    best0 = s0;
+                    best1 = s1;
+                }
+            }
+        }
+    } else {
+        // No transparent points -> 2 middle points (Palette with 4 distinct colors)
+
+        for s0 in 0..n_sum {
+            let pal0 = &sum[s0].col;
+            for s1 in (s0 + 1)..n_sum {
+                let pal1 = &sum[s1].col;
+                let (pal2, pal3) = mix_2_3(pal0, pal1);
+
+                let mut dist = 0;
+                for dat in data.chunks(4) {
+                    if dist >= max_dist {
+                        break;
+                    }
+                    let d0 = calc_distance(dat, pal0);
+                    let d1 = calc_distance(dat, pal1);
+                    let d2 = calc_distance(dat, &pal2);
+                    let d3 = calc_distance(dat, &pal3);
+                    dist += min(min(d0, d1), min(d2, d3));
+                }
+                if max_dist > dist {
+                    max_dist = dist;
+                    best0 = s0;
+                    best1 = s1;
+                }
+            }
+        }
+    }
+
+    info.p[0].copy_from_slice(&sum[best0].col);
+    info.p[1].copy_from_slice(&sum[best1].col);
+}
+
+#[repr(C)]
+struct Sum {
+    col: [u8; 4],
+    count: u32,
 }
 
 struct Rgba {
