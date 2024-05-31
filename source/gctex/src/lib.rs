@@ -594,6 +594,111 @@ fn decode_texture_rgba8(dst: &mut [u32], src: &[u8], width: usize, height: usize
     }
 }
 
+#[repr(C)]
+struct DXTBlock {
+    color1: u16,
+    color2: u16,
+    lines: [u8; 4],
+}
+
+impl DXTBlock {
+    fn from_bytes(bytes: &[u8]) -> Self {
+        let color1 = u16::from_le_bytes([bytes[0], bytes[1]]);
+        let color2 = u16::from_le_bytes([bytes[2], bytes[3]]);
+        let mut lines = [0u8; 4];
+        lines.copy_from_slice(&bytes[4..8]);
+
+        DXTBlock {
+            color1,
+            color2,
+            lines,
+        }
+    }
+}
+
+const fn make_rgba(r: u32, g: u32, b: u32, a: u32) -> u32 {
+    (((a as u32) << 24) | ((b as u32) << 16) | ((g as u32) << 8) | r as u32) as u32
+}
+
+const fn dxt_blend(v1: u32, v2: u32) -> u32 {
+    ((v1 * 3 + v2 * 5) >> 3) as u32
+}
+
+// Reference: Dolphin
+fn decode_dxt_block(dst: &mut [u32], src: &DXTBlock, pitch: usize) {
+    let c1 = src.color1.swap_bytes();
+    let c2 = src.color2.swap_bytes();
+    let blue1 = convert_5_to_8((c1 & 0x1F) as u8) as u32;
+    let blue2 = convert_5_to_8((c2 & 0x1F) as u8) as u32;
+    let green1 = convert_6_to_8(((c1 >> 5) & 0x3F) as u8) as u32;
+    let green2 = convert_6_to_8(((c2 >> 5) & 0x3F) as u8) as u32;
+    let red1 = convert_5_to_8(((c1 >> 11) & 0x1F) as u8) as u32;
+    let red2 = convert_5_to_8(((c2 >> 11) & 0x1F) as u8) as u32;
+    let mut colors = [0u32; 4];
+    colors[0] = make_rgba(red1, green1, blue1, 255);
+    colors[1] = make_rgba(red2, green2, blue2, 255);
+    if c1 > c2 {
+        colors[2] = make_rgba(
+            dxt_blend(red2, red1),
+            dxt_blend(green2, green1),
+            dxt_blend(blue2, blue1),
+            255,
+        );
+        colors[3] = make_rgba(
+            dxt_blend(red1, red2),
+            dxt_blend(green1, green2),
+            dxt_blend(blue1, blue2),
+            255,
+        );
+    } else {
+        colors[2] = make_rgba(
+            (red1 + red2) / 2,
+            (green1 + green2) / 2,
+            (blue1 + blue2) / 2,
+            255,
+        );
+        colors[3] = make_rgba(
+            (red1 + red2) / 2,
+            (green1 + green2) / 2,
+            (blue1 + blue2) / 2,
+            0,
+        );
+    }
+
+    let mut dst_offset = 0;
+    for y in 0..4 {
+        let mut val = src.lines[y];
+        for x in 0..4 {
+            dst[dst_offset + x] = colors[((val >> 6) & 3) as usize];
+            val <<= 2;
+        }
+        dst_offset += pitch;
+    }
+}
+
+fn decode_texture_cmpr(dst: &mut [u32], src: &[u8], width: usize, height: usize) {
+    let mut src_offset = 0;
+    for y in (0..height).step_by(8) {
+        for x in (0..width).step_by(8) {
+            let block1 = DXTBlock::from_bytes(&src[src_offset..]);
+            decode_dxt_block(&mut dst[y * width + x..], &block1, width);
+            src_offset += std::mem::size_of::<DXTBlock>();
+
+            let block2 = DXTBlock::from_bytes(&src[src_offset..]);
+            decode_dxt_block(&mut dst[y * width + x + 4..], &block2, width);
+            src_offset += std::mem::size_of::<DXTBlock>();
+
+            let block3 = DXTBlock::from_bytes(&src[src_offset..]);
+            decode_dxt_block(&mut dst[(y + 4) * width + x..], &block3, width);
+            src_offset += std::mem::size_of::<DXTBlock>();
+
+            let block4 = DXTBlock::from_bytes(&src[src_offset..]);
+            decode_dxt_block(&mut dst[(y + 4) * width + x + 4..], &block4, width);
+            src_offset += std::mem::size_of::<DXTBlock>();
+        }
+    }
+}
+
 // Based on Dolphin implementation
 #[cfg(feature = "simd")]
 #[target_feature(enable = "ssse3")]
@@ -799,8 +904,14 @@ pub fn decode_fast(
             width as usize,
             height as usize,
         ),
+        TextureFormat::CMPR => decode_texture_cmpr(
+            unsafe { u8_to_u32_slice(dst) },
+            src,
+            width as usize,
+            height as usize,
+        ),
         _ => {
-            // (Only falling back to C++ for formats we don't support (CMPR, CI4, CI8, CI14))
+            // (Only falling back to C++ for formats we don't support (CI4, CI8, CI14))
 
             #[cfg(feature = "cpp_fallback")]
             unsafe {
