@@ -614,6 +614,9 @@ impl DXTBlock {
             lines,
         }
     }
+    fn byte_size() -> usize {
+        8
+    }
 }
 
 const fn make_rgba(r: u32, g: u32, b: u32, a: u32) -> u32 {
@@ -682,19 +685,19 @@ fn decode_texture_cmpr(dst: &mut [u32], src: &[u8], width: usize, height: usize)
         for x in (0..width).step_by(8) {
             let block1 = DXTBlock::from_bytes(&src[src_offset..]);
             decode_dxt_block(&mut dst[y * width + x..], &block1, width);
-            src_offset += std::mem::size_of::<DXTBlock>();
+            src_offset += DXTBlock::byte_size();
 
             let block2 = DXTBlock::from_bytes(&src[src_offset..]);
             decode_dxt_block(&mut dst[y * width + x + 4..], &block2, width);
-            src_offset += std::mem::size_of::<DXTBlock>();
+            src_offset += DXTBlock::byte_size();
 
             let block3 = DXTBlock::from_bytes(&src[src_offset..]);
             decode_dxt_block(&mut dst[(y + 4) * width + x..], &block3, width);
-            src_offset += std::mem::size_of::<DXTBlock>();
+            src_offset += DXTBlock::byte_size();
 
             let block4 = DXTBlock::from_bytes(&src[src_offset..]);
             decode_dxt_block(&mut dst[(y + 4) * width + x + 4..], &block4, width);
-            src_offset += std::mem::size_of::<DXTBlock>();
+            src_offset += DXTBlock::byte_size();
         }
     }
 }
