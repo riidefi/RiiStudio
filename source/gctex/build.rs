@@ -45,7 +45,6 @@ fn main() {
         }
 
         build.include(".").include("src");
-        build.file("src/CmprEncoder.cpp");
         build.file("src/ImagePlatform.cpp");
         build.file("src/dolemu/MathUtil.cpp");
         build.file("src/dolemu/CPUDetect/GenericCPUDetect.cpp");
