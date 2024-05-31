@@ -31,3 +31,6 @@ cc = { version = "1.0.83", features = ["parallel"], optional = true }
 [dev-dependencies]
 rand = "0.8.5"
 image = "0.25.1"
+
+[dependencies]
+heapless = "0.8.0"
