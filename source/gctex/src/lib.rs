@@ -443,7 +443,13 @@ use std::arch::x86_64::*;
 // Based on Dolphin implementation
 #[cfg(feature = "simd")]
 #[target_feature(enable = "ssse3")]
-unsafe fn decode_texture_i4_ssse3(dst: *mut u32, src: *const u8, width: usize, height: usize) {
+unsafe fn decode_texture_i4_ssse3(
+    dst: *mut u32,
+    dst_size: usize,
+    src: *const u8,
+    width: usize,
+    height: usize,
+) {
     let wsteps4 = (width + 3) / 4;
     let wsteps8 = (width + 7) / 8;
     let kMask_x0f = _mm_set1_epi32(0x0f0f0f0fu32 as i32);
@@ -588,6 +594,56 @@ fn decode_texture_rgba8(dst: &mut [u32], src: &[u8], width: usize, height: usize
     }
 }
 
+// Based on Dolphin implementation
+#[cfg(feature = "simd")]
+#[target_feature(enable = "ssse3")]
+unsafe fn decode_texture_rgba8_ssse3(
+    dst: *mut u32,
+    dst_size: usize,
+    src: *const u8,
+    width: usize,
+    height: usize,
+) {
+    let wsteps4 = (width + 3) / 4;
+    let wsteps8 = (width + 7) / 8;
+
+    for y in (0..height).step_by(4) {
+        let mut y_step = (y / 4) * wsteps4;
+        for x in (0..width).step_by(4) {
+            let src2 = src.add(64 * y_step);
+            let mask0312 = _mm_set_epi8(12, 15, 13, 14, 8, 11, 9, 10, 4, 7, 5, 6, 0, 3, 1, 2);
+            let ar0 = _mm_loadu_si128(src2 as *const __m128i);
+            let ar1 = _mm_loadu_si128(src2.add(16) as *const __m128i);
+            let gb0 = _mm_loadu_si128(src2.add(32) as *const __m128i);
+            let gb1 = _mm_loadu_si128(src2.add(48) as *const __m128i);
+
+            let rgba00 = _mm_shuffle_epi8(_mm_unpacklo_epi8(ar0, gb0), mask0312);
+            let rgba01 = _mm_shuffle_epi8(_mm_unpackhi_epi8(ar0, gb0), mask0312);
+            let rgba10 = _mm_shuffle_epi8(_mm_unpacklo_epi8(ar1, gb1), mask0312);
+            let rgba11 = _mm_shuffle_epi8(_mm_unpackhi_epi8(ar1, gb1), mask0312);
+
+            _mm_storeu_si128(
+                dst.add(((y + 0) * width + x) as usize) as *mut __m128i,
+                rgba00,
+            );
+            _mm_storeu_si128(
+                dst.add(((y + 1) * width + x) as usize) as *mut __m128i,
+                rgba01,
+            );
+            _mm_storeu_si128(
+                dst.add(((y + 2) * width + x) as usize) as *mut __m128i,
+                rgba10,
+            );
+            _mm_storeu_si128(
+                dst.add(((y + 3) * width + x) as usize) as *mut __m128i,
+                rgba11,
+            );
+
+            y_step += 1;
+        }
+    }
+}
+
 unsafe fn u8_to_u32_slice(u8_slice: &mut [u8]) -> &mut [u32] {
     assert!(
         u8_slice.len() % 4 == 0,
@@ -640,6 +696,7 @@ pub fn decode_fast(
                 unsafe {
                     decode_texture_i4_ssse3(
                         dst.as_mut_ptr() as *mut u32,
+                        dst.len(),
                         src.as_ptr(),
                         width as usize,
                         height as usize,
@@ -652,20 +709,34 @@ pub fn decode_fast(
             return;
         }
 
-        // Fall back to C++ for all other formats for SIMD decoder availability
-
-        // (IA4 and RGB565 SIMD paths are unavailable)
-        if texformat == TextureFormat::IA4 {
-            decode_texture_ia4(
-                unsafe { u8_to_u32_slice(dst) },
-                src,
-                width as usize,
-                height as usize,
-            );
+        if texformat == TextureFormat::RGBA8 {
+            if is_x86_feature_detected!("sse3") {
+                unsafe {
+                    decode_texture_rgba8_ssse3(
+                        dst.as_mut_ptr() as *mut u32,
+                        dst.len(),
+                        src.as_ptr(),
+                        width as usize,
+                        height as usize,
+                    );
+                }
+            } else {
+                // Fall back to Rust rather than C++
+                decode_texture_rgba8(
+                    unsafe { u8_to_u32_slice(dst) },
+                    src,
+                    width as usize,
+                    height as usize,
+                );
+            }
             return;
         }
-        if texformat == TextureFormat::RGB565 {
-            decode_texture_rgb565(
+
+        // Fall back to C++ for all other formats for SIMD decoder availability
+
+        // (IA4 SIMD path unavailable)
+        if texformat == TextureFormat::IA4 {
+            decode_texture_ia4(
                 unsafe { u8_to_u32_slice(dst) },
                 src,
                 width as usize,
