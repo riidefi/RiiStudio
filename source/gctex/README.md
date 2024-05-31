@@ -38,16 +38,24 @@ All supported texture formats and their respective encoding and decoding sources
 
 | Format  | Encoding Source | Decoding Source |
 |---------|-----------------|-----------------|
-| CMPR    | WSZST           | Builtin (SIMD (SSE3)) |
-| I4      | Builtin         | Dolphin Emulator (SIMD) |
-| I8      | Builtin         | Dolphin Emulator (SIMD) |
+| CMPR    | Builtin         | Dolphin Emulator (SIMD) / Rust non-SIMD fallback |
+| I4      | Builtin         | Builtin (SIMD (SSE3)) |
+| I8      | Builtin         | Dolphin Emulator (SIMD) / Rust non-SIMD fallback |
 | IA4     | Builtin         | Builtin |
-| IA8     | Builtin         | Dolphin Emulator (SIMD) |
-| RGB565  | Builtin         | Dolphin Emulator (SIMD) |
-| RGB5A3  | Builtin         | Dolphin Emulator (SIMD) |
+| IA8     | Builtin         | Dolphin Emulator (SIMD) / Rust non-SIMD fallback |
+| RGB565  | Builtin         | Dolphin Emulator (SIMD) / Rust non-SIMD fallback |
+| RGB5A3  | Builtin         | Dolphin Emulator (SIMD) / Rust non-SIMD fallback |
 | RGBA8   | Builtin         | Builtin (SIMD (SSE3)) |
+| C4      | -               | Dolphin Emulator / No fallback |
+| C8      | -               | Dolphin Emulator / No fallback |
+| C14     | -               | Dolphin Emulator / No fallback |
+
 
 Please note, SIMD texture decoding for I4, I8 and IA8 formats uses SSE3 instructions with a fallback to SSE2 if necessary (excepting I4), and these are implemented based on the Dolphin Emulator's texture decoding logic.
+
+#### Optional Features
+- To avoid needing a C++ compiler or running C++ code, unset the `cpp_fallback` feature to fallback to non-SIMD Rust implementations of I4/I8/IA8/RGB565/RGB5A3 decoding. 
+- For debugging the `simd` feature can be disabled to use pure, standard Rust.
 
 #### License
 This dynamically linked library is published under GPLv2.
