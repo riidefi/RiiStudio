@@ -1505,7 +1505,7 @@ fn encode_ia4_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
                 for column in 0..8 {
                     let pos = (((y + row) * width + x + column) * 4) as usize;
                     let rgba = Rgba::from_slice(&src[pos..pos + 4]);
-                    dst[dst_index] = (luminosity(&rgba) & 0b1111_0000) | (rgba.a >> 4);
+                    dst[dst_index] = (rgba.a & 0b1111_0000) | (luminosity(&rgba) >> 4);
                     dst_index += 1;
                 }
             }
@@ -1521,8 +1521,8 @@ fn encode_ia8_into(dst: &mut [u8], src: &[u8], width: u32, height: u32) {
                 for column in 0..4 {
                     let pos = (((y + row) * width + x + column) * 4) as usize;
                     let rgba = Rgba::from_slice(&src[pos..pos + 4]);
-                    dst[dst_index] = luminosity(&rgba);
-                    dst[dst_index + 1] = rgba.a;
+                    dst[dst_index] = rgba.a;
+                    dst[dst_index + 1] = luminosity(&rgba);
                     dst_index += 2;
                 }
             }
