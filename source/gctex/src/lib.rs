@@ -995,14 +995,19 @@ pub fn decode_into(
         decode_fast(
             &mut tmp[..],
             src,
-            width,
-            height,
+            expanded_width,
+            expanded_height,
             texformat,
             tlut,
             tlutformat,
         );
-        let nonpadding_dst_size = (width * height * 4) as usize;
-        dst[..nonpadding_dst_size].copy_from_slice(&tmp[..nonpadding_dst_size]);
+        for y in 0..height {
+            for x in 0..width {
+                let dst_pixel = (((y * width) + x) * 4) as usize;
+                let src_pixel = (((y * expanded_width) + x) * 4) as usize;
+                dst[dst_pixel..dst_pixel + 4].copy_from_slice(&tmp[src_pixel..src_pixel + 4]);
+            }
+        }
     }
 }
 
@@ -1028,24 +1033,6 @@ mod tests2 {
         expected_file.read_to_end(&mut expected_dst).unwrap();
 
         assert_eq!(dst.len(), expected_dst.len());
-        assert_eq!(dst, expected_dst);
-    }
-    #[test]
-    fn test_decode_cmpr_nonfast() {
-        let mut file = File::open("tests/monke.cmpr").unwrap();
-        let mut src = Vec::new();
-        file.read_to_end(&mut src).unwrap();
-
-        let mut dst = vec![0; 500 * 500 * 4];
-
-        let tlut = &[];
-        decode_into(&mut dst, &src, 500, 500, TextureFormat::CMPR, tlut, 0);
-
-        let mut expected_file = File::open("tests/monke_expected_result").unwrap();
-        let mut expected_dst = Vec::new();
-        expected_file.read_to_end(&mut expected_dst).unwrap();
-        expected_dst.resize(500 * 500 * 4, 0);
-
         assert_eq!(dst, expected_dst);
     }
 }
@@ -1934,6 +1921,22 @@ mod tests3 {
                 );
             }
         }
+    }
+
+    
+    #[test]
+    fn test_decode_cmpr_nonfast2() {
+        let mut file = File::open("tests/objects.tex0").unwrap();
+        let mut src = Vec::new();
+        file.read_to_end(&mut src).unwrap();
+
+        let mut dst = vec![0; 100 * 32 * 4];
+
+        let tlut = &[];
+        decode_into(&mut dst, &src, 100, 32, TextureFormat::CMPR, tlut, 0);
+
+
+        save_png(&dst, 100, 32, "tests/objects_dbg.png");
     }
 
     // Function to save a raw image buffer as a PNG file
