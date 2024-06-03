@@ -359,7 +359,11 @@ std::vector<u8> CollateBuffers(const JsonWriteCtx& c) {
   size = roundUp(size, 64);
   result.resize(size);
 
-  write_u32_at('RBUF', 0);
+  result[0] = 'R';
+  result[1] = 'B';
+  result[2] = 'U';
+  result[3] = 'F';
+
   write_u32_at(100, 4);
   write_u32_at(c.buffers.size(), 8);
   write_u32_at(size, 12);
@@ -368,6 +372,7 @@ std::vector<u8> CollateBuffers(const JsonWriteCtx& c) {
     write_u32_at(buffer_cursor, cursor);
     write_u32_at(buf.size(), cursor + 4);
     cursor += 8;
+    memcpy(result.data() + buffer_cursor, buf.data(), buf.size());
     buffer_cursor += buf.size();
     buffer_cursor = roundUp(buffer_cursor, 64);
   }
@@ -383,4 +388,17 @@ void TestJson(const librii::g3d::Archive& archive) {
   std::print(std::cout, "Number of buffers: {}\n", ctx.buffers.size());
   auto collated = CollateBuffers(ctx);
   std::print(std::cout, "filesize of raw data: {}\n", collated.size());
+}
+
+struct DumpResult {
+  std::string jsonData;
+  std::vector<u8> collatedBuffer;
+};
+
+DumpResult DumpJson(const librii::g3d::Archive& archive) {
+  JsonWriteCtx ctx;
+  nlohmann::json j;
+  WriteJson(ctx, j, archive);
+  auto collated = CollateBuffers(ctx);
+  return DumpResult{j.dump(), std::move(collated)};
 }

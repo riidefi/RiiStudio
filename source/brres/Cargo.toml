@@ -27,12 +27,14 @@ crate-type=["cdylib", "lib", "staticlib"]
 [build-dependencies]
 bindgen = { version = "0.66", optional = true }
 cc = { version = "1.0.83", features = ["parallel"], optional = true }
+glob = "0.3.1"
 
-[dev-dependencies]
-rand = "0.8.5"
-image = "0.25.1"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0.86"
+gctex = "0.3.7"
+log = "0.4.7"
+simple_logger = "4.0.0"
+wiitrig = "0.0.1"

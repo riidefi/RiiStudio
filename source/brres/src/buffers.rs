@@ -21,7 +21,7 @@ pub fn collate_buffers(buffers: &[Vec<u8>]) -> Vec<u8> {
     result.resize(size as usize, 0);
 
     write_u32_at(
-        'R' as u32 | ('B' as u32) << 8 | ('U' as u32) << 16 | ('F' as u32) << 24,
+        ('R' as u32) << 24 | ('B' as u32) << 16 | ('U' as u32) << 8 | ('F' as u32) << 0,
         0,
         &mut result,
     );
@@ -70,7 +70,9 @@ pub fn read_buffer(data: &[u8]) -> Vec<Vec<u8>> {
     let num_buffers = read_u32_at(data, 8) as usize;
     let file_size = read_u32_at(data, 12);
 
-    assert!(magic == ('R' as u32 | ('B' as u32) << 8 | ('U' as u32) << 16 | ('F' as u32) << 24));
+    assert!(
+        magic == (('R' as u32) << 24 | ('B' as u32) << 16 | ('U' as u32) << 8 | ('F' as u32) << 0)
+    );
     assert!(version == 100);
     assert!(file_size == data.len() as u32);
 

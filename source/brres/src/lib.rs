@@ -96,15 +96,16 @@ mod tests3 {
 }
 
 #[derive(Debug)]
-struct Archive {
+pub struct Archive {
+    models: Vec<Model>,
+    textures: Vec<Texture>,
+
+    // Animation data
     chrs: Vec<serde_json::Value>,
     clrs: Vec<serde_json::Value>,
-    models: Vec<Model>,
     pats: Vec<serde_json::Value>,
     srts: Vec<serde_json::Value>,
-    textures: Vec<Texture>,
     viss: Vec<serde_json::Value>,
-    buffers: Vec<Vec<u8>>,
 }
 
 impl Archive {
@@ -125,7 +126,6 @@ impl Archive {
                 .map(|t| Texture::from_json(t, &buffers))
                 .collect(),
             viss: archive.viss,
-            buffers,
         }
     }
 
@@ -136,20 +136,52 @@ impl Archive {
     fn get_texture(&self, name: &str) -> Option<&Texture> {
         self.textures.iter().find(|texture| texture.name == name)
     }
-
-    fn get_buffer(&self, id: usize) -> Option<&[u8]> {
-        self.buffers.get(id).map(|buffer| buffer.as_slice())
-    }
 }
 
 #[derive(Debug)]
-struct Primitive {
+struct MatrixPrimitive {
     matrices: Vec<i32>,
     num_prims: i32,
+
+    /*
+    Stored as a giant buffer for convenience. To parse / edit it, the format is described below:
+
+    Format:
+        struct MatrixPrimitiveBlob {
+            Primitive prims[num_prims]; // field above
+        };
+
+        struct Primitive __packed__ {
+            u8 primitive_type; // e.g. triangles, quads (GXPrimitiveType enum)
+            u24 vertex_count;  // big endian
+            IndexedVertex vertices[vertex_count];
+        };
+
+        struct IndexedVertex {
+            u16 indices[26]; // e.g. indices[9] is position (GXAttr enum, GX_POSITION == 9)
+        }
+
+    Reference code to decode (untested):
+    ```py
+        cursor = 0
+        for i in range(num_prims):
+            prim_type = buf[cursor]
+            prim_vtx_count = (buf[cursor + 1] << 16) | (buf[cursor + 2] << 8) | buf[cursor + 3]
+            cursor += 4
+
+            print(f"Primitive of type {prim_type}:")
+            for j in range(prim_vtx_count):
+                raw_vertex = buf[cursor:cursor+26*2]
+                cursor += 26*2
+
+                decoded_vertex = [(raw_vertex[p*2] << 8) | raw_vertex[p*2 + 1]) for p in range(26)]
+                print(f"  -> Vertex: {decoded_vertex}")
+    ```
+    */
     vertex_data_buffer: Vec<u8>,
 }
 
-impl Primitive {
+impl MatrixPrimitive {
     fn from_json(json_primitive: JsonPrimitive, buffers: &[Vec<u8>]) -> Self {
         let vertex_data_buffer = buffers
             .get(json_primitive.vertexDataBufferId as usize)
@@ -165,16 +197,25 @@ impl Primitive {
 }
 
 #[derive(Debug)]
-struct Mesh {
-    clr_buffer: Vec<String>,
-    current_matrix: i32,
-    mprims: Vec<Primitive>,
+pub struct Mesh {
     name: String,
+
+    visible: bool,
+
+    // String (for now) references to vertex data arrays in the Model
+    clr_buffer: Vec<String>,
     nrm_buffer: String,
     pos_buffer: String,
     uv_buffer: Vec<String>,
+
+    // Bitfield of attributes (1 << n) for n in GXAttr enum
     vcd: i32,
-    visible: bool,
+
+    // For unrigged meshes which matrix (in the Model matrices list) are we referencing?
+    current_matrix: i32,
+
+    // Actual primitive data
+    mprims: Vec<MatrixPrimitive>,
 }
 
 impl Mesh {
@@ -185,7 +226,7 @@ impl Mesh {
             mprims: json_mesh
                 .mprims
                 .into_iter()
-                .map(|p| Primitive::from_json(p, buffers))
+                .map(|p| MatrixPrimitive::from_json(p, buffers))
                 .collect(),
             name: json_mesh.name,
             nrm_buffer: json_mesh.nrm_buffer,
@@ -198,16 +239,21 @@ impl Mesh {
 }
 
 #[derive(Debug)]
-struct Model {
-    bones: Vec<Option<serde_json::Value>>,
-    colors: Vec<serde_json::Value>,
-    materials: Vec<Option<serde_json::Value>>,
-    matrices: Vec<Option<serde_json::Value>>,
-    meshes: Vec<Mesh>,
+pub struct Model {
     name: String,
-    normals: Vec<JsonBufferData>,
+
+    bones: Vec<Option<serde_json::Value>>,
+    materials: Vec<Option<serde_json::Value>>,
+    meshes: Vec<Mesh>,
+
+    // Vertex buffers
     positions: Vec<JsonBufferData>,
+    normals: Vec<JsonBufferData>,
     texcoords: Vec<JsonBufferData>,
+    colors: Vec<serde_json::Value>,
+
+    // For skinning
+    matrices: Vec<Option<serde_json::Value>>,
 }
 
 impl Model {
@@ -231,15 +277,25 @@ impl Model {
 }
 
 #[derive(Debug)]
-struct Texture {
-    data: Vec<u8>,
-    format: i32,
+pub struct Texture {
+    name: String,
+
+    // 0 to 1024
+    width: i32,
     height: i32,
+
+    // E.g. CMPR (14)
+    format: i32,
+
+    // 1 for no mipmaps.
+    number_of_images: i32,
+
+    // Raw GPU texture data. Use `gctex` or similar to decode
+    data: Vec<u8>,
+
+    // These are always recomputed on save (currently)
     max_lod: f32,
     min_lod: f32,
-    name: String,
-    number_of_images: i32,
-    width: i32,
 }
 
 impl Texture {
@@ -280,7 +336,6 @@ mod tests {
                 // Add more tests to validate Archive methods
                 assert!(archive.get_model("example").is_some());
                 assert!(archive.get_texture("human_A").is_some());
-                assert!(archive.get_buffer(0).is_some());
             }
             Err(e) => panic!("Error reading JSON file: {}", e),
         }
@@ -299,7 +354,7 @@ pub fn create_archive(json_str: &str, raw_buffer: &[u8]) -> anyhow::Result<Archi
 }
 
 pub fn read_raw_brres(brres: &[u8]) -> anyhow::Result<Archive> {
-    let tmp = ffi::CBrresWrapper::from_bytes(brres);
+    let tmp = ffi::CBrresWrapper::from_bytes(brres)?;
 
     create_archive(&tmp.json_metadata, &tmp.buffer_data)
 }
@@ -312,16 +367,15 @@ mod tests4 {
     #[test]
     fn test_read_raw_brres() {
         // Read the sea.brres file into a byte array
-        let brres_data =
-            fs::read("../../tests/samples/sea.brres").expect("Failed to read sea.brres file");
+        let brres_data = fs::read("sea.brres").expect("Failed to read sea.brres file");
 
         // Call the read_raw_brres function
         match read_raw_brres(&brres_data) {
             Ok(archive) => {
-                println!("{:?}", archive);
+                println!("{:#?}", archive.get_model("sea").unwrap().meshes[0]);
             }
             Err(e) => {
-                panic!("Error reading brres file: {:?}", e);
+                panic!("Error reading brres file: {:#?}", e);
             }
         }
     }
