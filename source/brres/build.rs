@@ -1,0 +1,64 @@
+#[cfg(feature = "run_bindgen")]
+extern crate bindgen;
+#[cfg(feature = "cpp_fallback")]
+extern crate cc;
+
+#[cfg(feature = "run_bindgen")]
+use std::env;
+#[cfg(feature = "run_bindgen")]
+use std::path::PathBuf;
+
+fn main() {
+    println!(
+        "cargo:rustc-env=TARGET={}",
+        std::env::var("TARGET").unwrap()
+    );
+    let target = std::env::var("TARGET").unwrap();
+    #[cfg(feature = "cpp_fallback")]
+    {
+        let mut build = cc::Build::new();
+        build.cpp(true);
+
+        build.std("c++17");
+
+        if target.starts_with("x86_64-") {
+            build.flag("-DARCH_X64=1");
+        }
+
+        let compiler = build.get_compiler();
+        let is_clang_cl =
+            compiler.path().ends_with("clang-cl.exe") || compiler.path().ends_with("clang-cl");
+        if compiler.is_like_gnu() || compiler.is_like_clang() || is_clang_cl {
+            if target.starts_with("x86_64-") {
+                build.flag("-mssse3");
+            }
+        }
+        if compiler.is_like_clang() || is_clang_cl {
+            // warning : src/dolemu/TextureDecoder/TextureDecoder_x64.cpp(1177,75): warning: unused parameter 'tlut' [-Wunused-parameter]
+            // warning : TextureFormat texformat, const u8* tlut, TLUTFormat tlutfmt,
+            // warning : ^
+            build.flag("-Wno-unused-parameter");
+        }
+        if !compiler.is_like_gnu() && !compiler.is_like_clang() {
+            #[cfg(not(debug_assertions))]
+            build.flag("-MT");
+        }
+
+        build.include(".").include("src");
+        build.file("src/bindings.cpp");
+        build.compile("brres.a");
+    }
+    #[cfg(feature = "run_bindgen")]
+    {
+        let bindings = bindgen::Builder::default()
+            .header("src/bindings.h")
+            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+            .generate()
+            .expect("Unable to generate bindings");
+
+        let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+        bindings
+            .write_to_file(out_path.join("bindings.rs"))
+            .expect("Couldn't write bindings");
+    }
+}

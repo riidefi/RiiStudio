@@ -1,0 +1,38 @@
+[package]
+name = "brres"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+description = "gctex is a Rust crate designed for encoding and decoding texture formats used in the Nintendo GameCube and Wii games. The library provides C bindings, making it useful in both Rust and C/C++ based projects."
+homepage = "https://github.com/riidefi/RiiStudio/tree/master/source/brres"
+repository = "https://github.com/riidefi/RiiStudio"
+keywords = ["gamedev", "graphics", "wii", "gamecube", "texture"]
+readme = "README.md"
+# Don't include unit tests in crate
+exclude=["/tests"]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+# Enabled only for development
+default = ["c_api", "simd"]
+c_api = []
+# Internal, don't enable
+run_bindgen = ["bindgen"]
+simd = ["cpp_fallback"]
+cpp_fallback = ["cc"]
+
+[lib]
+crate-type=["cdylib", "lib", "staticlib"]
+
+[build-dependencies]
+bindgen = { version = "0.66", optional = true }
+cc = { version = "1.0.83", features = ["parallel"], optional = true }
+
+[dev-dependencies]
+rand = "0.8.5"
+image = "0.25.1"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0.86"
