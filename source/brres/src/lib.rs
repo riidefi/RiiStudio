@@ -54,14 +54,14 @@ struct JsonBufferData {
 #[derive(Deserialize, Debug)]
 struct JsonTexture {
     dataBufferId: i32,
-    format: i32,
-    height: i32,
+    format: u32,
+    height: u32,
     maxLod: f32,
     minLod: f32,
     name: String,
-    number_of_images: i32,
+    number_of_images: u32,
     sourcePath: String,
-    width: i32,
+    width: u32,
 }
 
 #[derive(Deserialize, Debug)]
@@ -97,15 +97,24 @@ mod tests3 {
 
 #[derive(Debug)]
 pub struct Archive {
-    models: Vec<Model>,
-    textures: Vec<Texture>,
+    pub models: Vec<Model>,
+    pub textures: Vec<Texture>,
 
     // Animation data
-    chrs: Vec<serde_json::Value>,
-    clrs: Vec<serde_json::Value>,
-    pats: Vec<serde_json::Value>,
-    srts: Vec<serde_json::Value>,
-    viss: Vec<serde_json::Value>,
+    /// Bone (character motion) animation
+    pub chrs: Vec<serde_json::Value>,
+
+    /// Texture matrix ("SRT" a.k.a. "Scale, Rotate, Translate") animation
+    pub srts: Vec<serde_json::Value>,
+
+    /// Texture data (pattern) animation (e.g. like a GIF)
+    pub pats: Vec<serde_json::Value>,
+
+    /// GPU uniform (color) animation
+    pub clrs: Vec<serde_json::Value>,
+
+    /// Bone visibility animation
+    pub viss: Vec<serde_json::Value>,
 }
 
 impl Archive {
@@ -139,14 +148,21 @@ impl Archive {
 }
 
 #[derive(Debug)]
-struct MatrixPrimitive {
-    matrices: Vec<i32>,
-    num_prims: i32,
+pub struct MatrixPrimitive {
+    /// Indices into a `Model`'s `matrices` list.
+    ///
+    /// When skinning indices are used in the actual vertex data (`vertex_data_buffer` field), they are relative to this list.
+    /// (e.g. if `MatrixPrimitive.matrices` was [1, 10, 23] then a vertex PNM index of `1` in a vertex would refer to `Model.matrices[10]`)
+    pub matrices: Vec<i32>,
 
-    /*
+    /// Number of primitives (triangles, quads, tristrips, etc) contained in this draw call. Required for decoding the `vertex_data_buffer` field below.
+    pub num_prims: i32,
+
+    /**
     Stored as a giant buffer for convenience. To parse / edit it, the format is described below:
 
     Format:
+    ```c
         struct MatrixPrimitiveBlob {
             Primitive prims[num_prims]; // field above
         };
@@ -159,7 +175,8 @@ struct MatrixPrimitive {
 
         struct IndexedVertex {
             u16 indices[26]; // e.g. indices[9] is position (GXAttr enum, GX_POSITION == 9)
-        }
+        };
+    ```
 
     Reference code to decode (untested):
     ```py
@@ -178,7 +195,7 @@ struct MatrixPrimitive {
                 print(f"  -> Vertex: {decoded_vertex}")
     ```
     */
-    vertex_data_buffer: Vec<u8>,
+    pub vertex_data_buffer: Vec<u8>,
 }
 
 impl MatrixPrimitive {
@@ -198,24 +215,24 @@ impl MatrixPrimitive {
 
 #[derive(Debug)]
 pub struct Mesh {
-    name: String,
+    pub name: String,
 
-    visible: bool,
+    pub visible: bool,
 
     // String (for now) references to vertex data arrays in the Model
-    clr_buffer: Vec<String>,
-    nrm_buffer: String,
-    pos_buffer: String,
-    uv_buffer: Vec<String>,
+    pub clr_buffer: Vec<String>,
+    pub nrm_buffer: String,
+    pub pos_buffer: String,
+    pub uv_buffer: Vec<String>,
 
-    // Bitfield of attributes (1 << n) for n in GXAttr enum
-    vcd: i32,
+    /// Bitfield of attributes (1 << n) for n in GXAttr enum
+    pub vcd: i32,
 
-    // For unrigged meshes which matrix (in the Model matrices list) are we referencing?
-    current_matrix: i32,
+    /// For unrigged meshes which matrix (in the Model matrices list) are we referencing? (usually 0, bound to the root bone)
+    pub current_matrix: i32,
 
-    // Actual primitive data
-    mprims: Vec<MatrixPrimitive>,
+    /// Actual primitive data
+    pub mprims: Vec<MatrixPrimitive>,
 }
 
 impl Mesh {
@@ -240,20 +257,20 @@ impl Mesh {
 
 #[derive(Debug)]
 pub struct Model {
-    name: String,
+    pub name: String,
 
-    bones: Vec<Option<serde_json::Value>>,
-    materials: Vec<Option<serde_json::Value>>,
-    meshes: Vec<Mesh>,
+    pub bones: Vec<Option<serde_json::Value>>,
+    pub materials: Vec<Option<serde_json::Value>>,
+    pub meshes: Vec<Mesh>,
 
     // Vertex buffers
-    positions: Vec<JsonBufferData>,
-    normals: Vec<JsonBufferData>,
-    texcoords: Vec<JsonBufferData>,
-    colors: Vec<serde_json::Value>,
+    pub positions: Vec<JsonBufferData>,
+    pub normals: Vec<JsonBufferData>,
+    pub texcoords: Vec<JsonBufferData>,
+    pub colors: Vec<serde_json::Value>,
 
-    // For skinning
-    matrices: Vec<Option<serde_json::Value>>,
+    /// For skinning
+    pub matrices: Vec<Option<serde_json::Value>>,
 }
 
 impl Model {
@@ -278,24 +295,87 @@ impl Model {
 
 #[derive(Debug)]
 pub struct Texture {
-    name: String,
+    pub name: String,
 
-    // 0 to 1024
-    width: i32,
-    height: i32,
+    /// Valid in range `[1, 1024]`. Hardware register is only 10 bits--you cannot exceed this limitation, even on emulator.
+    pub width: u32,
+    /// Valid in range `[1, 1024]`. Hardware register is only 10 bits--you cannot exceed this limitation, even on emulator.
+    pub height: u32,
 
-    // E.g. CMPR (14)
-    format: i32,
+    /// GPU texture format to be directly loaded into VRAM. Most commonly CMPR a.k.a. BC1 a.k.a. DXT1 (`tex.format == 14`).
+    ///
+    /// Full enum (from gctex):
+    ///
+    /// ```rust
+    /// pub enum TextureFormat {
+    ///     I4 = 0,
+    ///     I8,
+    ///     IA4,
+    ///     IA8,
+    ///     RGB565,
+    ///     RGB5A3,
+    ///     RGBA8,
+    /// 
+    ///     C4 = 0x8,
+    ///     C8,
+    ///     C14X2,
+    ///     CMPR = 0xE,
+    /// };
+    /// ```
+    /// With `gctex`, use `gctex::TextureFormat::from_u32(...)` on this field.
+    pub format: u32,
 
-    // 1 for no mipmaps.
-    number_of_images: i32,
+    /// Set to `1` for no mipmaps. Valid in range `[1, 11]`. More tightly bounded above by `1 + floor(log2(min(width, height)))`.
+    pub number_of_images: u32,
 
-    // Raw GPU texture data. Use `gctex` or similar to decode
-    data: Vec<u8>,
-
-    // These are always recomputed on save (currently)
-    max_lod: f32,
-    min_lod: f32,
+    /// Raw GPU texture data. Use [`gctex`](https://crates.io/crates/gctex) or similar to decode.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use gctex;
+    ///
+    /// let tex = brres::Texture {
+    ///     name: "Example".to_string(),
+    ///     width: 8,
+    ///     height: 8,
+    ///     format: 14,
+    ///     number_of_images: 1,
+    ///     data: vec![0xF7, 0xBE, 0x6B, 0x0D, 0x34, 0x0E, 0x0D, 0x02, 0xF7, 0x7D, 0x52, 0x4A, 0x20, 0x28, 0xD8, 0xE0,
+    ///                0xFF, 0xDF, 0x08, 0x25, 0x00, 0xAA, 0xDE, 0xFC, 0xEF, 0x5C, 0x31, 0x07, 0x00, 0xF8, 0x5C, 0x9C],
+    ///     min_lod: 0.0,
+    ///     max_lod: 0.0,
+    /// };
+    ///
+    /// let texture_format = gctex::TextureFormat::from_u32(tex.format).unwrap();
+    /// let raw_rgba_buffer = gctex::decode(&tex.data, tex.width, tex.height, texture_format, &[0], 0);
+    ///
+    /// assert_eq!(raw_rgba_buffer,
+    ///           [0xF7, 0xF7, 0xF7, 0xFF, 0x9F, 0x99, 0x9F, 0xFF, 0x6B, 0x61, 0x6B, 0xFF, 0xF7, 0xF7, 0xF7, 0xFF,
+    ///            0xF7, 0xEF, 0xEF, 0xFF, 0xB9, 0xB0, 0xB4, 0xFF, 0xF7, 0xEF, 0xEF, 0xFF, 0xF7, 0xEF, 0xEF, 0xFF,
+    ///            0xF7, 0xF7, 0xF7, 0xFF, 0xF7, 0xF7, 0xF7, 0xFF, 0x9F, 0x99, 0x9F, 0xFF, 0xC2, 0xBE, 0xC2, 0xFF,
+    ///            0xF7, 0xEF, 0xEF, 0xFF, 0xB9, 0xB0, 0xB4, 0xFF, 0xB9, 0xB0, 0xB4, 0xFF, 0xF7, 0xEF, 0xEF, 0xFF,
+    ///            0xF7, 0xF7, 0xF7, 0xFF, 0xF7, 0xF7, 0xF7, 0xFF, 0x9F, 0x99, 0x9F, 0xFF, 0x6B, 0x61, 0x6B, 0xFF,
+    ///            0x8F, 0x87, 0x8C, 0xFF, 0x52, 0x49, 0x52, 0xFF, 0xB9, 0xB0, 0xB4, 0xFF, 0xF7, 0xEF, 0xEF, 0xFF,
+    ///            0xF7, 0xF7, 0xF7, 0xFF, 0xF7, 0xF7, 0xF7, 0xFF, 0xF7, 0xF7, 0xF7, 0xFF, 0xC2, 0xBE, 0xC2, 0xFF,
+    ///            0x8F, 0x87, 0x8C, 0xFF, 0xB9, 0xB0, 0xB4, 0xFF, 0xF7, 0xEF, 0xEF, 0xFF, 0xF7, 0xEF, 0xEF, 0xFF,
+    ///            0xFF, 0xFB, 0xFF, 0xFF, 0xFF, 0xFB, 0xFF, 0xFF, 0xFF, 0xFB, 0xFF, 0xFF, 0xFF, 0xFB, 0xFF, 0xFF,
+    ///            0xEF, 0xEB, 0xE7, 0xFF, 0xEF, 0xEB, 0xE7, 0xFF, 0xEF, 0xEB, 0xE7, 0xFF, 0xEF, 0xEB, 0xE7, 0xFF,
+    ///            0xA2, 0x9E, 0xAE, 0xFF, 0xA2, 0x9E, 0xAE, 0xFF, 0xA2, 0x9E, 0xAE, 0xFF, 0xA2, 0x9E, 0xAE, 0xFF,
+    ///            0x78, 0x6C, 0x7A, 0xFF, 0x78, 0x6C, 0x7A, 0xFF, 0xA7, 0x9E, 0xA5, 0xFF, 0xEF, 0xEB, 0xE7, 0xFF,
+    ///            0x64, 0x60, 0x79, 0xFF, 0x08, 0x04, 0x29, 0xFF, 0x64, 0x60, 0x79, 0xFF, 0xA2, 0x9E, 0xAE, 0xFF,
+    ///            0x31, 0x20, 0x39, 0xFF, 0x31, 0x20, 0x39, 0xFF, 0x78, 0x6C, 0x7A, 0xFF, 0xEF, 0xEB, 0xE7, 0xFF,
+    ///            0x64, 0x60, 0x79, 0xFF, 0x64, 0x60, 0x79, 0xFF, 0x64, 0x60, 0x79, 0xFF, 0xFF, 0xFB, 0xFF, 0xFF,
+    ///            0xA7, 0x9E, 0xA5, 0xFF, 0x31, 0x20, 0x39, 0xFF, 0x78, 0x6C, 0x7A, 0xFF, 0xEF, 0xEB, 0xE7, 0xFF]);
+    /// ```
+    pub data: Vec<u8>,
+    
+    /// Always recomputed on save (currently).
+    /// Set to `0.0`.
+    pub min_lod: f32,
+    /// Always recomputed on save (currently).
+    /// Set to `(tex.number_of_images - 1) as f32`.
+    pub max_lod: f32,
 }
 
 impl Texture {
