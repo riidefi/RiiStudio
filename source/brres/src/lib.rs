@@ -11,6 +11,53 @@ mod ffi;
 
 use enums::*;
 
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONMatrixWeight {
+    bone_id: u32,
+    weight: f32,
+}
+
+impl Default for JSONMatrixWeight {
+    fn default() -> Self {
+        JSONMatrixWeight {
+            bone_id: 0,
+            weight: 1.0,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONDrawMatrix {
+    weights: Vec<JSONMatrixWeight>,
+}
+
+impl Default for JSONDrawMatrix {
+    fn default() -> Self {
+        JSONDrawMatrix {
+            weights: Vec::new(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONModelInfo {
+    scaling_rule: String,
+    texmtx_mode: String,
+    source_location: String,
+    evpmtx_mode: String,
+}
+
+impl Default for JSONModelInfo {
+    fn default() -> Self {
+        JSONModelInfo {
+            scaling_rule: "Maya".to_string(),
+            texmtx_mode: "Maya".to_string(),
+            source_location: "".to_string(),
+            evpmtx_mode: "Normal".to_string(),
+        }
+    }
+}
+
 #[derive(Deserialize, Debug)]
 struct JsonMesh {
     clr_buffer: Vec<String>,
@@ -33,12 +80,13 @@ struct JsonPrimitive {
 
 #[derive(Deserialize, Debug)]
 struct JsonModel {
-    bones: Vec<Option<serde_json::Value>>,
+    name: String,
+    info: JSONModelInfo,
+    bones: Vec<JSONBoneData>,
     colors: Vec<serde_json::Value>,
     materials: Vec<JSONMaterial>,
-    matrices: Vec<Option<serde_json::Value>>,
+    matrices: Vec<JSONDrawMatrix>,
     meshes: Vec<JsonMesh>,
-    name: String,
     normals: Vec<JsonBufferData>,
     positions: Vec<JsonBufferData>,
     texcoords: Vec<JsonBufferData>,
@@ -262,8 +310,9 @@ impl Mesh {
 #[derive(Debug)]
 pub struct Model {
     pub name: String,
+    pub info: JSONModelInfo,
 
-    pub bones: Vec<Option<serde_json::Value>>,
+    pub bones: Vec<JSONBoneData>,
     pub materials: Vec<JSONMaterial>,
     pub meshes: Vec<Mesh>,
 
@@ -274,7 +323,7 @@ pub struct Model {
     pub colors: Vec<serde_json::Value>,
 
     /// For skinning
-    pub matrices: Vec<Option<serde_json::Value>>,
+    pub matrices: Vec<JSONDrawMatrix>,
 }
 
 impl Model {
@@ -290,6 +339,7 @@ impl Model {
                 .map(|m| Mesh::from_json(m, buffers))
                 .collect(),
             name: model.name,
+            info: model.info,
             normals: model.normals,
             positions: model.positions,
             texcoords: model.texcoords,
@@ -398,6 +448,54 @@ impl Texture {
             name: texture.name,
             number_of_images: texture.number_of_images,
             width: texture.width,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONDrawCall {
+    material: u32,
+    poly: u32,
+    prio: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONBoneData {
+    name: String,
+    ssc: bool,
+    visible: bool,
+    billboard_type: u32,
+    scale: [f32; 3],
+    rotate: [f32; 3],
+    translate: [f32; 3],
+    volume_min: [f32; 3],
+    volume_max: [f32; 3],
+    parent: i32,
+    children: Vec<i32>,
+    display_matrix: bool,
+    draw_calls: Vec<JSONDrawCall>,
+    force_display_matrix: bool,
+    omit_from_node_mix: bool,
+}
+
+impl Default for JSONBoneData {
+    fn default() -> Self {
+        JSONBoneData {
+            name: "Untitled Bone".to_string(),
+            ssc: false,
+            visible: true,
+            billboard_type: 0,
+            scale: [1.0, 1.0, 1.0],
+            rotate: [0.0, 0.0, 0.0],
+            translate: [0.0, 0.0, 0.0],
+            volume_min: [0.0, 0.0, 0.0],
+            volume_max: [0.0, 0.0, 0.0],
+            parent: -1,
+            children: Vec::new(),
+            display_matrix: true,
+            draw_calls: Vec::new(),
+            force_display_matrix: false,
+            omit_from_node_mix: false,
         }
     }
 }

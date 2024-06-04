@@ -58,6 +58,27 @@ template <> struct TypeHandler<glm::vec2> {
     TypeHandler<std::vector<f32>>::from(t, token, serializer);
   }
 };
+
+template <> struct TypeHandler<glm::vec3> {
+  static inline Error to(glm::vec3& to_type, ParseContext& context) {
+    std::vector<f32> t;
+    TypeHandler<std::vector<f32>>::to(t, context);
+    to_type.x = t[0];
+    to_type.y = t[1];
+    to_type.z = t[2];
+    return Error::NoError;
+  }
+
+  static inline void from(const glm::vec3& vec, Token& token,
+                          Serializer& serializer) {
+    std::vector<f32> t;
+    t.push_back(vec.x);
+    t.push_back(vec.y);
+    t.push_back(vec.z);
+    TypeHandler<std::vector<f32>>::from(t, token, serializer);
+  }
+};
+
 } // namespace JS
 
 JS_OBJ_EXT(glm::vec3, x, y, z);
@@ -178,30 +199,15 @@ struct JSONModelInfo {
 
     return result;
   }
-#if 0
-  JSONModelInfo() = default;
-  JSONModelInfo(const ModelInfo& original)
-      : scaling_rule(original.scalingRule), texmtx_mode(original.texMtxMode),
-        source_location(original.sourceLocation),
-        evpmtx_mode(original.evpMtxMode), min(original.min), max(original.max) {
-  }
-
-  operator ModelInfo() const {
-    return {
-        scaling_rule(), texmtx_mode(), source_location(),
-        evpmtx_mode(),  min(),         max(),
-    };
-  }
-#endif
 };
 
-struct JSONDisplayCommand {
-  DEFINE_SERIALIZABLE(JSONDisplayCommand, material, poly, prio)
+struct JSONDrawCall {
+  DEFINE_SERIALIZABLE(JSONDrawCall, material, poly, prio)
   u32 material = 0;
   u32 poly = 0;
   int prio = 0;
 
-  static JSONDisplayCommand from(const BoneData::DisplayCommand& original) {
+  static JSONDrawCall from(const BoneData::DisplayCommand& original) {
     return {original.mMaterial, original.mPoly, original.mPrio};
   }
 
@@ -213,7 +219,7 @@ struct JSONDisplayCommand {
 struct JSONBoneData {
   DEFINE_SERIALIZABLE(JSONBoneData, name, ssc, visible, billboard_type, scale,
                       rotate, translate, volume_min, volume_max, parent,
-                      children, display_matrix, display_commands,
+                      children, display_matrix, draw_calls,
                       force_display_matrix, omit_from_node_mix)
 
   std::string name = "Untitled Bone";
@@ -228,7 +234,7 @@ struct JSONBoneData {
   s32 parent = -1;
   std::vector<s32> children;
   bool display_matrix = true;
-  std::vector<JSONDisplayCommand> display_commands;
+  std::vector<JSONDrawCall> draw_calls;
   bool force_display_matrix = false;
   bool omit_from_node_mix = false;
 
@@ -247,7 +253,7 @@ struct JSONBoneData {
     json.children = original.mChildren;
     json.display_matrix = original.displayMatrix;
     for (const auto& cmd : original.mDisplayCommands) {
-      json.display_commands.push_back(JSONDisplayCommand::from(cmd));
+      json.draw_calls.push_back(JSONDrawCall::from(cmd));
     }
     json.force_display_matrix = original.forceDisplayMatrix;
     json.omit_from_node_mix = original.omitFromNodeMix;
@@ -268,7 +274,7 @@ struct JSONBoneData {
     bone.mParent = parent;
     bone.mChildren = children;
     bone.displayMatrix = display_matrix;
-    for (const auto& cmd : display_commands) {
+    for (const auto& cmd : draw_calls) {
       bone.mDisplayCommands.push_back(cmd);
     }
     bone.forceDisplayMatrix = force_display_matrix;
@@ -324,7 +330,8 @@ unpackIndexedPrims(std::span<const u8> vd_buf, u32 num_prims) {
 }
 
 struct JSONMatrixPrimitive {
-  DEFINE_SERIALIZABLE(JSONMatrixPrimitive, matrices, num_prims, vertexDataBufferId)
+  DEFINE_SERIALIZABLE(JSONMatrixPrimitive, matrices, num_prims,
+                      vertexDataBufferId)
 
   std::vector<s16> matrices;
   u32 num_prims = 0;
@@ -1180,6 +1187,53 @@ Result<g3d::PolygonData> JSONToPoly(std::string_view json,
         std::format("JSONToModel failed: Parse error {}", n));
   }
   return mdl.to(buffers);
+}
+std::string BoneToJSON(const g3d::BoneData& model) {
+  auto mat = JSONBoneData::from(model);
+  return JS::serializeStruct(mat);
+}
+Result<g3d::BoneData> JSONToBone(std::string_view json) {
+  JS::ParseContext context(json.data(), json.size());
+  JSONBoneData mdl;
+  auto err = context.parseTo(mdl);
+  if (err != JS::Error::NoError) {
+    auto n = magic_enum::enum_name(err);
+    return std::unexpected(
+        std::format("JSONToModel failed: Parse error {}", n));
+  }
+  return mdl;
+}
+
+std::string MtxToJSON(const g3d::DrawMatrix& model) {
+  auto mat = JSONDrawMatrix::from(model);
+  return JS::serializeStruct(mat);
+}
+Result<g3d::DrawMatrix> JSONToMtx(std::string_view json) {
+  JS::ParseContext context(json.data(), json.size());
+  JSONDrawMatrix mdl;
+  auto err = context.parseTo(mdl);
+  if (err != JS::Error::NoError) {
+    auto n = magic_enum::enum_name(err);
+    return std::unexpected(
+        std::format("JSONToModel failed: Parse error {}", n));
+  }
+  return mdl;
+}
+
+std::string InfoToJSON(const g3d::ModelInfo& model) {
+  auto mat = JSONModelInfo::from(model);
+  return JS::serializeStruct(mat);
+}
+Result<g3d::ModelInfo> JSONToInfo(std::string_view json) {
+  JS::ParseContext context(json.data(), json.size());
+  JSONModelInfo mdl;
+  auto err = context.parseTo(mdl);
+  if (err != JS::Error::NoError) {
+    auto n = magic_enum::enum_name(err);
+    return std::unexpected(
+        std::format("JSONToModel failed: Parse error {}", n));
+  }
+  return mdl.to();
 }
 
 } // namespace librii::g3d

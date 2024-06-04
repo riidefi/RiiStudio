@@ -22,6 +22,9 @@ struct JsonWriteCtx;
 namespace librii::g3d {
 std::string PolyToJSON(const g3d::PolygonData& model, JsonWriteCtx& c);
 std::string MatToJSON(const G3dMaterialData& model);
+std::string BoneToJSON(const g3d::BoneData& model);
+std::string MtxToJSON(const g3d::DrawMatrix&);
+std::string InfoToJSON(const g3d::ModelInfo&);
 } // namespace librii::g3d
 
 struct JsonReadCtx {
@@ -179,19 +182,32 @@ void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
   auto s = librii::g3d::MatToJSON(m);
   j = nlohmann::json::parse(s);
 }
+void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
+               const librii::g3d::BoneData& m) {
+  auto s = librii::g3d::BoneToJSON(m);
+  j = nlohmann::json::parse(s);
+}
+void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
+               const librii::g3d::ModelInfo& m) {
+  auto s = librii::g3d::InfoToJSON(m);
+  j = nlohmann::json::parse(s);
+}
+void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
+               const librii::g3d::DrawMatrix& m) {
+  auto s = librii::g3d::MtxToJSON(m);
+  j = nlohmann::json::parse(s);
+}
 
 void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
                const librii::g3d::Model& model) {
 
   j["name"] = model.name;
-  // WriteJson(ctx, model.info, j["info"]); // Assuming a WriteJson function for
-  // ModelInfo exists
+  WriteJson(ctx, j["info"], model.info);
 
   j["bones"] = nlohmann::json::array();
   for (const auto& bone : model.bones) {
     nlohmann::json boneJson;
-    // WriteJson(ctx, bone, boneJson); // Assuming a WriteJson function for
-    // BoneData exists
+    WriteJson(ctx, boneJson, bone);
     j["bones"].push_back(boneJson);
   }
 
@@ -240,7 +256,7 @@ void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
   j["matrices"] = nlohmann::json::array();
   for (const auto& matrix : model.matrices) {
     nlohmann::json matrixJson;
-    // WriteJson(ctx, matrix, matrixJson);
+    WriteJson(ctx, matrixJson, matrix);
     j["matrices"].push_back(matrixJson);
   }
 }

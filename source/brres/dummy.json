@@ -3,8 +3,937 @@
   "clrs": [],
   "models": [
     {
-      "bones": [ null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null ],
+      "bones": [
+        {
+          "billboard_type": 0,
+          "children": [ 1, 10 ],
+          "display_matrix": true,
+          "draw_calls": [
+            {
+              "material": 0,
+              "poly": 0,
+              "prio": 0
+            },
+            {
+              "material": 0,
+              "poly": 1,
+              "prio": 0
+            },
+            {
+              "material": 0,
+              "poly": 2,
+              "prio": 0
+            },
+            {
+              "material": 0,
+              "poly": 3,
+              "prio": 0
+            }
+          ],
+          "force_display_matrix": false,
+          "name": "skl_root",
+          "omit_from_node_mix": false,
+          "parent": -1,
+          "rotate": [ 0.0, 0.0, 90.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": false,
+          "translate": [ 0.0, 3.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 2.341453, 2.782883, 0.649921 ],
+          "volume_min": [ -3.005355, -2.782872, -0.365407 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 2, 6 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "hip_1",
+          "omit_from_node_mix": false,
+          "parent": 0,
+          "rotate": [ 0.0, 0.0, 180.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.0, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 3 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "leg_l1",
+          "omit_from_node_mix": false,
+          "parent": 1,
+          "rotate": [ -7.1e-05, -0.005414, 2e-05 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": false,
+          "translate": [ 0.306074, 0.324004, 0.05242 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 4 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "leg_l2",
+          "omit_from_node_mix": false,
+          "parent": 2,
+          "rotate": [ 7e-05, 4.010123, -3.3e-05 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 1.096, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 5 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "ankle_l",
+          "omit_from_node_mix": false,
+          "parent": 3,
+          "rotate": [ 0.0, -59.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 1.252, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "toe_l1",
+          "omit_from_node_mix": false,
+          "parent": 4,
+          "rotate": [ 9e-06, -36.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.4, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 7 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "leg_r1",
+          "omit_from_node_mix": false,
+          "parent": 1,
+          "rotate": [ -179.99944, 0.0, -2.1e-05 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": false,
+          "translate": [ 0.306074, -0.324004, 0.05242 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 8 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "leg_r2",
+          "omit_from_node_mix": false,
+          "parent": 6,
+          "rotate": [ -3.5e-05, -3.999971, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 1.096, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 9 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "ankle_r",
+          "omit_from_node_mix": false,
+          "parent": 7,
+          "rotate": [ 0.0, 59.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 1.252, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "toe_r1",
+          "omit_from_node_mix": false,
+          "parent": 8,
+          "rotate": [ -9e-06, 36.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.4, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 11 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "spin_1",
+          "omit_from_node_mix": false,
+          "parent": 0,
+          "rotate": [ 0.0, 3.45, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.0, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 12, 15, 34 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "spin_2",
+          "omit_from_node_mix": false,
+          "parent": 10,
+          "rotate": [ 0.0, -3.45, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.614, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 13 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "neck",
+          "omit_from_node_mix": false,
+          "parent": 11,
+          "rotate": [ 0.0, -8.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.874, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 14 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "head_1",
+          "omit_from_node_mix": false,
+          "parent": 12,
+          "rotate": [ 0.0, -81.99999, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.265, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "mouth_1",
+          "omit_from_node_mix": false,
+          "parent": 13,
+          "rotate": [ 0.0, -12.500009, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.018068, 0.0, -0.050692 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 16 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": false,
+          "name": "shoulder_l",
+          "omit_from_node_mix": false,
+          "parent": 11,
+          "rotate": [ 0.0, 0.0, -90.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.596909, -0.118623, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 17 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "arm_l1",
+          "omit_from_node_mix": false,
+          "parent": 15,
+          "rotate": [ 4.3e-05, 0.015436, 5.8e-05 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.440844, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 18 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "arm_l2",
+          "omit_from_node_mix": false,
+          "parent": 16,
+          "rotate": [ -0.000129, -0.030872, -8.3e-05 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.8, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 19, 22, 25, 28, 31 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "wrist_l",
+          "omit_from_node_mix": false,
+          "parent": 17,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.8, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 20 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l1_1",
+          "omit_from_node_mix": false,
+          "parent": 18,
+          "rotate": [ 90.0, -24.0, -45.76243 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.059593, -0.096293, 0.140396 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 21 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l1_2",
+          "omit_from_node_mix": false,
+          "parent": 19,
+          "rotate": [ -7.0, 14.599999, -23.000002 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.106714, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l1_3",
+          "omit_from_node_mix": false,
+          "parent": 20,
+          "rotate": [ 0.0, 0.0, 2e-06 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.097066, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 23 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l2_1",
+          "omit_from_node_mix": false,
+          "parent": 18,
+          "rotate": [ 0.0, 0.0, -3.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.296362, -0.067083, 0.125464 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 24 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l2_2",
+          "omit_from_node_mix": false,
+          "parent": 22,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.118281, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l2_3",
+          "omit_from_node_mix": false,
+          "parent": 23,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.091068, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 26 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l3_1",
+          "omit_from_node_mix": false,
+          "parent": 18,
+          "rotate": [ 0.0, 0.0, -3.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.313065, -0.050866, 0.037952 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 27 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l3_2",
+          "omit_from_node_mix": false,
+          "parent": 25,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.113472, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l3_3",
+          "omit_from_node_mix": false,
+          "parent": 26,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.100646, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 29 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l4_1",
+          "omit_from_node_mix": false,
+          "parent": 18,
+          "rotate": [ 0.0, 0.0, -3.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.302619, -0.044443, -0.045924 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 30 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l4_2",
+          "omit_from_node_mix": false,
+          "parent": 28,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.121374, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l4_3",
+          "omit_from_node_mix": false,
+          "parent": 29,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.08244, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 32 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l5_1",
+          "omit_from_node_mix": false,
+          "parent": 18,
+          "rotate": [ 0.0, -1.0, -3.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.28488, -0.050178, -0.118918 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 33 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l5_2",
+          "omit_from_node_mix": false,
+          "parent": 31,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.103086, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_l5_3",
+          "omit_from_node_mix": false,
+          "parent": 32,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.08595, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 35 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": false,
+          "name": "shoulder_r",
+          "omit_from_node_mix": false,
+          "parent": 11,
+          "rotate": [ 180.0, 0.0, 90.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.596909, 0.118623, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 36 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "arm_r1",
+          "omit_from_node_mix": false,
+          "parent": 34,
+          "rotate": [ -4.1e-05, 5e-06, 4.1e-05 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.440844, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 37 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "arm_r2",
+          "omit_from_node_mix": false,
+          "parent": 35,
+          "rotate": [ 6.3e-05, -5e-06, -5.2e-05 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.8, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 38, 41, 44, 47, 50 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "wrist_r",
+          "omit_from_node_mix": false,
+          "parent": 36,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.8, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 39 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r1_1",
+          "omit_from_node_mix": false,
+          "parent": 37,
+          "rotate": [ -90.0, 24.0, -45.76243 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.059555, -0.096293, -0.140412 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 40 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r1_2",
+          "omit_from_node_mix": false,
+          "parent": 38,
+          "rotate": [ 7.0, -14.599999, -23.000002 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.106714, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r1_3",
+          "omit_from_node_mix": false,
+          "parent": 39,
+          "rotate": [ 0.0, 0.0, 2e-06 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.097066, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 42 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r2_1",
+          "omit_from_node_mix": false,
+          "parent": 37,
+          "rotate": [ 0.0, 0.0, -3.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.296328, -0.067083, -0.125544 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 43 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r2_2",
+          "omit_from_node_mix": false,
+          "parent": 41,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.118281, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r2_3",
+          "omit_from_node_mix": false,
+          "parent": 42,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.091068, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 45 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r3_1",
+          "omit_from_node_mix": false,
+          "parent": 37,
+          "rotate": [ 0.0, 0.0, -3.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.313055, -0.050866, -0.038036 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 46 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r3_2",
+          "omit_from_node_mix": false,
+          "parent": 44,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.113472, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r3_3",
+          "omit_from_node_mix": false,
+          "parent": 45,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.100646, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 48 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r4_1",
+          "omit_from_node_mix": false,
+          "parent": 37,
+          "rotate": [ 0.0, 0.0, -3.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.302631, -0.044444, 0.045843 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 49 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r4_2",
+          "omit_from_node_mix": false,
+          "parent": 47,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.121374, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r4_3",
+          "omit_from_node_mix": false,
+          "parent": 48,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.08244, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 51 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r5_1",
+          "omit_from_node_mix": false,
+          "parent": 37,
+          "rotate": [ 0.0, 1.0, -3.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.284912, -0.050179, 0.118841 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [ 52 ],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r5_2",
+          "omit_from_node_mix": false,
+          "parent": 50,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.103086, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        },
+        {
+          "billboard_type": 0,
+          "children": [],
+          "display_matrix": true,
+          "draw_calls": [],
+          "force_display_matrix": true,
+          "name": "finger_r5_3",
+          "omit_from_node_mix": false,
+          "parent": 51,
+          "rotate": [ 0.0, 0.0, 0.0 ],
+          "scale": [ 1.0, 1.0, 1.0 ],
+          "ssc": true,
+          "translate": [ 0.08595, 0.0, 0.0 ],
+          "visible": true,
+          "volume_max": [ 0.0, 0.0, 0.0 ],
+          "volume_min": [ 0.0, 0.0, 0.0 ]
+        }
+      ],
       "colors": [],
+      "info": {
+        "evpmtx_mode": "Normal",
+        "scaling_rule": "Maya",
+        "source_location": "",
+        "texmtx_mode": "Maya"
+      },
       "materials": [
         {
           "chanData": [
@@ -198,7 +1127,2216 @@
           ]
         }
       ],
-      "matrices": [ null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null ],
+      "matrices": [
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 2,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 3,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 4,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 5,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 6,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 7,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 8,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 9,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 10,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 12,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 13,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 14,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 16,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 17,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 18,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 19,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 20,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 21,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 22,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 23,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 24,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 25,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 26,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 27,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 28,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 29,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 30,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 31,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 32,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 33,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 35,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 36,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 37,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 38,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 39,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 40,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 41,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 42,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 43,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 44,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 45,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 46,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 47,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 48,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 49,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 50,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 51,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 52,
+              "weight": 1.0
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 0,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 10,
+              "weight": 0.7
+            },
+            {
+              "bone_id": 11,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 2,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 15,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 11,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 2,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 10,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 0,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.95
+            },
+            {
+              "bone_id": 2,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.6
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.4
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 15,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 16,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 2,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 3,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 2,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 3,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 15,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 16,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 16,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 15,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 17,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 16,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 16,
+              "weight": 0.7
+            },
+            {
+              "bone_id": 17,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.6
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.4
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 10,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 11,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 23,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 24,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 33,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 32,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 2,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 1,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 15,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 16,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 19,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 20,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 2,
+              "weight": 0.65
+            },
+            {
+              "bone_id": 1,
+              "weight": 0.35
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 15,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 16,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 15,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 26,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 27,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 19,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 18,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 20,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 21,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 3,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 4,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 4,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 5,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 5,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 4,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.7
+            },
+            {
+              "bone_id": 2,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 10,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 1,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 10,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 1,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 2,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 3,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 2,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 3,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 2,
+              "weight": 0.95
+            },
+            {
+              "bone_id": 3,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 2,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 1,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 15,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 31,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 32,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 28,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 29,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 25,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 26,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 22,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 23,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 23,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 24,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 26,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 27,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 29,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 30,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 32,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 33,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 29,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 30,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 17,
+              "weight": 0.6
+            },
+            {
+              "bone_id": 16,
+              "weight": 0.4
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 16,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 17,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 18,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 17,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 18,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 17,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 2,
+              "weight": 0.7
+            },
+            {
+              "bone_id": 3,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 10,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 0,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.7
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 4,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 3,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.95
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 6,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 1,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 6,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.95
+            },
+            {
+              "bone_id": 6,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 6,
+              "weight": 0.65
+            },
+            {
+              "bone_id": 1,
+              "weight": 0.35
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 34,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 35,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 35,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 34,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 36,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 35,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 34,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 35,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 34,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 35,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 34,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 35,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 36,
+              "weight": 0.6
+            },
+            {
+              "bone_id": 35,
+              "weight": 0.4
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 37,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 36,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 50,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 51,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 38,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 39,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 41,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 42,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 38,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 37,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 39,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 40,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 42,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 43,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 51,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 52,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 42,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 43,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 52,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 51,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 34,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 11,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 37,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 36,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 48,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 49,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 48,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 49,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 47,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 48,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 6,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 7,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 6,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 34,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.7
+            },
+            {
+              "bone_id": 6,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 35,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 36,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 34,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 45,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 46,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 45,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 46,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 44,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 45,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 7,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 8,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 8,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 9,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 9,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 8,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 6,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 7,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 8,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 7,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 6,
+              "weight": 0.95
+            },
+            {
+              "bone_id": 7,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 6,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 7,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 6,
+              "weight": 0.7
+            },
+            {
+              "bone_id": 7,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 6,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 1,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 35,
+              "weight": 0.7
+            },
+            {
+              "bone_id": 36,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 6,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 7,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 10,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 2,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 15,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 16,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 15,
+              "weight": 0.55
+            },
+            {
+              "bone_id": 16,
+              "weight": 0.45
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 6,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 34,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 35,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 34,
+              "weight": 0.55
+            },
+            {
+              "bone_id": 35,
+              "weight": 0.45
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 17,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 18,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 36,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 37,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 10,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 0,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 12,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 14,
+              "weight": 0.65
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.35
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 13,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 14,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 12,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 13,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 12,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 12,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.85
+            },
+            {
+              "bone_id": 12,
+              "weight": 0.15
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 12,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 14,
+              "weight": 0.7
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 12,
+              "weight": 0.6
+            },
+            {
+              "bone_id": 11,
+              "weight": 0.4
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 12,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 11,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 12,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.1
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 12,
+              "weight": 0.65
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.35
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 13,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 14,
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 14,
+              "weight": 0.8
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 13,
+              "weight": 0.7
+            },
+            {
+              "bone_id": 14,
+              "weight": 0.3
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 13,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 14,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 14,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.25
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 13,
+              "weight": 0.6
+            },
+            {
+              "bone_id": 14,
+              "weight": 0.4
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 13,
+              "weight": 0.95
+            },
+            {
+              "bone_id": 14,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 14,
+              "weight": 0.95
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 1,
+              "weight": 0.9
+            },
+            {
+              "bone_id": 2,
+              "weight": 0.05
+            },
+            {
+              "bone_id": 6,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 15,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 11,
+              "weight": 0.2
+            },
+            {
+              "bone_id": 16,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 15,
+              "weight": 0.45
+            },
+            {
+              "bone_id": 16,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 34,
+              "weight": 0.75
+            },
+            {
+              "bone_id": 11,
+              "weight": 0.2
+            },
+            {
+              "bone_id": 35,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 34,
+              "weight": 0.45
+            },
+            {
+              "bone_id": 35,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 11,
+              "weight": 0.48
+            },
+            {
+              "bone_id": 12,
+              "weight": 0.47
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.05
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 12,
+              "weight": 0.5
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.3
+            },
+            {
+              "bone_id": 11,
+              "weight": 0.2
+            }
+          ]
+        },
+        {
+          "weights": [
+            {
+              "bone_id": 12,
+              "weight": 0.54
+            },
+            {
+              "bone_id": 13,
+              "weight": 0.25
+            },
+            {
+              "bone_id": 11,
+              "weight": 0.21
+            }
+          ]
+        }
+      ],
       "meshes": [
         {
           "clr_buffer": [ "", "" ],
