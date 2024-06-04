@@ -1,543 +1,565 @@
 {
-    "chrs": [],
-    "clrs": [],
-    "models": [
+  "chrs": [],
+  "clrs": [],
+  "models": [
+    {
+      "bones": [ null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null ],
+      "colors": [],
+      "materials": [
         {
-            "bones": [
-                null
-                
-            ],
-            "colors": [],
-            "materials": [
-                null
-            ],
-            "matrices": [
-                null,
-                null,
-                null,
-                null
-            ],
-            "meshes": [
-                {
-                    "clr_buffer": [
-                        "",
-                        ""
-                    ],
-                    "current_matrix": -1,
-                    "mprims": [
-                        {
-                            "matrices": [
-                                66,
-                                162,
-                                77,
-                                161,
-                                65,
-                                10,
-                                14
-                            ],
-                            "num_prims": 75,
-                            "vertexDataBufferId": 12
-                        },
-                        {
-                            "matrices": [
-                                120,
-                                122,
-                                164,
-                                165,
-                                118,
-                                10,
-                                117,
-                                32,
-                                121,
-                                134
-                            ],
-                            "num_prims": 17,
-                            "vertexDataBufferId": 13
-                        },
-                        {
-                            "matrices": [
-                                120,
-                                122,
-                                164,
-                                141,
-                                194,
-                                10,
-                                144,
-                                193,
-                                121,
-                                134
-                            ],
-                            "num_prims": 15,
-                            "vertexDataBufferId": 14
-                        },
-                        {
-                            "matrices": [
-                                159,
-                                62,
-                                57,
-                                160,
-                                92,
-                                0,
-                                163,
-                                114,
-                                121,
-                                134
-                            ],
-                            "num_prims": 9,
-                            "vertexDataBufferId": 15
-                        },
-                        {
-                            "matrices": [
-                                159,
-                                62,
-                                57,
-                                112,
-                                86,
-                                0,
-                                60,
-                                114,
-                                50,
-                                142
-                            ],
-                            "num_prims": 28,
-                            "vertexDataBufferId": 16
-                        },
-                        {
-                            "matrices": [
-                                59,
-                                190,
-                                57,
-                                55,
-                                86,
-                                0,
-                                92,
-                                1,
-                                76,
-                                73
-                            ],
-                            "num_prims": 18,
-                            "vertexDataBufferId": 17
-                        },
-                        {
-                            "matrices": [
-                                59,
-                                78,
-                                50,
-                                115,
-                                86,
-                                0,
-                                92,
-                                1,
-                                76,
-                                73
-                            ],
-                            "num_prims": 27,
-                            "vertexDataBufferId": 18
-                        },
-                        {
-                            "matrices": [
-                                27,
-                                95,
-                                26,
-                                16,
-                                24,
-                                96,
-                                23,
-                                1,
-                                76,
-                                73
-                            ],
-                            "num_prims": 16,
-                            "vertexDataBufferId": 19
-                        },
-                        {
-                            "matrices": [
-                                64,
-                                63,
-                                108,
-                                2,
-                                89,
-                                90,
-                                91,
-                                1,
-                                76,
-                                73
-                            ],
-                            "num_prims": 55,
-                            "vertexDataBufferId": 20
-                        },
-                        {
-                            "matrices": [
-                                88,
-                                58,
-                                109,
-                                87,
-                                9,
-                                52,
-                                50,
-                                168,
-                                76,
-                                73
-                            ],
-                            "num_prims": 31,
-                            "vertexDataBufferId": 21
-                        },
-                        {
-                            "matrices": [
-                                54,
-                                53,
-                                103,
-                                10,
-                                9,
-                                52,
-                                69,
-                                70,
-                                110,
-                                51
-                            ],
-                            "num_prims": 43,
-                            "vertexDataBufferId": 22
-                        },
-                        {
-                            "matrices": [
-                                61,
-                                161,
-                                77,
-                                10,
-                                56,
-                                74,
-                                191,
-                                192,
-                                93,
-                                79
-                            ],
-                            "num_prims": 17,
-                            "vertexDataBufferId": 23
-                        },
-                        {
-                            "matrices": [
-                                18,
-                                81,
-                                16,
-                                75,
-                                17,
-                                82,
-                                19,
-                                192,
-                                93,
-                                79
-                            ],
-                            "num_prims": 36,
-                            "vertexDataBufferId": 24
-                        },
-                        {
-                            "matrices": [
-                                107,
-                                106,
-                                16,
-                                166,
-                                15,
-                                30,
-                                94,
-                                29,
-                                93,
-                                79
-                            ],
-                            "num_prims": 25,
-                            "vertexDataBufferId": 25
-                        },
-                        {
-                            "matrices": [
-                                31,
-                                101,
-                                72,
-                                80,
-                                25,
-                                30,
-                                99,
-                                24,
-                                32,
-                                79
-                            ],
-                            "num_prims": 52,
-                            "vertexDataBufferId": 26
-                        },
-                        {
-                            "matrices": [
-                                39,
-                                40,
-                                130,
-                                132,
-                                43,
-                                145,
-                                146,
-                                42,
-                                32,
-                                79
-                            ],
-                            "num_prims": 26,
-                            "vertexDataBufferId": 27
-                        },
-                        {
-                            "matrices": [
-                                39,
-                                38,
-                                127,
-                                34,
-                                44,
-                                138,
-                                45,
-                                46,
-                                137,
-                                136
-                            ],
-                            "num_prims": 29,
-                            "vertexDataBufferId": 28
-                        },
-                        {
-                            "matrices": [
-                                33,
-                                32,
-                                123,
-                                34,
-                                119,
-                                157,
-                                143,
-                                124,
-                                135,
-                                167
-                            ],
-                            "num_prims": 32,
-                            "vertexDataBufferId": 29
-                        },
-                        {
-                            "matrices": [
-                                128,
-                                36,
-                                126,
-                                34,
-                                35,
-                                37,
-                                129,
-                                124,
-                                135,
-                                167
-                            ],
-                            "num_prims": 24,
-                            "vertexDataBufferId": 30
-                        },
-                        {
-                            "matrices": [
-                                125,
-                                48,
-                                47,
-                                34,
-                                41,
-                                147,
-                                42,
-                                124,
-                                135,
-                                167
-                            ],
-                            "num_prims": 28,
-                            "vertexDataBufferId": 31
-                        },
-                        {
-                            "matrices": [
-                                49,
-                                48,
-                                133,
-                                131,
-                                27,
-                                100,
-                                28,
-                                102,
-                                135,
-                                167
-                            ],
-                            "num_prims": 24,
-                            "vertexDataBufferId": 32
-                        },
-                        {
-                            "matrices": [
-                                5,
-                                158,
-                                151,
-                                155,
-                                139,
-                                6,
-                                154,
-                                153,
-                                135,
-                                167
-                            ],
-                            "num_prims": 52,
-                            "vertexDataBufferId": 33
-                        },
-                        {
-                            "matrices": [
-                                7,
-                                149,
-                                150,
-                                8,
-                                148,
-                                6,
-                                152,
-                                153,
-                                135,
-                                167
-                            ],
-                            "num_prims": 52,
-                            "vertexDataBufferId": 34
-                        },
-                        {
-                            "matrices": [
-                                22,
-                                21,
-                                71,
-                                98,
-                                97,
-                                20,
-                                16,
-                                153,
-                                135,
-                                167
-                            ],
-                            "num_prims": 23,
-                            "vertexDataBufferId": 35
-                        },
-                        {
-                            "matrices": [
-                                156,
-                                115,
-                                114,
-                                140,
-                                0,
-                                163,
-                                142,
-                                190,
-                                135,
-                                167
-                            ],
-                            "num_prims": 8,
-                            "vertexDataBufferId": 36
-                        },
-                        {
-                            "matrices": [
-                                156,
-                                5,
-                                114,
-                                140,
-                                116,
-                                113,
-                                142,
-                                190,
-                                135,
-                                167
-                            ],
-                            "num_prims": 11,
-                            "vertexDataBufferId": 37
-                        },
-                        {
-                            "matrices": [
-                                104,
-                                15,
-                                67,
-                                14,
-                                68,
-                                105,
-                                142,
-                                190,
-                                135,
-                                167
-                            ],
-                            "num_prims": 11,
-                            "vertexDataBufferId": 38
-                        },
-                        {
-                            "matrices": [
-                                84,
-                                3,
-                                85,
-                                4,
-                                83,
-                                111,
-                                2,
-                                190,
-                                135,
-                                167
-                            ],
-                            "num_prims": 51,
-                            "vertexDataBufferId": 39
-                        }
-                    ],
-                    "name": "polygon0",
-                    "nrm_buffer": "unknown__unknown__0",
-                    "pos_buffer": "unknown__unknown__0",
-                    "uv_buffer": [
-                        "#0",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        ""
-                    ],
-                    "vcd": 9729,
-                    "visible": true
-                }
-            ],
-            "name": "example",
-            "normals": [
-                {
-                    "dataBufferId": 4,
-                    "id": 0,
-                    "name": "unknown__unknown__0",
-                    "q_comp": 0,
-                    "q_divisor": 14,
-                    "q_stride": 6,
-                    "q_type": 3
-                }
-            ],
-            "positions": [
-                {
-                    "dataBufferId": 0,
-                    "id": 0,
-                    "name": "unknown__unknown__0",
-                    "q_comp": 1,
-                    "q_divisor": 12,
-                    "q_stride": 6,
-                    "q_type": 3
-                }
-            ],
-            "texcoords": [
-                {
-                    "dataBufferId": 8,
-                    "id": 0,
-                    "name": "#0",
-                    "q_comp": 1,
-                    "q_divisor": 15,
-                    "q_stride": 4,
-                    "q_type": 2
-                }
-            ]
+          "chanData": [
+            {
+              "ambColor": {
+                "a": 255,
+                "b": 201,
+                "g": 201,
+                "r": 201
+              },
+              "matColor": {
+                "a": 255,
+                "b": 255,
+                "g": 255,
+                "r": 255
+              }
+            },
+            {
+              "ambColor": {
+                "a": 0,
+                "b": 0,
+                "g": 0,
+                "r": 0
+              },
+              "matColor": {
+                "a": 255,
+                "b": 0,
+                "g": 0,
+                "r": 0
+              }
+            }
+          ],
+          "colorChanControls": [
+            {
+              "Ambient": "Register",
+              "Material": "Register",
+              "attenuationFn": "Spotlight",
+              "diffuseFn": "Clamp",
+              "enabled": true,
+              "lightMask": "None"
+            },
+            {
+              "Ambient": "Register",
+              "Material": "Register",
+              "attenuationFn": "Spotlight",
+              "diffuseFn": "Clamp",
+              "enabled": false,
+              "lightMask": "None"
+            }
+          ],
+          "cullMode": "Back",
+          "earlyZComparison": true,
+          "flag": 0,
+          "fogIndex": 0,
+          "id": 0,
+          "lightSetIndex": 0,
+          "mStages": [
+            {
+              "alphaStage": {
+                "a": "zero",
+                "b": "texa",
+                "bias": "zero",
+                "c": "rasa",
+                "clamp": true,
+                "constantSelection": "k0_a",
+                "d": "zero",
+                "formula": "add",
+                "out": "prev",
+                "scale": "scale_1"
+              },
+              "colorStage": {
+                "a": "zero",
+                "b": "texc",
+                "bias": "zero",
+                "c": "rasc",
+                "clamp": true,
+                "constantSelection": "k0",
+                "d": "zero",
+                "formula": "add",
+                "out": "prev",
+                "scale": "scale_1"
+              },
+              "indirectStage": {
+                "addPrev": false,
+                "alpha": "off",
+                "bias": "none",
+                "format": "_8bit",
+                "indStageSel": 0,
+                "matrix": "off",
+                "utcLod": false,
+                "wrapU": "off",
+                "wrapV": "off"
+              },
+              "rasOrder": "color0a0",
+              "rasSwap": 0,
+              "texCoord": 0,
+              "texMap": 0,
+              "texMapSwap": 0
+            }
+          ],
+          "name": "human_all",
+          "samplers": [
+            {
+              "bBiasClamp": false,
+              "bEdgeLod": false,
+              "btiId": 0,
+              "mLodBias": 0.0,
+              "mMagFilter": "Linear",
+              "mMaxAniso": "x1",
+              "mMinFilter": "Linear",
+              "mPalette": "",
+              "mTexture": "human_A",
+              "mWrapU": "Repeat",
+              "mWrapV": "Repeat"
+            }
+          ],
+          "tevColors": [
+            {
+              "a": 255,
+              "b": 255,
+              "g": 255,
+              "r": 255
+            },
+            {
+              "a": 0,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
+            {
+              "a": 0,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
+            {
+              "a": 0,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            }
+          ],
+          "tevKonstColors": [
+            {
+              "a": 0,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
+            {
+              "a": 0,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
+            {
+              "a": 0,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            },
+            {
+              "a": 0,
+              "b": 0,
+              "g": 0,
+              "r": 0
+            }
+          ],
+          "texGens": [
+            {
+              "func": "Matrix2x4",
+              "matrix": "TexMatrix0",
+              "normalize": false,
+              "postMatrix": "Matrix0",
+              "sourceParam": "UV0"
+            }
+          ],
+          "texMatrices": [
+            {
+              "camIdx": -1,
+              "effectMatrix": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+              "lightIdx": -1,
+              "method": "Standard",
+              "option": "NoSelection",
+              "projection": "Matrix2x4",
+              "rotate": 0.0,
+              "scale": [ 1.0, 1.0 ],
+              "transformModel": "Maya",
+              "translate": [ 0.0, 0.0 ]
+            }
+          ]
         }
-    ],
-    "pats": [],
-    "srts": [],
-    "textures": [
+      ],
+      "matrices": [ null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null ],
+      "meshes": [
         {
-            "dataBufferId": 48,
-            "format": 14,
-            "height": 512,
-            "maxLod": 0.0,
-            "minLod": 0.0,
-            "name": "human_A",
-            "number_of_images": 1,
-            "sourcePath": "",
-            "width": 512
+          "clr_buffer": [ "", "" ],
+          "current_matrix": -1,
+          "mprims": [
+            {
+              "matrices": [ 66, 162, 77, 161, 65, 10, 14 ],
+              "num_prims": 75,
+              "vertexDataBufferId": 12
+            },
+            {
+              "matrices": [ 120, 122, 164, 165, 118, 10, 117, 32, 121, 134 ],
+              "num_prims": 17,
+              "vertexDataBufferId": 13
+            },
+            {
+              "matrices": [ 120, 122, 164, 141, 194, 10, 144, 193, 121, 134 ],
+              "num_prims": 15,
+              "vertexDataBufferId": 14
+            },
+            {
+              "matrices": [ 159, 62, 57, 160, 92, 0, 163, 114, 121, 134 ],
+              "num_prims": 9,
+              "vertexDataBufferId": 15
+            },
+            {
+              "matrices": [ 159, 62, 57, 112, 86, 0, 60, 114, 50, 142 ],
+              "num_prims": 28,
+              "vertexDataBufferId": 16
+            },
+            {
+              "matrices": [ 59, 190, 57, 55, 86, 0, 92, 1, 76, 73 ],
+              "num_prims": 18,
+              "vertexDataBufferId": 17
+            },
+            {
+              "matrices": [ 59, 78, 50, 115, 86, 0, 92, 1, 76, 73 ],
+              "num_prims": 27,
+              "vertexDataBufferId": 18
+            },
+            {
+              "matrices": [ 27, 95, 26, 16, 24, 96, 23, 1, 76, 73 ],
+              "num_prims": 16,
+              "vertexDataBufferId": 19
+            },
+            {
+              "matrices": [ 64, 63, 108, 2, 89, 90, 91, 1, 76, 73 ],
+              "num_prims": 55,
+              "vertexDataBufferId": 20
+            },
+            {
+              "matrices": [ 88, 58, 109, 87, 9, 52, 50, 168, 76, 73 ],
+              "num_prims": 31,
+              "vertexDataBufferId": 21
+            },
+            {
+              "matrices": [ 54, 53, 103, 10, 9, 52, 69, 70, 110, 51 ],
+              "num_prims": 43,
+              "vertexDataBufferId": 22
+            },
+            {
+              "matrices": [ 61, 161, 77, 10, 56, 74, 191, 192, 93, 79 ],
+              "num_prims": 17,
+              "vertexDataBufferId": 23
+            },
+            {
+              "matrices": [ 18, 81, 16, 75, 17, 82, 19, 192, 93, 79 ],
+              "num_prims": 36,
+              "vertexDataBufferId": 24
+            },
+            {
+              "matrices": [ 107, 106, 16, 166, 15, 30, 94, 29, 93, 79 ],
+              "num_prims": 25,
+              "vertexDataBufferId": 25
+            },
+            {
+              "matrices": [ 31, 101, 72, 80, 25, 30, 99, 24, 32, 79 ],
+              "num_prims": 52,
+              "vertexDataBufferId": 26
+            },
+            {
+              "matrices": [ 39, 40, 130, 132, 43, 145, 146, 42, 32, 79 ],
+              "num_prims": 26,
+              "vertexDataBufferId": 27
+            },
+            {
+              "matrices": [ 39, 38, 127, 34, 44, 138, 45, 46, 137, 136 ],
+              "num_prims": 29,
+              "vertexDataBufferId": 28
+            },
+            {
+              "matrices": [ 33, 32, 123, 34, 119, 157, 143, 124, 135, 167 ],
+              "num_prims": 32,
+              "vertexDataBufferId": 29
+            },
+            {
+              "matrices": [ 128, 36, 126, 34, 35, 37, 129, 124, 135, 167 ],
+              "num_prims": 24,
+              "vertexDataBufferId": 30
+            },
+            {
+              "matrices": [ 125, 48, 47, 34, 41, 147, 42, 124, 135, 167 ],
+              "num_prims": 28,
+              "vertexDataBufferId": 31
+            },
+            {
+              "matrices": [ 49, 48, 133, 131, 27, 100, 28, 102, 135, 167 ],
+              "num_prims": 24,
+              "vertexDataBufferId": 32
+            },
+            {
+              "matrices": [ 5, 158, 151, 155, 139, 6, 154, 153, 135, 167 ],
+              "num_prims": 52,
+              "vertexDataBufferId": 33
+            },
+            {
+              "matrices": [ 7, 149, 150, 8, 148, 6, 152, 153, 135, 167 ],
+              "num_prims": 52,
+              "vertexDataBufferId": 34
+            },
+            {
+              "matrices": [ 22, 21, 71, 98, 97, 20, 16, 153, 135, 167 ],
+              "num_prims": 23,
+              "vertexDataBufferId": 35
+            },
+            {
+              "matrices": [ 156, 115, 114, 140, 0, 163, 142, 190, 135, 167 ],
+              "num_prims": 8,
+              "vertexDataBufferId": 36
+            },
+            {
+              "matrices": [ 156, 5, 114, 140, 116, 113, 142, 190, 135, 167 ],
+              "num_prims": 11,
+              "vertexDataBufferId": 37
+            },
+            {
+              "matrices": [ 104, 15, 67, 14, 68, 105, 142, 190, 135, 167 ],
+              "num_prims": 11,
+              "vertexDataBufferId": 38
+            },
+            {
+              "matrices": [ 84, 3, 85, 4, 83, 111, 2, 190, 135, 167 ],
+              "num_prims": 51,
+              "vertexDataBufferId": 39
+            }
+          ],
+          "name": "polygon0",
+          "nrm_buffer": "unknown__unknown__0",
+          "pos_buffer": "unknown__unknown__0",
+          "uv_buffer": [ "#0", "", "", "", "", "", "", "" ],
+          "vcd": 9729,
+          "visible": true
+        },
+        {
+          "clr_buffer": [ "", "" ],
+          "current_matrix": 12,
+          "mprims": [
+            {
+              "matrices": [],
+              "num_prims": 17,
+              "vertexDataBufferId": 40
+            }
+          ],
+          "name": "polygon1",
+          "nrm_buffer": "unknown__unknown__1",
+          "pos_buffer": "unknown__unknown__1",
+          "uv_buffer": [ "#1", "", "", "", "", "", "", "" ],
+          "vcd": 9728,
+          "visible": true
+        },
+        {
+          "clr_buffer": [ "", "" ],
+          "current_matrix": 12,
+          "mprims": [
+            {
+              "matrices": [],
+              "num_prims": 16,
+              "vertexDataBufferId": 41
+            }
+          ],
+          "name": "polygon2",
+          "nrm_buffer": "unknown__unknown__2",
+          "pos_buffer": "unknown__unknown__2",
+          "uv_buffer": [ "#2", "", "", "", "", "", "", "" ],
+          "vcd": 9728,
+          "visible": true
+        },
+        {
+          "clr_buffer": [ "", "" ],
+          "current_matrix": -1,
+          "mprims": [
+            {
+              "matrices": [ 10, 176, 195, 196, 174, 175, 178, 179 ],
+              "num_prims": 17,
+              "vertexDataBufferId": 42
+            },
+            {
+              "matrices": [ 183, 186, 184, 182, 187, 13, 189, 12, 185 ],
+              "num_prims": 17,
+              "vertexDataBufferId": 43
+            },
+            {
+              "matrices": [ 170, 171, 184, 177, 173, 13, 169, 12, 185, 188 ],
+              "num_prims": 280,
+              "vertexDataBufferId": 44
+            },
+            {
+              "matrices": [ 170, 172, 181, 177, 178, 179, 169, 12, 185, 188 ],
+              "num_prims": 8,
+              "vertexDataBufferId": 45
+            },
+            {
+              "matrices": [ 173, 172, 196, 197, 180, 176, 169, 12, 185, 188 ],
+              "num_prims": 15,
+              "vertexDataBufferId": 46
+            },
+            {
+              "matrices": [ 173, 179, 11, 175, 180, 176, 169, 12, 185, 188 ],
+              "num_prims": 5,
+              "vertexDataBufferId": 47
+            }
+          ],
+          "name": "polygon3",
+          "nrm_buffer": "unknown__unknown__3",
+          "pos_buffer": "unknown__unknown__3",
+          "uv_buffer": [ "#3", "", "", "", "", "", "", "" ],
+          "vcd": 9729,
+          "visible": true
         }
-    ],
-    "viss": []
+      ],
+      "name": "example",
+      "normals": [
+        {
+          "dataBufferId": 4,
+          "id": 0,
+          "name": "unknown__unknown__0",
+          "q_comp": 0,
+          "q_divisor": 14,
+          "q_stride": 6,
+          "q_type": 3
+        },
+        {
+          "dataBufferId": 5,
+          "id": 1,
+          "name": "unknown__unknown__1",
+          "q_comp": 0,
+          "q_divisor": 14,
+          "q_stride": 6,
+          "q_type": 3
+        },
+        {
+          "dataBufferId": 6,
+          "id": 2,
+          "name": "unknown__unknown__2",
+          "q_comp": 0,
+          "q_divisor": 14,
+          "q_stride": 6,
+          "q_type": 3
+        },
+        {
+          "dataBufferId": 7,
+          "id": 3,
+          "name": "unknown__unknown__3",
+          "q_comp": 0,
+          "q_divisor": 14,
+          "q_stride": 6,
+          "q_type": 3
+        }
+      ],
+      "positions": [
+        {
+          "dataBufferId": 0,
+          "id": 0,
+          "name": "unknown__unknown__0",
+          "q_comp": 1,
+          "q_divisor": 12,
+          "q_stride": 6,
+          "q_type": 3
+        },
+        {
+          "dataBufferId": 1,
+          "id": 1,
+          "name": "unknown__unknown__1",
+          "q_comp": 1,
+          "q_divisor": 15,
+          "q_stride": 6,
+          "q_type": 3
+        },
+        {
+          "dataBufferId": 2,
+          "id": 2,
+          "name": "unknown__unknown__2",
+          "q_comp": 1,
+          "q_divisor": 15,
+          "q_stride": 6,
+          "q_type": 3
+        },
+        {
+          "dataBufferId": 3,
+          "id": 3,
+          "name": "unknown__unknown__3",
+          "q_comp": 1,
+          "q_divisor": 12,
+          "q_stride": 6,
+          "q_type": 3
+        }
+      ],
+      "texcoords": [
+        {
+          "dataBufferId": 8,
+          "id": 0,
+          "name": "#0",
+          "q_comp": 1,
+          "q_divisor": 15,
+          "q_stride": 4,
+          "q_type": 2
+        },
+        {
+          "dataBufferId": 9,
+          "id": 1,
+          "name": "#1",
+          "q_comp": 1,
+          "q_divisor": 15,
+          "q_stride": 4,
+          "q_type": 2
+        },
+        {
+          "dataBufferId": 10,
+          "id": 2,
+          "name": "#2",
+          "q_comp": 1,
+          "q_divisor": 15,
+          "q_stride": 4,
+          "q_type": 2
+        },
+        {
+          "dataBufferId": 11,
+          "id": 3,
+          "name": "#3",
+          "q_comp": 1,
+          "q_divisor": 15,
+          "q_stride": 4,
+          "q_type": 2
+        }
+      ]
+    }
+  ],
+  "pats": [],
+  "srts": [],
+  "textures": [
+    {
+      "dataBufferId": 48,
+      "format": 14,
+      "height": 512,
+      "maxLod": 0.0,
+      "minLod": 0.0,
+      "name": "human_A",
+      "number_of_images": 1,
+      "sourcePath": "",
+      "width": 512
+    }
+  ],
+  "viss": []
 }

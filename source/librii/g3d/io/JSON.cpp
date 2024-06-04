@@ -24,7 +24,28 @@
 #include <rsl/EnumCast.hpp>
 
 #include <vendor/json_struct.h>
-JS_OBJ_EXT(glm::vec2, x, y);
+
+namespace JS {
+
+template <> struct TypeHandler<glm::vec2> {
+  static inline Error to(glm::vec2& to_type, ParseContext& context) {
+    std::vector<f32> t;
+    TypeHandler<std::vector<f32>>::to(t, context);
+    to_type.x = t[0];
+    to_type.y = t[1];
+    return Error::NoError;
+  }
+
+  static inline void from(const glm::vec2& vec, Token& token,
+                          Serializer& serializer) {
+    std::vector<f32> t;
+    t.push_back(vec.x);
+    t.push_back(vec.y);
+    TypeHandler<std::vector<f32>>::from(t, token, serializer);
+  }
+};
+} // namespace JS
+
 JS_OBJ_EXT(glm::vec3, x, y, z);
 JS_OBJ_EXT(glm::vec4, x, y, z, w);
 JS_OBJ_EXT(librii::gx::Color, r, g, b, a);
@@ -1111,6 +1132,22 @@ std::string ModelToJSON(const Model& model) {
   return JS::serializeStruct(mdl);
 }
 Result<Model> JSONToModel(std::string_view json) {
+  JS::ParseContext context(json.data(), json.size());
+  JSONModel mdl;
+  auto err = context.parseTo(mdl);
+  if (err != JS::Error::NoError) {
+    auto n = magic_enum::enum_name(err);
+    return std::unexpected(
+        std::format("JSONToModel failed: Parse error {}", n));
+  }
+  return mdl.lift();
+}
+
+std::string MatToJSON(const G3dMaterialData& model) {
+  auto mat = JSONG3dMaterialData::from(model);
+  return JS::serializeStruct(mat);
+}
+Result<Model> JSONToMat(std::string_view json) {
   JS::ParseContext context(json.data(), json.size());
   JSONModel mdl;
   auto err = context.parseTo(mdl);

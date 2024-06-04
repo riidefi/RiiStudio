@@ -1,11 +1,15 @@
 use serde::Deserialize;
+use serde::Serialize;
 use serde_json::Result;
 use std::fs::File;
 use std::io::BufReader;
 use std::vec::Vec;
 
 mod buffers;
+mod enums;
 mod ffi;
+
+use enums::*;
 
 #[derive(Deserialize, Debug)]
 struct JsonMesh {
@@ -31,7 +35,7 @@ struct JsonPrimitive {
 struct JsonModel {
     bones: Vec<Option<serde_json::Value>>,
     colors: Vec<serde_json::Value>,
-    materials: Vec<Option<serde_json::Value>>,
+    materials: Vec<JSONMaterial>,
     matrices: Vec<Option<serde_json::Value>>,
     meshes: Vec<JsonMesh>,
     name: String,
@@ -260,7 +264,7 @@ pub struct Model {
     pub name: String,
 
     pub bones: Vec<Option<serde_json::Value>>,
-    pub materials: Vec<Option<serde_json::Value>>,
+    pub materials: Vec<JSONMaterial>,
     pub meshes: Vec<Mesh>,
 
     // Vertex buffers
@@ -315,7 +319,7 @@ pub struct Texture {
     ///     RGB565,
     ///     RGB5A3,
     ///     RGBA8,
-    /// 
+    ///
     ///     C4 = 0x8,
     ///     C8,
     ///     C14X2,
@@ -369,7 +373,7 @@ pub struct Texture {
     ///            0xA7, 0x9E, 0xA5, 0xFF, 0x31, 0x20, 0x39, 0xFF, 0x78, 0x6C, 0x7A, 0xFF, 0xEF, 0xEB, 0xE7, 0xFF]);
     /// ```
     pub data: Vec<u8>,
-    
+
     /// Always recomputed on save (currently).
     /// Set to `0.0`.
     pub min_lod: f32,
@@ -396,6 +400,148 @@ impl Texture {
             width: texture.width,
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ColorS10 {
+    r: i16,
+    g: i16,
+    b: i16,
+    a: i16,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONColorStage {
+    constantSelection: TevKColorSel,
+    a: TevColorArg,
+    b: TevColorArg,
+    c: TevColorArg,
+    d: TevColorArg,
+    formula: TevColorOp,
+    bias: TevBias,
+    scale: TevScale,
+    clamp: bool,
+    out: TevReg,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONAlphaStage {
+    a: TevAlphaArg,
+    b: TevAlphaArg,
+    c: TevAlphaArg,
+    d: TevAlphaArg,
+    formula: TevAlphaOp,
+    constantSelection: TevKAlphaSel,
+    bias: TevBias,
+    scale: TevScale,
+    clamp: bool,
+    out: TevReg,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONIndirectStage {
+    indStageSel: u8,
+    format: IndTexFormat,
+    bias: IndTexBiasSel,
+    matrix: IndTexMtxID,
+    wrapU: IndTexWrap,
+    wrapV: IndTexWrap,
+    addPrev: bool,
+    utcLod: bool,
+    alpha: IndTexAlphaSel,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONTevStage {
+    rasOrder: ColorSelChanApi,
+    texMap: u8,
+    texCoord: u8,
+    rasSwap: u8,
+    texMapSwap: u8,
+    colorStage: JSONColorStage,
+    alphaStage: JSONAlphaStage,
+    indirectStage: JSONIndirectStage,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONTexMatrix {
+    projection: TexGenType,
+    scale: (f32, f32),
+    rotate: f32,
+    translate: (f32, f32),
+    effectMatrix: [f32; 16],
+    transformModel: CommonTransformModel,
+    method: CommonMappingMethod,
+    option: CommonMappingOption,
+    camIdx: i8,
+    lightIdx: i8,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONSamplerData {
+    mTexture: String,
+    mPalette: String,
+    mWrapU: TextureWrapMode,
+    mWrapV: TextureWrapMode,
+    bEdgeLod: bool,
+    bBiasClamp: bool,
+    mMaxAniso: AnisotropyLevel,
+    mMinFilter: TextureFilter,
+    mMagFilter: TextureFilter,
+    mLodBias: f32,
+    btiId: u16,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONChannelControl {
+    enabled: bool,
+    Ambient: ColorSource,
+    Material: ColorSource,
+    lightMask: LightID,
+    diffuseFn: DiffuseFunction,
+    attenuationFn: AttenuationFunction,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONChannelData {
+    matColor: Color,
+    ambColor: Color,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONTexCoordGen {
+    func: TexGenType,
+    sourceParam: TexGenSrc,
+    matrix: TexMatrix,
+    normalize: bool,
+    postMatrix: PostTexMatrix,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct JSONMaterial {
+    flag: u32,
+    id: u32,
+    lightSetIndex: i8,
+    fogIndex: i8,
+    name: String,
+    texMatrices: Vec<JSONTexMatrix>, // MAX 10
+    samplers: Vec<JSONSamplerData>,  // MAX 8
+    cullMode: CullMode,
+    chanData: Vec<JSONChannelData>,             // Max 2
+    colorChanControls: Vec<JSONChannelControl>, // Max 4
+    texGens: Vec<JSONTexCoordGen>,              // Max 8
+    tevKonstColors: [Color; 4],
+    tevColors: [ColorS10; 4],
+    earlyZComparison: bool,
+    mStages: Vec<JSONTevStage>, // Max 16
 }
 
 #[cfg(test)]
@@ -447,12 +593,14 @@ mod tests4 {
     #[test]
     fn test_read_raw_brres() {
         // Read the sea.brres file into a byte array
-        let brres_data = fs::read("sea.brres").expect("Failed to read sea.brres file");
+        let brres_data =
+            fs::read("../../tests/samples/sea.brres").expect("Failed to read sea.brres file");
 
         // Call the read_raw_brres function
         match read_raw_brres(&brres_data) {
             Ok(archive) => {
                 println!("{:#?}", archive.get_model("sea").unwrap().meshes[0]);
+                println!("{:#?}", archive.get_model("sea").unwrap().materials[0]);
             }
             Err(e) => {
                 panic!("Error reading brres file: {:#?}", e);

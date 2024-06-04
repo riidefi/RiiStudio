@@ -17,6 +17,10 @@
 
 template <typename T> using Expected = std::expected<T, std::string>;
 
+namespace librii::g3d {
+std::string MatToJSON(const G3dMaterialData& model);
+}
+
 struct JsonReadCtx {
   nlohmann::json j;
   std::span<const std::span<const u8>> buffers;
@@ -200,6 +204,13 @@ void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
     j["mprims"].push_back(tmp);
   }
 }
+
+void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
+	const librii::g3d::G3dMaterialData& m) {
+  auto s = librii::g3d::MatToJSON(m);
+  j = nlohmann::json::parse(s);
+}
+
 void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
                const librii::g3d::Model& model) {
 
@@ -246,7 +257,7 @@ void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
   j["materials"] = nlohmann::json::array();
   for (const auto& material : model.materials) {
     nlohmann::json materialJson;
-    // WriteJson(ctx, material, materialJson);
+    WriteJson(ctx, materialJson, material);
     j["materials"].push_back(materialJson);
   }
 
