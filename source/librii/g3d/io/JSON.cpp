@@ -25,6 +25,20 @@
 
 #include <vendor/json_struct.h>
 
+struct JsonWriteCtx {
+  std::vector<std::vector<u8>> buffers;
+
+  int save_buffer_with_move(std::vector<u8>&& buf) {
+    buffers.emplace_back(std::move(buf));
+    return static_cast<int>(buffers.size()) - 1;
+  }
+  template <typename T> int save_buffer_with_copy(std::span<const T> buf) {
+    const u8* begin = reinterpret_cast<const u8*>(buf.data());
+    std::vector<u8> tmp(begin, begin + buf.size() * sizeof(T));
+    return save_buffer_with_move(std::move(tmp));
+  }
+};
+
 namespace JS {
 
 template <> struct TypeHandler<glm::vec2> {
@@ -263,163 +277,153 @@ struct JSONBoneData {
   }
 };
 using namespace librii::gx;
-struct JSONIndexedVertex {
-  DEFINE_SERIALIZABLE(JSONIndexedVertex, indices)
 
-  std::array<u16, (u64)VertexAttribute::Max> indices;
+std::vector<u8>
+packIndexedPrims(std::span<const librii::gx::IndexedPrimitive> prims) {
+  std::vector<u8> vd_buf;
 
-  static JSONIndexedVertex from(const IndexedVertex& original) {
-    JSONIndexedVertex json;
-    json.indices = original.indices;
-    return json;
+  for (auto& prim : prims) {
+    vd_buf.push_back(static_cast<u8>(prim.mType));
+    u32 num_verts = prim.mVertices.size();
+    vd_buf.push_back((num_verts >> 16) & 0xff);
+    vd_buf.push_back((num_verts >> 8) & 0xff);
+    vd_buf.push_back((num_verts >> 0) & 0xff);
+    // 26x u16s
+    static_assert(sizeof(librii::gx::IndexedVertex) == 26 * 2);
+    static_assert(alignof(librii::gx::IndexedVertex) == 2);
+    u32 cursor = vd_buf.size();
+    u32 buf_size = prim.mVertices.size() * sizeof(librii::gx::IndexedVertex);
+    vd_buf.resize(vd_buf.size() + buf_size);
+    memcpy(vd_buf.data() + cursor, prim.mVertices.data(), buf_size);
+  }
+  return vd_buf;
+}
+std::vector<librii::gx::IndexedPrimitive>
+unpackIndexedPrims(std::span<const u8> vd_buf, u32 num_prims) {
+  std::vector<librii::gx::IndexedPrimitive> prims;
+  size_t offset = 0;
+
+  for (u32 i = 0; i < num_prims; ++i) {
+    librii::gx::IndexedPrimitive prim;
+    prim.mType = static_cast<librii::gx::PrimitiveType>(vd_buf[offset++]);
+
+    u32 num_verts = 0;
+    num_verts |= vd_buf[offset++] << 16;
+    num_verts |= vd_buf[offset++] << 8;
+    num_verts |= vd_buf[offset++];
+
+    prim.mVertices.resize(num_verts);
+    size_t buf_size = num_verts * sizeof(librii::gx::IndexedVertex);
+    memcpy(prim.mVertices.data(), vd_buf.data() + offset, buf_size);
+    offset += buf_size;
+
+    prims.push_back(prim);
   }
 
-  operator IndexedVertex() const {
-    IndexedVertex indexedVert;
-    indexedVert.indices = indices;
-    return indexedVert;
-  }
-};
-
-struct JSONIndexedPrimitive {
-  DEFINE_SERIALIZABLE(JSONIndexedPrimitive, mType, mVertices)
-
-  PrimitiveType mType;
-  std::vector<JSONIndexedVertex> mVertices;
-
-  static JSONIndexedPrimitive from(const IndexedPrimitive& original) {
-    JSONIndexedPrimitive json;
-    json.mType = original.mType;
-
-    for (const auto& indexedVert : original.mVertices) {
-      json.mVertices.push_back(JSONIndexedVertex::from(indexedVert));
-    }
-    return json;
-  }
-
-  operator IndexedPrimitive() const {
-    IndexedPrimitive indexedPrim;
-    indexedPrim.mType = mType;
-
-    for (const auto& jsonIndexedVert : mVertices) {
-      indexedPrim.mVertices.push_back(jsonIndexedVert);
-    }
-    return indexedPrim;
-  }
-};
+  return prims;
+}
 
 struct JSONMatrixPrimitive {
-  DEFINE_SERIALIZABLE(JSONMatrixPrimitive, mCurrentMatrix, mDrawMatrixIndices,
-                      mPrimitives)
+  DEFINE_SERIALIZABLE(JSONMatrixPrimitive, matrices, num_prims, vertexDataBufferId)
 
-  s16 mCurrentMatrix = -1;
-  std::vector<s16> mDrawMatrixIndices;
-  std::vector<JSONIndexedPrimitive> mPrimitives;
+  std::vector<s16> matrices;
+  u32 num_prims = 0;
+  u32 vertexDataBufferId = 0;
 
-  static JSONMatrixPrimitive from(const MatrixPrimitive& original) {
+  static JSONMatrixPrimitive from(const MatrixPrimitive& original,
+                                  JsonWriteCtx& ctx) {
     JSONMatrixPrimitive json;
-    json.mCurrentMatrix = original.mCurrentMatrix;
-    json.mDrawMatrixIndices = original.mDrawMatrixIndices;
+    json.matrices = original.mDrawMatrixIndices;
 
-    for (const auto& indexedPrim : original.mPrimitives) {
-      json.mPrimitives.push_back(JSONIndexedPrimitive::from(indexedPrim));
-    }
+    json.num_prims = original.mPrimitives.size();
+    json.vertexDataBufferId =
+        ctx.save_buffer_with_move(packIndexedPrims(original.mPrimitives));
     return json;
   }
 
-  operator MatrixPrimitive() const {
+  MatrixPrimitive to(std::span<const std::vector<u8>> buffers) const {
     MatrixPrimitive matPrim;
-    matPrim.mCurrentMatrix = mCurrentMatrix;
-    matPrim.mDrawMatrixIndices = mDrawMatrixIndices;
+    matPrim.mDrawMatrixIndices = matrices;
 
-    for (const auto& jsonIndexedPrim : mPrimitives) {
-      matPrim.mPrimitives.push_back(jsonIndexedPrim);
-    }
+    matPrim.mPrimitives =
+        unpackIndexedPrims(buffers[vertexDataBufferId], num_prims);
     return matPrim;
   }
 };
 
-struct JSONVertexDescriptor {
-  DEFINE_SERIALIZABLE(JSONVertexDescriptor, mBitfield)
-
-  // TODO: mAttributes needs to be recalculated
-  std::map<librii::gx::VertexAttribute, librii::gx::VertexAttributeType>
-      mAttributes;
-  u32 mBitfield;
-
-  static JSONVertexDescriptor
-  from(const librii::gx::VertexDescriptor& original) {
-    JSONVertexDescriptor json;
-    json.mAttributes = original.mAttributes;
-    json.mBitfield = original.mBitfield;
-    return json;
-  }
-
-  operator librii::gx::VertexDescriptor() const {
-    VertexDescriptor vertexDesc;
-    vertexDesc.mAttributes = mAttributes;
-    vertexDesc.mBitfield = mBitfield;
-    return vertexDesc;
-  }
-};
-
 struct JSONPolygonData {
-  DEFINE_SERIALIZABLE(JSONPolygonData, mName, mCurrentMatrix, visible,
-                      mPositionBuffer, mNormalBuffer, mColorBuffer,
-                      mTexCoordBuffer, mMatrixPrimitives, mVertexDescriptor)
+  DEFINE_SERIALIZABLE(JSONPolygonData, name, current_matrix, visible,
+                      pos_buffer, nrm_buffer, clr_buffer, uv_buffer, vcd,
+                      mprims)
 
   // ... PolygonData members
-  std::string mName;
-  s16 mCurrentMatrix = -1;
+  std::string name;
+  s16 current_matrix = -1;
   bool visible = true;
-  std::string mPositionBuffer;
-  std::string mNormalBuffer;
-  std::array<std::string, 2> mColorBuffer;
-  std::array<std::string, 8> mTexCoordBuffer;
+  std::string pos_buffer;
+  std::string nrm_buffer;
+  std::array<std::string, 2> clr_buffer;
+  std::array<std::string, 8> uv_buffer;
 
   // ... MeshData members
-  std::vector<JSONMatrixPrimitive> mMatrixPrimitives;
-  JSONVertexDescriptor mVertexDescriptor;
+  u32 vcd;
+  std::vector<JSONMatrixPrimitive> mprims;
 
-  static JSONPolygonData from(const g3d::PolygonData& original) {
+  static JSONPolygonData from(const g3d::PolygonData& original,
+                              JsonWriteCtx& c) {
     JSONPolygonData json;
 
     // Convert PolygonData members
-    json.mName = original.mName;
-    json.mCurrentMatrix = original.mCurrentMatrix;
+    json.name = original.mName;
+    json.current_matrix = original.mCurrentMatrix;
     json.visible = original.visible;
-    json.mPositionBuffer = original.mPositionBuffer;
-    json.mNormalBuffer = original.mNormalBuffer;
-    json.mColorBuffer = original.mColorBuffer;
-    json.mTexCoordBuffer = original.mTexCoordBuffer;
+    json.pos_buffer = original.mPositionBuffer;
+    json.nrm_buffer = original.mNormalBuffer;
+    json.clr_buffer = original.mColorBuffer;
+    json.uv_buffer = original.mTexCoordBuffer;
 
     // Convert MeshData members
     for (const auto& matPrim : original.mMatrixPrimitives) {
-      json.mMatrixPrimitives.push_back(JSONMatrixPrimitive::from(matPrim));
+      json.mprims.push_back(JSONMatrixPrimitive::from(matPrim, c));
     }
-    json.mVertexDescriptor =
-        JSONVertexDescriptor::from(original.mVertexDescriptor);
+    json.vcd = original.mVertexDescriptor.mBitfield;
 
     return json;
   }
 
-  operator g3d::PolygonData() const {
+  g3d::PolygonData to(std::span<const std::vector<u8>> buffers) const {
     g3d::PolygonData poly;
 
     // Convert JSONPolygonData to PolygonData members
-    poly.mName = mName;
-    poly.mCurrentMatrix = mCurrentMatrix;
+    poly.mName = name;
+    poly.mCurrentMatrix = current_matrix;
     poly.visible = visible;
-    poly.mPositionBuffer = mPositionBuffer;
-    poly.mNormalBuffer = mNormalBuffer;
-    poly.mColorBuffer = mColorBuffer;
-    poly.mTexCoordBuffer = mTexCoordBuffer;
+    poly.mPositionBuffer = pos_buffer;
+    poly.mNormalBuffer = nrm_buffer;
+    poly.mColorBuffer = clr_buffer;
+    poly.mTexCoordBuffer = uv_buffer;
 
     // Convert MeshData members
-    for (const auto& jsonMatPrim : mMatrixPrimitives) {
-      poly.mMatrixPrimitives.push_back(jsonMatPrim);
+    for (const auto& jsonMatPrim : mprims) {
+      poly.mMatrixPrimitives.push_back(jsonMatPrim.to(buffers));
     }
-    poly.mVertexDescriptor = mVertexDescriptor;
+
+    // TODO: Using only S16 is wasteful / won't match
+    for (int i = 0; i < static_cast<int>(librii::gx::VertexAttribute::Max);
+         ++i) {
+      if ((vcd & (1 << i)) == 0)
+        continue;
+
+      // PNMTXIDX is direct u8
+      auto fmt = i == 0 ? librii::gx::VertexAttributeType::Direct
+                        : librii::gx::VertexAttributeType::Short;
+      poly.mVertexDescriptor.mAttributes.emplace(
+          static_cast<librii::gx::VertexAttribute>(i), fmt);
+    }
+
+    poly.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
+
+    assert(poly.mVertexDescriptor.mBitfield == vcd);
 
     return poly;
   }
@@ -1046,7 +1050,7 @@ struct JSONModel {
   std::vector<JSONPolygonData> meshes;
   std::vector<JSONDrawMatrix> matrices;
 
-  static JSONModel from(const Model& original) {
+  static JSONModel from(const Model& original, JsonWriteCtx& c) {
     JSONModel model;
     model.name = original.name;
     model.info = JSONModelInfo::from(original.info);
@@ -1076,7 +1080,7 @@ struct JSONModel {
     }
 
     for (const auto& mesh : original.meshes) {
-      model.meshes.emplace_back(JSONPolygonData::from(mesh));
+      model.meshes.emplace_back(JSONPolygonData::from(mesh, c));
     }
 
     for (const auto& matrix : original.matrices) {
@@ -1086,7 +1090,7 @@ struct JSONModel {
     return model;
   }
 
-  Result<Model> lift() const {
+  Result<Model> lift(std::span<const std::vector<u8>> buffers) const {
     Model result;
     result.name = name;
     result.info = TRY(info.to());
@@ -1116,7 +1120,7 @@ struct JSONModel {
     }
 
     for (const auto& jsonMesh : meshes) {
-      result.meshes.push_back(static_cast<PolygonData>(jsonMesh));
+      result.meshes.push_back(jsonMesh.to(buffers));
     }
 
     for (const auto& jsonMatrix : matrices) {
@@ -1128,7 +1132,8 @@ struct JSONModel {
 };
 
 std::string ModelToJSON(const Model& model) {
-  JSONModel mdl = JSONModel::from(model);
+  JsonWriteCtx ctx;
+  JSONModel mdl = JSONModel::from(model, ctx);
   return JS::serializeStruct(mdl);
 }
 Result<Model> JSONToModel(std::string_view json) {
@@ -1140,23 +1145,41 @@ Result<Model> JSONToModel(std::string_view json) {
     return std::unexpected(
         std::format("JSONToModel failed: Parse error {}", n));
   }
-  return mdl.lift();
+  std::vector<std::vector<u8>> buffers;
+  return mdl.lift(buffers);
 }
 
 std::string MatToJSON(const G3dMaterialData& model) {
   auto mat = JSONG3dMaterialData::from(model);
   return JS::serializeStruct(mat);
 }
-Result<Model> JSONToMat(std::string_view json) {
+Result<G3dMaterialData> JSONToMat(std::string_view json) {
   JS::ParseContext context(json.data(), json.size());
-  JSONModel mdl;
+  JSONG3dMaterialData mdl;
   auto err = context.parseTo(mdl);
   if (err != JS::Error::NoError) {
     auto n = magic_enum::enum_name(err);
     return std::unexpected(
         std::format("JSONToModel failed: Parse error {}", n));
   }
-  return mdl.lift();
+  return mdl;
+}
+
+std::string PolyToJSON(const g3d::PolygonData& model, JsonWriteCtx& c) {
+  auto mat = JSONPolygonData::from(model, c);
+  return JS::serializeStruct(mat);
+}
+Result<g3d::PolygonData> JSONToPoly(std::string_view json,
+                                    std::span<const std::vector<u8>> buffers) {
+  JS::ParseContext context(json.data(), json.size());
+  JSONPolygonData mdl;
+  auto err = context.parseTo(mdl);
+  if (err != JS::Error::NoError) {
+    auto n = magic_enum::enum_name(err);
+    return std::unexpected(
+        std::format("JSONToModel failed: Parse error {}", n));
+  }
+  return mdl.to(buffers);
 }
 
 } // namespace librii::g3d

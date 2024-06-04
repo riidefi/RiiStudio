@@ -17,9 +17,12 @@
 
 template <typename T> using Expected = std::expected<T, std::string>;
 
+struct JsonWriteCtx;
+
 namespace librii::g3d {
+std::string PolyToJSON(const g3d::PolygonData& model, JsonWriteCtx& c);
 std::string MatToJSON(const G3dMaterialData& model);
-}
+} // namespace librii::g3d
 
 struct JsonReadCtx {
   nlohmann::json j;
@@ -164,49 +167,15 @@ void WriteJson(
   j["q_stride"] = b.mQuantize.stride;
   j["dataBufferId"] = c.save_buffer_with_copy<T>(b.mEntries);
 }
+
 void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
                const librii::g3d::PolygonData& p) {
-  j["name"] = p.mName;
-  j["current_matrix"] = p.mCurrentMatrix;
-  j["visible"] = p.visible;
-  j["pos_buffer"] = p.mPositionBuffer;
-  j["nrm_buffer"] = p.mNormalBuffer;
-  j["clr_buffer"] = p.mColorBuffer;
-  j["uv_buffer"] = p.mTexCoordBuffer;
-
-  j["vcd"] = p.mVertexDescriptor.mBitfield;
-  j["mprims"] = nlohmann::json::array();
-  for (auto& mp : p.mMatrixPrimitives) {
-    nlohmann::json tmp;
-
-    tmp["matrices"] = mp.mDrawMatrixIndices;
-
-    std::vector<u8> vd_buf;
-
-    for (auto& prim : mp.mPrimitives) {
-      vd_buf.push_back(static_cast<u8>(prim.mType));
-      u32 num_verts = prim.mVertices.size();
-      vd_buf.push_back((num_verts >> 16) & 0xff);
-      vd_buf.push_back((num_verts >> 8) & 0xff);
-      vd_buf.push_back((num_verts >> 0) & 0xff);
-      // 26x u16s
-      static_assert(sizeof(librii::gx::IndexedVertex) == 26 * 2);
-      static_assert(alignof(librii::gx::IndexedVertex) == 2);
-      u32 cursor = vd_buf.size();
-      u32 buf_size = prim.mVertices.size() * sizeof(librii::gx::IndexedVertex);
-      vd_buf.resize(vd_buf.size() + buf_size);
-      memcpy(vd_buf.data() + cursor, prim.mVertices.data(), buf_size);
-    }
-
-    tmp["vertexDataBufferId"] = c.save_buffer_with_move(std::move(vd_buf));
-    tmp["num_prims"] = mp.mPrimitives.size();
-
-    j["mprims"].push_back(tmp);
-  }
+  auto s = librii::g3d::PolyToJSON(p, c);
+  j = nlohmann::json::parse(s);
 }
 
 void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
-	const librii::g3d::G3dMaterialData& m) {
+               const librii::g3d::G3dMaterialData& m) {
   auto s = librii::g3d::MatToJSON(m);
   j = nlohmann::json::parse(s);
 }
