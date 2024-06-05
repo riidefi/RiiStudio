@@ -41,6 +41,7 @@ struct Archive {
                               kpi::LightIOTransaction& transaction);
   Result<void> write(oishii::Writer& writer) const;
   Result<void> write(std::string_view path) const;
+  Result<std::vector<u8>> write() const;
   Result<BinaryArchive> binary() const;
 
 #ifndef ARCHIVE_DEF

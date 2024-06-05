@@ -21,6 +21,9 @@ struct JsonWriteCtx;
 
 namespace librii::g3d {
 std::string ModelToJSON(const g3d::Model& model, JsonWriteCtx& c);
+std::string ArcToJSON(const g3d::Archive& model, JsonWriteCtx& c);
+Result<g3d::Archive> JSONToArc(std::string_view json,
+                               std::span<const std::vector<u8>> buffers);
 } // namespace librii::g3d
 
 struct JsonReadCtx {
@@ -100,37 +103,6 @@ struct JsonWriteCtx {
   }
 };
 
-Expected<librii::g3d::TextureData> FromJson(const JsonReadCtx& ctx) {
-  librii::g3d::TextureData tmp;
-  tmp.name = TRY(ctx.get<std::string>("name"));
-  tmp.format =
-      static_cast<librii::gx::TextureFormat>(TRY(ctx.get<int>("format")));
-  tmp.width = TRY(ctx.get<u32>("width"));
-  tmp.height = TRY(ctx.get<u32>("height"));
-  tmp.number_of_images = TRY(ctx.get<u32>("number_of_images"));
-  tmp.custom_lod = false;
-  tmp.minLod = TRY(ctx.get<f32>("minLod"));
-  tmp.maxLod = TRY(ctx.get<f32>("maxLod"));
-
-  tmp.sourcePath = TRY(ctx.get<std::string>("sourcePath"));
-
-  auto buf = TRY(ctx.buffer<u8>(TRY(ctx.get<int>("dataBufferId"))));
-  tmp.data.assign(buf.begin(), buf.end());
-  return tmp;
-}
-void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
-               const librii::g3d::TextureData& tex) {
-  j["name"] = tex.name;
-  j["format"] = static_cast<int>(tex.format);
-  j["width"] = tex.width;
-  j["height"] = tex.height;
-  j["number_of_images"] = tex.number_of_images;
-  j["minLod"] = tex.minLod;
-  j["maxLod"] = tex.maxLod;
-  j["sourcePath"] = tex.sourcePath;
-  j["dataBufferId"] = ctx.save_buffer_with_copy<u8>(tex.data);
-}
-
 void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
                const librii::g3d::Model& p) {
   auto s = librii::g3d::ModelToJSON(p, c);
@@ -139,59 +111,8 @@ void WriteJson(JsonWriteCtx& c, nlohmann::json& j,
 
 void WriteJson(JsonWriteCtx& ctx, nlohmann::json& j,
                const librii::g3d::Archive& archive) {
-  j["models"] = nlohmann::json::array();
-  for (const auto& model : archive.models) {
-    nlohmann::json modelJson;
-    WriteJson(ctx, modelJson, model);
-    j["models"].push_back(modelJson);
-  }
-
-  j["textures"] = nlohmann::json::array();
-  for (const auto& texture : archive.textures) {
-    nlohmann::json textureJson;
-    WriteJson(ctx, textureJson, texture);
-    j["textures"].push_back(textureJson);
-  }
-
-  j["chrs"] = nlohmann::json::array();
-  for (const auto& chr : archive.chrs) {
-    nlohmann::json chrJson;
-    // WriteJson(ctx, chr, chrJson); // Assuming a WriteJson function for
-    // BinaryChr exists
-    j["chrs"].push_back(chrJson);
-  }
-
-  j["clrs"] = nlohmann::json::array();
-  for (const auto& clr : archive.clrs) {
-    nlohmann::json clrJson;
-    // WriteJson(ctx, clr, clrJson); // Assuming a WriteJson function for
-    // BinaryClr exists
-    j["clrs"].push_back(clrJson);
-  }
-
-  j["pats"] = nlohmann::json::array();
-  for (const auto& pat : archive.pats) {
-    nlohmann::json patJson;
-    // WriteJson(ctx, pat, patJson); // Assuming a WriteJson function for
-    // BinaryTexPat exists
-    j["pats"].push_back(patJson);
-  }
-
-  j["srts"] = nlohmann::json::array();
-  for (const auto& srt : archive.srts) {
-    nlohmann::json srtJson;
-    // WriteJson(ctx, srt, srtJson); // Assuming a WriteJson function for
-    // SrtAnim exists
-    j["srts"].push_back(srtJson);
-  }
-
-  j["viss"] = nlohmann::json::array();
-  for (const auto& vis : archive.viss) {
-    nlohmann::json visJson;
-    // WriteJson(ctx, vis, visJson); // Assuming a WriteJson function for
-    // BinaryVis exists
-    j["viss"].push_back(visJson);
-  }
+  auto s = librii::g3d::ArcToJSON(archive, ctx);
+  j = nlohmann::json::parse(s);
 }
 
 std::vector<u8> CollateBuffers(const JsonWriteCtx& c) {
@@ -251,6 +172,37 @@ std::vector<u8> CollateBuffers(const JsonWriteCtx& c) {
   assert(buffer_cursor == size);
   return result;
 }
+u32 read_u32_at(std::span<const u8> data, u32 pos) {
+  return (data[pos] << 24) | (data[pos + 1] << 16) | (data[pos + 2] << 8) |
+         (data[pos + 3]);
+}
+
+std::vector<std::vector<u8>> ParseBuffers(std::span<const u8> data) {
+  std::vector<std::vector<u8>> buffers;
+
+  // Check the magic number
+  assert(data[0] == 'R' && data[1] == 'B' && data[2] == 'U' && data[3] == 'F');
+
+  u32 version = read_u32_at(data, 4);
+  assert(version == 100);
+
+  u32 num_buffers = read_u32_at(data, 8);
+  u32 file_size = read_u32_at(data, 12);
+
+  u32 cursor = 16;
+
+  for (u32 i = 0; i < num_buffers; ++i) {
+    u32 buffer_offset = read_u32_at(data, cursor);
+    u32 buffer_size = read_u32_at(data, cursor + 4);
+    cursor += 8;
+
+    std::vector<u8> buffer(buffer_size);
+    std::memcpy(buffer.data(), data.data() + buffer_offset, buffer_size);
+    buffers.push_back(buffer);
+  }
+
+  return buffers;
+}
 
 void TestJson(const librii::g3d::Archive& archive) {
   JsonWriteCtx ctx;
@@ -273,4 +225,9 @@ DumpResult DumpJson(const librii::g3d::Archive& archive) {
   WriteJson(ctx, j, archive);
   auto collated = CollateBuffers(ctx);
   return DumpResult{j.dump(), std::move(collated)};
+}
+Result<librii::g3d::Archive> ReadJsonArc(std::string_view json,
+                                         std::span<const u8> buffer) {
+  auto buffers = ParseBuffers(buffer);
+  return librii::g3d::JSONToArc(json, buffers);
 }

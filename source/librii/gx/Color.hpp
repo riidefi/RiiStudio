@@ -51,6 +51,18 @@ struct Color {
     a = (hex & 0x000000ff);
   }
   inline Color(u8 _r, u8 _g, u8 _b, u8 _a) : r(_r), g(_g), b(_b), a(_a) {}
+
+  std::array<u8, 4> to_array() const {
+    std::array<u8, 4> result{static_cast<u8>(r), static_cast<u8>(g),
+                             static_cast<u8>(b), static_cast<u8>(a)};
+    return result;
+  }
+  Color(std::span<const u8, 4> slice) {
+    r = slice[0];
+    g = slice[1];
+    b = slice[2];
+    a = slice[3];
+  }
 };
 
 struct ColorS10 {

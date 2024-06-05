@@ -86,14 +86,14 @@ struct JsonModel {
     materials: Vec<JSONMaterial>,
     matrices: Vec<JSONDrawMatrix>,
     meshes: Vec<JsonMesh>,
-    positions: Vec<JsonBufferData>,
-    normals: Vec<JsonBufferData>,
-    colors: Vec<JsonBufferData>,
-    texcoords: Vec<JsonBufferData>,
+    positions: Vec<JsonBufferData<[f32; 3]>>,
+    normals: Vec<JsonBufferData<[f32; 3]>>,
+    colors: Vec<JsonBufferData<[u8; 4]>>,
+    texcoords: Vec<JsonBufferData<[f32; 2]>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-struct JsonBufferData {
+struct JsonBufferData<T> {
     dataBufferId: i32,
     id: i32,
     name: String,
@@ -101,6 +101,10 @@ struct JsonBufferData {
     q_divisor: i32,
     q_stride: i32,
     q_type: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cached_min: Option<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cached_max: Option<T>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -112,6 +116,7 @@ struct PositionBuffer {
     q_stride: i32,
     q_type: i32,
     data: Vec<[f32; 3]>,
+    cached_minmax: Option<([f32; 3], [f32; 3])>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -123,6 +128,7 @@ struct NormalBuffer {
     q_stride: i32,
     q_type: i32,
     data: Vec<[f32; 3]>,
+    cached_minmax: Option<([f32; 3], [f32; 3])>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -134,6 +140,7 @@ struct ColorBuffer {
     q_stride: i32,
     q_type: i32,
     data: Vec<[u8; 4]>,
+    cached_minmax: Option<([u8; 4], [u8; 4])>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -145,17 +152,25 @@ struct TextureCoordinateBuffer {
     q_stride: i32,
     q_type: i32,
     data: Vec<[f32; 2]>,
+    cached_minmax: Option<([f32; 2], [f32; 2])>,
 }
 
 impl PositionBuffer {
-    fn from_json(buffer_data: JsonBufferData, buffers: &[Vec<u8>]) -> Self {
+    fn from_json(buffer_data: JsonBufferData<[f32; 3]>, buffers: &[Vec<u8>]) -> Self {
         let data = buffers
             .get(buffer_data.dataBufferId as usize)
             .expect("Invalid buffer ID");
         let elem_count = data.len() / std::mem::size_of::<[f32; 3]>();
-        assert!(std::mem::size_of::<[f32; 3]>() == 12);
         let data: Vec<[f32; 3]> = unsafe {
             std::slice::from_raw_parts(data.as_ptr() as *const [f32; 3], elem_count).to_vec()
+        };
+
+        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
+            (buffer_data.cached_min, buffer_data.cached_max)
+        {
+            Some((cached_min, cached_max))
+        } else {
+            None
         };
 
         Self {
@@ -166,18 +181,27 @@ impl PositionBuffer {
             q_stride: buffer_data.q_stride,
             q_type: buffer_data.q_type,
             data,
+            cached_minmax,
         }
     }
 }
 
 impl NormalBuffer {
-    fn from_json(buffer_data: JsonBufferData, buffers: &[Vec<u8>]) -> Self {
+    fn from_json(buffer_data: JsonBufferData<[f32; 3]>, buffers: &[Vec<u8>]) -> Self {
         let data = buffers
             .get(buffer_data.dataBufferId as usize)
             .expect("Invalid buffer ID");
         let elem_count = data.len() / std::mem::size_of::<[f32; 3]>();
         let data: Vec<[f32; 3]> = unsafe {
             std::slice::from_raw_parts(data.as_ptr() as *const [f32; 3], elem_count).to_vec()
+        };
+
+        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
+            (buffer_data.cached_min, buffer_data.cached_max)
+        {
+            Some((cached_min, cached_max))
+        } else {
+            None
         };
 
         Self {
@@ -188,12 +212,13 @@ impl NormalBuffer {
             q_stride: buffer_data.q_stride,
             q_type: buffer_data.q_type,
             data,
+            cached_minmax,
         }
     }
 }
 
 impl ColorBuffer {
-    fn from_json(buffer_data: JsonBufferData, buffers: &[Vec<u8>]) -> Self {
+    fn from_json(buffer_data: JsonBufferData<[u8; 4]>, buffers: &[Vec<u8>]) -> Self {
         let data = buffers
             .get(buffer_data.dataBufferId as usize)
             .expect("Invalid buffer ID");
@@ -202,26 +227,12 @@ impl ColorBuffer {
             std::slice::from_raw_parts(data.as_ptr() as *const [u8; 4], elem_count).to_vec()
         };
 
-        Self {
-            id: buffer_data.id,
-            name: buffer_data.name,
-            q_comp: buffer_data.q_comp,
-            q_divisor: buffer_data.q_divisor,
-            q_stride: buffer_data.q_stride,
-            q_type: buffer_data.q_type,
-            data,
-        }
-    }
-}
-
-impl TextureCoordinateBuffer {
-    fn from_json(buffer_data: JsonBufferData, buffers: &[Vec<u8>]) -> Self {
-        let data = buffers
-            .get(buffer_data.dataBufferId as usize)
-            .expect("Invalid buffer ID");
-        let elem_count = data.len() / std::mem::size_of::<[f32; 2]>();
-        let data: Vec<[f32; 2]> = unsafe {
-            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 2], elem_count).to_vec()
+        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
+            (buffer_data.cached_min, buffer_data.cached_max)
+        {
+            Some((cached_min, cached_max))
+        } else {
+            None
         };
 
         Self {
@@ -232,6 +243,38 @@ impl TextureCoordinateBuffer {
             q_stride: buffer_data.q_stride,
             q_type: buffer_data.q_type,
             data,
+            cached_minmax,
+        }
+    }
+}
+
+impl TextureCoordinateBuffer {
+    fn from_json(buffer_data: JsonBufferData<[f32; 2]>, buffers: &[Vec<u8>]) -> Self {
+        let data = buffers
+            .get(buffer_data.dataBufferId as usize)
+            .expect("Invalid buffer ID");
+        let elem_count = data.len() / std::mem::size_of::<[f32; 2]>();
+        let data: Vec<[f32; 2]> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 2], elem_count).to_vec()
+        };
+
+        let cached_minmax = if let (Some(cached_min), Some(cached_max)) =
+            (buffer_data.cached_min, buffer_data.cached_max)
+        {
+            Some((cached_min, cached_max))
+        } else {
+            None
+        };
+
+        Self {
+            id: buffer_data.id,
+            name: buffer_data.name,
+            q_comp: buffer_data.q_comp,
+            q_divisor: buffer_data.q_divisor,
+            q_stride: buffer_data.q_stride,
+            q_type: buffer_data.q_type,
+            data,
+            cached_minmax,
         }
     }
 }
@@ -812,9 +855,8 @@ impl JsonWriteCtx {
         self.save_buffer_with_move(tmp)
     }
 }
-
 impl PositionBuffer {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 3]> {
         let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
 
         JsonBufferData {
@@ -825,12 +867,14 @@ impl PositionBuffer {
             q_divisor: self.q_divisor,
             q_stride: self.q_stride,
             q_type: self.q_type,
+            cached_min: self.cached_minmax.map(|(min, _)| min),
+            cached_max: self.cached_minmax.map(|(_, max)| max),
         }
     }
 }
 
 impl NormalBuffer {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 3]> {
         let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
 
         JsonBufferData {
@@ -841,12 +885,14 @@ impl NormalBuffer {
             q_divisor: self.q_divisor,
             q_stride: self.q_stride,
             q_type: self.q_type,
+            cached_min: self.cached_minmax.map(|(min, _)| min),
+            cached_max: self.cached_minmax.map(|(_, max)| max),
         }
     }
 }
 
 impl ColorBuffer {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[u8; 4]> {
         let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
 
         JsonBufferData {
@@ -857,12 +903,14 @@ impl ColorBuffer {
             q_divisor: self.q_divisor,
             q_stride: self.q_stride,
             q_type: self.q_type,
+            cached_min: self.cached_minmax.map(|(min, _)| min),
+            cached_max: self.cached_minmax.map(|(_, max)| max),
         }
     }
 }
 
 impl TextureCoordinateBuffer {
-    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData<[f32; 2]> {
         let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
 
         JsonBufferData {
@@ -873,6 +921,8 @@ impl TextureCoordinateBuffer {
             q_divisor: self.q_divisor,
             q_stride: self.q_stride,
             q_type: self.q_type,
+            cached_min: self.cached_minmax.map(|(min, _)| min),
+            cached_max: self.cached_minmax.map(|(_, max)| max),
         }
     }
 }
@@ -1002,6 +1052,14 @@ pub fn read_raw_brres(brres: &[u8]) -> anyhow::Result<Archive> {
     create_archive(&tmp.json_metadata, &tmp.buffer_data)
 }
 
+pub fn write_raw_brres(archive: &Archive) -> anyhow::Result<Vec<u8>> {
+    let (json, blob) = create_json(&archive)?;
+
+    let ffi_obj = ffi::CBrresWrapper::write_bytes(&json, &blob)?;
+
+    Ok(ffi_obj.buffer_data.to_vec())
+}
+
 #[cfg(test)]
 mod tests4 {
     use super::*;
@@ -1056,5 +1114,72 @@ mod tests4 {
             "{:#?}",
             initial_archive.get_model("sea").unwrap().materials[0]
         );
+    }
+    fn assert_buffers_equal(encoded_image: &[u8], cached_image: &[u8], format: &str) {
+        if encoded_image != cached_image {
+            let diff_count = encoded_image
+                .iter()
+                .zip(cached_image.iter())
+                .filter(|(a, b)| a != b)
+                .count();
+            println!("Mismatch for {:?} - {} bytes differ", format, diff_count);
+
+            // Print some example differences (up to 10)
+            let mut diff_examples = vec![];
+            for (i, (a, b)) in encoded_image.iter().zip(cached_image.iter()).enumerate() {
+                if a != b {
+                    diff_examples.push((i, *a, *b));
+                    if diff_examples.len() >= 10 {
+                        break;
+                    }
+                }
+            }
+
+            println!("Example differences (up to 10):");
+            for (i, a, b) in diff_examples {
+                println!("Byte {}: encoded = {}, cached = {}", i, a, b);
+            }
+
+            println!(
+                "Size of left: {}, size of right: {}",
+                encoded_image.len(),
+                cached_image.len()
+            );
+            panic!("Buffers are not equal");
+        }
+    }
+    fn test_validate_binary_is_lossless(path: &str, passes: bool) {
+        let brres_data = fs::read(path).expect("Failed to read brres file");
+        let archive = read_raw_brres(&brres_data).expect("Error reading brres file");
+        let written_data = write_raw_brres(&archive).expect("Error writing brres file");
+
+        if passes {
+            assert_buffers_equal(&brres_data, &written_data, path);
+        } else {
+            assert!(&brres_data != &written_data)
+        }
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_walk() {
+        let brres_data = fs::read("../../tests/samples/human_walk.brres")
+            .expect("Failed to read human_walk.brres file");
+        let archive = read_raw_brres(&brres_data).expect("Error reading brres file");
+        let written_data = write_raw_brres(&archive).expect("Error writing brres file");
+
+        fs::write("Invalid_human_walk.brres", &written_data).unwrap();
+
+        // panic!("{:#?}", archive.get_model("human_walk").unwrap().materials[0]);
+
+        assert_buffers_equal(&brres_data, &written_data, "human_walk.brres");
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_sea() {
+        // FAILS: SRT0
+        test_validate_binary_is_lossless("../../tests/samples/sea.brres", false)
+    }
+    #[test]
+    fn test_validate_binary_is_lossless_map_model() {
+        // FAILS: ???
+        test_validate_binary_is_lossless("../../tests/samples/map_model.brres", false)
     }
 }

@@ -5,6 +5,7 @@
 
 #include <rsl/Types.hpp>
 
+#include <librii/g3d/data/Archive.hpp>
 #include <librii/g3d/data/BoneData.hpp>
 #include <librii/g3d/data/MaterialData.hpp>
 #include <librii/g3d/data/ModelData.hpp>
@@ -16,6 +17,8 @@
 #pragma clang diagnostic ignored "-Wenum-constexpr-conversion"
 #endif
 
+#include <librii/g3d/io/ArchiveIO.hpp>
+
 #include <magic_enum/magic_enum.hpp>
 
 #ifdef __clang__
@@ -23,6 +26,8 @@
 #endif
 #include <rsl/EnumCast.hpp>
 
+#define JS_STL_ARRAY
+#define JS_STD_OPTIONAL
 #include <vendor/json_struct.h>
 
 struct JsonWriteCtx {
@@ -62,7 +67,10 @@ template <> struct TypeHandler<glm::vec2> {
 template <> struct TypeHandler<glm::vec3> {
   static inline Error to(glm::vec3& to_type, ParseContext& context) {
     std::vector<f32> t;
-    TypeHandler<std::vector<f32>>::to(t, context);
+    auto err = TypeHandler<std::vector<f32>>::to(t, context);
+    if (err != Error::NoError) {
+      return err;
+    }
     to_type.x = t[0];
     to_type.y = t[1];
     to_type.z = t[2];
@@ -81,38 +89,24 @@ template <> struct TypeHandler<glm::vec3> {
 
 } // namespace JS
 
-JS_OBJ_EXT(glm::vec3, x, y, z);
 JS_OBJ_EXT(glm::vec4, x, y, z, w);
 JS_OBJ_EXT(librii::gx::Color, r, g, b, a);
 JS_OBJ_EXT(librii::gx::ColorS10, r, g, b, a);
 namespace JS {
-template <typename T, size_t N> struct TypeHandler<std::array<T, N>> {
-  static inline Error to(auto& to_type, ParseContext& context) {
-    return Error::NoError;
-  }
-
-  static inline void from(auto& vec, Token& token, Serializer& serializer) {
-    token.value_type = Type::ArrayStart;
-    token.value = DataRef("[");
-    serializer.write(token);
-
-    token.name = DataRef("");
-
-    for (auto& index : vec) {
-      TypeHandler<T>::from(index, token, serializer);
-    }
-
-    token.name = DataRef("");
-
-    token.value_type = Type::ArrayEnd;
-    token.value = DataRef("]");
-    serializer.write(token);
-  }
-};
 template <typename T>
 concept IsEnum = std::is_enum_v<T>;
 template <IsEnum T> struct TypeHandler<T> {
   static inline Error to(auto& to_type, ParseContext& context) {
+    std::string tmp;
+    auto err = TypeHandler<std::string>::to(tmp, context);
+    if (err != Error::NoError) {
+      return err;
+    }
+    auto res = magic_enum::enum_cast<T>(tmp);
+    if (!res) {
+      return Error::InvalidToken;
+    }
+    to_type = *res;
     return Error::NoError;
   }
 
@@ -415,7 +409,6 @@ struct JSONPolygonData {
       poly.mMatrixPrimitives.push_back(jsonMatPrim.to(buffers));
     }
 
-    // TODO: Using only S16 is wasteful / won't match
     for (int i = 0; i < static_cast<int>(librii::gx::VertexAttribute::Max);
          ++i) {
       if ((vcd & (1 << i)) == 0)
@@ -429,6 +422,8 @@ struct JSONPolygonData {
     }
 
     poly.mVertexDescriptor.calcVertexDescriptorFromAttributeList();
+
+    RecomputeMinimalIndexFormat(poly);
 
     assert(poly.mVertexDescriptor.mBitfield == vcd);
 
@@ -886,6 +881,7 @@ struct JSONG3dMaterialData {
     material.tevColors = tevColors;
     material.earlyZComparison = earlyZComparison;
 
+    material.mStages.resize(0);
     for (const auto& jsonStage : mStages) {
       material.mStages.push_back(jsonStage);
     }
@@ -912,7 +908,7 @@ std::vector<T> unpackEntries(const std::vector<u8>& buffer) {
 
 struct JSONPositionBuffer {
   DEFINE_SERIALIZABLE(JSONPositionBuffer, name, id, q_type, q_divisor, q_stride,
-                      q_comp, dataBufferId)
+                      q_comp, dataBufferId, cached_min, cached_max)
 
   std::string name;
   u32 id;
@@ -921,6 +917,9 @@ struct JSONPositionBuffer {
   u8 q_stride;
   /* VCC::Position */ u32 q_comp;
   u32 dataBufferId;
+
+  std::optional<glm::vec3> cached_min;
+  std::optional<glm::vec3> cached_max;
 
   static JSONPositionBuffer from(const PositionBuffer& original,
                                  JsonWriteCtx& ctx) {
@@ -933,6 +932,10 @@ struct JSONPositionBuffer {
     json.q_comp = static_cast<u32>(original.mQuantize.mComp.position);
     json.dataBufferId =
         ctx.save_buffer_with_move(packEntries(original.mEntries));
+    if (original.mCachedMinMax) {
+      json.cached_min = original.mCachedMinMax->min;
+      json.cached_max = original.mCachedMinMax->max;
+    }
     return json;
   }
 
@@ -948,13 +951,16 @@ struct JSONPositionBuffer {
         VertexComponentCount(static_cast<VCC::Position>(q_comp));
     buffer.mEntries = unpackEntries<glm::vec3>(buffers[dataBufferId]);
     buffer.mCachedMinMax = std::nullopt;
+    if (cached_min && cached_max) {
+      buffer.mCachedMinMax = {*cached_min, *cached_max};
+    }
     return buffer;
   }
 };
 
 struct JSONNormalBuffer {
   DEFINE_SERIALIZABLE(JSONNormalBuffer, name, id, q_type, q_divisor, q_stride,
-                      q_comp, dataBufferId)
+                      q_comp, dataBufferId, cached_min, cached_max)
 
   std::string name;
   u32 id;
@@ -963,6 +969,9 @@ struct JSONNormalBuffer {
   u8 q_stride;
   /* VCC::Normal */ u32 q_comp;
   u32 dataBufferId;
+
+  std::optional<glm::vec3> cached_min;
+  std::optional<glm::vec3> cached_max;
 
   static JSONNormalBuffer from(const NormalBuffer& original,
                                JsonWriteCtx& ctx) {
@@ -975,6 +984,10 @@ struct JSONNormalBuffer {
     json.q_comp = static_cast<u32>(original.mQuantize.mComp.normal);
     json.dataBufferId =
         ctx.save_buffer_with_move(packEntries(original.mEntries));
+    if (original.mCachedMinMax) {
+      json.cached_min = original.mCachedMinMax->min;
+      json.cached_max = original.mCachedMinMax->max;
+    }
     return json;
   }
 
@@ -989,13 +1002,17 @@ struct JSONNormalBuffer {
     buffer.mQuantize.mComp =
         VertexComponentCount(static_cast<VCC::Normal>(q_comp));
     buffer.mEntries = unpackEntries<glm::vec3>(buffers[dataBufferId]);
+    buffer.mCachedMinMax = std::nullopt;
+    if (cached_min && cached_max) {
+      buffer.mCachedMinMax = {*cached_min, *cached_max};
+    }
     return buffer;
   }
 };
 
 struct JSONColorBuffer {
   DEFINE_SERIALIZABLE(JSONColorBuffer, name, id, q_type, q_divisor, q_stride,
-                      q_comp, dataBufferId)
+                      q_comp, dataBufferId, cached_min, cached_max)
 
   std::string name;
   u32 id;
@@ -1004,6 +1021,9 @@ struct JSONColorBuffer {
   u8 q_stride;
   /* VCC::Color*/ u32 q_comp;
   u32 dataBufferId;
+
+  std::optional<std::array<u8, 4>> cached_min;
+  std::optional<std::array<u8, 4>> cached_max;
 
   static JSONColorBuffer from(const ColorBuffer& original, JsonWriteCtx& ctx) {
     JSONColorBuffer json;
@@ -1015,6 +1035,10 @@ struct JSONColorBuffer {
     json.q_comp = static_cast<u32>(original.mQuantize.mComp.color);
     json.dataBufferId =
         ctx.save_buffer_with_move(packEntries(original.mEntries));
+    if (original.mCachedMinMax) {
+      json.cached_min = original.mCachedMinMax->min.to_array();
+      json.cached_max = original.mCachedMinMax->max.to_array();
+    }
     return json;
   }
 
@@ -1029,13 +1053,18 @@ struct JSONColorBuffer {
     buffer.mQuantize.mComp =
         VertexComponentCount(static_cast<VCC::Color>(q_comp));
     buffer.mEntries = unpackEntries<librii::gx::Color>(buffers[dataBufferId]);
+    buffer.mCachedMinMax = std::nullopt;
+    if (cached_min && cached_max) {
+      buffer.mCachedMinMax = {librii::gx::Color(*cached_min),
+                              librii::gx::Color(*cached_max)};
+    }
     return buffer;
   }
 };
 
 struct JSONTextureCoordinateBuffer {
   DEFINE_SERIALIZABLE(JSONTextureCoordinateBuffer, name, id, q_type, q_divisor,
-                      q_stride, q_comp, dataBufferId)
+                      q_stride, q_comp, dataBufferId, cached_min, cached_max)
   std::string name;
   u32 id;
   /* librii::gx::VertexBufferType::Generic */ u32 q_type;
@@ -1043,6 +1072,9 @@ struct JSONTextureCoordinateBuffer {
   u8 q_stride;
   /* VCC::TextureCoordinate */ u32 q_comp;
   u32 dataBufferId;
+
+  std::optional<glm::vec2> cached_min;
+  std::optional<glm::vec2> cached_max;
 
   static JSONTextureCoordinateBuffer
   from(const TextureCoordinateBuffer& original, JsonWriteCtx& ctx) {
@@ -1052,9 +1084,13 @@ struct JSONTextureCoordinateBuffer {
     json.q_type = static_cast<u32>(original.mQuantize.mType.generic);
     json.q_divisor = original.mQuantize.divisor;
     json.q_stride = original.mQuantize.stride;
-    json.q_comp = static_cast<u32>(original.mQuantize.mComp.normal);
+    json.q_comp = static_cast<u32>(original.mQuantize.mComp.texcoord);
     json.dataBufferId =
         ctx.save_buffer_with_move(packEntries(original.mEntries));
+    if (original.mCachedMinMax) {
+      json.cached_min = original.mCachedMinMax->min;
+      json.cached_max = original.mCachedMinMax->max;
+    }
     return json;
   }
 
@@ -1069,6 +1105,10 @@ struct JSONTextureCoordinateBuffer {
     buffer.mQuantize.mComp =
         VertexComponentCount(static_cast<VCC::TextureCoordinate>(q_comp));
     buffer.mEntries = unpackEntries<glm::vec2>(buffers[dataBufferId]);
+    buffer.mCachedMinMax = std::nullopt;
+    if (cached_min && cached_max) {
+      buffer.mCachedMinMax = {*cached_min, *cached_max};
+    }
     return buffer;
   }
 };
@@ -1163,6 +1203,226 @@ struct JSONModel {
 
     for (const auto& jsonMatrix : matrices) {
       result.matrices.push_back(static_cast<DrawMatrix>(jsonMatrix));
+    }
+
+    return result;
+  }
+};
+
+struct JSONTextureData {
+  DEFINE_SERIALIZABLE(JSONTextureData, name, format, width, height,
+                      number_of_images, minLod, maxLod, sourcePath,
+                      dataBufferId)
+  std::string name;
+  int format;
+  u32 width;
+  u32 height;
+  u32 number_of_images;
+  float minLod;
+  float maxLod;
+  std::string sourcePath;
+  u32 dataBufferId;
+
+  static JSONTextureData from(const librii::g3d::TextureData& tex,
+                              JsonWriteCtx& ctx) {
+    JSONTextureData json;
+    json.name = tex.name;
+    json.format = static_cast<int>(tex.format);
+    json.width = tex.width;
+    json.height = tex.height;
+    json.number_of_images = tex.number_of_images;
+    json.minLod = tex.minLod;
+    json.maxLod = tex.maxLod;
+    json.sourcePath = tex.sourcePath;
+    json.dataBufferId = ctx.save_buffer_with_copy<u8>(tex.data);
+    return json;
+  }
+
+  librii::g3d::TextureData to(std::span<const std::vector<u8>> buffers) const {
+    librii::g3d::TextureData tex;
+    tex.name = name;
+    tex.format = static_cast<librii::gx::TextureFormat>(format);
+    tex.width = width;
+    tex.height = height;
+    tex.number_of_images = number_of_images;
+    tex.minLod = minLod;
+    tex.maxLod = maxLod;
+    tex.sourcePath = sourcePath;
+    tex.data = buffers[dataBufferId];
+    return tex;
+  }
+};
+
+struct JSONChrData {
+  DEFINE_SERIALIZABLE(JSONChrData, name)
+
+  std::string name;
+
+  static JSONChrData from(const librii::g3d::BinaryChr& chr,
+                          JsonWriteCtx& ctx) {
+    JSONChrData json;
+    json.name = chr.name;
+    return json;
+  }
+
+  librii::g3d::BinaryChr to(std::span<const std::vector<u8>> buffers) const {
+    librii::g3d::BinaryChr chr;
+    chr.name = name;
+    return chr;
+  }
+};
+
+struct JSONClrData {
+  DEFINE_SERIALIZABLE(JSONClrData, name)
+
+  std::string name;
+
+  static JSONClrData from(const librii::g3d::BinaryClr& clr,
+                          JsonWriteCtx& ctx) {
+    JSONClrData json;
+    json.name = clr.name;
+    return json;
+  }
+
+  librii::g3d::BinaryClr to(std::span<const std::vector<u8>> buffers) const {
+    librii::g3d::BinaryClr clr;
+    clr.name = name;
+    return clr;
+  }
+};
+
+struct JSONPatData {
+  DEFINE_SERIALIZABLE(JSONPatData, name)
+
+  std::string name;
+
+  static JSONPatData from(const librii::g3d::BinaryTexPat& pat,
+                          JsonWriteCtx& ctx) {
+    JSONPatData json;
+    json.name = pat.name;
+    return json;
+  }
+
+  librii::g3d::BinaryTexPat to(std::span<const std::vector<u8>> buffers) const {
+    librii::g3d::BinaryTexPat pat;
+    pat.name = name;
+    return pat;
+  }
+};
+
+struct JSONSrtData {
+  DEFINE_SERIALIZABLE(JSONSrtData, name)
+
+  std::string name;
+
+  static JSONSrtData from(const librii::g3d::SrtAnim& srt, JsonWriteCtx& ctx) {
+    JSONSrtData json;
+    json.name = srt.name;
+    return json;
+  }
+
+  librii::g3d::SrtAnim to(std::span<const std::vector<u8>> buffers) const {
+    librii::g3d::SrtAnim srt;
+    srt.name = name;
+    return srt;
+  }
+};
+
+struct JSONVisData {
+  DEFINE_SERIALIZABLE(JSONVisData, name)
+
+  std::string name;
+
+  static JSONVisData from(const librii::g3d::BinaryVis& vis,
+                          JsonWriteCtx& ctx) {
+    JSONVisData json;
+    json.name = vis.name;
+    return json;
+  }
+
+  librii::g3d::BinaryVis to(std::span<const std::vector<u8>> buffers) const {
+    librii::g3d::BinaryVis vis;
+    vis.name = name;
+    return vis;
+  }
+};
+
+struct JSONArchive {
+  DEFINE_SERIALIZABLE(JSONArchive, models, textures, chrs, clrs, pats, srts,
+                      viss)
+
+  std::vector<JSONModel> models;
+  std::vector<JSONTextureData> textures;
+  std::vector<JSONChrData> chrs;
+  std::vector<JSONClrData> clrs;
+  std::vector<JSONPatData> pats;
+  std::vector<JSONSrtData> srts;
+  std::vector<JSONVisData> viss;
+
+  static JSONArchive from(const librii::g3d::Archive& original,
+                          JsonWriteCtx& c) {
+    JSONArchive archive;
+
+    for (const auto& model : original.models) {
+      archive.models.emplace_back(JSONModel::from(model, c));
+    }
+
+    for (const auto& texture : original.textures) {
+      archive.textures.emplace_back(JSONTextureData::from(texture, c));
+    }
+
+    for (const auto& chr : original.chrs) {
+      archive.chrs.emplace_back(JSONChrData::from(chr, c));
+    }
+
+    for (const auto& clr : original.clrs) {
+      archive.clrs.emplace_back(JSONClrData::from(clr, c));
+    }
+
+    for (const auto& pat : original.pats) {
+      archive.pats.emplace_back(JSONPatData::from(pat, c));
+    }
+
+    for (const auto& srt : original.srts) {
+      archive.srts.emplace_back(JSONSrtData::from(srt, c));
+    }
+
+    for (const auto& vis : original.viss) {
+      archive.viss.emplace_back(JSONVisData::from(vis, c));
+    }
+
+    return archive;
+  }
+
+  Result<Archive> lift(std::span<const std::vector<u8>> buffers) const {
+    Archive result;
+
+    for (const auto& jsonModel : models) {
+      result.models.push_back(TRY(jsonModel.lift(buffers)));
+    }
+
+    for (const auto& jsonTexture : textures) {
+      result.textures.push_back(jsonTexture.to(buffers));
+    }
+
+    for (const auto& jsonChr : chrs) {
+      result.chrs.push_back(jsonChr.to(buffers));
+    }
+
+    for (const auto& jsonClr : clrs) {
+      result.clrs.push_back(jsonClr.to(buffers));
+    }
+
+    for (const auto& jsonPat : pats) {
+      result.pats.push_back(jsonPat.to(buffers));
+    }
+
+    for (const auto& jsonSrt : srts) {
+      result.srts.push_back(jsonSrt.to(buffers));
+    }
+
+    for (const auto& jsonVis : viss) {
+      result.viss.push_back(jsonVis.to(buffers));
     }
 
     return result;
@@ -1269,6 +1529,23 @@ Result<g3d::ModelInfo> JSONToInfo(std::string_view json) {
         std::format("JSONToModel failed: Parse error {}", n));
   }
   return mdl.to();
+}
+
+std::string ArcToJSON(const g3d::Archive& model, JsonWriteCtx& c) {
+  auto mat = JSONArchive::from(model, c);
+  return JS::serializeStruct(mat);
+}
+Result<g3d::Archive> JSONToArc(std::string_view json,
+                               std::span<const std::vector<u8>> buffers) {
+  JS::ParseContext context(json.data(), json.size());
+  JSONArchive mdl;
+  auto err = context.parseTo(mdl);
+  if (err != JS::Error::NoError) {
+    auto n = magic_enum::enum_name(err);
+    return std::unexpected(
+        std::format("JSONToModel failed: Parse error {}", n));
+  }
+  return mdl.lift(buffers);
 }
 
 } // namespace librii::g3d

@@ -1,4 +1,7 @@
 use anyhow::bail;
+use std::ffi::c_char;
+use std::ffi::c_void;
+use std::ffi::CString;
 use std::ptr;
 
 #[allow(non_upper_case_globals)]
@@ -19,6 +22,13 @@ pub mod bindings {
 
     extern "C" {
         pub fn brres_read_from_bytes(result: *mut CBrres, buf: *const u8, len: u32) -> u32;
+        pub fn brres_write_bytes(
+            result: *mut CBrres,
+            json: *const i8,
+            json_len: u32,
+            buffer: *const c_void,
+            buffer_len: u32,
+        ) -> u32;
     }
 }
 
@@ -68,6 +78,52 @@ impl<'a> CBrresWrapper<'a> {
             })
         }
     }
+    pub fn write_bytes(json: &str, buffer: &[u8]) -> anyhow::Result<Self> {
+        let json_cstring = CString::new(json)?;
+        let json_ptr = json_cstring.as_ptr();
+        let json_len = json.len() as u32;
+        let buffer_ptr = buffer.as_ptr() as *const c_void;
+        let buffer_len = buffer.len() as u32;
+
+        unsafe {
+            let mut result: Box<bindings::CBrres> = Box::new(bindings::CBrres {
+                json_metadata: ptr::null(),
+                len_json_metadata: 0,
+                buffer_data: ptr::null(),
+                len_buffer_data: 0,
+                freeResult: dummy_free_result,
+                opaque: ptr::null_mut(),
+            });
+
+            let ok = bindings::brres_write_bytes(
+                &mut *result as *mut bindings::CBrres,
+                json_ptr,
+                json_len,
+                buffer_ptr,
+                buffer_len,
+            );
+
+            let json_metadata = {
+                let slice = std::slice::from_raw_parts(
+                    result.json_metadata,
+                    result.len_json_metadata as usize,
+                );
+                std::str::from_utf8(slice)?
+            };
+
+            if ok == 0 {
+                anyhow::bail!("Failed to write BRRES file: {json_metadata}");
+            }
+            let buffer_data =
+                std::slice::from_raw_parts(result.buffer_data, result.len_buffer_data as usize);
+
+            Ok(CBrresWrapper {
+                json_metadata,
+                buffer_data,
+                result,
+            })
+        }
+    }
 }
 
 impl<'a> Drop for CBrresWrapper<'a> {
@@ -90,9 +146,9 @@ pub mod c_api {
     use gctex;
     use wiitrig;
 
-    use simple_logger::SimpleLogger;
+    // use simple_logger::SimpleLogger;
 
-    use log::*;
+    // use log::*;
 
     #[no_mangle]
     pub unsafe extern "C" fn rii_compute_image_size2(format: u32, width: u32, height: u32) -> u32 {
