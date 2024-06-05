@@ -45,8 +45,8 @@ struct array_vector_fixed : public std::array<T, N> {
   }
 
 #if 1
-  const auto begin() const { return base_t::cbegin(); }
-  const auto end() const { return base_t::cbegin() + this->size(); }
+  auto begin() const { return base_t::cbegin(); }
+  auto end() const { return base_t::cbegin() + this->size(); }
   auto begin() { return base_t::begin(); }
   auto end() { return base_t::begin() + this->size(); }
 #else
