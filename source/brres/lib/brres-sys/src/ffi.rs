@@ -1,5 +1,4 @@
 use anyhow::bail;
-use std::ffi::c_char;
 use std::ffi::c_void;
 use std::ffi::CString;
 use std::ptr;
@@ -21,14 +20,15 @@ pub mod bindings {
     }
 
     extern "C" {
-        pub fn brres_read_from_bytes(result: *mut CBrres, buf: *const u8, len: u32) -> u32;
-        pub fn brres_write_bytes(
+        pub fn imp_brres_read_from_bytes(result: *mut CBrres, buf: *const u8, len: u32) -> u32;
+        pub fn imp_brres_write_bytes(
             result: *mut CBrres,
             json: *const i8,
             json_len: u32,
             buffer: *const c_void,
             buffer_len: u32,
         ) -> u32;
+        pub fn imp_brres_free(result: *mut CBrres);
     }
 }
 
@@ -50,7 +50,7 @@ impl<'a> CBrresWrapper<'a> {
                 opaque: ptr::null_mut(),
             });
 
-            let ok = bindings::brres_read_from_bytes(
+            let ok = bindings::imp_brres_read_from_bytes(
                 &mut *result as *mut bindings::CBrres,
                 buf.as_ptr(),
                 buf.len() as u32,
@@ -95,7 +95,7 @@ impl<'a> CBrresWrapper<'a> {
                 opaque: ptr::null_mut(),
             });
 
-            let ok = bindings::brres_write_bytes(
+            let ok = bindings::imp_brres_write_bytes(
                 &mut *result as *mut bindings::CBrres,
                 json_ptr,
                 json_len,
@@ -128,9 +128,9 @@ impl<'a> CBrresWrapper<'a> {
 
 impl<'a> Drop for CBrresWrapper<'a> {
     fn drop(&mut self) {
-        unsafe {
-            (self.result.freeResult)(&mut *self.result as *mut bindings::CBrres);
-        }
+        // unsafe {
+        (self.result.freeResult)(&mut *self.result as *mut bindings::CBrres);
+        // }
     }
 }
 
@@ -140,11 +140,10 @@ extern "C" fn dummy_free_result(_: *mut bindings::CBrres) {
 
 // Reentrant Rust (this crate) -> C++ -> Rust (other crate)
 pub mod c_api {
-    use crate::*;
     use core::ffi::c_char;
-    use core::ffi::CStr;
     use gctex;
     use wiitrig;
+    use crate::*;
 
     // use simple_logger::SimpleLogger;
 
@@ -161,31 +160,31 @@ pub mod c_api {
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn rsl_c_debug2(s: *const c_char, _len: u32) {
+    pub unsafe extern "C" fn rsl_c_debug2(_s: *const c_char, _len: u32) {
         // // TODO: Use len
         // let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
         // debug!("{}", &st);
     }
     #[no_mangle]
-    pub unsafe extern "C" fn rsl_c_error2(s: *const c_char, _len: u32) {
+    pub unsafe extern "C" fn rsl_c_error2(_s: *const c_char, _len: u32) {
         // // TODO: Use len
         // let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
         // error!("{}", &st);
     }
     #[no_mangle]
-    pub unsafe extern "C" fn rsl_c_info2(s: *const c_char, _len: u32) {
+    pub unsafe extern "C" fn rsl_c_info2(_s: *const c_char, _len: u32) {
         // // TODO: Use len
         // let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
         // info!("{}", &st);
     }
     #[no_mangle]
-    pub unsafe extern "C" fn rsl_c_trace2(s: *const c_char, _len: u32) {
+    pub unsafe extern "C" fn rsl_c_trace2(_s: *const c_char, _len: u32) {
         // // TODO: Use len
         // let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
         // trace!("{}", &st);
     }
     #[no_mangle]
-    pub unsafe extern "C" fn rsl_c_warn2(s: *const c_char, _len: u32) {
+    pub unsafe extern "C" fn rsl_c_warn2(_s: *const c_char, _len: u32) {
         // // TODO: Use len
         // let st = String::from_utf8_lossy(CStr::from_ptr(s).to_bytes());
         // warn!("{}", &st);
@@ -199,5 +198,29 @@ pub mod c_api {
     #[no_mangle]
     pub unsafe extern "C" fn wii_cos2(x: f32) -> f32 {
         wiitrig::librii::wii_cos(x)
+    }
+
+    use core::ffi::c_void;
+
+    #[cfg(feature = "c_api")]
+    #[no_mangle]
+    pub unsafe fn brres_read_from_bytes(result: *mut ffi::bindings::CBrres, buf: *const u8, len: u32) -> u32 {
+        ffi::bindings::imp_brres_read_from_bytes(result, buf, len)
+    }
+    #[cfg(feature = "c_api")]
+    #[no_mangle]
+    pub unsafe fn brres_write_bytes(
+        result: *mut ffi::bindings::CBrres,
+        json: *const i8,
+        json_len: u32,
+        buffer: *const c_void,
+        buffer_len: u32,
+    ) -> u32 {
+        ffi::bindings::imp_brres_write_bytes(result, json, json_len, buffer, buffer_len)
+    }
+    #[cfg(feature = "c_api")]
+    #[no_mangle]
+    pub unsafe fn brres_free(result: *mut ffi::bindings::CBrres) {
+        ffi::bindings::imp_brres_free(result)
     }
 }

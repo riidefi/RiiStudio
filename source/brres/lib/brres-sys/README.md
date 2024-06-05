@@ -18,6 +18,7 @@ impl<'a> CBrresWrapper<'a> {
 
 This wraps the following C interface, which can still be used (say for other language bindings).
 ```c
+// include/brres_sys.h
 struct CResult {
 	const char* json_metadata;
 	uint32_t len_json_metadata;
@@ -35,6 +36,12 @@ void brres_free(CResult* result);
 ```
 e.g. the following idiomatic C code:
 ```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#include "include/brres_sys.h"
+
 int main() {
 	uint8_t my_brres_file[] = { /* ... */ }; // Initialize with actual .brres file data
 

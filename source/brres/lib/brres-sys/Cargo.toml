@@ -15,11 +15,14 @@ exclude=["/tests"]
 [lib]
 crate-type=["cdylib", "lib", "staticlib"]
 
+[features]
+default = ["c_api"]
+c_api = []
+
 [build-dependencies]
 bindgen = { version = "0.66", optional = true }
 cc = { version = "1.0.83", features = ["parallel"] }
 glob = "0.3.1"
-
 
 [dependencies]
 gctex = "0.3.7"

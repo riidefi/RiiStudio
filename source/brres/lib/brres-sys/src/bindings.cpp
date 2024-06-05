@@ -53,7 +53,7 @@ static void SetCResult(CResult& result, DumpResult&& dumped) {
 
 extern "C" {
 
-WASM_EXPORT u32 brres_read_from_bytes(CResult* result, const void* buf,
+WASM_EXPORT u32 imp_brres_read_from_bytes(CResult* result, const void* buf,
                                       u32 len) {
   std::span<const u8> buf_span(reinterpret_cast<const u8*>(buf),
                                reinterpret_cast<const u8*>(buf) + len);
@@ -74,7 +74,10 @@ WASM_EXPORT u32 brres_read_from_bytes(CResult* result, const void* buf,
   return ok;
 }
 
-WASM_EXPORT void brres_free(CResult* result) { result->freeResult(result); }
+WASM_EXPORT void imp_brres_free(CResult* result) {
+  if (result->freeResult)
+    result->freeResult(result);
+}
 
 } // extern "C"
 
@@ -88,7 +91,7 @@ static Result<std::vector<u8>> WriteArchive(std::string_view json,
 
 extern "C" {
 
-WASM_EXPORT u32 brres_write_bytes(CResult* result, const char* json,
+WASM_EXPORT u32 imp_brres_write_bytes(CResult* result, const char* json,
                                   u32 json_len, const void* buffer,
                                   u32 buffer_len) {
   std::string_view json_view(json, json + json_len);
