@@ -1,6 +1,5 @@
 #[cfg(feature = "run_bindgen")]
 extern crate bindgen;
-#[cfg(feature = "cpp_fallback")]
 extern crate cc;
 
 #[cfg(feature = "run_bindgen")]
@@ -45,7 +44,6 @@ fn main() {
         std::env::var("TARGET").unwrap()
     );
     let target = std::env::var("TARGET").unwrap();
-    #[cfg(feature = "cpp_fallback")]
     {
         let mut build = cc::Build::new();
 
@@ -107,48 +105,48 @@ fn main() {
 
         build
             .include(".")
-            .include("../librii/g3d")
-            .include("../")
-            .include("../vendor")
-            .include("../plate/include")
-            .include("../plate/vendor")
-            .file("../librii/g3d/io/TextureIO.cpp")
-            .file("../librii/g3d/io/AnimIO.cpp")
-            .file("../librii/g3d/io/TevIO.cpp")
-            .file("../librii/g3d/io/NameTableIO.cpp")
-            .file("../librii/g3d/io/DictWriteIO.cpp")
-            .file("../librii/g3d/io/MatIO.cpp")
-            .file("../librii/g3d/io/BoneIO.cpp")
-            .file("../librii/g3d/io/ModelIO.cpp")
-            .file("../librii/g3d/io/ArchiveIO.cpp")
-            .file("../librii/g3d/io/AnimTexPatIO.cpp")
-            .file("../librii/g3d/io/AnimClrIO.cpp")
-            .file("../librii/g3d/io/AnimVisIO.cpp")
-            .file("../librii/g3d/io/PolygonIO.cpp")
-            .file("../librii/g3d/io/AnimChrIO.cpp")
-            .file("../librii/g3d/io/JSON.cpp")
-            .file("../librii/g3d/io/G3dJson.cpp");
+            .include("../../../librii/g3d")
+            .include("../../../")
+            .include("../../../vendor")
+            .include("../../../plate/include")
+            .include("../../../plate/vendor")
+            .file("../../../librii/g3d/io/TextureIO.cpp")
+            .file("../../../librii/g3d/io/AnimIO.cpp")
+            .file("../../../librii/g3d/io/TevIO.cpp")
+            .file("../../../librii/g3d/io/NameTableIO.cpp")
+            .file("../../../librii/g3d/io/DictWriteIO.cpp")
+            .file("../../../librii/g3d/io/MatIO.cpp")
+            .file("../../../librii/g3d/io/BoneIO.cpp")
+            .file("../../../librii/g3d/io/ModelIO.cpp")
+            .file("../../../librii/g3d/io/ArchiveIO.cpp")
+            .file("../../../librii/g3d/io/AnimTexPatIO.cpp")
+            .file("../../../librii/g3d/io/AnimClrIO.cpp")
+            .file("../../../librii/g3d/io/AnimVisIO.cpp")
+            .file("../../../librii/g3d/io/PolygonIO.cpp")
+            .file("../../../librii/g3d/io/AnimChrIO.cpp")
+            .file("../../../librii/g3d/io/JSON.cpp")
+            .file("../../../librii/g3d/io/G3dJson.cpp");
 
         build
-            .file("../rsl/SafeReader.cpp")
-            .file("../rsl/WriteFile.cpp")
-            .file("../rsl/Log.cpp")
-            .file("../oishii/AbstractStream.cxx")
-            .file("../oishii/BreakpointHolder.cxx")
-            .file("../oishii/writer/binary_writer.cxx")
-            .file("../oishii/writer/linker.cxx")
-            .file("../oishii/writer/node.cxx")
-            .file("../oishii/util/util.cxx")
-            .file("../oishii/reader/binary_reader.cxx")
-            .file("../librii/gx/Texture.cpp")
-            .file("../librii/gpu/DLInterpreter.cpp")
-            .file("../librii/gpu/DLPixShader.cpp")
-            .file("../librii/gpu/GPUMaterial.cpp")
-            .file("../vendor/fmt/format.cc")
-            .file("../vendor/fmt/os.cc")
-            .file("../librii/trig/WiiTrig.cpp");
+            .file("../../../rsl/SafeReader.cpp")
+            .file("../../../rsl/WriteFile.cpp")
+            .file("../../../rsl/Log.cpp")
+            .file("../../../oishii/AbstractStream.cxx")
+            .file("../../../oishii/BreakpointHolder.cxx")
+            .file("../../../oishii/writer/binary_writer.cxx")
+            .file("../../../oishii/writer/linker.cxx")
+            .file("../../../oishii/writer/node.cxx")
+            .file("../../../oishii/util/util.cxx")
+            .file("../../../oishii/reader/binary_reader.cxx")
+            .file("../../../librii/gx/Texture.cpp")
+            .file("../../../librii/gpu/DLInterpreter.cpp")
+            .file("../../../librii/gpu/DLPixShader.cpp")
+            .file("../../../librii/gpu/GPUMaterial.cpp")
+            .file("../../../vendor/fmt/format.cc")
+            .file("../../../vendor/fmt/os.cc")
+            .file("../../../librii/trig/WiiTrig.cpp");
 
-        build.compile("brres.a");
+        build.compile("brres-sys.a");
     }
     #[cfg(feature = "run_bindgen")]
     {

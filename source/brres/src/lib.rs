@@ -5,8 +5,8 @@ use std::io::BufReader;
 
 mod buffers;
 mod enums;
-mod ffi;
 
+use brres_sys::ffi;
 use enums::*;
 
 use bytemuck;
@@ -1057,6 +1057,8 @@ pub fn write_raw_brres(archive: &Archive) -> anyhow::Result<Vec<u8>> {
 
     let ffi_obj = ffi::CBrresWrapper::write_bytes(&json, &blob)?;
 
+    // This is a copy we could avoid by returning the CBrresWrapper iteslf--but this
+    // avoids exposing a dependency and keeps the API simple.
     Ok(ffi_obj.buffer_data.to_vec())
 }
 

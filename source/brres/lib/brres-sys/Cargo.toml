@@ -1,5 +1,5 @@
 [package]
-name = "brres"
+name = "brres-sys"
 license = "MIT"
 version = "0.1.0"
 edition = "2021"
@@ -12,18 +12,16 @@ readme = "README.md"
 exclude=["/tests"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[features]
-# Enabled only for development
-default = ["c_api"]
-c_api = []
-
 [lib]
 crate-type=["cdylib", "lib", "staticlib"]
 
+[build-dependencies]
+bindgen = { version = "0.66", optional = true }
+cc = { version = "1.0.83", features = ["parallel"] }
+glob = "0.3.1"
+
+
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-anyhow = "1.0.86"
-bytemuck = "1.16.0"
-brres-sys = { path = "./lib/brres-sys" }
 gctex = "0.3.7"
+wiitrig = "0.0.1"
+anyhow = "1.0.86"
