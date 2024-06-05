@@ -101,6 +101,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bindgen 0.66.1",
+ "bytemuck",
  "cc",
  "gctex",
  "glob",
@@ -110,6 +111,12 @@ dependencies = [
  "simple_logger",
  "wiitrig",
 ]
+
+[[package]]
+name = "bytemuck"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78834c15cb5d5efe3452d58b1e8ba890dd62d21907f867f383358198e56ebca5"
 
 [[package]]
 name = "byteorder"

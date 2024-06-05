@@ -1,4 +1,4 @@
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TevKColorSel {
     const_8_8,
     const_7_8,
@@ -30,7 +30,7 @@ pub enum TevKColorSel {
     k3_a,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TevColorArg {
     cprev,
     aprev,
@@ -50,7 +50,7 @@ pub enum TevColorArg {
     zero,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TevColorOp {
     add,
     subtract,
@@ -64,14 +64,14 @@ pub enum TevColorOp {
     comp_rgb8_eq,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TevBias {
     zero,
     add_half,
     sub_half,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TevScale {
     scale_1,
     scale_2,
@@ -79,7 +79,7 @@ pub enum TevScale {
     divide_2,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TevReg {
     prev = 0,
     reg0,
@@ -88,7 +88,7 @@ pub enum TevReg {
     // reg3 = 0, // prev
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TevAlphaArg {
     aprev,
     a0,
@@ -100,7 +100,7 @@ pub enum TevAlphaArg {
     zero,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TevAlphaOp {
     add,
     subtract,
@@ -114,7 +114,7 @@ pub enum TevAlphaOp {
     comp_a8_eq,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TevKAlphaSel {
     const_8_8,
     const_7_8,
@@ -146,7 +146,7 @@ pub enum TevKAlphaSel {
     k3_a,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum IndTexFormat {
     _8bit,
     _5bit,
@@ -154,7 +154,7 @@ pub enum IndTexFormat {
     _3bit,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum IndTexBiasSel {
     none,
     s,
@@ -166,7 +166,7 @@ pub enum IndTexBiasSel {
     stu,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TexGenType {
     Matrix3x4,
     Matrix2x4,
@@ -181,7 +181,7 @@ pub enum TexGenType {
     SRTG,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum CommonTransformModel {
     Default,
     Maya,
@@ -189,7 +189,7 @@ pub enum CommonTransformModel {
     XSI,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum CommonMappingMethod {
     Standard,
     EnvironmentMapping,
@@ -201,28 +201,28 @@ pub enum CommonMappingMethod {
     ManualEnvironmentMapping,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum CommonMappingOption {
     NoSelection,
     DontRemapTextureSpace,
     KeepTranslation,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TextureWrapMode {
     Clamp,
     Repeat,
     Mirror,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum AnisotropyLevel {
     x1,
     x2,
     x4,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TextureFilter {
     Near,
     Linear,
@@ -232,13 +232,13 @@ pub enum TextureFilter {
     lin_mip_lin,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ColorSource {
     Register,
     Vertex,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum LightID {
     None = 0,
     Light0 = 0x001,
@@ -251,14 +251,14 @@ pub enum LightID {
     Light7 = 0x080,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum DiffuseFunction {
     None,
     Sign,
     Clamp,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum AttenuationFunction {
     Specular,
     Spotlight,
@@ -266,7 +266,7 @@ pub enum AttenuationFunction {
     None2,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TexGenSrc {
     Position,
     Normal,
@@ -291,7 +291,7 @@ pub enum TexGenSrc {
     Color1,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TexMatrix {
     Identity = 60,
     TexMatrix0 = 30,
@@ -306,7 +306,7 @@ pub enum TexMatrix {
     TexMatrix9 = 57,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum CullMode {
     None,
     Front,
@@ -314,14 +314,14 @@ pub enum CullMode {
     All,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum IndTexAlphaSel {
     off,
     s,
     t,
     u,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum IndTexMtxID {
     off,
     _0,
@@ -337,7 +337,7 @@ pub enum IndTexMtxID {
     t2,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum IndTexWrap {
     off,
     _256,
@@ -350,7 +350,7 @@ pub enum IndTexWrap {
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ColorSelChanApi {
     color0,
     color1,
@@ -365,7 +365,7 @@ pub enum ColorSelChanApi {
     null = 0xFF,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum PostTexMatrix {
     Matrix0 = 64,
     Matrix1 = 67,

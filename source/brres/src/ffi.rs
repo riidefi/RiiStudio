@@ -1,8 +1,5 @@
 use anyhow::bail;
-use gctex;
-use std::ffi::CStr;
 use std::ptr;
-use wiitrig;
 
 #[allow(non_upper_case_globals)]
 #[allow(non_camel_case_types)]
@@ -90,6 +87,8 @@ pub mod c_api {
     use crate::*;
     use core::ffi::c_char;
     use core::ffi::CStr;
+    use gctex;
+    use wiitrig;
 
     use simple_logger::SimpleLogger;
 

@@ -9,7 +9,9 @@ mod ffi;
 
 use enums::*;
 
-#[derive(Serialize, Deserialize, Debug)]
+use bytemuck;
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONMatrixWeight {
     bone_id: u32,
     weight: f32,
@@ -24,7 +26,7 @@ impl Default for JSONMatrixWeight {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONDrawMatrix {
     weights: Vec<JSONMatrixWeight>,
 }
@@ -37,7 +39,7 @@ impl Default for JSONDrawMatrix {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONModelInfo {
     scaling_rule: String,
     texmtx_mode: String,
@@ -56,7 +58,7 @@ impl Default for JSONModelInfo {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct JsonMesh {
     clr_buffer: Vec<String>,
     current_matrix: i32,
@@ -69,14 +71,14 @@ struct JsonMesh {
     visible: bool,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct JsonPrimitive {
     matrices: Vec<i32>,
     num_prims: i32,
     vertexDataBufferId: i32,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct JsonModel {
     name: String,
     info: JSONModelInfo,
@@ -90,7 +92,7 @@ struct JsonModel {
     texcoords: Vec<JsonBufferData>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct JsonBufferData {
     dataBufferId: i32,
     id: i32,
@@ -101,7 +103,7 @@ struct JsonBufferData {
     q_type: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 struct PositionBuffer {
     id: i32,
     name: String,
@@ -109,10 +111,10 @@ struct PositionBuffer {
     q_divisor: i32,
     q_stride: i32,
     q_type: i32,
-    data: Vec<(f32, f32, f32)>,
+    data: Vec<[f32; 3]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 struct NormalBuffer {
     id: i32,
     name: String,
@@ -120,10 +122,10 @@ struct NormalBuffer {
     q_divisor: i32,
     q_stride: i32,
     q_type: i32,
-    data: Vec<(f32, f32, f32)>,
+    data: Vec<[f32; 3]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 struct ColorBuffer {
     id: i32,
     name: String,
@@ -134,7 +136,7 @@ struct ColorBuffer {
     data: Vec<[u8; 4]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 struct TextureCoordinateBuffer {
     id: i32,
     name: String,
@@ -142,7 +144,7 @@ struct TextureCoordinateBuffer {
     q_divisor: i32,
     q_stride: i32,
     q_type: i32,
-    data: Vec<(f32, f32)>,
+    data: Vec<[f32; 2]>,
 }
 
 impl PositionBuffer {
@@ -150,9 +152,10 @@ impl PositionBuffer {
         let data = buffers
             .get(buffer_data.dataBufferId as usize)
             .expect("Invalid buffer ID");
-        let elem_count = data.len() / std::mem::size_of::<(f32, f32, f32)>();
-        let data: Vec<(f32, f32, f32)> = unsafe {
-            std::slice::from_raw_parts(data.as_ptr() as *const (f32, f32, f32), elem_count).to_vec()
+        let elem_count = data.len() / std::mem::size_of::<[f32; 3]>();
+        assert!(std::mem::size_of::<[f32; 3]>() == 12);
+        let data: Vec<[f32; 3]> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 3], elem_count).to_vec()
         };
 
         Self {
@@ -172,9 +175,9 @@ impl NormalBuffer {
         let data = buffers
             .get(buffer_data.dataBufferId as usize)
             .expect("Invalid buffer ID");
-        let elem_count = data.len() / std::mem::size_of::<(f32, f32, f32)>();
-        let data: Vec<(f32, f32, f32)> = unsafe {
-            std::slice::from_raw_parts(data.as_ptr() as *const (f32, f32, f32), elem_count).to_vec()
+        let elem_count = data.len() / std::mem::size_of::<[f32; 3]>();
+        let data: Vec<[f32; 3]> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 3], elem_count).to_vec()
         };
 
         Self {
@@ -216,9 +219,9 @@ impl TextureCoordinateBuffer {
         let data = buffers
             .get(buffer_data.dataBufferId as usize)
             .expect("Invalid buffer ID");
-        let elem_count = data.len() / std::mem::size_of::<(f32, f32)>();
-        let data: Vec<(f32, f32)> = unsafe {
-            std::slice::from_raw_parts(data.as_ptr() as *const (f32, f32), elem_count).to_vec()
+        let elem_count = data.len() / std::mem::size_of::<[f32; 2]>();
+        let data: Vec<[f32; 2]> = unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const [f32; 2], elem_count).to_vec()
         };
 
         Self {
@@ -233,7 +236,7 @@ impl TextureCoordinateBuffer {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct JsonTexture {
     dataBufferId: i32,
     format: u32,
@@ -246,7 +249,7 @@ struct JsonTexture {
     width: u32,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct JsonArchive {
     chrs: Vec<serde_json::Value>,
     clrs: Vec<serde_json::Value>,
@@ -277,7 +280,7 @@ mod tests3 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Archive {
     pub models: Vec<Model>,
     pub textures: Vec<Texture>,
@@ -329,7 +332,7 @@ impl Archive {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MatrixPrimitive {
     /// Indices into a `Model`'s `matrices` list.
     ///
@@ -395,7 +398,7 @@ impl MatrixPrimitive {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Mesh {
     pub name: String,
 
@@ -437,7 +440,7 @@ impl Mesh {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Model {
     pub name: String,
     pub info: JSONModelInfo,
@@ -493,7 +496,7 @@ impl Model {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
     pub name: String,
 
@@ -598,14 +601,14 @@ impl Texture {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONDrawCall {
     material: u32,
     poly: u32,
     prio: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONBoneData {
     name: String,
     ssc: bool,
@@ -646,7 +649,7 @@ impl Default for JSONBoneData {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct Color {
     r: u8,
     g: u8,
@@ -654,7 +657,7 @@ struct Color {
     a: u8,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct ColorS10 {
     r: i16,
     g: i16,
@@ -662,7 +665,7 @@ struct ColorS10 {
     a: i16,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONColorStage {
     constantSelection: TevKColorSel,
     a: TevColorArg,
@@ -676,7 +679,7 @@ struct JSONColorStage {
     out: TevReg,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONAlphaStage {
     a: TevAlphaArg,
     b: TevAlphaArg,
@@ -690,7 +693,7 @@ struct JSONAlphaStage {
     out: TevReg,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONIndirectStage {
     indStageSel: u8,
     format: IndTexFormat,
@@ -703,7 +706,7 @@ struct JSONIndirectStage {
     alpha: IndTexAlphaSel,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONTevStage {
     rasOrder: ColorSelChanApi,
     texMap: u8,
@@ -715,7 +718,7 @@ struct JSONTevStage {
     indirectStage: JSONIndirectStage,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONTexMatrix {
     projection: TexGenType,
     scale: (f32, f32),
@@ -729,7 +732,7 @@ struct JSONTexMatrix {
     lightIdx: i8,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONSamplerData {
     mTexture: String,
     mPalette: String,
@@ -744,7 +747,7 @@ struct JSONSamplerData {
     btiId: u16,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONChannelControl {
     enabled: bool,
     Ambient: ColorSource,
@@ -754,13 +757,13 @@ struct JSONChannelControl {
     attenuationFn: AttenuationFunction,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONChannelData {
     matColor: Color,
     ambColor: Color,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONTexCoordGen {
     func: TexGenType,
     sourceParam: TexGenSrc,
@@ -769,7 +772,7 @@ struct JSONTexCoordGen {
     postMatrix: PostTexMatrix,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct JSONMaterial {
     flag: u32,
     id: u32,
@@ -786,6 +789,169 @@ struct JSONMaterial {
     tevColors: [ColorS10; 4],
     earlyZComparison: bool,
     mStages: Vec<JSONTevStage>, // Max 16
+}
+
+struct JsonWriteCtx {
+    buffers: Vec<Vec<u8>>,
+}
+
+impl JsonWriteCtx {
+    fn new() -> Self {
+        JsonWriteCtx {
+            buffers: Vec::new(),
+        }
+    }
+
+    fn save_buffer_with_move(&mut self, buf: Vec<u8>) -> usize {
+        self.buffers.push(buf);
+        self.buffers.len() - 1
+    }
+
+    fn save_buffer_with_copy<T: AsRef<[u8]>>(&mut self, buf: T) -> usize {
+        let tmp: Vec<u8> = buf.as_ref().to_vec();
+        self.save_buffer_with_move(tmp)
+    }
+}
+
+impl PositionBuffer {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData {
+        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
+
+        JsonBufferData {
+            dataBufferId: buffer_id as i32,
+            id: self.id,
+            name: self.name.clone(),
+            q_comp: self.q_comp,
+            q_divisor: self.q_divisor,
+            q_stride: self.q_stride,
+            q_type: self.q_type,
+        }
+    }
+}
+
+impl NormalBuffer {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData {
+        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
+
+        JsonBufferData {
+            dataBufferId: buffer_id as i32,
+            id: self.id,
+            name: self.name.clone(),
+            q_comp: self.q_comp,
+            q_divisor: self.q_divisor,
+            q_stride: self.q_stride,
+            q_type: self.q_type,
+        }
+    }
+}
+
+impl ColorBuffer {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData {
+        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
+
+        JsonBufferData {
+            dataBufferId: buffer_id as i32,
+            id: self.id,
+            name: self.name.clone(),
+            q_comp: self.q_comp,
+            q_divisor: self.q_divisor,
+            q_stride: self.q_stride,
+            q_type: self.q_type,
+        }
+    }
+}
+
+impl TextureCoordinateBuffer {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonBufferData {
+        let buffer_id = ctx.save_buffer_with_copy(bytemuck::cast_slice(&self.data));
+
+        JsonBufferData {
+            dataBufferId: buffer_id as i32,
+            id: self.id,
+            name: self.name.clone(),
+            q_comp: self.q_comp,
+            q_divisor: self.q_divisor,
+            q_stride: self.q_stride,
+            q_type: self.q_type,
+        }
+    }
+}
+
+impl MatrixPrimitive {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonPrimitive {
+        let buffer_id = ctx.save_buffer_with_copy(&self.vertex_data_buffer);
+
+        JsonPrimitive {
+            matrices: self.matrices.clone(),
+            num_prims: self.num_prims,
+            vertexDataBufferId: buffer_id as i32,
+        }
+    }
+}
+
+impl Mesh {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonMesh {
+        JsonMesh {
+            clr_buffer: self.clr_buffer.clone(),
+            current_matrix: self.current_matrix,
+            mprims: self.mprims.iter().map(|p| p.to_json(ctx)).collect(),
+            name: self.name.clone(),
+            nrm_buffer: self.nrm_buffer.clone(),
+            pos_buffer: self.pos_buffer.clone(),
+            uv_buffer: self.uv_buffer.clone(),
+            vcd: self.vcd,
+            visible: self.visible,
+        }
+    }
+}
+
+impl Model {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonModel {
+        JsonModel {
+            name: self.name.clone(),
+            info: self.info.clone(),
+            bones: self.bones.clone(),
+            materials: self.materials.clone(),
+            matrices: self.matrices.clone(),
+            meshes: self.meshes.iter().map(|m| m.to_json(ctx)).collect(),
+            positions: self.positions.iter().map(|p| p.to_json(ctx)).collect(),
+            normals: self.normals.iter().map(|n| n.to_json(ctx)).collect(),
+            colors: self.colors.iter().map(|c| c.to_json(ctx)).collect(),
+            texcoords: self.texcoords.iter().map(|t| t.to_json(ctx)).collect(),
+        }
+    }
+}
+
+impl Texture {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonTexture {
+        let buffer_id = ctx.save_buffer_with_copy(&self.data);
+
+        JsonTexture {
+            dataBufferId: buffer_id as i32,
+            format: self.format,
+            height: self.height,
+            maxLod: self.max_lod,
+            minLod: self.min_lod,
+            name: self.name.clone(),
+            number_of_images: self.number_of_images,
+            width: self.width,
+            sourcePath: "".to_string(),
+        }
+    }
+}
+
+impl Archive {
+    fn to_json(&self, ctx: &mut JsonWriteCtx) -> JsonArchive {
+        JsonArchive {
+            chrs: self.chrs.clone(),
+            clrs: self.clrs.clone(),
+            models: self.models.iter().map(|m| m.to_json(ctx)).collect(),
+            pats: self.pats.clone(),
+            srts: self.srts.clone(),
+            textures: self.textures.iter().map(|t| t.to_json(ctx)).collect(),
+            viss: self.viss.clone(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -821,6 +987,15 @@ pub fn create_archive(json_str: &str, raw_buffer: &[u8]) -> anyhow::Result<Archi
     Ok(Archive::from_json(json_archive, buffers))
 }
 
+pub fn create_json(archive: &Archive) -> anyhow::Result<(String, Vec<u8>)> {
+    let mut ctx = JsonWriteCtx::new();
+    let json_archive = archive.to_json(&mut ctx);
+    let json_str = serde_json::to_string_pretty(&json_archive)?;
+    let blob = buffers::collate_buffers(&ctx.buffers);
+
+    Ok((json_str, blob))
+}
+
 pub fn read_raw_brres(brres: &[u8]) -> anyhow::Result<Archive> {
     let tmp = ffi::CBrresWrapper::from_bytes(brres)?;
 
@@ -848,5 +1023,38 @@ mod tests4 {
                 panic!("Error reading brres file: {:#?}", e);
             }
         }
+    }
+
+    #[test]
+    fn test_validate_json_is_lossless_sea() {
+        // Read the sea.brres file into a byte array
+        let brres_data =
+            fs::read("../../tests/samples/sea.brres").expect("Failed to read sea.brres file");
+
+        // Call the read_raw_brres function to create the initial Archive
+        let initial_archive = read_raw_brres(&brres_data).expect("Failed to read brres file");
+
+        // Convert the initial Archive to a JSON string
+        let (json_str, blob) =
+            create_json(&initial_archive).expect("Failed to create JSON from Archive");
+
+        // Create a new Archive from the JSON string
+        let new_archive =
+            create_archive(&json_str, &blob).expect("Failed to create Archive from JSON");
+
+        // new_archive.models[0].name = "lol".to_string();
+
+        // Compare the initial and new Archives (you might need to implement PartialEq for Archive)
+        assert_eq!(
+            initial_archive, new_archive,
+            "Archives do not match after JSON roundtrip"
+        );
+
+        // Print some debug information if needed
+        println!("{:#?}", initial_archive.get_model("sea").unwrap().meshes[0]);
+        println!(
+            "{:#?}",
+            initial_archive.get_model("sea").unwrap().materials[0]
+        );
     }
 }

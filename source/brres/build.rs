@@ -9,8 +9,7 @@ use std::env;
 use std::path::PathBuf;
 
 use glob;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[cfg(windows)]
 const SEARCH_WINDOWS: &[&str] = &[
@@ -83,6 +82,8 @@ fn main() {
             build.flag("-Wno-unused-parameter");
 
             build.flag("-Wno-sign-compare");
+            build.flag("-Wno-unused-variable");
+            build.flag("-Wno-deprecated-copy");
         }
         if !compiler.is_like_gnu() && !compiler.is_like_clang() {
             #[cfg(not(debug_assertions))]
